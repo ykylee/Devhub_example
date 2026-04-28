@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-04-28",
+  "generated_at": "2026-04-29",
   "source_of_truth": {
     "project_profile_path": "/Users/yklee/repos/Devhub_example_gemini/ai-workflow/project/project_workflow_profile.md",
     "session_handoff_path": "/Users/yklee/repos/Devhub_example_gemini/ai-workflow/project/session_handoff.md",
@@ -8,7 +8,7 @@
     "latest_backlog_path": "/Users/yklee/repos/Devhub_example_gemini/ai-workflow/project/backlog/2026-04-28.md"
   },
   "project": {
-    "project_name": "(신규 프로젝트)",
+    "project_name": "DevHub (Multi-Role Team Hub)",
     "document_home": "README.md",
     "operations_path": "ai-workflow/project/",
     "backlog_path": "ai-workflow/project/backlog/",
@@ -21,23 +21,23 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "빈 저장소",
-    "current_axis": "신규 프로젝트 시작",
-    "current_focus": "TASK-001 신규 프로젝트 초기 정의",
-    "in_progress_items": ["TASK-001"],
+    "current_baseline": "요구사항 정의(개발자/관리자 뷰) 완료",
+    "current_axis": "상세 기획 및 데이터 전략 수립",
+    "current_focus": "TASK-003 데이터 원천 및 연동 전략 논의",
+    "in_progress_items": ["TASK-003"],
     "blocked_items": [],
-    "recent_done_items": [],
+    "recent_done_items": ["TASK-002"],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "/Users/yklee/repos/Devhub_example_gemini/ai-workflow/project/backlog/2026-04-28.md",
-    "task_count": 1,
-    "in_progress_items": ["TASK-001"],
+    "task_count": 2,
+    "in_progress_items": ["TASK-003"],
     "blocked_items": [],
-    "done_items": []
+    "done_items": ["TASK-001", "TASK-002"]
   },
   "next_documents": [
-    "/Users/yklee/repos/Devhub_example_gemini/ai-workflow/project/project_workflow_profile.md",
+    "/Users/yklee/repos/Devhub_example_gemini/ai-workflow/project/requirements.md",
     "/Users/yklee/repos/Devhub_example_gemini/ai-workflow/project/session_handoff.md"
   ]
 }
