@@ -1,0 +1,43 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-04-28",
+  "source_of_truth": {
+    "project_profile_path": "/Users/yklee/repos/Devhub_example_gemini/ai-workflow/project/project_workflow_profile.md",
+    "session_handoff_path": "/Users/yklee/repos/Devhub_example_gemini/ai-workflow/project/session_handoff.md",
+    "work_backlog_index_path": "/Users/yklee/repos/Devhub_example_gemini/ai-workflow/project/work_backlog.md",
+    "latest_backlog_path": "/Users/yklee/repos/Devhub_example_gemini/ai-workflow/project/backlog/2026-04-28.md"
+  },
+  "project": {
+    "project_name": "(신규 프로젝트)",
+    "document_home": "README.md",
+    "operations_path": "ai-workflow/project/",
+    "backlog_path": "ai-workflow/project/backlog/",
+    "handoff_path": "ai-workflow/project/session_handoff.md",
+    "environment_path": "ai-workflow/project/environments/"
+  },
+  "commands": {
+    "quick_tests": null,
+    "isolated_tests": null,
+    "runtime_checks": null
+  },
+  "session": {
+    "current_baseline": "빈 저장소",
+    "current_axis": "신규 프로젝트 시작",
+    "current_focus": "TASK-001 신규 프로젝트 초기 정의",
+    "in_progress_items": ["TASK-001"],
+    "blocked_items": [],
+    "recent_done_items": [],
+    "environment_constraints": []
+  },
+  "backlog": {
+    "latest_backlog_path": "/Users/yklee/repos/Devhub_example_gemini/ai-workflow/project/backlog/2026-04-28.md",
+    "task_count": 1,
+    "in_progress_items": ["TASK-001"],
+    "blocked_items": [],
+    "done_items": []
+  },
+  "next_documents": [
+    "/Users/yklee/repos/Devhub_example_gemini/ai-workflow/project/project_workflow_profile.md",
+    "/Users/yklee/repos/Devhub_example_gemini/ai-workflow/project/session_handoff.md"
+  ]
+}
