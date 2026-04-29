@@ -23,7 +23,7 @@ graph TD
 
     subgraph "Backend Layer (AI/Analysis)"
         PyAI[Python AI Module / FastAPI]
-        GoCore -- "gRPC (ProtoBuf)" --> PyAI
+        GoCore -. "gRPC (ProtoBuf, planned)" .-> PyAI
         PyAI -- "Analysis Result" --> GoCore
     end
 
@@ -47,6 +47,8 @@ graph TD
 ### 3.1 Go Core ↔ Python AI (gRPC)
 - **프로토콜:** gRPC (HTTP/2 기반)
 - **IDL:** Protocol Buffers (.proto)
+- **계약 상태:** 내부 분석 요청/응답의 기본 통신 방식은 gRPC로 확정합니다.
+- **구현 상태:** 현재 스캐폴딩에는 `proto/analysis.proto`, Go/Python 생성 명령, Python gRPC 의존성이 포함되어 있습니다. 다만 `backend-ai/main.py`는 아직 FastAPI HTTP health endpoint만 실행하며, `50051` gRPC 서버와 Go Core client/server 연동은 후속 구현 범위입니다.
 - **선정 이유:** 
     - Go와 Python 간의 고성능 바이너리 통신.
     - 강력한 타입 체크를 통한 인터페이스 정합성 보장.
