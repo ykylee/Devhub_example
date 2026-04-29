@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package analysis;
+
+option go_package = "github.com/devhub/backend-core/proto/analysis";
+
+service AnalysisService {
+  rpc AnalyzeBuildLog (AnalyzeRequest) returns (AnalyzeResponse) {}
+  rpc DetectRisks (RiskRequest) returns (RiskResponse) {}
+}
+
+message AnalyzeRequest {
+  string log_content = 1;
+  string project_id = 2;
+}
+
+message AnalyzeResponse {
+  string summary = 1;
+  repeated string error_patterns = 2;
+  string status = 3;
+}
+
+message RiskRequest {
+  string project_id = 1;
+  repeated string recent_activities = 2;
+}
+
+message RiskResponse {
+  string risk_level = 1;
+  string reasoning = 2;
+  repeated string suggestions = 3;
+}
