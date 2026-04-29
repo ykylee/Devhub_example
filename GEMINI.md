@@ -45,7 +45,7 @@
 
 ## 문서 작업 기준
 
-- 문서 위키 홈: `README.md`
+- 문서 위키 홈: `docs/README.md`
 - 운영 문서 위치: `ai-workflow/project/`
 - backlog 위치: `ai-workflow/project/backlog/`
 - session handoff 위치: `ai-workflow/project/session_handoff.md`

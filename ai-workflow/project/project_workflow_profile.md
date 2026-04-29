@@ -9,7 +9,7 @@
 - 주요 이해관계자: 개발자, PM, PMO, 향후 추가될 QA 및 유관 부서.
 
 ## 2. 문서 구조 (Path)
-- 문서 위키 홈: README.md
+- 문서 위키 홈: docs/README.md
 - 운영 문서 홈: ai-workflow/project/
 - 백로그 위치: ai-workflow/project/backlog/
 - 세션 인계 문서: ai-workflow/project/session_handoff.md

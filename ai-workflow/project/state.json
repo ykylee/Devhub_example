@@ -3,6 +3,8 @@
   "generated_at": "2026-04-29",
   "source_of_truth": {
     "project_profile_path": "/Users/yklee/repos/Devhub_example_gemini/ai-workflow/project/project_workflow_profile.md",
+    "architecture_path": "/Users/yklee/repos/Devhub_example_gemini/docs/architecture.md",
+    "tech_stack_path": "/Users/yklee/repos/Devhub_example_gemini/docs/tech_stack.md",
     "session_handoff_path": "/Users/yklee/repos/Devhub_example_gemini/ai-workflow/project/session_handoff.md",
     "work_backlog_index_path": "/Users/yklee/repos/Devhub_example_gemini/ai-workflow/project/work_backlog.md",
     "latest_backlog_path": "/Users/yklee/repos/Devhub_example_gemini/ai-workflow/project/backlog/2026-04-28.md"
@@ -21,23 +23,23 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "요구사항 정의(개발자/관리자 뷰) 완료",
-    "current_axis": "상세 기획 및 데이터 전략 수립",
-    "current_focus": "TASK-003 데이터 원천 및 연동 전략 논의",
-    "in_progress_items": ["TASK-003"],
+    "current_baseline": "요구사항, 아키텍처 설계 및 초기 프로젝트 스캐폴딩 완료",
+    "current_axis": "Gitea 연동 및 핵심 비즈니스 로직 구현",
+    "current_focus": "TASK-007 Gitea Webhook 수신부 및 데이터 모델링 구현",
+    "in_progress_items": ["TASK-007"],
     "blocked_items": [],
-    "recent_done_items": ["TASK-002"],
+    "recent_done_items": ["TASK-006", "TASK-005", "TASK-003"],
     "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": "/Users/yklee/repos/Devhub_example_gemini/ai-workflow/project/backlog/2026-04-28.md",
-    "task_count": 2,
-    "in_progress_items": ["TASK-003"],
+    "latest_backlog_path": "/Users/yklee/repos/Devhub_example_gemini/ai-workflow/project/backlog/2026-04-29.md",
+    "task_count": 5,
+    "in_progress_items": ["TASK-007"],
     "blocked_items": [],
-    "done_items": ["TASK-001", "TASK-002"]
+    "done_items": ["TASK-001", "TASK-002", "TASK-004", "TASK-003", "TASK-005", "TASK-006"]
   },
   "next_documents": [
-    "/Users/yklee/repos/Devhub_example_gemini/ai-workflow/project/requirements.md",
+    "/Users/yklee/repos/Devhub_example_gemini/docs/requirements.md",
     "/Users/yklee/repos/Devhub_example_gemini/ai-workflow/project/session_handoff.md"
   ]
 }

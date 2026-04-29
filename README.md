@@ -13,6 +13,14 @@
     - **기획자/디자이너:** 요구사항 정의서, 디자인 에셋 링크, 마일스톤 관리.
     - **운영자:** 시스템 모니터링, 장애 전파, 배포 이력 관리.
 
+## 📚 Documentation (Wiki)
+
+모든 개발 관련 문서는 **[Project Wiki (docs/)](./docs/README.md)**에서 확인할 수 있습니다.
+
+- [요구사항 정의서](./docs/requirements.md)
+- [시스템 아키텍처 설계](./docs/architecture.md)
+- [기술 스택 및 환경 설정](./docs/tech_stack.md)
+
 ## 🏗 아키텍처 원칙
 - **Role-Based Routing:** 사용자의 역할에 따라 전용 대시보드로 자동 연결.
 - **Pluggable Features:** 새로운 역할군은 독립된 모듈(Feature)로 개발하여 시스템에 등록하는 방식.

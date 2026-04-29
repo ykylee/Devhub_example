@@ -68,6 +68,6 @@
 
 ## 다음에 읽을 문서
 
-- 프로젝트 프로파일: [./project_workflow_profile.md](./project_workflow_profile.md)
-- 세션 인계 문서: [./session_handoff.md](./session_handoff.md)
-- 도입 분기 가이드: [../core/workflow_adoption_entrypoints.md](../core/workflow_adoption_entrypoints.md)
+- 프로젝트 프로파일: [./project_workflow_profile.md](../ai-workflow/project/project_workflow_profile.md)
+- 세션 인계 문서: [./session_handoff.md](../ai-workflow/project/session_handoff.md)
+- 도입 분기 가이드: [../ai-workflow/core/workflow_adoption_entrypoints.md](../ai-workflow/core/workflow_adoption_entrypoints.md)
