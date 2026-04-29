@@ -9,36 +9,41 @@
 
 ## 2. 시스템 컴포넌트 구조
 
+상태 표기 기준:
+- `current`: 현재 스캐폴딩 또는 health endpoint 수준으로 존재하는 구성
+- `planned`: 아키텍처 계약은 확정되었지만 아직 구현 전인 구성
+- `external`: DevHub 외부 시스템 또는 연동 대상
+
 ```mermaid
 graph TD
     subgraph "Frontend Layer"
-        NextJS[Next.js App / React 19]
+        NextJS[Next.js App / React 19<br/>current: scaffold]
     end
 
     subgraph "Backend Layer (Core)"
-        GoCore[Go Core Service / Gin]
-        GoCore -- "Auth/Business Logic" --> NextJS
-        GoCore -- "WebSocket/SSE" --> NextJS
+        GoCore[Go Core Service / Gin<br/>current: /health]
+        GoCore -- "planned: Auth/Business Logic" --> NextJS
+        GoCore -- "planned: WebSocket/SSE" --> NextJS
     end
 
     subgraph "Backend Layer (AI/Analysis)"
-        PyAI[Python AI Module / FastAPI]
-        GoCore -. "gRPC (ProtoBuf, planned)" .-> PyAI
-        PyAI -- "Analysis Result" --> GoCore
+        PyAI[Python AI Module / FastAPI<br/>current: /health]
+        GoCore -. "planned: gRPC (ProtoBuf)" .-> PyAI
+        GoCore -- "planned: Analysis Request/Context" --> PyAI
+        PyAI -- "planned: Analysis Result" --> GoCore
     end
 
     subgraph "Data Layer"
-        PG[(PostgreSQL)]
-        GoCore -- "SQL/JSONB" --> PG
-        PyAI -- "Query Logs/Metrics" --> PG
+        PG[(PostgreSQL<br/>current: compose service)]
+        GoCore -- "planned: SQL/JSONB" --> PG
     end
 
     subgraph "External Integration"
-        Gitea[Gitea Server]
-        Gitea -- "Webhook (Events)" --> GoCore
-        GoCore -- "REST API / Actions Control" --> Gitea
-        GiteaRunner[Gitea Runner]
-        GoCore -- "Health/Config" --> GiteaRunner
+        Gitea[Gitea Server<br/>external]
+        Gitea -- "planned: Webhook Events" --> GoCore
+        GoCore -- "planned: REST API / Actions Control" --> Gitea
+        GiteaRunner[Gitea Runner<br/>external]
+        GoCore -- "planned: Health/Config" --> GiteaRunner
     end
 ```
 
@@ -49,6 +54,8 @@ graph TD
 - **IDL:** Protocol Buffers (.proto)
 - **계약 상태:** 내부 분석 요청/응답의 기본 통신 방식은 gRPC로 확정합니다.
 - **구현 상태:** 현재 스캐폴딩에는 `proto/analysis.proto`, Go/Python 생성 명령, Python gRPC 의존성이 포함되어 있습니다. 다만 `backend-ai/main.py`는 아직 FastAPI HTTP health endpoint만 실행하며, `50051` gRPC 서버와 Go Core client/server 연동은 후속 구현 범위입니다.
+- **데이터 접근 경계:** 초기 구현에서 Python AI는 PostgreSQL에 직접 접근하지 않습니다. Go Core가 Gitea 이벤트, 로그, 메트릭, 권한 필터링을 처리한 뒤 필요한 분석 입력만 gRPC로 전달합니다.
+- **확장 가능성:** 대용량 분석이나 배치 처리가 필요해질 경우 Python AI의 읽기 전용 DB 접근 또는 분석 전용 view/replica를 후속 아키텍처로 검토합니다.
 - **선정 이유:** 
     - Go와 Python 간의 고성능 바이너리 통신.
     - 강력한 타입 체크를 통한 인터페이스 정합성 보장.
@@ -65,7 +72,25 @@ graph TD
 - **Webhook:** Gitea의 모든 이벤트를 실시간 수집하여 즉시 반영.
 - **Hourly Pull:** 매 시간 전체 상태를 체크하여 동기화 유실 방지 (Reconciliation).
 
-### 4.2 스토리지 구성
+### 4.2 이벤트 수집 파이프라인
+
+Gitea 이벤트 수집은 다음 파이프라인을 기본으로 합니다.
+
+1. **Receive:** Go Core가 Gitea Webhook 이벤트를 수신.
+2. **Validate:** Webhook secret/signature를 검증하고 이벤트 타입을 식별. 알 수 없는 이벤트 타입도 원본은 저장하되 처리 상태를 구분.
+3. **Persist Raw Event:** payload 원문을 JSONB로 저장하고 event type, delivery id 또는 dedupe key, repository, sender, received_at, processed_at, status를 함께 기록.
+4. **Normalize:** 이슈, PR, commit, build, runner 상태 등 도메인 테이블로 정규화.
+5. **Apply Domain Update:** 프로젝트/저장소/사용자/권한/상태 테이블을 갱신.
+6. **Request Analysis:** 필요한 경우 Go Core가 권한 필터링을 거친 분석 입력을 Python AI에 gRPC로 전달.
+7. **Publish Update:** 프론트엔드 실시간 채널에 상태 변경을 전달.
+
+중복 처리는 Gitea delivery id를 우선 idempotency key로 사용합니다. delivery id가 없는 이벤트는 event type, repository id/name, payload hash를 조합한 보조 key를 사용하며, 같은 key는 중복 삽입 또는 중복 처리하지 않습니다.
+
+처리 상태는 `received`, `validated`, `processed`, `failed`, `ignored`를 기본으로 하며, 실패 시 실패 사유와 retry count를 기록합니다. 반복 실패 이벤트는 수동 확인 또는 `ignored` 상태로 전환해 재처리 루프를 방지합니다.
+
+Hourly Pull reconciliation은 Webhook 누락을 보완하는 동기화 경로이며, 가능한 한 Webhook과 동일한 정규화/갱신 경로를 사용합니다. Pull 결과가 기존 상태와 충돌하면 요구사항 문서의 데이터 상충 정책에 따라 사용자 알림 및 PL read-only 노출 기준을 적용합니다.
+
+### 4.3 스토리지 구성
 - **PostgreSQL:**
     - 정형 데이터: 사용자, 프로젝트, 권한, 저장소 매핑.
     - 비정형 데이터(JSONB): Gitea 원본 웹훅 이벤트, AI 분석 리포트 요약.

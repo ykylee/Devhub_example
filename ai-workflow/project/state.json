@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-04-29",
+  "generated_at": "2026-04-30",
   "source_of_truth": {
     "project_profile_path": "ai-workflow/project/project_workflow_profile.md",
     "architecture_path": "docs/architecture.md",
@@ -24,21 +24,22 @@
   },
   "session": {
     "current_baseline": "요구사항, 아키텍처 설계 및 초기 프로젝트 스캐폴딩 완료",
-    "current_axis": "Gitea 연동 및 핵심 비즈니스 로직 구현 준비",
-    "current_focus": "TASK-007 Gitea Webhook 수신부 및 데이터 모델링 구현",
-    "in_progress_items": [],
+    "current_axis": "핵심 개발 문서 집중 리뷰 후 Gitea 연동 구현 준비",
+    "current_focus": "TASK-009 핵심 개발 문서 집중 리뷰",
+    "in_progress_items": ["TASK-009"],
     "blocked_items": [],
     "recent_done_items": ["TASK-008", "TASK-006", "TASK-005", "TASK-004", "TASK-003"],
     "environment_constraints": ["protoc, Node dependencies, Docker daemon are required for full local validation"]
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/project/backlog/2026-04-29.md",
-    "task_count": 7,
-    "in_progress_items": [],
+    "task_count": 8,
+    "in_progress_items": ["TASK-009"],
     "blocked_items": [],
     "done_items": ["TASK-002", "TASK-004", "TASK-003", "TASK-005", "TASK-006", "TASK-008"]
   },
   "next_documents": [
+    "ai-workflow/project/core_docs_review_plan.md",
     "docs/requirements.md",
     "docs/architecture.md",
     "docs/tech_stack.md",
