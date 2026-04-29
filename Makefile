@@ -6,7 +6,7 @@ proto:
 
 setup:
 	cd backend-core && go mod tidy
-	cd backend-ai && pip install -r requirements.txt
+	cd backend-ai && python3 -m pip install -r requirements.txt
 	cd frontend && npm install
 
 build:

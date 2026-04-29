@@ -1,1 +1,4 @@
-fastapi\nuvicorn\ngrpcio\ngrpcio-tools
+fastapi
+uvicorn
+grpcio
+grpcio-tools
