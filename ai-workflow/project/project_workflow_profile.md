@@ -16,23 +16,23 @@
 - 환경 기록 위치: ai-workflow/project/environments/
 
 ## 3. 기본 명령 (Commands)
-- 설치: (프로젝트 스택 결정 후 입력)
-- 로컬 실행: (프로젝트 스택 결정 후 입력)
-- 빠른 테스트: (프로젝트 스택 결정 후 입력)
-- 격리 테스트: (프로젝트 스택 결정 후 입력)
-- 실행 확인: (프로젝트 스택 결정 후 입력)
+- 설치: `make init`
+- 로컬 실행: `make run`
+- 빠른 테스트: `cd backend-core && go test ./...`
+- 격리 테스트: `pytest ai-workflow/tests/ && cd frontend && npm run lint`
+- 실행 확인: `make build`
 
 ## 4. 검증 포인트 (Validation)
-- 코드 변경: <테스트/리뷰 필수 사항>
-- 문서 변경: <링크/메타데이터 정합성 기준>
-- UI 변경: <시각적 검증 및 브라우저 확인 기준>
-- 배포/운영: <릴리즈 승인 및 롤백 절차>
+- 코드 변경: 관련 서비스 테스트 및 `make build` 확인. Go 변경은 `cd backend-core && go test ./...` 실행.
+- 문서 변경: workflow 상태 문서(`state.json`, `session_handoff.md`, 최신 backlog)와 링크 정합성 확인.
+- UI 변경: `cd frontend && npm run lint` 및 브라우저 확인.
+- 배포/운영: Docker Compose 구성과 환경 변수(`GITEA_URL`, `GITEA_TOKEN`) 확인 후 실행.
 
 ## 5. 예외 규칙 (Policy)
-- 병합: <상태 문서 충돌 시 해결 우선순위>
-- 승인: <특정 변경 시 필수 승인권자>
-- 제약: <환경적/보안적 제약 사항>
-- 기타: <프로젝트 특유의 컨벤션>
+- 병합: 상태 문서 충돌 시 최신 backlog, `session_handoff.md`, `state.json` 순서로 대조해 동기화한다.
+- 승인: 외부 시스템 연동, 인증/권한, 데이터 보존 정책 변경은 사용자 확인 후 진행한다.
+- 제약: 전체 로컬 검증에는 `protoc`, Node 의존성, Docker daemon 실행이 필요하다.
+- 기타: `ai-workflow/`는 workflow 메타 레이어로 취급하고, 프로젝트 코드 탐색 기본 범위에서는 제외한다.
 
 ## 다음에 읽을 문서
 - [세션 인계 문서](./session_handoff.md)

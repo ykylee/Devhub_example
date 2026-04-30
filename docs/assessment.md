@@ -10,49 +10,49 @@
 ## 1. 요약
 
 - 분석 대상 프로젝트:
-- `Devhub Example Gemini`
+- `DevHub (Multi-Role Team Hub)`
 - 분석 모드:
 - `existing`
 - 추정 기본 스택:
-- `unknown`
+- `Go / Python / Next.js / PostgreSQL / Docker Compose`
 - 감지된 스택 라벨:
-- `없음`
+- `backend-core: Go Gin`, `backend-ai: Python FastAPI`, `frontend: Next.js App Router`, `proto: gRPC/Protocol Buffers`, `database: PostgreSQL`
 
 ## 2. 저장소 구조 관찰
 
 - 상위 디렉터리 항목:
-- `.git, README.md`
+- `.git, README.md, AGENTS.md, Makefile, docker-compose.yml, backend-core, backend-ai, frontend, proto, docs, ai-workflow`
 - 소스 디렉터리 후보:
-- `없음`
+- `backend-core/`, `backend-ai/`, `frontend/`, `proto/`
 - 문서 디렉터리 후보:
-- `없음`
+- `docs/`, `ai-workflow/project/`
 - 테스트 디렉터리 후보:
-- `없음`
+- 현재 명시적 테스트 디렉터리는 제한적이며, Go package test와 frontend lint를 우선 검증 기준으로 사용함.
 
 ## 3. 추정 명령
 
 - 설치:
-- `TODO: 설치 명령 입력`
+- `make init`
 - 로컬 실행:
-- `TODO: 로컬 실행 명령 입력`
+- `make run`
 - 빠른 테스트:
-- `TODO: 빠른 테스트 명령 입력`
+- `cd backend-core && go test ./...`
 - 격리 테스트:
-- `TODO: 격리 테스트 명령 입력`
+- `pytest ai-workflow/tests/ && cd frontend && npm run lint`
 - 실행 확인:
-- `TODO: 실행 확인 명령 입력`
+- `make build`
 
 ## 4. package script 및 경로 샘플
 
 - package script 목록:
-- `없음`
+- `frontend/package.json` 기준 `dev`, `build`, `start`, `lint`
 - 분석 중 확인한 경로 샘플:
-- `README.md`
+- `README.md`, `Makefile`, `docker-compose.yml`, `backend-core/main.go`, `backend-ai/main.py`, `frontend/app/page.tsx`, `proto/analysis.proto`, `docs/architecture.md`, `docs/tech_stack.md`
 
 ## 5. 워크플로우 도입 초안
 
 - 추천 문서 위키 홈:
-- `README.md`
+- `docs/README.md`
 - 추천 운영 문서 위치:
 - `ai-workflow/project/`
 - 추천 backlog 위치:
@@ -62,9 +62,9 @@
 
 ## 6. 자동 분석 기반 다음 작업
 
-- 현재 추정 명령과 실제 운영 명령이 일치하는지 확인한다.
-- 기존 문서 체계가 있으면 운영 문서 위치를 그대로 따를지, 별도 워크플로우 디렉터리로 분리할지 결정한다.
-- 빠른 테스트와 실행 확인 기준이 약하면 우선 profile 문서에서 검증 규칙을 먼저 보강한다.
+- `TASK-007`에서 Gitea Webhook 수신 API와 PostgreSQL 데이터 모델을 구현한다.
+- gRPC proto 생성물과 Python gRPC 서버(`50051`) 구현 범위를 별도 작업으로 추적한다.
+- Docker daemon, Node 의존성, protoc 설치 여부에 따라 `make init`, `make build`, frontend lint 검증을 순차 실행한다.
 
 ## 다음에 읽을 문서
 
