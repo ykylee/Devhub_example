@@ -14,7 +14,7 @@
 
 - 진행 중 (In Progress): 없음
 - 대기 중 (Pending): TASK-007 Gitea Webhook 수신부 및 데이터 모델링 구현
-- 최근 완료 (Done): TASK-009 핵심 개발 문서 집중 리뷰, TASK-008 개발 문서 리뷰 결과 정리 및 수정, TASK-006 프로젝트 초기 스캐폴딩 완료 (Go/Python/Next.js), TASK-005 전체 기술 스택 확정, TASK-004 뷰 공존 정책 반영, TASK-003 데이터 원천 및 연동 전략 확정
+- 최근 완료 (Done): TASK-010 개발 문서 리뷰 결과 정리 및 수정, TASK-009 핵심 개발 문서 집중 리뷰, TASK-008 프론트엔드 초기 UI/UX 프로토타이핑, TASK-006 프로젝트 초기 스캐폴딩 완료 (Go/Python/Next.js), TASK-005 전체 기술 스택 확정, TASK-004 뷰 공존 정책 반영, TASK-003 데이터 원천 및 연동 전략 확정
 
 ## 3. 잔여 작업 우선순위
 

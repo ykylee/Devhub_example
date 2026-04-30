@@ -28,15 +28,15 @@
     "current_focus": "TASK-007 Gitea Webhook 수신부 및 데이터 모델링 구현",
     "in_progress_items": [],
     "blocked_items": [],
-    "recent_done_items": ["TASK-009", "TASK-008", "TASK-006", "TASK-005", "TASK-004"],
+    "recent_done_items": ["TASK-010", "TASK-009", "TASK-008", "TASK-006", "TASK-005"],
     "environment_constraints": ["protoc, Node dependencies, Docker daemon are required for full local validation"]
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/project/backlog/2026-04-29.md",
-    "task_count": 8,
+    "task_count": 9,
     "in_progress_items": [],
     "blocked_items": [],
-    "done_items": ["TASK-002", "TASK-004", "TASK-003", "TASK-005", "TASK-006", "TASK-008", "TASK-009"]
+    "done_items": ["TASK-002", "TASK-003", "TASK-004", "TASK-005", "TASK-006", "TASK-008", "TASK-009", "TASK-010"]
   },
   "next_documents": [
     "docs/architecture.md",
