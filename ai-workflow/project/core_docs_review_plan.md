@@ -1,7 +1,7 @@
 # 핵심 개발 문서 리뷰 계획
 
 - 목적: 요구사항, 아키텍처, 기술 스택 문서를 집중 리뷰하고 수정/결정 사항을 추적한다.
-- 상태: in_progress
+- 상태: done
 - 작성일: 2026-04-29
 - 관련 작업: TASK-009 핵심 개발 문서 집중 리뷰
 - 대상 문서: `docs/requirements.md`, `docs/architecture.md`, `docs/tech_stack.md`
@@ -38,9 +38,9 @@
 - 리뷰 결과:
   - 시스템 관리자 역할은 `5.3`에서 핵심 권한으로 등장하지만 `2. 사용자 역할별 요구사항`에는 별도 역할로 정의되어 있지 않다.
   - 상단 역할별 기능은 모두 `후보` 체크리스트로 남아 있고, 아래 `Agenda`는 `결정 사항`으로 작성되어 있어 확정 범위와 후보 범위가 섞여 보인다.
-  - `기술 태깅`으로 용어를 바꾸기로 한 운영 원칙과 달리 `5.1`에는 `스텔스 전문가 맵` 표현이 다시 등장한다.
+  - `기술 태깅`으로 용어를 바꾸기로 한 운영 원칙과 `5.1`의 전문가 맵 표현을 일치시켰다.
   - 데이터 주권, 조회 권한, 보존 정책, 알림 정책은 방향성은 있으나 역할별 CRUD/조회 권한과 데이터 분류표가 없어 구현 기준으로는 아직 모호하다.
-  - 기술 스택 결정이 요구사항 문서에도 길게 포함되어 있고, `Go / Gin or Echo`처럼 기술 스택 문서의 `Go (Gin)` 확정 표현과 충돌하는 표현이 있다.
+  - 기술 스택 결정은 요구사항 문서에서 요약만 유지하고 상세 계약은 `tech_stack.md`로 위임했다.
 
 ### 3.2 아키텍처 문서 (`docs/architecture.md`)
 
@@ -69,11 +69,11 @@
   - 운영 환경 변수와 비밀값 처리 기준이 과하거나 부족하지 않은가.
 - 리뷰 결과:
   - `make init`, `make build`, `make run` 설명은 현재 `Makefile`과 대체로 일치한다.
-  - `Node.js v20 이상` 문서와 `frontend/Dockerfile`의 `node:22-alpine`은 호환 범위 안이지만, 재현 가능한 기준 버전으로는 느슨하다.
-  - `Python v3.10 이상` 문서와 `backend-ai/Dockerfile`의 `python:3.11-slim`은 호환되지만, `make setup`은 로컬 `python3`를 그대로 사용하므로 로컬 Python이 낮으면 실패할 수 있다.
+  - Node.js와 Python은 Dockerfile 기준 버전과 로컬 최소 버전을 분리해 명시했다.
   - `TanStack Query`, `React Flow`가 확정 스택으로 적혀 있으나 `frontend/package.json`에는 아직 설치되어 있지 않다.
   - `GITEA_TOKEN`은 문서에 필요하다고 되어 있지만 `docker-compose.yml`의 `backend-core` 환경 변수에는 전달되지 않는다.
-  - `50051` 포트는 예정 상태로 표기되어 있으나 `docker-compose.yml`에는 이미 노출되어 있어 현재 동작 포트와 예약 포트의 구분이 필요하다.
+  - `50051` 포트는 Docker Compose와 기술 스택 문서에서 예약 노출 포트로 명시되었다.
+  - DB 마이그레이션 도구와 검증 명령은 `golang-migrate/migrate`와 Makefile 타깃으로 반영 완료되었다.
 
 ## 4. 리뷰 산출물
 
@@ -90,19 +90,19 @@
 | --- | --- | --- | --- | --- | --- |
 | CORE-DOC-001 | done | P1 | `docs/requirements.md` | 시스템 관리자 역할이 기능 요구사항 섹션에는 없고 데이터 연동 섹션에서만 핵심 권한으로 등장함 | `2.4 시스템 관리자` 역할을 추가해 Gitea/Runner/계정/백업/Audit Log 관리 책임을 별도 역할로 명시 |
 | CORE-DOC-002 | done | P1 | `docs/requirements.md` | 상단 역할별 기능은 `후보`, 하단 Agenda는 `결정 사항`이라 MVP/확정/후보 범위가 섞여 보임 | `1.1 요구사항 범위 구분`을 추가해 `확정`, `후보`, `MVP 이후` 상태 정의와 체크박스/Agenda 해석 기준을 명시 |
-| CORE-DOC-003 | planned | P2 | `docs/requirements.md` | `기술 태깅`으로 용어를 바꾸기로 했지만 `스텔스 전문가 맵` 표현이 다시 사용됨 | 용어를 `기술 태깅 기반 전문가 맵`으로 통일 |
+| CORE-DOC-003 | done | P2 | `docs/requirements.md` | `기술 태깅`으로 용어를 바꾸기로 했지만 `스텔스 전문가 맵` 표현이 다시 사용됨 | 용어를 `기술 태깅 기반 전문가 맵`으로 통일 |
 | CORE-DOC-004 | done | P1 | `docs/requirements.md` | 데이터 주권, 조회 권한, 보존, 알림 정책이 방향성 위주라 구현 시 권한/데이터 모델 판단 기준이 부족함 | `4.1 데이터 및 권한 운영 기준` 표를 추가해 데이터 분류별 원천/수정/조회/보존/알림 기준을 명시 |
-| CORE-DOC-005 | planned | P2 | `docs/requirements.md` | 기술 스택 결정이 요구사항 문서와 기술 스택 문서에 중복되고, `Go / Gin or Echo`가 `Go (Gin)` 확정 표현과 충돌함 | 요구사항 문서의 기술 스택 섹션은 결정 요약으로 축소하고 상세 계약은 `tech_stack.md`로 위임 |
+| CORE-DOC-005 | done | P2 | `docs/requirements.md` | 기술 스택 결정이 요구사항 문서와 기술 스택 문서에 중복되고, `Go / Gin or Echo`가 `Go (Gin)` 확정 표현과 충돌함 | 요구사항 문서의 기술 스택 섹션은 결정 요약으로 축소하고 상세 계약은 `tech_stack.md`로 위임 |
 | CORE-DOC-006 | done | P1 | `docs/architecture.md` | 컴포넌트 다이어그램이 현재 구현과 목표 구현을 한 그림에 섞어 보여줌 | 다이어그램 앞에 `current/planned/external` 상태 기준을 추가하고 각 노드/연결 라벨에 구현 상태를 명시 |
 | CORE-DOC-007 | done | P1 | `docs/architecture.md` | Python AI가 PostgreSQL을 직접 조회하는 구조가 Go Core 중심 이벤트 수집 원칙과 충돌할 수 있음 | 초기 구현에서 Python AI의 DB 직접 접근을 금지하고 Go Core를 경유해 분석 입력을 gRPC로 전달하도록 명시 |
-| CORE-DOC-008 | planned | P2 | `docs/architecture.md` | Frontend 실시간 통신이 `WebSocket 또는 SSE`로 남아 있어 기술 스택의 `WebSocket 우선`과 결정 수준이 다름 | 기본값을 WebSocket으로 정하고 SSE는 fallback인지 제외인지 결정 |
+| CORE-DOC-008 | done | P2 | `docs/architecture.md`, `docs/requirements.md` | Frontend 실시간 통신이 `WebSocket 또는 SSE`로 남아 있어 기술 스택의 `WebSocket 우선`과 결정 수준이 다름 | WebSocket을 기본 계약으로 확정하고 SSE는 초기 구현에서 제외, 운영 환경 제약 발생 시 fallback으로 재검토하도록 정리 |
 | CORE-DOC-009 | done | P1 | `docs/architecture.md` | Webhook/Hourly Pull 흐름에 서명 검증, 중복 처리, 실패 재처리, 원본 이벤트 저장 기준이 없음 | `4.2 이벤트 수집 파이프라인`을 추가해 검증, 원본 저장, idempotency, 정규화, 재처리, reconciliation 기준을 명시 |
-| CORE-DOC-010 | planned | P2 | `docs/architecture.md` | 인증, RBAC, Audit Log가 목표만 있고 초기 구현 단위가 분리되지 않음 | Gitea SSO 이전 최소 인증/권한 모델과 시스템 관리자 격리 기준을 단계별로 정리 |
+| CORE-DOC-010 | done | P2 | `docs/architecture.md`, `docs/tech_stack.md`, `docker-compose.yml` | 인증, RBAC, Audit Log가 목표만 있고 초기 구현 단위가 분리되지 않음 | Gitea SSO 이전 최소 인증/권한 모델, 시스템 관리자 격리 기준, Audit Log 최소 필드, `GITEA_WEBHOOK_SECRET` 실행 계약을 단계별로 정리 |
 | CORE-DOC-011 | done | P1 | `docs/tech_stack.md` | TanStack Query와 React Flow가 확정 스택으로 적혀 있지만 `frontend/package.json`에 설치되어 있지 않음 | 확정 스택이지만 현재 scaffold에는 미설치이며 API/인프라 뷰 구현 시점에 추가하는 `도입 예정` 상태로 문서화 |
-| CORE-DOC-012 | planned | P2 | `docs/tech_stack.md` | Node/Python 버전 기준이 Dockerfile, 로컬 실행 명령, 문서 사이에서 재현 가능하게 고정되어 있지 않음 | 기준 버전과 최소 버전을 분리하고 `make setup`의 로컬 런타임 요구를 명시 |
+| CORE-DOC-012 | done | P2 | `docs/tech_stack.md` | Node/Python 버전 기준이 Dockerfile, 로컬 실행 명령, 문서 사이에서 재현 가능하게 고정되어 있지 않음 | Docker 기준 버전과 로컬 최소 버전을 분리하고 `make setup`, `make proto`, 테스트/검증 명령의 로컬 런타임 요구를 명시 |
 | CORE-DOC-013 | done | P1 | `docs/tech_stack.md` | `GITEA_TOKEN`이 필요하다고 문서화되어 있지만 `docker-compose.yml`에는 backend-core 환경 변수로 전달되지 않음 | `docker-compose.yml`의 backend-core 환경 변수에 `GITEA_TOKEN=${GITEA_TOKEN}`을 추가해 문서의 필수 설정과 실행 계약을 일치시킴 |
-| CORE-DOC-014 | planned | P2 | `docs/tech_stack.md` | `50051`은 미구현 예정 포트인데 compose에는 이미 노출되어 있어 현재 동작 포트처럼 보일 수 있음 | 미구현 예약 포트임을 compose 주석/문서에 함께 명시하거나 구현 전까지 노출 제거 검토 |
-| CORE-DOC-015 | planned | P2 | `docs/tech_stack.md` | DB 마이그레이션 도구와 검증 명령이 아직 기술 스택 문서에 없다 | PostgreSQL 모델링 시작 전 migration 도구 후보와 실행 명령을 결정 항목으로 추가 |
+| CORE-DOC-014 | done | P2 | `docs/tech_stack.md`, `docs/architecture.md`, `docker-compose.yml` | `50051`은 미구현 예정 포트인데 compose에는 이미 노출되어 있어 현재 동작 포트처럼 보일 수 있음 | 포트 노출은 유지하되 예약 노출이며 현재 gRPC 서버가 구현 전임을 compose 주석과 문서에 명시 |
+| CORE-DOC-015 | done | P2 | `docs/tech_stack.md`, `Makefile`, `backend-core/migrations/README.md` | DB 마이그레이션 도구와 검증 명령이 아직 기술 스택 문서에 없다 | `golang-migrate/migrate` v4.19.1을 확정하고 `make migrate-tools`, `make migrate-create`, `make migrate-up`, `make migrate-version` 명령을 추가 |
 
 ## 6. 진행 기록
 
@@ -120,6 +120,13 @@
 - 2026-04-30 00:03 KST: `CORE-DOC-009` 검토 및 반영 완료. `docs/architecture.md`에 `4.2 이벤트 수집 파이프라인`을 추가하고 스토리지 구성 섹션을 `4.3`으로 조정함.
 - 2026-04-30 00:03 KST: `CORE-DOC-011` 검토 및 반영 완료. `docs/tech_stack.md`에서 TanStack Query/React Flow를 확정 스택이지만 현재 scaffold에는 미설치인 `도입 예정` 상태로 정리함.
 - 2026-04-30 00:03 KST: `CORE-DOC-013` 반영 완료. `docker-compose.yml`의 backend-core 환경 변수에 `GITEA_TOKEN` 전달을 추가함.
+- 2026-04-30 KST: `CORE-DOC-015` 검토 및 반영 완료. PostgreSQL migration 도구를 `golang-migrate/migrate` v4.19.1로 확정하고 Makefile 타깃과 기술 스택 문서의 실행/검증 명령을 추가함.
+- 2026-04-30 KST: `CORE-DOC-010` 검토 및 반영 완료. 초기 Webhook secret 검증, system admin role 분리, Audit Log 대상/필드, Gitea SSO 후속 단계화를 `docs/architecture.md`에 명시하고 실행 환경에 `GITEA_WEBHOOK_SECRET`을 추가함.
+- 2026-04-30 KST: `CORE-DOC-008` 검토 및 반영 완료. Frontend 실시간 통신 기본 계약을 WebSocket으로 확정하고 SSE는 초기 구현 범위에서 제외함.
+- 2026-04-30 KST: `CORE-DOC-014` 검토 및 반영 완료. `50051`은 유지하되 현재 동작 포트가 아니라 후속 gRPC 서버 구현을 위한 예약 노출 포트임을 명시함.
+- 2026-04-30 KST: `CORE-DOC-003` 검토 및 반영 완료. `docs/requirements.md`의 `스텔스 전문가 맵` 표현을 `기술 태깅 기반 전문가 맵`으로 통일함.
+- 2026-04-30 KST: `CORE-DOC-005` 검토 및 반영 완료. `docs/requirements.md`의 기술 스택 장을 요약 중심으로 축소하고 상세 계약은 `docs/tech_stack.md`로 위임함.
+- 2026-04-30 KST: `CORE-DOC-012` 검토 및 반영 완료. `docs/tech_stack.md`에 Docker 기준 런타임과 로컬 최소 런타임 요구를 분리해 명시함.
 
 ## 7. 완료 기준
 

@@ -6,6 +6,7 @@ services:
     environment:
       - GITEA_URL=${GITEA_URL}
       - GITEA_TOKEN=${GITEA_TOKEN}
+      - GITEA_WEBHOOK_SECRET=${GITEA_WEBHOOK_SECRET}
       - DB_URL=postgres://user:pass@db:5432/devhub
     depends_on:
       - db
@@ -15,7 +16,7 @@ services:
     build: ./backend-ai
     ports:
       - "8000:8000"
-      - "50051:50051" # gRPC
+      - "50051:50051" # reserved for planned gRPC server; not active in current scaffold
 
   frontend:
     build: ./frontend

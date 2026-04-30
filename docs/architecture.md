@@ -23,7 +23,7 @@ graph TD
     subgraph "Backend Layer (Core)"
         GoCore[Go Core Service / Gin<br/>current: /health]
         GoCore -- "planned: Auth/Business Logic" --> NextJS
-        GoCore -- "planned: WebSocket/SSE" --> NextJS
+        GoCore -- "planned: WebSocket" --> NextJS
     end
 
     subgraph "Backend Layer (AI/Analysis)"
@@ -53,7 +53,7 @@ graph TD
 - **프로토콜:** gRPC (HTTP/2 기반)
 - **IDL:** Protocol Buffers (.proto)
 - **계약 상태:** 내부 분석 요청/응답의 기본 통신 방식은 gRPC로 확정합니다.
-- **구현 상태:** 현재 스캐폴딩에는 `proto/analysis.proto`, Go/Python 생성 명령, Python gRPC 의존성이 포함되어 있습니다. 다만 `backend-ai/main.py`는 아직 FastAPI HTTP health endpoint만 실행하며, `50051` gRPC 서버와 Go Core client/server 연동은 후속 구현 범위입니다.
+- **구현 상태:** 현재 스캐폴딩에는 `proto/analysis.proto`, Go/Python 생성 명령, Python gRPC 의존성이 포함되어 있습니다. 다만 `backend-ai/main.py`는 아직 FastAPI HTTP health endpoint만 실행하며, `50051`은 Docker Compose에 예약 노출된 포트일 뿐 실제 gRPC 서버와 Go Core client/server 연동은 후속 구현 범위입니다.
 - **데이터 접근 경계:** 초기 구현에서 Python AI는 PostgreSQL에 직접 접근하지 않습니다. Go Core가 Gitea 이벤트, 로그, 메트릭, 권한 필터링을 처리한 뒤 필요한 분석 입력만 gRPC로 전달합니다.
 - **확장 가능성:** 대용량 분석이나 배치 처리가 필요해질 경우 Python AI의 읽기 전용 DB 접근 또는 분석 전용 view/replica를 후속 아키텍처로 검토합니다.
 - **선정 이유:** 
@@ -63,8 +63,9 @@ graph TD
 
 ### 3.2 Backend ↔ Frontend (REST & WebSocket)
 - **API:** RESTful API (Next.js Data Fetching / TanStack Query)
-- **실시간 통신:** **WebSocket** 또는 **SSE**
+- **실시간 통신:** **WebSocket**을 기본 계약으로 사용합니다.
     - **용도:** Gitea Actions 빌드 상태 실시간 업데이트, 긴급 리스크 알림, 실시간 이슈 액티비티 피드.
+    - **SSE 처리:** SSE는 초기 구현 범위에 포함하지 않습니다. 프록시/운영 환경 제약으로 WebSocket 유지가 어렵다고 확인될 때 별도 fallback으로 재검토합니다.
 
 ## 4. 데이터 전략 (Data Strategy)
 
@@ -108,6 +109,24 @@ Hourly Pull reconciliation은 Webhook 누락을 보완하는 동기화 경로이
 - **시스템 관리자:** 인프라 헬스체크, 알림 임계치 설정, Runner 제어 콘솔.
 
 ## 6. 보안 및 인증
-- **SSO 연동:** Gitea와의 SSO(Single Sign-On) 연동을 통한 통합 인증.
-- **RBAC:** 역할 기반 접근 제어를 통해 시스템 관리 메뉴 격리.
-- **작업 로그:** 모든 관리자 작업(Runner 제어 등)에 대한 Audit Log 기록.
+
+초기 구현은 Gitea Webhook 수집과 시스템 관리자 기능의 오남용 방지를 우선하며, Gitea SSO 통합은 후속 단계로 분리합니다.
+
+### 6.1 초기 구현 범위
+
+- **Webhook 검증:** Gitea Webhook endpoint는 `GITEA_WEBHOOK_SECRET` 기반 signature 검증을 필수로 합니다. 검증 실패 이벤트는 도메인 상태를 변경하지 않으며, 원본 저장 여부는 보안 위험을 고려해 최소 metadata 중심으로 기록합니다.
+- **서비스 간 권한 경계:** 모든 Gitea 이벤트와 외부 API 호출은 Go Core를 먼저 통과합니다. Python AI는 인증/권한 판단을 직접 수행하지 않고, Go Core가 필터링한 분석 입력만 처리합니다.
+- **관리자 접근:** 시스템 관리자 기능은 초기 단계에서 설정 기반 allowlist 또는 seed된 system admin 계정으로 제한합니다. 일반 관리자/PM 권한과 시스템 관리자 권한은 별도 role로 분리합니다.
+- **Audit Log:** Runner 제어, Gitea 계정/조직/권한 변경, 알림 임계치 변경, Webhook 재처리/무시 처리는 Audit Log 기록 대상입니다.
+
+### 6.2 RBAC 단계화
+
+| 단계 | 범위 | 기준 |
+| --- | --- | --- |
+| Phase 1 | Webhook secret 검증, system admin role 분리, 관리자 작업 Audit Log | TASK-007 및 초기 시스템 관리자 기능 구현 기준 |
+| Phase 2 | Gitea 사용자/조직/저장소 권한 동기화, 프로젝트별 role 매핑 | 프로젝트-저장소 매핑과 관리자 대시보드 확장 시점 |
+| Phase 3 | Gitea SSO 연동 기반 통합 인증 | 운영 환경 전환 전 별도 보안 검토 후 도입 |
+
+### 6.3 Audit Log 최소 필드
+
+Audit Log는 최소한 `actor_id`, `actor_role`, `action`, `target_type`, `target_id`, `request_id`, `source_ip`, `result`, `reason`, `created_at`을 기록합니다. Webhook 처리 계열 작업은 `actor_id` 대신 `gitea_delivery_id` 또는 dedupe key를 함께 남겨 재처리 경로를 추적합니다.
