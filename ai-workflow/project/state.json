@@ -25,19 +25,19 @@
     "runtime_checks": "make build"
   },
   "session": {
-    "current_baseline": "요구사항, 아키텍처 설계, 초기 스캐폴딩, Go Core raw Webhook 수집 기반 및 GET /api/v1/events 조회 API 초안 구현 완료",
+    "current_baseline": "요구사항, 아키텍처 설계, 초기 스캐폴딩, Go Core raw Webhook 수집 기반, GET /api/v1/events 조회 API 초안, 홈랩 PostgreSQL migration 적용 검증 완료",
     "current_axis": "Gitea 연동 구현",
     "current_focus": "TASK-007 Gitea Webhook 수신부 및 데이터 모델링 구현",
     "in_progress_items": ["TASK-007"],
-    "blocked_items": ["TASK-007 migration validation"],
+    "blocked_items": [],
     "recent_done_items": ["TASK-009", "TASK-008", "TASK-006", "TASK-005", "TASK-004"],
-    "environment_constraints": ["protoc, Node dependencies, Docker daemon are required for full local validation", "Homelab PostgreSQL 192.168.0.38:5432 is reachable but postgres credential authentication failed after corrected credential retry"]
+    "environment_constraints": ["protoc, Node dependencies, Docker daemon are required for full local validation", "Homelab PostgreSQL 192.168.0.38:5432 devhub DB is reachable and migration version 1 is applied"]
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/project/backlog/2026-05-02.md",
     "task_count": 8,
     "in_progress_items": ["TASK-007"],
-    "blocked_items": ["TASK-007 migration validation"],
+    "blocked_items": [],
     "done_items": ["TASK-002", "TASK-004", "TASK-003", "TASK-005", "TASK-006", "TASK-008", "TASK-009"]
   },
   "next_documents": [

@@ -20,7 +20,7 @@
 | Phase | 상태 | 목표 | 주요 산출물 | 검증 기준 |
 | --- | --- | --- | --- | --- |
 | Phase 1 | done | Go Core 기반 구조 정리 | `internal/config`, `internal/httpapi`, `internal/gitea`, `internal/store` 분리 | `cd backend-core && go test ./...` |
-| Phase 2 | blocked | PostgreSQL 초기 스키마 | `webhook_events` migration | migration 적용 검증 |
+| Phase 2 | done | PostgreSQL 초기 스키마 | `webhook_events` migration | migration 적용 검증 |
 | Phase 3 | done | Gitea Webhook raw 수신부 | `POST /api/v1/integrations/gitea/webhooks`, signature 검증, dedupe 처리 | handler 단위 테스트 |
 | Phase 4 | in_progress | 프론트 연동용 조회 API | `GET /api/v1/events`, repository/issue/PR 조회 API 초안 | API 테스트 및 응답 계약 문서화 |
 | Phase 5 | planned | 도메인 정규화 1차 | repository/user/issue/pull_request/ci_run 테이블 및 정규화 로직 | fixture 기반 정규화 테스트 |
@@ -40,12 +40,12 @@
 - signature 검증, webhook 저장, invalid signature reject, duplicate 처리 단위 테스트를 추가했다.
 - `GET /api/v1/events` raw event 조회 API와 초기 API 계약 문서를 추가했다.
 - validated webhook event 저장 시 `validated_at`을 함께 기록하도록 정리했다.
+- 홈랩 PostgreSQL `devhub` DB에 `webhook_events` migration version 1 적용을 검증했다.
 
 ## 4. 다음 작업 큐
 
 ### P1
 
-- Docker daemon 실행 후 로컬 PostgreSQL 또는 Docker Compose에서 `webhook_events` migration 적용을 검증한다.
 - repository/issue/PR 조회 API 초안을 도메인 정규화 설계와 함께 확정한다.
 - `webhook_events` 상태 전이 기준(`validated` 이후 `processed`, `failed`, `ignored`)을 정리한다.
 
@@ -63,9 +63,8 @@
 
 ## 5. Blocked 항목
 
-- Phase 2 migration 적용 검증:
-  - `docker compose up -d db` 실행 시 Docker daemon socket(`/Users/yklee/.colima/default/docker.sock`) 연결 실패.
-  - 홈랩 PostgreSQL(`192.168.0.38:5432`)은 TCP 연결은 성공했으나 사용자 제공 및 정정된 `postgres` 계정 인증이 모두 실패함. 실제 비밀번호 또는 인증 정책 확인 필요.
+- 현재 백엔드 로드맵 진행을 막는 blocked 항목 없음.
+- 참고: Docker daemon socket(`/Users/yklee/.colima/default/docker.sock`) 연결 실패는 남아 있으나, 홈랩 PostgreSQL로 migration 검증을 완료해 Phase 2 차단은 해제됨.
 
 ## 6. 진척 관리 방식
 
