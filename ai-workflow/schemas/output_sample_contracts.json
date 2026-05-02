@@ -1972,6 +1972,26 @@
         "required_keys": []
       }
     },
+    "smart_context_reader": {
+      "extracted_content": {
+        "allow_null": false,
+        "item_kind": "string",
+        "kind": "list",
+        "required_keys": []
+      },
+      "not_found_symbols": {
+        "allow_null": false,
+        "item_kind": "string",
+        "kind": "list",
+        "required_keys": []
+      },
+      "warnings": {
+        "allow_null": false,
+        "item_kind": "string",
+        "kind": "list",
+        "required_keys": []
+      }
+    },
     "suggest_impacted_docs": {
       "impacted_documents": {
         "allow_null": false,
@@ -2193,6 +2213,10 @@
     "session_start": [
       "recommended_next_action",
       "summary"
+    ],
+    "smart_context_reader": [
+      "extracted_content",
+      "not_found_symbols"
     ],
     "suggest_impacted_docs": [
       "impacted_documents",

@@ -9,9 +9,10 @@ import sys
 from datetime import date
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
+REPO_ROOT = Path(__file__).resolve().parents[2]
+SOURCE_ROOT = REPO_ROOT / "workflow-source"
+if str(SOURCE_ROOT) not in sys.path:
+    sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit.common.workflow_state import refresh_workflow_state_cache
 
@@ -24,6 +25,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-path", required=True)
     parser.add_argument("--latest-backlog-path")
     parser.add_argument("--repository-assessment-path")
+    parser.add_argument("--workspace-root")
     parser.add_argument("--generated-at", default=date.today().isoformat())
     return parser.parse_args()
 
@@ -39,6 +41,7 @@ def main() -> int:
         repository_assessment_path=Path(args.repository_assessment_path).resolve() if args.repository_assessment_path else None,
         output_path=output_path,
         generated_at=args.generated_at,
+        workspace_root=Path(args.workspace_root).resolve() if args.workspace_root else None,
     )
     print(
         json.dumps(

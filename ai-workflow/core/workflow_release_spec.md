@@ -43,10 +43,10 @@
 - `ai-workflow/README.md`
 - `ai-workflow/core/workflow_adoption_entrypoints.md`
 - `ai-workflow/core/workflow_skill_catalog.md`
-- `ai-workflow/project/project_workflow_profile.md`
-- `ai-workflow/project/session_handoff.md`
-- `ai-workflow/project/work_backlog.md`
-- `ai-workflow/project/backlog/YYYY-MM-DD.md`
+- `ai-workflow/memory/PROJECT_PROFILE.md`
+- `ai-workflow/memory/session_handoff.md`
+- `ai-workflow/memory/work_backlog.md`
+- `ai-workflow/memory/backlog/YYYY-MM-DD.md`
 
 하네스 오버레이 레이어 포함 항목:
 
@@ -61,7 +61,22 @@
 
 필요하면 export 시 opt-in 플래그로만 포함한다.
 
-## 4. manifest 최소 필드
+## 4. 릴리스 문서 규격 (Release Documentation)
+
+일관성 있는 릴리스 관리를 위해 아래 템플릿을 필수 사용한다.
+
+- **릴리스 템플릿**: \`templates/release_note_template.md\`
+- **릴리스 명칭**: \`Beta vX.Y.Z\` (정식 릴리스 전에는 반드시 Beta 접두어 사용)
+- **태그 규칙**: \`vX.Y.Z-beta\`
+- **기록 위치**: \`releases/Beta-vX.Y.Z.md\`
+
+릴리스 노트 작성 시 필수 포함 항목:
+- 🚀 기능 추가 (Features)
+- 🛠 버그 수정 및 최적화 (Fixes & Refactoring)
+- 📄 문서 및 가이드 (Docs)
+- 📦 배포 패키지 목록 (Assets)
+
+## 5. manifest 최소 필드
 
 - `harness`
 - `package_name`

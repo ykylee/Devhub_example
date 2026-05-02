@@ -11,14 +11,16 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
+REPO_ROOT = Path(__file__).resolve().parents[2]
+SOURCE_ROOT = REPO_ROOT / "workflow-source"
+if str(SOURCE_ROOT) not in sys.path:
+    sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit import __version__ as WORKFLOW_KIT_VERSION
+from workflow_kit.common.doc_transformer import DocTransformer
 
 
-SUPPORTED_HARNESSES = ("codex", "opencode", "gemini-cli", "pi-dev")
+SUPPORTED_HARNESSES = ("codex", "opencode", "gemini-cli", "pi-dev", "antigravity")
 MINIMAL_CORE_DOCS = (
     "global_workflow_standard.md",
     "workflow_adoption_entrypoints.md",
@@ -87,51 +89,52 @@ def copy_tree(source: Path, destination: Path) -> list[Path]:
 
 def workflow_common_sources() -> list[Path]:
     return [
-        REPO_ROOT / "core" / "global_workflow_standard.md",
-        REPO_ROOT / "core" / "workflow_adoption_entrypoints.md",
-        REPO_ROOT / "core" / "workflow_skill_catalog.md",
-        REPO_ROOT / "core" / "existing_project_onboarding_contract.md",
-        REPO_ROOT / "core" / "workflow_harness_distribution.md",
-        REPO_ROOT / "core" / "workflow_release_spec.md",
-        REPO_ROOT / "core" / "strategic_threads.md",
-        REPO_ROOT / "core" / "maturity_matrix.json",
-        REPO_ROOT / "core" / "automated_repro_scaffold_skill_spec.md",
-        REPO_ROOT / "ai-workflow" / "project" / "phase5_governance_guide.md",
-        REPO_ROOT / "examples" / "end_to_end_skill_demo.md",
-        REPO_ROOT / "mcp" / "read_only_bundle.md",
-        REPO_ROOT / "schemas" / "read_only_harness_mcp_examples.json",
-        REPO_ROOT / "schemas" / "read_only_jsonrpc_fixtures.json",
-        REPO_ROOT / "schemas" / "read_only_transport_descriptors.json",
-        REPO_ROOT / "templates" / "pilot_candidate_checklist.md",
-        REPO_ROOT / "templates" / "pilot_adoption_record_template.md",
-        REPO_ROOT / "harnesses" / "README.md",
+        SOURCE_ROOT / "core" / "global_workflow_standard.md",
+        SOURCE_ROOT / "core" / "workflow_adoption_entrypoints.md",
+        SOURCE_ROOT / "core" / "workflow_skill_catalog.md",
+        SOURCE_ROOT / "core" / "existing_project_onboarding_contract.md",
+        SOURCE_ROOT / "core" / "workflow_harness_distribution.md",
+        SOURCE_ROOT / "core" / "workflow_release_spec.md",
+        SOURCE_ROOT / "core" / "strategic_threads.md",
+        SOURCE_ROOT / "core" / "maturity_matrix.json",
+        SOURCE_ROOT / "core" / "automated_repro_scaffold_skill_spec.md",
+        SOURCE_ROOT / "core" / "phase5_governance_guide.md",
+        SOURCE_ROOT / "examples" / "end_to_end_skill_demo.md",
+        SOURCE_ROOT / "mcp" / "read_only_bundle.md",
+        SOURCE_ROOT / "schemas" / "read_only_harness_mcp_examples.json",
+        SOURCE_ROOT / "schemas" / "read_only_jsonrpc_fixtures.json",
+        SOURCE_ROOT / "schemas" / "read_only_transport_descriptors.json",
+        SOURCE_ROOT / "templates" / "release_note_template.md",
+        SOURCE_ROOT / "templates" / "pilot_candidate_checklist.md",
+        SOURCE_ROOT / "templates" / "pilot_adoption_record_template.md",
+        SOURCE_ROOT / "harnesses" / "README.md",
     ]
 
 
 def minimal_core_sources() -> list[Path]:
-    return [REPO_ROOT / "core" / name for name in MINIMAL_CORE_DOCS]
+    return [SOURCE_ROOT / "core" / name for name in MINIMAL_CORE_DOCS]
 
 
 def global_snippet_source_map() -> dict[str, list[Path]]:
     return {
         "codex": [
-            REPO_ROOT / "global-snippets" / "codex" / "README.md",
-            REPO_ROOT / "global-snippets" / "codex" / "config.toml.snippet",
+            SOURCE_ROOT / "global-snippets" / "codex" / "README.md",
+            SOURCE_ROOT / "global-snippets" / "codex" / "config.toml.snippet",
         ],
         "opencode": [
-            REPO_ROOT / "global-snippets" / "opencode" / "README.md",
-            REPO_ROOT / "global-snippets" / "opencode" / "opencode.global.jsonc",
+            SOURCE_ROOT / "global-snippets" / "opencode" / "README.md",
+            SOURCE_ROOT / "global-snippets" / "opencode" / "opencode.global.jsonc",
         ],
     }
 
 
 def harness_specific_sources(harness: str) -> list[Path]:
-    harness_dir = REPO_ROOT / "harnesses" / harness
+    harness_dir = SOURCE_ROOT / "harnesses" / harness
     sources = [harness_dir / "README.md"]
     apply_guide = harness_dir / "apply_guide.md"
     if apply_guide.exists():
         sources.append(apply_guide)
-    
+
     if harness == "codex":
         return sources
     if harness == "opencode":
@@ -140,13 +143,15 @@ def harness_specific_sources(harness: str) -> list[Path]:
         return sources
     if harness == "pi-dev":
         return sources
+    if harness == "antigravity":
+        return sources
     raise ValueError(f"Unsupported harness: {harness}")
 
 
 def bootstrap_export_sources(harness: str, temp_repo: Path) -> list[Path]:
     args = [
         "python3",
-        str(REPO_ROOT / "scripts" / "bootstrap_workflow_kit.py"),
+        str(SOURCE_ROOT / "scripts" / "bootstrap_workflow_kit.py"),
         "--target-root",
         str(temp_repo),
         "--project-slug",
@@ -193,14 +198,24 @@ def bootstrap_export_sources(harness: str, temp_repo: Path) -> list[Path]:
                 temp_repo / "AGENTS.md",
             ]
         )
+    elif harness == "antigravity":
+        sources.extend(
+            [
+                temp_repo / "ANTIGRAVITY.md",
+            ]
+        )
     return sources
 
 
 def copy_minimal_runtime_docs(bundle_root: Path, package_root: Path) -> list[str]:
     included_files: list[str] = []
+    transformer = DocTransformer()
     for source in minimal_core_sources():
         destination = bundle_root / "ai-workflow" / "core" / source.name
-        copy_file(source, destination)
+        if source.suffix == ".md":
+            transformer.transform_file(source, destination)
+        else:
+            copy_file(source, destination)
         included_files.append(rel(destination, package_root))
     return included_files
 
@@ -208,10 +223,10 @@ def copy_minimal_runtime_docs(bundle_root: Path, package_root: Path) -> list[str
 def recommended_entrypoints_for(harness: str) -> list[str]:
     common = [
         "bundle/ai-workflow/README.md",
-        "bundle/ai-workflow/project/state.json",
-        "bundle/ai-workflow/project/session_handoff.md",
-        "bundle/ai-workflow/project/work_backlog.md",
-        "bundle/ai-workflow/project/project_workflow_profile.md",
+        "bundle/ai-workflow/memory/state.json",
+        "bundle/ai-workflow/memory/session_handoff.md",
+        "bundle/ai-workflow/memory/work_backlog.md",
+        "bundle/ai-workflow/memory/PROJECT_PROFILE.md",
         "bundle/ai-workflow/core/workflow_adoption_entrypoints.md",
         "bundle/ai-workflow/core/workflow_skill_catalog.md",
     ]
@@ -228,21 +243,23 @@ def recommended_entrypoints_for(harness: str) -> list[str]:
         return ["bundle/GEMINI.md"] + common
     if harness == "pi-dev":
         return ["bundle/AGENTS.md"] + common
+    if harness == "antigravity":
+        return ["bundle/ANTIGRAVITY.md"] + common
     raise ValueError(f"Unsupported harness: {harness}")
 
 
 def package_apply_steps_for(harness: str) -> list[str]:
     if harness == "codex":
         return [
-            "압축을 풀고 가능하면 `scripts/apply_harness_update.py` 같은 backup-first updater 로 `bundle/` 내용을 반영한다. 수동 복사를 한다면 기존 파일을 먼저 별도 백업한다.",
+            "압축을 풀고 가능하면 `ai-workflow/scripts/apply_workflow_upgrade.py` 를 사용하여 `bundle/` 내용을 반영한다. 이 스크립트는 버전 비교와 .gitignore 셋업을 자동으로 수행한다.",
             "수동 적용 시 `bundle/AGENTS.md` 와 `bundle/ai-workflow/` 디렉터리를 대상 저장소 루트에 복사한다.",
             "선택적으로 `bundle/.codex/config.toml.example` 내용을 현재 사용자 `~/.codex/config.toml` 에 additive 방식으로 반영할지 검토한다.",
-            "`AGENTS.md` 가 `ai-workflow/project/state.json`, `session_handoff.md`, `work_backlog.md`, `project_workflow_profile.md` 를 먼저 읽도록 유지한다.",
+            "`AGENTS.md` 가 `ai-workflow/memory/state.json`, `session_handoff.md`, `work_backlog.md`, `PROJECT_PROFILE.md` 를 먼저 읽도록 유지한다.",
             "첫 세션에서는 `state.json`, `session_handoff.md`, `work_backlog.md`, 오늘 날짜 backlog 를 실제 저장소 상태로 갱신한다.",
         ]
     if harness == "opencode":
         return [
-            "압축을 풀고 가능하면 `scripts/apply_harness_update.py` 같은 backup-first updater 로 `bundle/` 내용을 반영한다. 수동 복사를 한다면 기존 파일을 먼저 별도 백업한다.",
+            "압축을 풀고 가능하면 `ai-workflow/scripts/apply_workflow_upgrade.py` 를 사용하여 `bundle/` 내용을 반영한다. 이 스크립트는 버전 비교와 .gitignore 셋업을 자동으로 수행한다.",
             "수동 적용 시 `bundle/AGENTS.md`, `bundle/opencode.json`, `bundle/.opencode/`, `bundle/ai-workflow/` 를 대상 저장소 루트에 복사한다.",
             "`opencode.json` 의 instruction 경로와 `.opencode/agents/` 권한 범위가 현재 저장소 운영 방식과 맞는지 검토한다.",
             "메인 오케스트레이터는 `.opencode/agents/workflow-orchestrator.md` 를 기준으로 두고, 직접 도구 호출 없이 worker agent 위임만 수행하는 패턴을 유지한다.",
@@ -251,18 +268,26 @@ def package_apply_steps_for(harness: str) -> list[str]:
         ]
     if harness == "gemini-cli":
         return [
-            "압축을 풀고 가능하면 `scripts/apply_harness_update.py` 같은 backup-first updater 로 `bundle/` 내용을 반영한다. 수동 복사를 한다면 기존 파일을 먼저 별도 백업한다.",
+            "압축을 풀고 가능하면 `ai-workflow/scripts/apply_workflow_upgrade.py` 를 사용하여 `bundle/` 내용을 반영한다. 이 스크립트는 버전 비교와 .gitignore 셋업을 자동으로 수행한다.",
             "수동 적용 시 `bundle/GEMINI.md` 와 `bundle/ai-workflow/` 디렉터리를 대상 저장소 루트에 복사한다.",
-            "`GEMINI.md` 가 `ai-workflow/project/state.json`, `session_handoff.md`, `work_backlog.md`, `project_workflow_profile.md` 를 먼저 읽도록 유지한다.",
+            "`GEMINI.md` 가 `ai-workflow/memory/state.json`, `session_handoff.md`, `work_backlog.md`, `PROJECT_PROFILE.md` 를 먼저 읽도록 유지한다.",
             "Gemini CLI 에서는 `GEMINI.md` 가 시스템 지침보다 우선하므로, 프로젝트 특화 규칙이 이 문서에 잘 반영됐는지 확인한다.",
             "첫 세션에서는 `state.json`, `session_handoff.md`, `work_backlog.md`, 오늘 날짜 backlog 를 실제 저장소 상태로 갱신한다.",
         ]
     if harness == "pi-dev":
         return [
-            "압축을 풀고 가능하면 `scripts/apply_harness_update.py` 같은 backup-first updater 로 `bundle/` 내용을 반영한다. 수동 복사를 한다면 기존 파일을 먼저 별도 백업한다.",
+            "압축을 풀고 가능하면 `ai-workflow/scripts/apply_workflow_upgrade.py` 를 사용하여 `bundle/` 내용을 반영한다. 이 스크립트는 버전 비교와 .gitignore 셋업을 자동으로 수행한다.",
             "수동 적용 시 `bundle/AGENTS.md` 와 `bundle/ai-workflow/` 디렉터리를 대상 저장소 루트에 복사한다.",
-            "`AGENTS.md` 가 `ai-workflow/project/state.json`, `session_handoff.md`, `work_backlog.md`, `project_workflow_profile.md` 를 먼저 읽도록 유지한다.",
+            "`AGENTS.md` 가 `ai-workflow/memory/state.json`, `session_handoff.md`, `work_backlog.md`, `PROJECT_PROFILE.md` 를 먼저 읽도록 유지한다.",
             "Pi Coding Agent 는 루트의 `AGENTS.md` 를 자동으로 시스템 지침에 주입합니다.",
+            "첫 세션에서는 `state.json`, `session_handoff.md`, `work_backlog.md`, 오늘 날짜 backlog 를 실제 저장소 상태로 갱신한다.",
+        ]
+    if harness == "antigravity":
+        return [
+            "압축을 풀고 가능하면 `ai-workflow/scripts/apply_workflow_upgrade.py` 를 사용하여 `bundle/` 내용을 반영한다. 이 스크립트는 버전 비교, .gitignore 셋업, 스테일 파일 정리를 지원한다.",
+            "수동 적용 시 `bundle/ANTIGRAVITY.md` 와 `bundle/ai-workflow/` 디렉터리를 대상 저장소 루트에 복사한다.",
+            "`ANTIGRAVITY.md` 가 `ai-workflow/memory/state.json`, `session_handoff.md`, `work_backlog.md`, `PROJECT_PROFILE.md` 를 먼저 읽도록 유지한다.",
+            "Antigravity 는 루트의 `ANTIGRAVITY.md` 를 시스템 지침에 우선 반영하며, Artifacts 와 Browser sub-agent 를 적극 활용합니다.",
             "첫 세션에서는 `state.json`, `session_handoff.md`, `work_backlog.md`, 오늘 날짜 backlog 를 실제 저장소 상태로 갱신한다.",
         ]
     raise ValueError(f"Unsupported harness: {harness}")
@@ -302,6 +327,9 @@ def render_package_contents(
         "pi-dev": [
             "- `bundle/AGENTS.md`",
         ],
+        "antigravity": [
+            "- `bundle/ANTIGRAVITY.md`",
+        ],
     }[harness]
     source_docs_state = "포함됨" if include_source_docs else "기본 제외"
     global_snippets_state = "포함됨" if include_global_snippets else "기본 제외"
@@ -333,11 +361,11 @@ def render_package_contents(
 - `bundle/ai-workflow/core/global_workflow_standard.md`
 - `bundle/ai-workflow/core/workflow_adoption_entrypoints.md`
 - `bundle/ai-workflow/core/workflow_skill_catalog.md`
-- `bundle/ai-workflow/project/project_workflow_profile.md`
-- `bundle/ai-workflow/project/state.json`
-- `bundle/ai-workflow/project/session_handoff.md`
-- `bundle/ai-workflow/project/work_backlog.md`
-- `bundle/ai-workflow/project/backlog/2026-04-23.md`
+- `bundle/ai-workflow/memory/PROJECT_PROFILE.md`
+- `bundle/ai-workflow/memory/state.json`
+- `bundle/ai-workflow/memory/session_handoff.md`
+- `bundle/ai-workflow/memory/work_backlog.md`
+- `bundle/ai-workflow/memory/backlog/2026-04-23.md`
 
 ## 4. 하네스 runtime overlay 파일
 
@@ -394,38 +422,49 @@ def render_apply_guide(
             "- `bundle/AGENTS.md -> <repo>/AGENTS.md`",
             "- `bundle/ai-workflow -> <repo>/ai-workflow`",
         ],
+        "antigravity": [
+            "- `bundle/ANTIGRAVITY.md -> <repo>/ANTIGRAVITY.md`",
+            "- `bundle/ai-workflow -> <repo>/ai-workflow`",
+        ],
     }[harness]
     first_session_reads = {
         "codex": [
             "- `AGENTS.md`",
-            "- `ai-workflow/project/state.json`",
-            "- `ai-workflow/project/session_handoff.md`",
-            "- `ai-workflow/project/work_backlog.md`",
-            "- `ai-workflow/project/project_workflow_profile.md`",
+            "- `ai-workflow/memory/state.json`",
+            "- `ai-workflow/memory/session_handoff.md`",
+            "- `ai-workflow/memory/work_backlog.md`",
+            "- `ai-workflow/memory/PROJECT_PROFILE.md`",
         ],
         "opencode": [
             "- `AGENTS.md`",
             "- `opencode.json`",
             "- `.opencode/skills/standard-ai-workflow/SKILL.md`",
             "- `.opencode/agents/workflow-orchestrator.md`",
-            "- `ai-workflow/project/state.json`",
-            "- `ai-workflow/project/session_handoff.md`",
-            "- `ai-workflow/project/work_backlog.md`",
-            "- `ai-workflow/project/project_workflow_profile.md`",
+            "- `ai-workflow/memory/state.json`",
+            "- `ai-workflow/memory/session_handoff.md`",
+            "- `ai-workflow/memory/work_backlog.md`",
+            "- `ai-workflow/memory/PROJECT_PROFILE.md`",
         ],
         "gemini-cli": [
             "- `GEMINI.md`",
-            "- `ai-workflow/project/state.json`",
-            "- `ai-workflow/project/session_handoff.md`",
-            "- `ai-workflow/project/work_backlog.md`",
-            "- `ai-workflow/project/project_workflow_profile.md`",
+            "- `ai-workflow/memory/state.json`",
+            "- `ai-workflow/memory/session_handoff.md`",
+            "- `ai-workflow/memory/work_backlog.md`",
+            "- `ai-workflow/memory/PROJECT_PROFILE.md`",
         ],
         "pi-dev": [
             "- `AGENTS.md`",
-            "- `ai-workflow/project/state.json`",
-            "- `ai-workflow/project/session_handoff.md`",
-            "- `ai-workflow/project/work_backlog.md`",
-            "- `ai-workflow/project/project_workflow_profile.md`",
+            "- `ai-workflow/memory/state.json`",
+            "- `ai-workflow/memory/session_handoff.md`",
+            "- `ai-workflow/memory/work_backlog.md`",
+            "- `ai-workflow/memory/PROJECT_PROFILE.md`",
+        ],
+        "antigravity": [
+            "- `ANTIGRAVITY.md`",
+            "- `ai-workflow/memory/state.json`",
+            "- `ai-workflow/memory/session_handoff.md`",
+            "- `ai-workflow/memory/work_backlog.md`",
+            "- `ai-workflow/memory/PROJECT_PROFILE.md`",
         ],
     }[harness]
     return f"""# Apply Guide
@@ -451,7 +490,7 @@ def render_apply_guide(
 {chr(10).join(runtime_copy_items)}
 
 3. 기존 저장소에 같은 경로의 파일이 있으면 덮어쓰기 전에 프로젝트 특화 값이 이미 들어 있는지 확인한다.
-4. 복사 후 하네스 진입 파일이 `ai-workflow/project/` 문서를 먼저 읽는지 확인한다.
+4. 복사 후 하네스 진입 파일이 `ai-workflow/memory/` 문서를 먼저 읽는지 확인한다.
 5. 첫 세션에서 backlog/handoff/profile 을 실제 저장소 기준으로 갱신한다.
 
 ## 3. 하네스별 확인 포인트
@@ -464,10 +503,10 @@ def render_apply_guide(
 
 ## 5. 적용 후 바로 수정할 항목
 
-- `ai-workflow/project/state.json` 의 current_focus 와 next_documents
-- `ai-workflow/project/project_workflow_profile.md` 의 실행/테스트/검증 명령
-- `ai-workflow/project/session_handoff.md` 의 현재 기준선
-- `ai-workflow/project/work_backlog.md` 와 최신 날짜 backlog 의 실제 작업 상태
+- `ai-workflow/memory/state.json` 의 current_focus 와 next_documents
+- `ai-workflow/memory/PROJECT_PROFILE.md` 의 실행/테스트/검증 명령
+- `ai-workflow/memory/session_handoff.md` 의 현재 기준선
+- `ai-workflow/memory/work_backlog.md` 와 최신 날짜 backlog 의 실제 작업 상태
 
 ## 6. 주의 사항
 
@@ -538,6 +577,11 @@ def export_harness(
                 destination = bundle_root / source.relative_to(temp_repo)
                 copy_file(source, destination)
                 included_files.append(rel(destination, package_root))
+        profile_source = temp_repo / "docs" / "PROJECT_PROFILE.md"
+        if profile_source.exists():
+            profile_destination = bundle_root / "ai-workflow" / "memory" / "PROJECT_PROFILE.md"
+            copy_file(profile_source, profile_destination)
+            included_files.append(rel(profile_destination, package_root))
 
     included_files.extend(copy_minimal_runtime_docs(bundle_root, package_root))
 
@@ -549,11 +593,16 @@ def export_harness(
 
     if include_global_snippets:
         for source in global_snippet_source_map().get(harness, []):
-            destination = bundle_root / "global-snippets" / rel(source, REPO_ROOT / "global-snippets")
+            destination = bundle_root / "global-snippets" / rel(source, SOURCE_ROOT / "global-snippets")
             copy_file(source, destination)
             rel_dest = rel(destination, package_root)
             included_files.append(rel_dest)
             snippet_files.append(rel_dest)
+
+    version_path = bundle_root / "ai-workflow" / "VERSION"
+    version_path.parent.mkdir(parents=True, exist_ok=True)
+    version_path.write_text(version, encoding="utf-8")
+    included_files.append(rel(version_path, package_root))
 
     package_name = f"standard-ai-workflow-{harness}"
     included_files.extend(

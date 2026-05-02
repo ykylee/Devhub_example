@@ -1,6 +1,6 @@
 {
   "status": "error",
-  "tool_version": "beta-v2.0",
+  "tool_version": "v0.3.2-beta",
   "error": "필수 입력 문서를 읽을 수 없다.",
   "error_code": "missing_required_document",
   "warnings": [
@@ -9,7 +9,7 @@
   "source_context": {
     "session_handoff_path": "/abs/path/session_handoff.md",
     "work_backlog_index_path": "/abs/path/work_backlog.md",
-    "project_profile_path": "/abs/path/project_workflow_profile.md",
+    "project_profile_path": "/abs/path/PROJECT_PROFILE.md",
     "latest_backlog_path": null,
     "missing_path_detail": "path does not exist: /abs/path/session_handoff.md"
   }

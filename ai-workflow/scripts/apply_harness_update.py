@@ -21,9 +21,11 @@ MANAGED_RELATIVE_PATHS = [
 ]
 
 PRESERVE_RELATIVE_PATHS = [
-    Path("ai-workflow/project/project_workflow_profile.md"),
-    Path("ai-workflow/project/session_handoff.md"),
-    Path("ai-workflow/project/state.json"),
+    Path("ai-workflow/memory"),
+    Path("ai-workflow/WORKFLOW_INDEX.md"),
+    Path("ai-workflow/memory/PROJECT_PROFILE.md"),
+    Path("ai-workflow/memory/session_handoff.md"),
+    Path("ai-workflow/memory/state.json"),
 ]
 
 
@@ -131,6 +133,37 @@ def copy_entry(source: Path, destination: Path) -> None:
     shutil.copy2(source, destination)
 
 
+def is_preserved_path(path: Path, preserve_paths: set[Path]) -> bool:
+    for preserved in preserve_paths:
+        if path == preserved or preserved in path.parents:
+            return True
+    return False
+
+
+def copy_entry_overlay(
+    source: Path,
+    destination: Path,
+    *,
+    target_root: Path,
+    preserve_paths: set[Path],
+) -> None:
+    if not source.is_dir():
+        copy_entry(source, destination)
+        return
+
+    for child in sorted(source.rglob("*")):
+        rel_from_source = child.relative_to(source)
+        rel_from_root = destination.relative_to(target_root) / rel_from_source
+        if is_preserved_path(rel_from_root, preserve_paths):
+            continue
+        target_child = destination / rel_from_source
+        if child.is_dir():
+            target_child.mkdir(parents=True, exist_ok=True)
+            continue
+        target_child.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(child, target_child)
+
+
 def backup_entry(source: Path, destination: Path) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
     if source.is_dir() and not source.is_symlink():
@@ -183,6 +216,7 @@ def main() -> int:
 
     changes_to_apply: list[tuple[Path, Path, bool]] = []
     preserve_path_strings = {p.as_posix() for p in PRESERVE_RELATIVE_PATHS}
+    preserve_paths = {Path(path) for path in PRESERVE_RELATIVE_PATHS}
     for rel_path in managed_paths:
         if args.preserve_data and rel_path.as_posix() in preserve_path_strings:
             skipped_paths.append(rel_path.as_posix())
@@ -209,8 +243,17 @@ def main() -> int:
             rel_path = target_path.relative_to(target_root)
             if needs_backup and backup_dir is not None:
                 backup_entry(target_path, backup_dir / rel_path)
-            remove_existing(target_path)
-            copy_entry(source_path, target_path)
+            if args.preserve_data and source_path.is_dir():
+                target_path.mkdir(parents=True, exist_ok=True)
+                copy_entry_overlay(
+                    source_path,
+                    target_path,
+                    target_root=target_root,
+                    preserve_paths=preserve_paths,
+                )
+            else:
+                remove_existing(target_path)
+                copy_entry(source_path, target_path)
 
     manifest = build_manifest(
         source_root=source_root,

@@ -27,7 +27,7 @@
 ### 추천 시작 순서
 
 1. `bootstrap_workflow_kit.py --adoption-mode new` 로 기본 문서 세트를 생성한다.
-2. `project_workflow_profile.md` 에 프로젝트 목적, 문서 구조, 명령, 검증 규칙을 채운다.
+2. `PROJECT_PROFILE.md` 에 프로젝트 목적, 문서 구조, 명령, 검증 규칙을 채운다.
 3. `session_handoff.md` 와 날짜별 backlog 에 첫 작업 기준선을 적는다.
 4. `generate_workflow_state.py` 로 `state.json` 을 생성하거나 갱신해 빠른 세션 기준선을 맞춘다.
 4. 이후 skill/MCP 도입 범위를 정한다.
@@ -54,7 +54,7 @@
 
 1. `bootstrap_workflow_kit.py --adoption-mode existing` 로 저장소 분석과 문서 초안을 생성한다.
 2. `repository_assessment.md` 에 적힌 추정 스택, 명령, 문서 위치를 실제 운영 규칙과 대조한다.
-3. `project_workflow_profile.md` 에 자동 추정값을 확정 또는 수정한다.
+3. `PROJECT_PROFILE.md` 에 자동 추정값을 확정 또는 수정한다.
 4. `session_handoff.md` 와 backlog 에 현재 진행 중인 실제 작업과 리스크를 반영한다.
 5. `generate_workflow_state.py` 로 `state.json` 을 갱신한다.
 6. 이후 문서 동기화, 세션 시작, backlog 갱신 흐름을 단계적으로 도입한다.
@@ -65,11 +65,11 @@
 
 ```bash
 python3 scripts/run_existing_project_onboarding.py \
-  --project-profile-path /path/to/project/ai-workflow/project/project_workflow_profile.md \
-  --session-handoff-path /path/to/project/ai-workflow/project/session_handoff.md \
-  --work-backlog-index-path /path/to/project/ai-workflow/project/work_backlog.md \
-  --backlog-dir-path /path/to/project/ai-workflow/project/backlog \
-  --repository-assessment-path /path/to/project/ai-workflow/project/repository_assessment.md
+  --project-profile-path /path/to/project/ai-workflow/memory/PROJECT_PROFILE.md \
+  --session-handoff-path /path/to/project/ai-workflow/memory/session_handoff.md \
+  --work-backlog-index-path /path/to/project/ai-workflow/memory/work_backlog.md \
+  --backlog-dir-path /path/to/project/ai-workflow/memory/backlog \
+  --repository-assessment-path /path/to/project/ai-workflow/memory/repository_assessment.md
 ```
 
 이 스크립트는 아래 순서를 읽기 전용으로 이어준다.
@@ -124,7 +124,7 @@ python3 scripts/run_existing_project_onboarding.py \
 ## 5. 권장 출력물
 
 - 신규 프로젝트:
-- `project_workflow_profile.md`, `session_handoff.md`, `work_backlog.md`, 날짜별 backlog
+- `PROJECT_PROFILE.md`, `session_handoff.md`, `work_backlog.md`, 날짜별 backlog
 - 작업 중인 프로젝트:
 - 위 문서 세트 + `repository_assessment.md`
 
@@ -161,6 +161,17 @@ python3 scripts/run_existing_project_onboarding.py \
 - MCP capability 확장과 정식 client 상호운용 범위 확대
 
 즉, 이번 릴리즈의 성공 기준은 MCP 연결이 아니라 “workflow 문서/skill 묶음만으로 신규/기존 프로젝트 첫 세션을 안정적으로 시작할 수 있는가” 에 둔다.
+
+## 릴리스 및 안정성 업데이트 (2026-04-28)
+
+### 릴리스 상태: Phase 6 진입
+- 현재 워크플로우 키트는 **Phase 6: 편집 정밀화 및 지능형 도구 최적화** 단계에 진입했습니다.
+- 주요 성과: Phase 5에서 지능형 운영 도구(Git 요약, 로테이션 등)와 MCP SDK 통합을 완료했습니다.
+
+### 기술적 안정성 개선: 빈 프로젝트 오판 방지
+- **이슈**: 기존 프로젝트 도입 모드(`--adoption-mode existing`)에서 대상 프로젝트가 비어 있을 때, `ai-workflow` 키트 내부의 스크립트(scripts/, tests/ 등)를 프로젝트 코드로 오인하는 현상이 발견되었습니다.
+- **해결**: `iter_repo_files` 및 `analyze_repo_structure` 함수에 `ignore_dirs` 필터링 로직을 강화했습니다. 이제 키트 디렉토리를 명시적으로 무시하여 순수 대상 프로젝트의 컨텍스트만 정확히 수집합니다.
+- **효과**: "빈 저장소에 워크플로우를 먼저 배포하고 프로젝트를 시작"하는 패턴에서도 분석 결과가 왜곡되지 않고 청결한 상태를 유지합니다.
 
 ## 다음에 읽을 문서
 

@@ -9,10 +9,11 @@ import sys
 from pathlib import Path
 from typing import Any
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
+SOURCE_ROOT = REPO_ROOT / "workflow-source"
 
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
+if str(SOURCE_ROOT) not in sys.path:
+    sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.runner import (
@@ -32,12 +33,12 @@ from workflow_kit.common.runner import (
 
 
 def repo_path(*parts: str) -> Path:
-    return REPO_ROOT.joinpath(*parts).resolve()
+    return SOURCE_ROOT.joinpath(*parts).resolve()
 
 
 EXAMPLE_PRESETS = {
     "acme_delivery_platform": {
-        "project_profile_path": repo_path("examples", "acme_delivery_platform", "project_workflow_profile.md"),
+        "project_profile_path": repo_path("examples", "acme_delivery_platform", "PROJECT_PROFILE.md"),
         "session_handoff_path": repo_path("examples", "acme_delivery_platform", "session_handoff.md"),
         "work_backlog_index_path": repo_path("examples", "acme_delivery_platform", "work_backlog.md"),
         "backlog_dir_path": repo_path("examples", "acme_delivery_platform", "backlog"),
@@ -52,7 +53,7 @@ EXAMPLE_PRESETS = {
         "merge_result_summary": "runbook 링크와 상태 문서가 함께 수정된 브랜치 병합 후 재정리",
     },
     "research_eval_hub": {
-        "project_profile_path": repo_path("examples", "research_eval_hub", "project_workflow_profile.md"),
+        "project_profile_path": repo_path("examples", "research_eval_hub", "PROJECT_PROFILE.md"),
         "session_handoff_path": repo_path("examples", "research_eval_hub", "session_handoff.md"),
         "work_backlog_index_path": repo_path("examples", "research_eval_hub", "work_backlog.md"),
         "backlog_dir_path": repo_path("examples", "research_eval_hub", "backlog"),

@@ -3238,6 +3238,99 @@
       ],
       "title": "session_start output"
     },
+    "smart_context_reader": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "oneOf": [
+        {
+          "additionalProperties": true,
+          "properties": {
+            "extracted_content": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "not_found_symbols": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "status": {
+              "enum": [
+                "ok",
+                "warning"
+              ]
+            },
+            "tool_version": {
+              "type": "string"
+            },
+            "warnings": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "extracted_content",
+            "not_found_symbols",
+            "status",
+            "tool_version",
+            "warnings"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": true,
+          "properties": {
+            "error": {
+              "type": "string"
+            },
+            "error_code": {
+              "type": "string"
+            },
+            "extracted_content": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "not_found_symbols": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "source_context": {
+              "additionalProperties": true,
+              "properties": {},
+              "required": [],
+              "type": "object"
+            },
+            "status": {
+              "const": "error"
+            },
+            "tool_version": {
+              "type": "string"
+            },
+            "warnings": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "status",
+            "tool_version",
+            "warnings"
+          ],
+          "type": "object"
+        }
+      ],
+      "title": "smart_context_reader output"
+    },
     "suggest_impacted_docs": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "oneOf": [

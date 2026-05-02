@@ -1,6 +1,6 @@
 {
   "status": "ok",
-  "tool_version": "beta-v2.0",
+  "tool_version": "v0.3.2-beta",
   "warnings": [
     "blocked 항목이 handoff 와 backlog 사이에서 다를 수 있으므로 수동 재확인이 필요하다.",
     "staging 검증은 사내 VPN 연결 상태에서만 수행 가능하다."
@@ -46,7 +46,7 @@
     ]
   },
   "repository_assessment": {
-    "path": "/Users/yklee/repos/example-repo/ai-workflow/project/repository_assessment.md",
+    "path": "/Users/yklee/repos/example-repo/ai-workflow/memory/repository_assessment.md",
     "summary": {
       "project_name": "Existing Repo",
       "analysis_mode": "existing",
@@ -71,16 +71,16 @@
   },
   "latest_backlog": {
     "status": "ok",
-    "tool_version": "beta-v2.0",
-    "latest_backlog_path": "/Users/yklee/repos/example-repo/ai-workflow/project/backlog/2026-04-22.md",
+    "tool_version": "v0.3.2-beta",
+    "latest_backlog_path": "/Users/yklee/repos/example-repo/ai-workflow/memory/backlog/2026-04-22.md",
     "candidates": [
-      "/Users/yklee/repos/example-repo/ai-workflow/project/backlog/2026-04-22.md"
+      "/Users/yklee/repos/example-repo/ai-workflow/memory/backlog/2026-04-22.md"
     ],
     "warnings": []
   },
   "session_start": {
     "status": "ok",
-    "tool_version": "beta-v2.0",
+    "tool_version": "v0.3.2-beta",
     "summary": [
       "현재 기준선: 기존 프로젝트 분석 초안이 생성되었고, 첫 세션에서 profile 값 확정이 필요하다.",
       "주 작업 축: repository assessment 추정값을 실제 저장소 규칙과 맞추고 handoff/backlog 기준선을 정리하는 작업"
@@ -97,7 +97,7 @@
   },
   "validation_plan": {
     "status": "ok",
-    "tool_version": "beta-v2.0",
+    "tool_version": "v0.3.2-beta",
     "recommended_validation_levels": [
       "standard"
     ],
@@ -121,12 +121,12 @@
   },
   "code_index_update": {
     "status": "ok",
-    "tool_version": "beta-v2.0",
+    "tool_version": "v0.3.2-beta",
     "index_update_candidates": [
       "/Users/yklee/repos/example-repo/README.md",
       "/Users/yklee/repos/example-repo/docs/README.md",
-      "/Users/yklee/repos/example-repo/ai-workflow/project/work_backlog.md",
-      "/Users/yklee/repos/example-repo/ai-workflow/project/session_handoff.md"
+      "/Users/yklee/repos/example-repo/ai-workflow/memory/work_backlog.md",
+      "/Users/yklee/repos/example-repo/ai-workflow/memory/session_handoff.md"
     ],
     "warnings": []
   },
@@ -148,12 +148,12 @@
     ]
   },
   "source_context": {
-    "project_profile_path": "/Users/yklee/repos/example-repo/ai-workflow/project/project_workflow_profile.md",
-    "session_handoff_path": "/Users/yklee/repos/example-repo/ai-workflow/project/session_handoff.md",
-    "work_backlog_index_path": "/Users/yklee/repos/example-repo/ai-workflow/project/work_backlog.md",
-    "backlog_dir_path": "/Users/yklee/repos/example-repo/ai-workflow/project/backlog",
-    "repository_assessment_path": "/Users/yklee/repos/example-repo/ai-workflow/project/repository_assessment.md",
-    "latest_backlog_path": "/Users/yklee/repos/example-repo/ai-workflow/project/backlog/2026-04-22.md",
+    "project_profile_path": "/Users/yklee/repos/example-repo/ai-workflow/memory/PROJECT_PROFILE.md",
+    "session_handoff_path": "/Users/yklee/repos/example-repo/ai-workflow/memory/session_handoff.md",
+    "work_backlog_index_path": "/Users/yklee/repos/example-repo/ai-workflow/memory/work_backlog.md",
+    "backlog_dir_path": "/Users/yklee/repos/example-repo/ai-workflow/memory/backlog",
+    "repository_assessment_path": "/Users/yklee/repos/example-repo/ai-workflow/memory/repository_assessment.md",
+    "latest_backlog_path": "/Users/yklee/repos/example-repo/ai-workflow/memory/backlog/2026-04-22.md",
     "changed_files": [
       "src/server.js",
       "docs/README.md"

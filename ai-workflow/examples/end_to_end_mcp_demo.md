@@ -17,14 +17,14 @@
 
 데모에서 기본으로 사용하는 예시 문서:
 
-- [acme_delivery_platform/project_workflow_profile.md](./acme_delivery_platform/project_workflow_profile.md)
+- [acme_delivery_platform/PROJECT_PROFILE.md](./acme_delivery_platform/PROJECT_PROFILE.md)
 - [acme_delivery_platform/work_backlog.md](./acme_delivery_platform/work_backlog.md)
 - [acme_delivery_platform/backlog/2026-04-18.md](./acme_delivery_platform/backlog/2026-04-18.md)
 - [acme_delivery_platform/session_handoff.md](./acme_delivery_platform/session_handoff.md)
 
 같은 MCP 흐름을 다른 샘플에도 적용할 수 있다:
 
-- [research_eval_hub/project_workflow_profile.md](./research_eval_hub/project_workflow_profile.md)
+- [research_eval_hub/PROJECT_PROFILE.md](./research_eval_hub/PROJECT_PROFILE.md)
 - [research_eval_hub/work_backlog.md](./research_eval_hub/work_backlog.md)
 - [research_eval_hub/backlog/2026-04-19.md](./research_eval_hub/backlog/2026-04-19.md)
 - [research_eval_hub/session_handoff.md](./research_eval_hub/session_handoff.md)
