@@ -15,11 +15,11 @@
 
 ## 포함된 예시
 
-- [acme_delivery_platform/project_workflow_profile.md](./acme_delivery_platform/project_workflow_profile.md)
+- [acme_delivery_platform/PROJECT_PROFILE.md](./acme_delivery_platform/PROJECT_PROFILE.md)
 - [acme_delivery_platform/session_handoff.md](./acme_delivery_platform/session_handoff.md)
 - [acme_delivery_platform/work_backlog.md](./acme_delivery_platform/work_backlog.md)
 - [acme_delivery_platform/backlog/2026-04-18.md](./acme_delivery_platform/backlog/2026-04-18.md)
-- [research_eval_hub/project_workflow_profile.md](./research_eval_hub/project_workflow_profile.md)
+- [research_eval_hub/PROJECT_PROFILE.md](./research_eval_hub/PROJECT_PROFILE.md)
 - [research_eval_hub/session_handoff.md](./research_eval_hub/session_handoff.md)
 - [research_eval_hub/work_backlog.md](./research_eval_hub/work_backlog.md)
 - [research_eval_hub/backlog/2026-04-19.md](./research_eval_hub/backlog/2026-04-19.md)

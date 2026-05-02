@@ -1,0 +1,46 @@
+# Project Workflow Profile
+
+- 문서 목적: 프로젝트 특화 규칙과 실행/검증 기준을 정의한다.
+- 범위: 프로젝트 개요, 문서 구조, 기본 명령, 검증 포인트, 예외 규칙
+- 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
+- 상태: draft
+- 최종 수정일: 2026-05-01
+- 관련 문서: [공통 표준](../../../core/global_workflow_standard.md)
+
+## 1. 프로젝트 개요
+- 프로젝트명: DevHub Example
+- 프로젝트 목적: 개발자 포털, 시스템 대시보드 및 AI 기반 분석 도구를 포함한 통합 관리 플랫폼.
+- 주요 이해관계자: 
+  - Developers (Dashboard 및 API 사용)
+  - Managers (시스템 현황 및 리소스 관리)
+  - System Admins (인프라 및 권한 제어)
+
+## 2. 문서 구조 (Path)
+- 문서 위키 홈: README.md
+- 운영 문서 홈: ai-workflow/memory/
+- 백로그 위치: ai-workflow/memory/backlog/
+- 세션 인계 문서: ai-workflow/memory/session_handoff.md
+- 환경 기록 위치: ai-workflow/memory/environments/
+
+## 3. 기본 명령 (Commands)
+- 설치: `make setup` (Go, Python, NPM 의존성 설치)
+- 로컬 실행: `make run` (docker-compose 기반 전체 실행) 또는 `npm run dev` (frontend 개별 실행)
+- 빠른 테스트: `pytest ai-workflow/tests/check_docs.py` (워크플로우 문서 검증)
+- 격리 테스트: `go test ./backend-core/...`, `pytest backend-ai/`
+- 실행 확인: `make migrate-version` (DB 상태 확인), `docker-compose ps`
+
+## 4. 검증 포인트 (Validation)
+- 코드 변경: PR 생성 전 로컬 테스트 통과 필수, Protobuf 변경 시 `make proto` 실행 필수
+- 문서 변경: `ai-workflow/tests/check_docs.py` 통과 필수, 상대 경로 정합성 확인
+- UI 변경: 브라우저 도구를 이용한 다크모드 및 Glassmorphism 레이아웃 깨짐 확인
+- 배포/운영: `docker-compose build` 성공 여부 확인
+
+## 5. 예외 규칙 (Policy)
+- 병합: 워크플로우 상태 문서(`state.json`) 충돌 시 최신 백로그 내용을 우선함
+- 승인: `proto/` 디렉토리 변경 시 백엔드/프론트엔드 담당자 동시 승인 권장
+- 제약: 로컬 개발 시 Docker Desktop 또는 호환되는 컨테이너 환경 필요
+- 기타: Next.js frontend는 `app` 디렉토리 구조(App Router)를 따름
+
+## 다음에 읽을 문서
+- [세션 인계 문서](./session_handoff.md)
+- [작업 백로그](./work_backlog.md)

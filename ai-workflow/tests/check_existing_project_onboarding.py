@@ -9,15 +9,17 @@ import sys
 import tempfile
 from pathlib import Path
 
-if str(Path(__file__).resolve().parents[1]) not in sys.path:
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+SOURCE_ROOT_FOR_IMPORT = Path(__file__).resolve().parents[2] / "workflow-source"
+if str(SOURCE_ROOT_FOR_IMPORT) not in sys.path:
+    sys.path.insert(0, str(SOURCE_ROOT_FOR_IMPORT))
 
 from workflow_kit.common.output_contracts import validate_output_payload
 
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-BOOTSTRAP_SCRIPT = REPO_ROOT / "scripts" / "bootstrap_workflow_kit.py"
-ONBOARDING_SCRIPT = REPO_ROOT / "scripts" / "run_existing_project_onboarding.py"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+SOURCE_ROOT = REPO_ROOT / "workflow-source"
+BOOTSTRAP_SCRIPT = SOURCE_ROOT / "scripts" / "bootstrap_workflow_kit.py"
+ONBOARDING_SCRIPT = SOURCE_ROOT / "scripts" / "run_existing_project_onboarding.py"
 
 
 def run_json(cmd: list[str], cwd: Path) -> dict[str, object]:
@@ -81,7 +83,7 @@ def main() -> int:
             REPO_ROOT,
         )
         generated = bootstrap_payload["generated_files"]
-        project_dir = Path(generated["project_profile"]).parent
+        backlog_dir = Path(generated["daily_backlog"]).parent
 
         onboarding_payload = run_json(
             [
@@ -93,7 +95,7 @@ def main() -> int:
                 "--work-backlog-index-path",
                 str(generated["work_backlog"]),
                 "--backlog-dir-path",
-                str(project_dir / "backlog"),
+                str(backlog_dir),
                 "--repository-assessment-path",
                 str(generated["repository_assessment"]),
                 "--change-summary",
@@ -184,7 +186,7 @@ def main() -> int:
                 "--work-backlog-index-path",
                 str(generated["work_backlog"]),
                 "--backlog-dir-path",
-                str(project_dir / "backlog"),
+                str(backlog_dir),
             ],
             REPO_ROOT,
         )

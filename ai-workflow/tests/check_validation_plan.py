@@ -8,25 +8,27 @@ import subprocess
 import sys
 from pathlib import Path
 
-if str(Path(__file__).resolve().parents[1]) not in sys.path:
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+SOURCE_ROOT_FOR_IMPORT = Path(__file__).resolve().parents[2] / "workflow-source"
+if str(SOURCE_ROOT_FOR_IMPORT) not in sys.path:
+    sys.path.insert(0, str(SOURCE_ROOT_FOR_IMPORT))
 
 from workflow_kit.common.output_contracts import validate_output_payload
 
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-SCRIPT_PATH = REPO_ROOT / "skills" / "validation-plan" / "scripts" / "run_validation_plan.py"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+SOURCE_ROOT = REPO_ROOT / "workflow-source"
+SCRIPT_PATH = SOURCE_ROOT / "skills" / "validation-plan" / "scripts" / "run_validation_plan.py"
 
 
 def run_validation(example_name: str, changed_files: list[str], change_summary: str) -> dict[str, object]:
-    example_root = REPO_ROOT / "examples" / example_name
+    example_root = SOURCE_ROOT / "examples" / example_name
     latest_backlog = sorted((example_root / "backlog").glob("*.md"))[-1]
     completed = subprocess.run(
         [
             sys.executable,
             str(SCRIPT_PATH),
             "--project-profile-path",
-            str(example_root / "project_workflow_profile.md"),
+            str(example_root / "PROJECT_PROFILE.md"),
             "--session-handoff-path",
             str(example_root / "session_handoff.md"),
             "--latest-backlog-path",
@@ -106,7 +108,7 @@ def main() -> int:
     workflow_meta_payload = run_validation(
         "acme_delivery_platform",
         [
-            "ai-workflow/project/session_handoff.md",
+            "ai-workflow/memory/session_handoff.md",
         ],
         "workflow 상태 문서만 수정",
     )

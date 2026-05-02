@@ -5,7 +5,7 @@
 - 대상 독자: 개발자, 운영자, AI agent 설계자, 프로젝트 온보딩 담당자
 - 상태: draft
 - 최종 수정일: 2026-04-21
-- 관련 문서: `./README.md`, `./acme_delivery_platform/project_workflow_profile.md`, `./research_eval_hub/project_workflow_profile.md`, `../skills/session-start/SKILL.md`, `../skills/backlog-update/SKILL.md`, `../skills/doc-sync/SKILL.md`, `../skills/merge-doc-reconcile/SKILL.md`
+- 관련 문서: `./README.md`, `./acme_delivery_platform/PROJECT_PROFILE.md`, `./research_eval_hub/PROJECT_PROFILE.md`, `../skills/session-start/SKILL.md`, `../skills/backlog-update/SKILL.md`, `../skills/doc-sync/SKILL.md`, `../skills/merge-doc-reconcile/SKILL.md`
 
 ## 1. 목적
 
@@ -31,14 +31,14 @@
 
 데모에서 기본으로 사용하는 예시 문서:
 
-- [acme_delivery_platform/project_workflow_profile.md](./acme_delivery_platform/project_workflow_profile.md)
+- [acme_delivery_platform/PROJECT_PROFILE.md](./acme_delivery_platform/PROJECT_PROFILE.md)
 - [acme_delivery_platform/session_handoff.md](./acme_delivery_platform/session_handoff.md)
 - [acme_delivery_platform/work_backlog.md](./acme_delivery_platform/work_backlog.md)
 - [acme_delivery_platform/backlog/2026-04-18.md](./acme_delivery_platform/backlog/2026-04-18.md)
 
 다른 성격의 샘플로도 같은 흐름을 검증할 수 있다:
 
-- [research_eval_hub/project_workflow_profile.md](./research_eval_hub/project_workflow_profile.md)
+- [research_eval_hub/PROJECT_PROFILE.md](./research_eval_hub/PROJECT_PROFILE.md)
 - [research_eval_hub/session_handoff.md](./research_eval_hub/session_handoff.md)
 - [research_eval_hub/work_backlog.md](./research_eval_hub/work_backlog.md)
 - [research_eval_hub/backlog/2026-04-19.md](./research_eval_hub/backlog/2026-04-19.md)
@@ -91,7 +91,7 @@
 python3 skills/session-start/scripts/run_session_start.py \
   --session-handoff-path examples/acme_delivery_platform/session_handoff.md \
   --work-backlog-index-path examples/acme_delivery_platform/work_backlog.md \
-  --project-profile-path examples/acme_delivery_platform/project_workflow_profile.md
+  --project-profile-path examples/acme_delivery_platform/PROJECT_PROFILE.md
 ```
 
 기대 결과:
@@ -110,7 +110,7 @@ python3 skills/session-start/scripts/run_session_start.py \
 
 ```bash
 python3 skills/backlog-update/scripts/run_backlog_update.py \
-  --project-profile-path examples/acme_delivery_platform/project_workflow_profile.md \
+  --project-profile-path examples/acme_delivery_platform/PROJECT_PROFILE.md \
   --daily-backlog-path examples/acme_delivery_platform/backlog/2026-04-18.md \
   --mode update \
   --task-id TASK-021 \
@@ -123,7 +123,7 @@ python3 skills/backlog-update/scripts/run_backlog_update.py \
 
 ```bash
 python3 skills/backlog-update/scripts/run_backlog_update.py \
-  --project-profile-path examples/acme_delivery_platform/project_workflow_profile.md \
+  --project-profile-path examples/acme_delivery_platform/PROJECT_PROFILE.md \
   --target-date 2026-04-19 \
   --mode create \
   --task-name "운영 허브 링크 무결성 재점검" \
@@ -146,7 +146,7 @@ python3 skills/backlog-update/scripts/run_backlog_update.py \
 
 ```bash
 python3 skills/doc-sync/scripts/run_doc_sync.py \
-  --project-profile-path examples/acme_delivery_platform/project_workflow_profile.md \
+  --project-profile-path examples/acme_delivery_platform/PROJECT_PROFILE.md \
   --session-handoff-path examples/acme_delivery_platform/session_handoff.md \
   --work-backlog-index-path examples/acme_delivery_platform/work_backlog.md \
   --latest-backlog-path examples/acme_delivery_platform/backlog/2026-04-18.md \
@@ -160,7 +160,7 @@ python3 skills/doc-sync/scripts/run_doc_sync.py \
 
 ```bash
 python3 skills/doc-sync/scripts/run_doc_sync.py \
-  --project-profile-path examples/acme_delivery_platform/project_workflow_profile.md \
+  --project-profile-path examples/acme_delivery_platform/PROJECT_PROFILE.md \
   --session-handoff-path examples/acme_delivery_platform/session_handoff.md \
   --work-backlog-index-path examples/acme_delivery_platform/work_backlog.md \
   --latest-backlog-path examples/acme_delivery_platform/backlog/2026-04-18.md \
@@ -180,7 +180,7 @@ python3 skills/doc-sync/scripts/run_doc_sync.py \
 
 ```bash
 python3 skills/validation-plan/scripts/run_validation_plan.py \
-  --project-profile-path examples/acme_delivery_platform/project_workflow_profile.md \
+  --project-profile-path examples/acme_delivery_platform/PROJECT_PROFILE.md \
   --session-handoff-path examples/acme_delivery_platform/session_handoff.md \
   --latest-backlog-path examples/acme_delivery_platform/backlog/2026-04-18.md \
   --changed-file app/jobs/delivery_sync.py \
@@ -204,7 +204,7 @@ python3 skills/validation-plan/scripts/run_validation_plan.py \
 
 ```bash
 python3 skills/code-index-update/scripts/run_code_index_update.py \
-  --project-profile-path examples/acme_delivery_platform/project_workflow_profile.md \
+  --project-profile-path examples/acme_delivery_platform/PROJECT_PROFILE.md \
   --work-backlog-index-path examples/acme_delivery_platform/work_backlog.md \
   --session-handoff-path examples/acme_delivery_platform/session_handoff.md \
   --changed-file app/jobs/delivery_sync.py \
@@ -227,7 +227,7 @@ python3 skills/code-index-update/scripts/run_code_index_update.py \
 
 ```bash
 python3 skills/merge-doc-reconcile/scripts/run_merge_doc_reconcile.py \
-  --project-profile-path examples/acme_delivery_platform/project_workflow_profile.md \
+  --project-profile-path examples/acme_delivery_platform/PROJECT_PROFILE.md \
   --session-handoff-path examples/acme_delivery_platform/session_handoff.md \
   --work-backlog-index-path examples/acme_delivery_platform/work_backlog.md \
   --latest-backlog-path examples/acme_delivery_platform/backlog/2026-04-18.md \
@@ -249,7 +249,7 @@ python3 skills/merge-doc-reconcile/scripts/run_merge_doc_reconcile.py \
 
 1. [../README.md](../README.md)
 2. [./README.md](./README.md)
-3. [acme_delivery_platform/project_workflow_profile.md](./acme_delivery_platform/project_workflow_profile.md)
+3. [acme_delivery_platform/PROJECT_PROFILE.md](./acme_delivery_platform/PROJECT_PROFILE.md)
 4. [acme_delivery_platform/session_handoff.md](./acme_delivery_platform/session_handoff.md)
 5. 이 문서의 6개 프로토타입 명령 실행
 

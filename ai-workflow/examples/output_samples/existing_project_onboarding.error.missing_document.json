@@ -1,6 +1,6 @@
 {
   "status": "error",
-  "tool_version": "beta-v2.0",
+  "tool_version": "v0.3.2-beta",
   "error": "path does not exist: /private/tmp/missing-profile.md",
   "error_code": "missing_required_document",
   "warnings": [],

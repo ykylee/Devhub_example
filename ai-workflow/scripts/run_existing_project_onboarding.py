@@ -10,10 +10,11 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
+SOURCE_ROOT = REPO_ROOT / "workflow-source"
 
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
+if str(SOURCE_ROOT) not in sys.path:
+    sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.errors import build_error_result
@@ -42,7 +43,7 @@ from workflow_kit.common.text import (
 
 
 def repo_path(*parts: str) -> Path:
-    return REPO_ROOT.joinpath(*parts).resolve()
+    return SOURCE_ROOT.joinpath(*parts).resolve()
 
 
 def parse_repository_assessment(path: Path) -> dict[str, Any]:
@@ -302,12 +303,12 @@ def main() -> int:
         for cmd_type, cmd_value in onboarding_summary["inferred_commands"].items():
             if cmd_value and "TODO" in cmd_value:
                 onboarding_summary["critical_todos"].append(f"{cmd_type} 명령이 아직 설정되지 않았다.")
-        
+
         if onboarding_summary["critical_todos"]:
             if args.apply:
-                onboarding_summary["recommended_next_steps"].insert(0, "!! 알림: `project_workflow_profile.md`의 일부 TODO 항목을 진단 결과로 자동 보정했다.")
+                onboarding_summary["recommended_next_steps"].insert(0, "!! 알림: `PROJECT_PROFILE.md`의 일부 TODO 항목을 진단 결과로 자동 보정했다.")
             else:
-                onboarding_summary["recommended_next_steps"].insert(0, "!! 중요: `project_workflow_profile.md`에서 TODO 상태인 명령어를 먼저 수정해야 한다.")
+                onboarding_summary["recommended_next_steps"].insert(0, "!! 중요: `PROJECT_PROFILE.md`에서 TODO 상태인 명령어를 먼저 수정해야 한다.")
 
     result = build_runner_success_result(
         tool_version=TOOL_VERSION,

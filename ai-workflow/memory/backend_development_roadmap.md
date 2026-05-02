@@ -3,7 +3,7 @@
 - 문서 목적: DevHub 백엔드 구현 범위, 순서, 진척 상태를 추적한다.
 - 기준일: 2026-05-02
 - 상태: in_progress
-- 관련 문서: `docs/requirements.md`, `docs/architecture.md`, `docs/tech_stack.md`, `docs/backend_api_contract.md`, `ai-workflow/project/backlog/2026-05-02.md`
+- 관련 문서: `docs/requirements.md`, `docs/architecture.md`, `docs/tech_stack.md`, `docs/backend_api_contract.md`, `ai-workflow/memory/backlog/2026-05-02.md`
 - 현재 브랜치: `codex/backend_init`
 - 프론트엔드 전제: 프론트엔드는 별도 브랜치에서 개발 후 병합 예정이므로, 백엔드는 API 계약과 실시간 이벤트 계약을 먼저 안정화한다.
 
@@ -70,4 +70,4 @@
 
 - 이 문서의 Phase 상태는 `planned`, `in_progress`, `blocked`, `done` 중 하나로만 관리한다.
 - 코드 변경이 포함된 Phase는 테스트 또는 실행 검증 결과를 남긴 뒤 `done`으로 전환한다.
-- 세션 종료 전 `state.json`, `session_handoff.md`, 최신 backlog에서 이 문서와 현재 Phase를 함께 갱신한다.
+- 세션 종료 전 `ai-workflow/memory/state.json`, `ai-workflow/memory/session_handoff.md`, 최신 backlog에서 이 문서와 현재 Phase를 함께 갱신한다.

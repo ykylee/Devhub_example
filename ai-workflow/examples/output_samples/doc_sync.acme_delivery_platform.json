@@ -1,6 +1,6 @@
 {
   "status": "ok",
-  "tool_version": "beta-v2.0",
+  "tool_version": "v0.3.2-beta",
   "impacted_documents": [
     "docs/operations/runbooks/delivery-sync.md",
     "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/session_handoff.md",
@@ -41,7 +41,7 @@
     "현재 출력에는 추정 기반 후보가 포함되어 있어 수동 검토가 필요하다."
   ],
   "source_context": {
-    "project_profile_path": "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/project_workflow_profile.md",
+    "project_profile_path": "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/PROJECT_PROFILE.md",
     "changed_files": [
       "app/jobs/delivery_sync.py",
       "docs/operations/runbooks/delivery-sync.md"

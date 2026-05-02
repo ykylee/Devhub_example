@@ -1,6 +1,6 @@
 {
   "status": "ok",
-  "tool_version": "beta-v2.0",
+  "tool_version": "v0.3.2-beta",
   "detected_change_types": [
     "docs",
     "ops"
@@ -56,7 +56,7 @@
     "문서 전용 변경에서도 저장소 기본 회귀 확인 명령을 함께 제안했다."
   ],
   "source_context": {
-    "project_profile_path": "/home/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/project_workflow_profile.md",
+    "project_profile_path": "/home/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/PROJECT_PROFILE.md",
     "project_name": "Acme Delivery Platform",
     "changed_files": [
       "docs/operations/runbooks/delivery-sync.md"

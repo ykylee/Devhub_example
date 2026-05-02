@@ -24,7 +24,7 @@
 
 | 인자 | 의미 | 비고 |
 | --- | --- | --- |
-| `--project-profile-path` | 기존 프로젝트용 `project_workflow_profile.md` 경로 | bootstrap generated |
+| `--project-profile-path` | 기존 프로젝트용 `PROJECT_PROFILE.md` 경로 | bootstrap generated |
 | `--session-handoff-path` | 초기 `session_handoff.md` 경로 | bootstrap generated |
 | `--work-backlog-index-path` | `work_backlog.md` 경로 | bootstrap generated |
 | `--backlog-dir-path` | backlog 디렉터리 경로 | bootstrap generated |
@@ -105,7 +105,7 @@
 
 입력:
 
-- `project_workflow_profile.md`
+- `PROJECT_PROFILE.md`
 - `session_handoff.md`
 - `work_backlog.md`
 - latest backlog 경로
@@ -127,7 +127,7 @@
 
 입력:
 
-- `project_workflow_profile.md`
+- `PROJECT_PROFILE.md`
 - `session_handoff.md`
 - latest backlog 경로
 - `changed_files`
@@ -150,7 +150,7 @@
 
 입력:
 
-- `project_workflow_profile.md`
+- `PROJECT_PROFILE.md`
 - `work_backlog.md`
 - `session_handoff.md`
 - `changed_files`

@@ -7,15 +7,25 @@
 - 최종 수정일: 2026-04-23
 - 관련 문서: `./project_status_assessment.md`, `./workflow_skill_catalog.md`, `./workflow_mcp_candidate_catalog.md`, `./output_schema_guide.md`, `./prototype_promotion_scope.md`, `./read_only_mcp_transport_promotion.md`, `../skills/README.md`, `../mcp/README.md`, `../examples/end_to_end_skill_demo.md`, `../examples/end_to_end_mcp_demo.md`, `../examples/output_samples/README.md`
 
-## 1. 현재 단계 (Phase 4: Beta/Pilot)
+## 1. 현재 단계 (Phase 8: Pilot Deployment & Integration)
 
-현재 저장소는 아래 5단계 중 **4단계 진입** 상태다.
+현재 저장소는 아래 8단계 중 **8단계 진입** 상태다.
 
 1. 개념 정리 단계 (완료)
 2. 표준 문서와 템플릿 분리 단계 (완료)
 3. 실행 가능한 프로토타입 도입 단계 (완료)
-4. 다수 프로젝트 실운영 검증 및 Beta 안정화 단계 (진행 중)
+4. 다수 프로젝트 실운영 검증 및 Beta 안정화 단계 (완료)
 5. 운영 지능화 및 품질 거버넌스 단계 (완료)
+6. 정밀도 및 최적화 단계 (완료)
+7. 지능형 작업 모드 도입 단계 (진행 중)
+8. 실전 파일럿 배포 및 통합 고도화 단계 (진행 중)
+
+현재 판단 근거 (2026-05-01 기준):
+
+- **v0.4.1-beta 릴리즈**: .gitignore 마이그레이션 로직 및 버전 관리 체계 확립.
+- **분석 정밀도 향상**: 멀티 스택 감지 및 Makefile 기반 명령어 추론 엔진 고도화.
+- **작업 모드(Task Modes) 정의**: 분석, 설계, 구현 등 6가지 작업 성격에 따른 워크플로우 최적화 명세화 및 템플릿 통합.
+- **DevHub 파일럿 성공**: 실제 대규모 프로젝트(DevHub)에 표준 워크플로우를 성공적으로 이식 및 업그레이드 완료.
 
 현재 판단 근거 (2026-04-27 기준):
 

@@ -1,7 +1,11 @@
 # Project Workflow Profile
 
-- 목적: 프로젝트 특화 규칙 정의
-- 관련: [공통 표준](../core/global_workflow_standard.md)
+- 문서 목적: 프로젝트 특화 규칙과 실행/검증 기준을 정의한다.
+- 범위: 프로젝트 개요, 문서 구조, 기본 명령, 검증 포인트, 예외 규칙
+- 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
+- 상태: draft
+- 최종 수정일: YYYY-MM-DD
+- 관련 문서: [공통 표준](../core/global_workflow_standard.md)
 
 ## 1. 프로젝트 개요
 - 프로젝트명: <Project Name>
@@ -11,9 +15,9 @@
 ## 2. 문서 구조 (Path)
 - 문서 위키 홈: <README.md>
 - 운영 문서 홈: <docs/operations/>
-- 백로그 위치: <ai-workflow/project/backlog/>
-- 세션 인계 문서: <ai-workflow/project/session_handoff.md>
-- 환경 기록 위치: <ai-workflow/project/repository_assessment.md>
+- 백로그 위치: <ai-workflow/memory/backlog/>
+- 세션 인계 문서: <ai-workflow/memory/session_handoff.md>
+- 환경 기록 위치: <ai-workflow/memory/repository_assessment.md>
 
 ## 3. 기본 명령 (Commands)
 - 설치: <설치 및 가상환경 구성 명령>

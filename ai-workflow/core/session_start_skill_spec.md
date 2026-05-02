@@ -99,7 +99,7 @@ latest_backlog_path:
 next_documents:
 - docs/operations/session_handoff.md
 - docs/operations/backlog/2026-04-18.md
-- docs/operations/project_workflow_profile.md
+- docs/operations/PROJECT_PROFILE.md
 
 recommended_next_action:
 - handoff와 최신 backlog의 불일치 여부를 먼저 확인한다.
