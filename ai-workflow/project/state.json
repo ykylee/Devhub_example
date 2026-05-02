@@ -1,13 +1,15 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-04-30",
+  "generated_at": "2026-05-02",
   "source_of_truth": {
     "project_profile_path": "ai-workflow/project/project_workflow_profile.md",
     "architecture_path": "docs/architecture.md",
+    "backend_api_contract_path": "docs/backend_api_contract.md",
     "tech_stack_path": "docs/tech_stack.md",
     "session_handoff_path": "ai-workflow/project/session_handoff.md",
     "work_backlog_index_path": "ai-workflow/project/work_backlog.md",
-    "latest_backlog_path": "ai-workflow/project/backlog/2026-04-29.md"
+    "latest_backlog_path": "ai-workflow/project/backlog/2026-05-02.md",
+    "homelab_postgresql_path": "ai-workflow/project/environments/homelab-postgresql.md"
   },
   "project": {
     "project_name": "DevHub (Multi-Role Team Hub)",
@@ -23,24 +25,27 @@
     "runtime_checks": "make build"
   },
   "session": {
-    "current_baseline": "요구사항, 아키텍처 설계 및 초기 프로젝트 스캐폴딩 완료",
-    "current_axis": "Gitea 연동 구현 준비",
+    "current_baseline": "요구사항, 아키텍처 설계, 초기 스캐폴딩, Go Core raw Webhook 수집 기반 및 GET /api/v1/events 조회 API 초안 구현 완료",
+    "current_axis": "Gitea 연동 구현",
     "current_focus": "TASK-007 Gitea Webhook 수신부 및 데이터 모델링 구현",
-    "in_progress_items": [],
-    "blocked_items": [],
+    "in_progress_items": ["TASK-007"],
+    "blocked_items": ["TASK-007 migration validation"],
     "recent_done_items": ["TASK-009", "TASK-008", "TASK-006", "TASK-005", "TASK-004"],
-    "environment_constraints": ["protoc, Node dependencies, Docker daemon are required for full local validation"]
+    "environment_constraints": ["protoc, Node dependencies, Docker daemon are required for full local validation", "Homelab PostgreSQL 192.168.0.38:5432 is reachable but postgres credential authentication failed after corrected credential retry"]
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/project/backlog/2026-04-29.md",
+    "latest_backlog_path": "ai-workflow/project/backlog/2026-05-02.md",
     "task_count": 8,
-    "in_progress_items": [],
-    "blocked_items": [],
+    "in_progress_items": ["TASK-007"],
+    "blocked_items": ["TASK-007 migration validation"],
     "done_items": ["TASK-002", "TASK-004", "TASK-003", "TASK-005", "TASK-006", "TASK-008", "TASK-009"]
   },
   "next_documents": [
+    "ai-workflow/project/backend_development_roadmap.md",
+    "ai-workflow/project/environments/homelab-postgresql.md",
+    "docs/backend_api_contract.md",
     "docs/architecture.md",
     "docs/tech_stack.md",
-    "ai-workflow/project/backlog/2026-04-29.md"
+    "ai-workflow/project/backlog/2026-05-02.md"
   ]
 }

@@ -1,23 +1,38 @@
 package main
 
 import (
-	"net/http"
-	"github.com/gin-gonic/gin"
+	"context"
+	"log"
+
+	"github.com/devhub/backend-core/internal/config"
+	"github.com/devhub/backend-core/internal/httpapi"
+	"github.com/devhub/backend-core/internal/store"
 )
 
 func main() {
-	r := gin.Default()
+	cfg := config.Load()
+	ctx := context.Background()
 
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"status": "ok",
-			"service": "backend-core",
-		})
+	var eventStore httpapi.WebhookEventStore
+	var healthStore httpapi.HealthStore
+	if cfg.DBURL != "" {
+		pgStore, err := store.NewPostgresStore(ctx, cfg.DBURL)
+		if err != nil {
+			log.Fatalf("connect postgres: %v", err)
+		}
+		defer pgStore.Close()
+		eventStore = pgStore
+		healthStore = pgStore
+	} else {
+		log.Println("DB_URL is not set; webhook persistence is disabled")
+	}
+
+	router := httpapi.NewRouter(httpapi.RouterConfig{
+		WebhookSecret: cfg.GiteaWebhookSecret,
+		EventStore:    eventStore,
+		HealthStore:   healthStore,
 	})
-
-	// TODO: Gitea Webhook Receiver
-	// TODO: gRPC Client for backend-ai
-	// TODO: WebSocket Hub
-
-	r.Run(":8080")
+	if err := router.Run(":" + cfg.Port); err != nil {
+		log.Fatalf("run server: %v", err)
+	}
 }
