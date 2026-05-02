@@ -1,125 +1,355 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { CheckCircle2, CircleDashed, Clock, GitCommit, GitPullRequest, MessageSquare, PlayCircle, Star, Terminal } from "lucide-react";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  CheckCircle2,
+  AlertTriangle,
+  CircleDashed, 
+  GitPullRequest, 
+  MessageSquare, 
+  PlayCircle, 
+  Star, 
+  Terminal, 
+  Zap, 
+  Coffee, 
+  ArrowRight,
+  Info
+} from "lucide-react";
+import { useStore } from "@/lib/store";
+import { mockBuildLogs } from "@/lib/mockData";
+import { Modal } from "@/components/ui/Modal";
+import { Badge } from "@/components/ui/Badge";
+import { cn } from "@/lib/utils";
 
 export default function DeveloperDashboard() {
+  const { isDeepFocus, setDeepFocus, addToast } = useStore();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const toggleFocus = () => {
+    const nextState = !isDeepFocus;
+    setDeepFocus(nextState);
+    if (nextState) {
+      addToast("Deep Focus mode activated. Flow state protection on.", "success");
+    } else {
+      addToast("Focus session ended.", "info");
+    }
+  };
+
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Welcome back, YK Lee</h1>
-          <p className="text-muted-foreground mt-1">Here is what is happening with your projects today.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm">
-            Create Issue
+    <div className="space-y-10 pb-20">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+        >
+          <h1 className="text-4xl font-extrabold tracking-tight text-white mb-2">
+            Developer <span className="text-gradient">Workspace</span>
+          </h1>
+          <p className="text-muted-foreground text-lg flex items-center gap-2">
+            Welcome back, <span className="text-white font-bold">YK Lee</span> • <Badge variant="success" dot>Active Now</Badge>
+          </p>
+        </motion.div>
+
+        <motion.div 
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="flex items-center gap-4"
+        >
+          <button 
+            onClick={toggleFocus}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border",
+              isDeepFocus 
+                ? "bg-primary text-white border-primary shadow-[0_0_20px_rgba(139,92,246,0.5)]" 
+                : "glass border-white/10 text-muted-foreground hover:text-white"
+            )}
+          >
+            {isDeepFocus ? <Zap className="w-4 h-4 fill-current" /> : <Coffee className="w-4 h-4" />}
+            {isDeepFocus ? "Deep Focus Active" : "Start Deep Focus"}
           </button>
-        </div>
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="glass text-white px-6 py-2 rounded-xl text-sm font-bold hover:bg-white/10 transition-all border border-white/10 flex items-center gap-2"
+          >
+            <Info className="w-4 h-4" /> Project Info
+          </button>
+        </motion.div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Main Feed */}
-        <div className="md:col-span-2 space-y-6">
-          {/* Active Work */}
-          <div className="bg-card rounded-xl border border-border overflow-hidden shadow-sm">
-            <div className="px-6 py-4 border-b border-border bg-card/50">
-              <h2 className="font-semibold flex items-center gap-2">
-                <Terminal className="w-4 h-4 text-indigo-400" /> Current Work
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Main Content Area */}
+        <div className="lg:col-span-2 space-y-8">
+          
+          {/* Work Stream */}
+          <section className="space-y-4">
+            <div className="flex items-center justify-between px-2">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <Terminal className="w-5 h-5 text-primary" /> Active Stream
               </h2>
+              <button className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors flex items-center gap-1">
+                View All <ArrowRight className="w-3 h-3" />
+              </button>
             </div>
-            <div className="divide-y divide-border">
+            
+            <div className="grid gap-4">
               {[
-                { title: "TASK-007 Gitea Webhook 수신부", repo: "devhub-core", status: "In Progress", type: "pr", time: "2h ago" },
-                { title: "Refactor Authentication Logic", repo: "devhub-core", status: "Review", type: "pr", time: "5h ago" }
-              ].map((item, i) => (
-                <div key={i} className="p-6 hover:bg-accent/50 transition-colors group cursor-pointer">
-                  <div className="flex items-start justify-between">
-                    <div className="flex gap-3">
+                { 
+                  id: "TASK-007", 
+                  title: "Gitea Webhook Receiver Implementation", 
+                  repo: "devhub-core", 
+                  status: "In Progress", 
+                  type: "feature",
+                  progress: 65,
+                  time: "Updated 12m ago"
+                },
+                { 
+                  id: "PR-124", 
+                  title: "Refactor Auth Middleware for gRPC", 
+                  repo: "devhub-ai", 
+                  status: "Review", 
+                  type: "refactor",
+                  progress: 100,
+                  time: "Updated 2h ago"
+                }
+              ].map((task, i) => (
+                <motion.div
+                  key={task.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  className="glass-card p-6 group cursor-pointer relative overflow-hidden"
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex gap-4">
                       <div className="mt-1">
-                        {item.status === "In Progress" ? (
-                          <CircleDashed className="w-5 h-5 text-amber-500 animate-[spin_3s_linear_infinite]" />
+                        {task.status === "In Progress" ? (
+                          <div className="relative">
+                            <CircleDashed className="w-6 h-6 text-primary animate-[spin_4s_linear_infinite]" />
+                            <div className="absolute inset-0 bg-primary/20 blur-lg rounded-full animate-pulse" />
+                          </div>
                         ) : (
-                          <GitPullRequest className="w-5 h-5 text-emerald-500" />
+                          <GitPullRequest className="w-6 h-6 text-accent" />
                         )}
                       </div>
                       <div>
-                        <h3 className="font-medium group-hover:text-primary transition-colors">{item.title}</h3>
-                        <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
-                          <span className="text-xs font-mono bg-accent px-1.5 py-0.5 rounded">{item.repo}</span>
-                          • {item.time}
-                        </p>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[10px] font-black text-primary uppercase tracking-widest">{task.id}</span>
+                          <span className="text-[10px] text-white/30">•</span>
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase">{task.repo}</span>
+                        </div>
+                        <h3 className="text-lg font-bold text-white group-hover:text-primary transition-colors">
+                          {task.title}
+                        </h3>
                       </div>
                     </div>
-                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-accent text-muted-foreground">
-                      {item.status}
-                    </span>
+                    <div className={cn(
+                      "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter",
+                      task.status === "In Progress" ? "bg-primary/20 text-primary border border-primary/20" : "bg-accent/20 text-accent border border-accent/20"
+                    )}>
+                      {task.status}
+                    </div>
                   </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                      <span>Progress</span>
+                      <span>{task.progress}%</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${task.progress}%` }}
+                        className={cn(
+                          "h-full transition-all duration-1000",
+                          task.status === "In Progress" ? "bg-primary" : "bg-accent"
+                        )}
+                      />
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </section>
+
+          {/* Infrastructure Health / Builds */}
+          <section className="space-y-4">
+            <h2 className="text-xl font-bold text-white flex items-center gap-2 px-2">
+              <PlayCircle className="w-5 h-5 text-accent" /> Deployment Pipeline
+            </h2>
+            <div className="glass-card divide-y divide-white/5">
+              {mockBuildLogs.map((build) => (
+                <div key={build.id} className="p-5 flex items-center justify-between hover:bg-white/[0.02] transition-colors">
+                  <div className="flex items-center gap-4">
+                    <div className={cn(
+                      "w-10 h-10 rounded-xl flex items-center justify-center border",
+                      build.status === "Passed" ? "bg-green-500/10 border-green-500/20" : "bg-rose-500/10 border-rose-500/20"
+                    )}>
+                      {build.status === "Passed" ? (
+                        <CheckCircle2 className="w-5 h-5 text-green-500" />
+                      ) : (
+                        <AlertTriangle className="w-5 h-5 text-rose-500" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-white">{build.title}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{build.status} • {build.time} • <span className="font-mono">8a2f1b4</span></p>
+                    </div>
+                  </div>
+                  <motion.button 
+                    whileHover={{ scale: 1.1 }}
+                    className="p-2 rounded-lg hover:bg-white/5 text-muted-foreground transition-all"
+                  >
+                    <ArrowRight className="w-4 h-4" />
+                  </motion.button>
                 </div>
               ))}
             </div>
-          </div>
-
-          {/* CI/CD Status */}
-          <div className="bg-card rounded-xl border border-border overflow-hidden shadow-sm">
-            <div className="px-6 py-4 border-b border-border bg-card/50">
-              <h2 className="font-semibold flex items-center gap-2">
-                <PlayCircle className="w-4 h-4 text-emerald-400" /> Recent Builds
-              </h2>
-            </div>
-            <div className="p-6">
-              <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-border bg-background/50">
-                    <div className="flex items-center gap-3">
-                      <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                      <div>
-                        <p className="text-sm font-medium">Build #10{i} <span className="text-muted-foreground font-normal">for</span> main</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">Passed in 2m 14s</p>
-                      </div>
-                    </div>
-                    <GitCommit className="w-4 h-4 text-muted-foreground" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          </section>
         </div>
 
         {/* Sidebar Widgets */}
-        <div className="space-y-6">
-          {/* AI Gardener */}
+        <div className="space-y-8">
+          {/* AI Gardener Widget */}
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-transparent rounded-xl border border-indigo-500/20 p-6 relative overflow-hidden"
+            whileHover={{ y: -5 }}
+            className="relative p-8 rounded-3xl overflow-hidden group"
           >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl"></div>
-            <h3 className="font-semibold text-indigo-400 flex items-center gap-2">
-              <Star className="w-4 h-4" /> AI Gardener
-            </h3>
-            <p className="text-sm text-muted-foreground mt-3 leading-relaxed">
-              You've been working on the Webhook integration for 2 hours. There's a similar implementation in <span className="text-indigo-400 cursor-pointer hover:underline">devhub-legacy</span> that might save you time.
-            </p>
-            <button className="mt-4 text-xs font-medium bg-indigo-500/20 text-indigo-300 px-3 py-1.5 rounded-md hover:bg-indigo-500/30 transition-colors w-full">
-              View Reference
-            </button>
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-accent/20 to-transparent opacity-50 transition-opacity group-hover:opacity-70" />
+            <div className="absolute inset-0 glass opacity-50" />
+            
+            <div className="relative z-10 space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-white/10 border border-white/20">
+                  <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                </div>
+                <span className="text-sm font-black uppercase tracking-widest text-white">AI Gardener</span>
+              </div>
+              
+              <p className="text-sm text-white/80 leading-relaxed font-medium">
+                &quot;I noticed you&apos;re implementing a <span className="text-primary font-bold">Webhook secret validator</span>. There&apos;s a battle-tested helper in the <span className="underline decoration-accent underline-offset-4 cursor-pointer">shared-utils</span> package that handles Gitea signatures.&quot;
+              </p>
+              
+              <button className="w-full py-3 rounded-2xl bg-white text-black text-xs font-black uppercase tracking-widest hover:bg-white/90 transition-all shadow-xl">
+                Adopt Suggestion
+              </button>
+            </div>
           </motion.div>
 
-          {/* Kudos Feed */}
-          <div className="bg-card rounded-xl border border-border p-6 shadow-sm">
-            <h3 className="font-semibold flex items-center gap-2 mb-4">
-              <MessageSquare className="w-4 h-4 text-pink-400" /> Team Kudos
+          {/* Social / Kudos */}
+          <div className="glass-card p-6 space-y-6">
+            <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-accent" /> Recent Recognition
             </h3>
             <div className="space-y-4">
-              <div className="p-3 rounded-lg bg-background border border-border text-sm">
-                <p><span className="font-medium text-pink-400">@alex</span> gave you kudos for resolving the database deadlock issue quickly! 🎉</p>
-                <p className="text-xs text-muted-foreground mt-2">Yesterday</p>
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-[10px] font-bold text-white">A</div>
+                  <span className="text-xs font-bold text-white">@alex_dev</span>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  &quot;Amazing work on the gRPC migration! The performance gains are already visible in the staging logs. Keep it up! 🚀&quot;
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* System Status Mini */}
+          <div className="glass-card p-6">
+            <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground mb-4">Infrastructure</h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-white/70">Gitea Server</span>
+                <span className="text-[10px] font-black text-green-500 uppercase">Operational</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-white/70">AI Runner</span>
+                <span className="text-[10px] font-black text-green-500 uppercase">Operational</span>
+              </div>
+              <div className="flex items-center justify-between opacity-50">
+                <span className="text-xs font-bold text-white/70">Metrics DB</span>
+                <span className="text-[10px] font-black text-amber-500 uppercase">Maintenance</span>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {isDeepFocus && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] glass flex items-center justify-center p-6 text-center"
+          >
+            <div className="max-w-md space-y-8">
+              <motion.div
+                animate={{ 
+                  scale: [1, 1.1, 1],
+                  rotate: [0, 5, -5, 0]
+                }}
+                transition={{ duration: 4, repeat: Infinity }}
+                className="w-24 h-24 bg-primary/20 rounded-full flex items-center justify-center mx-auto border border-primary/40 shadow-[0_0_50px_rgba(139,92,246,0.3)]"
+              >
+                <Zap className="w-12 h-12 text-primary fill-current" />
+              </motion.div>
+              <div className="space-y-2">
+                <h2 className="text-4xl font-black text-white uppercase tracking-tighter">Deep Focus Mode</h2>
+                <p className="text-muted-foreground">Notifications are silenced. DevHub is protecting your flow state.</p>
+              </div>
+              <button 
+                onClick={() => setDeepFocus(false)}
+                className="px-8 py-3 rounded-2xl bg-white text-black font-black uppercase tracking-widest hover:bg-white/90 transition-all shadow-2xl"
+              >
+                Exit Session
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <Modal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)}
+        title="Project Intelligence Summary"
+        size="lg"
+      >
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="glass-card p-4">
+              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Current Milestone</p>
+              <p className="text-lg font-bold text-white">v1.0.0-beta-2</p>
+            </div>
+            <div className="glass-card p-4">
+              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Deployment Status</p>
+              <Badge variant="success" dot>Stable</Badge>
+            </div>
+          </div>
+          
+          <div className="space-y-3">
+            <h4 className="text-sm font-bold text-white">Technical Ecosystem</h4>
+            <div className="flex flex-wrap gap-2">
+              {["Go Core", "Python AI Engine", "Next.js 15", "Tailwind 4", "gRPC", "PostgreSQL"].map(tech => (
+                <Badge key={tech} variant="secondary">{tech}</Badge>
+              ))}
+            </div>
+          </div>
+          
+          <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
+            <p className="text-xs text-primary/80 leading-relaxed italic">
+              &quot;AI Gardener has analyzed your current PR. No conflicts detected with the Gitea migration branch. Proceed with confidence.&quot;
+            </p>
+          </div>
+          
+          <button 
+            onClick={() => setIsModalOpen(false)}
+            className="w-full py-4 rounded-2xl bg-white text-black text-xs font-black uppercase tracking-widest hover:bg-white/90 transition-all"
+          >
+            Acknowledge & Continue
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }

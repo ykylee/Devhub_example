@@ -1,0 +1,68 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-05-01",
+  "source_of_truth": {
+    "project_profile_path": "ai-workflow/memory/gemini/frontend_phase1/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/gemini/frontend_phase1/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/gemini/frontend_phase1/work_backlog.md",
+    "latest_backlog_path": "ai-workflow/memory/gemini/frontend_phase1/backlog/2026-05-01.md",
+    "repository_assessment_path": "ai-workflow/memory/gemini/frontend_phase1/repository_assessment.md"
+  },
+  "project": {
+    "project_name": "Devhub Example",
+    "document_home": "docs/README.md",
+    "operations_path": null,
+    "backlog_path": "ai-workflow/memory/gemini/frontend_phase1/backlog/",
+    "handoff_path": null,
+    "environment_path": "ai-workflow/memory/gemini/frontend_phase1/environments/"
+  },
+  "commands": {
+    "quick_tests": "pytest ai-workflow/tests/check_docs.py",
+    "isolated_tests": "go test ./backend-core/... && pytest backend-ai/",
+    "runtime_checks": "docker-compose ps"
+  },
+  "session": {
+    "current_baseline": "Service layer abstraction and asynchronous data binding implemented for Manager dashboard.",
+    "current_axis": "Final PR review and project handoff readiness.",
+    "current_focus": "최종 PR 검토 및 프로젝트 마감 준비",
+    "in_progress_items": [
+      "TASK-003"
+    ],
+    "blocked_items": [],
+    "recent_done_items": [
+      "TASK-003-SERVICE",
+      "TASK-003-MANAGER",
+      "TASK-003-ADMIN",
+      "TASK-003-UI",
+      "TASK-003-Part1",
+      "TASK-002",
+      "TASK-001"
+    ],
+    "environment_constraints": [
+      "Docker/Docker-compose required",
+      "gRPC tools required"
+    ]
+  },
+  "backlog": {
+    "latest_backlog_path": "ai-workflow/memory/gemini/frontend_phase1/backlog/2026-05-01.md",
+    "task_count": 3,
+    "in_progress_items": [
+      "TASK-003"
+    ],
+    "blocked_items": [],
+    "done_items": [
+      "TASK-002",
+      "TASK-001"
+    ]
+  },
+  "next_documents": [
+    "ai-workflow/memory/gemini/frontend_phase1/PROJECT_PROFILE.md",
+    "ai-workflow/memory/gemini/frontend_phase1/session_handoff.md",
+    "ai-workflow/memory/gemini/frontend_phase1/work_backlog.md",
+    "ai-workflow/memory/gemini/frontend_phase1/backlog/2026-05-01.md"
+  ],
+  "repository_assessment": {
+    "path": "ai-workflow/memory/gemini/frontend_phase1/repository_assessment.md",
+    "present": true
+  }
+}

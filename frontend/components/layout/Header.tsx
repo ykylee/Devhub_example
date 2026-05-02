@@ -1,64 +1,112 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Bell, User, ChevronDown } from "lucide-react";
+import { Search, Bell, User, ChevronDown, Command } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 
-interface HeaderProps extends React.HTMLAttributes<HTMLDivElement> {}
+import { useStore, type UserRole } from "@/lib/store";
+import { useRouter } from "next/navigation";
 
-export function Header({ className, ...props }: HeaderProps) {
-  const [role, setRole] = useState("Developer");
+export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  const { role, setRole, notifications, clearNotifications } = useStore();
+  const [showDropdown, setShowDropdown] = useState(false);
+  const router = useRouter();
+
+  const handleRoleChange = (newRole: UserRole) => {
+    setRole(newRole);
+    setShowDropdown(false);
+    
+    // Role-based navigation
+    const pathMap: Record<UserRole, string> = {
+      "Developer": "/developer",
+      "Manager": "/manager",
+      "System Admin": "/admin"
+    };
+    router.push(pathMap[newRole]);
+  };
 
   return (
-    <header className={cn("sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-xl", className)} {...props}>
-      <div className="flex h-16 items-center px-6 gap-4">
+    <header className={cn("sticky top-0 z-50 w-full glass border-b border-white/5", className)} {...props}>
+      <div className="flex h-16 items-center px-8 gap-8">
         <div className="flex-1 flex items-center">
-          <div className="relative w-96 max-w-md hidden md:flex items-center">
-            <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground" />
+          <div className="relative w-full max-w-lg hidden md:flex items-center group">
+            <div className="absolute left-3.5 flex items-center gap-2 pointer-events-none">
+              <Search className="h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <div className="px-1.5 py-0.5 rounded border border-white/10 bg-white/5 text-[10px] font-mono text-muted-foreground">
+                <Command className="w-2 h-2 inline mr-0.5" /> K
+              </div>
+            </div>
             <input
               type="search"
-              placeholder="Search wiki, components, or logs..."
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 pl-9 bg-card/50"
+              placeholder="Search anything..."
+              className="flex h-10 w-full rounded-xl border border-white/5 bg-white/5 px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-white/10 transition-all pl-16"
             />
           </div>
         </div>
         
-        <div className="flex items-center gap-4">
-          <button className="relative p-2 text-muted-foreground hover:text-foreground transition-colors">
+        <div className="flex items-center gap-6">
+          <motion.button 
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={clearNotifications}
+            className="relative p-2.5 rounded-xl hover:bg-white/5 text-muted-foreground hover:text-white transition-all"
+          >
             <Bell className="h-5 w-5" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></span>
-          </button>
+            {notifications > 0 && (
+              <span className="absolute top-2 right-2 w-2 h-2 bg-accent rounded-full border-2 border-[#030014]"></span>
+            )}
+          </motion.button>
           
-          <div className="h-8 w-px bg-border"></div>
-
-          <div className="flex items-center gap-2 group cursor-pointer relative">
-            <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center border border-border">
-              <User className="w-4 h-4 text-muted-foreground" />
-            </div>
-            <div className="flex flex-col hidden sm:flex">
-              <span className="text-sm font-medium leading-none">YK Lee</span>
-              <span className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                {role} <ChevronDown className="w-3 h-3 group-hover:rotate-180 transition-transform" />
-              </span>
-            </div>
-            
-            {/* Simple Dropdown for Prototype */}
-            <div className="absolute top-full right-0 mt-2 w-48 rounded-md border border-border bg-popover text-popover-foreground shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto z-50">
-              <div className="p-1">
-                {["Developer", "Manager", "System Admin"].map((r) => (
-                  <button
-                    key={r}
-                    onClick={() => setRole(r)}
-                    className={cn(
-                      "flex w-full items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground",
-                      role === r && "bg-accent/50 text-accent-foreground font-medium"
-                    )}
-                  >
-                    {r} View
-                  </button>
-                ))}
+          <div className="h-6 w-px bg-white/10"></div>
+          
+          <div className="relative">
+            <motion.div 
+              onClick={() => setShowDropdown(!showDropdown)}
+              className="flex items-center gap-3 py-1.5 px-3 rounded-2xl hover:bg-white/5 transition-all cursor-pointer group"
+            >
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border border-white/10 ring-2 ring-primary/20">
+                <User className="w-5 h-5 text-white" />
               </div>
-            </div>
+              <div className="flex flex-col hidden sm:flex">
+                <span className="text-sm font-semibold leading-none text-white">YK Lee</span>
+                <span className="text-[10px] font-bold text-muted-foreground mt-1 flex items-center gap-1 uppercase tracking-wider">
+                  {role} <ChevronDown className={cn("w-3 h-3 transition-transform duration-300", showDropdown && "rotate-180")} />
+                </span>
+              </div>
+            </motion.div>
+
+            <AnimatePresence>
+              {showDropdown && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  className="absolute top-full right-0 mt-4 w-56 rounded-2xl glass border border-white/10 p-2 z-50 shadow-2xl"
+                >
+                  <p className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-50">
+                    Switch View
+                  </p>
+                  {(["Developer", "Manager", "System Admin"] as UserRole[]).map((r) => (
+                    <button
+                      key={r}
+                      onClick={() => handleRoleChange(r)}
+                      className={cn(
+                        "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all hover:bg-white/10 group",
+                        role === r ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-white"
+                      )}
+                    >
+                      <div className={cn("w-2 h-2 rounded-full transition-all", role === r ? "bg-primary scale-100" : "bg-transparent scale-0")} />
+                      {r}
+                    </button>
+                  ))}
+                  <div className="h-px bg-white/5 my-2" />
+                  <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-destructive hover:bg-destructive/10 transition-all">
+                    Sign Out
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>
