@@ -32,7 +32,7 @@
 ## 4. 환경 및 검증
 
 - 검증 호스트: darwin / local
-- 완료 검증: `cd backend-core && go test ./...`, `python3 -m json.tool ai-workflow/memory/state.json`, 홈랩 PostgreSQL migration version `1` 확인.
+- 완료 검증: `cd backend-core && go test ./...`, `python3 -m json.tool ai-workflow/memory/state.json`, 홈랩 PostgreSQL migration version `1` 확인, `cd frontend && npm run lint`.
 - 환경 제약: Docker daemon 미실행으로 Docker Compose 기반 통합 검증은 미실행. 홈랩 PostgreSQL migration 검증은 완료. 전체 검증에는 `protoc`, Node 의존성 설치, Docker daemon 실행 또는 접근 가능한 PostgreSQL 환경이 필요함.
 
 ## 다음에 읽을 문서
