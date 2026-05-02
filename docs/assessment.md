@@ -5,7 +5,7 @@
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: draft
 - 최종 수정일: 2026-04-28
-- 관련 문서: `./project_workflow_profile.md`, `./session_handoff.md`, `../core/workflow_adoption_entrypoints.md`
+- 관련 문서: `../ai-workflow/memory/PROJECT_PROFILE.md`, `../ai-workflow/memory/session_handoff.md`, `../ai-workflow/core/workflow_adoption_entrypoints.md`
 
 ## 1. 요약
 
@@ -25,7 +25,7 @@
 - 소스 디렉터리 후보:
 - `backend-core/`, `backend-ai/`, `frontend/`, `proto/`
 - 문서 디렉터리 후보:
-- `docs/`, `ai-workflow/project/`
+- `docs/`, `ai-workflow/memory/`
 - 테스트 디렉터리 후보:
 - 현재 명시적 테스트 디렉터리는 제한적이며, Go package test와 frontend lint를 우선 검증 기준으로 사용함.
 
@@ -54,11 +54,11 @@
 - 추천 문서 위키 홈:
 - `docs/README.md`
 - 추천 운영 문서 위치:
-- `ai-workflow/project/`
+- `ai-workflow/memory/`
 - 추천 backlog 위치:
-- `ai-workflow/project/backlog/`
+- `ai-workflow/memory/backlog/`
 - 추천 session handoff 위치:
-- `ai-workflow/project/session_handoff.md`
+- `ai-workflow/memory/session_handoff.md`
 
 ## 6. 자동 분석 기반 다음 작업
 
@@ -68,6 +68,6 @@
 
 ## 다음에 읽을 문서
 
-- 프로젝트 프로파일: [./project_workflow_profile.md](../ai-workflow/project/project_workflow_profile.md)
-- 세션 인계 문서: [./session_handoff.md](../ai-workflow/project/session_handoff.md)
+- 프로젝트 프로파일: [./PROJECT_PROFILE.md](../ai-workflow/memory/PROJECT_PROFILE.md)
+- 세션 인계 문서: [./session_handoff.md](../ai-workflow/memory/session_handoff.md)
 - 도입 분기 가이드: [../ai-workflow/core/workflow_adoption_entrypoints.md](../ai-workflow/core/workflow_adoption_entrypoints.md)

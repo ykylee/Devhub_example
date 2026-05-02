@@ -3,9 +3,9 @@
 - 문서 목적: DevHub 백엔드 구현 범위, 순서, 진척 상태를 추적한다.
 - 기준일: 2026-05-02
 - 상태: in_progress
-- 관련 문서: `docs/requirements.md`, `docs/architecture.md`, `docs/tech_stack.md`, `docs/backend_api_contract.md`, `ai-workflow/memory/backlog/2026-05-02.md`
+- 관련 문서: `docs/requirements.md`, `docs/architecture.md`, `docs/tech_stack.md`, `docs/backend_api_contract.md`, `docs/backend/frontend_integration_requirements.md`, `docs/backend/requirements_review.md`, `ai-workflow/memory/backlog/2026-05-02.md`
 - 현재 브랜치: `codex/backend_init`
-- 프론트엔드 전제: 프론트엔드는 별도 브랜치에서 개발 후 병합 예정이므로, 백엔드는 API 계약과 실시간 이벤트 계약을 먼저 안정화한다.
+- 프론트엔드 전제: frontend phase1 화면과 mock service layer가 병합된 상태이므로, 백엔드는 raw webhook 수집 이후 프론트 교체 가능한 REST snapshot API와 WebSocket 이벤트 계약을 우선 안정화한다.
 
 ## 1. 개발 원칙
 
@@ -13,6 +13,10 @@
 - Python AI는 초기 단계에서 PostgreSQL에 직접 접근하지 않고, Go Core가 필터링한 입력을 gRPC로 전달받는다.
 - 모든 Gitea Webhook 이벤트는 raw event로 먼저 저장하고, 정규화/분석/실시간 publish는 후속 단계에서 확장한다.
 - 프론트엔드 병렬 개발을 위해 REST API 응답 형태와 WebSocket 메시지 타입을 변경 가능성이 낮은 계약으로 관리한다.
+- 프론트엔드 작성 요구사항 리뷰(`docs/backend/requirements_review.md`)의 P1/P2 finding은 로드맵 phase 완료 조건에 포함한다.
+- 프론트 대상 실시간 API는 gRPC stream이 아니라 REST snapshot + WebSocket event로만 계약한다.
+- 프론트엔드 UI 표시명과 API wire format은 분리한다. 역할 값은 API에서 `developer`, `manager`, `system_admin`을 기본으로 한다.
+- 명령성 액션은 boolean 결과가 아니라 `command_id`와 command status lifecycle로 관리하고 audit log를 남긴다.
 - 검증하지 않은 단계는 `done`으로 전환하지 않는다.
 
 ## 2. Phase 로드맵
@@ -22,12 +26,14 @@
 | Phase 1 | done | Go Core 기반 구조 정리 | `internal/config`, `internal/httpapi`, `internal/gitea`, `internal/store` 분리 | `cd backend-core && go test ./...` |
 | Phase 2 | done | PostgreSQL 초기 스키마 | `webhook_events` migration | migration 적용 검증 |
 | Phase 3 | done | Gitea Webhook raw 수신부 | `POST /api/v1/integrations/gitea/webhooks`, signature 검증, dedupe 처리 | handler 단위 테스트 |
-| Phase 4 | in_progress | 프론트 연동용 조회 API | `GET /api/v1/events`, repository/issue/PR 조회 API 초안 | API 테스트 및 응답 계약 문서화 |
-| Phase 5 | planned | 도메인 정규화 1차 | repository/user/issue/pull_request/ci_run 테이블 및 정규화 로직 | fixture 기반 정규화 테스트 |
-| Phase 6 | planned | WebSocket 실시간 채널 | `/api/v1/realtime/ws`, 이벤트 publish 메시지 | WebSocket 연결/메시지 테스트 |
-| Phase 7 | planned | Python AI gRPC 연결 | Go gRPC client, Python `AnalysisService` server | gRPC 통합 테스트 |
-| Phase 8 | planned | Hourly Pull Reconciliation | Gitea REST client, 누락 이벤트 보정 worker | dry-run 및 idempotency 테스트 |
-| Phase 9 | planned | 시스템 관리자 기능 | Runner/서버 상태 조회, 제한된 제어 API, audit log | 권한/audit 테스트 |
+| Phase 4 | in_progress | 프론트 연동 계약 안정화 | `GET /api/v1/events`, role wire format, REST snapshot/WebSocket envelope 계약, frontend integration requirements, requirements review finding 반영 | API 계약 문서화, frontend mock shape 대조, gRPC 직접 노출 없음 확인 |
+| Phase 5 | in_progress | 프론트 snapshot API 1차 | metrics, infra topology, ci-runs/logs, critical risks 조회 API 초안, `ServiceNode`/`CiRun`/`Risk` 공통 필드 | handler 테스트 및 응답 예시 문서화 |
+| Phase 6 | planned | 도메인 정규화 1차 | repository/user/issue/pull_request/ci_run/risk 기초 테이블 및 정규화 로직, 식별자/timestamp/pagination 기준 | fixture 기반 정규화 테스트 |
+| Phase 7 | planned | command/audit 기반 액션 API | service action, risk mitigation, weekly report command, command status, idempotency, audit log | 권한/audit/idempotency 테스트 |
+| Phase 8 | planned | WebSocket 실시간 채널 | `/api/v1/realtime/ws`, infra/ci/risk/command/notification event publish | WebSocket 연결/필터링/메시지 테스트 |
+| Phase 9 | planned | Python AI gRPC 연결 | Go gRPC client, Python `AnalysisService` server, build log summary/risk detection 연동 | gRPC 통합 테스트 |
+| Phase 10 | planned | Hourly Pull Reconciliation | Gitea REST client, 누락 이벤트 보정 worker | dry-run 및 idempotency 테스트 |
+| Phase 11 | planned | 시스템 관리자 기능 고도화 | Runner/서버 상태 adapter, config 조회, allowlist/seed admin | 권한/audit/health adapter 테스트 |
 
 ## 3. 현재 완료 범위
 
@@ -41,25 +47,36 @@
 - `GET /api/v1/events` raw event 조회 API와 초기 API 계약 문서를 추가했다.
 - validated webhook event 저장 시 `validated_at`을 함께 기록하도록 정리했다.
 - 홈랩 PostgreSQL `devhub` DB에 `webhook_events` migration version 1 적용을 검증했다.
+- frontend phase1 화면과 mock service layer를 검토해 `docs/backend/frontend_integration_requirements.md`로 백엔드 연동 요구사항을 정리했다.
+- 프론트엔드 작성 백엔드 요구사항을 `docs/backend/requirements_review.md`에서 상세 리뷰했고, gRPC/WebSocket 경계, command/audit, role enum, 데이터 모델 부족분을 로드맵 고려 사항으로 편입했다.
+- 프론트 직접 gRPC 사용 오해를 막기 위해 REST snapshot + WebSocket 갱신을 프론트 연동 기본 방향으로 명시했다.
+- static fallback 기반 프론트 snapshot API 1차를 추가했다: `GET /api/v1/dashboard/metrics`, `GET /api/v1/infra/nodes`, `GET /api/v1/infra/edges`, `GET /api/v1/infra/topology`, `GET /api/v1/ci-runs`, `GET /api/v1/ci-runs/{ci_run_id}/logs`, `GET /api/v1/risks/critical`.
 
 ## 4. 다음 작업 큐
 
 ### P1
 
-- repository/issue/PR 조회 API 초안을 도메인 정규화 설계와 함께 확정한다.
+- `docs/backend_api_contract.md`에 frontend integration requirements 기반 role wire format, REST snapshot endpoint, WebSocket envelope를 반영한다.
+- `docs/backend/requirements_review.md`의 P1 finding 2건을 먼저 해소한다: 프론트 실시간 채널을 WebSocket으로 재정의하고, 관리자 명령 API에 command lifecycle/audit/idempotency/권한 조건을 반영한다.
+- 프론트 snapshot API 1차를 PostgreSQL 정규화 테이블 또는 Gitea/Runner adapter 기반 data source로 교체할 설계를 확정한다.
+- repository/issue/PR/ci_run/risk 조회 API 초안을 도메인 정규화 설계와 함께 확정한다.
+- command/audit 최소 schema를 정의하고 service action/risk mitigation을 boolean 응답이 아닌 command lifecycle로 설계한다.
+- role enum은 `developer`, `manager`, `system_admin` wire format으로 확정하고 프론트 표시명과 분리한다.
 - `webhook_events` 상태 전이 기준(`validated` 이후 `processed`, `failed`, `ignored`)을 정리한다.
 
 ### P2
 
 - Issue, Pull Request, Commit, Actions 이벤트 fixture를 수집해 정규화 테스트 기반을 만든다.
-- repository/user/issue/pull_request/ci_run 초기 테이블을 설계한다.
-- WebSocket 메시지 타입 초안을 작성한다.
+- repository/user/issue/pull_request/ci_run/risk 초기 테이블을 설계한다.
+- `ServiceNode`, `CiRun`, `Risk`, `Command` 모델에 프론트 mock보다 부족한 식별자, owner, timestamp, status, pagination/filtering 기준을 추가한다.
+- WebSocket 메시지 타입(`infra.node.updated`, `ci.run.updated`, `risk.updated`, `command.status.updated`, `notification.created`) 초안을 작성한다.
+- system admin allowlist 또는 seed admin 기준을 API 계약과 함께 확정한다.
 
 ### P3
 
 - Python AI gRPC 서버 구현과 Go Core client 연결을 시작한다.
 - Hourly Pull reconciliation worker와 Gitea REST client를 설계한다.
-- 시스템 관리자 기능의 allowlist 또는 seed admin 기준을 확정한다.
+- weekly report, AI Gardener suggestion, team load 산출 모델을 후속 기능으로 구체화한다.
 
 ## 5. Blocked 항목
 

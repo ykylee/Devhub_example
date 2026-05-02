@@ -2,7 +2,7 @@
 
 - **작성일:** 2026-04-29
 - **상태:** Draft / Confirmed
-- **관련 문서:** [요구사항 정의서](./requirements.md), [프로젝트 프로파일](../ai-workflow/project/project_workflow_profile.md)
+- **관련 문서:** [요구사항 정의서](./requirements.md), [프로젝트 프로파일](../ai-workflow/memory/PROJECT_PROFILE.md)
 
 ## 1. 개요
 본 문서는 DevHub의 시스템 구성, 서비스 간 통신 방식, 데이터 흐름 및 UI/UX 시각화 전략을 상세히 정의합니다.

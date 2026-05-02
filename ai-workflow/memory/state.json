@@ -26,23 +26,25 @@
     "runtime_checks": "make build"
   },
   "session": {
-    "current_baseline": "main의 frontend_phase1 및 workflow memory 구조 변경을 codex/backend_init에 병합했고, Go Core raw Webhook 수집 기반, GET /api/v1/events 조회 API 초안, 홈랩 PostgreSQL migration 적용 검증 완료 상태를 memory 경로에 반영함",
+    "current_baseline": "main의 frontend_phase1 및 workflow memory 구조 변경을 codex/backend_init에 병합했고, Go Core raw Webhook 수집 기반, GET /api/v1/events 조회 API 초안, 홈랩 PostgreSQL migration 적용 검증 완료 상태, 프론트엔드 백엔드 요구사항 상세 리뷰, frontend phase1 기반 백엔드 연동 요구사항, requirements review P1/P2 finding을 고려한 로드맵 갱신, static fallback 기반 프론트 snapshot API 1차 구현을 memory 경로에 반영함",
     "current_axis": "Gitea 연동 구현 및 frontend_phase1 병합 반영",
     "current_focus": "TASK-007 Gitea Webhook 수신부 및 데이터 모델링 구현",
     "in_progress_items": ["TASK-007"],
     "blocked_items": [],
-    "recent_done_items": ["TASK-009", "TASK-008", "TASK-006", "TASK-005", "TASK-004"],
+    "recent_done_items": ["TASK-012", "TASK-011", "TASK-010", "TASK-009", "TASK-008", "TASK-006"],
     "environment_constraints": ["protoc, Node dependencies, Docker daemon are required for full local validation", "Homelab PostgreSQL 192.168.0.38:5432 devhub DB is reachable and migration version 1 is applied"]
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/backlog/2026-05-02.md",
-    "task_count": 8,
+    "task_count": 11,
     "in_progress_items": ["TASK-007"],
     "blocked_items": [],
-    "done_items": ["TASK-002", "TASK-004", "TASK-003", "TASK-005", "TASK-006", "TASK-008", "TASK-009"]
+    "done_items": ["TASK-002", "TASK-004", "TASK-003", "TASK-005", "TASK-006", "TASK-008", "TASK-009", "TASK-010", "TASK-011", "TASK-012"]
   },
   "next_documents": [
     "ai-workflow/memory/backend_development_roadmap.md",
+    "docs/backend/frontend_integration_requirements.md",
+    "docs/backend/requirements_review.md",
     "ai-workflow/memory/environments/homelab-postgresql.md",
     "docs/backend_api_contract.md",
     "docs/architecture.md",

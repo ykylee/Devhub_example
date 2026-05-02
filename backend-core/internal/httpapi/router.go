@@ -31,7 +31,14 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	router.GET("/health", handler.health)
 
 	v1 := router.Group("/api/v1")
+	v1.GET("/dashboard/metrics", handler.dashboardMetrics)
 	v1.GET("/events", handler.listWebhookEvents)
+	v1.GET("/infra/edges", handler.infraEdges)
+	v1.GET("/infra/nodes", handler.infraNodes)
+	v1.GET("/infra/topology", handler.infraTopology)
+	v1.GET("/ci-runs", handler.ciRuns)
+	v1.GET("/ci-runs/:ci_run_id/logs", handler.ciRunLogs)
+	v1.GET("/risks/critical", handler.criticalRisks)
 	v1.POST("/integrations/gitea/webhooks", handler.receiveGiteaWebhook)
 
 	return router

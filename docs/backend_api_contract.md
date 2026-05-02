@@ -3,7 +3,7 @@
 - 문서 목적: 프론트엔드 별도 브랜치 개발을 위한 초기 백엔드 API 계약을 기록한다.
 - 기준일: 2026-05-02
 - 상태: draft
-- 관련 문서: `docs/architecture.md`, `docs/tech_stack.md`, `ai-workflow/project/backend_development_roadmap.md`
+- 관련 문서: `docs/architecture.md`, `docs/tech_stack.md`, `docs/backend/frontend_integration_requirements.md`, `docs/backend/requirements_review.md`, `ai-workflow/memory/backend_development_roadmap.md`
 
 ## 1. 공통 응답 원칙
 
@@ -109,12 +109,155 @@ Gitea Webhook payload를 수신해 signature를 검증하고 raw event로 저장
 }
 ```
 
-## 5. 예정 API
+## 5. 프론트 Snapshot API 1차
 
+정규화 테이블 구현 전 프론트 mock service 교체를 위한 static fallback snapshot API다. 응답 shape는 유지하고, 후속 Phase에서 backing data source를 PostgreSQL 정규화 테이블과 Gitea/Runner adapter로 교체한다.
+
+### Role wire format
+
+API query/path/body에서 역할 값은 다음 wire format을 사용한다.
+
+- `developer`
+- `manager`
+- `system_admin`
+
+프론트 UI 표시명(`Developer`, `Manager`, `System Admin`)과 API role 값은 분리한다.
+
+### `GET /api/v1/dashboard/metrics`
+
+역할별 KPI metric 목록을 조회한다.
+
+#### Query
+
+| 이름 | 기본값 | 범위 | 설명 |
+| --- | --- | --- | --- |
+| `role` | `developer` | `developer`, `manager`, `system_admin` | 조회할 역할 |
+
+#### 응답 예시
+
+```json
+{
+  "status": "ok",
+  "data": [
+    {
+      "id": "build_success",
+      "label": "Build Success",
+      "value": "98%",
+      "trend": "+2%",
+      "trend_direction": "up",
+      "numeric_value": 98,
+      "unit": "percent"
+    }
+  ],
+  "meta": {
+    "role": "developer",
+    "count": 3
+  }
+}
+```
+
+### `GET /api/v1/infra/nodes`
+
+인프라 topology node 목록을 조회한다. CPU, memory, duration 계열 값은 프론트가 표시 문자열로 포맷팅할 수 있도록 원시 값을 우선 제공한다.
+
+### `GET /api/v1/infra/edges`
+
+인프라 topology edge 목록을 조회한다.
+
+### `GET /api/v1/infra/topology`
+
+인프라 node와 edge를 한 번에 조회한다.
+
+#### 응답 예시
+
+```json
+{
+  "status": "ok",
+  "data": {
+    "nodes": [
+      {
+        "id": "backend-core",
+        "label": "Go Core Service",
+        "kind": "service",
+        "status": "stable",
+        "region": "asia-01",
+        "cpu_percent": 12.4,
+        "memory_bytes": 1288490189,
+        "active_instances": 1,
+        "updated_at": "2026-05-02T10:00:00Z"
+      }
+    ],
+    "edges": [
+      {
+        "id": "gitea-backend-core",
+        "source_id": "gitea",
+        "target_id": "backend-core",
+        "label": "WEBHOOK",
+        "status": "stable",
+        "latency_ms": 28.5,
+        "throughput_rps": 2.4,
+        "updated_at": "2026-05-02T10:00:00Z"
+      }
+    ]
+  },
+  "meta": {
+    "node_count": 4,
+    "edge_count": 3
+  }
+}
+```
+
+### `GET /api/v1/ci-runs`
+
+CI run snapshot 목록을 조회한다.
+
+#### Query
+
+| 이름 | 기본값 | 설명 |
+| --- | --- | --- |
+| `scope` | `all` | 초기 구현에서는 응답 필터링 없이 meta에만 반영한다. 후속 구현에서 `mine` 등으로 필터링한다. |
+
+### `GET /api/v1/ci-runs/{ci_run_id}/logs`
+
+CI run 로그 라인을 조회한다.
+
+### `GET /api/v1/risks/critical`
+
+Manager dashboard의 critical risk 목록을 조회한다.
+
+#### 응답 예시
+
+```json
+{
+  "status": "ok",
+  "data": [
+    {
+      "id": "risk-001",
+      "title": "Gitea Migration Blocked",
+      "reason": "Access token expiration and scope mismatch detected in logs.",
+      "impact": "high",
+      "status": "action_required",
+      "owner_login": "alex.k",
+      "suggested_actions": ["rotate_token", "verify_scopes"],
+      "created_at": "2026-05-01T10:00:00Z",
+      "updated_at": "2026-05-02T10:00:00Z"
+    }
+  ],
+  "meta": {
+    "count": 2
+  }
+}
+```
+
+## 6. 예정 API
+
+- `GET /api/v1/me`
 - `GET /api/v1/repositories`
 - `GET /api/v1/issues`
 - `GET /api/v1/pull-requests`
-- `GET /api/v1/ci-runs`
+- `POST /api/v1/risks/{risk_id}/mitigations`
+- `POST /api/v1/admin/service-actions`
+- `GET /api/v1/commands/{command_id}`
 - `GET /api/v1/realtime/ws`
 
 예정 API는 도메인 정규화 테이블 설계 이후 확정한다.
