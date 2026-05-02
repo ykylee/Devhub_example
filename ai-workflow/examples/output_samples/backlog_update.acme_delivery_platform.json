@@ -1,6 +1,6 @@
 {
   "status": "ok",
-  "tool_version": "beta-v2.0",
+  "tool_version": "v0.3.2-beta",
   "operation_type": "update_entry",
   "target_backlog_path": "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/backlog/2026-04-18.md",
   "task_id": "TASK-021",
@@ -55,7 +55,7 @@
   "handoff_update_note": "상태 변화가 handoff 에 반영되어야 하는지 확인한다.",
   "validation_note": null,
   "source_context": {
-    "project_profile_path": "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/project_workflow_profile.md",
+    "project_profile_path": "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/PROJECT_PROFILE.md",
     "daily_backlog_exists": true,
     "existing_task_count": 1
   }

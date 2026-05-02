@@ -1,6 +1,6 @@
 {
   "status": "ok",
-  "tool_version": "beta-v2.0",
+  "tool_version": "v0.3.2-beta",
   "detected_change_types": [
     "code",
     "docs",
@@ -62,7 +62,7 @@
     "프로젝트 프로파일의 기본 명령을 우선 사용해 검증 계획을 구성했다."
   ],
   "source_context": {
-    "project_profile_path": "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/project_workflow_profile.md",
+    "project_profile_path": "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/PROJECT_PROFILE.md",
     "project_name": "Acme Delivery Platform",
     "changed_files": [
       "app/jobs/delivery_sync.py",

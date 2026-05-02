@@ -1,10 +1,9 @@
 # Global Workflow Standard
 
-- 문서 목적: 여러 프로젝트에 공통 적용할 수 있는 세션 시작, 작업 기록, 검증, 세션 종료의 최소 공통 규칙을 정의한다.
-- 범위: 공통 운영 원칙, 언어/보고 원칙, 컨텍스트 절약 원칙, 상태값, 세션 시작 순서, 작업 기록 최소 필드, 검증 수준, 결과 기록 원칙, 세션 종료 원칙
-- 대상 독자: 개발자, 운영자, AI agent, 프로젝트 관리자
-- 상태: draft
-- 최종 수정일: 2026-04-18
+- 문서 목적: 모든 저장소에서 공통으로 적용되는 AI 에이전트 협업 표준을 정의한다.
+- 범위: 문서 구조, 세션 핸드오프, 작업 분류 및 모드(Task Modes) 기준
+- 상태: stable
+- 최종 수정일: 2026-05-01
 - 관련 문서: `../templates/project_workflow_profile_template.md`, `../templates/session_handoff_template.md`, `../templates/work_backlog_template.md`
 
 ## 1. 공통 원칙
@@ -34,6 +33,19 @@
 - orchestrator 와 worker 를 나눠 운영할 수 있는 하네스에서는 메인 orchestrator 가 직접 도구 호출을 떠안기보다 task delegation 과 결과 통합에 집중하는 구성을 기본값으로 둔다.
 - 실제 탐색, 수정, 검증은 bounded scope worker 에 맡기고, ask 는 genuinely blocking decision 이나 위험한 외부 작업으로만 좁히는 편을 기본 원칙으로 둔다.
 - `ai-workflow/` 는 세션 복원과 workflow 상태 관리용 메타 레이어로 보고, 프로젝트 코드/문서 탐색 범위에는 기본적으로 포함하지 않는다.
+## 1.3 작업 모드 (Task Modes)
+
+작업의 성격에 따라 최적화된 워크플로우를 제공하기 위해 아래 모드를 지원한다. 세부 정의는 `workflow_task_modes.md`를 따른다.
+
+- **Analysis**: 구조 분석 및 탐색 중심.
+- **Requirements**: 니즈 수집 및 명세화 중심.
+- **Design**: 아키텍처 및 상세 설계 중심.
+- **Planning**: 태스크 분해 및 일정 계획 중심.
+- **Implementation**: 코드 작성 및 단위 검증 중심.
+- **Refactoring**: 코드 개선 및 회귀 테스트 중심.
+
+운영 원칙:
+- 세션 오케스트레이터는 현재 작업의 성격을 판단하여 모드를 전환하고, 해당 모드에 최적화된 에이전트 토폴로지를 구성한다.
 
 ## 2. 세션 시작 순서
 

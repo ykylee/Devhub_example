@@ -66,7 +66,7 @@
 - 기본 허용 권장:
 - sub-agent `task` 위임
 - 세션 복원용 직접 read:
-- `state.json`, `session_handoff.md`, `work_backlog.md`, `project_workflow_profile.md`
+- `state.json`, `session_handoff.md`, `work_backlog.md`, `PROJECT_PROFILE.md`
 - 작은 triage read:
 - 단일 파일 또는 단일 경로의 존재 확인, 매우 짧은 단일 파일 확인
 - 승인 기반 또는 제한 권장:

@@ -50,12 +50,12 @@
 
 - 생성/복사한 문서:
 - `ai-workflow/README.md`
-- `ai-workflow/project/README.md`
-- `ai-workflow/project/project_workflow_profile.md`
-- `ai-workflow/project/session_handoff.md`
-- `ai-workflow/project/work_backlog.md`
-- `ai-workflow/project/backlog/2026-04-22.md`
-- `ai-workflow/project/repository_assessment.md`
+- `ai-workflow/memory/README.md`
+- `ai-workflow/memory/PROJECT_PROFILE.md`
+- `ai-workflow/memory/session_handoff.md`
+- `ai-workflow/memory/work_backlog.md`
+- `ai-workflow/memory/backlog/2026-04-22.md`
+- `ai-workflow/memory/repository_assessment.md`
 - 적용한 하네스 오버레이:
 - `AGENTS.md`
 - `.codex/config.toml.example`
@@ -72,7 +72,7 @@
 - 잘 맞았던 점:
 - bootstrap 이 실제 저장소 구조를 빠르게 읽어 `repository_assessment.md` 와 운영 문서 초안을 생성했다.
 - 수정이 필요했던 경로/명칭:
-- 생성 직후 기본 운영 문서 경로 설명은 `docs/operations` 계열 표현이 섞여 있었고, 실제 생성 위치인 `ai-workflow/project/` 기준으로 다시 맞춰야 했다.
+- 생성 직후 기본 운영 문서 경로 설명은 `docs/operations` 계열 표현이 섞여 있었고, 실제 생성 위치인 `ai-workflow/memory/` 기준으로 다시 맞춰야 했다.
 - 헷갈렸던 입력:
 - `repository_assessment.summary` 는 충분히 유용했지만 Windows 주 개발 환경과 Linux 검증 기준의 차이는 사람이 profile 에 직접 적어야 했다.
 - 과도하거나 불필요했던 규칙:
@@ -80,18 +80,18 @@
 - 부족했던 가이드:
 - 실제 대상 저장소 기준 파일럿 적용 기록 예시가 없어서 어떤 마찰을 남겨야 하는지 템플릿만으로는 덜 선명했다.
 - 수동 확인이 많이 필요했던 지점:
-- 운영 문서 장기 위치를 `ai-workflow/project/` 로 유지할지, 기존 `README.md` 와 `docs/` 체계로 더 녹여 넣을지는 사람이 판단해야 했다.
+- 운영 문서 장기 위치를 `ai-workflow/memory/` 로 유지할지, 기존 `README.md` 와 `docs/` 체계로 더 녹여 넣을지는 사람이 판단해야 했다.
 
 ## 5. 적용 후 상태
 
 - 최종 project profile 경로:
-- `ai-workflow/project/project_workflow_profile.md`
+- `ai-workflow/memory/PROJECT_PROFILE.md`
 - 최종 session handoff 경로:
-- `ai-workflow/project/session_handoff.md`
+- `ai-workflow/memory/session_handoff.md`
 - 최종 work backlog 경로:
-- `ai-workflow/project/work_backlog.md`
+- `ai-workflow/memory/work_backlog.md`
 - 최신 backlog 경로:
-- `ai-workflow/project/backlog/2026-04-22.md`
+- `ai-workflow/memory/backlog/2026-04-22.md`
 - 실제 첫 세션에서 사용한 runner 또는 skill:
 - `run_existing_project_onboarding.py`
 - 하네스에서 우선 읽은 출력:
@@ -103,7 +103,7 @@
 - 남은 미정 항목:
 - 전체 configure/build/smoke 를 파일럿 기본 검증으로 강제할지
 - Windows 포터블 패키징 검증을 언제 필수로 요구할지
-- `ai-workflow/project/` 위치를 장기 운영 위치로 유지할지
+- `ai-workflow/memory/` 위치를 장기 운영 위치로 유지할지
 
 ## 6. 검증 결과
 
@@ -117,7 +117,7 @@
 - 출력 계약 문제 여부:
 - onboarding runner 상위 구조와 `repository_assessment.summary`, `onboarding_summary.inferred_commands` 채움 방식은 의도대로 동작했다.
 - 문서 링크/메타데이터 문제 여부:
-- 운영 문서 경로를 `ai-workflow/project/` 기준으로 맞추고 허브 README 를 추가한 뒤, code-index 경고는 사라졌다.
+- 운영 문서 경로를 `ai-workflow/memory/` 기준으로 맞추고 허브 README 를 추가한 뒤, code-index 경고는 사라졌다.
 - runner 또는 하네스 연결 문제 여부:
 - 초기에는 handoff/backlog 상태 불일치 경고와 index 후보 경고가 있었지만, 파일럿 문서 보정 후 대부분 해소됐다.
 - 남은 runner 경고:

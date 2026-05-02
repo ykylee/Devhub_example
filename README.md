@@ -1,3 +1,12 @@
+# DevHub Example
+
+- 문서 목적: DevHub Example 프로젝트의 개요 및 통합 가이드를 제공한다.
+- 범위: 전체 시스템 구조, 개발 환경 구축, 서브 시스템 안내
+- 대상 독자: 모든 개발자 및 운영자
+- 상태: stable
+- 최종 수정일: 2026-05-01
+- 관련 문서: [워크플로우 README](ai-workflow/README.md), [프로젝트 프로파일](ai-workflow/memory/PROJECT_PROFILE.md)
+
 # DevHub: Multi-Role Team Hub
 
 본 프로젝트는 팀 내 다양한 역할군(Role)의 업무 효율을 높이기 위한 **역할 기반 통합 개발 허브**입니다. 

@@ -27,7 +27,7 @@
 - 공유:
 - 프로젝트 루트 `AGENTS.md` 와 `ai-workflow/` 패키지를 둔다.
 - 로컬:
-- `ai-workflow/project/` 문서에서 실제 명령, 경로, backlog 상태를 관리한다.
+- `ai-workflow/memory/` 문서에서 실제 명령, 경로, backlog 상태를 관리한다.
 
 프로젝트별 규칙은 항상 local 문서가 우선한다.
 
@@ -35,7 +35,7 @@
 
 - Codex 전역 `config.toml` 에 이미 있는 model/provider 기본값은 프로젝트 workflow 가 자동으로 덮어쓰지 않게 유지한다.
 - `.codex/config.toml.example` 는 additive 한 MCP 예시 중심으로 유지한다.
-- 프로젝트 특화 명령과 규칙은 `AGENTS.md` 와 `ai-workflow/project/` 문서에서 읽게 한다.
+- 프로젝트 특화 명령과 규칙은 `AGENTS.md` 와 `ai-workflow/memory/` 문서에서 읽게 한다.
 
 ## 2.3 전역에 넣을 것과 넣지 않을 것
 
@@ -56,7 +56,7 @@
 - 프로젝트 공통 진입:
 - 루트 `AGENTS.md`
 - 프로젝트 실제 운영값:
-- `ai-workflow/project/` 문서 세트
+- `ai-workflow/memory/` 문서 세트
 
 이렇게 두면 전역 설정을 거의 건드리지 않으면서 프로젝트별 규칙만 교체할 수 있다.
 
@@ -84,8 +84,8 @@ python3 scripts/bootstrap_workflow_kit.py \
   --copy-core-docs
 ```
 
-2. 생성된 `ai-workflow/project/project_workflow_profile.md` 에 실제 명령과 검증 규칙을 채운다.
-3. 루트 `AGENTS.md` 가 `ai-workflow/project/` 문서를 먼저 읽도록 연결됐는지 확인한다.
+2. 생성된 `ai-workflow/memory/PROJECT_PROFILE.md` 에 실제 명령과 검증 규칙을 채운다.
+3. 루트 `AGENTS.md` 가 `ai-workflow/memory/` 문서를 먼저 읽도록 연결됐는지 확인한다.
    이때 사용자 노출 산출물은 한국어, 내부 처리는 간결하게 유지한다는 원칙도 함께 넣는 것을 권장한다.
 4. `.codex/config.toml.example` 를 참고해 필요한 Codex 전역 설정을 수동 반영할지 결정한다.
    전역 snippet 을 쓰려면 [../../global-snippets/codex/config.toml.snippet](../../global-snippets/codex/config.toml.snippet) 도 함께 검토한다.
@@ -116,8 +116,8 @@ python3 scripts/bootstrap_workflow_kit.py \
   --copy-core-docs
 ```
 
-2. `ai-workflow/project/repository_assessment.md` 를 읽고 추정 스택, 명령, 문서 경로가 실제 저장소와 맞는지 검토한다.
-3. `project_workflow_profile.md` 의 설치, 실행, 테스트 명령을 실제 운영 기준으로 수정한다.
+2. `ai-workflow/memory/repository_assessment.md` 를 읽고 추정 스택, 명령, 문서 경로가 실제 저장소와 맞는지 검토한다.
+3. `PROJECT_PROFILE.md` 의 설치, 실행, 테스트 명령을 실제 운영 기준으로 수정한다.
 4. 루트 `AGENTS.md` 의 기본 명령과 문서 경로가 맞는지 확인한다.
    작업 보고 언어와 컨텍스트 절약 원칙도 이 단계에서 함께 검토한다.
    export bundle 을 쓰는 경우 read-only MCP descriptor 의 `transport_ready` 값이 `false` 임을 확인하고, 실제 MCP 연결은 별도 서버 루프가 준비된 뒤 진행한다.
@@ -137,15 +137,15 @@ python3 scripts/apply_harness_update.py \
 
 - 먼저 `AGENTS.md` 를 기준으로 현재 저장소 규칙을 읽는다.
 - 이어서 아래 세 문서를 순서대로 읽는다.
-- `ai-workflow/project/session_handoff.md`
-- `ai-workflow/project/work_backlog.md`
-- `ai-workflow/project/project_workflow_profile.md`
-- 기존 프로젝트 도입 직후라면 `ai-workflow/project/repository_assessment.md` 도 함께 읽는다.
+- `ai-workflow/memory/session_handoff.md`
+- `ai-workflow/memory/work_backlog.md`
+- `ai-workflow/memory/PROJECT_PROFILE.md`
+- 기존 프로젝트 도입 직후라면 `ai-workflow/memory/repository_assessment.md` 도 함께 읽는다.
 
 ## 6. 적용 후 확인 체크리스트
 
 - `AGENTS.md` 가 존재한다.
-- `ai-workflow/project/` 문서 세트가 존재한다.
+- `ai-workflow/memory/` 문서 세트가 존재한다.
 - profile 문서의 명령이 실제 저장소 기준으로 채워져 있다.
 - 첫 backlog 항목과 handoff 가 비어 있지 않다.
 - Codex 가 읽어야 할 시작 문서 경로가 팀 내에서 합의되어 있다.
@@ -153,7 +153,7 @@ python3 scripts/apply_harness_update.py \
 ## 7. 자주 손보게 되는 부분
 
 - `AGENTS.md` 의 프로젝트 기본 명령
-- `project_workflow_profile.md` 의 검증 규칙
+- `PROJECT_PROFILE.md` 의 검증 규칙
 - `session_handoff.md` 의 현재 기준선
 - 최신 날짜 backlog 의 상태값과 다음 세션 시작 포인트
 

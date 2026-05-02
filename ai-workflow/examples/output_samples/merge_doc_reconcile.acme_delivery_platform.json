@@ -1,6 +1,6 @@
 {
   "status": "ok",
-  "tool_version": "beta-v2.0",
+  "tool_version": "v0.3.2-beta",
   "reconcile_targets": [
     "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/session_handoff.md",
     "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/backlog/2026-04-18.md",
@@ -31,7 +31,7 @@
   "hub_update_note": null,
   "validation_follow_up": "병합 후 별도 검증 결과가 없으면 상태 재확정 전에 확인이 필요하다.",
   "source_context": {
-    "project_profile_path": "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/project_workflow_profile.md",
+    "project_profile_path": "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/PROJECT_PROFILE.md",
     "merge_result_summary": "runbook 링크와 상태 문서가 함께 수정된 브랜치 병합 후 재정리",
     "changed_files": [
       "app/jobs/delivery_sync.py",

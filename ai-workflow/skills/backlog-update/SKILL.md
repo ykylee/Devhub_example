@@ -54,7 +54,7 @@
 
 ```bash
 python3 skills/backlog-update/scripts/run_backlog_update.py \
-  --project-profile-path examples/acme_delivery_platform/project_workflow_profile.md \
+  --project-profile-path examples/acme_delivery_platform/PROJECT_PROFILE.md \
   --daily-backlog-path examples/acme_delivery_platform/backlog/2026-04-18.md \
   --mode update \
   --task-id TASK-021 \
@@ -67,7 +67,7 @@ python3 skills/backlog-update/scripts/run_backlog_update.py \
 
 ```bash
 python3 skills/backlog-update/scripts/run_backlog_update.py \
-  --project-profile-path examples/acme_delivery_platform/project_workflow_profile.md \
+  --project-profile-path examples/acme_delivery_platform/PROJECT_PROFILE.md \
   --target-date 2026-04-19 \
   --mode create \
   --task-name "운영 허브 링크 무결성 재점검" \

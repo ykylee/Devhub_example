@@ -13,9 +13,10 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
+REPO_ROOT = Path(__file__).resolve().parents[2]
+SOURCE_ROOT = REPO_ROOT / "workflow-source"
+if str(SOURCE_ROOT) not in sys.path:
+    sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit.common.workflow_state import build_workflow_state_payload
 
@@ -37,6 +38,7 @@ HARNESS_PYTHON_DEPS = {
     "gemini-cli": [],
     "codex": [],
     "opencode": [],
+    "antigravity": [],
 }
 HARNESS_NODE_DEPS = {
     "gemini-cli": [],
@@ -60,6 +62,9 @@ DEFAULT_CORE_SUPPORT_PATHS = [
     "core/code_index_update_skill_spec.md",
     "templates/project_workflow_profile_template.md",
     "templates/session_handoff_template.md",
+    "templates/work_backlog_template.md",
+    "templates/daily_backlog_template.md",
+    "templates/release_note_template.md",
     "templates/pilot_candidate_checklist.md",
     "templates/pilot_adoption_record_template.md",
     "schemas/output_sample_contracts.json",
@@ -73,20 +78,32 @@ DEFAULT_CORE_SUPPORT_PATHS = [
     "skills/README.md",
     "skills/prototype_layout.md",
     "skills/session-start/SKILL.md",
+    "skills/session-start/scripts/run_session_start.py",
     "skills/backlog-update/SKILL.md",
+    "skills/backlog-update/scripts/run_backlog_update.py",
     "skills/doc-sync/SKILL.md",
+    "skills/doc-sync/scripts/run_doc_sync.py",
     "skills/merge-doc-reconcile/SKILL.md",
+    "skills/merge-doc-reconcile/scripts/run_merge_doc_reconcile.py",
     "skills/validation-plan/SKILL.md",
+    "skills/validation-plan/scripts/run_validation_plan.py",
     "skills/code-index-update/SKILL.md",
+    "skills/code-index-update/scripts/run_code_index_update.py",
     "mcp/README.md",
     "mcp/prototype_layout.md",
     "mcp/read_only_bundle.md",
     "mcp/latest-backlog/MCP.md",
+    "mcp/latest-backlog/scripts/run_latest_backlog.py",
     "mcp/check-doc-metadata/MCP.md",
+    "mcp/check-doc-metadata/scripts/run_check_doc_metadata.py",
     "mcp/check-doc-links/MCP.md",
+    "mcp/check-doc-links/scripts/run_check_doc_links.py",
     "mcp/create-backlog-entry/MCP.md",
+    "mcp/create-backlog-entry/scripts/run_create_backlog_entry.py",
     "mcp/suggest-impacted-docs/MCP.md",
+    "mcp/suggest-impacted-docs/scripts/run_suggest_impacted_docs.py",
     "mcp/check-quickstart-stale-links/MCP.md",
+    "mcp/check-quickstart-stale-links/scripts/run_check_quickstart_stale_links.py",
     "tests/README.md",
     "tests/check_docs.py",
     "tests/check_bootstrap.py",
@@ -101,13 +118,14 @@ DEFAULT_CORE_SUPPORT_PATHS = [
     "global-snippets/README.md",
     "scripts/README.md",
     "scripts/apply_harness_update.py",
+    "scripts/apply_workflow_upgrade.py",
     "scripts/bootstrap_workflow_kit.py",
     "scripts/export_harness_package.py",
     "scripts/generate_workflow_state.py",
     "scripts/scaffold_harness.py",
     "scripts/run_demo_workflow.py",
     "scripts/run_existing_project_onboarding.py",
-    "workflow_kit/README.md",
+    "workflow_kit",
 ]
 IGNORED_DIRS = {
     ".git",
@@ -133,7 +151,7 @@ class Paths:
     target_root: Path
     kit_root: Path
     core_dir: Path
-    project_dir: Path
+    memory_dir: Path
     backlog_dir: Path
     readme_path: Path
     profile_path: Path
@@ -142,6 +160,7 @@ class Paths:
     backlog_index_path: Path
     daily_backlog_path: Path
     assessment_path: Path
+    status_assessment_path: Path
 
 
 @dataclass(frozen=True)
@@ -174,10 +193,10 @@ def parse_args() -> argparse.Namespace:
         default="TODO: 주요 이해관계자 목록을 정리한다.",
     )
     parser.add_argument("--doc-home", default="README.md")
-    parser.add_argument("--operations-dir", default="ai-workflow/project/")
-    parser.add_argument("--backlog-dir", default="ai-workflow/project/backlog/")
-    parser.add_argument("--session-doc-path", default="ai-workflow/project/session_handoff.md")
-    parser.add_argument("--environment-dir", default="ai-workflow/project/environments/")
+    parser.add_argument("--operations-dir", default="ai-workflow/memory/")
+    parser.add_argument("--backlog-dir", default="ai-workflow/memory/backlog/")
+    parser.add_argument("--session-doc-path", default="ai-workflow/memory/session_handoff.md")
+    parser.add_argument("--environment-dir", default="ai-workflow/memory/environments/")
     parser.add_argument("--install-command", default=None)
     parser.add_argument("--run-command", default=None)
     parser.add_argument("--quick-test-command", default=None)
@@ -229,21 +248,22 @@ def parse_args() -> argparse.Namespace:
 def make_paths(args: argparse.Namespace) -> Paths:
     target_root = Path(args.target_root).resolve()
     kit_root = target_root / args.kit_dir
-    project_dir = kit_root / "project"
-    backlog_dir = project_dir / "backlog"
+    memory_dir = kit_root / "memory"
+    backlog_dir = memory_dir / "backlog"
     return Paths(
         target_root=target_root,
         kit_root=kit_root,
         core_dir=kit_root / "core",
-        project_dir=project_dir,
+        memory_dir=memory_dir,
         backlog_dir=backlog_dir,
         readme_path=kit_root / "README.md",
-        profile_path=project_dir / "project_workflow_profile.md",
-        state_path=project_dir / "state.json",
-        handoff_path=project_dir / "session_handoff.md",
-        backlog_index_path=project_dir / "work_backlog.md",
+        profile_path=target_root / "docs"/ "PROJECT_PROFILE.md",
+        state_path=memory_dir / "state.json",
+        handoff_path=memory_dir / "session_handoff.md",
+        backlog_index_path=memory_dir / "work_backlog.md",
         daily_backlog_path=backlog_dir / f"{args.today}.md",
-        assessment_path=project_dir / "repository_assessment.md",
+        assessment_path=memory_dir / "repository_assessment.md",
+        status_assessment_path=memory_dir / "project_status_assessment.md",
     )
 
 
@@ -258,7 +278,7 @@ def copy_core_docs(paths: Paths, *, force: bool) -> list[str]:
     copied: list[str] = []
     paths.core_dir.mkdir(parents=True, exist_ok=True)
     for name in DEFAULT_CORE_DOCS:
-        source = REPO_ROOT / "core" / name
+        source = SOURCE_ROOT/ "core"/ name
         destination = paths.core_dir / name
         if destination.exists() and not force:
             raise FileExistsError(f"Destination already exists: {destination}")
@@ -266,13 +286,13 @@ def copy_core_docs(paths: Paths, *, force: bool) -> list[str]:
         copied.append(str(destination))
     for raw_relative_path in DEFAULT_CORE_SUPPORT_PATHS:
         relative_path = Path(raw_relative_path)
-        source = REPO_ROOT / relative_path
+        source = SOURCE_ROOT/ relative_path
         destination = paths.kit_root / relative_path
         if source.is_dir():
             for file_path in sorted(source.rglob("*")):
                 if not file_path.is_file():
                     continue
-                nested_relative = file_path.relative_to(REPO_ROOT)
+                nested_relative = file_path.relative_to(SOURCE_ROOT)
                 nested_destination = paths.kit_root / nested_relative
                 if nested_destination.exists() and not force:
                     raise FileExistsError(f"Destination already exists: {nested_destination}")
@@ -301,18 +321,18 @@ def update_dependencies(paths: Paths, context: dict[str, object], harnesses: lis
 
     # 1. Handle Python dependencies (requirements.txt)
     req_file = target_root / "requirements.txt"
-    is_python = primary_stack == "python" or primary_stack == "unspecified"
-    
+    is_python = primary_stack == "python"or primary_stack == "unspecified"
+
     if is_python or req_file.exists():
         needed_python = list(COMMON_PYTHON_DEPS)
         for h in harnesses:
             needed_python.extend(HARNESS_PYTHON_DEPS.get(h, []))
-        
+
         needed_python = sorted(list(set(needed_python)))
         existing_content = ""
         if req_file.exists():
             existing_content = req_file.read_text(encoding="utf-8")
-        
+
         to_add = []
         for dep in needed_python:
             pattern = rf"(^|\s|[,]){re.escape(dep)}([>=<#\s]|$)"
@@ -323,13 +343,13 @@ def update_dependencies(paths: Paths, context: dict[str, object], harnesses: lis
             new_lines = []
             if existing_content and not existing_content.endswith("\n"):
                 new_lines.append("\n")
-            
-            if "# Standard AI Workflow Dependencies" not in existing_content:
+
+            if "# Standard AI Workflow Dependencies"not in existing_content:
                 new_lines.append("# Standard AI Workflow Dependencies\n")
-            
+
             for dep in to_add:
                 new_lines.append(f"{dep}\n")
-            
+
             with open(req_file, "a", encoding="utf-8") as f:
                 f.writelines(new_lines)
             updated_files.append(rel(req_file, target_root))
@@ -341,22 +361,22 @@ def update_dependencies(paths: Paths, context: dict[str, object], harnesses: lis
             payload = json.loads(package_json.read_text(encoding="utf-8"))
             dev_deps = payload.get("devDependencies", {})
             deps = payload.get("dependencies", {})
-            
+
             needed_node = list(COMMON_NODE_DEPS)
             for h in harnesses:
                 needed_node.extend(HARNESS_NODE_DEPS.get(h, []))
-            
+
             to_add_node = [
-                dep for dep in needed_node 
+                dep for dep in needed_node
                 if dep not in dev_deps and dep not in deps
             ]
-            
+
             if to_add_node:
-                if "devDependencies" not in payload:
+                if "devDependencies"not in payload:
                     payload["devDependencies"] = {}
                 for dep in to_add_node:
                     payload["devDependencies"][dep] = "latest"
-                
+
                 payload["devDependencies"] = dict(sorted(payload["devDependencies"].items()))
                 package_json.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
                 updated_files.append(rel(package_json, target_root))
@@ -396,22 +416,26 @@ HARNESS_DEFINITIONS = {
 def global_snippet_sources() -> dict[str, dict[str, str]]:
     return {
         "codex": {
-            "readme": str((REPO_ROOT / "global-snippets" / "codex" / "README.md").resolve()),
-            "snippet": str((REPO_ROOT / "global-snippets" / "codex" / "config.toml.snippet").resolve()),
+            "readme": str((SOURCE_ROOT/ "global-snippets"/ "codex"/ "README.md").resolve()),
+            "snippet": str((SOURCE_ROOT/ "global-snippets"/ "codex"/ "config.toml.snippet").resolve()),
             "target": "~/.codex/config.toml",
             "policy": "additive_only",
         },
         "opencode": {
-            "readme": str((REPO_ROOT / "global-snippets" / "opencode" / "README.md").resolve()),
-            "snippet": str((REPO_ROOT / "global-snippets" / "opencode" / "opencode.global.jsonc").resolve()),
+            "readme": str((SOURCE_ROOT/ "global-snippets"/ "opencode"/ "README.md").resolve()),
+            "snippet": str((SOURCE_ROOT/ "global-snippets"/ "opencode"/ "opencode.global.jsonc").resolve()),
             "target": "~/.config/opencode/opencode.json",
             "policy": "additive_only",
         },
     }
 
 
-def iter_repo_files(root: Path, *, max_depth: int = 3) -> list[Path]:
+def iter_repo_files(root: Path, *, max_depth: int = 3, ignore_dirs: set[str] | None = None) -> list[Path]:
     results: list[Path] = []
+    combined_ignore = IGNORED_DIRS.copy()
+    if ignore_dirs:
+        combined_ignore.update(ignore_dirs)
+
     for current_root, dirs, files in os.walk(root):
         current_path = Path(current_root)
         try:
@@ -422,7 +446,7 @@ def iter_repo_files(root: Path, *, max_depth: int = 3) -> list[Path]:
         dirs[:] = sorted(
             name
             for name in dirs
-            if name not in IGNORED_DIRS and depth < max_depth
+            if name not in combined_ignore and depth < max_depth
         )
         for file_name in sorted(files):
             results.append(current_path / file_name)
@@ -454,7 +478,7 @@ def guess_run_command(target_root: Path, package_scripts: dict[str, str]) -> str
 
 
 def infer_project_context(args: argparse.Namespace, paths: Paths) -> dict[str, object]:
-    # Basic exploration for both "new" and "existing" modes
+    # Basic exploration for both "new"and "existing"modes
     docs_dirs = sorted(
         {
             name
@@ -478,16 +502,25 @@ def infer_project_context(args: argparse.Namespace, paths: Paths) -> dict[str, o
     )
 
     stack_labels: list[str] = []
-    if (paths.target_root / "package.json").exists():
-        stack_labels.append("node")
-    if (paths.target_root / "pyproject.toml").exists() or (paths.target_root / "requirements.txt").exists():
-        stack_labels.append("python")
-    if (paths.target_root / "Cargo.toml").exists():
-        stack_labels.append("rust")
-    if (paths.target_root / "go.mod").exists():
-        stack_labels.append("go")
-    if (paths.target_root / "Gemfile").exists():
-        stack_labels.append("ruby")
+    # Check root and subdirectories for stack indicators
+    search_paths = [paths.target_root] + [p for p in paths.target_root.iterdir() if p.is_dir() and p.name not in IGNORED_DIRS]
+    
+    for p in search_paths:
+        if (p / "package.json").exists():
+            stack_labels.append("node")
+        if (p / "pyproject.toml").exists() or (p / "requirements.txt").exists() or (p / "setup.py").exists():
+            stack_labels.append("python")
+        if (p / "Cargo.toml").exists():
+            stack_labels.append("rust")
+        if (p / "go.mod").exists():
+            stack_labels.append("go")
+        if (p / "Gemfile").exists():
+            stack_labels.append("ruby")
+        if (p / "CMakeLists.txt").exists() or (p / "Makefile").exists():
+            stack_labels.append("cpp")
+
+    # Remove duplicates and prioritize
+    stack_labels = sorted(list(set(stack_labels)))
     primary_stack = stack_labels[0] if stack_labels else "unknown"
 
     package_scripts = detect_package_scripts(paths.target_root)
@@ -514,34 +547,41 @@ def infer_project_context(args: argparse.Namespace, paths: Paths) -> dict[str, o
     isolated_test_command = args.isolated_test_command
     smoke_check_command = args.smoke_check_command
 
-    # Refine commands based on stack
+    # Refine commands based on stack (Priority: Makefile -> Primary Stack)
+    if (paths.target_root / "Makefile").exists():
+        if not install_command: install_command = "make install"
+        if not run_command: run_command = "make run"
+        if not quick_test_command: quick_test_command = "make test"
+        if not smoke_check_command: smoke_check_command = "make smoke"
+
+    # Fallback to stack-specific defaults if still TODO
     if primary_stack == "node":
-        if not install_command: install_command = "npm install"
-        if not run_command: run_command = guess_run_command(paths.target_root, package_scripts)
-        if not quick_test_command:
+        if not install_command or "TODO" in install_command: install_command = "npm install"
+        if not run_command or "TODO" in run_command: run_command = guess_run_command(paths.target_root, package_scripts)
+        if not quick_test_command or "TODO" in quick_test_command:
             quick_test_command = "npm test" if "test" in package_scripts else ("npm run lint" if "lint" in package_scripts else "TODO: 빠른 테스트 명령 입력")
-        if not isolated_test_command:
+        if not isolated_test_command or "TODO" in isolated_test_command:
             isolated_test_command = "npm run test:unit" if "test:unit" in package_scripts else ("npm run test:ci" if "test:ci" in package_scripts else "TODO: 격리 테스트 명령 입력")
-        if not smoke_check_command:
+        if not smoke_check_command or "TODO" in smoke_check_command:
             smoke_check_command = "npm run test:smoke" if "test:smoke" in package_scripts else "TODO: 실행 확인 명령 입력"
     elif primary_stack == "python":
-        if not install_command: 
+        if not install_command or "TODO" in install_command:
             install_command = "pip install -r requirements.txt" if (paths.target_root / "requirements.txt").exists() else "pip install ."
-        if not run_command: run_command = guess_run_command(paths.target_root, {})
-        if not quick_test_command:
+        if not run_command or "TODO" in run_command: run_command = guess_run_command(paths.target_root, {})
+        if not quick_test_command or "TODO" in quick_test_command:
             quick_test_command = "pytest" if test_dirs else "TODO: 빠른 테스트 명령 입력"
-        if not isolated_test_command:
+        if not isolated_test_command or "TODO" in isolated_test_command:
             isolated_test_command = "pytest tests/unit" if (paths.target_root / "tests/unit").exists() else "TODO: 격리 테스트 명령 입력"
     elif primary_stack == "rust":
-        if not install_command: install_command = "cargo fetch"
-        if not run_command: run_command = "cargo run"
-        if not quick_test_command: quick_test_command = "cargo test"
-        if not isolated_test_command: isolated_test_command = "cargo test --lib"
+        if not install_command or "TODO" in install_command: install_command = "cargo fetch"
+        if not run_command or "TODO" in run_command: run_command = "cargo run"
+        if not quick_test_command or "TODO" in quick_test_command: quick_test_command = "cargo test"
+        if not isolated_test_command or "TODO" in isolated_test_command: isolated_test_command = "cargo test --lib"
     elif primary_stack == "go":
-        if not install_command: install_command = "go mod download"
-        if not run_command: run_command = "go run ./..."
-        if not quick_test_command: quick_test_command = "go test ./..."
-        if not isolated_test_command: isolated_test_command = "go test ./... -run TestSmoke"
+        if not install_command or "TODO" in install_command: install_command = "go mod download"
+        if not run_command or "TODO" in run_command: run_command = "go run ./..."
+        if not quick_test_command or "TODO" in quick_test_command: quick_test_command = "go test ./..."
+        if not isolated_test_command or "TODO" in isolated_test_command: isolated_test_command = "go test ./... -run TestSmoke"
 
     # Fallback for all stacks
     install_command = install_command or "TODO: 설치 명령 입력"
@@ -581,12 +621,12 @@ def infer_project_context(args: argparse.Namespace, paths: Paths) -> dict[str, o
             ],
         }
 
-    # "existing" mode additional info
-    files = iter_repo_files(paths.target_root)
+    # "existing"mode additional info
+    files = iter_repo_files(paths.target_root, ignore_dirs={args.kit_dir})
     rel_files = [path.relative_to(paths.target_root).as_posix() for path in files]
-    
+
     analysis_summary = [
-        f"상위 디렉터리 기준으로 `{', '.join(top_level_entries[:10])}` 구조를 확인했다." if top_level_entries else "상위 디렉터리 항목이 거의 비어 있다.",
+        f"상위 디렉터리 기준으로 `{', '.join(top_level_entries[:10])}` 구조를 확인했다."if top_level_entries else "상위 디렉터리 항목이 거의 비어 있다.",
         f"추정 기본 스택은 `{primary_stack}` 이며 감지된 스택 라벨은 `{', '.join(stack_labels) or '없음'}` 이다.",
         f"문서 디렉터리는 `{', '.join(docs_dirs) or '없음'}`, 테스트 디렉터리는 `{', '.join(test_dirs) or '없음'}` 으로 감지됐다.",
         f"package script 는 `{', '.join(sorted(package_scripts)[:8]) or '없음'}` 으로 확인됐다.",
@@ -626,7 +666,7 @@ def value_or_inferred(explicit: str | None, fallback: str) -> str:
 def render_readme(args: argparse.Namespace, context: dict[str, object]) -> str:
     if args.copy_core_docs:
         core_docs = "\n".join(
-            f"- [core/{name}](./core/{name})" for name in DEFAULT_CORE_DOCS
+            f"- [core/{name}](./core/{name})"for name in DEFAULT_CORE_DOCS
         )
     else:
         core_docs = "- core 문서는 `--copy-core-docs` 옵션을 사용하면 함께 복사할 수 있다."
@@ -637,7 +677,7 @@ def render_readme(args: argparse.Namespace, context: dict[str, object]) -> str:
         for name in selected_harnesses(args)
     ) or "- 선택한 하네스 없음"
     if args.adoption_mode == "existing":
-        generated_assessment = "- [project/repository_assessment.md](./project/repository_assessment.md)"
+        generated_assessment = "- [ai-workflow/memory/repository_assessment.md](./ai-workflow/memory/repository_assessment.md)"
         mode_summary = "기존 프로젝트 분석 결과를 반영한 문서 초안과 평가 문서를 생성했다."
     return f"""# Standard AI Workflow Kit
 
@@ -646,7 +686,7 @@ def render_readme(args: argparse.Namespace, context: dict[str, object]) -> str:
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: draft
 - 최종 수정일: {args.today}
-- 관련 문서: `./project/project_workflow_profile.md`, `./project/state.json`, `./project/session_handoff.md`, `./project/work_backlog.md`
+- 관련 문서: `docs/PROJECT_PROFILE.md`, `ai-workflow/memory/state.json`, `ai-workflow/memory/session_handoff.md`, `ai-workflow/memory/work_backlog.md`
 
 ## 1. 도입 모드
 
@@ -656,11 +696,11 @@ def render_readme(args: argparse.Namespace, context: dict[str, object]) -> str:
 
 ## 2. 생성된 파일
 
-- [project/project_workflow_profile.md](./project/project_workflow_profile.md)
-- [project/state.json](./project/state.json)
-- [project/session_handoff.md](./project/session_handoff.md)
-- [project/work_backlog.md](./project/work_backlog.md)
-- [project/backlog/{args.today}.md](./project/backlog/{args.today}.md)
+- [docs/PROJECT_PROFILE.md](../docs/PROJECT_PROFILE.md)
+- [ai-workflow/memory/state.json](./memory/state.json)
+- [ai-workflow/memory/session_handoff.md](./memory/session_handoff.md)
+- [ai-workflow/memory/work_backlog.md](./memory/work_backlog.md)
+- [ai-workflow/memory/backlog/{args.today}.md](./memory/backlog/{args.today}.md)
 {generated_assessment}
 
 ## 3. 코어 문서
@@ -673,7 +713,7 @@ def render_readme(args: argparse.Namespace, context: dict[str, object]) -> str:
 
 ## 5. 도입 직후 해야 할 일
 
-1. `project_workflow_profile.md` 에 프로젝트 목적, 명령, 검증 규칙을 실제 값으로 채운다.
+1. `PROJECT_PROFILE.md` 에 프로젝트 목적, 명령, 검증 규칙을 실제 값으로 채운다.
 2. `state.json`, `session_handoff.md`, 오늘 날짜 backlog 를 현재 진행 작업 기준으로 갱신한다.
 3. 기존 프로젝트 모드였다면 `repository_assessment.md` 의 추정값을 실제 저장소 규칙과 대조해 수정한다.
 4. 선택한 하네스가 있으면 생성된 overlay 파일을 각 하네스 실행 경로에 맞게 검토한다.
@@ -696,15 +736,15 @@ def render_readme(args: argparse.Namespace, context: dict[str, object]) -> str:
 
 ## 다음에 읽을 문서
 
-- 프로젝트 프로파일: [./project/project_workflow_profile.md](./project/project_workflow_profile.md)
-- 빠른 상태 요약: [./project/state.json](./project/state.json)
-- 세션 인계 문서: [./project/session_handoff.md](./project/session_handoff.md)
-- 작업 백로그 인덱스: [./project/work_backlog.md](./project/work_backlog.md)
+- 프로젝트 프로파일: [../docs/PROJECT_PROFILE.md](../docs/PROJECT_PROFILE.md)
+- 빠른 상태 요약: [./memory/state.json](./memory/state.json)
+- 세션 인계 문서: [./memory/session_handoff.md](./memory/session_handoff.md)
+- 작업 백로그 인덱스: [./memory/work_backlog.md](./memory/work_backlog.md)
 """
 
 
 def load_template(name: str) -> str:
-    template_path = REPO_ROOT / "templates" / name
+    template_path = SOURCE_ROOT/ "templates"/ name
     if not template_path.exists():
         return f"MISSING TEMPLATE: {name}"
     return template_path.read_text(encoding="utf-8")
@@ -717,16 +757,16 @@ def render_project_profile(args: argparse.Namespace, context: dict[str, object])
     quick_test_command = value_or_inferred(args.quick_test_command, str(context["quick_test_command"]))
     isolated_test_command = value_or_inferred(args.isolated_test_command, str(context["isolated_test_command"]))
     smoke_check_command = value_or_inferred(args.smoke_check_command, str(context["smoke_check_command"]))
-    
+
     replacements = {
         "<Project Name>": args.project_name,
         "<핵심 사용자 가치 및 목표>": value_or_inferred(args.project_purpose, "TODO: 프로젝트 목적 정리"),
         "<협업 부서 및 담당자>": value_or_inferred(args.stakeholders, "TODO: 주요 이해관계자 정리"),
         "<README.md>": str(context["doc_home"]),
         "<docs/operations/>": str(context["operations_dir"]),
-        "<ai-workflow/project/backlog/>": str(context["backlog_dir"]),
-        "<ai-workflow/project/session_handoff.md>": str(context["session_doc_path"]),
-        "<ai-workflow/project/repository_assessment.md>": str(context["environment_dir"]),
+        "<ai-workflow/memory/backlog/>": str(context["backlog_dir"]),
+        "<ai-workflow/memory/session_handoff.md>": str(context["session_doc_path"]),
+        "<ai-workflow/memory/repository_assessment.md>": str(context["environment_dir"]),
         "<설치 및 가상환경 구성 명령>": install_command,
         "<어플리케이션 실행 명령>": run_command,
         "<단위 테스트 및 Lint 명령>": quick_test_command,
@@ -741,27 +781,29 @@ def render_project_profile(args: argparse.Namespace, context: dict[str, object])
 
 def render_session_handoff(args: argparse.Namespace, context: dict[str, object]) -> str:
     content = load_template("session_handoff_template.md")
-    
-    baseline = "TODO: 현재 세션 기준 상태 요약"
-    workstream = "TODO: 핵심 작업 축"
+
+    current_focus = "TODO: Summarize the current session focus."
     in_progress = f"{args.initial_task_id} {args.initial_task_name}"
     blocked = "N/A"
     completed = "N/A"
-    
+    key_change = "Initial workflow docs generated."
+    next_action = "Review and refine generated workflow docs."
+    risk_or_blocker = "N/A"
+
     if args.adoption_mode == "existing":
-        baseline = f"기존 코드베이스 분석 완료 (추정 스택: {context['primary_stack']})"
-        workstream = "워크플로우 도입 및 초기 설정"
-        completed = "저장소 스캔 완료"
+        current_focus = f"Existing codebase onboarding completed; inferred primary stack: {context['primary_stack']}."
+        completed = "Repository scan completed"
+        key_change = "Generated initial workflow docs from the existing repository scan."
+        next_action = "Validate generated profile, handoff, and backlog against the repository."
 
     replacements = {
-        "<최종 검증 상태 요약>": baseline,
-        "<이번 세션의 핵심 목표>": workstream,
-        "<참조한 주요 설계/정책 문서>": f"{context['session_doc_path']}, {context['doc_home']}",
-        "<TASK-ID 또는 N/A>": in_progress,
-        "<사유 또는 N/A>": blocked,
-        "<TASK-ID>": completed,
-        "<hostname / IP>": f"{args.host_name} / {args.host_ip}",
-        "<VPN, 권한, 가상환경 등 제약사항>": "TODO: 환경 제약 사항 채우기",
+        "<CURRENT_FOCUS>": current_focus,
+        "<IN_PROGRESS_ITEM>": in_progress,
+        "<BLOCKED_ITEM>": blocked,
+        "<DONE_ITEM>": completed,
+        "<KEY_CHANGE>": key_change,
+        "<NEXT_ACTION>": next_action,
+        "<RISK_OR_BLOCKER>": risk_or_blocker,
         "YYYY-MM-DD": args.today,
     }
     for key, val in replacements.items():
@@ -781,11 +823,11 @@ def render_backlog_index(args: argparse.Namespace) -> str:
 
 def render_daily_backlog(args: argparse.Namespace, context: dict[str, object]) -> str:
     content = load_template("daily_backlog_template.md")
-    
+
     task_goal = "TODO: 작업 목표"
     done_criteria = "TODO: 완료 기준"
     progress = f"`{args.today} 09:00` bootstrap 초기 생성"
-    
+
     if args.adoption_mode == "existing":
         task_goal = "기존 프로젝트 분석 및 워크플로우 도입"
         done_criteria = "profile/handoff/backlog 초안 생성 및 검토 완료"
@@ -809,6 +851,11 @@ def render_daily_backlog(args: argparse.Namespace, context: dict[str, object]) -
     return content
 
 
+def render_project_status_assessment(args: argparse.Namespace) -> str:
+    content = load_template("project_status_assessment_template.md")
+    return content.replace("<Project Name>", args.project_name).replace("<YYYY-MM-DD>", args.today)
+
+
 def render_assessment(args: argparse.Namespace, context: dict[str, object]) -> str:
     if args.adoption_mode != "existing":
         return ""
@@ -818,7 +865,7 @@ def render_assessment(args: argparse.Namespace, context: dict[str, object]) -> s
     source_dirs = ", ".join(context["source_dirs"]) or "없음"
     stack_labels = ", ".join(context["stack_labels"]) or "없음"
     scripts = ", ".join(sorted(context["package_scripts"])) or "없음"
-    sample_paths = "\n".join(f"- `{item}`" for item in context.get("sample_paths", []))
+    sample_paths = "\n".join(f"- `{item}`"for item in context.get("sample_paths", []))
     return f"""# Repository Assessment
 
 - 문서 목적: 기존 프로젝트에 표준 AI 워크플로우를 도입하기 전에 현재 코드베이스와 문서 구조를 빠르게 진단한다.
@@ -826,7 +873,7 @@ def render_assessment(args: argparse.Namespace, context: dict[str, object]) -> s
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: draft
 - 최종 수정일: {args.today}
-- 관련 문서: `./project_workflow_profile.md`, `./session_handoff.md`, `../core/workflow_adoption_entrypoints.md`
+- 관련 문서: `./PROJECT_PROFILE.md`, `./session_handoff.md`, `../core/workflow_adoption_entrypoints.md`
 
 ## 1. 요약
 
@@ -889,7 +936,7 @@ def render_assessment(args: argparse.Namespace, context: dict[str, object]) -> s
 
 ## 다음에 읽을 문서
 
-- 프로젝트 프로파일: [./project_workflow_profile.md](./project_workflow_profile.md)
+- 프로젝트 프로파일: [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md)
 - 세션 인계 문서: [./session_handoff.md](./session_handoff.md)
 - 도입 분기 가이드: [../core/workflow_adoption_entrypoints.md](../core/workflow_adoption_entrypoints.md)
 """
@@ -904,7 +951,7 @@ def gemini_cli_agents_path(paths: Paths) -> Path:
 
 
 def codex_config_example_path(paths: Paths) -> Path:
-    return paths.target_root / ".codex" / "config.toml.example"
+    return paths.target_root / ".codex"/ "config.toml.example"
 
 
 def opencode_config_path(paths: Paths) -> Path:
@@ -912,27 +959,27 @@ def opencode_config_path(paths: Paths) -> Path:
 
 
 def opencode_skill_path(paths: Paths) -> Path:
-    return paths.target_root / ".opencode" / "skills" / "standard-ai-workflow" / "SKILL.md"
+    return paths.target_root / ".opencode"/ "skills"/ "standard-ai-workflow"/ "SKILL.md"
 
 
 def opencode_agent_path(paths: Paths) -> Path:
-    return paths.target_root / ".opencode" / "agents" / "workflow-orchestrator.md"
+    return paths.target_root / ".opencode"/ "agents"/ "workflow-orchestrator.md"
 
 
 def opencode_worker_agent_path(paths: Paths) -> Path:
-    return paths.target_root / ".opencode" / "agents" / "workflow-worker.md"
+    return paths.target_root / ".opencode"/ "agents"/ "workflow-worker.md"
 
 
 def opencode_doc_worker_agent_path(paths: Paths) -> Path:
-    return paths.target_root / ".opencode" / "agents" / "workflow-doc-worker.md"
+    return paths.target_root / ".opencode"/ "agents"/ "workflow-doc-worker.md"
 
 
 def opencode_code_worker_agent_path(paths: Paths) -> Path:
-    return paths.target_root / ".opencode" / "agents" / "workflow-code-worker.md"
+    return paths.target_root / ".opencode"/ "agents"/ "workflow-code-worker.md"
 
 
 def opencode_validation_worker_agent_path(paths: Paths) -> Path:
-    return paths.target_root / ".opencode" / "agents" / "workflow-validation-worker.md"
+    return paths.target_root / ".opencode"/ "agents"/ "workflow-validation-worker.md"
 
 
 def render_gemini_cli_agents(args: argparse.Namespace, paths: Paths, context: dict[str, object]) -> str:
@@ -943,7 +990,7 @@ def render_gemini_cli_agents(args: argparse.Namespace, paths: Paths, context: di
     )
     # Ensure smoke check has a sensible default if still TODO
     smoke_check = context['smoke_check_command']
-    if "TODO" in smoke_check:
+    if "TODO"in smoke_check:
         if context['primary_stack'] == 'python':
             smoke_check = "python3 --version"
         elif context['primary_stack'] == 'node':
@@ -956,7 +1003,7 @@ def render_gemini_cli_agents(args: argparse.Namespace, paths: Paths, context: di
 - 대상 독자: Gemini CLI, 저장소 관리자, workflow 설계자
 - 상태: draft
 - 최종 수정일: {args.today}
-- 관련 문서: `ai-workflow/project/state.json`, `ai-workflow/project/session_handoff.md`, `ai-workflow/project/work_backlog.md`, `ai-workflow/project/project_workflow_profile.md`
+- 관련 문서: `ai-workflow/memory/state.json`, `ai-workflow/memory/session_handoff.md`, `ai-workflow/memory/work_backlog.md`, `ai-workflow/memory/PROJECT_PROFILE.md`
 
 ## 목적
 
@@ -964,10 +1011,10 @@ def render_gemini_cli_agents(args: argparse.Namespace, paths: Paths, context: di
 
 ## 항상 먼저 읽을 문서
 
-- `ai-workflow/project/state.json`
-- `ai-workflow/project/session_handoff.md`
-- `ai-workflow/project/work_backlog.md`
-- `ai-workflow/project/project_workflow_profile.md`
+- `ai-workflow/memory/state.json`
+- `ai-workflow/memory/session_handoff.md`
+- `ai-workflow/memory/work_backlog.md`
+- `ai-workflow/memory/PROJECT_PROFILE.md`
 
 `ai-workflow/` 는 세션 복원과 workflow 상태 관리용 메타 레이어다. 프로젝트 코드나 프로젝트 문서를 탐색할 때는 이 경로를 기본 탐색 범위에 넣지 말고, workflow 문서 자체를 갱신하거나 현재 세션 상태를 복원할 때만 예외적으로 참조한다.
 
@@ -1023,7 +1070,7 @@ def render_antigravity_agents(args: argparse.Namespace, paths: Paths, context: d
     )
     # Ensure smoke check has a sensible default if still TODO
     smoke_check = context['smoke_check_command']
-    if "TODO" in smoke_check:
+    if "TODO"in smoke_check:
         if context['primary_stack'] == 'python':
             smoke_check = "python3 --version"
         elif context['primary_stack'] == 'node':
@@ -1036,7 +1083,7 @@ def render_antigravity_agents(args: argparse.Namespace, paths: Paths, context: d
 - 대상 독자: Antigravity, 저장소 관리자, workflow 설계자
 - 상태: draft
 - 최종 수정일: {args.today}
-- 관련 문서: `ai-workflow/project/state.json`, `ai-workflow/project/session_handoff.md`, `ai-workflow/project/work_backlog.md`, `ai-workflow/project/project_workflow_profile.md`
+- 관련 문서: `ai-workflow/memory/state.json`, `ai-workflow/memory/session_handoff.md`, `ai-workflow/memory/work_backlog.md`, `ai-workflow/memory/PROJECT_PROFILE.md`
 
 ## 목적
 
@@ -1044,10 +1091,10 @@ def render_antigravity_agents(args: argparse.Namespace, paths: Paths, context: d
 
 ## 항상 먼저 읽을 문서
 
-- `ai-workflow/project/state.json`
-- `ai-workflow/project/session_handoff.md`
-- `ai-workflow/project/work_backlog.md`
-- `ai-workflow/project/project_workflow_profile.md`
+- `ai-workflow/memory/state.json`
+- `ai-workflow/memory/session_handoff.md`
+- `ai-workflow/memory/work_backlog.md`
+- `ai-workflow/memory/PROJECT_PROFILE.md`
 
 `ai-workflow/` 는 세션 복원과 workflow 상태 관리용 메타 레이어다. 프로젝트 코드나 프로젝트 문서를 탐색할 때는 이 경로를 기본 탐색 범위에 넣지 말고, workflow 문서 자체를 갱신하거나 현재 세션 상태를 복원할 때만 예외적으로 참조한다.
 
@@ -1074,6 +1121,20 @@ def render_antigravity_agents(args: argparse.Namespace, paths: Paths, context: d
 - 격리 테스트: `{context['isolated_test_command']}`
 - 실행 확인: `{smoke_check}`
 
+## Antigravity 전용 작업 원칙
+
+### 1. Artifacts (작업 증빙) 활용
+Antigravity 에이전트는 모든 주요 의사결정과 작업 결과를 Artifacts 로 관리한다.
+- **Implementation Plan**: 복잡한 수정 전에는 반드시 계획 문서를 작성하여 의도를 공유한다.
+- **Task List**: 작업 단위를 쪼개어 실시간 진행 상황을 기록한다.
+- **Walkthrough**: 작업 완료 후 변경 사항과 검증 결과를 요약하여 제출한다.
+
+### 2. 브라우저 통합 및 서브 에이전트
+UI 검증이나 외부 환경 조작이 필요한 경우, 직접 도구를 사용하는 대신 전용 **브라우저 서브 에이전트**를 활용하여 스크린샷과 녹화본을 증빙으로 확보한다.
+
+### 3. 워크플로우 Skills 연동
+`ai-workflow/skills/` 및 `scripts/` 아래의 도구들은 Antigravity 의 **Specialized Skills** 로 간주한다. 복잡한 상태 갱신이나 백로그 동기화는 직접 파일을 수정하기보다 이 도구들을 호출하여 수행하는 것을 권장한다.
+
 ## 문서 작업 기준
 
 - 문서 위키 홈: `{context['doc_home']}`
@@ -1099,7 +1160,7 @@ def render_codex_agents(args: argparse.Namespace, paths: Paths, context: dict[st
     )
     # Ensure smoke check has a sensible default if still TODO
     smoke_check = context['smoke_check_command']
-    if "TODO" in smoke_check:
+    if "TODO"in smoke_check:
         if context['primary_stack'] == 'python':
             smoke_check = "python3 --version"
         elif context['primary_stack'] == 'node':
@@ -1112,7 +1173,7 @@ def render_codex_agents(args: argparse.Namespace, paths: Paths, context: dict[st
 - 대상 독자: Codex, 저장소 관리자, workflow 설계자
 - 상태: draft
 - 최종 수정일: {args.today}
-- 관련 문서: `ai-workflow/project/state.json`, `ai-workflow/project/session_handoff.md`, `ai-workflow/project/work_backlog.md`, `ai-workflow/project/project_workflow_profile.md`
+- 관련 문서: `ai-workflow/memory/state.json`, `ai-workflow/memory/session_handoff.md`, `ai-workflow/memory/work_backlog.md`, `ai-workflow/memory/PROJECT_PROFILE.md`
 
 ## 목적
 
@@ -1120,10 +1181,10 @@ def render_codex_agents(args: argparse.Namespace, paths: Paths, context: dict[st
 
 ## 항상 먼저 읽을 문서
 
-- `ai-workflow/project/state.json`
-- `ai-workflow/project/session_handoff.md`
-- `ai-workflow/project/work_backlog.md`
-- `ai-workflow/project/project_workflow_profile.md`
+- `ai-workflow/memory/state.json`
+- `ai-workflow/memory/session_handoff.md`
+- `ai-workflow/memory/work_backlog.md`
+- `ai-workflow/memory/PROJECT_PROFILE.md`
 
 `ai-workflow/` 는 세션 복원과 workflow 상태 관리용 메타 레이어다. 프로젝트 코드나 프로젝트 문서를 탐색할 때는 이 경로를 기본 탐색 범위에 넣지 말고, workflow 문서 자체를 갱신하거나 현재 세션 상태를 복원할 때만 예외적으로 참조한다.
 
@@ -1243,14 +1304,14 @@ Use this skill when you need to start a session, update backlog state, sync docu
 
 Always read:
 
-- `ai-workflow/project/state.json`
-- `ai-workflow/project/session_handoff.md`
-- `ai-workflow/project/work_backlog.md`
-- `ai-workflow/project/project_workflow_profile.md`
+- `ai-workflow/memory/state.json`
+- `ai-workflow/memory/session_handoff.md`
+- `ai-workflow/memory/work_backlog.md`
+- `ai-workflow/memory/PROJECT_PROFILE.md`
 
 If the repository is still in adoption, also read:
 
-- `ai-workflow/project/repository_assessment.md`
+- `ai-workflow/memory/repository_assessment.md`
 
 Follow these rules:
 
@@ -1269,7 +1330,7 @@ Follow these rules:
 def render_opencode_agent(args: argparse.Namespace, context: dict[str, object]) -> str:
     # Ensure smoke check has a sensible default if still TODO
     smoke_check = context['smoke_check_command']
-    if "TODO" in str(smoke_check):
+    if "TODO"in str(smoke_check):
         if context['primary_stack'] == 'python':
             smoke_check = "python3 --version"
         elif context['primary_stack'] == 'node':
@@ -1289,19 +1350,19 @@ You are the workflow orchestrator for this repository.
 Start each substantial task by reading:
 
 - `AGENTS.md`
-- `ai-workflow/project/state.json`
-- `ai-workflow/project/session_handoff.md`
-- `ai-workflow/project/work_backlog.md`
-- `ai-workflow/project/project_workflow_profile.md`
+- `ai-workflow/memory/state.json`
+- `ai-workflow/memory/session_handoff.md`
+- `ai-workflow/memory/work_backlog.md`
+- `ai-workflow/memory/PROJECT_PROFILE.md`
 
 Treat `ai-workflow/` as a workflow metadata layer, not part of the normal project work scope. After session restoration, ignore it during project code or project document exploration unless the task explicitly asks for workflow doc maintenance.
 
 You may directly read only the minimum session-restoration set and tiny triage inputs:
 
-- `ai-workflow/project/state.json`
-- `ai-workflow/project/session_handoff.md`
-- `ai-workflow/project/work_backlog.md`
-- `ai-workflow/project/project_workflow_profile.md`
+- `ai-workflow/memory/state.json`
+- `ai-workflow/memory/session_handoff.md`
+- `ai-workflow/memory/work_backlog.md`
+- `ai-workflow/memory/PROJECT_PROFILE.md`
 - one clearly bounded file or path for tiny triage
 
 Project defaults:
@@ -1312,7 +1373,7 @@ Project defaults:
 - Isolated test: `{context['isolated_test_command']}`
 - Smoke check: `{smoke_check}`
 
-When the repo is in adoption mode, review `ai-workflow/project/repository_assessment.md` before trusting inferred commands.
+When the repo is in adoption mode, review `ai-workflow/memory/repository_assessment.md` before trusting inferred commands.
 
 User-facing workflow rules:
 
@@ -1337,7 +1398,7 @@ User-facing workflow rules:
 def render_opencode_worker_agent(args: argparse.Namespace, context: dict[str, object]) -> str:
     # Ensure smoke check has a sensible default if still TODO
     smoke_check = context['smoke_check_command']
-    if "TODO" in str(smoke_check):
+    if "TODO"in str(smoke_check):
         if context['primary_stack'] == 'python':
             smoke_check = "python3 --version"
         elif context['primary_stack'] == 'node':
@@ -1359,8 +1420,8 @@ You are not the main orchestrator. Your role is to execute a tightly scoped task
 Before starting, read only the minimum relevant context:
 
 - `AGENTS.md`
-- `ai-workflow/project/state.json` when it helps restore the current task baseline quickly
-- the specific `ai-workflow/project/` document or file paths that match your assigned scope
+- `ai-workflow/memory/state.json` when it helps restore the current task baseline quickly
+- the specific `ai-workflow/memory/` document or file paths that match your assigned scope
 
 Project defaults:
 
@@ -1401,8 +1462,8 @@ Your role is to read, compare, summarize, and update a tightly scoped set of doc
 Before starting, read only the minimum relevant context:
 
 - `AGENTS.md`
-- `ai-workflow/project/state.json` when it helps restore the current task baseline quickly
-- the assigned `ai-workflow/project/` documents or directly named doc paths
+- `ai-workflow/memory/state.json` when it helps restore the current task baseline quickly
+- the assigned `ai-workflow/memory/` documents or directly named doc paths
 
 Worker rules:
 
@@ -1419,7 +1480,7 @@ Worker rules:
 def render_opencode_code_worker_agent(args: argparse.Namespace, context: dict[str, object]) -> str:
     # Ensure smoke check has a sensible default if still TODO
     smoke_check = context['smoke_check_command']
-    if "TODO" in str(smoke_check):
+    if "TODO"in str(smoke_check):
         if context['primary_stack'] == 'python':
             smoke_check = "python3 --version"
         elif context['primary_stack'] == 'node':
@@ -1441,7 +1502,7 @@ Your role is to implement a tightly scoped code or config change, run the minimu
 Before starting, read only the minimum relevant context:
 
 - `AGENTS.md`
-- `ai-workflow/project/state.json` when it helps restore the current task baseline quickly
+- `ai-workflow/memory/state.json` when it helps restore the current task baseline quickly
 - the specific source files, tests, and workflow docs tied to your assigned scope
 
 Project defaults:
@@ -1468,7 +1529,7 @@ Worker rules:
 def render_opencode_validation_worker_agent(args: argparse.Namespace, context: dict[str, object]) -> str:
     # Ensure smoke check has a sensible default if still TODO
     smoke_check = context['smoke_check_command']
-    if "TODO" in str(smoke_check):
+    if "TODO"in str(smoke_check):
         if context['primary_stack'] == 'python':
             smoke_check = "python3 --version"
         elif context['primary_stack'] == 'node':
@@ -1490,7 +1551,7 @@ Your role is to run bounded checks, inspect logs, gather evidence, and return a 
 Before starting, read only the minimum relevant context:
 
 - `AGENTS.md`
-- `ai-workflow/project/state.json` when it helps restore the current task baseline quickly
+- `ai-workflow/memory/state.json` when it helps restore the current task baseline quickly
 - the assigned validation scope, commands, and relevant backlog or handoff notes
 
 Project defaults:
@@ -1572,12 +1633,12 @@ def render_pi_dev_agents(args: argparse.Namespace, context: dict[str, object]) -
 
 - **Mandate**: 본 저장소는 'Standard AI Workflow'를 따릅니다. 모든 행동은 아래 문서의 상태를 기준으로 결정하십시오.
 - **Priority Docs**:
-    1. `ai-workflow/project/state.json` (현재 세션의 진실의 원천)
-    2. `ai-workflow/project/session_handoff.md` (이전 세션 인계 사항)
-    3. `ai-workflow/project/work_backlog.md` (작업 목록)
+    1. `ai-workflow/memory/state.json` (현재 세션의 진실의 원천)
+    2. `ai-workflow/memory/session_handoff.md` (이전 세션 인계 사항)
+    3. `ai-workflow/memory/work_backlog.md` (작업 목록)
 
 ## 1. 세션 시작 루틴 (Mandatory)
-세션이 시작되면 가장 먼저 `ai-workflow/project/state.json`을 읽고 `current_focus`와 `next_documents`를 파악하십시오. 이후 `session_handoff.md`를 읽어 중단된 지점부터 작업을 재개하십시오.
+세션이 시작되면 가장 먼저 `ai-workflow/memory/state.json`을 읽고 `current_focus`와 `next_documents`를 파악하십시오. 이후 `session_handoff.md`를 읽어 중단된 지점부터 작업을 재개하십시오.
 
 ## 2. 작업 원칙 (Research -> Strategy -> Execution)
 - **Research**: `grep_search`와 `read_file`을 사용하여 현재 코드와 문서 상태를 객관적으로 확인하십시오.
@@ -1585,8 +1646,8 @@ def render_pi_dev_agents(args: argparse.Namespace, context: dict[str, object]) -
 - **Execution**: `edit`, `write`, `bash` 도구를 사용하여 변경을 수행하십시오.
 
 ## 3. 워크플로우 상태 관리
-- 작업 상태가 변경되면 반드시 `ai-workflow/project/backlog/`의 해당 날짜 문서를 업데이트하십시오.
-- 세션 종료 전에는 `ai-workflow/project/state.json`과 `session_handoff.md`를 갱신하여 다음 에이전트를 위한 맥락을 보존하십시오.
+- 작업 상태가 변경되면 반드시 `ai-workflow/memory/backlog/`의 해당 날짜 문서를 업데이트하십시오.
+- 세션 종료 전에는 `ai-workflow/memory/state.json`과 `session_handoff.md`를 갱신하여 다음 에이전트를 위한 맥락을 보존하십시오.
 
 ## 4. 도구 사용 가이드
 - 복잡한 워크플로우 제어(상태 자동 갱신 등)가 필요할 때 `python3 ai-workflow/scripts/` 아래의 도구들을 활용할 수 있습니다.
@@ -1633,12 +1694,12 @@ def write_harness_files(
     generated: dict[str, str] = {}
     harnesses = selected_harnesses(args)
 
-    if "codex" in harnesses or "opencode" in harnesses:
+    if "codex"in harnesses or "opencode"in harnesses:
         codex_agents = codex_agents_path(paths)
         write_text(codex_agents, render_codex_agents(args, paths, context), force=args.force)
         generated["codex_agents"] = str(codex_agents)
 
-    if "pi-dev" in harnesses:
+    if "pi-dev"in harnesses:
         # Pi Coding Agent uses AGENTS.md at the root, same path as codex
         # If both are selected, Pi's version will overwrite or vice versa.
         # Usually only one harness is selected for a project.
@@ -1646,12 +1707,12 @@ def write_harness_files(
         write_text(pi_agents, render_pi_dev_agents(args, context), force=args.force)
         generated["pi_dev_agents"] = str(pi_agents)
 
-    if "gemini-cli" in harnesses:
+    if "gemini-cli"in harnesses:
         gemini_agents = gemini_cli_agents_path(paths)
         write_text(gemini_agents, render_gemini_cli_agents(args, paths, context), force=args.force)
         generated["gemini_cli_agents"] = str(gemini_agents)
 
-    if "antigravity" in harnesses:
+    if "antigravity"in harnesses:
         antigravity_agents = antigravity_agents_path(paths)
         write_text(antigravity_agents, render_antigravity_agents(args, paths, context), force=args.force)
         generated["antigravity_agents"] = str(antigravity_agents)
@@ -1682,6 +1743,7 @@ def build_manifest(
         "session_handoff": str(paths.handoff_path),
         "work_backlog": str(paths.backlog_index_path),
         "daily_backlog": str(paths.daily_backlog_path),
+        "project_status_assessment": str(paths.status_assessment_path),
     }
     if args.adoption_mode == "existing":
         generated_files["repository_assessment"] = str(paths.assessment_path)
@@ -1729,17 +1791,17 @@ def main() -> int:
     paths = make_paths(args)
     context = infer_project_context(args, paths)
     core_docs = [str(paths.core_dir / name) for name in DEFAULT_CORE_DOCS] if args.copy_core_docs else []
-    
+
     # Pre-calculate harness files for manifest
     harnesses = selected_harnesses(args)
     harness_files: dict[str, str] = {}
-    if "codex" in harnesses or "opencode" in harnesses:
+    if "codex"in harnesses or "opencode"in harnesses:
         harness_files["codex_agents"] = str(codex_agents_path(paths))
-    if "gemini-cli" in harnesses:
+    if "gemini-cli"in harnesses:
         harness_files["gemini_cli_agents"] = str(gemini_cli_agents_path(paths))
-    if "antigravity" in harnesses:
+    if "antigravity"in harnesses:
         harness_files["antigravity_agents"] = str(antigravity_agents_path(paths))
-    
+
     dependency_files: list[str] = []
     if args.update_deps and not args.dry_run:
         dependency_files = update_dependencies(paths, context, harnesses)
@@ -1756,6 +1818,7 @@ def main() -> int:
         write_text(paths.handoff_path, render_session_handoff(args, context), force=args.force)
         write_text(paths.backlog_index_path, render_backlog_index(args), force=args.force)
         write_text(paths.daily_backlog_path, render_daily_backlog(args, context), force=args.force)
+        write_text(paths.status_assessment_path, render_project_status_assessment(args), force=args.force)
         if args.adoption_mode == "existing":
             write_text(paths.assessment_path, render_assessment(args, context), force=args.force)
         write_text(
@@ -1766,8 +1829,9 @@ def main() -> int:
                     session_handoff_path=paths.handoff_path,
                     work_backlog_index_path=paths.backlog_index_path,
                     latest_backlog_path=paths.daily_backlog_path,
-                    repository_assessment_path=paths.assessment_path if args.adoption_mode == "existing" else None,
+                    repository_assessment_path=paths.assessment_path if args.adoption_mode == "existing"else None,
                     generated_at=args.today,
+                    workspace_root=paths.target_root,
                 ),
                 ensure_ascii=False,
                 indent=2,

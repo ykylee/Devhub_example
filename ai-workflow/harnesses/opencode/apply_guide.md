@@ -28,7 +28,7 @@
 - 공유:
 - `AGENTS.md`, `opencode.json`, `.opencode/...`, `ai-workflow/` 패키지를 둔다.
 - 로컬:
-- `ai-workflow/project/` 문서에서 실제 명령, 문서 경로, backlog 상태를 관리한다.
+- `ai-workflow/memory/` 문서에서 실제 명령, 문서 경로, backlog 상태를 관리한다.
 
 프로젝트별 규칙은 항상 local 문서가 우선한다.
 
@@ -58,7 +58,7 @@
 - 프로젝트 공통 진입:
 - `AGENTS.md`, `opencode.json`, `.opencode/...`
 - 프로젝트 실제 운영값:
-- `ai-workflow/project/` 문서 세트
+- `ai-workflow/memory/` 문서 세트
 
 이렇게 두면 OpenCode 의 merge 특성을 활용하면서도 기존 사용자 기본값을 최대한 보존할 수 있다.
 
@@ -86,9 +86,9 @@ python3 scripts/bootstrap_workflow_kit.py \
   --copy-core-docs
 ```
 
-2. `ai-workflow/project/project_workflow_profile.md` 에 실제 명령과 검증 규칙을 채운다.
+2. `ai-workflow/memory/PROJECT_PROFILE.md` 에 실제 명령과 검증 규칙을 채운다.
 3. `AGENTS.md` 가 생성됐는지 확인하고, 공통 상위 지침으로 사용할 내용을 검토한다.
-4. `opencode.json` 의 `instructions` 가 `AGENTS.md` 와 `ai-workflow/project/` 문서를 함께 가리키는지 확인한다.
+4. `opencode.json` 의 `instructions` 가 `AGENTS.md` 와 `ai-workflow/memory/` 문서를 함께 가리키는지 확인한다.
    이때 한국어 보고 원칙과 중간 설명 최소화 원칙이 instruction 체인에서 누락되지 않았는지 함께 확인한다.
 5. `.opencode/skills/standard-ai-workflow/SKILL.md` 와 `.opencode/agents/workflow-orchestrator.md` 의 권한 정책을 팀 운영 방식에 맞게 조정한다.
    전역 snippet 을 쓰려면 [../../global-snippets/opencode/opencode.global.jsonc](../../global-snippets/opencode/opencode.global.jsonc) 도 함께 검토한다.
@@ -113,8 +113,8 @@ python3 scripts/bootstrap_workflow_kit.py \
   --copy-core-docs
 ```
 
-2. `ai-workflow/project/repository_assessment.md` 를 읽고 추정 명령과 문서 경로를 검토한다.
-3. `project_workflow_profile.md` 의 실행, 테스트, 검증 규칙을 실제 저장소 기준으로 수정한다.
+2. `ai-workflow/memory/repository_assessment.md` 를 읽고 추정 명령과 문서 경로를 검토한다.
+3. `PROJECT_PROFILE.md` 의 실행, 테스트, 검증 규칙을 실제 저장소 기준으로 수정한다.
 4. `AGENTS.md` 와 `opencode.json` 의 instruction 경로가 같이 맞는지 확인한다.
    작업 보고는 한국어, 내부 처리는 간결하게 유지한다는 원칙도 이 단계에서 같이 검토한다.
    export bundle 을 쓰는 경우 read-only MCP descriptor 의 `transport_ready` 값이 `false` 임을 확인하고, 실제 MCP 연결은 별도 서버 루프가 준비된 뒤 진행한다.
@@ -131,10 +131,10 @@ python3 scripts/bootstrap_workflow_kit.py \
 - 먼저 `AGENTS.md` 와 `opencode.json` 의 instruction 목록이 현재 저장소 문서를 제대로 가리키는지 확인한다.
 - 이어서 아래 문서를 순서대로 읽는다.
 - `AGENTS.md`
-- `ai-workflow/project/session_handoff.md`
-- `ai-workflow/project/work_backlog.md`
-- `ai-workflow/project/project_workflow_profile.md`
-- 기존 프로젝트 도입 직후라면 `ai-workflow/project/repository_assessment.md` 도 함께 읽는다.
+- `ai-workflow/memory/session_handoff.md`
+- `ai-workflow/memory/work_backlog.md`
+- `ai-workflow/memory/PROJECT_PROFILE.md`
+- 기존 프로젝트 도입 직후라면 `ai-workflow/memory/repository_assessment.md` 도 함께 읽는다.
 - 이후 `.opencode/skills/standard-ai-workflow/SKILL.md` 와 `.opencode/agents/workflow-orchestrator.md` 가 이 흐름을 따르는지 검토한다.
 
 ## 6. 적용 후 확인 체크리스트
@@ -147,7 +147,7 @@ python3 scripts/bootstrap_workflow_kit.py \
 - `.opencode/agents/workflow-doc-worker.md` 가 존재한다.
 - `.opencode/agents/workflow-code-worker.md` 가 존재한다.
 - `.opencode/agents/workflow-validation-worker.md` 가 존재한다.
-- `ai-workflow/project/` 문서 세트가 존재한다.
+- `ai-workflow/memory/` 문서 세트가 존재한다.
 - profile 문서의 명령과 검증 규칙이 실제 저장소 기준으로 채워져 있다.
 - handoff 와 backlog 가 비어 있지 않다.
 
@@ -157,7 +157,7 @@ python3 scripts/bootstrap_workflow_kit.py \
 - project-local agent 권한 정책
 - worker agent 의 역할 범위와 권한
 - `workflow-code-worker` 의 구현/빌드 책임 범위
-- `project_workflow_profile.md` 의 검증 기준
+- `PROJECT_PROFILE.md` 의 검증 기준
 - handoff 와 backlog 의 최신 상태
 
 ## 8. 피해야 할 구성

@@ -10,7 +10,8 @@ import sys
 from pathlib import Path
 
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
+SOURCE_ROOT = REPO_ROOT / "workflow-source"
 
 
 def parse_args() -> argparse.Namespace:
@@ -75,7 +76,7 @@ def render_harness_readme(display_name: str, slug: str, args: argparse.Namespace
 ## 구성 원칙
 
 - `{args.root_entrypoint}` 는 하네스의 실제 진입 파일로 사용한다.
-- 상세 정책은 `ai-workflow/project/` 문서를 먼저 읽도록 연결한다.
+- 상세 정책은 `ai-workflow/memory/` 문서를 먼저 읽도록 연결한다.
 - 설정 파일은 가능한 한 최소 예시만 두고, 긴 정책 본문은 공통 문서로 위임한다.
 - export bundle 의 `bundle/source-docs/schemas/read_only_transport_descriptors.json` 는 read-only MCP 연결 검토용 draft descriptor 로 취급한다.
 - descriptor 의 `transport_ready` 값이 `false` 인 동안에는 실제 MCP 연결보다 참고 산출물로 두는 편이 안전하다.
@@ -123,10 +124,10 @@ def render_overlay_spec(display_name: str, slug: str, args: argparse.Namespace) 
 
 ## 3. 공통 workflow 연결 규칙
 
-- 항상 `ai-workflow/project/session_handoff.md` 를 우선 읽게 연결한다.
-- 항상 `ai-workflow/project/work_backlog.md` 를 참조하게 연결한다.
-- 항상 `ai-workflow/project/project_workflow_profile.md` 를 참조하게 연결한다.
-- 필요하면 `ai-workflow/project/repository_assessment.md` 를 adoption 단계 보조 문서로 사용한다.
+- 항상 `ai-workflow/memory/session_handoff.md` 를 우선 읽게 연결한다.
+- 항상 `ai-workflow/memory/work_backlog.md` 를 참조하게 연결한다.
+- 항상 `ai-workflow/memory/PROJECT_PROFILE.md` 를 참조하게 연결한다.
+- 필요하면 `ai-workflow/memory/repository_assessment.md` 를 adoption 단계 보조 문서로 사용한다.
 - read-only MCP draft descriptor 는 `bundle/source-docs/schemas/read_only_transport_descriptors.json` 위치를 기준으로 검토한다.
 
 ## 4. 구현 체크리스트
@@ -167,7 +168,7 @@ def main() -> int:
         print(str(exc), file=sys.stderr)
         return 1
     display_name = args.display_name or titleize(slug)
-    harness_dir = REPO_ROOT / "harnesses" / slug
+    harness_dir = SOURCE_ROOT / "harnesses" / slug
     readme_path = harness_dir / "README.md"
     overlay_spec_path = harness_dir / "overlay_spec.md"
 

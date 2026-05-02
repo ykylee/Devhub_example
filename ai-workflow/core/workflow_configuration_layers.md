@@ -49,7 +49,7 @@
 예시:
 
 - `ai-workflow/core/*.md`
-- `ai-workflow/project/*.md` 초안
+- `ai-workflow/memory/*.md` 초안
 - 루트 `AGENTS.md`
 - `opencode.json`, `.opencode/...`, `.codex/config.toml.example`
 
@@ -64,16 +64,16 @@
 
 예시:
 
-- `ai-workflow/project/project_workflow_profile.md`
-- `ai-workflow/project/session_handoff.md`
-- `ai-workflow/project/work_backlog.md`
+- `ai-workflow/memory/PROJECT_PROFILE.md`
+- `ai-workflow/memory/session_handoff.md`
+- `ai-workflow/memory/work_backlog.md`
 - 최신 날짜 backlog 문서
 
 주의:
 
-- `ai-workflow/project/*` 는 workflow state docs 다.
-- `project_workflow_profile.md` 안의 `docs/...` 경로는 실제 프로젝트 문서 위치를 가리킨다.
-- 즉, `ai-workflow/project/backlog/*.md` 에 작업 상태를 기록하는 것과 `docs/operations/backlog/*.md` 같은 실제 운영 문서를 참조하거나 동기화하는 것은 서로 다른 레이어다.
+- `ai-workflow/memory/*` 는 workflow state docs 다.
+- `PROJECT_PROFILE.md` 안의 `docs/...` 경로는 실제 프로젝트 문서 위치를 가리킨다.
+- 즉, `ai-workflow/memory/backlog/*.md` 에 작업 상태를 기록하는 것과 `docs/operations/backlog/*.md` 같은 실제 운영 문서를 참조하거나 동기화하는 것은 서로 다른 레이어다.
 
 이 레이어는 항상 최우선으로 수정 가능해야 한다.
 
@@ -101,12 +101,12 @@ Codex 에서는 아래처럼 해석하는 것이 적절하다.
 
 - 전역: 사용자 `~/.codex/config.toml` 에 공통 MCP 또는 기본 정책
 - 공유: 프로젝트 루트 `AGENTS.md` 와 `ai-workflow/` 패키지
-- 로컬: `ai-workflow/project/` 문서와 backlog/handoff
+- 로컬: `ai-workflow/memory/` 문서와 backlog/handoff
 
 권장 원칙:
 
 - 전역 Codex 설정은 "어떤 문서를 먼저 보라" 수준까지만 둔다.
-- 실제 프로젝트 명령과 상태는 `AGENTS.md` 와 `ai-workflow/project/` 문서에서 읽게 한다.
+- 실제 프로젝트 명령과 상태는 `AGENTS.md` 와 `ai-workflow/memory/` 문서에서 읽게 한다.
 
 ## 6. OpenCode 적용 관점
 
@@ -114,11 +114,11 @@ OpenCode 에서는 아래처럼 해석하는 것이 적절하다.
 
 - 전역: 사용자 기본 agent/permission 정책
 - 공유: 프로젝트 루트 `AGENTS.md`, `opencode.json`, `.opencode/...`
-- 로컬: `ai-workflow/project/` 문서와 backlog/handoff
+- 로컬: `ai-workflow/memory/` 문서와 backlog/handoff
 
 권장 원칙:
 
-- `opencode.json` 은 `AGENTS.md` 와 `ai-workflow/project/` 문서를 참조하는 연결 계층으로 둔다.
+- `opencode.json` 은 `AGENTS.md` 와 `ai-workflow/memory/` 문서를 참조하는 연결 계층으로 둔다.
 - `.opencode/agents/` 권한 정책은 보수적 기본값으로 두고, 프로젝트 규칙은 문서에서 읽게 한다.
 - 메인 오케스트레이터는 task-only coordinator 로 두고, 직접 `bash`/`edit`/`webfetch` 를 수행하지 않은 채 실제 수정/광범위 탐색은 서브 에이전트 쪽 권한으로 분리하는 구성이 기본값에 가깝다.
 - 서브 에이전트는 bounded scope 안에서 실제 실행을 담당하고, low-risk 작업에서는 `ask` 를 최소화하는 쪽이 운영성과 컨텍스트 효율에 더 잘 맞는다.

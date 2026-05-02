@@ -9,24 +9,26 @@ import sys
 import tempfile
 from pathlib import Path
 
-if str(Path(__file__).resolve().parents[1]) not in sys.path:
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+SOURCE_ROOT_FOR_IMPORT = Path(__file__).resolve().parents[2] / "workflow-source"
+if str(SOURCE_ROOT_FOR_IMPORT) not in sys.path:
+    sys.path.insert(0, str(SOURCE_ROOT_FOR_IMPORT))
 
 from workflow_kit.common.output_contracts import validate_output_payload
 
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-SCRIPT_PATH = REPO_ROOT / "skills" / "code-index-update" / "scripts" / "run_code_index_update.py"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+SOURCE_ROOT = REPO_ROOT / "workflow-source"
+SCRIPT_PATH = SOURCE_ROOT / "skills" / "code-index-update" / "scripts" / "run_code_index_update.py"
 
 
 def run_index_update(example_name: str, changed_files: list[str], change_summary: str) -> dict[str, object]:
-    example_root = REPO_ROOT / "examples" / example_name
+    example_root = SOURCE_ROOT / "examples" / example_name
     completed = subprocess.run(
         [
             sys.executable,
             str(SCRIPT_PATH),
             "--project-profile-path",
-            str(example_root / "project_workflow_profile.md"),
+            str(example_root / "PROJECT_PROFILE.md"),
             "--work-backlog-index-path",
             str(example_root / "work_backlog.md"),
             "--session-handoff-path",
@@ -83,7 +85,7 @@ def main() -> int:
     workflow_meta_payload = run_index_update(
         "acme_delivery_platform",
         [
-            "ai-workflow/project/session_handoff.md",
+            "ai-workflow/memory/session_handoff.md",
         ],
         "workflow 상태 문서만 수정",
     )
@@ -98,7 +100,7 @@ def main() -> int:
         (repo_root / "README.md").write_text("# Repo\n", encoding="utf-8")
         (repo_root / "docs" / "README.md").write_text("# Docs\n", encoding="utf-8")
         (repo_root / "docs" / "operations" / "README.md").write_text("# Operations\n", encoding="utf-8")
-        (workflow_project / "project_workflow_profile.md").write_text(
+        (workflow_project / "PROJECT_PROFILE.md").write_text(
             (
                 "# Project Workflow Profile\n\n"
                 "## 1. 프로젝트 개요\n\n"
@@ -117,7 +119,7 @@ def main() -> int:
                 sys.executable,
                 str(SCRIPT_PATH),
                 "--project-profile-path",
-                str(workflow_project / "project_workflow_profile.md"),
+                str(workflow_project / "PROJECT_PROFILE.md"),
                 "--changed-file",
                 "docs/operations/runbooks/foo.md",
                 "--change-summary",
@@ -130,9 +132,9 @@ def main() -> int:
         )
         payload = json.loads(completed.stdout)
         if not any(item.endswith("/docs/README.md") for item in payload["priority_index_candidates"]):
-            raise AssertionError("Project docs should resolve from repository root, not ai-workflow/project.")
-        if any("/ai-workflow/project/docs/" in item for item in payload["index_update_candidates"]):
-            raise AssertionError("Project doc candidates should not resolve under ai-workflow/project/docs.")
+            raise AssertionError("Project docs should resolve from repository root, not ai-workflow/memory.")
+        if any("/ai-workflow/memory/docs/" in item for item in payload["index_update_candidates"]):
+            raise AssertionError("Project doc candidates should not resolve under ai-workflow/memory/docs.")
 
     print("Code-index-update smoke check passed.")
     return 0

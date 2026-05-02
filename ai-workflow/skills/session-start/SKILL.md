@@ -54,7 +54,7 @@
 python3 skills/session-start/scripts/run_session_start.py \
   --session-handoff-path examples/acme_delivery_platform/session_handoff.md \
   --work-backlog-index-path examples/acme_delivery_platform/work_backlog.md \
-  --project-profile-path examples/acme_delivery_platform/project_workflow_profile.md
+  --project-profile-path examples/acme_delivery_platform/PROJECT_PROFILE.md
 ```
 
 - 현재 프로토타입은 JSON 요약을 stdout 으로 출력한다.

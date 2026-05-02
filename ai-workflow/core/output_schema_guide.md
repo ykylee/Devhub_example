@@ -120,7 +120,7 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
     "문서 구조를 해석할 수 없어 후속 판단을 중단한다."
   ],
   "source_context": {
-    "project_profile_path": "/abs/path/project_workflow_profile.md"
+    "project_profile_path": "/abs/path/PROJECT_PROFILE.md"
   }
 }
 ```

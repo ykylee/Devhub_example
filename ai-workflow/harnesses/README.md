@@ -35,9 +35,9 @@
 - `bundle/ai-workflow/README.md`
 - `bundle/ai-workflow/core/workflow_adoption_entrypoints.md`
 - `bundle/ai-workflow/core/workflow_skill_catalog.md`
-- `bundle/ai-workflow/project/project_workflow_profile.md`
-- `bundle/ai-workflow/project/session_handoff.md`
-- `bundle/ai-workflow/project/work_backlog.md`
+- `bundle/ai-workflow/memory/PROJECT_PROFILE.md`
+- `bundle/ai-workflow/memory/session_handoff.md`
+- `bundle/ai-workflow/memory/work_backlog.md`
 
 ## bootstrap 예시
 
