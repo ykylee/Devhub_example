@@ -1,9 +1,9 @@
 # 백엔드 개발 로드맵
 
 - 문서 목적: DevHub 백엔드 구현 범위, 순서, 진척 상태를 추적한다.
-- 기준일: 2026-05-02
+- 기준일: 2026-05-03
 - 상태: in_progress
-- 관련 문서: `docs/requirements.md`, `docs/architecture.md`, `docs/tech_stack.md`, `docs/backend_api_contract.md`, `docs/backend/frontend_integration_requirements.md`, `docs/backend/requirements_review.md`, `ai-workflow/memory/backlog/2026-05-02.md`
+- 관련 문서: `docs/requirements.md`, `docs/architecture.md`, `docs/tech_stack.md`, `docs/backend_api_contract.md`, `docs/backend/frontend_integration_requirements.md`, `docs/backend/requirements_review.md`, `ai-workflow/memory/backlog/2026-05-03.md`
 - 현재 브랜치: `codex/backend_init`
 - 프론트엔드 전제: frontend phase1 화면과 mock service layer가 병합된 상태이므로, 백엔드는 raw webhook 수집 이후 프론트 교체 가능한 REST snapshot API와 WebSocket 이벤트 계약을 우선 안정화한다.
 
@@ -28,7 +28,7 @@
 | Phase 3 | done | Gitea Webhook raw 수신부 | `POST /api/v1/integrations/gitea/webhooks`, signature 검증, dedupe 처리 | handler 단위 테스트 |
 | Phase 4 | in_progress | 프론트 연동 계약 안정화 | `GET /api/v1/events`, role wire format, REST snapshot/WebSocket envelope 계약, frontend integration requirements, requirements review finding 반영 | API 계약 문서화, frontend mock shape 대조, gRPC 직접 노출 없음 확인 |
 | Phase 5 | in_progress | 프론트 snapshot API 1차 | metrics, infra topology, ci-runs/logs, critical risks 조회 API 초안, `ServiceNode`/`CiRun`/`Risk` 공통 필드 | handler 테스트 및 응답 예시 문서화 |
-| Phase 6 | planned | 도메인 정규화 1차 | repository/user/issue/pull_request/ci_run/risk 기초 테이블 및 정규화 로직, 식별자/timestamp/pagination 기준 | fixture 기반 정규화 테스트 |
+| Phase 6 | done | 도메인 정규화 1차 | repository/user/issue/pull_request/ci_run/risk 기초 테이블 및 정규화 로직, 식별자/timestamp/pagination 기준 | fixture 기반 정규화 테스트 및 홈랩 DB 통합 테스트 |
 | Phase 7 | planned | command/audit 기반 액션 API | service action, risk mitigation, weekly report command, command status, idempotency, audit log | 권한/audit/idempotency 테스트 |
 | Phase 8 | planned | WebSocket 실시간 채널 | `/api/v1/realtime/ws`, infra/ci/risk/command/notification event publish | WebSocket 연결/필터링/메시지 테스트 |
 | Phase 9 | planned | Python AI gRPC 연결 | Go gRPC client, Python `AnalysisService` server, build log summary/risk detection 연동 | gRPC 통합 테스트 |
@@ -51,23 +51,27 @@
 - 프론트엔드 작성 백엔드 요구사항을 `docs/backend/requirements_review.md`에서 상세 리뷰했고, gRPC/WebSocket 경계, command/audit, role enum, 데이터 모델 부족분을 로드맵 고려 사항으로 편입했다.
 - 프론트 직접 gRPC 사용 오해를 막기 위해 REST snapshot + WebSocket 갱신을 프론트 연동 기본 방향으로 명시했다.
 - static fallback 기반 프론트 snapshot API 1차를 추가했다: `GET /api/v1/dashboard/metrics`, `GET /api/v1/infra/nodes`, `GET /api/v1/infra/edges`, `GET /api/v1/infra/topology`, `GET /api/v1/ci-runs`, `GET /api/v1/ci-runs/{ci_run_id}/logs`, `GET /api/v1/risks/critical`.
+- `docs/backend_api_contract.md`에 role wire format, WebSocket envelope, command/audit lifecycle 초안을 보강했다.
+- 도메인 정규화 1차 migration을 추가했다: `gitea_users`, `repositories`, `issues`, `pull_requests`, `ci_runs`, `risks`.
+- `backend-core/internal/normalize`에 Gitea `issues`, `pull_request`, `action_run/workflow_run`, `push` 이벤트를 최소 도메인 change set으로 해석하는 processor와 fixture 테스트를 추가했다.
+- 홈랩 PostgreSQL `devhub` DB에 migration version 2 적용을 검증했다.
+- `backend-core/internal/domain`을 추가해 정규화 change set과 sink interface를 분리했다.
+- `backend-core/internal/store`에 repository/user/issue/pull_request/ci_run upsert와 `webhook_events` 상태 전이(`processed`, `failed`, `ignored`)를 구현했다.
+- `POST /api/v1/integrations/gitea/webhooks` 저장 성공 이후 optional `normalize.Processor`를 실행하도록 연결했다.
+- 홈랩 PostgreSQL 통합 테스트로 raw webhook event 저장, domain upsert, `processed` 상태 전이를 검증했다.
 
 ## 4. 다음 작업 큐
 
 ### P1
 
-- `docs/backend_api_contract.md`에 frontend integration requirements 기반 role wire format, REST snapshot endpoint, WebSocket envelope를 반영한다.
-- `docs/backend/requirements_review.md`의 P1 finding 2건을 먼저 해소한다: 프론트 실시간 채널을 WebSocket으로 재정의하고, 관리자 명령 API에 command lifecycle/audit/idempotency/권한 조건을 반영한다.
-- 프론트 snapshot API 1차를 PostgreSQL 정규화 테이블 또는 Gitea/Runner adapter 기반 data source로 교체할 설계를 확정한다.
+- 프론트 snapshot API 1차를 PostgreSQL 정규화 테이블 또는 Gitea/Runner adapter 기반 data source로 교체할 provider 설계를 확정한다.
 - repository/issue/PR/ci_run/risk 조회 API 초안을 도메인 정규화 설계와 함께 확정한다.
+- `GET /api/v1/repositories`, `GET /api/v1/issues`, `GET /api/v1/pull-requests`, `GET /api/v1/ci-runs`의 DB-backed 조회 API를 구현한다.
 - command/audit 최소 schema를 정의하고 service action/risk mitigation을 boolean 응답이 아닌 command lifecycle로 설계한다.
-- role enum은 `developer`, `manager`, `system_admin` wire format으로 확정하고 프론트 표시명과 분리한다.
-- `webhook_events` 상태 전이 기준(`validated` 이후 `processed`, `failed`, `ignored`)을 정리한다.
 
 ### P2
 
-- Issue, Pull Request, Commit, Actions 이벤트 fixture를 수집해 정규화 테스트 기반을 만든다.
-- repository/user/issue/pull_request/ci_run/risk 초기 테이블을 설계한다.
+- Commit/push 이벤트의 commit 단위 정규화 필요성을 검토하고 별도 `commits` 테이블 도입 여부를 결정한다.
 - `ServiceNode`, `CiRun`, `Risk`, `Command` 모델에 프론트 mock보다 부족한 식별자, owner, timestamp, status, pagination/filtering 기준을 추가한다.
 - WebSocket 메시지 타입(`infra.node.updated`, `ci.run.updated`, `risk.updated`, `command.status.updated`, `notification.created`) 초안을 작성한다.
 - system admin allowlist 또는 seed admin 기준을 API 계약과 함께 확정한다.

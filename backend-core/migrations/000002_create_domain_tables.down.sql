@@ -1,0 +1,6 @@
+DROP TABLE IF EXISTS risks;
+DROP TABLE IF EXISTS ci_runs;
+DROP TABLE IF EXISTS pull_requests;
+DROP TABLE IF EXISTS issues;
+DROP TABLE IF EXISTS repositories;
+DROP TABLE IF EXISTS gitea_users;

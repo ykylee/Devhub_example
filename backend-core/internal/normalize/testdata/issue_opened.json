@@ -1,0 +1,37 @@
+{
+  "repository": {
+    "id": 42,
+    "full_name": "acme/api",
+    "name": "api",
+    "clone_url": "https://gitea.example.com/acme/api.git",
+    "html_url": "https://gitea.example.com/acme/api",
+    "default_branch": "main",
+    "private": false,
+    "owner": {
+      "id": 9,
+      "login": "acme"
+    }
+  },
+  "sender": {
+    "id": 100,
+    "login": "yklee",
+    "full_name": "YK Lee",
+    "html_url": "https://gitea.example.com/yklee"
+  },
+  "issue": {
+    "id": 7001,
+    "number": 17,
+    "title": "Normalize webhook events",
+    "state": "open",
+    "user": {
+      "id": 100,
+      "login": "yklee"
+    },
+    "assignee": {
+      "id": 101,
+      "login": "alex.k"
+    },
+    "html_url": "https://gitea.example.com/acme/api/issues/17",
+    "created_at": "2026-05-03T11:00:00Z"
+  }
+}

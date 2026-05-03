@@ -14,14 +14,19 @@ type WebhookEventStore interface {
 	ListWebhookEvents(context.Context, store.ListWebhookEventsOptions) ([]store.WebhookEvent, error)
 }
 
+type WebhookEventProcessor interface {
+	Process(context.Context, store.WebhookEvent) error
+}
+
 type HealthStore interface {
 	Ping(context.Context) error
 }
 
 type RouterConfig struct {
-	WebhookSecret string
-	EventStore    WebhookEventStore
-	HealthStore   HealthStore
+	WebhookSecret  string
+	EventStore     WebhookEventStore
+	EventProcessor WebhookEventProcessor
+	HealthStore    HealthStore
 }
 
 func NewRouter(cfg RouterConfig) *gin.Engine {

@@ -48,6 +48,16 @@ func (s *memoryEventStore) ListWebhookEvents(_ context.Context, opts store.ListW
 	return s.events[opts.Offset:end], nil
 }
 
+type memoryEventProcessor struct {
+	events []store.WebhookEvent
+	err    error
+}
+
+func (p *memoryEventProcessor) Process(_ context.Context, event store.WebhookEvent) error {
+	p.events = append(p.events, event)
+	return p.err
+}
+
 func TestReceiveGiteaWebhookStoresValidatedEvent(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	secret := "devhub-secret"
@@ -87,6 +97,47 @@ func TestReceiveGiteaWebhookStoresValidatedEvent(t *testing.T) {
 	}
 	if event.ValidatedAt == nil {
 		t.Fatal("expected validated_at to be set")
+	}
+}
+
+func TestReceiveGiteaWebhookProcessesSavedEvent(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	secret := "devhub-secret"
+	body := []byte(`{"repository":{"id":42,"full_name":"acme/api"},"sender":{"login":"yklee"}}`)
+	eventStore := &memoryEventStore{}
+	processor := &memoryEventProcessor{}
+	router := NewRouter(RouterConfig{
+		WebhookSecret:  secret,
+		EventStore:     eventStore,
+		EventProcessor: processor,
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/integrations/gitea/webhooks", bytes.NewReader(body))
+	req.Header.Set("X-Gitea-Signature", signBody(body, secret))
+	req.Header.Set("X-Gitea-Event", "push")
+	req.Header.Set("X-Gitea-Delivery", "delivery-process-1")
+
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("expected %d, got %d: %s", http.StatusAccepted, rec.Code, rec.Body.String())
+	}
+	if len(processor.events) != 1 {
+		t.Fatalf("expected processor to receive 1 event, got %d", len(processor.events))
+	}
+	if processor.events[0].ID != 1 {
+		t.Fatalf("expected processor event id 1, got %d", processor.events[0].ID)
+	}
+
+	var response struct {
+		ProcessingStatus string `json:"processing_status"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &response); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if response.ProcessingStatus != "processed" {
+		t.Fatalf("expected processed status, got %q", response.ProcessingStatus)
 	}
 }
 

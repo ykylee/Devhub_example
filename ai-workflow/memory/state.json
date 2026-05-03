@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-05-02",
+  "generated_at": "2026-05-03",
   "source_of_truth": {
     "project_profile_path": "ai-workflow/memory/PROJECT_PROFILE.md",
     "architecture_path": "docs/architecture.md",
@@ -8,7 +8,7 @@
     "tech_stack_path": "docs/tech_stack.md",
     "session_handoff_path": "ai-workflow/memory/session_handoff.md",
     "work_backlog_index_path": "ai-workflow/memory/work_backlog.md",
-    "latest_backlog_path": "ai-workflow/memory/backlog/2026-05-02.md",
+    "latest_backlog_path": "ai-workflow/memory/backlog/2026-05-03.md",
     "homelab_postgresql_path": "ai-workflow/memory/environments/homelab-postgresql.md",
     "repository_assessment_path": "ai-workflow/memory/project_status_assessment.md"
   },
@@ -26,20 +26,20 @@
     "runtime_checks": "make build"
   },
   "session": {
-    "current_baseline": "main의 frontend_phase1 및 workflow memory 구조 변경을 codex/backend_init에 병합했고, Go Core raw Webhook 수집 기반, GET /api/v1/events 조회 API 초안, 홈랩 PostgreSQL migration 적용 검증 완료 상태, 프론트엔드 백엔드 요구사항 상세 리뷰, frontend phase1 기반 백엔드 연동 요구사항, requirements review P1/P2 finding을 고려한 로드맵 갱신, static fallback 기반 프론트 snapshot API 1차 구현을 memory 경로에 반영함",
-    "current_axis": "Gitea 연동 구현 및 frontend_phase1 병합 반영",
-    "current_focus": "TASK-007 Gitea Webhook 수신부 및 데이터 모델링 구현",
+    "current_baseline": "main의 frontend_phase1 및 workflow memory 구조 변경을 codex/backend_init에 병합했고, Go Core raw Webhook 수집 기반, GET /api/v1/events 조회 API 초안, static fallback 기반 프론트 snapshot API 1차, API 계약의 WebSocket/command lifecycle 보강, 도메인 정규화 1차 migration, normalize processor, Postgres domain upsert sink, webhook 저장 이후 processor 실행 경로, 홈랩 PostgreSQL migration version 2 및 domain upsert 통합 검증을 memory 경로에 반영함",
+    "current_axis": "정규화된 Gitea 도메인 데이터를 프론트 조회 API와 snapshot data source로 연결",
+    "current_focus": "repository/issue/PR/ci_run/risk DB-backed 조회 API 및 snapshot provider 교체",
     "in_progress_items": ["TASK-007"],
     "blocked_items": [],
-    "recent_done_items": ["TASK-012", "TASK-011", "TASK-010", "TASK-009", "TASK-008", "TASK-006"],
-    "environment_constraints": ["protoc, Node dependencies, Docker daemon are required for full local validation", "Homelab PostgreSQL 192.168.0.38:5432 devhub DB is reachable and migration version 1 is applied"]
+    "recent_done_items": ["TASK-014", "TASK-013", "TASK-012", "TASK-011", "TASK-010", "TASK-009", "TASK-008", "TASK-006"],
+    "environment_constraints": ["protoc, Node dependencies, Docker daemon are required for full local validation", "Homelab PostgreSQL 192.168.0.38:5432 devhub DB is reachable and migration version 2 is applied"]
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/backlog/2026-05-02.md",
-    "task_count": 11,
+    "latest_backlog_path": "ai-workflow/memory/backlog/2026-05-03.md",
+    "task_count": 13,
     "in_progress_items": ["TASK-007"],
     "blocked_items": [],
-    "done_items": ["TASK-002", "TASK-004", "TASK-003", "TASK-005", "TASK-006", "TASK-008", "TASK-009", "TASK-010", "TASK-011", "TASK-012"]
+    "done_items": ["TASK-002", "TASK-004", "TASK-003", "TASK-005", "TASK-006", "TASK-008", "TASK-009", "TASK-010", "TASK-011", "TASK-012", "TASK-013", "TASK-014"]
   },
   "next_documents": [
     "ai-workflow/memory/backend_development_roadmap.md",
@@ -49,7 +49,7 @@
     "docs/backend_api_contract.md",
     "docs/architecture.md",
     "docs/tech_stack.md",
-    "ai-workflow/memory/backlog/2026-05-02.md"
+    "ai-workflow/memory/backlog/2026-05-03.md"
   ],
   "repository_assessment": {
     "path": "ai-workflow/memory/project_status_assessment.md",

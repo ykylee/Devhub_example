@@ -110,12 +110,23 @@ func (h Handler) receiveGiteaWebhook(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusAccepted, gin.H{
+	response := gin.H{
 		"status":     "accepted",
 		"event_id":   id,
 		"event_type": eventType,
 		"duplicate":  false,
-	})
+	}
+	if h.cfg.EventProcessor != nil {
+		record.ID = id
+		if err := h.cfg.EventProcessor.Process(c.Request.Context(), record); err != nil {
+			response["processing_status"] = "failed"
+			response["processing_error"] = err.Error()
+		} else {
+			response["processing_status"] = "processed"
+		}
+	}
+
+	c.JSON(http.StatusAccepted, response)
 }
 
 func parseEnvelope(body []byte) (giteaWebhookEnvelope, error) {
