@@ -48,13 +48,19 @@ IGNORED_PARTS = {
     "templates",
     "releases",
     "archive",
+    "tests",
+    "node_modules",
+    "backend-ai",
+    "backend-core",
+    "frontend",
+    "docs",
 }
 IGNORED_AI_WORKFLOW_SUBTREES = {
     ("ai-workflow", "core"),
     ("ai-workflow", "examples"),
     ("ai-workflow", "global-snippets"),
     ("ai-workflow", "harnesses"),
-    ("ai-workflow", "mcp"),
+    ("ai-workflow", "mcp_servers"),
     ("ai-workflow", "schemas"),
     ("ai-workflow", "scripts"),
     ("ai-workflow", "skills"),
@@ -62,16 +68,16 @@ IGNORED_AI_WORKFLOW_SUBTREES = {
     ("ai-workflow", "workflow_kit"),
 }
 IGNORED_WORKFLOW_SOURCE_SUBTREES = {
-    ("workflow-source", "core"),
-    ("workflow-source", "examples"),
-    ("workflow-source", "global-snippets"),
-    ("workflow-source", "harnesses"),
-    ("workflow-source", "mcp"),
-    ("workflow-source", "schemas"),
-    ("workflow-source", "scripts"),
-    ("workflow-source", "skills"),
-    ("workflow-source", "templates"),
-    ("workflow-source", "workflow_kit"),
+    ("ai-workflow", "core"),
+    ("ai-workflow", "examples"),
+    ("ai-workflow", "global-snippets"),
+    ("ai-workflow", "harnesses"),
+    ("ai-workflow", "mcp_servers"),
+    ("ai-workflow", "schemas"),
+    ("ai-workflow", "scripts"),
+    ("ai-workflow", "skills"),
+    ("ai-workflow", "templates"),
+    ("ai-workflow", "workflow_kit"),
 }
 
 
@@ -149,11 +155,11 @@ def main() -> int:
             failures.append(f"{rel_path}: {error}")
 
     targeted_phrases = {
-        Path("workflow-source/core/global_workflow_standard.md"): [
+        Path("ai-workflow/core/global_workflow_standard.md"): [
             "task delegation 과 결과 통합에 집중하는 구성을 기본값으로 둔다.",
             "ask 는 genuinely blocking decision 이나 위험한 외부 작업으로만 좁히는 편을 기본 원칙으로 둔다.",
         ],
-        Path("workflow-source/core/workflow_agent_topology.md"): [
+        Path("ai-workflow/core/workflow_agent_topology.md"): [
             "메인 오케스트레이터가 직접 도구 호출을 수행하는 패턴은 기본값이 아니며",
             "권장 툴 성격: task-only delegation",
         ],

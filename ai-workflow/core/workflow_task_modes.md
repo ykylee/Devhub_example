@@ -3,13 +3,13 @@
 - 문서 목적: 작업의 성격(성격)에 따라 최적화된 워크플로우 모드와 에이전트 구성을 정의한다.
 - 범위: 모드 정의, 모드별 에이전트 토폴로지, 추천 스킬 및 도구 세트
 - 대상 독자: AI 에이전트, 워크플로우 설계자, 프로젝트 관리자
-- 상태: draft
-- 최종 수정일: 2026-05-01
-- 관련 문서: `workflow_agent_topology.md`, `workflow_skill_catalog.md`
+- 상태: stable
+- 최종 수정일: 2026-05-02
+- 관련 문서: `workflow_agent_topology.md`, `workflow_skill_catalog.md`, `workflow-source/workflow_kit/common/modes/registry.py`
 
 ## 1. 개요
 
-표준 워크플로우는 모든 작업에 동일한 절차를 적용하기보다, 작업의 목적(분석, 설계, 구현 등)에 따라 에이전트의 역할 분담과 도구 사용 방식을 최적화함으로써 효율성을 극대화한다.
+표준 워크플로우는 모든 작업에 동일한 절차를 적용하기보다, 작업의 목적(분석, 설계, 구현 등)에 따라 에이전트의 역할 분담과 도구 사용 방식을 최적화함으로써 효율성을 극대화한다. 본 체계는 `workflow_kit/common/modes/registry.py`를 통해 엔진에서 직접 관리되며 자동 감지 기능을 제공한다.
 
 ## 2. 작업 모드 정의 (Mode Definitions)
 

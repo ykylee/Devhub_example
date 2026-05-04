@@ -5,7 +5,7 @@
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: draft
 - 최종 수정일: 2026-05-01
-- 관련 문서: [공통 표준](../../../core/global_workflow_standard.md)
+- 관련 문서: [공통 표준](../core/global_workflow_standard.md)
 
 ## 1. 프로젝트 개요
 - 프로젝트명: DevHub Example
@@ -17,10 +17,10 @@
 
 ## 2. 문서 구조 (Path)
 - 문서 위키 홈: README.md
-- 운영 문서 홈: ai-workflow/memory/
-- 백로그 위치: ai-workflow/memory/backlog/
-- 세션 인계 문서: ai-workflow/memory/session_handoff.md
-- 환경 기록 위치: ai-workflow/memory/environments/
+- 운영 문서 홈: ai-workflow/project/
+- 백로그 위치: ai-workflow/project/backlog/
+- 세션 인계 문서: ai-workflow/project/session_handoff.md
+- 환경 기록 위치: ai-workflow/project/environments/
 
 ## 3. 기본 명령 (Commands)
 - 설치: `make setup` (Go, Python, NPM 의존성 설치)

@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SOURCE_ROOT = REPO_ROOT / "workflow-source"
+SOURCE_ROOT = REPO_ROOT / "ai-workflow"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
@@ -100,7 +100,7 @@ def workflow_common_sources() -> list[Path]:
         SOURCE_ROOT / "core" / "automated_repro_scaffold_skill_spec.md",
         SOURCE_ROOT / "core" / "phase5_governance_guide.md",
         SOURCE_ROOT / "examples" / "end_to_end_skill_demo.md",
-        SOURCE_ROOT / "mcp" / "read_only_bundle.md",
+        SOURCE_ROOT / "mcp_servers" / "read_only_bundle.md",
         SOURCE_ROOT / "schemas" / "read_only_harness_mcp_examples.json",
         SOURCE_ROOT / "schemas" / "read_only_jsonrpc_fixtures.json",
         SOURCE_ROOT / "schemas" / "read_only_transport_descriptors.json",

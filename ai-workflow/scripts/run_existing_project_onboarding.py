@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SOURCE_ROOT = REPO_ROOT / "workflow-source"
+SOURCE_ROOT = REPO_ROOT / "ai-workflow"
 
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
@@ -129,7 +129,7 @@ def main() -> int:
         latest_backlog_data, latest_backlog_path = run_latest_backlog_step(
             python=python,
             repo_root=REPO_ROOT,
-            latest_backlog_script=repo_path("mcp", "latest-backlog", "scripts", "run_latest_backlog.py"),
+            latest_backlog_script=repo_path("mcp_servers", "latest-backlog", "scripts", "run_latest_backlog.py"),
             work_backlog_index_path=str(work_backlog_index_path),
             backlog_dir_path=str(backlog_dir_path),
             direct_latest_backlog_path=str(resolve_existing_path(args.latest_backlog_path)) if args.latest_backlog_path else None,
@@ -342,7 +342,7 @@ def main() -> int:
                 status=latest_backlog_data.get("status", "ok"),
                 command=None if args.latest_backlog_path else [
                     python,
-                    str(repo_path("mcp", "latest-backlog", "scripts", "run_latest_backlog.py")),
+                    str(repo_path("mcp_servers", "latest-backlog", "scripts", "run_latest_backlog.py")),
                     "--work-backlog-index-path",
                     str(work_backlog_index_path),
                     "--backlog-dir-path",

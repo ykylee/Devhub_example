@@ -5,7 +5,7 @@
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: draft
 - 최종 수정일: YYYY-MM-DD
-- 관련 문서: [공통 표준](../core/global_workflow_standard.md)
+- 관련 문서: [공통 표준](../ai-workflow/core/global_workflow_standard.md)
 
 ## 1. 프로젝트 개요
 - 프로젝트명: <Project Name>
@@ -39,5 +39,5 @@
 - 기타: <프로젝트 특유의 컨벤션>
 
 ## 다음에 읽을 문서
-- [세션 인계 문서](./session_handoff.md)
-- [작업 백로그](./work_backlog.md)
+- [세션 인계 문서](../ai-workflow/memory/session_handoff.md)
+- [작업 백로그](../ai-workflow/memory/work_backlog.md)

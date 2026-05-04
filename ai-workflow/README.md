@@ -4,8 +4,8 @@
 - 범위: 공통 코어 문서 위치, 프로젝트 상태 문서 세트, 도입 모드별 후속 작업
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-05-01
-- 관련 문서: `ai-workflow/memory/PROJECT_PROFILE.md`, `ai-workflow/memory/state.json`, `ai-workflow/memory/session_handoff.md`, `ai-workflow/memory/work_backlog.md`
+- 최종 수정일: 2026-05-03
+- 관련 문서: `ai-workflow/project/project_workflow_profile.md`, `ai-workflow/project/state.json`, `ai-workflow/project/session_handoff.md`, `ai-workflow/project/work_backlog.md`
 
 ## 1. 도입 모드
 
@@ -13,14 +13,14 @@
 - 요약:
 - 기존 프로젝트 분석 결과를 반영한 문서 초안과 평가 문서를 생성했다.
 
-## 2. 생성된 파일
+## 2. 생성된 파일 (Project Data)
 
-- [ai-workflow/memory/PROJECT_PROFILE.md](./memory/gemini/frontend_phase1/PROJECT_PROFILE.md)
-- [ai-workflow/memory/state.json](./memory/gemini/frontend_phase1/state.json)
-- [ai-workflow/memory/session_handoff.md](./memory/gemini/frontend_phase1/session_handoff.md)
-- [ai-workflow/memory/work_backlog.md](./memory/gemini/frontend_phase1/work_backlog.md)
-- [ai-workflow/memory/backlog/2026-05-01.md](./memory/gemini/frontend_phase1/backlog/2026-05-01.md)
-- [ai-workflow/memory/repository_assessment.md](./memory/gemini/frontend_phase1/repository_assessment.md)
+- [ai-workflow/project/project_workflow_profile.md](./project/project_workflow_profile.md)
+- [ai-workflow/project/state.json](./project/state.json)
+- [ai-workflow/project/session_handoff.md](./project/session_handoff.md)
+- [ai-workflow/project/work_backlog.md](./project/work_backlog.md)
+- [ai-workflow/project/backlog/2026-05-01.md](./project/backlog/2026-05-01.md)
+- [ai-workflow/project/repository_assessment.md](./project/repository_assessment.md)
 
 ## 3. 코어 문서
 
@@ -38,7 +38,7 @@
 
 ## 5. 도입 직후 해야 할 일
 
-1. `PROJECT_PROFILE.md` 에 프로젝트 목적, 명령, 검증 규칙을 실제 값으로 채운다.
+1. `project_workflow_profile.md` 에 프로젝트 목적, 명령, 검증 규칙을 실제 값으로 채운다.
 2. `state.json`, `session_handoff.md`, 오늘 날짜 backlog 를 현재 진행 작업 기준으로 갱신한다.
 3. 기존 프로젝트 모드였다면 `repository_assessment.md` 의 추정값을 실제 저장소 규칙과 대조해 수정한다.
 4. 선택한 하네스가 있으면 생성된 overlay 파일을 각 하네스 실행 경로에 맞게 검토한다.
@@ -54,14 +54,14 @@
 ## 7. 프로젝트 실제 문서 경로 설정값
 
 - 문서 위키 홈: `docs/README.md`
-- 운영 문서 위치: `ai-workflow/memory/`
-- 백로그 위치: `ai-workflow/memory/backlog/`
-- 세션 인계 문서 위치: `ai-workflow/memory/session_handoff.md`
-- 환경 기록 위치: `ai-workflow/memory/environments/`
+- 운영 문서 위치: `ai-workflow/project/`
+- 백로그 위치: `ai-workflow/project/backlog/`
+- 세션 인계 문서 위치: `ai-workflow/project/session_handoff.md`
+- 환경 기록 위치: `ai-workflow/project/environments/`
 
 ## 다음에 읽을 문서
 
-- 프로젝트 프로파일: [./memory/gemini/frontend_phase1/PROJECT_PROFILE.md](./memory/gemini/frontend_phase1/PROJECT_PROFILE.md)
-- 빠른 상태 요약: [./memory/gemini/frontend_phase1/state.json](./memory/gemini/frontend_phase1/state.json)
-- 세션 인계 문서: [./memory/gemini/frontend_phase1/session_handoff.md](./memory/gemini/frontend_phase1/session_handoff.md)
-- 작업 백로그 인덱스: [./memory/gemini/frontend_phase1/work_backlog.md](./memory/gemini/frontend_phase1/work_backlog.md)
+- 프로젝트 프로파일: [./project/project_workflow_profile.md](./project/project_workflow_profile.md)
+- 빠른 상태 요약: [./project/state.json](./project/state.json)
+- 세션 인계 문서: [./project/session_handoff.md](./project/session_handoff.md)
+- 작업 백로그 인덱스: [./project/work_backlog.md](./project/work_backlog.md)

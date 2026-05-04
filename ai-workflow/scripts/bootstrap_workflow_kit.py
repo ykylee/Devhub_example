@@ -14,7 +14,7 @@ from datetime import date
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SOURCE_ROOT = REPO_ROOT / "workflow-source"
+SOURCE_ROOT = REPO_ROOT / "ai-workflow"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
@@ -30,7 +30,7 @@ DEFAULT_CORE_DOCS = [
     "workflow_harness_distribution.md",
 ]
 # Base dependencies for any workflow integration
-COMMON_PYTHON_DEPS = ["mcp", "pytest", "pytest-asyncio"]
+COMMON_PYTHON_DEPS = ["mcp_servers", "pytest", "pytest-asyncio"]
 COMMON_NODE_DEPS = ["@modelcontextprotocol/sdk"]
 
 # Harness-specific optional dependencies
@@ -89,21 +89,21 @@ DEFAULT_CORE_SUPPORT_PATHS = [
     "skills/validation-plan/scripts/run_validation_plan.py",
     "skills/code-index-update/SKILL.md",
     "skills/code-index-update/scripts/run_code_index_update.py",
-    "mcp/README.md",
-    "mcp/prototype_layout.md",
-    "mcp/read_only_bundle.md",
-    "mcp/latest-backlog/MCP.md",
-    "mcp/latest-backlog/scripts/run_latest_backlog.py",
-    "mcp/check-doc-metadata/MCP.md",
-    "mcp/check-doc-metadata/scripts/run_check_doc_metadata.py",
-    "mcp/check-doc-links/MCP.md",
-    "mcp/check-doc-links/scripts/run_check_doc_links.py",
-    "mcp/create-backlog-entry/MCP.md",
-    "mcp/create-backlog-entry/scripts/run_create_backlog_entry.py",
-    "mcp/suggest-impacted-docs/MCP.md",
-    "mcp/suggest-impacted-docs/scripts/run_suggest_impacted_docs.py",
-    "mcp/check-quickstart-stale-links/MCP.md",
-    "mcp/check-quickstart-stale-links/scripts/run_check_quickstart_stale_links.py",
+    "mcp_servers/README.md",
+    "mcp_servers/prototype_layout.md",
+    "mcp_servers/read_only_bundle.md",
+    "mcp_servers/latest-backlog/MCP.md",
+    "mcp_servers/latest-backlog/scripts/run_latest_backlog.py",
+    "mcp_servers/check-doc-metadata/MCP.md",
+    "mcp_servers/check-doc-metadata/scripts/run_check_doc_metadata.py",
+    "mcp_servers/check-doc-links/MCP.md",
+    "mcp_servers/check-doc-links/scripts/run_check_doc_links.py",
+    "mcp_servers/create-backlog-entry/MCP.md",
+    "mcp_servers/create-backlog-entry/scripts/run_create_backlog_entry.py",
+    "mcp_servers/suggest-impacted-docs/MCP.md",
+    "mcp_servers/suggest-impacted-docs/scripts/run_suggest_impacted_docs.py",
+    "mcp_servers/check-quickstart-stale-links/MCP.md",
+    "mcp_servers/check-quickstart-stale-links/scripts/run_check_quickstart_stale_links.py",
     "tests/README.md",
     "tests/check_docs.py",
     "tests/check_bootstrap.py",
@@ -1280,7 +1280,7 @@ def render_opencode_config(args: argparse.Namespace, paths: Paths) -> str:
                     "prompt": "{file:.opencode/agents/workflow-validation-worker.md}",
                 }
             },
-            "mcp": {
+            "mcp_servers": {
                 "openaiDeveloperDocs": {
                     "type": "remote",
                     "url": "https://developers.openai.com/mcp",

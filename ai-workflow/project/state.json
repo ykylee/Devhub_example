@@ -1,20 +1,20 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-05-01",
+  "generated_at": "2026-05-03",
   "source_of_truth": {
-    "project_profile_path": "ai-workflow/memory/gemini/frontend_phase1/PROJECT_PROFILE.md",
-    "session_handoff_path": "ai-workflow/memory/gemini/frontend_phase1/session_handoff.md",
-    "work_backlog_index_path": "ai-workflow/memory/gemini/frontend_phase1/work_backlog.md",
-    "latest_backlog_path": "ai-workflow/memory/gemini/frontend_phase1/backlog/2026-05-01.md",
-    "repository_assessment_path": "ai-workflow/memory/gemini/frontend_phase1/repository_assessment.md"
+    "project_profile_path": "ai-workflow/project/project_workflow_profile.md",
+    "session_handoff_path": "ai-workflow/project/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/project/work_backlog.md",
+    "latest_backlog_path": "ai-workflow/project/backlog/2026-05-03.md",
+    "repository_assessment_path": "ai-workflow/project/repository_assessment.md"
   },
   "project": {
-    "project_name": "Devhub Example",
+    "project_name": "DevHub Example",
     "document_home": "docs/README.md",
     "operations_path": null,
-    "backlog_path": "ai-workflow/memory/gemini/frontend_phase1/backlog/",
+    "backlog_path": "ai-workflow/project/backlog/",
     "handoff_path": null,
-    "environment_path": "ai-workflow/memory/gemini/frontend_phase1/environments/"
+    "environment_path": "ai-workflow/project/environments/"
   },
   "commands": {
     "quick_tests": "pytest ai-workflow/tests/check_docs.py",
@@ -44,7 +44,7 @@
     ]
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/gemini/frontend_phase1/backlog/2026-05-01.md",
+    "latest_backlog_path": "ai-workflow/project/backlog/2026-05-03.md",
     "task_count": 3,
     "in_progress_items": [
       "TASK-003"
@@ -56,13 +56,13 @@
     ]
   },
   "next_documents": [
-    "ai-workflow/memory/gemini/frontend_phase1/PROJECT_PROFILE.md",
-    "ai-workflow/memory/gemini/frontend_phase1/session_handoff.md",
-    "ai-workflow/memory/gemini/frontend_phase1/work_backlog.md",
-    "ai-workflow/memory/gemini/frontend_phase1/backlog/2026-05-01.md"
+    "ai-workflow/project/project_workflow_profile.md",
+    "ai-workflow/project/session_handoff.md",
+    "ai-workflow/project/work_backlog.md",
+    "ai-workflow/project/backlog/2026-05-01.md"
   ],
   "repository_assessment": {
-    "path": "ai-workflow/memory/gemini/frontend_phase1/repository_assessment.md",
+    "path": "ai-workflow/project/repository_assessment.md",
     "present": true
   }
 }

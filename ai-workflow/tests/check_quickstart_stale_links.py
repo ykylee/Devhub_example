@@ -10,8 +10,8 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SOURCE_ROOT = REPO_ROOT / "workflow-source"
-SCRIPT_PATH = SOURCE_ROOT / "mcp" / "check-quickstart-stale-links" / "scripts" / "run_check_quickstart_stale_links.py"
+SOURCE_ROOT = REPO_ROOT / "ai-workflow"
+SCRIPT_PATH = SOURCE_ROOT / "mcp_servers" / "check-quickstart-stale-links" / "scripts" / "run_check_quickstart_stale_links.py"
 
 
 def main() -> int:

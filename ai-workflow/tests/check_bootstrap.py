@@ -11,7 +11,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SOURCE_ROOT = REPO_ROOT / "workflow-source"
+SOURCE_ROOT = REPO_ROOT / "ai-workflow"
 BOOTSTRAP_SCRIPT = SOURCE_ROOT / "scripts" / "bootstrap_workflow_kit.py"
 BACKLOG_UPDATE_SCRIPT = SOURCE_ROOT / "skills" / "backlog-update" / "scripts" / "run_backlog_update.py"
 
@@ -77,7 +77,7 @@ def check_new_project_mode() -> None:
             "ai-workflow/templates/session_handoff_template.md",
             "ai-workflow/schemas/generated_output_schemas.json",
             "ai-workflow/examples/output_samples/README.md",
-            "ai-workflow/mcp/README.md",
+            "ai-workflow/mcp_servers/README.md",
             "ai-workflow/skills/README.md",
             "ai-workflow/scripts/README.md",
             "ai-workflow/scripts/apply_harness_update.py",
@@ -125,7 +125,7 @@ def check_new_project_mode() -> None:
             raise AssertionError("Generated handoff should include the context-saving rule.")
 
         daily_backlog_text = Path(str(generated["daily_backlog"])).read_text(encoding="utf-8")
-        if "목적: 일일 작업 계획 및 결과 기록" not in daily_backlog_text:
+        if "- 문서 목적: 당일의 구체적인 작업 계획" not in daily_backlog_text:
             raise AssertionError("Generated daily backlog should include the correct purpose statement.")
 
 

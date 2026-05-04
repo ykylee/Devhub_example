@@ -1,6 +1,6 @@
 {
   "status": "error",
-  "tool_version": "v0.3.2-beta",
+  "tool_version": "v0.4.1-beta",
   "error": "필수 입력 문서를 읽을 수 없다.",
   "error_code": "workflow_step_failed",
   "warnings": [

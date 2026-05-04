@@ -1,6 +1,6 @@
 {
   "status": "ok",
-  "tool_version": "v0.3.2-beta",
+  "tool_version": "v0.4.1-beta",
   "warnings": [
     "blocked 항목이 handoff 와 backlog 사이에서 다를 수 있으므로 수동 재확인이 필요하다.",
     "app/jobs/delivery_sync.py 변경이 운영 문서에 반영됐는지 아직 확인되지 않았다.",
@@ -66,7 +66,7 @@
   },
   "latest_backlog": {
     "status": "ok",
-    "tool_version": "v0.3.2-beta",
+    "tool_version": "v0.4.1-beta",
     "latest_backlog_path": "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/backlog/2026-04-18.md",
     "candidates": [
       "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/backlog/2026-04-18.md"
@@ -75,7 +75,7 @@
   },
   "session_start": {
     "status": "ok",
-    "tool_version": "v0.3.2-beta",
+    "tool_version": "v0.4.1-beta",
     "summary": [
       "현재 기준선: 배송 상태 동기화 배치의 재시도 정책 초안이 반영되었고, 운영 문서 허브 링크는 최신 상태다.",
       "주 작업 축: 장애 대응 이후 백로그 정리 흐름과 운영 문서 동기화 기준을 표준화하는 작업",
@@ -96,7 +96,7 @@
   },
   "backlog_update": {
     "status": "ok",
-    "tool_version": "v0.3.2-beta",
+    "tool_version": "v0.4.1-beta",
     "operation_type": "update_entry",
     "target_backlog_path": "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/backlog/2026-04-18.md",
     "task_id": "TASK-021",
@@ -116,7 +116,7 @@
   },
   "doc_sync": {
     "status": "ok",
-    "tool_version": "v0.3.2-beta",
+    "tool_version": "v0.4.1-beta",
     "impacted_documents": [
       "docs/operations/runbooks/delivery-sync.md",
       "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/session_handoff.md",
@@ -131,7 +131,7 @@
   },
   "validation_plan": {
     "status": "ok",
-    "tool_version": "v0.3.2-beta",
+    "tool_version": "v0.4.1-beta",
     "detected_change_types": [
       "code",
       "docs",
@@ -157,7 +157,7 @@
   },
   "code_index_update": {
     "status": "ok",
-    "tool_version": "v0.3.2-beta",
+    "tool_version": "v0.4.1-beta",
     "priority_index_candidates": [
       "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/docs/operations/README.md",
       "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/docs/README.md",
@@ -170,7 +170,7 @@
   },
   "suggest_impacted_docs": {
     "status": "ok",
-    "tool_version": "v0.3.2-beta",
+    "tool_version": "v0.4.1-beta",
     "impacted_documents": [
       "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/session_handoff.md",
       "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/backlog/2026-04-18.md",
@@ -181,7 +181,7 @@
   },
   "merge_doc_reconcile": {
     "status": "ok",
-    "tool_version": "v0.3.2-beta",
+    "tool_version": "v0.4.1-beta",
     "reconcile_targets": [
       "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/session_handoff.md",
       "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/backlog/2026-04-18.md",

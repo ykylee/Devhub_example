@@ -5,7 +5,7 @@
 - 대상 독자: 프로젝트 리드, AI 에이전트, 온보딩 담당자
 - 상태: draft
 - 최종 수정일: 2026-05-01
-- 관련 문서: [공통 표준](../../../core/global_workflow_standard.md), [세션 인계](./session_handoff.md)
+- 관련 문서: [공통 표준](../core/global_workflow_standard.md), [세션 인계](./session_handoff.md)
 
 ## 1. 진단 요약 (Executive Summary)
 
@@ -62,5 +62,5 @@
 - [ ] 항목 3:
 
 ## 다음에 읽을 문서
-- [공통 표준](../../../core/global_workflow_standard.md)
-- [에이전트 토폴로지](../../../core/workflow_agent_topology.md)
+- [공통 표준](../core/global_workflow_standard.md)
+- [에이전트 토폴로지](../core/workflow_agent_topology.md)

@@ -1,6 +1,6 @@
 {
   "status": "ok",
-  "tool_version": "v0.3.2-beta",
+  "tool_version": "v0.4.1-beta",
   "checked_files": [
     "/Users/yklee/repos/standard_ai_workflow/examples/README.md",
     "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/backlog/2026-04-18.md",
