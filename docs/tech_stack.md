@@ -81,7 +81,7 @@ make run
 
 ### 2.5 데이터베이스 마이그레이션
 
-PostgreSQL 스키마 변경은 **golang-migrate/migrate**를 사용합니다. Go Core가 Gitea Webhook 원본 이벤트, 정규화 테이블, 권한/프로젝트 매핑을 관리하므로 migration 파일은 `backend-core/migrations/`에 둡니다.
+PostgreSQL 스키마 변경은 **golang-migrate/migrate**를 사용합니다. Go Core가 Gitea Webhook 원본 이벤트, 정규화 테이블, command/audit lifecycle, 권한/프로젝트 매핑을 관리하므로 migration 파일은 `backend-core/migrations/`에 둡니다.
 
 ```bash
 # migrate CLI 설치(PostgreSQL driver 포함)
@@ -109,6 +109,7 @@ make migrate-version
 GITEA_URL=http://your-gitea-server.com
 GITEA_TOKEN=your-access-token
 GITEA_WEBHOOK_SECRET=your-webhook-secret
+BACKEND_AI_URL=http://localhost:8000
 ```
 
 ### 3.2 아키텍처 원칙

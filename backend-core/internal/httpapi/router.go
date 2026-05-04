@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/devhub/backend-core/internal/domain"
 	"github.com/devhub/backend-core/internal/store"
 	"github.com/gin-gonic/gin"
 )
@@ -22,11 +23,27 @@ type HealthStore interface {
 	Ping(context.Context) error
 }
 
+type DomainStore interface {
+	ListRepositories(context.Context, domain.ListOptions) ([]domain.Repository, error)
+	ListIssues(context.Context, domain.ListOptions) ([]domain.Issue, error)
+	ListPullRequests(context.Context, domain.ListOptions) ([]domain.PullRequest, error)
+	ListCIRuns(context.Context, domain.ListOptions) ([]domain.CIRun, error)
+	ListRisks(context.Context, domain.ListOptions) ([]domain.Risk, error)
+}
+
+type CommandStore interface {
+	CreateRiskMitigationCommand(context.Context, domain.RiskMitigationCommandRequest) (domain.Command, domain.AuditLog, bool, error)
+	GetCommand(context.Context, string) (domain.Command, error)
+}
+
 type RouterConfig struct {
-	WebhookSecret  string
-	EventStore     WebhookEventStore
-	EventProcessor WebhookEventProcessor
-	HealthStore    HealthStore
+	WebhookSecret    string
+	EventStore       WebhookEventStore
+	EventProcessor   WebhookEventProcessor
+	HealthStore      HealthStore
+	DomainStore      DomainStore
+	CommandStore     CommandStore
+	SnapshotProvider SnapshotProvider
 }
 
 func NewRouter(cfg RouterConfig) *gin.Engine {
@@ -41,9 +58,15 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.GET("/infra/edges", handler.infraEdges)
 	v1.GET("/infra/nodes", handler.infraNodes)
 	v1.GET("/infra/topology", handler.infraTopology)
+	v1.GET("/repositories", handler.repositories)
+	v1.GET("/issues", handler.issues)
+	v1.GET("/pull-requests", handler.pullRequests)
 	v1.GET("/ci-runs", handler.ciRuns)
 	v1.GET("/ci-runs/:ci_run_id/logs", handler.ciRunLogs)
+	v1.GET("/risks", handler.risks)
 	v1.GET("/risks/critical", handler.criticalRisks)
+	v1.POST("/risks/:risk_id/mitigations", handler.createRiskMitigation)
+	v1.GET("/commands/:command_id", handler.getCommand)
 	v1.POST("/integrations/gitea/webhooks", handler.receiveGiteaWebhook)
 
 	return router
@@ -51,6 +74,13 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 
 type Handler struct {
 	cfg RouterConfig
+}
+
+func (h Handler) snapshotProvider() SnapshotProvider {
+	if h.cfg.SnapshotProvider != nil {
+		return h.cfg.SnapshotProvider
+	}
+	return StaticSnapshotProvider{}
 }
 
 func (h Handler) health(c *gin.Context) {

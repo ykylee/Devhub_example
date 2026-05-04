@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/devhub/backend-core/internal/domain"
 	"github.com/gin-gonic/gin"
 )
 
@@ -78,7 +79,12 @@ func (h Handler) dashboardMetrics(c *gin.Context) {
 		role = "developer"
 	}
 
-	metrics, ok := snapshotMetrics()[role]
+	provider := h.snapshotProvider()
+	metrics, ok, err := provider.DashboardMetrics(c.Request.Context(), role)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		return
+	}
 	if !ok {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status": "rejected",
@@ -91,37 +97,59 @@ func (h Handler) dashboardMetrics(c *gin.Context) {
 		"status": "ok",
 		"data":   metrics,
 		"meta": gin.H{
-			"role":  role,
-			"count": len(metrics),
+			"role":   role,
+			"count":  len(metrics),
+			"source": provider.Source(),
 		},
 	})
 }
 
 func (h Handler) infraNodes(c *gin.Context) {
-	nodes := snapshotNodes()
+	provider := h.snapshotProvider()
+	nodes, err := provider.InfraNodes(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"status": "ok",
 		"data":   nodes,
 		"meta": gin.H{
-			"count": len(nodes),
+			"count":  len(nodes),
+			"source": provider.Source(),
 		},
 	})
 }
 
 func (h Handler) infraEdges(c *gin.Context) {
-	edges := snapshotEdges()
+	provider := h.snapshotProvider()
+	edges, err := provider.InfraEdges(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"status": "ok",
 		"data":   edges,
 		"meta": gin.H{
-			"count": len(edges),
+			"count":  len(edges),
+			"source": provider.Source(),
 		},
 	})
 }
 
 func (h Handler) infraTopology(c *gin.Context) {
-	nodes := snapshotNodes()
-	edges := snapshotEdges()
+	provider := h.snapshotProvider()
+	nodes, err := provider.InfraNodes(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		return
+	}
+	edges, err := provider.InfraEdges(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"status": "ok",
 		"data": gin.H{
@@ -131,26 +159,84 @@ func (h Handler) infraTopology(c *gin.Context) {
 		"meta": gin.H{
 			"node_count": len(nodes),
 			"edge_count": len(edges),
+			"source":     provider.Source(),
 		},
 	})
 }
 
 func (h Handler) ciRuns(c *gin.Context) {
-	runs := snapshotCIRuns()
+	scope := c.DefaultQuery("scope", "all")
+	if h.cfg.DomainStore != nil {
+		opts, ok := parseListOptions(c, false)
+		if !ok {
+			return
+		}
+		opts.Status = c.Query("status")
+		runs, err := h.cfg.DomainStore.ListCIRuns(c.Request.Context(), opts)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+			return
+		}
+		if len(runs) > 0 {
+			data := make([]ciRunResponse, 0, len(runs))
+			for _, run := range runs {
+				startedAt := time.Time{}
+				if run.StartedAt != nil {
+					startedAt = *run.StartedAt
+				}
+				durationSeconds := 0
+				if run.DurationSeconds != nil {
+					durationSeconds = *run.DurationSeconds
+				}
+				data = append(data, ciRunResponse{
+					ID:              run.ExternalID,
+					RepositoryName:  run.RepositoryName,
+					Branch:          run.Branch,
+					CommitSHA:       run.CommitSHA,
+					Status:          run.Status,
+					DurationSeconds: durationSeconds,
+					StartedAt:       startedAt,
+					FinishedAt:      run.FinishedAt,
+				})
+			}
+			c.JSON(http.StatusOK, gin.H{
+				"status": "ok",
+				"data":   data,
+				"meta": gin.H{
+					"count":  len(data),
+					"scope":  scope,
+					"source": "db",
+				},
+			})
+			return
+		}
+	}
+
+	provider := h.snapshotProvider()
+	runs, err := provider.CIRuns(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"status": "ok",
 		"data":   runs,
 		"meta": gin.H{
-			"count": len(runs),
-			"scope": c.DefaultQuery("scope", "all"),
+			"count":  len(runs),
+			"scope":  scope,
+			"source": provider.Source(),
 		},
 	})
 }
 
 func (h Handler) ciRunLogs(c *gin.Context) {
 	ciRunID := c.Param("ci_run_id")
-	logsByRun := snapshotCILogs()
-	logs, ok := logsByRun[ciRunID]
+	provider := h.snapshotProvider()
+	logs, ok, err := provider.CILogs(c.Request.Context(), ciRunID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		return
+	}
 	if !ok {
 		c.JSON(http.StatusNotFound, gin.H{
 			"status": "not_found",
@@ -165,97 +251,51 @@ func (h Handler) ciRunLogs(c *gin.Context) {
 		"meta": gin.H{
 			"ci_run_id": ciRunID,
 			"count":     len(logs),
+			"source":    provider.Source(),
 		},
 	})
 }
 
 func (h Handler) criticalRisks(c *gin.Context) {
-	risks := snapshotRisks()
+	if h.cfg.DomainStore != nil {
+		risks, err := h.cfg.DomainStore.ListRisks(c.Request.Context(), domain.ListOptions{
+			Limit:  50,
+			Status: "action_required",
+			Impact: "high",
+		})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+			return
+		}
+		if len(risks) > 0 {
+			data := make([]riskResponse, 0, len(risks))
+			for _, risk := range risks {
+				data = append(data, riskFromDomain(risk))
+			}
+			c.JSON(http.StatusOK, gin.H{
+				"status": "ok",
+				"data":   data,
+				"meta": gin.H{
+					"count":  len(data),
+					"source": "db",
+				},
+			})
+			return
+		}
+	}
+
+	provider := h.snapshotProvider()
+	risks, err := provider.CriticalRisks(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"status": "ok",
 		"data":   risks,
 		"meta": gin.H{
-			"count": len(risks),
+			"count":  len(risks),
+			"source": provider.Source(),
 		},
 	})
-}
-
-func snapshotTime() time.Time {
-	return time.Date(2026, 5, 2, 10, 0, 0, 0, time.UTC)
-}
-
-func snapshotMetrics() map[string][]metricResponse {
-	return map[string][]metricResponse{
-		"developer": {
-			{ID: "active_tasks", Label: "Active Tasks", Value: "3", Trend: "On Track", TrendDirection: "flat", NumericValue: 3, Unit: "count"},
-			{ID: "build_success", Label: "Build Success", Value: "98%", Trend: "+2%", TrendDirection: "up", NumericValue: 98, Unit: "percent"},
-			{ID: "code_review", Label: "Code Review", Value: "2", Trend: "Pending", TrendDirection: "flat", NumericValue: 2, Unit: "count"},
-		},
-		"manager": {
-			{ID: "completion", Label: "Completion", Value: "72%", Trend: "+5%", TrendDirection: "up", NumericValue: 72, Unit: "percent"},
-			{ID: "team_velocity", Label: "Team Velocity", Value: "48", Trend: "+12%", TrendDirection: "up", NumericValue: 48, Unit: "points"},
-			{ID: "open_risks", Label: "Open Risks", Value: "2", Trend: "High", TrendDirection: "up", NumericValue: 2, Unit: "count"},
-			{ID: "avg_cycle_time", Label: "Avg Cycle Time", Value: "4.2d", Trend: "-0.5d", TrendDirection: "down", NumericValue: 4.2, Unit: "days"},
-		},
-		"system_admin": {
-			{ID: "availability", Label: "Availability", Value: "99.99%", Trend: "Stable", TrendDirection: "flat", NumericValue: 99.99, Unit: "percent"},
-			{ID: "active_runners", Label: "Active Runners", Value: "12/12", Trend: "Full", TrendDirection: "flat", NumericValue: 12, Unit: "count"},
-			{ID: "ai_engine_load", Label: "AI Engine Load", Value: "24%", Trend: "Low", TrendDirection: "down", NumericValue: 24, Unit: "percent"},
-			{ID: "storage", Label: "Storage", Value: "1.2TB", Trend: "82%", TrendDirection: "up", NumericValue: 82, Unit: "percent"},
-		},
-	}
-}
-
-func snapshotNodes() []serviceNodeResponse {
-	now := snapshotTime()
-	return []serviceNodeResponse{
-		{ID: "backend-core", Label: "Go Core Service", Kind: "service", Status: "stable", Region: "asia-01", CPUPercent: 12.4, MemoryBytes: 1288490189, ActiveInstances: 1, UpdatedAt: now},
-		{ID: "gitea", Label: "Gitea Instance", Kind: "external", Status: "stable", Region: "asia-01", CPUPercent: 8.1, MemoryBytes: 858993459, ActiveInstances: 1, UpdatedAt: now},
-		{ID: "backend-ai", Label: "Python AI Engine", Kind: "service", Status: "warning", Region: "asia-01", CPUPercent: 45.2, MemoryBytes: 4509715661, ActiveInstances: 1, UpdatedAt: now},
-		{ID: "postgres", Label: "PostgreSQL Cluster", Kind: "database", Status: "stable", Region: "homelab", CPUPercent: 5.2, MemoryBytes: 2576980378, ActiveInstances: 1, UpdatedAt: now},
-	}
-}
-
-func snapshotEdges() []serviceEdgeResponse {
-	now := snapshotTime()
-	return []serviceEdgeResponse{
-		{ID: "gitea-backend-core", SourceID: "gitea", TargetID: "backend-core", Label: "WEBHOOK", Status: "stable", LatencyMS: 28.5, ThroughputRPS: 2.4, UpdatedAt: now},
-		{ID: "backend-core-backend-ai", SourceID: "backend-core", TargetID: "backend-ai", Label: "gRPC", Status: "warning", LatencyMS: 42.7, ThroughputRPS: 0.8, UpdatedAt: now},
-		{ID: "backend-core-postgres", SourceID: "backend-core", TargetID: "postgres", Label: "SQL", Status: "stable", LatencyMS: 9.3, ThroughputRPS: 12.1, UpdatedAt: now},
-	}
-}
-
-func snapshotCIRuns() []ciRunResponse {
-	now := snapshotTime()
-	finished101 := now.Add(-2 * time.Minute)
-	finished102 := now.Add(-7 * time.Minute)
-	return []ciRunResponse{
-		{ID: "101", RepositoryName: "devhub-core", Branch: "main", CommitSHA: "8a2f1b4", Status: "success", DurationSeconds: 134, StartedAt: now.Add(-5 * time.Minute), FinishedAt: &finished101},
-		{ID: "102", RepositoryName: "devhub-core", Branch: "feat/auth", CommitSHA: "3c91a22", Status: "success", DurationSeconds: 105, StartedAt: now.Add(-9 * time.Minute), FinishedAt: &finished102},
-		{ID: "103", RepositoryName: "devhub-core", Branch: "fix/deadlock", CommitSHA: "54ef9d0", Status: "failed", DurationSeconds: 190, StartedAt: now.Add(-3 * time.Minute)},
-	}
-}
-
-func snapshotCILogs() map[string][]ciLogLineResponse {
-	now := snapshotTime()
-	return map[string][]ciLogLineResponse{
-		"101": {
-			{ID: "101-1", CIRunID: "101", Timestamp: now.Add(-4 * time.Minute), Level: "info", Message: "checkout completed", StepName: "checkout"},
-			{ID: "101-2", CIRunID: "101", Timestamp: now.Add(-3 * time.Minute), Level: "info", Message: "go test ./... passed", StepName: "test"},
-		},
-		"102": {
-			{ID: "102-1", CIRunID: "102", Timestamp: now.Add(-8 * time.Minute), Level: "info", Message: "frontend lint passed", StepName: "lint"},
-		},
-		"103": {
-			{ID: "103-1", CIRunID: "103", Timestamp: now.Add(-2 * time.Minute), Level: "error", Message: "deadlock regression test failed", StepName: "test"},
-		},
-	}
-}
-
-func snapshotRisks() []riskResponse {
-	now := snapshotTime()
-	return []riskResponse{
-		{ID: "risk-001", Title: "Gitea Migration Blocked", Reason: "Access token expiration and scope mismatch detected in logs.", Impact: "high", Status: "action_required", OwnerLogin: "alex.k", SuggestedActions: []string{"rotate_token", "verify_scopes"}, CreatedAt: now.Add(-24 * time.Hour), UpdatedAt: now},
-		{ID: "risk-002", Title: "Frontend CI Pipeline Delay", Reason: "Average build time increased by 45% in last 24h.", Impact: "medium", Status: "investigation", OwnerLogin: "yklee", SuggestedActions: []string{"scale_runners", "inspect_cache"}, CreatedAt: now.Add(-6 * time.Hour), UpdatedAt: now},
-	}
 }

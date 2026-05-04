@@ -6,6 +6,7 @@ import (
 )
 
 type Repository struct {
+	ID            int64
 	GiteaID       int64
 	FullName      string
 	OwnerLogin    string
@@ -14,6 +15,7 @@ type Repository struct {
 	HTMLURL       string
 	DefaultBranch string
 	Private       bool
+	UpdatedAt     time.Time
 }
 
 type User struct {
@@ -25,6 +27,7 @@ type User struct {
 }
 
 type Issue struct {
+	ID                int64
 	GiteaID           int64
 	RepositoryGiteaID int64
 	RepositoryName    string
@@ -36,9 +39,11 @@ type Issue struct {
 	HTMLURL           string
 	OpenedAt          *time.Time
 	ClosedAt          *time.Time
+	UpdatedAt         time.Time
 }
 
 type PullRequest struct {
+	ID                int64
 	GiteaID           int64
 	RepositoryGiteaID int64
 	RepositoryName    string
@@ -52,9 +57,11 @@ type PullRequest struct {
 	HTMLURL           string
 	MergedAt          *time.Time
 	ClosedAt          *time.Time
+	UpdatedAt         time.Time
 }
 
 type CIRun struct {
+	ID              int64
 	ExternalID      string
 	RepositoryName  string
 	Branch          string
@@ -65,6 +72,75 @@ type CIRun struct {
 	FinishedAt      *time.Time
 	DurationSeconds *int
 	HTMLURL         string
+	UpdatedAt       time.Time
+}
+
+type Risk struct {
+	ID               int64
+	RiskKey          string
+	Title            string
+	Reason           string
+	Impact           string
+	Status           string
+	OwnerLogin       string
+	SourceType       string
+	SourceID         string
+	SuggestedActions []string
+	DetectedAt       time.Time
+	MitigatedAt      *time.Time
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+}
+
+type Command struct {
+	ID               int64
+	CommandID        string
+	CommandType      string
+	TargetType       string
+	TargetID         string
+	ActionType       string
+	Status           string
+	ActorLogin       string
+	Reason           string
+	DryRun           bool
+	RequiresApproval bool
+	IdempotencyKey   string
+	RequestPayload   map[string]any
+	ResultPayload    map[string]any
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+}
+
+type AuditLog struct {
+	ID         int64
+	AuditID    string
+	ActorLogin string
+	Action     string
+	TargetType string
+	TargetID   string
+	CommandID  string
+	Payload    map[string]any
+	CreatedAt  time.Time
+}
+
+type RiskMitigationCommandRequest struct {
+	RiskID           string
+	ActorLogin       string
+	ActionType       string
+	Reason           string
+	DryRun           bool
+	IdempotencyKey   string
+	RequestPayload   map[string]any
+	RequiresApproval bool
+}
+
+type ListOptions struct {
+	Limit          int
+	Offset         int
+	RepositoryName string
+	State          string
+	Status         string
+	Impact         string
 }
 
 type ChangeSet struct {
@@ -73,6 +149,7 @@ type ChangeSet struct {
 	Issue       *Issue
 	PullRequest *PullRequest
 	CIRun       *CIRun
+	Risk        *Risk
 	Ignored     bool
 	Reason      string
 }
@@ -83,6 +160,7 @@ type Sink interface {
 	UpsertIssue(context.Context, Issue) error
 	UpsertPullRequest(context.Context, PullRequest) error
 	UpsertCIRun(context.Context, CIRun) error
+	UpsertRisk(context.Context, Risk) error
 	MarkWebhookEventProcessed(context.Context, int64) error
 	MarkWebhookEventIgnored(context.Context, int64, string) error
 	MarkWebhookEventFailed(context.Context, int64, string) error

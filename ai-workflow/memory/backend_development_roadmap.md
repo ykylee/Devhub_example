@@ -1,7 +1,7 @@
 # 백엔드 개발 로드맵
 
 - 문서 목적: DevHub 백엔드 구현 범위, 순서, 진척 상태를 추적한다.
-- 기준일: 2026-05-03
+- 기준일: 2026-05-04
 - 상태: in_progress
 - 관련 문서: `docs/requirements.md`, `docs/architecture.md`, `docs/tech_stack.md`, `docs/backend_api_contract.md`, `docs/backend/frontend_integration_requirements.md`, `docs/backend/requirements_review.md`, `ai-workflow/memory/backlog/2026-05-03.md`
 - 현재 브랜치: `codex/backend_init`
@@ -27,9 +27,9 @@
 | Phase 2 | done | PostgreSQL 초기 스키마 | `webhook_events` migration | migration 적용 검증 |
 | Phase 3 | done | Gitea Webhook raw 수신부 | `POST /api/v1/integrations/gitea/webhooks`, signature 검증, dedupe 처리 | handler 단위 테스트 |
 | Phase 4 | in_progress | 프론트 연동 계약 안정화 | `GET /api/v1/events`, role wire format, REST snapshot/WebSocket envelope 계약, frontend integration requirements, requirements review finding 반영 | API 계약 문서화, frontend mock shape 대조, gRPC 직접 노출 없음 확인 |
-| Phase 5 | in_progress | 프론트 snapshot API 1차 | metrics, infra topology, ci-runs/logs, critical risks 조회 API 초안, `ServiceNode`/`CiRun`/`Risk` 공통 필드 | handler 테스트 및 응답 예시 문서화 |
+| Phase 5 | in_progress | 프론트 snapshot API 1차 | metrics, infra topology, ci-runs/logs, critical risks 조회 API 초안, `ServiceNode`/`CiRun`/`Risk` 공통 필드, DB-backed domain 조회 | handler 테스트 및 응답 예시 문서화 |
 | Phase 6 | done | 도메인 정규화 1차 | repository/user/issue/pull_request/ci_run/risk 기초 테이블 및 정규화 로직, 식별자/timestamp/pagination 기준 | fixture 기반 정규화 테스트 및 홈랩 DB 통합 테스트 |
-| Phase 7 | planned | command/audit 기반 액션 API | service action, risk mitigation, weekly report command, command status, idempotency, audit log | 권한/audit/idempotency 테스트 |
+| Phase 7 | in_progress | command/audit 기반 액션 API | service action, risk mitigation, weekly report command, command status, idempotency, audit log | 권한/audit/idempotency 테스트 |
 | Phase 8 | planned | WebSocket 실시간 채널 | `/api/v1/realtime/ws`, infra/ci/risk/command/notification event publish | WebSocket 연결/필터링/메시지 테스트 |
 | Phase 9 | planned | Python AI gRPC 연결 | Go gRPC client, Python `AnalysisService` server, build log summary/risk detection 연동 | gRPC 통합 테스트 |
 | Phase 10 | planned | Hourly Pull Reconciliation | Gitea REST client, 누락 이벤트 보정 worker | dry-run 및 idempotency 테스트 |
@@ -59,15 +59,27 @@
 - `backend-core/internal/store`에 repository/user/issue/pull_request/ci_run upsert와 `webhook_events` 상태 전이(`processed`, `failed`, `ignored`)를 구현했다.
 - `POST /api/v1/integrations/gitea/webhooks` 저장 성공 이후 optional `normalize.Processor`를 실행하도록 연결했다.
 - 홈랩 PostgreSQL 통합 테스트로 raw webhook event 저장, domain upsert, `processed` 상태 전이를 검증했다.
+- `GET /api/v1/repositories`, `GET /api/v1/issues`, `GET /api/v1/pull-requests` DB-backed 조회 API를 추가했다.
+- `GET /api/v1/ci-runs`는 `DomainStore`가 있고 DB 결과가 있으면 DB-backed 응답을 우선 사용하고, 없으면 static fallback을 유지하도록 정리했다.
+- 홈랩 PostgreSQL 통합 테스트로 repository/issue/ci_run list query를 검증했다.
+- metrics/infra/risk/CI log snapshot handler가 `SnapshotProvider` 경계를 통해 data source를 읽도록 분리했고, 기본 `StaticSnapshotProvider`를 추가했다.
+- dashboard metrics, infra nodes/edges/topology, risk snapshot 응답 meta에 provider `source`를 포함하도록 정리했다.
+- `RuntimeSnapshotProvider`를 추가해 `DB_URL`, `GITEA_URL`, `BACKEND_AI_URL` 기반 health check로 infra node/edge status를 보강했다.
+- Docker Compose backend-core 환경에 `BACKEND_AI_URL=http://backend-ai:8000`을 추가했다.
+- `GET /api/v1/risks` DB-backed 조회 API를 추가했고, `GET /api/v1/risks/critical`은 action-required high risk가 있으면 DB 응답을 우선 사용한다.
+- Gitea `action_run/workflow_run` 실패 이벤트에서 `ci_failure:{ci_run_id}` risk를 생성해 `risks` 테이블에 upsert하도록 정규화 경로를 확장했다.
+- command/audit migration을 추가했다: `commands`, `audit_logs`.
+- `POST /api/v1/risks/{risk_id}/mitigations`는 risk 상태를 즉시 바꾸지 않고 `pending` command와 audit log를 생성하며, `idempotency_key` 재시도는 기존 command를 반환한다.
+- `GET /api/v1/commands/{command_id}`로 command 상태를 조회할 수 있다.
+- 홈랩 PostgreSQL `devhub` DB에 migration version 3 적용을 검증했다.
 
 ## 4. 다음 작업 큐
 
 ### P1
 
-- 프론트 snapshot API 1차를 PostgreSQL 정규화 테이블 또는 Gitea/Runner adapter 기반 data source로 교체할 provider 설계를 확정한다.
-- repository/issue/PR/ci_run/risk 조회 API 초안을 도메인 정규화 설계와 함께 확정한다.
-- `GET /api/v1/repositories`, `GET /api/v1/issues`, `GET /api/v1/pull-requests`, `GET /api/v1/ci-runs`의 DB-backed 조회 API를 구현한다.
-- command/audit 최소 schema를 정의하고 service action/risk mitigation을 boolean 응답이 아닌 command lifecycle로 설계한다.
+- metrics용 DB-backed provider 구현 범위를 확정한다.
+- Gitea Runner 세부 상태 adapter 또는 Gitea REST client 연동 범위를 확정한다.
+- service action command API와 command status transition worker 범위를 확정한다.
 
 ### P2
 

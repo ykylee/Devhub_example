@@ -2,6 +2,9 @@ package store
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -11,6 +14,7 @@ import (
 )
 
 var ErrDuplicateEvent = errors.New("duplicate webhook event")
+var ErrNotFound = errors.New("not found")
 
 type WebhookEvent struct {
 	ID             int64
@@ -383,6 +387,286 @@ ON CONFLICT (external_id) DO UPDATE SET
 	return err
 }
 
+func (s *PostgresStore) UpsertRisk(ctx context.Context, risk domain.Risk) error {
+	suggestedActions, err := json.Marshal(risk.SuggestedActions)
+	if err != nil {
+		return err
+	}
+
+	const query = `
+INSERT INTO risks (
+	risk_key,
+	title,
+	reason,
+	impact,
+	status,
+	owner_login,
+	source_type,
+	source_id,
+	suggested_actions,
+	detected_at,
+	mitigated_at,
+	updated_at
+) VALUES ($1, $2, $3, $4, $5, NULLIF($6, ''), $7, NULLIF($8, ''), $9::jsonb, $10, $11, NOW())
+ON CONFLICT (risk_key) DO UPDATE SET
+	title = EXCLUDED.title,
+	reason = EXCLUDED.reason,
+	impact = EXCLUDED.impact,
+	status = CASE
+		WHEN risks.status = 'mitigated' THEN risks.status
+		ELSE EXCLUDED.status
+	END,
+	owner_login = EXCLUDED.owner_login,
+	source_type = EXCLUDED.source_type,
+	source_id = EXCLUDED.source_id,
+	suggested_actions = EXCLUDED.suggested_actions,
+	detected_at = LEAST(risks.detected_at, EXCLUDED.detected_at),
+	mitigated_at = CASE
+		WHEN risks.status = 'mitigated' THEN risks.mitigated_at
+		ELSE EXCLUDED.mitigated_at
+	END,
+	updated_at = NOW()`
+
+	detectedAt := risk.DetectedAt
+	if detectedAt.IsZero() {
+		detectedAt = time.Now().UTC()
+	}
+	_, err = s.pool.Exec(
+		ctx,
+		query,
+		risk.RiskKey,
+		risk.Title,
+		risk.Reason,
+		risk.Impact,
+		risk.Status,
+		risk.OwnerLogin,
+		risk.SourceType,
+		risk.SourceID,
+		string(suggestedActions),
+		detectedAt,
+		risk.MitigatedAt,
+	)
+	return err
+}
+
+func (s *PostgresStore) CreateRiskMitigationCommand(ctx context.Context, req domain.RiskMitigationCommandRequest) (domain.Command, domain.AuditLog, bool, error) {
+	if req.IdempotencyKey != "" {
+		command, auditLog, found, err := s.commandByIdempotencyKey(ctx, req.IdempotencyKey)
+		if err != nil {
+			return domain.Command{}, domain.AuditLog{}, false, err
+		}
+		if found {
+			return command, auditLog, true, nil
+		}
+	}
+
+	if err := s.ensureRiskExists(ctx, req.RiskID); err != nil {
+		return domain.Command{}, domain.AuditLog{}, false, err
+	}
+
+	commandID, err := randomPrefixedID("cmd")
+	if err != nil {
+		return domain.Command{}, domain.AuditLog{}, false, err
+	}
+	auditID, err := randomPrefixedID("audit")
+	if err != nil {
+		return domain.Command{}, domain.AuditLog{}, false, err
+	}
+
+	requestPayload := req.RequestPayload
+	if requestPayload == nil {
+		requestPayload = map[string]any{}
+	}
+	commandPayload, err := json.Marshal(requestPayload)
+	if err != nil {
+		return domain.Command{}, domain.AuditLog{}, false, err
+	}
+	auditPayload, err := json.Marshal(map[string]any{
+		"action_type": req.ActionType,
+		"dry_run":     req.DryRun,
+		"reason":      req.Reason,
+	})
+	if err != nil {
+		return domain.Command{}, domain.AuditLog{}, false, err
+	}
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return domain.Command{}, domain.AuditLog{}, false, err
+	}
+	defer tx.Rollback(ctx)
+
+	const commandQuery = `
+INSERT INTO commands (
+	command_id,
+	command_type,
+	target_type,
+	target_id,
+	action_type,
+	status,
+	actor_login,
+	reason,
+	dry_run,
+	requires_approval,
+	idempotency_key,
+	request_payload,
+	result_payload,
+	updated_at
+) VALUES ($1, 'risk_mitigation', 'risk', $2, $3, 'pending', $4, $5, $6, $7, NULLIF($8, ''), $9::jsonb, '{}'::jsonb, NOW())
+RETURNING
+	id,
+	command_id,
+	command_type,
+	target_type,
+	target_id,
+	action_type,
+	status,
+	actor_login,
+	reason,
+	dry_run,
+	requires_approval,
+	COALESCE(idempotency_key, ''),
+	request_payload,
+	result_payload,
+	created_at,
+	updated_at`
+
+	var command domain.Command
+	var scannedCommandPayload []byte
+	var scannedResultPayload []byte
+	err = tx.QueryRow(
+		ctx,
+		commandQuery,
+		commandID,
+		req.RiskID,
+		req.ActionType,
+		req.ActorLogin,
+		req.Reason,
+		req.DryRun,
+		req.RequiresApproval,
+		req.IdempotencyKey,
+		string(commandPayload),
+	).Scan(
+		&command.ID,
+		&command.CommandID,
+		&command.CommandType,
+		&command.TargetType,
+		&command.TargetID,
+		&command.ActionType,
+		&command.Status,
+		&command.ActorLogin,
+		&command.Reason,
+		&command.DryRun,
+		&command.RequiresApproval,
+		&command.IdempotencyKey,
+		&scannedCommandPayload,
+		&scannedResultPayload,
+		&command.CreatedAt,
+		&command.UpdatedAt,
+	)
+	if err != nil {
+		if req.IdempotencyKey != "" {
+			existingCommand, existingAuditLog, found, findErr := s.commandByIdempotencyKey(ctx, req.IdempotencyKey)
+			if findErr != nil {
+				return domain.Command{}, domain.AuditLog{}, false, findErr
+			}
+			if found {
+				return existingCommand, existingAuditLog, true, nil
+			}
+		}
+		return domain.Command{}, domain.AuditLog{}, false, err
+	}
+	if err := decodeJSONMap(scannedCommandPayload, &command.RequestPayload); err != nil {
+		return domain.Command{}, domain.AuditLog{}, false, err
+	}
+	if err := decodeJSONMap(scannedResultPayload, &command.ResultPayload); err != nil {
+		return domain.Command{}, domain.AuditLog{}, false, err
+	}
+
+	const auditQuery = `
+INSERT INTO audit_logs (
+	audit_id,
+	actor_login,
+	action,
+	target_type,
+	target_id,
+	command_id,
+	payload
+) VALUES ($1, $2, 'risk_mitigation.requested', 'risk', $3, $4, $5::jsonb)
+RETURNING
+	id,
+	audit_id,
+	actor_login,
+	action,
+	target_type,
+	target_id,
+	COALESCE(command_id, ''),
+	payload,
+	created_at`
+
+	var auditLog domain.AuditLog
+	var scannedAuditPayload []byte
+	if err := tx.QueryRow(
+		ctx,
+		auditQuery,
+		auditID,
+		req.ActorLogin,
+		req.RiskID,
+		command.CommandID,
+		string(auditPayload),
+	).Scan(
+		&auditLog.ID,
+		&auditLog.AuditID,
+		&auditLog.ActorLogin,
+		&auditLog.Action,
+		&auditLog.TargetType,
+		&auditLog.TargetID,
+		&auditLog.CommandID,
+		&scannedAuditPayload,
+		&auditLog.CreatedAt,
+	); err != nil {
+		return domain.Command{}, domain.AuditLog{}, false, err
+	}
+	if err := decodeJSONMap(scannedAuditPayload, &auditLog.Payload); err != nil {
+		return domain.Command{}, domain.AuditLog{}, false, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return domain.Command{}, domain.AuditLog{}, false, err
+	}
+	return command, auditLog, false, nil
+}
+
+func (s *PostgresStore) GetCommand(ctx context.Context, commandID string) (domain.Command, error) {
+	const query = `
+SELECT
+	id,
+	command_id,
+	command_type,
+	target_type,
+	target_id,
+	action_type,
+	status,
+	actor_login,
+	reason,
+	dry_run,
+	requires_approval,
+	COALESCE(idempotency_key, ''),
+	request_payload,
+	result_payload,
+	created_at,
+	updated_at
+FROM commands
+WHERE command_id = $1
+LIMIT 1`
+
+	command, err := scanCommand(s.pool.QueryRow(ctx, query, commandID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.Command{}, ErrNotFound
+	}
+	return command, err
+}
+
 func (s *PostgresStore) MarkWebhookEventProcessed(ctx context.Context, id int64) error {
 	return s.markWebhookEvent(ctx, id, "processed", "", true)
 }
@@ -423,4 +707,458 @@ LIMIT 1`
 		return 0, err
 	}
 	return id, nil
+}
+
+func (s *PostgresStore) ListRepositories(ctx context.Context, opts domain.ListOptions) ([]domain.Repository, error) {
+	limit, offset := boundedList(opts)
+	const query = `
+SELECT
+	id,
+	COALESCE(gitea_repository_id, 0),
+	full_name,
+	COALESCE(owner_login, ''),
+	name,
+	COALESCE(clone_url, ''),
+	COALESCE(html_url, ''),
+	COALESCE(default_branch, ''),
+	private,
+	updated_at
+FROM repositories
+ORDER BY updated_at DESC, id DESC
+LIMIT $1 OFFSET $2`
+
+	rows, err := s.pool.Query(ctx, query, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	repositories := make([]domain.Repository, 0, limit)
+	for rows.Next() {
+		var repository domain.Repository
+		if err := rows.Scan(
+			&repository.ID,
+			&repository.GiteaID,
+			&repository.FullName,
+			&repository.OwnerLogin,
+			&repository.Name,
+			&repository.CloneURL,
+			&repository.HTMLURL,
+			&repository.DefaultBranch,
+			&repository.Private,
+			&repository.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		repositories = append(repositories, repository)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return repositories, nil
+}
+
+func (s *PostgresStore) ListIssues(ctx context.Context, opts domain.ListOptions) ([]domain.Issue, error) {
+	limit, offset := boundedList(opts)
+	const query = `
+SELECT
+	i.id,
+	COALESCE(i.gitea_issue_id, 0),
+	COALESCE(r.gitea_repository_id, 0),
+	r.full_name,
+	i.number,
+	i.title,
+	i.state,
+	COALESCE(i.author_login, ''),
+	COALESCE(i.assignee_login, ''),
+	COALESCE(i.html_url, ''),
+	i.opened_at,
+	i.closed_at,
+	i.updated_at
+FROM issues i
+JOIN repositories r ON r.id = i.repository_id
+WHERE ($3 = '' OR r.full_name = $3)
+  AND ($4 = '' OR i.state = $4)
+ORDER BY i.updated_at DESC, i.id DESC
+LIMIT $1 OFFSET $2`
+
+	rows, err := s.pool.Query(ctx, query, limit, offset, opts.RepositoryName, opts.State)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	issues := make([]domain.Issue, 0, limit)
+	for rows.Next() {
+		var issue domain.Issue
+		if err := rows.Scan(
+			&issue.ID,
+			&issue.GiteaID,
+			&issue.RepositoryGiteaID,
+			&issue.RepositoryName,
+			&issue.Number,
+			&issue.Title,
+			&issue.State,
+			&issue.AuthorLogin,
+			&issue.AssigneeLogin,
+			&issue.HTMLURL,
+			&issue.OpenedAt,
+			&issue.ClosedAt,
+			&issue.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		issues = append(issues, issue)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return issues, nil
+}
+
+func (s *PostgresStore) ListPullRequests(ctx context.Context, opts domain.ListOptions) ([]domain.PullRequest, error) {
+	limit, offset := boundedList(opts)
+	const query = `
+SELECT
+	pr.id,
+	COALESCE(pr.gitea_pull_request_id, 0),
+	COALESCE(r.gitea_repository_id, 0),
+	r.full_name,
+	pr.number,
+	pr.title,
+	pr.state,
+	COALESCE(pr.author_login, ''),
+	COALESCE(pr.head_branch, ''),
+	COALESCE(pr.base_branch, ''),
+	COALESCE(pr.head_sha, ''),
+	COALESCE(pr.html_url, ''),
+	pr.merged_at,
+	pr.closed_at,
+	pr.updated_at
+FROM pull_requests pr
+JOIN repositories r ON r.id = pr.repository_id
+WHERE ($3 = '' OR r.full_name = $3)
+  AND ($4 = '' OR pr.state = $4)
+ORDER BY pr.updated_at DESC, pr.id DESC
+LIMIT $1 OFFSET $2`
+
+	rows, err := s.pool.Query(ctx, query, limit, offset, opts.RepositoryName, opts.State)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	pullRequests := make([]domain.PullRequest, 0, limit)
+	for rows.Next() {
+		var pullRequest domain.PullRequest
+		if err := rows.Scan(
+			&pullRequest.ID,
+			&pullRequest.GiteaID,
+			&pullRequest.RepositoryGiteaID,
+			&pullRequest.RepositoryName,
+			&pullRequest.Number,
+			&pullRequest.Title,
+			&pullRequest.State,
+			&pullRequest.AuthorLogin,
+			&pullRequest.HeadBranch,
+			&pullRequest.BaseBranch,
+			&pullRequest.HeadSHA,
+			&pullRequest.HTMLURL,
+			&pullRequest.MergedAt,
+			&pullRequest.ClosedAt,
+			&pullRequest.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		pullRequests = append(pullRequests, pullRequest)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return pullRequests, nil
+}
+
+func (s *PostgresStore) ListCIRuns(ctx context.Context, opts domain.ListOptions) ([]domain.CIRun, error) {
+	limit, offset := boundedList(opts)
+	const query = `
+SELECT
+	id,
+	external_id,
+	repository_name,
+	COALESCE(branch, ''),
+	COALESCE(commit_sha, ''),
+	status,
+	COALESCE(conclusion, ''),
+	started_at,
+	finished_at,
+	duration_seconds,
+	COALESCE(html_url, ''),
+	updated_at
+FROM ci_runs
+WHERE ($3 = '' OR repository_name = $3)
+  AND ($4 = '' OR status = $4)
+ORDER BY COALESCE(started_at, updated_at) DESC, id DESC
+LIMIT $1 OFFSET $2`
+
+	rows, err := s.pool.Query(ctx, query, limit, offset, opts.RepositoryName, opts.Status)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	runs := make([]domain.CIRun, 0, limit)
+	for rows.Next() {
+		var run domain.CIRun
+		if err := rows.Scan(
+			&run.ID,
+			&run.ExternalID,
+			&run.RepositoryName,
+			&run.Branch,
+			&run.CommitSHA,
+			&run.Status,
+			&run.Conclusion,
+			&run.StartedAt,
+			&run.FinishedAt,
+			&run.DurationSeconds,
+			&run.HTMLURL,
+			&run.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		runs = append(runs, run)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return runs, nil
+}
+
+func (s *PostgresStore) ListRisks(ctx context.Context, opts domain.ListOptions) ([]domain.Risk, error) {
+	limit, offset := boundedList(opts)
+	const query = `
+SELECT
+	id,
+	risk_key,
+	title,
+	reason,
+	impact,
+	status,
+	COALESCE(owner_login, ''),
+	source_type,
+	COALESCE(source_id, ''),
+	suggested_actions,
+	detected_at,
+	mitigated_at,
+	created_at,
+	updated_at
+FROM risks
+WHERE ($3 = '' OR status = $3)
+  AND ($4 = '' OR impact = $4)
+ORDER BY
+	CASE impact
+		WHEN 'critical' THEN 0
+		WHEN 'high' THEN 1
+		WHEN 'medium' THEN 2
+		ELSE 3
+	END,
+	updated_at DESC,
+	id DESC
+LIMIT $1 OFFSET $2`
+
+	rows, err := s.pool.Query(ctx, query, limit, offset, opts.Status, opts.Impact)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	risks := make([]domain.Risk, 0, limit)
+	for rows.Next() {
+		var risk domain.Risk
+		var suggestedActions []byte
+		if err := rows.Scan(
+			&risk.ID,
+			&risk.RiskKey,
+			&risk.Title,
+			&risk.Reason,
+			&risk.Impact,
+			&risk.Status,
+			&risk.OwnerLogin,
+			&risk.SourceType,
+			&risk.SourceID,
+			&suggestedActions,
+			&risk.DetectedAt,
+			&risk.MitigatedAt,
+			&risk.CreatedAt,
+			&risk.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		if len(suggestedActions) > 0 {
+			if err := json.Unmarshal(suggestedActions, &risk.SuggestedActions); err != nil {
+				return nil, err
+			}
+		}
+		risks = append(risks, risk)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return risks, nil
+}
+
+func boundedList(opts domain.ListOptions) (int, int) {
+	limit := opts.Limit
+	if limit <= 0 || limit > 100 {
+		limit = 50
+	}
+	offset := opts.Offset
+	if offset < 0 {
+		offset = 0
+	}
+	return limit, offset
+}
+
+func (s *PostgresStore) ensureRiskExists(ctx context.Context, riskID string) error {
+	const query = `SELECT 1 FROM risks WHERE risk_key = $1 LIMIT 1`
+	var exists int
+	if err := s.pool.QueryRow(ctx, query, riskID).Scan(&exists); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrNotFound
+		}
+		return err
+	}
+	return nil
+}
+
+func (s *PostgresStore) commandByIdempotencyKey(ctx context.Context, idempotencyKey string) (domain.Command, domain.AuditLog, bool, error) {
+	const commandQuery = `
+SELECT
+	id,
+	command_id,
+	command_type,
+	target_type,
+	target_id,
+	action_type,
+	status,
+	actor_login,
+	reason,
+	dry_run,
+	requires_approval,
+	COALESCE(idempotency_key, ''),
+	request_payload,
+	result_payload,
+	created_at,
+	updated_at
+FROM commands
+WHERE idempotency_key = $1
+LIMIT 1`
+
+	command, err := scanCommand(s.pool.QueryRow(ctx, commandQuery, idempotencyKey))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.Command{}, domain.AuditLog{}, false, nil
+	}
+	if err != nil {
+		return domain.Command{}, domain.AuditLog{}, false, err
+	}
+
+	auditLog, err := s.auditLogForCommand(ctx, command.CommandID)
+	if err != nil {
+		return domain.Command{}, domain.AuditLog{}, false, err
+	}
+	return command, auditLog, true, nil
+}
+
+func (s *PostgresStore) auditLogForCommand(ctx context.Context, commandID string) (domain.AuditLog, error) {
+	const query = `
+SELECT
+	id,
+	audit_id,
+	actor_login,
+	action,
+	target_type,
+	target_id,
+	COALESCE(command_id, ''),
+	payload,
+	created_at
+FROM audit_logs
+WHERE command_id = $1
+ORDER BY created_at ASC, id ASC
+LIMIT 1`
+
+	var auditLog domain.AuditLog
+	var payload []byte
+	err := s.pool.QueryRow(ctx, query, commandID).Scan(
+		&auditLog.ID,
+		&auditLog.AuditID,
+		&auditLog.ActorLogin,
+		&auditLog.Action,
+		&auditLog.TargetType,
+		&auditLog.TargetID,
+		&auditLog.CommandID,
+		&payload,
+		&auditLog.CreatedAt,
+	)
+	if err != nil {
+		return domain.AuditLog{}, err
+	}
+	if err := decodeJSONMap(payload, &auditLog.Payload); err != nil {
+		return domain.AuditLog{}, err
+	}
+	return auditLog, nil
+}
+
+func scanCommand(row pgx.Row) (domain.Command, error) {
+	var command domain.Command
+	var requestPayload []byte
+	var resultPayload []byte
+	err := row.Scan(
+		&command.ID,
+		&command.CommandID,
+		&command.CommandType,
+		&command.TargetType,
+		&command.TargetID,
+		&command.ActionType,
+		&command.Status,
+		&command.ActorLogin,
+		&command.Reason,
+		&command.DryRun,
+		&command.RequiresApproval,
+		&command.IdempotencyKey,
+		&requestPayload,
+		&resultPayload,
+		&command.CreatedAt,
+		&command.UpdatedAt,
+	)
+	if err != nil {
+		return domain.Command{}, err
+	}
+	if err := decodeJSONMap(requestPayload, &command.RequestPayload); err != nil {
+		return domain.Command{}, err
+	}
+	if err := decodeJSONMap(resultPayload, &command.ResultPayload); err != nil {
+		return domain.Command{}, err
+	}
+	return command, nil
+}
+
+func decodeJSONMap(payload []byte, target *map[string]any) error {
+	if len(payload) == 0 {
+		*target = map[string]any{}
+		return nil
+	}
+	if err := json.Unmarshal(payload, target); err != nil {
+		return err
+	}
+	if *target == nil {
+		*target = map[string]any{}
+	}
+	return nil
+}
+
+func randomPrefixedID(prefix string) (string, error) {
+	var bytes [12]byte
+	if _, err := rand.Read(bytes[:]); err != nil {
+		return "", err
+	}
+	return prefix + "_" + hex.EncodeToString(bytes[:]), nil
 }

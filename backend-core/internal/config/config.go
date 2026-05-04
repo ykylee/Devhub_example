@@ -8,6 +8,7 @@ type Config struct {
 	GiteaURL           string
 	GiteaToken         string
 	GiteaWebhookSecret string
+	BackendAIURL       string
 }
 
 func Load() Config {
@@ -17,6 +18,7 @@ func Load() Config {
 		GiteaURL:           os.Getenv("GITEA_URL"),
 		GiteaToken:         os.Getenv("GITEA_TOKEN"),
 		GiteaWebhookSecret: os.Getenv("GITEA_WEBHOOK_SECRET"),
+		BackendAIURL:       os.Getenv("BACKEND_AI_URL"),
 	}
 }
 

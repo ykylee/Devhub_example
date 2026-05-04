@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-05-03",
+  "generated_at": "2026-05-04",
   "source_of_truth": {
     "project_profile_path": "ai-workflow/memory/PROJECT_PROFILE.md",
     "architecture_path": "docs/architecture.md",
@@ -8,7 +8,7 @@
     "tech_stack_path": "docs/tech_stack.md",
     "session_handoff_path": "ai-workflow/memory/session_handoff.md",
     "work_backlog_index_path": "ai-workflow/memory/work_backlog.md",
-    "latest_backlog_path": "ai-workflow/memory/backlog/2026-05-03.md",
+    "latest_backlog_path": "ai-workflow/memory/backlog/2026-05-04.md",
     "homelab_postgresql_path": "ai-workflow/memory/environments/homelab-postgresql.md",
     "repository_assessment_path": "ai-workflow/memory/project_status_assessment.md"
   },
@@ -26,20 +26,20 @@
     "runtime_checks": "make build"
   },
   "session": {
-    "current_baseline": "main의 frontend_phase1 및 workflow memory 구조 변경을 codex/backend_init에 병합했고, Go Core raw Webhook 수집 기반, GET /api/v1/events 조회 API 초안, static fallback 기반 프론트 snapshot API 1차, API 계약의 WebSocket/command lifecycle 보강, 도메인 정규화 1차 migration, normalize processor, Postgres domain upsert sink, webhook 저장 이후 processor 실행 경로, 홈랩 PostgreSQL migration version 2 및 domain upsert 통합 검증을 memory 경로에 반영함",
+    "current_baseline": "main의 frontend_phase1 및 workflow memory 구조 변경을 codex/backend_init에 병합했고, Go Core raw Webhook 수집 기반, GET /api/v1/events 조회 API 초안, static fallback 기반 프론트 snapshot API 1차, SnapshotProvider 교체 경계, Runtime infra health provider, API 계약의 WebSocket/command lifecycle 보강, 도메인 정규화 1차 migration, normalize processor, Postgres domain upsert sink, webhook 저장 이후 processor 실행 경로, repository/issue/PR/CI run/risk DB-backed 조회 API, CI 실패 이벤트 기반 risk 생성 경로, command/audit migration, risk mitigation command 생성/조회 API, 홈랩 PostgreSQL migration version 3 및 domain upsert/list/command 통합 검증을 memory 경로에 반영함",
     "current_axis": "정규화된 Gitea 도메인 데이터를 프론트 조회 API와 snapshot data source로 연결",
-    "current_focus": "repository/issue/PR/ci_run/risk DB-backed 조회 API 및 snapshot provider 교체",
+    "current_focus": "service action command API, command status transition worker, Gitea Runner 세부 상태 adapter, metrics DB-backed provider 구현",
     "in_progress_items": ["TASK-007"],
     "blocked_items": [],
-    "recent_done_items": ["TASK-014", "TASK-013", "TASK-012", "TASK-011", "TASK-010", "TASK-009", "TASK-008", "TASK-006"],
-    "environment_constraints": ["protoc, Node dependencies, Docker daemon are required for full local validation", "Homelab PostgreSQL 192.168.0.38:5432 devhub DB is reachable and migration version 2 is applied"]
+    "recent_done_items": ["TASK-019", "TASK-018", "TASK-017", "TASK-016", "TASK-015", "TASK-014", "TASK-013", "TASK-012", "TASK-011", "TASK-010", "TASK-009", "TASK-008", "TASK-006"],
+    "environment_constraints": ["protoc, Node dependencies, Docker daemon are required for full local validation", "Homelab PostgreSQL 192.168.0.38:5432 devhub DB is reachable and migration version 3 is applied"]
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/backlog/2026-05-03.md",
-    "task_count": 13,
+    "latest_backlog_path": "ai-workflow/memory/backlog/2026-05-04.md",
+    "task_count": 18,
     "in_progress_items": ["TASK-007"],
     "blocked_items": [],
-    "done_items": ["TASK-002", "TASK-004", "TASK-003", "TASK-005", "TASK-006", "TASK-008", "TASK-009", "TASK-010", "TASK-011", "TASK-012", "TASK-013", "TASK-014"]
+    "done_items": ["TASK-002", "TASK-004", "TASK-003", "TASK-005", "TASK-006", "TASK-008", "TASK-009", "TASK-010", "TASK-011", "TASK-012", "TASK-013", "TASK-014", "TASK-015", "TASK-016", "TASK-017", "TASK-018", "TASK-019"]
   },
   "next_documents": [
     "ai-workflow/memory/backend_development_roadmap.md",
@@ -49,7 +49,7 @@
     "docs/backend_api_contract.md",
     "docs/architecture.md",
     "docs/tech_stack.md",
-    "ai-workflow/memory/backlog/2026-05-03.md"
+    "ai-workflow/memory/backlog/2026-05-04.md"
   ],
   "repository_assessment": {
     "path": "ai-workflow/memory/project_status_assessment.md",

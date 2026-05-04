@@ -61,6 +61,11 @@ func (p Processor) Process(ctx context.Context, event store.WebhookEvent) error 
 			return p.fail(ctx, event.ID, err)
 		}
 	}
+	if changeSet.Risk != nil {
+		if err := p.Sink.UpsertRisk(ctx, *changeSet.Risk); err != nil {
+			return p.fail(ctx, event.ID, err)
+		}
+	}
 	if event.ID != 0 {
 		return p.Sink.MarkWebhookEventProcessed(ctx, event.ID)
 	}
@@ -112,6 +117,7 @@ func Normalize(event store.WebhookEvent) (domain.ChangeSet, error) {
 			return domain.ChangeSet{}, errors.New("action run event missing run payload")
 		}
 		changeSet.CIRun = ciRun
+		changeSet.Risk = riskFromCIRun(ciRun)
 	case "push":
 		changeSet.Reason = "push events only refresh repository and sender metadata in normalization phase 1"
 	default:
@@ -123,6 +129,39 @@ func Normalize(event store.WebhookEvent) (domain.ChangeSet, error) {
 		return domain.ChangeSet{}, errors.New("event missing repository payload")
 	}
 	return changeSet, nil
+}
+
+func riskFromCIRun(run *domain.CIRun) *domain.Risk {
+	if run == nil || run.Status != "failed" {
+		return nil
+	}
+	sourceID := run.ExternalID
+	repositoryName := run.RepositoryName
+	title := "CI run failed"
+	if repositoryName != "" {
+		title = "CI run failed for " + repositoryName
+	}
+	reason := "CI run " + sourceID + " failed"
+	if run.Branch != "" {
+		reason += " on branch " + run.Branch
+	}
+	detectedAt := time.Now().UTC()
+	if run.FinishedAt != nil {
+		detectedAt = *run.FinishedAt
+	} else if run.StartedAt != nil {
+		detectedAt = *run.StartedAt
+	}
+	return &domain.Risk{
+		RiskKey:          "ci_failure:" + sourceID,
+		Title:            title,
+		Reason:           reason,
+		Impact:           "high",
+		Status:           "action_required",
+		SourceType:       "ci_run",
+		SourceID:         sourceID,
+		SuggestedActions: []string{"inspect_logs", "rerun_ci"},
+		DetectedAt:       detectedAt,
+	}
 }
 
 type webhookPayload struct {

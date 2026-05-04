@@ -68,6 +68,24 @@ func TestNormalizeActionRunEvent(t *testing.T) {
 	}
 }
 
+func TestNormalizeFailedActionRunCreatesRisk(t *testing.T) {
+	event := fixtureEvent(t, "action_run", "action_run_failed.json")
+
+	changeSet, err := Normalize(event)
+	if err != nil {
+		t.Fatalf("normalize failed action run event: %v", err)
+	}
+	if changeSet.CIRun == nil || changeSet.CIRun.Status != "failed" {
+		t.Fatalf("expected failed ci run, got %+v", changeSet.CIRun)
+	}
+	if changeSet.Risk == nil {
+		t.Fatal("expected failed ci run to create risk")
+	}
+	if changeSet.Risk.RiskKey != "ci_failure:502" || changeSet.Risk.Impact != "high" || changeSet.Risk.Status != "action_required" {
+		t.Fatalf("unexpected risk: %+v", changeSet.Risk)
+	}
+}
+
 func TestNormalizeUnsupportedEventIsIgnored(t *testing.T) {
 	event := fixtureEvent(t, "release", "issue_opened.json")
 
@@ -97,6 +115,29 @@ func TestProcessorMarksProcessed(t *testing.T) {
 	}
 }
 
+func TestProcessorWritesRiskForFailedCIRun(t *testing.T) {
+	event := fixtureEvent(t, "action_run", "action_run_failed.json")
+	event.ID = 8
+	sink := &memorySink{}
+	processor := Processor{Sink: sink}
+
+	if err := processor.Process(context.Background(), event); err != nil {
+		t.Fatalf("process event: %v", err)
+	}
+	if len(sink.ciRuns) != 1 || sink.ciRuns[0].Status != "failed" {
+		t.Fatalf("expected failed ci run write, got %+v", sink.ciRuns)
+	}
+	if len(sink.risks) != 1 {
+		t.Fatalf("expected risk write, got %+v", sink.risks)
+	}
+	if sink.risks[0].RiskKey != "ci_failure:502" || sink.risks[0].SourceType != "ci_run" {
+		t.Fatalf("unexpected risk write: %+v", sink.risks[0])
+	}
+	if sink.processedID != 8 {
+		t.Fatalf("expected processed id 8, got %d", sink.processedID)
+	}
+}
+
 func fixtureEvent(t *testing.T, eventType, name string) store.WebhookEvent {
 	t.Helper()
 	payload, err := os.ReadFile(filepath.Join("testdata", name))
@@ -120,6 +161,7 @@ type memorySink struct {
 	issues       []domain.Issue
 	pullRequests []domain.PullRequest
 	ciRuns       []domain.CIRun
+	risks        []domain.Risk
 	processedID  int64
 	ignoredID    int64
 	failedID     int64
@@ -147,6 +189,11 @@ func (s *memorySink) UpsertPullRequest(_ context.Context, value domain.PullReque
 
 func (s *memorySink) UpsertCIRun(_ context.Context, value domain.CIRun) error {
 	s.ciRuns = append(s.ciRuns, value)
+	return nil
+}
+
+func (s *memorySink) UpsertRisk(_ context.Context, value domain.Risk) error {
+	s.risks = append(s.risks, value)
 	return nil
 }
 
