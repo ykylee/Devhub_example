@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-05-03",
+  "generated_at": "2026-05-04",
   "source_of_truth": {
     "project_profile_path": "ai-workflow/project/project_workflow_profile.md",
     "session_handoff_path": "ai-workflow/project/session_handoff.md",
@@ -22,42 +22,58 @@
     "runtime_checks": "docker-compose ps"
   },
   "session": {
-    "current_baseline": "Frontend Phase 1 merged into main. Service layer and async dashboard fully implemented.",
-    "current_axis": "Production readiness and backend integration readiness.",
-    "current_focus": "실제 API 연동 및 프로덕션 환경 검증",
-    "in_progress_items": [],
+    "current_baseline": "main의 frontend_phase1 및 workflow memory 구조 변경을 codex/backend_init에 병합했고, Go Core raw Webhook 수집 기반, GET /api/v1/events 조회 API 초안, static fallback 기반 프론트 snapshot API 1차, SnapshotProvider 교체 경계, Runtime infra health provider, API 계약의 WebSocket/command lifecycle 보강, 도메인 정규화 1차 migration, normalize processor, Postgres domain upsert sink, webhook 저장 이후 processor 실행 경로, repository/issue/PR/CI run/risk DB-backed 조회 API, CI 실패 이벤트 기반 risk 생성 경로, command/audit migration, risk mitigation command 생성/조회 API, 홈랩 PostgreSQL migration version 3 및 domain upsert/list/command 통합 검증을 memory 경로에 반영함",
+    "current_axis": "정규화된 Gitea 도메인 데이터를 프론트 조회 API와 snapshot data source로 연결",
+    "current_focus": "Frontend API integration, service action command API, command status transition worker",
+    "in_progress_items": [
+      "TASK-003",
+      "TASK-007"
+    ],
     "blocked_items": [],
     "recent_done_items": [
-      "TASK-003",
+      "TASK-019",
+      "TASK-018",
+      "TASK-017",
+      "TASK-016",
+      "TASK-015",
+      "TASK-014",
+      "TASK-013",
       "TASK-003-SERVICE",
-      "TASK-003-MANAGER",
-      "TASK-003-ADMIN",
-      "TASK-003-UI",
-      "TASK-003-Part1",
       "TASK-002",
       "TASK-001"
     ],
     "environment_constraints": [
       "Docker/Docker-compose required",
-      "gRPC tools required"
+      "Homelab PostgreSQL migration version 3 is applied"
     ]
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/project/backlog/2026-05-03.md",
-    "task_count": 3,
-    "in_progress_items": [],
+    "latest_backlog_path": "ai-workflow/project/backlog/2026-05-04.md",
+    "task_count": 18,
+    "in_progress_items": [
+      "TASK-003",
+      "TASK-007"
+    ],
     "blocked_items": [],
     "done_items": [
-      "TASK-003",
       "TASK-002",
-      "TASK-001"
+      "TASK-013",
+      "TASK-014",
+      "TASK-015",
+      "TASK-016",
+      "TASK-017",
+      "TASK-018",
+      "TASK-019"
     ]
   },
   "next_documents": [
+    "ai-workflow/project/work_backlog.md",
+    "ai-workflow/project/backlog/2026-05-01.md",
+    "ai-workflow/project/backend_development_roadmap.md",
     "ai-workflow/project/project_workflow_profile.md",
     "ai-workflow/project/session_handoff.md",
-    "ai-workflow/project/work_backlog.md",
-    "ai-workflow/project/backlog/2026-05-01.md"
+    "docs/backend/frontend_integration_requirements.md",
+    "docs/backend_api_contract.md"
   ],
   "repository_assessment": {
     "path": "ai-workflow/project/repository_assessment.md",
