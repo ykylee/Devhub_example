@@ -8,11 +8,15 @@ export interface Metric {
 }
 
 export interface Risk {
+  id?: string;
   title: string;
   reason: string;
   impact: string;
   status: string;
-  owner: string;
+  owner?: string;
+  owner_login?: string;
+  suggested_actions?: string[];
+  created_at?: string;
 }
 
 export interface BuildLog {
@@ -29,4 +33,19 @@ export interface ServiceNode {
   status: "stable" | "warning" | "down";
   cpu: string;
   memory: string;
+  cpu_percent?: number;
+  memory_bytes?: number;
+  kind?: string;
+  region?: string;
+  updated_at?: string;
 }
+
+export interface WSEvent<T = any> {
+  schema_version: string;
+  type: string;
+  event_id: string;
+  occurred_at: string;
+  data: T;
+}
+
+export type WSEventHandler<T = any> = (event: WSEvent<T>) => void;

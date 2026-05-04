@@ -1,5 +1,7 @@
 import { Risk } from "./types";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
 export class RiskService {
   private static instance: RiskService;
 
@@ -13,29 +15,70 @@ export class RiskService {
   }
 
   async getCriticalRisks(): Promise<Risk[]> {
-    await new Promise(resolve => setTimeout(resolve, 400));
-    return [
-      { 
-        title: "Gitea Migration Blocked", 
-        reason: "Access token expiration and scope mismatch detected in logs.",
-        impact: "High", 
-        status: "Action Required",
-        owner: "Alex K."
-      },
-      { 
-        title: "Frontend CI Pipeline Delay", 
-        reason: "Average build time increased by 45% in last 24h.",
-        impact: "Medium", 
-        status: "Investigation",
-        owner: "YK Lee"
-      }
-    ];
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/risks/critical`);
+      if (!response.ok) throw new Error('Failed to fetch critical risks');
+      
+      const result = await response.json();
+      return result.data.map((r: any) => ({
+        id: r.id,
+        title: r.title,
+        reason: r.reason,
+        impact: r.impact,
+        status: r.status,
+        owner: r.owner_login,
+        owner_login: r.owner_login,
+        suggested_actions: r.suggested_actions,
+        created_at: r.created_at
+      }));
+    } catch (error) {
+      console.error('[RiskService] getCriticalRisks error:', error);
+      return [
+        { 
+          title: "Gitea Migration Blocked", 
+          reason: "Access token expiration and scope mismatch detected in logs.",
+          impact: "High", 
+          status: "Action Required",
+          owner: "Alex K."
+        },
+        { 
+          title: "Frontend CI Pipeline Delay", 
+          reason: "Average build time increased by 45% in last 24h.",
+          impact: "Medium", 
+          status: "Investigation",
+          owner: "YK Lee"
+        }
+      ];
+    }
   }
 
-  async applyMitigation(riskTitle: string, action: string): Promise<boolean> {
-    console.log(`[RiskService] Applying ${action} to risk: ${riskTitle}`);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    return true;
+  async applyMitigation(riskId: string, action: string): Promise<{ command_id: string; status: string }> {
+    try {
+      const idempotencyKey = `mitigation-${riskId}-${action}-${Date.now()}`;
+      const response = await fetch(`${API_BASE}/api/v1/risks/${riskId}/mitigations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Devhub-Actor': 'yklee' // Hardcoded for now as per API contract draft
+        },
+        body: JSON.stringify({
+          action_type: action,
+          reason: 'Manual mitigation from Manager Dashboard',
+          idempotency_key: idempotencyKey
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to apply mitigation');
+      
+      const result = await response.json();
+      return {
+        command_id: result.data.command_id,
+        status: result.data.command_status
+      };
+    } catch (error) {
+      console.error('[RiskService] applyMitigation error:', error);
+      throw error;
+    }
   }
 }
 

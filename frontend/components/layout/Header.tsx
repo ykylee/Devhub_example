@@ -1,17 +1,26 @@
 "use client";
 
-import { useState } from "react";
-import { Search, Bell, User, ChevronDown, Command } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Bell, User, ChevronDown, Command, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { useStore, type UserRole } from "@/lib/store";
 import { useRouter } from "next/navigation";
+import { realtimeService } from "@/lib/services/realtime.service";
 
 export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   const { role, setRole, notifications, clearNotifications } = useStore();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [isConnected, setIsConnected] = useState(realtimeService.isConnected);
   const router = useRouter();
+
+  useEffect(() => {
+    const unsubscribe = realtimeService.subscribe('status.changed', (event) => {
+      setIsConnected(event.data.connected);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleRoleChange = (newRole: UserRole) => {
     setRole(newRole);
@@ -29,7 +38,16 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
   return (
     <header className={cn("sticky top-0 z-50 w-full glass border-b border-white/5", className)} {...props}>
       <div className="flex h-16 items-center px-8 gap-8">
-        <div className="flex-1 flex items-center">
+        <div className="flex-1 flex items-center gap-4">
+          <div className="flex items-center gap-2 glass border-white/10 px-3 py-1.5 rounded-xl">
+            <div className={cn(
+              "w-2 h-2 rounded-full animate-pulse",
+              isConnected ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]"
+            )} />
+            <span className="text-[10px] font-black text-white/50 uppercase tracking-widest hidden lg:inline">
+              {isConnected ? "Real-time Live" : "Offline"}
+            </span>
+          </div>
           <div className="relative w-full max-w-lg hidden md:flex items-center group">
             <div className="absolute left-3.5 flex items-center gap-2 pointer-events-none">
               <Search className="h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />

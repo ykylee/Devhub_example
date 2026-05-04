@@ -21,10 +21,28 @@ import { mockBuildLogs } from "@/lib/mockData";
 import { Modal } from "@/components/ui/Modal";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
+import { infraService } from "@/lib/services/infra.service";
+import { Metric } from "@/lib/services/types";
+import { useEffect } from "react";
 
 export default function DeveloperDashboard() {
   const { isDeepFocus, setDeepFocus, addToast } = useStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [stats, setStats] = useState<Metric[]>([]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const metricsData = await infraService.getMetrics("Developer");
+        setStats(metricsData);
+      } catch (error) {
+        console.error("Failed to load metrics:", error);
+      }
+    };
+    loadData();
+    const interval = setInterval(loadData, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   const toggleFocus = () => {
     const nextState = !isDeepFocus;
@@ -76,6 +94,27 @@ export default function DeveloperDashboard() {
             <Info className="w-4 h-4" /> Project Info
           </button>
         </motion.div>
+      </div>
+
+      {/* Metrics Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        {stats.map((stat, i) => (
+          <motion.div 
+            key={i}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.1 }}
+            className="glass-card p-6 flex flex-col justify-between"
+          >
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">{stat.label}</p>
+            <div className="flex items-center justify-between">
+              <h3 className="text-2xl font-black text-white">{stat.value}</h3>
+              <span className={cn("text-[10px] font-black uppercase tracking-tighter", stat.color)}>
+                {stat.trend}
+              </span>
+            </div>
+          </motion.div>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

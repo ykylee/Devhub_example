@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/Badge";
 import { useStore } from "@/lib/store";
 import { riskService } from "@/lib/services/risk.service";
 import { infraService } from "@/lib/services/infra.service";
+import { realtimeService } from "@/lib/services/realtime.service";
 import { Metric, Risk } from "@/lib/services/types";
 
 export default function ManagerDashboard() {
@@ -29,23 +30,61 @@ export default function ManagerDashboard() {
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
-      const [metricsData, risksData] = await Promise.all([
-        infraService.getMetrics("Manager"),
-        riskService.getCriticalRisks()
-      ]);
-      setStats(metricsData);
-      setRisks(risksData);
-      setIsLoading(false);
+      try {
+        const [metricsData, risksData] = await Promise.all([
+          infraService.getMetrics("Manager"),
+          riskService.getCriticalRisks()
+        ]);
+        setStats(metricsData);
+        setRisks(risksData);
+      } catch (error) {
+        console.error("Failed to load dashboard data:", error);
+      } finally {
+        setIsLoading(false);
+      }
     };
+
     loadData();
+
+    // Subscribe to real-time risk updates
+    const unsubscribeRisk = realtimeService.subscribe('risk.critical.created', (event) => {
+      const newRisk = event.data;
+      setRisks((prev) => [newRisk, ...prev]);
+      addToast(`CRITICAL RISK DETECTED: ${newRisk.title}`, "danger");
+    });
+
+    // Subscribe to command status updates
+    const unsubscribeCommand = realtimeService.subscribe('command.status.updated', (event) => {
+      const { command_id, status } = event.data;
+      addToast(`Command ${command_id.substring(0, 8)} updated: ${status}`, "info");
+      // Optional: Refetch risks if command affects risk status
+      loadData();
+    });
+
+    const interval = setInterval(loadData, 30000);
+    return () => {
+      clearInterval(interval);
+      unsubscribeRisk();
+      unsubscribeCommand();
+    };
   }, []);
 
   const handleMitigation = async (plan: { action: string }) => {
-    if (!selectedRisk) return;
-    const success = await riskService.applyMitigation(selectedRisk.title, plan.action);
-    if (success) {
-      addToast(`${plan.action} confirmed for ${selectedRisk.title}.`, "success");
+    if (!selectedRisk || !selectedRisk.id) return;
+    
+    try {
+      addToast(`Initializing ${plan.action} sequence...`, "info");
+      const result = await riskService.applyMitigation(selectedRisk.id, plan.action);
+      
+      addToast(
+        `Action Accepted. Command ID: ${result.command_id.substring(0, 8)}... (Status: ${result.status})`, 
+        "success"
+      );
+      
       setSelectedRisk(null);
+    } catch (error) {
+      addToast("Failed to initiate mitigation protocol.", "danger");
+      console.error(error);
     }
   };
 

@@ -14,57 +14,117 @@ import {
   type Node,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { infraService } from "@/lib/services/infra.service";
+import { realtimeService } from "@/lib/services/realtime.service";
+import { useEffect, useState } from "react";
 import { getMockMetrics } from "@/lib/mockData";
 import { motion } from "framer-motion";
 import { useStore } from "@/lib/store";
-import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 
-type ServiceNode = Node<{ label: string }>;
+type ServiceNode = Node<{ label: string; status: string; cpu: string; memory: string; source?: string }>;
 
 const initialNodes: ServiceNode[] = [
   { 
-    id: '1', 
+    id: 'backend-core', 
     position: { x: 250, y: 50 }, 
-    data: { label: 'Go Core Service' }, 
+    data: { label: 'Go Core Service', status: 'stable', cpu: '12%', memory: '1.2GB' }, 
     className: 'glass-card border border-white/20 text-white rounded-2xl p-6 font-black shadow-2xl min-w-[200px] text-center' 
   },
-  { 
-    id: '2', 
-    position: { x: 50, y: 250 }, 
-    data: { label: 'Gitea Instance' }, 
-    className: 'glass bg-blue-500/10 border border-blue-500/30 text-blue-400 rounded-2xl p-6 font-black shadow-2xl min-w-[200px] text-center' 
-  },
-  { 
-    id: '3', 
-    position: { x: 450, y: 250 }, 
-    data: { label: 'Python AI Engine' }, 
-    className: 'glass bg-purple-500/10 border border-purple-500/30 text-purple-400 rounded-2xl p-6 font-black shadow-2xl min-w-[200px] text-center' 
-  },
-  { 
-    id: '4', 
-    position: { x: 250, y: 450 }, 
-    data: { label: 'PostgreSQL Cluster' }, 
-    className: 'glass bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-2xl p-6 font-black shadow-2xl min-w-[200px] text-center' 
-  },
 ];
 
-const initialEdges = [
-  { id: 'e1-2', source: '2', target: '1', label: 'WEBHOOK', animated: true, style: { stroke: '#3b82f6', strokeWidth: 2 } },
-  { id: 'e1-3', source: '1', target: '3', label: 'gRPC', animated: true, style: { stroke: '#a855f7', strokeWidth: 2 } },
-  { id: 'e1-4', source: '1', target: '4', label: 'SQL', animated: true, style: { stroke: '#10b981', strokeWidth: 2 } },
-  { id: 'e3-4', source: '3', target: '4', label: 'VECTOR', animated: true, style: { stroke: '#a855f7', strokeWidth: 1, opacity: 0.5 } },
-];
-
+const initialEdges: any[] = [];
 
 export default function AdminDashboard() {
-  const [nodes, , onNodesChange] = useNodesState<ServiceNode>(initialNodes);
+  const [nodes, setNodes, onNodesChange] = useNodesState<ServiceNode>(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selectedNode, setSelectedNode] = useState<ServiceNode | null>(null);
-  const stats = getMockMetrics("System Admin");
+  const [stats, setStats] = useState(getMockMetrics("System Admin"));
   const { addToast } = useStore();
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [topology, metrics] = await Promise.all([
+          infraService.getTopology(),
+          infraService.getMetrics("System Admin")
+        ]);
+
+        const mappedNodes = topology.nodes.map((n, i) => ({
+          id: n.id,
+          position: { 
+            x: n.id === 'backend-core' ? 250 : (i % 2 === 0 ? 50 : 450), 
+            y: n.id === 'backend-core' ? 50 : (i > 2 ? 450 : 250) 
+          },
+          data: { 
+            label: n.label, 
+            status: n.status, 
+            cpu: n.cpu, 
+            memory: n.memory 
+          },
+          className: cn(
+            "glass rounded-2xl p-6 font-black shadow-2xl min-w-[200px] text-center border transition-all duration-500",
+            n.status === 'stable' ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" :
+            n.status === 'warning' ? "bg-amber-500/10 border-amber-500/30 text-amber-400" :
+            "bg-rose-500/10 border-rose-500/30 text-rose-400"
+          )
+        }));
+
+        const mappedEdges = topology.edges.map(e => ({
+          id: e.id,
+          source: e.source_id,
+          target: e.target_id,
+          label: e.label,
+          animated: true,
+          style: { 
+            stroke: e.status === 'stable' ? '#10b981' : '#f59e0b', 
+            strokeWidth: 2 
+          }
+        }));
+
+        setNodes(mappedNodes);
+        setEdges(mappedEdges);
+        setStats(metrics);
+      } catch (error) {
+        console.error("Failed to fetch topology:", error);
+      }
+    };
+
+    fetchData();
+
+    // Subscribe to real-time infra updates
+    const unsubscribe = realtimeService.subscribe('infra.node.updated', (event) => {
+      const updatedNode = event.data;
+      setNodes((nds) => nds.map((node) => {
+        if (node.id === updatedNode.id) {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              status: updatedNode.status,
+              cpu: updatedNode.cpu_percent ? `${updatedNode.cpu_percent.toFixed(1)}%` : node.data.cpu,
+              memory: updatedNode.memory_bytes ? infraService.formatBytes(updatedNode.memory_bytes) : node.data.memory,
+            },
+            className: cn(
+              "glass rounded-2xl p-6 font-black shadow-2xl min-w-[200px] text-center border transition-all duration-500",
+              updatedNode.status === 'stable' ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" :
+              updatedNode.status === 'warning' ? "bg-amber-500/10 border-amber-500/30 text-amber-400" :
+              "bg-rose-500/10 border-rose-500/30 text-rose-400"
+            )
+          };
+        }
+        return node;
+      }));
+    });
+
+    const interval = setInterval(fetchData, 30000); // Reduce polling frequency
+    return () => {
+      clearInterval(interval);
+      unsubscribe();
+    };
+  }, [setNodes, setEdges]);
 
   const onConnect = (params: Connection) => setEdges((eds) => addEdge(params, eds));
 
@@ -72,8 +132,10 @@ export default function AdminDashboard() {
     setSelectedNode(node);
   };
 
-  const handleAction = (action: string) => {
-    addToast(`${selectedNode?.data?.label} : ${action} command sent to runner.`, "info");
+  const handleAction = async (action: string) => {
+    if (!selectedNode) return;
+    addToast(`${selectedNode.data.label} : ${action} command sent.`, "info");
+    await infraService.controlService(selectedNode.id, action);
     setSelectedNode(null);
   };
 
@@ -191,17 +253,19 @@ export default function AdminDashboard() {
                   </h4>
                   <p className="text-xs text-muted-foreground font-mono mt-1">ID: {selectedNode.id} • Cluster-Asia-01</p>
                 </div>
-                <Badge variant="success" dot>Operational</Badge>
+                <Badge variant={selectedNode.data.status === 'stable' ? 'success' : selectedNode.data.status === 'warning' ? 'warning' : 'danger'} dot>
+                  {selectedNode.data.status === 'stable' ? 'Operational' : selectedNode.data.status === 'warning' ? 'Degraded' : 'Down'}
+                </Badge>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="glass-card p-4">
                   <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">CPU Usage</p>
-                  <p className="text-xl font-bold text-white">12.4%</p>
+                  <p className="text-xl font-bold text-white">{selectedNode.data.cpu}</p>
                 </div>
                 <div className="glass-card p-4">
                   <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Memory</p>
-                  <p className="text-xl font-bold text-white">1.2 GB</p>
+                  <p className="text-xl font-bold text-white">{selectedNode.data.memory}</p>
                 </div>
               </div>
 
