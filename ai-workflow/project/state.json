@@ -5,7 +5,7 @@
     "project_profile_path": "ai-workflow/project/project_workflow_profile.md",
     "session_handoff_path": "ai-workflow/project/session_handoff.md",
     "work_backlog_index_path": "ai-workflow/project/work_backlog.md",
-    "latest_backlog_path": "ai-workflow/project/backlog/2026-05-03.md",
+    "latest_backlog_path": "ai-workflow/project/backlog/2026-05-04.md",
     "repository_assessment_path": "ai-workflow/project/repository_assessment.md"
   },
   "project": {
@@ -13,7 +13,7 @@
     "document_home": "docs/README.md",
     "operations_path": null,
     "backlog_path": "ai-workflow/project/backlog/",
-    "handoff_path": null,
+    "handoff_path": "ai-workflow/project/session_handoff.md",
     "environment_path": "ai-workflow/project/environments/"
   },
   "commands": {
@@ -22,36 +22,29 @@
     "runtime_checks": "docker-compose ps"
   },
   "session": {
-    "current_baseline": "main의 frontend_phase1 및 workflow memory 구조 변경을 codex/backend_init에 병합했고, Go Core raw Webhook 수집 기반, GET /api/v1/events 조회 API 초안, static fallback 기반 프론트 snapshot API 1차, SnapshotProvider 교체 경계, Runtime infra health provider, API 계약의 WebSocket/command lifecycle 보강, 도메인 정규화 1차 migration, normalize processor, Postgres domain upsert sink, webhook 저장 이후 processor 실행 경로, repository/issue/PR/CI run/risk DB-backed 조회 API, CI 실패 이벤트 기반 risk 생성 경로, command/audit migration, risk mitigation command 생성/조회 API, 홈랩 PostgreSQL migration version 3 및 domain upsert/list/command 통합 검증을 memory 경로에 반영함",
-    "current_axis": "정규화된 Gitea 도메인 데이터를 프론트 조회 API와 snapshot data source로 연결",
-    "current_focus": "Frontend API integration, service action command API, command status transition worker",
+    "current_baseline": "Frontend Phase 2 (REST API Integration) & Phase 3 (WebSocket Real-time Integration) 완료. Go 백엔드 PR #7 병합 후 인프라 토폴로지, 리스크 관리, 메트릭 대시보드를 실제 API 및 실시간 이벤트와 연결함.",
+    "current_axis": "실시간 데이터 가시성 및 인터랙티브 대시보드 고도화",
+    "current_focus": "Phase 4 AI Gardener Suggestions 및 Admin Service Actions 실체화",
     "in_progress_items": [
-      "TASK-003",
       "TASK-007"
     ],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-FRONTEND-PHASE2",
+      "TASK-FRONTEND-PHASE3",
+      "TASK-003",
       "TASK-019",
-      "TASK-018",
-      "TASK-017",
-      "TASK-016",
-      "TASK-015",
-      "TASK-014",
-      "TASK-013",
-      "TASK-003-SERVICE",
-      "TASK-002",
-      "TASK-001"
+      "TASK-018"
     ],
     "environment_constraints": [
-      "Docker/Docker-compose required",
-      "Homelab PostgreSQL migration version 3 is applied"
+      "Docker/Docker-compose required for full system",
+      "Backend Core API on :8080 (REST + WS)"
     ]
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/project/backlog/2026-05-04.md",
     "task_count": 18,
     "in_progress_items": [
-      "TASK-003",
       "TASK-007"
     ],
     "blocked_items": [],
@@ -63,17 +56,16 @@
       "TASK-016",
       "TASK-017",
       "TASK-018",
-      "TASK-019"
+      "TASK-019",
+      "TASK-FRONTEND-PHASE2",
+      "TASK-FRONTEND-PHASE3"
     ]
   },
   "next_documents": [
-    "ai-workflow/project/work_backlog.md",
-    "ai-workflow/project/backlog/2026-05-01.md",
-    "ai-workflow/project/backend_development_roadmap.md",
-    "ai-workflow/project/project_workflow_profile.md",
+    "docs/frontend_development_roadmap.md",
     "ai-workflow/project/session_handoff.md",
-    "docs/backend/frontend_integration_requirements.md",
-    "docs/backend_api_contract.md"
+    "docs/backend_api_contract.md",
+    "ai-workflow/project/backlog/2026-05-04.md"
   ],
   "repository_assessment": {
     "path": "ai-workflow/project/repository_assessment.md",
