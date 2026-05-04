@@ -22,14 +22,13 @@
     "runtime_checks": "docker-compose ps"
   },
   "session": {
-    "current_baseline": "Service layer abstraction and asynchronous data binding implemented for Manager dashboard.",
-    "current_axis": "Final PR review and project handoff readiness.",
-    "current_focus": "최종 PR 검토 및 프로젝트 마감 준비",
-    "in_progress_items": [
-      "TASK-003"
-    ],
+    "current_baseline": "Frontend Phase 1 merged into main. Service layer and async dashboard fully implemented.",
+    "current_axis": "Production readiness and backend integration readiness.",
+    "current_focus": "실제 API 연동 및 프로덕션 환경 검증",
+    "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-003",
       "TASK-003-SERVICE",
       "TASK-003-MANAGER",
       "TASK-003-ADMIN",
@@ -46,11 +45,10 @@
   "backlog": {
     "latest_backlog_path": "ai-workflow/project/backlog/2026-05-03.md",
     "task_count": 3,
-    "in_progress_items": [
-      "TASK-003"
-    ],
+    "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
+      "TASK-003",
       "TASK-002",
       "TASK-001"
     ]
