@@ -33,7 +33,13 @@ export class RealtimeService {
         console.log('[RealtimeService] Connected.');
         this.isConnected = true;
         this.reconnectAttempts = 0;
-        this.dispatch({ type: 'status.changed', data: { connected: true } } as any);
+        this.dispatch({ 
+          type: 'status.changed', 
+          data: { connected: true },
+          schema_version: '1',
+          event_id: 'internal',
+          occurred_at: new Date().toISOString()
+        } as WSEvent);
       };
 
       this.socket.onmessage = (event) => {
@@ -48,7 +54,13 @@ export class RealtimeService {
       this.socket.onclose = (event) => {
         console.log(`[RealtimeService] Disconnected. Code: ${event.code}`);
         this.isConnected = false;
-        this.dispatch({ type: 'status.changed', data: { connected: false } } as any);
+        this.dispatch({ 
+          type: 'status.changed', 
+          data: { connected: false },
+          schema_version: '1',
+          event_id: 'internal',
+          occurred_at: new Date().toISOString()
+        } as WSEvent);
         this.handleReconnect();
       };
 

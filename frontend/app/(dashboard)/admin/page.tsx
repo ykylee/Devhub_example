@@ -26,15 +26,7 @@ import { cn } from "@/lib/utils";
 
 type ServiceNode = Node<{ label: string; status: string; cpu: string; memory: string; source?: string }>;
 
-const initialNodes: ServiceNode[] = [
-  { 
-    id: 'backend-core', 
-    position: { x: 250, y: 50 }, 
-    data: { label: 'Go Core Service', status: 'stable', cpu: '12%', memory: '1.2GB' }, 
-    className: 'glass-card border border-white/20 text-white rounded-2xl p-6 font-black shadow-2xl min-w-[200px] text-center' 
-  },
-];
-
+const initialNodes: ServiceNode[] = [];
 const initialEdges: any[] = [];
 
 export default function AdminDashboard() {
@@ -42,6 +34,7 @@ export default function AdminDashboard() {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selectedNode, setSelectedNode] = useState<ServiceNode | null>(null);
   const [stats, setStats] = useState(getMockMetrics("System Admin"));
+  const [isLoading, setIsLoading] = useState(true);
   const { addToast } = useStore();
 
   useEffect(() => {
@@ -89,6 +82,8 @@ export default function AdminDashboard() {
         setStats(metrics);
       } catch (error) {
         console.error("Failed to fetch topology:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -206,6 +201,13 @@ export default function AdminDashboard() {
             ))}
           </div>
         </div>
+
+        {isLoading && (
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-[#030014]/50 backdrop-blur-sm">
+            <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4" />
+            <p className="text-white/50 text-xs font-bold uppercase tracking-[0.2em] animate-pulse">Mapping Topology...</p>
+          </div>
+        )}
 
         <div className="absolute inset-0 z-0 opacity-40">
           <ReactFlow

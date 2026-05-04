@@ -1,6 +1,7 @@
 import { Metric, ServiceNode } from "./types";
 import { getMockMetrics } from "../mockData";
 import type { UserRole } from "../store";
+import { formatBytes } from "../utils";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -16,17 +17,9 @@ export class InfraService {
     return InfraService.instance;
   }
 
-  private formatBytes(bytes: number): string {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-  }
-
   async getMetrics(role: UserRole): Promise<Metric[]> {
     try {
-      const roleQuery = role.toLowerCase().replace(' ', '_');
+      const roleQuery = encodeURIComponent(role.toLowerCase().replace(' ', '_'));
       const response = await fetch(`${API_BASE}/api/v1/dashboard/metrics?role=${roleQuery}`);
       if (!response.ok) throw new Error('Failed to fetch metrics');
       
@@ -54,7 +47,7 @@ export class InfraService {
         label: n.label,
         status: n.status,
         cpu: n.cpu_percent ? `${n.cpu_percent.toFixed(1)}%` : '0%',
-        memory: n.memory_bytes ? this.formatBytes(n.memory_bytes) : '0 B',
+        memory: n.memory_bytes ? formatBytes(n.memory_bytes) : '0 B',
         cpu_percent: n.cpu_percent,
         memory_bytes: n.memory_bytes,
         kind: n.kind,
@@ -83,7 +76,7 @@ export class InfraService {
         label: n.label,
         status: n.status,
         cpu: n.cpu_percent ? `${n.cpu_percent.toFixed(1)}%` : '0%',
-        memory: n.memory_bytes ? this.formatBytes(n.memory_bytes) : '0 B',
+        memory: n.memory_bytes ? formatBytes(n.memory_bytes) : '0 B',
         cpu_percent: n.cpu_percent,
         memory_bytes: n.memory_bytes,
         kind: n.kind,

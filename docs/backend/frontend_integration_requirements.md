@@ -216,3 +216,28 @@ notification.created
 - weekly report 생성, AI Gardener suggestion, team load 산출 모델 구현.
 - notification/focus mode/user settings 영속화.
 
+## 6. Phase 2 & 3 통합 개발 피드백 (2026-05-04)
+
+프론트엔드 Phase 2(REST API) 및 Phase 3(WebSocket) 통합 개발 과정에서 도출된 추가 요구사항 및 정정 사항이다.
+
+### 6.1 실시간 로그 스트리밍 세부 계약
+- **현황**: `AdminDashboard` 및 `DeveloperDashboard`에 로그 스트림 UI는 준비되었으나 백엔드 스트리밍 규격 미정.
+- **요청**: `ci.log.appended` 이벤트 페이로드에 `ansi_text`, `line_number`, `stream_type(stdout/stderr)` 포함 여부 확정 필요.
+
+### 6.2 사용자 상태 및 알림 실체화
+- **현황**: 헤더의 알림(Notification) 및 사용자 프로필 정보가 현재 로컬 하드코딩 상태임.
+- **요청**: `GET /api/v1/me`를 통한 사용자 역할(Role) 검증과 `notification.created` 이벤트를 통한 실시간 알림 카운트 갱신 연동 필요.
+
+### 6.3 매니저용 분석 데이터 집계
+- **현황**: `Team Load Balancing` 및 `Utilization Velocity`가 현재 정적 배열로 처리됨.
+- **요청**: 
+    - `GET /api/v1/team/load`: 팀원별 작업 부하(Active PR/Issue 수) 기반 지수 산출 API.
+    - `GET /api/v1/dashboard/velocity`: gRPC 텔레메트리 기반 시계열 데이터 REST 조회 API.
+
+### 6.4 인프라 토폴로지 레이아웃 최적화
+- **현황**: 프론트에서 노드 좌표를 단순 인덱스로 계산하여 노드가 많아질 경우 겹침 가능성 있음.
+- **요청**: `GET /api/v1/infra/topology` 응답 시 노드의 그룹핑 정보(tier, region 등)를 추가하여 프론트가 지능적으로 배치할 수 있도록 정보 보강 요청.
+
+### 6.5 Idempotency Key 및 필터링 정책
+- **요청**: 프론트에서 생성하는 `mitigation-{riskId}-{timestamp}` 키에 대한 백엔드 중복 체크 로직과, 사용자 역할(Role)에 따른 WebSocket 이벤트 구독 필터링(Subscription Filtering) 로직을 Phase 8의 핵심 요건으로 포함한다.
+

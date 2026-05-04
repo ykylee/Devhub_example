@@ -59,6 +59,7 @@ export class RiskService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          // TODO: Replace hardcoded actor ID with actual authenticated user in Phase 4
           'X-Devhub-Actor': 'yklee' // Hardcoded for now as per API contract draft
         },
         body: JSON.stringify({

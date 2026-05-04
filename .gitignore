@@ -27,3 +27,10 @@
 !/ai-workflow/core/
 !/ai-workflow/project/
 # === WORKFLOW KIT END ===
+
+.venv/
+node_modules/
+.next/
+dist/
+build/
+*.log
