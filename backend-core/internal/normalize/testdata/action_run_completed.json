@@ -1,0 +1,27 @@
+{
+  "repository": {
+    "id": 42,
+    "full_name": "acme/api",
+    "name": "api",
+    "default_branch": "main",
+    "owner": {
+      "id": 9,
+      "login": "acme"
+    }
+  },
+  "sender": {
+    "id": 100,
+    "login": "yklee"
+  },
+  "action_run": {
+    "id": 501,
+    "status": "completed",
+    "conclusion": "success",
+    "head_branch": "main",
+    "head_sha": "def5678",
+    "html_url": "https://gitea.example.com/acme/api/actions/runs/501",
+    "run_started_at": "2026-05-03T10:00:00Z",
+    "completed_at": "2026-05-03T10:02:14Z",
+    "duration_seconds": 134
+  }
+}

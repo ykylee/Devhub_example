@@ -1,0 +1,218 @@
+# 프론트엔드 현재 구현 기반 백엔드 연동 요구사항
+
+- 문서 목적: 현재 프론트엔드 구현을 기준으로 백엔드가 프론트엔드에 전달해야 할 계약과 백엔드 개발 필요 항목을 도출한다.
+- 기준일: 2026-05-02
+- 상태: draft
+- 관련 문서: `docs/backend/requirements.md`, `docs/backend/requirements_review.md`, `docs/backend_api_contract.md`, `ai-workflow/memory/backend_development_roadmap.md`
+- 확인 범위: `frontend/app/(dashboard)/*`, `frontend/lib/services/*`, `frontend/lib/mockData.ts`, `frontend/lib/store.ts`, `frontend/components/layout/*`
+
+## 1. 현재 프론트엔드 구현 요약
+
+프론트엔드는 Next.js App Router 기반의 역할별 대시보드 3종을 구현하고 있다.
+
+- Developer: active task stream, deployment pipeline, deep focus mode, AI Gardener suggestion, infrastructure mini status.
+- Manager: KPI cards, critical risk list, risk mitigation modal, resource load, decision audit, weekly report trigger.
+- System Admin: infrastructure topology graph, node detail modal, service action buttons, security audit/config 진입 버튼.
+
+현재 실제 백엔드 호출은 없고, `frontend/lib/services/infra.service.ts`, `frontend/lib/services/risk.service.ts`, `frontend/lib/mockData.ts`의 mock 데이터가 화면 요구사항의 사실상 기준이다. 따라서 백엔드 로드맵은 raw webhook 수집 이후 곧바로 프론트 교체 가능한 REST snapshot API와 WebSocket event envelope를 확정해야 한다.
+
+## 2. 백엔드가 프론트엔드에 전달해야 할 요구사항
+
+### 2.1 통신 경계
+
+- 브라우저 프론트엔드는 gRPC를 직접 사용하지 않는다.
+- Backend ↔ Frontend는 REST + WebSocket을 사용한다.
+- Go Core ↔ Python AI 내부 분석만 gRPC를 사용한다.
+- 프론트 문구와 코드 주석에서 `integrated gRPC telemetry stream`, `gRPC or REST call`처럼 브라우저 직접 gRPC로 오해될 수 있는 표현은 WebSocket/REST 기준으로 정리한다.
+
+### 2.2 API base URL과 fetch adapter
+
+- 프론트는 `NEXT_PUBLIC_API_URL`을 기준으로 Go Core에 연결한다.
+- mock service를 실제 API로 바꿀 때 response envelope는 `status`, `data`, `meta`를 따른다.
+- 표시 문자열(`12%`, `1.2GB`, `4.2d`)은 가능하면 프론트가 포맷팅하고, 백엔드는 계산 가능한 원시 값(`cpu_percent`, `memory_bytes`, `duration_seconds`)을 제공한다.
+
+### 2.3 역할 wire format
+
+프론트 UI 표시명은 현재 `Developer`, `Manager`, `System Admin`이다. API wire format은 다음 값으로 고정하는 것을 권장한다.
+
+```text
+developer
+manager
+system_admin
+```
+
+프론트는 UI label과 API role 값을 분리해야 한다.
+
+### 2.4 실시간 연결 방식
+
+- 화면 진입 시 REST snapshot을 먼저 조회한다.
+- 이후 `GET /api/v1/realtime/ws` WebSocket으로 변경 이벤트를 받는다.
+- WebSocket 메시지는 공통 envelope를 사용한다.
+- 프론트는 알 수 없는 `type`을 무시하고, `schema_version`이 맞지 않는 메시지는 로깅만 한다.
+
+권장 envelope:
+
+```json
+{
+  "schema_version": "1",
+  "type": "risk.critical.created",
+  "event_id": "evt-001",
+  "occurred_at": "2026-05-02T10:00:00Z",
+  "data": {}
+}
+```
+
+### 2.5 명령성 액션 처리
+
+- 서비스 재시작, 롤백, 스케일, 일정 조정은 즉시 boolean 성공으로 처리하지 않는다.
+- 백엔드는 `command_id`를 반환하고, 프론트는 command 상태 조회 또는 WebSocket command event로 완료 여부를 반영한다.
+- 프론트는 위험 명령 실행 전 `dry_run` 또는 confirmation UI를 둘 수 있어야 한다.
+
+## 3. 백엔드 개발 필요 항목
+
+### 3.1 공통 사용자/역할/알림
+
+필요 API:
+
+```text
+GET /api/v1/me
+GET /api/v1/notifications
+POST /api/v1/notifications/clear
+```
+
+필요 데이터:
+- user id, login, display name, role, allowed roles
+- unread notification count
+- focus mode 상태는 초기에는 프론트 local state로 유지 가능하나, 장기적으로 사용자 설정 API로 이동 검토
+
+### 3.2 역할별 KPI metric
+
+프론트 요구:
+- Developer: active tasks, build success, code review pending
+- Manager: completion, team velocity, open risks, average cycle time
+- System Admin: availability, active runners, AI engine load, storage
+
+필요 API:
+
+```text
+GET /api/v1/dashboard/metrics?role=developer
+GET /api/v1/dashboard/metrics?role=manager
+GET /api/v1/dashboard/metrics?role=system_admin
+```
+
+백엔드 메모:
+- 초기에는 Gitea webhook raw event 기반 집계 + static fallback으로 시작할 수 있다.
+- `value`/`trend`는 프론트 호환을 위해 문자열을 제공하되, 장기적으로 `numeric_value`, `unit`, `trend_direction`을 함께 제공한다.
+
+### 3.3 Developer dashboard
+
+필요 API:
+
+```text
+GET /api/v1/developer/active-stream
+GET /api/v1/ci-runs?scope=mine
+GET /api/v1/ci-runs/{ci_run_id}/logs
+GET /api/v1/gardener/suggestions
+POST /api/v1/gardener/suggestions/{suggestion_id}/adopt
+```
+
+필요 백엔드 개발:
+- Gitea issue/PR/commit/action 이벤트 정규화
+- 사용자-저장소-작업 매핑
+- CI run 상태와 로그 summary 저장 모델
+- AI Gardener suggestion은 Python AI 연동 전까지 rule-based 또는 mock API로 시작 가능
+
+### 3.4 Manager dashboard
+
+필요 API:
+
+```text
+GET /api/v1/risks/critical
+GET /api/v1/team/load
+GET /api/v1/decisions
+POST /api/v1/risks/{risk_id}/mitigations
+POST /api/v1/reports/weekly
+```
+
+필요 백엔드 개발:
+- risk table과 risk status lifecycle
+- risk owner, impact, status, suggested action 모델
+- team load 산출 기준
+- decision audit 조회 모델
+- weekly report 생성 command 모델
+- `ApplyRiskMitigation`은 command 생성으로 처리하고 audit log를 남긴다.
+
+### 3.5 System Admin dashboard
+
+필요 API:
+
+```text
+GET /api/v1/infra/nodes
+GET /api/v1/infra/edges
+GET /api/v1/infra/topology
+POST /api/v1/admin/service-actions
+GET /api/v1/admin/service-actions/{command_id}
+GET /api/v1/audit-logs?scope=system
+GET /api/v1/admin/config
+```
+
+필요 백엔드 개발:
+- service node/edge 모델
+- runner/Gitea/PostgreSQL/Go Core/Python AI health adapter
+- system admin allowlist 또는 seed admin
+- service action command table
+- audit log table
+
+### 3.6 WebSocket event
+
+필요 event type:
+
+```text
+infra.node.updated
+infra.edge.updated
+ci.run.updated
+ci.log.appended
+risk.critical.created
+risk.updated
+command.status.updated
+notification.created
+```
+
+필요 백엔드 개발:
+- WebSocket hub
+- role/project 권한 기반 subscription filtering
+- event id, timestamp, schema version, reconnect 기준
+- raw webhook 처리 후 domain event publish 경로
+
+## 4. 프론트엔드에 요청할 정리 사항
+
+- `frontend/lib/services/types.ts`의 UI 표시 타입과 API wire 타입을 분리한다.
+- `UserRole` 표시명은 유지하되 API 요청에는 `developer`, `manager`, `system_admin`을 사용한다.
+- `BuildLog` mock 타입과 `mockBuildLogs` 실제 shape가 다르므로 하나로 통일한다.
+- `cpu`, `memory`, `duration`, `time` 같은 표시 문자열은 백엔드 원시 값에서 프론트가 포맷팅하는 방향으로 조정한다.
+- `Manager` 화면의 `integrated gRPC telemetry stream` 문구는 WebSocket telemetry stream으로 바꾼다.
+- 명령성 액션은 boolean 반환 대신 `command_id`, `command_status`를 받는 흐름으로 service adapter를 설계한다.
+- 검색, notification, settings, weekly report, security audit, config 버튼은 아직 mock/placeholder이므로 실제 API 연결 우선순위를 프론트에서 명시한다.
+
+## 5. 백엔드 구현 우선순위
+
+### P1
+
+- 프론트 교체 가능한 REST snapshot API 계약 확정: metrics, risks, ci-runs, infra topology.
+- `docs/backend_api_contract.md`에 WebSocket envelope와 role wire format 반영.
+- repository/issue/PR/ci_run 정규화 테이블 설계.
+- risk/command/audit log 최소 schema 설계.
+
+### P2
+
+- WebSocket hub와 주요 event type 구현.
+- system admin service action command API 구현.
+- Manager risk mitigation command API 구현.
+- Gitea Actions fixture 기반 CI run/log 정규화 테스트 작성.
+
+### P3
+
+- Python AI gRPC 연동으로 build log summary와 risk detection 고도화.
+- weekly report 생성, AI Gardener suggestion, team load 산출 모델 구현.
+- notification/focus mode/user settings 영속화.
+

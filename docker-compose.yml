@@ -7,6 +7,7 @@ services:
       - GITEA_URL=${GITEA_URL}
       - GITEA_TOKEN=${GITEA_TOKEN}
       - GITEA_WEBHOOK_SECRET=${GITEA_WEBHOOK_SECRET}
+      - BACKEND_AI_URL=http://backend-ai:8000
       - DB_URL=postgres://user:pass@db:5432/devhub
     depends_on:
       - db

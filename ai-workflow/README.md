@@ -1,48 +1,52 @@
 # Standard AI Workflow Kit
 
-- 문서 목적: `Devhub Example` 저장소에 표준 AI 워크플로우 기본 문서 세트를 도입할 수 있도록 bootstrap 결과를 안내한다.
-- 범위: 공통 코어 문서 위치, 프로젝트 상태 문서 세트, 도입 모드별 후속 작업
+- 문서 목적: `Devhub Example` 저장소의 표준 AI 워크플로우 진입점을 안내한다.
+- 범위: 현재 배포된 최소 workflow 문서 세트, 프로젝트 상태 문서, 온보딩 후속 작업
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: draft
 - 최종 수정일: 2026-05-03
-- 관련 문서: `ai-workflow/project/project_workflow_profile.md`, `ai-workflow/project/state.json`, `ai-workflow/project/session_handoff.md`, `ai-workflow/project/work_backlog.md`
 
-## 1. 도입 모드
+- 관련 문서: `ai-workflow/memory/PROJECT_PROFILE.md`, `ai-workflow/memory/state.json`, `ai-workflow/memory/session_handoff.md`, `ai-workflow/memory/work_backlog.md`
 
-- 선택한 도입 모드: `existing`
-- 요약:
-- 기존 프로젝트 분석 결과를 반영한 문서 초안과 평가 문서를 생성했다.
 
-## 2. 생성된 파일 (Project Data)
+## 1. 현재 배포 형태
 
-- [ai-workflow/project/project_workflow_profile.md](./project/project_workflow_profile.md)
-- [ai-workflow/project/state.json](./project/state.json)
-- [ai-workflow/project/session_handoff.md](./project/session_handoff.md)
-- [ai-workflow/project/work_backlog.md](./project/work_backlog.md)
-- [ai-workflow/project/backlog/2026-05-01.md](./project/backlog/2026-05-01.md)
-- [ai-workflow/project/repository_assessment.md](./project/repository_assessment.md)
+- 배포 버전: `v0.4.1-beta`
+- 도입 모드: `existing`
+- 요약: workflow engine/source bundle(`scripts`, `skills`, `mcp`, `templates`, `tests`, `examples`)은 저장소에서 제외하고, 프로젝트 운영에 필요한 runtime 문서만 유지한다.
+
+
+## 2. 현재 유지되는 파일
+
+- [WORKFLOW_INDEX.md](./WORKFLOW_INDEX.md)
+- [memory/PROJECT_PROFILE.md](./memory/PROJECT_PROFILE.md)
+- [memory/state.json](./memory/state.json)
+- [memory/session_handoff.md](./memory/session_handoff.md)
+- [memory/work_backlog.md](./memory/work_backlog.md)
+- [memory/backlog/2026-05-03.md](./memory/backlog/2026-05-03.md)
+- [memory/project_status_assessment.md](./memory/project_status_assessment.md)
+
 
 ## 3. 코어 문서
 
 - [core/global_workflow_standard.md](./core/global_workflow_standard.md)
 - [core/workflow_skill_catalog.md](./core/workflow_skill_catalog.md)
-- [core/workflow_mcp_candidate_catalog.md](./core/workflow_mcp_candidate_catalog.md)
-- [core/workflow_agent_topology.md](./core/workflow_agent_topology.md)
-- [core/output_schema_guide.md](./core/output_schema_guide.md)
 - [core/workflow_adoption_entrypoints.md](./core/workflow_adoption_entrypoints.md)
-- [core/workflow_harness_distribution.md](./core/workflow_harness_distribution.md)
 
-## 4. 하네스 오버레이
+## 4. 하네스/도구 오버레이
 
-- 선택한 하네스 없음
+- 현재 저장소에는 하네스, MCP, skill 실행 스크립트가 포함되어 있지 않다.
+- 필요한 경우 별도 배포된 workflow kit source bundle에서 도구를 설치하거나, core 문서를 기준으로 수동 절차를 수행한다.
 
 ## 5. 도입 직후 해야 할 일
 
-1. `project_workflow_profile.md` 에 프로젝트 목적, 명령, 검증 규칙을 실제 값으로 채운다.
-2. `state.json`, `session_handoff.md`, 오늘 날짜 backlog 를 현재 진행 작업 기준으로 갱신한다.
-3. 기존 프로젝트 모드였다면 `repository_assessment.md` 의 추정값을 실제 저장소 규칙과 대조해 수정한다.
-4. 선택한 하네스가 있으면 생성된 overlay 파일을 각 하네스 실행 경로에 맞게 검토한다.
-5. 이후 표준 skill/MCP 도입 범위는 `core/` 문서를 기준으로 결정한다.
+
+1. `memory/PROJECT_PROFILE.md`의 TODO 항목과 기본 명령을 실제 프로젝트 값으로 채운다.
+2. `memory/state.json`, `memory/session_handoff.md`, 최신 backlog가 현재 작업 기준과 맞는지 확인한다.
+3. `memory/project_status_assessment.md`의 추정값을 실제 저장소 규칙과 대조해 수정한다.
+4. 루트 `AGENTS.md`의 프로젝트 실행 기본값을 `PROJECT_PROFILE.md`와 맞춘다.
+5. 이후 skill/MCP 도입 범위는 현재 저장소에 남아 있는 `core/` 문서와 별도 workflow kit 배포물을 기준으로 결정한다.
+
 
 ## 6. 언어와 컨텍스트 운영 원칙
 
@@ -53,15 +57,18 @@
 
 ## 7. 프로젝트 실제 문서 경로 설정값
 
-- 문서 위키 홈: `docs/README.md`
-- 운영 문서 위치: `ai-workflow/project/`
-- 백로그 위치: `ai-workflow/project/backlog/`
-- 세션 인계 문서 위치: `ai-workflow/project/session_handoff.md`
-- 환경 기록 위치: `ai-workflow/project/environments/`
+
+- 문서 위키 홈: `README.md`, `docs/README.md`
+- 운영 문서 위치: `ai-workflow/memory/`
+- 백로그 위치: `ai-workflow/memory/backlog/`
+- 세션 인계 문서 위치: `ai-workflow/memory/session_handoff.md`
+- 환경 기록 위치: `ai-workflow/memory/environments/`
 
 ## 다음에 읽을 문서
 
-- 프로젝트 프로파일: [./project/project_workflow_profile.md](./project/project_workflow_profile.md)
-- 빠른 상태 요약: [./project/state.json](./project/state.json)
-- 세션 인계 문서: [./project/session_handoff.md](./project/session_handoff.md)
-- 작업 백로그 인덱스: [./project/work_backlog.md](./project/work_backlog.md)
+- workflow 인덱스: [./WORKFLOW_INDEX.md](./WORKFLOW_INDEX.md)
+- 프로젝트 프로파일: [./memory/PROJECT_PROFILE.md](./memory/PROJECT_PROFILE.md)
+- 빠른 상태 요약: [./memory/state.json](./memory/state.json)
+- 세션 인계 문서: [./memory/session_handoff.md](./memory/session_handoff.md)
+- 작업 백로그 인덱스: [./memory/work_backlog.md](./memory/work_backlog.md)
+

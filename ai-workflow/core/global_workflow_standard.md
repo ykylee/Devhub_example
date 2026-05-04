@@ -1,29 +1,22 @@
 # Global Workflow Standard
-
 - 문서 목적: 모든 저장소에서 공통으로 적용되는 AI 에이전트 협업 표준을 정의한다.
 - 범위: 문서 구조, 세션 핸드오프, 작업 분류 및 모드(Task Modes) 기준
 - 상태: stable
 - 최종 수정일: 2026-05-01
-- 관련 문서: `../templates/project_workflow_profile_template.md`, `../templates/session_handoff_template.md`, `../templates/work_backlog_template.md`
-
+- 관련 문서: `../README.md`, `../WORKFLOW_INDEX.md`, `../memory/PROJECT_PROFILE.md`, `../memory/session_handoff.md`, `../memory/work_backlog.md`
 ## 1. 공통 원칙
-
 - 새 세션은 항상 현재 상태 요약 문서부터 읽는다.
 - 작업은 시작 전에 목적, 범위, 예상 산출물, 영향 문서를 짧게 브리핑한다.
 - 작업은 상태 문서에 기록하고, 진행 상태는 `planned`, `in_progress`, `blocked`, `done` 중 하나로 관리한다.
 - 검증하지 않은 결과는 완료로 확정하지 않는다.
 - 세션 종료 전에는 다음 세션이 바로 이어받을 수 있게 현재 상태를 요약한다.
 - 공통 표준은 얇게 유지하고, 프로젝트별 차이는 프로젝트 프로파일에 둔다.
-
 ## 1.1 언어와 보고 원칙
-
 - 사용자에게 직접 보여지는 작업 보고, 상태 요약, 문서 초안, handoff, backlog 갱신 문안은 기본적으로 한국어로 작성한다.
 - 저장소 표준 문서와 템플릿도 별도 예외가 없으면 한국어를 기본 언어로 유지한다.
 - 코드, 명령어, 파일 경로, 설정 key, 외부 시스템 고유 명칭은 필요할 때 원문 그대로 유지할 수 있다.
 - 프로젝트 특성상 영어 산출물이 꼭 필요한 경우에는 프로젝트 프로파일에 예외를 명시한다.
-
 ## 1.2 컨텍스트 절약 원칙
-
 - 사용자에게 보이지 않는 내부 처리, 중간 분류, 임시 사고 과정은 모델이 가장 효율적인 형태로 수행한다.
 - 중간 reasoning 을 장문으로 반복 출력하지 않는다.
 - 이미 확인한 사실을 매 단계 길게 재서술하지 않고, 필요한 결론과 다음 행동만 짧게 남긴다.
@@ -34,39 +27,27 @@
 - 실제 탐색, 수정, 검증은 bounded scope worker 에 맡기고, ask 는 genuinely blocking decision 이나 위험한 외부 작업으로만 좁히는 편을 기본 원칙으로 둔다.
 - `ai-workflow/` 는 세션 복원과 workflow 상태 관리용 메타 레이어로 보고, 프로젝트 코드/문서 탐색 범위에는 기본적으로 포함하지 않는다.
 ## 1.3 작업 모드 (Task Modes)
-
-작업의 성격에 따라 최적화된 워크플로우를 제공하기 위해 아래 모드를 지원한다. 세부 정의는 `workflow_task_modes.md`를 따른다.
-
 - **Analysis**: 구조 분석 및 탐색 중심.
 - **Requirements**: 니즈 수집 및 명세화 중심.
 - **Design**: 아키텍처 및 상세 설계 중심.
 - **Planning**: 태스크 분해 및 일정 계획 중심.
 - **Implementation**: 코드 작성 및 단위 검증 중심.
 - **Refactoring**: 코드 개선 및 회귀 테스트 중심.
-
 운영 원칙:
 - 세션 오케스트레이터는 현재 작업의 성격을 판단하여 모드를 전환하고, 해당 모드에 최적화된 에이전트 토폴로지를 구성한다.
-
 ## 2. 세션 시작 순서
-
 1. 세션 상태 요약 문서를 읽는다.
 2. 작업 백로그 인덱스와 최신 날짜 백로그를 읽는다.
 3. 진행 중 또는 차단 작업이 있는지 확인한다.
 4. 현재 프로젝트 프로파일을 읽고 저장소별 명령과 문서 구조를 확인한다.
-
 ## 3. 작업 상태값
-
 | 상태 | 의미 |
 | --- | --- |
 | `planned` | 시작 준비는 됐지만 본격 수행 전 |
 | `in_progress` | 현재 세션 또는 다음 세션에서 이어서 처리 중 |
 | `blocked` | 외부 의존성 또는 결정 대기 때문에 진행 불가 |
 | `done` | 완료 기준과 검증 근거를 갖춘 상태 |
-
 ## 4. 작업 기록 최소 필드
-
-각 작업 항목은 최소한 아래 필드를 가져야 한다.
-
 - 작업명
 - 상태
 - 우선순위
@@ -83,66 +64,45 @@
 - 다음 세션 시작 포인트
 - 남은 리스크
 - 후속 작업
-
 ## 5. 검증 수준
-
-검증은 아래 4단계 중 필요한 수준까지 수행한다.
-
 1. 빠른 로컬 검증
 2. 격리 검증
 3. 실행 확인
 4. 결과 기록
-
-문서 변경만 있어도 최소한 정적 무결성 점검은 권장한다.
-
 ## 6. 결과 기록 최소 기준
-
-검증을 수행했다면 아래 중 해당되는 결과를 상태 문서에 남겨야 한다.
-
 - 통과한 명령
 - 실패한 명령과 원인
 - 미실행 항목과 사유
 - 실행 확인 요약
 - 남은 리스크
-
-## 7. 상태 동기화 및 가버넌스 가이드라인 (Beta v2 추가)
-
+## 7. 상태 동기화 및 가버넌스 가이드라인
 문서 파편화와 로드맵 뒤처짐을 방지하기 위해 아래의 동기화 규칙을 준수한다.
-
 ### 7.1 단일 진실 공급원 (SSOT)
-- 모든 스킬, MCP, 마일스톤의 공식 상태는 `core/maturity_matrix.json`에서 관리한다.
-- 로드맵(`workflow_kit_roadmap.md`), 스킬 카탈로그(`workflow_skill_catalog.md`), MCP 카탈로그(`workflow_mcp_candidate_catalog.md`) 등은 이 JSON 데이터를 바탕으로 기술되어야 한다.
-
+- 현재 프로젝트 작업 상태의 공식 기준은 `memory/state.json`, `memory/session_handoff.md`, `memory/work_backlog.md`, 최신 날짜 backlog다.
+- workflow kit 자체의 skill/MCP 성숙도는 별도 source bundle에서 관리하며, 현재 저장소에는 runtime 운영 문서만 둔다.
 ### 7.2 동기화 루틴
-- **스킬 승급 시**: 코드 구현 완료 후 `maturity_matrix.json`의 `stage`를 변경하고, 즉시 관련 카탈로그 문서를 갱신한다.
-- **TASK 완료 시**: 세션 종료 전, 완료된 TASK가 로드맵의 마일스톤이나 스킬 상태에 영향을 주는지 확인하고 일괄 반영한다.
-
-### 7.3 자동 검증 (Workflow Linter)
-- `workflow-linter`는 `maturity_matrix.json`을 참조하여 아래 사항을 검사한다.
-    - 선언된 `test_path` 파일의 실제 존재 여부.
-    - 구현 완료(`stable`/`beta`)로 선언된 항목의 실제 코드/스크립트 존재 여부.
-    - 로드맵 문서의 단계와 JSON의 마일스톤 단계 일치 여부.
-
+- **TASK 완료 시**: 세션 종료 전 최신 backlog, handoff, state를 함께 갱신한다.
+- **문서 구조 변경 시**: `WORKFLOW_INDEX.md`, `README.md`, 루트 `AGENTS.md`의 경로를 함께 확인한다.
+### 7.3 검증
+- 현재 저장소에는 `workflow-linter`가 포함되어 있지 않다.
+- 자동 도구가 없을 때는 다음을 수동 검증한다.
+    - `python3 -m json.tool ai-workflow/memory/state.json`
+    - `rg`로 삭제된 workflow 경로를 참조하는 링크가 남아 있는지 확인
+    - 최신 backlog와 `state.json`의 task count/status 정합성 확인
 ## 8. 세션 종료 원칙 및 절차
-
 - 오늘 작업 결과를 상태 문서에 반영한다.
 - 미검증 항목과 남은 리스크를 명시한다.
-- **문서 정합성 동기화**: `maturity_matrix.json`을 업데이트하고 관련 계획 문서(Roadmap/Catalog)를 최신화한다.
-- **최종 검증**: `workflow-linter`를 실행하여 문서 간 불일치가 없는지 확인한다.
+- **문서 정합성 동기화**: `state.json`, `session_handoff.md`, 최신 backlog, 관련 로드맵을 최신화한다.
+- **최종 검증**: 자동 도구가 없으면 JSON 유효성 및 링크 경로를 수동 확인한다.
 - 다음 세션 시작 포인트를 짧게 적는다.
 - 종료 요약은 다음 세션이 바로 이어받는 데 필요한 핵심 사실만 간결하게 남긴다.
-
 ## 9. 프로젝트 프로파일과의 관계
-
-이 문서는 공통 코어만 정의한다. 아래 항목은 프로젝트 프로파일로 분리한다.
-
 - 기본 빌드/테스트/실행 명령
 - 문서 디렉터리 구조
 - 환경 기록 경로
 - 프로젝트 특화 검증 포인트
 - 병합/승인 예외 규칙
-
 ## 다음에 읽을 문서
-
-- 프로젝트 프로파일 템플릿: [../templates/project_workflow_profile_template.md](../templates/project_workflow_profile_template.md)
-- 세션 인계 템플릿: [../templates/session_handoff_template.md](../templates/session_handoff_template.md)
+- workflow 인덱스: [../WORKFLOW_INDEX.md](../WORKFLOW_INDEX.md)
+- 프로젝트 프로파일: [../memory/PROJECT_PROFILE.md](../memory/PROJECT_PROFILE.md)
+- 세션 인계 문서: [../memory/session_handoff.md](../memory/session_handoff.md)

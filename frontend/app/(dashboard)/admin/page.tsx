@@ -20,8 +20,11 @@ import { useStore } from "@/lib/store";
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Badge } from "@/components/ui/Badge";
+import { cn } from "@/lib/utils";
 
-const initialNodes = [
+type ServiceNode = Node<{ label: string }>;
+
+const initialNodes: ServiceNode[] = [
   { 
     id: '1', 
     position: { x: 250, y: 50 }, 
@@ -57,15 +60,15 @@ const initialEdges = [
 
 
 export default function AdminDashboard() {
-  const [nodes, , onNodesChange] = useNodesState(initialNodes);
+  const [nodes, , onNodesChange] = useNodesState<ServiceNode>(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const [selectedNode, setSelectedNode] = useState<ServiceNode | null>(null);
   const stats = getMockMetrics("System Admin");
   const { addToast } = useStore();
 
   const onConnect = (params: Connection) => setEdges((eds) => addEdge(params, eds));
 
-  const onNodeClick = (_: React.MouseEvent, node: Node) => {
+  const onNodeClick = (_: React.MouseEvent, node: ServiceNode) => {
     setSelectedNode(node);
   };
 

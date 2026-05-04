@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export type ToastType = "info" | "success" | "warning" | "error";
+export type UserRole = "Developer" | "Manager" | "System Admin";
 
 interface Toast {
   id: string;

@@ -1,3 +1,8 @@
+.env
+.env.*
+!.env.example
+!.env.template
+
 # === WORKFLOW KIT START ===
 # Workflow layer (selective tracking)
 /ANTIGRAVITY.md

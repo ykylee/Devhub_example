@@ -23,14 +23,14 @@
 | **기본 문서** | `PROJECT_PROFILE.md`가 최신 상태인가? | | |
 | | `session_handoff.md`가 매 세션 갱신되는가? | | |
 | | `work_backlog.md`가 실제 작업과 동기화되는가? | | |
-| **도구 활용** | MCP 도구를 사용하여 문서를 조회/수정하는가? | | |
-| | `workflow-linter`를 주기적으로 실행하는가? | | |
-| | `session-start` 스킬로 컨텍스트를 복원하는가? | | |
+| **도구 활용** | 외부 workflow 도구 또는 수동 절차로 문서를 조회/수정하는가? | | |
+| | JSON/link 검증 등 최소 문서 정합성 검사를 수행하는가? | | |
+| | `WORKFLOW_INDEX.md`와 handoff 기준으로 컨텍스트를 복원하는가? | | |
 | **프로세스** | 작업 전 브리핑 및 계획 수립을 수행하는가? | | |
 | | 검증(Validate) 단계를 반드시 거치는가? | | |
 | | 작업 모드(Task Modes)를 명시하여 최적화하는가? | | |
-| **품질/거버넌스** | `maturity_matrix.json`과 문서가 동기화되는가? | | |
-| | 릴리즈 노트 형식을 준수하여 배포하는가? | | |
+| **품질/거버넌스** | `state.json`, handoff, backlog가 동기화되는가? | | |
+| | workflow 배포 변경 시 README/index 링크가 함께 갱신되는가? | | |
 
 *점수 가이드: 0(미도입), 1(수동 도입), 2(부분 자동화), 3(완전 정착)*
 
@@ -44,13 +44,13 @@
 - 검증 절차가 정의되어 있으나 누락되는 경우가 있음.
 
 ### [Beta] 가속 단계
-- MCP 도구 및 표준 스킬을 적극 활용함.
+- 외부 workflow 도구 또는 표준 스킬을 적극 활용함.
 - 세션 간 인계(`handoff`)가 정형화됨.
 - **작업 모드**를 인지하여 효율적으로 작업을 분담함.
 
 ### [Stable] 최적화 단계
-- 워크플로우 린트가 자동화되어 문서 정합성이 상시 보장됨.
-- 성숙도 매트릭스에 기반한 지능형 작업 분배가 이루어짐.
+- 워크플로우 문서 정합성 검사가 자동화되어 상시 보장됨.
+- 프로젝트 상태 문서에 기반한 지능형 작업 분배가 이루어짐.
 - 프로젝트 특화 스킬 및 도구가 커스텀 개발되어 적용됨.
 
 ---
@@ -63,4 +63,7 @@
 
 ## 다음에 읽을 문서
 - [공통 표준](../core/global_workflow_standard.md)
-- [에이전트 토폴로지](../core/workflow_agent_topology.md)
+
+- [workflow 인덱스](../WORKFLOW_INDEX.md)
+- [스킬 카탈로그](../core/workflow_skill_catalog.md)
+:ai-workflow/memory/project_status_assessment.md

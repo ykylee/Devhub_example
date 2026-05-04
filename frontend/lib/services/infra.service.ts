@@ -1,5 +1,6 @@
 import { Metric, ServiceNode } from "./types";
 import { getMockMetrics } from "../mockData";
+import type { UserRole } from "../store";
 
 export class InfraService {
   private static instance: InfraService;
@@ -13,7 +14,7 @@ export class InfraService {
     return InfraService.instance;
   }
 
-  async getMetrics(role: string): Promise<Metric[]> {
+  async getMetrics(role: UserRole): Promise<Metric[]> {
     // Simulate API latency
     await new Promise(resolve => setTimeout(resolve, 300));
     return getMockMetrics(role);

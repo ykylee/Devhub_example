@@ -1,0 +1,6 @@
+# Merge this into ~/.codex/config.toml if you want Codex-wide defaults.
+
+[mcp_servers.openaiDeveloperDocs]
+url = "https://developers.openai.com/mcp"
+default_tools_approval_mode = "approve"
+supports_parallel_tool_calls = true

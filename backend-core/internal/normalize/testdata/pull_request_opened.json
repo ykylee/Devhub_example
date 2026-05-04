@@ -1,0 +1,34 @@
+{
+  "repository": {
+    "id": 42,
+    "full_name": "acme/api",
+    "name": "api",
+    "default_branch": "main",
+    "owner": {
+      "id": 9,
+      "login": "acme"
+    }
+  },
+  "sender": {
+    "id": 100,
+    "login": "yklee"
+  },
+  "pull_request": {
+    "id": 8001,
+    "number": 23,
+    "title": "Add domain normalizer",
+    "state": "open",
+    "user": {
+      "id": 100,
+      "login": "yklee"
+    },
+    "head": {
+      "ref": "feature/domain-normalizer",
+      "sha": "abc1234"
+    },
+    "base": {
+      "ref": "main"
+    },
+    "html_url": "https://gitea.example.com/acme/api/pulls/23"
+  }
+}

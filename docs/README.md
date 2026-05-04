@@ -13,9 +13,9 @@ Welcome to the DevHub Project Wiki. This directory contains all development-rela
 
 AI 워크플로우와 관련된 메타 데이터 및 세션 관리 문서는 `ai-workflow/` 디렉토리에서 관리됩니다.
 
-- **[프로젝트 워크플로우 프로파일](../ai-workflow/project/project_workflow_profile.md)**: 프로젝트 특화 규칙 및 기본 명령 정의.
-- **[작업 백로그](../ai-workflow/project/work_backlog.md)**: 현재 진행 중인 작업과 향후 계획.
-- **[세션 인계 문서](../ai-workflow/project/session_handoff.md)**: 세션 간 작업 상태 공유를 위한 문서.
+- **[프로젝트 워크플로우 프로파일](../ai-workflow/memory/PROJECT_PROFILE.md)**: 프로젝트 특화 규칙 및 기본 명령 정의.
+- **[작업 백로그](../ai-workflow/memory/work_backlog.md)**: 현재 진행 중인 작업과 향후 계획.
+- **[세션 인계 문서](../ai-workflow/memory/session_handoff.md)**: 세션 간 작업 상태 공유를 위한 문서.
 
 ---
 *Last updated: 2026-04-29*
