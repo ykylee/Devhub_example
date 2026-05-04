@@ -1,0 +1,27 @@
+{
+  "repository": {
+    "id": 42,
+    "full_name": "acme/api",
+    "name": "api",
+    "default_branch": "main",
+    "owner": {
+      "id": 9,
+      "login": "acme"
+    }
+  },
+  "sender": {
+    "id": 100,
+    "login": "yklee"
+  },
+  "action_run": {
+    "id": 502,
+    "status": "completed",
+    "conclusion": "failure",
+    "head_branch": "feature/risky-change",
+    "head_sha": "bad1234",
+    "html_url": "https://gitea.example.com/acme/api/actions/runs/502",
+    "run_started_at": "2026-05-03T10:00:00Z",
+    "completed_at": "2026-05-03T10:03:14Z",
+    "duration_seconds": 194
+  }
+}

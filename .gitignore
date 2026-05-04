@@ -1,3 +1,8 @@
+.env
+.env.*
+!.env.example
+!.env.template
+
 # === WORKFLOW KIT START ===
 # Workflow layer (selective tracking)
 /ANTIGRAVITY.md
@@ -8,7 +13,7 @@
 /ai-workflow/scripts/
 /ai-workflow/skills/
 /ai-workflow/workflow_kit/
-/ai-workflow/mcp/
+/ai-workflow/mcp_servers/
 /ai-workflow/schemas/
 /ai-workflow/templates/
 /ai-workflow/examples/

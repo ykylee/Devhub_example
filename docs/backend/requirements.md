@@ -2,6 +2,8 @@
 
 이 문서는 프론트엔드 개발 중 백엔드에 구현이 필요하다고 판단된 API 및 데이터 구조 요구사항을 정리합니다.
 
+> 상세 리뷰와 구현 계약 재정의 제안은 `docs/backend/requirements_review.md`, 현재 프론트 구현 기반 연동 요구사항은 `docs/backend/frontend_integration_requirements.md`를 기준으로 확인합니다.
+
 ## 1. gRPC 실시간 데이터 스트리밍
 프론트엔드 대시보드의 실시간성 확보를 위해 다음 스트리밍 API가 필요합니다.
 
