@@ -26,6 +26,7 @@
 ### P1 (즉시 실행)
 - service action command API 구현
 - command status transition worker 또는 executor boundary 설계
+- command actor 검증을 `X-Devhub-Actor` 임시 header에서 JWT/session 기반 인증 claim으로 전환
 - Gitea Runner 세부 상태 adapter 또는 Gitea REST client 연동 범위 확정
 - metrics DB-backed provider 구현 범위 확정
 - main에서 병합된 frontend service layer와 백엔드 API 계약 간 naming/response shape 정합성 확인
