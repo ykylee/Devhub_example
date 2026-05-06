@@ -36,7 +36,7 @@
 | Phase 9 | planned | Python AI gRPC 연결 | Go gRPC client, Python `AnalysisService` server, build log summary/risk detection 연동 | gRPC 통합 테스트 |
 | Phase 10 | planned | Hourly Pull Reconciliation | Gitea REST client, 누락 이벤트 보정 worker | dry-run 및 idempotency 테스트 |
 | Phase 11 | planned | 시스템 관리자 기능 고도화 | Runner/서버 상태 adapter, config 조회, allowlist/seed admin | 권한/audit/health adapter 테스트 |
-| Phase 12 | planned | 사용자 및 조직 관리 API | User/Org/Team 도메인 확장, RBAC 정책 연동, 관리자 전용 관리 API | 도메인 통합 테스트 및 권한 검증 |
+| Phase 12 | planned | 사용자 및 조직/멤버 관리 API | User/Org/Team 도메인 확장, 계층형 조직망 구조, 구성원 할당(Allocation), 관리자 전용 관리 API | 도메인 통합 테스트 및 권한 검증 |
 
 ## 3. 현재 완료 범위
 
