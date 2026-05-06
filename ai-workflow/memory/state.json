@@ -1,11 +1,11 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-05-04",
+  "generated_at": "2026-05-06",
   "source_of_truth": {
     "project_profile_path": "docs/PROJECT_PROFILE.md",
     "session_handoff_path": "ai-workflow/memory/session_handoff.md",
     "work_backlog_index_path": "ai-workflow/memory/work_backlog.md",
-    "latest_backlog_path": "ai-workflow/memory/backlog/2026-05-04.md",
+    "latest_backlog_path": "ai-workflow/memory/backlog/2026-05-06.md",
     "repository_assessment_path": "ai-workflow/memory/repository_assessment.md"
   },
   "project": {
@@ -22,9 +22,9 @@
     "runtime_checks": "docker-compose ps"
   },
   "session": {
-    "current_baseline": "Frontend Phase 2 & 3 메인 병합 완료. 실시간 API 연동 및 리뷰 피드백(타입 안정성, 로딩 최적화) 반영됨. 백엔드 추가 요구사항 v2 도출 완료.",
-    "current_axis": "실시간 데이터 가시성 및 인터랙티브 대시보드 고도화",
-    "current_focus": "Phase 4 AI Gardener Suggestions 및 Admin Service Actions 실체화",
+    "current_baseline": "Frontend Phase 5 조직 관리 UI 고도화 (계층형 Org Units, 멤버 관리 모달 적용, 백엔드 요구사항 정의 완료)",
+    "current_axis": "조직 및 권한 관리 백엔드 API 통합 준비",
+    "current_focus": "Phase 12 Org Management 로드맵 전환 및 UI/API 규격 확정",
     "in_progress_items": [
       "TASK-007"
     ],
@@ -32,7 +32,8 @@
     "recent_done_items": [
       "TASK-FRONTEND-PHASE2",
       "TASK-FRONTEND-PHASE3",
-      "PR-FRONTEND-PHASE2-3-MERGE"
+      "PR-FRONTEND-PHASE2-3-MERGE",
+      "TASK-FRONTEND-PHASE5-ORG"
     ],
     "environment_constraints": [
       "Docker/Docker-compose required for full system",
@@ -40,8 +41,8 @@
     ]
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/backlog/2026-05-04.md",
-    "task_count": 18,
+    "latest_backlog_path": "ai-workflow/memory/backlog/2026-05-06.md",
+    "task_count": 19,
     "in_progress_items": [
       "TASK-007"
     ],
@@ -56,14 +57,15 @@
       "TASK-018",
       "TASK-019",
       "TASK-FRONTEND-PHASE2",
-      "TASK-FRONTEND-PHASE3"
+      "TASK-FRONTEND-PHASE3",
+      "TASK-FRONTEND-PHASE5-ORG"
     ]
   },
   "next_documents": [
     "docs/frontend_development_roadmap.md",
     "ai-workflow/memory/session_handoff.md",
     "docs/backend_api_contract.md",
-    "ai-workflow/memory/backlog/2026-05-04.md"
+    "ai-workflow/memory/backlog/2026-05-06.md"
   ],
   "repository_assessment": {
     "path": "ai-workflow/memory/repository_assessment.md",
