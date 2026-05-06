@@ -182,7 +182,23 @@ notification.created
 - WebSocket hub
 - role/project 권한 기반 subscription filtering
 - event id, timestamp, schema version, reconnect 기준
-- raw webhook 처리 후 domain event publish 경로
+  - raw webhook 처리 후 domain event publish 경로
+
+### 3.7 Organization Management
+
+필요 API:
+
+```text
+GET /api/v1/organizations/hierarchy
+GET /api/v1/organizations/{unit_id}/members
+PUT /api/v1/organizations/{unit_id}/members
+```
+
+필요 백엔드 개발:
+- Division, Team, Group, Part 등 계층적 조직(Org Unit) 도메인 모델 설계
+- `unit_members` 등 조직-구성원 N:M 매핑 테이블 및 구성원 할당(allocation) 상태 영속화 로직 구현
+- 부모-자식 관계에 따른 `direct_count` 및 하위 조직을 모두 합산한 `total_count` 집계 최적화 (Materialized View 또는 Trigger 등 고려)
+- 구성원 추가/제거 시 `command`/`audit` 및 WebSocket 이벤트를 통한 실시간 갱신 지원
 
 ## 4. 프론트엔드에 요청할 정리 사항
 

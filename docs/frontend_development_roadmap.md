@@ -14,9 +14,10 @@
 | Phase | 상태 | 목표 | 주요 작업 |
 | --- | --- | --- | --- |
 | **Phase 1** | **done** | 대시보드 UI & Mock 서비스 | 레이아웃 구축, Glassmorphism 적용, Singleton Service 패턴 도입 |
-| **Phase 2** | **in_progress** | 핵심 API 통합 | Infra Topology, Risk List, Command/Audit 연동, Role mapping |
-| **Phase 3** | **planned** | 실시간성 및 CI/CD 가시화 | WebSocket 통합, CI Run/Logs 연동, 실시간 알림 피드 |
+| **Phase 2** | **done** | 핵심 API 통합 | Infra Topology, Risk List, Command/Audit 연동, Role mapping |
+| **Phase 3** | **done** | 실시간성 및 CI/CD 가시화 | WebSocket 통합, CI Run/Logs 연동, 실시간 알림 피드 |
 | **Phase 4** | **planned** | AI 어드바이저 & 어드민 액션 | AI Gardener 추천 연동, 시스템 관리자 서비스 제어 액션 실체화 |
+| **Phase 5** | **planned** | 사용자 및 조직 관리 | 사용자 프로필, 팀/조직 관리 UI, 권한 설정(RBAC) 관리 인터페이스 |
 
 ## 3. Phase 2 상세 계획 (Core API Integration)
 
