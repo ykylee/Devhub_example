@@ -1,9 +1,11 @@
 # 백엔드 개발 로드맵
 
 - 문서 목적: DevHub 백엔드 구현 범위, 순서, 진척 상태를 추적한다.
-- 기준일: 2026-05-04
+- 범위: 인프라, 리스크, 웹훅, API 로드맵
+- 대상 독자: 백엔드 개발자, AI Agent
 - 상태: in_progress
-- 관련 문서: `docs/requirements.md`, `docs/architecture.md`, `docs/tech_stack.md`, `docs/backend_api_contract.md`, `docs/backend/frontend_integration_requirements.md`, `docs/backend/requirements_review.md`, `ai-workflow/memory/backlog/2026-05-03.md`
+- 최종 수정일: 2026-05-06
+- 관련 문서: `docs/requirements.md`, `docs/architecture.md`, `docs/tech_stack.md`, `docs/backend_api_contract.md`, `docs/backend/frontend_integration_requirements.md`, `docs/backend/requirements_review.md`, `ai-workflow/memory/backlog/2026-05-04.md`
 - 현재 브랜치: `codex/backend_init`
 - 프론트엔드 전제: frontend phase1 화면과 mock service layer가 병합된 상태이므로, 백엔드는 raw webhook 수집 이후 프론트 교체 가능한 REST snapshot API와 WebSocket 이벤트 계약을 우선 안정화한다.
 
@@ -34,6 +36,7 @@
 | Phase 9 | planned | Python AI gRPC 연결 | Go gRPC client, Python `AnalysisService` server, build log summary/risk detection 연동 | gRPC 통합 테스트 |
 | Phase 10 | planned | Hourly Pull Reconciliation | Gitea REST client, 누락 이벤트 보정 worker | dry-run 및 idempotency 테스트 |
 | Phase 11 | planned | 시스템 관리자 기능 고도화 | Runner/서버 상태 adapter, config 조회, allowlist/seed admin | 권한/audit/health adapter 테스트 |
+| Phase 12 | planned | 사용자 및 조직 관리 API | User/Org/Team 도메인 확장, RBAC 정책 연동, 관리자 전용 관리 API | 도메인 통합 테스트 및 권한 검증 |
 
 ## 3. 현재 완료 범위
 

@@ -3,16 +3,17 @@
 - 문서 목적: 현재 저장소에 배포된 AI workflow 문서의 진입 순서를 제공한다.
 - 범위: 세션 시작, 상태 복원, 온보딩, 코어 정책 문서
 - 대상 독자: Codex, 저장소 관리자, 신규 온보딩 참여자
-- 상태: draft
-- 최종 수정일: 2026-05-03
+- 상태: active
+- 최종 수정일: 2026-05-06
+- 관련 문서: [README.md](./README.md), [memory/state.json](./memory/state.json)
 
 ## 1. 세션 시작 순서
 
 1. [memory/state.json](./memory/state.json)
 2. [memory/session_handoff.md](./memory/session_handoff.md)
 3. [memory/work_backlog.md](./memory/work_backlog.md)
-4. 최신 날짜 backlog: [memory/backlog/2026-05-03.md](./memory/backlog/2026-05-03.md)
-5. [memory/PROJECT_PROFILE.md](./memory/PROJECT_PROFILE.md)
+4. 최신 날짜 backlog: [memory/backlog/2026-05-04.md](./memory/backlog/2026-05-04.md)
+5. [PROJECT_PROFILE.md](../docs/PROJECT_PROFILE.md)
 
 ## 2. 온보딩 점검 문서
 

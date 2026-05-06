@@ -6,7 +6,7 @@
 - 상태: draft
 - 최종 수정일: 2026-05-03
 
-- 관련 문서: `ai-workflow/memory/PROJECT_PROFILE.md`, `ai-workflow/memory/state.json`, `ai-workflow/memory/session_handoff.md`, `ai-workflow/memory/work_backlog.md`
+- 관련 문서: `ai-workflo../docs/PROJECT_PROFILE.md`, `ai-workflow/memory/state.json`, `ai-workflow/memory/session_handoff.md`, `ai-workflow/memory/work_backlog.md`
 
 
 ## 1. 현재 배포 형태
@@ -19,12 +19,12 @@
 ## 2. 현재 유지되는 파일
 
 - [WORKFLOW_INDEX.md](./WORKFLOW_INDEX.md)
-- [memory/PROJECT_PROFILE.md](./memory/PROJECT_PROFILE.md)
-- [memory/state.json](./memory/state.json)
-- [memory/session_handoff.md](./memory/session_handoff.md)
-- [memory/work_backlog.md](./memory/work_backlog.md)
-- [memory/backlog/2026-05-03.md](./memory/backlog/2026-05-03.md)
-- [memory/project_status_assessment.md](./memory/project_status_assessment.md)
+- [docs/PROJECT_PROFILE.md](../docs/PROJECT_PROFILE.md)
+- [ai-workflow/memory/state.json](./memory/state.json)
+- [ai-workflow/memory/session_handoff.md](./memory/session_handoff.md)
+- [ai-workflow/memory/work_backlog.md](./memory/work_backlog.md)
+- [ai-workflow/memory/backlog/2026-05-04.md](./memory/backlog/2026-05-04.md)
+- [ai-workflow/memory/repository_assessment.md](./memory/repository_assessment.md)
 
 
 ## 3. 코어 문서
@@ -67,7 +67,7 @@
 ## 다음에 읽을 문서
 
 - workflow 인덱스: [./WORKFLOW_INDEX.md](./WORKFLOW_INDEX.md)
-- 프로젝트 프로파일: [./memory/PROJECT_PROFILE.md](./memory/PROJECT_PROFILE.md)
+- 프로젝트 프로파일: [../docs/PROJECT_PROFILE.md](../docs/PROJECT_PROFILE.md)
 - 빠른 상태 요약: [./memory/state.json](./memory/state.json)
 - 세션 인계 문서: [./memory/session_handoff.md](./memory/session_handoff.md)
 - 작업 백로그 인덱스: [./memory/work_backlog.md](./memory/work_backlog.md)

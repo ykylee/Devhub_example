@@ -5,13 +5,13 @@
 - 대상 독자: 후속 에이전트, 프로젝트 리드
 - 상태: active
 - 최종 수정일: 2026-05-04
-- 관련 문서: [작업 백로그](./work_backlog.md), [프로젝트 프로파일](./project_workflow_profile.md)
+- 관련 문서: [작업 백로그](./work_backlog.md), [프로젝트 프로파일](../../docs/PROJECT_PROFILE.md)
 
 - 작성자: Antigravity
-- 현재 브랜치: `gemini/frontend_phase2_api`
+- 현재 브랜치: `main` (Merged `gemini/frontend_phase2_api`)
 
-## 🎯 현재 세션 요약 (백엔드 코어 API 및 WebSocket 통합 완료)
-이전 세션의 서비스 레이어 추상화를 바탕으로, 실제 Go 백엔드 API와 WebSocket 실시간 이벤트를 프론트엔드에 성공적으로 통합했습니다. 이제 대시보드는 실제 데이터와 런타임 상태를 반영합니다.
+## 🎯 현재 세션 요약 (Phase 2 & 3 통합 및 메인 병합 완료)
+실제 Go 백엔드 API 및 WebSocket 실시간 이벤트 통합을 완료하고, 코드 리뷰 피드백을 거쳐 메인 브랜치에 성공적으로 병합했습니다. 이 과정에서 백엔드 연동을 위한 추가 요구사항(로그 스트리밍, 사용자 상태 API 등)을 구체화했습니다.
 
 ## ✅ 완료된 사항
 1.  **핵심 API 연동 (Phase 2)**:
@@ -21,9 +21,11 @@
 2.  **실시간 이벤트 엔진 도입 (Phase 3)**:
     *   `RealtimeService`: WebSocket 클라이언트 구현 (재연결, 이벤트 디스패칭).
     *   인프라 및 리스크 업데이트(`infra.node.updated`, `risk.critical.created`) 실시간 UI 반영.
-3.  **UI/UX 개선**:
-    *   헤더에 실시간 연결 상태 표시기(Live/Offline) 추가.
-    *   데이터 갱신 시 부드러운 전환을 위한 Framer Motion 최적화.
+3.  **코드 리뷰 및 메인 병합**:
+    *   서비스 레이어 타입 안정성 보완 및 공통 유틸리티(`formatBytes`) 분리.
+    *   `AdminDashboard` 초기 데이터 플리커링 방지(Loading state) 적용.
+    *   `gemini/frontend_phase2_api` 브랜치를 `main`에 최종 병합.
+    *   백엔드 추가 요구사항 v2 도출 및 문서 반영.
 
 ## 🚀 다음 세션 작업 제안
 1.  **Phase 4: AI & Admin Actions**:
