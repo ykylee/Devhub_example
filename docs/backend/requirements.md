@@ -43,6 +43,30 @@
 - **UserRole**: `enum { DEVELOPER, MANAGER, ADMIN }`
 - **ImpactLevel**: `enum { LOW, MEDIUM, HIGH, CRITICAL }`
 - **Status**: `enum { STABLE, WARNING, DEGRADED, DOWN }`
+- **AccountStatus**: `enum { ACTIVE, DISABLED, LOCKED, PASSWORD_RESET_REQUIRED }`
+
+## 5. 사용자 계정 및 인증 (User Account & Authentication)
+
+DevHub 자체 사용자 계정(Account) 도입에 따라 다음 백엔드 API/도메인 작업이 필요하다. 정책 기반은 [요구사항 정의서 2.5](../requirements.md#25-사용자-계정-관리-user-account-management) 와 [architecture.md 6.2](../architecture.md#62-사용자user--계정account-도메인-분리), 계약은 [backend_api_contract.md §11](../backend_api_contract.md#11-계정-및-인증-account--auth) 을 참조한다.
+
+### 5.1 도메인 모델
+- `accounts` 테이블: `user_id` UNIQUE FK + `login_id` UNIQUE + 비밀번호 해시 + 상태 + 실패 카운터.
+- 사용자 1명 ↔ 계정 1개 invariant 를 DB UNIQUE 제약과 도메인 레이어 동시 검사로 보장.
+- 비밀번호 해시 알고리즘: bcrypt cost ≥ 12 또는 argon2id. 알고리즘은 `password_algo` 컬럼에 저장해 회전 가능하도록 함.
+
+### 5.2 API
+- `POST /api/v1/accounts` — 시스템 관리자 발급, 1:1 invariant 검사.
+- `GET /api/v1/accounts/{user_id}` — 본인 또는 시스템 관리자.
+- `PATCH /api/v1/accounts/{user_id}` — login_id/status 변경 (시스템 관리자).
+- `PUT /api/v1/accounts/{user_id}/password` — 본인 변경 또는 시스템 관리자 강제 재설정.
+- `DELETE /api/v1/accounts/{user_id}` — 회수 (시스템 관리자).
+- `POST /api/v1/auth/login`, `POST /api/v1/auth/logout` — 인증 lifecycle.
+
+### 5.3 비기능 요구
+- 비밀번호 평문은 어떤 응답/audit/log 에도 포함하지 않는다.
+- 로그인 실패 카운터 임계치 초과 시 자동 `locked` 전환. 임계치/잠금 해제 정책은 운영 정책 문서에서 별도 관리.
+- 계정 회수 시 활성 세션 즉시 무효화.
+- 계정 lifecycle action 은 모두 audit log 기록.
 
 ---
-*Last Updated: 2026-05-02 (UI 고도화 반영)*
+*Last Updated: 2026-05-07 (Account/Auth 추가)*

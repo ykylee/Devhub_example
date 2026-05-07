@@ -200,6 +200,32 @@ PUT /api/v1/organizations/{unit_id}/members
 - 부모-자식 관계에 따른 `direct_count` 및 하위 조직을 모두 합산한 `total_count` 집계 최적화 (Materialized View 또는 Trigger 등 고려)
 - 구성원 추가/제거 시 `command`/`audit` 및 WebSocket 이벤트를 통한 실시간 갱신 지원
 
+### 3.8 사용자 계정 / 로그인 관리
+
+DevHub 자체 사용자 계정(Account) 1:1 컨셉 도입에 따라 추가되는 프론트 ↔ 백엔드 연동 항목.
+
+필요 API (계약은 `backend_api_contract.md §11`):
+
+```text
+POST   /api/v1/accounts
+GET    /api/v1/accounts/{user_id}
+PATCH  /api/v1/accounts/{user_id}
+PUT    /api/v1/accounts/{user_id}/password
+DELETE /api/v1/accounts/{user_id}
+POST   /api/v1/auth/login
+POST   /api/v1/auth/logout
+```
+
+프론트 화면 영향:
+- 시스템 관리자 화면 — 사용자 row 옆에 "계정 발급/회수/잠금 해제/비밀번호 강제 재설정" action.
+- 모든 사용자 — "내 계정" 화면에서 로그인 ID 표시(읽기 전용)와 비밀번호 변경.
+- 로그인 화면 — `login_id` + `password` 만 입력. 응답 `must_change_password=true` 면 비밀번호 변경 화면으로 강제 라우팅.
+- 계정이 회수(`disabled`)되거나 잠긴(`locked`) 상태에서 사용자가 시스템에 접근 시 명시적 안내 + 시스템 관리자 연락 안내.
+
+데이터 표시 메모:
+- `password`, `password_hash`, `initial_password` 는 어떤 화면에도 표시/저장하지 않는다.
+- 시스템 관리자가 강제 재설정한 임시 비밀번호는 1회 표시 후 별도 저장 없이 시스템 관리자가 사용자에게 전달하는 흐름으로 한다.
+
 ## 4. 프론트엔드에 요청할 정리 사항
 
 - `frontend/lib/services/types.ts`의 UI 표시 타입과 API wire 타입을 분리한다.
