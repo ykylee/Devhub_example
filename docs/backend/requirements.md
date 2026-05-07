@@ -47,6 +47,8 @@
 
 ## 5. 사용자 계정 및 인증 (User Account & Authentication)
 
+> **구현 방식 결정 (2026-05-07, [ADR-0001](../adr/0001-idp-selection.md))**: 자체 `accounts` 테이블/핸들러 구현 대신 **Ory Hydra + Kratos** 도입. 본 §5 의 정책 invariant(1:1 매핑, 평문/해시 미노출, 자동 lock, audit log) 는 그대로 유효하며 책임 주체만 바뀐다. 구체 task 목록은 [backend_development_roadmap.md Phase 13](../../ai-workflow/memory/backend_development_roadmap.md) 의 P1 큐로 통합한다.
+
 DevHub 자체 사용자 계정(Account) 도입에 따라 다음 백엔드 API/도메인 작업이 필요하다. 정책 기반은 [요구사항 정의서 2.5](../requirements.md#25-사용자-계정-관리-user-account-management) 와 [architecture.md 6.2](../architecture.md#62-사용자user--계정account-도메인-분리), 계약은 [backend_api_contract.md §11](../backend_api_contract.md#11-계정-및-인증-account--auth) 을 참조한다.
 
 ### 5.1 도메인 모델

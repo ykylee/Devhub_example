@@ -22,9 +22,9 @@
     "runtime_checks": "docker-compose ps"
   },
   "session": {
-    "current_baseline": "Phase 12 backend CRUD + frontend wiring 완료 (TS 통과). Account/Auth 컨셉 7개 문서에 반영 완료, 코드 변경 전.",
-    "current_axis": "Phase 13 — 사용자 계정(Account) 1:1 + 인증 1차 (accounts migration → store/handler → audit → 테스트)",
-    "current_focus": "Account/Auth 문서 반영 완료, 다음 세션은 backend-core/migrations/000005_create_accounts 작성부터",
+    "current_baseline": "Phase 12 backend CRUD + frontend wiring 완료. ADR-0001 채택(Ory Hydra+Kratos IdP 도입) + ADR §8 미해결 항목 7종 모두 결정 완료. 모두 미커밋.",
+    "current_axis": "Phase 13 (재정의) — IdP 도입: Hydra/Kratos PoC → Kratos identity schema → users 동기화 어댑터 → admin wrapper → audit 매핑 → token 검증 미들웨어 → API 계약 재작성",
+    "current_focus": "ADR-0001 §8 결정 7종 인라인 반영 완료. Phase 13 P1 1단계 PoC 진입 가능. 다음 세션 첫 행동: (a) 변경 커밋 또는 (b) PoC 진입 — binary 설치는 사용자 수동 단계.",
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
@@ -34,19 +34,21 @@
       "TASK-FRONTEND-PHASE12-WIRE",
       "TASK-BACKEND-PHASE12-CRUD",
       "TASK-FRONTEND-PHASE12-CRUD",
-      "TASK-DOCS-ACCOUNT-CONCEPT"
+      "TASK-DOCS-ACCOUNT-CONCEPT",
+      "TASK-ADR-0001-IDP-SELECTION",
+      "TASK-ADR-0001-DECISIONS"
     ],
     "environment_constraints": [
       "Backend Core API on :8080 (REST), WebSocket /api/v1/realtime/ws 미구현",
-      "Local PostgreSQL :5432 (postgres/postgres, db=devhub) — Docker 미사용 경로로 검증함",
-      "Docker daemon 부재 시 docker-compose 경로 차단 — 로컬 실행은 가능",
+      "Local PostgreSQL :5432 (postgres/postgres, db=devhub) — native 설치, Docker 미사용",
+      "Docker / docker-compose 미사용 정책 (2026-05-07 사용자 결정) — 모든 컴포넌트는 native binary 또는 호스트 시스템 서비스로 배포. docker-compose 관련 명령/예시는 신규 설계의 default 가 아님. Makefile 의 docker-compose target 은 호환 폴백으로만 유지.",
       "외부 자원 차단: proxy.golang.org / fonts.gstatic.com 등 — 사내 SSL inspection 환경, 모듈/폰트 추가 시 사내 mirror 또는 NODE_EXTRA_CA_CERTS 설정 필요",
       "Next.js dev rewrite (/api/* → backend) 가 브라우저 CORS 회피용으로 활성"
     ]
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/claude/init/backlog/2026-05-07.md",
-    "task_count": 7,
+    "task_count": 9,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
@@ -56,12 +58,15 @@
       "TASK-FRONTEND-PHASE12-WIRE",
       "TASK-BACKEND-PHASE12-CRUD",
       "TASK-FRONTEND-PHASE12-CRUD",
-      "TASK-DOCS-ACCOUNT-CONCEPT"
+      "TASK-DOCS-ACCOUNT-CONCEPT",
+      "TASK-ADR-0001-IDP-SELECTION",
+      "TASK-ADR-0001-DECISIONS"
     ]
   },
   "next_documents": [
+    "docs/adr/0001-idp-selection.md",
     "ai-workflow/memory/backend_development_roadmap.md",
-    "docs/backend/frontend_integration_requirements.md",
+    "docs/architecture.md",
     "docs/backend_api_contract.md"
   ],
   "repository_assessment": {

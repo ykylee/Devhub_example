@@ -5,7 +5,7 @@
 - 대상 독자: AI Agent, 프로젝트 관리자
 - 상태: idle
 - 최종 수정일: 2026-05-07
-- 활성 태스크: 없음 (Phase 12 backend+frontend 연동 done, 다음 세션은 쓰기 핸들러부터)
+- 활성 태스크: 없음 (Phase 12 done. Phase 13 은 ADR-0001 IdP 도입 결정으로 재정의됨 — 코드 시작 전 ADR §8 미해결 항목 5종 결정 선행)
 - 관련 문서: [세션 인계](./session_handoff.md), [프로젝트 프로파일](../../../../docs/PROJECT_PROFILE.md)
 
 ## 운영 원칙

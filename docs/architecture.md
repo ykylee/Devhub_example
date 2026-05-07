@@ -159,17 +159,22 @@ accounts (신규)
 
 #### 6.2.3 인증 흐름 (1차)
 
-1. 클라이언트가 `POST /api/v1/auth/login` 으로 `login_id`, `password` 를 제출합니다.
-2. Go Core 가 계정 lookup → 해시 검증 → 상태 확인을 수행합니다. 실패 시 `failed_login_attempts` 를 증가시키고 정책 임계치 초과 시 상태를 `locked` 로 전환합니다.
-3. 성공 시 세션 토큰(JWT 또는 server-side session)을 발급합니다. 1차 구현은 변경 가능한 server-side session 또는 short-lived JWT 중 하나를 선택하고 본 문서에 결정 결과를 기록합니다.
-4. 이후 모든 인증된 요청은 actor 식별 정보를 토큰에서 도출하며, `X-Devhub-Actor` 헤더는 내부/개발용 한정 폴백으로만 유지합니다.
+> **결정 (2026-05-07, [ADR-0001](./adr/0001-idp-selection.md))**: DevHub 의 계정/인증 구현은 자체 `accounts` 테이블이 아니라 **Ory Hydra + Ory Kratos** 를 도입한다. DevHub 자체는 Hydra 의 first-party OIDC client 로 동작하고, 다른 앱들도 동일 Hydra 를 OIDC IdP 로 사용할 수 있다. `users` 는 사람·조직 master 로 유지하고 Kratos 가 credential·세션 master 가 된다.
+
+흐름 (사용자가 DevHub Next.js 에서 로그인하는 first-party 케이스 기준):
+
+1. 브라우저가 DevHub Next.js `/login` 에 진입하면 Next.js 는 Hydra `/oauth2/auth` 로 Authorization Code + PKCE 흐름을 시작합니다.
+2. Hydra 가 `login_challenge` 와 함께 Next.js login UI 로 redirect 하면, Next.js 는 Kratos public flow API 로 자격 증명을 검증합니다. 실패 카운터/잠금 정책은 Kratos 가 책임집니다.
+3. 검증 성공 시 Next.js 는 Hydra `accept login` → first-party client 의 자동 consent 처리 → callback 에서 token endpoint 호출로 ID Token + Access Token + Refresh Token 을 받습니다.
+4. Go Core 는 인입 요청의 Bearer access token 을 Hydra JWKS 또는 introspect endpoint 로 검증하고, ID Token `sub` claim 에 담긴 `users.user_id` 를 actor 로 사용합니다. `X-Devhub-Actor` 헤더는 폐기 예정 폴백으로만 유지합니다 (폐기 시점은 ADR-0001 §8 미해결 항목).
+5. 다른 앱은 Hydra 에 별도 OIDC client 로 등록되어 동일 표준 흐름을 사용합니다. consent UI 노출 여부는 신뢰 경계 결정(ADR-0001 §8) 에 따릅니다.
 
 ### 6.3 RBAC 단계화
 
 | 단계 | 범위 | 기준 |
 | --- | --- | --- |
 | Phase 1 | Webhook secret 검증, system admin role 분리, 관리자 작업 Audit Log | TASK-007 및 초기 시스템 관리자 기능 구현 기준 |
-| Phase 2 | DevHub 자체 사용자 계정(Account) 기반 1차 인증, 비밀번호 해시 저장, 로그인/로그아웃, 비밀번호 변경, 계정 상태 관리, 로그인 audit log | `accounts` 테이블 도입 및 backend Phase 13 완료 시점 |
+| Phase 2 | Ory Hydra + Kratos 도입, DevHub 의 OIDC client 화, Kratos 기반 자격 증명/로그인/비밀번호 변경/계정 상태 관리, Kratos 이벤트 → DevHub audit log 매핑 | Hydra/Kratos 컨테이너 운영 진입 및 backend Phase 13 완료 시점 ([ADR-0001](./adr/0001-idp-selection.md)) |
 | Phase 3 | Gitea 사용자/조직/저장소 권한 동기화, 프로젝트별 role 매핑 | 프로젝트-저장소 매핑과 관리자 대시보드 확장 시점 |
 | Phase 4 | Gitea SSO 연동 기반 통합 인증, 자체 계정과의 병행/대체 정책 결정 | 운영 환경 전환 전 별도 보안 검토 후 도입 |
 

@@ -10,8 +10,8 @@
 - 작성자: Claude Code
 - 현재 브랜치: `claude/init`
 
-## 현재 세션 요약 (Phase 12 풀스택 가동 검증 + frontend API 연동 + CRUD 정비 + Account 컨셉 도입)
-이번 세션은 (앞부분 — Phase 12 풀스택 검증 등) 이후 추가로 1) Phase 12 backend **쓰기 핸들러 정비** — 사용자/조직 CRUD 8개 라우트 + store 메소드 + handler 단위 테스트 (`go build/vet/test ./...` 모두 통과), 2) frontend `identity.service.ts` 에 8개 신규 라우트 wiring + `MemberManagementModal` 의 save 를 실제 `replaceUnitMembers` 호출로 교체, 3) **사용자 계정(Account) 컨셉 도입** — User(사람) ↔ Account(자격) 1:1, ID/PW 관리, bcrypt/argon2 해시, RBAC 단계화 재정렬을 7개 문서(`docs/requirements.md`, `architecture.md`, `backend_api_contract.md`, `backend/requirements.md`, `backend/frontend_integration_requirements.md`, `frontend_development_roadmap.md`, `backend_development_roadmap.md`)에 일관 반영했다. Phase 13 (Account/Auth 1차 구현)을 백엔드 로드맵에 추가했다.
+## 현재 세션 요약 (Phase 12 풀스택 + Account 컨셉 → Phase 13 IdP 도입 결정)
+이번 세션은 (앞부분 — Phase 12 풀스택 검증, CRUD 정비, Account 컨셉 7개 문서 반영) 이후 신규 요구 — **DevHub 의 계정 서비스를 다른 앱에도 제공** — 가 추가됨에 따라 Phase 13 구현 방식을 재검토하고 결정을 ADR 로 기록했다. 자체 `accounts` 테이블 구현 → **Ory Hydra + Kratos IdP 도입** 으로 전환한다 (1순위 채택). 본 결정은 [ADR-0001](../../../../docs/adr/0001-idp-selection.md) 으로 정리됐고, `architecture.md §6.2.3 / §6.3`, `backend_api_contract.md §11`, `backend/requirements.md §5`, `backend/frontend_integration_requirements.md §3.8`, `requirements.md §2.5`, `backend_development_roadmap.md` Phase 13 entry + P1 큐에 모두 반영했다.
 
 ## 완료된 사항
 1. **Claude Code 환경 검증**:
@@ -39,29 +39,35 @@
 
 ## 다음 세션 작업 제안
 
-이번 세션에서 Phase 12 backend CRUD + frontend wiring 완료, Account/Auth 컨셉 7개 문서 반영 완료. 다음 세션 우선순위:
+Phase 13 은 [ADR-0001](../../../../docs/adr/0001-idp-selection.md) 결정으로 **Ory Hydra + Kratos IdP 도입** 방향이다. 코드 진입 전 ADR-0001 §8 미해결 항목 5종을 먼저 결정해야 한다:
 
-1. **Phase 13 — 사용자 계정(Account) 1차 구현 (최우선)**:
-   - `backend-core/migrations/000005_create_accounts.{up,down}.sql`: `accounts` 테이블 (`user_id` UNIQUE FK + `login_id` UNIQUE + `password_hash` + `password_algo` + `status` + 실패 카운터).
-   - `internal/domain` 에 `Account` 타입 + `AccountStatus` enum.
-   - `internal/store/accounts.go`: `CreateAccount`, `GetAccountByUserID`, `UpdateAccount`, `ChangePassword`, `DeleteAccount`. 비밀번호 해시는 bcrypt cost ≥ 12 또는 argon2id 중 결정 후 `password_algo` 에 기록.
-   - `internal/httpapi/accounts.go`: `backend_api_contract.md §11` 의 7개 endpoint. 평문 비밀번호는 핸들러 진입 직후 즉시 해시화.
-   - audit log 6종 (`account.created/disabled/password_changed/locked`, `auth.login.succeeded/failed`).
-   - 세션/JWT 1차 결정 → architecture.md 6.2.3 에 결정 기록.
-   - 핸들러 단위 테스트 (in-memory mock + bcrypt round-trip + 1:1 conflict).
+1. **ADR-0001 §8 결정 7종 (이번 세션에 모두 완료, ADR 인라인 반영)**:
+   - DB 분리: 기존 `devhub` DB 안에 `hydra`, `kratos` schema 분리 (`?search_path=...`).
+   - 외부 앱 신뢰 경계: 단계적 — 1차 사내 first-party only (silent consent, `skip_consent=true`), 외부 SaaS 는 후속 phase.
+   - MFA: 1차 미도입 (Kratos schema 만 확장 가능 상태로 유지).
+   - `X-Devhub-Actor` 폐기: Phase 13 P1 7단계에서 deprecation warning 시작, 완전 제거는 별도 phase.
+   - Gitea SSO: 본 ADR 범위 밖, Phase 13 완료 후 별도 ADR-0002 예정.
+   - Binary 획득: `go install github.com/ory/hydra/v2/cmd/hydra@vX.Y.Z` / `…/kratos/cmd/kratos@vX.Y.Z` 를 **사용자 터미널(샌드박스 외) 수동 실행**. 사내 GoProxy 미러 재사용. AI 자동화는 binary 설치 미수행.
+   - 호스트 서비스 등록: PoC 1차 직접 실행, 운영 진입 시점 별도 결정.
 
-2. **Phase 12 audit 보강**:
-   - 사용자/조직 CRUD HTTP 핸들러에 `X-Devhub-Actor` → `audit_logs` 기록 추가.
+2. **Phase 13 P1 큐 진입 (결정 완료, 진입 가능)** — backend_development_roadmap.md P1 의 9단계 task:
+   - **1단계 PoC** — (a) **사용자 수동 단계**: 샌드박스 외 터미널에서 Ory hydra/kratos `go install`. (b) AI 자동화: `hydra`, `kratos` schema 생성 SQL, `infra/idp/{hydra,kratos}.yaml` 작성, Kratos identity schema 정의, DevHub OIDC client 등록 스크립트, Next.js `/login` round-trip 검증.
+   - 2단계 DevHub OIDC client 등록 (PKCE + refresh rotation + skip_consent=true).
+   - 3단계 `users.user_id` ↔ Kratos identity 1:1 매핑 검증 어댑터 + 테스트.
+   - 4단계 identity ↔ users 동기화 어댑터 (Kratos webhook → Go Core).
+   - 5단계 `/api/v1/admin/identities/*` Kratos admin API wrapper.
+   - 6단계 Kratos 이벤트 → DevHub audit log 6종 매핑.
+   - 7단계 Bearer token 검증 미들웨어 + `X-Devhub-Actor` deprecation warning.
+   - 8단계 `backend_api_contract.md §11` 재작성 (Hydra 표준 + admin wrapper + Kratos public flow 3개 절).
+   - 9단계 테스트 (round-trip, invariant, audit, admin wrapper).
 
-3. **Phase 8 WebSocket realtime 엔드포인트**: frontend `realtime.service.ts` 가 호출하는 `/api/v1/realtime/ws` 는 현재 404. gorilla/websocket 또는 nhooyr.io/websocket 도입 검토.
+3. **Phase 12 audit 보강**: 사용자/조직 CRUD HTTP 핸들러에 `X-Devhub-Actor` → `audit_logs` 기록 추가 (Phase 13 token 미들웨어 도입 전 임시 폴백).
 
-4. **frontend Phase 5 시작 (계정/인증 UI)**:
-   - `account.service.ts` 신설.
-   - `/login` 페이지 + 인증 가드 layout/middleware.
-   - `/account` 본인 비밀번호 변경 화면.
-   - Organization 페이지에 시스템 관리자 전용 계정 관리 action 통합.
+4. **Phase 8 WebSocket realtime 엔드포인트**: frontend `realtime.service.ts` 가 호출하는 `/api/v1/realtime/ws` 는 현재 404. gorilla/websocket 또는 nhooyr.io/websocket 도입 검토.
 
-5. **(carried-forward) TASK-007 Gitea Webhook 수신부 상태 재확인** (5일 stale).
+5. **frontend Phase 5 (계정/인증 UI)**: ADR-0001 결정에 따라 화면 책임 재정의 — `/login` 은 Hydra OIDC code flow 시작 + Kratos public flow 호출, `/account` 비밀번호 변경은 Kratos self-service flow, 시스템 관리자 화면은 신규 admin wrapper 호출.
+
+6. **(carried-forward) TASK-007 Gitea Webhook 수신부 상태 재확인** (5일 stale).
 
 ## 환경 가동/정리 안내
 세션 종료 시점에 다음이 떠있었다 (다음 세션에서 살아있을 수도, 죽었을 수도 있음 — 시작 시 먼저 확인):
@@ -82,6 +88,8 @@
 - **Phase 12 미검증 커밋**: 빌드 검증을 못한 채 커밋되므로, 다음 세션 첫 행동은 반드시 빌드/테스트 검증으로 시작한다. 컴파일 실패 시 fix-up 커밋으로 처리.
 
 ## 다음에 읽을 문서
+- [ADR-0001 IdP 선택](../../../../docs/adr/0001-idp-selection.md)
 - [backend_development_roadmap.md](../../backend_development_roadmap.md)
-- [frontend_integration_requirements.md](../../../../docs/backend/frontend_integration_requirements.md)
+- [architecture.md §6.2.3 / §6.3](../../../../docs/architecture.md)
+- [backend_api_contract.md §11](../../../../docs/backend_api_contract.md)
 - [2026-05-07.md](./backlog/2026-05-07.md)

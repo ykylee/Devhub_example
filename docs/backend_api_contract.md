@@ -511,6 +511,14 @@ command의 현재 상태, actor, target, 요청 사유, dry-run 여부, approval
 
 ## 11. 계정 및 인증 (Account & Auth)
 
+> **재설계 예정 (2026-05-07, [ADR-0001](./adr/0001-idp-selection.md))**: 본 §11 의 7개 endpoint (`/api/v1/accounts/*`, `/api/v1/auth/*`) 는 자체 `accounts` 테이블 전제로 작성됐으나, **Ory Hydra + Kratos 도입 결정에 따라 재작성된다**. 아래 본문은 정책 invariant(1:1 매핑, password 평문 미노출, audit log 매핑) 만 historical 기록으로 보존하고, 신규 contract 는 ADR-0001 §9 구현 계획 단계에서 다음 형태로 분기되어 작성된다.
+>
+> - **외부 클라이언트용 (다른 앱이 DevHub IdP 를 사용)**: Hydra 표준 endpoint — `/.well-known/openid-configuration`, `/oauth2/auth`, `/oauth2/token`, `/oauth2/revoke`, `/oauth2/introspect`, JWKS endpoint. DevHub 자체가 신규 contract 를 정의하지 않고 OIDC 표준 path 를 그대로 노출.
+> - **DevHub 시스템 관리자용 (계정 발급/회수/잠금 해제/강제 재설정)**: `/api/v1/admin/identities/*` — Kratos admin API 를 wrap 하는 Go Core endpoint. 실제 신규 contract 정의 위치.
+> - **DevHub self-service (본인 비밀번호 변경 등)**: Next.js 가 Kratos public flow API 를 직접 호출. Go Core 통과 endpoint 신규 정의 없음.
+>
+> §11.1 ~ §11.10 의 본문은 **참고용 historical baseline** 이며, Phase 13 코드 시작 시점에 본 절을 위 3개 카테고리로 교체한다.
+
 DevHub 자체 사용자 계정(Account) CRUD 와 인증 lifecycle 을 정의한다. 정책 기반은 [요구사항 정의서 2.5절](./requirements.md#25-사용자-계정-관리-user-account-management) 과 [architecture.md 6.2절](./architecture.md#62-사용자user--계정account-도메인-분리)을 따른다.
 
 ### 11.1 핵심 invariant

@@ -37,7 +37,7 @@
 | Phase 10 | planned | Hourly Pull Reconciliation | Gitea REST client, 누락 이벤트 보정 worker | dry-run 및 idempotency 테스트 |
 | Phase 11 | planned | 시스템 관리자 기능 고도화 | Runner/서버 상태 adapter, config 조회, allowlist/seed admin | 권한/audit/health adapter 테스트 |
 | Phase 12 | in_progress | 사용자 및 조직/멤버 관리 API | User/Org/Team 도메인 확장, 계층형 조직망 구조, 구성원 할당(Allocation), 관리자 전용 관리 API | 도메인 통합 테스트 및 권한 검증 |
-| Phase 13 | planned | 사용자 계정(Account) 및 인증 1차 | `accounts` 테이블, User-Account 1:1 invariant, login/logout, 비밀번호 해시(bcrypt/argon2id), 본인/관리자 비밀번호 변경, 계정 상태 lifecycle, 로그인 audit log | DB invariant 테스트, 핸들러 단위 테스트, 비밀번호 해시 round-trip 테스트, audit log 기록 검증 |
+| Phase 13 | planned | 사용자 계정 및 인증 1차 (IdP 도입) | Ory Hydra + Kratos 컨테이너 운영, DevHub 의 OIDC client 화, Kratos identity ↔ `users.user_id` 1:1 매핑 동기화 어댑터, Kratos 이벤트 → DevHub audit log 매핑, 시스템 관리자 admin identity wrapper, Next.js 로그인/비밀번호 변경 UI ([ADR-0001](../../docs/adr/0001-idp-selection.md)) | OIDC code flow round-trip 테스트, identity ↔ user 매핑 invariant 테스트, audit log 매핑 테스트, Kratos admin API wrapper 핸들러 테스트 |
 
 ## 3. 현재 완료 범위
 
@@ -98,14 +98,29 @@
 - Hourly Pull reconciliation worker와 Gitea REST client를 설계한다.
 - weekly report, AI Gardener suggestion, team load 산출 모델을 후속 기능으로 구체화한다.
 
-### P1 — Phase 13 (계정/인증 1차)
+### P1 — Phase 13 (계정/인증 1차, IdP 도입)
 
-- `accounts` migration 추가 (`user_id` UNIQUE FK, `login_id` UNIQUE, `password_hash`, `password_algo`, `status`, `failed_login_attempts`, `last_login_at`, `password_changed_at`).
-- domain/store layer: 1:1 invariant 보장하는 `CreateAccount`, `GetAccountByUser`, `UpdateAccount`, `ChangePassword`, `DeleteAccount`. 비밀번호 해시는 bcrypt cost ≥ 12 또는 argon2id 중 한 가지 선택.
-- HTTP handler: `backend_api_contract.md §11` 의 7개 endpoint. 비밀번호는 요청 본문에서 파싱 즉시 해시로 변환하고 평문 변수 수명을 최소화. 응답에 평문/해시 미포함.
-- audit log: `account.created`, `account.disabled`, `account.password_changed`, `account.locked`, `auth.login.succeeded`, `auth.login.failed` 6종 기록.
-- 세션/JWT: 1차 구현은 server-side session 또는 short-lived JWT 중 한 가지 선택 → 결정 결과를 `architecture.md` 6.2.3 에 기록.
-- 핸들러 테스트: in-memory account store mock + bcrypt round-trip + 1:1 conflict + 잠금 임계치 테스트.
+> 직전 자체 `accounts` 구현 task 큐는 [ADR-0001](../../docs/adr/0001-idp-selection.md) 결정에 따라 다음 큐로 교체됐다. ADR-0001 §8 미해결 항목 7종은 2026-05-07 모두 결정 완료 (ADR §8 인라인 결정 결과 참조). 본 큐는 그 결정을 반영한다.
+
+1. **PoC 환경 구성 (Docker 미사용)**:
+   - **(a) Binary 설치 — 사용자 수동 단계, 샌드박스 외**: 사용자 터미널에서 `go install github.com/ory/hydra/v2/cmd/hydra@vX.Y.Z`, `go install github.com/ory/kratos/cmd/kratos@vX.Y.Z` 실행. 사내 GoProxy 미러 사용. 버전(`vX.Y.Z`) 은 PoC 시점 최신 stable. AI 자동화 환경은 binary 설치 자체를 수행하지 않음 — 설정 파일/스크립트/검증만 수행.
+   - **(b) DB schema 분리**: 기존 `devhub` DB 안에 `hydra`, `kratos` schema 신규 생성. Hydra/Kratos `dsn` 에 `?search_path=hydra` / `?search_path=kratos` 적용.
+   - **(c) 설정 파일 작성**: `infra/idp/hydra.yaml`, `infra/idp/kratos.yaml` (위치는 시작 시점 확정). first-party client = silent consent (`skip_consent=true`). PKCE + refresh token rotation 활성.
+   - **(d) Kratos identity schema**: `traits.email`, `traits.display_name`, `metadata_public.user_id` 정의.
+   - **(e) 실행 방식**: 직접 실행 (별도 PowerShell 창 또는 백그라운드). 시스템 서비스 등록은 운영 진입 시점에 별도 결정.
+   - **(f) 검증**: Next.js `/login` → Hydra `/oauth2/auth` (PKCE) → Kratos public flow 인증 → Hydra accept login → silent consent → callback → token endpoint round-trip 1회 성공.
+2. **DevHub OIDC client 등록**: Hydra 에 first-party client 등록 (Authorization Code + PKCE, refresh token rotation, `skip_consent=true`).
+3. **`users.user_id` ↔ Kratos identity 1:1 매핑 검증**: Kratos identity `metadata_public.user_id` 가 DevHub `users.user_id` 와 1:1 invariant 를 지키는지 확인하는 어댑터 + 테스트.
+4. **identity ↔ users 동기화 어댑터**: Kratos webhook 수신 endpoint 를 Go Core 에 추가. identity 생성/비활성화 시 `users.status` 갱신, 신규 user 생성 시 Kratos identity 발급 트리거.
+5. **시스템 관리자 admin wrapper**: `/api/v1/admin/identities/*` — Kratos admin API 호출 wrapper. 발급(초기 비밀번호 강제 재설정 토큰)/회수/잠금 해제/강제 재설정.
+6. **audit log 매핑**: Kratos 이벤트(`session.created`, `identity.created`, `identity.disabled`, `password.changed`) → DevHub audit action 6종 기록 어댑터.
+7. **Token 검증 미들웨어 (X-Devhub-Actor deprecation 시작)**: Go Core 에 Bearer access token JWKS 검증 + `sub` claim → actor 매핑 미들웨어 추가. **`X-Devhub-Actor` 헤더는 폴백으로 유지하되 사용 시 deprecation warning 로그 출력**. 완전 제거는 별도 phase.
+8. **API 계약 재작성**: `backend_api_contract.md §11` 을 (a) Hydra 표준 endpoint 안내, (b) `/api/v1/admin/identities/*` 신규 contract, (c) Next.js → Kratos public flow 안내 3개 절로 교체.
+9. **테스트**: OIDC code flow round-trip, identity ↔ user 매핑 invariant, Kratos webhook → audit log 매핑, admin wrapper 핸들러 단위 테스트.
+
+> MFA 는 1차 미도입(ADR-0001 §8.3 결정). Kratos identity schema 는 후속 phase 에서 MFA 자격 증명을 추가 가능한 상태로 유지.
+> 외부 SaaS client 추가는 1차 범위 밖 — 후속 phase 에서 consent UI 구현과 함께 진행 (ADR-0001 §8.2 결정).
+> Gitea SSO 통합은 본 phase 완료 후 별도 ADR-0002 (예정) 로 처리.
 
 ## 5. Blocked 항목
 

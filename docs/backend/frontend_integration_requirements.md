@@ -202,6 +202,8 @@ PUT /api/v1/organizations/{unit_id}/members
 
 ### 3.8 사용자 계정 / 로그인 관리
 
+> **재설계 예정 (2026-05-07, [ADR-0001](../adr/0001-idp-selection.md))**: 본 §3.8 의 7개 endpoint 호출은 자체 `accounts` 전제다. **Ory Hydra + Kratos 도입 결정**에 따라 프론트 흐름이 다음으로 바뀐다 — (a) 로그인 화면은 Hydra OIDC Authorization Code + PKCE 흐름을 시작하고 자격 검증은 Kratos public flow API 를 직접 호출, (b) 본인 비밀번호 변경은 Kratos self-service flow 를 호출, (c) 시스템 관리자의 계정 발급/회수/잠금 해제/강제 재설정은 신규 `/api/v1/admin/identities/*` (Kratos admin API wrapper) 를 호출. 아래 7개 endpoint 표는 historical baseline 이며 Phase 13 시작 시 교체된다.
+
 DevHub 자체 사용자 계정(Account) 1:1 컨셉 도입에 따라 추가되는 프론트 ↔ 백엔드 연동 항목.
 
 필요 API (계약은 `backend_api_contract.md §11`):
