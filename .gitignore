@@ -8,6 +8,8 @@
 /ANTIGRAVITY.md
 /AGENTS.md
 /GEMINI.md
+/CLAUDE.md
+/.claude/
 
 # Exclude duplicated engine/tool copies
 /ai-workflow/scripts/

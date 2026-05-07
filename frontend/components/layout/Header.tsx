@@ -58,7 +58,7 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
             <input
               type="search"
               placeholder="Search anything..."
-              className="flex h-10 w-full rounded-xl border border-white/5 bg-white/5 px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-white/10 transition-all pl-16"
+              className="flex h-10 w-full rounded-xl border border-white/5 bg-white/5 px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-white/10 transition-all pl-24"
             />
           </div>
         </div>

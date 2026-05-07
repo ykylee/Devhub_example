@@ -165,3 +165,133 @@ type Sink interface {
 	MarkWebhookEventIgnored(context.Context, int64, string) error
 	MarkWebhookEventFailed(context.Context, int64, string) error
 }
+
+type AppRole string
+
+const (
+	AppRoleDeveloper   AppRole = "developer"
+	AppRoleManager     AppRole = "manager"
+	AppRoleSystemAdmin AppRole = "system_admin"
+)
+
+type UserStatus string
+
+const (
+	UserStatusActive      UserStatus = "active"
+	UserStatusPending     UserStatus = "pending"
+	UserStatusDeactivated UserStatus = "deactivated"
+)
+
+type UnitType string
+
+const (
+	UnitTypeCompany  UnitType = "company"
+	UnitTypeDivision UnitType = "division"
+	UnitTypeTeam     UnitType = "team"
+	UnitTypeGroup    UnitType = "group"
+	UnitTypePart     UnitType = "part"
+)
+
+type AppointmentRole string
+
+const (
+	AppointmentRoleLeader AppointmentRole = "leader"
+	AppointmentRoleMember AppointmentRole = "member"
+)
+
+type AppUser struct {
+	ID            int64
+	UserID        string
+	Email         string
+	DisplayName   string
+	Role          AppRole
+	Status        UserStatus
+	PrimaryUnitID string
+	CurrentUnitID string
+	IsSeconded    bool
+	JoinedAt      time.Time
+	Appointments  []UnitAppointment
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+}
+
+type OrgUnit struct {
+	ID           int64
+	UnitID       string
+	ParentUnitID string
+	UnitType     UnitType
+	Label        string
+	LeaderUserID string
+	PositionX    int
+	PositionY    int
+	DirectCount  int
+	TotalCount   int
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+}
+
+type UnitAppointment struct {
+	UnitID          string
+	UserID          string
+	AppointmentRole AppointmentRole
+}
+
+type OrgEdge struct {
+	SourceUnitID string
+	TargetUnitID string
+}
+
+type Hierarchy struct {
+	Units []OrgUnit
+	Edges []OrgEdge
+}
+
+type UserListOptions struct {
+	Limit         int
+	Offset        int
+	Role          string
+	Status        string
+	PrimaryUnitID string
+}
+
+type CreateUserInput struct {
+	UserID        string
+	Email         string
+	DisplayName   string
+	Role          AppRole
+	Status        UserStatus
+	PrimaryUnitID string
+	CurrentUnitID string
+	IsSeconded    bool
+	JoinedAt      time.Time
+}
+
+type UpdateUserInput struct {
+	Email         *string
+	DisplayName   *string
+	Role          *AppRole
+	Status        *UserStatus
+	PrimaryUnitID *string
+	CurrentUnitID *string
+	IsSeconded    *bool
+	JoinedAt      *time.Time
+}
+
+type CreateOrgUnitInput struct {
+	UnitID       string
+	ParentUnitID string
+	UnitType     UnitType
+	Label        string
+	LeaderUserID string
+	PositionX    int
+	PositionY    int
+}
+
+type UpdateOrgUnitInput struct {
+	ParentUnitID *string
+	UnitType     *UnitType
+	Label        *string
+	LeaderUserID *string
+	PositionX    *int
+	PositionY    *int
+}

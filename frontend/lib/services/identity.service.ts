@@ -25,11 +25,13 @@ export interface Team {
 
 export interface OrgNode {
   id: string;
-  type: 'division' | 'team' | 'group' | 'part' | 'company' | 'input';
-  data: { 
-    label: string; 
-    type: string; 
+  type?: 'division' | 'team' | 'group' | 'part' | 'company' | 'input';
+  data: {
+    label: string;
+    type: string;
     leader_id?: string;
+    direct_count?: number;
+    total_count?: number;
   };
   position: { x: number; y: number };
 }
@@ -41,6 +43,133 @@ const DEPT_PRIORITY = {
   'part': 1,
   'company': 5
 };
+
+const ROLE_BACKEND_TO_UI: Record<string, OrgMember["role"]> = {
+  developer: "Developer",
+  manager: "Manager",
+  system_admin: "System Admin",
+};
+
+const ROLE_UI_TO_BACKEND: Record<OrgMember["role"], string> = {
+  Developer: "developer",
+  Manager: "manager",
+  "System Admin": "system_admin",
+};
+
+export interface CreateUserPayload {
+  user_id: string;
+  email: string;
+  display_name: string;
+  role: OrgMember["role"];
+  status: OrgMember["status"];
+  primary_dept_id?: string;
+  current_dept_id?: string;
+  is_seconded?: boolean;
+  joined_at?: string;
+}
+
+export interface UpdateUserPayload {
+  email?: string;
+  display_name?: string;
+  role?: OrgMember["role"];
+  status?: OrgMember["status"];
+  primary_dept_id?: string;
+  current_dept_id?: string;
+  is_seconded?: boolean;
+  joined_at?: string;
+}
+
+export interface OrgUnit {
+  unit_id: string;
+  parent_unit_id: string;
+  unit_type: "company" | "division" | "team" | "group" | "part";
+  label: string;
+  leader_user_id: string;
+  position_x: number;
+  position_y: number;
+  direct_count?: number;
+  total_count?: number;
+}
+
+export interface CreateUnitPayload {
+  unit_id: string;
+  parent_unit_id?: string;
+  unit_type: OrgUnit["unit_type"];
+  label: string;
+  leader_user_id?: string;
+  position_x?: number;
+  position_y?: number;
+}
+
+export interface UpdateUnitPayload {
+  parent_unit_id?: string;
+  unit_type?: OrgUnit["unit_type"];
+  label?: string;
+  leader_user_id?: string;
+  position_x?: number;
+  position_y?: number;
+}
+
+export class IdentityServiceError extends Error {
+  constructor(public status: number, public payload: any, message: string) {
+    super(message);
+    this.name = "IdentityServiceError";
+  }
+}
+
+async function jsonRequest<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const response = await fetch(path, {
+    method,
+    headers: body !== undefined ? { "Content-Type": "application/json" } : undefined,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+  let parsed: any = null;
+  const text = await response.text();
+  if (text.length > 0) {
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      parsed = { raw: text };
+    }
+  }
+  if (!response.ok) {
+    const errMessage = parsed?.error || `HTTP ${response.status}`;
+    throw new IdentityServiceError(response.status, parsed, errMessage);
+  }
+  return parsed as T;
+}
+
+function mapBackendUnit(u: any): OrgUnit {
+  return {
+    unit_id: u.unit_id,
+    parent_unit_id: u.parent_unit_id ?? "",
+    unit_type: u.unit_type,
+    label: u.label,
+    leader_user_id: u.leader_user_id ?? "",
+    position_x: u.position_x ?? 0,
+    position_y: u.position_y ?? 0,
+    direct_count: u.direct_count,
+    total_count: u.total_count,
+  };
+}
+
+function mapBackendUser(u: any): OrgMember {
+  return {
+    id: u.user_id,
+    name: u.display_name,
+    email: u.email,
+    role: ROLE_BACKEND_TO_UI[u.role] ?? "Developer",
+    status: u.status,
+    primary_dept_id: u.primary_unit_id ?? "",
+    current_dept_id: u.current_unit_id ?? "",
+    is_seconded: !!u.is_seconded,
+    appointments: (u.appointments ?? []).map((a: any) => ({
+      dept_id: a.unit_id,
+      role: a.appointment_role,
+    })),
+    joined_at: typeof u.joined_at === "string" ? u.joined_at.slice(0, 10) : u.joined_at,
+  };
+}
 
 export class IdentityService {
   private static instance: IdentityService;
@@ -55,51 +184,15 @@ export class IdentityService {
   }
 
   async getUsers(): Promise<OrgMember[]> {
-    return [
-      {
-        id: "u1",
-        name: "YK Lee",
-        email: "yklee@example.com",
-        role: "System Admin",
-        status: "active",
-        primary_dept_id: "dept-eng",
-        current_dept_id: "dept-eng",
-        is_seconded: false,
-        appointments: [
-          { dept_id: "org-root", role: "leader" },
-          { dept_id: "dept-eng", role: "leader" }
-        ],
-        joined_at: "2026-01-15"
-      },
-      {
-        id: "u2",
-        name: "Alex Kim",
-        email: "alex@example.com",
-        role: "Manager",
-        status: "active",
-        primary_dept_id: "dept-prod",
-        current_dept_id: "team-ux", // 파견 중
-        is_seconded: true,
-        appointments: [
-          { dept_id: "dept-prod", role: "leader" }
-        ],
-        joined_at: "2026-02-01"
-      },
-      {
-        id: "u3",
-        name: "Sam Jones",
-        email: "sam@example.com",
-        role: "Developer",
-        status: "active",
-        primary_dept_id: "team-infra",
-        current_dept_id: "team-infra",
-        is_seconded: false,
-        appointments: [
-          { dept_id: "team-infra", role: "member" }
-        ],
-        joined_at: "2026-05-01"
-      }
-    ];
+    try {
+      const response = await fetch(`/api/v1/users`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const result = await response.json();
+      return (result.data ?? []).map(mapBackendUser);
+    } catch (error) {
+      console.error('[IdentityService] getUsers error, falling back to mock:', error);
+      return this.mockUsers();
+    }
   }
 
   async getTeams(): Promise<Team[]> {
@@ -124,25 +217,133 @@ export class IdentityService {
   }
 
   async getOrgHierarchy() {
-    return {
-      nodes: [
-        { id: 'org-root', type: 'input', data: { label: 'DevHub Global', type: 'division', leader_id: 'u1', direct_count: 5, total_count: 150 }, position: { x: 400, y: 0 } },
-        { id: 'dept-eng', data: { label: 'Engineering', type: 'division', leader_id: 'u1', direct_count: 10, total_count: 85 }, position: { x: 200, y: 150 } },
-        { id: 'dept-prod', data: { label: 'Product', type: 'division', leader_id: 'u2', direct_count: 8, total_count: 65 }, position: { x: 600, y: 150 } },
-        { id: 'team-infra', data: { label: 'Infrastructure', type: 'team', leader_id: 'u1', direct_count: 12, total_count: 24 }, position: { x: 50, y: 300 } },
-        { id: 'team-frontend', data: { label: 'Frontend', type: 'team', leader_id: 'u3', direct_count: 15, total_count: 15 }, position: { x: 350, y: 300 } },
-        { id: 'team-ux', data: { label: 'UX Strategy', type: 'team', leader_id: 'u2', direct_count: 6, total_count: 6 }, position: { x: 600, y: 300 } },
-        { id: 'part-security', data: { label: 'Security Part', type: 'part', direct_count: 4, total_count: 4 }, position: { x: 50, y: 450 } },
-      ],
-      edges: [
-        { id: 'e-root-eng', source: 'org-root', target: 'dept-eng', animated: true },
-        { id: 'e-root-prod', source: 'org-root', target: 'dept-prod', animated: true },
-        { id: 'e-eng-infra', source: 'dept-eng', target: 'team-infra' },
-        { id: 'e-eng-front', source: 'dept-eng', target: 'team-frontend' },
-        { id: 'e-prod-ux', source: 'dept-prod', target: 'team-ux' },
-        { id: 'e-infra-sec', source: 'team-infra', target: 'part-security' },
-      ]
+    try {
+      const response = await fetch(`/api/v1/organization/hierarchy`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const result = await response.json();
+      const units: any[] = result.data?.units ?? [];
+      const edges: any[] = result.data?.edges ?? [];
+      const nodes = units.map((u) => ({
+        id: u.unit_id,
+        ...(u.unit_id === 'org-root' ? { type: 'input' as const } : {}),
+        data: {
+          label: u.label,
+          type: u.unit_type,
+          leader_id: u.leader_user_id || undefined,
+          direct_count: u.direct_count,
+          total_count: u.total_count,
+        },
+        position: { x: u.position_x ?? 0, y: u.position_y ?? 0 },
+      }));
+      const mappedEdges = edges.map((e) => ({
+        id: `e-${e.source_unit_id}-${e.target_unit_id}`,
+        source: e.source_unit_id,
+        target: e.target_unit_id,
+        animated: e.source_unit_id === 'org-root',
+      }));
+      return { nodes, edges: mappedEdges };
+    } catch (error) {
+      console.error('[IdentityService] getOrgHierarchy error, falling back to mock:', error);
+      return this.mockHierarchy();
+    }
+  }
+
+  async getUnitMembers(unitId: string): Promise<OrgMember[]> {
+    try {
+      const response = await fetch(`/api/v1/organization/units/${encodeURIComponent(unitId)}/members`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const result = await response.json();
+      return (result.data ?? []).map(mapBackendUser);
+    } catch (error) {
+      console.error('[IdentityService] getUnitMembers error:', error);
+      return [];
+    }
+  }
+
+  async createUser(payload: CreateUserPayload): Promise<OrgMember> {
+    const body = {
+      user_id: payload.user_id,
+      email: payload.email,
+      display_name: payload.display_name,
+      role: ROLE_UI_TO_BACKEND[payload.role],
+      status: payload.status,
+      primary_unit_id: payload.primary_dept_id ?? "",
+      current_unit_id: payload.current_dept_id ?? "",
+      is_seconded: !!payload.is_seconded,
+      joined_at: payload.joined_at ?? "",
     };
+    const result = await jsonRequest<{ data: any }>("POST", `/api/v1/users`, body);
+    return mapBackendUser(result.data);
+  }
+
+  async updateUser(userId: string, payload: UpdateUserPayload): Promise<OrgMember> {
+    const body: Record<string, unknown> = {};
+    if (payload.email !== undefined) body.email = payload.email;
+    if (payload.display_name !== undefined) body.display_name = payload.display_name;
+    if (payload.role !== undefined) body.role = ROLE_UI_TO_BACKEND[payload.role];
+    if (payload.status !== undefined) body.status = payload.status;
+    if (payload.primary_dept_id !== undefined) body.primary_unit_id = payload.primary_dept_id;
+    if (payload.current_dept_id !== undefined) body.current_unit_id = payload.current_dept_id;
+    if (payload.is_seconded !== undefined) body.is_seconded = payload.is_seconded;
+    if (payload.joined_at !== undefined) body.joined_at = payload.joined_at;
+    const result = await jsonRequest<{ data: any }>(
+      "PATCH",
+      `/api/v1/users/${encodeURIComponent(userId)}`,
+      body,
+    );
+    return mapBackendUser(result.data);
+  }
+
+  async deleteUser(userId: string): Promise<void> {
+    await jsonRequest<{ data: any }>("DELETE", `/api/v1/users/${encodeURIComponent(userId)}`);
+  }
+
+  async getUnit(unitId: string): Promise<OrgUnit> {
+    const result = await jsonRequest<{ data: any }>("GET", `/api/v1/organization/units/${encodeURIComponent(unitId)}`);
+    return mapBackendUnit(result.data);
+  }
+
+  async createUnit(payload: CreateUnitPayload): Promise<OrgUnit> {
+    const body = {
+      unit_id: payload.unit_id,
+      parent_unit_id: payload.parent_unit_id ?? "",
+      unit_type: payload.unit_type,
+      label: payload.label,
+      leader_user_id: payload.leader_user_id ?? "",
+      position_x: payload.position_x ?? 0,
+      position_y: payload.position_y ?? 0,
+    };
+    const result = await jsonRequest<{ data: any }>("POST", `/api/v1/organization/units`, body);
+    return mapBackendUnit(result.data);
+  }
+
+  async updateUnit(unitId: string, payload: UpdateUnitPayload): Promise<OrgUnit> {
+    const body: Record<string, unknown> = {};
+    if (payload.parent_unit_id !== undefined) body.parent_unit_id = payload.parent_unit_id;
+    if (payload.unit_type !== undefined) body.unit_type = payload.unit_type;
+    if (payload.label !== undefined) body.label = payload.label;
+    if (payload.leader_user_id !== undefined) body.leader_user_id = payload.leader_user_id;
+    if (payload.position_x !== undefined) body.position_x = payload.position_x;
+    if (payload.position_y !== undefined) body.position_y = payload.position_y;
+    const result = await jsonRequest<{ data: any }>(
+      "PATCH",
+      `/api/v1/organization/units/${encodeURIComponent(unitId)}`,
+      body,
+    );
+    return mapBackendUnit(result.data);
+  }
+
+  async deleteUnit(unitId: string): Promise<void> {
+    await jsonRequest<{ data: any }>("DELETE", `/api/v1/organization/units/${encodeURIComponent(unitId)}`);
+  }
+
+  async replaceUnitMembers(unitId: string, userIds: string[]): Promise<OrgMember[]> {
+    const result = await jsonRequest<{ data: any[] }>(
+      "PUT",
+      `/api/v1/organization/units/${encodeURIComponent(unitId)}/members`,
+      { user_ids: userIds },
+    );
+    return (result.data ?? []).map(mapBackendUser);
   }
 
   calculatePrimaryDept(member: OrgMember, nodes: OrgNode[]): string {
@@ -163,12 +364,82 @@ export class IdentityService {
       const prioA = DEPT_PRIORITY[a.data.type as keyof typeof DEPT_PRIORITY] || 0;
       const prioB = DEPT_PRIORITY[b.data.type as keyof typeof DEPT_PRIORITY] || 0;
       if (prioA !== prioB) return prioB - prioA;
-      
+
       // 3. If same priority, count children (simulated for now)
-      return 0; 
+      return 0;
     });
 
     return leadDepts[0].id;
+  }
+
+  private mockUsers(): OrgMember[] {
+    return [
+      {
+        id: "u1",
+        name: "YK Lee",
+        email: "yklee@example.com",
+        role: "System Admin",
+        status: "active",
+        primary_dept_id: "dept-eng",
+        current_dept_id: "dept-eng",
+        is_seconded: false,
+        appointments: [
+          { dept_id: "org-root", role: "leader" },
+          { dept_id: "dept-eng", role: "leader" }
+        ],
+        joined_at: "2026-01-15"
+      },
+      {
+        id: "u2",
+        name: "Alex Kim",
+        email: "alex@example.com",
+        role: "Manager",
+        status: "active",
+        primary_dept_id: "dept-prod",
+        current_dept_id: "team-ux",
+        is_seconded: true,
+        appointments: [
+          { dept_id: "dept-prod", role: "leader" }
+        ],
+        joined_at: "2026-02-01"
+      },
+      {
+        id: "u3",
+        name: "Sam Jones",
+        email: "sam@example.com",
+        role: "Developer",
+        status: "active",
+        primary_dept_id: "team-infra",
+        current_dept_id: "team-infra",
+        is_seconded: false,
+        appointments: [
+          { dept_id: "team-infra", role: "member" }
+        ],
+        joined_at: "2026-05-01"
+      }
+    ];
+  }
+
+  private mockHierarchy() {
+    return {
+      nodes: [
+        { id: 'org-root', type: 'input' as const, data: { label: 'DevHub Global', type: 'division', leader_id: 'u1', direct_count: 5, total_count: 150 }, position: { x: 400, y: 0 } },
+        { id: 'dept-eng', data: { label: 'Engineering', type: 'division', leader_id: 'u1', direct_count: 10, total_count: 85 }, position: { x: 200, y: 150 } },
+        { id: 'dept-prod', data: { label: 'Product', type: 'division', leader_id: 'u2', direct_count: 8, total_count: 65 }, position: { x: 600, y: 150 } },
+        { id: 'team-infra', data: { label: 'Infrastructure', type: 'team', leader_id: 'u1', direct_count: 12, total_count: 24 }, position: { x: 50, y: 300 } },
+        { id: 'team-frontend', data: { label: 'Frontend', type: 'team', leader_id: 'u3', direct_count: 15, total_count: 15 }, position: { x: 350, y: 300 } },
+        { id: 'team-ux', data: { label: 'UX Strategy', type: 'team', leader_id: 'u2', direct_count: 6, total_count: 6 }, position: { x: 600, y: 300 } },
+        { id: 'part-security', data: { label: 'Security Part', type: 'part', direct_count: 4, total_count: 4 }, position: { x: 50, y: 450 } },
+      ],
+      edges: [
+        { id: 'e-root-eng', source: 'org-root', target: 'dept-eng', animated: true },
+        { id: 'e-root-prod', source: 'org-root', target: 'dept-prod', animated: true },
+        { id: 'e-eng-infra', source: 'dept-eng', target: 'team-infra' },
+        { id: 'e-eng-front', source: 'dept-eng', target: 'team-frontend' },
+        { id: 'e-prod-ux', source: 'dept-prod', target: 'team-ux' },
+        { id: 'e-infra-sec', source: 'team-infra', target: 'part-security' },
+      ]
+    };
   }
 }
 

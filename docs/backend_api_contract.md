@@ -2,6 +2,7 @@
 
 - 문서 목적: 프론트엔드 별도 브랜치 개발을 위한 초기 백엔드 API 계약을 기록한다.
 - 기준일: 2026-05-04
+- 최종 수정: 2026-05-07 (Account/Auth 계약 추가)
 - 상태: draft
 - 관련 문서: `docs/architecture.md`, `docs/tech_stack.md`, `docs/backend/frontend_integration_requirements.md`, `docs/backend/requirements_review.md`, `ai-workflow/memory/backend_development_roadmap.md`
 
@@ -31,6 +32,7 @@ RiskImpact = low | medium | high | critical
 RiskStatus = detected | investigation | action_required | mitigated | dismissed
 CommandStatus = pending | running | succeeded | failed | rejected | cancelled
 WebhookEventStatus = received | validated | processed | failed | ignored
+AccountStatus = active | disabled | locked | password_reset_required
 ```
 
 Webhook event는 signature 검증과 raw 저장이 끝나면 `validated`가 되며, 정규화가 성공하면 `processed`, 재처리 가능한 오류는 `failed`, 지원하지 않거나 처리 대상이 아닌 이벤트는 `ignored`로 전환한다.
@@ -506,3 +508,175 @@ command의 현재 상태, actor, target, 요청 사유, dry-run 여부, approval
 - `GET /api/v1/realtime/ws`
 
 예정 API는 도메인 정규화 테이블 설계 이후 확정한다.
+
+## 11. 계정 및 인증 (Account & Auth)
+
+> **재설계 예정 (2026-05-07, [ADR-0001](./adr/0001-idp-selection.md))**: 본 §11 의 7개 endpoint (`/api/v1/accounts/*`, `/api/v1/auth/*`) 는 자체 `accounts` 테이블 전제로 작성됐으나, **Ory Hydra + Kratos 도입 결정에 따라 재작성된다**. 아래 본문은 정책 invariant(1:1 매핑, password 평문 미노출, audit log 매핑) 만 historical 기록으로 보존하고, 신규 contract 는 ADR-0001 §9 구현 계획 단계에서 다음 형태로 분기되어 작성된다.
+>
+> - **외부 클라이언트용 (다른 앱이 DevHub IdP 를 사용)**: Hydra 표준 endpoint — `/.well-known/openid-configuration`, `/oauth2/auth`, `/oauth2/token`, `/oauth2/revoke`, `/oauth2/introspect`, JWKS endpoint. DevHub 자체가 신규 contract 를 정의하지 않고 OIDC 표준 path 를 그대로 노출.
+> - **DevHub 시스템 관리자용 (계정 발급/회수/잠금 해제/강제 재설정)**: `/api/v1/admin/identities/*` — Kratos admin API 를 wrap 하는 Go Core endpoint. 실제 신규 contract 정의 위치.
+> - **DevHub self-service (본인 비밀번호 변경 등)**: Next.js 가 Kratos public flow API 를 직접 호출. Go Core 통과 endpoint 신규 정의 없음.
+>
+> §11.1 ~ §11.10 의 본문은 **참고용 historical baseline** 이며, Phase 13 코드 시작 시점에 본 절을 위 3개 카테고리로 교체한다.
+
+DevHub 자체 사용자 계정(Account) CRUD 와 인증 lifecycle 을 정의한다. 정책 기반은 [요구사항 정의서 2.5절](./requirements.md#25-사용자-계정-관리-user-account-management) 과 [architecture.md 6.2절](./architecture.md#62-사용자user--계정account-도메인-분리)을 따른다.
+
+### 11.1 핵심 invariant
+
+- 사용자 1명은 정확히 0개 또는 1개의 계정을 가진다. 동일 `user_id` 에 대한 두 번째 계정 생성 요청은 `409 Conflict` 로 거절한다.
+- `login_id` 는 시스템 전역 unique 다. 충돌은 `409 Conflict` 로 응답한다.
+- 비밀번호 평문은 어떤 응답/audit/log 에도 포함하지 않는다.
+
+### 11.2 Account 응답 envelope
+
+```json
+{
+  "id": 12,
+  "user_id": "u3",
+  "login_id": "samj",
+  "status": "active",
+  "password_algo": "bcrypt",
+  "password_changed_at": "2026-05-07T10:00:00Z",
+  "last_login_at": "2026-05-07T09:55:00Z",
+  "failed_login_attempts": 0,
+  "created_at": "2026-04-10T12:00:00Z",
+  "updated_at": "2026-05-07T10:00:00Z"
+}
+```
+
+`password_hash` 는 어떤 응답에도 포함하지 않는다.
+
+### 11.3 `POST /api/v1/accounts`
+
+신규 계정을 발급한다. **시스템 관리자 전용.** 지정된 `user_id` 에 이미 계정이 있으면 `409 Conflict` 로 응답한다.
+
+#### 요청
+
+```json
+{
+  "user_id": "u3",
+  "login_id": "samj",
+  "initial_password": "TempPass!2026",
+  "force_change_on_first_login": true
+}
+```
+
+`force_change_on_first_login` 이 `true` 이면 계정 상태를 `password_reset_required` 로 시작한다.
+
+#### 응답
+
+```json
+{
+  "status": "created",
+  "data": { /* Account envelope */ }
+}
+```
+
+### 11.4 `GET /api/v1/accounts/{user_id}`
+
+사용자에 연결된 계정을 조회한다. 본인 또는 시스템 관리자만 호출 가능. 계정이 없으면 `404 Not Found`.
+
+### 11.5 `PATCH /api/v1/accounts/{user_id}`
+
+계정의 `login_id` 또는 `status` 변경. **시스템 관리자 전용.** `password` 는 본 endpoint 로 변경하지 않는다.
+
+#### 요청
+
+```json
+{
+  "login_id": "sam.jones",
+  "status": "disabled"
+}
+```
+
+### 11.6 `PUT /api/v1/accounts/{user_id}/password`
+
+비밀번호 변경. 본인 호출 시 `current_password` 검증을 요구하고, 시스템 관리자가 강제 재설정할 때는 `current_password` 없이 `force=true` 와 `new_password` 만으로 처리하되 결과 상태를 `password_reset_required` 로 설정한다.
+
+#### 요청 (본인)
+
+```json
+{
+  "current_password": "OldPass!2026",
+  "new_password": "NewPass!2027"
+}
+```
+
+#### 요청 (관리자 강제 재설정)
+
+```json
+{
+  "force": true,
+  "new_password": "TempPass!2027"
+}
+```
+
+#### 응답
+
+```json
+{
+  "status": "ok",
+  "data": {
+    "user_id": "u3",
+    "password_changed_at": "2026-05-07T11:00:00Z",
+    "status": "password_reset_required"
+  }
+}
+```
+
+### 11.7 `DELETE /api/v1/accounts/{user_id}`
+
+계정 회수. **시스템 관리자 전용.** 사용자 행은 유지되며 계정만 삭제된다. 활성 세션은 즉시 무효화한다.
+
+### 11.8 `POST /api/v1/auth/login`
+
+로그인. 비인증 endpoint.
+
+#### 요청
+
+```json
+{
+  "login_id": "samj",
+  "password": "NewPass!2027"
+}
+```
+
+#### 응답 (성공)
+
+```json
+{
+  "status": "ok",
+  "data": {
+    "user_id": "u3",
+    "login_id": "samj",
+    "session_token": "...",
+    "expires_at": "2026-05-08T11:00:00Z",
+    "must_change_password": false
+  }
+}
+```
+
+`must_change_password=true` 이면 프론트는 비밀번호 변경 화면으로 강제 라우팅한다.
+
+#### 응답 (실패)
+
+| HTTP | status | 비고 |
+| --- | --- | --- |
+| 401 | `unauthenticated` | login_id 부재 또는 비밀번호 불일치 — 어느 쪽인지 응답 본문에서 구분하지 않는다 |
+| 423 | `locked` | 계정 잠금 |
+| 403 | `disabled` | 계정 회수 상태 |
+
+### 11.9 `POST /api/v1/auth/logout`
+
+세션 무효화. 인증된 호출.
+
+### 11.10 Audit log 매핑
+
+| API | action | target_type |
+| --- | --- | --- |
+| `POST /accounts` | `account.created` | `account` |
+| `PATCH /accounts/{id}` (status=disabled) | `account.disabled` | `account` |
+| `PUT /accounts/{id}/password` | `account.password_changed` | `account` |
+| `POST /auth/login` 200 | `auth.login.succeeded` | `account` |
+| `POST /auth/login` 401/423/403 | `auth.login.failed` | `account` 또는 `login_id` |
+| 자동 lock | `account.locked` | `account` |

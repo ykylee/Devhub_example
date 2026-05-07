@@ -80,6 +80,10 @@ IGNORED_WORKFLOW_SOURCE_SUBTREES = {
     ("ai-workflow", "workflow_kit"),
 }
 
+IGNORED_CLAUDE_SUBTREES = {
+    (".claude", "agents"),
+}
+
 
 def iter_markdown_files() -> list[Path]:
     markdown_files: list[Path] = []
@@ -90,6 +94,8 @@ def iter_markdown_files() -> list[Path]:
         if len(rel_parts) >= 2 and tuple(rel_parts[:2]) in IGNORED_AI_WORKFLOW_SUBTREES:
             continue
         if len(rel_parts) >= 2 and tuple(rel_parts[:2]) in IGNORED_WORKFLOW_SOURCE_SUBTREES:
+            continue
+        if len(rel_parts) >= 2 and tuple(rel_parts[:2]) in IGNORED_CLAUDE_SUBTREES:
             continue
         markdown_files.append(path)
     return sorted(markdown_files)
