@@ -22,17 +22,17 @@
     "runtime_checks": "docker-compose ps"
   },
   "session": {
-    "current_baseline": "Phase 12 backend(domain+store+migration+HTTP) 검증 통과 + frontend API 연동 완료, 로컬 PostgreSQL + go run + npm run dev 로 풀스택 가동 확인",
-    "current_axis": "Phase 12 후속 — 쓰기 핸들러(ReplaceUnitMembers) + 핸들러 단위 테스트 + WebSocket realtime 엔드포인트",
-    "current_focus": "세션 정리 완료 — 다음 세션은 Phase 12 쓰기 핸들러부터",
+    "current_baseline": "Phase 12 backend CRUD 정비 완료 — users/units/members 8개 쓰기 라우트 + store CRUD + handler 단위 테스트 통과 (go build/vet/test all green, 미커밋)",
+    "current_axis": "Phase 12 후속 — 프론트엔드 쓰기 wiring + audit_logs 연결 + WebSocket realtime",
+    "current_focus": "사용자/조직 CRUD 백엔드 1차 정비 완료, 다음은 frontend wiring + actor 감사로그",
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
-      "TASK-FRONTEND-PHASE5-ORG",
       "TASK-CLAUDE-ONBOARDING",
       "TASK-BACKEND-PHASE12",
       "TASK-BACKEND-PHASE12-HTTP",
-      "TASK-FRONTEND-PHASE12-WIRE"
+      "TASK-FRONTEND-PHASE12-WIRE",
+      "TASK-BACKEND-PHASE12-CRUD"
     ],
     "environment_constraints": [
       "Backend Core API on :8080 (REST), WebSocket /api/v1/realtime/ws 미구현",
@@ -44,14 +44,15 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/claude/init/backlog/2026-05-07.md",
-    "task_count": 4,
+    "task_count": 5,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
       "TASK-CLAUDE-ONBOARDING",
       "TASK-BACKEND-PHASE12",
       "TASK-BACKEND-PHASE12-HTTP",
-      "TASK-FRONTEND-PHASE12-WIRE"
+      "TASK-FRONTEND-PHASE12-WIRE",
+      "TASK-BACKEND-PHASE12-CRUD"
     ]
   },
   "next_documents": [
