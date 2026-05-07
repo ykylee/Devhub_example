@@ -1,11 +1,11 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-05-06",
+  "generated_at": "2026-05-07",
   "source_of_truth": {
     "project_profile_path": "docs/PROJECT_PROFILE.md",
     "session_handoff_path": "ai-workflow/memory/session_handoff.md",
     "work_backlog_index_path": "ai-workflow/memory/work_backlog.md",
-    "latest_backlog_path": "ai-workflow/memory/backlog/2026-05-06.md",
+    "latest_backlog_path": "ai-workflow/memory/backlog/2026-05-07.md",
     "repository_assessment_path": "ai-workflow/memory/repository_assessment.md"
   },
   "project": {
@@ -22,18 +22,18 @@
     "runtime_checks": "docker-compose ps"
   },
   "session": {
-    "current_baseline": "Frontend Phase 5 조직 관리 UI 고도화 (계층형 Org Units, 멤버 관리 모달 적용, 백엔드 요구사항 정의 완료)",
-    "current_axis": "조직 및 권한 관리 백엔드 API 통합 준비",
-    "current_focus": "Phase 12 Org Management 로드맵 전환 및 UI/API 규격 확정",
+    "current_baseline": "Frontend Phase 5 조직 관리 UI 고도화 완료",
+    "current_axis": "Frontend Phase 6 권한 관리(RBAC) UI 고도화",
+    "current_focus": "사용자 및 그룹별 세부 권한 설정, 권한 편집기(Permission Editor) 컴포넌트 구현",
     "in_progress_items": [
-      "TASK-007"
+      "TASK-FRONTEND-PHASE6-RBAC"
     ],
     "blocked_items": [],
     "recent_done_items": [
       "TASK-FRONTEND-PHASE2",
       "TASK-FRONTEND-PHASE3",
-      "PR-FRONTEND-PHASE2-3-MERGE",
-      "TASK-FRONTEND-PHASE5-ORG"
+      "TASK-FRONTEND-PHASE5-ORG",
+      "TASK-FRONTEND-PHASE12-API"
     ],
     "environment_constraints": [
       "Docker/Docker-compose required for full system",
@@ -41,10 +41,10 @@
     ]
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/backlog/2026-05-06.md",
-    "task_count": 19,
+    "latest_backlog_path": "ai-workflow/memory/backlog/2026-05-07.md",
+    "task_count": 20,
     "in_progress_items": [
-      "TASK-007"
+      "TASK-FRONTEND-PHASE6-RBAC"
     ],
     "blocked_items": [],
     "done_items": [
@@ -58,14 +58,15 @@
       "TASK-019",
       "TASK-FRONTEND-PHASE2",
       "TASK-FRONTEND-PHASE3",
-      "TASK-FRONTEND-PHASE5-ORG"
+      "TASK-FRONTEND-PHASE5-ORG",
+      "TASK-FRONTEND-PHASE12-API"
     ]
   },
   "next_documents": [
     "docs/frontend_development_roadmap.md",
     "ai-workflow/memory/session_handoff.md",
     "docs/backend_api_contract.md",
-    "ai-workflow/memory/backlog/2026-05-06.md"
+    "ai-workflow/memory/backlog/2026-05-07.md"
   ],
   "repository_assessment": {
     "path": "ai-workflow/memory/repository_assessment.md",

@@ -18,7 +18,12 @@
 | **Phase 2** | **done** | 핵심 API 통합 | Infra Topology, Risk List, Command/Audit 연동, Role mapping |
 | **Phase 3** | **done** | 실시간성 및 CI/CD 가시화 | WebSocket 통합, CI Run/Logs 연동, 실시간 알림 피드 |
 | **Phase 4** | **planned** | AI 어드바이저 & 어드민 액션 | AI Gardener 추천 연동, 시스템 관리자 서비스 제어 액션 실체화 |
-| **Phase 5** | **planned** | 사용자/조직 관리 + 자체 계정 인증 | 사용자 프로필, 조직 관리 UI(이미 일부 구현됨), 로그인/로그아웃, 계정(Account) 발급·회수·비밀번호 변경, 권한(RBAC) 관리 |
+| **Phase 5** | **done** | 사용자 및 조직 관리 UI | 사용자 프로필, 팀/조직 단위(Org Units) 관리 UI, 멤버 할당 모달 |
+| **Phase 5.1** | **done** | 조직 관리 API 통합 | 백엔드 조직 CRUD 및 멤버 할당 API 연동 |
+| **Phase 5.2** | **in_progress** | 계정 인증 및 IdP 도입 | Ory Hydra/Kratos 도입, 로그인/로그아웃, 계정 발급 (Phase 13 병행) |
+| **Phase 6** | **in_progress** | 권한 관리(RBAC) UI 고도화 | 세부 권한 설정 UI, 권한 편집기(Permission Editor) 복구 |
+| **Phase 6.1** | **planned** | RBAC API 통합 | 권한 정책(Policy) CRUD API 연동, 역할별 접근 제어(RBAC Guard) 실체화 |
+| **Phase 7** | **planned** | AI 어드바이저 & 어드민 액션 | AI Gardener 추천 연동, 시스템 관리자 서비스 제어 액션 실체화 |
 
 ## 3. Phase 2 상세 계획 (Core API Integration)
 

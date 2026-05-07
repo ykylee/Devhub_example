@@ -1,208 +1,167 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Shield, Lock, Eye, Pencil, Crown } from "lucide-react";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ShieldCheck, Lock, Plus, Edit3, Trash2, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PermissionMatrix, PermissionState } from "./PermissionMatrix";
+import { Role } from "@/lib/services/rbac.types";
 
-type Role = "Developer" | "Manager" | "System Admin";
-type Resource =
-  | "Repositories"
-  | "CI Runs"
-  | "Risks"
-  | "Commands"
-  | "Organization"
-  | "System Config";
-type Permission = "read" | "write" | "admin" | "none";
+interface PermissionEditorProps {
+  roles: Role[];
+  setRoles: (roles: Role[]) => void;
+}
 
-const RESOURCES: Resource[] = [
-  "Repositories",
-  "CI Runs",
-  "Risks",
-  "Commands",
-  "Organization",
-  "System Config",
-];
+export function PermissionEditor({ roles, setRoles }: PermissionEditorProps) {
+  const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
 
-const ROLES: Role[] = ["Developer", "Manager", "System Admin"];
+  const selectedRole = roles.find(r => r.id === selectedRoleId);
 
-const MATRIX: Record<Role, Record<Resource, Permission>> = {
-  Developer: {
-    Repositories: "read",
-    "CI Runs": "read",
-    Risks: "read",
-    Commands: "none",
-    Organization: "none",
-    "System Config": "none",
-  },
-  Manager: {
-    Repositories: "write",
-    "CI Runs": "read",
-    Risks: "write",
-    Commands: "write",
-    Organization: "read",
-    "System Config": "none",
-  },
-  "System Admin": {
-    Repositories: "admin",
-    "CI Runs": "admin",
-    Risks: "admin",
-    Commands: "admin",
-    Organization: "admin",
-    "System Config": "admin",
-  },
-};
+  const handleCreateRole = () => {
+    const newRole: Role = {
+      id: `custom-${Date.now()}`,
+      name: "New Custom Role",
+      description: "Define custom access policies for this role.",
+      permissions: {}
+    };
+    setRoles([...roles, newRole]);
+    setSelectedRoleId(newRole.id);
+  };
 
-const permissionStyles: Record<Permission, string> = {
-  read: "bg-white/5 border-white/20 text-white/70",
-  write: "bg-blue-500/10 border-blue-500/30 text-blue-300",
-  admin: "bg-accent/15 border-accent/40 text-accent",
-  none: "bg-transparent border-white/5 text-muted-foreground/40",
-};
+  const handleDeleteRole = (id: string) => {
+    if (id === "sysadmin") return; // Prevent deleting sysadmin
+    setRoles(roles.filter(r => r.id !== id));
+    if (selectedRoleId === id) setSelectedRoleId(null);
+  };
 
-const permissionIcon: Record<Permission, typeof Eye | null> = {
-  read: Eye,
-  write: Pencil,
-  admin: Crown,
-  none: null,
-};
+  const handleUpdatePermissions = (newPermissions: PermissionState) => {
+    if (!selectedRoleId) return;
+    setRoles(roles.map(r => 
+      r.id === selectedRoleId ? { ...r, permissions: newPermissions } : r
+    ));
+  };
 
-const roleAccent: Record<Role, string> = {
-  Developer: "text-white/80",
-  Manager: "text-blue-300",
-  "System Admin": "text-accent",
-};
-
-export function PermissionEditor() {
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.4 }}
-      className="space-y-6"
-    >
-      <div className="glass border border-yellow-400/20 bg-yellow-400/5 rounded-2xl px-5 py-4 flex items-start gap-3">
-        <div className="p-2 rounded-xl bg-yellow-400/10 border border-yellow-400/20 shrink-0">
-          <Lock className="w-4 h-4 text-yellow-300" />
+    <div className="space-y-10">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-primary/20 border border-primary/30">
+            <Lock className="w-5 h-5 text-primary" />
+          </div>
+          <h3 className="text-xl font-black text-white uppercase tracking-tight">RBAC <span className="text-primary">Policies</span></h3>
         </div>
-        <div>
-          <p className="text-xs font-black uppercase tracking-widest text-yellow-300">
-            Read-only preview
+        <div className="flex items-center gap-4">
+          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full border border-white/10">
+            {roles.length} Roles Defined
           </p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">
-            Backend RBAC API pending. Matrix below reflects the proposed default policy.
-          </p>
+          <button 
+            onClick={handleCreateRole}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all text-sm"
+          >
+            <Plus className="w-4 h-4" />
+            Create Role
+          </button>
         </div>
       </div>
 
-      <div className="glass-card p-6 relative overflow-hidden">
-        <div className="absolute -top-20 -right-20 w-64 h-64 blur-3xl opacity-10 pointer-events-none bg-accent" />
-
-        <div className="flex items-center justify-between mb-6 relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-accent/10 border border-accent/20">
-              <Shield className="w-5 h-5 text-accent" />
-            </div>
-            <div>
-              <h3 className="text-lg font-black text-white uppercase tracking-tight">
-                Role-Based <span className="text-accent">Access Control</span>
-              </h3>
-              <p className="text-[11px] text-muted-foreground font-bold">
-                Permissions matrix preview
-              </p>
-            </div>
-          </div>
-          <div className="hidden md:flex items-center gap-3 text-[10px] font-black uppercase tracking-widest">
-            <LegendChip permission="read" label="Read" />
-            <LegendChip permission="write" label="Write" />
-            <LegendChip permission="admin" label="Admin" />
-          </div>
-        </div>
-
-        <div className="overflow-x-auto relative z-10">
-          <div className="min-w-[720px]">
-            <div
-              className="grid gap-2 mb-2"
-              style={{ gridTemplateColumns: `200px repeat(${RESOURCES.length}, minmax(120px, 1fr))` }}
-            >
-              <div className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground px-3 py-2">
-                Role / Resource
-              </div>
-              {RESOURCES.map((resource) => (
-                <div
-                  key={resource}
-                  className="text-[10px] font-black uppercase tracking-[0.25em] text-white/60 px-3 py-2 text-center"
-                >
-                  {resource}
-                </div>
-              ))}
-            </div>
-
-            {ROLES.map((role) => (
-              <div
-                key={role}
-                className="grid gap-2 mb-2"
-                style={{ gridTemplateColumns: `200px repeat(${RESOURCES.length}, minmax(120px, 1fr))` }}
-              >
-                <div
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-5 space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+          <AnimatePresence>
+            {roles.map((role) => {
+              const isSelected = selectedRoleId === role.id;
+              return (
+                <motion.div
+                  key={role.id}
+                  layout
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  onClick={() => setSelectedRoleId(role.id)}
                   className={cn(
-                    "px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-xs font-black uppercase tracking-widest flex items-center",
-                    roleAccent[role]
+                    "rounded-2xl p-6 relative overflow-hidden cursor-pointer transition-all border",
+                    isSelected 
+                      ? "bg-primary/10 border-primary/50 shadow-[0_0_30px_rgba(var(--primary),0.15)]" 
+                      : "glass border-white/10 hover:border-white/20"
                   )}
                 >
-                  {role}
-                </div>
-                {RESOURCES.map((resource) => {
-                  const permission = MATRIX[role][resource];
-                  return (
-                    <PermissionCell
-                      key={`${role}-${resource}`}
-                      permission={permission}
-                    />
-                  );
-                })}
-              </div>
-            ))}
-          </div>
+                  <div className={cn("absolute top-0 left-0 w-1.5 h-full", 
+                    role.id === 'sysadmin' ? "bg-orange-500" :
+                    role.id === 'manager' ? "bg-emerald-500" : 
+                    isSelected ? "bg-primary" : "bg-blue-500"
+                  )} />
+
+                  <div className="flex flex-col gap-3 ml-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className={cn("text-lg font-black", isSelected ? "text-primary" : "text-white")}>
+                        {role.name}
+                      </h4>
+                      {role.id !== 'sysadmin' && (
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleDeleteRole(role.id); }}
+                          className="p-1.5 rounded-lg text-white/40 hover:text-red-400 hover:bg-red-400/10 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                      {role.description}
+                    </p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <ShieldCheck className={cn("w-4 h-4", isSelected ? "text-primary/70" : "text-white/30")} />
+                      <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider">
+                        {Object.keys(role.permissions).length} Resources Configured
+                      </span>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
         </div>
 
-        <p className="mt-6 pt-4 border-t border-white/5 text-[10px] font-bold text-muted-foreground/70 uppercase tracking-widest relative z-10">
-          Editing disabled until backend policy service is online.
-        </p>
+        <div className="lg:col-span-7">
+          <AnimatePresence mode="wait">
+            {selectedRole ? (
+              <motion.div
+                key={selectedRole.id}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="glass rounded-3xl p-8 border-white/10 h-full flex flex-col"
+              >
+                <div className="mb-8">
+                  <h3 className="text-2xl font-black text-white mb-2">{selectedRole.name} Matrix</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Configure fine-grained access policies for <strong className="text-white">{selectedRole.name}</strong>.
+                    Changes are automatically applied to users mapped to this role.
+                  </p>
+                </div>
+                
+                <div className="flex-1">
+                  <PermissionMatrix 
+                    permissions={selectedRole.permissions} 
+                    onChange={handleUpdatePermissions}
+                    readOnly={selectedRole.id === 'sysadmin'} 
+                  />
+                </div>
+              </motion.div>
+            ) : (
+              <motion.section
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="glass rounded-3xl p-10 border-dashed border-white/10 text-center h-full flex flex-col items-center justify-center"
+              >
+                <ShieldAlert className="w-16 h-16 text-white/10 mb-4" />
+                <h4 className="text-xl font-black text-white/50 mb-2">Select a Role</h4>
+                <p className="text-sm text-muted-foreground max-w-sm">
+                  Choose a role from the left panel to inspect or edit its permission matrix.
+                </p>
+              </motion.section>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
-    </motion.div>
-  );
-}
-
-function PermissionCell({ permission }: { permission: Permission }) {
-  const Icon = permissionIcon[permission];
-  const label = permission === "none" ? "—" : permission;
-  return (
-    <button
-      type="button"
-      disabled
-      aria-disabled="true"
-      className={cn(
-        "px-3 py-3 rounded-xl border text-[10px] font-black uppercase tracking-widest cursor-not-allowed flex items-center justify-center gap-1.5 transition-colors hover:bg-white/[0.02]",
-        permissionStyles[permission]
-      )}
-    >
-      {Icon && <Icon className="w-3 h-3" />}
-      {label}
-    </button>
-  );
-}
-
-function LegendChip({ permission, label }: { permission: Permission; label: string }) {
-  const Icon = permissionIcon[permission];
-  return (
-    <span
-      className={cn(
-        "px-2.5 py-1 rounded-lg border flex items-center gap-1.5",
-        permissionStyles[permission]
-      )}
-    >
-      {Icon && <Icon className="w-3 h-3" />}
-      {label}
-    </span>
+    </div>
   );
 }

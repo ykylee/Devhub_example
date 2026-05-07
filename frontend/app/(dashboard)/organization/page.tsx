@@ -13,6 +13,8 @@ import { cn } from "@/lib/utils";
 import { useStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
 
+import { defaultRoles, Role } from "@/lib/services/rbac.types";
+
 type Tab = "members" | "units" | "permissions" | "orgchart";
 
 export default function OrganizationPage() {
@@ -20,6 +22,7 @@ export default function OrganizationPage() {
   const [members, setMembers] = useState<OrgMember[]>([]);
   const [orgNodes, setOrgNodes] = useState<any[]>([]);
   const [unitMembers, setUnitMembers] = useState<Record<string, string[]>>({});
+  const [roles, setRoles] = useState<Role[]>(defaultRoles);
   const [managingUnitId, setManagingUnitId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -171,7 +174,15 @@ export default function OrganizationPage() {
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3 }}
               >
-                {activeTab === 'members' && <MemberTable members={members} />}
+                {activeTab === 'members' && (
+                  <MemberTable 
+                    members={members} 
+                    roles={roles}
+                    onUpdateMemberRole={(memberId, newRoleName) => {
+                      setMembers(members.map(m => m.id === memberId ? { ...m, role: newRoleName as any } : m));
+                    }}
+                  />
+                )}
                 {activeTab === 'units' && (
                   <OrgUnitGrid 
                     nodes={orgNodes} 
@@ -180,7 +191,9 @@ export default function OrganizationPage() {
                   />
                 )}
                 {activeTab === 'orgchart' && <OrgTree />}
-                {activeTab === 'permissions' && <PermissionEditor />}
+                {activeTab === 'permissions' && (
+                  <PermissionEditor roles={roles} setRoles={setRoles} />
+                )}
               </motion.div>
             </AnimatePresence>
           )}

@@ -4,41 +4,37 @@
 - 범위: 최근 작업 완료 사항 및 환경 제약, 차기 권장 사항
 - 대상 독자: 후속 에이전트, 프로젝트 리드
 - 상태: active
-- 최종 수정일: 2026-05-06
+- 최종 수정일: 2026-05-07
 - 관련 문서: [작업 백로그](./work_backlog.md), [프로젝트 프로파일](../../docs/PROJECT_PROFILE.md)
 
 - 작성자: Antigravity
-- 현재 브랜치: `feature/org-management-ui` (예정)
+- 현재 브랜치: `gemini/phase6`
 
-## 🎯 현재 세션 요약 (Phase 5 - 조직 관리 UI 고도화)
-프론트엔드의 조직 관리(Organization) 페이지 내에서 제공되던 단편적인 Teams 탭을 모든 구조적 조직 단위(Division, Team, Group, Part)를 포함하는 **Org Units** 관리 기능으로 전면 개편했습니다. 추가로, 조직도의 노드를 필터링할 수 있는 Scope Filter를 도입하고, 각 조직별 구성원을 배정/해제할 수 있는 실시간(휘발성) 멤버 관리 모달 UI를 구축했습니다.
+## 🎯 현재 세션 요약 (Phase 6 - 권한 관리 UI 고도화)
+프론트엔드 Phase 5(조직 단위 및 멤버 할당 모달 적용) 완료 후, 후속 페이즈인 **Phase 6 (권한 관리 UI 고도화)** 단계로 진입했습니다. 사용자 및 조직별로 세분화된 권한을 설정할 수 있는 RBAC(Role-Based Access Control) 인터페이스를 구축하는 데 집중하고 있습니다.
 
-## ✅ 완료된 사항
-1. **조직도(Org Chart) 필터링 및 시각화 개선**:
-   - Depth(계층 깊이) 및 Root Node(특정 상위 부서) 기준으로 조직도를 필터링할 수 있는 **Scope Filter Panel** 추가.
-   - 복잡성을 줄이기 위해 실선/점선 구분을 없애고 모든 연결선을 단일 실선으로 통일.
-   - 불필요한 미니맵 제거로 시야 확보.
-2. **Org Units (조직 단위) 관리 뷰 전환**:
-   - 기존의 Flat한 `Teams` 탭을 조직도의 계층적 데이터 기반인 `Org Units` 탭으로 확장 교체 (`OrgUnitGrid.tsx`).
-   - Division, Team, Group, Part 등 조직 유형에 따른 카드 컴포넌트 디자인 차별화.
-3. **멤버 관리 모달 (Member Management UI)**:
-   - 각 조직 유닛 카드의 'Manage' 버튼을 통해 인력 할당 및 해제가 가능한 슬라이드 모달 구현.
-   - 전체 인력(Available Personnel)과 현재 인력(Unit Roster)을 양방향으로 동적 이동 및 검색 가능.
-   - 저장 시 UI 상태(인원 카운트) 즉각 반영.
-4. **백엔드 요구사항 업데이트**:
-   - `docs/backend/frontend_integration_requirements.md` 및 `backend_development_roadmap.md`에 새로운 조직 및 멤버 할당 API(Organization Management) 요구사항을 **Phase 12** 항목으로 보완 등록.
+## ✅ 최근 완료된 사항 (Phase 5, 12 & Sync)
+1. **메인 브랜치 동기화 (Sync with Main)**: Phase 12(조직 CRUD API) 및 Phase 13(IdP PoC) 변경 사항을 `gemini/phase6`에 병합 완료.
+2. **조직 관리 실데이터 연동 (Phase 12 통합)**: `OrganizationPage`에서 Mock 데이터 대신 `identityService`를 통한 실제 백엔드 API 호출로 전환.
+3. **조직도(Org Chart) 필터링 및 시각화 개선**: Depth 및 Root Node 기반 필터링 적용.
+4. **멤버 관리 모달 (Member Management UI)**: 실데이터 기반 인력 할당 및 해제 API 연동 완료.
+
+## 🚀 진행 중인 작업 (Phase 6)
+1. **권한 관리(RBAC) UI 고도화**: 
+   - `PermissionEditor.tsx`, `PermissionMatrix.tsx` 복구 및 `OrganizationPage` 통합.
+   - 사용자 및 역할별 세부 권한 설정 UI 스캐폴딩 (현재 인메모리 상태).
+2. **어드민 뷰 (Admin Control) 강화**: 시스템 관리자 권한을 가진 사용자에게만 노출되는 특별 제어 패널 디자인.
+3. **병합 후 충돌 해결**: `roadmap.md` 및 `page.tsx` 내 Phase 12 API 로직과 Phase 6 UI 로직 통합 완료.
 
 ## 🚀 다음 세션 작업 제안
-1. **PR 리뷰 및 머지**: 작성된 `feature/org-management-ui` 브랜치 변경 사항을 `main`에 병합.
-2. **백엔드 Phase 12 (조직 관리 API)**:
-   - 계층형 조직 도메인 모델 생성.
-   - `unit_members` 등 N:M 구성원 할당 테이블 및 영속화 로직 설계.
-   - 프론트엔드의 Mock 상태(`unitMembers` 등)를 실제 API 연동으로 교체.
+1. `PermissionEditor.tsx`, `RoleMappingTable.tsx` 등의 컴포넌트 마크업 작성 및 Mock 상태 기반의 권한 제어 시뮬레이션 적용.
+2. 백엔드 연동 전까지 브라우저 내에서 권한을 변경하고, 이에 따라 대시보드 내 특정 뷰(메뉴 등)가 조건부 렌더링되도록 구현.
 
 ## ⚠️ 주의 사항
-- **휘발성 상태 (Volatile State)**: 프론트엔드에 추가된 멤버 관리(할당/해제) 기능은 현재 React의 로컬 상태(in-memory)로 동작합니다. 브라우저 새로고침 시 초기 Mock 데이터 상태로 리셋되므로, 추후 백엔드 API와의 연동이 필수적입니다.
+- **휘발성 상태 (Volatile State)**: 프론트엔드에 추가되는 모든 권한(RBAC) 데이터는 현재 React 로컬 상태(in-memory)로 동작합니다. 추후 백엔드 API와의 연동이 필수적입니다.
+- **연결된 문서 업데이트**: UI 스캐폴딩 후, 백엔드 연동을 위한 규격은 `docs/backend/frontend_integration_requirements.md` 등에 추가 정리해야 합니다.
 
 ## 다음에 읽을 문서
 - [README.md](../../README.md)
-- [README.md](../../docs/README.md)
-- [work_backlog.md](work_backlog.md)
+- [frontend_development_roadmap.md](../../docs/frontend_development_roadmap.md)
+- [backlog/2026-05-07.md](backlog/2026-05-07.md)

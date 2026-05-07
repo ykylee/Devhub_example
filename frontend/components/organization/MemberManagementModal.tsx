@@ -117,7 +117,10 @@ export function MemberManagementModal({
                     </div>
                     <div>
                       <p className="text-sm font-bold text-white group-hover:text-primary transition-colors">{member.name}</p>
-                      <p className="text-[10px] text-muted-foreground">{member.email}</p>
+                      <p className="text-[10px] text-muted-foreground flex items-center gap-2">
+                        {member.email}
+                        <span className="bg-white/10 px-1.5 py-0.5 rounded text-[8px] uppercase font-bold text-white/50 border border-white/5">{member.role}</span>
+                      </p>
                     </div>
                   </div>
                   <button className="p-1.5 rounded-lg bg-primary/10 text-primary opacity-0 group-hover:opacity-100 transition-opacity">
@@ -165,7 +168,10 @@ export function MemberManagementModal({
                   <div className="flex items-center gap-3 text-right">
                     <div>
                       <p className="text-sm font-bold text-white group-hover:text-accent transition-colors">{member.name}</p>
-                      <p className="text-[10px] text-muted-foreground">{member.email}</p>
+                      <p className="text-[10px] text-muted-foreground flex items-center justify-end gap-2">
+                        <span className="bg-accent/10 px-1.5 py-0.5 rounded text-[8px] uppercase font-bold text-accent/50 border border-accent/20">{member.role}</span>
+                        {member.email}
+                      </p>
                     </div>
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center border border-accent/20 text-xs font-bold text-accent">
                       {member.name.substring(0, 2).toUpperCase()}
