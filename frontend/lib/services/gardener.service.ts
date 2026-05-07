@@ -1,4 +1,9 @@
-import { CommandResponse } from "./types";
+import { ServiceActionCommand } from "./types";
+
+export interface CommandResponse {
+  command_id: string;
+  status: string;
+}
 
 export interface Suggestion {
   id: string;
@@ -10,7 +15,7 @@ export interface Suggestion {
   created_at: string;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API_BASE = "";
 
 export class GardenerService {
   private static instance: GardenerService;

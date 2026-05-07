@@ -20,7 +20,7 @@ interface MemberTableProps {
 
 export function MemberTable({ members, roles, onUpdateMemberRole }: MemberTableProps) {
   const { role: currentUserRole } = useStore();
-  const { addToast } = useToast();
+  const { toast } = useToast();
   const [openActionId, setOpenActionId] = useState<string | null>(null);
 
   const handleAdminAction = async (action: 'issue' | 'reset' | 'disable', member: OrgMember) => {
@@ -35,11 +35,11 @@ export function MemberTable({ members, roles, onUpdateMemberRole }: MemberTableP
       } else if (action === 'disable') {
         if (confirm(`Are you sure you want to disable ${member.name}'s account?`)) {
           await accountService.disableAccount(member.id, "Admin requested");
-          addToast("Account disabled", "success");
+          toast("Account disabled", "success");
         }
       }
     } catch (error) {
-      addToast("Failed to perform action", "error");
+      toast("Failed to perform action", "error");
     }
   };
 

@@ -5,11 +5,11 @@ import { motion } from "framer-motion";
 import { UserCircle, KeyRound, Shield, AlertCircle, Check } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { accountService } from "@/lib/services/account.service";
-import { Toast, useToast } from "@/components/ui/Toast";
+import { useToast } from "@/components/ui/Toast";
 
 export default function AccountPage() {
   const { role } = useStore();
-  const { addToast } = useToast();
+  const { toast } = useToast();
   const [isUpdating, setIsUpdating] = useState(false);
   
   // Password Form State
@@ -20,19 +20,19 @@ export default function AccountPage() {
   const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
-      addToast("New passwords do not match", "error");
+      toast("New passwords do not match", "error");
       return;
     }
     
     setIsUpdating(true);
     try {
       await accountService.updateMyPassword(currentPassword, newPassword);
-      addToast("Password updated successfully", "success");
+      toast("Password updated successfully", "success");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (error) {
-      addToast(error instanceof Error ? error.message : "Failed to update password", "error");
+      toast(error instanceof Error ? error.message : "Failed to update password", "error");
     } finally {
       setIsUpdating(false);
     }

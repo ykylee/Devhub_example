@@ -100,7 +100,7 @@ export class RealtimeService {
     if (!this.handlers.has(type)) {
       this.handlers.set(type, new Set());
     }
-    this.handlers.get(type)!.add(handler);
+    this.handlers.get(type)!.add(handler as any);
 
     return () => this.unsubscribe(type, handler);
   }
@@ -108,7 +108,7 @@ export class RealtimeService {
   public unsubscribe<T = unknown>(type: string, handler: WSEventHandler<T>) {
     const eventHandlers = this.handlers.get(type);
     if (eventHandlers) {
-      eventHandlers.delete(handler);
+      eventHandlers.delete(handler as any);
       if (eventHandlers.size === 0) {
         this.handlers.delete(type);
       }

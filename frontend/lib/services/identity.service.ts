@@ -220,7 +220,7 @@ function mapBackendUser(u: BackendUser): OrgMember {
       dept_id: a.unit_id,
       role: a.appointment_role,
     })),
-    joined_at: typeof u.joined_at === "string" ? u.joined_at.slice(0, 10) : u.joined_at,
+    joined_at: typeof u.joined_at === "string" ? u.joined_at.slice(0, 10) : (u.joined_at ?? ""),
   };
 }
 

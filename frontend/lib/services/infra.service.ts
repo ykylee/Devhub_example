@@ -3,7 +3,7 @@ import { getMockMetrics } from "../mockData";
 import type { UserRole } from "../store";
 import { formatBytes } from "../utils";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API_BASE = "";
 
 export class InfraService {
   private static instance: InfraService;
@@ -112,6 +112,10 @@ export class InfraService {
     }
     const result = await response.json() as ApiResponse<ServiceActionCommand>;
     return result.data.command_status === 'pending';
+  }
+
+  public formatBytes(bytes: number): string {
+    return formatBytes(bytes);
   }
 }
 

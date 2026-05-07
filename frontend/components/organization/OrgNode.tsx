@@ -6,7 +6,8 @@ import { Plus, Minus, Edit3, Crown, Check, X, Building2, Users, Layers, Shield }
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export const OrgNode = memo(({ id, data, selected }: NodeProps) => {
+export const OrgNode = memo(({ id, data: anyData, selected }: NodeProps) => {
+  const data = anyData as any;
   const [isEditing, setIsEditing] = useState(data.isInitialEditing || false);
   const [editedName, setEditedName] = useState(data.label as string);
   const [editedLeader, setEditedLeader] = useState(data.leader_id as string || "");

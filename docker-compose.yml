@@ -25,6 +25,7 @@ services:
       - "3000:3000"
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8080
+      - BACKEND_API_URL=http://backend-core:8080
 
   db:
     image: postgres:15-alpine
@@ -33,7 +34,7 @@ services:
       - POSTGRES_PASSWORD=pass
       - POSTGRES_DB=devhub
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
 

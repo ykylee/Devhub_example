@@ -40,7 +40,7 @@ class WebSocketService {
       this.ws.onopen = () => {
         console.log("[WebSocket] Connected successfully.");
         this.reconnectAttempts = 0;
-        this.startMockEvents(); // TEMP: For Phase 3 verification
+        // this.startMockEvents(); // TEMP: For Phase 3 verification
       };
 
       this.ws.onmessage = (event) => {
