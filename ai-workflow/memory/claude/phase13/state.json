@@ -1,0 +1,61 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-05-07",
+  "source_of_truth": {
+    "project_profile_path": "docs/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/claude/phase13/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/claude/phase13/work_backlog.md",
+    "latest_backlog_path": "ai-workflow/memory/claude/phase13/backlog/2026-05-07.md",
+    "repository_assessment_path": "ai-workflow/memory/repository_assessment.md"
+  },
+  "project": {
+    "project_name": "DevHub Example",
+    "document_home": "docs/README.md",
+    "operations_path": null,
+    "backlog_path": "ai-workflow/memory/claude/phase13/backlog/",
+    "handoff_path": "ai-workflow/memory/claude/phase13/session_handoff.md",
+    "environment_path": "ai-workflow/memory/environments/"
+  },
+  "commands": {
+    "quick_tests": "pytest ai-workflow/tests/check_docs.py",
+    "isolated_tests": "go test ./backend-core/... && pytest backend-ai/",
+    "runtime_checks": "Get-Process hydra, kratos, go, node 2>$null | Select-Object Name, Id, StartTime"
+  },
+  "session": {
+    "current_baseline": "claude/init f77fa8a 에서 분기. ADR-0001(Ory Hydra+Kratos IdP) 결정 + §8 7종 인라인 결정 완료. PR #10 (claude/init → main) 미머지 상태에서 Phase 13 PoC 병행 진입.",
+    "current_axis": "Phase 13 P1 1단계 — PoC 환경 구성 (Hydra/Kratos native binary, devhub DB schema 분리, 설정 파일, OIDC client 등록, Next.js round-trip 검증).",
+    "current_focus": "PoC 1단계 sub-step (b)~(e) AI 자동화 작성 진입. (a) binary 설치는 사용자 터미널 수동 단계로 분리됨.",
+    "in_progress_items": [
+      "TASK-PHASE13-POC"
+    ],
+    "blocked_items": [],
+    "recent_done_items": [
+      "TASK-ADR-0001-IDP-SELECTION",
+      "TASK-ADR-0001-DECISIONS"
+    ],
+    "environment_constraints": [
+      "Backend Core API on :8080 (REST), WebSocket /api/v1/realtime/ws 미구현",
+      "Local PostgreSQL :5432 (postgres/postgres, db=devhub) — native 설치, Docker 미사용",
+      "Docker / docker-compose 미사용 정책 (2026-05-07) — 모든 컴포넌트 native binary / 호스트 시스템 서비스로 배포",
+      "Hydra/Kratos binary 설치는 샌드박스 외 사용자 터미널에서 `go install` 수동 (AI 자동화 미수행)",
+      "외부 자원 차단: proxy.golang.org / fonts.gstatic.com 등 — 사내 SSL inspection 환경. Go 모듈은 사내 GoProxy 미러 필요",
+      "Next.js dev rewrite (/api/* → backend) 가 브라우저 CORS 회피용으로 활성"
+    ]
+  },
+  "next_documents": [
+    "docs/adr/0001-idp-selection.md",
+    "ai-workflow/memory/backend_development_roadmap.md",
+    "docs/architecture.md",
+    "docs/backend_api_contract.md"
+  ],
+  "repository_assessment": {
+    "path": "ai-workflow/memory/repository_assessment.md",
+    "present": true
+  },
+  "branch_lineage": {
+    "branched_from": "claude/init",
+    "branched_at_commit": "f77fa8a",
+    "branched_at_date": "2026-05-07",
+    "open_pr_from_parent": "https://github.com/ykylee/Devhub_example/pull/10"
+  }
+}
