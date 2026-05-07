@@ -26,8 +26,14 @@
    - `state.json`, `session_handoff.md`, `work_backlog.md`, `backlog/2026-05-07.md` 4종을 브랜치 기준 baseline으로 작성.
    - flat 경로의 stale 항목(TASK-003 = `9553755`로 머지 완료) done 반영, TASK-007은 carried-forward로 분리.
 
-## 진행 중 (in_progress, 미검증/미커밋)
-1. **TASK-BACKEND-PHASE12 — 조직 관리 API 도메인 모델 + 영속화 + 마이그레이션**:
+## 진행 중 (in_progress, 미검증)
+1. **TASK-BACKEND-PHASE12-HTTP — 조직 관리 read-only HTTP 핸들러**:
+   - `backend-core/internal/httpapi/organization.go` (264줄): `OrganizationStore` interface, 4개 응답 타입, 4개 핸들러 (`listUsers` / `getUser` / `getHierarchy` / `listUnitMembers`).
+   - `backend-core/internal/httpapi/router.go`: `RouterConfig.OrganizationStore` + 라우트 4개 등록.
+   - `backend-core/main.go`: `organizationStore` 변수 + RouterConfig wiring.
+   - **정적 검토 통과**: `PostgresStore` 메소드 시그니처가 `OrganizationStore` interface 4개 모두 만족, 기존 핸들러 패턴 (status/data/meta envelope, parseBoundedInt) 재사용.
+   - **검증 미완료**: 빌드/테스트는 동일하게 `proxy.golang.org` 차단으로 미실행.
+2. **TASK-BACKEND-PHASE12 — 조직 관리 API 도메인 모델 + 영속화 + 마이그레이션**:
    - `backend-core/internal/domain/domain.go` (+88줄): `AppRole`, `UserStatus`, `UnitType`, `AppointmentRole`, `AppUser`, `OrgUnit`, `UnitAppointment`, `OrgEdge`, `Hierarchy`, `UserListOptions` 추가.
    - `backend-core/internal/store/users_units.go` (433줄): `ListUsers` (페이지네이션 + role/status/primary_unit 필터), 계층형 `Hierarchy` 조회 영속화 로직.
    - `backend-core/internal/store/users_units_test.go` (249줄): `DEVHUB_TEST_DB_URL` 기반 통합 테스트 (env 미설정 시 skip).
@@ -37,13 +43,17 @@
    - **검증 미완료**: 현재 환경에서 `go build ./backend-core/...` 시 `proxy.golang.org` 접근 차단으로 모듈 다운로드 실패. 코드 컴파일 가능 여부, DB 통합 테스트 모두 미검증.
 
 ## 다음 세션 작업 제안
-1. **Phase 12 빌드/테스트 검증**:
-   - 모듈 캐시 가능한 환경에서 `go build ./...` / `go vet ./...` / `go test ./internal/store/...` 실행.
-   - `DEVHUB_TEST_DB_URL` 부여 후 `users_units_test.go` 통합 테스트 통과 확인.
-2. **Phase 12 HTTP 핸들러 + 라우팅 연결**:
-   - `internal/httpapi/` 아래 조직/멤버 조회 핸들러 추가 및 `Sink` 인터페이스 확장 검토.
-3. **프론트엔드 휘발성 상태 → API 연동 교체**:
-   - `OrganizationPage`의 `unitMembers` in-memory 상태를 백엔드 Phase 12 API 연동으로 전환.
+1. **Phase 12 빌드/테스트 검증** (최우선):
+   - 모듈 캐시 가능한 환경에서 `cd backend-core && go build ./... && go vet ./...` 실행.
+   - `DEVHUB_TEST_DB_URL` 부여 후 `go test ./internal/store/...` 통합 테스트 통과 확인.
+   - 컴파일 실패 시 fix-up 커밋으로 처리.
+2. **Phase 12 쓰기 핸들러 추가**:
+   - `PUT /api/v1/organization/units/:unit_id/members` (`ReplaceUnitMembers` 호출).
+   - 핸들러 단위 테스트 (commands_test.go 패턴 참고: in-memory mock store).
+3. **프론트엔드 API 연동 교체**:
+   - `frontend/lib/services/identity.service.ts` mock 메소드 (`getUsers` / `getOrgHierarchy`)를 `/api/v1/users` / `/api/v1/organization/hierarchy` 호출로 전환.
+   - `dept_id` ↔ `unit_id` 명명 매핑 결정 (frontend는 dept, backend는 unit).
+   - `OrganizationPage`의 `unitMembers` in-memory 상태를 백엔드 API 연동으로 교체.
 4. **(carried-forward) TASK-007 Gitea Webhook 수신부 상태 재확인**:
    - 정규화 테이블, WebSocket publish, Hourly Pull reconciliation, Python AI gRPC 잔여 항목의 실제 진행도를 코드베이스에서 검증한 후 in_progress 재진입 여부 결정.
 

@@ -37,13 +37,14 @@ type CommandStore interface {
 }
 
 type RouterConfig struct {
-	WebhookSecret    string
-	EventStore       WebhookEventStore
-	EventProcessor   WebhookEventProcessor
-	HealthStore      HealthStore
-	DomainStore      DomainStore
-	CommandStore     CommandStore
-	SnapshotProvider SnapshotProvider
+	WebhookSecret     string
+	EventStore        WebhookEventStore
+	EventProcessor    WebhookEventProcessor
+	HealthStore       HealthStore
+	DomainStore       DomainStore
+	CommandStore      CommandStore
+	OrganizationStore OrganizationStore
+	SnapshotProvider  SnapshotProvider
 }
 
 func NewRouter(cfg RouterConfig) *gin.Engine {
@@ -67,6 +68,10 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.GET("/risks/critical", handler.criticalRisks)
 	v1.POST("/risks/:risk_id/mitigations", handler.createRiskMitigation)
 	v1.GET("/commands/:command_id", handler.getCommand)
+	v1.GET("/users", handler.listUsers)
+	v1.GET("/users/:user_id", handler.getUser)
+	v1.GET("/organization/hierarchy", handler.getHierarchy)
+	v1.GET("/organization/units/:unit_id/members", handler.listUnitMembers)
 	v1.POST("/integrations/gitea/webhooks", handler.receiveGiteaWebhook)
 
 	return router

@@ -19,6 +19,7 @@ func main() {
 	var healthStore httpapi.HealthStore
 	var domainStore httpapi.DomainStore
 	var commandStore httpapi.CommandStore
+	var organizationStore httpapi.OrganizationStore
 	if cfg.DBURL != "" {
 		pgStore, err := store.NewPostgresStore(ctx, cfg.DBURL)
 		if err != nil {
@@ -30,17 +31,19 @@ func main() {
 		healthStore = pgStore
 		domainStore = pgStore
 		commandStore = pgStore
+		organizationStore = pgStore
 	} else {
 		log.Println("DB_URL is not set; webhook persistence is disabled")
 	}
 
 	router := httpapi.NewRouter(httpapi.RouterConfig{
-		WebhookSecret:  cfg.GiteaWebhookSecret,
-		EventStore:     eventStore,
-		EventProcessor: eventProcessor,
-		HealthStore:    healthStore,
-		DomainStore:    domainStore,
-		CommandStore:   commandStore,
+		WebhookSecret:     cfg.GiteaWebhookSecret,
+		EventStore:        eventStore,
+		EventProcessor:    eventProcessor,
+		HealthStore:       healthStore,
+		DomainStore:       domainStore,
+		CommandStore:      commandStore,
+		OrganizationStore: organizationStore,
 		SnapshotProvider: httpapi.RuntimeSnapshotProvider{
 			Base:         httpapi.StaticSnapshotProvider{},
 			HealthStore:  healthStore,
