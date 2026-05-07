@@ -92,14 +92,18 @@ session:
 secrets:
   cookie:
     - "poc-only-cookie-secret-min-16-bytes-aaaaaaaa"
+  # Kratos requires cipher secret length <= 32 bytes (AES-256). PoC placeholder.
   cipher:
-    - "poc-only-cipher-secret-must-be-32-bytes-bbbb"
+    - "poc-cipher-secret-32bytes-aaaaaa"
 
 identity:
   default_schema_id: devhub_user
   schemas:
+    # NOTE: Path is resolved relative to the process working directory, not the
+    # config file. Always launch `kratos serve --config infra/idp/kratos.yaml`
+    # from the repository root so this resolves correctly.
     - id: devhub_user
-      url: file://./identity.schema.json
+      url: file://./infra/idp/identity.schema.json
 
 courier:
   smtp:
