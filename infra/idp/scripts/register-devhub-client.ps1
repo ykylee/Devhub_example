@@ -5,7 +5,8 @@
 #
 # 전제:
 #   - hydra binary 가 PATH 에 있어야 한다 (사용자가 샌드박스 외 터미널에서
-#     `go install github.com/ory/hydra/v2/cmd/hydra@latest` 실행 후).
+#     `go install github.com/ory/hydra/v2@latest` 실행 후 — main.go 가 모듈
+#     루트에 있으므로 /cmd/... 를 붙이지 않는다).
 #   - Hydra 가 admin URL (http://localhost:4445) 에서 가동 중이어야 한다.
 #
 # 사용:
