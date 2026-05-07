@@ -10,8 +10,8 @@
 - 작성자: Claude Code
 - 현재 브랜치: `claude/init`
 
-## 현재 세션 요약 (Claude Code 워크플로우 온보딩 + Backend Phase 12 도메인/store/migration 초안)
-이번 세션은 두 단계로 진행되었다. 1단계는 신규 Claude Code 워크플로우 (`CLAUDE.md`, `.claude/agents/*` sub-agent 4종) 환경 점검과 브랜치별 메모리 분리(`ai-workflow/memory/claude/init/`). 2단계는 곧바로 이어진 Backend Phase 12 (조직/멤버 관리 API) 도메인 모델 + 영속화 + 마이그레이션 + 프론트엔드 컴포넌트 초안 작성. 2단계 작업 도중 터미널이 종료되어 모든 산출물이 untracked/modified 상태로 디스크에만 남아 있었으나 손실은 없으며, 이번 재개 세션에서 분리 커밋으로 정리 예정이다.
+## 현재 세션 요약 (Phase 12 풀스택 가동 검증 + frontend API 연동)
+이번 세션은 1) 이전 세션의 미커밋 작업물 정리 (workflow 메타 + Phase 12 backend 초안) 분리 커밋, 2) Phase 12 read-only HTTP 핸들러 추가, 3) **풀스택 가동 검증**(로컬 PostgreSQL + `go run` + `npm run dev`) 으로 이전 세션의 미검증 우려 해소, 4) frontend `identity.service.ts` 의 mock → 실제 API 연동 + Next.js rewrite 로 CORS 회피, 5) 외부 자원 차단 환경 호환 패치 (Geist 폰트 제거) + UI 픽스 (검색창 padding) 까지 진행했다. 모든 Phase 12 엔드포인트가 실제 DB 데이터로 응답하고 frontend `/organization` 페이지가 정상 렌더링됨을 확인했다.
 
 ## 완료된 사항
 1. **Claude Code 환경 검증**:
@@ -26,36 +26,42 @@
    - `state.json`, `session_handoff.md`, `work_backlog.md`, `backlog/2026-05-07.md` 4종을 브랜치 기준 baseline으로 작성.
    - flat 경로의 stale 항목(TASK-003 = `9553755`로 머지 완료) done 반영, TASK-007은 carried-forward로 분리.
 
-## 진행 중 (in_progress, 미검증)
-1. **TASK-BACKEND-PHASE12-HTTP — 조직 관리 read-only HTTP 핸들러**:
-   - `backend-core/internal/httpapi/organization.go` (264줄): `OrganizationStore` interface, 4개 응답 타입, 4개 핸들러 (`listUsers` / `getUser` / `getHierarchy` / `listUnitMembers`).
-   - `backend-core/internal/httpapi/router.go`: `RouterConfig.OrganizationStore` + 라우트 4개 등록.
-   - `backend-core/main.go`: `organizationStore` 변수 + RouterConfig wiring.
-   - **정적 검토 통과**: `PostgresStore` 메소드 시그니처가 `OrganizationStore` interface 4개 모두 만족, 기존 핸들러 패턴 (status/data/meta envelope, parseBoundedInt) 재사용.
-   - **검증 미완료**: 빌드/테스트는 동일하게 `proxy.golang.org` 차단으로 미실행.
-2. **TASK-BACKEND-PHASE12 — 조직 관리 API 도메인 모델 + 영속화 + 마이그레이션**:
-   - `backend-core/internal/domain/domain.go` (+88줄): `AppRole`, `UserStatus`, `UnitType`, `AppointmentRole`, `AppUser`, `OrgUnit`, `UnitAppointment`, `OrgEdge`, `Hierarchy`, `UserListOptions` 추가.
-   - `backend-core/internal/store/users_units.go` (433줄): `ListUsers` (페이지네이션 + role/status/primary_unit 필터), 계층형 `Hierarchy` 조회 영속화 로직.
-   - `backend-core/internal/store/users_units_test.go` (249줄): `DEVHUB_TEST_DB_URL` 기반 통합 테스트 (env 미설정 시 skip).
-   - `backend-core/internal/store/audit_logs.go` (81줄): `CreateAuditLog` 헬퍼 (audit_id 자동 prefix).
-   - `backend-core/migrations/000004_create_users_units.up.sql` (71줄) + `.down.sql` (3줄): `org_units` / `users` / `unit_appointments` 테이블 + index + seed (frontend `identity.service.ts` mock과 동기화).
-   - `frontend/components/organization/MemberTable.tsx` (156줄), `PermissionEditor.tsx` (208줄): Phase 12 UI 컴포넌트 초안.
-   - **검증 미완료**: 현재 환경에서 `go build ./backend-core/...` 시 `proxy.golang.org` 접근 차단으로 모듈 다운로드 실패. 코드 컴파일 가능 여부, DB 통합 테스트 모두 미검증.
+## 진행 중
+없음. 이전 in_progress 항목은 모두 검증 통과 후 done 으로 정리됨.
+
+## Phase 12 검증 결과
+- **컴파일**: `go run ./backend-core` 통과 — 이전 세션의 미검증 우려 해소.
+- **DB 통합**: 마이그레이션 `000004` 적용 후 seed 7 units / 3 users / 4 appointments. 모든 API 응답이 seed 와 일치.
+  - `GET /api/v1/users` → 3 users + appointments JOIN 정상
+  - `GET /api/v1/organization/hierarchy` → 7 units / 6 edges, 재귀 CTE 의 `direct_count`/`total_count` 정확 (org-root direct=1 total=3)
+  - `GET /api/v1/organization/units/team-infra/members` → Sam Jones (예상치 일치)
+- **frontend 연동**: Next.js rewrite + `identity.service.ts` 의 backend 응답 매핑 (`unit_id`↔`dept_id`, `system_admin`→`System Admin` 등) 정상. backend gin 로그에서 frontend 호출 확인.
 
 ## 다음 세션 작업 제안
-1. **Phase 12 빌드/테스트 검증** (최우선):
-   - 모듈 캐시 가능한 환경에서 `cd backend-core && go build ./... && go vet ./...` 실행.
-   - `DEVHUB_TEST_DB_URL` 부여 후 `go test ./internal/store/...` 통합 테스트 통과 확인.
-   - 컴파일 실패 시 fix-up 커밋으로 처리.
-2. **Phase 12 쓰기 핸들러 추가**:
-   - `PUT /api/v1/organization/units/:unit_id/members` (`ReplaceUnitMembers` 호출).
-   - 핸들러 단위 테스트 (commands_test.go 패턴 참고: in-memory mock store).
-3. **프론트엔드 API 연동 교체**:
-   - `frontend/lib/services/identity.service.ts` mock 메소드 (`getUsers` / `getOrgHierarchy`)를 `/api/v1/users` / `/api/v1/organization/hierarchy` 호출로 전환.
-   - `dept_id` ↔ `unit_id` 명명 매핑 결정 (frontend는 dept, backend는 unit).
-   - `OrganizationPage`의 `unitMembers` in-memory 상태를 백엔드 API 연동으로 교체.
-4. **(carried-forward) TASK-007 Gitea Webhook 수신부 상태 재확인**:
-   - 정규화 테이블, WebSocket publish, Hourly Pull reconciliation, Python AI gRPC 잔여 항목의 실제 진행도를 코드베이스에서 검증한 후 in_progress 재진입 여부 결정.
+1. **Phase 12 쓰기 핸들러** (우선):
+   - `PUT /api/v1/organization/units/:unit_id/members` 핸들러 → `PostgresStore.ReplaceUnitMembers` 호출.
+   - `OrganizationStore` interface 에 메소드 추가 + `RouterConfig` 통한 wiring.
+   - 핸들러 단위 테스트 (`commands_test.go` 패턴: in-memory mock store).
+2. **WebSocket realtime 엔드포인트**:
+   - 현재 frontend `realtime.service.ts` 가 `/api/v1/realtime/ws` 호출 → backend 404 (미구현). 후속 단계로 gorilla/websocket 또는 `nhooyr.io/websocket` 도입 검토.
+3. **frontend Phase 12 UI 추가 연동**:
+   - `OrganizationPage` 의 `unitMembers` in-memory 상태를 `identityService.getUnitMembers(unitId)` (이미 추가됨) 호출로 교체.
+   - 권한 편집/멤버 변경 UI 가 추가되면 신규 쓰기 핸들러로 연결.
+4. **`/developer` 등 다른 페이지의 metrics/realtime 동작 검증**:
+   - `/api/v1/dashboard/metrics?role=...` 가 실제 DB 데이터 인지 mock fallback 인지 확인.
+5. **(carried-forward) TASK-007 Gitea Webhook 수신부 상태 재확인** (5일 stale, 재진입 시 코드 실측 필요).
+
+## 환경 가동/정리 안내
+세션 종료 시점에 다음이 떠있었다 (다음 세션에서 살아있을 수도, 죽었을 수도 있음 — 시작 시 먼저 확인):
+- 로컬 PostgreSQL: `localhost:5432`, db `devhub`, user `postgres/postgres`, 마이그레이션 `000001~000004` 적용 완료
+- backend-core: `go run .` 백그라운드, `:8080`
+- frontend: `npm run dev` 백그라운드, `:3000`
+- 종료 명령: 백그라운드 프로세스 PID 를 모르면 `Get-Process node, go | Stop-Process` 또는 PowerShell 창 닫기.
+- DB 초기화 필요 시: `psql -U postgres -c "DROP DATABASE devhub"` 후 재생성 + 마이그레이션 재적용.
+
+## 환경 호환 메모
+- 사내 SSL inspection 환경: `proxy.golang.org`, `fonts.gstatic.com` 직접 접근 차단. Go 모듈은 GOPROXY 미러 또는 직접 다운로드, npm 은 `cafile`/`NODE_EXTRA_CA_CERTS` 로 사내 CA 등록 필요. Geist 폰트는 system font fallback 으로 교체.
+- Next.js rewrite 가 `/api/*` → backend 로 프록시하므로, frontend service 들은 `${API_BASE}` 가 아닌 상대경로 `/api/v1/...` 사용을 권장 (브라우저 CORS 회피).
 
 ## 주의 사항
 - **legacy flat 경로 보존**: `ai-workflow/memory/state.json`, `session_handoff.md`, `work_backlog.md`, `backlog/*.md` 등은 legacy 폴백으로 유지한다. 신규 갱신은 모두 `ai-workflow/memory/claude/init/` 아래에서만 수행한다.

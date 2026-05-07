@@ -3,9 +3,9 @@
 - 문서 목적: 날짜별 백로그 이력 관리
 - 범위: 2026-05-07 ~ 현재
 - 대상 독자: AI Agent, 프로젝트 관리자
-- 상태: in_progress
+- 상태: idle
 - 최종 수정일: 2026-05-07
-- 활성 태스크: TASK-BACKEND-PHASE12 (in_progress, 미검증)
+- 활성 태스크: 없음 (Phase 12 backend+frontend 연동 done, 다음 세션은 쓰기 핸들러부터)
 - 관련 문서: [세션 인계](./session_handoff.md), [프로젝트 프로파일](../../../../docs/PROJECT_PROFILE.md)
 
 ## 운영 원칙
