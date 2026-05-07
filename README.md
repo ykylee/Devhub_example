@@ -29,6 +29,7 @@
 - [요구사항 정의서](./docs/requirements.md)
 - [시스템 아키텍처 설계](./docs/architecture.md)
 - [기술 스택 및 환경 설정](./docs/tech_stack.md)
+- [개발 환경 구성 가이드 (docker / native)](./docs/setup/environment-setup.md)
 
 ## 🏗 아키텍처 원칙
 - **Role-Based Routing:** 사용자의 역할에 따라 전용 대시보드로 자동 연결.
