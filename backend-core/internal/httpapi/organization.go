@@ -404,17 +404,13 @@ func (h Handler) createUser(c *gin.Context) {
 		writeStoreError(c, err)
 		return
 	}
-	auditLog, err := h.recordAudit(c, "user.created", "user", user.UserID, map[string]any{
+	auditLog := h.recordAuditBestEffort(c, "user.created", "user", user.UserID, map[string]any{
 		"email":           user.Email,
 		"role":            string(user.Role),
 		"status":          string(user.Status),
 		"primary_unit_id": user.PrimaryUnitID,
 		"current_unit_id": user.CurrentUnitID,
 	})
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
-		return
-	}
 
 	response := gin.H{
 		"status": "created",
@@ -504,11 +500,7 @@ func (h Handler) updateUser(c *gin.Context) {
 		writeStoreError(c, err)
 		return
 	}
-	auditLog, err := h.recordAudit(c, "user.updated", "user", user.UserID, userUpdateAuditPayload(input))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
-		return
-	}
+	auditLog := h.recordAuditBestEffort(c, "user.updated", "user", user.UserID, userUpdateAuditPayload(input))
 	response := gin.H{
 		"status": "ok",
 		"data":   appUserFromDomain(user),
@@ -536,11 +528,7 @@ func (h Handler) deleteUser(c *gin.Context) {
 		writeStoreError(c, err)
 		return
 	}
-	auditLog, err := h.recordAudit(c, "user.deleted", "user", userID, nil)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
-		return
-	}
+	auditLog := h.recordAuditBestEffort(c, "user.deleted", "user", userID, nil)
 	response := gin.H{"status": "deleted", "data": gin.H{"user_id": userID}}
 	addAuditMeta(response, auditLog)
 	c.JSON(http.StatusOK, response)
@@ -637,16 +625,12 @@ func (h Handler) createOrgUnit(c *gin.Context) {
 		writeStoreError(c, err)
 		return
 	}
-	auditLog, err := h.recordAudit(c, "org_unit.created", "org_unit", unit.UnitID, map[string]any{
+	auditLog := h.recordAuditBestEffort(c, "org_unit.created", "org_unit", unit.UnitID, map[string]any{
 		"parent_unit_id": unit.ParentUnitID,
 		"unit_type":      string(unit.UnitType),
 		"label":          unit.Label,
 		"leader_user_id": unit.LeaderUserID,
 	})
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
-		return
-	}
 
 	response := gin.H{
 		"status": "created",
@@ -712,11 +696,7 @@ func (h Handler) updateOrgUnit(c *gin.Context) {
 		writeStoreError(c, err)
 		return
 	}
-	auditLog, err := h.recordAudit(c, "org_unit.updated", "org_unit", unit.UnitID, orgUnitUpdateAuditPayload(input))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
-		return
-	}
+	auditLog := h.recordAuditBestEffort(c, "org_unit.updated", "org_unit", unit.UnitID, orgUnitUpdateAuditPayload(input))
 	response := gin.H{"status": "ok", "data": orgUnitFromDomain(unit)}
 	addAuditMeta(response, auditLog)
 	c.JSON(http.StatusOK, response)
@@ -741,11 +721,7 @@ func (h Handler) deleteOrgUnit(c *gin.Context) {
 		writeStoreError(c, err)
 		return
 	}
-	auditLog, err := h.recordAudit(c, "org_unit.deleted", "org_unit", unitID, nil)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
-		return
-	}
+	auditLog := h.recordAuditBestEffort(c, "org_unit.deleted", "org_unit", unitID, nil)
 	response := gin.H{"status": "deleted", "data": gin.H{"unit_id": unitID}}
 	addAuditMeta(response, auditLog)
 	c.JSON(http.StatusOK, response)
@@ -791,13 +767,9 @@ func (h Handler) replaceUnitMembers(c *gin.Context) {
 		writeStoreError(c, err)
 		return
 	}
-	auditLog, err := h.recordAudit(c, "org_unit.members_replaced", "org_unit", unitID, map[string]any{
+	auditLog := h.recordAuditBestEffort(c, "org_unit.members_replaced", "org_unit", unitID, map[string]any{
 		"user_ids": cleaned,
 	})
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
-		return
-	}
 
 	members, err := h.cfg.OrganizationStore.ListUnitMembers(c.Request.Context(), unitID)
 	if err != nil {

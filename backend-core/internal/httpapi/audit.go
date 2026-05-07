@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -87,6 +88,15 @@ func (h Handler) recordAudit(c *gin.Context, action, targetType, targetID string
 		TargetID:   targetID,
 		Payload:    payload,
 	})
+}
+
+// recordAuditBestEffort logs and swallows audit errors so callers (which have already committed the main mutation) do not surface a 500 that triggers duplicate retries.
+func (h Handler) recordAuditBestEffort(c *gin.Context, action, targetType, targetID string, payload map[string]any) domain.AuditLog {
+	auditLog, err := h.recordAudit(c, action, targetType, targetID, payload)
+	if err != nil {
+		log.Printf("audit log persistence failed: action=%s target=%s/%s err=%v", action, targetType, targetID, err)
+	}
+	return auditLog
 }
 
 func auditLogFromDomain(log domain.AuditLog) auditLogResponse {
