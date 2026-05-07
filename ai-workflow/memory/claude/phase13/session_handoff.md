@@ -35,7 +35,7 @@
 ## Phase 13 P1 큐 (9단계, ADR-0001 결정 반영)
 
 1. PoC 환경 구성 — **현재 진입**
-   - (a) **사용자 수동, 샌드박스 외 터미널**: `go install github.com/ory/hydra/v2@latest`, `go install github.com/ory/kratos@latest`. 두 프로젝트 모두 `main.go` 가 모듈 루트에 있으므로 install path 에 `/cmd/...` 를 붙이면 실패한다 (2026-05-07 사용자 1차 시도 실패로 확인).
+   - (a) **사용자 수동, 샌드박스 외 터미널**: `infra/idp/scripts/install-binaries.ps1` 로 GitHub release Windows SQLite binary (현재 release-train `v26.2.0`) 다운로드 + 배치. `go install` 은 (1) `cmd/...` 경로 없음, (2) `go.mod` `replace` 지시문 차단 두 단계 모두 실패한 것으로 2026-05-07 확인됨.
    - (b) DB schema 생성 SQL: `devhub` 안에 `hydra`, `kratos` schema.
    - (c) 설정 파일: `infra/idp/hydra.yaml`, `infra/idp/kratos.yaml` (위치 시작 시 확정).
    - (d) Kratos identity schema JSON: `traits.email`, `traits.display_name`, `metadata_public.user_id`.

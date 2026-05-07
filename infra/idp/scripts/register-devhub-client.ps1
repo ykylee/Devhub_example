@@ -5,8 +5,8 @@
 #
 # 전제:
 #   - hydra binary 가 PATH 에 있어야 한다 (사용자가 샌드박스 외 터미널에서
-#     `go install github.com/ory/hydra/v2@latest` 실행 후 — main.go 가 모듈
-#     루트에 있으므로 /cmd/... 를 붙이지 않는다).
+#     `infra/idp/scripts/install-binaries.ps1` 로 GitHub release binary 를
+#     배치한 후. `go install` 은 replace 지시문 때문에 차단됨).
 #   - Hydra 가 admin URL (http://localhost:4445) 에서 가동 중이어야 한다.
 #
 # 사용:

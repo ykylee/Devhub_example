@@ -16,14 +16,18 @@
 
 ## 1. 사용자 수동 단계 — Hydra/Kratos binary 설치
 
-> ⚠️ **샌드박스 외 사용자 터미널**에서 직접 실행. AI 자동화는 binary 설치를 수행하지 않음 (사내 GoProxy 미러 통과 필요).
+> ⚠️ **샌드박스 외 사용자 터미널**에서 직접 실행. AI 자동화는 binary 설치를 수행하지 않음.
 
-두 프로젝트 모두 `main.go` 가 모듈 루트에 있다. install path 에 `/cmd/...` 를 붙이면 실패한다 (`cmd/` 디렉터리는 라이브러리 서브패키지일 뿐 binary entry 가 아님).
+### 1차 경로: GitHub release Windows binary 다운로드 (권장)
+
+> Hydra/Kratos 의 `go.mod` 가 `replace` 지시문을 포함해 **`go install` 은 차단**된다 (2026-05-07 확인). release binary 의 SQLite 변형은 CGO 의존이 없고 embed 된 migration 자산을 포함해 Windows 에서 가장 안전한 선택이다. Ory 는 두 프로젝트에 통일된 release-train 버전을 사용한다 (예: `v26.2.0`).
+
+자동화 스크립트로 다운로드 + 압축 해제 + 배치:
 
 ```powershell
-# 사내 GoProxy 미러가 환경에 이미 설정되어 있다고 가정
-go install github.com/ory/hydra/v2@latest
-go install github.com/ory/kratos@latest
+.\infra\idp\scripts\install-binaries.ps1
+# 또는 버전/위치 지정:
+.\infra\idp\scripts\install-binaries.ps1 -Version 26.2.0 -BinDir "$env:USERPROFILE\go\bin"
 ```
 
 설치 확인:
@@ -33,14 +37,21 @@ hydra version
 kratos version
 ```
 
-`go install` 의 binary 출력 디렉터리(`$env:GOPATH\bin` 또는 `$env:USERPROFILE\go\bin`)가 `PATH` 에 포함되어 있어야 한다.
+`-BinDir` 가 PATH 에 없으면 스크립트가 경고를 출력한다. 기본값 `$env:USERPROFILE\go\bin` 은 Go 사용자가 보통 PATH 에 이미 추가해 둔다.
 
-### 폴백: GitHub release binary 다운로드
+### 2차 경로 (수동 다운로드)
 
-`go install` 이 embed 자산 누락(SQLite 미지원 등) 으로 실패할 경우 GitHub release 의 Windows binary (가능하면 `*-windows_sqlite_64bit.zip`) 를 다운로드해 zip 해제 후 PATH 가 잡히는 위치(예: `$env:USERPROFILE\go\bin`) 에 배치한다.
+스크립트가 실패하면 직접:
 
-- https://github.com/ory/hydra/releases (latest stable)
-- https://github.com/ory/kratos/releases (latest stable)
+- https://github.com/ory/hydra/releases/latest — `hydra_<ver>-windows_sqlite_64bit.zip`
+- https://github.com/ory/kratos/releases/latest — `kratos_<ver>-windows_sqlite_64bit.zip`
+
+zip 해제 후 `hydra.exe` / `kratos.exe` 를 PATH 가 잡히는 위치에 배치.
+
+### 차단된 경로 (참고)
+
+- `go install github.com/ory/hydra/v2@latest` → `replace` 지시문 때문에 차단.
+- `go install github.com/ory/hydra/v2/cmd/hydra@latest` → `cmd/hydra` 패키지 부재 (main 이 모듈 루트에 있음).
 
 ## 2. DB schema 생성
 
