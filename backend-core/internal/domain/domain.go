@@ -253,3 +253,45 @@ type UserListOptions struct {
 	Status        string
 	PrimaryUnitID string
 }
+
+type CreateUserInput struct {
+	UserID        string
+	Email         string
+	DisplayName   string
+	Role          AppRole
+	Status        UserStatus
+	PrimaryUnitID string
+	CurrentUnitID string
+	IsSeconded    bool
+	JoinedAt      time.Time
+}
+
+type UpdateUserInput struct {
+	Email         *string
+	DisplayName   *string
+	Role          *AppRole
+	Status        *UserStatus
+	PrimaryUnitID *string
+	CurrentUnitID *string
+	IsSeconded    *bool
+	JoinedAt      *time.Time
+}
+
+type CreateOrgUnitInput struct {
+	UnitID       string
+	ParentUnitID string
+	UnitType     UnitType
+	Label        string
+	LeaderUserID string
+	PositionX    int
+	PositionY    int
+}
+
+type UpdateOrgUnitInput struct {
+	ParentUnitID *string
+	UnitType     *UnitType
+	Label        *string
+	LeaderUserID *string
+	PositionX    *int
+	PositionY    *int
+}
