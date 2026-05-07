@@ -4,18 +4,43 @@
 - 범위: 상태 문서 분류, 작성 표준, 메타데이터 요구사항
 - 대상 독자: AI 에이전트, 저장소 관리자
 - 상태: stable
-- 최종 수정일: 2026-04-30
+- 최종 수정일: 2026-05-07
 - 관련 문서: [../ai-workflow/WORKFLOW_INDEX.md](../ai-workflow/WORKFLOW_INDEX.md), [../README.md](../README.md)
 
 이 문서는 `ai-workflow/memory/` 하위 문서를 작성할 때 AI 에이전트가 준수해야 할 규칙과 템플릿을 정의합니다.
+
+## 0. 브랜치별 Memory 표준
+
+신규 작업 상태의 source of truth는 브랜치별 디렉터리다.
+
+- 표준 위치: `ai-workflow/memory/<agent>/<branch>/`
+- 예시: `ai-workflow/memory/codex/service-action-command/`
+- 예시: `ai-workflow/memory/gemini/phase6/`
+- agent prefix가 없는 브랜치: `ai-workflow/memory/branches/<branch-name>/`
+
+브랜치별 디렉터리는 아래 4종을 기본 세트로 가진다.
+
+- `state.json`
+- `session_handoff.md`
+- `work_backlog.md`
+- `backlog/YYYY-MM-DD.md`
+
+공용 문서는 flat 경로에 둔다.
+
+- `ai-workflow/memory/PROJECT_PROFILE.md`
+- `ai-workflow/memory/repository_assessment.md`
+- `ai-workflow/memory/environments/`
+- 공용 로드맵 문서
+
+flat `state.json`, `session_handoff.md`, `work_backlog.md`, `backlog/`는 legacy fallback 및 공용 색인 용도다. 브랜치 작업의 신규 상태 갱신은 flat 경로가 아니라 브랜치별 디렉터리에 기록한다.
 
 ## 1. 작성 규칙 (Writing Rules)
 
 - **언어**: 사용자 보고용 요약은 한국어를 사용하되, 상태 값이나 기술적 명칭은 영문 표준을 권장합니다.
 - **간결성**: 중복된 설명을 피하고, 변경 사항(Diff)과 다음 행동(Next Action)에 집중합니다.
 - **구조화**: Key-Value 쌍(예: `Status: in_progress`) 또는 Markdown Table을 적극 활용합니다.
-- **격리 (Isolation)**: 메인 개발 브랜치(`main`) 외의 작업 브랜치에서는 `ai-workflow/memory/[agent_name]/[phase_or_branch]/` 하위의 전용 폴더를 사용하여 상태를 관리합니다. 이는 다중 에이전트 협업 시의 병합 충돌을 방지하기 위함입니다.
-- **루트의 역할 (Root Role)**: `ai-workflow/memory/` 루트의 `state.json`, `session_handoff.md` 등은 프로젝트의 최종 통합 상태(Main branch state)를 나타냅니다. 개별 개발 세션은 루트 파일을 직접 수정하지 않고 전용 폴더에서 작업한 뒤, 병합 시점에 루트를 갱신합니다.
+- **격리 (Isolation)**: 메인 개발 브랜치(`main`) 외의 작업 브랜치에서는 `ai-workflow/memory/[agent_name]/[branch_name]/` 하위의 전용 폴더를 사용하여 상태를 관리합니다. 이는 다중 에이전트 협업 시의 병합 충돌을 방지하기 위함입니다.
+- **루트의 역할 (Root Role)**: `ai-workflow/memory/` 루트의 `state.json`, `session_handoff.md` 등은 프로젝트의 최종 통합 상태(Main branch state) 또는 현재 통합 테스트 브랜치의 요약 상태를 나타냅니다.
 
 ## 2. 표준 템플릿 (Standard Templates)
 
@@ -77,7 +102,8 @@ created_at: YYYY-MM-DD
 
 ## 3. 에이전트 행동 지침
 
-- 세션 종료 시 `session_handoff.md`를 위 템플릿에 맞춰 갱신하십시오.
-- 새로운 작업 시작 시 `tasks/` 폴더에 템플릿 기반의 신규 파일을 생성하십시오.
+- 세션 시작 시 현재 git 브랜치를 확인하고 브랜치별 memory 디렉터리를 우선 읽으십시오.
+- 세션 종료 시 브랜치별 `session_handoff.md`를 위 템플릿에 맞춰 갱신하십시오.
+- 새로운 작업 시작 시 브랜치별 `backlog/tasks/` 폴더에 템플릿 기반의 신규 파일을 생성하십시오.
 - 날짜별 백로그에는 신규 task 파일 링크만 추가하고, 긴 상세 기록은 task 파일에 남기십시오.
 - 상태 업데이트 시 자연어 서술보다는 불렛 포인트와 상태 키워드를 우선하십시오.

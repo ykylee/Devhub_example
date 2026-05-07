@@ -29,6 +29,7 @@ def mcp_main(
 
     # We expect tool_version to be injected by the caller or retrieved here
     from workflow_kit import __version__ as TOOL_VERSION
+<<<<<<< HEAD
     
     # Extract --json before passing args to payload_func
     arg_vars = vars(args)
@@ -36,6 +37,15 @@ def mcp_main(
     
     result = payload_func(**arg_vars, tool_version=TOOL_VERSION)
     
+=======
+
+    # Extract --json before passing args to payload_func
+    arg_vars = vars(args)
+    use_json = arg_vars.pop("json", False)
+
+    result = payload_func(**arg_vars, tool_version=TOOL_VERSION)
+
+>>>>>>> origin/codex/service-action-command
     if use_json or not output_handler:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         if result.get("status") != "ok":

@@ -10,11 +10,13 @@ import sys
 from pathlib import Path
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-SOURCE_ROOT = REPO_ROOT / "ai-workflow"
-
-
-def parse_args() -> argparse.Namespace:
+# Standard AI Workflow Library Discovery
+SOURCE_ROOT = Path(__file__).resolve().parent
+while not (SOURCE_ROOT / "workflow_kit").is_dir() and SOURCE_ROOT != SOURCE_ROOT.parent:
+    SOURCE_ROOT = SOURCE_ROOT.parent
+REPO_ROOT = SOURCE_ROOT.parent
+if str(SOURCE_ROOT) not in sys.path:
+    sys.path.insert(0, str(SOURCE_ROOT))def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Create a new harness stub directory and starter docs."
     )

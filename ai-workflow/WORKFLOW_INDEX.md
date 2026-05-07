@@ -3,17 +3,21 @@
 - 문서 목적: 현재 저장소에 배포된 AI workflow 문서의 진입 순서를 제공한다.
 - 범위: 세션 시작, 상태 복원, 온보딩, 코어 정책 문서
 - 대상 독자: Codex, 저장소 관리자, 신규 온보딩 참여자
-- 상태: active
-- 최종 수정일: 2026-05-06
-- 관련 문서: [README.md](./README.md), [memory/state.json](./memory/state.json)
+- 상태: draft
+- 최종 수정일: 2026-05-07
+- 관련 문서: [README](./README.md), [Memory Governance](./MEMORY_GOVERNANCE.md)
 
 ## 1. 세션 시작 순서
 
-1. [memory/state.json](./memory/state.json)
-2. [memory/session_handoff.md](./memory/session_handoff.md)
-3. [memory/work_backlog.md](./memory/work_backlog.md)
-4. 최신 날짜 backlog: [memory/backlog/2026-05-04.md](./memory/backlog/2026-05-04.md)
-5. [PROJECT_PROFILE.md](../docs/PROJECT_PROFILE.md)
+1. 현재 git 브랜치를 확인한다: `git branch --show-current`
+2. 브랜치별 memory 디렉터리를 연다.
+   - `codex/service-action-command` → [memory/codex/service-action-command/](./memory/codex/service-action-command/)
+   - `claude/init` → [memory/claude/init/](./memory/claude/init/)
+   - `claude/phase13` → [memory/claude/phase13/](./memory/claude/phase13/)
+3. 브랜치별 `state.json`, `session_handoff.md`, `work_backlog.md`, 최신 `backlog/YYYY-MM-DD.md`를 읽는다.
+4. 공용 기준 문서를 읽는다.
+   - [memory/PROJECT_PROFILE.md](./memory/PROJECT_PROFILE.md)
+   - [memory/repository_assessment.md](./memory/repository_assessment.md)
 
 ## 2. 온보딩 점검 문서
 
@@ -25,7 +29,9 @@
 
 ## 3. 운영 기준
 
-- `ai-workflow/memory/`는 현재 프로젝트의 workflow 상태 문서다.
+- `ai-workflow/memory/<agent>/<branch>/`는 브랜치별 workflow 상태 문서다.
+- `ai-workflow/memory/PROJECT_PROFILE.md`, `repository_assessment.md`, `environments/`는 공용 기준 문서다.
+- flat `ai-workflow/memory/state.json`, `session_handoff.md`, `work_backlog.md`, `backlog/`는 legacy fallback 및 공용 색인 전용이다.
 - `ai-workflow/core/`는 별도 도구 없이도 수동으로 따를 수 있는 공통 운영 기준만 남긴다.
 - 배포용 source bundle, scripts, skills, MCP, tests는 현재 저장소에 포함하지 않는다.
 

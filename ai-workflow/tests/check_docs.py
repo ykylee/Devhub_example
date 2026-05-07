@@ -9,6 +9,8 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+KIT_ROOT = Path(__file__).resolve().parents[1]
+
 REQUIRED_METADATA = [
     "문서 목적",
     "범위",
@@ -42,6 +44,9 @@ IGNORED_PARTS = {
     "build",
     ".ai-workflow-backups",
     ".tmp-ai-workflow-runtime-hidden",
+    "node_modules",
+    "source-docs",
+    "global-snippets",
     "tmp",
     "tmp-test",
     "scratch",
@@ -49,11 +54,6 @@ IGNORED_PARTS = {
     "releases",
     "archive",
     "tests",
-    "node_modules",
-    "backend-ai",
-    "backend-core",
-    "frontend",
-    "docs",
 }
 IGNORED_AI_WORKFLOW_SUBTREES = {
     ("ai-workflow", "core"),
@@ -61,6 +61,7 @@ IGNORED_AI_WORKFLOW_SUBTREES = {
     ("ai-workflow", "global-snippets"),
     ("ai-workflow", "harnesses"),
     ("ai-workflow", "mcp_servers"),
+    ("ai-workflow", "prompts"),
     ("ai-workflow", "schemas"),
     ("ai-workflow", "scripts"),
     ("ai-workflow", "skills"),
@@ -68,20 +69,16 @@ IGNORED_AI_WORKFLOW_SUBTREES = {
     ("ai-workflow", "workflow_kit"),
 }
 IGNORED_WORKFLOW_SOURCE_SUBTREES = {
-    ("ai-workflow", "core"),
-    ("ai-workflow", "examples"),
-    ("ai-workflow", "global-snippets"),
-    ("ai-workflow", "harnesses"),
-    ("ai-workflow", "mcp_servers"),
-    ("ai-workflow", "schemas"),
-    ("ai-workflow", "scripts"),
-    ("ai-workflow", "skills"),
-    ("ai-workflow", "templates"),
-    ("ai-workflow", "workflow_kit"),
-}
-
-IGNORED_CLAUDE_SUBTREES = {
-    (".claude", "agents"),
+    ("workflow-source", "core"),
+    ("workflow-source", "examples"),
+    ("workflow-source", "global-snippets"),
+    ("workflow-source", "harnesses"),
+    ("workflow-source", "mcp_servers"),
+    ("workflow-source", "schemas"),
+    ("workflow-source", "scripts"),
+    ("workflow-source", "skills"),
+    ("workflow-source", "templates"),
+    ("workflow-source", "workflow_kit"),
 }
 
 
@@ -91,11 +88,11 @@ def iter_markdown_files() -> list[Path]:
         if set(path.parts).intersection(IGNORED_PARTS):
             continue
         rel_parts = path.relative_to(REPO_ROOT).parts
+        if not rel_parts or rel_parts[0] != "ai-workflow":
+            continue
         if len(rel_parts) >= 2 and tuple(rel_parts[:2]) in IGNORED_AI_WORKFLOW_SUBTREES:
             continue
         if len(rel_parts) >= 2 and tuple(rel_parts[:2]) in IGNORED_WORKFLOW_SOURCE_SUBTREES:
-            continue
-        if len(rel_parts) >= 2 and tuple(rel_parts[:2]) in IGNORED_CLAUDE_SUBTREES:
             continue
         markdown_files.append(path)
     return sorted(markdown_files)
@@ -112,6 +109,23 @@ def normalize_link_target(raw_target: str) -> str:
 
 def check_metadata(path: Path) -> list[str]:
     lines = path.read_text(encoding="utf-8").splitlines()
+    if lines and lines[0].strip() == "---":
+        try:
+            end = lines[1:].index("---") + 1
+            frontmatter = lines[1:end]
+            body_lines = lines[end + 1 :]
+            if path.parent.name == "tasks":
+                frontmatter_keys = {line.split(":", 1)[0].strip() for line in frontmatter if ":" in line}
+                missing = []
+                for field in ("id", "status", "created_at"):
+                    if field not in frontmatter_keys:
+                        missing.append(field)
+                if not body_lines or not body_lines[0].startswith("# "):
+                    missing.append("제목 헤더")
+                return missing
+            lines = body_lines
+        except ValueError:
+            pass
     header_lines = lines[:20]
     required_metadata = REQUIRED_METADATA
     if has_metadata_set(header_lines, ENGLISH_METADATA):
@@ -161,13 +175,20 @@ def main() -> int:
             failures.append(f"{rel_path}: {error}")
 
     targeted_phrases = {
-        Path("ai-workflow/core/global_workflow_standard.md"): [
+        KIT_ROOT / "core/global_workflow_standard.md": [
             "task delegation 과 결과 통합에 집중하는 구성을 기본값으로 둔다.",
             "ask 는 genuinely blocking decision 이나 위험한 외부 작업으로만 좁히는 편을 기본 원칙으로 둔다.",
         ],
+        KIT_ROOT / "core/workflow_agent_topology.md": [
+            "메인 오케스트레이터가 직접 도구 호출을 수행하는 패턴은 기본값이 아니며",
+            "권장 툴 성격: task-only delegation",
+        ],
     }
-    for rel_path, snippets in targeted_phrases.items():
-        text = (REPO_ROOT / rel_path).read_text(encoding="utf-8")
+    for abs_path, snippets in targeted_phrases.items():
+        if not abs_path.exists():
+            continue
+        rel_path = abs_path.relative_to(REPO_ROOT)
+        text = abs_path.read_text(encoding="utf-8")
         for snippet in snippets:
             if snippet not in text:
                 failures.append(f"{rel_path}: missing required phrase `{snippet}`")

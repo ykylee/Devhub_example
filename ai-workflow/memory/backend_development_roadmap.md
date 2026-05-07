@@ -1,134 +1,130 @@
 # 백엔드 개발 로드맵
 
 - 문서 목적: DevHub 백엔드 구현 범위, 순서, 진척 상태를 추적한다.
-- 범위: 인프라, 리스크, 웹훅, API 로드맵
-- 대상 독자: 백엔드 개발자, AI Agent
+- 범위: backend-core phase 로드맵, 완료 범위, 다음 작업 큐, 차단 항목
+- 대상 독자: 백엔드 개발자, 프론트엔드 연동 담당자, AI agent
+- 기준일: 2026-05-07
 - 상태: in_progress
 - 최종 수정일: 2026-05-07
-- 관련 문서: `docs/requirements.md`, `docs/architecture.md`, `docs/tech_stack.md`, `docs/backend_api_contract.md`, `docs/backend/frontend_integration_requirements.md`, `docs/backend/requirements_review.md`, `ai-workflow/memory/backlog/2026-05-04.md`
-- 현재 브랜치: `codex/backend_init`
-- 프론트엔드 전제: frontend phase1 화면과 mock service layer가 병합된 상태이므로, 백엔드는 raw webhook 수집 이후 프론트 교체 가능한 REST snapshot API와 WebSocket 이벤트 계약을 우선 안정화한다.
+- 관련 문서: `docs/requirements.md`, `docs/architecture.md`, `docs/tech_stack.md`, `docs/backend_api_contract.md`, `docs/backend/frontend_integration_requirements.md`, `docs/backend/requirements_review.md`, `docs/adr/0001-idp-selection.md`, `ai-workflow/memory/codex/service-action-command/session_handoff.md`
+- 현재 브랜치: `codex/service-action-command`
+- 현재 기준선: `origin/main@7316ddd` 반영 완료. Phase 12 조직/사용자 CRUD, Phase 13 Ory Hydra/Kratos PoC scaffold, TASK-020~023 command/realtime worker가 같은 브랜치에 공존한다.
 
 ## 1. 개발 원칙
 
 - Go Core는 Gitea Webhook/API 연동, 권한 관리, 데이터 저장, 시스템 관리자 기능의 중심 서비스로 둔다.
 - Python AI는 초기 단계에서 PostgreSQL에 직접 접근하지 않고, Go Core가 필터링한 입력을 gRPC로 전달받는다.
-- 모든 Gitea Webhook 이벤트는 raw event로 먼저 저장하고, 정규화/분석/실시간 publish는 후속 단계에서 확장한다.
-- 프론트엔드 병렬 개발을 위해 REST API 응답 형태와 WebSocket 메시지 타입을 변경 가능성이 낮은 계약으로 관리한다.
-- 프론트엔드 작성 요구사항 리뷰(`docs/backend/requirements_review.md`)의 P1/P2 finding은 로드맵 phase 완료 조건에 포함한다.
 - 프론트 대상 실시간 API는 gRPC stream이 아니라 REST snapshot + WebSocket event로만 계약한다.
 - 프론트엔드 UI 표시명과 API wire format은 분리한다. 역할 값은 API에서 `developer`, `manager`, `system_admin`을 기본으로 한다.
 - 명령성 액션은 boolean 결과가 아니라 `command_id`와 command status lifecycle로 관리하고 audit log를 남긴다.
+- 운영 actor는 최종적으로 `X-Devhub-Actor` header가 아니라 Hydra/Kratos 기반 세션 또는 JWT claim에서 도출한다.
+- 조직/사용자 도메인의 master data는 DevHub `users`/`org_units`가 담당하고, credential/session master는 Kratos가 담당한다.
 - 검증하지 않은 단계는 `done`으로 전환하지 않는다.
+- 세션 상태 문서는 브랜치별 memory 경로(`ai-workflow/memory/<agent>/<branch>/`)를 source of truth로 사용한다.
 
 ## 2. Phase 로드맵
 
-| Phase | 상태 | 목표 | 주요 산출물 | 검증 기준 |
+| Phase | 상태 | 목표 | 주요 산출물 | 다음 판정 기준 |
 | --- | --- | --- | --- | --- |
 | Phase 1 | done | Go Core 기반 구조 정리 | `internal/config`, `internal/httpapi`, `internal/gitea`, `internal/store` 분리 | `cd backend-core && go test ./...` |
 | Phase 2 | done | PostgreSQL 초기 스키마 | `webhook_events` migration | migration 적용 검증 |
 | Phase 3 | done | Gitea Webhook raw 수신부 | `POST /api/v1/integrations/gitea/webhooks`, signature 검증, dedupe 처리 | handler 단위 테스트 |
-| Phase 4 | in_progress | 프론트 연동 계약 안정화 | `GET /api/v1/events`, role wire format, REST snapshot/WebSocket envelope 계약, frontend integration requirements, requirements review finding 반영 | API 계약 문서화, frontend mock shape 대조, gRPC 직접 노출 없음 확인 |
-| Phase 5 | in_progress | 프론트 snapshot API 1차 | metrics, infra topology, ci-runs/logs, critical risks 조회 API 초안, `ServiceNode`/`CiRun`/`Risk` 공통 필드, DB-backed domain 조회 | handler 테스트 및 응답 예시 문서화 |
-| Phase 6 | done | 도메인 정규화 1차 | repository/user/issue/pull_request/ci_run/risk 기초 테이블 및 정규화 로직, 식별자/timestamp/pagination 기준 | fixture 기반 정규화 테스트 및 홈랩 DB 통합 테스트 |
-| Phase 7 | in_progress | command/audit 기반 액션 API | service action, risk mitigation, weekly report command, command status, idempotency, audit log | 권한/audit/idempotency 테스트 |
-| Phase 8 | planned | WebSocket 실시간 채널 | `/api/v1/realtime/ws`, infra/ci/risk/command/notification event publish | WebSocket 연결/필터링/메시지 테스트 |
-| Phase 9 | planned | Python AI gRPC 연결 | Go gRPC client, Python `AnalysisService` server, build log summary/risk detection 연동 | gRPC 통합 테스트 |
+| Phase 4 | done | 프론트 연동 계약 안정화 1차 | role wire format, REST snapshot/WebSocket envelope, integration requirements | API 계약 문서화 및 smoke/lint 통과 |
+| Phase 5 | done | 프론트 snapshot API 1차 | metrics, infra topology, ci-runs/logs, risk 조회 API, runtime snapshot provider | handler 테스트 및 fallback 동작 확인 |
+| Phase 6 | done | 도메인 정규화 1차 | repository/user/issue/pull_request/ci_run/risk 기초 테이블 및 normalize processor | fixture 및 store 테스트 |
+| Phase 7 | in_progress | command/audit 기반 액션 API | service action, risk mitigation, command status, idempotency, audit log | approval/executor boundary, audit 조회 API, actor 검증 |
+| Phase 8 | in_progress | WebSocket 실시간 채널 | `/api/v1/realtime/ws`, `command.status.updated` publish | 인증, 구독 필터, replay, infra/ci/risk event publish |
+| Phase 9 | planned | Python AI gRPC 연결 | Go gRPC client, Python `AnalysisService`, build log summary/risk detection | gRPC 통합 테스트 |
 | Phase 10 | planned | Hourly Pull Reconciliation | Gitea REST client, 누락 이벤트 보정 worker | dry-run 및 idempotency 테스트 |
-| Phase 11 | planned | 시스템 관리자 기능 고도화 | Runner/서버 상태 adapter, config 조회, allowlist/seed admin | 권한/audit/health adapter 테스트 |
-| Phase 12 | in_progress | 사용자 및 조직/멤버 관리 API | User/Org/Team 도메인 확장, 계층형 조직망 구조, 구성원 할당(Allocation), 관리자 전용 관리 API | 도메인 통합 테스트 및 권한 검증 |
-| Phase 13 | planned | 사용자 계정 및 인증 1차 (IdP 도입) | Ory Hydra + Kratos 컨테이너 운영, DevHub 의 OIDC client 화, Kratos identity ↔ `users.user_id` 1:1 매핑 동기화 어댑터, Kratos 이벤트 → DevHub audit log 매핑, 시스템 관리자 admin identity wrapper, Next.js 로그인/비밀번호 변경 UI ([ADR-0001](../../docs/adr/0001-idp-selection.md)) | OIDC code flow round-trip 테스트, identity ↔ user 매핑 invariant 테스트, audit log 매핑 테스트, Kratos admin API wrapper 핸들러 테스트 |
+| Phase 11 | planned | 시스템 관리자 기능 고도화 | Runner/server adapter, config 조회, allowlist/seed admin | 권한/audit/health adapter 테스트 |
+| Phase 12 | done | 조직/사용자 관리 API | `users`, `org_units`, appointments, hierarchy, unit members CRUD | handler/store 테스트 및 프론트 연동 |
+| Phase 13 | in_progress | Ory Hydra/Kratos IdP 도입 | ADR-0001, IdP PoC scaffold, schema/config/client 등록 | Go Core token middleware, identity admin wrapper, audit mapping |
 
 ## 3. 현재 완료 범위
 
-- Go Core 서버 초기화 구조를 분리했다.
-- `DB_URL`이 설정된 경우 PostgreSQL 연결과 `/health` DB 상태 확인을 수행한다.
-- `GITEA_WEBHOOK_SECRET` 기반 HMAC-SHA256 signature 검증을 추가했다.
-- Gitea event type, delivery id, repository, sender metadata를 추출한다.
-- delivery id가 있으면 delivery id를 dedupe key로 사용하고, 없으면 event type과 payload hash를 조합한다.
-- `webhook_events` raw event 저장 migration을 추가했다.
-- signature 검증, webhook 저장, invalid signature reject, duplicate 처리 단위 테스트를 추가했다.
-- `GET /api/v1/events` raw event 조회 API와 초기 API 계약 문서를 추가했다.
-- validated webhook event 저장 시 `validated_at`을 함께 기록하도록 정리했다.
-- 홈랩 PostgreSQL `devhub` DB에 `webhook_events` migration version 1 적용을 검증했다.
-- frontend phase1 화면과 mock service layer를 검토해 `docs/backend/frontend_integration_requirements.md`로 백엔드 연동 요구사항을 정리했다.
-- 프론트엔드 작성 백엔드 요구사항을 `docs/backend/requirements_review.md`에서 상세 리뷰했고, gRPC/WebSocket 경계, command/audit, role enum, 데이터 모델 부족분을 로드맵 고려 사항으로 편입했다.
-- 프론트 직접 gRPC 사용 오해를 막기 위해 REST snapshot + WebSocket 갱신을 프론트 연동 기본 방향으로 명시했다.
-- static fallback 기반 프론트 snapshot API 1차를 추가했다: `GET /api/v1/dashboard/metrics`, `GET /api/v1/infra/nodes`, `GET /api/v1/infra/edges`, `GET /api/v1/infra/topology`, `GET /api/v1/ci-runs`, `GET /api/v1/ci-runs/{ci_run_id}/logs`, `GET /api/v1/risks/critical`.
-- `docs/backend_api_contract.md`에 role wire format, WebSocket envelope, command/audit lifecycle 초안을 보강했다.
-- 도메인 정규화 1차 migration을 추가했다: `gitea_users`, `repositories`, `issues`, `pull_requests`, `ci_runs`, `risks`.
-- `backend-core/internal/normalize`에 Gitea `issues`, `pull_request`, `action_run/workflow_run`, `push` 이벤트를 최소 도메인 change set으로 해석하는 processor와 fixture 테스트를 추가했다.
-- 홈랩 PostgreSQL `devhub` DB에 migration version 2 적용을 검증했다.
-- `backend-core/internal/domain`을 추가해 정규화 change set과 sink interface를 분리했다.
-- `backend-core/internal/store`에 repository/user/issue/pull_request/ci_run upsert와 `webhook_events` 상태 전이(`processed`, `failed`, `ignored`)를 구현했다.
-- `POST /api/v1/integrations/gitea/webhooks` 저장 성공 이후 optional `normalize.Processor`를 실행하도록 연결했다.
-- 홈랩 PostgreSQL 통합 테스트로 raw webhook event 저장, domain upsert, `processed` 상태 전이를 검증했다.
-- `GET /api/v1/repositories`, `GET /api/v1/issues`, `GET /api/v1/pull-requests` DB-backed 조회 API를 추가했다.
-- `GET /api/v1/ci-runs`는 `DomainStore`가 있고 DB 결과가 있으면 DB-backed 응답을 우선 사용하고, 없으면 static fallback을 유지하도록 정리했다.
-- 홈랩 PostgreSQL 통합 테스트로 repository/issue/ci_run list query를 검증했다.
-- metrics/infra/risk/CI log snapshot handler가 `SnapshotProvider` 경계를 통해 data source를 읽도록 분리했고, 기본 `StaticSnapshotProvider`를 추가했다.
-- dashboard metrics, infra nodes/edges/topology, risk snapshot 응답 meta에 provider `source`를 포함하도록 정리했다.
-- `RuntimeSnapshotProvider`를 추가해 `DB_URL`, `GITEA_URL`, `BACKEND_AI_URL` 기반 health check로 infra node/edge status를 보강했다.
-- Docker Compose backend-core 환경에 `BACKEND_AI_URL=http://backend-ai:8000`을 추가했다.
-- `GET /api/v1/risks` DB-backed 조회 API를 추가했고, `GET /api/v1/risks/critical`은 action-required high risk가 있으면 DB 응답을 우선 사용한다.
-- Gitea `action_run/workflow_run` 실패 이벤트에서 `ci_failure:{ci_run_id}` risk를 생성해 `risks` 테이블에 upsert하도록 정규화 경로를 확장했다.
+- Gitea webhook raw 저장, signature 검증, dedupe 처리, event 조회 API를 구현했다.
+- repository/user/issue/pull_request/ci_run/risk 정규화 테이블과 normalize processor를 구현했다.
+- DB-backed domain 조회 API를 구현했다: repositories, issues, pull-requests, ci-runs, risks.
+- snapshot handler를 `SnapshotProvider` 경계로 분리하고 runtime/static fallback을 제공한다.
 - command/audit migration을 추가했다: `commands`, `audit_logs`.
-- `POST /api/v1/risks/{risk_id}/mitigations`는 risk 상태를 즉시 바꾸지 않고 `pending` command와 audit log를 생성하며, `idempotency_key` 재시도는 기존 command를 반환한다.
-- `GET /api/v1/commands/{command_id}`로 command 상태를 조회할 수 있다.
-- 홈랩 PostgreSQL `devhub` DB에 migration version 3 적용을 검증했다.
+- `POST /api/v1/admin/service-actions`, `POST /api/v1/risks/{risk_id}/mitigations`, `GET /api/v1/commands/{command_id}`를 구현했다.
+- idempotency replay와 command 조회 테스트를 추가했다.
+- 승인 불필요 dry-run command worker를 추가해 `pending -> running -> succeeded`로 자동 전이한다.
+- `/api/v1/realtime/ws`와 in-process `RealtimeHub`를 추가했고 `command.status.updated`를 publish한다.
+- Phase 12 조직/사용자 CRUD API를 구현했다: users CRUD, org unit CRUD, hierarchy, unit members replace/list.
+- `GET /api/v1/audit-logs`를 추가했고 조직/사용자 CRUD와 멤버 교체에 audit log 생성을 연결했다.
+- `X-Devhub-Actor` 사용 시 deprecation 응답 헤더를 추가해 Phase 13 token actor 전환 경로를 노출했다.
+- `docs/backend_api_contract.md` §11을 Hydra/Kratos 기준으로 재작성하고 Go Core Bearer token verifier 경계를 추가했다.
+- `GET /api/v1/rbac/policy`를 추가하고 프론트 Permissions 화면이 backend policy를 조회하도록 준비했다.
+- Phase 13 Ory Hydra/Kratos PoC scaffold가 main에 반영됐다: `infra/idp/`, schema/config/client 등록 관련 파일.
+- 브랜치별 memory 구조를 적용해 현재 브랜치 상태 문서는 `ai-workflow/memory/codex/service-action-command/` 아래에서 관리한다.
 
-## 4. 다음 작업 큐
+## 4. 재검토 결과
 
-### P1
+### 방향성 충돌 없음
 
-- metrics용 DB-backed provider 구현 범위를 확정한다.
-- Gitea Runner 세부 상태 adapter 또는 Gitea REST client 연동 범위를 확정한다.
-- service action command API와 command status transition worker 범위를 확정한다.
+- Phase 12 조직/사용자 관리와 현재 command/realtime 작업은 충돌하지 않는다. 둘 다 `backend-core` 라우터와 Postgres store에 공존 가능하다.
+- Phase 13 IdP 도입은 현재 command actor 처리 방식과 직접 연결된다. 기존 `X-Devhub-Actor`는 개발용 임시 경계로 유지하고, production 경계는 JWT/session claim 기반으로 전환해야 한다.
+- service action command의 dry-run 자동 성공 전이는 “실제 executor 도입 전 안전한 시뮬레이션”으로 유지 가능하다.
 
-### P2
+### 조정이 필요한 전제
 
-- Commit/push 이벤트의 commit 단위 정규화 필요성을 검토하고 별도 `commits` 테이블 도입 여부를 결정한다.
-- `ServiceNode`, `CiRun`, `Risk`, `Command` 모델에 프론트 mock보다 부족한 식별자, owner, timestamp, status, pagination/filtering 기준을 추가한다.
-- WebSocket 메시지 타입(`infra.node.updated`, `ci.run.updated`, `risk.updated`, `command.status.updated`, `notification.created`) 초안을 작성한다.
-- system admin allowlist 또는 seed admin 기준을 API 계약과 함께 확정한다.
+- WebSocket은 endpoint와 command event만 구현됐다. Phase 8은 done이 아니라 “command event 1차 완료, 인증/필터/replay 미완료” 상태다.
+- Command/Audit는 command 생성과 상태 전이는 구현됐지만 audit 조회 API, approval boundary, 실제 executor가 없다. Phase 7은 계속 in_progress다.
+- Phase 13 계정/인증 계약은 자체 accounts table 전제를 폐기하고 Hydra/Kratos 기준으로 재작성했다. 실제 JWKS/introspection verifier와 admin identity wrapper 구현은 남아 있다.
+- Docker 기반 실행 전제와 Phase 13 native binary 운영 전제가 문서마다 섞여 있다. 로컬 검증 명령은 당분간 Go/NPM/native PostgreSQL 중심으로 유지하고, Docker Compose는 호환 폴백으로 낮춘다.
 
-### P3
+## 5. 우선순위 계획
 
-- Python AI gRPC 서버 구현과 Go Core client 연결을 시작한다.
-- Hourly Pull reconciliation worker와 Gitea REST client를 설계한다.
-- weekly report, AI Gardener suggestion, team load 산출 모델을 후속 기능으로 구체화한다.
+### P0: 통합 안정화
 
-### P1 — Phase 13 (계정/인증 1차, IdP 도입)
+- `docs/backend_api_contract.md` §11 Hydra/Kratos 재작성은 완료했다.
+- Go Core actor 추출 경계는 1차 완료했다: `X-Devhub-Actor` fallback deprecation, Bearer token verifier interface, 검증된 actor context 연결까지 구현했다. 다음은 Hydra JWKS/introspection verifier와 role/permission lookup 순서다.
+- RBAC policy 조회 API는 1차 완료했다. 현재는 read-only static default이며, 편집 API와 persistence는 approval/audit 경계 확정 뒤 진행한다.
+- WebSocket 인증/구독 필터 설계를 확정한다.
+- audit log 조회 API와 조직/사용자 CRUD audit 연결은 1차 완료됐다. 후속으로 auth actor와 source_ip/request_id 보강이 필요하다.
 
-> 직전 자체 `accounts` 구현 task 큐는 [ADR-0001](../../docs/adr/0001-idp-selection.md) 결정에 따라 다음 큐로 교체됐다. ADR-0001 §8 미해결 항목 7종은 2026-05-07 모두 결정 완료 (ADR §8 인라인 결정 결과 참조). 본 큐는 그 결정을 반영한다.
+### P1: Admin Action 실행 경계
 
-1. **PoC 환경 구성 (Docker 미사용)**:
-   - **(a) Binary 설치 — 사용자 수동 단계, 샌드박스 외**: 사용자 터미널에서 `go install github.com/ory/hydra/v2/cmd/hydra@vX.Y.Z`, `go install github.com/ory/kratos/cmd/kratos@vX.Y.Z` 실행. 사내 GoProxy 미러 사용. 버전(`vX.Y.Z`) 은 PoC 시점 최신 stable. AI 자동화 환경은 binary 설치 자체를 수행하지 않음 — 설정 파일/스크립트/검증만 수행.
-   - **(b) DB schema 분리**: 기존 `devhub` DB 안에 `hydra`, `kratos` schema 신규 생성. Hydra/Kratos `dsn` 에 `?search_path=hydra` / `?search_path=kratos` 적용.
-   - **(c) 설정 파일 작성**: `infra/idp/hydra.yaml`, `infra/idp/kratos.yaml` (위치는 시작 시점 확정). first-party client = silent consent (`skip_consent=true`). PKCE + refresh token rotation 활성.
-   - **(d) Kratos identity schema**: `traits.email`, `traits.display_name`, `metadata_public.user_id` 정의.
-   - **(e) 실행 방식**: 직접 실행 (별도 PowerShell 창 또는 백그라운드). 시스템 서비스 등록은 운영 진입 시점에 별도 결정.
-   - **(f) 검증**: Next.js `/login` → Hydra `/oauth2/auth` (PKCE) → Kratos public flow 인증 → Hydra accept login → silent consent → callback → token endpoint round-trip 1회 성공.
-2. **DevHub OIDC client 등록**: Hydra 에 first-party client 등록 (Authorization Code + PKCE, refresh token rotation, `skip_consent=true`).
-3. **`users.user_id` ↔ Kratos identity 1:1 매핑 검증**: Kratos identity `metadata_public.user_id` 가 DevHub `users.user_id` 와 1:1 invariant 를 지키는지 확인하는 어댑터 + 테스트.
-4. **identity ↔ users 동기화 어댑터**: Kratos webhook 수신 endpoint 를 Go Core 에 추가. identity 생성/비활성화 시 `users.status` 갱신, 신규 user 생성 시 Kratos identity 발급 트리거.
-5. **시스템 관리자 admin wrapper**: `/api/v1/admin/identities/*` — Kratos admin API 호출 wrapper. 발급(초기 비밀번호 강제 재설정 토큰)/회수/잠금 해제/강제 재설정.
-6. **audit log 매핑**: Kratos 이벤트(`session.created`, `identity.created`, `identity.disabled`, `password.changed`) → DevHub audit action 6종 기록 어댑터.
-7. **Token 검증 미들웨어 (X-Devhub-Actor deprecation 시작)**: Go Core 에 Bearer access token JWKS 검증 + `sub` claim → actor 매핑 미들웨어 추가. **`X-Devhub-Actor` 헤더는 폴백으로 유지하되 사용 시 deprecation warning 로그 출력**. 완전 제거는 별도 phase.
-8. **API 계약 재작성**: `backend_api_contract.md §11` 을 (a) Hydra 표준 endpoint 안내, (b) `/api/v1/admin/identities/*` 신규 contract, (c) Next.js → Kratos public flow 안내 3개 절로 교체.
-9. **테스트**: OIDC code flow round-trip, identity ↔ user 매핑 invariant, Kratos webhook → audit log 매핑, admin wrapper 핸들러 단위 테스트.
+- service action approval model을 확정한다: pending approval, approved, rejected, executor started, executor finished.
+- 실제 executor adapter 인터페이스를 설계한다.
+- Gitea Runner/server 상태 adapter 범위를 확정한다.
+- live command는 기본 거절 또는 approval required로 유지하고, dry-run과 실제 side effect 경계를 테스트로 고정한다.
 
-> MFA 는 1차 미도입(ADR-0001 §8.3 결정). Kratos identity schema 는 후속 phase 에서 MFA 자격 증명을 추가 가능한 상태로 유지.
-> 외부 SaaS client 추가는 1차 범위 밖 — 후속 phase 에서 consent UI 구현과 함께 진행 (ADR-0001 §8.2 결정).
-> Gitea SSO 통합은 본 phase 완료 후 별도 ADR-0002 (예정) 로 처리.
+### P2: Realtime 확장
 
-## 5. Blocked 항목
+- `command.status.updated`를 프론트 toast/status UI와 연결한 뒤 event payload 안정성을 확인한다.
+- `infra.node.updated`, `ci.run.updated`, `risk.updated`, `notification.created` publish 경계를 구현한다.
+- WebSocket reconnect/replay 전략을 정한다.
+- role 기반 subscription filtering을 구현한다.
 
-- 현재 백엔드 로드맵 진행을 막는 blocked 항목 없음.
-- 참고: Docker daemon socket(`/Users/yklee/.colima/default/docker.sock`) 연결 실패는 남아 있으나, 홈랩 PostgreSQL로 migration 검증을 완료해 Phase 2 차단은 해제됨.
+### P3: Gitea REST 및 AI
 
-## 6. 진척 관리 방식
+- Gitea REST client와 hourly reconciliation worker를 설계한다.
+- commit 단위 정규화 필요성을 검토하고 `commits` 테이블 도입 여부를 결정한다.
+- Python AI gRPC 서버와 Go Core client 연결을 시작한다.
+- AI Gardener suggestion 입력/출력 모델을 command/audit 및 risk 모델과 연결한다.
+
+## 6. 다음 작업 큐
+
+- [x] API 계약 §11 Hydra/Kratos 재작성
+- [x] Bearer token 검증 middleware 설계 및 최소 구현
+- [x] RBAC policy 조회 API 및 프론트 Permissions 연동 준비
+- [x] `X-Devhub-Actor` deprecation warning 경로 추가
+- [x] audit log 조회 API와 organization CRUD audit 연결
+- [ ] WebSocket 인증/구독 필터/replay 설계
+- [ ] service action approval/executor boundary 설계
+- [ ] Gitea Runner adapter 범위 확정
+- [ ] AI Gardener suggestion API/UI 연결 범위 확정
+
+## 7. Blocked 항목
+
+- 현재 백엔드 코드 진행을 막는 hard blocker는 없다.
+- Phase 13 실제 round-trip 검증은 Hydra/Kratos native binary, PostgreSQL schema, frontend auth route 준비가 필요하다.
+- 외부 네트워크/사내 SSL inspection 환경에서는 Go module, npm package, font 다운로드가 막힐 수 있으므로 mirror 또는 사내 CA 설정을 사용한다.
+
+## 8. 진척 관리 방식
 
 - 이 문서의 Phase 상태는 `planned`, `in_progress`, `blocked`, `done` 중 하나로만 관리한다.
 - 코드 변경이 포함된 Phase는 테스트 또는 실행 검증 결과를 남긴 뒤 `done`으로 전환한다.
-- 세션 종료 전 `ai-workflow/memory/state.json`, `ai-workflow/memory/session_handoff.md`, 최신 backlog에서 이 문서와 현재 Phase를 함께 갱신한다.
+- 세션 종료 전 현재 브랜치별 `ai-workflow/memory/<agent>/<branch>/state.json`, `session_handoff.md`, 최신 backlog에서 이 문서와 현재 Phase를 함께 갱신한다.

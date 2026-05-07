@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShieldCheck, Lock, Plus, Edit3, Trash2, ShieldAlert } from "lucide-react";
+import { ShieldCheck, Lock, Plus, Edit3, Trash2, ShieldAlert, Eye, Pencil, Crown, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PermissionMatrix, PermissionState } from "./PermissionMatrix";
 import { Role } from "@/lib/services/rbac.types";
@@ -48,12 +48,20 @@ export function PermissionEditor({ roles, setRoles }: PermissionEditorProps) {
           <div className="p-2 rounded-xl bg-primary/20 border border-primary/30">
             <Lock className="w-5 h-5 text-primary" />
           </div>
-          <h3 className="text-xl font-black text-white uppercase tracking-tight">RBAC <span className="text-primary">Policies</span></h3>
+          <div>
+            <h3 className="text-xl font-black text-white uppercase tracking-tight">RBAC <span className="text-primary">Policies</span></h3>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
+              Role-Based Access Control Configuration
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-4">
-          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full border border-white/10">
-            {roles.length} Roles Defined
-          </p>
+        
+        <div className="flex items-center gap-6">
+          <div className="hidden md:flex items-center gap-3 text-[10px] font-black uppercase tracking-widest">
+            <LegendChip type="read" label="Read" />
+            <LegendChip type="write" label="Write" />
+            <LegendChip type="admin" label="Admin" />
+          </div>
           <button 
             onClick={handleCreateRole}
             className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all text-sm"
@@ -131,7 +139,10 @@ export function PermissionEditor({ roles, setRoles }: PermissionEditorProps) {
                 className="glass rounded-3xl p-8 border-white/10 h-full flex flex-col"
               >
                 <div className="mb-8">
-                  <h3 className="text-2xl font-black text-white mb-2">{selectedRole.name} Matrix</h3>
+                  <div className="flex items-center gap-3 mb-2">
+                    <Shield className="w-5 h-5 text-accent" />
+                    <h3 className="text-2xl font-black text-white">{selectedRole.name} Matrix</h3>
+                  </div>
                   <p className="text-sm text-muted-foreground">
                     Configure fine-grained access policies for <strong className="text-white">{selectedRole.name}</strong>.
                     Changes are automatically applied to users mapped to this role.
@@ -163,5 +174,26 @@ export function PermissionEditor({ roles, setRoles }: PermissionEditorProps) {
         </div>
       </div>
     </div>
+  );
+}
+
+function LegendChip({ type, label }: { type: 'read' | 'write' | 'admin'; label: string }) {
+  const icons = {
+    read: Eye,
+    write: Pencil,
+    admin: Crown
+  };
+  const styles = {
+    read: "bg-white/5 border-white/20 text-white/70",
+    write: "bg-blue-500/10 border-blue-500/30 text-blue-300",
+    admin: "bg-accent/15 border-accent/40 text-accent"
+  };
+  const Icon = icons[type];
+  
+  return (
+    <span className={cn("px-2.5 py-1 rounded-lg border flex items-center gap-1.5", styles[type])}>
+      <Icon className="w-3 h-3" />
+      {label}
+    </span>
   );
 }

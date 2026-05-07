@@ -27,7 +27,7 @@
 !/ai-workflow/README.md
 !/ai-workflow/WORKFLOW_INDEX.md
 !/ai-workflow/core/
-!/ai-workflow/project/
+!/ai-workflow/memory/
 # === WORKFLOW KIT END ===
 
 .venv/

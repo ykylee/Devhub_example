@@ -4,8 +4,8 @@
 - 범위: 저장소 구조, 추정 기술 스택, 문서 위치, 테스트 흔적, 초기 워크플로우 도입 포인트
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-05-01
-- 관련 문서: `../../docs/PROJECT_PROFILE.md`, `./session_handoff.md`, `../core/workflow_adoption_entrypoints.md`
+- 최종 수정일: 2026-05-06
+- 관련 문서: `./PROJECT_PROFILE.md`, `./session_handoff.md`, `../core/workflow_adoption_entrypoints.md`
 
 ## 1. 요약
 
@@ -14,33 +14,33 @@
 - 분석 모드:
 - `existing`
 - 추정 기본 스택:
-- `cpp`
+- `go`
 - 감지된 스택 라벨:
-- `cpp, go, node, python`
+- `go, node, python, docker`
 
 ## 2. 저장소 구조 관찰
 
 - 상위 디렉터리 항목:
-- `.git, .gitignore, .venv, ANTIGRAVITY.md, GEMINI.md, Makefile, README.md, backend-ai, backend-core, docker-compose.yml, docs, frontend, proto`
+- `.git, .gitignore, AGENTS.md, GEMINI.md, Makefile, README.md, ai-workflow, backend-ai, backend-core, docker-compose.yml, docs, frontend, proto`
 - 소스 디렉터리 후보:
-- `없음`
+- `backend-core, backend-ai, frontend, proto`
 - 문서 디렉터리 후보:
 - `docs`
 - 테스트 디렉터리 후보:
-- `없음`
+- `backend-core/internal/*/*_test.go, ai-workflow/tests, frontend lint`
 
 ## 3. 추정 명령
 
 - 설치:
-- `make install`
+- `make setup`
 - 로컬 실행:
 - `make run`
 - 빠른 테스트:
-- `make test`
+- `cd backend-core && go test ./...`
 - 격리 테스트:
-- `TODO: 격리 테스트 명령 입력`
+- `cd frontend && npm run lint`
 - 실행 확인:
-- `make smoke`
+- `make build`
 
 ## 4. package script 및 경로 샘플
 
@@ -73,11 +73,11 @@
 - 추천 문서 위키 홈:
 - `docs/README.md`
 - 추천 운영 문서 위치:
-- `ai-workflow/memory/`
+- `ai-workflow/memory/<agent>/<branch>/`
 - 추천 backlog 위치:
-- `ai-workflow/memory/backlog/`
+- `ai-workflow/memory/<agent>/<branch>/backlog/`
 - 추천 session handoff 위치:
-- `ai-workflow/memory/session_handoff.md`
+- `ai-workflow/memory/<agent>/<branch>/session_handoff.md`
 
 ## 6. 자동 분석 기반 다음 작업
 
@@ -87,6 +87,6 @@
 
 ## 다음에 읽을 문서
 
-- 프로젝트 프로파일: [../../docs/PROJECT_PROFILE.md](../../docs/PROJECT_PROFILE.md)
+- 프로젝트 프로파일: [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md)
 - 세션 인계 문서: [./session_handoff.md](./session_handoff.md)
 - 도입 분기 가이드: [../core/workflow_adoption_entrypoints.md](../core/workflow_adoption_entrypoints.md)

@@ -23,7 +23,11 @@ def main():
 
     # 1. Orchestrator identifies a task
     print("[Orchestrator] Task identified: Audit Phase 9 documentation integrity.")
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> origin/codex/service-action-command
     # 2. Orchestrator prepares a delegation payload
     delegation = WorkerTask(
         worker_id="doc-worker",
@@ -32,7 +36,11 @@ def main():
         constraints=["Do not modify files directly; suggest changes in the summary."],
         context_summary="Transitioning from Phase 9 to Phase 10 requires clean documentation baselines."
     )
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> origin/codex/service-action-command
     print(f"[Orchestrator] Delegating to {delegation.worker_id}...")
     print(json.dumps(delegation.model_dump(), indent=2, ensure_ascii=False))
     print("\n" + "-"*40 + "\n")
@@ -40,7 +48,11 @@ def main():
     # 3. Simulate Worker execution
     print("[Worker: doc-worker] Executing audit...")
     print("[Worker: doc-worker] Scanning files...")
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> origin/codex/service-action-command
     # 4. Worker returns a response
     response = WorkerResponse(
         status=Status.OK,
@@ -50,10 +62,17 @@ def main():
         risks_identified=["Legacy references to 'mcp/' (pre-migration) still exist in internal comments."],
         suggested_follow_up=["Update the 'mcp/' to 'mcp_servers/' in internal code comments via a regex tool."]
     )
+<<<<<<< HEAD
     
     print("[Orchestrator] Received response from worker:")
     print(json.dumps(response.model_dump(), indent=2, ensure_ascii=False))
     
+=======
+
+    print("[Orchestrator] Received response from worker:")
+    print(json.dumps(response.model_dump(), indent=2, ensure_ascii=False))
+
+>>>>>>> origin/codex/service-action-command
     print("\n[Orchestrator] Decision: Task successfully delegated and results integrated.")
     print("=== Demo Complete ===")
 

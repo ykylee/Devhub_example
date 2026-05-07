@@ -451,7 +451,7 @@ ON CONFLICT (risk_key) DO UPDATE SET
 
 func (s *PostgresStore) CreateRiskMitigationCommand(ctx context.Context, req domain.RiskMitigationCommandRequest) (domain.Command, domain.AuditLog, bool, error) {
 	if req.IdempotencyKey != "" {
-		command, auditLog, found, err := s.commandByIdempotencyKey(ctx, req.IdempotencyKey)
+		command, auditLog, found, err := s.commandByIdempotencyKey(ctx, req.IdempotencyKey, "risk_mitigation")
 		if err != nil {
 			return domain.Command{}, domain.AuditLog{}, false, err
 		}
@@ -566,7 +566,7 @@ RETURNING
 	)
 	if err != nil {
 		if req.IdempotencyKey != "" {
-			existingCommand, existingAuditLog, found, findErr := s.commandByIdempotencyKey(ctx, req.IdempotencyKey)
+			existingCommand, existingAuditLog, found, findErr := s.commandByIdempotencyKey(ctx, req.IdempotencyKey, "risk_mitigation")
 			if findErr != nil {
 				return domain.Command{}, domain.AuditLog{}, false, findErr
 			}
@@ -637,6 +637,192 @@ RETURNING
 	return command, auditLog, false, nil
 }
 
+func (s *PostgresStore) CreateServiceActionCommand(ctx context.Context, req domain.ServiceActionCommandRequest) (domain.Command, domain.AuditLog, bool, error) {
+	if req.IdempotencyKey != "" {
+		command, auditLog, found, err := s.commandByIdempotencyKey(ctx, req.IdempotencyKey, "service_action")
+		if err != nil {
+			return domain.Command{}, domain.AuditLog{}, false, err
+		}
+		if found {
+			return command, auditLog, true, nil
+		}
+	}
+
+	commandID, err := randomPrefixedID("cmd")
+	if err != nil {
+		return domain.Command{}, domain.AuditLog{}, false, err
+	}
+	auditID, err := randomPrefixedID("audit")
+	if err != nil {
+		return domain.Command{}, domain.AuditLog{}, false, err
+	}
+
+	requestPayload := req.RequestPayload
+	if requestPayload == nil {
+		requestPayload = map[string]any{}
+	}
+	commandPayload, err := json.Marshal(requestPayload)
+	if err != nil {
+		return domain.Command{}, domain.AuditLog{}, false, err
+	}
+	auditPayload, err := json.Marshal(map[string]any{
+		"service_id":  req.ServiceID,
+		"action_type": req.ActionType,
+		"dry_run":     req.DryRun,
+		"force":       req.Force,
+		"reason":      req.Reason,
+	})
+	if err != nil {
+		return domain.Command{}, domain.AuditLog{}, false, err
+	}
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return domain.Command{}, domain.AuditLog{}, false, err
+	}
+	defer tx.Rollback(ctx)
+
+	const commandQuery = `
+INSERT INTO commands (
+	command_id,
+	command_type,
+	target_type,
+	target_id,
+	action_type,
+	status,
+	actor_login,
+	reason,
+	dry_run,
+	requires_approval,
+	idempotency_key,
+	request_payload,
+	result_payload,
+	updated_at
+) VALUES ($1, 'service_action', 'service', $2, $3, 'pending', $4, $5, $6, $7, NULLIF($8, ''), $9::jsonb, '{}'::jsonb, NOW())
+RETURNING
+	id,
+	command_id,
+	command_type,
+	target_type,
+	target_id,
+	action_type,
+	status,
+	actor_login,
+	reason,
+	dry_run,
+	requires_approval,
+	COALESCE(idempotency_key, ''),
+	request_payload,
+	result_payload,
+	created_at,
+	updated_at`
+
+	var command domain.Command
+	var scannedCommandPayload []byte
+	var scannedResultPayload []byte
+	err = tx.QueryRow(
+		ctx,
+		commandQuery,
+		commandID,
+		req.ServiceID,
+		req.ActionType,
+		req.ActorLogin,
+		req.Reason,
+		req.DryRun,
+		req.RequiresApproval,
+		req.IdempotencyKey,
+		string(commandPayload),
+	).Scan(
+		&command.ID,
+		&command.CommandID,
+		&command.CommandType,
+		&command.TargetType,
+		&command.TargetID,
+		&command.ActionType,
+		&command.Status,
+		&command.ActorLogin,
+		&command.Reason,
+		&command.DryRun,
+		&command.RequiresApproval,
+		&command.IdempotencyKey,
+		&scannedCommandPayload,
+		&scannedResultPayload,
+		&command.CreatedAt,
+		&command.UpdatedAt,
+	)
+	if err != nil {
+		if req.IdempotencyKey != "" {
+			existingCommand, existingAuditLog, found, findErr := s.commandByIdempotencyKey(ctx, req.IdempotencyKey, "service_action")
+			if findErr != nil {
+				return domain.Command{}, domain.AuditLog{}, false, findErr
+			}
+			if found {
+				return existingCommand, existingAuditLog, true, nil
+			}
+		}
+		return domain.Command{}, domain.AuditLog{}, false, err
+	}
+	if err := decodeJSONMap(scannedCommandPayload, &command.RequestPayload); err != nil {
+		return domain.Command{}, domain.AuditLog{}, false, err
+	}
+	if err := decodeJSONMap(scannedResultPayload, &command.ResultPayload); err != nil {
+		return domain.Command{}, domain.AuditLog{}, false, err
+	}
+
+	const auditQuery = `
+INSERT INTO audit_logs (
+	audit_id,
+	actor_login,
+	action,
+	target_type,
+	target_id,
+	command_id,
+	payload
+) VALUES ($1, $2, 'service_action.requested', 'service', $3, $4, $5::jsonb)
+RETURNING
+	id,
+	audit_id,
+	actor_login,
+	action,
+	target_type,
+	target_id,
+	COALESCE(command_id, ''),
+	payload,
+	created_at`
+
+	var auditLog domain.AuditLog
+	var scannedAuditPayload []byte
+	if err := tx.QueryRow(
+		ctx,
+		auditQuery,
+		auditID,
+		req.ActorLogin,
+		req.ServiceID,
+		command.CommandID,
+		string(auditPayload),
+	).Scan(
+		&auditLog.ID,
+		&auditLog.AuditID,
+		&auditLog.ActorLogin,
+		&auditLog.Action,
+		&auditLog.TargetType,
+		&auditLog.TargetID,
+		&auditLog.CommandID,
+		&scannedAuditPayload,
+		&auditLog.CreatedAt,
+	); err != nil {
+		return domain.Command{}, domain.AuditLog{}, false, err
+	}
+	if err := decodeJSONMap(scannedAuditPayload, &auditLog.Payload); err != nil {
+		return domain.Command{}, domain.AuditLog{}, false, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return domain.Command{}, domain.AuditLog{}, false, err
+	}
+	return command, auditLog, false, nil
+}
+
 func (s *PostgresStore) GetCommand(ctx context.Context, commandID string) (domain.Command, error) {
 	const query = `
 SELECT
@@ -661,6 +847,94 @@ WHERE command_id = $1
 LIMIT 1`
 
 	command, err := scanCommand(s.pool.QueryRow(ctx, query, commandID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.Command{}, ErrNotFound
+	}
+	return command, err
+}
+
+func (s *PostgresStore) ListRunnableDryRunCommands(ctx context.Context, limit int) ([]domain.Command, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 25
+	}
+
+	const query = `
+SELECT
+	id,
+	command_id,
+	command_type,
+	target_type,
+	target_id,
+	action_type,
+	status,
+	actor_login,
+	reason,
+	dry_run,
+	requires_approval,
+	COALESCE(idempotency_key, ''),
+	request_payload,
+	result_payload,
+	created_at,
+	updated_at
+FROM commands
+WHERE status = 'pending'
+	AND dry_run = TRUE
+	AND requires_approval = FALSE
+ORDER BY created_at ASC, id ASC
+LIMIT $1`
+
+	rows, err := s.pool.Query(ctx, query, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	commands := []domain.Command{}
+	for rows.Next() {
+		command, err := scanCommand(rows)
+		if err != nil {
+			return nil, err
+		}
+		commands = append(commands, command)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return commands, nil
+}
+
+func (s *PostgresStore) UpdateCommandStatus(ctx context.Context, commandID, status string, resultPayload map[string]any) (domain.Command, error) {
+	payload, err := json.Marshal(resultPayload)
+	if err != nil {
+		return domain.Command{}, err
+	}
+
+	const query = `
+UPDATE commands
+SET
+	status = $2,
+	result_payload = $3,
+	updated_at = NOW()
+WHERE command_id = $1
+RETURNING
+	id,
+	command_id,
+	command_type,
+	target_type,
+	target_id,
+	action_type,
+	status,
+	actor_login,
+	reason,
+	dry_run,
+	requires_approval,
+	COALESCE(idempotency_key, ''),
+	request_payload,
+	result_payload,
+	created_at,
+	updated_at`
+
+	command, err := scanCommand(s.pool.QueryRow(ctx, query, commandID, status, payload))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return domain.Command{}, ErrNotFound
 	}
@@ -1030,7 +1304,7 @@ func (s *PostgresStore) ensureRiskExists(ctx context.Context, riskID string) err
 	return nil
 }
 
-func (s *PostgresStore) commandByIdempotencyKey(ctx context.Context, idempotencyKey string) (domain.Command, domain.AuditLog, bool, error) {
+func (s *PostgresStore) commandByIdempotencyKey(ctx context.Context, idempotencyKey, commandType string) (domain.Command, domain.AuditLog, bool, error) {
 	const commandQuery = `
 SELECT
 	id,
@@ -1050,10 +1324,10 @@ SELECT
 	created_at,
 	updated_at
 FROM commands
-WHERE idempotency_key = $1
+WHERE idempotency_key = $1 AND command_type = $2
 LIMIT 1`
 
-	command, err := scanCommand(s.pool.QueryRow(ctx, commandQuery, idempotencyKey))
+	command, err := scanCommand(s.pool.QueryRow(ctx, commandQuery, idempotencyKey, commandType))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return domain.Command{}, domain.AuditLog{}, false, nil
 	}

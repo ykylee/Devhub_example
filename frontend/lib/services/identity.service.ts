@@ -36,6 +36,55 @@ export interface OrgNode {
   position: { x: number; y: number };
 }
 
+export interface OrgEdge {
+  id: string;
+  source: string;
+  target: string;
+  animated?: boolean;
+}
+
+type JsonObject = Record<string, unknown>;
+
+interface ApiResponse<T> {
+  data?: T;
+  error?: string;
+}
+
+interface BackendAppointment {
+  unit_id: string;
+  appointment_role: 'leader' | 'member';
+}
+
+interface BackendUser {
+  user_id: string;
+  display_name: string;
+  email: string;
+  role: string;
+  status: OrgMember["status"];
+  primary_unit_id?: string;
+  current_unit_id?: string;
+  is_seconded?: boolean;
+  appointments?: BackendAppointment[];
+  joined_at?: string;
+}
+
+interface BackendUnit {
+  unit_id: string;
+  parent_unit_id?: string;
+  unit_type: OrgUnit["unit_type"];
+  label: string;
+  leader_user_id?: string;
+  position_x?: number;
+  position_y?: number;
+  direct_count?: number;
+  total_count?: number;
+}
+
+interface BackendEdge {
+  source_unit_id: string;
+  target_unit_id: string;
+}
+
 const DEPT_PRIORITY = {
   'division': 4,
   'team': 3,
@@ -111,10 +160,14 @@ export interface UpdateUnitPayload {
 }
 
 export class IdentityServiceError extends Error {
-  constructor(public status: number, public payload: any, message: string) {
+  constructor(public status: number, public payload: unknown, message: string) {
     super(message);
     this.name = "IdentityServiceError";
   }
+}
+
+function isJsonObject(value: unknown): value is JsonObject {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 async function jsonRequest<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -123,7 +176,7 @@ async function jsonRequest<T>(method: string, path: string, body?: unknown): Pro
     headers: body !== undefined ? { "Content-Type": "application/json" } : undefined,
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
-  let parsed: any = null;
+  let parsed: unknown = null;
   const text = await response.text();
   if (text.length > 0) {
     try {
@@ -133,13 +186,13 @@ async function jsonRequest<T>(method: string, path: string, body?: unknown): Pro
     }
   }
   if (!response.ok) {
-    const errMessage = parsed?.error || `HTTP ${response.status}`;
+    const errMessage = isJsonObject(parsed) && typeof parsed.error === "string" ? parsed.error : `HTTP ${response.status}`;
     throw new IdentityServiceError(response.status, parsed, errMessage);
   }
   return parsed as T;
 }
 
-function mapBackendUnit(u: any): OrgUnit {
+function mapBackendUnit(u: BackendUnit): OrgUnit {
   return {
     unit_id: u.unit_id,
     parent_unit_id: u.parent_unit_id ?? "",
@@ -153,7 +206,7 @@ function mapBackendUnit(u: any): OrgUnit {
   };
 }
 
-function mapBackendUser(u: any): OrgMember {
+function mapBackendUser(u: BackendUser): OrgMember {
   return {
     id: u.user_id,
     name: u.display_name,
@@ -163,7 +216,7 @@ function mapBackendUser(u: any): OrgMember {
     primary_dept_id: u.primary_unit_id ?? "",
     current_dept_id: u.current_unit_id ?? "",
     is_seconded: !!u.is_seconded,
-    appointments: (u.appointments ?? []).map((a: any) => ({
+    appointments: (u.appointments ?? []).map((a) => ({
       dept_id: a.unit_id,
       role: a.appointment_role,
     })),
@@ -187,7 +240,7 @@ export class IdentityService {
     try {
       const response = await fetch(`/api/v1/users`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const result = await response.json();
+      const result = await response.json() as ApiResponse<BackendUser[]>;
       return (result.data ?? []).map(mapBackendUser);
     } catch (error) {
       console.error('[IdentityService] getUsers error, falling back to mock:', error);
@@ -216,13 +269,13 @@ export class IdentityService {
     ];
   }
 
-  async getOrgHierarchy() {
+  async getOrgHierarchy(): Promise<{ nodes: OrgNode[]; edges: OrgEdge[] }> {
     try {
       const response = await fetch(`/api/v1/organization/hierarchy`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const result = await response.json();
-      const units: any[] = result.data?.units ?? [];
-      const edges: any[] = result.data?.edges ?? [];
+      const result = await response.json() as ApiResponse<{ units?: BackendUnit[]; edges?: BackendEdge[] }>;
+      const units = result.data?.units ?? [];
+      const edges = result.data?.edges ?? [];
       const nodes = units.map((u) => ({
         id: u.unit_id,
         ...(u.unit_id === 'org-root' ? { type: 'input' as const } : {}),
@@ -252,7 +305,7 @@ export class IdentityService {
     try {
       const response = await fetch(`/api/v1/organization/units/${encodeURIComponent(unitId)}/members`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const result = await response.json();
+      const result = await response.json() as ApiResponse<BackendUser[]>;
       return (result.data ?? []).map(mapBackendUser);
     } catch (error) {
       console.error('[IdentityService] getUnitMembers error:', error);
@@ -272,7 +325,8 @@ export class IdentityService {
       is_seconded: !!payload.is_seconded,
       joined_at: payload.joined_at ?? "",
     };
-    const result = await jsonRequest<{ data: any }>("POST", `/api/v1/users`, body);
+    const result = await jsonRequest<ApiResponse<BackendUser>>("POST", `/api/v1/users`, body);
+    if (!result.data) throw new IdentityServiceError(500, result, "missing user payload");
     return mapBackendUser(result.data);
   }
 
@@ -286,20 +340,22 @@ export class IdentityService {
     if (payload.current_dept_id !== undefined) body.current_unit_id = payload.current_dept_id;
     if (payload.is_seconded !== undefined) body.is_seconded = payload.is_seconded;
     if (payload.joined_at !== undefined) body.joined_at = payload.joined_at;
-    const result = await jsonRequest<{ data: any }>(
+    const result = await jsonRequest<ApiResponse<BackendUser>>(
       "PATCH",
       `/api/v1/users/${encodeURIComponent(userId)}`,
       body,
     );
+    if (!result.data) throw new IdentityServiceError(500, result, "missing user payload");
     return mapBackendUser(result.data);
   }
 
   async deleteUser(userId: string): Promise<void> {
-    await jsonRequest<{ data: any }>("DELETE", `/api/v1/users/${encodeURIComponent(userId)}`);
+    await jsonRequest<ApiResponse<unknown>>("DELETE", `/api/v1/users/${encodeURIComponent(userId)}`);
   }
 
   async getUnit(unitId: string): Promise<OrgUnit> {
-    const result = await jsonRequest<{ data: any }>("GET", `/api/v1/organization/units/${encodeURIComponent(unitId)}`);
+    const result = await jsonRequest<ApiResponse<BackendUnit>>("GET", `/api/v1/organization/units/${encodeURIComponent(unitId)}`);
+    if (!result.data) throw new IdentityServiceError(500, result, "missing unit payload");
     return mapBackendUnit(result.data);
   }
 
@@ -313,7 +369,8 @@ export class IdentityService {
       position_x: payload.position_x ?? 0,
       position_y: payload.position_y ?? 0,
     };
-    const result = await jsonRequest<{ data: any }>("POST", `/api/v1/organization/units`, body);
+    const result = await jsonRequest<ApiResponse<BackendUnit>>("POST", `/api/v1/organization/units`, body);
+    if (!result.data) throw new IdentityServiceError(500, result, "missing unit payload");
     return mapBackendUnit(result.data);
   }
 
@@ -325,20 +382,21 @@ export class IdentityService {
     if (payload.leader_user_id !== undefined) body.leader_user_id = payload.leader_user_id;
     if (payload.position_x !== undefined) body.position_x = payload.position_x;
     if (payload.position_y !== undefined) body.position_y = payload.position_y;
-    const result = await jsonRequest<{ data: any }>(
+    const result = await jsonRequest<ApiResponse<BackendUnit>>(
       "PATCH",
       `/api/v1/organization/units/${encodeURIComponent(unitId)}`,
       body,
     );
+    if (!result.data) throw new IdentityServiceError(500, result, "missing unit payload");
     return mapBackendUnit(result.data);
   }
 
   async deleteUnit(unitId: string): Promise<void> {
-    await jsonRequest<{ data: any }>("DELETE", `/api/v1/organization/units/${encodeURIComponent(unitId)}`);
+    await jsonRequest<ApiResponse<unknown>>("DELETE", `/api/v1/organization/units/${encodeURIComponent(unitId)}`);
   }
 
   async replaceUnitMembers(unitId: string, userIds: string[]): Promise<OrgMember[]> {
-    const result = await jsonRequest<{ data: any[] }>(
+    const result = await jsonRequest<ApiResponse<BackendUser[]>>(
       "PUT",
       `/api/v1/organization/units/${encodeURIComponent(unitId)}/members`,
       { user_ids: userIds },

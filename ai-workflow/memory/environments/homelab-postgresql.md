@@ -1,11 +1,13 @@
 # Homelab PostgreSQL 환경 기록
 
 - 문서 목적: DevHub 로컬/홈랩 PostgreSQL 검증 환경 정보를 기록한다.
-- 범위: 네트워크, 인증, Migration 상태
-- 대상 독자: 백엔드 개발자, 운영자
+- 범위: PostgreSQL 접속 정보, migration 적용 이력, 검증 결과
+- 대상 독자: 백엔드 개발자, 운영자, AI agent
+- 기준일: 2026-05-02
 - 상태: active
 - 최종 수정일: 2026-05-06
-- 관련 문서: `TASK-007 Gitea Webhook 수신부 및 데이터 모델링 구현`, `ai-workflow/memory/backend_development_roadmap.md`
+- 관련 문서: [백엔드 개발 로드맵](../backend_development_roadmap.md)
+- 관련 작업: `TASK-007 Gitea Webhook 수신부 및 데이터 모델링 구현`
 
 ## 1. 접속 정보
 

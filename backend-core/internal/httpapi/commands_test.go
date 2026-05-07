@@ -61,6 +61,47 @@ func (s *memoryCommandStore) CreateRiskMitigationCommand(_ context.Context, req 
 	return command, auditLog, false, nil
 }
 
+func (s *memoryCommandStore) CreateServiceActionCommand(_ context.Context, req domain.ServiceActionCommandRequest) (domain.Command, domain.AuditLog, bool, error) {
+	if s.err != nil {
+		return domain.Command{}, domain.AuditLog{}, false, s.err
+	}
+	for _, command := range s.commands {
+		if req.IdempotencyKey != "" && command.IdempotencyKey == req.IdempotencyKey {
+			return command, s.auditLog, true, nil
+		}
+	}
+	now := time.Date(2026, 5, 4, 10, 0, 0, 0, time.UTC)
+	command := domain.Command{
+		CommandID:        "cmd_service_test",
+		CommandType:      "service_action",
+		TargetType:       "service",
+		TargetID:         req.ServiceID,
+		ActionType:       req.ActionType,
+		Status:           "pending",
+		ActorLogin:       req.ActorLogin,
+		Reason:           req.Reason,
+		DryRun:           req.DryRun,
+		RequiresApproval: req.RequiresApproval,
+		IdempotencyKey:   req.IdempotencyKey,
+		RequestPayload:   req.RequestPayload,
+		ResultPayload:    map[string]any{},
+		CreatedAt:        now,
+		UpdatedAt:        now,
+	}
+	auditLog := domain.AuditLog{
+		AuditID:    "audit_service_test",
+		ActorLogin: req.ActorLogin,
+		Action:     "service_action.requested",
+		TargetType: "service",
+		TargetID:   req.ServiceID,
+		CommandID:  command.CommandID,
+		CreatedAt:  now,
+	}
+	s.commands = append(s.commands, command)
+	s.auditLog = auditLog
+	return command, auditLog, false, nil
+}
+
 func (s *memoryCommandStore) GetCommand(_ context.Context, commandID string) (domain.Command, error) {
 	for _, command := range s.commands {
 		if command.CommandID == commandID {
@@ -68,6 +109,134 @@ func (s *memoryCommandStore) GetCommand(_ context.Context, commandID string) (do
 		}
 	}
 	return domain.Command{}, store.ErrNotFound
+}
+
+func TestCreateServiceActionReturnsCommandLifecycle(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	commandStore := &memoryCommandStore{}
+	router := NewRouter(RouterConfig{CommandStore: commandStore})
+
+	body := []byte(`{"service_id":"runner-asia-01","action_type":"restart","reason":"Runner queue is blocked","dry_run":true,"force":false,"idempotency_key":"service-restart-1","metadata":{"queue_depth":12}}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/service-actions", bytes.NewReader(body))
+	req.Header.Set("X-Devhub-Actor", "admin")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("expected %d, got %d: %s", http.StatusAccepted, rec.Code, rec.Body.String())
+	}
+	var response struct {
+		Status string `json:"status"`
+		Data   struct {
+			CommandID        string `json:"command_id"`
+			CommandStatus    string `json:"command_status"`
+			AuditLogID       string `json:"audit_log_id"`
+			RequiresApproval bool   `json:"requires_approval"`
+			IdempotentReplay bool   `json:"idempotent_replay"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &response); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if response.Status != "accepted" || response.Data.CommandID != "cmd_service_test" || response.Data.CommandStatus != "pending" {
+		t.Fatalf("unexpected command response: %+v", response)
+	}
+	if response.Data.AuditLogID != "audit_service_test" || response.Data.RequiresApproval || response.Data.IdempotentReplay {
+		t.Fatalf("unexpected audit/approval response: %+v", response.Data)
+	}
+	if len(commandStore.commands) != 1 {
+		t.Fatalf("expected command write, got %+v", commandStore.commands)
+	}
+	command := commandStore.commands[0]
+	if command.CommandType != "service_action" || command.TargetID != "runner-asia-01" || command.ActorLogin != "admin" {
+		t.Fatalf("unexpected stored command: %+v", command)
+	}
+	if command.RequestPayload["metadata"] == nil {
+		t.Fatalf("expected metadata in request payload: %+v", command.RequestPayload)
+	}
+}
+
+func TestCreateServiceActionRequiresApprovalForLiveAction(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	commandStore := &memoryCommandStore{}
+	router := NewRouter(RouterConfig{CommandStore: commandStore})
+
+	body := []byte(`{"service_id":"runner-asia-01","action_type":"restart","reason":"Apply live restart","dry_run":false}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/service-actions", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("expected %d, got %d: %s", http.StatusAccepted, rec.Code, rec.Body.String())
+	}
+	if len(commandStore.commands) != 1 || !commandStore.commands[0].RequiresApproval {
+		t.Fatalf("expected live service action to require approval, got %+v", commandStore.commands)
+	}
+}
+
+func TestCreateServiceActionReportsIdempotentReplay(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	now := time.Date(2026, 5, 4, 10, 0, 0, 0, time.UTC)
+	commandStore := &memoryCommandStore{
+		commands: []domain.Command{
+			{
+				CommandID:      "cmd_service_existing",
+				CommandType:    "service_action",
+				TargetType:     "service",
+				TargetID:       "runner-asia-01",
+				ActionType:     "restart",
+				Status:         "pending",
+				ActorLogin:     "admin",
+				Reason:         "Runner queue is blocked",
+				DryRun:         true,
+				IdempotencyKey: "service-restart-1",
+				RequestPayload: map[string]any{},
+				ResultPayload:  map[string]any{},
+				CreatedAt:      now,
+				UpdatedAt:      now,
+			},
+		},
+		auditLog: domain.AuditLog{AuditID: "audit_service_existing", CreatedAt: now},
+	}
+	router := NewRouter(RouterConfig{CommandStore: commandStore})
+
+	body := []byte(`{"service_id":"runner-asia-01","action_type":"restart","reason":"Runner queue is blocked","idempotency_key":"service-restart-1"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/service-actions", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("expected %d, got %d: %s", http.StatusAccepted, rec.Code, rec.Body.String())
+	}
+	var response struct {
+		Data struct {
+			CommandID        string `json:"command_id"`
+			AuditLogID       string `json:"audit_log_id"`
+			IdempotentReplay bool   `json:"idempotent_replay"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &response); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if response.Data.CommandID != "cmd_service_existing" || response.Data.AuditLogID != "audit_service_existing" || !response.Data.IdempotentReplay {
+		t.Fatalf("unexpected replay response: %+v", response.Data)
+	}
+	if len(commandStore.commands) != 1 {
+		t.Fatalf("expected no duplicate command, got %+v", commandStore.commands)
+	}
+}
+
+func TestCreateServiceActionRejectsMissingServiceID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := NewRouter(RouterConfig{CommandStore: &memoryCommandStore{}})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/service-actions", bytes.NewReader([]byte(`{"action_type":"restart","reason":"Runner queue is blocked"}`)))
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected %d, got %d: %s", http.StatusBadRequest, rec.Code, rec.Body.String())
+	}
 }
 
 func TestCreateRiskMitigationReturnsCommandLifecycle(t *testing.T) {

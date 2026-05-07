@@ -9,7 +9,17 @@ class RbacService {
   private baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
   /**
-   * Fetch all roles and their permission matrices
+   * Fetch current default policy (Snapshot API - legacy/readonly)
+   */
+  async getPolicy(): Promise<any> {
+    const response = await fetch(`${this.baseUrl}/api/v1/rbac/policy`);
+    if (!response.ok) throw new Error("Failed to fetch RBAC policy");
+    const body = await response.json();
+    return body.data;
+  }
+
+  /**
+   * Fetch all roles and their permission matrices (Management API)
    */
   async getPolicies(): Promise<Role[]> {
     try {
@@ -18,7 +28,7 @@ class RbacService {
       const body: RbacPolicyResponse = await response.json();
       return body.data;
     } catch (error) {
-      console.error("[RbacService] getPolicies failed, using fallback:", error);
+      console.error("[RbacService] getPolicies failed:", error);
       throw error;
     }
   }
@@ -59,3 +69,4 @@ class RbacService {
 }
 
 export const rbacService = new RbacService();
+

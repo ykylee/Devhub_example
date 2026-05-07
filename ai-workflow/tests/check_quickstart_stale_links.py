@@ -10,8 +10,8 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SOURCE_ROOT = REPO_ROOT / "ai-workflow"
-SCRIPT_PATH = SOURCE_ROOT / "mcp_servers" / "check-quickstart-stale-links" / "scripts" / "run_check_quickstart_stale_links.py"
+KIT_ROOT = Path(__file__).resolve().parents[1]
+SCRIPT_PATH = KIT_ROOT / "mcp_servers" / "check-quickstart-stale-links" / "scripts" / "run_check_quickstart_stale_links.py"
 
 
 def main() -> int:
@@ -20,11 +20,11 @@ def main() -> int:
             sys.executable,
             str(SCRIPT_PATH),
             "--quickstart-path",
-            str(SOURCE_ROOT / "examples" / "bootstrap_output_samples.md"),
+            str(KIT_ROOT / "examples" / "bootstrap_output_samples.md"),
             "--project-profile-path",
-            str(SOURCE_ROOT / "templates" / "project_workflow_profile_template.md"),
+            str(KIT_ROOT / "templates" / "project_workflow_profile_template.md"),
             "--session-handoff-path",
-            str(SOURCE_ROOT / "examples" / "README.md"),
+            str(KIT_ROOT / "examples" / "README.md"),
         ],
         cwd=REPO_ROOT,
         capture_output=True,

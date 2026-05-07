@@ -3,7 +3,7 @@
 - 범위: 문서 구조, 세션 핸드오프, 작업 분류 및 모드(Task Modes) 기준
 - 상태: stable
 - 최종 수정일: 2026-05-01
-- 관련 문서: `../README.md`, `../WORKFLOW_INDEX.md`, `../memory/PROJECT_PROFILE.md`, `../memory/session_handoff.md`, `../memory/work_backlog.md`
+- 관련 문서: `../templates/project_workflow_profile_template.md`, `../templates/session_handoff_template.md`, `../templates/work_backlog_template.md`
 ## 1. 공통 원칙
 - 새 세션은 항상 현재 상태 요약 문서부터 읽는다.
 - 작업은 시작 전에 목적, 범위, 예상 산출물, 영향 문서를 짧게 브리핑한다.
@@ -75,25 +75,24 @@
 - 미실행 항목과 사유
 - 실행 확인 요약
 - 남은 리스크
-## 7. 상태 동기화 및 가버넌스 가이드라인
+## 7. 상태 동기화 및 가버넌스 가이드라인 (Beta v2 추가)
 문서 파편화와 로드맵 뒤처짐을 방지하기 위해 아래의 동기화 규칙을 준수한다.
 ### 7.1 단일 진실 공급원 (SSOT)
-- 현재 프로젝트 작업 상태의 공식 기준은 `memory/state.json`, `memory/session_handoff.md`, `memory/work_backlog.md`, 최신 날짜 backlog다.
-- workflow kit 자체의 skill/MCP 성숙도는 별도 source bundle에서 관리하며, 현재 저장소에는 runtime 운영 문서만 둔다.
+- 모든 스킬, MCP, 마일스톤의 공식 상태는 `core/maturity_matrix.json`에서 관리한다.
+- 로드맵(`workflow_kit_roadmap.md`), 스킬 카탈로그(`workflow_skill_catalog.md`), MCP 카탈로그(`workflow_mcp_candidate_catalog.md`) 등은 이 JSON 데이터를 바탕으로 기술되어야 한다.
 ### 7.2 동기화 루틴
-- **TASK 완료 시**: 세션 종료 전 최신 backlog, handoff, state를 함께 갱신한다.
-- **문서 구조 변경 시**: `WORKFLOW_INDEX.md`, `README.md`, 루트 `AGENTS.md`의 경로를 함께 확인한다.
-### 7.3 검증
-- 현재 저장소에는 `workflow-linter`가 포함되어 있지 않다.
-- 자동 도구가 없을 때는 다음을 수동 검증한다.
-    - `python3 -m json.tool ai-workflow/memory/state.json`
-    - `rg`로 삭제된 workflow 경로를 참조하는 링크가 남아 있는지 확인
-    - 최신 backlog와 `state.json`의 task count/status 정합성 확인
+- **스킬 승급 시**: 코드 구현 완료 후 `maturity_matrix.json`의 `stage`를 변경하고, 즉시 관련 카탈로그 문서를 갱신한다.
+- **TASK 완료 시**: 세션 종료 전, 완료된 TASK가 로드맵의 마일스톤이나 스킬 상태에 영향을 주는지 확인하고 일괄 반영한다.
+### 7.3 자동 검증 (Workflow Linter)
+- `workflow-linter`는 `maturity_matrix.json`을 참조하여 아래 사항을 검사한다.
+    - 선언된 `test_path` 파일의 실제 존재 여부.
+    - 구현 완료(`stable`/`beta`)로 선언된 항목의 실제 코드/스크립트 존재 여부.
+    - 로드맵 문서의 단계와 JSON의 마일스톤 단계 일치 여부.
 ## 8. 세션 종료 원칙 및 절차
 - 오늘 작업 결과를 상태 문서에 반영한다.
 - 미검증 항목과 남은 리스크를 명시한다.
-- **문서 정합성 동기화**: `state.json`, `session_handoff.md`, 최신 backlog, 관련 로드맵을 최신화한다.
-- **최종 검증**: 자동 도구가 없으면 JSON 유효성 및 링크 경로를 수동 확인한다.
+- **문서 정합성 동기화**: `maturity_matrix.json`을 업데이트하고 관련 계획 문서(Roadmap/Catalog)를 최신화한다.
+- **최종 검증**: `workflow-linter`를 실행하여 문서 간 불일치가 없는지 확인한다.
 - 다음 세션 시작 포인트를 짧게 적는다.
 - 종료 요약은 다음 세션이 바로 이어받는 데 필요한 핵심 사실만 간결하게 남긴다.
 ## 9. 프로젝트 프로파일과의 관계
@@ -103,6 +102,5 @@
 - 프로젝트 특화 검증 포인트
 - 병합/승인 예외 규칙
 ## 다음에 읽을 문서
-- workflow 인덱스: [../WORKFLOW_INDEX.md](../WORKFLOW_INDEX.md)
-- 프로젝트 프로파일: [../memory/PROJECT_PROFILE.md](../memory/PROJECT_PROFILE.md)
-- 세션 인계 문서: [../memory/session_handoff.md](../memory/session_handoff.md)
+- 프로젝트 프로파일 템플릿: [../templates/project_workflow_profile_template.md](../templates/project_workflow_profile_template.md)
+- 세션 인계 템플릿: [../templates/session_handoff_template.md](../templates/session_handoff_template.md)
