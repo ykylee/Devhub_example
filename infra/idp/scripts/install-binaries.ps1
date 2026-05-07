@@ -1,17 +1,21 @@
 # install-binaries.ps1
 #
-# 목적: Ory Hydra + Ory Kratos 의 Windows binary (SQLite 포함) 를 GitHub release
-#       에서 다운로드해 PATH 가 잡히는 디렉터리에 배치한다.
+# Purpose: Download Ory Hydra + Ory Kratos Windows binaries (SQLite-enabled)
+#          from GitHub releases and place them on a PATH-visible directory.
 #
-# 배경: 두 프로젝트의 go.mod 가 `replace` 지시문을 포함해 `go install` 이 차단된다
-#       (2026-05-07 확인). 따라서 release binary 다운로드를 1차 경로로 사용한다.
-#       SQLite 변형은 CGO 의존이 없고 embed 된 migration 자산을 포함해 Windows
-#       에서 가장 안전한 선택이다.
+# Background: Both projects' go.mod contains `replace` directives, which makes
+#             `go install` impossible (verified 2026-05-07). The SQLite-enabled
+#             Windows builds embed migration assets and require no CGO toolchain,
+#             which is the safest choice on Windows. See infra/idp/README.md.
 #
-# 사용:
+# Usage:
 #   PowerShell> .\infra\idp\scripts\install-binaries.ps1
 #   PowerShell> .\infra\idp\scripts\install-binaries.ps1 -Version 26.2.0
 #   PowerShell> .\infra\idp\scripts\install-binaries.ps1 -BinDir "$env:USERPROFILE\bin"
+#
+# Note: This file is intentionally ASCII-only. PowerShell 5.1 (default Windows)
+#       reads BOM-less UTF-8 as ANSI / CP949, which corrupts non-ASCII characters
+#       and breaks the parser.
 
 [CmdletBinding()]
 param(
@@ -22,14 +26,14 @@ param(
 $ErrorActionPreference = "Stop"
 
 if (-not (Test-Path $BinDir)) {
-    Write-Host "BinDir '$BinDir' 가 없어 새로 만든다."
+    Write-Host "BinDir '$BinDir' does not exist. Creating."
     New-Item -ItemType Directory -Force -Path $BinDir | Out-Null
 }
 
-# PATH 에 BinDir 가 있는지 확인 (경고만, 강제 추가는 하지 않음)
+# Warn if BinDir is not on PATH (do not modify PATH automatically).
 $pathContainsBinDir = ($env:PATH -split ';') | Where-Object { $_ -ieq $BinDir }
 if (-not $pathContainsBinDir) {
-    Write-Warning "BinDir '$BinDir' 가 현재 PATH 에 없다. hydra/kratos 명령이 인식되지 않으면 PATH 에 추가하거나 fully qualified 경로로 호출해야 한다."
+    Write-Warning "BinDir '$BinDir' is not on PATH. After install, either add it to PATH or invoke hydra/kratos with a fully qualified path."
 }
 
 foreach ($Name in @("hydra", "kratos")) {
@@ -47,7 +51,7 @@ foreach ($Name in @("hydra", "kratos")) {
 
     $exe = Get-ChildItem -Path $extractDir -Filter "${Name}.exe" -Recurse | Select-Object -First 1
     if (-not $exe) {
-        Write-Error "[$Name] zip 안에서 ${Name}.exe 를 찾지 못함. zip 구조 변경 가능성."
+        Write-Error "[$Name] could not find ${Name}.exe inside the zip. Asset structure may have changed."
         exit 1
     }
 
@@ -60,6 +64,6 @@ foreach ($Name in @("hydra", "kratos")) {
 }
 
 Write-Host ""
-Write-Host "Done. 확인:"
+Write-Host "Done. Verify with:"
 Write-Host "  hydra version"
 Write-Host "  kratos version"
