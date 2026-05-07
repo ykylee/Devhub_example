@@ -22,9 +22,9 @@
     "runtime_checks": "docker-compose ps"
   },
   "session": {
-    "current_baseline": "Phase 12 backend CRUD 정비 완료 — users/units/members 8개 쓰기 라우트 + store CRUD + handler 단위 테스트 통과 (go build/vet/test all green, 미커밋)",
-    "current_axis": "Phase 12 후속 — 프론트엔드 쓰기 wiring + audit_logs 연결 + WebSocket realtime",
-    "current_focus": "사용자/조직 CRUD 백엔드 1차 정비 완료, 다음은 frontend wiring + actor 감사로그",
+    "current_baseline": "Phase 12 backend CRUD + frontend wiring 완료 (TS 통과). Account/Auth 컨셉 7개 문서에 반영 완료, 코드 변경 전.",
+    "current_axis": "Phase 13 — 사용자 계정(Account) 1:1 + 인증 1차 (accounts migration → store/handler → audit → 테스트)",
+    "current_focus": "Account/Auth 문서 반영 완료, 다음 세션은 backend-core/migrations/000005_create_accounts 작성부터",
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
@@ -32,7 +32,9 @@
       "TASK-BACKEND-PHASE12",
       "TASK-BACKEND-PHASE12-HTTP",
       "TASK-FRONTEND-PHASE12-WIRE",
-      "TASK-BACKEND-PHASE12-CRUD"
+      "TASK-BACKEND-PHASE12-CRUD",
+      "TASK-FRONTEND-PHASE12-CRUD",
+      "TASK-DOCS-ACCOUNT-CONCEPT"
     ],
     "environment_constraints": [
       "Backend Core API on :8080 (REST), WebSocket /api/v1/realtime/ws 미구현",
@@ -44,7 +46,7 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/claude/init/backlog/2026-05-07.md",
-    "task_count": 5,
+    "task_count": 7,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
@@ -52,7 +54,9 @@
       "TASK-BACKEND-PHASE12",
       "TASK-BACKEND-PHASE12-HTTP",
       "TASK-FRONTEND-PHASE12-WIRE",
-      "TASK-BACKEND-PHASE12-CRUD"
+      "TASK-BACKEND-PHASE12-CRUD",
+      "TASK-FRONTEND-PHASE12-CRUD",
+      "TASK-DOCS-ACCOUNT-CONCEPT"
     ]
   },
   "next_documents": [

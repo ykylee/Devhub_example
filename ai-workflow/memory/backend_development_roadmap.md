@@ -4,7 +4,7 @@
 - 범위: 인프라, 리스크, 웹훅, API 로드맵
 - 대상 독자: 백엔드 개발자, AI Agent
 - 상태: in_progress
-- 최종 수정일: 2026-05-06
+- 최종 수정일: 2026-05-07
 - 관련 문서: `docs/requirements.md`, `docs/architecture.md`, `docs/tech_stack.md`, `docs/backend_api_contract.md`, `docs/backend/frontend_integration_requirements.md`, `docs/backend/requirements_review.md`, `ai-workflow/memory/backlog/2026-05-04.md`
 - 현재 브랜치: `codex/backend_init`
 - 프론트엔드 전제: frontend phase1 화면과 mock service layer가 병합된 상태이므로, 백엔드는 raw webhook 수집 이후 프론트 교체 가능한 REST snapshot API와 WebSocket 이벤트 계약을 우선 안정화한다.
@@ -36,7 +36,8 @@
 | Phase 9 | planned | Python AI gRPC 연결 | Go gRPC client, Python `AnalysisService` server, build log summary/risk detection 연동 | gRPC 통합 테스트 |
 | Phase 10 | planned | Hourly Pull Reconciliation | Gitea REST client, 누락 이벤트 보정 worker | dry-run 및 idempotency 테스트 |
 | Phase 11 | planned | 시스템 관리자 기능 고도화 | Runner/서버 상태 adapter, config 조회, allowlist/seed admin | 권한/audit/health adapter 테스트 |
-| Phase 12 | planned | 사용자 및 조직/멤버 관리 API | User/Org/Team 도메인 확장, 계층형 조직망 구조, 구성원 할당(Allocation), 관리자 전용 관리 API | 도메인 통합 테스트 및 권한 검증 |
+| Phase 12 | in_progress | 사용자 및 조직/멤버 관리 API | User/Org/Team 도메인 확장, 계층형 조직망 구조, 구성원 할당(Allocation), 관리자 전용 관리 API | 도메인 통합 테스트 및 권한 검증 |
+| Phase 13 | planned | 사용자 계정(Account) 및 인증 1차 | `accounts` 테이블, User-Account 1:1 invariant, login/logout, 비밀번호 해시(bcrypt/argon2id), 본인/관리자 비밀번호 변경, 계정 상태 lifecycle, 로그인 audit log | DB invariant 테스트, 핸들러 단위 테스트, 비밀번호 해시 round-trip 테스트, audit log 기록 검증 |
 
 ## 3. 현재 완료 범위
 
@@ -96,6 +97,15 @@
 - Python AI gRPC 서버 구현과 Go Core client 연결을 시작한다.
 - Hourly Pull reconciliation worker와 Gitea REST client를 설계한다.
 - weekly report, AI Gardener suggestion, team load 산출 모델을 후속 기능으로 구체화한다.
+
+### P1 — Phase 13 (계정/인증 1차)
+
+- `accounts` migration 추가 (`user_id` UNIQUE FK, `login_id` UNIQUE, `password_hash`, `password_algo`, `status`, `failed_login_attempts`, `last_login_at`, `password_changed_at`).
+- domain/store layer: 1:1 invariant 보장하는 `CreateAccount`, `GetAccountByUser`, `UpdateAccount`, `ChangePassword`, `DeleteAccount`. 비밀번호 해시는 bcrypt cost ≥ 12 또는 argon2id 중 한 가지 선택.
+- HTTP handler: `backend_api_contract.md §11` 의 7개 endpoint. 비밀번호는 요청 본문에서 파싱 즉시 해시로 변환하고 평문 변수 수명을 최소화. 응답에 평문/해시 미포함.
+- audit log: `account.created`, `account.disabled`, `account.password_changed`, `account.locked`, `auth.login.succeeded`, `auth.login.failed` 6종 기록.
+- 세션/JWT: 1차 구현은 server-side session 또는 short-lived JWT 중 한 가지 선택 → 결정 결과를 `architecture.md` 6.2.3 에 기록.
+- 핸들러 테스트: in-memory account store mock + bcrypt round-trip + 1:1 conflict + 잠금 임계치 테스트.
 
 ## 5. Blocked 항목
 

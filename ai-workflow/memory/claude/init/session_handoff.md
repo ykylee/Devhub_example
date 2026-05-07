@@ -10,8 +10,8 @@
 - 작성자: Claude Code
 - 현재 브랜치: `claude/init`
 
-## 현재 세션 요약 (Phase 12 풀스택 가동 검증 + frontend API 연동)
-이번 세션은 1) 이전 세션의 미커밋 작업물 정리 (workflow 메타 + Phase 12 backend 초안) 분리 커밋, 2) Phase 12 read-only HTTP 핸들러 추가, 3) **풀스택 가동 검증**(로컬 PostgreSQL + `go run` + `npm run dev`) 으로 이전 세션의 미검증 우려 해소, 4) frontend `identity.service.ts` 의 mock → 실제 API 연동 + Next.js rewrite 로 CORS 회피, 5) 외부 자원 차단 환경 호환 패치 (Geist 폰트 제거) + UI 픽스 (검색창 padding) 까지 진행했다. 모든 Phase 12 엔드포인트가 실제 DB 데이터로 응답하고 frontend `/organization` 페이지가 정상 렌더링됨을 확인했다.
+## 현재 세션 요약 (Phase 12 풀스택 가동 검증 + frontend API 연동 + CRUD 정비 + Account 컨셉 도입)
+이번 세션은 (앞부분 — Phase 12 풀스택 검증 등) 이후 추가로 1) Phase 12 backend **쓰기 핸들러 정비** — 사용자/조직 CRUD 8개 라우트 + store 메소드 + handler 단위 테스트 (`go build/vet/test ./...` 모두 통과), 2) frontend `identity.service.ts` 에 8개 신규 라우트 wiring + `MemberManagementModal` 의 save 를 실제 `replaceUnitMembers` 호출로 교체, 3) **사용자 계정(Account) 컨셉 도입** — User(사람) ↔ Account(자격) 1:1, ID/PW 관리, bcrypt/argon2 해시, RBAC 단계화 재정렬을 7개 문서(`docs/requirements.md`, `architecture.md`, `backend_api_contract.md`, `backend/requirements.md`, `backend/frontend_integration_requirements.md`, `frontend_development_roadmap.md`, `backend_development_roadmap.md`)에 일관 반영했다. Phase 13 (Account/Auth 1차 구현)을 백엔드 로드맵에 추가했다.
 
 ## 완료된 사항
 1. **Claude Code 환경 검증**:
@@ -38,18 +38,30 @@
 - **frontend 연동**: Next.js rewrite + `identity.service.ts` 의 backend 응답 매핑 (`unit_id`↔`dept_id`, `system_admin`→`System Admin` 등) 정상. backend gin 로그에서 frontend 호출 확인.
 
 ## 다음 세션 작업 제안
-1. **Phase 12 쓰기 핸들러** (우선):
-   - `PUT /api/v1/organization/units/:unit_id/members` 핸들러 → `PostgresStore.ReplaceUnitMembers` 호출.
-   - `OrganizationStore` interface 에 메소드 추가 + `RouterConfig` 통한 wiring.
-   - 핸들러 단위 테스트 (`commands_test.go` 패턴: in-memory mock store).
-2. **WebSocket realtime 엔드포인트**:
-   - 현재 frontend `realtime.service.ts` 가 `/api/v1/realtime/ws` 호출 → backend 404 (미구현). 후속 단계로 gorilla/websocket 또는 `nhooyr.io/websocket` 도입 검토.
-3. **frontend Phase 12 UI 추가 연동**:
-   - `OrganizationPage` 의 `unitMembers` in-memory 상태를 `identityService.getUnitMembers(unitId)` (이미 추가됨) 호출로 교체.
-   - 권한 편집/멤버 변경 UI 가 추가되면 신규 쓰기 핸들러로 연결.
-4. **`/developer` 등 다른 페이지의 metrics/realtime 동작 검증**:
-   - `/api/v1/dashboard/metrics?role=...` 가 실제 DB 데이터 인지 mock fallback 인지 확인.
-5. **(carried-forward) TASK-007 Gitea Webhook 수신부 상태 재확인** (5일 stale, 재진입 시 코드 실측 필요).
+
+이번 세션에서 Phase 12 backend CRUD + frontend wiring 완료, Account/Auth 컨셉 7개 문서 반영 완료. 다음 세션 우선순위:
+
+1. **Phase 13 — 사용자 계정(Account) 1차 구현 (최우선)**:
+   - `backend-core/migrations/000005_create_accounts.{up,down}.sql`: `accounts` 테이블 (`user_id` UNIQUE FK + `login_id` UNIQUE + `password_hash` + `password_algo` + `status` + 실패 카운터).
+   - `internal/domain` 에 `Account` 타입 + `AccountStatus` enum.
+   - `internal/store/accounts.go`: `CreateAccount`, `GetAccountByUserID`, `UpdateAccount`, `ChangePassword`, `DeleteAccount`. 비밀번호 해시는 bcrypt cost ≥ 12 또는 argon2id 중 결정 후 `password_algo` 에 기록.
+   - `internal/httpapi/accounts.go`: `backend_api_contract.md §11` 의 7개 endpoint. 평문 비밀번호는 핸들러 진입 직후 즉시 해시화.
+   - audit log 6종 (`account.created/disabled/password_changed/locked`, `auth.login.succeeded/failed`).
+   - 세션/JWT 1차 결정 → architecture.md 6.2.3 에 결정 기록.
+   - 핸들러 단위 테스트 (in-memory mock + bcrypt round-trip + 1:1 conflict).
+
+2. **Phase 12 audit 보강**:
+   - 사용자/조직 CRUD HTTP 핸들러에 `X-Devhub-Actor` → `audit_logs` 기록 추가.
+
+3. **Phase 8 WebSocket realtime 엔드포인트**: frontend `realtime.service.ts` 가 호출하는 `/api/v1/realtime/ws` 는 현재 404. gorilla/websocket 또는 nhooyr.io/websocket 도입 검토.
+
+4. **frontend Phase 5 시작 (계정/인증 UI)**:
+   - `account.service.ts` 신설.
+   - `/login` 페이지 + 인증 가드 layout/middleware.
+   - `/account` 본인 비밀번호 변경 화면.
+   - Organization 페이지에 시스템 관리자 전용 계정 관리 action 통합.
+
+5. **(carried-forward) TASK-007 Gitea Webhook 수신부 상태 재확인** (5일 stale).
 
 ## 환경 가동/정리 안내
 세션 종료 시점에 다음이 떠있었다 (다음 세션에서 살아있을 수도, 죽었을 수도 있음 — 시작 시 먼저 확인):
