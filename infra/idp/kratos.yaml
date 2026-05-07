@@ -1,0 +1,115 @@
+## kratos.yaml — Ory Kratos v1.x 설정 (DevHub PoC, ADR-0001)
+##
+## 가동: kratos serve --config infra/idp/kratos.yaml
+## 마이그레이션: kratos migrate sql --yes "$DSN"
+##
+## 주의:
+## - `secrets.cookie` / `secrets.cipher` 는 PoC 전용 placeholder 다. 운영 환경 교체 필수.
+## - `selfservice.flows.registration.enabled: false` — ADR-0001 §8.2 결정에 따라
+##   1차에는 시스템 관리자만 admin API 로 identity 발급. self-service 가입 미사용.
+## - `methods.totp` / `methods.webauthn` 미설정 — ADR-0001 §8.3 결정 (MFA 1차 미도입).
+##   schema 는 후속 phase 에서 추가 가능 상태로 유지.
+## - DSN 의 `search_path=kratos` 가 ADR-0001 §8.1 schema 분리를 적용한다.
+
+version: v1.0.0
+
+serve:
+  public:
+    base_url: http://localhost:4433/
+    port: 4433
+    host: 127.0.0.1
+    cors:
+      enabled: true
+      allowed_origins:
+        - http://localhost:3000
+      allowed_methods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+      allowed_headers:
+        - Authorization
+        - Content-Type
+        - Cookie
+        - X-Session-Token
+      exposed_headers:
+        - Content-Type
+        - Set-Cookie
+      allow_credentials: true
+  admin:
+    base_url: http://localhost:4434/
+    port: 4434
+    host: 127.0.0.1
+
+dsn: postgres://postgres:postgres@127.0.0.1:5432/devhub?sslmode=disable&search_path=kratos
+
+selfservice:
+  default_browser_return_url: http://localhost:3000/
+  allowed_return_urls:
+    - http://localhost:3000
+
+  methods:
+    password:
+      enabled: true
+      config:
+        haveibeenpwned_enabled: false
+        min_password_length: 12
+    profile:
+      enabled: true
+    link:
+      enabled: false
+    code:
+      enabled: false
+
+  flows:
+    error:
+      ui_url: http://localhost:3000/auth/error
+    settings:
+      ui_url: http://localhost:3000/account
+      privileged_session_max_age: 15m
+      required_aal: highest_available
+    recovery:
+      enabled: false
+    verification:
+      enabled: false
+    logout:
+      after:
+        default_browser_return_url: http://localhost:3000/
+    login:
+      ui_url: http://localhost:3000/auth/login
+      lifespan: 10m
+    registration:
+      enabled: false
+      ui_url: http://localhost:3000/auth/register
+
+session:
+  lifespan: 24h
+  cookie:
+    persistent: true
+    same_site: Lax
+
+secrets:
+  cookie:
+    - "poc-only-cookie-secret-min-16-bytes-aaaaaaaa"
+  # Kratos requires cipher secret length <= 32 bytes (AES-256). PoC placeholder.
+  cipher:
+    - "poc-cipher-secret-32bytes-aaaaaa"
+
+identity:
+  default_schema_id: devhub_user
+  schemas:
+    # NOTE: Path is resolved relative to the process working directory, not the
+    # config file. Always launch `kratos serve --config infra/idp/kratos.yaml`
+    # from the repository root so this resolves correctly.
+    - id: devhub_user
+      url: file://./infra/idp/identity.schema.json
+
+courier:
+  smtp:
+    connection_uri: smtps://test:test@127.0.0.1:1025/?skip_ssl_verify=true&disable_starttls=true
+
+log:
+  level: info
+  format: text
+  leak_sensitive_values: false
