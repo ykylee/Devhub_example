@@ -12,7 +12,8 @@ interface MemberManagementModalProps {
   allMembers: OrgMember[];
   currentMemberIds: string[];
   onClose: () => void;
-  onSave: (newMemberIds: string[]) => void;
+  onSave: (newMemberIds: string[]) => void | Promise<void>;
+  saveError?: string | null;
 }
 
 export function MemberManagementModal({
@@ -22,10 +23,21 @@ export function MemberManagementModal({
   currentMemberIds,
   onClose,
   onSave,
+  saveError,
 }: MemberManagementModalProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(currentMemberIds));
   const [searchAvailable, setSearchAvailable] = useState("");
   const [searchCurrent, setSearchCurrent] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSaveClick = async () => {
+    setIsSaving(true);
+    try {
+      await onSave(Array.from(selectedIds));
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const availableMembers = allMembers.filter(m => !selectedIds.has(m.id) && (m.name.toLowerCase().includes(searchAvailable.toLowerCase()) || m.email.toLowerCase().includes(searchAvailable.toLowerCase())));
   const currentMembers = allMembers.filter(m => selectedIds.has(m.id) && (m.name.toLowerCase().includes(searchCurrent.toLowerCase()) || m.email.toLowerCase().includes(searchCurrent.toLowerCase())));
@@ -173,22 +185,31 @@ export function MemberManagementModal({
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-white/10 bg-black/40 flex justify-between items-center">
-          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-            {selectedIds.size} total personnel assigned
-          </p>
+        <div className="p-6 border-t border-white/10 bg-black/40 flex justify-between items-center gap-4">
+          <div className="flex flex-col gap-1 min-w-0">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+              {selectedIds.size} total personnel assigned
+            </p>
+            {saveError && (
+              <p className="text-[10px] font-bold text-red-400 truncate" title={saveError}>
+                {saveError}
+              </p>
+            )}
+          </div>
           <div className="flex gap-3">
-            <button 
+            <button
               onClick={onClose}
-              className="px-6 py-2.5 rounded-xl border border-white/10 text-xs font-bold text-white hover:bg-white/5 transition-all uppercase tracking-widest"
+              disabled={isSaving}
+              className="px-6 py-2.5 rounded-xl border border-white/10 text-xs font-bold text-white hover:bg-white/5 transition-all uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>
-            <button 
-              onClick={() => onSave(Array.from(selectedIds))}
-              className="px-6 py-2.5 rounded-xl bg-accent text-[#030014] text-xs font-black uppercase tracking-widest hover:bg-accent/90 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(var(--accent),0.3)]"
+            <button
+              onClick={handleSaveClick}
+              disabled={isSaving}
+              className="px-6 py-2.5 rounded-xl bg-accent text-[#030014] text-xs font-black uppercase tracking-widest hover:bg-accent/90 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(var(--accent),0.3)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
-              <Check className="w-4 h-4" /> Save Configuration
+              <Check className="w-4 h-4" /> {isSaving ? "Saving..." : "Save Configuration"}
             </button>
           </div>
         </div>

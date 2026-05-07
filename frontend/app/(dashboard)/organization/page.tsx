@@ -22,6 +22,7 @@ export default function OrganizationPage() {
   const [unitMembers, setUnitMembers] = useState<Record<string, string[]>>({});
   const [managingUnitId, setManagingUnitId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const { role: userRole } = useStore();
   const router = useRouter();
 
@@ -43,13 +44,24 @@ export default function OrganizationPage() {
         setMembers(usersData);
         setOrgNodes(orgData.nodes);
 
-        // Initialize volatile unit members state based on initial direct_count (mocking)
-        const initialUnitMembers: Record<string, string[]> = {};
-        orgData.nodes.forEach(node => {
-          // Just assign some random mock users to start with, or empty
-          initialUnitMembers[node.id] = usersData.slice(0, (node.data.direct_count as number) || 0).map(u => u.id);
+        // Fetch real members for every unit in parallel so OrgUnitGrid can show
+        // accurate counts and the management modal opens with the live roster.
+        const memberLists = await Promise.all(
+          orgData.nodes.map(async (node): Promise<[string, string[]]> => {
+            try {
+              const list = await identityService.getUnitMembers(node.id);
+              return [node.id, list.map((m) => m.id)];
+            } catch (error) {
+              console.error(`[organization] getUnitMembers ${node.id} failed:`, error);
+              return [node.id, []];
+            }
+          })
+        );
+        const fetchedUnitMembers: Record<string, string[]> = {};
+        memberLists.forEach(([id, ids]) => {
+          fetchedUnitMembers[id] = ids;
         });
-        setUnitMembers(initialUnitMembers);
+        setUnitMembers(fetchedUnitMembers);
       } catch (error) {
         console.error("Failed to fetch organization data:", error);
       } finally {
@@ -59,6 +71,19 @@ export default function OrganizationPage() {
 
     fetchData();
   }, [userRole]);
+
+  const handleReplaceUnitMembers = async (unitId: string, newMemberIds: string[]) => {
+    setSaveError(null);
+    try {
+      const refreshed = await identityService.replaceUnitMembers(unitId, newMemberIds);
+      setUnitMembers((prev) => ({ ...prev, [unitId]: refreshed.map((m) => m.id) }));
+      setManagingUnitId(null);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to save members";
+      console.error("[organization] replaceUnitMembers failed:", error);
+      setSaveError(message);
+    }
+  };
 
   const tabs = [
     { id: "members", label: "Members", icon: Users },
@@ -170,11 +195,9 @@ export default function OrganizationPage() {
             unitName={orgNodes.find(n => n.id === managingUnitId)?.data.label || 'Unknown Unit'}
             allMembers={members}
             currentMemberIds={unitMembers[managingUnitId] || []}
-            onClose={() => setManagingUnitId(null)}
-            onSave={(newMemberIds) => {
-              setUnitMembers(prev => ({ ...prev, [managingUnitId]: newMemberIds }));
-              setManagingUnitId(null);
-            }}
+            onClose={() => { setSaveError(null); setManagingUnitId(null); }}
+            onSave={(newMemberIds) => handleReplaceUnitMembers(managingUnitId, newMemberIds)}
+            saveError={saveError}
           />
         )}
       </AnimatePresence>

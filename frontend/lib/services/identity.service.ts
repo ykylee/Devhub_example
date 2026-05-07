@@ -50,6 +50,109 @@ const ROLE_BACKEND_TO_UI: Record<string, OrgMember["role"]> = {
   system_admin: "System Admin",
 };
 
+const ROLE_UI_TO_BACKEND: Record<OrgMember["role"], string> = {
+  Developer: "developer",
+  Manager: "manager",
+  "System Admin": "system_admin",
+};
+
+export interface CreateUserPayload {
+  user_id: string;
+  email: string;
+  display_name: string;
+  role: OrgMember["role"];
+  status: OrgMember["status"];
+  primary_dept_id?: string;
+  current_dept_id?: string;
+  is_seconded?: boolean;
+  joined_at?: string;
+}
+
+export interface UpdateUserPayload {
+  email?: string;
+  display_name?: string;
+  role?: OrgMember["role"];
+  status?: OrgMember["status"];
+  primary_dept_id?: string;
+  current_dept_id?: string;
+  is_seconded?: boolean;
+  joined_at?: string;
+}
+
+export interface OrgUnit {
+  unit_id: string;
+  parent_unit_id: string;
+  unit_type: "company" | "division" | "team" | "group" | "part";
+  label: string;
+  leader_user_id: string;
+  position_x: number;
+  position_y: number;
+  direct_count?: number;
+  total_count?: number;
+}
+
+export interface CreateUnitPayload {
+  unit_id: string;
+  parent_unit_id?: string;
+  unit_type: OrgUnit["unit_type"];
+  label: string;
+  leader_user_id?: string;
+  position_x?: number;
+  position_y?: number;
+}
+
+export interface UpdateUnitPayload {
+  parent_unit_id?: string;
+  unit_type?: OrgUnit["unit_type"];
+  label?: string;
+  leader_user_id?: string;
+  position_x?: number;
+  position_y?: number;
+}
+
+export class IdentityServiceError extends Error {
+  constructor(public status: number, public payload: any, message: string) {
+    super(message);
+    this.name = "IdentityServiceError";
+  }
+}
+
+async function jsonRequest<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const response = await fetch(path, {
+    method,
+    headers: body !== undefined ? { "Content-Type": "application/json" } : undefined,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+  let parsed: any = null;
+  const text = await response.text();
+  if (text.length > 0) {
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      parsed = { raw: text };
+    }
+  }
+  if (!response.ok) {
+    const errMessage = parsed?.error || `HTTP ${response.status}`;
+    throw new IdentityServiceError(response.status, parsed, errMessage);
+  }
+  return parsed as T;
+}
+
+function mapBackendUnit(u: any): OrgUnit {
+  return {
+    unit_id: u.unit_id,
+    parent_unit_id: u.parent_unit_id ?? "",
+    unit_type: u.unit_type,
+    label: u.label,
+    leader_user_id: u.leader_user_id ?? "",
+    position_x: u.position_x ?? 0,
+    position_y: u.position_y ?? 0,
+    direct_count: u.direct_count,
+    total_count: u.total_count,
+  };
+}
+
 function mapBackendUser(u: any): OrgMember {
   return {
     id: u.user_id,
@@ -155,6 +258,92 @@ export class IdentityService {
       console.error('[IdentityService] getUnitMembers error:', error);
       return [];
     }
+  }
+
+  async createUser(payload: CreateUserPayload): Promise<OrgMember> {
+    const body = {
+      user_id: payload.user_id,
+      email: payload.email,
+      display_name: payload.display_name,
+      role: ROLE_UI_TO_BACKEND[payload.role],
+      status: payload.status,
+      primary_unit_id: payload.primary_dept_id ?? "",
+      current_unit_id: payload.current_dept_id ?? "",
+      is_seconded: !!payload.is_seconded,
+      joined_at: payload.joined_at ?? "",
+    };
+    const result = await jsonRequest<{ data: any }>("POST", `/api/v1/users`, body);
+    return mapBackendUser(result.data);
+  }
+
+  async updateUser(userId: string, payload: UpdateUserPayload): Promise<OrgMember> {
+    const body: Record<string, unknown> = {};
+    if (payload.email !== undefined) body.email = payload.email;
+    if (payload.display_name !== undefined) body.display_name = payload.display_name;
+    if (payload.role !== undefined) body.role = ROLE_UI_TO_BACKEND[payload.role];
+    if (payload.status !== undefined) body.status = payload.status;
+    if (payload.primary_dept_id !== undefined) body.primary_unit_id = payload.primary_dept_id;
+    if (payload.current_dept_id !== undefined) body.current_unit_id = payload.current_dept_id;
+    if (payload.is_seconded !== undefined) body.is_seconded = payload.is_seconded;
+    if (payload.joined_at !== undefined) body.joined_at = payload.joined_at;
+    const result = await jsonRequest<{ data: any }>(
+      "PATCH",
+      `/api/v1/users/${encodeURIComponent(userId)}`,
+      body,
+    );
+    return mapBackendUser(result.data);
+  }
+
+  async deleteUser(userId: string): Promise<void> {
+    await jsonRequest<{ data: any }>("DELETE", `/api/v1/users/${encodeURIComponent(userId)}`);
+  }
+
+  async getUnit(unitId: string): Promise<OrgUnit> {
+    const result = await jsonRequest<{ data: any }>("GET", `/api/v1/organization/units/${encodeURIComponent(unitId)}`);
+    return mapBackendUnit(result.data);
+  }
+
+  async createUnit(payload: CreateUnitPayload): Promise<OrgUnit> {
+    const body = {
+      unit_id: payload.unit_id,
+      parent_unit_id: payload.parent_unit_id ?? "",
+      unit_type: payload.unit_type,
+      label: payload.label,
+      leader_user_id: payload.leader_user_id ?? "",
+      position_x: payload.position_x ?? 0,
+      position_y: payload.position_y ?? 0,
+    };
+    const result = await jsonRequest<{ data: any }>("POST", `/api/v1/organization/units`, body);
+    return mapBackendUnit(result.data);
+  }
+
+  async updateUnit(unitId: string, payload: UpdateUnitPayload): Promise<OrgUnit> {
+    const body: Record<string, unknown> = {};
+    if (payload.parent_unit_id !== undefined) body.parent_unit_id = payload.parent_unit_id;
+    if (payload.unit_type !== undefined) body.unit_type = payload.unit_type;
+    if (payload.label !== undefined) body.label = payload.label;
+    if (payload.leader_user_id !== undefined) body.leader_user_id = payload.leader_user_id;
+    if (payload.position_x !== undefined) body.position_x = payload.position_x;
+    if (payload.position_y !== undefined) body.position_y = payload.position_y;
+    const result = await jsonRequest<{ data: any }>(
+      "PATCH",
+      `/api/v1/organization/units/${encodeURIComponent(unitId)}`,
+      body,
+    );
+    return mapBackendUnit(result.data);
+  }
+
+  async deleteUnit(unitId: string): Promise<void> {
+    await jsonRequest<{ data: any }>("DELETE", `/api/v1/organization/units/${encodeURIComponent(unitId)}`);
+  }
+
+  async replaceUnitMembers(unitId: string, userIds: string[]): Promise<OrgMember[]> {
+    const result = await jsonRequest<{ data: any[] }>(
+      "PUT",
+      `/api/v1/organization/units/${encodeURIComponent(unitId)}/members`,
+      { user_ids: userIds },
+    );
+    return (result.data ?? []).map(mapBackendUser);
   }
 
   calculatePrimaryDept(member: OrgMember, nodes: OrgNode[]): string {
