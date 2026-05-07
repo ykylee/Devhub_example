@@ -8,25 +8,40 @@ import subprocess
 import sys
 from pathlib import Path
 
-SOURCE_ROOT_FOR_IMPORT = Path(__file__).resolve().parents[2] / "ai-workflow"
-if str(SOURCE_ROOT_FOR_IMPORT) not in sys.path:
-    sys.path.insert(0, str(SOURCE_ROOT_FOR_IMPORT))
+# Standard AI Workflow Library Discovery
+SOURCE_ROOT = Path(__file__).resolve().parent
+while not (SOURCE_ROOT / "workflow_kit").is_dir() and SOURCE_ROOT != SOURCE_ROOT.parent:
+    SOURCE_ROOT = SOURCE_ROOT.parent
+REPO_ROOT = SOURCE_ROOT.parent
+if str(SOURCE_ROOT) not in sys.path:
+    sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit.common.output_contracts import validate_output_payload
 
-
-REPO_ROOT = Path(__file__).resolve().parents[2]
-SOURCE_ROOT = REPO_ROOT / "ai-workflow"
 SCRIPT_PATH = SOURCE_ROOT / "skills" / "validation-plan" / "scripts" / "run_validation_plan.py"
+
+
+def run_validation_with_args(*, expect_success: bool, args: list[str]) -> tuple[int, dict[str, object]]:
+    completed = subprocess.run(
+        [sys.executable, str(SCRIPT_PATH), *args],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if expect_success and completed.returncode != 0:
+        raise AssertionError(f"Expected validation-plan success but got {completed.returncode}: {completed.stderr}")
+    if not expect_success and completed.returncode == 0:
+        raise AssertionError("Expected validation-plan failure path but command succeeded.")
+    return completed.returncode, json.loads(completed.stdout)
 
 
 def run_validation(example_name: str, changed_files: list[str], change_summary: str) -> dict[str, object]:
     example_root = SOURCE_ROOT / "examples" / example_name
     latest_backlog = sorted((example_root / "backlog").glob("*.md"))[-1]
-    completed = subprocess.run(
-        [
-            sys.executable,
-            str(SCRIPT_PATH),
+    _, payload = run_validation_with_args(
+        expect_success=True,
+        args=[
             "--project-profile-path",
             str(example_root / "PROJECT_PROFILE.md"),
             "--session-handoff-path",
@@ -37,12 +52,8 @@ def run_validation(example_name: str, changed_files: list[str], change_summary: 
             "--change-summary",
             change_summary,
         ],
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-        check=True,
     )
-    return json.loads(completed.stdout)
+    return payload
 
 
 def main() -> int:
@@ -114,6 +125,21 @@ def main() -> int:
     )
     if workflow_meta_payload["source_context"]["changed_files"]:
         raise AssertionError("Validation-plan should ignore ai-workflow metadata paths in changed_files.")
+
+    failure_code, failure_payload = run_validation_with_args(
+        expect_success=False,
+        args=[
+            "--project-profile-path",
+            str(SOURCE_ROOT / "examples" / "acme_delivery_platform" / "PROJECT_PROFILE.md"),
+        ],
+    )
+    if failure_code == 0:
+        raise AssertionError("Expected validation-plan failure for missing change input.")
+    output_errors = validate_output_payload(failure_payload, family="validation_plan")
+    if output_errors:
+        raise AssertionError(f"Validation-plan error payload violated output contract: {output_errors}")
+    if failure_payload["error_code"] != "missing_change_input":
+        raise AssertionError("Expected missing_change_input error code.")
 
     print("Validation-plan smoke check passed.")
     return 0

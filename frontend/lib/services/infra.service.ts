@@ -1,4 +1,4 @@
-import { Metric, ServiceNode } from "./types";
+import { ApiMetric, ApiResponse, Metric, ServiceActionCommand, ServiceEdge, ServiceNode } from "./types";
 import { getMockMetrics } from "../mockData";
 import type { UserRole } from "../store";
 import { formatBytes } from "../utils";
@@ -23,8 +23,8 @@ export class InfraService {
       const response = await fetch(`${API_BASE}/api/v1/dashboard/metrics?role=${roleQuery}`);
       if (!response.ok) throw new Error('Failed to fetch metrics');
       
-      const result = await response.json();
-      return result.data.map((m: any) => ({
+      const result = await response.json() as ApiResponse<ApiMetric[]>;
+      return result.data.map((m) => ({
         label: m.label,
         value: m.value,
         trend: m.trend,
@@ -41,8 +41,8 @@ export class InfraService {
       const response = await fetch(`${API_BASE}/api/v1/infra/nodes`);
       if (!response.ok) throw new Error('Failed to fetch nodes');
       
-      const result = await response.json();
-      return result.data.map((n: any) => ({
+      const result = await response.json() as ApiResponse<ApiServiceNode[]>;
+      return result.data.map((n) => ({
         id: n.id,
         label: n.label,
         status: n.status,
@@ -65,13 +65,13 @@ export class InfraService {
     }
   }
 
-  async getTopology(): Promise<{ nodes: ServiceNode[]; edges: any[] }> {
+  async getTopology(): Promise<{ nodes: ServiceNode[]; edges: ServiceEdge[] }> {
     try {
       const response = await fetch(`${API_BASE}/api/v1/infra/topology`);
       if (!response.ok) throw new Error('Failed to fetch topology');
       
-      const result = await response.json();
-      const nodes = result.data.nodes.map((n: any) => ({
+      const result = await response.json() as ApiResponse<{ nodes: ApiServiceNode[]; edges: ServiceEdge[] }>;
+      const nodes = result.data.nodes.map((n) => ({
         id: n.id,
         label: n.label,
         status: n.status,
@@ -91,11 +91,39 @@ export class InfraService {
   }
 
   async controlService(serviceId: string, action: string): Promise<boolean> {
-    console.log(`[InfraService] Executing ${action} on ${serviceId}`);
-    // This will be implemented in Phase 4: Admin Actions
-    await new Promise(resolve => setTimeout(resolve, 800));
-    return true;
+    const actionType = action.toLowerCase().replace(/\s+/g, '_');
+    const idempotencyKey = `service-${serviceId}-${actionType}-${Date.now()}`;
+    const response = await fetch(`${API_BASE}/api/v1/admin/service-actions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Devhub-Actor': 'yklee',
+      },
+      body: JSON.stringify({
+        service_id: serviceId,
+        action_type: actionType,
+        dry_run: true,
+        reason: `Manual ${action} from System Admin Dashboard`,
+        idempotency_key: idempotencyKey,
+      }),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to create service action command');
+    }
+    const result = await response.json() as ApiResponse<ServiceActionCommand>;
+    return result.data.command_status === 'pending';
   }
 }
 
 export const infraService = InfraService.getInstance();
+
+interface ApiServiceNode {
+  id: string;
+  label: string;
+  status: "stable" | "warning" | "down";
+  cpu_percent?: number;
+  memory_bytes?: number;
+  kind?: string;
+  region?: string;
+  updated_at?: string;
+}

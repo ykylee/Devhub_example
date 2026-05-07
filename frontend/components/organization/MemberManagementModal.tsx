@@ -4,7 +4,6 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { X, Users, Search, ChevronRight, ChevronLeft, Check } from "lucide-react";
 import { OrgMember } from "@/lib/services/identity.service";
-import { cn } from "@/lib/utils";
 
 interface MemberManagementModalProps {
   unitId: string;
@@ -17,7 +16,6 @@ interface MemberManagementModalProps {
 }
 
 export function MemberManagementModal({
-  unitId,
   unitName,
   allMembers,
   currentMemberIds,

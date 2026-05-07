@@ -134,6 +134,18 @@ type RiskMitigationCommandRequest struct {
 	RequiresApproval bool
 }
 
+type ServiceActionCommandRequest struct {
+	ServiceID        string
+	ActorLogin       string
+	ActionType       string
+	Reason           string
+	Force            bool
+	DryRun           bool
+	IdempotencyKey   string
+	RequestPayload   map[string]any
+	RequiresApproval bool
+}
+
 type ListOptions struct {
 	Limit          int
 	Offset         int

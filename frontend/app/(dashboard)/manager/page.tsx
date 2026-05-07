@@ -20,6 +20,12 @@ import { infraService } from "@/lib/services/infra.service";
 import { realtimeService } from "@/lib/services/realtime.service";
 import { Metric, Risk } from "@/lib/services/types";
 
+type RiskCreatedEvent = Risk;
+type CommandStatusEvent = {
+  command_id: string;
+  status: string;
+};
+
 export default function ManagerDashboard() {
   const [stats, setStats] = useState<Metric[]>([]);
   const [risks, setRisks] = useState<Risk[]>([]);
@@ -47,14 +53,14 @@ export default function ManagerDashboard() {
     loadData();
 
     // Subscribe to real-time risk updates
-    const unsubscribeRisk = realtimeService.subscribe('risk.critical.created', (event) => {
+    const unsubscribeRisk = realtimeService.subscribe<RiskCreatedEvent>('risk.critical.created', (event) => {
       const newRisk = event.data;
       setRisks((prev) => [newRisk, ...prev]);
-      addToast(`CRITICAL RISK DETECTED: ${newRisk.title}`, "danger");
+      addToast(`CRITICAL RISK DETECTED: ${newRisk.title}`, "error");
     });
 
     // Subscribe to command status updates
-    const unsubscribeCommand = realtimeService.subscribe('command.status.updated', (event) => {
+    const unsubscribeCommand = realtimeService.subscribe<CommandStatusEvent>('command.status.updated', (event) => {
       const { command_id, status } = event.data;
       addToast(`Command ${command_id.substring(0, 8)} updated: ${status}`, "info");
       // Optional: Refetch risks if command affects risk status
@@ -67,7 +73,7 @@ export default function ManagerDashboard() {
       unsubscribeRisk();
       unsubscribeCommand();
     };
-  }, []);
+  }, [addToast]);
 
   const handleMitigation = async (plan: { action: string }) => {
     if (!selectedRisk || !selectedRisk.id) return;
@@ -83,7 +89,7 @@ export default function ManagerDashboard() {
       
       setSelectedRisk(null);
     } catch (error) {
-      addToast("Failed to initiate mitigation protocol.", "danger");
+      addToast("Failed to initiate mitigation protocol.", "error");
       console.error(error);
     }
   };

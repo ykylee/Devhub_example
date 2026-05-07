@@ -11,8 +11,11 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-SOURCE_ROOT = REPO_ROOT / "ai-workflow"
+# Standard AI Workflow Library Discovery
+SOURCE_ROOT = Path(__file__).resolve().parent
+while not (SOURCE_ROOT / "workflow_kit").is_dir() and SOURCE_ROOT != SOURCE_ROOT.parent:
+    SOURCE_ROOT = SOURCE_ROOT.parent
+REPO_ROOT = SOURCE_ROOT.parent
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
@@ -89,25 +92,15 @@ def copy_tree(source: Path, destination: Path) -> list[Path]:
 
 def workflow_common_sources() -> list[Path]:
     return [
-        SOURCE_ROOT / "core" / "global_workflow_standard.md",
-        SOURCE_ROOT / "core" / "workflow_adoption_entrypoints.md",
-        SOURCE_ROOT / "core" / "workflow_skill_catalog.md",
-        SOURCE_ROOT / "core" / "existing_project_onboarding_contract.md",
-        SOURCE_ROOT / "core" / "workflow_harness_distribution.md",
-        SOURCE_ROOT / "core" / "workflow_release_spec.md",
-        SOURCE_ROOT / "core" / "strategic_threads.md",
-        SOURCE_ROOT / "core" / "maturity_matrix.json",
-        SOURCE_ROOT / "core" / "automated_repro_scaffold_skill_spec.md",
-        SOURCE_ROOT / "core" / "phase5_governance_guide.md",
-        SOURCE_ROOT / "examples" / "end_to_end_skill_demo.md",
-        SOURCE_ROOT / "mcp_servers" / "read_only_bundle.md",
-        SOURCE_ROOT / "schemas" / "read_only_harness_mcp_examples.json",
-        SOURCE_ROOT / "schemas" / "read_only_jsonrpc_fixtures.json",
-        SOURCE_ROOT / "schemas" / "read_only_transport_descriptors.json",
-        SOURCE_ROOT / "templates" / "release_note_template.md",
-        SOURCE_ROOT / "templates" / "pilot_candidate_checklist.md",
-        SOURCE_ROOT / "templates" / "pilot_adoption_record_template.md",
-        SOURCE_ROOT / "harnesses" / "README.md",
+        SOURCE_ROOT / "core",
+        SOURCE_ROOT / "examples",
+        SOURCE_ROOT / "mcp_servers",
+        SOURCE_ROOT / "schemas",
+        SOURCE_ROOT / "templates",
+        SOURCE_ROOT / "harnesses",
+        SOURCE_ROOT / "prompts",
+        SOURCE_ROOT / "releases",
+        SOURCE_ROOT / "MEMORY_GOVERNANCE.md",
     ]
 
 
@@ -160,6 +153,8 @@ def bootstrap_export_sources(harness: str, temp_repo: Path) -> list[Path]:
         "Export Sample",
         "--harness",
         harness,
+        "--copy-core-docs",
+        "--force",
     ]
     completed = shutil.which("python3")
     if completed is None:
@@ -588,8 +583,12 @@ def export_harness(
     if include_source_docs:
         for source in workflow_common_sources() + harness_specific_sources(harness):
             destination = bundle_root / "source-docs" / rel(source, REPO_ROOT)
-            copy_file(source, destination)
-            included_files.append(rel(destination, package_root))
+            if source.is_dir():
+                copied = copy_tree(source, destination)
+                included_files.extend(rel(path, package_root) for path in copied)
+            else:
+                copy_file(source, destination)
+                included_files.append(rel(destination, package_root))
 
     if include_global_snippets:
         for source in global_snippet_source_map().get(harness, []):

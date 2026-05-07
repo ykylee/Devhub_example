@@ -96,7 +96,7 @@ export class RealtimeService {
     }
   }
 
-  public subscribe<T = any>(type: string, handler: WSEventHandler<T>) {
+  public subscribe<T = unknown>(type: string, handler: WSEventHandler<T>) {
     if (!this.handlers.has(type)) {
       this.handlers.set(type, new Set());
     }
@@ -105,7 +105,7 @@ export class RealtimeService {
     return () => this.unsubscribe(type, handler);
   }
 
-  public unsubscribe<T = any>(type: string, handler: WSEventHandler<T>) {
+  public unsubscribe<T = unknown>(type: string, handler: WSEventHandler<T>) {
     const eventHandlers = this.handlers.get(type);
     if (eventHandlers) {
       eventHandlers.delete(handler);
@@ -115,7 +115,7 @@ export class RealtimeService {
     }
   }
 
-  public send(type: string, data: any) {
+  public send(type: string, data: unknown) {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       this.socket.send(JSON.stringify({ type, data }));
     } else {

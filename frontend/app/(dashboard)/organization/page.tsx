@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { identityService, OrgMember, Team } from "@/lib/services/identity.service";
+import { identityService, OrgMember, OrgNode } from "@/lib/services/identity.service";
 import { MemberTable } from "@/components/organization/MemberTable";
 import { OrgUnitGrid } from "@/components/organization/OrgUnitGrid";
 import { MemberManagementModal } from "@/components/organization/MemberManagementModal";
@@ -18,7 +18,7 @@ type Tab = "members" | "units" | "permissions" | "orgchart";
 export default function OrganizationPage() {
   const [activeTab, setActiveTab] = useState<Tab>("members");
   const [members, setMembers] = useState<OrgMember[]>([]);
-  const [orgNodes, setOrgNodes] = useState<any[]>([]);
+  const [orgNodes, setOrgNodes] = useState<OrgNode[]>([]);
   const [unitMembers, setUnitMembers] = useState<Record<string, string[]>>({});
   const [managingUnitId, setManagingUnitId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);

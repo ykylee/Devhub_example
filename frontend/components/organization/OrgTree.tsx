@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { 
   ReactFlow, 
-  MiniMap, 
   Controls, 
   Background, 
   useNodesState, 
@@ -20,7 +19,6 @@ import {
 import '@xyflow/react/dist/style.css';
 import { identityService } from '@/lib/services/identity.service';
 import { Plus, Save, ZoomIn, Building2, LayoutTemplate } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
 import { OrgNode } from './OrgNode';
 import dagre from 'dagre';
@@ -142,6 +140,7 @@ function OrgTreeContent() {
   }, [allEdges, addToast, recalculateMemberCounts]);
 
   const nodesRef = useRef(allNodes);
+  const addChildRef = useRef<(parentId: string) => void>(() => {});
   useEffect(() => {
     nodesRef.current = allNodes;
   }, [allNodes]);
@@ -167,7 +166,7 @@ function OrgTreeContent() {
         isInitialEditing: true,
         direct_count: 0,
         total_count: 0,
-        onAddChild,
+        onAddChild: (id: string) => addChildRef.current(id),
         onDelete: onDeleteNode,
         onUpdate: onUpdateNode
       },
@@ -191,6 +190,10 @@ function OrgTreeContent() {
     addToast(`Adding new ${nextType}...`, "info");
     window.requestAnimationFrame(() => fitView({ duration: 800 }));
   }, [allEdges, addToast, onDeleteNode, onUpdateNode, fitView, recalculateMemberCounts]);
+
+  useEffect(() => {
+    addChildRef.current = onAddChild;
+  }, [onAddChild]);
 
   // Initial fetch only
   useEffect(() => {

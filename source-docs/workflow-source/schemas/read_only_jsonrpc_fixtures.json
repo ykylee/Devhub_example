@@ -1,0 +1,2423 @@
+{
+  "descriptor_target": "mcp_tools_list_draft",
+  "fixture_count": 15,
+  "fixture_phase": "jsonrpc_draft_fixture",
+  "fixtures": [
+    {
+      "name": "initialize",
+      "request": {
+        "id": 1,
+        "jsonrpc": "2.0",
+        "method": "initialize",
+        "params": {}
+      },
+      "response": {
+        "id": 1,
+        "jsonrpc": "2.0",
+        "result": {
+          "_meta": {
+            "bridge_phase": "jsonrpc_draft_fixture",
+            "descriptor_target": "mcp_tools_list_draft",
+            "transport_ready": false
+          },
+          "capabilities": {
+            "tools": {
+              "listChanged": false
+            }
+          },
+          "serverInfo": {
+            "name": "workflow_read_only_bundle",
+            "version": "v0.4.2-beta"
+          }
+        }
+      }
+    },
+    {
+      "name": "initialize_with_supported_capabilities",
+      "request": {
+        "id": 10,
+        "jsonrpc": "2.0",
+        "method": "initialize",
+        "params": {
+          "capabilities": {
+            "elicitation": {},
+            "experimental": {},
+            "roots": {
+              "listChanged": false
+            },
+            "sampling": {},
+            "tools": {
+              "listChanged": true
+            }
+          },
+          "clientInfo": {
+            "name": "fixture-client",
+            "version": "0.1.0"
+          },
+          "protocolVersion": "2025-03-26"
+        }
+      },
+      "response": {
+        "id": 10,
+        "jsonrpc": "2.0",
+        "result": {
+          "_meta": {
+            "bridge_phase": "jsonrpc_draft_fixture",
+            "descriptor_target": "mcp_tools_list_draft",
+            "transport_ready": false
+          },
+          "capabilities": {
+            "tools": {
+              "listChanged": false
+            }
+          },
+          "serverInfo": {
+            "name": "workflow_read_only_bundle",
+            "version": "v0.4.2-beta"
+          }
+        }
+      }
+    },
+    {
+      "name": "initialize_invalid_capabilities",
+      "request": {
+        "id": 11,
+        "jsonrpc": "2.0",
+        "method": "initialize",
+        "params": {
+          "capabilities": []
+        }
+      },
+      "response": {
+        "error": {
+          "code": -32602,
+          "data": {
+            "reason": "initialize params.capabilities must be an object"
+          },
+          "message": "Invalid params"
+        },
+        "id": 11,
+        "jsonrpc": "2.0"
+      }
+    },
+    {
+      "name": "initialize_invalid_tools_list_changed",
+      "request": {
+        "id": 12,
+        "jsonrpc": "2.0",
+        "method": "initialize",
+        "params": {
+          "capabilities": {
+            "tools": {
+              "listChanged": "yes"
+            }
+          }
+        }
+      },
+      "response": {
+        "error": {
+          "code": -32602,
+          "data": {
+            "reason": "initialize params.capabilities.tools.listChanged must be a boolean"
+          },
+          "message": "Invalid params"
+        },
+        "id": 12,
+        "jsonrpc": "2.0"
+      }
+    },
+    {
+      "name": "initialize_invalid_roots_capability",
+      "request": {
+        "id": 13,
+        "jsonrpc": "2.0",
+        "method": "initialize",
+        "params": {
+          "capabilities": {
+            "roots": []
+          }
+        }
+      },
+      "response": {
+        "error": {
+          "code": -32602,
+          "data": {
+            "reason": "initialize params.capabilities.roots must be an object"
+          },
+          "message": "Invalid params"
+        },
+        "id": 13,
+        "jsonrpc": "2.0"
+      }
+    },
+    {
+      "name": "notification_initialized_no_response",
+      "request": {
+        "jsonrpc": "2.0",
+        "method": "notifications/initialized",
+        "params": {}
+      },
+      "response": null
+    },
+    {
+      "name": "notification_unknown_no_response",
+      "request": {
+        "jsonrpc": "2.0",
+        "method": "notifications/progress",
+        "params": {
+          "step": "draft"
+        }
+      },
+      "response": null
+    },
+    {
+      "name": "notification_with_id_invalid_request",
+      "request": {
+        "id": 14,
+        "jsonrpc": "2.0",
+        "method": "notifications/initialized",
+        "params": {}
+      },
+      "response": {
+        "error": {
+          "code": -32600,
+          "data": {
+            "reason": "notifications must not include id"
+          },
+          "message": "Invalid Request"
+        },
+        "id": 14,
+        "jsonrpc": "2.0"
+      }
+    },
+    {
+      "name": "tools_list",
+      "request": {
+        "id": 2,
+        "jsonrpc": "2.0",
+        "method": "tools/list",
+        "params": {}
+      },
+      "response": {
+        "id": 2,
+        "jsonrpc": "2.0",
+        "result": {
+          "_meta": {
+            "descriptor_target": "mcp_tools_list_draft",
+            "tool_count": 13,
+            "transport_ready": false
+          },
+          "tools": [
+            {
+              "_meta": {
+                "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                "bundle_phase": "direct_call_adapter",
+                "descriptor_target": "mcp_tools_list_draft",
+                "transport_ready": false
+              },
+              "annotations": {
+                "readOnlyHint": true
+              },
+              "description": "Locate the latest dated backlog document from an index or backlog directory.",
+              "inputSchema": {
+                "additionalProperties": false,
+                "anyOf": [
+                  {
+                    "required": [
+                      "backlog_dir_path"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "work_backlog_index_path"
+                    ]
+                  }
+                ],
+                "properties": {
+                  "backlog_dir_path": {
+                    "description": "Fallback backlog directory to scan for dated markdown files.",
+                    "type": "string"
+                  },
+                  "work_backlog_index_path": {
+                    "description": "Backlog index markdown file whose links point to dated backlog files.",
+                    "type": "string"
+                  }
+                },
+                "required": [],
+                "type": "object"
+              },
+              "name": "latest_backlog",
+              "outputSchema": {
+                "properties": {
+                  "candidates": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "latest_backlog_path": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "status": {
+                    "enum": [
+                      "ok",
+                      "warning",
+                      "error"
+                    ],
+                    "type": "string"
+                  },
+                  "tool_version": {
+                    "type": "string"
+                  },
+                  "warnings": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "candidates",
+                  "latest_backlog_path",
+                  "status",
+                  "tool_version",
+                  "warnings"
+                ],
+                "type": "object"
+              }
+            },
+            {
+              "_meta": {
+                "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                "bundle_phase": "direct_call_adapter",
+                "descriptor_target": "mcp_tools_list_draft",
+                "transport_ready": false
+              },
+              "annotations": {
+                "readOnlyHint": true
+              },
+              "description": "Inspect markdown files and report missing required metadata fields.",
+              "inputSchema": {
+                "additionalProperties": false,
+                "properties": {
+                  "doc_dir_path": {
+                    "description": "Root directory whose markdown files will be scanned.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "doc_dir_path"
+                ],
+                "type": "object"
+              },
+              "name": "check_doc_metadata",
+              "outputSchema": {
+                "properties": {
+                  "checked_files": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "missing_metadata": {
+                    "items": {
+                      "properties": {},
+                      "required": [
+                        "missing_fields",
+                        "path"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "status": {
+                    "enum": [
+                      "ok",
+                      "warning",
+                      "error"
+                    ],
+                    "type": "string"
+                  },
+                  "tool_version": {
+                    "type": "string"
+                  },
+                  "warnings": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "checked_files",
+                  "missing_metadata",
+                  "status",
+                  "tool_version",
+                  "warnings"
+                ],
+                "type": "object"
+              }
+            },
+            {
+              "_meta": {
+                "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                "bundle_phase": "direct_call_adapter",
+                "descriptor_target": "mcp_tools_list_draft",
+                "transport_ready": false
+              },
+              "annotations": {
+                "readOnlyHint": true
+              },
+              "description": "Inspect markdown relative links and report broken targets.",
+              "inputSchema": {
+                "additionalProperties": false,
+                "properties": {
+                  "doc_dir_path": {
+                    "description": "Root directory whose markdown files will be scanned for broken links.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "doc_dir_path"
+                ],
+                "type": "object"
+              },
+              "name": "check_doc_links",
+              "outputSchema": {
+                "properties": {
+                  "broken_links": {
+                    "items": {
+                      "properties": {},
+                      "required": [
+                        "broken_links",
+                        "path"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "checked_files": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "status": {
+                    "enum": [
+                      "ok",
+                      "warning",
+                      "error"
+                    ],
+                    "type": "string"
+                  },
+                  "tool_version": {
+                    "type": "string"
+                  },
+                  "warnings": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "broken_links",
+                  "checked_files",
+                  "status",
+                  "tool_version",
+                  "warnings"
+                ],
+                "type": "object"
+              }
+            },
+            {
+              "_meta": {
+                "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                "bundle_phase": "direct_call_adapter",
+                "descriptor_target": "mcp_tools_list_draft",
+                "transport_ready": false
+              },
+              "annotations": {
+                "readOnlyHint": true
+              },
+              "description": "Suggest impacted workflow documents from changed files and summary input.",
+              "inputSchema": {
+                "additionalProperties": false,
+                "properties": {
+                  "changed_files": {
+                    "description": "Changed file paths that should be classified into impacted document candidates.",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "latest_backlog_path": {
+                    "description": "Optional latest backlog document to include as an impacted state document.",
+                    "type": "string"
+                  },
+                  "session_handoff_path": {
+                    "description": "Optional session handoff document to include as an impacted state document.",
+                    "type": "string"
+                  },
+                  "work_backlog_index_path": {
+                    "description": "Optional backlog index document to include as an impacted state document.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "changed_files"
+                ],
+                "type": "object"
+              },
+              "name": "suggest_impacted_docs",
+              "outputSchema": {
+                "properties": {
+                  "impacted_documents": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "reasoning_notes": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "status": {
+                    "enum": [
+                      "ok",
+                      "warning",
+                      "error"
+                    ],
+                    "type": "string"
+                  },
+                  "tool_version": {
+                    "type": "string"
+                  },
+                  "warnings": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "impacted_documents",
+                  "reasoning_notes",
+                  "status",
+                  "tool_version",
+                  "warnings"
+                ],
+                "type": "object"
+              }
+            },
+            {
+              "_meta": {
+                "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                "bundle_phase": "direct_call_adapter",
+                "descriptor_target": "mcp_tools_list_draft",
+                "transport_ready": false
+              },
+              "annotations": {
+                "readOnlyHint": true
+              },
+              "description": "Generate a draft backlog entry JSON for a new task.",
+              "inputSchema": {
+                "additionalProperties": false,
+                "properties": {
+                  "priority": {
+                    "description": "Priority of the task (default: high).",
+                    "type": "string"
+                  },
+                  "request_date": {
+                    "description": "Date the task was requested (YYYY-MM-DD).",
+                    "type": "string"
+                  },
+                  "status": {
+                    "description": "Initial status of the task (default: planned).",
+                    "type": "string"
+                  },
+                  "task_id": {
+                    "description": "Unique identifier for the task (e.g., TASK-001).",
+                    "type": "string"
+                  },
+                  "task_name": {
+                    "description": "Short descriptive name of the task.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "request_date",
+                  "task_id",
+                  "task_name"
+                ],
+                "type": "object"
+              },
+              "name": "create_backlog_entry",
+              "outputSchema": {
+                "properties": {
+                  "draft_entry": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "status": {
+                    "enum": [
+                      "ok",
+                      "warning",
+                      "error"
+                    ],
+                    "type": "string"
+                  },
+                  "tool_version": {
+                    "type": "string"
+                  },
+                  "warnings": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "draft_entry",
+                  "status",
+                  "tool_version",
+                  "warnings"
+                ],
+                "type": "object"
+              }
+            },
+            {
+              "_meta": {
+                "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                "bundle_phase": "direct_call_adapter",
+                "descriptor_target": "mcp_tools_list_draft",
+                "transport_ready": false
+              },
+              "annotations": {
+                "readOnlyHint": true
+              },
+              "description": "Generate a draft session handoff document from the latest backlog.",
+              "inputSchema": {
+                "additionalProperties": false,
+                "properties": {
+                  "git_summary": {
+                    "description": "Optional git summary text to include in the handoff.",
+                    "type": "string"
+                  },
+                  "latest_backlog_path": {
+                    "description": "Latest dated backlog document to extract task status from.",
+                    "type": "string"
+                  }
+                },
+                "required": [],
+                "type": "object"
+              },
+              "name": "create_session_handoff_draft",
+              "outputSchema": {
+                "properties": {
+                  "draft_handoff": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "source_context": {
+                    "properties": {
+                      "latest_backlog_path": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "latest_backlog_path"
+                    ],
+                    "type": "object"
+                  },
+                  "status": {
+                    "enum": [
+                      "ok",
+                      "warning",
+                      "error"
+                    ],
+                    "type": "string"
+                  },
+                  "tool_version": {
+                    "type": "string"
+                  },
+                  "warnings": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "draft_handoff",
+                  "source_context",
+                  "status",
+                  "tool_version",
+                  "warnings"
+                ],
+                "type": "object"
+              }
+            },
+            {
+              "_meta": {
+                "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                "bundle_phase": "direct_call_adapter",
+                "descriptor_target": "mcp_tools_list_draft",
+                "transport_ready": false
+              },
+              "annotations": {
+                "readOnlyHint": true
+              },
+              "description": "Generate a draft environment record stub for the current host.",
+              "inputSchema": {
+                "additionalProperties": false,
+                "properties": {
+                  "hostname": {
+                    "description": "Current host name.",
+                    "type": "string"
+                  },
+                  "os_type": {
+                    "description": "Current OS type (e.g., darwin, linux, windows).",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "hostname",
+                  "os_type"
+                ],
+                "type": "object"
+              },
+              "name": "create_environment_record_stub",
+              "outputSchema": {
+                "properties": {
+                  "draft_record": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "source_context": {
+                    "properties": {
+                      "hostname": {
+                        "type": "string"
+                      },
+                      "os_type": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "hostname",
+                      "os_type"
+                    ],
+                    "type": "object"
+                  },
+                  "status": {
+                    "enum": [
+                      "ok",
+                      "warning",
+                      "error"
+                    ],
+                    "type": "string"
+                  },
+                  "tool_version": {
+                    "type": "string"
+                  },
+                  "warnings": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "draft_record",
+                  "source_context",
+                  "status",
+                  "tool_version",
+                  "warnings"
+                ],
+                "type": "object"
+              }
+            },
+            {
+              "_meta": {
+                "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                "bundle_phase": "direct_call_adapter",
+                "descriptor_target": "mcp_tools_list_draft",
+                "transport_ready": false
+              },
+              "annotations": {
+                "readOnlyHint": true
+              },
+              "description": "Check quickstart and README entry docs for stale or missing links.",
+              "inputSchema": {
+                "additionalProperties": false,
+                "properties": {
+                  "agents_path": {
+                    "description": "Optional AGENTS or harness guidance document expected to be linked from entry docs.",
+                    "type": "string"
+                  },
+                  "project_profile_path": {
+                    "description": "Optional project profile document expected to be linked from entry docs.",
+                    "type": "string"
+                  },
+                  "quickstart_paths": {
+                    "description": "One or more quickstart or README entry documents to inspect.",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "session_handoff_path": {
+                    "description": "Optional session handoff document expected to be linked from entry docs.",
+                    "type": "string"
+                  },
+                  "work_backlog_index_path": {
+                    "description": "Optional backlog index document expected to be linked from entry docs.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "quickstart_paths"
+                ],
+                "type": "object"
+              },
+              "name": "check_quickstart_stale_links",
+              "outputSchema": {
+                "properties": {
+                  "broken_links": {
+                    "items": {
+                      "properties": {},
+                      "required": [
+                        "broken_links",
+                        "path"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "checked_files": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "missing_expected_links": {
+                    "items": {
+                      "properties": {},
+                      "required": [
+                        "missing_targets",
+                        "path"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "reasoning_notes": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "stale_link_warnings": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "status": {
+                    "enum": [
+                      "ok",
+                      "warning",
+                      "error"
+                    ],
+                    "type": "string"
+                  },
+                  "tool_version": {
+                    "type": "string"
+                  },
+                  "warnings": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "checked_files",
+                  "missing_expected_links",
+                  "reasoning_notes",
+                  "stale_link_warnings",
+                  "status",
+                  "tool_version",
+                  "warnings"
+                ],
+                "type": "object"
+              }
+            },
+            {
+              "_meta": {
+                "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                "bundle_phase": "direct_call_adapter",
+                "descriptor_target": "mcp_tools_list_draft",
+                "transport_ready": false
+              },
+              "annotations": {
+                "readOnlyHint": true
+              },
+              "description": "Summarize git commit history into categories and markdown for handoff.",
+              "inputSchema": {
+                "additionalProperties": false,
+                "properties": {
+                  "commit_range": {
+                    "description": "Commit range to summarize (e.g., 'HEAD~5..HEAD').",
+                    "type": "string"
+                  },
+                  "repo_path": {
+                    "description": "Path to the git repository.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "commit_range",
+                  "repo_path"
+                ],
+                "type": "object"
+              },
+              "name": "summarize_git_history",
+              "outputSchema": {
+                "properties": {
+                  "status": {
+                    "enum": [
+                      "ok",
+                      "warning",
+                      "error"
+                    ],
+                    "type": "string"
+                  },
+                  "tool_version": {
+                    "type": "string"
+                  },
+                  "warnings": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "status",
+                  "tool_version",
+                  "warnings"
+                ],
+                "type": "object"
+              }
+            },
+            {
+              "_meta": {
+                "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                "bundle_phase": "direct_call_adapter",
+                "descriptor_target": "mcp_tools_list_draft",
+                "transport_ready": false
+              },
+              "annotations": {
+                "readOnlyHint": true
+              },
+              "description": "Rotate old done items from handoff into baseline to prevent bloat.",
+              "inputSchema": {
+                "additionalProperties": false,
+                "properties": {
+                  "handoff_path": {
+                    "description": "Path to the session handoff document.",
+                    "type": "string"
+                  },
+                  "max_done_items": {
+                    "description": "Maximum number of done items to keep in 'recently done' (default: 10).",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "handoff_path"
+                ],
+                "type": "object"
+              },
+              "name": "rotate_workflow_logs",
+              "outputSchema": {
+                "properties": {
+                  "status": {
+                    "enum": [
+                      "ok",
+                      "warning",
+                      "error"
+                    ],
+                    "type": "string"
+                  },
+                  "tool_version": {
+                    "type": "string"
+                  },
+                  "warnings": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "status",
+                  "tool_version",
+                  "warnings"
+                ],
+                "type": "object"
+              }
+            },
+            {
+              "_meta": {
+                "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                "bundle_phase": "direct_call_adapter",
+                "descriptor_target": "mcp_tools_list_draft",
+                "transport_ready": false
+              },
+              "annotations": {
+                "readOnlyHint": true
+              },
+              "description": "Analyze milestone progress based on maturity matrix and backlog.",
+              "inputSchema": {
+                "additionalProperties": false,
+                "properties": {
+                  "backlog_path": {
+                    "description": "Path to the current backlog document.",
+                    "type": "string"
+                  },
+                  "matrix_path": {
+                    "description": "Path to the maturity matrix JSON.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "backlog_path",
+                  "matrix_path"
+                ],
+                "type": "object"
+              },
+              "name": "assess_milestone_progress",
+              "outputSchema": {
+                "properties": {
+                  "status": {
+                    "enum": [
+                      "ok",
+                      "warning",
+                      "error"
+                    ],
+                    "type": "string"
+                  },
+                  "tool_version": {
+                    "type": "string"
+                  },
+                  "warnings": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "status",
+                  "tool_version",
+                  "warnings"
+                ],
+                "type": "object"
+              }
+            },
+            {
+              "_meta": {
+                "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                "bundle_phase": "direct_call_adapter",
+                "descriptor_target": "mcp_tools_list_draft",
+                "transport_ready": false
+              },
+              "annotations": {
+                "readOnlyHint": true
+              },
+              "description": "Extract specific function or class blocks from a Python file to reduce LLM context bloat.",
+              "inputSchema": {
+                "additionalProperties": false,
+                "properties": {
+                  "file_path": {
+                    "description": "Path to the Python file.",
+                    "type": "string"
+                  },
+                  "symbols": {
+                    "description": "List of function or class names to extract. If empty, all are extracted.",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "file_path"
+                ],
+                "type": "object"
+              },
+              "name": "smart_context_reader",
+              "outputSchema": {
+                "properties": {
+                  "extracted_content": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "not_found_symbols": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "status": {
+                    "enum": [
+                      "ok",
+                      "warning",
+                      "error"
+                    ],
+                    "type": "string"
+                  },
+                  "tool_version": {
+                    "type": "string"
+                  },
+                  "warnings": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "extracted_content",
+                  "not_found_symbols",
+                  "status",
+                  "tool_version",
+                  "warnings"
+                ],
+                "type": "object"
+              }
+            },
+            {
+              "_meta": {
+                "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                "bundle_phase": "direct_call_adapter",
+                "descriptor_target": "mcp_tools_list_draft",
+                "transport_ready": false
+              },
+              "annotations": {
+                "readOnlyHint": true
+              },
+              "description": "Apply a robust Search-Replace block patch to a file with fuzzy matching and syntax validation.",
+              "inputSchema": {
+                "additionalProperties": false,
+                "properties": {
+                  "file_path": {
+                    "description": "Target file to patch.",
+                    "type": "string"
+                  },
+                  "patch_content": {
+                    "description": "The SEARCH/REPLACE block content (using <<<<<<< SEARCH, =======, >>>>>>> REPLACE).",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "file_path",
+                  "patch_content"
+                ],
+                "type": "object"
+              },
+              "name": "apply_robust_patch",
+              "outputSchema": {
+                "properties": {
+                  "status": {
+                    "enum": [
+                      "ok",
+                      "warning",
+                      "error"
+                    ],
+                    "type": "string"
+                  },
+                  "tool_version": {
+                    "type": "string"
+                  },
+                  "warnings": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "status",
+                  "tool_version",
+                  "warnings"
+                ],
+                "type": "object"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "latest_backlog_call_success",
+      "request": {
+        "id": 3,
+        "jsonrpc": "2.0",
+        "method": "tools/call",
+        "params": {
+          "arguments": {
+            "work_backlog_index_path": "workflow-source/examples/acme_delivery_platform/work_backlog.md"
+          },
+          "name": "latest_backlog"
+        }
+      },
+      "response": {
+        "id": 3,
+        "jsonrpc": "2.0",
+        "result": {
+          "_meta": {
+            "bridge_phase": "jsonrpc_draft_fixture",
+            "tool": "latest_backlog",
+            "transport_ready": false
+          },
+          "content": [
+            {
+              "text": "{\"candidates\": [\"workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md\"], \"latest_backlog_path\": \"workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md\", \"status\": \"ok\", \"tool_version\": \"v0.4.2-beta\", \"warnings\": []}",
+              "type": "text"
+            }
+          ],
+          "structuredContent": {
+            "candidates": [
+              "workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md"
+            ],
+            "latest_backlog_path": "workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md",
+            "status": "ok",
+            "tool_version": "v0.4.2-beta",
+            "warnings": []
+          }
+        }
+      }
+    },
+    {
+      "name": "check_doc_metadata_call_schema_error",
+      "request": {
+        "id": 4,
+        "jsonrpc": "2.0",
+        "method": "tools/call",
+        "params": {
+          "arguments": {},
+          "name": "check_doc_metadata"
+        }
+      },
+      "response": {
+        "error": {
+          "code": -32000,
+          "data": {
+            "error": "payload JSON 이 read-only bundle input schema 와 맞지 않는다.",
+            "error_code": "invalid_tool_payload_schema",
+            "source_context": {
+              "action": "tool",
+              "allowed_fields": [
+                "doc_dir_path"
+              ],
+              "payload_json": "{}",
+              "tool": "check_doc_metadata"
+            },
+            "status": "error",
+            "tool_version": "v0.4.2-beta",
+            "warnings": [
+              "`doc_dir_path` field 는 필수다."
+            ]
+          },
+          "message": "Tool call failed"
+        },
+        "id": 4,
+        "jsonrpc": "2.0"
+      }
+    },
+    {
+      "name": "unknown_method",
+      "request": {
+        "id": 5,
+        "jsonrpc": "2.0",
+        "method": "unknown/method",
+        "params": {}
+      },
+      "response": {
+        "error": {
+          "code": -32601,
+          "data": {
+            "method": "unknown/method"
+          },
+          "message": "Method not found"
+        },
+        "id": 5,
+        "jsonrpc": "2.0"
+      }
+    },
+    {
+      "name": "invalid_boolean_id",
+      "request": {
+        "id": true,
+        "jsonrpc": "2.0",
+        "method": "tools/list",
+        "params": {}
+      },
+      "response": {
+        "error": {
+          "code": -32600,
+          "data": {
+            "reason": "id must be a string, number, or null"
+          },
+          "message": "Invalid Request"
+        },
+        "id": null,
+        "jsonrpc": "2.0"
+      }
+    },
+    {
+      "name": "malformed_json_parse_error",
+      "request": "{not-json",
+      "response": {
+        "error": {
+          "code": -32700,
+          "data": {
+            "position": 1,
+            "reason": "request must be valid JSON"
+          },
+          "message": "Parse error"
+        },
+        "id": null,
+        "jsonrpc": "2.0"
+      }
+    },
+    {
+      "name": "non_object_invalid_request",
+      "request": "[]",
+      "response": {
+        "error": {
+          "code": -32600,
+          "data": {
+            "reason": "request must be a JSON object"
+          },
+          "message": "Invalid Request"
+        },
+        "id": null,
+        "jsonrpc": "2.0"
+      }
+    }
+  ],
+  "session_fixture_count": 2,
+  "session_fixtures": [
+    {
+      "name": "stdio_session_requires_initialize",
+      "requests": [
+        {
+          "id": 21,
+          "jsonrpc": "2.0",
+          "method": "tools/list",
+          "params": {}
+        },
+        {
+          "id": 22,
+          "jsonrpc": "2.0",
+          "method": "initialize",
+          "params": {}
+        },
+        {
+          "jsonrpc": "2.0",
+          "method": "notifications/initialized",
+          "params": {}
+        },
+        {
+          "id": 23,
+          "jsonrpc": "2.0",
+          "method": "tools/list",
+          "params": {}
+        }
+      ],
+      "responses": [
+        {
+          "error": {
+            "code": -32002,
+            "data": {
+              "reason": "initialize must be called before tools/list in stdio session mode"
+            },
+            "message": "Server not initialized"
+          },
+          "id": 21,
+          "jsonrpc": "2.0"
+        },
+        {
+          "id": 22,
+          "jsonrpc": "2.0",
+          "result": {
+            "_meta": {
+              "bridge_phase": "jsonrpc_draft_fixture",
+              "descriptor_target": "mcp_tools_list_draft",
+              "transport_ready": false
+            },
+            "capabilities": {
+              "tools": {
+                "listChanged": false
+              }
+            },
+            "serverInfo": {
+              "name": "workflow_read_only_bundle",
+              "version": "v0.4.2-beta"
+            }
+          }
+        },
+        null,
+        {
+          "id": 23,
+          "jsonrpc": "2.0",
+          "result": {
+            "_meta": {
+              "descriptor_target": "mcp_tools_list_draft",
+              "tool_count": 13,
+              "transport_ready": false
+            },
+            "tools": [
+              {
+                "_meta": {
+                  "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                  "bundle_phase": "direct_call_adapter",
+                  "descriptor_target": "mcp_tools_list_draft",
+                  "transport_ready": false
+                },
+                "annotations": {
+                  "readOnlyHint": true
+                },
+                "description": "Locate the latest dated backlog document from an index or backlog directory.",
+                "inputSchema": {
+                  "additionalProperties": false,
+                  "anyOf": [
+                    {
+                      "required": [
+                        "backlog_dir_path"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "work_backlog_index_path"
+                      ]
+                    }
+                  ],
+                  "properties": {
+                    "backlog_dir_path": {
+                      "description": "Fallback backlog directory to scan for dated markdown files.",
+                      "type": "string"
+                    },
+                    "work_backlog_index_path": {
+                      "description": "Backlog index markdown file whose links point to dated backlog files.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [],
+                  "type": "object"
+                },
+                "name": "latest_backlog",
+                "outputSchema": {
+                  "properties": {
+                    "candidates": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "latest_backlog_path": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "enum": [
+                        "ok",
+                        "warning",
+                        "error"
+                      ],
+                      "type": "string"
+                    },
+                    "tool_version": {
+                      "type": "string"
+                    },
+                    "warnings": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "candidates",
+                    "latest_backlog_path",
+                    "status",
+                    "tool_version",
+                    "warnings"
+                  ],
+                  "type": "object"
+                }
+              },
+              {
+                "_meta": {
+                  "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                  "bundle_phase": "direct_call_adapter",
+                  "descriptor_target": "mcp_tools_list_draft",
+                  "transport_ready": false
+                },
+                "annotations": {
+                  "readOnlyHint": true
+                },
+                "description": "Inspect markdown files and report missing required metadata fields.",
+                "inputSchema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "doc_dir_path": {
+                      "description": "Root directory whose markdown files will be scanned.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "doc_dir_path"
+                  ],
+                  "type": "object"
+                },
+                "name": "check_doc_metadata",
+                "outputSchema": {
+                  "properties": {
+                    "checked_files": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "missing_metadata": {
+                      "items": {
+                        "properties": {},
+                        "required": [
+                          "missing_fields",
+                          "path"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "status": {
+                      "enum": [
+                        "ok",
+                        "warning",
+                        "error"
+                      ],
+                      "type": "string"
+                    },
+                    "tool_version": {
+                      "type": "string"
+                    },
+                    "warnings": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "checked_files",
+                    "missing_metadata",
+                    "status",
+                    "tool_version",
+                    "warnings"
+                  ],
+                  "type": "object"
+                }
+              },
+              {
+                "_meta": {
+                  "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                  "bundle_phase": "direct_call_adapter",
+                  "descriptor_target": "mcp_tools_list_draft",
+                  "transport_ready": false
+                },
+                "annotations": {
+                  "readOnlyHint": true
+                },
+                "description": "Inspect markdown relative links and report broken targets.",
+                "inputSchema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "doc_dir_path": {
+                      "description": "Root directory whose markdown files will be scanned for broken links.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "doc_dir_path"
+                  ],
+                  "type": "object"
+                },
+                "name": "check_doc_links",
+                "outputSchema": {
+                  "properties": {
+                    "broken_links": {
+                      "items": {
+                        "properties": {},
+                        "required": [
+                          "broken_links",
+                          "path"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "checked_files": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "status": {
+                      "enum": [
+                        "ok",
+                        "warning",
+                        "error"
+                      ],
+                      "type": "string"
+                    },
+                    "tool_version": {
+                      "type": "string"
+                    },
+                    "warnings": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "broken_links",
+                    "checked_files",
+                    "status",
+                    "tool_version",
+                    "warnings"
+                  ],
+                  "type": "object"
+                }
+              },
+              {
+                "_meta": {
+                  "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                  "bundle_phase": "direct_call_adapter",
+                  "descriptor_target": "mcp_tools_list_draft",
+                  "transport_ready": false
+                },
+                "annotations": {
+                  "readOnlyHint": true
+                },
+                "description": "Suggest impacted workflow documents from changed files and summary input.",
+                "inputSchema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "changed_files": {
+                      "description": "Changed file paths that should be classified into impacted document candidates.",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "latest_backlog_path": {
+                      "description": "Optional latest backlog document to include as an impacted state document.",
+                      "type": "string"
+                    },
+                    "session_handoff_path": {
+                      "description": "Optional session handoff document to include as an impacted state document.",
+                      "type": "string"
+                    },
+                    "work_backlog_index_path": {
+                      "description": "Optional backlog index document to include as an impacted state document.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "changed_files"
+                  ],
+                  "type": "object"
+                },
+                "name": "suggest_impacted_docs",
+                "outputSchema": {
+                  "properties": {
+                    "impacted_documents": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "reasoning_notes": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "status": {
+                      "enum": [
+                        "ok",
+                        "warning",
+                        "error"
+                      ],
+                      "type": "string"
+                    },
+                    "tool_version": {
+                      "type": "string"
+                    },
+                    "warnings": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "impacted_documents",
+                    "reasoning_notes",
+                    "status",
+                    "tool_version",
+                    "warnings"
+                  ],
+                  "type": "object"
+                }
+              },
+              {
+                "_meta": {
+                  "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                  "bundle_phase": "direct_call_adapter",
+                  "descriptor_target": "mcp_tools_list_draft",
+                  "transport_ready": false
+                },
+                "annotations": {
+                  "readOnlyHint": true
+                },
+                "description": "Generate a draft backlog entry JSON for a new task.",
+                "inputSchema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "priority": {
+                      "description": "Priority of the task (default: high).",
+                      "type": "string"
+                    },
+                    "request_date": {
+                      "description": "Date the task was requested (YYYY-MM-DD).",
+                      "type": "string"
+                    },
+                    "status": {
+                      "description": "Initial status of the task (default: planned).",
+                      "type": "string"
+                    },
+                    "task_id": {
+                      "description": "Unique identifier for the task (e.g., TASK-001).",
+                      "type": "string"
+                    },
+                    "task_name": {
+                      "description": "Short descriptive name of the task.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "request_date",
+                    "task_id",
+                    "task_name"
+                  ],
+                  "type": "object"
+                },
+                "name": "create_backlog_entry",
+                "outputSchema": {
+                  "properties": {
+                    "draft_entry": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "status": {
+                      "enum": [
+                        "ok",
+                        "warning",
+                        "error"
+                      ],
+                      "type": "string"
+                    },
+                    "tool_version": {
+                      "type": "string"
+                    },
+                    "warnings": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "draft_entry",
+                    "status",
+                    "tool_version",
+                    "warnings"
+                  ],
+                  "type": "object"
+                }
+              },
+              {
+                "_meta": {
+                  "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                  "bundle_phase": "direct_call_adapter",
+                  "descriptor_target": "mcp_tools_list_draft",
+                  "transport_ready": false
+                },
+                "annotations": {
+                  "readOnlyHint": true
+                },
+                "description": "Generate a draft session handoff document from the latest backlog.",
+                "inputSchema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "git_summary": {
+                      "description": "Optional git summary text to include in the handoff.",
+                      "type": "string"
+                    },
+                    "latest_backlog_path": {
+                      "description": "Latest dated backlog document to extract task status from.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [],
+                  "type": "object"
+                },
+                "name": "create_session_handoff_draft",
+                "outputSchema": {
+                  "properties": {
+                    "draft_handoff": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "source_context": {
+                      "properties": {
+                        "latest_backlog_path": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "latest_backlog_path"
+                      ],
+                      "type": "object"
+                    },
+                    "status": {
+                      "enum": [
+                        "ok",
+                        "warning",
+                        "error"
+                      ],
+                      "type": "string"
+                    },
+                    "tool_version": {
+                      "type": "string"
+                    },
+                    "warnings": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "draft_handoff",
+                    "source_context",
+                    "status",
+                    "tool_version",
+                    "warnings"
+                  ],
+                  "type": "object"
+                }
+              },
+              {
+                "_meta": {
+                  "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                  "bundle_phase": "direct_call_adapter",
+                  "descriptor_target": "mcp_tools_list_draft",
+                  "transport_ready": false
+                },
+                "annotations": {
+                  "readOnlyHint": true
+                },
+                "description": "Generate a draft environment record stub for the current host.",
+                "inputSchema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "hostname": {
+                      "description": "Current host name.",
+                      "type": "string"
+                    },
+                    "os_type": {
+                      "description": "Current OS type (e.g., darwin, linux, windows).",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "hostname",
+                    "os_type"
+                  ],
+                  "type": "object"
+                },
+                "name": "create_environment_record_stub",
+                "outputSchema": {
+                  "properties": {
+                    "draft_record": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "source_context": {
+                      "properties": {
+                        "hostname": {
+                          "type": "string"
+                        },
+                        "os_type": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "hostname",
+                        "os_type"
+                      ],
+                      "type": "object"
+                    },
+                    "status": {
+                      "enum": [
+                        "ok",
+                        "warning",
+                        "error"
+                      ],
+                      "type": "string"
+                    },
+                    "tool_version": {
+                      "type": "string"
+                    },
+                    "warnings": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "draft_record",
+                    "source_context",
+                    "status",
+                    "tool_version",
+                    "warnings"
+                  ],
+                  "type": "object"
+                }
+              },
+              {
+                "_meta": {
+                  "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                  "bundle_phase": "direct_call_adapter",
+                  "descriptor_target": "mcp_tools_list_draft",
+                  "transport_ready": false
+                },
+                "annotations": {
+                  "readOnlyHint": true
+                },
+                "description": "Check quickstart and README entry docs for stale or missing links.",
+                "inputSchema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "agents_path": {
+                      "description": "Optional AGENTS or harness guidance document expected to be linked from entry docs.",
+                      "type": "string"
+                    },
+                    "project_profile_path": {
+                      "description": "Optional project profile document expected to be linked from entry docs.",
+                      "type": "string"
+                    },
+                    "quickstart_paths": {
+                      "description": "One or more quickstart or README entry documents to inspect.",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "session_handoff_path": {
+                      "description": "Optional session handoff document expected to be linked from entry docs.",
+                      "type": "string"
+                    },
+                    "work_backlog_index_path": {
+                      "description": "Optional backlog index document expected to be linked from entry docs.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "quickstart_paths"
+                  ],
+                  "type": "object"
+                },
+                "name": "check_quickstart_stale_links",
+                "outputSchema": {
+                  "properties": {
+                    "broken_links": {
+                      "items": {
+                        "properties": {},
+                        "required": [
+                          "broken_links",
+                          "path"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "checked_files": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "missing_expected_links": {
+                      "items": {
+                        "properties": {},
+                        "required": [
+                          "missing_targets",
+                          "path"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "reasoning_notes": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "stale_link_warnings": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "status": {
+                      "enum": [
+                        "ok",
+                        "warning",
+                        "error"
+                      ],
+                      "type": "string"
+                    },
+                    "tool_version": {
+                      "type": "string"
+                    },
+                    "warnings": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "checked_files",
+                    "missing_expected_links",
+                    "reasoning_notes",
+                    "stale_link_warnings",
+                    "status",
+                    "tool_version",
+                    "warnings"
+                  ],
+                  "type": "object"
+                }
+              },
+              {
+                "_meta": {
+                  "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                  "bundle_phase": "direct_call_adapter",
+                  "descriptor_target": "mcp_tools_list_draft",
+                  "transport_ready": false
+                },
+                "annotations": {
+                  "readOnlyHint": true
+                },
+                "description": "Summarize git commit history into categories and markdown for handoff.",
+                "inputSchema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "commit_range": {
+                      "description": "Commit range to summarize (e.g., 'HEAD~5..HEAD').",
+                      "type": "string"
+                    },
+                    "repo_path": {
+                      "description": "Path to the git repository.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "commit_range",
+                    "repo_path"
+                  ],
+                  "type": "object"
+                },
+                "name": "summarize_git_history",
+                "outputSchema": {
+                  "properties": {
+                    "status": {
+                      "enum": [
+                        "ok",
+                        "warning",
+                        "error"
+                      ],
+                      "type": "string"
+                    },
+                    "tool_version": {
+                      "type": "string"
+                    },
+                    "warnings": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "tool_version",
+                    "warnings"
+                  ],
+                  "type": "object"
+                }
+              },
+              {
+                "_meta": {
+                  "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                  "bundle_phase": "direct_call_adapter",
+                  "descriptor_target": "mcp_tools_list_draft",
+                  "transport_ready": false
+                },
+                "annotations": {
+                  "readOnlyHint": true
+                },
+                "description": "Rotate old done items from handoff into baseline to prevent bloat.",
+                "inputSchema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "handoff_path": {
+                      "description": "Path to the session handoff document.",
+                      "type": "string"
+                    },
+                    "max_done_items": {
+                      "description": "Maximum number of done items to keep in 'recently done' (default: 10).",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "handoff_path"
+                  ],
+                  "type": "object"
+                },
+                "name": "rotate_workflow_logs",
+                "outputSchema": {
+                  "properties": {
+                    "status": {
+                      "enum": [
+                        "ok",
+                        "warning",
+                        "error"
+                      ],
+                      "type": "string"
+                    },
+                    "tool_version": {
+                      "type": "string"
+                    },
+                    "warnings": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "tool_version",
+                    "warnings"
+                  ],
+                  "type": "object"
+                }
+              },
+              {
+                "_meta": {
+                  "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                  "bundle_phase": "direct_call_adapter",
+                  "descriptor_target": "mcp_tools_list_draft",
+                  "transport_ready": false
+                },
+                "annotations": {
+                  "readOnlyHint": true
+                },
+                "description": "Analyze milestone progress based on maturity matrix and backlog.",
+                "inputSchema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "backlog_path": {
+                      "description": "Path to the current backlog document.",
+                      "type": "string"
+                    },
+                    "matrix_path": {
+                      "description": "Path to the maturity matrix JSON.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "backlog_path",
+                    "matrix_path"
+                  ],
+                  "type": "object"
+                },
+                "name": "assess_milestone_progress",
+                "outputSchema": {
+                  "properties": {
+                    "status": {
+                      "enum": [
+                        "ok",
+                        "warning",
+                        "error"
+                      ],
+                      "type": "string"
+                    },
+                    "tool_version": {
+                      "type": "string"
+                    },
+                    "warnings": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "tool_version",
+                    "warnings"
+                  ],
+                  "type": "object"
+                }
+              },
+              {
+                "_meta": {
+                  "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                  "bundle_phase": "direct_call_adapter",
+                  "descriptor_target": "mcp_tools_list_draft",
+                  "transport_ready": false
+                },
+                "annotations": {
+                  "readOnlyHint": true
+                },
+                "description": "Extract specific function or class blocks from a Python file to reduce LLM context bloat.",
+                "inputSchema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "file_path": {
+                      "description": "Path to the Python file.",
+                      "type": "string"
+                    },
+                    "symbols": {
+                      "description": "List of function or class names to extract. If empty, all are extracted.",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "file_path"
+                  ],
+                  "type": "object"
+                },
+                "name": "smart_context_reader",
+                "outputSchema": {
+                  "properties": {
+                    "extracted_content": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "not_found_symbols": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "status": {
+                      "enum": [
+                        "ok",
+                        "warning",
+                        "error"
+                      ],
+                      "type": "string"
+                    },
+                    "tool_version": {
+                      "type": "string"
+                    },
+                    "warnings": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "extracted_content",
+                    "not_found_symbols",
+                    "status",
+                    "tool_version",
+                    "warnings"
+                  ],
+                  "type": "object"
+                }
+              },
+              {
+                "_meta": {
+                  "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                  "bundle_phase": "direct_call_adapter",
+                  "descriptor_target": "mcp_tools_list_draft",
+                  "transport_ready": false
+                },
+                "annotations": {
+                  "readOnlyHint": true
+                },
+                "description": "Apply a robust Search-Replace block patch to a file with fuzzy matching and syntax validation.",
+                "inputSchema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "file_path": {
+                      "description": "Target file to patch.",
+                      "type": "string"
+                    },
+                    "patch_content": {
+                      "description": "The SEARCH/REPLACE block content (using <<<<<<< SEARCH, =======, >>>>>>> REPLACE).",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "file_path",
+                    "patch_content"
+                  ],
+                  "type": "object"
+                },
+                "name": "apply_robust_patch",
+                "outputSchema": {
+                  "properties": {
+                    "status": {
+                      "enum": [
+                        "ok",
+                        "warning",
+                        "error"
+                      ],
+                      "type": "string"
+                    },
+                    "tool_version": {
+                      "type": "string"
+                    },
+                    "warnings": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "tool_version",
+                    "warnings"
+                  ],
+                  "type": "object"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "stdio_session_rejects_second_initialize",
+      "requests": [
+        {
+          "id": 24,
+          "jsonrpc": "2.0",
+          "method": "initialize",
+          "params": {}
+        },
+        {
+          "id": 25,
+          "jsonrpc": "2.0",
+          "method": "initialize",
+          "params": {}
+        }
+      ],
+      "responses": [
+        {
+          "id": 24,
+          "jsonrpc": "2.0",
+          "result": {
+            "_meta": {
+              "bridge_phase": "jsonrpc_draft_fixture",
+              "descriptor_target": "mcp_tools_list_draft",
+              "transport_ready": false
+            },
+            "capabilities": {
+              "tools": {
+                "listChanged": false
+              }
+            },
+            "serverInfo": {
+              "name": "workflow_read_only_bundle",
+              "version": "v0.4.2-beta"
+            }
+          }
+        },
+        {
+          "error": {
+            "code": -32600,
+            "data": {
+              "reason": "initialize may only be called once per stdio session"
+            },
+            "message": "Invalid Request"
+          },
+          "id": 25,
+          "jsonrpc": "2.0"
+        }
+      ]
+    }
+  ],
+  "status": "ok",
+  "tool_version": "v0.4.2-beta",
+  "transport_ready": false
+}

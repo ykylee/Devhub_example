@@ -1,13 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Bell, User, ChevronDown, Command, Activity } from "lucide-react";
+import { Search, Bell, User, ChevronDown, Command } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { useStore, type UserRole } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import { realtimeService } from "@/lib/services/realtime.service";
+
+type ConnectionStatusEvent = {
+  connected: boolean;
+};
 
 export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   const { role, setRole, notifications, clearNotifications } = useStore();
@@ -16,7 +20,7 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
   const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = realtimeService.subscribe('status.changed', (event) => {
+    const unsubscribe = realtimeService.subscribe<ConnectionStatusEvent>('status.changed', (event) => {
       setIsConnected(event.data.connected);
     });
     return () => unsubscribe();

@@ -1,54 +1,61 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-05-06",
+  "generated_at": "2026-05-07",
   "source_of_truth": {
-    "project_profile_path": "docs/PROJECT_PROFILE.md",
-    "session_handoff_path": "ai-workflow/memory/session_handoff.md",
-    "work_backlog_index_path": "ai-workflow/memory/work_backlog.md",
-    "latest_backlog_path": "ai-workflow/memory/backlog/2026-05-06.md",
+    "project_profile_path": "ai-workflow/memory/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/codex/service-action-command/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/codex/service-action-command/work_backlog.md",
+    "latest_backlog_path": "ai-workflow/memory/codex/service-action-command/backlog/2026-05-07.md",
     "repository_assessment_path": "ai-workflow/memory/repository_assessment.md"
+  },
+  "memory_policy": {
+    "flat_memory_role": "legacy_fallback_and_shared_index_only",
+    "active_branch_memory_path": "ai-workflow/memory/codex/service-action-command/",
+    "branch_memory_rule": "Use ai-workflow/memory/<agent>/<branch>/ for new session state."
   },
   "project": {
     "project_name": "DevHub Example",
-    "document_home": "docs/README.md",
+    "document_home": "README.md",
     "operations_path": null,
-    "backlog_path": "ai-workflow/memory/backlog/",
-    "handoff_path": "ai-workflow/memory/session_handoff.md",
+    "backlog_path": "ai-workflow/memory/codex/service-action-command/backlog/",
+    "handoff_path": "ai-workflow/memory/codex/service-action-command/session_handoff.md",
     "environment_path": "ai-workflow/memory/environments/"
   },
   "commands": {
-    "quick_tests": "pytest ai-workflow/tests/check_docs.py",
-    "isolated_tests": "go test ./backend-core/... && pytest backend-ai/",
-    "runtime_checks": "docker-compose ps"
+    "quick_tests": "cd backend-core && go test ./...",
+    "isolated_tests": "cd frontend && npm run lint",
+    "runtime_checks": "make build"
   },
   "session": {
-    "current_baseline": "Frontend Phase 5 조직 관리 UI 고도화 (계층형 Org Units, 멤버 관리 모달 적용, 백엔드 요구사항 정의 완료)",
-    "current_axis": "조직 및 권한 관리 백엔드 API 통합 준비",
-    "current_focus": "Phase 12 Org Management 로드맵 전환 및 UI/API 규격 확정",
-    "in_progress_items": [
-      "TASK-007"
-    ],
+    "current_baseline": "origin/main@7316ddd 반영 후 command/service action/realtime worker 변경 재적용.",
+    "current_axis": "TASK-007 AI Gardener Suggestions 및 Admin Service Actions 실체화 후속 범위 검토.",
+    "current_focus": "main Phase 12/13 변경과 TASK-020~023 command/realtime 변경 통합 검증 및 브랜치별 memory 전환",
+    "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
-      "TASK-FRONTEND-PHASE2",
-      "TASK-FRONTEND-PHASE3",
-      "PR-FRONTEND-PHASE2-3-MERGE",
-      "TASK-FRONTEND-PHASE5-ORG"
+      "TASK-003 Frontend REST API 및 WebSocket 실시간 연동",
+      "TASK-019 command/audit 최소 schema 및 risk mitigation command API",
+      "TASK-020 service action command API",
+      "TASK-021 Workflow kit v0.5.0-beta 적용 및 existing project onboarding 갱신",
+      "TASK-022 Command lifecycle 안전화 및 Admin service action 실연동",
+      "TASK-023 Command status transition worker 및 WebSocket publish 경계 구현",
+      "Phase 12 조직/사용자 CRUD API 및 Organization UI",
+      "Phase 13 Ory Hydra/Kratos IdP PoC scaffold"
     ],
     "environment_constraints": [
       "Docker/Docker-compose required for full system",
-      "Backend Core API on :8080 (REST + WS)"
+      "Backend Core API on :8080 (REST + WS)",
+      "Hydra/Kratos binary and PostgreSQL schema required for Phase 13 PoC"
     ]
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/backlog/2026-05-06.md",
-    "task_count": 19,
-    "in_progress_items": [
-      "TASK-007"
-    ],
+    "latest_backlog_path": "ai-workflow/memory/codex/service-action-command/backlog/2026-05-07.md",
+    "task_count": 16,
+    "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
       "TASK-002",
+      "TASK-003",
       "TASK-013",
       "TASK-014",
       "TASK-015",
@@ -56,16 +63,22 @@
       "TASK-017",
       "TASK-018",
       "TASK-019",
-      "TASK-FRONTEND-PHASE2",
-      "TASK-FRONTEND-PHASE3",
-      "TASK-FRONTEND-PHASE5-ORG"
+      "TASK-020",
+      "TASK-021",
+      "TASK-022",
+      "TASK-023",
+      "Phase 12",
+      "Phase 13 scaffold"
     ]
   },
   "next_documents": [
-    "docs/frontend_development_roadmap.md",
-    "ai-workflow/memory/session_handoff.md",
-    "docs/backend_api_contract.md",
-    "ai-workflow/memory/backlog/2026-05-06.md"
+    "ai-workflow/memory/PROJECT_PROFILE.md",
+    "ai-workflow/memory/codex/service-action-command/session_handoff.md",
+    "ai-workflow/memory/codex/service-action-command/work_backlog.md",
+    "ai-workflow/memory/codex/service-action-command/backlog/2026-05-07.md",
+    "ai-workflow/memory/claude/phase13/session_handoff.md",
+    "ai-workflow/memory/backend_development_roadmap.md",
+    "docs/backend_api_contract.md"
   ],
   "repository_assessment": {
     "path": "ai-workflow/memory/repository_assessment.md",

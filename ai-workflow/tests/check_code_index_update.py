@@ -9,15 +9,16 @@ import sys
 import tempfile
 from pathlib import Path
 
-SOURCE_ROOT_FOR_IMPORT = Path(__file__).resolve().parents[2] / "ai-workflow"
-if str(SOURCE_ROOT_FOR_IMPORT) not in sys.path:
-    sys.path.insert(0, str(SOURCE_ROOT_FOR_IMPORT))
+# Standard AI Workflow Library Discovery
+SOURCE_ROOT = Path(__file__).resolve().parent
+while not (SOURCE_ROOT / "workflow_kit").is_dir() and SOURCE_ROOT != SOURCE_ROOT.parent:
+    SOURCE_ROOT = SOURCE_ROOT.parent
+REPO_ROOT = SOURCE_ROOT.parent
+if str(SOURCE_ROOT) not in sys.path:
+    sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit.common.output_contracts import validate_output_payload
 
-
-REPO_ROOT = Path(__file__).resolve().parents[2]
-SOURCE_ROOT = REPO_ROOT / "ai-workflow"
 SCRIPT_PATH = SOURCE_ROOT / "skills" / "code-index-update" / "scripts" / "run_code_index_update.py"
 
 

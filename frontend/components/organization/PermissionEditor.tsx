@@ -1,78 +1,105 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Shield, Lock, Eye, Pencil, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { rbacService } from "@/lib/services/rbac.service";
+import type { RbacPermission, RbacPolicy } from "@/lib/services/types";
 
-type Role = "Developer" | "Manager" | "System Admin";
-type Resource =
-  | "Repositories"
-  | "CI Runs"
-  | "Risks"
-  | "Commands"
-  | "Organization"
-  | "System Config";
-type Permission = "read" | "write" | "admin" | "none";
-
-const RESOURCES: Resource[] = [
-  "Repositories",
-  "CI Runs",
-  "Risks",
-  "Commands",
-  "Organization",
-  "System Config",
-];
-
-const ROLES: Role[] = ["Developer", "Manager", "System Admin"];
-
-const MATRIX: Record<Role, Record<Resource, Permission>> = {
-  Developer: {
-    Repositories: "read",
-    "CI Runs": "read",
-    Risks: "read",
-    Commands: "none",
-    Organization: "none",
-    "System Config": "none",
-  },
-  Manager: {
-    Repositories: "write",
-    "CI Runs": "read",
-    Risks: "write",
-    Commands: "write",
-    Organization: "read",
-    "System Config": "none",
-  },
-  "System Admin": {
-    Repositories: "admin",
-    "CI Runs": "admin",
-    Risks: "admin",
-    Commands: "admin",
-    Organization: "admin",
-    "System Config": "admin",
+const FALLBACK_POLICY: RbacPolicy = {
+  roles: [
+    { role: "developer", label: "Developer", description: "Developer dashboard access" },
+    { role: "manager", label: "Manager", description: "Team operations access" },
+    { role: "system_admin", label: "System Admin", description: "System administration access" },
+  ],
+  resources: [
+    { resource: "repositories", label: "Repositories", description: "Repository metadata" },
+    { resource: "ci_runs", label: "CI Runs", description: "CI run status and logs" },
+    { resource: "risks", label: "Risks", description: "Risk and mitigation workflows" },
+    { resource: "commands", label: "Commands", description: "Command lifecycle" },
+    { resource: "organization", label: "Organization", description: "Users and org units" },
+    { resource: "system_config", label: "System Config", description: "System configuration" },
+  ],
+  permissions: [
+    { permission: "none", label: "None", rank: 0, description: "No access" },
+    { permission: "read", label: "Read", rank: 10, description: "Read access" },
+    { permission: "write", label: "Write", rank: 20, description: "Write access" },
+    { permission: "admin", label: "Admin", rank: 30, description: "Admin access" },
+  ],
+  matrix: {
+    developer: {
+      repositories: "read",
+      ci_runs: "read",
+      risks: "read",
+      commands: "none",
+      organization: "none",
+      system_config: "none",
+    },
+    manager: {
+      repositories: "write",
+      ci_runs: "read",
+      risks: "write",
+      commands: "write",
+      organization: "read",
+      system_config: "none",
+    },
+    system_admin: {
+      repositories: "admin",
+      ci_runs: "admin",
+      risks: "admin",
+      commands: "admin",
+      organization: "admin",
+      system_config: "admin",
+    },
   },
 };
 
-const permissionStyles: Record<Permission, string> = {
+const permissionStyles: Record<RbacPermission, string> = {
   read: "bg-white/5 border-white/20 text-white/70",
   write: "bg-blue-500/10 border-blue-500/30 text-blue-300",
   admin: "bg-accent/15 border-accent/40 text-accent",
   none: "bg-transparent border-white/5 text-muted-foreground/40",
 };
 
-const permissionIcon: Record<Permission, typeof Eye | null> = {
+const permissionIcon: Record<RbacPermission, typeof Eye | null> = {
   read: Eye,
   write: Pencil,
   admin: Crown,
   none: null,
 };
 
-const roleAccent: Record<Role, string> = {
-  Developer: "text-white/80",
-  Manager: "text-blue-300",
-  "System Admin": "text-accent",
+const roleAccent: Record<string, string> = {
+  developer: "text-white/80",
+  manager: "text-blue-300",
+  system_admin: "text-accent",
 };
 
 export function PermissionEditor() {
+  const [policy, setPolicy] = useState<RbacPolicy>(FALLBACK_POLICY);
+  const [policyState, setPolicyState] = useState<"loading" | "api" | "fallback">("loading");
+
+  useEffect(() => {
+    let cancelled = false;
+    rbacService.getPolicy()
+      .then((nextPolicy) => {
+        if (!cancelled) {
+          setPolicy(nextPolicy);
+          setPolicyState("api");
+        }
+      })
+      .catch((error) => {
+        console.error("[PermissionEditor] getPolicy error:", error);
+        if (!cancelled) {
+          setPolicy(FALLBACK_POLICY);
+          setPolicyState("fallback");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -86,10 +113,14 @@ export function PermissionEditor() {
         </div>
         <div>
           <p className="text-xs font-black uppercase tracking-widest text-yellow-300">
-            Read-only preview
+            {policyState === "api" ? "Read-only policy" : "Default policy"}
           </p>
           <p className="text-[11px] text-muted-foreground mt-0.5">
-            Backend RBAC API pending. Matrix below reflects the proposed default policy.
+            {policyState === "api"
+              ? "Current access matrix is active. Editing remains disabled."
+              : policyState === "loading"
+                ? "Loading access matrix."
+                : "Default access matrix is active. Editing remains disabled."}
           </p>
         </div>
       </div>
@@ -127,35 +158,35 @@ export function PermissionEditor() {
               <div className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground px-3 py-2">
                 Role / Resource
               </div>
-              {RESOURCES.map((resource) => (
+              {policy.resources.map((resource) => (
                 <div
-                  key={resource}
+                  key={resource.resource}
                   className="text-[10px] font-black uppercase tracking-[0.25em] text-white/60 px-3 py-2 text-center"
                 >
-                  {resource}
+                  {resource.label}
                 </div>
               ))}
             </div>
 
-            {ROLES.map((role) => (
+            {policy.roles.map((role) => (
               <div
-                key={role}
+                key={role.role}
                 className="grid gap-2 mb-2"
-                style={{ gridTemplateColumns: `200px repeat(${RESOURCES.length}, minmax(120px, 1fr))` }}
+                style={{ gridTemplateColumns: `200px repeat(${policy.resources.length}, minmax(120px, 1fr))` }}
               >
                 <div
                   className={cn(
                     "px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-xs font-black uppercase tracking-widest flex items-center",
-                    roleAccent[role]
+                    roleAccent[role.role] ?? "text-white/80"
                   )}
                 >
-                  {role}
+                  {role.label}
                 </div>
-                {RESOURCES.map((resource) => {
-                  const permission = MATRIX[role][resource];
+                {policy.resources.map((resource) => {
+                  const permission = normalizePermission(policy.matrix[role.role]?.[resource.resource]);
                   return (
                     <PermissionCell
-                      key={`${role}-${resource}`}
+                      key={`${role.role}-${resource.resource}`}
                       permission={permission}
                     />
                   );
@@ -173,7 +204,14 @@ export function PermissionEditor() {
   );
 }
 
-function PermissionCell({ permission }: { permission: Permission }) {
+function normalizePermission(permission?: string): RbacPermission {
+  if (permission === "read" || permission === "write" || permission === "admin" || permission === "none") {
+    return permission;
+  }
+  return "none";
+}
+
+function PermissionCell({ permission }: { permission: RbacPermission }) {
   const Icon = permissionIcon[permission];
   const label = permission === "none" ? "—" : permission;
   return (
@@ -192,7 +230,7 @@ function PermissionCell({ permission }: { permission: Permission }) {
   );
 }
 
-function LegendChip({ permission, label }: { permission: Permission; label: string }) {
+function LegendChip({ permission, label }: { permission: RbacPermission; label: string }) {
   const Icon = permissionIcon[permission];
   return (
     <span
