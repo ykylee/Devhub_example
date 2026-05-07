@@ -4,7 +4,7 @@
 이번 세션에서는 DevHub의 Docker 기반 통합 환경을 안정화하고, 프론트엔드와 백엔드 간의 실데이터 연동을 완료하였습니다. 특히 프론트엔드 빌드 오류를 해결하고 Next.js 프록시를 최적화하여 컨테이너 환경에서의 통신 문제를 해결했습니다.
 
 ## 핵심 변경 사항
-- **Frontend**: `Sidebar.tsx` 메뉴 추가, `InfraService` 타입 오류 수정, `next.config.ts` 프록시 대상 URL 수정 (`http://backend-core:8080`).
+- **Frontend**: `Sidebar.tsx` 메뉴 추가 및 아이콘 오타 수정(`Sitemap` -> `Network`), `InfraService` 타입 오류 수정, `next.config.ts` 프록시 대상 URL 수정 (`http://backend-core:8080`).
 - **Docker**: `docker-compose.yml`에서 DB 포트를 `5433:5432`로 변경하여 로컬 충돌 방지.
 - **Backend**: `migrate` 도구를 통한 DB 초기화 확인 및 통합 테스트 완료.
 
