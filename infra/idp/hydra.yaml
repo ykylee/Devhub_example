@@ -1,0 +1,60 @@
+## hydra.yaml — Ory Hydra v2.x 설정 (DevHub PoC, ADR-0001)
+##
+## 가동: hydra serve all --config infra/idp/hydra.yaml --dev
+## 마이그레이션: hydra migrate sql --yes "$DSN"
+##
+## 주의:
+## - `secrets.system` 은 PoC 전용 placeholder 다. 운영 환경에서는 반드시 교체.
+## - `--dev` 플래그는 PoC 전용 (HTTPS 강제 해제). 운영 진입 시 제거.
+## - DSN 의 `search_path=hydra` 가 ADR-0001 §8.1 결정의 schema 분리를 적용한다.
+
+serve:
+  public:
+    port: 4444
+    host: 127.0.0.1
+  admin:
+    port: 4445
+    host: 127.0.0.1
+  cookies:
+    same_site_mode: Lax
+
+dsn: postgres://postgres:postgres@127.0.0.1:5432/devhub?sslmode=disable&search_path=hydra
+
+urls:
+  self:
+    issuer: http://localhost:4444/
+    public: http://localhost:4444/
+  consent: http://localhost:3000/auth/consent
+  login: http://localhost:3000/auth/login
+  logout: http://localhost:3000/auth/logout
+  error: http://localhost:3000/auth/error
+  post_logout_redirect: http://localhost:3000/
+
+secrets:
+  system:
+    - "poc-only-do-not-use-in-prod-system-secret-aaaaaaaa"
+
+oidc:
+  subject_identifiers:
+    supported_types:
+      - public
+
+oauth2:
+  expose_internal_errors: true
+  pkce:
+    enforced: true
+    enforced_for_public_clients: true
+
+strategies:
+  access_token: jwt
+
+ttl:
+  access_token: 30m
+  refresh_token: 720h
+  id_token: 30m
+  auth_code: 10m
+
+log:
+  level: info
+  format: text
+  leak_sensitive_values: false

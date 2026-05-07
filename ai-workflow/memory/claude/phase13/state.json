@@ -24,7 +24,7 @@
   "session": {
     "current_baseline": "claude/init f77fa8a 에서 분기. ADR-0001(Ory Hydra+Kratos IdP) 결정 + §8 7종 인라인 결정 완료. PR #10 (claude/init → main) 미머지 상태에서 Phase 13 PoC 병행 진입.",
     "current_axis": "Phase 13 P1 1단계 — PoC 환경 구성 (Hydra/Kratos native binary, devhub DB schema 분리, 설정 파일, OIDC client 등록, Next.js round-trip 검증).",
-    "current_focus": "PoC 1단계 sub-step (b)~(e) AI 자동화 작성 진입. (a) binary 설치는 사용자 터미널 수동 단계로 분리됨.",
+    "current_focus": "PoC 1단계 sub-step (b)~(e) AI 자동화 산출물 작성 완료 (infra/idp/ 6 files). (a) 사용자 수동 binary 설치 (go install hydra/kratos@latest) 대기 중. (a) 완료 후 (b)~(e) apply + (f) round-trip 검증 진입.",
     "in_progress_items": [
       "TASK-PHASE13-POC"
     ],

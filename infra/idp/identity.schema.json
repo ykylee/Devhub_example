@@ -1,0 +1,44 @@
+{
+  "$id": "https://schemas.devhub.local/identity/v1.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DevHub Identity",
+  "description": "ADR-0001 §5 결정 — DevHub users 와 1:1 매핑되는 Kratos identity. metadata_public.user_id (DevHub users.user_id) 는 Kratos admin API 로 별도 설정한다.",
+  "type": "object",
+  "properties": {
+    "traits": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "title": "E-Mail",
+          "minLength": 3,
+          "ory.sh/kratos": {
+            "credentials": {
+              "password": {
+                "identifier": true
+              }
+            },
+            "verification": {
+              "via": "email"
+            },
+            "recovery": {
+              "via": "email"
+            }
+          }
+        },
+        "display_name": {
+          "type": "string",
+          "title": "Display Name",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "email"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
