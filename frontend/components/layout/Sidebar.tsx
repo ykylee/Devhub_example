@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Server, Settings, Zap } from "lucide-react";
+import { LayoutDashboard, Users, Server, Settings, Zap, Network } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -10,6 +10,7 @@ const menuItems = [
   { href: "/developer", icon: LayoutDashboard, label: "Developer", color: "text-blue-400" },
   { href: "/manager", icon: Users, label: "Manager", color: "text-emerald-400" },
   { href: "/admin", icon: Server, label: "Sys Admin", color: "text-orange-400" },
+  { href: "/organization", icon: Network, label: "Organization", color: "text-purple-400" },
 ];
 
 export function Sidebar({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
