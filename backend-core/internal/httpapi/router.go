@@ -54,7 +54,7 @@ type RouterConfig struct {
 	OrganizationStore   OrganizationStore
 	SnapshotProvider    SnapshotProvider
 	RealtimeHub         *RealtimeHub
-	// AuthDevFallback toggles dev-only authentication fallbacks (empty Authorization pass-through, X-Devhub-Actor actor source). Default false: production-safe.
+	// AuthDevFallback toggles dev-only authentication fallbacks: empty Authorization passes through authenticateActor and requireMinRole. Actor identity always resolves to "system" without a verifier. Default false: production-safe.
 	AuthDevFallback bool
 }
 

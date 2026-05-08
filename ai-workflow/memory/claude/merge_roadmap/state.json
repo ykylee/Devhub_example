@@ -22,16 +22,21 @@
     "runtime_checks": "Get-Process hydra, kratos, go, node 2>$null | Select-Object Name, Id, StartTime"
   },
   "session": {
-    "current_baseline": "main HEAD 71233e6 (PR #12, #13 머지 완료) 에서 분기. 통합 로드맵(commit 4b70779) + planning/architecture 진입점(commit e98d754) 채택 직후 M0 sprint 진입.",
-    "current_axis": "M0 — 보안 게이트 통과 (인증·권한 정상화). 통합 로드맵 §3.1 의 DoD 9 항목을 T-M0-01 ~ T-M0-11 의 작업 단위로 분해.",
-    "current_focus": "PR-A (T-M0-02 X-Devhub-Actor env gate + T-M0-01 empty Authorization 화이트리스트) 부터 진행 권장. PR-B/C 는 PR-A 머지 후 또는 병렬.",
-    "in_progress_items": [],
-    "blocked_items": [],
+    "current_baseline": "main HEAD cf2d55f (PR #18 머지 직후). M0 sprint 의 5 PR (#15·16·17·18·19) 중 #15·16·17·18 머지 완료. PR #19 (claude/m0-marker-sweep) 가 SEC-4 fallback 코드 path 자체 제거 + 마커 정리로 sprint 마무리.",
+    "current_axis": "M0 sprint 종료. DoD #1~7,9 코드 측 resolved. DoD #8 (Phase 1 운영 검증, Hydra/Kratos PoC 가동) 만 사용자 환경에 의존.",
+    "current_focus": "PR #19 머지 후 M1 sprint 진입 검토. M1 의 DoD 는 통합 로드맵 §3.2 참조.",
+    "in_progress_items": [
+      "PR #19 (claude/m0-marker-sweep) — SEC-4 fallback path 제거 + M0 마무리 메타 갱신, 머지 대기"
+    ],
+    "blocked_items": [
+      "T-M0-10 (ADR-0001 Phase 1 운영 검증) — 사용자 환경에서 Hydra/Kratos PoC 가동 후 검증 결과 첨부 필요"
+    ],
     "recent_done_items": [
-      "PR-12 머지 (commit 8493b63)",
-      "PR-13 머지 (commit 71233e6)",
-      "통합 개발 로드맵 작성 (commit 4b70779)",
-      "planning/architecture README 진입점 채움 (commit e98d754)"
+      "PR #15 머지 (commit 5a2fec1) — T-M0-01/02 SEC-2 부분 + SEC-4 dev-only gate",
+      "PR #16 머지 (commit a477ca3) — T-M0-03/04 SEC-3 role guard",
+      "PR #17 머지 (commit 21cd24a) — T-M0-05/06/07 SEC-2 verifier + Codex P1/P2",
+      "PR #18 머지 (commit cf2d55f) — T-M0-08 SEC-1 frontend AuthGuard + /api/v1/me",
+      "통합 개발 로드맵 작성 (PR #14, commit 427d618)"
     ],
     "environment_constraints": [
       "Backend Core API on :8080 (REST), WebSocket /api/v1/realtime/ws 부분 구현",

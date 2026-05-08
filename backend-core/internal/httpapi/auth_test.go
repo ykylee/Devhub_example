@@ -218,3 +218,33 @@ func TestXDevhubActorIgnoredWhenDevFallbackOff(t *testing.T) {
 		t.Fatalf("expected 401 (no Authorization, dev fallback off), got %d body=%s", rec.Code, rec.Body.String())
 	}
 }
+
+func TestXDevhubActorIgnoredEvenWhenDevFallbackOn(t *testing.T) {
+	commandStore := &memoryCommandStore{}
+	router := testRouter(RouterConfig{CommandStore: commandStore})
+
+	body := []byte(`{
+		"service_id": "svc-1",
+		"action_type": "restart",
+		"reason": "test",
+		"dry_run": true,
+		"idempotency_key": "k-actor-dev"
+	}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/service-actions", bytes.NewReader(body))
+	req.Header.Set("X-Devhub-Actor", "spoofed-actor")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("expected 202 (dev fallback bypasses role gate), got %d body=%s", rec.Code, rec.Body.String())
+	}
+	if got := rec.Header().Get("X-Devhub-Actor-Deprecated"); got != "" {
+		t.Fatalf("X-Devhub-Actor-Deprecated must not be set after SEC-4 removal, got %q", got)
+	}
+	if len(commandStore.commands) != 1 {
+		t.Fatalf("expected one command, got %d", len(commandStore.commands))
+	}
+	if commandStore.commands[0].ActorLogin != "system" {
+		t.Errorf("X-Devhub-Actor must be ignored, expected actor=system, got %q", commandStore.commands[0].ActorLogin)
+	}
+}

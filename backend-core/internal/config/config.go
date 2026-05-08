@@ -16,7 +16,7 @@ type Config struct {
 	BackendAIURL       string
 	// Env selects the runtime mode. "prod" enables fail-fast guards in Config.Validate (no verifier => refuse startup; AuthDevFallback => refuse startup). Anything else is treated as dev. Toggle with DEVHUB_ENV.
 	Env string
-	// AuthDevFallback enables development-only authentication fallbacks: requests with no Authorization header are allowed through, and the X-Devhub-Actor header is honoured as the actor identity. Default false (production-safe). Toggle with DEVHUB_AUTH_DEV_FALLBACK=1.
+	// AuthDevFallback enables development-only authentication fallbacks: requests with no Authorization header pass through authenticateActor, and the role guard middleware (requireMinRole) lets the request through without a role. Actor identity always falls back to "system" when no authenticated subject is present. Default false (production-safe). Toggle with DEVHUB_AUTH_DEV_FALLBACK=1.
 	AuthDevFallback bool
 	// HydraAdminURL is the base URL of the Ory Hydra admin API used by the introspection verifier (for example http://127.0.0.1:4445). Empty means no Hydra verifier is wired and authentication relies on AuthDevFallback or another verifier.
 	HydraAdminURL string

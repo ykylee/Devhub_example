@@ -85,15 +85,17 @@
 
 #### DoD
 
-1. **A**: `BearerTokenVerifier` 실 구현체 ≥ 1종(Hydra introspection 또는 JWKS) 존재 + `main.go` 에서 주입.
-2. **A·B**: prod 모드에서 verifier nil → startup 거부 (config layer fail-fast).
-3. **B**: `auth.go` 의 *empty Authorization → c.Next()* 분기 제거. 인증 불필요 라우트는 명시적 화이트리스트.
-4. **B**: Role 가드 미들웨어 1종 + 5개 보호 라우트 매핑 (`/admin/*` → `system_admin`, 사용자 `PATCH/DELETE` → `system_admin`, `GET /audit-logs` → `manager` 이상, 조직 단위 CRUD → `system_admin`, command 생성 → `manager` 이상).
-5. **B**: `commands.go` 의 `X-Devhub-Actor` fallback 제거 또는 `DEVHUB_AUTH_DEV_FALLBACK=1` 환경에서만 허용.
-6. **F**: `AuthGuard.tsx` 와 `/login` 의 mock auth 제거 → 실 토큰 검증 (Kratos public flow + Hydra OIDC).
-7. **B·F**: 통합 테스트 — 무토큰 / 만료 토큰 / 정상 토큰(role 별) 매트릭스 PASS.
-8. **A**: ADR-0001 §9 Phase 1 (Hydra/Kratos 운영 binary 시작·schema 분리·기본 client 등록) 완료.
-9. 코드 내 `// SECURITY (SEC-1|SEC-2|SEC-3|SEC-4)` 마커 모두 제거.
+1. ✅ **A**: `BearerTokenVerifier` 실 구현체 (Hydra introspection) — `internal/auth/hydra_introspection.go` (PR #17)
+2. ✅ **A·B**: prod 모드 verifier nil → startup 거부 — `Config.Validate(hasVerifier)` (PR #17)
+3. ✅ **B**: empty Authorization 분기 제거, `/api/v1/integrations/gitea/webhooks` 만 화이트리스트 (PR #15)
+4. ✅ **B**: `requireMinRole` 미들웨어 + 10 보호 라우트 매핑 — `authz.go` (PR #16)
+5. ✅ **B**: `requestActor` 의 `X-Devhub-Actor` fallback 코드 path 자체 제거 (PR #19, SEC-4 close)
+6. ✅ **F**: `AuthGuard.tsx` mock 제거 → `/api/v1/me` 호출, `/login` Hydra OIDC redirect (PR #18)
+7. ✅ **B·F**: 통합 테스트 매트릭스 — `auth_test.go`, `authz_test.go`, `me_test.go`, `config_test.go`, `auth/hydra_introspection_test.go` 누적 (PR #15·16·17·18·19)
+8. ⏳ **A**: ADR-0001 §9 Phase 1 운영 검증 — 사용자 환경 의존 (T-M0-10, infra/idp/ scaffold 동작 검증)
+9. ✅ 코드 내 `// SECURITY (SEC-1|SEC-2|SEC-3|SEC-4)` 마커 모두 제거 — backend-core/frontend 코드 영역 0건 (memory/문서 영역만 잔존, 의도)
+
+**M0 sprint 종료: 2026-05-08.** DoD #8 (운영 검증) 만 사용자 환경에 의존하며 코드 측 모든 항목 resolved.
 
 #### 입력 자료
 

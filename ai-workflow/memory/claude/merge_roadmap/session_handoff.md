@@ -1,62 +1,75 @@
 # 세션 인계 — claude/merge_roadmap
 
-- 상태: in_progress
+- 상태: M0 sprint 코드 측 종료, T-M0-10 운영 검증만 잔존
 - 생성일: 2026-05-08
 - 최종 수정일: 2026-05-08
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: `main` HEAD `71233e6` (PR #12, #13 머지 직후)
-- 현재 주 작업 축: **통합 개발 로드맵 채택 → M0 sprint 진입**
+- 현재 기준선: `main` HEAD `cf2d55f` (PR #18 머지 직후, M0 sprint 의 PR-A~D 머지 완료)
+- 현재 주 작업 축: **PR #19 (PR-E)** 가 SEC-4 fallback 코드 path 자체 제거 + M0 sprint 마무리 메타 갱신으로 sprint 종료
 
-## 2. 진행 사항 (claude/merge_roadmap)
+## 2. M0 sprint 결과 요약
 
-| 일자 | 변경 |
-| --- | --- |
-| 2026-05-08 | 통합 개발 로드맵 작성 — `docs/development_roadmap.md` (commit `4b70779`) |
-| 2026-05-08 | planning/architecture README 진입점 채움 — TBD 스텁 → 디렉터리 인덱스 (commit `e98d754`) |
-| 2026-05-08 | M0 sprint backlog 작성 (본 인계 동시) — `ai-workflow/memory/claude/merge_roadmap/backlog/2026-05-08.md` |
+### 2.1 머지 commit 요약
 
-## 3. 현재 진행 중
+| PR | 제목 | 커밋 |
+| --- | --- | --- |
+| #14 | docs(roadmap): integrated development roadmap + M0 sprint planning | `427d618` |
+| #15 | fix(auth): close empty-Authorization pass-through, gate X-Devhub-Actor (PR-A) | `5a2fec1` |
+| #16 | feat(authz): role guard middleware + protected route mapping (PR-B) | `a477ca3` |
+| #17 | feat(auth): Hydra introspection verifier + prod fail-fast (PR-C) | `21cd24a` |
+| #18 | feat(auth): replace mock login with /api/v1/me + OIDC redirect (PR-D) | `cf2d55f` |
+| #19 (대기) | feat(auth): remove X-Devhub-Actor fallback code path; close M0 sprint (PR-E) | — |
 
-- M0 sprint 의 task 분해 완료. 진행 시작은 사용자 결정.
+### 2.2 SEC 결함 해소
 
-## 4. 차단 항목
+| SEC | 상태 | 해소 PR |
+| --- | --- | --- |
+| SEC-1 mock auth (frontend) | ✅ resolved | #18 |
+| SEC-2 verifier nil + empty Auth pass-through | ✅ resolved | #15 + #17 |
+| SEC-3 role 미적용 | ✅ resolved | #16 |
+| SEC-4 X-Devhub-Actor fallback | ✅ resolved | #15 (gate) + #19 (path 자체 제거) |
+| SEC-5 DB 에러 노출 | tracked → M1 | — |
 
-- 없음.
+### 2.3 코드 내 SECURITY 마커
 
-## 5. 최근 완료 작업 (PR #12 직전 sprint)
+- backend-core 영역: **0건**
+- frontend 영역: **0건**
+- ai-workflow/memory 영역: 추적 메타라 잔존 (의도)
 
-- BLK-1/2/3 모두 resolved (PR #12)
-- SEC-1/SEC-2 backlog 등록 + 코드 마커 부착 (PR #12)
-- HYG-1~5 일괄 정리 (PR #12)
-- PR 분할 (`source-docs/workflow-source/**` → PR #13)
-- 코드베이스 전체 보안 리뷰 → SEC-3/SEC-4/SEC-5 신규 backlog 등록
-- frontend `npm run build` + `tsc --noEmit` PASS, backend `go test ./...` PASS (사내 mirror 환경)
+## 3. 잔여 작업
 
-## 6. 잔여 작업 우선순위
+### T-M0-10 — ADR-0001 §9 Phase 1 운영 검증 (사용자 환경)
 
-### 우선순위 1 — M0 sprint
+- Hydra binary :4444/:4445, Kratos binary :4433/:4434 가동
+- PostgreSQL `hydra` / `kratos` schema 분리 검증
+- `devhub-frontend` OIDC client 등록 검증
+- 발급 access token 의 introspection 결과가 `auth.HydraIntrospectionVerifier` 에서 검증 가능
+- 프론트엔드 `/login` → Hydra `/oauth2/auth` → Kratos UI → consent → callback → `/api/v1/me` 사이클 1회
 
-- T-M0-02 X-Devhub-Actor env gate (SEC-4)
-- T-M0-01 empty Authorization 분기 + 화이트리스트 (SEC-2 보강)
-- T-M0-03 Role 가드 미들웨어 구현 (SEC-3)
-- T-M0-04 Role 가드 라우트 적용 (SEC-3)
-- T-M0-06 Hydra introspection 구현체 (SEC-2 / ADR-0001 §9-7)
-- T-M0-05 config fail-fast 가드 (SEC-2)
-- T-M0-07 main.go verifier 주입 (SEC-2)
-- T-M0-09 통합 테스트 매트릭스 보강
-- T-M0-08 Frontend AuthGuard / login 실 토큰 검증 (SEC-1) — 별도 PR
-- T-M0-10 ADR-0001 §9 Phase 1 운영 검증
-- T-M0-11 SECURITY 마커 일괄 제거
+검증 결과는 본 인계 또는 PR 코멘트로 첨부.
 
-세부는 [`backlog/2026-05-08.md`](./backlog/2026-05-08.md) 참조.
+## 4. 다음 sprint 후보 (M1)
 
-### 우선순위 2 — 통합 로드맵 채택 PR
+통합 로드맵 §3.2 M1 의 DoD 진입.
 
-- 본 브랜치 `claude/merge_roadmap` → `main` 의 PR 발행 여부 결정. M0 sprint 와 별도로 또는 sprint 종료 시 묶어서 머지 가능.
+- envelope/lifecycle/role wire format 일관 적용
+- audit actor 보강 (`source_ip`, `request_id`)
+- RBAC policy 편집 API 결정
+- types.ts UI/wire 분리
+- WebSocket envelope 표준화 코드 적용
+- SEC-5 (DB 에러 노출 마스킹) 별도 PR
 
-## 7. 환경별 검증 현황
+## 5. 환경별 검증 현황
 
-- 검증 완료 호스트: 사용자 사내 (PR #12 backend `go test ./...` PASS), 본 sandbox (frontend build/tsc PASS)
-- infra/idp/ scaffold: 본 세션에서 실 구동 검증은 미수행. T-M0-10 에서 사용자 환경 검증.
+- 검증 완료 호스트: 사용자 사내 (PR #12·17·18·19 backend `go test ./...` PASS), 본 sandbox (frontend build/tsc PASS)
+- infra/idp/ scaffold: 본 세션에서 실 구동 검증 미수행. T-M0-10 에서 사용자 환경 검증.
+
+## 6. 현재 진행 중
+
+- PR #19 (claude/m0-marker-sweep) 발행 + 머지 대기.
+
+## 7. 차단 항목
+
+- T-M0-10 운영 검증만 사용자 환경 의존. 코드 측 차단 없음.
