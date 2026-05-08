@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "M1 RBAC track merged; M1 remainder (PR-B/C/D) and DEFER A-G pending",
-  "updated_at": "2026-05-08T15:30:00Z",
-  "head_commit": "e02ba67",
-  "head_summary": "Merge pull request #27 from ykylee/claude/m1-pr-g6-frontend-rbac",
+  "status": "M2 login_action sprint in_review (PR-LOGIN-1/2 pushed); PR-LOGIN-3/4 not entered. M1 remainder unchanged.",
+  "updated_at": "2026-05-08T18:00:00Z",
+  "head_commit": "dbff50f",
+  "head_summary": "Merge pull request #32 from ykylee/claude/m1-merge-cleanup (M1 close)",
   "milestones": {
     "M0": {
       "status": "done",
@@ -16,20 +16,26 @@
       "status": "in_progress",
       "started_at": "2026-05-08",
       "notes": "RBAC track (PR-A SEC-5 + PR-F ADR-0002 + PR-G1..G6) merged via PR #20-23, #29-31, #27, #28. SEC-5, RBAC model unification (4-boolean), domain + migration + store + handlers + cache + frontend integration all live on main. Codex review FIX A-D applied. Remaining T-M1-02/03/04/05/07/08 (envelope, types split, cmd lifecycle, audit actor, ws envelope, auth_test) tracked as PR-B/C/D in work_backlog.md."
+    },
+    "M2": {
+      "status": "in_progress",
+      "started_at": "2026-05-08",
+      "notes": "login_action sprint: ADR-0001 §6 OIDC code flow 의 frontend 7단계 누락 + backend Kratos/Hydra proxy 보강. PR-LOGIN-1 (#33 backend /api/v1/auth/login) + PR-LOGIN-2 (#34 frontend /auth/login form) pushed, 머지 대기. PR-LOGIN-3 (callback + token + httpClient) + PR-LOGIN-4 (logout + /account) 미진입. Backlog: ai-workflow/memory/claude/login_action/backlog/2026-05-08.md"
     }
   },
   "components": {
     "frontend": {
-      "phase": "5.2 done; Phase 6 in_progress (RBAC PermissionEditor connected)",
-      "auth": "/login redirects to Hydra OIDC authorize; /auth/callback handler still pending (M2 follow-up)",
-      "build_check": "PASS (Next.js 16.2.4, 11 static pages, tsc clean)",
+      "phase": "5.2 done; Phase 6 in_progress (RBAC PermissionEditor connected); login flow PR-LOGIN-2 pushed",
+      "auth": "/login redirects to Hydra OIDC authorize; /auth/login (login_challenge form) + /auth/error pushed in PR-LOGIN-2 (#34); /auth/callback still pending (PR-LOGIN-3); token storage + Authorization header fetch still pending.",
+      "build_check": "PASS (Next.js 16.2.4, 13 static pages on PR-LOGIN-2 branch including /auth/login, /auth/error)",
       "rbac": "PermissionEditor wired to /api/v1/rbac/policies (PR #27). RbacError type carries contract code. Audit invariant locked in UI via PermissionMatrix.lockedCells."
     },
     "backend": {
-      "phase": "12/13 done",
-      "auth": "BearerTokenVerifier (Hydra introspection) + enforceRoutePermission middleware (route mapping table + PermissionCache). M0 requireMinRole removed from production paths.",
-      "test_check": "PASS (go test ./... including domain/rbac, store/rbac, httpapi/permissions, httpapi/rbac handlers)",
-      "rbac": "rbac_policies table seeded with developer/manager/system_admin per section 12.1 default. users.role now FK to rbac_policies. Custom roles supported via POST /api/v1/rbac/policies."
+      "phase": "12/13 done; auth proxy PR-LOGIN-1 pushed",
+      "auth": "BearerTokenVerifier (Hydra introspection) + enforceRoutePermission middleware (route mapping table + PermissionCache). M0 requireMinRole removed from production paths. PR-LOGIN-1 (#33) adds POST /api/v1/auth/login that drives Kratos password self-service + Hydra admin login accept (KratosClient + HydraAdminClient in internal/httpapi).",
+      "test_check": "PASS (go test ./... including domain/rbac, store/rbac, httpapi/permissions, httpapi/rbac handlers, httpapi/auth_login on PR-LOGIN-1 branch)",
+      "rbac": "rbac_policies table seeded with developer/manager/system_admin per section 12.1 default. users.role now FK to rbac_policies. Custom roles supported via POST /api/v1/rbac/policies.",
+      "auth_proxy_envs": "DEVHUB_HYDRA_ADMIN_URL (existing) + DEVHUB_KRATOS_PUBLIC_URL (added by PR-LOGIN-1)"
     },
     "infra_idp": {
       "scaffold": "infra/idp/ (hydra.yaml, kratos.yaml, identity schema, scripts, sql) verified end-to-end in 2026-05-08 sandbox"
@@ -42,7 +48,9 @@
     "m0_sprint_record": "ai-workflow/memory/claude/merge_roadmap/",
     "m1_sprint_plan": "ai-workflow/memory/claude/m1-sprint-plan/backlog/2026-05-08.md",
     "m1_pr_review_actions": "ai-workflow/memory/M1-PR-review-actions.md",
+    "m2_login_action_backlog": "ai-workflow/memory/claude/login_action/backlog/2026-05-08.md",
     "adr_rbac": "docs/adr/0002-rbac-policy-edit-api.md",
+    "adr_idp": "docs/adr/0001-idp-selection.md",
     "pr12_review_actions": "ai-workflow/memory/PR-12-review-actions.md",
     "security_reviews": [
       "ai-workflow/memory/PR-12-security-review.md",
@@ -61,6 +69,14 @@
     {"pr": 27, "title": "feat(frontend): RBAC PermissionEditor ↔ backend (M1 PR-G6 + FIX-D)", "merge_commit": "e02ba67"}
   ],
   "next_actions": {
+    "m2_open_prs": [
+      "PR #33 PR-LOGIN-1 (claude/login_action): backend /api/v1/auth/login proxy",
+      "PR #34 PR-LOGIN-2 (claude/login_action-frontend-form, base=claude/login_action): frontend /auth/login form + redirect_uri 통일"
+    ],
+    "m2_remaining": [
+      "PR-LOGIN-3: /auth/callback + Hydra /oauth2/token 교환 (PKCE) + token storage + Authorization 헤더 자동 부착 (httpClient 추상화)",
+      "PR-LOGIN-4: logout (/api/v1/auth/logout + frontend) + /account 비밀번호 변경 (Kratos public /self-service/settings)"
+    ],
     "m1_remaining": [
       "T-M1-02 PR-B: API envelope/role wire/필드 정합 + 통합 테스트",
       "T-M1-03 PR-C: command lifecycle 6 상태 일관 + dry-run/live 경계",
@@ -69,6 +85,6 @@
       "T-M1-08: WebSocket envelope 표준화 (PR-B 흡수 가능)"
     ],
     "defer_followups": "ai-workflow/memory/M1-PR-review-actions.md §3 의 DEFER A~G",
-    "ops_verification": "사용자 환경에서 make migrate-up 후 rbac_policies 시스템 role 3건 seed 확인 + DEVHUB_TEST_DB_URL 셋 후 store 통합 테스트 PASS"
+    "ops_verification": "사용자 환경에서 make migrate-up 후 rbac_policies 시스템 role 3건 seed 확인 + DEVHUB_TEST_DB_URL 셋 후 store 통합 테스트 PASS. PR-LOGIN-1/2 머지 후: register-devhub-client.ps1 로 OIDC client 등록 + Kratos identity 1건 metadata_public.user_id 셋 + curl POST /api/v1/auth/login 검증."
   }
 }

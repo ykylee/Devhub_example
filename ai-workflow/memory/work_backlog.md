@@ -11,7 +11,7 @@
 | --- | --- | --- | --- |
 | **M0** — 보안 게이트 통과 | ✅ done | 2026-05-08 | PR #14·15·16·17·18·19. SEC-1~4 resolved. T-M0-10 운영 검증 PASS. |
 | **M1** — 핵심 기능 contract 정합성 | 🟡 in_progress (RBAC track 완료) | — | RBAC track (T-M1-01·06·07·08 흡수) 완료: PR #20·21·22·23·29·30·31·27. 잔여: T-M1-02·03·04·05 (envelope/types/ws + cmd lifecycle + audit actor + auth_test 보강) → PR-B/C/D. DEFER A~G 는 §3 후속 작업으로 인계. |
-| **M2** — 사용자 경험 정합 (Phase 4·5 잔여 + Phase 6/6.1) | planned | — | 통합 로드맵 §3.3. M0 의 잔여 (`/auth/callback`, `account.service.ts`) 도 흡수. |
+| **M2** — 사용자 경험 정합 (Phase 4·5 잔여 + Phase 6/6.1) | 🟡 in_progress (login_action sprint) | — | 로그인 검토 결과 OIDC code flow frontend 4단계 + backend Kratos/Hydra proxy 부재. PR-LOGIN-1 (#33 backend) + PR-LOGIN-2 (#34 frontend form) push 머지 대기. PR-LOGIN-3 (callback + token + httpClient) + PR-LOGIN-4 (logout + /account) 미진입. backlog: `claude/login_action/backlog/2026-05-08.md`. |
 | **M3** — Realtime 확장 + 외부 연동 1차 | planned | — | 통합 로드맵 §3.4. |
 | **M4** — 운영 / SSO / MFA / 후속 ADR | planned | — | 통합 로드맵 §3.5. ADR-0002 (Gitea SSO) 등. |
 
@@ -80,3 +80,4 @@
 | 2026-05-08 | PR #13~#19 머지. 통합 로드맵 채택 + M0 sprint 종료. flat memory 갱신. |
 | 2026-05-08 | M1 sprint 진입. `claude/m1-sprint-plan` 브랜치 + backlog 초안. 진입 PR 5건 분할 결정. |
 | 2026-05-08 | M1 RBAC track 8 PR (#20·21·22·23·29·30·31·27) + 리뷰 트래커 (#28) 머지. FIX A~D 적용. DEFER A~G 백로그 인계. |
+| 2026-05-08 | M2 login_action sprint 진입. 로그인 검토 후 PR-LOGIN-1 (#33 backend proxy) + PR-LOGIN-2 (#34 frontend form) push 머지 대기. backlog 작성 (`claude/login_action/backlog/2026-05-08.md`). PR-LOGIN-3·4 미진입. |
