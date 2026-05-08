@@ -1,10 +1,12 @@
 # Frontend Development Roadmap (Phase 2+)
 
+> ⚠ **먼저 [통합 개발 로드맵](./development_roadmap.md)을 확인하세요.** 본 문서는 그 통합 로드맵의 Frontend 트랙 세부입니다. 마일스톤(M0~M4) / 우선순위(P0~P3) / 트랙 간 의존은 통합 로드맵의 §3·§4.2 가 source-of-truth.
+
 - 문서 목적: 백엔드 API 연동 및 프론트엔드 기능 고도화 로드맵을 정의한다.
 - 기준일: 2026-05-04
-- 최종 수정: 2026-05-07
+- 최종 수정: 2026-05-08 (통합 로드맵 진입점 링크 추가)
 - 상태: in_progress
-- 관련 문서: `docs/backend_api_contract.md`, `ai-workflow/memory/backend_development_roadmap.md`
+- 관련 문서: [`./development_roadmap.md`](./development_roadmap.md) (통합), `docs/backend_api_contract.md`, `ai-workflow/memory/backend_development_roadmap.md`
 
 ## 1. 개요
 
