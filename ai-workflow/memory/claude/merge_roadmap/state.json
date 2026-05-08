@@ -1,0 +1,62 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-05-08",
+  "source_of_truth": {
+    "project_profile_path": "docs/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/claude/merge_roadmap/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/claude/merge_roadmap/work_backlog.md",
+    "latest_backlog_path": "ai-workflow/memory/claude/merge_roadmap/backlog/2026-05-08.md",
+    "repository_assessment_path": "ai-workflow/memory/repository_assessment.md"
+  },
+  "project": {
+    "project_name": "DevHub Example",
+    "document_home": "docs/README.md",
+    "operations_path": null,
+    "backlog_path": "ai-workflow/memory/claude/merge_roadmap/backlog/",
+    "handoff_path": "ai-workflow/memory/claude/merge_roadmap/session_handoff.md",
+    "environment_path": "ai-workflow/memory/environments/"
+  },
+  "commands": {
+    "quick_tests": "go test ./backend-core/... ; npm --prefix frontend run build",
+    "isolated_tests": "go test ./backend-core/internal/httpapi/...",
+    "runtime_checks": "Get-Process hydra, kratos, go, node 2>$null | Select-Object Name, Id, StartTime"
+  },
+  "session": {
+    "current_baseline": "main HEAD 71233e6 (PR #12, #13 머지 완료) 에서 분기. 통합 로드맵(commit 4b70779) + planning/architecture 진입점(commit e98d754) 채택 직후 M0 sprint 진입.",
+    "current_axis": "M0 — 보안 게이트 통과 (인증·권한 정상화). 통합 로드맵 §3.1 의 DoD 9 항목을 T-M0-01 ~ T-M0-11 의 작업 단위로 분해.",
+    "current_focus": "PR-A (T-M0-02 X-Devhub-Actor env gate + T-M0-01 empty Authorization 화이트리스트) 부터 진행 권장. PR-B/C 는 PR-A 머지 후 또는 병렬.",
+    "in_progress_items": [],
+    "blocked_items": [],
+    "recent_done_items": [
+      "PR-12 머지 (commit 8493b63)",
+      "PR-13 머지 (commit 71233e6)",
+      "통합 개발 로드맵 작성 (commit 4b70779)",
+      "planning/architecture README 진입점 채움 (commit e98d754)"
+    ],
+    "environment_constraints": [
+      "Backend Core API on :8080 (REST), WebSocket /api/v1/realtime/ws 부분 구현",
+      "Local PostgreSQL :5432 (devhub) — native 설치, Docker 미사용 정책",
+      "infra/idp/ scaffold 존재 (hydra.yaml, kratos.yaml, identity.schema.json, scripts, sql) — Phase 13 PoC sub-step (a)~(e) 완료 가정",
+      "Hydra binary :4444/:4445, Kratos binary :4433/:4434 — 사용자 터미널에서 수동 기동 (AI 자동화 외부)",
+      "외부 자원 차단: proxy.golang.org / fonts.gstatic.com 등 사내 SSL inspection — 사내 GoProxy mirror 가용 환경에서 go test PASS 확인됨 (PR #12)",
+      "컨테이너 자산(docker-compose.yml, Dockerfile) git 추적 외부 (BLK-1)"
+    ]
+  },
+  "next_documents": [
+    "docs/development_roadmap.md",
+    "docs/adr/0001-idp-selection.md",
+    "ai-workflow/memory/PR-12-security-review.md",
+    "ai-workflow/memory/codebase-security-review-2026-05-08.md",
+    "ai-workflow/memory/claude/merge_roadmap/backlog/2026-05-08.md"
+  ],
+  "repository_assessment": {
+    "path": "ai-workflow/memory/repository_assessment.md",
+    "present": true
+  },
+  "branch_lineage": {
+    "branched_from": "main",
+    "branched_at_commit": "71233e6",
+    "branched_at_date": "2026-05-08",
+    "open_pr_from_parent": null
+  }
+}

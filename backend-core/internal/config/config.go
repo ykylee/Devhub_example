@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -61,10 +62,6 @@ func envOrDefault(key, fallback string) string {
 }
 
 func envBool(key string) bool {
-	switch os.Getenv(key) {
-	case "1", "true", "TRUE", "True", "yes", "YES":
-		return true
-	default:
-		return false
-	}
+	enabled, _ := strconv.ParseBool(strings.TrimSpace(os.Getenv(key)))
+	return enabled
 }
