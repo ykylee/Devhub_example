@@ -61,10 +61,6 @@ func (h Handler) authLogin(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "login_challenge is required"})
 		return
 	}
-	if req.Identifier == "" || req.Password == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "identifier and password are required"})
-		return
-	}
 
 	ctx := c.Request.Context()
 
@@ -91,6 +87,10 @@ func (h Handler) authLogin(c *gin.Context) {
 			"client_id": hydraReq.Client.ClientID,
 		})
 		c.JSON(http.StatusOK, gin.H{"status": "ok", "data": gin.H{"redirect_to": redirectTo}})
+		return
+	}
+	if req.Identifier == "" || req.Password == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "identifier and password are required"})
 		return
 	}
 

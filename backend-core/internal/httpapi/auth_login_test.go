@@ -113,7 +113,7 @@ func TestAuthLogin_SkipFastPath(t *testing.T) {
 	}
 	router := newAuthLoginRouter(kratos, hydra, audits)
 
-	rec := postLogin(router, `{"login_challenge":"c1","identifier":"u1@example.com","password":"pw"}`)
+	rec := postLogin(router, `{"login_challenge":"c1"}`)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
 	}
