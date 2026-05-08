@@ -215,6 +215,13 @@ func (s *PostgresStore) DeleteRBACRole(ctx context.Context, roleID string) error
 	}
 
 	if _, err := tx.Exec(ctx, `DELETE FROM rbac_policies WHERE role_id = $1`, roleID); err != nil {
+		// COUNT-then-DELETE leaves a window where another transaction can
+		// assign the role to a user; the FK to users.role then rejects the
+		// delete with 23503. Surface that as ErrRoleInUse so the handler still
+		// returns 422 role_in_use rather than a 500 (M1-FIX-A).
+		if isForeignKeyViolation(err) {
+			return fmt.Errorf("delete role %s (assigned during delete): %w", roleID, ErrRoleInUse)
+		}
 		return fmt.Errorf("delete role %s: %w", roleID, err)
 	}
 	if err := tx.Commit(ctx); err != nil {
