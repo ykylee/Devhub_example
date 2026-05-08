@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/devhub/backend-core/internal/auth"
 	"github.com/devhub/backend-core/internal/commandworker"
 	"github.com/devhub/backend-core/internal/config"
 	"github.com/devhub/backend-core/internal/httpapi"
@@ -43,16 +44,25 @@ func main() {
 		log.Println("DB_URL is not set; webhook persistence is disabled")
 	}
 
-	// SECURITY (SEC-2): BearerTokenVerifier is intentionally not wired yet. Until a verifier is plugged in, AuthDevFallback gates whether unauthenticated requests pass; production should leave it false (default). Tracked in ai-workflow/memory/claude/test/backend-integration/backlog/2026-05-08.md.
+	var verifier httpapi.BearerTokenVerifier
+	if cfg.HydraAdminURL != "" {
+		verifier = &auth.HydraIntrospectionVerifier{AdminURL: cfg.HydraAdminURL}
+		log.Printf("bearer token verifier: hydra introspection at %s", cfg.HydraAdminURL)
+	}
+	if err := cfg.Validate(verifier != nil); err != nil {
+		log.Fatalf("startup refused: %v", err)
+	}
+
 	router := httpapi.NewRouter(httpapi.RouterConfig{
-		WebhookSecret:     cfg.GiteaWebhookSecret,
-		EventStore:        eventStore,
-		EventProcessor:    eventProcessor,
-		HealthStore:       healthStore,
-		DomainStore:       domainStore,
-		CommandStore:      commandStore,
-		AuditStore:        auditStore,
-		OrganizationStore: organizationStore,
+		WebhookSecret:       cfg.GiteaWebhookSecret,
+		EventStore:          eventStore,
+		EventProcessor:      eventProcessor,
+		HealthStore:         healthStore,
+		DomainStore:         domainStore,
+		CommandStore:        commandStore,
+		AuditStore:          auditStore,
+		OrganizationStore:   organizationStore,
+		BearerTokenVerifier: verifier,
 		SnapshotProvider: httpapi.RuntimeSnapshotProvider{
 			Base:         httpapi.StaticSnapshotProvider{},
 			HealthStore:  healthStore,
