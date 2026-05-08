@@ -19,6 +19,8 @@ type Config struct {
 	AuthDevFallback bool
 	// HydraAdminURL is the base URL of the Ory Hydra admin API used by the introspection verifier (for example http://127.0.0.1:4445). Empty means no Hydra verifier is wired and authentication relies on AuthDevFallback or another verifier.
 	HydraAdminURL string
+	// HydraRoleClaim is a dotted path into the Hydra introspection response that holds the actor role. Defaults to "ext.role" when empty. See auth.HydraIntrospectionVerifier.RoleClaim for supported paths. Toggle with DEVHUB_HYDRA_ROLE_CLAIM.
+	HydraRoleClaim string
 }
 
 func Load() Config {
@@ -32,12 +34,13 @@ func Load() Config {
 		Env:                strings.ToLower(strings.TrimSpace(os.Getenv("DEVHUB_ENV"))),
 		AuthDevFallback:    envBool("DEVHUB_AUTH_DEV_FALLBACK"),
 		HydraAdminURL:      strings.TrimSpace(os.Getenv("DEVHUB_HYDRA_ADMIN_URL")),
+		HydraRoleClaim:     strings.TrimSpace(os.Getenv("DEVHUB_HYDRA_ROLE_CLAIM")),
 	}
 }
 
-// Validate reports whether the configuration is safe for startup given whether a bearer-token verifier has been wired up. In production (Env=="prod") it refuses startup when no verifier is configured or when AuthDevFallback is enabled. Dev mode is unconstrained.
+// Validate reports whether the configuration is safe for startup given whether a bearer-token verifier has been wired up. In production (Env=="prod") it refuses startup when no verifier is configured or when AuthDevFallback is enabled. Dev mode is unconstrained. Env is normalized here so the contract holds for hand-built configs as well as those loaded via Load().
 func (cfg Config) Validate(hasVerifier bool) error {
-	if cfg.Env != "prod" {
+	if strings.ToLower(strings.TrimSpace(cfg.Env)) != "prod" {
 		return nil
 	}
 	if !hasVerifier {

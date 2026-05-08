@@ -17,6 +17,9 @@ func TestValidate(t *testing.T) {
 		{"prod + no verifier rejected", Config{Env: "prod"}, false, true},
 		{"prod + verifier + dev fallback rejected", Config{Env: "prod", AuthDevFallback: true}, true, true},
 		{"prod + no verifier + dev fallback rejected", Config{Env: "prod", AuthDevFallback: true}, false, true},
+		{"prod uppercase normalized: no verifier rejected", Config{Env: "PROD"}, false, true},
+		{"prod with whitespace normalized: verifier OK", Config{Env: " prod "}, true, false},
+		{"prod with whitespace + dev fallback rejected", Config{Env: " Prod ", AuthDevFallback: true}, true, true},
 	}
 	for _, tc := range cases {
 		err := tc.cfg.Validate(tc.hasVerifier)

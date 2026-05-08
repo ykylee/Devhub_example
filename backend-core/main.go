@@ -46,8 +46,11 @@ func main() {
 
 	var verifier httpapi.BearerTokenVerifier
 	if cfg.HydraAdminURL != "" {
-		verifier = &auth.HydraIntrospectionVerifier{AdminURL: cfg.HydraAdminURL}
-		log.Printf("bearer token verifier: hydra introspection at %s", cfg.HydraAdminURL)
+		verifier = &auth.HydraIntrospectionVerifier{
+			AdminURL:  cfg.HydraAdminURL,
+			RoleClaim: cfg.HydraRoleClaim,
+		}
+		log.Printf("bearer token verifier: hydra introspection at %s (role_claim=%q)", cfg.HydraAdminURL, cfg.HydraRoleClaim)
 	}
 	if err := cfg.Validate(verifier != nil); err != nil {
 		log.Fatalf("startup refused: %v", err)
