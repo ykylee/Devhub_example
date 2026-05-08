@@ -57,20 +57,18 @@
   - ✅ **B·F**: 부서 계층 구조 및 멤버 배정 기능 연동 완료 (Phase 12).
 
 ### M3 — 실시간 대시보드 및 AI 통합 (예정)
-- **개발자 대시보드 페이지 (Developer Dashboard)**:
-  - ✅ **B·F**: 인프라 토폴로지 및 핵심 메트릭 1차 연동.
-  - ⏳ **B·F**: WebSocket 기반 실시간 상태 갱신 및 로그 스트리밍 (Phase 8 확장).
-- **관리자 대시보드 페이지 (Admin Dashboard)**:
-  - ✅ **B·F**: 서비스 제어 및 리스크 완화 액션 연동 완료.
-  - ⏳ **B**: 승인 대기 커맨드 알림 및 처리 워크플로우 강화.
-- **AI Gardener 기능 (AI Gardener)**:
-  - ⏳ **B·AI**: Python gRPC 서비스 연동 및 Suggestion API 구현 (Phase 9).
-  - ⏳ **F**: `GardenerFeed` 실데이터 연동 및 조치 액션 연결.
+### M3: 사용자 및 조직 관리 (User & Org Management)
+- **사용자 관리**: 유저 CRUD UI 고도화 및 권한 할당 로직 정교화.
+- **조직 관리**: 조직도(Hierarchy) 편집 및 부서 CRUD UI 개선.
+- **Sign Up (셀프 가입)**: 시스템 인사 DB 연동을 통한 사용자 셀프 등록 기능.
+    - 대상: 이름, 사내 ID, 사번, 부서명이 인사 DB에 존재하는 인원.
+- **인사 DB 스키마 (초기)**: `name`, `system_id`, `employee_id`, `department_name`.
 
-### M4 — 과제 관리 및 시스템 고도화 (장기 계획)
-- **과제 대시보드 페이지 (Task Dashboard)**:
-  - ⏳ **B·F**: Gitea PR/Commit 기반 과제 추적 화면 신설.
-  - ⏳ **B**: 과제 데이터 정규화 및 Hourly Reconciliation (Phase 10).
+### M4: 실시간 대시보드 및 AI Gardener (Realtime & AI)
+- **실시간 데이터**: WebSocket 기반 인프라/CI 상태 리플레이 및 리소스 필터링.
+- **AI Gardener**: gRPC 기반 AI 제안 피드 연동 및 적용 자동화.
+- **시스템 관리**: 전역 설정 및 과제 추적 대시보드 완성.
+- **과제 추적**: Gitea PR/Commit 기반 과제 추적 화면 신설 및 Hourly Reconciliation (Phase 10).
 - **시스템 관리자 대시보드 (System Admin Dashboard)**:
   - ⏳ **B·F**: Gitea Runner 상태, 시스템 설정 관리 UI 및 API.
 - **권한 관리 고도화 (RBAC)**:

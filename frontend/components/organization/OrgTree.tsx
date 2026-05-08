@@ -358,7 +358,31 @@ function OrgTreeContent() {
             <Plus className="w-3 h-3" /> Add Division
           </button>
           <button 
-            onClick={() => addToast("Hierarchy configuration saved", "info")}
+            onClick={async () => {
+              try {
+                // Map React Flow nodes back to OrgNode domain model
+                const orgNodes = allNodes.map(n => ({
+                  id: n.id,
+                  position: n.position,
+                  data: {
+                    label: n.data.label,
+                    type: n.data.type,
+                    direct_count: n.data.direct_count,
+                    total_count: n.data.total_count
+                  }
+                }));
+                const orgEdges = allEdges.map(e => ({
+                  source: e.source,
+                  target: e.target
+                }));
+
+                await identityService.updateOrgHierarchy(orgNodes as any, orgEdges);
+                addToast("Hierarchy configuration saved", "success");
+              } catch (error) {
+                console.error("[OrgTree] Failed to save hierarchy:", error);
+                addToast("Failed to save hierarchy changes", "error");
+              }
+            }}
             className="glass border-white/10 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-2"
           >
             <Save className="w-3 h-3 text-accent" /> Save

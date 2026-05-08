@@ -285,6 +285,9 @@ export default function OrganizationPage() {
                     onUpdateMemberRole={(memberId, newRoleName) => {
                       setMembers(members.map(m => m.id === memberId ? { ...m, role: newRoleName as OrgMember["role"] } : m));
                     }}
+                    onMemberCreated={(newMember) => {
+                      setMembers(prev => [newMember, ...prev]);
+                    }}
                   />
                 )}
                 {activeTab === 'units' && (

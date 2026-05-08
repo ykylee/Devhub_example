@@ -111,6 +111,8 @@ export interface CreateUserPayload {
   display_name: string;
   role: OrgMember["role"];
   status: OrgMember["status"];
+  type: "human" | "system";
+  password?: string;
   primary_dept_id?: string;
   current_dept_id?: string;
   is_seconded?: boolean;
@@ -306,6 +308,20 @@ export class IdentityService {
         lead_id: "u3"
       }
     ];
+  }
+
+  async updateOrgHierarchy(nodes: OrgNode[], edges: { source: string; target: string }[]): Promise<void> {
+    await jsonRequest("PUT", "/api/v1/organization/hierarchy", { nodes, edges });
+  }
+
+  async lookupHR(systemId: string): Promise<{ email: string; user_id: string; department: string }> {
+    const response = await fetch(`/api/v1/hr/lookup?system_id=${systemId}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('devhub_token')}`
+      }
+    });
+    if (!response.ok) throw new Error("HR record not found");
+    return response.json();
   }
 
   async getOrgHierarchy(): Promise<{ nodes: OrgNode[]; edges: OrgEdge[] }> {

@@ -88,14 +88,15 @@
 - **Identity Admin Wrapper**: Kratos admin identity API(CRUD, recovery) wrapper 5종 구현.
 - **사용자 상태 동기화**: Kratos identity webhook 수신 및 `users.status` 자동 업데이트 + audit 매핑.
 
-### [P1] M3: 실시간 대시보드 및 제어 (Realtime & Control)
-- **WebSocket 확장**: `infra.node.updated`, `ci.run.updated`, `risk.updated`, `notification.created` 이벤트 publish 및 리플레이 전략 구현.
-- **Resource Filtering**: 프로젝트/리소스 스코프 기반 WebSocket 구독 필터링.
-- **Admin Action 고도화**: 실제 인프라 제어를 위한 executor adapter interface 설계 및 Gitea Runner 상태 연동.
+### [P1] M3: 사용자 및 조직 관리 (User & Org Management)
+- **User CRUD & RBAC Refinement**: 사용자 CRUD API 안정화 및 역할(Role) 할당 유효성 검증 강화.
+- **Sign Up Service**: 인사 DB 연동 기반의 가입 승인 로직 구현.
+    - `POST /api/v1/auth/signup`: 인사 DB 조회 후 Kratos identity 생성 및 DevHub `users` 매핑.
+- **Org Hierarchy Edit**: 부서 위치(X, Y) 및 상하 관계 영속화 API 고도화.
 
-### [P2] M3: AI Gardener 통합 (AI Integration)
-- **gRPC 서비스 연결**: Python `AnalysisService`와 Go Core 간 gRPC 클라이언트/서버 통신 구현.
-- **Suggestion Flow**: AI 제안 데이터 정규화 및 리스트/커맨드 모델 연동.
+### [P2] M4: 실시간 대시보드 및 AI (Realtime & AI)
+- **WebSocket 확장**: `infra.node.updated`, `ci.run.updated`, `risk.updated` 이벤트 publish 및 리플레이 전략 구현.
+- **gRPC 서비스 연결**: Python `AnalysisService`와 Go Core 간 gRPC 통신 구현.
 
 ### [P3] M4: 과제 추적 및 시스템 관리 (Task & Admin)
 - **Gitea Reconciliation**: Gitea REST API를 통한 Hourly Pull worker 구현 및 데이터 누락 보정.

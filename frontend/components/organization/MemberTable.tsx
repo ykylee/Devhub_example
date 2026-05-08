@@ -11,17 +11,20 @@ import { accountService } from "@/lib/services/account.service";
 import { useToast } from "@/components/ui/Toast";
 
 import { Role } from "@/lib/services/rbac.types";
+import { UserCreationModal } from "./UserCreationModal";
 
 interface MemberTableProps {
   members: OrgMember[];
   roles: Role[];
   onUpdateMemberRole: (memberId: string, newRoleName: string) => void;
+  onMemberCreated?: (user: OrgMember) => void;
 }
 
-export function MemberTable({ members, roles, onUpdateMemberRole }: MemberTableProps) {
+export function MemberTable({ members, roles, onUpdateMemberRole, onMemberCreated }: MemberTableProps) {
   const { role: currentUserRole } = useStore();
   const { toast } = useToast();
   const [openActionId, setOpenActionId] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const handleAdminAction = async (action: 'issue' | 'reset' | 'disable', member: OrgMember) => {
     setOpenActionId(null);
@@ -47,10 +50,26 @@ export function MemberTable({ members, roles, onUpdateMemberRole }: MemberTableP
     <div className="space-y-6">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-xl font-black text-white uppercase tracking-tight">Organization <span className="text-primary">Members</span></h3>
-        <button className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-primary/90 transition-all shadow-lg">
+        <button 
+          onClick={() => setShowCreateModal(true)}
+          className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-primary/90 transition-all shadow-lg"
+        >
           <UserPlus className="w-4 h-4" /> Invite Member
         </button>
       </div>
+
+      <AnimatePresence>
+        {showCreateModal && (
+          <UserCreationModal 
+            roles={roles}
+            onClose={() => setShowCreateModal(false)}
+            onCreated={(user) => {
+              onMemberCreated?.(user);
+              toast("Member created successfully", "success");
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       <div className="overflow-x-auto">
         <table className="w-full text-left border-separate border-spacing-y-3">
@@ -98,6 +117,11 @@ export function MemberTable({ members, roles, onUpdateMemberRole }: MemberTableP
                         <p className="text-[10px] text-muted-foreground flex items-center gap-1">
                           <Mail className="w-3 h-3" /> {member.email}
                         </p>
+                        {member.type === 'system' && (
+                          <div className="mt-1 inline-flex items-center gap-1 bg-accent/10 border border-accent/20 px-1.5 py-0.5 rounded text-[8px] font-black text-accent uppercase tracking-tighter">
+                            <Bot className="w-2.5 h-2.5" /> System / AI
+                          </div>
+                        )}
                       </div>
                     </div>
                   </td>

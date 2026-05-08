@@ -44,6 +44,14 @@ type AuditStore interface {
 	ListAuditLogs(context.Context, store.ListAuditLogsOptions) ([]domain.AuditLog, error)
 }
 
+type KratosAdmin interface {
+	CreateIdentity(ctx context.Context, email, name, userID, password string) (string, error)
+}
+
+type HRDBClient interface {
+	Lookup(ctx context.Context, systemID, employeeID, name string) (string, string, string, error) // simplified for now: returns email, userID, dept
+}
+
 type RouterConfig struct {
 	WebhookSecret       string
 	EventStore          WebhookEventStore
@@ -58,6 +66,8 @@ type RouterConfig struct {
 	PermissionCache     *PermissionCache
 	KratosLogin         KratosLoginClient
 	HydraAdmin          HydraLoginAdmin
+	KratosAdmin         KratosAdmin
+	HRDB                HRDBClient
 	SnapshotProvider    SnapshotProvider
 	RealtimeHub         *RealtimeHub
 	// AuthDevFallback toggles dev-only authentication fallbacks: empty Authorization passes through authenticateActor and requireMinRole. Actor identity always resolves to "system" without a verifier. Default false: production-safe.
@@ -109,6 +119,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.PATCH("/users/:user_id", handler.updateUser)
 	v1.DELETE("/users/:user_id", handler.deleteUser)
 	v1.GET("/organization/hierarchy", handler.getHierarchy)
+	v1.PUT("/organization/hierarchy", handler.updateHierarchy)
 	v1.POST("/organization/units", handler.createOrgUnit)
 	v1.GET("/organization/units/:unit_id", handler.getOrgUnit)
 	v1.PATCH("/organization/units/:unit_id", handler.updateOrgUnit)
@@ -116,6 +127,8 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.GET("/organization/units/:unit_id/members", handler.listUnitMembers)
 	v1.PUT("/organization/units/:unit_id/members", handler.replaceUnitMembers)
 	v1.POST("/integrations/gitea/webhooks", handler.receiveGiteaWebhook)
+	v1.GET("/hr/lookup", handler.hrLookup)
+	v1.POST("/auth/signup", handler.authSignUp)
 	v1.POST("/auth/login", handler.authLogin)
 	if cfg.RealtimeHub != nil {
 		v1.GET("/realtime/ws", handler.handleRealtimeWebSocket)

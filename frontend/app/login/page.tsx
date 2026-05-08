@@ -72,6 +72,15 @@ export default function LoginPage() {
             )}
           </button>
 
+          <div className="text-center pt-8">
+            <p className="text-xs text-muted-foreground uppercase tracking-widest font-black">
+              New to DevHub?{" "}
+              <Link href="/auth/signup" className="text-primary hover:underline ml-1">
+                Create Account
+              </Link>
+            </p>
+          </div>
+
           <div className="mt-8 pt-8 border-t border-white/5 text-center">
             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
               Secured by Ory Hydra + Kratos
