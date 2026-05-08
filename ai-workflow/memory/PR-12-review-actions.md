@@ -102,7 +102,7 @@ PR description 의 향후 작업도 동일 트래커:
 - [x] PR 분할 결정 기록 — `source-docs/workflow-source/**` 만 PR #13 으로 분리 (commit `fe593e7`, §3.5 표)
 - [x] **추가** SEC-3/SEC-4/SEC-5 신설 — 코드베이스 전체 보안 리뷰 결과 (commit `9971a47`)
 - [x] `cd frontend && npm run build && npx tsc --noEmit` 결과 첨부 — **PASS** (Next.js 16.2.4, 4.3s 컴파일 + 4.8s TypeScript, 11 페이지 정적 생성, 타입 오류 없음)
-- [ ] `cd backend-core && go test ./...` — **BLOCKED**: 로컬 GOPROXY (`proxy.golang.org`) 차단 환경에서 외부 의존(`gorilla/websocket@v1.5.3` 등) 다운로드 실패. PR 작성자 환경 또는 사내 mirror 가 설정된 환경에서 실행 후 결과 코멘트로 첨부 필요
+- [x] `cd backend-core && go test ./...` — **PASS** (PR 작성자 사내 mirror 환경에서 2026-05-08 재실행). 결과: `internal/httpapi 0.919s ok`, `commandworker / gitea / normalize / store` cached ok, 그 외 패키지는 `[no test files]`. 본 PR 의 audit best-effort 변경(`2f9cae8`)과 SEC-3/4 마커 부착(`9971a47`) 회귀 없음
 - [ ] `pytest ai-workflow/tests/check_docs.py` — **N/A**: `ai-workflow/tests/` 는 `.gitignore` 로 추적 외부 (bootstrap 후 설치 자료). 작업트리에 부재. workflow kit 부트스트랩이 끝난 환경에서만 실행 가능
 
 ## 5. 다음 세션 인계 메모
