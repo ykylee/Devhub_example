@@ -24,7 +24,11 @@ func TestRoleMeetsMin(t *testing.T) {
 		{"developer", domain.AppRoleSystemAdmin, false},
 		{"developer", domain.AppRoleManager, false},
 		{"developer", domain.AppRoleDeveloper, true},
+		{"", domain.AppRoleSystemAdmin, false},
+		{"", domain.AppRoleManager, false},
 		{"", domain.AppRoleDeveloper, false},
+		{"unknown", domain.AppRoleSystemAdmin, false},
+		{"unknown", domain.AppRoleManager, false},
 		{"unknown", domain.AppRoleDeveloper, false},
 	}
 	for _, tc := range cases {
