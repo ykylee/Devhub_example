@@ -25,6 +25,7 @@ func main() {
 	var commandStore httpapi.CommandStore
 	var auditStore httpapi.AuditStore
 	var organizationStore httpapi.OrganizationStore
+	var rbacStore httpapi.RBACStore
 	realtimeHub := httpapi.NewRealtimeHub()
 	var worker *commandworker.Worker
 	if cfg.DBURL != "" {
@@ -40,6 +41,7 @@ func main() {
 		commandStore = pgStore
 		auditStore = pgStore
 		organizationStore = pgStore
+		rbacStore = pgStore
 		worker = &commandworker.Worker{Store: pgStore, Publisher: realtimeHub}
 	} else {
 		log.Println("DB_URL is not set; webhook persistence is disabled")
@@ -73,6 +75,7 @@ func main() {
 		CommandStore:        commandStore,
 		AuditStore:          auditStore,
 		OrganizationStore:   organizationStore,
+		RBACStore:           rbacStore,
 		BearerTokenVerifier: verifier,
 		SnapshotProvider: httpapi.RuntimeSnapshotProvider{
 			Base:         httpapi.StaticSnapshotProvider{},
