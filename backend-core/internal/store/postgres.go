@@ -903,6 +903,57 @@ LIMIT $1`
 	return commands, nil
 }
 
+func (s *PostgresStore) ListRunnableLiveServiceActionCommands(ctx context.Context, limit int) ([]domain.Command, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 25
+	}
+
+	const query = `
+SELECT
+	id,
+	command_id,
+	command_type,
+	target_type,
+	target_id,
+	action_type,
+	status,
+	actor_login,
+	reason,
+	dry_run,
+	requires_approval,
+	COALESCE(idempotency_key, ''),
+	request_payload,
+	result_payload,
+	created_at,
+	updated_at
+FROM commands
+WHERE status = 'pending'
+	AND command_type = 'service_action'
+	AND dry_run = FALSE
+	AND requires_approval = FALSE
+ORDER BY updated_at ASC, id ASC
+LIMIT $1`
+
+	rows, err := s.pool.Query(ctx, query, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	commands := []domain.Command{}
+	for rows.Next() {
+		command, err := scanCommand(rows)
+		if err != nil {
+			return nil, err
+		}
+		commands = append(commands, command)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return commands, nil
+}
+
 func (s *PostgresStore) UpdateCommandStatus(ctx context.Context, commandID, status string, resultPayload map[string]any) (domain.Command, error) {
 	payload, err := json.Marshal(resultPayload)
 	if err != nil {
@@ -939,6 +990,172 @@ RETURNING
 		return domain.Command{}, ErrNotFound
 	}
 	return command, err
+}
+
+func (s *PostgresStore) ApproveCommand(ctx context.Context, req domain.CommandApprovalRequest) (domain.Command, domain.AuditLog, error) {
+	return s.reviewServiceActionCommand(ctx, req, true)
+}
+
+func (s *PostgresStore) RejectCommand(ctx context.Context, req domain.CommandApprovalRequest) (domain.Command, domain.AuditLog, error) {
+	return s.reviewServiceActionCommand(ctx, req, false)
+}
+
+func (s *PostgresStore) reviewServiceActionCommand(ctx context.Context, req domain.CommandApprovalRequest, approve bool) (domain.Command, domain.AuditLog, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return domain.Command{}, domain.AuditLog{}, err
+	}
+	defer tx.Rollback(ctx)
+
+	const selectQuery = `
+SELECT
+	id,
+	command_id,
+	command_type,
+	target_type,
+	target_id,
+	action_type,
+	status,
+	actor_login,
+	reason,
+	dry_run,
+	requires_approval,
+	COALESCE(idempotency_key, ''),
+	request_payload,
+	result_payload,
+	created_at,
+	updated_at
+FROM commands
+WHERE command_id = $1
+LIMIT 1
+FOR UPDATE`
+	existing, err := scanCommand(tx.QueryRow(ctx, selectQuery, req.CommandID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.Command{}, domain.AuditLog{}, ErrNotFound
+	}
+	if err != nil {
+		return domain.Command{}, domain.AuditLog{}, err
+	}
+	if existing.CommandType != "service_action" || existing.Status != "pending" || !existing.RequiresApproval {
+		return domain.Command{}, domain.AuditLog{}, ErrConflict
+	}
+
+	approvalStatus := "approved"
+	auditAction := "service_action.approved"
+	commandStatus := existing.Status
+	if !approve {
+		approvalStatus = "rejected"
+		auditAction = "service_action.rejected"
+		commandStatus = "rejected"
+	}
+	approvalPayload := map[string]any{
+		"approval": map[string]any{
+			"status":      approvalStatus,
+			"actor_login": req.ActorLogin,
+			"reason":      req.Reason,
+			"reviewed_at": time.Now().UTC(),
+		},
+	}
+	resultPayload, err := json.Marshal(approvalPayload)
+	if err != nil {
+		return domain.Command{}, domain.AuditLog{}, err
+	}
+
+	const updateQuery = `
+UPDATE commands
+SET
+	status = $2,
+	requires_approval = FALSE,
+	result_payload = $3::jsonb,
+	updated_at = NOW()
+WHERE command_id = $1
+RETURNING
+	id,
+	command_id,
+	command_type,
+	target_type,
+	target_id,
+	action_type,
+	status,
+	actor_login,
+	reason,
+	dry_run,
+	requires_approval,
+	COALESCE(idempotency_key, ''),
+	request_payload,
+	result_payload,
+	created_at,
+	updated_at`
+	command, err := scanCommand(tx.QueryRow(ctx, updateQuery, req.CommandID, commandStatus, string(resultPayload)))
+	if err != nil {
+		return domain.Command{}, domain.AuditLog{}, err
+	}
+
+	auditID, err := randomPrefixedID("audit")
+	if err != nil {
+		return domain.Command{}, domain.AuditLog{}, err
+	}
+	auditPayload, err := json.Marshal(map[string]any{
+		"command_id":      command.CommandID,
+		"approval_status": approvalStatus,
+		"reason":          req.Reason,
+	})
+	if err != nil {
+		return domain.Command{}, domain.AuditLog{}, err
+	}
+	const auditQuery = `
+INSERT INTO audit_logs (
+	audit_id,
+	actor_login,
+	action,
+	target_type,
+	target_id,
+	command_id,
+	payload
+) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)
+RETURNING
+	id,
+	audit_id,
+	actor_login,
+	action,
+	target_type,
+	target_id,
+	COALESCE(command_id, ''),
+	payload,
+	created_at`
+	var auditLog domain.AuditLog
+	var scannedAuditPayload []byte
+	if err := tx.QueryRow(
+		ctx,
+		auditQuery,
+		auditID,
+		req.ActorLogin,
+		auditAction,
+		command.TargetType,
+		command.TargetID,
+		command.CommandID,
+		string(auditPayload),
+	).Scan(
+		&auditLog.ID,
+		&auditLog.AuditID,
+		&auditLog.ActorLogin,
+		&auditLog.Action,
+		&auditLog.TargetType,
+		&auditLog.TargetID,
+		&auditLog.CommandID,
+		&scannedAuditPayload,
+		&auditLog.CreatedAt,
+	); err != nil {
+		return domain.Command{}, domain.AuditLog{}, err
+	}
+	if err := decodeJSONMap(scannedAuditPayload, &auditLog.Payload); err != nil {
+		return domain.Command{}, domain.AuditLog{}, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return domain.Command{}, domain.AuditLog{}, err
+	}
+	return command, auditLog, nil
 }
 
 func (s *PostgresStore) MarkWebhookEventProcessed(ctx context.Context, id int64) error {

@@ -35,11 +35,18 @@ type CommandStore interface {
 	CreateRiskMitigationCommand(context.Context, domain.RiskMitigationCommandRequest) (domain.Command, domain.AuditLog, bool, error)
 	CreateServiceActionCommand(context.Context, domain.ServiceActionCommandRequest) (domain.Command, domain.AuditLog, bool, error)
 	GetCommand(context.Context, string) (domain.Command, error)
+	ApproveCommand(context.Context, domain.CommandApprovalRequest) (domain.Command, domain.AuditLog, error)
+	RejectCommand(context.Context, domain.CommandApprovalRequest) (domain.Command, domain.AuditLog, error)
 }
 
 type AuditStore interface {
 	CreateAuditLog(context.Context, domain.AuditLog) (domain.AuditLog, error)
 	ListAuditLogs(context.Context, store.ListAuditLogsOptions) ([]domain.AuditLog, error)
+}
+
+type RBACPolicyStore interface {
+	GetActiveRBACPolicy(context.Context) (domain.RBACPolicy, error)
+	ReplaceRBACPolicy(context.Context, domain.ReplaceRBACPolicyInput) (domain.RBACPolicy, error)
 }
 
 type RouterConfig struct {
@@ -50,6 +57,7 @@ type RouterConfig struct {
 	DomainStore         DomainStore
 	CommandStore        CommandStore
 	AuditStore          AuditStore
+	RBACPolicyStore     RBACPolicyStore
 	BearerTokenVerifier BearerTokenVerifier
 	OrganizationStore   OrganizationStore
 	SnapshotProvider    SnapshotProvider
@@ -64,6 +72,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 
 	v1 := router.Group("/api/v1")
 	v1.Use(handler.authenticateActor)
+	v1.GET("/me", handler.getMe)
 	v1.GET("/dashboard/metrics", handler.dashboardMetrics)
 	v1.GET("/events", handler.listWebhookEvents)
 	v1.GET("/infra/edges", handler.infraEdges)
@@ -78,9 +87,12 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.GET("/risks/critical", handler.criticalRisks)
 	v1.GET("/audit-logs", handler.listAuditLogs)
 	v1.GET("/rbac/policy", handler.getRBACPolicy)
+	v1.PUT("/rbac/policy", handler.replaceRBACPolicy)
 	v1.POST("/admin/service-actions", handler.createServiceAction)
 	v1.POST("/risks/:risk_id/mitigations", handler.createRiskMitigation)
 	v1.GET("/commands/:command_id", handler.getCommand)
+	v1.POST("/commands/:command_id/approve", handler.approveCommand)
+	v1.POST("/commands/:command_id/reject", handler.rejectCommand)
 	v1.GET("/users", handler.listUsers)
 	v1.POST("/users", handler.createUser)
 	v1.GET("/users/:user_id", handler.getUser)
@@ -95,7 +107,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.PUT("/organization/units/:unit_id/members", handler.replaceUnitMembers)
 	v1.POST("/integrations/gitea/webhooks", handler.receiveGiteaWebhook)
 	if cfg.RealtimeHub != nil {
-		v1.GET("/realtime/ws", cfg.RealtimeHub.HandleWebSocket)
+		v1.GET("/realtime/ws", handler.handleRealtimeWebSocket)
 	}
 
 	return router

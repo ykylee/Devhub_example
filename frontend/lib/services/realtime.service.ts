@@ -1,6 +1,9 @@
 import { WSEvent, WSEventHandler } from "./types";
 
 const WS_BASE = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080/api/v1/realtime/ws';
+const DEFAULT_EVENT_TYPES = ['command.status.updated'];
+const DEVHUB_ACTOR = process.env.NEXT_PUBLIC_DEVHUB_ACTOR || 'yklee';
+const DEVHUB_ROLE = process.env.NEXT_PUBLIC_DEVHUB_ROLE || 'manager';
 
 export class RealtimeService {
   private static instance: RealtimeService;
@@ -26,8 +29,9 @@ export class RealtimeService {
 
   private connect() {
     try {
-      console.log(`[RealtimeService] Connecting to ${WS_BASE}...`);
-      this.socket = new WebSocket(WS_BASE);
+      const url = this.buildURL();
+      console.log(`[RealtimeService] Connecting to ${url}...`);
+      this.socket = new WebSocket(url);
 
       this.socket.onopen = () => {
         console.log('[RealtimeService] Connected.');
@@ -71,6 +75,14 @@ export class RealtimeService {
       console.error('[RealtimeService] Connection Error:', error);
       this.handleReconnect();
     }
+  }
+
+  private buildURL() {
+    const separator = WS_BASE.includes('?') ? '&' : '?';
+    const types = encodeURIComponent(DEFAULT_EVENT_TYPES.join(','));
+    const actor = encodeURIComponent(DEVHUB_ACTOR);
+    const role = encodeURIComponent(DEVHUB_ROLE);
+    return `${WS_BASE}${separator}types=${types}&actor=${actor}&role=${role}`;
   }
 
   private handleReconnect() {

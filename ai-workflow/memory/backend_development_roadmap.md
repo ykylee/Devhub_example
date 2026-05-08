@@ -33,7 +33,7 @@
 | Phase 5 | done | 프론트 snapshot API 1차 | metrics, infra topology, ci-runs/logs, risk 조회 API, runtime snapshot provider | handler 테스트 및 fallback 동작 확인 |
 | Phase 6 | done | 도메인 정규화 1차 | repository/user/issue/pull_request/ci_run/risk 기초 테이블 및 normalize processor | fixture 및 store 테스트 |
 | Phase 7 | in_progress | command/audit 기반 액션 API | service action, risk mitigation, command status, idempotency, audit log | approval/executor boundary, audit 조회 API, actor 검증 |
-| Phase 8 | in_progress | WebSocket 실시간 채널 | `/api/v1/realtime/ws`, `command.status.updated` publish | 인증, 구독 필터, replay, infra/ci/risk event publish |
+| Phase 8 | in_progress | WebSocket 실시간 채널 | `/api/v1/realtime/ws`, `command.status.updated` publish, `types` subscription/RBAC filter | replay, infra/ci/risk event publish, resource scope filter |
 | Phase 9 | planned | Python AI gRPC 연결 | Go gRPC client, Python `AnalysisService`, build log summary/risk detection | gRPC 통합 테스트 |
 | Phase 10 | planned | Hourly Pull Reconciliation | Gitea REST client, 누락 이벤트 보정 worker | dry-run 및 idempotency 테스트 |
 | Phase 11 | planned | 시스템 관리자 기능 고도화 | Runner/server adapter, config 조회, allowlist/seed admin | 권한/audit/health adapter 테스트 |
@@ -51,11 +51,16 @@
 - idempotency replay와 command 조회 테스트를 추가했다.
 - 승인 불필요 dry-run command worker를 추가해 `pending -> running -> succeeded`로 자동 전이한다.
 - `/api/v1/realtime/ws`와 in-process `RealtimeHub`를 추가했고 `command.status.updated`를 publish한다.
+- WebSocket `types` query 기반 subscription filtering과 event type별 RBAC read permission check 1차 구현을 추가했다.
 - Phase 12 조직/사용자 CRUD API를 구현했다: users CRUD, org unit CRUD, hierarchy, unit members replace/list.
 - `GET /api/v1/audit-logs`를 추가했고 조직/사용자 CRUD와 멤버 교체에 audit log 생성을 연결했다.
 - `X-Devhub-Actor` 사용 시 deprecation 응답 헤더를 추가해 Phase 13 token actor 전환 경로를 노출했다.
 - `docs/backend_api_contract.md` §11을 Hydra/Kratos 기준으로 재작성하고 Go Core Bearer token verifier 경계를 추가했다.
 - `GET /api/v1/rbac/policy`를 추가하고 프론트 Permissions 화면이 backend policy를 조회하도록 준비했다.
+- RBAC policy version table과 `PUT /api/v1/rbac/policy`를 추가해 전체 matrix 교체와 audit log 기록 경계를 만들었다.
+- `PUT /api/v1/rbac/policy`에 `system_config: admin` RBAC enforcement를 적용했다.
+- `GET /api/v1/me`를 추가해 인증 actor를 DevHub `users`와 매핑하고 effective permissions를 반환한다.
+- service action, risk mitigation, audit 조회, 조직/사용자 쓰기 API에 RBAC enforcement를 적용했다.
 - Phase 13 Ory Hydra/Kratos PoC scaffold가 main에 반영됐다: `infra/idp/`, schema/config/client 등록 관련 파일.
 - 브랜치별 memory 구조를 적용해 현재 브랜치 상태 문서는 `ai-workflow/memory/codex/service-action-command/` 아래에서 관리한다.
 
@@ -69,8 +74,8 @@
 
 ### 조정이 필요한 전제
 
-- WebSocket은 endpoint와 command event만 구현됐다. Phase 8은 done이 아니라 “command event 1차 완료, 인증/필터/replay 미완료” 상태다.
-- Command/Audit는 command 생성과 상태 전이는 구현됐지만 audit 조회 API, approval boundary, 실제 executor가 없다. Phase 7은 계속 in_progress다.
+- WebSocket은 endpoint, command event, `types` subscription/RBAC filter 1차까지 구현됐다. Phase 8은 done이 아니라 “command event와 역할 필터 1차 완료, replay와 resource scope filter 미완료” 상태다.
+- Command/Audit는 command 생성, 상태 전이, audit 조회, approval boundary 1차까지 구현됐다. 실제 executor adapter는 아직 없으므로 Phase 7은 계속 in_progress다.
 - Phase 13 계정/인증 계약은 자체 accounts table 전제를 폐기하고 Hydra/Kratos 기준으로 재작성했다. 실제 JWKS/introspection verifier와 admin identity wrapper 구현은 남아 있다.
 - Docker 기반 실행 전제와 Phase 13 native binary 운영 전제가 문서마다 섞여 있다. 로컬 검증 명령은 당분간 Go/NPM/native PostgreSQL 중심으로 유지하고, Docker Compose는 호환 폴백으로 낮춘다.
 
@@ -79,15 +84,17 @@
 ### P0: 통합 안정화
 
 - `docs/backend_api_contract.md` §11 Hydra/Kratos 재작성은 완료했다.
-- Go Core actor 추출 경계는 1차 완료했다: `X-Devhub-Actor` fallback deprecation, Bearer token verifier interface, 검증된 actor context 연결까지 구현했다. 다음은 Hydra JWKS/introspection verifier와 role/permission lookup 순서다.
-- RBAC policy 조회 API는 1차 완료했다. 현재는 read-only static default이며, 편집 API와 persistence는 approval/audit 경계 확정 뒤 진행한다.
-- WebSocket 인증/구독 필터 설계를 확정한다.
+- Go Core actor 추출 경계는 1차 완료했다: `X-Devhub-Actor` fallback deprecation, Bearer token verifier interface, 검증된 actor context 연결, `/me` user-role lookup까지 구현했다. 다음은 Hydra JWKS/introspection verifier다.
+- 인증 actor가 DevHub user에 매핑되지 않거나 비활성 상태인 경우 role fallback으로 우회하지 않도록 RBAC actor 경계를 강화한다.
+- RBAC policy 조회/교체 API, persistence, `/me`, 주요 쓰기 API enforcement는 1차 완료했다. 다음은 편집 UI 활성화 전 confirmation UX와 approval 필요 여부 확정이다.
+- WebSocket 인증/구독 필터 1차 구현과 publish lock 개선은 완료했다. 다음은 replay와 resource/project scope filter다.
 - audit log 조회 API와 조직/사용자 CRUD audit 연결은 1차 완료됐다. 후속으로 auth actor와 source_ip/request_id 보강이 필요하다.
 
 ### P1: Admin Action 실행 경계
 
-- service action approval model을 확정한다: pending approval, approved, rejected, executor started, executor finished.
-- 실제 executor adapter 인터페이스를 설계한다.
+- service action approval model 1차를 구현했다: `requires_approval=true` pending command를 승인하면 executor 후보, 거절하면 `rejected`로 종료한다.
+- 승인된 live service action만 조회하는 query와 `ServiceActionExecutor` adapter interface/worker 경계를 추가했다.
+- `SERVICE_ACTION_EXECUTOR_MODE=simulation`에서만 켜지는 simulation executor를 추가했다. service/action allowlist를 모두 통과한 command만 외부 side effect 없이 성공 처리한다. 운영용 실제 side-effect adapter는 후속 범위다.
 - Gitea Runner/server 상태 adapter 범위를 확정한다.
 - live command는 기본 거절 또는 approval required로 유지하고, dry-run과 실제 side effect 경계를 테스트로 고정한다.
 
@@ -95,8 +102,9 @@
 
 - `command.status.updated`를 프론트 toast/status UI와 연결한 뒤 event payload 안정성을 확인한다.
 - `infra.node.updated`, `ci.run.updated`, `risk.updated`, `notification.created` publish 경계를 구현한다.
+- WebSocket hub publish 경로는 client snapshot 후 hub lock 밖에서 write하고 실패 client를 제거하도록 1차 개선했다. 장기적으로 backpressure가 필요하면 client별 bounded send queue를 추가한다.
 - WebSocket reconnect/replay 전략을 정한다.
-- role 기반 subscription filtering을 구현한다.
+- resource/project scope 기반 subscription filtering을 구현한다.
 
 ### P3: Gitea REST 및 AI
 
@@ -110,10 +118,20 @@
 - [x] API 계약 §11 Hydra/Kratos 재작성
 - [x] Bearer token 검증 middleware 설계 및 최소 구현
 - [x] RBAC policy 조회 API 및 프론트 Permissions 연동 준비
+- [x] RBAC policy persistence/edit API와 audit 경계
+- [x] RBAC policy edit enforcement (`system_config: admin`)
+- [x] `GET /api/v1/me` 및 DevHub user-role lookup
+- [x] service action/risk/audit/organization RBAC enforcement
+- [x] 인증 actor 미매핑/비활성 시 role fallback 우회 차단
 - [x] `X-Devhub-Actor` deprecation warning 경로 추가
 - [x] audit log 조회 API와 organization CRUD audit 연결
-- [ ] WebSocket 인증/구독 필터/replay 설계
-- [ ] service action approval/executor boundary 설계
+- [x] WebSocket 인증/구독 필터 1차 구현
+- [x] WebSocket publish lock 개선
+- [x] service action approval/reject API 및 audit boundary
+- [x] approved live service action query 및 executor adapter boundary
+- [x] simulation service action executor 및 명시적 main 주입 설정
+- [ ] WebSocket replay 및 resource scope filter 설계
+- [ ] service action 운영 executor adapter 구현 범위 확정
 - [ ] Gitea Runner adapter 범위 확정
 - [ ] AI Gardener suggestion API/UI 연결 범위 확정
 

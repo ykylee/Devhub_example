@@ -111,6 +111,73 @@ func (s *memoryCommandStore) GetCommand(_ context.Context, commandID string) (do
 	return domain.Command{}, store.ErrNotFound
 }
 
+func (s *memoryCommandStore) ApproveCommand(_ context.Context, req domain.CommandApprovalRequest) (domain.Command, domain.AuditLog, error) {
+	for i, command := range s.commands {
+		if command.CommandID != req.CommandID {
+			continue
+		}
+		if command.CommandType != "service_action" || command.Status != "pending" || !command.RequiresApproval {
+			return domain.Command{}, domain.AuditLog{}, store.ErrConflict
+		}
+		command.RequiresApproval = false
+		command.ResultPayload = map[string]any{
+			"approval": map[string]any{
+				"status":      "approved",
+				"actor_login": req.ActorLogin,
+				"reason":      req.Reason,
+			},
+		}
+		command.UpdatedAt = time.Date(2026, 5, 4, 10, 5, 0, 0, time.UTC)
+		s.commands[i] = command
+		auditLog := domain.AuditLog{
+			AuditID:    "audit_approved",
+			ActorLogin: req.ActorLogin,
+			Action:     "service_action.approved",
+			TargetType: command.TargetType,
+			TargetID:   command.TargetID,
+			CommandID:  command.CommandID,
+			CreatedAt:  command.UpdatedAt,
+		}
+		s.auditLog = auditLog
+		return command, auditLog, nil
+	}
+	return domain.Command{}, domain.AuditLog{}, store.ErrNotFound
+}
+
+func (s *memoryCommandStore) RejectCommand(_ context.Context, req domain.CommandApprovalRequest) (domain.Command, domain.AuditLog, error) {
+	for i, command := range s.commands {
+		if command.CommandID != req.CommandID {
+			continue
+		}
+		if command.CommandType != "service_action" || command.Status != "pending" || !command.RequiresApproval {
+			return domain.Command{}, domain.AuditLog{}, store.ErrConflict
+		}
+		command.Status = "rejected"
+		command.RequiresApproval = false
+		command.ResultPayload = map[string]any{
+			"approval": map[string]any{
+				"status":      "rejected",
+				"actor_login": req.ActorLogin,
+				"reason":      req.Reason,
+			},
+		}
+		command.UpdatedAt = time.Date(2026, 5, 4, 10, 5, 0, 0, time.UTC)
+		s.commands[i] = command
+		auditLog := domain.AuditLog{
+			AuditID:    "audit_rejected",
+			ActorLogin: req.ActorLogin,
+			Action:     "service_action.rejected",
+			TargetType: command.TargetType,
+			TargetID:   command.TargetID,
+			CommandID:  command.CommandID,
+			CreatedAt:  command.UpdatedAt,
+		}
+		s.auditLog = auditLog
+		return command, auditLog, nil
+	}
+	return domain.Command{}, domain.AuditLog{}, store.ErrNotFound
+}
+
 func TestCreateServiceActionReturnsCommandLifecycle(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	commandStore := &memoryCommandStore{}
@@ -153,6 +220,44 @@ func TestCreateServiceActionReturnsCommandLifecycle(t *testing.T) {
 	}
 	if command.RequestPayload["metadata"] == nil {
 		t.Fatalf("expected metadata in request payload: %+v", command.RequestPayload)
+	}
+}
+
+func TestCreateServiceActionDryRunAllowsManagerPermission(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	commandStore := &memoryCommandStore{}
+	router := NewRouter(RouterConfig{
+		CommandStore:    commandStore,
+		RBACPolicyStore: &memoryRBACPolicyStore{},
+	})
+
+	body := []byte(`{"service_id":"runner-asia-01","action_type":"restart","reason":"Runner queue is blocked","dry_run":true}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/service-actions", bytes.NewReader(body))
+	req.Header.Set("X-Devhub-Role", "manager")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("expected 202, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestCreateServiceActionLiveRequiresAdminPermission(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	commandStore := &memoryCommandStore{}
+	router := NewRouter(RouterConfig{
+		CommandStore:    commandStore,
+		RBACPolicyStore: &memoryRBACPolicyStore{},
+	})
+
+	body := []byte(`{"service_id":"runner-asia-01","action_type":"restart","reason":"Runner queue is blocked","dry_run":false}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/service-actions", bytes.NewReader(body))
+	req.Header.Set("X-Devhub-Role", "manager")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d body=%s", rec.Code, rec.Body.String())
 	}
 }
 
@@ -281,6 +386,25 @@ func TestCreateRiskMitigationReturnsCommandLifecycle(t *testing.T) {
 	}
 }
 
+func TestCreateRiskMitigationRequiresRiskWrite(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	commandStore := &memoryCommandStore{}
+	router := NewRouter(RouterConfig{
+		CommandStore:    commandStore,
+		RBACPolicyStore: &memoryRBACPolicyStore{},
+	})
+
+	body := []byte(`{"action_type":"rerun_ci","reason":"Fix blocked release"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/risks/risk-1/mitigations", bytes.NewReader(body))
+	req.Header.Set("X-Devhub-Role", "developer")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestCreateRiskMitigationRejectsMissingReason(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := NewRouter(RouterConfig{CommandStore: &memoryCommandStore{}})
@@ -388,5 +512,166 @@ func TestGetCommandReturnsCommandStatus(t *testing.T) {
 	}
 	if response.Data.CommandID != "cmd_test" || response.Data.CommandStatus != "pending" || response.Data.TargetID != "ci_failure:502" {
 		t.Fatalf("unexpected command response: %+v", response.Data)
+	}
+}
+
+func TestApproveServiceActionCommandMarksApprovalAndAudits(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	now := time.Date(2026, 5, 4, 10, 0, 0, 0, time.UTC)
+	commandStore := &memoryCommandStore{
+		commands: []domain.Command{
+			{
+				CommandID:        "cmd_live",
+				CommandType:      "service_action",
+				TargetType:       "service",
+				TargetID:         "runner-asia-01",
+				ActionType:       "restart",
+				Status:           "pending",
+				ActorLogin:       "admin",
+				Reason:           "Apply live restart",
+				DryRun:           false,
+				RequiresApproval: true,
+				RequestPayload:   map[string]any{},
+				ResultPayload:    map[string]any{},
+				CreatedAt:        now,
+				UpdatedAt:        now,
+			},
+		},
+	}
+	router := NewRouter(RouterConfig{CommandStore: commandStore, RBACPolicyStore: &memoryRBACPolicyStore{}})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/commands/cmd_live/approve", bytes.NewReader([]byte(`{"reason":"Approved maintenance window"}`)))
+	req.Header.Set("X-Devhub-Actor", "approver")
+	req.Header.Set("X-Devhub-Role", "system_admin")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	var response struct {
+		Status string `json:"status"`
+		Data   struct {
+			CommandID        string `json:"command_id"`
+			CommandStatus    string `json:"command_status"`
+			RequiresApproval bool   `json:"requires_approval"`
+			ApprovalStatus   string `json:"approval_status"`
+			AuditLogID       string `json:"audit_log_id"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &response); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if response.Status != "approved" || response.Data.CommandID != "cmd_live" || response.Data.CommandStatus != "pending" || response.Data.RequiresApproval || response.Data.ApprovalStatus != "approved" {
+		t.Fatalf("unexpected approval response: %+v", response)
+	}
+	if response.Data.AuditLogID != "audit_approved" {
+		t.Fatalf("expected approval audit id, got %+v", response.Data)
+	}
+	if commandStore.commands[0].RequiresApproval || commandStore.commands[0].ResultPayload["approval"] == nil {
+		t.Fatalf("expected command approval payload, got %+v", commandStore.commands[0])
+	}
+}
+
+func TestRejectServiceActionCommandMarksRejectedAndAudits(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	now := time.Date(2026, 5, 4, 10, 0, 0, 0, time.UTC)
+	commandStore := &memoryCommandStore{
+		commands: []domain.Command{
+			{
+				CommandID:        "cmd_live",
+				CommandType:      "service_action",
+				TargetType:       "service",
+				TargetID:         "runner-asia-01",
+				ActionType:       "restart",
+				Status:           "pending",
+				ActorLogin:       "admin",
+				Reason:           "Apply live restart",
+				DryRun:           false,
+				RequiresApproval: true,
+				RequestPayload:   map[string]any{},
+				ResultPayload:    map[string]any{},
+				CreatedAt:        now,
+				UpdatedAt:        now,
+			},
+		},
+	}
+	router := NewRouter(RouterConfig{CommandStore: commandStore, RBACPolicyStore: &memoryRBACPolicyStore{}})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/commands/cmd_live/reject", bytes.NewReader([]byte(`{"reason":"Outside maintenance window"}`)))
+	req.Header.Set("X-Devhub-Actor", "approver")
+	req.Header.Set("X-Devhub-Role", "system_admin")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	var response struct {
+		Status string `json:"status"`
+		Data   struct {
+			CommandStatus  string `json:"command_status"`
+			ApprovalStatus string `json:"approval_status"`
+			AuditLogID     string `json:"audit_log_id"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &response); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if response.Status != "rejected" || response.Data.CommandStatus != "rejected" || response.Data.ApprovalStatus != "rejected" || response.Data.AuditLogID != "audit_rejected" {
+		t.Fatalf("unexpected reject response: %+v", response)
+	}
+	if commandStore.commands[0].Status != "rejected" {
+		t.Fatalf("expected rejected command, got %+v", commandStore.commands[0])
+	}
+}
+
+func TestApproveCommandRequiresCommandAdmin(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := NewRouter(RouterConfig{
+		CommandStore:    &memoryCommandStore{},
+		RBACPolicyStore: &memoryRBACPolicyStore{},
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/commands/cmd_live/approve", bytes.NewReader([]byte(`{"reason":"approve"}`)))
+	req.Header.Set("X-Devhub-Role", "manager")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestApproveCommandRejectsNonPendingApproval(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	now := time.Date(2026, 5, 4, 10, 0, 0, 0, time.UTC)
+	router := NewRouter(RouterConfig{
+		CommandStore: &memoryCommandStore{
+			commands: []domain.Command{
+				{
+					CommandID:        "cmd_dry",
+					CommandType:      "service_action",
+					TargetType:       "service",
+					TargetID:         "runner-asia-01",
+					ActionType:       "restart",
+					Status:           "pending",
+					DryRun:           true,
+					RequiresApproval: false,
+					CreatedAt:        now,
+					UpdatedAt:        now,
+				},
+			},
+		},
+		RBACPolicyStore: &memoryRBACPolicyStore{},
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/commands/cmd_dry/approve", bytes.NewReader([]byte(`{"reason":"approve"}`)))
+	req.Header.Set("X-Devhub-Role", "system_admin")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("expected 409, got %d body=%s", rec.Code, rec.Body.String())
 	}
 }

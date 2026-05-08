@@ -354,6 +354,9 @@ func (h Handler) createUser(c *gin.Context) {
 		})
 		return
 	}
+	if !h.requirePermission(c, "organization", domain.RBACPermissionWrite) {
+		return
+	}
 
 	var req createUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -430,6 +433,9 @@ func (h Handler) updateUser(c *gin.Context) {
 			"status": "unavailable",
 			"error":  "organization store is not configured",
 		})
+		return
+	}
+	if !h.requirePermission(c, "organization", domain.RBACPermissionWrite) {
 		return
 	}
 
@@ -525,6 +531,9 @@ func (h Handler) deleteUser(c *gin.Context) {
 		})
 		return
 	}
+	if !h.requirePermission(c, "organization", domain.RBACPermissionWrite) {
+		return
+	}
 
 	userID := strings.TrimSpace(c.Param("user_id"))
 	if userID == "" {
@@ -596,6 +605,9 @@ func (h Handler) createOrgUnit(c *gin.Context) {
 		})
 		return
 	}
+	if !h.requirePermission(c, "organization", domain.RBACPermissionWrite) {
+		return
+	}
 
 	var req createOrgUnitRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -664,6 +676,9 @@ func (h Handler) updateOrgUnit(c *gin.Context) {
 		})
 		return
 	}
+	if !h.requirePermission(c, "organization", domain.RBACPermissionWrite) {
+		return
+	}
 
 	unitID := strings.TrimSpace(c.Param("unit_id"))
 	if unitID == "" {
@@ -730,6 +745,9 @@ func (h Handler) deleteOrgUnit(c *gin.Context) {
 		})
 		return
 	}
+	if !h.requirePermission(c, "organization", domain.RBACPermissionWrite) {
+		return
+	}
 
 	unitID := strings.TrimSpace(c.Param("unit_id"))
 	if unitID == "" {
@@ -761,6 +779,9 @@ func (h Handler) replaceUnitMembers(c *gin.Context) {
 			"status": "unavailable",
 			"error":  "organization store is not configured",
 		})
+		return
+	}
+	if !h.requirePermission(c, "organization", domain.RBACPermissionWrite) {
 		return
 	}
 

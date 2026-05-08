@@ -47,6 +47,7 @@ system_admin
 
 - 화면 진입 시 REST snapshot을 먼저 조회한다.
 - 이후 `GET /api/v1/realtime/ws` WebSocket으로 변경 이벤트를 받는다.
+- RBAC enabled 환경에서는 WebSocket 연결 시 `types` query로 필요한 event type을 명시한다. 예: `/api/v1/realtime/ws?types=command.status.updated`.
 - WebSocket 메시지는 공통 envelope를 사용한다.
 - 프론트는 알 수 없는 `type`을 무시하고, `schema_version`이 맞지 않는 메시지는 로깅만 한다.
 
@@ -87,7 +88,9 @@ POST /api/v1/notifications/clear
 - unread notification count
 - focus mode 상태는 초기에는 프론트 local state로 유지 가능하나, 장기적으로 사용자 설정 API로 이동 검토
 
-2026-05-07 기준 `GET /api/v1/rbac/policy`가 추가됐다. Organization > Permissions 화면은 이 API를 우선 호출하고, 실패 시 기존 default matrix로 fallback한다. 현재 policy는 read-only static default이며 편집 API는 후속 approval/audit 경계에서 정의한다.
+2026-05-07 기준 `GET /api/v1/me`가 추가됐다. 프론트는 인증 초기화 시 이 API로 DevHub user profile, `allowed_roles`, `effective_permissions`를 조회할 수 있다. 권한 source of truth는 token role claim보다 DevHub `users.role`이다.
+
+2026-05-07 기준 `GET /api/v1/rbac/policy`와 `PUT /api/v1/rbac/policy`가 추가됐다. Organization > Permissions 화면은 조회 API를 우선 호출하고, 실패 시 기존 default matrix로 fallback한다. 교체 API는 전체 matrix replace 방식이며 `reason`, audit log, `system_config: admin` 권한을 요구한다. 프론트 편집 UI는 confirmation UX가 정리된 뒤 활성화한다.
 
 ### 3.2 역할별 KPI metric
 
@@ -168,6 +171,8 @@ GET /api/v1/admin/config
 - audit log table
 - 2026-05-06 기준 프론트 `infraService.controlService()`는 `POST /api/v1/admin/service-actions`를 호출해 dry-run service action command를 생성한다. 백엔드는 승인 불필요 dry-run command를 `running` 이후 `succeeded`로 자동 전이하고 `command.status.updated` 이벤트를 발행한다. 프론트 후속 작업은 이 이벤트를 toast/상태 UI에 반영하는 것이다.
 - 2026-05-07 기준 `GET /api/v1/audit-logs`가 추가됐고, 조직/사용자 CRUD 및 멤버 교체는 audit log를 남긴다. `X-Devhub-Actor` 사용 시 deprecation 응답 헤더를 내려 Phase 13 token actor 전환 경로를 노출한다.
+- 2026-05-07 기준 RBAC enforcement가 일부 쓰기 API에 적용됐다: service action dry-run은 `commands: write`, live/force service action은 `commands: admin`, risk mitigation은 `risks: write`, audit 조회는 `system_config: read`, 조직/사용자 쓰기는 `organization: write`가 필요하다.
+- 2026-05-07 기준 WebSocket 연결은 `types` query 기반 subscription filtering과 event별 RBAC read permission check를 수행한다. 프론트 `RealtimeService`는 우선 `command.status.updated`를 구독하도록 준비됐다.
 
 ### 3.6 WebSocket event
 
@@ -186,9 +191,11 @@ notification.created
 
 필요 백엔드 개발:
 - WebSocket hub
-- role/project 권한 기반 subscription filtering
+- role 기반 subscription filtering
 - event id, timestamp, schema version, reconnect 기준
   - raw webhook 처리 후 domain event publish 경로
+
+2026-05-07 기준 `command.status.updated`, `risk.*`, `ci.*`, `infra.*`, `notification.created` event type에 대한 권한 매핑과 subscription allowlist 1차 구현이 추가됐다. 마지막 event replay와 project/resource 세부 scope 필터는 후속 범위다.
 
 ### 3.7 Organization Management
 
@@ -290,3 +297,4 @@ POST   /api/v1/auth/logout
 
 ### 6.5 Idempotency Key 및 필터링 정책
 - **요청**: 프론트에서 생성하는 `mitigation-{riskId}-{timestamp}` 키에 대한 백엔드 중복 체크 로직과, 사용자 역할(Role)에 따른 WebSocket 이벤트 구독 필터링(Subscription Filtering) 로직을 Phase 8의 핵심 요건으로 포함한다.
+- **진행**: 2026-05-07 기준 idempotency replay와 역할 기반 WebSocket subscription filtering 1차 구현은 완료됐다. 남은 범위는 replay, resource/project scope 필터, 추가 domain event publish다.

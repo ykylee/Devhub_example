@@ -29,6 +29,10 @@ type serviceActionRequest struct {
 	Metadata       map[string]any `json:"metadata"`
 }
 
+type commandApprovalRequest struct {
+	Reason string `json:"reason"`
+}
+
 type commandResponse struct {
 	CommandID        string         `json:"command_id"`
 	CommandType      string         `json:"command_type"`
@@ -40,6 +44,7 @@ type commandResponse struct {
 	Reason           string         `json:"reason"`
 	DryRun           bool           `json:"dry_run"`
 	RequiresApproval bool           `json:"requires_approval"`
+	ApprovalStatus   string         `json:"approval_status"`
 	IdempotencyKey   string         `json:"idempotency_key,omitempty"`
 	RequestPayload   map[string]any `json:"request_payload"`
 	ResultPayload    map[string]any `json:"result_payload"`
@@ -51,6 +56,7 @@ type commandAcceptedResponse struct {
 	CommandID        string    `json:"command_id"`
 	CommandStatus    string    `json:"command_status"`
 	RequiresApproval bool      `json:"requires_approval"`
+	ApprovalStatus   string    `json:"approval_status"`
 	AuditLogID       string    `json:"audit_log_id"`
 	IdempotentReplay bool      `json:"idempotent_replay"`
 	CreatedAt        time.Time `json:"created_at"`
@@ -92,6 +98,13 @@ func (h Handler) createServiceAction(c *gin.Context) {
 		dryRun = *request.DryRun
 	}
 	requiresApproval := request.Force || !dryRun
+	requiredPermission := domain.RBACPermissionWrite
+	if requiresApproval {
+		requiredPermission = domain.RBACPermissionAdmin
+	}
+	if !h.requirePermission(c, "commands", requiredPermission) {
+		return
+	}
 	payload := map[string]any{
 		"service_id":  request.ServiceID,
 		"action_type": request.ActionType,
@@ -125,6 +138,7 @@ func (h Handler) createServiceAction(c *gin.Context) {
 			CommandID:        command.CommandID,
 			CommandStatus:    command.Status,
 			RequiresApproval: command.RequiresApproval,
+			ApprovalStatus:   approvalStatusFor(command),
 			AuditLogID:       auditLog.AuditID,
 			IdempotentReplay: replayed,
 			CreatedAt:        command.CreatedAt,
@@ -168,6 +182,9 @@ func (h Handler) createRiskMitigation(c *gin.Context) {
 	if request.DryRun != nil {
 		dryRun = *request.DryRun
 	}
+	if !h.requirePermission(c, "risks", domain.RBACPermissionWrite) {
+		return
+	}
 	payload := map[string]any{
 		"action_type": request.ActionType,
 		"dry_run":     dryRun,
@@ -201,6 +218,7 @@ func (h Handler) createRiskMitigation(c *gin.Context) {
 			CommandID:        command.CommandID,
 			CommandStatus:    command.Status,
 			RequiresApproval: command.RequiresApproval,
+			ApprovalStatus:   approvalStatusFor(command),
 			AuditLogID:       auditLog.AuditID,
 			IdempotentReplay: replayed,
 			CreatedAt:        command.CreatedAt,
@@ -239,6 +257,87 @@ func (h Handler) getCommand(c *gin.Context) {
 	})
 }
 
+func (h Handler) approveCommand(c *gin.Context) {
+	h.reviewCommand(c, true)
+}
+
+func (h Handler) rejectCommand(c *gin.Context) {
+	h.reviewCommand(c, false)
+}
+
+func (h Handler) reviewCommand(c *gin.Context, approve bool) {
+	if h.cfg.CommandStore == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"status": "unavailable",
+			"error":  "command store is not configured",
+		})
+		return
+	}
+	if !h.requirePermission(c, "commands", domain.RBACPermissionAdmin) {
+		return
+	}
+
+	commandID := strings.TrimSpace(c.Param("command_id"))
+	if commandID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "command_id is required"})
+		return
+	}
+
+	var request commandApprovalRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "request body must be valid JSON"})
+		return
+	}
+	request.Reason = strings.TrimSpace(request.Reason)
+	if request.Reason == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "reason is required"})
+		return
+	}
+
+	input := domain.CommandApprovalRequest{
+		CommandID:  commandID,
+		ActorLogin: actorLogin(c),
+		Reason:     request.Reason,
+	}
+	var (
+		command  domain.Command
+		auditLog domain.AuditLog
+		err      error
+	)
+	if approve {
+		command, auditLog, err = h.cfg.CommandStore.ApproveCommand(c.Request.Context(), input)
+	} else {
+		command, auditLog, err = h.cfg.CommandStore.RejectCommand(c.Request.Context(), input)
+	}
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "command not found"})
+		case errors.Is(err, store.ErrConflict):
+			c.JSON(http.StatusConflict, gin.H{"status": "conflict", "error": "command is not pending approval"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		}
+		return
+	}
+
+	responseStatus := "approved"
+	if !approve {
+		responseStatus = "rejected"
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"status": responseStatus,
+		"data": commandAcceptedResponse{
+			CommandID:        command.CommandID,
+			CommandStatus:    command.Status,
+			RequiresApproval: command.RequiresApproval,
+			ApprovalStatus:   approvalStatusFor(command),
+			AuditLogID:       auditLog.AuditID,
+			CreatedAt:        command.CreatedAt,
+		},
+	})
+}
+
 func commandFromDomain(command domain.Command) commandResponse {
 	return commandResponse{
 		CommandID:        command.CommandID,
@@ -251,12 +350,26 @@ func commandFromDomain(command domain.Command) commandResponse {
 		Reason:           command.Reason,
 		DryRun:           command.DryRun,
 		RequiresApproval: command.RequiresApproval,
+		ApprovalStatus:   approvalStatusFor(command),
 		IdempotencyKey:   command.IdempotencyKey,
 		RequestPayload:   command.RequestPayload,
 		ResultPayload:    command.ResultPayload,
 		CreatedAt:        command.CreatedAt,
 		UpdatedAt:        command.UpdatedAt,
 	}
+}
+
+func approvalStatusFor(command domain.Command) string {
+	if command.Status == "rejected" {
+		return "rejected"
+	}
+	if command.RequiresApproval {
+		return "pending"
+	}
+	if command.DryRun {
+		return "not_required"
+	}
+	return "approved"
 }
 
 func actorLogin(c *gin.Context) string {

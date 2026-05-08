@@ -68,6 +68,24 @@ interface BackendUser {
   joined_at?: string;
 }
 
+interface BackendMe {
+  user: BackendUser;
+  actor: {
+    login: string;
+    subject?: string;
+    source: string;
+  };
+  allowed_roles: string[];
+  effective_permissions: Record<string, string>;
+}
+
+export interface CurrentUserContext {
+  user: OrgMember;
+  actor: BackendMe["actor"];
+  allowed_roles: string[];
+  effective_permissions: Record<string, string>;
+}
+
 interface BackendUnit {
   unit_id: string;
   parent_unit_id?: string;
@@ -234,6 +252,24 @@ export class IdentityService {
       IdentityService.instance = new IdentityService();
     }
     return IdentityService.instance;
+  }
+
+  async getCurrentUser(): Promise<CurrentUserContext | null> {
+    try {
+      const response = await fetch(`/api/v1/me`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const result = await response.json() as ApiResponse<BackendMe>;
+      if (!result.data) throw new Error("missing current user payload");
+      return {
+        user: mapBackendUser(result.data.user),
+        actor: result.data.actor,
+        allowed_roles: result.data.allowed_roles,
+        effective_permissions: result.data.effective_permissions,
+      };
+    } catch (error) {
+      console.error('[IdentityService] getCurrentUser error:', error);
+      return null;
+    }
   }
 
   async getUsers(): Promise<OrgMember[]> {

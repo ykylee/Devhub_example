@@ -16,6 +16,7 @@
 ## 2. 날짜별 백로그
 
 - [2026-05-07](./backlog/2026-05-07.md)
+- [2026-05-08](./backlog/2026-05-08.md)
 
 ## 3. 작업 상태 요약
 
@@ -28,15 +29,23 @@
 - [x] TASK-BACKEND-P0-AUDIT-ACTOR: audit 조회 API 및 actor fallback deprecation
 - [x] TASK-BACKEND-P0-AUTH-BOUNDARY: Hydra/Kratos API 계약 재작성 및 Bearer actor 경계
 - [x] TASK-BACKEND-P0-RBAC-POLICY: RBAC policy 조회 API 및 프론트 Permissions 연동 준비
+- [x] TASK-BACKEND-P0-RBAC-PERSISTENCE: RBAC policy persistence/edit API와 audit 경계
+- [x] TASK-BACKEND-P0-RBAC-ENFORCEMENT: RBAC policy edit enforcement
+- [x] TASK-BACKEND-P0-ME: `/api/v1/me` 및 DevHub user-role lookup
+- [x] TASK-BACKEND-P0-RBAC-WRITE-ENFORCEMENT: service action/risk/audit/organization RBAC enforcement
+- [x] TASK-BACKEND-P0-REALTIME-AUTH-FILTER: WebSocket `types` subscription filtering 및 RBAC read permission check
+- [x] TASK-BACKEND-P0-ACTOR-FALLBACK-HARDENING: 인증 actor 미매핑/비활성 시 role fallback 우회 차단
+- [x] TASK-BACKEND-P0-REALTIME-PUBLISH-LOCK: WebSocket publish lock 개선 및 실패 client 제거
+- [x] TASK-BACKEND-P1-SERVICE-ACTION-APPROVAL: service action approve/reject API 및 audit boundary
+- [x] TASK-BACKEND-P1-SERVICE-ACTION-EXECUTOR-BOUNDARY: approved live service action query 및 executor adapter boundary
+- [x] TASK-BACKEND-P1-SERVICE-ACTION-SIM-EXECUTOR: simulation service action executor 및 명시적 main 주입 설정
 - [ ] TASK-007: AI Gardener Suggestions 및 Admin Service Actions 실체화
 
 ## 4. 다음 작업 후보
 
-- RBAC policy persistence/edit API와 audit/approval 경계 설계
+- service action 운영 executor adapter 구현 범위 확정
 - Hydra JWKS/introspection verifier 실제 구현
-- `/api/v1/me`와 role/permission lookup 순서 확정
-- 프론트 `RealtimeService` command status event UI 반영
+- WebSocket replay 및 resource/project scope filter 설계
 - Gitea Runner 세부 상태 adapter 또는 Gitea REST client 연동 범위 확정
 - AI Gardener suggestion API/UI 연결 범위 확정
-- 실제 executor/approval boundary 설계
 - production command API actor verification을 JWT/session 기반으로 전환

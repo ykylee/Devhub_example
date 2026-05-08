@@ -64,7 +64,7 @@ DevHub 자체 사용자 계정(Account) 1:1 컨셉 도입 (`docs/requirements.md
 ### 6.1 로그인 / 인증 흐름
 
 - **목표:** `/login` 진입점 + 인증 가드 + `must_change_password=true` 라우팅.
-- **API:** `POST /api/v1/auth/login`, `POST /api/v1/auth/logout`, `GET /api/v1/me` (예정).
+- **API:** Hydra/Kratos login/logout flow, `GET /api/v1/me` (구현됨).
 - **핵심 로직:**
     - 로그인 폼은 `login_id` + `password`만 받는다.
     - 응답 `must_change_password=true`면 즉시 `/account/password`로 강제 라우팅한다.

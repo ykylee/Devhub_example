@@ -29,6 +29,9 @@ func (h Handler) listAuditLogs(c *gin.Context) {
 		})
 		return
 	}
+	if !h.requirePermission(c, "system_config", domain.RBACPermissionRead) {
+		return
+	}
 
 	limit, err := parseBoundedInt(c.DefaultQuery("limit", "50"), 1, 100)
 	if err != nil {

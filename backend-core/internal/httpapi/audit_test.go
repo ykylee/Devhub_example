@@ -101,6 +101,19 @@ func TestListAuditLogsFiltersByTarget(t *testing.T) {
 	}
 }
 
+func TestListAuditLogsRequiresSystemConfigRead(t *testing.T) {
+	audits := &memoryAuditStore{}
+	router := NewRouter(RouterConfig{AuditStore: audits, RBACPolicyStore: &memoryRBACPolicyStore{}})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/audit-logs", nil)
+	req.Header.Set("X-Devhub-Role", "manager")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestCreateUserWritesAuditLogWithActorWarning(t *testing.T) {
 	orgs := newMemoryOrganizationStore()
 	audits := &memoryAuditStore{}
