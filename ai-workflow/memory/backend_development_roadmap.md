@@ -9,8 +9,8 @@
 - 상태: in_progress
 - 최종 수정일: 2026-05-08 (통합 로드맵 진입점 링크 추가)
 - 관련 문서: [`docs/development_roadmap.md`](../../docs/development_roadmap.md) (통합), `docs/requirements.md`, `docs/architecture.md`, `docs/tech_stack.md`, `docs/backend_api_contract.md`, `docs/backend/frontend_integration_requirements.md`, `docs/backend/requirements_review.md`, `docs/adr/0001-idp-selection.md`, `ai-workflow/memory/codex/service-action-command/session_handoff.md`
-- 현재 브랜치: `codex/service-action-command`
-- 현재 기준선: `origin/main@7316ddd` 반영 완료. Phase 12 조직/사용자 CRUD, Phase 13 Ory Hydra/Kratos PoC scaffold, TASK-020~023 command/realtime worker가 같은 브랜치에 공존한다.
+- 현재 브랜치: `main`
+- 현재 기준선: `origin/main` 반영 완료. Phase 12 (조직/사용자), Phase 13 (IdP PoC), M1 (RBAC Core) 머지 완료.
 
 ## 1. 개발 원칙
 
@@ -40,7 +40,7 @@
 | Phase 10 | planned | Hourly Pull Reconciliation | Gitea REST client, 누락 이벤트 보정 worker | dry-run 및 idempotency 테스트 |
 | Phase 11 | planned | 시스템 관리자 기능 고도화 | Runner/server adapter, config 조회, allowlist/seed admin | 권한/audit/health adapter 테스트 |
 | Phase 12 | done | 조직/사용자 관리 API | `users`, `org_units`, appointments, hierarchy, unit members CRUD | handler/store 테스트 및 프론트 연동 |
-| Phase 13 | in_progress | Ory Hydra/Kratos IdP 도입 | ADR-0001, IdP PoC scaffold, schema/config/client 등록 | Go Core token middleware, identity admin wrapper, audit mapping |
+| Phase 13 | in_progress | Ory Hydra/Kratos IdP 도입 | ADR-0001, IdP PoC scaffold, PR-LOGIN-1/2 (Auth 핸들러/UI) 진행 중 | Go Core token middleware, identity admin wrapper, audit mapping |
 
 ## 3. 현재 완료 범위
 
@@ -81,42 +81,30 @@
 - Phase 13 계정/인증 계약은 자체 accounts table 전제를 폐기하고 Hydra/Kratos 기준으로 재작성했다. 실제 JWKS/introspection verifier와 admin identity wrapper 구현은 남아 있다.
 - Docker 기반 실행 전제와 Phase 13 native binary 운영 전제가 문서마다 섞여 있다. 로컬 검증 명령은 당분간 Go/NPM/native PostgreSQL 중심으로 유지하고, Docker Compose는 호환 폴백으로 낮춘다.
 
-## 5. 우선순위 계획
+## 5. 기능 단위별 우선순위 계획 (Functional Priorities)
 
-### P0: 통합 안정화
+### [P0] M2: 인증 및 사용자 기반 (Auth & User Base)
+- **OIDC 연동 완성**: Hydra JWKS/introspection verifier 구현 및 Go Core actor context 완전 전환.
+- **Identity Admin Wrapper**: Kratos admin identity API(CRUD, recovery) wrapper 5종 구현.
+- **사용자 상태 동기화**: Kratos identity webhook 수신 및 `users.status` 자동 업데이트 + audit 매핑.
 
-- `docs/backend_api_contract.md` §11 Hydra/Kratos 재작성은 완료했다.
-- Go Core actor 추출 경계는 1차 완료했다: `X-Devhub-Actor` fallback deprecation, Bearer token verifier interface, 검증된 actor context 연결, `/me` user-role lookup까지 구현했다. 다음은 Hydra JWKS/introspection verifier다.
-- 인증 actor가 DevHub user에 매핑되지 않거나 비활성 상태인 경우 role fallback으로 우회하지 않도록 RBAC actor 경계를 강화한다.
-- RBAC policy 조회/교체 API, persistence, `/me`, 주요 쓰기 API enforcement는 1차 완료했다. 다음은 편집 UI 활성화 전 confirmation UX와 approval 필요 여부 확정이다.
-- WebSocket 인증/구독 필터 1차 구현과 publish lock 개선은 완료했다. 다음은 replay와 resource/project scope filter다.
-- audit log 조회 API와 조직/사용자 CRUD audit 연결은 1차 완료됐다. 후속으로 auth actor와 source_ip/request_id 보강이 필요하다.
+### [P1] M3: 실시간 대시보드 및 제어 (Realtime & Control)
+- **WebSocket 확장**: `infra.node.updated`, `ci.run.updated`, `risk.updated`, `notification.created` 이벤트 publish 및 리플레이 전략 구현.
+- **Resource Filtering**: 프로젝트/리소스 스코프 기반 WebSocket 구독 필터링.
+- **Admin Action 고도화**: 실제 인프라 제어를 위한 executor adapter interface 설계 및 Gitea Runner 상태 연동.
 
-### P1: Admin Action 실행 경계
+### [P2] M3: AI Gardener 통합 (AI Integration)
+- **gRPC 서비스 연결**: Python `AnalysisService`와 Go Core 간 gRPC 클라이언트/서버 통신 구현.
+- **Suggestion Flow**: AI 제안 데이터 정규화 및 리스트/커맨드 모델 연동.
 
-- service action approval model 1차를 구현했다: `requires_approval=true` pending command를 승인하면 executor 후보, 거절하면 `rejected`로 종료한다.
-- 승인된 live service action만 조회하는 query와 `ServiceActionExecutor` adapter interface/worker 경계를 추가했다.
-- `SERVICE_ACTION_EXECUTOR_MODE=simulation`에서만 켜지는 simulation executor를 추가했다. service/action allowlist를 모두 통과한 command만 외부 side effect 없이 성공 처리한다. 운영용 실제 side-effect adapter는 후속 범위다.
-- Gitea Runner/server 상태 adapter 범위를 확정한다.
-- live command는 기본 거절 또는 approval required로 유지하고, dry-run과 실제 side effect 경계를 테스트로 고정한다.
+### [P3] M4: 과제 추적 및 시스템 관리 (Task & Admin)
+- **Gitea Reconciliation**: Gitea REST API를 통한 Hourly Pull worker 구현 및 데이터 누락 보정.
+- **Task 정규화**: Pull Request/Commit 기반 과제 데이터 추적 및 영속화 테이블 도입.
+- **System Admin**: 전역 설정 관리 API 및 시스템 리소스 모니터링 기능 확장.
 
-### P2: Realtime 확장
+---
 
-- `command.status.updated`를 프론트 toast/status UI와 연결한 뒤 event payload 안정성을 확인한다.
-- `infra.node.updated`, `ci.run.updated`, `risk.updated`, `notification.created` publish 경계를 구현한다.
-- WebSocket hub publish 경로는 client snapshot 후 hub lock 밖에서 write하고 실패 client를 제거하도록 1차 개선했다. 장기적으로 backpressure가 필요하면 client별 bounded send queue를 추가한다.
-- WebSocket reconnect/replay 전략을 정한다.
-- resource/project scope 기반 subscription filtering을 구현한다.
-
-### P3: Gitea REST 및 AI
-
-- Gitea REST client와 hourly reconciliation worker를 설계한다.
-- commit 단위 정규화 필요성을 검토하고 `commits` 테이블 도입 여부를 결정한다.
-- Python AI gRPC 서버와 Go Core client 연결을 시작한다.
-- AI Gardener suggestion 입력/출력 모델을 command/audit 및 risk 모델과 연결한다.
-
-## 6. 다음 작업 큐
-
+## 6. 다음 작업 큐 (Next Tasks Queue)
 - [x] API 계약 §11 Hydra/Kratos 재작성
 - [x] Bearer token 검증 middleware 설계 및 최소 구현
 - [x] RBAC policy 조회 API 및 프론트 Permissions 연동 준비
@@ -132,10 +120,11 @@
 - [x] service action approval/reject API 및 audit boundary
 - [x] approved live service action query 및 executor adapter boundary
 - [x] simulation service action executor 및 명시적 main 주입 설정
-- [ ] WebSocket replay 및 resource scope filter 설계
-- [ ] service action 운영 executor adapter 구현 범위 확정
-- [ ] Gitea Runner adapter 범위 확정
-- [ ] AI Gardener suggestion API/UI 연결 범위 확정
+- [ ] Hydra JWKS/introspection verifier 실구현 및 주입
+- [ ] Kratos identity admin API wrapper 5종 (internal/httpapi)
+- [ ] WebSocket resource scope filtering 설계 및 구현
+- [ ] Python AI gRPC client 연동 (internal/analysis)
+- [ ] Gitea REST Pull worker 및 Hourly Reconciliation
 
 ## 7. Blocked 항목
 

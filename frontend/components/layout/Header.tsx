@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useStore, type UserRole } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import { realtimeService } from "@/lib/services/realtime.service";
+import { ThemeToggle } from "./ThemeToggle";
 
 type ConnectionStatusEvent = {
   connected: boolean;
@@ -68,6 +69,7 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
         </div>
         
         <div className="flex items-center gap-6">
+          <ThemeToggle />
           <motion.button 
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}

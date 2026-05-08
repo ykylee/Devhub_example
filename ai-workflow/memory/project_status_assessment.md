@@ -4,15 +4,15 @@
 - 범위: 기본 문서화, 도구 활용도, 프로세스 준수도, 지능화 수준
 - 대상 독자: 프로젝트 리드, AI 에이전트, 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-05-06
-- 관련 문서: [공통 표준](../core/global_workflow_standard.md), [세션 인계](./session_handoff.md)
+- 최종 수정일: 2026-05-08
+- 관련 문서: [통합 개발 로드맵](../docs/development_roadmap.md), [세션 인계](./session_handoff.md)
 
 ## 1. 진단 요약 (Executive Summary)
 
-- **현재 레벨**: Alpha
-- **핵심 강점**: 세션 인계, 백로그, 프로젝트 프로파일, 로드맵이 분리되어 있고 주요 작업 기록이 남아 있다.
-- **개선 필요 항목**: AGENTS/워크플로우 문서 경로 정합성, 최신 backlog 생성 주기, 자동 검증 명령 정착.
-- **차기 목표**: `ai-workflow/memory/` 기준 운영 문서를 단일 source of truth로 고정하고 세션 종료 시 state/handoff/backlog를 일관되게 갱신한다.
+- **현재 레벨**: Beta
+- **핵심 강점**: `ai-workflow/memory/` 기반의 브랜치별 격리 메모리와 `docs/development_roadmap.md` 통합 로드맵이 정착됨.
+- **개선 필요 항목**: 자동화된 워크플로우 린트 정착, 실시간 상태 대시보드(워크플로우 관점) 연동.
+- **차기 목표**: 모든 세션에서 `state.json`과 `session_handoff.md`를 100% 동기화하고, `workflow_kit`을 활용한 자동 갱신 비중을 높인다.
 
 ---
 

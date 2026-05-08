@@ -28,6 +28,29 @@
 
 @layer base {
   :root {
+    --background: #ffffff;
+    --foreground: #0f172a;
+    --card: rgba(0, 0, 0, 0.02);
+    --card-foreground: #0f172a;
+    --popover: #ffffff;
+    --popover-foreground: #0f172a;
+    --primary: #2563eb;
+    --primary-foreground: #ffffff;
+    --secondary: #f1f5f9;
+    --secondary-foreground: #0f172a;
+    --muted: #f1f5f9;
+    --muted-foreground: #64748b;
+    --accent: #0ea5e9;
+    --accent-foreground: #ffffff;
+    --destructive: #ef4444;
+    --destructive-foreground: #ffffff;
+    --border: #e2e8f0;
+    --input: #f1f5f9;
+    --ring: #3b82f6;
+    --radius: 1rem;
+  }
+
+  .theme-dark {
     --background: #030014;
     --foreground: #fafafa;
     --card: rgba(255, 255, 255, 0.03);
@@ -47,7 +70,6 @@
     --border: rgba(255, 255, 255, 0.1);
     --input: rgba(255, 255, 255, 0.05);
     --ring: #8b5cf6;
-    --radius: 1rem;
   }
 }
 
@@ -59,25 +81,42 @@
     @apply bg-background text-foreground antialiased selection:bg-primary/20;
     font-feature-settings: "rlig" 1, "calt" 1;
     background-image: 
+      radial-gradient(circle at 50% -20%, #e0f2fe 0%, transparent 50%),
+      radial-gradient(circle at 0% 100%, #f0f9ff 0%, transparent 40%),
+      radial-gradient(circle at 100% 100%, #e0e7ff 0%, transparent 40%);
+    background-attachment: fixed;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  .theme-dark body {
+    background-image: 
       radial-gradient(circle at 50% -20%, #312e81 0%, transparent 50%),
       radial-gradient(circle at 0% 100%, #1e1b4b 0%, transparent 40%),
       radial-gradient(circle at 100% 100%, #4c1d95 0%, transparent 40%);
-    background-attachment: fixed;
   }
 }
 
 @layer components {
   .glass {
-    @apply bg-white/5 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)];
+    @apply bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.1)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)];
   }
   
   .glass-card {
-    @apply bg-white/5 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] rounded-2xl transition-all duration-300 hover:bg-white/10 hover:border-white/20;
+    @apply bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.1)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] rounded-2xl transition-all duration-300 hover:bg-white/60 dark:hover:bg-white/10 hover:border-white/30 dark:hover:border-white/20;
   }
   
   .text-gradient {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent;
   }
+}
+
+/* Theme class selector support for tailwind dark: modifier if needed, 
+   but since we use .theme-dark on html, we can also use that */
+.theme-dark .glass {
+  @apply bg-white/5 border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)];
+}
+.theme-dark .glass-card {
+  @apply bg-white/5 border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)];
 }
 
 /* Custom Scrollbar */
