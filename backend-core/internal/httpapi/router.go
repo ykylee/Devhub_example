@@ -64,6 +64,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 
 	v1 := router.Group("/api/v1")
 	v1.Use(handler.authenticateActor)
+	// SECURITY (SEC-3): mutating routes below (POST/PATCH/DELETE/PUT for users, org units, admin/service-actions, risks/mitigations) currently take no role gate. devhub_actor_role is set in auth.go but read by no handler, so defaultRBACPolicy() is unenforced. Tracked in ai-workflow/memory/claude/test/backend-integration/backlog/2026-05-08.md.
 	v1.GET("/dashboard/metrics", handler.dashboardMetrics)
 	v1.GET("/events", handler.listWebhookEvents)
 	v1.GET("/infra/edges", handler.infraEdges)

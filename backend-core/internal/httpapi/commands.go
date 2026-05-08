@@ -268,6 +268,7 @@ type requestActorInfo struct {
 	Source string
 }
 
+// SECURITY (SEC-4): X-Devhub-Actor header fallback below allows audit/command actor spoofing while SEC-2 keeps the auth middleware open. Remove the fallback (or gate behind DEVHUB_AUTH_DEV_FALLBACK=1) once a verifier is wired in. Tracked in ai-workflow/memory/claude/test/backend-integration/backlog/2026-05-08.md.
 func requestActor(c *gin.Context) requestActorInfo {
 	if value, ok := c.Get("devhub_actor_login"); ok {
 		if actor, ok := value.(string); ok {
