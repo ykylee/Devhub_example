@@ -419,6 +419,8 @@ Manager dashboard의 critical risk 목록을 조회한다.
 
 REST snapshot 조회 이후 변경 이벤트를 수신하는 WebSocket endpoint다. 브라우저 프론트엔드는 gRPC stream에 직접 연결하지 않는다.
 
+RBAC enabled 환경에서는 `types` query로 필요한 event type을 명시한다. `actor`/`role` query와 `X-Devhub-Actor`/`X-Devhub-Role` fallback은 `DEVHUB_AUTH_DEV_FALLBACK=true`인 개발 환경에서만 허용한다. 운영 환경에서는 Bearer token 또는 session 기반 actor context를 사용해야 한다.
+
 #### 메시지 envelope
 
 ```json
@@ -481,7 +483,7 @@ notification.created
 
 ### `POST /api/v1/admin/service-actions`
 
-System Admin dashboard의 서비스 제어 요청을 command lifecycle로 생성한다. 1차 구현은 실제 executor를 호출하지 않고 `pending` command와 audit log를 기록한다. `dry_run` 기본값은 `true`이며, `dry_run=false` 또는 `force=true` 요청은 후속 승인/실행 worker가 확인할 수 있도록 `requires_approval=true`로 기록한다. 승인 불필요 dry-run command는 백엔드 worker가 `running` 이후 `succeeded`로 자동 전이하고 `command.status.updated` WebSocket event를 publish한다. 중복 요청 방지를 위해 `idempotency_key`를 지원하며, 같은 key가 다시 들어오면 기존 command를 반환한다.
+System Admin dashboard의 서비스 제어 요청을 command lifecycle로 생성한다. `dry_run` 기본값은 `true`이며, `dry_run=false` 또는 `force=true` 요청은 승인 API가 확인할 수 있도록 `requires_approval=true`로 기록한다. 승인 불필요 dry-run command는 백엔드 worker가 `running` 이후 `succeeded`로 자동 전이하고 `command.status.updated` WebSocket event를 publish한다. 승인된 live service action은 worker가 `FOR UPDATE SKIP LOCKED` 기반 claim으로 `running` 전이한 뒤 executor adapter 후보로 처리한다. 중복 요청 방지를 위해 `idempotency_key`를 지원하며, 같은 key가 다시 들어오면 기존 command를 반환한다.
 
 #### Header
 
@@ -1002,4 +1004,3 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 - store 적중 비용 회피를 위해 `requirePermission` 은 in-memory matrix cache (per process) 를 유지한다.
 - `PUT/POST/DELETE /api/v1/rbac/policies` 또는 `PUT /api/v1/rbac/subjects/.../roles` 머지 시 동일 프로세스 내 cache reload.
 - 다중 인스턴스 환경의 cache 일관성은 §6 미해결 — 운영 phase 진입 시 pub/sub 또는 polling 으로 보강.
-

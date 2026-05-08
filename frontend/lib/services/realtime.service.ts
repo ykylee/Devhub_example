@@ -1,11 +1,14 @@
 import { WSEvent, WSEventHandler } from "./types";
 
 const WS_BASE = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080/api/v1/realtime/ws';
+const DEFAULT_EVENT_TYPES = ['command.status.updated'];
+const DEVHUB_ACTOR = process.env.NEXT_PUBLIC_DEVHUB_ACTOR || 'yklee';
+const DEVHUB_ROLE = process.env.NEXT_PUBLIC_DEVHUB_ROLE || 'manager';
 
 export class RealtimeService {
   private static instance: RealtimeService;
   private socket: WebSocket | null = null;
-  private handlers: Map<string, Set<WSEventHandler>> = new Map();
+  private handlers: Map<string, Set<WSEventHandler<unknown>>> = new Map();
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectInterval = 3000;
@@ -26,8 +29,9 @@ export class RealtimeService {
 
   private connect() {
     try {
-      console.log(`[RealtimeService] Connecting to ${WS_BASE}...`);
-      this.socket = new WebSocket(WS_BASE);
+      const url = this.buildURL();
+      console.log(`[RealtimeService] Connecting to ${url}...`);
+      this.socket = new WebSocket(url);
 
       this.socket.onopen = () => {
         console.log('[RealtimeService] Connected.');
@@ -73,6 +77,14 @@ export class RealtimeService {
     }
   }
 
+  private buildURL() {
+    const separator = WS_BASE.includes('?') ? '&' : '?';
+    const types = encodeURIComponent(DEFAULT_EVENT_TYPES.join(','));
+    const actor = encodeURIComponent(DEVHUB_ACTOR);
+    const role = encodeURIComponent(DEVHUB_ROLE);
+    return `${WS_BASE}${separator}types=${types}&actor=${actor}&role=${role}`;
+  }
+
   private handleReconnect() {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
@@ -100,7 +112,7 @@ export class RealtimeService {
     if (!this.handlers.has(type)) {
       this.handlers.set(type, new Set());
     }
-    this.handlers.get(type)!.add(handler as any);
+    this.handlers.get(type)!.add(handler as WSEventHandler<unknown>);
 
     return () => this.unsubscribe(type, handler);
   }
@@ -108,7 +120,7 @@ export class RealtimeService {
   public unsubscribe<T = unknown>(type: string, handler: WSEventHandler<T>) {
     const eventHandlers = this.handlers.get(type);
     if (eventHandlers) {
-      eventHandlers.delete(handler as any);
+      eventHandlers.delete(handler as WSEventHandler<unknown>);
       if (eventHandlers.size === 0) {
         this.handlers.delete(type);
       }

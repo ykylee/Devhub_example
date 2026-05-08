@@ -124,57 +124,59 @@ type routeKey struct {
 // instead of silent.
 var routePermissionTable = map[routeKey]routePolicy{
 	// Bypass — section 12.8.1 (auth-only, no matrix lookup)
-	{http.MethodGet, "/api/v1/me"}:                          {Bypass: true},
-	{http.MethodGet, "/api/v1/realtime/ws"}:                 {Bypass: true},
+	{http.MethodGet, "/api/v1/me"}:                           {Bypass: true},
+	{http.MethodGet, "/api/v1/realtime/ws"}:                  {Bypass: true},
 	{http.MethodPost, "/api/v1/integrations/gitea/webhooks"}: {Bypass: true},
 	// Auth proxy endpoints run before the user has a token; Hydra's
 	// challenge tokens (single-use, lifespan-bound) protect them.
 	{http.MethodPost, "/api/v1/auth/login"}: {Bypass: true},
 
 	// infrastructure
-	{http.MethodGet, "/api/v1/dashboard/metrics"}:    {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
-	{http.MethodGet, "/api/v1/events"}:               {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
-	{http.MethodGet, "/api/v1/infra/edges"}:          {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
-	{http.MethodGet, "/api/v1/infra/nodes"}:          {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
-	{http.MethodGet, "/api/v1/infra/topology"}:       {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
-	{http.MethodPost, "/api/v1/admin/service-actions"}: {Resource: domain.ResourceInfrastructure, Action: domain.ActionCreate},
-	{http.MethodGet, "/api/v1/commands/:command_id"}: {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/dashboard/metrics"}:             {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/events"}:                        {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/infra/edges"}:                   {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/infra/nodes"}:                   {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/infra/topology"}:                {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
+	{http.MethodPost, "/api/v1/admin/service-actions"}:        {Resource: domain.ResourceInfrastructure, Action: domain.ActionCreate},
+	{http.MethodGet, "/api/v1/commands/:command_id"}:          {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
+	{http.MethodPost, "/api/v1/commands/:command_id/approve"}: {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
+	{http.MethodPost, "/api/v1/commands/:command_id/reject"}:  {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
 
 	// pipelines
-	{http.MethodGet, "/api/v1/repositories"}:           {Resource: domain.ResourcePipelines, Action: domain.ActionView},
-	{http.MethodGet, "/api/v1/issues"}:                 {Resource: domain.ResourcePipelines, Action: domain.ActionView},
-	{http.MethodGet, "/api/v1/pull-requests"}:          {Resource: domain.ResourcePipelines, Action: domain.ActionView},
-	{http.MethodGet, "/api/v1/ci-runs"}:                {Resource: domain.ResourcePipelines, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/repositories"}:            {Resource: domain.ResourcePipelines, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/issues"}:                  {Resource: domain.ResourcePipelines, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/pull-requests"}:           {Resource: domain.ResourcePipelines, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/ci-runs"}:                 {Resource: domain.ResourcePipelines, Action: domain.ActionView},
 	{http.MethodGet, "/api/v1/ci-runs/:ci_run_id/logs"}: {Resource: domain.ResourcePipelines, Action: domain.ActionView},
 
 	// security
-	{http.MethodGet, "/api/v1/risks"}:                 {Resource: domain.ResourceSecurity, Action: domain.ActionView},
-	{http.MethodGet, "/api/v1/risks/critical"}:        {Resource: domain.ResourceSecurity, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/risks"}:                       {Resource: domain.ResourceSecurity, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/risks/critical"}:              {Resource: domain.ResourceSecurity, Action: domain.ActionView},
 	{http.MethodPost, "/api/v1/risks/:risk_id/mitigations"}: {Resource: domain.ResourceSecurity, Action: domain.ActionCreate},
-	{http.MethodGet, "/api/v1/rbac/policy"}:           {Resource: domain.ResourceSecurity, Action: domain.ActionView}, // legacy 410
-	{http.MethodGet, "/api/v1/rbac/policies"}:         {Resource: domain.ResourceSecurity, Action: domain.ActionView},
-	{http.MethodPost, "/api/v1/rbac/policies"}:        {Resource: domain.ResourceSecurity, Action: domain.ActionEdit},
-	{http.MethodPut, "/api/v1/rbac/policies"}:         {Resource: domain.ResourceSecurity, Action: domain.ActionEdit},
-	{http.MethodDelete, "/api/v1/rbac/policies/:role_id"}: {Resource: domain.ResourceSecurity, Action: domain.ActionEdit},
+	{http.MethodGet, "/api/v1/rbac/policy"}:                 {Resource: domain.ResourceSecurity, Action: domain.ActionView}, // legacy 410
+	{http.MethodGet, "/api/v1/rbac/policies"}:               {Resource: domain.ResourceSecurity, Action: domain.ActionView},
+	{http.MethodPost, "/api/v1/rbac/policies"}:              {Resource: domain.ResourceSecurity, Action: domain.ActionEdit},
+	{http.MethodPut, "/api/v1/rbac/policies"}:               {Resource: domain.ResourceSecurity, Action: domain.ActionEdit},
+	{http.MethodDelete, "/api/v1/rbac/policies/:role_id"}:   {Resource: domain.ResourceSecurity, Action: domain.ActionEdit},
 
 	// audit
 	{http.MethodGet, "/api/v1/audit-logs"}: {Resource: domain.ResourceAudit, Action: domain.ActionView},
 
 	// organization — users
-	{http.MethodGet, "/api/v1/users"}:           {Resource: domain.ResourceOrganization, Action: domain.ActionView},
-	{http.MethodPost, "/api/v1/users"}:          {Resource: domain.ResourceOrganization, Action: domain.ActionCreate},
-	{http.MethodGet, "/api/v1/users/:user_id"}:  {Resource: domain.ResourceOrganization, Action: domain.ActionView},
-	{http.MethodPatch, "/api/v1/users/:user_id"}: {Resource: domain.ResourceOrganization, Action: domain.ActionEdit},
+	{http.MethodGet, "/api/v1/users"}:             {Resource: domain.ResourceOrganization, Action: domain.ActionView},
+	{http.MethodPost, "/api/v1/users"}:            {Resource: domain.ResourceOrganization, Action: domain.ActionCreate},
+	{http.MethodGet, "/api/v1/users/:user_id"}:    {Resource: domain.ResourceOrganization, Action: domain.ActionView},
+	{http.MethodPatch, "/api/v1/users/:user_id"}:  {Resource: domain.ResourceOrganization, Action: domain.ActionEdit},
 	{http.MethodDelete, "/api/v1/users/:user_id"}: {Resource: domain.ResourceOrganization, Action: domain.ActionDelete},
 
 	// organization — units
-	{http.MethodGet, "/api/v1/organization/hierarchy"}:                 {Resource: domain.ResourceOrganization, Action: domain.ActionView},
-	{http.MethodGet, "/api/v1/organization/units/:unit_id"}:            {Resource: domain.ResourceOrganization, Action: domain.ActionView},
-	{http.MethodPost, "/api/v1/organization/units"}:                    {Resource: domain.ResourceOrganization, Action: domain.ActionCreate},
-	{http.MethodPatch, "/api/v1/organization/units/:unit_id"}:          {Resource: domain.ResourceOrganization, Action: domain.ActionEdit},
-	{http.MethodDelete, "/api/v1/organization/units/:unit_id"}:         {Resource: domain.ResourceOrganization, Action: domain.ActionDelete},
-	{http.MethodGet, "/api/v1/organization/units/:unit_id/members"}:    {Resource: domain.ResourceOrganization, Action: domain.ActionView},
-	{http.MethodPut, "/api/v1/organization/units/:unit_id/members"}:    {Resource: domain.ResourceOrganization, Action: domain.ActionEdit},
+	{http.MethodGet, "/api/v1/organization/hierarchy"}:              {Resource: domain.ResourceOrganization, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/organization/units/:unit_id"}:         {Resource: domain.ResourceOrganization, Action: domain.ActionView},
+	{http.MethodPost, "/api/v1/organization/units"}:                 {Resource: domain.ResourceOrganization, Action: domain.ActionCreate},
+	{http.MethodPatch, "/api/v1/organization/units/:unit_id"}:       {Resource: domain.ResourceOrganization, Action: domain.ActionEdit},
+	{http.MethodDelete, "/api/v1/organization/units/:unit_id"}:      {Resource: domain.ResourceOrganization, Action: domain.ActionDelete},
+	{http.MethodGet, "/api/v1/organization/units/:unit_id/members"}: {Resource: domain.ResourceOrganization, Action: domain.ActionView},
+	{http.MethodPut, "/api/v1/organization/units/:unit_id/members"}: {Resource: domain.ResourceOrganization, Action: domain.ActionEdit},
 
 	// organization — RBAC subject role assignment
 	{http.MethodGet, "/api/v1/rbac/subjects/:subject_id/roles"}: {Resource: domain.ResourceOrganization, Action: domain.ActionView},

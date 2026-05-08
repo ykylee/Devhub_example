@@ -1,17 +1,30 @@
 "use client";
 
 import React, { memo, useState } from 'react';
-import { Handle, Position, NodeProps } from '@xyflow/react';
+import { Handle, Position, Node, NodeProps } from '@xyflow/react';
 import { Plus, Minus, Edit3, Crown, Check, X, Building2, Users, Layers, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export const OrgNode = memo(({ id, data: anyData, selected }: NodeProps) => {
-  const data = anyData as any;
+type OrgNodeData = {
+  [key: string]: unknown;
+  label?: string;
+  type?: string;
+  leader_id?: string;
+  direct_count?: number;
+  total_count?: number;
+  allowedTypes?: string[];
+  isInitialEditing?: boolean;
+  onAddChild?: (id: string) => void;
+  onDelete?: (id: string) => void;
+  onUpdate?: (id: string, data: Partial<OrgNodeData>) => void;
+};
+
+export const OrgNode = memo(({ id, data, selected }: NodeProps<Node<OrgNodeData>>) => {
   const [isEditing, setIsEditing] = useState(data.isInitialEditing || false);
-  const [editedName, setEditedName] = useState(data.label as string);
-  const [editedLeader, setEditedLeader] = useState(data.leader_id as string || "");
-  const [editedType, setEditedType] = useState(data.type as string);
+  const [editedName, setEditedName] = useState(data.label || "");
+  const [editedLeader, setEditedLeader] = useState(data.leader_id || "");
+  const [editedType, setEditedType] = useState(data.type || "team");
   
   const typeIcons = {
     division: Building2,
@@ -39,9 +52,9 @@ export const OrgNode = memo(({ id, data: anyData, selected }: NodeProps) => {
     if (data.isInitialEditing) {
       data.onDelete?.(id);
     } else {
-      setEditedName(data.label as string);
-      setEditedLeader(data.leader_id as string || "");
-      setEditedType(data.type as string);
+      setEditedName(data.label || "");
+      setEditedLeader(data.leader_id || "");
+      setEditedType(data.type || "team");
       setIsEditing(false);
     }
   };
@@ -93,7 +106,7 @@ export const OrgNode = memo(({ id, data: anyData, selected }: NodeProps) => {
                       onChange={(e) => setEditedType(e.target.value)}
                       className="bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs font-bold text-white focus:outline-none focus:border-primary/50 w-full mt-1 appearance-none cursor-pointer"
                     >
-                      {(data.allowedTypes || ['division', 'team', 'group', 'part']).map((t: string) => (
+                      {(data.allowedTypes || ['division', 'team', 'group', 'part']).map((t) => (
                         <option key={t} value={t} className="bg-[#030014]">
                           {t.charAt(0).toUpperCase() + t.slice(1)}
                         </option>

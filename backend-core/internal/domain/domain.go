@@ -146,6 +146,12 @@ type ServiceActionCommandRequest struct {
 	RequiresApproval bool
 }
 
+type CommandApprovalRequest struct {
+	CommandID  string
+	ActorLogin string
+	Reason     string
+}
+
 type ListOptions struct {
 	Limit          int
 	Offset         int

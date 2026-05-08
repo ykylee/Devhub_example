@@ -33,7 +33,7 @@ export function GardenerFeed() {
       await gardenerService.applySuggestion(id);
       setSuggestions(prev => prev.filter(s => s.id !== id));
       addToast("Suggestion applied successfully.", "success");
-    } catch (error) {
+    } catch {
       addToast("Failed to apply suggestion.", "error");
     }
   };

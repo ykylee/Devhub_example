@@ -224,12 +224,12 @@ func (h Handler) updateRBACPolicies(c *gin.Context) {
 	// inputs (missing role, system metadata change, audit-write attempt)
 	// without touching the store.
 	type plannedUpdate struct {
-		entry    rbacUpdateRoleWire
-		before   domain.RBACRole
-		writeMD  bool
-		newName  string
-		newDesc  string
-		writePM  bool
+		entry   rbacUpdateRoleWire
+		before  domain.RBACRole
+		writeMD bool
+		newName string
+		newDesc string
+		writePM bool
 	}
 	planned := make([]plannedUpdate, 0, len(req.Roles))
 

@@ -38,7 +38,7 @@ export function MemberTable({ members, roles, onUpdateMemberRole }: MemberTableP
           toast("Account disabled", "success");
         }
       }
-    } catch (error) {
+    } catch {
       toast("Failed to perform action", "error");
     }
   };

@@ -109,6 +109,27 @@ class RbacService {
       throw await rbacError(response, "setSubjectRole");
     }
   }
+
+  async replacePolicy(reason: string, matrix: RbacPolicy["matrix"], policyVersion?: string): Promise<RbacPolicy> {
+    const response = await fetch(`${API_BASE}/api/v1/rbac/policy`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Devhub-Actor": "yklee",
+        "X-Devhub-Role": "system_admin",
+      },
+      body: JSON.stringify({
+        policy_version: policyVersion,
+        reason,
+        matrix,
+      }),
+    });
+    if (!response.ok) {
+      throw new Error("Failed to replace RBAC policy");
+    }
+    const result = await response.json() as ApiResponse<RbacPolicy>;
+    return result.data;
+  }
 }
 
 // RbacError preserves the contract section 12 error code (e.g. role_in_use,

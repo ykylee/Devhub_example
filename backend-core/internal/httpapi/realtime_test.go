@@ -63,6 +63,116 @@ func TestRealtimeHubPublishesCommandStatus(t *testing.T) {
 	}
 }
 
+func TestRealtimeHubFiltersBySubscribedTypes(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	hub := NewRealtimeHub()
+	server := httptest.NewServer(testRouter(RouterConfig{RealtimeHub: hub}))
+	defer server.Close()
+
+	url := "ws" + strings.TrimPrefix(server.URL, "http") + "/api/v1/realtime/ws?types=risk.updated"
+	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
+	if err != nil {
+		t.Fatalf("dial websocket: %v", err)
+	}
+	defer conn.Close()
+	waitForRealtimeClient(t, hub)
+
+	hub.Publish("command.status.updated", map[string]any{"command_id": "cmd_hidden"})
+	hub.Publish("risk.updated", map[string]any{"risk_id": "risk_visible"})
+	if err := conn.SetReadDeadline(time.Now().Add(time.Second)); err != nil {
+		t.Fatalf("set read deadline: %v", err)
+	}
+	_, payload, err := conn.ReadMessage()
+	if err != nil {
+		t.Fatalf("read risk event: %v", err)
+	}
+	var event struct {
+		Type string `json:"type"`
+	}
+	if err := json.Unmarshal(payload, &event); err != nil {
+		t.Fatalf("decode event: %v", err)
+	}
+	if event.Type != "risk.updated" {
+		t.Fatalf("expected risk event, got %+v", event)
+	}
+}
+
+func TestRealtimeWebSocketRequiresTypesWhenRBACEnabled(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	hub := NewRealtimeHub()
+	server := httptest.NewServer(NewRouter(RouterConfig{
+		RealtimeHub: hub,
+		BearerTokenVerifier: &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+			Login: "manager",
+			Role:  "manager",
+		}},
+	}))
+	defer server.Close()
+
+	url := "ws" + strings.TrimPrefix(server.URL, "http") + "/api/v1/realtime/ws"
+	header := http.Header{}
+	header.Set("Authorization", "Bearer manager-token")
+	_, resp, err := websocket.DefaultDialer.Dial(url, header)
+	if err == nil {
+		t.Fatalf("expected websocket dial to fail without types")
+	}
+	if resp == nil || resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected 400 response, got resp=%v err=%v", resp, err)
+	}
+}
+
+func TestRealtimeWebSocketChecksRBACPermission(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	hub := NewRealtimeHub()
+	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+		Login: "restricted-user",
+		Role:  "custom-no-view",
+	}}
+	server := httptest.NewServer(NewRouter(RouterConfig{
+		RealtimeHub:         hub,
+		BearerTokenVerifier: verifier,
+	}))
+	defer server.Close()
+
+	url := "ws" + strings.TrimPrefix(server.URL, "http") + "/api/v1/realtime/ws?types=command.status.updated"
+	header := http.Header{}
+	header.Set("Authorization", "Bearer restricted-token")
+	_, resp, err := websocket.DefaultDialer.Dial(url, header)
+	if err == nil {
+		t.Fatalf("expected websocket dial to fail for insufficient command permission")
+	}
+	if resp == nil || resp.StatusCode != http.StatusForbidden {
+		t.Fatalf("expected 403 response, got resp=%v err=%v", resp, err)
+	}
+
+	verifier.actor = AuthenticatedActor{Login: "manager", Role: "manager"}
+	header.Set("Authorization", "Bearer manager-token")
+	conn, resp, err := websocket.DefaultDialer.Dial(url, header)
+	if err != nil {
+		t.Fatalf("expected manager websocket dial to succeed, resp=%v err=%v", resp, err)
+	}
+	defer conn.Close()
+}
+
+func TestRealtimeWebSocketRejectsRoleFallbackWithOrganizationStore(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	hub := NewRealtimeHub()
+	server := httptest.NewServer(NewRouter(RouterConfig{
+		RealtimeHub:       hub,
+		OrganizationStore: newMemoryOrganizationStore(),
+	}))
+	defer server.Close()
+
+	url := "ws" + strings.TrimPrefix(server.URL, "http") + "/api/v1/realtime/ws?types=command.status.updated&role=manager"
+	_, resp, err := websocket.DefaultDialer.Dial(url, nil)
+	if err == nil {
+		t.Fatalf("expected websocket dial to fail when dev fallback is disabled")
+	}
+	if resp == nil || resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("expected 401 response, got resp=%v err=%v", resp, err)
+	}
+}
+
 func TestRealtimeRouteIsAbsentWithoutHub(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/realtime/ws", nil)

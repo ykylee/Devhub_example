@@ -283,7 +283,7 @@ export default function OrganizationPage() {
                     members={members} 
                     roles={roles}
                     onUpdateMemberRole={(memberId, newRoleName) => {
-                      setMembers(members.map(m => m.id === memberId ? { ...m, role: newRoleName as any } : m));
+                      setMembers(members.map(m => m.id === memberId ? { ...m, role: newRoleName as OrgMember["role"] } : m));
                     }}
                   />
                 )}

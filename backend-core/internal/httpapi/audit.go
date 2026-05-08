@@ -30,7 +30,6 @@ func (h Handler) listAuditLogs(c *gin.Context) {
 		})
 		return
 	}
-
 	limit, err := parseBoundedInt(c.DefaultQuery("limit", "50"), 1, 100)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "limit must be an integer between 1 and 100"})

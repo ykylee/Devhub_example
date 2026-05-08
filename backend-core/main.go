@@ -11,6 +11,7 @@ import (
 	"github.com/devhub/backend-core/internal/config"
 	"github.com/devhub/backend-core/internal/httpapi"
 	"github.com/devhub/backend-core/internal/normalize"
+	"github.com/devhub/backend-core/internal/serviceaction"
 	"github.com/devhub/backend-core/internal/store"
 )
 
@@ -28,6 +29,7 @@ func main() {
 	var rbacStore httpapi.RBACStore
 	realtimeHub := httpapi.NewRealtimeHub()
 	var worker *commandworker.Worker
+	var liveWorker *commandworker.LiveWorker
 	if cfg.DBURL != "" {
 		pgStore, err := store.NewPostgresStore(ctx, cfg.DBURL)
 		if err != nil {
@@ -43,6 +45,18 @@ func main() {
 		organizationStore = pgStore
 		rbacStore = pgStore
 		worker = &commandworker.Worker{Store: pgStore, Publisher: realtimeHub}
+		if cfg.ServiceActionExecutorMode != "" {
+			executor, err := serviceaction.NewExecutor(
+				cfg.ServiceActionExecutorMode,
+				cfg.ServiceActionAllowedServices,
+				cfg.ServiceActionAllowedActions,
+			)
+			if err != nil {
+				log.Fatalf("configure service action executor: %v", err)
+			}
+			liveWorker = &commandworker.LiveWorker{Store: pgStore, Executor: executor, Publisher: realtimeHub}
+			log.Printf("service action executor enabled in %s mode", cfg.ServiceActionExecutorMode)
+		}
 	} else {
 		log.Println("DB_URL is not set; webhook persistence is disabled")
 	}
@@ -109,6 +123,13 @@ func main() {
 		go func() {
 			if err := worker.Run(ctx, 2*time.Second); err != nil && err != context.Canceled {
 				log.Printf("command worker stopped: %v", err)
+			}
+		}()
+	}
+	if liveWorker != nil {
+		go func() {
+			if err := liveWorker.Run(ctx, 2*time.Second); err != nil && err != context.Canceled {
+				log.Printf("live service action worker stopped: %v", err)
 			}
 		}()
 	}

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { UserCircle, KeyRound, Shield, AlertCircle, Check } from "lucide-react";
+import { UserCircle, KeyRound, AlertCircle, Check } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { accountService } from "@/lib/services/account.service";
 import { useToast } from "@/components/ui/Toast";
@@ -108,7 +108,7 @@ export default function AccountPage() {
                 placeholder="Enter current password"
                 required
               />
-              <p className="text-[10px] text-muted-foreground ml-1">For demo, use: 'password'</p>
+              <p className="text-[10px] text-muted-foreground ml-1">For demo, use: &apos;password&apos;</p>
             </div>
 
             <div className="space-y-2">
@@ -148,7 +148,7 @@ export default function AccountPage() {
             <AlertCircle className="w-5 h-5 text-orange-400 shrink-0" />
             <p className="text-xs text-orange-200/80 leading-relaxed">
               <strong>Note:</strong> Password changes require re-authentication on all active sessions. 
-              If your account is managed via Single Sign-On (SSO), this panel may be read-only depending on your organization's policy.
+              If your account is managed via Single Sign-On (SSO), this panel may be read-only depending on your organization&apos;s policy.
             </p>
           </div>
         </motion.div>

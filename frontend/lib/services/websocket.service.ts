@@ -3,7 +3,7 @@
  * Handles real-time connection and event Pub/Sub for the frontend.
  */
 
-export interface WsMessage<T = any> {
+export interface WsMessage<T = unknown> {
   schema_version: string;
   type: string;
   event_id: string;

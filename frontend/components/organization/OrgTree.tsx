@@ -27,6 +27,13 @@ const nodeTypes = {
   org: OrgNode,
 };
 
+type OrgTreeNodeData = {
+  label?: string;
+  type?: string;
+  direct_count?: number;
+  total_count?: number;
+};
+
 const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
@@ -78,7 +85,7 @@ function OrgTreeContent() {
       const childEdges = edges.filter(e => e.source === id);
       const childrenTotal = childEdges.reduce((sum, edge) => sum + calculateTotal(edge.target), 0);
       
-      const nodeData = node.data as any;
+      const nodeData = node.data as OrgTreeNodeData;
       const total = (nodeData.direct_count || 0) + childrenTotal;
       node.data = { ...node.data, total_count: total };
       return total;
@@ -311,7 +318,7 @@ function OrgTreeContent() {
               >
                 <option value="all">Show All</option>
                 {allNodes.map(n => {
-                  const nodeData = n.data as any;
+                  const nodeData = n.data as OrgTreeNodeData;
                   return (
                     <option key={n.id} value={n.id}>{nodeData.label}</option>
                   );

@@ -354,7 +354,6 @@ func (h Handler) createUser(c *gin.Context) {
 		})
 		return
 	}
-
 	var req createUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": err.Error()})
@@ -428,7 +427,6 @@ func (h Handler) updateUser(c *gin.Context) {
 		})
 		return
 	}
-
 	userID := strings.TrimSpace(c.Param("user_id"))
 	if userID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "user_id is required"})
@@ -517,7 +515,6 @@ func (h Handler) deleteUser(c *gin.Context) {
 		})
 		return
 	}
-
 	userID := strings.TrimSpace(c.Param("user_id"))
 	if userID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "user_id is required"})
@@ -584,7 +581,6 @@ func (h Handler) createOrgUnit(c *gin.Context) {
 		})
 		return
 	}
-
 	var req createOrgUnitRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": err.Error()})
@@ -648,7 +644,6 @@ func (h Handler) updateOrgUnit(c *gin.Context) {
 		})
 		return
 	}
-
 	unitID := strings.TrimSpace(c.Param("unit_id"))
 	if unitID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "unit_id is required"})
@@ -710,7 +705,6 @@ func (h Handler) deleteOrgUnit(c *gin.Context) {
 		})
 		return
 	}
-
 	unitID := strings.TrimSpace(c.Param("unit_id"))
 	if unitID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "unit_id is required"})
@@ -739,7 +733,6 @@ func (h Handler) replaceUnitMembers(c *gin.Context) {
 		})
 		return
 	}
-
 	unitID := strings.TrimSpace(c.Param("unit_id"))
 	if unitID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "unit_id is required"})

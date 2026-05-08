@@ -24,6 +24,7 @@ class AccountService {
    * User self-service: Update own password
    */
   async updateMyPassword(currentPass: string, newPass: string): Promise<void> {
+    void newPass;
     await this.delay(800);
     // Mock validation
     if (currentPass !== "password") { // Mock current password is 'password'
@@ -36,6 +37,7 @@ class AccountService {
    * Admin: Issue a new account for an existing user
    */
   async issueAccount(userId: string, loginId: string, forceReset: boolean): Promise<{ tempPassword: string }> {
+    void forceReset;
     await this.delay(600);
     console.log(`[AccountService] Issued account for ${userId} with login ${loginId}`);
     return { tempPassword: `Temp${Math.floor(Math.random() * 10000)}!` };

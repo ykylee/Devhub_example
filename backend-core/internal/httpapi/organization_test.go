@@ -338,6 +338,33 @@ func TestCreateUserRejectsInvalidRole(t *testing.T) {
 	}
 }
 
+func TestCreateUserRequiresOrganizationWrite(t *testing.T) {
+	storeMem := newMemoryOrganizationStore()
+	router := NewRouter(RouterConfig{
+		OrganizationStore: storeMem,
+		BearerTokenVerifier: &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+			Login: "developer",
+			Role:  "developer",
+		}},
+	})
+
+	body := []byte(`{
+		"user_id": "u201",
+		"email": "u201@example.com",
+		"display_name": "No Write",
+		"role": "developer",
+		"status": "active"
+	}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/users", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer developer-token")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestUpdateUserAppliesPartialFields(t *testing.T) {
 	storeMem := newMemoryOrganizationStore()
 	storeMem.users["u300"] = domain.AppUser{

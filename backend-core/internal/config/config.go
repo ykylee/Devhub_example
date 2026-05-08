@@ -22,6 +22,12 @@ type Config struct {
 	HydraAdminURL string
 	// HydraRoleClaim is a dotted path into the Hydra introspection response that holds the actor role. Defaults to "ext.role" when empty. See auth.HydraIntrospectionVerifier.RoleClaim for supported paths. Toggle with DEVHUB_HYDRA_ROLE_CLAIM.
 	HydraRoleClaim string
+	// ServiceActionExecutorMode enables the live service action worker only for supported explicit modes such as "simulation".
+	ServiceActionExecutorMode string
+	// ServiceActionAllowedServices is a comma-separated allowlist checked by the simulation service action executor.
+	ServiceActionAllowedServices string
+	// ServiceActionAllowedActions is a comma-separated allowlist checked by the simulation service action executor.
+	ServiceActionAllowedActions string
 	// KratosPublicURL is the base URL of the Ory Kratos public API (default
 	// http://127.0.0.1:4433) used by the /api/v1/auth/login handler to drive
 	// the password self-service login flow. Empty disables the login proxy
@@ -31,17 +37,20 @@ type Config struct {
 
 func Load() Config {
 	return Config{
-		Port:               envOrDefault("PORT", "8080"),
-		DBURL:              os.Getenv("DB_URL"),
-		GiteaURL:           os.Getenv("GITEA_URL"),
-		GiteaToken:         os.Getenv("GITEA_TOKEN"),
-		GiteaWebhookSecret: os.Getenv("GITEA_WEBHOOK_SECRET"),
-		BackendAIURL:       os.Getenv("BACKEND_AI_URL"),
-		Env:                strings.ToLower(strings.TrimSpace(os.Getenv("DEVHUB_ENV"))),
-		AuthDevFallback:    envBool("DEVHUB_AUTH_DEV_FALLBACK"),
-		HydraAdminURL:      strings.TrimSpace(os.Getenv("DEVHUB_HYDRA_ADMIN_URL")),
-		HydraRoleClaim:     strings.TrimSpace(os.Getenv("DEVHUB_HYDRA_ROLE_CLAIM")),
-		KratosPublicURL:    strings.TrimSpace(os.Getenv("DEVHUB_KRATOS_PUBLIC_URL")),
+		Port:                         envOrDefault("PORT", "8080"),
+		DBURL:                        os.Getenv("DB_URL"),
+		GiteaURL:                     os.Getenv("GITEA_URL"),
+		GiteaToken:                   os.Getenv("GITEA_TOKEN"),
+		GiteaWebhookSecret:           os.Getenv("GITEA_WEBHOOK_SECRET"),
+		BackendAIURL:                 os.Getenv("BACKEND_AI_URL"),
+		Env:                          strings.ToLower(strings.TrimSpace(os.Getenv("DEVHUB_ENV"))),
+		AuthDevFallback:              envBool("DEVHUB_AUTH_DEV_FALLBACK"),
+		HydraAdminURL:                strings.TrimSpace(os.Getenv("DEVHUB_HYDRA_ADMIN_URL")),
+		HydraRoleClaim:               strings.TrimSpace(os.Getenv("DEVHUB_HYDRA_ROLE_CLAIM")),
+		ServiceActionExecutorMode:    strings.TrimSpace(os.Getenv("SERVICE_ACTION_EXECUTOR_MODE")),
+		ServiceActionAllowedServices: strings.TrimSpace(os.Getenv("SERVICE_ACTION_ALLOWED_SERVICES")),
+		ServiceActionAllowedActions:  strings.TrimSpace(os.Getenv("SERVICE_ACTION_ALLOWED_ACTIONS")),
+		KratosPublicURL:              strings.TrimSpace(os.Getenv("DEVHUB_KRATOS_PUBLIC_URL")),
 	}
 }
 

@@ -1,11 +1,11 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-05-07",
+  "generated_at": "2026-05-08",
   "source_of_truth": {
     "project_profile_path": "ai-workflow/memory/PROJECT_PROFILE.md",
     "session_handoff_path": "ai-workflow/memory/codex/service-action-command/session_handoff.md",
     "work_backlog_index_path": "ai-workflow/memory/codex/service-action-command/work_backlog.md",
-    "latest_backlog_path": "ai-workflow/memory/codex/service-action-command/backlog/2026-05-07.md",
+    "latest_backlog_path": "ai-workflow/memory/codex/service-action-command/backlog/2026-05-08.md",
     "repository_assessment_path": "ai-workflow/memory/repository_assessment.md"
   },
   "project": {
@@ -22,10 +22,12 @@
     "runtime_checks": "make build"
   },
   "session": {
-    "current_baseline": "origin/main@7316ddd 반영 후 command/service action/realtime worker 변경 재적용.",
+    "current_baseline": "origin/main 병합 후 PR #36 service action/RBAC/realtime 변경 재적용 및 리뷰 코멘트 수정 완료.",
     "current_axis": "브랜치별 ai-workflow/memory 표준화 및 TASK-007 후속 범위 검토.",
-    "current_focus": "P0 audit 조회 API, organization CRUD audit, actor fallback deprecation, Hydra/Kratos Bearer actor 경계, RBAC policy 조회 API 구현 완료",
-    "in_progress_items": [],
+    "current_focus": "PR #33/#35/#37 병합 완료, PR #36 병합 준비. actor fallback hardening, live service action atomic claim, main RBAC 모델 통합, frontend lint 수정 완료. docs smoke 실패는 후속 문서 정리 대상으로 분리.",
+    "in_progress_items": [
+      "TASK-DOCS-SMOKE-REPAIR"
+    ],
     "blocked_items": [],
     "recent_done_items": [
       "TASK-003 Frontend REST API 및 WebSocket 실시간 연동",
@@ -40,7 +42,17 @@
       "TASK-CODEX-BACKEND-ROADMAP-REVIEW 백엔드 로드맵 재검토",
       "TASK-BACKEND-P0-AUDIT-ACTOR audit 조회 및 actor fallback deprecation",
       "TASK-BACKEND-P0-AUTH-BOUNDARY Hydra/Kratos API 계약 재작성 및 Bearer actor 경계",
-      "TASK-BACKEND-P0-RBAC-POLICY RBAC policy 조회 API 및 프론트 Permissions 연동 준비"
+      "TASK-BACKEND-P0-RBAC-POLICY RBAC policy 조회 API 및 프론트 Permissions 연동 준비",
+      "TASK-BACKEND-P0-RBAC-PERSISTENCE RBAC policy persistence/edit API와 audit 경계",
+      "TASK-BACKEND-P0-RBAC-ENFORCEMENT RBAC policy edit enforcement",
+      "TASK-BACKEND-P0-ME /api/v1/me 및 DevHub user-role lookup",
+      "TASK-BACKEND-P0-RBAC-WRITE-ENFORCEMENT service action/risk/audit/organization RBAC enforcement",
+      "TASK-BACKEND-P0-REALTIME-AUTH-FILTER WebSocket types subscription filtering 및 RBAC read permission check",
+      "TASK-BACKEND-P0-ACTOR-FALLBACK-HARDENING 인증 actor 미매핑/비활성 시 role fallback 우회 차단",
+      "TASK-BACKEND-P0-REALTIME-PUBLISH-LOCK WebSocket publish lock 개선 및 실패 client 제거",
+      "TASK-BACKEND-P1-SERVICE-ACTION-APPROVAL service action approve/reject API 및 audit boundary",
+      "TASK-BACKEND-P1-SERVICE-ACTION-EXECUTOR-BOUNDARY approved live service action query 및 executor adapter boundary",
+      "TASK-BACKEND-P1-SERVICE-ACTION-SIM-EXECUTOR simulation service action executor 및 명시적 main 주입 설정"
     ],
     "environment_constraints": [
       "Docker/Docker-compose required for full system unless Phase 13 native policy supersedes a local flow",
@@ -49,7 +61,7 @@
     ]
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/codex/service-action-command/backlog/2026-05-07.md",
+    "latest_backlog_path": "ai-workflow/memory/codex/service-action-command/backlog/2026-05-08.md",
     "task_count": 1,
     "in_progress_items": [],
     "blocked_items": [],
@@ -62,14 +74,24 @@
       "TASK-CODEX-BACKEND-ROADMAP-REVIEW",
       "TASK-BACKEND-P0-AUDIT-ACTOR",
       "TASK-BACKEND-P0-AUTH-BOUNDARY",
-      "TASK-BACKEND-P0-RBAC-POLICY"
+      "TASK-BACKEND-P0-RBAC-POLICY",
+      "TASK-BACKEND-P0-RBAC-PERSISTENCE",
+      "TASK-BACKEND-P0-RBAC-ENFORCEMENT",
+      "TASK-BACKEND-P0-ME",
+      "TASK-BACKEND-P0-RBAC-WRITE-ENFORCEMENT",
+      "TASK-BACKEND-P0-REALTIME-AUTH-FILTER",
+      "TASK-BACKEND-P0-ACTOR-FALLBACK-HARDENING",
+      "TASK-BACKEND-P0-REALTIME-PUBLISH-LOCK",
+      "TASK-BACKEND-P1-SERVICE-ACTION-APPROVAL",
+      "TASK-BACKEND-P1-SERVICE-ACTION-EXECUTOR-BOUNDARY",
+      "TASK-BACKEND-P1-SERVICE-ACTION-SIM-EXECUTOR"
     ]
   },
   "next_documents": [
     "ai-workflow/MEMORY_GOVERNANCE.md",
     "ai-workflow/memory/codex/service-action-command/session_handoff.md",
     "ai-workflow/memory/codex/service-action-command/work_backlog.md",
-    "ai-workflow/memory/codex/service-action-command/backlog/2026-05-07.md",
+    "ai-workflow/memory/codex/service-action-command/backlog/2026-05-08.md",
     "ai-workflow/memory/backend_development_roadmap.md",
     "ai-workflow/memory/PROJECT_PROFILE.md",
     "docs/backend_api_contract.md"

@@ -2,7 +2,7 @@
 
 import { GardenerFeed } from "@/components/dashboard/GardenerFeed";
 import { motion } from "framer-motion";
-import { Sparkles, Brain, ShieldCheck, Zap } from "lucide-react";
+import { Brain, ShieldCheck, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/lib/store";
 import { useRouter } from "next/navigation";

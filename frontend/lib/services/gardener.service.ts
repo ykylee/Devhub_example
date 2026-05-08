@@ -1,5 +1,3 @@
-import { ServiceActionCommand } from "./types";
-
 export interface CommandResponse {
   command_id: string;
   status: string;

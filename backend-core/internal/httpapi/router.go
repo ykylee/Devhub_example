@@ -35,6 +35,8 @@ type CommandStore interface {
 	CreateRiskMitigationCommand(context.Context, domain.RiskMitigationCommandRequest) (domain.Command, domain.AuditLog, bool, error)
 	CreateServiceActionCommand(context.Context, domain.ServiceActionCommandRequest) (domain.Command, domain.AuditLog, bool, error)
 	GetCommand(context.Context, string) (domain.Command, error)
+	ApproveCommand(context.Context, domain.CommandApprovalRequest) (domain.Command, domain.AuditLog, error)
+	RejectCommand(context.Context, domain.CommandApprovalRequest) (domain.Command, domain.AuditLog, error)
 }
 
 type AuditStore interface {
@@ -99,6 +101,8 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.POST("/admin/service-actions", handler.createServiceAction)
 	v1.POST("/risks/:risk_id/mitigations", handler.createRiskMitigation)
 	v1.GET("/commands/:command_id", handler.getCommand)
+	v1.POST("/commands/:command_id/approve", handler.approveCommand)
+	v1.POST("/commands/:command_id/reject", handler.rejectCommand)
 	v1.GET("/users", handler.listUsers)
 	v1.POST("/users", handler.createUser)
 	v1.GET("/users/:user_id", handler.getUser)
@@ -114,7 +118,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.POST("/integrations/gitea/webhooks", handler.receiveGiteaWebhook)
 	v1.POST("/auth/login", handler.authLogin)
 	if cfg.RealtimeHub != nil {
-		v1.GET("/realtime/ws", cfg.RealtimeHub.HandleWebSocket)
+		v1.GET("/realtime/ws", handler.handleRealtimeWebSocket)
 	}
 
 	return router
