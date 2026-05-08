@@ -22,6 +22,11 @@ type Config struct {
 	HydraAdminURL string
 	// HydraRoleClaim is a dotted path into the Hydra introspection response that holds the actor role. Defaults to "ext.role" when empty. See auth.HydraIntrospectionVerifier.RoleClaim for supported paths. Toggle with DEVHUB_HYDRA_ROLE_CLAIM.
 	HydraRoleClaim string
+	// KratosPublicURL is the base URL of the Ory Kratos public API (default
+	// http://127.0.0.1:4433) used by the /api/v1/auth/login handler to drive
+	// the password self-service login flow. Empty disables the login proxy
+	// (frontend cannot complete the OIDC code flow).
+	KratosPublicURL string
 }
 
 func Load() Config {
@@ -36,6 +41,7 @@ func Load() Config {
 		AuthDevFallback:    envBool("DEVHUB_AUTH_DEV_FALLBACK"),
 		HydraAdminURL:      strings.TrimSpace(os.Getenv("DEVHUB_HYDRA_ADMIN_URL")),
 		HydraRoleClaim:     strings.TrimSpace(os.Getenv("DEVHUB_HYDRA_ROLE_CLAIM")),
+		KratosPublicURL:    strings.TrimSpace(os.Getenv("DEVHUB_KRATOS_PUBLIC_URL")),
 	}
 }
 
