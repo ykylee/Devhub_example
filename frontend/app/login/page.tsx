@@ -2,40 +2,38 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Lock, User, ArrowRight, ShieldCheck } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useStore } from "@/lib/store";
+import { ArrowRight, ShieldCheck } from "lucide-react";
+
+// OIDC entry point. Defaults assume a local PoC: Hydra public on :4444 issuing tokens for the devhub-frontend client, redirecting back to the SPA root after consent.
+const OIDC_LOGIN_URL =
+  process.env.NEXT_PUBLIC_OIDC_LOGIN_URL ?? "http://127.0.0.1:4444/oauth2/auth";
+const OIDC_CLIENT_ID =
+  process.env.NEXT_PUBLIC_OIDC_CLIENT_ID ?? "devhub-frontend";
+const OIDC_REDIRECT_URI =
+  process.env.NEXT_PUBLIC_OIDC_REDIRECT_URI ?? "http://127.0.0.1:3000/login/callback";
+const OIDC_SCOPE =
+  process.env.NEXT_PUBLIC_OIDC_SCOPE ?? "openid offline";
+
+function buildAuthorizeURL(): string {
+  const url = new URL(OIDC_LOGIN_URL);
+  url.searchParams.set("client_id", OIDC_CLIENT_ID);
+  url.searchParams.set("response_type", "code");
+  url.searchParams.set("redirect_uri", OIDC_REDIRECT_URI);
+  url.searchParams.set("scope", OIDC_SCOPE);
+  url.searchParams.set("state", crypto.randomUUID());
+  return url.toString();
+}
 
 export default function LoginPage() {
-  const [loginId, setLoginId] = useState("");
-  const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
-  const setRole = useStore((state) => state.setRole);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    
-    // MOCK LOGIN LOGIC - Will be replaced by Kratos flow in Phase 13
-    setTimeout(() => {
-      if (loginId === "admin") {
-        setRole("System Admin");
-        router.push("/organization");
-      } else if (loginId === "manager") {
-        setRole("Manager");
-        router.push("/manager");
-      } else {
-        setRole("Developer");
-        router.push("/developer");
-      }
-      setIsLoading(false);
-    }, 1000);
+  const handleLogin = () => {
+    setIsRedirecting(true);
+    window.location.assign(buildAuthorizeURL());
   };
 
   return (
     <div className="min-h-screen bg-[#030014] flex items-center justify-center p-4 selection:bg-primary/30">
-      {/* Background Orbs */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 -left-1/4 w-1/2 h-1/2 bg-primary/10 rounded-full blur-[120px]" />
         <div className="absolute bottom-1/4 -right-1/4 w-1/2 h-1/2 bg-accent/10 rounded-full blur-[120px]" />
@@ -63,50 +61,24 @@ export default function LoginPage() {
         </div>
 
         <div className="glass border-white/10 rounded-[2rem] p-10 shadow-2xl backdrop-blur-2xl">
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ml-1">Login ID</label>
-              <div className="relative">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  type="text"
-                  value={loginId}
-                  onChange={(e) => setLoginId(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 py-4 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-white/10"
-                  placeholder="Enter your ID"
-                  required
-                />
-              </div>
-            </div>
+          <p className="text-sm text-muted-foreground text-center mb-8">
+            DevHub uses Ory Hydra and Kratos for identity. Continue to the secure
+            sign-in flow to authenticate.
+          </p>
 
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ml-1">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 py-4 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-white/10"
-                  placeholder="••••••••"
-                  required
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-primary text-white font-black py-4 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20 disabled:opacity-50 disabled:hover:scale-100 group uppercase tracking-widest text-xs"
-            >
-              {isLoading ? "Authenticating..." : (
-                <>
-                  Access System
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </>
-              )}
-            </button>
-          </form>
+          <button
+            type="button"
+            onClick={handleLogin}
+            disabled={isRedirecting}
+            className="w-full bg-primary text-white font-black py-4 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20 disabled:opacity-50 disabled:hover:scale-100 group uppercase tracking-widest text-xs"
+          >
+            {isRedirecting ? "Redirecting..." : (
+              <>
+                Continue to Sign In
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </>
+            )}
+          </button>
 
           <div className="mt-8 pt-8 border-t border-white/5 text-center">
             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">

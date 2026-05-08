@@ -66,6 +66,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 
 	v1 := router.Group("/api/v1")
 	v1.Use(handler.authenticateActor)
+	v1.GET("/me", handler.getMe)
 	v1.GET("/dashboard/metrics", handler.dashboardMetrics)
 	v1.GET("/events", handler.listWebhookEvents)
 	v1.GET("/infra/edges", handler.infraEdges)

@@ -10,9 +10,19 @@ interface Toast {
   type: ToastType;
 }
 
-interface AppState {
+export interface AuthenticatedActor {
+  login: string;
+  subject?: string;
   role: UserRole;
-  setRole: (role: UserRole) => void;
+  source?: string;
+}
+
+interface AppState {
+  role: UserRole | null;
+  actor: AuthenticatedActor | null;
+  setActor: (actor: AuthenticatedActor) => void;
+  clearActor: () => void;
+  setRole: (role: UserRole | null) => void;
   isDeepFocus: boolean;
   setDeepFocus: (active: boolean) => void;
   notifications: number;
@@ -26,7 +36,10 @@ interface AppState {
 export const useStore = create<AppState>()(
   persist(
     (set) => ({
-      role: "Developer",
+      role: null,
+      actor: null,
+      setActor: (actor) => set({ actor, role: actor.role }),
+      clearActor: () => set({ actor: null, role: null }),
       setRole: (role) => set({ role }),
       isDeepFocus: false,
       setDeepFocus: (active) => set({ isDeepFocus: active }),

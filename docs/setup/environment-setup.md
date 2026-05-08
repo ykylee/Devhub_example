@@ -77,6 +77,19 @@ npm run dev
 
 `BACKEND_API_URL` 환경변수를 별도로 지정하지 않으면 `next.config.ts` 의 native default(`http://localhost:8080`) 를 사용해 backend-core 로 프록시한다. compose 환경처럼 다른 호스트명을 쓰려면 `BACKEND_API_URL` 을 export 하면 된다.
 
+#### Auth env (PR #18 이후 적용)
+
+frontend 의 `/login` 화면이 OIDC redirect 흐름으로 진입하므로 다음 env 를 설정한다 (default 는 PoC 용).
+
+| 변수 | default | 용도 |
+| --- | --- | --- |
+| `NEXT_PUBLIC_OIDC_LOGIN_URL` | `http://127.0.0.1:4444/oauth2/auth` | Hydra public authorize endpoint |
+| `NEXT_PUBLIC_OIDC_CLIENT_ID` | `devhub-frontend` | Hydra OIDC client id (Phase 13 PoC 에서 등록) |
+| `NEXT_PUBLIC_OIDC_REDIRECT_URI` | `http://127.0.0.1:3000/login/callback` | Hydra → frontend callback URL |
+| `NEXT_PUBLIC_OIDC_SCOPE` | `openid offline` | 요청 scope |
+
+또한 dev 모드에서 backend `/api/v1/me` 가 401 을 반환하지 않도록 backend 측에서 `DEVHUB_AUTH_DEV_FALLBACK=1` + `X-Devhub-Actor` 헤더를 사용하거나, Hydra/Kratos PoC 가 가동 중이어야 한다.
+
 ### 2.5 검증
 
 ```sh
