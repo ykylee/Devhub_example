@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { identityService, OrgMember, Team } from "@/lib/services/identity.service";
+import { identityService, OrgMember, OrgNode } from "@/lib/services/identity.service";
 import { MemberTable } from "@/components/organization/MemberTable";
 import { OrgUnitGrid } from "@/components/organization/OrgUnitGrid";
 import { MemberManagementModal } from "@/components/organization/MemberManagementModal";
@@ -13,13 +13,16 @@ import { cn } from "@/lib/utils";
 import { useStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
 
+import { defaultRoles, Role } from "@/lib/services/rbac.types";
+
 type Tab = "members" | "units" | "permissions" | "orgchart";
 
 export default function OrganizationPage() {
   const [activeTab, setActiveTab] = useState<Tab>("members");
   const [members, setMembers] = useState<OrgMember[]>([]);
-  const [orgNodes, setOrgNodes] = useState<any[]>([]);
+  const [orgNodes, setOrgNodes] = useState<OrgNode[]>([]);
   const [unitMembers, setUnitMembers] = useState<Record<string, string[]>>({});
+  const [roles, setRoles] = useState<Role[]>(defaultRoles);
   const [managingUnitId, setManagingUnitId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -171,7 +174,15 @@ export default function OrganizationPage() {
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3 }}
               >
-                {activeTab === 'members' && <MemberTable members={members} />}
+                {activeTab === 'members' && (
+                  <MemberTable 
+                    members={members} 
+                    roles={roles}
+                    onUpdateMemberRole={(memberId, newRoleName) => {
+                      setMembers(members.map(m => m.id === memberId ? { ...m, role: newRoleName as any } : m));
+                    }}
+                  />
+                )}
                 {activeTab === 'units' && (
                   <OrgUnitGrid 
                     nodes={orgNodes} 
@@ -180,7 +191,9 @@ export default function OrganizationPage() {
                   />
                 )}
                 {activeTab === 'orgchart' && <OrgTree />}
-                {activeTab === 'permissions' && <PermissionEditor />}
+                {activeTab === 'permissions' && (
+                  <PermissionEditor roles={roles} setRoles={setRoles} />
+                )}
               </motion.div>
             </AnimatePresence>
           )}

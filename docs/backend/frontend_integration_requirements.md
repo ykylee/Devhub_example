@@ -76,14 +76,18 @@ system_admin
 
 ```text
 GET /api/v1/me
+GET /api/v1/rbac/policy
 GET /api/v1/notifications
 POST /api/v1/notifications/clear
 ```
 
 필요 데이터:
 - user id, login, display name, role, allowed roles
+- RBAC roles/resources/permissions/matrix
 - unread notification count
 - focus mode 상태는 초기에는 프론트 local state로 유지 가능하나, 장기적으로 사용자 설정 API로 이동 검토
+
+2026-05-07 기준 `GET /api/v1/rbac/policy`가 추가됐다. Organization > Permissions 화면은 이 API를 우선 호출하고, 실패 시 기존 default matrix로 fallback한다. 현재 policy는 read-only static default이며 편집 API는 후속 approval/audit 경계에서 정의한다.
 
 ### 3.2 역할별 KPI metric
 
@@ -162,6 +166,8 @@ GET /api/v1/admin/config
 - system admin allowlist 또는 seed admin
 - service action command table
 - audit log table
+- 2026-05-06 기준 프론트 `infraService.controlService()`는 `POST /api/v1/admin/service-actions`를 호출해 dry-run service action command를 생성한다. 백엔드는 승인 불필요 dry-run command를 `running` 이후 `succeeded`로 자동 전이하고 `command.status.updated` 이벤트를 발행한다. 프론트 후속 작업은 이 이벤트를 toast/상태 UI에 반영하는 것이다.
+- 2026-05-07 기준 `GET /api/v1/audit-logs`가 추가됐고, 조직/사용자 CRUD 및 멤버 교체는 audit log를 남긴다. `X-Devhub-Actor` 사용 시 deprecation 응답 헤더를 내려 Phase 13 token actor 전환 경로를 노출한다.
 
 ### 3.6 WebSocket event
 
@@ -284,4 +290,3 @@ POST   /api/v1/auth/logout
 
 ### 6.5 Idempotency Key 및 필터링 정책
 - **요청**: 프론트에서 생성하는 `mitigation-{riskId}-{timestamp}` 키에 대한 백엔드 중복 체크 로직과, 사용자 역할(Role)에 따른 WebSocket 이벤트 구독 필터링(Subscription Filtering) 로직을 Phase 8의 핵심 요건으로 포함한다.
-

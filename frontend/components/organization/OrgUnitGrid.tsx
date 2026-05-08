@@ -3,9 +3,10 @@
 import { motion } from "framer-motion";
 import { Users, Building2, Layers, Shield, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { OrgNode } from "@/lib/services/identity.service";
 
 interface OrgUnitGridProps {
-  nodes: any[];
+  nodes: OrgNode[];
   unitMembers: Record<string, string[]>;
   onManage: (id: string) => void;
 }

@@ -4,8 +4,8 @@
 - 대상 독자: 저장소 관리자, 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: draft
 - 최종 수정일: 2026-04-23
-- 관련 문서: `./global_workflow_standard.md`, `../WORKFLOW_INDEX.md`, `../README.md`, `../memory/project_status_assessment.md`
-- 상태 문서/프로젝트 문서 경계: `ai-workflow/memory/`는 workflow 상태, `README.md`와 `docs/`는 프로젝트 문서로 구분한다.
+- 관련 문서: `./global_workflow_standard.md`, `./project_status_assessment.md`, `./existing_project_onboarding_contract.md`, `../scripts/bootstrap_workflow_kit.py`
+- 상태 문서/프로젝트 문서 경계: `./workflow_state_vs_project_docs.md`
 ## 1. 도입 경로 개요
 1. 신규 프로젝트
 2. 작업 중인 프로젝트
@@ -14,10 +14,10 @@
 - 공통 문서 구조를 빠르게 깔고, 프로젝트 특화 규칙만 얇게 채운다.
 - 문서 경로, 기본 명령, 검증 규칙을 초기부터 표준 포맷으로 맞춘다.
 ### 추천 시작 순서
-1. 별도 workflow kit source bundle에서 기본 문서 세트를 생성하거나, 현재 저장소의 `ai-workflow/memory/` 구조를 복사해 시작한다.
+1. `bootstrap_workflow_kit.py --adoption-mode new` 로 기본 문서 세트를 생성한다.
 2. `PROJECT_PROFILE.md` 에 프로젝트 목적, 문서 구조, 명령, 검증 규칙을 채운다.
 3. `session_handoff.md` 와 날짜별 backlog 에 첫 작업 기준선을 적는다.
-4. 자동 도구가 있으면 `state.json` 을 생성하고, 없으면 `session_handoff.md`와 backlog 기준으로 수동 갱신한다.
+4. `generate_workflow_state.py` 로 `state.json` 을 생성하거나 갱신해 빠른 세션 기준선을 맞춘다.
 4. 이후 skill/MCP 도입 범위를 정한다.
 ### 자동화 포인트
 - 문서 세트 생성
@@ -31,34 +31,44 @@
 - 기존 코드베이스와 문서 구조를 빠르게 읽고, 워크플로우용 문서 초안을 자동 생성한다.
 - 현재 저장소 현실에 맞는 도입 경로를 제시해 "빈 템플릿" 상태를 줄인다.
 ### 추천 시작 순서
-1. 별도 workflow kit source bundle의 existing onboarding 도구를 실행하거나, 현재 저장소 구조를 수동 분석한다.
-2. `memory/project_status_assessment.md` 에 적힌 추정 스택, 명령, 문서 위치를 실제 운영 규칙과 대조한다.
+1. `bootstrap_workflow_kit.py --adoption-mode existing` 로 저장소 분석과 문서 초안을 생성한다.
+2. `repository_assessment.md` 에 적힌 추정 스택, 명령, 문서 위치를 실제 운영 규칙과 대조한다.
 3. `PROJECT_PROFILE.md` 에 자동 추정값을 확정 또는 수정한다.
 4. `session_handoff.md` 와 backlog 에 현재 진행 중인 실제 작업과 리스크를 반영한다.
-5. 자동 도구가 있으면 `state.json` 을 갱신하고, 없으면 JSON 유효성을 확인하며 수동 갱신한다.
+5. `generate_workflow_state.py` 로 `state.json` 을 갱신한다.
 6. 이후 문서 동기화, 세션 시작, backlog 갱신 흐름을 단계적으로 도입한다.
 ### bootstrap 직후 후속 루틴
-
-현재 저장소에는 onboarding script가 포함되어 있지 않다. 자동 도구가 없는 경우 아래 순서를 수동 수행한다.
-
+```bash
+python3 scripts/run_existing_project_onboarding.py \
+  --project-profile-path /path/to/project/ai-workflow/memory/PROJECT_PROFILE.md \
+  --session-handoff-path /path/to/project/ai-workflow/memory/session_handoff.md \
+  --work-backlog-index-path /path/to/project/ai-workflow/memory/work_backlog.md \
+  --backlog-dir-path /path/to/project/ai-workflow/memory/backlog \
+  --repository-assessment-path /path/to/project/ai-workflow/memory/repository_assessment.md
+```
 1. latest backlog 식별
 2. session-start 기준선 복원
 3. validation-plan 으로 초기 검증 수준 정리
 4. code-index-update 로 README/허브/index 재확인 후보 정리
-
-세부 자동화 계약은 별도 workflow kit source bundle에서 관리한다. 현재 저장소에서는 `WORKFLOW_INDEX.md`와 `memory/` 문서를 기준으로 수동 대체한다.
+세부 입력/출력 계약과 단계별 연결 규칙은 [./existing_project_onboarding_contract.md](./existing_project_onboarding_contract.md) 에서 별도로 관리한다.
+1. `status`
+2. `onboarding_summary.recommended_next_steps`
+3. `warnings`
+4. `orchestration_plan`
+5. `validation_plan`
+6. `code_index_update`
 ### 자동화 포인트
 - 상위 디렉터리 구조 스캔
 - 기술 스택 후보 감지
 - docs/tests/source 디렉터리 감지
 - 설치, 실행, 테스트 명령 추정
-- project status assessment 문서 생성
+- repository assessment 문서 생성
 - handoff/backlog 초기 항목 자동 작성
 ### 주의점
 - 자동 추정한 명령은 편의용 초안일 뿐이며, 실제 CI/CD 또는 운영 절차와 다를 수 있다.
 - 기존 문서 체계가 이미 있다면 별도 워크플로우 문서를 둘지, 기존 문서 위치에 흡수할지 먼저 결정해야 한다.
 - 리뷰 규칙, 배포 승인 규칙, 환경 제약은 자동 추정하기 어렵기 때문에 반드시 사람이 보강해야 한다.
-- 실제 파일럿 적용 대상은 프로젝트 관리자가 별도 체크리스트로 먼저 추리는 편이 좋다.
+- 실제 파일럿 적용 대상은 [../templates/pilot_candidate_checklist.md](../templates/pilot_candidate_checklist.md) 기준으로 먼저 추리는 편이 좋다.
 ## 4. 어떤 경로를 고를지 판단 기준
 - 아직 저장소 골격만 있는 경우:
 - `new`
@@ -70,10 +80,10 @@
 - 신규 프로젝트:
 - `PROJECT_PROFILE.md`, `session_handoff.md`, `work_backlog.md`, 날짜별 backlog
 - 작업 중인 프로젝트:
-- 위 문서 세트 + `project_status_assessment.md`
+- 위 문서 세트 + `repository_assessment.md`
 ## 6. 이번 릴리즈 기준 권장 도입 묶음
 ### 6.1 첫 세션 기본 묶음
-1. existing project onboarding 도구 또는 수동 repository assessment
+1. `run_existing_project_onboarding.py`
 2. `session-start`
 3. `validation-plan`
 4. `code-index-update`
@@ -81,18 +91,22 @@
 1. `backlog-update`
 2. `doc-sync`
 3. 필요 시 `merge-doc-reconcile`
-4. `state.json` 자동 생성 또는 수동 갱신
+4. `generate_workflow_state.py`
 ### 6.3 다음 릴리즈로 미루는 항목
 - 하네스 기본 연결 경로를 MCP server 로 승격하는 작업
 - read-only MCP draft bridge 를 기본 운영 경로로 바꾸는 작업
 - MCP capability 확장과 정식 client 상호운용 범위 확대
-## 7. 현재 저장소 배포 메모 (2026-05-03)
-
-- 현재 저장소에는 workflow source bundle이 아니라 runtime 문서 세트만 남긴다.
-- `scripts/`, `skills/`, `mcp`, `templates`, `tests`, `examples`는 별도 배포물 또는 외부 도구로 취급한다.
-- 온보딩은 `WORKFLOW_INDEX.md`에서 시작하고, 자동화가 없을 때는 core 문서를 수동 절차로 사용한다.
-
+## 릴리스 및 안정성 업데이트 (2026-04-28)
+### 릴리스 상태: Phase 6 진입
+- 현재 워크플로우 키트는 **Phase 6: 편집 정밀화 및 지능형 도구 최적화** 단계에 진입했습니다.
+- 주요 성과: Phase 5에서 지능형 운영 도구(Git 요약, 로테이션 등)와 MCP SDK 통합을 완료했습니다.
+### 기술적 안정성 개선: 빈 프로젝트 오판 방지
+- **이슈**: 기존 프로젝트 도입 모드(`--adoption-mode existing`)에서 대상 프로젝트가 비어 있을 때, `ai-workflow` 키트 내부의 스크립트(scripts/, tests/ 등)를 프로젝트 코드로 오인하는 현상이 발견되었습니다.
+- **해결**: `iter_repo_files` 및 `analyze_repo_structure` 함수에 `ignore_dirs` 필터링 로직을 강화했습니다. 이제 키트 디렉토리를 명시적으로 무시하여 순수 대상 프로젝트의 컨텍스트만 정확히 수집합니다.
+- **효과**: "빈 저장소에 워크플로우를 먼저 배포하고 프로젝트를 시작"하는 패턴에서도 분석 결과가 왜곡되지 않고 청결한 상태를 유지합니다.
 ## 다음에 읽을 문서
 - 공통 표준: [./global_workflow_standard.md](./global_workflow_standard.md)
-- workflow 인덱스: [../WORKFLOW_INDEX.md](../WORKFLOW_INDEX.md)
-- 프로젝트 상태 진단: [../memory/project_status_assessment.md](../memory/project_status_assessment.md)
+- 상태 진단: [./project_status_assessment.md](./project_status_assessment.md)
+- 기존 프로젝트 온보딩 계약: [./existing_project_onboarding_contract.md](./existing_project_onboarding_contract.md)
+- 스크립트 안내: [../scripts/README.md](../scripts/README.md)
+- 파일럿 후보 선정 체크리스트: [../templates/pilot_candidate_checklist.md](../templates/pilot_candidate_checklist.md)

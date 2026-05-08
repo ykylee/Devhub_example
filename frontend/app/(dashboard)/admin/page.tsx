@@ -11,11 +11,13 @@ import {
   addEdge,
   BackgroundVariant,
   type Connection,
+  type Edge,
   type Node,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { infraService } from "@/lib/services/infra.service";
 import { realtimeService } from "@/lib/services/realtime.service";
+import type { ServiceEdge } from "@/lib/services/types";
 import { useEffect, useState } from "react";
 import { getMockMetrics } from "@/lib/mockData";
 import { motion } from "framer-motion";
@@ -25,9 +27,15 @@ import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 
 type ServiceNode = Node<{ label: string; status: string; cpu: string; memory: string; source?: string }>;
+type InfraNodeUpdate = {
+  id: string;
+  status: "stable" | "warning" | "down";
+  cpu_percent?: number;
+  memory_bytes?: number;
+};
 
 const initialNodes: ServiceNode[] = [];
-const initialEdges: any[] = [];
+const initialEdges: Edge[] = [];
 
 export default function AdminDashboard() {
   const [nodes, setNodes, onNodesChange] = useNodesState<ServiceNode>(initialNodes);
@@ -65,7 +73,7 @@ export default function AdminDashboard() {
           )
         }));
 
-        const mappedEdges = topology.edges.map(e => ({
+        const mappedEdges = topology.edges.map((e: ServiceEdge) => ({
           id: e.id,
           source: e.source_id,
           target: e.target_id,
@@ -90,7 +98,7 @@ export default function AdminDashboard() {
     fetchData();
 
     // Subscribe to real-time infra updates
-    const unsubscribe = realtimeService.subscribe('infra.node.updated', (event) => {
+    const unsubscribe = realtimeService.subscribe<InfraNodeUpdate>('infra.node.updated', (event) => {
       const updatedNode = event.data;
       setNodes((nds) => nds.map((node) => {
         if (node.id === updatedNode.id) {
@@ -129,9 +137,14 @@ export default function AdminDashboard() {
 
   const handleAction = async (action: string) => {
     if (!selectedNode) return;
-    addToast(`${selectedNode.data.label} : ${action} command sent.`, "info");
-    await infraService.controlService(selectedNode.id, action);
-    setSelectedNode(null);
+    try {
+      await infraService.controlService(selectedNode.id, action);
+      addToast(`${selectedNode.data.label} : ${action} command queued.`, "info");
+      setSelectedNode(null);
+    } catch (error) {
+      console.error("Failed to create service action:", error);
+      addToast(`${selectedNode.data.label} : ${action} command failed.`, "error");
+    }
   };
 
   return (

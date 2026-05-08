@@ -1,19 +1,17 @@
-# 작업 백로그 인덱스
+# Integrated Work Backlog
 
-- 문서 목적: 날짜별 백로그 이력 관리
-- 범위: 2026-04-29 ~ 2026-05-01
-- 대상 독자: AI Agent, 프로젝트 관리자
-- 상태: in_progress
-- 최종 수정일: 2026-05-01
-- 관련 문서: [세션 인계](./session_handoff.md), [프로젝트 프로파일](../../docs/PROJECT_PROFILE.md)
+- Purpose: 통합 테스트 브랜치의 전체 작업 목록 관리
+- Status: in_progress
+- Updated: 2026-05-07
 
-## 운영 원칙
-1. 세션 시작 시 인덱스와 최신 백로그 확인
-2. 세션 종료 전 인덱스 및 Handoff 갱신
-3. 모든 작업 상태는 날짜별 백로그에 기록
+## 🛠️ 통합 테스트 주요 태스크
 
-## 날짜별 백로그
-- [2026-05-01](./backlog/2026-05-01.md)
-- [2026-05-03](./backlog/2026-05-03.md)
-- [2026-05-04](./backlog/2026-05-04.md)
-- [2026-05-06](./backlog/2026-05-06.md)
+- [x] API 계약서 (`backend_api_contract.md`) 통합
+- [x] `PermissionEditor` UI 및 RBAC 서비스 통합
+- [ ] 백엔드 `go test ./...` 검증
+- [ ] 프론트엔드 `RealtimeService` 실데이터 연동 검증
+- [ ] 서비스 액션 커맨드 실행 및 상태 전이 확인
+
+## 🔗 브랜치별 상세 백로그
+- [Gemini Phase 6 Backlog](./gemini/phase6/work_backlog.md)
+- [Codex Service Action Backlog](./codex/service-action-command/work_backlog.md)

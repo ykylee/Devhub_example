@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { 
   ReactFlow, 
-  MiniMap, 
   Controls, 
   Background, 
   useNodesState, 
@@ -20,7 +19,6 @@ import {
 import '@xyflow/react/dist/style.css';
 import { identityService } from '@/lib/services/identity.service';
 import { Plus, Save, ZoomIn, Building2, LayoutTemplate } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
 import { OrgNode } from './OrgNode';
 import dagre from 'dagre';
@@ -61,8 +59,8 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
 function OrgTreeContent() {
   const [allNodes, setAllNodes] = useState<Node[]>([]);
   const [allEdges, setAllEdges] = useState<Edge[]>([]);
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [maxDepth, setMaxDepth] = useState(4);
   const [selectedRoot, setSelectedRoot] = useState<string>('all');
@@ -80,7 +78,8 @@ function OrgTreeContent() {
       const childEdges = edges.filter(e => e.source === id);
       const childrenTotal = childEdges.reduce((sum, edge) => sum + calculateTotal(edge.target), 0);
       
-      const total = (node.data.direct_count || 0) + childrenTotal;
+      const nodeData = node.data as any;
+      const total = (nodeData.direct_count || 0) + childrenTotal;
       node.data = { ...node.data, total_count: total };
       return total;
     };
@@ -142,6 +141,7 @@ function OrgTreeContent() {
   }, [allEdges, addToast, recalculateMemberCounts]);
 
   const nodesRef = useRef(allNodes);
+  const addChildRef = useRef<(parentId: string) => void>(() => {});
   useEffect(() => {
     nodesRef.current = allNodes;
   }, [allNodes]);
@@ -167,7 +167,7 @@ function OrgTreeContent() {
         isInitialEditing: true,
         direct_count: 0,
         total_count: 0,
-        onAddChild,
+        onAddChild: (id: string) => addChildRef.current(id),
         onDelete: onDeleteNode,
         onUpdate: onUpdateNode
       },
@@ -191,6 +191,10 @@ function OrgTreeContent() {
     addToast(`Adding new ${nextType}...`, "info");
     window.requestAnimationFrame(() => fitView({ duration: 800 }));
   }, [allEdges, addToast, onDeleteNode, onUpdateNode, fitView, recalculateMemberCounts]);
+
+  useEffect(() => {
+    addChildRef.current = onAddChild;
+  }, [onAddChild]);
 
   // Initial fetch only
   useEffect(() => {
@@ -306,9 +310,12 @@ function OrgTreeContent() {
                 className="bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-[11px] font-bold text-white focus:outline-none focus:border-primary/50"
               >
                 <option value="all">Show All</option>
-                {allNodes.map(n => (
-                  <option key={n.id} value={n.id}>{n.data.label}</option>
-                ))}
+                {allNodes.map(n => {
+                  const nodeData = n.data as any;
+                  return (
+                    <option key={n.id} value={n.id}>{nodeData.label}</option>
+                  );
+                })}
               </select>
             </div>
 

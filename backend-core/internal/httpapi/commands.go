@@ -19,6 +19,16 @@ type riskMitigationRequest struct {
 	Metadata       map[string]any `json:"metadata"`
 }
 
+type serviceActionRequest struct {
+	ServiceID      string         `json:"service_id"`
+	ActionType     string         `json:"action_type"`
+	Reason         string         `json:"reason"`
+	Force          bool           `json:"force"`
+	DryRun         *bool          `json:"dry_run"`
+	IdempotencyKey string         `json:"idempotency_key"`
+	Metadata       map[string]any `json:"metadata"`
+}
+
 type commandResponse struct {
 	CommandID        string         `json:"command_id"`
 	CommandType      string         `json:"command_type"`
@@ -44,6 +54,82 @@ type commandAcceptedResponse struct {
 	AuditLogID       string    `json:"audit_log_id"`
 	IdempotentReplay bool      `json:"idempotent_replay"`
 	CreatedAt        time.Time `json:"created_at"`
+}
+
+func (h Handler) createServiceAction(c *gin.Context) {
+	if h.cfg.CommandStore == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"status": "unavailable",
+			"error":  "command store is not configured",
+		})
+		return
+	}
+
+	var request serviceActionRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "request body must be valid JSON"})
+		return
+	}
+	request.ServiceID = strings.TrimSpace(request.ServiceID)
+	request.ActionType = strings.TrimSpace(request.ActionType)
+	request.Reason = strings.TrimSpace(request.Reason)
+	request.IdempotencyKey = strings.TrimSpace(request.IdempotencyKey)
+	if request.ServiceID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "service_id is required"})
+		return
+	}
+	if request.ActionType == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "action_type is required"})
+		return
+	}
+	if request.Reason == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "reason is required"})
+		return
+	}
+
+	dryRun := true
+	if request.DryRun != nil {
+		dryRun = *request.DryRun
+	}
+	requiresApproval := request.Force || !dryRun
+	payload := map[string]any{
+		"service_id":  request.ServiceID,
+		"action_type": request.ActionType,
+		"dry_run":     dryRun,
+		"force":       request.Force,
+		"reason":      request.Reason,
+	}
+	if request.Metadata != nil {
+		payload["metadata"] = request.Metadata
+	}
+
+	command, auditLog, replayed, err := h.cfg.CommandStore.CreateServiceActionCommand(c.Request.Context(), domain.ServiceActionCommandRequest{
+		ServiceID:        request.ServiceID,
+		ActorLogin:       actorLogin(c),
+		ActionType:       request.ActionType,
+		Reason:           request.Reason,
+		Force:            request.Force,
+		DryRun:           dryRun,
+		IdempotencyKey:   request.IdempotencyKey,
+		RequestPayload:   payload,
+		RequiresApproval: requiresApproval,
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusAccepted, gin.H{
+		"status": "accepted",
+		"data": commandAcceptedResponse{
+			CommandID:        command.CommandID,
+			CommandStatus:    command.Status,
+			RequiresApproval: command.RequiresApproval,
+			AuditLogID:       auditLog.AuditID,
+			IdempotentReplay: replayed,
+			CreatedAt:        command.CreatedAt,
+		},
+	})
 }
 
 func (h Handler) createRiskMitigation(c *gin.Context) {
@@ -174,9 +260,29 @@ func commandFromDomain(command domain.Command) commandResponse {
 }
 
 func actorLogin(c *gin.Context) string {
+	return requestActor(c).Login
+}
+
+type requestActorInfo struct {
+	Login  string
+	Source string
+}
+
+// SECURITY (SEC-4): X-Devhub-Actor header fallback below allows audit/command actor spoofing while SEC-2 keeps the auth middleware open. Remove the fallback (or gate behind DEVHUB_AUTH_DEV_FALLBACK=1) once a verifier is wired in. Tracked in ai-workflow/memory/claude/test/backend-integration/backlog/2026-05-08.md.
+func requestActor(c *gin.Context) requestActorInfo {
+	if value, ok := c.Get("devhub_actor_login"); ok {
+		if actor, ok := value.(string); ok {
+			actor = strings.TrimSpace(actor)
+			if actor != "" {
+				return requestActorInfo{Login: actor, Source: "authenticated_context"}
+			}
+		}
+	}
 	actor := strings.TrimSpace(c.GetHeader("X-Devhub-Actor"))
 	if actor == "" {
-		return "system"
+		return requestActorInfo{Login: "system", Source: "system_fallback"}
 	}
-	return actor
+	c.Header("X-Devhub-Actor-Deprecated", "true")
+	c.Header("Warning", `299 - "X-Devhub-Actor is a development fallback; use authenticated session or bearer token claims"`)
+	return requestActorInfo{Login: actor, Source: "x-devhub-actor"}
 }

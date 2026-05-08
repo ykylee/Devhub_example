@@ -27,7 +27,7 @@
 !/ai-workflow/README.md
 !/ai-workflow/WORKFLOW_INDEX.md
 !/ai-workflow/core/
-!/ai-workflow/project/
+!/ai-workflow/memory/
 # === WORKFLOW KIT END ===
 
 .venv/
@@ -36,3 +36,19 @@ node_modules/
 dist/
 build/
 *.log
+
+# === DEV ENVIRONMENT (machine-specific, untracked) ===
+# 컨테이너/오케스트레이션 자산은 작업 환경별 제약이 다르므로 git 추적에서 제외한다.
+# git 에는 환경 구성 가이드(docs/setup/environment-setup.md) 만 둔다.
+docker-compose.yml
+docker-compose.*.yml
+**/Dockerfile
+**/Dockerfile.*
+**/.dockerignore
+
+# === EDITOR / OS NOISE ===
+.DS_Store
+**/.DS_Store
+*.bak
+*.swp
+Thumbs.db

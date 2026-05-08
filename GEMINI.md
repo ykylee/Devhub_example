@@ -9,23 +9,23 @@
 
 ## 목적
 
-이 저장소에서는 표준 AI 워크플로우를 기준으로 작업한다. 세션 시작, backlog 갱신, 문서 동기화, 세션 종료는 `ai-workflow/` 아래 문서를 우선 기준으로 삼는다.
+이 저장소에서는 표준 AI 워크플로우를 기준으로 작업한다. 세션 시작, backlog 갱신, 문서 동기화, 세션 종료는 `ai-workflow/memory/gemini/phase6/` 아래 문서를 우선 기준으로 삼는다.
 
-## 항상 먼저 읽을 문서
+## 항상 먼저 읽을 문서 (격리된 브랜치 메모리)
 
-- `ai-workflow/project/state.json`
-- `ai-workflow/project/session_handoff.md`
-- `ai-workflow/project/work_backlog.md`
-- `ai-workflow/project/project_workflow_profile.md`
+- `ai-workflow/memory/gemini/phase6/state.json`
+- `ai-workflow/memory/gemini/phase6/session_handoff.md`
+- `ai-workflow/memory/gemini/phase6/work_backlog.md`
+- `ai-workflow/memory/PROJECT_PROFILE.md`
 
-`ai-workflow/` 는 세션 복원과 workflow 상태 관리용 메타 레이어다. 프로젝트 코드나 프로젝트 문서를 탐색할 때는 이 경로를 기본 탐색 범위에 넣지 말고, workflow 문서 자체를 갱신하거나 현재 세션 상태를 복원할 때만 예외적으로 참조한다.
+`ai-workflow/memory/` 는 세션 복원과 workflow 상태 관리용 메타 레이어다. 프로젝트 코드나 프로젝트 문서를 탐색할 때는 이 경로를 기본 탐색 범위에 넣지 말고, workflow 문서 자체를 갱신하거나 현재 세션 상태를 복원할 때만 예외적으로 참조한다. 특히 개발 브랜치에서는 루트 디렉토리가 아닌 `memory/[agent]/[phase]/` 하위의 격리된 폴더를 사용하여 병합 충돌을 방지한다.
 
 ## 작업 원칙
 
 - 작업을 시작하기 전에 목적, 범위, 영향 문서를 짧게 정리한다.
 - 작업 상태는 `planned`, `in_progress`, `blocked`, `done` 중 하나로 관리한다.
 - 검증하지 않은 결과는 완료로 확정하지 않는다.
-- 세션 종료 전에는 `state.json`, `session_handoff.md`, 최신 backlog 를 갱신한다.
+- 세션 종료 전에는 격리 폴더 내의 `state.json`, `session_handoff.md`, 최신 backlog 를 갱신한다.
 
 ## 언어와 컨텍스트 원칙
 
@@ -46,9 +46,10 @@
 ## 문서 작업 기준
 
 - 문서 위키 홈: `docs/README.md`
-- 운영 문서 위치: `ai-workflow/project/`
-- backlog 위치: `ai-workflow/project/backlog/`
-- session handoff 위치: `ai-workflow/project/session_handoff.md`
+- 운영 문서 위치 (Branch): `ai-workflow/memory/gemini/phase6/`
+- 백로그 위치 (Branch): `ai-workflow/memory/gemini/phase6/backlog/`
+- 세션 인계 문서 (Branch): `ai-workflow/memory/gemini/phase6/session_handoff.md`
+- 프로젝트 통합 상태 (Main): `ai-workflow/memory/` 루트 파일
 
 ## Gemini CLI 전용 메모
 
@@ -56,4 +57,4 @@
 - `GEMINI.md` 에 기재된 지침은 시스템 프롬프트보다 우선하는 강력한 지침으로 취급한다.
 - 가능한 경우 메인 에이전트는 조정과 통합에 집중하고, bounded scope 의 읽기/쓰기/검증 작업은 서브 에이전트(`invoke_agent`)로 분리하는 패턴을 권장한다.
 - 서브 에이전트에게는 책임 범위와 종료 조건을 명확히 넘기고, 메인 에이전트에는 핵심 사실과 결과만 다시 모은다.
-- 기존 코드베이스 분석 결과를 반영한 초안이다. 추정 명령과 문서 경로는 실제 저장소 기준으로 수정할 수 있다.
+- 브랜치별 격리된 메모리 관리를 통해 다중 에이전트 협업 시의 병합 충돌을 최소화한다.

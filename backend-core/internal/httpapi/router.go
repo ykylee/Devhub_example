@@ -33,18 +33,27 @@ type DomainStore interface {
 
 type CommandStore interface {
 	CreateRiskMitigationCommand(context.Context, domain.RiskMitigationCommandRequest) (domain.Command, domain.AuditLog, bool, error)
+	CreateServiceActionCommand(context.Context, domain.ServiceActionCommandRequest) (domain.Command, domain.AuditLog, bool, error)
 	GetCommand(context.Context, string) (domain.Command, error)
 }
 
+type AuditStore interface {
+	CreateAuditLog(context.Context, domain.AuditLog) (domain.AuditLog, error)
+	ListAuditLogs(context.Context, store.ListAuditLogsOptions) ([]domain.AuditLog, error)
+}
+
 type RouterConfig struct {
-	WebhookSecret     string
-	EventStore        WebhookEventStore
-	EventProcessor    WebhookEventProcessor
-	HealthStore       HealthStore
-	DomainStore       DomainStore
-	CommandStore      CommandStore
-	OrganizationStore OrganizationStore
-	SnapshotProvider  SnapshotProvider
+	WebhookSecret       string
+	EventStore          WebhookEventStore
+	EventProcessor      WebhookEventProcessor
+	HealthStore         HealthStore
+	DomainStore         DomainStore
+	CommandStore        CommandStore
+	AuditStore          AuditStore
+	BearerTokenVerifier BearerTokenVerifier
+	OrganizationStore   OrganizationStore
+	SnapshotProvider    SnapshotProvider
+	RealtimeHub         *RealtimeHub
 }
 
 func NewRouter(cfg RouterConfig) *gin.Engine {
@@ -54,6 +63,8 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	router.GET("/health", handler.health)
 
 	v1 := router.Group("/api/v1")
+	v1.Use(handler.authenticateActor)
+	// SECURITY (SEC-3): mutating routes below (POST/PATCH/DELETE/PUT for users, org units, admin/service-actions, risks/mitigations) currently take no role gate. devhub_actor_role is set in auth.go but read by no handler, so defaultRBACPolicy() is unenforced. Tracked in ai-workflow/memory/claude/test/backend-integration/backlog/2026-05-08.md.
 	v1.GET("/dashboard/metrics", handler.dashboardMetrics)
 	v1.GET("/events", handler.listWebhookEvents)
 	v1.GET("/infra/edges", handler.infraEdges)
@@ -66,6 +77,9 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.GET("/ci-runs/:ci_run_id/logs", handler.ciRunLogs)
 	v1.GET("/risks", handler.risks)
 	v1.GET("/risks/critical", handler.criticalRisks)
+	v1.GET("/audit-logs", handler.listAuditLogs)
+	v1.GET("/rbac/policy", handler.getRBACPolicy)
+	v1.POST("/admin/service-actions", handler.createServiceAction)
 	v1.POST("/risks/:risk_id/mitigations", handler.createRiskMitigation)
 	v1.GET("/commands/:command_id", handler.getCommand)
 	v1.GET("/users", handler.listUsers)
@@ -81,6 +95,9 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.GET("/organization/units/:unit_id/members", handler.listUnitMembers)
 	v1.PUT("/organization/units/:unit_id/members", handler.replaceUnitMembers)
 	v1.POST("/integrations/gitea/webhooks", handler.receiveGiteaWebhook)
+	if cfg.RealtimeHub != nil {
+		v1.GET("/realtime/ws", cfg.RealtimeHub.HandleWebSocket)
+	}
 
 	return router
 }

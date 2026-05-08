@@ -404,11 +404,20 @@ func (h Handler) createUser(c *gin.Context) {
 		writeStoreError(c, err)
 		return
 	}
+	auditLog := h.recordAuditBestEffort(c, "user.created", "user", user.UserID, map[string]any{
+		"email":           user.Email,
+		"role":            string(user.Role),
+		"status":          string(user.Status),
+		"primary_unit_id": user.PrimaryUnitID,
+		"current_unit_id": user.CurrentUnitID,
+	})
 
-	c.JSON(http.StatusCreated, gin.H{
+	response := gin.H{
 		"status": "created",
 		"data":   appUserFromDomain(user),
-	})
+	}
+	addAuditMeta(response, auditLog)
+	c.JSON(http.StatusCreated, response)
 }
 
 func (h Handler) updateUser(c *gin.Context) {
@@ -491,10 +500,13 @@ func (h Handler) updateUser(c *gin.Context) {
 		writeStoreError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{
+	auditLog := h.recordAuditBestEffort(c, "user.updated", "user", user.UserID, userUpdateAuditPayload(input))
+	response := gin.H{
 		"status": "ok",
 		"data":   appUserFromDomain(user),
-	})
+	}
+	addAuditMeta(response, auditLog)
+	c.JSON(http.StatusOK, response)
 }
 
 func (h Handler) deleteUser(c *gin.Context) {
@@ -516,7 +528,10 @@ func (h Handler) deleteUser(c *gin.Context) {
 		writeStoreError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"status": "deleted", "data": gin.H{"user_id": userID}})
+	auditLog := h.recordAuditBestEffort(c, "user.deleted", "user", userID, nil)
+	response := gin.H{"status": "deleted", "data": gin.H{"user_id": userID}}
+	addAuditMeta(response, auditLog)
+	c.JSON(http.StatusOK, response)
 }
 
 type createOrgUnitRequest struct {
@@ -610,11 +625,19 @@ func (h Handler) createOrgUnit(c *gin.Context) {
 		writeStoreError(c, err)
 		return
 	}
+	auditLog := h.recordAuditBestEffort(c, "org_unit.created", "org_unit", unit.UnitID, map[string]any{
+		"parent_unit_id": unit.ParentUnitID,
+		"unit_type":      string(unit.UnitType),
+		"label":          unit.Label,
+		"leader_user_id": unit.LeaderUserID,
+	})
 
-	c.JSON(http.StatusCreated, gin.H{
+	response := gin.H{
 		"status": "created",
 		"data":   orgUnitFromDomain(unit),
-	})
+	}
+	addAuditMeta(response, auditLog)
+	c.JSON(http.StatusCreated, response)
 }
 
 func (h Handler) updateOrgUnit(c *gin.Context) {
@@ -673,7 +696,10 @@ func (h Handler) updateOrgUnit(c *gin.Context) {
 		writeStoreError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"status": "ok", "data": orgUnitFromDomain(unit)})
+	auditLog := h.recordAuditBestEffort(c, "org_unit.updated", "org_unit", unit.UnitID, orgUnitUpdateAuditPayload(input))
+	response := gin.H{"status": "ok", "data": orgUnitFromDomain(unit)}
+	addAuditMeta(response, auditLog)
+	c.JSON(http.StatusOK, response)
 }
 
 func (h Handler) deleteOrgUnit(c *gin.Context) {
@@ -695,7 +721,10 @@ func (h Handler) deleteOrgUnit(c *gin.Context) {
 		writeStoreError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"status": "deleted", "data": gin.H{"unit_id": unitID}})
+	auditLog := h.recordAuditBestEffort(c, "org_unit.deleted", "org_unit", unitID, nil)
+	response := gin.H{"status": "deleted", "data": gin.H{"unit_id": unitID}}
+	addAuditMeta(response, auditLog)
+	c.JSON(http.StatusOK, response)
 }
 
 type replaceUnitMembersRequest struct {
@@ -738,6 +767,9 @@ func (h Handler) replaceUnitMembers(c *gin.Context) {
 		writeStoreError(c, err)
 		return
 	}
+	auditLog := h.recordAuditBestEffort(c, "org_unit.members_replaced", "org_unit", unitID, map[string]any{
+		"user_ids": cleaned,
+	})
 
 	members, err := h.cfg.OrganizationStore.ListUnitMembers(c.Request.Context(), unitID)
 	if err != nil {
@@ -748,12 +780,78 @@ func (h Handler) replaceUnitMembers(c *gin.Context) {
 	for _, user := range members {
 		data = append(data, appUserFromDomain(user))
 	}
-	c.JSON(http.StatusOK, gin.H{
+	response := gin.H{
 		"status": "ok",
 		"data":   data,
 		"meta": gin.H{
 			"unit_id": unitID,
 			"count":   len(data),
 		},
-	})
+	}
+	addAuditMeta(response, auditLog)
+	c.JSON(http.StatusOK, response)
+}
+
+func addAuditMeta(response gin.H, auditLog domain.AuditLog) {
+	if auditLog.AuditID == "" {
+		return
+	}
+	meta, ok := response["meta"].(gin.H)
+	if !ok {
+		meta = gin.H{}
+		response["meta"] = meta
+	}
+	meta["audit_log_id"] = auditLog.AuditID
+}
+
+func userUpdateAuditPayload(input domain.UpdateUserInput) map[string]any {
+	payload := map[string]any{}
+	if input.Email != nil {
+		payload["email"] = *input.Email
+	}
+	if input.DisplayName != nil {
+		payload["display_name"] = *input.DisplayName
+	}
+	if input.Role != nil {
+		payload["role"] = string(*input.Role)
+	}
+	if input.Status != nil {
+		payload["status"] = string(*input.Status)
+	}
+	if input.PrimaryUnitID != nil {
+		payload["primary_unit_id"] = *input.PrimaryUnitID
+	}
+	if input.CurrentUnitID != nil {
+		payload["current_unit_id"] = *input.CurrentUnitID
+	}
+	if input.IsSeconded != nil {
+		payload["is_seconded"] = *input.IsSeconded
+	}
+	if input.JoinedAt != nil {
+		payload["joined_at"] = input.JoinedAt.Format(time.RFC3339)
+	}
+	return payload
+}
+
+func orgUnitUpdateAuditPayload(input domain.UpdateOrgUnitInput) map[string]any {
+	payload := map[string]any{}
+	if input.ParentUnitID != nil {
+		payload["parent_unit_id"] = *input.ParentUnitID
+	}
+	if input.UnitType != nil {
+		payload["unit_type"] = string(*input.UnitType)
+	}
+	if input.Label != nil {
+		payload["label"] = *input.Label
+	}
+	if input.LeaderUserID != nil {
+		payload["leader_user_id"] = *input.LeaderUserID
+	}
+	if input.PositionX != nil {
+		payload["position_x"] = *input.PositionX
+	}
+	if input.PositionY != nil {
+		payload["position_y"] = *input.PositionY
+	}
+	return payload
 }

@@ -1,6 +1,6 @@
-import { Risk } from "./types";
+import { ApiResponse, Risk, ServiceActionCommand } from "./types";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API_BASE = "";
 
 export class RiskService {
   private static instance: RiskService;
@@ -19,8 +19,8 @@ export class RiskService {
       const response = await fetch(`${API_BASE}/api/v1/risks/critical`);
       if (!response.ok) throw new Error('Failed to fetch critical risks');
       
-      const result = await response.json();
-      return result.data.map((r: any) => ({
+      const result = await response.json() as ApiResponse<ApiRisk[]>;
+      return result.data.map((r) => ({
         id: r.id,
         title: r.title,
         reason: r.reason,
@@ -71,7 +71,7 @@ export class RiskService {
 
       if (!response.ok) throw new Error('Failed to apply mitigation');
       
-      const result = await response.json();
+      const result = await response.json() as ApiResponse<ServiceActionCommand>;
       return {
         command_id: result.data.command_id,
         status: result.data.command_status
@@ -84,3 +84,14 @@ export class RiskService {
 }
 
 export const riskService = RiskService.getInstance();
+
+interface ApiRisk {
+  id: string;
+  title: string;
+  reason: string;
+  impact: string;
+  status: string;
+  owner_login: string;
+  suggested_actions: string[];
+  created_at: string;
+}

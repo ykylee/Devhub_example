@@ -17,6 +17,7 @@ interface AppState {
   setDeepFocus: (active: boolean) => void;
   notifications: number;
   clearNotifications: () => void;
+  incrementNotifications: () => void;
   toasts: Toast[];
   addToast: (message: string, type?: ToastType) => void;
   removeToast: (id: string) => void;
@@ -31,6 +32,7 @@ export const useStore = create<AppState>()(
       setDeepFocus: (active) => set({ isDeepFocus: active }),
       notifications: 3,
       clearNotifications: () => set({ notifications: 0 }),
+      incrementNotifications: () => set((state) => ({ notifications: state.notifications + 1 })),
       toasts: [],
       addToast: (message, type = "info") => {
         const id = Math.random().toString(36).substring(2, 9);

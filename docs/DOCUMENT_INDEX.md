@@ -1,0 +1,33 @@
+# Document Index
+
+- 문서 목적: 프로젝트의 영구 지식 자산(Knowledge Base)을 체계적으로 정리하여 개발자와 AI 에이전트의 온보딩 및 분석을 돕는다.
+- 범위: 프로젝트 설계, 개발 및 표준, 분석 및 계획
+- 대상 독자: 개발자, AI 에이전트, 프로젝트 온보딩 담당자
+- 상태: stable
+- 최종 수정일: 2026-04-30
+- 관련 문서: [./README.md](./README.md), [../README.md](../README.md)
+
+이 인덱스는 프로젝트의 영구 지식 자산(Knowledge Base)을 체계적으로 정리하여 개발자와 AI 에이전트의 온보딩 및 분석을 돕습니다.
+
+> [!NOTE]
+> 세션 상태, 백로그 등 워크플로우 운영 문서는 `ai-workflow/` 폴더를 참조하십시오. 이 인덱스는 프로젝트 자체의 설계와 개발 지침만을 포함합니다.
+
+## 1. 프로젝트 설계 (Architecture)
+*시스템 구조 및 핵심 설계 원칙을 다룹니다.*
+
+- **[Project Profile](./PROJECT_PROFILE.md)**: 프로젝트 개요, 목적, 설치/실행 가이드 및 워크플로우 기본 규칙.
+- **[Architecture README](./architecture/README.md)**: (TBD) 프로젝트 전체 아키텍처 개요.
+
+## 2. 개발 및 표준 (Development)
+*코드 작성 및 문서 관리 표준을 다룹니다.*
+
+- **[Documentation Governance](./README.md)**: 문서 분류 체계 및 PR 리뷰 프로세스.
+- **[Code Index](./CODE_INDEX.md)**: 코드베이스 구조 및 핵심 컴포넌트 안내.
+
+## 3. 분석 및 계획 (Analysis & Planning)
+*요구사항 분석 및 상위 수준의 로드맵을 다룹니다.*
+
+- **[Planning README](./planning/README.md)**: (TBD) 마일스톤 및 로드맵.
+
+---
+*모든 신규 문서는 `docs/` 하위의 적절한 카테고리에 생성되어야 하며, PR 리뷰를 통해 승인되어야 합니다.*

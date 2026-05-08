@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"log"
+	"time"
 
+	"github.com/devhub/backend-core/internal/commandworker"
 	"github.com/devhub/backend-core/internal/config"
 	"github.com/devhub/backend-core/internal/httpapi"
 	"github.com/devhub/backend-core/internal/normalize"
@@ -19,7 +21,10 @@ func main() {
 	var healthStore httpapi.HealthStore
 	var domainStore httpapi.DomainStore
 	var commandStore httpapi.CommandStore
+	var auditStore httpapi.AuditStore
 	var organizationStore httpapi.OrganizationStore
+	realtimeHub := httpapi.NewRealtimeHub()
+	var worker *commandworker.Worker
 	if cfg.DBURL != "" {
 		pgStore, err := store.NewPostgresStore(ctx, cfg.DBURL)
 		if err != nil {
@@ -31,11 +36,14 @@ func main() {
 		healthStore = pgStore
 		domainStore = pgStore
 		commandStore = pgStore
+		auditStore = pgStore
 		organizationStore = pgStore
+		worker = &commandworker.Worker{Store: pgStore, Publisher: realtimeHub}
 	} else {
 		log.Println("DB_URL is not set; webhook persistence is disabled")
 	}
 
+	// SECURITY (SEC-2): BearerTokenVerifier is intentionally not wired yet. Until a verifier is plugged in, every Authorization: Bearer request takes the dev fallback path in auth.go and is treated as authenticated. Wire a verifier and add a prod fail-fast guard before relying on /api authentication. Tracked in ai-workflow/memory/claude/test/backend-integration/backlog/2026-05-08.md.
 	router := httpapi.NewRouter(httpapi.RouterConfig{
 		WebhookSecret:     cfg.GiteaWebhookSecret,
 		EventStore:        eventStore,
@@ -43,6 +51,7 @@ func main() {
 		HealthStore:       healthStore,
 		DomainStore:       domainStore,
 		CommandStore:      commandStore,
+		AuditStore:        auditStore,
 		OrganizationStore: organizationStore,
 		SnapshotProvider: httpapi.RuntimeSnapshotProvider{
 			Base:         httpapi.StaticSnapshotProvider{},
@@ -50,7 +59,15 @@ func main() {
 			GiteaURL:     cfg.GiteaURL,
 			BackendAIURL: cfg.BackendAIURL,
 		},
+		RealtimeHub: realtimeHub,
 	})
+	if worker != nil {
+		go func() {
+			if err := worker.Run(ctx, 2*time.Second); err != nil && err != context.Canceled {
+				log.Printf("command worker stopped: %v", err)
+			}
+		}()
+	}
 	if err := router.Run(":" + cfg.Port); err != nil {
 		log.Fatalf("run server: %v", err)
 	}
