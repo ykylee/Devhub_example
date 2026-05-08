@@ -5,35 +5,23 @@ import { motion } from "framer-motion";
 import { ArrowRight, ShieldCheck } from "lucide-react";
 
 // OIDC entry point. Defaults assume a local PoC: Hydra public on :4444 issuing tokens for the devhub-frontend client, redirecting back to the SPA root after consent.
-const OIDC_LOGIN_URL =
-  process.env.NEXT_PUBLIC_OIDC_LOGIN_URL ?? "http://127.0.0.1:4444/oauth2/auth";
-const OIDC_CLIENT_ID =
-  process.env.NEXT_PUBLIC_OIDC_CLIENT_ID ?? "devhub-frontend";
-// /auth/callback is the redirect_uri Hydra has registered for the
-// devhub-frontend client (infra/idp/scripts/register-devhub-client.ps1).
-// Keep these aligned: changing one without the other breaks the OIDC code
-// flow with "redirect_uri_mismatch".
-const OIDC_REDIRECT_URI =
-  process.env.NEXT_PUBLIC_OIDC_REDIRECT_URI ?? "http://127.0.0.1:3000/auth/callback";
-const OIDC_SCOPE =
-  process.env.NEXT_PUBLIC_OIDC_SCOPE ?? "openid offline";
+import { authService } from "@/lib/services/auth.service";
 
-function buildAuthorizeURL(): string {
-  const url = new URL(OIDC_LOGIN_URL);
-  url.searchParams.set("client_id", OIDC_CLIENT_ID);
-  url.searchParams.set("response_type", "code");
-  url.searchParams.set("redirect_uri", OIDC_REDIRECT_URI);
-  url.searchParams.set("scope", OIDC_SCOPE);
-  url.searchParams.set("state", crypto.randomUUID());
-  return url.toString();
-}
+// OIDC entry point. Defaults assume a local PoC: Hydra public on :4444 issuing tokens for the devhub-frontend client, redirecting back to the SPA root after consent.
+// Constants moved to AuthService for centralization.
 
 export default function LoginPage() {
   const [isRedirecting, setIsRedirecting] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setIsRedirecting(true);
-    window.location.assign(buildAuthorizeURL());
+    try {
+      const url = await authService.getAuthorizeURL();
+      window.location.assign(url);
+    } catch (error) {
+      console.error("[LoginPage] Failed to start OIDC flow:", error);
+      setIsRedirecting(false);
+    }
   };
 
   return (

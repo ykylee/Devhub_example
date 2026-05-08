@@ -60,10 +60,10 @@ export function Sidebar({ className, ...props }: React.HTMLAttributes<HTMLDivEle
         </nav>
 
         <div className="mt-auto pt-6 border-t border-white/5">
-          <Link href="/settings">
+          <Link href="/account">
             <div className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-muted-foreground hover:text-white hover:bg-white/5 transition-all">
               <Settings className="h-5 w-5" />
-              <span>Settings</span>
+              <span>Account</span>
             </div>
           </Link>
           <div className="mt-4 px-4 py-3 glass rounded-xl border border-white/5 text-[10px] text-muted-foreground flex items-center justify-between">
