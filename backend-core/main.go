@@ -69,6 +69,7 @@ func main() {
 		AuditStore:        auditStore,
 		RBACPolicyStore:   rbacPolicyStore,
 		OrganizationStore: organizationStore,
+		AuthDevFallback:   cfg.AuthDevFallback,
 		SnapshotProvider: httpapi.RuntimeSnapshotProvider{
 			Base:         httpapi.StaticSnapshotProvider{},
 			HealthStore:  healthStore,

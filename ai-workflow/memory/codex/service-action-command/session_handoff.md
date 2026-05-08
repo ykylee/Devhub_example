@@ -24,10 +24,10 @@
 - `/api/v1/me` 후속으로 인증 actor를 DevHub `users`와 매핑하고 effective permissions를 반환하는 경계를 추가했다.
 - service action, risk mitigation, audit 조회, 조직/사용자 쓰기 API에 RBAC enforcement를 확장했다.
 - WebSocket `types` query 기반 subscription filtering과 event type별 RBAC read permission check 1차 구현을 추가했다.
-- 백엔드 리뷰 결과를 반영해 인증 actor가 DevHub user에 매핑되지 않거나 비활성 상태면 `X-Devhub-Role`/`role` fallback으로 우회하지 못하도록 강화했다.
+- 백엔드 리뷰 결과를 반영해 인증 actor가 DevHub user에 매핑되지 않거나 비활성 상태면 `X-Devhub-Role`/`role` fallback으로 우회하지 못하도록 강화했다. DB/조직 store가 붙은 환경에서는 `DEVHUB_AUTH_DEV_FALLBACK=true`일 때만 role fallback을 허용한다.
 - WebSocket publish 경로를 client snapshot 방식으로 바꿔 hub lock 밖에서 network write를 수행하고 실패 client를 제거하도록 개선했다.
 - service action approval boundary 1차로 `POST /api/v1/commands/{command_id}/approve|reject`를 추가하고 audit log를 남기도록 구현했다.
-- approved live service action만 조회하는 Postgres query와 `ServiceActionExecutor` adapter interface/worker 경계를 추가했다. 실제 executor는 아직 main에 주입하지 않는다.
+- approved live service action을 원자적으로 `running` claim하는 Postgres query와 `ServiceActionExecutor` adapter interface/worker 경계를 추가했다. 실제 executor는 아직 main에 주입하지 않는다.
 - `SERVICE_ACTION_EXECUTOR_MODE=simulation`에서만 켜지는 simulation executor를 추가했다. `SERVICE_ACTION_ALLOWED_SERVICES`와 `SERVICE_ACTION_ALLOWED_ACTIONS` allowlist를 모두 통과해야 하며 외부 side effect는 만들지 않는다.
 - 2026-05-08 기준 위 변경 묶음은 staged 상태로 정리했고, 백엔드 테스트와 문서 스모크 검증 후 push 대상이다.
 

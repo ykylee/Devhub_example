@@ -903,6 +903,72 @@ LIMIT $1`
 	return commands, nil
 }
 
+func (s *PostgresStore) ClaimRunnableLiveServiceActionCommands(ctx context.Context, limit int, resultPayload map[string]any) ([]domain.Command, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 25
+	}
+	payload, err := json.Marshal(resultPayload)
+	if err != nil {
+		return nil, err
+	}
+
+	const query = `
+WITH candidates AS (
+	SELECT id
+	FROM commands
+	WHERE status = 'pending'
+		AND command_type = 'service_action'
+		AND dry_run = FALSE
+		AND requires_approval = FALSE
+	ORDER BY updated_at ASC, id ASC
+	FOR UPDATE SKIP LOCKED
+	LIMIT $1
+)
+UPDATE commands
+SET
+	status = 'running',
+	result_payload = $2,
+	updated_at = NOW()
+FROM candidates
+WHERE commands.id = candidates.id
+RETURNING
+	commands.id,
+	commands.command_id,
+	commands.command_type,
+	commands.target_type,
+	commands.target_id,
+	commands.action_type,
+	commands.status,
+	commands.actor_login,
+	commands.reason,
+	commands.dry_run,
+	commands.requires_approval,
+	COALESCE(commands.idempotency_key, ''),
+	commands.request_payload,
+	commands.result_payload,
+	commands.created_at,
+	commands.updated_at`
+
+	rows, err := s.pool.Query(ctx, query, limit, payload)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	commands := []domain.Command{}
+	for rows.Next() {
+		command, err := scanCommand(rows)
+		if err != nil {
+			return nil, err
+		}
+		commands = append(commands, command)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return commands, nil
+}
+
 func (s *PostgresStore) ListRunnableLiveServiceActionCommands(ctx context.Context, limit int) ([]domain.Command, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 25

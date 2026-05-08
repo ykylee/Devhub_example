@@ -60,6 +60,7 @@ type RouterConfig struct {
 	RBACPolicyStore     RBACPolicyStore
 	BearerTokenVerifier BearerTokenVerifier
 	OrganizationStore   OrganizationStore
+	AuthDevFallback     bool
 	SnapshotProvider    SnapshotProvider
 	RealtimeHub         *RealtimeHub
 }

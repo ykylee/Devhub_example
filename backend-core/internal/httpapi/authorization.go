@@ -104,6 +104,9 @@ func (h Handler) resolveActorRole(c *gin.Context) (domain.AppRole, bool) {
 			}
 			return "", false
 		}
+		if !h.cfg.AuthDevFallback {
+			return "", false
+		}
 	}
 	return requestActorRole(c)
 }

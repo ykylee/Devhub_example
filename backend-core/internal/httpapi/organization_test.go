@@ -343,6 +343,7 @@ func TestCreateUserRequiresOrganizationWrite(t *testing.T) {
 	router := NewRouter(RouterConfig{
 		OrganizationStore: storeMem,
 		RBACPolicyStore:   &memoryRBACPolicyStore{},
+		AuthDevFallback:   true,
 	})
 
 	body := []byte(`{

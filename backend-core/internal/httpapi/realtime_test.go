@@ -116,7 +116,7 @@ func TestRealtimeWebSocketRequiresTypesWhenRBACEnabled(t *testing.T) {
 func TestRealtimeWebSocketChecksRBACPermission(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	hub := NewRealtimeHub()
-	server := httptest.NewServer(NewRouter(RouterConfig{RealtimeHub: hub, RBACPolicyStore: &memoryRBACPolicyStore{}}))
+	server := httptest.NewServer(NewRouter(RouterConfig{RealtimeHub: hub, RBACPolicyStore: &memoryRBACPolicyStore{}, AuthDevFallback: true}))
 	defer server.Close()
 
 	url := "ws" + strings.TrimPrefix(server.URL, "http") + "/api/v1/realtime/ws?types=command.status.updated"
@@ -136,6 +136,26 @@ func TestRealtimeWebSocketChecksRBACPermission(t *testing.T) {
 		t.Fatalf("expected manager websocket dial to succeed, resp=%v err=%v", resp, err)
 	}
 	defer conn.Close()
+}
+
+func TestRealtimeWebSocketRejectsRoleFallbackWithOrganizationStore(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	hub := NewRealtimeHub()
+	server := httptest.NewServer(NewRouter(RouterConfig{
+		RealtimeHub:       hub,
+		RBACPolicyStore:   &memoryRBACPolicyStore{},
+		OrganizationStore: newMemoryOrganizationStore(),
+	}))
+	defer server.Close()
+
+	url := "ws" + strings.TrimPrefix(server.URL, "http") + "/api/v1/realtime/ws?types=command.status.updated&role=manager"
+	_, resp, err := websocket.DefaultDialer.Dial(url, nil)
+	if err == nil {
+		t.Fatalf("expected websocket dial to fail when dev fallback is disabled")
+	}
+	if resp == nil || resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("expected 401 response, got resp=%v err=%v", resp, err)
+	}
 }
 
 func TestRealtimeRouteIsAbsentWithoutHub(t *testing.T) {

@@ -14,10 +14,15 @@ type fakeLiveStore struct {
 	updates []domain.Command
 }
 
-func (s *fakeLiveStore) ListRunnableLiveServiceActionCommands(context.Context, int) ([]domain.Command, error) {
+func (s *fakeLiveStore) ClaimRunnableLiveServiceActionCommands(_ context.Context, _ int, resultPayload map[string]any) ([]domain.Command, error) {
 	out := []domain.Command{}
-	for _, command := range s.pending {
+	for i, command := range s.pending {
 		if command.CommandType == "service_action" && command.Status == "pending" && !command.DryRun && !command.RequiresApproval {
+			command.Status = "running"
+			command.ResultPayload = resultPayload
+			command.UpdatedAt = time.Date(2026, 5, 7, 12, len(s.updates), 0, 0, time.UTC)
+			s.pending[i] = command
+			s.updates = append(s.updates, command)
 			out = append(out, command)
 		}
 	}

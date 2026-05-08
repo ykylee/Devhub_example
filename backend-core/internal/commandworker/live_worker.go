@@ -8,7 +8,7 @@ import (
 )
 
 type LiveStore interface {
-	ListRunnableLiveServiceActionCommands(context.Context, int) ([]domain.Command, error)
+	ClaimRunnableLiveServiceActionCommands(context.Context, int, map[string]any) ([]domain.Command, error)
 	UpdateCommandStatus(context.Context, string, string, map[string]any) (domain.Command, error)
 }
 
@@ -32,20 +32,16 @@ func (w LiveWorker) ProcessOnce(ctx context.Context) error {
 		limit = defaultBatchLimit
 	}
 
-	commands, err := w.Store.ListRunnableLiveServiceActionCommands(ctx, limit)
+	commands, err := w.Store.ClaimRunnableLiveServiceActionCommands(ctx, limit, map[string]any{
+		"executor": "service_action",
+		"message":  "Service action execution started.",
+	})
 	if err != nil {
 		return err
 	}
 
 	for _, command := range commands {
-		running, err := w.Store.UpdateCommandStatus(ctx, command.CommandID, "running", map[string]any{
-			"executor": "service_action",
-			"message":  "Service action execution started.",
-		})
-		if err != nil {
-			return err
-		}
-		w.publish(running)
+		w.publish(command)
 
 		result, err := w.Executor.ExecuteServiceAction(ctx, command)
 		if err != nil {
