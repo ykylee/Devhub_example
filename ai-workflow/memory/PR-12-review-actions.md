@@ -42,13 +42,13 @@
 
 ### 3.3 위생 — 분리 PR 또는 일괄 정리
 
-| ID | 위치 | 문제 | 권장 조치 |
-| --- | --- | --- | --- |
-| HYG-1 | `.DS_Store` | macOS 부산물 커밋 | `.gitignore` 추가 후 파일 제거. |
-| HYG-2 | `ai-workflow/memory/session_handoff.md.bak` | 백업 파일 51줄 포함 | 의도가 아니면 제거. |
-| HYG-3 | 루트 `workflow-source` (1줄 신규 파일) | 정체 불명 | 작성자가 용도 확인 후 유지/삭제 결정. |
-| HYG-4 | `tests/devhub_temp_source/standard-ai-workflow-antigravity-v0.4.1-beta.zip` 외 | release artifact 가 git 본체에 포함 | GitHub Releases / LFS 또는 별도 저장소로 분리. |
-| HYG-5 | `ai-workflow/memory/backlog/2026-05-04.md`, `2026-05-06.md` 삭제 | 백로그 이력 손실 위험 | 브랜치별 디렉터리로 이관됐는지 확인. 누락 시 복원. |
+| ID | 위치 | 문제 | 권장 조치 | 상태 |
+| --- | --- | --- | --- | --- |
+| HYG-1 | `.DS_Store` | macOS 부산물 커밋 | **적용 (2026-05-08): `git rm` + `.gitignore` EDITOR/OS NOISE 섹션 추가** (`.DS_Store`, `**/.DS_Store`, `*.bak`, `*.swp`, `Thumbs.db`). | resolved |
+| HYG-2 | `ai-workflow/memory/session_handoff.md.bak` | 백업 파일 51줄 포함 | **적용 (2026-05-08): `git rm`.** `.gitignore` 의 `*.bak` 패턴으로 재발 방지. | resolved |
+| HYG-3 | 루트 `workflow-source` (1줄 신규 파일) | 정체 불명 — 1줄 내용 `ai-workflow` 가 들어있어 symlink 의도가 일반 파일로 만들어진 부산물로 추정 | **적용 (2026-05-08): `git rm`.** 필요 시 후속에 정식 symlink 또는 alias 문서로 재도입. | resolved |
+| HYG-4 | `tests/devhub_temp_source/standard-ai-workflow-antigravity-v0.4.1-beta.zip` 외 | release artifact 가 git 본체에 포함 | **적용 (2026-05-08): `git rm -r tests/devhub_temp_source/`** (zip + bundle/ + manifest.json + APPLY_GUIDE.md + PACKAGE_CONTENTS.md, 총 11 파일). 향후 release artifact 는 GitHub Releases / LFS 로 분리. | resolved |
+| HYG-5 | `ai-workflow/memory/backlog/2026-05-04.md`, `2026-05-06.md` 삭제 | 백로그 이력 손실 위험 | **검증 결과 부분 손실:** TASK-003 (Antigravity) 는 `gemini/phase6/backlog/2026-05-04.md` 에 보존되었으나, **TASK-019 (Codex command/audit schema) 와 TASK-FRONTEND-PHASE5-ORG (Antigravity org UI) 의 plan/act/validation 본문은 새 구조 어디에도 옮겨지지 않았다** (state.json 의 메타와 짧은 implementation log 만 잔존). **적용 (2026-05-08): 원본 두 파일을 `ai-workflow/memory/_archive/legacy-flat-backlog/` 로 복원하고 README.md 로 archive 정책/손실 추정 항목 명시.** | resolved (archive) |
 
 ### 3.4 인프라 — 정책 결정에 종속
 

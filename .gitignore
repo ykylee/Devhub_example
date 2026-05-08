@@ -45,3 +45,10 @@ docker-compose.*.yml
 **/Dockerfile
 **/Dockerfile.*
 **/.dockerignore
+
+# === EDITOR / OS NOISE ===
+.DS_Store
+**/.DS_Store
+*.bak
+*.swp
+Thumbs.db
