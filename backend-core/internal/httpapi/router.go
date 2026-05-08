@@ -52,6 +52,7 @@ type RouterConfig struct {
 	AuditStore          AuditStore
 	BearerTokenVerifier BearerTokenVerifier
 	OrganizationStore   OrganizationStore
+	RBACStore           RBACStore
 	SnapshotProvider    SnapshotProvider
 	RealtimeHub         *RealtimeHub
 	// AuthDevFallback toggles dev-only authentication fallbacks: empty Authorization passes through authenticateActor and requireMinRole. Actor identity always resolves to "system" without a verifier. Default false: production-safe.
@@ -80,7 +81,13 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.GET("/risks", handler.risks)
 	v1.GET("/risks/critical", handler.criticalRisks)
 	v1.GET("/audit-logs", handler.requireMinRole(domain.AppRoleManager), handler.listAuditLogs)
-	v1.GET("/rbac/policy", handler.getRBACPolicy)
+	v1.GET("/rbac/policy", handler.getRBACPolicyLegacyGone)
+	v1.GET("/rbac/policies", handler.listRBACPolicies)
+	v1.POST("/rbac/policies", handler.requireMinRole(domain.AppRoleSystemAdmin), handler.createRBACPolicy)
+	v1.PUT("/rbac/policies", handler.requireMinRole(domain.AppRoleSystemAdmin), handler.updateRBACPolicies)
+	v1.DELETE("/rbac/policies/:role_id", handler.requireMinRole(domain.AppRoleSystemAdmin), handler.deleteRBACPolicy)
+	v1.GET("/rbac/subjects/:subject_id/roles", handler.getSubjectRoles)
+	v1.PUT("/rbac/subjects/:subject_id/roles", handler.requireMinRole(domain.AppRoleSystemAdmin), handler.setSubjectRoles)
 	v1.POST("/admin/service-actions", handler.requireMinRole(domain.AppRoleSystemAdmin), handler.createServiceAction)
 	v1.POST("/risks/:risk_id/mitigations", handler.requireMinRole(domain.AppRoleManager), handler.createRiskMitigation)
 	v1.GET("/commands/:command_id", handler.getCommand)
