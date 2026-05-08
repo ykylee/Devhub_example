@@ -54,6 +54,8 @@ type RouterConfig struct {
 	OrganizationStore   OrganizationStore
 	SnapshotProvider    SnapshotProvider
 	RealtimeHub         *RealtimeHub
+	// AuthDevFallback toggles dev-only authentication fallbacks (empty Authorization pass-through, X-Devhub-Actor actor source). Default false: production-safe.
+	AuthDevFallback bool
 }
 
 func NewRouter(cfg RouterConfig) *gin.Engine {

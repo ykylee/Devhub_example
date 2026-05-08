@@ -277,7 +277,7 @@ func (s *memoryOrganizationStore) ReplaceUnitMembers(_ context.Context, unitID s
 // helper to fire a request through a fresh router.
 func newOrgTestRouter(orgStore OrganizationStore) *gin.Engine {
 	gin.SetMode(gin.TestMode)
-	return NewRouter(RouterConfig{OrganizationStore: orgStore})
+	return testRouter(RouterConfig{OrganizationStore: orgStore})
 }
 
 func decodeJSON(t *testing.T, body []byte, target any) {

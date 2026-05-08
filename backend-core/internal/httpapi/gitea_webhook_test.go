@@ -63,7 +63,7 @@ func TestReceiveGiteaWebhookStoresValidatedEvent(t *testing.T) {
 	secret := "devhub-secret"
 	body := []byte(`{"repository":{"id":42,"full_name":"acme/api"},"sender":{"login":"yklee"}}`)
 	eventStore := &memoryEventStore{}
-	router := NewRouter(RouterConfig{
+	router := testRouter(RouterConfig{
 		WebhookSecret: secret,
 		EventStore:    eventStore,
 	})
@@ -106,7 +106,7 @@ func TestReceiveGiteaWebhookProcessesSavedEvent(t *testing.T) {
 	body := []byte(`{"repository":{"id":42,"full_name":"acme/api"},"sender":{"login":"yklee"}}`)
 	eventStore := &memoryEventStore{}
 	processor := &memoryEventProcessor{}
-	router := NewRouter(RouterConfig{
+	router := testRouter(RouterConfig{
 		WebhookSecret:  secret,
 		EventStore:     eventStore,
 		EventProcessor: processor,
@@ -144,7 +144,7 @@ func TestReceiveGiteaWebhookProcessesSavedEvent(t *testing.T) {
 func TestReceiveGiteaWebhookRejectsInvalidSignature(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	eventStore := &memoryEventStore{}
-	router := NewRouter(RouterConfig{
+	router := testRouter(RouterConfig{
 		WebhookSecret: "devhub-secret",
 		EventStore:    eventStore,
 	})
@@ -185,7 +185,7 @@ func TestListWebhookEventsReturnsStableEnvelope(t *testing.T) {
 			},
 		},
 	}
-	router := NewRouter(RouterConfig{EventStore: eventStore})
+	router := testRouter(RouterConfig{EventStore: eventStore})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/events?limit=10&offset=0", nil)
 	rec := httptest.NewRecorder()
@@ -230,7 +230,7 @@ func TestListWebhookEventsReturnsStableEnvelope(t *testing.T) {
 
 func TestListWebhookEventsRejectsBadLimit(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	router := NewRouter(RouterConfig{EventStore: &memoryEventStore{}})
+	router := testRouter(RouterConfig{EventStore: &memoryEventStore{}})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/events?limit=101", nil)
 	rec := httptest.NewRecorder()
@@ -246,7 +246,7 @@ func TestReceiveGiteaWebhookHandlesDuplicate(t *testing.T) {
 	secret := "devhub-secret"
 	body := []byte(`{"repository":{"name":"api"}}`)
 	eventStore := &memoryEventStore{err: store.ErrDuplicateEvent}
-	router := NewRouter(RouterConfig{
+	router := testRouter(RouterConfig{
 		WebhookSecret: secret,
 		EventStore:    eventStore,
 	})

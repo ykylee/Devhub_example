@@ -16,7 +16,7 @@ import (
 func TestRealtimeHubPublishesCommandStatus(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	hub := NewRealtimeHub()
-	server := httptest.NewServer(NewRouter(RouterConfig{RealtimeHub: hub}))
+	server := httptest.NewServer(testRouter(RouterConfig{RealtimeHub: hub}))
 	defer server.Close()
 
 	url := "ws" + strings.TrimPrefix(server.URL, "http") + "/api/v1/realtime/ws"
@@ -68,7 +68,7 @@ func TestRealtimeRouteIsAbsentWithoutHub(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/realtime/ws", nil)
 	rec := httptest.NewRecorder()
 
-	NewRouter(RouterConfig{}).ServeHTTP(rec, req)
+	testRouter(RouterConfig{}).ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("expected realtime route to be disabled without hub, got %d", rec.Code)
