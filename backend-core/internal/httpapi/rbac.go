@@ -213,7 +213,21 @@ func (h Handler) updateRBACPolicies(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	auditEntries := make([]map[string]any, 0, len(req.Roles))
+
+	// M1-FIX-C: validate all entries before any store write so a later
+	// invariant violation cannot leave earlier roles partially mutated. The
+	// loop below collects each entry's "before" snapshot and rejects bad
+	// inputs (missing role, system metadata change, audit-write attempt)
+	// without touching the store.
+	type plannedUpdate struct {
+		entry    rbacUpdateRoleWire
+		before   domain.RBACRole
+		writeMD  bool
+		newName  string
+		newDesc  string
+		writePM  bool
+	}
+	planned := make([]plannedUpdate, 0, len(req.Roles))
 
 	for _, entry := range req.Roles {
 		entry.ID = strings.TrimSpace(entry.ID)
@@ -232,7 +246,50 @@ func (h Handler) updateRBACPolicies(c *gin.Context) {
 			return
 		}
 
+		plan := plannedUpdate{entry: entry, before: before}
+
 		if entry.Permissions != nil {
+			plan.writePM = true
+			// Mirror the store's audit-invariant CHECK here so we can refuse
+			// the whole bulk request before any store write.
+			if audit, ok := entry.Permissions[domain.ResourceAudit]; ok {
+				if audit.Create || audit.Edit || audit.Delete {
+					c.JSON(http.StatusUnprocessableEntity, gin.H{"status": "rejected", "error": "audit resource cannot grant create/edit/delete", "code": "audit_invariant_violation"})
+					return
+				}
+			}
+		}
+
+		if entry.Name != nil || entry.Description != nil {
+			if before.System {
+				c.JSON(http.StatusUnprocessableEntity, gin.H{"status": "rejected", "error": "system role name/description cannot change", "code": "system_role_immutable"})
+				return
+			}
+			plan.writeMD = true
+			plan.newName = before.Name
+			if entry.Name != nil {
+				plan.newName = strings.TrimSpace(*entry.Name)
+			}
+			plan.newDesc = before.Description
+			if entry.Description != nil {
+				plan.newDesc = *entry.Description
+			}
+		}
+
+		planned = append(planned, plan)
+	}
+
+	// All entries validated; apply writes. Any failure here is a server-side
+	// problem (DB error or a CHECK constraint we did not mirror) — we still
+	// invalidate the cache after partial writes so authorization decisions do
+	// not stay stale.
+	auditEntries := make([]map[string]any, 0, len(planned))
+
+	for _, plan := range planned {
+		entry := plan.entry
+		current := plan.before
+
+		if plan.writePM {
 			updated, err := h.cfg.RBACStore.UpdateRBACRolePermissions(ctx, entry.ID, entry.Permissions)
 			switch {
 			case errors.Is(err, store.ErrNotFound):
@@ -248,26 +305,14 @@ func (h Handler) updateRBACPolicies(c *gin.Context) {
 			auditEntries = append(auditEntries, map[string]any{
 				"role_id":     entry.ID,
 				"change_type": "permissions_updated",
-				"before":      wireFromRBACRole(before),
+				"before":      wireFromRBACRole(plan.before),
 				"after":       wireFromRBACRole(updated),
 			})
-			before = updated
+			current = updated
 		}
 
-		if entry.Name != nil || entry.Description != nil {
-			if before.System {
-				c.JSON(http.StatusUnprocessableEntity, gin.H{"status": "rejected", "error": "system role name/description cannot change", "code": "system_role_immutable"})
-				return
-			}
-			name := before.Name
-			if entry.Name != nil {
-				name = strings.TrimSpace(*entry.Name)
-			}
-			desc := before.Description
-			if entry.Description != nil {
-				desc = *entry.Description
-			}
-			updated, err := h.cfg.RBACStore.UpdateRBACRoleMetadata(ctx, entry.ID, name, desc)
+		if plan.writeMD {
+			updated, err := h.cfg.RBACStore.UpdateRBACRoleMetadata(ctx, entry.ID, plan.newName, plan.newDesc)
 			switch {
 			case errors.Is(err, store.ErrSystemRoleImmutable):
 				c.JSON(http.StatusUnprocessableEntity, gin.H{"status": "rejected", "error": err.Error(), "code": "system_role_immutable"})
@@ -282,7 +327,7 @@ func (h Handler) updateRBACPolicies(c *gin.Context) {
 			auditEntries = append(auditEntries, map[string]any{
 				"role_id":     entry.ID,
 				"change_type": "metadata_updated",
-				"before":      wireFromRBACRole(before),
+				"before":      wireFromRBACRole(current),
 				"after":       wireFromRBACRole(updated),
 			})
 		}
