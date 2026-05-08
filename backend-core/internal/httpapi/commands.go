@@ -115,7 +115,7 @@ func (h Handler) createServiceAction(c *gin.Context) {
 		RequiresApproval: requiresApproval,
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		writeServerError(c, err, "commands.create_service_action")
 		return
 	}
 
@@ -191,7 +191,7 @@ func (h Handler) createRiskMitigation(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "risk not found"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		writeServerError(c, err, "commands.create_risk_mitigation")
 		return
 	}
 
@@ -229,7 +229,7 @@ func (h Handler) getCommand(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "command not found"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		writeServerError(c, err, "commands.get_command")
 		return
 	}
 

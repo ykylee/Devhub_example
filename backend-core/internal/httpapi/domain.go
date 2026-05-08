@@ -82,7 +82,7 @@ func (h Handler) repositories(c *gin.Context) {
 	}
 	repositories, err := h.cfg.DomainStore.ListRepositories(c.Request.Context(), opts)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		writeServerError(c, err, "domain.list_repositories")
 		return
 	}
 
@@ -119,7 +119,7 @@ func (h Handler) issues(c *gin.Context) {
 	}
 	issues, err := h.cfg.DomainStore.ListIssues(c.Request.Context(), opts)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		writeServerError(c, err, "domain.list_issues")
 		return
 	}
 
@@ -158,7 +158,7 @@ func (h Handler) pullRequests(c *gin.Context) {
 	}
 	pullRequests, err := h.cfg.DomainStore.ListPullRequests(c.Request.Context(), opts)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		writeServerError(c, err, "domain.list_pull_requests")
 		return
 	}
 
@@ -200,7 +200,7 @@ func (h Handler) risks(c *gin.Context) {
 	opts.Impact = c.Query("impact")
 	risks, err := h.cfg.DomainStore.ListRisks(c.Request.Context(), opts)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		writeServerError(c, err, "domain.list_risks")
 		return
 	}
 

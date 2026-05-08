@@ -145,7 +145,7 @@ func (h Handler) listUsers(c *gin.Context) {
 
 	users, total, err := h.cfg.OrganizationStore.ListUsers(c.Request.Context(), opts)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		writeServerError(c, err, "organization.list_users")
 		return
 	}
 
@@ -197,7 +197,7 @@ func (h Handler) getUser(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "user not found"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		writeServerError(c, err, "organization.get_user")
 		return
 	}
 
@@ -218,7 +218,7 @@ func (h Handler) getHierarchy(c *gin.Context) {
 
 	hierarchy, err := h.cfg.OrganizationStore.GetHierarchy(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		writeServerError(c, err, "organization.get_hierarchy")
 		return
 	}
 
@@ -260,7 +260,7 @@ func (h Handler) listUnitMembers(c *gin.Context) {
 
 	members, err := h.cfg.OrganizationStore.ListUnitMembers(c.Request.Context(), unitID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		writeServerError(c, err, "organization.list_unit_members")
 		return
 	}
 
@@ -335,14 +335,14 @@ func parseJoinedAt(value string) (time.Time, error) {
 	return time.Time{}, fmt.Errorf("joined_at must be RFC3339 or YYYY-MM-DD")
 }
 
-func writeStoreError(c *gin.Context, err error) {
+func writeStoreError(c *gin.Context, err error, op string) {
 	switch {
 	case errors.Is(err, store.ErrNotFound):
 		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": err.Error()})
 	case errors.Is(err, store.ErrConflict):
 		c.JSON(http.StatusConflict, gin.H{"status": "conflict", "error": err.Error()})
 	default:
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		writeServerError(c, err, op)
 	}
 }
 
@@ -401,7 +401,7 @@ func (h Handler) createUser(c *gin.Context) {
 
 	user, err := h.cfg.OrganizationStore.CreateUser(c.Request.Context(), input)
 	if err != nil {
-		writeStoreError(c, err)
+		writeStoreError(c, err, "organization.create_user")
 		return
 	}
 	auditLog := h.recordAuditBestEffort(c, "user.created", "user", user.UserID, map[string]any{
@@ -497,7 +497,7 @@ func (h Handler) updateUser(c *gin.Context) {
 
 	user, err := h.cfg.OrganizationStore.UpdateUser(c.Request.Context(), userID, input)
 	if err != nil {
-		writeStoreError(c, err)
+		writeStoreError(c, err, "organization.update_user")
 		return
 	}
 	auditLog := h.recordAuditBestEffort(c, "user.updated", "user", user.UserID, userUpdateAuditPayload(input))
@@ -525,7 +525,7 @@ func (h Handler) deleteUser(c *gin.Context) {
 	}
 
 	if err := h.cfg.OrganizationStore.DeleteUser(c.Request.Context(), userID); err != nil {
-		writeStoreError(c, err)
+		writeStoreError(c, err, "organization.delete_user")
 		return
 	}
 	auditLog := h.recordAuditBestEffort(c, "user.deleted", "user", userID, nil)
@@ -570,7 +570,7 @@ func (h Handler) getOrgUnit(c *gin.Context) {
 
 	unit, err := h.cfg.OrganizationStore.GetOrgUnit(c.Request.Context(), unitID)
 	if err != nil {
-		writeStoreError(c, err)
+		writeStoreError(c, err, "organization.get_org_unit")
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "ok", "data": orgUnitFromDomain(unit)})
@@ -622,7 +622,7 @@ func (h Handler) createOrgUnit(c *gin.Context) {
 
 	unit, err := h.cfg.OrganizationStore.CreateOrgUnit(c.Request.Context(), input)
 	if err != nil {
-		writeStoreError(c, err)
+		writeStoreError(c, err, "organization.create_org_unit")
 		return
 	}
 	auditLog := h.recordAuditBestEffort(c, "org_unit.created", "org_unit", unit.UnitID, map[string]any{
@@ -693,7 +693,7 @@ func (h Handler) updateOrgUnit(c *gin.Context) {
 
 	unit, err := h.cfg.OrganizationStore.UpdateOrgUnit(c.Request.Context(), unitID, input)
 	if err != nil {
-		writeStoreError(c, err)
+		writeStoreError(c, err, "organization.update_org_unit")
 		return
 	}
 	auditLog := h.recordAuditBestEffort(c, "org_unit.updated", "org_unit", unit.UnitID, orgUnitUpdateAuditPayload(input))
@@ -718,7 +718,7 @@ func (h Handler) deleteOrgUnit(c *gin.Context) {
 	}
 
 	if err := h.cfg.OrganizationStore.DeleteOrgUnit(c.Request.Context(), unitID); err != nil {
-		writeStoreError(c, err)
+		writeStoreError(c, err, "organization.delete_org_unit")
 		return
 	}
 	auditLog := h.recordAuditBestEffort(c, "org_unit.deleted", "org_unit", unitID, nil)
@@ -764,7 +764,7 @@ func (h Handler) replaceUnitMembers(c *gin.Context) {
 	}
 
 	if err := h.cfg.OrganizationStore.ReplaceUnitMembers(c.Request.Context(), unitID, cleaned); err != nil {
-		writeStoreError(c, err)
+		writeStoreError(c, err, "organization.replace_unit_members")
 		return
 	}
 	auditLog := h.recordAuditBestEffort(c, "org_unit.members_replaced", "org_unit", unitID, map[string]any{
@@ -773,7 +773,7 @@ func (h Handler) replaceUnitMembers(c *gin.Context) {
 
 	members, err := h.cfg.OrganizationStore.ListUnitMembers(c.Request.Context(), unitID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		writeServerError(c, err, "organization.replace_unit_members.list")
 		return
 	}
 	data := make([]appUserResponse, 0, len(members))

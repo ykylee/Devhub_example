@@ -53,7 +53,7 @@ func (h Handler) listAuditLogs(c *gin.Context) {
 	}
 	logs, err := h.cfg.AuditStore.ListAuditLogs(c.Request.Context(), opts)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		writeServerError(c, err, "audit.list_logs")
 		return
 	}
 

@@ -1,10 +1,10 @@
-# Session Handoff — main (post M0 sprint)
+# Session Handoff — claude/m1-sprint-plan (M1 sprint 진입)
 
-- 브랜치: `main`
-- HEAD: `0ea0ce4` (Merge pull request #19)
+- 브랜치: `claude/m1-sprint-plan` (origin/main `a41a8e2` 기반)
+- HEAD: `a41a8e2` (브랜치 생성 직후, 신규 커밋 없음)
 - 최종 수정일: 2026-05-08
-- 상태: M0 sprint 코드/검증 종료. M1 진입 대기.
-- 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [PR-12 액션 트래커](./PR-12-review-actions.md), [M0 sprint 기록](./claude/merge_roadmap/), [상태 스냅샷](./state.json), [상위 backlog](./work_backlog.md)
+- 상태: M1 sprint planning 진입. backlog 초안 작성 완료, 첫 PR (M1-PR-A SEC-5) 진입 직전.
+- 관련 문서: [통합 로드맵 §3.2](../../docs/development_roadmap.md), [M1 sprint backlog](./claude/m1-sprint-plan/backlog/2026-05-08.md), [M0 sprint 기록](./claude/merge_roadmap/), [상태 스냅샷](./state.json), [상위 backlog](./work_backlog.md)
 
 ## 1. 본 세션 활동 요약 (2026-05-08)
 
@@ -42,6 +42,12 @@ PR #12·#13 머지 직후 시점에 시작해 통합 로드맵 채택 → M0 spr
 - 검증용 임시 OIDC client (`43aa4b74-...`, client_credentials) 는 Hydra 내부에 잔존. 다음 세션에서 정리하거나 무시 (`hydra delete oauth2-client --endpoint http://localhost:4445 <id>`).
 
 ## 4. 다음 세션 진입점
+
+### 4.0 M1 sprint 진입 상태 (2026-05-08 갱신)
+
+- 브랜치 `claude/m1-sprint-plan` 생성, sprint backlog 초안 머지 대기 (`ai-workflow/memory/claude/m1-sprint-plan/backlog/2026-05-08.md`).
+- 진입 PR 순서: **M1-PR-A** (SEC-5 `writeServerError` 헬퍼) → **M1-PR-F** (ADR-0002 RBAC 결정) → **M1-PR-B** (envelope/types/WS, 큰 PR) → **M1-PR-C** (cmd lifecycle + auth_test 보강) → **M1-PR-D** (audit actor + request_id 미들웨어).
+- 결정 대기: DoD #6 — RBAC policy 편집 API write 도입 vs static-default 유지 (ADR-0002 으로 처리).
 
 ### 4.1 우선순위 1 — M1 sprint (통합 로드맵 §3.2)
 

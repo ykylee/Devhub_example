@@ -1,11 +1,11 @@
 {
   "schema_version": "1",
   "project": "DevHub Example",
-  "branch": "main",
-  "status": "M0 sprint completed; ready for M1",
-  "updated_at": "2026-05-08T13:30:00Z",
-  "head_commit": "0ea0ce4",
-  "head_summary": "Merge pull request #19 (PR-E close SEC-4 + finish M0 sprint)",
+  "branch": "claude/m1-sprint-plan",
+  "status": "M1 sprint planning in_progress; PR-A (SEC-5) next",
+  "updated_at": "2026-05-08T14:00:00Z",
+  "head_commit": "a41a8e2",
+  "head_summary": "docs(memory): refresh flat memory after M0 sprint close (main)",
   "milestones": {
     "M0": {
       "status": "done",
@@ -13,8 +13,9 @@
       "notes": "Authentication and authorization gate normalized. SEC-1..SEC-4 resolved. T-M0-10 ops verification PASS (Hydra introspection + valid JWT -> /api/v1/me 200)."
     },
     "M1": {
-      "status": "planned",
-      "notes": "Contract integrity per docs/development_roadmap.md section 3.2 + SEC-5 (DB error masking) as separate PR."
+      "status": "in_progress",
+      "started_at": "2026-05-08",
+      "notes": "Sprint backlog drafted at ai-workflow/memory/claude/m1-sprint-plan/backlog/2026-05-08.md. Planned PRs: M1-PR-A (SEC-5 mask), M1-PR-F (RBAC ADR-0002), M1-PR-B (contract+types+ws envelope), M1-PR-C (cmd lifecycle), M1-PR-D (audit actor)."
     }
   },
   "components": {
