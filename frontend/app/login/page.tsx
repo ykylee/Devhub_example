@@ -9,8 +9,12 @@ const OIDC_LOGIN_URL =
   process.env.NEXT_PUBLIC_OIDC_LOGIN_URL ?? "http://127.0.0.1:4444/oauth2/auth";
 const OIDC_CLIENT_ID =
   process.env.NEXT_PUBLIC_OIDC_CLIENT_ID ?? "devhub-frontend";
+// /auth/callback is the redirect_uri Hydra has registered for the
+// devhub-frontend client (infra/idp/scripts/register-devhub-client.ps1).
+// Keep these aligned: changing one without the other breaks the OIDC code
+// flow with "redirect_uri_mismatch".
 const OIDC_REDIRECT_URI =
-  process.env.NEXT_PUBLIC_OIDC_REDIRECT_URI ?? "http://127.0.0.1:3000/login/callback";
+  process.env.NEXT_PUBLIC_OIDC_REDIRECT_URI ?? "http://127.0.0.1:3000/auth/callback";
 const OIDC_SCOPE =
   process.env.NEXT_PUBLIC_OIDC_SCOPE ?? "openid offline";
 
