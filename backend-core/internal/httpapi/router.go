@@ -54,6 +54,8 @@ type RouterConfig struct {
 	OrganizationStore   OrganizationStore
 	RBACStore           RBACStore
 	PermissionCache     *PermissionCache
+	KratosLogin         KratosLoginClient
+	HydraAdmin          HydraLoginAdmin
 	SnapshotProvider    SnapshotProvider
 	RealtimeHub         *RealtimeHub
 	// AuthDevFallback toggles dev-only authentication fallbacks: empty Authorization passes through authenticateActor and requireMinRole. Actor identity always resolves to "system" without a verifier. Default false: production-safe.
@@ -110,6 +112,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.GET("/organization/units/:unit_id/members", handler.listUnitMembers)
 	v1.PUT("/organization/units/:unit_id/members", handler.replaceUnitMembers)
 	v1.POST("/integrations/gitea/webhooks", handler.receiveGiteaWebhook)
+	v1.POST("/auth/login", handler.authLogin)
 	if cfg.RealtimeHub != nil {
 		v1.GET("/realtime/ws", cfg.RealtimeHub.HandleWebSocket)
 	}

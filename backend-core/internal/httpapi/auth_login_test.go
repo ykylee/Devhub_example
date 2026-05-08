@@ -1,0 +1,251 @@
+package httpapi
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+)
+
+type fakeKratosLogin struct {
+	flow         KratosLoginFlow
+	flowErr      error
+	identity     KratosIdentity
+	submitErr    error
+	submitCalled bool
+}
+
+func (f *fakeKratosLogin) CreateLoginFlow(ctx context.Context) (KratosLoginFlow, error) {
+	if f.flowErr != nil {
+		return KratosLoginFlow{}, f.flowErr
+	}
+	return f.flow, nil
+}
+
+func (f *fakeKratosLogin) SubmitLogin(ctx context.Context, flow KratosLoginFlow, identifier, password string) (KratosIdentity, error) {
+	f.submitCalled = true
+	if f.submitErr != nil {
+		return KratosIdentity{}, f.submitErr
+	}
+	return f.identity, nil
+}
+
+type fakeHydraAdmin struct {
+	loginRequest HydraLoginRequest
+	getErr       error
+	redirectTo   string
+	acceptErr    error
+	accepted     []string // subjects that AcceptLoginRequest was called with
+}
+
+func (f *fakeHydraAdmin) GetLoginRequest(ctx context.Context, challenge string) (HydraLoginRequest, error) {
+	if f.getErr != nil {
+		return HydraLoginRequest{}, f.getErr
+	}
+	return f.loginRequest, nil
+}
+
+func (f *fakeHydraAdmin) AcceptLoginRequest(ctx context.Context, challenge, subject string, remember bool, rememberFor int) (string, error) {
+	if f.acceptErr != nil {
+		return "", f.acceptErr
+	}
+	f.accepted = append(f.accepted, subject)
+	return f.redirectTo, nil
+}
+
+func newAuthLoginRouter(kratos KratosLoginClient, hydra HydraLoginAdmin, audits *memoryAuditStore) http.Handler {
+	cfg := RouterConfig{
+		KratosLogin: kratos,
+		HydraAdmin:  hydra,
+		AuditStore:  audits,
+	}
+	return NewRouter(cfg)
+}
+
+func postLogin(handler http.Handler, body string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	return rec
+}
+
+func TestAuthLogin_PasswordFlowSuccess(t *testing.T) {
+	audits := &memoryAuditStore{}
+	kratos := &fakeKratosLogin{
+		flow:     KratosLoginFlow{ID: "flow-1", CSRFToken: "csrf"},
+		identity: KratosIdentity{ID: "kratos-uuid", UserID: "u1", Email: "u1@example.com"},
+	}
+	hydra := &fakeHydraAdmin{
+		loginRequest: HydraLoginRequest{Challenge: "c1", Skip: false},
+		redirectTo:   "http://hydra/oauth2/auth?code=...",
+	}
+	router := newAuthLoginRouter(kratos, hydra, audits)
+
+	rec := postLogin(router, `{"login_challenge":"c1","identifier":"u1@example.com","password":"pw"}`)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+
+	if !kratos.submitCalled {
+		t.Errorf("Kratos submit was not called for non-skip flow")
+	}
+	if len(hydra.accepted) != 1 || hydra.accepted[0] != "u1" {
+		t.Errorf("Hydra subject = %v, want [u1] (DevHub user_id from metadata_public)", hydra.accepted)
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte("redirect_to")) {
+		t.Errorf("response body missing redirect_to: %s", rec.Body.String())
+	}
+	if len(audits.logs) != 1 || audits.logs[0].Action != "auth.login.succeeded" {
+		t.Errorf("expected auth.login.succeeded audit, got %+v", audits.logs)
+	}
+}
+
+func TestAuthLogin_SkipFastPath(t *testing.T) {
+	audits := &memoryAuditStore{}
+	kratos := &fakeKratosLogin{}
+	hydra := &fakeHydraAdmin{
+		loginRequest: HydraLoginRequest{Challenge: "c1", Skip: true, Subject: "u-cached"},
+		redirectTo:   "http://hydra/cb?code=...",
+	}
+	router := newAuthLoginRouter(kratos, hydra, audits)
+
+	rec := postLogin(router, `{"login_challenge":"c1","identifier":"u1@example.com","password":"pw"}`)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+
+	if kratos.submitCalled {
+		t.Errorf("Kratos submit should be skipped when Hydra reports skip=true")
+	}
+	if len(hydra.accepted) != 1 || hydra.accepted[0] != "u-cached" {
+		t.Errorf("Hydra accept subject = %v, want [u-cached]", hydra.accepted)
+	}
+}
+
+func TestAuthLogin_InvalidCredentials(t *testing.T) {
+	audits := &memoryAuditStore{}
+	kratos := &fakeKratosLogin{
+		flow:      KratosLoginFlow{ID: "flow-1"},
+		submitErr: ErrKratosInvalidCredentials,
+	}
+	hydra := &fakeHydraAdmin{loginRequest: HydraLoginRequest{Challenge: "c1"}}
+	router := newAuthLoginRouter(kratos, hydra, audits)
+
+	rec := postLogin(router, `{"login_challenge":"c1","identifier":"bad@example.com","password":"wrong"}`)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status=%d, want 401 body=%s", rec.Code, rec.Body.String())
+	}
+	if len(hydra.accepted) != 0 {
+		t.Errorf("Hydra accept must not be called on invalid credentials, got %v", hydra.accepted)
+	}
+	if len(audits.logs) == 0 || audits.logs[0].Action != "auth.login.failed" {
+		t.Errorf("expected auth.login.failed audit, got %+v", audits.logs)
+	}
+}
+
+func TestAuthLogin_LoginChallengeUnknown(t *testing.T) {
+	audits := &memoryAuditStore{}
+	hydra := &fakeHydraAdmin{getErr: ErrHydraChallengeNotFound}
+	router := newAuthLoginRouter(&fakeKratosLogin{}, hydra, audits)
+
+	rec := postLogin(router, `{"login_challenge":"stale","identifier":"u","password":"p"}`)
+	if rec.Code != http.StatusGone {
+		t.Errorf("status=%d, want 410", rec.Code)
+	}
+}
+
+func TestAuthLogin_FlowExpired(t *testing.T) {
+	audits := &memoryAuditStore{}
+	kratos := &fakeKratosLogin{
+		flow:      KratosLoginFlow{ID: "flow-1"},
+		submitErr: ErrKratosFlowExpired,
+	}
+	hydra := &fakeHydraAdmin{loginRequest: HydraLoginRequest{Challenge: "c1"}}
+	router := newAuthLoginRouter(kratos, hydra, audits)
+
+	rec := postLogin(router, `{"login_challenge":"c1","identifier":"u","password":"p"}`)
+	if rec.Code != http.StatusGone {
+		t.Errorf("status=%d, want 410", rec.Code)
+	}
+}
+
+func TestAuthLogin_MissingChallenge(t *testing.T) {
+	router := newAuthLoginRouter(&fakeKratosLogin{}, &fakeHydraAdmin{}, &memoryAuditStore{})
+	rec := postLogin(router, `{"identifier":"u","password":"p"}`)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("status=%d, want 400", rec.Code)
+	}
+}
+
+func TestAuthLogin_MissingCredentials(t *testing.T) {
+	router := newAuthLoginRouter(&fakeKratosLogin{}, &fakeHydraAdmin{loginRequest: HydraLoginRequest{Challenge: "c1"}}, &memoryAuditStore{})
+	rec := postLogin(router, `{"login_challenge":"c1"}`)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("status=%d, want 400", rec.Code)
+	}
+}
+
+func TestAuthLogin_StoreUnavailable(t *testing.T) {
+	router := NewRouter(RouterConfig{}) // no KratosLogin / HydraAdmin
+	rec := postLogin(router, `{"login_challenge":"c1","identifier":"u","password":"p"}`)
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Errorf("status=%d, want 503", rec.Code)
+	}
+}
+
+func TestAuthLogin_SubjectFallbackWhenMetadataMissing(t *testing.T) {
+	audits := &memoryAuditStore{}
+	kratos := &fakeKratosLogin{
+		flow: KratosLoginFlow{ID: "flow-1"},
+		// UserID empty -> handler should fall back to identity.id and audit it
+		identity: KratosIdentity{ID: "kratos-uuid"},
+	}
+	hydra := &fakeHydraAdmin{
+		loginRequest: HydraLoginRequest{Challenge: "c1"},
+		redirectTo:   "http://hydra/cb",
+	}
+	router := newAuthLoginRouter(kratos, hydra, audits)
+
+	rec := postLogin(router, `{"login_challenge":"c1","identifier":"u","password":"p"}`)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if len(hydra.accepted) != 1 || hydra.accepted[0] != "kratos-uuid" {
+		t.Errorf("Hydra subject = %v, want [kratos-uuid] (fallback)", hydra.accepted)
+	}
+	hasFallback := false
+	for _, a := range audits.logs {
+		if a.Action == "auth.login.subject_fallback" {
+			hasFallback = true
+			break
+		}
+	}
+	if !hasFallback {
+		t.Errorf("expected auth.login.subject_fallback audit, got %+v", audits.logs)
+	}
+}
+
+// AcceptLoginRequest 호출 인자 검증 — 캐시된 subject 가 fallthrough 없이 사용되는지.
+func TestAuthLogin_AcceptError(t *testing.T) {
+	kratos := &fakeKratosLogin{
+		flow:     KratosLoginFlow{ID: "flow-1"},
+		identity: KratosIdentity{ID: "kratos-uuid", UserID: "u1"},
+	}
+	hydra := &fakeHydraAdmin{
+		loginRequest: HydraLoginRequest{Challenge: "c1"},
+		acceptErr:    errors.New("hydra accept boom"),
+	}
+	router := newAuthLoginRouter(kratos, hydra, &memoryAuditStore{})
+
+	rec := postLogin(router, `{"login_challenge":"c1","identifier":"u","password":"p"}`)
+	if rec.Code != http.StatusInternalServerError {
+		t.Errorf("status=%d, want 500", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "internal error") {
+		t.Errorf("error body should be masked, got: %s", rec.Body.String())
+	}
+}

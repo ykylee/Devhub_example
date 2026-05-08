@@ -127,6 +127,9 @@ var routePermissionTable = map[routeKey]routePolicy{
 	{http.MethodGet, "/api/v1/me"}:                          {Bypass: true},
 	{http.MethodGet, "/api/v1/realtime/ws"}:                 {Bypass: true},
 	{http.MethodPost, "/api/v1/integrations/gitea/webhooks"}: {Bypass: true},
+	// Auth proxy endpoints run before the user has a token; Hydra's
+	// challenge tokens (single-use, lifespan-bound) protect them.
+	{http.MethodPost, "/api/v1/auth/login"}: {Bypass: true},
 
 	// infrastructure
 	{http.MethodGet, "/api/v1/dashboard/metrics"}:    {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},

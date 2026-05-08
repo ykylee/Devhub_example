@@ -66,6 +66,23 @@ func main() {
 		log.Fatalf("startup refused: %v", err)
 	}
 
+	// Auth proxy clients are only wired when both Hydra admin and Kratos
+	// public URLs are configured. Assigning typed nil pointers to interface
+	// fields would defeat the handler's `cfg.KratosLogin == nil` guard, so
+	// we leave the fields untouched when either env var is missing.
+	var (
+		hydraAdmin  httpapi.HydraLoginAdmin
+		kratosLogin httpapi.KratosLoginClient
+	)
+	if cfg.HydraAdminURL != "" {
+		hydraAdmin = &httpapi.HydraAdminClient{AdminURL: cfg.HydraAdminURL}
+		log.Printf("hydra admin client wired: %s", cfg.HydraAdminURL)
+	}
+	if cfg.KratosPublicURL != "" {
+		kratosLogin = &httpapi.KratosClient{PublicURL: cfg.KratosPublicURL}
+		log.Printf("kratos public client wired: %s", cfg.KratosPublicURL)
+	}
+
 	router := httpapi.NewRouter(httpapi.RouterConfig{
 		WebhookSecret:       cfg.GiteaWebhookSecret,
 		EventStore:          eventStore,
@@ -77,6 +94,8 @@ func main() {
 		OrganizationStore:   organizationStore,
 		RBACStore:           rbacStore,
 		BearerTokenVerifier: verifier,
+		KratosLogin:         kratosLogin,
+		HydraAdmin:          hydraAdmin,
 		SnapshotProvider: httpapi.RuntimeSnapshotProvider{
 			Base:         httpapi.StaticSnapshotProvider{},
 			HealthStore:  healthStore,
