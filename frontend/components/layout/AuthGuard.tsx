@@ -13,8 +13,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
-    // Basic Mock Auth Check
-    // If there is no role selected, redirect to login
+    // SECURITY (SEC-1): mock auth — role-only gate, no token verification. Replace before prod. Tracked in ai-workflow/memory/claude/test/backend-integration/backlog/2026-05-08.md.
     if (!role) {
       router.replace("/login");
     } else {

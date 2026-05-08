@@ -37,6 +37,7 @@ func (h Handler) authenticateActor(c *gin.Context) {
 		return
 	}
 
+	// SECURITY (SEC-2): dev-only fallback. main.go does not yet inject a verifier, so prod currently runs in this branch. Tracked in ai-workflow/memory/claude/test/backend-integration/backlog/2026-05-08.md.
 	if h.cfg.BearerTokenVerifier == nil {
 		c.Header("X-Devhub-Auth", "bearer_unverified")
 		c.Next()

@@ -35,10 +35,10 @@
 
 ### 3.2 보안 — backlog 등록 후 phase 종료 전 해소
 
-| ID | 위치 | 문제 | 권장 조치 |
-| --- | --- | --- | --- |
-| SEC-1 | `frontend/components/layout/AuthGuard.tsx` | "Basic Mock Auth Check" — `useStore().role` 유무로만 redirect, 실제 인증 아님 | Phase 5.2 종료 전 실제 토큰 검증으로 교체. backlog 항목 등록. |
-| SEC-2 | `backend-core/internal/httpapi/auth.go` | `BearerTokenVerifier` 가 nil 이면 인증 우회 (`X-Devhub-Auth: bearer_unverified` 헤더만 부착) | `main.go` 에서 prod 빌드 시 verifier 가 항상 주입되는지 확인하고, 누락 시 즉시 fail-fast. |
+| ID | 위치 | 문제 | 권장 조치 | 상태 |
+| --- | --- | --- | --- | --- |
+| SEC-1 | `frontend/components/layout/AuthGuard.tsx` | "Basic Mock Auth Check" — `useStore().role` 유무로만 redirect, 실제 인증 아님 | **backlog 등록 (2026-05-08).** 코드에 `// SECURITY (SEC-1)` 주석 부착하여 grep 추적 가능. 위치/영향/DoD/후속 분기는 `ai-workflow/memory/claude/test/backend-integration/backlog/2026-05-08.md` 참조. Phase 5.2 종료 전 실제 토큰 검증으로 교체. | tracked |
+| SEC-2 | `backend-core/internal/httpapi/auth.go`, `backend-core/main.go` | `BearerTokenVerifier` 가 nil 이면 인증 우회 + **`main.go` 가 verifier 를 전혀 주입하지 않음** (RouterConfig 에 필드만 정의, 값 없음) → 현재 prod 빌드도 인증 우회 경로 사용 | **backlog 등록 (2026-05-08).** auth.go 의 nil 분기와 main.go 의 RouterConfig 생성부 두 곳에 `// SECURITY (SEC-2)` 주석 부착. verifier 구현 + 주입 + prod fail-fast 가드는 backlog 의 DoD 항목으로 정의. SEC-1 과 동일 sprint 진행 권장. | tracked |
 
 ### 3.3 위생 — 분리 PR 또는 일괄 정리
 
