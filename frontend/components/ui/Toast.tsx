@@ -61,3 +61,17 @@ export function ToastContainer() {
     </div>
   );
 }
+
+export function useToast() {
+  const addToast = useStore((state) => state.addToast);
+  
+  return {
+    toast: (message: string, type: ToastType = "info") => {
+      addToast(message, type);
+    },
+    success: (message: string) => addToast(message, "success"),
+    error: (message: string) => addToast(message, "error"),
+    warning: (message: string) => addToast(message, "warning"),
+    info: (message: string) => addToast(message, "info"),
+  };
+}

@@ -1,8 +1,3 @@
-# Project Workflow Profile
-
-- 문서 목적: 프로젝트 특화 규칙과 실행/검증 기준을 정의한다.
-- 범위: 프로젝트 개요, 문서 구조, 기본 명령, 검증 포인트, 예외 규칙
-- 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: active
 - 최종 수정일: 2026-05-07
 - 관련 문서: [공통 표준](../core/global_workflow_standard.md)
@@ -20,7 +15,9 @@
 
 - 문서 위키 홈: README.md, docs/README.md
 - 운영 문서 홈: ai-workflow/memory/<agent>/<branch>/
-- 현재 Codex 브랜치 운영 문서: ai-workflow/memory/codex/service-action-command/
+- 현재 작업 운영 문서:
+  - Gemini (UI/RBAC): ai-workflow/memory/gemini/phase6/
+  - Codex (Backend/Action): ai-workflow/memory/codex/service-action-command/
 - 백로그 위치: ai-workflow/memory/<agent>/<branch>/backlog/
 - 세션 인계 문서: ai-workflow/memory/<agent>/<branch>/session_handoff.md
 - flat memory 위치: legacy fallback 및 공용 색인 전용
@@ -50,5 +47,6 @@
 
 ## 다음에 읽을 문서
 
-- [현재 Codex 브랜치 세션 인계 문서](./codex/service-action-command/session_handoff.md)
-- [현재 Codex 브랜치 작업 백로그](./codex/service-action-command/work_backlog.md)
+- [Gemini 세션 인계 문서](./gemini/phase6/session_handoff.md)
+- [Codex 세션 인계 문서](./codex/service-action-command/session_handoff.md)
+

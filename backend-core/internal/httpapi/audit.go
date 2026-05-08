@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -29,10 +30,6 @@ func (h Handler) listAuditLogs(c *gin.Context) {
 		})
 		return
 	}
-	if !h.requirePermission(c, "system_config", domain.RBACPermissionRead) {
-		return
-	}
-
 	limit, err := parseBoundedInt(c.DefaultQuery("limit", "50"), 1, 100)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "limit must be an integer between 1 and 100"})
@@ -55,7 +52,7 @@ func (h Handler) listAuditLogs(c *gin.Context) {
 	}
 	logs, err := h.cfg.AuditStore.ListAuditLogs(c.Request.Context(), opts)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		writeServerError(c, err, "audit.list_logs")
 		return
 	}
 
@@ -90,6 +87,15 @@ func (h Handler) recordAudit(c *gin.Context, action, targetType, targetID string
 		TargetID:   targetID,
 		Payload:    payload,
 	})
+}
+
+// recordAuditBestEffort logs and swallows audit errors so callers (which have already committed the main mutation) do not surface a 500 that triggers duplicate retries.
+func (h Handler) recordAuditBestEffort(c *gin.Context, action, targetType, targetID string, payload map[string]any) domain.AuditLog {
+	auditLog, err := h.recordAudit(c, action, targetType, targetID, payload)
+	if err != nil {
+		log.Printf("audit log persistence failed: action=%s target=%s/%s err=%v", action, targetType, targetID, err)
+	}
+	return auditLog
 }
 
 func auditLogFromDomain(log domain.AuditLog) auditLogResponse {

@@ -1,12 +1,14 @@
 # 백엔드 개발 로드맵
 
+> ⚠ **먼저 [통합 개발 로드맵](../../docs/development_roadmap.md)을 확인하세요.** 본 문서는 그 통합 로드맵의 Backend 트랙 세부입니다. 마일스톤(M0~M4) / 우선순위(P0~P3) / 트랙 간 의존은 통합 로드맵의 §3·§4.1 이 source-of-truth.
+
 - 문서 목적: DevHub 백엔드 구현 범위, 순서, 진척 상태를 추적한다.
 - 범위: backend-core phase 로드맵, 완료 범위, 다음 작업 큐, 차단 항목
 - 대상 독자: 백엔드 개발자, 프론트엔드 연동 담당자, AI agent
 - 기준일: 2026-05-07
 - 상태: in_progress
-- 최종 수정일: 2026-05-07
-- 관련 문서: `docs/requirements.md`, `docs/architecture.md`, `docs/tech_stack.md`, `docs/backend_api_contract.md`, `docs/backend/frontend_integration_requirements.md`, `docs/backend/requirements_review.md`, `docs/adr/0001-idp-selection.md`, `ai-workflow/memory/codex/service-action-command/session_handoff.md`
+- 최종 수정일: 2026-05-08 (통합 로드맵 진입점 링크 추가)
+- 관련 문서: [`docs/development_roadmap.md`](../../docs/development_roadmap.md) (통합), `docs/requirements.md`, `docs/architecture.md`, `docs/tech_stack.md`, `docs/backend_api_contract.md`, `docs/backend/frontend_integration_requirements.md`, `docs/backend/requirements_review.md`, `docs/adr/0001-idp-selection.md`, `ai-workflow/memory/codex/service-action-command/session_handoff.md`
 - 현재 브랜치: `codex/service-action-command`
 - 현재 기준선: `origin/main@7316ddd` 반영 완료. Phase 12 조직/사용자 CRUD, Phase 13 Ory Hydra/Kratos PoC scaffold, TASK-020~023 command/realtime worker가 같은 브랜치에 공존한다.
 

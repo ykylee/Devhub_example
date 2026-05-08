@@ -23,7 +23,11 @@ def wrapped_payload(latest_backlog_path, git_range, repo_path, tool_version):
     if git_range:
         summary_data = summarize_git_history(repo_path=repo_path, commit_range=git_range)
         git_summary = summary_data["markdown"]
+<<<<<<< HEAD
+    
+=======
 
+>>>>>>> origin/codex/service-action-command
     return create_session_handoff_draft_payload(
         latest_backlog_path=latest_backlog_path,
         git_summary=git_summary,

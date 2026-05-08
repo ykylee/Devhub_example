@@ -277,7 +277,7 @@ func (s *memoryOrganizationStore) ReplaceUnitMembers(_ context.Context, unitID s
 // helper to fire a request through a fresh router.
 func newOrgTestRouter(orgStore OrganizationStore) *gin.Engine {
 	gin.SetMode(gin.TestMode)
-	return NewRouter(RouterConfig{OrganizationStore: orgStore})
+	return testRouter(RouterConfig{OrganizationStore: orgStore})
 }
 
 func decodeJSON(t *testing.T, body []byte, target any) {
@@ -342,8 +342,10 @@ func TestCreateUserRequiresOrganizationWrite(t *testing.T) {
 	storeMem := newMemoryOrganizationStore()
 	router := NewRouter(RouterConfig{
 		OrganizationStore: storeMem,
-		RBACPolicyStore:   &memoryRBACPolicyStore{},
-		AuthDevFallback:   true,
+		BearerTokenVerifier: &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+			Login: "developer",
+			Role:  "developer",
+		}},
 	})
 
 	body := []byte(`{
@@ -354,7 +356,7 @@ func TestCreateUserRequiresOrganizationWrite(t *testing.T) {
 		"status": "active"
 	}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/users", bytes.NewReader(body))
-	req.Header.Set("X-Devhub-Role", "developer")
+	req.Header.Set("Authorization", "Bearer developer-token")
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 

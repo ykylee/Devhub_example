@@ -1,10 +1,12 @@
 # Frontend Development Roadmap (Phase 2+)
 
+> ⚠ **먼저 [통합 개발 로드맵](./development_roadmap.md)을 확인하세요.** 본 문서는 그 통합 로드맵의 Frontend 트랙 세부입니다. 마일스톤(M0~M4) / 우선순위(P0~P3) / 트랙 간 의존은 통합 로드맵의 §3·§4.2 가 source-of-truth.
+
 - 문서 목적: 백엔드 API 연동 및 프론트엔드 기능 고도화 로드맵을 정의한다.
 - 기준일: 2026-05-04
-- 최종 수정: 2026-05-07
+- 최종 수정: 2026-05-08 (통합 로드맵 진입점 링크 추가)
 - 상태: in_progress
-- 관련 문서: `docs/backend_api_contract.md`, `ai-workflow/memory/backend_development_roadmap.md`
+- 관련 문서: [`./development_roadmap.md`](./development_roadmap.md) (통합), `docs/backend_api_contract.md`, `ai-workflow/memory/backend_development_roadmap.md`
 
 ## 1. 개요
 
@@ -18,7 +20,13 @@
 | **Phase 2** | **done** | 핵심 API 통합 | Infra Topology, Risk List, Command/Audit 연동, Role mapping |
 | **Phase 3** | **done** | 실시간성 및 CI/CD 가시화 | WebSocket 통합, CI Run/Logs 연동, 실시간 알림 피드 |
 | **Phase 4** | **in_progress** | AI 어드바이저 & 어드민 액션 | AI Gardener 추천 연동, 시스템 관리자 서비스 제어 액션 실체화, command status UI |
-| **Phase 5** | **planned** | 사용자/조직 관리 + 자체 계정 인증 | 사용자 프로필, 조직 관리 UI, 로그인/로그아웃, 계정 발급/회수/비밀번호 변경, 권한 관리 |
+| **Phase 5** | **done** | 사용자 및 조직 관리 UI | 사용자 프로필, 팀/조직 단위(Org Units) 관리 UI, 멤버 할당 모달 |
+| **Phase 5.1** | **done** | 조직 관리 API 통합 | 백엔드 조직 CRUD 및 멤버 할당 API 연동 |
+| **Phase 5.2** | **done** | 계정 인증 및 IdP 도입 | Ory Hydra/Kratos 도입, 로그인/로그아웃, 계정 발급/회수/비번 변경 (UI 완료) |
+| **Phase 6** | **in_progress** | 권한 관리(RBAC) UI 고도화 | 세부 권한 설정 UI, 권한 편집기(Permission Editor) 복구 |
+| **Phase 6.1** | **planned** | RBAC API 통합 | 권한 정책(Policy) CRUD API 연동, 역할별 접근 제어(RBAC Guard) 실체화 |
+| **Phase 7** | **planned** | 통합 검증 및 고도화 | AI Gardener 추천 연동 고도화, 전역 감사 로그 연동 |
+
 
 ## 3. Phase 2 상세 계획 (Core API Integration)
 

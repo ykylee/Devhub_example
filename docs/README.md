@@ -8,6 +8,8 @@ Welcome to the DevHub Project Wiki. This directory contains all development-rela
 - **[시스템 아키텍처 (Architecture)](./architecture.md)**: 시스템 구성도, 서비스 간 통신 방식(gRPC, WebSocket), 데이터 전략 및 UI 시각화 전략을 다룹니다.
 - **[기술 스택 및 환경 (Tech Stack & Env)](./tech_stack.md)**: 프론트엔드(Next.js), 백엔드(Go, Python), 데이터베이스(PostgreSQL) 등 확정된 기술 스택 정보를 제공합니다.
 - **[저장소 분석 리포트 (Repository Assessment)](./assessment.md)**: 초기 프로젝트 온보딩 시 수행된 코드베이스 분석 및 개선 권고 사항입니다.
+- **[개발 환경 구성 가이드 (Environment Setup)](./setup/environment-setup.md)**: docker / native(no-docker) 모드별 환경 구성 절차. 컨테이너 자산은 git 추적 외부에서 관리.
+- **[통합 개발 로드맵 (Integrated Development Roadmap)](./development_roadmap.md)**: 백엔드/프론트엔드/인증/운영 트랙을 단일 마일스톤(M0~M4)·우선순위(P0~P3) 체계로 묶은 1차 진입점. 작업 시작 전 가장 먼저 확인.
 
 ## 🛠 워크플로우 및 운영 (Workflow & Operations)
 

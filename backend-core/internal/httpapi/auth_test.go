@@ -28,7 +28,7 @@ func TestBearerTokenActorWritesAuditWithoutFallbackWarning(t *testing.T) {
 	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
 		Login:   "token-admin",
 		Subject: "user-token-admin",
-		Role:    "admin",
+		Role:    "system_admin",
 	}}
 	router := NewRouter(RouterConfig{
 		OrganizationStore:   orgs,
@@ -105,7 +105,7 @@ func TestMalformedAuthorizationHeaderReturnsUnauthorized(t *testing.T) {
 func TestBearerTokenWithoutVerifierDoesNotSetActor(t *testing.T) {
 	orgs := newMemoryOrganizationStore()
 	audits := &memoryAuditStore{}
-	router := NewRouter(RouterConfig{OrganizationStore: orgs, AuditStore: audits})
+	router := NewRouter(RouterConfig{OrganizationStore: orgs, AuditStore: audits, AuthDevFallback: true})
 
 	body := []byte(`{
 		"user_id": "u-unverified",
@@ -144,5 +144,107 @@ func TestEmptyBearerActorReturnsUnauthorized(t *testing.T) {
 
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestMissingAuthorizationReturnsUnauthorizedWhenDevFallbackOff(t *testing.T) {
+	router := NewRouter(RouterConfig{OrganizationStore: newMemoryOrganizationStore()})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/users", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestMissingAuthorizationPassesWhenDevFallbackOn(t *testing.T) {
+	router := NewRouter(RouterConfig{OrganizationStore: newMemoryOrganizationStore(), AuthDevFallback: true})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/users", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	if rec.Header().Get("X-Devhub-Auth") != "dev_fallback_no_header" {
+		t.Fatalf("expected dev_fallback_no_header marker, got %q", rec.Header().Get("X-Devhub-Auth"))
+	}
+}
+
+func TestBearerWithoutVerifierReturnsUnauthorizedWhenDevFallbackOff(t *testing.T) {
+	router := NewRouter(RouterConfig{OrganizationStore: newMemoryOrganizationStore()})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/users", nil)
+	req.Header.Set("Authorization", "Bearer some-token")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestPublicWebhookPathBypassesAuthentication(t *testing.T) {
+	router := NewRouter(RouterConfig{EventStore: &memoryEventStore{}})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/integrations/gitea/webhooks", bytes.NewReader([]byte(`{}`)))
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code == http.StatusUnauthorized {
+		t.Fatalf("expected webhook path to bypass authenticateActor; got 401")
+	}
+}
+
+func TestXDevhubActorIgnoredWhenDevFallbackOff(t *testing.T) {
+	router := NewRouter(RouterConfig{CommandStore: &memoryCommandStore{}})
+
+	body := []byte(`{
+		"service_id": "svc-1",
+		"action_type": "restart",
+		"reason": "test",
+		"dry_run": true,
+		"idempotency_key": "k-actor-prod"
+	}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/service-actions", bytes.NewReader(body))
+	req.Header.Set("X-Devhub-Actor", "spoofed-actor")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 (no Authorization, dev fallback off), got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestXDevhubActorIgnoredEvenWhenDevFallbackOn(t *testing.T) {
+	commandStore := &memoryCommandStore{}
+	router := testRouter(RouterConfig{CommandStore: commandStore})
+
+	body := []byte(`{
+		"service_id": "svc-1",
+		"action_type": "restart",
+		"reason": "test",
+		"dry_run": true,
+		"idempotency_key": "k-actor-dev"
+	}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/service-actions", bytes.NewReader(body))
+	req.Header.Set("X-Devhub-Actor", "spoofed-actor")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("expected 202 (dev fallback bypasses role gate), got %d body=%s", rec.Code, rec.Body.String())
+	}
+	if got := rec.Header().Get("X-Devhub-Actor-Deprecated"); got != "" {
+		t.Fatalf("X-Devhub-Actor-Deprecated must not be set after SEC-4 removal, got %q", got)
+	}
+	if len(commandStore.commands) != 1 {
+		t.Fatalf("expected one command, got %d", len(commandStore.commands))
+	}
+	if commandStore.commands[0].ActorLogin != "system" {
+		t.Errorf("X-Devhub-Actor must be ignored, expected actor=system, got %q", commandStore.commands[0].ActorLogin)
 	}
 }

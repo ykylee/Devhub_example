@@ -98,13 +98,6 @@ func (h Handler) createServiceAction(c *gin.Context) {
 		dryRun = *request.DryRun
 	}
 	requiresApproval := request.Force || !dryRun
-	requiredPermission := domain.RBACPermissionWrite
-	if requiresApproval {
-		requiredPermission = domain.RBACPermissionAdmin
-	}
-	if !h.requirePermission(c, "commands", requiredPermission) {
-		return
-	}
 	payload := map[string]any{
 		"service_id":  request.ServiceID,
 		"action_type": request.ActionType,
@@ -128,7 +121,7 @@ func (h Handler) createServiceAction(c *gin.Context) {
 		RequiresApproval: requiresApproval,
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		writeServerError(c, err, "commands.create_service_action")
 		return
 	}
 
@@ -182,9 +175,6 @@ func (h Handler) createRiskMitigation(c *gin.Context) {
 	if request.DryRun != nil {
 		dryRun = *request.DryRun
 	}
-	if !h.requirePermission(c, "risks", domain.RBACPermissionWrite) {
-		return
-	}
 	payload := map[string]any{
 		"action_type": request.ActionType,
 		"dry_run":     dryRun,
@@ -208,7 +198,7 @@ func (h Handler) createRiskMitigation(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "risk not found"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		writeServerError(c, err, "commands.create_risk_mitigation")
 		return
 	}
 
@@ -247,7 +237,7 @@ func (h Handler) getCommand(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "command not found"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		writeServerError(c, err, "commands.get_command")
 		return
 	}
 
@@ -271,9 +261,6 @@ func (h Handler) reviewCommand(c *gin.Context, approve bool) {
 			"status": "unavailable",
 			"error":  "command store is not configured",
 		})
-		return
-	}
-	if !h.requirePermission(c, "commands", domain.RBACPermissionAdmin) {
 		return
 	}
 
@@ -390,11 +377,14 @@ func requestActor(c *gin.Context) requestActorInfo {
 			}
 		}
 	}
-	actor := strings.TrimSpace(c.GetHeader("X-Devhub-Actor"))
-	if actor == "" {
-		return requestActorInfo{Login: "system", Source: "system_fallback"}
+	return requestActorInfo{Login: "system", Source: "system_fallback"}
+}
+
+func devFallbackEnabled(c *gin.Context) bool {
+	value, ok := c.Get("devhub_auth_dev_fallback")
+	if !ok {
+		return false
 	}
-	c.Header("X-Devhub-Actor-Deprecated", "true")
-	c.Header("Warning", `299 - "X-Devhub-Actor is a development fallback; use authenticated session or bearer token claims"`)
-	return requestActorInfo{Login: actor, Source: "x-devhub-actor"}
+	enabled, ok := value.(bool)
+	return ok && enabled
 }

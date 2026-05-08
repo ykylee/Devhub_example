@@ -68,24 +68,6 @@ interface BackendUser {
   joined_at?: string;
 }
 
-interface BackendMe {
-  user: BackendUser;
-  actor: {
-    login: string;
-    subject?: string;
-    source: string;
-  };
-  allowed_roles: string[];
-  effective_permissions: Record<string, string>;
-}
-
-export interface CurrentUserContext {
-  user: OrgMember;
-  actor: BackendMe["actor"];
-  allowed_roles: string[];
-  effective_permissions: Record<string, string>;
-}
-
 interface BackendUnit {
   unit_id: string;
   parent_unit_id?: string;
@@ -177,6 +159,20 @@ export interface UpdateUnitPayload {
   position_y?: number;
 }
 
+export interface MeResponse {
+  login: string;
+  subject?: string;
+  role?: string;
+  actor_source?: string;
+}
+
+export interface ResolvedActor {
+  login: string;
+  subject?: string;
+  role: OrgMember["role"];
+  source?: string;
+}
+
 export class IdentityServiceError extends Error {
   constructor(public status: number, public payload: unknown, message: string) {
     super(message);
@@ -238,7 +234,7 @@ function mapBackendUser(u: BackendUser): OrgMember {
       dept_id: a.unit_id,
       role: a.appointment_role,
     })),
-    joined_at: typeof u.joined_at === "string" ? u.joined_at.slice(0, 10) : u.joined_at,
+    joined_at: typeof u.joined_at === "string" ? u.joined_at.slice(0, 10) : (u.joined_at ?? ""),
   };
 }
 
@@ -254,22 +250,18 @@ export class IdentityService {
     return IdentityService.instance;
   }
 
-  async getCurrentUser(): Promise<CurrentUserContext | null> {
-    try {
-      const response = await fetch(`/api/v1/me`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const result = await response.json() as ApiResponse<BackendMe>;
-      if (!result.data) throw new Error("missing current user payload");
-      return {
-        user: mapBackendUser(result.data.user),
-        actor: result.data.actor,
-        allowed_roles: result.data.allowed_roles,
-        effective_permissions: result.data.effective_permissions,
-      };
-    } catch (error) {
-      console.error('[IdentityService] getCurrentUser error:', error);
-      return null;
+  // whoAmI calls /api/v1/me to resolve the current authenticated actor. Throws IdentityServiceError(401) when the request is unauthenticated; the caller (typically AuthGuard) is responsible for redirecting to /login.
+  async whoAmI(): Promise<ResolvedActor> {
+    const result = await jsonRequest<ApiResponse<MeResponse>>("GET", `/api/v1/me`);
+    if (!result.data) {
+      throw new IdentityServiceError(500, result, "missing me payload");
     }
+    return {
+      login: result.data.login,
+      subject: result.data.subject,
+      role: ROLE_BACKEND_TO_UI[result.data.role ?? ""] ?? "Developer",
+      source: result.data.actor_source,
+    };
   }
 
   async getUsers(): Promise<OrgMember[]> {

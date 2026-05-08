@@ -44,11 +44,6 @@ type AuditStore interface {
 	ListAuditLogs(context.Context, store.ListAuditLogsOptions) ([]domain.AuditLog, error)
 }
 
-type RBACPolicyStore interface {
-	GetActiveRBACPolicy(context.Context) (domain.RBACPolicy, error)
-	ReplaceRBACPolicy(context.Context, domain.ReplaceRBACPolicyInput) (domain.RBACPolicy, error)
-}
-
 type RouterConfig struct {
 	WebhookSecret       string
 	EventStore          WebhookEventStore
@@ -57,22 +52,31 @@ type RouterConfig struct {
 	DomainStore         DomainStore
 	CommandStore        CommandStore
 	AuditStore          AuditStore
-	RBACPolicyStore     RBACPolicyStore
 	BearerTokenVerifier BearerTokenVerifier
 	OrganizationStore   OrganizationStore
-	AuthDevFallback     bool
+	RBACStore           RBACStore
+	PermissionCache     *PermissionCache
+	KratosLogin         KratosLoginClient
+	HydraAdmin          HydraLoginAdmin
 	SnapshotProvider    SnapshotProvider
 	RealtimeHub         *RealtimeHub
+	// AuthDevFallback toggles dev-only authentication fallbacks: empty Authorization passes through authenticateActor and requireMinRole. Actor identity always resolves to "system" without a verifier. Default false: production-safe.
+	AuthDevFallback bool
 }
 
 func NewRouter(cfg RouterConfig) *gin.Engine {
 	router := gin.Default()
+
+	if cfg.PermissionCache == nil {
+		cfg.PermissionCache = NewPermissionCache(cfg.RBACStore)
+	}
 
 	handler := Handler{cfg: cfg}
 	router.GET("/health", handler.health)
 
 	v1 := router.Group("/api/v1")
 	v1.Use(handler.authenticateActor)
+	v1.Use(handler.enforceRoutePermission)
 	v1.GET("/me", handler.getMe)
 	v1.GET("/dashboard/metrics", handler.dashboardMetrics)
 	v1.GET("/events", handler.listWebhookEvents)
@@ -87,8 +91,13 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.GET("/risks", handler.risks)
 	v1.GET("/risks/critical", handler.criticalRisks)
 	v1.GET("/audit-logs", handler.listAuditLogs)
-	v1.GET("/rbac/policy", handler.getRBACPolicy)
-	v1.PUT("/rbac/policy", handler.replaceRBACPolicy)
+	v1.GET("/rbac/policy", handler.getRBACPolicyLegacyGone)
+	v1.GET("/rbac/policies", handler.listRBACPolicies)
+	v1.POST("/rbac/policies", handler.createRBACPolicy)
+	v1.PUT("/rbac/policies", handler.updateRBACPolicies)
+	v1.DELETE("/rbac/policies/:role_id", handler.deleteRBACPolicy)
+	v1.GET("/rbac/subjects/:subject_id/roles", handler.getSubjectRoles)
+	v1.PUT("/rbac/subjects/:subject_id/roles", handler.setSubjectRoles)
 	v1.POST("/admin/service-actions", handler.createServiceAction)
 	v1.POST("/risks/:risk_id/mitigations", handler.createRiskMitigation)
 	v1.GET("/commands/:command_id", handler.getCommand)
@@ -107,6 +116,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.GET("/organization/units/:unit_id/members", handler.listUnitMembers)
 	v1.PUT("/organization/units/:unit_id/members", handler.replaceUnitMembers)
 	v1.POST("/integrations/gitea/webhooks", handler.receiveGiteaWebhook)
+	v1.POST("/auth/login", handler.authLogin)
 	if cfg.RealtimeHub != nil {
 		v1.GET("/realtime/ws", handler.handleRealtimeWebSocket)
 	}

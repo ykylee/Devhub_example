@@ -45,7 +45,11 @@ def main():
 
     # 3. Orchestrator detects the risk and decides to pivot
     print("\n[Orchestrator] Step 2: Risk detected! Delegating lint fix to validation-worker.")
+<<<<<<< HEAD
+    
+=======
 
+>>>>>>> origin/codex/service-action-command
     if any("lint_failure" in r for r in response1.risks_identified):
         task2 = WorkerTask(
             worker_id="validation-worker",
@@ -54,7 +58,11 @@ def main():
             context_summary=f"Previous worker reported: {response1.risks_identified[0]}"
         )
         print(f"Delegation 2: {task2.worker_id} -> '{task2.task_description}'")
+<<<<<<< HEAD
+        
+=======
 
+>>>>>>> origin/codex/service-action-command
         # 4. Second worker resolves the risk
         print("\n[Worker: validation-worker] Running auto-formatter...")
         response2 = WorkerResponse(
@@ -64,7 +72,11 @@ def main():
             produced_artifacts=response1.produced_artifacts
         )
         print(f"Response 2: Status={response2.status}")
+<<<<<<< HEAD
+    
+=======
 
+>>>>>>> origin/codex/service-action-command
     # 5. Final Orchestration Result
     print("\n[Orchestrator] Step 3: All tasks completed and risks mitigated.")
     print("=== Scenario B Simulation Complete ===")

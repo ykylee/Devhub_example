@@ -181,11 +181,12 @@ func (s *memoryCommandStore) RejectCommand(_ context.Context, req domain.Command
 func TestCreateServiceActionReturnsCommandLifecycle(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	commandStore := &memoryCommandStore{}
-	router := NewRouter(RouterConfig{CommandStore: commandStore})
+	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{Login: "admin", Subject: "user-admin", Role: "system_admin"}}
+	router := NewRouter(RouterConfig{CommandStore: commandStore, BearerTokenVerifier: verifier})
 
 	body := []byte(`{"service_id":"runner-asia-01","action_type":"restart","reason":"Runner queue is blocked","dry_run":true,"force":false,"idempotency_key":"service-restart-1","metadata":{"queue_depth":12}}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/service-actions", bytes.NewReader(body))
-	req.Header.Set("X-Devhub-Actor", "admin")
+	req.Header.Set("Authorization", "Bearer t")
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 
@@ -228,7 +229,7 @@ func TestCreateServiceActionDryRunAllowsManagerPermission(t *testing.T) {
 	commandStore := &memoryCommandStore{}
 	router := NewRouter(RouterConfig{
 		CommandStore:    commandStore,
-		RBACPolicyStore: &memoryRBACPolicyStore{},
+		AuthDevFallback: true,
 	})
 
 	body := []byte(`{"service_id":"runner-asia-01","action_type":"restart","reason":"Runner queue is blocked","dry_run":true}`)
@@ -246,13 +247,16 @@ func TestCreateServiceActionLiveRequiresAdminPermission(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	commandStore := &memoryCommandStore{}
 	router := NewRouter(RouterConfig{
-		CommandStore:    commandStore,
-		RBACPolicyStore: &memoryRBACPolicyStore{},
+		CommandStore: commandStore,
+		BearerTokenVerifier: &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+			Login: "manager",
+			Role:  "manager",
+		}},
 	})
 
 	body := []byte(`{"service_id":"runner-asia-01","action_type":"restart","reason":"Runner queue is blocked","dry_run":false}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/service-actions", bytes.NewReader(body))
-	req.Header.Set("X-Devhub-Role", "manager")
+	req.Header.Set("Authorization", "Bearer manager-token")
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 
@@ -264,7 +268,7 @@ func TestCreateServiceActionLiveRequiresAdminPermission(t *testing.T) {
 func TestCreateServiceActionRequiresApprovalForLiveAction(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	commandStore := &memoryCommandStore{}
-	router := NewRouter(RouterConfig{CommandStore: commandStore})
+	router := testRouter(RouterConfig{CommandStore: commandStore})
 
 	body := []byte(`{"service_id":"runner-asia-01","action_type":"restart","reason":"Apply live restart","dry_run":false}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/service-actions", bytes.NewReader(body))
@@ -303,7 +307,7 @@ func TestCreateServiceActionReportsIdempotentReplay(t *testing.T) {
 		},
 		auditLog: domain.AuditLog{AuditID: "audit_service_existing", CreatedAt: now},
 	}
-	router := NewRouter(RouterConfig{CommandStore: commandStore})
+	router := testRouter(RouterConfig{CommandStore: commandStore})
 
 	body := []byte(`{"service_id":"runner-asia-01","action_type":"restart","reason":"Runner queue is blocked","idempotency_key":"service-restart-1"}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/service-actions", bytes.NewReader(body))
@@ -333,7 +337,7 @@ func TestCreateServiceActionReportsIdempotentReplay(t *testing.T) {
 
 func TestCreateServiceActionRejectsMissingServiceID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	router := NewRouter(RouterConfig{CommandStore: &memoryCommandStore{}})
+	router := testRouter(RouterConfig{CommandStore: &memoryCommandStore{}})
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/service-actions", bytes.NewReader([]byte(`{"action_type":"restart","reason":"Runner queue is blocked"}`)))
 	rec := httptest.NewRecorder()
@@ -347,11 +351,12 @@ func TestCreateServiceActionRejectsMissingServiceID(t *testing.T) {
 func TestCreateRiskMitigationReturnsCommandLifecycle(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	commandStore := &memoryCommandStore{}
-	router := NewRouter(RouterConfig{CommandStore: commandStore})
+	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{Login: "yklee", Subject: "user-yklee", Role: "manager"}}
+	router := NewRouter(RouterConfig{CommandStore: commandStore, BearerTokenVerifier: verifier})
 
 	body := []byte(`{"action_type":"rerun_ci","reason":"CI failure blocks release","dry_run":true,"idempotency_key":"risk-502-rerun","metadata":{"ci_run_id":"502"}}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/risks/ci_failure:502/mitigations", bytes.NewReader(body))
-	req.Header.Set("X-Devhub-Actor", "yklee")
+	req.Header.Set("Authorization", "Bearer t")
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 
@@ -390,13 +395,16 @@ func TestCreateRiskMitigationRequiresRiskWrite(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	commandStore := &memoryCommandStore{}
 	router := NewRouter(RouterConfig{
-		CommandStore:    commandStore,
-		RBACPolicyStore: &memoryRBACPolicyStore{},
+		CommandStore: commandStore,
+		BearerTokenVerifier: &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+			Login: "developer",
+			Role:  "developer",
+		}},
 	})
 
 	body := []byte(`{"action_type":"rerun_ci","reason":"Fix blocked release"}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/risks/risk-1/mitigations", bytes.NewReader(body))
-	req.Header.Set("X-Devhub-Role", "developer")
+	req.Header.Set("Authorization", "Bearer developer-token")
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 
@@ -407,7 +415,7 @@ func TestCreateRiskMitigationRequiresRiskWrite(t *testing.T) {
 
 func TestCreateRiskMitigationRejectsMissingReason(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	router := NewRouter(RouterConfig{CommandStore: &memoryCommandStore{}})
+	router := testRouter(RouterConfig{CommandStore: &memoryCommandStore{}})
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/risks/ci_failure:502/mitigations", bytes.NewReader([]byte(`{"action_type":"rerun_ci"}`)))
 	rec := httptest.NewRecorder()
@@ -442,7 +450,7 @@ func TestCreateRiskMitigationReportsIdempotentReplay(t *testing.T) {
 		},
 		auditLog: domain.AuditLog{AuditID: "audit_existing", CreatedAt: now},
 	}
-	router := NewRouter(RouterConfig{CommandStore: commandStore})
+	router := testRouter(RouterConfig{CommandStore: commandStore})
 
 	body := []byte(`{"action_type":"rerun_ci","reason":"CI failure blocks release","idempotency_key":"risk-502-rerun"}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/risks/ci_failure:502/mitigations", bytes.NewReader(body))
@@ -473,7 +481,7 @@ func TestCreateRiskMitigationReportsIdempotentReplay(t *testing.T) {
 func TestGetCommandReturnsCommandStatus(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	now := time.Date(2026, 5, 4, 10, 0, 0, 0, time.UTC)
-	router := NewRouter(RouterConfig{CommandStore: &memoryCommandStore{
+	router := testRouter(RouterConfig{CommandStore: &memoryCommandStore{
 		commands: []domain.Command{
 			{
 				CommandID:      "cmd_test",
@@ -538,7 +546,7 @@ func TestApproveServiceActionCommandMarksApprovalAndAudits(t *testing.T) {
 			},
 		},
 	}
-	router := NewRouter(RouterConfig{CommandStore: commandStore, RBACPolicyStore: &memoryRBACPolicyStore{}})
+	router := NewRouter(RouterConfig{CommandStore: commandStore, AuthDevFallback: true})
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/commands/cmd_live/approve", bytes.NewReader([]byte(`{"reason":"Approved maintenance window"}`)))
 	req.Header.Set("X-Devhub-Actor", "approver")
@@ -596,7 +604,7 @@ func TestRejectServiceActionCommandMarksRejectedAndAudits(t *testing.T) {
 			},
 		},
 	}
-	router := NewRouter(RouterConfig{CommandStore: commandStore, RBACPolicyStore: &memoryRBACPolicyStore{}})
+	router := NewRouter(RouterConfig{CommandStore: commandStore, AuthDevFallback: true})
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/commands/cmd_live/reject", bytes.NewReader([]byte(`{"reason":"Outside maintenance window"}`)))
 	req.Header.Set("X-Devhub-Actor", "approver")
@@ -629,12 +637,15 @@ func TestRejectServiceActionCommandMarksRejectedAndAudits(t *testing.T) {
 func TestApproveCommandRequiresCommandAdmin(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := NewRouter(RouterConfig{
-		CommandStore:    &memoryCommandStore{},
-		RBACPolicyStore: &memoryRBACPolicyStore{},
+		CommandStore: &memoryCommandStore{},
+		BearerTokenVerifier: &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+			Login: "manager",
+			Role:  "manager",
+		}},
 	})
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/commands/cmd_live/approve", bytes.NewReader([]byte(`{"reason":"approve"}`)))
-	req.Header.Set("X-Devhub-Role", "manager")
+	req.Header.Set("Authorization", "Bearer manager-token")
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 
@@ -663,7 +674,7 @@ func TestApproveCommandRejectsNonPendingApproval(t *testing.T) {
 				},
 			},
 		},
-		RBACPolicyStore: &memoryRBACPolicyStore{},
+		AuthDevFallback: true,
 	})
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/commands/cmd_dry/approve", bytes.NewReader([]byte(`{"reason":"approve"}`)))

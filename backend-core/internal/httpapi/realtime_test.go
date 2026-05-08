@@ -16,7 +16,7 @@ import (
 func TestRealtimeHubPublishesCommandStatus(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	hub := NewRealtimeHub()
-	server := httptest.NewServer(NewRouter(RouterConfig{RealtimeHub: hub}))
+	server := httptest.NewServer(testRouter(RouterConfig{RealtimeHub: hub}))
 	defer server.Close()
 
 	url := "ws" + strings.TrimPrefix(server.URL, "http") + "/api/v1/realtime/ws"
@@ -66,7 +66,7 @@ func TestRealtimeHubPublishesCommandStatus(t *testing.T) {
 func TestRealtimeHubFiltersBySubscribedTypes(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	hub := NewRealtimeHub()
-	server := httptest.NewServer(NewRouter(RouterConfig{RealtimeHub: hub}))
+	server := httptest.NewServer(testRouter(RouterConfig{RealtimeHub: hub}))
 	defer server.Close()
 
 	url := "ws" + strings.TrimPrefix(server.URL, "http") + "/api/v1/realtime/ws?types=risk.updated"
@@ -100,11 +100,19 @@ func TestRealtimeHubFiltersBySubscribedTypes(t *testing.T) {
 func TestRealtimeWebSocketRequiresTypesWhenRBACEnabled(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	hub := NewRealtimeHub()
-	server := httptest.NewServer(NewRouter(RouterConfig{RealtimeHub: hub, RBACPolicyStore: &memoryRBACPolicyStore{}}))
+	server := httptest.NewServer(NewRouter(RouterConfig{
+		RealtimeHub: hub,
+		BearerTokenVerifier: &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+			Login: "manager",
+			Role:  "manager",
+		}},
+	}))
 	defer server.Close()
 
 	url := "ws" + strings.TrimPrefix(server.URL, "http") + "/api/v1/realtime/ws"
-	_, resp, err := websocket.DefaultDialer.Dial(url, nil)
+	header := http.Header{}
+	header.Set("Authorization", "Bearer manager-token")
+	_, resp, err := websocket.DefaultDialer.Dial(url, header)
 	if err == nil {
 		t.Fatalf("expected websocket dial to fail without types")
 	}
@@ -116,12 +124,19 @@ func TestRealtimeWebSocketRequiresTypesWhenRBACEnabled(t *testing.T) {
 func TestRealtimeWebSocketChecksRBACPermission(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	hub := NewRealtimeHub()
-	server := httptest.NewServer(NewRouter(RouterConfig{RealtimeHub: hub, RBACPolicyStore: &memoryRBACPolicyStore{}, AuthDevFallback: true}))
+	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+		Login: "restricted-user",
+		Role:  "custom-no-view",
+	}}
+	server := httptest.NewServer(NewRouter(RouterConfig{
+		RealtimeHub:         hub,
+		BearerTokenVerifier: verifier,
+	}))
 	defer server.Close()
 
 	url := "ws" + strings.TrimPrefix(server.URL, "http") + "/api/v1/realtime/ws?types=command.status.updated"
 	header := http.Header{}
-	header.Set("X-Devhub-Role", "developer")
+	header.Set("Authorization", "Bearer restricted-token")
 	_, resp, err := websocket.DefaultDialer.Dial(url, header)
 	if err == nil {
 		t.Fatalf("expected websocket dial to fail for insufficient command permission")
@@ -130,7 +145,8 @@ func TestRealtimeWebSocketChecksRBACPermission(t *testing.T) {
 		t.Fatalf("expected 403 response, got resp=%v err=%v", resp, err)
 	}
 
-	header.Set("X-Devhub-Role", "manager")
+	verifier.actor = AuthenticatedActor{Login: "manager", Role: "manager"}
+	header.Set("Authorization", "Bearer manager-token")
 	conn, resp, err := websocket.DefaultDialer.Dial(url, header)
 	if err != nil {
 		t.Fatalf("expected manager websocket dial to succeed, resp=%v err=%v", resp, err)
@@ -143,7 +159,6 @@ func TestRealtimeWebSocketRejectsRoleFallbackWithOrganizationStore(t *testing.T)
 	hub := NewRealtimeHub()
 	server := httptest.NewServer(NewRouter(RouterConfig{
 		RealtimeHub:       hub,
-		RBACPolicyStore:   &memoryRBACPolicyStore{},
 		OrganizationStore: newMemoryOrganizationStore(),
 	}))
 	defer server.Close()
@@ -163,7 +178,7 @@ func TestRealtimeRouteIsAbsentWithoutHub(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/realtime/ws", nil)
 	rec := httptest.NewRecorder()
 
-	NewRouter(RouterConfig{}).ServeHTTP(rec, req)
+	testRouter(RouterConfig{}).ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("expected realtime route to be disabled without hub, got %d", rec.Code)

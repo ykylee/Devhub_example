@@ -21,10 +21,31 @@ type BearerTokenVerifier interface {
 	VerifyBearerToken(context.Context, string) (AuthenticatedActor, error)
 }
 
+// publicAPIPaths lists /api/v1 routes that pass through authenticateActor without an Authorization header. Webhook endpoints validate their own HMAC signature, so a Bearer token would be redundant. The auth proxy endpoints (login/consent/logout) are called *before* the user has a token, so they cannot require one either; they protect themselves with Hydra's challenge tokens (single-use, lifespan-bound).
+var publicAPIPaths = map[string]bool{
+	"/api/v1/integrations/gitea/webhooks": true,
+	"/api/v1/auth/login":                  true,
+}
+
 func (h Handler) authenticateActor(c *gin.Context) {
+	c.Set("devhub_auth_dev_fallback", h.cfg.AuthDevFallback)
+
+	if publicAPIPaths[c.FullPath()] {
+		c.Next()
+		return
+	}
+
 	header := strings.TrimSpace(c.GetHeader("Authorization"))
 	if header == "" {
-		c.Next()
+		if h.cfg.AuthDevFallback {
+			c.Header("X-Devhub-Auth", "dev_fallback_no_header")
+			c.Next()
+			return
+		}
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+			"status": "unauthenticated",
+			"error":  "authorization header required",
+		})
 		return
 	}
 
@@ -38,8 +59,15 @@ func (h Handler) authenticateActor(c *gin.Context) {
 	}
 
 	if h.cfg.BearerTokenVerifier == nil {
-		c.Header("X-Devhub-Auth", "bearer_unverified")
-		c.Next()
+		if h.cfg.AuthDevFallback {
+			c.Header("X-Devhub-Auth", "bearer_unverified")
+			c.Next()
+			return
+		}
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+			"status": "unauthenticated",
+			"error":  "bearer token verifier is not configured",
+		})
 		return
 	}
 

@@ -40,9 +40,11 @@
 - [x] TASK-BACKEND-P1-SERVICE-ACTION-EXECUTOR-BOUNDARY: approved live service action query 및 executor adapter boundary
 - [x] TASK-BACKEND-P1-SERVICE-ACTION-SIM-EXECUTOR: simulation service action executor 및 명시적 main 주입 설정
 - [ ] TASK-007: AI Gardener Suggestions 및 Admin Service Actions 실체화
+- [ ] TASK-DOCS-SMOKE-REPAIR: workflow 문서 메타데이터/링크 smoke check 복구
 
 ## 4. 다음 작업 후보
 
+- `ai-workflow/tests/check_docs.py` 실패 항목 정리: `ai-workflow/memory/*` 메타데이터 누락, archive 경로 broken link, branch memory 상대 링크 보정
 - service action 운영 executor adapter 구현 범위 확정
 - Hydra JWKS/introspection verifier 실제 구현
 - WebSocket replay 및 resource/project scope filter 설계

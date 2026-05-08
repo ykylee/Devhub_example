@@ -22,10 +22,12 @@
     "runtime_checks": "make build"
   },
   "session": {
-    "current_baseline": "origin/main@7316ddd 반영 후 command/service action/realtime worker 변경 재적용.",
+    "current_baseline": "origin/main 병합 후 PR #36 service action/RBAC/realtime 변경 재적용 및 리뷰 코멘트 수정 완료.",
     "current_axis": "브랜치별 ai-workflow/memory 표준화 및 TASK-007 후속 범위 검토.",
-    "current_focus": "P0 audit 조회 API, organization CRUD audit, actor fallback deprecation, Hydra/Kratos Bearer actor 경계, RBAC policy 조회/교체 API, /me, 주요 쓰기 API enforcement, WebSocket types subscription/RBAC filter, actor fallback hardening, publish lock 개선, service action approval/executor/simulation boundary 완료",
-    "in_progress_items": [],
+    "current_focus": "PR #33/#35/#37 병합 완료, PR #36 병합 준비. actor fallback hardening, live service action atomic claim, main RBAC 모델 통합, frontend lint 수정 완료. docs smoke 실패는 후속 문서 정리 대상으로 분리.",
+    "in_progress_items": [
+      "TASK-DOCS-SMOKE-REPAIR"
+    ],
     "blocked_items": [],
     "recent_done_items": [
       "TASK-003 Frontend REST API 및 WebSocket 실시간 연동",

@@ -1,245 +1,251 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { Shield, Lock, Eye, Pencil, Crown } from "lucide-react";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ShieldCheck, Lock, Plus, Trash2, ShieldAlert, Eye, Pencil, Crown, Shield, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { rbacService } from "@/lib/services/rbac.service";
-import type { RbacPermission, RbacPolicy } from "@/lib/services/types";
+import { PermissionMatrix, PermissionState } from "./PermissionMatrix";
+import { Role, AUDIT_LOCKED_ACTIONS } from "@/lib/services/rbac.types";
 
-const FALLBACK_POLICY: RbacPolicy = {
-  roles: [
-    { role: "developer", label: "Developer", description: "Developer dashboard access" },
-    { role: "manager", label: "Manager", description: "Team operations access" },
-    { role: "system_admin", label: "System Admin", description: "System administration access" },
-  ],
-  resources: [
-    { resource: "repositories", label: "Repositories", description: "Repository metadata" },
-    { resource: "ci_runs", label: "CI Runs", description: "CI run status and logs" },
-    { resource: "risks", label: "Risks", description: "Risk and mitigation workflows" },
-    { resource: "commands", label: "Commands", description: "Command lifecycle" },
-    { resource: "organization", label: "Organization", description: "Users and org units" },
-    { resource: "system_config", label: "System Config", description: "System configuration" },
-  ],
-  permissions: [
-    { permission: "none", label: "None", rank: 0, description: "No access" },
-    { permission: "read", label: "Read", rank: 10, description: "Read access" },
-    { permission: "write", label: "Write", rank: 20, description: "Write access" },
-    { permission: "admin", label: "Admin", rank: 30, description: "Admin access" },
-  ],
-  matrix: {
-    developer: {
-      repositories: "read",
-      ci_runs: "read",
-      risks: "read",
-      commands: "none",
-      organization: "none",
-      system_config: "none",
-    },
-    manager: {
-      repositories: "write",
-      ci_runs: "read",
-      risks: "write",
-      commands: "write",
-      organization: "read",
-      system_config: "none",
-    },
-    system_admin: {
-      repositories: "admin",
-      ci_runs: "admin",
-      risks: "admin",
-      commands: "admin",
-      organization: "admin",
-      system_config: "admin",
-    },
-  },
-};
+interface PermissionEditorProps {
+  roles: Role[];
+  setRoles: (roles: Role[]) => void;
+  onSave?: () => Promise<void> | void;
+  onCreate?: (role: Role) => Promise<void> | void;
+  onDelete?: (roleId: string) => Promise<void> | void;
+  saving?: boolean;
+  errorMessage?: string | null;
+  isDirty?: boolean;
+}
 
-const permissionStyles: Record<RbacPermission, string> = {
-  read: "bg-white/5 border-white/20 text-white/70",
-  write: "bg-blue-500/10 border-blue-500/30 text-blue-300",
-  admin: "bg-accent/15 border-accent/40 text-accent",
-  none: "bg-transparent border-white/5 text-muted-foreground/40",
-};
+export function PermissionEditor({
+  roles,
+  setRoles,
+  onSave,
+  onCreate,
+  onDelete,
+  saving = false,
+  errorMessage,
+  isDirty = false,
+}: PermissionEditorProps) {
+  const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
 
-const permissionIcon: Record<RbacPermission, typeof Eye | null> = {
-  read: Eye,
-  write: Pencil,
-  admin: Crown,
-  none: null,
-};
+  const selectedRole = roles.find(r => r.id === selectedRoleId);
 
-const roleAccent: Record<string, string> = {
-  developer: "text-white/80",
-  manager: "text-blue-300",
-  system_admin: "text-accent",
-};
-
-export function PermissionEditor() {
-  const [policy, setPolicy] = useState<RbacPolicy>(FALLBACK_POLICY);
-  const [policyState, setPolicyState] = useState<"loading" | "api" | "fallback">("loading");
-
-  useEffect(() => {
-    let cancelled = false;
-    rbacService.getPolicy()
-      .then((nextPolicy) => {
-        if (!cancelled) {
-          setPolicy(nextPolicy);
-          setPolicyState("api");
-        }
-      })
-      .catch((error) => {
-        console.error("[PermissionEditor] getPolicy error:", error);
-        if (!cancelled) {
-          setPolicy(FALLBACK_POLICY);
-          setPolicyState("fallback");
-        }
-      });
-    return () => {
-      cancelled = true;
+  const handleCreateRole = async () => {
+    const newRole: Role = {
+      id: `custom-${Date.now()}`,
+      name: "New Custom Role",
+      description: "Define custom access policies for this role.",
+      system: false,
+      permissions: {},
     };
-  }, []);
+    if (onCreate) {
+      await onCreate(newRole);
+    } else {
+      setRoles([...roles, newRole]);
+    }
+    setSelectedRoleId(newRole.id);
+  };
+
+  const handleDeleteRole = async (id: string) => {
+    const target = roles.find(r => r.id === id);
+    if (target?.system) return;
+    if (onDelete) {
+      await onDelete(id);
+    } else {
+      setRoles(roles.filter(r => r.id !== id));
+    }
+    if (selectedRoleId === id) setSelectedRoleId(null);
+  };
+
+  const handleUpdatePermissions = (newPermissions: PermissionState) => {
+    if (!selectedRoleId) return;
+    setRoles(roles.map(r =>
+      r.id === selectedRoleId ? { ...r, permissions: newPermissions } : r
+    ));
+  };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.4 }}
-      className="space-y-6"
-    >
-      <div className="glass border border-yellow-400/20 bg-yellow-400/5 rounded-2xl px-5 py-4 flex items-start gap-3">
-        <div className="p-2 rounded-xl bg-yellow-400/10 border border-yellow-400/20 shrink-0">
-          <Lock className="w-4 h-4 text-yellow-300" />
+    <div className="space-y-10">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-primary/20 border border-primary/30">
+            <Lock className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <h3 className="text-xl font-black text-white uppercase tracking-tight">RBAC <span className="text-primary">Policies</span></h3>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
+              Role-Based Access Control Configuration
+            </p>
+          </div>
         </div>
-        <div>
-          <p className="text-xs font-black uppercase tracking-widest text-yellow-300">
-            {policyState === "api" ? "Read-only policy" : "Default policy"}
-          </p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">
-            {policyState === "api"
-              ? "Current access matrix is active. Editing remains disabled."
-              : policyState === "loading"
-                ? "Loading access matrix."
-                : "Default access matrix is active. Editing remains disabled."}
-          </p>
+
+        <div className="flex items-center gap-6">
+          <div className="hidden md:flex items-center gap-3 text-[10px] font-black uppercase tracking-widest">
+            <LegendChip type="read" label="Read" />
+            <LegendChip type="write" label="Write" />
+            <LegendChip type="admin" label="Admin" />
+          </div>
+          {onSave && (
+            <button
+              onClick={() => onSave()}
+              disabled={saving || !isDirty}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 font-bold rounded-xl transition-all text-sm",
+                saving || !isDirty
+                  ? "bg-white/5 text-white/30 cursor-not-allowed"
+                  : "bg-emerald-500 text-emerald-50 hover:bg-emerald-500/90"
+              )}
+            >
+              <Save className="w-4 h-4" />
+              {saving ? "Saving…" : "Save Permissions"}
+            </button>
+          )}
+          <button
+            onClick={handleCreateRole}
+            disabled={saving}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all text-sm disabled:opacity-50"
+          >
+            <Plus className="w-4 h-4" />
+            Create Role
+          </button>
         </div>
       </div>
 
-      <div className="glass-card p-6 relative overflow-hidden">
-        <div className="absolute -top-20 -right-20 w-64 h-64 blur-3xl opacity-10 pointer-events-none bg-accent" />
-
-        <div className="flex items-center justify-between mb-6 relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-accent/10 border border-accent/20">
-              <Shield className="w-5 h-5 text-accent" />
-            </div>
-            <div>
-              <h3 className="text-lg font-black text-white uppercase tracking-tight">
-                Role-Based <span className="text-accent">Access Control</span>
-              </h3>
-              <p className="text-[11px] text-muted-foreground font-bold">
-                Permissions matrix preview
-              </p>
-            </div>
-          </div>
-          <div className="hidden md:flex items-center gap-3 text-[10px] font-black uppercase tracking-widest">
-            <LegendChip permission="read" label="Read" />
-            <LegendChip permission="write" label="Write" />
-            <LegendChip permission="admin" label="Admin" />
-          </div>
+      {errorMessage && (
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          {errorMessage}
         </div>
+      )}
 
-        <div className="overflow-x-auto relative z-10">
-          <div className="min-w-[720px]">
-            <div
-              className="grid gap-2 mb-2"
-              style={{ gridTemplateColumns: `200px repeat(${RESOURCES.length}, minmax(120px, 1fr))` }}
-            >
-              <div className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground px-3 py-2">
-                Role / Resource
-              </div>
-              {policy.resources.map((resource) => (
-                <div
-                  key={resource.resource}
-                  className="text-[10px] font-black uppercase tracking-[0.25em] text-white/60 px-3 py-2 text-center"
-                >
-                  {resource.label}
-                </div>
-              ))}
-            </div>
-
-            {policy.roles.map((role) => (
-              <div
-                key={role.role}
-                className="grid gap-2 mb-2"
-                style={{ gridTemplateColumns: `200px repeat(${policy.resources.length}, minmax(120px, 1fr))` }}
-              >
-                <div
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-5 space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+          <AnimatePresence>
+            {roles.map((role) => {
+              const isSelected = selectedRoleId === role.id;
+              return (
+                <motion.div
+                  key={role.id}
+                  layout
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  onClick={() => setSelectedRoleId(role.id)}
                   className={cn(
-                    "px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-xs font-black uppercase tracking-widest flex items-center",
-                    roleAccent[role.role] ?? "text-white/80"
+                    "rounded-2xl p-6 relative overflow-hidden cursor-pointer transition-all border",
+                    isSelected
+                      ? "bg-primary/10 border-primary/50 shadow-[0_0_30px_rgba(var(--primary),0.15)]"
+                      : "glass border-white/10 hover:border-white/20"
                   )}
                 >
-                  {role.label}
-                </div>
-                {policy.resources.map((resource) => {
-                  const permission = normalizePermission(policy.matrix[role.role]?.[resource.resource]);
-                  return (
-                    <PermissionCell
-                      key={`${role.role}-${resource.resource}`}
-                      permission={permission}
-                    />
-                  );
-                })}
-              </div>
-            ))}
-          </div>
+                  <div className={cn("absolute top-0 left-0 w-1.5 h-full",
+                    role.id === 'system_admin' ? "bg-orange-500" :
+                    role.id === 'manager' ? "bg-emerald-500" :
+                    isSelected ? "bg-primary" : "bg-blue-500"
+                  )} />
+
+                  <div className="flex flex-col gap-3 ml-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className={cn("text-lg font-black", isSelected ? "text-primary" : "text-white")}>
+                        {role.name}
+                      </h4>
+                      {!role.system && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDeleteRole(role.id); }}
+                          disabled={saving}
+                          className="p-1.5 rounded-lg text-white/40 hover:text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-30"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                      {role.description}
+                    </p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <ShieldCheck className={cn("w-4 h-4", isSelected ? "text-primary/70" : "text-white/30")} />
+                      <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider">
+                        {Object.keys(role.permissions).length} Resources Configured
+                      </span>
+                      {role.system && (
+                        <span className="text-[10px] font-bold text-orange-400/70 uppercase tracking-wider ml-1">
+                          System
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
         </div>
 
-        <p className="mt-6 pt-4 border-t border-white/5 text-[10px] font-bold text-muted-foreground/70 uppercase tracking-widest relative z-10">
-          Editing disabled until backend policy service is online.
-        </p>
+        <div className="lg:col-span-7">
+          <AnimatePresence mode="wait">
+            {selectedRole ? (
+              <motion.div
+                key={selectedRole.id}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="glass rounded-3xl p-8 border-white/10 h-full flex flex-col"
+              >
+                <div className="mb-8">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Shield className="w-5 h-5 text-accent" />
+                    <h3 className="text-2xl font-black text-white">{selectedRole.name} Matrix</h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Configure fine-grained access policies for <strong className="text-white">{selectedRole.name}</strong>.
+                    {" Audit logs are append-only — write actions on the audit row stay locked."}
+                  </p>
+                </div>
+
+                <div className="flex-1">
+                  <PermissionMatrix
+                    permissions={selectedRole.permissions}
+                    onChange={handleUpdatePermissions}
+                    lockedCells={AUDIT_LOCKED_ACTIONS}
+                  />
+                </div>
+              </motion.div>
+            ) : (
+              <motion.section
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="glass rounded-3xl p-10 border-dashed border-white/10 text-center h-full flex flex-col items-center justify-center"
+              >
+                <ShieldAlert className="w-16 h-16 text-white/10 mb-4" />
+                <h4 className="text-xl font-black text-white/50 mb-2">Select a Role</h4>
+                <p className="text-sm text-muted-foreground max-w-sm">
+                  Choose a role from the left panel to inspect or edit its permission matrix.
+                </p>
+              </motion.section>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
-function normalizePermission(permission?: string): RbacPermission {
-  if (permission === "read" || permission === "write" || permission === "admin" || permission === "none") {
-    return permission;
-  }
-  return "none";
-}
+function LegendChip({ type, label }: { type: 'read' | 'write' | 'admin'; label: string }) {
+  const icons = {
+    read: Eye,
+    write: Pencil,
+    admin: Crown
+  };
+  const styles = {
+    read: "bg-white/5 border-white/20 text-white/70",
+    write: "bg-blue-500/10 border-blue-500/30 text-blue-300",
+    admin: "bg-accent/15 border-accent/40 text-accent"
+  };
+  const Icon = icons[type];
 
-function PermissionCell({ permission }: { permission: RbacPermission }) {
-  const Icon = permissionIcon[permission];
-  const label = permission === "none" ? "—" : permission;
   return (
-    <button
-      type="button"
-      disabled
-      aria-disabled="true"
-      className={cn(
-        "px-3 py-3 rounded-xl border text-[10px] font-black uppercase tracking-widest cursor-not-allowed flex items-center justify-center gap-1.5 transition-colors hover:bg-white/[0.02]",
-        permissionStyles[permission]
-      )}
-    >
-      {Icon && <Icon className="w-3 h-3" />}
-      {label}
-    </button>
-  );
-}
-
-function LegendChip({ permission, label }: { permission: RbacPermission; label: string }) {
-  const Icon = permissionIcon[permission];
-  return (
-    <span
-      className={cn(
-        "px-2.5 py-1 rounded-lg border flex items-center gap-1.5",
-        permissionStyles[permission]
-      )}
-    >
-      {Icon && <Icon className="w-3 h-3" />}
+    <span className={cn("px-2.5 py-1 rounded-lg border flex items-center gap-1.5", styles[type])}>
+      <Icon className="w-3 h-3" />
       {label}
     </span>
   );

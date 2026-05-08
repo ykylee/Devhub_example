@@ -44,19 +44,32 @@ func (handler Handler) handleRealtimeWebSocket(c *gin.Context) {
 		return
 	}
 	eventTypes := parseRealtimeTypes(c.Query("types"))
-	if handler.cfg.RBACPolicyStore != nil && len(eventTypes) == 0 {
+	if !devFallbackEnabled(c) && len(eventTypes) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "types query is required"})
 		return
 	}
-	for _, eventType := range eventTypes {
-		resource, permission, ok := realtimeEventPermission(eventType)
-		if !ok {
-			c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "unsupported realtime event type"})
+	if !devFallbackEnabled(c) {
+		actorValue, _ := c.Get("devhub_actor_role")
+		actorRole, _ := actorValue.(string)
+		if actorRole == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"status": "unauthenticated", "error": "authenticated actor role is required"})
 			return
 		}
-		if allowed, status, body := handler.actorHasPermission(c, resource, permission); !allowed {
-			c.JSON(status, body)
-			return
+		for _, eventType := range eventTypes {
+			resource, action, ok := realtimeEventPermission(eventType)
+			if !ok {
+				c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "unsupported realtime event type"})
+				return
+			}
+			allowed, err := handler.cfg.PermissionCache.Allows(c.Request.Context(), actorRole, resource, action)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+				return
+			}
+			if !allowed {
+				c.JSON(http.StatusForbidden, gin.H{"status": "forbidden", "error": "permission denied"})
+				return
+			}
 		}
 	}
 	handler.cfg.RealtimeHub.HandleWebSocket(c, eventTypes)
@@ -197,16 +210,16 @@ func (s realtimeSubscription) allows(eventType string) bool {
 	return len(s.types) == 0 || s.types[eventType]
 }
 
-func realtimeEventPermission(eventType string) (string, domain.RBACPermission, bool) {
+func realtimeEventPermission(eventType string) (domain.Resource, domain.Action, bool) {
 	switch eventType {
 	case "command.status.updated":
-		return "commands", domain.RBACPermissionRead, true
+		return domain.ResourceInfrastructure, domain.ActionView, true
 	case "risk.critical.created", "risk.updated":
-		return "risks", domain.RBACPermissionRead, true
+		return domain.ResourceSecurity, domain.ActionView, true
 	case "ci.run.updated", "ci.log.appended":
-		return "ci_runs", domain.RBACPermissionRead, true
+		return domain.ResourcePipelines, domain.ActionView, true
 	case "infra.node.updated", "infra.edge.updated", "notification.created":
-		return "system_config", domain.RBACPermissionRead, true
+		return domain.ResourceInfrastructure, domain.ActionView, true
 	default:
 		return "", "", false
 	}

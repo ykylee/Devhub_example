@@ -1,36 +1,22 @@
 package httpapi
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
-
-	"github.com/devhub/backend-core/internal/domain"
 )
 
-func TestGetMeUsesTokenSubjectAndUserRole(t *testing.T) {
-	orgs := newMemoryOrganizationStore()
-	orgs.users["u1"] = domain.AppUser{
-		UserID:      "u1",
-		Email:       "admin@example.com",
-		DisplayName: "Admin",
-		Role:        domain.AppRoleSystemAdmin,
-		Status:      domain.UserStatusActive,
-		JoinedAt:    time.Date(2026, 5, 7, 0, 0, 0, 0, time.UTC),
-	}
+func TestGetMeReturnsAuthenticatedActor(t *testing.T) {
 	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
-		Login:   "yklee",
-		Subject: "u1",
-		Role:    "developer",
+		Login:   "alice",
+		Subject: "user-alice",
+		Role:    "manager",
 	}}
-	router := NewRouter(RouterConfig{
-		OrganizationStore:   orgs,
-		BearerTokenVerifier: verifier,
-	})
+	router := NewRouter(RouterConfig{BearerTokenVerifier: verifier})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
-	req.Header.Set("Authorization", "Bearer user-token")
+	req.Header.Set("Authorization", "Bearer t")
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 
@@ -38,63 +24,58 @@ func TestGetMeUsesTokenSubjectAndUserRole(t *testing.T) {
 		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
 	}
 
-	var resp struct {
-		Data struct {
-			User struct {
-				UserID string `json:"user_id"`
-				Role   string `json:"role"`
-			} `json:"user"`
-			Actor struct {
-				Login   string `json:"login"`
-				Subject string `json:"subject"`
-				Source  string `json:"source"`
-			} `json:"actor"`
-			AllowedRoles         []string          `json:"allowed_roles"`
-			EffectivePermissions map[string]string `json:"effective_permissions"`
-		} `json:"data"`
+	var body struct {
+		Status string     `json:"status"`
+		Data   meResponse `json:"data"`
 	}
-	decodeJSON(t, rec.Body.Bytes(), &resp)
-
-	if resp.Data.User.UserID != "u1" || resp.Data.User.Role != "system_admin" {
-		t.Fatalf("expected mapped system_admin user, got %+v", resp.Data.User)
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("unmarshal: %v", err)
 	}
-	if resp.Data.Actor.Login != "yklee" || resp.Data.Actor.Subject != "u1" || resp.Data.Actor.Source != "authenticated_context" {
-		t.Fatalf("unexpected actor: %+v", resp.Data.Actor)
+	if body.Data.Login != "alice" || body.Data.Subject != "user-alice" || body.Data.Role != "manager" {
+		t.Errorf("unexpected actor in response: %+v", body.Data)
 	}
-	if got := resp.Data.EffectivePermissions["system_config"]; got != "admin" {
-		t.Fatalf("expected system_config admin, got %q", got)
-	}
-	if len(resp.Data.AllowedRoles) != 3 || resp.Data.AllowedRoles[2] != "system_admin" {
-		t.Fatalf("unexpected allowed roles: %+v", resp.Data.AllowedRoles)
+	if body.Data.Source != "authenticated_context" {
+		t.Errorf("expected source=authenticated_context, got %q", body.Data.Source)
 	}
 }
 
-func TestGetMeRejectsInactiveUser(t *testing.T) {
-	orgs := newMemoryOrganizationStore()
-	orgs.users["u2"] = domain.AppUser{
-		UserID: "u2",
-		Role:   domain.AppRoleManager,
-		Status: domain.UserStatusDeactivated,
-	}
-	router := NewRouter(RouterConfig{OrganizationStore: orgs})
+func TestGetMeReturns401WithoutAuthentication(t *testing.T) {
+	router := NewRouter(RouterConfig{})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
-	req.Header.Set("X-Devhub-Actor", "u2")
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusForbidden {
-		t.Fatalf("expected 403, got %d body=%s", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d body=%s", rec.Code, rec.Body.String())
 	}
 }
 
-func TestGetMeRequiresActor(t *testing.T) {
-	router := NewRouter(RouterConfig{OrganizationStore: newMemoryOrganizationStore()})
+func TestGetMeReturns401WhenDevFallbackButNoActor(t *testing.T) {
+	router := testRouter(RouterConfig{})
 
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
 	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/me", nil))
+	router.ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusUnauthorized {
-		t.Fatalf("expected 401, got %d body=%s", rec.Code, rec.Body.String())
+		t.Fatalf("expected 401 (no X-Devhub-Actor, dev fallback resolves to system), got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestGetMeIgnoresXDevhubActorHeader(t *testing.T) {
+	// SEC-4 close: /api/v1/me must never derive its actor from X-Devhub-Actor, regardless of dev fallback. The header is supplied here intentionally and the response must still be 401 because requestActor falls back to "system" without an authenticated context.
+	router := testRouter(RouterConfig{})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
+	req.Header.Set("X-Devhub-Actor", "dev-user")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 (X-Devhub-Actor must be ignored), got %d body=%s", rec.Code, rec.Body.String())
+	}
+	if got := rec.Header().Get("X-Devhub-Actor-Deprecated"); got != "" {
+		t.Fatalf("X-Devhub-Actor-Deprecated must not be set, got %q", got)
 	}
 }

@@ -75,7 +75,7 @@ func TestListAuditLogsFiltersByTarget(t *testing.T) {
 		TargetType: "org_unit",
 		TargetID:   "team-a",
 	})
-	router := NewRouter(RouterConfig{AuditStore: audits})
+	router := testRouter(RouterConfig{AuditStore: audits})
 
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/audit-logs?target_type=user", nil))
@@ -101,23 +101,10 @@ func TestListAuditLogsFiltersByTarget(t *testing.T) {
 	}
 }
 
-func TestListAuditLogsRequiresSystemConfigRead(t *testing.T) {
-	audits := &memoryAuditStore{}
-	router := NewRouter(RouterConfig{AuditStore: audits, RBACPolicyStore: &memoryRBACPolicyStore{}})
-
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/audit-logs", nil)
-	req.Header.Set("X-Devhub-Role", "manager")
-	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, req)
-	if rec.Code != http.StatusForbidden {
-		t.Fatalf("expected 403, got %d body=%s", rec.Code, rec.Body.String())
-	}
-}
-
-func TestCreateUserWritesAuditLogWithActorWarning(t *testing.T) {
+func TestCreateUserWritesAuditLogWithSystemFallback(t *testing.T) {
 	orgs := newMemoryOrganizationStore()
 	audits := &memoryAuditStore{}
-	router := NewRouter(RouterConfig{OrganizationStore: orgs, AuditStore: audits})
+	router := testRouter(RouterConfig{OrganizationStore: orgs, AuditStore: audits})
 
 	body := []byte(`{
 		"user_id": "u-audit",
@@ -127,23 +114,27 @@ func TestCreateUserWritesAuditLogWithActorWarning(t *testing.T) {
 		"status": "active"
 	}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/users", bytes.NewReader(body))
+	// X-Devhub-Actor is intentionally still sent; SEC-4 removal must ignore it and the response must not include any deprecation header.
 	req.Header.Set("X-Devhub-Actor", "admin")
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("expected 201, got %d body=%s", rec.Code, rec.Body.String())
 	}
-	if rec.Header().Get("X-Devhub-Actor-Deprecated") != "true" {
-		t.Fatalf("expected X-Devhub-Actor deprecation header")
+	if got := rec.Header().Get("X-Devhub-Actor-Deprecated"); got != "" {
+		t.Fatalf("X-Devhub-Actor-Deprecated header must not be set after SEC-4 removal, got %q", got)
+	}
+	if got := rec.Header().Get("Warning"); got != "" {
+		t.Fatalf("Warning header must not be set after SEC-4 removal, got %q", got)
 	}
 	if len(audits.logs) != 1 {
 		t.Fatalf("expected one audit log, got %d", len(audits.logs))
 	}
 	log := audits.logs[0]
-	if log.ActorLogin != "admin" || log.Action != "user.created" || log.TargetType != "user" || log.TargetID != "u-audit" {
+	if log.ActorLogin != "system" || log.Action != "user.created" || log.TargetType != "user" || log.TargetID != "u-audit" {
 		t.Fatalf("unexpected audit log: %+v", log)
 	}
-	if log.Payload["actor_source"] != "x-devhub-actor" {
-		t.Fatalf("expected actor_source payload, got %+v", log.Payload)
+	if log.Payload["actor_source"] != "system_fallback" {
+		t.Fatalf("expected actor_source=system_fallback payload, got %+v", log.Payload)
 	}
 }

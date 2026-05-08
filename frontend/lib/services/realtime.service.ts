@@ -8,7 +8,7 @@ const DEVHUB_ROLE = process.env.NEXT_PUBLIC_DEVHUB_ROLE || 'manager';
 export class RealtimeService {
   private static instance: RealtimeService;
   private socket: WebSocket | null = null;
-  private handlers: Map<string, Set<WSEventHandler>> = new Map();
+  private handlers: Map<string, Set<WSEventHandler<unknown>>> = new Map();
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectInterval = 3000;
@@ -112,7 +112,7 @@ export class RealtimeService {
     if (!this.handlers.has(type)) {
       this.handlers.set(type, new Set());
     }
-    this.handlers.get(type)!.add(handler);
+    this.handlers.get(type)!.add(handler as WSEventHandler<unknown>);
 
     return () => this.unsubscribe(type, handler);
   }
@@ -120,7 +120,7 @@ export class RealtimeService {
   public unsubscribe<T = unknown>(type: string, handler: WSEventHandler<T>) {
     const eventHandlers = this.handlers.get(type);
     if (eventHandlers) {
-      eventHandlers.delete(handler);
+      eventHandlers.delete(handler as WSEventHandler<unknown>);
       if (eventHandlers.size === 0) {
         this.handlers.delete(type);
       }

@@ -35,7 +35,11 @@ migrate-version:
 	migrate -path $(MIGRATIONS_DIR) -database "$(MIGRATE_DB_URL)" version
 
 build:
-	docker-compose build
+	@echo "Build is environment-specific. See docs/setup/environment-setup.md."
+	@echo "  Native:  (cd backend-core && go build ./...) && (cd frontend && npm run build)"
+	@echo "  Docker:  docker-compose build  (requires local, untracked docker-compose.yml)"
 
 run:
-	docker-compose up
+	@echo "Run is environment-specific. See docs/setup/environment-setup.md."
+	@echo "  Native:  see section 2 of the guide (go run ./backend-core, python backend-ai/main.py, npm run dev)"
+	@echo "  Docker:  docker-compose up      (requires local, untracked docker-compose.yml)"

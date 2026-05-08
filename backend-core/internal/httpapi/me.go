@@ -1,101 +1,49 @@
 package httpapi
 
 import (
-	"errors"
 	"net/http"
 
-	"github.com/devhub/backend-core/internal/domain"
-	"github.com/devhub/backend-core/internal/store"
 	"github.com/gin-gonic/gin"
 )
 
-type meActorResponse struct {
+type meResponse struct {
 	Login   string `json:"login"`
 	Subject string `json:"subject,omitempty"`
-	Source  string `json:"source"`
+	Role    string `json:"role,omitempty"`
+	Source  string `json:"actor_source"`
 }
 
-type meResponse struct {
-	User                 appUserResponse   `json:"user"`
-	Actor                meActorResponse   `json:"actor"`
-	AllowedRoles         []string          `json:"allowed_roles"`
-	EffectivePermissions map[string]string `json:"effective_permissions"`
-}
-
+// getMe returns the authenticated actor for the current request. Frontend uses this to derive the active role after a successful Kratos+Hydra login. Returns 401 when the request did not produce an authenticated actor (no Authorization header in production, or the dev fallback is active and no X-Devhub-Actor was supplied).
 func (h Handler) getMe(c *gin.Context) {
-	if h.cfg.OrganizationStore == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"status": "unavailable",
-			"error":  "organization store is not configured",
-		})
-		return
-	}
-
-	identity, ok := authenticatedActorIdentity(c)
-	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{
+	actor := requestActor(c)
+	if actor.Login == "" || actor.Login == "system" {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 			"status": "unauthenticated",
-			"error":  "authenticated actor is required",
+			"error":  "no authenticated user in request context",
 		})
 		return
 	}
 
-	user, err := h.cfg.OrganizationStore.GetUser(c.Request.Context(), identity.LookupID)
-	if err != nil {
-		if errors.Is(err, store.ErrNotFound) {
-			c.JSON(http.StatusForbidden, gin.H{"status": "forbidden", "error": "actor is not mapped to an active DevHub user"})
-			return
+	subject := ""
+	if v, ok := c.Get("devhub_actor_subject"); ok {
+		if s, ok := v.(string); ok {
+			subject = s
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
-		return
 	}
-	if user.Status != domain.UserStatusActive {
-		c.JSON(http.StatusForbidden, gin.H{"status": "forbidden", "error": "actor user is not active"})
-		return
-	}
-
-	policy := domain.DefaultRBACPolicy()
-	if h.cfg.RBACPolicyStore != nil {
-		stored, err := h.cfg.RBACPolicyStore.GetActiveRBACPolicy(c.Request.Context())
-		if err != nil && !errors.Is(err, store.ErrNotFound) {
-			c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
-			return
-		}
-		if err == nil {
-			policy = stored
+	role := ""
+	if v, ok := c.Get("devhub_actor_role"); ok {
+		if s, ok := v.(string); ok {
+			role = s
 		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"status": "ok",
 		"data": meResponse{
-			User: appUserFromDomain(user),
-			Actor: meActorResponse{
-				Login:   identity.Login,
-				Subject: identity.Subject,
-				Source:  identity.Source,
-			},
-			AllowedRoles:         allowedRolesFor(user.Role),
-			EffectivePermissions: effectivePermissionsFor(policy, user.Role),
+			Login:   actor.Login,
+			Subject: subject,
+			Role:    role,
+			Source:  actor.Source,
 		},
 	})
-}
-
-func effectivePermissionsFor(policy domain.RBACPolicy, role domain.AppRole) map[string]string {
-	out := map[string]string{}
-	for resource, permission := range policy.Matrix[string(role)] {
-		out[resource] = string(permission)
-	}
-	return out
-}
-
-func allowedRolesFor(role domain.AppRole) []string {
-	switch role {
-	case domain.AppRoleSystemAdmin:
-		return []string{string(domain.AppRoleDeveloper), string(domain.AppRoleManager), string(domain.AppRoleSystemAdmin)}
-	case domain.AppRoleManager:
-		return []string{string(domain.AppRoleDeveloper), string(domain.AppRoleManager)}
-	default:
-		return []string{string(domain.AppRoleDeveloper)}
-	}
 }

@@ -82,7 +82,7 @@ func (s *memoryDomainStore) ListRisks(_ context.Context, opts domain.ListOptions
 func TestRepositoriesReturnsDBBackedEnvelope(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	now := time.Date(2026, 5, 3, 10, 0, 0, 0, time.UTC)
-	router := NewRouter(RouterConfig{DomainStore: &memoryDomainStore{
+	router := testRouter(RouterConfig{DomainStore: &memoryDomainStore{
 		repositories: []domain.Repository{
 			{ID: 1, GiteaID: 42, FullName: "acme/api", OwnerLogin: "acme", Name: "api", DefaultBranch: "main", UpdatedAt: now},
 		},
@@ -120,7 +120,7 @@ func TestRepositoriesReturnsDBBackedEnvelope(t *testing.T) {
 func TestIssuesSupportsStateAndRepositoryFilter(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	now := time.Date(2026, 5, 3, 10, 0, 0, 0, time.UTC)
-	router := NewRouter(RouterConfig{DomainStore: &memoryDomainStore{
+	router := testRouter(RouterConfig{DomainStore: &memoryDomainStore{
 		issues: []domain.Issue{
 			{ID: 1, RepositoryName: "acme/api", Number: 17, Title: "Open issue", State: "open", UpdatedAt: now},
 			{ID: 2, RepositoryName: "acme/web", Number: 18, Title: "Closed issue", State: "closed", UpdatedAt: now},
@@ -159,7 +159,7 @@ func TestIssuesSupportsStateAndRepositoryFilter(t *testing.T) {
 func TestPullRequestsReturnsBranchFields(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	now := time.Date(2026, 5, 3, 10, 0, 0, 0, time.UTC)
-	router := NewRouter(RouterConfig{DomainStore: &memoryDomainStore{
+	router := testRouter(RouterConfig{DomainStore: &memoryDomainStore{
 		pullRequests: []domain.PullRequest{
 			{ID: 1, RepositoryName: "acme/api", Number: 23, Title: "PR", State: "open", HeadBranch: "feature/api", BaseBranch: "main", HeadSHA: "abc1234", UpdatedAt: now},
 		},
@@ -194,7 +194,7 @@ func TestCIRunsUsesDBWhenAvailable(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	startedAt := time.Date(2026, 5, 3, 10, 0, 0, 0, time.UTC)
 	duration := 87
-	router := NewRouter(RouterConfig{DomainStore: &memoryDomainStore{
+	router := testRouter(RouterConfig{DomainStore: &memoryDomainStore{
 		ciRuns: []domain.CIRun{
 			{ID: 1, ExternalID: "run-501", RepositoryName: "acme/api", Branch: "main", CommitSHA: "abc1234", Status: "success", StartedAt: &startedAt, DurationSeconds: &duration},
 		},
@@ -227,7 +227,7 @@ func TestCIRunsUsesDBWhenAvailable(t *testing.T) {
 func TestRisksReturnsDBBackedEnvelope(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	now := time.Date(2026, 5, 3, 10, 0, 0, 0, time.UTC)
-	router := NewRouter(RouterConfig{DomainStore: &memoryDomainStore{
+	router := testRouter(RouterConfig{DomainStore: &memoryDomainStore{
 		risks: []domain.Risk{
 			{
 				RiskKey:          "ci_failure:502",

@@ -3,298 +3,431 @@ package httpapi
 import (
 	"bytes"
 	"context"
+	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"sort"
 	"testing"
+	"time"
 
 	"github.com/devhub/backend-core/internal/domain"
+	"github.com/devhub/backend-core/internal/store"
 )
 
-type memoryRBACPolicyStore struct {
-	policy domain.RBACPolicy
-	input  domain.ReplaceRBACPolicyInput
+// fakeRBACStore is an in-memory RBACStore for handler tests. It mimics the
+// invariants of the real postgres store closely enough for endpoint behavior
+// verification (audit invariant, system role immutability, role-in-use, FK).
+type fakeRBACStore struct {
+	roles    map[string]domain.RBACRole
+	subjects map[string]string
+	listErr  error
 }
 
-func (s *memoryRBACPolicyStore) GetActiveRBACPolicy(_ context.Context) (domain.RBACPolicy, error) {
-	if s.policy.PolicyVersion == "" {
-		return domain.DefaultRBACPolicy(), nil
+func newFakeRBACStore() *fakeRBACStore {
+	roles := make(map[string]domain.RBACRole, 3)
+	for _, role := range domain.SystemRoles() {
+		role.CreatedAt = time.Now().UTC()
+		role.UpdatedAt = role.CreatedAt
+		roles[role.ID] = role
 	}
-	return s.policy, nil
+	return &fakeRBACStore{roles: roles, subjects: map[string]string{}}
 }
 
-func (s *memoryRBACPolicyStore) ReplaceRBACPolicy(_ context.Context, input domain.ReplaceRBACPolicyInput) (domain.RBACPolicy, error) {
-	s.input = input
-	policy := input.Policy
-	if policy.PolicyVersion == "" {
-		policy.PolicyVersion = "rbac_test"
+func (f *fakeRBACStore) ListRBACRoles(ctx context.Context) ([]domain.RBACRole, error) {
+	if f.listErr != nil {
+		return nil, f.listErr
 	}
-	policy.Source = "memory"
-	policy.Editable = true
-	s.policy = policy
-	return policy, nil
+	out := make([]domain.RBACRole, 0, len(f.roles))
+	for _, role := range f.roles {
+		out = append(out, role)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].System != out[j].System {
+			return out[i].System
+		}
+		rank := func(id string) int {
+			switch id {
+			case "developer":
+				return 0
+			case "manager":
+				return 1
+			case "system_admin":
+				return 2
+			default:
+				return 3
+			}
+		}
+		if out[i].System {
+			return rank(out[i].ID) < rank(out[j].ID)
+		}
+		return out[i].ID < out[j].ID
+	})
+	return out, nil
 }
 
-func TestGetRBACPolicyReturnsDefaultMatrix(t *testing.T) {
-	router := NewRouter(RouterConfig{})
+func (f *fakeRBACStore) GetRBACRole(ctx context.Context, roleID string) (domain.RBACRole, error) {
+	role, ok := f.roles[roleID]
+	if !ok {
+		return domain.RBACRole{}, store.ErrNotFound
+	}
+	return role, nil
+}
 
+func (f *fakeRBACStore) CreateRBACRole(ctx context.Context, role domain.RBACRole) (domain.RBACRole, error) {
+	if domain.IsSystemRole(role.ID) {
+		return domain.RBACRole{}, store.ErrConflict
+	}
+	if _, exists := f.roles[role.ID]; exists {
+		return domain.RBACRole{}, store.ErrConflict
+	}
+	role.System = false
+	role.Permissions = domain.EnforceAuditInvariant(role.Permissions)
+	role.CreatedAt = time.Now().UTC()
+	role.UpdatedAt = role.CreatedAt
+	f.roles[role.ID] = role
+	return role, nil
+}
+
+func (f *fakeRBACStore) UpdateRBACRolePermissions(ctx context.Context, roleID string, perms domain.PermissionMatrix) (domain.RBACRole, error) {
+	role, ok := f.roles[roleID]
+	if !ok {
+		return domain.RBACRole{}, store.ErrNotFound
+	}
+	role.Permissions = domain.EnforceAuditInvariant(perms)
+	role.UpdatedAt = time.Now().UTC()
+	f.roles[roleID] = role
+	return role, nil
+}
+
+func (f *fakeRBACStore) UpdateRBACRoleMetadata(ctx context.Context, roleID, name, description string) (domain.RBACRole, error) {
+	role, ok := f.roles[roleID]
+	if !ok {
+		return domain.RBACRole{}, store.ErrNotFound
+	}
+	if role.System {
+		return domain.RBACRole{}, store.ErrSystemRoleImmutable
+	}
+	role.Name = name
+	role.Description = description
+	role.UpdatedAt = time.Now().UTC()
+	f.roles[roleID] = role
+	return role, nil
+}
+
+func (f *fakeRBACStore) DeleteRBACRole(ctx context.Context, roleID string) error {
+	role, ok := f.roles[roleID]
+	if !ok {
+		return store.ErrNotFound
+	}
+	if role.System {
+		return store.ErrSystemRoleImmutable
+	}
+	for _, assigned := range f.subjects {
+		if assigned == roleID {
+			return store.ErrRoleInUse
+		}
+	}
+	delete(f.roles, roleID)
+	return nil
+}
+
+func (f *fakeRBACStore) GetSubjectRoles(ctx context.Context, userID string) ([]string, error) {
+	role, ok := f.subjects[userID]
+	if !ok {
+		return nil, store.ErrNotFound
+	}
+	return []string{role}, nil
+}
+
+func (f *fakeRBACStore) SetSubjectRole(ctx context.Context, userID, roleID string) error {
+	if _, ok := f.roles[roleID]; !ok {
+		return store.ErrNotFound
+	}
+	if _, ok := f.subjects[userID]; !ok {
+		return store.ErrNotFound
+	}
+	f.subjects[userID] = roleID
+	return nil
+}
+
+func TestGetRBACPolicyLegacy_Returns410Gone(t *testing.T) {
+	router := testRouter(RouterConfig{RBACStore: newFakeRBACStore()})
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/rbac/policy", nil))
-
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusGone {
+		t.Fatalf("legacy endpoint code = %d, want 410 Gone", rec.Code)
 	}
-
 	var resp struct {
 		Status string `json:"status"`
-		Data   struct {
-			Roles []struct {
-				Role  string `json:"role"`
-				Label string `json:"label"`
-			} `json:"roles"`
-			Resources []struct {
-				Resource string `json:"resource"`
-				Label    string `json:"label"`
-			} `json:"resources"`
-			Permissions []struct {
-				Permission string `json:"permission"`
-				Rank       int    `json:"rank"`
-			} `json:"permissions"`
-			Matrix map[string]map[string]string `json:"matrix"`
-		} `json:"data"`
-		Meta struct {
-			PolicyVersion string `json:"policy_version"`
-			Source        string `json:"source"`
-			Editable      bool   `json:"editable"`
+		Meta   struct {
+			Replacement string `json:"replacement"`
 		} `json:"meta"`
 	}
 	decodeJSON(t, rec.Body.Bytes(), &resp)
-
-	if resp.Status != "ok" {
-		t.Fatalf("expected ok status, got %q", resp.Status)
+	if resp.Status != "gone" {
+		t.Errorf("status = %q, want \"gone\"", resp.Status)
 	}
-	if len(resp.Data.Roles) != 3 || len(resp.Data.Resources) != 6 || len(resp.Data.Permissions) != 4 {
-		t.Fatalf("unexpected policy dimensions: roles=%d resources=%d permissions=%d", len(resp.Data.Roles), len(resp.Data.Resources), len(resp.Data.Permissions))
-	}
-	if got := resp.Data.Matrix["developer"]["commands"]; got != "none" {
-		t.Fatalf("expected developer commands permission none, got %q", got)
-	}
-	if got := resp.Data.Matrix["manager"]["risks"]; got != "write" {
-		t.Fatalf("expected manager risks permission write, got %q", got)
-	}
-	if got := resp.Data.Matrix["system_admin"]["system_config"]; got != "admin" {
-		t.Fatalf("expected system_admin system_config permission admin, got %q", got)
-	}
-	if resp.Meta.PolicyVersion == "" || resp.Meta.Source != "static_default_policy" || resp.Meta.Editable {
-		t.Fatalf("unexpected meta: %+v", resp.Meta)
+	if resp.Meta.Replacement != "/api/v1/rbac/policies" {
+		t.Errorf("replacement pointer missing: meta=%+v", resp.Meta)
 	}
 }
 
-func TestGetRBACPolicyUsesConfiguredStore(t *testing.T) {
-	policy := domain.DefaultRBACPolicy()
-	policy.PolicyVersion = "stored"
-	policy.Source = "memory"
-	policy.Editable = true
-	policy.Matrix["developer"]["commands"] = domain.RBACPermissionRead
-	router := NewRouter(RouterConfig{RBACPolicyStore: &memoryRBACPolicyStore{policy: policy}})
-
+func TestListRBACPolicies_SystemRolesFirstWithDefaults(t *testing.T) {
+	router := testRouter(RouterConfig{RBACStore: newFakeRBACStore()})
 	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/rbac/policy", nil))
-
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/rbac/policies", nil))
 	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+		t.Fatalf("code = %d body=%s", rec.Code, rec.Body.String())
 	}
 	var resp struct {
-		Data struct {
-			Matrix map[string]map[string]string `json:"matrix"`
-		} `json:"data"`
-		Meta struct {
-			PolicyVersion string `json:"policy_version"`
-			Source        string `json:"source"`
-			Editable      bool   `json:"editable"`
+		Status string         `json:"status"`
+		Data   []rbacRoleWire `json:"data"`
+		Meta   struct {
+			PolicyVersion string   `json:"policy_version"`
+			Editable      bool     `json:"editable"`
+			SystemRoles   []string `json:"system_roles"`
 		} `json:"meta"`
 	}
 	decodeJSON(t, rec.Body.Bytes(), &resp)
-	if resp.Meta.PolicyVersion != "stored" || resp.Meta.Source != "memory" || !resp.Meta.Editable {
-		t.Fatalf("unexpected meta: %+v", resp.Meta)
+	if len(resp.Data) != 3 {
+		t.Fatalf("got %d roles, want 3", len(resp.Data))
 	}
-	if got := resp.Data.Matrix["developer"]["commands"]; got != "read" {
-		t.Fatalf("expected stored policy matrix, got %q", got)
+	wantOrder := []string{"developer", "manager", "system_admin"}
+	for i, want := range wantOrder {
+		if resp.Data[i].ID != want {
+			t.Errorf("data[%d].id = %q, want %q", i, resp.Data[i].ID, want)
+		}
+		if !resp.Data[i].System {
+			t.Errorf("data[%d].system = false, want true", i)
+		}
+	}
+	dev := resp.Data[0]
+	if !dev.Permissions[domain.ResourceSecurity].View {
+		t.Error("developer security view should be true")
+	}
+	if dev.Permissions[domain.ResourceAudit].View {
+		t.Error("developer audit view should be false")
+	}
+	mgr := resp.Data[1]
+	if !mgr.Permissions[domain.ResourceSecurity].Create {
+		t.Error("manager security create should be true (matches POST /risks/:id/mitigations)")
+	}
+	sysadmin := resp.Data[2]
+	if sysadmin.Permissions[domain.ResourceAudit].Create || sysadmin.Permissions[domain.ResourceAudit].Edit || sysadmin.Permissions[domain.ResourceAudit].Delete {
+		t.Errorf("system_admin audit invariant violated: %+v", sysadmin.Permissions[domain.ResourceAudit])
+	}
+	if !resp.Meta.Editable || resp.Meta.PolicyVersion == "" || len(resp.Meta.SystemRoles) != 3 {
+		t.Errorf("meta = %+v", resp.Meta)
 	}
 }
 
-func TestReplaceRBACPolicyPersistsAndAudits(t *testing.T) {
-	rbacStore := &memoryRBACPolicyStore{}
-	audits := &memoryAuditStore{}
-	router := NewRouter(RouterConfig{RBACPolicyStore: rbacStore, AuditStore: audits})
-
-	body := []byte(`{
-		"policy_version": "rbac-2026-05-07-test",
-		"reason": "Allow developers to create draft commands",
-		"matrix": {
-			"developer": {
-				"repositories": "read",
-				"ci_runs": "read",
-				"risks": "read",
-				"commands": "read",
-				"organization": "none",
-				"system_config": "none"
-			},
-			"manager": {
-				"repositories": "write",
-				"ci_runs": "read",
-				"risks": "write",
-				"commands": "write",
-				"organization": "read",
-				"system_config": "none"
-			},
-			"system_admin": {
-				"repositories": "admin",
-				"ci_runs": "admin",
-				"risks": "admin",
-				"commands": "admin",
-				"organization": "admin",
-				"system_config": "admin"
-			}
-		}
-	}`)
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/rbac/policy", bytes.NewReader(body))
-	req.Header.Set("X-Devhub-Actor", "admin")
-	req.Header.Set("X-Devhub-Role", "system_admin")
+func TestListRBACPolicies_StoreUnavailable(t *testing.T) {
+	router := testRouter(RouterConfig{}) // no RBACStore
 	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
-	}
-	if rbacStore.input.ActorLogin != "admin" || rbacStore.input.Reason != "Allow developers to create draft commands" {
-		t.Fatalf("unexpected replace input: %+v", rbacStore.input)
-	}
-	if got := rbacStore.policy.Matrix["developer"]["commands"]; got != domain.RBACPermissionRead {
-		t.Fatalf("expected updated developer commands permission, got %q", got)
-	}
-	if len(audits.logs) != 1 {
-		t.Fatalf("expected one audit log, got %d", len(audits.logs))
-	}
-	log := audits.logs[0]
-	if log.Action != "rbac.policy_replaced" || log.TargetType != "rbac_policy" || log.TargetID != "rbac-2026-05-07-test" {
-		t.Fatalf("unexpected audit log: %+v", log)
-	}
-	if rec.Header().Get("X-Devhub-Role-Deprecated") != "true" {
-		t.Fatalf("expected X-Devhub-Role deprecation header")
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/rbac/policies", nil))
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Errorf("code = %d, want 503", rec.Code)
 	}
 }
 
-func TestReplaceRBACPolicyRejectsMissingMatrixResource(t *testing.T) {
-	router := NewRouter(RouterConfig{RBACPolicyStore: &memoryRBACPolicyStore{}})
-	body := []byte(`{
-		"reason": "bad policy",
-		"matrix": {
-			"developer": {},
-			"manager": {},
-			"system_admin": {}
-		}
-	}`)
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/rbac/policy", bytes.NewReader(body))
-	req.Header.Set("X-Devhub-Role", "system_admin")
+func TestCreateRBACPolicy_Custom(t *testing.T) {
+	store := newFakeRBACStore()
+	router := testRouter(RouterConfig{RBACStore: store})
+	body := bytes.NewBufferString(`{
+        "id": "custom-test",
+        "name": "Test Role",
+        "description": "PR-G4 test",
+        "permissions": {"infrastructure": {"view": true}}
+    }`)
 	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, req)
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/api/v1/rbac/policies", body))
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("code = %d body=%s", rec.Code, rec.Body.String())
+	}
+	if _, ok := store.roles["custom-test"]; !ok {
+		t.Errorf("role not stored")
+	}
+}
+
+func TestCreateRBACPolicy_RejectsSystemID(t *testing.T) {
+	router := testRouter(RouterConfig{RBACStore: newFakeRBACStore()})
+	body := bytes.NewBufferString(`{"id": "developer", "name": "Hijack"}`)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/api/v1/rbac/policies", body))
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Errorf("code = %d, want 422", rec.Code)
+	}
+}
+
+func TestCreateRBACPolicy_InvalidIDFormat(t *testing.T) {
+	router := testRouter(RouterConfig{RBACStore: newFakeRBACStore()})
+	body := bytes.NewBufferString(`{"id": "random-no-prefix", "name": "x"}`)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/api/v1/rbac/policies", body))
 	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d body=%s", rec.Code, rec.Body.String())
+		t.Errorf("code = %d, want 400", rec.Code)
 	}
 }
 
-func TestReplaceRBACPolicyRequiresActorRole(t *testing.T) {
-	router := NewRouter(RouterConfig{RBACPolicyStore: &memoryRBACPolicyStore{}})
-
+func TestUpdateRBACPolicies_PermissionUpdate(t *testing.T) {
+	store := newFakeRBACStore()
+	router := testRouter(RouterConfig{RBACStore: store})
+	body := bytes.NewBufferString(`{
+        "roles": [{
+            "id": "manager",
+            "permissions": {
+                "infrastructure": {"view": true, "create": true},
+                "pipelines":      {"view": true},
+                "organization":   {"view": true},
+                "security":       {"view": true, "create": true},
+                "audit":          {"view": true}
+            }
+        }]
+    }`)
 	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, httptest.NewRequest(http.MethodPut, "/api/v1/rbac/policy", bytes.NewReader([]byte(`{}`))))
-	if rec.Code != http.StatusUnauthorized {
-		t.Fatalf("expected 401, got %d body=%s", rec.Code, rec.Body.String())
-	}
-}
-
-func TestReplaceRBACPolicyRejectsInsufficientPermission(t *testing.T) {
-	router := NewRouter(RouterConfig{RBACPolicyStore: &memoryRBACPolicyStore{}})
-
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/rbac/policy", bytes.NewReader([]byte(`{}`)))
-	req.Header.Set("X-Devhub-Role", "manager")
-	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, req)
-	if rec.Code != http.StatusForbidden {
-		t.Fatalf("expected 403, got %d body=%s", rec.Code, rec.Body.String())
-	}
-}
-
-func TestReplaceRBACPolicyUsesMappedUserRoleBeforeHeaderRole(t *testing.T) {
-	orgs := newMemoryOrganizationStore()
-	orgs.users["u-admin"] = domain.AppUser{
-		UserID: "u-admin",
-		Role:   domain.AppRoleSystemAdmin,
-		Status: domain.UserStatusActive,
-	}
-	rbacStore := &memoryRBACPolicyStore{}
-	router := NewRouter(RouterConfig{
-		OrganizationStore: orgs,
-		RBACPolicyStore:   rbacStore,
-	})
-
-	body := []byte(`{
-		"reason": "mapped role wins",
-		"matrix": {
-			"developer": {
-				"repositories": "read",
-				"ci_runs": "read",
-				"risks": "read",
-				"commands": "none",
-				"organization": "none",
-				"system_config": "none"
-			},
-			"manager": {
-				"repositories": "write",
-				"ci_runs": "read",
-				"risks": "write",
-				"commands": "write",
-				"organization": "read",
-				"system_config": "none"
-			},
-			"system_admin": {
-				"repositories": "admin",
-				"ci_runs": "admin",
-				"risks": "admin",
-				"commands": "admin",
-				"organization": "admin",
-				"system_config": "admin"
-			}
-		}
-	}`)
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/rbac/policy", bytes.NewReader(body))
-	req.Header.Set("X-Devhub-Actor", "u-admin")
-	req.Header.Set("X-Devhub-Role", "manager")
-	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, req)
-
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodPut, "/api/v1/rbac/policies", body))
 	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200 because users.role is system_admin, got %d body=%s", rec.Code, rec.Body.String())
+		t.Fatalf("code = %d body=%s", rec.Code, rec.Body.String())
 	}
-	if rbacStore.input.ActorLogin != "u-admin" {
-		t.Fatalf("expected actor u-admin, got %+v", rbacStore.input)
+	mgr := store.roles["manager"]
+	if !mgr.Permissions[domain.ResourceInfrastructure].Create {
+		t.Errorf("manager infra create not applied: %+v", mgr.Permissions[domain.ResourceInfrastructure])
 	}
 }
 
-func TestReplaceRBACPolicyRejectsUnmappedAuthenticatedActorBeforeHeaderRole(t *testing.T) {
-	orgs := newMemoryOrganizationStore()
-	router := NewRouter(RouterConfig{
-		OrganizationStore: orgs,
-		RBACPolicyStore:   &memoryRBACPolicyStore{},
-	})
-
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/rbac/policy", bytes.NewReader([]byte(`{}`)))
-	req.Header.Set("X-Devhub-Actor", "missing-user")
-	req.Header.Set("X-Devhub-Role", "system_admin")
+func TestUpdateRBACPolicies_RejectsSystemRoleMetadataChange(t *testing.T) {
+	router := testRouter(RouterConfig{RBACStore: newFakeRBACStore()})
+	body := bytes.NewBufferString(`{
+        "roles": [{ "id": "developer", "name": "Hacked" }]
+    }`)
 	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, req)
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodPut, "/api/v1/rbac/policies", body))
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Errorf("code = %d, want 422", rec.Code)
+	}
+}
 
-	if rec.Code != http.StatusUnauthorized {
-		t.Fatalf("expected 401 because authenticated actor is not mapped, got %d body=%s", rec.Code, rec.Body.String())
+func TestDeleteRBACPolicy_SystemRoleNotDeletable(t *testing.T) {
+	router := testRouter(RouterConfig{RBACStore: newFakeRBACStore()})
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodDelete, "/api/v1/rbac/policies/manager", nil))
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Errorf("code = %d, want 422", rec.Code)
+	}
+	var resp struct {
+		Code string `json:"code"`
+	}
+	decodeJSON(t, rec.Body.Bytes(), &resp)
+	if resp.Code != "system_role_not_deletable" {
+		t.Errorf("code = %q, want system_role_not_deletable", resp.Code)
+	}
+}
+
+func TestDeleteRBACPolicy_RoleInUse(t *testing.T) {
+	store := newFakeRBACStore()
+	store.roles["custom-x"] = domain.RBACRole{ID: "custom-x", Name: "X"}
+	store.subjects["u1"] = "custom-x"
+	router := testRouter(RouterConfig{RBACStore: store})
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodDelete, "/api/v1/rbac/policies/custom-x", nil))
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Errorf("code = %d, want 422", rec.Code)
+	}
+	var resp struct {
+		Code string `json:"code"`
+	}
+	decodeJSON(t, rec.Body.Bytes(), &resp)
+	if resp.Code != "role_in_use" {
+		t.Errorf("code = %q, want role_in_use", resp.Code)
+	}
+}
+
+func TestDeleteRBACPolicy_CustomRole(t *testing.T) {
+	store := newFakeRBACStore()
+	store.roles["custom-x"] = domain.RBACRole{ID: "custom-x", Name: "X"}
+	router := testRouter(RouterConfig{RBACStore: store})
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodDelete, "/api/v1/rbac/policies/custom-x", nil))
+	if rec.Code != http.StatusOK {
+		t.Errorf("code = %d body=%s", rec.Code, rec.Body.String())
+	}
+	if _, exists := store.roles["custom-x"]; exists {
+		t.Errorf("role still present after delete")
+	}
+}
+
+func TestSubjectRoles_GetAndPut(t *testing.T) {
+	rbacStore := newFakeRBACStore()
+	rbacStore.subjects["u1"] = "developer"
+	router := testRouter(RouterConfig{RBACStore: rbacStore})
+
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/rbac/subjects/u1/roles", nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("get code = %d", rec.Code)
+	}
+	var getResp struct {
+		Data []string `json:"data"`
+	}
+	decodeJSON(t, rec.Body.Bytes(), &getResp)
+	if len(getResp.Data) != 1 || getResp.Data[0] != "developer" {
+		t.Errorf("get data = %v, want [developer]", getResp.Data)
+	}
+
+	body := bytes.NewBufferString(`{"roles": ["manager"]}`)
+	rec = httptest.NewRecorder()
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodPut, "/api/v1/rbac/subjects/u1/roles", body))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("put code = %d body=%s", rec.Code, rec.Body.String())
+	}
+	if rbacStore.subjects["u1"] != "manager" {
+		t.Errorf("subject role = %q, want manager", rbacStore.subjects["u1"])
+	}
+}
+
+func TestSubjectRoles_PutSingleRoleRequired(t *testing.T) {
+	rbacStore := newFakeRBACStore()
+	rbacStore.subjects["u1"] = "developer"
+	router := testRouter(RouterConfig{RBACStore: rbacStore})
+
+	body := bytes.NewBufferString(`{"roles": ["developer", "manager"]}`)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodPut, "/api/v1/rbac/subjects/u1/roles", body))
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Errorf("code = %d, want 422", rec.Code)
+	}
+}
+
+func TestSubjectRoles_PutRoleNotFound(t *testing.T) {
+	rbacStore := newFakeRBACStore()
+	rbacStore.subjects["u1"] = "developer"
+	router := testRouter(RouterConfig{RBACStore: rbacStore})
+
+	body := bytes.NewBufferString(`{"roles": ["custom-missing"]}`)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodPut, "/api/v1/rbac/subjects/u1/roles", body))
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("code = %d, want 404", rec.Code)
+	}
+}
+
+func TestListRBACPolicies_StoreError(t *testing.T) {
+	rbacStore := newFakeRBACStore()
+	rbacStore.listErr = errors.New("db down")
+	router := testRouter(RouterConfig{RBACStore: rbacStore})
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/rbac/policies", nil))
+	if rec.Code != http.StatusInternalServerError {
+		t.Errorf("code = %d, want 500", rec.Code)
+	}
+	var resp struct {
+		Error string `json:"error"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if resp.Error != "internal error" {
+		t.Errorf("error body leaks underlying message: %q", resp.Error)
 	}
 }

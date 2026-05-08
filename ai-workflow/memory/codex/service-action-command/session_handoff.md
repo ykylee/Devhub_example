@@ -11,7 +11,7 @@
 
 ## 현재 기준선
 
-- `origin/main` 최신 커밋 `7316ddd`를 현재 브랜치에 fast-forward로 반영했다.
+- `origin/main` 최신 커밋을 현재 브랜치에 병합해 PR #33/#35/#37 반영 후 PR #36 변경을 재정렬했다.
 - main에는 Phase 12 조직/사용자 CRUD API 및 Organization UI, Phase 13 Ory Hydra/Kratos IdP PoC 문서와 설정이 포함되어 있다.
 - 현재 브랜치의 TASK-020~023 command/service action/realtime worker 변경은 main 반영 뒤 다시 적용되어 유지된다.
 - 브랜치별 memory 표준을 적용해 이 브랜치의 source of truth를 `ai-workflow/memory/codex/service-action-command/`로 전환했다.
@@ -29,7 +29,7 @@
 - service action approval boundary 1차로 `POST /api/v1/commands/{command_id}/approve|reject`를 추가하고 audit log를 남기도록 구현했다.
 - approved live service action을 원자적으로 `running` claim하는 Postgres query와 `ServiceActionExecutor` adapter interface/worker 경계를 추가했다. 실제 executor는 아직 main에 주입하지 않는다.
 - `SERVICE_ACTION_EXECUTOR_MODE=simulation`에서만 켜지는 simulation executor를 추가했다. `SERVICE_ACTION_ALLOWED_SERVICES`와 `SERVICE_ACTION_ALLOWED_ACTIONS` allowlist를 모두 통과해야 하며 외부 side effect는 만들지 않는다.
-- 2026-05-08 기준 위 변경 묶음은 staged 상태로 정리했고, 백엔드 테스트와 문서 스모크 검증 후 push 대상이다.
+- 2026-05-08 기준 PR 리뷰 반영 변경을 정리했고 백엔드 테스트, 프론트 lint, diff whitespace 검증은 통과했다. 문서 smoke check는 main에 병합된 workflow 문서 메타데이터/링크 정합성 문제로 실패하며 후속 작업으로 남긴다.
 
 ## 현재 주 작업 축
 
@@ -91,6 +91,7 @@
 - [ ] 실제 executor/approval boundary 설계
 - [ ] RBAC 편집 UI 활성화 전 confirmation UX 설계
 - [ ] Hydra JWKS/introspection verifier 실제 구현
+- [ ] `ai-workflow/tests/check_docs.py` 실패 항목 정리: main workflow 문서 메타데이터 누락 및 archive/branch memory broken link 보정
 
 ## Risks & Blockers
 
@@ -99,6 +100,7 @@
 - 프론트엔드 WebSocket 연결은 환경에 따라 `NEXT_PUBLIC_WS_URL` 설정이 필요할 수 있다.
 - service action command API는 실제 executor를 호출하지 않으며, 현재는 승인 불필요 dry-run command만 자동 성공 전이한다.
 - WebSocket publish lock은 1차 개선됐지만, 고부하 backpressure가 필요하면 client별 bounded send queue 설계를 추가한다.
+- 문서 smoke check는 2026-05-08 병합 기준 `ai-workflow/memory/*` 메타데이터 누락과 archive/branch memory broken link로 실패한다. 코드 병합을 막는 회귀는 아니지만 다음 문서 정리 작업에서 우선 처리한다.
 
 ## 다음에 읽을 문서
 

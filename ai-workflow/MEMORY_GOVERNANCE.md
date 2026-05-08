@@ -15,7 +15,7 @@
 
 - 표준 위치: `ai-workflow/memory/<agent>/<branch>/`
 - 예시: `ai-workflow/memory/codex/service-action-command/`
-- 예시: `ai-workflow/memory/claude/phase13/`
+- 예시: `ai-workflow/memory/gemini/phase6/`
 - agent prefix가 없는 브랜치: `ai-workflow/memory/branches/<branch-name>/`
 
 브랜치별 디렉터리는 아래 4종을 기본 세트로 가진다.
@@ -39,7 +39,8 @@ flat `state.json`, `session_handoff.md`, `work_backlog.md`, `backlog/`는 legacy
 - **언어**: 사용자 보고용 요약은 한국어를 사용하되, 상태 값이나 기술적 명칭은 영문 표준을 권장합니다.
 - **간결성**: 중복된 설명을 피하고, 변경 사항(Diff)과 다음 행동(Next Action)에 집중합니다.
 - **구조화**: Key-Value 쌍(예: `Status: in_progress`) 또는 Markdown Table을 적극 활용합니다.
-- **격리**: 문서 간의 의존성을 최소화하고, 각 파일이 독립적인 컨텍스트를 완결성 있게 담도록 합니다.
+- **격리 (Isolation)**: 메인 개발 브랜치(`main`) 외의 작업 브랜치에서는 `ai-workflow/memory/[agent_name]/[branch_name]/` 하위의 전용 폴더를 사용하여 상태를 관리합니다. 이는 다중 에이전트 협업 시의 병합 충돌을 방지하기 위함입니다.
+- **루트의 역할 (Root Role)**: `ai-workflow/memory/` 루트의 `state.json`, `session_handoff.md` 등은 프로젝트의 최종 통합 상태(Main branch state) 또는 현재 통합 테스트 브랜치의 요약 상태를 나타냅니다.
 
 ## 2. 표준 템플릿 (Standard Templates)
 

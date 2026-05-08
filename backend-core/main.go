@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"log"
+	"net/url"
 	"time"
 
+	"github.com/devhub/backend-core/internal/auth"
 	"github.com/devhub/backend-core/internal/commandworker"
 	"github.com/devhub/backend-core/internal/config"
 	"github.com/devhub/backend-core/internal/httpapi"
@@ -23,8 +25,8 @@ func main() {
 	var domainStore httpapi.DomainStore
 	var commandStore httpapi.CommandStore
 	var auditStore httpapi.AuditStore
-	var rbacPolicyStore httpapi.RBACPolicyStore
 	var organizationStore httpapi.OrganizationStore
+	var rbacStore httpapi.RBACStore
 	realtimeHub := httpapi.NewRealtimeHub()
 	var worker *commandworker.Worker
 	var liveWorker *commandworker.LiveWorker
@@ -40,8 +42,8 @@ func main() {
 		domainStore = pgStore
 		commandStore = pgStore
 		auditStore = pgStore
-		rbacPolicyStore = pgStore
 		organizationStore = pgStore
+		rbacStore = pgStore
 		worker = &commandworker.Worker{Store: pgStore, Publisher: realtimeHub}
 		if cfg.ServiceActionExecutorMode != "" {
 			executor, err := serviceaction.NewExecutor(
@@ -59,24 +61,63 @@ func main() {
 		log.Println("DB_URL is not set; webhook persistence is disabled")
 	}
 
+	var verifier httpapi.BearerTokenVerifier
+	if cfg.HydraAdminURL != "" {
+		parsed, err := url.Parse(cfg.HydraAdminURL)
+		if err != nil {
+			log.Fatalf("startup refused: DEVHUB_HYDRA_ADMIN_URL is not a valid URL: %v", err)
+		}
+		if parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+			log.Fatalf("startup refused: DEVHUB_HYDRA_ADMIN_URL must be an absolute http(s) URL: got %s", parsed.Redacted())
+		}
+		verifier = &auth.HydraIntrospectionVerifier{
+			AdminURL:  cfg.HydraAdminURL,
+			RoleClaim: cfg.HydraRoleClaim,
+		}
+		log.Printf("bearer token verifier: hydra introspection at %s (role_claim=%q)", parsed.Redacted(), cfg.HydraRoleClaim)
+	}
+	if err := cfg.Validate(verifier != nil); err != nil {
+		log.Fatalf("startup refused: %v", err)
+	}
+
+	// Auth proxy clients are only wired when both Hydra admin and Kratos
+	// public URLs are configured. Assigning typed nil pointers to interface
+	// fields would defeat the handler's `cfg.KratosLogin == nil` guard, so
+	// we leave the fields untouched when either env var is missing.
+	var (
+		hydraAdmin  httpapi.HydraLoginAdmin
+		kratosLogin httpapi.KratosLoginClient
+	)
+	if cfg.HydraAdminURL != "" {
+		hydraAdmin = &httpapi.HydraAdminClient{AdminURL: cfg.HydraAdminURL}
+		log.Printf("hydra admin client wired: %s", cfg.HydraAdminURL)
+	}
+	if cfg.KratosPublicURL != "" {
+		kratosLogin = &httpapi.KratosClient{PublicURL: cfg.KratosPublicURL}
+		log.Printf("kratos public client wired: %s", cfg.KratosPublicURL)
+	}
+
 	router := httpapi.NewRouter(httpapi.RouterConfig{
-		WebhookSecret:     cfg.GiteaWebhookSecret,
-		EventStore:        eventStore,
-		EventProcessor:    eventProcessor,
-		HealthStore:       healthStore,
-		DomainStore:       domainStore,
-		CommandStore:      commandStore,
-		AuditStore:        auditStore,
-		RBACPolicyStore:   rbacPolicyStore,
-		OrganizationStore: organizationStore,
-		AuthDevFallback:   cfg.AuthDevFallback,
+		WebhookSecret:       cfg.GiteaWebhookSecret,
+		EventStore:          eventStore,
+		EventProcessor:      eventProcessor,
+		HealthStore:         healthStore,
+		DomainStore:         domainStore,
+		CommandStore:        commandStore,
+		AuditStore:          auditStore,
+		OrganizationStore:   organizationStore,
+		RBACStore:           rbacStore,
+		BearerTokenVerifier: verifier,
+		KratosLogin:         kratosLogin,
+		HydraAdmin:          hydraAdmin,
 		SnapshotProvider: httpapi.RuntimeSnapshotProvider{
 			Base:         httpapi.StaticSnapshotProvider{},
 			HealthStore:  healthStore,
 			GiteaURL:     cfg.GiteaURL,
 			BackendAIURL: cfg.BackendAIURL,
 		},
-		RealtimeHub: realtimeHub,
+		RealtimeHub:     realtimeHub,
+		AuthDevFallback: cfg.AuthDevFallback,
 	})
 	if worker != nil {
 		go func() {
