@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"net/url"
 	"time"
 
 	"github.com/devhub/backend-core/internal/auth"
@@ -46,11 +47,18 @@ func main() {
 
 	var verifier httpapi.BearerTokenVerifier
 	if cfg.HydraAdminURL != "" {
+		parsed, err := url.Parse(cfg.HydraAdminURL)
+		if err != nil {
+			log.Fatalf("startup refused: DEVHUB_HYDRA_ADMIN_URL is not a valid URL: %v", err)
+		}
+		if parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+			log.Fatalf("startup refused: DEVHUB_HYDRA_ADMIN_URL must be an absolute http(s) URL: got %s", parsed.Redacted())
+		}
 		verifier = &auth.HydraIntrospectionVerifier{
 			AdminURL:  cfg.HydraAdminURL,
 			RoleClaim: cfg.HydraRoleClaim,
 		}
-		log.Printf("bearer token verifier: hydra introspection at %s (role_claim=%q)", cfg.HydraAdminURL, cfg.HydraRoleClaim)
+		log.Printf("bearer token verifier: hydra introspection at %s (role_claim=%q)", parsed.Redacted(), cfg.HydraRoleClaim)
 	}
 	if err := cfg.Validate(verifier != nil); err != nil {
 		log.Fatalf("startup refused: %v", err)
