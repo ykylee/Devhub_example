@@ -320,6 +320,8 @@
 | 명령성 액션 응답 | boolean `ActionResponse` (`backend/requirements §2`) | **`command_id` + `command_status` lifecycle** | api_contract §9 |
 | 환경 default | docker-compose default (`tech_stack §2`, 일부 `architecture`, `PROJECT_PROFILE`) | **native default**, docker 는 환경별 자산 (git 추적 외부) | PR #12 BLK-1 (2026-05-08), environment-setup §0 |
 | Phase 8 상태 | "프론트 done" 만으로 완료 표기 (frontend_roadmap) | **백엔드 in_progress 가 source** — 인증/필터/replay 미완 | backend_roadmap §2 Phase 8 |
+| RBAC 모델 | 1차원 `none\|read\|write\|admin` rank (`rbac.go defaultRBACPolicy`, `api_contract §6` legacy) | **per-resource 4-boolean** (`{view, create, edit, delete}`) — 5 resources (`infrastructure`, `pipelines`, `organization`, `security`, `audit`) | ADR-0002 + api_contract §12 (2026-05-08) |
+| RBAC enforcement | `requireMinRole` 라우트별 정적 rank 비교 | **`requirePermission(resource, action)`** — 라우트-매핑 표 + DB-backed matrix + deny-by-default | ADR-0002 §4.3, api_contract §12.8·§12.9 (PR-G5 머지 시 발효) |
 
 위 폐기 표현이 본문에 그대로 남은 위치(`requirements.md`, `architecture.md`, `backend/requirements.md`, `tech_stack.md`, `PROJECT_PROFILE.md`)는 M0~M1 의 문서 정리 작업으로 *재설계 박스* 또는 *링크 참조* 형태로 정리한다.
 
@@ -330,6 +332,7 @@
 | 일자 | 변경 | 메모 |
 | --- | --- | --- |
 | 2026-05-08 | 초판 작성. M0~M4 정의, 트랙 매핑, 충돌 해소 표 정리. | PR #12, #13 머지 직후. claude/merge_roadmap 브랜치. |
+| 2026-05-08 | §6 충돌 해소 표에 RBAC 모델/enforcement 결정 2행 추가. | M1 PR-G1, ADR-0002 채택 반영. claude/m1-pr-g1-rbac-contract 브랜치. |
 
 ---
 
