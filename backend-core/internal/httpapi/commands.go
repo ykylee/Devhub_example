@@ -268,7 +268,6 @@ type requestActorInfo struct {
 	Source string
 }
 
-// SECURITY (SEC-4): X-Devhub-Actor header is honoured only when the request is on the dev fallback path (DEVHUB_AUTH_DEV_FALLBACK=1) and the authenticated context is empty. In production the env flag is unset, so unauthenticated requests are blocked earlier in authenticateActor and this branch is unreachable. The header path is preserved for local dev only. Tracked in ai-workflow/memory/claude/test/backend-integration/backlog/2026-05-08.md.
 func requestActor(c *gin.Context) requestActorInfo {
 	if value, ok := c.Get("devhub_actor_login"); ok {
 		if actor, ok := value.(string); ok {
@@ -278,16 +277,7 @@ func requestActor(c *gin.Context) requestActorInfo {
 			}
 		}
 	}
-	if !devFallbackEnabled(c) {
-		return requestActorInfo{Login: "system", Source: "system_fallback"}
-	}
-	actor := strings.TrimSpace(c.GetHeader("X-Devhub-Actor"))
-	if actor == "" {
-		return requestActorInfo{Login: "system", Source: "system_fallback"}
-	}
-	c.Header("X-Devhub-Actor-Deprecated", "true")
-	c.Header("Warning", `299 - "X-Devhub-Actor is a development fallback; use authenticated session or bearer token claims"`)
-	return requestActorInfo{Login: actor, Source: "x-devhub-actor"}
+	return requestActorInfo{Login: "system", Source: "system_fallback"}
 }
 
 func devFallbackEnabled(c *gin.Context) bool {

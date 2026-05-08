@@ -114,11 +114,12 @@ func (s *memoryCommandStore) GetCommand(_ context.Context, commandID string) (do
 func TestCreateServiceActionReturnsCommandLifecycle(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	commandStore := &memoryCommandStore{}
-	router := testRouter(RouterConfig{CommandStore: commandStore})
+	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{Login: "admin", Subject: "user-admin", Role: "system_admin"}}
+	router := NewRouter(RouterConfig{CommandStore: commandStore, BearerTokenVerifier: verifier})
 
 	body := []byte(`{"service_id":"runner-asia-01","action_type":"restart","reason":"Runner queue is blocked","dry_run":true,"force":false,"idempotency_key":"service-restart-1","metadata":{"queue_depth":12}}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/service-actions", bytes.NewReader(body))
-	req.Header.Set("X-Devhub-Actor", "admin")
+	req.Header.Set("Authorization", "Bearer t")
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 
@@ -242,11 +243,12 @@ func TestCreateServiceActionRejectsMissingServiceID(t *testing.T) {
 func TestCreateRiskMitigationReturnsCommandLifecycle(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	commandStore := &memoryCommandStore{}
-	router := testRouter(RouterConfig{CommandStore: commandStore})
+	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{Login: "yklee", Subject: "user-yklee", Role: "manager"}}
+	router := NewRouter(RouterConfig{CommandStore: commandStore, BearerTokenVerifier: verifier})
 
 	body := []byte(`{"action_type":"rerun_ci","reason":"CI failure blocks release","dry_run":true,"idempotency_key":"risk-502-rerun","metadata":{"ci_run_id":"502"}}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/risks/ci_failure:502/mitigations", bytes.NewReader(body))
-	req.Header.Set("X-Devhub-Actor", "yklee")
+	req.Header.Set("Authorization", "Bearer t")
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 
