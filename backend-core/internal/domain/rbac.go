@@ -1,0 +1,210 @@
+package domain
+
+import (
+	"fmt"
+	"regexp"
+	"time"
+)
+
+// Resource is the RBAC resource axis defined by docs/backend_api_contract.md section 12.0.2.
+type Resource string
+
+const (
+	ResourceInfrastructure Resource = "infrastructure"
+	ResourcePipelines      Resource = "pipelines"
+	ResourceOrganization   Resource = "organization"
+	ResourceSecurity       Resource = "security"
+	ResourceAudit          Resource = "audit"
+)
+
+// Action is the RBAC action axis defined by docs/backend_api_contract.md section 12.0.3.
+type Action string
+
+const (
+	ActionView   Action = "view"
+	ActionCreate Action = "create"
+	ActionEdit   Action = "edit"
+	ActionDelete Action = "delete"
+)
+
+// ResourcePermissions is the per-resource 4-boolean flag set carried by a role's permission matrix.
+type ResourcePermissions struct {
+	View   bool `json:"view"`
+	Create bool `json:"create"`
+	Edit   bool `json:"edit"`
+	Delete bool `json:"delete"`
+}
+
+// PermissionMatrix maps each Resource to its ResourcePermissions for a single role.
+type PermissionMatrix map[Resource]ResourcePermissions
+
+// RBACRole is the persisted view of an entry in rbac_policies.
+type RBACRole struct {
+	ID          string
+	Name        string
+	Description string
+	System      bool
+	Permissions PermissionMatrix
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+// AllResources lists the 5 canonical resources in display order.
+func AllResources() []Resource {
+	return []Resource{
+		ResourceInfrastructure,
+		ResourcePipelines,
+		ResourceOrganization,
+		ResourceSecurity,
+		ResourceAudit,
+	}
+}
+
+// AllActions lists the 4 canonical actions in CRUD order.
+func AllActions() []Action {
+	return []Action{ActionView, ActionCreate, ActionEdit, ActionDelete}
+}
+
+// SystemRoleIDs returns the immutable set of role ids that the seed migration installs.
+func SystemRoleIDs() []string {
+	return []string{
+		string(AppRoleDeveloper),
+		string(AppRoleManager),
+		string(AppRoleSystemAdmin),
+	}
+}
+
+// IsSystemRole reports whether id matches one of the seeded system role ids.
+func IsSystemRole(id string) bool {
+	for _, s := range SystemRoleIDs() {
+		if id == s {
+			return true
+		}
+	}
+	return false
+}
+
+var customRoleIDPattern = regexp.MustCompile(`^custom-[a-z0-9][a-z0-9_-]{0,62}$`)
+
+// ValidateRoleID enforces the role id contract: either a system id or a `custom-{slug}` value
+// that the rbac_policies CHECK constraint will accept.
+func ValidateRoleID(id string) error {
+	if IsSystemRole(id) {
+		return nil
+	}
+	if customRoleIDPattern.MatchString(id) {
+		return nil
+	}
+	return fmt.Errorf("role id %q must be a system role or match the custom-{slug} pattern", id)
+}
+
+// EnforceAuditInvariant sets the audit resource's create/edit/delete flags to false and fills in
+// any missing resource entries with all-false permissions. Implements the section 12.0.4 invariant
+// so callers cannot grant write access to audit by mistake.
+func EnforceAuditInvariant(p PermissionMatrix) PermissionMatrix {
+	out := make(PermissionMatrix, len(AllResources()))
+	for _, r := range AllResources() {
+		out[r] = p[r]
+	}
+	audit := out[ResourceAudit]
+	out[ResourceAudit] = ResourcePermissions{View: audit.View}
+	return out
+}
+
+// Allows reports whether the matrix grants the (resource, action) coordinate.
+func Allows(p PermissionMatrix, r Resource, a Action) bool {
+	rp, ok := p[r]
+	if !ok {
+		return false
+	}
+	switch a {
+	case ActionView:
+		return rp.View
+	case ActionCreate:
+		return rp.Create
+	case ActionEdit:
+		return rp.Edit
+	case ActionDelete:
+		return rp.Delete
+	default:
+		return false
+	}
+}
+
+// DefaultPermissionMatrix returns the section 12.1 default matrix for the given system role id.
+// The second return value is false when id is not a system role; callers should fall back to the
+// stored matrix in that case.
+func DefaultPermissionMatrix(roleID string) (PermissionMatrix, bool) {
+	switch roleID {
+	case string(AppRoleDeveloper):
+		return PermissionMatrix{
+			ResourceInfrastructure: {View: true},
+			ResourcePipelines:      {View: true},
+			ResourceOrganization:   {View: true},
+			ResourceSecurity:       {View: true},
+			ResourceAudit:          {},
+		}, true
+	case string(AppRoleManager):
+		return PermissionMatrix{
+			ResourceInfrastructure: {View: true},
+			ResourcePipelines:      {View: true},
+			ResourceOrganization:   {View: true},
+			ResourceSecurity:       {View: true, Create: true},
+			ResourceAudit:          {View: true},
+		}, true
+	case string(AppRoleSystemAdmin):
+		return PermissionMatrix{
+			ResourceInfrastructure: {View: true, Create: true, Edit: true, Delete: true},
+			ResourcePipelines:      {View: true, Create: true, Edit: true, Delete: true},
+			ResourceOrganization:   {View: true, Create: true, Edit: true, Delete: true},
+			ResourceSecurity:       {View: true, Create: true, Edit: true, Delete: true},
+			ResourceAudit:          {View: true},
+		}, true
+	default:
+		return nil, false
+	}
+}
+
+// SystemRoles returns the seeded role rows that the 000005_create_rbac_policies migration installs.
+// The seed migration uses these descriptions verbatim; PR-G3 store seed and tests both consume this
+// helper as the single source of truth.
+func SystemRoles() []RBACRole {
+	roles := make([]RBACRole, 0, 3)
+	for _, id := range SystemRoleIDs() {
+		matrix, _ := DefaultPermissionMatrix(id)
+		roles = append(roles, RBACRole{
+			ID:          id,
+			Name:        systemRoleName(id),
+			Description: systemRoleDescription(id),
+			System:      true,
+			Permissions: matrix,
+		})
+	}
+	return roles
+}
+
+func systemRoleName(id string) string {
+	switch id {
+	case string(AppRoleDeveloper):
+		return "Developer"
+	case string(AppRoleManager):
+		return "Manager"
+	case string(AppRoleSystemAdmin):
+		return "System Admin"
+	default:
+		return id
+	}
+}
+
+func systemRoleDescription(id string) string {
+	switch id {
+	case string(AppRoleDeveloper):
+		return "개발자 대시보드, 본인 관련 repository/CI/risk 조회 권한"
+	case string(AppRoleManager):
+		return "팀 운영, risk triage, 승인 전 command 생성 권한"
+	case string(AppRoleSystemAdmin):
+		return "시스템 설정, 조직/사용자 관리, 운영 command 관리 권한"
+	default:
+		return ""
+	}
+}
