@@ -84,8 +84,8 @@ func TestRequireMinRoleBlocksInsufficientRole(t *testing.T) {
 	if audits.logs[0].Action != "auth.role_denied" {
 		t.Fatalf("expected auth.role_denied audit, got %q", audits.logs[0].Action)
 	}
-	if audits.logs[0].Payload["required_role"] != "system_admin" {
-		t.Fatalf("expected required_role=system_admin in audit payload, got %+v", audits.logs[0].Payload)
+	if audits.logs[0].Payload["resource"] != "organization" || audits.logs[0].Payload["action"] != "delete" {
+		t.Fatalf("expected resource=organization action=delete in audit payload, got %+v", audits.logs[0].Payload)
 	}
 }
 

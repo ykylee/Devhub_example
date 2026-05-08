@@ -180,6 +180,10 @@ func (h Handler) createRBACPolicy(c *gin.Context) {
 		return
 	}
 
+	if h.cfg.PermissionCache != nil {
+		h.cfg.PermissionCache.Invalidate()
+	}
+
 	auditLog := h.recordAuditBestEffort(c, rbacAuditActionUpdated, "rbac_role", created.ID, map[string]any{
 		"change_type": "created",
 		"after":       wireFromRBACRole(created),
@@ -333,6 +337,10 @@ func (h Handler) updateRBACPolicies(c *gin.Context) {
 		}
 	}
 
+	if h.cfg.PermissionCache != nil {
+		h.cfg.PermissionCache.Invalidate()
+	}
+
 	auditLog := h.recordAuditBestEffort(c, rbacAuditActionUpdated, "rbac_role", "policies", map[string]any{
 		"change_type": "bulk",
 		"changes":     auditEntries,
@@ -397,6 +405,10 @@ func (h Handler) deleteRBACPolicy(c *gin.Context) {
 			writeRBACServerError(c, err, "rbac.delete_policy")
 		}
 		return
+	}
+
+	if h.cfg.PermissionCache != nil {
+		h.cfg.PermissionCache.Invalidate()
 	}
 
 	auditLog := h.recordAuditBestEffort(c, rbacAuditActionUpdated, "rbac_role", roleID, map[string]any{
