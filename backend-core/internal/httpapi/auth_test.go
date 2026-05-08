@@ -28,7 +28,7 @@ func TestBearerTokenActorWritesAuditWithoutFallbackWarning(t *testing.T) {
 	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
 		Login:   "token-admin",
 		Subject: "user-token-admin",
-		Role:    "admin",
+		Role:    "system_admin",
 	}}
 	router := NewRouter(RouterConfig{
 		OrganizationStore:   orgs,
