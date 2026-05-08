@@ -1,22 +1,56 @@
 {
+  "schema_version": "1",
   "project": "DevHub Example",
-  "branch": "test/backend-integration",
-  "status": "integrating",
-  "updated_at": "2026-05-07T22:50:00Z",
-  "components": {
-    "frontend": {
-      "phase": "6",
-      "status": "in_progress",
-      "focus": "RBAC UI & Auth/Account Integration"
-    },
-    "backend": {
-      "phase": "4",
+  "branch": "main",
+  "status": "M0 sprint completed; ready for M1",
+  "updated_at": "2026-05-08T13:30:00Z",
+  "head_commit": "0ea0ce4",
+  "head_summary": "Merge pull request #19 (PR-E close SEC-4 + finish M0 sprint)",
+  "milestones": {
+    "M0": {
       "status": "done",
-      "focus": "Service Actions & Command Lifecycle"
+      "ended_at": "2026-05-08",
+      "notes": "Authentication and authorization gate normalized. SEC-1..SEC-4 resolved. T-M0-10 ops verification PASS (Hydra introspection + valid JWT -> /api/v1/me 200)."
+    },
+    "M1": {
+      "status": "planned",
+      "notes": "Contract integrity per docs/development_roadmap.md section 3.2 + SEC-5 (DB error masking) as separate PR."
     }
   },
-  "branch_states": {
-    "gemini_phase6": "./gemini/phase6/state.json",
-    "codex_actions": "./codex/service-action-command/state.json"
-  }
+  "components": {
+    "frontend": {
+      "phase": "5.2 done; Phase 6 in_progress",
+      "auth": "/login redirects to Hydra OIDC authorize; /auth/callback handler still pending (M2 follow-up)",
+      "build_check": "PASS (Next.js 16.2.4, 11 static pages, tsc clean)"
+    },
+    "backend": {
+      "phase": "12/13 done",
+      "auth": "BearerTokenVerifier wired (Hydra introspection); prod fail-fast guards active",
+      "test_check": "PASS (go test ./... including auth/authz/me/config/Hydra introspection mock)"
+    },
+    "infra_idp": {
+      "scaffold": "infra/idp/ (hydra.yaml, kratos.yaml, identity schema, scripts, sql) verified end-to-end in current sandbox session"
+    }
+  },
+  "session_pointers": {
+    "session_handoff_path": "ai-workflow/memory/session_handoff.md",
+    "work_backlog_path": "ai-workflow/memory/work_backlog.md",
+    "integrated_roadmap": "docs/development_roadmap.md",
+    "m0_sprint_record": "ai-workflow/memory/claude/merge_roadmap/",
+    "pr12_review_actions": "ai-workflow/memory/PR-12-review-actions.md",
+    "security_reviews": [
+      "ai-workflow/memory/PR-12-security-review.md",
+      "ai-workflow/memory/codebase-security-review-2026-05-08.md"
+    ]
+  },
+  "merged_prs_this_round": [
+    {"pr": 12, "title": "feat: DevHub 통합 환경 안정화 및 실데이터 연동 (Phase 3-4)", "merge_commit": "8493b63"},
+    {"pr": 13, "title": "chore(source-docs): import workflow-source bundle (PR #12 split)", "merge_commit": "71233e6"},
+    {"pr": 14, "title": "docs(roadmap): integrated development roadmap + M0 sprint planning", "merge_commit": "427d618"},
+    {"pr": 15, "title": "fix(auth): close empty-Auth pass-through, gate X-Devhub-Actor (PR-A)", "merge_commit": "5a2fec1"},
+    {"pr": 16, "title": "feat(authz): role guard middleware + protected route mapping (PR-B)", "merge_commit": "a477ca3"},
+    {"pr": 17, "title": "feat(auth): Hydra introspection verifier + prod fail-fast (PR-C)", "merge_commit": "21cd24a"},
+    {"pr": 18, "title": "feat(auth): replace mock login with /api/v1/me + OIDC redirect (PR-D)", "merge_commit": "cf2d55f"},
+    {"pr": 19, "title": "feat(auth): close SEC-4 + finish M0 sprint marker sweep (PR-E)", "merge_commit": "0ea0ce4"}
+  ]
 }
