@@ -1,11 +1,11 @@
 {
   "schema_version": "1",
   "project": "DevHub Example",
-  "branch": "claude/m1-sprint-plan",
-  "status": "M1 sprint planning in_progress; PR-A (SEC-5) next",
-  "updated_at": "2026-05-08T14:00:00Z",
-  "head_commit": "a41a8e2",
-  "head_summary": "docs(memory): refresh flat memory after M0 sprint close (main)",
+  "branch": "main",
+  "status": "M1 RBAC track merged; M1 remainder (PR-B/C/D) and DEFER A-G pending",
+  "updated_at": "2026-05-08T15:30:00Z",
+  "head_commit": "e02ba67",
+  "head_summary": "Merge pull request #27 from ykylee/claude/m1-pr-g6-frontend-rbac",
   "milestones": {
     "M0": {
       "status": "done",
@@ -15,22 +15,24 @@
     "M1": {
       "status": "in_progress",
       "started_at": "2026-05-08",
-      "notes": "Sprint backlog drafted at ai-workflow/memory/claude/m1-sprint-plan/backlog/2026-05-08.md. Planned PRs: M1-PR-A (SEC-5 mask), M1-PR-F (RBAC ADR-0002), M1-PR-B (contract+types+ws envelope), M1-PR-C (cmd lifecycle), M1-PR-D (audit actor)."
+      "notes": "RBAC track (PR-A SEC-5 + PR-F ADR-0002 + PR-G1..G6) merged via PR #20-23, #29-31, #27, #28. SEC-5, RBAC model unification (4-boolean), domain + migration + store + handlers + cache + frontend integration all live on main. Codex review FIX A-D applied. Remaining T-M1-02/03/04/05/07/08 (envelope, types split, cmd lifecycle, audit actor, ws envelope, auth_test) tracked as PR-B/C/D in work_backlog.md."
     }
   },
   "components": {
     "frontend": {
-      "phase": "5.2 done; Phase 6 in_progress",
+      "phase": "5.2 done; Phase 6 in_progress (RBAC PermissionEditor connected)",
       "auth": "/login redirects to Hydra OIDC authorize; /auth/callback handler still pending (M2 follow-up)",
-      "build_check": "PASS (Next.js 16.2.4, 11 static pages, tsc clean)"
+      "build_check": "PASS (Next.js 16.2.4, 11 static pages, tsc clean)",
+      "rbac": "PermissionEditor wired to /api/v1/rbac/policies (PR #27). RbacError type carries contract code. Audit invariant locked in UI via PermissionMatrix.lockedCells."
     },
     "backend": {
       "phase": "12/13 done",
-      "auth": "BearerTokenVerifier wired (Hydra introspection); prod fail-fast guards active",
-      "test_check": "PASS (go test ./... including auth/authz/me/config/Hydra introspection mock)"
+      "auth": "BearerTokenVerifier (Hydra introspection) + enforceRoutePermission middleware (route mapping table + PermissionCache). M0 requireMinRole removed from production paths.",
+      "test_check": "PASS (go test ./... including domain/rbac, store/rbac, httpapi/permissions, httpapi/rbac handlers)",
+      "rbac": "rbac_policies table seeded with developer/manager/system_admin per section 12.1 default. users.role now FK to rbac_policies. Custom roles supported via POST /api/v1/rbac/policies."
     },
     "infra_idp": {
-      "scaffold": "infra/idp/ (hydra.yaml, kratos.yaml, identity schema, scripts, sql) verified end-to-end in current sandbox session"
+      "scaffold": "infra/idp/ (hydra.yaml, kratos.yaml, identity schema, scripts, sql) verified end-to-end in 2026-05-08 sandbox"
     }
   },
   "session_pointers": {
@@ -38,6 +40,9 @@
     "work_backlog_path": "ai-workflow/memory/work_backlog.md",
     "integrated_roadmap": "docs/development_roadmap.md",
     "m0_sprint_record": "ai-workflow/memory/claude/merge_roadmap/",
+    "m1_sprint_plan": "ai-workflow/memory/claude/m1-sprint-plan/backlog/2026-05-08.md",
+    "m1_pr_review_actions": "ai-workflow/memory/M1-PR-review-actions.md",
+    "adr_rbac": "docs/adr/0002-rbac-policy-edit-api.md",
     "pr12_review_actions": "ai-workflow/memory/PR-12-review-actions.md",
     "security_reviews": [
       "ai-workflow/memory/PR-12-security-review.md",
@@ -45,13 +50,25 @@
     ]
   },
   "merged_prs_this_round": [
-    {"pr": 12, "title": "feat: DevHub 통합 환경 안정화 및 실데이터 연동 (Phase 3-4)", "merge_commit": "8493b63"},
-    {"pr": 13, "title": "chore(source-docs): import workflow-source bundle (PR #12 split)", "merge_commit": "71233e6"},
-    {"pr": 14, "title": "docs(roadmap): integrated development roadmap + M0 sprint planning", "merge_commit": "427d618"},
-    {"pr": 15, "title": "fix(auth): close empty-Auth pass-through, gate X-Devhub-Actor (PR-A)", "merge_commit": "5a2fec1"},
-    {"pr": 16, "title": "feat(authz): role guard middleware + protected route mapping (PR-B)", "merge_commit": "a477ca3"},
-    {"pr": 17, "title": "feat(auth): Hydra introspection verifier + prod fail-fast (PR-C)", "merge_commit": "21cd24a"},
-    {"pr": 18, "title": "feat(auth): replace mock login with /api/v1/me + OIDC redirect (PR-D)", "merge_commit": "cf2d55f"},
-    {"pr": 19, "title": "feat(auth): close SEC-4 + finish M0 sprint marker sweep (PR-E)", "merge_commit": "0ea0ce4"}
-  ]
+    {"pr": 28, "title": "docs(memory): M1 PR review actions tracker", "merge_commit": "9bc30c9"},
+    {"pr": 20, "title": "feat(http): SEC-5 mask 5xx errors + M1 sprint plan (M1 PR-A)", "merge_commit": "ae8aca1"},
+    {"pr": 21, "title": "docs(adr): ADR-0002 RBAC policy edit API (M1 PR-F)", "merge_commit": "950a11f"},
+    {"pr": 22, "title": "docs(api): RBAC §12 rewrite + route mapping (M1 PR-G1)", "merge_commit": "1a090a3"},
+    {"pr": 23, "title": "feat(rbac): domain + rbac_policies migration (M1 PR-G2)", "merge_commit": "5239a87"},
+    {"pr": 29, "title": "feat(rbac): postgres store + users.role FK (M1 PR-G3 + FIX-A)", "merge_commit": "24815b8"},
+    {"pr": 30, "title": "feat(rbac): RBAC handlers (M1 PR-G4 + FIX-B + FIX-C)", "merge_commit": "27b6817"},
+    {"pr": 31, "title": "feat(rbac): permission cache + enforcement (M1 PR-G5)", "merge_commit": "02eef35"},
+    {"pr": 27, "title": "feat(frontend): RBAC PermissionEditor ↔ backend (M1 PR-G6 + FIX-D)", "merge_commit": "e02ba67"}
+  ],
+  "next_actions": {
+    "m1_remaining": [
+      "T-M1-02 PR-B: API envelope/role wire/필드 정합 + 통합 테스트",
+      "T-M1-03 PR-C: command lifecycle 6 상태 일관 + dry-run/live 경계",
+      "T-M1-04 PR-D: audit actor 보강 (source_ip, request_id, source_type) + migration",
+      "T-M1-07: frontend types.ts UI/wire 분리 (PR-B 흡수 가능)",
+      "T-M1-08: WebSocket envelope 표준화 (PR-B 흡수 가능)"
+    ],
+    "defer_followups": "ai-workflow/memory/M1-PR-review-actions.md §3 의 DEFER A~G",
+    "ops_verification": "사용자 환경에서 make migrate-up 후 rbac_policies 시스템 role 3건 seed 확인 + DEVHUB_TEST_DB_URL 셋 후 store 통합 테스트 PASS"
+  }
 }

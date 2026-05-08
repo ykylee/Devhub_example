@@ -1,98 +1,94 @@
-# Session Handoff — claude/m1-sprint-plan (M1 sprint 진입)
+# Session Handoff — main (post M1 RBAC track)
 
-- 브랜치: `claude/m1-sprint-plan` (origin/main `a41a8e2` 기반)
-- HEAD: `a41a8e2` (브랜치 생성 직후, 신규 커밋 없음)
+- 브랜치: `main`
+- HEAD: `e02ba67` (Merge pull request #27 from ykylee/claude/m1-pr-g6-frontend-rbac)
 - 최종 수정일: 2026-05-08
-- 상태: M1 sprint planning 진입. backlog 초안 작성 완료, 첫 PR (M1-PR-A SEC-5) 진입 직전.
-- 관련 문서: [통합 로드맵 §3.2](../../docs/development_roadmap.md), [M1 sprint backlog](./claude/m1-sprint-plan/backlog/2026-05-08.md), [M0 sprint 기록](./claude/merge_roadmap/), [상태 스냅샷](./state.json), [상위 backlog](./work_backlog.md)
+- 상태: M1 RBAC track (PR-A·F·G1~G6) 머지 완료. M1 잔여 (PR-B/C/D) + DEFER A~G 다음 세션 인계.
+- 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [M1 sprint backlog](./claude/m1-sprint-plan/backlog/2026-05-08.md), [M1 PR 리뷰 actions](./M1-PR-review-actions.md), [ADR-0002 RBAC](../../docs/adr/0002-rbac-policy-edit-api.md), [상태 스냅샷](./state.json), [상위 backlog](./work_backlog.md)
 
-## 1. 본 세션 활동 요약 (2026-05-08)
+## 1. 본 세션 활동 요약 (2026-05-08, M1 RBAC track)
 
-PR #12·#13 머지 직후 시점에 시작해 통합 로드맵 채택 → M0 sprint 5 PR 발행·머지 → 운영 검증까지 완료.
+| Sub-phase | PR | 결과 |
+| --- | --- | --- |
+| M1 sprint planning baseline + SEC-5 mask (PR-A) | #20 | merged |
+| ADR-0002 RBAC policy edit API — Option A 채택 (PR-F) | #21 | merged |
+| API contract §12 rewrite + 라우트 매핑 표 (PR-G1) | #22 | merged |
+| Domain `internal/domain/rbac.go` + `rbac_policies` 마이그레이션 (PR-G2) | #23 | merged |
+| Postgres store + `users.role` FK 마이그레이션 (PR-G3) | #29 | merged (FIX-A) |
+| RBAC 핸들러 + main.go bootstrap (PR-G4) | #30 | merged (FIX-B + FIX-C) |
+| Permission cache + enforceRoutePermission (PR-G5) | #31 | merged |
+| Frontend PermissionEditor ↔ backend (PR-G6) | #27 | merged (FIX-D) |
+| PR 리뷰 actions 트래커 | #28 | merged |
 
-| Sub-phase | 결과 |
-| --- | --- |
-| PR #12 종합 리뷰 → BLK/SEC/HYG 액션 도출 | resolved |
-| `source-docs/workflow-source/**` PR #13 분리 | merged |
-| 통합 개발 로드맵 작성 (`docs/development_roadmap.md`) | PR #14 merged |
-| M0 sprint backlog (T-M0-01..11) | PR #14 |
-| **PR-A** SEC-2 부분 + SEC-4 dev-only gate (#15) | merged |
-| **PR-B** SEC-3 role guard 미들웨어 + 라우트 (#16) | merged |
-| **PR-C** SEC-2 Hydra introspection verifier + prod fail-fast (#17) | merged |
-| **PR-D** SEC-1 frontend AuthGuard + `/api/v1/me` (#18) | merged |
-| **PR-E** SEC-4 fallback path 제거 + M0 마무리 (#19) | merged |
-| T-M0-10 운영 검증 (Hydra/Kratos PoC e2e + valid JWT → 200) | PASS |
+원본 PR #24·#25·#26 은 stack base 자동 삭제로 close 후 #29·#30·#31 로 main 위 재등록.
 
-## 2. SEC 결함 종합 (M0 종료 시점)
+main 회귀: `go build / vet / test ./...` PASS.
+
+## 2. M1 진행 상태
+
+- ✅ **RBAC track**: T-M1-01 (SEC-5), T-M1-06 (RBAC 결정), G1~G6 완료. ADR-0002 채택, 4-boolean 모델 통일, deny-by-default + audit invariant + write API + cache 모두 main.
+- ⏳ **잔여**: T-M1-02 (envelope/role wire), T-M1-03 (cmd lifecycle), T-M1-04 (audit actor 보강), T-M1-05 (auth_test 매트릭스), T-M1-07 (frontend types 분리), T-M1-08 (WS envelope) → **PR-B/C/D** 로 진입.
+
+## 3. 다음 세션 진입점
+
+### 3.1 우선순위 1 — M1 잔여 (PR-B/C/D)
+
+| Track | 작업 | DoD | 우선 |
+| --- | --- | --- | --- |
+| B·X·F | **PR-B** — API envelope/role wire 일관, frontend types.ts 분리, WebSocket envelope (T-M1-02·07·08) | M1 DoD #1·#7·#8 | 큰 PR. 분할 가능 |
+| B | **PR-C** — command lifecycle 6 상태 + dry-run/live + auth_test 보강 (T-M1-03·05) | M1 DoD #2·#4 | 중 |
+| B | **PR-D** — audit actor 보강 + request_id 미들웨어 + 마이그레이션 (T-M1-04) | M1 DoD #3 | 중. M1-DEFER-C (`writeRBACServerError` 통합) 흡수 가능 |
+
+### 3.2 우선순위 2 — DEFER A~G (M1 PR 리뷰 후속)
+
+[`M1-PR-review-actions.md` §3](./M1-PR-review-actions.md#3-다음-개발로-넘김--defer):
+
+- **A**: `rbac_policies` is_system ↔ role_id CHECK (P2 방어선)
+- **B**: `requireMinRole`/`roleMeetsMin`/`roleRank` deadcode 정리
+- **C**: `writeRBACServerError` → `writeServerError` 통합 (1줄 PR — PR-D 흡수 권장)
+- **D**: `DeleteRBACRole` row-lock (다중 인스턴스 race)
+- **E**: PermissionCache 다중 인스턴스 일관성 (M3+)
+- **F**: API contract §12.4 / §12.5 응답 예시 추가
+- **G**: MemberTable role display 회귀 사용자 환경 검증
+
+### 3.3 우선순위 3 — 운영 검증 (사용자 환경 의존)
+
+- `make migrate-up` 후 `rbac_policies` 시스템 role 3개 seed 확인
+- `DEVHUB_TEST_DB_URL=...` 셋 후 `cd backend-core && go test ./internal/store/...` 의 8 RBAC 통합 케이스 PASS
+- frontend Organization > Permissions 탭 e2e: list / matrix toggle / Save / Create custom / Delete custom / 시스템 role 삭제 거부 / role-in-use 거부
+
+## 4. 머지된 PR 흐름 (M1 RBAC track)
+
+```
+e02ba67 Merge pull request #27 (PR-G6 + FIX-D)
+aa14882 fix(frontend): clone defaultRoles for rolesBaseline (M1-FIX-D)
+604b578 feat(frontend): wire PermissionEditor to RBAC backend (M1 PR-G6)
+02eef35 Merge pull request #31 (PR-G5)
+579318f feat(rbac): permission cache + route mapping enforcement (M1 PR-G5)
+27b6817 Merge pull request #30 (PR-G4 + FIX-B + FIX-C)
+106272d fix(rbac): wire RBACStore in main.go + atomic bulk PUT (M1-FIX-B, M1-FIX-C)
+5d8c3bb feat(rbac): RBAC policy + subject role handlers (M1 PR-G4)
+24815b8 Merge pull request #29 (PR-G3 + FIX-A)
+52538fa fix(rbac): map FK violation to ErrRoleInUse in DeleteRBACRole (M1-FIX-A)
+44f5b9c feat(rbac): postgres RBAC store + users.role FK migration (M1 PR-G3)
+5239a87 Merge pull request #23 (PR-G2)
+1a090a3 Merge pull request #22 (PR-G1)
+950a11f Merge pull request #21 (PR-F ADR-0002)
+ae8aca1 Merge pull request #20 (PR-A SEC-5)
+9bc30c9 Merge pull request #28 (review actions tracker)
+```
+
+## 5. 잔여 환경 제약 / 결정 대기
+
+- **사내 GoProxy mirror 의존**: backend-core `go test ./...` 가 `proxy.golang.org` 도달 가능한 환경에서만 PASS. 사용자 사내 환경에서는 확인됨.
+- **마이그레이션 적용 필요**: `000005_create_rbac_policies` + `000006_users_role_fkey` 가 처음 적용되는 환경에서는 `make migrate-up` 필요. system role seed 3건 자동.
+- **frontend 동작 검증**: 사용자 환경에서 Permission 탭의 e2e 시나리오 (§3.3) 확인 필요.
+- **`/auth/callback` 부재**: M2 후속 (변동 없음).
+- **검증용 임시 OIDC client**: M0 세션의 잔존 — 그대로.
+
+## 6. M0 결과 (참고용 보존)
 
 | SEC | 상태 |
 | --- | --- |
-| SEC-1 frontend mock auth | ✅ resolved (#18) |
-| SEC-2 verifier nil + empty Authorization | ✅ resolved (#15 + #17) |
-| SEC-3 role 미적용 | ✅ resolved (#16) |
-| SEC-4 X-Devhub-Actor fallback | ✅ resolved (#15 dev gate + #19 path 제거) |
-| SEC-5 DB 에러 메시지 노출 | tracked → M1 별도 PR |
-
-코드 영역 `// SECURITY (SEC-*)` 마커 0건. 운영 환경에서 Hydra introspection 사이클 실 검증 PASS.
-
-## 3. 운영 환경 정리
-
-- 본 sandbox 의 Hydra (`:4444/:4445`), Kratos (`:4433/:4434`), backend-core (`:8080`) 백그라운드 프로세스 모두 종료.
-- DB 의 `hydra` / `kratos` schema 와 마이그레이션은 그대로 유지 (다음 세션 재가동 시 즉시 사용 가능).
-- 검증용 임시 OIDC client (`43aa4b74-...`, client_credentials) 는 Hydra 내부에 잔존. 다음 세션에서 정리하거나 무시 (`hydra delete oauth2-client --endpoint http://localhost:4445 <id>`).
-
-## 4. 다음 세션 진입점
-
-### 4.0 M1 sprint 진입 상태 (2026-05-08 갱신)
-
-- 브랜치 `claude/m1-sprint-plan` 생성, sprint backlog 초안 머지 대기 (`ai-workflow/memory/claude/m1-sprint-plan/backlog/2026-05-08.md`).
-- 진입 PR 순서: **M1-PR-A** (SEC-5 `writeServerError` 헬퍼) → **M1-PR-F** (ADR-0002 RBAC 결정) → **M1-PR-B** (envelope/types/WS, 큰 PR) → **M1-PR-C** (cmd lifecycle + auth_test 보강) → **M1-PR-D** (audit actor + request_id 미들웨어).
-- 결정 대기: DoD #6 — RBAC policy 편집 API write 도입 vs static-default 유지 (ADR-0002 으로 처리).
-
-### 4.1 우선순위 1 — M1 sprint (통합 로드맵 §3.2)
-
-| Track | 작업 | 비고 |
-| --- | --- | --- |
-| B·X | API envelope/필드/role wire format 일관 (`backend_api_contract.md` 정합) | M1 DoD #1 |
-| B | command lifecycle 6 상태 일관 적용 + dry-run/live 경계 테스트 | M1 DoD #2 |
-| B | Audit actor 보강 (`source_ip`, `request_id`, `source_type`) | M1 DoD #3 |
-| B | SEC-5 — `writeServerError` 헬퍼 도입 (별도 PR 권장) | M1 DoD #5 |
-| B | RBAC policy 편집 API 결정 (write+audit) | M1 DoD #6 |
-| F | `frontend/lib/services/types.ts` UI vs wire 타입 분리, 표시 포맷 프론트 이전 | M1 DoD #7 |
-| X | WebSocket envelope `{schema_version, type, event_id, occurred_at, data}` 코드/문서 정합 | M1 DoD #8 |
-
-### 4.2 우선순위 2 — M2 잔여 (백엔드 PR-D 의 후속)
-
-- frontend `/auth/callback` 라우트 (Hydra `code` → `/oauth2/token` 교환 → 세션 저장)
-- frontend `account.service.ts` 신설 (Kratos public flow 호출)
-- backend `/api/v1/admin/identities/*` Kratos admin wrapper
-
-### 4.3 운영 강화
-
-- ADR-0001 §9 Phase 2 (Kratos identity 관리 endpoint, `users.status` 동기화) 진입
-- Hydra/Kratos OS service 등록 결정 (NSSM / sc / systemd) — ADR-0002 또는 운영 가이드 보강
-
-## 5. 머지된 PR 흐름 (M0 sprint)
-
-```
-0ea0ce4 Merge pull request #19 (PR-E close SEC-4)
-e540c45 feat(auth): remove X-Devhub-Actor fallback code path
-cf2d55f Merge pull request #18 (PR-D AuthGuard + /api/v1/me)
-e4ddb7c feat(auth): replace mock login with /api/v1/me + OIDC redirect
-21cd24a Merge pull request #17 (PR-C Hydra verifier)
-   ↑ 82769d2 fix Hydra URL Redacted (Codex P1+P2)
-   ↑ c9c77c9 fix Validate Env normalize + HydraRoleClaim
-   ↑ b51d9f9 feat Hydra introspection
-a477ca3 Merge pull request #16 (PR-B role guard)
-5a2fec1 Merge pull request #15 (PR-A auth policy)
-427d618 Merge pull request #14 (planning)
-71233e6 Merge pull request #13 (source-docs split)
-8493b63 Merge pull request #12 (integration)
-```
-
-## 6. 잔여 환경 제약 / 결정 대기
-
-- **사내 GoProxy mirror 의존**: backend-core `go test ./...` 가 `proxy.golang.org` 도달 가능한 환경에서만 PASS. 사용자 사내 환경에서는 PASS 확인됨.
-- **`/auth/callback` 부재**: PR #18 의 `/login` 이 Hydra authorize URL 로 redirect 까지만. 실 OIDC 사이클은 이 라우트 추가까지 미완 — M2 후속.
-- **검증용 임시 OIDC client**: 본 세션에서 `client_credentials` grant 의 임시 client 1건을 Hydra 에 등록한 상태로 종료. 보안상 바로 삭제하거나 무시.
-- **SEC-5 (DB 에러 노출)**: 별도 cleanup PR 로 분리됨, M1 진입 시 첫 항목으로 처리 권장.
+| SEC-1~4 | ✅ resolved (M0 PR #15·16·17·18·19) |
+| SEC-5 (DB 에러 노출) | ✅ resolved (M1 PR #20, `writeServerError` 헬퍼) |

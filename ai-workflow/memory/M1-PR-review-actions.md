@@ -2,7 +2,7 @@
 
 - 문서 목적: M1 sprint 의 8개 PR 에 대한 자체 리뷰 + Codex bot 자동 리뷰 종합. 머지 시점에 *해소된* 항목과 *후속 개발로 넘긴* 항목을 분리해 다음 세션 진입자가 즉시 인지하도록 한다.
 - 범위: PR #20 (M1 PR-A SEC-5) ~ PR #27 (M1 PR-G6 frontend RBAC integration)
-- 상태: in_progress (머지 작업과 동시 갱신)
+- 상태: done (FIX A~D 모두 머지, DEFER A~G 백로그 인계)
 - 최종 수정일: 2026-05-08
 - 관련 문서: [M1 sprint backlog](./claude/m1-sprint-plan/backlog/2026-05-08.md), [ADR-0002](../../docs/adr/0002-rbac-policy-edit-api.md), [API contract §12](../../docs/backend_api_contract.md), [PR-12 review-actions 패턴](./PR-12-review-actions.md)
 
@@ -128,22 +128,23 @@
 
 ---
 
-## 4. 머지 순서
+## 4. 머지 결과 (실제 진행)
 
-P1 fix amend 가 필요한 PR 두 건 (#24, #25) 을 amend 하고, P2 사용자 가시 결함 하나 (#27) 도 amend. 나머지는 즉시 머지 가능.
+| 순서 | 머지 PR | 변경 PR | 적용 | 상태 |
+| --- | --- | --- | --- | --- |
+| 1 | #28 | review actions 문서 | — | MERGED |
+| 2 | #20 | SEC-5 mask + sprint plan | — | MERGED |
+| 3 | #21 | ADR-0002 | — | MERGED |
+| 4 | #22 | contract §12 | — | MERGED |
+| 5 | #23 | domain + migration | — | MERGED |
+| 6 | #29 | store + FK | M1-FIX-A | MERGED |
+| 7 | #30 | handlers + main.go wiring | M1-FIX-B + M1-FIX-C | MERGED |
+| 8 | #31 | permission cache + enforcement | (FIX-C 으로 자동 해소) | MERGED |
+| 9 | #27 | frontend RBAC | M1-FIX-D | MERGED |
 
-| 순서 | PR | 작업 |
-| --- | --- | --- |
-| 1 | #20 SEC-5 | 즉시 머지 |
-| 2 | #21 ADR-0002 | 즉시 머지 |
-| 3 | #22 contract §12 | 즉시 머지 |
-| 4 | #23 domain | 즉시 머지 (M1-DEFER-A 후속) |
-| 5 | #24 store + FK | M1-FIX-A amend → base main 변경 → 머지 |
-| 6 | #25 handlers | M1-FIX-B + M1-FIX-C amend → base main 변경 → 머지 |
-| 7 | #26 enforcement | base main 변경 → 머지 (PR-G4 atomic 후 stale 자동 해소) |
-| 8 | #27 frontend | M1-FIX-D amend → 머지 |
+원본 PR #24, #25, #26 은 stack base 자동 삭제로 close 됨 (head 브랜치는 #29/#30/#31 로 main 위에서 재등록).
 
-본 리뷰 actions 문서 자체도 별도 PR 로 머지 (본 PR).
+main HEAD 회귀: `go build / vet / test ./...` 모두 PASS.
 
 ---
 
@@ -152,3 +153,4 @@ P1 fix amend 가 필요한 PR 두 건 (#24, #25) 을 amend 하고, P2 사용자 
 | 일자 | 변경 |
 | --- | --- |
 | 2026-05-08 | 초판 작성 — PR #20~#27 종합 리뷰 결과, FIX A~D + DEFER A~G 정리 |
+| 2026-05-08 | FIX A~D 모두 머지 완료. PR #28~#31 머지 결과 §4 갱신. 상태 done. DEFER A~G 는 다음 sprint 백로그로 인계 (`work_backlog.md` §3 참조) |
