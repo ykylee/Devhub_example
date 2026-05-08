@@ -2,41 +2,66 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShieldCheck, Lock, Plus, Edit3, Trash2, ShieldAlert, Eye, Pencil, Crown, Shield } from "lucide-react";
+import { ShieldCheck, Lock, Plus, Trash2, ShieldAlert, Eye, Pencil, Crown, Shield, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PermissionMatrix, PermissionState } from "./PermissionMatrix";
-import { Role } from "@/lib/services/rbac.types";
+import { Role, AUDIT_LOCKED_ACTIONS } from "@/lib/services/rbac.types";
 
 interface PermissionEditorProps {
   roles: Role[];
   setRoles: (roles: Role[]) => void;
+  onSave?: () => Promise<void> | void;
+  onCreate?: (role: Role) => Promise<void> | void;
+  onDelete?: (roleId: string) => Promise<void> | void;
+  saving?: boolean;
+  errorMessage?: string | null;
+  isDirty?: boolean;
 }
 
-export function PermissionEditor({ roles, setRoles }: PermissionEditorProps) {
+export function PermissionEditor({
+  roles,
+  setRoles,
+  onSave,
+  onCreate,
+  onDelete,
+  saving = false,
+  errorMessage,
+  isDirty = false,
+}: PermissionEditorProps) {
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
 
   const selectedRole = roles.find(r => r.id === selectedRoleId);
 
-  const handleCreateRole = () => {
+  const handleCreateRole = async () => {
     const newRole: Role = {
       id: `custom-${Date.now()}`,
       name: "New Custom Role",
       description: "Define custom access policies for this role.",
-      permissions: {}
+      system: false,
+      permissions: {},
     };
-    setRoles([...roles, newRole]);
+    if (onCreate) {
+      await onCreate(newRole);
+    } else {
+      setRoles([...roles, newRole]);
+    }
     setSelectedRoleId(newRole.id);
   };
 
-  const handleDeleteRole = (id: string) => {
-    if (id === "sysadmin") return; // Prevent deleting sysadmin
-    setRoles(roles.filter(r => r.id !== id));
+  const handleDeleteRole = async (id: string) => {
+    const target = roles.find(r => r.id === id);
+    if (target?.system) return;
+    if (onDelete) {
+      await onDelete(id);
+    } else {
+      setRoles(roles.filter(r => r.id !== id));
+    }
     if (selectedRoleId === id) setSelectedRoleId(null);
   };
 
   const handleUpdatePermissions = (newPermissions: PermissionState) => {
     if (!selectedRoleId) return;
-    setRoles(roles.map(r => 
+    setRoles(roles.map(r =>
       r.id === selectedRoleId ? { ...r, permissions: newPermissions } : r
     ));
   };
@@ -55,22 +80,44 @@ export function PermissionEditor({ roles, setRoles }: PermissionEditorProps) {
             </p>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-6">
           <div className="hidden md:flex items-center gap-3 text-[10px] font-black uppercase tracking-widest">
             <LegendChip type="read" label="Read" />
             <LegendChip type="write" label="Write" />
             <LegendChip type="admin" label="Admin" />
           </div>
-          <button 
+          {onSave && (
+            <button
+              onClick={() => onSave()}
+              disabled={saving || !isDirty}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 font-bold rounded-xl transition-all text-sm",
+                saving || !isDirty
+                  ? "bg-white/5 text-white/30 cursor-not-allowed"
+                  : "bg-emerald-500 text-emerald-50 hover:bg-emerald-500/90"
+              )}
+            >
+              <Save className="w-4 h-4" />
+              {saving ? "Saving…" : "Save Permissions"}
+            </button>
+          )}
+          <button
             onClick={handleCreateRole}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all text-sm"
+            disabled={saving}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all text-sm disabled:opacity-50"
           >
             <Plus className="w-4 h-4" />
             Create Role
           </button>
         </div>
       </div>
+
+      {errorMessage && (
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          {errorMessage}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-5 space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
@@ -87,14 +134,14 @@ export function PermissionEditor({ roles, setRoles }: PermissionEditorProps) {
                   onClick={() => setSelectedRoleId(role.id)}
                   className={cn(
                     "rounded-2xl p-6 relative overflow-hidden cursor-pointer transition-all border",
-                    isSelected 
-                      ? "bg-primary/10 border-primary/50 shadow-[0_0_30px_rgba(var(--primary),0.15)]" 
+                    isSelected
+                      ? "bg-primary/10 border-primary/50 shadow-[0_0_30px_rgba(var(--primary),0.15)]"
                       : "glass border-white/10 hover:border-white/20"
                   )}
                 >
-                  <div className={cn("absolute top-0 left-0 w-1.5 h-full", 
-                    role.id === 'sysadmin' ? "bg-orange-500" :
-                    role.id === 'manager' ? "bg-emerald-500" : 
+                  <div className={cn("absolute top-0 left-0 w-1.5 h-full",
+                    role.id === 'system_admin' ? "bg-orange-500" :
+                    role.id === 'manager' ? "bg-emerald-500" :
                     isSelected ? "bg-primary" : "bg-blue-500"
                   )} />
 
@@ -103,10 +150,11 @@ export function PermissionEditor({ roles, setRoles }: PermissionEditorProps) {
                       <h4 className={cn("text-lg font-black", isSelected ? "text-primary" : "text-white")}>
                         {role.name}
                       </h4>
-                      {role.id !== 'sysadmin' && (
-                        <button 
+                      {!role.system && (
+                        <button
                           onClick={(e) => { e.stopPropagation(); handleDeleteRole(role.id); }}
-                          className="p-1.5 rounded-lg text-white/40 hover:text-red-400 hover:bg-red-400/10 transition-colors"
+                          disabled={saving}
+                          className="p-1.5 rounded-lg text-white/40 hover:text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-30"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -120,6 +168,11 @@ export function PermissionEditor({ roles, setRoles }: PermissionEditorProps) {
                       <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider">
                         {Object.keys(role.permissions).length} Resources Configured
                       </span>
+                      {role.system && (
+                        <span className="text-[10px] font-bold text-orange-400/70 uppercase tracking-wider ml-1">
+                          System
+                        </span>
+                      )}
                     </div>
                   </div>
                 </motion.div>
@@ -145,15 +198,15 @@ export function PermissionEditor({ roles, setRoles }: PermissionEditorProps) {
                   </div>
                   <p className="text-sm text-muted-foreground">
                     Configure fine-grained access policies for <strong className="text-white">{selectedRole.name}</strong>.
-                    Changes are automatically applied to users mapped to this role.
+                    {" Audit logs are append-only — write actions on the audit row stay locked."}
                   </p>
                 </div>
-                
+
                 <div className="flex-1">
-                  <PermissionMatrix 
-                    permissions={selectedRole.permissions} 
+                  <PermissionMatrix
+                    permissions={selectedRole.permissions}
                     onChange={handleUpdatePermissions}
-                    readOnly={selectedRole.id === 'sysadmin'} 
+                    lockedCells={AUDIT_LOCKED_ACTIONS}
                   />
                 </div>
               </motion.div>
@@ -189,7 +242,7 @@ function LegendChip({ type, label }: { type: 'read' | 'write' | 'admin'; label: 
     admin: "bg-accent/15 border-accent/40 text-accent"
   };
   const Icon = icons[type];
-  
+
   return (
     <span className={cn("px-2.5 py-1 rounded-lg border flex items-center gap-1.5", styles[type])}>
       <Icon className="w-3 h-3" />
