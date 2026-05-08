@@ -57,18 +57,21 @@
 | INF-1 | `docker-compose.yml`, `frontend/next.config.ts` | docker 의존을 기본 가정으로 만든 변경 | BLK-1 결정으로 `docker-compose.yml` 은 git 추적 해제됨. `frontend/next.config.ts` 만 BLK-2 로 처리. | resolved (compose 측) / open (next.config 측 → BLK-2) |
 | INF-2 | DB 포트 5432 → 5433 매핑 | 로컬 PG 와의 충돌 회피 — 정책 유지 시 의미 없음 | `docker-compose.yml` 자체가 git 외부로 이동. 환경별 포트 매핑은 사용자 로컬 자산에서 관리. | resolved |
 
-### 3.5 PR 분할 권장
+### 3.5 PR 분할 — 결정 (2026-05-08)
 
-353 files 단일 머지는 회귀 추적·롤백이 사실상 불가. 다음 단위로 분할:
+영역별 분량 측정 결과 `source-docs/workflow-source/**` 가 추가 라인의 61% 를 차지하면서 다른 영역과 결합도 0 이라 단독 분리 가성비가 가장 높았다. 사용자 결정: **source-docs 만 분리**.
 
-1. backend-core 신규 API + 테스트 (auth, rbac, realtime, audit, commands, organization 변경)
-2. frontend Phase 5.2 (login/account/gardener/AuthGuard/websocket/rbac UI)
-3. infra (docker-compose, next.config) — BLK-1 결정에 종속
-4. `ai-workflow/memory/**` 브랜치별 메모리 정리
-5. `source-docs/workflow-source/**` 대량 자료 (단독 PR 권장)
-6. `tests/devhub_temp_source/**` 분리·제거
+| 후보 영역 | 결정 | 근거 |
+| --- | --- | --- |
+| `source-docs/workflow-source/**` (148 files, +19,317) | **분리 → PR #13** (`chore/source-docs-workflow-import`) | 결합도 0, PR #12 코드 리뷰 분량 즉시 절반 이하로 감소 |
+| `ai-workflow/**` (121 files, +9.7k/-4.5k) | 본 PR 유지 | 본 PR 의 작업 기록이라 history 일관성 |
+| `backend-core/**` (21 files, +1.8k) | 본 PR 유지 | frontend 와 강결합 (rbac/audit/auth API) |
+| `frontend/**` (31 files, +1.8k) | 본 PR 유지 | backend API 호출 |
+| `docs/**` (15 files, +841) | 본 PR 유지 | backend/frontend 와 결합 |
+| `tests/devhub_temp_source/**` | 제거 (HYG-4) | 임시 자료, release artifact |
+| infra (docker-compose, Dockerfile) | git 추적 외부 (BLK-1) | 환경별 자산 |
 
-분할이 어렵다면 file-path 기준으로 reviewer 를 분담시키도록 review 코멘트를 영역별로 정리.
+후속 commit 으로 본 PR 의 `source-docs/workflow-source/**` 를 제거하여 PR #13 과 path 충돌을 정리한다.
 
 ### 3.6 self-review 의 follow-up 흡수
 
