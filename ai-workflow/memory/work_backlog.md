@@ -10,7 +10,7 @@
 | 마일스톤 | 상태 | 종료 일자 | 메모 |
 | --- | --- | --- | --- |
 | **M0** — 보안 게이트 통과 | ✅ done | 2026-05-08 | PR #14·15·16·17·18·19. SEC-1~4 resolved. T-M0-10 운영 검증 PASS. |
-| **M1** — 핵심 기능 contract 정합성 | 진입 대기 | — | 통합 로드맵 §3.2 의 8 항목 DoD. SEC-5 (DB 에러 마스킹) 별도 PR 로 진입 권장. |
+| **M1** — 핵심 기능 contract 정합성 | 🟡 in_progress | — | sprint planning branch `claude/m1-sprint-plan`, backlog 초안 작성 완료 (T-M1-01..08). 진입 PR 순서: PR-A SEC-5 → PR-F RBAC ADR → PR-B contract → PR-C cmd lifecycle → PR-D audit. |
 | **M2** — 사용자 경험 정합 (Phase 4·5 잔여 + Phase 6/6.1) | planned | — | 통합 로드맵 §3.3. M0 의 잔여 (`/auth/callback`, `account.service.ts`) 도 흡수. |
 | **M3** — Realtime 확장 + 외부 연동 1차 | planned | — | 통합 로드맵 §3.4. |
 | **M4** — 운영 / SSO / MFA / 후속 ADR | planned | — | 통합 로드맵 §3.5. ADR-0002 (Gitea SSO) 등. |
@@ -63,3 +63,4 @@
 | --- | --- |
 | 2026-05-07 | PR #12 통합 sprint 종료 (BLK/SEC/HYG 트래커 등록) |
 | 2026-05-08 | PR #13~#19 머지. 통합 로드맵 채택 + M0 sprint 종료. flat memory 갱신. |
+| 2026-05-08 | M1 sprint 진입. `claude/m1-sprint-plan` 브랜치 + backlog 초안. 진입 PR 5건 분할 결정. |
