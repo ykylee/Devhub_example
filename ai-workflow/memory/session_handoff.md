@@ -1,10 +1,20 @@
-# Session Handoff — main (post M1 RBAC track)
+# Session Handoff — main (M2 login_action sprint in_review)
 
-- 브랜치: `main`
-- HEAD: `e02ba67` (Merge pull request #27 from ykylee/claude/m1-pr-g6-frontend-rbac)
+- 브랜치: `main` (HEAD `dbff50f`, M1 RBAC track 종료 직후)
 - 최종 수정일: 2026-05-08
-- 상태: M1 RBAC track (PR-A·F·G1~G6) 머지 완료. M1 잔여 (PR-B/C/D) + DEFER A~G 다음 세션 인계.
-- 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [M1 sprint backlog](./claude/m1-sprint-plan/backlog/2026-05-08.md), [M1 PR 리뷰 actions](./M1-PR-review-actions.md), [ADR-0002 RBAC](../../docs/adr/0002-rbac-policy-edit-api.md), [상태 스냅샷](./state.json), [상위 backlog](./work_backlog.md)
+- 상태: M1 RBAC track 머지 완료. M2 login_action sprint 진입 — PR-LOGIN-1/2 push 머지 대기, PR-LOGIN-3/4 미진입.
+- 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [M2 login_action backlog](./claude/login_action/backlog/2026-05-08.md), [ADR-0001 IdP](../../docs/adr/0001-idp-selection.md), [M1 sprint backlog](./claude/m1-sprint-plan/backlog/2026-05-08.md), [M1 PR 리뷰 actions](./M1-PR-review-actions.md), [ADR-0002 RBAC](../../docs/adr/0002-rbac-policy-edit-api.md), [상태 스냅샷](./state.json), [상위 backlog](./work_backlog.md)
+
+## 0. 직전 활동 요약 (2026-05-08, M2 login_action sprint 진입)
+
+| Phase | PR | 결과 |
+| --- | --- | --- |
+| 로그인 페이지/기능 검토 | — | 진단: `/login` UI 만 존재, OIDC code flow 의 frontend 4단계 (login UI · callback · token exchange · token storage) + backend Kratos/Hydra proxy 모두 부재. |
+| **PR-LOGIN-1** backend `/api/v1/auth/login` proxy | #33 | pushed, OPEN. Kratos public flow + Hydra admin login accept. 9 handler tests. |
+| **PR-LOGIN-2** frontend `/auth/login` password form + redirect_uri 통일 | #34 | pushed, OPEN, base = `claude/login_action`. 13 static pages (`/auth/login`, `/auth/error` 추가). |
+| PR-LOGIN-3·4 | — | 미진입 |
+
+stack 머지 절차: PR #33 → main → #34 base 변경 → 머지.
 
 ## 1. 본 세션 활동 요약 (2026-05-08, M1 RBAC track)
 
@@ -31,6 +41,17 @@ main 회귀: `go build / vet / test ./...` PASS.
 
 ## 3. 다음 세션 진입점
 
+### 3.0 우선순위 0 — M2 login_action 잔여 (PR-LOGIN-3/4)
+
+[backlog](./claude/login_action/backlog/2026-05-08.md) §1 의 PR-LOGIN-3·4 spec 참조.
+
+| PR | 작업 | 결정 대기 |
+| --- | --- | --- |
+| **PR-LOGIN-3** | `/auth/callback` 라우트 + Hydra `/oauth2/token` PKCE 교환 + token 저장 + httpClient 추상화 + Authorization 헤더 자동 부착. 머지 시 첫 e2e 로그인 성공 가능. | **Token 저장 방식**: sessionStorage (SPA 표준, ADR-0001 §6 일치) vs httpOnly cookie via BFF (보안 ↑, backend 가 token 보유). 진입 시 사용자 결정. |
+| **PR-LOGIN-4** | logout (Hydra revoke + token 삭제) + `/account` 비밀번호 변경 (Kratos public `/self-service/settings`). | account.service.ts 의 mock 제거. |
+
+머지 순서 권장: #33 → #34 → PR-LOGIN-3 → PR-LOGIN-4.
+
 ### 3.1 우선순위 1 — M1 잔여 (PR-B/C/D)
 
 | Track | 작업 | DoD | 우선 |
@@ -56,6 +77,20 @@ main 회귀: `go build / vet / test ./...` PASS.
 - `make migrate-up` 후 `rbac_policies` 시스템 role 3개 seed 확인
 - `DEVHUB_TEST_DB_URL=...` 셋 후 `cd backend-core && go test ./internal/store/...` 의 8 RBAC 통합 케이스 PASS
 - frontend Organization > Permissions 탭 e2e: list / matrix toggle / Save / Create custom / Delete custom / 시스템 role 삭제 거부 / role-in-use 거부
+
+### 3.4 우선순위 4 — M2 login_action 운영 검증 (PR-LOGIN-1/2 머지 후)
+
+- Hydra/Kratos 실행 (binary 설치 후 `hydra serve all --config infra/idp/hydra.yaml --dev` + `kratos serve --config infra/idp/kratos.yaml`)
+- `infra/idp/scripts/register-devhub-client.ps1` 실행 (devhub-frontend OIDC client 등록 — redirect_uri = `/auth/callback`)
+- Kratos identity 1건 생성 + `metadata_public.user_id` 셋 (DevHub `users.user_id` 와 매핑)
+- backend `DEVHUB_HYDRA_ADMIN_URL` + `DEVHUB_KRATOS_PUBLIC_URL` 셋 후 재시작
+- curl e2e:
+  ```
+  curl -X POST http://localhost:8080/api/v1/auth/login \
+       -H "Content-Type: application/json" \
+       -d '{"login_challenge":"<from Hydra>","identifier":"<email>","password":"<pw>"}'
+  ```
+- frontend e2e (PR-LOGIN-3 머지 후): `/login` → 폼 → `/developer` 진입까지
 
 ## 4. 머지된 PR 흐름 (M1 RBAC track)
 
