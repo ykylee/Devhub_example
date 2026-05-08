@@ -82,7 +82,7 @@ func (h Handler) dashboardMetrics(c *gin.Context) {
 	provider := h.snapshotProvider()
 	metrics, ok, err := provider.DashboardMetrics(c.Request.Context(), role)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		writeServerError(c, err, "snapshot.dashboard_metrics")
 		return
 	}
 	if !ok {
@@ -108,7 +108,7 @@ func (h Handler) infraNodes(c *gin.Context) {
 	provider := h.snapshotProvider()
 	nodes, err := provider.InfraNodes(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		writeServerError(c, err, "snapshot.infra_nodes")
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
@@ -125,7 +125,7 @@ func (h Handler) infraEdges(c *gin.Context) {
 	provider := h.snapshotProvider()
 	edges, err := provider.InfraEdges(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		writeServerError(c, err, "snapshot.infra_edges")
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
@@ -142,12 +142,12 @@ func (h Handler) infraTopology(c *gin.Context) {
 	provider := h.snapshotProvider()
 	nodes, err := provider.InfraNodes(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		writeServerError(c, err, "snapshot.infra_topology.nodes")
 		return
 	}
 	edges, err := provider.InfraEdges(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		writeServerError(c, err, "snapshot.infra_topology.edges")
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
@@ -174,7 +174,7 @@ func (h Handler) ciRuns(c *gin.Context) {
 		opts.Status = c.Query("status")
 		runs, err := h.cfg.DomainStore.ListCIRuns(c.Request.Context(), opts)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+			writeServerError(c, err, "snapshot.ci_runs.db")
 			return
 		}
 		if len(runs) > 0 {
@@ -215,7 +215,7 @@ func (h Handler) ciRuns(c *gin.Context) {
 	provider := h.snapshotProvider()
 	runs, err := provider.CIRuns(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		writeServerError(c, err, "snapshot.ci_runs.provider")
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
@@ -234,7 +234,7 @@ func (h Handler) ciRunLogs(c *gin.Context) {
 	provider := h.snapshotProvider()
 	logs, ok, err := provider.CILogs(c.Request.Context(), ciRunID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		writeServerError(c, err, "snapshot.ci_run_logs")
 		return
 	}
 	if !ok {
@@ -264,7 +264,7 @@ func (h Handler) criticalRisks(c *gin.Context) {
 			Impact: "high",
 		})
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+			writeServerError(c, err, "snapshot.critical_risks.db")
 			return
 		}
 		if len(risks) > 0 {
@@ -287,7 +287,7 @@ func (h Handler) criticalRisks(c *gin.Context) {
 	provider := h.snapshotProvider()
 	risks, err := provider.CriticalRisks(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": err.Error()})
+		writeServerError(c, err, "snapshot.critical_risks.provider")
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{

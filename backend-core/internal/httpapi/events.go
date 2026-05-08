@@ -55,10 +55,7 @@ func (h Handler) listWebhookEvents(c *gin.Context) {
 		Offset: offset,
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status": "failed",
-			"error":  err.Error(),
-		})
+		writeServerError(c, err, "events.list_webhook_events")
 		return
 	}
 
