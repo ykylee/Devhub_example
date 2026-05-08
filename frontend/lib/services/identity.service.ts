@@ -159,6 +159,20 @@ export interface UpdateUnitPayload {
   position_y?: number;
 }
 
+export interface MeResponse {
+  login: string;
+  subject?: string;
+  role?: string;
+  actor_source?: string;
+}
+
+export interface ResolvedActor {
+  login: string;
+  subject?: string;
+  role: OrgMember["role"];
+  source?: string;
+}
+
 export class IdentityServiceError extends Error {
   constructor(public status: number, public payload: unknown, message: string) {
     super(message);
@@ -234,6 +248,20 @@ export class IdentityService {
       IdentityService.instance = new IdentityService();
     }
     return IdentityService.instance;
+  }
+
+  // whoAmI calls /api/v1/me to resolve the current authenticated actor. Throws IdentityServiceError(401) when the request is unauthenticated; the caller (typically AuthGuard) is responsible for redirecting to /login.
+  async whoAmI(): Promise<ResolvedActor> {
+    const result = await jsonRequest<ApiResponse<MeResponse>>("GET", `/api/v1/me`);
+    if (!result.data) {
+      throw new IdentityServiceError(500, result, "missing me payload");
+    }
+    return {
+      login: result.data.login,
+      subject: result.data.subject,
+      role: ROLE_BACKEND_TO_UI[result.data.role ?? ""] ?? "Developer",
+      source: result.data.actor_source,
+    };
   }
 
   async getUsers(): Promise<OrgMember[]> {

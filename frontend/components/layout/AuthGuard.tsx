@@ -5,29 +5,49 @@ import { useRouter, usePathname } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { Loader2 } from "lucide-react";
 import { websocketService, WsMessage } from "@/lib/services/websocket.service";
+import { identityService, IdentityServiceError } from "@/lib/services/identity.service";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { role, addToast, incrementNotifications } = useStore();
+  const { actor, setActor, clearActor, addToast, incrementNotifications } = useStore();
   const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
-    // SECURITY (SEC-1): mock auth — role-only gate, no token verification. Replace before prod. Tracked in ai-workflow/memory/claude/test/backend-integration/backlog/2026-05-08.md.
-    if (!role) {
-      router.replace("/login");
-    } else {
-      setIsAuthorized(true);
-    }
-  }, [role, router, pathname]);
+    let cancelled = false;
+    (async () => {
+      try {
+        const resolved = await identityService.whoAmI();
+        if (cancelled) return;
+        setActor({
+          login: resolved.login,
+          subject: resolved.subject,
+          role: resolved.role,
+          source: resolved.source,
+        });
+        setIsAuthorized(true);
+      } catch (err) {
+        if (cancelled) return;
+        clearActor();
+        setIsAuthorized(false);
+        if (err instanceof IdentityServiceError && err.status === 401) {
+          router.replace("/login");
+          return;
+        }
+        console.error("[AuthGuard] whoAmI failed", err);
+        router.replace("/login");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname, router, setActor, clearActor]);
 
   useEffect(() => {
     if (!isAuthorized) return;
 
-    // Connect WebSocket when authorized
     websocketService.connect();
 
-    // Global Event Handlers
     const handleNotification = (msg: WsMessage) => {
       incrementNotifications();
       addToast(msg.data?.message || "New Notification", "info");
@@ -47,7 +67,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     };
   }, [isAuthorized, incrementNotifications, addToast]);
 
-  if (!isAuthorized) {
+  if (!isAuthorized || !actor) {
     return (
       <div className="flex items-center justify-center h-screen bg-[#030014]">
         <div className="flex flex-col items-center gap-4">
