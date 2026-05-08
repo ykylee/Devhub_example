@@ -92,19 +92,18 @@ PR description 의 향후 작업도 동일 트래커:
 - WebSocket 실시간 명령 상태 스트레스 테스트 → 검증 backlog
 - main 머지 → 본 문서의 모든 블로커 해소 조건
 
-## 4. 머지 전 검증 체크리스트
+## 4. 머지 전 검증 체크리스트 (2026-05-08 갱신)
 
-PR 코멘트로 결과를 첨부.
-
-- [ ] BLK-1 의사결정 기록 (정책 유지/갱신, 어디에 기록했는지)
-- [ ] BLK-2 next.config fallback 수정 후 native dev 환경에서 `/api/*` 통신 확인
-- [ ] BLK-3 organization.go audit 실패 패턴 통일 후 update/delete 핸들러 점검
-- [ ] SEC-1, SEC-2 backlog 항목 등록 (위치/ID 첨부)
-- [ ] HYG-1~5 처리 또는 별도 cleanup PR 발행
-- [ ] `cd backend-core && go test ./...` 결과 첨부
-- [ ] `cd frontend && npm run build && npx tsc --noEmit` 결과 첨부
-- [ ] `pytest ai-workflow/tests/check_docs.py` 결과 첨부
-- [ ] PR 분할 결정 기록 (분할 시 신규 PR 번호, 미분할 시 사유)
+- [x] BLK-1 의사결정 기록 — 컨테이너 자산 git 추적 외부, 가이드만 git (commit `5c45ea0`, `feedback_no_docker.md` 갱신)
+- [x] BLK-2 next.config fallback 수정 후 native dev 환경에서 `/api/*` 통신 확인 — 실통신 확인은 PR 작성자 환경에서 수행 (commit `a1dca14`)
+- [x] BLK-3 organization.go audit 실패 패턴 통일 후 update/delete 핸들러 점검 — 7곳 일괄 교체, 다른 핸들러 grep 검증 완료 (commit `2f9cae8`)
+- [x] SEC-1, SEC-2 backlog 항목 등록 — `claude/test/backend-integration/backlog/2026-05-08.md` (commit `8c0b35d`)
+- [x] HYG-1~5 처리 — 11 파일 정리 + `_archive/legacy-flat-backlog/` 보존 (commit `db5bf27`, `5b6b00d`)
+- [x] PR 분할 결정 기록 — `source-docs/workflow-source/**` 만 PR #13 으로 분리 (commit `fe593e7`, §3.5 표)
+- [x] **추가** SEC-3/SEC-4/SEC-5 신설 — 코드베이스 전체 보안 리뷰 결과 (commit `9971a47`)
+- [x] `cd frontend && npm run build && npx tsc --noEmit` 결과 첨부 — **PASS** (Next.js 16.2.4, 4.3s 컴파일 + 4.8s TypeScript, 11 페이지 정적 생성, 타입 오류 없음)
+- [ ] `cd backend-core && go test ./...` — **BLOCKED**: 로컬 GOPROXY (`proxy.golang.org`) 차단 환경에서 외부 의존(`gorilla/websocket@v1.5.3` 등) 다운로드 실패. PR 작성자 환경 또는 사내 mirror 가 설정된 환경에서 실행 후 결과 코멘트로 첨부 필요
+- [ ] `pytest ai-workflow/tests/check_docs.py` — **N/A**: `ai-workflow/tests/` 는 `.gitignore` 로 추적 외부 (bootstrap 후 설치 자료). 작업트리에 부재. workflow kit 부트스트랩이 끝난 환경에서만 실행 가능
 
 ## 5. 다음 세션 인계 메모
 
