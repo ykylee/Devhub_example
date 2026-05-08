@@ -23,8 +23,10 @@ export default function OrganizationPage() {
   const [members, setMembers] = useState<OrgMember[]>([]);
   const [orgNodes, setOrgNodes] = useState<OrgNode[]>([]);
   const [unitMembers, setUnitMembers] = useState<Record<string, string[]>>({});
-  const [roles, setRoles] = useState<Role[]>(defaultRoles);
-  const [rolesBaseline, setRolesBaseline] = useState<Role[]>(defaultRoles);
+  // M1-FIX-D: lazy initializer + deep clone so PermissionMatrix toggles
+  // do not mutate the baseline through shared nested permission objects.
+  const [roles, setRoles] = useState<Role[]>(() => cloneRoles(defaultRoles));
+  const [rolesBaseline, setRolesBaseline] = useState<Role[]>(() => cloneRoles(defaultRoles));
   const [rolesError, setRolesError] = useState<string | null>(null);
   const [savingRoles, setSavingRoles] = useState(false);
   const [managingUnitId, setManagingUnitId] = useState<string | null>(null);
