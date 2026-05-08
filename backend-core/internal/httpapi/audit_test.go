@@ -75,7 +75,7 @@ func TestListAuditLogsFiltersByTarget(t *testing.T) {
 		TargetType: "org_unit",
 		TargetID:   "team-a",
 	})
-	router := NewRouter(RouterConfig{AuditStore: audits})
+	router := testRouter(RouterConfig{AuditStore: audits})
 
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/audit-logs?target_type=user", nil))
@@ -104,7 +104,7 @@ func TestListAuditLogsFiltersByTarget(t *testing.T) {
 func TestCreateUserWritesAuditLogWithActorWarning(t *testing.T) {
 	orgs := newMemoryOrganizationStore()
 	audits := &memoryAuditStore{}
-	router := NewRouter(RouterConfig{OrganizationStore: orgs, AuditStore: audits})
+	router := testRouter(RouterConfig{OrganizationStore: orgs, AuditStore: audits})
 
 	body := []byte(`{
 		"user_id": "u-audit",

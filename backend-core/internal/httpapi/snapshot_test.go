@@ -14,7 +14,7 @@ import (
 
 func TestDashboardMetricsAcceptsRoleWireFormat(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	router := NewRouter(RouterConfig{})
+	router := testRouter(RouterConfig{})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/dashboard/metrics?role=system_admin", nil)
 	rec := httptest.NewRecorder()
@@ -54,7 +54,7 @@ func TestDashboardMetricsAcceptsRoleWireFormat(t *testing.T) {
 
 func TestDashboardMetricsUsesInjectedSnapshotProvider(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	router := NewRouter(RouterConfig{SnapshotProvider: testSnapshotProvider{source: "test-provider"}})
+	router := testRouter(RouterConfig{SnapshotProvider: testSnapshotProvider{source: "test-provider"}})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/dashboard/metrics?role=developer", nil)
 	rec := httptest.NewRecorder()
@@ -85,7 +85,7 @@ func TestDashboardMetricsUsesInjectedSnapshotProvider(t *testing.T) {
 
 func TestDashboardMetricsRejectsUnknownRole(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	router := NewRouter(RouterConfig{})
+	router := testRouter(RouterConfig{})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/dashboard/metrics?role=System%20Admin", nil)
 	rec := httptest.NewRecorder()
@@ -98,7 +98,7 @@ func TestDashboardMetricsRejectsUnknownRole(t *testing.T) {
 
 func TestInfraTopologyReturnsNodesAndEdges(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	router := NewRouter(RouterConfig{})
+	router := testRouter(RouterConfig{})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/infra/topology", nil)
 	rec := httptest.NewRecorder()
@@ -140,7 +140,7 @@ func TestInfraTopologyReturnsNodesAndEdges(t *testing.T) {
 
 func TestInfraTopologyUsesInjectedSnapshotProvider(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	router := NewRouter(RouterConfig{SnapshotProvider: testSnapshotProvider{source: "adapter"}})
+	router := testRouter(RouterConfig{SnapshotProvider: testSnapshotProvider{source: "adapter"}})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/infra/topology", nil)
 	rec := httptest.NewRecorder()
@@ -179,7 +179,7 @@ func TestInfraTopologyUsesInjectedSnapshotProvider(t *testing.T) {
 
 func TestCIRunLogsReturnsNotFound(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	router := NewRouter(RouterConfig{})
+	router := testRouter(RouterConfig{})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/ci-runs/unknown/logs", nil)
 	rec := httptest.NewRecorder()
@@ -192,7 +192,7 @@ func TestCIRunLogsReturnsNotFound(t *testing.T) {
 
 func TestCriticalRisksReturnsActionableFields(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	router := NewRouter(RouterConfig{})
+	router := testRouter(RouterConfig{})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/risks/critical", nil)
 	rec := httptest.NewRecorder()
@@ -226,7 +226,7 @@ func TestCriticalRisksReturnsActionableFields(t *testing.T) {
 func TestCriticalRisksUsesDBWhenAvailable(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	now := time.Date(2026, 5, 3, 10, 0, 0, 0, time.UTC)
-	router := NewRouter(RouterConfig{DomainStore: &memoryDomainStore{
+	router := testRouter(RouterConfig{DomainStore: &memoryDomainStore{
 		risks: []domain.Risk{
 			{
 				RiskKey:          "ci_failure:502",

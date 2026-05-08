@@ -7,7 +7,7 @@ import (
 )
 
 func TestGetRBACPolicyReturnsDefaultMatrix(t *testing.T) {
-	router := NewRouter(RouterConfig{})
+	router := testRouter(RouterConfig{})
 
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/rbac/policy", nil))

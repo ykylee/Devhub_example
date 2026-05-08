@@ -114,7 +114,7 @@ func (s *memoryCommandStore) GetCommand(_ context.Context, commandID string) (do
 func TestCreateServiceActionReturnsCommandLifecycle(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	commandStore := &memoryCommandStore{}
-	router := NewRouter(RouterConfig{CommandStore: commandStore})
+	router := testRouter(RouterConfig{CommandStore: commandStore})
 
 	body := []byte(`{"service_id":"runner-asia-01","action_type":"restart","reason":"Runner queue is blocked","dry_run":true,"force":false,"idempotency_key":"service-restart-1","metadata":{"queue_depth":12}}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/service-actions", bytes.NewReader(body))
@@ -159,7 +159,7 @@ func TestCreateServiceActionReturnsCommandLifecycle(t *testing.T) {
 func TestCreateServiceActionRequiresApprovalForLiveAction(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	commandStore := &memoryCommandStore{}
-	router := NewRouter(RouterConfig{CommandStore: commandStore})
+	router := testRouter(RouterConfig{CommandStore: commandStore})
 
 	body := []byte(`{"service_id":"runner-asia-01","action_type":"restart","reason":"Apply live restart","dry_run":false}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/service-actions", bytes.NewReader(body))
@@ -198,7 +198,7 @@ func TestCreateServiceActionReportsIdempotentReplay(t *testing.T) {
 		},
 		auditLog: domain.AuditLog{AuditID: "audit_service_existing", CreatedAt: now},
 	}
-	router := NewRouter(RouterConfig{CommandStore: commandStore})
+	router := testRouter(RouterConfig{CommandStore: commandStore})
 
 	body := []byte(`{"service_id":"runner-asia-01","action_type":"restart","reason":"Runner queue is blocked","idempotency_key":"service-restart-1"}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/service-actions", bytes.NewReader(body))
@@ -228,7 +228,7 @@ func TestCreateServiceActionReportsIdempotentReplay(t *testing.T) {
 
 func TestCreateServiceActionRejectsMissingServiceID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	router := NewRouter(RouterConfig{CommandStore: &memoryCommandStore{}})
+	router := testRouter(RouterConfig{CommandStore: &memoryCommandStore{}})
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/service-actions", bytes.NewReader([]byte(`{"action_type":"restart","reason":"Runner queue is blocked"}`)))
 	rec := httptest.NewRecorder()
@@ -242,7 +242,7 @@ func TestCreateServiceActionRejectsMissingServiceID(t *testing.T) {
 func TestCreateRiskMitigationReturnsCommandLifecycle(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	commandStore := &memoryCommandStore{}
-	router := NewRouter(RouterConfig{CommandStore: commandStore})
+	router := testRouter(RouterConfig{CommandStore: commandStore})
 
 	body := []byte(`{"action_type":"rerun_ci","reason":"CI failure blocks release","dry_run":true,"idempotency_key":"risk-502-rerun","metadata":{"ci_run_id":"502"}}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/risks/ci_failure:502/mitigations", bytes.NewReader(body))
@@ -283,7 +283,7 @@ func TestCreateRiskMitigationReturnsCommandLifecycle(t *testing.T) {
 
 func TestCreateRiskMitigationRejectsMissingReason(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	router := NewRouter(RouterConfig{CommandStore: &memoryCommandStore{}})
+	router := testRouter(RouterConfig{CommandStore: &memoryCommandStore{}})
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/risks/ci_failure:502/mitigations", bytes.NewReader([]byte(`{"action_type":"rerun_ci"}`)))
 	rec := httptest.NewRecorder()
@@ -318,7 +318,7 @@ func TestCreateRiskMitigationReportsIdempotentReplay(t *testing.T) {
 		},
 		auditLog: domain.AuditLog{AuditID: "audit_existing", CreatedAt: now},
 	}
-	router := NewRouter(RouterConfig{CommandStore: commandStore})
+	router := testRouter(RouterConfig{CommandStore: commandStore})
 
 	body := []byte(`{"action_type":"rerun_ci","reason":"CI failure blocks release","idempotency_key":"risk-502-rerun"}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/risks/ci_failure:502/mitigations", bytes.NewReader(body))
@@ -349,7 +349,7 @@ func TestCreateRiskMitigationReportsIdempotentReplay(t *testing.T) {
 func TestGetCommandReturnsCommandStatus(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	now := time.Date(2026, 5, 4, 10, 0, 0, 0, time.UTC)
-	router := NewRouter(RouterConfig{CommandStore: &memoryCommandStore{
+	router := testRouter(RouterConfig{CommandStore: &memoryCommandStore{
 		commands: []domain.Command{
 			{
 				CommandID:      "cmd_test",

@@ -43,7 +43,7 @@ func main() {
 		log.Println("DB_URL is not set; webhook persistence is disabled")
 	}
 
-	// SECURITY (SEC-2): BearerTokenVerifier is intentionally not wired yet. Until a verifier is plugged in, every Authorization: Bearer request takes the dev fallback path in auth.go and is treated as authenticated. Wire a verifier and add a prod fail-fast guard before relying on /api authentication. Tracked in ai-workflow/memory/claude/test/backend-integration/backlog/2026-05-08.md.
+	// SECURITY (SEC-2): BearerTokenVerifier is intentionally not wired yet. Until a verifier is plugged in, AuthDevFallback gates whether unauthenticated requests pass; production should leave it false (default). Tracked in ai-workflow/memory/claude/test/backend-integration/backlog/2026-05-08.md.
 	router := httpapi.NewRouter(httpapi.RouterConfig{
 		WebhookSecret:     cfg.GiteaWebhookSecret,
 		EventStore:        eventStore,
@@ -59,7 +59,8 @@ func main() {
 			GiteaURL:     cfg.GiteaURL,
 			BackendAIURL: cfg.BackendAIURL,
 		},
-		RealtimeHub: realtimeHub,
+		RealtimeHub:     realtimeHub,
+		AuthDevFallback: cfg.AuthDevFallback,
 	})
 	if worker != nil {
 		go func() {
