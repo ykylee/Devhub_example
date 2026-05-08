@@ -14,6 +14,7 @@ import { useStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
 
 import { defaultRoles, Role } from "@/lib/services/rbac.types";
+import { rbacService, RbacError } from "@/lib/services/rbac.service";
 
 type Tab = "members" | "units" | "permissions" | "orgchart";
 
@@ -22,7 +23,12 @@ export default function OrganizationPage() {
   const [members, setMembers] = useState<OrgMember[]>([]);
   const [orgNodes, setOrgNodes] = useState<OrgNode[]>([]);
   const [unitMembers, setUnitMembers] = useState<Record<string, string[]>>({});
-  const [roles, setRoles] = useState<Role[]>(defaultRoles);
+  // M1-FIX-D: lazy initializer + deep clone so PermissionMatrix toggles
+  // do not mutate the baseline through shared nested permission objects.
+  const [roles, setRoles] = useState<Role[]>(() => cloneRoles(defaultRoles));
+  const [rolesBaseline, setRolesBaseline] = useState<Role[]>(() => cloneRoles(defaultRoles));
+  const [rolesError, setRolesError] = useState<string | null>(null);
+  const [savingRoles, setSavingRoles] = useState(false);
   const [managingUnitId, setManagingUnitId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -74,6 +80,104 @@ export default function OrganizationPage() {
 
     fetchData();
   }, [userRole]);
+
+  useEffect(() => {
+    if (userRole !== "System Admin") return;
+    const loadPolicies = async () => {
+      try {
+        const { roles: fetched } = await rbacService.listPolicies();
+        setRoles(fetched);
+        setRolesBaseline(cloneRoles(fetched));
+        setRolesError(null);
+      } catch (error) {
+        console.error("[organization] listPolicies failed:", error);
+        setRolesError("Failed to load RBAC policies; showing defaults.");
+      }
+    };
+    loadPolicies();
+  }, [userRole]);
+
+  const isRolesDirty = !rolesEqual(roles, rolesBaseline);
+
+  const handleSavePolicies = async () => {
+    setSavingRoles(true);
+    setRolesError(null);
+    try {
+      const baselineById = new Map(rolesBaseline.map(r => [r.id, r]));
+      const updates = roles
+        .filter((role) => {
+          const before = baselineById.get(role.id);
+          if (!before) return false; // newly created roles use createPolicy, not bulk PUT
+          return !permissionsEqual(before.permissions, role.permissions)
+            || (!role.system && (before.name !== role.name || before.description !== role.description));
+        })
+        .map((role) => {
+          const payload: { id: string; permissions: Role["permissions"]; name?: string; description?: string } = {
+            id: role.id,
+            permissions: role.permissions,
+          };
+          if (!role.system) {
+            payload.name = role.name;
+            payload.description = role.description;
+          }
+          return payload;
+        });
+      if (updates.length === 0) {
+        setSavingRoles(false);
+        return;
+      }
+      const { roles: refreshed } = await rbacService.updatePolicies(updates);
+      setRoles(refreshed);
+      setRolesBaseline(cloneRoles(refreshed));
+    } catch (error) {
+      const message = error instanceof RbacError ? `${error.code}: ${error.message}` : (error instanceof Error ? error.message : "Save failed");
+      console.error("[organization] updatePolicies failed:", error);
+      setRolesError(message);
+    } finally {
+      setSavingRoles(false);
+    }
+  };
+
+  const handleCreateRole = async (role: Role) => {
+    setSavingRoles(true);
+    setRolesError(null);
+    try {
+      const created = await rbacService.createPolicy({
+        id: role.id,
+        name: role.name,
+        description: role.description,
+        permissions: role.permissions,
+      });
+      const { roles: refreshed } = await rbacService.listPolicies();
+      setRoles(refreshed);
+      setRolesBaseline(cloneRoles(refreshed));
+      // Optimistically select the newly created role even if listPolicies returned a slightly different shape.
+      void created;
+    } catch (error) {
+      const message = error instanceof RbacError ? `${error.code}: ${error.message}` : (error instanceof Error ? error.message : "Create failed");
+      console.error("[organization] createPolicy failed:", error);
+      setRolesError(message);
+    } finally {
+      setSavingRoles(false);
+    }
+  };
+
+  const handleDeleteRole = async (roleId: string) => {
+    setSavingRoles(true);
+    setRolesError(null);
+    try {
+      await rbacService.deletePolicy(roleId);
+      const { roles: refreshed } = await rbacService.listPolicies();
+      setRoles(refreshed);
+      setRolesBaseline(cloneRoles(refreshed));
+    } catch (error) {
+      const message = error instanceof RbacError ? `${error.code}: ${error.message}` : (error instanceof Error ? error.message : "Delete failed");
+      console.error("[organization] deletePolicy failed:", error);
+      setRolesError(message);
+    } finally {
+      setSavingRoles(false);
+    }
+  };
 
   const handleReplaceUnitMembers = async (unitId: string, newMemberIds: string[]) => {
     setSaveError(null);
@@ -192,7 +296,16 @@ export default function OrganizationPage() {
                 )}
                 {activeTab === 'orgchart' && <OrgTree />}
                 {activeTab === 'permissions' && (
-                  <PermissionEditor roles={roles} setRoles={setRoles} />
+                  <PermissionEditor
+                    roles={roles}
+                    setRoles={setRoles}
+                    onSave={handleSavePolicies}
+                    onCreate={handleCreateRole}
+                    onDelete={handleDeleteRole}
+                    saving={savingRoles}
+                    errorMessage={rolesError}
+                    isDirty={isRolesDirty}
+                  />
                 )}
               </motion.div>
             </AnimatePresence>
@@ -216,4 +329,43 @@ export default function OrganizationPage() {
       </AnimatePresence>
     </div>
   );
+}
+
+function cloneRoles(roles: Role[]): Role[] {
+  return roles.map((role) => ({
+    ...role,
+    permissions: clonePermissions(role.permissions),
+  }));
+}
+
+function clonePermissions(permissions: Role["permissions"]): Role["permissions"] {
+  const out: Role["permissions"] = {};
+  for (const resource of Object.keys(permissions)) {
+    out[resource] = { ...permissions[resource] };
+  }
+  return out;
+}
+
+function rolesEqual(a: Role[], b: Role[]): boolean {
+  if (a.length !== b.length) return false;
+  const byId = new Map(b.map((r) => [r.id, r]));
+  for (const role of a) {
+    const other = byId.get(role.id);
+    if (!other) return false;
+    if (role.name !== other.name || role.description !== other.description || role.system !== other.system) return false;
+    if (!permissionsEqual(role.permissions, other.permissions)) return false;
+  }
+  return true;
+}
+
+function permissionsEqual(a: Role["permissions"], b: Role["permissions"]): boolean {
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  for (const resource of keys) {
+    const aRes = a[resource] || {};
+    const bRes = b[resource] || {};
+    for (const action of ["view", "create", "edit", "delete"] as const) {
+      if (Boolean(aRes[action]) !== Boolean(bRes[action])) return false;
+    }
+  }
+  return true;
 }

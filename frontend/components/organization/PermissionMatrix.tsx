@@ -17,6 +17,10 @@ interface PermissionMatrixProps {
   permissions: PermissionState;
   onChange?: (newPermissions: PermissionState) => void;
   readOnly?: boolean;
+  // lockedCells marks per-(resource, action) cells as non-editable, on top of
+  // the global readOnly flag. Used to enforce the section 12.0.4 audit
+  // invariant in the UI before the request reaches the backend.
+  lockedCells?: { [resource: string]: { [action: string]: true } };
 }
 
 const resources: { id: ResourceType; label: string }[] = [
@@ -34,15 +38,20 @@ const actions: { id: ActionType; label: string }[] = [
   { id: "delete", label: "Delete" },
 ];
 
-export function PermissionMatrix({ permissions, onChange, readOnly = false }: PermissionMatrixProps) {
+export function PermissionMatrix({ permissions, onChange, readOnly = false, lockedCells }: PermissionMatrixProps) {
+  const isCellLocked = (resource: ResourceType, action: ActionType): boolean => {
+    return Boolean(lockedCells?.[resource]?.[action]);
+  };
+
   const handleToggle = (resource: ResourceType, action: ActionType) => {
     if (readOnly || !onChange) return;
-    
+    if (isCellLocked(resource, action)) return;
+
     const newPermissions = { ...permissions };
     if (!newPermissions[resource]) {
       newPermissions[resource] = {};
     }
-    
+
     newPermissions[resource][action] = !newPermissions[resource][action];
     onChange(newPermissions);
   };
@@ -64,18 +73,21 @@ export function PermissionMatrix({ permissions, onChange, readOnly = false }: Pe
               <td className="p-4 font-bold text-white/80">{resource.label}</td>
               {actions.map((action) => {
                 const isGranted = permissions[resource.id]?.[action.id] || false;
+                const cellLocked = isCellLocked(resource.id, action.id);
+                const disabled = readOnly || cellLocked;
                 return (
                   <td key={action.id} className="p-4 text-center">
                     <button
                       type="button"
-                      disabled={readOnly}
+                      disabled={disabled}
+                      title={cellLocked ? "Append-only by system code" : undefined}
                       onClick={() => handleToggle(resource.id, action.id)}
                       className={cn(
                         "inline-flex items-center justify-center w-8 h-8 rounded-lg transition-all",
                         isGranted
                           ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
                           : "bg-white/5 text-white/20 border border-white/5 hover:bg-white/10",
-                        readOnly && "cursor-not-allowed opacity-70"
+                        disabled && "cursor-not-allowed opacity-70"
                       )}
                     >
                       {isGranted ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
