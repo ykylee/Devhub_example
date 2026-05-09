@@ -20,6 +20,10 @@ type Config struct {
 	AuthDevFallback bool
 	// HydraAdminURL is the base URL of the Ory Hydra admin API used by the introspection verifier (for example http://127.0.0.1:4445). Empty means no Hydra verifier is wired and authentication relies on AuthDevFallback or another verifier.
 	HydraAdminURL string
+	// HydraPublicURL is the base URL of the Ory Hydra public API (for example
+	// http://127.0.0.1:4444) used by /api/v1/auth/token to exchange
+	// authorization codes for tokens.
+	HydraPublicURL string
 	// HydraRoleClaim is a dotted path into the Hydra introspection response that holds the actor role. Defaults to "ext.role" when empty. See auth.HydraIntrospectionVerifier.RoleClaim for supported paths. Toggle with DEVHUB_HYDRA_ROLE_CLAIM.
 	HydraRoleClaim string
 	// ServiceActionExecutorMode enables the live service action worker only for supported explicit modes such as "simulation".
@@ -49,6 +53,7 @@ func Load() Config {
 		Env:                          strings.ToLower(strings.TrimSpace(os.Getenv("DEVHUB_ENV"))),
 		AuthDevFallback:              envBool("DEVHUB_AUTH_DEV_FALLBACK"),
 		HydraAdminURL:                strings.TrimSpace(os.Getenv("DEVHUB_HYDRA_ADMIN_URL")),
+		HydraPublicURL:               strings.TrimSpace(os.Getenv("DEVHUB_HYDRA_PUBLIC_URL")),
 		HydraRoleClaim:               strings.TrimSpace(os.Getenv("DEVHUB_HYDRA_ROLE_CLAIM")),
 		ServiceActionExecutorMode:    strings.TrimSpace(os.Getenv("SERVICE_ACTION_EXECUTOR_MODE")),
 		ServiceActionAllowedServices: strings.TrimSpace(os.Getenv("SERVICE_ACTION_ALLOWED_SERVICES")),

@@ -87,12 +87,17 @@ func main() {
 	// we leave the fields untouched when either env var is missing.
 	var (
 		hydraAdmin  httpapi.HydraLoginAdmin
+		hydraToken  httpapi.HydraTokenExchanger
 		kratosLogin httpapi.KratosLoginClient
 		kratosAdmin httpapi.KratosAdmin
 	)
 	if cfg.HydraAdminURL != "" {
 		hydraAdmin = &httpapi.HydraAdminClient{AdminURL: cfg.HydraAdminURL}
 		log.Printf("hydra admin client wired: %s", cfg.HydraAdminURL)
+	}
+	if cfg.HydraPublicURL != "" {
+		hydraToken = &httpapi.HydraTokenClient{PublicURL: cfg.HydraPublicURL}
+		log.Printf("hydra public token client wired: %s", cfg.HydraPublicURL)
 	}
 	if cfg.KratosPublicURL != "" {
 		kratosLogin = &httpapi.KratosClient{PublicURL: cfg.KratosPublicURL}
@@ -122,6 +127,7 @@ func main() {
 		BearerTokenVerifier: verifier,
 		KratosLogin:         kratosLogin,
 		HydraAdmin:          hydraAdmin,
+		HydraToken:          hydraToken,
 		KratosAdmin:         kratosAdmin,
 		HRDB:                hrdbMock,
 		SnapshotProvider: httpapi.RuntimeSnapshotProvider{

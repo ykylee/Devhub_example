@@ -26,6 +26,7 @@ type BearerTokenVerifier interface {
 var publicAPIPaths = map[string]bool{
 	"/api/v1/integrations/gitea/webhooks": true,
 	"/api/v1/auth/login":                  true,
+	"/api/v1/auth/token":                  true,
 	"/api/v1/auth/signup":                 true,
 	"/api/v1/auth/consent":                true,
 }

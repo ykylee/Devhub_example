@@ -36,7 +36,6 @@ export function UserCreationModal({ onClose, onCreated, roles }: UserCreationMod
       setFormData(prev => ({
         ...prev,
         email: data.email,
-        display_name: data.displayName || prev.display_name,
         type: "human"
       }));
     } catch (err) {

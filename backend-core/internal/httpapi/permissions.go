@@ -130,6 +130,7 @@ var routePermissionTable = map[routeKey]routePolicy{
 	// Auth proxy endpoints run before the user has a token; Hydra's
 	// challenge tokens (single-use, lifespan-bound) protect them.
 	{http.MethodPost, "/api/v1/auth/login"}:  {Bypass: true},
+	{http.MethodPost, "/api/v1/auth/token"}:  {Bypass: true},
 	{http.MethodPost, "/api/v1/auth/signup"}: {Bypass: true},
 	{http.MethodGet, "/api/v1/auth/consent"}: {Bypass: true},
 
@@ -184,6 +185,7 @@ var routePermissionTable = map[routeKey]routePolicy{
 	// organization — RBAC subject role assignment
 	{http.MethodGet, "/api/v1/rbac/subjects/:subject_id/roles"}: {Resource: domain.ResourceOrganization, Action: domain.ActionView},
 	{http.MethodPut, "/api/v1/rbac/subjects/:subject_id/roles"}: {Resource: domain.ResourceOrganization, Action: domain.ActionEdit},
+	{http.MethodGet, "/api/v1/hr/lookup"}:                        {Resource: domain.ResourceOrganization, Action: domain.ActionView},
 }
 
 // lookupRoutePolicy is exported for tests to assert the table contents without
