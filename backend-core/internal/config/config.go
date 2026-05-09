@@ -33,6 +33,9 @@ type Config struct {
 	// the password self-service login flow. Empty disables the login proxy
 	// (frontend cannot complete the OIDC code flow).
 	KratosPublicURL string
+	// KratosAdminURL is the base URL of the Ory Kratos admin API (default
+	// http://127.0.0.1:4434). Required for identity creation (Sign Up).
+	KratosAdminURL string
 }
 
 func Load() Config {
@@ -51,6 +54,7 @@ func Load() Config {
 		ServiceActionAllowedServices: strings.TrimSpace(os.Getenv("SERVICE_ACTION_ALLOWED_SERVICES")),
 		ServiceActionAllowedActions:  strings.TrimSpace(os.Getenv("SERVICE_ACTION_ALLOWED_ACTIONS")),
 		KratosPublicURL:              strings.TrimSpace(os.Getenv("DEVHUB_KRATOS_PUBLIC_URL")),
+		KratosAdminURL:               strings.TrimSpace(os.Getenv("DEVHUB_KRATOS_ADMIN_URL")),
 	}
 }
 

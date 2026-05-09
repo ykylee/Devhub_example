@@ -143,7 +143,7 @@ function AuthLoginInner() {
           <h1 className="text-4xl font-black text-white tracking-tighter uppercase mb-2">
             DevHub <span className="text-primary">Sign In</span>
           </h1>
-          <p className="text-muted-foreground text-sm font-bold uppercase tracking-widest">
+          <p className="text-white/60 text-sm font-bold uppercase tracking-widest">
             Authenticate with your DevHub identity
           </p>
         </div>
@@ -155,29 +155,29 @@ function AuthLoginInner() {
           <div className="space-y-2">
             <label
               htmlFor="identifier"
-              className="text-[10px] font-black text-muted-foreground uppercase tracking-widest"
+              className="text-[10px] font-black text-white/40 uppercase tracking-widest"
             >
-              Email
+              System ID
             </label>
             <input
               id="identifier"
               name="identifier"
-              type="email"
-              autoComplete="email"
+              type="text"
+              autoComplete="username"
               required
               autoFocus
               disabled={submitting}
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
-              className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
-              placeholder="you@example.com"
+              className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+              placeholder="e.g. yklee"
             />
           </div>
 
           <div className="space-y-2">
             <label
               htmlFor="password"
-              className="text-[10px] font-black text-muted-foreground uppercase tracking-widest"
+              className="text-[10px] font-black text-white/40 uppercase tracking-widest"
             >
               Password
             </label>
@@ -190,7 +190,7 @@ function AuthLoginInner() {
               disabled={submitting}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+              className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
               placeholder="••••••••"
             />
           </div>
@@ -223,7 +223,25 @@ function AuthLoginInner() {
             )}
           </button>
 
-          <p className="text-[10px] text-muted-foreground text-center font-bold uppercase tracking-widest pt-2 border-t border-white/5">
+          <div className="flex flex-col gap-4 pt-4 text-center">
+            <button
+              type="button"
+              onClick={() => router.push("/auth/signup")}
+              className="text-[10px] text-white/50 hover:text-primary font-black uppercase tracking-widest transition-colors"
+            >
+              Don't have an account? <span className="text-primary underline">Sign Up</span>
+            </button>
+            
+            <button
+              type="button"
+              onClick={() => alert("Please contact the system administrator (admin@devhub.local) to reset your password.")}
+              className="text-[10px] text-white/30 hover:text-white/50 font-black uppercase tracking-widest transition-colors"
+            >
+              Forgot Password?
+            </button>
+          </div>
+
+          <p className="text-[10px] text-white/30 text-center font-bold uppercase tracking-widest pt-6 border-t border-white/5">
             Secured by Ory Hydra + Kratos
           </p>
         </form>

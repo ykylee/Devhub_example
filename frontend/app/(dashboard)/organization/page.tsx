@@ -207,11 +207,11 @@ export default function OrganizationPage() {
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
         >
-          <h1 className="text-4xl font-extrabold tracking-tight text-white mb-2">
+          <h1 className="text-4xl font-extrabold tracking-tight text-foreground dark:text-white mb-2">
             Organization <span className="text-accent">Governance</span>
           </h1>
           <p className="text-muted-foreground text-lg flex items-center gap-2">
-            <Building2 className="w-4 h-4 text-accent" /> DevHub Global • <span className="text-white font-bold uppercase tracking-widest text-xs bg-accent/20 px-2 py-0.5 rounded border border-accent/20">Enterprise Tier</span>
+            <Building2 className="w-4 h-4 text-accent" /> DevHub Global • <span className="text-foreground dark:text-white font-bold uppercase tracking-widest text-xs bg-accent/20 px-2 py-0.5 rounded border border-accent/20">Enterprise Tier</span>
           </p>
         </motion.div>
 
@@ -223,7 +223,7 @@ export default function OrganizationPage() {
               onClick={() => setActiveTab(tab.id as Tab)}
               className={cn(
                 "flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all relative",
-                activeTab === tab.id ? "text-white" : "text-muted-foreground hover:text-white"
+                activeTab === tab.id ? "text-foreground dark:text-white" : "text-muted-foreground hover:text-foreground dark:hover:text-white"
               )}
             >
               {activeTab === tab.id && (
@@ -254,7 +254,7 @@ export default function OrganizationPage() {
               <input 
                 type="text" 
                 placeholder={`Search ${activeTab}...`}
-                className="w-full glass border-white/10 rounded-2xl pl-12 pr-6 py-3.5 text-sm text-white placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all"
+                className="w-full glass border-white/10 rounded-2xl pl-12 pr-6 py-3.5 text-sm text-foreground dark:text-white placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all"
               />
             </div>
             <button className="glass border-white/10 p-3.5 rounded-2xl text-muted-foreground hover:text-white transition-all">
@@ -284,6 +284,9 @@ export default function OrganizationPage() {
                     roles={roles}
                     onUpdateMemberRole={(memberId, newRoleName) => {
                       setMembers(members.map(m => m.id === memberId ? { ...m, role: newRoleName as OrgMember["role"] } : m));
+                    }}
+                    onMemberCreated={(newMember) => {
+                      setMembers(prev => [newMember, ...prev]);
                     }}
                   />
                 )}

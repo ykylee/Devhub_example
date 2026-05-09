@@ -23,7 +23,7 @@ export function OrgUnitGrid({ nodes, unitMembers, onManage }: OrgUnitGridProps) 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-xl font-black text-white uppercase tracking-tight">Organization <span className="text-accent">Units</span></h3>
+        <h3 className="text-xl font-black text-foreground dark:text-white uppercase tracking-tight">Organization <span className="text-accent">Units</span></h3>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -71,7 +71,7 @@ export function OrgUnitGrid({ nodes, unitMembers, onManage }: OrgUnitGridProps) 
               </div>
 
               <div className="relative z-10">
-                <h4 className="text-lg font-black text-white mb-2 truncate" title={node.data.label}>
+                <h4 className="text-lg font-black text-foreground dark:text-white mb-2 truncate" title={node.data.label}>
                   {node.data.label}
                 </h4>
                 {node.data.leader_id && (

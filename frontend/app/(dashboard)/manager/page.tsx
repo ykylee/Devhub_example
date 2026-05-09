@@ -102,11 +102,11 @@ export default function ManagerDashboard() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <h1 className="text-4xl font-extrabold tracking-tight text-white mb-2">
+          <h1 className="text-4xl font-extrabold tracking-tight text-foreground dark:text-white mb-2">
             Project <span className="text-gradient">Intelligence</span>
           </h1>
           <p className="text-muted-foreground text-lg flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-primary" /> Milestone v1.0 • <span className="text-white font-bold">Week 12</span> of 16
+            <Calendar className="w-4 h-4 text-primary" /> Milestone v1.0 • <span className="text-foreground dark:text-white font-bold">Week 12</span> of 16
           </p>
         </motion.div>
 
@@ -151,7 +151,7 @@ export default function ManagerDashboard() {
                   </span>
                 </div>
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{stat.label}</p>
-                <h3 className="text-3xl font-black text-white mt-1">{stat.value}</h3>
+                <h3 className="text-3xl font-black text-foreground dark:text-white mt-1">{stat.value}</h3>
               </motion.div>
             ))}
           </div>
@@ -177,7 +177,7 @@ export default function ManagerDashboard() {
                     >
                       <div className="space-y-2">
                         <div className="flex items-center gap-3">
-                          <h3 className="text-lg font-bold text-white">{risk.title}</h3>
+                          <h3 className="text-lg font-bold text-foreground dark:text-white">{risk.title}</h3>
                           <span className="px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-500 text-[10px] font-black uppercase tracking-tighter">
                             {risk.impact} Impact
                           </span>
@@ -197,7 +197,7 @@ export default function ManagerDashboard() {
                         </div>
                         <button 
                           onClick={() => setSelectedRisk(risk)}
-                          className="px-6 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs font-black uppercase tracking-widest text-white hover:bg-white/10 transition-all"
+                          className="px-6 py-2.5 rounded-xl bg-primary/10 border border-primary/20 text-xs font-black uppercase tracking-widest text-primary hover:bg-primary hover:text-white transition-all"
                         >
                           Details
                         </button>
@@ -211,7 +211,7 @@ export default function ManagerDashboard() {
           <section className="glass-card p-8 h-80 flex flex-col items-center justify-center relative group overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 opacity-50 group-hover:opacity-100 transition-opacity" />
             <BarChart3 className="w-16 h-16 text-primary/30 mb-6 group-hover:scale-110 transition-transform duration-500" />
-            <h3 className="text-lg font-bold text-white mb-2">Resource Utilization Velocity</h3>
+            <h3 className="text-lg font-bold text-foreground dark:text-white mb-2">Resource Utilization Velocity</h3>
             <p className="text-sm text-muted-foreground max-w-sm text-center">
               Real-time velocity tracking and burndown analytics will be rendered here using the integrated gRPC telemetry stream.
             </p>
@@ -235,7 +235,7 @@ export default function ManagerDashboard() {
               ].map((member, i) => (
                 <div key={i} className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-bold text-white">{member.name}</span>
+                    <span className="text-sm font-bold text-foreground dark:text-white">{member.name}</span>
                     <span className={cn("text-[10px] font-black uppercase tracking-tighter", member.load > 80 ? "text-rose-500" : "text-emerald-500")}>
                       {member.load}% Load
                     </span>
@@ -269,7 +269,7 @@ export default function ManagerDashboard() {
                 <div key={i} className="flex gap-4">
                   <div className="w-1 h-8 rounded-full bg-white/10 mt-1" />
                   <div>
-                    <p className="text-xs font-bold text-white">{log.title}</p>
+                    <p className="text-xs font-bold text-foreground dark:text-white">{log.title}</p>
                     <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-widest">{log.type} • {log.date}</p>
                   </div>
                 </div>

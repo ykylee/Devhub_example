@@ -11,17 +11,20 @@ import { accountService } from "@/lib/services/account.service";
 import { useToast } from "@/components/ui/Toast";
 
 import { Role } from "@/lib/services/rbac.types";
+import { UserCreationModal } from "./UserCreationModal";
 
 interface MemberTableProps {
   members: OrgMember[];
   roles: Role[];
   onUpdateMemberRole: (memberId: string, newRoleName: string) => void;
+  onMemberCreated?: (user: OrgMember) => void;
 }
 
-export function MemberTable({ members, roles, onUpdateMemberRole }: MemberTableProps) {
+export function MemberTable({ members, roles, onUpdateMemberRole, onMemberCreated }: MemberTableProps) {
   const { role: currentUserRole } = useStore();
   const { toast } = useToast();
   const [openActionId, setOpenActionId] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const handleAdminAction = async (action: 'issue' | 'reset' | 'disable', member: OrgMember) => {
     setOpenActionId(null);
@@ -46,11 +49,27 @@ export function MemberTable({ members, roles, onUpdateMemberRole }: MemberTableP
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-xl font-black text-white uppercase tracking-tight">Organization <span className="text-primary">Members</span></h3>
-        <button className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-primary/90 transition-all shadow-lg">
+        <h3 className="text-xl font-black text-foreground dark:text-white uppercase tracking-tight">Organization <span className="text-primary">Members</span></h3>
+        <button 
+          onClick={() => setShowCreateModal(true)}
+          className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-primary/90 transition-all shadow-lg"
+        >
           <UserPlus className="w-4 h-4" /> Invite Member
         </button>
       </div>
+
+      <AnimatePresence>
+        {showCreateModal && (
+          <UserCreationModal 
+            roles={roles}
+            onClose={() => setShowCreateModal(false)}
+            onCreated={(user) => {
+              onMemberCreated?.(user);
+              toast("Member created successfully", "success");
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       <div className="overflow-x-auto">
         <table className="w-full text-left border-separate border-spacing-y-3">
@@ -80,7 +99,7 @@ export function MemberTable({ members, roles, onUpdateMemberRole }: MemberTableP
                     <div className="flex items-center gap-3">
                       <div className="relative">
                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border border-white/10">
-                          <span className="font-black text-white">{member.name.charAt(0)}</span>
+                          <span className="font-black text-foreground dark:text-white">{member.name.charAt(0)}</span>
                         </div>
                         {isLeader && (
                           <div className="absolute -top-1 -right-1 bg-orange-500 rounded-full p-0.5 border border-[#030014]">
@@ -90,7 +109,7 @@ export function MemberTable({ members, roles, onUpdateMemberRole }: MemberTableP
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className="text-sm font-bold text-white">{member.name}</p>
+                          <p className="text-sm font-bold text-foreground dark:text-white">{member.name}</p>
                           {isDualLeader && (
                             <Badge variant="warning" className="text-[8px] py-0 px-1 uppercase">Dual</Badge>
                           )}
@@ -98,6 +117,11 @@ export function MemberTable({ members, roles, onUpdateMemberRole }: MemberTableP
                         <p className="text-[10px] text-muted-foreground flex items-center gap-1">
                           <Mail className="w-3 h-3" /> {member.email}
                         </p>
+                        {member.type === 'system' && (
+                          <div className="mt-1 inline-flex items-center gap-1 bg-accent/10 border border-accent/20 px-1.5 py-0.5 rounded text-[8px] font-black text-accent uppercase tracking-tighter">
+                            <Bot className="w-2.5 h-2.5" /> System / AI
+                          </div>
+                        )}
                       </div>
                     </div>
                   </td>
@@ -110,7 +134,7 @@ export function MemberTable({ members, roles, onUpdateMemberRole }: MemberTableP
                       <select
                         value={member.role}
                         onChange={(e) => onUpdateMemberRole(member.id, e.target.value)}
-                        className="bg-black/20 border border-white/10 rounded-lg text-xs font-medium text-white/80 focus:ring-1 focus:ring-primary/50 focus:outline-none p-1 transition-colors hover:border-white/20"
+                        className="bg-black/20 border border-white/10 rounded-lg text-xs font-medium text-foreground/80 dark:text-white/80 focus:ring-1 focus:ring-primary/50 focus:outline-none p-1 transition-colors hover:border-white/20"
                       >
                         {roles.map(r => (
                           <option key={r.id} value={r.name} className="bg-slate-900">{r.name}</option>
@@ -121,7 +145,7 @@ export function MemberTable({ members, roles, onUpdateMemberRole }: MemberTableP
                   <td className="px-6 py-4">
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-white/90">{member.current_dept_id}</span>
+                        <span className="text-xs font-bold text-foreground/90 dark:text-white/90">{member.current_dept_id}</span>
                         {member.is_seconded && (
                           <div className="flex items-center gap-1 bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 rounded text-[8px] font-black text-blue-400 uppercase">
                             <ArrowRightLeft className="w-2 h-2" /> Seconded
@@ -167,13 +191,13 @@ export function MemberTable({ members, roles, onUpdateMemberRole }: MemberTableP
                               <div className="py-1">
                                 <button 
                                   onClick={() => handleAdminAction('issue', member)}
-                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-white hover:bg-white/5 transition-colors text-left"
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground dark:text-white hover:bg-white/5 transition-colors text-left"
                                 >
                                   <Key className="w-3.5 h-3.5 text-accent" /> Issue Account
                                 </button>
                                 <button 
                                   onClick={() => handleAdminAction('reset', member)}
-                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-white hover:bg-white/5 transition-colors text-left"
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground dark:text-white hover:bg-white/5 transition-colors text-left"
                                 >
                                   <KeyRound className="w-3.5 h-3.5 text-orange-400" /> Force Reset Password
                                 </button>

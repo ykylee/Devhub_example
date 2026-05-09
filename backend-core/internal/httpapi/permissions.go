@@ -129,7 +129,9 @@ var routePermissionTable = map[routeKey]routePolicy{
 	{http.MethodPost, "/api/v1/integrations/gitea/webhooks"}: {Bypass: true},
 	// Auth proxy endpoints run before the user has a token; Hydra's
 	// challenge tokens (single-use, lifespan-bound) protect them.
-	{http.MethodPost, "/api/v1/auth/login"}: {Bypass: true},
+	{http.MethodPost, "/api/v1/auth/login"}:  {Bypass: true},
+	{http.MethodPost, "/api/v1/auth/signup"}: {Bypass: true},
+	{http.MethodGet, "/api/v1/auth/consent"}: {Bypass: true},
 
 	// infrastructure
 	{http.MethodGet, "/api/v1/dashboard/metrics"}:             {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
@@ -171,6 +173,7 @@ var routePermissionTable = map[routeKey]routePolicy{
 
 	// organization — units
 	{http.MethodGet, "/api/v1/organization/hierarchy"}:              {Resource: domain.ResourceOrganization, Action: domain.ActionView},
+	{http.MethodPut, "/api/v1/organization/hierarchy"}:              {Resource: domain.ResourceOrganization, Action: domain.ActionEdit},
 	{http.MethodGet, "/api/v1/organization/units/:unit_id"}:         {Resource: domain.ResourceOrganization, Action: domain.ActionView},
 	{http.MethodPost, "/api/v1/organization/units"}:                 {Resource: domain.ResourceOrganization, Action: domain.ActionCreate},
 	{http.MethodPatch, "/api/v1/organization/units/:unit_id"}:       {Resource: domain.ResourceOrganization, Action: domain.ActionEdit},

@@ -28,11 +28,11 @@ export default function GardenerPage() {
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
         >
-          <h1 className="text-4xl font-extrabold tracking-tight text-white mb-2">
+          <h1 className="text-4xl font-extrabold tracking-tight text-foreground dark:text-white mb-2">
             AI <span className="text-gradient">Gardener</span>
           </h1>
           <p className="text-muted-foreground text-lg flex items-center gap-2">
-            <Brain className="w-4 h-4 text-primary" /> Autonomous System Optimization • <span className="text-white font-bold uppercase tracking-widest text-xs bg-primary/20 px-2 py-0.5 rounded border border-primary/20">AI Active</span>
+            <Brain className="w-4 h-4 text-primary" /> Autonomous System Optimization • <span className="text-foreground dark:text-white font-bold uppercase tracking-widest text-xs bg-primary/20 px-2 py-0.5 rounded border border-primary/20">AI Active</span>
           </p>
         </motion.div>
       </div>
@@ -67,7 +67,7 @@ export default function GardenerPage() {
                   </div>
                   <div>
                     <p className="text-[10px] font-bold text-muted-foreground uppercase">{stat.label}</p>
-                    <p className="text-lg font-black text-white">{stat.value}</p>
+                    <p className="text-lg font-black text-foreground dark:text-white">{stat.value}</p>
                   </div>
                 </div>
               ))}
@@ -80,7 +80,7 @@ export default function GardenerPage() {
             transition={{ delay: 0.2 }}
             className="glass rounded-2xl p-6 border-white/5"
           >
-            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-white/50 mb-4">How it works</h3>
+            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-foreground/50 dark:text-white/50 mb-4">How it works</h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
               AI Gardener analyzes real-time telemetry from Gitea, Go Core, and Infrastructure nodes to identify bottlenecks and security risks before they impact users.
             </p>

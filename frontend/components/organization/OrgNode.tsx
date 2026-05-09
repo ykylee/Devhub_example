@@ -60,14 +60,15 @@ export const OrgNode = memo(({ id, data, selected }: NodeProps<Node<OrgNodeData>
   };
 
   return (
-    <div className={cn(
-      "relative transition-all duration-500",
-      isEditing ? "z-50" : "z-10"
-    )}>
-      <Handle type="target" position={Position.Top} className="opacity-0" />
+    <div 
+      className={cn(
+        "relative group",
+        isEditing ? "z-50" : "z-10"
+      )}
+    >
+      <Handle type="target" position={Position.Top} className="!bg-white/20 !w-3 !h-3 !border-white/40" />
       
       <motion.div
-        layout
         initial={false}
         animate={{
           width: isEditing ? 360 : 240,
@@ -75,9 +76,7 @@ export const OrgNode = memo(({ id, data, selected }: NodeProps<Node<OrgNodeData>
         }}
         className={cn(
           "glass rounded-2xl border p-4 flex flex-col justify-between shadow-2xl",
-          selected ? "border-primary ring-2 ring-primary/20 bg-primary/10" : "border-white/10 bg-white/5",
-          data.type === 'division' ? "border-primary/30" : 
-          data.type === 'team' ? "border-accent/30" : "border-white/10"
+          selected ? "border-blue-500/50 ring-2 ring-blue-500/20" : "border-white/10 group-hover:border-white/30"
         )}
       >
         <div className="flex items-start justify-between">
@@ -166,57 +165,53 @@ export const OrgNode = memo(({ id, data, selected }: NodeProps<Node<OrgNodeData>
         )}
 
         {/* Action Buttons */}
-        <AnimatePresence>
-          {(selected || isEditing) && (
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              className="flex items-center justify-end gap-1 mt-auto pt-2 border-t border-white/5"
-            >
-              {!isEditing ? (
-                <>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); data.onDelete?.(id); }}
-                    className="p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
-                    title="Delete"
-                  >
-                    <Minus className="w-3.5 h-3.5" />
-                  </button>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
-                    className="p-1.5 rounded-lg bg-white/5 text-white/50 hover:text-white transition-colors"
-                    title="Edit"
-                  >
-                    <Edit3 className="w-3.5 h-3.5" />
-                  </button>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); data.onAddChild?.(id); }}
-                    className="p-1.5 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 transition-colors"
-                    title="Add Child"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button 
-                    onClick={handleCancel}
-                    className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-white/5 text-white/50 text-[10px] font-black uppercase"
-                  >
-                    <X className="w-3 h-3" /> {data.isInitialEditing ? 'Discard' : 'Cancel'}
-                  </button>
-                  <button 
-                    onClick={handleSave}
-                    className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-primary text-white text-[10px] font-black uppercase"
-                  >
-                    <Check className="w-3 h-3" /> Save
-                  </button>
-                </>
-              )}
-            </motion.div>
+        <div 
+          className={cn(
+            "flex items-center justify-end gap-1 mt-auto pt-2 border-t border-white/5 transition-all duration-300 transform",
+            (selected || isEditing) ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto"
           )}
-        </AnimatePresence>
+        >
+          {!isEditing ? (
+            <>
+              <button 
+                onClick={(e) => { e.stopPropagation(); data.onDelete?.(id); }}
+                className="p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+                title="Delete"
+              >
+                <Minus className="w-3.5 h-3.5" />
+              </button>
+              <button 
+                onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
+                className="p-1.5 rounded-lg bg-white/5 text-white/50 hover:text-white transition-colors"
+                title="Edit"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+              </button>
+              <button 
+                onClick={(e) => { e.stopPropagation(); data.onAddChild?.(id); }}
+                className="p-1.5 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 transition-colors"
+                title="Add Child"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+            </>
+          ) : (
+            <>
+              <button 
+                onClick={handleCancel}
+                className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-white/5 text-white/50 text-[10px] font-black uppercase"
+              >
+                <X className="w-3 h-3" /> {data.isInitialEditing ? 'Discard' : 'Cancel'}
+              </button>
+              <button 
+                onClick={handleSave}
+                className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-primary text-white text-[10px] font-black uppercase"
+              >
+                <Check className="w-3 h-3" /> Save
+              </button>
+            </>
+          )}
+        </div>
       </motion.div>
 
       <Handle type="source" position={Position.Bottom} className="opacity-0" />

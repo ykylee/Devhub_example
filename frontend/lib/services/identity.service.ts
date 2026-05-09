@@ -111,6 +111,8 @@ export interface CreateUserPayload {
   display_name: string;
   role: OrgMember["role"];
   status: OrgMember["status"];
+  type: "human" | "system";
+  password?: string;
   primary_dept_id?: string;
   current_dept_id?: string;
   is_seconded?: boolean;
@@ -185,9 +187,20 @@ function isJsonObject(value: unknown): value is JsonObject {
 }
 
 async function jsonRequest<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const headers: Record<string, string> = {};
+  if (body !== undefined) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  // Inject Bearer token if available
+  const token = typeof window !== "undefined" ? localStorage.getItem("devhub_access_token") : null;
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   const response = await fetch(path, {
     method,
-    headers: body !== undefined ? { "Content-Type": "application/json" } : undefined,
+    headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   let parsed: unknown = null;
@@ -265,15 +278,8 @@ export class IdentityService {
   }
 
   async getUsers(): Promise<OrgMember[]> {
-    try {
-      const response = await fetch(`/api/v1/users`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const result = await response.json() as ApiResponse<BackendUser[]>;
-      return (result.data ?? []).map(mapBackendUser);
-    } catch (error) {
-      console.error('[IdentityService] getUsers error, falling back to mock:', error);
-      return this.mockUsers();
-    }
+    const result = await jsonRequest<ApiResponse<BackendUser[]>>("GET", "/api/v1/users");
+    return (result.data ?? []).map(mapBackendUser);
   }
 
   async getTeams(): Promise<Team[]> {
@@ -297,48 +303,51 @@ export class IdentityService {
     ];
   }
 
+  async updateOrgHierarchy(nodes: OrgNode[], edges: { source: string; target: string }[]): Promise<void> {
+    await jsonRequest("PUT", "/api/v1/organization/hierarchy", { nodes, edges });
+  }
+
+  async lookupHR(systemId: string): Promise<{ email: string; user_id: string; department: string }> {
+    return await jsonRequest<{ email: string; user_id: string; department: string }>(
+      "GET",
+      `/api/v1/hr/lookup?system_id=${encodeURIComponent(systemId)}`,
+    );
+  }
+
   async getOrgHierarchy(): Promise<{ nodes: OrgNode[]; edges: OrgEdge[] }> {
-    try {
-      const response = await fetch(`/api/v1/organization/hierarchy`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const result = await response.json() as ApiResponse<{ units?: BackendUnit[]; edges?: BackendEdge[] }>;
-      const units = result.data?.units ?? [];
-      const edges = result.data?.edges ?? [];
-      const nodes = units.map((u) => ({
-        id: u.unit_id,
-        ...(u.unit_id === 'org-root' ? { type: 'input' as const } : {}),
-        data: {
-          label: u.label,
-          type: u.unit_type,
-          leader_id: u.leader_user_id || undefined,
-          direct_count: u.direct_count,
-          total_count: u.total_count,
-        },
-        position: { x: u.position_x ?? 0, y: u.position_y ?? 0 },
-      }));
-      const mappedEdges = edges.map((e) => ({
-        id: `e-${e.source_unit_id}-${e.target_unit_id}`,
-        source: e.source_unit_id,
-        target: e.target_unit_id,
-        animated: e.source_unit_id === 'org-root',
-      }));
-      return { nodes, edges: mappedEdges };
-    } catch (error) {
-      console.error('[IdentityService] getOrgHierarchy error, falling back to mock:', error);
-      return this.mockHierarchy();
-    }
+    const result = await jsonRequest<ApiResponse<{ units?: BackendUnit[]; edges?: BackendEdge[] }>>(
+      "GET",
+      "/api/v1/organization/hierarchy",
+    );
+    const units = result.data?.units ?? [];
+    const edges = result.data?.edges ?? [];
+    const nodes = units.map((u) => ({
+      id: u.unit_id,
+      ...(u.unit_id === 'org-root' ? { type: 'input' as const } : {}),
+      data: {
+        label: u.label,
+        type: u.unit_type,
+        leader_id: u.leader_user_id || undefined,
+        direct_count: u.direct_count,
+        total_count: u.total_count,
+      },
+      position: { x: u.position_x ?? 0, y: u.position_y ?? 0 },
+    }));
+    const mappedEdges = edges.map((e) => ({
+      id: `e-${e.source_unit_id}-${e.target_unit_id}`,
+      source: e.source_unit_id,
+      target: e.target_unit_id,
+      animated: e.source_unit_id === 'org-root',
+    }));
+    return { nodes, edges: mappedEdges };
   }
 
   async getUnitMembers(unitId: string): Promise<OrgMember[]> {
-    try {
-      const response = await fetch(`/api/v1/organization/units/${encodeURIComponent(unitId)}/members`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const result = await response.json() as ApiResponse<BackendUser[]>;
-      return (result.data ?? []).map(mapBackendUser);
-    } catch (error) {
-      console.error('[IdentityService] getUnitMembers error:', error);
-      return [];
-    }
+    const result = await jsonRequest<ApiResponse<BackendUser[]>>(
+      "GET",
+      `/api/v1/organization/units/${encodeURIComponent(unitId)}/members`,
+    );
+    return (result.data ?? []).map(mapBackendUser);
   }
 
   async createUser(payload: CreateUserPayload): Promise<OrgMember> {

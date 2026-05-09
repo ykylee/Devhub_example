@@ -192,6 +192,13 @@ const (
 	AppRoleSystemAdmin AppRole = "system_admin"
 )
 
+type UserType string
+
+const (
+	UserTypeHuman  UserType = "human"
+	UserTypeSystem UserType = "system"
+)
+
 type UserStatus string
 
 const (
@@ -224,6 +231,7 @@ type AppUser struct {
 	DisplayName   string
 	Role          AppRole
 	Status        UserStatus
+	Type          UserType
 	PrimaryUnitID string
 	CurrentUnitID string
 	IsSeconded    bool
@@ -278,6 +286,7 @@ type CreateUserInput struct {
 	DisplayName   string
 	Role          AppRole
 	Status        UserStatus
+	Type          UserType
 	PrimaryUnitID string
 	CurrentUnitID string
 	IsSeconded    bool

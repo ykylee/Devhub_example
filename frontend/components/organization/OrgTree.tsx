@@ -185,7 +185,6 @@ function OrgTreeContent() {
       id: `e-${parentId}-${id}`,
       source: parentId,
       target: id,
-      animated: true,
     };
 
     setAllNodes((nds) => {
@@ -211,7 +210,7 @@ function OrgTreeContent() {
         const data = await identityService.getOrgHierarchy();
         if (!isMounted) return;
 
-        const initialNodes = data.nodes.map(node => ({
+        const processedNodes = data.nodes.map(node => ({
           ...node,
           type: 'org',
           data: {
@@ -222,24 +221,44 @@ function OrgTreeContent() {
           }
         }));
 
-        // Reset edge styles to solid for all
-        const initialEdges = data.edges.map(edge => ({
+        const processedEdges = data.edges.map(edge => ({
           ...edge,
-          style: undefined // Remove any custom styling (dashed)
+          style: { strokeDasharray: '0', stroke: 'rgba(255, 255, 255, 0.2)', strokeWidth: 2 }
         }));
 
         const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-          initialNodes,
-          initialEdges
+          processedNodes,
+          processedEdges
         );
 
-        // Initial calculation to ensure sums are correct
         const calculatedNodes = recalculateMemberCounts(layoutedNodes, layoutedEdges);
-
         setAllNodes(calculatedNodes);
         setAllEdges(layoutedEdges);
       } catch (error) {
-        console.error("Failed to load org hierarchy:", error);
+        console.error("Failed to load org hierarchy, using enhanced mock:", error);
+        // Fallback with enhanced mock nodes
+        const mock = (identityService as any).mockHierarchy();
+        const enhancedNodes = mock.nodes.map((node: any) => ({
+          ...node,
+          type: 'org',
+          data: {
+            ...node.data,
+            onAddChild,
+            onDelete: onDeleteNode,
+            onUpdate: onUpdateNode
+          }
+        }));
+        const enhancedEdges = mock.edges.map((edge: any) => ({
+          ...edge,
+          style: { strokeDasharray: '0', stroke: 'rgba(255, 255, 255, 0.2)', strokeWidth: 2 }
+        }));
+        
+        const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
+          enhancedNodes,
+          enhancedEdges
+        );
+        setAllNodes(recalculateMemberCounts(layoutedNodes, layoutedEdges));
+        setAllEdges(layoutedEdges);
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -290,6 +309,15 @@ function OrgTreeContent() {
     </div>
   );
 
+  const defaultEdgeOptions = {
+    animated: false,
+    style: {
+      stroke: 'rgba(255, 255, 255, 0.2)',
+      strokeWidth: 2,
+      strokeDasharray: '0',
+    },
+  };
+
   return (
     <div className="h-[750px] glass rounded-3xl border border-white/10 overflow-hidden relative shadow-2xl">
       <ReactFlow
@@ -299,6 +327,7 @@ function OrgTreeContent() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        defaultEdgeOptions={defaultEdgeOptions}
         fitView
         colorMode="dark"
       >
@@ -358,7 +387,31 @@ function OrgTreeContent() {
             <Plus className="w-3 h-3" /> Add Division
           </button>
           <button 
-            onClick={() => addToast("Hierarchy configuration saved", "info")}
+            onClick={async () => {
+              try {
+                // Map React Flow nodes back to OrgNode domain model
+                const orgNodes = allNodes.map(n => ({
+                  id: n.id,
+                  position: n.position,
+                  data: {
+                    label: n.data.label,
+                    type: n.data.type,
+                    direct_count: n.data.direct_count,
+                    total_count: n.data.total_count
+                  }
+                }));
+                const orgEdges = allEdges.map(e => ({
+                  source: e.source,
+                  target: e.target
+                }));
+
+                await identityService.updateOrgHierarchy(orgNodes as any, orgEdges);
+                addToast("Hierarchy configuration saved", "success");
+              } catch (error) {
+                console.error("[OrgTree] Failed to save hierarchy:", error);
+                addToast("Failed to save hierarchy changes", "error");
+              }
+            }}
             className="glass border-white/10 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-2"
           >
             <Save className="w-3 h-3 text-accent" /> Save

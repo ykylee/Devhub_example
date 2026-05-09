@@ -3,37 +3,29 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, ShieldCheck } from "lucide-react";
+import Link from "next/link";
 
 // OIDC entry point. Defaults assume a local PoC: Hydra public on :4444 issuing tokens for the devhub-frontend client, redirecting back to the SPA root after consent.
-const OIDC_LOGIN_URL =
-  process.env.NEXT_PUBLIC_OIDC_LOGIN_URL ?? "http://127.0.0.1:4444/oauth2/auth";
-const OIDC_CLIENT_ID =
-  process.env.NEXT_PUBLIC_OIDC_CLIENT_ID ?? "devhub-frontend";
-// /auth/callback is the redirect_uri Hydra has registered for the
-// devhub-frontend client (infra/idp/scripts/register-devhub-client.ps1).
-// Keep these aligned: changing one without the other breaks the OIDC code
-// flow with "redirect_uri_mismatch".
-const OIDC_REDIRECT_URI =
-  process.env.NEXT_PUBLIC_OIDC_REDIRECT_URI ?? "http://127.0.0.1:3000/auth/callback";
-const OIDC_SCOPE =
-  process.env.NEXT_PUBLIC_OIDC_SCOPE ?? "openid offline";
-
-function buildAuthorizeURL(): string {
-  const url = new URL(OIDC_LOGIN_URL);
-  url.searchParams.set("client_id", OIDC_CLIENT_ID);
-  url.searchParams.set("response_type", "code");
-  url.searchParams.set("redirect_uri", OIDC_REDIRECT_URI);
-  url.searchParams.set("scope", OIDC_SCOPE);
-  url.searchParams.set("state", crypto.randomUUID());
-  return url.toString();
-}
+import { authService } from "@/lib/services/auth.service";
+import { useEffect } from "react";
 
 export default function LoginPage() {
   const [isRedirecting, setIsRedirecting] = useState(false);
 
-  const handleLogin = () => {
+  useEffect(() => {
+    // Automatically initiate OIDC flow on landing to avoid redundant click
+    handleLogin();
+  }, []);
+
+  const handleLogin = async () => {
     setIsRedirecting(true);
-    window.location.assign(buildAuthorizeURL());
+    try {
+      const url = await authService.getAuthorizeURL();
+      window.location.assign(url);
+    } catch (error) {
+      console.error("[LoginPage] Failed to start OIDC flow:", error);
+      setIsRedirecting(false);
+    }
   };
 
   return (
@@ -83,6 +75,15 @@ export default function LoginPage() {
               </>
             )}
           </button>
+
+          <div className="text-center pt-8">
+            <p className="text-xs text-muted-foreground uppercase tracking-widest font-black">
+              New to DevHub?{" "}
+              <Link href="/auth/signup" className="text-primary hover:underline ml-1">
+                Create Account
+              </Link>
+            </p>
+          </div>
 
           <div className="mt-8 pt-8 border-t border-white/5 text-center">
             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">

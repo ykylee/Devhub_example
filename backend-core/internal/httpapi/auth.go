@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"errors"
+	"log"
 	"net/http"
 	"strings"
 
@@ -25,6 +26,8 @@ type BearerTokenVerifier interface {
 var publicAPIPaths = map[string]bool{
 	"/api/v1/integrations/gitea/webhooks": true,
 	"/api/v1/auth/login":                  true,
+	"/api/v1/auth/signup":                 true,
+	"/api/v1/auth/consent":                true,
 }
 
 func (h Handler) authenticateActor(c *gin.Context) {
@@ -71,14 +74,17 @@ func (h Handler) authenticateActor(c *gin.Context) {
 		return
 	}
 
+	log.Printf("[authenticateActor] Verifying token for path: %s", c.FullPath())
 	actor, err := h.cfg.BearerTokenVerifier.VerifyBearerToken(c.Request.Context(), token)
 	if err != nil {
+		log.Printf("[authenticateActor] Token verification failed: %v", err)
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 			"status": "unauthenticated",
 			"error":  "invalid bearer token",
 		})
 		return
 	}
+	log.Printf("[authenticateActor] Token verified for login: %s", actor.Login)
 
 	login := strings.TrimSpace(actor.Login)
 	if login == "" {
@@ -96,8 +102,18 @@ func (h Handler) authenticateActor(c *gin.Context) {
 	if actor.Subject != "" {
 		c.Set("devhub_actor_subject", actor.Subject)
 	}
-	if actor.Role != "" {
-		c.Set("devhub_actor_role", actor.Role)
+
+	// Dynamic Role Lookup: Instead of trusting the immutable role claim in the OIDC token,
+	// we fetch the latest role from our database to support real-time permission updates.
+	finalRole := actor.Role
+	if h.cfg.OrganizationStore != nil && login != "" {
+		if user, err := h.cfg.OrganizationStore.GetUser(c.Request.Context(), login); err == nil {
+			finalRole = string(user.Role)
+		}
+	}
+
+	if finalRole != "" {
+		c.Set("devhub_actor_role", finalRole)
 	}
 	c.Next()
 }

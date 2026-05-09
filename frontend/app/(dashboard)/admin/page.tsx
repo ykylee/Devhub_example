@@ -155,11 +155,11 @@ export default function AdminDashboard() {
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
         >
-          <h1 className="text-4xl font-extrabold tracking-tight text-white mb-2">
+          <h1 className="text-4xl font-extrabold tracking-tight text-foreground dark:text-white mb-2">
             System <span className="text-gradient">Infrastructure</span>
           </h1>
           <p className="text-muted-foreground text-lg flex items-center gap-2">
-            <Globe className="w-4 h-4 text-primary" /> Global Cluster Status • <span className="text-white font-bold uppercase tracking-widest text-xs bg-green-500/20 px-2 py-0.5 rounded border border-green-500/20">All Systems Nominal</span>
+            <Globe className="w-4 h-4 text-primary" /> Global Cluster Status • <span className="text-foreground dark:text-white font-bold uppercase tracking-widest text-xs bg-green-500/20 px-2 py-0.5 rounded border border-green-500/20">All Systems Nominal</span>
           </p>
         </motion.div>
 
@@ -168,10 +168,10 @@ export default function AdminDashboard() {
           animate={{ opacity: 1, x: 0 }}
           className="flex items-center gap-3"
         >
-          <button className="glass border-white/10 text-white px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-2">
+          <button className="glass border-white/10 text-foreground dark:text-white px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-2">
             <Shield className="w-4 h-4 text-accent" /> Security Audit
           </button>
-          <button className="glass border-white/10 text-white px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-2">
+          <button className="glass border-white/10 text-foreground dark:text-white px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-2">
             <Settings className="w-4 h-4 text-primary" /> Config
           </button>
         </motion.div>
@@ -192,7 +192,7 @@ export default function AdminDashboard() {
             </div>
             <div>
               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">{stat.label}</p>
-              <h3 className="text-2xl font-black text-white mt-1">{stat.value}</h3>
+              <h3 className="text-2xl font-black text-foreground dark:text-white mt-1">{stat.value}</h3>
             </div>
           </motion.div>
         ))}
@@ -203,12 +203,12 @@ export default function AdminDashboard() {
         <div className="absolute top-6 left-6 z-20 flex items-center gap-4">
           <div className="glass border-white/20 px-4 py-2 rounded-2xl flex items-center gap-3">
             <div className="w-2 h-2 bg-primary rounded-full animate-pulse shadow-[0_0_10px_rgba(139,92,246,1)]" />
-            <span className="text-[10px] font-black text-white uppercase tracking-widest">Live Topology Stream</span>
+            <span className="text-[10px] font-black text-foreground dark:text-white uppercase tracking-widest">Live Topology Stream</span>
           </div>
           
           <div className="flex gap-2">
             {["Node View", "Edge View", "Log View"].map((tab) => (
-              <button key={tab} className="glass border-white/5 px-3 py-1.5 rounded-xl text-[10px] font-bold text-muted-foreground hover:text-white transition-all">
+              <button key={tab} className="glass border-white/5 px-3 py-1.5 rounded-xl text-[10px] font-bold text-muted-foreground hover:text-foreground dark:hover:text-white transition-all">
                 {tab}
               </button>
             ))}

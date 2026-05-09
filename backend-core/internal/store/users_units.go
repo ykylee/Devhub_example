@@ -64,6 +64,7 @@ SELECT
 	display_name,
 	role,
 	status,
+	COALESCE(user_type, 'human'),
 	COALESCE(primary_unit_id, ''),
 	COALESCE(current_unit_id, ''),
 	is_seconded,
@@ -89,6 +90,7 @@ LIMIT $1 OFFSET $2`
 		var user domain.AppUser
 		var role string
 		var status string
+		var userType string
 		if err := rows.Scan(
 			&user.ID,
 			&user.UserID,
@@ -96,6 +98,7 @@ LIMIT $1 OFFSET $2`
 			&user.DisplayName,
 			&role,
 			&status,
+			&userType,
 			&user.PrimaryUnitID,
 			&user.CurrentUnitID,
 			&user.IsSeconded,
@@ -107,6 +110,7 @@ LIMIT $1 OFFSET $2`
 		}
 		user.Role = domain.AppRole(role)
 		user.Status = domain.UserStatus(status)
+		user.Type = domain.UserType(userType)
 		users = append(users, user)
 		userIDs = append(userIDs, user.UserID)
 	}
@@ -479,11 +483,12 @@ INSERT INTO users (
 	display_name,
 	role,
 	status,
+	user_type,
 	primary_unit_id,
 	current_unit_id,
 	is_seconded,
 	joined_at
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 RETURNING id, created_at, updated_at`
 
 	var user domain.AppUser
@@ -493,6 +498,7 @@ RETURNING id, created_at, updated_at`
 		input.DisplayName,
 		string(input.Role),
 		string(input.Status),
+		string(input.Type),
 		nullableUnitID(input.PrimaryUnitID),
 		nullableUnitID(input.CurrentUnitID),
 		input.IsSeconded,
@@ -512,6 +518,7 @@ RETURNING id, created_at, updated_at`
 	user.DisplayName = input.DisplayName
 	user.Role = input.Role
 	user.Status = input.Status
+	user.Type = input.Type
 	user.PrimaryUnitID = input.PrimaryUnitID
 	user.CurrentUnitID = input.CurrentUnitID
 	user.IsSeconded = input.IsSeconded
@@ -768,4 +775,22 @@ func (s *PostgresStore) DeleteOrgUnit(ctx context.Context, unitID string) error 
 		return fmt.Errorf("unit %s: %w", unitID, ErrNotFound)
 	}
 	return nil
+}
+
+func (s *PostgresStore) UpdateHierarchy(ctx context.Context, hie domain.Hierarchy) error {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	for _, unit := range hie.Units {
+		const query = "UPDATE org_units SET position_x = $2, position_y = $3, updated_at = NOW() WHERE unit_id = $1"
+		_, err := tx.Exec(ctx, query, unit.UnitID, unit.PositionX, unit.PositionY)
+		if err != nil {
+			return fmt.Errorf("update unit %s position: %w", unit.UnitID, err)
+		}
+	}
+
+	return tx.Commit(ctx)
 }

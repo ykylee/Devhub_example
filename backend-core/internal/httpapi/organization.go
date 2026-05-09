@@ -20,6 +20,7 @@ type OrganizationStore interface {
 	UpdateUser(context.Context, string, domain.UpdateUserInput) (domain.AppUser, error)
 	DeleteUser(context.Context, string) error
 	GetHierarchy(context.Context) (domain.Hierarchy, error)
+	UpdateHierarchy(context.Context, domain.Hierarchy) error
 	GetOrgUnit(context.Context, string) (domain.OrgUnit, error)
 	CreateOrgUnit(context.Context, domain.CreateOrgUnitInput) (domain.OrgUnit, error)
 	UpdateOrgUnit(context.Context, string, domain.UpdateOrgUnitInput) (domain.OrgUnit, error)
@@ -40,6 +41,7 @@ type appUserResponse struct {
 	DisplayName   string                `json:"display_name"`
 	Role          string                `json:"role"`
 	Status        string                `json:"status"`
+	Type          string                `json:"type"`
 	PrimaryUnitID string                `json:"primary_unit_id,omitempty"`
 	CurrentUnitID string                `json:"current_unit_id,omitempty"`
 	IsSeconded    bool                  `json:"is_seconded"`
@@ -89,6 +91,7 @@ func appUserFromDomain(user domain.AppUser) appUserResponse {
 		DisplayName:   user.DisplayName,
 		Role:          string(user.Role),
 		Status:        string(user.Status),
+		Type:          string(user.Type),
 		PrimaryUnitID: user.PrimaryUnitID,
 		CurrentUnitID: user.CurrentUnitID,
 		IsSeconded:    user.IsSeconded,
@@ -284,6 +287,8 @@ type createUserRequest struct {
 	DisplayName   string `json:"display_name"`
 	Role          string `json:"role"`
 	Status        string `json:"status"`
+	Type          string `json:"type"`
+	Password      string `json:"password,omitempty"`
 	PrimaryUnitID string `json:"primary_unit_id"`
 	CurrentUnitID string `json:"current_unit_id"`
 	IsSeconded    bool   `json:"is_seconded"`
@@ -311,6 +316,11 @@ var validUserStatuses = map[string]bool{
 	"active":      true,
 	"pending":     true,
 	"deactivated": true,
+}
+
+var validUserTypes = map[string]bool{
+	"human":  true,
+	"system": true,
 }
 
 var validUnitTypes = map[string]bool{
@@ -365,11 +375,19 @@ func (h Handler) createUser(c *gin.Context) {
 	req.DisplayName = strings.TrimSpace(req.DisplayName)
 	req.Role = strings.TrimSpace(req.Role)
 	req.Status = strings.TrimSpace(req.Status)
+	req.Type = strings.TrimSpace(req.Type)
 	req.PrimaryUnitID = strings.TrimSpace(req.PrimaryUnitID)
 	req.CurrentUnitID = strings.TrimSpace(req.CurrentUnitID)
 
 	if req.UserID == "" || req.Email == "" || req.DisplayName == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "user_id, email, and display_name are required"})
+		return
+	}
+	if req.Type == "" {
+		req.Type = "human"
+	}
+	if !validUserTypes[req.Type] {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "type must be human or system"})
 		return
 	}
 	if !validAppRoles[req.Role] {
@@ -386,12 +404,28 @@ func (h Handler) createUser(c *gin.Context) {
 		return
 	}
 
+	// Optional: Create Kratos Identity if password is provided
+	var kID string
+	if req.Password != "" {
+		if h.cfg.KratosAdmin == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Kratos admin service is not configured"})
+			return
+		}
+		id, err := h.cfg.KratosAdmin.CreateIdentity(c.Request.Context(), req.Email, req.DisplayName, req.UserID, req.Password)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create identity", "details": err.Error()})
+			return
+		}
+		kID = id
+	}
+
 	input := domain.CreateUserInput{
 		UserID:        req.UserID,
 		Email:         req.Email,
 		DisplayName:   req.DisplayName,
 		Role:          domain.AppRole(req.Role),
 		Status:        domain.UserStatus(req.Status),
+		Type:          domain.UserType(req.Type),
 		PrimaryUnitID: req.PrimaryUnitID,
 		CurrentUnitID: req.CurrentUnitID,
 		IsSeconded:    req.IsSeconded,
@@ -407,6 +441,8 @@ func (h Handler) createUser(c *gin.Context) {
 		"email":           user.Email,
 		"role":            string(user.Role),
 		"status":          string(user.Status),
+		"type":            string(user.Type),
+		"kratos_id":       kID,
 		"primary_unit_id": user.PrimaryUnitID,
 		"current_unit_id": user.CurrentUnitID,
 	})
@@ -781,6 +817,76 @@ func (h Handler) replaceUnitMembers(c *gin.Context) {
 			"count":   len(data),
 		},
 	}
+	addAuditMeta(response, auditLog)
+	c.JSON(http.StatusOK, response)
+}
+
+func (h Handler) updateHierarchy(c *gin.Context) {
+	if h.cfg.OrganizationStore == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"status": "unavailable",
+			"error":  "organization store is not configured",
+		})
+		return
+	}
+
+	var req struct {
+		Nodes []struct {
+			ID       string `json:"id"`
+			Position struct {
+				X float64 `json:"x"`
+				Y float64 `json:"y"`
+			} `json:"position"`
+			Data struct {
+				Label       string `json:"label"`
+				Type        string `json:"type"`
+				DirectCount int    `json:"direct_count"`
+				TotalCount  int    `json:"total_count"`
+			} `json:"data"`
+		} `json:"nodes"`
+		Edges []struct {
+			Source string `json:"source"`
+			Target string `json:"target"`
+		} `json:"edges"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": err.Error()})
+		return
+	}
+
+	// Map to domain.Hierarchy
+	var hie domain.Hierarchy
+	for _, n := range req.Nodes {
+		hie.Units = append(hie.Units, domain.OrgUnit{
+			UnitID:    n.ID,
+			UnitType:  domain.UnitType(n.Data.Type),
+			Label:     n.Data.Label,
+			PositionX: int(n.Position.X),
+			PositionY: int(n.Position.Y),
+			// Counts are typically calculated or derived, but we'll pass them for now if the store uses them
+			DirectCount: n.Data.DirectCount,
+			TotalCount:  n.Data.TotalCount,
+		})
+	}
+	for _, e := range req.Edges {
+		hie.Edges = append(hie.Edges, domain.OrgEdge{
+			SourceUnitID: e.Source,
+			TargetUnitID: e.Target,
+		})
+	}
+
+	if err := h.cfg.OrganizationStore.UpdateHierarchy(c.Request.Context(), hie); err != nil {
+		writeStoreError(c, err, "organization.update_hierarchy")
+		return
+	}
+
+	auditLog := h.recordAuditBestEffort(c, "org_hierarchy.updated", "org_hierarchy", "global", map[string]any{
+		"unit_count": len(hie.Units),
+		"edge_count": len(hie.Edges),
+	})
+
+	response := gin.H{"status": "ok", "message": "Hierarchy updated successfully"}
 	addAuditMeta(response, auditLog)
 	c.JSON(http.StatusOK, response)
 }

@@ -17,7 +17,7 @@ serve:
   public:
     base_url: http://localhost:4433/
     port: 4433
-    host: 127.0.0.1
+    host: 0.0.0.0
     cors:
       enabled: true
       allowed_origins:
@@ -40,9 +40,9 @@ serve:
   admin:
     base_url: http://localhost:4434/
     port: 4434
-    host: 127.0.0.1
+    host: 0.0.0.0
 
-dsn: postgres://postgres:postgres@127.0.0.1:5432/devhub?sslmode=disable&search_path=kratos
+dsn: postgres://localhost:5432/devhub?sslmode=disable&search_path=kratos
 
 selfservice:
   default_browser_return_url: http://localhost:3000/
