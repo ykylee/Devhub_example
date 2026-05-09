@@ -173,6 +173,7 @@ var routePermissionTable = map[routeKey]routePolicy{
 
 	// organization — units
 	{http.MethodGet, "/api/v1/organization/hierarchy"}:              {Resource: domain.ResourceOrganization, Action: domain.ActionView},
+	{http.MethodPut, "/api/v1/organization/hierarchy"}:              {Resource: domain.ResourceOrganization, Action: domain.ActionEdit},
 	{http.MethodGet, "/api/v1/organization/units/:unit_id"}:         {Resource: domain.ResourceOrganization, Action: domain.ActionView},
 	{http.MethodPost, "/api/v1/organization/units"}:                 {Resource: domain.ResourceOrganization, Action: domain.ActionCreate},
 	{http.MethodPatch, "/api/v1/organization/units/:unit_id"}:       {Resource: domain.ResourceOrganization, Action: domain.ActionEdit},
