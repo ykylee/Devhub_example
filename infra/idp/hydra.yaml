@@ -11,20 +11,31 @@
 serve:
   public:
     port: 4444
-    host: 127.0.0.1
+    host: 0.0.0.0
+    cors:
+      enabled: true
+      allowed_origins:
+        - http://localhost:3000
+      allowed_methods:
+        - POST
+        - GET
+      allowed_headers:
+        - Authorization
+        - Content-Type
+      allow_credentials: true
   admin:
     port: 4445
-    host: 127.0.0.1
+    host: 0.0.0.0
   cookies:
     same_site_mode: Lax
 
-dsn: postgres://postgres:postgres@127.0.0.1:5432/devhub?sslmode=disable&search_path=hydra
+dsn: postgres://localhost:5432/devhub?sslmode=disable&search_path=hydra
 
 urls:
   self:
     issuer: http://localhost:4444/
     public: http://localhost:4444/
-  consent: http://localhost:3000/auth/consent
+  consent: http://localhost:8080/api/v1/auth/consent
   login: http://localhost:3000/auth/login
   logout: http://localhost:3000/auth/logout
   error: http://localhost:3000/auth/error

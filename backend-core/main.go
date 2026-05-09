@@ -9,6 +9,7 @@ import (
 	"github.com/devhub/backend-core/internal/auth"
 	"github.com/devhub/backend-core/internal/commandworker"
 	"github.com/devhub/backend-core/internal/config"
+	"github.com/devhub/backend-core/internal/hrdb"
 	"github.com/devhub/backend-core/internal/httpapi"
 	"github.com/devhub/backend-core/internal/normalize"
 	"github.com/devhub/backend-core/internal/serviceaction"
@@ -87,6 +88,7 @@ func main() {
 	var (
 		hydraAdmin  httpapi.HydraLoginAdmin
 		kratosLogin httpapi.KratosLoginClient
+		kratosAdmin httpapi.KratosAdmin
 	)
 	if cfg.HydraAdminURL != "" {
 		hydraAdmin = &httpapi.HydraAdminClient{AdminURL: cfg.HydraAdminURL}
@@ -96,6 +98,16 @@ func main() {
 		kratosLogin = &httpapi.KratosClient{PublicURL: cfg.KratosPublicURL}
 		log.Printf("kratos public client wired: %s", cfg.KratosPublicURL)
 	}
+	if cfg.KratosAdminURL != "" {
+		kratosAdmin = &httpapi.KratosAdminClient{AdminURL: cfg.KratosAdminURL}
+		log.Printf("kratos admin client wired: %s", cfg.KratosAdminURL)
+	} else {
+		kratosAdmin = &httpapi.MockKratosAdmin{}
+		log.Println("Kratos Admin URL not set; using MockKratosAdmin for development")
+	}
+
+	hrdbMock := hrdb.NewMockClient()
+	log.Println("HR DB Mock client initialized")
 
 	router := httpapi.NewRouter(httpapi.RouterConfig{
 		WebhookSecret:       cfg.GiteaWebhookSecret,
@@ -110,6 +122,8 @@ func main() {
 		BearerTokenVerifier: verifier,
 		KratosLogin:         kratosLogin,
 		HydraAdmin:          hydraAdmin,
+		KratosAdmin:         kratosAdmin,
+		HRDB:                hrdbMock,
 		SnapshotProvider: httpapi.RuntimeSnapshotProvider{
 			Base:         httpapi.StaticSnapshotProvider{},
 			HealthStore:  healthStore,

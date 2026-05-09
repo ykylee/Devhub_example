@@ -8,17 +8,24 @@
     "traits": {
       "type": "object",
       "properties": {
-        "email": {
+        "system_id": {
           "type": "string",
-          "format": "email",
-          "title": "E-Mail",
+          "title": "System ID",
           "minLength": 3,
           "ory.sh/kratos": {
             "credentials": {
               "password": {
                 "identifier": true
               }
-            },
+            }
+          }
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "title": "E-Mail",
+          "minLength": 3,
+          "ory.sh/kratos": {
             "verification": {
               "via": "email"
             },
@@ -35,6 +42,7 @@
         }
       },
       "required": [
+        "system_id",
         "email"
       ],
       "additionalProperties": false

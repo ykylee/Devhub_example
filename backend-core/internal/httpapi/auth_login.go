@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"log"
 )
 
 // KratosLoginClient covers the slice of *KratosClient that the login proxy
@@ -21,6 +22,8 @@ type KratosLoginClient interface {
 type HydraLoginAdmin interface {
 	GetLoginRequest(ctx context.Context, challenge string) (HydraLoginRequest, error)
 	AcceptLoginRequest(ctx context.Context, challenge, subject string, remember bool, rememberFor int) (string, error)
+	GetConsentRequest(ctx context.Context, challenge string) (HydraConsentRequest, error)
+	AcceptConsentRequest(ctx context.Context, challenge string, grantedScope []string, remember bool, rememberFor int) (string, error)
 }
 
 // loginRequestPayload is the body the frontend posts from /auth/login. The
@@ -94,12 +97,14 @@ func (h Handler) authLogin(c *gin.Context) {
 		return
 	}
 
+	log.Printf("[authLogin] Creating login flow for challenge %s", req.LoginChallenge)
 	flow, err := h.cfg.KratosLogin.CreateLoginFlow(ctx)
 	if err != nil {
 		writeAuthLoginServerError(c, err, "auth.login.create_flow")
 		return
 	}
 
+	log.Printf("[authLogin] Submitting login for identifier %s", req.Identifier)
 	identity, err := h.cfg.KratosLogin.SubmitLogin(ctx, flow, req.Identifier, req.Password)
 	switch {
 	case errors.Is(err, ErrKratosInvalidCredentials):
@@ -130,6 +135,7 @@ func (h Handler) authLogin(c *gin.Context) {
 		})
 	}
 
+	log.Printf("[authLogin] Accepting login request for subject %s", subject)
 	redirectTo, err := h.cfg.HydraAdmin.AcceptLoginRequest(ctx, req.LoginChallenge, subject, req.Remember, defaultRememberForSeconds)
 	if err != nil {
 		writeAuthLoginServerError(c, err, "auth.login.accept")

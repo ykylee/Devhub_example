@@ -40,18 +40,18 @@ export function Sidebar({ className, ...props }: React.HTMLAttributes<HTMLDivEle
                   className={cn(
                     "relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all group overflow-hidden",
                     isActive 
-                      ? "text-white bg-white/10 border border-white/10" 
-                      : "text-muted-foreground hover:text-white hover:bg-white/5"
+                      ? "text-primary dark:text-white bg-primary/10 dark:bg-white/10 border border-primary/20 dark:border-white/10" 
+                      : "text-muted-foreground hover:text-foreground dark:hover:text-white hover:bg-white/5"
                   )}
                 >
                   {isActive && (
                     <motion.div
                       layoutId="active-pill"
-                      className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 opacity-50"
+                      className="absolute inset-0 bg-gradient-to-r from-primary/10 to-accent/10 dark:from-primary/20 dark:to-accent/20 opacity-50"
                       transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                     />
                   )}
-                  <item.icon className={cn("h-5 w-5 transition-colors z-10", isActive ? item.color : "group-hover:text-white")} />
+                  <item.icon className={cn("h-5 w-5 transition-colors z-10", isActive ? item.color : "group-hover:text-foreground dark:group-hover:text-white")} />
                   <span className="z-10">{item.label}</span>
                 </motion.div>
               </Link>
@@ -61,7 +61,7 @@ export function Sidebar({ className, ...props }: React.HTMLAttributes<HTMLDivEle
 
         <div className="mt-auto pt-6 border-t border-white/5">
           <Link href="/account">
-            <div className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-muted-foreground hover:text-white hover:bg-white/5 transition-all">
+            <div className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground dark:hover:text-white hover:bg-white/5 transition-all">
               <Settings className="h-5 w-5" />
               <span>Account</span>
             </div>

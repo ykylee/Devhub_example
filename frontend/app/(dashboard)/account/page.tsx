@@ -40,7 +40,7 @@ export default function AccountPage() {
     <div className="space-y-8 max-w-4xl mx-auto pb-12">
       {/* Header Section */}
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-black text-white tracking-tighter uppercase">
+        <h1 className="text-3xl font-black text-foreground dark:text-white tracking-tighter uppercase">
           Account <span className="text-primary">Settings</span>
         </h1>
         <p className="text-muted-foreground font-bold text-xs uppercase tracking-widest">
@@ -60,7 +60,7 @@ export default function AccountPage() {
               <User className="w-12 h-12 text-white" />
             </div>
             <div className="space-y-1">
-              <h2 className="text-xl font-bold text-white tracking-tight">{actor?.login || "Guest User"}</h2>
+              <h2 className="text-xl font-bold text-foreground dark:text-white tracking-tight">{actor?.login || "Guest User"}</h2>
               <p className="text-xs font-bold text-primary uppercase tracking-widest">{actor?.role || "Developer"}</p>
             </div>
             <div className="pt-4 border-t border-white/5 space-y-3">
@@ -102,7 +102,7 @@ export default function AccountPage() {
                 <Key className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-white tracking-tight">Security Credentials</h3>
+                <h3 className="text-lg font-bold text-foreground dark:text-white tracking-tight">Security Credentials</h3>
                 <p className="text-xs text-muted-foreground">Update your authentication password</p>
               </div>
             </div>
@@ -118,7 +118,7 @@ export default function AccountPage() {
                     required
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-white/10"
+                    className="w-full bg-white/50 dark:bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-foreground dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-muted-foreground/50"
                     placeholder="Enter current password"
                   />
                 </div>
@@ -133,7 +133,7 @@ export default function AccountPage() {
                       required
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-white/10"
+                      className="w-full bg-white/50 dark:bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-foreground dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-muted-foreground/50"
                       placeholder="Min 8 characters"
                     />
                   </div>
@@ -146,7 +146,7 @@ export default function AccountPage() {
                       required
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-white/10"
+                      className="w-full bg-white/50 dark:bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-foreground dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-muted-foreground/50"
                       placeholder="Repeat new password"
                     />
                   </div>
@@ -200,7 +200,7 @@ export default function AccountPage() {
                 <Shield className="w-5 h-5" />
               </div>
               <div className="space-y-1">
-                <h4 className="text-white font-bold tracking-tight">Two-Factor Authentication</h4>
+                <h4 className="text-foreground dark:text-white font-bold tracking-tight">Two-Factor Authentication</h4>
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   Enhance your account security by adding an extra layer of protection. This feature is currently in preview and will be available in v0.6.0.
                 </p>

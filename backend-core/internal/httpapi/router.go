@@ -130,6 +130,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.GET("/hr/lookup", handler.hrLookup)
 	v1.POST("/auth/signup", handler.authSignUp)
 	v1.POST("/auth/login", handler.authLogin)
+	v1.GET("/auth/consent", handler.authConsent)
 	if cfg.RealtimeHub != nil {
 		v1.GET("/realtime/ws", handler.handleRealtimeWebSocket)
 	}

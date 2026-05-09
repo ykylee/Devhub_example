@@ -43,6 +43,19 @@ type HydraLoginRequest struct {
 	RequestURL string
 }
 
+// HydraConsentRequest is the slice of GET /admin/oauth2/auth/requests/consent
+// that the proxy needs to see which scopes were requested before accepting.
+type HydraConsentRequest struct {
+	Challenge      string
+	Skip           bool
+	Subject        string
+	RequestedScope []string
+	Client         struct {
+		ClientID   string
+		ClientName string
+	}
+}
+
 // AcceptLoginRequest tells Hydra that the supplied subject is authenticated
 // for this challenge. Hydra responds with redirect_to which the frontend
 // follows to complete the OIDC code flow (consent + callback).
@@ -176,4 +189,65 @@ func (c *HydraAdminClient) client() *http.Client {
 		return c.HTTPClient
 	}
 	return &http.Client{Timeout: 5 * time.Second}
+}
+
+// GetConsentRequest fetches the metadata for a consent challenge.
+func (c *HydraAdminClient) GetConsentRequest(ctx context.Context, challenge string) (HydraConsentRequest, error) {
+	if strings.TrimSpace(c.AdminURL) == "" {
+		return HydraConsentRequest{}, errors.New("HydraAdminClient.AdminURL is not configured")
+	}
+	endpoint := strings.TrimRight(c.AdminURL, "/") + "/admin/oauth2/auth/requests/consent?consent_challenge=" + url.QueryEscape(challenge)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return HydraConsentRequest{}, err
+	}
+	resp, err := c.client().Do(req)
+	if err != nil {
+		return HydraConsentRequest{}, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode/100 != 2 {
+		body, _ := io.ReadAll(resp.Body)
+		return HydraConsentRequest{}, fmt.Errorf("hydra get consent status %d: %s", resp.StatusCode, string(body))
+	}
+	var out HydraConsentRequest
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return HydraConsentRequest{}, err
+	}
+	return out, nil
+}
+
+// AcceptConsentRequest tells Hydra that the user has granted the requested scopes.
+func (c *HydraAdminClient) AcceptConsentRequest(ctx context.Context, challenge string, grantedScope []string, remember bool, rememberFor int) (string, error) {
+	if strings.TrimSpace(c.AdminURL) == "" {
+		return "", errors.New("HydraAdminClient.AdminURL is not configured")
+	}
+	endpoint := strings.TrimRight(c.AdminURL, "/") + "/admin/oauth2/auth/requests/consent/accept?consent_challenge=" + url.QueryEscape(challenge)
+	payload := map[string]any{
+		"grant_scope":  grantedScope,
+		"remember":     remember,
+		"remember_for": rememberFor,
+	}
+	body, _ := json.Marshal(payload)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, endpoint, bytes.NewReader(body))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.client().Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode/100 != 2 {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("hydra accept consent status %d: %s", resp.StatusCode, string(body))
+	}
+	var out struct {
+		RedirectTo string `json:"redirect_to"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return "", err
+	}
+	return out.RedirectTo, nil
 }

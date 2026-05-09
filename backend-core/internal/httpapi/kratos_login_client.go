@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -47,7 +48,8 @@ type KratosIdentity struct {
 	// not populated the metadata yet — login still proceeds, but the
 	// caller must reject anonymous DevHub users.
 	UserID string
-	// Email and DisplayName come from traits per identity.schema.json.
+	// Email, DisplayName and SystemID come from traits per identity.schema.json.
+	SystemID    string
 	Email       string
 	DisplayName string
 }
@@ -101,10 +103,9 @@ func (c *KratosClient) SubmitLogin(ctx context.Context, flow KratosLoginFlow, id
 	}
 	endpoint := strings.TrimRight(c.PublicURL, "/") + "/self-service/login?flow=" + flow.ID
 	payload := map[string]any{
-		"method":              "password",
-		"password_identifier": identifier,
-		"identifier":          identifier,
-		"password":            password,
+		"method":     "password",
+		"identifier": identifier,
+		"password":   password,
 	}
 	if flow.CSRFToken != "" {
 		payload["csrf_token"] = flow.CSRFToken
@@ -135,6 +136,7 @@ func (c *KratosClient) SubmitLogin(ctx context.Context, flow KratosLoginFlow, id
 	case resp.StatusCode == http.StatusOK:
 		return parseLoginSuccess(body)
 	case resp.StatusCode == http.StatusBadRequest:
+		log.Printf("[KratosClient] SubmitLogin 400: %s", string(body))
 		// 400 is Kratos's response for both schema errors and rejected
 		// credentials; treat the latter as the dominant case to keep
 		// callers from leaking which arm fired.
@@ -142,6 +144,7 @@ func (c *KratosClient) SubmitLogin(ctx context.Context, flow KratosLoginFlow, id
 	case resp.StatusCode == http.StatusGone || resp.StatusCode == http.StatusUnauthorized:
 		return KratosIdentity{}, ErrKratosFlowExpired
 	default:
+		log.Printf("[KratosClient] SubmitLogin status %d: %s", resp.StatusCode, string(body))
 		return KratosIdentity{}, fmt.Errorf("kratos login submit status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
 	}
 }
@@ -203,6 +206,7 @@ type kratosLoginSuccessResponse struct {
 type kratosIdentityRaw struct {
 	ID             string `json:"id"`
 	Traits         struct {
+		SystemID    string `json:"system_id"`
 		Email       string `json:"email"`
 		DisplayName string `json:"display_name"`
 	} `json:"traits"`
@@ -223,6 +227,7 @@ func parseLoginSuccess(body []byte) (KratosIdentity, error) {
 	return KratosIdentity{
 		ID:          identity.ID,
 		UserID:      strings.TrimSpace(identity.MetadataPublic.UserID),
+		SystemID:    identity.Traits.SystemID,
 		Email:       identity.Traits.Email,
 		DisplayName: identity.Traits.DisplayName,
 	}, nil

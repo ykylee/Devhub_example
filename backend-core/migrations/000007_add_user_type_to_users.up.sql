@@ -1,0 +1,1 @@
+ALTER TABLE users ADD COLUMN user_type VARCHAR(20) DEFAULT 'human' NOT NULL;

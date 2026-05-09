@@ -8,6 +8,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useStore, type UserRole } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import { authService } from "@/lib/services/auth.service";
+import { realtimeService, type ConnectionStatusEvent } from "@/lib/services/realtime.service";
+import { ThemeToggle } from "./ThemeToggle";
 
 export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   const { role, actor, setRole, notifications, clearNotifications } = useStore();
@@ -48,7 +50,7 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
               "w-2 h-2 rounded-full animate-pulse",
               isConnected ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]"
             )} />
-            <span className="text-[10px] font-black text-white/50 uppercase tracking-widest hidden lg:inline">
+            <span className="text-[10px] font-black text-muted-foreground dark:text-white/50 uppercase tracking-widest hidden lg:inline">
               {isConnected ? "Real-time Live" : "Offline"}
             </span>
           </div>
@@ -92,7 +94,7 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
                 <User className="w-5 h-5 text-white" />
               </div>
               <div className="flex flex-col hidden sm:flex">
-                <span className="text-sm font-semibold leading-none text-white">{actor?.login || "Guest User"}</span>
+                <span className="text-sm font-semibold leading-none text-foreground dark:text-white">{actor?.login || "Guest User"}</span>
                 <span className="text-[10px] font-bold text-muted-foreground mt-1 flex items-center gap-1 uppercase tracking-wider">
                   {role || "No Role"} <ChevronDown className={cn("w-3 h-3 transition-transform duration-300", showDropdown && "rotate-180")} />
                 </span>

@@ -52,3 +52,4 @@ docker-compose.*.yml
 *.bak
 *.swp
 Thumbs.db
+docs/LOCAL_MACHINE_ENV.md

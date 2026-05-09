@@ -3,15 +3,19 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, ShieldCheck } from "lucide-react";
+import Link from "next/link";
 
 // OIDC entry point. Defaults assume a local PoC: Hydra public on :4444 issuing tokens for the devhub-frontend client, redirecting back to the SPA root after consent.
 import { authService } from "@/lib/services/auth.service";
-
-// OIDC entry point. Defaults assume a local PoC: Hydra public on :4444 issuing tokens for the devhub-frontend client, redirecting back to the SPA root after consent.
-// Constants moved to AuthService for centralization.
+import { useEffect } from "react";
 
 export default function LoginPage() {
   const [isRedirecting, setIsRedirecting] = useState(false);
+
+  useEffect(() => {
+    // Automatically initiate OIDC flow on landing to avoid redundant click
+    handleLogin();
+  }, []);
 
   const handleLogin = async () => {
     setIsRedirecting(true);

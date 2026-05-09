@@ -62,11 +62,11 @@ export default function DeveloperDashboard() {
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
         >
-          <h1 className="text-4xl font-extrabold tracking-tight text-white mb-2">
+          <h1 className="text-4xl font-extrabold tracking-tight text-foreground dark:text-white mb-2">
             Developer <span className="text-gradient">Workspace</span>
           </h1>
           <p className="text-muted-foreground text-lg flex items-center gap-2">
-            Welcome back, <span className="text-white font-bold">YK Lee</span> • <Badge variant="success" dot>Active Now</Badge>
+            Welcome back, <span className="text-foreground dark:text-white font-bold">YK Lee</span> • <Badge variant="success" dot>Active Now</Badge>
           </p>
         </motion.div>
 
@@ -81,7 +81,7 @@ export default function DeveloperDashboard() {
               "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border",
               isDeepFocus 
                 ? "bg-primary text-white border-primary shadow-[0_0_20px_rgba(139,92,246,0.5)]" 
-                : "glass border-white/10 text-muted-foreground hover:text-white"
+                : "glass border-white/10 text-muted-foreground hover:text-foreground dark:hover:text-white"
             )}
           >
             {isDeepFocus ? <Zap className="w-4 h-4 fill-current" /> : <Coffee className="w-4 h-4" />}
@@ -89,7 +89,7 @@ export default function DeveloperDashboard() {
           </button>
           <button 
             onClick={() => setIsModalOpen(true)}
-            className="glass text-white px-6 py-2 rounded-xl text-sm font-bold hover:bg-white/10 transition-all border border-white/10 flex items-center gap-2"
+            className="glass text-foreground dark:text-white px-6 py-2 rounded-xl text-sm font-bold hover:bg-white/10 transition-all border border-white/10 flex items-center gap-2"
           >
             <Info className="w-4 h-4" /> Project Info
           </button>
@@ -108,7 +108,7 @@ export default function DeveloperDashboard() {
           >
             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">{stat.label}</p>
             <div className="flex items-center justify-between">
-              <h3 className="text-2xl font-black text-white">{stat.value}</h3>
+              <h3 className="text-2xl font-black text-foreground dark:text-white">{stat.value}</h3>
               <span className={cn("text-[10px] font-black uppercase tracking-tighter", stat.color)}>
                 {stat.trend}
               </span>
@@ -124,7 +124,7 @@ export default function DeveloperDashboard() {
           {/* Work Stream */}
           <section className="space-y-4">
             <div className="flex items-center justify-between px-2">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2">
                 <Terminal className="w-5 h-5 text-primary" /> Active Stream
               </h2>
               <button className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors flex items-center gap-1">
@@ -178,7 +178,7 @@ export default function DeveloperDashboard() {
                           <span className="text-[10px] text-white/30">•</span>
                           <span className="text-[10px] font-bold text-muted-foreground uppercase">{task.repo}</span>
                         </div>
-                        <h3 className="text-lg font-bold text-white group-hover:text-primary transition-colors">
+                        <h3 className="text-lg font-bold text-foreground dark:text-white group-hover:text-primary transition-colors">
                           {task.title}
                         </h3>
                       </div>
@@ -214,7 +214,7 @@ export default function DeveloperDashboard() {
 
           {/* Infrastructure Health / Builds */}
           <section className="space-y-4">
-            <h2 className="text-xl font-bold text-white flex items-center gap-2 px-2">
+            <h2 className="text-xl font-bold text-foreground dark:text-white flex items-center gap-2 px-2">
               <PlayCircle className="w-5 h-5 text-accent" /> Deployment Pipeline
             </h2>
             <div className="glass-card divide-y divide-white/5">
@@ -232,7 +232,7 @@ export default function DeveloperDashboard() {
                       )}
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-white">{build.title}</p>
+                      <p className="text-sm font-bold text-foreground dark:text-white">{build.title}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">{build.status} • {build.time} • <span className="font-mono">8a2f1b4</span></p>
                     </div>
                   </div>
@@ -263,10 +263,10 @@ export default function DeveloperDashboard() {
                 <div className="p-2 rounded-lg bg-white/10 border border-white/20">
                   <Star className="w-4 h-4 text-yellow-400 fill-current" />
                 </div>
-                <span className="text-sm font-black uppercase tracking-widest text-white">AI Gardener</span>
+                <span className="text-sm font-black uppercase tracking-widest text-foreground dark:text-white">AI Gardener</span>
               </div>
               
-              <p className="text-sm text-white/80 leading-relaxed font-medium">
+              <p className="text-sm text-foreground/80 dark:text-white/80 leading-relaxed font-medium">
                 &quot;I noticed you&apos;re implementing a <span className="text-primary font-bold">Webhook secret validator</span>. There&apos;s a battle-tested helper in the <span className="underline decoration-accent underline-offset-4 cursor-pointer">shared-utils</span> package that handles Gitea signatures.&quot;
               </p>
               
@@ -285,9 +285,9 @@ export default function DeveloperDashboard() {
               <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-3">
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-[10px] font-bold text-white">A</div>
-                  <span className="text-xs font-bold text-white">@alex_dev</span>
+                  <span className="text-xs font-bold text-foreground dark:text-white">@alex_dev</span>
                 </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">
+                <p className="text-xs text-muted-foreground dark:text-muted-foreground leading-relaxed">
                   &quot;Amazing work on the gRPC migration! The performance gains are already visible in the staging logs. Keep it up! 🚀&quot;
                 </p>
               </div>
@@ -299,15 +299,15 @@ export default function DeveloperDashboard() {
             <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground mb-4">Infrastructure</h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-white/70">Gitea Server</span>
+                <span className="text-xs font-bold text-foreground/70 dark:text-white/70">Gitea Server</span>
                 <span className="text-[10px] font-black text-green-500 uppercase">Operational</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-white/70">AI Runner</span>
+                <span className="text-xs font-bold text-foreground/70 dark:text-white/70">AI Runner</span>
                 <span className="text-[10px] font-black text-green-500 uppercase">Operational</span>
               </div>
               <div className="flex items-center justify-between opacity-50">
-                <span className="text-xs font-bold text-white/70">Metrics DB</span>
+                <span className="text-xs font-bold text-foreground/70 dark:text-white/70">Metrics DB</span>
                 <span className="text-[10px] font-black text-amber-500 uppercase">Maintenance</span>
               </div>
             </div>
@@ -335,8 +335,8 @@ export default function DeveloperDashboard() {
                 <Zap className="w-12 h-12 text-primary fill-current" />
               </motion.div>
               <div className="space-y-2">
-                <h2 className="text-4xl font-black text-white uppercase tracking-tighter">Deep Focus Mode</h2>
-                <p className="text-muted-foreground">Notifications are silenced. DevHub is protecting your flow state.</p>
+                <h2 className="text-4xl font-black text-foreground dark:text-white uppercase tracking-tighter">Deep Focus Mode</h2>
+                <p className="text-muted-foreground dark:text-muted-foreground">Notifications are silenced. DevHub is protecting your flow state.</p>
               </div>
               <button 
                 onClick={() => setDeepFocus(false)}

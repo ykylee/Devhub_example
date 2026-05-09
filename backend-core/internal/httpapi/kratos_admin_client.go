@@ -20,7 +20,9 @@ type KratosAdminClient struct {
 // KratosCreateIdentityRequest is the payload for POST /admin/identities.
 type KratosCreateIdentityRequest struct {
 	SchemaID string `json:"schema_id"`
+	State    string `json:"state"`
 	Traits   struct {
+		SystemID    string `json:"system_id"`
 		Email       string `json:"email"`
 		DisplayName string `json:"display_name"`
 	} `json:"traits"`
@@ -33,7 +35,7 @@ type KratosCreateIdentityRequest struct {
 				Password string `json:"password"`
 			} `json:"config"`
 		} `json:"password"`
-	} `json:"password"`
+	} `json:"credentials"`
 }
 
 func (c *KratosAdminClient) CreateIdentity(ctx context.Context, email, name, userID, password string) (string, error) {
@@ -42,8 +44,10 @@ func (c *KratosAdminClient) CreateIdentity(ctx context.Context, email, name, use
 	}
 
 	reqBody := KratosCreateIdentityRequest{
-		SchemaID: "default", // or your schema id
+		SchemaID: "devhub_user",
+		State:    "active",
 	}
+	reqBody.Traits.SystemID = userID
 	reqBody.Traits.Email = email
 	reqBody.Traits.DisplayName = name
 	reqBody.MetadataPublic.UserID = userID
@@ -92,4 +96,13 @@ func (c *KratosAdminClient) client() *http.Client {
 		return c.HTTPClient
 	}
 	return &http.Client{Timeout: 5 * time.Second}
+}
+
+// MockKratosAdmin is a development-only mock that simulates identity creation.
+type MockKratosAdmin struct{}
+
+func (m *MockKratosAdmin) CreateIdentity(ctx context.Context, email, name, userID, password string) (string, error) {
+	fakeID := fmt.Sprintf("mock-k-id-%s", userID)
+	fmt.Printf("[MockKratosAdmin] Identity Created: Email=%s, Name=%s, UserID=%s (Password was received)\n", email, name, userID)
+	return fakeID, nil
 }
