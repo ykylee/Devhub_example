@@ -1,9 +1,14 @@
 import { WSEvent, WSEventHandler } from "./types";
+import { useStore } from "@/lib/store";
 
 const WS_BASE = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080/api/v1/realtime/ws';
-const DEFAULT_EVENT_TYPES = ['command.status.updated'];
-const DEVHUB_ACTOR = process.env.NEXT_PUBLIC_DEVHUB_ACTOR || 'yklee';
-const DEVHUB_ROLE = process.env.NEXT_PUBLIC_DEVHUB_ROLE || 'manager';
+const DEFAULT_EVENT_TYPES = [
+  'command.status.updated',
+  'infra.node.updated',
+  'infra.edge.updated',
+  'risk.critical.created',
+  'notification.created'
+];
 
 export type ConnectionStatusEvent = { connected: boolean };
 
@@ -14,11 +19,12 @@ export class RealtimeService {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectInterval = 3000;
+  private currentUrl: string | null = null;
   public isConnected = false;
 
   private constructor() {
     if (typeof window !== 'undefined') {
-      this.connect();
+      this.init();
     }
   }
 
@@ -29,9 +35,34 @@ export class RealtimeService {
     return RealtimeService.instance;
   }
 
+  private init() {
+    this.connect();
+
+    // Watch for store changes to trigger reconnection if identity changes
+    useStore.subscribe(
+      (state) => ({ actor: state.actor, role: state.role }),
+      (current, previous) => {
+        if (
+          current.actor?.login !== previous.actor?.login || 
+          current.role !== previous.role
+        ) {
+          console.log('[RealtimeService] Identity changed, reconnecting...');
+          this.reconnect();
+        }
+      }
+    );
+  }
+
   private connect() {
     try {
       const url = this.buildURL();
+      if (this.socket && this.socket.readyState === WebSocket.OPEN && this.currentUrl === url) return;
+
+      if (this.socket) {
+        this.socket.close();
+      }
+
+      this.currentUrl = url;
       console.log(`[RealtimeService] Connecting to ${url}...`);
       this.socket = new WebSocket(url);
 
@@ -67,7 +98,11 @@ export class RealtimeService {
           event_id: 'internal',
           occurred_at: new Date().toISOString()
         } as WSEvent);
-        this.handleReconnect();
+        
+        // Only reconnect if it wasn't a clean close for identity change
+        if (event.code !== 1000) {
+          this.handleReconnect();
+        }
       };
 
       this.socket.onerror = (error) => {
@@ -79,12 +114,29 @@ export class RealtimeService {
     }
   }
 
+  private reconnect() {
+    this.reconnectAttempts = 0;
+    if (this.socket) {
+      this.socket.close(1000, "Identity change");
+    }
+    this.connect();
+  }
+
   private buildURL() {
+    const { actor, role } = useStore.getState();
     const separator = WS_BASE.includes('?') ? '&' : '?';
     const types = encodeURIComponent(DEFAULT_EVENT_TYPES.join(','));
-    const actor = encodeURIComponent(DEVHUB_ACTOR);
-    const role = encodeURIComponent(DEVHUB_ROLE);
-    return `${WS_BASE}${separator}types=${types}&actor=${actor}&role=${role}`;
+    
+    const actorParam = actor?.login || 'guest';
+    
+    const roleMap: Record<string, string> = {
+      "System Admin": "system_admin",
+      "Manager": "manager",
+      "Developer": "developer"
+    };
+    const roleParam = role ? (roleMap[role] || role.toLowerCase()) : 'guest';
+
+    return `${WS_BASE}${separator}types=${types}&actor=${actorParam}&role=${roleParam}`;
   }
 
   private handleReconnect() {
@@ -139,3 +191,4 @@ export class RealtimeService {
 }
 
 export const realtimeService = RealtimeService.getInstance();
+

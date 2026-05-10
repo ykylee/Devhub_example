@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Sun, Moon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -8,22 +8,30 @@ export function ThemeToggle() {
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-    const savedTheme = localStorage.getItem("devhub-theme") as "light" | "dark";
-    if (savedTheme) {
-      setTheme(savedTheme);
-      applyTheme(savedTheme);
-    }
-  }, []);
-
-  const applyTheme = (t: "light" | "dark") => {
+  const applyTheme = useCallback((t: "light" | "dark") => {
     if (t === "dark") {
       document.documentElement.classList.add("theme-dark");
     } else {
       document.documentElement.classList.remove("theme-dark");
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (mounted) {
+      const savedTheme = localStorage.getItem("devhub-theme") as "light" | "dark";
+      if (savedTheme) {
+        setTimeout(() => {
+          setTheme(savedTheme);
+          applyTheme(savedTheme);
+        }, 0);
+      }
+    }
+  }, [mounted, applyTheme]);
 
   const toggleTheme = () => {
     const newTheme = theme === "light" ? "dark" : "light";

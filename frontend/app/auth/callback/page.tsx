@@ -18,12 +18,12 @@ function CallbackInner() {
     const errorDesc = searchParams.get("error_description");
 
     if (errorParam) {
-      setError(errorDesc || errorParam);
+      setTimeout(() => setError(errorDesc || errorParam), 0);
       return;
     }
 
     if (!code || !state) {
-      setError("Missing authorization code or state.");
+      setTimeout(() => setError("Missing authorization code or state."), 0);
       return;
     }
 
@@ -39,7 +39,8 @@ function CallbackInner() {
         router.replace("/developer");
       } catch (err) {
         console.error("[auth/callback] Error processing callback:", err);
-        setError(err instanceof Error ? err.message : "Authentication failed.");
+        const msg = err instanceof Error ? err.message : "Authentication failed.";
+        setTimeout(() => setError(msg), 0);
       }
     }
 

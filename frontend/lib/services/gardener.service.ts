@@ -13,7 +13,8 @@ export interface Suggestion {
   created_at: string;
 }
 
-const API_BASE = "";
+import { apiClient } from "./api-client";
+
 
 export class GardenerService {
   private static instance: GardenerService;
@@ -29,10 +30,7 @@ export class GardenerService {
 
   async getSuggestions(): Promise<Suggestion[]> {
     try {
-      const response = await fetch(`${API_BASE}/api/v1/gardener/suggestions`);
-      if (!response.ok) throw new Error('Failed to fetch suggestions');
-      
-      const result = await response.json();
+      const result = await apiClient<{ data: Suggestion[] }>("GET", "/api/v1/gardener/suggestions");
       return result.data;
     } catch (error) {
       console.error('[GardenerService] getSuggestions error:', error);
@@ -62,17 +60,7 @@ export class GardenerService {
 
   async applySuggestion(suggestionId: string): Promise<CommandResponse> {
     try {
-      const response = await fetch(`${API_BASE}/api/v1/gardener/suggestions/${suggestionId}/apply`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Devhub-Actor': 'yklee'
-        }
-      });
-
-      if (!response.ok) throw new Error('Failed to apply suggestion');
-      
-      const result = await response.json();
+      const result = await apiClient<{ data: { command_id: string; command_status: string } }>("POST", `/api/v1/gardener/suggestions/${suggestionId}/apply`);
       return {
         command_id: result.data.command_id,
         status: result.data.command_status

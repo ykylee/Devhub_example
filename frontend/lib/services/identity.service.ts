@@ -1,4 +1,4 @@
-import { tokenStore } from "@/lib/auth/token-store";
+import { apiClient, ApiError } from "./api-client";
 
 export interface OrgMember {
   id: string;
@@ -46,7 +46,6 @@ export interface OrgEdge {
   animated?: boolean;
 }
 
-type JsonObject = Record<string, unknown>;
 
 interface ApiResponse<T> {
   data?: T;
@@ -178,49 +177,7 @@ export interface ResolvedActor {
   source?: string;
 }
 
-export class IdentityServiceError extends Error {
-  constructor(public status: number, public payload: unknown, message: string) {
-    super(message);
-    this.name = "IdentityServiceError";
-  }
-}
 
-function isJsonObject(value: unknown): value is JsonObject {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-async function jsonRequest<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const headers: Record<string, string> = {};
-  if (body !== undefined) {
-    headers["Content-Type"] = "application/json";
-  }
-
-  // Inject Bearer token if available
-  const token = tokenStore.getAccessToken();
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-
-  const response = await fetch(path, {
-    method,
-    headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
-  let parsed: unknown = null;
-  const text = await response.text();
-  if (text.length > 0) {
-    try {
-      parsed = JSON.parse(text);
-    } catch {
-      parsed = { raw: text };
-    }
-  }
-  if (!response.ok) {
-    const errMessage = isJsonObject(parsed) && typeof parsed.error === "string" ? parsed.error : `HTTP ${response.status}`;
-    throw new IdentityServiceError(response.status, parsed, errMessage);
-  }
-  return parsed as T;
-}
 
 function mapBackendUnit(u: BackendUnit): OrgUnit {
   return {
@@ -268,9 +225,9 @@ export class IdentityService {
 
   // whoAmI calls /api/v1/me to resolve the current authenticated actor. Throws IdentityServiceError(401) when the request is unauthenticated; the caller (typically AuthGuard) is responsible for redirecting to /login.
   async whoAmI(): Promise<ResolvedActor> {
-    const result = await jsonRequest<ApiResponse<MeResponse>>("GET", `/api/v1/me`);
+    const result = await apiClient<ApiResponse<MeResponse>>("GET", `/api/v1/me`);
     if (!result.data) {
-      throw new IdentityServiceError(500, result, "missing me payload");
+      throw new ApiError(500, result, "missing me payload");
     }
     return {
       login: result.data.login,
@@ -281,7 +238,7 @@ export class IdentityService {
   }
 
   async getUsers(): Promise<OrgMember[]> {
-    const result = await jsonRequest<ApiResponse<BackendUser[]>>("GET", "/api/v1/users");
+    const result = await apiClient<ApiResponse<BackendUser[]>>("GET", "/api/v1/users");
     return (result.data ?? []).map(mapBackendUser);
   }
 
@@ -307,18 +264,18 @@ export class IdentityService {
   }
 
   async updateOrgHierarchy(nodes: OrgNode[], edges: { source: string; target: string }[]): Promise<void> {
-    await jsonRequest("PUT", "/api/v1/organization/hierarchy", { nodes, edges });
+    await apiClient("PUT", "/api/v1/organization/hierarchy", { nodes, edges });
   }
 
   async lookupHR(systemId: string): Promise<{ email: string; user_id: string; department: string }> {
-    return await jsonRequest<{ email: string; user_id: string; department: string }>(
+    return await apiClient<{ email: string; user_id: string; department: string }>(
       "GET",
       `/api/v1/hr/lookup?system_id=${encodeURIComponent(systemId)}`,
     );
   }
 
   async getOrgHierarchy(): Promise<{ nodes: OrgNode[]; edges: OrgEdge[] }> {
-    const result = await jsonRequest<ApiResponse<{ units?: BackendUnit[]; edges?: BackendEdge[] }>>(
+    const result = await apiClient<ApiResponse<{ units?: BackendUnit[]; edges?: BackendEdge[] }>>(
       "GET",
       "/api/v1/organization/hierarchy",
     );
@@ -346,7 +303,7 @@ export class IdentityService {
   }
 
   async getUnitMembers(unitId: string): Promise<OrgMember[]> {
-    const result = await jsonRequest<ApiResponse<BackendUser[]>>(
+    const result = await apiClient<ApiResponse<BackendUser[]>>(
       "GET",
       `/api/v1/organization/units/${encodeURIComponent(unitId)}/members`,
     );
@@ -365,8 +322,8 @@ export class IdentityService {
       is_seconded: !!payload.is_seconded,
       joined_at: payload.joined_at ?? "",
     };
-    const result = await jsonRequest<ApiResponse<BackendUser>>("POST", `/api/v1/users`, body);
-    if (!result.data) throw new IdentityServiceError(500, result, "missing user payload");
+    const result = await apiClient<ApiResponse<BackendUser>>("POST", `/api/v1/users`, body);
+    if (!result.data) throw new ApiError(500, result, "missing user payload");
     return mapBackendUser(result.data);
   }
 
@@ -380,22 +337,22 @@ export class IdentityService {
     if (payload.current_dept_id !== undefined) body.current_unit_id = payload.current_dept_id;
     if (payload.is_seconded !== undefined) body.is_seconded = payload.is_seconded;
     if (payload.joined_at !== undefined) body.joined_at = payload.joined_at;
-    const result = await jsonRequest<ApiResponse<BackendUser>>(
+    const result = await apiClient<ApiResponse<BackendUser>>(
       "PATCH",
       `/api/v1/users/${encodeURIComponent(userId)}`,
       body,
     );
-    if (!result.data) throw new IdentityServiceError(500, result, "missing user payload");
+    if (!result.data) throw new ApiError(500, result, "missing user payload");
     return mapBackendUser(result.data);
   }
 
   async deleteUser(userId: string): Promise<void> {
-    await jsonRequest<ApiResponse<unknown>>("DELETE", `/api/v1/users/${encodeURIComponent(userId)}`);
+    await apiClient<ApiResponse<unknown>>("DELETE", `/api/v1/users/${encodeURIComponent(userId)}`);
   }
 
   async getUnit(unitId: string): Promise<OrgUnit> {
-    const result = await jsonRequest<ApiResponse<BackendUnit>>("GET", `/api/v1/organization/units/${encodeURIComponent(unitId)}`);
-    if (!result.data) throw new IdentityServiceError(500, result, "missing unit payload");
+    const result = await apiClient<ApiResponse<BackendUnit>>("GET", `/api/v1/organization/units/${encodeURIComponent(unitId)}`);
+    if (!result.data) throw new ApiError(500, result, "missing unit payload");
     return mapBackendUnit(result.data);
   }
 
@@ -409,8 +366,8 @@ export class IdentityService {
       position_x: payload.position_x ?? 0,
       position_y: payload.position_y ?? 0,
     };
-    const result = await jsonRequest<ApiResponse<BackendUnit>>("POST", `/api/v1/organization/units`, body);
-    if (!result.data) throw new IdentityServiceError(500, result, "missing unit payload");
+    const result = await apiClient<ApiResponse<BackendUnit>>("POST", `/api/v1/organization/units`, body);
+    if (!result.data) throw new ApiError(500, result, "missing unit payload");
     return mapBackendUnit(result.data);
   }
 
@@ -422,21 +379,21 @@ export class IdentityService {
     if (payload.leader_user_id !== undefined) body.leader_user_id = payload.leader_user_id;
     if (payload.position_x !== undefined) body.position_x = payload.position_x;
     if (payload.position_y !== undefined) body.position_y = payload.position_y;
-    const result = await jsonRequest<ApiResponse<BackendUnit>>(
+    const result = await apiClient<ApiResponse<BackendUnit>>(
       "PATCH",
       `/api/v1/organization/units/${encodeURIComponent(unitId)}`,
       body,
     );
-    if (!result.data) throw new IdentityServiceError(500, result, "missing unit payload");
+    if (!result.data) throw new ApiError(500, result, "missing unit payload");
     return mapBackendUnit(result.data);
   }
 
   async deleteUnit(unitId: string): Promise<void> {
-    await jsonRequest<ApiResponse<unknown>>("DELETE", `/api/v1/organization/units/${encodeURIComponent(unitId)}`);
+    await apiClient<ApiResponse<unknown>>("DELETE", `/api/v1/organization/units/${encodeURIComponent(unitId)}`);
   }
 
   async replaceUnitMembers(unitId: string, userIds: string[]): Promise<OrgMember[]> {
-    const result = await jsonRequest<ApiResponse<BackendUser[]>>(
+    const result = await apiClient<ApiResponse<BackendUser[]>>(
       "PUT",
       `/api/v1/organization/units/${encodeURIComponent(unitId)}/members`,
       { user_ids: userIds },
@@ -518,7 +475,7 @@ export class IdentityService {
     ];
   }
 
-  private mockHierarchy() {
+  public mockHierarchy() {
     return {
       nodes: [
         { id: 'org-root', type: 'input' as const, data: { label: 'DevHub Global', type: 'division', leader_id: 'u1', direct_count: 5, total_count: 150 }, position: { x: 400, y: 0 } },

@@ -17,7 +17,7 @@ import {
   useReactFlow
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { identityService } from '@/lib/services/identity.service';
+import { identityService, OrgNode as OrgNodeModel } from '@/lib/services/identity.service';
 import { Plus, Save, ZoomIn, Building2, LayoutTemplate } from 'lucide-react';
 import { useStore } from '@/lib/store';
 import { OrgNode } from './OrgNode';
@@ -33,6 +33,7 @@ type OrgTreeNodeData = {
   direct_count?: number;
   total_count?: number;
 };
+
 
 const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
   const dagreGraph = new dagre.graphlib.Graph();
@@ -210,7 +211,7 @@ function OrgTreeContent() {
         const data = await identityService.getOrgHierarchy();
         if (!isMounted) return;
 
-        const processedNodes = data.nodes.map(node => ({
+        const processedNodes: Node[] = data.nodes.map(node => ({
           ...node,
           type: 'org',
           data: {
@@ -220,6 +221,7 @@ function OrgTreeContent() {
             onUpdate: onUpdateNode
           }
         }));
+
 
         const processedEdges = data.edges.map(edge => ({
           ...edge,
@@ -237,8 +239,9 @@ function OrgTreeContent() {
       } catch (error) {
         console.error("Failed to load org hierarchy, using enhanced mock:", error);
         // Fallback with enhanced mock nodes
-        const mock = (identityService as any).mockHierarchy();
-        const enhancedNodes = mock.nodes.map((node: any) => ({
+        const mock = identityService.mockHierarchy();
+
+        const enhancedNodes: Node[] = mock.nodes.map((node: { id: string; type?: string; data: Record<string, unknown>; position: { x: number; y: number } }) => ({
           ...node,
           type: 'org',
           data: {
@@ -248,7 +251,8 @@ function OrgTreeContent() {
             onUpdate: onUpdateNode
           }
         }));
-        const enhancedEdges = mock.edges.map((edge: any) => ({
+
+        const enhancedEdges = mock.edges.map((edge: { id: string; source: string; target: string; animated?: boolean }) => ({
           ...edge,
           style: { strokeDasharray: '0', stroke: 'rgba(255, 255, 255, 0.2)', strokeWidth: 2 }
         }));
@@ -390,14 +394,14 @@ function OrgTreeContent() {
             onClick={async () => {
               try {
                 // Map React Flow nodes back to OrgNode domain model
-                const orgNodes = allNodes.map(n => ({
+                const orgNodes: OrgNodeModel[] = allNodes.map(n => ({
                   id: n.id,
                   position: n.position,
                   data: {
-                    label: n.data.label,
-                    type: n.data.type,
-                    direct_count: n.data.direct_count,
-                    total_count: n.data.total_count
+                    label: n.data.label as string,
+                    type: n.data.type as string,
+                    direct_count: n.data.direct_count as number,
+                    total_count: n.data.total_count as number
                   }
                 }));
                 const orgEdges = allEdges.map(e => ({
@@ -405,7 +409,8 @@ function OrgTreeContent() {
                   target: e.target
                 }));
 
-                await identityService.updateOrgHierarchy(orgNodes as any, orgEdges);
+                await identityService.updateOrgHierarchy(orgNodes, orgEdges);
+
                 addToast("Hierarchy configuration saved", "success");
               } catch (error) {
                 console.error("[OrgTree] Failed to save hierarchy:", error);

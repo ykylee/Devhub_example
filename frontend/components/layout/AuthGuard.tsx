@@ -5,7 +5,8 @@ import { useRouter, usePathname } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { Loader2 } from "lucide-react";
 import { websocketService, WsMessage } from "@/lib/services/websocket.service";
-import { identityService, IdentityServiceError } from "@/lib/services/identity.service";
+import { identityService } from "@/lib/services/identity.service";
+import { ApiError } from "@/lib/services/api-client";
 
 type NotificationPayload = { message?: string };
 
@@ -37,7 +38,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         if (cancelled) return;
         clearActor();
         setIsAuthorized(false);
-        if (err instanceof IdentityServiceError && err.status === 401) {
+        if (err instanceof ApiError && err.status === 401) {
           router.replace("/login");
           return;
         }
