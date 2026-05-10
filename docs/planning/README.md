@@ -4,7 +4,7 @@
 - 범위: 통합 로드맵, 트랙별 세부 로드맵, 마일스톤별 backlog 위치, PR 별 트래커, 보안 리뷰 트래커, 향후 sprint plan
 - 대상 독자: 프로젝트 리드, 백엔드/프론트엔드/Auth/AI/운영 트랙 담당자, 후속 작업자
 - 상태: stable
-- 최종 수정일: 2026-05-08 (TBD 스텁 → 인덱스 채움)
+- 최종 수정일: 2026-05-10 (역할별 진입 우선순위 UX 기준 반영)
 - 관련 문서: [../README.md](../README.md), [../development_roadmap.md](../development_roadmap.md), [../DOCUMENT_INDEX.md](../DOCUMENT_INDEX.md)
 
 ## 0. 진입점 — 무엇부터 읽는가
@@ -43,7 +43,7 @@
 | 트랙 | 세부 로드맵 | 책임 영역 |
 | --- | --- | --- |
 | **B — Backend** | [`../../ai-workflow/memory/backend_development_roadmap.md`](../../ai-workflow/memory/backend_development_roadmap.md) | Go Core API, store, normalize, command worker, realtime hub |
-| **F — Frontend** | [`../frontend_development_roadmap.md`](../frontend_development_roadmap.md) | Next.js (대시보드, 조직, 인증 UI, 실시간 통합, RBAC UI) |
+| **F — Frontend** | [`../frontend_development_roadmap.md`](../frontend_development_roadmap.md) | Next.js (역할별 기본 진입 우선순위 대시보드, 조직, 인증 UI, 실시간 통합, RBAC UI) |
 | **A — Auth & IdP** | [`../adr/0001-idp-selection.md`](../adr/0001-idp-selection.md) | Ory Hydra + Kratos, 토큰 검증, 권한 가드 |
 | **X — Cross / Contract** | [`../backend_api_contract.md`](../backend_api_contract.md), [`../architecture.md`](../architecture.md) | API 계약, 메시지 envelope, role wire format, 데이터 모델 |
 | **O — Operations** | [`../setup/environment-setup.md`](../setup/environment-setup.md) | 환경 셋업, 배포, 운영 모니터링 |

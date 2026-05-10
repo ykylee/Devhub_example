@@ -4,7 +4,7 @@
 - 범위: 머지된 PR #12 이후 시점부터 다음 단계 작업의 마일스톤·우선순위·의존 관계. 트랙별 *세부* 작업은 각 트랙의 세부 로드맵에서 관리.
 - 대상 독자: 프로젝트 리드, 백엔드/프론트엔드 개발자, 운영 담당자, 후속 작업자
 - 상태: draft (2026-05-08 신규 작성)
-- 최종 수정일: 2026-05-08 (Antigravity 세션 갱신)
+- 최종 수정일: 2026-05-10 (역할별 진입 우선순위 UX 기준 반영)
 - 관련 문서:
   - 백엔드 세부 로드맵: [`ai-workflow/memory/backend_development_roadmap.md`](../ai-workflow/memory/backend_development_roadmap.md)
   - 프론트엔드 세부 로드맵: [`./frontend_development_roadmap.md`](./frontend_development_roadmap.md)
@@ -41,9 +41,11 @@
 | 트랙 | 책임 영역 | 세부 로드맵 |
 | --- | --- | --- |
 | **B / Backend** | Go Core API, store, normalize, command worker, realtime hub | [`ai-workflow/memory/backend_development_roadmap.md`](../ai-workflow/memory/backend_development_roadmap.md) |
-| **F / Frontend** | Next.js (대시보드, 조직, 인증 UI, 실시간 통합, RBAC UI) | [`./frontend_development_roadmap.md`](./frontend_development_roadmap.md) |
+| **F / Frontend** | Next.js (역할별 기본 진입 우선순위 대시보드, 조직, 인증 UI, 실시간 통합, RBAC UI) | [`./frontend_development_roadmap.md`](./frontend_development_roadmap.md) |
 | **A / Auth & IdP** | Ory Hydra + Kratos, 토큰 검증, 권한 가드. ADR-0001 결정 사항 | [`./adr/0001-idp-selection.md`](./adr/0001-idp-selection.md) |
-| **X / Cross / Contract** | API 계약, 메시지 envelope, role wire format, 데이터 모델 | [`./backend_api_contract.md`](./backend_api_contract.m## 3. 기능 단위별 마일스톤 (Milestones by Functional Units)
+| **X / Cross / Contract** | API 계약, 메시지 envelope, role wire format, 데이터 모델 | [`./backend_api_contract.md`](./backend_api_contract.md) |
+
+## 3. 기능 단위별 마일스톤 (Milestones by Functional Units)
 
 ### M2 — 인증 및 계정 기반 완성 (진행 중)
 - **로그인 페이지 (Login Page)**:
@@ -74,6 +76,8 @@
 - **권한 관리 고도화 (RBAC)**:
   - ✅ **B·F**: 권한 매트릭스 및 역할 할당 기능 완료 (M1).
   - ⏳ **A**: 외부 SSO 통합 (Gitea 연동 등).
+- **역할별 UX 제공 방식 정렬**:
+  - ⏳ **F·X**: 역할별 UX는 기본 진입 페이지 우선순위로 제공하고, 시스템 영역은 `system_admin` 권한 전용 노출 정책으로 유지.
 
 ---
 

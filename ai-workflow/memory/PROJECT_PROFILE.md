@@ -1,15 +1,20 @@
+# Project Profile (Workflow Memory)
+
+- 문서 목적: DevHub 프로젝트의 공통 운영 기준, 실행/검증 명령, 문서 참조 경로를 정의한다.
+- 범위: 프로젝트 개요, 문서 구조, 기본 명령, 검증 포인트, 예외 규칙
+- 대상 독자: 개발자, 운영자, AI 에이전트, 온보딩 담당자
 - 상태: active
-- 최종 수정일: 2026-05-07
+- 최종 수정일: 2026-05-10
 - 관련 문서: [공통 표준](../core/global_workflow_standard.md)
 
 ## 1. 프로젝트 개요
 
 - 프로젝트명: DevHub Example
-- 프로젝트 목적: 개발자 포털, 시스템 대시보드 및 AI 기반 분석 도구를 포함한 통합 관리 플랫폼.
+- 프로젝트 목적: 역할별 기본 진입 우선순위 대시보드와 AI 분석 도구를 포함한 통합 관리 플랫폼.
 - 주요 이해관계자:
-  - Developers (Dashboard 및 API 사용)
-  - Managers (시스템 현황 및 리소스 관리)
-  - System Admins (인프라 및 권한 제어)
+  - Developers (개발 대시보드 및 API 사용)
+  - Managers (관리 대시보드 기반 프로젝트/리스크 관리)
+  - System Admins (시스템 대시보드/시스템 설정 접근, 인프라 및 권한 제어)
 
 ## 2. 문서 구조 (Path)
 
@@ -49,4 +54,3 @@
 
 - [Gemini 세션 인계 문서](./gemini/phase6/session_handoff.md)
 - [Codex 세션 인계 문서](./codex/service-action-command/session_handoff.md)
-

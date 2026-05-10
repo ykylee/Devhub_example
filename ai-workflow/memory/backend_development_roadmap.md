@@ -7,7 +7,7 @@
 - 대상 독자: 백엔드 개발자, 프론트엔드 연동 담당자, AI agent
 - 기준일: 2026-05-07
 - 상태: in_progress
-- 최종 수정일: 2026-05-08 (통합 로드맵 진입점 링크 추가)
+- 최종 수정일: 2026-05-10 (역할별 진입 우선순위 UX 기준 반영)
 - 관련 문서: [`docs/development_roadmap.md`](../../docs/development_roadmap.md) (통합), `docs/requirements.md`, `docs/architecture.md`, `docs/tech_stack.md`, `docs/backend_api_contract.md`, `docs/backend/frontend_integration_requirements.md`, `docs/backend/requirements_review.md`, `docs/adr/0001-idp-selection.md`, `ai-workflow/memory/codex/service-action-command/session_handoff.md`
 - 현재 브랜치: `main`
 - 현재 기준선: `origin/main` 반영 완료. Phase 12 (조직/사용자), Phase 13 (IdP PoC), M1 (RBAC Core) 머지 완료.
@@ -18,6 +18,7 @@
 - Python AI는 초기 단계에서 PostgreSQL에 직접 접근하지 않고, Go Core가 필터링한 입력을 gRPC로 전달받는다.
 - 프론트 대상 실시간 API는 gRPC stream이 아니라 REST snapshot + WebSocket event로만 계약한다.
 - 프론트엔드 UI 표시명과 API wire format은 분리한다. 역할 값은 API에서 `developer`, `manager`, `system_admin`을 기본으로 한다.
+- 역할별 UX 제공은 프론트의 기본 진입 우선순위로 간접 제공하며, 백엔드는 role wire format과 권한 검사 일관성을 보장한다.
 - 명령성 액션은 boolean 결과가 아니라 `command_id`와 command status lifecycle로 관리하고 audit log를 남긴다.
 - 운영 actor는 최종적으로 `X-Devhub-Actor` header가 아니라 Hydra/Kratos 기반 세션 또는 JWT claim에서 도출한다.
 - 조직/사용자 도메인의 master data는 DevHub `users`/`org_units`가 담당하고, credential/session master는 Kratos가 담당한다.
@@ -31,7 +32,7 @@
 | Phase 1 | done | Go Core 기반 구조 정리 | `internal/config`, `internal/httpapi`, `internal/gitea`, `internal/store` 분리 | `cd backend-core && go test ./...` |
 | Phase 2 | done | PostgreSQL 초기 스키마 | `webhook_events` migration | migration 적용 검증 |
 | Phase 3 | done | Gitea Webhook raw 수신부 | `POST /api/v1/integrations/gitea/webhooks`, signature 검증, dedupe 처리 | handler 단위 테스트 |
-| Phase 4 | done | 프론트 연동 계약 안정화 1차 | role wire format, REST snapshot/WebSocket envelope, integration requirements | API 계약 문서화 및 smoke/lint 통과 |
+| Phase 4 | done | 프론트 연동 계약 안정화 1차 | role wire format, REST snapshot/WebSocket envelope, integration requirements, 역할별 기본 진입 우선순위 지원 계약 | API 계약 문서화 및 smoke/lint 통과 |
 | Phase 5 | done | 프론트 snapshot API 1차 | metrics, infra topology, ci-runs/logs, risk 조회 API, runtime snapshot provider | handler 테스트 및 fallback 동작 확인 |
 | Phase 6 | done | 도메인 정규화 1차 | repository/user/issue/pull_request/ci_run/risk 기초 테이블 및 normalize processor | fixture 및 store 테스트 |
 | Phase 7 | in_progress | command/audit 기반 액션 API | service action, risk mitigation, command status, idempotency, audit log | approval/executor boundary, audit 조회 API, actor 검증 |

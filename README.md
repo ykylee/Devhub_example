@@ -7,16 +7,17 @@
 - 최종 수정일: 2026-05-01
 - 관련 문서: [워크플로우 README](ai-workflow/README.md), [프로젝트 프로파일](ai-workflow/memory/PROJECT_PROFILE.md)
 
-# DevHub: Multi-Role Team Hub
+# DevHub: Role-Prioritized Entry Team Hub
 
-본 프로젝트는 팀 내 다양한 역할군(Role)의 업무 효율을 높이기 위한 **역할 기반 통합 개발 허브**입니다. 
+본 프로젝트는 역할별 UX를 **진입 페이지 우선순위**로 간접 제공하는 통합 개발 허브입니다.
 
 ## 🎯 핵심 목적 및 확장성
-단순히 고정된 기능을 제공하는 것이 아니라, **새로운 역할군이 추가될 때마다 해당 역할에 최적화된 UI/UX를 모듈식으로 확장**할 수 있는 구조를 지향합니다.
+단순히 고정된 기능을 제공하는 것이 아니라, **역할별 기본 진입 경로를 우선 배정하고 기능 영역은 권한에 따라 노출**하는 구조를 지향합니다.
 
 ## 👥 현재 및 향후 지원 사용자
-- **개발자 (Developer):** 기술 문서, API 가이드, 개발 환경 정보 등 DX(Developer Experience) 중심.
-- **관리자 (Manager):** 과제 진행률, 리소스 현황, 리스크 모니터링 등 MX(Management Experience) 중심.
+- **개발 대시보드 (Developer Dashboard):** 개발 업무 흐름, 기술 문서, API/CI 상태 중심.
+- **관리 대시보드 (Management Dashboard):** 과제 진행률, 리소스 현황, 리스크 모니터링 중심.
+- **시스템 대시보드 + 시스템 설정 (System Dashboard + System Settings):** 시스템 운영/보안/인프라 제어 영역. **시스템 관리자 권한 보유자에게만 노출**.
 - **확장 가능 (Extensible):** 
     - **QA/테스트 담당자:** 테스트 케이스 관리, 결함 현황, 배포 승인 UI.
     - **기획자/디자이너:** 요구사항 정의서, 디자인 에셋 링크, 마일스톤 관리.
@@ -32,7 +33,6 @@
 - [개발 환경 구성 가이드 (docker / native)](./docs/setup/environment-setup.md)
 
 ## 🏗 아키텍처 원칙
-- **Role-Based Routing:** 사용자의 역할에 따라 전용 대시보드로 자동 연결.
-- **Pluggable Features:** 새로운 역할군은 독립된 모듈(Feature)로 개발하여 시스템에 등록하는 방식.
-- **Shared Design System:** 역할은 달라도 일관된 시각적 경험을 위해 공통 컴포넌트 라이브러리 활용.
-
+- **Role-Prioritized Entry:** 역할별 기본 진입 페이지 우선순위로 UX를 간접 제공.
+- **Permission-Gated System Area:** 시스템 대시보드/시스템 설정은 `system_admin` 권한 사용자에게만 노출.
+- **Shared Design System:** 대시보드가 달라도 일관된 시각적 경험을 위해 공통 컴포넌트 라이브러리 활용.

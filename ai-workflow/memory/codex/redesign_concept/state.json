@@ -1,0 +1,62 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-05-10",
+  "source_of_truth": {
+    "project_profile_path": "ai-workflow/memory/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/codex/redesign_concept/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/codex/redesign_concept/work_backlog.md",
+    "latest_backlog_path": "ai-workflow/memory/codex/redesign_concept/backlog/2026-05-10.md",
+    "repository_assessment_path": "ai-workflow/memory/repository_assessment.md"
+  },
+  "project": {
+    "project_name": "DevHub Example",
+    "document_home": "README.md",
+    "backlog_path": "ai-workflow/memory/codex/redesign_concept/backlog/",
+    "handoff_path": "ai-workflow/memory/codex/redesign_concept/session_handoff.md"
+  },
+  "commands": {
+    "quick_tests": "cd backend-core && go test ./...",
+    "isolated_tests": "cd frontend && npm run lint",
+    "runtime_checks": "make build"
+  },
+  "session": {
+    "current_baseline": "역할별 UX를 진입 페이지 우선순위로 간접 제공하는 요구사항(개발/관리/시스템+설정, system_admin 전용 노출) 수신 및 핵심 문서 반영 완료.",
+    "current_axis": "역할별 진입 우선순위 기반 UX 컨셉 정리",
+    "current_focus": "문서 업데이트 반영본 기준으로 UI/라우팅/RBAC 노출 정책 상세화 준비",
+    "in_progress_items": [
+      "TASK-REDESIGN-CONCEPT-REFRAME"
+    ],
+    "blocked_items": [],
+    "recent_done_items": [
+      "TASK-BRANCH-SETUP-CODEX-REDESIGN-CONCEPT",
+      "TASK-REDESIGN-CONCEPT-DOC-UPDATE-V1",
+      "TASK-REDESIGN-CONCEPT-ROADMAP-PLAN-UPDATE-V1"
+    ]
+  },
+  "backlog": {
+    "latest_backlog_path": "ai-workflow/memory/codex/redesign_concept/backlog/2026-05-10.md",
+    "task_count": 3,
+    "in_progress_items": [
+      "TASK-REDESIGN-CONCEPT-REFRAME"
+    ],
+    "blocked_items": [],
+    "done_items": [
+      "TASK-BRANCH-SETUP-CODEX-REDESIGN-CONCEPT",
+      "TASK-REDESIGN-CONCEPT-DOC-UPDATE-V1",
+      "TASK-REDESIGN-CONCEPT-ROADMAP-PLAN-UPDATE-V1"
+    ]
+  },
+  "next_documents": [
+    "ai-workflow/memory/codex/redesign_concept/session_handoff.md",
+    "ai-workflow/memory/codex/redesign_concept/work_backlog.md",
+    "ai-workflow/memory/codex/redesign_concept/backlog/2026-05-10.md",
+    "ai-workflow/memory/PROJECT_PROFILE.md",
+    "ai-workflow/memory/repository_assessment.md"
+  ],
+  "branch_memory": {
+    "agent": "codex",
+    "branch": "codex/redesign_concept",
+    "path": "ai-workflow/memory/codex/redesign_concept/",
+    "flat_memory_policy": "legacy_fallback_and_shared_index_only"
+  }
+}

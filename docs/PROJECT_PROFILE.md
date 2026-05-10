@@ -4,7 +4,7 @@
 - 범위: 프로젝트 개요, 문서 구조, 기본 명령, 검증 포인트, 예외 규칙
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: active
-- 최종 수정일: 2026-05-07
+- 최종 수정일: 2026-05-10
 - 관련 문서: [공통 표준](../ai-workflow/core/global_workflow_standard.md)
 
 이 문서는 `ai-workflow/memory/PROJECT_PROFILE.md`와 같은 운영 기준을 docs 트리에서 참조할 수 있도록 유지하는 mirror 문서다.
@@ -12,11 +12,11 @@
 ## 1. 프로젝트 개요
 
 - 프로젝트명: DevHub Example
-- 프로젝트 목적: 개발자 포털, 시스템 대시보드 및 AI 기반 분석 도구를 포함한 통합 관리 플랫폼.
+- 프로젝트 목적: 역할별 기본 진입 우선순위 기반 대시보드와 AI 기반 분석 도구를 포함한 통합 관리 플랫폼.
 - 주요 이해관계자:
-  - Developers (Dashboard 및 API 사용)
-  - Managers (시스템 현황 및 리소스 관리)
-  - System Admins (인프라 및 권한 제어)
+  - Developers (개발 대시보드 기본 진입 및 API 사용)
+  - Managers (관리 대시보드 기본 진입 기반 프로젝트/리스크 관리)
+  - System Admins (시스템 대시보드/시스템 설정 접근, 인프라 및 권한 제어)
 
 ## 2. 문서 구조 (Path)
 
