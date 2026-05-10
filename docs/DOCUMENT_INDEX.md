@@ -4,7 +4,7 @@
 - 범위: 프로젝트 설계, 개발 및 표준, 분석 및 계획
 - 대상 독자: 개발자, AI 에이전트, 프로젝트 온보딩 담당자
 - 상태: stable
-- 최종 수정일: 2026-04-30
+- 최종 수정일: 2026-05-10
 - 관련 문서: [./README.md](./README.md), [../README.md](../README.md)
 
 이 인덱스는 프로젝트의 영구 지식 자산(Knowledge Base)을 체계적으로 정리하여 개발자와 AI 에이전트의 온보딩 및 분석을 돕습니다.
@@ -30,7 +30,7 @@
 
 - **[통합 개발 로드맵 (Integrated Development Roadmap)](./development_roadmap.md)**: 백엔드/프론트엔드/인증/운영 트랙을 마일스톤(M0~M4)과 우선순위(P0~P3) 체계로 묶은 1차 진입점. 모든 트랙이 작업 시작 전 가장 먼저 확인.
 - **[Backend Development Roadmap](../ai-workflow/memory/backend_development_roadmap.md)**: 백엔드 트랙 세부 (Phase 1~13).
-- **[Frontend Development Roadmap](./frontend_development_roadmap.md)**: 프론트엔드 트랙 세부 (Phase 1~7).
+- **[Frontend Development Roadmap](./frontend_development_roadmap.md)**: 프론트엔드 트랙 세부 (Phase 1~7, 역할별 기본 진입 우선순위 UX 기준 포함).
 - **[Planning 디렉터리 진입점](./planning/README.md)**: 마일스톤·트랙·PR/보안 트래커 인덱스. backlog 위치 정책과 향후 추가 예정 자료(sprint plan, release plan 등) 안내.
 
 ---

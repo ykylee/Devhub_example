@@ -8,11 +8,11 @@
 
 ## 1. 현재 프론트엔드 구현 요약
 
-프론트엔드는 Next.js App Router 기반의 역할별 대시보드 3종을 구현하고 있다.
+프론트엔드는 Next.js App Router 기반의 역할별 기본 진입 우선순위 대시보드 3종을 구현하고 있다.
 
-- Developer: active task stream, deployment pipeline, deep focus mode, AI Gardener suggestion, infrastructure mini status.
-- Manager: KPI cards, critical risk list, risk mitigation modal, resource load, decision audit, weekly report trigger.
-- System Admin: infrastructure topology graph, node detail modal, service action buttons, security audit/config 진입 버튼.
+- 개발 대시보드(Developer Dashboard): active task stream, deployment pipeline, deep focus mode, AI Gardener suggestion, infrastructure mini status.
+- 관리 대시보드(Management Dashboard): KPI cards, critical risk list, risk mitigation modal, resource load, decision audit, weekly report trigger.
+- 시스템 대시보드(System Dashboard): infrastructure topology graph, node detail modal, service action buttons, security audit/config 진입 버튼.
 
 현재 실제 백엔드 호출은 없고, `frontend/lib/services/infra.service.ts`, `frontend/lib/services/risk.service.ts`, `frontend/lib/mockData.ts`의 mock 데이터가 화면 요구사항의 사실상 기준이다. 따라서 백엔드 로드맵은 raw webhook 수집 이후 곧바로 프론트 교체 가능한 REST snapshot API와 WebSocket event envelope를 확정해야 한다.
 
@@ -42,6 +42,8 @@ system_admin
 ```
 
 프론트는 UI label과 API role 값을 분리해야 한다.
+프론트 내 네비게이션은 role 기반으로 기본 진입 우선순위를 적용한다(`developer`→개발 대시보드, `manager`→관리 대시보드, `system_admin`→시스템 대시보드+시스템 설정).
+단, 시스템 대시보드/시스템 설정은 `system_admin` 권한 보유자에게만 표시한다.
 
 ### 2.4 실시간 연결 방식
 
