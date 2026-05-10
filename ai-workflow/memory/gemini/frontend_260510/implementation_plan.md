@@ -13,7 +13,7 @@
 
 `rbac.service.ts`에서 ADR-0002 도입 이전의 레거시 메서드를 제거하고, `apiClient`를 사용한 표준 CRUD 플로우를 확정합니다.
 
-#### [MODIFY] [rbac.service.ts](file:///Users/yklee/repos/Devhub_example_gemini/frontend/lib/services/rbac.service.ts)
+#### [MODIFY] [rbac.service.ts](../../../../frontend/lib/services/rbac.service.ts)
 - `replacePolicy` 메서드 제거 (레거시/미사용).
 - `updatePolicies`가 반환하는 전체 매트릭스 데이터를 UI 상태에 올바르게 동기화하는지 재확인.
 
@@ -23,7 +23,7 @@
 
 `/auth/callback` 라우트에서 수행하는 토큰 교환과 사용자 정보 조회가 실제 백엔드 API와 완벽히 연동되도록 보장합니다.
 
-#### [VERIFY] [auth/callback/page.tsx](file:///Users/yklee/repos/Devhub_example_gemini/frontend/app/auth/callback/page.tsx)
+#### [VERIFY] [auth/callback/page.tsx](../../../../frontend/app/auth/callback/page.tsx)
 - `authService.exchangeCode` -> `POST /api/v1/auth/token` (Hydra Proxy) 호출 확인.
 - `authService.resolveIdentity` -> `GET /api/v1/me` 호출 및 `useStore` 반영 확인.
 
@@ -33,7 +33,7 @@
 
 현재 Mock으로 구현된 `accountService`를 실제 API 호출로 전환합니다.
 
-#### [MODIFY] [account.service.ts](file:///Users/yklee/repos/Devhub_example_gemini/frontend/lib/services/account.service.ts)
+#### [MODIFY] [account.service.ts](../../../../frontend/lib/services/account.service.ts)
 - `apiClient`를 사용하여 백엔드 연동.
 - `issueAccount`: `POST /api/v1/users` (password 포함) 호출.
 - `disableAccount`: `PATCH /api/v1/users/:user_id` (status: "deactivated") 호출.

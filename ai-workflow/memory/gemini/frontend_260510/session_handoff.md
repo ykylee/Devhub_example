@@ -5,7 +5,7 @@
 - 대상 독자: 후속 에이전트, 프로젝트 리드
 - 상태: active
 - 최종 수정일: 2026-05-10
-- 관련 문서: [작업 백로그](./work_backlog.md), [프로젝트 프로파일](../../docs/PROJECT_PROFILE.md)
+- 관련 문서: [작업 백로그](./work_backlog.md), [프로젝트 프로파일](../../PROJECT_PROFILE.md)
 
 - 작성자: Antigravity
 - 현재 브랜치: `gemini/frontend_260510`
@@ -30,6 +30,6 @@
 - **인증 토큰 보안**: `/auth/callback`에서 토큰 처리 시 보안 권고 사항(Secure Cookie 등)을 준수해야 합니다.
 
 ## 다음에 읽을 문서
-- [README.md](../../README.md)
-- [frontend_development_roadmap.md](../../docs/frontend_development_roadmap.md)
+- [README.md](../../../../README.md)
+- [frontend_development_roadmap.md](../../../../docs/frontend_development_roadmap.md)
 - [backlog/2026-05-10.md](backlog/2026-05-10.md)
