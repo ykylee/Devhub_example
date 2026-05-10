@@ -1,7 +1,10 @@
+import { tokenStore } from "@/lib/auth/token-store";
+
 export interface OrgMember {
   id: string;
   name: string;
   email: string;
+  type?: "human" | "system";
   primary_dept_id: string;
   current_dept_id: string;
   is_seconded: boolean;
@@ -193,7 +196,7 @@ async function jsonRequest<T>(method: string, path: string, body?: unknown): Pro
   }
 
   // Inject Bearer token if available
-  const token = typeof window !== "undefined" ? localStorage.getItem("devhub_access_token") : null;
+  const token = tokenStore.getAccessToken();
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }

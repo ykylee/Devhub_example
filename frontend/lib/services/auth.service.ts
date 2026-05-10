@@ -2,9 +2,10 @@
 
 import { AuthenticatedActor, useStore } from "../store";
 import { identityService } from "./identity.service";
+import { tokenStore } from "@/lib/auth/token-store";
+import { consumeVerifier, createPkceState } from "@/lib/auth/pkce";
 
 const OIDC_AUTH_URL = process.env.NEXT_PUBLIC_OIDC_AUTH_URL ?? "http://localhost:4444/oauth2/auth";
-const OIDC_TOKEN_URL = process.env.NEXT_PUBLIC_OIDC_TOKEN_URL ?? "http://localhost:4444/oauth2/token";
 const OIDC_CLIENT_ID = process.env.NEXT_PUBLIC_OIDC_CLIENT_ID ?? "devhub-frontend";
 const OIDC_REDIRECT_URI = typeof window !== "undefined" 
   ? `${window.location.origin}/auth/callback`
@@ -35,12 +36,7 @@ class AuthService {
    * Generates OIDC authorization URL with PKCE
    */
   public async getAuthorizeURL(): Promise<string> {
-    const state = crypto.randomUUID();
-    const verifier = this.generateCodeVerifier();
-    const challenge = await this.generateCodeChallenge(verifier);
-
-    localStorage.setItem("oidc_state", state);
-    localStorage.setItem("oidc_verifier", verifier);
+    const { state, codeChallenge } = await createPkceState();
 
     const url = new URL(OIDC_AUTH_URL);
     url.searchParams.set("client_id", OIDC_CLIENT_ID);
@@ -48,7 +44,7 @@ class AuthService {
     url.searchParams.set("redirect_uri", OIDC_REDIRECT_URI);
     url.searchParams.set("scope", OIDC_SCOPE);
     url.searchParams.set("state", state);
-    url.searchParams.set("code_challenge", challenge);
+    url.searchParams.set("code_challenge", codeChallenge);
     url.searchParams.set("code_challenge_method", "S256");
 
     return url.toString();
@@ -58,41 +54,26 @@ class AuthService {
    * Exchanges authorization code for tokens
    */
   public async exchangeCode(code: string, state: string): Promise<TokenResponse> {
-    const savedState = localStorage.getItem("oidc_state");
-    const verifier = localStorage.getItem("oidc_verifier");
-
-    if (state !== savedState) {
-      throw new Error("Invalid state (CSRF protection failed)");
-    }
-    if (!verifier) {
-      throw new Error("Missing code verifier");
-    }
-
-    const body = new URLSearchParams({
-      grant_type: "authorization_code",
+    const verifier = consumeVerifier(state);
+    const response = await fetch("/api/v1/auth/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
       code,
+      code_verifier: verifier,
       redirect_uri: OIDC_REDIRECT_URI,
       client_id: OIDC_CLIENT_ID,
-      code_verifier: verifier,
-    });
-
-    const response = await fetch(OIDC_TOKEN_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: body.toString(),
+      }),
     });
 
     if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.error_description || err.error || "Token exchange failed");
+      const err = await response.json().catch(() => ({} as Record<string, string>));
+      throw new Error(err.error || "Token exchange failed");
     }
 
-    const tokens: TokenResponse = await response.json();
-    this.saveTokens(tokens);
-
-    // Cleanup OIDC temp state
-    localStorage.removeItem("oidc_state");
-    localStorage.removeItem("oidc_verifier");
+    const payload = await response.json() as { data: TokenResponse };
+    const tokens = payload.data;
+    tokenStore.save(tokens);
 
     return tokens;
   }
@@ -101,8 +82,7 @@ class AuthService {
    * Clears session and redirects to logout if needed
    */
   public logout() {
-    localStorage.removeItem("devhub_access_token");
-    localStorage.removeItem("devhub_refresh_token");
+    tokenStore.clear();
     useStore.getState().clearActor();
     window.location.assign("/");
   }
@@ -122,35 +102,8 @@ class AuthService {
     }
   }
 
-  private saveTokens(tokens: TokenResponse) {
-    localStorage.setItem("devhub_access_token", tokens.access_token);
-    if (tokens.refresh_token) {
-      localStorage.setItem("devhub_refresh_token", tokens.refresh_token);
-    }
-  }
-
-  private generateCodeVerifier(): string {
-    const array = new Uint8Array(32);
-    crypto.getRandomValues(array);
-    return btoa(String.fromCharCode(...array))
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_")
-      .replace(/=/g, "");
-  }
-
-  private async generateCodeChallenge(verifier: string): Promise<string> {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(verifier);
-    const hash = await crypto.subtle.digest("SHA-256", data);
-    return btoa(String.fromCharCode(...new Uint8Array(hash)))
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_")
-      .replace(/=/g, "");
-  }
-
   public getAccessToken(): string | null {
-    if (typeof window === "undefined") return null;
-    return localStorage.getItem("devhub_access_token");
+    return tokenStore.getAccessToken();
   }
 }
 

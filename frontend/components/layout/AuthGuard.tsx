@@ -7,6 +7,13 @@ import { Loader2 } from "lucide-react";
 import { websocketService, WsMessage } from "@/lib/services/websocket.service";
 import { identityService, IdentityServiceError } from "@/lib/services/identity.service";
 
+type NotificationPayload = { message?: string };
+
+function messageOf(msg: WsMessage): string | undefined {
+  const data = msg.data as NotificationPayload | undefined;
+  return data?.message;
+}
+
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -50,11 +57,11 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
     const handleNotification = (msg: WsMessage) => {
       incrementNotifications();
-      addToast(msg.data?.message || "New Notification", "info");
+      addToast(messageOf(msg) || "New Notification", "info");
     };
 
     const handleCriticalRisk = (msg: WsMessage) => {
-      addToast(`CRITICAL: ${msg.data?.message || "Risk Detected"}`, "error");
+      addToast(`CRITICAL: ${messageOf(msg) || "Risk Detected"}`, "error");
     };
 
     websocketService.subscribe("notification.created", handleNotification);

@@ -157,6 +157,15 @@ func (s *memoryOrganizationStore) GetHierarchy(_ context.Context) (domain.Hierar
 	return domain.Hierarchy{Units: units, Edges: edges}, nil
 }
 
+func (s *memoryOrganizationStore) UpdateHierarchy(_ context.Context, hie domain.Hierarchy) error {
+	next := make(map[string]domain.OrgUnit, len(hie.Units))
+	for _, unit := range hie.Units {
+		next[unit.UnitID] = unit
+	}
+	s.units = next
+	return nil
+}
+
 func (s *memoryOrganizationStore) GetOrgUnit(_ context.Context, unitID string) (domain.OrgUnit, error) {
 	unit, ok := s.units[unitID]
 	if !ok {

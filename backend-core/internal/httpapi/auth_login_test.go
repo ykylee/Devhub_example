@@ -56,6 +56,14 @@ func (f *fakeHydraAdmin) AcceptLoginRequest(ctx context.Context, challenge, subj
 	return f.redirectTo, nil
 }
 
+func (f *fakeHydraAdmin) GetConsentRequest(ctx context.Context, challenge string) (HydraConsentRequest, error) {
+	return HydraConsentRequest{}, nil
+}
+
+func (f *fakeHydraAdmin) AcceptConsentRequest(ctx context.Context, challenge string, grantedScope []string, remember bool, rememberFor int) (string, error) {
+	return "", nil
+}
+
 func newAuthLoginRouter(kratos KratosLoginClient, hydra HydraLoginAdmin, audits *memoryAuditStore) http.Handler {
 	cfg := RouterConfig{
 		KratosLogin: kratos,

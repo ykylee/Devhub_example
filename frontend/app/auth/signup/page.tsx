@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShieldCheck, User, IdCard, Building2, Key, Loader2, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react";
 import Link from "next/link";
+import type { LucideIcon } from "lucide-react";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -221,7 +222,16 @@ export default function SignUpPage() {
   );
 }
 
-function InputField({ label, icon: Icon, value, onChange, placeholder, type = "text" }: any) {
+type InputFieldProps = {
+  label: string;
+  icon: LucideIcon;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  type?: string;
+};
+
+function InputField({ label, icon: Icon, value, onChange, placeholder, type = "text" }: InputFieldProps) {
   return (
     <div className="space-y-2">
       <label className="text-[10px] font-black text-white/40 uppercase tracking-widest px-1">

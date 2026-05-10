@@ -5,6 +5,8 @@ const DEFAULT_EVENT_TYPES = ['command.status.updated'];
 const DEVHUB_ACTOR = process.env.NEXT_PUBLIC_DEVHUB_ACTOR || 'yklee';
 const DEVHUB_ROLE = process.env.NEXT_PUBLIC_DEVHUB_ROLE || 'manager';
 
+export type ConnectionStatusEvent = { connected: boolean };
+
 export class RealtimeService {
   private static instance: RealtimeService;
   private socket: WebSocket | null = null;

@@ -2,7 +2,7 @@
 
 import { OrgMember } from "@/lib/services/identity.service";
 import { motion, AnimatePresence } from "framer-motion";
-import { MoreHorizontal, UserPlus, Mail, Shield, ArrowRightLeft, Crown, Key, UserX, KeyRound } from "lucide-react";
+import { MoreHorizontal, UserPlus, Mail, Shield, ArrowRightLeft, Crown, Key, UserX, KeyRound, Bot } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
