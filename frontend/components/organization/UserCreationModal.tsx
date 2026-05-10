@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { X, UserPlus, Mail, Shield, Building2, Loader2, Search, Bot, User, Key } from "lucide-react";
 import { identityService, OrgMember } from "@/lib/services/identity.service";
 import { Role } from "@/lib/services/rbac.types";
@@ -38,7 +38,7 @@ export function UserCreationModal({ onClose, onCreated, roles }: UserCreationMod
         email: data.email,
         type: "human"
       }));
-    } catch (err) {
+    } catch {
       setError("Not found in HR database. You can still enter details manually.");
     } finally {
       setLookingUp(false);
@@ -55,8 +55,8 @@ export function UserCreationModal({ onClose, onCreated, roles }: UserCreationMod
         user_id: formData.user_id,
         email: formData.email,
         display_name: formData.display_name,
-        role: formData.role as any,
-        status: formData.status as any,
+        role: formData.role as OrgMember["role"],
+        status: formData.status as OrgMember["status"],
         type: formData.type,
         password: formData.password || undefined,
       });

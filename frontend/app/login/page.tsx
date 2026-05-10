@@ -1,32 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, ShieldCheck } from "lucide-react";
 import Link from "next/link";
-
-// OIDC entry point. Defaults assume a local PoC: Hydra public on :4444 issuing tokens for the devhub-frontend client, redirecting back to the SPA root after consent.
 import { authService } from "@/lib/services/auth.service";
-import { useEffect } from "react";
 
 export default function LoginPage() {
   const [isRedirecting, setIsRedirecting] = useState(false);
 
-  useEffect(() => {
-    // Automatically initiate OIDC flow on landing to avoid redundant click
-    handleLogin();
-  }, []);
-
-  const handleLogin = async () => {
-    setIsRedirecting(true);
+  const handleLogin = useCallback(async () => {
+    setTimeout(() => setIsRedirecting(true), 0);
     try {
       const url = await authService.getAuthorizeURL();
       window.location.assign(url);
     } catch (error) {
       console.error("[LoginPage] Failed to start OIDC flow:", error);
-      setIsRedirecting(false);
+      setTimeout(() => setIsRedirecting(false), 0);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    // Automatically initiate OIDC flow on landing to avoid redundant click
+    handleLogin();
+  }, [handleLogin]);
 
   return (
     <div className="min-h-screen bg-[#030014] flex items-center justify-center p-4 selection:bg-primary/30">

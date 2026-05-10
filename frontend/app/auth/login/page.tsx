@@ -229,7 +229,7 @@ function AuthLoginInner() {
               onClick={() => router.push("/auth/signup")}
               className="text-[10px] text-white/50 hover:text-primary font-black uppercase tracking-widest transition-colors"
             >
-              Don't have an account? <span className="text-primary underline">Sign Up</span>
+              Don&apos;t have an account? <span className="text-primary underline">Sign Up</span>
             </button>
             
             <button

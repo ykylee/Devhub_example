@@ -1,7 +1,8 @@
 import { ApiMetric, ApiResponse, Metric, ServiceActionCommand, ServiceEdge, ServiceNode } from "./types";
 import { getMockMetrics } from "../mockData";
-import { useStore, type UserRole } from "../store";
+import { type UserRole } from "../store";
 import { formatBytes } from "../utils";
+import { apiClient } from "./api-client";
 
 class InfraService {
   private static instance: InfraService;
@@ -15,38 +16,12 @@ class InfraService {
     }
     return InfraService.instance;
   }
-
-  private getHeaders(): HeadersInit {
-    const { actor, role } = useStore.getState();
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-    
-    if (actor?.login) {
-      headers["X-Devhub-Actor"] = actor.login;
-    }
-    if (role) {
-      const roleMap: Record<string, string> = {
-        "System Admin": "system_admin",
-        "Manager": "manager",
-        "Developer": "developer"
-      };
-      headers["X-Devhub-Role"] = roleMap[role] || role.toLowerCase();
-    }
-    
-    return headers;
-  }
-
   async getMetrics(role: UserRole): Promise<Metric[]> {
     try {
       const roleQuery = encodeURIComponent(role.toLowerCase().replace(' ', '_'));
-      const response = await fetch(`${this.baseUrl}/api/v1/dashboard/metrics?role=${roleQuery}`, {
-        headers: this.getHeaders()
-      });
-      if (!response.ok) throw new Error('Failed to fetch metrics');
+      const result = await apiClient<ApiResponse<ApiMetric[]>>("GET", `${this.baseUrl}/api/v1/dashboard/metrics?role=${roleQuery}`);
       
-      const result = await response.json() as ApiResponse<ApiMetric[]>;
-      return result.data.map((m) => ({
+      return result.data!.map((m) => ({
         label: m.label,
         value: m.value,
         trend: m.trend,
@@ -57,16 +32,10 @@ class InfraService {
       return getMockMetrics(role);
     }
   }
-
   async getNodes(): Promise<ServiceNode[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/v1/infra/nodes`, {
-        headers: this.getHeaders()
-      });
-      if (!response.ok) throw new Error('Failed to fetch nodes');
-      
-      const result = await response.json() as ApiResponse<ApiServiceNode[]>;
-      return result.data.map((n) => ({
+      const result = await apiClient<ApiResponse<ApiServiceNode[]>>("GET", `${this.baseUrl}/api/v1/infra/nodes`);
+      return result.data!.map((n) => ({
         id: n.id,
         label: n.label,
         status: n.status,
@@ -88,16 +57,10 @@ class InfraService {
       ];
     }
   }
-
   async getTopology(): Promise<{ nodes: ServiceNode[]; edges: ServiceEdge[] }> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/v1/infra/topology`, {
-        headers: this.getHeaders()
-      });
-      if (!response.ok) throw new Error('Failed to fetch topology');
-      
-      const result = await response.json() as ApiResponse<{ nodes: ApiServiceNode[]; edges: ServiceEdge[] }>;
-      const nodes = result.data.nodes.map((n) => ({
+      const result = await apiClient<ApiResponse<{ nodes: ApiServiceNode[]; edges: ServiceEdge[] }>>("GET", `${this.baseUrl}/api/v1/infra/topology`);
+      const nodes = result.data!.nodes.map((n) => ({
         id: n.id,
         label: n.label,
         status: n.status,
@@ -109,32 +72,23 @@ class InfraService {
         region: n.region,
         updated_at: n.updated_at
       }));
-      return { nodes, edges: result.data.edges };
+      return { nodes, edges: result.data!.edges };
     } catch (error) {
       console.error('[InfraService] getTopology error:', error);
       return { nodes: [], edges: [] };
     }
   }
-
   async controlService(serviceId: string, action: string): Promise<boolean> {
     const actionType = action.toLowerCase().replace(/\s+/g, '_');
     const idempotencyKey = `service-${serviceId}-${actionType}-${Date.now()}`;
-    const response = await fetch(`${this.baseUrl}/api/v1/admin/service-actions`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({
+    const result = await apiClient<ApiResponse<ServiceActionCommand>>("POST", `${this.baseUrl}/api/v1/admin/service-actions`, {
         service_id: serviceId,
         action_type: actionType,
         dry_run: true,
         reason: `Manual ${action} from System Admin Dashboard`,
         idempotency_key: idempotencyKey,
-      }),
-    });
-    if (!response.ok) {
-      throw new Error('Failed to create service action command');
-    }
-    const result = await response.json() as ApiResponse<ServiceActionCommand>;
-    return result.data.command_status === 'pending';
+      });
+    return result.data!.command_status === 'pending';
   }
 
   public formatBytes(bytes: number): string {
