@@ -1,5 +1,12 @@
 # Phase 6.1 RBAC API 통합 및 M2 인증 콜백 최종화
 
+- 문서 목적: Phase 6.1 RBAC API 통합과 M2 인증 고도화 구현 계획을 정리한다.
+- 범위: RBAC 서비스 정비, 인증 콜백 검증, Account 서비스 실데이터 전환
+- 대상 독자: 프론트엔드 개발자, 후속 에이전트, 리뷰어
+- 상태: draft
+- 최종 수정일: 2026-05-10
+- 관련 문서: [세션 인계](./session_handoff.md), [작업 백로그](./work_backlog.md), [당일 backlog](./backlog/2026-05-10.md)
+
 이 계획은 프론트엔드 Phase 6.1의 RBAC 실데이터 연동과 M2 단계의 인증 콜백 플로우 및 계정 관리 기능의 최종 통합을 목표로 합니다.
 
 ## User Review Required
