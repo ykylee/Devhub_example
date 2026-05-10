@@ -1,5 +1,8 @@
 # Session Handoff — main (M2 login_action sprint in_review)
 
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
+- 범위: M1/M2 진행 상태, 최근 PR, 잔여 작업
+- 대상 독자: 후속 에이전트, 프로젝트 리드
 - 브랜치: `main` (HEAD `dbff50f`, M1 RBAC track 종료 직후)
 - 최종 수정일: 2026-05-08
 - 상태: M1 RBAC track 머지 완료. M2 login_action sprint 진입 — PR-LOGIN-1/2 push 머지 대기, PR-LOGIN-3/4 미진입.

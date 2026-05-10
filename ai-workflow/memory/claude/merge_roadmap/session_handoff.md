@@ -1,8 +1,12 @@
 # 세션 인계 — claude/merge_roadmap
 
+- 문서 목적: `claude/merge_roadmap` 브랜치의 M0 sprint 결과와 후속 작업을 인계한다.
+- 범위: 머지 현황, SEC 해소 상태, 잔여 작업
+- 대상 독자: 후속 에이전트, 프로젝트 리드, 보안 리뷰 담당자
 - 상태: M0 sprint 코드 측 종료, T-M0-10 운영 검증만 잔존
 - 생성일: 2026-05-08
 - 최종 수정일: 2026-05-08
+- 관련 문서: [작업 백로그](./work_backlog.md), [통합 로드맵](../../../../docs/development_roadmap.md)
 
 ## 1. 현재 작업 요약
 

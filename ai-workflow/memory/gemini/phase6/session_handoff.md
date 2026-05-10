@@ -5,7 +5,7 @@
 - 대상 독자: 후속 에이전트, 프로젝트 리드
 - 상태: active
 - 최종 수정일: 2026-05-07
-- 관련 문서: [작업 백로그](./work_backlog.md), [프로젝트 프로파일](../../docs/PROJECT_PROFILE.md)
+- 관련 문서: [작업 백로그](./work_backlog.md), [프로젝트 프로파일](../../../../docs/PROJECT_PROFILE.md), [루트 README](../../../../README.md), [프론트엔드 로드맵](../../../../docs/frontend_development_roadmap.md)
 
 - 작성자: Antigravity
 - 현재 브랜치: `gemini/phase6`
@@ -41,6 +41,6 @@
 - **연결된 문서 업데이트**: UI 스캐폴딩 후, 백엔드 연동을 위한 규격은 `docs/backend/frontend_integration_requirements.md` 등에 추가 정리해야 합니다.
 
 ## 다음에 읽을 문서
-- [README.md](../../README.md)
-- [frontend_development_roadmap.md](../../docs/frontend_development_roadmap.md)
+- [README.md](../../../../README.md)
+- [frontend_development_roadmap.md](../../../../docs/frontend_development_roadmap.md)
 - [backlog/2026-05-07.md](backlog/2026-05-07.md)
