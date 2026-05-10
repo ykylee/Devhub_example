@@ -1,0 +1,18 @@
+PR #39 리뷰 결과입니다.
+
+### 🔍 주요 변경 사항 및 평가
+1. **Backend (Go)**:
+   - `POST /api/v1/auth/token` 엔드포인트 구현이 깔끔합니다.
+   - `auth_token.go`에서 필수 필드 검증(`strings.TrimSpace` 및 빈 문자열 체크)이 적절히 수행되고 있습니다.
+   - 테스트 코드(`auth_token_test.go`)를 통해 성공 및 오류 케이스가 잘 커버되어 있습니다.
+
+2. **Frontend (Next.js/TS)**:
+   - `TokenStore`를 도입하여 `sessionStorage`를 통한 토큰 관리로 보안을 강화한 점이 좋습니다.
+   - PKCE 로직을 `lib/auth/pkce.ts`로 분리하여 가독성과 재사용성을 높였습니다.
+   - `AuthService`가 직접 Hydra를 호출하지 않고 백엔드 프록시를 통하도록 변경하여 아키텍처가 더 견고해졌습니다.
+
+### 💡 추가 제안 사항 (선택적)
+- **Frontend**: `pkce.ts`의 `base64Url` 함수에서 `String.fromCharCode(...input)`를 사용하고 있는데, 현재의 32바이트 입력에는 문제가 없으나 아주 큰 데이터 처리 시 JS 엔진의 스택 제한에 걸릴 수 있습니다. (추후 확장이 필요하다면 `Uint8Array` 기반 루프를 고려해 보세요.)
+- **Security**: 현재 `sessionStorage`를 사용하므로 브라우저 탭을 닫으면 세션이 만료됩니다. 만약 로그인을 더 오래 유지해야 하는 요구사항이 있다면 나중에 `Secure/HttpOnly` 쿠키 사용을 검토해 볼 수 있습니다.
+
+전체적으로 완성도가 높으며 보안 모범 사례를 잘 따르고 있어 승인합니다. 머지 후 `main`을 현재 브랜치에 반영하여 M4 작업을 이어서 진행하겠습니다.

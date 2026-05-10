@@ -2,13 +2,14 @@
 
 import { OrgMember } from "@/lib/services/identity.service";
 import { motion, AnimatePresence } from "framer-motion";
-import { MoreHorizontal, UserPlus, Mail, Shield, ArrowRightLeft, Crown, Key, UserX, KeyRound, Bot } from "lucide-react";
+import { MoreHorizontal, UserPlus, Mail, Shield, ArrowRightLeft, Crown, Key, UserX, KeyRound, Bot, Copy, Check } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { useStore } from "@/lib/store";
 import { accountService } from "@/lib/services/account.service";
 import { useToast } from "@/components/ui/Toast";
+import { Modal } from "@/components/ui/Modal";
 
 import { Role } from "@/lib/services/rbac.types";
 import { UserCreationModal } from "./UserCreationModal";
@@ -25,16 +26,39 @@ export function MemberTable({ members, roles, onUpdateMemberRole, onMemberCreate
   const { toast } = useToast();
   const [openActionId, setOpenActionId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [adminActionResult, setAdminActionResult] = useState<{
+    title: string;
+    details: { label: string; value: string }[];
+  } | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const handleCopy = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(label);
+    setTimeout(() => setCopied(null), 2000);
+  };
 
   const handleAdminAction = async (action: 'issue' | 'reset' | 'disable', member: OrgMember) => {
     setOpenActionId(null);
     try {
       if (action === 'issue') {
-        const { tempPassword } = await accountService.issueAccount(member.id, member.email.split('@')[0], true);
-        alert(`Account Issued for ${member.name}.\nLogin ID: ${member.email.split('@')[0]}\nTemp Password: ${tempPassword}\n\nPlease communicate this securely.`);
+        const loginId = member.email.split('@')[0];
+        const { tempPassword } = await accountService.issueAccount(member.id, loginId, true);
+        setAdminActionResult({
+          title: "Account Issued Successfully",
+          details: [
+            { label: "Login ID", value: loginId },
+            { label: "Temporary Password", value: tempPassword }
+          ]
+        });
       } else if (action === 'reset') {
         const { tempPassword } = await accountService.forceResetPassword(member.id);
-        alert(`Password Reset for ${member.name}.\nTemp Password: ${tempPassword}\n\nPlease communicate this securely.`);
+        setAdminActionResult({
+          title: "Password Reset Successful",
+          details: [
+            { label: "New Temporary Password", value: tempPassword }
+          ]
+        });
       } else if (action === 'disable') {
         if (confirm(`Are you sure you want to disable ${member.name}'s account?`)) {
           await accountService.disableAccount(member.id, "Admin requested");
@@ -45,6 +69,7 @@ export function MemberTable({ members, roles, onUpdateMemberRole, onMemberCreate
       toast("Failed to perform action", "error");
     }
   };
+
 
   return (
     <div className="space-y-6">
@@ -68,6 +93,40 @@ export function MemberTable({ members, roles, onUpdateMemberRole, onMemberCreate
               toast("Member created successfully", "success");
             }}
           />
+        )}
+        {adminActionResult && (
+          <Modal
+            isOpen={!!adminActionResult}
+            onClose={() => setAdminActionResult(null)}
+            title={adminActionResult.title}
+            size="sm"
+          >
+            <div className="space-y-4">
+              <p className="text-xs text-muted-foreground">Please share these credentials with the user securely. They will only be shown once.</p>
+              <div className="space-y-3">
+                {adminActionResult.details.map((detail, idx) => (
+                  <div key={idx} className="glass-card p-4 space-y-1 relative group">
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{detail.label}</p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-mono font-bold text-white break-all">{detail.value}</p>
+                      <button 
+                        onClick={() => handleCopy(detail.value, detail.label)}
+                        className="p-1.5 rounded-lg hover:bg-white/10 text-muted-foreground hover:text-white transition-all ml-2"
+                      >
+                        {copied === detail.label ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button 
+                onClick={() => setAdminActionResult(null)}
+                className="w-full py-3 bg-primary text-white rounded-xl text-xs font-bold hover:bg-primary/90 transition-all shadow-lg mt-4"
+              >
+                Close & Confirm
+              </button>
+            </div>
+          </Modal>
         )}
       </AnimatePresence>
 

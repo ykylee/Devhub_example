@@ -41,7 +41,7 @@ export default function AdminDashboard() {
   const [nodes, setNodes, onNodesChange] = useNodesState<ServiceNode>(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selectedNode, setSelectedNode] = useState<ServiceNode | null>(null);
-  const [stats, setStats] = useState(getMockMetrics("System Admin"));
+  const [stats, setStats] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { addToast } = useStore();
 
@@ -98,8 +98,15 @@ export default function AdminDashboard() {
     fetchData();
 
     // Subscribe to real-time infra updates
-    const unsubscribe = realtimeService.subscribe<InfraNodeUpdate>('infra.node.updated', (event) => {
+    const unsubs: (() => void)[] = [];
+
+    unsubs.push(realtimeService.subscribe<InfraNodeUpdate>('infra.node.updated', (event) => {
       const updatedNode = event.data;
+      
+      addToast(`Infrastructure node ${updatedNode.id} status changed to ${updatedNode.status}`, 
+        updatedNode.status === 'stable' ? 'success' : updatedNode.status === 'warning' ? 'warning' : 'error'
+      );
+
       setNodes((nds) => nds.map((node) => {
         if (node.id === updatedNode.id) {
           return {
@@ -120,14 +127,19 @@ export default function AdminDashboard() {
         }
         return node;
       }));
-    });
+    }));
+
+    unsubs.push(realtimeService.subscribe('risk.critical.created', (event: any) => {
+      addToast(`CRITICAL RISK DETECTED: ${event.data.title || 'Unknown Risk'}`, 'error');
+    }));
 
     const interval = setInterval(fetchData, 30000); // Reduce polling frequency
     return () => {
       clearInterval(interval);
-      unsubscribe();
+      unsubs.forEach(unsub => unsub());
     };
-  }, [setNodes, setEdges]);
+  }, [setNodes, setEdges, addToast]);
+
 
   const onConnect = (params: Connection) => setEdges((eds) => addEdge(params, eds));
 

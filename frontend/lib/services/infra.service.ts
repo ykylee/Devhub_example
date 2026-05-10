@@ -1,12 +1,11 @@
 import { ApiMetric, ApiResponse, Metric, ServiceActionCommand, ServiceEdge, ServiceNode } from "./types";
 import { getMockMetrics } from "../mockData";
-import type { UserRole } from "../store";
+import { useStore, type UserRole } from "../store";
 import { formatBytes } from "../utils";
 
-const API_BASE = "";
-
-export class InfraService {
+class InfraService {
   private static instance: InfraService;
+  private baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
   private constructor() {}
 
@@ -17,10 +16,33 @@ export class InfraService {
     return InfraService.instance;
   }
 
+  private getHeaders(): HeadersInit {
+    const { actor, role } = useStore.getState();
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    
+    if (actor?.login) {
+      headers["X-Devhub-Actor"] = actor.login;
+    }
+    if (role) {
+      const roleMap: Record<string, string> = {
+        "System Admin": "system_admin",
+        "Manager": "manager",
+        "Developer": "developer"
+      };
+      headers["X-Devhub-Role"] = roleMap[role] || role.toLowerCase();
+    }
+    
+    return headers;
+  }
+
   async getMetrics(role: UserRole): Promise<Metric[]> {
     try {
       const roleQuery = encodeURIComponent(role.toLowerCase().replace(' ', '_'));
-      const response = await fetch(`${API_BASE}/api/v1/dashboard/metrics?role=${roleQuery}`);
+      const response = await fetch(`${this.baseUrl}/api/v1/dashboard/metrics?role=${roleQuery}`, {
+        headers: this.getHeaders()
+      });
       if (!response.ok) throw new Error('Failed to fetch metrics');
       
       const result = await response.json() as ApiResponse<ApiMetric[]>;
@@ -38,7 +60,9 @@ export class InfraService {
 
   async getNodes(): Promise<ServiceNode[]> {
     try {
-      const response = await fetch(`${API_BASE}/api/v1/infra/nodes`);
+      const response = await fetch(`${this.baseUrl}/api/v1/infra/nodes`, {
+        headers: this.getHeaders()
+      });
       if (!response.ok) throw new Error('Failed to fetch nodes');
       
       const result = await response.json() as ApiResponse<ApiServiceNode[]>;
@@ -67,7 +91,9 @@ export class InfraService {
 
   async getTopology(): Promise<{ nodes: ServiceNode[]; edges: ServiceEdge[] }> {
     try {
-      const response = await fetch(`${API_BASE}/api/v1/infra/topology`);
+      const response = await fetch(`${this.baseUrl}/api/v1/infra/topology`, {
+        headers: this.getHeaders()
+      });
       if (!response.ok) throw new Error('Failed to fetch topology');
       
       const result = await response.json() as ApiResponse<{ nodes: ApiServiceNode[]; edges: ServiceEdge[] }>;
@@ -93,12 +119,9 @@ export class InfraService {
   async controlService(serviceId: string, action: string): Promise<boolean> {
     const actionType = action.toLowerCase().replace(/\s+/g, '_');
     const idempotencyKey = `service-${serviceId}-${actionType}-${Date.now()}`;
-    const response = await fetch(`${API_BASE}/api/v1/admin/service-actions`, {
+    const response = await fetch(`${this.baseUrl}/api/v1/admin/service-actions`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Devhub-Actor': 'yklee',
-      },
+      headers: this.getHeaders(),
       body: JSON.stringify({
         service_id: serviceId,
         action_type: actionType,
@@ -120,6 +143,7 @@ export class InfraService {
 }
 
 export const infraService = InfraService.getInstance();
+
 
 interface ApiServiceNode {
   id: string;

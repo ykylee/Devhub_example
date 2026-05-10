@@ -1,4 +1,6 @@
-import { Role, RbacPolicyMeta } from "./rbac.types";
+import { Role, RbacPolicyMeta, RbacPolicy } from "./rbac.types";
+import { PermissionState } from "@/components/organization/PermissionMatrix";
+import { useStore } from "@/lib/store";
 
 interface ListPoliciesEnvelope {
   status: string;
@@ -30,9 +32,33 @@ export interface ListPoliciesResult {
 class RbacService {
   private baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
+  private getHeaders(): HeadersInit {
+    const { actor, role } = useStore.getState();
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    
+    if (actor?.login) {
+      headers["X-Devhub-Actor"] = actor.login;
+    }
+    if (role) {
+      // Map "System Admin" to "system_admin" for backend compatibility
+      const roleMap: Record<string, string> = {
+        "System Admin": "system_admin",
+        "Manager": "manager",
+        "Developer": "developer"
+      };
+      headers["X-Devhub-Role"] = roleMap[role] || role.toLowerCase();
+    }
+    
+    return headers;
+  }
+
   // GET /api/v1/rbac/policies — section 12.2.
   async listPolicies(): Promise<ListPoliciesResult> {
-    const response = await fetch(`${this.baseUrl}/api/v1/rbac/policies`);
+    const response = await fetch(`${this.baseUrl}/api/v1/rbac/policies`, {
+      headers: this.getHeaders()
+    });
     if (!response.ok) {
       throw new Error(`listPolicies failed: ${response.status}`);
     }
@@ -44,7 +70,7 @@ class RbacService {
   async createPolicy(role: Pick<Role, "id" | "name" | "description" | "permissions">): Promise<Role> {
     const response = await fetch(`${this.baseUrl}/api/v1/rbac/policies`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: this.getHeaders(),
       body: JSON.stringify(role),
     });
     if (!response.ok) {
@@ -60,7 +86,7 @@ class RbacService {
   async updatePolicies(roles: Array<Pick<Role, "id"> & Partial<Pick<Role, "name" | "description" | "permissions">>>): Promise<ListPoliciesResult> {
     const response = await fetch(`${this.baseUrl}/api/v1/rbac/policies`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: this.getHeaders(),
       body: JSON.stringify({ roles }),
     });
     if (!response.ok) {
@@ -75,6 +101,7 @@ class RbacService {
   async deletePolicy(roleId: string): Promise<void> {
     const response = await fetch(`${this.baseUrl}/api/v1/rbac/policies/${encodeURIComponent(roleId)}`, {
       method: "DELETE",
+      headers: this.getHeaders()
     });
     if (!response.ok) {
       throw await rbacError(response, "deletePolicy");
@@ -89,7 +116,9 @@ class RbacService {
   // mode: response array length is 0 (only when subject not found, which
   // surfaces as 404) or 1.
   async getSubjectRoles(subjectId: string): Promise<string[]> {
-    const response = await fetch(`${this.baseUrl}/api/v1/rbac/subjects/${encodeURIComponent(subjectId)}/roles`);
+    const response = await fetch(`${this.baseUrl}/api/v1/rbac/subjects/${encodeURIComponent(subjectId)}/roles`, {
+      headers: this.getHeaders()
+    });
     if (!response.ok) {
       throw await rbacError(response, "getSubjectRoles");
     }
@@ -102,7 +131,7 @@ class RbacService {
   async setSubjectRole(subjectId: string, roleId: string): Promise<void> {
     const response = await fetch(`${this.baseUrl}/api/v1/rbac/subjects/${encodeURIComponent(subjectId)}/roles`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: this.getHeaders(),
       body: JSON.stringify({ roles: [roleId] }),
     });
     if (!response.ok) {
@@ -110,7 +139,25 @@ class RbacService {
     }
   }
 
+  async replacePolicy(reason: string, matrix: PermissionState, policyVersion?: string): Promise<RbacPolicy> {
+    const response = await fetch(`${this.baseUrl}/api/v1/rbac/policy`, {
+      method: "PUT",
+      headers: this.getHeaders(),
+      body: JSON.stringify({
+        policy_version: policyVersion,
+        reason,
+        matrix,
+      }),
+    });
+    if (!response.ok) {
+      throw new Error("Failed to replace RBAC policy");
+    }
+    const result = await response.json();
+    return result.data;
+  }
 }
+
+
 
 // RbacError preserves the contract section 12 error code (e.g. role_in_use,
 // audit_invariant_violation) so the UI can branch on a stable identifier.
