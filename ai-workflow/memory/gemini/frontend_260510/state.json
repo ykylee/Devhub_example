@@ -1,0 +1,74 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-05-10",
+  "status": "planned",
+  "current_activity": "Phase 6.1 RBAC API 통합 및 M2 인증 콜백 최종화 계획 수립 및 검토 요청",
+  "last_update": "2026-05-10T14:38:00Z",
+  "milestones": {
+    "phase6.1": {
+      "status": "planned",
+      "progress": 20,
+      "description": "RBAC 실데이터 연동"
+    },
+    "m2": {
+      "status": "planned",
+      "progress": 30,
+      "description": "인증 고도화 및 콜백 플로우"
+    }
+  },
+  "source_of_truth": {
+    "project_profile_path": "docs/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/gemini/frontend_260510/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/gemini/frontend_260510/work_backlog.md",
+    "latest_backlog_path": "ai-workflow/memory/gemini/frontend_260510/backlog/2026-05-10.md",
+    "repository_assessment_path": "ai-workflow/memory/repository_assessment.md"
+  },
+  "project": {
+    "project_name": "DevHub Example",
+    "document_home": "docs/README.md",
+    "operations_path": null,
+    "backlog_path": "ai-workflow/memory/gemini/frontend_260510/backlog/",
+    "handoff_path": "ai-workflow/memory/gemini/frontend_260510/session_handoff.md",
+    "environment_path": "ai-workflow/memory/environments/"
+  },
+  "commands": {
+    "quick_tests": "pytest ai-workflow/tests/check_docs.py",
+    "isolated_tests": "cd frontend && npm run lint",
+    "runtime_checks": "docker-compose ps"
+  },
+  "session": {
+    "current_baseline": "Phase 6 RBAC UI 스캐폴딩 및 메인 브랜치 PR(41, 42) 병합 완료",
+    "current_axis": "Frontend Phase 6.1 RBAC API 통합 및 M2 인증 고도화",
+    "current_focus": "RBAC 권한 정책(Policy) CRUD API 연동 및 /auth/callback 토큰 처리",
+    "in_progress_items": [
+      "TASK-FRONTEND-PHASE6.1-RBAC-API"
+    ],
+    "blocked_items": [],
+    "recent_done_items": [
+      "TASK-FRONTEND-PHASE6-UI-SCAFFOLDING",
+      "TASK-MEMORY-CLEANUP-PR41-PR42"
+    ],
+    "environment_constraints": [
+      "Docker/Docker-compose required for full system",
+      "Backend Core API on :8080 (REST + WS)"
+    ]
+  },
+  "backlog": {
+    "latest_backlog_path": "ai-workflow/memory/gemini/frontend_260510/backlog/2026-05-10.md",
+    "task_count": 5,
+    "in_progress_items": [
+      "TASK-FRONTEND-PHASE6.1-RBAC-API"
+    ],
+    "blocked_items": [],
+    "done_items": []
+  },
+  "next_documents": [
+    "docs/frontend_development_roadmap.md",
+    "docs/backend_api_contract.md",
+    "ai-workflow/memory/gemini/frontend_260510/session_handoff.md"
+  ],
+  "repository_assessment": {
+    "path": "ai-workflow/memory/repository_assessment.md",
+    "present": true
+  }
+}
