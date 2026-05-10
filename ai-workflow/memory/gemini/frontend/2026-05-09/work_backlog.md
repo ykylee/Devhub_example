@@ -5,7 +5,7 @@
 - 대상 독자: AI Agent, 프로젝트 관리자
 - 상태: in_progress
 - 최종 수정일: 2026-05-09
-- 관련 문서: [세션 인계](./session_handoff.md), [프로젝트 프로파일](../../../../PROJECT_PROFILE.md)
+- 관련 문서: [세션 인계](./session_handoff.md), [프로젝트 프로파일](../../../PROJECT_PROFILE.md)
 
 ## 운영 원칙
 1. 세션 시작 시 인덱스와 최신 백로그 확인

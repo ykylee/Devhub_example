@@ -1,5 +1,12 @@
 # Work Backlog: DevHub Integration
 
+- 문서 목적: backend-integration 브랜치의 작업 상태를 추적한다.
+- 범위: 완료/진행/예정 태스크 인덱스
+- 대상 독자: 개발자, 후속 에이전트
+- 상태: in_progress
+- 최종 수정일: 2026-05-07
+- 관련 문서: [세션 인계](./session_handoff.md), [당일 backlog](./backlog/2026-05-07.md)
+
 ## 🏁 Done
 - [x] 프론트엔드 빌드 오류 수정 및 TypeScript 타입 안정화
 - [x] 도커 기반 통합 환경 구축 (Go Backend + Next.js Frontend + PostgreSQL)

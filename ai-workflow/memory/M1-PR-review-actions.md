@@ -2,6 +2,7 @@
 
 - 문서 목적: M1 sprint 의 8개 PR 에 대한 자체 리뷰 + Codex bot 자동 리뷰 종합. 머지 시점에 *해소된* 항목과 *후속 개발로 넘긴* 항목을 분리해 다음 세션 진입자가 즉시 인지하도록 한다.
 - 범위: PR #20 (M1 PR-A SEC-5) ~ PR #27 (M1 PR-G6 frontend RBAC integration)
+- 대상 독자: 백엔드/프론트엔드 개발자, 리뷰어, 후속 작업자
 - 상태: done (FIX A~D 모두 머지, DEFER A~G 백로그 인계)
 - 최종 수정일: 2026-05-08
 - 관련 문서: [M1 sprint backlog](./claude/m1-sprint-plan/backlog/2026-05-08.md), [ADR-0002](../../docs/adr/0002-rbac-policy-edit-api.md), [API contract §12](../../docs/backend_api_contract.md), [PR-12 review-actions 패턴](./PR-12-review-actions.md)

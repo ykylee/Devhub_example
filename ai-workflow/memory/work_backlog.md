@@ -1,6 +1,8 @@
 # Integrated Work Backlog (main, post M1 RBAC)
 
 - 문서 목적: main 브랜치 기준 상위 백로그 인덱스. 세부 sprint backlog 는 브랜치별 메모리 디렉터리 참조.
+- 범위: 마일스톤 상태, 최근 머지, 잔여/후속 작업
+- 대상 독자: 프로젝트 리드, 후속 에이전트, 트랙 담당자
 - 상태: M1 RBAC track (PR-A·F·G1~G6) 머지 완료. M1 잔여 (PR-B/C/D) + DEFER 항목 대기.
 - 최종 수정일: 2026-05-08
 - 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [세션 인계](./session_handoff.md), [상태 스냅샷](./state.json), [M1 PR 리뷰 actions](./M1-PR-review-actions.md)

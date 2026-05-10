@@ -1,5 +1,12 @@
 # Work Backlog: M2 Authentication
 
+- 문서 목적: auth-m2 브랜치의 핵심 태스크와 우선순위를 추적한다.
+- 범위: M2/M3 인증·조직 관리 관련 태스크
+- 대상 독자: 후속 에이전트, 프로젝트 리드
+- 상태: in_progress
+- 최종 수정일: 2026-05-08
+- 관련 문서: [세션 인계](./session_handoff.md), [당일 backlog](./backlog/2026-05-08.md)
+
 ## Tasks
 
 - [x] **TASK-M3-SIGNUP**: Sign Up (셀프 가입) 기능 및 인사 DB 연동 구현

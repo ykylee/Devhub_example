@@ -1,6 +1,8 @@
 # Work Backlog — claude/merge_roadmap
 
 - 문서 목적: `claude/merge_roadmap` 브랜치의 큰 단위 작업 인덱스. 일자별 backlog 파일에 대한 인덱스 역할.
+- 범위: M0 sprint task/PR 상태, 다음 sprint 후보
+- 대상 독자: 후속 에이전트, 프로젝트 리드
 - 상태: M0 sprint 마무리 단계 (코드 측 종료, 운영 검증만 잔존)
 - 최종 수정일: 2026-05-08
 - 관련 문서: [통합 로드맵](../../../../docs/development_roadmap.md), [세션 인계](./session_handoff.md), [상태 스냅샷](./state.json)

@@ -5,7 +5,7 @@
 - 대상 독자: 프로젝트 리드, AI 에이전트, 온보딩 담당자
 - 상태: draft
 - 최종 수정일: 2026-05-08
-- 관련 문서: [통합 개발 로드맵](../docs/development_roadmap.md), [세션 인계](./session_handoff.md)
+- 관련 문서: [통합 개발 로드맵](../../docs/development_roadmap.md), [세션 인계](./session_handoff.md)
 
 ## 1. 진단 요약 (Executive Summary)
 
