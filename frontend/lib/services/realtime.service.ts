@@ -56,7 +56,7 @@ export class RealtimeService {
   private connect() {
     try {
       const url = this.buildURL();
-      if (this.socket && this.currentUrl === url) return;
+      if (this.socket && this.socket.readyState === WebSocket.OPEN && this.currentUrl === url) return;
 
       if (this.socket) {
         this.socket.close();

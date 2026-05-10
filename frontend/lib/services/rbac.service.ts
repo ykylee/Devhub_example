@@ -104,7 +104,7 @@ class RbacService {
 
   async replacePolicy(reason: string, matrix: PermissionState, policyVersion?: string): Promise<RbacPolicy> {
     try {
-      const result = await apiClient<{ data: RbacPolicy }>("PUT", `${this.baseUrl}/api/v1/rbac/policy`, {
+      const result = await apiClient<{ data: RbacPolicy }>("PUT", `${this.baseUrl}/api/v1/rbac/policies`, {
         policy_version: policyVersion,
         reason,
         matrix,
