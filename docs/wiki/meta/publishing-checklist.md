@@ -1,6 +1,6 @@
 # Wiki Publishing Checklist
 
-- 문서 목적: `wiki-src/` 원고를 GitHub Wiki에 게시하기 전 점검 항목을 표준화한다.
+- 문서 목적: `docs/wiki/` 원고를 GitHub Wiki에 게시하기 전 점검 항목을 표준화한다.
 - 범위: 콘텐츠 검수, 공개 범위 점검, 링크 점검, 게시 순서
 - 대상 독자: 문서 작성자, 리뷰어, 릴리즈 담당자
 - 상태: active
