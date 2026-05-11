@@ -2,89 +2,92 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "M2 login_action sprint in_review (PR-LOGIN-1/2 pushed); PR-LOGIN-3/4 not entered. M1 remainder unchanged.",
-  "updated_at": "2026-05-08T18:00:00Z",
-  "head_commit": "dbff50f",
-  "head_summary": "Merge pull request #32 from ykylee/claude/m1-merge-cleanup (M1 close)",
+  "status": "M2 login_action sprint complete (work_26_05_11). Track L (logout/account password) + Track S (system settings + user/org admin) + deploy guide all merged. M3 hardening (Hydra JWKS verifier, Kratos webhook, identity mapping cache) and M4 (realtime/AI) next.",
+  "updated_at": "2026-05-11T02:10:00Z",
+  "head_commit": "818d54a",
+  "head_summary": "Merge pull request #55 from ykylee/claude/work_26_05_11-s4 (PR-S4 org coords + leader change)",
   "milestones": {
     "M0": {
       "status": "done",
       "ended_at": "2026-05-08",
-      "notes": "Authentication and authorization gate normalized. SEC-1..SEC-4 resolved. T-M0-10 ops verification PASS (Hydra introspection + valid JWT -> /api/v1/me 200)."
+      "notes": "Authentication and authorization gate normalized. SEC-1..SEC-4 resolved."
     },
     "M1": {
       "status": "in_progress",
       "started_at": "2026-05-08",
-      "notes": "RBAC track (PR-A SEC-5 + PR-F ADR-0002 + PR-G1..G6) merged via PR #20-23, #29-31, #27, #28. SEC-5, RBAC model unification (4-boolean), domain + migration + store + handlers + cache + frontend integration all live on main. Codex review FIX A-D applied. Remaining T-M1-02/03/04/05/07/08 (envelope, types split, cmd lifecycle, audit actor, ws envelope, auth_test) tracked as PR-B/C/D in work_backlog.md."
+      "notes": "RBAC track merged via PR #20-23, #29-31, #27, #28 (2026-05-08). Remaining T-M1-02/03/04/05/07/08 (envelope, types split, cmd lifecycle, audit actor, ws envelope, auth_test) tracked as PR-B/C/D in earlier work_backlog."
     },
     "M2": {
-      "status": "in_progress",
+      "status": "done",
       "started_at": "2026-05-08",
-      "notes": "login_action sprint: ADR-0001 §6 OIDC code flow 의 frontend 7단계 누락 + backend Kratos/Hydra proxy 보강. PR-LOGIN-1 (#33 backend /api/v1/auth/login) + PR-LOGIN-2 (#34 frontend /auth/login form) pushed, 머지 대기. PR-LOGIN-3 (callback + token + httpClient) + PR-LOGIN-4 (logout + /account) 미진입. Backlog: ai-workflow/memory/claude/login_action/backlog/2026-05-08.md"
+      "ended_at": "2026-05-11",
+      "notes": "login_action sprint (2026-05-08): PR-LOGIN-1/2 (backend login + frontend form). work_26_05_11 sprint (2026-05-11): logout(#45/#51) + account password(#50) + deploy guide(#49). Track S (#52-#55) ships system_admin gating + /admin/settings + accounts admin endpoints + org chart drag/leader."
     }
   },
   "components": {
     "frontend": {
-      "phase": "5.2 done; Phase 6 in_progress (RBAC PermissionEditor connected); login flow PR-LOGIN-2 pushed",
-      "auth": "/login redirects to Hydra OIDC authorize; /auth/login (login_challenge form) + /auth/error pushed in PR-LOGIN-2 (#34); /auth/callback still pending (PR-LOGIN-3); token storage + Authorization header fetch still pending.",
-      "build_check": "PASS (Next.js 16.2.4, 13 static pages on PR-LOGIN-2 branch including /auth/login, /auth/error)",
-      "rbac": "PermissionEditor wired to /api/v1/rbac/policies (PR #27). RbacError type carries contract code. Audit invariant locked in UI via PermissionMatrix.lockedCells."
+      "phase": "Phase 6 done; auth flow complete (login + logout + callback + account); /admin/settings shell live with users/organization/permissions sub-routes; sidebar gates system menu on actor.role.",
+      "auth": "OIDC code flow with PKCE end-to-end. tokenStore persists access/refresh/id; apiClient auto Authorization. AuthGuard 401 -> /login + system route gate. Header Sign Out drives Hydra /oauth2/sessions/logout via id_token_hint, Kratos cookie killed via fetch.",
+      "build_check": "PASS — Next.js 16.2.4, 18 static pages.",
+      "rbac": "PermissionEditor at /admin/settings/permissions wired to /api/v1/rbac/policies. defaultLandingFor + isSystemAdmin + pathRequiresSystemAdmin in lib/auth/role-routing.ts."
     },
     "backend": {
-      "phase": "12/13 done; auth proxy PR-LOGIN-1 pushed",
-      "auth": "BearerTokenVerifier (Hydra introspection) + enforceRoutePermission middleware (route mapping table + PermissionCache). M0 requireMinRole removed from production paths. PR-LOGIN-1 (#33) adds POST /api/v1/auth/login that drives Kratos password self-service + Hydra admin login accept (KratosClient + HydraAdminClient in internal/httpapi).",
-      "test_check": "PASS (go test ./... including domain/rbac, store/rbac, httpapi/permissions, httpapi/rbac handlers, httpapi/auth_login on PR-LOGIN-1 branch)",
-      "rbac": "rbac_policies table seeded with developer/manager/system_admin per section 12.1 default. users.role now FK to rbac_policies. Custom roles supported via POST /api/v1/rbac/policies.",
-      "auth_proxy_envs": "DEVHUB_HYDRA_ADMIN_URL (existing) + DEVHUB_KRATOS_PUBLIC_URL (added by PR-LOGIN-1)"
+      "phase": "M2 done. Auth proxy: /api/v1/auth/{login,logout,token,signup,consent} + accounts admin (/api/v1/accounts {POST/PUT password/PATCH/DELETE}).",
+      "auth": "BearerTokenVerifier (Hydra introspection) + enforceRoutePermission. Logout: Hydra accept + revoke (Kratos owned by frontend, DEC-1=B). Accounts admin proxies Kratos admin (FindByUserID + UpdateIdentityPassword + SetIdentityState + DeleteIdentity).",
+      "test_check": "PASS — go test ./... (httpapi includes 10 accounts admin tests + 11 logout tests + auth_login + auth_token + RBAC).",
+      "rbac": "rbac_policies seeded with developer/manager/system_admin. /api/v1/accounts gated as security:create / security:edit / organization:edit / organization:delete.",
+      "auth_envs": "DEVHUB_HYDRA_ADMIN_URL, DEVHUB_HYDRA_PUBLIC_URL (revoke), DEVHUB_KRATOS_PUBLIC_URL (login), DEVHUB_KRATOS_ADMIN_URL (signup + accounts admin)."
     },
     "infra_idp": {
-      "scaffold": "infra/idp/ (hydra.yaml, kratos.yaml, identity schema, scripts, sql) verified end-to-end in 2026-05-08 sandbox"
+      "scaffold": "infra/idp/ (hydra.yaml, kratos.yaml, schemas, scripts) — verified 2026-05-08 sandbox.",
+      "deploy_guide": "docs/setup/test-server-deployment.md — native binary, no-docker, full e2e flow."
     }
   },
   "session_pointers": {
     "session_handoff_path": "ai-workflow/memory/session_handoff.md",
     "work_backlog_path": "ai-workflow/memory/work_backlog.md",
     "integrated_roadmap": "docs/development_roadmap.md",
-    "m0_sprint_record": "ai-workflow/memory/claude/merge_roadmap/",
-    "m1_sprint_plan": "ai-workflow/memory/claude/m1-sprint-plan/backlog/2026-05-08.md",
-    "m1_pr_review_actions": "ai-workflow/memory/M1-PR-review-actions.md",
-    "m2_login_action_backlog": "ai-workflow/memory/claude/login_action/backlog/2026-05-08.md",
-    "adr_rbac": "docs/adr/0002-rbac-policy-edit-api.md",
+    "frontend_roadmap": "docs/frontend_development_roadmap.md",
+    "backend_roadmap": "ai-workflow/memory/backend_development_roadmap.md",
+    "deploy_guide": "docs/setup/test-server-deployment.md",
     "adr_idp": "docs/adr/0001-idp-selection.md",
-    "pr12_review_actions": "ai-workflow/memory/PR-12-review-actions.md",
-    "security_reviews": [
-      "ai-workflow/memory/PR-12-security-review.md",
-      "ai-workflow/memory/codebase-security-review-2026-05-08.md"
-    ]
+    "adr_rbac": "docs/adr/0002-rbac-policy-edit-api.md",
+    "sprints": {
+      "m0_merge_roadmap": "ai-workflow/memory/claude/merge_roadmap/",
+      "m1_sprint_plan": "ai-workflow/memory/claude/m1-sprint-plan/backlog/2026-05-08.md",
+      "m2_login_action": "ai-workflow/memory/claude/login_action/backlog/2026-05-08.md",
+      "work_26_05_11": "ai-workflow/memory/claude/work_26_05_11/backlog/2026-05-11.md (CLOSED)"
+    }
   },
-  "merged_prs_this_round": [
-    {"pr": 28, "title": "docs(memory): M1 PR review actions tracker", "merge_commit": "9bc30c9"},
-    {"pr": 20, "title": "feat(http): SEC-5 mask 5xx errors + M1 sprint plan (M1 PR-A)", "merge_commit": "ae8aca1"},
-    {"pr": 21, "title": "docs(adr): ADR-0002 RBAC policy edit API (M1 PR-F)", "merge_commit": "950a11f"},
-    {"pr": 22, "title": "docs(api): RBAC §12 rewrite + route mapping (M1 PR-G1)", "merge_commit": "1a090a3"},
-    {"pr": 23, "title": "feat(rbac): domain + rbac_policies migration (M1 PR-G2)", "merge_commit": "5239a87"},
-    {"pr": 29, "title": "feat(rbac): postgres store + users.role FK (M1 PR-G3 + FIX-A)", "merge_commit": "24815b8"},
-    {"pr": 30, "title": "feat(rbac): RBAC handlers (M1 PR-G4 + FIX-B + FIX-C)", "merge_commit": "27b6817"},
-    {"pr": 31, "title": "feat(rbac): permission cache + enforcement (M1 PR-G5)", "merge_commit": "02eef35"},
-    {"pr": 27, "title": "feat(frontend): RBAC PermissionEditor ↔ backend (M1 PR-G6 + FIX-D)", "merge_commit": "e02ba67"}
+  "merged_prs_work_26_05_11": [
+    {"pr": 45, "title": "feat(auth): /api/v1/auth/logout proxy (PR-L1)", "merge_commit": "61541da"},
+    {"pr": 51, "title": "feat(auth): /auth/logout + Kratos browser logout (PR-L2)", "merge_commit": "858129f"},
+    {"pr": 50, "title": "feat(account): /account password via Kratos settings (PR-L3)", "merge_commit": "205980e"},
+    {"pr": 49, "title": "docs(setup): test server deployment guide", "merge_commit": "92b3459"},
+    {"pr": 52, "title": "feat(ui): role-based landing + system_admin sidebar gating (PR-S1)", "merge_commit": "a2f707e"},
+    {"pr": 53, "title": "feat(ui): /admin/settings shell + relocate organization 4 tabs (PR-S2)", "merge_commit": "2d0075e"},
+    {"pr": 54, "title": "feat(account): admin endpoints for issue/reset/disable/delete (PR-S3)", "merge_commit": "b935876"},
+    {"pr": 55, "title": "feat(org): persist drag positions + leader change (PR-S4)", "merge_commit": "818d54a"}
   ],
   "next_actions": {
-    "m2_open_prs": [
-      "PR #33 PR-LOGIN-1 (claude/login_action): backend /api/v1/auth/login proxy",
-      "PR #34 PR-LOGIN-2 (claude/login_action-frontend-form, base=claude/login_action): frontend /auth/login form + redirect_uri 통일"
-    ],
-    "m2_remaining": [
-      "PR-LOGIN-3: /auth/callback + Hydra /oauth2/token 교환 (PKCE) + token storage + Authorization 헤더 자동 부착 (httpClient 추상화)",
-      "PR-LOGIN-4: logout (/api/v1/auth/logout + frontend) + /account 비밀번호 변경 (Kratos public /self-service/settings)"
-    ],
     "m1_remaining": [
-      "T-M1-02 PR-B: API envelope/role wire/필드 정합 + 통합 테스트",
-      "T-M1-03 PR-C: command lifecycle 6 상태 일관 + dry-run/live 경계",
+      "T-M1-02 PR-B: API envelope/role wire 일관 + 통합 테스트",
+      "T-M1-03 PR-C: command lifecycle 6 상태 + dry-run/live 경계",
       "T-M1-04 PR-D: audit actor 보강 (source_ip, request_id, source_type) + migration",
-      "T-M1-07: frontend types.ts UI/wire 분리 (PR-B 흡수 가능)",
-      "T-M1-08: WebSocket envelope 표준화 (PR-B 흡수 가능)"
+      "T-M1-07: frontend types.ts UI/wire 분리",
+      "T-M1-08: WebSocket envelope 표준화"
     ],
-    "defer_followups": "ai-workflow/memory/M1-PR-review-actions.md §3 의 DEFER A~G",
-    "ops_verification": "사용자 환경에서 make migrate-up 후 rbac_policies 시스템 role 3건 seed 확인 + DEVHUB_TEST_DB_URL 셋 후 store 통합 테스트 PASS. PR-LOGIN-1/2 머지 후: register-devhub-client.ps1 로 OIDC client 등록 + Kratos identity 1건 metadata_public.user_id 셋 + curl POST /api/v1/auth/login 검증."
+    "m2_followups": [
+      "Kratos identity 매핑 캐싱 — users.kratos_identity_id 칼럼 추가로 FindIdentityByUserID O(1) 화",
+      "Kratos webhook 수신 → DevHub audit_logs 통합 (self-service password 변경 등 audit)",
+      "Hydra JWKS / introspection verifier 실구현 (현재는 introspection 기반)",
+      "/admin/settings/users 의 SearchInput 실제 필터링 미구현 (placeholder)"
+    ],
+    "m4_entry_candidates": [
+      "WebSocket resource scope filtering (backend roadmap §6)",
+      "Python AI gRPC client 연동",
+      "Gitea Hourly Pull worker"
+    ],
+    "ops_verification": "사용자 환경에서 docs/setup/test-server-deployment.md 의 §6-§7 e2e 절차 1회 수행 권장 — 로그인/로그아웃/비밀번호 변경/계정 발급/disable/조직 차트 drag 영속화 전체."
   }
 }

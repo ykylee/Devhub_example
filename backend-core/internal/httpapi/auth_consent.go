@@ -22,7 +22,7 @@ func (h Handler) authConsent(c *gin.Context) {
 	consentReq, err := h.cfg.HydraAdmin.GetConsentRequest(ctx, challenge)
 	if err != nil {
 		log.Printf("[authConsent] Failed to get consent request: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "error": "failed to fetch consent request"})
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": "failed to fetch consent request"})
 		return
 	}
 
@@ -30,7 +30,7 @@ func (h Handler) authConsent(c *gin.Context) {
 	redirectTo, err := h.cfg.HydraAdmin.AcceptConsentRequest(ctx, challenge, consentReq.RequestedScope, true, 3600)
 	if err != nil {
 		log.Printf("[authConsent] Failed to accept consent request: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "error": "failed to accept consent request"})
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": "failed to accept consent request"})
 		return
 	}
 

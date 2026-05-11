@@ -62,6 +62,15 @@ type commandAcceptedResponse struct {
 	CreatedAt        time.Time `json:"created_at"`
 }
 
+// createServiceAction dispatches a service control command to the command
+// store. Per DEC-2=A' (work_26_05_11-b sprint), dry-run and live commands
+// share the same persistence + audit boundary; the difference is downstream:
+//   - dry-run: stored, then commandworker.Worker walks pending -> running ->
+//     succeeded with no executor invocation (worker.go:39-55). Audit log is
+//     kept so operator intent is traceable even when the action did not run.
+//   - live: stored as pending+requires_approval, picked up by
+//     commandworker.LiveWorker only after explicit approval.
+// docs/backend_api_contract.md §9 contains the response envelope shape.
 func (h Handler) createServiceAction(c *gin.Context) {
 	if h.cfg.CommandStore == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{

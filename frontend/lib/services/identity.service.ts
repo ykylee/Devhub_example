@@ -1,4 +1,5 @@
 import { apiClient, ApiError } from "./api-client";
+import type { ApiResponse } from "./wire";
 
 export interface OrgMember {
   id: string;
@@ -47,10 +48,10 @@ export interface OrgEdge {
 }
 
 
-interface ApiResponse<T> {
-  data?: T;
-  error?: string;
-}
+// ApiResponse<T> imported from ./wire (PR-B2). The ad-hoc shape here used to
+// be {data?, error?}; the wire type adds `status`/`code`/`meta` so callers
+// can read the envelope status when needed. data is still optional for the
+// success path that returns no payload (DELETE).
 
 interface BackendAppointment {
   unit_id: string;
@@ -268,10 +269,15 @@ export class IdentityService {
   }
 
   async lookupHR(systemId: string): Promise<{ email: string; user_id: string; department: string }> {
-    return await apiClient<{ email: string; user_id: string; department: string }>(
+    // Backend wraps the response under {status, data} (PR-B1, work_26_05_11-b
+    // sprint). Reaching into result.data keeps UserCreationModal's HR autofill
+    // working — earlier callers parsed the flat object directly.
+    const result = await apiClient<ApiResponse<{ email: string; user_id: string; department: string }>>(
       "GET",
       `/api/v1/hr/lookup?system_id=${encodeURIComponent(systemId)}`,
     );
+    if (!result.data) throw new ApiError(500, result, "missing hr lookup payload");
+    return result.data;
   }
 
   async getOrgHierarchy(): Promise<{ nodes: OrgNode[]; edges: OrgEdge[] }> {

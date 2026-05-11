@@ -686,3 +686,66 @@ func TestApproveCommandRejectsNonPendingApproval(t *testing.T) {
 		t.Fatalf("expected 409, got %d body=%s", rec.Code, rec.Body.String())
 	}
 }
+
+// TestServiceAction_DryRunVsLiveBoundary locks DEC-2=A' (work_26_05_11-b):
+// dry-run and live both persist a command + audit row, but they differ in
+// the requires_approval flag and the worker that consumes them. The store
+// + audit boundary stays identical so operator intent is auditable for both.
+func TestServiceAction_DryRunVsLiveBoundary(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	cases := []struct {
+		name             string
+		body             string
+		wantDryRun       bool
+		wantRequiresAppr bool
+	}{
+		{
+			name:             "dry-run defaults to no approval gate",
+			body:             `{"service_id":"runner-asia-01","action_type":"restart","reason":"queue blocked","dry_run":true}`,
+			wantDryRun:       true,
+			wantRequiresAppr: false,
+		},
+		{
+			name:             "live action requires approval before executor runs",
+			body:             `{"service_id":"runner-asia-01","action_type":"restart","reason":"queue blocked","dry_run":false}`,
+			wantDryRun:       false,
+			wantRequiresAppr: true,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			commandStore := &memoryCommandStore{}
+			audits := &memoryAuditStore{}
+			router := NewRouter(RouterConfig{
+				CommandStore: commandStore,
+				AuditStore:   audits,
+				BearerTokenVerifier: &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+					Login: "admin", Subject: "user-admin", Role: "system_admin",
+				}},
+			})
+
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/service-actions", bytes.NewReader([]byte(tc.body)))
+			req.Header.Set("Authorization", "Bearer t")
+			rec := httptest.NewRecorder()
+			router.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusAccepted {
+				t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+			}
+			if len(commandStore.commands) != 1 {
+				t.Fatalf("dry-run and live both persist exactly one command (got %d)", len(commandStore.commands))
+			}
+			cmd := commandStore.commands[0]
+			if cmd.DryRun != tc.wantDryRun {
+				t.Errorf("DryRun=%v want %v", cmd.DryRun, tc.wantDryRun)
+			}
+			if cmd.RequiresApproval != tc.wantRequiresAppr {
+				t.Errorf("RequiresApproval=%v want %v", cmd.RequiresApproval, tc.wantRequiresAppr)
+			}
+			if cmd.Status != string(domain.CommandStatusPending) {
+				t.Errorf("Status=%q want %q (worker pickup is what advances it)", cmd.Status, domain.CommandStatusPending)
+			}
+		})
+	}
+}

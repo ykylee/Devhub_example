@@ -18,31 +18,45 @@ type SignUpRequest struct {
 func (h Handler) authSignUp(c *gin.Context) {
 	var req SignUpRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request payload", "details": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": "rejected",
+			"error":  "invalid request payload",
+			"code":   "invalid_payload",
+		})
 		return
 	}
 
 	if h.cfg.HRDB == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "HR verification service is not configured"})
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"status": "unavailable",
+			"error":  "HR verification service is not configured",
+		})
 		return
 	}
 
 	// 1. Lookup HR DB
 	email, userID, dept, err := h.cfg.HRDB.Lookup(c.Request.Context(), req.SystemID, req.EmployeeID, req.Name)
 	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": "identity verification failed", "details": "The provided information does not match our records."})
+		c.JSON(http.StatusForbidden, gin.H{
+			"status": "forbidden",
+			"error":  "identity verification failed",
+			"code":   "hr_lookup_failed",
+		})
 		return
 	}
 
 	// 2. Create Kratos Identity
 	if h.cfg.KratosAdmin == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Kratos admin service is not configured"})
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"status": "unavailable",
+			"error":  "Kratos admin service is not configured",
+		})
 		return
 	}
 
 	kID, err := h.cfg.KratosAdmin.CreateIdentity(c.Request.Context(), email, req.Name, userID, req.Password)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create identity", "details": err.Error()})
+		writeServerError(c, err, "auth.signup.kratos_create_identity")
 		return
 	}
 
@@ -63,10 +77,12 @@ func (h Handler) authSignUp(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"status":  "success",
-		"message": "Account created successfully. You can now sign in.",
-		"user_id": userID,
-		"kratos_id": kID,
-		"department": dept,
+		"status": "created",
+		"data": gin.H{
+			"user_id":    userID,
+			"kratos_id":  kID,
+			"department": dept,
+			"message":    "Account created successfully. You can now sign in.",
+		},
 	})
 }

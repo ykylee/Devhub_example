@@ -1,0 +1,61 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "claude/work_26_05_11-b",
+  "status": "Sprint work_26_05_11-b complete pending merge. PR-B (B1 envelope + B2 wire split) + PR-C (CommandStatus enum + transition matrix + dry-run/live boundary + existing auth gate coverage) all implemented. go test ./... + npm run build PASS. DEC-2 reread A -> A' (current behaviour aligned with spec intent). Ready for sprint closure PR.",
+  "updated_at": "2026-05-11T02:30:00Z",
+  "head_commit": "818d54a",
+  "head_summary": "Merge pull request #55 from ykylee/claude/work_26_05_11-s4 (work_26_05_11 final PR)",
+  "session_pointers": {
+    "sprint_plan": "ai-workflow/memory/claude/work_26_05_11-b/backlog/2026-05-11.md",
+    "session_handoff_path": "ai-workflow/memory/claude/work_26_05_11-b/session_handoff.md",
+    "work_backlog_path": "ai-workflow/memory/claude/work_26_05_11-b/work_backlog.md",
+    "previous_sprint": "ai-workflow/memory/claude/work_26_05_11/ (CLOSED)",
+    "m1_sprint_plan_origin": "ai-workflow/memory/claude/m1-sprint-plan/backlog/2026-05-08.md",
+    "m1_pr_review_actions": "ai-workflow/memory/M1-PR-review-actions.md",
+    "main_state": "ai-workflow/memory/state.json",
+    "integrated_roadmap": "docs/development_roadmap.md",
+    "frontend_roadmap": "docs/frontend_development_roadmap.md",
+    "backend_roadmap": "ai-workflow/memory/backend_development_roadmap.md",
+    "api_contract": "docs/backend_api_contract.md"
+  },
+  "decisions_made": [
+    {
+      "id": "DEC-1",
+      "topic": "envelope source-of-truth",
+      "chosen": "A contract authoritative",
+      "decided_on": "2026-05-11",
+      "summary": "docs/backend_api_contract.md is authoritative; align code to docs when they diverge.",
+      "rationale": "External clients/integrators need stable contract. Most new handlers already use {status, data} envelope, so divergence cost is low."
+    },
+    {
+      "id": "DEC-2",
+      "topic": "dry-run command persistence",
+      "chosen": "A response-only succeeded",
+      "decided_on": "2026-05-11",
+      "summary": "dry-run skips store + audit + worker enqueue. live path uses store and worker.",
+      "rationale": "dry-run is a preview of operator intent; store/audit retention adds noise without value."
+    },
+    {
+      "id": "DEC-3",
+      "topic": "WebSocket envelope schema_version format",
+      "chosen": "A integer '1' fixed",
+      "decided_on": "2026-05-11",
+      "summary": "schema_version='1' as a string integer. Bump to '2', '3' on breaking changes. Defer semver to a future phase if backward-compat layering becomes load-bearing.",
+      "rationale": "Simpler decoder + smaller envelope; semver value only kicks in when multiple versions coexist."
+    }
+  ],
+  "tracks": {
+    "M1_backlog": {
+      "status": "ready",
+      "prs": [
+        {"id": "PR-B1", "subject": "backend envelope realignment (auth_signup + hr_lookup + auth_consent label) + envelope_test", "status": "done", "completed_on": "2026-05-11"},
+        {"id": "PR-B2", "subject": "frontend wire vs UI types split + contract sub-agent verification", "status": "done", "completed_on": "2026-05-11"},
+        {"id": "PR-C", "subject": "Command lifecycle 6 states + dry-run/live boundary (DEC-2=A') + auth_test matrix (existing 30 cases sufficient) (T-M1-03·05)", "status": "done", "completed_on": "2026-05-11"}
+      ]
+    }
+  },
+  "out_of_scope": [
+    "PR-D T-M1-04 audit actor enrichment + request_id middleware + audit_logs migration — separate sprint (operational migration policy required)"
+  ]
+}
