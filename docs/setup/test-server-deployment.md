@@ -183,6 +183,28 @@ VALUES ('alice', 'alice@example.com', 'Alice', 'system_admin', 'active');
 
 (role 은 `developer` / `manager` / `system_admin` 중 1)
 
+### 4.3 PoC 빠른 진입용 test 계정 (선택)
+
+브라우저 smoke 가 자주 필요할 때 `test`/`test` 한 쌍을 시스템 관리자로 시드해 두면 편하다. Kratos identity + DevHub users 양쪽 모두 idempotent:
+
+```sh
+# Kratos identity
+curl -X POST http://localhost:4434/admin/identities \
+  -H "Content-Type: application/json" \
+  -d '{
+    "schema_id": "devhub_user",
+    "traits": { "system_id": "test", "email": "test@example.com", "display_name": "Test Admin" },
+    "metadata_public": { "user_id": "test" },
+    "credentials": { "password": { "config": { "password": "test" } } }
+  }'
+
+# DevHub users (psql 미설치 환경은 idp-apply-schemas 헬퍼)
+psql -U postgres -d devhub -f infra/idp/sql/003_seed_test_admin.sql
+# 또는: go run ./backend-core/cmd/idp-apply-schemas -sql infra/idp/sql/003_seed_test_admin.sql
+```
+
+운영 진입 전에 §10 체크리스트의 "test/test 제거" 항목으로 일소.
+
 ## 5. 기동 순서
 
 각 프로세스를 별도 창/터미널에서 실행. 한 창이 죽으면 그 컴포넌트만 재기동.
@@ -289,3 +311,4 @@ psql -U devhub -d devhub -c "SELECT action, target_type, target_id, created_at F
 - [ ] Hydra/Kratos `/admin` 포트(4445/4434) 외부 차단
 - [ ] backend `audit_logs` 모니터링 (`auth.login.subject_fallback` / `auth.logout.revoke_failed` / `auth.policy_unmapped` / `auth.role_denied` 알림 연결)
 - [ ] 시스템 서비스 등록 (Windows Service / systemd / launchd) — 후속 phase
+- [ ] PoC 빠른 진입용 `test`/`test` 시스템 관리자 계정 제거 — Kratos identity 삭제 (`DELETE /admin/identities/{id}`) + DevHub `users` 의 `user_id='test'` 행 삭제 + `infra/idp/sql/003_seed_test_admin.sql` 운영 시드 경로에서 제외
