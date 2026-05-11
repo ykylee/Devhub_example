@@ -1,25 +1,32 @@
+/**
+ * UI domain types — shapes the React layer renders.
+ *
+ * Convention (PR-B2, work_26_05_11-b):
+ *   - UI labels (e.g. UserRole "Developer"|"Manager"|"System Admin") live here
+ *   - service modules convert wire shapes (./wire) to these on the way in
+ *   - UI components import from this file, NOT from ./wire
+ *   - For backwards compatibility this file re-exports the envelope types
+ *     (ApiResponse, ApiUserRole, ApiMetric, WSEvent, WSEventHandler) so
+ *     existing service code can keep its single import. New service code is
+ *     encouraged to import wire shapes from "./wire" directly to keep
+ *     intent clear.
+ */
+
+export type {
+  ApiResponse,
+  ApiUserRole,
+  ApiMetric,
+  WSEvent,
+  WSEventHandler,
+} from "./wire";
+
 export type UserRole = "Developer" | "Manager" | "System Admin";
-export type ApiUserRole = "developer" | "manager" | "system_admin";
 
 export interface Metric {
   label: string;
   value: string;
   trend: string;
   color: string;
-}
-
-export interface ApiResponse<T> {
-  status: string;
-  data: T;
-}
-
-export interface ApiMetric {
-  label: string;
-  value: string;
-  trend: string;
-  trend_direction: "up" | "down" | "flat";
-  numeric_value?: number;
-  unit?: string;
 }
 
 export interface Risk {
@@ -74,17 +81,9 @@ export interface ServiceActionCommand {
   created_at: string;
 }
 
-export interface WSEvent<T = unknown> {
-  schema_version: string;
-  type: string;
-  event_id: string;
-  occurred_at: string;
-  data: T;
-}
-
-export type WSEventHandler<T = unknown> = (event: WSEvent<T>) => void;
-
 export type RbacPermission = "none" | "read" | "write" | "admin";
+
+import type { ApiUserRole } from "./wire";
 
 export interface RbacRole {
   role: ApiUserRole;

@@ -1,4 +1,5 @@
 import { apiClient, ApiError } from "./api-client";
+import type { ApiResponse } from "./wire";
 
 export interface OrgMember {
   id: string;
@@ -47,10 +48,10 @@ export interface OrgEdge {
 }
 
 
-interface ApiResponse<T> {
-  data?: T;
-  error?: string;
-}
+// ApiResponse<T> imported from ./wire (PR-B2). The ad-hoc shape here used to
+// be {data?, error?}; the wire type adds `status`/`code`/`meta` so callers
+// can read the envelope status when needed. data is still optional for the
+// success path that returns no payload (DELETE).
 
 interface BackendAppointment {
   unit_id: string;
