@@ -21,6 +21,7 @@ export default function AdminSettingsOrganizationPage() {
   const [members, setMembers] = useState<OrgMember[]>([]);
   const [orgNodes, setOrgNodes] = useState<OrgNode[]>([]);
   const [unitMembers, setUnitMembers] = useState<Record<string, string[]>>({});
+  const [unitLeaders, setUnitLeaders] = useState<Record<string, string | null>>({});
   const [managingUnitId, setManagingUnitId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -35,6 +36,13 @@ export default function AdminSettingsOrganizationPage() {
         ]);
         setMembers(usersData);
         setOrgNodes(orgData.nodes);
+        // Seed leader map from the hierarchy snapshot. The MemberManagementModal
+        // shows / edits leader assignment alongside roster membership.
+        const leaders: Record<string, string | null> = {};
+        for (const node of orgData.nodes) {
+          leaders[node.id] = node.data.leader_id ?? null;
+        }
+        setUnitLeaders(leaders);
 
         const memberLists = await Promise.all(
           orgData.nodes.map(async (node): Promise<[string, string[]]> => {
@@ -61,15 +69,25 @@ export default function AdminSettingsOrganizationPage() {
     load();
   }, []);
 
-  const handleReplaceUnitMembers = async (unitId: string, newMemberIds: string[]) => {
+  const handleSaveUnitMembers = async (unitId: string, newMemberIds: string[], newLeaderId: string | null) => {
     setSaveError(null);
     try {
       const refreshed = await identityService.replaceUnitMembers(unitId, newMemberIds);
       setUnitMembers((prev) => ({ ...prev, [unitId]: refreshed.map((m) => m.id) }));
+
+      // Persist leader change as a unit PATCH only when it actually moved.
+      // Backend audits the unit update; we only need to keep DevHub side
+      // consistent with what the modal showed.
+      const previousLeaderId = unitLeaders[unitId] ?? null;
+      if ((newLeaderId ?? null) !== previousLeaderId) {
+        await identityService.updateUnit(unitId, { leader_user_id: newLeaderId ?? "" });
+        setUnitLeaders((prev) => ({ ...prev, [unitId]: newLeaderId }));
+      }
+
       setManagingUnitId(null);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to save members";
-      console.error("[admin/settings/organization] replaceUnitMembers failed:", error);
+      const message = error instanceof Error ? error.message : "Failed to save unit";
+      console.error("[admin/settings/organization] save unit failed:", error);
       setSaveError(message);
     }
   };
@@ -133,11 +151,12 @@ export default function AdminSettingsOrganizationPage() {
             unitName={orgNodes.find((n) => n.id === managingUnitId)?.data.label || "Unknown Unit"}
             allMembers={members}
             currentMemberIds={unitMembers[managingUnitId] || []}
+            currentLeaderId={unitLeaders[managingUnitId] ?? null}
             onClose={() => {
               setSaveError(null);
               setManagingUnitId(null);
             }}
-            onSave={(newMemberIds) => handleReplaceUnitMembers(managingUnitId, newMemberIds)}
+            onSave={(newMemberIds, newLeaderId) => handleSaveUnitMembers(managingUnitId, newMemberIds, newLeaderId)}
             saveError={saveError}
           />
         )}
