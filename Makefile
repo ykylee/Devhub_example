@@ -1,7 +1,7 @@
 MIGRATIONS_DIR ?= backend-core/migrations
 MIGRATE_DB_URL ?= postgres://user:pass@localhost:5432/devhub?sslmode=disable
 
-.PHONY: init proto-tools proto setup migrate-tools migrate-create migrate-up migrate-down migrate-version build run
+.PHONY: init proto-tools proto setup migrate-tools migrate-create migrate-up migrate-down migrate-version build run test test-race test-coverage test-frontend e2e
 
 init: setup proto-tools migrate-tools proto
 
@@ -43,3 +43,31 @@ run:
 	@echo "Run is environment-specific. See docs/setup/environment-setup.md."
 	@echo "  Native:  see section 2 of the guide (go run ./backend-core, python backend-ai/main.py, npm run dev)"
 	@echo "  Docker:  docker-compose up      (requires local, untracked docker-compose.yml)"
+
+# ----------------------------------------------------------------------------
+# Test targets (PR-T1 / work_26_05_11-d sprint)
+# - `test`        : backend Go test ./... (frontend test added once PR-T2 lands)
+# - `test-race`   : same with -race + -count=1 to expose data races
+# - `test-coverage`: writes coverage.out + prints package-level summary
+# - `test-frontend`: placeholder, populated by PR-T2 (Vitest)
+# - `e2e`         : placeholder, populated by PR-T3 (Playwright)
+# ----------------------------------------------------------------------------
+
+test:
+	cd backend-core && go test ./...
+
+test-race:
+	cd backend-core && go test -race -count=1 ./...
+
+test-coverage:
+	cd backend-core && go test -coverprofile=coverage.out ./...
+	cd backend-core && go tool cover -func=coverage.out | tail -20
+
+test-frontend:
+	@echo "Frontend Vitest target is added by PR-T2 (work_26_05_11-d sprint)."
+	@echo "Once PR-T2 lands: cd frontend && npm test"
+
+e2e:
+	@echo "Playwright E2E target is added by PR-T3 (work_26_05_11-d sprint)."
+	@echo "Pre-req: Hydra + Kratos native + DevHub OIDC client + Kratos identity seed."
+	@echo "Once PR-T3 lands: cd frontend && npm run e2e"

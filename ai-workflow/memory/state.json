@@ -60,7 +60,8 @@
       "m2_login_action": "ai-workflow/memory/claude/login_action/backlog/2026-05-08.md",
       "work_26_05_11": "ai-workflow/memory/claude/work_26_05_11/backlog/2026-05-11.md (CLOSED)",
       "work_26_05_11_b": "ai-workflow/memory/claude/work_26_05_11-b/backlog/2026-05-11.md (CLOSED, PR #56)",
-      "work_26_05_11_c": "ai-workflow/memory/claude/work_26_05_11-c/backlog/2026-05-11.md (CLOSED, PR #57)"
+      "work_26_05_11_c": "ai-workflow/memory/claude/work_26_05_11-c/backlog/2026-05-11.md (CLOSED, PR #57)",
+      "work_26_05_11_d": "ai-workflow/memory/claude/work_26_05_11-d/backlog/2026-05-11.md (in progress, TDD foundation)"
     }
   },
   "merged_prs_2026_05_11": [

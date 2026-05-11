@@ -1,0 +1,42 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "claude/work_26_05_11-d",
+  "status": "Sprint topic: TDD foundation — frontend unit test infra + E2E (Playwright) infra + first scenarios. Backlog drafted; PR-T1 ready to enter.",
+  "updated_at": "2026-05-11T05:30:00Z",
+  "head_commit": "fe27845",
+  "head_summary": "cherry-pick work_26_05_11-c closure + 2026-05-11 status snapshot",
+  "session_pointers": {
+    "sprint_plan": "ai-workflow/memory/claude/work_26_05_11-d/backlog/2026-05-11.md",
+    "session_handoff_path": "ai-workflow/memory/claude/work_26_05_11-d/session_handoff.md",
+    "work_backlog_path": "ai-workflow/memory/claude/work_26_05_11-d/work_backlog.md",
+    "previous_sprint": "ai-workflow/memory/claude/work_26_05_11-c/ (CLOSED, PR #57)",
+    "main_state": "ai-workflow/memory/state.json",
+    "integrated_roadmap": "docs/development_roadmap.md",
+    "backend_roadmap": "ai-workflow/memory/backend_development_roadmap.md",
+    "frontend_roadmap": "docs/frontend_development_roadmap.md",
+    "deploy_guide": "docs/setup/test-server-deployment.md",
+    "api_contract": "docs/backend_api_contract.md"
+  },
+  "decisions_made": [
+    {"id": "DEC-1", "topic": "frontend unit test runner", "chosen": "Vitest", "decided_on": "2026-05-11"},
+    {"id": "DEC-2", "topic": "E2E runner", "chosen": "Playwright", "decided_on": "2026-05-11"},
+    {"id": "DEC-3", "topic": "E2E execution env", "chosen": "A user native (Hydra/Kratos)", "decided_on": "2026-05-11"},
+    {"id": "DEC-4", "topic": "CI introduction timing", "chosen": "B separate sprint", "decided_on": "2026-05-11"}
+  ],
+  "tracks": {
+    "TDD_foundation": {
+      "status": "ready",
+      "prs": [
+        {"id": "PR-T1", "subject": "Makefile test targets + sprint baseline", "status": "planned"},
+        {"id": "PR-T2", "subject": "Frontend Vitest infra + first utility unit tests", "status": "planned"},
+        {"id": "PR-T3", "subject": "Playwright E2E infra + first scenarios (login + landing + Sign Out + password change)", "status": "planned"}
+      ]
+    }
+  },
+  "out_of_scope": [
+    "PR-T4 E2E 시나리오 확장 (조직/사용자 admin + 차트 drag) — 후속 sprint",
+    "PR-T5 GitHub Actions CI — DEC-4 결정에 따라 별도 sprint",
+    "backend-ai (Python) 테스트 — 코드가 minimum, 후속"
+  ]
+}
