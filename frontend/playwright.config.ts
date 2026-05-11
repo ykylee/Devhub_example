@@ -29,7 +29,12 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      // channel: "chrome" reuses the host's system Chrome instead of
+      // downloading Playwright's bundled Chromium. Workaround for sites
+      // where the Playwright CDN trips on SSL inspection (`npx playwright
+      // install` would fail with TLS). Operators behind such proxies skip
+      // the install step entirely. See docs/setup/e2e-test-guide.md §3.
+      use: { ...devices["Desktop Chrome"], channel: "chrome" },
     },
   ],
 });

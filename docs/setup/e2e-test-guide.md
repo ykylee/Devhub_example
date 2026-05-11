@@ -79,10 +79,19 @@ ON CONFLICT (user_id) DO NOTHING;
 ```sh
 cd frontend
 npm ci  # devDependencies 에 @playwright/test 가 들어있음
-npx playwright install --with-deps chromium
 ```
 
-`--with-deps` 는 Linux 의 시스템 라이브러리도 함께 설치. Windows/macOS 에서는 `--with-deps` 생략 가능.
+본 sprint 의 `playwright.config.ts` 는 chromium project 에 `channel: "chrome"` 을 지정해 **시스템에 이미 설치된 Chrome 을 재사용**한다. 따라서 별도 `npx playwright install` 단계가 필요 없다. Windows/macOS 에서는 보통 Chrome 이 기본 설치되어 있고, Linux 는 패키지 매니저 (`apt install google-chrome-stable` 등) 로 설치한다.
+
+### 대안 — bundled Chromium 사용 (사내 SSL inspection 환경 등)
+
+`channel: "chrome"` 을 빼고 Playwright 의 bundled Chromium 으로 가려면:
+
+- **사내 CA 신뢰**: `NODE_EXTRA_CA_CERTS=/path/to/corp-ca.crt npx playwright install chromium` (가장 안전, CA 인증서는 사내 IT 가이드 참조)
+- **Playwright mirror**: `PLAYWRIGHT_DOWNLOAD_HOST=https://mirror.your-corp.local/playwright npx playwright install chromium`
+- **TLS 검증 비활성** (임시 — 보안 약함): `NODE_TLS_REJECT_UNAUTHORIZED=0 npx playwright install chromium`
+
+bundled 로 전환 시 `playwright.config.ts` 에서 `channel: "chrome"` 줄을 제거.
 
 ## 4. 실행
 
