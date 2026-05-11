@@ -158,13 +158,19 @@ curl -X POST http://localhost:4434/admin/identities \
   -H "Content-Type: application/json" \
   -d '{
     "schema_id": "devhub_user",
-    "traits": { "email": "alice@example.com", "display_name": "Alice" },
+    "traits": {
+      "system_id": "alice",
+      "email": "alice@example.com",
+      "display_name": "Alice"
+    },
     "metadata_public": { "user_id": "alice" },
     "credentials": {
       "password": { "config": { "password": "ChangeMe-12345!" } }
     }
   }'
 ```
+
+`traits.system_id` 가 `identity.schema.json` (`infra/idp/identity.schema.json`) 의 password identifier 다. 로그인 폼 "System ID" 입력값이 이 값과 매칭된다. 누락 시 Kratos 가 `400 missing properties: "system_id"` 로 거절한다.
 
 같은 user_id 로 DevHub `users` 행도 추가:
 
@@ -177,6 +183,28 @@ VALUES ('alice', 'alice@example.com', 'Alice', 'system_admin', 'active');
 
 (role 은 `developer` / `manager` / `system_admin` 중 1)
 
+### 4.3 PoC 빠른 진입용 test 계정 (선택)
+
+브라우저 smoke 가 자주 필요할 때 `test`/`test` 한 쌍을 시스템 관리자로 시드해 두면 편하다. Kratos identity + DevHub users 양쪽 모두 idempotent:
+
+```sh
+# Kratos identity
+curl -X POST http://localhost:4434/admin/identities \
+  -H "Content-Type: application/json" \
+  -d '{
+    "schema_id": "devhub_user",
+    "traits": { "system_id": "test", "email": "test@example.com", "display_name": "Test Admin" },
+    "metadata_public": { "user_id": "test" },
+    "credentials": { "password": { "config": { "password": "test" } } }
+  }'
+
+# DevHub users (psql 미설치 환경은 idp-apply-schemas 헬퍼)
+psql -U postgres -d devhub -f infra/idp/sql/003_seed_test_admin.sql
+# 또는: go run ./backend-core/cmd/idp-apply-schemas -sql infra/idp/sql/003_seed_test_admin.sql
+```
+
+운영 진입 전에 §10 체크리스트의 "test/test 제거" 항목으로 일소.
+
 ## 5. 기동 순서
 
 각 프로세스를 별도 창/터미널에서 실행. 한 창이 죽으면 그 컴포넌트만 재기동.
@@ -184,10 +212,12 @@ VALUES ('alice', 'alice@example.com', 'Alice', 'system_admin', 'active');
 ```sh
 # 1) PostgreSQL — 시스템 서비스로 이미 기동되어 있다고 가정
 
-# 2) Hydra
+# 2) Hydra — yaml 의 dsn 에 credential 이 없으므로 DSN env 로 override
+DSN="postgres://devhub:<pw>@localhost:5432/devhub?sslmode=disable&search_path=hydra" \
 hydra serve all --config infra/idp/hydra.yaml
 
 # 3) Kratos (저장소 루트에서 실행 — identity.schema.json 의 file:// 상대경로 때문)
+DSN="postgres://devhub:<pw>@localhost:5432/devhub?sslmode=disable&search_path=kratos" \
 kratos serve --config infra/idp/kratos.yaml
 
 # 4) backend-core
@@ -281,3 +311,4 @@ psql -U devhub -d devhub -c "SELECT action, target_type, target_id, created_at F
 - [ ] Hydra/Kratos `/admin` 포트(4445/4434) 외부 차단
 - [ ] backend `audit_logs` 모니터링 (`auth.login.subject_fallback` / `auth.logout.revoke_failed` / `auth.policy_unmapped` / `auth.role_denied` 알림 연결)
 - [ ] 시스템 서비스 등록 (Windows Service / systemd / launchd) — 후속 phase
+- [ ] PoC 빠른 진입용 `test`/`test` 시스템 관리자 계정 제거 — Kratos identity 삭제 (`DELETE /admin/identities/{id}`) + DevHub `users` 의 `user_id='test'` 행 삭제 + `infra/idp/sql/003_seed_test_admin.sql` 운영 시드 경로에서 제외

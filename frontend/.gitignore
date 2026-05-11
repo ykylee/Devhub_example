@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+coverage/
+
+# playwright e2e artefacts (PR-T3)
+playwright-report/
+test-results/
+playwright/.cache/

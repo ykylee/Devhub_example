@@ -32,12 +32,8 @@ func main() {
 
 	dsn := flag.String("dsn", defaultDSN, "PostgreSQL DSN (or set DEVHUB_DB_URL).")
 	sqlPath := flag.String("sql", defaultSQL, "Path to the SQL file to execute.")
+	query := flag.String("query", "", "Optional ad-hoc SELECT statement to print row-by-row (skips file execution when set).")
 	flag.Parse()
-
-	body, err := os.ReadFile(*sqlPath)
-	if err != nil {
-		log.Fatalf("read sql file %s: %v", *sqlPath, err)
-	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -49,6 +45,41 @@ func main() {
 	defer conn.Close(context.Background())
 
 	fmt.Printf("Connected: %s\n", redactPassword(*dsn))
+
+	if *query != "" {
+		rows, err := conn.Query(ctx, *query)
+		if err != nil {
+			log.Fatalf("query: %v", err)
+		}
+		defer rows.Close()
+		fields := rows.FieldDescriptions()
+		names := make([]string, len(fields))
+		for i, f := range fields {
+			names[i] = string(f.Name)
+		}
+		fmt.Println(strings.Join(names, "\t"))
+		for rows.Next() {
+			vals, err := rows.Values()
+			if err != nil {
+				log.Fatalf("scan: %v", err)
+			}
+			parts := make([]string, len(vals))
+			for i, v := range vals {
+				parts[i] = fmt.Sprintf("%v", v)
+			}
+			fmt.Println(strings.Join(parts, "\t"))
+		}
+		if err := rows.Err(); err != nil {
+			log.Fatalf("rows err: %v", err)
+		}
+		return
+	}
+
+	body, err := os.ReadFile(*sqlPath)
+	if err != nil {
+		log.Fatalf("read sql file %s: %v", *sqlPath, err)
+	}
+
 	fmt.Printf("Executing %s ...\n", *sqlPath)
 
 	if _, err := conn.Exec(ctx, string(body)); err != nil {
