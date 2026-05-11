@@ -59,6 +59,9 @@ function payloadCode(payload: unknown): string {
 // to SUBMIT_FAILED so the UI surfaces a generic error rather than swallow.
 function mapApiErrorToSettingsFlowError(err: ApiError): SettingsFlowError {
   const code = payloadCode(err.payload);
+  if (err.status === 401 && code === "") {
+    return new SettingsFlowError("REAUTH_REQUIRED", null, err.message);
+  }
   switch (code) {
     case "validation":
       return new SettingsFlowError("VALIDATION", null, err.message);
