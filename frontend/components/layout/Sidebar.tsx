@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Server, Settings, Zap, Network, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Users, Server, Settings, Zap, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useStore } from "@/lib/store";
@@ -22,10 +22,9 @@ const baseMenu: MenuItem[] = [
 
 const systemMenu: MenuItem[] = [
   { href: "/admin", icon: Server, label: "Sys Admin Dashboard", color: "text-orange-400" },
+  // PR-S2: /admin/settings absorbs the legacy /organization page under
+  // its users / organization / permissions sub-tabs.
   { href: "/admin/settings", icon: Settings, label: "Sys Admin Settings", color: "text-orange-400" },
-  // /organization is folded under Sys Admin until PR-S2 retires the route
-  // in favour of /admin/settings/organization.
-  { href: "/organization", icon: Network, label: "Organization", color: "text-purple-400" },
 ];
 
 export function Sidebar({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
