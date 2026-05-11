@@ -92,6 +92,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	router.GET("/health", handler.health)
 
 	v1 := router.Group("/api/v1")
+	v1.Use(handler.requireRequestID)
 	v1.Use(handler.authenticateActor)
 	v1.Use(handler.enforceRoutePermission)
 	v1.GET("/me", handler.getMe)

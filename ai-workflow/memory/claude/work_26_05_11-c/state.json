@@ -2,7 +2,7 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "claude/work_26_05_11-c",
-  "status": "Sprint topic chosen 2026-05-11: M1 PR-D (T-M1-04 audit actor enrichment + request_id middleware + audit_logs migration). Backlog drafted; PR entry blocked on DEC-1/2/3.",
+  "status": "PR-D implemented (000008 migration + AuditSourceType enum + requireRequestID middleware + recordAudit/writeServerError enrichment + 3 new audit tests). DEC-1/2/3 confirmed (A/A/B). go test ./... PASS. Ready for PR.",
   "updated_at": "2026-05-11T04:45:00Z",
   "head_commit": "9b6b3ea",
   "head_summary": "Merge pull request #56 from ykylee/claude/work_26_05_11-b (work_26_05_11-b sprint closure)",
@@ -18,31 +18,16 @@
     "api_contract": "docs/backend_api_contract.md",
     "deploy_guide": "docs/setup/test-server-deployment.md"
   },
-  "decisions_pending": [
-    {
-      "id": "DEC-1",
-      "topic": "existing audit_logs rows: NULL vs backfill source_type",
-      "options": ["A: leave NULL on existing rows, document as legacy", "B: backfill 'legacy' on migration"],
-      "blocks": ["PR-D"]
-    },
-    {
-      "id": "DEC-2",
-      "topic": "source_type enum scope",
-      "options": ["A: oidc | webhook | system only (M1 spec)", "B: add 'cli' / 'api_token' for future actor types"],
-      "blocks": ["PR-D"]
-    },
-    {
-      "id": "DEC-3",
-      "topic": "request_id format",
-      "options": ["A: bare UUIDv4", "B: prefixed 'req_<uuid>' (mirrors realtime EventID prefixedEventID style)"],
-      "blocks": ["PR-D"]
-    }
+  "decisions_made": [
+    {"id": "DEC-1", "topic": "existing audit_logs rows source_type", "chosen": "A NULL allowed", "decided_on": "2026-05-11"},
+    {"id": "DEC-2", "topic": "source_type enum scope", "chosen": "A oidc|webhook|system only", "decided_on": "2026-05-11"},
+    {"id": "DEC-3", "topic": "request_id format", "chosen": "B prefixed req_<hex24>", "decided_on": "2026-05-11"}
   ],
   "tracks": {
     "M1_PR_D": {
-      "status": "ready",
+      "status": "ready_for_pr",
       "prs": [
-        {"id": "PR-D", "subject": "audit actor enrichment (source_ip/request_id/source_type) + request_id middleware + audit_logs migration (T-M1-04)", "status": "planned", "blocked_by": ["DEC-1", "DEC-2", "DEC-3"]}
+        {"id": "PR-D", "subject": "audit actor enrichment (source_ip/request_id/source_type) + request_id middleware + audit_logs migration (T-M1-04)", "status": "done", "completed_on": "2026-05-11"}
       ]
     }
   }

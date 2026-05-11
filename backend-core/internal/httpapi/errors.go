@@ -12,6 +12,10 @@ import (
 // leak to clients. Use only for unexpected server-side failures; client-visible
 // errors (400/4xx) should keep their specific messages.
 func writeServerError(c *gin.Context, err error, op string) {
-	log.Printf("server error: op=%s err=%v", op, err)
+	requestID := requestIDFrom(c)
+	if requestID == "" {
+		requestID = "-"
+	}
+	log.Printf("server error: op=%s request_id=%s err=%v", op, requestID, err)
 	c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": "internal error"})
 }
