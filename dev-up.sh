@@ -51,8 +51,11 @@ else
 fi
 
 # 2. 백엔드 실행
-export AUTH_DEV_FALLBACK=true 
-export DB_URL="postgres://yklee@localhost:5432/devhub?sslmode=disable"
+# DB_URL 은 머신마다 사용자/포트가 다르므로 환경에서 받음. 미설정 시
+# `$USER@localhost` 기본값을 채워 macOS/Linux 의 trust 인증을 그대로
+# 활용한다 (그래도 사용자 머신에 맞게 .env 또는 export 로 재정의 권장).
+export AUTH_DEV_FALLBACK=true
+export DB_URL="${DB_URL:-postgres://${USER}@localhost:5432/devhub?sslmode=disable}"
 run_service "backend" "go run main.go" "backend.log" "backend-core"
 
 # 3. 프론트엔드 실행
