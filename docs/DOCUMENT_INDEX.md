@@ -24,6 +24,8 @@
 
 - **[Documentation Governance](./README.md)**: 문서 분류 체계 및 PR 리뷰 프로세스.
 - **[Code Index](./CODE_INDEX.md)**: 코드베이스 구조 및 핵심 컴포넌트 안내.
+- **[개발 환경 구성](./setup/environment-setup.md)**: 로컬 개발 환경 (native default + docker option) 셋업.
+- **[테스트 서버 배포 가이드](./setup/test-server-deployment.md)**: 단일 테스트 서버에 native binary 로 PostgreSQL/Hydra/Kratos/backend/frontend 5종 빌드·기동.
 
 ## 3. 분석 및 계획 (Analysis & Planning)
 *요구사항 분석 및 상위 수준의 로드맵을 다룹니다.*
