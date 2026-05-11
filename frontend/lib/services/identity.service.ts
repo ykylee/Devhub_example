@@ -269,10 +269,15 @@ export class IdentityService {
   }
 
   async lookupHR(systemId: string): Promise<{ email: string; user_id: string; department: string }> {
-    return await apiClient<{ email: string; user_id: string; department: string }>(
+    // Backend wraps the response under {status, data} (PR-B1, work_26_05_11-b
+    // sprint). Reaching into result.data keeps UserCreationModal's HR autofill
+    // working — earlier callers parsed the flat object directly.
+    const result = await apiClient<ApiResponse<{ email: string; user_id: string; department: string }>>(
       "GET",
       `/api/v1/hr/lookup?system_id=${encodeURIComponent(systemId)}`,
     );
+    if (!result.data) throw new ApiError(500, result, "missing hr lookup payload");
+    return result.data;
   }
 
   async getOrgHierarchy(): Promise<{ nodes: OrgNode[]; edges: OrgEdge[] }> {
