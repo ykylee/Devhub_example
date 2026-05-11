@@ -1,20 +1,21 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { 
-  ReactFlow, 
-  Controls, 
-  Background, 
-  useNodesState, 
-  useEdgesState, 
+import {
+  ReactFlow,
+  Controls,
+  Background,
+  useNodesState,
+  useEdgesState,
   addEdge,
   Connection,
   Node,
   Edge,
+  NodeChange,
   BackgroundVariant,
   Panel,
   ReactFlowProvider,
-  useReactFlow
+  useReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { identityService, OrgNode as OrgNodeModel } from '@/lib/services/identity.service';
@@ -284,6 +285,31 @@ function OrgTreeContent() {
     []
   );
 
+  // Mirror React Flow's internal NodeChange position updates back into the
+  // master `allNodes` list. Without this, dragging a node only updates the
+  // view-state copy and Save would persist the unchanged source coordinates.
+  const handleNodesChange = useCallback(
+    (changes: NodeChange<Node>[]) => {
+      onNodesChange(changes);
+      const positionUpdates = new Map<string, { x: number; y: number }>();
+      for (const change of changes) {
+        if (change.type === 'position' && change.position) {
+          positionUpdates.set(change.id, change.position);
+        }
+      }
+      if (positionUpdates.size === 0) return;
+      setAllNodes((prev) =>
+        prev.map((node) => {
+          const next = positionUpdates.get(node.id);
+          if (!next) return node;
+          if (next.x === node.position.x && next.y === node.position.y) return node;
+          return { ...node, position: next };
+        }),
+      );
+    },
+    [onNodesChange],
+  );
+
   const addRootNode = () => {
     const id = `node-${Date.now()}`;
     const newNode: Node = {
@@ -328,7 +354,7 @@ function OrgTreeContent() {
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
-        onNodesChange={onNodesChange}
+        onNodesChange={handleNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         defaultEdgeOptions={defaultEdgeOptions}
