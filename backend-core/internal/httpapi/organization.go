@@ -19,6 +19,12 @@ type OrganizationStore interface {
 	CreateUser(context.Context, domain.CreateUserInput) (domain.AppUser, error)
 	UpdateUser(context.Context, string, domain.UpdateUserInput) (domain.AppUser, error)
 	DeleteUser(context.Context, string) error
+	// SetKratosIdentityID caches the Kratos identity_id on the DevHub users
+	// row (L4-A, work_26_05_11-e). Both eager (account.create) and lazy
+	// (first admin/self-service action) backfill paths call this. Stores
+	// that do not implement persistence (e.g. memory test fakes) may treat
+	// it as a no-op when the user row is absent.
+	SetKratosIdentityID(context.Context, string, string) error
 	GetHierarchy(context.Context) (domain.Hierarchy, error)
 	UpdateHierarchy(context.Context, domain.Hierarchy) error
 	GetOrgUnit(context.Context, string) (domain.OrgUnit, error)

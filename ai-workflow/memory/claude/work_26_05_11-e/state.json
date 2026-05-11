@@ -1,0 +1,59 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "claude/work_26_05_11-e",
+  "status": "in_progress — PR-L4 (Kratos session 정합, backend proxy) + PR-T3.5 (e2e seed 자동화) sprint. 두 PR 분할 진행.",
+  "updated_at": "2026-05-11T07:10:00Z",
+  "base_commit": "adce7ec",
+  "base_summary": "Merge pull request #58 (TDD foundation, work_26_05_11-d squash)",
+  "decisions": {
+    "DEC-A": "PR-L4 = A안 (backend proxy POST /api/v1/account/password). frontend 는 OIDC token 단일 인증 유지.",
+    "DEC-B": "PR 두 개 분할 — PR-L4 먼저, PR-T3.5 뒤. password-change unskip 은 PR-T3.5 안에서.",
+    "DEC-C": "users.kratos_identity_id 칼럼 + lazy backfill 을 PR-L4 안에 흡수. M2 follow-up 분리하지 않음.",
+    "DEC-D": "Kratos session_token 캐시 위치 = 잠정 α (backend in-memory map). L4-B 진입 직전 logout/refresh 흐름 점검 후 확정."
+  },
+  "work_breakdown": {
+    "pr_l4": [
+      "L4-A 마이그레이션 + SetKratosIdentityID + FindIdentityByUserID 캐싱",
+      "L4-B SubmitLogin session_token 노출 + session cache (DEC-D)",
+      "L4-C SettingsFlow (api-mode) client",
+      "L4-D POST /api/v1/account/password handler + audit",
+      "L4-E RBAC self-only enforce",
+      "L4-F frontend account.service.ts 교체",
+      "L4-G docs (backend_api_contract.md, e2e-test-guide.md)",
+      "L4-H PR 발행"
+    ],
+    "pr_t3_5": [
+      "T3.5-A global-setup.ts (Kratos identity + DevHub users idempotent seed)",
+      "T3.5-B playwright.config globalSetup 등록 + env defaults",
+      "T3.5-C password-change.spec unskip",
+      "T3.5-D docs (e2e-test-guide §자동화)",
+      "T3.5-E PR 발행"
+    ]
+  },
+  "session_pointers": {
+    "main_state": "ai-workflow/memory/state.json",
+    "sprint_backlog": "ai-workflow/memory/claude/work_26_05_11-e/backlog/2026-05-11.md",
+    "session_handoff": "ai-workflow/memory/claude/work_26_05_11-e/session_handoff.md",
+    "work_backlog": "ai-workflow/memory/claude/work_26_05_11-e/work_backlog.md"
+  },
+  "key_files": {
+    "migration_target": "backend-core/migrations/000009_add_kratos_identity_id_to_users.{up,down}.sql",
+    "kratos_admin_client": "backend-core/internal/httpapi/kratos_admin_client.go",
+    "kratos_login_client": "backend-core/internal/httpapi/kratos_login_client.go",
+    "accounts_admin_handler": "backend-core/internal/httpapi/accounts_admin.go",
+    "auth_login_handler": "backend-core/internal/httpapi/auth_login.go",
+    "frontend_account_service": "frontend/lib/services/account.service.ts",
+    "playwright_config": "frontend/playwright.config.ts",
+    "password_change_spec": "frontend/tests/e2e/password-change.spec.ts",
+    "e2e_guide": "docs/setup/e2e-test-guide.md",
+    "api_contract": "docs/backend_api_contract.md"
+  },
+  "verification_gates": {
+    "G1": "go test ./backend-core/internal/store/postgres/... PASS + 000009 up/down idempotent (L4-A 후)",
+    "G2": "go test ./backend-core/internal/httpapi/... PASS, account_password_test 6+ 케이스 (L4-D 후)",
+    "G3": "frontend npm run test + npm run typecheck PASS (L4-F 후)",
+    "G4": "PR-L4 머지 + password-change.spec unblocker 제거",
+    "G5": "e2e 6/6 PASS (PR-T3.5 머지 후)"
+  }
+}

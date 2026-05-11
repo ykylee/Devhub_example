@@ -54,6 +54,15 @@ func newAuthLogoutRouter(logout HydraLogoutAdmin, revoker HydraTokenRevoker, aud
 	})
 }
 
+func newAuthLogoutRouterWithCache(logout HydraLogoutAdmin, revoker HydraTokenRevoker, audits *memoryAuditStore, cache *KratosSessionCache) http.Handler {
+	return NewRouter(RouterConfig{
+		HydraLogout:        logout,
+		HydraRevoker:       revoker,
+		AuditStore:         audits,
+		KratosSessionCache: cache,
+	})
+}
+
 func postLogout(t *testing.T, router http.Handler, body string) *httptest.ResponseRecorder {
 	t.Helper()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", strings.NewReader(body))
@@ -250,5 +259,28 @@ func TestAuthLogout_RevokeRequiresHydraRevoker(t *testing.T) {
 	}
 	if !strings.Contains(rec.Body.String(), "HydraRevoker") {
 		t.Errorf("503 body should call out missing HydraRevoker: %s", rec.Body.String())
+	}
+}
+
+// L4-B: logout_challenge 가 resolve 한 subject 의 Kratos session_token 이
+// 캐시에서 제거되는지. /api/v1/account/password 가 logout 직후 호출되어도
+// stale token 으로 200 을 돌려주지 않는다는 보증.
+func TestAuthLogout_DropsKratosSessionFromCache(t *testing.T) {
+	audits := &memoryAuditStore{}
+	logout := &fakeHydraLogout{
+		logoutRequest: HydraLogoutRequest{Subject: "u1"},
+		redirectTo:    "http://localhost:3000/",
+	}
+	logout.logoutRequest.Client.ClientID = "devhub-frontend"
+	cache := NewKratosSessionCache()
+	cache.Put("u1", "stale-sess")
+	router := newAuthLogoutRouterWithCache(logout, &fakeHydraRevoker{}, audits, cache)
+
+	rec := postLogout(t, router, `{"logout_challenge":"c1"}`)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if _, ok := cache.Get("u1"); ok {
+		t.Errorf("cache.Get(u1) should miss after logout; entry was not invalidated")
 	}
 }

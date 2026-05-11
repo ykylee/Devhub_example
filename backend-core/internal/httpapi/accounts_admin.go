@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -115,6 +116,15 @@ func (h Handler) createAccount(c *gin.Context) {
 		return
 	}
 
+	// 3) Eagerly cache the identity_id on the DevHub users row so subsequent
+	// admin/self-service flows skip the /admin/identities page scan (L4-A).
+	// Failure here is non-fatal: the lazy backfill path will catch it on the
+	// next lookup, and surfacing 500 would leave the DevHub+Kratos pair in
+	// the correct state but make the caller think creation failed.
+	if cacheErr := h.cfg.OrganizationStore.SetKratosIdentityID(ctx, req.UserID, identityID); cacheErr != nil {
+		log.Printf("[kratos-cache] eager backfill on account.create for %s skipped: %v", req.UserID, cacheErr)
+	}
+
 	h.recordAuditBestEffort(c, "account.issued", "user", req.UserID, map[string]any{
 		"email":       req.Email,
 		"role":        role,
@@ -174,7 +184,7 @@ func (h Handler) resetAccountPassword(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	identityID, err := h.cfg.KratosAdmin.FindIdentityByUserID(ctx, userID)
+	identityID, err := h.resolveKratosIdentityID(ctx, userID)
 	if errors.Is(err, ErrKratosIdentityNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "kratos identity not found for user_id"})
 		return
@@ -229,7 +239,7 @@ func (h Handler) updateAccountStatus(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	identityID, err := h.cfg.KratosAdmin.FindIdentityByUserID(ctx, userID)
+	identityID, err := h.resolveKratosIdentityID(ctx, userID)
 	if errors.Is(err, ErrKratosIdentityNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "kratos identity not found for user_id"})
 		return
@@ -290,7 +300,7 @@ func (h Handler) deleteAccount(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	identityID, err := h.cfg.KratosAdmin.FindIdentityByUserID(ctx, userID)
+	identityID, err := h.resolveKratosIdentityID(ctx, userID)
 	// Missing Kratos identity is non-fatal — proceed with DevHub delete so an
 	// orphaned users row can still be cleaned up.
 	if err != nil && !errors.Is(err, ErrKratosIdentityNotFound) {

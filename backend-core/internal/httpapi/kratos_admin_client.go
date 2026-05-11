@@ -304,10 +304,14 @@ type MockKratosAdmin struct {
 	StateChanges     map[string]bool
 	DeletedIDs       []string
 	FindIDOverride   map[string]string
-	FindError        error
-	UpdatePassError  error
-	SetStateError    error
-	DeleteError      error
+	// FindCalls counts how many times FindIdentityByUserID was invoked. The
+	// L4-A cache hit test asserts this stays at zero when the DevHub users
+	// row already carries a kratos_identity_id.
+	FindCalls       int
+	FindError       error
+	UpdatePassError error
+	SetStateError   error
+	DeleteError     error
 }
 
 func (m *MockKratosAdmin) CreateIdentity(_ context.Context, email, name, userID, password string) (string, error) {
@@ -319,6 +323,7 @@ func (m *MockKratosAdmin) CreateIdentity(_ context.Context, email, name, userID,
 }
 
 func (m *MockKratosAdmin) FindIdentityByUserID(_ context.Context, userID string) (string, error) {
+	m.FindCalls++
 	if m.FindError != nil {
 		return "", m.FindError
 	}

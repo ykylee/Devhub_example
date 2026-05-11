@@ -308,13 +308,19 @@ type AppUser struct {
 	Role          AppRole
 	Status        UserStatus
 	Type          UserType
-	PrimaryUnitID string
-	CurrentUnitID string
-	IsSeconded    bool
-	JoinedAt      time.Time
-	Appointments  []UnitAppointment
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	// KratosIdentityID caches the Kratos identity_id so handlers can skip
+	// the O(n) /admin/identities scan. Empty when the row has not been
+	// backfilled yet. Populated eagerly on account.create and lazily on
+	// the first admin/self-service action against the user (migration
+	// 000009).
+	KratosIdentityID string
+	PrimaryUnitID    string
+	CurrentUnitID    string
+	IsSeconded       bool
+	JoinedAt         time.Time
+	Appointments     []UnitAppointment
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
 }
 
 type OrgUnit struct {
