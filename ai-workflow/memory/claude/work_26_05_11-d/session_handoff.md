@@ -1,50 +1,55 @@
-# Session Handoff — claude/work_26_05_11-d (TDD foundation)
+# Session Handoff — claude/work_26_05_11-d (TDD foundation) — CLOSED
 
-- 문서 목적: `claude/work_26_05_11-d` sprint 의 세션 간 상태 인계
+- 문서 목적: `claude/work_26_05_11-d` sprint 종료 기록
 - 범위: TDD 기반 마련 — Frontend 단위 테스트 인프라 (Vitest) + E2E (Playwright) 인프라 + 첫 시나리오 세트
 - 대상 독자: 후속 에이전트, 프로젝트 리드
-- 상태: in_progress (결정 4건 확정 2026-05-11. PR-T1 진입 가능)
-- 브랜치: `claude/work_26_05_11-d` (HEAD `fe27845`)
+- 상태: closed
+- 머지: PR #58 squash → main `adce7ec` (2026-05-11)
 - 최종 수정일: 2026-05-11
 
-## 0. 현재 기준선
+## 0. Outcome
 
-- main HEAD `4e831a3` — 직전 sprint (work_26_05_11-c, M1 PR-D) closure 직후. M1 sprint 100% 완결.
-- 본 brand 의 baseline commit `fe27845` 는 work_26_05_11-c closure 의 state.json 갱신 cherry-pick.
-- 사용자가 다음 작업을 **TDD 기반 마련** 으로 선택. 회귀 안전망 구축이 본질.
+- PR-T1/T2/T3 단일 PR (#58) 로 squash. 6 follow-up commit 으로 e2e 사용자 검증 회귀 hole 모두 봉합.
+- E2E baseline: **5 PASS / 1 SKIPPED / 11.5s** (Playwright list reporter 직접 실행 확인).
+- Vitest unit suite: 27 케이스 (lib/auth/ statement 95.04% / function 100% / line 98.91%).
+- 사용자 환경 (Windows + corp SSL inspection) 에서 한 사이클 처음으로 e2e 가 통과한 sprint — 사전 조건 (DSN env override, migration 5-8, Kratos identity schema) 의 차이가 모두 가이드/시드 헬퍼로 흡수됨.
 
-## 1. 작업 축 (PR-T1/T2/T3)
+## 1. 결정 4건 (확정 2026-05-11)
 
-[`./backlog/2026-05-11.md`](./backlog/2026-05-11.md) §3 가 단일 source-of-truth.
+- **DEC-1=Vitest** / **DEC-2=Playwright** / **DEC-3=A 사용자 native E2E** / **DEC-4=B 별도 sprint CI**.
 
-| PR | 작업 | 규모 |
+## 2. 시나리오 결과
+
+| 시나리오 | 결과 | 비고 |
 | --- | --- | --- |
-| PR-T1 | Makefile `test`/`test-race`/`test-coverage` + sprint baseline | S |
-| PR-T2 | Frontend Vitest 인프라 + 첫 단위 테스트 (lib/auth/ 5 파일, ≥20 케이스) | M |
-| PR-T3 | Playwright E2E 인프라 + 첫 시나리오 7건 + e2e 가이드 | L |
+| developer 로그인 → /developer | PASS | 3.7s |
+| manager 로그인 → /manager | PASS | 1.1s |
+| system_admin 로그인 → /admin | PASS | 3.0s |
+| AuthGuard /admin/settings bounce | PASS | 1.0s |
+| Sign Out → 재로그인 password 요청 | PASS | 1.5s |
+| /account 비밀번호 변경 round-trip | **SKIPPED** | `test.skip` — PR-L4 후속. 사유: login 이 api-mode 라 `ory_kratos_session` cookie 없음 → settings/browser flow 거절 |
 
-## 2. 결정 (확정 2026-05-11, 권장안 모두 채택)
+## 3. 진단 중 발견된 hole (모두 봉합)
 
-- **DEC-1=Vitest**: Next.js 16 + Turbopack 호환, ESM 친화
-- **DEC-2=Playwright**: 표준, 멀티 브라우저, Hydra/Kratos 통합 가능
-- **DEC-3=A 사용자 native E2E**: 실 운영 흐름과 동일, no-docker 정책 부합
-- **DEC-4=B 별도 sprint CI**: 본 sprint 는 인프라 + 첫 시나리오에 집중
+- `infra/idp/{hydra,kratos}.yaml` 의 `dsn` 에 credential 누락 → `DSN` env override 안내 추가 (`test-server-deployment.md` §5)
+- `migrate` CLI 미설치 환경에서 migration 5-8 (`rbac_policies`/`users.role` FK/`users.user_type`/`audit_logs` actor) 미적용 → `idp-apply-schemas` 헬퍼로 적용 가능, `-query` 플래그 신설로 진단도 가능
+- 가이드의 Kratos identity 페이로드가 `identity.schema.json` 의 `traits.system_id` required 와 불일치 → 두 가이드 모두 정정
+- Playwright `channel: "chrome"` 환경에서 video 캡처가 bundled ffmpeg 를 요구 → `video: "off"` (trace+screenshot 으로 충분)
+- DevHub users seed 가 매번 수동 → idempotent `infra/idp/sql/002_seed_e2e_users.sql` + 헬퍼 호출 가이드
 
-## 3. 진입 순서
+## 4. 후속 작업 (별도 sprint 후보)
 
-1. **PR-T1** — Makefile 3 target + baseline 4 문서 (PR 머지)
-2. **PR-T2** — Vitest 설치 + 5 단위 테스트 파일 (≥20 케이스, lib/auth/ ≥80% coverage)
-3. **PR-T3** — Playwright 설치 + 7 시나리오 + e2e 가이드 (사용자 환경에서 1회 PASS 검증)
+- **PR-L4** (Kratos session 정합): backend `/api/v1/account/password` proxy (session_token 사용) OR browser-mode 로그인 redirect 도입. unskip 조건 = password-change.spec.ts.
+- **PR-T3.5** (e2e seed 자동화): Playwright `globalSetup` 으로 Kratos identity 3건 + DevHub users 3행 시드 자동화 (현재 가이드 수동 절차).
+- **PR-T5** (CI 도입, DEC-4): GitHub Actions 에서 backend test + frontend Vitest + e2e (matrix 또는 nightly).
+- **운영 진입 hygiene**: `test/test` PoC 시드 제거 (`test-server-deployment.md` §10 체크리스트 신설).
 
-## 4. 위험 / 운영 의존
+## 5. 머지 후 main 영향
 
-- **PR-T2 npm 의존성 추가**: Vitest + RTL + jsdom + user-event 등. lock file 변경량 큼.
-- **PR-T3 사용자 환경 의존**: Hydra/Kratos native + DevHub OIDC client + Kratos identity 3 role seed. 운영자가 사전 준비 필요 (e2e 가이드에 명시).
-- **CI 부재**: 본 sprint 범위 밖. 다음 sprint 첫 작업이 GitHub Actions.
+- main HEAD `adce7ec` (squash). 코드 변경: `backend-core/cmd/idp-apply-schemas`, `frontend/{vitest.config,playwright.config,lib/test-setup,...}`, `infra/idp/sql/00{2,3}_*.sql`, docs 2건.
+- 직접적인 런타임 영향 없음 (테스트 인프라 + 시드 SQL + 가이드). 기존 backend/frontend 동작 변화 없음.
 
-## 5. 다음에 읽을 문서
+## 6. 다음 세션 진입 포인트
 
-- [본 sprint backlog](./backlog/2026-05-11.md)
-- [배포 가이드 §6-7 (E2E 사전 조건)](../../../../docs/setup/test-server-deployment.md)
-- [API 계약](../../../../docs/backend_api_contract.md)
-- [직전 sprint closure (work_26_05_11-c)](../work_26_05_11-c/session_handoff.md)
+- main `state.json` / `session_handoff.md` 갱신본 → 후속 sprint 우선순위 결정.
+- 권장 다음 작업 — 사용자 결정에 따라 PR-L4 (Kratos hygiene) 또는 M2 entry (시스템 설정 - 사용자/조직 관리) 중 하나.
