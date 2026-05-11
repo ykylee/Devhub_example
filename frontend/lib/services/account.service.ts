@@ -131,6 +131,12 @@ class AccountService {
       res = await fetch(action, {
         method: "POST",
         credentials: "include",
+        // redirect: "manual" prevents fetch from silently following Kratos's
+        // 303 hand-off to a fresh login flow when the settings flow is
+        // expired or the privileged session lapsed mid-submission. Without
+        // this, the followed response can be 200 and the caller would
+        // incorrectly report success.
+        redirect: "manual",
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
@@ -149,7 +155,36 @@ class AccountService {
       );
     }
 
-    if (res.ok) return;
+    // redirect: "manual" surfaces 3xx responses as an opaque-redirect Response
+    // (status 0, type "opaqueredirect"). The browser cannot read the target,
+    // but its mere presence means Kratos punted us elsewhere — treat as
+    // re-auth required so the UI can send the user back through /login.
+    if (res.type === "opaqueredirect" || (res.status >= 300 && res.status < 400)) {
+      throw new SettingsFlowError(
+        "REAUTH_REQUIRED",
+        null,
+        "Settings flow redirected; re-authentication required",
+      );
+    }
+
+    if (res.ok) {
+      // Even with 200 OK Kratos signals success only when state==="success".
+      // A 200 carrying state==="show_form" means the flow is still pending
+      // (e.g., validation messages were attached without HTTP error code).
+      const successBody = (await res.json().catch(() => null)) as KratosFlow & { state?: string } | null;
+      if (successBody?.state === "success") return;
+      if (successBody?.ui) {
+        const messages = this.collectMessages(successBody.ui);
+        if (messages) {
+          throw new SettingsFlowError("VALIDATION", null, messages);
+        }
+      }
+      throw new SettingsFlowError(
+        "SUBMIT_FAILED",
+        null,
+        "Settings flow returned 200 without a success state",
+      );
+    }
 
     const body = (await res.json().catch(() => null)) as KratosErrorEnvelope | null;
     if (res.status === 403 && body?.error?.id === "session_refresh_required") {
