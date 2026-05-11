@@ -83,6 +83,8 @@ npm ci  # devDependencies 에 @playwright/test 가 들어있음
 
 본 sprint 의 `playwright.config.ts` 는 chromium project 에 `channel: "chrome"` 을 지정해 **시스템에 이미 설치된 Chrome 을 재사용**한다. 따라서 별도 `npx playwright install` 단계가 필요 없다. Windows/macOS 에서는 보통 Chrome 이 기본 설치되어 있고, Linux 는 패키지 매니저 (`apt install google-chrome-stable` 등) 로 설치한다.
 
+추가로 `video` 캡처는 `off`. Playwright 의 video 녹화는 bundled ffmpeg 바이너리를 요구하는데, 이 역시 `npx playwright install` 로만 받을 수 있다. 시스템 Chrome 재사용 정책과 일관성을 위해 비활성. 실패 시 진단은 trace (zip) + screenshot 으로 충분.
+
 ### 대안 — bundled Chromium 사용 (사내 SSL inspection 환경 등)
 
 `channel: "chrome"` 을 빼고 Playwright 의 bundled Chromium 으로 가려면:

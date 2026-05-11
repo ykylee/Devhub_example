@@ -24,7 +24,13 @@ export default defineConfig({
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
-    video: "retain-on-failure",
+    // video: "off" — Playwright's video capture requires the bundled ffmpeg
+    // binary, which only ships via `npx playwright install`. Since this
+    // config reuses the host's system Chrome (channel below) to skip that
+    // download under SSL inspection, ffmpeg is also absent. Trace + screenshot
+    // give enough post-mortem signal; videos are not worth re-introducing the
+    // CDN dependency we deliberately removed.
+    video: "off",
   },
   projects: [
     {
