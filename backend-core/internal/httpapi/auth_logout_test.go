@@ -205,11 +205,50 @@ func TestAuthLogout_RefreshWithoutClientID(t *testing.T) {
 	}
 }
 
-// 추가: HydraLogout 미주입 → 503.
-func TestAuthLogout_StoreUnavailable(t *testing.T) {
-	router := NewRouter(RouterConfig{}) // no HydraLogout
+// 추가: HydraLogout 미주입 + logout_challenge 요청 → 503 (challenge 처리 불가).
+func TestAuthLogout_ChallengeRequiresHydraLogout(t *testing.T) {
+	router := NewRouter(RouterConfig{HydraRevoker: &fakeHydraRevoker{}})
 	rec := postLogout(t, router, `{"logout_challenge":"c1"}`)
 	if rec.Code != http.StatusServiceUnavailable {
 		t.Errorf("status=%d, want 503", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "HydraLogout") {
+		t.Errorf("503 body should call out missing HydraLogout: %s", rec.Body.String())
+	}
+}
+
+// 추가: HydraLogout 미주입이라도 revoke-only 흐름은 동작 (PR #45 Codex P2).
+// revoke-only 배포 (HYDRA_PUBLIC_URL 만 설정) 가 Header Sign Out refresh
+// revoke 를 계속 받을 수 있어야 한다.
+func TestAuthLogout_RevokeOnlyAllowedWithoutHydraLogout(t *testing.T) {
+	revoker := &fakeHydraRevoker{}
+	audits := &memoryAuditStore{}
+	router := NewRouter(RouterConfig{
+		HydraRevoker: revoker,
+		AuditStore:   audits,
+		// HydraLogout intentionally nil
+	})
+
+	rec := postLogout(t, router, `{"refresh_token":"r1","client_id":"devhub-frontend"}`)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if revoker.callCount != 1 {
+		t.Errorf("revoke should run; callCount=%d", revoker.callCount)
+	}
+	if !strings.Contains(rec.Body.String(), `"revoke_status":"succeeded"`) {
+		t.Errorf("body missing revoke_status:succeeded: %s", rec.Body.String())
+	}
+}
+
+// 추가: HydraRevoker 미주입 + refresh_token 요청 → 503.
+func TestAuthLogout_RevokeRequiresHydraRevoker(t *testing.T) {
+	router := NewRouter(RouterConfig{HydraLogout: &fakeHydraLogout{}})
+	rec := postLogout(t, router, `{"refresh_token":"r1","client_id":"devhub-frontend"}`)
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Errorf("status=%d, want 503", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "HydraRevoker") {
+		t.Errorf("503 body should call out missing HydraRevoker: %s", rec.Body.String())
 	}
 }

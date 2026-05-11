@@ -36,14 +36,6 @@ type logoutRequestPayload struct {
 }
 
 func (h Handler) authLogout(c *gin.Context) {
-	if h.cfg.HydraLogout == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"status": "unavailable",
-			"error":  "auth proxy is not configured (HydraLogout)",
-		})
-		return
-	}
-
 	var req logoutRequestPayload
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "invalid json body"})
@@ -67,8 +59,18 @@ func (h Handler) authLogout(c *gin.Context) {
 
 	// Resolve subject and client_id from the logout_challenge when available,
 	// so audit records carry user context and the revoke step has a client_id
-	// even when the frontend did not send one.
+	// even when the frontend did not send one. The HydraLogout dependency is
+	// only required on this branch — revoke-only deployments (HYDRA_PUBLIC_URL
+	// configured but HYDRA_ADMIN_URL deliberately unset) can still drive
+	// header sign-out's refresh-token path.
 	if req.LogoutChallenge != "" {
+		if h.cfg.HydraLogout == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"status": "unavailable",
+				"error":  "auth proxy is not configured for logout_challenge (HydraLogout)",
+			})
+			return
+		}
 		logoutReq, err := h.cfg.HydraLogout.GetLogoutRequest(ctx, req.LogoutChallenge)
 		if errors.Is(err, ErrHydraChallengeNotFound) {
 			c.JSON(http.StatusGone, gin.H{
