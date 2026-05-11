@@ -32,6 +32,11 @@ export function MemberManagementModal({
   const [searchCurrent, setSearchCurrent] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
+  // Invariant: leaderId must always be ∈ selectedIds. The backend rejects
+  // a save where leader_id is not a member of the unit, so every code path
+  // that removes a member from selectedIds must also demote the leader if
+  // it was that member. toggleMember is currently the only such path —
+  // if you add bulk-remove / clear-all, replicate the demotion here.
   const toggleMember = (id: string) => {
     const newSelected = new Set(selectedIds);
     if (newSelected.has(id)) {
