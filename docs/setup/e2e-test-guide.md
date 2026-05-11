@@ -50,7 +50,11 @@ curl -X POST http://localhost:4434/admin/identities \
   -H "Content-Type: application/json" \
   -d '{
     "schema_id": "devhub_user",
-    "traits": { "email": "alice@example.com", "display_name": "Alice" },
+    "traits": {
+      "system_id": "alice",
+      "email": "alice@example.com",
+      "display_name": "Alice"
+    },
     "metadata_public": { "user_id": "alice" },
     "credentials": {
       "password": { "config": { "password": "ChangeMe-12345!" } }
@@ -59,18 +63,24 @@ curl -X POST http://localhost:4434/admin/identities \
 ```
 (`bob` / `charlie` 도 동일 패턴, role 만 다름)
 
+`traits.system_id` 가 `identity.schema.json` 의 password identifier 다 — 로그인 폼의 "System ID" 입력값이 이 값과 매칭된다. 누락하면 Kratos 가 400 `missing properties: "system_id"` 로 거절한다.
+
 ### DevHub users 시드
 
+저장소에 idempotent 한 시드 SQL (`infra/idp/sql/002_seed_e2e_users.sql`) 이 포함되어 있다. `psql` 이 PATH 에 있으면:
+
 ```sh
-psql -U devhub -d devhub -c "
-INSERT INTO users (user_id, email, display_name, role, status, type)
-VALUES
-  ('alice',   'alice@example.com',   'Alice',   'developer',    'active', 'human'),
-  ('bob',     'bob@example.com',     'Bob',     'manager',      'active', 'human'),
-  ('charlie', 'charlie@example.com', 'Charlie', 'system_admin', 'active', 'human')
-ON CONFLICT (user_id) DO NOTHING;
-"
+psql -U postgres -d devhub -f infra/idp/sql/002_seed_e2e_users.sql
 ```
+
+`psql` 미설치 환경 (사내 Windows 등) 에서는 backend-core 의 헬퍼를 사용:
+
+```powershell
+cd backend-core
+go run ./cmd/idp-apply-schemas -sql ../infra/idp/sql/002_seed_e2e_users.sql
+```
+
+헬퍼는 backend-core 의 pgx/v5 의존성을 재사용한다 (`infra/idp/ENVIRONMENT_NOTES.md` §2.2). `-query "<SELECT ...>"` 플래그로 임의 SELECT 결과도 출력 가능 — 디버깅용.
 
 시드는 idempotent — 이미 존재하는 identity/user 는 무시. e2e 가 password-change 시나리오의 cleanup 단계에서 원래 비밀번호로 복귀시키므로 재실행에도 안전.
 
@@ -118,7 +128,7 @@ PLAYWRIGHT_BASE_URL=http://10.0.0.5:3000 npm run e2e
 | `auth.spec.ts` | system_admin 로그인 → `/admin` | PR-S1 role-based landing |
 | `auth.spec.ts` | developer 가 `/admin/settings` 직진입 → `/developer` | AuthGuard `pathRequiresSystemAdmin` |
 | `signout.spec.ts` | Sign Out 후 `/login` 진입 시 password 재요청 | PR-L2 Hydra session 종료 |
-| `password-change.spec.ts` | 비밀번호 변경 → Sign Out → 새 비밀번호 재로그인 → 원복 | PR-L3 Kratos settings flow |
+| `password-change.spec.ts` | (SKIPPED — PR-L4 follow-up) 비밀번호 변경 → Sign Out → 재로그인 → 원복 | PR-L3 Kratos settings flow. 현재 로그인이 api-mode 라 `ory_kratos_session` cookie 가 안 심김 → settings/browser flow 가 "No active session" 으로 거절. PR-L4 가 backend settings proxy 또는 browser-mode 로그인을 도입한 뒤 unskip |
 
 ## 6. 트러블슈팅
 

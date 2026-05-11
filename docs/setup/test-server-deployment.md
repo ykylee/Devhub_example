@@ -158,13 +158,19 @@ curl -X POST http://localhost:4434/admin/identities \
   -H "Content-Type: application/json" \
   -d '{
     "schema_id": "devhub_user",
-    "traits": { "email": "alice@example.com", "display_name": "Alice" },
+    "traits": {
+      "system_id": "alice",
+      "email": "alice@example.com",
+      "display_name": "Alice"
+    },
     "metadata_public": { "user_id": "alice" },
     "credentials": {
       "password": { "config": { "password": "ChangeMe-12345!" } }
     }
   }'
 ```
+
+`traits.system_id` 가 `identity.schema.json` (`infra/idp/identity.schema.json`) 의 password identifier 다. 로그인 폼 "System ID" 입력값이 이 값과 매칭된다. 누락 시 Kratos 가 `400 missing properties: "system_id"` 로 거절한다.
 
 같은 user_id 로 DevHub `users` 행도 추가:
 
@@ -184,10 +190,12 @@ VALUES ('alice', 'alice@example.com', 'Alice', 'system_admin', 'active');
 ```sh
 # 1) PostgreSQL — 시스템 서비스로 이미 기동되어 있다고 가정
 
-# 2) Hydra
+# 2) Hydra — yaml 의 dsn 에 credential 이 없으므로 DSN env 로 override
+DSN="postgres://devhub:<pw>@localhost:5432/devhub?sslmode=disable&search_path=hydra" \
 hydra serve all --config infra/idp/hydra.yaml
 
 # 3) Kratos (저장소 루트에서 실행 — identity.schema.json 의 file:// 상대경로 때문)
+DSN="postgres://devhub:<pw>@localhost:5432/devhub?sslmode=disable&search_path=kratos" \
 kratos serve --config infra/idp/kratos.yaml
 
 # 4) backend-core
