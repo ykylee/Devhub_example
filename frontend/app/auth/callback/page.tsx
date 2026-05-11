@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { authService } from "@/lib/services/auth.service";
 import { Loader2, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
+import { defaultLandingFor } from "@/lib/auth/role-routing";
 
 function CallbackInner() {
   const router = useRouter();
@@ -31,12 +32,12 @@ function CallbackInner() {
       try {
         // 1. Exchange code for tokens
         await authService.exchangeCode(code!, state!);
-        
+
         // 2. Resolve identity and update store
-        await authService.resolveIdentity();
-        
-        // 3. Success! Redirect to dashboard
-        router.replace("/developer");
+        const actor = await authService.resolveIdentity();
+
+        // 3. Success! Land on the page the user's role expects.
+        router.replace(defaultLandingFor(actor.role));
       } catch (err) {
         console.error("[auth/callback] Error processing callback:", err);
         const msg = err instanceof Error ? err.message : "Authentication failed.";

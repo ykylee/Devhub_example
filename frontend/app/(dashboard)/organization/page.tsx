@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 
 import { defaultRoles, Role } from "@/lib/services/rbac.types";
 import { rbacService, RbacError } from "@/lib/services/rbac.service";
+import { defaultLandingFor, isSystemAdmin } from "@/lib/auth/role-routing";
 
 type Tab = "members" | "units" | "permissions" | "orgchart";
 
@@ -32,17 +33,22 @@ export default function OrganizationPage() {
   const [managingUnitId, setManagingUnitId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const { role: userRole } = useStore();
+  const actor = useStore((s) => s.actor);
   const router = useRouter();
+  // Guard on actor.role (real permission) rather than the zustand `role`
+  // field, which Header's Switch View can simulate. AuthGuard already
+  // redirects unauthenticated visitors away; this is a defence-in-depth
+  // bounce for non-admin authenticated users that arrive here directly.
+  const allowed = isSystemAdmin(actor?.role);
 
   useEffect(() => {
-    if (userRole !== "System Admin") {
-      router.push("/developer");
+    if (actor && !allowed) {
+      router.replace(defaultLandingFor(actor.role));
     }
-  }, [userRole, router]);
+  }, [actor, allowed, router]);
 
   useEffect(() => {
-    if (userRole !== "System Admin") return;
+    if (!allowed) return;
     const fetchData = async () => {
       setIsLoading(true);
       try {
@@ -79,10 +85,10 @@ export default function OrganizationPage() {
     };
 
     fetchData();
-  }, [userRole]);
+  }, [allowed]);
 
   useEffect(() => {
-    if (userRole !== "System Admin") return;
+    if (!allowed) return;
     const loadPolicies = async () => {
       try {
         const { roles: fetched } = await rbacService.listPolicies();
@@ -95,7 +101,7 @@ export default function OrganizationPage() {
       }
     };
     loadPolicies();
-  }, [userRole]);
+  }, [allowed]);
 
   const isRolesDirty = !rolesEqual(roles, rolesBaseline);
 
