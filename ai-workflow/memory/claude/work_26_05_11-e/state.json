@@ -2,8 +2,8 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "claude/work_26_05_11-e",
-  "status": "in_progress — PR-L4 (Kratos session 정합, backend proxy) + PR-T3.5 (e2e seed 자동화) sprint. 두 PR 분할 진행.",
-  "updated_at": "2026-05-11T07:10:00Z",
+  "status": "in_progress — PR-L4 (PR #60) 발행, 리뷰 대기. PR-T3.5 stacked branch claude/work_26_05_11-e-t35 에서 globalSetup 자동 시드 + password-change.spec unskip 완료, e2e 사용자 검증 대기.",
+  "updated_at": "2026-05-11T07:40:00Z",
   "base_commit": "adce7ec",
   "base_summary": "Merge pull request #58 (TDD foundation, work_26_05_11-d squash)",
   "decisions": {
@@ -37,6 +37,9 @@
     "session_handoff": "ai-workflow/memory/claude/work_26_05_11-e/session_handoff.md",
     "work_backlog": "ai-workflow/memory/claude/work_26_05_11-e/work_backlog.md"
   },
+  "open_prs": [
+    {"pr": 60, "branch": "claude/work_26_05_11-e", "title": "feat(auth): backend self-service password change proxy (PR-L4)", "status": "review_pending"}
+  ],
   "key_files": {
     "migration_target": "backend-core/migrations/000009_add_kratos_identity_id_to_users.{up,down}.sql",
     "kratos_admin_client": "backend-core/internal/httpapi/kratos_admin_client.go",

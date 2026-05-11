@@ -41,7 +41,32 @@ e2e 픽스처 (`frontend/tests/e2e/fixtures.ts` 의 `SEEDED`) 가 가정하는 3
 | bob | bob@example.com | ChangeMe-12345! | manager | /manager |
 | charlie | charlie@example.com | ChangeMe-12345! | system_admin | /admin |
 
-### Kratos identity 시드 (3건)
+### 2.0 자동 시드 (기본, PR-T3.5)
+
+Playwright `globalSetup` (`frontend/tests/e2e/global-setup.ts`) 이 매 `npm run e2e` 실행 직전에 위 표를 idempotent 하게 시드한다. 필요한 환경변수:
+
+| 변수 | 의미 | 기본값 |
+| --- | --- | --- |
+| `KRATOS_ADMIN_URL` | Kratos admin endpoint (identity 생성) | `http://localhost:4434` |
+| `DSN` | DevHub users 행을 INSERT 할 PostgreSQL DSN. `idp-apply-schemas` 헬퍼가 사용 | (필수) |
+| `DEVHUB_E2E_SKIP_SEED` | `1` 이면 시드 단계를 건너뜀 (CI matrix 가 별도 stage 에서 시드할 때) | (미설정) |
+
+실행 예:
+
+```powershell
+$env:DSN = "postgres://postgres:postgres@localhost:5432/devhub?sslmode=disable"
+cd frontend
+npm run e2e
+```
+
+자동 시드는 다음 동작을 한다:
+
+1. Kratos admin `/admin/identities` 페이지 스캔으로 email 기준 존재 여부 확인 → 누락된 identity 만 POST
+2. backend-core 의 `cmd/idp-apply-schemas -sql infra/idp/sql/002_seed_e2e_users.sql` 호출 (ON CONFLICT DO NOTHING)
+
+따라서 두 번째 실행부터는 사실상 no-op. 이미 비밀번호가 회전된 상태 (예: password-change 시나리오 중단) 라면 자동 시드는 **변경하지 않는다** — §2.2 의 수동 절차로 원복 후 재실행.
+
+### 2.1 수동 시드 (fallback) — Kratos identity (3건)
 
 각 사용자에 대해 다음 호출 1번씩:
 
@@ -65,7 +90,7 @@ curl -X POST http://localhost:4434/admin/identities \
 
 `traits.system_id` 가 `identity.schema.json` 의 password identifier 다 — 로그인 폼의 "System ID" 입력값이 이 값과 매칭된다. 누락하면 Kratos 가 400 `missing properties: "system_id"` 로 거절한다.
 
-### DevHub users 시드
+### 2.2 수동 시드 (fallback) — DevHub users
 
 저장소에 idempotent 한 시드 SQL (`infra/idp/sql/002_seed_e2e_users.sql`) 이 포함되어 있다. `psql` 이 PATH 에 있으면:
 
@@ -119,7 +144,7 @@ npm run e2e:report     # 직전 실행의 HTML report 열기
 PLAYWRIGHT_BASE_URL=http://10.0.0.5:3000 npm run e2e
 ```
 
-## 5. 시나리오 (현재 7건)
+## 5. 시나리오 (현재 6건)
 
 | 파일 | 시나리오 | 목적 |
 | --- | --- | --- |
@@ -128,7 +153,7 @@ PLAYWRIGHT_BASE_URL=http://10.0.0.5:3000 npm run e2e
 | `auth.spec.ts` | system_admin 로그인 → `/admin` | PR-S1 role-based landing |
 | `auth.spec.ts` | developer 가 `/admin/settings` 직진입 → `/developer` | AuthGuard `pathRequiresSystemAdmin` |
 | `signout.spec.ts` | Sign Out 후 `/login` 진입 시 password 재요청 | PR-L2 Hydra session 종료 |
-| `password-change.spec.ts` | (SKIPPED — PR-T3.5 에서 unskip 예정) 비밀번호 변경 → Sign Out → 재로그인 → 원복 | PR-L4 `POST /api/v1/account/password` backend proxy 도입으로 cookie 의존성 제거. unskip 은 PR-T3.5 (globalSetup seed 자동화) 와 함께 진행 |
+| `password-change.spec.ts` | 비밀번호 변경 → Sign Out → 재로그인 → 원복 | PR-L4 `POST /api/v1/account/password` backend proxy. 자동 시드와 함께 활성 (PR-T3.5) |
 
 ## 6. 트러블슈팅
 
@@ -146,7 +171,7 @@ PLAYWRIGHT_BASE_URL=http://10.0.0.5:3000 npm run e2e
 - 조직 관리 e2e — `/admin/settings/organization` 부서 추가/이동/삭제 + 차트 drag 좌표 영속화
 - 사용자 관리 e2e — 계정 발급/리셋/disable 흐름 (PR-S3)
 - 권한 매트릭스 e2e — PermissionEditor 정책 변경 + audit 확인
-- 시드 자동화 — pre-test hook 으로 Kratos admin API 자동 시드 (현재는 수동)
+- ~~시드 자동화 — pre-test hook 으로 Kratos admin API 자동 시드 (현재는 수동)~~ — PR-T3.5 에서 globalSetup 으로 처리
 
 ## 8. 변경 이력
 
@@ -154,3 +179,4 @@ PLAYWRIGHT_BASE_URL=http://10.0.0.5:3000 npm run e2e
 | --- | --- |
 | 2026-05-11 | 초판 작성 (PR-T3) |
 | 2026-05-11 | PR-L4 `POST /api/v1/account/password` backend proxy 도입에 따라 password-change 시나리오 사전 조건/트러블슈팅 갱신 (work_26_05_11-e) |
+| 2026-05-11 | PR-T3.5 Playwright globalSetup 자동 시드 도입 + password-change.spec unskip (work_26_05_11-e) |

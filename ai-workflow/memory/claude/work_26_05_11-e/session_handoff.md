@@ -3,8 +3,8 @@
 - 문서 목적: 진행 중 sprint 상태와 다음 진입점 인계
 - 범위: PR-L4 (Kratos session 정합, backend proxy) + PR-T3.5 (e2e seed 자동화)
 - 대상 독자: 후속 에이전트
-- 브랜치: `claude/work_26_05_11-e` (base `adce7ec`)
-- 상태: in_progress — sprint 진입 직후, L4-A 부터 착수
+- 브랜치: `claude/work_26_05_11-e` (PR #60 발행, 리뷰 대기) + stacked `claude/work_26_05_11-e-t35` (PR-T3.5 작업 중)
+- 상태: PR-L4 PR #60 review_pending. PR-T3.5 코드 완료, e2e 사용자 검증 + PR 발행 대기.
 - 최종 수정일: 2026-05-11
 
 ## 0. 진입 컨텍스트
