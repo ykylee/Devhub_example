@@ -15,6 +15,12 @@ import { defineConfig, devices } from "@playwright/test";
 // e2e-test-guide is the canonical checklist.
 export default defineConfig({
   testDir: "./tests/e2e",
+  // PR-T3.5 (work_26_05_11-e): globalSetup seeds Kratos identities +
+  // DevHub users rows so `npm run e2e` is a one-liner. The script is
+  // idempotent and respects DEVHUB_E2E_SKIP_SEED=1 for CI runs that drive
+  // seeding from a separate stage. KRATOS_ADMIN_URL + DSN env vars are
+  // documented in docs/setup/e2e-test-guide.md §2.
+  globalSetup: "./tests/e2e/global-setup.ts",
   fullyParallel: false, // Hydra/Kratos sessions are global per-browser-context
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
