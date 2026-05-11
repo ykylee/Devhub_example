@@ -82,6 +82,16 @@ export default function AdminSettingsOrganizationPage() {
       if ((newLeaderId ?? null) !== previousLeaderId) {
         await identityService.updateUnit(unitId, { leader_user_id: newLeaderId ?? "" });
         setUnitLeaders((prev) => ({ ...prev, [unitId]: newLeaderId }));
+        // OrgUnitGrid renders the leader badge from node.data.leader_id, so
+        // mirror the change into orgNodes too — without this the card keeps
+        // the stale leader until the next full reload.
+        setOrgNodes((prev) =>
+          prev.map((node) =>
+            node.id === unitId
+              ? { ...node, data: { ...node.data, leader_id: newLeaderId ?? undefined } }
+              : node,
+          ),
+        );
       }
 
       setManagingUnitId(null);
