@@ -58,8 +58,6 @@ func (h Handler) updateMyPassword(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "invalid json body"})
 		return
 	}
-	req.CurrentPassword = strings.TrimSpace(req.CurrentPassword)
-	req.NewPassword = strings.TrimSpace(req.NewPassword)
 	if req.CurrentPassword == "" || req.NewPassword == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status": "rejected",
