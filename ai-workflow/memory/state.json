@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-05-11 일과 종료. M1 sprint 100% done (T-M1-01..08 모두), M2 done, M3 일부 (사용자/조직 admin) done. 오늘 10 PR 머지. 다음 진입 후보: M2 follow-up hygiene / M4 진입 / 작은 UX 보강.",
-  "updated_at": "2026-05-11T05:10:00Z",
-  "head_commit": "4e831a3",
-  "head_summary": "Merge pull request #57 from ykylee/claude/work_26_05_11-c (M1 PR-D audit actor enrichment)",
+  "status": "2026-05-11. M1/M2 100% done. TDD foundation sprint 머지 (PR #58, work_26_05_11-d): Vitest+Playwright 인프라, E2E baseline 5/6 PASS+1 SKIP (password-change은 PR-L4 후속). 오늘 11 PR 머지. 다음 진입 후보: PR-L4 (Kratos session 정합) / M4 진입 / UX hygiene.",
+  "updated_at": "2026-05-11T06:55:00Z",
+  "head_commit": "adce7ec",
+  "head_summary": "Merge pull request #58 (TDD foundation — Vitest + Playwright + first scenarios, work_26_05_11-d squash)",
   "milestones": {
     "M0": {
       "status": "done",
@@ -61,7 +61,7 @@
       "work_26_05_11": "ai-workflow/memory/claude/work_26_05_11/backlog/2026-05-11.md (CLOSED)",
       "work_26_05_11_b": "ai-workflow/memory/claude/work_26_05_11-b/backlog/2026-05-11.md (CLOSED, PR #56)",
       "work_26_05_11_c": "ai-workflow/memory/claude/work_26_05_11-c/backlog/2026-05-11.md (CLOSED, PR #57)",
-      "work_26_05_11_d": "ai-workflow/memory/claude/work_26_05_11-d/backlog/2026-05-11.md (in progress, TDD foundation)"
+      "work_26_05_11_d": "ai-workflow/memory/claude/work_26_05_11-d/backlog/2026-05-11.md (CLOSED, PR #58)"
     }
   },
   "merged_prs_2026_05_11": [
@@ -74,10 +74,17 @@
     {"pr": 54, "sprint": "work_26_05_11", "title": "feat(account): admin endpoints for issue/reset/disable/delete (PR-S3)", "merge_commit": "b935876"},
     {"pr": 55, "sprint": "work_26_05_11", "title": "feat(org): persist drag positions + leader change (PR-S4)", "merge_commit": "818d54a"},
     {"pr": 56, "sprint": "work_26_05_11-b", "title": "feat(M1 cleanup): envelope alignment + wire/UI split + CommandStatus enum (PR-B + PR-C)", "merge_commit": "9b6b3ea"},
-    {"pr": 57, "sprint": "work_26_05_11-c", "title": "feat(audit): actor enrichment + request_id middleware (PR-D, M1 final)", "merge_commit": "4e831a3"}
+    {"pr": 57, "sprint": "work_26_05_11-c", "title": "feat(audit): actor enrichment + request_id middleware (PR-D, M1 final)", "merge_commit": "4e831a3"},
+    {"pr": 58, "sprint": "work_26_05_11-d", "title": "test: TDD foundation — Vitest + Playwright + first scenarios", "merge_commit": "adce7ec"}
   ],
   "next_actions": {
     "m1_remaining": [],
+    "tdd_followups": [
+      "PR-L4 (Kratos session 정합) — backend `/api/v1/account/password` proxy (session_token 사용) OR browser-mode 로그인 redirect. password-change.spec.ts unskip 의 차단 요인.",
+      "PR-T3.5 (e2e seed 자동화) — Playwright globalSetup 으로 Kratos identity 3건 + DevHub users 3행 시드 자동화 (현재 가이드 수동).",
+      "PR-T5 (CI 도입, DEC-4) — GitHub Actions: backend go test + frontend Vitest + e2e matrix 또는 nightly.",
+      "hygiene-test-admin — PoC `test/test` 시드 제거 (운영 진입 직전, test-server-deployment §10 체크리스트)."
+    ],
     "m2_followups": [
       "Kratos identity 매핑 캐싱 — users.kratos_identity_id 칼럼 추가로 FindIdentityByUserID O(1) 화",
       "Kratos webhook 수신 → DevHub audit_logs 통합 (self-service password 변경 등 audit)",
@@ -99,6 +106,6 @@
       "AI Gardener gRPC (Python AnalysisService + Go Core client)",
       "Gitea Hourly Pull worker"
     ],
-    "ops_verification": "사용자 환경에서 docs/setup/test-server-deployment.md 의 §6-§7 e2e 절차 1회 수행 권장 — 로그인/로그아웃/비밀번호 변경/계정 발급/disable/조직 차트 drag 영속화 전체."
+    "ops_verification": "사용자 환경에서 docs/setup/test-server-deployment.md 의 §6-§7 e2e 절차 1회 수행 권장 — 로그인/로그아웃/비밀번호 변경/계정 발급/disable/조직 차트 drag 영속화 전체. (E2E baseline 자동화는 PR #58 이후 `cd frontend && npm run e2e` 한 줄로도 가능 — 사전 조건은 docs/setup/e2e-test-guide.md 참조.)"
   }
 }
