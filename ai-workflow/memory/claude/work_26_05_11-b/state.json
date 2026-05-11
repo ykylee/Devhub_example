@@ -2,7 +2,7 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "claude/work_26_05_11-b",
-  "status": "Sprint work_26_05_11-b complete pending merge. PR-B (B1 envelope + B2 wire split) + PR-C (CommandStatus enum + transition matrix + dry-run/live boundary + existing auth gate coverage) all implemented. go test ./... + npm run build PASS. DEC-2 reread A -> A' (current behaviour aligned with spec intent). Ready for sprint closure PR.",
+  "status": "CLOSED 2026-05-11. Sprint merged via PR #56 (merge_commit 9b6b3ea). PR-B (B1 envelope + B2 wire split) + PR-C (CommandStatus enum + transition matrix + dry-run/live boundary) shipped + 1 Codex P2 fix-up (frontend lookupHR envelope unwrap) absorbed.",
   "updated_at": "2026-05-11T02:30:00Z",
   "head_commit": "818d54a",
   "head_summary": "Merge pull request #55 from ykylee/claude/work_26_05_11-s4 (work_26_05_11 final PR)",
@@ -47,11 +47,14 @@
   ],
   "tracks": {
     "M1_backlog": {
-      "status": "ready",
+      "status": "merged",
+      "single_pr": 56,
+      "merge_commit": "9b6b3ea",
       "prs": [
-        {"id": "PR-B1", "subject": "backend envelope realignment (auth_signup + hr_lookup + auth_consent label) + envelope_test", "status": "done", "completed_on": "2026-05-11"},
-        {"id": "PR-B2", "subject": "frontend wire vs UI types split + contract sub-agent verification", "status": "done", "completed_on": "2026-05-11"},
-        {"id": "PR-C", "subject": "Command lifecycle 6 states + dry-run/live boundary (DEC-2=A') + auth_test matrix (existing 30 cases sufficient) (T-M1-03·05)", "status": "done", "completed_on": "2026-05-11"}
+        {"id": "PR-B1", "subject": "backend envelope realignment", "status": "merged", "completed_on": "2026-05-11"},
+        {"id": "PR-B2", "subject": "frontend wire vs UI types split", "status": "merged", "completed_on": "2026-05-11"},
+        {"id": "PR-C", "subject": "Command lifecycle 6 states + dry-run/live boundary (DEC-2=A')", "status": "merged", "completed_on": "2026-05-11"},
+        {"id": "fix-up", "subject": "frontend lookupHR envelope unwrap (Codex P2)", "status": "merged", "completed_on": "2026-05-11"}
       ]
     }
   },
