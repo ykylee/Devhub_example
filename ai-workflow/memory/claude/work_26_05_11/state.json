@@ -2,7 +2,7 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "claude/work_26_05_11",
-  "status": "Track L done. PR-L1 (#45 backend) + PR-L2 (#46 frontend logout) + PR-L3 (account.service Kratos settings) all in PR. Track S next (PR-S1 Sidebar gating + role-based landing).",
+  "status": "Track L merged. PR-L1 (#45) + PR-L2 (#51) + PR-L3 (#50) on main. Track S next (PR-S1 Sidebar gating + role-based landing).",
   "updated_at": "2026-05-11T00:00:00Z",
   "head_commit": "0620689",
   "head_summary": "Merge pull request #43 from ykylee/codex/wiki_init (main fast-forward baseline for this sprint)",
@@ -52,8 +52,8 @@
       "status": "ready",
       "prs": [
         {"id": "PR-L1", "subject": "backend POST /api/v1/auth/logout (Hydra accept + revoke; Kratos none)", "status": "done", "blocked_by": [], "completed_on": "2026-05-11", "pr": 45},
-        {"id": "PR-L2", "subject": "frontend /auth/logout + Header rewire + Kratos browser logout", "status": "done", "blocked_by": ["PR-L1"], "completed_on": "2026-05-11", "pr": 46},
-        {"id": "PR-L3", "subject": "/account password change via Kratos public settings flow (no backend)", "status": "done", "blocked_by": [], "completed_on": "2026-05-11"}
+        {"id": "PR-L2", "subject": "frontend /auth/logout + Header rewire + Kratos browser logout", "status": "done", "blocked_by": ["PR-L1"], "completed_on": "2026-05-11", "pr": 51},
+        {"id": "PR-L3", "subject": "/account password change via Kratos public settings flow (no backend)", "status": "done", "blocked_by": [], "completed_on": "2026-05-11", "pr": 50}
       ]
     },
     "S_system_settings": {
