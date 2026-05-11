@@ -4,6 +4,7 @@ import { AuthenticatedActor, useStore } from "../store";
 import { identityService } from "./identity.service";
 import { tokenStore } from "@/lib/auth/token-store";
 import { consumeVerifier, createPkceState } from "@/lib/auth/pkce";
+import { performKratosBrowserLogout } from "@/lib/auth/kratos-logout";
 
 const OIDC_AUTH_URL = process.env.NEXT_PUBLIC_OIDC_AUTH_URL ?? "http://localhost:4444/oauth2/auth";
 const OIDC_CLIENT_ID = process.env.NEXT_PUBLIC_OIDC_CLIENT_ID ?? "devhub-frontend";
@@ -79,12 +80,64 @@ class AuthService {
   }
 
   /**
-   * Clears session and redirects to logout if needed
+   * Header Sign Out flow (no Hydra logout_challenge in scope). DEC-1=B:
+   *   1) backend revokes the refresh token via Hydra public /oauth2/revoke
+   *   2) local token + actor state cleared
+   *   3) Kratos browser logout navigates to / via Kratos return URL
+   *
+   * Hydra session is not actively terminated here — the next /login attempt
+   * has no Kratos credential, so Hydra cannot accept and the user is forced
+   * back through the password flow.
    */
-  public logout() {
+  public async logout(): Promise<void> {
+    const refreshToken = tokenStore.getRefreshToken();
+    if (refreshToken) {
+      try {
+        await fetch("/api/v1/auth/logout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            refresh_token: refreshToken,
+            client_id: OIDC_CLIENT_ID,
+          }),
+        });
+      } catch (err) {
+        console.warn("[AuthService] backend logout call failed (continuing)", err);
+      }
+    }
     tokenStore.clear();
     useStore.getState().clearActor();
-    window.location.assign("/");
+    await performKratosBrowserLogout("/");
+  }
+
+  /**
+   * RP-initiated logout entry point (Hydra urls.logout target /auth/logout).
+   * Hydra has redirected the browser here with a logout_challenge; we hand
+   * that to the backend, clear local state, and navigate to Hydra's
+   * redirect_to which finishes the OIDC logout cleanup.
+   */
+  public async completeRPInitiatedLogout(challenge: string): Promise<void> {
+    let redirectTo = "/";
+    try {
+      const res = await fetch("/api/v1/auth/logout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ logout_challenge: challenge }),
+      });
+      if (res.ok) {
+        const payload = (await res.json()) as { data?: { redirect_to?: string } };
+        if (payload.data?.redirect_to) {
+          redirectTo = payload.data.redirect_to;
+        }
+      } else {
+        console.warn("[AuthService] backend logout accept failed", res.status);
+      }
+    } catch (err) {
+      console.warn("[AuthService] backend logout accept call failed", err);
+    }
+    tokenStore.clear();
+    useStore.getState().clearActor();
+    window.location.assign(redirectTo);
   }
 
   /**

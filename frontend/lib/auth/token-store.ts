@@ -24,6 +24,11 @@ class TokenStore {
     return this.accessToken;
   }
 
+  getRefreshToken(): string | null {
+    this.ensureLoaded();
+    return this.refreshToken;
+  }
+
   save(tokens: TokenResponse) {
     if (typeof window === "undefined") return;
     this.accessToken = tokens.access_token;
