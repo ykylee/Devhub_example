@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/devhub/backend-core/internal/domain"
 	"github.com/gin-gonic/gin"
 )
 
@@ -36,6 +37,16 @@ func (h Handler) authenticateActor(c *gin.Context) {
 	c.Set("devhub_auth_dev_fallback", h.cfg.AuthDevFallback)
 
 	if publicAPIPaths[c.FullPath()] {
+		// Webhook bypass paths run without a Bearer token but still produce
+		// audit rows (signature-verified Gitea webhooks). Tag the source so
+		// downstream recordAudit picks the right enum (T-M1-04, DEC-2=A).
+		// Other public paths (auth proxy endpoints) issue audits via the
+		// dedicated handlers and override the source type as needed.
+		if c.FullPath() == "/api/v1/integrations/gitea/webhooks" {
+			c.Set(ctxKeySourceType, domain.AuditSourceWebhook)
+		} else {
+			c.Set(ctxKeySourceType, domain.AuditSourceSystem)
+		}
 		c.Next()
 		return
 	}
@@ -44,6 +55,7 @@ func (h Handler) authenticateActor(c *gin.Context) {
 	if header == "" {
 		if h.cfg.AuthDevFallback {
 			c.Header("X-Devhub-Auth", "dev_fallback_no_header")
+			c.Set(ctxKeySourceType, domain.AuditSourceSystem)
 			c.Next()
 			return
 		}
@@ -66,6 +78,7 @@ func (h Handler) authenticateActor(c *gin.Context) {
 	if h.cfg.BearerTokenVerifier == nil {
 		if h.cfg.AuthDevFallback {
 			c.Header("X-Devhub-Auth", "bearer_unverified")
+			c.Set(ctxKeySourceType, domain.AuditSourceSystem)
 			c.Next()
 			return
 		}
@@ -101,6 +114,7 @@ func (h Handler) authenticateActor(c *gin.Context) {
 	}
 
 	c.Set("devhub_actor_login", login)
+	c.Set(ctxKeySourceType, domain.AuditSourceOIDC)
 	if actor.Subject != "" {
 		c.Set("devhub_actor_subject", actor.Subject)
 	}

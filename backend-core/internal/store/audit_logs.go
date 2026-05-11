@@ -42,13 +42,19 @@ func (s *PostgresStore) CreateAuditLog(ctx context.Context, log domain.AuditLog)
 		commandIDArg = nil
 	}
 
+	// Empty source_ip / request_id / source_type are written as NULL so the
+	// migration-0008 column-defaults stay clean. Callers that have actor
+	// context (recordAudit + commands handlers) supply the values; legacy
+	// callers (background jobs that build AuditLog directly) leave zero
+	// strings and end up with NULL columns — DEC-1=A.
 	const query = `
-INSERT INTO audit_logs (audit_id, actor_login, action, target_type, target_id, command_id, payload)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, audit_id, actor_login, action, target_type, target_id, COALESCE(command_id, ''), payload, created_at`
+INSERT INTO audit_logs (audit_id, actor_login, action, target_type, target_id, command_id, payload, source_ip, request_id, source_type)
+VALUES ($1, $2, $3, $4, $5, $6, $7, NULLIF($8, ''), NULLIF($9, ''), NULLIF($10, ''))
+RETURNING id, audit_id, actor_login, action, target_type, target_id, COALESCE(command_id, ''), payload, COALESCE(source_ip, ''), COALESCE(request_id, ''), COALESCE(source_type, ''), created_at`
 
 	var inserted domain.AuditLog
 	var payloadJSON []byte
+	var scannedSourceType string
 	err = s.pool.QueryRow(ctx, query,
 		auditID,
 		actor,
@@ -57,6 +63,9 @@ RETURNING id, audit_id, actor_login, action, target_type, target_id, COALESCE(co
 		log.TargetID,
 		commandIDArg,
 		payloadBytes,
+		log.SourceIP,
+		log.RequestID,
+		string(log.SourceType),
 	).Scan(
 		&inserted.ID,
 		&inserted.AuditID,
@@ -66,11 +75,15 @@ RETURNING id, audit_id, actor_login, action, target_type, target_id, COALESCE(co
 		&inserted.TargetID,
 		&inserted.CommandID,
 		&payloadJSON,
+		&inserted.SourceIP,
+		&inserted.RequestID,
+		&scannedSourceType,
 		&inserted.CreatedAt,
 	)
 	if err != nil {
 		return domain.AuditLog{}, fmt.Errorf("insert audit log: %w", err)
 	}
+	inserted.SourceType = domain.AuditSourceType(scannedSourceType)
 	if len(payloadJSON) > 0 {
 		var decoded map[string]any
 		if err := json.Unmarshal(payloadJSON, &decoded); err != nil {
@@ -102,7 +115,7 @@ func (s *PostgresStore) ListAuditLogs(ctx context.Context, opts ListAuditLogsOpt
 	}
 
 	const query = `
-SELECT id, audit_id, actor_login, action, target_type, target_id, COALESCE(command_id, ''), payload, created_at
+SELECT id, audit_id, actor_login, action, target_type, target_id, COALESCE(command_id, ''), payload, COALESCE(source_ip, ''), COALESCE(request_id, ''), COALESCE(source_type, ''), created_at
 FROM audit_logs
 WHERE ($1 = '' OR actor_login = $1)
   AND ($2 = '' OR action = $2)
@@ -130,6 +143,7 @@ LIMIT $6 OFFSET $7`
 	for rows.Next() {
 		var log domain.AuditLog
 		var payloadJSON []byte
+		var scannedSourceType string
 		if err := rows.Scan(
 			&log.ID,
 			&log.AuditID,
@@ -139,10 +153,14 @@ LIMIT $6 OFFSET $7`
 			&log.TargetID,
 			&log.CommandID,
 			&payloadJSON,
+			&log.SourceIP,
+			&log.RequestID,
+			&scannedSourceType,
 			&log.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
+		log.SourceType = domain.AuditSourceType(scannedSourceType)
 		if len(payloadJSON) > 0 {
 			var decoded map[string]any
 			if err := json.Unmarshal(payloadJSON, &decoded); err != nil {

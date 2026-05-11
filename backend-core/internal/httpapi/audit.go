@@ -19,6 +19,9 @@ type auditLogResponse struct {
 	TargetID   string         `json:"target_id"`
 	CommandID  string         `json:"command_id,omitempty"`
 	Payload    map[string]any `json:"payload"`
+	SourceIP   string         `json:"source_ip,omitempty"`
+	RequestID  string         `json:"request_id,omitempty"`
+	SourceType string         `json:"source_type,omitempty"`
 	CreatedAt  time.Time      `json:"created_at"`
 }
 
@@ -80,12 +83,20 @@ func (h Handler) recordAudit(c *gin.Context, action, targetType, targetID string
 		payload = map[string]any{}
 	}
 	payload["actor_source"] = actor.Source
+	// T-M1-04: stamp request-scoped operator-actor context (request_id /
+	// source_ip / source_type). The middleware (requireRequestID) puts
+	// request_id on the gin context; authenticateActor classifies the
+	// source_type. clientIPFrom proxies gin.Context.ClientIP for nil-safety
+	// in test fakes that pass a bare context.
 	return h.cfg.AuditStore.CreateAuditLog(c.Request.Context(), domain.AuditLog{
 		ActorLogin: actor.Login,
 		Action:     action,
 		TargetType: targetType,
 		TargetID:   targetID,
 		Payload:    payload,
+		SourceIP:   clientIPFrom(c),
+		RequestID:  requestIDFrom(c),
+		SourceType: sourceTypeFrom(c),
 	})
 }
 
@@ -111,6 +122,9 @@ func auditLogFromDomain(log domain.AuditLog) auditLogResponse {
 		TargetID:   log.TargetID,
 		CommandID:  log.CommandID,
 		Payload:    payload,
+		SourceIP:   log.SourceIP,
+		RequestID:  log.RequestID,
+		SourceType: string(log.SourceType),
 		CreatedAt:  log.CreatedAt,
 	}
 }

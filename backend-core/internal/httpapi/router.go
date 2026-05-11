@@ -84,6 +84,15 @@ type RouterConfig struct {
 func NewRouter(cfg RouterConfig) *gin.Engine {
 	router := gin.Default()
 
+	// SetTrustedProxies(nil) makes gin.Context.ClientIP() return the raw
+	// RemoteAddr without honouring X-Forwarded-For / X-Real-IP. PR-D
+	// (audit_logs.source_ip) relies on ClientIP being attribution-grade —
+	// trusting client-supplied forwarding headers would let any external
+	// caller forge the audit row's IP. Operators that legitimately sit
+	// behind a reverse proxy should opt in by re-setting trusted proxies
+	// after NewRouter (future env-driven config).
+	_ = router.SetTrustedProxies(nil)
+
 	if cfg.PermissionCache == nil {
 		cfg.PermissionCache = NewPermissionCache(cfg.RBACStore)
 	}
@@ -92,6 +101,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	router.GET("/health", handler.health)
 
 	v1 := router.Group("/api/v1")
+	v1.Use(handler.requireRequestID)
 	v1.Use(handler.authenticateActor)
 	v1.Use(handler.enforceRoutePermission)
 	v1.GET("/me", handler.getMe)
