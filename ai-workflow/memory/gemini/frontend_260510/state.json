@@ -1,74 +1,10 @@
 {
-  "schema_version": "1",
-  "generated_at": "2026-05-11",
+  "project": "DevHub",
+  "branch": "gemini/frontend_260510",
   "status": "in_progress",
-  "current_activity": "Phase 6.2 Org Chart 최적화 및 Audit 서비스 구축 완료. 대규모 조직도 렌더링 UX 개선.",
-  "last_update": "2026-05-11T22:45:00Z",
-  "milestones": {
-    "phase6.1": {
-      "status": "done",
-      "progress": 100,
-      "description": "RBAC 실데이터 연동 (CRUD 및 사용자 역할 할당)"
-    },
-    "m2": {
-      "status": "done",
-      "progress": 100,
-      "description": "인증 고도화 및 콜백 플로우 (구현 및 검증 완료)"
-    }
-  },
-  "source_of_truth": {
-    "project_profile_path": "docs/PROJECT_PROFILE.md",
-    "session_handoff_path": "ai-workflow/memory/gemini/frontend_260510/session_handoff.md",
-    "work_backlog_index_path": "ai-workflow/memory/gemini/frontend_260510/work_backlog.md",
-    "latest_backlog_path": "ai-workflow/memory/gemini/frontend_260510/backlog/2026-05-11.md",
-    "repository_assessment_path": "ai-workflow/memory/repository_assessment.md"
-  },
-  "project": {
-    "project_name": "DevHub Example",
-    "document_home": "docs/README.md",
-    "operations_path": null,
-    "backlog_path": "ai-workflow/memory/gemini/frontend_260510/backlog/",
-    "handoff_path": "ai-workflow/memory/gemini/frontend_260510/session_handoff.md",
-    "environment_path": "ai-workflow/memory/environments/"
-  },
-  "commands": {
-    "quick_tests": "pytest ai-workflow/tests/check_docs.py",
-    "isolated_tests": "cd frontend && npm run lint",
-    "runtime_checks": "docker-compose ps"
-  },
-  "session": {
-    "current_baseline": "Phase 6 RBAC UI 스캐폴딩 및 메인 브랜치 PR(41, 42) 병합 완료",
-    "current_axis": "Frontend Phase 6.2 Organization Chart 상호작용 강화",
-    "current_focus": "Org Chart 노드 드래그 위치 저장 및 대규모 계층 구조 렌더링 최적화",
-    "in_progress_items": [],
-    "blocked_items": [],
-    "recent_done_items": [
-      "TASK-FRONTEND-PHASE6.2-ORG-CHART-OPTIMIZATION",
-      "TASK-FRONTEND-AUDIT-SERVICE-INTEGRATION",
-      "TASK-FRONTEND-PHASE6.2-ORG-CHART-ACTIONS",
-      "TASK-FRONTEND-M2-AUTH-CALLBACK"
-    ],
-    "environment_constraints": [
-      "Docker/Docker-compose required for full system",
-      "Backend Core API on :8080 (REST + WS)"
-    ]
-  },
-  "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/gemini/frontend_260510/backlog/2026-05-11.md",
-    "task_count": 5,
-    "in_progress_items": [
-      "TASK-FRONTEND-PHASE6.1-RBAC-API"
-    ],
-    "blocked_items": [],
-    "done_items": []
-  },
-  "next_documents": [
-    "docs/frontend_development_roadmap.md",
-    "docs/backend_api_contract.md",
-    "ai-workflow/memory/gemini/frontend_260510/session_handoff.md"
-  ],
-  "repository_assessment": {
-    "path": "ai-workflow/memory/repository_assessment.md",
-    "present": true
-  }
+  "last_updated": "2026-05-11T15:13:00Z",
+  "current_phase": "Phase 6.1 Integration",
+  "milestone": "OIDC Standard Admin Seeding",
+  "active_agent": "Antigravity",
+  "context_summary": "Standardized admin seeding via Kratos Admin API. Backend is operational but encountering 500 error on login."
 }
