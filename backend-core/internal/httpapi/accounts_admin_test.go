@@ -111,6 +111,19 @@ func TestResetAccountPassword_Happy(t *testing.T) {
 	}
 }
 
+// 5b) PUT /api/v1/accounts/:user_id/password with empty body → server generates temp password.
+func TestResetAccountPassword_EmptyBodyAutoGenerates(t *testing.T) {
+	kratos := &MockKratosAdmin{}
+	router := newAccountsAdminRouter(newMemoryOrganizationStore(), kratos, &memoryAuditStore{})
+	rec := doJSON(t, router, http.MethodPut, "/api/v1/accounts/alice/password", "")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"temp_password":"`)) {
+		t.Errorf("body should include generated temp_password: %s", rec.Body.String())
+	}
+}
+
 // 6) PUT /api/v1/accounts/:user_id/password — identity not found → 404.
 func TestResetAccountPassword_NotFound(t *testing.T) {
 	kratos := &MockKratosAdmin{FindError: ErrKratosIdentityNotFound}

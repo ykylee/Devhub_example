@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -146,9 +147,12 @@ func (h Handler) resetAccountPassword(c *gin.Context) {
 		return
 	}
 
+	// Empty body is intentional: callers can ask the server to generate a
+	// fresh temp password by POSTing nothing. ShouldBindJSON returns io.EOF
+	// in that case, so we only reject parse errors that came from a
+	// non-empty body.
 	var req adminPasswordResetRequest
-	if err := c.ShouldBindJSON(&req); err != nil && !errors.Is(err, http.ErrBodyReadAfterClose) {
-		// empty body is allowed (handler generates a temp password)
+	if err := c.ShouldBindJSON(&req); err != nil && !errors.Is(err, io.EOF) {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "invalid json body"})
 		return
 	}
@@ -241,9 +245,14 @@ func (h Handler) updateAccountStatus(c *gin.Context) {
 		return
 	}
 
-	devhubStatus := domain.UserStatus("active")
+	// Map the public-facing "disabled" label to the persisted status
+	// constant. domain.UserStatusDeactivated is the value the DB
+	// users_status_check constraint actually accepts; using "disabled"
+	// would surface as a 500 after the Kratos state flip succeeds and
+	// trigger the rollback path on every disable request.
+	devhubStatus := domain.UserStatusActive
 	if !active {
-		devhubStatus = domain.UserStatus("disabled")
+		devhubStatus = domain.UserStatusDeactivated
 	}
 	if _, err := h.cfg.OrganizationStore.UpdateUser(ctx, userID, domain.UpdateUserInput{Status: &devhubStatus}); err != nil {
 		// Roll back the Kratos state change so the two stores stay in sync.
