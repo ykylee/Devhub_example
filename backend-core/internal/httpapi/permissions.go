@@ -173,6 +173,14 @@ var routePermissionTable = map[routeKey]routePolicy{
 	{http.MethodPatch, "/api/v1/users/:user_id"}:  {Resource: domain.ResourceOrganization, Action: domain.ActionEdit},
 	{http.MethodDelete, "/api/v1/users/:user_id"}: {Resource: domain.ResourceOrganization, Action: domain.ActionDelete},
 
+	// account admin (PR-S3) — credential issuance + force reset + state toggle + revoke.
+	// Credential mutations are a security-grade resource; route the auth-y ones to
+	// security:edit so only system_admin (per default matrix) can hit them.
+	{http.MethodPost, "/api/v1/accounts"}:                     {Resource: domain.ResourceSecurity, Action: domain.ActionCreate},
+	{http.MethodPut, "/api/v1/accounts/:user_id/password"}:    {Resource: domain.ResourceSecurity, Action: domain.ActionEdit},
+	{http.MethodPatch, "/api/v1/accounts/:user_id"}:           {Resource: domain.ResourceOrganization, Action: domain.ActionEdit},
+	{http.MethodDelete, "/api/v1/accounts/:user_id"}:          {Resource: domain.ResourceOrganization, Action: domain.ActionDelete},
+
 	// organization — units
 	{http.MethodGet, "/api/v1/organization/hierarchy"}:              {Resource: domain.ResourceOrganization, Action: domain.ActionView},
 	{http.MethodPut, "/api/v1/organization/hierarchy"}:              {Resource: domain.ResourceOrganization, Action: domain.ActionEdit},

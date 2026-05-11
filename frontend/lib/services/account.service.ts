@@ -1,14 +1,17 @@
 /**
  * Account Service
  *
- * Self-service: updateMyPassword drives the Kratos public settings flow
- * (DEC-2=B, PR-L3). Browser cookie carries the Kratos session that Kratos
- * uses to identify the user; backend is not involved.
+ * Self-service (PR-L3, DEC-2=B): updateMyPassword drives the Kratos public
+ * settings flow directly from the browser; the Kratos session cookie does
+ * the authentication. Backend is not involved.
  *
- * Admin operations (issueAccount / forceResetPassword / disableAccount /
- * unlockAccount) remain mocked here — they will move to backend-proxied
- * Kratos admin API calls in PR-S3.
+ * Admin operations (PR-S3): issueAccount / forceResetPassword /
+ * disableAccount / unlockAccount call backend /api/v1/accounts endpoints
+ * which proxy Kratos admin API. Backend ownership keeps the Kratos admin
+ * URL off the browser and lands every action in DevHub audit_logs.
  */
+
+import { apiClient, ApiError } from "@/lib/services/api-client";
 
 const KRATOS_PUBLIC_URL = (
   process.env.NEXT_PUBLIC_KRATOS_PUBLIC_URL ?? "http://localhost:4433"
@@ -67,11 +70,6 @@ export interface AccountInfo {
 }
 
 class AccountService {
-  /** Mock API delay helper (still used by admin mocks). */
-  private delay(ms: number) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
   /**
    * User self-service: change own password via Kratos settings flow.
    *
@@ -231,28 +229,66 @@ class AccountService {
   // Admin operations — still mocked, scheduled for PR-S3.
   // ------------------------------------------------------------------
 
-  async issueAccount(userId: string, loginId: string, forceReset: boolean): Promise<{ tempPassword: string }> {
+  /**
+   * Issue (or re-create) a Kratos identity + DevHub user pair. login_id is
+   * accepted for UI symmetry but is currently the same as user_id on the
+   * backend — Kratos identifies by traits.email + metadata_public.user_id.
+   */
+  async issueAccount(
+    userId: string,
+    loginId: string,
+    forceReset: boolean,
+    options?: { email?: string; displayName?: string; role?: string },
+  ): Promise<{ tempPassword: string; identityId?: string }> {
     void forceReset;
-    await this.delay(600);
-    console.log(`[AccountService] (mock) Issued account for ${userId} with login ${loginId}`);
-    return { tempPassword: `Temp${Math.floor(Math.random() * 10000)}!` };
+    void loginId;
+    const payload = await apiClient<{ data: { temp_password: string; identity_id?: string } }>(
+      "POST",
+      "/api/v1/accounts",
+      {
+        user_id: userId,
+        email: options?.email ?? `${userId}@example.com`,
+        display_name: options?.displayName ?? userId,
+        role: options?.role,
+      },
+    );
+    return { tempPassword: payload.data.temp_password, identityId: payload.data.identity_id };
   }
 
   async forceResetPassword(userId: string): Promise<{ tempPassword: string }> {
-    await this.delay(600);
-    console.log(`[AccountService] (mock) Forced password reset for ${userId}`);
-    return { tempPassword: `Reset${Math.floor(Math.random() * 10000)}!` };
+    const payload = await apiClient<{ data: { temp_password: string } }>(
+      "PUT",
+      `/api/v1/accounts/${encodeURIComponent(userId)}/password`,
+      {},
+    );
+    return { tempPassword: payload.data.temp_password };
   }
 
   async disableAccount(userId: string, reason: string): Promise<void> {
-    await this.delay(600);
-    console.log(`[AccountService] (mock) Disabled account for ${userId}. Reason: ${reason}`);
+    void reason; // 1차에서는 audit reason 미수신 (backend 가 actor 만 기록)
+    await apiClient<{ status: string }>(
+      "PATCH",
+      `/api/v1/accounts/${encodeURIComponent(userId)}`,
+      { status: "disabled" },
+    );
   }
 
   async unlockAccount(userId: string): Promise<void> {
-    await this.delay(600);
-    console.log(`[AccountService] (mock) Unlocked account for ${userId}`);
+    await apiClient<{ status: string }>(
+      "PATCH",
+      `/api/v1/accounts/${encodeURIComponent(userId)}`,
+      { status: "active" },
+    );
+  }
+
+  async deleteAccount(userId: string): Promise<void> {
+    await apiClient<{ status: string }>(
+      "DELETE",
+      `/api/v1/accounts/${encodeURIComponent(userId)}`,
+    );
   }
 }
+
+export { ApiError };
 
 export const accountService = new AccountService();
