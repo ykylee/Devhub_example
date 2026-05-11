@@ -3,9 +3,9 @@
 - 문서 목적: `claude/work_26_05_11` 브랜치 sprint 의 세션 간 상태 인계
 - 범위: M2 login 마무리(Track L) + 시스템 설정/사용자·조직 관리(Track S)
 - 대상 독자: 후속 에이전트, 프로젝트 리드
-- 상태: in_progress (결정 3건 확정 2026-05-11. PR-L1 진입 가능)
-- 브랜치: `claude/work_26_05_11` (HEAD `0620689`, main 기준 fast-forward)
-- 최종 수정일: 2026-05-11
+- 상태: **CLOSED 2026-05-11**. Track L 4 PR + Track S 4 PR + 배포 가이드 1 PR 모두 main 머지. Codex review fix-up 2건 흡수.
+- 브랜치: `claude/work_26_05_11` (HEAD `0620689` baseline; 모든 sprint commit 은 sub-stack 브랜치들에서 main 으로 머지됨)
+- 최종 수정일: 2026-05-11 (sprint closure)
 - 관련 문서: [개발 계획 + 진척](./backlog/2026-05-11.md), [상위 backlog](./work_backlog.md), [상태 스냅샷](./state.json), [통합 로드맵](../../../../docs/development_roadmap.md)
 
 ## 0. 현재 기준선
@@ -33,9 +33,9 @@
 - 검증되지 않은 작업은 `done` 으로 전환하지 않는다.
 - 세션 종료 전 `state.json`, 본 문서, 위 backlog 의 §5 체크리스트를 함께 갱신한다.
 
-## 3. 다음 세션 진입점
+## 3. 머지 결과 (2026-05-11 closure)
 
-### 3.0 결정 확정 (2026-05-11)
+### 3.0 결정 확정
 
 | ID | 채택 | 의미 |
 | --- | --- | --- |
@@ -43,29 +43,37 @@
 | **DEC-2** | **B frontend 직접** | account.service 가 Kratos public settings flow 3단계 호출. backend audit 미통합 1차 |
 | **DEC-3** | **C `/admin/settings` 하위** | `/admin` 인프라 대시보드 유지, `/admin/settings/{users,organization,permissions}` 신설. Sidebar 의 system_admin 그룹 = Dashboard + Settings |
 
-세부 흐름과 영향 위치는 [`./backlog/2026-05-11.md`](./backlog/2026-05-11.md) §2·§3 참조.
+### 3.1 머지 commit (시간순)
 
-### 3.1 진입 순서
+1. PR #45 (PR-L1) backend `/auth/logout` — `61541da`
+2. PR #51 (PR-L2) frontend logout flow — `858129f`
+3. PR #50 (PR-L3) `/account` password — `205980e`
+4. PR #49 (deploy guide) — `92b3459`
+5. PR #52 (PR-S1) Sidebar gating + role landing — `a2f707e`
+6. PR #53 (PR-S2) `/admin/settings` shell + 4-tab move — `2d0075e`
+7. PR #54 (PR-S3) accounts admin endpoints — `b935876` (Codex P1+P2 fix 흡수)
+8. PR #55 (PR-S4) org coords + leader — `818d54a` (Codex P2 fix 흡수)
 
-1. **PR-L1** backend `/api/v1/auth/logout` (Hydra accept + revoke, Kratos 호출 없음)
-2. **PR-L2** frontend `/auth/logout` + Header 재배선 + Kratos browser logout
-3. **PR-L3** `/account` 비밀번호 변경 실연동 (Kratos settings flow 직접)
-4. **PR-S1** Sidebar 가드 + 역할별 기본 진입 + Sys Admin 그룹 (Dashboard + Settings 분리)
-5. **PR-S2** `/admin/settings` 골격 + 사용자/조직/권한 sub-routes 이전
-6. **PR-S3** 사용자 관리 강화 (계정 발급/리셋/disable backend 실연동, L3 의존)
-7. **PR-S4** 조직 관리 강화 (부서 좌표 영속화 + 리더 변경)
+main 최종 HEAD: `818d54a`.
 
-## 4. 위험 / 운영 의존
+### 3.2 다음 sprint 시드 (PR-S3/S4 의 follow-up hygiene)
 
-- 결정 3건 모두 확정. PR 진입 가능.
-- 로그인 e2e 는 Hydra/Kratos native + DevHub OIDC client 등록 + Kratos identity metadata 셋 필요 (이전 sprint 와 동일 운영 의존).
-- PR-L2/L3 는 frontend 가 Kratos public 에 직접 fetch — `NEXT_PUBLIC_KRATOS_PUBLIC_URL` 환경변수 추가 필요. CORS 는 `kratos.yaml:23-39` 에서 이미 `http://localhost:3000` 허용됨. 운영 배포 시 origin 화이트리스트 갱신 필요.
-- PR-S2 머지 시 `/organization` URL → `/admin/settings/users` redirect. docs/wiki 링크 (`docs/wiki/_Sidebar.md` 등) 갱신 필요.
-- main 의 `ai-workflow/memory/state.json` 이 `dbff50f` 시점에서 stale — 본 sprint 종료 시 일괄 갱신 PR 별도.
+- Kratos identity 매핑 캐싱 — `FindIdentityByUserID` 가 매번 page-scan. `users.kratos_identity_id` 칼럼 추가 시 O(1).
+- Kratos webhook → DevHub audit_logs 통합 (DEC-2=B 후속 — 비밀번호 변경 등 self-service 이벤트)
+- Hydra JWKS / introspection verifier 실구현 (backend roadmap M2 P0 잔여)
+- `/admin/settings/users` 의 SearchInput 실제 필터링 미구현 (현재 placeholder)
+
+## 4. 운영 의존 메모
+
+- 로그인 e2e: Hydra/Kratos native + DevHub OIDC client 등록 + Kratos identity `metadata_public.user_id` 셋 (가이드: `docs/setup/test-server-deployment.md`)
+- frontend 신규 환경변수: `NEXT_PUBLIC_KRATOS_PUBLIC_URL` (logout/account/admin)
+- backend 신규 환경변수: `DEVHUB_HYDRA_PUBLIC_URL` (revoke 용)
+- main 의 `ai-workflow/memory/state.json` 갱신 — 본 정리 PR 에서 함께 처리
 
 ## 5. 다음에 읽을 문서
 
 - [개발 계획 + 진척](./backlog/2026-05-11.md)
+- [테스트 서버 배포 가이드](../../../../docs/setup/test-server-deployment.md)
 - [통합 로드맵 §3 M2/M3](../../../../docs/development_roadmap.md)
 - [frontend 로드맵 §6 사용자/조직](../../../../docs/frontend_development_roadmap.md)
 - [backend 로드맵 §5 [P0] M2 / [P1] M3](../../../backend_development_roadmap.md)

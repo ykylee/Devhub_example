@@ -1,0 +1,28 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "claude/work_26_05_11-b",
+  "status": "Sprint baseline created 2026-05-11. Sprint topic not yet decided. Cleanup PR (work_26_05_11 closure + main state.json sync + this baseline) is the first commit; subsequent PRs will be cut against the chosen topic.",
+  "updated_at": "2026-05-11T02:15:00Z",
+  "head_commit": "818d54a",
+  "head_summary": "Merge pull request #55 from ykylee/claude/work_26_05_11-s4 (work_26_05_11 final PR)",
+  "session_pointers": {
+    "sprint_plan": "ai-workflow/memory/claude/work_26_05_11-b/backlog/2026-05-11.md",
+    "session_handoff_path": "ai-workflow/memory/claude/work_26_05_11-b/session_handoff.md",
+    "work_backlog_path": "ai-workflow/memory/claude/work_26_05_11-b/work_backlog.md",
+    "previous_sprint": "ai-workflow/memory/claude/work_26_05_11/ (CLOSED)",
+    "main_state": "ai-workflow/memory/state.json",
+    "integrated_roadmap": "docs/development_roadmap.md",
+    "frontend_roadmap": "docs/frontend_development_roadmap.md",
+    "backend_roadmap": "ai-workflow/memory/backend_development_roadmap.md",
+    "deploy_guide": "docs/setup/test-server-deployment.md",
+    "adr_idp": "docs/adr/0001-idp-selection.md",
+    "adr_rbac": "docs/adr/0002-rbac-policy-edit-api.md"
+  },
+  "candidate_topics": [
+    "M1 잔여 (T-M1-02·03·04·07·08): API envelope, command lifecycle, audit actor, types split, WS envelope",
+    "M2 follow-up: Kratos identity 매핑 캐싱 (users.kratos_identity_id), Kratos webhook → audit_logs, Hydra JWKS verifier",
+    "/admin/settings/users 검색 필터 실구현",
+    "M4 entry: WebSocket resource scope filter, Python AI gRPC client, Gitea Hourly Pull worker"
+  ]
+}
