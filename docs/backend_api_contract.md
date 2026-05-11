@@ -711,9 +711,50 @@ Go Core `/api/v1/*` 라우터는 `Authorization: Bearer <token>`을 받으면 co
 
 ### 11.5 Self-service flow
 
-본인 로그인, 로그아웃, 비밀번호 변경, recovery, verification은 Next.js가 Kratos public flow API를 호출한다. Go Core에는 별도의 `/api/v1/auth/login`, `/api/v1/auth/logout`, `/api/v1/accounts/{id}/password` endpoint를 두지 않는다.
+frontend 는 OIDC code flow 진입과 권한 정합을 backend proxy 로 운반한다. 직접 Kratos public flow 만 사용하지 않고, DevHub `/api/v1/auth/*` + `/api/v1/account/*` 가 Kratos/Hydra 와의 server-to-server 통신을 담당한다 (PR-LOGIN-1/2, PR-L3/L4).
 
-frontend는 인증 완료 후 Hydra/Kratos 세션 또는 token에서 얻은 subject를 기준으로 `GET /api/v1/me`를 호출해 DevHub user profile, role, organization context를 조회한다.
+| method/path | 용도 | audit action |
+| --- | --- | --- |
+| `POST /api/v1/auth/login` | login_challenge + identifier/password → Kratos api-mode login + Hydra accept | `auth.login.succeeded` / `auth.login.failed` |
+| `POST /api/v1/auth/logout` | logout_challenge + refresh_token → Hydra revoke + accept | `auth.logout.succeeded` |
+| `POST /api/v1/auth/token` | authorization_code → Hydra `/oauth2/token` 교환 | (passthrough) |
+| `POST /api/v1/auth/signup` | HRDB lookup + Kratos identity 생성 | `account.signup.requested` |
+| `GET /api/v1/auth/consent` | Hydra consent flow auto-accept | (passthrough) |
+| `POST /api/v1/account/password` | **본인 비밀번호 변경** — current_password 검증 + Kratos settings flow proxy | `account.password_self_change` |
+
+#### 11.5.1 `POST /api/v1/account/password` (PR-L4)
+
+self-service 비밀번호 변경 proxy. 호출자는 자신의 OIDC access token (`Authorization: Bearer …`) 으로 인증한다. 다른 사용자의 비밀번호 재설정은 `PUT /api/v1/accounts/{user_id}/password` (PR-S3) 가 담당한다.
+
+- 인증: required Bearer. system fallback 은 거절 (`401 reauth_required`).
+- 권한: RBAC 매트릭스 bypass (§12.8.1 self-info 패턴). 본 endpoint 는 caller 본인의 identity 만 mutate.
+- 흐름: caller email lookup → Kratos api-mode login(current_password) → 새 session_token 으로 settings flow → password 변경. 새 session_token 은 `KratosSessionCache` 에 user_id 기준으로 저장 (DEC-D=α, 단일 instance PoC).
+
+요청 body:
+
+```json
+{ "current_password": "OldPass-1!", "new_password": "NewPass-2!" }
+```
+
+응답 200:
+
+```json
+{ "status": "ok", "data": { "user_id": "alice" } }
+```
+
+에러 매트릭스:
+
+| status | code | 의미 | frontend 처리 |
+| --- | --- | --- | --- |
+| 400 | `validation` | Kratos 가 new_password 거절 (길이, breach, complexity). `error` 에 사유 | `SettingsFlowError(VALIDATION)` 로 inline 표시 |
+| 400 | (없음) | `current_password == new_password` 또는 body parse 실패 | 폼 검증 메시지 |
+| 401 | `current_password_invalid` | Kratos 가 current_password 거절 | `SettingsFlowError(CURRENT_PASSWORD_INVALID)` — 현재 비밀번호 입력 강조 |
+| 401 | `reauth_required` | session_token 만료/거절, actor 누락, DevHub users miss | `SettingsFlowError(REAUTH_REQUIRED)` → `/login` |
+| 410 | `flow_expired` | settings flow lifespan 경과 (생성 직후라 거의 발생 안 함) | `SettingsFlowError(FLOW_INIT_FAILED)` 재시도 안내 |
+| 500 | (없음) | Kratos 호출 실패 또는 invariant 위반 | `SettingsFlowError(SUBMIT_FAILED)` |
+| 503 | (없음) | `KratosLogin` / `OrganizationStore` 미주입 환경 | `SettingsFlowError(SUBMIT_FAILED)` |
+
+frontend 는 인증 완료 후 Hydra/Kratos 세션 또는 token 에서 얻은 subject 를 기준으로 `GET /api/v1/me` 를 호출해 DevHub user profile, role, organization context 를 조회한다.
 
 ### 11.6 Audit log 매핑
 
@@ -724,6 +765,9 @@ frontend는 인증 완료 후 Hydra/Kratos 세션 또는 token에서 얻은 subj
 | admin recovery link 생성 | `identity.recovery_link_created` | `identity` |
 | Kratos login 성공 webhook | `auth.login.succeeded` | `identity` |
 | Kratos login 실패 webhook | `auth.login.failed` | `identity` 또는 `login_id` |
+| 본인 비밀번호 변경 성공 (`POST /api/v1/account/password`) | `account.password_self_change` | `user` |
+| 본인 비밀번호 변경 — current 비번 실패 | `account.password_self_change.invalid_current` | `user` |
+| 본인 비밀번호 변경 — DevHub users 미존재 | `account.password_self_change.no_user` | `user` |
 | token 기반 command 생성 | command별 action | `service`, `risk` 등 command target |
 | RBAC role 가드 거부 | `auth.role_denied` | `route` |
 | RBAC 매핑 누락 거부 (deny-by-default) | `auth.policy_unmapped` | `route` |

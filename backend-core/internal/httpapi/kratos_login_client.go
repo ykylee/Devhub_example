@@ -52,6 +52,12 @@ type KratosIdentity struct {
 	SystemID    string
 	Email       string
 	DisplayName string
+	// SessionToken carries the Kratos api-mode session token returned by
+	// /self-service/login/api submission (L4-B, work_26_05_11-e). The
+	// authLogin handler caches it in KratosSessionCache so the later
+	// /api/v1/account/password proxy can drive Kratos settings flow on
+	// behalf of the user without holding a browser cookie.
+	SessionToken string
 }
 
 // KratosLoginFlow is the minimum subset of the Kratos login flow response
@@ -225,10 +231,11 @@ func parseLoginSuccess(body []byte) (KratosIdentity, error) {
 		return KratosIdentity{}, errors.New("kratos login success missing identity.id")
 	}
 	return KratosIdentity{
-		ID:          identity.ID,
-		UserID:      strings.TrimSpace(identity.MetadataPublic.UserID),
-		SystemID:    identity.Traits.SystemID,
-		Email:       identity.Traits.Email,
-		DisplayName: identity.Traits.DisplayName,
+		ID:           identity.ID,
+		UserID:       strings.TrimSpace(identity.MetadataPublic.UserID),
+		SystemID:     identity.Traits.SystemID,
+		Email:        identity.Traits.Email,
+		DisplayName:  identity.Traits.DisplayName,
+		SessionToken: raw.SessionToken,
 	}, nil
 }

@@ -11,11 +11,26 @@ import (
 )
 
 type fakeKratosLogin struct {
-	flow         KratosLoginFlow
-	flowErr      error
-	identity     KratosIdentity
-	submitErr    error
-	submitCalled bool
+	flow              KratosLoginFlow
+	flowErr           error
+	identity          KratosIdentity
+	submitErr         error
+	submitCalled      bool
+	submitCalls       int
+	submitIdentifiers []string
+	submitPasswords   []string
+	// Settings flow knobs (L4-C/L4-D).
+	settingsFlowID     string
+	settingsFlowErr    error
+	settingsSubmitErr  error
+	settingsFlowCalls  int
+	settingsSubmits    []fakeSettingsSubmit
+}
+
+type fakeSettingsSubmit struct {
+	SessionToken string
+	FlowID       string
+	NewPassword  string
 }
 
 func (f *fakeKratosLogin) CreateLoginFlow(ctx context.Context) (KratosLoginFlow, error) {
@@ -27,10 +42,33 @@ func (f *fakeKratosLogin) CreateLoginFlow(ctx context.Context) (KratosLoginFlow,
 
 func (f *fakeKratosLogin) SubmitLogin(ctx context.Context, flow KratosLoginFlow, identifier, password string) (KratosIdentity, error) {
 	f.submitCalled = true
+	f.submitCalls++
+	f.submitIdentifiers = append(f.submitIdentifiers, identifier)
+	f.submitPasswords = append(f.submitPasswords, password)
 	if f.submitErr != nil {
 		return KratosIdentity{}, f.submitErr
 	}
 	return f.identity, nil
+}
+
+func (f *fakeKratosLogin) CreateSettingsFlow(_ context.Context, _ string) (string, error) {
+	f.settingsFlowCalls++
+	if f.settingsFlowErr != nil {
+		return "", f.settingsFlowErr
+	}
+	if f.settingsFlowID == "" {
+		return "flow-default", nil
+	}
+	return f.settingsFlowID, nil
+}
+
+func (f *fakeKratosLogin) SubmitSettingsPassword(_ context.Context, sessionToken, flowID, newPassword string) error {
+	f.settingsSubmits = append(f.settingsSubmits, fakeSettingsSubmit{
+		SessionToken: sessionToken,
+		FlowID:       flowID,
+		NewPassword:  newPassword,
+	})
+	return f.settingsSubmitErr
 }
 
 type fakeHydraAdmin struct {
@@ -234,6 +272,65 @@ func TestAuthLogin_SubjectFallbackWhenMetadataMissing(t *testing.T) {
 	}
 	if !hasFallback {
 		t.Errorf("expected auth.login.subject_fallback audit, got %+v", audits.logs)
+	}
+}
+
+// L4-B: 로그인 성공 시 SessionToken 이 KratosSessionCache 에 user_id 키로 저장.
+func TestAuthLogin_CachesKratosSessionToken(t *testing.T) {
+	audits := &memoryAuditStore{}
+	kratos := &fakeKratosLogin{
+		flow:     KratosLoginFlow{ID: "flow-1"},
+		identity: KratosIdentity{ID: "kratos-uuid", UserID: "u1", SessionToken: "kratos-sess-1"},
+	}
+	hydra := &fakeHydraAdmin{
+		loginRequest: HydraLoginRequest{Challenge: "c1"},
+		redirectTo:   "http://hydra/cb",
+	}
+	cache := NewKratosSessionCache()
+	router := NewRouter(RouterConfig{
+		KratosLogin:        kratos,
+		HydraAdmin:         hydra,
+		AuditStore:         audits,
+		KratosSessionCache: cache,
+	})
+
+	rec := postLogin(router, `{"login_challenge":"c1","identifier":"u","password":"p"}`)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	got, ok := cache.Get("u1")
+	if !ok || got != "kratos-sess-1" {
+		t.Errorf("cache.Get(u1) = (%q, %v), want (kratos-sess-1, true)", got, ok)
+	}
+}
+
+// L4-B: metadata_public.user_id 누락 → identity.id fallback 시에도 같은 키로 캐싱.
+func TestAuthLogin_CacheKeyFallsBackToIdentityID(t *testing.T) {
+	kratos := &fakeKratosLogin{
+		flow:     KratosLoginFlow{ID: "flow-1"},
+		identity: KratosIdentity{ID: "kratos-uuid-2", SessionToken: "kratos-sess-2"},
+	}
+	hydra := &fakeHydraAdmin{
+		loginRequest: HydraLoginRequest{Challenge: "c1"},
+		redirectTo:   "http://hydra/cb",
+	}
+	cache := NewKratosSessionCache()
+	router := NewRouter(RouterConfig{
+		KratosLogin:        kratos,
+		HydraAdmin:         hydra,
+		AuditStore:         &memoryAuditStore{},
+		KratosSessionCache: cache,
+	})
+
+	rec := postLogin(router, `{"login_challenge":"c1","identifier":"u","password":"p"}`)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if got, ok := cache.Get("kratos-uuid-2"); !ok || got != "kratos-sess-2" {
+		t.Errorf("cache.Get(kratos-uuid-2) = (%q, %v), want (kratos-sess-2, true)", got, ok)
+	}
+	if _, ok := cache.Get(""); ok {
+		t.Errorf("empty subject must not be cached")
 	}
 }
 

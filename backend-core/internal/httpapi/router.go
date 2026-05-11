@@ -77,6 +77,12 @@ type RouterConfig struct {
 	HRDB                HRDBClient
 	SnapshotProvider    SnapshotProvider
 	RealtimeHub         *RealtimeHub
+	// KratosSessionCache stores user_id → kratos session_token mappings
+	// captured at login time (DEC-D=α, L4-B). NewRouter lazily creates one
+	// when the caller leaves it nil so handler tests get a working cache
+	// without explicit wiring; production wiring (main.go) gets the same
+	// default and shares the cache across requests via the single Handler.
+	KratosSessionCache *KratosSessionCache
 	// AuthDevFallback toggles dev-only authentication fallbacks: empty Authorization passes through authenticateActor and requireMinRole. Actor identity always resolves to "system" without a verifier. Default false: production-safe.
 	AuthDevFallback bool
 }
@@ -95,6 +101,9 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 
 	if cfg.PermissionCache == nil {
 		cfg.PermissionCache = NewPermissionCache(cfg.RBACStore)
+	}
+	if cfg.KratosSessionCache == nil {
+		cfg.KratosSessionCache = NewKratosSessionCache()
 	}
 
 	handler := Handler{cfg: cfg}
@@ -139,6 +148,10 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.PUT("/accounts/:user_id/password", handler.resetAccountPassword)
 	v1.PATCH("/accounts/:user_id", handler.updateAccountStatus)
 	v1.DELETE("/accounts/:user_id", handler.deleteAccount)
+	// Self-service password change (L4-D, work_26_05_11-e). RBAC bypass:
+	// every authenticated user can change their own password; admin-driven
+	// resets stay on /accounts/:user_id/password.
+	v1.POST("/account/password", handler.updateMyPassword)
 	v1.GET("/organization/hierarchy", handler.getHierarchy)
 	v1.PUT("/organization/hierarchy", handler.updateHierarchy)
 	v1.POST("/organization/units", handler.createOrgUnit)

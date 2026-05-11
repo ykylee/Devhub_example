@@ -6,7 +6,18 @@ import { test as base, expect, type Page } from "@playwright/test";
 // user_id matching) and in DevHub `users`. The e2e guide
 // (docs/setup/e2e-test-guide.md) walks operators through the seeding step.
 
-export const SEEDED = {
+export type SeededUser = {
+  user_id: string;
+  email: string;
+  password: string;
+  role: string;
+  landing: string;
+};
+
+// SEEDED is intentionally not `as const` — password-change.spec rotates the
+// password through `{ ...SEEDED.developer, password: rotated }`, which needs
+// password to be a widened `string` rather than the seeded literal.
+export const SEEDED: Record<"developer" | "manager" | "systemAdmin", SeededUser> = {
   developer: {
     user_id: "alice",
     email: "alice@example.com",
@@ -28,9 +39,7 @@ export const SEEDED = {
     role: "system_admin",
     landing: "/admin",
   },
-} as const;
-
-export type SeededUser = (typeof SEEDED)[keyof typeof SEEDED];
+};
 
 /**
  * Drives the login form at /auth/login. The caller is responsible for

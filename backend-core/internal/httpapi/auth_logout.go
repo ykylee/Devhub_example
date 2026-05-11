@@ -139,6 +139,13 @@ func (h Handler) authLogout(c *gin.Context) {
 		redirectTo = got
 	}
 
+	// Drop any cached Kratos session_token for this subject (L4-B). When the
+	// logout_challenge path resolved a subject we use that directly; the
+	// refresh-token-only path has no subject but Hydra revoke already
+	// invalidates the refresh token, so a stale cache entry will fail on
+	// the next /api/v1/account/password call and the user re-auths.
+	h.cfg.KratosSessionCache.Delete(subject)
+
 	h.recordAuditBestEffort(c, "auth.logout.succeeded", "user", subject, map[string]any{
 		"client_id":     clientID,
 		"revoke_status": revokeStatus,

@@ -128,7 +128,7 @@ PLAYWRIGHT_BASE_URL=http://10.0.0.5:3000 npm run e2e
 | `auth.spec.ts` | system_admin 로그인 → `/admin` | PR-S1 role-based landing |
 | `auth.spec.ts` | developer 가 `/admin/settings` 직진입 → `/developer` | AuthGuard `pathRequiresSystemAdmin` |
 | `signout.spec.ts` | Sign Out 후 `/login` 진입 시 password 재요청 | PR-L2 Hydra session 종료 |
-| `password-change.spec.ts` | (SKIPPED — PR-L4 follow-up) 비밀번호 변경 → Sign Out → 재로그인 → 원복 | PR-L3 Kratos settings flow. 현재 로그인이 api-mode 라 `ory_kratos_session` cookie 가 안 심김 → settings/browser flow 가 "No active session" 으로 거절. PR-L4 가 backend settings proxy 또는 browser-mode 로그인을 도입한 뒤 unskip |
+| `password-change.spec.ts` | (SKIPPED — PR-T3.5 에서 unskip 예정) 비밀번호 변경 → Sign Out → 재로그인 → 원복 | PR-L4 `POST /api/v1/account/password` backend proxy 도입으로 cookie 의존성 제거. unskip 은 PR-T3.5 (globalSetup seed 자동화) 와 함께 진행 |
 
 ## 6. 트러블슈팅
 
@@ -136,7 +136,8 @@ PLAYWRIGHT_BASE_URL=http://10.0.0.5:3000 npm run e2e
 | --- | --- | --- |
 | `loginAs` 가 `/auth/login?login_challenge=...` 까지 못 감 | Hydra `urls.login` 이 frontend host 와 다름 | `infra/idp/hydra.yaml` 의 `urls.login` 정정 후 Hydra 재기동 |
 | 로그인 폼에서 401 (invalid credentials) | Kratos identity 시드 password 가 일치 안 함 | §2 의 시드 비밀번호 재확인. password 변경 시나리오 중단 시 cleanup 실패 가능 — `kratos admin identity` 로 password 재설정 |
-| `/account` 비밀번호 변경 시 "Re-authentication required" | Kratos `privileged_session_max_age=15m` 초과 | 시나리오 시간 < 15m. 환경 시간 동기화 확인. 그래도 발생 시 fixture 가 재로그인 retry 로직 추가 필요 (후속 hygiene) |
+| `/account` 비밀번호 변경 시 "Re-authentication required" | Kratos `privileged_session_max_age=15m` 초과 | PR-L4 backend proxy 가 매 호출마다 fresh api-mode 로그인을 돌려 privileged window 를 갱신하므로 정상 시나리오에서는 발생하지 않음. 그래도 노출되면 backend 의 `DEVHUB_KRATOS_PUBLIC_URL` env 누락/오설정 가능성 |
+| `/account` 비밀번호 변경 시 "current password is incorrect" | 입력한 current_password 가 Kratos 시드와 불일치 | §2 의 시드 비밀번호 확인 (`ChangeMe-12345!`). password-change 시나리오가 중간에 실패해 회전이 진행된 상태라면 `kratos admin identity` 로 패스워드 원복 |
 | `Sign Out` 후에도 `/login` 이 silent re-auth | Hydra session 종료 안 됨. id_token_hint 누락 가능성 | tokenStore 의 id_token 저장 확인 (PR-L2 fix-up). `/oauth2/sessions/logout` 호출 URL 확인 |
 | 사용자 환경 Chromium 다운로드 실패 | 사내 SSL inspection / 외부 미러 차단 | `PLAYWRIGHT_BROWSERS_PATH` 또는 사내 미러 사용. `npx playwright install --dry-run` 으로 다운로드 URL 확인 |
 
@@ -152,3 +153,4 @@ PLAYWRIGHT_BASE_URL=http://10.0.0.5:3000 npm run e2e
 | 일자 | 변경 |
 | --- | --- |
 | 2026-05-11 | 초판 작성 (PR-T3) |
+| 2026-05-11 | PR-L4 `POST /api/v1/account/password` backend proxy 도입에 따라 password-change 시나리오 사전 조건/트러블슈팅 갱신 (work_26_05_11-e) |

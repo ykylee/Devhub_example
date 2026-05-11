@@ -11,10 +11,14 @@ import (
 )
 
 // KratosLoginClient covers the slice of *KratosClient that the login proxy
-// invokes. Tests inject a fake.
+// invokes. Tests inject a fake. The two settings flow methods (L4-C,
+// work_26_05_11-e) sit here too so the /api/v1/account/password handler can
+// depend on a single dependency.
 type KratosLoginClient interface {
 	CreateLoginFlow(ctx context.Context) (KratosLoginFlow, error)
 	SubmitLogin(ctx context.Context, flow KratosLoginFlow, identifier, password string) (KratosIdentity, error)
+	CreateSettingsFlow(ctx context.Context, sessionToken string) (string, error)
+	SubmitSettingsPassword(ctx context.Context, sessionToken, flowID, newPassword string) error
 }
 
 // HydraLoginAdmin covers the slice of *HydraAdminClient that the login proxy
@@ -134,6 +138,13 @@ func (h Handler) authLogin(c *gin.Context) {
 			"client_id": hydraReq.Client.ClientID,
 		})
 	}
+
+	// Cache the Kratos session_token under the resolved subject so the
+	// /api/v1/account/password proxy can drive the settings flow without
+	// holding a browser cookie (L4-B, work_26_05_11-e). Put is a no-op
+	// when SessionToken is empty (api-mode response with no token, or
+	// fakes that did not set one).
+	h.cfg.KratosSessionCache.Put(subject, identity.SessionToken)
 
 	log.Printf("[authLogin] Accepting login request for subject %s", subject)
 	redirectTo, err := h.cfg.HydraAdmin.AcceptLoginRequest(ctx, req.LoginChallenge, subject, req.Remember, defaultRememberForSeconds)
