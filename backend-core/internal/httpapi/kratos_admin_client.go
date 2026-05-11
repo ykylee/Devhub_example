@@ -136,20 +136,47 @@ func (c *KratosAdminClient) client() *http.Client {
 }
 
 type MockKratosAdmin struct {
-	CreatedIDs []string
+	CreatedIDs     []string
+	PasswordResets []string
+	StateChanges   map[string]bool // identityID → active
+	DeletedIDs     []string
+	FindError      error
+	FindCalls      int
+	FindIDOverride map[string]string // userID → identityID
 }
 
 func (m *MockKratosAdmin) GetIdentity(ctx context.Context, id string) (*KratosIdentity, error) {
 	return &KratosIdentity{ID: id}, nil
 }
 func (m *MockKratosAdmin) CreateIdentity(ctx context.Context, email, name, userID, password string) (string, error) {
-	id := "mock-id-" + userID
+	id := "mock-k-id-" + userID
 	m.CreatedIDs = append(m.CreatedIDs, id)
 	return id, nil
 }
 func (m *MockKratosAdmin) FindIdentityByUserID(ctx context.Context, userID string) (string, error) {
-	return "mock-id-" + userID, nil
+	m.FindCalls++
+	if m.FindError != nil {
+		return "", m.FindError
+	}
+	if m.FindIDOverride != nil {
+		if id, ok := m.FindIDOverride[userID]; ok {
+			return id, nil
+		}
+	}
+	return "mock-k-id-" + userID, nil
 }
-func (m *MockKratosAdmin) UpdateIdentityPassword(ctx context.Context, identityID, password string) error { return nil }
-func (m *MockKratosAdmin) SetIdentityState(ctx context.Context, identityID string, active bool) error { return nil }
-func (m *MockKratosAdmin) DeleteIdentity(ctx context.Context, identityID string) error { return nil }
+func (m *MockKratosAdmin) UpdateIdentityPassword(ctx context.Context, identityID, password string) error {
+	m.PasswordResets = append(m.PasswordResets, identityID)
+	return nil
+}
+func (m *MockKratosAdmin) SetIdentityState(ctx context.Context, identityID string, active bool) error {
+	if m.StateChanges == nil {
+		m.StateChanges = make(map[string]bool)
+	}
+	m.StateChanges[identityID] = active
+	return nil
+}
+func (m *MockKratosAdmin) DeleteIdentity(ctx context.Context, identityID string) error {
+	m.DeletedIDs = append(m.DeletedIDs, identityID)
+	return nil
+}
