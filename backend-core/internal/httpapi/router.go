@@ -66,7 +66,9 @@ type RouterConfig struct {
 	PermissionCache     *PermissionCache
 	KratosLogin         KratosLoginClient
 	HydraAdmin          HydraLoginAdmin
+	HydraLogout         HydraLogoutAdmin
 	HydraToken          HydraTokenExchanger
+	HydraRevoker        HydraTokenRevoker
 	KratosAdmin         KratosAdmin
 	HRDB                HRDBClient
 	SnapshotProvider    SnapshotProvider
@@ -131,6 +133,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.GET("/hr/lookup", handler.hrLookup)
 	v1.POST("/auth/signup", handler.authSignUp)
 	v1.POST("/auth/login", handler.authLogin)
+	v1.POST("/auth/logout", handler.authLogout)
 	v1.POST("/auth/token", handler.authToken)
 	v1.GET("/auth/consent", handler.authConsent)
 	if cfg.RealtimeHub != nil {
