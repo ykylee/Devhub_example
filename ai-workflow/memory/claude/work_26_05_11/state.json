@@ -2,7 +2,7 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "claude/work_26_05_11",
-  "status": "Track L merged + deploy guide (#49) merged. PR-S1 (#52) + PR-S2 (/admin/settings shell + 4-tab move) implemented as stack PRs awaiting merge. PR-S3 next.",
+  "status": "Track L merged + deploy guide (#49) merged. PR-S1 (#52), PR-S2, PR-S3 (accounts admin endpoints + frontend service wiring) implemented as stack PRs awaiting merge. PR-S4 next.",
   "updated_at": "2026-05-11T00:00:00Z",
   "head_commit": "0620689",
   "head_summary": "Merge pull request #43 from ykylee/codex/wiki_init (main fast-forward baseline for this sprint)",
@@ -61,7 +61,7 @@
       "prs": [
         {"id": "PR-S1", "subject": "Sidebar gating + role-based default landing + Sys Admin group split", "status": "done", "blocked_by": [], "completed_on": "2026-05-11"},
         {"id": "PR-S2", "subject": "/admin/settings shell + 4-tab move (users/organization/permissions sub-routes)", "status": "done", "blocked_by": ["PR-S1"], "completed_on": "2026-05-11"},
-        {"id": "PR-S3", "subject": "user admin actions wired to backend (issue/reset/disable/delete via Kratos admin)", "status": "planned", "blocked_by": ["PR-S2", "PR-L3"]},
+        {"id": "PR-S3", "subject": "user admin actions wired to backend (issue/reset/disable/delete via Kratos admin)", "status": "done", "blocked_by": ["PR-S2", "PR-L3"], "completed_on": "2026-05-11"},
         {"id": "PR-S4", "subject": "org chart coords persistence + leader change", "status": "planned", "blocked_by": ["PR-S2"]}
       ]
     }

@@ -46,6 +46,10 @@ type AuditStore interface {
 
 type KratosAdmin interface {
 	CreateIdentity(ctx context.Context, email, name, userID, password string) (string, error)
+	FindIdentityByUserID(ctx context.Context, userID string) (string, error)
+	UpdateIdentityPassword(ctx context.Context, identityID, password string) error
+	SetIdentityState(ctx context.Context, identityID string, active bool) error
+	DeleteIdentity(ctx context.Context, identityID string) error
 }
 
 type HRDBClient interface {
@@ -121,6 +125,10 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.GET("/users/:user_id", handler.getUser)
 	v1.PATCH("/users/:user_id", handler.updateUser)
 	v1.DELETE("/users/:user_id", handler.deleteUser)
+	v1.POST("/accounts", handler.createAccount)
+	v1.PUT("/accounts/:user_id/password", handler.resetAccountPassword)
+	v1.PATCH("/accounts/:user_id", handler.updateAccountStatus)
+	v1.DELETE("/accounts/:user_id", handler.deleteAccount)
 	v1.GET("/organization/hierarchy", handler.getHierarchy)
 	v1.PUT("/organization/hierarchy", handler.updateHierarchy)
 	v1.POST("/organization/units", handler.createOrgUnit)
