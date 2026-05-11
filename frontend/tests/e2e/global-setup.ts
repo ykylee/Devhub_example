@@ -98,9 +98,9 @@ function seedDevhubUsers(): void {
   }
   const backendDir = path.resolve(__dirname, "..", "..", "..", "backend-core");
   const sqlPath = path.resolve(__dirname, "..", "..", "..", "infra", "idp", "sql", "002_seed_e2e_users.sql");
-  const result = spawnSync("go", ["run", "./cmd/idp-apply-schemas", "-sql", sqlPath], {
+  const result = spawnSync("go", ["run", "./cmd/idp-apply-schemas", "-dsn", DSN, "-sql", sqlPath], {
     cwd: backendDir,
-    env: { ...process.env, DSN },
+    env: { ...process.env, DSN, DEVHUB_DB_URL: DSN },
     stdio: "inherit",
     shell: process.platform === "win32",
   });

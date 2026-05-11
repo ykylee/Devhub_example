@@ -19,30 +19,35 @@ test.describe("/account password change end-to-end", () => {
   // new password — all server-side, so the api-mode login path stays
   // cookie-free.
   test("changes password, signs out, and re-authenticates with the new password", async ({ page }) => {
-    // 1) log in with the seeded password
-    await loginAs(page, SEEDED.developer);
+    let passwordRotated = false;
+    try {
+      // 1) log in with the seeded password
+      await loginAs(page, SEEDED.developer);
 
-    // 2) go to /account and submit the password change form
-    await page.goto("/account");
-    await page.getByLabel(/current password/i).fill(original);
-    await page.getByLabel(/^new password$/i).fill(rotated);
-    await page.getByLabel(/confirm new password/i).fill(rotated);
-    await page.getByRole("button", { name: /save changes/i }).click();
-    await expect(page.getByText(/password updated successfully/i)).toBeVisible({ timeout: 15_000 });
+      // 2) go to /account and submit the password change form
+      await page.goto("/account");
+      await page.getByLabel(/current password/i).fill(original);
+      await page.getByLabel(/^new password$/i).fill(rotated);
+      await page.getByLabel(/confirm new password/i).fill(rotated);
+      await page.getByRole("button", { name: /save changes/i }).click();
+      await expect(page.getByText(/password updated successfully/i)).toBeVisible({ timeout: 15_000 });
+      passwordRotated = true;
 
-    // 3) sign out — Hydra session must end so /login asks for credentials
-    await page.getByText(SEEDED.developer.user_id, { exact: false }).first().click();
-    await page.getByRole("button", { name: /sign out/i }).click();
+      // 3) sign out — Hydra session must end so /login asks for credentials
+      await page.getByText(SEEDED.developer.user_id, { exact: false }).first().click();
+      await page.getByRole("button", { name: /sign out/i }).click();
 
-    // 4) log in with the new password
-    await loginAs(page, { ...SEEDED.developer, password: rotated });
-
-    // 5) cleanup — rotate back to the original so the seed remains usable
-    await page.goto("/account");
-    await page.getByLabel(/current password/i).fill(rotated);
-    await page.getByLabel(/^new password$/i).fill(original);
-    await page.getByLabel(/confirm new password/i).fill(original);
-    await page.getByRole("button", { name: /save changes/i }).click();
-    await expect(page.getByText(/password updated successfully/i)).toBeVisible({ timeout: 15_000 });
+      // 4) log in with the new password
+      await loginAs(page, { ...SEEDED.developer, password: rotated });
+    } finally {
+      if (!passwordRotated) return;
+      // Always attempt rollback so future specs still use seeded credentials.
+      await page.goto("/account");
+      await page.getByLabel(/current password/i).fill(rotated);
+      await page.getByLabel(/^new password$/i).fill(original);
+      await page.getByLabel(/confirm new password/i).fill(original);
+      await page.getByRole("button", { name: /save changes/i }).click();
+      await expect(page.getByText(/password updated successfully/i)).toBeVisible({ timeout: 15_000 });
+    }
   });
 });
