@@ -4,10 +4,12 @@ import type { TokenResponse } from "@/lib/services/auth.service";
 
 const ACCESS_TOKEN_KEY = "devhub_access_token";
 const REFRESH_TOKEN_KEY = "devhub_refresh_token";
+const ID_TOKEN_KEY = "devhub_id_token";
 
 class TokenStore {
   private accessToken: string | null = null;
   private refreshToken: string | null = null;
+  private idToken: string | null = null;
 
   private ensureLoaded() {
     if (typeof window === "undefined") return;
@@ -16,6 +18,9 @@ class TokenStore {
     }
     if (this.refreshToken === null) {
       this.refreshToken = sessionStorage.getItem(REFRESH_TOKEN_KEY);
+    }
+    if (this.idToken === null) {
+      this.idToken = sessionStorage.getItem(ID_TOKEN_KEY);
     }
   }
 
@@ -29,15 +34,29 @@ class TokenStore {
     return this.refreshToken;
   }
 
+  // id_token is held so RP-initiated logout can pass it as id_token_hint to
+  // Hydra /oauth2/sessions/logout. Without it Hydra cannot identify which
+  // login session to terminate and the SSO cookie remains valid.
+  getIdToken(): string | null {
+    this.ensureLoaded();
+    return this.idToken;
+  }
+
   save(tokens: TokenResponse) {
     if (typeof window === "undefined") return;
     this.accessToken = tokens.access_token;
     this.refreshToken = tokens.refresh_token ?? null;
+    this.idToken = tokens.id_token ?? null;
     sessionStorage.setItem(ACCESS_TOKEN_KEY, tokens.access_token);
     if (tokens.refresh_token) {
       sessionStorage.setItem(REFRESH_TOKEN_KEY, tokens.refresh_token);
     } else {
       sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+    }
+    if (tokens.id_token) {
+      sessionStorage.setItem(ID_TOKEN_KEY, tokens.id_token);
+    } else {
+      sessionStorage.removeItem(ID_TOKEN_KEY);
     }
   }
 
@@ -45,8 +64,10 @@ class TokenStore {
     if (typeof window === "undefined") return;
     this.accessToken = null;
     this.refreshToken = null;
+    this.idToken = null;
     sessionStorage.removeItem(ACCESS_TOKEN_KEY);
     sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+    sessionStorage.removeItem(ID_TOKEN_KEY);
   }
 }
 

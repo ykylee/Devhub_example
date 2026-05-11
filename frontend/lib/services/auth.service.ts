@@ -4,9 +4,10 @@ import { AuthenticatedActor, useStore } from "../store";
 import { identityService } from "./identity.service";
 import { tokenStore } from "@/lib/auth/token-store";
 import { consumeVerifier, createPkceState } from "@/lib/auth/pkce";
-import { performKratosBrowserLogout } from "@/lib/auth/kratos-logout";
+import { killKratosSession, performKratosBrowserLogout } from "@/lib/auth/kratos-logout";
 
 const OIDC_AUTH_URL = process.env.NEXT_PUBLIC_OIDC_AUTH_URL ?? "http://localhost:4444/oauth2/auth";
+const HYDRA_PUBLIC_BASE = OIDC_AUTH_URL.replace(/\/oauth2\/auth\/?$/, "");
 const OIDC_CLIENT_ID = process.env.NEXT_PUBLIC_OIDC_CLIENT_ID ?? "devhub-frontend";
 const OIDC_REDIRECT_URI = typeof window !== "undefined" 
   ? `${window.location.origin}/auth/callback`
@@ -80,31 +81,54 @@ class AuthService {
   }
 
   /**
-   * Header Sign Out flow (no Hydra logout_challenge in scope). DEC-1=B:
-   *   1) backend revokes the refresh token via Hydra public /oauth2/revoke
-   *   2) local token + actor state cleared
-   *   3) Kratos browser logout navigates to / via Kratos return URL
+   * Header Sign Out flow.
    *
-   * Hydra session is not actively terminated here — the next /login attempt
-   * has no Kratos credential, so Hydra cannot accept and the user is forced
-   * back through the password flow.
+   * Codex review (PR #46) showed the prior path left Hydra's SSO cookie
+   * intact. Since auth_login.go fast-paths hydraReq.Skip=true, the next
+   * /login could silently re-authenticate without a Kratos credential,
+   * making Sign Out cosmetic. We now drive Hydra RP-initiated logout
+   * (id_token_hint -> /oauth2/sessions/logout) which lands the browser at
+   * /auth/logout?logout_challenge=... where completeRPInitiatedLogout
+   * finishes both Hydra accept and Kratos cookie kill.
+   *
+   * Fallback (no id_token persisted, e.g., legacy session): same Kratos
+   * browser logout as before so the user is still bounced to /.
    */
   public async logout(): Promise<void> {
     const refreshToken = tokenStore.getRefreshToken();
+    const idToken = tokenStore.getIdToken();
+
+    // Best-effort backend revoke. We do not await: the Hydra navigation
+    // below must happen even if revoke is slow or fails. The RP-initiated
+    // path also revokes (with the same token) as a second defence layer.
     if (refreshToken) {
-      try {
-        await fetch("/api/v1/auth/logout", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            refresh_token: refreshToken,
-            client_id: OIDC_CLIENT_ID,
-          }),
-        });
-      } catch (err) {
+      void fetch("/api/v1/auth/logout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          refresh_token: refreshToken,
+          client_id: OIDC_CLIENT_ID,
+        }),
+      }).catch((err) => {
         console.warn("[AuthService] backend logout call failed (continuing)", err);
-      }
+      });
     }
+
+    if (idToken) {
+      const url = new URL(`${HYDRA_PUBLIC_BASE}/oauth2/sessions/logout`);
+      url.searchParams.set("id_token_hint", idToken);
+      url.searchParams.set("post_logout_redirect_uri", `${window.location.origin}/`);
+      // Clear local state before navigating; completeRPInitiatedLogout will
+      // re-clear when /auth/logout loads, but doing it here keeps any
+      // intermediate state (back button, devtools) clean.
+      tokenStore.clear();
+      useStore.getState().clearActor();
+      window.location.assign(url.toString());
+      return;
+    }
+
+    // Fallback: no id_token to drive Hydra logout. Kill Kratos cookie via
+    // navigation so at least one half of the SSO state is gone.
     tokenStore.clear();
     useStore.getState().clearActor();
     await performKratosBrowserLogout("/");
@@ -112,17 +136,25 @@ class AuthService {
 
   /**
    * RP-initiated logout entry point (Hydra urls.logout target /auth/logout).
-   * Hydra has redirected the browser here with a logout_challenge; we hand
-   * that to the backend, clear local state, and navigate to Hydra's
-   * redirect_to which finishes the OIDC logout cleanup.
+   * Hydra has redirected the browser here with a logout_challenge; backend
+   * accepts the challenge (and revokes the refresh token if we still hold
+   * one — Codex review P2), Kratos cookie is killed via fetch (best-effort,
+   * cannot navigate twice), then we follow Hydra's redirect_to.
    */
   public async completeRPInitiatedLogout(challenge: string): Promise<void> {
+    const refreshToken = tokenStore.getRefreshToken();
+
     let redirectTo = "/";
     try {
+      const body: Record<string, string> = { logout_challenge: challenge };
+      if (refreshToken) {
+        body.refresh_token = refreshToken;
+        body.client_id = OIDC_CLIENT_ID;
+      }
       const res = await fetch("/api/v1/auth/logout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ logout_challenge: challenge }),
+        body: JSON.stringify(body),
       });
       if (res.ok) {
         const payload = (await res.json()) as { data?: { redirect_to?: string } };
@@ -135,6 +167,10 @@ class AuthService {
     } catch (err) {
       console.warn("[AuthService] backend logout accept call failed", err);
     }
+
+    // Best-effort Kratos cookie kill before following Hydra's redirect.
+    await killKratosSession();
+
     tokenStore.clear();
     useStore.getState().clearActor();
     window.location.assign(redirectTo);
