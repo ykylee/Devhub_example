@@ -43,8 +43,11 @@ export async function loginAs(page: Page, user: SeededUser) {
   // Kratos-backed /auth/login form.
   await page.waitForURL(/\/auth\/login\?login_challenge=/, { timeout: 15_000 });
 
-  await page.getByLabel(/email/i).fill(user.email);
-  await page.getByLabel(/password/i).fill(user.password);
+  // /auth/login asks for the System ID (DevHub users.user_id), not the
+  // email — Kratos resolves credentials via metadata_public.user_id. The
+  // label is "System ID" + the input is wired with htmlFor=identifier.
+  await page.getByLabel(/system id/i).fill(user.user_id);
+  await page.getByLabel(/^password$/i).fill(user.password);
   await page.getByRole("button", { name: /sign in/i }).click();
 
   // After successful login the OIDC callback fires and AuthGuard +

@@ -122,11 +122,17 @@ export default function AccountPage() {
             <form onSubmit={handlePasswordUpdate} className="p-8 space-y-6">
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">
+                  <label
+                    htmlFor="current-password"
+                    className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1"
+                  >
                     Current Password
                   </label>
                   <input
+                    id="current-password"
+                    name="current-password"
                     type="password"
+                    autoComplete="current-password"
                     required
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
@@ -137,11 +143,17 @@ export default function AccountPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">
+                    <label
+                      htmlFor="new-password"
+                      className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1"
+                    >
                       New Password
                     </label>
                     <input
+                      id="new-password"
+                      name="new-password"
                       type="password"
+                      autoComplete="new-password"
                       required
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
@@ -150,11 +162,17 @@ export default function AccountPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">
+                    <label
+                      htmlFor="confirm-new-password"
+                      className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1"
+                    >
                       Confirm New Password
                     </label>
                     <input
+                      id="confirm-new-password"
+                      name="confirm-new-password"
                       type="password"
+                      autoComplete="new-password"
                       required
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
