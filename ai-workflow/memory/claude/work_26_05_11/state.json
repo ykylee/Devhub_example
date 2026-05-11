@@ -1,0 +1,96 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "claude/work_26_05_11",
+  "status": "PR-L1 done (backend POST /api/v1/auth/logout + Hydra accept/revoke + 8 handler tests PASS, go test ./... PASS). Awaiting commit/PR. PR-L2 next.",
+  "updated_at": "2026-05-11T00:00:00Z",
+  "head_commit": "0620689",
+  "head_summary": "Merge pull request #43 from ykylee/codex/wiki_init (main fast-forward baseline for this sprint)",
+  "session_pointers": {
+    "sprint_plan": "ai-workflow/memory/claude/work_26_05_11/backlog/2026-05-11.md",
+    "session_handoff_path": "ai-workflow/memory/claude/work_26_05_11/session_handoff.md",
+    "work_backlog_path": "ai-workflow/memory/claude/work_26_05_11/work_backlog.md",
+    "integrated_roadmap": "docs/development_roadmap.md",
+    "frontend_roadmap": "docs/frontend_development_roadmap.md",
+    "backend_roadmap": "ai-workflow/memory/backend_development_roadmap.md",
+    "adr_idp": "docs/adr/0001-idp-selection.md",
+    "adr_rbac": "docs/adr/0002-rbac-policy-edit-api.md",
+    "previous_login_sprint": "ai-workflow/memory/claude/login_action/backlog/2026-05-08.md",
+    "redesign_concept_baseline": "ai-workflow/memory/codex/redesign_concept/backlog/2026-05-10.md",
+    "frontend_260510_baseline": "ai-workflow/memory/gemini/frontend_260510/backlog/2026-05-10.md",
+    "hydra_config": "infra/idp/hydra.yaml",
+    "kratos_config": "infra/idp/kratos.yaml"
+  },
+  "decisions_made": [
+    {
+      "id": "DEC-1",
+      "topic": "logout token revoke path",
+      "chosen": "B split",
+      "decided_on": "2026-05-11",
+      "summary": "backend handles Hydra /admin/oauth2/auth/requests/logout/accept + Hydra /oauth2/revoke; frontend calls Kratos /self-service/logout/browser then /self-service/logout?token=...",
+      "rationale": "Kratos session cookie is held by browser; frontend direct call is the standard. Backend logout audit + Kratos webhook covers audit."
+    },
+    {
+      "id": "DEC-2",
+      "topic": "password change path",
+      "chosen": "B frontend direct",
+      "decided_on": "2026-05-11",
+      "summary": "frontend calls Kratos public settings flow (browser -> optional re-auth -> POST settings) directly. No backend proxy.",
+      "rationale": "Kratos settings flow is session-cookie based. Backend proxy adds cookie pass-through complexity for marginal audit gain. Audit deferred to Kratos webhook follow-up."
+    },
+    {
+      "id": "DEC-3",
+      "topic": "system settings menu label/path",
+      "chosen": "C /admin/settings under existing /admin",
+      "decided_on": "2026-05-11",
+      "summary": "/admin stays as Sys Admin Dashboard (infra topology). /admin/settings/{users,organization,permissions} is new. Sidebar exposes 'Sys Admin' group with Dashboard + Settings, system_admin only.",
+      "rationale": "Minimal route migration cost. Maps cleanly to redesign concept terms (Sys Admin Dashboard + Sys Admin Settings)."
+    }
+  ],
+  "tracks": {
+    "L_login_finalize": {
+      "status": "ready",
+      "prs": [
+        {"id": "PR-L1", "subject": "backend POST /api/v1/auth/logout (Hydra accept + revoke; Kratos none)", "status": "done", "blocked_by": [], "completed_on": "2026-05-11"},
+        {"id": "PR-L2", "subject": "frontend /auth/logout + Header rewire + Kratos browser logout", "status": "planned", "blocked_by": ["PR-L1"]},
+        {"id": "PR-L3", "subject": "/account password change via Kratos public settings flow (no backend)", "status": "planned", "blocked_by": []}
+      ]
+    },
+    "S_system_settings": {
+      "status": "ready",
+      "prs": [
+        {"id": "PR-S1", "subject": "Sidebar gating + role-based default landing + Sys Admin group split", "status": "planned", "blocked_by": []},
+        {"id": "PR-S2", "subject": "/admin/settings shell + 4-tab move (users/organization/permissions sub-routes)", "status": "planned", "blocked_by": ["PR-S1"]},
+        {"id": "PR-S3", "subject": "user admin actions wired to backend (issue/reset/disable/delete via Kratos admin)", "status": "planned", "blocked_by": ["PR-S2", "PR-L3"]},
+        {"id": "PR-S4", "subject": "org chart coords persistence + leader change", "status": "planned", "blocked_by": ["PR-S2"]}
+      ]
+    }
+  },
+  "diagnostics_2026_05_11": {
+    "login_done": [
+      "POST /api/v1/auth/login",
+      "POST /api/v1/auth/token",
+      "POST /api/v1/auth/signup",
+      "GET /api/v1/auth/consent",
+      "/login auto OIDC + PKCE",
+      "/auth/login password form",
+      "/auth/callback token exchange",
+      "/auth/error, /auth/signup",
+      "tokenStore + pkce + apiClient auto Authorization header",
+      "AuthGuard 401 -> /login redirect"
+    ],
+    "login_missing": [
+      "POST /api/v1/auth/logout (router not registered)",
+      "/auth/logout route (Hydra urls.logout target)",
+      "Header Sign Out actually revoking Hydra + Kratos sessions",
+      "/account password change real implementation (account.service.ts is mock)"
+    ],
+    "system_admin_state": {
+      "/admin": "infra topology, no permission guard",
+      "/organization": "4 tabs guarded by useStore.role==System Admin (client store), menu still visible to all",
+      "Sidebar": "no system_admin gating yet",
+      "user_admin_actions": "MemberTable issue/reset/disable still mock (accountService)",
+      "org_admin_actions": "OrgUnits CRUD wired; coordinate persistence + leader change pending"
+    }
+  }
+}

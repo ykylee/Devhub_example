@@ -86,17 +86,23 @@ func main() {
 	// fields would defeat the handler's `cfg.KratosLogin == nil` guard, so
 	// we leave the fields untouched when either env var is missing.
 	var (
-		hydraAdmin  httpapi.HydraLoginAdmin
-		hydraToken  httpapi.HydraTokenExchanger
-		kratosLogin httpapi.KratosLoginClient
-		kratosAdmin httpapi.KratosAdmin
+		hydraAdmin   httpapi.HydraLoginAdmin
+		hydraLogout  httpapi.HydraLogoutAdmin
+		hydraToken   httpapi.HydraTokenExchanger
+		hydraRevoker httpapi.HydraTokenRevoker
+		kratosLogin  httpapi.KratosLoginClient
+		kratosAdmin  httpapi.KratosAdmin
 	)
 	if cfg.HydraAdminURL != "" {
-		hydraAdmin = &httpapi.HydraAdminClient{AdminURL: cfg.HydraAdminURL}
+		adminClient := &httpapi.HydraAdminClient{AdminURL: cfg.HydraAdminURL}
+		hydraAdmin = adminClient
+		hydraLogout = adminClient
 		log.Printf("hydra admin client wired: %s", cfg.HydraAdminURL)
 	}
 	if cfg.HydraPublicURL != "" {
-		hydraToken = &httpapi.HydraTokenClient{PublicURL: cfg.HydraPublicURL}
+		tokenClient := &httpapi.HydraTokenClient{PublicURL: cfg.HydraPublicURL}
+		hydraToken = tokenClient
+		hydraRevoker = tokenClient
 		log.Printf("hydra public token client wired: %s", cfg.HydraPublicURL)
 	}
 	if cfg.KratosPublicURL != "" {
@@ -127,7 +133,9 @@ func main() {
 		BearerTokenVerifier: verifier,
 		KratosLogin:         kratosLogin,
 		HydraAdmin:          hydraAdmin,
+		HydraLogout:         hydraLogout,
 		HydraToken:          hydraToken,
+		HydraRevoker:        hydraRevoker,
 		KratosAdmin:         kratosAdmin,
 		HRDB:                hrdbMock,
 		SnapshotProvider: httpapi.RuntimeSnapshotProvider{

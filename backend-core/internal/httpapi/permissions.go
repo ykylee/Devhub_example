@@ -130,6 +130,7 @@ var routePermissionTable = map[routeKey]routePolicy{
 	// Auth proxy endpoints run before the user has a token; Hydra's
 	// challenge tokens (single-use, lifespan-bound) protect them.
 	{http.MethodPost, "/api/v1/auth/login"}:  {Bypass: true},
+	{http.MethodPost, "/api/v1/auth/logout"}: {Bypass: true},
 	{http.MethodPost, "/api/v1/auth/token"}:  {Bypass: true},
 	{http.MethodPost, "/api/v1/auth/signup"}: {Bypass: true},
 	{http.MethodGet, "/api/v1/auth/consent"}: {Bypass: true},

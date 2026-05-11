@@ -217,6 +217,120 @@ func (c *HydraAdminClient) GetConsentRequest(ctx context.Context, challenge stri
 	return out, nil
 }
 
+// HydraLogoutRequest is the slice of GET /admin/oauth2/auth/requests/logout
+// the proxy needs before accepting an RP-initiated logout. The handler audits
+// `subject` so we can correlate the logout to a user without trusting the
+// browser-supplied id_token_hint.
+type HydraLogoutRequest struct {
+	Subject     string
+	SID         string
+	RPInitiated bool
+	RequestURL  string
+	Client      struct {
+		ClientID   string
+		ClientName string
+	}
+}
+
+// GetLogoutRequest fetches the metadata Hydra associates with a given
+// logout_challenge. NotFound is returned as ErrHydraChallengeNotFound so the
+// handler can map it to 410 (the same shape as login).
+func (c *HydraAdminClient) GetLogoutRequest(ctx context.Context, challenge string) (HydraLogoutRequest, error) {
+	if strings.TrimSpace(c.AdminURL) == "" {
+		return HydraLogoutRequest{}, errors.New("HydraAdminClient.AdminURL is not configured")
+	}
+	if strings.TrimSpace(challenge) == "" {
+		return HydraLogoutRequest{}, errors.New("logout_challenge is required")
+	}
+	endpoint := strings.TrimRight(c.AdminURL, "/") +
+		"/admin/oauth2/auth/requests/logout?logout_challenge=" + url.QueryEscape(challenge)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return HydraLogoutRequest{}, fmt.Errorf("build hydra get logout: %w", err)
+	}
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := c.client().Do(req)
+	if err != nil {
+		return HydraLogoutRequest{}, fmt.Errorf("call hydra get logout: %w", err)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return HydraLogoutRequest{}, fmt.Errorf("read hydra get logout: %w", err)
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		return HydraLogoutRequest{}, ErrHydraChallengeNotFound
+	}
+	if resp.StatusCode/100 != 2 {
+		return HydraLogoutRequest{}, fmt.Errorf("hydra get logout status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+
+	var raw struct {
+		Subject     string `json:"subject"`
+		SID         string `json:"sid"`
+		RPInitiated bool   `json:"rp_initiated"`
+		RequestURL  string `json:"request_url"`
+		Client      struct {
+			ClientID   string `json:"client_id"`
+			ClientName string `json:"client_name"`
+		} `json:"client"`
+	}
+	if err := json.Unmarshal(body, &raw); err != nil {
+		return HydraLogoutRequest{}, fmt.Errorf("decode hydra get logout: %w", err)
+	}
+	out := HydraLogoutRequest{
+		Subject:     raw.Subject,
+		SID:         raw.SID,
+		RPInitiated: raw.RPInitiated,
+		RequestURL:  raw.RequestURL,
+	}
+	out.Client.ClientID = raw.Client.ClientID
+	out.Client.ClientName = raw.Client.ClientName
+	return out, nil
+}
+
+// AcceptLogoutRequest tells Hydra that the RP-initiated logout has been
+// confirmed. Hydra responds with redirect_to which the frontend follows to
+// finish the post_logout_redirect_uri navigation.
+func (c *HydraAdminClient) AcceptLogoutRequest(ctx context.Context, challenge string) (string, error) {
+	if strings.TrimSpace(c.AdminURL) == "" {
+		return "", errors.New("HydraAdminClient.AdminURL is not configured")
+	}
+	if strings.TrimSpace(challenge) == "" {
+		return "", errors.New("logout_challenge is required")
+	}
+	endpoint := strings.TrimRight(c.AdminURL, "/") +
+		"/admin/oauth2/auth/requests/logout/accept?logout_challenge=" + url.QueryEscape(challenge)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, endpoint, nil)
+	if err != nil {
+		return "", fmt.Errorf("build hydra accept logout: %w", err)
+	}
+	req.Header.Set("Accept", "application/json")
+	resp, err := c.client().Do(req)
+	if err != nil {
+		return "", fmt.Errorf("call hydra accept logout: %w", err)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("read hydra accept logout: %w", err)
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		return "", ErrHydraChallengeNotFound
+	}
+	if resp.StatusCode/100 != 2 {
+		return "", fmt.Errorf("hydra accept logout status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+	var out struct {
+		RedirectTo string `json:"redirect_to"`
+	}
+	if err := json.Unmarshal(body, &out); err != nil {
+		return "", fmt.Errorf("decode hydra accept logout: %w", err)
+	}
+	return out.RedirectTo, nil
+}
+
 // AcceptConsentRequest tells Hydra that the user has granted the requested scopes.
 func (c *HydraAdminClient) AcceptConsentRequest(ctx context.Context, challenge string, grantedScope []string, remember bool, rememberFor int) (string, error) {
 	if strings.TrimSpace(c.AdminURL) == "" {
