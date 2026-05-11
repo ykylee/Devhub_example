@@ -207,6 +207,37 @@ func startsWithReqPrefix(s string) bool {
 	return len(s) > 4 && s[:4] == "req_"
 }
 
+// T-M1-04 fix-up (Codex P1, PR #57): NewRouter calls SetTrustedProxies(nil)
+// so client-supplied X-Forwarded-For cannot forge audit_logs.source_ip. The
+// stored IP must equal the actual peer address (RemoteAddr), regardless of
+// what the request advertises in forwarding headers.
+func TestAuditEnrichment_SourceIPIgnoresForwardedHeader(t *testing.T) {
+	orgs := newMemoryOrganizationStore()
+	audits := &memoryAuditStore{}
+	router := testRouter(RouterConfig{OrganizationStore: orgs, AuditStore: audits})
+
+	body := []byte(`{"user_id":"u-ip","email":"ip@x","display_name":"I","role":"developer","status":"active"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/users", bytes.NewReader(body))
+	req.RemoteAddr = "203.0.113.42:55001"
+	req.Header.Set("X-Forwarded-For", "1.2.3.4") // attacker-supplied; must be ignored
+	req.Header.Set("X-Real-IP", "5.6.7.8")       // attacker-supplied; must be ignored
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if len(audits.logs) != 1 {
+		t.Fatalf("expected one audit row, got %d", len(audits.logs))
+	}
+	got := audits.logs[0].SourceIP
+	if got == "1.2.3.4" || got == "5.6.7.8" {
+		t.Fatalf("audit SourceIP=%q honoured forged forwarding header — SetTrustedProxies(nil) regression", got)
+	}
+	if got != "203.0.113.42" {
+		t.Errorf("audit SourceIP=%q, want 203.0.113.42 (RemoteAddr peer)", got)
+	}
+}
+
 // T-M1-04: bearer-verified request → source_type=oidc. The dev-fallback /
 // system split is already covered by
 // TestAuditEnrichment_RequestIDMatchesResponseHeaderAndAuditRow above; this
