@@ -2,7 +2,7 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "claude/work_26_05_11-b",
-  "status": "Decisions DEC-1/2/3 confirmed 2026-05-11 (A/A/A recommended). PR-B diagnostic in progress (envelope/role wire/types/WS audit).",
+  "status": "DEC-1/2/3 confirmed (A/A/A). PR-B1 backend envelope realignment done (auth_signup + hr_lookup + auth_consent label) + envelope_test.go 5 cases added. go test ./... PASS. PR-B2 (frontend types split) next.",
   "updated_at": "2026-05-11T02:30:00Z",
   "head_commit": "818d54a",
   "head_summary": "Merge pull request #55 from ykylee/claude/work_26_05_11-s4 (work_26_05_11 final PR)",
@@ -49,8 +49,9 @@
     "M1_backlog": {
       "status": "ready",
       "prs": [
-        {"id": "PR-B", "subject": "API envelope + role wire + frontend types split + WebSocket envelope (T-M1-02·07·08)", "status": "planned", "blocked_by": ["DEC-1", "DEC-3"]},
-        {"id": "PR-C", "subject": "Command lifecycle 6 states + dry-run/live boundary + auth_test matrix (T-M1-03·05)", "status": "planned", "blocked_by": ["DEC-2"]}
+        {"id": "PR-B1", "subject": "backend envelope realignment (auth_signup + hr_lookup + auth_consent label) + envelope_test", "status": "done", "completed_on": "2026-05-11"},
+        {"id": "PR-B2", "subject": "frontend wire vs UI types split + contract sub-agent verification", "status": "planned"},
+        {"id": "PR-C", "subject": "Command lifecycle 6 states + dry-run/live boundary + auth_test matrix (T-M1-03·05)", "status": "planned"}
       ]
     }
   },
