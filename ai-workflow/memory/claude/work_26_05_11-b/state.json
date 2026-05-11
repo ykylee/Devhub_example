@@ -2,8 +2,8 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "claude/work_26_05_11-b",
-  "status": "Sprint baseline created 2026-05-11. Sprint topic not yet decided. Cleanup PR (work_26_05_11 closure + main state.json sync + this baseline) is the first commit; subsequent PRs will be cut against the chosen topic.",
-  "updated_at": "2026-05-11T02:15:00Z",
+  "status": "Sprint topic chosen 2026-05-11: M1 backlog cleanup (PR-B + PR-C). Backlog drafted; PR entry blocked on DEC-1/2/3.",
+  "updated_at": "2026-05-11T02:30:00Z",
   "head_commit": "818d54a",
   "head_summary": "Merge pull request #55 from ykylee/claude/work_26_05_11-s4 (work_26_05_11 final PR)",
   "session_pointers": {
@@ -11,18 +11,44 @@
     "session_handoff_path": "ai-workflow/memory/claude/work_26_05_11-b/session_handoff.md",
     "work_backlog_path": "ai-workflow/memory/claude/work_26_05_11-b/work_backlog.md",
     "previous_sprint": "ai-workflow/memory/claude/work_26_05_11/ (CLOSED)",
+    "m1_sprint_plan_origin": "ai-workflow/memory/claude/m1-sprint-plan/backlog/2026-05-08.md",
+    "m1_pr_review_actions": "ai-workflow/memory/M1-PR-review-actions.md",
     "main_state": "ai-workflow/memory/state.json",
     "integrated_roadmap": "docs/development_roadmap.md",
     "frontend_roadmap": "docs/frontend_development_roadmap.md",
     "backend_roadmap": "ai-workflow/memory/backend_development_roadmap.md",
-    "deploy_guide": "docs/setup/test-server-deployment.md",
-    "adr_idp": "docs/adr/0001-idp-selection.md",
-    "adr_rbac": "docs/adr/0002-rbac-policy-edit-api.md"
+    "api_contract": "docs/backend_api_contract.md"
   },
-  "candidate_topics": [
-    "M1 잔여 (T-M1-02·03·04·07·08): API envelope, command lifecycle, audit actor, types split, WS envelope",
-    "M2 follow-up: Kratos identity 매핑 캐싱 (users.kratos_identity_id), Kratos webhook → audit_logs, Hydra JWKS verifier",
-    "/admin/settings/users 검색 필터 실구현",
-    "M4 entry: WebSocket resource scope filter, Python AI gRPC client, Gitea Hourly Pull worker"
+  "decisions_pending": [
+    {
+      "id": "DEC-1",
+      "topic": "envelope source-of-truth",
+      "options": ["A: backend_api_contract.md authoritative (code aligns to docs)", "B: code authoritative (docs aligns to code)"],
+      "blocks": ["PR-B"]
+    },
+    {
+      "id": "DEC-2",
+      "topic": "dry-run command persistence",
+      "options": ["A: dry-run skips store, response-only succeeded", "B: dry-run persists with dry_run=true flag"],
+      "blocks": ["PR-C"]
+    },
+    {
+      "id": "DEC-3",
+      "topic": "WebSocket envelope schema_version format",
+      "options": ["A: '1' fixed (M1 spec)", "B: semver '1.0'"],
+      "blocks": ["PR-B"]
+    }
+  ],
+  "tracks": {
+    "M1_backlog": {
+      "status": "ready",
+      "prs": [
+        {"id": "PR-B", "subject": "API envelope + role wire + frontend types split + WebSocket envelope (T-M1-02·07·08)", "status": "planned", "blocked_by": ["DEC-1", "DEC-3"]},
+        {"id": "PR-C", "subject": "Command lifecycle 6 states + dry-run/live boundary + auth_test matrix (T-M1-03·05)", "status": "planned", "blocked_by": ["DEC-2"]}
+      ]
+    }
+  },
+  "out_of_scope": [
+    "PR-D T-M1-04 audit actor enrichment + request_id middleware + audit_logs migration — separate sprint (operational migration policy required)"
   ]
 }
