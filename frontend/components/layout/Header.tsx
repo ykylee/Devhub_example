@@ -37,8 +37,9 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
     router.push(pathMap[newRole]);
   };
 
-  const handleLogout = () => {
-    authService.logout();
+  const handleLogout = async () => {
+    setShowDropdown(false);
+    await authService.logout();
   };
 
   return (
