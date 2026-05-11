@@ -9,12 +9,12 @@ interface BadgeProps {
 
 const variants = {
   primary: "bg-primary/10 text-primary border-primary/20",
-  secondary: "bg-white/5 text-white/70 border-white/10",
+  secondary: "bg-muted text-muted-foreground border-border",
   accent: "bg-accent/10 text-accent border-accent/20",
   success: "bg-green-500/10 text-green-500 border-green-500/20",
   warning: "bg-amber-500/10 text-amber-500 border-amber-500/20",
   danger: "bg-rose-500/10 text-rose-500 border-rose-500/20",
-  glass: "glass border-white/10 text-white/80",
+  glass: "glass text-foreground/80 border-border/50",
 };
 
 export function Badge({ 

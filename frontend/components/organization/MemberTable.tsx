@@ -157,8 +157,8 @@ export function MemberTable({ members, roles, onUpdateMemberRole, onMemberCreate
                   <td className="px-6 py-4 rounded-l-2xl">
                     <div className="flex items-center gap-3">
                       <div className="relative">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border border-white/10">
-                          <span className="font-black text-foreground dark:text-white">{member.name.charAt(0)}</span>
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border border-border">
+                          <span className="font-black text-foreground">{member.name.charAt(0)}</span>
                         </div>
                         {isLeader && (
                           <div className="absolute -top-1 -right-1 bg-orange-500 rounded-full p-0.5 border border-[#030014]">
@@ -168,7 +168,7 @@ export function MemberTable({ members, roles, onUpdateMemberRole, onMemberCreate
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className="text-sm font-bold text-foreground dark:text-white">{member.name}</p>
+                          <p className="text-sm font-bold text-foreground">{member.name}</p>
                           {isDualLeader && (
                             <Badge variant="warning" className="text-[8px] py-0 px-1 uppercase">Dual</Badge>
                           )}
@@ -193,10 +193,10 @@ export function MemberTable({ members, roles, onUpdateMemberRole, onMemberCreate
                       <select
                         value={member.role}
                         onChange={(e) => onUpdateMemberRole(member.id, e.target.value)}
-                        className="bg-black/20 border border-white/10 rounded-lg text-xs font-medium text-foreground/80 dark:text-white/80 focus:ring-1 focus:ring-primary/50 focus:outline-none p-1 transition-colors hover:border-white/20"
+                        className="themed-select !py-1 !text-[11px] !rounded-lg"
                       >
                         {roles.map(r => (
-                          <option key={r.id} value={r.name} className="bg-slate-900">{r.name}</option>
+                          <option key={r.id} value={r.name} className="bg-popover text-popover-foreground">{r.name}</option>
                         ))}
                       </select>
                     </div>
@@ -240,7 +240,7 @@ export function MemberTable({ members, roles, onUpdateMemberRole, onMemberCreate
                             initial={{ opacity: 0, scale: 0.95, y: -10 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                            className="absolute right-8 top-12 z-50 w-48 glass bg-[#030014]/90 border border-white/10 rounded-xl overflow-hidden shadow-2xl py-1"
+                            className="absolute right-8 top-12 z-50 w-48 glass bg-popover/90 border border-border rounded-xl overflow-hidden shadow-2xl py-1"
                           >
                             <div className="px-3 py-2 border-b border-white/10">
                               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-left">Actions</p>
@@ -250,13 +250,13 @@ export function MemberTable({ members, roles, onUpdateMemberRole, onMemberCreate
                               <div className="py-1">
                                 <button 
                                   onClick={() => handleAdminAction('issue', member)}
-                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground dark:text-white hover:bg-white/5 transition-colors text-left"
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-primary/10 transition-colors text-left"
                                 >
                                   <Key className="w-3.5 h-3.5 text-accent" /> Issue Account
                                 </button>
                                 <button 
                                   onClick={() => handleAdminAction('reset', member)}
-                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground dark:text-white hover:bg-white/5 transition-colors text-left"
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-primary/10 transition-colors text-left"
                                 >
                                   <KeyRound className="w-3.5 h-3.5 text-orange-400" /> Force Reset Password
                                 </button>

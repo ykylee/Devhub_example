@@ -1,7 +1,5 @@
 import { Role, RbacPolicyMeta } from "./rbac.types";
-import { PermissionState } from "@/components/organization/PermissionMatrix";
 import { apiClient, ApiError } from "./api-client";
-import { RbacPolicy } from "./types";
 
 interface ListPoliciesEnvelope {
   status: string;
@@ -99,19 +97,6 @@ class RbacService {
       await apiClient("PUT", `${this.baseUrl}/api/v1/rbac/subjects/${encodeURIComponent(subjectId)}/roles`, { roles: [roleId] });
     } catch (err) {
       throw await rbacErrorFromApi(err, "setSubjectRole");
-    }
-  }
-
-  async replacePolicy(reason: string, matrix: PermissionState, policyVersion?: string): Promise<RbacPolicy> {
-    try {
-      const result = await apiClient<{ data: RbacPolicy }>("PUT", `${this.baseUrl}/api/v1/rbac/policies`, {
-        policy_version: policyVersion,
-        reason,
-        matrix,
-      });
-      return result.data;
-    } catch (err) {
-      throw await rbacErrorFromApi(err, "replacePolicy");
     }
   }
 }

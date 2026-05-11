@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { X, Users, Search, ChevronRight, ChevronLeft, Check, Crown } from "lucide-react";
 import { OrgMember } from "@/lib/services/identity.service";
@@ -32,14 +32,18 @@ export function MemberManagementModal({
   const [searchCurrent, setSearchCurrent] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  // Demote the leader automatically when they get removed from the roster.
-  // Without this the save call would target a non-member as leader, which
-  // backend rejects.
-  useEffect(() => {
-    if (leaderId && !selectedIds.has(leaderId)) {
-      setLeaderId(null);
+  const toggleMember = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+      if (leaderId === id) {
+        setLeaderId(null);
+      }
+    } else {
+      newSelected.add(id);
     }
-  }, [leaderId, selectedIds]);
+    setSelectedIds(newSelected);
+  };
 
   const handleSaveClick = async () => {
     setIsSaving(true);
@@ -63,15 +67,6 @@ export function MemberManagementModal({
         m.email.toLowerCase().includes(searchCurrent.toLowerCase())),
   );
 
-  const toggleMember = (id: string) => {
-    const newSelected = new Set(selectedIds);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
-    }
-    setSelectedIds(newSelected);
-  };
 
   const toggleLeader = (id: string) => {
     setLeaderId((prev) => (prev === id ? null : id));

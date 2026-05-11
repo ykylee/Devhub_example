@@ -64,9 +64,9 @@ export function GardenerFeed() {
           <div className="p-2 rounded-xl bg-primary/20 border border-primary/30">
             <Sparkles className="w-5 h-5 text-primary animate-pulse" />
           </div>
-          <h3 className="text-xl font-black text-white uppercase tracking-tight">AI Gardener <span className="text-primary">Advisor</span></h3>
+          <h3 className="text-xl font-black text-foreground uppercase tracking-tight">AI Gardener <span className="text-primary">Advisor</span></h3>
         </div>
-        <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full border border-white/10">
+        <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest bg-muted/50 px-3 py-1 rounded-full border border-border">
           {suggestions.length} Active Insights
         </span>
       </div>
@@ -76,7 +76,7 @@ export function GardenerFeed() {
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="glass rounded-2xl p-10 text-center border-dashed border-white/10"
+            className="glass rounded-2xl p-10 text-center border-dashed border-border"
           >
             <CheckCircle2 className="w-12 h-12 text-emerald-500/30 mx-auto mb-4" />
             <p className="text-muted-foreground text-sm font-medium italic">All systems are optimized. No suggestions at this time.</p>
@@ -91,7 +91,7 @@ export function GardenerFeed() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9, x: 20 }}
                 transition={{ duration: 0.4, delay: index * 0.1 }}
-                className="group relative glass rounded-2xl p-6 border-white/10 hover:border-primary/30 transition-all duration-500 overflow-hidden"
+                className="group relative glass rounded-2xl p-6 border-border hover:border-primary/30 transition-all duration-500 overflow-hidden"
               >
                 {/* Glow effect */}
                 <div className="absolute -inset-1 bg-gradient-to-r from-primary/10 to-accent/10 rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -106,7 +106,7 @@ export function GardenerFeed() {
                   
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-1">
-                      <h4 className="text-lg font-bold text-white group-hover:text-primary transition-colors">
+                      <h4 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors">
                         {suggestion.title}
                       </h4>
                       <div className={cn(

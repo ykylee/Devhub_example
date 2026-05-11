@@ -8,6 +8,7 @@ import { identityService, OrgMember, OrgNode } from "@/lib/services/identity.ser
 import { OrgUnitGrid } from "@/components/organization/OrgUnitGrid";
 import { OrgTree } from "@/components/organization/OrgTree";
 import { MemberManagementModal } from "@/components/organization/MemberManagementModal";
+import { useToast } from "@/components/ui/Toast";
 
 type View = "units" | "chart";
 
@@ -25,6 +26,7 @@ export default function AdminSettingsOrganizationPage() {
   const [managingUnitId, setManagingUnitId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const load = async () => {
@@ -95,10 +97,12 @@ export default function AdminSettingsOrganizationPage() {
       }
 
       setManagingUnitId(null);
+      toast("Unit changes saved successfully", "success");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to save unit";
       console.error("[admin/settings/organization] save unit failed:", error);
       setSaveError(message);
+      toast("Failed to save unit changes", "error");
     }
   };
 

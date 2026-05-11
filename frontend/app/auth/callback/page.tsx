@@ -18,7 +18,10 @@ function CallbackInner() {
     const errorParam = searchParams.get("error");
     const errorDesc = searchParams.get("error_description");
 
+    console.log("[auth/callback] Parameters:", { code: code ? "present" : "missing", state: state ? "present" : "missing", errorParam, errorDesc });
+
     if (errorParam) {
+      console.error("[auth/callback] Error from provider:", errorParam, errorDesc);
       setTimeout(() => setError(errorDesc || errorParam), 0);
       return;
     }
@@ -31,12 +34,15 @@ function CallbackInner() {
     async function processCallback() {
       try {
         // 1. Exchange code for tokens
+        console.log("[auth/callback] Exchanging code for tokens...");
         await authService.exchangeCode(code!, state!);
 
         // 2. Resolve identity and update store
+        console.log("[auth/callback] Resolving identity...");
         const actor = await authService.resolveIdentity();
 
         // 3. Success! Land on the page the user's role expects.
+        console.log("[auth/callback] Success. Landing for role:", actor.role);
         router.replace(defaultLandingFor(actor.role));
       } catch (err) {
         console.error("[auth/callback] Error processing callback:", err);

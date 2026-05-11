@@ -9,6 +9,7 @@ import (
 	"github.com/devhub/backend-core/internal/auth"
 	"github.com/devhub/backend-core/internal/commandworker"
 	"github.com/devhub/backend-core/internal/config"
+	"github.com/devhub/backend-core/internal/domain"
 	"github.com/devhub/backend-core/internal/hrdb"
 	"github.com/devhub/backend-core/internal/httpapi"
 	"github.com/devhub/backend-core/internal/normalize"
@@ -31,6 +32,7 @@ func main() {
 	realtimeHub := httpapi.NewRealtimeHub()
 	var worker *commandworker.Worker
 	var liveWorker *commandworker.LiveWorker
+
 	if cfg.DBURL != "" {
 		pgStore, err := store.NewPostgresStore(ctx, cfg.DBURL)
 		if err != nil {
@@ -45,6 +47,7 @@ func main() {
 		auditStore = pgStore
 		organizationStore = pgStore
 		rbacStore = pgStore
+
 		worker = &commandworker.Worker{Store: pgStore, Publisher: realtimeHub}
 		if cfg.ServiceActionExecutorMode != "" {
 			executor, err := serviceaction.NewExecutor(
@@ -59,7 +62,7 @@ func main() {
 			log.Printf("service action executor enabled in %s mode", cfg.ServiceActionExecutorMode)
 		}
 	} else {
-		log.Println("DB_URL is not set; webhook persistence is disabled")
+		log.Fatalf("DB_URL is not set; startup refused")
 	}
 
 	var verifier httpapi.BearerTokenVerifier
@@ -67,9 +70,6 @@ func main() {
 		parsed, err := url.Parse(cfg.HydraAdminURL)
 		if err != nil {
 			log.Fatalf("startup refused: DEVHUB_HYDRA_ADMIN_URL is not a valid URL: %v", err)
-		}
-		if parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
-			log.Fatalf("startup refused: DEVHUB_HYDRA_ADMIN_URL must be an absolute http(s) URL: got %s", parsed.Redacted())
 		}
 		verifier = &auth.HydraIntrospectionVerifier{
 			AdminURL:  cfg.HydraAdminURL,
@@ -81,10 +81,6 @@ func main() {
 		log.Fatalf("startup refused: %v", err)
 	}
 
-	// Auth proxy clients are only wired when both Hydra admin and Kratos
-	// public URLs are configured. Assigning typed nil pointers to interface
-	// fields would defeat the handler's `cfg.KratosLogin == nil` guard, so
-	// we leave the fields untouched when either env var is missing.
 	var (
 		hydraAdmin   httpapi.HydraLoginAdmin
 		hydraLogout  httpapi.HydraLogoutAdmin
@@ -97,24 +93,25 @@ func main() {
 		adminClient := &httpapi.HydraAdminClient{AdminURL: cfg.HydraAdminURL}
 		hydraAdmin = adminClient
 		hydraLogout = adminClient
-		log.Printf("hydra admin client wired: %s", cfg.HydraAdminURL)
 	}
 	if cfg.HydraPublicURL != "" {
 		tokenClient := &httpapi.HydraTokenClient{PublicURL: cfg.HydraPublicURL}
 		hydraToken = tokenClient
 		hydraRevoker = tokenClient
-		log.Printf("hydra public token client wired: %s", cfg.HydraPublicURL)
 	}
 	if cfg.KratosPublicURL != "" {
 		kratosLogin = &httpapi.KratosClient{PublicURL: cfg.KratosPublicURL}
-		log.Printf("kratos public client wired: %s", cfg.KratosPublicURL)
 	}
 	if cfg.KratosAdminURL != "" {
 		kratosAdmin = &httpapi.KratosAdminClient{AdminURL: cfg.KratosAdminURL}
-		log.Printf("kratos admin client wired: %s", cfg.KratosAdminURL)
 	} else {
 		kratosAdmin = &httpapi.MockKratosAdmin{}
 		log.Println("Kratos Admin URL not set; using MockKratosAdmin for development")
+	}
+
+	// Seed local admin account for development using regular APIs
+	if cfg.AuthDevFallback && kratosAdmin != nil && organizationStore != nil {
+		seedLocalAdmin(ctx, kratosAdmin, organizationStore)
 	}
 
 	hrdbMock := hrdb.NewMockClient()
@@ -147,6 +144,7 @@ func main() {
 		RealtimeHub:     realtimeHub,
 		AuthDevFallback: cfg.AuthDevFallback,
 	})
+
 	if worker != nil {
 		go func() {
 			if err := worker.Run(ctx, 2*time.Second); err != nil && err != context.Canceled {
@@ -163,5 +161,47 @@ func main() {
 	}
 	if err := router.Run(":" + cfg.Port); err != nil {
 		log.Fatalf("run server: %v", err)
+	}
+}
+
+func seedLocalAdmin(ctx context.Context, kratosAdmin httpapi.KratosAdmin, orgStore httpapi.OrganizationStore) {
+	const (
+		adminLogin    = "test"
+		adminEmail    = "test@example.com"
+		adminName     = "Test Admin"
+		adminPassword = "test"
+	)
+
+	// 1. Kratos Identity
+	kratosID, err := kratosAdmin.CreateIdentity(ctx, adminEmail, adminName, adminLogin, adminPassword)
+	if err != nil {
+		log.Printf("[seedLocalAdmin] Kratos identity creation failed: %v", err)
+		kratosID, _ = kratosAdmin.FindIdentityByUserID(ctx, adminLogin)
+	}
+
+	if kratosID == "" {
+		log.Printf("[seedLocalAdmin] Failed to get Kratos ID for %s", adminLogin)
+		return
+	}
+
+	// 2. DevHub User
+	_, err = orgStore.CreateUser(ctx, domain.CreateUserInput{
+		UserID:      adminLogin,
+		Email:       adminEmail,
+		DisplayName: adminName,
+		Role:        domain.AppRoleSystemAdmin,
+		Status:      domain.UserStatusActive,
+		Type:        domain.UserTypeHuman,
+	})
+	if err != nil {
+		log.Printf("[seedLocalAdmin] DB User creation failed or skipped: %v", err)
+	}
+
+	// 3. Link
+	err = orgStore.SetKratosIdentityID(ctx, adminLogin, kratosID)
+	if err != nil {
+		log.Printf("[seedLocalAdmin] Failed to link Kratos ID: %v", err)
+	} else {
+		log.Printf("[seedLocalAdmin] Successfully ensured test admin '%s' via regular APIs", adminLogin)
 	}
 }

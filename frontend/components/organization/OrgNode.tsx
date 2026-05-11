@@ -4,7 +4,7 @@ import React, { memo, useState } from 'react';
 import { Handle, Position, Node, NodeProps } from '@xyflow/react';
 import { Plus, Minus, Edit3, Crown, Check, X, Building2, Users, Layers, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 type OrgNodeData = {
   [key: string]: unknown;
@@ -18,6 +18,9 @@ type OrgNodeData = {
   onAddChild?: (id: string) => void;
   onDelete?: (id: string) => void;
   onUpdate?: (id: string, data: Partial<OrgNodeData>) => void;
+  onToggleExpand?: (id: string) => void;
+  isExpanded?: boolean;
+  hasChildren?: boolean;
 };
 
 export const OrgNode = memo(({ id, data, selected }: NodeProps<Node<OrgNodeData>>) => {
@@ -103,10 +106,10 @@ export const OrgNode = memo(({ id, data, selected }: NodeProps<Node<OrgNodeData>
                     <select 
                       value={editedType}
                       onChange={(e) => setEditedType(e.target.value)}
-                      className="bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs font-bold text-white focus:outline-none focus:border-primary/50 w-full mt-1 appearance-none cursor-pointer"
+                      className="themed-select !py-1 !text-[11px] w-full mt-1"
                     >
                       {(data.allowedTypes || ['division', 'team', 'group', 'part']).map((t) => (
-                        <option key={t} value={t} className="bg-[#030014]">
+                        <option key={t} value={t} className="bg-popover text-popover-foreground">
                           {t.charAt(0).toUpperCase() + t.slice(1)}
                         </option>
                       ))}
@@ -194,6 +197,18 @@ export const OrgNode = memo(({ id, data, selected }: NodeProps<Node<OrgNodeData>
               >
                 <Plus className="w-3.5 h-3.5" />
               </button>
+              {data.hasChildren && (
+                <button 
+                  onClick={(e) => { e.stopPropagation(); data.onToggleExpand?.(id); }}
+                  className={cn(
+                    "p-1.5 rounded-lg transition-colors",
+                    data.isExpanded ? "bg-white/10 text-white" : "bg-accent/20 text-accent"
+                  )}
+                  title={data.isExpanded ? "Collapse" : "Expand"}
+                >
+                  <Layers className={cn("w-3.5 h-3.5", !data.isExpanded && "animate-pulse")} />
+                </button>
+              )}
             </>
           ) : (
             <>
