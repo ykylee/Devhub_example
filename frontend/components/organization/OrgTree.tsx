@@ -18,7 +18,7 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { identityService, OrgNode as OrgNodeModel } from '@/lib/services/identity.service';
+import { identityService, OrgNode as OrgNodeModel, OrgUnit } from '@/lib/services/identity.service';
 import { Plus, Save, ZoomIn, Building2, LayoutTemplate } from 'lucide-react';
 import { useStore } from '@/lib/store';
 import { OrgNode } from './OrgNode';
@@ -73,6 +73,7 @@ function OrgTreeContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [maxDepth, setMaxDepth] = useState(4);
   const [selectedRoot, setSelectedRoot] = useState<string>('all');
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   
   const addToast = useStore(state => state.addToast);
   const { fitView } = useReactFlow();
@@ -99,10 +100,20 @@ function OrgTreeContent() {
     return Array.from(nodeMap.values());
   }, []);
 
-  // Filter logic
+  const onToggleExpand = useCallback((id: string) => {
+    setExpandedNodes((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  // Optimized Filter logic
   useEffect(() => {
-    let filteredNodes = allNodes;
-    let filteredEdges = allEdges;
+    // 1. Root selection
+    let nodesInScope = allNodes;
+    let edgesInScope = allEdges;
 
     if (selectedRoot !== 'all') {
       const getDescendants = (id: string, currentEdges: Edge[]): string[] => {
@@ -110,43 +121,107 @@ function OrgTreeContent() {
         return [id, ...children.flatMap(childId => getDescendants(childId, currentEdges))];
       };
       const allowedIds = getDescendants(selectedRoot, allEdges);
-      filteredNodes = allNodes.filter(n => allowedIds.includes(n.id));
-      filteredEdges = allEdges.filter(e => allowedIds.includes(e.source) && allowedIds.includes(e.target));
+      nodesInScope = allNodes.filter(n => allowedIds.includes(n.id));
+      edgesInScope = allEdges.filter(e => allowedIds.includes(e.source) && allowedIds.includes(e.target));
     }
 
+    // 2. Depth calculation
     const nodeDepths = new Map<string, number>();
-    const roots = filteredNodes.filter(n => !filteredEdges.some(e => e.target === n.id));
+    const rootIds = nodesInScope.filter(n => !edgesInScope.some(e => e.target === n.id)).map(n => n.id);
     const assignDepth = (id: string, depth: number) => {
       nodeDepths.set(id, depth);
-      filteredEdges.filter(e => e.source === id).forEach(e => assignDepth(e.target, depth + 1));
+      edgesInScope.filter(e => e.source === id).forEach(e => assignDepth(e.target, depth + 1));
     };
-    roots.forEach(r => assignDepth(r.id, 1));
+    rootIds.forEach(id => assignDepth(id, 1));
 
-    filteredNodes = filteredNodes.filter(n => (nodeDepths.get(n.id) || 1) <= maxDepth);
-    filteredEdges = filteredEdges.filter(e => nodeDepths.has(e.source) && nodeDepths.has(e.target));
+    // 3. Visibility logic (Respect Expansion & MaxDepth)
+    const visibleNodeIds = new Set<string>();
+    const traverse = (id: string, parentVisible: boolean) => {
+      const depth = nodeDepths.get(id) || 1;
+      const isVisible = parentVisible && depth <= maxDepth;
+      
+      if (isVisible) {
+        visibleNodeIds.add(id);
+        const isExpanded = expandedNodes.has(id);
+        edgesInScope.filter(e => e.source === id).forEach(e => traverse(e.target, isExpanded));
+      }
+    };
+    rootIds.forEach(id => traverse(id, true));
 
-    setNodes(filteredNodes);
-    setEdges(filteredEdges);
-  }, [allNodes, allEdges, maxDepth, selectedRoot, setNodes, setEdges]);
+    // 4. Final Elements with decorated data
+    const finalNodes = nodesInScope
+      .filter(n => visibleNodeIds.has(n.id))
+      .map(n => ({
+        ...n,
+        data: {
+          ...n.data,
+          isExpanded: expandedNodes.has(n.id),
+          hasChildren: allEdges.some(e => e.source === n.id),
+          onToggleExpand
+        }
+      }));
 
-  const onUpdateNode = useCallback((id: string, newData: Partial<{ label: string; type: string; leader_id: string; isInitialEditing: boolean }>) => {
-    setAllNodes((nds) => {
-      const updatedNodes = nds.map((node) => 
-        node.id === id ? { ...node, data: { ...node.data, ...newData } } : node
-      );
-      return recalculateMemberCounts(updatedNodes, allEdges);
-    });
-    addToast("Organization unit updated", "success");
+    const finalEdges = edgesInScope.filter(e => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target));
+
+    setNodes(finalNodes);
+    setEdges(finalEdges);
+  }, [allNodes, allEdges, maxDepth, selectedRoot, expandedNodes, setNodes, setEdges, onToggleExpand]);
+
+  const onUpdateNode = useCallback(async (id: string, newData: Partial<{ label: string; type: string; leader_id: string; isInitialEditing: boolean }>) => {
+    try {
+      // 1. Persist to backend if not a temporary initial edit
+      if (!newData.isInitialEditing) {
+        await identityService.updateUnit(id, {
+          label: newData.label,
+          unit_type: newData.type as OrgUnit["unit_type"],
+          leader_user_id: newData.leader_id
+        });
+      }
+
+      // 2. Update local state
+      setAllNodes((nds) => {
+        const updatedNodes = nds.map((node) => 
+          node.id === id ? { ...node, data: { ...node.data, ...newData } } : node
+        );
+        return recalculateMemberCounts(updatedNodes, allEdges);
+      });
+      
+      if (!newData.isInitialEditing) {
+        addToast("Organization unit updated", "success");
+      }
+    } catch (error) {
+      console.error("[OrgTree] Failed to update unit:", error);
+      addToast("Failed to update organization unit", "error");
+    }
   }, [allEdges, addToast, recalculateMemberCounts]);
 
-  const onDeleteNode = useCallback((id: string) => {
-    setAllNodes((nds) => {
-      const filteredNodes = nds.filter((node) => node.id !== id);
-      const filteredEdges = allEdges.filter((edge) => edge.source !== id && edge.target !== id);
-      return recalculateMemberCounts(filteredNodes, filteredEdges);
-    });
-    setAllEdges((eds) => eds.filter((edge) => edge.source !== id && edge.target !== id));
-    addToast("Organizational unit removed", "warning");
+
+  const onDeleteNode = useCallback(async (id: string) => {
+    try {
+      // 1. Persist deletion to backend (except for unsaved new nodes)
+      if (!id.startsWith('temp-')) {
+        await identityService.deleteUnit(id);
+      }
+
+      // 2. Update local state
+      setAllNodes((nds) => {
+        const filteredNodes = nds.filter((node) => node.id !== id);
+        const filteredEdges = allEdges.filter((edge) => edge.source !== id && edge.target !== id);
+        return recalculateMemberCounts(filteredNodes, filteredEdges);
+      });
+      setAllEdges((eds) => eds.filter((edge) => edge.source !== id && edge.target !== id));
+      
+      setExpandedNodes(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+
+      addToast("Organizational unit removed", "warning");
+    } catch (error) {
+      console.error("[OrgTree] Failed to delete unit:", error);
+      addToast("Failed to remove organizational unit", "error");
+    }
   }, [allEdges, addToast, recalculateMemberCounts]);
 
   const nodesRef = useRef(allNodes);
@@ -155,50 +230,66 @@ function OrgTreeContent() {
     nodesRef.current = allNodes;
   }, [allNodes]);
 
-  const onAddChild = useCallback((parentId: string) => {
+  const onAddChild = useCallback(async (parentId: string) => {
     const parentNode = nodesRef.current.find(n => n.id === parentId);
     if (!parentNode) return;
 
-    const id = `node-${Date.now()}`;
     const typeHierarchy = ['division', 'team', 'group', 'part'];
     const parentIdx = typeHierarchy.indexOf(parentNode.data.type as string);
     const allowedTypes = typeHierarchy.slice(parentIdx + 1);
     if (allowedTypes.length === 0) allowedTypes.push('part');
-    const nextType = allowedTypes[0];
+    const nextType = allowedTypes[0] as OrgUnit["unit_type"];
 
-    const newNode: Node = {
-      id,
-      type: 'org',
-      data: { 
-        label: `New ${nextType}`, 
-        type: nextType,
-        allowedTypes,
-        isInitialEditing: true,
-        direct_count: 0,
-        total_count: 0,
-        onAddChild: (id: string) => addChildRef.current(id),
-        onDelete: onDeleteNode,
-        onUpdate: onUpdateNode
-      },
-      position: { x: parentNode.position.x, y: parentNode.position.y + 150 },
-    };
+    try {
+      // 1. Create on backend first to get a real ID
+      addToast(`Adding new ${nextType}...`, "info");
+      
+      const newUnit = await identityService.createUnit({
+        unit_id: `unit-${Date.now()}`, // Backend usually generates this, but we follow contract PR-B1
+        parent_unit_id: parentId,
+        unit_type: nextType,
+        label: `New ${nextType}`,
+        position_x: parentNode.position.x,
+        position_y: parentNode.position.y + 150
+      });
 
-    const newEdge: Edge = {
-      id: `e-${parentId}-${id}`,
-      source: parentId,
-      target: id,
-    };
+      const newNode: Node = {
+        id: newUnit.unit_id,
+        type: 'org',
+        data: { 
+          label: newUnit.label, 
+          type: newUnit.unit_type,
+          allowedTypes,
+          isInitialEditing: true,
+          direct_count: 0,
+          total_count: 0,
+          onAddChild: (id: string) => addChildRef.current(id),
+          onDelete: onDeleteNode,
+          onUpdate: onUpdateNode,
+          onToggleExpand
+        },
+        position: { x: newUnit.position_x, y: newUnit.position_y },
+      };
 
-    setAllNodes((nds) => {
-      const newNodes = nds.concat(newNode);
-      const newEdges = allEdges.concat(newEdge);
-      return recalculateMemberCounts(newNodes, newEdges);
-    });
-    setAllEdges((eds) => eds.concat(newEdge));
-    
-    addToast(`Adding new ${nextType}...`, "info");
-    window.requestAnimationFrame(() => fitView({ duration: 800 }));
-  }, [allEdges, addToast, onDeleteNode, onUpdateNode, fitView, recalculateMemberCounts]);
+      const newEdge: Edge = {
+        id: `e-${parentId}-${newUnit.unit_id}`,
+        source: parentId,
+        target: newUnit.unit_id,
+      };
+
+      setAllNodes((nds) => {
+        const newNodes = nds.concat(newNode);
+        const newEdges = allEdges.concat(newEdge);
+        return recalculateMemberCounts(newNodes, newEdges);
+      });
+      setAllEdges((eds) => eds.concat(newEdge));
+      
+      window.requestAnimationFrame(() => fitView({ duration: 800 }));
+    } catch (error) {
+      console.error("[OrgTree] Failed to create child unit:", error);
+      addToast("Failed to create new organizational unit", "error");
+    }
+  }, [allEdges, addToast, onDeleteNode, onUpdateNode, onToggleExpand, fitView, recalculateMemberCounts]);
 
   useEffect(() => {
     addChildRef.current = onAddChild;
@@ -270,7 +361,7 @@ function OrgTreeContent() {
     };
     fetchData();
     return () => { isMounted = false; };
-  }, [onAddChild, onDeleteNode, onUpdateNode, recalculateMemberCounts]);
+  }, [onAddChild, onDeleteNode, onUpdateNode, onToggleExpand, recalculateMemberCounts]);
 
   const onLayout = useCallback(() => {
     const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(allNodes, allEdges);
@@ -324,7 +415,8 @@ function OrgTreeContent() {
         total_count: 0,
         onAddChild,
         onDelete: onDeleteNode,
-        onUpdate: onUpdateNode
+        onUpdate: onUpdateNode,
+        onToggleExpand
       },
       position: { x: 400, y: 0 },
     };
@@ -359,21 +451,20 @@ function OrgTreeContent() {
         onConnect={onConnect}
         defaultEdgeOptions={defaultEdgeOptions}
         fitView
-        colorMode="dark"
       >
         <Background variant={BackgroundVariant.Lines} gap={40} size={1} color="rgba(255,255,255,0.03)" />
         <Controls className="glass border-white/10 rounded-xl overflow-hidden" />
         
         <Panel position="top-left" className="flex flex-col gap-4">
-          <div className="glass border-white/10 p-4 rounded-2xl flex flex-col gap-3 min-w-[200px]">
+          <div className="glass border-border/50 p-4 rounded-2xl flex flex-col gap-3 min-w-[200px]">
             <p className="text-[10px] font-black text-primary uppercase tracking-widest">Scope Filter</p>
             
             <div className="flex flex-col gap-2">
-              <label className="text-[9px] font-bold text-white/40 uppercase">Root Node</label>
+              <label className="text-[9px] font-bold text-muted-foreground uppercase">Root Node</label>
               <select 
                 value={selectedRoot}
                 onChange={(e) => setSelectedRoot(e.target.value)}
-                className="bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-[11px] font-bold text-white focus:outline-none focus:border-primary/50"
+                className="themed-select"
               >
                 <option value="all">Show All</option>
                 {allNodes.map(n => {
@@ -386,7 +477,23 @@ function OrgTreeContent() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className="text-[9px] font-bold text-white/40 uppercase flex justify-between">
+              <label className="text-[9px] font-bold text-muted-foreground uppercase">Jump to Unit</label>
+              <button
+                onClick={() => {
+                  if (selectedRoot === 'all') return;
+                  const target = nodes.find(n => n.id === selectedRoot);
+                  if (target) {
+                    fitView({ nodes: [target], duration: 800, padding: 0.5 });
+                  }
+                }}
+                className="bg-primary/10 border border-primary/20 rounded-lg px-2 py-1.5 text-[10px] font-black uppercase text-primary hover:bg-primary/20 transition-all text-left"
+              >
+                Focus Selection
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-[9px] font-bold text-muted-foreground uppercase flex justify-between">
                 <span>Max Depth</span>
                 <span className="text-primary">{maxDepth}</span>
               </label>

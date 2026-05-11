@@ -50,7 +50,7 @@ export function Modal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-[100] bg-black/60 dark:bg-background/80 backdrop-blur-sm"
           />
           
           {/* Modal Content */}
@@ -60,7 +60,7 @@ export function Modal({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className={cn(
-                "w-full glass-card overflow-hidden pointer-events-auto relative shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10",
+                "w-full glass-card overflow-hidden pointer-events-auto relative shadow-[0_20px_50px_rgba(0,0,0,0.2)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-border",
                 sizeClasses[size],
                 className
               )}
@@ -69,8 +69,8 @@ export function Modal({
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-accent opacity-50" />
               
               {/* Header */}
-              <div className="flex items-center justify-between p-6 border-b border-white/5">
-                {title && <h3 className="text-xl font-bold text-white tracking-tight">{title}</h3>}
+              <div className="flex items-center justify-between p-6 border-b border-border/30">
+                {title && <h3 className="text-xl font-bold text-foreground tracking-tight">{title}</h3>}
                 <button 
                   onClick={onClose}
                   className="p-2 rounded-xl hover:bg-white/5 text-muted-foreground hover:text-white transition-all"

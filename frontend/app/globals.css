@@ -28,9 +28,9 @@
 
 @layer base {
   :root {
-    --background: #ffffff;
+    --background: #f8fafc;
     --foreground: #0f172a;
-    --card: rgba(0, 0, 0, 0.02);
+    --card: rgba(255, 255, 255, 0.7);
     --card-foreground: #0f172a;
     --popover: #ffffff;
     --popover-foreground: #0f172a;
@@ -39,20 +39,20 @@
     --secondary: #f1f5f9;
     --secondary-foreground: #0f172a;
     --muted: #f1f5f9;
-    --muted-foreground: #475569;
+    --muted-foreground: #64748b;
     --accent: #0ea5e9;
     --accent-foreground: #ffffff;
     --destructive: #ef4444;
     --destructive-foreground: #ffffff;
     --border: #e2e8f0;
-    --input: #f1f5f9;
+    --input: #ffffff;
     --ring: #3b82f6;
     --radius: 1rem;
   }
 
   .theme-dark {
     --background: #030014;
-    --foreground: #fafafa;
+    --foreground: #f8fafc;
     --card: rgba(255, 255, 255, 0.03);
     --card-foreground: #fafafa;
     --popover: #030014;
@@ -62,7 +62,7 @@
     --secondary: #1e1b4b;
     --secondary-foreground: #fafafa;
     --muted: #1e1b4b;
-    --muted-foreground: #a1a1aa;
+    --muted-foreground: #94a3b8;
     --accent: #d946ef;
     --accent-foreground: #fafafa;
     --destructive: #ef4444;
@@ -70,6 +70,15 @@
     --border: rgba(255, 255, 255, 0.1);
     --input: rgba(255, 255, 255, 0.05);
     --ring: #8b5cf6;
+  }
+
+  /* Placeholder for future theme extensibility (e.g. Forest, Midnight, High Contrast) */
+  .theme-forest {
+    --background: #061a14;
+    --foreground: #ecfdf5;
+    --primary: #10b981;
+    --accent: #34d399;
+    --border: rgba(16, 185, 129, 0.2);
   }
 }
 
@@ -102,11 +111,24 @@
   }
   
   .glass-card {
-    @apply bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.1)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] rounded-2xl transition-all duration-300 hover:bg-white/60 dark:hover:bg-black/60 hover:border-white/30 dark:hover:border-white/20;
+    @apply bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] rounded-2xl transition-all duration-300 hover:bg-white/60 dark:hover:bg-black/60 hover:border-white/30 dark:hover:border-white/20;
   }
   
   .text-gradient {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent;
+  }
+
+  .themed-select {
+    @apply bg-input border border-border rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all appearance-none cursor-pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem;
+    padding-right: 2.5rem;
+  }
+
+  .theme-dark .themed-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white' stroke-width='2' stroke-opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
   }
 }
 

@@ -1,26 +1,26 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-05-10",
-  "status": "planned",
-  "current_activity": "Phase 6.1 RBAC API 통합 및 M2 인증 콜백 최종화 계획 수립 및 검토 요청",
-  "last_update": "2026-05-10T14:38:00Z",
+  "generated_at": "2026-05-11",
+  "status": "in_progress",
+  "current_activity": "Phase 6.2 Org Chart 최적화 및 Audit 서비스 구축 완료. 대규모 조직도 렌더링 UX 개선.",
+  "last_update": "2026-05-11T22:45:00Z",
   "milestones": {
     "phase6.1": {
-      "status": "planned",
-      "progress": 20,
-      "description": "RBAC 실데이터 연동"
+      "status": "done",
+      "progress": 100,
+      "description": "RBAC 실데이터 연동 (CRUD 및 사용자 역할 할당)"
     },
     "m2": {
-      "status": "planned",
-      "progress": 30,
-      "description": "인증 고도화 및 콜백 플로우"
+      "status": "done",
+      "progress": 100,
+      "description": "인증 고도화 및 콜백 플로우 (구현 및 검증 완료)"
     }
   },
   "source_of_truth": {
     "project_profile_path": "docs/PROJECT_PROFILE.md",
     "session_handoff_path": "ai-workflow/memory/gemini/frontend_260510/session_handoff.md",
     "work_backlog_index_path": "ai-workflow/memory/gemini/frontend_260510/work_backlog.md",
-    "latest_backlog_path": "ai-workflow/memory/gemini/frontend_260510/backlog/2026-05-10.md",
+    "latest_backlog_path": "ai-workflow/memory/gemini/frontend_260510/backlog/2026-05-11.md",
     "repository_assessment_path": "ai-workflow/memory/repository_assessment.md"
   },
   "project": {
@@ -38,15 +38,15 @@
   },
   "session": {
     "current_baseline": "Phase 6 RBAC UI 스캐폴딩 및 메인 브랜치 PR(41, 42) 병합 완료",
-    "current_axis": "Frontend Phase 6.1 RBAC API 통합 및 M2 인증 고도화",
-    "current_focus": "RBAC 권한 정책(Policy) CRUD API 연동 및 /auth/callback 토큰 처리",
-    "in_progress_items": [
-      "TASK-FRONTEND-PHASE6.1-RBAC-API"
-    ],
+    "current_axis": "Frontend Phase 6.2 Organization Chart 상호작용 강화",
+    "current_focus": "Org Chart 노드 드래그 위치 저장 및 대규모 계층 구조 렌더링 최적화",
+    "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
-      "TASK-FRONTEND-PHASE6-UI-SCAFFOLDING",
-      "TASK-MEMORY-CLEANUP-PR41-PR42"
+      "TASK-FRONTEND-PHASE6.2-ORG-CHART-OPTIMIZATION",
+      "TASK-FRONTEND-AUDIT-SERVICE-INTEGRATION",
+      "TASK-FRONTEND-PHASE6.2-ORG-CHART-ACTIONS",
+      "TASK-FRONTEND-M2-AUTH-CALLBACK"
     ],
     "environment_constraints": [
       "Docker/Docker-compose required for full system",
@@ -54,7 +54,7 @@
     ]
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/gemini/frontend_260510/backlog/2026-05-10.md",
+    "latest_backlog_path": "ai-workflow/memory/gemini/frontend_260510/backlog/2026-05-11.md",
     "task_count": 5,
     "in_progress_items": [
       "TASK-FRONTEND-PHASE6.1-RBAC-API"

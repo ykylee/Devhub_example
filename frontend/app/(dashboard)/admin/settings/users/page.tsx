@@ -8,10 +8,13 @@ import { MemberTable } from "@/components/organization/MemberTable";
 import { defaultRoles, Role } from "@/lib/services/rbac.types";
 import { rbacService } from "@/lib/services/rbac.service";
 
+import { useToast } from "@/components/ui/Toast";
+
 export default function AdminSettingsUsersPage() {
   const [members, setMembers] = useState<OrgMember[]>([]);
   const [roles, setRoles] = useState<Role[]>(defaultRoles);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     const load = async () => {
@@ -31,6 +34,28 @@ export default function AdminSettingsUsersPage() {
     };
     load();
   }, []);
+
+  const handleUpdateRole = async (memberId: string, newRoleName: string) => {
+    try {
+      // Optimistic UI update
+      setMembers((prev) => 
+        prev.map((m) => (m.id === memberId ? { ...m, role: newRoleName as OrgMember["role"] } : m))
+      );
+
+      await identityService.updateUser(memberId, { 
+        role: newRoleName as OrgMember["role"] 
+      });
+      
+      toast(`User role updated to ${newRoleName}`, "success");
+    } catch (error) {
+      console.error("[admin/settings/users] handleUpdateRole failed:", error);
+      toast("Failed to update user role", "error");
+      
+      // Rollback on failure
+      const refreshedUsers = await identityService.getUsers();
+      setMembers(refreshedUsers);
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -57,9 +82,7 @@ export default function AdminSettingsUsersPage() {
         <MemberTable
           members={members}
           roles={roles}
-          onUpdateMemberRole={(memberId, newRoleName) => {
-            setMembers((prev) => prev.map((m) => (m.id === memberId ? { ...m, role: newRoleName as OrgMember["role"] } : m)));
-          }}
+          onUpdateMemberRole={handleUpdateRole}
           onMemberCreated={(newMember) => {
             setMembers((prev) => [newMember, ...prev]);
           }}

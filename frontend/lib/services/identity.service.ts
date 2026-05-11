@@ -96,13 +96,13 @@ const DEPT_PRIORITY = {
   'company': 5
 };
 
-const ROLE_BACKEND_TO_UI: Record<string, OrgMember["role"]> = {
+export const ROLE_BACKEND_TO_UI: Record<string, OrgMember["role"]> = {
   developer: "Developer",
   manager: "Manager",
   system_admin: "System Admin",
 };
 
-const ROLE_UI_TO_BACKEND: Record<OrgMember["role"], string> = {
+export const ROLE_UI_TO_BACKEND: Record<OrgMember["role"], string> = {
   Developer: "developer",
   Manager: "manager",
   "System Admin": "system_admin",

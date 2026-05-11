@@ -17,7 +17,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { infraService } from "@/lib/services/infra.service";
 import { realtimeService } from "@/lib/services/realtime.service";
-import type { ServiceEdge, Metric, ServiceNode as ServiceNodeModel } from "@/lib/services/types";
+import type { ServiceEdge, Metric } from "@/lib/services/types";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useStore } from "@/lib/store";
