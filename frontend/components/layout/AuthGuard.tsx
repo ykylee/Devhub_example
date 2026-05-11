@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react";
 import { websocketService, WsMessage } from "@/lib/services/websocket.service";
 import { identityService } from "@/lib/services/identity.service";
 import { ApiError } from "@/lib/services/api-client";
+import { defaultLandingFor, isSystemAdmin, pathRequiresSystemAdmin } from "@/lib/auth/role-routing";
 
 type NotificationPayload = { message?: string };
 
@@ -33,6 +34,14 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
           role: resolved.role,
           source: resolved.source,
         });
+        // System routes (/admin, /admin/settings/*, /organization) must be
+        // gated on actor.role — the source-of-truth for actual permissions —
+        // not the zustand `role` field which Header's Switch View can
+        // simulate. Non-admins get bounced to their default landing page.
+        if (pathRequiresSystemAdmin(pathname) && !isSystemAdmin(resolved.role)) {
+          router.replace(defaultLandingFor(resolved.role));
+          return;
+        }
         setIsAuthorized(true);
       } catch (err) {
         if (cancelled) return;
