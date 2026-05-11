@@ -38,7 +38,8 @@
     "work_backlog": "ai-workflow/memory/claude/work_26_05_11-e/work_backlog.md"
   },
   "open_prs": [
-    {"pr": 60, "branch": "claude/work_26_05_11-e", "title": "feat(auth): backend self-service password change proxy (PR-L4)", "status": "review_pending"}
+    {"pr": 60, "branch": "claude/work_26_05_11-e", "title": "feat(auth): backend self-service password change proxy (PR-L4)", "status": "review_pending"},
+    {"pr": 61, "branch": "claude/work_26_05_11-e-t35", "base": "claude/work_26_05_11-e", "title": "test(e2e): seed automation + password-change unskip (PR-T3.5)", "status": "review_pending", "notes": "stacked on PR #60; merge after #60"}
   ],
   "key_files": {
     "migration_target": "backend-core/migrations/000009_add_kratos_identity_id_to_users.{up,down}.sql",
