@@ -3,9 +3,9 @@
 - 문서 목적: `claude/work_26_05_11-c` sprint 의 세션 간 상태 인계
 - 범위: M1 sprint 의 마지막 잔여 PR-D (T-M1-04 audit actor + request_id + audit_logs 마이그레이션)
 - 대상 독자: 후속 에이전트, 프로젝트 리드
-- 상태: planned (sprint 주제 결정 완료 2026-05-11. 결정 3건 대기)
-- 브랜치: `claude/work_26_05_11-c` (HEAD `9b6b3ea`, main fast-forward)
-- 최종 수정일: 2026-05-11
+- 상태: **CLOSED 2026-05-11**. PR #57 (`4e831a3`) 머지 완료. M1 sprint 전 부채 청산.
+- 브랜치: `claude/work_26_05_11-c` (sprint 산출물은 main 머지됨)
+- 최종 수정일: 2026-05-11 (sprint closure)
 
 ## 0. 현재 기준선
 
@@ -33,23 +33,30 @@ T-M1-04 spec 요약:
 
 세부는 [`./backlog/2026-05-11.md`](./backlog/2026-05-11.md) §2 참조.
 
-## 3. 진입 순서
+## 3. 머지 결과 (2026-05-11 closure)
 
-1. 결정 3건 확정 → backlog §2 갱신
-2. **PR-D**:
-   a. 마이그레이션 작성 (`000008_audit_logs_actor_enrichment.{up,down}.sql`)
-   b. domain `AuditLog` 필드 3개 추가 + store 갱신
-   c. request_id 미들웨어 신설
-   d. authenticateActor 가 source_type 분류 (Bearer→oidc, webhook bypass→webhook, dev fallback→system)
-   e. recordAudit 가 request_id/source_ip/source_type 채움
-   f. writeServerError 가 request_id 포함 로그
-   g. 통합 테스트 — X-Request-ID 응답 헤더 == audit_logs.request_id
-3. 검증 + sprint closure + PR
+### 결정 확정
+| ID | 채택 | 의미 |
+| --- | --- | --- |
+| **DEC-1** | A NULL 허용 | 기존 audit_logs 행은 backfill 안 함 |
+| **DEC-2** | A `oidc | webhook | system` 만 | M1 spec 그대로 |
+| **DEC-3** | B `req_<hex24>` prefix | realtime `evt_` 컨벤션 일관 |
 
-## 4. 위험 / 운영 의존
+### Commits
+- `1bacea3` baseline (work_26_05_11-b closure + 본 sprint baseline)
+- `51b7f05` PR-D 본체 (마이그레이션 000008 + AuditSourceType + requireRequestID + recordAudit/writeServerError 보강 + 3 신규 audit 테스트)
+- `2bcd861` Codex P1 fix-up (`SetTrustedProxies(nil)` + IP 위조 방지 검증 테스트)
+- `4e831a3` main 머지 (PR #57)
 
-- **마이그레이션 운영 적용**: PoC 환경은 단순 `make migrate-up`. 운영은 down-time 정책 결정 필요 (M1 sprint plan §5 위험 표기).
-- **logger 통합점**: writeServerError 의 log 형식 변경 — 기존 audit log 파싱 도구 영향 가능 (dev 환경엔 영향 없음).
+### 다음 sprint 후보 (PR-D follow-up hygiene)
+- `store/postgres.go` 의 commands audit INSERT 3 곳 (586/773/1173) 도 actor context 채우기 — 본 sprint 범위 밖
+- 모든 log 라인에 request_id 부착 (현재는 audit_logs + writeServerError 만)
+- 운영 reverse proxy 환경용 `DEVHUB_TRUSTED_PROXIES` env 도입
+
+## 4. 운영 의존 메모
+
+- **마이그레이션**: 본 sprint PoC 가정. 운영은 zero-downtime 정책 결정 필요 (column ADD 만이라 사실상 영향 작음).
+- **proxy 환경**: 현재 `SetTrustedProxies(nil)` 로 X-Forwarded-For 무시. 실 reverse proxy 환경 진입 시 env 기반 설정 필요.
 
 ## 5. 다음에 읽을 문서
 

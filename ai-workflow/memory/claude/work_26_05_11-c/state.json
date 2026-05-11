@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "claude/work_26_05_11-c",
-  "status": "PR-D implemented (000008 migration + AuditSourceType enum + requireRequestID middleware + recordAudit/writeServerError enrichment + 3 new audit tests). DEC-1/2/3 confirmed (A/A/B). go test ./... PASS. Ready for PR.",
-  "updated_at": "2026-05-11T04:45:00Z",
-  "head_commit": "9b6b3ea",
-  "head_summary": "Merge pull request #56 from ykylee/claude/work_26_05_11-b (work_26_05_11-b sprint closure)",
+  "status": "CLOSED 2026-05-11. PR #57 merged (merge_commit 4e831a3) — PR-D + Codex P1 fix-up (audit source_ip ignores X-Forwarded-For via SetTrustedProxies(nil)). M1 sprint 100% complete (T-M1-01..08 all done).",
+  "updated_at": "2026-05-11T05:10:00Z",
+  "head_commit": "4e831a3",
+  "head_summary": "Merge pull request #57 from ykylee/claude/work_26_05_11-c (M1 PR-D audit actor enrichment)",
   "session_pointers": {
     "sprint_plan": "ai-workflow/memory/claude/work_26_05_11-c/backlog/2026-05-11.md",
     "session_handoff_path": "ai-workflow/memory/claude/work_26_05_11-c/session_handoff.md",
@@ -25,9 +25,12 @@
   ],
   "tracks": {
     "M1_PR_D": {
-      "status": "ready_for_pr",
+      "status": "merged",
+      "single_pr": 57,
+      "merge_commit": "4e831a3",
       "prs": [
-        {"id": "PR-D", "subject": "audit actor enrichment (source_ip/request_id/source_type) + request_id middleware + audit_logs migration (T-M1-04)", "status": "done", "completed_on": "2026-05-11"}
+        {"id": "PR-D", "subject": "audit actor enrichment (source_ip/request_id/source_type) + request_id middleware + audit_logs migration (T-M1-04)", "status": "merged", "completed_on": "2026-05-11"},
+        {"id": "fix-up", "subject": "SetTrustedProxies(nil) so audit source_ip cannot be forged via X-Forwarded-For (Codex P1)", "status": "merged", "completed_on": "2026-05-11"}
       ]
     }
   }
