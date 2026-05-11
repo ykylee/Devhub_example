@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { User, Mail, Shield, Key, Loader2, Save, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 import { useStore } from "@/lib/store";
-import { accountService } from "@/lib/services/account.service";
+import { accountService, SettingsFlowError } from "@/lib/services/account.service";
 
 export default function AccountPage() {
   const { actor } = useStore();
@@ -13,6 +13,7 @@ export default function AccountPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [reauthURL, setReauthURL] = useState<string | null>(null);
 
   const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,6 +24,7 @@ export default function AccountPage() {
 
     setSubmitting(true);
     setMessage(null);
+    setReauthURL(null);
     try {
       await accountService.updateMyPassword(currentPassword, newPassword);
       setMessage({ type: 'success', text: "Password updated successfully." });
@@ -30,7 +32,17 @@ export default function AccountPage() {
       setNewPassword("");
       setConfirmPassword("");
     } catch (err) {
-      setMessage({ type: 'error', text: err instanceof Error ? err.message : "Failed to update password." });
+      if (err instanceof SettingsFlowError && err.code === "REAUTH_REQUIRED") {
+        setReauthURL(err.redirectURL ?? "/login");
+        setMessage({
+          type: 'error',
+          text: "Re-authentication required to change your password. Please sign in again.",
+        });
+      } else if (err instanceof SettingsFlowError) {
+        setMessage({ type: 'error', text: err.message });
+      } else {
+        setMessage({ type: 'error', text: err instanceof Error ? err.message : "Failed to update password." });
+      }
     } finally {
       setSubmitting(false);
     }
@@ -154,18 +166,29 @@ export default function AccountPage() {
               </div>
 
               {message && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className={cn(
-                    "flex items-center gap-3 p-4 rounded-2xl border text-sm font-medium",
-                    message.type === 'success' 
-                      ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" 
+                    "flex flex-col gap-3 p-4 rounded-2xl border text-sm font-medium",
+                    message.type === 'success'
+                      ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
                       : "bg-rose-500/10 border-rose-500/20 text-rose-400"
                   )}
                 >
-                  {message.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-                  {message.text}
+                  <div className="flex items-center gap-3">
+                    {message.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+                    {message.text}
+                  </div>
+                  {reauthURL && (
+                    <button
+                      type="button"
+                      onClick={() => window.location.assign(reauthURL)}
+                      className="self-start px-4 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-100 text-xs font-bold uppercase tracking-widest transition-all"
+                    >
+                      Sign In Again
+                    </button>
+                  )}
                 </motion.div>
               )}
 
