@@ -92,6 +92,64 @@ type Risk struct {
 	UpdatedAt        time.Time
 }
 
+// CommandStatus mirrors the API contract §2 enum exactly. Backend code that
+// constructs or compares command status should use these constants rather than
+// raw string literals so a future rename or addition is mechanically tracked.
+type CommandStatus string
+
+const (
+	CommandStatusPending   CommandStatus = "pending"
+	CommandStatusRunning   CommandStatus = "running"
+	CommandStatusSucceeded CommandStatus = "succeeded"
+	CommandStatusFailed    CommandStatus = "failed"
+	CommandStatusRejected  CommandStatus = "rejected"
+	CommandStatusCancelled CommandStatus = "cancelled"
+)
+
+// commandTerminalStates is the set from which no further transitions are
+// allowed. CommandStatus.IsTerminal returns true for these.
+var commandTerminalStates = map[CommandStatus]bool{
+	CommandStatusSucceeded: true,
+	CommandStatusFailed:    true,
+	CommandStatusRejected:  true,
+	CommandStatusCancelled: true,
+}
+
+// commandValidTransitions encodes the allowed lifecycle. pending may go to
+// running (worker pickup) or jump straight to rejected/cancelled when the
+// approval workflow blocks it. running flows into the three success/failure
+// terminal states. Terminal states never transition further.
+var commandValidTransitions = map[CommandStatus]map[CommandStatus]bool{
+	CommandStatusPending: {
+		CommandStatusRunning:   true,
+		CommandStatusRejected:  true,
+		CommandStatusCancelled: true,
+	},
+	CommandStatusRunning: {
+		CommandStatusSucceeded: true,
+		CommandStatusFailed:    true,
+		CommandStatusCancelled: true,
+	},
+}
+
+// IsTerminal reports whether the status is one from which no transition is
+// allowed (succeeded, failed, rejected, cancelled).
+func (s CommandStatus) IsTerminal() bool { return commandTerminalStates[s] }
+
+// CanTransitionTo reports whether moving from s to next is allowed by the
+// 6-state lifecycle. Same-state transitions return false (the caller should
+// treat that as a no-op).
+func (s CommandStatus) CanTransitionTo(next CommandStatus) bool {
+	if s == next {
+		return false
+	}
+	allowed, ok := commandValidTransitions[s]
+	if !ok {
+		return false
+	}
+	return allowed[next]
+}
+
 type Command struct {
 	ID               int64
 	CommandID        string

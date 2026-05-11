@@ -2,7 +2,7 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "claude/work_26_05_11-b",
-  "status": "PR-B (B1 backend envelope realignment + B2 frontend wire/UI split) done. UI layer wire.ts direct import 0. PR-C (command lifecycle + auth_test matrix) next.",
+  "status": "Sprint work_26_05_11-b complete pending merge. PR-B (B1 envelope + B2 wire split) + PR-C (CommandStatus enum + transition matrix + dry-run/live boundary + existing auth gate coverage) all implemented. go test ./... + npm run build PASS. DEC-2 reread A -> A' (current behaviour aligned with spec intent). Ready for sprint closure PR.",
   "updated_at": "2026-05-11T02:30:00Z",
   "head_commit": "818d54a",
   "head_summary": "Merge pull request #55 from ykylee/claude/work_26_05_11-s4 (work_26_05_11 final PR)",
@@ -51,7 +51,7 @@
       "prs": [
         {"id": "PR-B1", "subject": "backend envelope realignment (auth_signup + hr_lookup + auth_consent label) + envelope_test", "status": "done", "completed_on": "2026-05-11"},
         {"id": "PR-B2", "subject": "frontend wire vs UI types split + contract sub-agent verification", "status": "done", "completed_on": "2026-05-11"},
-        {"id": "PR-C", "subject": "Command lifecycle 6 states + dry-run/live boundary + auth_test matrix (T-M1-03·05)", "status": "planned"}
+        {"id": "PR-C", "subject": "Command lifecycle 6 states + dry-run/live boundary (DEC-2=A') + auth_test matrix (existing 30 cases sufficient) (T-M1-03·05)", "status": "done", "completed_on": "2026-05-11"}
       ]
     }
   },
