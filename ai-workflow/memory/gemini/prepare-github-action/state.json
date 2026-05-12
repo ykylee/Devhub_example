@@ -1,0 +1,27 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "gemini/prepare-github-action",
+  "status": "DONE. GitHub Actions CI 구축 완료 및 로드맵 반영. main 머지 시 자동화 파이프라인 가동 준비 완료.",
+  "updated_at": "2026-05-12T21:55:00Z",
+  "branched_from": {
+    "branch": "main",
+    "head_commit": "84b2dde",
+    "head_summary": "feat(M2): 1차 완성 sprint — 로드맵 정합 + UX hygiene + Kratos audit (claude/login_usermanagement_finish) (#85)"
+  },
+  "goal": "main 머지 시마다 Unit/E2E 테스트를 자동 수행하고 리포트를 생성하는 GitHub Actions CI 파이프라인 구축.",
+  "scope_in": [
+    "Makefile: test-frontend / e2e 타겟 실구현",
+    "scripts/ci-setup.sh: CI 전용 환경 초기화 (Ory 바이너리, DB 스키마, 마이그레이션, 시딩)",
+    "infra/idp/*.ci.yaml: CI 전용 Ory 설정",
+    ".github/workflows/ci.yml: GHA 워크플로우 정의 (Unit/E2E + Artifact)",
+    "frontend/lib/utils.test.ts: Vitest 단위 테스트 샘플"
+  ],
+  "scope_out": [
+    "Docker Compose 기반 staging 배포 (후속 sprint)",
+    "CD (자동 배포) 파이프라인"
+  ],
+  "next_actions": {
+    "immediate": "PR 생성 후 CI 통과 여부 최종 확인 → main 머지."
+  }
+}
