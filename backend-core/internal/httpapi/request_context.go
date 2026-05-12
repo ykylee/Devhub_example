@@ -3,6 +3,7 @@ package httpapi
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"log"
 	"strings"
 
 	"github.com/devhub/backend-core/internal/domain"
@@ -76,5 +77,24 @@ func clientIPFrom(c *gin.Context) string {
 		return ""
 	}
 	return c.ClientIP()
+}
+
+// logRequest writes a log line prefixed with the gin.Context request id so
+// grepping a request trace pulls every handler/middleware emission together.
+// When the request id is unset (background calls, tests without
+// requireRequestID) the line is emitted without a prefix — same shape as a
+// plain log.Printf — so callers don't have to special-case.
+//
+// PR-D follow-up (work_260512-i sub-task #2). errors.go::writeServerError
+// already embeds request_id inline ("op=%s request_id=%s err=%v"); the
+// helper is for the handler/middleware log lines that are not gated by an
+// op tag.
+func logRequest(c *gin.Context, format string, args ...any) {
+	rid := requestIDFrom(c)
+	if rid == "" {
+		log.Printf(format, args...)
+		return
+	}
+	log.Printf("request_id="+rid+" "+format, args...)
 }
 

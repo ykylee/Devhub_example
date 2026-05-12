@@ -250,7 +250,7 @@ func (h Handler) enforceRoutePermission(c *gin.Context) {
 
 	allowed, err := cache.Allows(c.Request.Context(), actorRole, policy.Resource, policy.Action)
 	if err != nil {
-		log.Printf("server error: op=auth.permission_check err=%v", err)
+		log.Printf("server error: op=auth.permission_check request_id=%s err=%v", requestIDFrom(c), err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"status": "failed",
 			"error":  "internal error",

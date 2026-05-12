@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"log"
 )
 
 // KratosLoginClient covers the slice of *KratosClient that the login proxy
@@ -101,14 +100,14 @@ func (h Handler) authLogin(c *gin.Context) {
 		return
 	}
 
-	log.Printf("[authLogin] Creating login flow for challenge %s", req.LoginChallenge)
+	logRequest(c, "[authLogin] Creating login flow for challenge %s", req.LoginChallenge)
 	flow, err := h.cfg.KratosLogin.CreateLoginFlow(ctx)
 	if err != nil {
 		writeAuthLoginServerError(c, err, "auth.login.create_flow")
 		return
 	}
 
-	log.Printf("[authLogin] Submitting login for identifier %s", req.Identifier)
+	logRequest(c, "[authLogin] Submitting login for identifier %s", req.Identifier)
 	identity, err := h.cfg.KratosLogin.SubmitLogin(ctx, flow, req.Identifier, req.Password)
 	switch {
 	case errors.Is(err, ErrKratosInvalidCredentials):
@@ -146,7 +145,7 @@ func (h Handler) authLogin(c *gin.Context) {
 	// fakes that did not set one).
 	h.cfg.KratosSessionCache.Put(subject, identity.SessionToken)
 
-	log.Printf("[authLogin] Accepting login request for subject %s", subject)
+	logRequest(c, "[authLogin] Accepting login request for subject %s", subject)
 	redirectTo, err := h.cfg.HydraAdmin.AcceptLoginRequest(ctx, req.LoginChallenge, subject, req.Remember, defaultRememberForSeconds)
 	if err != nil {
 		writeAuthLoginServerError(c, err, "auth.login.accept")

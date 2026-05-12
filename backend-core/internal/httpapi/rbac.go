@@ -19,7 +19,7 @@ import (
 // TODO: replace with the package-wide writeServerError helper from M1 PR-A (#20)
 // once that PR merges to main and the G-chain rebases on top.
 func writeRBACServerError(c *gin.Context, err error, op string) {
-	log.Printf("server error: op=%s err=%v", op, err)
+	log.Printf("server error: op=%s request_id=%s err=%v", op, requestIDFrom(c), err)
 	c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": "internal error"})
 }
 
