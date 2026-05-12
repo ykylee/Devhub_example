@@ -1,21 +1,21 @@
-# Session Handoff — main (2026-05-11 EOD)
+# Session Handoff — main (2026-05-12 EOD)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
-- 범위: M1/M2 종료 상태, TDD foundation 머지, 다음 sprint 후보
+- 범위: 2026-05-12 머지 8건 정리 + 다음 sprint 후보 + 알려진 한계
 - 대상 독자: 후속 에이전트, 프로젝트 리드
-- 브랜치: `main` (HEAD `adce7ec`, PR #58 squash 직후)
-- 최종 수정일: 2026-05-11
-- 상태: M1/M2 100% done. TDD foundation done. 다음 sprint 결정 대기.
+- 브랜치: `main` (HEAD `29a90bd`, PR #83 squash 직후)
+- 최종 수정일: 2026-05-12
+- 상태: M1/M2 100% done. E2E 자동 시드 hardening 일단락, PR-D audit 정합 완결. 다음 sprint 결정 대기.
 - 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [상태 스냅샷](./state.json), [E2E 가이드](../../docs/setup/e2e-test-guide.md), [배포 가이드](../../docs/setup/test-server-deployment.md)
 
-## 0. 2026-05-11 일과 종료 상태
+## 0. 2026-05-12 일과 종료 상태
 
-- main HEAD `adce7ec` (PR #58 squash, TDD foundation).
-- 오늘 머지된 PR 11건: #45 #51 #50 #49 #52 #53 #54 #55 #56 #57 #58. 자세한 목록은 `state.json` 의 `merged_prs_2026_05_11`.
-- M1/M2 sprint 100% done. M3 partial (사용자/조직 admin) done.
-- TDD baseline 정착: Vitest 27 단위 케이스 + Playwright 5 PASS / 1 SKIPPED (`password-change` 는 PR-L4 후속).
-- 사용자 환경에서 e2e 한 사이클 처음으로 통과 (`cd frontend && npm run e2e` 한 줄).
-- PoC 빠른 진입용 `test/test` 시스템 관리자 시드 추가 (운영 진입 직전 제거 예정, `test-server-deployment.md` §10).
+- main HEAD `29a90bd` (PR #83 squash, work_260512-j close).
+- 오늘 머지된 PR 8건: #76 #77 #78 #79 #80 #81 #82 #83. 자세한 목록은 `state.json` 의 `merged_prs_2026_05_12`.
+- 폐기 sprint 1건: `work_260512-h` — 후보 (M2 hygiene `kratos_identity_id`) 가 PR-L4 (`809f525`, work_26_05_11-e) 에 이미 머지된 것 확인하여 진입 직후 폐기. handoff candidate 표가 outdated 였다는 관찰.
+- 오늘의 두 흐름:
+  1. **E2E 자동 시드 hardening**: globalSetup 의 PUT 으로 시드 비밀번호 force-reset (PR #76) → password-change.spec finally 의 best-effort 화 (PR #78). 어떤 중단 상태에서도 다음 `npm run e2e` 가 자동 복구.
+  2. **PR-D audit 정합 완결**: commands 흐름의 audit_logs INSERT 도 source_ip/request_id/source_type 채우기, handler/middleware log 라인 request_id 부착, `DEVHUB_TRUSTED_PROXIES` env 도입 (PR #80). second-pass review 에서 발견한 invalid env 시 partial-trust silent 회귀를 nil 폴백 + warning log 로 픽스 (PR #82).
 
 ## 1. 다음 세션 진입점 — 우선순위 후보
 
@@ -23,48 +23,47 @@
 
 | 후보 | 주요 작업 | 규모 | 우선 사유 |
 | --- | --- | --- | --- |
-| **PR-L4** Kratos session 정합 | backend `/api/v1/account/password` proxy (session_token 사용) OR browser-mode 로그인 redirect 도입 | M | password-change.spec unskip 차단 해소. M2 hygiene. |
-| **PR-T3.5** e2e seed 자동화 | Playwright `globalSetup` 으로 Kratos identity 3건 + DevHub users 3행 시드 자동화 | S | 매 e2e 사이클 수동 시드 부담 해소. |
-| **PR-T5** CI 도입 (DEC-4) | GitHub Actions: backend `go test` + frontend Vitest + e2e matrix/nightly | M-L | 회귀 안전망의 마지막 조각. |
-| **M4 entry** | command status WebSocket UI, WebSocket 확장 (publish + replay), AI Gardener gRPC, Gitea Hourly Pull | L | 새 기능 트랙. |
-| **M2 follow-up hygiene** | users.kratos_identity_id 칼럼 (FindIdentityByUserID O(1)), Kratos webhook → audit_logs, Hydra JWKS verifier 실구현 | M | 운영 진입 전 정합. |
-| **PR-D follow-up** | store/postgres.go commands audit INSERT 3 곳 actor context 채우기, 모든 log 라인 request_id 부착, `DEVHUB_TRUSTED_PROXIES` env | S-M | 감사 정합 마무리. |
-| **UX hygiene** | `/admin/settings/users` SearchInput 필터, `/account` Kratos privileged session 안내, Header Switch View 한계 안내 | S | UX 보강. |
+| **caller-supplied X-Request-ID validation** | `^req_[A-Za-z0-9_-]{8,64}$` 정규식 강제. control char / newline / 길이 제한. | S | audit_logs.request_id 위생. work_260512-j 발견. |
+| **ctx 표준 request_id 전파** | gin Context 의 request_id 를 `context.Value` 로도 흘려서 `kratos_login_client.go:145/153` / `kratos_identity_resolver.go:52` 등 ctx 만 받는 client 도 자동 tagged. | M | logRequest 의 untraced fallback 해소. PR-D 후속의 자연 마무리. |
+| **writeRBACServerError → writeServerError 통합** | rbac.go:22 의 TODO. 형식은 work_260512-i 에서 이미 일치 (`op=%s request_id=%s err=%v`). 통합은 호출처 시그니처만 정리. | S | 코드 정리. |
+| **M4 진입** | command status WebSocket UI, WebSocket 확장 (publish + replay), AI Gardener gRPC, Gitea Hourly Pull worker. | L | 새 기능 트랙. |
+| **PR-T5 CI 도입** | GitHub Actions: backend `go test` + frontend Vitest + e2e matrix/nightly. | M-L | 사용자가 본 시점 진입 보류 결정 (2026-05-12). 다른 후보 정리 후 재논의. |
+| **PR-D follow-up (정합 보강)** | DB integration test 도입 — production INSERT 의 새 enrichment 컬럼이 실제 매칭되는지 (현재는 fake store echo + 코드 검토 + 컴파일 검증). | M | 외부 DB 의존. |
+| **M2 hygiene** | Kratos webhook → audit_logs 통합, Hydra JWKS 실구현. | M | 운영 진입 전. |
+| **UX hygiene** | `/admin/settings/users` SearchInput 필터, `/account` Kratos privileged session 안내, Header Switch View 한계 안내. | S | UX 보강. |
 
-## 2. 직전 sprint 인계
+## 2. 직전 sprint 인계 (2026-05-12 흐름)
 
-- [`claude/work_26_05_11-d`](./claude/work_26_05_11-d/session_handoff.md) (CLOSED, PR #58) — TDD foundation. e2e 검증 hole 5건 봉합 (DSN env, migration 5-8, identity schema, video off, seed 헬퍼). 발견된 PR-L3 구조 한계로 password-change 가 skip — PR-L4 의 unblocker.
-- [`claude/work_26_05_11-c`](./claude/work_26_05_11-c/session_handoff.md) (CLOSED, PR #57) — M1 PR-D audit actor enrichment.
-- [`claude/work_26_05_11-b`](./claude/work_26_05_11-b/session_handoff.md) (CLOSED, PR #56) — M1 envelope + wire/UI split + CommandStatus enum.
-- [`claude/work_26_05_11`](./claude/work_26_05_11/backlog/2026-05-11.md) (CLOSED, PR #45/49/50/51/52/53/54/55) — M2 login_action + Track S.
+- [`claude/work_260512-f`](./claude/work_260512-f/session_handoff.md) (CLOSED, PR #76) — PR-T3.5 hardening. globalSetup PUT force-reset + state="active" 강제 + 가이드 §2.0/§6/§8 갱신.
+- [`claude/work_260512-g`](./claude/work_260512-g/session_handoff.md) (CLOSED, PR #78) — PR-T3.5 follow-up #2. password-change.spec finally best-effort 화.
+- [`claude/work_260512-h`](.) — DISCARDED. M2 hygiene `kratos_identity_id` 가 PR-L4 에 이미 포함된 것 확인.
+- [`claude/work_260512-i`](./claude/work_260512-i/session_handoff.md) (CLOSED, PR #80) — PR-D follow-up 3 sub-task: TRUSTED_PROXIES env / commands audit enrichment / handler log request_id + self-review format-safety fix.
+- [`claude/work_260512-j`](./claude/work_260512-j/session_handoff.md) (CLOSED, PR #82) — PR #80 second-pass review fix. `SetTrustedProxies` err 무시 → invalid env 시 nil 폴백.
 
-## 3. 환경 / 운영 메모
+## 3. 환경 / 운영 메모 (변경 없음, 참고용)
 
 - **5 프로세스 native 기동**: PostgreSQL(시스템 서비스) + Hydra + Kratos + backend-core + frontend. `test-server-deployment.md` §5.
-- **DSN env override 필수**: `infra/idp/{hydra,kratos}.yaml` 의 `dsn` 에 credential 없음. `DSN="postgres://postgres:postgres@localhost:5432/devhub?sslmode=disable&search_path=hydra"` 식 env 로 띄움.
-- **migration 적용**: `migrate` CLI 미설치 환경은 `go run ./backend-core/cmd/idp-apply-schemas -sql migrations/...up.sql` 로 1개씩. 진단은 `-query "<SQL>"`.
-- **e2e 시드**: `infra/idp/sql/002_seed_e2e_users.sql` (alice/bob/charlie) + Kratos identity 3건 curl (`traits.system_id` 필수). 가이드 `e2e-test-guide.md` §2.
-- **빠른 admin 진입**: `infra/idp/sql/003_seed_test_admin.sql` + `test`/`test` Kratos identity. PoC 한정.
-- **사내 corp 환경 메모**: `infra/idp/ENVIRONMENT_NOTES.md` (psql 미설치, SSL inspection, PowerShell 5.1 ASCII 강제).
+- **DSN env override**: `infra/idp/{hydra,kratos}.yaml` 의 `dsn` 에 credential 없음.
+- **e2e 자동 시드**: `cd frontend && npm run e2e` 한 줄. globalSetup 이 Kratos identity 3건 + DevHub users 3행 idempotent 시드 + 매 실행마다 시드 비밀번호 force-reset.
+- **DEVHUB_TRUSTED_PROXIES**: PR #80 도입 + PR #82 hardening. 사용법은 `router.go::trustedProxiesFromEnv` doc 코멘트 참조.
+- **사내 corp 환경 메모**: `infra/idp/ENVIRONMENT_NOTES.md`.
 
-## 4. 잔여 결정 대기 (M0/M1 시점 보존 — 변동 없음)
+## 4. 잔여 결정 대기
 
-- 운영 reverse proxy 환경용 `DEVHUB_TRUSTED_PROXIES` env 도입 정책 (현재는 `SetTrustedProxies(nil)` 고정).
+- PR-T5 CI 도입 시점 (사용자 보류 결정 후 재논의).
 - Hydra JWKS / introspection verifier 실구현 (M2 후속).
 - PoC OIDC client 의 secrets 운영 진입 시 교체 절차 (`test-server-deployment.md` §10).
+- PoC `test/test` 시드 제거 시점 (운영 진입 직전).
 
-## 5. 머지 흐름 요약 (2026-05-11)
+## 5. 머지 흐름 요약 (2026-05-12)
 
 ```
-adce7ec PR #58 — test: TDD foundation (work_26_05_11-d squash)
-4e831a3 PR #57 — feat(audit): actor enrichment + request_id middleware (PR-D, M1 final)
-9b6b3ea PR #56 — feat(M1 cleanup): envelope + wire/UI split + CommandStatus enum (PR-B+PR-C)
-818d54a PR #55 — feat(org): persist drag positions + leader change (PR-S4)
-b935876 PR #54 — feat(account): admin endpoints (PR-S3)
-2d0075e PR #53 — feat(ui): /admin/settings shell + organization 4 tabs (PR-S2)
-a2f707e PR #52 — feat(ui): role-based landing + sidebar gating (PR-S1)
-92b3459 PR #49 — docs(setup): test server deployment guide
-205980e PR #50 — feat(account): /account password via Kratos settings (PR-L3)
-858129f PR #51 — feat(auth): /auth/logout + Kratos browser logout (PR-L2)
-61541da PR #45 — feat(auth): /api/v1/auth/logout proxy (PR-L1)
+29a90bd PR #83 — docs(memory): close work_260512-j slot
+6121828 PR #82 — fix(audit): fall back to nil trust when DEVHUB_TRUSTED_PROXIES invalid
+d40b73a PR #81 — docs(memory): close work_260512-i slot
+ffcaec6 PR #80 — feat(audit): PR-D follow-up — commands enrichment + log request_id + TRUSTED_PROXIES
+9549395 PR #79 — docs(memory): close work_260512-g slot
+6d2274c PR #78 — test(e2e): best-effort cleanup in password-change.spec (PR-T3.5 follow-up)
+354609b PR #77 — docs(memory): close work_260512-f slot
+e2393a3 PR #76 — test(e2e): force-reset seeded passwords (PR-T3.5 hardening)
 ```

@@ -83,3 +83,4 @@
 | 2026-05-08 | M1 sprint 진입. `claude/m1-sprint-plan` 브랜치 + backlog 초안. 진입 PR 5건 분할 결정. |
 | 2026-05-08 | M1 RBAC track 8 PR (#20·21·22·23·29·30·31·27) + 리뷰 트래커 (#28) 머지. FIX A~D 적용. DEFER A~G 백로그 인계. |
 | 2026-05-08 | M2 login_action sprint 진입. 로그인 검토 후 PR-LOGIN-1 (#33 backend proxy) + PR-LOGIN-2 (#34 frontend form) push 머지 대기. backlog 작성 (`claude/login_action/backlog/2026-05-08.md`). PR-LOGIN-3·4 미진입. |
+| 2026-05-12 | 4 sprint × 8 PR 머지 — E2E 자동 시드 hardening (#76, #78) + PR-D audit 정합 완결 (#80) + second-pass review fix (#82). work_260512-h 폐기 (kratos_identity_id 가 PR-L4 에 이미 포함). 자세히는 `session_handoff.md` §0/§5 + `state.json` 의 `merged_prs_2026_05_12`. |
