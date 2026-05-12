@@ -18,16 +18,19 @@ Set-Location $RepoRoot
 $PidDir = Join-Path $RepoRoot '.pids'
 
 function Stop-ServiceByPid {
+    # Returns $true when a PID file existed (regardless of whether the process
+    # was still alive) so the caller can decide to add this service's ports to
+    # the sweep list. When no PID file exists, dev-up did not start the
+    # service - leave any externally-managed listener intact.
     param([string]$Name)
     $pidFile = Join-Path $PidDir "$Name.pid"
     if (-not (Test-Path $pidFile)) {
-        Write-Host "  $Name not tracked (no PID file)"
-        return
+        return $false
     }
     $svcPid = (Get-Content $pidFile -ErrorAction SilentlyContinue).Trim()
     if (-not $svcPid) {
         Remove-Item $pidFile -ErrorAction SilentlyContinue
-        return
+        return $true
     }
     $proc = Get-Process -Id $svcPid -ErrorAction SilentlyContinue
     if ($null -ne $proc) {
@@ -41,6 +44,7 @@ function Stop-ServiceByPid {
         Write-Host "  $Name (PID $svcPid) already gone"
     }
     Remove-Item $pidFile -ErrorAction SilentlyContinue
+    return $true
 }
 
 function Stop-ByPort {
@@ -68,13 +72,30 @@ function Stop-ByPort {
 
 Write-Host 'Stopping DevHub local services...'
 
-# Reverse start order: frontend -> backend -> hydra -> kratos.
-Stop-ServiceByPid 'frontend'
-Stop-ServiceByPid 'backend'
-Stop-ServiceByPid 'hydra'
-Stop-ServiceByPid 'kratos'
+# Reverse start order: frontend -> backend -> hydra -> kratos. Only the
+# services dev-up actually spawned (PID file present) contribute their ports
+# to the sweep list, so externally-managed Kratos/Hydra/backend/frontend
+# instances are left alone.
+$servicePorts = [ordered]@{
+    'frontend' = @(3000)
+    'backend'  = @(8080)
+    'hydra'    = @(4444, 4445)
+    'kratos'   = @(4433, 4434)
+}
 
-# Safety net for stale binaries holding well-known ports.
-Stop-ByPort -Ports @(3000, 8080, 4433, 4434, 4444, 4445)
+$sweepPorts = New-Object System.Collections.Generic.List[int]
+foreach ($name in $servicePorts.Keys) {
+    if (Stop-ServiceByPid $name) {
+        foreach ($p in $servicePorts[$name]) { [void]$sweepPorts.Add($p) }
+    } else {
+        $ports = ($servicePorts[$name] -join ', ')
+        Write-Host "  $name not started by this script; leaving any listener on port(s) $ports intact"
+    }
+}
+
+# Safety net only for services we actually started.
+if ($sweepPorts.Count -gt 0) {
+    Stop-ByPort -Ports $sweepPorts.ToArray()
+}
 
 Write-Host 'All DevHub services stopped.'

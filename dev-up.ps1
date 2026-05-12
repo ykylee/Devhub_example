@@ -35,6 +35,16 @@ if (-not (Test-Path $PidDir)) {
     New-Item -ItemType Directory -Path $PidDir | Out-Null
 }
 
+function Test-PortListening {
+    # Quick, one-shot check whether something already holds the port. Used to
+    # respect externally-managed Kratos/Hydra/backend/frontend instances: if
+    # the port is taken, dev-up neither spawns a duplicate nor writes a PID
+    # file, so dev-down later leaves the external process alone.
+    param([Parameter(Mandatory)][int]$Port)
+    $conn = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
+    return [bool]$conn
+}
+
 function Wait-ForPort {
     param(
         [Parameter(Mandatory)][string]$Name,
@@ -115,7 +125,9 @@ if ($env:DEVHUB_SKIP_MIGRATE -eq '1') {
 }
 
 # 2. Kratos
-if (Get-Command kratos -ErrorAction SilentlyContinue) {
+if (Test-PortListening -Port 4433) {
+    Write-Host '  external instance detected on port 4433; using existing kratos (PID file not written)'
+} elseif (Get-Command kratos -ErrorAction SilentlyContinue) {
     Start-BackgroundService -Name 'kratos' -Executable 'kratos' `
         -Arguments @('serve', '-c', 'infra/idp/kratos.yaml', '--dev') `
         -LogFile 'kratos.log'
@@ -126,7 +138,9 @@ if (Get-Command kratos -ErrorAction SilentlyContinue) {
 }
 
 # 3. Hydra
-if (Get-Command hydra -ErrorAction SilentlyContinue) {
+if (Test-PortListening -Port 4444) {
+    Write-Host '  external instance detected on port 4444; using existing hydra (PID file not written)'
+} elseif (Get-Command hydra -ErrorAction SilentlyContinue) {
     Start-BackgroundService -Name 'hydra' -Executable 'hydra' `
         -Arguments @('serve', 'all', '-c', 'infra/idp/hydra.yaml', '--dev') `
         -LogFile 'hydra.log'
@@ -143,18 +157,28 @@ $env:DEVHUB_KRATOS_PUBLIC_URL   = 'http://localhost:4433'
 $env:DEVHUB_KRATOS_ADMIN_URL    = 'http://localhost:4434'
 $env:DEVHUB_HYDRA_PUBLIC_URL    = 'http://localhost:4444'
 $env:DEVHUB_HYDRA_ADMIN_URL     = 'http://localhost:4445'
-Start-BackgroundService -Name 'backend' -Executable 'go' `
-    -Arguments @('run', '.') `
-    -LogFile 'backend.log' `
-    -WorkingDir (Join-Path $RepoRoot 'backend-core')
-Wait-ForPort -Name 'backend' -Port 8080
+if (Test-PortListening -Port 8080) {
+    Write-Host '  external instance detected on port 8080; using existing backend (PID file not written)'
+} else {
+    Start-BackgroundService -Name 'backend' -Executable 'go' `
+        -Arguments @('run', '.') `
+        -LogFile 'backend.log' `
+        -WorkingDir (Join-Path $RepoRoot 'backend-core')
+    Wait-ForPort -Name 'backend' -Port 8080
+}
 
 # 5. frontend
-Start-BackgroundService -Name 'frontend' -Executable 'npm' `
-    -Arguments @('run', 'dev') `
-    -LogFile 'frontend.log' `
-    -WorkingDir (Join-Path $RepoRoot 'frontend')
-Wait-ForPort -Name 'frontend' -Port 3000 -TimeoutSec 60
+# Use npm.cmd explicitly: Start-Process resolves bare 'npm' to npm.ps1, which is
+# not a Win32 executable, so CreateProcess refuses with "%1 is not a valid Win32 application."
+if (Test-PortListening -Port 3000) {
+    Write-Host '  external instance detected on port 3000; using existing frontend (PID file not written)'
+} else {
+    Start-BackgroundService -Name 'frontend' -Executable 'npm.cmd' `
+        -Arguments @('run', 'dev') `
+        -LogFile 'frontend.log' `
+        -WorkingDir (Join-Path $RepoRoot 'frontend')
+    Wait-ForPort -Name 'frontend' -Port 3000 -TimeoutSec 60
+}
 
 Write-Host ''
 Write-Host 'All services up:'
