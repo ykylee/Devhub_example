@@ -20,12 +20,38 @@ echo "Preparing DevHub CI environment..."
 # dev-up.sh canonical version). The older v2.2.0/v1.1.0 line predates the
 # `migrate sql up` subcommand convention used by dev-up.sh and trips with
 # "Please provide the database URL." even when DSN is supplied.
+#
+# The v26.x linux_64bit tarballs nest the binary one level deep (matching
+# the Windows zip layout that install-binaries.ps1 handles via -Recurse).
+# Extract into a temp dir and `find` the binary so this keeps working if
+# upstream layout shifts again.
 ORY_VERSION="${ORY_VERSION:-26.2.0}"
+install_ory_binary() {
+  local name="$1"
+  local url="https://github.com/ory/${name}/releases/download/v${ORY_VERSION}/${name}_${ORY_VERSION}-linux_64bit.tar.gz"
+  local tmpdir
+  tmpdir="$(mktemp -d)"
+  curl -fsSL "$url" -o "$tmpdir/${name}.tar.gz"
+  tar xzf "$tmpdir/${name}.tar.gz" -C "$tmpdir"
+  local bin
+  bin="$(find "$tmpdir" -type f -name "$name" -perm -u=x | head -n1)"
+  if [ -z "$bin" ]; then
+    echo "Failed to locate ${name} binary inside ${name}_${ORY_VERSION}-linux_64bit.tar.gz" >&2
+    echo "Tarball contents:" >&2
+    tar tzf "$tmpdir/${name}.tar.gz" >&2
+    exit 1
+  fi
+  install -m 0755 "$bin" "/usr/local/bin/${name}"
+  rm -rf "$tmpdir"
+}
+
 if ! command -v kratos &> /dev/null || ! command -v hydra &> /dev/null; then
   echo "Installing Ory binaries (v${ORY_VERSION})..."
-  curl -L "https://github.com/ory/kratos/releases/download/v${ORY_VERSION}/kratos_${ORY_VERSION}-linux_64bit.tar.gz" | tar xz -C /usr/local/bin kratos
-  curl -L "https://github.com/ory/hydra/releases/download/v${ORY_VERSION}/hydra_${ORY_VERSION}-linux_64bit.tar.gz" | tar xz -C /usr/local/bin hydra
+  install_ory_binary kratos
+  install_ory_binary hydra
 fi
+kratos version
+hydra version
 
 # 2. DB Schema 생성
 # `idp-apply-schemas` reads `DEVHUB_DB_URL` (not `DB_URL`) and otherwise falls
