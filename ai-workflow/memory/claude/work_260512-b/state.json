@@ -1,0 +1,10 @@
+{
+  "project": "DevHub",
+  "branch": "claude/work_260512-b",
+  "status": "in_progress",
+  "last_updated": "2026-05-12T08:30:00Z",
+  "base_branch": "gemini/frontend_260510",
+  "base_head_at_close": "post-#69 squash merge (7107eb1 — dev-scripts respect external services)",
+  "current_phase": "defect #4 fixed + healthz docs typo + memory slot continuation",
+  "context_summary": "Continuation of claude/work_260512 (PR #69 merged). 결함 #4 (kratos.yaml/hydra.yaml DSN credential 누락) 픽스: dev-up.{ps1,sh} 가 spawn 직전 $DSN env 를 search_path 만 다르게 주입 (Ory 바이너리는 DSN env 가 yaml dsn 을 override). yaml 은 그대로 — credential 평문 commit 회피. Scenario B 콜드부팅 검증 통과: kratos/hydra 가 dev-up 에서 cold spawn 되어 4433/4444 bind, /health/ready 200. 보너스 발견: dev-down 의 PID-kill 만으로 kratos/hydra 가 즉시 종료 — 결함 #2 (grandchild PID) 는 backend(go run)/frontend(npm.cmd) 에만 한정. healthz 표기 정정 후보 #2: 루트 CLAUDE.md 는 .gitignore:11 로 무시됨(개인 로컬) → docs/setup/environment-setup.md 만 commit 대상."
+}
