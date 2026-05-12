@@ -79,7 +79,9 @@ jobs:
       
       - name: Build App
         run: |
-          (cd backend-core && go build -o ../devhub-backend ./cmd/httpapi)
+          # backend-core's main package lives at backend-core/main.go (no
+          # cmd/httpapi sub-package). Build the root package.
+          (cd backend-core && go build -o ../devhub-backend ./)
           (cd frontend && npm run build)
       
       - name: Start Ory Kratos
@@ -102,9 +104,17 @@ jobs:
         run: ./infra/idp/scripts/register-devhub-client.sh
       
       - name: Start Backend
+        env:
+          # backend-core reads DB_URL (see internal/config/config.go), not DSN.
+          DB_URL: postgres://runner@localhost:5432/devhub?sslmode=disable
+          # Without DEVHUB_HYDRA_ADMIN_URL no bearer-token verifier is wired
+          # and admin/RBAC routes reject E2E requests. Point at the CI Hydra.
+          DEVHUB_HYDRA_ADMIN_URL: http://localhost:4445
+          DEVHUB_HYDRA_PUBLIC_URL: http://localhost:4444
+          DEVHUB_KRATOS_PUBLIC_URL: http://localhost:4433
+          DEVHUB_KRATOS_ADMIN_URL: http://localhost:4434
+          DEVHUB_KRATOS_WEBHOOK_TOKEN: ci-test-token-12345
         run: |
-          export DSN="postgres://runner@localhost:5432/devhub?sslmode=disable"
-          export DEVHUB_KRATOS_WEBHOOK_TOKEN=ci-test-token-12345
           ./devhub-backend > backend.log 2>&1 &
       
       - name: Start Frontend

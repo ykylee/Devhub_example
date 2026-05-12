@@ -75,8 +75,11 @@ session:
 secrets:
   cookie:
     - "ci-only-cookie-secret-min-16-bytes-bbbbbbbb"
+  # Kratos cipher.secret must be exactly 32 bytes (AES-256). The earlier
+  # value was 31 bytes (`ci-cipher-secret-32bytes-bbbbbb`) which trips the
+  # AES key length check at Kratos startup.
   cipher:
-    - "ci-cipher-secret-32bytes-bbbbbb"
+    - "ci-cipher-secret-32bytes-bbbbbbb"
 
 identity:
   default_schema_id: devhub_user
