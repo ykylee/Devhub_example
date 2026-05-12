@@ -1,10 +1,11 @@
 {
   "project": "DevHub",
   "branch": "claude/work_260512-f",
-  "status": "review",
-  "last_updated": "2026-05-12T00:30:00Z",
+  "status": "done",
+  "last_updated": "2026-05-12T01:30:00Z",
   "base_branch": "main",
   "base_head_at_open": "7e56aad",
-  "current_phase": "PR-T3.5 hardening 구현·문서·tsc 검증 완료. commit + push + PR 생성 단계.",
-  "context_summary": "PR-T3.5 (a18e785, PR #62) 후속. globalSetup 이 매 실행 시 Kratos admin PUT 으로 시드 비밀번호를 force-reset 하도록 보강. password-change.spec 의 finally rollback 이 fatal 실패해도 다음 npm run e2e 한 번이면 자동 복구. 가이드 §2.0 / §6 / §8 동시 갱신. 실제 e2e 실행 검증은 사용자 환경에서 PR 코멘트로 첨부 권장."
+  "base_head_at_close": "e2393a3 (PR #76 squash merge)",
+  "current_phase": "closed — PR-T3.5 hardening 머지 완료",
+  "context_summary": "PR-T3.5 (a18e785, #62) 후속. globalSetup 이 매 실행 시 Kratos admin PUT 으로 시드 비밀번호를 force-reset 하도록 보강 (work_260512-f → PR #76, squash hash e2393a3). 동일 PR 안의 self-review 패스에서 PUT payload 의 state echo 함정 발견 → state=\"active\" 강제 (df7b099) 보강 commit. 가이드 §2.0/§6/§8 동시 갱신. tsc PASS. 실 e2e 실행 검증은 사용자 환경에서 별도 (test plan unchecked 2건)."
 }
