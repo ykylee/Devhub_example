@@ -13,84 +13,103 @@ import (
 	"time"
 )
 
+// ErrKratosIdentityNotFound is returned when no Kratos identity matches the
+// supplied DevHub user_id (or the underlying GET returns 404).
 var ErrKratosIdentityNotFound = errors.New("kratos identity not found")
 
-// KratosAdminClient implements KratosAdmin using the Ory Kratos Admin API.
+// KratosAdminClient drives identity management on the Ory Kratos Admin API.
 type KratosAdminClient struct {
 	AdminURL   string
 	HTTPClient *http.Client
 }
 
-func (c *KratosAdminClient) GetIdentity(ctx context.Context, id string) (*KratosIdentity, error) {
-	endpoint := strings.TrimRight(c.AdminURL, "/") + "/admin/identities/" + url.PathEscape(id)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
-	if err != nil {
-		return nil, fmt.Errorf("build kratos get identity: %w", err)
-	}
-	resp, err := c.client().Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("call kratos get identity: %w", err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode == http.StatusNotFound {
-		return nil, ErrKratosIdentityNotFound
-	}
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("kratos get identity status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
-	}
-	var identity KratosIdentity
-	if err := json.NewDecoder(resp.Body).Decode(&identity); err != nil {
-		return nil, fmt.Errorf("decode kratos identity: %w", err)
-	}
-	return &identity, nil
+// KratosCreateIdentityRequest is the payload for POST /admin/identities.
+type KratosCreateIdentityRequest struct {
+	SchemaID string `json:"schema_id"`
+	State    string `json:"state"`
+	Traits   struct {
+		SystemID    string `json:"system_id"`
+		Email       string `json:"email"`
+		DisplayName string `json:"display_name"`
+	} `json:"traits"`
+	MetadataPublic struct {
+		UserID string `json:"user_id"`
+	} `json:"metadata_public"`
+	Credentials struct {
+		Password struct {
+			Config struct {
+				Password string `json:"password"`
+			} `json:"config"`
+		} `json:"password"`
+	} `json:"credentials"`
 }
 
 func (c *KratosAdminClient) CreateIdentity(ctx context.Context, email, name, userID, password string) (string, error) {
-	endpoint := strings.TrimRight(c.AdminURL, "/") + "/admin/identities"
-	payload := map[string]any{
-		"schema_id": "default",
-		"traits": map[string]any{
-			"email":   email,
-			"name":    name,
-		},
-		"metadata_public": map[string]any{
-			"user_id": userID,
-		},
-		"credentials": map[string]any{
-			"password": map[string]any{
-				"config": map[string]any{
-					"password": password,
-				},
-			},
-		},
-		"state": "active",
+	if strings.TrimSpace(c.AdminURL) == "" {
+		return "", fmt.Errorf("KratosAdminClient.AdminURL is not configured")
 	}
-	encoded, _ := json.Marshal(payload)
+
+	reqBody := KratosCreateIdentityRequest{
+		SchemaID: "devhub_user",
+		State:    "active",
+	}
+	reqBody.Traits.SystemID = userID
+	reqBody.Traits.Email = email
+	reqBody.Traits.DisplayName = name
+	reqBody.MetadataPublic.UserID = userID
+	reqBody.Credentials.Password.Config.Password = password
+
+	encoded, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", fmt.Errorf("encode kratos create identity: %w", err)
+	}
+
+	endpoint := strings.TrimRight(c.AdminURL, "/") + "/admin/identities"
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(encoded))
 	if err != nil {
-		return "", fmt.Errorf("build kratos create identity: %w", err)
+		return "", fmt.Errorf("build kratos create identity request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
 	resp, err := c.client().Do(req)
 	if err != nil {
 		return "", fmt.Errorf("call kratos create identity: %w", err)
 	}
 	defer resp.Body.Close()
-	body, _ := io.ReadAll(resp.Body)
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("read kratos create identity response: %w", err)
+	}
+
 	if resp.StatusCode != http.StatusCreated {
 		return "", fmt.Errorf("kratos create identity status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
 	}
-	var identity struct {
+
+	var raw struct {
 		ID string `json:"id"`
 	}
-	if err := json.Unmarshal(body, &identity); err != nil {
-		return "", fmt.Errorf("decode kratos create identity: %w", err)
+	if err := json.Unmarshal(body, &raw); err != nil {
+		return "", fmt.Errorf("decode kratos create identity response: %w", err)
 	}
-	return identity.ID, nil
+
+	return raw.ID, nil
 }
 
+// FindIdentityByUserID locates a Kratos identity whose metadata_public.user_id
+// equals the supplied DevHub user_id. PoC implementation: page through
+// /admin/identities and match in-process. Acceptable for the test server's
+// small identity count; production should add a credentials_identifier query
+// or a DevHub users.kratos_identity_id column for O(1) lookup.
 func (c *KratosAdminClient) FindIdentityByUserID(ctx context.Context, userID string) (string, error) {
+	if strings.TrimSpace(c.AdminURL) == "" {
+		return "", fmt.Errorf("KratosAdminClient.AdminURL is not configured")
+	}
+	if strings.TrimSpace(userID) == "" {
+		return "", errors.New("user_id is required")
+	}
+
 	page := 1
 	const pageSize = 250
 	for {
@@ -98,35 +117,177 @@ func (c *KratosAdminClient) FindIdentityByUserID(ctx context.Context, userID str
 		params.Set("page", fmt.Sprintf("%d", page))
 		params.Set("per_page", fmt.Sprintf("%d", pageSize))
 		endpoint := strings.TrimRight(c.AdminURL, "/") + "/admin/identities?" + params.Encode()
+
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 		if err != nil {
 			return "", fmt.Errorf("build kratos list identities: %w", err)
 		}
+		req.Header.Set("Accept", "application/json")
+
 		resp, err := c.client().Do(req)
 		if err != nil {
 			return "", fmt.Errorf("call kratos list identities: %w", err)
 		}
-		defer resp.Body.Close()
-		var batch []KratosIdentity
-		if err := json.NewDecoder(resp.Body).Decode(&batch); err != nil {
+		body, readErr := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if readErr != nil {
+			return "", fmt.Errorf("read kratos list identities: %w", readErr)
+		}
+		if resp.StatusCode != http.StatusOK {
+			return "", fmt.Errorf("kratos list identities status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+		}
+
+		var batch []struct {
+			ID             string `json:"id"`
+			MetadataPublic struct {
+				UserID string `json:"user_id"`
+			} `json:"metadata_public"`
+		}
+		if err := json.Unmarshal(body, &batch); err != nil {
 			return "", fmt.Errorf("decode kratos list identities: %w", err)
 		}
 		for _, ident := range batch {
-			if ident.UserID == userID {
+			if ident.MetadataPublic.UserID == userID {
 				return ident.ID, nil
 			}
 		}
 		if len(batch) < pageSize {
-			break
+			return "", ErrKratosIdentityNotFound
 		}
 		page++
+		if page > 40 { // 10k cap for the PoC scan
+			return "", ErrKratosIdentityNotFound
+		}
 	}
-	return "", ErrKratosIdentityNotFound
 }
 
-func (c *KratosAdminClient) UpdateIdentityPassword(ctx context.Context, identityID, password string) error { return nil }
-func (c *KratosAdminClient) SetIdentityState(ctx context.Context, identityID string, active bool) error { return nil }
-func (c *KratosAdminClient) DeleteIdentity(ctx context.Context, identityID string) error { return nil }
+// getIdentityRaw fetches the identity as a generic map so we can mutate one
+// field and round-trip via PUT without depending on the full Kratos schema.
+func (c *KratosAdminClient) getIdentityRaw(ctx context.Context, identityID string) (map[string]any, error) {
+	endpoint := strings.TrimRight(c.AdminURL, "/") + "/admin/identities/" + url.PathEscape(identityID)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("build kratos get identity: %w", err)
+	}
+	req.Header.Set("Accept", "application/json")
+	resp, err := c.client().Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("call kratos get identity: %w", err)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read kratos get identity: %w", err)
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, ErrKratosIdentityNotFound
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("kratos get identity status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+	var raw map[string]any
+	if err := json.Unmarshal(body, &raw); err != nil {
+		return nil, fmt.Errorf("decode kratos get identity: %w", err)
+	}
+	return raw, nil
+}
+
+// UpdateIdentityPassword overwrites the password credential for the given
+// identity. Kratos has no first-class admin "set password" endpoint; the
+// supported pattern is GET -> mutate credentials.password.config -> PUT.
+func (c *KratosAdminClient) UpdateIdentityPassword(ctx context.Context, identityID, password string) error {
+	if strings.TrimSpace(c.AdminURL) == "" {
+		return fmt.Errorf("KratosAdminClient.AdminURL is not configured")
+	}
+	if strings.TrimSpace(password) == "" {
+		return errors.New("password is required")
+	}
+	current, err := c.getIdentityRaw(ctx, identityID)
+	if err != nil {
+		return err
+	}
+	creds, _ := current["credentials"].(map[string]any)
+	if creds == nil {
+		creds = map[string]any{}
+	}
+	creds["password"] = map[string]any{
+		"config": map[string]any{"password": password},
+	}
+	current["credentials"] = creds
+	return c.putIdentity(ctx, identityID, current)
+}
+
+// SetIdentityState toggles the identity between "active" and "inactive". An
+// inactive identity cannot complete the login flow, which is the property
+// account-disable relies on.
+func (c *KratosAdminClient) SetIdentityState(ctx context.Context, identityID string, active bool) error {
+	if strings.TrimSpace(c.AdminURL) == "" {
+		return fmt.Errorf("KratosAdminClient.AdminURL is not configured")
+	}
+	current, err := c.getIdentityRaw(ctx, identityID)
+	if err != nil {
+		return err
+	}
+	if active {
+		current["state"] = "active"
+	} else {
+		current["state"] = "inactive"
+	}
+	return c.putIdentity(ctx, identityID, current)
+}
+
+// DeleteIdentity removes the identity from Kratos. Use after DevHub
+// users.status -> "disabled" or alongside DevHub user delete.
+func (c *KratosAdminClient) DeleteIdentity(ctx context.Context, identityID string) error {
+	if strings.TrimSpace(c.AdminURL) == "" {
+		return fmt.Errorf("KratosAdminClient.AdminURL is not configured")
+	}
+	endpoint := strings.TrimRight(c.AdminURL, "/") + "/admin/identities/" + url.PathEscape(identityID)
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, endpoint, nil)
+	if err != nil {
+		return fmt.Errorf("build kratos delete identity: %w", err)
+	}
+	resp, err := c.client().Do(req)
+	if err != nil {
+		return fmt.Errorf("call kratos delete identity: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusNotFound {
+		return ErrKratosIdentityNotFound
+	}
+	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("kratos delete identity status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+	return nil
+}
+
+func (c *KratosAdminClient) putIdentity(ctx context.Context, identityID string, body map[string]any) error {
+	encoded, err := json.Marshal(body)
+	if err != nil {
+		return fmt.Errorf("encode kratos put identity: %w", err)
+	}
+	endpoint := strings.TrimRight(c.AdminURL, "/") + "/admin/identities/" + url.PathEscape(identityID)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, endpoint, bytes.NewReader(encoded))
+	if err != nil {
+		return fmt.Errorf("build kratos put identity: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	resp, err := c.client().Do(req)
+	if err != nil {
+		return fmt.Errorf("call kratos put identity: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusNotFound {
+		return ErrKratosIdentityNotFound
+	}
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("kratos put identity status %d: %s", resp.StatusCode, strings.TrimSpace(string(respBody)))
+	}
+	return nil
+}
 
 func (c *KratosAdminClient) client() *http.Client {
 	if c.HTTPClient != nil {
@@ -135,48 +296,67 @@ func (c *KratosAdminClient) client() *http.Client {
 	return &http.Client{Timeout: 5 * time.Second}
 }
 
+// MockKratosAdmin is a development-only mock that simulates identity
+// management. Tracks the calls so handler tests can assert on them.
 type MockKratosAdmin struct {
-	CreatedIDs     []string
-	PasswordResets []string
-	StateChanges   map[string]bool // identityID → active
-	DeletedIDs     []string
-	FindError      error
-	FindCalls      int
-	FindIDOverride map[string]string // userID → identityID
+	CreatedIDs       []string
+	PasswordResets   []string
+	StateChanges     map[string]bool
+	DeletedIDs       []string
+	FindIDOverride   map[string]string
+	// FindCalls counts how many times FindIdentityByUserID was invoked. The
+	// L4-A cache hit test asserts this stays at zero when the DevHub users
+	// row already carries a kratos_identity_id.
+	FindCalls       int
+	FindError       error
+	UpdatePassError error
+	SetStateError   error
+	DeleteError     error
 }
 
-func (m *MockKratosAdmin) GetIdentity(ctx context.Context, id string) (*KratosIdentity, error) {
-	return &KratosIdentity{ID: id}, nil
+func (m *MockKratosAdmin) CreateIdentity(_ context.Context, email, name, userID, password string) (string, error) {
+	fakeID := fmt.Sprintf("mock-k-id-%s", userID)
+	m.CreatedIDs = append(m.CreatedIDs, fakeID)
+	fmt.Printf("[MockKratosAdmin] Identity Created: Email=%s, Name=%s, UserID=%s (Password was received)\n", email, name, userID)
+	_ = password
+	return fakeID, nil
 }
-func (m *MockKratosAdmin) CreateIdentity(ctx context.Context, email, name, userID, password string) (string, error) {
-	id := "mock-k-id-" + userID
-	m.CreatedIDs = append(m.CreatedIDs, id)
-	return id, nil
-}
-func (m *MockKratosAdmin) FindIdentityByUserID(ctx context.Context, userID string) (string, error) {
+
+func (m *MockKratosAdmin) FindIdentityByUserID(_ context.Context, userID string) (string, error) {
 	m.FindCalls++
 	if m.FindError != nil {
 		return "", m.FindError
 	}
-	if m.FindIDOverride != nil {
-		if id, ok := m.FindIDOverride[userID]; ok {
-			return id, nil
-		}
+	if id, ok := m.FindIDOverride[userID]; ok {
+		return id, nil
 	}
-	return "mock-k-id-" + userID, nil
+	return fmt.Sprintf("mock-k-id-%s", userID), nil
 }
-func (m *MockKratosAdmin) UpdateIdentityPassword(ctx context.Context, identityID, password string) error {
+
+func (m *MockKratosAdmin) UpdateIdentityPassword(_ context.Context, identityID, password string) error {
+	if m.UpdatePassError != nil {
+		return m.UpdatePassError
+	}
 	m.PasswordResets = append(m.PasswordResets, identityID)
+	_ = password
 	return nil
 }
-func (m *MockKratosAdmin) SetIdentityState(ctx context.Context, identityID string, active bool) error {
+
+func (m *MockKratosAdmin) SetIdentityState(_ context.Context, identityID string, active bool) error {
+	if m.SetStateError != nil {
+		return m.SetStateError
+	}
 	if m.StateChanges == nil {
-		m.StateChanges = make(map[string]bool)
+		m.StateChanges = map[string]bool{}
 	}
 	m.StateChanges[identityID] = active
 	return nil
 }
-func (m *MockKratosAdmin) DeleteIdentity(ctx context.Context, identityID string) error {
+
+func (m *MockKratosAdmin) DeleteIdentity(_ context.Context, identityID string) error {
+	if m.DeleteError != nil {
+		return m.DeleteError
+	}
 	m.DeletedIDs = append(m.DeletedIDs, identityID)
 	return nil
 }
