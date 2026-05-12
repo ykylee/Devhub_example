@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/devhub/backend-core/internal/domain"
 	"github.com/devhub/backend-core/internal/store"
@@ -95,9 +97,12 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	// (audit_logs.source_ip) relies on ClientIP being attribution-grade —
 	// trusting client-supplied forwarding headers would let any external
 	// caller forge the audit row's IP. Operators that legitimately sit
-	// behind a reverse proxy should opt in by re-setting trusted proxies
-	// after NewRouter (future env-driven config).
-	_ = router.SetTrustedProxies(nil)
+	// behind a reverse proxy opt in via DEVHUB_TRUSTED_PROXIES (PR-D
+	// follow-up, work_260512-i):
+	//   - empty / "none"  → SetTrustedProxies(nil) (default, attribution-grade)
+	//   - "*"             → trust everything (testing only, audit forgery risk)
+	//   - "10.0.0.0/8,192.168.1.5" → trust the listed CIDRs/IPs
+	_ = router.SetTrustedProxies(trustedProxiesFromEnv())
 
 	if cfg.PermissionCache == nil {
 		cfg.PermissionCache = NewPermissionCache(cfg.RBACStore)
@@ -172,6 +177,35 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	}
 
 	return router
+}
+
+// trustedProxiesFromEnv returns the SetTrustedProxies argument derived from
+// DEVHUB_TRUSTED_PROXIES. Empty / "none" → nil (raw RemoteAddr, the default
+// PR-D contract); "*" → trust all (testing); otherwise comma-separated
+// CIDRs/IPs. Whitespace around entries is trimmed; empty entries are dropped.
+//
+// Returning nil from "none" reads as "explicit opt-out from any forwarding
+// header" and matches the silent default; the alias keeps the env contract
+// expressive ("set to none" vs "leave unset" both work).
+func trustedProxiesFromEnv() []string {
+	raw := strings.TrimSpace(os.Getenv("DEVHUB_TRUSTED_PROXIES"))
+	if raw == "" || strings.EqualFold(raw, "none") {
+		return nil
+	}
+	if raw == "*" {
+		return []string{"0.0.0.0/0", "::/0"}
+	}
+	parts := strings.Split(raw, ",")
+	proxies := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if trimmed := strings.TrimSpace(p); trimmed != "" {
+			proxies = append(proxies, trimmed)
+		}
+	}
+	if len(proxies) == 0 {
+		return nil
+	}
+	return proxies
 }
 
 type Handler struct {

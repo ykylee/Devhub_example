@@ -238,6 +238,33 @@ func TestAuditEnrichment_SourceIPIgnoresForwardedHeader(t *testing.T) {
 	}
 }
 
+// PR-D follow-up (work_260512-i): when operators legitimately sit behind a
+// reverse proxy and set DEVHUB_TRUSTED_PROXIES, X-Forwarded-For from the
+// trusted hop should be honoured so audit_logs.source_ip is the real client
+// IP, not the proxy. This pins the env-driven opt-in path.
+func TestAuditEnrichment_SourceIPHonoursTrustedProxy(t *testing.T) {
+	t.Setenv("DEVHUB_TRUSTED_PROXIES", "203.0.113.42")
+	orgs := newMemoryOrganizationStore()
+	audits := &memoryAuditStore{}
+	router := testRouter(RouterConfig{OrganizationStore: orgs, AuditStore: audits})
+
+	body := []byte(`{"user_id":"u-tp","email":"tp@x","display_name":"T","role":"developer","status":"active"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/users", bytes.NewReader(body))
+	req.RemoteAddr = "203.0.113.42:55001"
+	req.Header.Set("X-Forwarded-For", "198.51.100.7")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if len(audits.logs) != 1 {
+		t.Fatalf("expected one audit row, got %d", len(audits.logs))
+	}
+	if got := audits.logs[0].SourceIP; got != "198.51.100.7" {
+		t.Errorf("audit SourceIP=%q, want 198.51.100.7 (real client behind trusted proxy)", got)
+	}
+}
+
 // T-M1-04: bearer-verified request → source_type=oidc. The dev-fallback /
 // system split is already covered by
 // TestAuditEnrichment_RequestIDMatchesResponseHeaderAndAuditRow above; this
