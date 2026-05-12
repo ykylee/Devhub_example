@@ -232,9 +232,10 @@ type InputFieldProps = {
 };
 
 function InputField({ label, icon: Icon, value, onChange, placeholder, type = "text" }: InputFieldProps) {
+  const inputId = `signup-${label.toLowerCase().replace(/[^a-z0-9]/g, "-")}`;
   return (
     <div className="space-y-2">
-      <label className="text-[10px] font-black text-white/40 uppercase tracking-widest px-1">
+      <label htmlFor={inputId} className="text-[10px] font-black text-white/40 uppercase tracking-widest px-1">
         {label}
       </label>
       <div className="relative group">
@@ -242,6 +243,7 @@ function InputField({ label, icon: Icon, value, onChange, placeholder, type = "t
           <Icon className="w-4 h-4" />
         </div>
         <input
+          id={inputId}
           type={type}
           required
           placeholder={placeholder}
