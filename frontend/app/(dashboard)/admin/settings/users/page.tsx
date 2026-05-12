@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Search, Filter } from "lucide-react";
 import { identityService, OrgMember } from "@/lib/services/identity.service";
@@ -14,7 +14,18 @@ export default function AdminSettingsUsersPage() {
   const [members, setMembers] = useState<OrgMember[]>([]);
   const [roles, setRoles] = useState<Role[]>(defaultRoles);
   const [isLoading, setIsLoading] = useState(true);
+  const [query, setQuery] = useState("");
   const { toast } = useToast();
+
+  const filteredMembers = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return members;
+    return members.filter((m) =>
+      m.name.toLowerCase().includes(q) ||
+      m.email.toLowerCase().includes(q) ||
+      m.role.toLowerCase().includes(q)
+    );
+  }, [members, query]);
 
   useEffect(() => {
     const load = async () => {
@@ -64,11 +75,20 @@ export default function AdminSettingsUsersPage() {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search users..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by name, email, or role..."
+            aria-label="Search users"
             className="w-full glass border-white/10 rounded-2xl pl-12 pr-6 py-3.5 text-sm text-foreground dark:text-white placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all"
           />
         </div>
-        <button className="glass border-white/10 p-3.5 rounded-2xl text-muted-foreground hover:text-white transition-all">
+        <button
+          type="button"
+          disabled
+          title="Advanced filters coming soon"
+          aria-label="Advanced filters coming soon"
+          className="glass border-white/10 p-3.5 rounded-2xl text-muted-foreground/40 cursor-not-allowed transition-all"
+        >
           <Filter className="w-5 h-5" />
         </button>
       </motion.div>
@@ -80,7 +100,7 @@ export default function AdminSettingsUsersPage() {
         </div>
       ) : (
         <MemberTable
-          members={members}
+          members={filteredMembers}
           roles={roles}
           onUpdateMemberRole={handleUpdateRole}
           onMemberCreated={(newMember) => {

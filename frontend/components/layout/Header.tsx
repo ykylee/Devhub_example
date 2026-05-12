@@ -110,8 +110,11 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
                   className="absolute top-full right-0 mt-4 w-56 rounded-2xl glass border border-white/10 p-2 z-50 shadow-2xl"
                 >
-                  <p className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-50">
+                  <p className="px-3 pt-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-50">
                     Switch View
+                  </p>
+                  <p className="px-3 pb-2 text-[9px] text-muted-foreground/60 leading-tight normal-case">
+                    Menu preview only — actual permissions follow server actor.role.
                   </p>
                   {(["Developer", "Manager", "System Admin"] as UserRole[]).map((r) => (
                     <button
