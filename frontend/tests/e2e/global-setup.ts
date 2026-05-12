@@ -94,14 +94,20 @@ async function createKratosIdentity(seed: KratosSeed): Promise<void> {
 
 async function resetKratosPassword(identity: KratosIdentityFull, seed: KratosSeed): Promise<void> {
   // PUT /admin/identities/{id} replaces the identity. We echo schema_id /
-  // state / traits / metadata from the list response so unmanaged fields
+  // traits / metadata from the list response so unmanaged fields
   // (e.g. metadata_admin populated by another process) survive, and supply
   // credentials.password as plaintext — Kratos hashes on receive. Kratos
   // only updates credential methods present in the payload, so non-password
   // methods (if ever added) are not wiped.
+  //
+  // state is forced back to "active" rather than echoed: if some prior
+  // step disabled the seeded identity, echoing `inactive` would leave the
+  // seed unusable even after the password reset. The seeded users
+  // (alice/bob/charlie) are e2e-only and have no legitimate reason to be
+  // inactive, so the force-active is congruent with the seed contract.
   const payload: Record<string, unknown> = {
     schema_id: identity.schema_id,
-    state: identity.state,
+    state: "active",
     traits: identity.traits ?? {},
     credentials: { password: { config: { password: seed.password } } },
   };
