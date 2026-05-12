@@ -68,6 +68,8 @@ kratos version
 
 Hydra/Kratos 는 `?search_path=...` DSN 옵션이 가리키는 schema 안에 자체 테이블을 만든다. 하지만 schema 자체는 미리 만들어 둬야 한다 (ADR-0001 §8.1 결정 — 단일 `devhub` DB 안 분리).
 
+> 💡 본 절(2) 과 다음 절(3, Hydra/Kratos migrate) 의 단계는 `dev-up.ps1` / `dev-up.sh` 가 자동 실행한다 (모두 idempotent). 일상 개발에선 본 절차를 외울 필요 없이 `./dev-up.sh` 한 번이면 충분하다. `DEVHUB_SKIP_IDP_MIGRATE=1` 로 자동화를 우회할 수 있다. 아래 내용은 디버깅이나 수동 실행이 필요한 경우의 reference.
+
 ### 2.1 표준 경로 — psql
 
 ```powershell

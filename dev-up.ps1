@@ -142,6 +142,36 @@ if ($env:DEVHUB_SKIP_MIGRATE -eq '1') {
     Write-Warning 'migrate not on PATH. Run `make migrate-tools` once to install golang-migrate, or set DEVHUB_SKIP_MIGRATE=1 to suppress.'
 }
 
+# 1b. IdP schemas + Kratos/Hydra migrations. All three are idempotent
+#     (CREATE SCHEMA IF NOT EXISTS; migrate up skips applied versions), so the
+#     overhead on a warm DB is ~1-2 s. Set DEVHUB_SKIP_IDP_MIGRATE=1 to skip.
+if ($env:DEVHUB_SKIP_IDP_MIGRATE -eq '1') {
+    Write-Host '[skip-idp-migrate] Skipping IdP schema + migrate.'
+} else {
+    Write-Host 'Applying IdP schemas (hydra, kratos)...'
+    Push-Location (Join-Path $RepoRoot 'backend-core')
+    try {
+        & go run ./cmd/idp-apply-schemas -dsn $DbUrl -sql ../infra/idp/sql/001_create_idp_schemas.sql
+        if ($LASTEXITCODE -ne 0) { throw "idp-apply-schemas failed with exit code $LASTEXITCODE" }
+    } finally {
+        Pop-Location
+    }
+    if (Get-Command kratos -ErrorAction SilentlyContinue) {
+        Write-Host 'Applying kratos migrations...'
+        & kratos migrate sql up --yes (Get-IdpDsn -Dsn $DbUrl -Schema 'kratos')
+        if ($LASTEXITCODE -ne 0) { throw "kratos migrate failed with exit code $LASTEXITCODE" }
+    } else {
+        Write-Warning 'kratos not on PATH; skipping kratos migrate.'
+    }
+    if (Get-Command hydra -ErrorAction SilentlyContinue) {
+        Write-Host 'Applying hydra migrations...'
+        & hydra migrate sql up --yes (Get-IdpDsn -Dsn $DbUrl -Schema 'hydra')
+        if ($LASTEXITCODE -ne 0) { throw "hydra migrate failed with exit code $LASTEXITCODE" }
+    } else {
+        Write-Warning 'hydra not on PATH; skipping hydra migrate.'
+    }
+}
+
 # 2. Kratos
 if (Test-PortListening -Port 4433) {
     Write-Host '  external instance detected on port 4433; using existing kratos (PID file not written)'

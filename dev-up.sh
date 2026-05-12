@@ -118,6 +118,28 @@ else
     echo -e "${YELLOW}migrate 명령을 찾을 수 없음. 한 번 \`make migrate-tools\` 실행 권장. (DEVHUB_SKIP_MIGRATE=1 로 무음 가능)${NC}"
 fi
 
+# 1b. IdP schema + Kratos/Hydra migrations. 셋 다 idempotent (CREATE SCHEMA IF
+#     NOT EXISTS; migrate up 은 applied version 을 skip) 이라 warm DB 에서는
+#     ~1-2 s 추가 비용. DEVHUB_SKIP_IDP_MIGRATE=1 로 우회 가능.
+if [ "${DEVHUB_SKIP_IDP_MIGRATE:-}" = "1" ]; then
+    echo "[skip-idp-migrate] IdP schema + migrate 단계 건너뜀."
+else
+    echo "Applying IdP schemas (hydra, kratos)..."
+    ( cd "$REPO_ROOT/backend-core" && go run ./cmd/idp-apply-schemas -dsn "$DB_URL" -sql ../infra/idp/sql/001_create_idp_schemas.sql )
+    if command -v kratos >/dev/null 2>&1; then
+        echo "Applying kratos migrations..."
+        kratos migrate sql up --yes "$(idp_dsn "$DB_URL" kratos)"
+    else
+        echo -e "${YELLOW}kratos 명령을 찾을 수 없음 — kratos migrate skip.${NC}"
+    fi
+    if command -v hydra >/dev/null 2>&1; then
+        echo "Applying hydra migrations..."
+        hydra migrate sql up --yes "$(idp_dsn "$DB_URL" hydra)"
+    else
+        echo -e "${YELLOW}hydra 명령을 찾을 수 없음 — hydra migrate skip.${NC}"
+    fi
+fi
+
 # 2. Kratos
 if is_port_listening 4433; then
     echo "  external instance detected on port 4433; using existing kratos (PID 파일 미작성)"
