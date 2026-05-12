@@ -1,0 +1,10 @@
+{
+  "project": "DevHub",
+  "branch": "claude/260512",
+  "status": "in_progress",
+  "last_updated": "2026-05-12T00:50:00Z",
+  "base_branch": "gemini/frontend_260510",
+  "base_head": "a59f887",
+  "current_phase": "post-hotfix follow-ups",
+  "context_summary": "gemini/frontend_260510 위에 C1-C3 (Kratos admin client), H3-H5/M1/M3-M5 (operational + frontend cleanup), N1 (actor role error surface + GetUser sentinel), N2 (Kratos 0-based pagination) 4 PR 머지 완료. 본 브랜치는 그 위의 새 작업 슬롯."
+}
