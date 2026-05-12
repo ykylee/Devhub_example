@@ -201,6 +201,21 @@ if (Test-PortListening -Port 4444) {
 }
 Remove-Item Env:DSN -ErrorAction SilentlyContinue
 
+# 3b. OIDC client registration. Idempotent (the script DELETEs an existing
+#     entry then POSTs fresh), so re-runs are safe. Gated on hydra-admin
+#     (4445) reachability so external/missing hydra doesn't trip the script.
+if ($env:DEVHUB_SKIP_OIDC_REGISTER -eq '1') {
+    Write-Host '[skip-oidc-register] Skipping OIDC client registration.'
+} elseif (Test-PortListening -Port 4445) {
+    Write-Host 'Registering OIDC client (devhub-frontend)...'
+    # The inner script sets $ErrorActionPreference = 'Stop', so any failure
+    # there propagates here as a terminating error. $LASTEXITCODE is not
+    # updated by PS-to-PS calls, so don't gate on it.
+    & (Join-Path $RepoRoot 'infra\idp\scripts\register-devhub-client.ps1')
+} else {
+    Write-Warning 'Hydra admin (4445) not listening; skipping OIDC client registration.'
+}
+
 # 4. backend-core
 $env:AUTH_DEV_FALLBACK          = 'true'
 $env:DEVHUB_AUTH_DEV_FALLBACK   = '1'
