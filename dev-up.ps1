@@ -88,12 +88,16 @@ function Start-BackgroundService {
     $absLog = if ([System.IO.Path]::IsPathRooted($LogFile)) { $LogFile } else { Join-Path $RepoRoot $LogFile }
     $params = @{
         FilePath               = $Executable
-        ArgumentList           = $Arguments
         RedirectStandardOutput = $absLog
         RedirectStandardError  = "$absLog.err"
         NoNewWindow            = $true
         PassThru               = $true
     }
+    # Start-Process's ArgumentList rejects an empty array (parameter
+    # validation: "element of the argument collection contains a null value").
+    # Only attach it when there are real arguments — the new go-build backend
+    # path launches a binary with no args.
+    if ($Arguments -and $Arguments.Count -gt 0) { $params.ArgumentList = $Arguments }
     if ($WorkingDir) { $params.WorkingDirectory = $WorkingDir }
     $proc = Start-Process @params
     $proc.Id | Out-File -FilePath (Join-Path $PidDir "$Name.pid") -Encoding ascii
@@ -177,8 +181,26 @@ $env:DEVHUB_HYDRA_ADMIN_URL     = 'http://localhost:4445'
 if (Test-PortListening -Port 8080) {
     Write-Host '  external instance detected on port 8080; using existing backend (PID file not written)'
 } else {
-    Start-BackgroundService -Name 'backend' -Executable 'go' `
-        -Arguments @('run', '.') `
+    # Build to a binary so the launched process is the backend itself, not a
+    # `go run` parent whose actual server is a grandchild. With the parent ==
+    # listener invariant, dev-down's PID-kill terminates the backend directly;
+    # the port-sweep stays as a safety net but no longer carries semantic load.
+    $BinDir = Join-Path $RepoRoot 'dev-bin'
+    if (-not (Test-Path $BinDir)) {
+        New-Item -ItemType Directory -Path $BinDir | Out-Null
+    }
+    $BackendBin = Join-Path $BinDir 'backend-core.exe'
+    Write-Host 'Compiling backend...'
+    # backend-core has its own go.mod (no root module), so the build must run
+    # from inside that directory with the binary written back out to dev-bin/.
+    Push-Location (Join-Path $RepoRoot 'backend-core')
+    try {
+        & go build -o $BackendBin .
+        if ($LASTEXITCODE -ne 0) { throw "go build failed with exit code $LASTEXITCODE" }
+    } finally {
+        Pop-Location
+    }
+    Start-BackgroundService -Name 'backend' -Executable $BackendBin `
         -LogFile 'backend.log' `
         -WorkingDir (Join-Path $RepoRoot 'backend-core')
     Wait-ForPort -Name 'backend' -Port 8080
