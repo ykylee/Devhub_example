@@ -73,7 +73,10 @@ kratos migrate sql up --yes "$DSN_KRATOS"
 # 4. App 마이그레이션 (golang-migrate)
 echo "Running app migrations..."
 if ! command -v migrate &> /dev/null; then
-  go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.19.1
+  # Under sudo HOME=/root so the default `go install` target is
+  # /root/go/bin which is not on PATH. Pin GOBIN to /usr/local/bin so the
+  # binary is immediately invokable.
+  GOBIN=/usr/local/bin go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.19.1
 fi
 migrate -path backend-core/migrations -database "$DB_URL" up
 
