@@ -42,10 +42,14 @@ interface KratosIdentitySummary {
 }
 
 async function listExistingIdentityEmails(): Promise<Set<string>> {
+  // Kratos /admin/identities pagination is 0-based — verified against
+  // v26.2.0 (page=0 returns first batch). The earlier 1-based start
+  // silently returned an empty first page and made the seed dedupe
+  // check think no identities existed, which then 409'd on POST.
   const out = new Set<string>();
-  let page = 1;
+  let page = 0;
   const perPage = 250;
-  while (page <= 40) {
+  while (page < 40) {
     const url = `${KRATOS_ADMIN_URL}/admin/identities?page=${page}&per_page=${perPage}`;
     const resp = await fetch(url, { headers: { Accept: "application/json" } });
     if (!resp.ok) {

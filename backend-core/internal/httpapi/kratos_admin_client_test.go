@@ -140,32 +140,36 @@ func TestKratosAdminClient_FindIdentityByUserID_MatchesMetadataPublic(t *testing
 }
 
 func TestKratosAdminClient_FindIdentityByUserID_Paginates(t *testing.T) {
+	// Kratos /admin/identities pagination is 0-based — verified empirically
+	// against v26.2.0 (page=0 returns first batch, page=1 returns second).
+	// The earlier 1-based start silently returned empty first page and
+	// short-circuited to ErrKratosIdentityNotFound.
 	var pages int
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		pages++
 		// Pin the page size — if the client ever silently lowers per_page,
-		// the pagination cap math (page > 40 → 10k identities) goes off and
+		// the pagination cap math (page > 39 → 10k identities) goes off and
 		// large Kratos deployments would silently truncate scans.
 		if got := r.URL.Query().Get("per_page"); got != "250" {
 			t.Errorf("per_page = %q, want 250", got)
 		}
 		page := r.URL.Query().Get("page")
 		switch page {
-		case "1":
+		case "0":
 			// Return a full page (250) of non-matching identities so the
-			// client must request page 2.
+			// client must request page 1.
 			var batch []map[string]any
 			for i := 0; i < 250; i++ {
 				batch = append(batch, map[string]any{
-					"id":              fmt.Sprintf("uuid-page1-%d", i),
+					"id":              fmt.Sprintf("uuid-page0-%d", i),
 					"metadata_public": map[string]any{"user_id": fmt.Sprintf("other-%d", i)},
 				})
 			}
 			_ = json.NewEncoder(w).Encode(batch)
-		case "2":
+		case "1":
 			_, _ = w.Write([]byte(`[{"id":"uuid-target","metadata_public":{"user_id":"target"}}]`))
 		default:
-			t.Errorf("unexpected page param: %q", page)
+			t.Errorf("unexpected page param: %q (want 0 or 1)", page)
 		}
 	}))
 	defer srv.Close()
@@ -205,12 +209,12 @@ func TestKratosAdminClient_FindIdentityByUserID_EmptyUserID(t *testing.T) {
 }
 
 func TestKratosAdminClient_FindIdentityByUserID_StopsAt10kCap(t *testing.T) {
-	// FindIdentityByUserID caps the PoC scan at page 40 (~10k identities).
-	// The cap matters because Kratos has no server-side metadata filter;
-	// without it, a misconfigured deployment (user_id never populated)
-	// would pull every identity each call and either time out or hammer
-	// the admin endpoint. Pin the cap so a future refactor cannot drop
-	// it silently.
+	// FindIdentityByUserID caps the PoC scan at 40 pages (pages 0..39 =
+	// 10k identities at per_page=250). The cap matters because Kratos has
+	// no server-side metadata filter; without it, a misconfigured
+	// deployment (user_id never populated) would pull every identity each
+	// call and either time out or hammer the admin endpoint. Pin the cap
+	// so a future refactor cannot drop it silently.
 	var requests int
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		requests++
