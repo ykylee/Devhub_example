@@ -2,8 +2,8 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "gemini/prepare-github-action",
-  "status": "DONE. GitHub Actions CI 구축 완료 및 로드맵 반영. main 머지 시 자동화 파이프라인 가동 준비 완료.",
-  "updated_at": "2026-05-12T21:55:00Z",
+  "status": "DONE. GitHub Actions CI 구축 및 조직 관리 E2E 테스트 케이스 정리 완료.",
+  "updated_at": "2026-05-12T22:40:00Z",
   "branched_from": {
     "branch": "main",
     "head_commit": "84b2dde",
@@ -15,7 +15,8 @@
     "scripts/ci-setup.sh: CI 전용 환경 초기화 (Ory 바이너리, DB 스키마, 마이그레이션, 시딩)",
     "infra/idp/*.ci.yaml: CI 전용 Ory 설정",
     ".github/workflows/ci.yml: GHA 워크플로우 정의 (Unit/E2E + Artifact)",
-    "frontend/lib/utils.test.ts: Vitest 단위 테스트 샘플"
+    "frontend/lib/utils.test.ts: Vitest 단위 테스트 샘플",
+    "docs/tests/*.md: M2/M3 E2E 테스트 케이스 정리"
   ],
   "scope_out": [
     "Docker Compose 기반 staging 배포 (후속 sprint)",

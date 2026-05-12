@@ -9,6 +9,7 @@
 
 | 구성 요소 | 설명 |
 | --- | --- |
+| **`docs/tests/*.md`** | M2 인증 및 M3 조직 관리 E2E 테스트 케이스 정리 완료. |
 | **`.github/workflows/ci.yml`** | Backend-unit, Frontend-unit, E2E (35 TC) 파이프라인. |
 | **`scripts/ci-setup.sh`** | Ory 바이너리 설치 및 DB 초기화 자동화 스크립트. |
 | **`infra/idp/*.ci.yaml`** | CI 환경용 Ory Kratos/Hydra 설정. |

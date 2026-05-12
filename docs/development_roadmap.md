@@ -4,7 +4,7 @@
 - 범위: 머지된 PR #12 이후 시점부터 다음 단계 작업의 마일스톤·우선순위·의존 관계. 트랙별 *세부* 작업은 각 트랙의 세부 로드맵에서 관리.
 - 대상 독자: 프로젝트 리드, 백엔드/프론트엔드 개발자, 운영 담당자, 후속 작업자
 - 상태: draft (2026-05-08 신규 작성)
-- 최종 수정일: 2026-05-12 (M2 1차 완성 sprint 진입 반영)
+- 최종 수정일: 2026-05-12 (M2 1차 완성 sprint 종료 및 M3 조직 관리 진입 반영)
 - 관련 문서:
   - 백엔드 세부 로드맵: [`ai-workflow/memory/backend_development_roadmap.md`](../ai-workflow/memory/backend_development_roadmap.md)
   - 프론트엔드 세부 로드맵: [`./frontend_development_roadmap.md`](./frontend_development_roadmap.md)
@@ -47,9 +47,9 @@
 
 ## 3. 기능 단위별 마일스톤 (Milestones by Functional Units)
 
-### M2 — 인증 및 계정 기반 완성 (핵심 done, 1차 완성 sprint 진행 중)
+### M2 — 인증 및 계정 기반 완성 (DONE, 2026-05-12)
 
-핵심 흐름의 골격은 모두 머지됐다. 본 마일스톤은 운영 진입 직전에 잔여 UX placeholder 와 audit 정합 누락을 닫는 **1차 완성 sprint** (`claude/login_usermanagement_finish`) 로 종료한다.
+인증/계정 및 사용자 관리의 핵심 흐름이 모두 완성되었다. 1차 완성 sprint (`claude/login_usermanagement_finish`)를 통해 UX 결함과 audit 정합성, 그리고 CI 자동화 파이프라인까지 구축하여 운영 진입 게이트를 통과했다.
 
 - **로그인 / 로그아웃 흐름**:
   - ✅ **B**: `/api/v1/auth/{login,logout,token,signup,consent}` Kratos/Hydra 프록시.
@@ -64,15 +64,13 @@
 - **RBAC enforcement**:
   - ✅ **B·F**: per-resource 4-boolean matrix + `requirePermission` enforcement (M1 RBAC track, PR #20·21·22·23·27·29·30·31).
 
-#### 1차 완성 sprint 잔여 (`claude/login_usermanagement_finish`)
+#### 1차 완성 sprint 완료 (`claude/login_usermanagement_finish`)
 
-| ID | 트랙 | 내용 |
-| --- | --- | --- |
-| PR-UX1 | F | `/admin/settings/users` SearchInput 실 필터링 (placeholder 제거) |
-| PR-UX2 | F | `/account` Kratos privileged session 안내 (current_password 입력 이유 + REAUTH 흐름) |
-| PR-UX3 | F | Header Switch View 한계 안내 (서버 RBAC 우회 못함 명시) |
-| PR-M2-AUDIT | B·A | Kratos self-service webhook → DevHub `audit_logs` (password 변경 우선) |
-| PR-DOCS | X | 로드맵 3종 + sprint_plan 정합 (본 갱신 포함) |
+- ✅ **PR-UX1**: `/admin/settings/users` SearchInput 실 필터링 (DONE).
+- ✅ **PR-UX2**: `/account` Kratos privileged session 안내 (DONE).
+- ✅ **PR-UX3**: Header Switch View 한계 안내 (DONE).
+- ✅ **PR-M2-AUDIT**: Kratos webhook → DevHub `audit_logs` 통합 (DONE).
+- ✅ **PR-T4**: GitHub Actions CI 구축 및 35종 E2E 테스트 자동화 (DONE).
 
 세부는 [sprint_plan](../ai-workflow/memory/claude/login_usermanagement_finish/sprint_plan.md) 참조.
 
@@ -82,10 +80,10 @@
 - Sign Up (셀프 가입, 인사 DB 연동) → M3.
 - MFA / Two-Factor → M4.
 
-### M3 — 실시간 대시보드 및 AI 통합 (예정)
+### M3 — 조직 관리 및 대시보드 고도화 (In Progress)
 ### M3: 사용자 및 조직 관리 (User & Org Management)
 - **사용자 관리**: 유저 CRUD UI 고도화 및 권한 할당 로직 정교화.
-- **조직 관리**: 조직도(Hierarchy) 편집 및 부서 CRUD UI 개선.
+- **조직 관리 (1차 완성)**: 부서 CRUD, 계층 편집(Drag & Drop), 리더 변경 액션의 백엔드 영속화 및 실시간 동기화.
 - **CI/CD**: GitHub Actions 기반 Unit/E2E 테스트 자동화 파이프라인 구축.
 - **Sign Up (셀프 가입)**: 시스템 인사 DB 연동을 통한 사용자 셀프 등록 기능.
     - 대상: 이름, 사내 ID, 사번, 부서명이 인사 DB에 존재하는 인원.
