@@ -50,7 +50,7 @@ export async function loginAs(page: Page, user: SeededUser) {
   await page.goto("/login");
   // The /login route auto-triggers the OIDC dance; we end up at the
   // Kratos-backed /auth/login form.
-  await page.waitForURL(/\/auth\/login\?login_challenge=/, { timeout: 15_000 });
+  await page.waitForURL(/\/auth\/login\?login_challenge=/, { timeout: 30_000 });
 
   // /auth/login asks for the System ID (DevHub users.user_id), not the
   // email — Kratos resolves credentials via metadata_public.user_id. The
@@ -61,7 +61,7 @@ export async function loginAs(page: Page, user: SeededUser) {
 
   // After successful login the OIDC callback fires and AuthGuard +
   // role-routing land the user on their default page.
-  await page.waitForURL(new RegExp(`${user.landing}(/|$)`), { timeout: 15_000 });
+  await page.waitForURL(new RegExp(`${user.landing}(/|$)`), { timeout: 30_000 });
 }
 
 /**

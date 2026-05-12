@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MoreHorizontal, UserPlus, Mail, Shield, ArrowRightLeft, Crown, Key, UserX, KeyRound, Bot, Copy, Check } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useStore } from "@/lib/store";
 import { accountService } from "@/lib/services/account.service";
 import { useToast } from "@/components/ui/Toast";
@@ -31,6 +31,15 @@ export function MemberTable({ members, roles, onUpdateMemberRole, onMemberCreate
     details: { label: string; value: string }[];
   } | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!openActionId) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpenActionId(null);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [openActionId]);
 
   const handleCopy = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
