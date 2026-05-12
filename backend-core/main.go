@@ -164,7 +164,16 @@ func main() {
 	}
 }
 
-func seedLocalAdmin(ctx context.Context, kratosAdmin httpapi.KratosAdmin, orgStore httpapi.OrganizationStore) {
+// seedOrgStore is the narrow subset of httpapi.OrganizationStore that
+// seedLocalAdmin actually drives. Keeping it local lets the seed unit
+// tests use a 2-method fake instead of stubbing the full 14-method
+// interface.
+type seedOrgStore interface {
+	CreateUser(context.Context, domain.CreateUserInput) (domain.AppUser, error)
+	SetKratosIdentityID(context.Context, string, string) error
+}
+
+func seedLocalAdmin(ctx context.Context, kratosAdmin httpapi.KratosAdmin, orgStore seedOrgStore) {
 	const (
 		adminLogin    = "test"
 		adminEmail    = "test@example.com"
