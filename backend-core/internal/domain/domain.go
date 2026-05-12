@@ -208,6 +208,14 @@ type RiskMitigationCommandRequest struct {
 	IdempotencyKey   string
 	RequestPayload   map[string]any
 	RequiresApproval bool
+	// Audit actor enrichment (PR-D follow-up, work_260512-i). Handler picks
+	// these up from requireRequestID + authenticateActor + ClientIP and the
+	// store records them on the commands-flow audit_logs row so the
+	// "commands generated this audit" path matches the audit_logs.go
+	// standalone path. Empty values land as NULL.
+	SourceIP   string
+	RequestID  string
+	SourceType AuditSourceType
 }
 
 type ServiceActionCommandRequest struct {
@@ -220,12 +228,20 @@ type ServiceActionCommandRequest struct {
 	IdempotencyKey   string
 	RequestPayload   map[string]any
 	RequiresApproval bool
+	// Audit actor enrichment (PR-D follow-up, work_260512-i).
+	SourceIP   string
+	RequestID  string
+	SourceType AuditSourceType
 }
 
 type CommandApprovalRequest struct {
 	CommandID  string
 	ActorLogin string
 	Reason     string
+	// Audit actor enrichment (PR-D follow-up, work_260512-i).
+	SourceIP   string
+	RequestID  string
+	SourceType AuditSourceType
 }
 
 type ListOptions struct {

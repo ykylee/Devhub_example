@@ -591,8 +591,11 @@ INSERT INTO audit_logs (
 	target_type,
 	target_id,
 	command_id,
-	payload
-) VALUES ($1, $2, 'risk_mitigation.requested', 'risk', $3, $4, $5::jsonb)
+	payload,
+	source_ip,
+	request_id,
+	source_type
+) VALUES ($1, $2, 'risk_mitigation.requested', 'risk', $3, $4, $5::jsonb, NULLIF($6, ''), NULLIF($7, ''), NULLIF($8, ''))
 RETURNING
 	id,
 	audit_id,
@@ -602,10 +605,14 @@ RETURNING
 	target_id,
 	COALESCE(command_id, ''),
 	payload,
+	COALESCE(source_ip, ''),
+	COALESCE(request_id, ''),
+	COALESCE(source_type, ''),
 	created_at`
 
 	var auditLog domain.AuditLog
 	var scannedAuditPayload []byte
+	var scannedSourceType string
 	if err := tx.QueryRow(
 		ctx,
 		auditQuery,
@@ -614,6 +621,9 @@ RETURNING
 		req.RiskID,
 		command.CommandID,
 		string(auditPayload),
+		req.SourceIP,
+		req.RequestID,
+		string(req.SourceType),
 	).Scan(
 		&auditLog.ID,
 		&auditLog.AuditID,
@@ -623,10 +633,14 @@ RETURNING
 		&auditLog.TargetID,
 		&auditLog.CommandID,
 		&scannedAuditPayload,
+		&auditLog.SourceIP,
+		&auditLog.RequestID,
+		&scannedSourceType,
 		&auditLog.CreatedAt,
 	); err != nil {
 		return domain.Command{}, domain.AuditLog{}, false, err
 	}
+	auditLog.SourceType = domain.AuditSourceType(scannedSourceType)
 	if err := decodeJSONMap(scannedAuditPayload, &auditLog.Payload); err != nil {
 		return domain.Command{}, domain.AuditLog{}, false, err
 	}
@@ -777,8 +791,11 @@ INSERT INTO audit_logs (
 	target_type,
 	target_id,
 	command_id,
-	payload
-) VALUES ($1, $2, 'service_action.requested', 'service', $3, $4, $5::jsonb)
+	payload,
+	source_ip,
+	request_id,
+	source_type
+) VALUES ($1, $2, 'service_action.requested', 'service', $3, $4, $5::jsonb, NULLIF($6, ''), NULLIF($7, ''), NULLIF($8, ''))
 RETURNING
 	id,
 	audit_id,
@@ -788,10 +805,14 @@ RETURNING
 	target_id,
 	COALESCE(command_id, ''),
 	payload,
+	COALESCE(source_ip, ''),
+	COALESCE(request_id, ''),
+	COALESCE(source_type, ''),
 	created_at`
 
 	var auditLog domain.AuditLog
 	var scannedAuditPayload []byte
+	var scannedSourceType string
 	if err := tx.QueryRow(
 		ctx,
 		auditQuery,
@@ -800,6 +821,9 @@ RETURNING
 		req.ServiceID,
 		command.CommandID,
 		string(auditPayload),
+		req.SourceIP,
+		req.RequestID,
+		string(req.SourceType),
 	).Scan(
 		&auditLog.ID,
 		&auditLog.AuditID,
@@ -809,10 +833,14 @@ RETURNING
 		&auditLog.TargetID,
 		&auditLog.CommandID,
 		&scannedAuditPayload,
+		&auditLog.SourceIP,
+		&auditLog.RequestID,
+		&scannedSourceType,
 		&auditLog.CreatedAt,
 	); err != nil {
 		return domain.Command{}, domain.AuditLog{}, false, err
 	}
+	auditLog.SourceType = domain.AuditSourceType(scannedSourceType)
 	if err := decodeJSONMap(scannedAuditPayload, &auditLog.Payload); err != nil {
 		return domain.Command{}, domain.AuditLog{}, false, err
 	}
@@ -1177,8 +1205,11 @@ INSERT INTO audit_logs (
 	target_type,
 	target_id,
 	command_id,
-	payload
-) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)
+	payload,
+	source_ip,
+	request_id,
+	source_type
+) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, NULLIF($8, ''), NULLIF($9, ''), NULLIF($10, ''))
 RETURNING
 	id,
 	audit_id,
@@ -1188,9 +1219,13 @@ RETURNING
 	target_id,
 	COALESCE(command_id, ''),
 	payload,
+	COALESCE(source_ip, ''),
+	COALESCE(request_id, ''),
+	COALESCE(source_type, ''),
 	created_at`
 	var auditLog domain.AuditLog
 	var scannedAuditPayload []byte
+	var scannedSourceType string
 	if err := tx.QueryRow(
 		ctx,
 		auditQuery,
@@ -1201,6 +1236,9 @@ RETURNING
 		command.TargetID,
 		command.CommandID,
 		string(auditPayload),
+		req.SourceIP,
+		req.RequestID,
+		string(req.SourceType),
 	).Scan(
 		&auditLog.ID,
 		&auditLog.AuditID,
@@ -1210,10 +1248,14 @@ RETURNING
 		&auditLog.TargetID,
 		&auditLog.CommandID,
 		&scannedAuditPayload,
+		&auditLog.SourceIP,
+		&auditLog.RequestID,
+		&scannedSourceType,
 		&auditLog.CreatedAt,
 	); err != nil {
 		return domain.Command{}, domain.AuditLog{}, err
 	}
+	auditLog.SourceType = domain.AuditSourceType(scannedSourceType)
 	if err := decodeJSONMap(scannedAuditPayload, &auditLog.Payload); err != nil {
 		return domain.Command{}, domain.AuditLog{}, err
 	}

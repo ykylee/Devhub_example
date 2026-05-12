@@ -128,6 +128,9 @@ func (h Handler) createServiceAction(c *gin.Context) {
 		IdempotencyKey:   request.IdempotencyKey,
 		RequestPayload:   payload,
 		RequiresApproval: requiresApproval,
+		SourceIP:         clientIPFrom(c),
+		RequestID:        requestIDFrom(c),
+		SourceType:       sourceTypeFrom(c),
 	})
 	if err != nil {
 		writeServerError(c, err, "commands.create_service_action")
@@ -201,6 +204,9 @@ func (h Handler) createRiskMitigation(c *gin.Context) {
 		DryRun:         dryRun,
 		IdempotencyKey: request.IdempotencyKey,
 		RequestPayload: payload,
+		SourceIP:       clientIPFrom(c),
+		RequestID:      requestIDFrom(c),
+		SourceType:     sourceTypeFrom(c),
 	})
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
@@ -294,6 +300,9 @@ func (h Handler) reviewCommand(c *gin.Context, approve bool) {
 		CommandID:  commandID,
 		ActorLogin: actorLogin(c),
 		Reason:     request.Reason,
+		SourceIP:   clientIPFrom(c),
+		RequestID:  requestIDFrom(c),
+		SourceType: sourceTypeFrom(c),
 	}
 	var (
 		command  domain.Command

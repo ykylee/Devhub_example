@@ -54,6 +54,9 @@ func (s *memoryCommandStore) CreateRiskMitigationCommand(_ context.Context, req 
 		TargetType: "risk",
 		TargetID:   req.RiskID,
 		CommandID:  command.CommandID,
+		SourceIP:   req.SourceIP,
+		RequestID:  req.RequestID,
+		SourceType: req.SourceType,
 		CreatedAt:  now,
 	}
 	s.commands = append(s.commands, command)
@@ -95,6 +98,9 @@ func (s *memoryCommandStore) CreateServiceActionCommand(_ context.Context, req d
 		TargetType: "service",
 		TargetID:   req.ServiceID,
 		CommandID:  command.CommandID,
+		SourceIP:   req.SourceIP,
+		RequestID:  req.RequestID,
+		SourceType: req.SourceType,
 		CreatedAt:  now,
 	}
 	s.commands = append(s.commands, command)
@@ -136,6 +142,9 @@ func (s *memoryCommandStore) ApproveCommand(_ context.Context, req domain.Comman
 			TargetType: command.TargetType,
 			TargetID:   command.TargetID,
 			CommandID:  command.CommandID,
+			SourceIP:   req.SourceIP,
+			RequestID:  req.RequestID,
+			SourceType: req.SourceType,
 			CreatedAt:  command.UpdatedAt,
 		}
 		s.auditLog = auditLog
@@ -170,6 +179,9 @@ func (s *memoryCommandStore) RejectCommand(_ context.Context, req domain.Command
 			TargetType: command.TargetType,
 			TargetID:   command.TargetID,
 			CommandID:  command.CommandID,
+			SourceIP:   req.SourceIP,
+			RequestID:  req.RequestID,
+			SourceType: req.SourceType,
 			CreatedAt:  command.UpdatedAt,
 		}
 		s.auditLog = auditLog
@@ -222,6 +234,99 @@ func TestCreateServiceActionReturnsCommandLifecycle(t *testing.T) {
 	if command.RequestPayload["metadata"] == nil {
 		t.Fatalf("expected metadata in request payload: %+v", command.RequestPayload)
 	}
+}
+
+// PR-D follow-up (work_260512-i): commands-flow audit row carries actor
+// enrichment (source_ip / request_id / source_type) just like the
+// standalone audit_logs.go path. Verifies handler forwards enrichment to
+// the store on all four command-flow handlers.
+func TestCommandsForwardActorEnrichment(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{Login: "admin", Subject: "user-admin", Role: "system_admin"}}
+
+	t.Run("create_service_action", func(t *testing.T) {
+		commandStore := &memoryCommandStore{}
+		router := NewRouter(RouterConfig{CommandStore: commandStore, BearerTokenVerifier: verifier})
+
+		body := []byte(`{"service_id":"svc-en","action_type":"restart","reason":"diag","dry_run":true,"force":false}`)
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/service-actions", bytes.NewReader(body))
+		req.Header.Set("Authorization", "Bearer t")
+		req.Header.Set("X-Request-ID", "req_enr_svc")
+		req.RemoteAddr = "203.0.113.10:5500"
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		if rec.Code != http.StatusAccepted {
+			t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+		}
+		got := commandStore.auditLog
+		if got.SourceIP != "203.0.113.10" || got.RequestID != "req_enr_svc" || got.SourceType != domain.AuditSourceOIDC {
+			t.Errorf("service_action enrichment mismatch: %+v", got)
+		}
+	})
+
+	t.Run("create_risk_mitigation", func(t *testing.T) {
+		commandStore := &memoryCommandStore{}
+		router := NewRouter(RouterConfig{CommandStore: commandStore, BearerTokenVerifier: verifier})
+
+		body := []byte(`{"action_type":"approve","reason":"why","dry_run":true}`)
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/risks/rk-en/mitigations", bytes.NewReader(body))
+		req.Header.Set("Authorization", "Bearer t")
+		req.Header.Set("X-Request-ID", "req_enr_risk")
+		req.RemoteAddr = "203.0.113.11:5500"
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		if rec.Code != http.StatusAccepted {
+			t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+		}
+		got := commandStore.auditLog
+		if got.SourceIP != "203.0.113.11" || got.RequestID != "req_enr_risk" || got.SourceType != domain.AuditSourceOIDC {
+			t.Errorf("risk_mitigation enrichment mismatch: %+v", got)
+		}
+	})
+
+	t.Run("approve_and_reject", func(t *testing.T) {
+		commandStore := &memoryCommandStore{}
+		// Seed a pending service_action requiring approval so Approve/Reject have a target.
+		commandStore.commands = append(commandStore.commands, domain.Command{
+			CommandID: "cmd_seed", CommandType: "service_action", TargetType: "service", TargetID: "svc",
+			Status: "pending", RequiresApproval: true, ActorLogin: "admin",
+		})
+		router := NewRouter(RouterConfig{CommandStore: commandStore, BearerTokenVerifier: verifier})
+
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/commands/cmd_seed/approve", bytes.NewReader([]byte(`{"reason":"ok"}`)))
+		req.Header.Set("Authorization", "Bearer t")
+		req.Header.Set("X-Request-ID", "req_enr_app")
+		req.RemoteAddr = "203.0.113.12:5500"
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("approve status=%d body=%s", rec.Code, rec.Body.String())
+		}
+		got := commandStore.auditLog
+		if got.SourceIP != "203.0.113.12" || got.RequestID != "req_enr_app" || got.SourceType != domain.AuditSourceOIDC {
+			t.Errorf("approve enrichment mismatch: %+v", got)
+		}
+
+		// Reject another pending command in a fresh store.
+		commandStore2 := &memoryCommandStore{commands: []domain.Command{{
+			CommandID: "cmd_seed_r", CommandType: "service_action", TargetType: "service", TargetID: "svc",
+			Status: "pending", RequiresApproval: true, ActorLogin: "admin",
+		}}}
+		router2 := NewRouter(RouterConfig{CommandStore: commandStore2, BearerTokenVerifier: verifier})
+		req = httptest.NewRequest(http.MethodPost, "/api/v1/commands/cmd_seed_r/reject", bytes.NewReader([]byte(`{"reason":"nope"}`)))
+		req.Header.Set("Authorization", "Bearer t")
+		req.Header.Set("X-Request-ID", "req_enr_rej")
+		req.RemoteAddr = "203.0.113.13:5500"
+		rec = httptest.NewRecorder()
+		router2.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("reject status=%d body=%s", rec.Code, rec.Body.String())
+		}
+		got = commandStore2.auditLog
+		if got.SourceIP != "203.0.113.13" || got.RequestID != "req_enr_rej" || got.SourceType != domain.AuditSourceOIDC {
+			t.Errorf("reject enrichment mismatch: %+v", got)
+		}
+	})
 }
 
 func TestCreateServiceActionDryRunAllowsManagerPermission(t *testing.T) {

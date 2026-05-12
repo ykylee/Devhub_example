@@ -1,7 +1,6 @@
 package httpapi
 
 import (
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -104,7 +103,7 @@ func (h Handler) recordAudit(c *gin.Context, action, targetType, targetID string
 func (h Handler) recordAuditBestEffort(c *gin.Context, action, targetType, targetID string, payload map[string]any) domain.AuditLog {
 	auditLog, err := h.recordAudit(c, action, targetType, targetID, payload)
 	if err != nil {
-		log.Printf("audit log persistence failed: action=%s target=%s/%s err=%v", action, targetType, targetID, err)
+		logRequest(c, "audit log persistence failed: action=%s target=%s/%s err=%v", action, targetType, targetID, err)
 	}
 	return auditLog
 }

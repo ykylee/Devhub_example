@@ -3,7 +3,6 @@ package httpapi
 import (
 	"context"
 	"errors"
-	"log"
 	"net/http"
 	"strings"
 
@@ -90,17 +89,17 @@ func (h Handler) authenticateActor(c *gin.Context) {
 		return
 	}
 
-	log.Printf("[authenticateActor] Verifying token for path: %s", c.FullPath())
+	logRequest(c, "[authenticateActor] Verifying token for path: %s", c.FullPath())
 	actor, err := h.cfg.BearerTokenVerifier.VerifyBearerToken(c.Request.Context(), token)
 	if err != nil {
-		log.Printf("[authenticateActor] Token verification failed: %v", err)
+		logRequest(c, "[authenticateActor] Token verification failed: %v", err)
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 			"status": "unauthenticated",
 			"error":  "invalid bearer token",
 		})
 		return
 	}
-	log.Printf("[authenticateActor] Token verified for login: %s", actor.Login)
+	logRequest(c, "[authenticateActor] Token verified for login: %s", actor.Login)
 
 	login := strings.TrimSpace(actor.Login)
 	if login == "" {
@@ -138,7 +137,7 @@ func (h Handler) authenticateActor(c *gin.Context) {
 			// silently routes every actor to actor.Role's default —
 			// that masked the e2e regression where bob/charlie landed
 			// on /developer until we found the SQL error by accident.
-			log.Printf("[authenticateActor] GetUser %q failed: %v; falling back to token role claim %q", login, err, finalRole)
+			logRequest(c, "[authenticateActor] GetUser %q failed: %v; falling back to token role claim %q", login, err, finalRole)
 		}
 	}
 

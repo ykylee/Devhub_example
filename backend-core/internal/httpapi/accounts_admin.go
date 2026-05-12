@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -122,7 +121,7 @@ func (h Handler) createAccount(c *gin.Context) {
 	// next lookup, and surfacing 500 would leave the DevHub+Kratos pair in
 	// the correct state but make the caller think creation failed.
 	if cacheErr := h.cfg.OrganizationStore.SetKratosIdentityID(ctx, req.UserID, identityID); cacheErr != nil {
-		log.Printf("[kratos-cache] eager backfill on account.create for %s skipped: %v", req.UserID, cacheErr)
+		logRequest(c, "[kratos-cache] eager backfill on account.create for %s skipped: %v", req.UserID, cacheErr)
 	}
 
 	h.recordAuditBestEffort(c, "account.issued", "user", req.UserID, map[string]any{

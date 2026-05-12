@@ -1,0 +1,10 @@
+{
+  "project": "DevHub",
+  "branch": "claude/work_260512-i",
+  "status": "review",
+  "last_updated": "2026-05-12T03:30:00Z",
+  "base_branch": "main",
+  "base_head_at_open": "9549395",
+  "current_phase": "PR-D follow-up (3 sub-task) 구현·테스트 완료. PR 생성 단계.",
+  "context_summary": "PR-D (audit_logs.source_ip/request_id/source_type) 직후 남은 3 항목: (1) commands 흐름의 audit INSERT 3 곳 (postgres.go 587/772/1172) 도 enrichment 채우기, (2) handler/middleware 의 log 라인에 request_id 부착 helper (logRequest), (3) DEVHUB_TRUSTED_PROXIES env 도입. 단일 PR (3 commit: 277b53b TRUSTED_PROXIES, 7a0e6ce audit enrichment, ac22ade log request_id). 전 모듈 go test PASS. Sprint A/B 진입 시 후보 표 outdated 발견 — Sprint B (kratos_identity_id) 는 이미 PR-L4 에 들어와 있어 폐기, Sprint C 만 살아있음."
+}
