@@ -238,6 +238,39 @@ func TestAuditEnrichment_SourceIPIgnoresForwardedHeader(t *testing.T) {
 	}
 }
 
+// PR-D follow-up (work_260512-j): when DEVHUB_TRUSTED_PROXIES contains an
+// invalid token (typo, comment, etc.) gin's parseTrustedProxies returns a
+// partial trust set + error. NewRouter logs and falls back to attribution-
+// grade default (SetTrustedProxies(nil)) so the audit row's source_ip
+// cannot be forged via X-Forwarded-For just because the operator's env had
+// a typo. This pins the failsafe path.
+func TestAuditEnrichment_InvalidTrustedProxiesFallsBackToNil(t *testing.T) {
+	t.Setenv("DEVHUB_TRUSTED_PROXIES", "203.0.113.42,not-an-ip")
+	orgs := newMemoryOrganizationStore()
+	audits := &memoryAuditStore{}
+	router := testRouter(RouterConfig{OrganizationStore: orgs, AuditStore: audits})
+
+	body := []byte(`{"user_id":"u-itp","email":"itp@x","display_name":"I","role":"developer","status":"active"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/users", bytes.NewReader(body))
+	req.RemoteAddr = "203.0.113.42:55001"
+	req.Header.Set("X-Forwarded-For", "198.51.100.7")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if len(audits.logs) != 1 {
+		t.Fatalf("expected one audit row, got %d", len(audits.logs))
+	}
+	got := audits.logs[0].SourceIP
+	if got == "198.51.100.7" {
+		t.Fatalf("invalid trusted_proxies env honoured X-Forwarded-For — fallback regression (got %q)", got)
+	}
+	if got != "203.0.113.42" {
+		t.Errorf("audit SourceIP=%q, want 203.0.113.42 (RemoteAddr peer after fallback)", got)
+	}
+}
+
 // PR-D follow-up (work_260512-i): when operators legitimately sit behind a
 // reverse proxy and set DEVHUB_TRUSTED_PROXIES, X-Forwarded-For from the
 // trusted hop should be honoured so audit_logs.source_ip is the real client

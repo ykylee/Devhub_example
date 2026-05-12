@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"errors"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -102,7 +103,18 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	//   - empty / "none"  → SetTrustedProxies(nil) (default, attribution-grade)
 	//   - "*"             → trust everything (testing only, audit forgery risk)
 	//   - "10.0.0.0/8,192.168.1.5" → trust the listed CIDRs/IPs
-	_ = router.SetTrustedProxies(trustedProxiesFromEnv())
+	//
+	// gin's parseTrustedProxies stops at the first invalid entry and returns
+	// a partial trust set + the parse error (work_260512-j). Silent partial
+	// trust silently diverges from operator intent (e.g. a typo'd CIDR drops
+	// every later entry), so we fall back to attribution-grade default + log
+	// when the env contains an invalid token. Listed entries earlier than the
+	// invalid one would already be partially applied; resetting back to nil
+	// ensures a uniform behaviour rather than an unpredictable mix.
+	if err := router.SetTrustedProxies(trustedProxiesFromEnv()); err != nil {
+		log.Printf("[trusted-proxies] DEVHUB_TRUSTED_PROXIES contains an invalid entry (%v); falling back to attribution-grade default (SetTrustedProxies(nil))", err)
+		_ = router.SetTrustedProxies(nil)
+	}
 
 	if cfg.PermissionCache == nil {
 		cfg.PermissionCache = NewPermissionCache(cfg.RBACStore)
