@@ -3,11 +3,20 @@
 `claude/work_260512-e` 슬롯 — 직전 슬롯 work_260512-d (PR #72) Planned #1 처리 (OIDC client 등록 자동화).
 
 ## [Planned]
-1. `gemini/frontend_260510` → `main` 머지 전략 검토 — #63-#72 + 본 PR 까지 누적. 통합 시점/방식 결정. (직전 슬롯에서도 이월)
-2. (선택) Fresh DB 진짜 cold-start 검증 — schema drop → dev-up 단일 실행으로 진짜 zero-touch 동작 확인. 사용자 합의 필요.
+(없음 — 라인 close)
 
 ## [In Progress]
 (없음)
+
+## [Done — 후속 (라인 closure)]
+- [x] `gemini/frontend_260510` → `main` 머지 (PR #74, rebase, 14 commits 선형 추가, main HEAD `58f5b03`)
+- [x] `gemini/frontend_260510` 브랜치 로컬·원격 모두 삭제 (사용자 합의)
+- [x] 라인 close 박제 (`backlog/2026-05-12-close.md`)
+
+## [Carried to next session]
+- (선택) Fresh DB 진짜 cold-start 검증 — schema drop → dev-up 단일 실행. 사용자 DB 영향 큼.
+- 결함 #2 의 frontend 부분 픽스 평가 (지금은 documented behavior).
+- dev-up ergonomics 개선 (부분 시작 등) — 필요해진 시점이 오면.
 
 ## [Done — 이번 세션]
 

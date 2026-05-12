@@ -1,10 +1,10 @@
 {
   "project": "DevHub",
   "branch": "claude/work_260512-e",
-  "status": "in_progress",
-  "last_updated": "2026-05-12T11:30:00Z",
-  "base_branch": "gemini/frontend_260510",
-  "base_head_at_close": "post-#72 squash merge (758f2e8 — IdP schema + migrate automation)",
-  "current_phase": "OIDC client registration automation",
-  "context_summary": "직전 슬롯 work_260512-d (PR #72) Planned #1 처리. infra/idp/scripts/register-devhub-client.sh 신규 (bash, curl 기반, jq 무의존, PS 카운터파트와 동일 의미). dev-up.{ps1,sh} 의 hydra Wait-ForPort 직후 단계 3b 신설 — 4445 reachable + DEVHUB_SKIP_OIDC_REGISTER!=1 시 등록 스크립트 호출. PS-to-PS call 의 $LASTEXITCODE 가 항상 갱신되지 않음 발견 → register-devhub-client.ps1 자체의 $ErrorActionPreference=Stop 이 failure 전파를 보장하므로 LASTEXITCODE 체크는 제거. README §5 자동화 callout + bash 변형 명령 추가. 실머신 검증: dev-up cold-start 후 GET /admin/clients/devhub-frontend 가 200 + 등록된 client 객체 응답. dev-down 클린업 정상."
+  "status": "done",
+  "last_updated": "2026-05-12T13:00:00Z",
+  "base_branch": "main",
+  "base_head_at_close": "rebased to main as part of PR #74 (main HEAD 58f5b03)",
+  "current_phase": "closed — work_260512 line integrated into main",
+  "context_summary": "work_260512 / -b / -c / -d / -e 5개 슬롯이 6 PR (#69-#73) + close docs (#68) 를 거쳐 dev-scripts 전면 정비를 완수했고, PR #74 의 rebase merge 로 main 에 14 commits 선형 통합됨 (gemini/frontend_260510 라인 전체). gemini/frontend_260510 브랜치는 사용자 합의로 원격까지 삭제. 다음 세션은 main 에서 새 branch 로 출발."
 }
