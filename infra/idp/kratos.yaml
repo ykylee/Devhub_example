@@ -69,6 +69,31 @@ selfservice:
       ui_url: http://localhost:3000/account
       privileged_session_max_age: 15m
       required_aal: highest_available
+      after:
+        password:
+          hooks:
+            # PR-M2-AUDIT (claude/login_usermanagement_finish):
+            # forward every successful self-service password change to
+            # DevHub backend so audit_logs can record it with
+            # source_type=kratos. auth.config.value must match the
+            # DEVHUB_KRATOS_WEBHOOK_TOKEN env on backend-core.
+            #
+            # response.ignore: true makes Kratos commit the password
+            # change even if DevHub is unreachable — audit may miss the
+            # row, but user-facing flow does not stall on DevHub outage.
+            - hook: web_hook
+              config:
+                url: http://localhost:8080/api/v1/integrations/kratos/hook/settings/password/after
+                method: POST
+                body: file://./infra/idp/kratos_webhooks/settings_password_after.jsonnet
+                response:
+                  ignore: true
+                auth:
+                  type: api_key
+                  config:
+                    in: header
+                    name: Authorization
+                    value: Bearer ${DEVHUB_KRATOS_WEBHOOK_TOKEN}
     recovery:
       enabled: false
     verification:

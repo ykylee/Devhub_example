@@ -126,7 +126,8 @@ var routePermissionTable = map[routeKey]routePolicy{
 	// Bypass — section 12.8.1 (auth-only, no matrix lookup)
 	{http.MethodGet, "/api/v1/me"}:                           {Bypass: true},
 	{http.MethodGet, "/api/v1/realtime/ws"}:                  {Bypass: true},
-	{http.MethodPost, "/api/v1/integrations/gitea/webhooks"}: {Bypass: true},
+	{http.MethodPost, "/api/v1/integrations/gitea/webhooks"}:                            {Bypass: true},
+	{http.MethodPost, "/api/v1/integrations/kratos/hook/settings/password/after"}:       {Bypass: true},
 	// Self-service password change (L4-D, work_26_05_11-e). RBAC matrix is
 	// not the right tool here — every authenticated user can change their
 	// own password; admin-driven resets go through /accounts/:user_id/password

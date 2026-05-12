@@ -171,13 +171,14 @@ type Command struct {
 
 // AuditSourceType classifies which authentication path produced an audit
 // row. Per DEC-2 (work_26_05_11-c, T-M1-04) the vocabulary is bounded to
-// oidc | webhook | system at this stage. New actor classes (cli, api_token,
-// ...) extend this enum when they become real.
+// oidc | webhook | kratos | system at this stage. New actor classes (cli,
+// api_token, ...) extend this enum when they become real.
 type AuditSourceType string
 
 const (
 	AuditSourceOIDC    AuditSourceType = "oidc"    // Bearer-verified user request
 	AuditSourceWebhook AuditSourceType = "webhook" // signed inbound webhook (e.g. Gitea)
+	AuditSourceKratos  AuditSourceType = "kratos"  // Kratos self-service hook (e.g. settings/password/after)
 	AuditSourceSystem  AuditSourceType = "system"  // dev fallback or background job
 )
 

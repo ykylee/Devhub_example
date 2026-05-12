@@ -25,12 +25,13 @@ type BearerTokenVerifier interface {
 
 // publicAPIPaths lists /api/v1 routes that pass through authenticateActor without an Authorization header. Webhook endpoints validate their own HMAC signature, so a Bearer token would be redundant. The auth proxy endpoints (login/consent/logout) are called *before* the user has a token, so they cannot require one either; they protect themselves with Hydra's challenge tokens (single-use, lifespan-bound).
 var publicAPIPaths = map[string]bool{
-	"/api/v1/integrations/gitea/webhooks": true,
-	"/api/v1/auth/login":                  true,
-	"/api/v1/auth/logout":                 true,
-	"/api/v1/auth/token":                  true,
-	"/api/v1/auth/signup":                 true,
-	"/api/v1/auth/consent":                true,
+	"/api/v1/integrations/gitea/webhooks":                            true,
+	"/api/v1/integrations/kratos/hook/settings/password/after":       true,
+	"/api/v1/auth/login":                                             true,
+	"/api/v1/auth/logout":                                            true,
+	"/api/v1/auth/token":                                             true,
+	"/api/v1/auth/signup":                                            true,
+	"/api/v1/auth/consent":                                           true,
 }
 
 func (h Handler) authenticateActor(c *gin.Context) {
@@ -42,9 +43,12 @@ func (h Handler) authenticateActor(c *gin.Context) {
 		// downstream recordAudit picks the right enum (T-M1-04, DEC-2=A).
 		// Other public paths (auth proxy endpoints) issue audits via the
 		// dedicated handlers and override the source type as needed.
-		if c.FullPath() == "/api/v1/integrations/gitea/webhooks" {
+		switch c.FullPath() {
+		case "/api/v1/integrations/gitea/webhooks":
 			c.Set(ctxKeySourceType, domain.AuditSourceWebhook)
-		} else {
+		case "/api/v1/integrations/kratos/hook/settings/password/after":
+			c.Set(ctxKeySourceType, domain.AuditSourceKratos)
+		default:
 			c.Set(ctxKeySourceType, domain.AuditSourceSystem)
 		}
 		c.Next()
