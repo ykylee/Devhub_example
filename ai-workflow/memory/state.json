@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-05-11. M1/M2 100% done. TDD foundation sprint 머지 (PR #58, work_26_05_11-d): Vitest+Playwright 인프라, E2E baseline 5/6 PASS+1 SKIP (password-change은 PR-L4 후속). 오늘 11 PR 머지. 다음 진입 후보: PR-L4 (Kratos session 정합) / M4 진입 / UX hygiene.",
-  "updated_at": "2026-05-11T06:55:00Z",
-  "head_commit": "adce7ec",
-  "head_summary": "Merge pull request #58 (TDD foundation — Vitest + Playwright + first scenarios, work_26_05_11-d squash)",
+  "status": "2026-05-12 EOD. M1/M2 100% done. E2E 자동 시드 hardening 일단락, PR-D audit 정합 완결 (commands enrichment + handler log request_id + DEVHUB_TRUSTED_PROXIES env + invalid env 폴백). 오늘 추가로 8 PR 머지 (#76-83). 다음 진입 후보: caller-supplied X-Request-ID validation / ctx 표준 request_id 전파 / writeRBACServerError → writeServerError 통합 / M4 진입.",
+  "updated_at": "2026-05-12T05:30:00Z",
+  "head_commit": "29a90bd",
+  "head_summary": "Merge pull request #83 (docs(memory): close work_260512-j slot — post-#82 second-pass review fix)",
   "milestones": {
     "M0": {
       "status": "done",
@@ -61,7 +61,11 @@
       "work_26_05_11": "ai-workflow/memory/claude/work_26_05_11/backlog/2026-05-11.md (CLOSED)",
       "work_26_05_11_b": "ai-workflow/memory/claude/work_26_05_11-b/backlog/2026-05-11.md (CLOSED, PR #56)",
       "work_26_05_11_c": "ai-workflow/memory/claude/work_26_05_11-c/backlog/2026-05-11.md (CLOSED, PR #57)",
-      "work_26_05_11_d": "ai-workflow/memory/claude/work_26_05_11-d/backlog/2026-05-11.md (CLOSED, PR #58)"
+      "work_26_05_11_d": "ai-workflow/memory/claude/work_26_05_11-d/backlog/2026-05-11.md (CLOSED, PR #58)",
+      "work_260512_f": "ai-workflow/memory/claude/work_260512-f/ (CLOSED, PR #76 hardening + #77 close)",
+      "work_260512_g": "ai-workflow/memory/claude/work_260512-g/ (CLOSED, PR #78 follow-up + #79 close)",
+      "work_260512_i": "ai-workflow/memory/claude/work_260512-i/ (CLOSED, PR #80 PR-D follow-up + #81 close)",
+      "work_260512_j": "ai-workflow/memory/claude/work_260512-j/ (CLOSED, PR #82 second-pass fix + #83 close)"
     }
   },
   "merged_prs_2026_05_11": [
@@ -77,23 +81,33 @@
     {"pr": 57, "sprint": "work_26_05_11-c", "title": "feat(audit): actor enrichment + request_id middleware (PR-D, M1 final)", "merge_commit": "4e831a3"},
     {"pr": 58, "sprint": "work_26_05_11-d", "title": "test: TDD foundation — Vitest + Playwright + first scenarios", "merge_commit": "adce7ec"}
   ],
+  "merged_prs_2026_05_12": [
+    {"pr": 76, "sprint": "work_260512-f", "title": "test(e2e): force-reset seeded passwords (PR-T3.5 hardening)", "merge_commit": "e2393a3"},
+    {"pr": 77, "sprint": "work_260512-f-close", "title": "docs(memory): close work_260512-f slot", "merge_commit": "354609b"},
+    {"pr": 78, "sprint": "work_260512-g", "title": "test(e2e): best-effort cleanup in password-change.spec (PR-T3.5 follow-up)", "merge_commit": "6d2274c"},
+    {"pr": 79, "sprint": "work_260512-g-close", "title": "docs(memory): close work_260512-g slot", "merge_commit": "9549395"},
+    {"pr": 80, "sprint": "work_260512-i", "title": "feat(audit): PR-D follow-up — commands enrichment + log request_id + TRUSTED_PROXIES", "merge_commit": "ffcaec6"},
+    {"pr": 81, "sprint": "work_260512-i-close", "title": "docs(memory): close work_260512-i slot", "merge_commit": "d40b73a"},
+    {"pr": 82, "sprint": "work_260512-j", "title": "fix(audit): fall back to nil trust when DEVHUB_TRUSTED_PROXIES invalid", "merge_commit": "6121828"},
+    {"pr": 83, "sprint": "work_260512-j-close", "title": "docs(memory): close work_260512-j slot", "merge_commit": "29a90bd"}
+  ],
+  "discarded_sprints_2026_05_12": [
+    {"slot": "work_260512-h", "reason": "진입 직후 후보 (M2 hygiene users.kratos_identity_id) 가 PR-L4 (809f525, work_26_05_11-e) 에 이미 머지된 것 확인. 신규 작업 없어 폐기."}
+  ],
   "next_actions": {
     "m1_remaining": [],
     "tdd_followups": [
-      "PR-L4 (Kratos session 정합) — backend `/api/v1/account/password` proxy (session_token 사용) OR browser-mode 로그인 redirect. password-change.spec.ts unskip 의 차단 요인.",
-      "PR-T3.5 (e2e seed 자동화) — Playwright globalSetup 으로 Kratos identity 3건 + DevHub users 3행 시드 자동화 (현재 가이드 수동).",
-      "PR-T5 (CI 도입, DEC-4) — GitHub Actions: backend go test + frontend Vitest + e2e matrix 또는 nightly.",
+      "PR-T5 (CI 도입, DEC-4) — GitHub Actions: backend go test + frontend Vitest + e2e matrix 또는 nightly. (사용자가 본 시점 진입 보류 결정, 2026-05-12)",
       "hygiene-test-admin — PoC `test/test` 시드 제거 (운영 진입 직전, test-server-deployment §10 체크리스트)."
     ],
     "m2_followups": [
-      "Kratos identity 매핑 캐싱 — users.kratos_identity_id 칼럼 추가로 FindIdentityByUserID O(1) 화",
       "Kratos webhook 수신 → DevHub audit_logs 통합 (self-service password 변경 등 audit)",
       "Hydra JWKS / introspection verifier 실구현 (현재는 introspection 기반)"
     ],
     "pr_d_followups": [
-      "store/postgres.go 의 commands audit INSERT 3 곳 (586/773/1173) 도 actor context 채움",
-      "모든 log 라인에 request_id 부착 (현재는 audit_logs + writeServerError 만)",
-      "운영 reverse proxy 환경용 DEVHUB_TRUSTED_PROXIES env 도입 (현재는 SetTrustedProxies(nil) 고정)"
+      "caller-supplied X-Request-ID 콘텐츠 validation (newline / control char / 길이 제한). net/http 가 CRLF 차단해 보안 회귀 아니지만 audit_logs.request_id 위생 보강. work_260512-j 발견.",
+      "ctx 표준 request_id 전파 — kratos_login_client.go:145/153, kratos_identity_resolver.go:52 등 ctx 만 받는 client/helper 도 자동 tagged. logRequest 의 untraced fallback 해소.",
+      "writeRBACServerError → writeServerError 통합 (rbac.go:22 TODO). 형식은 work_260512-i 에서 일치."
     ],
     "ux_hygiene": [
       "/admin/settings/users 의 SearchInput 실제 필터링 미구현 (placeholder)",
@@ -106,6 +120,6 @@
       "AI Gardener gRPC (Python AnalysisService + Go Core client)",
       "Gitea Hourly Pull worker"
     ],
-    "ops_verification": "사용자 환경에서 docs/setup/test-server-deployment.md 의 §6-§7 e2e 절차 1회 수행 권장 — 로그인/로그아웃/비밀번호 변경/계정 발급/disable/조직 차트 drag 영속화 전체. (E2E baseline 자동화는 PR #58 이후 `cd frontend && npm run e2e` 한 줄로도 가능 — 사전 조건은 docs/setup/e2e-test-guide.md 참조.)"
+    "ops_verification": "사용자 환경에서 docs/setup/test-server-deployment.md 의 §6-§7 e2e 절차 1회 수행 권장. E2E baseline 자동화는 PR #58 이후 `cd frontend && npm run e2e` 한 줄. PR #76 hardening 으로 stale rotation 도 다음 실행에서 자동 복구."
   }
 }
