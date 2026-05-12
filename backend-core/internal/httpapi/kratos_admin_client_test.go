@@ -143,6 +143,12 @@ func TestKratosAdminClient_FindIdentityByUserID_Paginates(t *testing.T) {
 	var pages int
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		pages++
+		// Pin the page size — if the client ever silently lowers per_page,
+		// the pagination cap math (page > 40 → 10k identities) goes off and
+		// large Kratos deployments would silently truncate scans.
+		if got := r.URL.Query().Get("per_page"); got != "250" {
+			t.Errorf("per_page = %q, want 250", got)
+		}
 		page := r.URL.Query().Get("page")
 		switch page {
 		case "1":
@@ -195,6 +201,38 @@ func TestKratosAdminClient_FindIdentityByUserID_EmptyUserID(t *testing.T) {
 	_, err := c.FindIdentityByUserID(context.Background(), "")
 	if err == nil {
 		t.Fatalf("expected error for empty user_id")
+	}
+}
+
+func TestKratosAdminClient_FindIdentityByUserID_StopsAt10kCap(t *testing.T) {
+	// FindIdentityByUserID caps the PoC scan at page 40 (~10k identities).
+	// The cap matters because Kratos has no server-side metadata filter;
+	// without it, a misconfigured deployment (user_id never populated)
+	// would pull every identity each call and either time out or hammer
+	// the admin endpoint. Pin the cap so a future refactor cannot drop
+	// it silently.
+	var requests int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		requests++
+		// Always return a full page so the < pageSize early-exit never fires.
+		var batch []map[string]any
+		for i := 0; i < 250; i++ {
+			batch = append(batch, map[string]any{
+				"id":              fmt.Sprintf("uuid-r%d-i%d", requests, i),
+				"metadata_public": map[string]any{"user_id": "noone"},
+			})
+		}
+		_ = json.NewEncoder(w).Encode(batch)
+	}))
+	defer srv.Close()
+
+	c := &KratosAdminClient{AdminURL: srv.URL}
+	_, err := c.FindIdentityByUserID(context.Background(), "missing")
+	if !errors.Is(err, ErrKratosIdentityNotFound) {
+		t.Fatalf("err = %v, want ErrKratosIdentityNotFound", err)
+	}
+	if requests != 40 {
+		t.Errorf("requests = %d, want exactly 40 (10k identity PoC cap)", requests)
 	}
 }
 
