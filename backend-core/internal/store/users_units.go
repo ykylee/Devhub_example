@@ -174,7 +174,13 @@ LIMIT 1`
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return domain.AppUser{}, fmt.Errorf("user %s not found: %w", userID, err)
+			// Match the convention used elsewhere in this file
+			// (UpdateUser, DeleteUser, SetKratosIdentityID): wrap with
+			// the store.ErrNotFound sentinel so callers can `errors.Is`
+			// portably. The earlier `%w pgx.ErrNoRows` shape silently
+			// broke organization.go's 404 path and authenticateActor's
+			// pre-onboarding suppression.
+			return domain.AppUser{}, fmt.Errorf("user %s: %w", userID, ErrNotFound)
 		}
 		return domain.AppUser{}, fmt.Errorf("get user %s: %w", userID, err)
 	}

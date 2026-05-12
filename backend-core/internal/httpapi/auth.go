@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/devhub/backend-core/internal/domain"
+	"github.com/devhub/backend-core/internal/store"
 	"github.com/gin-gonic/gin"
 )
 
@@ -123,8 +124,21 @@ func (h Handler) authenticateActor(c *gin.Context) {
 	// we fetch the latest role from our database to support real-time permission updates.
 	finalRole := actor.Role
 	if h.cfg.OrganizationStore != nil && login != "" {
-		if user, err := h.cfg.OrganizationStore.GetUser(c.Request.Context(), login); err == nil {
+		user, err := h.cfg.OrganizationStore.GetUser(c.Request.Context(), login)
+		switch {
+		case err == nil:
 			finalRole = string(user.Role)
+		case errors.Is(err, store.ErrNotFound):
+			// User has a valid Hydra token but no DevHub users row yet
+			// (pre-onboarding). Fall through to the token role claim —
+			// not a misconfiguration, no log noise.
+		default:
+			// Schema drift or store outage. Without this surface, a
+			// missing migration (e.g. 000009 add kratos_identity_id)
+			// silently routes every actor to actor.Role's default —
+			// that masked the e2e regression where bob/charlie landed
+			// on /developer until we found the SQL error by accident.
+			log.Printf("[authenticateActor] GetUser %q failed: %v; falling back to token role claim %q", login, err, finalRole)
 		}
 	}
 

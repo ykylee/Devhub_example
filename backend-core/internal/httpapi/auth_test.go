@@ -3,9 +3,16 @@ package httpapi
 import (
 	"bytes"
 	"context"
+	"errors"
+	"fmt"
+	"log"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+
+	"github.com/devhub/backend-core/internal/domain"
+	"github.com/devhub/backend-core/internal/store"
 )
 
 type fakeBearerTokenVerifier struct {
@@ -184,6 +191,97 @@ func TestBearerWithoutVerifierReturnsUnauthorizedWhenDevFallbackOff(t *testing.T
 
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+// orgStoreGetUserError wraps memoryOrganizationStore and overrides GetUser
+// to inject store errors that aren't ErrNotFound (schema drift, connection
+// failures, etc.). Used to pin authenticateActor's surface-the-error path.
+type orgStoreGetUserError struct {
+	*memoryOrganizationStore
+	err error
+}
+
+func (s *orgStoreGetUserError) GetUser(_ context.Context, _ string) (domain.AppUser, error) {
+	return domain.AppUser{}, s.err
+}
+
+// Regression guard: when GetUser fails with a schema/connection error, the
+// middleware must (a) still complete the request using the token role
+// claim, and (b) log loud enough that operators can spot a missing
+// migration. The silent-fallback bug once routed every actor to a single
+// default role until we found the underlying SQL error by accident.
+func TestAuthenticateActor_LogsNonNotFoundGetUserError(t *testing.T) {
+	var buf bytes.Buffer
+	oldOut := log.Writer()
+	log.SetOutput(&buf)
+	defer log.SetOutput(oldOut)
+
+	orgs := &orgStoreGetUserError{
+		memoryOrganizationStore: newMemoryOrganizationStore(),
+		err:                     errors.New("ERROR: column \"kratos_identity_id\" does not exist (SQLSTATE 42703)"),
+	}
+	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+		Login:   "bob",
+		Subject: "user-bob",
+		Role:    "manager", // token claim says manager
+	}}
+	router := NewRouter(RouterConfig{
+		OrganizationStore:   orgs,
+		BearerTokenVerifier: verifier,
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
+	req.Header.Set("Authorization", "Bearer t")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	// Token-claim role must survive the GetUser failure (no silent
+	// collapse to actor.Role default of "").
+	if !strings.Contains(rec.Body.String(), `"role":"manager"`) {
+		t.Errorf("expected role to fall back to token claim 'manager', body = %s", rec.Body.String())
+	}
+	if !strings.Contains(buf.String(), `[authenticateActor] GetUser "bob" failed`) {
+		t.Errorf("expected GetUser error to be logged; got: %q", buf.String())
+	}
+}
+
+// memoryOrganizationStore.GetUser returns ErrNotFound for users that have
+// not yet been onboarded. That's a normal state for a freshly-issued
+// Hydra token, not a misconfiguration — must not generate log noise.
+func TestAuthenticateActor_DoesNotLogGetUserNotFound(t *testing.T) {
+	var buf bytes.Buffer
+	oldOut := log.Writer()
+	log.SetOutput(&buf)
+	defer log.SetOutput(oldOut)
+
+	orgs := &orgStoreGetUserError{
+		memoryOrganizationStore: newMemoryOrganizationStore(),
+		err:                     fmt.Errorf("user new-user: %w", store.ErrNotFound),
+	}
+	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+		Login:   "new-user",
+		Subject: "new-user",
+		Role:    "developer",
+	}}
+	router := NewRouter(RouterConfig{
+		OrganizationStore:   orgs,
+		BearerTokenVerifier: verifier,
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
+	req.Header.Set("Authorization", "Bearer t")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	if strings.Contains(buf.String(), "GetUser") {
+		t.Errorf("ErrNotFound is a normal state and must not log; got: %q", buf.String())
 	}
 }
 
