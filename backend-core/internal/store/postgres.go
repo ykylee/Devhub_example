@@ -50,7 +50,6 @@ func (s *PostgresStore) Close() {
 	s.pool.Close()
 }
 
-
 func (s *PostgresStore) Ping(ctx context.Context) error {
 	return s.pool.Ping(ctx)
 }

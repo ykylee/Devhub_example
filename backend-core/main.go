@@ -164,7 +164,16 @@ func main() {
 	}
 }
 
-func seedLocalAdmin(ctx context.Context, kratosAdmin httpapi.KratosAdmin, orgStore httpapi.OrganizationStore) {
+// seedOrgStore is the narrow subset of httpapi.OrganizationStore that
+// seedLocalAdmin actually drives. Keeping it local lets the seed unit
+// tests use a 2-method fake instead of stubbing the full 14-method
+// interface.
+type seedOrgStore interface {
+	CreateUser(context.Context, domain.CreateUserInput) (domain.AppUser, error)
+	SetKratosIdentityID(context.Context, string, string) error
+}
+
+func seedLocalAdmin(ctx context.Context, kratosAdmin httpapi.KratosAdmin, orgStore seedOrgStore) {
 	const (
 		adminLogin    = "test"
 		adminEmail    = "test@example.com"
@@ -172,15 +181,22 @@ func seedLocalAdmin(ctx context.Context, kratosAdmin httpapi.KratosAdmin, orgSto
 		adminPassword = "test"
 	)
 
-	// 1. Kratos Identity
+	// 1. Kratos Identity — CreateIdentity 가 409 (already exists) 등으로
+	// 실패하면 기존 identity 를 찾아 재사용. 양쪽 모두 실패하면 시딩
+	// 포기 (Kratos down / 스키마 미스매치 같은 운영 이슈를 묻히지 않도록
+	// Find 에러까지 같이 surface).
 	kratosID, err := kratosAdmin.CreateIdentity(ctx, adminEmail, adminName, adminLogin, adminPassword)
 	if err != nil {
-		log.Printf("[seedLocalAdmin] Kratos identity creation failed: %v", err)
-		kratosID, _ = kratosAdmin.FindIdentityByUserID(ctx, adminLogin)
+		log.Printf("[seedLocalAdmin] CreateIdentity for %q failed: %v; falling back to FindIdentityByUserID", adminLogin, err)
+		existing, findErr := kratosAdmin.FindIdentityByUserID(ctx, adminLogin)
+		if findErr != nil {
+			log.Printf("[seedLocalAdmin] FindIdentityByUserID for %q also failed: %v; aborting seed", adminLogin, findErr)
+			return
+		}
+		kratosID = existing
 	}
-
 	if kratosID == "" {
-		log.Printf("[seedLocalAdmin] Failed to get Kratos ID for %s", adminLogin)
+		log.Printf("[seedLocalAdmin] resolved empty Kratos ID for %q; aborting seed", adminLogin)
 		return
 	}
 
