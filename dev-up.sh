@@ -40,6 +40,13 @@ mask_dsn() {
     echo "$1" | sed -E 's#:[^:@/]+@#:***@#'
 }
 
+is_port_listening() {
+    # 외부 관리 인스턴스 존중용 즉시 체크. wait_for_port 와 달리 deadline 없이
+    # 한 번만 시도한다. /dev/tcp 는 bash 내장이라 nc 의존성을 피한다.
+    local port=$1
+    (echo > "/dev/tcp/127.0.0.1/$port") >/dev/null 2>&1
+}
+
 wait_for_port() {
     local name=$1
     local port=$2
@@ -98,7 +105,9 @@ else
 fi
 
 # 2. Kratos
-if command -v kratos >/dev/null 2>&1; then
+if is_port_listening 4433; then
+    echo "  external instance detected on port 4433; using existing kratos (PID 파일 미작성)"
+elif command -v kratos >/dev/null 2>&1; then
     run_service "kratos" "kratos serve -c infra/idp/kratos.yaml --dev" "kratos.log" ""
     wait_for_port "kratos-public" 4433
     wait_for_port "kratos-admin"  4434
@@ -107,7 +116,9 @@ else
 fi
 
 # 3. Hydra
-if command -v hydra >/dev/null 2>&1; then
+if is_port_listening 4444; then
+    echo "  external instance detected on port 4444; using existing hydra (PID 파일 미작성)"
+elif command -v hydra >/dev/null 2>&1; then
     run_service "hydra" "hydra serve all -c infra/idp/hydra.yaml --dev" "hydra.log" ""
     wait_for_port "hydra-public" 4444
     wait_for_port "hydra-admin"  4445
@@ -122,12 +133,20 @@ export DEVHUB_KRATOS_PUBLIC_URL="${DEVHUB_KRATOS_PUBLIC_URL:-http://localhost:44
 export DEVHUB_KRATOS_ADMIN_URL="${DEVHUB_KRATOS_ADMIN_URL:-http://localhost:4434}"
 export DEVHUB_HYDRA_PUBLIC_URL="${DEVHUB_HYDRA_PUBLIC_URL:-http://localhost:4444}"
 export DEVHUB_HYDRA_ADMIN_URL="${DEVHUB_HYDRA_ADMIN_URL:-http://localhost:4445}"
-run_service "backend" "go run ." "backend.log" "backend-core"
-wait_for_port "backend" 8080
+if is_port_listening 8080; then
+    echo "  external instance detected on port 8080; using existing backend (PID 파일 미작성)"
+else
+    run_service "backend" "go run ." "backend.log" "backend-core"
+    wait_for_port "backend" 8080
+fi
 
 # 5. frontend
-run_service "frontend" "npm run dev" "frontend.log" "frontend"
-wait_for_port "frontend" 3000 60
+if is_port_listening 3000; then
+    echo "  external instance detected on port 3000; using existing frontend (PID 파일 미작성)"
+else
+    run_service "frontend" "npm run dev" "frontend.log" "frontend"
+    wait_for_port "frontend" 3000 60
+fi
 
 echo ""
 echo -e "${BLUE}모든 서비스 기동 완료:${NC}"

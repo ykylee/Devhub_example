@@ -1,0 +1,10 @@
+{
+  "project": "DevHub",
+  "branch": "claude/work_260512",
+  "status": "in_progress",
+  "last_updated": "2026-05-12T07:15:00Z",
+  "base_branch": "gemini/frontend_260510",
+  "base_head_at_close": "post-#67 squash merge (d2c5f01 — close claude/260512 slot)",
+  "current_phase": "defect #1 + #3 fixed, ready to commit",
+  "context_summary": "dev-up.ps1 실머신 검증 → 결함 #1 (npm.cmd), #3 (external IdP preservation) 픽스 완료, 4개 파일 수정 (dev-up.ps1, dev-down.ps1, dev-up.sh, dev-down.sh). Scenario A (external kratos/hydra pre-listening) 검증 통과: dev-up 이 4433/4444 감지하여 'external instance detected' 메시지 + PID 파일 미작성, dev-down 이 'not started by this script' 로그 + 4433/4434/4444/4445 sweep 생략, kratos/hydra 살아남음. backend/frontend 는 정상 spawn → /health 200 / / 200 → dev-down sweep 으로 정리. Scenario B (clean cold-start) 중 결함 #4 신규 발견: kratos.yaml 의 DSN 에 user/password 없어 libpq 가 OS 유저 'sam' 으로 폴백 → SASL 인증 실패, 4433 bind 실패. 결함 #2 (grandchild PID) 와 #4 (kratos DSN cold-start) 는 다음 세션으로 이월."
+}
