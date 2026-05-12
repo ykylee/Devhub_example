@@ -1,10 +1,11 @@
 {
   "project": "DevHub",
   "branch": "claude/work_260512-j",
-  "status": "review",
-  "last_updated": "2026-05-12T04:30:00Z",
+  "status": "done",
+  "last_updated": "2026-05-12T05:00:00Z",
   "base_branch": "main",
   "base_head_at_open": "d40b73a",
-  "current_phase": "PR-D follow-up second-pass review — SetTrustedProxies error 무시 fix",
-  "context_summary": "PR #80 (PR-D follow-up) 머지 후 second-pass 리뷰에서 발견. router.go 의 `_ = router.SetTrustedProxies(trustedProxiesFromEnv())` 가 err 를 무시 → DEVHUB_TRUSTED_PROXIES 에 invalid 토큰 (예: typo CIDR) 이 섞이면 gin 이 partial trust 상태로 silent 진행. operator 의도와 미묘하게 다른 audit 정합. fix: err 검출 시 log.Printf 경고 + SetTrustedProxies(nil) 으로 attribution-grade 폴백. 새 통합 테스트 1건 추가."
+  "base_head_at_close": "6121828 (PR #82 squash merge)",
+  "current_phase": "closed — second-pass review fix 머지 완료",
+  "context_summary": "PR #80 second-pass review 에서 발견. router.go 의 SetTrustedProxies err 무시 → DEVHUB_TRUSTED_PROXIES 의 invalid 토큰이 silent partial-trust 회귀 유발. err 검출 시 log.Printf 경고 + nil 폴백으로 attribution-grade default 보장. 통합 테스트 1건 추가. PR #82 squash → main HEAD 6121828."
 }
