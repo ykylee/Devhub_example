@@ -119,6 +119,7 @@ func main() {
 
 	router := httpapi.NewRouter(httpapi.RouterConfig{
 		WebhookSecret:       cfg.GiteaWebhookSecret,
+		KratosWebhookToken:  cfg.KratosWebhookToken,
 		EventStore:          eventStore,
 		EventProcessor:      eventProcessor,
 		HealthStore:         healthStore,

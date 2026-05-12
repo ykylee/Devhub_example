@@ -136,9 +136,16 @@ export default function AccountPage() {
                     required
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
+                    aria-describedby="current-password-help"
                     className="w-full bg-white/50 dark:bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-foreground dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-muted-foreground/50"
                     placeholder="Enter current password"
                   />
+                  <p
+                    id="current-password-help"
+                    className="text-[10px] text-muted-foreground/80 px-1 leading-relaxed"
+                  >
+                    Required by our identity provider (Ory Kratos) for sensitive changes. If your session has expired you will be asked to sign in again — use the Sign In Again button if the error below appears.
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

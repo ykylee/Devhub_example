@@ -40,6 +40,13 @@ type Config struct {
 	// KratosAdminURL is the base URL of the Ory Kratos admin API (default
 	// http://127.0.0.1:4434). Required for identity creation (Sign Up).
 	KratosAdminURL string
+	// KratosWebhookToken is the shared secret expected on the
+	// Authorization: Bearer header for inbound Kratos self-service hooks
+	// (PR-M2-AUDIT, claude/login_usermanagement_finish). Empty value
+	// disables the webhook route — handler responds 503 so misconfigured
+	// production environments fail loud instead of silently accepting
+	// every payload. Toggle with DEVHUB_KRATOS_WEBHOOK_TOKEN.
+	KratosWebhookToken string
 }
 
 func Load() Config {
@@ -60,6 +67,7 @@ func Load() Config {
 		ServiceActionAllowedActions:  strings.TrimSpace(os.Getenv("SERVICE_ACTION_ALLOWED_ACTIONS")),
 		KratosPublicURL:              strings.TrimSpace(os.Getenv("DEVHUB_KRATOS_PUBLIC_URL")),
 		KratosAdminURL:               strings.TrimSpace(os.Getenv("DEVHUB_KRATOS_ADMIN_URL")),
+		KratosWebhookToken:           strings.TrimSpace(os.Getenv("DEVHUB_KRATOS_WEBHOOK_TOKEN")),
 	}
 }
 

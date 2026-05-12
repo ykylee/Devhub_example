@@ -61,6 +61,11 @@ type HRDBClient interface {
 
 type RouterConfig struct {
 	WebhookSecret       string
+	// KratosWebhookToken is the shared secret expected on
+	// /api/v1/integrations/kratos/hook/* webhook calls (PR-M2-AUDIT). Empty
+	// value makes the route respond 503 so a forgotten env in production
+	// fails loud. Wired from cfg.KratosWebhookToken via main.go.
+	KratosWebhookToken  string
 	EventStore          WebhookEventStore
 	EventProcessor      WebhookEventProcessor
 	HealthStore         HealthStore
@@ -178,6 +183,11 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.GET("/organization/units/:unit_id/members", handler.listUnitMembers)
 	v1.PUT("/organization/units/:unit_id/members", handler.replaceUnitMembers)
 	v1.POST("/integrations/gitea/webhooks", handler.receiveGiteaWebhook)
+	// Kratos self-service hooks (PR-M2-AUDIT, claude/login_usermanagement_finish).
+	// Bypasses authenticateActor + enforceRoutePermission via publicAPIPaths +
+	// routePermissionTable {Bypass: true}; authenticates inbound calls with
+	// the DEVHUB_KRATOS_WEBHOOK_TOKEN shared secret instead.
+	v1.POST("/integrations/kratos/hook/settings/password/after", handler.kratosWebhookSettingsPasswordAfter)
 	v1.GET("/hr/lookup", handler.hrLookup)
 	v1.POST("/auth/signup", handler.authSignUp)
 	v1.POST("/auth/login", handler.authLogin)

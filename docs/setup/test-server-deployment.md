@@ -111,6 +111,8 @@ kratos migrate sql --yes "postgres://devhub:<pw>@<host>:5432/devhub?sslmode=disa
 | `BACKEND_AI_URL` | `http://localhost:8000` | AI 서비스 미사용 시 비워도 됨 |
 | `GITEA_URL` / `GITEA_TOKEN` / `GITEA_WEBHOOK_SECRET` | (환경별) | Gitea 연동 시만 |
 | `SERVICE_ACTION_EXECUTOR_MODE` | `simulation` 또는 비움 | live executor 활성 여부 |
+| `DEVHUB_KRATOS_WEBHOOK_TOKEN` | (운영 환경마다 임의 토큰) | Kratos `settings/password/after` web_hook 의 shared secret. 미설정 시 webhook 라우트가 503 응답 → 운영 환경에서 audit 누락이 silent fail 하지 않도록 강제. `infra/idp/kratos.yaml` 의 hook 의 `auth.config.value` 도 같은 값으로 export. 자세히는 §3.4. |
+| `DEVHUB_TRUSTED_PROXIES` | (미설정 권장) | reverse proxy 뒤일 때만 CIDR/IP 명시. 자세히는 `backend-core/internal/httpapi/router.go::trustedProxiesFromEnv` |
 
 ### 3.2 frontend
 
@@ -135,6 +137,23 @@ kratos migrate sql --yes "postgres://devhub:<pw>@<host>:5432/devhub?sslmode=disa
 - `--dev` 플래그 제거 (HTTPS 강제)
 - `urls.{login,logout,error,consent,post_logout_redirect}` 호스트가 frontend 호스트와 정확히 일치해야 함
 - `selfservice.allowed_return_urls` 에 frontend origin 추가
+
+### 3.4 Kratos audit webhook (`settings/password/after`)
+
+PR-M2-AUDIT 도입 (claude/login_usermanagement_finish). Kratos self-service password 변경이 일어날 때마다 DevHub backend-core 가 `audit_logs` 에 `source_type=kratos` 행 1건을 기록하도록 web_hook 으로 연결한다.
+
+운영 절차:
+
+1. **토큰 발급** — 운영 환경마다 임의의 고엔트로피 토큰을 1회 생성한다 (예: `openssl rand -hex 32`). 토큰은 backend-core 와 Kratos 양쪽이 같은 값을 봐야 한다.
+2. **backend-core env** — `DEVHUB_KRATOS_WEBHOOK_TOKEN=<발급한 토큰>` 으로 export. 미설정 시 webhook 라우트가 503 응답 → 운영 환경에서 audit 누락이 silent fail 하지 않도록 강제.
+3. **Kratos env** — Kratos 프로세스도 같은 env 를 볼 수 있어야 한다. `infra/idp/kratos.yaml` 의 hook `auth.config.value` 가 `Bearer ${DEVHUB_KRATOS_WEBHOOK_TOKEN}` 으로 expand 된다. systemd unit / Windows service 등록 시 양쪽에 동일하게 주입.
+4. **검증** — Kratos 로 비밀번호 변경 1회 수행 후 `SELECT action, target_id, source_type FROM audit_logs WHERE source_type='kratos' ORDER BY created_at DESC LIMIT 1;` 로 row 1건 확인.
+
+운영 hygiene:
+
+- 토큰 노출 시 rotation: backend-core 의 env 갱신 후 재시작 → Kratos env 갱신 후 재시작. 둘 사이의 짧은 mismatch 구간에는 webhook 이 401 로 거절되며 Kratos 의 `response.ignore: true` 설정으로 password 변경 자체는 정상 commit 된다 (audit 만 일시적으로 누락).
+- 토큰을 git 에 커밋하지 않는다 — env 파일은 `.env.production` / 시스템 서비스의 EnvironmentFile 로만 관리.
+- 본 sprint 는 `settings/password/after` 1종만 등록. `login/after`, `registration/after` 추가는 후속 sprint (`m2_followups.kratos_hooks_extra`).
 
 ## 4. OIDC client + 사용자 시드
 

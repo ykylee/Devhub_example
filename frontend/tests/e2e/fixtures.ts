@@ -73,5 +73,58 @@ export async function expectActorIs(page: Page, user: SeededUser) {
   await expect(page.getByText(user.user_id, { exact: false }).first()).toBeVisible({ timeout: 10_000 });
 }
 
+// Kratos admin API helpers — used by spec files that need to drive
+// identity lifecycle outside the normal browser flow (signup cleanup,
+// audit target_id matching). KRATOS_ADMIN_URL env mirrors the one used
+// by global-setup.ts; defaults to localhost:4434.
+const KRATOS_ADMIN_URL = (process.env.KRATOS_ADMIN_URL ?? "http://localhost:4434").replace(/\/$/, "");
+
+interface KratosIdentityLite {
+  id: string;
+  traits?: { email?: string; [k: string]: unknown };
+}
+
+/** Walks Kratos /admin/identities pagination to find the identity whose
+ *  traits.email matches (case-insensitive). Returns the identity.id or
+ *  null when no match exists. */
+export async function getKratosIdentityIdByEmail(email: string): Promise<string | null> {
+  const needle = email.trim().toLowerCase();
+  let pageNo = 0;
+  const perPage = 250;
+  while (pageNo < 40) {
+    const url = `${KRATOS_ADMIN_URL}/admin/identities?page=${pageNo}&per_page=${perPage}`;
+    const resp = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!resp.ok) {
+      throw new Error(`Kratos admin list identities ${resp.status}: ${await resp.text()}`);
+    }
+    const batch = (await resp.json()) as KratosIdentityLite[];
+    for (const ident of batch) {
+      if (ident.traits?.email?.toLowerCase() === needle && ident.id) {
+        return ident.id;
+      }
+    }
+    if (batch.length < perPage) break;
+    pageNo += 1;
+  }
+  return null;
+}
+
+/** Best-effort cleanup helper for spec files that create a new Kratos
+ *  identity (currently only signup.spec). Silent no-op when the identity
+ *  cannot be found — the next spec run will fail loudly if the leak
+ *  actually matters. 404 from the DELETE is also tolerated for the same
+ *  reason (already cleaned by a previous attempt). */
+export async function deleteKratosIdentityByEmail(email: string): Promise<void> {
+  const id = await getKratosIdentityIdByEmail(email);
+  if (!id) return;
+  const resp = await fetch(`${KRATOS_ADMIN_URL}/admin/identities/${id}`, {
+    method: "DELETE",
+    headers: { Accept: "application/json" },
+  });
+  if (!resp.ok && resp.status !== 404) {
+    throw new Error(`Kratos admin delete identity ${id} (${email}) → ${resp.status}: ${await resp.text()}`);
+  }
+}
+
 export const test = base.extend({});
 export { expect };

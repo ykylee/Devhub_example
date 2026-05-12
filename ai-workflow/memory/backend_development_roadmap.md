@@ -7,7 +7,7 @@
 - 대상 독자: 백엔드 개발자, 프론트엔드 연동 담당자, AI agent
 - 기준일: 2026-05-07
 - 상태: in_progress
-- 최종 수정일: 2026-05-10 (역할별 진입 우선순위 UX 기준 반영)
+- 최종 수정일: 2026-05-12 (M2 1차 완성 sprint 진입 반영 — Phase 13 + P0 M2 갱신)
 - 관련 문서: [`docs/development_roadmap.md`](../../docs/development_roadmap.md) (통합), `docs/requirements.md`, `docs/architecture.md`, `docs/tech_stack.md`, `docs/backend_api_contract.md`, `docs/backend/frontend_integration_requirements.md`, `docs/backend/requirements_review.md`, `docs/adr/0001-idp-selection.md`, `ai-workflow/memory/codex/service-action-command/session_handoff.md`
 - 현재 브랜치: `main`
 - 현재 기준선: `origin/main` 반영 완료. Phase 12 (조직/사용자), Phase 13 (IdP PoC), M1 (RBAC Core) 머지 완료.
@@ -41,7 +41,7 @@
 | Phase 10 | planned | Hourly Pull Reconciliation | Gitea REST client, 누락 이벤트 보정 worker | dry-run 및 idempotency 테스트 |
 | Phase 11 | planned | 시스템 관리자 기능 고도화 | Runner/server adapter, config 조회, allowlist/seed admin | 권한/audit/health adapter 테스트 |
 | Phase 12 | done | 조직/사용자 관리 API | `users`, `org_units`, appointments, hierarchy, unit members CRUD | handler/store 테스트 및 프론트 연동 |
-| Phase 13 | in_progress | Ory Hydra/Kratos IdP 도입 | ADR-0001, IdP PoC scaffold, PR-LOGIN-1/2 (Auth 핸들러/UI) 진행 중 | Go Core token middleware, identity admin wrapper, audit mapping |
+| Phase 13 | in_progress (1차 완성 sprint 진행 중) | Ory Hydra/Kratos IdP 도입 | OIDC code flow + PKCE end-to-end, `/api/v1/auth/{login,logout,token,signup,consent}`, `/api/v1/accounts/*` 발급/잠금/재설정/회수, `BearerTokenVerifier` (Hydra introspection), `SetTrustedProxies(nil)` audit 정합. | Kratos self-service webhook → `audit_logs` 통합 (`claude/login_usermanagement_finish` PR-M2-AUDIT). Hydra JWKS verifier 는 별도 보안 sprint 로 분리. |
 
 ## 3. 현재 완료 범위
 
@@ -85,9 +85,15 @@
 ## 5. 기능 단위별 우선순위 계획 (Functional Priorities)
 
 ### [P0] M2: 인증 및 사용자 기반 (Auth & User Base)
-- **OIDC 연동 완성**: Hydra JWKS/introspection verifier 구현 및 Go Core actor context 완전 전환.
-- **Identity Admin Wrapper**: Kratos admin identity API(CRUD, recovery) wrapper 5종 구현.
-- **사용자 상태 동기화**: Kratos identity webhook 수신 및 `users.status` 자동 업데이트 + audit 매핑.
+
+M2 핵심 골격(M1 RBAC + Phase 13 OIDC 흐름)은 done. 다음 sprint 에서 잔여 정합 항목을 닫는다.
+
+- **OIDC introspection verifier**: ✅ done — `internal/auth/HydraIntrospectionVerifier` (admin `/admin/oauth2/introspect`).
+- **`X-Request-ID` middleware + audit enrichment**: ✅ done — `source_ip`/`request_id`/`source_type` (PR #57·#80·#82).
+- **Accounts admin endpoints**: ✅ done — `POST/PUT/PATCH/DELETE /api/v1/accounts` (PR #54).
+- **사용자 상태 동기화 (Kratos webhook → `audit_logs`)**: **🟡 1차 완성 sprint 진입 대기** — `claude/login_usermanagement_finish` PR-M2-AUDIT. 최소 `settings/password/after`. 인증: shared secret 권장.
+- **Hydra JWKS verifier 실구현**: **deferred → 별도 보안 sprint**. 현 introspection 안정 동작 확인됨.
+- **Identity Admin Wrapper 추가 5종**: 단계적 — 현재는 accounts 4 endpoint 로 충분. 추가 요구는 M3 Sign Up 도입 시 검토.
 
 ### [P1] M3: 사용자 및 조직 관리 (User & Org Management)
 - **User CRUD & RBAC Refinement**: 사용자 CRUD API 안정화 및 역할(Role) 할당 유효성 검증 강화.
@@ -122,11 +128,14 @@
 - [x] service action approval/reject API 및 audit boundary
 - [x] approved live service action query 및 executor adapter boundary
 - [x] simulation service action executor 및 명시적 main 주입 설정
-- [ ] Hydra JWKS/introspection verifier 실구현 및 주입
-- [ ] Kratos identity admin API wrapper 5종 (internal/httpapi)
-- [ ] WebSocket resource scope filtering 설계 및 구현
-- [ ] Python AI gRPC client 연동 (internal/analysis)
-- [ ] Gitea REST Pull worker 및 Hourly Reconciliation
+- [x] Hydra introspection verifier (admin endpoint) 구현 — PR-LOGIN-1 / Phase 13 PoC 반영
+- [x] Bearer token middleware + audit `source_ip`/`request_id` enrichment — PR #57·#80·#82
+- [x] Accounts admin endpoints 4종 (issue/reset/disable/delete) — PR #54
+- [ ] **PR-M2-AUDIT**: Kratos self-service webhook → `audit_logs` (claude/login_usermanagement_finish)
+- [ ] Hydra JWKS verifier 실구현 — 별도 보안 sprint 로 분리 (M2 1차 완성 후)
+- [ ] WebSocket resource scope filtering 설계 및 구현 (M4)
+- [ ] Python AI gRPC client 연동 (internal/analysis) (M4)
+- [ ] Gitea REST Pull worker 및 Hourly Reconciliation (M4)
 
 ## 7. Blocked 항목
 

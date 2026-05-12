@@ -4,7 +4,7 @@
 
 - 문서 목적: 백엔드 API 연동 및 프론트엔드 기능 고도화 로드맵을 정의한다.
 - 기준일: 2026-05-04
-- 최종 수정: 2026-05-10 (역할별 진입 우선순위 UX 기준 반영)
+- 최종 수정: 2026-05-12 (M2 1차 완성 sprint 반영 — Phase 5.2/6/6.1 상태 갱신)
 - 상태: in_progress
 - 관련 문서: [`./development_roadmap.md`](./development_roadmap.md) (통합), `docs/backend_api_contract.md`, `ai-workflow/memory/backend_development_roadmap.md`
 
@@ -22,9 +22,9 @@
 | **Phase 4** | **in_progress** | AI 어드바이저 & 어드민 액션 | AI Gardener 추천 연동, 시스템 관리자 서비스 제어 액션 실체화, command status UI |
 | **Phase 5** | **done** | 사용자 및 조직 관리 UI | 사용자 프로필, 팀/조직 단위(Org Units) 관리 UI, 멤버 할당 모달 |
 | **Phase 5.1** | **done** | 조직 관리 API 통합 | 백엔드 조직 CRUD 및 멤버 할당 API 연동 |
-| **Phase 5.2** | **done** | 계정 인증 및 IdP 도입 | Ory Hydra/Kratos 도입, 로그인/로그아웃, 계정 발급/회수/비번 변경 (UI 완료) |
-| **Phase 6** | **in_progress** | 권한 관리(RBAC) UI 고도화 | 세부 권한 설정 UI, 권한 편집기(Permission Editor) 복구 |
-| **Phase 6.1** | **planned** | RBAC API 통합 | 권한 정책(Policy) CRUD API 연동, 역할별 접근 제어(RBAC Guard) 실체화 |
+| **Phase 5.2** | **done** (1차 완성 sprint 진행 중) | 계정 인증 및 IdP 도입 | Ory Hydra/Kratos OIDC code flow + PKCE end-to-end, `/auth/{login,callback}`, `/account`, `/admin/settings/{users,organization,permissions}`. 잔여 UX hygiene/audit 정합은 `claude/login_usermanagement_finish` sprint 에서 종료. |
+| **Phase 6** | **done** | 권한 관리(RBAC) UI 고도화 | PermissionEditor `/admin/settings/permissions` 완료 (PR-G6, PR #27). |
+| **Phase 6.1** | **done** | RBAC API 통합 | `/api/v1/rbac/policies` 조회/편집 연동, `requirePermission` 라우트 가드 (M1 RBAC track, PR #20·21·22·23·27·29·30·31). |
 | **Phase 7** | **planned** | 통합 검증 및 고도화 | AI Gardener 추천 연동 고도화, 전역 감사 로그 연동 |
 
 
@@ -103,11 +103,26 @@ DevHub 자체 사용자 계정(Account) 1:1 컨셉 도입 (`docs/requirements.md
 
 ## 7. 다음 작업 큐
 
-- [ ] 역할별 기본 진입 우선순위 라우팅 규칙 구현 (`developer`/`manager`/`system_admin`)
-- [ ] 로그인 직후 역할 기반 기본 진입 + 사용자 수동 전환(탭/메뉴) UX 정합성 검증
-- [ ] command status transition WebSocket 반영
-- [ ] AI Gardener suggestion API/UI 연결
-- [ ] Phase 5 `account.service.ts` 신설
-- [ ] Phase 5 `/login` 페이지 + 인증 가드 미들웨어 / layout
-- [ ] Phase 5 `/account` 본인 화면 + 비밀번호 변경 폼
-- [ ] Organization 페이지에 계정 관리 action 통합 (시스템 관리자 한정)
+### 7.1 M2 1차 완성 sprint (`claude/login_usermanagement_finish`, 진입 중)
+
+- [ ] PR-UX1 — `/admin/settings/users` SearchInput 실 필터링 (placeholder 제거)
+- [ ] PR-UX2 — `/account` Kratos privileged session 안내 추가
+- [ ] PR-UX3 — Header Switch View 한계 안내 (서버 RBAC 우회 못함)
+
+세부는 [sprint_plan](../ai-workflow/memory/claude/login_usermanagement_finish/sprint_plan.md) 참조. 백엔드 짝(PR-M2-AUDIT) 은 백엔드 로드맵 §6 참조.
+
+### 7.2 완료 (참고)
+
+- [x] 역할별 기본 진입 우선순위 라우팅 (PR #52, `defaultLandingFor`)
+- [x] 로그인 직후 역할 기반 기본 진입 + Header Switch View (PR #52)
+- [x] `account.service.ts` 신설 (PR #50)
+- [x] `/auth/login` 페이지 + 인증 가드 (PR-LOGIN-2, PR #34)
+- [x] `/auth/callback` + tokenStore 영속화 (PR-LOGIN-3)
+- [x] `/account` 본인 화면 + 비밀번호 변경 폼 (PR #50)
+- [x] Header Sign Out → Hydra/Kratos 세션 종료 (PR-LOGIN-4, PR #45·#51)
+
+### 7.3 후속 (별도 sprint)
+
+- [ ] command status transition WebSocket UI (M4, Phase 4 잔여)
+- [ ] AI Gardener suggestion API/UI 연결 (M4)
+- [ ] Organization 페이지의 계정 관리 action 통합 — 현재는 `/admin/settings/users` 로 분리 운영 (재정합 필요 시 별도 sprint)
