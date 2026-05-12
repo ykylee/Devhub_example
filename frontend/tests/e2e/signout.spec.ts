@@ -15,7 +15,16 @@ test.describe("Sign Out terminates Hydra session", () => {
     // After redirects we should be back at / (post_logout_redirect_uri)
     // or /login. Either way, /login should kick off a fresh OIDC dance
     // that lands at the password form again — not silent re-auth.
-    await page.goto("/login");
+    //
+    // The OIDC redirect chain (client-side window.location.assign on the
+    // /login page) aborts the original goto navigation under Next 16
+    // turbopack dev mode; the page actually arrives at the form, but
+    // page.goto rejects with ERR_ABORTED. We swallow that specific abort
+    // and let the subsequent waitForURL prove the redirect landed.
+    await page.goto("/login").catch((err) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!msg.includes("ERR_ABORTED")) throw err;
+    });
     await page.waitForURL(/\/auth\/login\?login_challenge=/, { timeout: 15_000 });
 
     // The password field must be empty — no auto-completion of identity

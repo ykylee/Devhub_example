@@ -114,12 +114,18 @@ func TestKratosAdminClient_FindIdentityByUserID_MatchesMetadataPublic(t *testing
 	// Regression guard: the previous rewrite decoded into KratosIdentity
 	// (no JSON tags) and checked ident.UserID — Kratos returns user_id
 	// under metadata_public.user_id, so every match silently failed.
+	// Forces the slow scan by returning [] for the credentials_identifier
+	// fast path; the page-scan branch is what we actually want to pin.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/admin/identities" {
 			t.Errorf("path = %s", r.URL.Path)
 		}
 		if r.Method != http.MethodGet {
 			t.Errorf("method = %s", r.Method)
+		}
+		if r.URL.Query().Get("credentials_identifier") != "" {
+			_, _ = w.Write([]byte(`[]`))
+			return
 		}
 		_, _ = w.Write([]byte(`[
 			{"id":"uuid-A","metadata_public":{"user_id":"other"}},
@@ -139,6 +145,87 @@ func TestKratosAdminClient_FindIdentityByUserID_MatchesMetadataPublic(t *testing
 	}
 }
 
+func TestKratosAdminClient_FindIdentityByUserID_FastPathHit(t *testing.T) {
+	// credentials_identifier=alice returns exactly one match with the
+	// expected metadata_public.user_id — Find should return immediately
+	// without touching the paginated scan.
+	var scanRequests int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("credentials_identifier") == "alice" {
+			_, _ = w.Write([]byte(`[{"id":"uuid-fast","metadata_public":{"user_id":"alice"}}]`))
+			return
+		}
+		scanRequests++
+		_, _ = w.Write([]byte(`[]`))
+	}))
+	defer srv.Close()
+
+	c := &KratosAdminClient{AdminURL: srv.URL}
+	id, err := c.FindIdentityByUserID(context.Background(), "alice")
+	if err != nil {
+		t.Fatalf("Find: %v", err)
+	}
+	if id != "uuid-fast" {
+		t.Errorf("id = %q, want uuid-fast", id)
+	}
+	if scanRequests != 0 {
+		t.Errorf("scan requests = %d, want 0 (fast path should short-circuit)", scanRequests)
+	}
+}
+
+func TestKratosAdminClient_FindIdentityByUserID_FastPathMetadataMismatchFallsThrough(t *testing.T) {
+	// Defence-in-depth: credentials_identifier=alice returns an identity
+	// whose metadata_public.user_id is missing (operator setup divergence).
+	// Find must not silently return that wrong identity — it must fall
+	// through to the slow scan where the real match lives.
+	var scanRequests int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("credentials_identifier") == "alice" {
+			_, _ = w.Write([]byte(`[{"id":"uuid-divergent","metadata_public":{}}]`))
+			return
+		}
+		scanRequests++
+		_, _ = w.Write([]byte(`[{"id":"uuid-canonical","metadata_public":{"user_id":"alice"}}]`))
+	}))
+	defer srv.Close()
+
+	c := &KratosAdminClient{AdminURL: srv.URL}
+	id, err := c.FindIdentityByUserID(context.Background(), "alice")
+	if err != nil {
+		t.Fatalf("Find: %v", err)
+	}
+	if id != "uuid-canonical" {
+		t.Errorf("id = %q, want uuid-canonical (slow scan winner)", id)
+	}
+	if scanRequests == 0 {
+		t.Errorf("scan was not consulted despite metadata mismatch on the fast path")
+	}
+}
+
+func TestKratosAdminClient_FindIdentityByUserID_FastPathNon200FallsThrough(t *testing.T) {
+	// Older Kratos releases reject the credentials_identifier query (or
+	// future versions might deprecate it). A non-200 must be a silent miss
+	// so the slow scan still runs — never a hard error to the caller.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("credentials_identifier") != "" {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(`{"error":"unknown query param"}`))
+			return
+		}
+		_, _ = w.Write([]byte(`[{"id":"uuid-scan","metadata_public":{"user_id":"alice"}}]`))
+	}))
+	defer srv.Close()
+
+	c := &KratosAdminClient{AdminURL: srv.URL}
+	id, err := c.FindIdentityByUserID(context.Background(), "alice")
+	if err != nil {
+		t.Fatalf("Find: %v", err)
+	}
+	if id != "uuid-scan" {
+		t.Errorf("id = %q, want uuid-scan", id)
+	}
+}
+
 func TestKratosAdminClient_FindIdentityByUserID_Paginates(t *testing.T) {
 	// Kratos /admin/identities pagination is 0-based — verified empirically
 	// against v26.2.0 (page=0 returns first batch, page=1 returns second).
@@ -146,6 +233,12 @@ func TestKratosAdminClient_FindIdentityByUserID_Paginates(t *testing.T) {
 	// short-circuited to ErrKratosIdentityNotFound.
 	var pages int
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Force the slow scan: return [] for the credentials_identifier
+		// fast path so the test's pagination math is what gets pinned.
+		if r.URL.Query().Get("credentials_identifier") != "" {
+			_, _ = w.Write([]byte(`[]`))
+			return
+		}
 		pages++
 		// Pin the page size — if the client ever silently lowers per_page,
 		// the pagination cap math (page > 39 → 10k identities) goes off and
@@ -216,7 +309,13 @@ func TestKratosAdminClient_FindIdentityByUserID_StopsAt10kCap(t *testing.T) {
 	// call and either time out or hammer the admin endpoint. Pin the cap
 	// so a future refactor cannot drop it silently.
 	var requests int
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Force the slow scan — return [] to the credentials_identifier
+		// fast path so we only count the paginated requests.
+		if r.URL.Query().Get("credentials_identifier") != "" {
+			_, _ = w.Write([]byte(`[]`))
+			return
+		}
 		requests++
 		// Always return a full page so the < pageSize early-exit never fires.
 		var batch []map[string]any

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
-import { Users, Network, Shield } from "lucide-react";
+import { Users, Network, Shield, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/lib/store";
 import { defaultLandingFor, isSystemAdmin } from "@/lib/auth/role-routing";
@@ -13,6 +13,7 @@ const subTabs = [
   { href: "/admin/settings/users", label: "Users", icon: Users },
   { href: "/admin/settings/organization", label: "Organization", icon: Network },
   { href: "/admin/settings/permissions", label: "Permissions", icon: Shield },
+  { href: "/admin/settings/audit", label: "Audit", icon: FileText },
 ];
 
 export default function AdminSettingsLayout({ children }: { children: React.ReactNode }) {
