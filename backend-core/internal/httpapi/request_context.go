@@ -89,12 +89,16 @@ func clientIPFrom(c *gin.Context) string {
 // already embeds request_id inline ("op=%s request_id=%s err=%v"); the
 // helper is for the handler/middleware log lines that are not gated by an
 // op tag.
+//
+// The request id is rendered through a %s verb (not string-concatenated
+// into the format) so caller-supplied X-Request-ID values containing
+// percent signs cannot turn into stray printf verbs.
 func logRequest(c *gin.Context, format string, args ...any) {
 	rid := requestIDFrom(c)
 	if rid == "" {
 		log.Printf(format, args...)
 		return
 	}
-	log.Printf("request_id="+rid+" "+format, args...)
+	log.Printf("request_id=%s "+format, append([]any{rid}, args...)...)
 }
 
