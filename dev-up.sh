@@ -40,6 +40,20 @@ mask_dsn() {
     echo "$1" | sed -E 's#:[^:@/]+@#:***@#'
 }
 
+idp_dsn() {
+    # infra/idp/{kratos,hydra}.yaml 의 dsn 은 credential 없이 search_path 만
+    # 가지고 있다 (operator/머신 간 평문 credential 공유 회피). Ory 바이너리는
+    # 환경변수 DSN 으로 yaml dsn 을 override 하므로, dev-up 가 spawn 직전에
+    # DB_URL 에 schema 만 덧붙여 DSN 을 주입한다.
+    local dsn=$1
+    local schema=$2
+    if [[ "$dsn" == *\?* ]]; then
+        printf '%s&search_path=%s' "$dsn" "$schema"
+    else
+        printf '%s?search_path=%s' "$dsn" "$schema"
+    fi
+}
+
 is_port_listening() {
     # 외부 관리 인스턴스 존중용 즉시 체크. wait_for_port 와 달리 deadline 없이
     # 한 번만 시도한다. /dev/tcp 는 bash 내장이라 nc 의존성을 피한다.
@@ -108,7 +122,9 @@ fi
 if is_port_listening 4433; then
     echo "  external instance detected on port 4433; using existing kratos (PID 파일 미작성)"
 elif command -v kratos >/dev/null 2>&1; then
+    export DSN="$(idp_dsn "$DB_URL" kratos)"
     run_service "kratos" "kratos serve -c infra/idp/kratos.yaml --dev" "kratos.log" ""
+    unset DSN
     wait_for_port "kratos-public" 4433
     wait_for_port "kratos-admin"  4434
 else
@@ -119,7 +135,9 @@ fi
 if is_port_listening 4444; then
     echo "  external instance detected on port 4444; using existing hydra (PID 파일 미작성)"
 elif command -v hydra >/dev/null 2>&1; then
+    export DSN="$(idp_dsn "$DB_URL" hydra)"
     run_service "hydra" "hydra serve all -c infra/idp/hydra.yaml --dev" "hydra.log" ""
+    unset DSN
     wait_for_port "hydra-public" 4444
     wait_for_port "hydra-admin"  4445
 else
