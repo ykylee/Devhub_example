@@ -1,0 +1,10 @@
+{
+  "project": "DevHub",
+  "branch": "claude/work_260512-f",
+  "status": "review",
+  "last_updated": "2026-05-12T00:30:00Z",
+  "base_branch": "main",
+  "base_head_at_open": "7e56aad",
+  "current_phase": "PR-T3.5 hardening 구현·문서·tsc 검증 완료. commit + push + PR 생성 단계.",
+  "context_summary": "PR-T3.5 (a18e785, PR #62) 후속. globalSetup 이 매 실행 시 Kratos admin PUT 으로 시드 비밀번호를 force-reset 하도록 보강. password-change.spec 의 finally rollback 이 fatal 실패해도 다음 npm run e2e 한 번이면 자동 복구. 가이드 §2.0 / §6 / §8 동시 갱신. 실제 e2e 실행 검증은 사용자 환경에서 PR 코멘트로 첨부 권장."
+}

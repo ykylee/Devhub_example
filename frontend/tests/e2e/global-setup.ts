@@ -7,12 +7,15 @@ import path from "node:path";
 // runs that drive seeding from a separate stage.
 //
 // The seed is split in two:
-//   1. Kratos identities — POST /admin/identities. Idempotent: if the email
-//      already maps to an identity we leave it alone (cleanup steps in the
-//      password-change spec rotate back to the seeded password, so a
-//      surviving identity stays usable). Stale rotations require operator
-//      intervention via `kratos admin identity update`; see
-//      docs/setup/e2e-test-guide.md §6.
+//   1. Kratos identities — POST /admin/identities when missing, PUT
+//      /admin/identities/{id} to force-reset the seed password when the
+//      identity already exists (PR-T3.5 hardening, work_260512-f). The PUT
+//      keeps traits/state/metadata intact and only refreshes
+//      credentials.password — Kratos hashes the plaintext on receive, and
+//      other credential methods (if any) survive because PUT only updates
+//      methods supplied in the payload. This closes the documented
+//      stale-rotation gap: if password-change.spec's finally rollback fails
+//      mid-run, the next `npm run e2e` restores the seed automatically.
 //   2. DevHub users row — runs `go run ./cmd/idp-apply-schemas -sql
 //      infra/idp/sql/002_seed_e2e_users.sql`. The helper is already used by
 //      operators in the manual flow; reusing it keeps a single seeding
@@ -36,17 +39,22 @@ const SEEDS: readonly KratosSeed[] = [
   { user_id: "charlie", email: "charlie@example.com", display_name: "Charlie", password: "ChangeMe-12345!", role: "system_admin" },
 ];
 
-interface KratosIdentitySummary {
+interface KratosIdentityFull {
   id: string;
-  traits?: { email?: string };
+  schema_id: string;
+  state: string;
+  traits?: { email?: string; [k: string]: unknown };
+  metadata_public?: Record<string, unknown> | null;
+  metadata_admin?: Record<string, unknown> | null;
 }
 
-async function listExistingIdentityEmails(): Promise<Set<string>> {
-  // Kratos /admin/identities pagination is 0-based — verified against
-  // v26.2.0 (page=0 returns first batch). The earlier 1-based start
-  // silently returned an empty first page and made the seed dedupe
-  // check think no identities existed, which then 409'd on POST.
-  const out = new Set<string>();
+async function listExistingIdentities(): Promise<Map<string, KratosIdentityFull>> {
+  // Returns email (lowercased) -> identity mapping. Kratos /admin/identities
+  // pagination is 0-based — verified against v26.2.0 (page=0 returns first
+  // batch). The earlier 1-based start silently returned an empty first page
+  // and made the seed dedupe check think no identities existed, which then
+  // 409'd on POST.
+  const out = new Map<string, KratosIdentityFull>();
   let page = 0;
   const perPage = 250;
   while (page < 40) {
@@ -55,10 +63,10 @@ async function listExistingIdentityEmails(): Promise<Set<string>> {
     if (!resp.ok) {
       throw new Error(`Kratos admin list identities ${resp.status}: ${await resp.text()}`);
     }
-    const batch = (await resp.json()) as KratosIdentitySummary[];
+    const batch = (await resp.json()) as KratosIdentityFull[];
     for (const ident of batch) {
       const email = ident.traits?.email?.toLowerCase();
-      if (email) out.add(email);
+      if (email && ident.id) out.set(email, ident);
     }
     if (batch.length < perPage) break;
     page += 1;
@@ -84,11 +92,38 @@ async function createKratosIdentity(seed: KratosSeed): Promise<void> {
   }
 }
 
+async function resetKratosPassword(identity: KratosIdentityFull, seed: KratosSeed): Promise<void> {
+  // PUT /admin/identities/{id} replaces the identity. We echo schema_id /
+  // state / traits / metadata from the list response so unmanaged fields
+  // (e.g. metadata_admin populated by another process) survive, and supply
+  // credentials.password as plaintext — Kratos hashes on receive. Kratos
+  // only updates credential methods present in the payload, so non-password
+  // methods (if ever added) are not wiped.
+  const payload: Record<string, unknown> = {
+    schema_id: identity.schema_id,
+    state: identity.state,
+    traits: identity.traits ?? {},
+    credentials: { password: { config: { password: seed.password } } },
+  };
+  if (identity.metadata_public != null) payload.metadata_public = identity.metadata_public;
+  if (identity.metadata_admin != null) payload.metadata_admin = identity.metadata_admin;
+  const resp = await fetch(`${KRATOS_ADMIN_URL}/admin/identities/${identity.id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!resp.ok) {
+    throw new Error(`Kratos admin reset password ${seed.email} → ${resp.status}: ${await resp.text()}`);
+  }
+}
+
 async function seedKratos(): Promise<void> {
-  const existing = await listExistingIdentityEmails();
+  const existing = await listExistingIdentities();
   for (const seed of SEEDS) {
-    if (existing.has(seed.email.toLowerCase())) {
-      console.log(`[e2e seed] kratos identity ${seed.email} already present, skipping`);
+    const identity = existing.get(seed.email.toLowerCase());
+    if (identity) {
+      await resetKratosPassword(identity, seed);
+      console.log(`[e2e seed] kratos identity ${seed.email} present → password force-reset to seed value`);
       continue;
     }
     await createKratosIdentity(seed);
