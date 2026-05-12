@@ -86,6 +86,7 @@
 ### M3: 사용자 및 조직 관리 (User & Org Management)
 - **사용자 관리**: 유저 CRUD UI 고도화 및 권한 할당 로직 정교화.
 - **조직 관리**: 조직도(Hierarchy) 편집 및 부서 CRUD UI 개선.
+- **CI/CD**: GitHub Actions 기반 Unit/E2E 테스트 자동화 파이프라인 구축.
 - **Sign Up (셀프 가입)**: 시스템 인사 DB 연동을 통한 사용자 셀프 등록 기능.
     - 대상: 이름, 사내 ID, 사번, 부서명이 인사 DB에 존재하는 인원.
 - **인사 DB 스키마 (초기)**: `name`, `system_id`, `employee_id`, `department_name`.
