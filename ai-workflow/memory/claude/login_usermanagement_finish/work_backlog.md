@@ -4,16 +4,19 @@
 - 범위: 잔여 UX hygiene 3건 + M2 follow-up 1건.
 - 대상 독자: sprint 담당자, 후속 에이전트.
 - 최종 수정일: 2026-05-12
-- 상태: OPEN. sprint_plan + 로드맵 3종 정합 완료. 결정 3건 후 진입.
-- 관련 문서: [세션 인계](./session_handoff.md), [sprint plan](./sprint_plan.md), [상태](./state.json)
+- 상태: OPEN. PR #85 에 4 commit 누적 (PR-DOCS + PR-UX + PR-M2-AUDIT + e2e 30 TC). 실 e2e 실행만 사용자 환경 의존.
+- 관련 문서: [세션 인계](./session_handoff.md), [sprint plan](./sprint_plan.md), [test cases](./test_cases.md), [상태](./state.json)
 
 ## 1. 진입 우선순위
 
-| 순서 | PR | 의존 | 상태 | 비고 |
-| --- | --- | --- | --- | --- |
-| 1 | PR-DOCS (로드맵 3종 + sprint_plan + 메모리) | 없음 | 변경 완료, 머지 대기 | 본 sprint 진입의 정합 기준 확정. |
-| 2 | PR-UX (묶음) | PR-DOCS 무관 | 진입 대기 | UX-1/2/3 단일 PR 로 확정. |
-| 3 | PR-M2-AUDIT | PR-UX 머지 무관 | 진입 대기 | shared secret + 최소 password hook 만 확정. |
+| 순서 | PR commit | 상태 | 비고 |
+| --- | --- | --- | --- |
+| 1 | `a9e2e3a` PR-DOCS | DONE (PR #85) | 로드맵 3종 + sprint memory 4 파일. |
+| 2 | `0e27407` PR-UX (묶음) | DONE (PR #85) | users/account/Header 3 파일. npm run build PASS. |
+| 3 | `ead9f73` PR-M2-AUDIT | DONE (PR #85) | webhook handler + 7 unit test PASS + kratos.yaml + jsonnet + deploy guide. |
+| 4 | `712b23e` e2e 30 TC | DONE (PR #85) | 8 신규 + 2 확장 spec, 35 tests discovery + tsc clean. 실 실행은 사용자 환경. |
+| 5 | (예정) 리뷰 코멘트 보강 | 진입 중 | gh pr comment 작성 후 필요 시 보강 commit. |
+| 6 | (예정) sprint close | 대기 | 실 e2e PASS 후 state/handoff 종료 표기 + 후속 인계 6건 commit. |
 
 ## 2. PR 정의
 

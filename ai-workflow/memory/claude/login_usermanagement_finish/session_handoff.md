@@ -5,8 +5,8 @@
 - 대상 독자: 후속 에이전트, 프로젝트 리드
 - 브랜치: `claude/login_usermanagement_finish` (분기 `main` @ `29a90bd`)
 - 최종 수정일: 2026-05-12
-- 상태: OPEN. sprint_plan + 로드맵 3종 정합 완료. 결정 3건 확정. PR-DOCS 진입 대기.
-- 관련 문서: [브랜치 상태](./state.json), [브랜치 백로그](./work_backlog.md), [sprint plan](./sprint_plan.md), [main 상태](../../state.json), [main 인계](../../session_handoff.md), [통합 로드맵](../../../../docs/development_roadmap.md), [프론트 로드맵](../../../../docs/frontend_development_roadmap.md), [백엔드 로드맵](../../backend_development_roadmap.md)
+- 상태: OPEN. PR #85 에 4 commit 누적 (PR-DOCS + PR-UX + PR-M2-AUDIT + e2e 30 TC). 35 tests discovery PASS, tsc clean. 실 e2e 실행은 사용자 환경 의존. 리뷰어 모드 1차 검토 진입.
+- 관련 문서: [브랜치 상태](./state.json), [브랜치 백로그](./work_backlog.md), [sprint plan](./sprint_plan.md), [test cases](./test_cases.md), [main 상태](../../state.json), [main 인계](../../session_handoff.md), [통합 로드맵](../../../../docs/development_roadmap.md), [프론트 로드맵](../../../../docs/frontend_development_roadmap.md), [백엔드 로드맵](../../backend_development_roadmap.md)
 
 ## 0. 분기 시점
 
@@ -41,12 +41,21 @@
 2. **Kratos webhook 인증**: **shared secret** `Authorization: Bearer $DEVHUB_KRATOS_WEBHOOK_TOKEN`. env 누락/불일치 시 401.
 3. **Kratos hook 범위**: 최소 **`settings/password/after`** 만. `login/after`, `registration/after` 는 후속 sprint.
 
-## 4. 즉시 다음 행동
+## 4. PR #85 누적 commit 흐름
 
-1. **PR-DOCS** — 방금 갱신한 로드맵 3종 + sprint_plan + state/handoff/backlog 의 메모리 변경분을 묶어 머지.
-2. **PR-UX 묶음** — `users/page.tsx` + `account/page.tsx` + `Header.tsx` 한 PR.
-3. **PR-M2-AUDIT** — Kratos password webhook handler + kratos.yaml hook 등록 + deploy guide 갱신.
-4. **sprint close** — state/handoff/backlog 종료 표기 + 후속 인계.
+| commit | 내용 | 머지 게이트 |
+| --- | --- | --- |
+| `a9e2e3a` | PR-DOCS — 로드맵 3종 + sprint memory 4 파일 | 1차 완성 (4) 만족 |
+| `0e27407` | PR-UX (UX1+2+3) — users/account/Header 3 파일 | 1차 완성 (1) 만족 |
+| `ead9f73` | PR-M2-AUDIT — Kratos webhook handler + handler test 7 + kratos.yaml hook + jsonnet + deploy guide | 1차 완성 (2) 만족 |
+| `712b23e` | e2e 30 TC — 8 신규 + 2 기존 확장 + 1 삭제 + fixtures 확장 | 1차 완성 (5) 검증 준비 |
+
+## 5. 즉시 다음 행동
+
+1. 리뷰어 모드 1차 검토 + gh pr comment 작성.
+2. 사용자 환경에서 `cd frontend && npm run e2e` 실행 (전제: 5-process stack + `DEVHUB_KRATOS_WEBHOOK_TOKEN` 양쪽 export + Kratos 재기동).
+3. fail 케이스 디버깅.
+4. sprint close — state/handoff/backlog 종료 표기 + 후속 인계 6 항목 commit.
 
 ## 5. 변경 이력
 
@@ -54,3 +63,4 @@
 | --- | --- |
 | 2026-05-12 | 브랜치 분기 + state/handoff/backlog 초기화. PR-UX1/2/3 + PR-M2-AUDIT 후보 정의. |
 | 2026-05-12 | sprint_plan.md 신설 (1차 완성 정의/게이트/PR 단위/검증/위험 명시). 통합/프론트/백엔드 로드맵 3종 정합 갱신. 결정 항목 3개로 정리. PR-DOCS 단위 추가. |
+| 2026-05-12 | PR-DOCS / PR-UX / PR-M2-AUDIT / e2e 30 TC 차례로 PR #85 에 4 commit 누적. 35 tests discovery PASS, tsc clean. test_cases.md 26 TC → 30 TC (사용자 journey 검토에서 4 추가). Kratos revoke_active_sessions / must_change_password 후속 인계. |
