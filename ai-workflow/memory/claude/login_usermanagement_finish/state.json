@@ -1,0 +1,71 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "claude/login_usermanagement_finish",
+  "status": "OPEN. sprint_plan + 로드맵 3종 정합 완료. 결정 3건 확정 (PR-UX 묶음 / shared secret / 최소 password hook). PR-DOCS 진입 대기.",
+  "updated_at": "2026-05-12T06:20:00Z",
+  "branched_from": {
+    "branch": "main",
+    "head_commit": "29a90bd",
+    "head_summary": "Merge pull request #83 (docs(memory): close work_260512-j slot)"
+  },
+  "goal": "로그인 / 로그아웃 / 사용자 관리 1차 완성. 잔존 UX 미구현 결함과 audit 정합 follow-up 을 정리해서 운영 진입 직전 게이트를 통과시킨다.",
+  "scope_in": [
+    "PR-UX1: /admin/settings/users SearchInput 실제 클라이언트 필터링 (login/email/role 부분일치, 대소문자 무시) + Filter 버튼 placeholder 노출 표시 변경",
+    "PR-UX2: /account current_password 라벨 — Kratos privileged session 정책 안내 텍스트 추가 (왜 입력이 필요한가, 최근 로그인 직후엔 비울 수 있는가, REAUTH_REQUIRED 흐름 사전 설명)",
+    "PR-UX3: Header Switch View 한계 — actor.role 우회 못함 명시 (서버 RBAC 가 권한 기준, 메뉴 시뮬레이션 용도임을 dropdown 헤더에 1줄 안내)",
+    "PR-M2-AUDIT: Kratos self-service webhook 수신 → DevHub audit_logs 통합 (최소 settings/password/after)",
+    "PR-DOCS: development_roadmap + frontend_development_roadmap + backend_development_roadmap 정합 갱신"
+  ],
+  "scope_out": [
+    "Hydra JWKS / introspection verifier 실구현 (현행 introspection 동작 안정, 별도 보안 sprint)",
+    "PR-T5 CI 도입 (사용자가 보류 결정, 2026-05-12)",
+    "M4 진입 (WebSocket UI, AI Gardener gRPC, Gitea Hourly Pull)"
+  ],
+  "candidates": {
+    "PR-UX1": {
+      "size": "S",
+      "files": ["frontend/app/(dashboard)/admin/settings/users/page.tsx"],
+      "verify": "frontend npm run build + 수동 검증 (검색어 입력 시 MemberTable 행 즉시 필터링)"
+    },
+    "PR-UX2": {
+      "size": "S",
+      "files": ["frontend/app/(dashboard)/account/page.tsx"],
+      "verify": "frontend npm run build + 수동 검증 (라벨 옆 안내 텍스트 / REAUTH 메시지 명료)"
+    },
+    "PR-UX3": {
+      "size": "S",
+      "files": ["frontend/components/layout/Header.tsx"],
+      "verify": "frontend npm run build + 수동 검증 (Switch View 드롭다운 헤더에 안내 1줄)"
+    },
+    "PR-M2-AUDIT": {
+      "size": "M",
+      "files": [
+        "backend-core/internal/httpapi/kratos_webhook_handler.go (new)",
+        "backend-core/internal/httpapi/router.go (route 추가)",
+        "backend-core/internal/audit/* (필요 시 source_type=kratos enum)",
+        "infra/idp/kratos.yaml (webhook hook 등록)",
+        "docs/setup/test-server-deployment.md (webhook 구성 안내)"
+      ],
+      "verify": "backend-core go test ./... + 수동 검증 (password 변경 → audit_logs 1행)"
+    }
+  },
+  "next_actions": {
+    "immediate": "PR-DOCS (방금 갱신한 로드맵 3종 + sprint_plan) → PR-UX 묶음 → PR-M2-AUDIT → sprint close.",
+    "decisions_made_2026_05_12": [
+      "Q1: PR-UX1/2/3 은 단일 묶음 PR 로 진입",
+      "Q2: PR-M2-AUDIT webhook 인증은 shared secret (Authorization: Bearer $DEVHUB_KRATOS_WEBHOOK_TOKEN)",
+      "Q3: PR-M2-AUDIT hook 범위는 최소 settings/password/after 만 (나머지는 후속 sprint)"
+    ]
+  },
+  "session_pointers": {
+    "session_handoff_path": "ai-workflow/memory/claude/login_usermanagement_finish/session_handoff.md",
+    "work_backlog_path": "ai-workflow/memory/claude/login_usermanagement_finish/work_backlog.md",
+    "sprint_plan_path": "ai-workflow/memory/claude/login_usermanagement_finish/sprint_plan.md",
+    "integrated_roadmap": "docs/development_roadmap.md (§3 M2 갱신 2026-05-12)",
+    "frontend_roadmap": "docs/frontend_development_roadmap.md (§2 Phase 6/6.1 done 갱신 + §7 sprint 잔여 명시)",
+    "backend_roadmap": "ai-workflow/memory/backend_development_roadmap.md (§5 P0 M2 + §6 작업 큐 갱신)",
+    "main_state_snapshot": "ai-workflow/memory/state.json (HEAD 29a90bd)",
+    "main_session_handoff": "ai-workflow/memory/session_handoff.md (2026-05-12 EOD)"
+  }
+}

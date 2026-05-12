@@ -4,7 +4,7 @@
 - 범위: 머지된 PR #12 이후 시점부터 다음 단계 작업의 마일스톤·우선순위·의존 관계. 트랙별 *세부* 작업은 각 트랙의 세부 로드맵에서 관리.
 - 대상 독자: 프로젝트 리드, 백엔드/프론트엔드 개발자, 운영 담당자, 후속 작업자
 - 상태: draft (2026-05-08 신규 작성)
-- 최종 수정일: 2026-05-10 (역할별 진입 우선순위 UX 기준 반영)
+- 최종 수정일: 2026-05-12 (M2 1차 완성 sprint 진입 반영)
 - 관련 문서:
   - 백엔드 세부 로드맵: [`ai-workflow/memory/backend_development_roadmap.md`](../ai-workflow/memory/backend_development_roadmap.md)
   - 프론트엔드 세부 로드맵: [`./frontend_development_roadmap.md`](./frontend_development_roadmap.md)
@@ -47,16 +47,40 @@
 
 ## 3. 기능 단위별 마일스톤 (Milestones by Functional Units)
 
-### M2 — 인증 및 계정 기반 완성 (진행 중)
-- **로그인 페이지 (Login Page)**:
-  - ✅ **B**: `/api/v1/auth/login` Kratos/Hydra 프록시 핸들러 구현.
-  - ✅ **F**: `/auth/login` 패스워드 폼 및 리다이렉트 처리.
-  - ⏳ **F**: `/auth/callback` 라우트 및 토큰 교환/저장 로직 (PR-LOGIN-3).
+### M2 — 인증 및 계정 기반 완성 (핵심 done, 1차 완성 sprint 진행 중)
+
+핵심 흐름의 골격은 모두 머지됐다. 본 마일스톤은 운영 진입 직전에 잔여 UX placeholder 와 audit 정합 누락을 닫는 **1차 완성 sprint** (`claude/login_usermanagement_finish`) 로 종료한다.
+
+- **로그인 / 로그아웃 흐름**:
+  - ✅ **B**: `/api/v1/auth/{login,logout,token,signup,consent}` Kratos/Hydra 프록시.
+  - ✅ **F**: `/auth/login` 패스워드 폼, `/auth/callback` 토큰 교환 + 저장, Header Sign Out → Hydra `/oauth2/sessions/logout` (PR-LOGIN-1~4, PR #33·#34·#45·#51).
 - **사용자 관리 기능 (User Management)**:
-  - ✅ **B**: `/api/v1/users` CRUD 및 조직원 연동.
-  - ⏳ **F**: `/account` 개인 프로필 관리 및 비밀번호 변경 UI.
+  - ✅ **B**: `/api/v1/users` CRUD + 조직원 연동 (Phase 12).
+  - ✅ **B**: 시스템 관리자용 `/api/v1/accounts` 발급/잠금/재설정/회수 4 endpoint (PR #54).
+  - ✅ **F**: `/account` 개인 비밀번호 변경 (PR #50).
+  - ✅ **F**: `/admin/settings` shell + users/organization/permissions sub-routes (PR #52·#53).
 - **조직 관리 기능 (Org Management)**:
-  - ✅ **B·F**: 부서 계층 구조 및 멤버 배정 기능 연동 완료 (Phase 12).
+  - ✅ **B·F**: 부서 계층 구조, 멤버 배정, 드래그/리더 변경 (Phase 12 + PR #55).
+- **RBAC enforcement**:
+  - ✅ **B·F**: per-resource 4-boolean matrix + `requirePermission` enforcement (M1 RBAC track, PR #20·21·22·23·27·29·30·31).
+
+#### 1차 완성 sprint 잔여 (`claude/login_usermanagement_finish`)
+
+| ID | 트랙 | 내용 |
+| --- | --- | --- |
+| PR-UX1 | F | `/admin/settings/users` SearchInput 실 필터링 (placeholder 제거) |
+| PR-UX2 | F | `/account` Kratos privileged session 안내 (current_password 입력 이유 + REAUTH 흐름) |
+| PR-UX3 | F | Header Switch View 한계 안내 (서버 RBAC 우회 못함 명시) |
+| PR-M2-AUDIT | B·A | Kratos self-service webhook → DevHub `audit_logs` (password 변경 우선) |
+| PR-DOCS | X | 로드맵 3종 + sprint_plan 정합 (본 갱신 포함) |
+
+세부는 [sprint_plan](../ai-workflow/memory/claude/login_usermanagement_finish/sprint_plan.md) 참조.
+
+#### M2 명시적 out-of-scope (별도 sprint)
+
+- Hydra JWKS / introspection verifier 실구현 → 보안 강화 sprint.
+- Sign Up (셀프 가입, 인사 DB 연동) → M3.
+- MFA / Two-Factor → M4.
 
 ### M3 — 실시간 대시보드 및 AI 통합 (예정)
 ### M3: 사용자 및 조직 관리 (User & Org Management)
@@ -163,6 +187,7 @@
 | --- | --- | --- |
 | 2026-05-08 | 초판 작성. M0~M4 정의, 트랙 매핑, 충돌 해소 표 정리. | PR #12, #13 머지 직후. claude/merge_roadmap 브랜치. |
 | 2026-05-08 | §6 충돌 해소 표에 RBAC 모델/enforcement 결정 2행 추가. | M1 PR-G1, ADR-0002 채택 반영. claude/m1-pr-g1-rbac-contract 브랜치. |
+| 2026-05-12 | §3 M2 갱신 — 핵심 흐름(로그인/로그아웃/계정/RBAC) done 표기 + 1차 완성 sprint 잔여 5 PR 명시 + out-of-scope 분리. | claude/login_usermanagement_finish 진입. |
 
 ---
 
