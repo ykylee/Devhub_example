@@ -1,0 +1,10 @@
+{
+  "project": "DevHub",
+  "branch": "claude/work_260512-c",
+  "status": "in_progress",
+  "last_updated": "2026-05-12T09:30:00Z",
+  "base_branch": "gemini/frontend_260510",
+  "base_head_at_close": "post-#70 squash merge (e720378 — Ory DSN env + healthz docs)",
+  "current_phase": "defect #2 backend half fixed, frontend half documented",
+  "context_summary": "결함 #2 (PID grandchild drift) 의 backend 부분 픽스: dev-up.{ps1,sh} 가 `go run .` 대신 `go build -o dev-bin/backend-core(.exe)` 후 그 바이너리 실행. backend.pid == 8080 owner 일치 검증. frontend 부분은 npm.cmd 컨벤션 유지 — port-sweep 안전망이 정확히 이 케이스용으로 documented close. Start-BackgroundService 헬퍼는 빈 ArgumentList 거부 문제를 conditional 로 픽스. dev-bin/ 디렉터리는 .gitignore 추가. Scenario C 검증 통과: 5/5 ready, backend.pid match, dev-down 시 8080 sweep 메시지 없음 (PID-kill 만으로 종료), frontend 만 3000 sweep 으로 grandchild 정리 (예상된 documented 동작)."
+}

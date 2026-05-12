@@ -154,7 +154,16 @@ export DEVHUB_HYDRA_ADMIN_URL="${DEVHUB_HYDRA_ADMIN_URL:-http://localhost:4445}"
 if is_port_listening 8080; then
     echo "  external instance detected on port 8080; using existing backend (PID 파일 미작성)"
 else
-    run_service "backend" "go run ." "backend.log" "backend-core"
+    # `go run` 은 grandchild 프로세스를 띄워 실제 listener 가 launcher PID 와
+    # 일치하지 않는다. 빌드 산출물을 직접 실행하면 .pids/backend.pid 가 8080
+    # 의 owner 와 같아져 dev-down 의 PID-kill 이 실제 서버를 종료한다.
+    backend_bin="$REPO_ROOT/dev-bin/backend-core"
+    mkdir -p "$(dirname "$backend_bin")"
+    echo "Compiling backend..."
+    # backend-core 는 자체 go.mod 를 가진 모듈이라 빌드는 그 디렉터리 안에서
+    # 실행해야 한다. 산출물은 위 dev-bin/ 으로 다시 돌려 둔다.
+    ( cd "$REPO_ROOT/backend-core" && go build -o "$backend_bin" . )
+    run_service "backend" "$backend_bin" "backend.log" "backend-core"
     wait_for_port "backend" 8080
 fi
 
