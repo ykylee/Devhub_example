@@ -61,28 +61,32 @@ sweep_port() {
     fi
 }
 
+ports_for_service() {
+    # bash 3.2 (macOS 기본) 가 associative array 를 지원하지 않아 case 로 매핑.
+    case "$1" in
+        frontend) echo "3000" ;;
+        backend)  echo "8080" ;;
+        hydra)    echo "4444 4445" ;;
+        kratos)   echo "4433 4434" ;;
+    esac
+}
+
 echo -e "${RED}DevHub 로컬 서비스 종료...${NC}"
 
 # Reverse start order: frontend -> backend -> hydra -> kratos. dev-up 가 실제로
 # spawn 한 서비스(PID 파일 존재) 의 포트만 sweep 대상에 누적해, 외부에서 직접
 # 띄운 Kratos/Hydra/backend/frontend 인스턴스는 건드리지 않는다.
-declare -a sweep_ports=()
-
-declare -a services=("frontend" "backend" "hydra" "kratos")
-declare -A service_ports=(
-    [frontend]="3000"
-    [backend]="8080"
-    [hydra]="4444 4445"
-    [kratos]="4433 4434"
-)
+sweep_ports=()
+services=("frontend" "backend" "hydra" "kratos")
 
 for name in "${services[@]}"; do
+    ports="$(ports_for_service "$name")"
     if stop_service "$name"; then
-        for p in ${service_ports[$name]}; do
+        for p in $ports; do
             sweep_ports+=("$p")
         done
     else
-        echo "  $name not started by this script; leaving any listener on port(s) ${service_ports[$name]} intact"
+        echo "  $name not started by this script; leaving any listener on port(s) $ports intact"
     fi
 done
 
