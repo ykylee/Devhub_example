@@ -98,16 +98,34 @@ func (c *KratosAdminClient) CreateIdentity(ctx context.Context, email, name, use
 }
 
 // FindIdentityByUserID locates a Kratos identity whose metadata_public.user_id
-// equals the supplied DevHub user_id. PoC implementation: page through
-// /admin/identities and match in-process. Acceptable for the test server's
-// small identity count; production should add a credentials_identifier query
-// or a DevHub users.kratos_identity_id column for O(1) lookup.
+// equals the supplied DevHub user_id.
+//
+// Fast path: Kratos /admin/identities supports a `credentials_identifier`
+// query parameter that filters on the password method's identifier. By
+// convention (seedLocalAdmin + globalSetup), DevHub identities populate
+// `traits.system_id == metadata_public.user_id`, so a single query with
+// credentials_identifier=<user_id> returns the right identity in O(1). We
+// still validate metadata_public.user_id on the result so a divergent
+// operator setup (system_id != user_id) falls back to the scan instead of
+// silently returning a wrong identity.
+//
+// Slow path: page through /admin/identities and match metadata_public.user_id
+// in-process. Used when the fast path returns nothing or the metadata does
+// not align — e.g., identities created before this code path was wired.
+// Capped at 40 pages × 250 = 10k identities to avoid hammering Kratos when
+// metadata_public.user_id was never populated.
 func (c *KratosAdminClient) FindIdentityByUserID(ctx context.Context, userID string) (string, error) {
 	if strings.TrimSpace(c.AdminURL) == "" {
 		return "", fmt.Errorf("KratosAdminClient.AdminURL is not configured")
 	}
 	if strings.TrimSpace(userID) == "" {
 		return "", errors.New("user_id is required")
+	}
+
+	if id, ok, err := c.findByCredentialsIdentifier(ctx, userID); err != nil {
+		return "", err
+	} else if ok {
+		return id, nil
 	}
 
 	// Kratos /admin/identities uses 0-based pagination (verified against
@@ -164,6 +182,55 @@ func (c *KratosAdminClient) FindIdentityByUserID(ctx context.Context, userID str
 			return "", ErrKratosIdentityNotFound
 		}
 	}
+}
+
+// findByCredentialsIdentifier attempts the O(1) Kratos query and validates
+// that the returned identity still carries metadata_public.user_id matching
+// the DevHub user_id. Returns (id, true, nil) on a confirmed match,
+// (_, false, nil) for any miss (empty result / metadata mismatch / unexpected
+// shape) so the caller falls through to the slow scan, and (_, false, err)
+// only for network / HTTP-level failures the caller must surface.
+func (c *KratosAdminClient) findByCredentialsIdentifier(ctx context.Context, userID string) (string, bool, error) {
+	params := url.Values{}
+	params.Set("credentials_identifier", userID)
+	endpoint := strings.TrimRight(c.AdminURL, "/") + "/admin/identities?" + params.Encode()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return "", false, fmt.Errorf("build kratos credentials_identifier query: %w", err)
+	}
+	req.Header.Set("Accept", "application/json")
+	resp, err := c.client().Do(req)
+	if err != nil {
+		return "", false, fmt.Errorf("call kratos credentials_identifier query: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", false, fmt.Errorf("read kratos credentials_identifier query: %w", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		// Older Kratos releases reject the parameter; treat any non-200 as a
+		// silent miss so the slow scan still runs.
+		return "", false, nil
+	}
+
+	var batch []struct {
+		ID             string `json:"id"`
+		MetadataPublic struct {
+			UserID string `json:"user_id"`
+		} `json:"metadata_public"`
+	}
+	if err := json.Unmarshal(body, &batch); err != nil {
+		return "", false, nil
+	}
+	for _, ident := range batch {
+		if ident.MetadataPublic.UserID == userID {
+			return ident.ID, true, nil
+		}
+	}
+	return "", false, nil
 }
 
 // getIdentityRaw fetches the identity as a generic map so we can mutate one
