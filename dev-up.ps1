@@ -104,6 +104,20 @@ function Mask-Dsn {
     return ($Dsn -replace ':[^:@/]+@', ':***@')
 }
 
+function Get-IdpDsn {
+    # Derive the Kratos/Hydra DSN from $DB_URL by appending search_path. Both
+    # YAML configs (infra/idp/{kratos,hydra}.yaml) intentionally omit
+    # credentials so the same file works across operators; injecting DSN via
+    # env (Ory binaries respect $DSN as an override of the yaml dsn field)
+    # keeps credentials in the operator's shell rather than the repo.
+    param(
+        [Parameter(Mandatory)][string]$Dsn,
+        [Parameter(Mandatory)][string]$Schema
+    )
+    $separator = if ($Dsn -match '\?') { '&' } else { '?' }
+    return "$Dsn${separator}search_path=$Schema"
+}
+
 # Resolve DB_URL once so migrate-up + backend both see the same value.
 if (-not $env:DB_URL) {
     $env:DB_URL = 'postgres://postgres:postgres@localhost:5432/devhub?sslmode=disable'
@@ -128,6 +142,7 @@ if ($env:DEVHUB_SKIP_MIGRATE -eq '1') {
 if (Test-PortListening -Port 4433) {
     Write-Host '  external instance detected on port 4433; using existing kratos (PID file not written)'
 } elseif (Get-Command kratos -ErrorAction SilentlyContinue) {
+    $env:DSN = Get-IdpDsn -Dsn $DbUrl -Schema 'kratos'
     Start-BackgroundService -Name 'kratos' -Executable 'kratos' `
         -Arguments @('serve', '-c', 'infra/idp/kratos.yaml', '--dev') `
         -LogFile 'kratos.log'
@@ -141,6 +156,7 @@ if (Test-PortListening -Port 4433) {
 if (Test-PortListening -Port 4444) {
     Write-Host '  external instance detected on port 4444; using existing hydra (PID file not written)'
 } elseif (Get-Command hydra -ErrorAction SilentlyContinue) {
+    $env:DSN = Get-IdpDsn -Dsn $DbUrl -Schema 'hydra'
     Start-BackgroundService -Name 'hydra' -Executable 'hydra' `
         -Arguments @('serve', 'all', '-c', 'infra/idp/hydra.yaml', '--dev') `
         -LogFile 'hydra.log'
@@ -149,6 +165,7 @@ if (Test-PortListening -Port 4444) {
 } else {
     Write-Warning 'hydra not on PATH; skipping. OIDC code flow will not complete.'
 }
+Remove-Item Env:DSN -ErrorAction SilentlyContinue
 
 # 4. backend-core
 $env:AUTH_DEV_FALLBACK          = 'true'
