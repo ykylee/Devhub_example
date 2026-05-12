@@ -38,8 +38,9 @@
 ## 4. 테스트 및 검증 (Test & Verification)
 *프로젝트의 품질 보증을 위한 테스트 케이스 및 가이드를 다룹니다.*
 
-- **[M2 인증 및 사용자 관리 테스트 케이스](./tests/test_cases_m2_auth_user.md)**: 로그인/로그아웃, 사용자 관리, 권한 matrix 검증 TC.
-- **[M3 조직 관리 테스트 케이스](./tests/test_cases_m3_org.md)**: 조직 단위 CRUD, 계층 구조 및 멤버 관리 검증 TC.
+- **[M2 인증 및 사용자 관리 테스트 케이스](./tests/test_cases_m2_auth.md)**: 로그인/로그아웃, 사용자 관리, 권한 matrix 검증 TC.
+- **[M3 조직 관리 테스트 케이스](./tests/test_cases_m3_organization.md)**: 조직 단위 CRUD, 계층 구조 및 멤버 관리 검증 TC.
+- **[E2E 테스트 전략 및 지침](./tests/e2e_testing_strategy.md)**: 지속 가능한 E2E 테스트 방법론 및 자동화 가이드.
 - **[E2E 테스트 실행 가이드](./setup/e2e-test-guide.md)**: Playwright 기반 E2E 테스트 환경 구성 및 실행 방법.
 
 ---
