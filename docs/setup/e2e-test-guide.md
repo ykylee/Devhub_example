@@ -61,10 +61,12 @@ npm run e2e
 
 자동 시드는 다음 동작을 한다:
 
-1. Kratos admin `/admin/identities` 페이지 스캔으로 email 기준 존재 여부 확인 → 누락된 identity 만 POST
-2. backend-core 의 `cmd/idp-apply-schemas -sql infra/idp/sql/002_seed_e2e_users.sql` 호출 (ON CONFLICT DO NOTHING)
+1. Kratos admin `/admin/identities` 페이지 스캔으로 email 기준 존재 여부 확인
+   - 누락된 identity → POST `/admin/identities`
+   - 이미 있는 identity → PUT `/admin/identities/{id}` 로 비밀번호를 시드 값으로 **force-reset** (traits / state / metadata 는 그대로 echo, password method 만 새 plaintext 로 갱신 → Kratos 가 hash). password-change.spec 의 finally rollback 이 fatal 실패 시에도 다음 `npm run e2e` 가 자동 원복 (PR-T3.5 hardening, work_260512-f).
+2. backend-core 의 `cmd/idp-apply-schemas -sql infra/idp/sql/002_seed_e2e_users.sql` 호출 (ON CONFLICT DO NOTHING).
 
-따라서 두 번째 실행부터는 사실상 no-op. 이미 비밀번호가 회전된 상태 (예: password-change 시나리오 중단) 라면 자동 시드는 **변경하지 않는다** — §2.2 의 수동 절차로 원복 후 재실행.
+두 번째 실행부터는 DB 측은 no-op, Kratos 측은 동일 비밀번호 재적용이라 사실상 no-op (네트워크 1 RTT 만 발생). 즉 시드 비밀번호로의 회복은 어떤 중단 상태에서도 자동.
 
 ### 2.1 수동 시드 (fallback) — Kratos identity (3건)
 
@@ -160,9 +162,9 @@ PLAYWRIGHT_BASE_URL=http://10.0.0.5:3000 npm run e2e
 | 증상 | 원인 | 조치 |
 | --- | --- | --- |
 | `loginAs` 가 `/auth/login?login_challenge=...` 까지 못 감 | Hydra `urls.login` 이 frontend host 와 다름 | `infra/idp/hydra.yaml` 의 `urls.login` 정정 후 Hydra 재기동 |
-| 로그인 폼에서 401 (invalid credentials) | Kratos identity 시드 password 가 일치 안 함 | §2 의 시드 비밀번호 재확인. password 변경 시나리오 중단 시 cleanup 실패 가능 — `kratos admin identity` 로 password 재설정 |
+| 로그인 폼에서 401 (invalid credentials) | Kratos identity 시드 password 가 일치 안 함 | `npm run e2e` 를 한 번 더 실행. PR-T3.5 hardening 이후 globalSetup 이 PUT 으로 시드 비밀번호를 force-reset 하므로 stale rotation 자동 복구. 그래도 실패하면 §2 의 시드 비밀번호 (`ChangeMe-12345!`) 와 시드 SEEDS 배열을 비교 |
 | `/account` 비밀번호 변경 시 "Re-authentication required" | Kratos `privileged_session_max_age=15m` 초과 | PR-L4 backend proxy 가 매 호출마다 fresh api-mode 로그인을 돌려 privileged window 를 갱신하므로 정상 시나리오에서는 발생하지 않음. 그래도 노출되면 backend 의 `DEVHUB_KRATOS_PUBLIC_URL` env 누락/오설정 가능성 |
-| `/account` 비밀번호 변경 시 "current password is incorrect" | 입력한 current_password 가 Kratos 시드와 불일치 | §2 의 시드 비밀번호 확인 (`ChangeMe-12345!`). password-change 시나리오가 중간에 실패해 회전이 진행된 상태라면 `kratos admin identity` 로 패스워드 원복 |
+| `/account` 비밀번호 변경 시 "current password is incorrect" | 입력한 current_password 가 Kratos 시드와 불일치 | §2 의 시드 비밀번호 확인 (`ChangeMe-12345!`). password-change 시나리오가 중간에 실패해 회전이 남았다면 `npm run e2e` 재실행으로 globalSetup 이 자동 force-reset (PR-T3.5 hardening) |
 | `Sign Out` 후에도 `/login` 이 silent re-auth | Hydra session 종료 안 됨. id_token_hint 누락 가능성 | tokenStore 의 id_token 저장 확인 (PR-L2 fix-up). `/oauth2/sessions/logout` 호출 URL 확인 |
 | 사용자 환경 Chromium 다운로드 실패 | 사내 SSL inspection / 외부 미러 차단 | `PLAYWRIGHT_BROWSERS_PATH` 또는 사내 미러 사용. `npx playwright install --dry-run` 으로 다운로드 URL 확인 |
 
@@ -180,3 +182,4 @@ PLAYWRIGHT_BASE_URL=http://10.0.0.5:3000 npm run e2e
 | 2026-05-11 | 초판 작성 (PR-T3) |
 | 2026-05-11 | PR-L4 `POST /api/v1/account/password` backend proxy 도입에 따라 password-change 시나리오 사전 조건/트러블슈팅 갱신 (work_26_05_11-e) |
 | 2026-05-11 | PR-T3.5 Playwright globalSetup 자동 시드 도입 + password-change.spec unskip (work_26_05_11-e) |
+| 2026-05-12 | PR-T3.5 hardening — globalSetup 이 기존 identity 의 비밀번호를 PUT 으로 force-reset, stale rotation 자동 복구 (work_260512-f) |
