@@ -1,0 +1,10 @@
+{
+  "project": "DevHub",
+  "branch": "claude/work_260512-g",
+  "status": "review",
+  "last_updated": "2026-05-12T02:00:00Z",
+  "base_branch": "main",
+  "base_head_at_open": "354609b",
+  "current_phase": "PR-T3.5 follow-up #2 — password-change.spec finally 단순화 (best-effort + globalSetup backstop)",
+  "context_summary": "PR-T3.5 hardening (PR #76) 후속. password-change.spec 의 finally rollback 은 같은 run 안에서 signout.spec (alice 재사용) 을 위해 여전히 필요하지만, fatal 실패 시 spec 전체를 fail 시키지 않도록 try-catch 로 감싸 best-effort 화. globalSetup 이 다음 run 에서 자동 force-reset 하므로 단발 cleanup 실패는 영구 영향 없음. 코드 코멘트로 의도 명시."
+}
