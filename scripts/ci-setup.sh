@@ -16,10 +16,15 @@ export KRATOS_ADMIN_URL="${KRATOS_ADMIN_URL:-http://localhost:4434}"
 echo "Preparing DevHub CI environment..."
 
 # 1. Ory 바이너리 설치 (Linux 64bit 가정)
+# Pin to v26.2.0 to match infra/idp/scripts/install-binaries.ps1 (prod /
+# dev-up.sh canonical version). The older v2.2.0/v1.1.0 line predates the
+# `migrate sql up` subcommand convention used by dev-up.sh and trips with
+# "Please provide the database URL." even when DSN is supplied.
+ORY_VERSION="${ORY_VERSION:-26.2.0}"
 if ! command -v kratos &> /dev/null || ! command -v hydra &> /dev/null; then
-  echo "Installing Ory binaries..."
-  curl -L https://github.com/ory/kratos/releases/download/v1.1.0/kratos_1.1.0-linux_64bit.tar.gz | tar xz -C /usr/local/bin kratos
-  curl -L https://github.com/ory/hydra/releases/download/v2.2.0/hydra_2.2.0-linux_64bit.tar.gz | tar xz -C /usr/local/bin hydra
+  echo "Installing Ory binaries (v${ORY_VERSION})..."
+  curl -L "https://github.com/ory/kratos/releases/download/v${ORY_VERSION}/kratos_${ORY_VERSION}-linux_64bit.tar.gz" | tar xz -C /usr/local/bin kratos
+  curl -L "https://github.com/ory/hydra/releases/download/v${ORY_VERSION}/hydra_${ORY_VERSION}-linux_64bit.tar.gz" | tar xz -C /usr/local/bin hydra
 fi
 
 # 2. DB Schema 생성
