@@ -110,7 +110,12 @@ func (c *KratosAdminClient) FindIdentityByUserID(ctx context.Context, userID str
 		return "", errors.New("user_id is required")
 	}
 
-	page := 1
+	// Kratos /admin/identities uses 0-based pagination (verified against
+	// v26.2.0 — page=0 returns the first batch, page=1 returns the second,
+	// …). The earlier 1-based start silently returned an empty first page
+	// and short-circuited to ErrKratosIdentityNotFound even when the user
+	// existed; that masked seedLocalAdmin recovery in e2e setups.
+	page := 0
 	const pageSize = 250
 	for {
 		params := url.Values{}
@@ -155,7 +160,7 @@ func (c *KratosAdminClient) FindIdentityByUserID(ctx context.Context, userID str
 			return "", ErrKratosIdentityNotFound
 		}
 		page++
-		if page > 40 { // 10k cap for the PoC scan
+		if page > 39 { // 10k cap for the PoC scan (pages 0..39 = 40 batches × 250)
 			return "", ErrKratosIdentityNotFound
 		}
 	}
