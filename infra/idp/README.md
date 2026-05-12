@@ -143,8 +143,16 @@ Hydra `:4444 / :4445`, Kratos `:4433 / :4434` 가 모두 응답하면 OK.
 
 Hydra 가 가동 중인 상태에서 한 번만 실행한다 (멱등 — 기존 `devhub-frontend` client 가 있으면 삭제 후 재생성).
 
+> 💡 본 단계도 `dev-up.ps1` / `dev-up.sh` 가 hydra 준비 직후 자동 호출한다. 일상 개발은 본 절차를 외울 필요 없이 `./dev-up.sh` 하나로 충분. `DEVHUB_SKIP_OIDC_REGISTER=1` 로 자동화를 우회할 수 있다. 아래 명령은 디버깅 / 수동 재등록용 reference.
+
 ```powershell
 .\infra\idp\scripts\register-devhub-client.ps1
+```
+
+macOS / Linux:
+
+```sh
+./infra/idp/scripts/register-devhub-client.sh
 ```
 
 확인:

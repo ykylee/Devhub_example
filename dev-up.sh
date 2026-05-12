@@ -166,6 +166,17 @@ else
     echo -e "${YELLOW}hydra 명령을 찾을 수 없습니다. OIDC 코드 흐름이 완성되지 않습니다.${NC}"
 fi
 
+# 3b. OIDC client 등록 (멱등 — DELETE 후 POST). hydra-admin (4445) 미가동
+#     시 skip. DEVHUB_SKIP_OIDC_REGISTER=1 로 우회 가능.
+if [ "${DEVHUB_SKIP_OIDC_REGISTER:-}" = "1" ]; then
+    echo "[skip-oidc-register] OIDC client 등록 단계 건너뜀."
+elif is_port_listening 4445; then
+    echo "Registering OIDC client (devhub-frontend)..."
+    "$REPO_ROOT/infra/idp/scripts/register-devhub-client.sh"
+else
+    echo -e "${YELLOW}Hydra admin (4445) 미가동 — OIDC client 등록 skip.${NC}"
+fi
+
 # 4. backend-core
 export AUTH_DEV_FALLBACK=true
 export DEVHUB_AUTH_DEV_FALLBACK=1
