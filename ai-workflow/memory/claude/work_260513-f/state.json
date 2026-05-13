@@ -1,0 +1,26 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "claude/work_260513-f",
+  "status": "in_progress",
+  "base_branch": "main",
+  "base_commit": "ae8b459",
+  "scope": "B bundle (RBAC 도메인 1차): RBAC API §12 IMPL 정밀 매핑 + §12 endpoint 헤더 (API-XX) 본문 ID 노출",
+  "updated_at": "2026-05-13T06:00:00Z",
+  "steps": [
+    {"id": "0", "title": "branch + sprint memory 초기화", "status": "done"},
+    {"id": "B3-api", "title": "backend_api_contract.md §12.2~§12.10 헤더에 (API-XX) 노출", "status": "in_progress"},
+    {"id": "B3-impl", "title": "report.md §2.4 IMPL-rbac-XX 정의 + §3 정밀 매핑", "status": "planned"},
+    {"id": "B3-matrix", "title": "report.md §2.2 RBAC API 매핑 표 추가", "status": "planned"},
+    {"id": "B3-close", "title": "report.md §5.2 closed + §6 변경 이력", "status": "planned"},
+    {"id": "sync", "title": "main flat memory PR #91 흡수 + 본 sprint IN PROGRESS", "status": "planned"},
+    {"id": "pr", "title": "PR open + 2-pass + squash merge", "status": "planned"}
+  ],
+  "files_in_scope": [
+    "docs/backend_api_contract.md",
+    "docs/traceability/report.md",
+    "ai-workflow/memory/state.json",
+    "ai-workflow/memory/session_handoff.md",
+    "ai-workflow/memory/work_backlog.md"
+  ]
+}

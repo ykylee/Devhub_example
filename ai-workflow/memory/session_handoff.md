@@ -1,16 +1,17 @@
 # Session Handoff — main (2026-05-13 EOD)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
-- 범위: 2026-05-13 머지 5건 (PR #86/#87/#88/#89/#90) 정리 + 진행 중 sprint + 잔여 후보.
+- 범위: 2026-05-13 머지 6건 (PR #86/#87/#88/#89/#90/#91) 정리 + 진행 중 sprint + 잔여 후보.
 - 대상 독자: 후속 에이전트, 프로젝트 리드.
-- 브랜치: `main` (HEAD `ea8df91`, PR #90 squash 직후).
+- 브랜치: `main` (HEAD `ae8b459`, PR #91 squash 직후).
 - 최종 수정일: 2026-05-13
-- 상태: M1/M2 100% done. GitHub Actions CI 그린 + FU-CI-1..4 모두 처리. 거버넌스 + 추적성 체계 + 1차 종합 매트릭스 + 갭 정리 + 메타 헤더 표준화 도입. 진행 중 sprint `claude/work_260513-e` 가 A 묶음 (M1 PR-D 정합 마무리: writeRBACServerError 통합 + X-Request-ID validation + ctx 표준 request_id 전파) 처리 중.
+- 상태: M1/M2 100% done. GitHub Actions CI 그린 + FU-CI-1..4 모두 처리. 거버넌스 + 추적성 체계 + 1차 종합 매트릭스 + 갭 정리 + 메타 헤더 표준화 + M1 PR-D 정합 마무리 도입. 진행 중 sprint `claude/work_260513-f` 가 B 묶음 (RBAC 도메인 1차: API §12 IMPL 정밀 매핑 + 본문 ID 노출) 처리 중.
 - 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [상태 스냅샷](./state.json), [거버넌스](../../docs/governance/README.md), [추적성 매트릭스](../../docs/traceability/report.md).
 
 ## 0. 2026-05-13 머지 흐름
 
 ```
+ae8b459 PR #91 — feat(backend): A 묶음 — M1 PR-D 정합 마무리 (writeRBACServerError + writeAuthLoginServerError 통합 + X-Request-ID validation + ctx 표준 request_id 전파) (claude/work_260513-e)
 ea8df91 PR #90 — docs(governance,traceability): 갭 분석 정리 + 메타 헤더 표준화 + main flat sync (claude/work_260513-d)
 7fac5bf PR #89 — docs: governance + traceability 체계 도입 + 1차 종합 매트릭스 (claude/work_260513-c)
 9268227 PR #88 — docs(adr): ADR-0003 no-docker policy CI scope — drop services: postgres + native PG 15 (claude/work_260513-b)
@@ -24,14 +25,19 @@ e86f38f PR #87 — ci: FU-CI-2/3/4 (playwright scope, GHA cache, frontend readin
 - **PR #88** — ADR-0003 (no-docker 정책 CI 범위 명문화). `services: postgres:15` sidecar 제거 + pgdg native PG 15 native 설치 step. PG-14 dropcluster + `--port=5432` 강제.
 - **PR #89** — `docs/governance/` (README + document-standards.md) + `docs/traceability/` (README + conventions + sync-checklist + report) + PR template + AGENTS/GEMINI 진입점. 1차 종합 매트릭스: REQ-FR 105 + REQ-NFR 26 + ARCH 17 + API 40 + RM 28 + IMPL 79 + UT 47 + TC 37 = 412 항목.
 - **PR #90** — 매트릭스 §5 갭 표 형식 통일 + §5.2 auth.spec.ts TC 미흡수 + §5.3 ADR-0001 vs §3.8 모두 closed. document-standards §2 메타 헤더 9 문서 (누락 4 + 변형 4 + 부분 1) 일괄 적용. PR #87/#88/#89 누적 main flat memory sync.
+- **PR #91** — A 묶음 (M1 PR-D 정합 마무리). `writeRBACServerError` (11 호출) + `writeAuthLoginServerError` (5 호출, Pass 1 review 발견) → `writeServerError` 일괄 통합. `requireRequestID` 미들웨어에 `validateCallerRequestID` (정규식 + 길이 + control char) 추가. request_id 를 `requestIDCtxKey{}` typed ctx key 에도 stash + `requestIDFromContext`/`logRequestCtx` ctx-aware helper. kratos_login_client.go 2건 + kratos_identity_resolver.go 1건 ctx-aware 치환. 단위테스트 11건 추가.
 
-## 1. 진행 중 sprint — `claude/work_260513-e` (A 묶음, M1 PR-D 정합 마무리)
+## 1. 진행 중 sprint — `claude/work_260513-f` (B 묶음, RBAC 도메인 1차)
 
-`state.json#next_actions.pr_d_followups` 의 3 항목을 한 PR 로 묶어 처리:
+`document-standards.md` §8 우선순위 3 (본문 ID 노출) + 매트릭스 §5.2 "RBAC API §12 IMPL 정밀 매핑" 항목 closing.
 
-- **A3** writeRBACServerError → writeServerError 통합 — `backend-core/internal/httpapi/rbac.go` 의 임시 helper 제거 + 11 호출 일괄 치환.
-- **A1** caller-supplied X-Request-ID validation — `validateCallerRequestID` (정규식 `^[A-Za-z0-9_-]{1,128}$`) + `requireRequestID` 폴백. 단위테스트 5건 + 미들웨어 e2e 2건.
-- **A2** ctx 표준 request_id 전파 — `requireRequestID` 가 `c.Request.Context()` 에도 stash, `requestIDFromContext` + `logRequestCtx` ctx-aware helper 신설. `kratos_login_client.go:145/153` + `kratos_identity_resolver.go:52` 의 untraced `log.Printf` 를 ctx-aware 로 치환. 단위테스트 4건.
+- **B1 (RBAC)** — `backend_api_contract.md` §12.2~§12.10 의 9 헤더에 `(API-26..31, 38..40)` 본문 ID 노출.
+- **B3 — IMPL 정밀 매핑**:
+  - `IMPL-rbac-01` `internal/httpapi/rbac.go` (6 endpoint handler + legacy gone)
+  - `IMPL-rbac-02` `internal/store/postgres_rbac.go` (8 PostgresStore method)
+  - `IMPL-rbac-03` `internal/httpapi/permissions.go::routePermissionTable` + `enforceRoutePermission` (API-38 + API-39)
+  - `IMPL-rbac-04` `internal/httpapi/permissions.go::PermissionCache` (API-40)
+- 매트릭스 §2.2 / §2.4 / §3 / §5.2 / §6 갱신. 코드 변경 0.
 
 ## 2. 다음 진입점 — 우선순위 후보
 
