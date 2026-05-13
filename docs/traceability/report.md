@@ -42,6 +42,8 @@
 | `API-40` | §12.10 | Cache 와 무효화 정책 |
 
 > 본 매핑 표는 `document-standards.md` §8 우선순위 3 (본문 ID 노출) 의 RBAC 도메인 1차 적용. 다른 도메인 (`auth` §11, `account` §11.4, `commands/audit` §9 등) 은 후속 sprint 에서 동일 패턴으로 점진 확장.
+>
+> **표 가독성 정책**: 정밀 매핑 (endpoint 별 본문 위치, IMPL 별 책임) 은 본 §2 서브 표가 source-of-truth. §3 종합 매트릭스의 도메인 행은 ID 범위 (`API-26–31`) + 서브 표 참조 노트만 두어 표 시인성을 유지한다.
 
 ### 2.3 Roadmap (RM)
 
@@ -83,7 +85,7 @@
 | --- | --- | --- | --- | --- | --- | --- |
 | **인증 (auth / OIDC)** | FR-19, 21–24, 65, 67; NFR-3, 18 | ARCH-11, 12; API-19–24, 35 | M1-04, M2-01, 02, 03, 09 | auth-01..07; frontend-auth-01..06; login-01..03; logout-01 | httpapi-01..04; auth-01; frontend-auth-01..04 | TC-AUTH-NEG-01, NOAUTH-01, SIGNOUT-REDIR-01; TC-USER-SWITCH-01 |
 | **회원가입 (signup)** | FR-25, 61–63 | ARCH-12; API-23 | M3-01 (planned) | auth-05; frontend-login-03 | httpapi-15 | TC-SIGNUP-01..04 |
-| **RBAC** | FR-27, 86; NFR-26 | ARCH-13; API-26 (§12.2), 27 (§12.3), 28 (§12.4), 29 (§12.5), 30 (§12.6), 31 (§12.7), 38 (§12.8), 39 (§12.9), 40 (§12.10) | M1-01, 02, 03; M2-11 | rbac-01 (handler, §12.2~§12.7), rbac-02 (store), rbac-03 (enforce §12.8, deny-by-default §12.9), rbac-04 (cache §12.10); frontend-admin-rbac-01; frontend-service-rbac-01; org-comp-02 | rbac-01..03; domain-01 | TC-RBAC-SUB-01, MGR-01; TC-PERMISSIONS-SMOKE-01 |
+| **RBAC** | FR-27, 86; NFR-26 | ARCH-13; API-26–31, 38–40 (정밀 매핑: §2.2 RBAC API 서브 표) | M1-01, 02, 03; M2-11 | rbac-01..04 (책임 정의: §2.4 IMPL-rbac-XX 서브 표); frontend-admin-rbac-01; frontend-service-rbac-01; org-comp-02 | rbac-01..03; domain-01 | TC-RBAC-SUB-01, MGR-01; TC-PERMISSIONS-SMOKE-01 |
 | **계정 관리 (account admin + self-service)** | FR-15–18, 20, 22, 23, 26, 61–67; NFR-3, 4, 5, 7, 17, 19, 20 | ARCH-12, 14; API-25, 32, 35 | M2-04, 05, 06 | account-01..04; frontend-account-01; frontend-admin-users-01; frontend-service-account-01 | httpapi-05, 06, 07 | TC-USR-01..06; TC-USR-CRUD-01..03; TC-ACC-01..03; TC-ACC-PROFILE-01 |
 | **조직 계층 (organization)** | FR-68–80; NFR-21 | ARCH-15, 16, 17; API-33, 34 | M2-07, 08 | org-01..04; frontend-org-01; frontend-admin-org-01; frontend-org-comp-01..03; frontend-service-org-01 | httpapi-07; store-01 | TC-ORG-LIST-01..02; TC-ORG-UNIT-01..03; TC-ORG-MEM-01..02; TC-ORG-CHART-01..02 |
 | **감사 (audit)** | FR-18, 26, 102; NFR-4 | ARCH-14; API-18, 39 | M2-15 (in_progress, PR-M2-AUDIT) | audit-01, 02; kratos-03 | httpapi-19, 24; frontend (Vitest 없음) | TC-AUD-01, 02 |
