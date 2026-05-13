@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
@@ -12,16 +11,6 @@ import (
 	"github.com/devhub/backend-core/internal/store"
 	"github.com/gin-gonic/gin"
 )
-
-// writeRBACServerError logs the underlying error with operation context and returns a
-// generic 500 (SEC-5 style) so DB internals never leak.
-//
-// TODO: replace with the package-wide writeServerError helper from M1 PR-A (#20)
-// once that PR merges to main and the G-chain rebases on top.
-func writeRBACServerError(c *gin.Context, err error, op string) {
-	log.Printf("server error: op=%s request_id=%s err=%v", op, requestIDFrom(c), err)
-	c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": "internal error"})
-}
 
 // RBACStore is the subset of *store.PostgresStore that the RBAC handlers depend on. The
 // concrete type lives in internal/store; tests inject a fake implementation.
@@ -114,7 +103,7 @@ func (h Handler) listRBACPolicies(c *gin.Context) {
 
 	roles, err := h.cfg.RBACStore.ListRBACRoles(c.Request.Context())
 	if err != nil {
-		writeRBACServerError(c, err, "rbac.list_policies")
+		writeServerError(c, err, "rbac.list_policies")
 		return
 	}
 
@@ -176,7 +165,7 @@ func (h Handler) createRBACPolicy(c *gin.Context) {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"status": "rejected", "error": err.Error(), "code": "audit_invariant_violation"})
 		return
 	case err != nil:
-		writeRBACServerError(c, err, "rbac.create_policy")
+		writeServerError(c, err, "rbac.create_policy")
 		return
 	}
 
@@ -246,7 +235,7 @@ func (h Handler) updateRBACPolicies(c *gin.Context) {
 			return
 		}
 		if err != nil {
-			writeRBACServerError(c, err, "rbac.update_policies.lookup")
+			writeServerError(c, err, "rbac.update_policies.lookup")
 			return
 		}
 
@@ -303,7 +292,7 @@ func (h Handler) updateRBACPolicies(c *gin.Context) {
 				c.JSON(http.StatusUnprocessableEntity, gin.H{"status": "rejected", "error": err.Error(), "code": "audit_invariant_violation"})
 				return
 			case err != nil:
-				writeRBACServerError(c, err, "rbac.update_policies.permissions")
+				writeServerError(c, err, "rbac.update_policies.permissions")
 				return
 			}
 			auditEntries = append(auditEntries, map[string]any{
@@ -325,7 +314,7 @@ func (h Handler) updateRBACPolicies(c *gin.Context) {
 				c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": fmt.Sprintf("role %q not found", entry.ID)})
 				return
 			case err != nil:
-				writeRBACServerError(c, err, "rbac.update_policies.metadata")
+				writeServerError(c, err, "rbac.update_policies.metadata")
 				return
 			}
 			auditEntries = append(auditEntries, map[string]any{
@@ -348,7 +337,7 @@ func (h Handler) updateRBACPolicies(c *gin.Context) {
 
 	roles, err := h.cfg.RBACStore.ListRBACRoles(ctx)
 	if err != nil {
-		writeRBACServerError(c, err, "rbac.update_policies.list_after")
+		writeServerError(c, err, "rbac.update_policies.list_after")
 		return
 	}
 	data := make([]rbacRoleWire, 0, len(roles))
@@ -389,7 +378,7 @@ func (h Handler) deleteRBACPolicy(c *gin.Context) {
 		return
 	}
 	if err != nil {
-		writeRBACServerError(c, err, "rbac.delete_policy.lookup")
+		writeServerError(c, err, "rbac.delete_policy.lookup")
 		return
 	}
 
@@ -402,7 +391,7 @@ func (h Handler) deleteRBACPolicy(c *gin.Context) {
 		case errors.Is(err, store.ErrNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": fmt.Sprintf("role %q not found", roleID)})
 		default:
-			writeRBACServerError(c, err, "rbac.delete_policy")
+			writeServerError(c, err, "rbac.delete_policy")
 		}
 		return
 	}
@@ -443,7 +432,7 @@ func (h Handler) getSubjectRoles(c *gin.Context) {
 		return
 	}
 	if err != nil {
-		writeRBACServerError(c, err, "rbac.get_subject_roles")
+		writeServerError(c, err, "rbac.get_subject_roles")
 		return
 	}
 
@@ -493,7 +482,7 @@ func (h Handler) setSubjectRoles(c *gin.Context) {
 		return
 	}
 	if err != nil {
-		writeRBACServerError(c, err, "rbac.set_subject_roles.lookup")
+		writeServerError(c, err, "rbac.set_subject_roles.lookup")
 		return
 	}
 
@@ -502,7 +491,7 @@ func (h Handler) setSubjectRoles(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": fmt.Sprintf("role %q not found or subject missing", roleID)})
 			return
 		}
-		writeRBACServerError(c, err, "rbac.set_subject_roles.update")
+		writeServerError(c, err, "rbac.set_subject_roles.update")
 		return
 	}
 

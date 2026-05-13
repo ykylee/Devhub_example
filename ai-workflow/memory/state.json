@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-05-13 진행 중. M1/M2 100% done + M2 1차 완성 sprint 닫힘 (PR #85). GitHub Actions CI 그린 + FU-CI-1..4 모두 처리 (PR #86/#87/#88). 거버넌스 + 추적성 체계 + 1차 종합 매트릭스 도입 (PR #89). 현재 sprint claude/work_260513-d — 추적성 갭 분석 + 문서 메타 헤더 표준화. 다음 진입 후보: caller-supplied X-Request-ID validation / ctx 표준 request_id 전파 / writeRBACServerError → writeServerError 통합 / 본 sprint backlog 의 후속 (E2E 신규 TC, frontend 컴포넌트 Vitest, RBAC API IMPL 정밀화, X-Devhub-Actor 폐기 ADR) / M4 진입.",
-  "updated_at": "2026-05-13T04:20:00Z",
-  "head_commit": "7fac5bf",
-  "head_summary": "Merge pull request #89 (docs: governance + traceability 체계 도입 + 1차 종합 매트릭스)",
+  "status": "2026-05-13 진행 중. M1/M2 100% done + M2 1차 완성 sprint 닫힘 (PR #85). GitHub Actions CI 그린 + FU-CI-1..4 모두 처리 (PR #86/#87/#88). 거버넌스 + 추적성 체계 + 1차 종합 매트릭스 도입 (PR #89) + §5 gap 정리 + 메타 헤더 표준화 (PR #90). 현재 sprint claude/work_260513-e — A 묶음 (M1 PR-D 정합 마무리: writeRBACServerError 통합 + caller-supplied X-Request-ID validation + ctx 표준 request_id 전파). 다음 진입 후보: 본 sprint backlog 의 후속 (E2E 신규 TC, frontend 컴포넌트 Vitest, RBAC API IMPL 정밀화, X-Devhub-Actor 폐기 ADR, document-standards §8 우선순위 3/4) / M3/M4 진입.",
+  "updated_at": "2026-05-13T05:30:00Z",
+  "head_commit": "ea8df91",
+  "head_summary": "Merge pull request #90 (docs(governance,traceability): 갭 분석 정리 + 메타 헤더 표준화 + main flat sync)",
   "milestones": {
     "M0": {
       "status": "done",
@@ -35,7 +35,7 @@
       "status": "done (1차)",
       "started_at": "2026-05-13",
       "ended_at": "2026-05-13",
-      "notes": "PR #89 (claude/work_260513-c) — docs/governance/ (README + document-standards.md) + docs/traceability/ (README + conventions.md + sync-checklist.md + report.md) + .github/pull_request_template.md + AGENTS/GEMINI 진입점 안내. 1차 종합 매트릭스: REQ-FR 105 + REQ-NFR 26 + ARCH 17 + API 40 + RM 28 + IMPL 79 + UT 47 + TC 37 = 412 항목, 도메인 그룹 13행. 후속 sprint claude/work_260513-d: §5 gap 분석 + §8 우선순위 1+2 메타 헤더 표준화."
+      "notes": "PR #89 (claude/work_260513-c) — docs/governance/ (README + document-standards.md) + docs/traceability/ (README + conventions.md + sync-checklist.md + report.md) + .github/pull_request_template.md + AGENTS/GEMINI 진입점 안내. 1차 종합 매트릭스: REQ-FR 105 + REQ-NFR 26 + ARCH 17 + API 40 + RM 28 + IMPL 79 + UT 47 + TC 37 = 412 항목, 도메인 그룹 13행. PR #90 (claude/work_260513-d) — §5 gap 표 형식 통일 + §5.2/§5.3 일부 closed + 메타 헤더 표준화 9 문서."
     }
   },
   "components": {
@@ -84,7 +84,8 @@
       "work_260513_a": "ai-workflow/memory/claude/work_260513-a/ (CLOSED, PR #87 GHA 최적화 FU-CI-2/3/4 + main flat sync)",
       "work_260513_b": "ai-workflow/memory/claude/work_260513-b/ (CLOSED, PR #88 ADR-0003 + native PG 15)",
       "work_260513_c": "ai-workflow/memory/claude/work_260513-c/ (CLOSED, PR #89 governance + traceability + 1차 매트릭스)",
-      "work_260513_d": "ai-workflow/memory/claude/work_260513-d/ (IN PROGRESS, 추적성 갭 분석 + 문서 메타 헤더 표준화)"
+      "work_260513_d": "ai-workflow/memory/claude/work_260513-d/ (CLOSED, PR #90 갭 분석 정리 + 메타 헤더 표준화 + main flat sync)",
+      "work_260513_e": "ai-workflow/memory/claude/work_260513-e/ (IN PROGRESS, A 묶음 — writeRBACServerError 통합 + X-Request-ID validation + ctx 표준 request_id 전파)"
     },
     "governance_entry": "docs/governance/README.md",
     "traceability_entry": "docs/traceability/README.md",
@@ -120,7 +121,8 @@
     {"pr": 86, "sprint": "gemini/prepare-github-action", "title": "ci: E2E 테스트 안정화 및 GitHub Actions CI 파이프라인 구축", "merge_commit": "450cc24"},
     {"pr": 87, "sprint": "work_260513-a", "title": "ci: FU-CI-2/3/4 (playwright scope, GHA cache, frontend readiness) + main flat memory sync", "merge_commit": "e86f38f"},
     {"pr": 88, "sprint": "work_260513-b", "title": "docs(adr): ADR-0003 no-docker policy CI scope — drop services: postgres + native PG 15", "merge_commit": "9268227"},
-    {"pr": 89, "sprint": "work_260513-c", "title": "docs: governance + traceability 체계 도입 + 1차 종합 매트릭스", "merge_commit": "7fac5bf"}
+    {"pr": 89, "sprint": "work_260513-c", "title": "docs: governance + traceability 체계 도입 + 1차 종합 매트릭스", "merge_commit": "7fac5bf"},
+    {"pr": 90, "sprint": "work_260513-d", "title": "docs(governance,traceability): 갭 분석 정리 + 메타 헤더 표준화 + main flat sync", "merge_commit": "ea8df91"}
   ],
   "discarded_sprints_2026_05_12": [
     {"slot": "work_260512-h", "reason": "진입 직후 후보 (M2 hygiene users.kratos_identity_id) 가 PR-L4 (809f525, work_26_05_11-e) 에 이미 머지된 것 확인. 신규 작업 없어 폐기."}
@@ -139,10 +141,11 @@
       "Kratos webhook 수신 → DevHub audit_logs 통합 (self-service password 변경 등 audit)",
       "Hydra JWKS / introspection verifier 실구현 (현재는 introspection 기반)"
     ],
-    "pr_d_followups": [
-      "caller-supplied X-Request-ID 콘텐츠 validation (newline / control char / 길이 제한). net/http 가 CRLF 차단해 보안 회귀 아니지만 audit_logs.request_id 위생 보강. work_260512-j 발견.",
-      "ctx 표준 request_id 전파 — kratos_login_client.go:145/153, kratos_identity_resolver.go:52 등 ctx 만 받는 client/helper 도 자동 tagged. logRequest 의 untraced fallback 해소.",
-      "writeRBACServerError → writeServerError 통합 (rbac.go:22 TODO). 형식은 work_260512-i 에서 일치."
+    "pr_d_followups": [],
+    "pr_d_followups_closed_by_work_260513_e": [
+      "caller-supplied X-Request-ID 콘텐츠 validation — `validateCallerRequestID` (정규식 `^[A-Za-z0-9_-]{1,128}$`) + `requireRequestID` 폴백.",
+      "ctx 표준 request_id 전파 — `requireRequestID` 가 c.Request.Context() 에도 stash, `requestIDFromContext` + `logRequestCtx` ctx-aware helper. kratos_login_client.go 2건 + kratos_identity_resolver.go 1건 치환.",
+      "writeRBACServerError → writeServerError 통합 — rbac.go 의 helper 제거 + 11 호출 일괄 치환."
     ],
     "ux_hygiene": [
       "/admin/settings/users 의 SearchInput 실제 필터링 미구현 (placeholder)",

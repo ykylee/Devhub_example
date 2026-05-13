@@ -3,7 +3,6 @@ package httpapi
 import (
 	"context"
 	"errors"
-	"log"
 	"strings"
 )
 
@@ -49,7 +48,7 @@ func (h Handler) resolveKratosIdentityID(ctx context.Context, userID string) (st
 		// newMemoryOrganizationStore without CreateUser) SetKratosIdentityID
 		// returns ErrNotFound; that is non-fatal here.
 		if setErr := h.cfg.OrganizationStore.SetKratosIdentityID(ctx, userID, identityID); setErr != nil {
-			log.Printf("[kratos-cache] backfill kratos_identity_id for %s skipped: %v", userID, setErr)
+			logRequestCtx(ctx, "[kratos-cache] backfill kratos_identity_id for %s skipped: %v", userID, setErr)
 		}
 	}
 	return identityID, nil
