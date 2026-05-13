@@ -68,7 +68,16 @@
 ### 비변경 사항
 
 - 코드 동작 0 변경 (auth.go / 회귀 방지 테스트 그대로).
-- API contract (`backend_api_contract.md` §11) 변경 없음 — §11 본문은 이미 X-Devhub-Actor 를 spec 항목으로 갖지 않는다.
+
+### 본 ADR 채택과 함께 정리되는 spec 잔재
+
+본 ADR 의 §4 결정 ("`X-Devhub-Actor` 는 history 노트 외 어떤 spec 도 갖지 않는다") 과 정합화하기 위해 본 sprint 가 다음 spec 잔재도 함께 정리한다:
+
+- `backend_api_contract.md` §8 (realtime ws) — `actor`/`role` query 옆의 `X-Devhub-Actor`/`X-Devhub-Role` fallback 표기 제거.
+- `backend_api_contract.md` §9.1 (service-actions) + §9.2 (mitigations) — Header 표의 `X-Devhub-Actor` 행 + 설명 2줄 제거, ADR-0004 참조 한 줄로 교체.
+- `backend_api_contract.md` §11.3 — `X-Devhub-Actor`/`X-Devhub-Actor-Deprecated` bullet 을 ADR-0004 참조로 교체.
+- `docs/backend/frontend_integration_requirements.md` §3.5 — deprecation 응답 헤더 안내 → ADR-0004 참조.
+- `docs/setup/environment-setup.md` §2.4 — dev fallback 절차에서 `X-Devhub-Actor` 헤더 사용 안내 제거 (PoC 가동 안내만 유지).
 
 ## 6. 미해결 항목 (Open questions)
 
