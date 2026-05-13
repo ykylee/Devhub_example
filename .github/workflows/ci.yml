@@ -85,14 +85,15 @@ jobs:
           (cd frontend && npm run build)
       
       - name: Start Ory Kratos
+        # DSN + webhook token are hardcoded inside infra/idp/kratos.ci.yaml
+        # (Ory does not expand ${VAR} in YAML), so no env wiring is needed.
         run: |
-          export DSN_KRATOS="postgres://runner@localhost:5432/devhub?sslmode=disable&search_path=kratos"
-          export DEVHUB_KRATOS_WEBHOOK_TOKEN=ci-test-token-12345
           kratos serve --config infra/idp/kratos.ci.yaml > kratos.log 2>&1 &
-      
+
       - name: Start Ory Hydra
+        # DSN is hardcoded inside infra/idp/hydra.ci.yaml. --dev is required
+        # because the CI hydra serves over HTTP (no TLS).
         run: |
-          export DSN_HYDRA="postgres://runner@localhost:5432/devhub?sslmode=disable&search_path=hydra"
           hydra serve all --config infra/idp/hydra.ci.yaml --dev > hydra.log 2>&1 &
       
       - name: Wait for Ory Readiness

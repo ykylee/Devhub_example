@@ -21,7 +21,10 @@ serve:
     port: 4434
     host: 0.0.0.0
 
-dsn: ${DSN_KRATOS}
+# Hydra/Kratos do not expand ${VAR} in YAML by default. Hardcode the
+# runner-side DSN here (matching how infra/idp/kratos.yaml hardcodes the
+# prod-side localhost URL).
+dsn: postgres://runner@localhost:5432/devhub?sslmode=disable&search_path=kratos
 
 selfservice:
   default_browser_return_url: http://localhost:3000/
@@ -57,7 +60,10 @@ selfservice:
                   config:
                     in: header
                     name: Authorization
-                    value: Bearer ${DEVHUB_KRATOS_WEBHOOK_TOKEN}
+                    # Hardcoded for CI (same value the backend reads via
+                    # DEVHUB_KRATOS_WEBHOOK_TOKEN env in .github/workflows/ci.yml).
+                    # ${VAR} interpolation is not applied to YAML values.
+                    value: Bearer ci-test-token-12345
     logout:
       after:
         default_browser_return_url: http://localhost:3000/

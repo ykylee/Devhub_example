@@ -18,7 +18,10 @@ serve:
   cookies:
     same_site_mode: Lax
 
-dsn: ${DSN_HYDRA}
+# Hydra/Kratos do not expand ${VAR} in YAML by default. Hardcode the
+# runner-side DSN here (matching how infra/idp/hydra.yaml hardcodes the
+# prod-side localhost URL).
+dsn: postgres://runner@localhost:5432/devhub?sslmode=disable&search_path=hydra
 
 urls:
   self:
