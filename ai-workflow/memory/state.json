@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-05-13 세션 종료 (housekeeping sync). PR #86~#100 (15건) 머지 완료 — M3 마일스톤 1차 closing + 후속 1-4 + M4 전 잔여 모두 처리. M4 진입 준비 완료 (RM-M4-01..09 9 항목 + M3 carve out 6 항목 = 다음 세션 진입 후보). 다음 세션 첫 액션: M4 sprint plan (RM-M4-XX 우선순위 결정 + 5+ sprint 분할) 또는 M3 carve out 진입.",
-  "updated_at": "2026-05-13T18:30:00Z",
-  "head_commit": "4134b37",
-  "head_summary": "Merge pull request #100 (feat(domain,migrations),docs(adr,traceability),scripts: M4 전 잔여 일괄)",
+  "status": "2026-05-13 세션 종료 (housekeeping sync 2차). PR #86~#102 (17건) 머지 완료 — M3 1차 closing + M4 진입 준비 + Project 도메인 컨셉 1차 staged. 다음 세션 진입 후보: (a) M4 RM-M4-XX 우선순위 결정 + sprint plan, (b) M3 carve out (6 항목), (c) Project 도메인 후속 Req sprint (REQ-FR-* 발급 + requirements §5.7 확장 또는 §5.8 신설).",
+  "updated_at": "2026-05-13T19:30:00Z",
+  "head_commit": "244f6b1",
+  "head_summary": "Merge pull request #102 (docs(planning): Project 도메인 컨셉 1차 — CRUD + 등록 + 조회 MVP scope, sprint claude/work_260513-p)",
   "milestones": {
     "M0": {
       "status": "done",
@@ -95,7 +95,9 @@
       "work_260513_l": "ai-workflow/memory/claude/work_260513-l/ (CLOSED, PR #98 M3 진입 1차 — RM-M3-01..03)",
       "work_260513_m": "ai-workflow/memory/claude/work_260513-m/ (CLOSED, PR #99 M3 후속 1-4 일괄)",
       "work_260513_n": "ai-workflow/memory/claude/work_260513-n/ (CLOSED, PR #100 M4 전 잔여 일괄)",
-      "work_260513_o": "ai-workflow/memory/claude/work_260513-o/ (IN PROGRESS, 2026-05-13 세션 종료 housekeeping sync)"
+      "work_260513_o": "ai-workflow/memory/claude/work_260513-o/ (CLOSED, PR #101 housekeeping sync)",
+      "work_260513_p": "ai-workflow/memory/claude/work_260513-p/ (CLOSED, PR #102 Project 도메인 컨셉 1차)",
+      "work_260513_q": "ai-workflow/memory/claude/work_260513-q/ (IN PROGRESS, 2026-05-13 세션 종료 housekeeping sync 2차 — PR #102 흡수)"
     },
     "governance_entry": "docs/governance/README.md",
     "traceability_entry": "docs/traceability/README.md",
@@ -142,7 +144,9 @@
     {"pr": 97, "sprint": "work_260513-k", "title": "docs(roadmap,traceability): M3/M4 drift 정합", "merge_commit": "3d7d5a2"},
     {"pr": 98, "sprint": "work_260513-l", "title": "feat(auth),docs(adr,api,traceability),test: M3 진입 1차 — RM-M3-01..03", "merge_commit": "b1268ce"},
     {"pr": 99, "sprint": "work_260513-m", "title": "feat(hrdb,org,signup),docs(adr,traceability),test: M3 후속 1-4 일괄", "merge_commit": "c7c2f35"},
-    {"pr": 100, "sprint": "work_260513-n", "title": "feat(domain,migrations),docs(adr,traceability),scripts: M4 전 잔여 일괄", "merge_commit": "4134b37"}
+    {"pr": 100, "sprint": "work_260513-n", "title": "feat(domain,migrations),docs(adr,traceability),scripts: M4 전 잔여 일괄", "merge_commit": "4134b37"},
+    {"pr": 101, "sprint": "work_260513-o", "title": "docs(memory): 2026-05-13 세션 종료 housekeeping sync", "merge_commit": "118899b"},
+    {"pr": 102, "sprint": "work_260513-p", "title": "docs(planning): Project 도메인 컨셉 1차 — CRUD + 등록 + 조회 MVP scope", "merge_commit": "244f6b1"}
   ],
   "discarded_sprints_2026_05_12": [
     {"slot": "work_260512-h", "reason": "진입 직후 후보 (M2 hygiene users.kratos_identity_id) 가 PR-L4 (809f525, work_26_05_11-e) 에 이미 머지된 것 확인. 신규 작업 없어 폐기."}
