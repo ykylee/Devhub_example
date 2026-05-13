@@ -1,0 +1,10 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "claude/work_260513-j",
+  "status": "in_progress",
+  "base_branch": "main",
+  "base_commit": "cb9e6d5",
+  "scope": "M3 진입 전 잔여 후속 일괄: D6 inbound 거부 + ADR-0006 + B2-2 deprecated + 매트릭스 nit + spec 절 신설 + AuthGuard smoke + TC-INFRA-RENDER-01 spec + ADR-0007",
+  "updated_at": "2026-05-13T11:00:00Z"
+}

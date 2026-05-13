@@ -653,9 +653,10 @@ func TestApproveServiceActionCommandMarksApprovalAndAudits(t *testing.T) {
 	}
 	router := NewRouter(RouterConfig{CommandStore: commandStore, AuthDevFallback: true})
 
+	// ADR-0006 (2026-05-13): X-Devhub-Actor inbound is rejected with 400.
+	// Drop the legacy header — dev fallback resolves actor to "system"
+	// which is accepted by the approve gate when AuthDevFallback=true.
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/commands/cmd_live/approve", bytes.NewReader([]byte(`{"reason":"Approved maintenance window"}`)))
-	req.Header.Set("X-Devhub-Actor", "approver")
-	req.Header.Set("X-Devhub-Role", "system_admin")
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 
@@ -711,9 +712,9 @@ func TestRejectServiceActionCommandMarksRejectedAndAudits(t *testing.T) {
 	}
 	router := NewRouter(RouterConfig{CommandStore: commandStore, AuthDevFallback: true})
 
+	// ADR-0006 (2026-05-13): X-Devhub-Actor inbound is rejected with 400.
+	// Drop the legacy header — dev fallback resolves actor to "system".
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/commands/cmd_live/reject", bytes.NewReader([]byte(`{"reason":"Outside maintenance window"}`)))
-	req.Header.Set("X-Devhub-Actor", "approver")
-	req.Header.Set("X-Devhub-Role", "system_admin")
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 

@@ -37,6 +37,22 @@ var publicAPIPaths = map[string]bool{
 func (h Handler) authenticateActor(c *gin.Context) {
 	c.Set("devhub_auth_dev_fallback", h.cfg.AuthDevFallback)
 
+	// ADR-0006 (2026-05-13): legacy X-Devhub-Actor inbound header is rejected
+	// outright. ADR-0004 declared the fallback closed at the prod-code level;
+	// this middleware turns silent ignore into explicit 400 so client-side
+	// usage of the dead header is surfaced immediately. Negative tests in
+	// audit_test / commands_test / auth_test / me_test still hold — the
+	// header was already being ignored; ADR-0006 only changes "ignore" into
+	// "reject + helpful error".
+	if c.GetHeader("X-Devhub-Actor") != "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"status": "rejected",
+			"error":  "X-Devhub-Actor header is removed; use Authorization: Bearer ... (see ADR-0004 / ADR-0006)",
+			"code":   "x_devhub_actor_removed",
+		})
+		return
+	}
+
 	if publicAPIPaths[c.FullPath()] {
 		// Webhook bypass paths run without a Bearer token but still produce
 		// audit rows (signature-verified Gitea webhooks). Tag the source so
