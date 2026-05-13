@@ -1,6 +1,6 @@
 # 추적성 관리 (Traceability)
 
-- 문서 목적: DevHub 의 SDLC 자산 (요구사항 → 설계 → 로드맵 → 구현 → 단위테스트 → E2E) 사이 추적 관계를 단일 매트릭스로 관리하고, 모든 PR 이 이 관계를 갱신하도록 유지한다. 본 체계는 [거버넌스의 추적성 축](../governance/README.md) 이며, 문서 관리 축 ([`docs/governance/document-standards.md`](../governance/document-standards.md)) 과 짝을 이룬다.
+- 문서 목적: DevHub 의 SDLC 자산 (요구사항 → Usecase → 설계 → 로드맵 → 구현 → 단위테스트 → E2E) 사이 추적 관계를 단일 매트릭스로 관리하고, 모든 PR 이 이 관계를 갱신하도록 유지한다. 본 체계는 [거버넌스의 추적성 축](../governance/README.md) 이며, 문서 관리 축 ([`docs/governance/document-standards.md`](../governance/document-standards.md)) 과 짝을 이룬다.
 - 범위: 본 디렉터리의 4 파일 + PR 템플릿 + 에이전트 가이드 진입점.
 - 대상 독자: 모든 contributor (사람 + AI agent), 후속 리뷰어, 외부 감사.
 - 상태: accepted
@@ -9,7 +9,7 @@
 
 ## 1. 왜 추적성?
 
-`docs/requirements.md` → `docs/architecture.md` → `docs/development_roadmap.md` → `backend-core/internal/...` + `frontend/...` → `*_test.go` + `*.test.ts` → `frontend/tests/e2e/*.spec.ts` 가 각각 독립으로 진화하면 다음 위험이 발생:
+`docs/requirements.md` → `docs/planning/*usecase*.md` → `docs/architecture.md` → `docs/development_roadmap.md` → `backend-core/internal/...` + `frontend/...` → `*_test.go` + `*.test.ts` → `frontend/tests/e2e/*.spec.ts` 가 각각 독립으로 진화하면 다음 위험이 발생:
 
 - **회귀 누락**: 새 요구사항이 구현은 됐는데 단위/E2E 테스트가 누락.
 - **고아 코드**: 어느 요구사항에서 출발했는지 모르는 코드가 누적.
@@ -26,6 +26,7 @@
 | [`conventions.md`](./conventions.md) | ID 접두사·형식·영속성·매핑 정책. |
 | [`sync-checklist.md`](./sync-checklist.md) | PR 단위 추적성 갱신 절차. |
 | [`report.md`](./report.md) | 단계별 인덱스 + 종합 추적성 매트릭스 + ADR 링크 + gap 요약. |
+| [`traceability_remediation_plan_auth_org.md`](./traceability_remediation_plan_auth_org.md) | 로그인 세션 + 사용자/조직 추적성 미흡 항목 보완 계획. |
 
 ## 3. 무게감 (B. Medium)
 
@@ -74,3 +75,4 @@
 | 일자 | 변경 |
 | --- | --- |
 | 2026-05-13 | 1차 작성 (sprint `claude/work_260513-c`). 4 파일 + PR 템플릿 + 에이전트 가이드 진입점 동시 도입. |
+| 2026-05-13 | 로그인 세션 + 사용자/조직 추적성 보완 계획 문서 추가 (`traceability_remediation_plan_auth_org.md`). |

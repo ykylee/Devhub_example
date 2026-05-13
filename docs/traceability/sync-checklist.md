@@ -13,7 +13,7 @@
 
 | 변경 성격 | 필요 단계 |
 | --- | --- |
-| 새 요구사항 추가 | §3.1 (REQ ID 발급) + §3.6 (매트릭스 row 추가) + §3.7 (PR body 명시) |
+| 새 요구사항 추가 | §3.1 (REQ ID 발급) + §3.1.5 (UC 발급/연결) + §3.6 (매트릭스 row 추가) + §3.7 (PR body 명시) |
 | 기존 요구사항 구현 / 보강 | §3.4 (IMPL), §3.5 (UT/TC), §3.6 (매트릭스 cross-ref 갱신), §3.7 |
 | 설계 변경 (architecture / API) | §3.2 (ARCH/API), §3.6, §3.7 + 영향받는 REQ 의 cross-ref 갱신 |
 | 로드맵 갱신 | §3.3 (RM), §3.6, §3.7 |
@@ -33,6 +33,13 @@
 1. `docs/requirements.md` 또는 `docs/backend/requirements.md` 에 요구사항 본문 추가.
 2. 마지막 `REQ-FR-` / `REQ-NFR-` 번호 + 1 로 ID 할당, 본문의 해당 섹션/표 헤더 옆에 backtick 으로 ID 명기 (예: `### 2.5.7 SSO 통합 (REQ-FR-23)`).
 3. `report.md` §`REQ-*` 인덱스 표에 1 row 추가.
+
+
+### 3.1.5 Usecase 추가 (REQ↔DESIGN 사이)
+
+1. 신규 도메인 또는 큰 정책 변경 시 `UC-<domain>-<nn>` ID 를 발급한다 (예: `UC-APP-01`, `UC-PROJ-01`).
+2. Usecase 문서(`docs/planning/system_usecases.md` 또는 도메인 spec) 에 행위자, 트리거, 성공 조건, 관련 REQ 를 명시한다.
+3. `report.md` 인덱스와 종합 매트릭스에 REQ→UC→ARCH/API 체인을 반영한다.
 
 ### 3.2 설계 변경
 
@@ -62,7 +69,7 @@
 
 `docs/traceability/report.md` 의 종합 매트릭스 표:
 
-- **새 row** 추가 시: REQ + ARCH/API + ROADMAP + IMPL + UT + TC 6 열 모두 채움 (`-` 로 미구현 표기 허용).
+- **새 row** 추가 시: REQ + USECASE + ARCH/API + ROADMAP + IMPL + UT + TC 7 열 모두 채움 (`-` 로 미구현 표기 허용).
 - **기존 row 갱신** 시: 변경된 열만 갱신, 다른 열은 그대로. commit SHA / PR 번호 추적은 git history 에 위임 — 매트릭스 본문에 절대 적지 않음.
 - **deprecate** 시: row 의 status 열 (있다면) 또는 ID 옆에 ` (deprecated)` 마킹. row 자체는 제거하지 않는다 (`conventions.md` §2 영속성).
 

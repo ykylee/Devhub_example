@@ -1,0 +1,246 @@
+# DevHub 시스템 ERD 카탈로그
+
+- 문서 목적: 코드베이스 전체 모듈의 데이터 모델을 ERD로 분리 관리한다.
+- 범위: 현행 DB 스키마(마이그레이션 000001~000011) + Project 확장 ERD 초안.
+- 대상 독자: Backend 설계/구현 담당, 데이터 모델 리뷰어, 추적성 리뷰어.
+- 상태: draft
+- 최종 수정일: 2026-05-13
+- 관련 문서: [Usecase 카탈로그](./system_usecases.md), [요구사항](../requirements.md), [API 계약](../backend_api_contract.md)
+
+## 1. 기준
+
+- 스키마 기준: `backend-core/migrations/*.up.sql`
+- 현행 소스 기준: `backend-core/internal/store`, `backend-core/internal/httpapi`
+
+## 2. 모듈별 ERD
+
+### 2.1 Gitea Ingest / Snapshot
+
+```mermaid
+erDiagram
+    REPOSITORIES ||--o{ ISSUES : has
+    REPOSITORIES ||--o{ PULL_REQUESTS : has
+    REPOSITORIES ||--o{ CI_RUNS : has
+
+    WEBHOOK_EVENTS {
+      bigint id PK
+      text dedupe_key UK
+      text event_type
+      text status
+      jsonb payload
+    }
+    REPOSITORIES {
+      bigint id PK
+      bigint gitea_repository_id UK
+      text full_name UK
+    }
+    ISSUES {
+      bigint id PK
+      bigint repository_id FK
+      bigint number
+      text state
+    }
+    PULL_REQUESTS {
+      bigint id PK
+      bigint repository_id FK
+      bigint number
+      text state
+    }
+    CI_RUNS {
+      bigint id PK
+      text external_id UK
+      bigint repository_id FK
+      text status
+    }
+    RISKS {
+      bigint id PK
+      text risk_key UK
+      text status
+      text impact
+    }
+```
+
+### 2.2 Organization / Users / RBAC
+
+```mermaid
+erDiagram
+    ORG_UNITS ||--o{ ORG_UNITS : parent_child
+    ORG_UNITS ||--o{ USERS : primary_current
+    USERS ||--o{ UNIT_APPOINTMENTS : assigned
+    ORG_UNITS ||--o{ UNIT_APPOINTMENTS : contains
+    RBAC_POLICIES ||--o{ USERS : role_fk
+
+    ORG_UNITS {
+      bigint id PK
+      text unit_id UK
+      text parent_unit_id FK
+      text unit_type
+      text leader_user_id
+    }
+    USERS {
+      bigint id PK
+      text user_id UK
+      text email UK
+      text role FK
+      text primary_unit_id FK
+      text current_unit_id FK
+      text kratos_identity_id UK
+    }
+    UNIT_APPOINTMENTS {
+      bigint id PK
+      text user_id FK
+      text unit_id FK
+      text appointment_role
+    }
+    RBAC_POLICIES {
+      text role_id PK
+      boolean is_system
+      jsonb permissions
+    }
+```
+
+### 2.3 Command / Audit
+
+```mermaid
+erDiagram
+    COMMANDS ||--o{ AUDIT_LOGS : emits
+
+    COMMANDS {
+      bigint id PK
+      text command_id UK
+      text command_type
+      text target_type
+      text target_id
+      text status
+      jsonb request_payload
+      jsonb result_payload
+    }
+    AUDIT_LOGS {
+      bigint id PK
+      text audit_id UK
+      text actor_login
+      text action
+      text target_type
+      text target_id
+      text command_id FK
+      text request_id
+      text source_type
+      text source_ip
+    }
+```
+
+### 2.4 HRDB
+
+```mermaid
+erDiagram
+    HRDB_PERSONS {
+      text system_id PK
+      text employee_id UK
+      text name
+      text department_name
+      text email
+      timestamptz updated_at
+    }
+```
+
+### 2.5 Application/Repository/Project 확장 초안
+
+```mermaid
+erDiagram
+    APPLICATIONS ||--o{ APPLICATION_REPOSITORIES : contains
+    APPLICATIONS ||--o{ PROJECTS : governs
+    PROJECTS ||--o{ PROJECT_INTEGRATIONS : connects
+    PROJECTS ||--o{ PROJECT_MEMBERS : has
+    USERS ||--o{ PROJECT_MEMBERS : joins
+    USERS ||--o{ APPLICATIONS : owns
+    USERS ||--o{ PROJECTS : owns
+
+    APPLICATIONS {
+      uuid id PK
+      text code UK
+      text name
+      text description
+      text status
+      text visibility
+      text owner_user_id FK
+      date start_date
+      date due_date
+      timestamptz archived_at
+      timestamptz created_at
+      timestamptz updated_at
+    }
+    APPLICATION_REPOSITORIES {
+      uuid application_id FK
+      text repo_provider
+      text repo_full_name
+      text role
+      timestamptz linked_at
+    }
+    PROJECTS {
+      uuid id PK
+      uuid application_id FK
+      text repo_full_name
+      text code
+      text name
+      text description
+      text status
+      text visibility
+      text owner_user_id FK
+      date start_date
+      date due_date
+      timestamptz archived_at
+      timestamptz created_at
+      timestamptz updated_at
+    }
+    PROJECT_INTEGRATIONS {
+      uuid id PK
+      uuid project_id FK
+      text scope
+      text integration_type
+      text external_key
+      text url
+      text policy
+      timestamptz created_at
+      timestamptz updated_at
+    }
+    PROJECT_MEMBERS {
+      uuid project_id FK
+      text user_id FK
+      text project_role
+      timestamptz joined_at
+    }
+```
+
+## 3. 통합 ERD (현행 + Project 확장)
+
+```mermaid
+erDiagram
+    WEBHOOK_EVENTS ||--o{ REPOSITORIES : ingest
+    REPOSITORIES ||--o{ ISSUES : has
+    REPOSITORIES ||--o{ PULL_REQUESTS : has
+    REPOSITORIES ||--o{ CI_RUNS : has
+
+    ORG_UNITS ||--o{ ORG_UNITS : parent
+    ORG_UNITS ||--o{ USERS : belongs
+    USERS ||--o{ UNIT_APPOINTMENTS : assigned
+    ORG_UNITS ||--o{ UNIT_APPOINTMENTS : appointment
+    RBAC_POLICIES ||--o{ USERS : role_fk
+
+    COMMANDS ||--o{ AUDIT_LOGS : emits
+
+    APPLICATIONS ||--o{ APPLICATION_REPOSITORIES : contains
+    APPLICATIONS ||--o{ PROJECTS : governs
+    PROJECTS ||--o{ PROJECT_INTEGRATIONS : connects
+    PROJECTS ||--o{ PROJECT_MEMBERS : has
+    USERS ||--o{ PROJECT_MEMBERS : joins
+    USERS ||--o{ PROJECTS : owns
+    USERS ||--o{ APPLICATIONS : owns
+    APPLICATION_REPOSITORIES }o--|| REPOSITORIES : maps
+    PROJECTS }o--|| APPLICATION_REPOSITORIES : executes_on_repo
+```
+
+## 4. 설계/구현 반영 규칙
+
+1. 신규 API 계약은 대응 ERD 엔티티를 참조해야 한다.
+2. 신규 마이그레이션은 본 문서의 ERD 섹션 번호를 커밋/PR에 명시한다.
+3. 추적성 매트릭스에서 UC/ARCH/API/IMPL가 동일 모듈 ERD를 참조하도록 유지한다.

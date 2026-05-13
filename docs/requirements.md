@@ -190,14 +190,72 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
         - **권한 격리:** 인프라 모니터링, Runner 제어, 시스템 설정 등 핵심 관리 기능은 **시스템 관리자(System Admin) 역할에만 배타적으로 부여**함.
         - **인프라 제어:** 알림 임계치 설정, Runner 직접 제어(재시작/설정), 백업 상태 실시간 확인 기능을 제공함.
         - **계정 및 조직 관리:** Gitea와 연동된 계정, 사용자 권한, 조직 구성을 통합 관리하며, 향후 **Gitea와 SSO(Single Sign-On) 연동**을 통해 통합 인증 체계를 구축함 (초기 단계에서 2FA는 미도입).
-    7. **프로젝트 및 저장소 관리 (Project Manager / Admin):**
-        - **프로젝트 생애주기 자동화:** 신규 프로젝트 생성 시 다음 과정을 자동화함:
+    7. **Application/Repository/Project 관리 (System Admin):**
+        - **Application/Repository 생애주기 자동화:** 신규 Application 등록 이후 Repository 실행 환경을 다음 순서로 자동화함.
             1. Gitea 내 신규 저장소 자동 생성.
             2. 기본 브랜치 보호 정책(Branch Protection) 자동 적용.
-            3. 프로젝트 멤버 자동 초대 및 권한 설정.
-        - **저장소 연동 매핑:** 프로젝트-저장소 간 연결 상태를 관리하며, 추가적인 자동화 시나리오는 운영 단계에서 지속적으로 고도화함.
+            3. 저장소 멤버 자동 초대 및 권한 설정.
+        - **Project 운영 갱신:** Repository 하위 기간성 Project 생성/보관 정책과 연동하여 운영 주기(연간/반기/분기) 갱신을 지원함.
+        - **연결 매핑 관리:** Application-Repository, Repository-Project 연결 상태를 관리하며, 추가 자동화 시나리오는 운영 단계에서 지속 고도화함.
     8. **내부 전용 데이터 관리 (Internal Only):**
         - 팀 문화, Kudos(동료 칭찬), 이스터에그 등 Gitea에 기록하기 부적절하거나 팀 내 폐쇄성이 필요한 정보는 **DevHub 자체 DB**에만 보관.
+
+### 5.4 [Agenda 4] Project 운영 모델 고도화 (Requirements Phase)
+- **논의 배경:** 제품 수명 단위의 상위 관리와 연간 운영 단위의 행정 갱신을 함께 지원해야 한다. 이를 위해 `Application > Repository > Project > GitHub 실행 단위` 계층을 요구사항으로 확정한다.
+- **용어 정책 (확정):**
+    - **Application:** 제품 수명 주기와 함께 가는 최상위 총괄 단위.
+    - **Repository:** Application 하위 실행 단위 (1 Application : N Repository).
+    - **Project:** Repository 하위 기간성 운영 단위 (1 Repository : N Project, 연간/반기/분기 등 정책 기반 갱신 가능).
+    - **Execution Artifact:** Repository 내부의 Issue / Milestone / Project Board / Wiki(또는 Docs).
+
+#### 5.4.1 기능 요구사항 (REQ-FR)
+
+- **REQ-FR-APP-001 (MVP, 확정):** 시스템 관리자는 Application을 생성/수정/보관(archive)할 수 있어야 한다.
+    - 필수 필드: `code`, `name`, `owner`, `start_date`, `due_date`, `visibility`, `status`.
+    - `status` 최소 상태: `planning`, `active`, `on_hold`, `closed`, `archived`.
+- **REQ-FR-APP-002 (MVP, 확정):** 하나의 Application은 0개 이상의 Repository를 연결할 수 있어야 한다.
+    - 연결 단위 필드: `repo_provider`, `repo_full_name`, `role(primary|sub|shared)`.
+- **REQ-FR-PROJ-001 (MVP, 확정):** 시스템 관리자는 Repository 하위 Project를 생성/수정/보관(archive)할 수 있어야 한다.
+    - 필수 필드: `code`, `name`, `owner`, `start_date`, `due_date`, `visibility`, `status`.
+    - `status` 최소 상태: `planning`, `active`, `on_hold`, `closed`, `archived`.
+- **REQ-FR-PROJ-002 (MVP, 확정):** 일반 사용자는 자신이 멤버인 Project 및 공개 Project를 조회할 수 있어야 한다.
+    - `archived` Project는 기본 숨김이며, 명시적 토글로 노출한다.
+- **REQ-FR-PROJ-003 (MVP, 확정):** 시스템 관리자는 Project별 멤버/책임자(owner)를 관리할 수 있어야 한다.
+- **REQ-FR-PROJ-004 (MVP, 확정):** 상위(Application) 로드맵/마일스톤과 하위(Repository) 로드맵/마일스톤을 연결(매핑)할 수 있어야 한다.
+    - 모든 하위 마일스톤은 상위 마일스톤에 `child -> parent` 매핑 가능해야 한다.
+- **REQ-FR-PROJ-005 (MVP, 확정):** Jira 연동은 하이브리드 정책을 지원해야 한다.
+    - 실행 이슈 Source of Truth는 Repository Jira.
+    - Project는 Repository 하위 기간성 운영 단위로 관리한다.
+    - Project Jira에 작업성 Story/Task 직접 생성은 정책 위반으로 취급.
+- **REQ-FR-PROJ-006 (MVP, 확정):** Confluence(또는 문서 체계)는 상/하위 분리 정책을 지원해야 한다.
+    - Project 문서: 방향성/의사결정/분기 계획.
+    - Repository 문서: 설계/RFC/runbook/회고.
+- **REQ-FR-PROJ-007 (MVP, 확정):** 스프린트는 Repository 단위로 운영되어야 하며, Application 레벨은 주간/월간 cadence로 상태를 롤업해야 한다.
+    - 권장 cadence: 주간 Program Sync, 월간 KPI/리스크 리뷰.
+- **REQ-FR-PROJ-008 (후속):** Project 영구 삭제는 `archive 후 N일 보존 + 관리자 재확인` 정책을 따라야 한다.
+- **REQ-FR-PROJ-009 (후속):** Owner 위양(RBAC row-level)은 ADR-0011 후보 결정 후 활성화한다.
+
+#### 5.4.2 비기능/운영 요구사항 (REQ-NFR)
+
+- **REQ-NFR-PROJ-001 (MVP):** Project/Repository 매핑 정보는 감사(audit) 가능해야 하며 생성/수정/해제 이력을 기록해야 한다.
+- **REQ-NFR-PROJ-002 (MVP):** 상위 롤업 지표는 매핑 누락 항목을 조용히 제외하지 않고 경고 상태로 표시해야 한다.
+- **REQ-NFR-PROJ-003 (후속):** Project 대시보드 응답시간 목표(예: p95 2초 이내)와 페이지네이션 한계는 설계 단계에서 별도 계약한다.
+
+#### 5.4.3 Usecase 산출물 (확정)
+
+- 본 아젠다의 설계 진입 직전 Usecase 산출물은 [`docs/planning/system_usecases.md`](./planning/system_usecases.md) 를 source-of-truth 로 사용한다.
+- 해당 문서의 `UC-*` 는 REQ와 ARCH/API 사이의 중간 추적 단계다.
+
+#### 5.4.4 ERD 산출물 (확정)
+
+- 데이터 모델 기준 문서는 [`docs/planning/system_erd.md`](./planning/system_erd.md) 를 사용한다.
+- 설계/구현 단계의 신규 엔티티·관계는 ERD 문서와 동기화해야 한다.
+
+#### 5.4.5 범위 경계 (Out of Scope)
+
+- 신규 Project 생성 시 Gitea 저장소 자동 생성/브랜치 보호/멤버 초대 자동화는 별도 sprint에서 진행한다 (`§5.3-7` 후속).
+- WebSocket 기반 실시간 위험 탐지, AI 제안 자동화는 M4 범위에서 다룬다.
+- MFA 기반 위험 작업 다단계 확인은 운영 진입 직전 정책으로 별도 확정한다.
 
 ## 6. 기술 스택 결정 사항 (Technology Stack Decisions)
 

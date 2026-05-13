@@ -1,7 +1,7 @@
 # 추적성 ID 컨벤션
 
 - 문서 목적: DevHub 의 SDLC 단계 별 항목에 부여하는 추적 ID 의 명명 규칙·영속성·발급 절차를 정의한다.
-- 범위: 요구사항 → 설계 → 로드맵 → 구현 → 단위테스트 → E2E 6 단계.
+- 범위: 요구사항 → Usecase → 설계 → 로드맵 → 구현 → 단위테스트 → E2E 7 단계.
 - 대상 독자: 모든 contributor (사람 + AI agent).
 - 상태: accepted
 - 최종 수정일: 2026-05-13
@@ -13,6 +13,7 @@
 | --- | --- | --- | --- |
 | 요구사항 (functional) | `REQ-FR-` | `REQ-FR-{nn}` | `REQ-FR-01` |
 | 요구사항 (non-functional) | `REQ-NFR-` | `REQ-NFR-{nn}` | `REQ-NFR-03` |
+| Usecase | `UC-` | `UC-{domain}-{nn}` | `UC-APP-01`, `UC-PROJ-01` |
 | 설계 (architecture) | `ARCH-` | `ARCH-{nn}` | `ARCH-02` |
 | 설계 (API contract) | `API-` | `API-{nn}` | `API-07` |
 | 로드맵 | `RM-` | `RM-M{0..3}-{nn}` | `RM-M2-04` |
@@ -49,7 +50,8 @@ PR 작성자가 영향 받는 단계 별로 새 ID 를 정의 + `docs/traceabili
 
 매트릭스의 행 = 추적 chain. 각 chain 은 다음 매핑을 가능한 만족:
 
-- `REQ-FR-*` 는 ≥ 1 `ARCH-*` 또는 `API-*` 와 매핑.
+- `REQ-FR-*` 는 ≥ 1 `UC-*` 와 매핑 (신규 도메인 기본).
+- `UC-*` 는 ≥ 1 `ARCH-*` 또는 `API-*` 와 매핑.
 - 구현된 `REQ-FR-*` 는 ≥ 1 `IMPL-*` 와 매핑.
 - 구현된 `REQ-FR-*` 는 ≥ 1 `UT-*` 또는 `TC-*` 와 매핑 (둘 중 하나로 검증).
 - 모든 `TC-*` 는 ≥ 1 `REQ-FR-*` 또는 `REQ-NFR-*` 로 reverse-trace.

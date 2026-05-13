@@ -36,6 +36,7 @@
 - **[Backend Development Roadmap](../ai-workflow/memory/backend_development_roadmap.md)**: 백엔드 트랙 세부 (Phase 1~13).
 - **[Frontend Development Roadmap](./frontend_development_roadmap.md)**: 프론트엔드 트랙 세부 (Phase 1~7, 역할별 기본 진입 우선순위 UX 기준 포함).
 - **[Planning 디렉터리 진입점](./planning/README.md)**: 마일스톤·트랙·PR/보안 트래커 인덱스. backlog 위치 정책과 향후 추가 예정 자료(sprint plan, release plan 등) 안내.
+- **[Application/Repository/Project 운영 컨셉](./planning/project_management_concept.md)**: 운영 계층 기준 용어(Application > Repository > Project) 및 정책 요약.
 
 ## 4. 테스트 및 검증 (Test & Verification)
 *프로젝트의 품질 보증을 위한 테스트 케이스 및 가이드를 다룹니다.*
