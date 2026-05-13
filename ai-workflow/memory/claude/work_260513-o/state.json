@@ -1,0 +1,10 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "claude/work_260513-o",
+  "status": "in_progress",
+  "base_branch": "main",
+  "base_commit": "4134b37",
+  "scope": "2026-05-13 세션 종료 housekeeping — main flat memory sync (PR #100 흡수 + 다음 세션 진입 안내)",
+  "updated_at": "2026-05-13T18:30:00Z"
+}
