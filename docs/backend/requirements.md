@@ -1,6 +1,11 @@
 # 백엔드 개발 요구사항 명세 (Backend Requirements)
 
-이 문서는 프론트엔드 개발 중 백엔드에 구현이 필요하다고 판단된 API 및 데이터 구조 요구사항을 정리합니다.
+- 문서 목적: 프론트엔드 개발 중 백엔드에 구현이 필요하다고 판단된 API 및 데이터 구조 요구사항을 정리한다.
+- 범위: 실시간 gRPC 스트리밍 / 명령성 액션 / 임계 리스크 알림 / 계정 관리 (M2 일부) — 도메인별 요구사항. 구현 계약 (endpoint shape, envelope) 은 `docs/backend_api_contract.md` 가 source-of-truth.
+- 대상 독자: Backend 개발자, AI agent, 프로젝트 리드.
+- 상태: accepted
+- 최종 수정일: 2026-05-13 (메타 헤더 표준화, sprint `claude/work_260513-d`)
+- 관련 문서: [현재 프론트 구현 기반 연동 요구사항](./frontend_integration_requirements.md), [상세 리뷰 + 구현 계약 재정의 제안](./requirements_review.md), [백엔드 API 계약](../backend_api_contract.md), [통합 요구사항 정의서](../requirements.md), [거버넌스 — 문서 표준](../governance/document-standards.md).
 
 > 상세 리뷰와 구현 계약 재정의 제안은 `docs/backend/requirements_review.md`, 현재 프론트 구현 기반 연동 요구사항은 `docs/backend/frontend_integration_requirements.md`를 기준으로 확인합니다.
 

@@ -1,8 +1,12 @@
 # DevHub 기술 스택 및 환경 설정 가이드
 
-- **작성일:** 2026-04-29
-- **상태:** Finalized
-- **관련 문서:** [아키텍처 설계서](./architecture.md), [요구사항 정의서](./requirements.md)
+- 문서 목적: DevHub 의 확정 기술 스택 (Frontend / Go Core / Python AI / IdP / DB) 과 환경 설정 기준을 정의한다.
+- 범위: 런타임 버전, 핵심 라이브러리 선택, 통신 프로토콜, DB 선택. 운영 절차는 `docs/setup/test-server-deployment.md`, 아키텍처 결정은 `docs/architecture.md` 가 source-of-truth.
+- 대상 독자: 모든 개발자, DevOps, AI agent, 신규 환경 부트스트랩 담당.
+- 상태: accepted
+- 작성일: 2026-04-29
+- 최종 수정일: 2026-05-13 (메타 헤더 표준화, sprint `claude/work_260513-d`)
+- 관련 문서: [아키텍처 설계서](./architecture.md), [요구사항 정의서](./requirements.md), [테스트 서버 배포 가이드](./setup/test-server-deployment.md), [ADR-0001 IdP](./adr/0001-idp-selection.md), [ADR-0003 No-Docker CI scope](./adr/0003-no-docker-policy-ci-scope.md).
 
 ## 1. 확정 기술 스택 (Technology Stack)
 

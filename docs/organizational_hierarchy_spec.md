@@ -1,5 +1,12 @@
 # 조직 계층 구조 및 데이터 모델 명세
 
+- 문서 목적: DevHub 의 조직 관리 기능을 위한 계층 구조 (Division ⊃ Team ⊃ Group ⊃ Part), 포함 관계, 데이터 모델 invariant 를 정의한다.
+- 범위: 도메인 모델 측면의 조직 계층. UX 는 `docs/org_chart_ux_spec.md`, 백엔드 요구사항은 `docs/backend_requirements_org_hierarchy.md`, API 는 `docs/backend_api_contract.md` §12.8 참조.
+- 대상 독자: Backend / 프론트엔드 개발자, AI agent, 조직 모델 검토자.
+- 상태: accepted
+- 최종 수정일: 2026-05-13 (메타 헤더 표준화, sprint `claude/work_260513-d`)
+- 관련 문서: [조직도 UX 명세](./org_chart_ux_spec.md), [백엔드 조직 계층 요구사항](./backend_requirements_org_hierarchy.md), [백엔드 API §12.8](./backend_api_contract.md), [통합 요구사항 §5.2](./requirements.md).
+
 DevHub 플랫폼의 조직 관리 기능을 위한 계층 구조와 포함 관계에 대한 명세입니다.
 
 ## 1. 조직 계층 (Hierarchy Levels)

@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-05-13 진행 중. M1/M2 100% done + M2 1차 완성 sprint 닫힘 (PR #85: UX hygiene + Kratos audit + 30 TC e2e gate). GitHub Actions CI 그린 (PR #86: backend-unit + frontend-unit + e2e 40/40). 현재 sprint claude/work_260513-a — main flat memory sync + FU-CI-2/3/4 (playwright install scope, GHA cache, frontend readiness timeout). 다음 진입 후보: caller-supplied X-Request-ID validation / ctx 표준 request_id 전파 / writeRBACServerError → writeServerError 통합 / FU-CI-1 (no-docker policy) / M4 진입.",
-  "updated_at": "2026-05-13T01:00:00Z",
-  "head_commit": "450cc24",
-  "head_summary": "Merge pull request #86 (ci: E2E 테스트 안정화 및 GitHub Actions CI 파이프라인 구축)",
+  "status": "2026-05-13 진행 중. M1/M2 100% done + M2 1차 완성 sprint 닫힘 (PR #85). GitHub Actions CI 그린 + FU-CI-1..4 모두 처리 (PR #86/#87/#88). 거버넌스 + 추적성 체계 + 1차 종합 매트릭스 도입 (PR #89). 현재 sprint claude/work_260513-d — 추적성 갭 분석 + 문서 메타 헤더 표준화. 다음 진입 후보: caller-supplied X-Request-ID validation / ctx 표준 request_id 전파 / writeRBACServerError → writeServerError 통합 / 본 sprint backlog 의 후속 (E2E 신규 TC, frontend 컴포넌트 Vitest, RBAC API IMPL 정밀화, X-Devhub-Actor 폐기 ADR) / M4 진입.",
+  "updated_at": "2026-05-13T04:20:00Z",
+  "head_commit": "7fac5bf",
+  "head_summary": "Merge pull request #89 (docs: governance + traceability 체계 도입 + 1차 종합 매트릭스)",
   "milestones": {
     "M0": {
       "status": "done",
@@ -29,7 +29,13 @@
       "status": "done",
       "started_at": "2026-05-12",
       "ended_at": "2026-05-13",
-      "notes": "GitHub Actions CI 도입. PR #86 (gemini/prepare-github-action) — backend-unit (go test ./...) + frontend-unit (Vitest) + e2e (Playwright 40 TC) 3잡. PR #87 (claude/work_260513-a) — playwright install scope (chromium 단일), actions/cache@v4 (go mod + ms-playwright), frontend readiness 120s, playwright install split. ADR-0003 + PR #88 (claude/work_260513-b) — no-docker 정책 CI 확장으로 services: postgres 제거 + pgdg native PG15. FU-CI-1..4 모두 처리 완료."
+      "notes": "GitHub Actions CI 도입. PR #86 (gemini/prepare-github-action) — backend-unit (go test ./...) + frontend-unit (Vitest) + e2e (Playwright 40 TC) 3잡. PR #87 (claude/work_260513-a) — playwright install scope (chromium 단일), actions/cache@v4 (go mod + ms-playwright), frontend readiness 120s, playwright install split. ADR-0003 + PR #88 (claude/work_260513-b) — no-docker 정책 CI 확장으로 services: postgres 제거 + pgdg native PG15 (pg-14 dropcluster + --port=5432 강제). FU-CI-1..4 모두 처리 완료."
+    },
+    "Governance": {
+      "status": "done (1차)",
+      "started_at": "2026-05-13",
+      "ended_at": "2026-05-13",
+      "notes": "PR #89 (claude/work_260513-c) — docs/governance/ (README + document-standards.md) + docs/traceability/ (README + conventions.md + sync-checklist.md + report.md) + .github/pull_request_template.md + AGENTS/GEMINI 진입점 안내. 1차 종합 매트릭스: REQ-FR 105 + REQ-NFR 26 + ARCH 17 + API 40 + RM 28 + IMPL 79 + UT 47 + TC 37 = 412 항목, 도메인 그룹 13행. 후속 sprint claude/work_260513-d: §5 gap 분석 + §8 우선순위 1+2 메타 헤더 표준화."
     }
   },
   "components": {
@@ -75,8 +81,15 @@
       "work_260512_j": "ai-workflow/memory/claude/work_260512-j/ (CLOSED, PR #82 second-pass fix + #83 close)",
       "login_usermanagement_finish": "ai-workflow/memory/claude/login_usermanagement_finish/ (CLOSED, PR #85 M2 1차 완성 sprint — UX hygiene + Kratos audit + 30 TC)",
       "gemini_prepare_github_action": "ai-workflow/memory/gemini/prepare-github-action/ (CLOSED, PR #86 GHA CI 그린 + 리뷰어 모드 2-pass)",
-      "work_260513_a": "ai-workflow/memory/claude/work_260513-a/ (IN PROGRESS, main flat sync + FU-CI-2/3/4)"
-    }
+      "work_260513_a": "ai-workflow/memory/claude/work_260513-a/ (CLOSED, PR #87 GHA 최적화 FU-CI-2/3/4 + main flat sync)",
+      "work_260513_b": "ai-workflow/memory/claude/work_260513-b/ (CLOSED, PR #88 ADR-0003 + native PG 15)",
+      "work_260513_c": "ai-workflow/memory/claude/work_260513-c/ (CLOSED, PR #89 governance + traceability + 1차 매트릭스)",
+      "work_260513_d": "ai-workflow/memory/claude/work_260513-d/ (IN PROGRESS, 추적성 갭 분석 + 문서 메타 헤더 표준화)"
+    },
+    "governance_entry": "docs/governance/README.md",
+    "traceability_entry": "docs/traceability/README.md",
+    "traceability_matrix": "docs/traceability/report.md",
+    "adr_no_docker_ci": "docs/adr/0003-no-docker-policy-ci-scope.md"
   },
   "merged_prs_2026_05_11": [
     {"pr": 45, "sprint": "work_26_05_11", "title": "feat(auth): /api/v1/auth/logout proxy (PR-L1)", "merge_commit": "61541da"},
@@ -104,7 +117,10 @@
     {"pr": 85, "sprint": "login_usermanagement_finish", "title": "feat(M2): 1차 완성 sprint — 로드맵 정합 + UX hygiene + Kratos audit", "merge_commit": "84b2dde"}
   ],
   "merged_prs_2026_05_13": [
-    {"pr": 86, "sprint": "gemini/prepare-github-action", "title": "ci: E2E 테스트 안정화 및 GitHub Actions CI 파이프라인 구축", "merge_commit": "450cc24"}
+    {"pr": 86, "sprint": "gemini/prepare-github-action", "title": "ci: E2E 테스트 안정화 및 GitHub Actions CI 파이프라인 구축", "merge_commit": "450cc24"},
+    {"pr": 87, "sprint": "work_260513-a", "title": "ci: FU-CI-2/3/4 (playwright scope, GHA cache, frontend readiness) + main flat memory sync", "merge_commit": "e86f38f"},
+    {"pr": 88, "sprint": "work_260513-b", "title": "docs(adr): ADR-0003 no-docker policy CI scope — drop services: postgres + native PG 15", "merge_commit": "9268227"},
+    {"pr": 89, "sprint": "work_260513-c", "title": "docs: governance + traceability 체계 도입 + 1차 종합 매트릭스", "merge_commit": "7fac5bf"}
   ],
   "discarded_sprints_2026_05_12": [
     {"slot": "work_260512-h", "reason": "진입 직후 후보 (M2 hygiene users.kratos_identity_id) 가 PR-L4 (809f525, work_26_05_11-e) 에 이미 머지된 것 확인. 신규 작업 없어 폐기."}
