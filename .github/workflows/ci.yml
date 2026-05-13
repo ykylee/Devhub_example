@@ -91,13 +91,14 @@ jobs:
             | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
           sudo apt-get update -qq
           sudo apt-get install -y -qq postgresql-15
-          # Belt-and-braces: if postgres-common did NOT auto-create the 15/main
-          # cluster, create it explicitly. Then make sure it is started.
-          if ! pg_lsclusters -h | awk '{print $1"/"$2}' | grep -qx '15/main'; then
-            sudo pg_createcluster 15 main --start
-          else
-            sudo pg_ctlcluster 15 main start || true
-          fi
+          # postgres-common 의 postinst 가 자동 생성한 15/main 이 다른 cluster /
+          # 잔여 socket 의 5432 점유로 5433 으로 만들어진 사례 관찰 (run
+          # 25774911487 의 pg_lsclusters 출력). 명시적으로 drop + 5432 재생성.
+          # drop 은 cluster 부재 시 silently no-op.
+          sudo pg_dropcluster --stop 15 main 2>/dev/null || true
+          sudo pg_dropcluster --stop 14 main 2>/dev/null || true
+          sudo pg_createcluster --start --port=5432 15 main
+          pg_lsclusters
           sudo -u postgres psql -c "CREATE USER runner SUPERUSER;"
           sudo -u postgres psql -c "CREATE DATABASE devhub OWNER runner;"
           # CI-only trust auth on localhost so DB_URL (no password) connects.
