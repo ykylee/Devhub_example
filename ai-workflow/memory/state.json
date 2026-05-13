@@ -26,10 +26,10 @@
       "first_completion_sprint": "claude/login_usermanagement_finish (PR #85, 2026-05-12 머지) — M2 1차 완성 sprint: 로드맵 정합 + UX hygiene 묶음 (PR-UX1+2+3) + Kratos settings/password/after webhook → audit_logs (PR-M2-AUDIT) + 30 TC e2e 게이트 추가."
     },
     "CI": {
-      "status": "done (1차)",
+      "status": "done",
       "started_at": "2026-05-12",
       "ended_at": "2026-05-13",
-      "notes": "GitHub Actions CI 도입. PR #86 (gemini/prepare-github-action) — backend-unit (go test ./...) + frontend-unit (Vitest) + e2e (Playwright 40 TC) 3잡. 리뷰어 모드 2-pass 에서 5 blocker + follow-on 5 발견 → 보강 commit 7개. 마지막 그린 run 25770711520 (head 1f59a05). PR-T5 (CI 도입) 의 핵심 잡 묶음은 본 PR 으로 1차 완료. 미반영 follow-up: FU-CI-1 (no-docker policy 정합)."
+      "notes": "GitHub Actions CI 도입. PR #86 (gemini/prepare-github-action) — backend-unit (go test ./...) + frontend-unit (Vitest) + e2e (Playwright 40 TC) 3잡. PR #87 (claude/work_260513-a) — playwright install scope (chromium 단일), actions/cache@v4 (go mod + ms-playwright), frontend readiness 120s, playwright install split. ADR-0003 + PR #88 (claude/work_260513-b) — no-docker 정책 CI 확장으로 services: postgres 제거 + pgdg native PG15. FU-CI-1..4 모두 처리 완료."
     }
   },
   "components": {
@@ -115,8 +115,9 @@
       "PR-T5 (CI 도입, DEC-4) — PARTIAL-DONE: PR #86 (2026-05-13 머지) 으로 backend-unit + frontend-unit + e2e (Playwright 40 TC) 3잡 GHA 도입 완료. 본 sprint claude/work_260513-a 가 FU-CI-2/3/4 처리. 잔여 follow-up: FU-CI-1 (no-docker policy 정합).",
       "hygiene-test-admin — PoC `test/test` 시드 제거 (운영 진입 직전, test-server-deployment §10 체크리스트)."
     ],
-    "ci_followups": [
-      "FU-CI-1 — `.github/workflows/ci.yml` 의 `services: postgres:15` 가 메모리의 no-docker 정책 (deploy 정책) 과 형식적으로 충돌. 본 PR 에서는 CI ephemeral sidecar 예외로 유지. 정책 본문에 'CI ephemeral sidecar 는 예외' 명시 또는 ubuntu-latest preinstalled PostgreSQL native 기동으로 리팩토 결정 필요. ADR 1 페이지 권장. PR #86 리뷰 코멘트 (issuecomment-4435695605) Non-blocker 항목 1."
+    "ci_followups": [],
+    "ci_decisions_2026_05_13": [
+      "ADR-0003 (2026-05-13) — no-docker 정책이 CI 까지 적용됨을 명문화. `.github/workflows/ci.yml` 의 `services: postgres:15` sidecar 제거 + pgdg apt repo 로 native PostgreSQL 15 설치하는 step 으로 교체. 본 결정으로 FU-CI-1 항목 처리 완료."
     ],
     "m2_followups": [
       "Kratos webhook 수신 → DevHub audit_logs 통합 (self-service password 변경 등 audit)",

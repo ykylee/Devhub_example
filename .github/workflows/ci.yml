@@ -50,20 +50,10 @@ jobs:
   e2e:
     name: E2E Tests (Playwright)
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: runner
-          POSTGRES_DB: devhub
-          POSTGRES_HOST_AUTH_METHOD: trust
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    # ADR-0003: no-docker policy. Native postgresql-15 is installed below in
+    # the "Setup PostgreSQL (native)" step so this job stays consistent with
+    # the prod deployment shape (test-server-deployment.md §1.2). The earlier
+    # `services: postgres:15` sidecar container was removed.
     steps:
       - uses: actions/checkout@v4
       - name: Set up Go
@@ -76,6 +66,34 @@ jobs:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup PostgreSQL (native)
+        # ADR-0003: install postgresql-15 from the official pgdg apt repo so
+        # the CI postgres matches prod (PG 15) and the no-docker policy holds
+        # at the CI layer. trust auth on localhost is CI-only (loopback never
+        # leaves the runner). `runner` matches the user the rest of the job
+        # uses in DB_URL strings (set in ci-setup.sh + Start Backend env).
+        run: |
+          set -euo pipefail
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+            -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+          codename=$(lsb_release -cs)
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${codename}-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-15
+          # The pgdg postgresql-15 package starts the cluster on install via
+          # pg_ctlcluster (not systemctl on GH runners). Make sure it is up.
+          sudo pg_ctlcluster 15 main start || true
+          sudo -u postgres psql -c "CREATE USER runner SUPERUSER;"
+          sudo -u postgres psql -c "CREATE DATABASE devhub OWNER runner;"
+          # CI-only trust auth on localhost so DB_URL (no password) connects.
+          conf=/etc/postgresql/15/main/pg_hba.conf
+          sudo sed -i -E 's|^(host\s+all\s+all\s+127\.0\.0\.1/32)\s+\S+|\1 trust|' "$conf"
+          sudo sed -i -E 's|^(host\s+all\s+all\s+::1/128)\s+\S+|\1 trust|' "$conf"
+          sudo pg_ctlcluster 15 main restart
+          timeout 30s bash -c 'until pg_isready -h 127.0.0.1 -p 5432; do sleep 1; done'
       
       # FU-CI-3: cache the same paths as backend-unit so reused.
       - name: Cache Go build + module cache

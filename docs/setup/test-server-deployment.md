@@ -5,11 +5,11 @@
 - 대상 독자: 테스트 서버 운영자, QA, 신규 환경 부트스트랩 담당.
 - 상태: draft (sprint `claude/work_26_05_11`)
 - 최종 수정일: 2026-05-11
-- 관련 문서: [개발 환경 구성](./environment-setup.md) (개발용), [ADR-0001 IdP](../adr/0001-idp-selection.md), [Hydra 설정](../../infra/idp/hydra.yaml), [Kratos 설정](../../infra/idp/kratos.yaml), [backend API 계약](../backend_api_contract.md)
+- 관련 문서: [개발 환경 구성](./environment-setup.md) (개발용), [ADR-0001 IdP](../adr/0001-idp-selection.md), [ADR-0003 No-Docker policy CI 범위](../adr/0003-no-docker-policy-ci-scope.md), [Hydra 설정](../../infra/idp/hydra.yaml), [Kratos 설정](../../infra/idp/kratos.yaml), [backend API 계약](../backend_api_contract.md)
 
 ## 0. 정책
 
-- **Docker 미사용** — 모든 프로세스는 host OS 의 native binary 또는 시스템 서비스로 기동한다 (`CLAUDE.md` 의 "No Docker policy", ADR-0001 §5·§7.2 결정).
+- **Docker 미사용** — 모든 프로세스는 host OS 의 native binary 또는 시스템 서비스로 기동한다 (`CLAUDE.md` 의 "No Docker policy", ADR-0001 §5·§7.2 결정, ADR-0003 으로 CI 범위까지 확장 명문화).
 - **PoC 1차** — Windows Service / systemd unit 등록은 본 문서 범위 밖. 별도 창/백그라운드 프로세스로 직접 실행 (ADR-0001 §8.7).
 - **PoC secrets** — `infra/idp/{hydra,kratos}.yaml` 의 `secrets` 필드는 PoC placeholder. 운영 진입 시 반드시 교체 (ADR-0001 §1·§7.2 의 후속 hygiene).
 
