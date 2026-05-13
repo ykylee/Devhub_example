@@ -25,7 +25,7 @@
 ### 2.2 Design (ARCH / API)
 
 - **Architecture**: ARCH-01 ~ ARCH-17 (총 17 항목, `docs/architecture.md` + `docs/org_chart_ux_spec.md` + `docs/organizational_hierarchy_spec.md` 분포).
-- **API contract**: API-01 ~ API-40 (총 40 항목, `docs/backend_api_contract.md` §3–§12 분포).
+- **API contract**: API-01 ~ API-40 — *ID 공간 = 40*. 본 sprint `claude/work_260513-i` / `-j` 의 결정으로 일부 ID 는 composite (`API-07` = infra/edges + infra/topology, `API-13` = risks + risks/critical) 또는 결손 (`API-03` 미정의 — 후속 발급 후보) 이 존재한다. 실제 endpoint 매핑은 본 §2.2 아래 도메인별 서브 표 (RBAC / Auth / Infra+Dashboard / Pipelines / Realtime+Command+Audit / Account+Org+Me) 가 source-of-truth.
 
 #### RBAC API §12 — endpoint 매핑 (sprint `claude/work_260513-f`, 본문 ID 노출 1차 도메인)
 
@@ -227,6 +227,8 @@
 | [ADR-0003](../adr/0003-no-docker-policy-ci-scope.md) | No-Docker 정책 CI 범위 명문화 | accepted (2026-05-13, PR #88) | CI / 거버넌스 |
 | [ADR-0004](../adr/0004-x-devhub-actor-removal.md) | `X-Devhub-Actor` 헤더 폐기 완료 선언 | accepted (2026-05-13, sprint `claude/work_260513-h`) | 인증 (auth) |
 | [ADR-0005](../adr/0005-workflow-lint-actionlint.md) | GitHub Actions workflow lint (actionlint) CI 잡 도입 | accepted (2026-05-13, sprint `claude/work_260513-i`) | CI / 거버넌스 |
+| [ADR-0006](../adr/0006-x-devhub-actor-reject-inbound.md) | inbound `X-Devhub-Actor` 헤더 명시 거부 (400) | accepted (2026-05-13, sprint `claude/work_260513-j`) | 인증 (auth) |
+| [ADR-0007](../adr/0007-rbac-cache-multi-instance.md) | RBAC PermissionCache 다중 인스턴스 일관성 (PG LISTEN/NOTIFY, 구현 carve) | accepted (2026-05-13, sprint `claude/work_260513-j`) | RBAC / 운영 |
 
 ## 5. Gap 요약
 
@@ -251,7 +253,7 @@
 | API §12 RBAC 정책 편집 API 의 IMPL 정밀 매핑 | **closed (2026-05-13, sprint `claude/work_260513-f`)** | §12.2~§12.10 의 9 endpoint/정책에 `(API-26..31, 38..40)` 본문 ID 노출 + §2.2 의 RBAC API 매핑 표 + §2.4 의 IMPL-rbac-01..04 책임 정의 (handler / store / enforcement / cache) + §3 RBAC 행 IMPL 컬럼 endpoint-IMPL 1:1 매핑. |
 | Backend AI (`backend-ai/`) placeholder | open | (위와 동일 — 본 sprint 변경 없음) — M3-04 진입 시 IMPL-ai-XX 발급. |
 | Frontend 컴포넌트 Vitest (Header, Sidebar, AuthGuard 등) | **closed (2026-05-13, sprint `claude/work_260513-i`)** | C1 작업 — Header / Sidebar / AuthGuard 단위테스트 추가. `IMPL-frontend-layout-01..02` + `IMPL-frontend-auth-XX` 의 회귀 안전망. |
-| 본문 spec 부재 endpoint (`/api/v1/accounts/*`, `/api/v1/users` CRUD, `/api/v1/organization/*`) | open | sprint `claude/work_260513-i` 가 §10.1 의 carve out 표로 1차 매핑 (`API-25, 33, 34`). 본문 spec 절 작성은 후속 sprint 후보. |
+| 본문 spec 부재 endpoint (`/api/v1/accounts/*`, `/api/v1/users` CRUD, `/api/v1/organization/*`) | **closed (2026-05-13, sprint `claude/work_260513-j`)** | sprint `claude/work_260513-i` 의 §10.1 carve out 표 + sprint `claude/work_260513-j` 가 `backend_api_contract.md` §10.2 (API-25 accounts admin) + §10.3 (API-33 users CRUD) + §10.4 (API-34 organization) 본문 spec 절 신설. endpoint 표 + 권한 + envelope + 1차 에러 매트릭스. 자세한 schema (모든 endpoint 의 request/response/error 매트릭스) 는 후속 spec hygiene 후보. |
 | 카탈로그된 TC 가 spec 으로 구현됐는지 역검증 | open | TC-AUD-02 등 일부 TC 가 카탈로그에만 존재할 가능성 — spec 파일 grep 으로 자동 검증할 hygiene 후보. |
 
 ### 5.3 문서 ↔ 코드 불일치
@@ -259,8 +261,8 @@
 | 항목 | 상태 | 처리 |
 | --- | --- | --- |
 | ADR-0001 vs `frontend_integration_requirements.md` §3.8 | **closed (2026-05-13, sprint `claude/work_260513-d`)** | §3.8 의 "재설계 예정" 노트를 "deprecated" 노트로 명확화 + Phase 13 머지 후 실제 endpoint (API §11.5 / §12.8.2) 로 redirect 링크. |
-| X-Devhub-Actor 완전 제거 trigger | **closed (2026-05-13, sprint `claude/work_260513-h`)** | [ADR-0004](../adr/0004-x-devhub-actor-removal.md) 가 폐기 완료를 선언. M0 SEC-4 에서 prod 코드의 `X-Devhub-Actor` 처리가 이미 제거됐고 M1 PR-D Bearer token verifier 도입으로 actor 도출 경로가 표준화됐다 — ADR-0001 §8 #4 의 trigger 가 그 시점에 충족됐음을 ex-post-facto 명문화. `architecture.md` line 174 + `ADR-0001` §8 #4 인라인 갱신 + `me.go` line 16 주석 잔재 정리. 회귀 방지 negative 테스트 4 파일은 유지. |
-| RBAC cache 다중 인스턴스 일관성 | open | API §12.10 의 미해결 (M1-DEFER-E). pub/sub 또는 polling 도입은 후속 sprint. |
+| X-Devhub-Actor 완전 제거 trigger | **closed (2026-05-13, sprint `claude/work_260513-h` + `-j`)** | [ADR-0004](../adr/0004-x-devhub-actor-removal.md) 가 폐기 완료를 선언 (sprint `-h`). 후속 [ADR-0006](../adr/0006-x-devhub-actor-reject-inbound.md) (sprint `-j`) 이 silent ignore → 400 명시 거부로 전환. `architecture.md` / `ADR-0001` §8 #4 / `me.go` 주석 + `backend_api_contract.md` §8/§9.1/§9.2/§11.3 + `frontend_integration_requirements.md` §3.5 + `environment-setup.md` §2.4 의 spec 잔재 7 위치 정리. 회귀 방지 4 negative 테스트는 ADR-0006 시점에 "ignore → reject" 의도로 갱신. |
+| RBAC cache 다중 인스턴스 일관성 | **closed (decision, 2026-05-13, sprint `claude/work_260513-j`)** | [ADR-0007](../adr/0007-rbac-cache-multi-instance.md) 가 PostgreSQL `LISTEN`/`NOTIFY` 채택을 결정. 검토 옵션 A (선택: PG LISTEN/NOTIFY) / B (Redis pub/sub, ADR-0003 충돌로 거부) / C (폴링, latency tradeoff) / D (carve out, 의도 충돌로 거부). **구현은 M3 진입 시 carve out** — M3 sprint plan 의 명시적 항목. M1-DEFER-E 의 decision 부분 closing. |
 
 ## 6. 변경 이력
 
@@ -274,3 +276,4 @@
 | 2026-05-13 | sprint `claude/work_260513-g` (B1 auth 도메인 2차): `backend_api_contract.md` §11.3 `(API-19)` + §11.5 표에 API ID 컬럼 (`API-20..24, 35`) + §11.5.1 `(API-35)` 본문 ID 노출. 본 §2.2 에 Auth API 매핑 표 + 본 §2.4 에 IMPL-auth-01..07 책임 정의 (verifier / actor / 5 endpoint handler) 서브 표 추가. §3 인증 / 회원가입 / 계정 관리 행에 §2 서브 표 참조 노트 — 회원가입과 계정 관리 행은 cross-cut (API-23 / API-35) 명시. §11.2 외부 의존성 + §11.4 planned 는 매핑 제외 (`conventions.md` §5.2). |
 | 2026-05-13 | sprint `claude/work_260513-h` (B4: X-Devhub-Actor 폐기 ADR): [ADR-0004](../adr/0004-x-devhub-actor-removal.md) 발급. M0 SEC-4 + M1 PR-D Bearer token verifier 도입으로 ADR-0001 §8 #4 trigger 가 이미 충족됐음을 ex-post-facto 명문화. §4 ADR 인덱스에 ADR-0004 행 추가. §5.3 "X-Devhub-Actor 완전 제거 trigger" closed. `docs/architecture.md` line 174 + `docs/adr/0001-idp-selection.md` §8 #4 인라인 갱신 + `backend-core/internal/httpapi/me.go` line 16 주석 잔재 정리. 회귀 방지 negative 테스트 4 파일 (audit_test / commands_test / auth_test / me_test) 그대로 유지. Pass 1 review 보강으로 `backend_api_contract.md` §8/§9.1/§9.2/§11.3 + `frontend_integration_requirements.md` §3.5 + `environment-setup.md` §2.4 의 spec 잔재 6 위치도 함께 정리 + ADR-0004 §5 정정. |
 | 2026-05-13 | sprint `claude/work_260513-i` (대형 묶음 B1~D5): B1 추가 5 도메인 (account / org / command / audit / infra) 본문 ID 노출 + §10.1 "본문 spec 부재 endpoint" carve out 표 + §2.2 4 신규 서브 표 (Infra/Dashboard, Pipelines, Realtime/Command/Audit, Account/Org/Me) + §2.4 6 신규 IMPL 서브 표 (account / org / command / audit / infra+dashboard+realtime+me). §3 6 행 (감사 / 명령 / 실시간 / 인프라 / Webhook+gitea / 대시보드+me + 조직) 갱신 (ID 범위 + §2 서브 표 참조). §5.1 의 명령/인프라 행은 "카탈로그 closed, spec ts open" 으로 갱신. §5.2 frontend Vitest 부재 closed (C1 1차 도입) + 본문 spec 부재 endpoint open (account / users / org). B2 archive/AGENTS.md + archive/split_checklist.md deprecated 마킹. C1 ThemeToggle Vitest 3 tests. C2 test_cases_m3_command_infra.md 신규 (TC-CMD-* / TC-INFRA-* 5 TC 카탈로그, spec ts 작성은 carve out). D5 [ADR-0005](../adr/0005-workflow-lint-actionlint.md) 발급 + `.github/workflows/ci.yml` 에 `workflow-lint` 잡 추가 (raven-actions/actionlint@v2). |
+| 2026-05-13 | sprint `claude/work_260513-j` (M3 진입 전 잔여 후속 일괄): D6 inbound X-Devhub-Actor 거부 (auth.go) + [ADR-0006](../adr/0006-x-devhub-actor-reject-inbound.md) — silent ignore → 400 + `code=x_devhub_actor_removed`. 회귀 4 테스트 의도 갱신 (`me_test`, `audit_test`, `auth_test`, `commands_test`). [ADR-0007](../adr/0007-rbac-cache-multi-instance.md) RBAC cache 다중 인스턴스 일관성 결정 (PG LISTEN/NOTIFY 채택, 구현은 M3 carve out). B2-2 deprecated 추가 마킹 (backend/requirements_review.md / DOCUMENT_INDEX.md / assessment.md). 매트릭스 §2.2 nit 정정 (API-XX ID 공간 + composite + 결손 명시). `backend_api_contract.md` §10.2 (API-25 accounts admin) + §10.3 (API-33 users CRUD) + §10.4 (API-34 organization) 본문 spec 절 신설 — §5.2 "본문 spec 부재 endpoint" closed. AuthGuard smoke Vitest 1 test (loading 상태, 나머지 mock-heavy 본격은 M3+). TC-INFRA-RENDER-01 spec ts (정적 렌더 검증, 인터랙션 TC 는 carve). §4 ADR 인덱스에 ADR-0006 + ADR-0007 행 추가. §5.3 의 X-Devhub-Actor + RBAC cache 항목 closed 갱신. |

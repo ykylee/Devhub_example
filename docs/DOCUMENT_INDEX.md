@@ -1,11 +1,13 @@
 # Document Index
 
+> ⚠ **Deprecated** (2026-05-13, sprint `claude/work_260513-j`). 본 인덱스는 거버넌스 체계 도입 이전의 1회성 정리 (상태가 `document-standards.md` §3 의 표준 lifecycle enum 과 호환되지 않음). 후속 source-of-truth: [`docs/governance/README.md`](./governance/README.md) (거버넌스 진입점, 두 축: 문서 관리 + 추적성) + [`docs/traceability/report.md`](./traceability/report.md) (1차 종합 매트릭스). 본 문서는 참조용으로만 유지된다.
+
 - 문서 목적: 프로젝트의 영구 지식 자산(Knowledge Base)을 체계적으로 정리하여 개발자와 AI 에이전트의 온보딩 및 분석을 돕는다.
 - 범위: 프로젝트 설계, 개발 및 표준, 분석 및 계획
 - 대상 독자: 개발자, AI 에이전트, 프로젝트 온보딩 담당자
-- 상태: DONE. 모든 파일이 커밋되었으며 테스트 케이스가 docs/tests로 정리됨.
-- 최종 수정일: 2026-05-12
-- 관련 문서: [./README.md](./README.md), [../README.md](../README.md)
+- 상태: deprecated
+- 최종 수정일: 2026-05-13 (deprecated 마킹)
+- 관련 문서: [거버넌스 진입점](./governance/README.md), [추적성 매트릭스](./traceability/report.md), [README](./README.md)
 
 이 인덱스는 프로젝트의 영구 지식 자산(Knowledge Base)을 체계적으로 정리하여 개발자와 AI 에이전트의 온보딩 및 분석을 돕습니다.
 

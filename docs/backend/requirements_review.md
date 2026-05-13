@@ -1,9 +1,12 @@
 # 프론트엔드 작성 백엔드 요구사항 상세 리뷰
 
+> ⚠ **Deprecated** (2026-05-13, sprint `claude/work_260513-j`). 2026-05-02 시점의 1회성 리뷰 산출. 본 리뷰의 결정 사항은 그 후 PR-G1 (M1 RBAC, 2026-05-08) 으로 `docs/backend_api_contract.md` §11/§12 재작성 + M1 PR-D / M2 sprint 머지로 흡수됐다. 후속 source-of-truth: [`docs/backend_api_contract.md`](../backend_api_contract.md), [`docs/backend/requirements.md`](./requirements.md). 본 문서는 참조용으로만 유지된다.
+
 - 문서 목적: 프론트엔드 개발 중 작성된 백엔드 요구사항을 현재 확정 아키텍처, API 계약, 프론트 mock/service 타입 기준으로 검토한다.
 - 리뷰 대상: `docs/backend/requirements.md`
 - 기준일: 2026-05-02
-- 상태: draft
+- 상태: deprecated
+- 최종 수정일: 2026-05-13 (deprecated 마킹)
 - 관련 문서: `docs/architecture.md`, `docs/tech_stack.md`, `docs/backend/frontend_integration_requirements.md`, `docs/backend_api_contract.md`, `docs/requirements.md`, `ai-workflow/memory/backend_development_roadmap.md`
 
 ## 1. 검토 결론

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -102,6 +103,9 @@ func TestListAuditLogsFiltersByTarget(t *testing.T) {
 }
 
 func TestCreateUserWritesAuditLogWithSystemFallback(t *testing.T) {
+	// ADR-0006 (2026-05-13) — split: without X-Devhub-Actor header, the dev
+	// fallback path still records the audit log with actor=system. This
+	// pins the legitimate dev path that didn't depend on the legacy header.
 	orgs := newMemoryOrganizationStore()
 	audits := &memoryAuditStore{}
 	router := testRouter(RouterConfig{OrganizationStore: orgs, AuditStore: audits})
@@ -114,8 +118,6 @@ func TestCreateUserWritesAuditLogWithSystemFallback(t *testing.T) {
 		"status": "active"
 	}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/users", bytes.NewReader(body))
-	// X-Devhub-Actor is intentionally still sent; SEC-4 removal must ignore it and the response must not include any deprecation header.
-	req.Header.Set("X-Devhub-Actor", "admin")
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusCreated {
@@ -136,6 +138,31 @@ func TestCreateUserWritesAuditLogWithSystemFallback(t *testing.T) {
 	}
 	if log.Payload["actor_source"] != "system_fallback" {
 		t.Fatalf("expected actor_source=system_fallback payload, got %+v", log.Payload)
+	}
+}
+
+func TestCreateUserRejectsXDevhubActorHeader(t *testing.T) {
+	// ADR-0006: inbound X-Devhub-Actor is rejected outright (400 +
+	// code=x_devhub_actor_removed). Previously this test asserted the
+	// header was silently ignored (201 + audit log with actor=system);
+	// ADR-0006 turns ignore into reject.
+	orgs := newMemoryOrganizationStore()
+	audits := &memoryAuditStore{}
+	router := testRouter(RouterConfig{OrganizationStore: orgs, AuditStore: audits})
+
+	body := []byte(`{"user_id": "u-audit", "email": "audit@example.com", "display_name": "Audit User", "role": "developer", "status": "active"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/users", bytes.NewReader(body))
+	req.Header.Set("X-Devhub-Actor", "admin")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 (ADR-0006 reject), got %d body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "x_devhub_actor_removed") {
+		t.Fatalf("expected body code=x_devhub_actor_removed, got %q", rec.Body.String())
+	}
+	if len(audits.logs) != 0 {
+		t.Fatalf("audit log must not be written when X-Devhub-Actor is rejected, got %d", len(audits.logs))
 	}
 }
 

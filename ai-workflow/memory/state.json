@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-05-13 진행 중. M1/M2 100% done + M2 1차 완성 (PR #85). CI 그린 + FU-CI-1..4 (PR #86/#87/#88). 거버넌스 + 추적성 + 매트릭스 (PR #89) + 갭 정리 + 메타 헤더 (PR #90) + M1 PR-D A 묶음 (PR #91) + B RBAC 1차 (PR #92) + B1 auth 2차 (PR #93) + B4 ADR-0004 (PR #94). 현재 sprint claude/work_260513-i — 대형 묶음 B1~D5 (B1 5 추가 도메인 + B2 deprecated 2 마킹 + C1 ThemeToggle Vitest 1차 + C2 TC-CMD/INFRA 카탈로그 + D5 ADR-0005 + actionlint job). 다음 진입 후보: AuthGuard/Header/Sidebar 본격 Vitest / TC-CMD/INFRA spec ts / 본문 spec 부재 endpoint (account / users / org) / M3/M4 진입.",
-  "updated_at": "2026-05-13T10:00:00Z",
-  "head_commit": "ceb0f6f",
-  "head_summary": "Merge pull request #94 (docs(adr): ADR-0004 X-Devhub-Actor 폐기 완료 선언 (B4))",
+  "status": "2026-05-13 진행 중. M1/M2 100% done. PR #86~#95 (10건) 머지 + 거버넌스 + 추적성 + 5 도메인 ID 노출 + X-Devhub-Actor 폐기 + actionlint. 현재 sprint claude/work_260513-j — M3 진입 전 잔여 후속 일괄 (D6 inbound 거부 + ADR-0006/0007 + B2-2 deprecated + 매트릭스 nit + §10.2/§10.3/§10.4 spec 절 + AuthGuard smoke + TC-INFRA-RENDER-01 spec). 다음 진입 후보: M3 진입 (WebSocket UI / AI Gardener gRPC / Gitea Hourly Pull / RBAC cache LISTEN/NOTIFY 구현 / mock-heavy 본격 Vitest / 나머지 TC spec ts).",
+  "updated_at": "2026-05-13T12:00:00Z",
+  "head_commit": "cb9e6d5",
+  "head_summary": "Merge pull request #95 (docs(traceability,adr,ci),test(frontend): 대형 묶음 B1~D5)",
   "milestones": {
     "M0": {
       "status": "done",
@@ -89,7 +89,8 @@
       "work_260513_f": "ai-workflow/memory/claude/work_260513-f/ (CLOSED, PR #92 B 묶음 — RBAC 도메인 1차 + Pass 1 review 보강으로 §3 행 정리)",
       "work_260513_g": "ai-workflow/memory/claude/work_260513-g/ (CLOSED, PR #93 B1 auth 도메인 2차 — §11 본문 ID 노출 + IMPL-auth-01..07 책임 정의)",
       "work_260513_h": "ai-workflow/memory/claude/work_260513-h/ (CLOSED, PR #94 B4 X-Devhub-Actor 폐기 ADR-0004 + Pass 1 review 보강으로 spec 잔재 6 위치 흡수)",
-      "work_260513_i": "ai-workflow/memory/claude/work_260513-i/ (IN PROGRESS, 대형 묶음 B1~D5)"
+      "work_260513_i": "ai-workflow/memory/claude/work_260513-i/ (CLOSED, PR #95 대형 묶음 B1~D5 — Pass 1 review clean)",
+      "work_260513_j": "ai-workflow/memory/claude/work_260513-j/ (IN PROGRESS, M3 진입 전 잔여 후속 일괄)"
     },
     "governance_entry": "docs/governance/README.md",
     "traceability_entry": "docs/traceability/README.md",
@@ -130,7 +131,8 @@
     {"pr": 91, "sprint": "work_260513-e", "title": "feat(backend): A 묶음 — M1 PR-D 정합 마무리 (writeRBACServerError + writeAuthLoginServerError 통합 + X-Request-ID validation + ctx 표준 request_id 전파)", "merge_commit": "ae8b459"},
     {"pr": 92, "sprint": "work_260513-f", "title": "docs(traceability,api): B 묶음 — RBAC API §12 IMPL 정밀 매핑 + 본문 ID 노출", "merge_commit": "a73dba1"},
     {"pr": 93, "sprint": "work_260513-g", "title": "docs(traceability,api): B1 auth 도메인 2차 — §11 본문 ID 노출 + IMPL-auth-01..07 책임 정의", "merge_commit": "594be74"},
-    {"pr": 94, "sprint": "work_260513-h", "title": "docs(adr): ADR-0004 X-Devhub-Actor 폐기 완료 선언 (B4)", "merge_commit": "ceb0f6f"}
+    {"pr": 94, "sprint": "work_260513-h", "title": "docs(adr): ADR-0004 X-Devhub-Actor 폐기 완료 선언 (B4)", "merge_commit": "ceb0f6f"},
+    {"pr": 95, "sprint": "work_260513-i", "title": "docs(traceability,adr,ci),test(frontend): 대형 묶음 B1~D5", "merge_commit": "cb9e6d5"}
   ],
   "discarded_sprints_2026_05_12": [
     {"slot": "work_260512-h", "reason": "진입 직후 후보 (M2 hygiene users.kratos_identity_id) 가 PR-L4 (809f525, work_26_05_11-e) 에 이미 머지된 것 확인. 신규 작업 없어 폐기."}

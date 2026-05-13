@@ -1,11 +1,13 @@
 # Repository Assessment
 
+> ⚠ **Deprecated** (2026-05-13, sprint `claude/work_260513-j`). 2026-04-28 시점의 1회성 진단 — 워크플로우 도입 직전 스냅샷. 그 후 M0~M2 sprint + 거버넌스/추적성 도입으로 본 문서의 진단 항목은 모두 흡수됐다. 후속 source-of-truth: [`docs/PROJECT_PROFILE.md`](./PROJECT_PROFILE.md), [`docs/governance/README.md`](./governance/README.md). 본 문서는 참조용으로만 유지된다.
+
 - 문서 목적: 기존 프로젝트에 표준 AI 워크플로우를 도입하기 전에 현재 코드베이스와 문서 구조를 빠르게 진단한다.
 - 범위: 저장소 구조, 추정 기술 스택, 문서 위치, 테스트 흔적, 초기 워크플로우 도입 포인트
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
-- 상태: draft
-- 최종 수정일: 2026-04-28
-- 관련 문서: `../ai-workflow/memory/PROJECT_PROFILE.md`, `../ai-workflow/memory/session_handoff.md`, `../ai-workflow/core/workflow_adoption_entrypoints.md`
+- 상태: deprecated
+- 최종 수정일: 2026-05-13 (deprecated 마킹)
+- 관련 문서: [PROJECT_PROFILE](./PROJECT_PROFILE.md), [거버넌스 진입점](./governance/README.md), [추적성 매트릭스](./traceability/report.md)
 
 ## 1. 요약
 

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -63,8 +64,13 @@ func TestGetMeReturns401WhenDevFallbackButNoActor(t *testing.T) {
 	}
 }
 
-func TestGetMeIgnoresXDevhubActorHeader(t *testing.T) {
-	// SEC-4 close: /api/v1/me must never derive its actor from X-Devhub-Actor, regardless of dev fallback. The header is supplied here intentionally and the response must still be 401 because requestActor falls back to "system" without an authenticated context.
+func TestGetMeRejectsXDevhubActorHeader(t *testing.T) {
+	// SEC-4 close + ADR-0006 (2026-05-13): /api/v1/me must reject inbound
+	// X-Devhub-Actor outright (400 + code=x_devhub_actor_removed) rather
+	// than silently ignore it. The negative test originally asserted 401
+	// (header is ignored, dev fallback resolves actor to "system"); ADR-0006
+	// turns that into an explicit reject so client-side usage of the dead
+	// header surfaces immediately.
 	router := testRouter(RouterConfig{})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
@@ -72,8 +78,11 @@ func TestGetMeIgnoresXDevhubActorHeader(t *testing.T) {
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusUnauthorized {
-		t.Fatalf("expected 401 (X-Devhub-Actor must be ignored), got %d body=%s", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 (ADR-0006 reject), got %d body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "x_devhub_actor_removed") {
+		t.Fatalf("expected body code=x_devhub_actor_removed, got %q", rec.Body.String())
 	}
 	if got := rec.Header().Get("X-Devhub-Actor-Deprecated"); got != "" {
 		t.Fatalf("X-Devhub-Actor-Deprecated must not be set, got %q", got)

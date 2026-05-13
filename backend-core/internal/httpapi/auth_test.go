@@ -297,52 +297,47 @@ func TestPublicWebhookPathBypassesAuthentication(t *testing.T) {
 	}
 }
 
-func TestXDevhubActorIgnoredWhenDevFallbackOff(t *testing.T) {
+func TestXDevhubActorRejectedWhenDevFallbackOff(t *testing.T) {
+	// ADR-0006: inbound X-Devhub-Actor is rejected outright (400 +
+	// code=x_devhub_actor_removed). Previously this asserted 401 (header
+	// ignored, no Authorization → unauth). ADR-0006 makes the header
+	// reject take precedence over the auth gate so client-side usage
+	// surfaces immediately.
 	router := NewRouter(RouterConfig{CommandStore: &memoryCommandStore{}})
 
-	body := []byte(`{
-		"service_id": "svc-1",
-		"action_type": "restart",
-		"reason": "test",
-		"dry_run": true,
-		"idempotency_key": "k-actor-prod"
-	}`)
+	body := []byte(`{"service_id": "svc-1", "action_type": "restart", "reason": "test", "dry_run": true, "idempotency_key": "k-actor-prod"}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/service-actions", bytes.NewReader(body))
 	req.Header.Set("X-Devhub-Actor", "spoofed-actor")
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusUnauthorized {
-		t.Fatalf("expected 401 (no Authorization, dev fallback off), got %d body=%s", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 (ADR-0006 reject), got %d body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "x_devhub_actor_removed") {
+		t.Fatalf("expected body code=x_devhub_actor_removed, got %q", rec.Body.String())
 	}
 }
 
-func TestXDevhubActorIgnoredEvenWhenDevFallbackOn(t *testing.T) {
+func TestXDevhubActorRejectedEvenWhenDevFallbackOn(t *testing.T) {
+	// ADR-0006: dev fallback no longer matters — inbound X-Devhub-Actor
+	// is rejected before the auth/role gate.
 	commandStore := &memoryCommandStore{}
 	router := testRouter(RouterConfig{CommandStore: commandStore})
 
-	body := []byte(`{
-		"service_id": "svc-1",
-		"action_type": "restart",
-		"reason": "test",
-		"dry_run": true,
-		"idempotency_key": "k-actor-dev"
-	}`)
+	body := []byte(`{"service_id": "svc-1", "action_type": "restart", "reason": "test", "dry_run": true, "idempotency_key": "k-actor-dev"}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/service-actions", bytes.NewReader(body))
 	req.Header.Set("X-Devhub-Actor", "spoofed-actor")
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusAccepted {
-		t.Fatalf("expected 202 (dev fallback bypasses role gate), got %d body=%s", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 (ADR-0006 reject), got %d body=%s", rec.Code, rec.Body.String())
 	}
 	if got := rec.Header().Get("X-Devhub-Actor-Deprecated"); got != "" {
-		t.Fatalf("X-Devhub-Actor-Deprecated must not be set after SEC-4 removal, got %q", got)
+		t.Fatalf("X-Devhub-Actor-Deprecated must not be set, got %q", got)
 	}
-	if len(commandStore.commands) != 1 {
-		t.Fatalf("expected one command, got %d", len(commandStore.commands))
-	}
-	if commandStore.commands[0].ActorLogin != "system" {
-		t.Errorf("X-Devhub-Actor must be ignored, expected actor=system, got %q", commandStore.commands[0].ActorLogin)
+	if len(commandStore.commands) != 0 {
+		t.Fatalf("command must not be persisted when X-Devhub-Actor is rejected, got %d", len(commandStore.commands))
 	}
 }
