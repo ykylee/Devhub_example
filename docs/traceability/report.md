@@ -67,7 +67,7 @@
 | **인프라 토폴로지 (infra)** | FR-12, 13, 97, 98, 99; NFR-12, 16 | ARCH-04, 09; API-06 | M3-02 (planned, infra event publish) | infra-01; frontend-role-03 (gardener) | httpapi-12 | (E2E 미커버 — gap §5.1) |
 | **Webhook + 도메인 데이터 (gitea)** | FR-49, 50, 51, 52, 53, 54, 55 | ARCH-06, 07, 08; API-02, 03, 07–13 | (M0 이전 phase 완료) | gitea-01, 02; domain-01..03; normalize | httpapi-10, 14; gitea-01; normalize-01; store-03 | (E2E 미커버 — gap §5.1) |
 | **대시보드 / 메트릭 / me** | FR-1–11, 28–36, 81, 85, 88, 89, 96 | ARCH-10; API-05, 36, 38 | (Phase 4 이전 완료) | dashboard-01; me-01; frontend-dashboard-01; frontend-role-01..03; frontend-store-01; frontend-layout-01..02; frontend-service-api-01 | httpapi-08, 11, 22 | TC-NAV-01..03; TC-NAV-SIM-01 |
-| **CI / 거버넌스 (본 sprint 산출)** | NFR-1 (no-docker) | (ADR-0001 §5; ADR-0003) | M2-16 (CI 1차); 본 sprint (FU-CI-1..4 + 거버넌스) | (build infra: `.github/workflows/ci.yml`, `scripts/ci-setup.sh`, `infra/idp/*.ci.yaml`); `docs/governance/*`, `docs/traceability/*` | (lint 미도입, FU-CI 향후) | (CI run 자체가 검증) |
+| **CI / 거버넌스 (본 sprint 산출)** | NFR-1 (no-docker) | (ADR-0001 §5; ADR-0003 ※) | M2-16 (CI 1차, PR #86); FU-CI-1..4 (PR #87); ADR-0003 (PR #88); 거버넌스 + 매트릭스 (본 PR / sprint `claude/work_260513-c`) | (build infra: `.github/workflows/ci.yml`, `scripts/ci-setup.sh`, `infra/idp/*.ci.yaml`); `docs/governance/*`, `docs/traceability/*` | (lint 미도입, FU-CI 향후) | (CI run 자체가 검증) |
 | **M4 (스코프 밖, planned)** | FR-37–48, 56–57, 60, 90–94 (일부) | API-14 (확장) | M4 항목 (M4 컬럼 별도) | (미진입) | (미진입) | (미진입) |
 
 > Note — 매트릭스 셀의 ID 는 §2 의 단계별 인덱스를 줄여서 표기 (예: `auth-01..07` = `IMPL-auth-01..IMPL-auth-07`). 한 도메인이 여러 단계에 걸쳐 영향을 주므로 정확한 1:1 매핑은 §2 인덱스 + 단계별 문서 본문의 ID 노출 (`document-standards.md` §5) 로 확인.
@@ -78,7 +78,9 @@
 | --- | --- | --- | --- |
 | [ADR-0001](../adr/0001-idp-selection.md) | IdP 선정 (Ory Hydra + Kratos) | accepted (2026-05-07) | 인증, 회원가입, 계정 관리 |
 | [ADR-0002](../adr/0002-rbac-policy-edit-api.md) | RBAC policy edit API (DB-backed matrix) | accepted (2026-05-08) | RBAC |
-| [ADR-0003](../adr/0003-no-docker-policy-ci-scope.md) | No-Docker 정책 CI 범위 명문화 | accepted (2026-05-13, PR #88) | CI / 거버넌스 |
+| ADR-0003 ※ | No-Docker 정책 CI 범위 명문화 | accepted (2026-05-13, **PR #88, 본 PR 머지 시점 미머지 가능**) | CI / 거버넌스 |
+
+> ※ ADR-0003 — 본 PR (`claude/work_260513-c`) 의 base 는 main HEAD `e86f38f` (PR #87 머지 직후) 이며, ADR-0003 는 `docs/adr/0003-no-docker-policy-ci-scope.md` 로 PR #88 (`claude/work_260513-b`) 의 산출. 본 PR 머지 시점에 PR #88 가 아직 main 에 들어가지 않았다면 위 표의 ADR-0003 link 는 main 에서 broken. 권장 머지 순서: PR #88 먼저 → 본 PR. 또는 PR #88 머지 후 본 PR 의 base rebase 시 link 활성화. 후속 cleanup PR 에서 ADR-0003 행을 일반 link 로 정상화 가능.
 
 ## 5. Gap 요약
 
@@ -109,3 +111,4 @@
 | 일자 | 변경 |
 | --- | --- |
 | 2026-05-13 | 1차 작성 (sprint `claude/work_260513-c`). Phase 1–6 분석 결과 통합 + 도메인 그룹 13행 매트릭스 + Gap 요약 §5. |
+| 2026-05-13 | 리뷰어 모드 2-pass: §3 의 CI/거버넌스 행을 PR 단위 산출 (PR #86 / #87 / #88 / 본 PR) 로 명세화. §4 ADR-0003 행에 ※ 노트 추가 — 본 PR 매트릭스가 PR #88 미머지 상태와 정합하지 않을 가능성 자체 인지. |
