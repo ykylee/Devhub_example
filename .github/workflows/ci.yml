@@ -75,6 +75,14 @@ jobs:
         # uses in DB_URL strings (set in ci-setup.sh + Start Backend env).
         run: |
           set -euo pipefail
+          # ubuntu-24.04 runners ship with a preinstalled PostgreSQL 14
+          # cluster occupying port 5432. postgresql-common's postinst skips
+          # auto-creating the new pg-15 cluster when 5432 is taken, which
+          # leaves us with "cluster '15 main' does not exist" and a missing
+          # socket. Drop the pg-14 cluster first so pg-15 owns 5432.
+          sudo systemctl stop postgresql 2>/dev/null || true
+          sudo pg_dropcluster --stop 14 main 2>/dev/null || true
+          # pgdg apt repo + signing key.
           sudo install -d /usr/share/postgresql-common/pgdg
           sudo curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
             -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
@@ -83,9 +91,13 @@ jobs:
             | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
           sudo apt-get update -qq
           sudo apt-get install -y -qq postgresql-15
-          # The pgdg postgresql-15 package starts the cluster on install via
-          # pg_ctlcluster (not systemctl on GH runners). Make sure it is up.
-          sudo pg_ctlcluster 15 main start || true
+          # Belt-and-braces: if postgres-common did NOT auto-create the 15/main
+          # cluster, create it explicitly. Then make sure it is started.
+          if ! pg_lsclusters -h | awk '{print $1"/"$2}' | grep -qx '15/main'; then
+            sudo pg_createcluster 15 main --start
+          else
+            sudo pg_ctlcluster 15 main start || true
+          fi
           sudo -u postgres psql -c "CREATE USER runner SUPERUSER;"
           sudo -u postgres psql -c "CREATE DATABASE devhub OWNER runner;"
           # CI-only trust auth on localhost so DB_URL (no password) connects.
