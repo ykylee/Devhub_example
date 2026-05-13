@@ -1,0 +1,40 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "claude/work_260513-c",
+  "status": "READY FOR PR. 거버넌스 체계 (docs/governance/) + 추적성 체계 (docs/traceability/) + PR template + agent 가이드 진입점 + 종합 매트릭스 (1차) 완료. 기존 문서 재정리는 별도 sprint 로 분기. 본 PR 은 메타 체계 정립 + 1차 종합 매트릭스 산출.",
+  "updated_at": "2026-05-13T02:10:00Z",
+  "branched_from": {
+    "branch": "main",
+    "head_commit": "e86f38f",
+    "head_summary": "ci: FU-CI-2/3/4 (playwright scope, GHA cache, frontend readiness) + main flat memory sync (#87)"
+  },
+  "goal": "DevHub 의 각 SDLC 단계 자산을 분석 + 최신화 + 단일 추적성 매트릭스 보고서 (docs/traceability_report.md) 로 종합. 단계별 ID 체계로 항목 분리, 단계 사이 추적 관계 매핑.",
+  "scope_in": [
+    "Phase 1: 요구사항 — docs/requirements.md, docs/backend/requirements.md, docs/backend_requirements_org_hierarchy.md, docs/frontend_integration_requirements.md → REQ-FR-XX / REQ-NFR-XX ID 부여",
+    "Phase 2: 설계 — docs/architecture.md, docs/backend_api_contract.md, docs/org_chart_ux_spec.md, docs/organizational_hierarchy_spec.md → ARCH-XX / API-XX ID 부여 (ADR 은 별도 서브 섹션에 링크만)",
+    "Phase 3: 로드맵 — docs/development_roadmap.md, docs/frontend_development_roadmap.md, ai-workflow/memory/backend_development_roadmap.md → RM-MX-YY ID 부여",
+    "Phase 4: 구현 — backend-core/, frontend/app/, frontend/components/, frontend/lib/ 모듈 단위 → IMPL-<module>-XX ID 부여",
+    "Phase 5: 단위테스트 — backend-core/**/*_test.go (47 파일), frontend/lib/**/*.test.ts (6 파일) → UT-<pkg>-XX ID 부여",
+    "Phase 6: E2E — frontend/tests/e2e/*.spec.ts (12 spec), docs/tests/test_cases_m2_auth.md, docs/tests/test_cases_m3_organization.md → 기존 TC-<feature>-XX 그대로 사용",
+    "Phase 7: 단계별 갱신 필요 부분 인라인 패치 (gap 발견 시 문서 수정)",
+    "Phase 8: docs/traceability_report.md 단일 종합 테이블 작성",
+    "Phase 9: commit + PR + 2-pass + 머지"
+  ],
+  "scope_out": [
+    "M4 (WebSocket 확장, AI Gardener, Gitea worker) — planned 표기만, 상세 추적 분석은 다음 sprint",
+    "ADR — 별도 서브 섹션에 링크만, 매트릭스 행 미포함",
+    "외부 도구 (Excel / JSON) 산출물 — 본 sprint 는 Markdown 만"
+  ],
+  "id_schema": {
+    "requirements": "REQ-FR-XX (functional) / REQ-NFR-XX (non-functional)",
+    "design": "ARCH-XX (architecture) / API-XX (API contract)",
+    "roadmap": "RM-M{0..3}-YY (마일스톤 + 순번)",
+    "implementation": "IMPL-<module>-XX (예: IMPL-auth-01, IMPL-rbac-02)",
+    "unit_test": "UT-<pkg>-XX (예: UT-httpapi-01, UT-domain-02)",
+    "e2e": "TC-<feature>-XX (기존: TC-AUTH-01, TC-USR-CRUD-02, TC-NAV-02 등)"
+  },
+  "next_actions": {
+    "immediate": "Phase 1 요구사항 분석부터 시작. Explore agent 위임 검토 — 4 문서 동시 read 가능."
+  }
+}
