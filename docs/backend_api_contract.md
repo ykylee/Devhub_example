@@ -829,7 +829,7 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 
 > `audit` 의 create/edit/delete 는 §12.0.4 invariant 로 모든 role 에서 false. system_admin 도 view 만 true.
 
-### 12.2 `GET /api/v1/rbac/policies`
+### 12.2 `GET /api/v1/rbac/policies` (API-26)
 
 시스템 정의 + 사용자 정의 role 전체와 각 role 의 4축 매트릭스를 조회. 매핑 누락 resource (시스템 자원 추가됐는데 role 매트릭스가 미갱신) 는 응답에 `view=false, create=false, edit=false, delete=false` 로 채워 반환.
 
@@ -892,7 +892,7 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 }
 ```
 
-### 12.3 `PUT /api/v1/rbac/policies`
+### 12.3 `PUT /api/v1/rbac/policies` (API-27)
 
 전체 role 또는 특정 role 의 매트릭스를 갱신한다. 시스템 role 의 *id, name, system flag* 는 변경 불가 (store invariant). 시스템 role 의 *permissions* 만 변경 가능.
 
@@ -923,7 +923,7 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 
 200 + 전체 role 응답 (§12.2). audit log 에 `rbac.policy.updated` 항목 1건 (target_type=`rbac_role`, target_id=role id). payload 에 `before`/`after` 매트릭스 diff.
 
-### 12.4 `POST /api/v1/rbac/policies` (사용자 정의 role 생성)
+### 12.4 `POST /api/v1/rbac/policies` (사용자 정의 role 생성) (API-28)
 
 사용자 정의 role 신규 생성. id 는 `custom-{slug}` 검증 (필수 prefix), name 은 자유 문자열, permissions 는 §12.0.3 의 4축 boolean 매트릭스.
 
@@ -931,7 +931,7 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 
 `security:edit` (system_admin).
 
-### 12.5 `DELETE /api/v1/rbac/policies/:role_id` (사용자 정의 role 삭제)
+### 12.5 `DELETE /api/v1/rbac/policies/:role_id` (사용자 정의 role 삭제) (API-29)
 
 사용자 정의 role 만 삭제 가능. 시스템 role (`developer`, `manager`, `system_admin`) 은 422 + `system_role_not_deletable`. 삭제 직전 해당 role 이 할당된 subject 가 있으면 store 가 cascade 또는 422 거부 — *cascade 거부* 채택 (subject 가 있으면 422 + `role_in_use`). 호출자가 `PUT /api/v1/rbac/subjects/:id/roles` 로 먼저 재할당한 뒤 삭제.
 
@@ -939,7 +939,7 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 
 `security:edit` (system_admin).
 
-### 12.6 `GET /api/v1/rbac/subjects/{subject_id}/roles`
+### 12.6 `GET /api/v1/rbac/subjects/{subject_id}/roles` (API-30)
 
 특정 사용자(Subject)에게 할당된 role 목록을 조회. 1차에서는 *single role* 만 보장 (현 backend `users.role` 단일 필드). 응답 array 의 길이는 0~1.
 
@@ -960,7 +960,7 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 }
 ```
 
-### 12.7 `PUT /api/v1/rbac/subjects/{subject_id}/roles`
+### 12.7 `PUT /api/v1/rbac/subjects/{subject_id}/roles` (API-31)
 
 특정 사용자에게 role 을 할당. 1차에서는 single role 만 허용 — 요청 body 의 `roles` 배열 길이는 정확히 1 (그 외는 422 + `single_role_required`). 다중 role + rank 합산은 §6 미해결로 후속 phase.
 
@@ -980,7 +980,7 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 
 200 + `{ "status": "ok", "data": ["manager"], "meta": { "subject_id": "u123" } }`. audit log 에 `rbac.role.assigned` (target_type=`user`, target_id=subject id, payload=`{before, after}`).
 
-### 12.8 라우트 → (resource, action) 매핑 표
+### 12.8 라우트 → (resource, action) 매핑 표 (API-38)
 
 `requirePermission` 미들웨어 (PR-G5) 가 본 표를 source-of-truth 로 enforcement 한다. 표에 *없는* 보호 라우트는 §12.9 의 deny-by-default 정책에 따라 거부된다.
 
@@ -1035,7 +1035,7 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 
 > 신규 v1 라우트가 추가되면 본 표에 행 추가가 *필수*. 누락 시 §12.9 deny-by-default 가 발동해 모든 사용자 거부 + audit 알림.
 
-### 12.9 매핑 누락 정책 (deny-by-default)
+### 12.9 매핑 누락 정책 (deny-by-default) (API-39)
 
 `requirePermission` 미들웨어가 라우트 처리 시점에 (resource, action) 매핑을 찾지 못하면:
 
@@ -1045,7 +1045,7 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 
 본 정책은 라우트 추가 시점의 매핑 표 갱신 누락을 *런타임 거부* 로 강제하기 위한 안전장치다.
 
-### 12.10 Cache 와 무효화
+### 12.10 Cache 와 무효화 (API-40)
 
 - store 적중 비용 회피를 위해 `requirePermission` 은 in-memory matrix cache (per process) 를 유지한다.
 - `PUT/POST/DELETE /api/v1/rbac/policies` 또는 `PUT /api/v1/rbac/subjects/.../roles` 머지 시 동일 프로세스 내 cache reload.
