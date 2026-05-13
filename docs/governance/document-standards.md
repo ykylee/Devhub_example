@@ -110,7 +110,7 @@ ADR 은 `결정일` 필수, 다른 문서는 `최종 수정일` 만.
 - 브랜치별 디렉터리 (`ai-workflow/memory/<agent>/<branch>/`).
 - `state.json` (JSON, 자동화 친화) + `session_handoff.md` + `work_backlog.md`.
 - 머지 후 close 커밋으로 상태 갱신.
-- 메타 헤더의 `상태` 는 `in_progress | done` 만 사용.
+- 메타 헤더의 `상태` 는 작업 진행 enum 사용: `planned | in_progress | blocked | done` (CLAUDE.md / AGENTS.md / GEMINI.md 의 작업 원칙과 정합). 본 문서 §3 의 lifecycle (`draft | proposed | accepted | deprecated`) 과는 다른 축임에 주의 — workflow memory 는 작업 lifecycle 이지 문서 lifecycle 이 아니다.
 
 ## 5. 추적성 ID 본문 노출
 
