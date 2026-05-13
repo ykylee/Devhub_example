@@ -1,16 +1,18 @@
 # Session Handoff — main (2026-05-13 EOD)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
-- 범위: 2026-05-13 세션 종료. 머지 15건 (PR #86~#100) — M3 마일스톤 1차 closing + 후속 1-4 + M4 전 잔여 모두 처리.
+- 범위: 2026-05-13 세션 종료. 머지 17건 (PR #86~#102) — M3 마일스톤 1차 closing + 후속 1-4 + M4 전 잔여 + Project 도메인 컨셉 1차 staged.
 - 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
-- 브랜치: `main` (HEAD `4134b37`, PR #100 squash 직후).
-- 최종 수정일: 2026-05-13 (세션 종료)
-- 상태: M1/M2/M3 모두 1차 closing. ADR 5건 신규 (0006~0010). M4 진입 준비 완료 — RM-M4-01..09 (9 항목) + M3 carve out (6 항목) 이 다음 세션 진입 후보.
-- 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [상태 스냅샷](./state.json), [거버넌스](../../docs/governance/README.md), [추적성 매트릭스](../../docs/traceability/report.md).
+- 상태: M1/M2/M3 모두 1차 closing. ADR 5건 신규 (0006~0010). M4 진입 준비 완료 — RM-M4-01..09 (9 항목) + M3 carve out (6 항목) + Project 도메인 후속 (Req → Usecase → Design → Implementation) 이 다음 세션 진입 후보.
+- 최종 수정일: 2026-05-13 (세션 종료, PR #102 + housekeeping)
+- 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [상태 스냅샷](./state.json), [거버넌스](../../docs/governance/README.md), [추적성 매트릭스](../../docs/traceability/report.md), [Project 도메인 컨셉](../../docs/planning/project_management_concept.md).
+- 브랜치: `main` (HEAD `244f6b1`, PR #102 squash 직후. 본 housekeeping 머지 후 추가 갱신).
 
 ## 0. 2026-05-13 머지 흐름
 
 ```
+244f6b1 PR #102 — docs(planning): Project 도메인 컨셉 1차 — CRUD + 등록 + 조회 MVP scope (claude/work_260513-p)
+118899b PR #101 — docs(memory): 2026-05-13 세션 종료 housekeeping sync (claude/work_260513-o)
 4134b37 PR #100 — feat(domain,migrations),docs(adr,traceability),scripts: M4 전 잔여 일괄 (claude/work_260513-n)
 c7c2f35 PR #99 — feat(hrdb,org,signup),docs(adr,traceability),test: M3 후속 1-4 일괄 (claude/work_260513-m)
 b1268ce PR #98 — feat(auth),docs(adr,api,traceability),test: M3 진입 1차 — RM-M3-01..03 (claude/work_260513-l)
@@ -37,6 +39,8 @@ e86f38f PR #87 — ci: FU-CI-2/3/4 (playwright scope, GHA cache, frontend readin
 - **PR #91** — A 묶음 (M1 PR-D 정합 마무리). `writeRBACServerError` (11 호출) + `writeAuthLoginServerError` (5 호출, Pass 1 review 발견) → `writeServerError` 일괄 통합. `requireRequestID` 미들웨어에 `validateCallerRequestID` (정규식 + 길이 + control char) 추가. request_id 를 `requestIDCtxKey{}` typed ctx key 에도 stash + `requestIDFromContext`/`logRequestCtx` ctx-aware helper. kratos_login_client.go 2건 + kratos_identity_resolver.go 1건 ctx-aware 치환. 단위테스트 11건 추가.
 - **PR #92** — B 묶음 RBAC 1차. `backend_api_contract.md` §12.2~§12.10 의 9 헤더에 `(API-26..31, 38..40)` 본문 ID 노출. 매트릭스 §2.2 RBAC API + §2.4 IMPL-rbac-01..04 책임 정의 (handler / store / enforcement / cache) 서브 표 도입. §5.2 RBAC IMPL 정밀 매핑 항목 closed. Pass 1 review 보강으로 §3 RBAC 행을 ID 범위 + §2 서브 표 참조 패턴으로 정리 ("표 가독성 정책" 명문화).
 - **PR #93** — B1 auth 도메인 2차. `backend_api_contract.md` §11.3 `(API-19)` + §11.5 표에 API ID 컬럼 (`API-20..24, 35`) + §11.5.1 `(API-35)` 본문 ID 노출. 매트릭스 §2.2 Auth API + §2.4 IMPL-auth-01..07 책임 정의 (verifier / actor / 5 endpoint handler) 서브 표 도입. §3 인증/회원가입/계정 관리 행 정리 (cross-cut API-23 / API-35 명시).
+- **PR #101** — 2026-05-13 세션 종료 housekeeping sync 1차. main flat memory 의 PR #100 흡수 + 다음 세션 진입 후보 명문화 (RM-M4-01..09 + M3 carve out 6 항목).
+- **PR #102** — Project 도메인 컨셉 1차. `docs/planning/project_management_concept.md` 신규 (10 절: 도메인 정의 / 행위자 × usecase / MVP scope / 데이터 모델 초안 / 다른 도메인 연계 / UI 컨셉 / 미해결 항목 / 후속 4 sprint hook). 일반 사용자 = 조회 중심, 시스템 관리자 = 등록·관리 전용 분리. RBAC row-scoping (ADR-0011 후보) 는 Design sprint 보류. `docs/planning/README.md §5.1` 도메인 컨셉 인덱스 신설 + `docs/development_roadmap.md §5` 백로그 1행 추가. 추적성 ID 미발급 (컨셉 단계).
 
 ## 1. 세션 종료 — 다음 세션 진입 후보
 
@@ -56,6 +60,18 @@ e86f38f PR #87 — ci: FU-CI-2/3/4 (playwright scope, GHA cache, frontend readin
 | `RM-M4-08` | RBAC PermissionCache LISTEN/NOTIFY ([ADR-0007](../../docs/adr/0007-rbac-cache-multi-instance.md)) | M4-infra (격리된 backend 작업) |
 | `RM-M4-09` | 외부 SSO 통합 (Gitea 등) | M4-SSO |
 
+### 1.1.b Project 도메인 후속 진입 후보 (PR #102 컨셉 1차 머지 후, 본 세션 신규)
+
+본 세션에서 [`docs/planning/project_management_concept.md`](../../docs/planning/project_management_concept.md) 컨셉 1차 머지 완료. 후속은 컨셉 §9 의 4 sprint hook 을 따른다.
+
+| 후속 sprint | 산출물 | 진입 조건 |
+| --- | --- | --- |
+| **Project-Req** | `docs/requirements.md §5.7` 확장 또는 `§5.8 Project 도메인` 신설, REQ-FR-* 일괄 발급 (개별 usecase 단위), NFR (응답시간/페이지네이션) 정의, 매트릭스 row 추가 | 컨셉 머지 직후 (즉시 가능) |
+| **Project-Usecase** | 행위자 × usecase 매트릭스 + 핵심 시퀀스 (등록·조회·멤버 변경 3종) + RBAC 매트릭스 확장 후보 → ADR-0011 초안 | Project-Req 머지 직후 |
+| **Project-Design (backend)** | `architecture.md` Project 컴포넌트 추가, `backend_api_contract.md` 신규 § `/api/v1/projects/*`, 마이그레이션 (`000012_projects.sql`) | Project-Usecase 머지 직후 |
+| **Project-Design (frontend)** | `frontend_development_roadmap.md` 새 phase, 진입 경로 / 컴포넌트 / store 모델 초안 | Backend design 와 병행 |
+| **Project-Impl** | IMPL-project-* / UT-project-* / TC-PROJ-* 발급 + 실 구현 | 모든 design 머지 후 |
+
 ### 1.2 M3 carve out (M4 와 병행 가능)
 
 - `getHierarchy` MV join 코드 변경 ([ADR-0009](../../docs/adr/0009-org-secondary-memberships-and-total-count-mv.md) §4.2)
@@ -65,9 +81,10 @@ e86f38f PR #87 — ci: FU-CI-2/3/4 (playwright scope, GHA cache, frontend readin
 - 본격 Vitest (AuthGuard / Header / Sidebar mock-heavy)
 - TC-CMD/INFRA 인터랙션 spec ts (`test_cases_m3_command_infra.md` §4)
 
-### 1.3 본 세션 머지 영역 요약 (PR #86~#100, 15건)
+### 1.3 본 세션 머지 영역 요약 (PR #86~#102, 17건)
 
 - **거버넌스/추적성** 체계 도입 + 1차 종합 매트릭스 + 갭 정리 + 메타 헤더 표준화 + M3/M4 drift 정합.
+- **Project 도메인 컨셉 staged** (PR #102): 신규 1차 도메인의 컨셉 단계 문서 신규 작성, 후속 4 sprint (Req → Usecase → Design backend/frontend → Impl) 진입 hook 명문화. 추적성 ID 미발급 (컨셉 단계).
 - **M1 PR-D 정합** (A 묶음): writeRBACServerError + writeAuthLoginServerError → writeServerError 통합, X-Request-ID validation, ctx 표준 request_id 전파.
 - **X-Devhub-Actor 폐기**: ADR-0004 + ADR-0006 (inbound 400 거부) + 회귀 4 테스트 의도 갱신.
 - **5 도메인 본문 ID 노출**: RBAC §12 / auth §11 / account §10.2 / users CRUD §10.3 / organization §10.4 / accounts admin / signup §11.5.2.
@@ -88,9 +105,9 @@ e86f38f PR #87 — ci: FU-CI-2/3/4 (playwright scope, GHA cache, frontend readin
 
 다음 세션 첫 액션 권장:
 
-1. 본 `session_handoff.md` + `state.json` + `work_backlog.md` 읽고 main HEAD 가 `4134b37` 인지 확인.
-2. 본 §1.1 RM-M4 진입 후보 중 우선순위 결정 (또는 §1.2 M3 carve out 선택).
-3. 새 sprint branch (`claude/work_260514-a` 등) + sprint memory 초기화 → 진행.
+1. 본 `session_handoff.md` + `state.json` + `work_backlog.md` 읽고 main HEAD 가 본 housekeeping 직후 commit 인지 확인.
+2. 본 §1.1 RM-M4 / §1.1.b Project 도메인 후속 / §1.2 M3 carve out 중 우선순위 결정.
+3. 새 sprint branch (`claude/work_260514-a` 또는 `claude/project-req-1` 등) + sprint memory 초기화 → 진행.
 
 ## 2. 다음 진입점 — 우선순위 후보
 

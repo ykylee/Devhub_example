@@ -15,8 +15,9 @@
 - [x] docs/planning/README.md §5.1 도메인 컨셉 인덱스 신설 (Project 1행)
 - [x] docs/development_roadmap.md §5 백로그 표에 Project 도메인 1행 추가 + 최종 수정일/§7 변경 이력 갱신
 - [x] 컨셉 doc cold read 후 4건 정합성 보강 (§3.1 archived / §3.2 영구 삭제 / §3.3 단계 / §5.1 code forward link) + §10 이력 1행 추가
-- [ ] commit + PR 생성 + 본문에 추적성 영향 N/A (컨셉 단계, ID 발급 없음) 명기
-- [ ] 머지 + 본 sprint 종료 EOD sync
+- [x] commit + PR #102 생성 (https://github.com/ykylee/Devhub_example/pull/102)
+- [x] CI 4잡 PASS (Backend Unit / Frontend Unit / Workflow Lint / E2E Playwright) → squash merge (commit `244f6b1`)
+- [x] 후속 housekeeping sprint `claude/work_260513-q` 에서 main flat memory + slot close 마킹
 
 ## 결정 기록
 

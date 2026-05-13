@@ -1,0 +1,10 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "claude/work_260513-q",
+  "status": "in_progress",
+  "base_branch": "main",
+  "base_commit": "244f6b1",
+  "scope": "2026-05-13 세션 종료 housekeeping sync 2차 — PR #102 (Project 도메인 컨셉 1차) 흡수 + work_260513-p slot CLOSED 마킹 + 다음 세션 진입 후보에 Project-Req sprint 추가.",
+  "updated_at": "2026-05-13T19:35:00Z"
+}
