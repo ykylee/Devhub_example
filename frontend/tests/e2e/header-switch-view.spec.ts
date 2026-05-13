@@ -31,9 +31,16 @@ test.describe("Header Switch View", () => {
     // store role 가 바뀌고 router.push("/manager") 호출.
     await page.waitForURL(/\/manager(\/|$)/, { timeout: 10_000 });
 
-    // Header 의 role 표시 (line 100 의 <span> with role) 가 "Manager".
-    // exact 텍스트 매칭으로 다른 페이지 콘텐츠와 분리.
-    await expect(page.locator("header").getByText("Manager", { exact: true })).toBeVisible();
+    // Target the role badge span specifically (line 100 of Header.tsx: the
+    // `.uppercase.tracking-wider` <span>). The naive `header > getByText
+    // ("Manager")` also matches the still-mounted dropdown button while it
+    // animates out, and AuthGuard's whoAmI on pathname change subsequently
+    // resets the badge back to actor.role — so any wait long enough to clear
+    // the dropdown is also long enough to lose the "Manager" simulation.
+    // Locking onto the badge by class side-steps both races (PR #86 review).
+    await expect(
+      page.locator("header span.uppercase.tracking-wider").filter({ hasText: /^Manager/ })
+    ).toBeVisible();
   });
 
   test("TC-NAV-03 — Account Settings 메뉴 → /account 이동", async ({ page }) => {

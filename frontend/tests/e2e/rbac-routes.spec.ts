@@ -1,11 +1,10 @@
 import { test, expect, loginAs, SEEDED } from "./fixtures";
 
-// rbac-routes.spec — F6 권한 매트릭스 sub-routes.
-// TC-RBAC-SUB-01, TC-RBAC-MGR-01. 기존 auth.spec 의 단일 path gating
-// (/admin/settings) 을 sub-routes 와 manager → /admin 으로 확장.
-//
-// Source-of-truth: pathRequiresSystemAdmin + isSystemAdmin in
-// frontend/lib/auth/role-routing.ts + AuthGuard.tsx 의 redirect 로직.
+/**
+ * rbac-routes.spec.ts
+ * F6 권한 매트릭스(서브 경로 차단)를 검증하는 E2E 테스트.
+ * 매핑 TC: TC-RBAC-SUB-01, TC-RBAC-MGR-01
+ */
 
 test.describe("RBAC route matrix", () => {
   test("TC-RBAC-SUB-01 — developer is bounced off every /admin/settings sub-route", async ({ page }) => {

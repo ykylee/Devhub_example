@@ -24,7 +24,7 @@
 
 - 작업을 시작하기 전에 목적, 범위, 영향 문서를 짧게 정리한다.
 - 작업 상태는 `planned`, `in_progress`, `blocked`, `done` 중 하나로 관리한다.
-- 검증하지 않은 결과는 완료로 확정하지 않는다.
+- 검증하지 않은 결과는 완료로 확정하지 않는다. 모든 신규 기능은 `docs/tests/e2e_testing_strategy.md` 지침에 따라 E2E 테스트를 작성/수행해야 한다.
 - 세션 종료 전에는 격리 폴더 내의 `state.json`, `session_handoff.md`, 최신 backlog 를 갱신한다.
 
 ## 언어와 컨텍스트 원칙

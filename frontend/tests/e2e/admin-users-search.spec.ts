@@ -1,13 +1,10 @@
 import { test, expect, loginAs, SEEDED } from "./fixtures";
 
-// admin-users-search.spec — F1 사용자 관리 / 검색 필터.
-// TC-USR-01..06. PR-UX1 (claude/login_usermanagement_finish) 의
-// /admin/settings/users SearchInput 실 클라이언트 필터 + Filter 버튼
-// disabled 변경 검증.
-//
-// 시드 3명 (alice/bob/charlie) 가 system_admin (charlie) 의 MemberTable
-// 에 모두 노출된다는 globalSetup 전제. charlie 만 system_admin 이므로
-// /admin/settings 진입 가능.
+/**
+ * admin-users-search.spec.ts
+ * F-USR-SEARCH 를 검증하는 E2E 테스트.
+ * 매핑 TC: TC-USR-01, TC-USR-02, TC-USR-03, TC-USR-04, TC-USR-05, TC-USR-06
+ */
 
 test.describe("/admin/settings/users — 검색 필터", () => {
   test.beforeEach(async ({ page }) => {

@@ -1,0 +1,98 @@
+## kratos.ci.yaml — CI-specific Ory Kratos config
+##
+
+version: v1.0.0
+
+serve:
+  public:
+    base_url: http://localhost:4433/
+    port: 4433
+    host: 0.0.0.0
+    cors:
+      enabled: true
+      allowed_origins:
+        - http://localhost:3000
+      allowed_methods: [GET, POST, PUT, PATCH, DELETE]
+      allowed_headers: [Authorization, Content-Type, Cookie, X-Session-Token]
+      exposed_headers: [Content-Type, Set-Cookie]
+      allow_credentials: true
+  admin:
+    base_url: http://localhost:4434/
+    port: 4434
+    host: 0.0.0.0
+
+# Hydra/Kratos do not expand ${VAR} in YAML by default. Hardcode the
+# runner-side DSN here (matching how infra/idp/kratos.yaml hardcodes the
+# prod-side localhost URL).
+dsn: postgres://runner@localhost:5432/devhub?sslmode=disable&search_path=kratos
+
+selfservice:
+  default_browser_return_url: http://localhost:3000/
+  allowed_return_urls:
+    - http://localhost:3000
+
+  methods:
+    password:
+      enabled: true
+      config:
+        haveibeenpwned_enabled: false
+        min_password_length: 6
+    profile:
+      enabled: true
+
+  flows:
+    error:
+      ui_url: http://localhost:3000/auth/error
+    settings:
+      ui_url: http://localhost:3000/account
+      after:
+        password:
+          hooks:
+            - hook: web_hook
+              config:
+                url: http://localhost:8080/api/v1/integrations/kratos/hook/settings/password/after
+                method: POST
+                body: file://./infra/idp/kratos_webhooks/settings_password_after.jsonnet
+                response:
+                  ignore: true
+                auth:
+                  type: api_key
+                  config:
+                    in: header
+                    name: Authorization
+                    # Hardcoded for CI (same value the backend reads via
+                    # DEVHUB_KRATOS_WEBHOOK_TOKEN env in .github/workflows/ci.yml).
+                    # ${VAR} interpolation is not applied to YAML values.
+                    value: Bearer ci-test-token-12345
+    logout:
+      after:
+        default_browser_return_url: http://localhost:3000/
+    login:
+      ui_url: http://localhost:3000/auth/login
+    registration:
+      enabled: false
+
+session:
+  lifespan: 24h
+  cookie:
+    persistent: true
+    same_site: Lax
+
+secrets:
+  cookie:
+    - "ci-only-cookie-secret-min-16-bytes-bbbbbbbb"
+  # Kratos cipher.secret must be exactly 32 bytes (AES-256). The earlier
+  # value was 31 bytes (`ci-cipher-secret-32bytes-bbbbbb`) which trips the
+  # AES key length check at Kratos startup.
+  cipher:
+    - "ci-cipher-secret-32bytes-bbbbbbb"
+
+identity:
+  default_schema_id: devhub_user
+  schemas:
+    - id: devhub_user
+      url: file://./infra/idp/identity.schema.json
+
+log:
+  level: debug
+  format: text

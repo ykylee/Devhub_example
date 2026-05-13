@@ -1,0 +1,149 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, gemini/prepare-github-action ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  backend-unit:
+    name: Backend Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - name: Test
+        run: make test
+
+  frontend-unit:
+    name: Frontend Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        run: cd frontend && npm ci
+      - name: Test
+        run: make test-frontend
+
+  e2e:
+    name: E2E Tests (Playwright)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: runner
+          POSTGRES_DB: devhub
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      
+      - name: Install Node dependencies
+        run: cd frontend && npm ci
+      
+      - name: Install Playwright Browsers
+        run: cd frontend && npx playwright install --with-deps
+      
+      - name: CI Environment Setup (Ory + DB)
+        run: sudo ./scripts/ci-setup.sh
+        env:
+          DB_URL: postgres://runner@localhost:5432/devhub?sslmode=disable
+          DEVHUB_KRATOS_WEBHOOK_TOKEN: ci-test-token-12345
+      
+      - name: Build App
+        run: |
+          # backend-core's main package lives at backend-core/main.go (no
+          # cmd/httpapi sub-package). Build the root package.
+          (cd backend-core && go build -o ../devhub-backend ./)
+          (cd frontend && npm run build)
+      
+      - name: Start Ory Kratos
+        # DSN + webhook token are hardcoded inside infra/idp/kratos.ci.yaml
+        # (Ory does not expand ${VAR} in YAML), so no env wiring is needed.
+        run: |
+          kratos serve --config infra/idp/kratos.ci.yaml > kratos.log 2>&1 &
+
+      - name: Start Ory Hydra
+        # DSN is hardcoded inside infra/idp/hydra.ci.yaml. --dev is required
+        # because the CI hydra serves over HTTP (no TLS).
+        run: |
+          hydra serve all --config infra/idp/hydra.ci.yaml --dev > hydra.log 2>&1 &
+      
+      - name: Wait for Ory Readiness
+        run: |
+          timeout 60s bash -c 'until curl -s http://localhost:4434/health/ready; do sleep 1; done'
+          timeout 60s bash -c 'until curl -s http://localhost:4445/health/ready; do sleep 1; done'
+      
+      - name: Register OIDC Client
+        run: ./infra/idp/scripts/register-devhub-client.sh
+      
+      - name: Start Backend
+        env:
+          # backend-core reads DB_URL (see internal/config/config.go), not DSN.
+          DB_URL: postgres://runner@localhost:5432/devhub?sslmode=disable
+          # Without DEVHUB_HYDRA_ADMIN_URL no bearer-token verifier is wired
+          # and admin/RBAC routes reject E2E requests. Point at the CI Hydra.
+          DEVHUB_HYDRA_ADMIN_URL: http://localhost:4445
+          DEVHUB_HYDRA_PUBLIC_URL: http://localhost:4444
+          DEVHUB_KRATOS_PUBLIC_URL: http://localhost:4433
+          DEVHUB_KRATOS_ADMIN_URL: http://localhost:4434
+          DEVHUB_KRATOS_WEBHOOK_TOKEN: ci-test-token-12345
+        run: |
+          ./devhub-backend > backend.log 2>&1 &
+      
+      - name: Start Frontend
+        run: |
+          cd frontend
+          npm run start > ../frontend.log 2>&1 &
+      
+      - name: Wait for App Readiness
+        run: |
+          timeout 60s bash -c 'until curl -s http://localhost:8080/health; do sleep 1; done'
+          timeout 60s bash -c 'until curl -s http://localhost:3000/; do sleep 1; done'
+      
+      - name: Run E2E Tests
+        run: make e2e
+        env:
+          DSN: postgres://runner@localhost:5432/devhub?sslmode=disable
+      
+      - name: Upload Playwright Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 30
+      
+      - name: Upload Logs on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: service-logs
+          path: "*.log"

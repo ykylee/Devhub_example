@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { X, UserPlus, Mail, Shield, Building2, Loader2, Search, Bot, User, Key } from "lucide-react";
 import { identityService, OrgMember } from "@/lib/services/identity.service";
@@ -26,6 +26,14 @@ export function UserCreationModal({ onClose, onCreated, roles }: UserCreationMod
   const [submitting, setSubmitting] = useState(false);
   const [lookingUp, setLookingUp] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   const handleLookup = async () => {
     if (!formData.user_id) return;
@@ -84,6 +92,9 @@ export function UserCreationModal({ onClose, onCreated, roles }: UserCreationMod
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         className="relative w-full max-w-xl glass border-white/10 rounded-3xl shadow-2xl overflow-hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="user-modal-title"
       >
         <div className="p-8 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -91,7 +102,7 @@ export function UserCreationModal({ onClose, onCreated, roles }: UserCreationMod
               <UserPlus className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h2 className="text-xl font-black text-white uppercase tracking-tight">Add <span className="text-primary">Member</span></h2>
+              <h2 id="user-modal-title" className="text-xl font-black text-white uppercase tracking-tight">Add <span className="text-primary">Member</span></h2>
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Register human or system account</p>
             </div>
           </div>

@@ -1,10 +1,10 @@
 import { test, expect, deleteKratosIdentityByEmail } from "./fixtures";
 
-// signup.spec — F7 회원가입.
-// TC-SIGNUP-01..04. /auth/signup 페이지 + HRDB mock (yklee/akim/sjones)
-// round-trip + HR 매칭 실패 + password mismatch. Sign Up 자체는 M3 트랙
-// 이지만 코드가 main 에 있어 운영 진입 직전 회귀로 본 sprint 게이트에
-// 포함.
+/**
+ * signup.spec.ts
+ * F7 회원가입을 검증하는 E2E 테스트.
+ * 매핑 TC: TC-SIGNUP-01, TC-SIGNUP-02, TC-SIGNUP-03, TC-SIGNUP-04
+ */
 //
 // HRDB Mock (backend-core/internal/hrdb/mock.go):
 //   - YK Lee  / yklee  / 1001 → yklee@example.com  / Engineering

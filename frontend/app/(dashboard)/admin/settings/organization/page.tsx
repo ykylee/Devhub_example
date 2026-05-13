@@ -1,144 +1,178 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
+import { Plus, LayoutGrid, List, Network } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Layers, Network } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { identityService, OrgMember, OrgNode } from "@/lib/services/identity.service";
+import { OrgUnitTable } from "@/components/organization/OrgUnitTable";
 import { OrgUnitGrid } from "@/components/organization/OrgUnitGrid";
 import { OrgTree } from "@/components/organization/OrgTree";
 import { MemberManagementModal } from "@/components/organization/MemberManagementModal";
-import { useToast } from "@/components/ui/Toast";
-
-type View = "units" | "chart";
-
-const views: { id: View; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: "units", label: "Org Units", icon: Layers },
-  { id: "chart", label: "Org Chart", icon: Network },
-];
+import { UnitManagementModal } from "@/components/organization/UnitManagementModal";
+import { identityService, OrgNode, OrgMember } from "@/lib/services/identity.service";
 
 export default function AdminSettingsOrganizationPage() {
-  const [view, setView] = useState<View>("units");
-  const [members, setMembers] = useState<OrgMember[]>([]);
+  const [view, setView] = useState<"list" | "grid" | "chart">("list");
   const [orgNodes, setOrgNodes] = useState<OrgNode[]>([]);
+  const [members, setMembers] = useState<OrgMember[]>([]);
   const [unitMembers, setUnitMembers] = useState<Record<string, string[]>>({});
-  const [unitLeaders, setUnitLeaders] = useState<Record<string, string | null>>({});
-  const [managingUnitId, setManagingUnitId] = useState<string | null>(null);
+  const [unitLeaders, setUnitLeaders] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [managingUnitId, setManagingUnitId] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [editingUnitId, setEditingUnitId] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const { toast } = useToast();
+
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      const [{ nodes }, allMembers] = await Promise.all([
+        identityService.getOrgHierarchy(),
+        identityService.getUsers(),
+      ]);
+
+      setOrgNodes(nodes);
+      setMembers(allMembers);
+
+      // In a real app, unit membership would come from a specific API
+      // For now, we simulate it or derive it from members' current_dept_id
+      const memberMap: Record<string, string[]> = {};
+      allMembers.forEach((m) => {
+        if (m.current_dept_id) {
+          if (!memberMap[m.current_dept_id]) memberMap[m.current_dept_id] = [];
+          memberMap[m.current_dept_id].push(m.id);
+        }
+      });
+
+      const leaderMap: Record<string, string> = {};
+      nodes.forEach((node) => {
+        if (node.data.leader_id) {
+          leaderMap[node.id] = node.data.leader_id;
+        }
+      });
+
+      setUnitMembers(memberMap);
+      setUnitLeaders(leaderMap);
+      setError(null);
+    } catch (err) {
+      console.error("Failed to load organization data:", err);
+      setError("Failed to connect to the organization service. Please try again later.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const load = async () => {
-      setIsLoading(true);
-      try {
-        const [usersData, orgData] = await Promise.all([
-          identityService.getUsers(),
-          identityService.getOrgHierarchy(),
-        ]);
-        setMembers(usersData);
-        setOrgNodes(orgData.nodes);
-        // Seed leader map from the hierarchy snapshot. The MemberManagementModal
-        // shows / edits leader assignment alongside roster membership.
-        const leaders: Record<string, string | null> = {};
-        for (const node of orgData.nodes) {
-          leaders[node.id] = node.data.leader_id ?? null;
-        }
-        setUnitLeaders(leaders);
-
-        const memberLists = await Promise.all(
-          orgData.nodes.map(async (node): Promise<[string, string[]]> => {
-            try {
-              const list = await identityService.getUnitMembers(node.id);
-              return [node.id, list.map((m) => m.id)];
-            } catch (error) {
-              console.error(`[admin/settings/organization] getUnitMembers ${node.id} failed:`, error);
-              return [node.id, []];
-            }
-          }),
-        );
-        const fetched: Record<string, string[]> = {};
-        memberLists.forEach(([id, ids]) => {
-          fetched[id] = ids;
-        });
-        setUnitMembers(fetched);
-      } catch (error) {
-        console.error("[admin/settings/organization] load failed:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    load();
+    loadData();
   }, []);
 
-  const handleSaveUnitMembers = async (unitId: string, newMemberIds: string[], newLeaderId: string | null) => {
-    setSaveError(null);
+  const handleCreateUnit = async (data: any) => {
     try {
-      const refreshed = await identityService.replaceUnitMembers(unitId, newMemberIds);
-      setUnitMembers((prev) => ({ ...prev, [unitId]: refreshed.map((m) => m.id) }));
+      await identityService.createUnit(data);
+      setIsCreating(false);
+      loadData();
+    } catch (err) {
+      console.error("Failed to create unit:", err);
+    }
+  };
 
-      // Persist leader change as a unit PATCH only when it actually moved.
-      // Backend audits the unit update; we only need to keep DevHub side
-      // consistent with what the modal showed.
-      const previousLeaderId = unitLeaders[unitId] ?? null;
-      if ((newLeaderId ?? null) !== previousLeaderId) {
-        await identityService.updateUnit(unitId, { leader_user_id: newLeaderId ?? "" });
-        setUnitLeaders((prev) => ({ ...prev, [unitId]: newLeaderId }));
-        // OrgUnitGrid renders the leader badge from node.data.leader_id, so
-        // mirror the change into orgNodes too — without this the card keeps
-        // the stale leader until the next full reload.
-        setOrgNodes((prev) =>
-          prev.map((node) =>
-            node.id === unitId
-              ? { ...node, data: { ...node.data, leader_id: newLeaderId ?? undefined } }
-              : node,
-          ),
-        );
+  const handleUpdateUnit = async (data: any) => {
+    try {
+      await identityService.updateUnit(data.unit_id, data);
+      setEditingUnitId(null);
+      loadData();
+    } catch (err) {
+      console.error("Failed to update unit:", err);
+    }
+  };
+
+  const handleDeleteUnit = async (unitId: string) => {
+    if (confirm("Are you sure you want to delete this unit? This cannot be undone.")) {
+      try {
+        await identityService.deleteUnit(unitId);
+        loadData();
+      } catch (err) {
+        console.error("Failed to delete unit:", err);
       }
+    }
+  };
 
+  const handleSaveUnitMembers = async (unitId: string, memberIds: string[], leaderId: string | null) => {
+    try {
+      await identityService.replaceUnitMembers(unitId, memberIds);
+      // Also update leader if changed (this might be a separate API call in reality)
+      if (leaderId) {
+        await identityService.updateUnit(unitId, { leader_user_id: leaderId });
+      }
       setManagingUnitId(null);
-      toast("Unit changes saved successfully", "success");
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to save unit";
-      console.error("[admin/settings/organization] save unit failed:", error);
-      setSaveError(message);
-      toast("Failed to save unit changes", "error");
+      loadData();
+    } catch (err) {
+      setSaveError("Failed to save member changes.");
     }
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex p-1.5 glass border-white/10 rounded-2xl gap-1 w-fit">
-        {views.map((v) => {
-          const isActive = view === v.id;
-          return (
+    <div className="h-full flex flex-col">
+      <div className="p-8 pb-4 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-black text-white tracking-tight">Organization</h1>
+          <p className="text-sm text-muted-foreground font-medium">Manage units, teams, and hierarchical structure</p>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <div className="flex items-center bg-white/5 rounded-2xl p-1 border border-white/10">
             <button
-              key={v.id}
-              onClick={() => setView(v.id)}
-              className={cn(
-                "flex items-center gap-2 px-5 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all relative",
-                isActive ? "text-foreground dark:text-white" : "text-muted-foreground hover:text-foreground dark:hover:text-white",
-              )}
+              onClick={() => setView("list")}
+              className={`p-2 rounded-xl transition-all ${view === "list" ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-muted-foreground hover:text-white"}`}
+              aria-label="List View"
             >
-              {isActive && (
-                <motion.div
-                  layoutId="org-view"
-                  className="absolute inset-0 bg-white/10 border border-white/10 rounded-xl"
-                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                />
-              )}
-              <v.icon className={cn("w-4 h-4 relative z-10", isActive ? "text-accent" : "text-muted-foreground")} />
-              <span className="relative z-10">{v.label}</span>
+              <List className="w-4 h-4" />
             </button>
-          );
-        })}
+            <button
+              onClick={() => setView("grid")}
+              className={`p-2 rounded-xl transition-all ${view === "grid" ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-muted-foreground hover:text-white"}`}
+              aria-label="Grid View"
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setView("chart")}
+              className={`p-2 rounded-xl transition-all ${view === "chart" ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-muted-foreground hover:text-white"}`}
+              aria-label="Org Chart"
+            >
+              <Network className="w-4 h-4" />
+            </button>
+          </div>
+
+          <button
+            onClick={() => setIsCreating(true)}
+            className="flex items-center gap-2 bg-accent hover:bg-accent/80 text-accent-foreground px-6 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-accent/20"
+          >
+            <Plus className="w-4 h-4" />
+            Create Unit
+          </button>
+        </div>
       </div>
 
-      <div className="relative">
+      <div className="flex-1 overflow-auto p-8 pt-0 relative">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-32 gap-4">
             <div className="w-12 h-12 border-4 border-accent/20 border-t-accent rounded-full animate-spin" />
-            <p className="text-muted-foreground font-bold animate-pulse uppercase tracking-[0.3em] text-[10px]">Loading Organization...</p>
+            <p className="text-muted-foreground font-bold animate-pulse uppercase tracking-[0.3em] text-[10px]">
+              Initializing Organization Data...
+            </p>
+          </div>
+        ) : error ? (
+          <div className="glass border-red-500/20 bg-red-500/5 rounded-3xl p-12 text-center">
+            <p className="text-red-400 font-bold mb-2">Service Unavailable</p>
+            <p className="text-xs text-muted-foreground mb-6">{error}</p>
+            <button
+              onClick={() => loadData()}
+              className="px-6 py-2 bg-white/5 border border-white/10 rounded-xl text-xs font-bold hover:bg-white/10 transition-all"
+            >
+              Retry Connection
+            </button>
           </div>
         ) : (
           <AnimatePresence mode="wait">
@@ -149,7 +183,16 @@ export default function AdminSettingsOrganizationPage() {
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
             >
-              {view === "units" && (
+              {view === "list" && (
+                <OrgUnitTable
+                  nodes={orgNodes}
+                  unitMembers={unitMembers}
+                  onManage={(id) => setManagingUnitId(id)}
+                  onEdit={(id) => setEditingUnitId(id)}
+                  onDelete={(id) => handleDeleteUnit(id)}
+                />
+              )}
+              {view === "grid" && (
                 <OrgUnitGrid nodes={orgNodes} unitMembers={unitMembers} onManage={(id) => setManagingUnitId(id)} />
               )}
               {view === "chart" && <OrgTree />}
@@ -172,6 +215,30 @@ export default function AdminSettingsOrganizationPage() {
             }}
             onSave={(newMemberIds, newLeaderId) => handleSaveUnitMembers(managingUnitId, newMemberIds, newLeaderId)}
             saveError={saveError}
+          />
+        )}
+
+        {isCreating && (
+          <UnitManagementModal
+            mode="create"
+            availableParents={orgNodes}
+            onClose={() => setIsCreating(false)}
+            onSave={handleCreateUnit}
+          />
+        )}
+
+        {editingUnitId && (
+          <UnitManagementModal
+            mode="edit"
+            initialData={{
+              unit_id: editingUnitId,
+              label: orgNodes.find((n) => n.id === editingUnitId)?.data.label,
+              unit_type: orgNodes.find((n) => n.id === editingUnitId)?.data.type as any,
+              parent_unit_id: "",
+            }}
+            availableParents={orgNodes}
+            onClose={() => setEditingUnitId(null)}
+            onSave={handleUpdateUnit}
           />
         )}
       </AnimatePresence>

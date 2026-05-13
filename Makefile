@@ -64,10 +64,7 @@ test-coverage:
 	cd backend-core && go tool cover -func=coverage.out | tail -20
 
 test-frontend:
-	@echo "Frontend Vitest target is added by PR-T2 (work_26_05_11-d sprint)."
-	@echo "Once PR-T2 lands: cd frontend && npm test"
+	cd frontend && npm run test
 
 e2e:
-	@echo "Playwright E2E target is added by PR-T3 (work_26_05_11-d sprint)."
-	@echo "Pre-req: Hydra + Kratos native + DevHub OIDC client + Kratos identity seed."
-	@echo "Once PR-T3 lands: cd frontend && npm run e2e"
+	cd frontend && npm run e2e

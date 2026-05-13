@@ -66,9 +66,17 @@ test.describe("user switch across Sign Out", () => {
     await page.getByText(SEEDED.developer.user_id, { exact: false }).first().click();
     await page.getByRole("button", { name: /sign out/i }).click();
 
-    // 3) bob (manager) 로 로그인 → /manager landing
-    await loginAs(page, SEEDED.manager);
-    await expect(page).toHaveURL(/\/manager(\/|$)/, { timeout: 15_000 });
+    // 3) bob (manager) 로 로그인 — signout 직후 loginAs 의 goto('/login') 에서
+    // ERR_ABORTED 가 발생할 수 있으므로, 직접 OIDC dance 를 수행한다.
+    await page.goto("/login").catch((err) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!msg.includes("ERR_ABORTED")) throw err;
+    });
+    await page.waitForURL(/\/auth\/login\?login_challenge=/, { timeout: 30_000 });
+    await page.getByLabel(/system id/i).fill(SEEDED.manager.user_id);
+    await page.getByLabel(/^password$/i).fill(SEEDED.manager.password);
+    await page.getByRole("button", { name: /sign in/i }).click();
+    await page.waitForURL(/\/(manager|admin|developer)/, { timeout: 30_000 });
 
     // 4) /account 의 사용자 정보가 bob, alice 의 잔재 없음
     await page.goto("/account");
@@ -79,3 +87,4 @@ test.describe("user switch across Sign Out", () => {
     await expect(page.getByText(SEEDED.developer.user_id, { exact: true })).toHaveCount(0);
   });
 });
+

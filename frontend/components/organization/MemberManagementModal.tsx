@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { X, Users, Search, ChevronRight, ChevronLeft, Check, Crown } from "lucide-react";
 import { OrgMember } from "@/lib/services/identity.service";
@@ -31,6 +31,14 @@ export function MemberManagementModal({
   const [searchAvailable, setSearchAvailable] = useState("");
   const [searchCurrent, setSearchCurrent] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   // Invariant: leaderId must always be ∈ selectedIds. The backend rejects
   // a save where leader_id is not a member of the unit, so every code path
@@ -92,10 +100,13 @@ export function MemberManagementModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         className="relative w-full max-w-4xl glass bg-[#030014]/90 border border-white/10 rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="member-modal-title"
       >
         <div className="flex items-center justify-between p-6 border-b border-white/10">
           <div>
-            <h2 className="text-xl font-black text-white uppercase tracking-tight flex items-center gap-2">
+            <h2 id="member-modal-title" className="text-xl font-black text-white uppercase tracking-tight flex items-center gap-2">
               <Users className="w-5 h-5 text-accent" /> Manage Members
             </h2>
             <p className="text-xs text-muted-foreground mt-1 font-bold">
@@ -105,6 +116,7 @@ export function MemberManagementModal({
           <button
             onClick={onClose}
             className="p-2 rounded-xl hover:bg-white/5 text-muted-foreground hover:text-white transition-colors"
+            aria-label="Close"
           >
             <X className="w-5 h-5" />
           </button>

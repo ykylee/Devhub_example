@@ -3,8 +3,8 @@
 - 문서 목적: 프로젝트의 영구 지식 자산(Knowledge Base)을 체계적으로 정리하여 개발자와 AI 에이전트의 온보딩 및 분석을 돕는다.
 - 범위: 프로젝트 설계, 개발 및 표준, 분석 및 계획
 - 대상 독자: 개발자, AI 에이전트, 프로젝트 온보딩 담당자
-- 상태: stable
-- 최종 수정일: 2026-05-10
+- 상태: DONE. 모든 파일이 커밋되었으며 테스트 케이스가 docs/tests로 정리됨.
+- 최종 수정일: 2026-05-12
 - 관련 문서: [./README.md](./README.md), [../README.md](../README.md)
 
 이 인덱스는 프로젝트의 영구 지식 자산(Knowledge Base)을 체계적으로 정리하여 개발자와 AI 에이전트의 온보딩 및 분석을 돕습니다.
@@ -34,6 +34,14 @@
 - **[Backend Development Roadmap](../ai-workflow/memory/backend_development_roadmap.md)**: 백엔드 트랙 세부 (Phase 1~13).
 - **[Frontend Development Roadmap](./frontend_development_roadmap.md)**: 프론트엔드 트랙 세부 (Phase 1~7, 역할별 기본 진입 우선순위 UX 기준 포함).
 - **[Planning 디렉터리 진입점](./planning/README.md)**: 마일스톤·트랙·PR/보안 트래커 인덱스. backlog 위치 정책과 향후 추가 예정 자료(sprint plan, release plan 등) 안내.
+
+## 4. 테스트 및 검증 (Test & Verification)
+*프로젝트의 품질 보증을 위한 테스트 케이스 및 가이드를 다룹니다.*
+
+- **[M2 인증 및 사용자 관리 테스트 케이스](./tests/test_cases_m2_auth.md)**: 로그인/로그아웃, 사용자 관리, 권한 matrix 검증 TC.
+- **[M3 조직 관리 테스트 케이스](./tests/test_cases_m3_organization.md)**: 조직 단위 CRUD, 계층 구조 및 멤버 관리 검증 TC.
+- **[E2E 테스트 전략 및 지침](./tests/e2e_testing_strategy.md)**: 지속 가능한 E2E 테스트 방법론 및 자동화 가이드.
+- **[E2E 테스트 실행 가이드](./setup/e2e-test-guide.md)**: Playwright 기반 E2E 테스트 환경 구성 및 실행 방법.
 
 ---
 *모든 신규 문서는 `docs/` 하위의 적절한 카테고리에 생성되어야 하며, PR 리뷰를 통해 승인되어야 합니다.*

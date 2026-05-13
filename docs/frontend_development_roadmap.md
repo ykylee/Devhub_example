@@ -22,10 +22,10 @@
 | **Phase 4** | **in_progress** | AI 어드바이저 & 어드민 액션 | AI Gardener 추천 연동, 시스템 관리자 서비스 제어 액션 실체화, command status UI |
 | **Phase 5** | **done** | 사용자 및 조직 관리 UI | 사용자 프로필, 팀/조직 단위(Org Units) 관리 UI, 멤버 할당 모달 |
 | **Phase 5.1** | **done** | 조직 관리 API 통합 | 백엔드 조직 CRUD 및 멤버 할당 API 연동 |
-| **Phase 5.2** | **done** (1차 완성 sprint 진행 중) | 계정 인증 및 IdP 도입 | Ory Hydra/Kratos OIDC code flow + PKCE end-to-end, `/auth/{login,callback}`, `/account`, `/admin/settings/{users,organization,permissions}`. 잔여 UX hygiene/audit 정합은 `claude/login_usermanagement_finish` sprint 에서 종료. |
+| **Phase 5.2** | **done** | 계정 인증 및 IdP 도입 | Ory Hydra/Kratos OIDC code flow + PKCE, `/auth/{login,callback}`, `/account`, `/admin/settings/{users,organization,permissions}`. UX hygiene/audit 정합 및 CI 자동화 완료. |
 | **Phase 6** | **done** | 권한 관리(RBAC) UI 고도화 | PermissionEditor `/admin/settings/permissions` 완료 (PR-G6, PR #27). |
-| **Phase 6.1** | **done** | RBAC API 통합 | `/api/v1/rbac/policies` 조회/편집 연동, `requirePermission` 라우트 가드 (M1 RBAC track, PR #20·21·22·23·27·29·30·31). |
-| **Phase 7** | **planned** | 통합 검증 및 고도화 | AI Gardener 추천 연동 고도화, 전역 감사 로그 연동 |
+| **Phase 6.1** | **done** | RBAC API 통합 | `/api/v1/rbac/policies` 조회/편집 연동, `requirePermission` 라우트 가드 (M1 RBAC track). |
+| **Phase 7** | **in_progress** | 조직 관리 1차 완성 및 AI 고도화 | 부서 CRUD, 계층 편집(Drag & Drop), AI Gardener 추천 연동 고도화, 전역 감사 로그 연동 |
 
 
 ## 3. Phase 2 상세 계획 (Core API Integration)
