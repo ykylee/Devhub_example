@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -562,5 +563,64 @@ func TestGetOrgUnitNotFoundUsesStoreError(t *testing.T) {
 	_, err := newMemoryOrganizationStore().GetOrgUnit(context.Background(), "missing")
 	if !errors.Is(err, store.ErrNotFound) {
 		t.Fatalf("expected ErrNotFound from mock store, got %v", err)
+	}
+}
+
+// TestUpdateOrgUnit_RejectsSelfParent_CycleDetected pins the §10.4.2
+// cycle_detected branch added by RM-M3-03 (sprint claude/work_260513-m).
+// Updating a unit so its parent_unit_id equals itself must return 422 with
+// code=cycle_detected.
+func TestUpdateOrgUnit_RejectsSelfParent_CycleDetected(t *testing.T) {
+	orgs := newMemoryOrganizationStore()
+	if _, err := orgs.CreateOrgUnit(context.Background(), domain.CreateOrgUnitInput{
+		UnitID:   "unit-A",
+		UnitType: domain.UnitType("team"),
+		Label:    "Team A",
+	}); err != nil {
+		t.Fatalf("seed CreateOrgUnit: %v", err)
+	}
+	router := testRouter(RouterConfig{OrganizationStore: orgs})
+
+	self := "unit-A"
+	body := []byte(`{"parent_unit_id":"unit-A"}`)
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/organization/units/"+self, bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected 422, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "cycle_detected") {
+		t.Errorf("expected code=cycle_detected, got body=%q", rec.Body.String())
+	}
+}
+
+// TestUpdateOrgUnit_RejectsAncestorParent_CycleDetected covers the indirect
+// case: with hierarchy A -> B already in place, moving A so its parent is B
+// would close the loop (B's ancestor chain reaches A). Must return 422.
+func TestUpdateOrgUnit_RejectsAncestorParent_CycleDetected(t *testing.T) {
+	orgs := newMemoryOrganizationStore()
+	if _, err := orgs.CreateOrgUnit(context.Background(), domain.CreateOrgUnitInput{
+		UnitID: "unit-A", UnitType: domain.UnitType("team"), Label: "A",
+	}); err != nil {
+		t.Fatalf("seed A: %v", err)
+	}
+	if _, err := orgs.CreateOrgUnit(context.Background(), domain.CreateOrgUnitInput{
+		UnitID: "unit-B", ParentUnitID: "unit-A", UnitType: domain.UnitType("team"), Label: "B",
+	}); err != nil {
+		t.Fatalf("seed B: %v", err)
+	}
+	router := testRouter(RouterConfig{OrganizationStore: orgs})
+
+	body := []byte(`{"parent_unit_id":"unit-B"}`)
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/organization/units/unit-A", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected 422, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "cycle_detected") {
+		t.Errorf("expected code=cycle_detected, got body=%q", rec.Body.String())
 	}
 }
