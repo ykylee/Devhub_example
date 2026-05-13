@@ -150,6 +150,7 @@ erDiagram
     APPLICATIONS ||--o{ APPLICATION_REPOSITORIES : contains
     APPLICATIONS ||--o{ PROJECTS : governs
     REPOSITORIES ||--o{ PROJECTS : hosts
+    SCM_PROVIDERS ||--o{ APPLICATION_REPOSITORIES : provides
     REPOSITORIES ||--o{ PR_ACTIVITIES : emits
     REPOSITORIES ||--o{ BUILD_RUNS : runs
     REPOSITORIES ||--o{ QUALITY_SNAPSHOTS : measures
@@ -161,7 +162,7 @@ erDiagram
 
     APPLICATIONS {
       uuid id PK
-      text code UK
+      text key UK
       text name
       text description
       text status
@@ -177,14 +178,28 @@ erDiagram
       uuid application_id FK
       text repo_provider
       text repo_full_name
+      text external_repo_id
+      timestamptz last_sync_at
+      text sync_status
+      text sync_error_code
+      boolean sync_error_retryable
+      timestamptz sync_error_at
       text role
       timestamptz linked_at
+    }
+    SCM_PROVIDERS {
+      text provider_key PK
+      text display_name
+      boolean enabled
+      text adapter_version
+      timestamptz created_at
+      timestamptz updated_at
     }
     PROJECTS {
       uuid id PK
       uuid application_id FK
       bigint repository_id FK
-      text code
+      text key
       text name
       text description
       text status

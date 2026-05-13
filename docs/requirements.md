@@ -219,11 +219,15 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
     - `status` 최소 상태: `planning`, `active`, `on_hold`, `closed`, `archived`.
 - **REQ-FR-APP-003 (MVP, 확정):** `Application.key`는 시스템 전역 고유값(unique)이어야 하며 관리 식별자로 사용해야 한다.
     - 표시명(`name`) 변경과 무관하게 `key`는 안정 식별자로 유지한다.
+    - 현재 입력 정책: 영문숫자 조합 10자 (`^[A-Za-z0-9]{10}$`).
+    - 데이터베이스 컬럼은 정책 변경 여지를 위해 더 긴 길이(예: VARCHAR(32) 이상)를 허용하고, 실제 길이 제한은 애플리케이션 검증 정책으로 강제한다.
 - **REQ-FR-APP-004 (MVP, 확정):** Repository는 외부 형상관리 도구와 연결되는 구조여야 하며, DevHub는 운영/분석용 관리 데이터를 보유해야 한다.
     - 외부 SoT: 코드/PR/빌드 원본.
     - DevHub 보유: 연결 메타데이터, 동기화 상태, 운영 스냅샷.
+    - 지원 정책: 특정 SCM 단일 종속이 아니라 provider 추상화(`repo_provider`)를 사용하며, `bitbucket`, `gitea`, `forgejo` 등 복수 provider를 동등하게 지원/확장할 수 있어야 한다.
 - **REQ-FR-APP-002 (MVP, 확정):** 하나의 Application은 0개 이상의 Repository를 연결할 수 있어야 한다.
     - 연결 단위 필드: `repo_provider`, `repo_full_name`, `role(primary|sub|shared)`.
+    - 동일 Application 내 서로 다른 provider Repository를 동시에 연결할 수 있어야 한다 (예: bitbucket + gitea 병행).
 - **REQ-FR-APP-005 (MVP, 확정):** Repository 작업현황을 수집/조회할 수 있어야 한다.
     - 최소 지표: commit 활동량, active contributor 수, 작업 추이.
 - **REQ-FR-APP-006 (MVP, 확정):** PR/PR Activity 정보를 수집/조회할 수 있어야 한다.
@@ -232,8 +236,31 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
     - 최소 정보: run status, duration, branch/commit, 시작/종료 시각.
 - **REQ-FR-APP-008 (MVP, 확정):** 소스코드 품질 지표(정적분석/스코어링)를 수집/조회할 수 있어야 한다.
     - 최소 정보: tool, quality score, gate pass/fail, metric 상세(coverage, bug/vuln, duplication 등).
+- **REQ-FR-APP-009 (MVP, 확정):** 형상관리 도구 연동은 provider별 어댑터 구조를 따라야 한다.
+    - 공통 도메인 계약(Repository/PR/Build/Quality 이벤트/스냅샷)과 provider 전용 구현을 분리한다.
+    - 신규 provider 추가 시 기존 도메인 API/화면 계약을 깨지 않고 어댑터 추가만으로 확장 가능해야 한다.
+    - provider별 인증/웹훅 검증/속도제한/에러 포맷 차이는 어댑터 내부에서 흡수한다.
+- **REQ-FR-APP-010 (MVP, 확정):** Application 상태 전이는 정의된 상태 머신 규칙을 따라야 한다.
+    - 상태 집합: `planning`, `active`, `on_hold`, `closed`, `archived`.
+    - `archived`는 기본적으로 종료 상태이며 일반 상태 전이로 복구하지 않는다.
+    - 상태 전이 권한: 기본적으로 `system_admin`만 허용한다 (`pmo_manager` 활성 전 `403 role_not_enabled`).
+    - 전이 검증 가드:
+      - `planning -> active`: 연결된 활성 Repository 1개 이상 필요.
+      - `active -> closed`: `severity=critical` 롤업 경고 0건 + 연결 Repository 1개 이상 필요.
+      - `on_hold -> active`: `due_date` 만료 시 재개 사유(`resume_reason`) 기록 필요.
+      - `* -> archived`: soft-delete 처리, `archived_reason` 기록 필요.
+- **REQ-FR-APP-011 (MVP, 확정):** Application-Repository 연결은 라이프사이클 상태를 가져야 한다.
+    - 최소 상태: `requested`, `verifying`, `active`, `degraded`, `disconnected`.
+    - 연결 검증 실패/일시 장애 시 `sync_error_code`를 기록해야 한다.
+    - `sync_error_code`는 표준 코드 사전을 사용해야 하며(`provider_unreachable`, `auth_invalid`, `permission_denied`, `rate_limited`, `webhook_signature_invalid`, `payload_schema_mismatch`, `resource_not_found`, `internal_adapter_error`), 임의 문자열 사용을 금지한다.
+    - `sync_error_code`에는 재시도 가능 여부(`retryable`)와 최근 발생 시각이 함께 관리되어야 한다.
+- **REQ-FR-APP-012 (MVP, 확정):** Application 롤업은 누락/장애 데이터를 숨기지 않고 `data_gap` 또는 경고 상태로 표시해야 한다.
+    - 최소 롤업 대상: PR 분포, 빌드 성공률/평균 시간, 품질 점수, gate 실패 건수.
+    - 기본 `weight_policy`는 `equal`(동일 가중)이다.
+    - 선택 `weight_policy`는 `repo_role`(primary/sub/shared 가중), `custom`(관리자 정의)를 지원할 수 있어야 한다.
+    - `custom` 정책은 가중치 합이 1.0(±허용오차)이어야 하며, 음수 가중치는 허용하지 않는다.
 - **REQ-FR-PROJ-001 (MVP, 확정):** 시스템 관리자는 Repository 하위 Project를 생성/수정/보관(archive)할 수 있어야 한다.
-    - 필수 필드: `code`, `name`, `owner`, `start_date`, `due_date`, `visibility`, `status`.
+    - 필수 필드: `key`, `name`, `owner`, `start_date`, `due_date`, `visibility`, `status`.
     - `status` 최소 상태: `planning`, `active`, `on_hold`, `closed`, `archived`.
 - **REQ-FR-PROJ-002 (MVP, 확정):** 일반 사용자는 자신이 멤버인 Project 및 공개 Project를 조회할 수 있어야 한다.
     - `archived` Project는 기본 숨김이며, 명시적 토글로 노출한다.
@@ -262,6 +289,10 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
 - **REQ-NFR-PROJ-002 (MVP):** 상위 롤업 지표는 매핑 누락 항목을 조용히 제외하지 않고 경고 상태로 표시해야 한다.
 - **REQ-NFR-PROJ-003 (후속):** Project 대시보드 응답시간 목표(예: p95 2초 이내)와 페이지네이션 한계는 설계 단계에서 별도 계약한다.
 - **REQ-NFR-PROJ-004 (MVP):** 외부 형상관리/CI/품질 도구 연동 데이터는 idempotency key 기반 중복 방지 및 재동기화(reconciliation) 정책을 가져야 한다.
+- **REQ-NFR-PROJ-005 (MVP):** 어댑터 장애는 provider 단위로 격리되어야 하며, 특정 provider 장애가 전체 수집 파이프라인 중단으로 전파되지 않아야 한다.
+- **REQ-NFR-PROJ-006 (MVP):** Application 롤업 계산은 동일 요청 조건에서 재현 가능해야 하며, 집계 기준(기간/필터/가중치)을 메타데이터로 함께 제공해야 한다.
+    - `weight_policy`와 실사용 가중치 맵(`applied_weights`)을 응답 메타에 포함해야 한다.
+    - 가중치 누락 repository는 기본값 fallback(`equal`) 적용 여부를 메타에 명시해야 한다.
 
 #### 5.4.3 Usecase 산출물 (확정)
 

@@ -97,6 +97,9 @@
 | `UC-APP-05` | Application 관리 권한 검증 | `system_admin`만 쓰기 허용, `pmo_manager` 비활성 시 403 반환 | REQ-FR-PROJ-000 |
 | `UC-APP-06` | Repository 운영 스냅샷 조회 | 작업현황/PR/빌드/품질 지표를 repo 단위로 조회 | REQ-FR-APP-005,006,007,008 |
 | `UC-APP-07` | 외부 도구 동기화/재동기화 | webhook+pull 기반 동기화, 중복/누락 보정 처리 | REQ-FR-APP-004, REQ-NFR-PROJ-004 |
+| `UC-APP-08` | SCM provider 어댑터 라우팅 | repo_provider 기준으로 적절한 어댑터를 선택해 동일 도메인 계약으로 수집/조회 처리 | REQ-FR-APP-009, REQ-NFR-PROJ-005 |
+| `UC-APP-09` | Application 상태 전이 관리 | 상태 머신 규칙에 따라 유효 전이만 허용하고 invalid 전이는 거절 | REQ-FR-APP-010 |
+| `UC-APP-10` | Application 롤업 메타 조회 | 롤업 지표와 함께 period/filter/weight/data_gap 메타 제공 | REQ-FR-APP-012, REQ-NFR-PROJ-006 |
 
 ### 2.10 Project (Repository 하위 운영 단위)
 

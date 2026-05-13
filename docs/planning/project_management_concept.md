@@ -104,7 +104,7 @@
 | usecase 후보 | 설명 | MVP |
 | --- | --- | --- |
 | 전체 과제 목록 보기 | 보관(archived) 포함 옵션 | ✅ |
-| Application 신규 등록 | name / description / code / owner / visibility / 기간 / KPI | ✅ |
+| Application 신규 등록 | name / description / key / owner / visibility / 기간 / KPI | ✅ |
 | 과제 메타 수정 | 위 항목 + status 전환 | ✅ |
 | 하위 repo 연결/해제 | 1:N repo 매핑 | ✅ |
 | 멤버/책임자 관리 | owner 교체, 멤버 role 변경 | ✅ |
@@ -144,7 +144,7 @@ applications
 
 application_repositories
   application_id      UUID FK applications.id
-  repo_provider      TEXT NOT NULL   -- github | gitea
+  repo_provider      TEXT NOT NULL   -- bitbucket | gitea | forgejo | github | etc
   repo_full_name     TEXT NOT NULL   -- org/repo
   role               TEXT NOT NULL   -- primary | sub | shared
   linked_at          TIMESTAMPTZ NOT NULL
@@ -220,11 +220,11 @@ application_integrations
 
 | 항목 | 결정 후보 | 결정 시점 |
 | --- | --- | --- |
-| Application `code` 형식 (대문자/숫자/하이픈 패턴, 길이) | 후속 design | Req sprint |
+| Application `key` 형식 (현재 10자 영문숫자, 정책 변경 가능) | 후속 design | Req sprint |
 | 영구 삭제 정책 | 보관 후 N일 + admin 재확인 | Design sprint |
 | Owner 위양 범위 | 2차 sprint | 후속 |
 | RBAC row-level enforcement | ADR-0011 후보 | Design sprint |
-| GitHub/Gitea 동시 운영 시 표준 provider 정책 | github 우선 + gitea 호환 어댑터 | Integration sprint |
+| 다중 SCM provider 운영 시 표준 provider 정책 | provider 동등 지원 + 표준 어댑터 확장 | Integration sprint |
 
 ## 11. 후속 단계 진입 hook
 
@@ -236,10 +236,146 @@ application_integrations
 | Design sprint (frontend) | `/admin/settings/applications` IA/화면 흐름 | backend design 과 병행 |
 | Implementation sprint | IMPL-application-*, UT-application-*, TC-application-* | design 머지 후 |
 
-## 12. 변경 이력
+## 12. SCM Adapter 설계 결정표
+
+### 12.1 어댑터 경계 (Core vs Adapter)
+
+| 구분 | Core 책임 | Adapter 책임 |
+| --- | --- | --- |
+| 도메인 계약 | Repository/PR/Build/Quality/Event 공통 스키마 유지 | provider payload를 공통 스키마로 변환 |
+| 보안/권한 | RBAC, 감사로그, API 권한 검증 | provider 인증 방식, webhook 서명 검증 |
+| 운영 정책 | 롤업, 경고, 재동기화 정책 결정 | provider rate limit/재시도/백오프 처리 |
+| 오류 처리 | 표준 에러 코드/운영 노출 정책 | provider별 에러 포맷 흡수 및 표준 코드 매핑 |
+
+### 12.2 데이터 모델 정밀화
+
+| 항목 | 결정 |
+| --- | --- |
+| provider 카탈로그 | `scm_providers(provider_key, display_name, enabled, adapter_version, created_at, updated_at)` 관리 |
+| Repository 연결 | `application_repositories`는 `repo_provider + repo_full_name` 기반 연결 관리 |
+| 외부 식별자 | provider별 `external_repo_id`/`external_project_key`는 설계 단계에서 컬럼 확장 검토 |
+| 동기화 상태 | `last_sync_at`, `sync_status`, `sync_error_code`를 연결/수집 엔티티에 단계적 도입 |
+
+### 12.3 운영 시나리오
+
+| 시나리오 | 설계 원칙 |
+| --- | --- |
+| 단일 provider 운영 | 표준 ingest/pull 파이프라인 적용 |
+| 다중 provider 병행 | provider별 어댑터 독립 실행 + 공통 도메인 롤업 |
+| provider 전환(cutover) | 기존 provider read-only 전환 -> 신규 provider 병행 검증 -> 기준 provider 전환 |
+| 장애 상황 | provider 장애는 해당 파이프라인만 degraded, 전체 수집은 계속 |
+| 재동기화 | provider별 reconciliation 작업을 분리 스케줄로 운영 |
+
+### 12.4 API 계약 정밀화
+
+| 항목 | 결정 |
+| --- | --- |
+| Provider 카탈로그 API | `GET /api/v1/scm/providers`, `PATCH /api/v1/scm/providers/{provider_key}` |
+| Repository 연결 검증 | `repo_provider` 유효성 + provider별 repo 참조 검증 |
+| 표준 에러 코드 | `unsupported_repo_provider`, `provider_unreachable`, `webhook_signature_invalid`, `repository_link_conflict`, `invalid_repository_reference` |
+| 계약 안정성 | 신규 provider 추가 시 기존 화면/API 응답 shape를 유지 |
+
+## 13. Application 상세 설계
+
+### 13.1 엔티티 필드 계약
+
+| 필드 | 타입/제약 | 설명 |
+| --- | --- | --- |
+| `id` | UUID PK | 내부 식별자 |
+| `key` | 전역 unique, 앱 검증(현재 10자 영문숫자) | 관리 안정 식별자 |
+| `name` | NOT NULL | 표시명 |
+| `description` | NULL 허용 | 개요 |
+| `owner_user_id` | FK users | 총괄 책임자 |
+| `visibility` | `public|internal|restricted` | 가시성 정책 |
+| `status` | `planning|active|on_hold|closed|archived` | 운영 상태 |
+| `start_date`,`due_date` | NULL 허용 | 운영 기간 |
+| `created_at`,`updated_at`,`archived_at` | timestamp | 생성/수정/보관 시각 |
+
+### 13.2 상태 전이 규칙 (State Machine)
+
+| 현재 상태 | 허용 전이 | 비고 |
+| --- | --- | --- |
+| `planning` | `active`, `on_hold`, `archived` | 초기 준비 단계 |
+| `active` | `on_hold`, `closed`, `archived` | 정상 운영 단계 |
+| `on_hold` | `active`, `closed`, `archived` | 일시 중지 단계 |
+| `closed` | `archived` | 종료 후 보관만 허용 |
+| `archived` | (기본 불가) | 복구는 후속 정책으로 별도 승인 절차 필요 |
+
+상태 전이 가드:
+- `active -> closed`: 연결 Repository가 1개 이상이고 주요 롤업 경고가 치명 상태가 아닌 경우만 허용(세부 임계치는 운영 정책으로 분리).
+- `* -> archived`: soft-delete로 처리하며 조회 기본 목록에서 제외.
+
+### 13.2.1 상태 전이별 권한/검증 가드
+
+| 전이 | 권한 | 검증 가드 | 실패 코드 |
+| --- | --- | --- | --- |
+| `planning -> active` | `system_admin` | 연결된 `sync_status=active` Repository 1개 이상 | `application_activation_precondition_failed` |
+| `active -> on_hold` | `system_admin` | `hold_reason` 필수 | `invalid_status_transition_payload` |
+| `on_hold -> active` | `system_admin` | `resume_reason` 필수, `due_date` 경과 시 사유 길이 최소 정책 적용 | `invalid_status_transition_payload` |
+| `active -> closed` | `system_admin` | 롤업 `critical` 0건 + 활성 Repository 1개 이상 | `application_close_precondition_failed` |
+| `closed -> archived` | `system_admin` | `archived_reason` 필수 | `invalid_status_transition_payload` |
+| `* -> archived` | `system_admin` | soft-delete + 감사로그 기록 | `invalid_status_transition` (불허 전이 시) |
+
+운영 메모:
+- `pmo_manager` 활성화 이전에는 모든 전이 요청이 `403 role_not_enabled`다.
+- 가드 임계치(예: critical 기준)는 운영 정책 테이블로 외부화 가능해야 한다.
+
+### 13.3 Application-Repository 연결 라이프사이클
+
+| 단계 | 설명 | 상태 필드 |
+| --- | --- | --- |
+| `requested` | 연결 요청 생성 | `sync_status=requested` |
+| `verifying` | provider 어댑터가 repo 접근/권한/참조 검증 | `sync_status=verifying` |
+| `active` | 연결 활성 + 수집 대상 등록 | `sync_status=active` |
+| `degraded` | 부분 실패(일시 장애/제한) | `sync_status=degraded`, `sync_error_code` 기록 |
+| `disconnected` | 명시적 해제 또는 provider 비활성 | `sync_status=disconnected` |
+
+운영 규칙:
+- provider 전환 시 기존 연결을 즉시 삭제하지 않고 `degraded/read-only` 관찰 단계를 거친다.
+- 동일 `application_id + repo_provider + repo_full_name` 중복 연결은 금지한다.
+
+`sync_error_code` 표준 사전:
+
+| code | 의미 | retryable | 운영 액션 |
+| --- | --- | --- | --- |
+| `provider_unreachable` | provider endpoint 도달 실패 | true | 지수 백오프 재시도, 임계 초과 시 알림 |
+| `auth_invalid` | 토큰/자격 증명 오류 | false | 자격 갱신 필요, 관리자 조치 |
+| `permission_denied` | provider 권한 부족 | false | 권한 스코프 재설정 |
+| `rate_limited` | provider 요청 한도 초과 | true | reset window 이후 재시도 |
+| `webhook_signature_invalid` | webhook 서명 검증 실패 | false | 시크릿/서명 설정 점검 |
+| `payload_schema_mismatch` | payload 구조 불일치 | false | 어댑터 스키마 업데이트 |
+| `resource_not_found` | 대상 repo/project 미존재 | false | 연결 정보 정합성 점검 |
+| `internal_adapter_error` | 어댑터 내부 처리 오류 | true | 어댑터 로그 점검 후 재시도 |
+
+### 13.4 Application 롤업 계산 규칙
+
+| 지표 | 계산 기준 | 누락 데이터 처리 |
+| --- | --- | --- |
+| PR 분포 | 연결 repo들의 `open/draft/merged/closed` 합산 | provider 미수집 repo는 `data_gap`으로 표시 |
+| Build 성공률 | 기간 내 성공 run / 전체 run | run 0건은 `N/A` 처리 |
+| 평균 Build 시간 | 성공 run 기준 평균 | 이상치(운영 정책 기준) 제외 옵션 |
+| Quality 점수 | repo별 최신 score의 가중 평균(기본 동일 가중) | score 미수집 repo는 경고 |
+| Gate 실패 건수 | gate_passed=false 집계 | provider 장애 구간은 별도 주석 |
+
+가중치 정책 결정:
+- 기본: `equal` (모든 연결 Repository 동일 가중치).
+- 예외 1: `repo_role` (`primary=0.6`, `sub=0.3`, `shared=0.1` 기본안, 조직 정책으로 조정 가능).
+- 예외 2: `custom` (Application 단위 관리자 정의, 합계 1.0 제약).
+- `custom`에서 특정 repo 가중치 미정의 시 `equal` fallback을 적용하고 `data_gap`에 이유를 남긴다.
+
+### 13.5 Application 설계 오픈 이슈
+
+| 항목 | 현재안 | 후속 |
+| --- | --- | --- |
+| `archived -> active` 복구 | 기본 비허용 | 운영 승인 워크플로우 도입 시 재논의 |
+| 롤업 가중치 | `equal` 기본 + `repo_role/custom` 예외 정책 | 운영 실측 기반 가중치 튜닝 |
+| 종료 조건 자동화 | 수동 close | KPI/리스크 기준 자동 추천은 v2 검토 |
+
+## 14. 변경 이력
 
 | 일자 | 변경 | 메모 |
 | --- | --- | --- |
 | 2026-05-13 | 초안 — 컨셉 1차. 도메인 정의 + 핵심 usecase 분리 + MVP scope + 데이터 모델 초안 + RBAC 영향(보류) + 후속 단계 진입 hook. | sprint `claude/work_260513-p`. |
 | 2026-05-13 | 리뷰 1차 보강 — archived 가시성/영구삭제 단계/Owner 위양 단계/`code` 제약 미해결 정합화. | 동일 sprint. |
 | 2026-05-13 | 컨셉 심화 — Application > Repository > Project 운영 계층, Jira/Confluence 하이브리드 정책, 상/하위 로드맵·마일스톤 롤업 규칙, PL·스프린트 운영 모델, 템플릿/예시 문서 링크 추가. | 사용자 워크숍 합의 반영. |
+| 2026-05-13 | 설계 고도화 — SCM 어댑터 결정표 + Application 상태전이/연결 라이프사이클/롤업 계산 규칙 추가. | 현재 세션 반영. |

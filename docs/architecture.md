@@ -73,6 +73,14 @@ graph TD
 
 ## 4. 데이터 전략 (Data Strategy)
 
+### 4.0 SCM Provider Adapter 원칙
+
+- 외부 형상관리 연동은 `SCM Adapter Interface`를 기준으로 provider별 구현체를 분리한다.
+- Core 도메인은 provider 중립 계약(Repository/PR/Build/Quality/Event)만 사용하고, provider별 API 차이는 어댑터에서 변환한다.
+- `repo_provider`를 라우팅 키로 사용해 어댑터를 선택한다.
+- 신규 provider 추가는 "어댑터 등록 + 설정"으로 처리하며, 기존 도메인 API/화면 계약 변경을 최소화한다.
+- 장애 격리 원칙: 특정 provider 어댑터 장애는 해당 provider ingest 파이프라인으로만 제한하고 전체 수집 파이프라인 중단을 유발하지 않는다.
+
 ### 4.1 하이브리드 동기화
 - **Webhook:** Gitea의 모든 이벤트를 실시간 수집하여 즉시 반영.
 - **Hourly Pull:** 매 시간 전체 상태를 체크하여 동기화 유실 방지 (Reconciliation).
