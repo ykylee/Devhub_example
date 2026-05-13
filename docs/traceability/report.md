@@ -108,9 +108,33 @@
 
 - **M0**: RM-M0-01 (1 항목, `X-Devhub-Actor` deprecation).
 - **M1**: RM-M1-01 ~ RM-M1-04 (4 항목, RBAC track + API 계약 §11 재작성).
-- **M2**: RM-M2-01 ~ RM-M2-16 (16 항목, 인증/계정/조직/UX/audit + CI).
-- **M3**: RM-M3-01 ~ RM-M3-07 (7 항목, Sign Up + WebSocket 확장 + AI Gardener — 본 sprint 기준 모두 planned).
-- **M4**: 본 sprint 스코프 밖. §3 매트릭스 마지막 행에 planned 표기.
+- **M2**: RM-M2-01 ~ RM-M2-16 (16 항목, 인증/계정/조직/UX/audit + CI). 1차 완성 sprint (PR #85) 가 이전에 M3 으로 분류됐던 사용자/조직 관리 대부분을 흡수.
+- **M3**: 사용자 및 조직 관리 — 대부분 M2 1차 완성에서 흡수, 잔여 정의는 §2.3.1 표 참조.
+- **M4**: 실시간 + AI Gardener + 과제 추적 + 시스템 관리. 정의는 §2.3.2 표 참조.
+
+> **drift 정합 (2026-05-13, sprint `claude/work_260513-k`)**: 본 §2.3 + `docs/development_roadmap.md` §3 가 M3/M4 정의의 single source-of-truth. 매트릭스 §3 의 도메인 행 인용 + state.json + backend_roadmap §5 모두 이 정의 기준으로 정합화. 본 sprint 이전에는 매트릭스가 RM-M3 = "Sign Up + WebSocket + AI" 로 정의해 development_roadmap.md M4 항목을 cross-cut 한 drift 상태였다.
+
+#### 2.3.1 RM-M3 정의 (sprint `claude/work_260513-k`)
+
+| RM ID | 항목 | 출처 |
+| --- | --- | --- |
+| `RM-M3-01` | Sign Up (셀프 가입) — `POST /api/v1/auth/signup` 의 hrdb lookup arm | development_roadmap §3 M3 |
+| `RM-M3-02` | 인사 DB 스키마 (`name`, `system_id`, `employee_id`, `department_name`) + `internal/hrdb/` 모듈 활용 | development_roadmap §3 M3 |
+| `RM-M3-03` | 조직 polish — `backend_api_contract.md` §10.4 자세한 schema + `parent_id` 검증 + primary_dept 자동 판정 (§5 백로그) | development_roadmap §3 M3 + §5 백로그 |
+
+#### 2.3.2 RM-M4 정의 (sprint `claude/work_260513-k`, 본 sprint 가 부여)
+
+| RM ID | 항목 | 출처 |
+| --- | --- | --- |
+| `RM-M4-01` | WebSocket 확장 — `infra.node.updated` / `ci.run.updated` / `risk.updated` event publish | development_roadmap §3 M4 + backend_roadmap §2 Phase 8 |
+| `RM-M4-02` | WebSocket replay (last event) + 리소스 필터링 | backend_roadmap §2 Phase 8 잔여 |
+| `RM-M4-03` | frontend command status WebSocket UI (Phase 4 마무리) | development_roadmap §4.2 Dashboard |
+| `RM-M4-04` | AI Gardener gRPC — Python `AnalysisService` server + Go Core client | backend_roadmap §2 Phase 9 |
+| `RM-M4-05` | AI Suggestion Feed 실데이터 바인딩 (frontend) | development_roadmap §4.2 Gardener |
+| `RM-M4-06` | Gitea Hourly Pull worker (과제 추적 reconciliation) | backend_roadmap §2 Phase 10 |
+| `RM-M4-07` | System Admin 대시보드 (Gitea Runner 상태 + 시스템 설정 관리) | development_roadmap §3 M4 |
+| `RM-M4-08` | RBAC PermissionCache 다중 인스턴스 일관성 구현 ([ADR-0007](../adr/0007-rbac-cache-multi-instance.md) PG `LISTEN/NOTIFY`) | ADR-0007 §4.2 |
+| `RM-M4-09` | 외부 SSO 통합 (Gitea 연동 등) | development_roadmap §3 M4 |
 
 ### 2.4 Implementation (IMPL)
 
@@ -203,18 +227,18 @@
 | 도메인 | REQ | ARCH / API | ROADMAP | IMPL | UT | TC |
 | --- | --- | --- | --- | --- | --- | --- |
 | **인증 (auth / OIDC)** | FR-19, 21–24, 65, 67; NFR-3, 18 | ARCH-11, 12; API-19–24, 35 (정밀 매핑: §2.2 Auth API 서브 표) | M1-04, M2-01, 02, 03, 09 | auth-01..07 (책임 정의: §2.4 IMPL-auth-XX 서브 표); frontend-auth-01..06; login-01..03; logout-01 | httpapi-01..04; auth-01; frontend-auth-01..04 | TC-AUTH-NEG-01, NOAUTH-01, SIGNOUT-REDIR-01; TC-USER-SWITCH-01 |
-| **회원가입 (signup)** | FR-25, 61–63 | ARCH-12; API-23 (§11.5, 정밀 매핑: §2.2 Auth API 서브 표) | M3-01 (planned) | auth-06 (`auth_signup.go`, §2.4 IMPL-auth-XX 서브 표); frontend-login-03 | httpapi-15 | TC-SIGNUP-01..04 |
+| **회원가입 (signup)** | FR-25, 61–63 | ARCH-12; API-23 (§11.5, 정밀 매핑: §2.2 Auth API 서브 표) | RM-M3-01 (Sign Up + hrdb arm, planned); RM-M3-02 (인사 DB 스키마, planned) | auth-06 (`auth_signup.go`, §2.4 IMPL-auth-XX 서브 표); hrdb-01 (placeholder); frontend-login-03 | httpapi-15 | TC-SIGNUP-01..04 |
 | **RBAC** | FR-27, 86; NFR-26 | ARCH-13; API-26–31, 38–40 (정밀 매핑: §2.2 RBAC API 서브 표) | M1-01, 02, 03; M2-11 | rbac-01..04 (책임 정의: §2.4 IMPL-rbac-XX 서브 표); frontend-admin-rbac-01; frontend-service-rbac-01; org-comp-02 | rbac-01..03; domain-01 | TC-RBAC-SUB-01, MGR-01; TC-PERMISSIONS-SMOKE-01 |
 | **계정 관리 (account admin + self-service)** | FR-15–18, 20, 22, 23, 26, 61–67; NFR-3, 4, 5, 7, 17, 19, 20 | ARCH-12, 14; API-25, 32, 35 (API-35 = §11.5.1 cross-cut with 인증, 정밀 매핑: §2.2 Auth API 서브 표) | M2-04, 05, 06 | account-01..04 (`account_password.go` 가 API-35 의 IMPL); frontend-account-01; frontend-admin-users-01; frontend-service-account-01 | httpapi-05, 06, 07 | TC-USR-01..06; TC-USR-CRUD-01..03; TC-ACC-01..03; TC-ACC-PROFILE-01 |
 | **조직 계층 (organization)** | FR-68–80; NFR-21 | ARCH-15, 16, 17; API-33, 34 (정밀 매핑: §2.2 Account/Org/Me 서브 표, 본문 spec 은 §10.1 의 carve out — 후속 sprint 후보) | M2-07, 08 | org-01..04 (책임 정의: §2.4 IMPL-org-XX 서브 표); frontend-org-01; frontend-admin-org-01; frontend-org-comp-01..03; frontend-service-org-01 | httpapi-07; store-01 | TC-ORG-LIST-01..02; TC-ORG-UNIT-01..03; TC-ORG-MEM-01..02; TC-ORG-CHART-01..02 |
 | **감사 (audit)** | FR-18, 26, 102; NFR-4 | ARCH-14; API-18, 39 (39 = §12.9 cross-cut from RBAC, 정밀 매핑: §2.2 Realtime/Command/Audit 서브 표) | M2-15 (in_progress, PR-M2-AUDIT) | audit-01, 02 (책임 정의: §2.4 IMPL-audit-XX 서브 표); kratos-03 | httpapi-19, 24; frontend (Vitest 없음 — §5.2 open) | TC-AUD-01, 02 |
-| **명령 lifecycle (command / mitigation / service action)** | FR-58, 59, 84, 95, 100, 101 | API-15–17, 36, 37 (정밀 매핑: §2.2 Realtime/Command/Audit 서브 표) | M1-01..03 (envelope 정합); M3-02 (replay, planned) | command-01..05 (책임 정의: §2.4 IMPL-command-XX 서브 표); serviceaction-01; realtime-01 | httpapi-09, 13; commandworker-01, 02; serviceaction-01; domain-02 | (E2E 미커버 — gap §5.1, sprint `claude/work_260513-i` 에서 TC-CMD-* 카탈로그 추가) |
-| **실시간 (realtime / WebSocket)** | FR-56, 57, 60, 82, 83, 104, 105; NFR-11, 22, 23 | ARCH-05; API-14, 36 (정밀 매핑: §2.2 Realtime/Command/Audit 서브 표) | M3-02, 03 (planned) | realtime-01 (책임 정의: §2.4 IMPL-realtime-01); frontend-service-realtime-01 | httpapi-13 | (E2E 미커버 — gap §5.1) |
-| **인프라 토폴로지 (infra)** | FR-12, 13, 97, 98, 99; NFR-12, 16 | ARCH-04, 09; API-06, 07 (정밀 매핑: §2.2 Infra/Dashboard 서브 표) | M3-02 (planned, infra event publish) | infra-01 (책임 정의: §2.4 IMPL-infra-XX 서브 표); frontend-role-03 (gardener) | httpapi-12 | (E2E 미커버 — gap §5.1, sprint `claude/work_260513-i` 에서 TC-INFRA-* 카탈로그 추가) |
+| **명령 lifecycle (command / mitigation / service action)** | FR-58, 59, 84, 95, 100, 101 | API-15–17, 36, 37 (정밀 매핑: §2.2 Realtime/Command/Audit 서브 표) | M1-01..03 (envelope 정합); RM-M4-02 (replay, planned); RM-M4-03 (command status WS UI, planned) | command-01..05 (책임 정의: §2.4 IMPL-command-XX 서브 표); serviceaction-01; realtime-01 | httpapi-09, 13; commandworker-01, 02; serviceaction-01; domain-02 | (E2E 미커버 — gap §5.1, sprint `claude/work_260513-i` 에서 TC-CMD-* 카탈로그 추가) |
+| **실시간 (realtime / WebSocket)** | FR-56, 57, 60, 82, 83, 104, 105; NFR-11, 22, 23 | ARCH-05; API-14, 36 (정밀 매핑: §2.2 Realtime/Command/Audit 서브 표) | RM-M4-01 (event publish 확장, planned); RM-M4-02 (replay + 리소스 필터, planned); RM-M4-03 (frontend WS UI, planned) | realtime-01 (책임 정의: §2.4 IMPL-realtime-01); frontend-service-realtime-01 | httpapi-13 | (E2E 미커버 — gap §5.1) |
+| **인프라 토폴로지 (infra)** | FR-12, 13, 97, 98, 99; NFR-12, 16 | ARCH-04, 09; API-06, 07 (정밀 매핑: §2.2 Infra/Dashboard 서브 표) | RM-M4-01 (infra event publish, planned) | infra-01 (책임 정의: §2.4 IMPL-infra-XX 서브 표); frontend-role-03 (gardener) | httpapi-12 | (E2E 미커버 — gap §5.1, sprint `claude/work_260513-i` 에서 TC-INFRA-* 카탈로그 추가) |
 | **Webhook + 도메인 데이터 (gitea)** | FR-49, 50, 51, 52, 53, 54, 55 | ARCH-06, 07, 08; API-02, 04, 08–13 (정밀 매핑: §2.2 Infra/Dashboard + Pipelines 서브 표) | (M0 이전 phase 완료) | gitea-01, 02; domain-01..03; normalize | httpapi-10, 14; gitea-01; normalize-01; store-03 | (E2E 미커버 — gap §5.1) |
 | **대시보드 / 메트릭 / me** | FR-1–11, 28–36, 81, 85, 88, 89, 96 | ARCH-10; API-05, 32, 36, 38 (32 = `GET /api/v1/me`, 정밀 매핑: §2.2 Infra/Dashboard + Account/Org/Me + RBAC 서브 표) | (Phase 4 이전 완료) | dashboard-01; me-01 (책임 정의: §2.4 IMPL-dashboard/me 서브 표); frontend-dashboard-01; frontend-role-01..03; frontend-store-01; frontend-layout-01..02; frontend-service-api-01 | httpapi-08, 11, 22 | TC-NAV-01..03; TC-NAV-SIM-01 |
 | **CI / 거버넌스** | NFR-1 (no-docker) | ADR-0001 §5; [ADR-0003](../adr/0003-no-docker-policy-ci-scope.md) | M2-16 (CI 1차, PR #86); FU-CI-1..4 (PR #87); ADR-0003 (PR #88); 거버넌스 + 매트릭스 1차 (PR #89); 갭 분석 + 메타 헤더 표준화 (본 PR / sprint `claude/work_260513-d`) | (build infra: `.github/workflows/ci.yml`, `scripts/ci-setup.sh`, `infra/idp/*.ci.yaml`); `docs/governance/*`, `docs/traceability/*` | (lint 미도입, FU-CI 향후) | (CI run 자체가 검증) |
-| **M4 (스코프 밖, planned)** | FR-37–48, 56–57, 60, 90–94 (일부) | API-14 (확장) | M4 항목 (M4 컬럼 별도) | (미진입) | (미진입) | (미진입) |
+| **M4 (planned, 정의: §2.3.2)** | FR-37–48, 56–57, 60, 90–94 (일부 — Realtime / AI / Task / Admin) | API-14 (WebSocket 확장) | RM-M4-01..09 (정의: §2.3.2 RM-M4 표) | (미진입 — sprint plan 진입 시 IMPL-ai-XX / IMPL-task-XX 발급) | (미진입) | (미진입) |
 
 > Note — 매트릭스 셀의 ID 는 §2 의 단계별 인덱스를 줄여서 표기 (예: `auth-01..07` = `IMPL-auth-01..IMPL-auth-07`). 한 도메인이 여러 단계에 걸쳐 영향을 주므로 정확한 1:1 매핑은 §2 인덱스 + 단계별 문서 본문의 ID 노출 (`document-standards.md` §5) 로 확인.
 
@@ -277,3 +301,4 @@
 | 2026-05-13 | sprint `claude/work_260513-h` (B4: X-Devhub-Actor 폐기 ADR): [ADR-0004](../adr/0004-x-devhub-actor-removal.md) 발급. M0 SEC-4 + M1 PR-D Bearer token verifier 도입으로 ADR-0001 §8 #4 trigger 가 이미 충족됐음을 ex-post-facto 명문화. §4 ADR 인덱스에 ADR-0004 행 추가. §5.3 "X-Devhub-Actor 완전 제거 trigger" closed. `docs/architecture.md` line 174 + `docs/adr/0001-idp-selection.md` §8 #4 인라인 갱신 + `backend-core/internal/httpapi/me.go` line 16 주석 잔재 정리. 회귀 방지 negative 테스트 4 파일 (audit_test / commands_test / auth_test / me_test) 그대로 유지. Pass 1 review 보강으로 `backend_api_contract.md` §8/§9.1/§9.2/§11.3 + `frontend_integration_requirements.md` §3.5 + `environment-setup.md` §2.4 의 spec 잔재 6 위치도 함께 정리 + ADR-0004 §5 정정. |
 | 2026-05-13 | sprint `claude/work_260513-i` (대형 묶음 B1~D5): B1 추가 5 도메인 (account / org / command / audit / infra) 본문 ID 노출 + §10.1 "본문 spec 부재 endpoint" carve out 표 + §2.2 4 신규 서브 표 (Infra/Dashboard, Pipelines, Realtime/Command/Audit, Account/Org/Me) + §2.4 6 신규 IMPL 서브 표 (account / org / command / audit / infra+dashboard+realtime+me). §3 6 행 (감사 / 명령 / 실시간 / 인프라 / Webhook+gitea / 대시보드+me + 조직) 갱신 (ID 범위 + §2 서브 표 참조). §5.1 의 명령/인프라 행은 "카탈로그 closed, spec ts open" 으로 갱신. §5.2 frontend Vitest 부재 closed (C1 1차 도입) + 본문 spec 부재 endpoint open (account / users / org). B2 archive/AGENTS.md + archive/split_checklist.md deprecated 마킹. C1 ThemeToggle Vitest 3 tests. C2 test_cases_m3_command_infra.md 신규 (TC-CMD-* / TC-INFRA-* 5 TC 카탈로그, spec ts 작성은 carve out). D5 [ADR-0005](../adr/0005-workflow-lint-actionlint.md) 발급 + `.github/workflows/ci.yml` 에 `workflow-lint` 잡 추가 (raven-actions/actionlint@v2). |
 | 2026-05-13 | sprint `claude/work_260513-j` (M3 진입 전 잔여 후속 일괄): D6 inbound X-Devhub-Actor 거부 (auth.go) + [ADR-0006](../adr/0006-x-devhub-actor-reject-inbound.md) — silent ignore → 400 + `code=x_devhub_actor_removed`. 회귀 4 테스트 의도 갱신 (`me_test`, `audit_test`, `auth_test`, `commands_test`). [ADR-0007](../adr/0007-rbac-cache-multi-instance.md) RBAC cache 다중 인스턴스 일관성 결정 (PG LISTEN/NOTIFY 채택, 구현은 M3 carve out). B2-2 deprecated 추가 마킹 (backend/requirements_review.md / DOCUMENT_INDEX.md / assessment.md). 매트릭스 §2.2 nit 정정 (API-XX ID 공간 + composite + 결손 명시). `backend_api_contract.md` §10.2 (API-25 accounts admin) + §10.3 (API-33 users CRUD) + §10.4 (API-34 organization) 본문 spec 절 신설 — §5.2 "본문 spec 부재 endpoint" closed. AuthGuard smoke Vitest 1 test (loading 상태, 나머지 mock-heavy 본격은 M3+). TC-INFRA-RENDER-01 spec ts (정적 렌더 검증, 인터랙션 TC 는 carve). §4 ADR 인덱스에 ADR-0006 + ADR-0007 행 추가. §5.3 의 X-Devhub-Actor + RBAC cache 항목 closed 갱신. |
+| 2026-05-13 | sprint `claude/work_260513-k` (M3/M4 drift 정합): M3/M4 정의의 3 source 사이 drift 해소. `docs/development_roadmap.md` §3 를 single source-of-truth 로 명시 (이전 매트릭스 RM-M3 정의가 development_roadmap M4 항목을 cross-cut 한 drift 상태). development_roadmap §3 의 M3 헤더 중복 + 본문 정리 — M3 잔여 = Sign Up + 인사 DB + 조직 polish (사용자/조직 관리 대부분은 M2 1차 완성 sprint PR #85 가 흡수). 매트릭스 §2.3 갱신 + §2.3.1 RM-M3 정의 표 (3 항목: Sign Up, 인사 DB, 조직 polish) + §2.3.2 RM-M4 정의 표 (9 항목 신규 발급: WebSocket 확장/replay, command status WS UI, AI Gardener, Suggestion Feed, Gitea Pull worker, System Admin 대시보드, RBAC cache LISTEN/NOTIFY, 외부 SSO). 매트릭스 §3 의 회원가입 / 명령 lifecycle / 실시간 / 인프라 행 RM-M3 → RM-M4 정합. M4 row 정의 갱신 (스코프 밖 → planned, 정의: §2.3.2). |

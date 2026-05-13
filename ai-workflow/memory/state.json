@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-05-13 진행 중. M1/M2 100% done. PR #86~#95 (10건) 머지 + 거버넌스 + 추적성 + 5 도메인 ID 노출 + X-Devhub-Actor 폐기 + actionlint. 현재 sprint claude/work_260513-j — M3 진입 전 잔여 후속 일괄 (D6 inbound 거부 + ADR-0006/0007 + B2-2 deprecated + 매트릭스 nit + §10.2/§10.3/§10.4 spec 절 + AuthGuard smoke + TC-INFRA-RENDER-01 spec). 다음 진입 후보: M3 진입 (WebSocket UI / AI Gardener gRPC / Gitea Hourly Pull / RBAC cache LISTEN/NOTIFY 구현 / mock-heavy 본격 Vitest / 나머지 TC spec ts).",
-  "updated_at": "2026-05-13T12:00:00Z",
-  "head_commit": "cb9e6d5",
-  "head_summary": "Merge pull request #95 (docs(traceability,adr,ci),test(frontend): 대형 묶음 B1~D5)",
+  "status": "2026-05-13 진행 중. M1/M2 100% done. PR #86~#96 (11건) 머지. M2 1차 완성 sprint 가 사용자/조직 관리 대부분 흡수 — 매트릭스 M3 정의의 source-of-truth = development_roadmap.md §3 로 정합화 진행 중. 현재 sprint claude/work_260513-k — M3/M4 drift 정합 (development_roadmap §3 본문 + 매트릭스 §2.3.1/§2.3.2 RM-M3/M4 정의 표 + §3 도메인 행 정합 + state.json m3/m4 후보 분리).",
+  "updated_at": "2026-05-13T13:30:00Z",
+  "head_commit": "f551e6a",
+  "head_summary": "Merge pull request #96 (feat(auth),docs(adr,api,traceability),test: M3 진입 전 잔여 후속 일괄)",
   "milestones": {
     "M0": {
       "status": "done",
@@ -90,7 +90,8 @@
       "work_260513_g": "ai-workflow/memory/claude/work_260513-g/ (CLOSED, PR #93 B1 auth 도메인 2차 — §11 본문 ID 노출 + IMPL-auth-01..07 책임 정의)",
       "work_260513_h": "ai-workflow/memory/claude/work_260513-h/ (CLOSED, PR #94 B4 X-Devhub-Actor 폐기 ADR-0004 + Pass 1 review 보강으로 spec 잔재 6 위치 흡수)",
       "work_260513_i": "ai-workflow/memory/claude/work_260513-i/ (CLOSED, PR #95 대형 묶음 B1~D5 — Pass 1 review clean)",
-      "work_260513_j": "ai-workflow/memory/claude/work_260513-j/ (IN PROGRESS, M3 진입 전 잔여 후속 일괄)"
+      "work_260513_j": "ai-workflow/memory/claude/work_260513-j/ (CLOSED, PR #96 M3 진입 전 잔여 후속 일괄 — Pass 1 review e2e relax 보강)",
+      "work_260513_k": "ai-workflow/memory/claude/work_260513-k/ (IN PROGRESS, M3/M4 drift 정합)"
     },
     "governance_entry": "docs/governance/README.md",
     "traceability_entry": "docs/traceability/README.md",
@@ -132,7 +133,8 @@
     {"pr": 92, "sprint": "work_260513-f", "title": "docs(traceability,api): B 묶음 — RBAC API §12 IMPL 정밀 매핑 + 본문 ID 노출", "merge_commit": "a73dba1"},
     {"pr": 93, "sprint": "work_260513-g", "title": "docs(traceability,api): B1 auth 도메인 2차 — §11 본문 ID 노출 + IMPL-auth-01..07 책임 정의", "merge_commit": "594be74"},
     {"pr": 94, "sprint": "work_260513-h", "title": "docs(adr): ADR-0004 X-Devhub-Actor 폐기 완료 선언 (B4)", "merge_commit": "ceb0f6f"},
-    {"pr": 95, "sprint": "work_260513-i", "title": "docs(traceability,adr,ci),test(frontend): 대형 묶음 B1~D5", "merge_commit": "cb9e6d5"}
+    {"pr": 95, "sprint": "work_260513-i", "title": "docs(traceability,adr,ci),test(frontend): 대형 묶음 B1~D5", "merge_commit": "cb9e6d5"},
+    {"pr": 96, "sprint": "work_260513-j", "title": "feat(auth),docs(adr,api,traceability),test: M3 진입 전 잔여 후속 일괄", "merge_commit": "f551e6a"}
   ],
   "discarded_sprints_2026_05_12": [
     {"slot": "work_260512-h", "reason": "진입 직후 후보 (M2 hygiene users.kratos_identity_id) 가 PR-L4 (809f525, work_26_05_11-e) 에 이미 머지된 것 확인. 신규 작업 없어 폐기."}
@@ -162,11 +164,21 @@
       "/account 폼의 current_password 라벨 — Kratos privileged session 안내 보강",
       "Header Switch View 시뮬레이션이 actor.role 을 우회 못함을 명시 (UX 안내)"
     ],
+    "m3_entry_candidates": [
+      "RM-M3-01: Sign Up (셀프 가입) — POST /api/v1/auth/signup 의 hrdb lookup arm",
+      "RM-M3-02: 인사 DB 스키마 (name / system_id / employee_id / department_name) + internal/hrdb/ 모듈",
+      "RM-M3-03: 조직 polish — backend_api_contract §10.4 자세한 schema + parent_id 검증 + primary_dept 자동 판정"
+    ],
     "m4_entry_candidates": [
-      "command status WebSocket UI (frontend Phase 4 마무리)",
-      "WebSocket 확장 (backend infra.node.updated / ci.run.updated / risk.updated publish + replay)",
-      "AI Gardener gRPC (Python AnalysisService + Go Core client)",
-      "Gitea Hourly Pull worker"
+      "RM-M4-01: WebSocket 확장 (backend infra.node.updated / ci.run.updated / risk.updated publish)",
+      "RM-M4-02: WebSocket replay (last event) + 리소스 필터링",
+      "RM-M4-03: frontend command status WebSocket UI (Phase 4 마무리)",
+      "RM-M4-04: AI Gardener gRPC (Python AnalysisService + Go Core client)",
+      "RM-M4-05: AI Suggestion Feed 실데이터 바인딩 (frontend)",
+      "RM-M4-06: Gitea Hourly Pull worker (과제 추적 reconciliation, Phase 10)",
+      "RM-M4-07: System Admin 대시보드 (Runner 상태 + 시스템 설정)",
+      "RM-M4-08: ADR-0007 RBAC PermissionCache LISTEN/NOTIFY 실제 구현 + 통합 테스트",
+      "RM-M4-09: 외부 SSO 통합 (Gitea 연동 등)"
     ],
     "ops_verification": "사용자 환경에서 docs/setup/test-server-deployment.md 의 §6-§7 e2e 절차 1회 수행 권장. E2E baseline 자동화는 PR #58 이후 `cd frontend && npm run e2e` 한 줄. PR #76 hardening 으로 stale rotation 도 다음 실행에서 자동 복구."
   }

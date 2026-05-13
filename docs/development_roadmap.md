@@ -80,24 +80,31 @@
 - Sign Up (셀프 가입, 인사 DB 연동) → M3.
 - MFA / Two-Factor → M4.
 
-### M3 — 조직 관리 및 대시보드 고도화 (In Progress)
-### M3: 사용자 및 조직 관리 (User & Org Management)
-- **사용자 관리**: 유저 CRUD UI 고도화 및 권한 할당 로직 정교화.
-- **조직 관리 (1차 완성)**: 부서 CRUD, 계층 편집(Drag & Drop), 리더 변경 액션의 백엔드 영속화 및 실시간 동기화.
-- **CI/CD**: GitHub Actions 기반 Unit/E2E 테스트 자동화 파이프라인 구축.
-- **Sign Up (셀프 가입)**: 시스템 인사 DB 연동을 통한 사용자 셀프 등록 기능.
+### M3: 사용자 및 조직 관리 (User & Org Management) — In Progress (대부분 M2 1차 완성 흡수)
+
+> **drift 정합 (2026-05-13, sprint `claude/work_260513-k`)**: 본 §3 가 M3/M4 정의의 source-of-truth. 매트릭스 §2.3 + state.json + backend_roadmap §5 모두 본 절 기준으로 정합화.
+
+**M2 1차 완성 sprint (`claude/login_usermanagement_finish`, PR #85) 가 흡수한 항목** (이전에는 M3 으로 분류):
+- ✅ 사용자 관리 (유저 CRUD UI 고도화 + 권한 할당 정교화) — `/admin/settings/users` + RBAC PermissionEditor.
+- ✅ 조직 관리 1차 완성 (부서 CRUD + drag&drop + 리더 변경 영속화) — work_26_05_11 트랙 S (PR #52~#55).
+- ✅ CI/CD GHA (Unit + E2E + actionlint) — PR #86~#88 + ADR-0005.
+
+**M3 잔여**:
+- ⏳ **Sign Up (셀프 가입)**: 인사 DB 연동 기반 사용자 셀프 등록 (`POST /api/v1/auth/signup` 의 hrdb lookup arm).
     - 대상: 이름, 사내 ID, 사번, 부서명이 인사 DB에 존재하는 인원.
-- **인사 DB 스키마 (초기)**: `name`, `system_id`, `employee_id`, `department_name`.
+- ⏳ **인사 DB 스키마 (초기)**: `name`, `system_id`, `employee_id`, `department_name`. `internal/hrdb/` 모듈 활용.
+- ⏳ **조직 polish**: 본 sprint 시리즈가 carve out 한 `backend_api_contract.md` §10.4 의 자세한 schema, `parent_id` 검증, primary_dept 자동 판정 등 (§5 백로그 항목).
 
 ### M4: 실시간 대시보드 및 AI Gardener (Realtime & AI)
-- **실시간 데이터**: WebSocket 기반 인프라/CI 상태 리플레이 및 리소스 필터링.
-- **AI Gardener**: gRPC 기반 AI 제안 피드 연동 및 적용 자동화.
-- **시스템 관리**: 전역 설정 및 과제 추적 대시보드 완성.
-- **과제 추적**: Gitea PR/Commit 기반 과제 추적 화면 신설 및 Hourly Reconciliation (Phase 10).
+- **실시간 데이터 (WebSocket 확장 + replay)**: `infra.node.updated`, `ci.run.updated`, `risk.updated` event publish + 리소스 필터링 + last event replay. backend_roadmap §2 Phase 8 잔여 항목.
+- **AI Gardener**: Python `AnalysisService` gRPC server + Go Core client. backend_roadmap §2 Phase 9. Suggestion Feed 실데이터 바인딩 (frontend).
+- **command status WebSocket UI** (frontend Phase 4 마무리): command lifecycle 상태 변화의 UI 실시간 반영.
+- **과제 추적**: Gitea PR/Commit 기반 추적 화면 + Hourly Reconciliation (backend_roadmap §2 Phase 10).
 - **시스템 관리자 대시보드 (System Admin Dashboard)**:
   - ⏳ **B·F**: Gitea Runner 상태, 시스템 설정 관리 UI 및 API.
 - **권한 관리 고도화 (RBAC)**:
   - ✅ **B·F**: 권한 매트릭스 및 역할 할당 기능 완료 (M1).
+  - ⏳ **B**: ADR-0007 PostgreSQL `LISTEN/NOTIFY` 기반 PermissionCache 다중 인스턴스 일관성 구현.
   - ⏳ **A**: 외부 SSO 통합 (Gitea 연동 등).
 - **역할별 UX 제공 방식 정렬**:
   - ⏳ **F·X**: 역할별 UX는 기본 진입 페이지 우선순위로 제공하고, 시스템 영역은 `system_admin` 권한 전용 노출 정책으로 유지.
