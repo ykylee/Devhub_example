@@ -1,10 +1,12 @@
 # AGENTS.md
 
+> ⚠ **Deprecated** (2026-05-13, sprint `claude/work_260513-i`). 본 문서는 archive 위치로 이동된 초안. workflow 진입 규칙은 `CLAUDE.md` (Claude Code 진입점) + `ai-workflow/memory/` (브랜치별 운영 메모리) 가 source-of-truth. 본 문서는 참조용으로만 유지된다.
+
 - 문서 목적: Codex 가 이 저장소에서 먼저 읽어야 할 workflow 진입 규칙과 기본 작업 원칙을 제공한다.
 - 범위: 세션 복원, workflow state docs 참조 순서, 사용자 보고 언어, 기본 실행/검증 명령
 - 대상 독자: Codex, 저장소 관리자, workflow 설계자
-- 상태: draft
-- 최종 수정일: 2026-04-30
+- 상태: deprecated
+- 최종 수정일: 2026-05-13 (deprecated 마킹)
 - 관련 문서: `ai-workflow/WORKFLOW_INDEX.md`, `ai-workflow/memory/codex/phase6/state.json`, `ai-workflow/memory/codex/phase6/session_handoff.md`, `ai-workflow/memory/work_backlog.md`, `docs/PROJECT_PROFILE.md`
 
 ## 목적

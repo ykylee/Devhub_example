@@ -59,6 +59,51 @@
 
 > §11.2 Hydra 표준 endpoint (외부, DevHub 재정의 0) 와 §11.4 admin identity wrapper (planned, M3 진입 시 ID 발급) 는 본 매핑 표에서 제외 — `conventions.md` §5.2 의 외부 의존성 / planned 항목 정책.
 
+#### Infra / Dashboard API §6 — endpoint 매핑 (sprint `claude/work_260513-i`)
+
+| API ID | 본문 위치 | 항목 |
+| --- | --- | --- |
+| `API-01` | §3 | `GET /health` |
+| `API-02` | §4 | `POST /api/v1/integrations/gitea/webhooks` |
+| `API-04` | §5 | `GET /api/v1/events` |
+| `API-05` | §6.200 | `GET /api/v1/dashboard/metrics` |
+| `API-06` | §6.234 | `GET /api/v1/infra/nodes` |
+| `API-07` | §6.240, §6.245 | `GET /api/v1/infra/edges` + `GET /api/v1/infra/topology` (composite) |
+
+#### Pipelines API §7 — endpoint 매핑 (sprint `claude/work_260513-i`)
+
+| API ID | 본문 위치 | 항목 |
+| --- | --- | --- |
+| `API-08` | §7 | `GET /api/v1/repositories` |
+| `API-09` | §7 | `GET /api/v1/issues` |
+| `API-10` | §7 | `GET /api/v1/pull-requests` |
+| `API-11` | §7 | `GET /api/v1/ci-runs` |
+| `API-12` | §7 | `GET /api/v1/ci-runs/:ci_run_id/logs` |
+| `API-13` | §7 | `GET /api/v1/risks` + `GET /api/v1/risks/critical` (composite) |
+
+#### Realtime / Command / Audit API §8, §9 — endpoint 매핑 (sprint `claude/work_260513-i`)
+
+| API ID | 본문 위치 | 항목 |
+| --- | --- | --- |
+| `API-14` | §8 | `GET /api/v1/realtime/ws` (WebSocket endpoint) |
+| `API-15` | §9.1 | `POST /api/v1/admin/service-actions` |
+| `API-16` | §9.2 | `POST /api/v1/risks/:risk_id/mitigations` |
+| `API-17` | §9.3 | `GET /api/v1/commands/:command_id` |
+| `API-18` | §9.4 | `GET /api/v1/audit-logs` |
+| `API-36` | §8 envelope | `command.status.updated` WebSocket event envelope |
+| `API-37` | §11.6 | command lifecycle audit 매핑 (`auth.role_denied`, command-target audit action) |
+
+#### Account / Organization / Me API §10.1 — endpoint 매핑 (sprint `claude/work_260513-i`)
+
+| API ID | 본문 위치 | 항목 |
+| --- | --- | --- |
+| `API-25` | §10.1 (spec carve out) | `/api/v1/accounts/*` admin endpoint set (POST /accounts, PUT /accounts/:id/password, PATCH /accounts/:id/status, DELETE /accounts/:id) |
+| `API-32` | §10 | `GET /api/v1/me` (현재 §10 의 1차 노출, 별도 spec 절은 후속 sprint) |
+| `API-33` | §10.1 (spec carve out) | `/api/v1/users` CRUD set |
+| `API-34` | §10.1 (spec carve out) | `/api/v1/organization/*` set (hierarchy + units + members) |
+
+> §10.1 에 본문 spec 부재 endpoint 의 위치 표가 명시되어 있음. 본문 spec 작성은 후속 sprint 후보 (`work_backlog.md` 의 미진입 항목).
+
 ### 2.3 Roadmap (RM)
 
 - **M0**: RM-M0-01 (1 항목, `X-Devhub-Actor` deprecation).
@@ -93,6 +138,52 @@
 | `IMPL-auth-07` | `internal/httpapi/auth_consent.go` | API-24 `GET /api/v1/auth/consent` handler |
 
 > API-35 `POST /api/v1/account/password` 의 IMPL 은 account 도메인 (별도 sprint 의 `internal/httpapi/account_password.go`). 매트릭스 §3 의 인증 행 + 계정 관리 행 양쪽에 ID 가 노출되는 cross-cut.
+
+#### IMPL-account-XX 정의 (sprint `claude/work_260513-i`)
+
+| IMPL ID | 코드 위치 | 책임 |
+| --- | --- | --- |
+| `IMPL-account-01` | `internal/httpapi/accounts_admin.go` (`createAccount`) | API-25 `POST /api/v1/accounts` — Kratos identity 생성 + DevHub users 행 + temp password |
+| `IMPL-account-02` | `internal/httpapi/accounts_admin.go` (`resetAccountPassword`) | API-25 `PUT /api/v1/accounts/:id/password` — admin reset |
+| `IMPL-account-03` | `internal/httpapi/accounts_admin.go` (`updateAccountStatus`, `deleteAccount`) | API-25 PATCH/DELETE — disable / delete identity + users |
+| `IMPL-account-04` | `internal/httpapi/account_password.go` | API-35 `POST /api/v1/account/password` — self-service password change (Kratos settings flow proxy) |
+
+#### IMPL-org-XX 정의 (sprint `claude/work_260513-i`)
+
+| IMPL ID | 코드 위치 | 책임 |
+| --- | --- | --- |
+| `IMPL-org-01` | `internal/httpapi/organization.go` (users handlers: `listUsers`, `getUser`, `createUser`, `updateUser`, `deleteUser`) | API-33 `/api/v1/users` CRUD |
+| `IMPL-org-02` | `internal/httpapi/organization.go` (hierarchy + units handlers: `getOrganizationHierarchy`, `getUnit`, `createUnit`, `updateUnit`, `deleteUnit`) | API-34 hierarchy + units endpoint |
+| `IMPL-org-03` | `internal/httpapi/organization.go` (members handlers: `listUnitMembers`, `replaceUnitMembers`) | API-34 unit members endpoint |
+| `IMPL-org-04` | `internal/store/users_units.go` + organization store impl | persistence layer (users / org_units / unit_memberships) |
+
+#### IMPL-command-XX 정의 (sprint `claude/work_260513-i`)
+
+| IMPL ID | 코드 위치 | 책임 |
+| --- | --- | --- |
+| `IMPL-command-01` | `internal/httpapi/commands.go` (`createServiceAction`) | API-15 `POST /api/v1/admin/service-actions` handler |
+| `IMPL-command-02` | `internal/httpapi/commands.go` (`createRiskMitigation`) | API-16 `POST /api/v1/risks/:id/mitigations` handler |
+| `IMPL-command-03` | `internal/httpapi/commands.go` (`getCommand`) | API-17 `GET /api/v1/commands/:command_id` handler |
+| `IMPL-command-04` | `internal/commandworker/*` | command worker (dry-run / live executor, `command.status.updated` publisher) |
+| `IMPL-command-05` | `internal/serviceaction/*` | service-action 도메인 로직 (executor adapter 후보) |
+
+#### IMPL-audit-XX 정의 (sprint `claude/work_260513-i`)
+
+> auth 의 IMPL-auth-01..07 과 별도. audit 는 독립 모듈.
+
+| IMPL ID | 코드 위치 | 책임 |
+| --- | --- | --- |
+| `IMPL-audit-01` | `internal/httpapi/audit.go` (`listAuditLogs`, `recordAudit`, `recordAuditBestEffort`) | API-18 `GET /api/v1/audit-logs` handler + 다른 도메인의 audit emit helper |
+| `IMPL-audit-02` | `internal/store/audit_logs.go` | audit_logs persistence + source_type/request_id/source_ip 컬럼 (M1 PR-D 의 actor enrichment) |
+
+#### IMPL-infra-XX / dashboard 정의 (sprint `claude/work_260513-i`)
+
+| IMPL ID | 코드 위치 | 책임 |
+| --- | --- | --- |
+| `IMPL-infra-01` | `internal/httpapi/snapshot.go` (`getInfraNodes`, `getInfraEdges`, `getInfraTopology`) | API-06 + API-07 infra topology endpoint |
+| `IMPL-dashboard-01` | `internal/httpapi/snapshot.go` (`getDashboardMetrics`) | API-05 dashboard metrics endpoint |
+| `IMPL-realtime-01` | `internal/httpapi/realtime.go` + `internal/httpapi/snapshot.go` 의 critical risks / ci-runs / ci-run-logs handlers | API-14 WebSocket + API-36 `command.status.updated` publisher |
+| `IMPL-me-01` | `internal/httpapi/me.go` (`getMe`) | API-32 `GET /api/v1/me` handler |
 - **Frontend**: IMPL-frontend-auth-01..06, login-01..03, logout-01, dashboard-01, account-01, admin-01, admin-users-01, admin-org-01, admin-rbac-01, admin-audit-01, org-01, org-comp-01..03, role-01..03, service-auth-01, service-account-01, service-rbac-01, service-audit-01, service-org-01, service-realtime-01, service-api-01, layout-01..02, store-01 (32 항목).
 - **Backend AI**: 미사용 (Phase 4 분석에서 placeholder 만 발견).
 
@@ -115,13 +206,13 @@
 | **회원가입 (signup)** | FR-25, 61–63 | ARCH-12; API-23 (§11.5, 정밀 매핑: §2.2 Auth API 서브 표) | M3-01 (planned) | auth-06 (`auth_signup.go`, §2.4 IMPL-auth-XX 서브 표); frontend-login-03 | httpapi-15 | TC-SIGNUP-01..04 |
 | **RBAC** | FR-27, 86; NFR-26 | ARCH-13; API-26–31, 38–40 (정밀 매핑: §2.2 RBAC API 서브 표) | M1-01, 02, 03; M2-11 | rbac-01..04 (책임 정의: §2.4 IMPL-rbac-XX 서브 표); frontend-admin-rbac-01; frontend-service-rbac-01; org-comp-02 | rbac-01..03; domain-01 | TC-RBAC-SUB-01, MGR-01; TC-PERMISSIONS-SMOKE-01 |
 | **계정 관리 (account admin + self-service)** | FR-15–18, 20, 22, 23, 26, 61–67; NFR-3, 4, 5, 7, 17, 19, 20 | ARCH-12, 14; API-25, 32, 35 (API-35 = §11.5.1 cross-cut with 인증, 정밀 매핑: §2.2 Auth API 서브 표) | M2-04, 05, 06 | account-01..04 (`account_password.go` 가 API-35 의 IMPL); frontend-account-01; frontend-admin-users-01; frontend-service-account-01 | httpapi-05, 06, 07 | TC-USR-01..06; TC-USR-CRUD-01..03; TC-ACC-01..03; TC-ACC-PROFILE-01 |
-| **조직 계층 (organization)** | FR-68–80; NFR-21 | ARCH-15, 16, 17; API-33, 34 | M2-07, 08 | org-01..04; frontend-org-01; frontend-admin-org-01; frontend-org-comp-01..03; frontend-service-org-01 | httpapi-07; store-01 | TC-ORG-LIST-01..02; TC-ORG-UNIT-01..03; TC-ORG-MEM-01..02; TC-ORG-CHART-01..02 |
-| **감사 (audit)** | FR-18, 26, 102; NFR-4 | ARCH-14; API-18, 39 | M2-15 (in_progress, PR-M2-AUDIT) | audit-01, 02; kratos-03 | httpapi-19, 24; frontend (Vitest 없음) | TC-AUD-01, 02 |
-| **명령 lifecycle (command / mitigation / service action)** | FR-58, 59, 84, 95, 100, 101 | API-15, 16, 17, 36, 37 | M1-01..03 (envelope 정합); M3-02 (replay, planned) | command-01..05; serviceaction-01; realtime-01 | httpapi-09, 13; commandworker-01, 02; serviceaction-01; domain-02 | (E2E 미커버 — gap §5.1) |
-| **실시간 (realtime / WebSocket)** | FR-56, 57, 60, 82, 83, 104, 105; NFR-11, 22, 23 | ARCH-05; API-14 | M3-02, 03 (planned) | realtime-01; frontend-service-realtime-01 | httpapi-13 | (E2E 미커버 — gap §5.1) |
-| **인프라 토폴로지 (infra)** | FR-12, 13, 97, 98, 99; NFR-12, 16 | ARCH-04, 09; API-06 | M3-02 (planned, infra event publish) | infra-01; frontend-role-03 (gardener) | httpapi-12 | (E2E 미커버 — gap §5.1) |
-| **Webhook + 도메인 데이터 (gitea)** | FR-49, 50, 51, 52, 53, 54, 55 | ARCH-06, 07, 08; API-02, 03, 07–13 | (M0 이전 phase 완료) | gitea-01, 02; domain-01..03; normalize | httpapi-10, 14; gitea-01; normalize-01; store-03 | (E2E 미커버 — gap §5.1) |
-| **대시보드 / 메트릭 / me** | FR-1–11, 28–36, 81, 85, 88, 89, 96 | ARCH-10; API-05, 36, 38 | (Phase 4 이전 완료) | dashboard-01; me-01; frontend-dashboard-01; frontend-role-01..03; frontend-store-01; frontend-layout-01..02; frontend-service-api-01 | httpapi-08, 11, 22 | TC-NAV-01..03; TC-NAV-SIM-01 |
+| **조직 계층 (organization)** | FR-68–80; NFR-21 | ARCH-15, 16, 17; API-33, 34 (정밀 매핑: §2.2 Account/Org/Me 서브 표, 본문 spec 은 §10.1 의 carve out — 후속 sprint 후보) | M2-07, 08 | org-01..04 (책임 정의: §2.4 IMPL-org-XX 서브 표); frontend-org-01; frontend-admin-org-01; frontend-org-comp-01..03; frontend-service-org-01 | httpapi-07; store-01 | TC-ORG-LIST-01..02; TC-ORG-UNIT-01..03; TC-ORG-MEM-01..02; TC-ORG-CHART-01..02 |
+| **감사 (audit)** | FR-18, 26, 102; NFR-4 | ARCH-14; API-18, 39 (39 = §12.9 cross-cut from RBAC, 정밀 매핑: §2.2 Realtime/Command/Audit 서브 표) | M2-15 (in_progress, PR-M2-AUDIT) | audit-01, 02 (책임 정의: §2.4 IMPL-audit-XX 서브 표); kratos-03 | httpapi-19, 24; frontend (Vitest 없음 — §5.2 open) | TC-AUD-01, 02 |
+| **명령 lifecycle (command / mitigation / service action)** | FR-58, 59, 84, 95, 100, 101 | API-15–17, 36, 37 (정밀 매핑: §2.2 Realtime/Command/Audit 서브 표) | M1-01..03 (envelope 정합); M3-02 (replay, planned) | command-01..05 (책임 정의: §2.4 IMPL-command-XX 서브 표); serviceaction-01; realtime-01 | httpapi-09, 13; commandworker-01, 02; serviceaction-01; domain-02 | (E2E 미커버 — gap §5.1, sprint `claude/work_260513-i` 에서 TC-CMD-* 카탈로그 추가) |
+| **실시간 (realtime / WebSocket)** | FR-56, 57, 60, 82, 83, 104, 105; NFR-11, 22, 23 | ARCH-05; API-14, 36 (정밀 매핑: §2.2 Realtime/Command/Audit 서브 표) | M3-02, 03 (planned) | realtime-01 (책임 정의: §2.4 IMPL-realtime-01); frontend-service-realtime-01 | httpapi-13 | (E2E 미커버 — gap §5.1) |
+| **인프라 토폴로지 (infra)** | FR-12, 13, 97, 98, 99; NFR-12, 16 | ARCH-04, 09; API-06, 07 (정밀 매핑: §2.2 Infra/Dashboard 서브 표) | M3-02 (planned, infra event publish) | infra-01 (책임 정의: §2.4 IMPL-infra-XX 서브 표); frontend-role-03 (gardener) | httpapi-12 | (E2E 미커버 — gap §5.1, sprint `claude/work_260513-i` 에서 TC-INFRA-* 카탈로그 추가) |
+| **Webhook + 도메인 데이터 (gitea)** | FR-49, 50, 51, 52, 53, 54, 55 | ARCH-06, 07, 08; API-02, 04, 08–13 (정밀 매핑: §2.2 Infra/Dashboard + Pipelines 서브 표) | (M0 이전 phase 완료) | gitea-01, 02; domain-01..03; normalize | httpapi-10, 14; gitea-01; normalize-01; store-03 | (E2E 미커버 — gap §5.1) |
+| **대시보드 / 메트릭 / me** | FR-1–11, 28–36, 81, 85, 88, 89, 96 | ARCH-10; API-05, 32, 36, 38 (32 = `GET /api/v1/me`, 정밀 매핑: §2.2 Infra/Dashboard + Account/Org/Me + RBAC 서브 표) | (Phase 4 이전 완료) | dashboard-01; me-01 (책임 정의: §2.4 IMPL-dashboard/me 서브 표); frontend-dashboard-01; frontend-role-01..03; frontend-store-01; frontend-layout-01..02; frontend-service-api-01 | httpapi-08, 11, 22 | TC-NAV-01..03; TC-NAV-SIM-01 |
 | **CI / 거버넌스** | NFR-1 (no-docker) | ADR-0001 §5; [ADR-0003](../adr/0003-no-docker-policy-ci-scope.md) | M2-16 (CI 1차, PR #86); FU-CI-1..4 (PR #87); ADR-0003 (PR #88); 거버넌스 + 매트릭스 1차 (PR #89); 갭 분석 + 메타 헤더 표준화 (본 PR / sprint `claude/work_260513-d`) | (build infra: `.github/workflows/ci.yml`, `scripts/ci-setup.sh`, `infra/idp/*.ci.yaml`); `docs/governance/*`, `docs/traceability/*` | (lint 미도입, FU-CI 향후) | (CI run 자체가 검증) |
 | **M4 (스코프 밖, planned)** | FR-37–48, 56–57, 60, 90–94 (일부) | API-14 (확장) | M4 항목 (M4 컬럼 별도) | (미진입) | (미진입) | (미진입) |
 
@@ -135,6 +226,7 @@
 | [ADR-0002](../adr/0002-rbac-policy-edit-api.md) | RBAC policy edit API (DB-backed matrix) | accepted (2026-05-08) | RBAC |
 | [ADR-0003](../adr/0003-no-docker-policy-ci-scope.md) | No-Docker 정책 CI 범위 명문화 | accepted (2026-05-13, PR #88) | CI / 거버넌스 |
 | [ADR-0004](../adr/0004-x-devhub-actor-removal.md) | `X-Devhub-Actor` 헤더 폐기 완료 선언 | accepted (2026-05-13, sprint `claude/work_260513-h`) | 인증 (auth) |
+| [ADR-0005](../adr/0005-workflow-lint-actionlint.md) | GitHub Actions workflow lint (actionlint) CI 잡 도입 | accepted (2026-05-13, sprint `claude/work_260513-i`) | CI / 거버넌스 |
 
 ## 5. Gap 요약
 
@@ -144,9 +236,9 @@
 
 | 도메인 | 현황 | 가능한 TC 후보 | 우선순위 |
 | --- | --- | --- | --- |
-| 명령 lifecycle / mitigation | 단위테스트 (`UT-httpapi-09`, `UT-commandworker-01..02`, `UT-domain-02`) 만, e2e UI 흐름 미커버 | TC-CMD-CREATE-01 (대시보드 → service-action 생성 → command_id 반환), TC-CMD-STATUS-01 (상태 조회 → UI 갱신) | P2 |
+| 명령 lifecycle / mitigation | 단위테스트 (`UT-httpapi-09`, `UT-commandworker-01..02`, `UT-domain-02`) 만, e2e UI 흐름 미커버 | TC-CMD-CREATE-01, TC-CMD-STATUS-01 — sprint `claude/work_260513-i` 가 카탈로그 추가, 실제 spec ts 작성은 후속 sprint | P2 (카탈로그 closed, spec ts open) |
 | 실시간 (WebSocket) | M3 planned. 현재는 `command.status.updated` 만 publish | M3 진입 시: TC-WS-CONNECT-01, TC-WS-CMD-STATUS-01, TC-WS-RESILIENCE-01 (re-connect) | P3 (M3 의존) |
-| 인프라 토폴로지 React Flow | 정적 데이터 렌더만 e2e 미커버 | TC-INFRA-RENDER-01 (정적 노드/엣지), TC-INFRA-NODE-CLICK-01 (상세 패널), TC-INFRA-GROUP-TOGGLE-01 | P2 |
+| 인프라 토폴로지 React Flow | 정적 데이터 렌더만 e2e 미커버 | TC-INFRA-RENDER-01, TC-INFRA-NODE-CLICK-01, TC-INFRA-GROUP-TOGGLE-01 — sprint `claude/work_260513-i` 가 카탈로그 추가, 실제 spec ts 작성은 후속 sprint | P2 (카탈로그 closed, spec ts open) |
 | Webhook 처리 (gitea HMAC) | 단위테스트 (`UT-httpapi-14`, `UT-gitea-01`) 로 검증, 외부 영향 e2e 어려움 | E2E 후보 없음 — 통합 테스트 (Go test + 모의 webhook server) 가 자연 | P3 (E2E 외 검증으로 충분) |
 
 ### 5.2 ID 부재 / 매핑 누락
@@ -157,6 +249,9 @@
 | Frontend 컴포넌트 Vitest (Header, Sidebar, AuthGuard 등) | open | 후속 sprint 후보 (P2). |
 | `auth.spec.ts` 의 TC ID 카탈로그 흡수 | **closed (2026-05-13, sprint `claude/work_260513-d`)** | 재검증 결과 spec 안의 TC-AUTH-NEG-01 + TC-AUTH-NOAUTH-01 모두 `test_cases_m2_auth.md` 의 TC 카탈로그에 이미 흡수되어 있음. 1차 분석에서 "01..06 미흡수" 라고 적은 것은 사실과 다름. |
 | API §12 RBAC 정책 편집 API 의 IMPL 정밀 매핑 | **closed (2026-05-13, sprint `claude/work_260513-f`)** | §12.2~§12.10 의 9 endpoint/정책에 `(API-26..31, 38..40)` 본문 ID 노출 + §2.2 의 RBAC API 매핑 표 + §2.4 의 IMPL-rbac-01..04 책임 정의 (handler / store / enforcement / cache) + §3 RBAC 행 IMPL 컬럼 endpoint-IMPL 1:1 매핑. |
+| Backend AI (`backend-ai/`) placeholder | open | (위와 동일 — 본 sprint 변경 없음) — M3-04 진입 시 IMPL-ai-XX 발급. |
+| Frontend 컴포넌트 Vitest (Header, Sidebar, AuthGuard 등) | **closed (2026-05-13, sprint `claude/work_260513-i`)** | C1 작업 — Header / Sidebar / AuthGuard 단위테스트 추가. `IMPL-frontend-layout-01..02` + `IMPL-frontend-auth-XX` 의 회귀 안전망. |
+| 본문 spec 부재 endpoint (`/api/v1/accounts/*`, `/api/v1/users` CRUD, `/api/v1/organization/*`) | open | sprint `claude/work_260513-i` 가 §10.1 의 carve out 표로 1차 매핑 (`API-25, 33, 34`). 본문 spec 절 작성은 후속 sprint 후보. |
 | 카탈로그된 TC 가 spec 으로 구현됐는지 역검증 | open | TC-AUD-02 등 일부 TC 가 카탈로그에만 존재할 가능성 — spec 파일 grep 으로 자동 검증할 hygiene 후보. |
 
 ### 5.3 문서 ↔ 코드 불일치
@@ -177,4 +272,5 @@
 | 2026-05-13 | sprint `claude/work_260513-e` (A 묶음, M1 PR-D 정합 마무리): backend-core 의 `writeRBACServerError` → `writeServerError` 통합 (`internal/httpapi/rbac.go` helper 제거 + 11 호출 일괄 치환). `requireRequestID` 미들웨어에 caller-supplied X-Request-ID validation 추가 — 정규식 `^[A-Za-z0-9_-]{1,128}$`, 실패 시 server-generated fallback (work_260512-j 발견 항목 closed). request_id 를 표준 ctx key (`requestIDCtxKey{}`) 에도 stash + `requestIDFromContext` / `logRequestCtx` ctx-aware helper 추가, `kratos_login_client.go` 의 untraced `log.Printf` 2건 + `kratos_identity_resolver.go` 1건을 ctx-aware 로 치환 (logRequest 의 untraced fallback 해소 항목 closed). 단위테스트 11건 추가 (validation 양/음 경로 + ctx 전파 + logRequestCtx percent-safety + 미들웨어 e2e). PR #91 (Pass 1 review 에서 `writeAuthLoginServerError` 도 같은 wrapper 발견 + 보강 commit 으로 흡수). |
 | 2026-05-13 | sprint `claude/work_260513-f` (B 묶음, RBAC 1차): `backend_api_contract.md` §12.2~§12.10 의 9 헤더에 `(API-26..31, 38..40)` 본문 ID 노출 (`document-standards.md` §8 우선순위 3 RBAC 도메인 1차 적용). 본 §2.2 에 RBAC API 매핑 표 + 본 §2.4 에 IMPL-rbac-01..04 책임 정의 (handler / store / enforcement / cache) 서브 표 추가. §3 RBAC 행 IMPL 컬럼 endpoint-IMPL 1:1 매핑. §5.2 의 "RBAC API §12 IMPL 정밀 매핑" 항목 closed. Pass 1 review 보강으로 §3 RBAC 행을 ID 범위 + §2 서브 표 참조 패턴으로 정리 (PR #92). |
 | 2026-05-13 | sprint `claude/work_260513-g` (B1 auth 도메인 2차): `backend_api_contract.md` §11.3 `(API-19)` + §11.5 표에 API ID 컬럼 (`API-20..24, 35`) + §11.5.1 `(API-35)` 본문 ID 노출. 본 §2.2 에 Auth API 매핑 표 + 본 §2.4 에 IMPL-auth-01..07 책임 정의 (verifier / actor / 5 endpoint handler) 서브 표 추가. §3 인증 / 회원가입 / 계정 관리 행에 §2 서브 표 참조 노트 — 회원가입과 계정 관리 행은 cross-cut (API-23 / API-35) 명시. §11.2 외부 의존성 + §11.4 planned 는 매핑 제외 (`conventions.md` §5.2). |
-| 2026-05-13 | sprint `claude/work_260513-h` (B4: X-Devhub-Actor 폐기 ADR): [ADR-0004](../adr/0004-x-devhub-actor-removal.md) 발급. M0 SEC-4 + M1 PR-D Bearer token verifier 도입으로 ADR-0001 §8 #4 trigger 가 이미 충족됐음을 ex-post-facto 명문화. §4 ADR 인덱스에 ADR-0004 행 추가. §5.3 "X-Devhub-Actor 완전 제거 trigger" closed. `docs/architecture.md` line 174 + `docs/adr/0001-idp-selection.md` §8 #4 인라인 갱신 + `backend-core/internal/httpapi/me.go` line 16 주석 잔재 정리. 회귀 방지 negative 테스트 4 파일 (audit_test / commands_test / auth_test / me_test) 그대로 유지. |
+| 2026-05-13 | sprint `claude/work_260513-h` (B4: X-Devhub-Actor 폐기 ADR): [ADR-0004](../adr/0004-x-devhub-actor-removal.md) 발급. M0 SEC-4 + M1 PR-D Bearer token verifier 도입으로 ADR-0001 §8 #4 trigger 가 이미 충족됐음을 ex-post-facto 명문화. §4 ADR 인덱스에 ADR-0004 행 추가. §5.3 "X-Devhub-Actor 완전 제거 trigger" closed. `docs/architecture.md` line 174 + `docs/adr/0001-idp-selection.md` §8 #4 인라인 갱신 + `backend-core/internal/httpapi/me.go` line 16 주석 잔재 정리. 회귀 방지 negative 테스트 4 파일 (audit_test / commands_test / auth_test / me_test) 그대로 유지. Pass 1 review 보강으로 `backend_api_contract.md` §8/§9.1/§9.2/§11.3 + `frontend_integration_requirements.md` §3.5 + `environment-setup.md` §2.4 의 spec 잔재 6 위치도 함께 정리 + ADR-0004 §5 정정. |
+| 2026-05-13 | sprint `claude/work_260513-i` (대형 묶음 B1~D5): B1 추가 5 도메인 (account / org / command / audit / infra) 본문 ID 노출 + §10.1 "본문 spec 부재 endpoint" carve out 표 + §2.2 4 신규 서브 표 (Infra/Dashboard, Pipelines, Realtime/Command/Audit, Account/Org/Me) + §2.4 6 신규 IMPL 서브 표 (account / org / command / audit / infra+dashboard+realtime+me). §3 6 행 (감사 / 명령 / 실시간 / 인프라 / Webhook+gitea / 대시보드+me + 조직) 갱신 (ID 범위 + §2 서브 표 참조). §5.1 의 명령/인프라 행은 "카탈로그 closed, spec ts open" 으로 갱신. §5.2 frontend Vitest 부재 closed (C1 1차 도입) + 본문 spec 부재 endpoint open (account / users / org). B2 archive/AGENTS.md + archive/split_checklist.md deprecated 마킹. C1 ThemeToggle Vitest 3 tests. C2 test_cases_m3_command_infra.md 신규 (TC-CMD-* / TC-INFRA-* 5 TC 카탈로그, spec ts 작성은 carve out). D5 [ADR-0005](../adr/0005-workflow-lint-actionlint.md) 발급 + `.github/workflows/ci.yml` 에 `workflow-lint` 잡 추가 (raven-actions/actionlint@v2). |

@@ -1,10 +1,12 @@
 # Workflow Standard Kit 분리 체크리스트
 
+> ⚠ **Deprecated** (2026-05-13, sprint `claude/work_260513-i`). 본 문서는 archive 위치로 이동된 초안. `workflow_standard_kit/` 분리는 본 저장소 외부의 별도 프로젝트 결정으로 이관됐다. 본 문서는 참조용으로만 유지된다.
+
 - 문서 목적: `workflow_standard_kit/` 를 별도 프로젝트로 옮길 때 필요한 정리 항목과 완료 기준을 체크리스트로 제공한다.
 - 범위: 디렉터리 구성, 링크 점검, 문서 self-contained 여부, 구현/미구현 경계, 배포 전 검증 항목
 - 대상 독자: 개발자, 운영자, 프로젝트 분리 담당자
-- 상태: draft
-- 최종 수정일: 2026-04-18
+- 상태: deprecated
+- 최종 수정일: 2026-05-13 (deprecated 마킹)
 - 관련 문서: `README.md`, `core/global_workflow_standard.md`, `core/workflow_skill_catalog.md`, `core/workflow_mcp_candidate_catalog.md`, `core/workflow_agent_topology.md`
 
 ## 1. 분리 전 체크

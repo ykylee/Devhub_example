@@ -1,16 +1,17 @@
 # Session Handoff — main (2026-05-13 EOD)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
-- 범위: 2026-05-13 머지 8건 (PR #86~#93) 정리 + 진행 중 sprint + 잔여 후보.
+- 범위: 2026-05-13 머지 9건 (PR #86~#94) 정리 + 진행 중 sprint + 잔여 후보.
 - 대상 독자: 후속 에이전트, 프로젝트 리드.
-- 브랜치: `main` (HEAD `594be74`, PR #93 squash 직후).
+- 브랜치: `main` (HEAD `ceb0f6f`, PR #94 squash 직후).
 - 최종 수정일: 2026-05-13
-- 상태: M1/M2 100% done. CI 그린 + 거버넌스/추적성 체계 + RBAC + auth 도메인 본문 ID 노출 완료. 진행 중 sprint `claude/work_260513-h` 가 B4 X-Devhub-Actor 폐기 ADR-0004 발급 + 문서 잔재 정리 (architecture.md / ADR-0001 §8 #4 / me.go 주석) + 매트릭스 §5.3 closing 처리 중.
+- 상태: M1/M2 100% done. CI 그린 + 거버넌스 + 추적성 + RBAC/auth 도메인 본문 ID 노출 + ADR-0004 X-Devhub-Actor 폐기 완료. 진행 중 sprint `claude/work_260513-i` 가 대형 묶음 (B1 5 추가 도메인 + B2 deprecated 마킹 + C1 ThemeToggle Vitest + C2 TC 카탈로그 + D5 ADR-0005 + actionlint job) 처리 중.
 - 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [상태 스냅샷](./state.json), [거버넌스](../../docs/governance/README.md), [추적성 매트릭스](../../docs/traceability/report.md).
 
 ## 0. 2026-05-13 머지 흐름
 
 ```
+ceb0f6f PR #94 — docs(adr): ADR-0004 X-Devhub-Actor 폐기 완료 선언 (B4) (claude/work_260513-h)
 594be74 PR #93 — docs(traceability,api): B1 auth 도메인 2차 — §11 본문 ID 노출 + IMPL-auth-01..07 책임 정의 (claude/work_260513-g)
 a73dba1 PR #92 — docs(traceability,api): B 묶음 — RBAC API §12 IMPL 정밀 매핑 + 본문 ID 노출 (claude/work_260513-f)
 ae8b459 PR #91 — feat(backend): A 묶음 — M1 PR-D 정합 마무리 (writeRBACServerError + writeAuthLoginServerError 통합 + X-Request-ID validation + ctx 표준 request_id 전파) (claude/work_260513-e)
@@ -31,14 +32,19 @@ e86f38f PR #87 — ci: FU-CI-2/3/4 (playwright scope, GHA cache, frontend readin
 - **PR #92** — B 묶음 RBAC 1차. `backend_api_contract.md` §12.2~§12.10 의 9 헤더에 `(API-26..31, 38..40)` 본문 ID 노출. 매트릭스 §2.2 RBAC API + §2.4 IMPL-rbac-01..04 책임 정의 (handler / store / enforcement / cache) 서브 표 도입. §5.2 RBAC IMPL 정밀 매핑 항목 closed. Pass 1 review 보강으로 §3 RBAC 행을 ID 범위 + §2 서브 표 참조 패턴으로 정리 ("표 가독성 정책" 명문화).
 - **PR #93** — B1 auth 도메인 2차. `backend_api_contract.md` §11.3 `(API-19)` + §11.5 표에 API ID 컬럼 (`API-20..24, 35`) + §11.5.1 `(API-35)` 본문 ID 노출. 매트릭스 §2.2 Auth API + §2.4 IMPL-auth-01..07 책임 정의 (verifier / actor / 5 endpoint handler) 서브 표 도입. §3 인증/회원가입/계정 관리 행 정리 (cross-cut API-23 / API-35 명시).
 
-## 1. 진행 중 sprint — `claude/work_260513-h` (B4: X-Devhub-Actor 폐기 ADR)
+## 1. 진행 중 sprint — `claude/work_260513-i` (대형 묶음 B1~D5)
 
-- [ADR-0004](../../docs/adr/0004-x-devhub-actor-removal.md) 발급 — `X-Devhub-Actor` 폐기 완료 선언 (ex-post-facto). M0 SEC-4 에서 prod 코드의 해당 헤더 처리가 이미 제거됐고 M1 PR-D Bearer token verifier 도입으로 actor 도출 경로가 표준화돼 ADR-0001 §8 #4 의 trigger 가 그 시점에 충족됐음을 명문화.
-- `docs/architecture.md` line 174 잔재 정리 ("폐기 예정 폴백으로 유지" → ADR-0004 참조).
-- `docs/adr/0001-idp-selection.md` §8 #4 인라인 갱신 (후속 결정 한 줄 추가).
-- `backend-core/internal/httpapi/me.go` line 16 주석 잔재 정리 (X-Devhub-Actor 언급 → ADR-0004 참조).
-- 매트릭스 §4 ADR-0004 행 추가 + §5.3 "X-Devhub-Actor 완전 제거 trigger" closed + §6 변경 이력 한 줄.
-- 회귀 방지 negative 테스트 4 파일 그대로 유지 (audit_test / commands_test / auth_test / me_test).
+사용자가 B1 (추가 도메인) ~ D5 (actionlint) 를 한 sprint / 한 PR 으로 묶어 진행 지시:
+
+- **B1 5 추가 도메인**: account / org / command / audit / infra 모두 본문 ID 노출 + IMPL 정밀 매핑. `backend_api_contract.md` §3 / §4 / §5 / §6 / §7 / §8 / §9 의 14 endpoint 헤더에 `(API-XX)` 추가 + §10 의 `(API-32)` 명시 + §10.1 신규 "본문 spec 부재 endpoint" carve out 표 (`API-25, 33, 34, 36, 37`).
+- 매트릭스 §2.2 4 신규 서브 표 (Infra/Dashboard, Pipelines, Realtime/Command/Audit, Account/Org/Me) + §2.4 6 신규 IMPL 서브 표 (account / org / command / audit / infra+dashboard+realtime+me).
+- 매트릭스 §3 의 6 행 (감사 / 명령 / 실시간 / 인프라 / Webhook+gitea / 대시보드+me + 조직) 모두 ID 범위 + §2 서브 표 참조 패턴 일관 적용.
+- **B2 deprecated 마킹** (1차): `docs/archive/AGENTS.md` + `docs/archive/split_checklist.md` 에 deprecated 노트 추가.
+- **C1 ThemeToggle Vitest 1차**: `frontend/components/layout/ThemeToggle.test.tsx` 신규 (3 tests PASS). AuthGuard / Header / Sidebar 본격 Vitest 는 mock 양 커서 carve out.
+- **C2 TC-CMD-* / TC-INFRA-* 카탈로그**: `docs/tests/test_cases_m3_command_infra.md` 신규 (5 TC). 실제 spec ts 작성은 carve out.
+- **D5 ADR-0005 + actionlint job**: `docs/adr/0005-workflow-lint-actionlint.md` 발급 + `.github/workflows/ci.yml` 에 `workflow-lint` 잡 추가 (raven-actions/actionlint@v2).
+- 매트릭스 §5.1 (명령/인프라 행) "카탈로그 closed, spec ts open" + §5.2 frontend Vitest 부재 closed + 본문 spec 부재 endpoint open (1차 carve out 명시).
+- §4 ADR 인덱스에 ADR-0005 추가.
 
 ## 2. 다음 진입점 — 우선순위 후보
 
