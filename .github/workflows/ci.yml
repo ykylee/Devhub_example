@@ -102,11 +102,18 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-playwright-
 
-      # FU-CI-2: playwright.config.ts only declares the `chromium` project
-      # (with channel="chrome"), so installing firefox/webkit just to delete
-      # them is dead weight. Scope the install to chromium.
-      - name: Install Playwright Browsers
-        run: cd frontend && npx playwright install --with-deps chromium
+      # FU-CI-2 + FU-CI-3: split system deps (apt) from browser bundle so the
+      # cache actually saves time. apt always runs (~5-10 s, no fresh runner
+      # has the libs). The browser install step is skipped on cache hit, which
+      # avoids the ~100 MB download. Browsers are scoped to `chromium`
+      # because playwright.config.ts only declares the chromium project (with
+      # channel="chrome").
+      - name: Install Playwright system deps
+        run: cd frontend && npx playwright install-deps chromium
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: cd frontend && npx playwright install chromium
       
       - name: CI Environment Setup (Ory + DB)
         run: sudo ./scripts/ci-setup.sh
