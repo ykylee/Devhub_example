@@ -1,7 +1,6 @@
 package httpapi
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/devhub/backend-core/internal/domain"
@@ -61,6 +60,7 @@ func (h Handler) authSignUp(c *gin.Context) {
 	}
 
 	// 3. Create DevHub User (if not exists)
+	devhubUserCreated := true
 	if h.cfg.OrganizationStore != nil {
 		_, err := h.cfg.OrganizationStore.CreateUser(c.Request.Context(), domain.CreateUserInput{
 			UserID:      userID,
@@ -70,10 +70,33 @@ func (h Handler) authSignUp(c *gin.Context) {
 			Status:      domain.UserStatus("active"),
 		})
 		if err != nil {
-			// Identity already created in Kratos, but DevHub user creation failed.
-			// In production, we might want to roll back or retry.
-			fmt.Printf("[SignUp] DevHub user creation failed for %s: %v\n", userID, err)
+			// Identity already created in Kratos, but DevHub user creation
+			// failed. RM-M3-01 carve: a rollback/retry strategy is the next
+			// sprint's work — for now we keep the Kratos identity and emit
+			// a distinct audit action so operators can find the orphan rows.
+			devhubUserCreated = false
+			logRequest(c, "[SignUp] DevHub user creation failed for %s: %v", userID, err)
+			h.recordAuditBestEffort(c, "account.signup.partial_failure", "user", userID, map[string]any{
+				"reason":      "devhub_user_create_failed",
+				"kratos_id":   kID,
+				"email":       email,
+				"department":  dept,
+				"error_class": "store",
+			})
 		}
+	}
+
+	// 4. Emit signup audit. Even when the DevHub user creation failed above
+	// we want the requested action recorded so the operator dashboard can
+	// reconcile against Kratos identities. payload mirrors §11.6 audit
+	// mapping for account.signup.requested.
+	if devhubUserCreated {
+		h.recordAuditBestEffort(c, "account.signup.requested", "user", userID, map[string]any{
+			"kratos_id":  kID,
+			"email":      email,
+			"department": dept,
+			"system_id":  req.SystemID,
+		})
 	}
 
 	c.JSON(http.StatusCreated, gin.H{

@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-05-13 진행 중. M1/M2 100% done. PR #86~#96 (11건) 머지. M2 1차 완성 sprint 가 사용자/조직 관리 대부분 흡수 — 매트릭스 M3 정의의 source-of-truth = development_roadmap.md §3 로 정합화 진행 중. 현재 sprint claude/work_260513-k — M3/M4 drift 정합 (development_roadmap §3 본문 + 매트릭스 §2.3.1/§2.3.2 RM-M3/M4 정의 표 + §3 도메인 행 정합 + state.json m3/m4 후보 분리).",
-  "updated_at": "2026-05-13T13:30:00Z",
-  "head_commit": "f551e6a",
-  "head_summary": "Merge pull request #96 (feat(auth),docs(adr,api,traceability),test: M3 진입 전 잔여 후속 일괄)",
+  "status": "2026-05-13 진행 중. M1/M2 100% done + drift 정합 완료 (PR #97). PR #86~#97 (12건) 머지. M3 진입 1차 sprint claude/work_260513-l — RM-M3-01 Sign Up 정합화 + RM-M3-02 ADR-0008 + RM-M3-03 §10.4 schema 보강.",
+  "updated_at": "2026-05-13T15:00:00Z",
+  "head_commit": "3d7d5a2",
+  "head_summary": "Merge pull request #97 (docs(roadmap,traceability): M3/M4 drift 정합)",
   "milestones": {
     "M0": {
       "status": "done",
@@ -91,7 +91,8 @@
       "work_260513_h": "ai-workflow/memory/claude/work_260513-h/ (CLOSED, PR #94 B4 X-Devhub-Actor 폐기 ADR-0004 + Pass 1 review 보강으로 spec 잔재 6 위치 흡수)",
       "work_260513_i": "ai-workflow/memory/claude/work_260513-i/ (CLOSED, PR #95 대형 묶음 B1~D5 — Pass 1 review clean)",
       "work_260513_j": "ai-workflow/memory/claude/work_260513-j/ (CLOSED, PR #96 M3 진입 전 잔여 후속 일괄 — Pass 1 review e2e relax 보강)",
-      "work_260513_k": "ai-workflow/memory/claude/work_260513-k/ (IN PROGRESS, M3/M4 drift 정합)"
+      "work_260513_k": "ai-workflow/memory/claude/work_260513-k/ (CLOSED, PR #97 M3/M4 drift 정합 — Pass 1 review clean)",
+      "work_260513_l": "ai-workflow/memory/claude/work_260513-l/ (IN PROGRESS, M3 진입 1차)"
     },
     "governance_entry": "docs/governance/README.md",
     "traceability_entry": "docs/traceability/README.md",
@@ -134,7 +135,8 @@
     {"pr": 93, "sprint": "work_260513-g", "title": "docs(traceability,api): B1 auth 도메인 2차 — §11 본문 ID 노출 + IMPL-auth-01..07 책임 정의", "merge_commit": "594be74"},
     {"pr": 94, "sprint": "work_260513-h", "title": "docs(adr): ADR-0004 X-Devhub-Actor 폐기 완료 선언 (B4)", "merge_commit": "ceb0f6f"},
     {"pr": 95, "sprint": "work_260513-i", "title": "docs(traceability,adr,ci),test(frontend): 대형 묶음 B1~D5", "merge_commit": "cb9e6d5"},
-    {"pr": 96, "sprint": "work_260513-j", "title": "feat(auth),docs(adr,api,traceability),test: M3 진입 전 잔여 후속 일괄", "merge_commit": "f551e6a"}
+    {"pr": 96, "sprint": "work_260513-j", "title": "feat(auth),docs(adr,api,traceability),test: M3 진입 전 잔여 후속 일괄", "merge_commit": "f551e6a"},
+    {"pr": 97, "sprint": "work_260513-k", "title": "docs(roadmap,traceability): M3/M4 drift 정합", "merge_commit": "3d7d5a2"}
   ],
   "discarded_sprints_2026_05_12": [
     {"slot": "work_260512-h", "reason": "진입 직후 후보 (M2 hygiene users.kratos_identity_id) 가 PR-L4 (809f525, work_26_05_11-e) 에 이미 머지된 것 확인. 신규 작업 없어 폐기."}
