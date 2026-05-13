@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-05-13 진행 중. M1/M2 100% done + M2 1차 완성 sprint 닫힘 (PR #85). GitHub Actions CI 그린 + FU-CI-1..4 모두 처리 (PR #86/#87/#88). 거버넌스 + 추적성 체계 + 1차 종합 매트릭스 도입 (PR #89) + §5 gap 정리 + 메타 헤더 표준화 (PR #90) + M1 PR-D 정합 마무리 — A 묶음 (PR #91). 현재 sprint claude/work_260513-f — B 묶음 (RBAC 도메인 1차: RBAC API §12 IMPL 정밀 매핑 + §12 endpoint 헤더 (API-XX) 본문 ID 노출). 다음 진입 후보: 다른 도메인 (auth / account / org / command / audit / infra) 본문 ID 노출 점진 진행 / B2 deprecated 마킹 / B4 X-Devhub-Actor 폐기 ADR / C1 frontend 컴포넌트 Vitest / D5 actionlint / M3/M4 진입.",
-  "updated_at": "2026-05-13T06:30:00Z",
-  "head_commit": "ae8b459",
-  "head_summary": "Merge pull request #91 (feat(backend): A 묶음 — M1 PR-D 정합 마무리: writeRBACServerError 통합 + X-Request-ID validation + ctx 표준 request_id 전파)",
+  "status": "2026-05-13 진행 중. M1/M2 100% done + M2 1차 완성 sprint 닫힘 (PR #85). GitHub Actions CI 그린 + FU-CI-1..4 모두 처리 (PR #86/#87/#88). 거버넌스 + 추적성 체계 + 1차 종합 매트릭스 도입 (PR #89) + §5 gap 정리 + 메타 헤더 표준화 (PR #90) + M1 PR-D 정합 마무리 — A 묶음 (PR #91) + B 묶음 RBAC 1차 (PR #92). 현재 sprint claude/work_260513-g — B1 auth 도메인 2차 (§11 본문 ID 노출 + IMPL-auth-01..07 책임 정의). 다음 진입 후보: B1 추가 도메인 (account / org / command / audit / infra) 본문 ID 노출 / B2 deprecated 마킹 / B4 X-Devhub-Actor 폐기 ADR / C1 frontend 컴포넌트 Vitest / D5 actionlint / M3/M4 진입.",
+  "updated_at": "2026-05-13T07:30:00Z",
+  "head_commit": "a73dba1",
+  "head_summary": "Merge pull request #92 (docs(traceability,api): B 묶음 — RBAC API §12 IMPL 정밀 매핑 + 본문 ID 노출)",
   "milestones": {
     "M0": {
       "status": "done",
@@ -86,7 +86,8 @@
       "work_260513_c": "ai-workflow/memory/claude/work_260513-c/ (CLOSED, PR #89 governance + traceability + 1차 매트릭스)",
       "work_260513_d": "ai-workflow/memory/claude/work_260513-d/ (CLOSED, PR #90 갭 분석 정리 + 메타 헤더 표준화 + main flat sync)",
       "work_260513_e": "ai-workflow/memory/claude/work_260513-e/ (CLOSED, PR #91 A 묶음 — M1 PR-D 정합 마무리 + Pass 1 review 보강 흡수)",
-      "work_260513_f": "ai-workflow/memory/claude/work_260513-f/ (IN PROGRESS, B 묶음 — RBAC 도메인 1차: API §12 IMPL 정밀 매핑 + 본문 ID 노출)"
+      "work_260513_f": "ai-workflow/memory/claude/work_260513-f/ (CLOSED, PR #92 B 묶음 — RBAC 도메인 1차 + Pass 1 review 보강으로 §3 행 정리)",
+      "work_260513_g": "ai-workflow/memory/claude/work_260513-g/ (IN PROGRESS, B1 auth 도메인 2차 — §11 본문 ID 노출 + IMPL-auth-01..07 책임 정의)"
     },
     "governance_entry": "docs/governance/README.md",
     "traceability_entry": "docs/traceability/README.md",
@@ -124,7 +125,8 @@
     {"pr": 88, "sprint": "work_260513-b", "title": "docs(adr): ADR-0003 no-docker policy CI scope — drop services: postgres + native PG 15", "merge_commit": "9268227"},
     {"pr": 89, "sprint": "work_260513-c", "title": "docs: governance + traceability 체계 도입 + 1차 종합 매트릭스", "merge_commit": "7fac5bf"},
     {"pr": 90, "sprint": "work_260513-d", "title": "docs(governance,traceability): 갭 분석 정리 + 메타 헤더 표준화 + main flat sync", "merge_commit": "ea8df91"},
-    {"pr": 91, "sprint": "work_260513-e", "title": "feat(backend): A 묶음 — M1 PR-D 정합 마무리 (writeRBACServerError + writeAuthLoginServerError 통합 + X-Request-ID validation + ctx 표준 request_id 전파)", "merge_commit": "ae8b459"}
+    {"pr": 91, "sprint": "work_260513-e", "title": "feat(backend): A 묶음 — M1 PR-D 정합 마무리 (writeRBACServerError + writeAuthLoginServerError 통합 + X-Request-ID validation + ctx 표준 request_id 전파)", "merge_commit": "ae8b459"},
+    {"pr": 92, "sprint": "work_260513-f", "title": "docs(traceability,api): B 묶음 — RBAC API §12 IMPL 정밀 매핑 + 본문 ID 노출", "merge_commit": "a73dba1"}
   ],
   "discarded_sprints_2026_05_12": [
     {"slot": "work_260512-h", "reason": "진입 직후 후보 (M2 hygiene users.kratos_identity_id) 가 PR-L4 (809f525, work_26_05_11-e) 에 이미 머지된 것 확인. 신규 작업 없어 폐기."}
