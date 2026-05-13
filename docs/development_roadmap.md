@@ -4,7 +4,7 @@
 - 범위: 머지된 PR #12 이후 시점부터 다음 단계 작업의 마일스톤·우선순위·의존 관계. 트랙별 *세부* 작업은 각 트랙의 세부 로드맵에서 관리.
 - 대상 독자: 프로젝트 리드, 백엔드/프론트엔드 개발자, 운영 담당자, 후속 작업자
 - 상태: draft (2026-05-08 신규 작성)
-- 최종 수정일: 2026-05-12 (M2 1차 완성 sprint 종료 및 M3 조직 관리 진입 반영)
+- 최종 수정일: 2026-05-13 (Project 도메인 컨셉 1차 staged — §5 백로그 1행 추가)
 - 관련 문서:
   - 백엔드 세부 로드맵: [`ai-workflow/memory/backend_development_roadmap.md`](../ai-workflow/memory/backend_development_roadmap.md)
   - 프론트엔드 세부 로드맵: [`./frontend_development_roadmap.md`](./frontend_development_roadmap.md)
@@ -165,6 +165,7 @@
 | 기술 태깅 Kudos 가시성 | RBAC matrix와의 매핑 | requirements §5.1-3 |
 | 외부 부서 의존성 수동 등록 | UI / 모델 | requirements §5.2-6 |
 | `architecture/README.md`, `planning/README.md` TBD 스텁 | 본 통합 로드맵 채택 후 산출물로 채움 | 양자 |
+| **Project 도메인 (CRUD + 등록 + 조회)** — 시스템 관리자 등록·관리 vs 일반 사용자 조회 분리 | 컨셉 1차 완료 → REQ-FR / ARCH / API 단계적 발급 필요 | [`planning/project_management_concept.md`](./planning/project_management_concept.md) (2026-05-13) |
 
 ---
 
@@ -194,6 +195,7 @@
 | 2026-05-08 | 초판 작성. M0~M4 정의, 트랙 매핑, 충돌 해소 표 정리. | PR #12, #13 머지 직후. claude/merge_roadmap 브랜치. |
 | 2026-05-08 | §6 충돌 해소 표에 RBAC 모델/enforcement 결정 2행 추가. | M1 PR-G1, ADR-0002 채택 반영. claude/m1-pr-g1-rbac-contract 브랜치. |
 | 2026-05-12 | §3 M2 갱신 — 핵심 흐름(로그인/로그아웃/계정/RBAC) done 표기 + 1차 완성 sprint 잔여 5 PR 명시 + out-of-scope 분리. | claude/login_usermanagement_finish 진입. |
+| 2026-05-13 | §5 백로그에 "Project 도메인 (CRUD + 등록 + 조회)" 1행 추가. 컨셉 문서 staged 상태로 안내. | sprint `claude/work_260513-p`. |
 
 ---
 
