@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -142,7 +141,7 @@ func (c *KratosClient) SubmitLogin(ctx context.Context, flow KratosLoginFlow, id
 	case resp.StatusCode == http.StatusOK:
 		return parseLoginSuccess(body)
 	case resp.StatusCode == http.StatusBadRequest:
-		log.Printf("[KratosClient] SubmitLogin 400: %s", string(body))
+		logRequestCtx(ctx, "[KratosClient] SubmitLogin 400: %s", string(body))
 		// 400 is Kratos's response for both schema errors and rejected
 		// credentials; treat the latter as the dominant case to keep
 		// callers from leaking which arm fired.
@@ -150,7 +149,7 @@ func (c *KratosClient) SubmitLogin(ctx context.Context, flow KratosLoginFlow, id
 	case resp.StatusCode == http.StatusGone || resp.StatusCode == http.StatusUnauthorized:
 		return KratosIdentity{}, ErrKratosFlowExpired
 	default:
-		log.Printf("[KratosClient] SubmitLogin status %d: %s", resp.StatusCode, string(body))
+		logRequestCtx(ctx, "[KratosClient] SubmitLogin status %d: %s", resp.StatusCode, string(body))
 		return KratosIdentity{}, fmt.Errorf("kratos login submit status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
 	}
 }

@@ -79,13 +79,13 @@ func (h Handler) authLogin(c *gin.Context) {
 		return
 	}
 	if err != nil {
-		writeAuthLoginServerError(c, err, "auth.login.get_request")
+		writeServerError(c, err, "auth.login.get_request")
 		return
 	}
 	if hydraReq.Skip {
 		redirectTo, err := h.cfg.HydraAdmin.AcceptLoginRequest(ctx, req.LoginChallenge, hydraReq.Subject, req.Remember, defaultRememberForSeconds)
 		if err != nil {
-			writeAuthLoginServerError(c, err, "auth.login.accept_skip")
+			writeServerError(c, err, "auth.login.accept_skip")
 			return
 		}
 		h.recordAuditBestEffort(c, "auth.login.succeeded", "user", hydraReq.Subject, map[string]any{
@@ -103,7 +103,7 @@ func (h Handler) authLogin(c *gin.Context) {
 	logRequest(c, "[authLogin] Creating login flow for challenge %s", req.LoginChallenge)
 	flow, err := h.cfg.KratosLogin.CreateLoginFlow(ctx)
 	if err != nil {
-		writeAuthLoginServerError(c, err, "auth.login.create_flow")
+		writeServerError(c, err, "auth.login.create_flow")
 		return
 	}
 
@@ -121,7 +121,7 @@ func (h Handler) authLogin(c *gin.Context) {
 		c.JSON(http.StatusGone, gin.H{"status": "gone", "error": "login flow expired; restart sign-in", "code": "login_flow_expired"})
 		return
 	case err != nil:
-		writeAuthLoginServerError(c, err, "auth.login.submit")
+		writeServerError(c, err, "auth.login.submit")
 		return
 	}
 
@@ -148,7 +148,7 @@ func (h Handler) authLogin(c *gin.Context) {
 	logRequest(c, "[authLogin] Accepting login request for subject %s", subject)
 	redirectTo, err := h.cfg.HydraAdmin.AcceptLoginRequest(ctx, req.LoginChallenge, subject, req.Remember, defaultRememberForSeconds)
 	if err != nil {
-		writeAuthLoginServerError(c, err, "auth.login.accept")
+		writeServerError(c, err, "auth.login.accept")
 		return
 	}
 
@@ -159,12 +159,4 @@ func (h Handler) authLogin(c *gin.Context) {
 	})
 
 	c.JSON(http.StatusOK, gin.H{"status": "ok", "data": gin.H{"redirect_to": redirectTo}})
-}
-
-// writeAuthLoginServerError mirrors writeServerError (M1 PR-A) — it logs the
-// underlying error with operation context and returns a generic 500. Defined
-// inline to avoid coupling the auth proxy to the SEC-5 helper file's
-// signature, which still belongs to a single shared internal/httpapi pkg.
-func writeAuthLoginServerError(c *gin.Context, err error, op string) {
-	writeServerError(c, err, op)
 }
