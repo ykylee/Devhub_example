@@ -1,0 +1,22 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "claude/work_260513-p",
+  "status": "in_progress",
+  "base_branch": "main",
+  "base_commit": "118899b",
+  "scope": "프로젝트 관리(Project Management) 신규 도메인 컨셉 정리 1차 — 도메인 정의 / 일반 사용자 조회 vs 시스템 관리자 등록·관리 분리 / 데이터 모델 초안 / MVP scope. 컨셉 문서 머지 후 후속 sprint 에서 요구사항(REQ-FR-*) → usecase → 설계(ARCH-*, API-*) 로 발전.",
+  "updated_at": "2026-05-13T19:00:00Z",
+  "next_actions": {
+    "this_sprint": [
+      "docs/planning/project_management_concept.md 작성 (컨셉 단계)",
+      "docs/planning/README.md 인덱스 1줄 추가",
+      "docs/development_roadmap.md §5 백로그에 'Project 도메인 — concept staged' 1행 추가"
+    ],
+    "next_sprint_candidates": [
+      "프로젝트 관리 요구사항 — REQ-FR-* 발급 + docs/requirements.md §5.7 확장 (또는 신규 절)",
+      "Usecase 명세 — 일반 사용자 조회 / 시스템 관리자 CRUD usecase 모델링",
+      "설계 1차 — ARCH 추가 + backend_api_contract.md 신규 §<n> Project API + 데이터 스키마 마이그레이션 초안"
+    ]
+  }
+}

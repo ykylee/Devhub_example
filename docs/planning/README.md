@@ -4,7 +4,7 @@
 - 범위: 통합 로드맵, 트랙별 세부 로드맵, 마일스톤별 backlog 위치, PR 별 트래커, 보안 리뷰 트래커, 향후 sprint plan
 - 대상 독자: 프로젝트 리드, 백엔드/프론트엔드/Auth/AI/운영 트랙 담당자, 후속 작업자
 - 상태: stable
-- 최종 수정일: 2026-05-10 (역할별 진입 우선순위 UX 기준 반영)
+- 최종 수정일: 2026-05-13 (§5.1 도메인 컨셉 인덱스 신설 — Project 도메인 컨셉 1차 진입점 추가)
 - 관련 문서: [../README.md](../README.md), [../development_roadmap.md](../development_roadmap.md), [../DOCUMENT_INDEX.md](../DOCUMENT_INDEX.md)
 
 ## 0. 진입점 — 무엇부터 읽는가
@@ -86,12 +86,19 @@ PR 단위의 의사결정과 보안 리뷰 결과는 *통합 로드맵 산출물
 - **Capacity / 일정 시각화**: 마일스톤별 인력·기간 추정.
 - **회의록**: 트랙 간 sync 결정 (대안: 각 트랙 backlog 에 분산).
 
+## 5.1 도메인 컨셉 (Concept stage)
+
+| 문서 | 단계 | 메모 |
+| --- | --- | --- |
+| [`project_management_concept.md`](./project_management_concept.md) | concept (1차) | Project 신규 도메인 — CRUD + 조회 MVP, 시스템 관리자 등록·관리 vs 일반 사용자 조회 분리. 후속 sprint 에서 REQ-FR/ARCH/API 발급. |
+
 ## 6. 변경 이력
 
 | 일자 | 변경 |
 | --- | --- |
 | 2026-04-30 | 초기 TBD 스텁 생성 |
 | 2026-05-08 | TBD 스텁 → 디렉터리 진입점 + 마일스톤·트랙·트래커 인덱스 (claude/merge_roadmap 브랜치) |
+| 2026-05-13 | §5.1 도메인 컨셉 (Concept stage) 인덱스 신설 — `project_management_concept.md` 1행 추가. sprint `claude/work_260513-p`. |
 
 ## 7. 신규 자료 작성 규칙
 
