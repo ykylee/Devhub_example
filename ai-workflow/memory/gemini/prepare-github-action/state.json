@@ -2,13 +2,14 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "gemini/prepare-github-action",
-  "status": "DONE. GitHub Actions CI 구축 및 조직 관리 E2E 테스트 케이스 정리 완료.",
-  "updated_at": "2026-05-12T22:40:00Z",
+  "status": "GREEN. PR #86 리뷰어 모드 2-pass 후 본 CI 전부 통과 (run 25770294460, head 661af42 — Backend Unit / Frontend Unit / E2E 40/40 모두 SUCCESS). 머지 대기.",
+  "updated_at": "2026-05-13T00:30:00Z",
   "branched_from": {
     "branch": "main",
     "head_commit": "84b2dde",
     "head_summary": "feat(M2): 1차 완성 sprint — 로드맵 정합 + UX hygiene + Kratos audit (claude/login_usermanagement_finish) (#85)"
   },
+  "head_commit": "661af42",
   "goal": "main 머지 시마다 Unit/E2E 테스트를 자동 수행하고 리포트를 생성하는 GitHub Actions CI 파이프라인 구축.",
   "scope_in": [
     "Makefile: test-frontend / e2e 타겟 실구현",
@@ -20,9 +21,24 @@
   ],
   "scope_out": [
     "Docker Compose 기반 staging 배포 (후속 sprint)",
-    "CD (자동 배포) 파이프라인"
+    "CD (자동 배포) 파이프라인",
+    "work_backlog.md 의 FU-CI-1..4 (no-docker 정합, playwright install 최적화, cache, frontend readiness timeout)"
   ],
+  "reviewer_mode_2pass": {
+    "review_comment": "https://github.com/ykylee/Devhub_example/pull/86#issuecomment-4435695605",
+    "verification_comment": "https://github.com/ykylee/Devhub_example/pull/86#issuecomment-4435966519",
+    "fix_commits": [
+      {"sha": "206c16c", "summary": "blocker 1–5 묶음 fix (idp-apply-schemas -dsn, build path, DB_URL, IdP URLs, cipher 32 bytes)"},
+      {"sha": "f580feb", "summary": "Ory 바이너리 v2.2.0/v1.1.0 → v26.2.0 (prod CLI 정합, migrate sql up 지원)"},
+      {"sha": "69fe2a0", "summary": "v26 tarball nested layout 대응 robust 추출"},
+      {"sha": "4330d87", "summary": "sudo HOME=/root 의 go install → GOBIN=/usr/local/bin"},
+      {"sha": "65353b0", "summary": "${VAR} YAML 보간 미지원 → DSN + webhook 토큰 hardcode"},
+      {"sha": "1c94746", "summary": "TC-NAV-02 dropdown exit wait (이후 race 발견으로 661af42 가 대체)"},
+      {"sha": "661af42", "summary": "TC-NAV-02 selector 를 header span.uppercase.tracking-wider 로 좁혀 strict-mode + AuthGuard race 동시 해소"}
+    ]
+  },
   "next_actions": {
-    "immediate": "PR 생성 후 CI 통과 여부 최종 확인 → main 머지."
+    "immediate": "사용자 머지 지시 → gh pr merge 86 --squash --delete-branch.",
+    "after_merge": "main flat state/handoff/work_backlog 갱신 + FU-CI-1..4 인계."
   }
 }

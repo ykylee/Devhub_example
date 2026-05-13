@@ -217,6 +217,10 @@
   3. URL 이 `/manager` 로 이동하는지 확인.
   4. Header 의 role 표시가 "Manager" 로 변경됐는지 확인.
 - **DoD**: dropdown 클릭 → store role 변경 + path 전환. 기존 동작 유지.
+- **구현 노트 (race-aware)** — PR #86 리뷰어 모드에서 두 가지 race 가 동시에 노출됨:
+  1. `<header> getByText("Manager", exact)` 는 role badge `<span>` 과 dropdown 의 `<button>Manager</button>` 두 element 에 동시 매칭 — AnimatePresence 가 exit 중인 동안 strict-mode 위반.
+  2. AuthGuard 의 `useEffect([pathname])` 가 `whoAmI()` → `setActor()` → store role 을 actor.role 로 되돌림. dropdown 이 닫히는 것을 기다리면 그 사이 role 이 "Developer" 로 reset.
+  - 회피책: selector 를 `header span.uppercase.tracking-wider` 로 좁혀 badge 한 곳만 매칭 + `waitForURL` 직후 즉시 단언. 향후 Header CSS 클래스 변경 시 이 selector 도 같이 업데이트해야 함 (또는 `data-testid="header-role-badge"` 로 옮길 것 — 보강 후보).
 
 ### TC-NAV-03 — Account Settings 메뉴 → `/account` 이동
 
