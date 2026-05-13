@@ -210,11 +210,28 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
 
 #### 5.4.1 기능 요구사항 (REQ-FR)
 
+- **REQ-FR-PROJ-000 (MVP, 확정):** `Application > Repository > Project` 관리 쓰기 권한은 기본적으로 `system_admin`에 한정해야 한다.
+    - 대상 기능: Application 생성/수정/보관, Repository 연결/해제, Project 생성/수정/보관, Project 멤버/owner 관리, Integration 정책 변경, 마일스톤 매핑 관리.
+    - 예외 역할: `pmo_manager`는 후보 role로 정의할 수 있으나 정책 확정 전까지 `disabled` 상태로 유지한다.
+    - `pmo_manager` 활성화 전 요청은 `403 role_not_enabled`로 거절한다.
 - **REQ-FR-APP-001 (MVP, 확정):** 시스템 관리자는 Application을 생성/수정/보관(archive)할 수 있어야 한다.
-    - 필수 필드: `code`, `name`, `owner`, `start_date`, `due_date`, `visibility`, `status`.
+    - 필수 필드: `key`, `name`, `owner`, `start_date`, `due_date`, `visibility`, `status`.
     - `status` 최소 상태: `planning`, `active`, `on_hold`, `closed`, `archived`.
+- **REQ-FR-APP-003 (MVP, 확정):** `Application.key`는 시스템 전역 고유값(unique)이어야 하며 관리 식별자로 사용해야 한다.
+    - 표시명(`name`) 변경과 무관하게 `key`는 안정 식별자로 유지한다.
+- **REQ-FR-APP-004 (MVP, 확정):** Repository는 외부 형상관리 도구와 연결되는 구조여야 하며, DevHub는 운영/분석용 관리 데이터를 보유해야 한다.
+    - 외부 SoT: 코드/PR/빌드 원본.
+    - DevHub 보유: 연결 메타데이터, 동기화 상태, 운영 스냅샷.
 - **REQ-FR-APP-002 (MVP, 확정):** 하나의 Application은 0개 이상의 Repository를 연결할 수 있어야 한다.
     - 연결 단위 필드: `repo_provider`, `repo_full_name`, `role(primary|sub|shared)`.
+- **REQ-FR-APP-005 (MVP, 확정):** Repository 작업현황을 수집/조회할 수 있어야 한다.
+    - 최소 지표: commit 활동량, active contributor 수, 작업 추이.
+- **REQ-FR-APP-006 (MVP, 확정):** PR/PR Activity 정보를 수집/조회할 수 있어야 한다.
+    - 최소 정보: PR 상태(open/draft/merged/closed), 생성/리뷰/코멘트/머지 이벤트 타임라인.
+- **REQ-FR-APP-007 (MVP, 확정):** 빌드 정보를 수집/조회할 수 있어야 한다.
+    - 최소 정보: run status, duration, branch/commit, 시작/종료 시각.
+- **REQ-FR-APP-008 (MVP, 확정):** 소스코드 품질 지표(정적분석/스코어링)를 수집/조회할 수 있어야 한다.
+    - 최소 정보: tool, quality score, gate pass/fail, metric 상세(coverage, bug/vuln, duplication 등).
 - **REQ-FR-PROJ-001 (MVP, 확정):** 시스템 관리자는 Repository 하위 Project를 생성/수정/보관(archive)할 수 있어야 한다.
     - 필수 필드: `code`, `name`, `owner`, `start_date`, `due_date`, `visibility`, `status`.
     - `status` 최소 상태: `planning`, `active`, `on_hold`, `closed`, `archived`.
@@ -234,12 +251,17 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
     - 권장 cadence: 주간 Program Sync, 월간 KPI/리스크 리뷰.
 - **REQ-FR-PROJ-008 (후속):** Project 영구 삭제는 `archive 후 N일 보존 + 관리자 재확인` 정책을 따라야 한다.
 - **REQ-FR-PROJ-009 (후속):** Owner 위양(RBAC row-level)은 ADR-0011 후보 결정 후 활성화한다.
+- **REQ-FR-PROJ-010 (후속):** `pmo_manager` 역할 활성화 시 권한 범위는 정책 확정 후 단계적으로 허용한다.
+    - 기본 후보 범위: `project.manage`, `project.member.manage`, `milestone.mapping.manage`.
+    - 제한 후보 범위: `application.manage`(수정만), `application.repo.link`(초기 비허용 권장).
+    - 금지 범위: 시스템 설정, 계정/조직/RBAC 정책 변경.
 
 #### 5.4.2 비기능/운영 요구사항 (REQ-NFR)
 
 - **REQ-NFR-PROJ-001 (MVP):** Project/Repository 매핑 정보는 감사(audit) 가능해야 하며 생성/수정/해제 이력을 기록해야 한다.
 - **REQ-NFR-PROJ-002 (MVP):** 상위 롤업 지표는 매핑 누락 항목을 조용히 제외하지 않고 경고 상태로 표시해야 한다.
 - **REQ-NFR-PROJ-003 (후속):** Project 대시보드 응답시간 목표(예: p95 2초 이내)와 페이지네이션 한계는 설계 단계에서 별도 계약한다.
+- **REQ-NFR-PROJ-004 (MVP):** 외부 형상관리/CI/품질 도구 연동 데이터는 idempotency key 기반 중복 방지 및 재동기화(reconciliation) 정책을 가져야 한다.
 
 #### 5.4.3 Usecase 산출물 (확정)
 

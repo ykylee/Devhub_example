@@ -94,6 +94,9 @@
 | `UC-APP-02` | Application-Repository 연결 | 1 Application : N Repository 매핑 저장 | REQ-FR-APP-002 |
 | `UC-APP-03` | Application 상태 전이/보관 | status/archived 정책 적용 | REQ-FR-APP-001 |
 | `UC-APP-04` | Application 상세 조회 | 메타+연결 repo+상위 마일스톤 조회 | REQ-FR-APP-001,002 |
+| `UC-APP-05` | Application 관리 권한 검증 | `system_admin`만 쓰기 허용, `pmo_manager` 비활성 시 403 반환 | REQ-FR-PROJ-000 |
+| `UC-APP-06` | Repository 운영 스냅샷 조회 | 작업현황/PR/빌드/품질 지표를 repo 단위로 조회 | REQ-FR-APP-005,006,007,008 |
+| `UC-APP-07` | 외부 도구 동기화/재동기화 | webhook+pull 기반 동기화, 중복/누락 보정 처리 | REQ-FR-APP-004, REQ-NFR-PROJ-004 |
 
 ### 2.10 Project (Repository 하위 운영 단위)
 
@@ -108,6 +111,7 @@
 | `UC-PROJ-07` | 공개 Project 조회 | visibility=public 목록 조회 | REQ-FR-PROJ-002 |
 | `UC-PROJ-08` | Project 상세 조회 | 메타+마일스톤 롤업 조회 | REQ-FR-PROJ-002,004 |
 | `UC-PROJ-09` | Project cadence 리포트 조회 | repo sprint 결과를 상위 롤업 | REQ-FR-PROJ-007 |
+| `UC-PROJ-10` | Project 관리 권한 검증 | 관리 쓰기 권한의 RBAC/feature-flag 검증 + 감사 추적 | REQ-FR-PROJ-000,010 |
 
 ## 3. 설계/구현 반영 규칙
 

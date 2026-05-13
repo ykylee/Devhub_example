@@ -130,7 +130,7 @@
 ```text
 applications
   id                 UUID PK
-  code               TEXT UNIQUE
+  key                TEXT UNIQUE
   name               TEXT NOT NULL
   description        TEXT
   status             TEXT NOT NULL   -- planning | active | on_hold | closed | archived
@@ -149,6 +149,48 @@ application_repositories
   role               TEXT NOT NULL   -- primary | sub | shared
   linked_at          TIMESTAMPTZ NOT NULL
   PRIMARY KEY (application_id, repo_full_name)
+
+projects
+  id                 UUID PK
+  application_id     UUID FK applications.id
+  repository_id      BIGINT FK repositories.id
+  key                TEXT NOT NULL
+  name               TEXT NOT NULL
+  status             TEXT NOT NULL
+  owner_user_id      UUID FK users.id
+  start_date         DATE NULL
+  due_date           DATE NULL
+  UNIQUE (repository_id, key)
+
+pr_activities
+  id                 BIGSERIAL PK
+  repository_id      BIGINT FK repositories.id
+  external_pr_id     TEXT NOT NULL
+  event_type         TEXT NOT NULL
+  actor_login        TEXT NOT NULL
+  occurred_at        TIMESTAMPTZ NOT NULL
+  payload            JSONB NOT NULL
+
+build_runs
+  id                 BIGSERIAL PK
+  repository_id      BIGINT FK repositories.id
+  run_external_id    TEXT UNIQUE NOT NULL
+  branch             TEXT NOT NULL
+  commit_sha         TEXT NOT NULL
+  status             TEXT NOT NULL
+  duration_seconds   INT NULL
+  started_at         TIMESTAMPTZ NOT NULL
+  finished_at        TIMESTAMPTZ NULL
+
+quality_snapshots
+  id                 BIGSERIAL PK
+  repository_id      BIGINT FK repositories.id
+  tool               TEXT NOT NULL
+  ref_name           TEXT NOT NULL
+  commit_sha         TEXT NULL
+  score              NUMERIC NULL
+  gate_passed        BOOLEAN NULL
+  measured_at        TIMESTAMPTZ NOT NULL
 
 application_integrations
   application_id      UUID FK applications.id

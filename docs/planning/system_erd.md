@@ -149,6 +149,10 @@ erDiagram
 erDiagram
     APPLICATIONS ||--o{ APPLICATION_REPOSITORIES : contains
     APPLICATIONS ||--o{ PROJECTS : governs
+    REPOSITORIES ||--o{ PROJECTS : hosts
+    REPOSITORIES ||--o{ PR_ACTIVITIES : emits
+    REPOSITORIES ||--o{ BUILD_RUNS : runs
+    REPOSITORIES ||--o{ QUALITY_SNAPSHOTS : measures
     PROJECTS ||--o{ PROJECT_INTEGRATIONS : connects
     PROJECTS ||--o{ PROJECT_MEMBERS : has
     USERS ||--o{ PROJECT_MEMBERS : joins
@@ -179,7 +183,7 @@ erDiagram
     PROJECTS {
       uuid id PK
       uuid application_id FK
-      text repo_full_name
+      bigint repository_id FK
       text code
       text name
       text description
@@ -209,6 +213,36 @@ erDiagram
       text project_role
       timestamptz joined_at
     }
+    PR_ACTIVITIES {
+      bigint id PK
+      bigint repository_id FK
+      text external_pr_id
+      text event_type
+      text actor_login
+      timestamptz occurred_at
+      jsonb payload
+    }
+    BUILD_RUNS {
+      bigint id PK
+      bigint repository_id FK
+      text run_external_id UK
+      text branch
+      text commit_sha
+      text status
+      integer duration_seconds
+      timestamptz started_at
+      timestamptz finished_at
+    }
+    QUALITY_SNAPSHOTS {
+      bigint id PK
+      bigint repository_id FK
+      text tool
+      text ref_name
+      text commit_sha
+      numeric score
+      boolean gate_passed
+      timestamptz measured_at
+    }
 ```
 
 ## 3. 통합 ERD (현행 + Project 확장)
@@ -230,13 +264,16 @@ erDiagram
 
     APPLICATIONS ||--o{ APPLICATION_REPOSITORIES : contains
     APPLICATIONS ||--o{ PROJECTS : governs
+    REPOSITORIES ||--o{ PROJECTS : hosts
     PROJECTS ||--o{ PROJECT_INTEGRATIONS : connects
     PROJECTS ||--o{ PROJECT_MEMBERS : has
     USERS ||--o{ PROJECT_MEMBERS : joins
     USERS ||--o{ PROJECTS : owns
     USERS ||--o{ APPLICATIONS : owns
     APPLICATION_REPOSITORIES }o--|| REPOSITORIES : maps
-    PROJECTS }o--|| APPLICATION_REPOSITORIES : executes_on_repo
+    REPOSITORIES ||--o{ PR_ACTIVITIES : emits
+    REPOSITORIES ||--o{ BUILD_RUNS : runs
+    REPOSITORIES ||--o{ QUALITY_SNAPSHOTS : measures
 ```
 
 ## 4. 설계/구현 반영 규칙

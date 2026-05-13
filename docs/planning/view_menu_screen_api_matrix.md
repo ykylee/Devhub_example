@@ -13,6 +13,9 @@
   - `developer` -> 개발 대시보드
   - `manager` -> 관리 대시보드
   - `system_admin` -> 시스템 대시보드 + 시스템 설정
+- 관리 권한 정책:
+  - `system_admin`: Application/Repository/Project 관리 쓰기 전 권한 허용
+  - `pmo_manager`(tentative): 후보 role. 정책 확정 전 `disabled` 유지
 - 노출 정책:
   - 시스템 대시보드/시스템 설정은 `system_admin`만 접근 가능
 - 운영 계층:
@@ -34,6 +37,10 @@
 | Audit | 제한 조회 | 제한 조회 | 전체 조회 | 보안/운영 감사 |
 | Settings | 개인 설정 | 개인 설정 | 시스템 설정 | system_admin 전용 항목 포함 |
 
+`pmo_manager` 활성화 전:
+- Manager 화면에서 관리 쓰기 액션 버튼은 노출하지 않는다.
+- API 응답은 `403 role_not_enabled`를 반환한다.
+
 ## 3. 뷰별 화면 구성
 
 ### 3.1 Developer 뷰
@@ -42,6 +49,7 @@
 | --- | --- | --- | --- |
 | 개발 대시보드 | 내 작업 스트림, CI 요약, 위험 알림, 내 Project 카드 | 이슈/PR 이동, 리스크 상세 조회 | `GET /api/v1/dashboard/metrics`, `GET /api/v1/issues`, `GET /api/v1/pull-requests`, `GET /api/v1/ci-runs`, `GET /api/v1/risks`, `GET /api/v1/me` |
 | Repository 상세 | 파이프라인 상태, 최근 PR/이슈, 빌드 로그 | 로그 조회, 필터링 | `GET /api/v1/repositories`, `GET /api/v1/ci-runs`, `GET /api/v1/ci-runs/{ci_run_id}/logs`, `GET /api/v1/issues`, `GET /api/v1/pull-requests` |
+| Repository 운영 지표 | 작업량, PR activity, 빌드 성공률, 품질 점수 추이 | 기간별 비교, 상세 drill-down | `GET /api/v1/repositories/{id}/activity` (planned), `GET /api/v1/repositories/{id}/pull-requests` (planned), `GET /api/v1/repositories/{id}/build-runs` (planned), `GET /api/v1/repositories/{id}/quality-snapshots` (planned) |
 | Project 상세(읽기) | 기간/목표/상태, 멤버, 마일스톤 매핑 요약 | 상태/문서 조회 | `GET /api/v1/projects/{project_id}` (planned), `GET /api/v1/projects/{project_id}/milestones` (planned) |
 | 알림 센터 | Info/Action Required 알림 | 읽음 처리, 상세 이동 | `GET /api/v1/realtime/ws`, `GET /api/v1/events` |
 
@@ -51,8 +59,13 @@
 | --- | --- | --- | --- |
 | 관리 대시보드 | KPI 카드, 크리티컬 리스크, 진행률/지연, 의사결정 로그 | 리스크 대응 트리거, 롤업 점검 | `GET /api/v1/dashboard/metrics`, `GET /api/v1/risks/critical`, `GET /api/v1/risks`, `GET /api/v1/audit-logs` |
 | Application 상세 | KPI/리스크 롤업, 연결 repo, 하위 Project 현황 | 필터/기간 변경, 보고 스냅샷 확인 | `GET /api/v1/applications/{application_id}` (planned), `GET /api/v1/repositories`, `GET /api/v1/risks` |
+| Application 롤업 지표 | Repository별 PR/빌드/품질 집계 | 리스크/품질 저하 repo 탐지 | `GET /api/v1/applications/{application_id}/rollup` (planned) |
 | 마일스톤 매핑 보드 | 상위-하위 매핑, 누락/충돌 경고 | 매핑 누락 점검 | `GET /api/v1/applications/{application_id}/milestones` (planned), `GET /api/v1/projects/{project_id}/milestones` (planned) |
 | 리스크 대응 | 리스크 상세, 대응 명령 상태 | 완화 명령 요청, 진행 추적 | `POST /api/v1/risks/{risk_id}/mitigations`, `GET /api/v1/commands/{command_id}`, `GET /api/v1/realtime/ws` |
+
+PMO 후보 role 정책:
+- `pmo_manager` 비활성 단계: Manager와 동일하게 조회 중심.
+- `pmo_manager` 활성 단계(후속): `Project 운영 관리`와 `마일스톤 매핑 관리`의 제한적 쓰기 권한 허용 검토.
 
 ### 3.3 System Admin 뷰
 
@@ -65,6 +78,14 @@
 | 통합 설정 | Jira/Confluence 연결 상태/정책 | 연결 등록/검증/해제 | `GET /api/v1/integrations` (planned), `POST /api/v1/integrations` (planned), `PATCH /api/v1/integrations/{integration_id}` (planned), `DELETE /api/v1/integrations/{integration_id}` (planned) |
 | 계정/조직/RBAC | 사용자/조직 CRUD, 권한 매트릭스, 역할 할당 | 계정 발급/회수, 조직 편집, RBAC 편집 | `GET/POST/PATCH/DELETE /api/v1/users`, `GET /api/v1/organization/hierarchy`, `POST/PATCH/DELETE /api/v1/organization/units`, `PUT /api/v1/organization/units/{unit_id}/members`, `GET/PUT/POST/DELETE /api/v1/rbac/policies`, `GET/PUT /api/v1/rbac/subjects/{subject_id}/roles`, `POST/PUT/PATCH/DELETE /api/v1/accounts*` |
 | 감사로그 | 보안/운영/계정 변경 이력 | 필터 조회, 추적 | `GET /api/v1/audit-logs` |
+
+권한 스코프(요구사항 연계):
+- `application.manage`
+- `application.repo.link`
+- `project.manage`
+- `project.member.manage`
+- `integration.manage`
+- `milestone.mapping.manage`
 
 ## 4. 공통 화면 및 API
 
