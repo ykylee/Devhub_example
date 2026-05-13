@@ -1,10 +1,13 @@
 # 프론트엔드 현재 구현 기반 백엔드 연동 요구사항
 
-- 문서 목적: 현재 프론트엔드 구현을 기준으로 백엔드가 프론트엔드에 전달해야 할 계약과 백엔드 개발 필요 항목을 도출한다.
+- 문서 목적: 당시 프론트엔드 구현을 기준으로 백엔드가 프론트엔드에 전달해야 할 계약과 백엔드 개발 필요 항목을 도출한다.
+- 범위: REST snapshot API + WebSocket 실시간 이벤트 + 명령성 액션 + 역할별 KPI metric. 본 문서는 분석 결과 모음 — 실제 endpoint shape 는 `docs/backend_api_contract.md` 가 source-of-truth.
+- 대상 독자: Backend 개발자, AI agent, 프로젝트 리드.
+- 상태: accepted (일부 §3 항목은 ADR-0001 으로 deprecate 됨 — §3.8 의 자체 accounts 테이블 endpoint 7종은 Ory Hydra/Kratos 로 대체. 자세히는 본 문서 §3.8 의 deprecated 노트 참조)
 - 기준일: 2026-05-02
-- 상태: draft
-- 관련 문서: `docs/backend/requirements.md`, `docs/backend/requirements_review.md`, `docs/backend_api_contract.md`, `ai-workflow/memory/backend_development_roadmap.md`
-- 확인 범위: `frontend/app/(dashboard)/*`, `frontend/lib/services/*`, `frontend/lib/mockData.ts`, `frontend/lib/store.ts`, `frontend/components/layout/*`
+- 최종 수정일: 2026-05-13 (메타 헤더 표준화 + §3.8 deprecated 노트 추가, sprint `claude/work_260513-d`)
+- 관련 문서: [백엔드 요구사항](./requirements.md), [백엔드 요구사항 리뷰](./requirements_review.md), [백엔드 API 계약](../backend_api_contract.md), [ADR-0001 IdP](../adr/0001-idp-selection.md), [백엔드 로드맵](../../ai-workflow/memory/backend_development_roadmap.md).
+- 확인 범위 (분석 시점): `frontend/app/(dashboard)/*`, `frontend/lib/services/*`, `frontend/lib/mockData.ts`, `frontend/lib/store.ts`, `frontend/components/layout/*`
 
 ## 1. 현재 프론트엔드 구현 요약
 
@@ -217,7 +220,12 @@ PUT /api/v1/organizations/{unit_id}/members
 
 ### 3.8 사용자 계정 / 로그인 관리
 
-> **재설계 예정 (2026-05-07, [ADR-0001](../adr/0001-idp-selection.md))**: 본 §3.8 의 7개 endpoint 호출은 자체 `accounts` 전제다. **Ory Hydra + Kratos 도입 결정**에 따라 프론트 흐름이 다음으로 바뀐다 — (a) 로그인 화면은 Hydra OIDC Authorization Code + PKCE 흐름을 시작하고 자격 검증은 Kratos public flow API 를 직접 호출, (b) 본인 비밀번호 변경은 Kratos self-service flow 를 호출, (c) 시스템 관리자의 계정 발급/회수/잠금 해제/강제 재설정은 신규 `/api/v1/admin/identities/*` (Kratos admin API wrapper) 를 호출. 아래 7개 endpoint 표는 historical baseline 이며 Phase 13 시작 시 교체된다.
+> ⚠ **Deprecated (2026-05-13, sprint `claude/work_260513-d` 명확화)** — 본 §3.8 의 7개 endpoint 는 자체 `accounts` 전제로 작성됐으나 [ADR-0001](../adr/0001-idp-selection.md) (2026-05-07) 채택 + Phase 13 (M2 login_action sprint, 2026-05-08~11) 머지로 다음으로 **실 구현 대체** 완료:
+> - 로그인: Hydra OIDC Authorization Code + PKCE → [`backend_api_contract.md` §11.5](../backend_api_contract.md) (`/api/v1/auth/{login,logout,token,signup,consent}`).
+> - 본인 비밀번호 변경: Kratos self-service flow → [§11.5.1](../backend_api_contract.md) (`/api/v1/account/password`).
+> - 시스템 관리자의 계정 발급/회수/잠금 해제/강제 재설정: Kratos admin API wrapper → [§12.8.2](../backend_api_contract.md) (`/api/v1/accounts`, `/api/v1/admin/identities`).
+>
+> 아래 표는 historical baseline 으로만 유지한다. 실제 구현·API 호출은 위 링크의 endpoint 를 사용.
 
 DevHub 자체 사용자 계정(Account) 1:1 컨셉 도입에 따라 추가되는 프론트 ↔ 백엔드 연동 항목.
 

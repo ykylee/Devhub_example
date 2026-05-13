@@ -3,7 +3,7 @@
 - 문서 목적: main 브랜치 기준 상위 백로그 인덱스. 세부 sprint backlog 는 브랜치별 메모리 디렉터리 참조.
 - 범위: 마일스톤 상태, 최근 머지, 잔여/후속 작업
 - 대상 독자: 프로젝트 리드, 후속 에이전트, 트랙 담당자
-- 상태: M1·M2 done (M2 1차 완성 sprint 닫힘, PR #85). GHA CI 그린 (PR #86). 진행 중 sprint `claude/work_260513-a` 가 main flat sync + FU-CI-2/3/4 처리 중. FU-CI-1 (no-docker 정합) + PR-D 정합 후속 + M4 진입 대기.
+- 상태: M1·M2 done. GHA CI 그린 + FU-CI-1..4 모두 처리 (PR #86/#87/#88). 거버넌스 + 추적성 체계 + 1차 종합 매트릭스 도입 (PR #89). 진행 중 sprint `claude/work_260513-d` 가 매트릭스 §5 gap + 문서 메타 헤더 표준화 처리 중.
 - 최종 수정일: 2026-05-13
 - 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [세션 인계](./session_handoff.md), [상태 스냅샷](./state.json), [M1 PR 리뷰 actions](./M1-PR-review-actions.md)
 
@@ -86,4 +86,7 @@
 | 2026-05-08 | M2 login_action sprint 진입. 로그인 검토 후 PR-LOGIN-1 (#33 backend proxy) + PR-LOGIN-2 (#34 frontend form) push 머지 대기. backlog 작성 (`claude/login_action/backlog/2026-05-08.md`). PR-LOGIN-3·4 미진입. |
 | 2026-05-12 | 4 sprint × 8 PR 머지 — E2E 자동 시드 hardening (#76, #78) + PR-D audit 정합 완결 (#80) + second-pass review fix (#82). work_260512-h 폐기 (kratos_identity_id 가 PR-L4 에 이미 포함). 자세히는 `session_handoff.md` §0/§5 + `state.json` 의 `merged_prs_2026_05_12`. |
 | 2026-05-12 | PR #85 (`claude/login_usermanagement_finish`) — M2 1차 완성 sprint. 로드맵 정합 + UX hygiene 묶음 (PR-UX1+2+3) + Kratos settings/password/after webhook → audit_logs (PR-M2-AUDIT) + 30 TC e2e 게이트. |
-| 2026-05-13 | PR #86 (`gemini/prepare-github-action`) — GitHub Actions CI 그린. 리뷰어 모드 2-pass 에서 5 blocker (idp-apply-schemas DSN, build path, DB_URL env, IdP URL 4종, kratos cipher 32 bytes) + follow-on 5 (Ory v26.2.0, tar layout, GOBIN, YAML interpolation, TC-NAV-02 race) → 보강 commit 7개. 진행 중 sprint `claude/work_260513-a` 가 main flat sync + FU-CI-2/3/4 처리. |
+| 2026-05-13 | PR #86 (`gemini/prepare-github-action`) — GitHub Actions CI 그린. 리뷰어 모드 2-pass 에서 5 blocker (idp-apply-schemas DSN, build path, DB_URL env, IdP URL 4종, kratos cipher 32 bytes) + follow-on 5 (Ory v26.2.0, tar layout, GOBIN, YAML interpolation, TC-NAV-02 race) → 보강 commit 7개. |
+| 2026-05-13 | PR #87 (`claude/work_260513-a`) — FU-CI-2/3/4 처리: playwright install scope (chromium), `actions/cache@v4` (go mod + ms-playwright), frontend readiness 120s, install split. 추가로 리뷰어 모드 2-pass 에서 cache 효율 fix. |
+| 2026-05-13 | PR #88 (`claude/work_260513-b`) — ADR-0003 (no-docker 정책 CI 범위 명문화). `services: postgres:15` 제거 + pgdg native PG 15. 두 번의 fix-cycle 후 PG-14 dropcluster + `--port=5432` 강제로 그린. |
+| 2026-05-13 | PR #89 (`claude/work_260513-c`) — `docs/governance/` (README + document-standards.md) + `docs/traceability/` (README + conventions + sync-checklist + report) + PR template + AGENTS/GEMINI 진입점. 1차 종합 매트릭스: REQ-FR 105 + REQ-NFR 26 + ARCH 17 + API 40 + RM 28 + IMPL 79 + UT 47 + TC 37 = 412 항목, 도메인 그룹 13행. 리뷰어 모드 2-pass 에서 ADR-0003 broken link + workflow-memory 상태 enum 정합화. |

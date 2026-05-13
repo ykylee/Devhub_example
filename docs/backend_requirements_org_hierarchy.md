@@ -1,5 +1,12 @@
 # 백엔드 개발 요구사항: 조직 계층 및 인사 관리 시스템
 
+- 문서 목적: 복잡한 조직 계층 구조와 인사 이동 (겸임, 파견) 을 지원하기 위한 백엔드 기능 요구사항을 정의한다.
+- 범위: 조직 노드 (Division/Team/Group/Part) 의 hierarchy, 리더십, 멤버십, 파견 / 겸임 / 주 소속 자동 판정, 관련 API 명세.
+- 대상 독자: Backend 개발자, AI agent, 프론트엔드 Phase 5+ 작업자.
+- 상태: accepted
+- 최종 수정일: 2026-05-13 (메타 헤더 표준화, sprint `claude/work_260513-d`)
+- 관련 문서: [조직 계층 구조 명세](./organizational_hierarchy_spec.md), [조직도 UX 명세](./org_chart_ux_spec.md), [백엔드 API 계약 §12.8](./backend_api_contract.md), [통합 요구사항 정의서 §5.2](./requirements.md).
+
 프론트엔드 Phase 5 고도화에 따라, 복잡한 조직 계층 구조와 인사 이동(겸임, 파견)을 지원하기 위한 백엔드 기능 개발을 요청합니다.
 
 ## 1. 도메인 모델 및 스키마 요구사항

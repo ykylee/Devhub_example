@@ -1,8 +1,12 @@
 # DevHub 요구사항 정의서 (Draft)
 
-- **작성일:** 2026-04-28
-- **최종 수정:** 2026-05-10
-- **상태:** 기획 중
+- 문서 목적: 팀 통합 개발 허브 (DevHub) 의 역할별 상세 기능 (Developer / Manager / System Admin) 과 데이터 구조, 비기능 요구사항을 정의한다.
+- 범위: §2 역할별 기능 / §3 역할 확장성 / §4 데이터 보존 정책 / §5 비기능 + 운영 / §6 기술 스택 / §7 UX. 백엔드 측 상세는 `docs/backend/requirements.md`, 프론트 연동은 `docs/backend/frontend_integration_requirements.md`.
+- 대상 독자: 프로젝트 리드, Backend / 프론트엔드 개발자, AI agent, QA, UX 검토자.
+- 상태: accepted
+- 작성일: 2026-04-28
+- 최종 수정일: 2026-05-13 (메타 헤더 표준화, sprint `claude/work_260513-d`)
+- 관련 문서: [통합 개발 로드맵](./development_roadmap.md), [아키텍처](./architecture.md), [기술 스택](./tech_stack.md), [백엔드 API 계약](./backend_api_contract.md), [추적성 매트릭스](./traceability/report.md), [거버넌스 — 문서 표준](./governance/document-standards.md).
 
 ## 1. 개요
 본 문서는 팀 통합 개발 허브(DevHub)의 역할별 상세 기능과 데이터 구조를 정의하기 위해 작성되었습니다.

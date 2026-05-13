@@ -1,5 +1,12 @@
 # 조직도(Org Chart) 인터랙션 및 UX 명세
 
+- 문서 목적: 조직도 내에서 조직 단위 (Division/Team/Group/Part) 를 직관적으로 관리하기 위한 UX 인터랙션 (생성 / 수정 / 삭제 / 자동 레이아웃 / 멤버·리더 배정) 표준을 정의한다.
+- 범위: 조직도 화면 (`/organization`, `/admin/settings/organization`) 의 UX 흐름. 데이터 모델은 `docs/organizational_hierarchy_spec.md`, 백엔드 API 는 `docs/backend_api_contract.md` §12.8 가 source-of-truth.
+- 대상 독자: 프론트엔드 개발자, UX 검토자, AI agent.
+- 상태: accepted
+- 최종 수정일: 2026-05-13 (메타 헤더 표준화, sprint `claude/work_260513-d`)
+- 관련 문서: [조직 계층 구조 명세](./organizational_hierarchy_spec.md), [백엔드 조직 계층 요구사항](./backend_requirements_org_hierarchy.md), [백엔드 API §12.8](./backend_api_contract.md).
+
 조직도 내에서 조직 단위를 직관적으로 관리하기 위한 고도화된 UX 명세입니다.
 
 ## 1. 조직 생성 흐름 (Creation Flow)

@@ -67,7 +67,7 @@
 | **인프라 토폴로지 (infra)** | FR-12, 13, 97, 98, 99; NFR-12, 16 | ARCH-04, 09; API-06 | M3-02 (planned, infra event publish) | infra-01; frontend-role-03 (gardener) | httpapi-12 | (E2E 미커버 — gap §5.1) |
 | **Webhook + 도메인 데이터 (gitea)** | FR-49, 50, 51, 52, 53, 54, 55 | ARCH-06, 07, 08; API-02, 03, 07–13 | (M0 이전 phase 완료) | gitea-01, 02; domain-01..03; normalize | httpapi-10, 14; gitea-01; normalize-01; store-03 | (E2E 미커버 — gap §5.1) |
 | **대시보드 / 메트릭 / me** | FR-1–11, 28–36, 81, 85, 88, 89, 96 | ARCH-10; API-05, 36, 38 | (Phase 4 이전 완료) | dashboard-01; me-01; frontend-dashboard-01; frontend-role-01..03; frontend-store-01; frontend-layout-01..02; frontend-service-api-01 | httpapi-08, 11, 22 | TC-NAV-01..03; TC-NAV-SIM-01 |
-| **CI / 거버넌스 (본 sprint 산출)** | NFR-1 (no-docker) | (ADR-0001 §5; ADR-0003 ※) | M2-16 (CI 1차, PR #86); FU-CI-1..4 (PR #87); ADR-0003 (PR #88); 거버넌스 + 매트릭스 (본 PR / sprint `claude/work_260513-c`) | (build infra: `.github/workflows/ci.yml`, `scripts/ci-setup.sh`, `infra/idp/*.ci.yaml`); `docs/governance/*`, `docs/traceability/*` | (lint 미도입, FU-CI 향후) | (CI run 자체가 검증) |
+| **CI / 거버넌스** | NFR-1 (no-docker) | ADR-0001 §5; [ADR-0003](../adr/0003-no-docker-policy-ci-scope.md) | M2-16 (CI 1차, PR #86); FU-CI-1..4 (PR #87); ADR-0003 (PR #88); 거버넌스 + 매트릭스 1차 (PR #89); 갭 분석 + 메타 헤더 표준화 (본 PR / sprint `claude/work_260513-d`) | (build infra: `.github/workflows/ci.yml`, `scripts/ci-setup.sh`, `infra/idp/*.ci.yaml`); `docs/governance/*`, `docs/traceability/*` | (lint 미도입, FU-CI 향후) | (CI run 자체가 검증) |
 | **M4 (스코프 밖, planned)** | FR-37–48, 56–57, 60, 90–94 (일부) | API-14 (확장) | M4 항목 (M4 컬럼 별도) | (미진입) | (미진입) | (미진입) |
 
 > Note — 매트릭스 셀의 ID 는 §2 의 단계별 인덱스를 줄여서 표기 (예: `auth-01..07` = `IMPL-auth-01..IMPL-auth-07`). 한 도메인이 여러 단계에 걸쳐 영향을 주므로 정확한 1:1 매핑은 §2 인덱스 + 단계별 문서 본문의 ID 노출 (`document-standards.md` §5) 로 확인.
@@ -78,33 +78,38 @@
 | --- | --- | --- | --- |
 | [ADR-0001](../adr/0001-idp-selection.md) | IdP 선정 (Ory Hydra + Kratos) | accepted (2026-05-07) | 인증, 회원가입, 계정 관리 |
 | [ADR-0002](../adr/0002-rbac-policy-edit-api.md) | RBAC policy edit API (DB-backed matrix) | accepted (2026-05-08) | RBAC |
-| ADR-0003 ※ | No-Docker 정책 CI 범위 명문화 | accepted (2026-05-13, **PR #88, 본 PR 머지 시점 미머지 가능**) | CI / 거버넌스 |
-
-> ※ ADR-0003 — 본 PR (`claude/work_260513-c`) 의 base 는 main HEAD `e86f38f` (PR #87 머지 직후) 이며, ADR-0003 는 `docs/adr/0003-no-docker-policy-ci-scope.md` 로 PR #88 (`claude/work_260513-b`) 의 산출. 본 PR 머지 시점에 PR #88 가 아직 main 에 들어가지 않았다면 위 표의 ADR-0003 link 는 main 에서 broken. 권장 머지 순서: PR #88 먼저 → 본 PR. 또는 PR #88 머지 후 본 PR 의 base rebase 시 link 활성화. 후속 cleanup PR 에서 ADR-0003 행을 일반 link 로 정상화 가능.
+| [ADR-0003](../adr/0003-no-docker-policy-ci-scope.md) | No-Docker 정책 CI 범위 명문화 | accepted (2026-05-13, PR #88) | CI / 거버넌스 |
 
 ## 5. Gap 요약
 
 ### 5.1 E2E 미커버 도메인
 
-다음 도메인은 현재 E2E TC 가 없거나 매우 적음 — 후속 sprint 에서 보완 후보:
+후속 sprint 에서 보완 후보. TC 후보 ID 는 등재만 (실제 spec 작성은 별도).
 
-- **명령 lifecycle / mitigation**: 단위테스트는 있으나 e2e UI 흐름 (대시보드 → 명령 실행 → 결과 확인) 미커버.
-- **실시간 (WebSocket)**: backend infra/ci/risk event publish 가 M3 planned, e2e 자연 후속.
-- **인프라 토폴로지**: React Flow UI 의 인터랙션 (zoom, pan, group) e2e 미커버.
-- **Webhook 처리**: HMAC 서명 검증 + idempotency 는 단위테스트로 검증, 외부 영향 e2e 어려움.
+| 도메인 | 현황 | 가능한 TC 후보 | 우선순위 |
+| --- | --- | --- | --- |
+| 명령 lifecycle / mitigation | 단위테스트 (`UT-httpapi-09`, `UT-commandworker-01..02`, `UT-domain-02`) 만, e2e UI 흐름 미커버 | TC-CMD-CREATE-01 (대시보드 → service-action 생성 → command_id 반환), TC-CMD-STATUS-01 (상태 조회 → UI 갱신) | P2 |
+| 실시간 (WebSocket) | M3 planned. 현재는 `command.status.updated` 만 publish | M3 진입 시: TC-WS-CONNECT-01, TC-WS-CMD-STATUS-01, TC-WS-RESILIENCE-01 (re-connect) | P3 (M3 의존) |
+| 인프라 토폴로지 React Flow | 정적 데이터 렌더만 e2e 미커버 | TC-INFRA-RENDER-01 (정적 노드/엣지), TC-INFRA-NODE-CLICK-01 (상세 패널), TC-INFRA-GROUP-TOGGLE-01 | P2 |
+| Webhook 처리 (gitea HMAC) | 단위테스트 (`UT-httpapi-14`, `UT-gitea-01`) 로 검증, 외부 영향 e2e 어려움 | E2E 후보 없음 — 통합 테스트 (Go test + 모의 webhook server) 가 자연 | P3 (E2E 외 검증으로 충분) |
 
-### 5.2 ID 부재 / 매핑 누락 (분석 중 발견)
+### 5.2 ID 부재 / 매핑 누락
 
-- **Backend AI (`backend-ai/`)**: 현재 placeholder 만 존재, 추적 항목 미부여. M3-04 AnalysisService gRPC client 진입 시 IMPL-ai-XX 발급 필요.
-- **Frontend 컴포넌트 테스트**: 다수 모듈 (Header, Sidebar, AuthGuard 등) 의 Vitest 단위테스트 부재.
-- **`auth.spec.ts` 의 TC-AUTH-01..06**: spec 파일 안에만 정의, `test_cases_m2_auth.md` 의 TC 카탈로그에 흡수되지 않음. 후속 hygiene.
-- **API §12 RBAC 정책 편집 API 구현 상태**: ADR-0002 결정 + 6 PR 분할 머지되었으나 매트릭스의 IMPL-rbac-* 가 일부 endpoint 만 cover. 정밀 매핑 보강 후보.
+| 항목 | 상태 | 처리 |
+| --- | --- | --- |
+| Backend AI (`backend-ai/`) placeholder | open | M3-04 AnalysisService gRPC client 진입 시 IMPL-ai-XX 발급. |
+| Frontend 컴포넌트 Vitest (Header, Sidebar, AuthGuard 등) | open | 후속 sprint 후보 (P2). |
+| `auth.spec.ts` 의 TC ID 카탈로그 흡수 | **closed (2026-05-13, sprint `claude/work_260513-d`)** | 재검증 결과 spec 안의 TC-AUTH-NEG-01 + TC-AUTH-NOAUTH-01 모두 `test_cases_m2_auth.md` 의 TC 카탈로그에 이미 흡수되어 있음. 1차 분석에서 "01..06 미흡수" 라고 적은 것은 사실과 다름. |
+| API §12 RBAC 정책 편집 API 의 IMPL 정밀 매핑 | open | ADR-0002 결정 + 6 PR 분할 머지되었으나 매트릭스의 IMPL-rbac-* 가 일부 endpoint 만 cover. endpoint 별 IMPL ID 정밀 매핑은 후속 sprint. |
+| 카탈로그된 TC 가 spec 으로 구현됐는지 역검증 | open | TC-AUD-02 등 일부 TC 가 카탈로그에만 존재할 가능성 — spec 파일 grep 으로 자동 검증할 hygiene 후보. |
 
-### 5.3 문서 ↔ 코드 불일치 (분석 중 발견)
+### 5.3 문서 ↔ 코드 불일치
 
-- **ADR-0001 vs frontend_integration_requirements §3.8**: Phase 13 의 자체 accounts 테이블 endpoint 7종이 frontend_integration_requirements 에 그대로 기술되어 있어 ADR-0001 Ory 도입과 불일치. 후속 정리 sprint.
-- **X-Devhub-Actor 폐기 일정**: ARCH-13 의 deprecation warning 경로는 `architecture.md` §6.2.3 에 명시되었으나 완전 제거 trigger 미정의.
-- **RBAC cache 다중 인스턴스 일관성**: ARCH-13 §12.10 의 미해결 항목. M1-DEFER-E.
+| 항목 | 상태 | 처리 |
+| --- | --- | --- |
+| ADR-0001 vs `frontend_integration_requirements.md` §3.8 | **closed (2026-05-13, sprint `claude/work_260513-d`)** | §3.8 의 "재설계 예정" 노트를 "deprecated" 노트로 명확화 + Phase 13 머지 후 실제 endpoint (API §11.5 / §12.8.2) 로 redirect 링크. |
+| X-Devhub-Actor 완전 제거 trigger | open | architecture.md §6.2.3 의 deprecation warning 경로 명시되어 있으나 완전 제거 일정 미정의. 후속 ADR 후보. |
+| RBAC cache 다중 인스턴스 일관성 | open | API §12.10 의 미해결 (M1-DEFER-E). pub/sub 또는 polling 도입은 후속 sprint. |
 
 ## 6. 변경 이력
 
@@ -112,3 +117,4 @@
 | --- | --- |
 | 2026-05-13 | 1차 작성 (sprint `claude/work_260513-c`). Phase 1–6 분석 결과 통합 + 도메인 그룹 13행 매트릭스 + Gap 요약 §5. |
 | 2026-05-13 | 리뷰어 모드 2-pass: §3 의 CI/거버넌스 행을 PR 단위 산출 (PR #86 / #87 / #88 / 본 PR) 로 명세화. §4 ADR-0003 행에 ※ 노트 추가 — 본 PR 매트릭스가 PR #88 미머지 상태와 정합하지 않을 가능성 자체 인지. |
+| 2026-05-13 | 후속 sprint `claude/work_260513-d`: ADR-0003 가 main 에 머지된 후 §4 ADR-0003 행을 정상 link 로 활성화 + §3 의 ※ 마킹 제거. §5.1 / §5.2 / §5.3 을 표 형식으로 통일 + 상태(open/closed) 컬럼 도입. §5.2 의 auth.spec.ts TC 미흡수 항목과 §5.3 의 frontend_integration_requirements §3.8 deprecation 항목을 closed 처리. 본 sprint 의 메타 헤더 표준화 commit 도 §3 CI/거버넌스 행에 추가. |

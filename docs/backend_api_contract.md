@@ -1,10 +1,12 @@
 # Backend API Contract
 
-- 문서 목적: 프론트엔드 별도 브랜치 개발을 위한 초기 백엔드 API 계약을 기록한다.
+- 문서 목적: 프론트엔드와 백엔드 사이의 API 계약 (endpoint, request/response schema, envelope, enum) 을 단일 source-of-truth 로 기록한다.
+- 범위: REST endpoint (/api/v1/**) + WebSocket envelope + 공통 enum + RBAC 정책 API (§12). 도메인 결정 근거는 `docs/architecture.md` + `docs/adr/`, 운영 시드는 `docs/setup/test-server-deployment.md`.
+- 대상 독자: Backend / 프론트엔드 개발자, AI agent, 외부 API consumer, QA.
+- 상태: accepted
 - 기준일: 2026-05-04
-- 최종 수정: 2026-05-08 (§12 RBAC 모델/라우트 매핑/audit 갱신 — ADR-0002 채택 반영, M1 PR-G1)
-- 상태: draft
-- 관련 문서: `docs/architecture.md`, `docs/tech_stack.md`, `docs/backend/frontend_integration_requirements.md`, `docs/backend/requirements_review.md`, `docs/adr/0002-rbac-policy-edit-api.md`, `ai-workflow/memory/backend_development_roadmap.md`
+- 최종 수정일: 2026-05-13 (메타 헤더 표준화, sprint `claude/work_260513-d`. 직전 본문 갱신 2026-05-08 — §12 RBAC 모델/라우트 매핑/audit, ADR-0002 채택 반영, M1 PR-G1)
+- 관련 문서: [아키텍처](./architecture.md), [기술 스택](./tech_stack.md), [프론트 연동 요구사항](./backend/frontend_integration_requirements.md), [백엔드 요구사항 리뷰](./backend/requirements_review.md), [ADR-0002 RBAC](./adr/0002-rbac-policy-edit-api.md), [백엔드 로드맵](../ai-workflow/memory/backend_development_roadmap.md), [추적성 매트릭스](./traceability/report.md).
 
 ## 1. 공통 응답 원칙
 
