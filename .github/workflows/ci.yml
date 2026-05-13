@@ -7,6 +7,16 @@ on:
     branches: [ main ]
 
 jobs:
+  workflow-lint:
+    # ADR-0005: CI workflow YAML 의 정합성을 actionlint 로 머지 직전에 강제한다.
+    # 별도 잡으로 분리해 다른 잡의 실패가 lint 결과를 가리지 않도록 한다.
+    name: Workflow Lint (actionlint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run actionlint
+        uses: raven-actions/actionlint@v2
+
   backend-unit:
     name: Backend Unit Tests
     runs-on: ubuntu-latest
