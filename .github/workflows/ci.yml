@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [ main, gemini/prepare-github-action ]
+    branches: [ main ]
   pull_request:
     branches: [ main ]
 
@@ -16,6 +16,18 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.22'
+      # FU-CI-3: go-build / module cache. setup-go@v5 caches modules when a
+      # go.sum is at the repo root, but here the module lives in backend-core/.
+      # Explicit cache keys make the cache work for both jobs.
+      - name: Cache Go build + module cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('backend-core/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
       - name: Test
         run: make test
 
@@ -65,11 +77,43 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
       
+      # FU-CI-3: cache the same paths as backend-unit so reused.
+      - name: Cache Go build + module cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('backend-core/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
       - name: Install Node dependencies
         run: cd frontend && npm ci
-      
-      - name: Install Playwright Browsers
-        run: cd frontend && npx playwright install --with-deps
+
+      # FU-CI-3: cache the Playwright browser bundles. Keyed on the lockfile
+      # because the @playwright/test version drives the bundle revision.
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      # FU-CI-2 + FU-CI-3: split system deps (apt) from browser bundle so the
+      # cache actually saves time. apt always runs (~5-10 s, no fresh runner
+      # has the libs). The browser install step is skipped on cache hit, which
+      # avoids the ~100 MB download. Browsers are scoped to `chromium`
+      # because playwright.config.ts only declares the chromium project (with
+      # channel="chrome").
+      - name: Install Playwright system deps
+        run: cd frontend && npx playwright install-deps chromium
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: cd frontend && npx playwright install chromium
       
       - name: CI Environment Setup (Ory + DB)
         run: sudo ./scripts/ci-setup.sh
@@ -124,9 +168,13 @@ jobs:
           npm run start > ../frontend.log 2>&1 &
       
       - name: Wait for App Readiness
+        # FU-CI-4: split the backend/frontend waits. Backend keeps 60s (fast).
+        # Frontend uses Next.js 16 `next start` which cold-boots in 30-50s on
+        # ubuntu-latest, so 60s was tight and prone to flake; 120s buys a
+        # comfortable margin without blowing up the overall job time.
         run: |
           timeout 60s bash -c 'until curl -s http://localhost:8080/health; do sleep 1; done'
-          timeout 60s bash -c 'until curl -s http://localhost:3000/; do sleep 1; done'
+          timeout 120s bash -c 'until curl -s http://localhost:3000/; do sleep 1; done'
       
       - name: Run E2E Tests
         run: make e2e
