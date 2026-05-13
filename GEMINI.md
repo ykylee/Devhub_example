@@ -5,7 +5,7 @@
 - 대상 독자: Gemini CLI, 저장소 관리자, workflow 설계자
 - 상태: draft
 - 최종 수정일: 2026-04-28
-- 관련 문서: `ai-workflow/project/state.json`, `ai-workflow/project/session_handoff.md`, `ai-workflow/project/work_backlog.md`, `ai-workflow/project/project_workflow_profile.md`
+- 관련 문서: `ai-workflow/project/state.json`, `ai-workflow/project/session_handoff.md`, `ai-workflow/project/work_backlog.md`, `ai-workflow/project/project_workflow_profile.md`, `docs/governance/README.md` (거버넌스 진입점), `docs/governance/document-standards.md`, `docs/traceability/README.md`
 
 ## 목적
 
@@ -26,6 +26,7 @@
 - 작업 상태는 `planned`, `in_progress`, `blocked`, `done` 중 하나로 관리한다.
 - 검증하지 않은 결과는 완료로 확정하지 않는다. 모든 신규 기능은 `docs/tests/e2e_testing_strategy.md` 지침에 따라 E2E 테스트를 작성/수행해야 한다.
 - 세션 종료 전에는 격리 폴더 내의 `state.json`, `session_handoff.md`, 최신 backlog 를 갱신한다.
+- **추적성 동기화**: 모든 PR 은 `docs/traceability/sync-checklist.md` 절차를 따른다. 영향 받는 단계의 ID (REQ/ARCH/API/RM/IMPL/UT/TC) 발급 또는 갱신 + `docs/traceability/report.md` 매트릭스 row 갱신 + PR body 의 "추적성 영향" 섹션 채움 (`.github/pull_request_template.md` 참조).
 
 ## 언어와 컨텍스트 원칙
 
