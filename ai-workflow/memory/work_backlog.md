@@ -3,8 +3,8 @@
 - 문서 목적: main 브랜치 기준 상위 백로그 인덱스. 세부 sprint backlog 는 브랜치별 메모리 디렉터리 참조.
 - 범위: 마일스톤 상태, 최근 머지, 잔여/후속 작업
 - 대상 독자: 프로젝트 리드, 후속 에이전트, 트랙 담당자
-- 상태: M1 RBAC track (PR-A·F·G1~G6) 머지 완료. M1 잔여 (PR-B/C/D) + DEFER 항목 대기.
-- 최종 수정일: 2026-05-08
+- 상태: M1·M2 done (M2 1차 완성 sprint 닫힘, PR #85). GHA CI 그린 (PR #86). 진행 중 sprint `claude/work_260513-a` 가 main flat sync + FU-CI-2/3/4 처리 중. FU-CI-1 (no-docker 정합) + PR-D 정합 후속 + M4 진입 대기.
+- 최종 수정일: 2026-05-13
 - 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [세션 인계](./session_handoff.md), [상태 스냅샷](./state.json), [M1 PR 리뷰 actions](./M1-PR-review-actions.md)
 
 ## 1. 마일스톤 진행 상황
@@ -12,8 +12,9 @@
 | 마일스톤 | 상태 | 종료 일자 | 메모 |
 | --- | --- | --- | --- |
 | **M0** — 보안 게이트 통과 | ✅ done | 2026-05-08 | PR #14·15·16·17·18·19. SEC-1~4 resolved. T-M0-10 운영 검증 PASS. |
-| **M1** — 핵심 기능 contract 정합성 | 🟡 in_progress (RBAC track 완료) | — | RBAC track (T-M1-01·06·07·08 흡수) 완료: PR #20·21·22·23·29·30·31·27. 잔여: T-M1-02·03·04·05 (envelope/types/ws + cmd lifecycle + audit actor + auth_test 보강) → PR-B/C/D. DEFER A~G 는 §3 후속 작업으로 인계. |
-| **M2** — 사용자 경험 정합 (Phase 4·5 잔여 + Phase 6/6.1) | 🟡 in_progress (login_action sprint) | — | 로그인 검토 결과 OIDC code flow frontend 4단계 + backend Kratos/Hydra proxy 부재. PR-LOGIN-1 (#33 backend) + PR-LOGIN-2 (#34 frontend form) push 머지 대기. PR-LOGIN-3 (callback + token + httpClient) + PR-LOGIN-4 (logout + /account) 미진입. backlog: `claude/login_action/backlog/2026-05-08.md`. |
+| **M1** — 핵심 기능 contract 정합성 | ✅ done | 2026-05-11 | PR-B+C (#56) + PR-D (#57) 머지로 envelope / types / WS / CommandStatus / audit actor enrichment / request_id 완결. PR-D 후속 (#80/#82) 으로 commands enrichment + DEVHUB_TRUSTED_PROXIES 보강. |
+| **M2** — 사용자 경험 정합 | ✅ done (1차 완성) | 2026-05-12 | login_action + work_26_05_11 + work_26_05_11-d 완료 후 PR #85 (`claude/login_usermanagement_finish`) 가 1차 완성 sprint 로 닫음: 로드맵 정합 + UX hygiene (PR-UX1+2+3) + Kratos audit (PR-M2-AUDIT) + 30 TC e2e 게이트. |
+| **CI** — GitHub Actions 도입 | ✅ done (1차) | 2026-05-13 | PR #86 (`gemini/prepare-github-action`) 가 backend-unit + frontend-unit + e2e (Playwright 40 TC) 3잡 도입. 리뷰어 모드 2-pass 에서 5 blocker + follow-on 5 발견 → 보강 commit 7개로 그린 도달. PR-T5 의 핵심 잡 묶음은 본 PR 으로 1차 완료. 후속: FU-CI-1 (no-docker policy 정합), FU-CI-2/3/4 는 `claude/work_260513-a` 처리 중. |
 | **M3** — Realtime 확장 + 외부 연동 1차 | planned | — | 통합 로드맵 §3.4. |
 | **M4** — 운영 / SSO / MFA / 후속 ADR | planned | — | 통합 로드맵 §3.5. ADR-0002 (Gitea SSO) 등. |
 
@@ -84,3 +85,5 @@
 | 2026-05-08 | M1 RBAC track 8 PR (#20·21·22·23·29·30·31·27) + 리뷰 트래커 (#28) 머지. FIX A~D 적용. DEFER A~G 백로그 인계. |
 | 2026-05-08 | M2 login_action sprint 진입. 로그인 검토 후 PR-LOGIN-1 (#33 backend proxy) + PR-LOGIN-2 (#34 frontend form) push 머지 대기. backlog 작성 (`claude/login_action/backlog/2026-05-08.md`). PR-LOGIN-3·4 미진입. |
 | 2026-05-12 | 4 sprint × 8 PR 머지 — E2E 자동 시드 hardening (#76, #78) + PR-D audit 정합 완결 (#80) + second-pass review fix (#82). work_260512-h 폐기 (kratos_identity_id 가 PR-L4 에 이미 포함). 자세히는 `session_handoff.md` §0/§5 + `state.json` 의 `merged_prs_2026_05_12`. |
+| 2026-05-12 | PR #85 (`claude/login_usermanagement_finish`) — M2 1차 완성 sprint. 로드맵 정합 + UX hygiene 묶음 (PR-UX1+2+3) + Kratos settings/password/after webhook → audit_logs (PR-M2-AUDIT) + 30 TC e2e 게이트. |
+| 2026-05-13 | PR #86 (`gemini/prepare-github-action`) — GitHub Actions CI 그린. 리뷰어 모드 2-pass 에서 5 blocker (idp-apply-schemas DSN, build path, DB_URL env, IdP URL 4종, kratos cipher 32 bytes) + follow-on 5 (Ory v26.2.0, tar layout, GOBIN, YAML interpolation, TC-NAV-02 race) → 보강 commit 7개. 진행 중 sprint `claude/work_260513-a` 가 main flat sync + FU-CI-2/3/4 처리. |
