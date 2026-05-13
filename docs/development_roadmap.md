@@ -95,9 +95,8 @@
 - ⏳ **인사 DB 스키마 (초기)**: `name`, `system_id`, `employee_id`, `department_name`. `internal/hrdb/` 모듈 활용.
 - ⏳ **조직 polish**: 본 sprint 시리즈가 carve out 한 `backend_api_contract.md` §10.4 의 자세한 schema, `parent_id` 검증, primary_dept 자동 판정 등 (§5 백로그 항목).
 
-### M4: 실시간 대시보드 및 AI Gardener (Realtime & AI)
+### M4: 실시간 대시보드 및 운영 고도화 (Realtime & Ops)
 - **실시간 데이터 (WebSocket 확장 + replay)**: `infra.node.updated`, `ci.run.updated`, `risk.updated` event publish + 리소스 필터링 + last event replay. backend_roadmap §2 Phase 8 잔여 항목.
-- **AI Gardener**: Python `AnalysisService` gRPC server + Go Core client. backend_roadmap §2 Phase 9. Suggestion Feed 실데이터 바인딩 (frontend).
 - **command status WebSocket UI** (frontend Phase 4 마무리): command lifecycle 상태 변화의 UI 실시간 반영.
 - **과제 추적**: Gitea PR/Commit 기반 추적 화면 + Hourly Reconciliation (backend_roadmap §2 Phase 10).
 - **시스템 관리자 대시보드 (System Admin Dashboard)**:
@@ -118,7 +117,6 @@
 | :--- | :--- | :--- | :--- |
 | **Auth** | OIDC Token Exchange 및 세션 관리 | M2 | P0 |
 | **Realtime** | WebSocket Replay 및 리소스 필터링 | M3 | P1 |
-| **AI** | AnalysisService gRPC 클라이언트 구현 | M3 | P2 |
 | **Task** | Gitea REST 연동 및 데이터 정규화 | M4 | P3 |
 | **Admin** | Gitea Runner 상태 어댑터 구현 | M4 | P3 |
 
@@ -127,7 +125,6 @@
 | :--- | :--- | :--- | :--- |
 | **Auth** | `/auth/callback` 및 API 헤더 토큰 주입 | M2 | P0 |
 | **Dashboard** | 실시간 로그 스트리밍 UI 구현 | M3 | P1 |
-| **Gardener** | Suggestion Feed 실데이터 바인딩 | M3 | P2 |
 | **Task** | 과제 추적 대시보드 및 상세 페이지 | M4 | P3 |
 | **Admin** | 시스템 관리자 설정 및 Runner 모니터링 UI | M4 | P3 |
 
@@ -140,14 +137,14 @@
 ·§5.3-5 |
 | OS 서비스 wrapper 운영 진입 시점 결정 | M4 | P3 | ADR-0001 §8-7 |
 
-### 4.6 AI
+### 4.6 AI (v2)
 
 | 작업 | 마일스톤 | 우선순위 | 출처 |
 | --- | --- | --- | --- |
-| Python AI gRPC 서버 1차 | M3 | P3 | backend_roadmap §2 Phase 9 |
-| AI Gardener suggestion 모델 + Go Core 연동 | M3 | P3 | backend_roadmap §5 P3 |
-| Weekly report 생성 worker | M4 | P3 | frontend_integration §3.4 |
-| AI 알림 중재 (집중 시간 보호) 모델 | M4 | P3 | requirements §4-3·§5.3-2 |
+| Python AI gRPC 서버 1차 | v2 | P3 | backend_roadmap §2 Phase 9 |
+| AI Gardener suggestion 모델 + Go Core 연동 | v2 | P3 | backend_roadmap §5 P3 |
+| Weekly report 생성 worker | v2 | P3 | frontend_integration §3.4 |
+| AI 알림 중재 (집중 시간 보호) 모델 | v2 | P3 | requirements §4-3·§5.3-2 |
 
 ---
 

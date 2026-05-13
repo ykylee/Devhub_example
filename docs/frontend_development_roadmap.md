@@ -10,7 +10,7 @@
 
 ## 1. 개요
 
-프론트엔드 Phase 1에서 구축된 UI와 서비스 레이어 구조를 바탕으로, Phase 2 이후에는 백엔드 API와의 실시간 데이터 연동, 조직/계정 관리, AI 어드바이저와 관리자 액션을 순차적으로 프로덕션 수준으로 끌어올린다. 역할별 UX는 전용 화면 완전 분리보다 역할별 기본 진입 우선순위로 간접 제공한다.
+프론트엔드 Phase 1에서 구축된 UI와 서비스 레이어 구조를 바탕으로, Phase 2 이후에는 백엔드 API와의 실시간 데이터 연동, 조직/계정 관리, 관리자 액션을 순차적으로 프로덕션 수준으로 끌어올린다. AI 어드바이저/AI 가드너는 v2에서 다룬다. 역할별 UX는 전용 화면 완전 분리보다 역할별 기본 진입 우선순위로 간접 제공한다.
 
 ## 2. Phase 로드맵
 
@@ -19,13 +19,13 @@
 | **Phase 1** | **done** | 대시보드 UI & Mock 서비스 | 레이아웃 구축, Glassmorphism 적용, Singleton Service 패턴 도입 |
 | **Phase 2** | **done** | 핵심 API 통합 | Infra Topology, Risk List, Command/Audit 연동, role wire mapping |
 | **Phase 3** | **done** | 실시간성 및 CI/CD 가시화 | WebSocket 통합, CI Run/Logs 연동, 실시간 알림 피드 |
-| **Phase 4** | **in_progress** | AI 어드바이저 & 어드민 액션 | AI Gardener 추천 연동, 시스템 관리자 서비스 제어 액션 실체화, command status UI |
+| **Phase 4** | **in_progress** | 어드민 액션 고도화 | 시스템 관리자 서비스 제어 액션 실체화, command status UI |
 | **Phase 5** | **done** | 사용자 및 조직 관리 UI | 사용자 프로필, 팀/조직 단위(Org Units) 관리 UI, 멤버 할당 모달 |
 | **Phase 5.1** | **done** | 조직 관리 API 통합 | 백엔드 조직 CRUD 및 멤버 할당 API 연동 |
 | **Phase 5.2** | **done** | 계정 인증 및 IdP 도입 | Ory Hydra/Kratos OIDC code flow + PKCE, `/auth/{login,callback}`, `/account`, `/admin/settings/{users,organization,permissions}`. UX hygiene/audit 정합 및 CI 자동화 완료. |
 | **Phase 6** | **done** | 권한 관리(RBAC) UI 고도화 | PermissionEditor `/admin/settings/permissions` 완료 (PR-G6, PR #27). |
 | **Phase 6.1** | **done** | RBAC API 통합 | `/api/v1/rbac/policies` 조회/편집 연동, `requirePermission` 라우트 가드 (M1 RBAC track). |
-| **Phase 7** | **in_progress** | 조직 관리 1차 완성 및 AI 고도화 | 부서 CRUD, 계층 편집(Drag & Drop), AI Gardener 추천 연동 고도화, 전역 감사 로그 연동 |
+| **Phase 7** | **in_progress** | 조직 관리 1차 완성 | 부서 CRUD, 계층 편집(Drag & Drop), 전역 감사 로그 연동 |
 
 
 ## 3. Phase 2 상세 계획 (Core API Integration)
@@ -57,13 +57,13 @@
 - **Loading States**: `Framer Motion`을 활용한 스켈레톤 UI 및 로딩 애니메이션 유지.
 - **Environment**: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_WS_URL` 환경 변수로 백엔드 주소 관리.
 
-## 5. Phase 4 상세 계획 (AI 어드바이저 & 어드민 액션)
+## 5. Phase 4 상세 계획 (어드민 액션)
 
 - `infra.service.ts`, `risk.service.ts` 실제 API 연동은 완료.
 - System Admin service action command 생성 연동은 완료.
 - 백엔드 `/api/v1/realtime/ws`와 `command.status.updated` publish 경계가 구현됨.
 - 다음 프론트 작업은 기존 `RealtimeService` 구독을 command toast/status UI에 연결하는 것이다.
-- AI Gardener suggestion API/UI 연결 범위는 아직 확정 필요.
+- AI Gardener suggestion API/UI 연결은 v2로 이관.
 
 ## 6. Phase 5 상세 계획 (사용자/조직 관리 + 자체 계정 인증)
 
@@ -124,5 +124,5 @@ DevHub 자체 사용자 계정(Account) 1:1 컨셉 도입 (`docs/requirements.md
 ### 7.3 후속 (별도 sprint)
 
 - [ ] command status transition WebSocket UI (M4, Phase 4 잔여)
-- [ ] AI Gardener suggestion API/UI 연결 (M4)
+- [ ] AI Gardener suggestion API/UI 연결 (v2)
 - [ ] Organization 페이지의 계정 관리 action 통합 — 현재는 `/admin/settings/users` 로 분리 운영 (재정합 필요 시 별도 sprint)

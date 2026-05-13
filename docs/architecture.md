@@ -98,7 +98,7 @@ Hourly Pull reconciliation은 Webhook 누락을 보완하는 동기화 경로이
 ### 4.3 스토리지 구성
 - **PostgreSQL:**
     - 정형 데이터: 사용자, 프로젝트, 권한, 저장소 매핑.
-    - 비정형 데이터(JSONB): Gitea 원본 웹훅 이벤트, AI 분석 리포트 요약.
+    - 비정형 데이터(JSONB): Gitea 원본 웹훅 이벤트, (v2 예정) AI 분석 리포트 요약.
     - 보존 기간: 운영 로그 1개월, 개인화 데이터(Kudos 등)는 계정 삭제 후 1개월까지 보존.
 
 ## 5. UI/UX 및 시각화 전략
@@ -116,7 +116,7 @@ Hourly Pull reconciliation은 Webhook 누락을 보완하는 동기화 경로이
 
 ## 6. 보안 및 인증
 
-초기 구현은 Gitea Webhook 수집과 시스템 관리자 기능의 오남용 방지를 우선하며, DevHub 자체 사용자 계정(Account) 기반 1차 인증을 도입한 뒤 Gitea SSO 통합을 후속 단계로 분리합니다.
+초기 구현은 Gitea Webhook 수집과 시스템 관리자 기능의 오남용 방지를 우선하며, DevHub 자체 사용자 계정(Account) 기반 1차 인증을 도입한 뒤 Gitea SSO 통합을 후속 단계로 분리합니다. AI 가드너 기반 분석/추천 기능은 v2 범위로 분리합니다.
 
 ### 6.1 초기 구현 범위
 

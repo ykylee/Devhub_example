@@ -116,7 +116,7 @@
 - **M1**: RM-M1-01 ~ RM-M1-04 (4 항목, RBAC track + API 계약 §11 재작성).
 - **M2**: RM-M2-01 ~ RM-M2-16 (16 항목, 인증/계정/조직/UX/audit + CI). 1차 완성 sprint (PR #85) 가 이전에 M3 으로 분류됐던 사용자/조직 관리 대부분을 흡수.
 - **M3**: 사용자 및 조직 관리 — 대부분 M2 1차 완성에서 흡수, 잔여 정의는 §2.3.1 표 참조.
-- **M4**: 실시간 + AI Gardener + 과제 추적 + 시스템 관리. 정의는 §2.3.2 표 참조.
+- **M4**: 실시간 + 과제 추적 + 시스템 관리. AI Gardener는 v2 범위. 정의는 §2.3.2 표 참조.
 
 > **drift 정합 (2026-05-13, sprint `claude/work_260513-k`)**: 본 §2.3 + `docs/development_roadmap.md` §3 가 M3/M4 정의의 single source-of-truth. 매트릭스 §3 의 도메인 행 인용 + state.json + backend_roadmap §5 모두 이 정의 기준으로 정합화. 본 sprint 이전에는 매트릭스가 RM-M3 = "Sign Up + WebSocket + AI" 로 정의해 development_roadmap.md M4 항목을 cross-cut 한 drift 상태였다.
 
@@ -135,8 +135,8 @@
 | `RM-M4-01` | WebSocket 확장 — `infra.node.updated` / `ci.run.updated` / `risk.updated` event publish | development_roadmap §3 M4 + backend_roadmap §2 Phase 8 |
 | `RM-M4-02` | WebSocket replay (last event) + 리소스 필터링 | backend_roadmap §2 Phase 8 잔여 |
 | `RM-M4-03` | frontend command status WebSocket UI (Phase 4 마무리) | development_roadmap §4.2 Dashboard |
-| `RM-M4-04` | AI Gardener gRPC — Python `AnalysisService` server + Go Core client | backend_roadmap §2 Phase 9 |
-| `RM-M4-05` | AI Suggestion Feed 실데이터 바인딩 (frontend) | development_roadmap §4.2 Gardener |
+| `RM-V2-01` | AI Gardener gRPC — Python `AnalysisService` server + Go Core client | backend_roadmap §2 Phase 9 |
+| `RM-V2-02` | AI Suggestion Feed 실데이터 바인딩 (frontend) | development_roadmap §4.6 AI(v2) |
 | `RM-M4-06` | Gitea Hourly Pull worker (과제 추적 reconciliation) | backend_roadmap §2 Phase 10 |
 | `RM-M4-07` | System Admin 대시보드 (Gitea Runner 상태 + 시스템 설정 관리) | development_roadmap §3 M4 |
 | `RM-M4-08` | RBAC PermissionCache 다중 인스턴스 일관성 구현 ([ADR-0007](../adr/0007-rbac-cache-multi-instance.md) PG `LISTEN/NOTIFY`) | ADR-0007 §4.2 |
@@ -254,7 +254,7 @@
 | **대시보드 / 메트릭 / me** | FR-1–11, 28–36, 81, 85, 88, 89, 96 | UC-GITEA-03, UC-RT-01 | ARCH-10; API-05, 32, 36, 38 (32 = `GET /api/v1/me`, 정밀 매핑: §2.2 Infra/Dashboard + Account/Org/Me + RBAC 서브 표) | (Phase 4 이전 완료) | dashboard-01; me-01 (책임 정의: §2.4 IMPL-dashboard/me 서브 표); frontend-dashboard-01; frontend-role-01..03; frontend-store-01; frontend-layout-01..02; frontend-service-api-01 | httpapi-08, 11, 22 | TC-NAV-01..03; TC-NAV-SIM-01 |
 | **CI / 거버넌스** | NFR-1 (no-docker) | UC-GITEA-01 | ADR-0001 §5; [ADR-0003](../adr/0003-no-docker-policy-ci-scope.md) | M2-16 (CI 1차, PR #86); FU-CI-1..4 (PR #87); ADR-0003 (PR #88); 거버넌스 + 매트릭스 1차 (PR #89); 갭 분석 + 메타 헤더 표준화 (본 PR / sprint `claude/work_260513-d`) | (build infra: `.github/workflows/ci.yml`, `scripts/ci-setup.sh`, `infra/idp/*.ci.yaml`); `docs/governance/*`, `docs/traceability/*` | (lint 미도입, FU-CI 향후) | (CI run 자체가 검증) |
 | **Application/Project 도메인** | REQ-FR-APP-001..002; REQ-FR-PROJ-001..009; REQ-NFR-PROJ-001..003 | UC-APP-01..04, UC-PROJ-01..09 | (planned) ARCH/API 발급 대기 — source: `docs/planning/system_usecases.md` + `docs/planning/system_erd.md` | M3 backlog (design entry) | (미진입) | (미진입) | (미진입) |
-| **M4 (planned, 정의: §2.3.2)** | FR-37–48, 56–57, 60, 90–94 (일부 — Realtime / AI / Task / Admin) | UC-RT-01..02 (확장 예정), UC-APP/UC-PROJ (확장 예정) | API-14 (WebSocket 확장) | RM-M4-01..09 (정의: §2.3.2 RM-M4 표) | (미진입 — sprint plan 진입 시 IMPL-ai-XX / IMPL-task-XX 발급) | (미진입) | (미진입) |
+| **M4 (planned, 정의: §2.3.2)** | FR-37–48, 56–57, 60, 90–94 (일부 — Realtime / Task / Admin) | UC-RT-01..02 (확장 예정), UC-APP/UC-PROJ (확장 예정) | API-14 (WebSocket 확장) | RM-M4-01..03, 06..09 (정의: §2.3.2 RM-M4 표) | (미진입 — sprint plan 진입 시 IMPL-task-XX 발급) | (미진입) | (미진입) |
 > Note — 매트릭스 셀의 ID 는 §2 의 단계별 인덱스를 줄여서 표기 (예: `auth-01..07` = `IMPL-auth-01..IMPL-auth-07`). 한 도메인이 여러 단계에 걸쳐 영향을 주므로 정확한 1:1 매핑은 §2 인덱스 (REQ/UC/ARCH/API) + 단계별 문서 본문의 ID 노출 (`document-standards.md` §5) 로 확인.
 
 ## 4. ADR 인덱스
@@ -289,7 +289,7 @@
 
 | 항목 | 상태 | 처리 |
 | --- | --- | --- |
-| Backend AI (`backend-ai/`) placeholder | open | M3-04 AnalysisService gRPC client 진입 시 IMPL-ai-XX 발급. |
+| Backend AI (`backend-ai/`) placeholder | open | v2 진입 시 AnalysisService gRPC client 대상 IMPL-ai-XX 발급. |
 | Frontend 컴포넌트 Vitest (Header, Sidebar, AuthGuard 등) | open | 후속 sprint 후보 (P2). |
 | `auth.spec.ts` 의 TC ID 카탈로그 흡수 | **closed (2026-05-13, sprint `claude/work_260513-d`)** | 재검증 결과 spec 안의 TC-AUTH-NEG-01 + TC-AUTH-NOAUTH-01 모두 `test_cases_m2_auth.md` 의 TC 카탈로그에 이미 흡수되어 있음. 1차 분석에서 "01..06 미흡수" 라고 적은 것은 사실과 다름. |
 | API §12 RBAC 정책 편집 API 의 IMPL 정밀 매핑 | **closed (2026-05-13, sprint `claude/work_260513-f`)** | §12.2~§12.10 의 9 endpoint/정책에 `(API-26..31, 38..40)` 본문 ID 노출 + §2.2 의 RBAC API 매핑 표 + §2.4 의 IMPL-rbac-01..04 책임 정의 (handler / store / enforcement / cache) + §3 RBAC 행 IMPL 컬럼 endpoint-IMPL 1:1 매핑. |

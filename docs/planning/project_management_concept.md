@@ -16,7 +16,7 @@
   - Application/Repository/Project 가 **어떤 역할을 갖는 계층 entity 인가** 를 정의하고,
   - **두 핵심 usecase** (일반 사용자 조회 / 시스템 관리자 등록·관리) 를 분리하고,
   - **Application > Repository > Project > GitHub 실행 단위**의 운영 계층을 공식화하고,
-  - 기존 §5.7 (Gitea 자동화), M4 (실시간 / AI), 향후 RBAC / 알림 등을 **out-of-scope 후속** 으로 분리한다.
+  - 기존 §5.7 (Gitea 자동화), M4 (실시간), v2 (AI), 향후 RBAC / 알림 등을 **out-of-scope 후속** 으로 분리한다.
 - 본 컨셉이 머지되면 후속 sprint 에서 단계적으로 요구사항(REQ-FR) → usecase → 설계(ARCH/API) 로 발전시킨다.
 
 ## 2. 운영 계층 모델 (합의안)
@@ -96,7 +96,7 @@
 | 내가 멤버인 과제/저장소 묶음 보기 | 자신이 owner/member 인 active/on_hold 과제 및 연결 repo 요약 | ✅ |
 | 공개(public) 과제 보기 | visibility=`public` 과제 목록 | ✅ |
 | 과제 상세 보기 | 메타 + 멤버 + 상태 + 연결 repo + 상/하위 마일스톤 요약 | ✅ |
-| 진행 현황/위험 보기 | 진행률, 최근 활동, blocker | 후속 (M4 연계) |
+| 진행 현황/위험 보기 | 진행률, 최근 활동, blocker | 후속 (M4 연계, AI 보강은 v2) |
 | 검색/필터 | status, owner, 부서, repo | ✅ (기본 필터) |
 
 ### 5.2 시스템 관리자 (System Admin) — 등록·관리 전용
@@ -143,7 +143,6 @@ applications
   archived_at        TIMESTAMPTZ NULL
 
 application_repositories
-application_integrations
   application_id      UUID FK applications.id
   repo_provider      TEXT NOT NULL   -- github | gitea
   repo_full_name     TEXT NOT NULL   -- org/repo
@@ -171,7 +170,7 @@ application_integrations
 | --- | --- | --- |
 | Gitea 저장소 자동 생성 / 브랜치 보호 / 멤버 자동 초대 | §5.7 자동화 시나리오 | 별도 sprint, §5.7 source-of-truth 유지 |
 | 실시간 진행 상태 (WebSocket) | M4 이벤트 확장 | M4 |
-| AI Suggestion / 위험 자동 탐지 | AI 가드너 | M4 |
+| AI Suggestion / 위험 자동 탐지 | AI 가드너 | v2 |
 | MFA / 위험 작업(영구 삭제) 다단계 확인 | 운영 보안 | 운영 진입 직전 |
 | CSV 일괄 가져오기 / 내보내기 | 운영 효율화 | 운영 진입 후 |
 
