@@ -1,0 +1,10 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "claude/work_260513-n",
+  "status": "in_progress",
+  "base_branch": "main",
+  "base_commit": "c7c2f35",
+  "scope": "M4 전 잔여 일괄: A ETL seed SQL + ADR-0008 §6 / B MV migration 000011 / C ADR-0010 primary_dept + 1차 알고리즘 / E signup e2e spec. D getHierarchy MV join 은 carve",
+  "updated_at": "2026-05-13T17:30:00Z"
+}
