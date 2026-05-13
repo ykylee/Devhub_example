@@ -1,0 +1,17 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "claude/work_260513-g",
+  "status": "in_progress",
+  "base_branch": "main",
+  "base_commit": "a73dba1",
+  "scope": "B1 auth 도메인 확장 — RBAC 다음 1차. §11.3/§11.5/§11.5.1 본문 ID 노출 + IMPL-auth-01..07 책임 정의 + 매트릭스 §3 정리.",
+  "updated_at": "2026-05-13T07:00:00Z",
+  "files_in_scope": [
+    "docs/backend_api_contract.md",
+    "docs/traceability/report.md",
+    "ai-workflow/memory/state.json",
+    "ai-workflow/memory/session_handoff.md",
+    "ai-workflow/memory/work_backlog.md"
+  ]
+}

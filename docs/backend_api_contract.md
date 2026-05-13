@@ -686,7 +686,7 @@ DevHub는 자체 `/api/v1/accounts/*`, `/api/v1/auth/*` 인증 API를 만들지 
 
 로컬 PoC 기본 issuer는 `infra/idp/hydra.yaml` 기준 `http://localhost:4444/`다. 운영 환경에서는 issuer, audience, JWKS URI를 환경별 설정으로 주입한다.
 
-### 11.3 Go Core Bearer token 경계
+### 11.3 Go Core Bearer token 경계 (API-19)
 
 Go Core `/api/v1/*` 라우터는 `Authorization: Bearer <token>`을 받으면 configured verifier에 위임한다.
 
@@ -715,16 +715,16 @@ Go Core `/api/v1/*` 라우터는 `Authorization: Bearer <token>`을 받으면 co
 
 frontend 는 OIDC code flow 진입과 권한 정합을 backend proxy 로 운반한다. 직접 Kratos public flow 만 사용하지 않고, DevHub `/api/v1/auth/*` + `/api/v1/account/*` 가 Kratos/Hydra 와의 server-to-server 통신을 담당한다 (PR-LOGIN-1/2, PR-L3/L4).
 
-| method/path | 용도 | audit action |
-| --- | --- | --- |
-| `POST /api/v1/auth/login` | login_challenge + identifier/password → Kratos api-mode login + Hydra accept | `auth.login.succeeded` / `auth.login.failed` |
-| `POST /api/v1/auth/logout` | logout_challenge + refresh_token → Hydra revoke + accept | `auth.logout.succeeded` |
-| `POST /api/v1/auth/token` | authorization_code → Hydra `/oauth2/token` 교환 | (passthrough) |
-| `POST /api/v1/auth/signup` | HRDB lookup + Kratos identity 생성 | `account.signup.requested` |
-| `GET /api/v1/auth/consent` | Hydra consent flow auto-accept | (passthrough) |
-| `POST /api/v1/account/password` | **본인 비밀번호 변경** — current_password 검증 + Kratos settings flow proxy | `account.password_self_change` |
+| API | method/path | 용도 | audit action |
+| --- | --- | --- | --- |
+| `API-20` | `POST /api/v1/auth/login` | login_challenge + identifier/password → Kratos api-mode login + Hydra accept | `auth.login.succeeded` / `auth.login.failed` |
+| `API-21` | `POST /api/v1/auth/logout` | logout_challenge + refresh_token → Hydra revoke + accept | `auth.logout.succeeded` |
+| `API-22` | `POST /api/v1/auth/token` | authorization_code → Hydra `/oauth2/token` 교환 | (passthrough) |
+| `API-23` | `POST /api/v1/auth/signup` | HRDB lookup + Kratos identity 생성 | `account.signup.requested` |
+| `API-24` | `GET /api/v1/auth/consent` | Hydra consent flow auto-accept | (passthrough) |
+| `API-35` | `POST /api/v1/account/password` | **본인 비밀번호 변경** — current_password 검증 + Kratos settings flow proxy | `account.password_self_change` |
 
-#### 11.5.1 `POST /api/v1/account/password` (PR-L4)
+#### 11.5.1 `POST /api/v1/account/password` (PR-L4) (API-35)
 
 self-service 비밀번호 변경 proxy. 호출자는 자신의 OIDC access token (`Authorization: Bearer …`) 으로 인증한다. 다른 사용자의 비밀번호 재설정은 `PUT /api/v1/accounts/{user_id}/password` (PR-S3) 가 담당한다.
 

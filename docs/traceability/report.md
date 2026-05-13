@@ -41,9 +41,23 @@
 | `API-39` | §12.9 | 매핑 누락 정책 (deny-by-default) |
 | `API-40` | §12.10 | Cache 와 무효화 정책 |
 
-> 본 매핑 표는 `document-standards.md` §8 우선순위 3 (본문 ID 노출) 의 RBAC 도메인 1차 적용. 다른 도메인 (`auth` §11, `account` §11.4, `commands/audit` §9 등) 은 후속 sprint 에서 동일 패턴으로 점진 확장.
+> 본 매핑 표는 `document-standards.md` §8 우선순위 3 (본문 ID 노출) 의 RBAC 도메인 1차 적용. 다른 도메인 (`account` §11.4, `commands/audit` §9 등) 은 후속 sprint 에서 동일 패턴으로 점진 확장.
 >
 > **표 가독성 정책**: 정밀 매핑 (endpoint 별 본문 위치, IMPL 별 책임) 은 본 §2 서브 표가 source-of-truth. §3 종합 매트릭스의 도메인 행은 ID 범위 (`API-26–31`) + 서브 표 참조 노트만 두어 표 시인성을 유지한다.
+
+#### Auth API §11 — endpoint 매핑 (sprint `claude/work_260513-g`, 본문 ID 노출 2차 도메인)
+
+| API ID | 본문 위치 | 항목 |
+| --- | --- | --- |
+| `API-19` | §11.3 | Go Core Bearer token 경계 (`Authorization: Bearer ...` verifier interface + actor context) |
+| `API-20` | §11.5 | `POST /api/v1/auth/login` (login_challenge → Kratos api-mode login + Hydra accept) |
+| `API-21` | §11.5 | `POST /api/v1/auth/logout` (logout_challenge → Hydra revoke + accept) |
+| `API-22` | §11.5 | `POST /api/v1/auth/token` (authorization_code → Hydra `/oauth2/token`) |
+| `API-23` | §11.5 | `POST /api/v1/auth/signup` (HRDB lookup + Kratos identity 생성) |
+| `API-24` | §11.5 | `GET /api/v1/auth/consent` (Hydra consent flow auto-accept) |
+| `API-35` | §11.5.1 | `POST /api/v1/account/password` (self-service password change — 인증/계정 도메인 cross-cut) |
+
+> §11.2 Hydra 표준 endpoint (외부, DevHub 재정의 0) 와 §11.4 admin identity wrapper (planned, M3 진입 시 ID 발급) 는 본 매핑 표에서 제외 — `conventions.md` §5.2 의 외부 의존성 / planned 항목 정책.
 
 ### 2.3 Roadmap (RM)
 
@@ -65,6 +79,20 @@
 | `IMPL-rbac-02` | `backend-core/internal/store/postgres_rbac.go` | RBAC role + subject-role assignment persistence (`ListRBACRoles`, `GetRBACRole`, `CreateRBACRole`, `UpdateRBACRolePermissions`, `UpdateRBACRoleMetadata`, `DeleteRBACRole`, `GetSubjectRoles`, `SetSubjectRole`) |
 | `IMPL-rbac-03` | `backend-core/internal/httpapi/permissions.go` (`routePermissionTable` + `enforceRoutePermission`) | API-38 라우트 매핑 source-of-truth + 미들웨어 enforcement + API-39 deny-by-default |
 | `IMPL-rbac-04` | `backend-core/internal/httpapi/permissions.go` (`PermissionCache`) | API-40 in-memory matrix cache + Invalidate |
+
+#### IMPL-auth-XX 정의 (sprint `claude/work_260513-g`)
+
+| IMPL ID | 코드 위치 | 책임 |
+| --- | --- | --- |
+| `IMPL-auth-01` | `backend-core/internal/auth/hydra_introspection.go` + `internal/httpapi/auth.go` (`BearerTokenVerifier` interface) | §11.3 Bearer token verifier interface + Hydra introspection 구현 |
+| `IMPL-auth-02` | `internal/httpapi/auth.go` (`authenticateActor` middleware + `AuthenticatedActor` context) | §11.3 검증 결과를 request context 의 actor 로 전파 |
+| `IMPL-auth-03` | `internal/httpapi/auth_login.go` | API-20 `POST /api/v1/auth/login` handler |
+| `IMPL-auth-04` | `internal/httpapi/auth_logout.go` | API-21 `POST /api/v1/auth/logout` handler |
+| `IMPL-auth-05` | `internal/httpapi/auth_token.go` | API-22 `POST /api/v1/auth/token` handler |
+| `IMPL-auth-06` | `internal/httpapi/auth_signup.go` | API-23 `POST /api/v1/auth/signup` handler |
+| `IMPL-auth-07` | `internal/httpapi/auth_consent.go` | API-24 `GET /api/v1/auth/consent` handler |
+
+> API-35 `POST /api/v1/account/password` 의 IMPL 은 account 도메인 (별도 sprint 의 `internal/httpapi/account_password.go`). 매트릭스 §3 의 인증 행 + 계정 관리 행 양쪽에 ID 가 노출되는 cross-cut.
 - **Frontend**: IMPL-frontend-auth-01..06, login-01..03, logout-01, dashboard-01, account-01, admin-01, admin-users-01, admin-org-01, admin-rbac-01, admin-audit-01, org-01, org-comp-01..03, role-01..03, service-auth-01, service-account-01, service-rbac-01, service-audit-01, service-org-01, service-realtime-01, service-api-01, layout-01..02, store-01 (32 항목).
 - **Backend AI**: 미사용 (Phase 4 분석에서 placeholder 만 발견).
 
@@ -83,10 +111,10 @@
 
 | 도메인 | REQ | ARCH / API | ROADMAP | IMPL | UT | TC |
 | --- | --- | --- | --- | --- | --- | --- |
-| **인증 (auth / OIDC)** | FR-19, 21–24, 65, 67; NFR-3, 18 | ARCH-11, 12; API-19–24, 35 | M1-04, M2-01, 02, 03, 09 | auth-01..07; frontend-auth-01..06; login-01..03; logout-01 | httpapi-01..04; auth-01; frontend-auth-01..04 | TC-AUTH-NEG-01, NOAUTH-01, SIGNOUT-REDIR-01; TC-USER-SWITCH-01 |
-| **회원가입 (signup)** | FR-25, 61–63 | ARCH-12; API-23 | M3-01 (planned) | auth-05; frontend-login-03 | httpapi-15 | TC-SIGNUP-01..04 |
+| **인증 (auth / OIDC)** | FR-19, 21–24, 65, 67; NFR-3, 18 | ARCH-11, 12; API-19–24, 35 (정밀 매핑: §2.2 Auth API 서브 표) | M1-04, M2-01, 02, 03, 09 | auth-01..07 (책임 정의: §2.4 IMPL-auth-XX 서브 표); frontend-auth-01..06; login-01..03; logout-01 | httpapi-01..04; auth-01; frontend-auth-01..04 | TC-AUTH-NEG-01, NOAUTH-01, SIGNOUT-REDIR-01; TC-USER-SWITCH-01 |
+| **회원가입 (signup)** | FR-25, 61–63 | ARCH-12; API-23 (§11.5, 정밀 매핑: §2.2 Auth API 서브 표) | M3-01 (planned) | auth-06 (`auth_signup.go`, §2.4 IMPL-auth-XX 서브 표); frontend-login-03 | httpapi-15 | TC-SIGNUP-01..04 |
 | **RBAC** | FR-27, 86; NFR-26 | ARCH-13; API-26–31, 38–40 (정밀 매핑: §2.2 RBAC API 서브 표) | M1-01, 02, 03; M2-11 | rbac-01..04 (책임 정의: §2.4 IMPL-rbac-XX 서브 표); frontend-admin-rbac-01; frontend-service-rbac-01; org-comp-02 | rbac-01..03; domain-01 | TC-RBAC-SUB-01, MGR-01; TC-PERMISSIONS-SMOKE-01 |
-| **계정 관리 (account admin + self-service)** | FR-15–18, 20, 22, 23, 26, 61–67; NFR-3, 4, 5, 7, 17, 19, 20 | ARCH-12, 14; API-25, 32, 35 | M2-04, 05, 06 | account-01..04; frontend-account-01; frontend-admin-users-01; frontend-service-account-01 | httpapi-05, 06, 07 | TC-USR-01..06; TC-USR-CRUD-01..03; TC-ACC-01..03; TC-ACC-PROFILE-01 |
+| **계정 관리 (account admin + self-service)** | FR-15–18, 20, 22, 23, 26, 61–67; NFR-3, 4, 5, 7, 17, 19, 20 | ARCH-12, 14; API-25, 32, 35 (API-35 = §11.5.1 cross-cut with 인증, 정밀 매핑: §2.2 Auth API 서브 표) | M2-04, 05, 06 | account-01..04 (`account_password.go` 가 API-35 의 IMPL); frontend-account-01; frontend-admin-users-01; frontend-service-account-01 | httpapi-05, 06, 07 | TC-USR-01..06; TC-USR-CRUD-01..03; TC-ACC-01..03; TC-ACC-PROFILE-01 |
 | **조직 계층 (organization)** | FR-68–80; NFR-21 | ARCH-15, 16, 17; API-33, 34 | M2-07, 08 | org-01..04; frontend-org-01; frontend-admin-org-01; frontend-org-comp-01..03; frontend-service-org-01 | httpapi-07; store-01 | TC-ORG-LIST-01..02; TC-ORG-UNIT-01..03; TC-ORG-MEM-01..02; TC-ORG-CHART-01..02 |
 | **감사 (audit)** | FR-18, 26, 102; NFR-4 | ARCH-14; API-18, 39 | M2-15 (in_progress, PR-M2-AUDIT) | audit-01, 02; kratos-03 | httpapi-19, 24; frontend (Vitest 없음) | TC-AUD-01, 02 |
 | **명령 lifecycle (command / mitigation / service action)** | FR-58, 59, 84, 95, 100, 101 | API-15, 16, 17, 36, 37 | M1-01..03 (envelope 정합); M3-02 (replay, planned) | command-01..05; serviceaction-01; realtime-01 | httpapi-09, 13; commandworker-01, 02; serviceaction-01; domain-02 | (E2E 미커버 — gap §5.1) |
@@ -146,4 +174,5 @@
 | 2026-05-13 | 리뷰어 모드 2-pass: §3 의 CI/거버넌스 행을 PR 단위 산출 (PR #86 / #87 / #88 / 본 PR) 로 명세화. §4 ADR-0003 행에 ※ 노트 추가 — 본 PR 매트릭스가 PR #88 미머지 상태와 정합하지 않을 가능성 자체 인지. |
 | 2026-05-13 | 후속 sprint `claude/work_260513-d`: ADR-0003 가 main 에 머지된 후 §4 ADR-0003 행을 정상 link 로 활성화 + §3 의 ※ 마킹 제거. §5.1 / §5.2 / §5.3 을 표 형식으로 통일 + 상태(open/closed) 컬럼 도입. §5.2 의 auth.spec.ts TC 미흡수 항목과 §5.3 의 frontend_integration_requirements §3.8 deprecation 항목을 closed 처리. 본 sprint 의 메타 헤더 표준화 commit 도 §3 CI/거버넌스 행에 추가. |
 | 2026-05-13 | sprint `claude/work_260513-e` (A 묶음, M1 PR-D 정합 마무리): backend-core 의 `writeRBACServerError` → `writeServerError` 통합 (`internal/httpapi/rbac.go` helper 제거 + 11 호출 일괄 치환). `requireRequestID` 미들웨어에 caller-supplied X-Request-ID validation 추가 — 정규식 `^[A-Za-z0-9_-]{1,128}$`, 실패 시 server-generated fallback (work_260512-j 발견 항목 closed). request_id 를 표준 ctx key (`requestIDCtxKey{}`) 에도 stash + `requestIDFromContext` / `logRequestCtx` ctx-aware helper 추가, `kratos_login_client.go` 의 untraced `log.Printf` 2건 + `kratos_identity_resolver.go` 1건을 ctx-aware 로 치환 (logRequest 의 untraced fallback 해소 항목 closed). 단위테스트 11건 추가 (validation 양/음 경로 + ctx 전파 + logRequestCtx percent-safety + 미들웨어 e2e). PR #91 (Pass 1 review 에서 `writeAuthLoginServerError` 도 같은 wrapper 발견 + 보강 commit 으로 흡수). |
-| 2026-05-13 | sprint `claude/work_260513-f` (B 묶음, RBAC 1차): `backend_api_contract.md` §12.2~§12.10 의 9 헤더에 `(API-26..31, 38..40)` 본문 ID 노출 (`document-standards.md` §8 우선순위 3 RBAC 도메인 1차 적용). 본 §2.2 에 RBAC API 매핑 표 + 본 §2.4 에 IMPL-rbac-01..04 책임 정의 (handler / store / enforcement / cache) 서브 표 추가. §3 RBAC 행 IMPL 컬럼 endpoint-IMPL 1:1 매핑. §5.2 의 "RBAC API §12 IMPL 정밀 매핑" 항목 closed. |
+| 2026-05-13 | sprint `claude/work_260513-f` (B 묶음, RBAC 1차): `backend_api_contract.md` §12.2~§12.10 의 9 헤더에 `(API-26..31, 38..40)` 본문 ID 노출 (`document-standards.md` §8 우선순위 3 RBAC 도메인 1차 적용). 본 §2.2 에 RBAC API 매핑 표 + 본 §2.4 에 IMPL-rbac-01..04 책임 정의 (handler / store / enforcement / cache) 서브 표 추가. §3 RBAC 행 IMPL 컬럼 endpoint-IMPL 1:1 매핑. §5.2 의 "RBAC API §12 IMPL 정밀 매핑" 항목 closed. Pass 1 review 보강으로 §3 RBAC 행을 ID 범위 + §2 서브 표 참조 패턴으로 정리 (PR #92). |
+| 2026-05-13 | sprint `claude/work_260513-g` (B1 auth 도메인 2차): `backend_api_contract.md` §11.3 `(API-19)` + §11.5 표에 API ID 컬럼 (`API-20..24, 35`) + §11.5.1 `(API-35)` 본문 ID 노출. 본 §2.2 에 Auth API 매핑 표 + 본 §2.4 에 IMPL-auth-01..07 책임 정의 (verifier / actor / 5 endpoint handler) 서브 표 추가. §3 인증 / 회원가입 / 계정 관리 행에 §2 서브 표 참조 노트 — 회원가입과 계정 관리 행은 cross-cut (API-23 / API-35) 명시. §11.2 외부 의존성 + §11.4 planned 는 매핑 제외 (`conventions.md` §5.2). |

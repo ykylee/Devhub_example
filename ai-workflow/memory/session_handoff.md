@@ -1,16 +1,17 @@
 # Session Handoff — main (2026-05-13 EOD)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
-- 범위: 2026-05-13 머지 6건 (PR #86/#87/#88/#89/#90/#91) 정리 + 진행 중 sprint + 잔여 후보.
+- 범위: 2026-05-13 머지 7건 (PR #86/#87/#88/#89/#90/#91/#92) 정리 + 진행 중 sprint + 잔여 후보.
 - 대상 독자: 후속 에이전트, 프로젝트 리드.
-- 브랜치: `main` (HEAD `ae8b459`, PR #91 squash 직후).
+- 브랜치: `main` (HEAD `a73dba1`, PR #92 squash 직후).
 - 최종 수정일: 2026-05-13
-- 상태: M1/M2 100% done. GitHub Actions CI 그린 + FU-CI-1..4 모두 처리. 거버넌스 + 추적성 체계 + 1차 종합 매트릭스 + 갭 정리 + 메타 헤더 표준화 + M1 PR-D 정합 마무리 도입. 진행 중 sprint `claude/work_260513-f` 가 B 묶음 (RBAC 도메인 1차: API §12 IMPL 정밀 매핑 + 본문 ID 노출) 처리 중.
+- 상태: M1/M2 100% done. GitHub Actions CI 그린 + FU-CI-1..4 모두 처리. 거버넌스 + 추적성 체계 + 1차 종합 매트릭스 + 갭 정리 + 메타 헤더 표준화 + M1 PR-D 정합 마무리 + RBAC 도메인 1차 본문 ID 노출 도입. 진행 중 sprint `claude/work_260513-g` 가 B1 auth 도메인 2차 (§11 본문 ID 노출 + IMPL-auth-01..07 책임 정의) 처리 중.
 - 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [상태 스냅샷](./state.json), [거버넌스](../../docs/governance/README.md), [추적성 매트릭스](../../docs/traceability/report.md).
 
 ## 0. 2026-05-13 머지 흐름
 
 ```
+a73dba1 PR #92 — docs(traceability,api): B 묶음 — RBAC API §12 IMPL 정밀 매핑 + 본문 ID 노출 (claude/work_260513-f)
 ae8b459 PR #91 — feat(backend): A 묶음 — M1 PR-D 정합 마무리 (writeRBACServerError + writeAuthLoginServerError 통합 + X-Request-ID validation + ctx 표준 request_id 전파) (claude/work_260513-e)
 ea8df91 PR #90 — docs(governance,traceability): 갭 분석 정리 + 메타 헤더 표준화 + main flat sync (claude/work_260513-d)
 7fac5bf PR #89 — docs: governance + traceability 체계 도입 + 1차 종합 매트릭스 (claude/work_260513-c)
@@ -26,18 +27,19 @@ e86f38f PR #87 — ci: FU-CI-2/3/4 (playwright scope, GHA cache, frontend readin
 - **PR #89** — `docs/governance/` (README + document-standards.md) + `docs/traceability/` (README + conventions + sync-checklist + report) + PR template + AGENTS/GEMINI 진입점. 1차 종합 매트릭스: REQ-FR 105 + REQ-NFR 26 + ARCH 17 + API 40 + RM 28 + IMPL 79 + UT 47 + TC 37 = 412 항목.
 - **PR #90** — 매트릭스 §5 갭 표 형식 통일 + §5.2 auth.spec.ts TC 미흡수 + §5.3 ADR-0001 vs §3.8 모두 closed. document-standards §2 메타 헤더 9 문서 (누락 4 + 변형 4 + 부분 1) 일괄 적용. PR #87/#88/#89 누적 main flat memory sync.
 - **PR #91** — A 묶음 (M1 PR-D 정합 마무리). `writeRBACServerError` (11 호출) + `writeAuthLoginServerError` (5 호출, Pass 1 review 발견) → `writeServerError` 일괄 통합. `requireRequestID` 미들웨어에 `validateCallerRequestID` (정규식 + 길이 + control char) 추가. request_id 를 `requestIDCtxKey{}` typed ctx key 에도 stash + `requestIDFromContext`/`logRequestCtx` ctx-aware helper. kratos_login_client.go 2건 + kratos_identity_resolver.go 1건 ctx-aware 치환. 단위테스트 11건 추가.
+- **PR #92** — B 묶음 RBAC 1차. `backend_api_contract.md` §12.2~§12.10 의 9 헤더에 `(API-26..31, 38..40)` 본문 ID 노출. 매트릭스 §2.2 RBAC API + §2.4 IMPL-rbac-01..04 책임 정의 (handler / store / enforcement / cache) 서브 표 도입. §5.2 RBAC IMPL 정밀 매핑 항목 closed. Pass 1 review 보강으로 §3 RBAC 행을 ID 범위 + §2 서브 표 참조 패턴으로 정리 ("표 가독성 정책" 명문화).
 
-## 1. 진행 중 sprint — `claude/work_260513-f` (B 묶음, RBAC 도메인 1차)
+## 1. 진행 중 sprint — `claude/work_260513-g` (B1 auth 도메인 2차)
 
-`document-standards.md` §8 우선순위 3 (본문 ID 노출) + 매트릭스 §5.2 "RBAC API §12 IMPL 정밀 매핑" 항목 closing.
+RBAC 다음 도메인. `document-standards.md` §8 우선순위 3 (본문 ID 노출) 의 auth 도메인 확장.
 
-- **B1 (RBAC)** — `backend_api_contract.md` §12.2~§12.10 의 9 헤더에 `(API-26..31, 38..40)` 본문 ID 노출.
-- **B3 — IMPL 정밀 매핑**:
-  - `IMPL-rbac-01` `internal/httpapi/rbac.go` (6 endpoint handler + legacy gone)
-  - `IMPL-rbac-02` `internal/store/postgres_rbac.go` (8 PostgresStore method)
-  - `IMPL-rbac-03` `internal/httpapi/permissions.go::routePermissionTable` + `enforceRoutePermission` (API-38 + API-39)
-  - `IMPL-rbac-04` `internal/httpapi/permissions.go::PermissionCache` (API-40)
-- 매트릭스 §2.2 / §2.4 / §3 / §5.2 / §6 갱신. 코드 변경 0.
+- **B1 (auth)** — `backend_api_contract.md` §11.3 `(API-19)` + §11.5 표에 API ID 컬럼 (`API-20..24, 35`) + §11.5.1 `(API-35)` 본문 ID 노출.
+- **IMPL-auth-01..07 책임 정의** (매트릭스 §2.4 서브 표):
+  - `IMPL-auth-01` Bearer verifier (`internal/auth/hydra_introspection.go` + `BearerTokenVerifier` interface)
+  - `IMPL-auth-02` authenticateActor middleware + actor context
+  - `IMPL-auth-03..07` 5 endpoint handler (auth_login / auth_logout / auth_token / auth_signup / auth_consent)
+  - API-35 `account/password` 의 IMPL 은 account 도메인 (cross-cut, 본 sprint 스코프 밖)
+- 매트릭스 §3 인증/회원가입/계정 관리 행에 §2 서브 표 참조 노트. 코드 변경 0.
 
 ## 2. 다음 진입점 — 우선순위 후보
 
