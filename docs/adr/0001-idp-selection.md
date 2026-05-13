@@ -180,6 +180,7 @@ sequenceDiagram
 
 4. **`X-Devhub-Actor` 헤더 폐기 시점**: Phase 13 완료 시점에 즉시 폐기할지, 별도 마이그레이션 phase 로 분리할지.
    - **결정 (2026-05-07)**: **Deprecation 후 별도 phase 에서 완전 제거**. Phase 13 P1 7단계(Bearer token 검증 미들웨어) 도입 시점에 `X-Devhub-Actor` 폴백은 유지하되 deprecation warning 로그를 남긴다. 모든 backend 핸들러가 token 경로로 actor 도출하도록 전환됐는지 검증된 뒤 별도 phase 에서 완전 제거.
+   - **후속 결정 (2026-05-13, [ADR-0004](./0004-x-devhub-actor-removal.md))**: trigger 충족 + closed. M0 SEC-4 (2026-05-07~08) 시점에 prod 코드의 `X-Devhub-Actor` 처리 자체가 제거됐고 M1 PR-D 의 Bearer token verifier 도입으로 actor 도출 경로가 표준화됐다. 별도 deprecation phase 를 거치지 않고 즉시 제거 path 가 채택된 사실을 ADR-0004 가 ex-post-facto 명문화. 회귀 방지 negative 테스트 (4 파일) 는 유지.
 
 5. **Gitea SSO (RBAC Phase 4)**: Hydra 가 Gitea 의 OIDC client 가 되거나, Gitea 가 Hydra 의 upstream identity provider 가 되는 구도 가능.
    - **결정 (2026-05-07)**: **본 ADR 범위 밖 — Phase 13 완료 후 별도 ADR 로 처리** (예: `docs/adr/0002-gitea-sso.md`). 1차 결정 보류.

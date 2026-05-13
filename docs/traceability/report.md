@@ -134,6 +134,7 @@
 | [ADR-0001](../adr/0001-idp-selection.md) | IdP 선정 (Ory Hydra + Kratos) | accepted (2026-05-07) | 인증, 회원가입, 계정 관리 |
 | [ADR-0002](../adr/0002-rbac-policy-edit-api.md) | RBAC policy edit API (DB-backed matrix) | accepted (2026-05-08) | RBAC |
 | [ADR-0003](../adr/0003-no-docker-policy-ci-scope.md) | No-Docker 정책 CI 범위 명문화 | accepted (2026-05-13, PR #88) | CI / 거버넌스 |
+| [ADR-0004](../adr/0004-x-devhub-actor-removal.md) | `X-Devhub-Actor` 헤더 폐기 완료 선언 | accepted (2026-05-13, sprint `claude/work_260513-h`) | 인증 (auth) |
 
 ## 5. Gap 요약
 
@@ -163,7 +164,7 @@
 | 항목 | 상태 | 처리 |
 | --- | --- | --- |
 | ADR-0001 vs `frontend_integration_requirements.md` §3.8 | **closed (2026-05-13, sprint `claude/work_260513-d`)** | §3.8 의 "재설계 예정" 노트를 "deprecated" 노트로 명확화 + Phase 13 머지 후 실제 endpoint (API §11.5 / §12.8.2) 로 redirect 링크. |
-| X-Devhub-Actor 완전 제거 trigger | open | architecture.md §6.2.3 의 deprecation warning 경로 명시되어 있으나 완전 제거 일정 미정의. 후속 ADR 후보. |
+| X-Devhub-Actor 완전 제거 trigger | **closed (2026-05-13, sprint `claude/work_260513-h`)** | [ADR-0004](../adr/0004-x-devhub-actor-removal.md) 가 폐기 완료를 선언. M0 SEC-4 에서 prod 코드의 `X-Devhub-Actor` 처리가 이미 제거됐고 M1 PR-D Bearer token verifier 도입으로 actor 도출 경로가 표준화됐다 — ADR-0001 §8 #4 의 trigger 가 그 시점에 충족됐음을 ex-post-facto 명문화. `architecture.md` line 174 + `ADR-0001` §8 #4 인라인 갱신 + `me.go` line 16 주석 잔재 정리. 회귀 방지 negative 테스트 4 파일은 유지. |
 | RBAC cache 다중 인스턴스 일관성 | open | API §12.10 의 미해결 (M1-DEFER-E). pub/sub 또는 polling 도입은 후속 sprint. |
 
 ## 6. 변경 이력
@@ -176,3 +177,4 @@
 | 2026-05-13 | sprint `claude/work_260513-e` (A 묶음, M1 PR-D 정합 마무리): backend-core 의 `writeRBACServerError` → `writeServerError` 통합 (`internal/httpapi/rbac.go` helper 제거 + 11 호출 일괄 치환). `requireRequestID` 미들웨어에 caller-supplied X-Request-ID validation 추가 — 정규식 `^[A-Za-z0-9_-]{1,128}$`, 실패 시 server-generated fallback (work_260512-j 발견 항목 closed). request_id 를 표준 ctx key (`requestIDCtxKey{}`) 에도 stash + `requestIDFromContext` / `logRequestCtx` ctx-aware helper 추가, `kratos_login_client.go` 의 untraced `log.Printf` 2건 + `kratos_identity_resolver.go` 1건을 ctx-aware 로 치환 (logRequest 의 untraced fallback 해소 항목 closed). 단위테스트 11건 추가 (validation 양/음 경로 + ctx 전파 + logRequestCtx percent-safety + 미들웨어 e2e). PR #91 (Pass 1 review 에서 `writeAuthLoginServerError` 도 같은 wrapper 발견 + 보강 commit 으로 흡수). |
 | 2026-05-13 | sprint `claude/work_260513-f` (B 묶음, RBAC 1차): `backend_api_contract.md` §12.2~§12.10 의 9 헤더에 `(API-26..31, 38..40)` 본문 ID 노출 (`document-standards.md` §8 우선순위 3 RBAC 도메인 1차 적용). 본 §2.2 에 RBAC API 매핑 표 + 본 §2.4 에 IMPL-rbac-01..04 책임 정의 (handler / store / enforcement / cache) 서브 표 추가. §3 RBAC 행 IMPL 컬럼 endpoint-IMPL 1:1 매핑. §5.2 의 "RBAC API §12 IMPL 정밀 매핑" 항목 closed. Pass 1 review 보강으로 §3 RBAC 행을 ID 범위 + §2 서브 표 참조 패턴으로 정리 (PR #92). |
 | 2026-05-13 | sprint `claude/work_260513-g` (B1 auth 도메인 2차): `backend_api_contract.md` §11.3 `(API-19)` + §11.5 표에 API ID 컬럼 (`API-20..24, 35`) + §11.5.1 `(API-35)` 본문 ID 노출. 본 §2.2 에 Auth API 매핑 표 + 본 §2.4 에 IMPL-auth-01..07 책임 정의 (verifier / actor / 5 endpoint handler) 서브 표 추가. §3 인증 / 회원가입 / 계정 관리 행에 §2 서브 표 참조 노트 — 회원가입과 계정 관리 행은 cross-cut (API-23 / API-35) 명시. §11.2 외부 의존성 + §11.4 planned 는 매핑 제외 (`conventions.md` §5.2). |
+| 2026-05-13 | sprint `claude/work_260513-h` (B4: X-Devhub-Actor 폐기 ADR): [ADR-0004](../adr/0004-x-devhub-actor-removal.md) 발급. M0 SEC-4 + M1 PR-D Bearer token verifier 도입으로 ADR-0001 §8 #4 trigger 가 이미 충족됐음을 ex-post-facto 명문화. §4 ADR 인덱스에 ADR-0004 행 추가. §5.3 "X-Devhub-Actor 완전 제거 trigger" closed. `docs/architecture.md` line 174 + `docs/adr/0001-idp-selection.md` §8 #4 인라인 갱신 + `backend-core/internal/httpapi/me.go` line 16 주석 잔재 정리. 회귀 방지 negative 테스트 4 파일 (audit_test / commands_test / auth_test / me_test) 그대로 유지. |
