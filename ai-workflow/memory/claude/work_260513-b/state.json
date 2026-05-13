@@ -1,0 +1,26 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "claude/work_260513-b",
+  "status": "IN PROGRESS. ADR-0003 (no-docker 정책의 CI 범위 명문화) 작성 + ci.yml 의 services: postgres:15 제거 + pgdg apt native PG 15 setup step 으로 교체. PR #86/#87 의 FU-CI-1 처리.",
+  "updated_at": "2026-05-13T01:50:00Z",
+  "branched_from": {
+    "branch": "main",
+    "head_commit": "e86f38f",
+    "head_summary": "ci: FU-CI-2/3/4 (playwright scope, GHA cache, frontend readiness) + main flat memory sync (#87)"
+  },
+  "goal": "no-docker 정책이 CI 까지 적용됨을 ADR-0003 로 결정 + .github/workflows/ci.yml 의 services: postgres:15 sidecar 컨테이너 제거 + native PostgreSQL 15 (pgdg apt repo) 설치 step 으로 교체.",
+  "scope_in": [
+    "docs/adr/0003-no-docker-policy-ci-scope.md: 새 ADR 추가, Option A 선정",
+    ".github/workflows/ci.yml: services: postgres 블록 제거 + Setup PostgreSQL (native) step 추가",
+    "docs/setup/test-server-deployment.md: ADR-0003 링크 보강",
+    "ai-workflow/memory/state.json: ci_followups 의 FU-CI-1 제거 + CI 마일스톤 노트 갱신"
+  ],
+  "scope_out": [
+    "actionlint / workflow 린트 도입 (별도 ADR 후보)",
+    "사내 self-hosted runner 도입 (별도 결정)"
+  ],
+  "next_actions": {
+    "immediate": "commit + push + PR 생성 → CI 그린 확인 → 리뷰어 모드 2-pass → 머지."
+  }
+}

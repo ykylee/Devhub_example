@@ -50,20 +50,10 @@ jobs:
   e2e:
     name: E2E Tests (Playwright)
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: runner
-          POSTGRES_DB: devhub
-          POSTGRES_HOST_AUTH_METHOD: trust
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    # ADR-0003: no-docker policy. Native postgresql-15 is installed below in
+    # the "Setup PostgreSQL (native)" step so this job stays consistent with
+    # the prod deployment shape (test-server-deployment.md §1.2). The earlier
+    # `services: postgres:15` sidecar container was removed.
     steps:
       - uses: actions/checkout@v4
       - name: Set up Go
@@ -76,6 +66,47 @@ jobs:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup PostgreSQL (native)
+        # ADR-0003: install postgresql-15 from the official pgdg apt repo so
+        # the CI postgres matches prod (PG 15) and the no-docker policy holds
+        # at the CI layer. trust auth on localhost is CI-only (loopback never
+        # leaves the runner). `runner` matches the user the rest of the job
+        # uses in DB_URL strings (set in ci-setup.sh + Start Backend env).
+        run: |
+          set -euo pipefail
+          # ubuntu-24.04 runners ship with a preinstalled PostgreSQL 14
+          # cluster occupying port 5432. postgresql-common's postinst skips
+          # auto-creating the new pg-15 cluster when 5432 is taken, which
+          # leaves us with "cluster '15 main' does not exist" and a missing
+          # socket. Drop the pg-14 cluster first so pg-15 owns 5432.
+          sudo systemctl stop postgresql 2>/dev/null || true
+          sudo pg_dropcluster --stop 14 main 2>/dev/null || true
+          # pgdg apt repo + signing key.
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+            -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+          codename=$(lsb_release -cs)
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${codename}-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-15
+          # postgres-common 의 postinst 가 자동 생성한 15/main 이 다른 cluster /
+          # 잔여 socket 의 5432 점유로 5433 으로 만들어진 사례 관찰 (run
+          # 25774911487 의 pg_lsclusters 출력). 명시적으로 drop + 5432 재생성.
+          # drop 은 cluster 부재 시 silently no-op.
+          sudo pg_dropcluster --stop 15 main 2>/dev/null || true
+          sudo pg_dropcluster --stop 14 main 2>/dev/null || true
+          sudo pg_createcluster --start --port=5432 15 main
+          pg_lsclusters
+          sudo -u postgres psql -c "CREATE USER runner SUPERUSER;"
+          sudo -u postgres psql -c "CREATE DATABASE devhub OWNER runner;"
+          # CI-only trust auth on localhost so DB_URL (no password) connects.
+          conf=/etc/postgresql/15/main/pg_hba.conf
+          sudo sed -i -E 's|^(host\s+all\s+all\s+127\.0\.0\.1/32)\s+\S+|\1 trust|' "$conf"
+          sudo sed -i -E 's|^(host\s+all\s+all\s+::1/128)\s+\S+|\1 trust|' "$conf"
+          sudo pg_ctlcluster 15 main restart
+          timeout 30s bash -c 'until pg_isready -h 127.0.0.1 -p 5432; do sleep 1; done'
       
       # FU-CI-3: cache the same paths as backend-unit so reused.
       - name: Cache Go build + module cache
