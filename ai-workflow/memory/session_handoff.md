@@ -1,16 +1,19 @@
 # Session Handoff — main (2026-05-13 EOD)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
-- 범위: 2026-05-13 머지 12건 (PR #86~#97) 정리 + 진행 중 M3 sprint.
-- 대상 독자: 후속 에이전트, 프로젝트 리드.
-- 브랜치: `main` (HEAD `3d7d5a2`, PR #97 squash 직후).
-- 최종 수정일: 2026-05-13
-- 상태: M1/M2 100% done + M3/M4 drift 정합 완료 (PR #97). 진행 중 sprint `claude/work_260513-l` 가 M3 진입 1차 (RM-M3-01 Sign Up 정합화 + RM-M3-02 ADR-0008 + RM-M3-03 §10.4 schema 보강) 처리 중.
+- 범위: 2026-05-13 세션 종료. 머지 15건 (PR #86~#100) — M3 마일스톤 1차 closing + 후속 1-4 + M4 전 잔여 모두 처리.
+- 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
+- 브랜치: `main` (HEAD `4134b37`, PR #100 squash 직후).
+- 최종 수정일: 2026-05-13 (세션 종료)
+- 상태: M1/M2/M3 모두 1차 closing. ADR 5건 신규 (0006~0010). M4 진입 준비 완료 — RM-M4-01..09 (9 항목) + M3 carve out (6 항목) 이 다음 세션 진입 후보.
 - 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [상태 스냅샷](./state.json), [거버넌스](../../docs/governance/README.md), [추적성 매트릭스](../../docs/traceability/report.md).
 
 ## 0. 2026-05-13 머지 흐름
 
 ```
+4134b37 PR #100 — feat(domain,migrations),docs(adr,traceability),scripts: M4 전 잔여 일괄 (claude/work_260513-n)
+c7c2f35 PR #99 — feat(hrdb,org,signup),docs(adr,traceability),test: M3 후속 1-4 일괄 (claude/work_260513-m)
+b1268ce PR #98 — feat(auth),docs(adr,api,traceability),test: M3 진입 1차 — RM-M3-01..03 (claude/work_260513-l)
 3d7d5a2 PR #97 — docs(roadmap,traceability): M3/M4 drift 정합 (claude/work_260513-k)
 f551e6a PR #96 — feat(auth),docs(adr,api,traceability),test: M3 진입 전 잔여 후속 일괄 (claude/work_260513-j)
 cb9e6d5 PR #95 — docs(traceability,adr,ci),test(frontend): 대형 묶음 B1~D5 (claude/work_260513-i)
@@ -35,17 +38,59 @@ e86f38f PR #87 — ci: FU-CI-2/3/4 (playwright scope, GHA cache, frontend readin
 - **PR #92** — B 묶음 RBAC 1차. `backend_api_contract.md` §12.2~§12.10 의 9 헤더에 `(API-26..31, 38..40)` 본문 ID 노출. 매트릭스 §2.2 RBAC API + §2.4 IMPL-rbac-01..04 책임 정의 (handler / store / enforcement / cache) 서브 표 도입. §5.2 RBAC IMPL 정밀 매핑 항목 closed. Pass 1 review 보강으로 §3 RBAC 행을 ID 범위 + §2 서브 표 참조 패턴으로 정리 ("표 가독성 정책" 명문화).
 - **PR #93** — B1 auth 도메인 2차. `backend_api_contract.md` §11.3 `(API-19)` + §11.5 표에 API ID 컬럼 (`API-20..24, 35`) + §11.5.1 `(API-35)` 본문 ID 노출. 매트릭스 §2.2 Auth API + §2.4 IMPL-auth-01..07 책임 정의 (verifier / actor / 5 endpoint handler) 서브 표 도입. §3 인증/회원가입/계정 관리 행 정리 (cross-cut API-23 / API-35 명시).
 
-## 1. 진행 중 sprint — `claude/work_260513-l` (M3 진입 1차)
+## 1. 세션 종료 — 다음 세션 진입 후보
 
-M3 마일스톤 1차 진입 — RM-M3-01..03 의 spec/정합화 + production 어댑터 결정:
+본 세션 (2026-05-13) 종료. 다음 세션 진입자는 본 §1 + §2 를 기준으로 작업 선택.
 
-- **RM-M3-01 Sign Up 정합화**:
-  - `auth_signup.go` 에 `account.signup.requested` audit emit + 부분 실패 (`account.signup.partial_failure`) emit + `fmt.Printf` → `logRequest` 정리.
-  - `auth_signup_test.go` 신규 4 case (정상 / HRDB miss → 403 / Kratos fail → 500 / DevHub user 충돌 → 201 + partial_failure audit).
-  - `backend_api_contract.md` §11.5.2 본격 spec (요청 body + 응답 + 에러 매트릭스 + audit 매핑).
-- **RM-M3-02 + [ADR-0008](../../docs/adr/0008-hrdb-production-adapter.md)** — PostgreSQL `hrdb` schema 채택 (옵션 A). 검토 옵션 4종 (PG schema / REST API / LDAP / MockClient 영구화). 실 구현 (migration + PostgresClient) 은 carve out.
-- **RM-M3-03 조직 polish 1차**: `backend_api_contract.md` §10.4.1~§10.4.4 mutation endpoint (POST/PATCH/DELETE units + PUT members) 의 request body + 응답 예시 + 에러 매트릭스 신설. cycle 검증 / primary_dept 자동 판정 코드는 carve.
-- 매트릭스 §2.4 IMPL-hrdb-01 (PoC) + IMPL-hrdb-02 (planned, ADR-0008) 정의 추가. §3 회원가입 / 조직 행 갱신. §4 ADR-0008 추가. §6 변경 이력.
+### 1.1 RM-M4 진입 후보 (매트릭스 §2.3.2 참조)
+
+| RM ID | 항목 | 후보 sprint plan 단위 |
+| --- | --- | --- |
+| `RM-M4-01` | WebSocket 확장 — infra/ci/risk event publish | M4-WS sprint |
+| `RM-M4-02` | WebSocket replay + 리소스 필터 | M4-WS (RM-M4-01 과 묶음 가능) |
+| `RM-M4-03` | frontend command status WebSocket UI | M4-WS-UI |
+| `RM-M4-04` | AI Gardener gRPC (Python AnalysisService + Go Core client) | M4-AI |
+| `RM-M4-05` | AI Suggestion Feed 실데이터 바인딩 | M4-AI (RM-M4-04 직속 후속) |
+| `RM-M4-06` | Gitea Hourly Pull worker (Phase 10) | M4-task |
+| `RM-M4-07` | System Admin 대시보드 | M4-admin |
+| `RM-M4-08` | RBAC PermissionCache LISTEN/NOTIFY ([ADR-0007](../../docs/adr/0007-rbac-cache-multi-instance.md)) | M4-infra (격리된 backend 작업) |
+| `RM-M4-09` | 외부 SSO 통합 (Gitea 등) | M4-SSO |
+
+### 1.2 M3 carve out (M4 와 병행 가능)
+
+- `getHierarchy` MV join 코드 변경 ([ADR-0009](../../docs/adr/0009-org-secondary-memberships-and-total-count-mv.md) §4.2)
+- ETL daily cron 운영 entry ([ADR-0008](../../docs/adr/0008-hrdb-production-adapter.md) §6)
+- `primary_dept` backfill worker (signup 직후 + admin trigger, [ADR-0010](../../docs/adr/0010-primary-dept-resolution.md) §4.3)
+- 파견 종료 (`is_seconded` 자동 갱신) trigger
+- 본격 Vitest (AuthGuard / Header / Sidebar mock-heavy)
+- TC-CMD/INFRA 인터랙션 spec ts (`test_cases_m3_command_infra.md` §4)
+
+### 1.3 본 세션 머지 영역 요약 (PR #86~#100, 15건)
+
+- **거버넌스/추적성** 체계 도입 + 1차 종합 매트릭스 + 갭 정리 + 메타 헤더 표준화 + M3/M4 drift 정합.
+- **M1 PR-D 정합** (A 묶음): writeRBACServerError + writeAuthLoginServerError → writeServerError 통합, X-Request-ID validation, ctx 표준 request_id 전파.
+- **X-Devhub-Actor 폐기**: ADR-0004 + ADR-0006 (inbound 400 거부) + 회귀 4 테스트 의도 갱신.
+- **5 도메인 본문 ID 노출**: RBAC §12 / auth §11 / account §10.2 / users CRUD §10.3 / organization §10.4 / accounts admin / signup §11.5.2.
+- **CI / lint**: GitHub Actions 4 잡 (workflow-lint + backend + frontend + e2e) + ADR-0003 no-docker + ADR-0005 actionlint.
+- **M3 1차 closing**: Sign Up audit emit + 단위테스트 + §11.5.2 본격 spec / hrdb.MockClient → PostgresClient (ADR-0008) + migration 000010 / parent_id cycle 검증 + ResolvePrimaryUnit (ADR-0010) + 5 단위테스트 / total_count MV migration 000011 (ADR-0009) / scripts/hrdb_etl_seed.sql / frontend signup form alias.
+
+### 1.4 ADR 인덱스 (본 세션 신규 5건)
+
+| ADR | 제목 |
+| --- | --- |
+| ADR-0006 | inbound `X-Devhub-Actor` 헤더 명시 거부 (400) |
+| ADR-0007 | RBAC PermissionCache 다중 인스턴스 일관성 (PG LISTEN/NOTIFY, 구현 carve) |
+| ADR-0008 | HR DB production 어댑터 (PostgreSQL `hrdb` schema) |
+| ADR-0009 | 파견/겸임 모델 + `total_count` Materialized View |
+| ADR-0010 | `users.primary_unit_id` 자동 판정 알고리즘 |
+
+### 1.5 다음 세션 진입 안내
+
+다음 세션 첫 액션 권장:
+
+1. 본 `session_handoff.md` + `state.json` + `work_backlog.md` 읽고 main HEAD 가 `4134b37` 인지 확인.
+2. 본 §1.1 RM-M4 진입 후보 중 우선순위 결정 (또는 §1.2 M3 carve out 선택).
+3. 새 sprint branch (`claude/work_260514-a` 등) + sprint memory 초기화 → 진행.
 
 ## 2. 다음 진입점 — 우선순위 후보
 
