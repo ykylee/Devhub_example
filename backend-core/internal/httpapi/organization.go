@@ -728,6 +728,45 @@ func (h Handler) updateOrgUnit(c *gin.Context) {
 		input.LeaderUserID = &trimmed
 	}
 
+	// RM-M3-03 (sprint claude/work_260513-m): parent_unit_id 변경 시 cycle
+	// 검증. backend_api_contract.md §10.4.2 의 `cycle_detected` 에러가 본
+	// 분기에서 발생한다. 알고리즘: GetHierarchy 의 edges 로 ancestor chain
+	// 을 따라가다 unitID 자기 자신을 만나면 cycle.
+	if input.ParentUnitID != nil && *input.ParentUnitID != "" {
+		newParent := *input.ParentUnitID
+		if newParent == unitID {
+			c.JSON(http.StatusUnprocessableEntity, gin.H{
+				"status": "rejected",
+				"error":  "parent_unit_id cannot reference itself",
+				"code":   "cycle_detected",
+			})
+			return
+		}
+		hierarchy, err := h.cfg.OrganizationStore.GetHierarchy(c.Request.Context())
+		if err == nil {
+			parentOf := make(map[string]string, len(hierarchy.Edges))
+			for _, e := range hierarchy.Edges {
+				parentOf[e.TargetUnitID] = e.SourceUnitID
+			}
+			cursor := newParent
+			for i := 0; i < len(hierarchy.Edges)+1; i++ {
+				if cursor == unitID {
+					c.JSON(http.StatusUnprocessableEntity, gin.H{
+						"status": "rejected",
+						"error":  "moving the unit under this parent would create a cycle",
+						"code":   "cycle_detected",
+					})
+					return
+				}
+				next, ok := parentOf[cursor]
+				if !ok {
+					break
+				}
+				cursor = next
+			}
+		}
+	}
+
 	unit, err := h.cfg.OrganizationStore.UpdateOrgUnit(c.Request.Context(), unitID, input)
 	if err != nil {
 		writeStoreError(c, err, "organization.update_org_unit")

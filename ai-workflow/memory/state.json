@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-05-13 진행 중. M1/M2 100% done + drift 정합 완료 (PR #97). PR #86~#97 (12건) 머지. M3 진입 1차 sprint claude/work_260513-l — RM-M3-01 Sign Up 정합화 + RM-M3-02 ADR-0008 + RM-M3-03 §10.4 schema 보강.",
-  "updated_at": "2026-05-13T15:00:00Z",
-  "head_commit": "3d7d5a2",
-  "head_summary": "Merge pull request #97 (docs(roadmap,traceability): M3/M4 drift 정합)",
+  "status": "2026-05-13 진행 중. PR #86~#98 (13건) 머지. M3 진입 1차 (PR #98) 완료. 현재 sprint claude/work_260513-m — M3 후속 1-4 일괄 (ADR-0008 PostgresClient 구현 + cycle 검증 + ADR-0009 + frontend Sign Up form).",
+  "updated_at": "2026-05-13T17:00:00Z",
+  "head_commit": "b1268ce",
+  "head_summary": "Merge pull request #98 (feat(auth),docs(adr,api,traceability),test: M3 진입 1차 — RM-M3-01..03)",
   "milestones": {
     "M0": {
       "status": "done",
@@ -92,7 +92,8 @@
       "work_260513_i": "ai-workflow/memory/claude/work_260513-i/ (CLOSED, PR #95 대형 묶음 B1~D5 — Pass 1 review clean)",
       "work_260513_j": "ai-workflow/memory/claude/work_260513-j/ (CLOSED, PR #96 M3 진입 전 잔여 후속 일괄 — Pass 1 review e2e relax 보강)",
       "work_260513_k": "ai-workflow/memory/claude/work_260513-k/ (CLOSED, PR #97 M3/M4 drift 정합 — Pass 1 review clean)",
-      "work_260513_l": "ai-workflow/memory/claude/work_260513-l/ (IN PROGRESS, M3 진입 1차)"
+      "work_260513_l": "ai-workflow/memory/claude/work_260513-l/ (CLOSED, PR #98 M3 진입 1차 — RM-M3-01..03)",
+      "work_260513_m": "ai-workflow/memory/claude/work_260513-m/ (IN PROGRESS, M3 후속 1-4 일괄)"
     },
     "governance_entry": "docs/governance/README.md",
     "traceability_entry": "docs/traceability/README.md",
@@ -136,7 +137,8 @@
     {"pr": 94, "sprint": "work_260513-h", "title": "docs(adr): ADR-0004 X-Devhub-Actor 폐기 완료 선언 (B4)", "merge_commit": "ceb0f6f"},
     {"pr": 95, "sprint": "work_260513-i", "title": "docs(traceability,adr,ci),test(frontend): 대형 묶음 B1~D5", "merge_commit": "cb9e6d5"},
     {"pr": 96, "sprint": "work_260513-j", "title": "feat(auth),docs(adr,api,traceability),test: M3 진입 전 잔여 후속 일괄", "merge_commit": "f551e6a"},
-    {"pr": 97, "sprint": "work_260513-k", "title": "docs(roadmap,traceability): M3/M4 drift 정합", "merge_commit": "3d7d5a2"}
+    {"pr": 97, "sprint": "work_260513-k", "title": "docs(roadmap,traceability): M3/M4 drift 정합", "merge_commit": "3d7d5a2"},
+    {"pr": 98, "sprint": "work_260513-l", "title": "feat(auth),docs(adr,api,traceability),test: M3 진입 1차 — RM-M3-01..03", "merge_commit": "b1268ce"}
   ],
   "discarded_sprints_2026_05_12": [
     {"slot": "work_260512-h", "reason": "진입 직후 후보 (M2 hygiene users.kratos_identity_id) 가 PR-L4 (809f525, work_26_05_11-e) 에 이미 머지된 것 확인. 신규 작업 없어 폐기."}
