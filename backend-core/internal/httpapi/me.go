@@ -13,7 +13,13 @@ type meResponse struct {
 	Source  string `json:"actor_source"`
 }
 
-// getMe returns the authenticated actor for the current request. Frontend uses this to derive the active role after a successful Kratos+Hydra login. Returns 401 when the request did not produce an authenticated actor (no Authorization header in production, or the dev fallback is active and no X-Devhub-Actor was supplied).
+// getMe returns the authenticated actor for the current request. Frontend
+// uses this to derive the active role after a successful Kratos+Hydra login.
+// Returns 401 when the request did not produce an authenticated actor (no
+// Authorization header in production, or the dev fallback resolved actor to
+// "system"). The legacy X-Devhub-Actor header is intentionally ignored —
+// ADR-0004 finalized its removal; SEC-4 already stripped the production
+// handling.
 func (h Handler) getMe(c *gin.Context) {
 	actor := requestActor(c)
 	if actor.Login == "" || actor.Login == "system" {

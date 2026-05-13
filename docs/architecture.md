@@ -171,7 +171,7 @@ accounts (신규)
 1. 브라우저가 DevHub Next.js `/login` 에 진입하면 Next.js 는 Hydra `/oauth2/auth` 로 Authorization Code + PKCE 흐름을 시작합니다.
 2. Hydra 가 `login_challenge` 와 함께 Next.js login UI 로 redirect 하면, Next.js 는 Kratos public flow API 로 자격 증명을 검증합니다. 실패 카운터/잠금 정책은 Kratos 가 책임집니다.
 3. 검증 성공 시 Next.js 는 Hydra `accept login` → first-party client 의 자동 consent 처리 → callback 에서 token endpoint 호출로 ID Token + Access Token + Refresh Token 을 받습니다.
-4. Go Core 는 인입 요청의 Bearer access token 을 Hydra JWKS 또는 introspect endpoint 로 검증하고, ID Token `sub` claim 에 담긴 `users.user_id` 를 actor 로 사용합니다. `X-Devhub-Actor` 헤더는 폐기 예정 폴백으로만 유지합니다 (폐기 시점은 ADR-0001 §8 미해결 항목).
+4. Go Core 는 인입 요청의 Bearer access token 을 Hydra JWKS 또는 introspect endpoint 로 검증하고, ID Token `sub` claim 에 담긴 `users.user_id` 를 actor 로 사용합니다. `X-Devhub-Actor` fallback 헤더는 M0 SEC-4 에서 prod 코드 처리가 제거됐고 [ADR-0004](./adr/0004-x-devhub-actor-removal.md) (2026-05-13) 가 폐기 완료를 선언합니다 — 회귀 방지 테스트만 유지합니다.
 5. 다른 앱은 Hydra 에 별도 OIDC client 로 등록되어 동일 표준 흐름을 사용합니다. consent UI 노출 여부는 신뢰 경계 결정(ADR-0001 §8) 에 따릅니다.
 
 ### 6.3 RBAC 단계화

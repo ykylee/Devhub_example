@@ -175,7 +175,7 @@ GET /api/v1/admin/config
 - service action command table
 - audit log table
 - 2026-05-06 기준 프론트 `infraService.controlService()`는 `POST /api/v1/admin/service-actions`를 호출해 dry-run service action command를 생성한다. 백엔드는 승인 불필요 dry-run command를 `running` 이후 `succeeded`로 자동 전이하고 `command.status.updated` 이벤트를 발행한다. 프론트 후속 작업은 이 이벤트를 toast/상태 UI에 반영하는 것이다.
-- 2026-05-07 기준 `GET /api/v1/audit-logs`가 추가됐고, 조직/사용자 CRUD 및 멤버 교체는 audit log를 남긴다. `X-Devhub-Actor` 사용 시 deprecation 응답 헤더를 내려 Phase 13 token actor 전환 경로를 노출한다.
+- 2026-05-07 기준 `GET /api/v1/audit-logs`가 추가됐고, 조직/사용자 CRUD 및 멤버 교체는 audit log를 남긴다. (legacy: `X-Devhub-Actor` fallback 헤더는 [ADR-0004](../adr/0004-x-devhub-actor-removal.md) (2026-05-13) 로 폐기 — Bearer token 또는 인증된 session 만 actor source.)
 - 2026-05-07 기준 RBAC enforcement가 일부 쓰기 API에 적용됐다: service action dry-run은 `commands: write`, live/force service action은 `commands: admin`, risk mitigation은 `risks: write`, audit 조회는 `system_config: read`, 조직/사용자 쓰기는 `organization: write`가 필요하다.
 - 2026-05-07 기준 WebSocket 연결은 `types` query 기반 subscription filtering과 event별 RBAC read permission check를 수행한다. 프론트 `RealtimeService`는 우선 `command.status.updated`를 구독하도록 준비됐다.
 

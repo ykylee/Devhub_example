@@ -1,16 +1,17 @@
 # Session Handoff — main (2026-05-13 EOD)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
-- 범위: 2026-05-13 머지 7건 (PR #86/#87/#88/#89/#90/#91/#92) 정리 + 진행 중 sprint + 잔여 후보.
+- 범위: 2026-05-13 머지 8건 (PR #86~#93) 정리 + 진행 중 sprint + 잔여 후보.
 - 대상 독자: 후속 에이전트, 프로젝트 리드.
-- 브랜치: `main` (HEAD `a73dba1`, PR #92 squash 직후).
+- 브랜치: `main` (HEAD `594be74`, PR #93 squash 직후).
 - 최종 수정일: 2026-05-13
-- 상태: M1/M2 100% done. GitHub Actions CI 그린 + FU-CI-1..4 모두 처리. 거버넌스 + 추적성 체계 + 1차 종합 매트릭스 + 갭 정리 + 메타 헤더 표준화 + M1 PR-D 정합 마무리 + RBAC 도메인 1차 본문 ID 노출 도입. 진행 중 sprint `claude/work_260513-g` 가 B1 auth 도메인 2차 (§11 본문 ID 노출 + IMPL-auth-01..07 책임 정의) 처리 중.
+- 상태: M1/M2 100% done. CI 그린 + 거버넌스/추적성 체계 + RBAC + auth 도메인 본문 ID 노출 완료. 진행 중 sprint `claude/work_260513-h` 가 B4 X-Devhub-Actor 폐기 ADR-0004 발급 + 문서 잔재 정리 (architecture.md / ADR-0001 §8 #4 / me.go 주석) + 매트릭스 §5.3 closing 처리 중.
 - 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [상태 스냅샷](./state.json), [거버넌스](../../docs/governance/README.md), [추적성 매트릭스](../../docs/traceability/report.md).
 
 ## 0. 2026-05-13 머지 흐름
 
 ```
+594be74 PR #93 — docs(traceability,api): B1 auth 도메인 2차 — §11 본문 ID 노출 + IMPL-auth-01..07 책임 정의 (claude/work_260513-g)
 a73dba1 PR #92 — docs(traceability,api): B 묶음 — RBAC API §12 IMPL 정밀 매핑 + 본문 ID 노출 (claude/work_260513-f)
 ae8b459 PR #91 — feat(backend): A 묶음 — M1 PR-D 정합 마무리 (writeRBACServerError + writeAuthLoginServerError 통합 + X-Request-ID validation + ctx 표준 request_id 전파) (claude/work_260513-e)
 ea8df91 PR #90 — docs(governance,traceability): 갭 분석 정리 + 메타 헤더 표준화 + main flat sync (claude/work_260513-d)
@@ -28,18 +29,16 @@ e86f38f PR #87 — ci: FU-CI-2/3/4 (playwright scope, GHA cache, frontend readin
 - **PR #90** — 매트릭스 §5 갭 표 형식 통일 + §5.2 auth.spec.ts TC 미흡수 + §5.3 ADR-0001 vs §3.8 모두 closed. document-standards §2 메타 헤더 9 문서 (누락 4 + 변형 4 + 부분 1) 일괄 적용. PR #87/#88/#89 누적 main flat memory sync.
 - **PR #91** — A 묶음 (M1 PR-D 정합 마무리). `writeRBACServerError` (11 호출) + `writeAuthLoginServerError` (5 호출, Pass 1 review 발견) → `writeServerError` 일괄 통합. `requireRequestID` 미들웨어에 `validateCallerRequestID` (정규식 + 길이 + control char) 추가. request_id 를 `requestIDCtxKey{}` typed ctx key 에도 stash + `requestIDFromContext`/`logRequestCtx` ctx-aware helper. kratos_login_client.go 2건 + kratos_identity_resolver.go 1건 ctx-aware 치환. 단위테스트 11건 추가.
 - **PR #92** — B 묶음 RBAC 1차. `backend_api_contract.md` §12.2~§12.10 의 9 헤더에 `(API-26..31, 38..40)` 본문 ID 노출. 매트릭스 §2.2 RBAC API + §2.4 IMPL-rbac-01..04 책임 정의 (handler / store / enforcement / cache) 서브 표 도입. §5.2 RBAC IMPL 정밀 매핑 항목 closed. Pass 1 review 보강으로 §3 RBAC 행을 ID 범위 + §2 서브 표 참조 패턴으로 정리 ("표 가독성 정책" 명문화).
+- **PR #93** — B1 auth 도메인 2차. `backend_api_contract.md` §11.3 `(API-19)` + §11.5 표에 API ID 컬럼 (`API-20..24, 35`) + §11.5.1 `(API-35)` 본문 ID 노출. 매트릭스 §2.2 Auth API + §2.4 IMPL-auth-01..07 책임 정의 (verifier / actor / 5 endpoint handler) 서브 표 도입. §3 인증/회원가입/계정 관리 행 정리 (cross-cut API-23 / API-35 명시).
 
-## 1. 진행 중 sprint — `claude/work_260513-g` (B1 auth 도메인 2차)
+## 1. 진행 중 sprint — `claude/work_260513-h` (B4: X-Devhub-Actor 폐기 ADR)
 
-RBAC 다음 도메인. `document-standards.md` §8 우선순위 3 (본문 ID 노출) 의 auth 도메인 확장.
-
-- **B1 (auth)** — `backend_api_contract.md` §11.3 `(API-19)` + §11.5 표에 API ID 컬럼 (`API-20..24, 35`) + §11.5.1 `(API-35)` 본문 ID 노출.
-- **IMPL-auth-01..07 책임 정의** (매트릭스 §2.4 서브 표):
-  - `IMPL-auth-01` Bearer verifier (`internal/auth/hydra_introspection.go` + `BearerTokenVerifier` interface)
-  - `IMPL-auth-02` authenticateActor middleware + actor context
-  - `IMPL-auth-03..07` 5 endpoint handler (auth_login / auth_logout / auth_token / auth_signup / auth_consent)
-  - API-35 `account/password` 의 IMPL 은 account 도메인 (cross-cut, 본 sprint 스코프 밖)
-- 매트릭스 §3 인증/회원가입/계정 관리 행에 §2 서브 표 참조 노트. 코드 변경 0.
+- [ADR-0004](../../docs/adr/0004-x-devhub-actor-removal.md) 발급 — `X-Devhub-Actor` 폐기 완료 선언 (ex-post-facto). M0 SEC-4 에서 prod 코드의 해당 헤더 처리가 이미 제거됐고 M1 PR-D Bearer token verifier 도입으로 actor 도출 경로가 표준화돼 ADR-0001 §8 #4 의 trigger 가 그 시점에 충족됐음을 명문화.
+- `docs/architecture.md` line 174 잔재 정리 ("폐기 예정 폴백으로 유지" → ADR-0004 참조).
+- `docs/adr/0001-idp-selection.md` §8 #4 인라인 갱신 (후속 결정 한 줄 추가).
+- `backend-core/internal/httpapi/me.go` line 16 주석 잔재 정리 (X-Devhub-Actor 언급 → ADR-0004 참조).
+- 매트릭스 §4 ADR-0004 행 추가 + §5.3 "X-Devhub-Actor 완전 제거 trigger" closed + §6 변경 이력 한 줄.
+- 회귀 방지 negative 테스트 4 파일 그대로 유지 (audit_test / commands_test / auth_test / me_test).
 
 ## 2. 다음 진입점 — 우선순위 후보
 
