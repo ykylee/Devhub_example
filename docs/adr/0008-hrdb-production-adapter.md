@@ -109,7 +109,7 @@ WHERE lower(system_id) = lower($1) AND employee_id = $2 AND lower(name) = lower(
 
 | 항목 | 후속 결정 |
 | --- | --- |
-| ETL 책임 (수동 SQL / cron / 외부 ETL tool) | 구현 sprint 시점. 1차는 수동 SQL `INSERT ... ON CONFLICT` 권장. |
+| ETL 책임 (수동 SQL / cron / 외부 ETL tool) | **부분 결정 (2026-05-13, sprint `claude/work_260513-n`)**: 1차 PoC seed 는 `scripts/hrdb_etl_seed.sql` (idempotent `INSERT ... ON CONFLICT`). 운영 cron 은 별도 운영 sprint 의 결정으로 위임 (1차 권장: daily `psql -f` cron + 사내 HR 시스템 export → sync 패턴). |
 | `email` 컬럼 fallback 정책 (env var vs 별도 ADR) | 구현 시점. 1차 env var. |
 | 실시간 sync 요구 (퇴사자 즉시 차단) 시 별도 ADR | 운영 진입 후 정책. |
 | `MockClient` 의 dev / 테스트 영구 유지 vs deprecation | 구현 시점. 1차 = 그대로 유지 (dev / 테스트 격리용). |
