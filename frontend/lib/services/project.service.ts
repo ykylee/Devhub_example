@@ -56,10 +56,18 @@ class ProjectService {
     await apiClient.delete(`/api/v1/applications/${applicationId}/repositories/${encodeURIComponent(repoKey)}`);
   }
 
-  // Projects (Hosted under Repositories)
-  async getRepositoryProjects(repositoryId: number): Promise<Project[]> {
-    const resp = await apiClient.get<{ data: Project[] }>(`/api/v1/repositories/${repositoryId}/projects`);
+  // Projects (Hosted under Repositories or Applications)
+  async getProjects(params?: { application_id?: string; repository_id?: number; status?: string; include_archived?: boolean }): Promise<Project[]> {
+    const resp = await apiClient.get<{ data: Project[] }>('/api/v1/projects', { params });
     return resp.data.data;
+  }
+
+  async getRepositoryProjects(repositoryId: number): Promise<Project[]> {
+    return this.getProjects({ repository_id: repositoryId });
+  }
+
+  async getApplicationProjects(applicationId: string): Promise<Project[]> {
+    return this.getProjects({ application_id: applicationId });
   }
 
   async createProject(repositoryId: number, data: Partial<Project>): Promise<Project> {

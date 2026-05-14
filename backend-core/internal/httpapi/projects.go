@@ -64,6 +64,7 @@ func (h *Handler) listProjects(c *gin.Context) {
 		Status:          c.Query("status"),
 		IncludeArchived: c.Query("include_archived") == "true",
 		RepositoryID:    repoID,
+		ApplicationID:   c.Query("application_id"),
 		Limit:           limit,
 		Offset:          offset,
 	}

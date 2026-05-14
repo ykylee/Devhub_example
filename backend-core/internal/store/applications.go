@@ -34,9 +34,10 @@ type ApplicationRepositoryLinkKey struct {
 	RepoFullName  string
 }
 
-// ProjectListOptions parameterizes ListProjects (within a Repository scope).
+// ProjectListOptions parameterizes ListProjects (within a Repository or Application scope).
 type ProjectListOptions struct {
 	RepositoryID    int64
+	ApplicationID   string
 	Status          string
 	IncludeArchived bool
 	Limit           int
@@ -349,6 +350,11 @@ func (s *PostgresStore) ListProjects(ctx context.Context, opts ProjectListOption
 		args = append(args, opts.RepositoryID)
 		argCount++
 	}
+	if opts.ApplicationID != "" {
+		whereClauses = append(whereClauses, fmt.Sprintf("application_id = $%d", argCount))
+		args = append(args, opts.ApplicationID)
+		argCount++
+	}
 
 	where := ""
 	if len(whereClauses) > 0 {
@@ -416,9 +422,9 @@ func (s *PostgresStore) CreateProject(ctx context.Context, p domain.Project) (do
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		RETURNING id, created_at, updated_at
 	`
-	var appID pgtype.UUID
-	if p.ApplicationID != nil {
-		appID = pgtype.UUID{Bytes: *p.ApplicationID, Valid: true}
+	var appID *string
+	if p.ApplicationID != "" {
+		appID = &p.ApplicationID
 	}
 	var startDate, dueDate pgtype.Date
 	if p.StartDate != nil {
@@ -522,7 +528,7 @@ func (s *PostgresStore) ArchiveProject(ctx context.Context, projectID, archivedR
 
 func scanProject(row pgx.Row) (domain.Project, error) {
 	var p domain.Project
-	var appID pgtype.UUID
+	var appID pgtype.Text
 	var startDate, dueDate pgtype.Date
 	var archivedAt pgtype.Timestamptz
 	var ownerUserID, description pgtype.Text
@@ -547,9 +553,7 @@ func scanProject(row pgx.Row) (domain.Project, error) {
 		return domain.Project{}, err
 	}
 
-	if appID.Valid {
-		p.ApplicationID = &appID.Bytes
-	}
+	p.ApplicationID = appID.String
 	p.OwnerUserID = ownerUserID.String
 	p.Description = description.String
 	if startDate.Valid {

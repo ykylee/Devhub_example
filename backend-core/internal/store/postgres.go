@@ -1262,7 +1262,7 @@ RETURNING
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		return domain.Command{}, domain.AuditLog{}, false, err
+		return domain.Command{}, domain.AuditLog{}, err
 	}
 	return command, auditLog, nil
 }

@@ -3,30 +3,27 @@
 - 최종 수정일: 2026-05-14
 
 ## 🎯 현재 세션 요약
-`Application`, `Project`, `Repository` 3-티어 거버넌스 도메인의 Full-stack 구현을 완료했습니다. 백엔드에서는 전체 CRUD API를 구현했으며, 프론트엔드에서는 목록/상세 페이지 및 생성/수정 UI를 구현하여 백엔드와 연동할 준비를 마쳤습니다.
+`Application`, `Project`, `Repository` 3-티어 거버넌스 도메인의 Full-stack 연동을 완료했습니다. 백엔드에서 애플리케이션 단위의 프로젝트 필터링 기능을 추가하고, 프론트엔드에서는 저장소 연결 및 프로젝트 생성 모달을 구현하여 실제 기능을 활성화했습니다. 또한, 기존 백엔드 스토어 레이어의 빌드 오류들을 수정하여 시스템 안정성을 확보했습니다.
 
 ## ✅ 최근 완료된 사항
-1.  **프론트엔드 UI/UX 구현**:
-    *   `Application`, `Project`, `Repository`에 대한 목록 및 상세 페이지 UI/UX를 구현했습니다.
-    *   `Application` 생성을 위한 모달 UI를 구현했습니다.
-    *   `next/link`를 사용하여 목록과 상세 페이지 간 동적 라우팅을 적용했습니다.
-    *   백엔드 API 연동을 위한 `project.service.ts`와 `project.types.ts`를 정의했습니다.
+1.  **백엔드 API 고도화 및 안정화**:
+    *   `ListProjects` API에 `application_id` 필터링 지원 추가.
+    *   `PostgresStore`의 UUID 처리 방식 개선 및 중복 선언/리턴 타입 오류 수정.
+    *   `go build`를 통한 백엔드 빌드 정상 확인.
 
-2.  **백엔드 CRUD API 구현**:
-    *   **Application**: `Create`, `Read`(`Get`), `Update`, `Archive`(`Delete`) API를 모두 구현했습니다.
-    *   **Project**: `Create`, `Read`(`Get`), `Update`, `Archive`, `List` API를 모두 구현했습니다.
-    *   **ApplicationRepository**: Repository를 Application에 연결(`Create`)하고 해제(`Delete`)하는 API를 구현했습니다.
-    *   Store 레이어에 SQL 쿼리를 작성하고, Handler 레이어에서 이를 호출하여 API 로직을 완성했습니다.
+2.  **프론트엔드 연동 및 UI 구현**:
+    *   `RepositoryLinkModal`: 애플리케이션에 외부 저장소를 연결하는 모달 구현.
+    *   `ProjectCreationModal`: 애플리케이션 내 저장소를 선택하여 프로젝트를 생성하는 모달 구현.
+    *   애플리케이션 상세 페이지 연동: 실제 저장소 목록 및 프로젝트 목록을 API와 연동하고 관리 기능을 활성화함.
 
 ## 🚀 다음 세션 작업 제안
-1.  **프론트엔드-백엔드 연동 테스트 및 고도화**:
-    *   `admin/settings/applications` 페이지에서 Application 생성(`createApplication`) 및 수정(`updateApplication`) API가 정상 동작하는지 확인합니다.
-    *   Application 상세 페이지에서 Repository 연결/해제 API를 연동합니다.
-    *   Project 생성/수정 UI를 구현하고 API를 연동합니다.
+1.  **관리 기능 고도화**:
+    *   저장소 연결 해제(Unlink) 및 프로젝트 수정/보관(Archive) 기능 구현.
+    *   애플리케이션 메트릭(Rollup Metrics) 실제 데이터 연동 검토.
 
-2.  **E2E 테스트 케이스 작성**:
-    *   Playwright를 사용하여 `Application` 생성부터 `Project` 생성까지 이어지는 Happy-path 시나리오에 대한 E2E 테스트를 작성합니다.
+2.  **E2E 테스트 수행**:
+    *   Playwright를 사용하여 '애플리케이션 생성 -> 저장소 연결 -> 프로젝트 생성'으로 이어지는 전체 흐름 검증.
 
 ## ⚠️ 주의 사항
-- `backend-core`를 실행해야 프론트엔드 API가 정상 동작합니다 (`make build` 또는 `go run ./cmd/devhub-backend` 등).
-- 프론트엔드는 `npm run dev`로 실행합니다.
+- 백엔드 실행 시 `strings` 패키지 추가 등으로 인해 변경된 파일들이 있으므로 `go build`로 다시 확인이 필요할 수 있습니다 (현재는 정상 빌드됨).
+- 프론트엔드는 `npm run dev`로 실행하여 연동된 UI를 확인할 수 있습니다.

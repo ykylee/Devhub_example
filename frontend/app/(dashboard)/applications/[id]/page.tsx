@@ -24,6 +24,8 @@ import { Badge } from "@/components/ui/Badge";
 import { RepositoryTable } from "@/components/project/RepositoryTable";
 import { ProjectTable } from "@/components/project/ProjectTable";
 import { useToast } from "@/components/ui/Toast";
+import { RepositoryLinkModal } from "@/components/project/RepositoryLinkModal";
+import { ProjectCreationModal } from "@/components/project/ProjectCreationModal";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
@@ -36,21 +38,26 @@ export default function ApplicationDetailPage() {
   
   const [application, setApplication] = useState<Application | null>(null);
   const [repositories, setRepositories] = useState<ApplicationRepository[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [showProjectModal, setShowProjectModal] = useState(false);
+
     const load = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        const [appData, reposData] = await Promise.all([
+        const [appData, reposData, projectsData] = await Promise.all([
           projectService.getApplication(id),
-          projectService.getApplicationRepositories(id).catch(() => [] as ApplicationRepository[])
+          projectService.getApplicationRepositories(id).catch(() => [] as ApplicationRepository[]),
+          projectService.getApplicationProjects(id).catch(() => [])
         ]);
         setApplication(appData);
         setRepositories(reposData);
+        setProjects(projectsData);
       } catch (err) {
         console.error("[ApplicationDetail] load failed:", err);
         const status = (err as any).status;
@@ -65,6 +72,19 @@ export default function ApplicationDetailPage() {
     };
     load();
   }, [id]);
+
+  const reload = async () => {
+    try {
+      const [reposData, projectsData] = await Promise.all([
+        projectService.getApplicationRepositories(id).catch(() => [] as ApplicationRepository[]),
+        projectService.getApplicationProjects(id).catch(() => [])
+      ]);
+      setRepositories(reposData);
+      setProjects(projectsData);
+    } catch (err) {
+      console.error("[ApplicationDetail] reload failed:", err);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -207,7 +227,7 @@ export default function ApplicationDetailPage() {
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                      <StatCard label="Total Repositories" value={repositories.length} icon={GitBranch} color="text-pink-400" />
-                     <StatCard label="Active Projects" value={0} icon={FolderKanban} color="text-indigo-400" subValue="Mocked" />
+                     <StatCard label="Active Projects" value={projects.filter(p => p.status === 'active').length} icon={FolderKanban} color="text-indigo-400" />
                   </div>
                 </div>
                 
@@ -236,9 +256,12 @@ export default function ApplicationDetailPage() {
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-black text-foreground uppercase tracking-tight">Connected Repositories</h2>
-                  <button className="px-4 py-2 glass border-border rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-muted/40 transition-all">
-                    Add Link
-                  </button>
+                  <button 
+                     onClick={() => setShowLinkModal(true)}
+                     className="px-4 py-2 glass border-border rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-muted/40 transition-all flex items-center gap-2"
+                   >
+                     <GitBranch className="w-3 h-3" /> Add Link
+                   </button>
                 </div>
                 <RepositoryTable repositories={repositories} />
               </div>
@@ -248,11 +271,20 @@ export default function ApplicationDetailPage() {
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-black text-foreground uppercase tracking-tight">Operational Projects</h2>
-                  <button className="px-4 py-2 glass border-border rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-muted/40 transition-all">
-                    New Project
-                  </button>
+                   <button 
+                     onClick={() => {
+                        if (repositories.length === 0) {
+                          toast("Link at least one repository first", "warning");
+                          return;
+                        }
+                        setShowProjectModal(true);
+                     }}
+                     className="px-4 py-2 glass border-border rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-muted/40 transition-all flex items-center gap-2"
+                   >
+                     <FolderKanban className="w-3 h-3" /> New Project
+                   </button>
                 </div>
-                <ProjectTable projects={[]} />
+                <ProjectTable projects={projects} />
               </div>
             )}
 
@@ -274,6 +306,30 @@ export default function ApplicationDetailPage() {
           </motion.div>
         </AnimatePresence>
       </div>
+
+      <AnimatePresence>
+        {showLinkModal && (
+          <RepositoryLinkModal
+            applicationId={id}
+            onClose={() => setShowLinkModal(false)}
+            onLinked={() => {
+              toast("Repository linked successfully", "success");
+              reload();
+            }}
+          />
+        )}
+        {showProjectModal && (
+          <ProjectCreationModal
+            applicationId={id}
+            repositories={repositories}
+            onClose={() => setShowProjectModal(false)}
+            onCreated={() => {
+              toast("Project created successfully", "success");
+              reload();
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
