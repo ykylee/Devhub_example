@@ -53,15 +53,15 @@ test.describe("/admin/settings/users — CRUD UI smoke", () => {
     // User Actions 트리거 클릭 (행 내부 SVG 추론 대신 aria-label 기반으로 안정화)
     await aliceRow.getByRole("button", { name: /user actions/i }).click();
 
-    const menu = page.locator("div").filter({ hasText: /^User Actions$/ }).first().locator("..");
+    const menu = page.getByRole("menu", { name: /user actions/i });
     
-    // 3가지 액션 버튼 노출 확인 (메뉴 스코프)
-    await expect(menu.getByRole("button", { name: /issue account/i })).toBeVisible();
-    await expect(menu.getByRole("button", { name: /force reset password/i })).toBeVisible();
-    await expect(menu.getByRole("button", { name: /revoke account/i })).toBeVisible();
+    // 3가지 액션 항목 노출 확인 (menu/menuitem 스코프)
+    await expect(menu.getByRole("menuitem", { name: /issue account/i })).toBeVisible();
+    await expect(menu.getByRole("menuitem", { name: /force reset password/i })).toBeVisible();
+    await expect(menu.getByRole("menuitem", { name: /revoke account/i })).toBeVisible();
     
     // Close the menu
     await page.keyboard.press("Escape");
-    await expect(page.getByRole("button", { name: /issue account/i })).toHaveCount(0);
+    await expect(page.getByRole("menuitem", { name: /issue account/i })).toHaveCount(0);
   });
 });
