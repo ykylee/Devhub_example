@@ -217,17 +217,18 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
 - **REQ-FR-APP-001 (MVP, 확정):** 시스템 관리자는 Application을 생성/수정/보관(archive)할 수 있어야 한다.
     - 필수 필드: `key`, `name`, `owner`, `start_date`, `due_date`, `visibility`, `status`.
     - `status` 최소 상태: `planning`, `active`, `on_hold`, `closed`, `archived`.
+- **REQ-FR-APP-002 (MVP, 확정):** 하나의 Application은 0개 이상의 Repository를 연결할 수 있어야 한다.
+    - 연결 단위 필드: `repo_provider`, `repo_full_name`, `role(primary|sub|shared)`.
+    - 동일 Application 내 서로 다른 provider Repository를 동시에 연결할 수 있어야 한다 (예: bitbucket + gitea 병행).
 - **REQ-FR-APP-003 (MVP, 확정):** `Application.key`는 시스템 전역 고유값(unique)이어야 하며 관리 식별자로 사용해야 한다.
     - 표시명(`name`) 변경과 무관하게 `key`는 안정 식별자로 유지한다.
+    - **변경 불가(immutable):** 발급 후 `key`는 변경할 수 없다. rename 이 필요하면 신규 Application 생성 + 기존 Application archive 절차로만 수행한다 (PATCH 응답 422 `application_key_immutable`).
     - 현재 입력 정책: 영문숫자 조합 10자 (`^[A-Za-z0-9]{10}$`).
     - 데이터베이스 컬럼은 정책 변경 여지를 위해 더 긴 길이(예: VARCHAR(32) 이상)를 허용하고, 실제 길이 제한은 애플리케이션 검증 정책으로 강제한다.
 - **REQ-FR-APP-004 (MVP, 확정):** Repository는 외부 형상관리 도구와 연결되는 구조여야 하며, DevHub는 운영/분석용 관리 데이터를 보유해야 한다.
     - 외부 SoT: 코드/PR/빌드 원본.
     - DevHub 보유: 연결 메타데이터, 동기화 상태, 운영 스냅샷.
     - 지원 정책: 특정 SCM 단일 종속이 아니라 provider 추상화(`repo_provider`)를 사용하며, `bitbucket`, `gitea`, `forgejo` 등 복수 provider를 동등하게 지원/확장할 수 있어야 한다.
-- **REQ-FR-APP-002 (MVP, 확정):** 하나의 Application은 0개 이상의 Repository를 연결할 수 있어야 한다.
-    - 연결 단위 필드: `repo_provider`, `repo_full_name`, `role(primary|sub|shared)`.
-    - 동일 Application 내 서로 다른 provider Repository를 동시에 연결할 수 있어야 한다 (예: bitbucket + gitea 병행).
 - **REQ-FR-APP-005 (MVP, 확정):** Repository 작업현황을 수집/조회할 수 있어야 한다.
     - 최소 지표: commit 활동량, active contributor 수, 작업 추이.
 - **REQ-FR-APP-006 (MVP, 확정):** PR/PR Activity 정보를 수집/조회할 수 있어야 한다.

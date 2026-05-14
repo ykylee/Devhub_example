@@ -175,9 +175,9 @@ erDiagram
       timestamptz updated_at
     }
     APPLICATION_REPOSITORIES {
-      uuid application_id FK
-      text repo_provider
-      text repo_full_name
+      uuid application_id PK
+      text repo_provider PK
+      text repo_full_name PK
       text external_repo_id
       timestamptz last_sync_at
       text sync_status
@@ -223,8 +223,8 @@ erDiagram
       timestamptz updated_at
     }
     PROJECT_MEMBERS {
-      uuid project_id FK
-      text user_id FK
+      uuid project_id PK
+      text user_id PK
       text project_role
       timestamptz joined_at
     }
@@ -259,6 +259,11 @@ erDiagram
       timestamptz measured_at
     }
 ```
+
+> **합성 키 메모**:
+> - `APPLICATION_REPOSITORIES.PK = (application_id, repo_provider, repo_full_name)` — 동일 `repo_full_name` 이 서로 다른 provider 에 존재할 수 있으므로 provider 를 PK 에 포함. `docs/planning/project_management_concept.md` §7 / §13.3 와 일치.
+> - `PROJECT_MEMBERS.PK = (project_id, user_id)` — 동일 사용자의 중복 멤버십 차단.
+> - `PROJECT_INTEGRATIONS` 는 단일 `id` PK + (`scope`, `project_id` 또는 `application_id`, `integration_type`, `external_key`) 조합에 unique 인덱스(설계 단계 확정).
 
 ## 3. 통합 ERD (현행 + Project 확장)
 

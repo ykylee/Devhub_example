@@ -1363,32 +1363,63 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 
 ## 13. Application/Repository/Project 관리 API (설계 초안, planned)
 
-본 섹션은 `Application > Repository > Project` 관리 기능의 구현 진입 전 계약 초안이다. 실제 endpoint 활성화 시점에 API ID를 발급한다.
+본 섹션은 `Application > Repository > Project` 관리 기능의 구현 진입 전 계약 초안이다. 본 sprint 에서 placeholder API ID (`API-41 ~ API-58 (planned)`) 를 부여하여 추적성 인용을 가능케 하고, 실제 endpoint 활성화 시점에 `(planned)` 접미사를 제거한다.
+
+### 13.0 §13 placeholder API ID 인덱스
+
+| API ID | endpoint | 본문 위치 |
+| --- | --- | --- |
+| `API-41 (planned)` | `GET /api/v1/scm/providers` | §13.1.1 |
+| `API-42 (planned)` | `PATCH /api/v1/scm/providers/{provider_key}` | §13.1.1 |
+| `API-43 (planned)` | `GET /api/v1/applications` | §13.2 |
+| `API-44 (planned)` | `POST /api/v1/applications` | §13.2 |
+| `API-45 (planned)` | `GET /api/v1/applications/{application_id}` | §13.2 |
+| `API-46 (planned)` | `PATCH /api/v1/applications/{application_id}` | §13.2 |
+| `API-47 (planned)` | `DELETE /api/v1/applications/{application_id}` (archive) | §13.2 |
+| `API-48 (planned)` | `GET /api/v1/applications/{application_id}/repositories` | §13.3 |
+| `API-49 (planned)` | `POST /api/v1/applications/{application_id}/repositories` | §13.3 |
+| `API-50 (planned)` | `DELETE /api/v1/applications/{application_id}/repositories/{repo_key}` | §13.3 |
+| `API-51 (planned)` | `GET /api/v1/repositories/{repository_id}/activity` | §13.4 |
+| `API-52 (planned)` | `GET /api/v1/repositories/{repository_id}/pull-requests` | §13.4 |
+| `API-53 (planned)` | `GET /api/v1/repositories/{repository_id}/build-runs` | §13.4 |
+| `API-54 (planned)` | `GET /api/v1/repositories/{repository_id}/quality-snapshots` | §13.4 |
+| `API-55 (planned)` | `GET /api/v1/repositories/{repository_id}/projects` + `POST` | §13.5 |
+| `API-56 (planned)` | `GET /api/v1/projects/{project_id}` + `PATCH` + `DELETE` | §13.5 |
+| `API-57 (planned)` | `GET /api/v1/applications/{application_id}/rollup` | §13.6 |
+| `API-58 (planned)` | `GET /api/v1/integrations` + CRUD | §13.7 |
 
 ### 13.1 공통 규칙
 
 - 쓰기 권한: 기본 `system_admin` 전용.
 - `pmo_manager`는 정책 확정 전 `disabled`, 쓰기 요청은 `403` + `error=role_not_enabled`.
-- archive는 soft-delete로 처리한다 (`archived_at` 기록).
+- archive는 soft-delete로 처리한다 (`archived_at` 기록 + 기본 조회 목록 제외, `include_archived=true` 토글로 노출).
 - `Application.key`는 시스템 전역 unique 식별자다.
+- `Application.key`는 **immutable** — 발급 후 변경 불가. PATCH 본문에 `key` 가 포함되면 `422 application_key_immutable` 로 거절한다.
 - `Application.key` 입력 정책: 영문/숫자 10자 (`^[A-Za-z0-9]{10}$`).
 - DB 컬럼 길이는 정책 변경 대비 여유 길이로 유지하고, 길이/패턴 제한은 애플리케이션 검증에서 강제한다.
 - provider 라우팅은 `repo_provider`를 기준으로 동작하며, backend는 내부 `SCM Adapter Registry`에서 provider별 어댑터를 선택한다.
 - 미등록 provider 요청은 `422 unsupported_repo_provider`로 거절한다.
+- **상태 전이 가드 표 SoT (Single Source of Truth)**: `docs/planning/project_management_concept.md` §13.2.1 — 권한/검증/실패 코드 매트릭스. 본 §13.2 PATCH 의 규칙은 그 요약이다.
+- **visibility 별 데이터 공개 범위 (초안)**:
+  - `public`: 메타(key/name/owner) + 진행 요약 (집계만). 멤버 목록/원본 지표는 비공개.
+  - `internal`: 조직 내 사용자에게 메타 + 멤버 목록 + 롤업 요약. 원본 PR/Build 본문은 RBAC 별도.
+  - `restricted`: 멤버 본인 + system_admin 만 조회. 외부 노출 없음.
 
 ### 13.1.1 SCM Provider Catalog (planned)
 
-#### `GET /api/v1/scm/providers`
+#### `GET /api/v1/scm/providers` (`API-41 (planned)`)
 
 - 설명: 사용 가능한 SCM provider 목록 조회 (`enabled`, `display_name`, `adapter_version` 포함).
+- `adapter_version`: provider 어댑터 모듈의 semver 문자열 (예: `1.4.0`). 갱신 주체는 어댑터 배포 파이프라인 (배포 후 마이그레이션/관리 API 로 등록). 운영 중 임의 수정 금지.
 
-#### `PATCH /api/v1/scm/providers/{provider_key}`
+#### `PATCH /api/v1/scm/providers/{provider_key}` (`API-42 (planned)`)
 
 - 설명: provider 활성/비활성 및 운영 설정 변경 (system_admin 전용).
+- 허용 필드: `enabled`, `display_name`. `adapter_version` 은 배포 파이프라인 외 수정 불가.
 
 ### 13.2 Application
 
-#### `GET /api/v1/applications`
+#### `GET /api/v1/applications` (`API-43 (planned)`)
 
 - 설명: Application 목록 조회.
 - Query:
@@ -1396,7 +1427,7 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
   - `include_archived` (optional, default `false`)
   - `q` (optional): `key`, `name` 검색
 
-#### `POST /api/v1/applications`
+#### `POST /api/v1/applications` (`API-44 (planned)`)
 
 - 설명: Application 신규 생성.
 - 요청 body 필드:
@@ -1444,7 +1475,7 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 }
 ```
 
-#### `GET /api/v1/applications/{application_id}`
+#### `GET /api/v1/applications/{application_id}` (`API-45 (planned)`)
 
 - 설명: Application 상세 조회.
 - 응답 포함:
@@ -1452,10 +1483,11 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
   - 연결 Repository 목록
   - 하위 Project 롤업 요약
 
-#### `PATCH /api/v1/applications/{application_id}`
+#### `PATCH /api/v1/applications/{application_id}` (`API-46 (planned)`)
 
 - 설명: Application 메타/상태 수정.
-- 허용 필드: `name`, `description`, `owner_user_id`, `start_date`, `due_date`, `visibility`, `status`
+- 허용 필드: `name`, `description`, `owner_user_id`, `start_date`, `due_date`, `visibility`, `status` (+ 전이별 보조 필드 `hold_reason`/`resume_reason`/`archived_reason`).
+- 금지 필드: `key` (immutable — 요청 body 에 포함 시 `422 application_key_immutable`).
 - 상태 전이 규칙:
   - `planning -> active|on_hold|archived`
   - `active -> on_hold|closed|archived`
@@ -1472,6 +1504,8 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
   - `422 application_activation_precondition_failed`
   - `422 application_close_precondition_failed`
   - `422 invalid_status_transition_payload`
+  - `422 application_key_immutable`
+- 가드 표 SoT: [`project_management_concept.md` §13.2.1](../planning/project_management_concept.md) (권한/가드/실패 코드 매트릭스).
 
 요청 예시:
 
@@ -1482,18 +1516,19 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 }
 ```
 
-#### `DELETE /api/v1/applications/{application_id}`
+#### `DELETE /api/v1/applications/{application_id}` (`API-47 (planned)`)
 
-- 설명: Application archive.
-- 동작: `status=archived`, `archived_at` 기록.
+- 설명: **archive 전용 (soft-delete)** — hard delete 가 아님.
+- 동작: `status=archived`, `archived_at` 기록. 연결 Repository/Project 는 유지되며 `include_archived=true` 토글로만 노출.
+- hard delete (영구 삭제) 는 별도 endpoint 로 후속 sprint 에서 정의 — concept §10 미해결 항목 "영구 삭제 정책" 참조.
 
 ### 13.3 Application-Repository 연결
 
-#### `GET /api/v1/applications/{application_id}/repositories`
+#### `GET /api/v1/applications/{application_id}/repositories` (`API-48 (planned)`)
 
 - 설명: Application에 연결된 Repository 조회.
 
-#### `POST /api/v1/applications/{application_id}/repositories`
+#### `POST /api/v1/applications/{application_id}/repositories` (`API-49 (planned)`)
 
 - 설명: Repository 연결 생성.
 - 요청 body 필드:
@@ -1512,7 +1547,7 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
   - 정상: `active`
   - 부분장애: `degraded` (`sync_error_code` 기록)
   - 해제: `disconnected`
-- `sync_error_code` 표준:
+- `sync_error_code` 표준 (link 단위 최신 1건 캐시):
   - `provider_unreachable` (retryable=true)
   - `auth_invalid` (retryable=false)
   - `permission_denied` (retryable=false)
@@ -1521,6 +1556,7 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
   - `payload_schema_mismatch` (retryable=false)
   - `resource_not_found` (retryable=false)
   - `internal_adapter_error` (retryable=true)
+- **scope**: 본 `sync_error_code` 는 **link (application_id, repo_provider, repo_full_name) 단위의 최신 에러 1건만 캐시**한다. 개별 webhook event/payload 단위 상세 에러는 `webhook_events` (현행) 또는 후속 `adapter_event_logs` 테이블에 보관 (예: 동일 link 에서 1시간 동안 발생한 N건의 `webhook_signature_invalid` 는 link.sync_error_code 에 최신 1건 + 카운트는 별도 테이블).
 
 요청 예시:
 
@@ -1550,38 +1586,38 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 }
 ```
 
-#### `DELETE /api/v1/applications/{application_id}/repositories/{repo_key}`
+#### `DELETE /api/v1/applications/{application_id}/repositories/{repo_key}` (`API-50 (planned)`)
 
 - 설명: Application-Repository 연결 해제.
 
 ### 13.4 Repository 운영 지표 조회
 
-#### `GET /api/v1/repositories/{repository_id}/activity`
+#### `GET /api/v1/repositories/{repository_id}/activity` (`API-51 (planned)`)
 
 - 설명: commit/contributor/작업 추이 조회.
 
-#### `GET /api/v1/repositories/{repository_id}/pull-requests`
+#### `GET /api/v1/repositories/{repository_id}/pull-requests` (`API-52 (planned)`)
 
 - 설명: PR 상태/타임라인/활동 지표 조회.
 
-#### `GET /api/v1/repositories/{repository_id}/build-runs`
+#### `GET /api/v1/repositories/{repository_id}/build-runs` (`API-53 (planned)`)
 
 - 설명: 빌드 실행 이력/상태/소요 시간 조회.
 
-#### `GET /api/v1/repositories/{repository_id}/quality-snapshots`
+#### `GET /api/v1/repositories/{repository_id}/quality-snapshots` (`API-54 (planned)`)
 
 - 설명: 정적분석/품질 점수/게이트 결과 조회.
 
 ### 13.5 Repository 하위 Project
 
-#### `GET /api/v1/repositories/{repository_id}/projects`
+#### `GET /api/v1/repositories/{repository_id}/projects` (`API-55 (planned)`)
 
 - 설명: Repository 하위 Project 목록 조회.
 - Query:
   - `status` (optional)
   - `include_archived` (optional, default `false`)
 
-#### `POST /api/v1/repositories/{repository_id}/projects`
+#### `POST /api/v1/repositories/{repository_id}/projects` (`API-55 (planned)`)
 
 - 설명: Project 생성.
 - 요청 body 필드:
@@ -1595,7 +1631,7 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 - 제약:
   - `UNIQUE (repository_id, key)`
 
-#### `GET /api/v1/projects/{project_id}`
+#### `GET /api/v1/projects/{project_id}` (`API-56 (planned)`)
 
 - 설명: Project 상세 조회.
 - 응답 포함:
@@ -1604,17 +1640,17 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
   - 상/하위 마일스톤 매핑 요약
   - Integration 상태 요약
 
-#### `PATCH /api/v1/projects/{project_id}`
+#### `PATCH /api/v1/projects/{project_id}` (`API-56 (planned)`)
 
 - 설명: Project 메타/상태 수정.
 
-#### `DELETE /api/v1/projects/{project_id}`
+#### `DELETE /api/v1/projects/{project_id}` (`API-56 (planned)`)
 
-- 설명: Project archive.
+- 설명: Project archive (soft-delete) — Application archive 와 동일 규칙.
 
 ### 13.6 Application 롤업
 
-#### `GET /api/v1/applications/{application_id}/rollup`
+#### `GET /api/v1/applications/{application_id}/rollup` (`API-57 (planned)`)
 
 - 설명: Repository 단위 운영 지표를 Application 레벨로 집계해 조회.
 - Query:
@@ -1631,8 +1667,12 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
   - `fallbacks`: 가중치 누락/정책 불일치 시 적용된 fallback 목록
   - `data_gaps`: 누락/장애 provider 또는 repository 목록
 - 검증:
-  - `weight_policy=custom` 인 경우 `custom_weights`의 합은 1.0(±허용오차)이어야 한다.
+  - `weight_policy=custom` 인 경우 `custom_weights`의 합은 1.0(±허용오차)이어야 한다. **허용오차 기본값 = ±0.001** (1e-3) — 합이 [0.999, 1.001] 범위면 통과.
   - 음수 가중치는 허용하지 않는다 (`422 invalid_weight_policy`).
+- **Normalize 규칙 (weight_policy 별)**:
+  - `equal`: 모든 연결 Repository 가 `1/N` 가중치. 0개면 `weight_policy=equal` 이라도 가중치 맵은 빈 객체, 결과는 `data_gap`.
+  - `repo_role`: 기본 카탈로그 `primary=0.6 / sub=0.3 / shared=0.1`. 단일 카테고리 내 다중 repo 가 있으면 카테고리 가중치를 균등 분할 (예: primary 2개면 각 0.3). 카테고리가 0개면 해당 가중치는 다른 카테고리에 비례 재분배 후 정규화.
+  - `custom`: 명시되지 않은 repo 는 `equal` 카테고리 가중치로 fallback 후 합 정규화. `fallbacks` 메타에 `reason="custom_weight_missing"` 으로 기록.
 
 응답 예시:
 
@@ -1679,11 +1719,11 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 
 ### 13.7 Integration
 
-#### `GET /api/v1/integrations`
+#### `GET /api/v1/integrations` (`API-58 (planned)`)
 
 - 설명: Application/Project 연계 통합 설정 조회.
 
-#### `POST /api/v1/integrations`
+#### `POST /api/v1/integrations` (`API-58 (planned)`)
 
 - 설명: Jira/Confluence 연계 생성.
 - 요청 body 필드:
@@ -1692,13 +1732,15 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
   - `external_key`, `url`
   - `policy`: `summary_only|execution_system`
 
-#### `PATCH /api/v1/integrations/{integration_id}`
+#### `PATCH /api/v1/integrations/{integration_id}` (`API-58 (planned)`)
 
 - 설명: 연계 정책/키 수정.
 
-#### `DELETE /api/v1/integrations/{integration_id}`
+#### `DELETE /api/v1/integrations/{integration_id}` (`API-58 (planned)`)
 
 - 설명: 연계 해제.
+
+> **Jira 정책 cross-cut 메모 (`REQ-FR-PROJ-005` 후속)**: REQ-FR-PROJ-005 는 "Repository Jira 가 실행 SoT" 라는 하이브리드 정책을 명시한다. 그러나 `repo_provider` 가 `bitbucket|gitea|forgejo` 인 경우의 Jira 매핑 (= 비-Jira SCM 의 실행 이슈를 어떻게 Jira project 와 묶는가) 은 본 sprint 에서 결정되지 않음. concept §10 미해결 항목으로 이관, Integration sprint 에서 결정.
 
 ### 13.8 공통 에러 코드 (초안)
 
@@ -1706,13 +1748,17 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 role_not_enabled
 application_key_conflict
 invalid_application_key
+application_key_immutable
 application_activation_precondition_failed
 application_close_precondition_failed
 invalid_status_transition_payload
+invalid_status_transition
 repository_link_conflict
 invalid_repository_reference
+unsupported_repo_provider
 provider_unreachable
 webhook_signature_invalid
+invalid_weight_policy
 project_key_conflict
 integration_policy_violation
 ```

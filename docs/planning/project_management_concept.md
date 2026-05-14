@@ -143,12 +143,20 @@ applications
   archived_at        TIMESTAMPTZ NULL
 
 application_repositories
-  application_id      UUID FK applications.id
-  repo_provider      TEXT NOT NULL   -- bitbucket | gitea | forgejo | github | etc
-  repo_full_name     TEXT NOT NULL   -- org/repo
-  role               TEXT NOT NULL   -- primary | sub | shared
-  linked_at          TIMESTAMPTZ NOT NULL
-  PRIMARY KEY (application_id, repo_full_name)
+  application_id          UUID FK applications.id
+  repo_provider           TEXT NOT NULL   -- bitbucket | gitea | forgejo | github | etc
+  repo_full_name          TEXT NOT NULL   -- org/repo
+  external_repo_id        TEXT NULL        -- provider 내부 식별자 (있는 경우)
+  role                    TEXT NOT NULL   -- primary | sub | shared
+  sync_status             TEXT NOT NULL   -- requested | verifying | active | degraded | disconnected
+  sync_error_code         TEXT NULL        -- §13.3 표준 사전 (link 단위 최신 1건 캐시)
+  sync_error_retryable    BOOLEAN NULL
+  sync_error_at           TIMESTAMPTZ NULL
+  last_sync_at            TIMESTAMPTZ NULL
+  linked_at               TIMESTAMPTZ NOT NULL
+  PRIMARY KEY (application_id, repo_provider, repo_full_name)
+  -- 운영 룰: 동일 link 의 sync_error_code 는 최신 1건만 캐시. event 단위 상세 에러는
+  -- `webhook_events` (현행) 또는 후속 `adapter_event_logs` 에 별도 보관 (§13.3 참조).
 
 projects
   id                 UUID PK
@@ -192,9 +200,14 @@ quality_snapshots
   gate_passed        BOOLEAN NULL
   measured_at        TIMESTAMPTZ NOT NULL
 
-application_integrations
-  application_id      UUID FK applications.id
-  scope              TEXT NOT NULL   -- project | repository
+project_integrations
+  -- 참고: 본 컨셉 단계에서는 Application/Project 어느 레벨에서도 integration 을
+  -- 등록할 수 있도록 단일 테이블에 `scope` 컬럼으로 구분한다.
+  -- ERD §2.5 의 `PROJECT_INTEGRATIONS` 와 동일 entity (단일 명칭 채택).
+  id                 UUID PK
+  project_id         UUID FK projects.id NULL       -- scope=project 인 경우 필수
+  application_id     UUID FK applications.id NULL    -- scope=application 인 경우 필수
+  scope              TEXT NOT NULL   -- application | project
   integration_type   TEXT NOT NULL   -- jira | confluence
   external_key       TEXT NOT NULL
   url                TEXT NOT NULL
@@ -220,11 +233,12 @@ application_integrations
 
 | 항목 | 결정 후보 | 결정 시점 |
 | --- | --- | --- |
-| Application `key` 형식 (현재 10자 영문숫자, 정책 변경 가능) | 후속 design | Req sprint |
+| ~~Application `key` 형식 (현재 10자 영문숫자, 정책 변경 가능)~~ | **closed** — REQ-FR-APP-003 확정 (immutable, `^[A-Za-z0-9]{10}$`) | Req sprint (closed 2026-05-14) |
 | 영구 삭제 정책 | 보관 후 N일 + admin 재확인 | Design sprint |
 | Owner 위양 범위 | 2차 sprint | 후속 |
-| RBAC row-level enforcement | ADR-0011 후보 | Design sprint |
+| RBAC row-level enforcement | ADR-0011 후보 (placeholder draft 발급) | Design sprint |
 | 다중 SCM provider 운영 시 표준 provider 정책 | provider 동등 지원 + 표준 어댑터 확장 | Integration sprint |
+| 비-Jira SCM (bitbucket/gitea/forgejo) 의 Jira 매핑 | REQ-FR-PROJ-005 하이브리드 정책의 cross-cut. 외부 issue tracker scope 결정 | Integration sprint |
 
 ## 11. 후속 단계 진입 hook
 
@@ -360,8 +374,15 @@ application_integrations
 가중치 정책 결정:
 - 기본: `equal` (모든 연결 Repository 동일 가중치).
 - 예외 1: `repo_role` (`primary=0.6`, `sub=0.3`, `shared=0.1` 기본안, 조직 정책으로 조정 가능).
-- 예외 2: `custom` (Application 단위 관리자 정의, 합계 1.0 제약).
-- `custom`에서 특정 repo 가중치 미정의 시 `equal` fallback을 적용하고 `data_gap`에 이유를 남긴다.
+- 예외 2: `custom` (Application 단위 관리자 정의, 합계 1.0 ±0.001 허용오차 제약).
+- `custom`에서 특정 repo 가중치 미정의 시 `equal` fallback을 적용하고 `fallbacks` 메타에 `reason="custom_weight_missing"` 으로 이유를 남긴다.
+
+Normalize 규칙 (다중 repo / 카테고리 edge case):
+- `equal`: N개 repo 면 각 `1/N`. N=0 이면 가중치 맵 빈 객체 + 전체 결과 `data_gap` 표시.
+- `repo_role`: 동일 카테고리 다중 repo 가 있으면 카테고리 가중치를 그 카테고리 내 균등 분할 (예: primary 가 2개면 각 0.3). 카테고리가 0개면 그 가중치를 나머지 카테고리에 비례 재분배 후 합 1.0 으로 정규화.
+- `custom`: 합 1.0 검증 통과 후 적용. 누락 repo 는 위 fallback. 음수 가중치는 `422 invalid_weight_policy`.
+
+상태 전이 가드와 마찬가지로 본 §13.4 가 롤업 정책의 SoT 이고 `backend_api_contract.md` §13.6 의 표현은 이 SoT 의 요약이다.
 
 ### 13.5 Application 설계 오픈 이슈
 
@@ -379,3 +400,4 @@ application_integrations
 | 2026-05-13 | 리뷰 1차 보강 — archived 가시성/영구삭제 단계/Owner 위양 단계/`code` 제약 미해결 정합화. | 동일 sprint. |
 | 2026-05-13 | 컨셉 심화 — Application > Repository > Project 운영 계층, Jira/Confluence 하이브리드 정책, 상/하위 로드맵·마일스톤 롤업 규칙, PL·스프린트 운영 모델, 템플릿/예시 문서 링크 추가. | 사용자 워크숍 합의 반영. |
 | 2026-05-13 | 설계 고도화 — SCM 어댑터 결정표 + Application 상태전이/연결 라이프사이클/롤업 계산 규칙 추가. | 현재 세션 반영. |
+| 2026-05-14 | 리뷰 보강 — §7 데이터 모델 PK 정합 (application_id+repo_provider+repo_full_name) + 신규 컬럼 동기 + `project_integrations` 명 통일. §10 `key 형식` row close, 비-Jira SCM Jira 매핑 row 신규. §13.4 weight normalize 룰 + 허용오차 ±0.001 명문화. ADR-0011 placeholder 발급. | PR #104 본인 리뷰 보강. |

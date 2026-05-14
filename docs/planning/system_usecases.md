@@ -93,7 +93,7 @@
 | `UC-APP-01` | Application 등록 | Application 생성 + owner/KPI/기간 저장 | REQ-FR-APP-001 |
 | `UC-APP-02` | Application-Repository 연결 | 1 Application : N Repository 매핑 저장 | REQ-FR-APP-002 |
 | `UC-APP-03` | Application 상태 전이/보관 | status/archived 정책 적용 | REQ-FR-APP-001 |
-| `UC-APP-04` | Application 상세 조회 | 메타+연결 repo+상위 마일스톤 조회 | REQ-FR-APP-001,002 |
+| `UC-APP-04` | Application 상세 조회 | 메타 + 연결 Repository 목록 + Application 마일스톤 + 하위 Repository 마일스톤 롤업 조회 (Application 은 최상위 계층이므로 "상위" 는 없음) | REQ-FR-APP-001,002,004 |
 | `UC-APP-05` | Application 관리 권한 검증 | `system_admin`만 쓰기 허용, `pmo_manager` 비활성 시 403 반환 | REQ-FR-PROJ-000 |
 | `UC-APP-06` | Repository 운영 스냅샷 조회 | 작업현황/PR/빌드/품질 지표를 repo 단위로 조회 | REQ-FR-APP-005,006,007,008 |
 | `UC-APP-07` | 외부 도구 동기화/재동기화 | webhook+pull 기반 동기화, 중복/누락 보정 처리 | REQ-FR-APP-004, REQ-NFR-PROJ-004 |
