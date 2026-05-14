@@ -4,7 +4,7 @@
 - 범위: 머지된 PR #12 이후 시점부터 다음 단계 작업의 마일스톤·우선순위·의존 관계. 트랙별 *세부* 작업은 각 트랙의 세부 로드맵에서 관리.
 - 대상 독자: 프로젝트 리드, 백엔드/프론트엔드 개발자, 운영 담당자, 후속 작업자
 - 상태: draft (2026-05-08 신규 작성)
-- 최종 수정일: 2026-05-13 (Project 도메인 컨셉 1차 staged — §5 백로그 1행 추가)
+- 최종 수정일: 2026-05-13 (Application/Project 도메인 요구사항 고도화 — Usecase/ERD 산출물 반영)
 - 관련 문서:
   - 백엔드 세부 로드맵: [`ai-workflow/memory/backend_development_roadmap.md`](../ai-workflow/memory/backend_development_roadmap.md)
   - 프론트엔드 세부 로드맵: [`./frontend_development_roadmap.md`](./frontend_development_roadmap.md)
@@ -95,9 +95,8 @@
 - ⏳ **인사 DB 스키마 (초기)**: `name`, `system_id`, `employee_id`, `department_name`. `internal/hrdb/` 모듈 활용.
 - ⏳ **조직 polish**: 본 sprint 시리즈가 carve out 한 `backend_api_contract.md` §10.4 의 자세한 schema, `parent_id` 검증, primary_dept 자동 판정 등 (§5 백로그 항목).
 
-### M4: 실시간 대시보드 및 AI Gardener (Realtime & AI)
+### M4: 실시간 대시보드 및 운영 고도화 (Realtime & Ops)
 - **실시간 데이터 (WebSocket 확장 + replay)**: `infra.node.updated`, `ci.run.updated`, `risk.updated` event publish + 리소스 필터링 + last event replay. backend_roadmap §2 Phase 8 잔여 항목.
-- **AI Gardener**: Python `AnalysisService` gRPC server + Go Core client. backend_roadmap §2 Phase 9. Suggestion Feed 실데이터 바인딩 (frontend).
 - **command status WebSocket UI** (frontend Phase 4 마무리): command lifecycle 상태 변화의 UI 실시간 반영.
 - **과제 추적**: Gitea PR/Commit 기반 추적 화면 + Hourly Reconciliation (backend_roadmap §2 Phase 10).
 - **시스템 관리자 대시보드 (System Admin Dashboard)**:
@@ -118,7 +117,6 @@
 | :--- | :--- | :--- | :--- |
 | **Auth** | OIDC Token Exchange 및 세션 관리 | M2 | P0 |
 | **Realtime** | WebSocket Replay 및 리소스 필터링 | M3 | P1 |
-| **AI** | AnalysisService gRPC 클라이언트 구현 | M3 | P2 |
 | **Task** | Gitea REST 연동 및 데이터 정규화 | M4 | P3 |
 | **Admin** | Gitea Runner 상태 어댑터 구현 | M4 | P3 |
 
@@ -127,7 +125,6 @@
 | :--- | :--- | :--- | :--- |
 | **Auth** | `/auth/callback` 및 API 헤더 토큰 주입 | M2 | P0 |
 | **Dashboard** | 실시간 로그 스트리밍 UI 구현 | M3 | P1 |
-| **Gardener** | Suggestion Feed 실데이터 바인딩 | M3 | P2 |
 | **Task** | 과제 추적 대시보드 및 상세 페이지 | M4 | P3 |
 | **Admin** | 시스템 관리자 설정 및 Runner 모니터링 UI | M4 | P3 |
 
@@ -140,14 +137,14 @@
 ·§5.3-5 |
 | OS 서비스 wrapper 운영 진입 시점 결정 | M4 | P3 | ADR-0001 §8-7 |
 
-### 4.6 AI
+### 4.6 AI (v2)
 
 | 작업 | 마일스톤 | 우선순위 | 출처 |
 | --- | --- | --- | --- |
-| Python AI gRPC 서버 1차 | M3 | P3 | backend_roadmap §2 Phase 9 |
-| AI Gardener suggestion 모델 + Go Core 연동 | M3 | P3 | backend_roadmap §5 P3 |
-| Weekly report 생성 worker | M4 | P3 | frontend_integration §3.4 |
-| AI 알림 중재 (집중 시간 보호) 모델 | M4 | P3 | requirements §4-3·§5.3-2 |
+| Python AI gRPC 서버 1차 | v2 | P3 | backend_roadmap §2 Phase 9 |
+| AI Gardener suggestion 모델 + Go Core 연동 | v2 | P3 | backend_roadmap §5 P3 |
+| Weekly report 생성 worker | v2 | P3 | frontend_integration §3.4 |
+| AI 알림 중재 (집중 시간 보호) 모델 | v2 | P3 | requirements §4-3·§5.3-2 |
 
 ---
 
@@ -165,7 +162,7 @@
 | 기술 태깅 Kudos 가시성 | RBAC matrix와의 매핑 | requirements §5.1-3 |
 | 외부 부서 의존성 수동 등록 | UI / 모델 | requirements §5.2-6 |
 | `architecture/README.md`, `planning/README.md` TBD 스텁 | 본 통합 로드맵 채택 후 산출물로 채움 | 양자 |
-| **Project 도메인 (CRUD + 등록 + 조회)** — 시스템 관리자 등록·관리 vs 일반 사용자 조회 분리 | 컨셉 1차 완료 → REQ-FR / ARCH / API 단계적 발급 필요 | [`planning/project_management_concept.md`](./planning/project_management_concept.md) (2026-05-13) |
+| **Application/Project 도메인 (총괄 + 기간성 운영)** — 시스템 관리자 등록·관리 vs 일반 사용자 조회 분리 | REQ-FR 발급 완료 + 모듈별 Usecase/ERD 분리 카탈로그 완료. 다음: ARCH/API/마이그레이션 설계 진입 | [`planning/project_management_concept.md`](./planning/project_management_concept.md), [`planning/system_usecases.md`](./planning/system_usecases.md), [`planning/system_erd.md`](./planning/system_erd.md) (2026-05-13) |
 
 ---
 
@@ -195,7 +192,8 @@
 | 2026-05-08 | 초판 작성. M0~M4 정의, 트랙 매핑, 충돌 해소 표 정리. | PR #12, #13 머지 직후. claude/merge_roadmap 브랜치. |
 | 2026-05-08 | §6 충돌 해소 표에 RBAC 모델/enforcement 결정 2행 추가. | M1 PR-G1, ADR-0002 채택 반영. claude/m1-pr-g1-rbac-contract 브랜치. |
 | 2026-05-12 | §3 M2 갱신 — 핵심 흐름(로그인/로그아웃/계정/RBAC) done 표기 + 1차 완성 sprint 잔여 5 PR 명시 + out-of-scope 분리. | claude/login_usermanagement_finish 진입. |
-| 2026-05-13 | §5 백로그에 "Project 도메인 (CRUD + 등록 + 조회)" 1행 추가. 컨셉 문서 staged 상태로 안내. | sprint `claude/work_260513-p`. |
+| 2026-05-13 | §5 백로그에 "Application/Project 도메인 (총괄 + 기간성 운영)" 1행 추가. 컨셉 문서 staged 상태로 안내. | sprint `claude/work_260513-p`. |
+| 2026-05-13 | Application/Project 요구사항 고도화 반영 — REQ-FR-APP/REQ-FR-PROJ + 모듈별 UC/ERD 카탈로그(`planning/system_usecases.md`, `planning/system_erd.md`) 연결. 다음 단계(ARCH/API) 전환 기준 명시. | current session |
 
 ---
 

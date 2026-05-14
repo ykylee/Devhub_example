@@ -73,6 +73,14 @@ graph TD
 
 ## 4. 데이터 전략 (Data Strategy)
 
+### 4.0 SCM Provider Adapter 원칙
+
+- 외부 형상관리 연동은 `SCM Adapter Interface`를 기준으로 provider별 구현체를 분리한다.
+- Core 도메인은 provider 중립 계약(Repository/PR/Build/Quality/Event)만 사용하고, provider별 API 차이는 어댑터에서 변환한다.
+- `repo_provider`를 라우팅 키로 사용해 어댑터를 선택한다.
+- 신규 provider 추가는 "어댑터 등록 + 설정"으로 처리하며, 기존 도메인 API/화면 계약 변경을 최소화한다.
+- 장애 격리 원칙: 특정 provider 어댑터 장애는 해당 provider ingest 파이프라인으로만 제한하고 전체 수집 파이프라인 중단을 유발하지 않는다.
+
 ### 4.1 하이브리드 동기화
 - **Webhook:** Gitea의 모든 이벤트를 실시간 수집하여 즉시 반영.
 - **Hourly Pull:** 매 시간 전체 상태를 체크하여 동기화 유실 방지 (Reconciliation).
@@ -98,7 +106,7 @@ Hourly Pull reconciliation은 Webhook 누락을 보완하는 동기화 경로이
 ### 4.3 스토리지 구성
 - **PostgreSQL:**
     - 정형 데이터: 사용자, 프로젝트, 권한, 저장소 매핑.
-    - 비정형 데이터(JSONB): Gitea 원본 웹훅 이벤트, AI 분석 리포트 요약.
+    - 비정형 데이터(JSONB): Gitea 원본 웹훅 이벤트, (v2 예정) AI 분석 리포트 요약.
     - 보존 기간: 운영 로그 1개월, 개인화 데이터(Kudos 등)는 계정 삭제 후 1개월까지 보존.
 
 ## 5. UI/UX 및 시각화 전략
@@ -116,7 +124,7 @@ Hourly Pull reconciliation은 Webhook 누락을 보완하는 동기화 경로이
 
 ## 6. 보안 및 인증
 
-초기 구현은 Gitea Webhook 수집과 시스템 관리자 기능의 오남용 방지를 우선하며, DevHub 자체 사용자 계정(Account) 기반 1차 인증을 도입한 뒤 Gitea SSO 통합을 후속 단계로 분리합니다.
+초기 구현은 Gitea Webhook 수집과 시스템 관리자 기능의 오남용 방지를 우선하며, DevHub 자체 사용자 계정(Account) 기반 1차 인증을 도입한 뒤 Gitea SSO 통합을 후속 단계로 분리합니다. AI 가드너 기반 분석/추천 기능은 v2 범위로 분리합니다.
 
 ### 6.1 초기 구현 범위
 
@@ -180,7 +188,7 @@ accounts (신규)
 | --- | --- | --- |
 | Phase 1 | Webhook secret 검증, system admin role 분리, 관리자 작업 Audit Log | TASK-007 및 초기 시스템 관리자 기능 구현 기준 |
 | Phase 2 | Ory Hydra + Kratos 도입, DevHub 의 OIDC client 화, Kratos 기반 자격 증명/로그인/비밀번호 변경/계정 상태 관리, Kratos 이벤트 → DevHub audit log 매핑 | Hydra/Kratos 컨테이너 운영 진입 및 backend Phase 13 완료 시점 ([ADR-0001](./adr/0001-idp-selection.md)) |
-| Phase 3 | Gitea 사용자/조직/저장소 권한 동기화, 프로젝트별 role 매핑 | 프로젝트-저장소 매핑과 관리자 대시보드 확장 시점 |
+| Phase 3 | Gitea 사용자/조직/저장소 권한 동기화, Repository 하위 Project role 매핑 | Application-Repository-Project 매핑과 관리자 대시보드 확장 시점 |
 | Phase 4 | Gitea SSO 연동 기반 통합 인증, 자체 계정과의 병행/대체 정책 결정 | 운영 환경 전환 전 별도 보안 검토 후 도입 |
 
 ### 6.4 Audit Log 최소 필드

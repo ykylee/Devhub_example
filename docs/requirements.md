@@ -97,7 +97,7 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
 2. **기술 태깅 기반의 전문가 맵:**
     - '스텔스 전문가'라는 용어 대신 **'기술 태깅(Tech Tagging)'** 개념을 사용함.
     - 시스템이 인식한 전문성은 개발자에게 긍정적인 피드백(Kudos)과 함께 투명하게 공유하여 자발적 정보 제공 동기를 부여함.
-3. **AI 가드너 기반의 알림 중재:**
+3. **AI 가드너 기반의 알림 중재 (v2 예정):**
     - 모든 강제 알림은 **AI 가드너**가 사용자의 현재 업무 몰입 상태를 판단하여 전달 시점을 중재함.
     - 관리자의 긴급 요청이라도 개발자의 집중 시간을 보호하는 것을 원칙으로 함.
 4. **팀 성취 중심의 서비스 톤 정합:**
@@ -128,7 +128,7 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
     2. **개인화된 로드맵 및 현황 (Personalized):** '나의 마일스톤', '나의 잔여 작업량' 시각화.
     3. **기술 태깅 기반 전문가 맵 및 Kudos:** 데이터 가시성은 **파트장급(PL) 이상**으로 제한. 동료 간 피드백(Kudos) 가중치는 **그룹리더(GL) 이상**만 조회. 전문가 데이터를 기반으로 리뷰어 등을 **소극적으로 추천**하는 기능 포함.
     4. **내부 기반 상태 및 부재 관리:** DevHub 내 수동 상태 관리. 협업 타이밍 판단을 위한 최소 정보 공유 (업무 연혁과 분리 운영).
-    5. **위키 중심 AI 가드너 (Passive AI):** 
+    5. **위키 중심 AI 가드너 (Passive AI, v2 예정):** 
         - 데이터 수집 범위를 **위키 문서**로 제한하여 정보의 정제성 확보.
         - UI 구석에 체크박스와 코멘트 형태로 **소극적인 공유 제안**을 수행하여 개발자 피로도 최소화.
         - 가드너(사람)는 AI 분석 결과를 최종 승인/분류하는 역할 수행.
@@ -172,7 +172,7 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
 - **결정 사항:**
     1. **데이터 기반 리스크 판단 (관리자 뷰):**
         - **판단 기준:** 이슈 아이템의 생존 시간(Duration)이 **7일**을 초과하거나, 관련 Commit/PR 액티비티 추이가 급감하는 경우를 리스크로 자동 식별.
-        - **시각화:** AI 가드너가 위 지표를 분석하여 관리자 대시보드에 '주의/위험' 신호로 표시.
+        - **시각화 (v2):** AI 가드너가 위 지표를 분석하여 관리자 대시보드에 '주의/위험' 신호로 표시.
     2. **집중 시간 보호 및 알림 제어 (개발자 뷰):**
         - **기능:** 알림 On/Off 스위치, 특정 시간대 자동 차단(Schedule) 기능 제공.
         - **예외:** 'Emergency' 태그가 붙은 긴급 이슈는 집중 시간 설정과 무관하게 전달 가능하도록 설계.
@@ -190,20 +190,132 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
         - **권한 격리:** 인프라 모니터링, Runner 제어, 시스템 설정 등 핵심 관리 기능은 **시스템 관리자(System Admin) 역할에만 배타적으로 부여**함.
         - **인프라 제어:** 알림 임계치 설정, Runner 직접 제어(재시작/설정), 백업 상태 실시간 확인 기능을 제공함.
         - **계정 및 조직 관리:** Gitea와 연동된 계정, 사용자 권한, 조직 구성을 통합 관리하며, 향후 **Gitea와 SSO(Single Sign-On) 연동**을 통해 통합 인증 체계를 구축함 (초기 단계에서 2FA는 미도입).
-    7. **프로젝트 및 저장소 관리 (Project Manager / Admin):**
-        - **프로젝트 생애주기 자동화:** 신규 프로젝트 생성 시 다음 과정을 자동화함:
+    7. **Application/Repository/Project 관리 (System Admin):**
+        - **Application/Repository 생애주기 자동화:** 신규 Application 등록 이후 Repository 실행 환경을 다음 순서로 자동화함.
             1. Gitea 내 신규 저장소 자동 생성.
             2. 기본 브랜치 보호 정책(Branch Protection) 자동 적용.
-            3. 프로젝트 멤버 자동 초대 및 권한 설정.
-        - **저장소 연동 매핑:** 프로젝트-저장소 간 연결 상태를 관리하며, 추가적인 자동화 시나리오는 운영 단계에서 지속적으로 고도화함.
+            3. 저장소 멤버 자동 초대 및 권한 설정.
+        - **Project 운영 갱신:** Repository 하위 기간성 Project 생성/보관 정책과 연동하여 운영 주기(연간/반기/분기) 갱신을 지원함.
+        - **연결 매핑 관리:** Application-Repository, Repository-Project 연결 상태를 관리하며, 추가 자동화 시나리오는 운영 단계에서 지속 고도화함.
     8. **내부 전용 데이터 관리 (Internal Only):**
         - 팀 문화, Kudos(동료 칭찬), 이스터에그 등 Gitea에 기록하기 부적절하거나 팀 내 폐쇄성이 필요한 정보는 **DevHub 자체 DB**에만 보관.
+
+### 5.4 [Agenda 4] Project 운영 모델 고도화 (Requirements Phase)
+- **논의 배경:** 제품 수명 단위의 상위 관리와 연간 운영 단위의 행정 갱신을 함께 지원해야 한다. 이를 위해 `Application > Repository > Project > GitHub 실행 단위` 계층을 요구사항으로 확정한다.
+- **용어 정책 (확정):**
+    - **Application:** 제품 수명 주기와 함께 가는 최상위 총괄 단위.
+    - **Repository:** Application 하위 실행 단위 (1 Application : N Repository).
+    - **Project:** Repository 하위 기간성 운영 단위 (1 Repository : N Project, 연간/반기/분기 등 정책 기반 갱신 가능).
+    - **Execution Artifact:** Repository 내부의 Issue / Milestone / Project Board / Wiki(또는 Docs).
+
+#### 5.4.1 기능 요구사항 (REQ-FR)
+
+- **REQ-FR-PROJ-000 (MVP, 확정):** `Application > Repository > Project` 관리 쓰기 권한은 기본적으로 `system_admin`에 한정해야 한다.
+    - 대상 기능: Application 생성/수정/보관, Repository 연결/해제, Project 생성/수정/보관, Project 멤버/owner 관리, Integration 정책 변경, 마일스톤 매핑 관리.
+    - 예외 역할: `pmo_manager`는 후보 role로 정의할 수 있으나 정책 확정 전까지 `disabled` 상태로 유지한다.
+    - `pmo_manager` 활성화 전 요청은 `403 role_not_enabled`로 거절한다.
+- **REQ-FR-APP-001 (MVP, 확정):** 시스템 관리자는 Application을 생성/수정/보관(archive)할 수 있어야 한다.
+    - 필수 필드: `key`, `name`, `owner`, `start_date`, `due_date`, `visibility`, `status`.
+    - `status` 최소 상태: `planning`, `active`, `on_hold`, `closed`, `archived`.
+- **REQ-FR-APP-002 (MVP, 확정):** 하나의 Application은 0개 이상의 Repository를 연결할 수 있어야 한다.
+    - 연결 단위 필드: `repo_provider`, `repo_full_name`, `role(primary|sub|shared)`.
+    - 동일 Application 내 서로 다른 provider Repository를 동시에 연결할 수 있어야 한다 (예: bitbucket + gitea 병행).
+- **REQ-FR-APP-003 (MVP, 확정):** `Application.key`는 시스템 전역 고유값(unique)이어야 하며 관리 식별자로 사용해야 한다.
+    - 표시명(`name`) 변경과 무관하게 `key`는 안정 식별자로 유지한다.
+    - **변경 불가(immutable):** 발급 후 `key`는 변경할 수 없다. rename 이 필요하면 신규 Application 생성 + 기존 Application archive 절차로만 수행한다 (PATCH 응답 422 `application_key_immutable`).
+    - 현재 입력 정책: 영문숫자 조합 10자 (`^[A-Za-z0-9]{10}$`).
+    - 데이터베이스 컬럼은 정책 변경 여지를 위해 더 긴 길이(예: VARCHAR(32) 이상)를 허용하고, 실제 길이 제한은 애플리케이션 검증 정책으로 강제한다.
+- **REQ-FR-APP-004 (MVP, 확정):** Repository는 외부 형상관리 도구와 연결되는 구조여야 하며, DevHub는 운영/분석용 관리 데이터를 보유해야 한다.
+    - 외부 SoT: 코드/PR/빌드 원본.
+    - DevHub 보유: 연결 메타데이터, 동기화 상태, 운영 스냅샷.
+    - 지원 정책: 특정 SCM 단일 종속이 아니라 provider 추상화(`repo_provider`)를 사용하며, `bitbucket`, `gitea`, `forgejo` 등 복수 provider를 동등하게 지원/확장할 수 있어야 한다.
+- **REQ-FR-APP-005 (MVP, 확정):** Repository 작업현황을 수집/조회할 수 있어야 한다.
+    - 최소 지표: commit 활동량, active contributor 수, 작업 추이.
+- **REQ-FR-APP-006 (MVP, 확정):** PR/PR Activity 정보를 수집/조회할 수 있어야 한다.
+    - 최소 정보: PR 상태(open/draft/merged/closed), 생성/리뷰/코멘트/머지 이벤트 타임라인.
+- **REQ-FR-APP-007 (MVP, 확정):** 빌드 정보를 수집/조회할 수 있어야 한다.
+    - 최소 정보: run status, duration, branch/commit, 시작/종료 시각.
+- **REQ-FR-APP-008 (MVP, 확정):** 소스코드 품질 지표(정적분석/스코어링)를 수집/조회할 수 있어야 한다.
+    - 최소 정보: tool, quality score, gate pass/fail, metric 상세(coverage, bug/vuln, duplication 등).
+- **REQ-FR-APP-009 (MVP, 확정):** 형상관리 도구 연동은 provider별 어댑터 구조를 따라야 한다.
+    - 공통 도메인 계약(Repository/PR/Build/Quality 이벤트/스냅샷)과 provider 전용 구현을 분리한다.
+    - 신규 provider 추가 시 기존 도메인 API/화면 계약을 깨지 않고 어댑터 추가만으로 확장 가능해야 한다.
+    - provider별 인증/웹훅 검증/속도제한/에러 포맷 차이는 어댑터 내부에서 흡수한다.
+- **REQ-FR-APP-010 (MVP, 확정):** Application 상태 전이는 정의된 상태 머신 규칙을 따라야 한다.
+    - 상태 집합: `planning`, `active`, `on_hold`, `closed`, `archived`.
+    - `archived`는 기본적으로 종료 상태이며 일반 상태 전이로 복구하지 않는다.
+    - 상태 전이 권한: 기본적으로 `system_admin`만 허용한다 (`pmo_manager` 활성 전 `403 role_not_enabled`).
+    - 전이 검증 가드:
+      - `planning -> active`: 연결된 활성 Repository 1개 이상 필요.
+      - `active -> closed`: `severity=critical` 롤업 경고 0건 + 연결 Repository 1개 이상 필요.
+      - `on_hold -> active`: `due_date` 만료 시 재개 사유(`resume_reason`) 기록 필요.
+      - `* -> archived`: soft-delete 처리, `archived_reason` 기록 필요.
+- **REQ-FR-APP-011 (MVP, 확정):** Application-Repository 연결은 라이프사이클 상태를 가져야 한다.
+    - 최소 상태: `requested`, `verifying`, `active`, `degraded`, `disconnected`.
+    - 연결 검증 실패/일시 장애 시 `sync_error_code`를 기록해야 한다.
+    - `sync_error_code`는 표준 코드 사전을 사용해야 하며(`provider_unreachable`, `auth_invalid`, `permission_denied`, `rate_limited`, `webhook_signature_invalid`, `payload_schema_mismatch`, `resource_not_found`, `internal_adapter_error`), 임의 문자열 사용을 금지한다.
+    - `sync_error_code`에는 재시도 가능 여부(`retryable`)와 최근 발생 시각이 함께 관리되어야 한다.
+- **REQ-FR-APP-012 (MVP, 확정):** Application 롤업은 누락/장애 데이터를 숨기지 않고 `data_gap` 또는 경고 상태로 표시해야 한다.
+    - 최소 롤업 대상: PR 분포, 빌드 성공률/평균 시간, 품질 점수, gate 실패 건수.
+    - 기본 `weight_policy`는 `equal`(동일 가중)이다.
+    - 선택 `weight_policy`는 `repo_role`(primary/sub/shared 가중), `custom`(관리자 정의)를 지원할 수 있어야 한다.
+    - `custom` 정책은 가중치 합이 1.0(±허용오차)이어야 하며, 음수 가중치는 허용하지 않는다.
+- **REQ-FR-PROJ-001 (MVP, 확정):** 시스템 관리자는 Repository 하위 Project를 생성/수정/보관(archive)할 수 있어야 한다.
+    - 필수 필드: `key`, `name`, `owner`, `start_date`, `due_date`, `visibility`, `status`.
+    - `status` 최소 상태: `planning`, `active`, `on_hold`, `closed`, `archived`.
+- **REQ-FR-PROJ-002 (MVP, 확정):** 일반 사용자는 자신이 멤버인 Project 및 공개 Project를 조회할 수 있어야 한다.
+    - `archived` Project는 기본 숨김이며, 명시적 토글로 노출한다.
+- **REQ-FR-PROJ-003 (MVP, 확정):** 시스템 관리자는 Project별 멤버/책임자(owner)를 관리할 수 있어야 한다.
+- **REQ-FR-PROJ-004 (MVP, 확정):** 상위(Application) 로드맵/마일스톤과 하위(Repository) 로드맵/마일스톤을 연결(매핑)할 수 있어야 한다.
+    - 모든 하위 마일스톤은 상위 마일스톤에 `child -> parent` 매핑 가능해야 한다.
+- **REQ-FR-PROJ-005 (MVP, 확정):** Jira 연동은 하이브리드 정책을 지원해야 한다.
+    - 실행 이슈 Source of Truth는 Repository Jira.
+    - Project는 Repository 하위 기간성 운영 단위로 관리한다.
+    - Project Jira에 작업성 Story/Task 직접 생성은 정책 위반으로 취급.
+- **REQ-FR-PROJ-006 (MVP, 확정):** Confluence(또는 문서 체계)는 상/하위 분리 정책을 지원해야 한다.
+    - Project 문서: 방향성/의사결정/분기 계획.
+    - Repository 문서: 설계/RFC/runbook/회고.
+- **REQ-FR-PROJ-007 (MVP, 확정):** 스프린트는 Repository 단위로 운영되어야 하며, Application 레벨은 주간/월간 cadence로 상태를 롤업해야 한다.
+    - 권장 cadence: 주간 Program Sync, 월간 KPI/리스크 리뷰.
+- **REQ-FR-PROJ-008 (후속):** Project 영구 삭제는 `archive 후 N일 보존 + 관리자 재확인` 정책을 따라야 한다.
+- **REQ-FR-PROJ-009 (후속):** Owner 위양(RBAC row-level)은 ADR-0011 후보 결정 후 활성화한다.
+- **REQ-FR-PROJ-010 (후속):** `pmo_manager` 역할 활성화 시 권한 범위는 정책 확정 후 단계적으로 허용한다.
+    - 기본 후보 범위: `project.manage`, `project.member.manage`, `milestone.mapping.manage`.
+    - 제한 후보 범위: `application.manage`(수정만), `application.repo.link`(초기 비허용 권장).
+    - 금지 범위: 시스템 설정, 계정/조직/RBAC 정책 변경.
+
+#### 5.4.2 비기능/운영 요구사항 (REQ-NFR)
+
+- **REQ-NFR-PROJ-001 (MVP):** Project/Repository 매핑 정보는 감사(audit) 가능해야 하며 생성/수정/해제 이력을 기록해야 한다.
+- **REQ-NFR-PROJ-002 (MVP):** 상위 롤업 지표는 매핑 누락 항목을 조용히 제외하지 않고 경고 상태로 표시해야 한다.
+- **REQ-NFR-PROJ-003 (후속):** Project 대시보드 응답시간 목표(예: p95 2초 이내)와 페이지네이션 한계는 설계 단계에서 별도 계약한다.
+- **REQ-NFR-PROJ-004 (MVP):** 외부 형상관리/CI/품질 도구 연동 데이터는 idempotency key 기반 중복 방지 및 재동기화(reconciliation) 정책을 가져야 한다.
+- **REQ-NFR-PROJ-005 (MVP):** 어댑터 장애는 provider 단위로 격리되어야 하며, 특정 provider 장애가 전체 수집 파이프라인 중단으로 전파되지 않아야 한다.
+- **REQ-NFR-PROJ-006 (MVP):** Application 롤업 계산은 동일 요청 조건에서 재현 가능해야 하며, 집계 기준(기간/필터/가중치)을 메타데이터로 함께 제공해야 한다.
+    - `weight_policy`와 실사용 가중치 맵(`applied_weights`)을 응답 메타에 포함해야 한다.
+    - 가중치 누락 repository는 기본값 fallback(`equal`) 적용 여부를 메타에 명시해야 한다.
+
+#### 5.4.3 Usecase 산출물 (확정)
+
+- 본 아젠다의 설계 진입 직전 Usecase 산출물은 [`docs/planning/system_usecases.md`](./planning/system_usecases.md) 를 source-of-truth 로 사용한다.
+- 해당 문서의 `UC-*` 는 REQ와 ARCH/API 사이의 중간 추적 단계다.
+
+#### 5.4.4 ERD 산출물 (확정)
+
+- 데이터 모델 기준 문서는 [`docs/planning/system_erd.md`](./planning/system_erd.md) 를 사용한다.
+- 설계/구현 단계의 신규 엔티티·관계는 ERD 문서와 동기화해야 한다.
+
+#### 5.4.5 범위 경계 (Out of Scope)
+
+- 신규 Project 생성 시 Gitea 저장소 자동 생성/브랜치 보호/멤버 초대 자동화는 별도 sprint에서 진행한다 (`§5.3-7` 후속).
+- WebSocket 기반 실시간 위험 탐지는 M4 범위에서 다루고, AI 제안 자동화는 v2 범위에서 다룬다.
+- MFA 기반 위험 작업 다단계 확인은 운영 진입 직전 정책으로 별도 확정한다.
 
 ## 6. 기술 스택 결정 사항 (Technology Stack Decisions)
 
 기술 스택 상세 계약, 버전, 설치/검증 명령은 **[tech_stack.md](./tech_stack.md)**를 기준으로 관리합니다. 본 요구사항 문서에서는 제품 요구사항과 직접 연결되는 기술 결정 요약만 유지합니다.
 
-- **하이브리드 백엔드:** Gitea 연동, Webhook 수집, 시스템 제어, 권한 관리는 Go Core가 담당하고, AI 가드너와 분석성 작업은 Python AI가 담당합니다.
+- **하이브리드 백엔드:** Gitea 연동, Webhook 수집, 시스템 제어, 권한 관리는 Go Core가 담당합니다. AI 가드너와 분석성 작업(Python AI)은 v2에서 도입합니다.
 - **내부 통신:** Go Core와 Python AI의 분석 요청/응답은 gRPC를 기본 계약으로 사용합니다.
 - **프론트엔드:** 역할별 진입 우선순위와 실시간 상태 시각화는 Next.js 기반 UI에서 제공합니다.
 - **데이터베이스:** Gitea 원본 이벤트, 프로젝트/저장소/사용자/권한 관계, 비정형 분석 결과 저장에는 PostgreSQL을 사용합니다.

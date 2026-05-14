@@ -90,7 +90,12 @@ PR 단위의 의사결정과 보안 리뷰 결과는 *통합 로드맵 산출물
 
 | 문서 | 단계 | 메모 |
 | --- | --- | --- |
-| [`project_management_concept.md`](./project_management_concept.md) | concept (1차) | Project 신규 도메인 — CRUD + 조회 MVP, 시스템 관리자 등록·관리 vs 일반 사용자 조회 분리. 후속 sprint 에서 REQ-FR/ARCH/API 발급. |
+| [`project_management_concept.md`](./project_management_concept.md) | concept (1차) | Application > Repository > Project 운영 모델 — 총괄/실행/기간성 운영 단위 분리. 후속 sprint 에서 REQ-FR/ARCH/API 발급. |
+| [`project_operating_model_template.md`](./project_operating_model_template.md) | template | Application > Repository > Project 운영 템플릿. 역할/연결/Jira 정책/로드맵/마일스톤/cadence/KPI 체크리스트 제공. |
+| [`project_operating_model_example_2026.md`](./project_operating_model_example_2026.md) | example | 하이브리드 운영 모델 샘플 (Project 1건 + Repo 3건 + Jira/Confluence + 상/하위 마일스톤 매핑). |
+| [`system_usecases.md`](./system_usecases.md) | usecase | 코드베이스 전체 모듈 기준 Usecase 카탈로그 (`UC-*`, REQ↔DESIGN 중간 단계). |
+| [`system_erd.md`](./system_erd.md) | erd | 코드베이스 전체 모듈 ERD 카탈로그 + 통합 ERD (현행 + Project 확장). |
+| [`view_menu_screen_api_matrix.md`](./view_menu_screen_api_matrix.md) | ux+api matrix | 역할별(Developer/Manager/System Admin) 메뉴/화면 구성과 API 목록 매트릭스. M4/v2 범위 분리 포함. |
 
 ## 6. 변경 이력
 
@@ -99,6 +104,9 @@ PR 단위의 의사결정과 보안 리뷰 결과는 *통합 로드맵 산출물
 | 2026-04-30 | 초기 TBD 스텁 생성 |
 | 2026-05-08 | TBD 스텁 → 디렉터리 진입점 + 마일스톤·트랙·트래커 인덱스 (claude/merge_roadmap 브랜치) |
 | 2026-05-13 | §5.1 도메인 컨셉 (Concept stage) 인덱스 신설 — `project_management_concept.md` 1행 추가. sprint `claude/work_260513-p`. |
+| 2026-05-13 | §5.1 운영 모델 템플릿/예시 2종 추가 — `project_operating_model_template.md`, `project_operating_model_example_2026.md`. |
+| 2026-05-13 | §5.1 usecase/erd 분리 문서 추가 — `system_usecases.md`, `system_erd.md` (REQ→UC→DESIGN 및 모듈별 ERD 관리). |
+| 2026-05-13 | §5.1 역할별 메뉴/화면/API 매트릭스 문서 추가 — `view_menu_screen_api_matrix.md` (M4/v2 범위 분리 반영). |
 
 ## 7. 신규 자료 작성 규칙
 
