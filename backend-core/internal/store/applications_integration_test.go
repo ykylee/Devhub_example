@@ -30,15 +30,23 @@ const (
 //     의 모든 row 를 cleanup (TRUNCATE CASCADE)
 //   - test repository 2개 추가 (testRepoID1, testRepoID2)
 //   - SCM provider 카탈로그는 migration 000012 의 seed 그대로 유지
+//
+// PR #109 codex review P1 정정 (sprint claude/work_260514-f) — cleanup 을 multi-
+// statement + bind args 단일 호출에서 두 statement 분리 호출로 변경. pgx 의
+// prepared execution 은 multi-command query 를 거부하므로 이전 버전은 fixture
+// 단계에서 panic.
 func applicationsFixture(t *testing.T, ctx context.Context, pool *pgxpool.Pool) {
 	t.Helper()
-	const cleanup = `
+	const cleanupStatic = `
 TRUNCATE TABLE project_members, project_integrations, projects,
                application_repositories, applications,
-               pr_activities, build_runs, quality_snapshots RESTART IDENTITY CASCADE;
-DELETE FROM repositories WHERE id IN ($1, $2);`
-	if _, err := pool.Exec(ctx, cleanup, testRepoID1, testRepoID2); err != nil {
-		t.Fatalf("cleanup fixture: %v", err)
+               pr_activities, build_runs, quality_snapshots RESTART IDENTITY CASCADE;`
+	if _, err := pool.Exec(ctx, cleanupStatic); err != nil {
+		t.Fatalf("cleanup static tables: %v", err)
+	}
+	const cleanupRepos = `DELETE FROM repositories WHERE id IN ($1, $2);`
+	if _, err := pool.Exec(ctx, cleanupRepos, testRepoID1, testRepoID2); err != nil {
+		t.Fatalf("cleanup test repositories: %v", err)
 	}
 	const seedRepos = `
 INSERT INTO repositories (id, gitea_repository_id, full_name, name)
@@ -46,6 +54,26 @@ VALUES ($1, 8001, 'team/devhub-core', 'devhub-core'),
        ($2, 8002, 'team/devhub-web',  'devhub-web')`
 	if _, err := pool.Exec(ctx, seedRepos, testRepoID1, testRepoID2); err != nil {
 		t.Fatalf("seed repositories: %v", err)
+	}
+}
+
+// PR #109 codex P1 회귀 guard — fixture 가 정상 동작하는지 sanity check.
+// applicationsFixture 가 panic 없이 끝나고, repositories 가 seed 되었는지만 확인.
+// 이전 버전 (multi-statement + bind args) 이 회귀하면 setupApplicationsTest 안에서
+// applicationsFixture 가 t.Fatalf 로 실패하므로 본 test 도 즉시 실패.
+func TestIntegration_FixtureCleanupSanity(t *testing.T) {
+	pgStore, pool, ctx, teardown := setupApplicationsTest(t)
+	defer teardown()
+	_ = pgStore
+
+	// repositories 가 seed 되었는지 raw pool 로 확인.
+	var count int
+	if err := pool.QueryRow(ctx, `SELECT COUNT(*) FROM repositories WHERE id IN ($1, $2)`,
+		testRepoID1, testRepoID2).Scan(&count); err != nil {
+		t.Fatalf("count repositories: %v", err)
+	}
+	if count != 2 {
+		t.Errorf("expected 2 seeded repositories, got %d", count)
 	}
 }
 
