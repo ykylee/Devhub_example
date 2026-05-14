@@ -531,7 +531,25 @@ func (h *Handler) updateApplication(c *gin.Context) {
 					})
 					return
 				}
-				// active→closed 의 critical 롤업 0건 검증은 carve out (롤업 store 도입 sprint).
+			case curStatus == "active" && newStatus == "closed":
+				// concept §13.2.1 의 "active → closed: 롤업 critical 0건" 가드 (sprint
+				// claude/work_260514-c 가 흡수). 롤업 store 의 critical_warning_count
+				// 가 1 이상이면 close 거부 — 운영자가 critical 데이터 손실을 모르고
+				// closing 하는 사고 방지.
+				count, err := storeI.CountApplicationCriticalWarnings(c.Request.Context(), id)
+				if err != nil {
+					writeServerError(c, err, "applications.update.critical_warnings")
+					return
+				}
+				if count > 0 {
+					c.JSON(http.StatusUnprocessableEntity, gin.H{
+						"status": "rejected",
+						"error":  "active→closed requires critical warning count = 0",
+						"code":   "application_close_precondition_failed",
+						"critical_warning_count": count,
+					})
+					return
+				}
 			}
 		}
 		updated.Status = domain.ApplicationStatus(newStatus)

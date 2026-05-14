@@ -217,6 +217,30 @@ var routePermissionTable = map[routeKey]routePolicy{
 	{http.MethodGet, "/api/v1/applications/:application_id/repositories"}:                       {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionView},
 	{http.MethodPost, "/api/v1/applications/:application_id/repositories"}:                      {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionCreate},
 	{http.MethodDelete, "/api/v1/applications/:application_id/repositories/*repo_key"}:          {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionDelete},
+
+	// Repository 운영 지표 (API-51..54, sprint claude/work_260514-c). 본 endpoint 들은
+	// Application 의 연결 Repository 메트릭이므로 application_repositories:view 로 매핑.
+	{http.MethodGet, "/api/v1/repositories/:repository_id/activity"}:           {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/repositories/:repository_id/pull-requests"}:      {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/repositories/:repository_id/build-runs"}:         {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/repositories/:repository_id/quality-snapshots"}:  {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionView},
+
+	// Project CRUD (API-55..56, sprint claude/work_260514-c).
+	{http.MethodGet, "/api/v1/repositories/:repository_id/projects"}:  {Resource: domain.ResourceProjects, Action: domain.ActionView},
+	{http.MethodPost, "/api/v1/repositories/:repository_id/projects"}: {Resource: domain.ResourceProjects, Action: domain.ActionCreate},
+	{http.MethodGet, "/api/v1/projects/:project_id"}:                  {Resource: domain.ResourceProjects, Action: domain.ActionView},
+	{http.MethodPatch, "/api/v1/projects/:project_id"}:                {Resource: domain.ResourceProjects, Action: domain.ActionEdit},
+	{http.MethodDelete, "/api/v1/projects/:project_id"}:               {Resource: domain.ResourceProjects, Action: domain.ActionDelete},
+
+	// Application 롤업 (API-57, sprint claude/work_260514-c) — applications:view 매핑.
+	{http.MethodGet, "/api/v1/applications/:application_id/rollup"}: {Resource: domain.ResourceApplications, Action: domain.ActionView},
+
+	// Integration CRUD (API-58, sprint claude/work_260514-c) — applications:edit cross-cut
+	// (관리 행위라 admin 일임).
+	{http.MethodGet, "/api/v1/integrations"}:                    {Resource: domain.ResourceApplications, Action: domain.ActionView},
+	{http.MethodPost, "/api/v1/integrations"}:                   {Resource: domain.ResourceApplications, Action: domain.ActionEdit},
+	{http.MethodPatch, "/api/v1/integrations/:integration_id"}:  {Resource: domain.ResourceApplications, Action: domain.ActionEdit},
+	{http.MethodDelete, "/api/v1/integrations/:integration_id"}: {Resource: domain.ResourceApplications, Action: domain.ActionEdit},
 }
 
 // lookupRoutePolicy is exported for tests to assert the table contents without

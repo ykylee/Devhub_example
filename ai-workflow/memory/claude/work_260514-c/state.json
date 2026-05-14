@@ -1,0 +1,51 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "claude/work_260514-c",
+  "status": "in_progress",
+  "base_branch": "main",
+  "base_commit": "66ab5ff",
+  "scope": "API-51..58 세트 활성화. (1) API-51..54 Repository 운영 지표 read-only (pr_activities / build_runs / quality_snapshots / commit activity). (2) API-55..56 Project CRUD (handler 만 — store 는 이미 준비). (3) API-57 Application 롤업 + concept §13.4 weight_policy normalize 실 구현 + active→closed critical 가드 흡수 (직전 sprint carve_out 흡수). (4) API-58 Integration CRUD (scope polymorphism application/project).",
+  "started_at": "2026-05-14T02:45:00Z",
+  "updated_at": "2026-05-14T03:30:00Z",
+  "status_detail": "API-51..58 모두 activated. active→closed critical 가드 흡수 완료. backend test 12 패키지 PASS. PR open 대기.",
+  "traceability_impact": {
+    "REQ": "변경 없음 (REQ-FR-APP-005..008 / REQ-FR-PROJ-001..010 / REQ-NFR-PROJ-005..006 이미 발급)",
+    "ARCH": "후속 ARCH-XX 발급은 본 sprint 에서 carve out (rollup compute 가 별도 ARCH 후보)",
+    "API": "API-51..58 planned → activated (1차 read-only / 단순 CRUD 위주)",
+    "RM": "후속 sprint 발급",
+    "IMPL": "신규 IMPL-application-rollup-01 / IMPL-application-integration-01 / IMPL-application-repo-ops-01 / IMPL-project-handler-01",
+    "UT": "UT-application-rollup-XX / UT-project-handler-XX 등 신규 발급",
+    "TC": "e2e carve out 후속"
+  },
+  "carve_in": [
+    "API-51..54 Repository 운영 지표 read endpoint 4개 — store list 메서드 4개 + handler 4개 + route 4개",
+    "API-55..56 Project CRUD endpoint 5개 — handler 5개 + route 5개 (store 는 PR #106 에 이미 준비)",
+    "API-57 Application 롤업 — store ComputeApplicationRollup + handler + concept §13.4 weight_policy normalize 룰 (equal/repo_role/custom + ±0.001 허용오차) + meta 응답",
+    "active→closed critical 롤업 0건 가드 흡수 (직전 sprint carve_out 흡수)",
+    "API-58 Integration CRUD endpoint 4개 — store CRUD + handler + scope polymorphism (application/project)",
+    "RBAC matrix 영향 점검 (신규 endpoint 들이 기존 4 resource 에 매핑)",
+    "handler 단위테스트 1차 (happy + 핵심 edge)",
+    "매트릭스 §2.2 API-51..58 activated 갱신 + §3 row + §6 변경 이력"
+  ],
+  "carve_out": [
+    "Repository 운영 지표의 write endpoint (현재는 ingest pipeline 으로만 수집)",
+    "Project member 관리 endpoint (별도 sprint — RBAC owner 위양 sprint 와 같이)",
+    "Integration policy validation 강화 (어떤 policy 조합이 유효한지) — 후속",
+    "롤업 cache / pre-aggregation (성능 최적화) — 후속",
+    "e2e TC 작성",
+    "frontend `/admin/settings/applications` UI"
+  ],
+  "next_actions": [
+    "T46 API-51..54 Repository 운영 지표",
+    "T47 API-55..56 Project CRUD",
+    "T48 API-57 rollup + critical 가드",
+    "T49 API-58 Integration CRUD",
+    "T50 UT + 매트릭스 + commit + push + PR"
+  ],
+  "risks": [
+    "PR 크기 (~2500 lines) — 리뷰 부담 크나 squash merge 라 main history 단일 commit",
+    "롤업 가드 흡수 시 active→closed 호출자의 기존 운영 흐름 영향 — 사용자 알림 권장",
+    "Integration policy validation 의 'execution_system' 정책이 어떤 cross-cut 정합 필요한지 모호 — 1차는 enum check 만"
+  ]
+}

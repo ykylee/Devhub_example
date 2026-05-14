@@ -76,6 +76,23 @@ type ApplicationStore interface {
 	CreateProject(context.Context, domain.Project) (domain.Project, error)
 	UpdateProject(context.Context, domain.Project) (domain.Project, error)
 	ArchiveProject(context.Context, string, string) (domain.Project, error)
+
+	// Repository 운영 지표 (API-51..54, sprint claude/work_260514-c)
+	ListRepositoryActivity(context.Context, int64, store.RepositoryActivityOptions) (domain.RepositoryActivity, error)
+	ListRepositoryPullRequests(context.Context, int64, store.PRActivityListOptions) ([]domain.PRActivity, int, error)
+	ListRepositoryBuildRuns(context.Context, int64, store.BuildRunListOptions) ([]domain.BuildRun, int, error)
+	ListRepositoryQualitySnapshots(context.Context, int64, store.QualitySnapshotListOptions) ([]domain.QualitySnapshot, int, error)
+
+	// Application 롤업 (API-57)
+	ComputeApplicationRollup(context.Context, string, domain.ApplicationRollupOptions) (domain.ApplicationRollup, error)
+	CountApplicationCriticalWarnings(context.Context, string) (int, error)
+
+	// Integration CRUD (API-58)
+	ListIntegrations(context.Context, store.IntegrationListOptions) ([]domain.ProjectIntegration, int, error)
+	GetIntegration(context.Context, string) (domain.ProjectIntegration, error)
+	CreateIntegration(context.Context, domain.ProjectIntegration) (domain.ProjectIntegration, error)
+	UpdateIntegration(context.Context, domain.ProjectIntegration) (domain.ProjectIntegration, error)
+	DeleteIntegration(context.Context, string) error
 }
 
 type KratosAdmin interface {
@@ -228,6 +245,24 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	// :repo_key 가 'provider:org/repo' 컨벤션이라 path 에 `/` 포함. gin 의 catch-all
 	// `*repo_key` 사용 — 핸들러는 leading `/` 를 strip 한 뒤 콜론으로 분리.
 	v1.DELETE("/applications/:application_id/repositories/*repo_key", handler.deleteApplicationRepository)
+	// API-51..54 Repository 운영 지표 (sprint claude/work_260514-c)
+	v1.GET("/repositories/:repository_id/activity", handler.repositoryActivity)
+	v1.GET("/repositories/:repository_id/pull-requests", handler.repositoryPullRequests)
+	v1.GET("/repositories/:repository_id/build-runs", handler.repositoryBuildRuns)
+	v1.GET("/repositories/:repository_id/quality-snapshots", handler.repositoryQualitySnapshots)
+	// API-55..56 Project CRUD (sprint claude/work_260514-c)
+	v1.GET("/repositories/:repository_id/projects", handler.listProjects)
+	v1.POST("/repositories/:repository_id/projects", handler.createProject)
+	v1.GET("/projects/:project_id", handler.getProject)
+	v1.PATCH("/projects/:project_id", handler.updateProject)
+	v1.DELETE("/projects/:project_id", handler.archiveProject)
+	// API-57 Application 롤업 (sprint claude/work_260514-c)
+	v1.GET("/applications/:application_id/rollup", handler.applicationRollup)
+	// API-58 Integration CRUD (sprint claude/work_260514-c)
+	v1.GET("/integrations", handler.listIntegrations)
+	v1.POST("/integrations", handler.createIntegration)
+	v1.PATCH("/integrations/:integration_id", handler.updateIntegration)
+	v1.DELETE("/integrations/:integration_id", handler.deleteIntegration)
 	v1.POST("/integrations/gitea/webhooks", handler.receiveGiteaWebhook)
 	// Kratos self-service hooks (PR-M2-AUDIT, claude/login_usermanagement_finish).
 	// Bypasses authenticateActor + enforceRoutePermission via publicAPIPaths +
