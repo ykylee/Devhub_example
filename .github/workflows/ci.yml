@@ -101,9 +101,34 @@ jobs:
       - name: Run integration tests
         env:
           DEVHUB_TEST_DB_URL: postgres://runner@localhost:5432/devhub?sslmode=disable
-        # -v 로 verbose 출력 — 실패 시 CI 로그에서 fail 메시지 직접 노출.
+        # -v 로 verbose 출력. tee 로 분기해서 GITHUB_STEP_SUMMARY 에도 적재 —
+        # raw log endpoint 가 일부 위치에서 접근 timeout 인 경우에도 PR 페이지
+        # 의 Summary 탭에서 fail 메시지를 즉시 확인 (PR #110 sprint 진단에서
+        # 발견한 endpoint 차단 우회).
         run: |
-          cd backend-core && go test -count=1 -v -run 'TestIntegration_' ./internal/store/...
+          set +e
+          cd backend-core
+          go test -count=1 -v -run 'TestIntegration_' ./internal/store/... | tee /tmp/integration-test.log
+          exit_code=${PIPESTATUS[0]}
+          {
+            echo "## Backend Integration Test Results"
+            echo ""
+            echo '<details><summary>Click to expand full log (last 300 lines)</summary>'
+            echo ""
+            echo '```'
+            tail -300 /tmp/integration-test.log
+            echo '```'
+            echo ""
+            echo '</details>'
+            echo ""
+            if [ "$exit_code" -ne 0 ]; then
+              echo "**Failures (FAIL lines):**"
+              echo '```'
+              grep -E "^--- FAIL|FAIL\b" /tmp/integration-test.log || echo "(grep returned non-zero — see full log)"
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$exit_code"
 
   frontend-unit:
     name: Frontend Unit Tests
