@@ -1,12 +1,67 @@
-# Session Handoff — main (2026-05-13 EOD)
+# Session Handoff — main (2026-05-14 EOD)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
-- 범위: 2026-05-13 세션 종료. 머지 17건 (PR #86~#102) — M3 마일스톤 1차 closing + 후속 1-4 + M4 전 잔여 + Project 도메인 컨셉 1차 staged.
+- 범위: 2026-05-14 세션 종료. 본 세션 추가 7 PR (PR #104~#110) — Application/Repository/Project 도메인 backend 1차 완성 (API-01~58 전체 activated) + codex 외부 리뷰 흡수 2회 + postgres integration test + CI backend-integration job.
 - 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
-- 상태: M1/M2/M3 모두 1차 closing. ADR 5건 신규 (0006~0010). M4 진입 준비 완료 — RM-M4-01..09 (9 항목) + M3 carve out (6 항목) + Project 도메인 후속 (Req → Usecase → Design → Implementation) 이 다음 세션 진입 후보.
-- 최종 수정일: 2026-05-13 (세션 종료, PR #102 + housekeeping)
-- 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [상태 스냅샷](./state.json), [거버넌스](../../docs/governance/README.md), [추적성 매트릭스](../../docs/traceability/report.md), [Project 도메인 컨셉](../../docs/planning/project_management_concept.md).
-- 브랜치: `main` (HEAD `244f6b1`, PR #102 squash 직후. 본 housekeeping 머지 후 추가 갱신).
+- 상태: M1/M2/M3 모두 1차 closing (이전). **Application 도메인 1차 완성** (본 세션) — API-41~58 activated, 마이그레이션 000012~000018 (7), ADR-0011 accepted, RBAC matrix 4 신규 resource (system_admin 일임), CI 5 job. 다음 진입 후보: frontend UI / ADR-0011 §4.2 owner 위양 / critical 임계치 외부화 / Repository commit activity ingest / Project 가드 정책 / M4 RM-M4-XX 본격.
+- 최종 수정일: 2026-05-14 (세션 종료, PR #110 + housekeeping)
+- 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [상태 스냅샷](./state.json), [거버넌스](../../docs/governance/README.md), [추적성 매트릭스](../../docs/traceability/report.md), [Project 도메인 컨셉](../../docs/planning/project_management_concept.md), [ADR-0011 RBAC row-scoping](../../docs/adr/0011-rbac-row-scoping.md).
+- 브랜치: `main` (HEAD `d29f2ac`, PR #110 squash 직후. 본 housekeeping 머지 후 추가 갱신).
+
+## 0. 2026-05-14 머지 흐름 (PR #104~#110, 7건)
+
+```
+d29f2ac PR #110 — fix(test,ci,store): PR #109 codex review hotfix — B1 fixture + I1 setup + I3 backend-integration job + 2 SQL fix + GITHUB_STEP_SUMMARY (claude/work_260514-f)
+1e38c4d PR #109 — test(store): postgres integration test 도입 + P1/P2 회귀 guard 23 test (claude/work_260514-e)
+7822a91 PR #108 — fix(application,store,httpapi): PR #107 codex review hotfix — P1 custom weight normalize + P2 UpdateIntegration unique mapping (claude/work_260514-d)
+f11bdbb PR #107 — feat(application,store,httpapi,docs): API-51..58 세트 활성화 + active→closed critical 가드 흡수 (claude/work_260514-c)
+66ab5ff PR #106 — feat(application,store,httpapi,docs): Application Design 2차 — A1+A2+A3 (API-41~50 activated) (claude/work_260514-b)
+642d976 PR #105 — feat(application,adr,docs): Application Design 1차 + ADR-0011 결정 (claude/work_260514-a)
+63a7ea2 PR #104 — docs: Application/Repository/Project 설계 고도화 + SCM 어댑터 모델 + self-review 13건 보강 (codex/project_concept_design)
+```
+
+## 0.1 Application 도메인 1차 완성 인벤토리
+
+| 항목 | 결과 |
+| --- | --- |
+| API | API-01~58 전체 activated. 본 세션이 API-41..58 (18 endpoint group) 모두 활성화. |
+| 마이그레이션 | 000012~000018 (7건) — scm_providers + applications + application_repositories + projects + project_members + project_integrations + pr_activities + build_runs + quality_snapshots + RBAC seed |
+| ADR | ADR-0011 RBAC row-scoping accepted (옵션 C 1차 + 옵션 B 단계적 확장 옵션) |
+| RBAC | 4 신규 resource (`applications` / `application_repositories` / `projects` / `scm_providers`) — system_admin only |
+| Frontend | `PermissionMatrix` 9 resource 확장 (PR #105 self-review B1) |
+| Domain types | Application / ApplicationRepository / SCMProvider / Project / ProjectMember / ProjectIntegration / PRActivity / BuildRun / QualitySnapshot / RepositoryActivity + WeightPolicy / Rollup* |
+| Store interface | 27 메서드 (ApplicationStore) |
+| Handler | 14 endpoint with 상태 전이 머신 + 가드 + audit emit (과거형 시제) |
+| Unit test | 43 application 관련 (handler 25 + project 8 + integration 6 + rollup 4) |
+| Integration test | 25 (Applications 9 + Repository ops 8 + Projects+Integrations 8 — DEVHUB_TEST_DB_URL 환경) |
+| CI job | 4 → 5 (Workflow Lint / Backend Unit / Frontend Unit / E2E / **Backend Integration 신설**) |
+| 본인 리뷰 | 4단계 × 5회 (#104, #105, #106, #107, #109/#110) — 모두 diff 재검토 → 코멘트 → 보강 → 머지 |
+| codex 외부 리뷰 흡수 | 2회 (#107 → #108 hotfix / #109 → #110 hotfix) |
+
+## 0.2 codex review cycle 학습 (다음 세션 적용)
+
+머지 후 codex 외부 리뷰가 inline P1/P2 로 도착하는 시나리오가 본 세션에 2회 발생:
+- PR #107 → P1 custom weight normalize 미실행 + P2 UpdateIntegration unique 매핑 누락 → PR #108 hotfix
+- PR #109 → P1 fixture cleanup SQL multi-statement + bind args → PR #110 hotfix
+
+본 세션이 정착한 패턴:
+1. 머지 후 codex 외부 리뷰 확인
+2. inline P1/P2 발견 시 hotfix PR 진입 (별도 브랜치)
+3. 정정 + 회귀 guard test 추가 (integration test 가 결정적)
+4. self-review 4단계 일관 유지
+
+## 1. 다음 세션 진입 후보 (우선순위 순)
+
+1. **frontend `/admin/settings/applications` UI** — IA 설계 + 화면 흐름. PR #105 self-review B1 의 PermissionMatrix 확장만 했고 페이지 자체는 미생성.
+2. **ADR-0011 §4.2 enforceRowOwnership helper** — Owner 위양 2차 단계 (pmo_manager 활성화 sprint). 시그니처는 ADR-0011 §6 에 명시.
+3. **critical_warning_count 임계치 외부화** — concept §13.2.1 운영 정책 테이블 신설 + handler lookup.
+4. **CountApplicationCriticalWarnings lightweight SQL** — 성능 (현재는 전체 rollup compute 재호출).
+5. **Repository commit activity ingest** — pr_activities 외 commit 단위 이벤트.
+6. **Project active→closed 가드 정책 결정** — Application 만 critical 가드, Project 는 단순 transition.
+7. **pr_activities.payload sanitization** — system_admin 외 노출 방어.
+8. **quality_snapshots idempotency 결정** — UNIQUE 추가 vs history retention.
+9. **M4 RM-M4-XX 본격 진입** — WebSocket 확장 / replay / System Admin 대시보드 등.
+10. **세션 진입 시점에 사용자 환경 ops verification** — `scripts/setup-test-db.sh` 1회 실행 권장 (integration test 가 CI 외에 로컬에서도 정합).
 
 ## 0. 2026-05-13 머지 흐름
 

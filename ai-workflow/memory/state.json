@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-05-13 세션 종료 (housekeeping sync 2차). PR #86~#102 (17건) 머지 완료 — M3 1차 closing + M4 진입 준비 + Project 도메인 컨셉 1차 staged. 다음 세션 진입 후보: (a) M4 RM-M4-XX 우선순위 결정 + sprint plan, (b) M3 carve out (6 항목), (c) Project 도메인 후속 Req sprint (REQ-FR-* 발급 + requirements §5.7 확장 또는 §5.8 신설).",
-  "updated_at": "2026-05-13T19:30:00Z",
-  "head_commit": "244f6b1",
-  "head_summary": "Merge pull request #102 (docs(planning): Project 도메인 컨셉 1차 — CRUD + 등록 + 조회 MVP scope, sprint claude/work_260513-p)",
+  "status": "2026-05-14 세션 종료 (housekeeping sync). 추가 7 PR 머지 — #104 (Application/Repository/Project 설계 고도화 + SCM 어댑터) / #105 (Application Design 1차 scaffolded + ADR-0011 accepted) / #106 (Application Design 2차 — API-41~50 activated) / #107 (API-51~58 활성화 + active→closed critical 가드) / #108 (codex hotfix — custom weight normalize + UpdateIntegration unique) / #109 (postgres integration test 23) / #110 (CI backend-integration job + 2 SQL fix + GITHUB_STEP_SUMMARY). **API 도메인 1차 완성** — API-01~58 전체 activated, 마이그레이션 000012~000018 (7개), ADR-0011 accepted, RBAC matrix 4 신규 resource, CI 5 job (Backend Integration 신설). 다음 세션 진입 후보: (a) frontend `/admin/settings/applications` UI, (b) ADR-0011 §4.2 enforceRowOwnership (pmo_manager 활성화), (c) critical 임계치 외부화 + CountApplicationCriticalWarnings 성능 분리, (d) Repository commit activity ingest, (e) Project active→closed 가드 정책 결정, (f) pr_activities.payload sanitization, (g) M4 RM-M4-XX 본격 진입.",
+  "updated_at": "2026-05-14T05:00:00Z",
+  "head_commit": "d29f2ac",
+  "head_summary": "Merge pull request #110 (fix(test,ci,store): PR #109 codex review hotfix — B1 fixture + I1 setup + I3 backend-integration job, sprint claude/work_260514-f)",
   "milestones": {
     "M0": {
       "status": "done",
@@ -151,6 +151,15 @@
   "discarded_sprints_2026_05_12": [
     {"slot": "work_260512-h", "reason": "진입 직후 후보 (M2 hygiene users.kratos_identity_id) 가 PR-L4 (809f525, work_26_05_11-e) 에 이미 머지된 것 확인. 신규 작업 없어 폐기."}
   ],
+  "merged_prs_2026_05_14": [
+    {"pr": 104, "sprint": "codex/project_concept_design", "title": "docs: Application/Repository/Project 설계 고도화 및 SCM 어댑터 모델 정리 + self-review 13건 보강", "merge_commit": "63a7ea2"},
+    {"pr": 105, "sprint": "claude/work_260514-a", "title": "feat(application,adr,docs): Application Design 1차 + ADR-0011 결정 + self-review 10건 보강", "merge_commit": "642d976"},
+    {"pr": 106, "sprint": "claude/work_260514-b", "title": "feat(application,store,httpapi,docs): Application Design 2차 — A1+A2+A3 (API-41~50 activated) + self-review 9건 보강", "merge_commit": "66ab5ff"},
+    {"pr": 107, "sprint": "claude/work_260514-c", "title": "feat(application,store,httpapi,docs): API-51~58 세트 활성화 + active→closed critical 가드 + self-review 11건 보강", "merge_commit": "f11bdbb"},
+    {"pr": 108, "sprint": "claude/work_260514-d", "title": "fix(application,store,httpapi): PR #107 codex review hotfix — P1 custom weight normalize + P2 UpdateIntegration unique mapping", "merge_commit": "7822a91"},
+    {"pr": 109, "sprint": "claude/work_260514-e", "title": "test(store): postgres integration test 도입 + P1/P2 회귀 guard (23 test)", "merge_commit": "1e38c4d"},
+    {"pr": 110, "sprint": "claude/work_260514-f", "title": "fix(test,ci,store): PR #109 codex review hotfix — B1 fixture + I1 setup + I3 backend-integration job + 2 SQL fix + GITHUB_STEP_SUMMARY", "merge_commit": "d29f2ac"}
+  ],
   "next_actions": {
     "m1_remaining": [],
     "tdd_followups": [
@@ -192,6 +201,33 @@
       "RM-M4-08: ADR-0007 RBAC PermissionCache LISTEN/NOTIFY 실제 구현 + 통합 테스트",
       "RM-M4-09: 외부 SSO 통합 (Gitea 연동 등)"
     ],
-    "ops_verification": "사용자 환경에서 docs/setup/test-server-deployment.md 의 §6-§7 e2e 절차 1회 수행 권장. E2E baseline 자동화는 PR #58 이후 `cd frontend && npm run e2e` 한 줄. PR #76 hardening 으로 stale rotation 도 다음 실행에서 자동 복구."
+    "application_domain_carve_out_2026_05_14": [
+      "frontend `/admin/settings/applications` UI (별도 frontend sprint) — IA 설계부터",
+      "ADR-0011 §4.2 enforceRowOwnership helper 1차 구현 (pmo_manager 활성화 sprint) — Owner 위양 2차 단계",
+      "critical_warning_count 임계치 외부화 (concept §13.2.1) — 운영 정책 테이블 신설",
+      "CountApplicationCriticalWarnings lightweight SQL 분리 (성능 — 현재는 전체 rollup compute 재호출)",
+      "pr_activities.payload sanitization 또는 field allowlist (system_admin 외 노출 방어)",
+      "Project active→closed 가드 정책 결정 (현재 Application 만 critical 가드, Project 는 단순 transition)",
+      "quality_snapshots idempotency 결정 — UNIQUE 추가 vs history retention",
+      "Repository commit activity ingest (pr_activities 외 commit 단위 이벤트)",
+      "fixture 의 transactional cleanup 도입 (PR #109 I2 성능)",
+      "API-41..58 의 e2e TC (Playwright) 작성"
+    ],
+    "application_domain_done_2026_05_14": {
+      "scope": "Application/Repository/Project 도메인 backend 1차 완성. API-01~58 전체 activated.",
+      "components": {
+        "domain_types": "Application / ApplicationRepository / SCMProvider / Project / ProjectMember / ProjectIntegration / PRActivity / BuildRun / QualitySnapshot / RepositoryActivity / WeightPolicy / RollupOptions / RollupMeta / RollupPeriod / RollupFallback / RollupDataGap / ApplicationRollup + CustomWeightTolerance(=0.001)",
+        "migrations": "000012 scm_providers (seed bitbucket/gitea/forgejo/github) / 000013 applications (UUID PK, key UNIQUE, archived_consistency CHECK) / 000014 application_repositories (composite PK + sync_status + sync_error_code 8종 CHECK) / 000015 projects (UUID PK + UNIQUE (repository_id, key)) / 000016 project_members + project_integrations (scope polymorphism partial UNIQUE) / 000017 pr_activities + build_runs + quality_snapshots / 000018 RBAC matrix 4 신규 resource seed",
+        "store_methods": "27 (ApplicationStore interface) — Applications 5 + ApplicationRepository 4 + SCMProvider 2 + Project 5 + Repository ops 4 + Rollup 2 + Integration 5",
+        "handlers": "14 endpoint — API-41 SCM list, API-42 SCM update, API-43..47 Application CRUD, API-48..50 Link CRUD, API-51..54 Repository ops, API-55..56 Project CRUD, API-57 Rollup, API-58 Integration CRUD",
+        "tests": "Application handler 25 + Project handler 8 + Integration handler 6 + Rollup handler 4 + integration tests 25 (CI backend-integration job)",
+        "guards_active": "Application 상태 전이 머신 (allowedStatusTransitions table); planning→active 활성 repo ≥1; hold/resume/archived_reason 필수; active→closed critical_warning_count=0; application_key_immutable; SCM adapter_version_immutable; weight_policy normalize sum=1.0 ±0.001",
+        "audit_namespace": "application.{created,updated,archived} / application_repository.{linked,unlinked} / scm_provider.updated / project.{created,updated,archived} / integration.{created,updated,deleted}",
+        "rbac_resources": "applications / application_repositories / projects / scm_providers (system_admin only — ADR-0011 §4.1 1차)",
+        "ci_jobs": "5 (Workflow Lint / Backend Unit / Frontend Unit / E2E / Backend Integration 신설)"
+      },
+      "adr": "ADR-0011 accepted (옵션 C handler/service 코드 검증 1차 채택, 옵션 B row_predicate 단계적 확장 옵션 보존)"
+    },
+    "ops_verification": "사용자 환경에서 docs/setup/test-server-deployment.md 의 §6-§7 e2e 절차 1회 수행 권장. E2E baseline 자동화는 PR #58 이후 `cd frontend && npm run e2e` 한 줄. PR #76 hardening 으로 stale rotation 도 다음 실행에서 자동 복구. 본 세션에서 backend integration test 가 CI 에서 검증되므로 추가 ops 확인 권장사항: 사용자 환경 (`DEVHUB_TEST_DB_URL`) 에서 `scripts/setup-test-db.sh && cd backend-core && go test -v -run TestIntegration_ ./internal/store/...` 1회 실행."
   }
 }

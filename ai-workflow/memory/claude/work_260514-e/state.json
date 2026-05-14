@@ -1,0 +1,45 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "claude/work_260514-e",
+  "status": "in_progress",
+  "base_branch": "main",
+  "base_commit": "7822a91",
+  "scope": "postgres integration test 도입 — Application/Repository/Project/Integration store body 의 PostgreSQL 정합성 검증. CI 의 backend-unit job 은 DEVHUB_TEST_DB_URL 미설정으로 자동 skip (기존 postgres_integration_test.go / users_units_test.go 패턴 일관). 로컬 검증 + 후속 CI 잡 분리 carve out.",
+  "started_at": "2026-05-14T04:00:00Z",
+  "updated_at": "2026-05-14T04:00:00Z",
+  "traceability_impact": {
+    "REQ": "변경 없음",
+    "ARCH": "변경 없음",
+    "API": "변경 없음 (API 활성/응답 변경 없음)",
+    "RM": "변경 없음",
+    "IMPL": "기존 IMPL-application-{store,handler}-01 + IMPL-application-{repo_ops,rollup,integration}-01 의 검증 layer 추가 (책임 변화 없음)",
+    "UT": "신규 UT-application-store-integration-XX / UT-repository-ops-integration-XX / UT-integration-store-integration-XX 다수 발급",
+    "TC": "carve out (e2e 후속)"
+  },
+  "carve_in": [
+    "Applications store 16 메서드의 happy + UNIQUE/FK 위반 + archived consistency 검증",
+    "ApplicationRepository link 의 composite PK + sync_error CHECK + CountActiveApplicationRepositories",
+    "SCM provider Update + adapter_version 보호 (store layer 는 unconditional 이지만 catalogue lookup 검증)",
+    "Projects CRUD + UNIQUE (repository_id, key)",
+    "Repository ops (pr_activities/build_runs/quality_snapshots) fixture + ListRepository* 검증",
+    "ComputeApplicationRollup 의 equal/repo_role/custom 정규화 — **P1 codex review 정정 회귀 guard (sum=1.0 invariant)**",
+    "Integration CRUD + partial UNIQUE — **P2 codex review 정정 회귀 guard**"
+  ],
+  "carve_out": [
+    "CI backend-unit job 에 integration test 분리 잡 추가 (DEVHUB_TEST_DB_URL + 마이그레이션 적용 setup)",
+    "ARCH-XX 발급 (rollup compute architecture) — 별도 design sprint",
+    "기존 work_260514-c carve_out 인계 (frontend UI / ADR-0011 §4.2 / critical 임계치 외부화 / payload sanitization 등)"
+  ],
+  "next_actions": [
+    "T59 Applications store integration test",
+    "T60 Repository ops + rollup integration test (P1 회귀 guard)",
+    "T61 Integrations + Projects integration test (P2 회귀 guard)",
+    "T62 매트릭스 + commit + push + PR"
+  ],
+  "risks": [
+    "Integration test 는 로컬 DEVHUB_TEST_DB_URL 환경에서만 실제 실행 — CI 에서는 skip 만 검증",
+    "마이그레이션 000012..000018 가 test DB 에 적용된 상태를 가정 — fixture 가 의존 가정 명시",
+    "ComputeApplicationRollup 의 P1 정규화 회귀 guard 가 핵심 (수치 정확성 검증)"
+  ]
+}

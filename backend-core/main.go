@@ -28,6 +28,7 @@ func main() {
 	var commandStore httpapi.CommandStore
 	var auditStore httpapi.AuditStore
 	var organizationStore httpapi.OrganizationStore
+	var applicationStore httpapi.ApplicationStore
 	var rbacStore httpapi.RBACStore
 	realtimeHub := httpapi.NewRealtimeHub()
 	var worker *commandworker.Worker
@@ -46,6 +47,7 @@ func main() {
 		commandStore = pgStore
 		auditStore = pgStore
 		organizationStore = pgStore
+		applicationStore = pgStore
 		rbacStore = pgStore
 
 		worker = &commandworker.Worker{Store: pgStore, Publisher: realtimeHub}
@@ -127,6 +129,7 @@ func main() {
 		CommandStore:        commandStore,
 		AuditStore:          auditStore,
 		OrganizationStore:   organizationStore,
+		ApplicationStore:    applicationStore,
 		RBACStore:           rbacStore,
 		BearerTokenVerifier: verifier,
 		KratosLogin:         kratosLogin,

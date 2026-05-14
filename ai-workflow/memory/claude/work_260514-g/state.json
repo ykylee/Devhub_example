@@ -1,0 +1,20 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "claude/work_260514-g",
+  "status": "in_progress",
+  "base_branch": "main",
+  "base_commit": "d29f2ac",
+  "scope": "2026-05-14 세션 종료 housekeeping — main flat state.json/handoff/work_backlog 의 PR #103 시점 (244f6b1) 정보를 PR #110 머지 후 (d29f2ac) 까지 흡수. 7 PR 일괄 반영: #104 (Application/Repository/Project 설계 고도화) / #105 (Application Design 1차 + ADR-0011) / #106 (Application Design 2차 API-41~50) / #107 (API-51~58 활성화 + critical 가드) / #108 (codex P1/P2 hotfix) / #109 (postgres integration test 23) / #110 (CI backend-integration job + 2 SQL fix). Auto memory (개인) 의 project 메모리도 별도 갱신.",
+  "started_at": "2026-05-14T05:00:00Z",
+  "updated_at": "2026-05-14T05:00:00Z",
+  "carve_in": [
+    "main flat state.json — merged_prs_2026_05_14 (7건) + status + head_commit + next_actions 갱신",
+    "main flat session_handoff.md — 2026-05-14 세션 종료 인계",
+    "main flat work_backlog.md — Application 도메인 1차 완성 반영 + 다음 후보 항목",
+    "Auto memory — 2026-05-14 session project memory + codex review cycle 학습 패턴 + MEMORY.md 인덱스"
+  ],
+  "carve_out": [
+    "다음 sprint 의 우선순위는 사용자 결정 (frontend UI / ADR-0011 §4.2 / 운영 정책 외부화 등)"
+  ]
+}
