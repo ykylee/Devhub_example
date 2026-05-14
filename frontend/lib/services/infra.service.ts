@@ -6,7 +6,7 @@ import { apiClient } from "./api-client";
 
 class InfraService {
   private static instance: InfraService;
-  private baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+  private baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
 
   private constructor() {}
 

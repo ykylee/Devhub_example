@@ -1,9 +1,9 @@
 import type { NextConfig } from "next";
 
-const BACKEND_URL = process.env.BACKEND_API_URL || "http://localhost:8080";
-
 const nextConfig: NextConfig = {
+  output: "standalone",
   async rewrites() {
+    const BACKEND_URL = process.env.BACKEND_API_URL || "http://backend-core:8080";
     return [
       {
         source: "/api/:path*",

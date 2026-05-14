@@ -170,7 +170,7 @@ export default function AdminDashboard() {
             System <span className="text-gradient">Infrastructure</span>
           </h1>
           <p className="text-muted-foreground text-lg flex items-center gap-2">
-            <Globe className="w-4 h-4 text-primary" /> Global Cluster Status • <span className="text-foreground dark:text-primary-foreground font-bold uppercase tracking-widest text-xs bg-green-500/20 px-2 py-0.5 rounded border border-green-500/20">All Systems Nominal</span>
+            <Globe className="w-4 h-4 text-primary" /> Global Cluster Status • <span className="text-foreground font-bold uppercase tracking-widest text-xs bg-green-500/20 px-2 py-0.5 rounded border border-green-500/20">All Systems Nominal</span>
           </p>
         </motion.div>
 
@@ -214,7 +214,7 @@ export default function AdminDashboard() {
         <div className="absolute top-6 left-6 z-20 flex items-center gap-4">
           <div className="glass border-border/80 px-4 py-2 rounded-2xl flex items-center gap-3">
             <div className="w-2 h-2 bg-primary rounded-full animate-pulse shadow-[0_0_10px_rgba(139,92,246,1)]" />
-            <span className="text-[10px] font-black text-foreground dark:text-primary-foreground uppercase tracking-widest">Live Topology Stream</span>
+            <span className="text-[10px] font-black text-foreground dark:text-foreground uppercase tracking-widest">Live Topology Stream</span>
           </div>
           
           <div className="flex gap-2">
@@ -229,7 +229,7 @@ export default function AdminDashboard() {
         {isLoading && (
           <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-background/50 backdrop-blur-sm">
             <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4" />
-            <p className="text-primary-foreground/50 text-xs font-bold uppercase tracking-[0.2em] animate-pulse">Mapping Topology...</p>
+            <p className="text-foreground/50 dark:text-primary-foreground/50 text-xs font-bold uppercase tracking-[0.2em] animate-pulse">Mapping Topology...</p>
           </div>
         )}
 
@@ -274,7 +274,7 @@ export default function AdminDashboard() {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-2xl font-black text-primary-foreground uppercase tracking-tighter">
+                  <h4 className="text-2xl font-black text-foreground dark:text-primary-foreground uppercase tracking-tighter">
                     {selectedNode.data.label}
                   </h4>
                   <p className="text-xs text-muted-foreground font-mono mt-1">ID: {selectedNode.id} • Cluster-Asia-01</p>
@@ -287,11 +287,11 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="glass-card p-4">
                   <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">CPU Usage</p>
-                  <p className="text-xl font-bold text-primary-foreground">{selectedNode.data.cpu}</p>
+                  <p className="text-xl font-bold text-foreground dark:text-primary-foreground">{selectedNode.data.cpu}</p>
                 </div>
                 <div className="glass-card p-4">
                   <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Memory</p>
-                  <p className="text-xl font-bold text-primary-foreground">{selectedNode.data.memory}</p>
+                  <p className="text-xl font-bold text-foreground dark:text-primary-foreground">{selectedNode.data.memory}</p>
                 </div>
               </div>
 
@@ -300,13 +300,13 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-2 gap-3">
                   <button 
                     onClick={() => handleAction("Restart")}
-                    className="py-3 rounded-xl glass border-border text-xs font-bold text-primary-foreground hover:bg-muted/40 transition-all flex items-center justify-center gap-2"
+                    className="py-3 rounded-xl glass border-border text-xs font-bold text-foreground dark:text-primary-foreground hover:bg-muted/40 transition-all flex items-center justify-center gap-2"
                   >
                     <Zap className="w-4 h-4 text-primary" /> Restart
                   </button>
                   <button 
                     onClick={() => handleAction("Log Stream")}
-                    className="py-3 rounded-xl glass border-border text-xs font-bold text-primary-foreground hover:bg-muted/40 transition-all flex items-center justify-center gap-2"
+                    className="py-3 rounded-xl glass border-border text-xs font-bold text-foreground dark:text-primary-foreground hover:bg-muted/40 transition-all flex items-center justify-center gap-2"
                   >
                     <Terminal className="w-4 h-4 text-accent" /> Log Stream
                   </button>

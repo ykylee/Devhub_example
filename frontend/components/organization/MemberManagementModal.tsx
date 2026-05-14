@@ -256,7 +256,7 @@ export function MemberManagementModal({
           <div className="flex flex-col gap-1 min-w-0">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
               {selectedIds.size} total personnel · leader:{" "}
-              <span className={cn("ml-1", leaderId ? "text-amber-300" : "text-muted-foreground")}>
+              <span className={cn("ml-1", leaderId ? "text-amber-500" : "text-muted-foreground")}>
                 {leaderId ? allMembers.find((m) => m.id === leaderId)?.name ?? leaderId : "(none)"}
               </span>
             </p>
@@ -270,7 +270,7 @@ export function MemberManagementModal({
             <button
               onClick={onClose}
               disabled={isSaving}
-              className="px-6 py-2.5 rounded-xl border border-border text-xs font-bold text-foreground hover:bg-muted/30 transition-all uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-2.5 rounded-xl border border-border text-xs font-bold text-foreground dark:text-primary-foreground hover:bg-muted/30 transition-all uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>
