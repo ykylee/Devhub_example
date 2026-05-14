@@ -182,6 +182,18 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.DELETE("/organization/units/:unit_id", handler.deleteOrgUnit)
 	v1.GET("/organization/units/:unit_id/members", handler.listUnitMembers)
 	v1.PUT("/organization/units/:unit_id/members", handler.replaceUnitMembers)
+	// Application/Repository/Project 관리 API (API-41..50, sprint claude/work_260514-a).
+	// Handler bodies are 501 stubs; store body 는 후속 sprint carve out.
+	v1.GET("/scm/providers", handler.listSCMProviders)
+	v1.PATCH("/scm/providers/:provider_key", handler.updateSCMProvider)
+	v1.GET("/applications", handler.listApplications)
+	v1.POST("/applications", handler.createApplication)
+	v1.GET("/applications/:application_id", handler.getApplication)
+	v1.PATCH("/applications/:application_id", handler.updateApplication)
+	v1.DELETE("/applications/:application_id", handler.archiveApplication)
+	v1.GET("/applications/:application_id/repositories", handler.listApplicationRepositories)
+	v1.POST("/applications/:application_id/repositories", handler.createApplicationRepository)
+	v1.DELETE("/applications/:application_id/repositories/:repo_key", handler.deleteApplicationRepository)
 	v1.POST("/integrations/gitea/webhooks", handler.receiveGiteaWebhook)
 	// Kratos self-service hooks (PR-M2-AUDIT, claude/login_usermanagement_finish).
 	// Bypasses authenticateActor + enforceRoutePermission via publicAPIPaths +

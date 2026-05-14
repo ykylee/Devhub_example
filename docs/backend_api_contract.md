@@ -1361,32 +1361,34 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 - `PUT/POST/DELETE /api/v1/rbac/policies` 또는 `PUT /api/v1/rbac/subjects/.../roles` 머지 시 동일 프로세스 내 cache reload.
 - 다중 인스턴스 환경의 cache 일관성은 §6 미해결 — 운영 phase 진입 시 pub/sub 또는 polling 으로 보강.
 
-## 13. Application/Repository/Project 관리 API (설계 초안, planned)
+## 13. Application/Repository/Project 관리 API (혼합 — scaffolded + planned)
 
-본 섹션은 `Application > Repository > Project` 관리 기능의 구현 진입 전 계약 초안이다. 본 sprint 에서 placeholder API ID (`API-41 ~ API-58 (planned)`) 를 부여하여 추적성 인용을 가능케 하고, 실제 endpoint 활성화 시점에 `(planned)` 접미사를 제거한다.
+본 섹션은 `Application > Repository > Project` 관리 기능의 API 계약. `API-41 ~ API-50` 은 sprint `claude/work_260514-a` 에서 **scaffolded** (gin 라우트 + RBAC matrix + handler stub) 단계까지 도달. store body 와 응답 body 는 후속 sprint 의 carve out. `API-51 ~ API-58` 은 **planned** (route 미등록, 본 §13.4~§13.7 의 endpoint 설명만 유지).
 
-### 13.0 §13 placeholder API ID 인덱스
+### 13.0 §13 API ID 인덱스
 
-| API ID | endpoint | 본문 위치 |
-| --- | --- | --- |
-| `API-41 (planned)` | `GET /api/v1/scm/providers` | §13.1.1 |
-| `API-42 (planned)` | `PATCH /api/v1/scm/providers/{provider_key}` | §13.1.1 |
-| `API-43 (planned)` | `GET /api/v1/applications` | §13.2 |
-| `API-44 (planned)` | `POST /api/v1/applications` | §13.2 |
-| `API-45 (planned)` | `GET /api/v1/applications/{application_id}` | §13.2 |
-| `API-46 (planned)` | `PATCH /api/v1/applications/{application_id}` | §13.2 |
-| `API-47 (planned)` | `DELETE /api/v1/applications/{application_id}` (archive) | §13.2 |
-| `API-48 (planned)` | `GET /api/v1/applications/{application_id}/repositories` | §13.3 |
-| `API-49 (planned)` | `POST /api/v1/applications/{application_id}/repositories` | §13.3 |
-| `API-50 (planned)` | `DELETE /api/v1/applications/{application_id}/repositories/{repo_key}` | §13.3 |
-| `API-51 (planned)` | `GET /api/v1/repositories/{repository_id}/activity` | §13.4 |
-| `API-52 (planned)` | `GET /api/v1/repositories/{repository_id}/pull-requests` | §13.4 |
-| `API-53 (planned)` | `GET /api/v1/repositories/{repository_id}/build-runs` | §13.4 |
-| `API-54 (planned)` | `GET /api/v1/repositories/{repository_id}/quality-snapshots` | §13.4 |
-| `API-55 (planned)` | `GET /api/v1/repositories/{repository_id}/projects` + `POST` | §13.5 |
-| `API-56 (planned)` | `GET /api/v1/projects/{project_id}` + `PATCH` + `DELETE` | §13.5 |
-| `API-57 (planned)` | `GET /api/v1/applications/{application_id}/rollup` | §13.6 |
-| `API-58 (planned)` | `GET /api/v1/integrations` + CRUD | §13.7 |
+| API ID | endpoint | 본문 위치 | 상태 |
+| --- | --- | --- | --- |
+| `API-41` | `GET /api/v1/scm/providers` | §13.1.1 | scaffolded (501 stub) |
+| `API-42` | `PATCH /api/v1/scm/providers/{provider_key}` | §13.1.1 | scaffolded (501 stub) |
+| `API-43` | `GET /api/v1/applications` | §13.2 | scaffolded (501 stub) |
+| `API-44` | `POST /api/v1/applications` | §13.2 | scaffolded (501 stub) |
+| `API-45` | `GET /api/v1/applications/{application_id}` | §13.2 | scaffolded (501 stub) |
+| `API-46` | `PATCH /api/v1/applications/{application_id}` | §13.2 | scaffolded (501 stub) |
+| `API-47` | `DELETE /api/v1/applications/{application_id}` (archive) | §13.2 | scaffolded (501 stub) |
+| `API-48` | `GET /api/v1/applications/{application_id}/repositories` | §13.3 | scaffolded (501 stub) |
+| `API-49` | `POST /api/v1/applications/{application_id}/repositories` | §13.3 | scaffolded (501 stub) |
+| `API-50` | `DELETE /api/v1/applications/{application_id}/repositories/{repo_key}` | §13.3 | scaffolded (501 stub) |
+| `API-51 (planned)` | `GET /api/v1/repositories/{repository_id}/activity` | §13.4 | planned |
+| `API-52 (planned)` | `GET /api/v1/repositories/{repository_id}/pull-requests` | §13.4 | planned |
+| `API-53 (planned)` | `GET /api/v1/repositories/{repository_id}/build-runs` | §13.4 | planned |
+| `API-54 (planned)` | `GET /api/v1/repositories/{repository_id}/quality-snapshots` | §13.4 | planned |
+| `API-55 (planned)` | `GET /api/v1/repositories/{repository_id}/projects` + `POST` | §13.5 | planned |
+| `API-56 (planned)` | `GET /api/v1/projects/{project_id}` + `PATCH` + `DELETE` | §13.5 | planned |
+| `API-57 (planned)` | `GET /api/v1/applications/{application_id}/rollup` | §13.6 | planned |
+| `API-58 (planned)` | `GET /api/v1/integrations` + CRUD | §13.7 | planned |
+
+**scaffolded 단계 정의**: gin v1 group 에 route 등록 + `routePermissionTable` 통합 + handler stub (501 + envelope + code hint). store body / 요청 validation / 응답 body 는 후속 sprint 에서 채움. RBAC 매트릭스에서 system_admin 만 4 신규 resource (`applications` / `application_repositories` / `projects` / `scm_providers`) 의 모든 axis true (migration 000018, ADR-0011 §4.1).
 
 ### 13.1 공통 규칙
 

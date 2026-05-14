@@ -31,6 +31,10 @@ export function isSystemRole(roleId: string): boolean {
 // reached yet (initial page paint, dev without rbac_policies seeded). Matrices
 // match docs/backend_api_contract.md section 12.1 default policy so the UI is
 // internally consistent even without a network round-trip.
+// 4 신규 resource (applications / application_repositories / projects / scm_providers)
+// 는 sprint claude/work_260514-a (ADR-0011 §4.1) 에서 추가. system_admin 일임 정책 —
+// developer/manager 는 모든 axis false, system_admin 만 모든 axis true. backend
+// migration 000018 seed 와 정합.
 export const defaultRoles: Role[] = [
   {
     id: "system_admin",
@@ -38,11 +42,15 @@ export const defaultRoles: Role[] = [
     description: "시스템 설정, 조직/사용자 관리, 운영 command 관리 권한",
     system: true,
     permissions: {
-      infrastructure: { view: true, create: true, edit: true, delete: true },
-      pipelines:      { view: true, create: true, edit: true, delete: true },
-      organization:   { view: true, create: true, edit: true, delete: true },
-      security:       { view: true, create: true, edit: true, delete: true },
-      audit:          { view: true, create: false, edit: false, delete: false },
+      infrastructure:           { view: true, create: true, edit: true, delete: true },
+      pipelines:                { view: true, create: true, edit: true, delete: true },
+      organization:             { view: true, create: true, edit: true, delete: true },
+      security:                 { view: true, create: true, edit: true, delete: true },
+      audit:                    { view: true, create: false, edit: false, delete: false },
+      applications:             { view: true, create: true, edit: true, delete: true },
+      application_repositories: { view: true, create: true, edit: true, delete: true },
+      projects:                 { view: true, create: true, edit: true, delete: true },
+      scm_providers:            { view: true, create: true, edit: true, delete: true },
     },
   },
   {
@@ -51,11 +59,15 @@ export const defaultRoles: Role[] = [
     description: "팀 운영, risk triage, 승인 전 command 생성 권한",
     system: true,
     permissions: {
-      infrastructure: { view: true, create: false, edit: false, delete: false },
-      pipelines:      { view: true, create: false, edit: false, delete: false },
-      organization:   { view: true, create: false, edit: false, delete: false },
-      security:       { view: true, create: true,  edit: false, delete: false },
-      audit:          { view: true, create: false, edit: false, delete: false },
+      infrastructure:           { view: true, create: false, edit: false, delete: false },
+      pipelines:                { view: true, create: false, edit: false, delete: false },
+      organization:             { view: true, create: false, edit: false, delete: false },
+      security:                 { view: true, create: true,  edit: false, delete: false },
+      audit:                    { view: true, create: false, edit: false, delete: false },
+      applications:             { view: false, create: false, edit: false, delete: false },
+      application_repositories: { view: false, create: false, edit: false, delete: false },
+      projects:                 { view: false, create: false, edit: false, delete: false },
+      scm_providers:            { view: false, create: false, edit: false, delete: false },
     },
   },
   {
@@ -64,11 +76,15 @@ export const defaultRoles: Role[] = [
     description: "개발자 대시보드, 본인 관련 repository/CI/risk 조회 권한",
     system: true,
     permissions: {
-      infrastructure: { view: true, create: false, edit: false, delete: false },
-      pipelines:      { view: true, create: false, edit: false, delete: false },
-      organization:   { view: true, create: false, edit: false, delete: false },
-      security:       { view: true, create: false, edit: false, delete: false },
-      audit:          { view: false, create: false, edit: false, delete: false },
+      infrastructure:           { view: true, create: false, edit: false, delete: false },
+      pipelines:                { view: true, create: false, edit: false, delete: false },
+      organization:             { view: true, create: false, edit: false, delete: false },
+      security:                 { view: true, create: false, edit: false, delete: false },
+      audit:                    { view: false, create: false, edit: false, delete: false },
+      applications:             { view: false, create: false, edit: false, delete: false },
+      application_repositories: { view: false, create: false, edit: false, delete: false },
+      projects:                 { view: false, create: false, edit: false, delete: false },
+      scm_providers:            { view: false, create: false, edit: false, delete: false },
     },
   },
 ];

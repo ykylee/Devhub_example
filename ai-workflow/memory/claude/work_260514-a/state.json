@@ -1,0 +1,50 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "claude/work_260514-a",
+  "status": "in_progress",
+  "base_branch": "main",
+  "base_commit": "63a7ea2",
+  "scope": "Application Design 1차 + ADR-0011 평가/결정 (mixed sprint). PR #104 흡수 직후 후속. 두 트랙 — (A) Application 도메인 backend design 1차 (ERD §2.5 기반 마이그레이션 000012~000018, store 인터페이스 초안, §13 API-41~50 scaffolded) + (B) ADR-0011 RBAC row-scoping placeholder 의 옵션 A~D 평가 후 단일 결정 (옵션 C 채택, accepted).",
+  "started_at": "2026-05-14T00:15:00Z",
+  "updated_at": "2026-05-14T01:00:00Z",
+  "status_detail": "carve_in 완료. backend go test ./... 12 패키지 PASS. PR open 대기.",
+  "traceability_impact": {
+    "REQ": "변경 없음 (REQ-FR-APP-001..012, REQ-FR-PROJ-000..010, REQ-NFR-PROJ-001..006 이미 발급)",
+    "ARCH": "신규 ARCH-18+ 후보 (Application Design / SCM Adapter Registry / RBAC row-scoping enforcement layer) — 본 sprint 에서 발급",
+    "API": "API-41~50 placeholder → 정식 활성화 (Project/rollup/integration 본체는 carve out, API-51~58 placeholder 유지)",
+    "RM": "신규 RM-APP-* 또는 기존 M3/M4 산하 RM 발급 — design sprint 진입 시 결정",
+    "IMPL": "신규 IMPL-application-* / IMPL-application-store-* / IMPL-application-handler-*",
+    "UT": "마이그레이션 + store 단위테스트 1차",
+    "TC": "e2e 후속 carve out"
+  },
+  "carve_in": [
+    "마이그레이션 000012~000018 up/down + 인덱스",
+    "internal/store/applications.go interface (CRUD + status transition guard)",
+    "internal/httpapi/applications.go handler stub (API-43~50 RBAC gate + envelope)",
+    "ADR-0011 옵션 A~D 평가표 + 단일 결정 (accepted)",
+    "추적성 매트릭스 §2.2 API-41~50 정식 활성화 + §2.4 IMPL-application-* + §4 ADR-0011 accepted",
+    "PR body 추적성 영향 섹션 작성"
+  ],
+  "carve_out": [
+    "Project / rollup / integration handler 본체 (다음 sprint)",
+    "실 SCM 어댑터 구현 (별도 Integration sprint)",
+    "e2e TC 작성 (carve)",
+    "frontend `/admin/settings/applications` IA/화면 흐름 (frontend design sprint 분리)",
+    "API-41~50 handler audit emit — 현 stub 은 501 만 응답하고 audit log 미발생. 후속 sprint 에서 handler body 도입 시 `application.{list,get,create,update,archive}.requested` 등 audit emit 추가 (PR #105 self-review B2). middleware 는 RBAC denial 시 `auth.role_denied` 만 기록.",
+    "quality_snapshots idempotency 정책 결정 — 동일 (repository_id, tool, ref_name, commit_sha, measured_at) 의 중복 row 허용 여부 (현재 UNIQUE 부재). 후속 sprint 에서 (a) UNIQUE 추가 / (b) 명시적 허용 (history retention) 중 결정 (PR #105 self-review I1).",
+    "Frontend PermissionMatrix 의 새 4 resource label 한국어화 + 새 resource 의 UI 그룹화/색 코딩 (현재는 영문 label, 기존 5 resource 와 동일 visual 단계)."
+  ],
+  "next_actions": [
+    "T16 sprint scope + 추적성 영향 사전 진단 (이미 본 state.json 에 1차 반영, backlog/2026-05-14.md 에 상세화)",
+    "T17 ADR-0011 옵션 평가표 작성 + 단일 결정",
+    "T18 마이그레이션 000012~000018 작성",
+    "T19 store interface + handler stub 작성",
+    "T20 매트릭스 동기 + commit + push + PR open"
+  ],
+  "risks": [
+    "마이그레이션 + handler stub 가 1 PR 에 묶이면 비대해질 가능성 — 필요 시 PR 분할",
+    "ADR-0011 옵션 평가가 일부 옵션의 외부 의존(Casbin, PG RLS 검증) 부족할 수 있음 — 그 경우 결정을 일부 carve",
+    "API-41~50 활성화 시 frontend 영향 (현재 UI 없음) — backend-only 로 진행, frontend 는 별도 sprint"
+  ]
+}

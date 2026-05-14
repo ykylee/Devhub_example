@@ -31,7 +31,28 @@
 ### 2.2 Design (ARCH / API)
 
 - **Architecture**: ARCH-01 ~ ARCH-17 (총 17 항목, `docs/architecture.md` + `docs/org_chart_ux_spec.md` + `docs/organizational_hierarchy_spec.md` 분포).
-- **API contract**: API-01 ~ API-40 (활성) + **API-41 ~ API-58 (planned, Application/Repository/Project §13)** — *ID 공간 = 58*. 본 sprint `claude/work_260513-i` / `-j` 의 결정으로 일부 ID 는 composite (`API-07` = infra/edges + infra/topology, `API-13` = risks + risks/critical) 또는 결손 (`API-03` 미정의 — 후속 발급 후보) 이 존재한다. `API-41+` 는 `backend_api_contract.md` §13.0 의 placeholder 인덱스 표 + 각 endpoint 헤더에 `(planned)` 접미사로 표기. 실제 endpoint 매핑은 본 §2.2 아래 도메인별 서브 표 (RBAC / Auth / Infra+Dashboard / Pipelines / Realtime+Command+Audit / Account+Org+Me) 가 source-of-truth, §13 은 §13.0 placeholder 표.
+- **API contract**: API-01 ~ API-40 (활성) + **API-41 ~ API-50 (scaffolded — sprint `claude/work_260514-a`)** + **API-51 ~ API-58 (planned)** — *ID 공간 = 58*. 이전 sprint 결정으로 일부 ID 는 composite (`API-07` = infra/edges + infra/topology, `API-13` = risks + risks/critical) 또는 결손 (`API-03` 미정의 — 후속 발급 후보) 이 존재한다. `API-41..50` 은 sprint `claude/work_260514-a` 에서 gin 라우트 등록 + RBAC matrix 통합 + handler stub (501 응답) 까지 활성화 (store body / 응답 body 는 후속 carve out). `API-51..58` 은 `backend_api_contract.md` §13.4~§13.7 placeholder 헤더 유지. 실제 endpoint 매핑은 본 §2.2 아래 도메인별 서브 표 (RBAC / Auth / Infra+Dashboard / Pipelines / Realtime+Command+Audit / Account+Org+Me / **Application+Repository**) 가 source-of-truth.
+
+#### Application/Repository API §13 — endpoint 매핑 (sprint `claude/work_260514-a`, scaffolded 단계)
+
+| API ID | 본문 위치 | 항목 | 상태 |
+| --- | --- | --- | --- |
+| `API-41` | §13.1.1 | `GET /api/v1/scm/providers` | scaffolded (501 stub) |
+| `API-42` | §13.1.1 | `PATCH /api/v1/scm/providers/:provider_key` | scaffolded (501 stub) |
+| `API-43` | §13.2 | `GET /api/v1/applications` | scaffolded (501 stub) |
+| `API-44` | §13.2 | `POST /api/v1/applications` | scaffolded (501 stub) |
+| `API-45` | §13.2 | `GET /api/v1/applications/:application_id` | scaffolded (501 stub) |
+| `API-46` | §13.2 | `PATCH /api/v1/applications/:application_id` | scaffolded (501 stub) |
+| `API-47` | §13.2 | `DELETE /api/v1/applications/:application_id` (archive) | scaffolded (501 stub) |
+| `API-48` | §13.3 | `GET /api/v1/applications/:application_id/repositories` | scaffolded (501 stub) |
+| `API-49` | §13.3 | `POST /api/v1/applications/:application_id/repositories` | scaffolded (501 stub) |
+| `API-50` | §13.3 | `DELETE /api/v1/applications/:application_id/repositories/:repo_key` | scaffolded (501 stub) |
+| `API-51..54` | §13.4 | Repository 운영 지표 조회 4종 | planned (route 미등록) |
+| `API-55..56` | §13.5 | Project CRUD 5종 (composite ID) | planned |
+| `API-57` | §13.6 | Application 롤업 | planned |
+| `API-58` | §13.7 | Integration CRUD 4종 (composite ID) | planned |
+
+> **scaffolded 단계 정의**: gin 라우트 등록 + RBAC matrix 통합 + 핸들러 stub (501 응답). store body / 요청 검증 / 응답 body 는 후속 sprint 에서 채움. RBAC 거부 (developer/manager 의 4 신규 resource 는 모든 axis false — migration 000018 + ADR-0011 §4.1) 가 stub 호출 전에 enforce 되므로 system_admin 만 stub 까지 도달.
 
 #### RBAC API §12 — endpoint 매핑 (sprint `claude/work_260513-f`, 본문 ID 노출 1차 도메인)
 
@@ -223,6 +244,19 @@
 | `IMPL-hrdb-02` | `internal/hrdb/postgres.go` (`PostgresClient`) + `migrations/000010_create_hrdb_persons.up.sql` | [ADR-0008](../adr/0008-hrdb-production-adapter.md) 채택 — PostgreSQL `hrdb.persons` schema 구현 (sprint `claude/work_260513-m`). ETL / cron sync 는 carve out. |
 
 > `internal/httpapi/hr_lookup.go::hrLookup` (`GET /api/v1/hr/lookup`) 은 signup endpoint 외에 직접 HR DB 조회를 제공하는 helper endpoint (IMPL-auth 또는 IMPL-hrdb cross-cut). 매트릭스 §2.2 의 본문 ID 노출은 후속 sprint 후보.
+
+#### IMPL-application-XX 정의 (sprint `claude/work_260514-a`, scaffolded 단계)
+
+| IMPL ID | 코드 위치 | 책임 |
+| --- | --- | --- |
+| `IMPL-application-domain-01` | `internal/domain/application.go` | Application / ApplicationRepository / Project / ProjectMember / ProjectIntegration / SCMProvider 도메인 타입 + status / visibility / sync_status / sync_error_code / role enum 상수 + `IsRetryableSyncError`. |
+| `IMPL-application-store-01` | `internal/store/applications.go` | Application + ApplicationRepository + SCMProvider + Project store interface stub (모두 `ErrNotImplemented`). 후속 sprint 에서 PostgreSQL body. API-43..50 / Project 도 합쳐 16 메서드. |
+| `IMPL-application-handler-01` | `internal/httpapi/applications.go` | API-41..50 handler stub (501 + envelope + code hint). RBAC gate 통과 후 도달. |
+| `IMPL-application-router-01` | `internal/httpapi/router.go` (라인 추가) | API-41..50 의 10 endpoint gin v1 group 등록. |
+| `IMPL-application-rbac-01` | `internal/httpapi/permissions.go` (`routePermissionTable` 14 신규 row) + `internal/domain/rbac.go` (4 신규 Resource + `AllResources()` + `DefaultPermissionMatrix()`) | ADR-0011 §4.1 1차 — system_admin 일임. developer/manager 는 4 신규 resource 모든 axis false. |
+| `IMPL-application-migration-01..07` | `backend-core/migrations/000012..000018_*.sql` | scm_providers / applications / application_repositories / projects / project_members + project_integrations / pr_activities + build_runs + quality_snapshots / RBAC seed 확장. up + down + 인덱스 + CHECK 제약. |
+
+> store body 는 미작성 (`ErrNotImplemented`). handler 는 stub (501). 응답 body schema / 요청 validation / status transition guard 는 후속 sprint 의 carve out (state.json `carve_out` 참조).
 - **Frontend**: IMPL-frontend-auth-01..06, login-01..03, logout-01, dashboard-01, account-01, admin-01, admin-users-01, admin-org-01, admin-rbac-01, admin-audit-01, org-01, org-comp-01..03, role-01..03, service-auth-01, service-account-01, service-rbac-01, service-audit-01, service-org-01, service-realtime-01, service-api-01, layout-01..02, store-01 (32 항목).
 - **Backend AI**: 미사용 (Phase 4 분석에서 placeholder 만 발견).
 
@@ -253,7 +287,7 @@
 | **Webhook + 도메인 데이터 (gitea)** | FR-49, 50, 51, 52, 53, 54, 55 | UC-GITEA-01..03 | ARCH-06, 07, 08; API-02, 04, 08–13 (정밀 매핑: §2.2 Infra/Dashboard + Pipelines 서브 표) | (M0 이전 phase 완료) | gitea-01, 02; domain-01..03; normalize | httpapi-10, 14; gitea-01; normalize-01; store-03 | (E2E 미커버 — gap §5.1) |
 | **대시보드 / 메트릭 / me** | FR-1–11, 28–36, 81, 85, 88, 89, 96 | UC-GITEA-03, UC-RT-01 | ARCH-10; API-05, 32, 36, 38 (32 = `GET /api/v1/me`, 정밀 매핑: §2.2 Infra/Dashboard + Account/Org/Me + RBAC 서브 표) | (Phase 4 이전 완료) | dashboard-01; me-01 (책임 정의: §2.4 IMPL-dashboard/me 서브 표); frontend-dashboard-01; frontend-role-01..03; frontend-store-01; frontend-layout-01..02; frontend-service-api-01 | httpapi-08, 11, 22 | TC-NAV-01..03; TC-NAV-SIM-01 |
 | **CI / 거버넌스** | NFR-1 (no-docker) | UC-GITEA-01 | ADR-0001 §5; [ADR-0003](../adr/0003-no-docker-policy-ci-scope.md) | M2-16 (CI 1차, PR #86); FU-CI-1..4 (PR #87); ADR-0003 (PR #88); 거버넌스 + 매트릭스 1차 (PR #89); 갭 분석 + 메타 헤더 표준화 (본 PR / sprint `claude/work_260513-d`) | (build infra: `.github/workflows/ci.yml`, `scripts/ci-setup.sh`, `infra/idp/*.ci.yaml`); `docs/governance/*`, `docs/traceability/*` | (lint 미도입, FU-CI 향후) | (CI run 자체가 검증) |
-| **Application/Project 도메인** | REQ-FR-APP-001..012; REQ-FR-PROJ-000..010; REQ-NFR-PROJ-001..006 | UC-APP-01..10, UC-PROJ-01..10 | (planned) `API-41+ (planned)` — `backend_api_contract.md` §13.1.1~§13.7 placeholder ID. ARCH 발급 대기. source: `docs/planning/system_usecases.md` + `docs/planning/system_erd.md` | M3 backlog (design entry) | (미진입) | (미진입) | (미진입) |
+| **Application/Project 도메인** | REQ-FR-APP-001..012; REQ-FR-PROJ-000..010; REQ-NFR-PROJ-001..006 | UC-APP-01..10, UC-PROJ-01..10 | API-41..50 (scaffolded — §2.2 Application/Repository 서브 표), API-51..58 (planned). ADR-0011 (RBAC row-scoping, accepted). | M3 backlog (design entry) — RM 발급은 후속 sprint | IMPL-application-store-XX + IMPL-application-handler-XX (정의: §2.4 서브 표), 마이그레이션 000012..000018 | (미발급 — 후속 sprint store body 와 함께) | (미진입) |
 | **M4 (planned, 정의: §2.3.2)** | FR-37–48, 56–57, 60, 90–94 (일부 — Realtime / Task / Admin) | UC-RT-01..02 (확장 예정), UC-APP/UC-PROJ (확장 예정) | API-14 (WebSocket 확장) | RM-M4-01..03, 06..09 (정의: §2.3.2 RM-M4 표) | (미진입 — sprint plan 진입 시 IMPL-task-XX 발급) | (미진입) | (미진입) |
 > Note — 매트릭스 셀의 ID 는 §2 의 단계별 인덱스를 줄여서 표기 (예: `auth-01..07` = `IMPL-auth-01..IMPL-auth-07`). 한 도메인이 여러 단계에 걸쳐 영향을 주므로 정확한 1:1 매핑은 §2 인덱스 (REQ/UC/ARCH/API) + 단계별 문서 본문의 ID 노출 (`document-standards.md` §5) 로 확인.
 
@@ -271,7 +305,7 @@
 | [ADR-0008](../adr/0008-hrdb-production-adapter.md) | HR DB production 어댑터 (PostgreSQL `hrdb` schema) | accepted (2026-05-13, sprint `claude/work_260513-l`). 구현은 sprint `claude/work_260513-m` 에서 PostgresClient + migration 1차 완료. ETL cron carve. | M3 Sign Up / 인사 DB |
 | [ADR-0009](../adr/0009-org-secondary-memberships-and-total-count-mv.md) | 파견/겸임 모델 + `total_count` Materialized View | accepted (2026-05-13, sprint `claude/work_260513-m`). 파견/겸임 = `unit_appointments` cover 명문화. MV migration 000011 sprint `claude/work_260513-n` 1차 완료. cron 갱신 + getHierarchy MV join 은 carve. | M3 organization polish |
 | [ADR-0010](../adr/0010-primary-dept-resolution.md) | `users.primary_unit_id` 자동 판정 알고리즘 (leader 우선 + total_count tie-break + lexicographic) | accepted (2026-05-13, sprint `claude/work_260513-n`). 1차 알고리즘 + 5 단위테스트 PASS. backfill worker carve. | M3 organization polish |
-| [ADR-0011](../adr/0011-rbac-row-scoping.md) | Application/Project Owner 위양과 RBAC row-level scoping (placeholder) | proposed (2026-05-14, PR #104 보강). 옵션 A~D 검토 + 결정은 design sprint carve out. | Application/Project RBAC |
+| [ADR-0011](../adr/0011-rbac-row-scoping.md) | Application/Project Owner 위양과 RBAC row-level scoping | accepted (2026-05-14, sprint `claude/work_260514-a`). 옵션 C (handler/service 코드 검증) 1차 채택, 옵션 B (row_predicate) 단계적 확장 옵션 보존. 옵션 A (Casbin), D (PG RLS) 거부. 1차 매트릭스 seed (4 resource × system_admin) 본 sprint 처리 (migration 000018). | Application/Project RBAC |
 
 ## 5. Gap 요약
 
@@ -332,3 +366,4 @@
 | 2026-05-13 | 로그인 세션 + 사용자/조직 추적성 미흡 항목 보완 계획 문서 링크 추가 (§5.4). | current session |
 | 2026-05-13 | sprint `claude/work_260513-n` (M4 전 잔여 일괄): **(A) ETL seed SQL** — `scripts/hrdb_etl_seed.sql` 1차 (`INSERT ... ON CONFLICT`, mock 3 시드와 동일) + ADR-0008 §6 ETL 정책 inline 갱신 (부분 결정). **(B) MV migration 000011** — `migrations/000011_create_org_units_total_count_mv.{up,down}.sql` 신규 (CREATE MATERIALIZED VIEW + UNIQUE INDEX + REFRESH 정책 명문화). **(C) [ADR-0010](../adr/0010-primary-dept-resolution.md) primary_dept** — 옵션 4종 검토 + 1차 알고리즘 (`domain.ResolvePrimaryUnit`: leader 우선 / total_count tie-break / lexicographic) + 5 단위테스트 PASS. backfill worker carve. **(E) frontend Sign Up alias** — 기존 `/auth/signup` (이미 e2e 4 TC cover) 와 본 sprint 직전이 신설한 `/signup` 중복 발견. `/signup` 을 `/auth/signup` 로 redirect 만 두고 단일화. 매트릭스 §4 ADR-0010 행 추가. `getHierarchy` MV join 코드 변경 (D 항목) 은 backend store 인터페이스 + 통합 환경 의존으로 carve (M4 후속 sprint). |
 | 2026-05-14 | PR #104 본인 리뷰 보강 — 13개 항목 (B1~B3 / I1~I4 / Nit 6 / S1~S4) 일괄 정정. §3 Application/Project 행에 신규 ID 동기화 + §2.2 API-41~58 (planned) forward note + §4 [ADR-0011](../adr/0011-rbac-row-scoping.md) placeholder 발급. concept §7 데이터 모델 PK 정합 + project_integrations 명칭 통일 + ERD §2.5 composite PK 표기. requirements §5.4 의 REQ-FR-APP ID 순서 재배치 + key immutable 명문화. `backend_api_contract.md` §13.0 placeholder ID 인덱스 표 + 각 endpoint header 에 (planned) 접미사 + visibility 별 공개 범위 + weight normalize 룰 (±0.001) + sync_error_code link-scope 운영 룰. system_usecases §2.9 UC-APP-04 "상위 마일스톤" 표현 의미 오류 정정. | PR #104 보강 commit |
+| 2026-05-14 | sprint `claude/work_260514-a` (Application Design 1차 + ADR-0011 평가/결정 — mixed sprint): **(A) Application 도메인 backend 1차** — 마이그레이션 000012..000018 (scm_providers + seed / applications / application_repositories composite PK / projects / project_members + project_integrations / pr_activities + build_runs + quality_snapshots / RBAC seed 확장). `internal/domain/application.go` 신규 (도메인 타입 + enum 상수 + `IsRetryableSyncError`). `internal/store/applications.go` 신규 (16 메서드 stub, 모두 `ErrNotImplemented`). `internal/httpapi/applications.go` 신규 (API-41..50 handler stub 10개, 501 + envelope). `permissions.go` 의 `routePermissionTable` 에 14 신규 row + `router.go` 에 10 신규 route 등록. `internal/domain/rbac.go` 의 `AllResources()` + `DefaultPermissionMatrix()` 에 4 신규 resource (applications / application_repositories / projects / scm_providers) 추가. **(B) ADR-0011 결정** — proposed → accepted. 옵션 C (handler/service 코드 검증) 1차 채택, 옵션 B (row_predicate) 단계적 확장 옵션 보존. 옵션 A (Casbin), D (PG RLS) 거부. §2.2 Application/Repository API §13 서브 표 (API-41..50 scaffolded + API-51..58 planned). §2.4 IMPL-application-XX (6 row 정의). §3 Application/Project 도메인 row ARCH/API/IMPL 컬럼 채움. §4 ADR-0011 accepted 갱신. backend `go test ./...` 12 패키지 PASS. | current session |
