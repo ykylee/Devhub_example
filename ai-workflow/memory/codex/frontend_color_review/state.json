@@ -21,10 +21,11 @@
   },
   "session": {
     "current_axis": "프론트엔드 색상 가독성/인터랙션 안정화 + OIDC 로그인 흐름 보정",
-    "current_focus": "organization member 저장 반영/소속 표기 정확도 보정 및 iPad 액션메뉴 터치 이벤트 안정화",
+    "current_focus": "organization member 저장 반영/소속 표기 정확도 보정 및 iPad 액션메뉴 터치 이벤트 안정화, 백엔드 트랜잭션 정합성 강화",
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-BACKEND-UNIT-TX-SYNC",
       "TASK-FRONTEND-THEME-COLOR-REVIEW",
       "TASK-ORG-USERS-ACTION-UNIFICATION",
       "TASK-OIDC-PKCE-CONSENT-FIX",
@@ -33,10 +34,11 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/codex/frontend_color_review/backlog/2026-05-14.md",
-    "task_count": 4,
+    "task_count": 5,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
+      "TASK-BACKEND-UNIT-TX-SYNC",
       "TASK-FRONTEND-THEME-COLOR-REVIEW",
       "TASK-ORG-USERS-ACTION-UNIFICATION",
       "TASK-OIDC-PKCE-CONSENT-FIX",
