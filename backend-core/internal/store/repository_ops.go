@@ -316,10 +316,15 @@ WHERE ar.application_id = $1::uuid`
 		}
 	case domain.WeightPolicyRepoRole:
 		roleSums := map[string]float64{"primary": 0.6, "sub": 0.3, "shared": 0.1}
-		// 각 role 의 인원수 측정
+		// 각 role 의 인원수 측정 — known role 만 집계 (unknown role 은 fallback 대상).
 		roleCount := map[string]int{}
+		unknownRoleLinks := make([]linkRow, 0)
 		for _, l := range contributing {
-			roleCount[l.Role]++
+			if _, known := roleSums[l.Role]; known {
+				roleCount[l.Role]++
+			} else {
+				unknownRoleLinks = append(unknownRoleLinks, l)
+			}
 		}
 		// 비어 있는 role 의 가중치를 다른 role 에 비례 재분배 (concept §13.4)
 		used := map[string]float64{}
@@ -330,10 +335,42 @@ WHERE ar.application_id = $1::uuid`
 				totalUsed += weight
 			}
 		}
+		// PR #107 self-review B1 — division-by-zero 안전망 + unknown role fallback.
+		// totalUsed=0 시나리오 (모든 contributing repo 의 role 이 catalogue 외 값) 에서
+		// equal fallback 으로 정규화. unknown role 는 `unknown_role_fallback_equal`
+		// RollupFallback 기록.
+		if totalUsed == 0 || len(contributing) == 0 {
+			if n := len(contributing); n > 0 {
+				w := 1.0 / float64(n)
+				for _, l := range contributing {
+					rawWeights[l.FullName] = w
+					fallbacks = append(fallbacks, domain.RollupFallback{
+						RepoFullName:  l.FullName,
+						Provider:      l.Provider,
+						Reason:        "unknown_role_fallback_equal",
+						AppliedWeight: w,
+					})
+				}
+			}
+			break
+		}
 		for _, l := range contributing {
+			if _, known := roleSums[l.Role]; !known {
+				// catalogue 외 role — equal fallback (다른 known role 의 평균).
+				w := 1.0 / float64(len(contributing))
+				rawWeights[l.FullName] = w
+				fallbacks = append(fallbacks, domain.RollupFallback{
+					RepoFullName:  l.FullName,
+					Provider:      l.Provider,
+					Reason:        "unknown_role_fallback_equal",
+					AppliedWeight: w,
+				})
+				continue
+			}
 			share := used[l.Role] / totalUsed / float64(roleCount[l.Role])
 			rawWeights[l.FullName] = share
 		}
+		_ = unknownRoleLinks // 위 루프에서 처리 — placeholder.
 	case domain.WeightPolicyCustom:
 		// 합계 검증
 		sum := 0.0
