@@ -1,18 +1,76 @@
 {
   "schema_version": "1",
   "generated_at": "2026-05-14",
-  "branch_memory": {
-    "agent": "gemini",
-    "branch": "gemini/frontend_redesign_260514",
-    "path": "ai-workflow/memory/gemini/frontend_redesign_260514/"
+  "source_of_truth": {
+    "project_profile_path": "docs/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/gemini/frontend_redesign_260514/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/gemini/frontend_redesign_260514/work_backlog.md",
+    "latest_backlog_path": "ai-workflow/memory/gemini/frontend_redesign_260514/backlog/2026-05-14.md",
+    "repository_assessment_path": "ai-workflow/memory/repository_assessment.md"
+  },
+  "project": {
+    "project_name": "DevHub Example",
+    "document_home": "docs/README.md",
+    "operations_path": null,
+    "backlog_path": "ai-workflow/memory/gemini/frontend_redesign_260514/backlog/",
+    "handoff_path": "ai-workflow/memory/gemini/frontend_redesign_260514/session_handoff.md",
+    "environment_path": "ai-workflow/memory/environments/"
+  },
+  "commands": {
+    "quick_tests": "pytest ai-workflow/tests/check_docs.py",
+    "isolated_tests": "go test ./backend-core/... && pytest backend-ai/",
+    "runtime_checks": "docker compose ps"
   },
   "session": {
-    "current_focus": "Frontend UI/UX Redesign - Concept Phase",
-    "recent_done_items": []
+    "current_baseline": "Frontend Phase 6 UI Contrast & Dropdown Refactor 완료",
+    "current_axis": "Frontend Phase 6 UI 고도화 및 OIDC 안정화",
+    "current_focus": "라이트 테마 가독성 개선, 헤더 드롭다운 메뉴 최적화, OIDC 연동 오류 해결",
+    "in_progress_items": [],
+    "blocked_items": [],
+    "recent_done_items": [
+      "TASK-FRONTEND-CONTRAST-FIX",
+      "TASK-FRONTEND-DROPDOWN-REFACTOR",
+      "TASK-BACKEND-OIDC-STABILIZATION",
+      "TASK-INFRA-CORS-RESOLUTION"
+    ],
+    "environment_constraints": [
+      "Docker/Docker-compose required for full system",
+      "Backend Core API on :8080 (REST + WS)"
+    ]
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/gemini/frontend_redesign_260514/backlog/2026-05-14.md",
-    "task_count": 1,
-    "done_items": []
+    "latest_backlog_path": "ai-workflow/memory/backlog/2026-05-14.md",
+    "task_count": 24,
+    "in_progress_items": [],
+    "blocked_items": [],
+    "done_items": [
+      "TASK-FRONTEND-CONTRAST-FIX",
+      "TASK-FRONTEND-DROPDOWN-REFACTOR",
+      "TASK-BACKEND-OIDC-STABILIZATION",
+      "TASK-INFRA-CORS-RESOLUTION",
+      "TASK-002",
+      "TASK-013",
+      "TASK-014",
+      "TASK-015",
+      "TASK-016",
+      "TASK-017",
+      "TASK-018",
+      "TASK-019",
+      "TASK-FRONTEND-PHASE2",
+      "TASK-FRONTEND-PHASE3",
+      "TASK-FRONTEND-PHASE5-ORG",
+      "TASK-FRONTEND-PHASE6-RBAC",
+      "TASK-FRONTEND-PHASE12-API"
+    ]
+  },
+  "next_documents": [
+    "docs/frontend_development_roadmap.md",
+    "ai-workflow/memory/gemini/frontend_redesign_260514/session_handoff.md",
+    "docs/backend_api_contract.md",
+    "ai-workflow/memory/gemini/frontend_redesign_260514/backlog/2026-05-14.md"
+  ],
+  "repository_assessment": {
+    "path": "ai-workflow/memory/repository_assessment.md",
+    "present": true
   }
 }
