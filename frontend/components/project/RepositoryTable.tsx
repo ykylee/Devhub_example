@@ -89,22 +89,24 @@ export function RepositoryTable({
                       title={`${repo.repo_full_name} Actions`}
                       items={[
                         {
+                          key: "view-prs",
                           label: "View PRs",
                           icon: <GitBranch className="w-4 h-4" />,
                           onClick: () => {},
-                          primary: true
                         },
                         {
+                          key: "view-metrics",
                           label: "View Metrics",
                           icon: <Activity className="w-4 h-4" />,
                           onClick: () => {}
                         },
-                        onDisconnect ? {
+                        ...(onDisconnect ? [{
+                          key: "disconnect",
                           label: "Disconnect",
                           icon: <Unlink className="w-4 h-4" />,
                           onClick: () => onDisconnect(repo),
-                          danger: true
-                        } : null
+                          tone: "danger" as const
+                        }] : [])
                       ]}
                     />
                   </td>

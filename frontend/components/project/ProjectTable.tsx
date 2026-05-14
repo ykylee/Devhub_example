@@ -87,12 +87,13 @@ export function ProjectTable({
                       title={`${project.name} Actions`}
                       items={[
                         {
+                          key: "view-details",
                           label: "View Details",
                           icon: <ChevronRight className="w-4 h-4" />,
                           onClick: () => onViewDetails?.(project),
-                          primary: true
                         },
                         {
+                          key: "edit-project",
                           label: "Edit Project",
                           icon: <FolderKanban className="w-4 h-4" />,
                           onClick: () => {}

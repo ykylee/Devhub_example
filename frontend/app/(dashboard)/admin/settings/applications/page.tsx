@@ -122,7 +122,7 @@ export default function AdminSettingsApplicationsPage() {
           onEdit={handleEdit}
           onArchive={handleArchive}
           onViewRepositories={(app) => {
-            toast(`Viewing repositories for ${app.key} (Coming soon)`, "glass");
+            toast(`Viewing repositories for ${app.key} (Coming soon)`, "info");
           }}
         />
       )}

@@ -110,21 +110,23 @@ export function ApplicationTable({
                       title={`${app.name} Actions`}
                       items={[
                         {
+                          key: "view-repositories",
                           label: "View Repositories",
                           icon: <GitBranch className="w-4 h-4" />,
                           onClick: () => onViewRepositories(app),
-                          primary: true
                         },
                         {
+                          key: "edit-meta",
                           label: "Edit Meta",
                           icon: <Edit2 className="w-4 h-4" />,
                           onClick: () => onEdit(app)
                         },
                         {
+                          key: "archive",
                           label: "Archive",
                           icon: <Archive className="w-4 h-4" />,
                           onClick: () => onArchive(app),
-                          danger: true
+                          tone: "danger"
                         }
                       ]}
                     />
