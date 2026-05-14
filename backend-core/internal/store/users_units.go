@@ -710,8 +710,14 @@ INSERT INTO org_units (
 ) VALUES ($1, $2, $3, $4, NULLIF($5, ''), $6, $7)
 RETURNING id, created_at, updated_at`
 
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return domain.OrgUnit{}, fmt.Errorf("begin create unit tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
 	var unit domain.OrgUnit
-	err := s.pool.QueryRow(ctx, query,
+	err = tx.QueryRow(ctx, query,
 		input.UnitID,
 		nullableUnitID(input.ParentUnitID),
 		string(input.UnitType),
@@ -729,6 +735,28 @@ RETURNING id, created_at, updated_at`
 		}
 		return domain.OrgUnit{}, fmt.Errorf("insert unit: %w", err)
 	}
+
+	leader := strings.TrimSpace(input.LeaderUserID)
+	if leader != "" {
+		// Keep org_units.leader_user_id and unit_appointments in sync.
+		if _, err := tx.Exec(ctx,
+			`INSERT INTO unit_appointments (user_id, unit_id, appointment_role)
+			 VALUES ($1, $2, 'leader')
+			 ON CONFLICT (user_id, unit_id)
+			 DO UPDATE SET appointment_role = 'leader'`,
+			leader, input.UnitID,
+		); err != nil {
+			if isForeignKeyViolation(err) {
+				return domain.OrgUnit{}, fmt.Errorf("create unit %s leader %s: %w", input.UnitID, leader, ErrNotFound)
+			}
+			return domain.OrgUnit{}, fmt.Errorf("sync leader appointment for unit %s: %w", input.UnitID, err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return domain.OrgUnit{}, fmt.Errorf("commit create unit tx: %w", err)
+	}
+
 	unit.UnitID = input.UnitID
 	unit.ParentUnitID = input.ParentUnitID
 	unit.UnitType = input.UnitType
@@ -787,7 +815,13 @@ func (s *PostgresStore) UpdateOrgUnit(ctx context.Context, unitID string, input 
 	setClauses = append(setClauses, "updated_at = NOW()")
 	query := fmt.Sprintf(`UPDATE org_units SET %s WHERE unit_id = $1`, strings.Join(setClauses, ", "))
 
-	tag, err := s.pool.Exec(ctx, query, args...)
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return domain.OrgUnit{}, fmt.Errorf("begin update unit tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	tag, err := tx.Exec(ctx, query, args...)
 	if err != nil {
 		if isForeignKeyViolation(err) {
 			return domain.OrgUnit{}, fmt.Errorf("update unit %s references missing parent: %w", unitID, ErrNotFound)
@@ -796,6 +830,38 @@ func (s *PostgresStore) UpdateOrgUnit(ctx context.Context, unitID string, input 
 	}
 	if tag.RowsAffected() == 0 {
 		return domain.OrgUnit{}, fmt.Errorf("unit %s: %w", unitID, ErrNotFound)
+	}
+
+	if input.LeaderUserID != nil {
+		leader := strings.TrimSpace(*input.LeaderUserID)
+		// Normalize existing leader appointments first so unit-level leader
+		// remains a single source of truth.
+		if _, err := tx.Exec(ctx,
+			`UPDATE unit_appointments
+			 SET appointment_role = 'member'
+			 WHERE unit_id = $1 AND appointment_role = 'leader'`,
+			unitID,
+		); err != nil {
+			return domain.OrgUnit{}, fmt.Errorf("demote existing leaders for unit %s: %w", unitID, err)
+		}
+		if leader != "" {
+			if _, err := tx.Exec(ctx,
+				`INSERT INTO unit_appointments (user_id, unit_id, appointment_role)
+				 VALUES ($1, $2, 'leader')
+				 ON CONFLICT (user_id, unit_id)
+				 DO UPDATE SET appointment_role = 'leader'`,
+				leader, unitID,
+			); err != nil {
+				if isForeignKeyViolation(err) {
+					return domain.OrgUnit{}, fmt.Errorf("update unit %s leader %s: %w", unitID, leader, ErrNotFound)
+				}
+				return domain.OrgUnit{}, fmt.Errorf("sync leader appointment for unit %s: %w", unitID, err)
+			}
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return domain.OrgUnit{}, fmt.Errorf("commit update unit tx: %w", err)
 	}
 	return s.GetOrgUnit(ctx, unitID)
 }

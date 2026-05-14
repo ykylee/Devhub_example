@@ -29,7 +29,9 @@ export interface ListPoliciesResult {
 }
 
 class RbacService {
-  private baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+  // Keep RBAC calls same-origin by default so browser clients use Next.js
+  // rewrite/proxy instead of resolving localhost in user environments.
+  private baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
 
 
 

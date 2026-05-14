@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useEffect, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { MoreHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +29,7 @@ export function ActionMenu({
 }: ActionMenuProps) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0 });
+  const touchedRef = useRef(false);
 
   useEffect(() => {
     if (!open) return;
@@ -40,24 +41,37 @@ export function ActionMenu({
   }, [open]);
 
   const visibleItems = useMemo(() => items.filter(Boolean), [items]);
+  const toggleFromTarget = (target: HTMLButtonElement) => {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+    const rect = target.getBoundingClientRect();
+    const left = Math.max(12, Math.min(rect.right - widthPx, window.innerWidth - widthPx - 12));
+    setPos({ top: rect.bottom + 8, left });
+    setOpen(true);
+  };
 
   return (
     <>
       <button
         type="button"
-        onPointerDown={(e) => {
+        onTouchEnd={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          if (open) {
-            setOpen(false);
+          touchedRef.current = true;
+          toggleFromTarget(e.currentTarget as HTMLButtonElement);
+        }}
+        onClick={(e) => {
+          if (touchedRef.current) {
+            touchedRef.current = false;
             return;
           }
-          const rect = (e.currentTarget as HTMLButtonElement).getBoundingClientRect();
-          const left = Math.max(12, Math.min(rect.right - widthPx, window.innerWidth - widthPx - 12));
-          setPos({ top: rect.bottom + 8, left });
-          setOpen(true);
+          e.preventDefault();
+          e.stopPropagation();
+          toggleFromTarget(e.currentTarget as HTMLButtonElement);
         }}
-        className={cn("p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors", triggerClassName)}
+        className={cn("p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors cursor-pointer touch-manipulation", triggerClassName)}
         aria-label={title}
       >
         <MoreHorizontal className="w-5 h-5" />

@@ -12,6 +12,7 @@ import { useToast } from "@/components/ui/Toast";
 
 export default function AdminSettingsUsersPage() {
   const [members, setMembers] = useState<OrgMember[]>([]);
+  const [unitLeaderIds, setUnitLeaderIds] = useState<string[]>([]);
   const [roles, setRoles] = useState<Role[]>(defaultRoles);
   const [isLoading, setIsLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -31,12 +32,17 @@ export default function AdminSettingsUsersPage() {
     const load = async () => {
       setIsLoading(true);
       try {
-        const [usersData, policy] = await Promise.all([
+        const [usersData, policy, hierarchy] = await Promise.all([
           identityService.getUsers(),
           rbacService.listPolicies().catch(() => ({ roles: defaultRoles })),
+          identityService.getOrgHierarchy().catch(() => ({ nodes: [], edges: [] })),
         ]);
         setMembers(usersData);
         setRoles(policy.roles);
+        const leaders = hierarchy.nodes
+          .map((n) => n.data.leader_id)
+          .filter((v): v is string => Boolean(v));
+        setUnitLeaderIds(Array.from(new Set(leaders)));
       } catch (error) {
         console.error("[admin/settings/users] load failed:", error);
       } finally {
@@ -101,6 +107,7 @@ export default function AdminSettingsUsersPage() {
       ) : (
         <MemberTable
           members={filteredMembers}
+          unitLeaderIds={unitLeaderIds}
           roles={roles}
           onUpdateMemberRole={handleUpdateRole}
           onMemberCreated={(newMember) => {

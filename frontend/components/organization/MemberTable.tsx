@@ -17,14 +17,16 @@ import { UserCreationModal } from "./UserCreationModal";
 
 interface MemberTableProps {
   members: OrgMember[];
+  unitLeaderIds?: string[];
   roles: Role[];
   onUpdateMemberRole: (memberId: string, newRoleName: string) => void;
   onMemberCreated?: (user: OrgMember) => void;
 }
 
-export function MemberTable({ members, roles, onUpdateMemberRole, onMemberCreated }: MemberTableProps) {
+export function MemberTable({ members, unitLeaderIds = [], roles, onUpdateMemberRole, onMemberCreated }: MemberTableProps) {
   const { role: currentUserRole } = useStore();
   const { toast } = useToast();
+  const unitLeaderIdSet = new Set(unitLeaderIds);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [adminActionResult, setAdminActionResult] = useState<{
     title: string;
@@ -142,7 +144,7 @@ export function MemberTable({ members, roles, onUpdateMemberRole, onMemberCreate
           </thead>
           <tbody>
             {members.map((member, index) => {
-              const isLeader = member.appointments.some(a => a.role === 'leader');
+              const isLeader = member.appointments.some(a => a.role === 'leader') || unitLeaderIdSet.has(member.id);
               const isDualLeader = member.appointments.filter(a => a.role === 'leader').length > 1;
               const displayDept =
                 member.current_dept_id ||
