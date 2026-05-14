@@ -216,7 +216,7 @@ var routePermissionTable = map[routeKey]routePolicy{
 	// Application-Repository link (API-48..50, sprint claude/work_260514-a).
 	{http.MethodGet, "/api/v1/applications/:application_id/repositories"}:                       {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionView},
 	{http.MethodPost, "/api/v1/applications/:application_id/repositories"}:                      {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionCreate},
-	{http.MethodDelete, "/api/v1/applications/:application_id/repositories/:repo_key"}:          {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionDelete},
+	{http.MethodDelete, "/api/v1/applications/:application_id/repositories/*repo_key"}:          {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionDelete},
 }
 
 // lookupRoutePolicy is exported for tests to assert the table contents without

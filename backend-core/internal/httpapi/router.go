@@ -47,6 +47,37 @@ type AuditStore interface {
 	ListAuditLogs(context.Context, store.ListAuditLogsOptions) ([]domain.AuditLog, error)
 }
 
+// ApplicationStore is the persistence contract for the Application / Repository / Project
+// 도메인 (API-41..50). Implemented by *store.PostgresStore. Sprint claude/work_260514-b
+// (Application Design 2차) 가 stub → body 로 교체.
+type ApplicationStore interface {
+	// Applications
+	ListApplications(context.Context, store.ApplicationListOptions) ([]domain.Application, int, error)
+	GetApplication(context.Context, string) (domain.Application, error)
+	GetApplicationByKey(context.Context, string) (domain.Application, error)
+	CreateApplication(context.Context, domain.Application) (domain.Application, error)
+	UpdateApplication(context.Context, domain.Application) (domain.Application, error)
+	ArchiveApplication(context.Context, string, string) (domain.Application, error)
+	CountActiveApplicationRepositories(context.Context, string) (int, error)
+
+	// Application-Repository link
+	ListApplicationRepositories(context.Context, string) ([]domain.ApplicationRepository, error)
+	CreateApplicationRepository(context.Context, domain.ApplicationRepository) (domain.ApplicationRepository, error)
+	DeleteApplicationRepository(context.Context, store.ApplicationRepositoryLinkKey) error
+	UpdateApplicationRepositorySync(context.Context, store.ApplicationRepositoryLinkKey, domain.ApplicationRepositorySyncStatus, domain.SyncErrorCode) error
+
+	// SCM Provider catalog
+	ListSCMProviders(context.Context) ([]domain.SCMProvider, error)
+	UpdateSCMProvider(context.Context, domain.SCMProvider) (domain.SCMProvider, error)
+
+	// Projects
+	ListProjects(context.Context, store.ProjectListOptions) ([]domain.Project, int, error)
+	GetProject(context.Context, string) (domain.Project, error)
+	CreateProject(context.Context, domain.Project) (domain.Project, error)
+	UpdateProject(context.Context, domain.Project) (domain.Project, error)
+	ArchiveProject(context.Context, string, string) (domain.Project, error)
+}
+
 type KratosAdmin interface {
 	CreateIdentity(ctx context.Context, email, name, userID, password string) (string, error)
 	FindIdentityByUserID(ctx context.Context, userID string) (string, error)
@@ -74,6 +105,7 @@ type RouterConfig struct {
 	AuditStore          AuditStore
 	BearerTokenVerifier BearerTokenVerifier
 	OrganizationStore   OrganizationStore
+	ApplicationStore    ApplicationStore
 	RBACStore           RBACStore
 	PermissionCache     *PermissionCache
 	KratosLogin         KratosLoginClient
@@ -193,7 +225,9 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.DELETE("/applications/:application_id", handler.archiveApplication)
 	v1.GET("/applications/:application_id/repositories", handler.listApplicationRepositories)
 	v1.POST("/applications/:application_id/repositories", handler.createApplicationRepository)
-	v1.DELETE("/applications/:application_id/repositories/:repo_key", handler.deleteApplicationRepository)
+	// :repo_key 가 'provider:org/repo' 컨벤션이라 path 에 `/` 포함. gin 의 catch-all
+	// `*repo_key` 사용 — 핸들러는 leading `/` 를 strip 한 뒤 콜론으로 분리.
+	v1.DELETE("/applications/:application_id/repositories/*repo_key", handler.deleteApplicationRepository)
 	v1.POST("/integrations/gitea/webhooks", handler.receiveGiteaWebhook)
 	// Kratos self-service hooks (PR-M2-AUDIT, claude/login_usermanagement_finish).
 	// Bypasses authenticateActor + enforceRoutePermission via publicAPIPaths +

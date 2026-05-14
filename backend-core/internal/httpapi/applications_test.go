@@ -1,0 +1,649 @@
+package httpapi
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"net/http"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/devhub/backend-core/internal/domain"
+	"github.com/devhub/backend-core/internal/store"
+)
+
+// memoryApplicationStore is an in-memory ApplicationStore used by handler tests.
+// 본 store 는 SQL CHECK 제약 / FK 동작을 흉내내지 않으므로, handler 레벨 검증 (key
+// 정규식, immutable, 상태 전이 가드, RBAC denial) 만 검증 대상. PostgreSQL 통합
+// 테스트는 별도 (build-tagged) — 본 sprint 의 carve out.
+type memoryApplicationStore struct {
+	mu               sync.Mutex
+	apps             map[string]domain.Application
+	links            map[string][]domain.ApplicationRepository
+	providers        map[string]domain.SCMProvider
+	projects         map[string]domain.Project
+	activeLinkCounts map[string]int
+}
+
+func newMemoryApplicationStore() *memoryApplicationStore {
+	return &memoryApplicationStore{
+		apps:  make(map[string]domain.Application),
+		links: make(map[string][]domain.ApplicationRepository),
+		providers: map[string]domain.SCMProvider{
+			"bitbucket": {ProviderKey: "bitbucket", DisplayName: "Bitbucket", Enabled: true, AdapterVersion: "0.0.1"},
+			"gitea":     {ProviderKey: "gitea", DisplayName: "Gitea", Enabled: true, AdapterVersion: "0.0.1"},
+			"forgejo":   {ProviderKey: "forgejo", DisplayName: "Forgejo", Enabled: false, AdapterVersion: "0.0.1"},
+		},
+		projects:         make(map[string]domain.Project),
+		activeLinkCounts: make(map[string]int),
+	}
+}
+
+func (s *memoryApplicationStore) ListApplications(_ context.Context, opts store.ApplicationListOptions) ([]domain.Application, int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]domain.Application, 0, len(s.apps))
+	for _, a := range s.apps {
+		if opts.Status != "" && string(a.Status) != opts.Status {
+			continue
+		}
+		if !opts.IncludeArchived && a.Status == domain.ApplicationStatusArchived {
+			continue
+		}
+		out = append(out, a)
+	}
+	return out, len(out), nil
+}
+
+func (s *memoryApplicationStore) GetApplication(_ context.Context, id string) (domain.Application, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if a, ok := s.apps[id]; ok {
+		return a, nil
+	}
+	return domain.Application{}, store.ErrNotFound
+}
+
+func (s *memoryApplicationStore) GetApplicationByKey(_ context.Context, key string) (domain.Application, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, a := range s.apps {
+		if a.Key == key {
+			return a, nil
+		}
+	}
+	return domain.Application{}, store.ErrNotFound
+}
+
+func (s *memoryApplicationStore) CreateApplication(_ context.Context, app domain.Application) (domain.Application, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, a := range s.apps {
+		if a.Key == app.Key {
+			return domain.Application{}, store.ErrConflict
+		}
+	}
+	if app.ID == "" {
+		app.ID = "app-" + app.Key
+	}
+	app.CreatedAt = time.Now().UTC()
+	app.UpdatedAt = app.CreatedAt
+	s.apps[app.ID] = app
+	return app, nil
+}
+
+func (s *memoryApplicationStore) UpdateApplication(_ context.Context, app domain.Application) (domain.Application, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	current, ok := s.apps[app.ID]
+	if !ok {
+		return domain.Application{}, store.ErrNotFound
+	}
+	app.CreatedAt = current.CreatedAt
+	app.UpdatedAt = time.Now().UTC()
+	if app.Status == domain.ApplicationStatusArchived && app.ArchivedAt == nil {
+		now := time.Now().UTC()
+		app.ArchivedAt = &now
+	} else if app.Status != domain.ApplicationStatusArchived {
+		app.ArchivedAt = nil
+	}
+	s.apps[app.ID] = app
+	return app, nil
+}
+
+func (s *memoryApplicationStore) ArchiveApplication(_ context.Context, id, _ string) (domain.Application, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	app, ok := s.apps[id]
+	if !ok {
+		return domain.Application{}, store.ErrNotFound
+	}
+	app.Status = domain.ApplicationStatusArchived
+	now := time.Now().UTC()
+	app.ArchivedAt = &now
+	app.UpdatedAt = now
+	s.apps[id] = app
+	return app, nil
+}
+
+func (s *memoryApplicationStore) CountActiveApplicationRepositories(_ context.Context, applicationID string) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.activeLinkCounts[applicationID], nil
+}
+
+func (s *memoryApplicationStore) ListApplicationRepositories(_ context.Context, applicationID string) ([]domain.ApplicationRepository, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]domain.ApplicationRepository(nil), s.links[applicationID]...), nil
+}
+
+func (s *memoryApplicationStore) CreateApplicationRepository(_ context.Context, link domain.ApplicationRepository) (domain.ApplicationRepository, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.apps[link.ApplicationID]; !ok {
+		return domain.ApplicationRepository{}, store.ErrConflict
+	}
+	existing := s.links[link.ApplicationID]
+	for _, e := range existing {
+		if e.RepoProvider == link.RepoProvider && e.RepoFullName == link.RepoFullName {
+			return domain.ApplicationRepository{}, store.ErrConflict
+		}
+	}
+	link.LinkedAt = time.Now().UTC()
+	s.links[link.ApplicationID] = append(existing, link)
+	if link.SyncStatus == domain.SyncStatusActive {
+		s.activeLinkCounts[link.ApplicationID]++
+	}
+	return link, nil
+}
+
+func (s *memoryApplicationStore) DeleteApplicationRepository(_ context.Context, key store.ApplicationRepositoryLinkKey) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	links := s.links[key.ApplicationID]
+	for i, l := range links {
+		if l.RepoProvider == key.RepoProvider && l.RepoFullName == key.RepoFullName {
+			if l.SyncStatus == domain.SyncStatusActive {
+				s.activeLinkCounts[key.ApplicationID]--
+			}
+			s.links[key.ApplicationID] = append(links[:i], links[i+1:]...)
+			return nil
+		}
+	}
+	return store.ErrNotFound
+}
+
+func (s *memoryApplicationStore) UpdateApplicationRepositorySync(_ context.Context, key store.ApplicationRepositoryLinkKey, status domain.ApplicationRepositorySyncStatus, code domain.SyncErrorCode) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	links := s.links[key.ApplicationID]
+	for i, l := range links {
+		if l.RepoProvider == key.RepoProvider && l.RepoFullName == key.RepoFullName {
+			if l.SyncStatus != domain.SyncStatusActive && status == domain.SyncStatusActive {
+				s.activeLinkCounts[key.ApplicationID]++
+			} else if l.SyncStatus == domain.SyncStatusActive && status != domain.SyncStatusActive {
+				s.activeLinkCounts[key.ApplicationID]--
+			}
+			links[i].SyncStatus = status
+			links[i].SyncErrorCode = code
+			return nil
+		}
+	}
+	return store.ErrNotFound
+}
+
+func (s *memoryApplicationStore) ListSCMProviders(_ context.Context) ([]domain.SCMProvider, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]domain.SCMProvider, 0, len(s.providers))
+	for _, p := range s.providers {
+		out = append(out, p)
+	}
+	return out, nil
+}
+
+func (s *memoryApplicationStore) UpdateSCMProvider(_ context.Context, p domain.SCMProvider) (domain.SCMProvider, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.providers[p.ProviderKey]; !ok {
+		return domain.SCMProvider{}, store.ErrNotFound
+	}
+	cur := s.providers[p.ProviderKey]
+	cur.DisplayName = p.DisplayName
+	cur.Enabled = p.Enabled
+	cur.UpdatedAt = time.Now().UTC()
+	s.providers[p.ProviderKey] = cur
+	return cur, nil
+}
+
+func (s *memoryApplicationStore) ListProjects(_ context.Context, opts store.ProjectListOptions) ([]domain.Project, int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]domain.Project, 0)
+	for _, p := range s.projects {
+		if p.RepositoryID != opts.RepositoryID {
+			continue
+		}
+		if opts.Status != "" && string(p.Status) != opts.Status {
+			continue
+		}
+		if !opts.IncludeArchived && p.Status == domain.ApplicationStatusArchived {
+			continue
+		}
+		out = append(out, p)
+	}
+	return out, len(out), nil
+}
+
+func (s *memoryApplicationStore) GetProject(_ context.Context, id string) (domain.Project, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if p, ok := s.projects[id]; ok {
+		return p, nil
+	}
+	return domain.Project{}, store.ErrNotFound
+}
+
+func (s *memoryApplicationStore) CreateProject(_ context.Context, p domain.Project) (domain.Project, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, existing := range s.projects {
+		if existing.RepositoryID == p.RepositoryID && existing.Key == p.Key {
+			return domain.Project{}, store.ErrConflict
+		}
+	}
+	if p.ID == "" {
+		p.ID = "proj-" + p.Key
+	}
+	p.CreatedAt = time.Now().UTC()
+	p.UpdatedAt = p.CreatedAt
+	s.projects[p.ID] = p
+	return p, nil
+}
+
+func (s *memoryApplicationStore) UpdateProject(_ context.Context, p domain.Project) (domain.Project, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.projects[p.ID]; !ok {
+		return domain.Project{}, store.ErrNotFound
+	}
+	p.UpdatedAt = time.Now().UTC()
+	s.projects[p.ID] = p
+	return p, nil
+}
+
+func (s *memoryApplicationStore) ArchiveProject(_ context.Context, id, _ string) (domain.Project, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	p, ok := s.projects[id]
+	if !ok {
+		return domain.Project{}, store.ErrNotFound
+	}
+	p.Status = domain.ApplicationStatusArchived
+	now := time.Now().UTC()
+	p.ArchivedAt = &now
+	p.UpdatedAt = now
+	s.projects[id] = p
+	return p, nil
+}
+
+// --- handler tests ---
+
+func newApplicationsRouter(appStore ApplicationStore) http.Handler {
+	return NewRouter(RouterConfig{
+		ApplicationStore: appStore,
+		AuthDevFallback:  true, // bypass bearer auth
+	})
+}
+
+// 1) POST /applications — happy.
+func TestCreateApplication_Happy(t *testing.T) {
+	appStore := newMemoryApplicationStore()
+	router := newApplicationsRouter(appStore)
+
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/applications",
+		`{"key":"A1B2C3D4E5","name":"Devhub Platform","owner_user_id":"u1","visibility":"internal","status":"planning"}`)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"key":"A1B2C3D4E5"`)) {
+		t.Errorf("response should echo key: %s", rec.Body.String())
+	}
+}
+
+// 2) POST /applications — invalid key format → 422 invalid_application_key.
+func TestCreateApplication_InvalidKey(t *testing.T) {
+	router := newApplicationsRouter(newMemoryApplicationStore())
+
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/applications",
+		`{"key":"too-short","name":"X","owner_user_id":"u1","visibility":"internal","status":"planning"}`)
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"code":"invalid_application_key"`)) {
+		t.Errorf("response should carry invalid_application_key code: %s", rec.Body.String())
+	}
+}
+
+// 3) POST /applications — duplicate key → 409 application_key_conflict.
+func TestCreateApplication_DuplicateKey(t *testing.T) {
+	appStore := newMemoryApplicationStore()
+	router := newApplicationsRouter(appStore)
+	body := `{"key":"A1B2C3D4E5","name":"X","owner_user_id":"u1","visibility":"internal","status":"planning"}`
+	first := doJSON(t, router, http.MethodPost, "/api/v1/applications", body)
+	if first.Code != http.StatusCreated {
+		t.Fatalf("seed failed: %s", first.Body.String())
+	}
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/applications", body)
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"code":"application_key_conflict"`)) {
+		t.Errorf("expected application_key_conflict: %s", rec.Body.String())
+	}
+}
+
+// 4) PATCH /applications/:id — immutable key 거부 → 422 application_key_immutable.
+func TestUpdateApplication_ImmutableKey(t *testing.T) {
+	appStore := newMemoryApplicationStore()
+	app, _ := appStore.CreateApplication(context.Background(), domain.Application{
+		Key: "A1B2C3D4E5", Name: "X", Status: domain.ApplicationStatusPlanning,
+		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+	})
+	router := newApplicationsRouter(appStore)
+
+	rec := doJSON(t, router, http.MethodPatch, "/api/v1/applications/"+app.ID,
+		`{"key":"NEWKEY1234"}`)
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"code":"application_key_immutable"`)) {
+		t.Errorf("expected application_key_immutable: %s", rec.Body.String())
+	}
+}
+
+// 5) PATCH /applications/:id — planning → active 의 활성 repo 0건 → 422.
+func TestUpdateApplication_ActivationPreconditionFailed(t *testing.T) {
+	appStore := newMemoryApplicationStore()
+	app, _ := appStore.CreateApplication(context.Background(), domain.Application{
+		Key: "A1B2C3D4E5", Name: "X", Status: domain.ApplicationStatusPlanning,
+		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+	})
+	router := newApplicationsRouter(appStore)
+
+	rec := doJSON(t, router, http.MethodPatch, "/api/v1/applications/"+app.ID,
+		`{"status":"active"}`)
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"code":"application_activation_precondition_failed"`)) {
+		t.Errorf("expected activation precondition failure: %s", rec.Body.String())
+	}
+}
+
+// 6) PATCH /applications/:id — planning → active 의 활성 repo 1개 → 200.
+func TestUpdateApplication_ActivationSuccess(t *testing.T) {
+	appStore := newMemoryApplicationStore()
+	app, _ := appStore.CreateApplication(context.Background(), domain.Application{
+		Key: "A1B2C3D4E5", Name: "X", Status: domain.ApplicationStatusPlanning,
+		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+	})
+	_, _ = appStore.CreateApplicationRepository(context.Background(), domain.ApplicationRepository{
+		ApplicationID: app.ID, RepoProvider: "gitea", RepoFullName: "team/repo",
+		Role: domain.ApplicationRepositoryRolePrimary, SyncStatus: domain.SyncStatusActive,
+	})
+	router := newApplicationsRouter(appStore)
+
+	rec := doJSON(t, router, http.MethodPatch, "/api/v1/applications/"+app.ID,
+		`{"status":"active"}`)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"status":"active"`)) {
+		t.Errorf("expected status=active: %s", rec.Body.String())
+	}
+}
+
+// 7) PATCH /applications/:id — closed → planning 같은 invalid transition → 422.
+func TestUpdateApplication_InvalidStatusTransition(t *testing.T) {
+	appStore := newMemoryApplicationStore()
+	app, _ := appStore.CreateApplication(context.Background(), domain.Application{
+		Key: "A1B2C3D4E5", Name: "X", Status: domain.ApplicationStatusClosed,
+		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+	})
+	router := newApplicationsRouter(appStore)
+
+	rec := doJSON(t, router, http.MethodPatch, "/api/v1/applications/"+app.ID,
+		`{"status":"planning"}`)
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"code":"invalid_status_transition"`)) {
+		t.Errorf("expected invalid_status_transition: %s", rec.Body.String())
+	}
+}
+
+// 8) PATCH /applications/:id — active → on_hold 의 hold_reason 누락 → 422.
+func TestUpdateApplication_HoldReasonRequired(t *testing.T) {
+	appStore := newMemoryApplicationStore()
+	app, _ := appStore.CreateApplication(context.Background(), domain.Application{
+		Key: "A1B2C3D4E5", Name: "X", Status: domain.ApplicationStatusActive,
+		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+	})
+	router := newApplicationsRouter(appStore)
+
+	rec := doJSON(t, router, http.MethodPatch, "/api/v1/applications/"+app.ID,
+		`{"status":"on_hold"}`)
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"code":"invalid_status_transition_payload"`)) {
+		t.Errorf("expected invalid_status_transition_payload: %s", rec.Body.String())
+	}
+}
+
+// 9) DELETE /applications/:id — archive (soft-delete).
+func TestArchiveApplication_Happy(t *testing.T) {
+	appStore := newMemoryApplicationStore()
+	app, _ := appStore.CreateApplication(context.Background(), domain.Application{
+		Key: "A1B2C3D4E5", Name: "X", Status: domain.ApplicationStatusActive,
+		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+	})
+	router := newApplicationsRouter(appStore)
+
+	rec := doJSON(t, router, http.MethodDelete, "/api/v1/applications/"+app.ID,
+		`{"archived_reason":"product end-of-life"}`)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"status":"archived"`)) {
+		t.Errorf("expected status=archived: %s", rec.Body.String())
+	}
+	final, err := appStore.GetApplication(context.Background(), app.ID)
+	if err != nil {
+		t.Fatalf("application lost after archive: %v", err)
+	}
+	if final.Status != domain.ApplicationStatusArchived {
+		t.Errorf("status not archived: %s", final.Status)
+	}
+}
+
+// 10) POST /applications/:id/repositories — unsupported_repo_provider → 422.
+func TestCreateApplicationRepository_UnsupportedProvider(t *testing.T) {
+	appStore := newMemoryApplicationStore()
+	app, _ := appStore.CreateApplication(context.Background(), domain.Application{
+		Key: "A1B2C3D4E5", Name: "X", Status: domain.ApplicationStatusPlanning,
+		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+	})
+	router := newApplicationsRouter(appStore)
+
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/applications/"+app.ID+"/repositories",
+		`{"repo_provider":"unknown","repo_full_name":"team/repo","role":"primary"}`)
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"code":"unsupported_repo_provider"`)) {
+		t.Errorf("expected unsupported_repo_provider: %s", rec.Body.String())
+	}
+}
+
+// 11) POST /applications/:id/repositories — disabled provider → 422.
+func TestCreateApplicationRepository_DisabledProvider(t *testing.T) {
+	appStore := newMemoryApplicationStore()
+	app, _ := appStore.CreateApplication(context.Background(), domain.Application{
+		Key: "A1B2C3D4E5", Name: "X", Status: domain.ApplicationStatusPlanning,
+		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+	})
+	router := newApplicationsRouter(appStore)
+
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/applications/"+app.ID+"/repositories",
+		`{"repo_provider":"forgejo","repo_full_name":"team/repo","role":"primary"}`)
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+// 12) POST /applications/:id/repositories — duplicate link → 409 repository_link_conflict.
+func TestCreateApplicationRepository_DuplicateLink(t *testing.T) {
+	appStore := newMemoryApplicationStore()
+	app, _ := appStore.CreateApplication(context.Background(), domain.Application{
+		Key: "A1B2C3D4E5", Name: "X", Status: domain.ApplicationStatusPlanning,
+		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+	})
+	router := newApplicationsRouter(appStore)
+	body := `{"repo_provider":"gitea","repo_full_name":"team/repo","role":"primary"}`
+	first := doJSON(t, router, http.MethodPost, "/api/v1/applications/"+app.ID+"/repositories", body)
+	if first.Code != http.StatusCreated {
+		t.Fatalf("seed failed: %s", first.Body.String())
+	}
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/applications/"+app.ID+"/repositories", body)
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"code":"repository_link_conflict"`)) {
+		t.Errorf("expected repository_link_conflict: %s", rec.Body.String())
+	}
+}
+
+// 13) DELETE /applications/:id/repositories/:repo_key — colon convention.
+func TestDeleteApplicationRepository_Happy(t *testing.T) {
+	appStore := newMemoryApplicationStore()
+	app, _ := appStore.CreateApplication(context.Background(), domain.Application{
+		Key: "A1B2C3D4E5", Name: "X", Status: domain.ApplicationStatusPlanning,
+		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+	})
+	_, _ = appStore.CreateApplicationRepository(context.Background(), domain.ApplicationRepository{
+		ApplicationID: app.ID, RepoProvider: "gitea", RepoFullName: "team/repo",
+		Role: domain.ApplicationRepositoryRolePrimary, SyncStatus: domain.SyncStatusRequested,
+	})
+	router := newApplicationsRouter(appStore)
+
+	rec := doJSON(t, router, http.MethodDelete,
+		"/api/v1/applications/"+app.ID+"/repositories/gitea:team/repo", "")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	links, _ := appStore.ListApplicationRepositories(context.Background(), app.ID)
+	if len(links) != 0 {
+		t.Errorf("link should be removed, got %d", len(links))
+	}
+}
+
+// 14) DELETE /applications/:id/repositories/:repo_key — bad format → 400.
+func TestDeleteApplicationRepository_BadKey(t *testing.T) {
+	appStore := newMemoryApplicationStore()
+	router := newApplicationsRouter(appStore)
+	rec := doJSON(t, router, http.MethodDelete,
+		"/api/v1/applications/some-id/repositories/no-colon", "")
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+// 15) PATCH /scm/providers/:provider_key — adapter_version 거부 → 422.
+func TestUpdateSCMProvider_AdapterVersionImmutable(t *testing.T) {
+	appStore := newMemoryApplicationStore()
+	router := newApplicationsRouter(appStore)
+	rec := doJSON(t, router, http.MethodPatch, "/api/v1/scm/providers/gitea",
+		`{"adapter_version":"9.9.9"}`)
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"code":"adapter_version_immutable"`)) {
+		t.Errorf("expected adapter_version_immutable: %s", rec.Body.String())
+	}
+}
+
+// 16) GET /scm/providers — list happy.
+func TestListSCMProviders_Happy(t *testing.T) {
+	appStore := newMemoryApplicationStore()
+	router := newApplicationsRouter(appStore)
+	rec := doJSON(t, router, http.MethodGet, "/api/v1/scm/providers", "")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, `"provider_key":"gitea"`) {
+		t.Errorf("expected gitea in list: %s", body)
+	}
+}
+
+// 17) GET /applications — empty list when none seeded.
+func TestListApplications_Empty(t *testing.T) {
+	appStore := newMemoryApplicationStore()
+	router := newApplicationsRouter(appStore)
+	rec := doJSON(t, router, http.MethodGet, "/api/v1/applications", "")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"data":[]`)) {
+		t.Errorf("expected empty data array: %s", rec.Body.String())
+	}
+}
+
+// 18) GET /applications/:id — not found → 404.
+func TestGetApplication_NotFound(t *testing.T) {
+	appStore := newMemoryApplicationStore()
+	router := newApplicationsRouter(appStore)
+	rec := doJSON(t, router, http.MethodGet, "/api/v1/applications/nonexistent", "")
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+// 19) ApplicationStore nil 인 경우 503 (configuration error).
+func TestApplications_ServiceUnavailable(t *testing.T) {
+	router := NewRouter(RouterConfig{
+		AuthDevFallback: true,
+	})
+	rec := doJSON(t, router, http.MethodGet, "/api/v1/applications", "")
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+// guard: ErrNotImplemented 가 더 이상 store layer 의 public API 가 아니라는 보증
+// (sprint claude/work_260514-a 의 stub 제거 확인).
+func TestStoreErrNotImplementedRemovedFromHandlerPath(t *testing.T) {
+	appStore := newMemoryApplicationStore()
+	router := newApplicationsRouter(appStore)
+	rec := doJSON(t, router, http.MethodGet, "/api/v1/applications", "")
+	if rec.Code == http.StatusNotImplemented {
+		t.Fatalf("handler returned 501 — stub removal incomplete: %s", rec.Body.String())
+	}
+}
+
+// ApplicationStore interface compile-time check — memoryApplicationStore 가
+// 인터페이스를 만족하는지 (signature 변경 시 컴파일 에러로 발견).
+var _ ApplicationStore = (*memoryApplicationStore)(nil)
+
+// 추가 verification: domain.IsRetryableSyncError + ErrConflict / ErrNotFound 의
+// 외부 import 가능성 확인 (테스트 컴파일이 link 단계까지 진행되어야).
+var (
+	_ = domain.IsRetryableSyncError(domain.SyncErrorProviderUnreachable)
+	_ = errors.Is(store.ErrConflict, store.ErrConflict)
+	_ = errors.Is(store.ErrNotFound, store.ErrNotFound)
+)
