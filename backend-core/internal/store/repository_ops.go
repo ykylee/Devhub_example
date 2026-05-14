@@ -388,11 +388,12 @@ WHERE ar.application_id = $1::uuid`
 		if sum < 1.0-domain.CustomWeightTolerance || sum > 1.0+domain.CustomWeightTolerance {
 			return domain.ApplicationRollup{}, fmt.Errorf("invalid weight policy: custom weights must sum to 1.0 (got %.4f)", sum)
 		}
+		missingCount := 0
 		for _, l := range contributing {
 			if w, ok := opts.CustomWeights[l.FullName]; ok {
 				rawWeights[l.FullName] = w
 			} else {
-				// missing → equal fallback
+				// missing → equal fallback (정규화는 아래에서)
 				if n := len(contributing); n > 0 {
 					fallbackW := 1.0 / float64(n)
 					rawWeights[l.FullName] = fallbackW
@@ -402,6 +403,28 @@ WHERE ar.application_id = $1::uuid`
 						Reason:        "custom_weight_missing",
 						AppliedWeight: fallbackW,
 					})
+					missingCount++
+				}
+			}
+		}
+		// PR #107 codex review P1 — fallback 후 sum=1.0 재정규화.
+		// custom_weights 가 이미 합 1.0 으로 검증된 상태에서 누락 repo 에 1/N equal
+		// fallback 을 부여하면 최종 합이 1.0 초과 → build_success_rate 같은 weighted
+		// metric 가 1.0 초과 (수치 오염). missing 이 있을 때만 전체 정규화하고
+		// fallbacks meta 의 AppliedWeight 도 정규화 후 값으로 갱신.
+		if missingCount > 0 {
+			total := 0.0
+			for _, w := range rawWeights {
+				total += w
+			}
+			if total > 0 {
+				for k := range rawWeights {
+					rawWeights[k] /= total
+				}
+				for i := range fallbacks {
+					if w, ok := rawWeights[fallbacks[i].RepoFullName]; ok {
+						fallbacks[i].AppliedWeight = w
+					}
 				}
 			}
 		}

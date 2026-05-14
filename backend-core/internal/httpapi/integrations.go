@@ -241,6 +241,14 @@ func (h *Handler) updateIntegration(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "integration not found"})
 		return
 	}
+	if errors.Is(err, store.ErrConflict) {
+		c.JSON(http.StatusConflict, gin.H{
+			"status": "conflict",
+			"error":  "integration with the same (scope target, type, external_key) already exists",
+			"code":   "integration_conflict",
+		})
+		return
+	}
 	if err != nil {
 		writeServerError(c, err, "integrations.update")
 		return

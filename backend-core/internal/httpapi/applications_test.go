@@ -414,6 +414,20 @@ func (s *memoryApplicationStore) UpdateIntegration(_ context.Context, i domain.P
 	if !ok {
 		return domain.ProjectIntegration{}, store.ErrNotFound
 	}
+	// PR #107 codex review P2 — partial UNIQUE 인덱스 흉내. external_key 변경이
+	// 다른 row 와 (scope target, integration_type, external_key) 충돌 시 ErrConflict.
+	for otherID, other := range s.integrations {
+		if otherID == i.ID {
+			continue
+		}
+		if other.Scope == current.Scope &&
+			other.ApplicationID == current.ApplicationID &&
+			other.ProjectID == current.ProjectID &&
+			other.IntegrationType == current.IntegrationType &&
+			other.ExternalKey == i.ExternalKey {
+			return domain.ProjectIntegration{}, store.ErrConflict
+		}
+	}
 	current.ExternalKey = i.ExternalKey
 	current.URL = i.URL
 	current.Policy = i.Policy
