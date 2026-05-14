@@ -90,16 +90,20 @@ jobs:
           timeout 30s bash -c 'until pg_isready -h 127.0.0.1 -p 5432; do sleep 1; done'
 
       - name: Apply migrations
+        # PR #110 codex P1 — /usr/local/bin 는 GitHub-hosted Linux runner 에서 보통
+        # 일반 user 가 쓰기 가능한 환경이지만, sudo + 명시적 GOBIN env 로 권한
+        # 의존을 제거. ci-setup.sh 의 동일 패턴 (line 79) 과 정합.
         run: |
           set -euo pipefail
-          GOBIN=/usr/local/bin go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.19.1
+          sudo GOBIN=/usr/local/bin go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.19.1
           migrate -path backend-core/migrations -database "postgres://runner@localhost:5432/devhub?sslmode=disable" up
 
       - name: Run integration tests
         env:
           DEVHUB_TEST_DB_URL: postgres://runner@localhost:5432/devhub?sslmode=disable
+        # -v 로 verbose 출력 — 실패 시 CI 로그에서 fail 메시지 직접 노출.
         run: |
-          cd backend-core && go test -count=1 -run 'TestIntegration_' ./internal/store/...
+          cd backend-core && go test -count=1 -v -run 'TestIntegration_' ./internal/store/...
 
   frontend-unit:
     name: Frontend Unit Tests

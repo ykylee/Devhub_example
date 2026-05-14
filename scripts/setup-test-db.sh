@@ -31,8 +31,13 @@ if [[ -z "${DEVHUB_TEST_DB_URL:-}" ]]; then
 fi
 
 if ! command -v migrate &> /dev/null; then
-  echo "golang-migrate not found; installing..."
-  GOBIN=/usr/local/bin go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.19.1
+  echo "golang-migrate not found; installing to \$HOME/go/bin..."
+  # PR #110 codex P2 — sudo 가 없는 dev 환경 (GOBIN=/usr/local/bin 권한 부족)
+  # 대응. user-writable 위치 사용 + PATH 안내.
+  : "${GOBIN:=$HOME/go/bin}"
+  GOBIN="$GOBIN" go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.19.1
+  export PATH="$GOBIN:$PATH"
+  echo "  ▶ ensure PATH includes $GOBIN for migrate binary"
 fi
 
 echo "Applying migrations to $DEVHUB_TEST_DB_URL ..."
