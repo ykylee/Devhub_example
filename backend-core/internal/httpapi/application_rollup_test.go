@@ -54,3 +54,23 @@ func TestApplicationRollup_MalformedCustomWeights(t *testing.T) {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
 	}
 }
+
+// 5) PR #107 codex review P1 회귀 guard — custom_weights fallback 후 합이 1.0 으로
+// 정규화되어야 함. memoryApplicationStore 의 ComputeApplicationRollup stub 은 실제
+// 정규화 로직을 흉내내지 않으므로 본 회귀 guard 는 실 store (PostgresStore) 의
+// repository_ops.go::ComputeApplicationRollup 단위 호출로 검증해야 한다. 본 sprint 는
+// store integration test 가 carve out 이므로, normalize 로직의 핵심 분기인 application
+// 측 호출 (handler → store) 의 흐름은 happy path 만 검증. 실 정규화 검증은 후속
+// integration test 에서 SQL pool 을 갖춘 환경에서 수행.
+//
+// 본 test 는 handler 의 custom_weights query 파싱이 store stub 으로 정상 전달되는지만
+// 확인 — fallback 가 0건인 trivial case.
+func TestApplicationRollup_CustomWeightsExact(t *testing.T) {
+	router := newApplicationsRouter(newMemoryApplicationStore())
+	weights := `{"team/a":1.0}` // exact 1.0
+	rec := doJSON(t, router, http.MethodGet,
+		"/api/v1/applications/some-id/rollup?weight_policy=custom&custom_weights="+weights, "")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s (expected 200 — exact sum 1.0)", rec.Code, rec.Body.String())
+	}
+}

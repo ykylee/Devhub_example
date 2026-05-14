@@ -152,6 +152,12 @@ RETURNING` + integrationsSelectColumns
 	if errors.Is(err, pgx.ErrNoRows) {
 		return domain.ProjectIntegration{}, ErrNotFound
 	}
+	// PR #107 codex review P2 — UpdateIntegration 의 external_key 변경이 partial
+	// UNIQUE 인덱스 (application_id/project_id + integration_type + external_key) 를
+	// 위반할 수 있으므로 ErrConflict 매핑. createIntegration 의 대칭.
+	if isUniqueViolation(err) {
+		return domain.ProjectIntegration{}, ErrConflict
+	}
 	if err != nil {
 		return domain.ProjectIntegration{}, fmt.Errorf("update integration: %w", err)
 	}

@@ -1,0 +1,23 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "claude/work_260514-d",
+  "status": "in_progress",
+  "base_branch": "main",
+  "base_commit": "f11bdbb",
+  "scope": "hotfix — PR #107 머지 후 codex 외부 리뷰가 발견한 실제 버그 2건 정정. (P1) ComputeApplicationRollup 의 weight_policy=custom 분기에서 누락 repo fallback 후 sum 정규화 미실행 → 합 > 1.0 → weighted metrics 수치 오염. (P2) UpdateIntegration 의 unique violation → ErrConflict 매핑 누락 → handler 500 응답 (createIntegration 과 대칭 부재).",
+  "started_at": "2026-05-14T03:45:00Z",
+  "updated_at": "2026-05-14T03:45:00Z",
+  "carve_in": [
+    "P1 ComputeApplicationRollup custom weight fallback 후 sum=1.0 재정규화 + fallbacks meta 의 AppliedWeight 정규화 후 값으로 갱신",
+    "P2 UpdateIntegration unique violation → ErrConflict + handler updateIntegration 의 409 분기 + memoryIntegrationStore 의 unique 검증",
+    "회귀 guard test 2개"
+  ],
+  "carve_out": [
+    "기존 carve_out 은 다음 sprint 인계 (work_260514-c state.json 참조)"
+  ],
+  "risks": [
+    "변경 minimal — 영향 범위 작음",
+    "회귀 guard test 가 충분히 corner case 를 cover 하는지 검토 필요"
+  ]
+}
