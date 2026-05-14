@@ -10,11 +10,15 @@ import (
 type Resource string
 
 const (
-	ResourceInfrastructure Resource = "infrastructure"
-	ResourcePipelines      Resource = "pipelines"
-	ResourceOrganization   Resource = "organization"
-	ResourceSecurity       Resource = "security"
-	ResourceAudit          Resource = "audit"
+	ResourceInfrastructure          Resource = "infrastructure"
+	ResourcePipelines               Resource = "pipelines"
+	ResourceOrganization            Resource = "organization"
+	ResourceSecurity                Resource = "security"
+	ResourceAudit                   Resource = "audit"
+	ResourceApplications            Resource = "applications"
+	ResourceApplicationRepositories Resource = "application_repositories"
+	ResourceProjects                Resource = "projects"
+	ResourceSCMProviders            Resource = "scm_providers"
 )
 
 // Action is the RBAC action axis defined by docs/backend_api_contract.md section 12.0.3.
@@ -49,7 +53,9 @@ type RBACRole struct {
 	UpdatedAt   time.Time
 }
 
-// AllResources lists the 5 canonical resources in display order.
+// AllResources lists the 9 canonical resources in display order. Resources 6~9
+// (applications / application_repositories / projects / scm_providers) were added
+// in sprint claude/work_260514-a (migration 000018, ADR-0011 §4.1).
 func AllResources() []Resource {
 	return []Resource{
 		ResourceInfrastructure,
@@ -57,6 +63,10 @@ func AllResources() []Resource {
 		ResourceOrganization,
 		ResourceSecurity,
 		ResourceAudit,
+		ResourceApplications,
+		ResourceApplicationRepositories,
+		ResourceProjects,
+		ResourceSCMProviders,
 	}
 }
 
@@ -138,27 +148,39 @@ func DefaultPermissionMatrix(roleID string) (PermissionMatrix, bool) {
 	switch roleID {
 	case string(AppRoleDeveloper):
 		return PermissionMatrix{
-			ResourceInfrastructure: {View: true},
-			ResourcePipelines:      {View: true},
-			ResourceOrganization:   {View: true},
-			ResourceSecurity:       {View: true},
-			ResourceAudit:          {},
+			ResourceInfrastructure:          {View: true},
+			ResourcePipelines:               {View: true},
+			ResourceOrganization:            {View: true},
+			ResourceSecurity:                {View: true},
+			ResourceAudit:                   {},
+			ResourceApplications:            {},
+			ResourceApplicationRepositories: {},
+			ResourceProjects:                {},
+			ResourceSCMProviders:            {},
 		}, true
 	case string(AppRoleManager):
 		return PermissionMatrix{
-			ResourceInfrastructure: {View: true},
-			ResourcePipelines:      {View: true},
-			ResourceOrganization:   {View: true},
-			ResourceSecurity:       {View: true, Create: true},
-			ResourceAudit:          {View: true},
+			ResourceInfrastructure:          {View: true},
+			ResourcePipelines:               {View: true},
+			ResourceOrganization:            {View: true},
+			ResourceSecurity:                {View: true, Create: true},
+			ResourceAudit:                   {View: true},
+			ResourceApplications:            {},
+			ResourceApplicationRepositories: {},
+			ResourceProjects:                {},
+			ResourceSCMProviders:            {},
 		}, true
 	case string(AppRoleSystemAdmin):
 		return PermissionMatrix{
-			ResourceInfrastructure: {View: true, Create: true, Edit: true, Delete: true},
-			ResourcePipelines:      {View: true, Create: true, Edit: true, Delete: true},
-			ResourceOrganization:   {View: true, Create: true, Edit: true, Delete: true},
-			ResourceSecurity:       {View: true, Create: true, Edit: true, Delete: true},
-			ResourceAudit:          {View: true},
+			ResourceInfrastructure:          {View: true, Create: true, Edit: true, Delete: true},
+			ResourcePipelines:               {View: true, Create: true, Edit: true, Delete: true},
+			ResourceOrganization:            {View: true, Create: true, Edit: true, Delete: true},
+			ResourceSecurity:                {View: true, Create: true, Edit: true, Delete: true},
+			ResourceAudit:                   {View: true},
+			ResourceApplications:            {View: true, Create: true, Edit: true, Delete: true},
+			ResourceApplicationRepositories: {View: true, Create: true, Edit: true, Delete: true},
+			ResourceProjects:                {View: true, Create: true, Edit: true, Delete: true},
+			ResourceSCMProviders:            {View: true, Create: true, Edit: true, Delete: true},
 		}, true
 	default:
 		return nil, false

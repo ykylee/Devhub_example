@@ -201,6 +201,22 @@ var routePermissionTable = map[routeKey]routePolicy{
 	{http.MethodGet, "/api/v1/rbac/subjects/:subject_id/roles"}: {Resource: domain.ResourceOrganization, Action: domain.ActionView},
 	{http.MethodPut, "/api/v1/rbac/subjects/:subject_id/roles"}: {Resource: domain.ResourceOrganization, Action: domain.ActionEdit},
 	{http.MethodGet, "/api/v1/hr/lookup"}:                        {Resource: domain.ResourceOrganization, Action: domain.ActionView},
+
+	// SCM Provider catalog (API-41..42, sprint claude/work_260514-a, ADR-0011 §4.1 1차).
+	{http.MethodGet, "/api/v1/scm/providers"}:                  {Resource: domain.ResourceSCMProviders, Action: domain.ActionView},
+	{http.MethodPatch, "/api/v1/scm/providers/:provider_key"}:  {Resource: domain.ResourceSCMProviders, Action: domain.ActionEdit},
+
+	// Applications (API-43..47, sprint claude/work_260514-a).
+	{http.MethodGet, "/api/v1/applications"}:                          {Resource: domain.ResourceApplications, Action: domain.ActionView},
+	{http.MethodPost, "/api/v1/applications"}:                         {Resource: domain.ResourceApplications, Action: domain.ActionCreate},
+	{http.MethodGet, "/api/v1/applications/:application_id"}:          {Resource: domain.ResourceApplications, Action: domain.ActionView},
+	{http.MethodPatch, "/api/v1/applications/:application_id"}:        {Resource: domain.ResourceApplications, Action: domain.ActionEdit},
+	{http.MethodDelete, "/api/v1/applications/:application_id"}:       {Resource: domain.ResourceApplications, Action: domain.ActionDelete},
+
+	// Application-Repository link (API-48..50, sprint claude/work_260514-a).
+	{http.MethodGet, "/api/v1/applications/:application_id/repositories"}:                       {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionView},
+	{http.MethodPost, "/api/v1/applications/:application_id/repositories"}:                      {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionCreate},
+	{http.MethodDelete, "/api/v1/applications/:application_id/repositories/:repo_key"}:          {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionDelete},
 }
 
 // lookupRoutePolicy is exported for tests to assert the table contents without

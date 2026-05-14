@@ -1,0 +1,4 @@
+DROP INDEX IF EXISTS application_repositories_external_repo_id_idx;
+DROP INDEX IF EXISTS application_repositories_sync_status_idx;
+DROP INDEX IF EXISTS application_repositories_provider_repo_idx;
+DROP TABLE IF EXISTS application_repositories;
