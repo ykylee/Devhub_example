@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { X, Box, Info, User, Globe, Eye, Lock, Loader2, Calendar } from "lucide-react";
+import { X, Box, Info, User, Globe, Eye, Lock, Loader2, Calendar, Building2 } from "lucide-react";
 import { Application, ApplicationStatus, ApplicationVisibility } from "@/lib/services/project.types";
 import { projectService } from "@/lib/services/project.service";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,8 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
     name: initialData?.name || "",
     description: initialData?.description || "",
     owner_user_id: initialData?.owner_user_id || "",
+    leader_user_id: initialData?.leader_user_id || "",
+    development_unit_id: initialData?.development_unit_id || "",
     visibility: initialData?.visibility || "internal" as ApplicationVisibility,
     status: initialData?.status || "planning" as ApplicationStatus,
     start_date: initialData?.start_date || "",
@@ -144,14 +146,43 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-primary-foreground/40 uppercase tracking-widest px-1">Chief PL (Owner)</label>
+              <label className="text-[10px] font-black text-primary-foreground/40 uppercase tracking-widest px-1">Application Leader</label>
+              <div className="relative group">
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-foreground/20 group-focus-within:text-purple-400 transition-colors" />
+                <input
+                  required
+                  value={formData.leader_user_id}
+                  onChange={e => setFormData({ ...formData, leader_user_id: e.target.value })}
+                  placeholder="e.g. charlie"
+                  className="w-full bg-muted/30 border border-border rounded-2xl pl-12 pr-4 py-3 text-sm text-primary-foreground focus:outline-none focus:ring-1 focus:ring-purple-400/50"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-primary-foreground/40 uppercase tracking-widest px-1">Development Department</label>
+              <div className="relative group">
+                <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-foreground/20 group-focus-within:text-purple-400 transition-colors" />
+                <input
+                  required
+                  value={formData.development_unit_id}
+                  onChange={e => setFormData({ ...formData, development_unit_id: e.target.value })}
+                  placeholder="e.g. dept-eng"
+                  className="w-full bg-muted/30 border border-border rounded-2xl pl-12 pr-4 py-3 text-sm text-primary-foreground focus:outline-none focus:ring-1 focus:ring-purple-400/50"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-primary-foreground/40 uppercase tracking-widest px-1">Owner User (Legacy)</label>
               <div className="relative group">
                 <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-foreground/20 group-focus-within:text-purple-400 transition-colors" />
                 <input
                   required
                   value={formData.owner_user_id}
                   onChange={e => setFormData({ ...formData, owner_user_id: e.target.value })}
-                  placeholder="Search user ID..."
+                  placeholder="e.g. charlie"
                   className="w-full bg-muted/30 border border-border rounded-2xl pl-12 pr-4 py-3 text-sm text-primary-foreground focus:outline-none focus:ring-1 focus:ring-purple-400/50"
                 />
               </div>

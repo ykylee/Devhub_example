@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Filter, Plus } from "lucide-react";
 import { projectService } from "@/lib/services/project.service";
@@ -17,20 +17,11 @@ export default function AdminSettingsApplicationsPage() {
   const [editingApp, setEditingApp] = useState<Application | null>(null);
   const { toast } = useToast();
 
-  const filteredApps = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return applications;
-    return applications.filter((app) =>
-      app.name.toLowerCase().includes(q) ||
-      app.key.toLowerCase().includes(q) ||
-      app.owner_user_id.toLowerCase().includes(q)
-    );
-  }, [applications, query]);
-
-  const refresh = async () => {
+  const refresh = async (searchQuery: string = query) => {
     setIsLoading(true);
     try {
-      const data = await projectService.getApplications();
+      const q = searchQuery.trim();
+      const data = await projectService.getApplications(q ? { q } : undefined);
       setApplications(data);
     } catch (error) {
       console.error("[admin/settings/applications] load failed:", error);
@@ -47,7 +38,8 @@ export default function AdminSettingsApplicationsPage() {
     let cancelled = false;
     (async () => {
       try {
-        const data = await projectService.getApplications();
+        const q = query.trim();
+        const data = await projectService.getApplications(q ? { q } : undefined);
         if (!cancelled) setApplications(data);
       } catch (error) {
         console.error("[admin/settings/applications] load failed:", error);
@@ -61,7 +53,7 @@ export default function AdminSettingsApplicationsPage() {
     return () => {
       cancelled = true;
     };
-  }, [toast]);
+  }, [toast, query]);
 
   const handleCreate = () => {
     setEditingApp(null);
@@ -126,7 +118,7 @@ export default function AdminSettingsApplicationsPage() {
         </div>
       ) : (
         <ApplicationTable
-          applications={filteredApps}
+          applications={applications}
           onEdit={handleEdit}
           onArchive={handleArchive}
           onViewRepositories={(app) => {

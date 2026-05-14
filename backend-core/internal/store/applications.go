@@ -45,6 +45,8 @@ const applicationsSelectColumns = `
 	status,
 	visibility,
 	COALESCE(owner_user_id, ''),
+	COALESCE(leader_user_id, ''),
+	COALESCE(development_unit_id, ''),
 	start_date,
 	due_date,
 	archived_at,
@@ -53,9 +55,9 @@ const applicationsSelectColumns = `
 
 func scanApplication(row pgx.Row) (domain.Application, error) {
 	var (
-		app                  domain.Application
-		startDate, dueDate   *time.Time
-		archivedAt           *time.Time
+		app                domain.Application
+		startDate, dueDate *time.Time
+		archivedAt         *time.Time
 	)
 	if err := row.Scan(
 		&app.ID,
@@ -65,6 +67,8 @@ func scanApplication(row pgx.Row) (domain.Application, error) {
 		&app.Status,
 		&app.Visibility,
 		&app.OwnerUserID,
+		&app.LeaderUserID,
+		&app.DevelopmentUnitID,
 		&startDate,
 		&dueDate,
 		&archivedAt,
@@ -93,7 +97,35 @@ func (s *PostgresStore) ListApplications(ctx context.Context, opts ApplicationLi
 SELECT COUNT(*) FROM applications
 WHERE ($1 = '' OR status = $1)
   AND ($2 OR status <> 'archived')
-  AND ($3 = '' OR key ILIKE '%' || $3 || '%' OR name ILIKE '%' || $3 || '%')`
+  AND (
+    $3 = ''
+    OR key ILIKE '%' || $3 || '%'
+    OR name ILIKE '%' || $3 || '%'
+    OR owner_user_id ILIKE '%' || $3 || '%'
+    OR leader_user_id ILIKE '%' || $3 || '%'
+    OR development_unit_id ILIKE '%' || $3 || '%'
+    OR EXISTS (
+      SELECT 1 FROM org_units ou
+      WHERE ou.unit_id = applications.development_unit_id
+        AND ou.label ILIKE '%' || $3 || '%'
+    )
+    OR EXISTS (
+      SELECT 1 FROM application_repositories ar
+      WHERE ar.application_id = applications.id
+        AND (
+          ar.repo_full_name ILIKE '%' || $3 || '%'
+          OR ar.external_repo_id ILIKE '%' || $3 || '%'
+        )
+    )
+    OR EXISTS (
+      SELECT 1 FROM projects p
+      WHERE p.application_id = applications.id
+        AND (
+          p.key ILIKE '%' || $3 || '%'
+          OR p.name ILIKE '%' || $3 || '%'
+        )
+    )
+  )`
 
 	var total int
 	if err := s.pool.QueryRow(ctx, countQuery, opts.Status, opts.IncludeArchived, opts.Query).Scan(&total); err != nil {
@@ -105,7 +137,35 @@ SELECT` + applicationsSelectColumns + `
 FROM applications
 WHERE ($3 = '' OR status = $3)
   AND ($4 OR status <> 'archived')
-  AND ($5 = '' OR key ILIKE '%' || $5 || '%' OR name ILIKE '%' || $5 || '%')
+  AND (
+    $5 = ''
+    OR key ILIKE '%' || $5 || '%'
+    OR name ILIKE '%' || $5 || '%'
+    OR owner_user_id ILIKE '%' || $5 || '%'
+    OR leader_user_id ILIKE '%' || $5 || '%'
+    OR development_unit_id ILIKE '%' || $5 || '%'
+    OR EXISTS (
+      SELECT 1 FROM org_units ou
+      WHERE ou.unit_id = applications.development_unit_id
+        AND ou.label ILIKE '%' || $5 || '%'
+    )
+    OR EXISTS (
+      SELECT 1 FROM application_repositories ar
+      WHERE ar.application_id = applications.id
+        AND (
+          ar.repo_full_name ILIKE '%' || $5 || '%'
+          OR ar.external_repo_id ILIKE '%' || $5 || '%'
+        )
+    )
+    OR EXISTS (
+      SELECT 1 FROM projects p
+      WHERE p.application_id = applications.id
+        AND (
+          p.key ILIKE '%' || $5 || '%'
+          OR p.name ILIKE '%' || $5 || '%'
+        )
+    )
+  )
 ORDER BY key ASC
 LIMIT $1 OFFSET $2`
 
@@ -163,14 +223,14 @@ func (s *PostgresStore) CreateApplication(ctx context.Context, app domain.Applic
 	// applications_archived_consistency 위반 회피. UpdateApplication 의 archived_at
 	// 자동 갱신 패턴 (CASE WHEN status='archived') 과 대칭.
 	const insertQuery = `
-INSERT INTO applications (key, name, description, status, visibility, owner_user_id, start_date, due_date, archived_at)
-VALUES ($1, $2, NULLIF($3, ''), $4, $5, NULLIF($6, ''), $7, $8,
+INSERT INTO applications (key, name, description, status, visibility, owner_user_id, leader_user_id, development_unit_id, start_date, due_date, archived_at)
+VALUES ($1, $2, NULLIF($3, ''), $4, $5, NULLIF($6, ''), NULLIF($7, ''), NULLIF($8, ''), $9, $10,
         CASE WHEN $4 = 'archived' THEN NOW() ELSE NULL END)
 RETURNING` + applicationsSelectColumns
 
 	row := s.pool.QueryRow(ctx, insertQuery,
 		app.Key, app.Name, app.Description, app.Status, app.Visibility,
-		app.OwnerUserID, app.StartDate, app.DueDate,
+		app.OwnerUserID, app.LeaderUserID, app.DevelopmentUnitID, app.StartDate, app.DueDate,
 	)
 	created, err := scanApplication(row)
 	if isUniqueViolation(err) {
@@ -197,8 +257,10 @@ UPDATE applications SET
 	status = $4,
 	visibility = $5,
 	owner_user_id = NULLIF($6, ''),
-	start_date = $7,
-	due_date = $8,
+	leader_user_id = NULLIF($7, ''),
+	development_unit_id = NULLIF($8, ''),
+	start_date = $9,
+	due_date = $10,
 	archived_at = CASE WHEN $4 = 'archived' THEN COALESCE(archived_at, NOW()) ELSE NULL END,
 	updated_at = NOW()
 WHERE id = $1::uuid
@@ -206,7 +268,7 @@ RETURNING` + applicationsSelectColumns
 
 	row := s.pool.QueryRow(ctx, updateQuery,
 		app.ID, app.Name, app.Description, app.Status, app.Visibility,
-		app.OwnerUserID, app.StartDate, app.DueDate,
+		app.OwnerUserID, app.LeaderUserID, app.DevelopmentUnitID, app.StartDate, app.DueDate,
 	)
 	updated, err := scanApplication(row)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -273,11 +335,11 @@ const applicationRepositoriesSelectColumns = `
 
 func scanApplicationRepository(row pgx.Row) (domain.ApplicationRepository, error) {
 	var (
-		link         domain.ApplicationRepository
-		syncErrCode  string
-		retryable    *bool
-		syncErrAt    *time.Time
-		lastSyncAt   *time.Time
+		link        domain.ApplicationRepository
+		syncErrCode string
+		retryable   *bool
+		syncErrAt   *time.Time
+		lastSyncAt  *time.Time
 	)
 	if err := row.Scan(
 		&link.ApplicationID,
@@ -494,9 +556,9 @@ const projectsSelectColumns = `
 
 func scanProject(row pgx.Row) (domain.Project, error) {
 	var (
-		p                   domain.Project
-		startDate, dueDate  *time.Time
-		archivedAt          *time.Time
+		p                  domain.Project
+		startDate, dueDate *time.Time
+		archivedAt         *time.Time
 	)
 	if err := row.Scan(
 		&p.ID,

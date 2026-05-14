@@ -461,7 +461,7 @@ func TestCreateApplication_Happy(t *testing.T) {
 	router := newApplicationsRouter(appStore)
 
 	rec := doJSON(t, router, http.MethodPost, "/api/v1/applications",
-		`{"key":"A1B2C3D4E5","name":"Devhub Platform","owner_user_id":"u1","visibility":"internal","status":"planning"}`)
+		`{"key":"A1B2C3D4E5","name":"Devhub Platform","owner_user_id":"u1","leader_user_id":"u1","development_unit_id":"dept-eng","visibility":"internal","status":"planning"}`)
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
 	}
@@ -475,7 +475,7 @@ func TestCreateApplication_InvalidKey(t *testing.T) {
 	router := newApplicationsRouter(newMemoryApplicationStore())
 
 	rec := doJSON(t, router, http.MethodPost, "/api/v1/applications",
-		`{"key":"too-short","name":"X","owner_user_id":"u1","visibility":"internal","status":"planning"}`)
+		`{"key":"too-short","name":"X","owner_user_id":"u1","leader_user_id":"u1","development_unit_id":"dept-eng","visibility":"internal","status":"planning"}`)
 	if rec.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
 	}
@@ -488,7 +488,7 @@ func TestCreateApplication_InvalidKey(t *testing.T) {
 func TestCreateApplication_DuplicateKey(t *testing.T) {
 	appStore := newMemoryApplicationStore()
 	router := newApplicationsRouter(appStore)
-	body := `{"key":"A1B2C3D4E5","name":"X","owner_user_id":"u1","visibility":"internal","status":"planning"}`
+	body := `{"key":"A1B2C3D4E5","name":"X","owner_user_id":"u1","leader_user_id":"u1","development_unit_id":"dept-eng","visibility":"internal","status":"planning"}`
 	first := doJSON(t, router, http.MethodPost, "/api/v1/applications", body)
 	if first.Code != http.StatusCreated {
 		t.Fatalf("seed failed: %s", first.Body.String())

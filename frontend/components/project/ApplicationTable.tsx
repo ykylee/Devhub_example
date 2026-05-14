@@ -38,7 +38,8 @@ export function ApplicationTable({
               <th className="px-6 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Key & Name</th>
               <th className="px-6 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-center">Status</th>
               <th className="px-6 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-center">Visibility</th>
-              <th className="px-6 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Owner</th>
+              <th className="px-6 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Leader</th>
+              <th className="px-6 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Dev Unit</th>
               <th className="px-6 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Period</th>
               <th className="px-6 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-right">Actions</th>
             </tr>
@@ -84,11 +85,14 @@ export function ApplicationTable({
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center border border-accent/20">
                         <span className="text-[8px] font-black text-accent uppercase">
-                          {app.owner_user_id?.substring(0, 2) || "??"}
+                          {app.leader_user_id?.substring(0, 2) || "??"}
                         </span>
                       </div>
-                      <span className="text-[11px] font-bold text-foreground/80">{app.owner_user_id}</span>
+                      <span className="text-[11px] font-bold text-foreground/80">{app.leader_user_id || app.owner_user_id}</span>
                     </div>
+                  </td>
+                  <td className="px-6 py-5">
+                    <span className="text-[11px] font-bold text-foreground/80">{app.development_unit_id || "-"}</span>
                   </td>
                   <td className="px-6 py-5 text-[10px] font-medium text-muted-foreground">
                     <div className="flex flex-col gap-1">

@@ -38,6 +38,8 @@ export interface Application {
   status: ApplicationStatus;
   visibility: ApplicationVisibility;
   owner_user_id: string;
+  leader_user_id: string;
+  development_unit_id: string;
   start_date?: string;
   due_date?: string;
   archived_at?: string;

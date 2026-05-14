@@ -105,13 +105,23 @@ async function resetKratosPassword(identity: KratosIdentityFull, seed: KratosSee
   // seed unusable even after the password reset. The seeded users
   // (alice/bob/charlie) are e2e-only and have no legitimate reason to be
   // inactive, so the force-active is congruent with the seed contract.
+  const traits = {
+    ...(identity.traits ?? {}),
+    system_id: seed.user_id,
+    email: seed.email,
+    display_name: seed.display_name,
+  };
+  const metadataPublic = {
+    ...(identity.metadata_public ?? {}),
+    user_id: seed.user_id,
+  };
   const payload: Record<string, unknown> = {
     schema_id: identity.schema_id,
     state: "active",
-    traits: identity.traits ?? {},
+    traits,
+    metadata_public: metadataPublic,
     credentials: { password: { config: { password: seed.password } } },
   };
-  if (identity.metadata_public != null) payload.metadata_public = identity.metadata_public;
   if (identity.metadata_admin != null) payload.metadata_admin = identity.metadata_admin;
   const resp = await fetch(`${KRATOS_ADMIN_URL}/admin/identities/${identity.id}`, {
     method: "PUT",

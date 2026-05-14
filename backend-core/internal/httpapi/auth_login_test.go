@@ -76,7 +76,8 @@ type fakeHydraAdmin struct {
 	getErr       error
 	redirectTo   string
 	acceptErr    error
-	accepted     []string // subjects that AcceptLoginRequest was called with
+	accepted          []string // subjects that AcceptLoginRequest was called with
+	acceptedChallenge []string // challenge passed to AcceptLoginRequest
 }
 
 func (f *fakeHydraAdmin) GetLoginRequest(ctx context.Context, challenge string) (HydraLoginRequest, error) {
@@ -91,6 +92,7 @@ func (f *fakeHydraAdmin) AcceptLoginRequest(ctx context.Context, challenge, subj
 		return "", f.acceptErr
 	}
 	f.accepted = append(f.accepted, subject)
+	f.acceptedChallenge = append(f.acceptedChallenge, challenge)
 	return f.redirectTo, nil
 }
 
@@ -169,6 +171,51 @@ func TestAuthLogin_SkipFastPath(t *testing.T) {
 	}
 	if len(hydra.accepted) != 1 || hydra.accepted[0] != "u-cached" {
 		t.Errorf("Hydra accept subject = %v, want [u-cached]", hydra.accepted)
+	}
+}
+
+func TestAuthLogin_SkipWithCredentials_UsesPasswordFlow(t *testing.T) {
+	audits := &memoryAuditStore{}
+	kratos := &fakeKratosLogin{
+		flow:     KratosLoginFlow{ID: "flow-1", CSRFToken: "csrf"},
+		identity: KratosIdentity{ID: "kratos-uuid", UserID: "charlie", Email: "charlie@example.com"},
+	}
+	hydra := &fakeHydraAdmin{
+		loginRequest: HydraLoginRequest{Challenge: "c1", Skip: true, Subject: "u-cached"},
+		redirectTo:   "http://hydra/cb?code=...",
+	}
+	router := newAuthLoginRouter(kratos, hydra, audits)
+
+	rec := postLogin(router, `{"login_challenge":"c1","identifier":"charlie","password":"pw"}`)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !kratos.submitCalled {
+		t.Fatalf("expected Kratos submit when credentials are explicitly supplied")
+	}
+	if len(hydra.accepted) != 1 || hydra.accepted[0] != "charlie" {
+		t.Fatalf("Hydra accept subject = %v, want [charlie]", hydra.accepted)
+	}
+}
+
+func TestAuthLogin_UsesCanonicalHydraChallengeOnAccept(t *testing.T) {
+	audits := &memoryAuditStore{}
+	kratos := &fakeKratosLogin{
+		flow:     KratosLoginFlow{ID: "flow-1", CSRFToken: "csrf"},
+		identity: KratosIdentity{ID: "kratos-uuid", UserID: "u1", Email: "u1@example.com"},
+	}
+	hydra := &fakeHydraAdmin{
+		loginRequest: HydraLoginRequest{Challenge: "canonical-c1", Skip: false},
+		redirectTo:   "http://hydra/oauth2/auth?code=...",
+	}
+	router := newAuthLoginRouter(kratos, hydra, audits)
+
+	rec := postLogin(router, `{"login_challenge":"opaque-from-query","identifier":"u1@example.com","password":"pw"}`)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if len(hydra.acceptedChallenge) != 1 || hydra.acceptedChallenge[0] != "canonical-c1" {
+		t.Fatalf("accept challenge = %v, want [canonical-c1]", hydra.acceptedChallenge)
 	}
 }
 
