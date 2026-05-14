@@ -15,6 +15,7 @@ import (
 
 var ErrDuplicateEvent = errors.New("duplicate webhook event")
 var ErrNotFound = errors.New("not found")
+var ErrConflict = errors.New("conflict")
 
 type WebhookEvent struct {
 	ID             int64
@@ -1261,7 +1262,7 @@ RETURNING
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		return domain.Command{}, domain.AuditLog{}, err
+		return domain.Command{}, domain.AuditLog{}, false, err
 	}
 	return command, auditLog, nil
 }

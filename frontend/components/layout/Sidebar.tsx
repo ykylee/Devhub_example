@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Server, Settings, Zap, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Users, Server, Settings, Zap, ShieldCheck, Box, GitBranch, FolderKanban } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useStore } from "@/lib/store";
@@ -18,6 +18,9 @@ interface MenuItem {
 const baseMenu: MenuItem[] = [
   { href: "/developer", icon: LayoutDashboard, label: "Developer", color: "text-blue-400" },
   { href: "/manager", icon: Users, label: "Manager", color: "text-emerald-400" },
+  { href: "/applications", icon: Box, label: "Applications", color: "text-purple-400" },
+  { href: "/repositories", icon: GitBranch, label: "Repositories", color: "text-pink-400" },
+  { href: "/projects", icon: FolderKanban, label: "Projects", color: "text-indigo-400" },
 ];
 
 const systemMenu: MenuItem[] = [
