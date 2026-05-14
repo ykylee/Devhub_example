@@ -50,16 +50,18 @@ test.describe("/admin/settings/users — CRUD UI smoke", () => {
   test("TC-USR-CRUD-03 — Action 메뉴 (...) 에 system_admin 액션 3종 노출", async ({ page }) => {
     const aliceRow = page.getByRole("row").filter({ hasText: "alice" });
     
-    // (...) 버튼 클릭
-    await aliceRow.getByRole("button").filter({ has: page.locator("svg") }).click();
+    // User Actions 트리거 클릭 (행 내부 SVG 추론 대신 aria-label 기반으로 안정화)
+    await aliceRow.getByRole("button", { name: /user actions/i }).click();
+
+    const menu = page.locator("div").filter({ hasText: /^User Actions$/ }).first().locator("..");
     
-    // 3가지 액션 버튼 노출 확인
-    await expect(page.getByRole("button", { name: /issue account/i })).toBeVisible();
-    await expect(page.getByRole("button", { name: /force reset password/i })).toBeVisible();
-    await expect(page.getByRole("button", { name: /revoke account/i })).toBeVisible();
+    // 3가지 액션 버튼 노출 확인 (메뉴 스코프)
+    await expect(menu.getByRole("button", { name: /issue account/i })).toBeVisible();
+    await expect(menu.getByRole("button", { name: /force reset password/i })).toBeVisible();
+    await expect(menu.getByRole("button", { name: /revoke account/i })).toBeVisible();
     
     // Close the menu
     await page.keyboard.press("Escape");
-    await expect(page.getByRole("button", { name: /issue account/i })).toBeHidden();
+    await expect(page.getByRole("button", { name: /issue account/i })).toHaveCount(0);
   });
 });
