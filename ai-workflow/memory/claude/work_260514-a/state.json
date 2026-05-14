@@ -30,7 +30,10 @@
     "Project / rollup / integration handler 본체 (다음 sprint)",
     "실 SCM 어댑터 구현 (별도 Integration sprint)",
     "e2e TC 작성 (carve)",
-    "frontend `/admin/settings/applications` IA/화면 흐름 (frontend design sprint 분리)"
+    "frontend `/admin/settings/applications` IA/화면 흐름 (frontend design sprint 분리)",
+    "API-41~50 handler audit emit — 현 stub 은 501 만 응답하고 audit log 미발생. 후속 sprint 에서 handler body 도입 시 `application.{list,get,create,update,archive}.requested` 등 audit emit 추가 (PR #105 self-review B2). middleware 는 RBAC denial 시 `auth.role_denied` 만 기록.",
+    "quality_snapshots idempotency 정책 결정 — 동일 (repository_id, tool, ref_name, commit_sha, measured_at) 의 중복 row 허용 여부 (현재 UNIQUE 부재). 후속 sprint 에서 (a) UNIQUE 추가 / (b) 명시적 허용 (history retention) 중 결정 (PR #105 self-review I1).",
+    "Frontend PermissionMatrix 의 새 4 resource label 한국어화 + 새 resource 의 UI 그룹화/색 코딩 (현재는 영문 label, 기존 5 resource 와 동일 visual 단계)."
   ],
   "next_actions": [
     "T16 sprint scope + 추적성 영향 사전 진단 (이미 본 state.json 에 1차 반영, backlog/2026-05-14.md 에 상세화)",

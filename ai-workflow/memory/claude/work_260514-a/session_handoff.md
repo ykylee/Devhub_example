@@ -50,12 +50,15 @@ PR #104 가 만든 추적성 라인 (REQ-FR-APP-* → UC-APP-* → API-41~58 (pl
 ## 다음 세션 우선 작업
 
 1. **`postgres_applications.go` 본체** — store interface stub 의 `ErrNotImplemented` 메서드 16개를 PostgreSQL 쿼리로 채움.
-2. **handler body + 요청 validation** — API-43..50 의 stub 을 실 응답으로 교체. PATCH 의 상태 전이 가드 (concept §13.2.1) + 422 분기 + immutable key 검증.
+2. **handler body + 요청 validation + audit emit** — API-43..50 의 stub 을 실 응답으로 교체. PATCH 의 상태 전이 가드 (concept §13.2.1) + 422 분기 + immutable key 검증. **각 handler 의 audit emit** (`application.{list,get,create,update,archive}.requested` 등) — 본 sprint stub 은 audit 미발생 (self-review B2 carve out).
 3. **단위테스트** — UT-application-store-XX + UT-application-handler-XX. RBAC denial 케이스 (developer/manager → 403) + system_admin 정상 응답.
 4. **API-51..54 (Repository 운영 지표) 활성화** — handler stub + store stub + route 등록. body 는 ingest pipeline 의존이라 part 후속.
 5. **API-55..56 (Project) 활성화** — Project store + handler. project_members + project_integrations 관리.
 6. **API-57 (Application 롤업)** — concept §13.4 의 weight_policy normalize 룰을 실 구현.
-7. **frontend** — `/admin/settings/applications` IA + 화면 흐름 (별도 frontend sprint).
+7. **frontend `/admin/settings/applications` (별도 sprint)** — IA + 화면 흐름.
+8. **Frontend PermissionMatrix label 한국어화 + UI 그룹화** — 본 sprint 보강 commit 으로 9 resource 확장은 완료 (B1). 한국어 label + 새 resource 의 시각적 그룹/색 코딩은 후속.
+9. **quality_snapshots idempotency 결정** — UNIQUE 추가 vs history retention (self-review I1 carve out).
+10. **ADR-0011 §4.2 `enforceRowOwnership` 1차 구현** — 2차 단계 진입 시점 (pmo_manager 활성화 + owner 위양 sprint). 시그니처는 ADR §6 에 명시 완료.
 
 ## 본 sprint 결과 요약
 

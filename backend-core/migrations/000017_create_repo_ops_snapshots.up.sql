@@ -44,6 +44,13 @@ CREATE TABLE build_runs (
 CREATE INDEX build_runs_repository_started_at_idx ON build_runs (repository_id, started_at DESC);
 CREATE INDEX build_runs_repository_status_idx ON build_runs (repository_id, status);
 
+-- quality_snapshots 의 idempotency 정책은 본 sprint 에서 결정되지 않음 (PR #105
+-- self-review I1 → state.json carve_out). 옵션:
+--  (a) UNIQUE (repository_id, tool, ref_name, commit_sha, measured_at) 추가 →
+--      최신 1건만 캐시. 동일 commit 의 재측정은 UPSERT.
+--  (b) 다중 row 허용 → history retention (예: monthly run 의 측정 추이).
+-- 후속 sprint 에서 결정 후 마이그레이션 추가.
+
 CREATE TABLE quality_snapshots (
     id                 BIGSERIAL PRIMARY KEY,
     repository_id      BIGINT NOT NULL REFERENCES repositories(id) ON DELETE CASCADE,

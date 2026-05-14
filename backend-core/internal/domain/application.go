@@ -13,6 +13,15 @@ const (
 	ApplicationStatusArchived ApplicationStatus = "archived"
 )
 
+// ProjectStatus is the lifecycle status of a Project. Currently identical
+// vocabulary to ApplicationStatus (5종 — planning/active/on_hold/closed/archived).
+// 별도 alias 로 정의해 두는 이유:
+//   - Project lifecycle 이 향후 Application 과 분기할 가능성 (예: Project 전용
+//     `cancelled` 상태 도입) 을 코드 구조 측면에서 미리 열어 두기 위함.
+//   - 분기 시점에 `type ProjectStatus string` 로 본 alias 를 끊고 별도 상수 그룹을
+//     정의하면 됨. 본 sprint 까지는 vocabulary 동일하므로 alias 유지.
+type ProjectStatus = ApplicationStatus
+
 // ApplicationVisibility is the visibility classification (concept §5.1, api §13.1).
 type ApplicationVisibility string
 
@@ -136,13 +145,13 @@ type ApplicationRepository struct {
 
 // Project is a time-bounded operational unit hosted under a Repository.
 type Project struct {
-	ID            string  // UUID
-	ApplicationID string  // UUID, may be empty for repo-only projects
-	RepositoryID  int64   // FK repositories.id (existing BIGSERIAL)
-	Key           string  // unique within Repository (UNIQUE (repository_id, key))
+	ID            string // UUID
+	ApplicationID string // UUID, may be empty for repo-only projects
+	RepositoryID  int64  // FK repositories.id (existing BIGSERIAL)
+	Key           string // unique within Repository (UNIQUE (repository_id, key))
 	Name          string
 	Description   string
-	Status        ApplicationStatus // 동일 vocabulary 재사용
+	Status        ProjectStatus // ApplicationStatus alias — Project lifecycle 분기 시 alias 끊기
 	Visibility    ApplicationVisibility
 	OwnerUserID   string
 	StartDate     *time.Time

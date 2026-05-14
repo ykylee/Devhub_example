@@ -4,7 +4,15 @@
 -- application_id: 총괄 Application FK (optional — Repository 단독 Project 도 허용 가능, 후속 결정)
 -- repository_id : 실행 Repository FK (existing repositories.id BIGSERIAL)
 -- key           : Repository 내 unique key (UNIQUE (repository_id, key))
--- status        : 5종 상태 머신 (Application 과 동일 vocabulary)
+-- status        : 5종 상태 머신 (Application 과 동일 vocabulary; ProjectStatus 도메인 alias 참조)
+--
+-- ON DELETE 정책:
+--  - applications.id (SET NULL): Application 이 hard-delete 되어도 Project 는 살아남고
+--    application_id 만 NULL. Application 은 일반적으로 archive (soft-delete) 이지만 hard
+--    delete 시점에도 Project 의 작업 이력을 보존해야 한다 (audit / 운영 히스토리).
+--  - repositories.id (RESTRICT): Repository 가 hard-delete 되면 Project 의 실행 컨텍스트가
+--    사라지므로 RESTRICT 로 차단. Repository 비활성화는 별도 sync_status (application_repositories)
+--    또는 후속 sprint 의 repositories 상태 컬럼으로 표현 (현재는 별도 enable 컬럼 부재).
 
 CREATE TABLE projects (
     id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),

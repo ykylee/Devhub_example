@@ -4,7 +4,19 @@ import { Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type ActionType = "view" | "create" | "edit" | "delete";
-export type ResourceType = "infrastructure" | "pipelines" | "organization" | "security" | "audit";
+// Resource list mirrors backend domain.AllResources() (9개). 신규 4종은 sprint
+// claude/work_260514-a (ADR-0011 §4.1) 에서 추가 — Application/Repository/Project
+// 도메인의 RBAC 1차 enforcement.
+export type ResourceType =
+  | "infrastructure"
+  | "pipelines"
+  | "organization"
+  | "security"
+  | "audit"
+  | "applications"
+  | "application_repositories"
+  | "projects"
+  | "scm_providers";
 
 export interface PermissionState {
   [resource: string]: {
@@ -28,6 +40,10 @@ const resources: { id: ResourceType; label: string }[] = [
   { id: "organization", label: "Organization & Members" },
   { id: "security", label: "Risk & Security" },
   { id: "audit", label: "Audit Logs & History" },
+  { id: "applications", label: "Applications" },
+  { id: "application_repositories", label: "Application Repositories" },
+  { id: "projects", label: "Projects" },
+  { id: "scm_providers", label: "SCM Providers" },
 ];
 
 const actions: { id: ActionType; label: string }[] = [
