@@ -193,3 +193,122 @@ type SCMProvider struct {
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 }
+
+// PRActivity is one event row from pr_activities (REQ-FR-APP-006, migration 000017).
+type PRActivity struct {
+	ID           int64
+	RepositoryID int64
+	ExternalPRID string
+	EventType    string // opened|reviewed|commented|closed|merged|reopened|updated
+	ActorLogin   string
+	OccurredAt   time.Time
+	Payload      map[string]any
+	CreatedAt    time.Time
+}
+
+// BuildRun is one build execution row from build_runs (REQ-FR-APP-007).
+type BuildRun struct {
+	ID              int64
+	RepositoryID    int64
+	RunExternalID   string
+	Branch          string
+	CommitSHA       string
+	Status          string // queued|running|success|failed|cancelled|skipped|unknown
+	DurationSeconds *int
+	StartedAt       time.Time
+	FinishedAt      *time.Time
+	CreatedAt       time.Time
+}
+
+// QualitySnapshot is one quality measurement row (REQ-FR-APP-008).
+type QualitySnapshot struct {
+	ID            int64
+	RepositoryID  int64
+	Tool          string
+	RefName       string
+	CommitSHA     string
+	Score         *float64
+	GatePassed    *bool
+	MetricPayload map[string]any
+	MeasuredAt    time.Time
+	CreatedAt     time.Time
+}
+
+// RepositoryActivity is an aggregated activity snapshot for a Repository
+// (REQ-FR-APP-005). 1차 구현은 pr_activities + build_runs 의 기간 집계 — commit
+// activity 의 실제 commit 이벤트는 후속 ingest pipeline 도입 시점에 추가.
+type RepositoryActivity struct {
+	RepositoryID     int64
+	WindowFrom       time.Time
+	WindowTo         time.Time
+	PREventCount     int      // pr_activities 의 event 수
+	ActiveContributors []string // PR 이벤트의 distinct actor_login
+	BuildRunCount    int
+	BuildSuccessRate float64 // 0.0~1.0
+}
+
+// --- Application 롤업 (REQ-FR-APP-012 / REQ-NFR-PROJ-006, concept §13.4) ---
+
+// WeightPolicy is the rollup weight policy choice (concept §13.4 + api §13.6).
+type WeightPolicy string
+
+const (
+	WeightPolicyEqual    WeightPolicy = "equal"
+	WeightPolicyRepoRole WeightPolicy = "repo_role"
+	WeightPolicyCustom   WeightPolicy = "custom"
+)
+
+// ApplicationRollupOptions parameterizes ComputeApplicationRollup.
+type ApplicationRollupOptions struct {
+	Policy        WeightPolicy
+	CustomWeights map[string]float64 // repo_full_name → weight (sum = 1.0 ± tolerance)
+	WindowFrom    time.Time
+	WindowTo      time.Time
+}
+
+// CustomWeightTolerance is the ±0.001 허용오차 for WeightPolicyCustom 합계 1.0 검증
+// (concept §13.4 + api §13.6).
+const CustomWeightTolerance = 0.001
+
+// ApplicationRollupMeta는 롤업 응답의 meta 필드 (api §13.6).
+type ApplicationRollupMeta struct {
+	Period         RollupPeriod                 `json:"period"`
+	Filters        map[string]any               `json:"filters"`
+	WeightPolicy   WeightPolicy                 `json:"weight_policy"`
+	AppliedWeights map[string]float64           `json:"applied_weights"` // repo → final weight
+	Fallbacks      []RollupFallback             `json:"fallbacks"`
+	DataGaps       []RollupDataGap              `json:"data_gaps"`
+}
+
+// RollupPeriod is the time window of the rollup.
+type RollupPeriod struct {
+	From time.Time `json:"from"`
+	To   time.Time `json:"to"`
+}
+
+// RollupFallback notes when a repo weight is filled in by a fallback policy.
+type RollupFallback struct {
+	RepoFullName string  `json:"repo_full_name"`
+	Provider     string  `json:"provider"`
+	Reason       string  `json:"reason"`        // e.g., "custom_weight_missing"
+	AppliedWeight float64 `json:"applied_weight"`
+}
+
+// RollupDataGap notes when a repo is excluded from the rollup due to missing or
+// unreachable data (concept §13.4 누락 데이터 처리).
+type RollupDataGap struct {
+	RepoFullName string `json:"repo_full_name"`
+	Provider     string `json:"provider"`
+	Reason       string `json:"reason"` // e.g., "provider_unreachable" | "no_data_in_window"
+}
+
+// ApplicationRollup is the aggregated rollup payload (api §13.6 응답 data).
+type ApplicationRollup struct {
+	PullRequestDistribution map[string]int            `json:"pull_request_distribution"` // opened/merged/closed/...
+	BuildSuccessRate        float64                   `json:"build_success_rate"`         // weighted average 0.0~1.0
+	BuildAvgDurationSeconds int                       `json:"build_avg_duration_seconds"` // weighted average
+	QualityScore            float64                   `json:"quality_score"`              // weighted average
+	QualityGateFailedCount  int                       `json:"quality_gate_failed_count"`
+	CriticalWarningCount    int                       `json:"critical_warning_count"`     // active→closed 가드 의존
+	Meta                    ApplicationRollupMeta     `json:"-"`                          // 별도 meta 필드로 serialize
+}

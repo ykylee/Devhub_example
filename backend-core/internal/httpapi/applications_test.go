@@ -25,6 +25,8 @@ type memoryApplicationStore struct {
 	providers        map[string]domain.SCMProvider
 	projects         map[string]domain.Project
 	activeLinkCounts map[string]int
+	integrations     map[string]domain.ProjectIntegration
+	criticalCounts   map[string]int // override for CountApplicationCriticalWarnings tests
 }
 
 func newMemoryApplicationStore() *memoryApplicationStore {
@@ -38,6 +40,8 @@ func newMemoryApplicationStore() *memoryApplicationStore {
 		},
 		projects:         make(map[string]domain.Project),
 		activeLinkCounts: make(map[string]int),
+		integrations:     make(map[string]domain.ProjectIntegration),
+		criticalCounts:   make(map[string]int),
 	}
 }
 
@@ -288,6 +292,144 @@ func (s *memoryApplicationStore) ArchiveProject(_ context.Context, id, _ string)
 	p.UpdatedAt = now
 	s.projects[id] = p
 	return p, nil
+}
+
+// --- Repository 운영 지표 (sprint claude/work_260514-c) ---
+// 메모리 store 는 SQL 집계를 흉내내지 않으므로 모두 zero-value 반환.
+
+func (s *memoryApplicationStore) ListRepositoryActivity(_ context.Context, repoID int64, _ store.RepositoryActivityOptions) (domain.RepositoryActivity, error) {
+	return domain.RepositoryActivity{RepositoryID: repoID}, nil
+}
+
+func (s *memoryApplicationStore) ListRepositoryPullRequests(_ context.Context, _ int64, _ store.PRActivityListOptions) ([]domain.PRActivity, int, error) {
+	return []domain.PRActivity{}, 0, nil
+}
+
+func (s *memoryApplicationStore) ListRepositoryBuildRuns(_ context.Context, _ int64, _ store.BuildRunListOptions) ([]domain.BuildRun, int, error) {
+	return []domain.BuildRun{}, 0, nil
+}
+
+func (s *memoryApplicationStore) ListRepositoryQualitySnapshots(_ context.Context, _ int64, _ store.QualitySnapshotListOptions) ([]domain.QualitySnapshot, int, error) {
+	return []domain.QualitySnapshot{}, 0, nil
+}
+
+// --- Application 롤업 (sprint claude/work_260514-c) ---
+
+func (s *memoryApplicationStore) ComputeApplicationRollup(_ context.Context, _ string, opts domain.ApplicationRollupOptions) (domain.ApplicationRollup, error) {
+	if opts.Policy == "" {
+		opts.Policy = domain.WeightPolicyEqual
+	}
+	// custom weight 검증만 흉내냄 (handler 분기 테스트용).
+	if opts.Policy == domain.WeightPolicyCustom {
+		sum := 0.0
+		for _, w := range opts.CustomWeights {
+			if w < 0 {
+				return domain.ApplicationRollup{}, errors.New("invalid weight policy: negative weight")
+			}
+			sum += w
+		}
+		if sum < 1.0-domain.CustomWeightTolerance || sum > 1.0+domain.CustomWeightTolerance {
+			return domain.ApplicationRollup{}, errors.New("invalid weight policy: custom weights must sum to 1.0")
+		}
+	}
+	return domain.ApplicationRollup{
+		PullRequestDistribution: map[string]int{},
+		Meta: domain.ApplicationRollupMeta{
+			Period:         domain.RollupPeriod{From: time.Now().UTC(), To: time.Now().UTC()},
+			Filters:        map[string]any{},
+			WeightPolicy:   opts.Policy,
+			AppliedWeights: map[string]float64{},
+			Fallbacks:      []domain.RollupFallback{},
+			DataGaps:       []domain.RollupDataGap{},
+		},
+	}, nil
+}
+
+func (s *memoryApplicationStore) CountApplicationCriticalWarnings(_ context.Context, _ string) (int, error) {
+	// 1차 메모리 store 는 critical warning 이 없는 환경 가정. 별도 case 가 필요한 test 가
+	// 있으면 sub-type 으로 override.
+	return 0, nil
+}
+
+// --- Integration CRUD (sprint claude/work_260514-c) ---
+
+type memoryIntegration = domain.ProjectIntegration
+
+func (s *memoryApplicationStore) ListIntegrations(_ context.Context, opts store.IntegrationListOptions) ([]domain.ProjectIntegration, int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]domain.ProjectIntegration, 0)
+	for _, i := range s.integrations {
+		if string(opts.Scope) != "" && string(i.Scope) != string(opts.Scope) {
+			continue
+		}
+		if opts.ApplicationID != "" && i.ApplicationID != opts.ApplicationID {
+			continue
+		}
+		if opts.ProjectID != "" && i.ProjectID != opts.ProjectID {
+			continue
+		}
+		if string(opts.IntegrationType) != "" && string(i.IntegrationType) != string(opts.IntegrationType) {
+			continue
+		}
+		out = append(out, i)
+	}
+	return out, len(out), nil
+}
+
+func (s *memoryApplicationStore) GetIntegration(_ context.Context, id string) (domain.ProjectIntegration, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if i, ok := s.integrations[id]; ok {
+		return i, nil
+	}
+	return domain.ProjectIntegration{}, store.ErrNotFound
+}
+
+func (s *memoryApplicationStore) CreateIntegration(_ context.Context, i domain.ProjectIntegration) (domain.ProjectIntegration, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, existing := range s.integrations {
+		if existing.Scope == i.Scope &&
+			existing.ApplicationID == i.ApplicationID &&
+			existing.ProjectID == i.ProjectID &&
+			existing.IntegrationType == i.IntegrationType &&
+			existing.ExternalKey == i.ExternalKey {
+			return domain.ProjectIntegration{}, store.ErrConflict
+		}
+	}
+	if i.ID == "" {
+		i.ID = "int-" + i.ExternalKey
+	}
+	i.CreatedAt = time.Now().UTC()
+	i.UpdatedAt = i.CreatedAt
+	s.integrations[i.ID] = i
+	return i, nil
+}
+
+func (s *memoryApplicationStore) UpdateIntegration(_ context.Context, i domain.ProjectIntegration) (domain.ProjectIntegration, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	current, ok := s.integrations[i.ID]
+	if !ok {
+		return domain.ProjectIntegration{}, store.ErrNotFound
+	}
+	current.ExternalKey = i.ExternalKey
+	current.URL = i.URL
+	current.Policy = i.Policy
+	current.UpdatedAt = time.Now().UTC()
+	s.integrations[i.ID] = current
+	return current, nil
+}
+
+func (s *memoryApplicationStore) DeleteIntegration(_ context.Context, id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.integrations[id]; !ok {
+		return store.ErrNotFound
+	}
+	delete(s.integrations, id)
+	return nil
 }
 
 // --- handler tests ---

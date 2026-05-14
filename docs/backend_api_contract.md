@@ -1379,14 +1379,14 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 | `API-48` | `GET /api/v1/applications/{application_id}/repositories` | §13.3 | activated |
 | `API-49` | `POST /api/v1/applications/{application_id}/repositories` | §13.3 | activated |
 | `API-50` | `DELETE /api/v1/applications/{application_id}/repositories/{repo_key}` | §13.3 | activated (path: gin catch-all, `provider:org/repo` 콜론 컨벤션) |
-| `API-51 (planned)` | `GET /api/v1/repositories/{repository_id}/activity` | §13.4 | planned |
-| `API-52 (planned)` | `GET /api/v1/repositories/{repository_id}/pull-requests` | §13.4 | planned |
-| `API-53 (planned)` | `GET /api/v1/repositories/{repository_id}/build-runs` | §13.4 | planned |
-| `API-54 (planned)` | `GET /api/v1/repositories/{repository_id}/quality-snapshots` | §13.4 | planned |
-| `API-55 (planned)` | `GET /api/v1/repositories/{repository_id}/projects` + `POST` | §13.5 | planned |
-| `API-56 (planned)` | `GET /api/v1/projects/{project_id}` + `PATCH` + `DELETE` | §13.5 | planned |
-| `API-57 (planned)` | `GET /api/v1/applications/{application_id}/rollup` | §13.6 | planned |
-| `API-58 (planned)` | `GET /api/v1/integrations` + CRUD | §13.7 | planned |
+| `API-51` | `GET /api/v1/repositories/{repository_id}/activity` | §13.4 | activated (sprint claude/work_260514-c) |
+| `API-52` | `GET /api/v1/repositories/{repository_id}/pull-requests` | §13.4 | activated |
+| `API-53` | `GET /api/v1/repositories/{repository_id}/build-runs` | §13.4 | activated |
+| `API-54` | `GET /api/v1/repositories/{repository_id}/quality-snapshots` | §13.4 | activated |
+| `API-55` | `GET /api/v1/repositories/{repository_id}/projects` + `POST` | §13.5 | activated |
+| `API-56` | `GET /api/v1/projects/{project_id}` + `PATCH` + `DELETE` | §13.5 | activated |
+| `API-57` | `GET /api/v1/applications/{application_id}/rollup` | §13.6 | activated (concept §13.4 normalize 실 구현 + critical 가드 흡수) |
+| `API-58` | `GET /api/v1/integrations` + CRUD | §13.7 | activated (scope polymorphism application/project) |
 
 **activated 단계 정의 (sprint claude/work_260514-b)**: gin v1 group route + RBAC matrix + handler body + store body + 요청 validation + 상태 전이 가드 + audit emit. RBAC 매트릭스에서 system_admin 만 4 신규 resource (`applications` / `application_repositories` / `projects` / `scm_providers`) 의 모든 axis true (migration 000018, ADR-0011 §4.1).
 
@@ -1522,7 +1522,7 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
   - `422 invalid_status_transition_payload`
   - `422 application_key_immutable`
 - 가드 표 SoT: [`project_management_concept.md` §13.2.1](../planning/project_management_concept.md) (권한/가드/실패 코드 매트릭스).
-- **active → closed 가드 carve out (`claude/work_260514-b`)**: concept §13.2.1 의 "active → closed: 롤업 `critical` 0건 + 활성 Repository 1개 이상" 중 **critical 롤업 0건 검증은 본 sprint 에서 미흡수**. 롤업 store (API-57) 활성화 sprint 까지는 handler 가 active → closed 전이를 무조건 허용 — 운영자는 critical 데이터 손실 위험을 수동 검증해야 함. 정정 완료 sprint 에서 본 carve out 항목 close.
+- **active → closed 가드 — `claude/work_260514-c` 에서 흡수 완료**: concept §13.2.1 의 "active → closed: 롤업 `critical` 0건" 가드를 본 sprint 가 활성화. `CountApplicationCriticalWarnings` store 메서드 (1차 정의: gate_passed=false 합산 + build success rate <50% 시 +1) 를 handler updateApplication 의 active→closed 분기에서 호출, count > 0 면 `422 application_close_precondition_failed` (응답에 `critical_warning_count` 포함). 가드 임계치 외부화는 후속 (concept §13.2.1 운영 메모).
 - **"활성 Repository" 정의**: concept §13.3 의 lifecycle 표에서 명시 — `sync_status='active'` 만 활성. `degraded` 는 1차 정책에서 활성 제외.
 
 요청 예시:
