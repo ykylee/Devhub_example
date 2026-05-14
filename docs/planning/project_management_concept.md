@@ -336,13 +336,15 @@ project_integrations
 
 ### 13.3 Application-Repository 연결 라이프사이클
 
-| 단계 | 설명 | 상태 필드 |
-| --- | --- | --- |
-| `requested` | 연결 요청 생성 | `sync_status=requested` |
-| `verifying` | provider 어댑터가 repo 접근/권한/참조 검증 | `sync_status=verifying` |
-| `active` | 연결 활성 + 수집 대상 등록 | `sync_status=active` |
-| `degraded` | 부분 실패(일시 장애/제한) | `sync_status=degraded`, `sync_error_code` 기록 |
-| `disconnected` | 명시적 해제 또는 provider 비활성 | `sync_status=disconnected` |
+| 단계 | 설명 | 상태 필드 | "활성" 분류 (가드용) |
+| --- | --- | --- | --- |
+| `requested` | 연결 요청 생성 | `sync_status=requested` | 아님 |
+| `verifying` | provider 어댑터가 repo 접근/권한/참조 검증 | `sync_status=verifying` | 아님 |
+| `active` | 연결 활성 + 수집 대상 등록 | `sync_status=active` | **✅ 활성** |
+| `degraded` | 부분 실패(일시 장애/제한) | `sync_status=degraded`, `sync_error_code` 기록 | 아님 (1차 정책) |
+| `disconnected` | 명시적 해제 또는 provider 비활성 | `sync_status=disconnected` | 아님 |
+
+**활성 정의 (§13.2.1 가드 참조용)**: `planning → active` 전이 가드의 "활성 Repository 1개 이상" 검증은 **`sync_status='active'` 만** 활성으로 카운트한다. `degraded` 는 link 자체는 살아있으나 부분 장애 상태이므로 1차 정책에서 활성에서 제외 — 후속 sprint 에서 운영 정책 재평가 후 변경 가능 (예: degraded 의 retryable=true 인 경우 grace period 내 활성 포함).
 
 운영 규칙:
 - provider 전환 시 기존 연결을 즉시 삭제하지 않고 `degraded/read-only` 관찰 단계를 거친다.
