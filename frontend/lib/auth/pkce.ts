@@ -31,7 +31,8 @@ function randomState(): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
 }
 
-function sha256Fallback(input: string): Uint8Array {
+// Exported for unit-test parity checks against crypto.subtle.digest.
+export function sha256Fallback(input: string): Uint8Array {
   const K = new Uint32Array([
     0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
     0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
@@ -84,12 +85,18 @@ function sha256Fallback(input: string): Uint8Array {
   return out;
 }
 
-async function challengeFromVerifier(verifier: string): Promise<string> {
+// Exported so tests can pin RFC 7636 Appendix B vector compliance.
+export async function challengeFromVerifier(verifier: string): Promise<string> {
   if (crypto.subtle?.digest) {
     const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier));
     return base64Url(new Uint8Array(hash));
   }
   return base64Url(sha256Fallback(verifier));
+}
+
+// Exported so tests can compare fallback output against the standard subtle path.
+export function sha256FallbackBase64Url(input: string): string {
+  return base64Url(sha256Fallback(input));
 }
 
 export async function createPkceState(): Promise<{ state: string; codeChallenge: string; codeChallengeMethod: "S256" }> {

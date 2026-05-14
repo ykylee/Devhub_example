@@ -51,6 +51,8 @@ docker-compose.*.yml
 **/Dockerfile
 **/Dockerfile.*
 **/.dockerignore
+# docker-only IdP configs (hostnames hardcoded to docker-compose service names)
+infra/idp/*.docker.yaml
 
 # === EDITOR / OS NOISE ===
 .DS_Store

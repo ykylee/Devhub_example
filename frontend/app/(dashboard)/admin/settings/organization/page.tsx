@@ -52,38 +52,17 @@ export default function AdminSettingsOrganizationPage() {
         });
       });
 
+      // Read-only display. Legacy/missing leader IDs are surfaced as-is so
+      // admins can correct them explicitly via the Unit edit flow — never via
+      // a silent PATCH triggered by page load.
       const userIdSet = new Set(allMembers.map((m) => m.id));
       const leaderMap: Record<string, string> = {};
-      const leaderPatches: Array<{ unitId: string; leaderId: string }> = [];
       nodes.forEach((node) => {
         const rawLeader = node.data.leader_id;
-        const unitMemberIds = memberMap[node.id] || [];
-
         if (rawLeader && userIdSet.has(rawLeader)) {
           leaderMap[node.id] = rawLeader;
-          return;
-        }
-
-        // Legacy/mock-like IDs (e.g. u1/u2) or empty leader are normalized
-        // to a real registered user in the same unit when available.
-        if (unitMemberIds.length > 0) {
-          const fallbackLeader = unitMemberIds[0];
-          leaderMap[node.id] = fallbackLeader;
-          if (rawLeader !== fallbackLeader) {
-            leaderPatches.push({ unitId: node.id, leaderId: fallbackLeader });
-          }
         }
       });
-
-      if (leaderPatches.length > 0) {
-        await Promise.all(
-          leaderPatches.map(({ unitId, leaderId }) =>
-            identityService.updateUnit(unitId, { leader_user_id: leaderId }).catch((err) => {
-              console.warn(`[organization] failed to patch leader for ${unitId}:`, err);
-            }),
-          ),
-        );
-      }
 
       setUnitMembers(memberMap);
       setUnitLeaders(leaderMap);

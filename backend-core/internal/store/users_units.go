@@ -696,6 +696,13 @@ LIMIT 1`
 	return unit, nil
 }
 
+// normalizedLeaderUserID is the single normalize point so that
+// org_units.leader_user_id and unit_appointments.user_id always agree.
+// Returns "" for blank/whitespace-only input.
+func normalizedLeaderUserID(raw string) string {
+	return strings.TrimSpace(raw)
+}
+
 // CreateOrgUnit inserts a new organization unit.
 func (s *PostgresStore) CreateOrgUnit(ctx context.Context, input domain.CreateOrgUnitInput) (domain.OrgUnit, error) {
 	const query = `
@@ -710,6 +717,8 @@ INSERT INTO org_units (
 ) VALUES ($1, $2, $3, $4, NULLIF($5, ''), $6, $7)
 RETURNING id, created_at, updated_at`
 
+	leader := normalizedLeaderUserID(input.LeaderUserID)
+
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return domain.OrgUnit{}, fmt.Errorf("begin create unit tx: %w", err)
@@ -722,7 +731,7 @@ RETURNING id, created_at, updated_at`
 		nullableUnitID(input.ParentUnitID),
 		string(input.UnitType),
 		input.Label,
-		input.LeaderUserID,
+		leader,
 		input.PositionX,
 		input.PositionY,
 	).Scan(&unit.ID, &unit.CreatedAt, &unit.UpdatedAt)
@@ -736,7 +745,6 @@ RETURNING id, created_at, updated_at`
 		return domain.OrgUnit{}, fmt.Errorf("insert unit: %w", err)
 	}
 
-	leader := strings.TrimSpace(input.LeaderUserID)
 	if leader != "" {
 		// Keep org_units.leader_user_id and unit_appointments in sync.
 		if _, err := tx.Exec(ctx,
@@ -761,7 +769,7 @@ RETURNING id, created_at, updated_at`
 	unit.ParentUnitID = input.ParentUnitID
 	unit.UnitType = input.UnitType
 	unit.Label = input.Label
-	unit.LeaderUserID = input.LeaderUserID
+	unit.LeaderUserID = leader
 	unit.PositionX = input.PositionX
 	unit.PositionY = input.PositionY
 	return unit, nil
@@ -792,9 +800,11 @@ func (s *PostgresStore) UpdateOrgUnit(ctx context.Context, unitID string, input 
 		args = append(args, *input.Label)
 		idx++
 	}
+	var leaderNormalized string
 	if input.LeaderUserID != nil {
+		leaderNormalized = normalizedLeaderUserID(*input.LeaderUserID)
 		setClauses = append(setClauses, fmt.Sprintf("leader_user_id = NULLIF($%d, '')", idx))
-		args = append(args, *input.LeaderUserID)
+		args = append(args, leaderNormalized)
 		idx++
 	}
 	if input.PositionX != nil {
@@ -821,6 +831,19 @@ func (s *PostgresStore) UpdateOrgUnit(ctx context.Context, unitID string, input 
 	}
 	defer tx.Rollback(ctx)
 
+	// Serialize concurrent updates on the same unit so leader demote-then-
+	// promote cannot interleave between admins (which would leave two leaders
+	// despite the partial unique index ensuring eventual consistency).
+	var lockedID int64
+	if err := tx.QueryRow(ctx,
+		`SELECT id FROM org_units WHERE unit_id = $1 FOR UPDATE`, unitID,
+	).Scan(&lockedID); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.OrgUnit{}, fmt.Errorf("unit %s: %w", unitID, ErrNotFound)
+		}
+		return domain.OrgUnit{}, fmt.Errorf("lock unit %s: %w", unitID, err)
+	}
+
 	tag, err := tx.Exec(ctx, query, args...)
 	if err != nil {
 		if isForeignKeyViolation(err) {
@@ -833,7 +856,6 @@ func (s *PostgresStore) UpdateOrgUnit(ctx context.Context, unitID string, input 
 	}
 
 	if input.LeaderUserID != nil {
-		leader := strings.TrimSpace(*input.LeaderUserID)
 		// Normalize existing leader appointments first so unit-level leader
 		// remains a single source of truth.
 		if _, err := tx.Exec(ctx,
@@ -844,16 +866,16 @@ func (s *PostgresStore) UpdateOrgUnit(ctx context.Context, unitID string, input 
 		); err != nil {
 			return domain.OrgUnit{}, fmt.Errorf("demote existing leaders for unit %s: %w", unitID, err)
 		}
-		if leader != "" {
+		if leaderNormalized != "" {
 			if _, err := tx.Exec(ctx,
 				`INSERT INTO unit_appointments (user_id, unit_id, appointment_role)
 				 VALUES ($1, $2, 'leader')
 				 ON CONFLICT (user_id, unit_id)
 				 DO UPDATE SET appointment_role = 'leader'`,
-				leader, unitID,
+				leaderNormalized, unitID,
 			); err != nil {
 				if isForeignKeyViolation(err) {
-					return domain.OrgUnit{}, fmt.Errorf("update unit %s leader %s: %w", unitID, leader, ErrNotFound)
+					return domain.OrgUnit{}, fmt.Errorf("update unit %s leader %s: %w", unitID, leaderNormalized, ErrNotFound)
 				}
 				return domain.OrgUnit{}, fmt.Errorf("sync leader appointment for unit %s: %w", unitID, err)
 			}
