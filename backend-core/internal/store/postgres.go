@@ -15,6 +15,7 @@ import (
 
 var ErrDuplicateEvent = errors.New("duplicate webhook event")
 var ErrNotFound = errors.New("not found")
+var ErrConflict = errors.New("conflict")
 
 type WebhookEvent struct {
 	ID             int64

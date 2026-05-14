@@ -1,0 +1,56 @@
+serve:
+  public:
+    port: 4444
+    host: 0.0.0.0
+    cors:
+      enabled: true
+      allowed_origins:
+        - http://100.90.113.29:13000
+      allowed_methods: [POST, GET]
+      allowed_headers: [Authorization, Content-Type]
+      allow_credentials: true
+  admin:
+    port: 4445
+    host: 0.0.0.0
+  cookies:
+    same_site_mode: Lax
+
+dsn: postgres://user:pass@db:5432/devhub?sslmode=disable&search_path=hydra
+
+urls:
+  self:
+    issuer: http://100.90.113.29:14444/
+    public: http://100.90.113.29:14444/
+  consent: http://100.90.113.29:18080/api/v1/auth/consent
+  login: http://100.90.113.29:13000/auth/login
+  logout: http://100.90.113.29:13000/auth/logout
+  error: http://100.90.113.29:13000/auth/error
+  post_logout_redirect: http://100.90.113.29:13000/
+
+secrets:
+  system:
+    - "poc-only-do-not-use-in-prod-system-secret-aaaaaaaa"
+
+oidc:
+  subject_identifiers:
+    supported_types: [public]
+
+oauth2:
+  expose_internal_errors: true
+  pkce:
+    enforced: true
+    enforced_for_public_clients: true
+
+strategies:
+  access_token: jwt
+
+ttl:
+  access_token: 30m
+  refresh_token: 720h
+  id_token: 30m
+  auth_code: 10m
+
+log:
+  level: info
+  format: text
+  leak_sensitive_values: false

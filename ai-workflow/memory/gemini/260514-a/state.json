@@ -1,0 +1,26 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-05-14",
+  "branch_memory": {
+    "agent": "gemini",
+    "branch": "gemini/260514-a",
+    "path": "ai-workflow/memory/gemini/260514-a/"
+  },
+  "session": {
+    "current_focus": "3-티어 거버넌스 도메인 연동 및 고도화",
+    "recent_done_items": [
+      "TASK-GOV-FRONTEND-SCAFFOLD",
+      "TASK-GOV-BACKEND-CRUD",
+      "TASK-GOV-INTEGRATION"
+    ]
+  },
+  "backlog": {
+    "latest_backlog_path": "ai-workflow/memory/gemini/260514-a/backlog/2026-05-14.md",
+    "task_count": 3,
+    "done_items": [
+      "TASK-GOV-FRONTEND-SCAFFOLD",
+      "TASK-GOV-BACKEND-CRUD",
+      "TASK-GOV-INTEGRATION"
+    ]
+  }
+}

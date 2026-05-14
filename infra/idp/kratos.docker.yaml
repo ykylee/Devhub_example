@@ -1,0 +1,99 @@
+version: v1.0.0
+
+serve:
+  public:
+    base_url: http://100.90.113.29:14433/
+    port: 4433
+    host: 0.0.0.0
+    cors:
+      enabled: true
+      allowed_origins: [http://100.90.113.29:13000]
+      allowed_methods: [GET, POST, PUT, PATCH, DELETE]
+      allowed_headers: [Authorization, Content-Type, Cookie, X-Session-Token]
+      exposed_headers: [Content-Type, Set-Cookie]
+      allow_credentials: true
+  admin:
+    base_url: http://100.90.113.29:14434/
+    port: 4434
+    host: 0.0.0.0
+
+dsn: postgres://user:pass@db:5432/devhub?sslmode=disable&search_path=kratos
+
+selfservice:
+  default_browser_return_url: http://100.90.113.29:13000/
+  allowed_return_urls: [http://100.90.113.29:13000]
+  methods:
+    password:
+      enabled: true
+      config:
+        haveibeenpwned_enabled: false
+        min_password_length: 12
+    profile:
+      enabled: true
+    link:
+      enabled: false
+    code:
+      enabled: false
+  flows:
+    error:
+      ui_url: http://100.90.113.29:13000/auth/error
+    settings:
+      ui_url: http://100.90.113.29:13000/account
+      privileged_session_max_age: 15m
+      required_aal: highest_available
+      after:
+        password:
+          hooks:
+            - hook: web_hook
+              config:
+                url: http://backend-core:8080/api/v1/integrations/kratos/hook/settings/password/after
+                method: POST
+                body: file://./infra/idp/kratos_webhooks/settings_password_after.jsonnet
+                response:
+                  ignore: true
+                auth:
+                  type: api_key
+                  config:
+                    in: header
+                    name: Authorization
+                    value: Bearer dev-token
+    recovery:
+      enabled: false
+    verification:
+      enabled: false
+    logout:
+      after:
+        default_browser_return_url: http://100.90.113.29:13000/
+    login:
+      ui_url: http://100.90.113.29:13000/auth/login
+      lifespan: 10m
+    registration:
+      enabled: false
+      ui_url: http://100.90.113.29:13000/auth/register
+
+session:
+  lifespan: 24h
+  cookie:
+    persistent: true
+    same_site: Lax
+
+secrets:
+  cookie:
+    - "poc-only-cookie-secret-min-16-bytes-aaaaaaaa"
+  cipher:
+    - "poc-cipher-secret-32bytes-aaaaaa"
+
+identity:
+  default_schema_id: devhub_user
+  schemas:
+    - id: devhub_user
+      url: file://./infra/idp/identity.schema.json
+
+courier:
+  smtp:
+    connection_uri: smtps://test:test@127.0.0.1:1025/?skip_ssl_verify=true&disable_starttls=true
+
+log:
+  level: info
+  format: text
+  leak_sensitive_values: false
