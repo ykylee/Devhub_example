@@ -16,6 +16,10 @@
 - TASK-OIDC-PKCE-CONSENT-FIX: done (100%)
   - PKCE S256 강제 환경 대응, consent verifier 재사용 에러 처리 보강.
   - auth/login-callback 흐름 재검증 완료.
+- TASK-ORG-MEMBER-SYNC-FIX: done (100%)
+  - Manage Members 저장 후 멤버 수가 0으로 보이던 문제 수정(appointments 기반 집계).
+  - users 목록 소속 표시를 `current_dept_id` 단일값에서 appointments fallback 포함으로 보정.
+  - iPad에서 `...` 액션메뉴 무반응 이슈를 pointer 이벤트 기반으로 안정화.
 
 ## ⏭️ Next Actions
 - [ ] 디자인 시스템 관점에서 버튼/배지 상태색 semantic token(`success/warning/danger`) 추상화 검토.

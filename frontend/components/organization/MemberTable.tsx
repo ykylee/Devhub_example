@@ -144,6 +144,11 @@ export function MemberTable({ members, roles, onUpdateMemberRole, onMemberCreate
             {members.map((member, index) => {
               const isLeader = member.appointments.some(a => a.role === 'leader');
               const isDualLeader = member.appointments.filter(a => a.role === 'leader').length > 1;
+              const displayDept =
+                member.current_dept_id ||
+                member.appointments[0]?.dept_id ||
+                member.primary_dept_id ||
+                "-";
 
               return (
                 <motion.tr
@@ -203,14 +208,14 @@ export function MemberTable({ members, roles, onUpdateMemberRole, onMemberCreate
                   <td className="px-6 py-4">
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-foreground/90 dark:text-primary-foreground/90">{member.current_dept_id}</span>
+                        <span className="text-xs font-bold text-foreground/90">{displayDept}</span>
                         {member.is_seconded && (
                           <div className="flex items-center gap-1 bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 rounded text-[8px] font-black text-blue-400 uppercase">
                             <ArrowRightLeft className="w-2 h-2" /> Seconded
                           </div>
                         )}
                       </div>
-                      {member.is_seconded && (
+                      {member.is_seconded && member.primary_dept_id && (
                         <p className="text-[9px] text-muted-foreground italic">Original: {member.primary_dept_id}</p>
                       )}
                     </div>

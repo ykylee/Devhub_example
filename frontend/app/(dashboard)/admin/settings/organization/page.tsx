@@ -35,14 +35,21 @@ export default function AdminSettingsOrganizationPage() {
       setOrgNodes(nodes);
       setMembers(allMembers);
 
-      // In a real app, unit membership would come from a specific API
-      // For now, we simulate it or derive it from members' current_dept_id
       const memberMap: Record<string, string[]> = {};
       allMembers.forEach((m) => {
-        if (m.current_dept_id) {
-          if (!memberMap[m.current_dept_id]) memberMap[m.current_dept_id] = [];
-          memberMap[m.current_dept_id].push(m.id);
+        // Source of truth for unit roster is appointments. current_dept_id is
+        // a primary-view field and can diverge from per-unit membership.
+        const unitIds = new Set<string>();
+        m.appointments.forEach((a) => {
+          if (a.dept_id) unitIds.add(a.dept_id);
+        });
+        if (unitIds.size === 0 && m.current_dept_id) {
+          unitIds.add(m.current_dept_id);
         }
+        unitIds.forEach((unitId) => {
+          if (!memberMap[unitId]) memberMap[unitId] = [];
+          memberMap[unitId].push(m.id);
+        });
       });
 
       const userIdSet = new Set(allMembers.map((m) => m.id));

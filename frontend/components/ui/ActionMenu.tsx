@@ -45,7 +45,9 @@ export function ActionMenu({
     <>
       <button
         type="button"
-        onClick={(e) => {
+        onPointerDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
           if (open) {
             setOpen(false);
             return;
@@ -63,10 +65,17 @@ export function ActionMenu({
 
       {open && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div
+            className="fixed inset-0 z-40"
+            onPointerDown={(e) => {
+              e.preventDefault();
+              setOpen(false);
+            }}
+          />
           <div
             className={cn("fixed z-[60] glass bg-popover/90 border border-border rounded-xl overflow-hidden shadow-2xl py-1", menuClassName)}
             style={{ top: pos.top, left: pos.left, width: widthPx }}
+            onPointerDown={(e) => e.stopPropagation()}
           >
             <div className="px-3 py-2 border-b border-border">
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-left">{title}</p>
@@ -76,7 +85,9 @@ export function ActionMenu({
                 <button
                   key={item.key}
                   type="button"
-                  onClick={() => {
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     setOpen(false);
                     item.onClick();
                   }}
@@ -98,4 +109,3 @@ export function ActionMenu({
     </>
   );
 }
-
