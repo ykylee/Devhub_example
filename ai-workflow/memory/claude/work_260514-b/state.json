@@ -27,10 +27,12 @@
   ],
   "carve_out": [
     "API-51..58 (Repository 운영 지표 + Project CRUD + 롤업 + Integration) 활성화",
+    "active → closed 의 critical 롤업 0건 가드 — 본 sprint 의 가드 미흡수 (롤업 store 의존, API-57 활성화 sprint 에서 함께 흡수). 현재 handler 는 active → closed 무조건 허용 → 운영자 수동 검증 필요. self-review I3 보강에서 backend_api_contract §13.2 PATCH 의 carve out 항목으로 prominent 표기.",
     "e2e TC 작성",
     "frontend `/admin/settings/applications` UI",
     "실 SCM 어댑터 구현 (별도 Integration sprint)",
-    "ADR-0011 §4.2 enforceRowOwnership helper 1차 구현 (pmo_manager 활성화 sprint)"
+    "ADR-0011 §4.2 enforceRowOwnership helper 1차 구현 (pmo_manager 활성화 sprint)",
+    "quality_snapshots idempotency 결정 — (a) UNIQUE 추가 vs (b) history retention (PR #105 self-review I1 인계 유지)"
   ],
   "next_actions": [
     "T33 postgres_applications.go 16 메서드 구현",

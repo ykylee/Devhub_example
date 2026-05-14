@@ -210,7 +210,7 @@ func (h *Handler) updateSCMProvider(c *gin.Context) {
 		writeServerError(c, err, "scm_providers.update")
 		return
 	}
-	h.recordAuditBestEffort(c, "scm_provider.update", "scm_provider", providerKey, map[string]any{
+	h.recordAuditBestEffort(c, "scm_provider.updated", "scm_provider", providerKey, map[string]any{
 		"enabled": updated.Enabled,
 	})
 	c.JSON(http.StatusOK, gin.H{
@@ -347,7 +347,7 @@ func (h *Handler) createApplication(c *gin.Context) {
 		writeServerError(c, err, "applications.create")
 		return
 	}
-	h.recordAuditBestEffort(c, "application.create", "application", created.ID, map[string]any{
+	h.recordAuditBestEffort(c, "application.created", "application", created.ID, map[string]any{
 		"key":    created.Key,
 		"status": string(created.Status),
 	})
@@ -563,7 +563,7 @@ func (h *Handler) updateApplication(c *gin.Context) {
 	if req.ArchivedReason != "" {
 		auditPayload["archived_reason"] = req.ArchivedReason
 	}
-	h.recordAuditBestEffort(c, "application.update", "application", id, auditPayload)
+	h.recordAuditBestEffort(c, "application.updated", "application", id, auditPayload)
 	c.JSON(http.StatusOK, gin.H{
 		"status": "ok",
 		"data":   applicationResponse(result),
@@ -592,7 +592,7 @@ func (h *Handler) archiveApplication(c *gin.Context) {
 		writeServerError(c, err, "applications.archive")
 		return
 	}
-	h.recordAuditBestEffort(c, "application.archive", "application", id, map[string]any{
+	h.recordAuditBestEffort(c, "application.archived", "application", id, map[string]any{
 		"archived_reason": req.ArchivedReason,
 	})
 	c.JSON(http.StatusOK, gin.H{
@@ -695,7 +695,7 @@ func (h *Handler) createApplicationRepository(c *gin.Context) {
 		writeServerError(c, err, "application_repositories.create")
 		return
 	}
-	h.recordAuditBestEffort(c, "application_repository.link", "application", id, map[string]any{
+	h.recordAuditBestEffort(c, "application_repository.linked", "application", id, map[string]any{
 		"repo_provider":  created.RepoProvider,
 		"repo_full_name": created.RepoFullName,
 		"role":           string(created.Role),
@@ -713,8 +713,9 @@ func (h *Handler) deleteApplicationRepository(c *gin.Context) {
 	}
 	id := c.Param("application_id")
 	// repo_key = "{provider}:{full_name}". gin 의 catch-all (`*repo_key`) 이라 leading `/`
-	// 가 붙어 들어옴. provider:org/repo 컨벤션 — 콜론으로 분리.
-	repoKey := strings.TrimPrefix(c.Param("repo_key"), "/")
+	// 가 붙어 들어옴. 클라이언트가 `//provider:repo` 같은 잘못된 입력을 보내도 leading `/`
+	// 를 모두 제거하기 위해 TrimLeft 사용. provider:org/repo 컨벤션 — 콜론으로 분리.
+	repoKey := strings.TrimLeft(c.Param("repo_key"), "/")
 	parts := strings.SplitN(repoKey, ":", 2)
 	if len(parts) != 2 || strings.TrimSpace(parts[0]) == "" || strings.TrimSpace(parts[1]) == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -735,7 +736,7 @@ func (h *Handler) deleteApplicationRepository(c *gin.Context) {
 		writeServerError(c, err, "application_repositories.delete")
 		return
 	}
-	h.recordAuditBestEffort(c, "application_repository.unlink", "application", id, map[string]any{
+	h.recordAuditBestEffort(c, "application_repository.unlinked", "application", id, map[string]any{
 		"repo_provider":  parts[0],
 		"repo_full_name": parts[1],
 	})

@@ -1522,6 +1522,8 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
   - `422 invalid_status_transition_payload`
   - `422 application_key_immutable`
 - 가드 표 SoT: [`project_management_concept.md` §13.2.1](../planning/project_management_concept.md) (권한/가드/실패 코드 매트릭스).
+- **active → closed 가드 carve out (`claude/work_260514-b`)**: concept §13.2.1 의 "active → closed: 롤업 `critical` 0건 + 활성 Repository 1개 이상" 중 **critical 롤업 0건 검증은 본 sprint 에서 미흡수**. 롤업 store (API-57) 활성화 sprint 까지는 handler 가 active → closed 전이를 무조건 허용 — 운영자는 critical 데이터 손실 위험을 수동 검증해야 함. 정정 완료 sprint 에서 본 carve out 항목 close.
+- **"활성 Repository" 정의**: concept §13.3 의 lifecycle 표에서 명시 — `sync_status='active'` 만 활성. `degraded` 는 1차 정책에서 활성 제외.
 
 요청 예시:
 

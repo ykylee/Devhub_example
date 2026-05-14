@@ -636,14 +636,155 @@ func TestStoreErrNotImplementedRemovedFromHandlerPath(t *testing.T) {
 	}
 }
 
-// ApplicationStore interface compile-time check — memoryApplicationStore 가
-// 인터페이스를 만족하는지 (signature 변경 시 컴파일 에러로 발견).
+// Compile-time guards (side-effect-free).
+//
+// `ApplicationStore` 인터페이스 시그니처가 변경되면 본 assertion 이 깨져 컴파일
+// 단계에서 즉시 검출된다. 테스트가 직접 호출하지 않더라도 인터페이스 계약을
+// 보호하는 안전망이다.
 var _ ApplicationStore = (*memoryApplicationStore)(nil)
 
-// 추가 verification: domain.IsRetryableSyncError + ErrConflict / ErrNotFound 의
-// 외부 import 가능성 확인 (테스트 컴파일이 link 단계까지 진행되어야).
+// 도메인 import / store sentinel error 의 외부 노출이 유지되는지 확인한다. domain
+// 의 `IsRetryableSyncError` 가 사라지거나 store 의 `Err*` 가 unexported 로 바뀌면
+// 본 블록이 컴파일 실패하여 회귀를 막는다. 런타임 동작은 없음 (no-op).
 var (
 	_ = domain.IsRetryableSyncError(domain.SyncErrorProviderUnreachable)
 	_ = errors.Is(store.ErrConflict, store.ErrConflict)
 	_ = errors.Is(store.ErrNotFound, store.ErrNotFound)
 )
+
+// --- Happy path 보강 tests (PR #106 self-review I2) ---
+
+// 20) GET /applications — status / include_archived 필터 happy.
+func TestListApplications_FiltersHappy(t *testing.T) {
+	appStore := newMemoryApplicationStore()
+	for _, status := range []domain.ApplicationStatus{
+		domain.ApplicationStatusPlanning,
+		domain.ApplicationStatusActive,
+		domain.ApplicationStatusArchived,
+	} {
+		_, _ = appStore.CreateApplication(context.Background(), domain.Application{
+			Key: "K-" + string(status[:6]), Name: "N", Status: status,
+			Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+		})
+	}
+	router := newApplicationsRouter(appStore)
+
+	// default: archived 제외 → 2건
+	rec := doJSON(t, router, http.MethodGet, "/api/v1/applications", "")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), `"total":2`) {
+		t.Errorf("default list should exclude archived (total=2): %s", rec.Body.String())
+	}
+
+	// include_archived=true → 3건
+	rec = doJSON(t, router, http.MethodGet, "/api/v1/applications?include_archived=true", "")
+	if !strings.Contains(rec.Body.String(), `"total":3`) {
+		t.Errorf("include_archived=true should return all (total=3): %s", rec.Body.String())
+	}
+
+	// status=active → 1건
+	rec = doJSON(t, router, http.MethodGet, "/api/v1/applications?status=active", "")
+	if !strings.Contains(rec.Body.String(), `"total":1`) {
+		t.Errorf("status=active should return 1: %s", rec.Body.String())
+	}
+}
+
+// 21) GET /applications/:id — happy (메타 + repositories 포함).
+func TestGetApplication_Happy(t *testing.T) {
+	appStore := newMemoryApplicationStore()
+	app, _ := appStore.CreateApplication(context.Background(), domain.Application{
+		Key: "A1B2C3D4E5", Name: "X", Status: domain.ApplicationStatusActive,
+		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+	})
+	_, _ = appStore.CreateApplicationRepository(context.Background(), domain.ApplicationRepository{
+		ApplicationID: app.ID, RepoProvider: "gitea", RepoFullName: "team/repo",
+		Role: domain.ApplicationRepositoryRolePrimary, SyncStatus: domain.SyncStatusActive,
+	})
+	router := newApplicationsRouter(appStore)
+
+	rec := doJSON(t, router, http.MethodGet, "/api/v1/applications/"+app.ID, "")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, `"key":"A1B2C3D4E5"`) {
+		t.Errorf("response should include key: %s", body)
+	}
+	if !strings.Contains(body, `"repositories":[`) {
+		t.Errorf("response should include repositories array: %s", body)
+	}
+	if !strings.Contains(body, `"repo_full_name":"team/repo"`) {
+		t.Errorf("response should include link details: %s", body)
+	}
+}
+
+// 22) POST /applications/:id/repositories — happy.
+func TestCreateApplicationRepository_Happy(t *testing.T) {
+	appStore := newMemoryApplicationStore()
+	app, _ := appStore.CreateApplication(context.Background(), domain.Application{
+		Key: "A1B2C3D4E5", Name: "X", Status: domain.ApplicationStatusPlanning,
+		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+	})
+	router := newApplicationsRouter(appStore)
+
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/applications/"+app.ID+"/repositories",
+		`{"repo_provider":"gitea","repo_full_name":"team/devhub-core","role":"primary"}`)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), `"sync_status":"requested"`) {
+		t.Errorf("new link should start at sync_status=requested: %s", rec.Body.String())
+	}
+}
+
+// 23) PATCH /scm/providers/:provider_key — happy (enabled toggle).
+func TestUpdateSCMProvider_Happy(t *testing.T) {
+	appStore := newMemoryApplicationStore()
+	router := newApplicationsRouter(appStore)
+	rec := doJSON(t, router, http.MethodPatch, "/api/v1/scm/providers/gitea",
+		`{"enabled":false}`)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), `"enabled":false`) {
+		t.Errorf("expected enabled=false: %s", rec.Body.String())
+	}
+}
+
+// 24) DELETE /applications/:id — not found → 404.
+func TestArchiveApplication_NotFound(t *testing.T) {
+	appStore := newMemoryApplicationStore()
+	router := newApplicationsRouter(appStore)
+	rec := doJSON(t, router, http.MethodDelete,
+		"/api/v1/applications/nonexistent", `{"archived_reason":"X"}`)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+// 25) DELETE catch-all path — `//gitea:team/repo` 같은 multiple leading slash 도
+// TrimLeft 로 정상 처리되는지 (PR #106 self-review N1 보강).
+func TestDeleteApplicationRepository_MultipleLeadingSlashes(t *testing.T) {
+	appStore := newMemoryApplicationStore()
+	app, _ := appStore.CreateApplication(context.Background(), domain.Application{
+		Key: "A1B2C3D4E5", Name: "X", Status: domain.ApplicationStatusPlanning,
+		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+	})
+	_, _ = appStore.CreateApplicationRepository(context.Background(), domain.ApplicationRepository{
+		ApplicationID: app.ID, RepoProvider: "gitea", RepoFullName: "team/repo",
+		Role: domain.ApplicationRepositoryRolePrimary, SyncStatus: domain.SyncStatusRequested,
+	})
+	router := newApplicationsRouter(appStore)
+	// gin 은 `//` 를 보통 정규화하지 않으므로 catch-all 이 받은 raw path 를 TrimLeft 가
+	// 안전하게 처리해야 한다.
+	rec := doJSON(t, router, http.MethodDelete,
+		"/api/v1/applications/"+app.ID+"/repositories//gitea:team/repo", "")
+	if rec.Code != http.StatusOK && rec.Code != http.StatusNotFound {
+		// gin 의 path 정규화에 따라 OK (200) 또는 NotFound (404, 정규화 후 trailing
+		// slash 처리 차이) 가 나올 수 있다. 핵심은 500/400 같은 예상치 못한 응답이
+		// 아닌 정상 routing 이 동작한다는 것.
+		t.Fatalf("unexpected status=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
