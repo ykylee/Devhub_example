@@ -36,7 +36,7 @@ export default function AdminSettingsLayout({ children }: { children: React.Reac
     <div className="space-y-10 pb-20 flex flex-col h-full">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-          <h1 className="text-3xl font-black text-foreground dark:text-white tracking-tighter uppercase">
+          <h1 className="text-3xl font-black text-foreground dark:text-primary-foreground tracking-tighter uppercase">
             System <span className="text-orange-400">Settings</span>
           </h1>
           <p className="text-muted-foreground font-bold text-xs uppercase tracking-widest mt-2">
@@ -44,7 +44,7 @@ export default function AdminSettingsLayout({ children }: { children: React.Reac
           </p>
         </motion.div>
 
-        <nav className="flex p-1.5 glass border-white/10 rounded-2xl gap-1">
+        <nav className="flex p-1.5 glass border-border rounded-2xl gap-1">
           {subTabs.map((tab) => {
             const isActive = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
             return (
@@ -53,13 +53,13 @@ export default function AdminSettingsLayout({ children }: { children: React.Reac
                 href={tab.href}
                 className={cn(
                   "flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all relative",
-                  isActive ? "text-foreground dark:text-white" : "text-muted-foreground hover:text-foreground dark:hover:text-white",
+                  isActive ? "text-foreground dark:text-primary-foreground" : "text-muted-foreground hover:text-foreground dark:hover:text-primary-foreground",
                 )}
               >
                 {isActive && (
                   <motion.div
                     layoutId="settings-sub-tab"
-                    className="absolute inset-0 bg-white/10 border border-white/10 rounded-xl"
+                    className="absolute inset-0 bg-muted/40 border border-border rounded-xl"
                     transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                   />
                 )}

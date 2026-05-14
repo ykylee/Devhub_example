@@ -19,14 +19,14 @@ function LogoutInner() {
   }, [searchParams]);
 
   return (
-    <div className="min-h-screen bg-[#030014] flex items-center justify-center">
+    <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="flex flex-col items-center gap-6">
         <div className="relative">
           <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full" />
           <Loader2 className="w-12 h-12 text-primary animate-spin relative z-10" />
         </div>
         <div className="text-center space-y-2">
-          <h2 className="text-lg font-black text-white uppercase tracking-widest">Signing Out</h2>
+          <h2 className="text-lg font-black text-foreground uppercase tracking-widest">Signing Out</h2>
           <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest animate-pulse">
             Releasing identity session...
           </p>
@@ -39,7 +39,7 @@ function LogoutInner() {
 export default function AuthLogoutPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-[#030014] flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-primary animate-spin" />
       </div>
     }>

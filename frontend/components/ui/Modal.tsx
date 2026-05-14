@@ -50,7 +50,7 @@ export function Modal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 z-[100] bg-black/60 dark:bg-background/80 backdrop-blur-sm"
+            className="fixed inset-0 z-[100] bg-background/70 dark:bg-background/80 backdrop-blur-sm"
           />
           
           {/* Modal Content */}
@@ -73,7 +73,7 @@ export function Modal({
                 {title && <h3 className="text-xl font-bold text-foreground tracking-tight">{title}</h3>}
                 <button 
                   onClick={onClose}
-                  className="p-2 rounded-xl hover:bg-white/5 text-muted-foreground hover:text-white transition-all"
+                  className="p-2 rounded-xl hover:bg-muted/30 text-muted-foreground hover:text-primary-foreground transition-all"
                 >
                   <X className="w-5 h-5" />
                 </button>

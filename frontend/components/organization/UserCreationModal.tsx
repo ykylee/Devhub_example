@@ -84,29 +84,29 @@ export function UserCreationModal({ onClose, onCreated, roles }: UserCreationMod
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
-        className="absolute inset-0 bg-[#030014]/80 backdrop-blur-sm"
+        className="absolute inset-0 bg-background/80 backdrop-blur-sm"
       />
       
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-xl glass border-white/10 rounded-3xl shadow-2xl overflow-hidden"
+        className="relative w-full max-w-xl glass border-border rounded-3xl shadow-2xl overflow-hidden"
         role="dialog"
         aria-modal="true"
         aria-labelledby="user-modal-title"
       >
-        <div className="p-8 border-b border-white/10 flex items-center justify-between">
+        <div className="p-8 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center">
               <UserPlus className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h2 id="user-modal-title" className="text-xl font-black text-white uppercase tracking-tight">Add <span className="text-primary">Member</span></h2>
+              <h2 id="user-modal-title" className="text-xl font-black text-primary-foreground uppercase tracking-tight">Add <span className="text-primary">Member</span></h2>
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Register human or system account</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-xl text-muted-foreground transition-colors">
+          <button onClick={onClose} className="p-2 hover:bg-muted/30 rounded-xl text-muted-foreground transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -114,7 +114,7 @@ export function UserCreationModal({ onClose, onCreated, roles }: UserCreationMod
         <form onSubmit={handleSubmit} className="p-8 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
           {/* Account Type Selection */}
           <div className="space-y-3">
-            <label className="text-[10px] font-black text-white/40 uppercase tracking-widest px-1">Account Type</label>
+            <label className="text-[10px] font-black text-primary-foreground/40 uppercase tracking-widest px-1">Account Type</label>
             <div className="grid grid-cols-2 gap-4">
               <button
                 type="button"
@@ -122,8 +122,8 @@ export function UserCreationModal({ onClose, onCreated, roles }: UserCreationMod
                 className={cn(
                   "flex items-center gap-3 p-4 rounded-2xl border transition-all",
                   formData.type === 'human' 
-                    ? "bg-primary/10 border-primary text-white shadow-lg shadow-primary/10" 
-                    : "bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10"
+                    ? "bg-primary/10 border-primary text-primary-foreground shadow-lg shadow-primary/10" 
+                    : "bg-muted/30 border-border text-muted-foreground hover:bg-muted/40"
                 )}
               >
                 <User className="w-5 h-5" />
@@ -138,8 +138,8 @@ export function UserCreationModal({ onClose, onCreated, roles }: UserCreationMod
                 className={cn(
                   "flex items-center gap-3 p-4 rounded-2xl border transition-all",
                   formData.type === 'system' 
-                    ? "bg-accent/10 border-accent text-white shadow-lg shadow-accent/10" 
-                    : "bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10"
+                    ? "bg-accent/10 border-accent text-primary-foreground shadow-lg shadow-accent/10" 
+                    : "bg-muted/30 border-border text-muted-foreground hover:bg-muted/40"
                 )}
               >
                 <Bot className="w-5 h-5" />
@@ -153,16 +153,16 @@ export function UserCreationModal({ onClose, onCreated, roles }: UserCreationMod
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-white/40 uppercase tracking-widest px-1">User ID / System ID</label>
+              <label className="text-[10px] font-black text-primary-foreground/40 uppercase tracking-widest px-1">User ID / System ID</label>
               <div className="relative group flex gap-2">
                 <div className="relative flex-1">
-                  <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-primary transition-colors" />
+                  <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-foreground/20 group-focus-within:text-primary transition-colors" />
                   <input
                     required
                     value={formData.user_id}
                     onChange={e => setFormData({ ...formData, user_id: e.target.value })}
                     placeholder="e.g. yklee or bot-gardener"
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary/50"
+                    className="w-full bg-muted/30 border border-border rounded-2xl pl-12 pr-4 py-3 text-sm text-primary-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
                   />
                 </div>
                 {formData.type === 'human' && (
@@ -170,7 +170,7 @@ export function UserCreationModal({ onClose, onCreated, roles }: UserCreationMod
                     type="button"
                     onClick={handleLookup}
                     disabled={lookingUp || !formData.user_id}
-                    className="glass border-white/10 px-4 rounded-2xl hover:bg-white/10 transition-all text-white disabled:opacity-30"
+                    className="glass border-border px-4 rounded-2xl hover:bg-muted/40 transition-all text-primary-foreground disabled:opacity-30"
                     title="Fetch from HR DB"
                   >
                     {lookingUp ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
@@ -179,56 +179,56 @@ export function UserCreationModal({ onClose, onCreated, roles }: UserCreationMod
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-white/40 uppercase tracking-widest px-1">Display Name</label>
+              <label className="text-[10px] font-black text-primary-foreground/40 uppercase tracking-widest px-1">Display Name</label>
               <input
                 required
                 value={formData.display_name}
                 onChange={e => setFormData({ ...formData, display_name: e.target.value })}
                 placeholder="e.g. YK Lee"
-                className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary/50"
+                className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-primary-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-white/40 uppercase tracking-widest px-1">Email Address</label>
+            <label className="text-[10px] font-black text-primary-foreground/40 uppercase tracking-widest px-1">Email Address</label>
             <div className="relative group">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-primary transition-colors" />
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-foreground/20 group-focus-within:text-primary transition-colors" />
               <input
                 required
                 type="email"
                 value={formData.email}
                 onChange={e => setFormData({ ...formData, email: e.target.value })}
                 placeholder="e.g. gardener@devhub.internal"
-                className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary/50"
+                className="w-full bg-muted/30 border border-border rounded-2xl pl-12 pr-4 py-3 text-sm text-primary-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-white/40 uppercase tracking-widest px-1">Initial Role</label>
+              <label className="text-[10px] font-black text-primary-foreground/40 uppercase tracking-widest px-1">Initial Role</label>
               <div className="relative group">
-                <Shield className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-primary transition-colors" />
+                <Shield className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-foreground/20 group-focus-within:text-primary transition-colors" />
                 <select
                   value={formData.role}
                   onChange={e => setFormData({ ...formData, role: e.target.value })}
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary/50 appearance-none"
+                  className="w-full bg-muted/30 border border-border rounded-2xl pl-12 pr-4 py-3 text-sm text-primary-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 appearance-none"
                 >
                   {roles.map(r => <option key={r.id} value={r.name} className="bg-slate-900">{r.name}</option>)}
                 </select>
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-white/40 uppercase tracking-widest px-1">Account Password (Optional)</label>
+              <label className="text-[10px] font-black text-primary-foreground/40 uppercase tracking-widest px-1">Account Password (Optional)</label>
               <div className="relative group">
-                <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-primary transition-colors" />
+                <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-foreground/20 group-focus-within:text-primary transition-colors" />
                 <input
                   type="password"
                   value={formData.password}
                   onChange={e => setFormData({ ...formData, password: e.target.value })}
                   placeholder="Set to enable immediate login"
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary/50"
+                  className="w-full bg-muted/30 border border-border rounded-2xl pl-12 pr-4 py-3 text-sm text-primary-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
                 />
               </div>
             </div>
@@ -245,8 +245,8 @@ export function UserCreationModal({ onClose, onCreated, roles }: UserCreationMod
           )}
 
           {/* Dev Helper */}
-          <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-            <p className="text-[9px] font-black text-white/20 uppercase tracking-widest mb-2 flex items-center gap-1">
+          <div className="p-4 bg-muted/30 rounded-2xl border border-border/60">
+            <p className="text-[9px] font-black text-primary-foreground/20 uppercase tracking-widest mb-2 flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-500/50" /> Dev Info: Mock HR Personnel
             </p>
             <div className="flex flex-wrap gap-2">
@@ -255,7 +255,7 @@ export function UserCreationModal({ onClose, onCreated, roles }: UserCreationMod
                   key={id}
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, user_id: id, type: 'human' }))}
-                  className="px-2 py-1 bg-white/5 hover:bg-white/10 rounded-lg text-[9px] text-white/40 transition-all border border-white/5"
+                  className="px-2 py-1 bg-muted/30 hover:bg-muted/40 rounded-lg text-[9px] text-primary-foreground/40 transition-all border border-border/60"
                 >
                   {id}
                 </button>
@@ -263,18 +263,18 @@ export function UserCreationModal({ onClose, onCreated, roles }: UserCreationMod
             </div>
           </div>
 
-          <div className="flex gap-4 pt-4 border-t border-white/5">
+          <div className="flex gap-4 pt-4 border-t border-border/60">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 glass border-white/10 text-white font-bold py-4 rounded-2xl hover:bg-white/5 transition-all uppercase tracking-widest text-[10px]"
+              className="flex-1 glass border-border text-primary-foreground font-bold py-4 rounded-2xl hover:bg-muted/30 transition-all uppercase tracking-widest text-[10px]"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="flex-1 bg-primary text-white font-black py-4 px-8 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-primary/20 disabled:opacity-50 uppercase tracking-widest text-[10px] flex items-center justify-center gap-2"
+              className="flex-1 bg-primary text-primary-foreground font-black py-4 px-8 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-primary/20 disabled:opacity-50 uppercase tracking-widest text-[10px] flex items-center justify-center gap-2"
             >
               {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Create {formData.type === 'human' ? 'Member' : 'System Account'}</>}
             </button>

@@ -3,13 +3,14 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { X, Building2, Check, AlertCircle } from "lucide-react";
-import { OrgUnit, CreateUnitPayload, UpdateUnitPayload, OrgNode } from "@/lib/services/identity.service";
+import { OrgUnit, CreateUnitPayload, UpdateUnitPayload, OrgNode, OrgMember } from "@/lib/services/identity.service";
 import { cn } from "@/lib/utils";
 
 interface UnitManagementModalProps {
   mode: "create" | "edit";
   initialData?: Partial<OrgUnit>;
   availableParents: OrgNode[];
+  availableLeaders: OrgMember[];
   onClose: () => void;
   onSave: (payload: CreateUnitPayload | UpdateUnitPayload) => Promise<void>;
 }
@@ -26,12 +27,14 @@ export function UnitManagementModal({
   mode,
   initialData,
   availableParents,
+  availableLeaders,
   onClose,
   onSave,
 }: UnitManagementModalProps) {
   const [label, setLabel] = useState(initialData?.label || "");
   const [type, setType] = useState<OrgUnit["unit_type"]>(initialData?.unit_type || "team");
   const [parentId, setParentId] = useState(initialData?.parent_unit_id || "");
+  const [leaderId, setLeaderId] = useState(initialData?.leader_user_id || "");
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -60,12 +63,14 @@ export function UnitManagementModal({
           label,
           unit_type: type,
           parent_unit_id: parentId || undefined,
+          leader_user_id: leaderId || undefined,
         } as CreateUnitPayload);
       } else {
         await onSave({
           label,
           unit_type: type,
           parent_unit_id: parentId || undefined,
+          leader_user_id: leaderId || "",
         } as UpdateUnitPayload);
       }
       onClose();
@@ -82,7 +87,7 @@ export function UnitManagementModal({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-background/70 backdrop-blur-sm"
         onClick={onClose}
       />
 
@@ -90,19 +95,19 @@ export function UnitManagementModal({
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-lg glass bg-[#030014]/90 border border-white/10 rounded-3xl overflow-hidden shadow-2xl"
+        className="relative w-full max-w-lg glass bg-background/90 border border-border rounded-3xl overflow-hidden shadow-2xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
       >
-        <div className="flex items-center justify-between p-6 border-b border-white/10">
-          <h2 id="modal-title" className="text-xl font-black text-white uppercase tracking-tight flex items-center gap-2">
+        <div className="flex items-center justify-between p-6 border-b border-border">
+          <h2 id="modal-title" className="text-xl font-black text-foreground uppercase tracking-tight flex items-center gap-2">
             <Building2 className="w-5 h-5 text-accent" />
             {mode === "create" ? "Create New Unit" : "Edit Unit Details"}
           </h2>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl hover:bg-white/5 text-muted-foreground hover:text-white transition-colors"
+            className="p-2 rounded-xl hover:bg-muted/40 text-muted-foreground hover:text-foreground transition-colors"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
@@ -126,7 +131,7 @@ export function UnitManagementModal({
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               placeholder="e.g. Infrastructure Team"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-accent/50 transition-all"
+              className="w-full bg-muted/30 border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-accent/50 transition-all"
               autoFocus
             />
           </div>
@@ -170,18 +175,36 @@ export function UnitManagementModal({
             </div>
           </div>
 
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+              Unit Leader
+            </label>
+            <select
+              value={leaderId}
+              onChange={(e) => setLeaderId(e.target.value)}
+              className="themed-select w-full"
+            >
+              <option value="">None</option>
+              {availableLeaders.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name} ({m.id})
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div className="pt-4 flex gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-6 py-3 rounded-xl border border-white/10 text-xs font-bold text-white hover:bg-white/5 transition-all uppercase tracking-widest"
+              className="flex-1 px-6 py-3 rounded-xl border border-border text-xs font-bold text-foreground hover:bg-muted/40 transition-all uppercase tracking-widest"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="flex-[1.5] px-6 py-3 rounded-xl bg-accent text-[#030014] text-xs font-black uppercase tracking-widest hover:bg-accent/90 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(var(--accent),0.3)]"
+              className="flex-[1.5] px-6 py-3 rounded-xl bg-accent text-accent-foreground text-xs font-black uppercase tracking-widest hover:bg-accent/90 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(var(--accent),0.3)]"
             >
               <Check className="w-4 h-4" />
               {isSaving ? "Saving..." : mode === "create" ? "Create Unit" : "Save Changes"}

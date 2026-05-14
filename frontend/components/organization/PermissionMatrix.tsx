@@ -72,9 +72,9 @@ export function PermissionMatrix({ permissions, onChange, readOnly = false, lock
   };
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-white/10 bg-black/20">
+    <div className="overflow-x-auto rounded-2xl border border-border bg-card/40">
       <table className="w-full text-left text-sm whitespace-nowrap">
-        <thead className="bg-white/5 uppercase text-xs font-black text-muted-foreground tracking-widest border-b border-white/10">
+        <thead className="bg-muted/30 uppercase text-xs font-black text-muted-foreground tracking-widest border-b border-border">
           <tr>
             <th className="p-4">Resource</th>
             {actions.map((action) => (
@@ -82,10 +82,10 @@ export function PermissionMatrix({ permissions, onChange, readOnly = false, lock
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-white/10">
+        <tbody className="divide-y divide-border">
           {resources.map((resource) => (
-            <tr key={resource.id} className="hover:bg-white/5 transition-colors">
-              <td className="p-4 font-bold text-white/80">{resource.label}</td>
+            <tr key={resource.id} className="hover:bg-muted/30 transition-colors">
+              <td className="p-4 font-bold text-foreground">{resource.label}</td>
               {actions.map((action) => {
                 const isGranted = permissions[resource.id]?.[action.id] || false;
                 const cellLocked = isCellLocked(resource.id, action.id);
@@ -101,7 +101,7 @@ export function PermissionMatrix({ permissions, onChange, readOnly = false, lock
                         "inline-flex items-center justify-center w-8 h-8 rounded-lg transition-all",
                         isGranted
                           ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                          : "bg-white/5 text-white/20 border border-white/5 hover:bg-white/10",
+                          : "bg-muted/40 text-muted-foreground border border-border hover:bg-muted/70",
                         disabled && "cursor-not-allowed opacity-70"
                       )}
                     >

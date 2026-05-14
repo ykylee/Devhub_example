@@ -12,6 +12,7 @@ import { useToast } from "@/components/ui/Toast";
 
 export default function AdminSettingsUsersPage() {
   const [members, setMembers] = useState<OrgMember[]>([]);
+  const [unitLeaderIds, setUnitLeaderIds] = useState<string[]>([]);
   const [roles, setRoles] = useState<Role[]>(defaultRoles);
   const [isLoading, setIsLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -31,12 +32,17 @@ export default function AdminSettingsUsersPage() {
     const load = async () => {
       setIsLoading(true);
       try {
-        const [usersData, policy] = await Promise.all([
+        const [usersData, policy, hierarchy] = await Promise.all([
           identityService.getUsers(),
           rbacService.listPolicies().catch(() => ({ roles: defaultRoles })),
+          identityService.getOrgHierarchy().catch(() => ({ nodes: [], edges: [] })),
         ]);
         setMembers(usersData);
         setRoles(policy.roles);
+        const leaders = hierarchy.nodes
+          .map((n) => n.data.leader_id)
+          .filter((v): v is string => Boolean(v));
+        setUnitLeaderIds(Array.from(new Set(leaders)));
       } catch (error) {
         console.error("[admin/settings/users] load failed:", error);
       } finally {
@@ -79,7 +85,7 @@ export default function AdminSettingsUsersPage() {
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by name, email, or role..."
             aria-label="Search users"
-            className="w-full glass border-white/10 rounded-2xl pl-12 pr-6 py-3.5 text-sm text-foreground dark:text-white placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all"
+            className="w-full glass border-border rounded-2xl pl-12 pr-6 py-3.5 text-sm text-foreground text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all"
           />
         </div>
         <button
@@ -87,7 +93,7 @@ export default function AdminSettingsUsersPage() {
           disabled
           title="Advanced filters coming soon"
           aria-label="Advanced filters coming soon"
-          className="glass border-white/10 p-3.5 rounded-2xl text-muted-foreground/40 cursor-not-allowed transition-all"
+          className="glass border-border p-3.5 rounded-2xl text-muted-foreground/40 cursor-not-allowed transition-all"
         >
           <Filter className="w-5 h-5" />
         </button>
@@ -101,6 +107,7 @@ export default function AdminSettingsUsersPage() {
       ) : (
         <MemberTable
           members={filteredMembers}
+          unitLeaderIds={unitLeaderIds}
           roles={roles}
           onUpdateMemberRole={handleUpdateRole}
           onMemberCreated={(newMember) => {

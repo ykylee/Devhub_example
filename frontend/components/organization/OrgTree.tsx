@@ -35,6 +35,11 @@ type OrgTreeNodeData = {
   total_count?: number;
 };
 
+const edgeStyle = {
+  strokeDasharray: '0',
+  stroke: 'var(--border)',
+  strokeWidth: 2,
+};
 
 const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
   const dagreGraph = new dagre.graphlib.Graph();
@@ -317,7 +322,7 @@ function OrgTreeContent() {
 
         const processedEdges = data.edges.map(edge => ({
           ...edge,
-          style: { strokeDasharray: '0', stroke: 'rgba(255, 255, 255, 0.2)', strokeWidth: 2 }
+          style: edgeStyle,
         }));
 
         const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
@@ -328,6 +333,8 @@ function OrgTreeContent() {
         const calculatedNodes = recalculateMemberCounts(layoutedNodes, layoutedEdges);
         setAllNodes(calculatedNodes);
         setAllEdges(layoutedEdges);
+        // Default to expanded tree so the chart matches the list view density.
+        setExpandedNodes(new Set(calculatedNodes.map((n) => n.id)));
       } catch (error) {
         console.error("Failed to load org hierarchy, using enhanced mock:", error);
         // Fallback with enhanced mock nodes
@@ -346,15 +353,17 @@ function OrgTreeContent() {
 
         const enhancedEdges = mock.edges.map((edge: { id: string; source: string; target: string; animated?: boolean }) => ({
           ...edge,
-          style: { strokeDasharray: '0', stroke: 'rgba(255, 255, 255, 0.2)', strokeWidth: 2 }
+          style: edgeStyle,
         }));
         
         const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
           enhancedNodes,
           enhancedEdges
         );
-        setAllNodes(recalculateMemberCounts(layoutedNodes, layoutedEdges));
+        const calculatedNodes = recalculateMemberCounts(layoutedNodes, layoutedEdges);
+        setAllNodes(calculatedNodes);
         setAllEdges(layoutedEdges);
+        setExpandedNodes(new Set(calculatedNodes.map((n) => n.id)));
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -421,6 +430,11 @@ function OrgTreeContent() {
       position: { x: 400, y: 0 },
     };
     setAllNodes((nds) => nds.concat(newNode));
+    setExpandedNodes((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
     addToast("New root-level division added", "success");
   };
 
@@ -433,15 +447,11 @@ function OrgTreeContent() {
 
   const defaultEdgeOptions = {
     animated: false,
-    style: {
-      stroke: 'rgba(255, 255, 255, 0.2)',
-      strokeWidth: 2,
-      strokeDasharray: '0',
-    },
+    style: edgeStyle,
   };
 
   return (
-    <div className="h-[750px] glass rounded-3xl border border-white/10 overflow-hidden relative shadow-2xl">
+    <div className="h-[750px] glass rounded-3xl border border-border overflow-hidden relative shadow-2xl">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -453,7 +463,7 @@ function OrgTreeContent() {
         fitView
       >
         <Background variant={BackgroundVariant.Lines} gap={40} size={1} color="rgba(255,255,255,0.03)" />
-        <Controls className="glass border-white/10 rounded-xl overflow-hidden" />
+        <Controls className="glass border-border rounded-xl overflow-hidden" />
         
         <Panel position="top-left" className="flex flex-col gap-4">
           <div className="glass border-border/50 p-4 rounded-2xl flex flex-col gap-3 min-w-[200px]">
@@ -513,13 +523,13 @@ function OrgTreeContent() {
         <Panel position="top-right" className="flex gap-2">
           <button 
             onClick={onLayout}
-            className="glass border-white/10 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-2"
+            className="glass border-border text-foreground px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-muted/40 transition-all flex items-center gap-2"
           >
             <LayoutTemplate className="w-3 h-3 text-emerald-400" /> Auto Layout
           </button>
           <button 
             onClick={addRootNode}
-            className="glass border-white/10 bg-primary/20 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary/40 transition-all flex items-center gap-2"
+            className="glass border-border bg-primary/20 text-foreground px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary/30 transition-all flex items-center gap-2"
           >
             <Plus className="w-3 h-3" /> Add Division
           </button>
@@ -550,13 +560,13 @@ function OrgTreeContent() {
                 addToast("Failed to save hierarchy changes", "error");
               }
             }}
-            className="glass border-white/10 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-2"
+            className="glass border-border text-foreground px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-muted/40 transition-all flex items-center gap-2"
           >
             <Save className="w-3 h-3 text-accent" /> Save
           </button>
         </Panel>
 
-        <Panel position="bottom-left" className="glass border-white/10 px-4 py-2 rounded-2xl">
+        <Panel position="bottom-left" className="glass border-border px-4 py-2 rounded-2xl">
           <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
             <ZoomIn className="w-3 h-3" /> Filtered Scope • Hover card for actions
           </p>

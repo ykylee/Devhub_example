@@ -28,11 +28,11 @@ export default function GardenerPage() {
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
         >
-          <h1 className="text-4xl font-extrabold tracking-tight text-foreground dark:text-white mb-2">
+          <h1 className="text-4xl font-extrabold tracking-tight text-foreground dark:text-primary-foreground mb-2">
             AI <span className="text-gradient">Gardener</span>
           </h1>
           <p className="text-muted-foreground text-lg flex items-center gap-2">
-            <Brain className="w-4 h-4 text-primary" /> Autonomous System Optimization • <span className="text-foreground dark:text-white font-bold uppercase tracking-widest text-xs bg-primary/20 px-2 py-0.5 rounded border border-primary/20">AI Active</span>
+            <Brain className="w-4 h-4 text-primary" /> Autonomous System Optimization • <span className="text-foreground dark:text-primary-foreground font-bold uppercase tracking-widest text-xs bg-primary/20 px-2 py-0.5 rounded border border-primary/20">AI Active</span>
           </p>
         </motion.div>
       </div>
@@ -40,7 +40,7 @@ export default function GardenerPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 flex-1">
         {/* Left Column: Feed */}
         <div className="lg:col-span-2 space-y-8">
-          <section className="glass rounded-3xl p-8 border border-white/10 shadow-2xl relative overflow-hidden">
+          <section className="glass rounded-3xl p-8 border border-border shadow-2xl relative overflow-hidden">
              {/* Decorative glow */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-[100px] -mr-32 -mt-32" />
             
@@ -62,12 +62,12 @@ export default function GardenerPage() {
                 { label: "Security Posture", value: "Locked", icon: ShieldCheck, color: "text-emerald-400" },
               ].map((stat, i) => (
                 <div key={i} className="flex items-center gap-4">
-                  <div className={cn("p-2 rounded-lg bg-white/5 border border-white/10", stat.color)}>
+                  <div className={cn("p-2 rounded-lg bg-muted/30 border border-border", stat.color)}>
                     <stat.icon className="w-4 h-4" />
                   </div>
                   <div>
                     <p className="text-[10px] font-bold text-muted-foreground uppercase">{stat.label}</p>
-                    <p className="text-lg font-black text-foreground dark:text-white">{stat.value}</p>
+                    <p className="text-lg font-black text-foreground dark:text-primary-foreground">{stat.value}</p>
                   </div>
                 </div>
               ))}
@@ -78,9 +78,9 @@ export default function GardenerPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="glass rounded-2xl p-6 border-white/5"
+            className="glass rounded-2xl p-6 border-border/60"
           >
-            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-foreground/50 dark:text-white/50 mb-4">How it works</h3>
+            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-foreground/50 dark:text-primary-foreground/50 mb-4">How it works</h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
               AI Gardener analyzes real-time telemetry from Gitea, Go Core, and Infrastructure nodes to identify bottlenecks and security risks before they impact users.
             </p>

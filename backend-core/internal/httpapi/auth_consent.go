@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -28,6 +29,13 @@ func (h Handler) authConsent(c *gin.Context) {
 	// 2. Accept the consent request immediately (silent consent)
 	redirectTo, err := h.cfg.HydraAdmin.AcceptConsentRequest(ctx, challenge, consentReq.RequestedScope, true, 3600)
 	if err != nil {
+		if errors.Is(err, ErrHydraConsentChallengeAlreadyUsed) {
+			// This happens when the user refreshes/retries a stale consent URL.
+			// Restart the sign-in flow instead of surfacing a hard Hydra error page.
+			logRequest(c, "[authConsent] consent_challenge already used; restarting login flow")
+			c.Redirect(http.StatusFound, "/login")
+			return
+		}
 		logRequest(c, "[authConsent] Failed to accept consent request: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": "failed to accept consent request"})
 		return
