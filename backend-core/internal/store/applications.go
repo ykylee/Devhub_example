@@ -158,9 +158,14 @@ func (s *PostgresStore) GetApplicationByKey(ctx context.Context, key string) (do
 }
 
 func (s *PostgresStore) CreateApplication(ctx context.Context, app domain.Application) (domain.Application, error) {
+	// PR #110 integration test fail #1 정정 (sprint claude/work_260514-f) —
+	// status='archived' 로 직접 생성 시 archived_at 자동 채움. CHECK
+	// applications_archived_consistency 위반 회피. UpdateApplication 의 archived_at
+	// 자동 갱신 패턴 (CASE WHEN status='archived') 과 대칭.
 	const insertQuery = `
-INSERT INTO applications (key, name, description, status, visibility, owner_user_id, start_date, due_date)
-VALUES ($1, $2, NULLIF($3, ''), $4, $5, NULLIF($6, ''), $7, $8)
+INSERT INTO applications (key, name, description, status, visibility, owner_user_id, start_date, due_date, archived_at)
+VALUES ($1, $2, NULLIF($3, ''), $4, $5, NULLIF($6, ''), $7, $8,
+        CASE WHEN $4 = 'archived' THEN NOW() ELSE NULL END)
 RETURNING` + applicationsSelectColumns
 
 	row := s.pool.QueryRow(ctx, insertQuery,
@@ -366,13 +371,18 @@ WHERE application_id = $1::uuid AND repo_provider = $2 AND repo_full_name = $3`
 
 // UpdateApplicationRepositorySync — link 단위 sync_status / sync_error_code / retryable / at
 // 일관 갱신. errorCode 가 빈 문자열이면 정상 상태 (retryable / at 도 NULL 로 reset).
+//
+// PR #110 integration test fail #2 정정 (sprint claude/work_260514-f) — CASE 의 NULL
+// 분기 type 을 명시 cast 추가. PG type inference 가 NULL 의 default type 을 text 로
+// 추론 → boolean / timestamptz 컬럼과 mismatch (SQLSTATE 42804). NULL::boolean /
+// NULL::timestamptz 로 명시.
 func (s *PostgresStore) UpdateApplicationRepositorySync(ctx context.Context, key ApplicationRepositoryLinkKey, status domain.ApplicationRepositorySyncStatus, errorCode domain.SyncErrorCode) error {
 	const updateQuery = `
 UPDATE application_repositories SET
 	sync_status = $4,
 	sync_error_code = NULLIF($5, ''),
-	sync_error_retryable = CASE WHEN $5 = '' THEN NULL ELSE $6 END,
-	sync_error_at = CASE WHEN $5 = '' THEN NULL ELSE NOW() END,
+	sync_error_retryable = CASE WHEN $5 = '' THEN NULL::boolean ELSE $6 END,
+	sync_error_at = CASE WHEN $5 = '' THEN NULL::timestamptz ELSE NOW() END,
 	last_sync_at = NOW()
 WHERE application_id = $1::uuid AND repo_provider = $2 AND repo_full_name = $3`
 

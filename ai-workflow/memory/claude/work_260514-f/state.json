@@ -1,0 +1,25 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "claude/work_260514-f",
+  "status": "in_progress",
+  "base_branch": "main",
+  "base_commit": "1e38c4d",
+  "scope": "hotfix — PR #109 codex review 의 B1 + 보강 항목 (I1 마이그레이션 절차, I3 CI integration test job) 묶음. (B1) applicationsFixture 의 cleanup SQL multi-statement + bind args 가 pgx prepared execution 거부 → 23 test fixture panic. (I1) test DB 마이그레이션 적용 절차 + scripts/setup-test-db.sh helper. (I3) CI backend-integration job 신설 (native PG 15 + 마이그레이션 + integration test 실행).",
+  "started_at": "2026-05-14T04:30:00Z",
+  "updated_at": "2026-05-14T04:30:00Z",
+  "carve_in": [
+    "B1 cleanup SQL 을 2 statement (TRUNCATE + DELETE) 로 분리 + fixture sanity test 추가",
+    "I1 scripts/setup-test-db.sh placeholder + handoff/test-server-deployment.md 절차 명시",
+    "I3 .github/workflows/ci.yml 에 backend-integration job 신설 (PG 15 setup + ci-setup.sh 마이그레이션 + go test -run 'TestIntegration_')"
+  ],
+  "carve_out": [
+    "fixture 의 transactional cleanup 도입 (PR #109 I2 성능)",
+    "integration test build tag 분리 (PR #109 N1)",
+    "기존 work_260514-c carve_out 인계"
+  ],
+  "risks": [
+    "CI backend-integration job 의 PG setup 이 e2e job 과 중복 — 시간 비용 ~30s",
+    "본 sprint 작성한 23 test 가 fixture B1 정정 후 CI 에서 실제 실행 → fail 시 즉시 발견 (긍정적 효과)"
+  ]
+}

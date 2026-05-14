@@ -41,6 +41,95 @@ jobs:
       - name: Test
         run: make test
 
+  backend-integration:
+    name: Backend Integration Tests
+    runs-on: ubuntu-latest
+    # PR #109 의 23 integration test (DEVHUB_TEST_DB_URL gate) 를 native PG 15
+    # 환경에서 실 실행 — backend-unit job 은 skip 만 하므로 회귀 가드가 무효였음.
+    # PR #110 (sprint claude/work_260514-f) 신설.
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - name: Cache Go build + module cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('backend-core/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Setup PostgreSQL (native, PG 15)
+        # ADR-0003: no-docker policy — e2e job 의 동일 step 패턴 (pgdg apt repo +
+        # 5432 cluster reset) 재사용. trust auth on loopback 은 CI 전용.
+        run: |
+          set -euo pipefail
+          sudo systemctl stop postgresql 2>/dev/null || true
+          sudo pg_dropcluster --stop 14 main 2>/dev/null || true
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+            -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+          codename=$(lsb_release -cs)
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${codename}-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-15
+          sudo pg_dropcluster --stop 15 main 2>/dev/null || true
+          sudo pg_dropcluster --stop 14 main 2>/dev/null || true
+          sudo pg_createcluster --start --port=5432 15 main
+          sudo -u postgres psql -c "CREATE USER runner SUPERUSER;"
+          sudo -u postgres psql -c "CREATE DATABASE devhub OWNER runner;"
+          conf=/etc/postgresql/15/main/pg_hba.conf
+          sudo sed -i -E 's|^(host\s+all\s+all\s+127\.0\.0\.1/32)\s+\S+|\1 trust|' "$conf"
+          sudo sed -i -E 's|^(host\s+all\s+all\s+::1/128)\s+\S+|\1 trust|' "$conf"
+          sudo pg_ctlcluster 15 main restart
+          timeout 30s bash -c 'until pg_isready -h 127.0.0.1 -p 5432; do sleep 1; done'
+
+      - name: Apply migrations
+        # PR #110 codex P1 — /usr/local/bin 는 GitHub-hosted Linux runner 에서 보통
+        # 일반 user 가 쓰기 가능한 환경이지만, sudo + 명시적 GOBIN env 로 권한
+        # 의존을 제거. ci-setup.sh 의 동일 패턴 (line 79) 과 정합.
+        run: |
+          set -euo pipefail
+          sudo GOBIN=/usr/local/bin go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.19.1
+          migrate -path backend-core/migrations -database "postgres://runner@localhost:5432/devhub?sslmode=disable" up
+
+      - name: Run integration tests
+        env:
+          DEVHUB_TEST_DB_URL: postgres://runner@localhost:5432/devhub?sslmode=disable
+        # -v 로 verbose 출력. tee 로 분기해서 GITHUB_STEP_SUMMARY 에도 적재 —
+        # raw log endpoint 가 일부 위치에서 접근 timeout 인 경우에도 PR 페이지
+        # 의 Summary 탭에서 fail 메시지를 즉시 확인 (PR #110 sprint 진단에서
+        # 발견한 endpoint 차단 우회).
+        run: |
+          set +e
+          cd backend-core
+          go test -count=1 -v -run 'TestIntegration_' ./internal/store/... | tee /tmp/integration-test.log
+          exit_code=${PIPESTATUS[0]}
+          {
+            echo "## Backend Integration Test Results"
+            echo ""
+            echo '<details><summary>Click to expand full log (last 300 lines)</summary>'
+            echo ""
+            echo '```'
+            tail -300 /tmp/integration-test.log
+            echo '```'
+            echo ""
+            echo '</details>'
+            echo ""
+            if [ "$exit_code" -ne 0 ]; then
+              echo "**Failures (FAIL lines):**"
+              echo '```'
+              grep -E "^--- FAIL|FAIL\b" /tmp/integration-test.log || echo "(grep returned non-zero — see full log)"
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$exit_code"
+
   frontend-unit:
     name: Frontend Unit Tests
     runs-on: ubuntu-latest
