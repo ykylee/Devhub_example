@@ -121,7 +121,7 @@ function AuthLoginInner() {
   };
 
   return (
-    <div className="min-h-screen bg-[#030014] flex items-center justify-center p-4 selection:bg-primary/30">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4 selection:bg-primary/30">
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 -left-1/4 w-1/2 h-1/2 bg-primary/10 rounded-full blur-[120px]" />
         <div className="absolute bottom-1/4 -right-1/4 w-1/2 h-1/2 bg-accent/10 rounded-full blur-[120px]" />
@@ -136,26 +136,26 @@ function AuthLoginInner() {
           <motion.div
             initial={{ scale: 0.5 }}
             animate={{ scale: 1 }}
-            className="inline-flex p-4 rounded-3xl bg-gradient-to-br from-primary/20 to-accent/20 border border-white/10 mb-6 shadow-2xl"
+            className="inline-flex p-4 rounded-3xl bg-gradient-to-br from-primary/20 to-accent/20 border border-border/60 mb-6 shadow-2xl"
           >
-            <ShieldCheck className="w-12 h-12 text-white" />
+            <ShieldCheck className="w-12 h-12 text-foreground" />
           </motion.div>
-          <h1 className="text-4xl font-black text-white tracking-tighter uppercase mb-2">
+          <h1 className="text-4xl font-black text-foreground tracking-tighter uppercase mb-2">
             DevHub <span className="text-primary">Sign In</span>
           </h1>
-          <p className="text-white/60 text-sm font-bold uppercase tracking-widest">
+          <p className="text-muted-foreground text-sm font-bold uppercase tracking-widest">
             Authenticate with your DevHub identity
           </p>
         </div>
 
         <form
           onSubmit={handleSubmit}
-          className="glass border-white/10 rounded-[2rem] p-10 shadow-2xl backdrop-blur-2xl space-y-6"
+          className="glass border-border/60 rounded-[2rem] p-10 shadow-2xl backdrop-blur-2xl space-y-6"
         >
           <div className="space-y-2">
             <label
               htmlFor="identifier"
-              className="text-[10px] font-black text-white/40 uppercase tracking-widest"
+              className="text-[10px] font-black text-muted-foreground uppercase tracking-widest"
             >
               System ID
             </label>
@@ -169,7 +169,7 @@ function AuthLoginInner() {
               disabled={submitting}
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+              className="w-full bg-card/60 border border-border rounded-2xl px-4 py-3 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
               placeholder="e.g. yklee"
             />
           </div>
@@ -177,7 +177,7 @@ function AuthLoginInner() {
           <div className="space-y-2">
             <label
               htmlFor="password"
-              className="text-[10px] font-black text-white/40 uppercase tracking-widest"
+              className="text-[10px] font-black text-muted-foreground uppercase tracking-widest"
             >
               Password
             </label>
@@ -190,7 +190,7 @@ function AuthLoginInner() {
               disabled={submitting}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+              className="w-full bg-card/60 border border-border rounded-2xl px-4 py-3 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
               placeholder="••••••••"
             />
           </div>
@@ -208,7 +208,7 @@ function AuthLoginInner() {
           <button
             type="submit"
             disabled={submitting || !identifier || !password}
-            className="w-full bg-primary text-white font-black py-4 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20 disabled:opacity-50 disabled:hover:scale-100 uppercase tracking-widest text-xs"
+            className="w-full bg-primary text-primary-foreground font-black py-4 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20 disabled:opacity-50 disabled:hover:scale-100 uppercase tracking-widest text-xs"
           >
             {submitting ? (
               <>
@@ -227,7 +227,7 @@ function AuthLoginInner() {
             <button
               type="button"
               onClick={() => router.push("/auth/signup")}
-              className="text-[10px] text-white/50 hover:text-primary font-black uppercase tracking-widest transition-colors"
+              className="text-[10px] text-muted-foreground hover:text-primary font-black uppercase tracking-widest transition-colors"
             >
               Don&apos;t have an account? <span className="text-primary underline">Sign Up</span>
             </button>
@@ -235,13 +235,13 @@ function AuthLoginInner() {
             <button
               type="button"
               onClick={() => alert("Please contact the system administrator (admin@devhub.local) to reset your password.")}
-              className="text-[10px] text-white/30 hover:text-white/50 font-black uppercase tracking-widest transition-colors"
+              className="text-[10px] text-muted-foreground/70 hover:text-foreground font-black uppercase tracking-widest transition-colors"
             >
               Forgot Password?
             </button>
           </div>
 
-          <p className="text-[10px] text-white/30 text-center font-bold uppercase tracking-widest pt-6 border-t border-white/5">
+          <p className="text-[10px] text-muted-foreground text-center font-bold uppercase tracking-widest pt-6 border-t border-border/40">
             Secured by Ory Hydra + Kratos
           </p>
         </form>
@@ -252,7 +252,7 @@ function AuthLoginInner() {
 
 function RedirectingFallback() {
   return (
-    <div className="min-h-screen bg-[#030014] flex items-center justify-center">
+    <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="flex flex-col items-center gap-4">
         <Loader2 className="w-8 h-8 text-primary animate-spin" />
         <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">

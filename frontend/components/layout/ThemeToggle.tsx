@@ -47,7 +47,7 @@ export function ThemeToggle() {
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
       onClick={toggleTheme}
-      className="p-2.5 rounded-xl hover:bg-white/5 text-muted-foreground hover:text-white transition-all flex items-center justify-center"
+      className="p-2.5 rounded-xl hover:bg-muted/30 text-muted-foreground hover:text-primary-foreground transition-all flex items-center justify-center"
       title={theme === "light" ? "Switch to Dark Mode (Purple)" : "Switch to Light Mode (Blue)"}
     >
       <AnimatePresence mode="wait">

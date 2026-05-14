@@ -58,7 +58,7 @@ class AuthService {
    * Generates OIDC authorization URL with PKCE
    */
   public async getAuthorizeURL(): Promise<string> {
-    const { state, codeChallenge } = await createPkceState();
+    const { state, codeChallenge, codeChallengeMethod } = await createPkceState();
 
     const url = new URL(OIDC_AUTH_URL);
     url.searchParams.set("client_id", OIDC_CLIENT_ID);
@@ -67,7 +67,7 @@ class AuthService {
     url.searchParams.set("scope", OIDC_SCOPE);
     url.searchParams.set("state", state);
     url.searchParams.set("code_challenge", codeChallenge);
-    url.searchParams.set("code_challenge_method", "S256");
+    url.searchParams.set("code_challenge_method", codeChallengeMethod);
 
     return url.toString();
   }

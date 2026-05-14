@@ -86,7 +86,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (!isAuthorized || !actor) {
     return (
-      <div className="flex items-center justify-center h-screen bg-[#030014]">
+      <div className="flex items-center justify-center h-screen bg-background">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-8 h-8 text-primary animate-spin" />
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">

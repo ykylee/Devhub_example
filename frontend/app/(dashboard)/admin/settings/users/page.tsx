@@ -79,7 +79,7 @@ export default function AdminSettingsUsersPage() {
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by name, email, or role..."
             aria-label="Search users"
-            className="w-full glass border-white/10 rounded-2xl pl-12 pr-6 py-3.5 text-sm text-foreground dark:text-white placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all"
+            className="w-full glass border-border rounded-2xl pl-12 pr-6 py-3.5 text-sm text-foreground text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all"
           />
         </div>
         <button
@@ -87,7 +87,7 @@ export default function AdminSettingsUsersPage() {
           disabled
           title="Advanced filters coming soon"
           aria-label="Advanced filters coming soon"
-          className="glass border-white/10 p-3.5 rounded-2xl text-muted-foreground/40 cursor-not-allowed transition-all"
+          className="glass border-border p-3.5 rounded-2xl text-muted-foreground/40 cursor-not-allowed transition-all"
         >
           <Filter className="w-5 h-5" />
         </button>

@@ -45,12 +45,38 @@ export default function AdminSettingsOrganizationPage() {
         }
       });
 
+      const userIdSet = new Set(allMembers.map((m) => m.id));
       const leaderMap: Record<string, string> = {};
+      const leaderPatches: Array<{ unitId: string; leaderId: string }> = [];
       nodes.forEach((node) => {
-        if (node.data.leader_id) {
-          leaderMap[node.id] = node.data.leader_id;
+        const rawLeader = node.data.leader_id;
+        const unitMemberIds = memberMap[node.id] || [];
+
+        if (rawLeader && userIdSet.has(rawLeader)) {
+          leaderMap[node.id] = rawLeader;
+          return;
+        }
+
+        // Legacy/mock-like IDs (e.g. u1/u2) or empty leader are normalized
+        // to a real registered user in the same unit when available.
+        if (unitMemberIds.length > 0) {
+          const fallbackLeader = unitMemberIds[0];
+          leaderMap[node.id] = fallbackLeader;
+          if (rawLeader !== fallbackLeader) {
+            leaderPatches.push({ unitId: node.id, leaderId: fallbackLeader });
+          }
         }
       });
+
+      if (leaderPatches.length > 0) {
+        await Promise.all(
+          leaderPatches.map(({ unitId, leaderId }) =>
+            identityService.updateUnit(unitId, { leader_user_id: leaderId }).catch((err) => {
+              console.warn(`[organization] failed to patch leader for ${unitId}:`, err);
+            }),
+          ),
+        );
+      }
 
       setUnitMembers(memberMap);
       setUnitLeaders(leaderMap);
@@ -116,29 +142,29 @@ export default function AdminSettingsOrganizationPage() {
     <div className="h-full flex flex-col">
       <div className="p-8 pb-4 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-black text-white tracking-tight">Organization</h1>
+          <h1 className="text-3xl font-black text-foreground tracking-tight">Organization</h1>
           <p className="text-sm text-muted-foreground font-medium">Manage units, teams, and hierarchical structure</p>
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="flex items-center bg-white/5 rounded-2xl p-1 border border-white/10">
+          <div className="flex items-center bg-muted/30 rounded-2xl p-1 border border-border">
             <button
               onClick={() => setView("list")}
-              className={`p-2 rounded-xl transition-all ${view === "list" ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-muted-foreground hover:text-white"}`}
+              className={`p-2 rounded-xl transition-all ${view === "list" ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "text-muted-foreground hover:text-foreground"}`}
               aria-label="List View"
             >
               <List className="w-4 h-4" />
             </button>
             <button
               onClick={() => setView("grid")}
-              className={`p-2 rounded-xl transition-all ${view === "grid" ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-muted-foreground hover:text-white"}`}
+              className={`p-2 rounded-xl transition-all ${view === "grid" ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "text-muted-foreground hover:text-foreground"}`}
               aria-label="Grid View"
             >
               <LayoutGrid className="w-4 h-4" />
             </button>
             <button
               onClick={() => setView("chart")}
-              className={`p-2 rounded-xl transition-all ${view === "chart" ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-muted-foreground hover:text-white"}`}
+              className={`p-2 rounded-xl transition-all ${view === "chart" ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "text-muted-foreground hover:text-foreground"}`}
               aria-label="Org Chart"
             >
               <Network className="w-4 h-4" />
@@ -169,7 +195,7 @@ export default function AdminSettingsOrganizationPage() {
             <p className="text-xs text-muted-foreground mb-6">{error}</p>
             <button
               onClick={() => loadData()}
-              className="px-6 py-2 bg-white/5 border border-white/10 rounded-xl text-xs font-bold hover:bg-white/10 transition-all"
+              className="px-6 py-2 bg-muted/20 border border-border rounded-xl text-xs font-bold text-foreground hover:bg-muted/40 transition-all"
             >
               Retry Connection
             </button>
@@ -186,6 +212,8 @@ export default function AdminSettingsOrganizationPage() {
               {view === "list" && (
                 <OrgUnitTable
                   nodes={orgNodes}
+                  members={members}
+                  unitLeaders={unitLeaders}
                   unitMembers={unitMembers}
                   onManage={(id) => setManagingUnitId(id)}
                   onEdit={(id) => setEditingUnitId(id)}
@@ -222,6 +250,7 @@ export default function AdminSettingsOrganizationPage() {
           <UnitManagementModal
             mode="create"
             availableParents={orgNodes}
+            availableLeaders={members}
             onClose={() => setIsCreating(false)}
             onSave={handleCreateUnit}
           />
@@ -235,8 +264,10 @@ export default function AdminSettingsOrganizationPage() {
               label: orgNodes.find((n) => n.id === editingUnitId)?.data.label,
               unit_type: orgNodes.find((n) => n.id === editingUnitId)?.data.type as any,
               parent_unit_id: "",
+              leader_user_id: unitLeaders[editingUnitId] ?? "",
             }}
             availableParents={orgNodes}
+            availableLeaders={members}
             onClose={() => setEditingUnitId(null)}
             onSave={handleUpdateUnit}
           />

@@ -57,7 +57,7 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#030014] flex items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-background flex items-center justify-center p-6 relative overflow-hidden">
       {/* Background Glows */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 blur-[120px] rounded-full animate-pulse" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent/20 blur-[120px] rounded-full animate-pulse" />
@@ -67,13 +67,13 @@ export default function SignUpPage() {
         animate={{ opacity: 1, y: 0 }}
         className="max-w-xl w-full"
       >
-        <div className="glass border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl relative z-10">
-          <div className="bg-white/5 px-10 py-12 border-b border-white/10 text-center space-y-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-2xl mx-auto flex items-center justify-center shadow-lg ring-4 ring-white/5">
-              <ShieldCheck className="w-9 h-9 text-white" />
+        <div className="glass border-border/60 rounded-[2.5rem] overflow-hidden shadow-2xl relative z-10">
+          <div className="bg-card/50 px-10 py-12 border-b border-border/60 text-center space-y-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-2xl mx-auto flex items-center justify-center shadow-lg ring-4 ring-border/40">
+              <ShieldCheck className="w-9 h-9 text-foreground" />
             </div>
             <div>
-              <h1 className="text-3xl font-black text-white tracking-tighter uppercase">
+              <h1 className="text-3xl font-black text-foreground tracking-tighter uppercase">
                 Join <span className="text-primary">DevHub</span>
               </h1>
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-2">
@@ -94,7 +94,7 @@ export default function SignUpPage() {
                     <CheckCircle2 className="w-10 h-10 text-emerald-400" />
                   </div>
                   <div className="space-y-2">
-                    <h2 className="text-2xl font-bold text-white">Identity Verified!</h2>
+                    <h2 className="text-2xl font-bold text-foreground">Identity Verified!</h2>
                     <p className="text-muted-foreground">Your account has been created successfully. Redirecting to sign in...</p>
                   </div>
                   <div className="pt-4">
@@ -161,7 +161,7 @@ export default function SignUpPage() {
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="w-full bg-primary text-white font-black py-4 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-xl shadow-primary/20 disabled:opacity-50 uppercase tracking-widest text-sm"
+                    className="w-full bg-primary text-primary-foreground font-black py-4 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-xl shadow-primary/20 disabled:opacity-50 uppercase tracking-widest text-sm"
                   >
                     {submitting ? (
                       <>
@@ -195,11 +195,11 @@ export default function SignUpPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1 }}
-          className="mt-8 p-6 glass border-white/5 rounded-3xl"
+          className="mt-8 p-6 glass border-border/40 rounded-3xl"
         >
           <div className="flex items-center gap-2 mb-4">
             <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-            <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Development Mode: Mock HR Database</p>
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Development Mode: Mock HR Database</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {[
@@ -207,15 +207,15 @@ export default function SignUpPage() {
               { name: "Alex Kim", id: "akim", emp: "1002" },
               { name: "Sam Jones", id: "sjones", emp: "1003" },
             ].map((p) => (
-              <div key={p.id} className="p-3 bg-white/5 rounded-xl border border-white/5 space-y-1 hover:bg-white/10 transition-colors cursor-pointer"
+              <div key={p.id} className="p-3 bg-card/50 rounded-xl border border-border/40 space-y-1 hover:bg-card transition-colors cursor-pointer"
                 onClick={() => setFormData({ ...formData, name: p.name, system_id: p.id, employee_id: p.emp })}
               >
-                <p className="text-[11px] font-bold text-white">{p.name}</p>
-                <p className="text-[9px] text-muted-foreground">ID: <span className="text-white/60">{p.id}</span> • Emp: <span className="text-white/60">{p.emp}</span></p>
+                <p className="text-[11px] font-bold text-foreground">{p.name}</p>
+                <p className="text-[9px] text-muted-foreground">ID: <span className="text-foreground/80">{p.id}</span> • Emp: <span className="text-foreground/80">{p.emp}</span></p>
               </div>
             ))}
           </div>
-          <p className="mt-4 text-[9px] text-white/20 italic text-center italic">Tip: Click a card to auto-fill the form for testing.</p>
+          <p className="mt-4 text-[9px] text-muted-foreground/70 italic text-center italic">Tip: Click a card to auto-fill the form for testing.</p>
         </motion.div>
       </motion.div>
     </div>
@@ -235,11 +235,11 @@ function InputField({ label, icon: Icon, value, onChange, placeholder, type = "t
   const inputId = `signup-${label.toLowerCase().replace(/[^a-z0-9]/g, "-")}`;
   return (
     <div className="space-y-2">
-      <label htmlFor={inputId} className="text-[10px] font-black text-white/40 uppercase tracking-widest px-1">
+      <label htmlFor={inputId} className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">
         {label}
       </label>
       <div className="relative group">
-        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-primary transition-colors">
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/70 group-focus-within:text-primary transition-colors">
           <Icon className="w-4 h-4" />
         </div>
         <input
@@ -249,7 +249,7 @@ function InputField({ label, icon: Icon, value, onChange, placeholder, type = "t
           placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 py-3.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-white/10"
+          className="w-full bg-card/60 border border-border rounded-2xl pl-12 pr-4 py-3.5 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-muted-foreground/60"
         />
       </div>
     </div>

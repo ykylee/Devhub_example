@@ -51,7 +51,7 @@ export function GardenerFeed() {
     return (
       <div className="space-y-4">
         {[1, 2].map(i => (
-          <div key={i} className="glass rounded-2xl p-6 h-32 animate-pulse bg-white/5" />
+          <div key={i} className="glass rounded-2xl p-6 h-32 animate-pulse bg-muted/30" />
         ))}
       </div>
     );
@@ -98,8 +98,8 @@ export function GardenerFeed() {
                 
                 <div className="relative flex items-start gap-5">
                   <div className={cn(
-                    "p-3 rounded-2xl bg-white/5 border border-white/10",
-                    suggestion.impact === 'high' ? "border-rose-500/30 bg-rose-500/5" : "border-white/10"
+                    "p-3 rounded-2xl bg-muted/30 border border-border",
+                    suggestion.impact === 'high' ? "border-rose-500/30 bg-rose-500/5" : "border-border"
                   )}>
                     {getIcon(suggestion.type)}
                   </div>
@@ -123,7 +123,7 @@ export function GardenerFeed() {
                     </p>
                     
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-mono text-white/30 uppercase">
+                      <span className="text-[10px] font-mono text-primary-foreground/30 uppercase">
                         {new Date(suggestion.created_at).toLocaleTimeString()}
                       </span>
                       

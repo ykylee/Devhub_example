@@ -45,12 +45,12 @@ export function ToastContainer() {
               <Icon className={cn("w-5 h-5 shrink-0 mt-0.5", style.color)} />
               
               <div className="flex-1">
-                <p className="text-sm font-bold text-white leading-tight">{toast.message}</p>
+                <p className="text-sm font-bold text-primary-foreground leading-tight">{toast.message}</p>
               </div>
               
               <button 
                 onClick={() => removeToast(toast.id)}
-                className="p-1 rounded-lg hover:bg-white/5 text-muted-foreground hover:text-white transition-all"
+                className="p-1 rounded-lg hover:bg-muted/30 text-muted-foreground hover:text-primary-foreground transition-all"
               >
                 <X className="w-4 h-4" />
               </button>

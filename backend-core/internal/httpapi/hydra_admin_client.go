@@ -17,6 +17,7 @@ import (
 // login_challenge as unknown — typically a stale browser tab or a tampered
 // query parameter. The handler should redirect the user back to /login.
 var ErrHydraChallengeNotFound = errors.New("hydra login_challenge not found")
+var ErrHydraConsentChallengeAlreadyUsed = errors.New("hydra consent_challenge already used")
 
 // HydraAdminClient invokes Hydra's admin OAuth2 request endpoints used by the
 // /api/v1/auth/login proxy. Token introspection lives on a sibling type
@@ -336,6 +337,9 @@ func (c *HydraAdminClient) AcceptConsentRequest(ctx context.Context, challenge s
 	if strings.TrimSpace(c.AdminURL) == "" {
 		return "", errors.New("HydraAdminClient.AdminURL is not configured")
 	}
+	if strings.TrimSpace(challenge) == "" {
+		return "", errors.New("consent_challenge is required")
+	}
 	endpoint := strings.TrimRight(c.AdminURL, "/") + "/admin/oauth2/auth/requests/consent/accept?consent_challenge=" + url.QueryEscape(challenge)
 	payload := map[string]any{
 		"grant_scope":  grantedScope,
@@ -355,7 +359,11 @@ func (c *HydraAdminClient) AcceptConsentRequest(ctx context.Context, challenge s
 	defer resp.Body.Close()
 	if resp.StatusCode/100 != 2 {
 		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("hydra accept consent status %d: %s", resp.StatusCode, string(body))
+		bodyText := strings.TrimSpace(string(body))
+		if resp.StatusCode == http.StatusBadRequest && strings.Contains(strings.ToLower(bodyText), "already been used") {
+			return "", ErrHydraConsentChallengeAlreadyUsed
+		}
+		return "", fmt.Errorf("hydra accept consent status %d: %s", resp.StatusCode, bodyText)
 	}
 	var out struct {
 		RedirectTo string `json:"redirect_to"`

@@ -69,7 +69,7 @@ export const OrgNode = memo(({ id, data, selected }: NodeProps<Node<OrgNodeData>
         isEditing ? "z-50" : "z-10"
       )}
     >
-      <Handle type="target" position={Position.Top} className="!bg-white/20 !w-3 !h-3 !border-white/40" />
+      <Handle type="target" position={Position.Top} className="!bg-muted/50 !w-3 !h-3 !border-border" />
       
       <motion.div
         initial={false}
@@ -79,7 +79,7 @@ export const OrgNode = memo(({ id, data, selected }: NodeProps<Node<OrgNodeData>
         }}
         className={cn(
           "glass rounded-2xl border p-4 flex flex-col justify-between shadow-2xl",
-          selected ? "border-blue-500/50 ring-2 ring-blue-500/20" : "border-white/10 group-hover:border-white/30"
+          selected ? "border-blue-500/50 ring-2 ring-blue-500/20" : "border-border group-hover:border-border"
         )}
       >
         <div className="flex items-start justify-between">
@@ -88,15 +88,15 @@ export const OrgNode = memo(({ id, data, selected }: NodeProps<Node<OrgNodeData>
               "p-2 rounded-xl border shrink-0",
               (isEditing ? editedType : data.type) === 'division' ? "bg-primary/20 border-primary/30 text-primary" :
               (isEditing ? editedType : data.type) === 'team' ? "bg-accent/20 border-accent/30 text-accent" :
-              "bg-white/5 border-white/10 text-white/50"
+                "bg-muted/40 border-border text-muted-foreground"
             )}>
               <Icon className="w-4 h-4" />
             </div>
             
             {!isEditing ? (
               <div className="flex flex-col truncate flex-1">
-                <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">{data.type}</span>
-                <h4 className="text-sm font-bold text-white truncate">{data.label}</h4>
+                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{data.type}</span>
+                <h4 className="text-sm font-bold text-foreground truncate">{data.label}</h4>
               </div>
             ) : (
               <div className="flex flex-col gap-3 flex-1">
@@ -121,7 +121,7 @@ export const OrgNode = memo(({ id, data, selected }: NodeProps<Node<OrgNodeData>
                       autoFocus
                       value={editedName}
                       onChange={(e) => setEditedName(e.target.value)}
-                      className="bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-sm font-bold text-white focus:outline-none focus:border-primary/50 w-full mt-1"
+                      className="bg-muted/40 border border-border rounded-lg px-2 py-1.5 text-sm font-bold text-foreground focus:outline-none focus:border-primary/50 w-full mt-1"
                       onClick={(e) => e.stopPropagation()}
                     />
                   </div>
@@ -132,7 +132,7 @@ export const OrgNode = memo(({ id, data, selected }: NodeProps<Node<OrgNodeData>
                     value={editedLeader}
                     onChange={(e) => setEditedLeader(e.target.value)}
                     placeholder="Enter Leader ID (e.g. u1)"
-                    className="bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs font-bold text-white focus:outline-none focus:border-orange-500/50 w-full mt-1"
+                    className="bg-muted/40 border border-border rounded-lg px-2 py-1.5 text-xs font-bold text-foreground focus:outline-none focus:border-orange-500/50 w-full mt-1"
                     onClick={(e) => e.stopPropagation()}
                   />
                 </div>
@@ -144,22 +144,22 @@ export const OrgNode = memo(({ id, data, selected }: NodeProps<Node<OrgNodeData>
         {/* Member Counts & Leader Info */}
         {!isEditing && (
           <div className="flex flex-col gap-2 mt-2">
-            <div className="flex items-center justify-between border-t border-white/5 pt-2">
+            <div className="flex items-center justify-between border-t border-border/60 pt-2">
                {data.leader_id ? (
                 <div className="flex items-center gap-1.5 text-[9px] font-black text-orange-400 bg-orange-400/10 px-2 py-1 rounded-full border border-orange-400/20">
                   <Crown className="w-2.5 h-2.5" />
                   {data.leader_id}
                 </div>
               ) : (
-                <div className="text-[9px] font-black text-white/20 italic">No Leader</div>
+                <div className="text-[9px] font-black text-muted-foreground italic">No Leader</div>
               )}
               <div className="flex items-center gap-3">
                 <div className="text-right">
-                  <p className="text-[7px] font-black text-white/20 uppercase tracking-tighter">Direct</p>
-                  <p className="text-[10px] font-bold text-white/80 leading-none">{data.direct_count || 0}</p>
+                  <p className="text-[7px] font-black text-muted-foreground uppercase tracking-tighter">Direct</p>
+                  <p className="text-[10px] font-bold text-foreground leading-none">{data.direct_count || 0}</p>
                 </div>
-                <div className="text-right border-l border-white/10 pl-3">
-                  <p className="text-[7px] font-black text-white/20 uppercase tracking-tighter">Total</p>
+                <div className="text-right border-l border-border pl-3">
+                  <p className="text-[7px] font-black text-muted-foreground uppercase tracking-tighter">Total</p>
                   <p className="text-[10px] font-bold text-primary leading-none">{data.total_count || 0}</p>
                 </div>
               </div>
@@ -170,8 +170,10 @@ export const OrgNode = memo(({ id, data, selected }: NodeProps<Node<OrgNodeData>
         {/* Action Buttons */}
         <div 
           className={cn(
-            "flex items-center justify-end gap-1 mt-auto pt-2 border-t border-white/5 transition-all duration-300 transform",
-            (selected || isEditing) ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto"
+            "flex items-center justify-end gap-1 mt-auto pt-2 border-t border-border/60 transition-all duration-300 transform",
+            (selected || isEditing)
+              ? "opacity-100 translate-y-0 pointer-events-auto"
+              : "opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto"
           )}
         >
           {!isEditing ? (
@@ -185,7 +187,7 @@ export const OrgNode = memo(({ id, data, selected }: NodeProps<Node<OrgNodeData>
               </button>
               <button 
                 onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
-                className="p-1.5 rounded-lg bg-white/5 text-white/50 hover:text-white transition-colors"
+                className="p-1.5 rounded-lg bg-muted/30 text-muted-foreground hover:text-foreground transition-colors"
                 title="Edit"
               >
                 <Edit3 className="w-3.5 h-3.5" />
@@ -202,7 +204,7 @@ export const OrgNode = memo(({ id, data, selected }: NodeProps<Node<OrgNodeData>
                   onClick={(e) => { e.stopPropagation(); data.onToggleExpand?.(id); }}
                   className={cn(
                     "p-1.5 rounded-lg transition-colors",
-                    data.isExpanded ? "bg-white/10 text-white" : "bg-accent/20 text-accent"
+                    data.isExpanded ? "bg-muted/60 text-foreground" : "bg-accent/20 text-accent"
                   )}
                   title={data.isExpanded ? "Collapse" : "Expand"}
                 >
@@ -214,13 +216,13 @@ export const OrgNode = memo(({ id, data, selected }: NodeProps<Node<OrgNodeData>
             <>
               <button 
                 onClick={handleCancel}
-                className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-white/5 text-white/50 text-[10px] font-black uppercase"
+                className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-muted/30 text-muted-foreground text-[10px] font-black uppercase"
               >
                 <X className="w-3 h-3" /> {data.isInitialEditing ? 'Discard' : 'Cancel'}
               </button>
               <button 
                 onClick={handleSave}
-                className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-primary text-white text-[10px] font-black uppercase"
+                className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-primary text-primary-foreground text-[10px] font-black uppercase"
               >
                 <Check className="w-3 h-3" /> Save
               </button>

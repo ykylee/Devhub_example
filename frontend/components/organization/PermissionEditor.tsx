@@ -74,7 +74,7 @@ export function PermissionEditor({
             <Lock className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h3 className="text-xl font-black text-white uppercase tracking-tight">RBAC <span className="text-primary">Policies</span></h3>
+            <h3 className="text-xl font-black text-foreground uppercase tracking-tight">RBAC <span className="text-primary">Policies</span></h3>
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
               Role-Based Access Control Configuration
             </p>
@@ -94,7 +94,7 @@ export function PermissionEditor({
               className={cn(
                 "flex items-center gap-2 px-4 py-2 font-bold rounded-xl transition-all text-sm",
                 saving || !isDirty
-                  ? "bg-white/5 text-white/30 cursor-not-allowed"
+                  ? "bg-muted/50 text-muted-foreground cursor-not-allowed"
                   : "bg-emerald-500 text-emerald-50 hover:bg-emerald-500/90"
               )}
             >
@@ -136,7 +136,7 @@ export function PermissionEditor({
                     "rounded-2xl p-6 relative overflow-hidden cursor-pointer transition-all border",
                     isSelected
                       ? "bg-primary/10 border-primary/50 shadow-[0_0_30px_rgba(var(--primary),0.15)]"
-                      : "glass border-white/10 hover:border-white/20"
+                      : "glass border-border hover:border-border/80"
                   )}
                 >
                   <div className={cn("absolute top-0 left-0 w-1.5 h-full",
@@ -147,14 +147,14 @@ export function PermissionEditor({
 
                   <div className="flex flex-col gap-3 ml-2">
                     <div className="flex items-center justify-between">
-                      <h4 className={cn("text-lg font-black", isSelected ? "text-primary" : "text-white")}>
+                      <h4 className={cn("text-lg font-black", isSelected ? "text-primary" : "text-foreground")}>
                         {role.name}
                       </h4>
                       {!role.system && (
                         <button
                           onClick={(e) => { e.stopPropagation(); handleDeleteRole(role.id); }}
                           disabled={saving}
-                          className="p-1.5 rounded-lg text-white/40 hover:text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-30"
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-30"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -164,8 +164,8 @@ export function PermissionEditor({
                       {role.description}
                     </p>
                     <div className="flex items-center gap-2 mt-2">
-                      <ShieldCheck className={cn("w-4 h-4", isSelected ? "text-primary/70" : "text-white/30")} />
-                      <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider">
+                      <ShieldCheck className={cn("w-4 h-4", isSelected ? "text-primary/70" : "text-muted-foreground")} />
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                         {Object.keys(role.permissions).length} Resources Configured
                       </span>
                       {role.system && (
@@ -189,15 +189,15 @@ export function PermissionEditor({
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="glass rounded-3xl p-8 border-white/10 h-full flex flex-col"
+                className="glass rounded-3xl p-8 border-border h-full flex flex-col"
               >
                 <div className="mb-8">
                   <div className="flex items-center gap-3 mb-2">
                     <Shield className="w-5 h-5 text-accent" />
-                    <h3 className="text-2xl font-black text-white">{selectedRole.name} Matrix</h3>
+                    <h3 className="text-2xl font-black text-foreground">{selectedRole.name} Matrix</h3>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Configure fine-grained access policies for <strong className="text-white">{selectedRole.name}</strong>.
+                    Configure fine-grained access policies for <strong className="text-foreground">{selectedRole.name}</strong>.
                     {" Audit logs are append-only — write actions on the audit row stay locked."}
                   </p>
                 </div>
@@ -214,10 +214,10 @@ export function PermissionEditor({
               <motion.section
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="glass rounded-3xl p-10 border-dashed border-white/10 text-center h-full flex flex-col items-center justify-center"
+                className="glass rounded-3xl p-10 border-dashed border-border text-center h-full flex flex-col items-center justify-center"
               >
-                <ShieldAlert className="w-16 h-16 text-white/10 mb-4" />
-                <h4 className="text-xl font-black text-white/50 mb-2">Select a Role</h4>
+                <ShieldAlert className="w-16 h-16 text-primary-foreground/10 mb-4" />
+                <h4 className="text-xl font-black text-muted-foreground mb-2">Select a Role</h4>
                 <p className="text-sm text-muted-foreground max-w-sm">
                   Choose a role from the left panel to inspect or edit its permission matrix.
                 </p>
@@ -237,7 +237,7 @@ function LegendChip({ type, label }: { type: 'read' | 'write' | 'admin'; label: 
     admin: Crown
   };
   const styles = {
-    read: "bg-white/5 border-white/20 text-white/70",
+    read: "bg-muted/40 border-border text-foreground",
     write: "bg-blue-500/10 border-blue-500/30 text-blue-300",
     admin: "bg-accent/15 border-accent/40 text-accent"
   };

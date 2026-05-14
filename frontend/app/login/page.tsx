@@ -26,7 +26,7 @@ export default function LoginPage() {
   }, [handleLogin]);
 
   return (
-    <div className="min-h-screen bg-[#030014] flex items-center justify-center p-4 selection:bg-primary/30">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4 selection:bg-primary/30">
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 -left-1/4 w-1/2 h-1/2 bg-primary/10 rounded-full blur-[120px]" />
         <div className="absolute bottom-1/4 -right-1/4 w-1/2 h-1/2 bg-accent/10 rounded-full blur-[120px]" />
@@ -41,11 +41,11 @@ export default function LoginPage() {
           <motion.div
             initial={{ scale: 0.5 }}
             animate={{ scale: 1 }}
-            className="inline-flex p-4 rounded-3xl bg-gradient-to-br from-primary/20 to-accent/20 border border-white/10 mb-6 shadow-2xl"
+            className="inline-flex p-4 rounded-3xl bg-gradient-to-br from-primary/20 to-accent/20 border border-border/60 mb-6 shadow-2xl"
           >
-            <ShieldCheck className="w-12 h-12 text-white" />
+            <ShieldCheck className="w-12 h-12 text-foreground" />
           </motion.div>
-          <h1 className="text-4xl font-black text-white tracking-tighter uppercase mb-2">
+          <h1 className="text-4xl font-black text-foreground tracking-tighter uppercase mb-2">
             DevHub <span className="text-primary">Identity</span>
           </h1>
           <p className="text-muted-foreground text-sm font-bold uppercase tracking-widest">
@@ -53,7 +53,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <div className="glass border-white/10 rounded-[2rem] p-10 shadow-2xl backdrop-blur-2xl">
+        <div className="glass border-border/60 rounded-[2rem] p-10 shadow-2xl backdrop-blur-2xl">
           <p className="text-sm text-muted-foreground text-center mb-8">
             DevHub uses Ory Hydra and Kratos for identity. Continue to the secure
             sign-in flow to authenticate.
@@ -63,7 +63,7 @@ export default function LoginPage() {
             type="button"
             onClick={handleLogin}
             disabled={isRedirecting}
-            className="w-full bg-primary text-white font-black py-4 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20 disabled:opacity-50 disabled:hover:scale-100 group uppercase tracking-widest text-xs"
+            className="w-full bg-primary text-primary-foreground font-black py-4 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20 disabled:opacity-50 disabled:hover:scale-100 group uppercase tracking-widest text-xs"
           >
             {isRedirecting ? "Redirecting..." : (
               <>
@@ -82,7 +82,7 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <div className="mt-8 pt-8 border-t border-white/5 text-center">
+          <div className="mt-8 pt-8 border-t border-border/40 text-center">
             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
               Secured by Ory Hydra + Kratos
             </p>
@@ -90,8 +90,8 @@ export default function LoginPage() {
         </div>
 
         <div className="mt-8 flex justify-center gap-6">
-          <p className="text-[9px] text-white/20 font-bold uppercase">Node: ASIA-01</p>
-          <p className="text-[9px] text-white/20 font-bold uppercase">v0.5.0-BETA</p>
+          <p className="text-[9px] text-muted-foreground/70 font-bold uppercase">Node: ASIA-01</p>
+          <p className="text-[9px] text-muted-foreground/70 font-bold uppercase">v0.5.0-BETA</p>
         </div>
       </motion.div>
     </div>

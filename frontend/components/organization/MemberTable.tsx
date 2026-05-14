@@ -2,7 +2,7 @@
 
 import { OrgMember } from "@/lib/services/identity.service";
 import { motion, AnimatePresence } from "framer-motion";
-import { MoreHorizontal, UserPlus, Mail, Shield, ArrowRightLeft, Crown, Key, UserX, KeyRound, Bot, Copy, Check } from "lucide-react";
+import { UserPlus, Mail, Shield, ArrowRightLeft, Crown, Key, UserX, KeyRound, Bot, Copy, Check } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
@@ -10,6 +10,7 @@ import { useStore } from "@/lib/store";
 import { accountService } from "@/lib/services/account.service";
 import { useToast } from "@/components/ui/Toast";
 import { Modal } from "@/components/ui/Modal";
+import { ActionMenu } from "@/components/ui/ActionMenu";
 
 import { Role } from "@/lib/services/rbac.types";
 import { UserCreationModal } from "./UserCreationModal";
@@ -24,22 +25,12 @@ interface MemberTableProps {
 export function MemberTable({ members, roles, onUpdateMemberRole, onMemberCreated }: MemberTableProps) {
   const { role: currentUserRole } = useStore();
   const { toast } = useToast();
-  const [openActionId, setOpenActionId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [adminActionResult, setAdminActionResult] = useState<{
     title: string;
     details: { label: string; value: string }[];
   } | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!openActionId) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpenActionId(null);
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [openActionId]);
 
   const handleCopy = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -48,7 +39,6 @@ export function MemberTable({ members, roles, onUpdateMemberRole, onMemberCreate
   };
 
   const handleAdminAction = async (action: 'issue' | 'reset' | 'disable', member: OrgMember) => {
-    setOpenActionId(null);
     try {
       if (action === 'issue') {
         const loginId = member.email.split('@')[0];
@@ -83,10 +73,10 @@ export function MemberTable({ members, roles, onUpdateMemberRole, onMemberCreate
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-xl font-black text-foreground dark:text-white uppercase tracking-tight">Organization <span className="text-primary">Members</span></h3>
+        <h3 className="text-xl font-black text-foreground dark:text-primary-foreground uppercase tracking-tight">Organization <span className="text-primary">Members</span></h3>
         <button 
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-primary/90 transition-all shadow-lg"
+          className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-xl text-xs font-bold hover:bg-primary/90 transition-all shadow-lg"
         >
           <UserPlus className="w-4 h-4" /> Invite Member
         </button>
@@ -117,10 +107,10 @@ export function MemberTable({ members, roles, onUpdateMemberRole, onMemberCreate
                   <div key={idx} className="glass-card p-4 space-y-1 relative group">
                     <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{detail.label}</p>
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-mono font-bold text-white break-all">{detail.value}</p>
+                      <p className="text-sm font-mono font-bold text-primary-foreground break-all">{detail.value}</p>
                       <button 
                         onClick={() => handleCopy(detail.value, detail.label)}
-                        className="p-1.5 rounded-lg hover:bg-white/10 text-muted-foreground hover:text-white transition-all ml-2"
+                        className="p-1.5 rounded-lg hover:bg-muted/40 text-muted-foreground hover:text-primary-foreground transition-all ml-2"
                       >
                         {copied === detail.label ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                       </button>
@@ -130,7 +120,7 @@ export function MemberTable({ members, roles, onUpdateMemberRole, onMemberCreate
               </div>
               <button 
                 onClick={() => setAdminActionResult(null)}
-                className="w-full py-3 bg-primary text-white rounded-xl text-xs font-bold hover:bg-primary/90 transition-all shadow-lg mt-4"
+                className="w-full py-3 bg-primary text-primary-foreground rounded-xl text-xs font-bold hover:bg-primary/90 transition-all shadow-lg mt-4"
               >
                 Close & Confirm
               </button>
@@ -139,7 +129,7 @@ export function MemberTable({ members, roles, onUpdateMemberRole, onMemberCreate
         )}
       </AnimatePresence>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto overflow-y-visible">
         <table className="w-full text-left border-separate border-spacing-y-3">
           <thead>
             <tr className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-4">
@@ -161,7 +151,7 @@ export function MemberTable({ members, roles, onUpdateMemberRole, onMemberCreate
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="glass group hover:bg-white/5 transition-all duration-300 rounded-2xl overflow-hidden"
+                  className="glass group hover:bg-muted/30 transition-all duration-300 rounded-2xl"
                 >
                   <td className="px-6 py-4 rounded-l-2xl">
                     <div className="flex items-center gap-3">
@@ -170,8 +160,8 @@ export function MemberTable({ members, roles, onUpdateMemberRole, onMemberCreate
                           <span className="font-black text-foreground">{member.name.charAt(0)}</span>
                         </div>
                         {isLeader && (
-                          <div className="absolute -top-1 -right-1 bg-orange-500 rounded-full p-0.5 border border-[#030014]">
-                            <Crown className="w-2.5 h-2.5 text-white" />
+                          <div className="absolute -top-1 -right-1 bg-orange-500 rounded-full p-0.5 border border-background">
+                            <Crown className="w-2.5 h-2.5 text-primary-foreground" />
                           </div>
                         )}
                       </div>
@@ -213,7 +203,7 @@ export function MemberTable({ members, roles, onUpdateMemberRole, onMemberCreate
                   <td className="px-6 py-4">
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-foreground/90 dark:text-white/90">{member.current_dept_id}</span>
+                        <span className="text-xs font-bold text-foreground/90 dark:text-primary-foreground/90">{member.current_dept_id}</span>
                         {member.is_seconded && (
                           <div className="flex items-center gap-1 bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 rounded text-[8px] font-black text-blue-400 uppercase">
                             <ArrowRightLeft className="w-2 h-2" /> Seconded
@@ -231,56 +221,32 @@ export function MemberTable({ members, roles, onUpdateMemberRole, onMemberCreate
                     </Badge>
                   </td>
                   <td className="px-6 py-4 text-right rounded-r-2xl relative">
-                    <button 
-                      onClick={() => setOpenActionId(openActionId === member.id ? null : member.id)}
-                      className="p-2 hover:bg-white/10 rounded-lg transition-colors text-muted-foreground hover:text-white"
-                    >
-                      <MoreHorizontal className="w-5 h-5" />
-                    </button>
-
-                    <AnimatePresence>
-                      {openActionId === member.id && (
-                        <>
-                          <div 
-                            className="fixed inset-0 z-40" 
-                            onClick={() => setOpenActionId(null)}
-                          />
-                          <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                            className="absolute right-8 top-12 z-50 w-48 glass bg-popover/90 border border-border rounded-xl overflow-hidden shadow-2xl py-1"
-                          >
-                            <div className="px-3 py-2 border-b border-white/10">
-                              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-left">Actions</p>
-                            </div>
-                            
-                            {currentUserRole === "System Admin" && (
-                              <div className="py-1">
-                                <button 
-                                  onClick={() => handleAdminAction('issue', member)}
-                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-primary/10 transition-colors text-left"
-                                >
-                                  <Key className="w-3.5 h-3.5 text-accent" /> Issue Account
-                                </button>
-                                <button 
-                                  onClick={() => handleAdminAction('reset', member)}
-                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-primary/10 transition-colors text-left"
-                                >
-                                  <KeyRound className="w-3.5 h-3.5 text-orange-400" /> Force Reset Password
-                                </button>
-                                <button 
-                                  onClick={() => handleAdminAction('disable', member)}
-                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:bg-red-400/10 transition-colors text-left"
-                                >
-                                  <UserX className="w-3.5 h-3.5" /> Revoke Account
-                                </button>
-                              </div>
-                            )}
-                          </motion.div>
-                        </>
-                      )}
-                    </AnimatePresence>
+                    {currentUserRole === "System Admin" && (
+                      <ActionMenu
+                        title="User Actions"
+                        items={[
+                          {
+                            key: "issue",
+                            label: "Issue Account",
+                            onClick: () => handleAdminAction("issue", member),
+                            icon: <Key className="w-3.5 h-3.5 text-accent" />,
+                          },
+                          {
+                            key: "reset",
+                            label: "Force Reset Password",
+                            onClick: () => handleAdminAction("reset", member),
+                            icon: <KeyRound className="w-3.5 h-3.5 text-orange-400" />,
+                          },
+                          {
+                            key: "revoke",
+                            label: "Revoke Account",
+                            onClick: () => handleAdminAction("disable", member),
+                            icon: <UserX className="w-3.5 h-3.5" />,
+                            tone: "danger",
+                          },
+                        ]}
+                      />
+                    )}
                   </td>
                 </motion.tr>
               );
