@@ -5,7 +5,7 @@
 - 대상 독자: Backend / 프론트엔드 개발자, AI agent, 외부 API consumer, QA.
 - 상태: accepted
 - 기준일: 2026-05-04
-- 최종 수정일: 2026-05-13 (메타 헤더 표준화, sprint `claude/work_260513-d`. 직전 본문 갱신 2026-05-08 — §12 RBAC 모델/라우트 매핑/audit, ADR-0002 채택 반영, M1 PR-G1)
+- 최종 수정일: 2026-05-15 (외부 시스템 연동 API 초안 §15 추가, API-69..78)
 - 관련 문서: [아키텍처](./architecture.md), [기술 스택](./tech_stack.md), [프론트 연동 요구사항](./backend/frontend_integration_requirements.md), [백엔드 요구사항 리뷰](./backend/requirements_review.md), [ADR-0002 RBAC](./adr/0002-rbac-policy-edit-api.md), [백엔드 로드맵](../ai-workflow/memory/backend_development_roadmap.md), [추적성 매트릭스](./traceability/report.md).
 
 ## 1. 공통 응답 원칙
@@ -2016,3 +2016,198 @@ intake_token_collision                         # sprint o (ADR-0014): hashed_tok
 - **처리**: `revoked_at = COALESCE(revoked_at, NOW())` — idempotent.
 - **응답 — 200**: 갱신된 row (plain_token 미포함). **404** `not_found` (token_id 미존재).
 - **audit**: `dev_request_intake_token.revoked`.
+
+## 15. 외부 시스템 연동 (Integration) API 초안
+
+본 섹션은 [`docs/planning/external_system_integration_concept.md`](./planning/external_system_integration_concept.md) 및 [`docs/requirements.md §5.6`](./requirements.md) 의 1차 API 계약 초안이다. ID는 임시 발급(`API-69..78`)이며 상세 응답 스키마는 설계 sprint 에서 확정한다.
+
+### 15.1 API ID 인덱스 (draft)
+
+| API ID | endpoint | 목적 |
+| --- | --- | --- |
+| API-69 | `GET /api/v1/integration/providers` | Provider catalog 조회 |
+| API-70 | `POST /api/v1/integration/providers` | Provider 등록 |
+| API-71 | `PATCH /api/v1/integration/providers/{provider_id}` | Provider 수정/활성화/비활성화 |
+| API-72 | `POST /api/v1/integration/providers/{provider_id}/sync` | Provider 수동 재동기화 트리거 |
+| API-73 | `POST /api/v1/integration/providers/{provider_key}/webhook` | Provider webhook ingest |
+| API-74 | `GET /api/v1/integration/bindings` | scope별 Integration binding 조회 |
+| API-75 | `POST /api/v1/integration/bindings` | scope별 Integration binding 생성 |
+| API-76 | `GET /api/v1/infra/services` | 홈랩 서비스 인벤토리 조회 |
+| API-77 | `POST /api/v1/infra/services/snapshot` | 홈랩 서비스 상태 스냅샷 수집 ingest |
+| API-78 | `GET /api/v1/infra/topology/v2` | 노드+서비스+의존성 통합 토폴로지 조회 |
+
+### 15.2 Provider Catalog
+
+#### API-69 `GET /api/v1/integration/providers`
+
+- **인증**: OIDC + RBAC (`infrastructure:view` 또는 `pipelines:view`).
+- **응답 — 200**: provider 목록 + `provider_type`, `enabled`, `capabilities`, `sync_status`, `last_sync_at`, `last_error_code`.
+
+#### API-70 `POST /api/v1/integration/providers`
+
+- **인증**: OIDC + RBAC `infrastructure:edit` (system_admin only).
+- **요청**: `provider_key`, `provider_type`, `display_name`, `auth_mode`, `credentials_ref`, `capabilities`, `scope`.
+- **응답 — 201**: 생성된 provider.
+- **에러**: 409 `integration_provider_conflict`, 400 `invalid_provider_type`.
+
+요청 예시:
+
+```json
+{
+  "provider_key": "jira-main",
+  "provider_type": "alm",
+  "display_name": "Jira Cloud (Main)",
+  "auth_mode": "oauth2",
+  "credentials_ref": "secret://integrations/jira-main",
+  "capabilities": ["issue.read", "epic.read", "issue.link"],
+  "scope": {
+    "scope_type": "project",
+    "scope_id": "PRJ-001"
+  }
+}
+```
+
+응답 예시:
+
+```json
+{
+  "status": "created",
+  "data": {
+    "provider_id": "8f8cdb8d-c690-458f-a243-a8b8b67f9a4d",
+    "provider_key": "jira-main",
+    "provider_type": "alm",
+    "display_name": "Jira Cloud (Main)",
+    "enabled": true,
+    "auth_mode": "oauth2",
+    "capabilities": ["issue.read", "epic.read", "issue.link"],
+    "sync_status": "requested",
+    "last_sync_at": null,
+    "last_error_code": null,
+    "created_at": "2026-05-15T14:00:00Z",
+    "updated_at": "2026-05-15T14:00:00Z"
+  }
+}
+```
+
+#### API-71 `PATCH /api/v1/integration/providers/{provider_id}`
+
+- **인증**: OIDC + RBAC `infrastructure:edit` (system_admin only).
+- **요청**: `enabled`, `display_name`, `capabilities`, `credentials_ref` 일부 수정.
+- **응답 — 200**: 수정된 provider.
+
+#### API-72 `POST /api/v1/integration/providers/{provider_id}/sync`
+
+- **인증**: OIDC + RBAC `infrastructure:edit` (system_admin only).
+- **설명**: provider 단위 수동 reconciliation job enqueue.
+- **응답 — 202**: `{status:"accepted", job_id:"..."}`.
+
+### 15.3 Ingest / Binding
+
+#### API-73 `POST /api/v1/integration/providers/{provider_key}/webhook`
+
+- **인증**: provider별 webhook 인증(header signature/token); OIDC 미적용.
+- **설명**: raw event 저장 + 검증 + normalize enqueue.
+- **응답**: 202 accepted / 401 invalid signature / 409 duplicate delivery.
+- **헤더(권장 공통)**:
+  - `X-Integration-Delivery`: 외부 전송 고유 ID (없으면 payload hash로 보조 dedupe)
+  - `X-Integration-Event`: 이벤트 타입
+  - `X-Integration-Signature`: provider 정책 기반 서명값
+
+#### API-74 `GET /api/v1/integration/bindings`
+
+- **인증**: OIDC + RBAC view.
+- **쿼리**: `scope_type`, `scope_id`, `provider_type`, `enabled`, `limit`, `offset`.
+- **응답 — 200**: binding 목록 + pagination meta.
+
+#### API-75 `POST /api/v1/integration/bindings`
+
+- **인증**: OIDC + RBAC edit (system_admin only).
+- **요청**: `scope_type` (`application|project`), `scope_id`, `provider_id`, `external_key`, `policy`.
+- **응답 — 201**: 생성 binding.
+- **에러**: 409 `integration_binding_conflict`, 422 `integration_policy_violation`.
+
+요청 예시:
+
+```json
+{
+  "scope_type": "application",
+  "scope_id": "APP-001",
+  "provider_id": "8f8cdb8d-c690-458f-a243-a8b8b67f9a4d",
+  "external_key": "PROJ",
+  "policy": "execution_system"
+}
+```
+
+### 15.4 HomeLab Infra
+
+#### API-76 `GET /api/v1/infra/services`
+
+- **인증**: OIDC + RBAC `infrastructure:view`.
+- **응답 — 200**: 서비스 인벤토리(`service_id`, `node_id`, `name`, `version`, `port`, `health_status`, `observed_at`).
+
+#### API-77 `POST /api/v1/infra/services/snapshot`
+
+- **인증**: Agent 토큰 기반 ingest 인증 (OIDC 미적용).
+- **요청**: 노드/서비스 상태 스냅샷 배열.
+- **응답 — 202**: 수집 accepted + ingest_id.
+
+요청 예시:
+
+```json
+{
+  "agent_id": "homelab-agent-a",
+  "snapshot_at": "2026-05-15T14:10:00Z",
+  "trace_id": "trc_01jv7w2mm4m7",
+  "nodes": [
+    {
+      "node_id": "node-nas-01",
+      "hostname": "nas-01.local",
+      "ip_address": "192.168.0.20",
+      "environment": "homelab",
+      "status": "stable",
+      "metrics": { "cpu_percent": 21.3, "mem_percent": 63.1, "disk_percent": 57.2 },
+      "observed_at": "2026-05-15T14:09:58Z"
+    }
+  ],
+  "services": [
+    {
+      "service_id": "svc-jenkins",
+      "node_id": "node-nas-01",
+      "name": "jenkins",
+      "version": "2.504.1",
+      "port": 8080,
+      "health_status": "healthy",
+      "metadata": { "runtime": "docker", "compose_project": "ci-stack" },
+      "observed_at": "2026-05-15T14:09:59Z"
+    }
+  ]
+}
+```
+
+#### API-78 `GET /api/v1/infra/topology/v2`
+
+- **인증**: OIDC + RBAC `infrastructure:view`.
+- **응답 — 200**: `nodes`, `edges`, `services`, `meta`(`snapshot_at`, `degraded_providers`).
+
+### 15.5 공통 에러 코드 (초안)
+
+```
+integration_provider_conflict
+integration_provider_not_found
+integration_provider_disabled
+integration_binding_conflict
+integration_binding_not_found
+integration_policy_violation
+integration_webhook_signature_invalid
+integration_event_duplicate
+integration_sync_job_rejected
+infra_snapshot_invalid
+infra_agent_unauthorized
+```
+
+### 15.6 값 제약 (draft)
+
+- `provider_type`: `alm | scm | ci_cd | doc | infra`
+- `sync_status`: `requested | verifying | active | degraded | disconnected`
+- `binding.policy`: `summary_only | execution_system | bidirectional_candidate`
+- `infra.health_status`: `healthy | degraded | down`

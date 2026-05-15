@@ -5,7 +5,7 @@
 - 대상 독자: 프로젝트 리드, Backend / 프론트엔드 개발자, AI agent, QA, UX 검토자.
 - 상태: accepted
 - 작성일: 2026-04-28
-- 최종 수정일: 2026-05-13 (메타 헤더 표준화, sprint `claude/work_260513-d`)
+- 최종 수정일: 2026-05-15 (외부 시스템 연동 도메인 요구사항 초안 추가, §5.6)
 - 관련 문서: [통합 개발 로드맵](./development_roadmap.md), [아키텍처](./architecture.md), [기술 스택](./tech_stack.md), [백엔드 API 계약](./backend_api_contract.md), [추적성 매트릭스](./traceability/report.md), [거버넌스 — 문서 표준](./governance/document-standards.md).
 
 ## 1. 개요
@@ -349,6 +349,54 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
 - 의뢰자(requester) 의 DevHub 직접 로그인 + 자기 의뢰 추적 UI.
 - 의뢰 첨부 / 댓글 / 멘션 / 알림 / SLA / 자동 escalation.
 - repository 단독 등록 (application 또는 project 만 선택).
+
+### 5.6 외부 시스템 연동 도메인 (Integration)
+
+본 절은 컨셉 문서([`docs/planning/external_system_integration_concept.md`](./planning/external_system_integration_concept.md), 2026-05-15)에 정의된 ALM/SCM/CI-CD/문서/홈랩 인프라 통합 운영 모델의 요구사항 초안이다.
+
+#### 5.6.1 기능 요구사항 (REQ-FR-INT)
+
+- **REQ-FR-INT-001 (MVP):** 시스템 관리자는 외부 연동 대상을 Provider 단위로 등록/수정/비활성화할 수 있어야 한다.
+    - 최소 속성: `provider_key`, `provider_type` (alm|scm|ci_cd|doc|infra), `display_name`, `enabled`, `auth_mode`, `scope`.
+- **REQ-FR-INT-002 (MVP):** DevHub 는 Provider Catalog 를 제공해야 하며, 각 provider 의 `capabilities` 를 조회할 수 있어야 한다.
+    - 예: `issues.read`, `repo.read`, `pr.read`, `build.read`, `doc.meta.read`, `infra.node.read`.
+- **REQ-FR-INT-003 (MVP):** 연동 데이터 수집은 `webhook ingest` 와 `scheduled pull` 을 모두 지원해야 한다.
+    - Provider 별로 ingest/pull 사용 여부를 설정할 수 있어야 한다.
+- **REQ-FR-INT-004 (MVP):** SCM provider (`bitbucket`, `gitea`, `forgejo` 등)는 공통 Repository/PR/Activity 모델로 정규화되어야 한다.
+    - Provider 특화 필드는 확장 payload 로 보존한다.
+- **REQ-FR-INT-005 (MVP):** CI/CD provider (`bamboo`, `jenkins`) 데이터는 공통 BuildRun 모델로 정규화되어야 한다.
+    - 최소 필드: `external_run_id`, `status`, `branch`, `commit_sha`, `started_at`, `finished_at`, `duration_seconds`.
+- **REQ-FR-INT-006 (MVP):** ALM/문서 연동은 최소 링크형 통합을 지원해야 한다.
+    - Jira: project/issue key 매핑, Confluence: space/page 링크 및 메타데이터 조회.
+- **REQ-FR-INT-007 (MVP):** Integration 은 Application 또는 Project scope 에 연결될 수 있어야 한다.
+    - scope 별 연결 정책(`application|project`)을 명시적으로 저장해야 한다.
+- **REQ-FR-INT-008 (MVP):** 홈랩 인프라 관리를 위해 Node/Service 인벤토리를 등록/조회할 수 있어야 한다.
+    - Node 최소 필드: `node_id`, `hostname`, `ip`, `environment`, `owner`.
+    - Service 최소 필드: `service_id`, `node_id`, `name`, `version`, `port`, `health_status`.
+- **REQ-FR-INT-009 (MVP):** 홈랩 상태 수집 결과를 토폴로지 형태(`nodes`, `edges`, `services`)로 조회할 수 있어야 한다.
+- **REQ-FR-INT-010 (MVP):** Provider 및 홈랩 수집 상태는 `sync_status` 로 관리되어야 한다.
+    - 최소 상태: `requested`, `verifying`, `active`, `degraded`, `disconnected`.
+- **REQ-FR-INT-011 (MVP):** 일반 사용자는 권한 범위 내에서 통합 운영 현황을 조회할 수 있어야 한다.
+    - `system_admin`은 전체, 일반 역할은 프로젝트/소유 범위 기반 조회.
+- **REQ-FR-INT-012 (후속):** DevHub 에서 외부 시스템으로의 양방향 상태 변경(write-back)은 별도 승인 정책(ADR) 후 도입한다.
+
+#### 5.6.2 비기능 / 운영 요구사항 (REQ-NFR-INT)
+
+- **REQ-NFR-INT-001 (MVP):** 외부 연동 인증정보는 평문 저장을 금지하고, 암호화 저장 또는 외부 Secret Store 참조를 사용해야 한다.
+- **REQ-NFR-INT-002 (MVP):** 모든 연동 생성/변경/비활성화/실패/복구 이벤트는 audit_logs 에 기록되어야 한다.
+- **REQ-NFR-INT-003 (MVP):** 수집 파이프라인은 idempotency key 기반 중복 방지를 지원해야 한다.
+- **REQ-NFR-INT-004 (MVP):** 특정 provider 장애가 전체 연동 파이프라인 중단으로 전파되지 않도록 provider 단위 격리를 보장해야 한다.
+- **REQ-NFR-INT-005 (MVP):** 연동 조회 API 는 페이지네이션과 필터(Provider, Scope, Status, Time Range)를 지원해야 한다.
+- **REQ-NFR-INT-006 (MVP):** 홈랩 상태 데이터는 최신 스냅샷과 변경 이력을 구분해 제공해야 한다.
+- **REQ-NFR-INT-007 (후속):** Provider 별 Rate Limit 초과 대응(백오프/재시도/서킷 브레이커)은 운영 정책으로 표준화한다.
+- **REQ-NFR-INT-008 (후속):** 대규모 연동 환경에서의 성능 목표(p95 응답시간, 수집 지연 SLA)는 운영 계측 후 확정한다.
+
+#### 5.6.3 범위 경계 (Out of Scope)
+
+- 외부 시스템 본문 데이터의 실시간 양방향 동기화(write-back 강제 적용).
+- 복잡한 승인 워크플로우(다단계 승인, 릴리즈 체인 오케스트레이션).
+- 멀티 테넌트 완전 분리 모델.
+- AI 기반 자동 최적화/자동 복구.
 
 ## 6. 기술 스택 결정 사항 (Technology Stack Decisions)
 

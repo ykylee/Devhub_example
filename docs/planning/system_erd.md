@@ -1,10 +1,10 @@
 # DevHub 시스템 ERD 카탈로그
 
 - 문서 목적: 코드베이스 전체 모듈의 데이터 모델을 ERD로 분리 관리한다.
-- 범위: 현행 DB 스키마(마이그레이션 000001~000011) + Project 확장 ERD 초안.
+- 범위: 현행 DB 스키마 + Project 확장 ERD + External Integration/HomeLab ERD 초안.
 - 대상 독자: Backend 설계/구현 담당, 데이터 모델 리뷰어, 추적성 리뷰어.
 - 상태: draft
-- 최종 수정일: 2026-05-13
+- 최종 수정일: 2026-05-15 (External Integration/HomeLab ERD 초안 추가)
 - 관련 문서: [Usecase 카탈로그](./system_usecases.md), [요구사항](../requirements.md), [API 계약](../backend_api_contract.md)
 
 ## 1. 기준
@@ -265,6 +265,79 @@ erDiagram
 > - `PROJECT_MEMBERS.PK = (project_id, user_id)` — 동일 사용자의 중복 멤버십 차단.
 > - `PROJECT_INTEGRATIONS` 는 단일 `id` PK + (`scope`, `project_id` 또는 `application_id`, `integration_type`, `external_key`) 조합에 unique 인덱스(설계 단계 확정).
 
+### 2.6 External Integration / HomeLab 확장 초안
+
+```mermaid
+erDiagram
+    INTEGRATION_PROVIDERS ||--o{ INTEGRATION_BINDINGS : binds
+    INTEGRATION_PROVIDERS ||--o{ INTEGRATION_EVENTS : ingests
+    INTEGRATION_PROVIDERS ||--o{ INFRA_NODES : observes
+    INFRA_NODES ||--o{ INFRA_SERVICES : hosts
+    APPLICATIONS ||--o{ INTEGRATION_BINDINGS : scoped
+    PROJECTS ||--o{ INTEGRATION_BINDINGS : scoped
+
+    INTEGRATION_PROVIDERS {
+      uuid provider_id PK
+      text provider_key UK
+      text provider_type
+      text display_name
+      boolean enabled
+      text auth_mode
+      jsonb capabilities
+      text sync_status
+      timestamptz last_sync_at
+      text last_error_code
+      timestamptz created_at
+      timestamptz updated_at
+    }
+    INTEGRATION_BINDINGS {
+      uuid binding_id PK
+      text scope_type
+      text scope_id
+      uuid provider_id FK
+      text external_key
+      text policy
+      timestamptz created_at
+      timestamptz updated_at
+    }
+    INTEGRATION_EVENTS {
+      bigint id PK
+      uuid provider_id FK
+      text event_key UK
+      text resource_type
+      text event_type
+      text status
+      jsonb payload
+      timestamptz occurred_at
+      timestamptz received_at
+      timestamptz processed_at
+    }
+    INFRA_NODES {
+      text node_id PK
+      uuid provider_id FK
+      text hostname
+      text ip_address
+      text environment
+      text status
+      jsonb metrics
+      timestamptz observed_at
+    }
+    INFRA_SERVICES {
+      text service_id PK
+      text node_id FK
+      text name
+      text version
+      int port
+      text health_status
+      jsonb metadata
+      timestamptz observed_at
+    }
+```
+
+> **스코프 FK 메모**:
+> - `INTEGRATION_BINDINGS.scope_type` 이 `application` 인 경우 `scope_id -> applications.id`, `project` 인 경우 `scope_id -> projects.id` 를 의미한다.
+> - 물리 FK는 polymorphic 제약으로 단일 컬럼에 직접 강제하기 어렵기 때문에 앱 레이어 + partial unique 인덱스로 보완한다.
+
 ## 3. 통합 ERD (현행 + Project 확장)
 
 ```mermaid
@@ -294,6 +367,12 @@ erDiagram
     REPOSITORIES ||--o{ PR_ACTIVITIES : emits
     REPOSITORIES ||--o{ BUILD_RUNS : runs
     REPOSITORIES ||--o{ QUALITY_SNAPSHOTS : measures
+    INTEGRATION_PROVIDERS ||--o{ INTEGRATION_BINDINGS : binds
+    INTEGRATION_PROVIDERS ||--o{ INTEGRATION_EVENTS : ingests
+    INTEGRATION_PROVIDERS ||--o{ INFRA_NODES : observes
+    INFRA_NODES ||--o{ INFRA_SERVICES : hosts
+    APPLICATIONS ||--o{ INTEGRATION_BINDINGS : scoped
+    PROJECTS ||--o{ INTEGRATION_BINDINGS : scoped
 ```
 
 ## 4. 설계/구현 반영 규칙
