@@ -24,6 +24,7 @@ test.describe("DREQ E2E", () => {
 
     // Reveal Phase - grab the token
     await expect(page.getByText(/token shown once/i)).toBeVisible();
+    await page.getByRole("button", { name: /show token/i }).click();
     const plainTokenCode = page.locator("code").first();
     const plainToken = await plainTokenCode.textContent();
     expect(plainToken).toBeTruthy();
