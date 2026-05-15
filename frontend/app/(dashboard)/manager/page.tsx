@@ -8,7 +8,8 @@ import {
   Target, 
   Users,
   Calendar,
-  FileText
+  FileText,
+  ArrowRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
@@ -20,6 +21,17 @@ import { infraService } from "@/lib/services/infra.service";
 import { realtimeService } from "@/lib/services/realtime.service";
 import { Metric, Risk } from "@/lib/services/types";
 import { MyPendingDevRequestsWidget } from "@/components/dev-request/MyPendingDevRequestsWidget";
+import { DashboardHeader } from "@/components/ui/DashboardHeader";
+import { 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer 
+} from "recharts";
+import { mockVelocityData } from "@/lib/mockData";
 
 type RiskCreatedEvent = Risk;
 type CommandStatusEvent = {
@@ -97,34 +109,26 @@ export default function ManagerDashboard() {
 
   return (
     <div className="space-y-10 pb-20">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <h1 className="text-4xl font-extrabold tracking-tight text-foreground dark:text-primary-foreground mb-2">
-            Project <span className="text-gradient">Intelligence</span>
-          </h1>
-          <p className="text-muted-foreground text-lg flex items-center gap-2">
+      <DashboardHeader 
+        titlePrefix="Project"
+        titleGradient="Intelligence"
+        subtitle={(
+          <>
             <Calendar className="w-4 h-4 text-primary" /> Milestone v1.0 • <span className="text-foreground dark:text-primary-foreground font-bold">Week 12</span> of 16
-          </p>
-        </motion.div>
-
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="flex items-center gap-3"
-        >
-          <div className="glass px-4 py-2 rounded-xl border border-border flex items-center gap-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-xs font-bold text-primary-foreground uppercase tracking-wider">On Track</span>
-          </div>
-          <button className="bg-primary text-primary-foreground px-6 py-2 rounded-xl text-sm font-bold hover:bg-primary/90 transition-all shadow-xl flex items-center gap-2">
-            <FileText className="w-4 h-4" /> Weekly Report
-          </button>
-        </motion.div>
-      </div>
+          </>
+        )}
+        actions={(
+          <>
+            <div className="glass px-4 py-2 rounded-xl border border-border flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              <span className="text-xs font-bold text-primary-foreground uppercase tracking-wider">On Track</span>
+            </div>
+            <button className="bg-primary text-primary-foreground px-6 py-2 rounded-xl text-sm font-bold hover:bg-primary/90 transition-all shadow-xl flex items-center gap-2">
+              <FileText className="w-4 h-4" /> Weekly Report
+            </button>
+          </>
+        )}
+      />
 
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -155,7 +159,7 @@ export default function ManagerDashboard() {
                   </span>
                 </div>
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{stat.label}</p>
-                <h3 className="text-3xl font-black text-foreground dark:text-primary-foreground mt-1">{stat.value}</h3>
+                <h3 className="text-2xl md:text-3xl font-black text-foreground dark:text-primary-foreground mt-1">{stat.value}</h3>
               </motion.div>
             ))}
           </div>
@@ -163,7 +167,7 @@ export default function ManagerDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Risk Management Section */}
             <div className="lg:col-span-2 space-y-6">
-              <section className="glass border-rose-500/20 rounded-3xl overflow-hidden relative">
+              <section className="glass border-rose-500/20 rounded-2xl overflow-hidden relative">
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-rose-500/50 to-transparent"></div>
                 <div className="p-8 border-b border-border/60 flex items-center justify-between bg-rose-500/5">
                   <h2 className="text-xl font-bold text-rose-500 flex items-center gap-3">
@@ -211,14 +215,80 @@ export default function ManagerDashboard() {
                 </div>
               </section>
 
-          {/* Activity Analytics Placeholder */}
-          <section className="glass-card p-8 h-80 flex flex-col items-center justify-center relative group overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 opacity-50 group-hover:opacity-100 transition-opacity" />
-            <BarChart3 className="w-16 h-16 text-primary/30 mb-6 group-hover:scale-110 transition-transform duration-500" />
-            <h3 className="text-lg font-bold text-foreground dark:text-primary-foreground mb-2">Resource Utilization Velocity</h3>
-            <p className="text-sm text-muted-foreground max-w-sm text-center">
-              Real-time velocity tracking and burndown analytics will be rendered here using the integrated gRPC telemetry stream.
-            </p>
+          {/* Activity Analytics - Real Chart */}
+          <section className="glass-card p-8 min-h-[350px] relative group overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 opacity-30" />
+            <div className="flex items-center justify-between mb-8 relative z-10">
+              <div>
+                <h3 className="text-lg font-bold text-foreground dark:text-primary-foreground">Resource Utilization Velocity</h3>
+                <p className="text-xs text-muted-foreground">Real-time velocity tracking and burndown analytics</p>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-primary" />
+                  <span className="text-[10px] font-black text-muted-foreground uppercase">Velocity</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-accent" />
+                  <span className="text-[10px] font-black text-muted-foreground uppercase">Load</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="h-64 w-full relative z-10">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={mockVelocityData}>
+                  <defs>
+                    <linearGradient id="colorVel" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="colorLoad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#ec4899" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#ec4899" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                  <XAxis 
+                    dataKey="name" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: 700 }}
+                    dy={10}
+                  />
+                  <YAxis 
+                    hide 
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'rgba(15, 15, 20, 0.9)', 
+                      borderRadius: '16px', 
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+                      backdropFilter: 'blur(10px)'
+                    }}
+                    itemStyle={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase' }}
+                    labelStyle={{ fontSize: '12px', fontWeight: 800, marginBottom: '4px', color: '#fff' }}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="velocity" 
+                    stroke="#8b5cf6" 
+                    strokeWidth={3}
+                    fillOpacity={1} 
+                    fill="url(#colorVel)" 
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="load" 
+                    stroke="#ec4899" 
+                    strokeWidth={3}
+                    fillOpacity={1} 
+                    fill="url(#colorLoad)" 
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
           </section>
         </div>
 
@@ -230,19 +300,26 @@ export default function ManagerDashboard() {
               <Users className="w-4 h-4 text-primary" /> Talent Load Balancing
             </h3>
             
-            <div className="space-y-8">
+            <div className="space-y-6">
               {[
                 { name: "YK Lee", load: 85, status: "Critical", color: "bg-rose-500" },
                 { name: "Alex K.", load: 45, status: "Optimal", color: "bg-emerald-500" },
                 { name: "Sam J.", load: 92, status: "Overloaded", color: "bg-rose-500" },
                 { name: "Jordan M.", load: 60, status: "Optimal", color: "bg-emerald-500" }
               ].map((member, i) => (
-                <div key={i} className="space-y-3">
+                <motion.div 
+                  key={i} 
+                  whileHover={{ x: 5 }}
+                  className="space-y-3 cursor-pointer group/member"
+                >
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-bold text-foreground dark:text-primary-foreground">{member.name}</span>
-                    <span className={cn("text-[10px] font-black uppercase tracking-tighter", member.load > 80 ? "text-rose-500" : "text-emerald-500")}>
-                      {member.load}% Load
-                    </span>
+                    <span className="text-sm font-bold text-foreground dark:text-primary-foreground group-hover/member:text-primary transition-colors">{member.name}</span>
+                    <div className="flex items-center gap-2">
+                      <span className={cn("text-[10px] font-black uppercase tracking-tighter", member.load > 80 ? "text-rose-500" : "text-emerald-500")}>
+                        {member.load}% Load
+                      </span>
+                      <ArrowRight className="w-3 h-3 text-primary opacity-0 group-hover/member:opacity-100 transition-all -translate-x-2 group-hover/member:translate-x-0" />
+                    </div>
                   </div>
                   <div className="h-1.5 w-full bg-muted/30 rounded-full overflow-hidden border border-border/60">
                     <motion.div 
@@ -251,11 +328,11 @@ export default function ManagerDashboard() {
                       className={cn("h-full rounded-full transition-all duration-1000", member.color)}
                     />
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
             
-            <button className="w-full py-3 rounded-2xl bg-primary/10 border border-primary/20 text-xs font-black uppercase tracking-widest text-primary hover:bg-primary/20 transition-all">
+            <button className="w-full py-3 rounded-xl bg-primary/10 border border-primary/20 text-xs font-black uppercase tracking-widest text-primary hover:bg-primary/20 transition-all">
               Optimize Resources
             </button>
           </section>

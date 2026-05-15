@@ -44,3 +44,13 @@ export const mockBuildLogs = [
   { id: "102", title: "Build #102 for feat/auth", time: "1m 45s", status: "Passed" },
   { id: "103", title: "Build #103 for fix/deadlock", time: "3m 10s", status: "Failed" },
 ];
+
+export const mockVelocityData = [
+  { name: "Mon", velocity: 45, load: 60 },
+  { name: "Tue", velocity: 52, load: 65 },
+  { name: "Wed", velocity: 48, load: 70 },
+  { name: "Thu", velocity: 61, load: 68 },
+  { name: "Fri", velocity: 55, load: 72 },
+  { name: "Sat", velocity: 42, load: 40 },
+  { name: "Sun", velocity: 38, load: 35 },
+];

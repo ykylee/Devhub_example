@@ -152,6 +152,7 @@ class AuthService {
       // re-clear when /auth/logout loads, but doing it here keeps any
       // intermediate state (back button, devtools) clean.
       tokenStore.clear();
+      useStore.getState().setIsLoggingOut(true);
       useStore.getState().clearActor();
       window.location.assign(url.toString());
       return;
@@ -160,6 +161,7 @@ class AuthService {
     // Fallback: no id_token to drive Hydra logout. Kill Kratos cookie via
     // navigation so at least one half of the SSO state is gone.
     tokenStore.clear();
+    useStore.getState().setIsLoggingOut(true);
     useStore.getState().clearActor();
     await performKratosBrowserLogout("/");
   }
@@ -202,6 +204,7 @@ class AuthService {
     await killKratosSession();
 
     tokenStore.clear();
+    useStore.getState().setIsLoggingOut(true);
     useStore.getState().clearActor();
     window.location.assign(redirectTo);
   }

@@ -31,6 +31,8 @@ interface AppState {
   toasts: Toast[];
   addToast: (message: string, type?: ToastType) => void;
   removeToast: (id: string) => void;
+  isLoggingOut: boolean;
+  setIsLoggingOut: (active: boolean) => void;
 }
 
 export const useStore = create<AppState>()(
@@ -62,9 +64,15 @@ export const useStore = create<AppState>()(
         removeToast: (id) => set((state) => ({ 
           toasts: state.toasts.filter((t) => t.id !== id) 
         })),
+        isLoggingOut: false,
+        setIsLoggingOut: (active) => set({ isLoggingOut: active }),
       }),
       {
         name: "devhub-storage",
+        partialize: (state) => {
+          const { isLoggingOut, toasts, ...rest } = state;
+          return rest;
+        },
       }
     )
   )
