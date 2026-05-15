@@ -19,6 +19,8 @@ const (
 	ResourceApplicationRepositories Resource = "application_repositories"
 	ResourceProjects                Resource = "projects"
 	ResourceSCMProviders            Resource = "scm_providers"
+	// ResourceDevRequests — sprint claude/work_260515-i (ADR-0012 / ARCH-DREQ-04).
+	ResourceDevRequests Resource = "dev_requests"
 )
 
 // Action is the RBAC action axis defined by docs/backend_api_contract.md section 12.0.3.
@@ -53,9 +55,11 @@ type RBACRole struct {
 	UpdatedAt   time.Time
 }
 
-// AllResources lists the 9 canonical resources in display order. Resources 6~9
+// AllResources lists the 10 canonical resources in display order. Resources 6~9
 // (applications / application_repositories / projects / scm_providers) were added
-// in sprint claude/work_260514-a (migration 000018, ADR-0011 §4.1).
+// in sprint claude/work_260514-a (migration 000018, ADR-0011 §4.1). Resource 10
+// (dev_requests) was added in sprint claude/work_260515-i (migration 000024,
+// ARCH-DREQ-04 / ADR-0012).
 func AllResources() []Resource {
 	return []Resource{
 		ResourceInfrastructure,
@@ -67,6 +71,7 @@ func AllResources() []Resource {
 		ResourceApplicationRepositories,
 		ResourceProjects,
 		ResourceSCMProviders,
+		ResourceDevRequests,
 	}
 }
 
@@ -159,6 +164,9 @@ func DefaultPermissionMatrix(roleID string) (PermissionMatrix, bool) {
 			ResourceApplicationRepositories: {},
 			ResourceProjects:                {},
 			ResourceSCMProviders:            {},
+			// dev_requests: route gate 는 view 만 통과. handler 가 row-level filter
+			// (`assignee_user_id == actor.login`) 로 추가 제한. ARCH-DREQ-04.
+			ResourceDevRequests: {View: true},
 		}, true
 	case string(AppRoleManager):
 		return PermissionMatrix{
@@ -171,6 +179,8 @@ func DefaultPermissionMatrix(roleID string) (PermissionMatrix, bool) {
 			ResourceApplicationRepositories: {},
 			ResourceProjects:                {},
 			ResourceSCMProviders:            {},
+			// dev_requests: developer 와 동일 — view 만, row-level filter 는 handler.
+			ResourceDevRequests: {View: true},
 		}, true
 	case string(AppRoleSystemAdmin):
 		return PermissionMatrix{
@@ -183,6 +193,7 @@ func DefaultPermissionMatrix(roleID string) (PermissionMatrix, bool) {
 			ResourceApplicationRepositories: {View: true, Create: true, Edit: true, Delete: true},
 			ResourceProjects:                {View: true, Create: true, Edit: true, Delete: true},
 			ResourceSCMProviders:            {View: true, Create: true, Edit: true, Delete: true},
+			ResourceDevRequests:             {View: true, Create: true, Edit: true, Delete: true},
 		}, true
 	case string(AppRolePMOManager):
 		// REQ-FR-PROJ-010 정책 매핑 (sprint claude/work_260515-d):
@@ -202,6 +213,10 @@ func DefaultPermissionMatrix(roleID string) (PermissionMatrix, bool) {
 			ResourceApplicationRepositories: {View: true},
 			ResourceProjects:                {View: true, Create: true, Edit: true, Delete: true},
 			ResourceSCMProviders:            {View: true},
+			// dev_requests: view + edit (promote/reject), 단 close/reassign 은 handler
+			// 가 추가로 system_admin 검증 (REQ-FR-DREQ-007/008 + ARCH-DREQ-04).
+			// create 는 외부 intake auth 경로라 RBAC 외 — false.
+			ResourceDevRequests: {View: true, Edit: true},
 		}, true
 	default:
 		return nil, false
