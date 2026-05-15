@@ -1,0 +1,94 @@
+name: Docker Image Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag override (optional). Defaults to git SHA."
+        required: false
+        type: string
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    name: Build and Push (backend-core, backend-ai, frontend)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve image tag
+        id: vars
+        env:
+          INPUT_TAG: ${{ github.event.inputs.image_tag }}
+        run: |
+          set -euo pipefail
+          if [ -n "${INPUT_TAG:-}" ]; then
+            tag="${INPUT_TAG}"
+          elif [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            tag="${GITHUB_REF_NAME}"
+          else
+            tag="${GITHUB_SHA}"
+          fi
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "registry=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push backend-core
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend-core
+          file: ./backend-core/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.vars.outputs.registry }}/backend-core:${{ steps.vars.outputs.tag }}
+
+      - name: Build and push backend-ai
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend-ai
+          file: ./backend-ai/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.vars.outputs.registry }}/backend-ai:${{ steps.vars.outputs.tag }}
+
+      - name: Build and push frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          build-args: |
+            BACKEND_API_URL=http://backend-core:8080
+            NEXT_PUBLIC_OIDC_AUTH_URL=http://localhost:4444/oauth2/auth
+            NEXT_PUBLIC_OIDC_REDIRECT_URI=http://localhost:3000/auth/callback
+          tags: |
+            ${{ steps.vars.outputs.registry }}/frontend:${{ steps.vars.outputs.tag }}
+
+      - name: Summary
+        run: |
+          {
+            echo "## Docker image publish"
+            echo ""
+            echo "- Registry prefix: \`${{ steps.vars.outputs.registry }}\`"
+            echo "- Tag: \`${{ steps.vars.outputs.tag }}\`"
+            echo "- Images:"
+            echo "  - \`${{ steps.vars.outputs.registry }}/backend-core:${{ steps.vars.outputs.tag }}\`"
+            echo "  - \`${{ steps.vars.outputs.registry }}/backend-ai:${{ steps.vars.outputs.tag }}\`"
+            echo "  - \`${{ steps.vars.outputs.registry }}/frontend:${{ steps.vars.outputs.tag }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"

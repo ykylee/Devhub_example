@@ -19,15 +19,18 @@
 #
 # 환경변수:
 #   HYDRA_ADMIN_URL  Hydra admin endpoint (기본 http://localhost:4445)
+#   DEVHUB_OIDC_CLIENT_ID  등록할 client id (기본 devhub-frontend)
+#   DEVHUB_OIDC_REDIRECT_URI  redirect uri (기본 http://localhost:3000/auth/callback)
+#   DEVHUB_OIDC_POST_LOGOUT_URI  post logout redirect uri (기본 http://localhost:3000/)
 #
 # 운영 진입 시 redirect / post-logout URI 와 secret rotation 정책 재검토.
 
 set -euo pipefail
 
 ADMIN_URL="${HYDRA_ADMIN_URL:-http://localhost:4445}"
-CLIENT_ID="devhub-frontend"
-REDIRECT_URI="http://localhost:3000/auth/callback"
-POST_LOGOUT_URI="http://localhost:3000/"
+CLIENT_ID="${DEVHUB_OIDC_CLIENT_ID:-devhub-frontend}"
+REDIRECT_URI="${DEVHUB_OIDC_REDIRECT_URI:-http://localhost:3000/auth/callback}"
+POST_LOGOUT_URI="${DEVHUB_OIDC_POST_LOGOUT_URI:-http://localhost:3000/}"
 
 BODY=$(cat <<EOF
 {

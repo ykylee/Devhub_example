@@ -25,14 +25,15 @@ export function IssueIntakeTokenModal({ onClose, onIssued }: IssueIntakeTokenMod
   const [error, setError] = useState<string | null>(null);
   const [issued, setIssued] = useState<IssuedDevRequestIntakeToken | null>(null);
   const [copied, setCopied] = useState(false);
+  const canCloseForm = phase === "form" && !submitting;
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && phase === "form") onClose();
+      if (e.key === "Escape" && canCloseForm) onClose();
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [onClose, phase]);
+  }, [canCloseForm, onClose]);
 
   const updateIP = (idx: number, value: string) => {
     setAllowedIPs((prev) => prev.map((v, i) => (i === idx ? value : v)));
@@ -85,7 +86,7 @@ export function IssueIntakeTokenModal({ onClose, onIssued }: IssueIntakeTokenMod
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        onClick={phase === "form" ? onClose : undefined}
+        onClick={canCloseForm ? onClose : undefined}
         className="absolute inset-0 bg-background/80 backdrop-blur-sm"
       />
 
@@ -113,7 +114,11 @@ export function IssueIntakeTokenModal({ onClose, onIssued }: IssueIntakeTokenMod
             </div>
           </div>
           {phase === "form" && (
-            <button onClick={onClose} className="p-2 hover:bg-muted/30 rounded-xl text-muted-foreground transition-colors">
+            <button
+              onClick={onClose}
+              disabled={submitting}
+              className="p-2 hover:bg-muted/30 rounded-xl text-muted-foreground transition-colors disabled:opacity-50"
+            >
               <X className="w-5 h-5" />
             </button>
           )}
@@ -193,6 +198,7 @@ export function IssueIntakeTokenModal({ onClose, onIssued }: IssueIntakeTokenMod
               <button
                 type="button"
                 onClick={onClose}
+                disabled={submitting}
                 className="flex-1 glass border-border text-foreground dark:text-primary-foreground font-bold py-4 rounded-2xl hover:bg-muted/30 transition-all uppercase tracking-widest text-[10px]"
               >
                 Cancel

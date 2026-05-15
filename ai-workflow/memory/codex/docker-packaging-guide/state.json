@@ -1,0 +1,67 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-05-15",
+  "source_of_truth": {
+    "project_profile_path": "ai-workflow/memory/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/codex/docker-packaging-guide/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/codex/docker-packaging-guide/work_backlog.md",
+    "latest_backlog_path": "ai-workflow/memory/codex/docker-packaging-guide/backlog/2026-05-15.md",
+    "repository_assessment_path": "ai-workflow/memory/repository_assessment.md"
+  },
+  "project": {
+    "project_name": "DevHub Example",
+    "document_home": "README.md",
+    "operations_path": null,
+    "backlog_path": "ai-workflow/memory/codex/docker-packaging-guide/backlog/",
+    "handoff_path": "ai-workflow/memory/codex/docker-packaging-guide/session_handoff.md",
+    "environment_path": "ai-workflow/memory/environments/"
+  },
+  "commands": {
+    "quick_tests": "cd frontend && PLAYWRIGHT_BASE_URL=http://100.90.113.29:23080 KRATOS_ADMIN_URL=http://100.90.113.29:24334 npm run e2e -- tests/e2e/auth.spec.ts",
+    "isolated_tests": "cd frontend && PLAYWRIGHT_BASE_URL=http://100.90.113.29:23080 KRATOS_ADMIN_URL=http://100.90.113.29:24334 npm run e2e -- tests/e2e/admin-permissions.spec.ts",
+    "runtime_checks": "docker compose -f docker-compose.deploy.yml --profile local-db up -d"
+  },
+  "session": {
+    "current_baseline": "docker deploy 패키지(local-db profile)에서 auth E2E 6/6 통과, permissions spec 2건 수정 후 전체 E2E 43/43 통과.",
+    "current_axis": "public/internal/db 환경변수 스키마 정착 + 외부 DB 대응 + E2E 안정화",
+    "current_focus": "docker-compose.deploy.yml 프로파일 분리(local-db)와 DSN 치환 안정화, 실패 E2E 2건 수정",
+    "in_progress_items": [],
+    "blocked_items": [],
+    "recent_done_items": [
+      "TASK-ENV-SCHEMA-PUBLIC-INTERNAL-DB",
+      "TASK-DEPLOY-COMPOSE-LOCALDB-PROFILE",
+      "TASK-E2E-PERMISSIONS-FLAKY-FIX"
+    ]
+  },
+  "backlog": {
+    "latest_backlog_path": "ai-workflow/memory/codex/docker-packaging-guide/backlog/2026-05-15.md",
+    "task_count": 6,
+    "in_progress_items": [],
+    "blocked_items": [],
+    "done_items": [
+      "TASK-DOCKER-PACKAGING-STRATEGY",
+      "TASK-DOCKER-DEPLOY-COMPOSE-TEMPLATE",
+      "TASK-CI-DOCKER-IMAGE-PUBLISH",
+      "TASK-ENV-SCHEMA-PUBLIC-INTERNAL-DB",
+      "TASK-DEPLOY-COMPOSE-LOCALDB-PROFILE",
+      "TASK-E2E-PERMISSIONS-FLAKY-FIX"
+    ]
+  },
+  "next_documents": [
+    "ai-workflow/MEMORY_GOVERNANCE.md",
+    "ai-workflow/memory/codex/docker-packaging-guide/session_handoff.md",
+    "ai-workflow/memory/codex/docker-packaging-guide/work_backlog.md",
+    "ai-workflow/memory/codex/docker-packaging-guide/backlog/2026-05-15.md",
+    "docs/setup/docker-packaging-deployment-guide.md"
+  ],
+  "repository_assessment": {
+    "path": "ai-workflow/memory/repository_assessment.md",
+    "present": true
+  },
+  "branch_memory": {
+    "agent": "codex",
+    "branch": "codex/docker-packaging-guide",
+    "path": "ai-workflow/memory/codex/docker-packaging-guide/",
+    "flat_memory_policy": "legacy_fallback_and_shared_index_only"
+  }
+}

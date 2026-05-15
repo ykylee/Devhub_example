@@ -26,7 +26,7 @@ export interface SignUpResponse {
   };
 }
 
-import { OIDC_AUTH_URL, HYDRA_PUBLIC_BASE, OIDC_REDIRECT_URI as OIDC_REDIRECT_URI_DEFAULT } from "../config/endpoints";
+import { OIDC_AUTH_URL, OIDC_REDIRECT_URI as OIDC_REDIRECT_URI_DEFAULT } from "../config/endpoints";
 
 const OIDC_CLIENT_ID = process.env.NEXT_PUBLIC_OIDC_CLIENT_ID ?? "devhub-frontend";
 const OIDC_REDIRECT_URI = typeof window !== "undefined"
@@ -42,8 +42,14 @@ export interface TokenResponse {
   token_type: string;
 }
 
+interface RuntimeConfigResponse {
+  oidc_auth_url?: string;
+  oidc_redirect_uri?: string;
+}
+
 class AuthService {
   private static instance: AuthService;
+  private runtimeConfig?: { oidcAuthURL: string; oidcRedirectURI: string };
 
   private constructor() {}
 
@@ -59,11 +65,12 @@ class AuthService {
    */
   public async getAuthorizeURL(): Promise<string> {
     const { state, codeChallenge, codeChallengeMethod } = await createPkceState();
+    const runtimeConfig = await this.getRuntimeOIDCConfig();
 
-    const url = new URL(OIDC_AUTH_URL);
+    const url = new URL(runtimeConfig.oidcAuthURL);
     url.searchParams.set("client_id", OIDC_CLIENT_ID);
     url.searchParams.set("response_type", "code");
-    url.searchParams.set("redirect_uri", OIDC_REDIRECT_URI);
+    url.searchParams.set("redirect_uri", runtimeConfig.oidcRedirectURI);
     url.searchParams.set("scope", OIDC_SCOPE);
     url.searchParams.set("state", state);
     url.searchParams.set("code_challenge", codeChallenge);
@@ -77,13 +84,14 @@ class AuthService {
    */
   public async exchangeCode(code: string, state: string): Promise<TokenResponse> {
     const verifier = consumeVerifier(state);
+    const runtimeConfig = await this.getRuntimeOIDCConfig();
     const response = await fetch("/api/v1/auth/token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
       code,
       code_verifier: verifier,
-      redirect_uri: OIDC_REDIRECT_URI,
+      redirect_uri: runtimeConfig.oidcRedirectURI,
       client_id: OIDC_CLIENT_ID,
       }),
     });
@@ -135,7 +143,9 @@ class AuthService {
     }
 
     if (idToken) {
-      const url = new URL(`${HYDRA_PUBLIC_BASE}/oauth2/sessions/logout`);
+      const runtimeConfig = await this.getRuntimeOIDCConfig();
+      const hydraPublicBase = runtimeConfig.oidcAuthURL.replace(/\/oauth2\/auth\/?$/, "");
+      const url = new URL(`${hydraPublicBase}/oauth2/sessions/logout`);
       url.searchParams.set("id_token_hint", idToken);
       url.searchParams.set("post_logout_redirect_uri", `${window.location.origin}/`);
       // Clear local state before navigating; completeRPInitiatedLogout will
@@ -213,6 +223,36 @@ class AuthService {
 
   public getAccessToken(): string | null {
     return tokenStore.getAccessToken();
+  }
+
+  private async getRuntimeOIDCConfig(): Promise<{ oidcAuthURL: string; oidcRedirectURI: string }> {
+    if (this.runtimeConfig) {
+      return this.runtimeConfig;
+    }
+
+    const fallback = {
+      oidcAuthURL: OIDC_AUTH_URL,
+      oidcRedirectURI: OIDC_REDIRECT_URI,
+    };
+
+    try {
+      const response = await fetch("/api/runtime-config", {
+        method: "GET",
+        cache: "no-store",
+      });
+      if (!response.ok) {
+        return fallback;
+      }
+
+      const body = (await response.json()) as RuntimeConfigResponse;
+      const oidcAuthURL = body.oidc_auth_url?.trim() || fallback.oidcAuthURL;
+      const oidcRedirectURI = body.oidc_redirect_uri?.trim() || fallback.oidcRedirectURI;
+      this.runtimeConfig = { oidcAuthURL, oidcRedirectURI };
+      return this.runtimeConfig;
+    } catch (error) {
+      console.warn("[AuthService] runtime OIDC config fetch failed, using fallback", error);
+      return fallback;
+    }
   }
 
   /**

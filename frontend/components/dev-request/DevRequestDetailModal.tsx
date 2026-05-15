@@ -39,7 +39,8 @@ export function DevRequestDetailModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
-  const canRegister = request.status === "pending" || request.status === "in_review";
+  const canEdit = isSystemAdmin;
+  const canRegister = canEdit && (request.status === "pending" || request.status === "in_review");
   const canReject = canRegister; // 동일 상태에서 가능
   const canReassign = isSystemAdmin;
 
