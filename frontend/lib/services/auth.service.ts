@@ -26,12 +26,12 @@ export interface SignUpResponse {
   };
 }
 
-const OIDC_AUTH_URL = process.env.NEXT_PUBLIC_OIDC_AUTH_URL ?? "http://localhost:4444/oauth2/auth";
-const HYDRA_PUBLIC_BASE = OIDC_AUTH_URL.replace(/\/oauth2\/auth\/?$/, "");
+import { OIDC_AUTH_URL, HYDRA_PUBLIC_BASE, OIDC_REDIRECT_URI as OIDC_REDIRECT_URI_DEFAULT } from "../config/endpoints";
+
 const OIDC_CLIENT_ID = process.env.NEXT_PUBLIC_OIDC_CLIENT_ID ?? "devhub-frontend";
-const OIDC_REDIRECT_URI = typeof window !== "undefined" 
+const OIDC_REDIRECT_URI = typeof window !== "undefined"
   ? `${window.location.origin}/auth/callback`
-  : (process.env.NEXT_PUBLIC_OIDC_REDIRECT_URI ?? "http://localhost:3000/auth/callback");
+  : OIDC_REDIRECT_URI_DEFAULT;
 const OIDC_SCOPE = process.env.NEXT_PUBLIC_OIDC_SCOPE ?? "openid offline_access email profile";
 
 export interface TokenResponse {

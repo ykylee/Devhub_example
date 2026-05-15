@@ -14,16 +14,13 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
   const { role, actor, setRole, notifications, clearNotifications } = useStore();
   const [showDropdown, setShowDropdown] = useState(false);
   const [isConnected, setIsConnected] = useState(realtimeService.isConnected);
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  // 초기 theme 은 paint 전에 layout 의 inline script 가 html 에 적용하므로
+  // 여기서는 그 결과(`theme-dark` class 유무)를 읽어 state 와 일치시킨다.
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    if (typeof document === "undefined") return "light";
+    return document.documentElement.classList.contains("theme-dark") ? "dark" : "light";
+  });
   const router = useRouter();
-
-  useEffect(() => {
-    const savedTheme = localStorage.getItem("devhub-theme") as "light" | "dark";
-    if (savedTheme) {
-      setTheme(savedTheme);
-      if (savedTheme === "dark") document.documentElement.classList.add("theme-dark");
-    }
-  }, []);
 
   const toggleTheme = () => {
     const newTheme = theme === "light" ? "dark" : "light";

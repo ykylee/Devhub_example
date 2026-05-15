@@ -1,13 +1,14 @@
 import type { NextConfig } from "next";
 
+import { BACKEND_API_URL_SERVER } from "./lib/config/endpoints";
+
 const nextConfig: NextConfig = {
   output: "standalone",
   async rewrites() {
-    const BACKEND_URL = process.env.BACKEND_API_URL || "http://backend-core:8080";
     return [
       {
         source: "/api/:path*",
-        destination: `${BACKEND_URL}/api/:path*`,
+        destination: `${BACKEND_API_URL_SERVER}/api/:path*`,
       },
     ];
   },

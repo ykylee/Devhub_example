@@ -1,6 +1,6 @@
 "use client";
 
-const KRATOS_BASE = (process.env.NEXT_PUBLIC_KRATOS_PUBLIC_URL ?? "http://localhost:4433").replace(/\/$/, "");
+import { KRATOS_PUBLIC_URL as KRATOS_BASE } from "../config/endpoints";
 
 // performKratosBrowserLogout drives the Kratos public /self-service/logout/browser
 // flow that destroys the Kratos session cookie. It is the frontend half of
