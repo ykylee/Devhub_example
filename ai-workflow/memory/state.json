@@ -179,7 +179,9 @@
     {"pr": 128, "sprint": "claude/work_260515-m", "title": "feat(domain,store,httpapi,docs): DREQ-Promote-Tx 단일 트랜잭션 + ADR-0013 RBAC row-scoping", "merge_commit": "1f9ec50"},
     {"pr": 129, "sprint": "claude/work_260515-n", "title": "fix(backend,docs,memory): codex review hotfix #4 — PR #128 의 P1 + P2 + self-review P2 #1", "merge_commit": "5546a41"},
     {"pr": 130, "sprint": "claude/work_260515-o", "title": "feat(domain,store,httpapi,migrations,docs): DREQ-Admin-UI backend — intake token admin (API-66..68) + ADR-0014", "merge_commit": "0bdf299"},
-    {"pr": 131, "sprint": "claude/work_260515-p", "title": "feat(frontend,dev-request): DREQ-Admin-UI frontend — /admin/settings/dev-request-tokens 페이지 + plain-1회-노출 modal", "merge_commit": "2147d6d"}
+    {"pr": 131, "sprint": "claude/work_260515-p", "title": "feat(frontend,dev-request): DREQ-Admin-UI frontend — /admin/settings/dev-request-tokens 페이지 + plain-1회-노출 modal", "merge_commit": "2147d6d"},
+    {"pr": 132, "sprint": "claude/work_260515-q", "title": "docs(memory): 2026-05-15 post-EOD housekeeping (sprint claude/work_260515-q)", "merge_commit": "253063e"},
+    {"pr": 133, "sprint": "codex/docker-packaging-guide", "title": "Docker deploy 패키지 안정화 + E2E 43/43 정합화", "merge_commit": "4892a78"}
   ],
   "dreq_domain_carve_out_progress": {
     "1_4_rbac_adr_promote_tx": "✅ sprint m PR #128 (ADR-0013 사후 명문화 + Promote-Tx 단일 트랜잭션) + codex hotfix #4 sprint n PR #129",
