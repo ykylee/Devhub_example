@@ -326,6 +326,28 @@ func TestEnforceRowOwnership_EmptyOwnerDisablesSelfRule(t *testing.T) {
 	}
 }
 
+func TestEnforceRowOwnership_DevFallbackBypasses(t *testing.T) {
+	// AuthDevFallback=true 환경에서는 actor 가 컨텍스트에 없어도 통과해야 한다.
+	// enforceRoutePermission 과 동일한 정책 (sprint claude/work_260515-d 도입).
+	gin.SetMode(gin.TestMode)
+	audits := &memoryAuditStore{}
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	c.Request = httptest.NewRequest(http.MethodPatch, "/api/v1/applications/app-1", nil)
+	c.Set("devhub_auth_dev_fallback", true)
+	h := Handler{cfg: RouterConfig{AuditStore: audits}}
+
+	if got := h.enforceRowOwnership(c, "alice", "pmo_manager"); !got {
+		t.Fatal("dev fallback should bypass and return true")
+	}
+	if c.IsAborted() {
+		t.Error("dev fallback should not abort")
+	}
+	if len(audits.logs) != 0 {
+		t.Errorf("dev fallback should not emit audit, got %+v", audits.logs)
+	}
+}
+
 func TestEnforceRowOwnership_NoActorContextDenied(t *testing.T) {
 	// actor 키가 컨텍스트에 없으면 (auth middleware 누락) deny 가 안전한 기본 동작.
 	gin.SetMode(gin.TestMode)

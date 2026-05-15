@@ -10,7 +10,7 @@ import {
   Shield, 
   Globe 
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { Application, ApplicationStatus, ApplicationVisibility } from "@/lib/services/project.types";
 import { Badge } from "@/components/ui/Badge";
@@ -98,10 +98,10 @@ export function ApplicationTable({
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-1.5">
                         <Clock className="w-3 h-3 opacity-40" />
-                        <span>{app.start_date ? format(new Date(app.start_date), "MMM d, yyyy") : "TBD"}</span>
+                        <span>{app.start_date ? format(parseISO(app.start_date), "MMM d, yyyy") : "TBD"}</span>
                       </div>
                       <div className="flex items-center gap-1.5 ml-4 opacity-50">
-                        <span>→ {app.due_date ? format(new Date(app.due_date), "MMM d, yyyy") : "TBD"}</span>
+                        <span>→ {app.due_date ? format(parseISO(app.due_date), "MMM d, yyyy") : "TBD"}</span>
                       </div>
                     </div>
                   </td>

@@ -75,12 +75,14 @@ func AllActions() []Action {
 	return []Action{ActionView, ActionCreate, ActionEdit, ActionDelete}
 }
 
-// SystemRoleIDs returns the immutable set of role ids that the seed migration installs.
+// SystemRoleIDs returns the immutable set of role ids that the seed migrations install.
+// pmo_manager 는 migration 000021 (sprint claude/work_260515-d) 에서 도입.
 func SystemRoleIDs() []string {
 	return []string{
 		string(AppRoleDeveloper),
 		string(AppRoleManager),
 		string(AppRoleSystemAdmin),
+		string(AppRolePMOManager),
 	}
 }
 
@@ -182,6 +184,25 @@ func DefaultPermissionMatrix(roleID string) (PermissionMatrix, bool) {
 			ResourceProjects:                {View: true, Create: true, Edit: true, Delete: true},
 			ResourceSCMProviders:            {View: true, Create: true, Edit: true, Delete: true},
 		}, true
+	case string(AppRolePMOManager):
+		// REQ-FR-PROJ-010 정책 매핑 (sprint claude/work_260515-d):
+		//   - applications: 수정만 (View+Edit). create/delete 는 system_admin 만.
+		//   - application_repositories: view only (link/unlink 초기 비허용).
+		//   - projects: 전체 CRUD (project.manage + project.member.manage 위양).
+		//   - scm_providers: view only.
+		//   - infrastructure / pipelines / organization / security / audit: view only.
+		// row-level owner-self 위양은 enforceRowOwnership helper 가 별도 검증한다 (ADR-0011 §4.2).
+		return PermissionMatrix{
+			ResourceInfrastructure:          {View: true},
+			ResourcePipelines:               {View: true},
+			ResourceOrganization:            {View: true},
+			ResourceSecurity:                {View: true},
+			ResourceAudit:                   {View: true},
+			ResourceApplications:            {View: true, Edit: true},
+			ResourceApplicationRepositories: {View: true},
+			ResourceProjects:                {View: true, Create: true, Edit: true, Delete: true},
+			ResourceSCMProviders:            {View: true},
+		}, true
 	default:
 		return nil, false
 	}
@@ -213,6 +234,8 @@ func systemRoleName(id string) string {
 		return "Manager"
 	case string(AppRoleSystemAdmin):
 		return "System Admin"
+	case string(AppRolePMOManager):
+		return "PMO Manager"
 	default:
 		return id
 	}
@@ -226,6 +249,8 @@ func systemRoleDescription(id string) string {
 		return "팀 운영, risk triage, 승인 전 command 생성 권한"
 	case string(AppRoleSystemAdmin):
 		return "시스템 설정, 조직/사용자 관리, 운영 command 관리 권한"
+	case string(AppRolePMOManager):
+		return "Application 수정 + Project 운영/멤버 관리 위양. 시스템/계정/RBAC 변경 금지."
 	default:
 		return ""
 	}

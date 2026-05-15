@@ -77,10 +77,11 @@ func TestEnforceAuditInvariant_FillsMissingResources(t *testing.T) {
 	}
 }
 
-func TestSystemRoles_ReturnsThreeWithMatchingDefaults(t *testing.T) {
+func TestSystemRoles_ReturnsFourWithMatchingDefaults(t *testing.T) {
 	roles := SystemRoles()
-	if len(roles) != 3 {
-		t.Fatalf("SystemRoles() len = %d, want 3", len(roles))
+	// developer, manager, system_admin, pmo_manager (sprint claude/work_260515-d, ADR-0011 §4.2).
+	if len(roles) != 4 {
+		t.Fatalf("SystemRoles() len = %d, want 4", len(roles))
 	}
 	for _, role := range roles {
 		if !role.System {

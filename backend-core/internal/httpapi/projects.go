@@ -246,6 +246,11 @@ func (h *Handler) updateProject(c *gin.Context) {
 		return
 	}
 
+	// ADR-0011 §4.2 row-level 위양 (Application 과 동일 패턴).
+	if !h.enforceRowOwnership(c, current.OwnerUserID, string(domain.AppRolePMOManager)) {
+		return
+	}
+
 	updated := current
 	if req.Name != nil {
 		if strings.TrimSpace(*req.Name) == "" {
@@ -365,6 +370,21 @@ func (h *Handler) archiveProject(c *gin.Context) {
 	id := c.Param("project_id")
 	var req archiveProjectRequest
 	_ = c.ShouldBindJSON(&req)
+
+	// ADR-0011 §4.2 row-level 위양: archive 도 owner-self / pmo_manager 가 가능.
+	current, err := storeI.GetProject(c.Request.Context(), id)
+	if errors.Is(err, store.ErrNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "project not found"})
+		return
+	}
+	if err != nil {
+		writeServerError(c, err, "projects.archive.lookup")
+		return
+	}
+	if !h.enforceRowOwnership(c, current.OwnerUserID, string(domain.AppRolePMOManager)) {
+		return
+	}
+
 	archived, err := storeI.ArchiveProject(c.Request.Context(), id, req.ArchivedReason)
 	if errors.Is(err, store.ErrNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "project not found"})

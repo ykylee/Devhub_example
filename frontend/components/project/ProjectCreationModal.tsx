@@ -40,7 +40,10 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
     try {
       let result: Project;
       if (isEdit && initialData.id) {
-        result = await projectService.updateProject(initialData.id, formData);
+        // PATCH 시 `key` 는 백엔드(updateProject)에서 project_key_immutable 로 reject 되므로
+        // payload 에서 제외한다. (codex PR #114 review P1, Application 과 동일 정합)
+        const { key: _omitKey, ...patchPayload } = formData;
+        result = await projectService.updateProject(initialData.id, patchPayload);
       } else {
         // We need repository_id to create a project.
         if (!formData.repository_id) {
