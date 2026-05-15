@@ -17,16 +17,28 @@ import (
 // --- memoryDevRequestStore — in-memory test store (DREQ-Backend, sprint claude/work_260515-i) ---
 
 type memoryDevRequestStore struct {
-	mu         sync.Mutex
-	rows       map[string]domain.DevRequest
-	nextID     int
-	knownUsers map[string]bool
+	mu               sync.Mutex
+	rows             map[string]domain.DevRequest
+	nextID           int
+	nextAppID        int
+	nextProjectID    int
+	knownUsers       map[string]bool
+	knownRepoIDs     map[int64]bool
+	knownDevUnits    map[string]bool
+	createdApps      []domain.Application
+	createdProjects  []domain.Project
+	createdRepoLinks []domain.ApplicationRepository
+	// failPromote, when non-empty, makes promote methods return that error
+	// (used to assert tx rollback semantics from the handler's perspective).
+	failPromote error
 }
 
 func newMemoryDevRequestStore() *memoryDevRequestStore {
 	return &memoryDevRequestStore{
-		rows:       map[string]domain.DevRequest{},
-		knownUsers: map[string]bool{"alice": true, "bob": true, "charlie": true},
+		rows:          map[string]domain.DevRequest{},
+		knownUsers:    map[string]bool{"alice": true, "bob": true, "charlie": true},
+		knownRepoIDs:  map[int64]bool{1: true, 2: true},
+		knownDevUnits: map[string]bool{"unit-dev": true},
 	}
 }
 
@@ -170,6 +182,87 @@ func (s *memoryDevRequestStore) MarkDevRequestRegistered(_ context.Context, id s
 	dr.UpdatedAt = time.Now().UTC()
 	s.rows[id] = dr
 	return dr, nil
+}
+
+func (s *memoryDevRequestStore) RegisterDevRequestWithNewApplication(_ context.Context, drID string, app domain.Application, primaryRepo *domain.ApplicationRepository) (domain.DevRequest, domain.Application, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.failPromote != nil {
+		return domain.DevRequest{}, domain.Application{}, s.failPromote
+	}
+	dr, ok := s.rows[drID]
+	if !ok {
+		return domain.DevRequest{}, domain.Application{}, store.ErrNotFound
+	}
+	// FK-style validation (mirrors Postgres FK checks so tests catch handler/store contract drift).
+	if app.OwnerUserID != "" && !s.knownUsers[app.OwnerUserID] {
+		return domain.DevRequest{}, domain.Application{}, store.ErrConflict
+	}
+	if app.LeaderUserID != "" && !s.knownUsers[app.LeaderUserID] {
+		return domain.DevRequest{}, domain.Application{}, store.ErrConflict
+	}
+	if app.DevelopmentUnitID != "" && !s.knownDevUnits[app.DevelopmentUnitID] {
+		return domain.DevRequest{}, domain.Application{}, store.ErrConflict
+	}
+	// UNIQUE (key) emulation.
+	for _, existing := range s.createdApps {
+		if existing.Key == app.Key {
+			return domain.DevRequest{}, domain.Application{}, store.ErrConflict
+		}
+	}
+	s.nextAppID++
+	app.ID = "app-" + itoa(s.nextAppID)
+	now := time.Now().UTC()
+	app.CreatedAt = now
+	app.UpdatedAt = now
+	s.createdApps = append(s.createdApps, app)
+	if primaryRepo != nil {
+		primaryRepo.ApplicationID = app.ID
+		primaryRepo.LinkedAt = now
+		s.createdRepoLinks = append(s.createdRepoLinks, *primaryRepo)
+	}
+	dr.Status = domain.DevRequestStatusRegistered
+	dr.RegisteredTargetType = domain.DevRequestTargetApplication
+	dr.RegisteredTargetID = app.ID
+	dr.UpdatedAt = now
+	s.rows[drID] = dr
+	return dr, app, nil
+}
+
+func (s *memoryDevRequestStore) RegisterDevRequestWithNewProject(_ context.Context, drID string, project domain.Project) (domain.DevRequest, domain.Project, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.failPromote != nil {
+		return domain.DevRequest{}, domain.Project{}, s.failPromote
+	}
+	dr, ok := s.rows[drID]
+	if !ok {
+		return domain.DevRequest{}, domain.Project{}, store.ErrNotFound
+	}
+	if project.RepositoryID == 0 || !s.knownRepoIDs[project.RepositoryID] {
+		return domain.DevRequest{}, domain.Project{}, store.ErrConflict
+	}
+	if project.OwnerUserID != "" && !s.knownUsers[project.OwnerUserID] {
+		return domain.DevRequest{}, domain.Project{}, store.ErrConflict
+	}
+	// UNIQUE (repository_id, key) emulation.
+	for _, existing := range s.createdProjects {
+		if existing.RepositoryID == project.RepositoryID && existing.Key == project.Key {
+			return domain.DevRequest{}, domain.Project{}, store.ErrConflict
+		}
+	}
+	s.nextProjectID++
+	project.ID = "project-" + itoa(s.nextProjectID)
+	now := time.Now().UTC()
+	project.CreatedAt = now
+	project.UpdatedAt = now
+	s.createdProjects = append(s.createdProjects, project)
+	dr.Status = domain.DevRequestStatusRegistered
+	dr.RegisteredTargetType = domain.DevRequestTargetProject
+	dr.RegisteredTargetID = project.ID
+	dr.UpdatedAt = now
+	s.rows[drID] = dr
+	return dr, project, nil
 }
 
 func (s *memoryDevRequestStore) seed(dr domain.DevRequest) domain.DevRequest {
@@ -458,6 +551,219 @@ func TestIntakeAuth_RevokedTokenDenies(t *testing.T) {
 	}
 	if !bytes.Contains(rec.Body.Bytes(), []byte(`"code":"auth_intake_token_revoked"`)) {
 		t.Errorf("expected auth_intake_token_revoked: %s", rec.Body.String())
+	}
+}
+
+// --- DREQ-Promote-Tx (sprint claude/work_260515-m) handler tests ---
+
+func TestRegisterDevRequest_NewApplicationHappy(t *testing.T) {
+	s := newMemoryDevRequestStore()
+	pending := s.seed(domain.DevRequest{
+		Title: "x", Requester: "ext", AssigneeUserID: "alice",
+		SourceSystem: "ops", Status: domain.DevRequestStatusPending,
+	})
+	audits := &memoryAuditStore{}
+	router := NewRouter(RouterConfig{
+		DevRequestStore: s,
+		AuditStore:      audits,
+		AuthDevFallback: true,
+	})
+
+	body := `{
+		"target_type": "application",
+		"application_payload": {
+			"key": "ALPHA12345",
+			"name": "Alpha",
+			"description": "from intake",
+			"owner_user_id": "alice",
+			"leader_user_id": "bob",
+			"development_unit_id": "unit-dev",
+			"visibility": "internal",
+			"status": "planning"
+		}
+	}`
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/dev-requests/"+pending.ID+"/register", body)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("code=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"created":true`)) {
+		t.Errorf("expected created:true: %s", rec.Body.String())
+	}
+	if len(s.createdApps) != 1 || s.createdApps[0].Key != "ALPHA12345" {
+		t.Errorf("expected 1 created app with key=ALPHA12345, got %+v", s.createdApps)
+	}
+	if s.rows[pending.ID].Status != domain.DevRequestStatusRegistered {
+		t.Errorf("expected dev_request status=registered, got %s", s.rows[pending.ID].Status)
+	}
+	// audit emits: application.created + dev_request.registered
+	gotAppAudit, gotDRAudit := false, false
+	for _, l := range audits.logs {
+		switch l.Action {
+		case "application.created":
+			gotAppAudit = true
+		case "dev_request.registered":
+			gotDRAudit = true
+		}
+	}
+	if !gotAppAudit || !gotDRAudit {
+		t.Errorf("expected application.created + dev_request.registered audits, got %+v", audits.logs)
+	}
+}
+
+func TestRegisterDevRequest_NewApplicationWithPrimaryRepo(t *testing.T) {
+	s := newMemoryDevRequestStore()
+	pending := s.seed(domain.DevRequest{
+		Title: "x", Requester: "ext", AssigneeUserID: "alice",
+		SourceSystem: "ops", Status: domain.DevRequestStatusPending,
+	})
+	router := newDevRequestsRouter(s)
+	body := `{
+		"target_type": "application",
+		"application_payload": {
+			"key": "BETA123456",
+			"name": "Beta",
+			"owner_user_id": "alice",
+			"leader_user_id": "bob",
+			"development_unit_id": "unit-dev",
+			"visibility": "internal",
+			"status": "planning",
+			"primary_repo": {
+				"repo_provider": "gitea",
+				"repo_full_name": "org/beta",
+				"role": "primary"
+			}
+		}
+	}`
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/dev-requests/"+pending.ID+"/register", body)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("code=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if len(s.createdRepoLinks) != 1 {
+		t.Errorf("expected 1 primary repo link, got %d", len(s.createdRepoLinks))
+	}
+	if s.createdRepoLinks[0].RepoFullName != "org/beta" {
+		t.Errorf("expected repo_full_name=org/beta, got %s", s.createdRepoLinks[0].RepoFullName)
+	}
+}
+
+func TestRegisterDevRequest_NewProjectHappy(t *testing.T) {
+	s := newMemoryDevRequestStore()
+	pending := s.seed(domain.DevRequest{
+		Title: "x", Requester: "ext", AssigneeUserID: "alice",
+		SourceSystem: "ops", Status: domain.DevRequestStatusPending,
+	})
+	router := newDevRequestsRouter(s)
+	body := `{
+		"target_type": "project",
+		"project_payload": {
+			"repository_id": 1,
+			"key": "PROJ1",
+			"name": "Proj1",
+			"owner_user_id": "alice",
+			"visibility": "internal",
+			"status": "planning"
+		}
+	}`
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/dev-requests/"+pending.ID+"/register", body)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("code=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if len(s.createdProjects) != 1 || s.createdProjects[0].Key != "PROJ1" {
+		t.Errorf("expected 1 created project key=PROJ1, got %+v", s.createdProjects)
+	}
+}
+
+func TestRegisterDevRequest_PayloadMutualExclusion(t *testing.T) {
+	s := newMemoryDevRequestStore()
+	pending := s.seed(domain.DevRequest{
+		Title: "x", Requester: "ext", AssigneeUserID: "alice",
+		SourceSystem: "ops", Status: domain.DevRequestStatusPending,
+	})
+	router := newDevRequestsRouter(s)
+
+	// Case A: both target_id and application_payload set → 400.
+	body := `{
+		"target_type": "application",
+		"target_id": "app-existing",
+		"application_payload": {"key":"ZZZZZZZZZZ","name":"Z","owner_user_id":"alice","leader_user_id":"bob","development_unit_id":"unit-dev","visibility":"internal","status":"planning"}
+	}`
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/dev-requests/"+pending.ID+"/register", body)
+	if rec.Code != http.StatusBadRequest || !bytes.Contains(rec.Body.Bytes(), []byte(`"code":"dev_request_register_payload_invalid"`)) {
+		t.Errorf("case A: expected 400 dev_request_register_payload_invalid, got code=%d body=%s", rec.Code, rec.Body.String())
+	}
+
+	// Case B: neither set → 400.
+	body = `{"target_type":"application"}`
+	rec = doJSON(t, router, http.MethodPost, "/api/v1/dev-requests/"+pending.ID+"/register", body)
+	if rec.Code != http.StatusBadRequest || !bytes.Contains(rec.Body.Bytes(), []byte(`"code":"dev_request_register_payload_invalid"`)) {
+		t.Errorf("case B: expected 400 dev_request_register_payload_invalid, got code=%d body=%s", rec.Code, rec.Body.String())
+	}
+
+	// Case C: project_payload with target_type=application → 400.
+	body = `{"target_type":"application","project_payload":{"repository_id":1,"key":"PROJX","name":"X","owner_user_id":"alice","visibility":"internal","status":"planning"}}`
+	rec = doJSON(t, router, http.MethodPost, "/api/v1/dev-requests/"+pending.ID+"/register", body)
+	if rec.Code != http.StatusBadRequest || !bytes.Contains(rec.Body.Bytes(), []byte(`"code":"dev_request_register_payload_invalid"`)) {
+		t.Errorf("case C: expected 400 dev_request_register_payload_invalid, got code=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestRegisterDevRequest_NewApplicationFKConflict(t *testing.T) {
+	s := newMemoryDevRequestStore()
+	pending := s.seed(domain.DevRequest{
+		Title: "x", Requester: "ext", AssigneeUserID: "alice",
+		SourceSystem: "ops", Status: domain.DevRequestStatusPending,
+	})
+	router := newDevRequestsRouter(s)
+	// owner_user_id="ghost" 는 knownUsers 에 없음 → store ErrConflict → 409.
+	body := `{
+		"target_type":"application",
+		"application_payload":{"key":"GAMMA12345","name":"G","owner_user_id":"ghost","leader_user_id":"bob","development_unit_id":"unit-dev","visibility":"internal","status":"planning"}
+	}`
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/dev-requests/"+pending.ID+"/register", body)
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("expected 409, code=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"code":"application_key_conflict"`)) {
+		t.Errorf("expected application_key_conflict: %s", rec.Body.String())
+	}
+	// Rollback semantics: no app should have been "persisted" + dev_request still pending.
+	if len(s.createdApps) != 0 {
+		t.Errorf("expected 0 created apps after FK conflict, got %+v", s.createdApps)
+	}
+	if s.rows[pending.ID].Status != domain.DevRequestStatusPending {
+		t.Errorf("expected dev_request still pending after rollback, got %s", s.rows[pending.ID].Status)
+	}
+}
+
+func TestRegisterDevRequest_LegacyTargetIDStillSupported(t *testing.T) {
+	s := newMemoryDevRequestStore()
+	pending := s.seed(domain.DevRequest{
+		Title: "x", Requester: "ext", AssigneeUserID: "alice",
+		SourceSystem: "ops", Status: domain.DevRequestStatusPending,
+	})
+	audits := &memoryAuditStore{}
+	router := NewRouter(RouterConfig{
+		DevRequestStore: s,
+		AuditStore:      audits,
+		AuthDevFallback: true,
+	})
+	body := `{"target_type":"application","target_id":"app-legacy-1"}`
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/dev-requests/"+pending.ID+"/register", body)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("code=%d body=%s", rec.Code, rec.Body.String())
+	}
+	// Legacy path emits dev_request.registered with created:false.
+	gotCreatedFalse := false
+	for _, l := range audits.logs {
+		if l.Action == "dev_request.registered" && l.Payload["created"] == false {
+			gotCreatedFalse = true
+		}
+	}
+	if !gotCreatedFalse {
+		t.Errorf("expected legacy dev_request.registered audit with created=false, got %+v", audits.logs)
+	}
+	if len(s.createdApps) != 0 {
+		t.Errorf("legacy path should not create an app, got %+v", s.createdApps)
 	}
 }
 

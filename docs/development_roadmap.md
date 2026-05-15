@@ -113,10 +113,12 @@
 외부 시스템 → DevHub → application/project 으로 이어지는 upstream intake 흐름. 컨셉/요구사항/Usecase/설계/API contract 1차 stage 완료 (본 sprint). 후속 sprint hook:
 
 - ✅ **A (ADR)**: 외부 수신 endpoint 인증 정책 — **[ADR-0012](./adr/0012-dreq-external-intake-auth.md) (sprint `claude/work_260515-g`, accepted 2026-05-15)** 가 옵션 A (API 토큰 + IP allowlist) 채택. B (HMAC) / C (OAuth) 는 후속 마이그레이션 경로.
-- ⏳ **B**: backend 구현 (`domain.DevRequest` / store / handler / migration 000022 dev_requests + 000023 dev_request_intake_tokens + `requireIntakeToken` middleware) + API-59..65 활성화. ADR-0012 머지로 진입 조건 충족.
-- ⏳ **F**: 담당자 dashboard 의 "내 대기 의뢰" 위젯 + `/admin/settings/dev-requests` 페이지 + Promote-to-Application/Project 연계.
-- ⏳ **A (ADR)**: PMO Manager / 담당자 위양 정책 (ADR-0011 §4.2 패턴) — DREQ-RBAC-ADR. backend 구현과 병행.
-- ⏳ **B·F·X**: UT-dreq / TC-DREQ-* 발급 + Playwright spec.
+- ✅ **B**: backend 1차 — `domain.DevRequest` / store / handler / migration 000022 dev_requests + 000023 dev_request_intake_tokens + `requireIntakeToken` middleware + API-59..65 활성화 (sprint `claude/work_260515-i`).
+- ✅ **F**: 담당자 dashboard 의 "내 대기 의뢰" 위젯 + `/admin/settings/dev-requests` 페이지 + Promote-to-Application/Project 연계 1차 (sprint `claude/work_260515-j`).
+- ✅ **A (ADR)**: PMO Manager / 담당자 위양 정책 — **[ADR-0013](./adr/0013-dreq-rbac-row-scoping.md) (sprint `claude/work_260515-m`, accepted 2026-05-15)** 가 ADR-0011 §4.2 helper 의 dev_requests resource 적용 사례 사후 명문화. handler wire-up 은 PR #124 에 도입 완료.
+- ✅ **B (Promote-Tx)**: API-62 promote 의 단일 트랜잭션 (신규 application/project 생성 + dev_request 상태 갱신 + audit) — sprint `claude/work_260515-m` (REQ-FR-DREQ-005 정합 완성, ADR-0013 §5).
+- ⏳ **B·F (Admin-UI)**: intake token 발급/revoke endpoint + `/admin/settings/dev-request-tokens` 페이지 — DREQ carve out 2/4.
+- ⏳ **B·F·X (E2E)**: UT-dreq promote-tx 추가 + TC-DREQ-* 발급 + Playwright spec — DREQ carve out 3/4 (다른 carve 들 완료 후).
 - ⏳ **B (carve)**: 외부 시스템 callback (webhook 송신) — MVP 안정화 후.
 
 문서 hub: [`docs/planning/development_request_concept.md`](./planning/development_request_concept.md), 추적성 [`docs/traceability/report.md §2/§3 DREQ`](./traceability/report.md).
