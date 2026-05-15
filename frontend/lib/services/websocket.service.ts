@@ -3,6 +3,8 @@
  * Handles real-time connection and event Pub/Sub for the frontend.
  */
 
+import { API_BASE_URL, WS_BASE_URL } from "../config/endpoints";
+
 export interface WsMessage<T = unknown> {
   schema_version: string;
   type: string;
@@ -23,8 +25,15 @@ class WebSocketService {
   private mockTimer: NodeJS.Timeout | null = null;
 
   constructor() {
-    const httpUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-    this.url = httpUrl.replace(/^http/, 'ws') + "/api/v1/realtime/ws";
+    // API_BASE_URL 이 빈 문자열(same-origin) 이면 location 기준으로 ws URL 을 만든다.
+    if (API_BASE_URL) {
+      this.url = API_BASE_URL.replace(/^http/, "ws") + "/api/v1/realtime/ws";
+    } else if (typeof window !== "undefined") {
+      const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+      this.url = `${proto}//${window.location.host}/api/v1/realtime/ws`;
+    } else {
+      this.url = WS_BASE_URL;
+    }
   }
 
   public connect() {

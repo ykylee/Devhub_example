@@ -3,10 +3,11 @@ import { getMockMetrics } from "../mockData";
 import { type UserRole } from "../store";
 import { formatBytes } from "../utils";
 import { apiClient } from "./api-client";
+import { API_BASE_URL } from "../config/endpoints";
 
 class InfraService {
   private static instance: InfraService;
-  private baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+  private baseUrl = API_BASE_URL;
 
   private constructor() {}
 

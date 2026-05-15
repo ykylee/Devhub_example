@@ -1,5 +1,6 @@
 import { Role, RbacPolicyMeta } from "./rbac.types";
 import { apiClient, ApiError } from "./api-client";
+import { API_BASE_URL } from "../config/endpoints";
 
 interface ListPoliciesEnvelope {
   status: string;
@@ -31,7 +32,7 @@ export interface ListPoliciesResult {
 class RbacService {
   // Keep RBAC calls same-origin by default so browser clients use Next.js
   // rewrite/proxy instead of resolving localhost in user environments.
-  private baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
+  private baseUrl = API_BASE_URL;
 
 
 

@@ -358,7 +358,7 @@ export default function DeveloperDashboard() {
           <div className="grid grid-cols-2 gap-4">
             <div className="glass-card p-4">
               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Current Milestone</p>
-              <p className="text-lg font-bold text-primary-foreground">v1.0.0-beta-2</p>
+              <p className="text-lg font-bold text-foreground dark:text-primary-foreground">v1.0.0-beta-2</p>
             </div>
             <div className="glass-card p-4">
               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Deployment Status</p>
@@ -367,7 +367,7 @@ export default function DeveloperDashboard() {
           </div>
           
           <div className="space-y-3">
-            <h4 className="text-sm font-bold text-primary-foreground">Technical Ecosystem</h4>
+            <h4 className="text-sm font-bold text-foreground dark:text-primary-foreground">Technical Ecosystem</h4>
             <div className="flex flex-wrap gap-2">
               {["Go Core", "Python AI Engine", "Next.js 15", "Tailwind 4", "gRPC", "PostgreSQL"].map(tech => (
                 <Badge key={tech} variant="secondary">{tech}</Badge>

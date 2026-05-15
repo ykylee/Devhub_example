@@ -73,7 +73,7 @@ export function Modal({
                 {title && <h3 className="text-xl font-bold text-foreground tracking-tight">{title}</h3>}
                 <button 
                   onClick={onClose}
-                  className="p-2 rounded-xl hover:bg-muted/30 text-muted-foreground hover:text-primary-foreground transition-all"
+                  className="p-2 rounded-xl hover:bg-muted/30 text-muted-foreground hover:text-foreground dark:hover:text-primary-foreground transition-all"
                 >
                   <X className="w-5 h-5" />
                 </button>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Bell, User, ChevronDown, Command } from "lucide-react";
+import { Search, Bell, User, ChevronDown, Command, Sun, Moon, Settings, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -9,13 +9,29 @@ import { useStore, type UserRole } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import { authService } from "@/lib/services/auth.service";
 import { realtimeService, type ConnectionStatusEvent } from "@/lib/services/realtime.service";
-import { ThemeToggle } from "./ThemeToggle";
 
 export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   const { role, actor, setRole, notifications, clearNotifications } = useStore();
   const [showDropdown, setShowDropdown] = useState(false);
   const [isConnected, setIsConnected] = useState(realtimeService.isConnected);
+  // 초기 theme 은 paint 전에 layout 의 inline script 가 html 에 적용하므로
+  // 여기서는 그 결과(`theme-dark` class 유무)를 읽어 state 와 일치시킨다.
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    if (typeof document === "undefined") return "light";
+    return document.documentElement.classList.contains("theme-dark") ? "dark" : "light";
+  });
   const router = useRouter();
+
+  const toggleTheme = () => {
+    const newTheme = theme === "light" ? "dark" : "light";
+    setTheme(newTheme);
+    if (newTheme === "dark") {
+      document.documentElement.classList.add("theme-dark");
+    } else {
+      document.documentElement.classList.remove("theme-dark");
+    }
+    localStorage.setItem("devhub-theme", newTheme);
+  };
 
   useEffect(() => {
     const unsubscribe = realtimeService.subscribe<ConnectionStatusEvent>('status.changed', (event) => {
@@ -51,7 +67,7 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
               "w-2 h-2 rounded-full animate-pulse",
               isConnected ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]"
             )} />
-            <span className="text-[10px] font-black text-muted-foreground dark:text-primary-foreground/50 uppercase tracking-widest hidden lg:inline">
+            <span className="text-[10px] font-black text-muted-foreground dark:text-muted-foreground uppercase tracking-widest hidden lg:inline">
               {isConnected ? "Real-time Live" : "Offline"}
             </span>
           </div>
@@ -71,12 +87,11 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
         </div>
         
         <div className="flex items-center gap-6">
-          <ThemeToggle />
           <motion.button 
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={clearNotifications}
-            className="relative p-2.5 rounded-xl hover:bg-muted/30 text-muted-foreground hover:text-primary-foreground transition-all"
+            className="relative p-2.5 rounded-xl hover:bg-muted/30 text-muted-foreground hover:text-foreground dark:hover:text-primary-foreground transition-all"
           >
             <Bell className="h-5 w-5" />
             {notifications > 0 && (
@@ -91,8 +106,8 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
               onClick={() => setShowDropdown(!showDropdown)}
               className="flex items-center gap-3 py-1.5 px-3 rounded-2xl hover:bg-muted/30 transition-all cursor-pointer group"
             >
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border border-border ring-2 ring-primary/20">
-                <User className="w-5 h-5 text-primary-foreground" />
+              <div className="w-9 h-9 rounded-xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center border border-border ring-2 ring-primary/20">
+                <User className="w-5 h-5 text-primary" />
               </div>
               <div className="flex flex-col hidden sm:flex">
                 <span className="text-sm font-semibold leading-none text-foreground dark:text-primary-foreground">{actor?.login || "Guest User"}</span>
@@ -111,35 +126,52 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
                   className="absolute top-full right-0 mt-4 w-56 rounded-2xl glass border border-border p-2 z-50 shadow-2xl"
                 >
                   <p className="px-3 pt-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-50">
-                    Switch View
+                    Preferences
                   </p>
-                  <p className="px-3 pb-2 text-[9px] text-muted-foreground/60 leading-tight normal-case">
-                    Menu preview only — actual permissions follow server actor.role.
-                  </p>
-                  {(["Developer", "Manager", "System Admin"] as UserRole[]).map((r) => (
-                    <button
-                      key={r}
-                      onClick={() => handleRoleChange(r)}
-                      className={cn(
-                        "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all hover:bg-muted/40 group",
-                        role === r ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-primary-foreground"
-                      )}
-                    >
-                      <div className={cn("w-2 h-2 rounded-full transition-all", role === r ? "bg-primary scale-100" : "bg-transparent scale-0")} />
-                      {r}
-                    </button>
-                  ))}
+                  <button
+                    onClick={toggleTheme}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground dark:hover:text-primary-foreground hover:bg-muted/40 transition-all group"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-muted/20 flex items-center justify-center">
+                      {theme === "light" ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-indigo-400" />}
+                    </div>
+                    <span className="flex-1 text-left">{theme === "light" ? "Light Mode" : "Dark Mode"}</span>
+                    <span className="text-[10px] opacity-40 font-bold uppercase tracking-widest">Switch</span>
+                  </button>
+
                   <div className="h-px bg-muted/30 my-2" />
+                  
                   <button 
                     onClick={() => { router.push("/account"); setShowDropdown(false); }}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted-foreground hover:text-primary-foreground hover:bg-muted/40 transition-all"
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground dark:hover:text-primary-foreground hover:bg-muted/40 transition-all"
                   >
-                    Account Settings
+                    <div className="w-8 h-8 rounded-lg bg-muted/20 flex items-center justify-center">
+                      <User className="w-4 h-4" />
+                    </div>
+                    Account Profile
                   </button>
+
+                  {role === "System Admin" && (
+                    <button 
+                      onClick={() => { router.push("/admin/settings"); setShowDropdown(false); }}
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground dark:hover:text-primary-foreground hover:bg-muted/40 transition-all"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-muted/20 flex items-center justify-center">
+                        <Settings className="w-4 h-4 text-orange-400" />
+                      </div>
+                      System Settings
+                    </button>
+                  )}
+
+                  <div className="h-px bg-muted/30 my-2" />
+                  
                   <button 
                     onClick={handleLogout}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-rose-400 hover:bg-rose-400/10 transition-all"
                   >
+                    <div className="w-8 h-8 rounded-lg bg-rose-400/10 flex items-center justify-center">
+                      <X className="w-4 h-4" />
+                    </div>
                     Sign Out
                   </button>
                 </motion.div>

@@ -1,7 +1,7 @@
 import { WSEvent, WSEventHandler } from "./types";
 import { useStore } from "@/lib/store";
 
-const WS_BASE = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080/api/v1/realtime/ws';
+import { WS_BASE_URL as WS_BASE } from "../config/endpoints";
 const DEFAULT_EVENT_TYPES = [
   'command.status.updated',
   'infra.node.updated',
