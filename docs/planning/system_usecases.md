@@ -116,6 +116,21 @@
 | `UC-PROJ-09` | Project cadence 리포트 조회 | repo sprint 결과를 상위 롤업 | REQ-FR-PROJ-007 |
 | `UC-PROJ-10` | Project 관리 권한 검증 | 관리 쓰기 권한의 RBAC/feature-flag 검증 + 감사 추적 | REQ-FR-PROJ-000,010 |
 
+### 2.11 Dev Request (DREQ — 외부 의뢰 수신/검토/등록)
+
+| UC ID | Usecase | 성공 조건 | 관련 REQ |
+| --- | --- | --- | --- |
+| `UC-DREQ-01` | 외부 시스템의 의뢰 수신 | 인증 통과 + 필수 필드 검증 + idempotency 통과 시 `pending` 으로 저장 / 검증 실패 시 `rejected` (invalid_intake) | REQ-FR-DREQ-001,002 / REQ-NFR-DREQ-001,002 |
+| `UC-DREQ-02` | 담당자 dashboard 의 내 대기 의뢰 조회 | 본인의 `assignee_user_id` 와 일치하는 pending/in_review 의뢰 목록을 반환 | REQ-FR-DREQ-004 |
+| `UC-DREQ-03` | 의뢰 상세 조회 | 권한 통과 시 의뢰 본문 + status 이력 + 매핑된 application/project id 반환 | REQ-FR-DREQ-004 |
+| `UC-DREQ-04` | 의뢰 → Application 등록(promote) | 단일 트랜잭션으로 Application 신규 생성 + DREQ.status=registered + audit | REQ-FR-DREQ-005 |
+| `UC-DREQ-05` | 의뢰 → Project 등록(promote) | 단일 트랜잭션으로 Project 신규 생성 + DREQ.status=registered + audit | REQ-FR-DREQ-005 |
+| `UC-DREQ-06` | 의뢰 거절(reject) | `rejected_reason` 필수, status → rejected, audit | REQ-FR-DREQ-006 |
+| `UC-DREQ-07` | 의뢰 담당자 재할당(reassign) | system_admin 만 가능, 변경 이력 audit | REQ-FR-DREQ-007 |
+| `UC-DREQ-08` | 의뢰 닫기(close) | registered/rejected 만 closed 로 전이, 기타는 거부 | REQ-FR-DREQ-008 |
+| `UC-DREQ-09` | 전체 의뢰 관리 (system_admin) | 모든 의뢰 조회 + 필터 + 액션 (reassign/close) | REQ-FR-DREQ-004,007,008 |
+| `UC-DREQ-10` | 의뢰 상태 머신 가드 | invalid 전이 거절 + dev_request.* audit emit | REQ-FR-DREQ-003 / REQ-NFR-DREQ-003 |
+
 ## 3. 설계/구현 반영 규칙
 
 1. 신규/변경 API는 최소 1개 UC를 참조해야 한다.

@@ -205,3 +205,97 @@ Audit Log는 최소한 `actor_id`, `actor_role`, `action`, `target_type`, `targe
 | `auth.login.failed` | `account` 또는 `login_id` | login_id가 존재하지 않아도 시도는 기록 |
 
 비밀번호 평문, 해시, 임시 비밀번호는 어떤 audit 필드에도 기록하지 않습니다.
+
+## 7. 개발 의뢰 (Dev Request, DREQ) 도메인
+
+외부 시스템에서 들어오는 개발 의뢰를 수신 → 담당자 검토 → application/project 등록(promote) 까지 처리하는 도메인. 컨셉 문서: [`docs/planning/development_request_concept.md`](./planning/development_request_concept.md). 요구사항: [`docs/requirements.md §5.5`](./requirements.md). Usecase: [`UC-DREQ-01..10`](./planning/system_usecases.md).
+
+### 7.1 컴포넌트 (ARCH-DREQ-01)
+
+```
+┌──────────────────┐                       ┌──────────────────────────────────────┐
+│  External System │ ──── POST /api/v1 ─▶  │  Go Core: dev_requests handler       │
+│ (ops portal /    │   /dev-requests       │  ├── auth: 외부 수신용 별도 정책      │
+│  ITSM / Jira /   │                       │  │   (REQ-NFR-DREQ-001, ADR 후보)     │
+│  사내 워크플로우)│                       │  ├── validate: 필수 필드 + assignee   │
+└──────────────────┘                       │  │   존재 / (source_system,           │
+                                           │  │   external_ref) idempotency        │
+                                           │  ├── store: dev_requests (Postgres)   │
+                                           │  └── audit: dev_request.received      │
+                                           └────────────┬─────────────────────────┘
+                                                        │
+                                                        ▼
+                                           ┌──────────────────────────────────────┐
+                                           │  Frontend: 담당자 dashboard          │
+                                           │  + /admin/settings/dev-requests       │
+                                           │  └── Promote-to-Application/Project  │
+                                           │     (단일 트랜잭션 — REQ-FR-DREQ-005) │
+                                           └──────────────────────────────────────┘
+                                                        │
+                                                        ▼
+                                           ┌──────────────────────────────────────┐
+                                           │  Application / Project 도메인        │
+                                           │  (DREQ.registered_target_id 로 매핑)  │
+                                           └──────────────────────────────────────┘
+```
+
+### 7.2 상태 머신 (ARCH-DREQ-02)
+
+[컨셉 §2.3](./planning/development_request_concept.md) 의 6-상태 머신 (`received → pending → in_review → registered | rejected | closed`). 모든 전이는 `dev_request.*` audit action 으로 기록.
+
+### 7.3 외부 수신 인증 경계 (ARCH-DREQ-03)
+
+- 외부 수신 endpoint (`POST /api/v1/dev-requests`) 는 일반 사용자 OIDC 흐름이 아닌 별도 정책을 사용. 후보 (A) API 토큰 + IP allowlist, (B) HMAC 시그니처, (C) OAuth client_credentials — [컨셉 §7](./planning/development_request_concept.md) 참조.
+- 본 endpoint 는 routePermissionTable 의 Bypass 또는 별도 middleware 로 처리 (운영 진입 전 ADR 로 확정).
+- 인증 성공 시 `source_system` 은 caller 의 identity 에서 자동 채움 (request body 의 self-claim 은 신뢰하지 않음 — spoofing 방지).
+- 그 외 endpoint (GET 목록 / 상세 / Promote / Reject / Reassign / Close) 는 일반 OIDC + RBAC + 본 sprint 의 `enforceRowOwnership` 패턴([ADR-0011 §4.2](./adr/0011-rbac-row-scoping.md))으로 보호. 담당자 본인 의뢰 또는 system_admin / pmo_manager 만 가능.
+
+### 7.4 RBAC 자원 (ARCH-DREQ-04)
+
+- 신규 resource `dev_requests` 를 RBAC matrix 에 추가.
+- 1차 정책 (MVP):
+  - `system_admin`: view + create(외부 수신 server-side, frontend 에서는 미노출) + edit + delete
+  - `pmo_manager`: view + edit (담당자 재할당은 제외 — system_admin 만)
+  - `manager` / `developer`: view (본인 의뢰만, row-level `actor.login == assignee_user_id`)
+- 정책 매핑 표는 backend 구현 sprint 의 migration (`000022_dev_requests` 또는 `000023_rbac_dev_request_resource`) 에서 확정.
+
+### 7.5 데이터 모델 (ARCH-DREQ-05)
+
+```text
+dev_requests
+  id                      uuid       PK
+  title                   text       NOT NULL
+  details                 text
+  requester               text       NOT NULL
+  assignee_user_id        text       NOT NULL  REFERENCES users(user_id) ON DELETE RESTRICT
+  source_system           text       NOT NULL
+  external_ref            text       NULLABLE  -- (source_system, external_ref) UNIQUE
+  status                  text       NOT NULL  CHECK in (received, pending, in_review, registered, rejected, closed)
+  registered_target_type  text                 CHECK in (application, project) WHEN status='registered'
+  registered_target_id    text                 NULLABLE
+  rejected_reason         text                 NOT NULL WHEN status='rejected'
+  received_at             timestamptz NOT NULL
+  created_at, updated_at  timestamptz NOT NULL DEFAULT NOW()
+
+  CONSTRAINT dev_requests_idempotency_uniq
+    UNIQUE (source_system, external_ref)
+    WHERE external_ref IS NOT NULL;
+  CONSTRAINT dev_requests_registered_target_consistency
+    CHECK ( (status = 'registered') = (registered_target_type IS NOT NULL AND registered_target_id IS NOT NULL) );
+  CONSTRAINT dev_requests_rejected_reason_required
+    CHECK ( (status = 'rejected') = (rejected_reason IS NOT NULL) );
+```
+
+application / project 의 `origin_dreq_id` 역참조 컬럼 도입 여부는 REQ-FR-DREQ-009 의 ADR 후속에서 결정.
+
+### 7.6 Audit action 카탈로그 (ARCH-DREQ-06)
+
+| action | target_type | 비고 |
+| --- | --- | --- |
+| `dev_request.received` | `dev_request` | 외부 수신, payload 에 source_system / external_ref / assignee |
+| `dev_request.registered` | `dev_request` | promote 시점, payload 에 registered_target_type/id |
+| `dev_request.rejected` | `dev_request` | rejected_reason 포함 |
+| `dev_request.reassigned` | `dev_request` | from / to assignee |
+| `dev_request.reopened` | `dev_request` | rejected → pending |
+| `dev_request.closed` | `dev_request` | registered/rejected → closed |
+| `auth.row_denied` | `route` | enforceRowOwnership 패턴, 본 도메인 row 거절 |

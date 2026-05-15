@@ -91,6 +91,7 @@ PR 단위의 의사결정과 보안 리뷰 결과는 *통합 로드맵 산출물
 | 문서 | 단계 | 메모 |
 | --- | --- | --- |
 | [`project_management_concept.md`](./project_management_concept.md) | concept (1차) | Application > Repository > Project 운영 모델 — 총괄/실행/기간성 운영 단위 분리. 후속 sprint 에서 REQ-FR/ARCH/API 발급. |
+| [`development_request_concept.md`](./development_request_concept.md) | concept + REQ + UC + ARCH + API spec staged (sprint `claude/work_260515-f`) | Dev Request (DREQ) 도메인 — 외부 시스템 API 로 의뢰 수신 → 담당자 dashboard → application/project 등록(promote). REQ-FR-DREQ-001..011 + UC-DREQ-01..10 + ARCH-DREQ-01..06 + API-59..65 spec staged. 구현은 carve out (DREQ-AuthADR 머지 후 DREQ-Backend sprint). |
 | [`project_operating_model_template.md`](./project_operating_model_template.md) | template | Application > Repository > Project 운영 템플릿. 역할/연결/Jira 정책/로드맵/마일스톤/cadence/KPI 체크리스트 제공. |
 | [`project_operating_model_example_2026.md`](./project_operating_model_example_2026.md) | example | 하이브리드 운영 모델 샘플 (Project 1건 + Repo 3건 + Jira/Confluence + 상/하위 마일스톤 매핑). |
 | [`system_usecases.md`](./system_usecases.md) | usecase | 코드베이스 전체 모듈 기준 Usecase 카탈로그 (`UC-*`, REQ↔DESIGN 중간 단계). |
@@ -107,6 +108,7 @@ PR 단위의 의사결정과 보안 리뷰 결과는 *통합 로드맵 산출물
 | 2026-05-13 | §5.1 운영 모델 템플릿/예시 2종 추가 — `project_operating_model_template.md`, `project_operating_model_example_2026.md`. |
 | 2026-05-13 | §5.1 usecase/erd 분리 문서 추가 — `system_usecases.md`, `system_erd.md` (REQ→UC→DESIGN 및 모듈별 ERD 관리). |
 | 2026-05-13 | §5.1 역할별 메뉴/화면/API 매트릭스 문서 추가 — `view_menu_screen_api_matrix.md` (M4/v2 범위 분리 반영). |
+| 2026-05-15 | §5.1 Dev Request (DREQ) 도메인 컨셉 + 요구사항 + Usecase + 설계 + API spec 신규 — `development_request_concept.md`. REQ-FR-DREQ-001..011 + UC-DREQ-01..10 + ARCH-DREQ-01..06 + API-59..65 staged. sprint `claude/work_260515-f`. |
 
 ## 7. 신규 자료 작성 규칙
 

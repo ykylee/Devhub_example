@@ -1780,3 +1780,154 @@ invalid_weight_policy
 project_key_conflict
 integration_policy_violation
 ```
+
+## 14. 개발 의뢰 (Dev Request, DREQ) API
+
+외부 시스템에서 들어오는 개발 의뢰 (Dev Request, DREQ) 의 수신/조회/등록(promote)/거절/재할당/닫기 API. 컨셉: [`docs/planning/development_request_concept.md`](./planning/development_request_concept.md). 요구사항: [§5.5 (REQ-FR-DREQ-001..011, REQ-NFR-DREQ-001..006)](./requirements.md). Usecase: [`UC-DREQ-01..10`](./planning/system_usecases.md). 아키텍처: [`docs/architecture.md §7`](./architecture.md) (ARCH-DREQ-01..06).
+
+본 §의 모든 endpoint 는 sprint `claude/work_260515-f` 에서 *spec only* (planned). backend 구현은 carve out — DREQ-AuthADR 머지 후 DREQ-Backend sprint 에서 활성화.
+
+### 14.1 외부 수신 — `POST /api/v1/dev-requests`  *(API-59)*
+
+- **인증**: 일반 OIDC 사용자 흐름이 아닌 별도 정책. 1차 후보: API 토큰 + IP allowlist. 최종 결정은 [DREQ-AuthADR] 머지에서. `source_system` 은 호출 caller 의 인증된 identity 에서 자동 채움 — body 의 self-claim 은 신뢰하지 않음.
+- **요청 (JSON)**:
+
+```json
+{
+  "title": "Backend 검색 성능 개선",
+  "details": "p95 응답시간 2s 이상 발생, 재현 시나리오 첨부.",
+  "requester": "ops_portal/user/jane",
+  "assignee_user_id": "charlie",
+  "external_ref": "OPS-2026-00482"
+}
+```
+
+- **응답 — 201 Created** (정상 수신, `pending`):
+
+```json
+{
+  "status": "ok",
+  "data": {
+    "id": "11111111-2222-3333-4444-555555555555",
+    "title": "Backend 검색 성능 개선",
+    "details": "...",
+    "requester": "ops_portal/user/jane",
+    "assignee_user_id": "charlie",
+    "source_system": "ops_portal",
+    "external_ref": "OPS-2026-00482",
+    "status": "pending",
+    "registered_target_type": null,
+    "registered_target_id": null,
+    "rejected_reason": null,
+    "received_at": "2026-05-15T04:55:00Z",
+    "created_at": "2026-05-15T04:55:00Z",
+    "updated_at": "2026-05-15T04:55:00Z"
+  }
+}
+```
+
+- **응답 — 200 OK** (idempotent 재수신, `(source_system, external_ref)` 매칭): 동일 `data` 반환 + `"status":"ok"`.
+- **응답 — 201 Created with status=rejected** (검증 실패): assignee 미존재 / 필수 필드 누락 시 `pending` 대신 `rejected (reason: invalid_intake)` 로 저장 — REQ-FR-DREQ-002. audit 보존 목적이며 절대 drop 하지 않는다.
+- **응답 — 401** 인증 실패. **400** body schema 위반.
+- **Audit**: `dev_request.received` (정상) 또는 `dev_request.received + dev_request.rejected` (검증 실패) emit.
+
+### 14.2 목록 — `GET /api/v1/dev-requests`  *(API-60)*
+
+- **인증**: OIDC + RBAC `dev_requests:view`.
+- **권한**: `system_admin` / `pmo_manager` 는 전체. 그 외 role 은 `assignee_user_id == actor.login` 의 row 만 (route-level RBAC + handler 단의 server-side filter).
+- **쿼리**: `status` (콤마 다중) / `source_system` / `assignee_user_id` (system_admin 만 의미) / `limit` (기본 50, 최대 100) / `offset`.
+- **응답 — 200**:
+
+```json
+{
+  "status": "ok",
+  "data": [ { /* dev_request shape */ } ],
+  "meta": { "total": 17, "limit": 50, "offset": 0 }
+}
+```
+
+- **에러 422** `invalid_query_params`.
+
+### 14.3 상세 — `GET /api/v1/dev-requests/:id`  *(API-61)*
+
+- **인증**: OIDC + RBAC `dev_requests:view` + row-level (system_admin / pmo_manager / assignee 본인).
+- **응답 — 200** `{ "status":"ok", "data": <dev_request> }`. **404** not found. **403** `auth_row_denied` (audit `auth.row_denied`).
+
+### 14.4 Promote (등록) — `POST /api/v1/dev-requests/:id/register`  *(API-62)*
+
+- **인증**: OIDC + RBAC `dev_requests:edit` + row-level (system_admin / pmo_manager / assignee 본인).
+- **요청 (JSON)**:
+
+```json
+{
+  "target_type": "application",  // "application" | "project"
+  "target_payload": {
+    "key": "PLATFORM26",
+    "name": "Platform 2026",
+    "owner_user_id": "charlie",
+    "leader_user_id": "charlie",
+    "development_unit_id": "dept-eng",
+    "visibility": "internal",
+    "status": "planning"
+  }
+}
+```
+
+- **`target_type: "project"`** 인 경우 `target_payload` 는 `POST /api/v1/repositories/:repository_id/projects` 와 동일 schema. handler 는 url 의 `repository_id` 대신 payload 의 `repository_id` 필드를 사용.
+- **단일 트랜잭션** (REQ-FR-DREQ-005): (a) target entity 생성, (b) DREQ.status → `registered`, (c) DREQ.registered_target_type/id 갱신, (d) audit `dev_request.registered` + `application.created` (또는 `project.created`). 부분 실패 시 모두 롤백.
+- **응답 — 201**:
+
+```json
+{
+  "status": "ok",
+  "data": {
+    "dev_request": { /* DREQ with status=registered, registered_target_* filled */ },
+    "registered_target": { /* application or project response shape */ }
+  }
+}
+```
+
+- **에러 409** `dev_request_already_registered` (status 가 이미 registered/rejected/closed). **422** target_payload 검증 실패 (각 도메인 검증 규칙 그대로). **403** `auth_row_denied`.
+
+### 14.5 거절 — `POST /api/v1/dev-requests/:id/reject`  *(API-63)*
+
+- **인증**: OIDC + RBAC + row-level (system_admin / pmo_manager / assignee 본인).
+- **요청**: `{ "rejected_reason": "중복 의뢰 (OPS-2026-00481 과 동일)" }` — `rejected_reason` 필수.
+- **응답 — 200** `{ "status":"ok", "data": <dev_request with status=rejected> }`. **400** reason 누락. **409** 이미 registered/closed/rejected.
+
+### 14.6 재할당 — `PATCH /api/v1/dev-requests/:id`  *(API-64)*
+
+- **인증**: OIDC + RBAC `dev_requests:edit` + **system_admin 만** (담당자 변경은 row owner 가 self-change 불가하도록 RBAC 으로 강제).
+- **요청**: `{ "assignee_user_id": "alice" }` — 1차에서는 assignee 만 변경 가능. title/details 등 본문 수정은 carve out.
+- **응답 — 200** `{ "status":"ok", "data": <dev_request> }`. audit `dev_request.reassigned` + payload `{from_assignee, to_assignee}`.
+
+### 14.7 닫기 — `DELETE /api/v1/dev-requests/:id`  *(API-65)*
+
+- **인증**: OIDC + RBAC `dev_requests:delete` (system_admin / pmo_manager).
+- **전이**: `registered` 또는 `rejected` → `closed`. `pending` / `in_review` 는 거부 (먼저 reject 후 close).
+- **응답 — 200** `{ "status":"ok", "data": <dev_request with status=closed> }`. **422** `invalid_status_transition_close` (pending/in_review 에서 시도). audit `dev_request.closed`.
+
+### 14.8 에러 코드 카탈로그 (DREQ 신규)
+
+```
+dev_request_already_registered
+dev_request_invalid_intake
+dev_request_idempotency_conflict
+dev_request_register_target_invalid
+dev_request_register_target_mismatch
+dev_request_assignee_not_found
+dev_request_reason_required
+invalid_status_transition_close
+```
+
+### 14.9 API ID 인덱스 (sprint `claude/work_260515-f`)
+
+| API ID | endpoint |
+| --- | --- |
+| API-59 | `POST /api/v1/dev-requests` (외부 수신) |
+| API-60 | `GET /api/v1/dev-requests` (목록) |
+| API-61 | `GET /api/v1/dev-requests/:id` (상세) |
+| API-62 | `POST /api/v1/dev-requests/:id/register` (Promote) |
+| API-63 | `POST /api/v1/dev-requests/:id/reject` |
+| API-64 | `PATCH /api/v1/dev-requests/:id` (Reassign) |
+| API-65 | `DELETE /api/v1/dev-requests/:id` (Close) |
