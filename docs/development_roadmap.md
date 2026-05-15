@@ -118,7 +118,7 @@
 - ✅ **A (ADR)**: PMO Manager / 담당자 위양 정책 — **[ADR-0013](./adr/0013-dreq-rbac-row-scoping.md) (sprint `claude/work_260515-m`, accepted 2026-05-15)** 가 ADR-0011 §4.2 helper 의 dev_requests resource 적용 사례 사후 명문화. handler wire-up 은 PR #124 에 도입 완료.
 - ✅ **B (Promote-Tx)**: API-62 promote 의 단일 트랜잭션 (신규 application/project 생성 + dev_request 상태 갱신 + audit) — sprint `claude/work_260515-m` (REQ-FR-DREQ-005 정합 완성, ADR-0013 §5).
 - ✅ **B (Admin-UI backend)**: intake token 발급/revoke/list admin endpoint (API-66..68) + ADR-0014 + migration 000026 RBAC seed — sprint `claude/work_260515-o` (carve 2/4 part 1).
-- ⏳ **F (Admin-UI frontend)**: `/admin/settings/dev-request-tokens` 페이지 + plain-1회-노출 modal — sprint `p` (carve 2/4 part 2).
+- ✅ **F (Admin-UI frontend)**: `/admin/settings/dev-request-tokens` 페이지 + IntakeTokenTable + IssueIntakeTokenModal (plain-1회-노출 reveal phase) + dev_request_token service/types — sprint `claude/work_260515-p` (carve 2/4 part 2).
 - ⏳ **B·F·X (E2E)**: UT-dreq promote-tx 추가 + TC-DREQ-* 발급 + Playwright spec — DREQ carve out 3/4 (다른 carve 들 완료 후).
 - ⏳ **B (carve)**: 외부 시스템 callback (webhook 송신) — MVP 안정화 후.
 
