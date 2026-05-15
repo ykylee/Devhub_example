@@ -3,7 +3,7 @@
   "branch": "claude/work_260515-o",
   "base": "main @ 5546a41 (PR #129 머지 직후, codex hotfix #4)",
   "updated_at": "2026-05-15T09:30:00Z",
-  "status": "in_progress (PR open 대기)",
+  "status": "done (merged into main as PR #130 / commit 0bdf299)",
   "purpose": "DREQ carve out 2/4 part 1 — Admin-UI backend. intake token 발급/조회/revoke admin endpoint (API-66..68) + ADR-0014 + migration 000026 RBAC seed. frontend 페이지는 별도 sprint p 로 분할.",
   "carve_out_position": "2/4 part 1 — Admin-UI backend",
   "deliverables": {

@@ -1,12 +1,65 @@
-# Session Handoff — main (2026-05-15 EOD final, sprint claude/work_260515-l)
+# Session Handoff — main (2026-05-15 post-EOD final, sprint claude/work_260515-q)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
-- 범위: 2026-05-15 세션 종료 final EOD. 본 세션 누적 15 PR 흡수 (#112, #114~#126). **DREQ (Dev Request) 도메인 1차 완성**.
+- 범위: 2026-05-15 직전 final EOD (sprint l) 이후의 후속 세션 종료. 추가 5 PR 흡수 (#128 m / #129 n / #130 o / #131 p / 본 q housekeeping). **DREQ carve out 1/4 + 2/4 전체 완료** (RBAC-ADR / Promote-Tx / codex hotfix #4 / Admin-UI backend / Admin-UI frontend).
 - 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
-- 상태: M1/M2/M3 1차 closing (이전). Application 도메인 backend 1차 (2026-05-14). 본 세션 (2026-05-15) — frontend UI 안정화 + ADR-0011 helper + **DREQ 도메인 컨셉~Backend~Frontend 1차 완성** (12 sprint, 본인 4단계 리뷰 9회, codex review cycle 3회).
-- 최종 수정일: 2026-05-15 (final EOD, sprint claude/work_260515-l)
-- 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [상태 스냅샷](./state.json), [거버넌스](../../docs/governance/README.md), [추적성 매트릭스](../../docs/traceability/report.md), [Project 도메인 컨셉](../../docs/planning/project_management_concept.md), [Dev Request 도메인 컨셉](../../docs/planning/development_request_concept.md), [ADR-0011 RBAC row-scoping](../../docs/adr/0011-rbac-row-scoping.md), [ADR-0012 DREQ 외부 수신 인증](../../docs/adr/0012-dreq-external-intake-auth.md).
-- 브랜치: `main` (HEAD `bb164c4`, PR #126 squash 직후. 본 housekeeping 머지 후 추가 갱신).
+- 상태: M1/M2/M3 1차 closing (이전). Application 도메인 backend 1차 (2026-05-14). DREQ 도메인 1차 완성 (sprint l 종료, 2026-05-15). 본 후속 세션 — **DREQ carve out 1/4 (RBAC-ADR + Promote-Tx) + 2/4 (Admin-UI backend + frontend) 완료**. 4 sprint (m/n/o/p), 본인 4단계 리뷰 4회 clean, codex review cycle 1회 (hotfix #4). ADR-0013 + ADR-0014 누적. API-66..68 + 신규 RBAC resource `dev_request_intake_tokens` activated. /admin/settings/dev-request-tokens 페이지.
+- 최종 수정일: 2026-05-15 (post-EOD, sprint claude/work_260515-q)
+- 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [상태 스냅샷](./state.json), [거버넌스](../../docs/governance/README.md), [추적성 매트릭스](../../docs/traceability/report.md), [Project 도메인 컨셉](../../docs/planning/project_management_concept.md), [Dev Request 도메인 컨셉](../../docs/planning/development_request_concept.md), [ADR-0011 RBAC row-scoping](../../docs/adr/0011-rbac-row-scoping.md), [ADR-0012 DREQ 외부 수신 인증](../../docs/adr/0012-dreq-external-intake-auth.md), [ADR-0013 DREQ RBAC row-scoping](../../docs/adr/0013-dreq-rbac-row-scoping.md), [ADR-0014 DREQ intake token admin](../../docs/adr/0014-dreq-intake-token-admin.md).
+- 브랜치: `main` (HEAD `2147d6d`, PR #131 squash 직후. 본 housekeeping 머지 후 추가 갱신).
+
+## 본 후속 세션 (2026-05-15 post-EOD) 누적 머지 — 5 PR
+
+| PR | sha | sprint | 작업 |
+| --- | --- | --- | --- |
+| #128 | 1f9ec50 | claude/work_260515-m | DREQ-Promote-Tx 단일 트랜잭션 + ADR-0013 RBAC row-scoping |
+| #129 | 5546a41 | claude/work_260515-n | codex review hotfix #4 — PR #128 의 P1 (CHECK 매핑) + P2 (SCM gate) + self-review P2 #1 (rejected_reason NULL) |
+| #130 | 0bdf299 | claude/work_260515-o | DREQ-Admin-UI backend — intake token admin (API-66..68) + ADR-0014 |
+| #131 | 2147d6d | claude/work_260515-p | DREQ-Admin-UI frontend — /admin/settings/dev-request-tokens 페이지 + plain-1회 modal |
+| (본) | TBD | claude/work_260515-q | post-EOD housekeeping (main flat memory sync + sprint finalize) |
+
+## 본 후속 세션 도입 핵심 (재참조 가능)
+
+### 1. DREQ carve out 1/4 — RBAC-ADR + Promote-Tx (sprint m, PR #128)
+
+- **ADR-0013** — `dev_requests` resource 의 RBAC row-scoping 정책 사후 명문화. ADR-0011 §4.2 helper `enforceRowOwnership(c, dr.AssigneeUserID, "pmo_manager")` 의 dev_requests 적용 사례. handler wire-up 은 PR #124 (sprint i) 에서 이미 도입.
+- **Promote-Tx**: `store.RegisterDevRequestWithNewApplication` + `RegisterDevRequestWithNewProject` 신규 — `pool.BeginTx` → INSERT target (+ optional `application_repositories`) → UPDATE dev_requests → Commit. **REQ-FR-DREQ-005 정합 완성**.
+- handler 분기: `target_id` (legacy) / `application_payload` / `project_payload` mutual exclusion.
+- SQL drift 방지: `applications.go` 의 INSERT SQL 들을 const 로 추출.
+
+### 2. codex hotfix #4 (sprint n, PR #129)
+
+- **P1**: primary_repo 분기의 `application_repositories_role_check` CHECK 위반이 500 으로 surface → handler `validApplicationRepoRoles` gate + store `isCheckViolation` defense-in-depth.
+- **P2**: promote primary_repo path 의 SCM provider enablement gate 우회 → handler `ListSCMProviders` + Enabled 검증.
+- **self-review P2 #1**: `MarkDevRequestRegistered` + `dreqMarkRegisteredUpdateQuery` 에 `rejected_reason = NULL` clear 추가.
+- 5 회귀 가드 test.
+
+### 3. DREQ carve out 2/4 Admin-UI backend (sprint o, PR #130)
+
+- **ADR-0014** — dev_request_intake_tokens resource RBAC + plain-1회-노출 + idempotent revoke 정책. accounts_admin temp_password 패턴과 정합.
+- **신규 RBAC resource** `dev_request_intake_tokens` (system_admin 일임). migration 000026.
+- **신규 endpoint 3**: API-66 POST (발급) / API-67 GET (목록) / API-68 DELETE (revoke). server 32-byte base64url plain 생성 → SHA-256(hex) 저장 + audit 에 plain/hashed 둘 다 미포함 + revoke `COALESCE(revoked_at, NOW())`.
+- 8 신규 unit test.
+
+### 4. DREQ carve out 2/4 Admin-UI frontend (sprint p, PR #131)
+
+- **/admin/settings/dev-request-tokens** 페이지 (system_admin 보호 via AuthGuard + `/admin/*` prefix + layout subTabs 에 Intake Tokens 추가).
+- **IssueIntakeTokenModal**: 2 phase (form → reveal). reveal phase 의 outside-click + ESC **차단** — 실수로 plain token 분실 방지. clipboard API copy.
+- **IntakeTokenTable**: client/source + allowed_ips chips + Active/Revoked badge + revoke action.
+- `dev_request_token.{service,types}.ts` — thin wrapper.
+- npm run build PASS (26 static pages) + vitest 41 tests PASS.
+
+## 다음 세션 directive
+
+**DREQ carve out 3/4 — DREQ-E2E** (sprint q' 또는 다음 세션 진입).
+
+| 작업 | scope |
+| --- | --- |
+| Playwright spec | intake auth (token bearer) → admin issue token → dashboard widget (assignee 본인 의뢰) → promote (신규 application/project 생성 단일 tx) → revoke token. TC-DREQ-* 발급 |
+| Vitest unit | IntakeTokenTable / IssueIntakeTokenModal 두 phase (form / reveal) + clipboard mock + outside-click 차단 검증 |
+| P2 carve out 흡수 후보 (누적 6건) | (1) promote-tx race 가드 (UPDATE WHERE status IN ...) — sprint m P2 #2; (2) memoryDevRequestStore.failPromote dead field — sprint m P2 #3; (3) window.confirm 대신 destructive confirm dialog — sprint p P2 #2; (4) plain_token reveal Show/Hide toggle — sprint p P2 #3; (5) token rotation policy (expires_at + cron) — ADR-0014 §6; (6) allowed_ips mutation endpoint — ADR-0014 §6 |
+
+본 4건 carve out 중 1/4 + 2/4 완료. 3/4 만 남음 (4/4 는 본 sprint plan 에서 carve 2 가 2 개 sprint 로 분할되며 자연 흡수, 별도 1 carve 가 아니라 묶음의 일부).
 
 ## 다음 세션 directive (사용자 지시)
 

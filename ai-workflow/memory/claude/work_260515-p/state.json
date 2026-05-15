@@ -3,7 +3,7 @@
   "branch": "claude/work_260515-p",
   "base": "main @ 0bdf299 (PR #130 머지 직후)",
   "updated_at": "2026-05-15T09:55:00Z",
-  "status": "in_progress (PR open 대기)",
+  "status": "done (merged into main as PR #131 / commit 2147d6d)",
   "purpose": "DREQ carve out 2/4 part 2 — Admin-UI frontend. /admin/settings/dev-request-tokens 페이지 + IssueIntakeTokenModal (plain-1회 reveal phase) + IntakeTokenTable + service/types.",
   "carve_out_position": "2/4 part 2 — Admin-UI frontend",
   "deliverables": {

@@ -3,7 +3,7 @@
   "branch": "claude/work_260515-m",
   "base": "main @ efec655 (PR #127 머지 직후, 2026-05-15 final EOD housekeeping)",
   "updated_at": "2026-05-15T08:30:00Z",
-  "status": "in_progress (PR open 대기)",
+  "status": "done (merged into main as PR #128 / commit 1f9ec50)",
   "purpose": "2026-05-15 후속 세션 sprint 1. DREQ carve out 4건 묶음의 1번째 — DREQ-RBAC-ADR + DREQ-Promote-Tx 한 PR.",
   "carve_out_position": "1/4 — RBAC-ADR + Promote-Tx",
   "remaining_carve_outs": [
