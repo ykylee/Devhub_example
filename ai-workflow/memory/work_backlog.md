@@ -3,8 +3,8 @@
 - 문서 목적: main 브랜치 기준 상위 백로그 인덱스. 세부 sprint backlog 는 브랜치별 메모리 디렉터리 참조.
 - 범위: 마일스톤 상태, 최근 머지, 잔여/후속 작업
 - 대상 독자: 프로젝트 리드, 후속 에이전트, 트랙 담당자
-- 상태: M1·M2·M3 done (1차). 본 세션 (2026-05-14, PR #104~#110) 으로 **Application Domain (backend 1차) 완성** — API-01~58 전체 activated, 마이그레이션 000012~000018, ADR-0011 accepted, RBAC matrix 4 신규 resource (system_admin 일임), CI 5 job (Backend Integration 신설). codex 외부 리뷰 흡수 2회 (PR #108, #110 hotfix). 다음 진입 후보는 §6 carve_out 또는 state.json `application_domain_carve_out_2026_05_14` 참조.
-- 최종 수정일: 2026-05-14
+- 상태: M1·M2·M3 done (1차). 2026-05-14 sprint 로 **Application Domain (backend 1차) 완성** — API-01~58 전체 activated, 마이그레이션 000012~000018, ADR-0011 accepted, RBAC matrix 4 신규 resource (system_admin 일임), CI 5 job (Backend Integration 신설). 2026-05-15 sprint claude/work_260515-a 로 본인 PR 2건(#114 Application leader/dev_unit + #115 light theme/endpoints 통일) 리뷰어 모드 + PR #112 (2026-05-14 머지지만 누락) 흡수. 다음 진입 후보는 session_handoff.md §1 참조.
+- 최종 수정일: 2026-05-15
 - 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [세션 인계](./session_handoff.md), [상태 스냅샷](./state.json), [M1 PR 리뷰 actions](./M1-PR-review-actions.md)
 
 ## 1. 마일스톤 진행 상황
@@ -102,3 +102,5 @@
 | 2026-05-13 | PR #98 (`claude/work_260513-l`) — M3 진입 1차 RM-M3-01..03. auth_signup.go audit emit + auth_signup_test.go 4 case + §11.5.2 본격 spec + ADR-0008 (HRDB PostgreSQL 채택) + §10.4.1~§10.4.4 schema 보강. |
 | 2026-05-13 | PR #99 (`claude/work_260513-m`) — M3 후속 1-4. PostgresClient + migration 000010 + cycle 검증 + ADR-0009 + frontend signup form. |
 | 2026-05-13 | PR #100 (`claude/work_260513-n`) — M4 전 잔여. ETL seed SQL + ADR-0008 §6 갱신 + MV migration 000011 + ADR-0010 primary_dept + 5 단위테스트 + signup alias 단일화. |
+| 2026-05-14 | PR #112 (`codex/frontend_color_review`, 머지 `3f387cd`) — Admin UI 가독성 통일 + ActionMenu 공통 컴포넌트 + iPad 터치 안정화 + 백엔드 조직 단위 트랜잭션 강화. flat memory 흡수는 2026-05-15 sprint 에서. |
+| 2026-05-15 | sprint `claude/work_260515-a` — 본인 PR 2건 리뷰어 모드 + housekeeping. PR #115 (`b669bc7`, light theme + dropdown refactor + **endpoints 통일 모듈**) + PR #114 (`25f97ba`, Application leader/dev_unit + search 확장 + search predicate refactor + leader backfill). 본 sprint 핵심: `frontend/lib/config/endpoints.ts` 단일 진실 소스 도입 + theme FOUC inline script 패턴 정착 + `output: standalone` NEXT_OUTPUT gate. PR #115 E2E 2회 실패 → service-logs artifact + raw job log 두 layer 분석 학습. |

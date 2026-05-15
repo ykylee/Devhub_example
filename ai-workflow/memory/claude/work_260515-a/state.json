@@ -1,0 +1,54 @@
+{
+  "schema_version": "1",
+  "branch": "claude/work_260515-a",
+  "base": "main @ 3f387cd (rebased onto 25f97ba post own-PR merge)",
+  "updated_at": "2026-05-15T02:10:00Z",
+  "status": "in_progress (housekeeping)",
+  "purpose": "본인 PR 2건(#114 codex/260514-a, #115 gemini/frontend_redesign_260514) 에 대해 4단계 리뷰어 모드 (diff→코멘트→보강 commit→squash merge) + main flat memory housekeeping (PR #112 누락분 포함 3건 흡수).",
+  "scope": {
+    "review_mode_targets": [
+      "PR #114 — Application leader/dev_unit + search 확장 + auth_login canonical challenge",
+      "PR #115 — Light theme + dropdown refactor + endpoints 통일 + standalone gate"
+    ],
+    "review_findings_landed": {
+      "pr_114": [
+        "P0-1 다른 브랜치 memory (gemini/260514-a/*) 제거",
+        "P0-2 infra/idp/{hydra,kratos}.docker.yaml 제거 (env-specific 자산)",
+        "P0-3 PR body 추적성 영향 섹션 채움",
+        "P1-4 migration 000020 leader_user_id ← owner_user_id backfill",
+        "P1-5 applicationsSearchPredicate const 추출"
+      ],
+      "pr_115": [
+        "P0-2 gemini/phase6 디렉터리 main 에서 복원",
+        "P0-3 PR body 추적성 영향 (N/A refactor) 명시",
+        "P1-4 theme FOUC: layout.tsx inline script + Header.tsx lazy init + ThemeToggle dead code 제거",
+        "P1-5 BACKEND_API_URL native default 복원",
+        "endpoints 통일 모듈 lib/config/endpoints.ts (사용자 요청 확장) + .env.example + gitignore 정합",
+        "E2E FAIL fix #1: output: standalone 을 NEXT_OUTPUT env gate",
+        "E2E FAIL fix #2: header-switch-view.spec.ts 의 TC-NAV-01/02/SIM-01 삭제 + TC-NAV-03 selector 갱신"
+      ]
+    },
+    "housekeeping": [
+      "main flat state.json head_commit / status / merged_prs_2026_05_14 (PR #112 추가) + merged_prs_2026_05_15 신규",
+      "main flat session_handoff.md 2026-05-15 EOD 섹션 + 본 sprint 핵심 결정 정리",
+      "main flat work_backlog.md 변경 이력 2건 추가 (PR #112 + 본 sprint)",
+      "본 sprint memory 디렉터리 신규 (state.json / session_handoff.md / work_backlog.md / backlog/2026-05-15.md)"
+    ]
+  },
+  "merged_prs": [
+    {"pr": 115, "merge_commit": "b669bc7", "merge_at": "2026-05-15T01:59:00Z"},
+    {"pr": 114, "merge_commit": "25f97ba", "merge_at": "2026-05-15T02:00:00Z"}
+  ],
+  "absorbed_prior_merges": [
+    {"pr": 112, "merge_commit": "3f387cd", "merge_at": "2026-05-14T09:03:48Z", "note": "flat memory 흡수 누락분"}
+  ],
+  "next_session_candidates": [
+    "frontend /admin/settings/applications UI 정교화 (PR #114 가 추가한 ApplicationCreationModal 등의 text-primary-foreground 직접 사용을 PR #115 token 정책으로 sweep)",
+    "ADR-0011 §4.2 enforceRowOwnership helper (pmo_manager 활성화)",
+    "critical_warning_count 임계치 외부화",
+    "Repository commit activity ingest",
+    "Project active→closed 가드 정책",
+    "M4 RM-M4-XX 본격 진입",
+    "traceability follow-up — TC-NAV-01/02/SIM-01 row 정리 + endpoints 모듈 도입 ARCH 정책 한 줄 명시"
+  ]
+}
