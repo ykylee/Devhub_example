@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -138,12 +139,29 @@ func (h *Handler) intakeDevRequest(c *gin.Context) {
 				return
 			}
 		}
-		// assignee FK violation 등 다른 conflict.
-		c.JSON(http.StatusConflict, gin.H{
-			"status": "rejected",
-			"error":  "assignee_user_id does not exist or idempotency conflict",
-			"code":   "dev_request_idempotency_conflict",
+		// assignee FK violation (assignee_user_id 가 존재하지 않는 user) 케이스 —
+		// REQ-FR-DREQ-002 의 'drop 안 함' 정책 위반 방지 (codex PR #124 review P1).
+		// migration 000025 가 assignee_user_id 를 NULLABLE 로 alter 했으므로
+		// assignee 를 NULL 로 두고 rejected (invalid_intake) row 를 재저장 → audit 보존.
+		dr.Status = domain.DevRequestStatusRejected
+		dr.AssigneeUserID = ""
+		dr.RejectedReason = combineRejectedReason(rejectedReason, "assignee_user_id not found")
+		created, err = storeI.CreateDevRequest(c.Request.Context(), dr)
+		if err != nil {
+			writeServerError(c, err, "dev_request.intake.create_rejected_fallback")
+			return
+		}
+		h.recordAuditBestEffort(c, "dev_request.received", "dev_request", created.ID, map[string]any{
+			"source_system":   sourceSystem,
+			"external_ref":    created.ExternalRef,
+			"status":          string(created.Status),
+			"assignee_user_id": "",
 		})
+		h.recordAuditBestEffort(c, "dev_request.rejected", "dev_request", created.ID, map[string]any{
+			"denied_reason":   "invalid_intake",
+			"rejected_reason": dr.RejectedReason,
+		})
+		c.JSON(http.StatusCreated, gin.H{"status": "ok", "data": devRequestResponse(created)})
 		return
 	}
 	if err != nil {
@@ -165,6 +183,16 @@ func (h *Handler) intakeDevRequest(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"status": "ok", "data": devRequestResponse(created)})
+}
+
+func combineRejectedReason(existing, extra string) string {
+	if existing == "" {
+		return extra
+	}
+	if extra == "" {
+		return existing
+	}
+	return existing + "; " + extra
 }
 
 func validateIntakeRequest(req createDevRequestRequest) string {
@@ -195,10 +223,30 @@ func (h *Handler) listDevRequests(c *gin.Context) {
 		return
 	}
 
+	// limit/offset 파싱 (codex PR #124 review P2). 기본 50, 최대 100 clamp.
+	limit := 50
+	if raw := c.Query("limit"); raw != "" {
+		if n, err := strconv.Atoi(raw); err == nil {
+			if n < 1 {
+				n = 1
+			}
+			if n > 100 {
+				n = 100
+			}
+			limit = n
+		}
+	}
+	offset := 0
+	if raw := c.Query("offset"); raw != "" {
+		if n, err := strconv.Atoi(raw); err == nil && n >= 0 {
+			offset = n
+		}
+	}
 	opts := store.DevRequestListOptions{
 		AssigneeUserID: c.Query("assignee_user_id"),
 		SourceSystem:   c.Query("source_system"),
-		Limit:          50,
+		Limit:          limit,
+		Offset:         offset,
 	}
 	if raw := c.Query("status"); raw != "" {
 		for _, s := range strings.Split(raw, ",") {

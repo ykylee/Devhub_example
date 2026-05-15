@@ -63,7 +63,7 @@ export function MyPendingDevRequestsWidget() {
           </div>
         </div>
         <Link
-          href="/admin/settings/dev-requests"
+          href="/dev-requests"
           className="flex items-center gap-1 text-[10px] font-black text-orange-400 hover:text-orange-300 uppercase tracking-widest"
         >
           전체 보기 <ArrowRight className="w-3 h-3" />
@@ -94,7 +94,7 @@ export function MyPendingDevRequestsWidget() {
           {items.map((dr) => (
             <li key={dr.id}>
               <Link
-                href="/admin/settings/dev-requests"
+                href="/dev-requests"
                 className="flex items-center gap-3 p-3 rounded-2xl bg-muted/20 border border-border/40 hover:bg-muted/30 hover:border-orange-500/30 transition-all group"
               >
                 <div className="flex-1 min-w-0">
