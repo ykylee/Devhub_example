@@ -456,8 +456,11 @@ func TestReassignDevRequest_Happy(t *testing.T) {
 // --- intake auth middleware unit-level smoke ---
 
 type fakeIntakeTokenStore struct {
-	rows    map[string]domain.DevRequestIntakeToken
-	touched []string
+	rows      map[string]domain.DevRequestIntakeToken // keyed by hashed_token
+	byID      map[string]string                       // token_id → hashed_token (for byID lookups)
+	touched   []string
+	nextID    int
+	failCreate bool
 }
 
 var _ IntakeTokenStore = (*fakeIntakeTokenStore)(nil)
@@ -472,6 +475,49 @@ func (f *fakeIntakeTokenStore) LookupDevRequestIntakeToken(_ context.Context, ha
 func (f *fakeIntakeTokenStore) MarkDevRequestIntakeTokenUsed(_ context.Context, tokenID string) error {
 	f.touched = append(f.touched, tokenID)
 	return nil
+}
+
+func (f *fakeIntakeTokenStore) CreateDevRequestIntakeToken(_ context.Context, tok domain.DevRequestIntakeToken) (domain.DevRequestIntakeToken, error) {
+	if f.failCreate {
+		return domain.DevRequestIntakeToken{}, store.ErrConflict
+	}
+	if f.rows == nil {
+		f.rows = map[string]domain.DevRequestIntakeToken{}
+	}
+	if f.byID == nil {
+		f.byID = map[string]string{}
+	}
+	if _, dup := f.rows[tok.HashedToken]; dup {
+		return domain.DevRequestIntakeToken{}, store.ErrConflict
+	}
+	f.nextID++
+	tok.TokenID = "tok-" + itoa(f.nextID)
+	tok.CreatedAt = time.Now().UTC()
+	f.rows[tok.HashedToken] = tok
+	f.byID[tok.TokenID] = tok.HashedToken
+	return tok, nil
+}
+
+func (f *fakeIntakeTokenStore) ListDevRequestIntakeTokens(_ context.Context) ([]domain.DevRequestIntakeToken, error) {
+	out := make([]domain.DevRequestIntakeToken, 0, len(f.rows))
+	for _, row := range f.rows {
+		out = append(out, row)
+	}
+	return out, nil
+}
+
+func (f *fakeIntakeTokenStore) RevokeDevRequestIntakeToken(_ context.Context, tokenID string) (domain.DevRequestIntakeToken, error) {
+	hashed, ok := f.byID[tokenID]
+	if !ok {
+		return domain.DevRequestIntakeToken{}, store.ErrNotFound
+	}
+	row := f.rows[hashed]
+	if row.RevokedAt == nil {
+		now := time.Now().UTC()
+		row.RevokedAt = &now
+		f.rows[hashed] = row
+	}
+	return row, nil
 }
 
 func TestIntakeAuth_MissingHeaderDenies(t *testing.T) {
@@ -901,6 +947,224 @@ func TestRegisterDevRequest_PromoteApp_RejectedReasonClearedOnReopen(t *testing.
 	// 본 test 는 handler path 가 정상 200 응답하는지만 가드. SQL 의 rejected_reason=NULL 은 integration 테스트의 대상.
 	if !bytes.Contains(rec.Body.Bytes(), []byte(`"status":"registered"`)) {
 		t.Errorf("expected status=registered: %s", rec.Body.String())
+	}
+}
+
+// --- DREQ-Admin-UI backend (sprint claude/work_260515-o, ADR-0014) admin handler tests ---
+
+func newIntakeAdminRouter(s IntakeTokenStore, audits AuditStore) http.Handler {
+	return NewRouter(RouterConfig{
+		DevRequestIntakeTokenStore: s,
+		AuditStore:                 audits,
+		AuthDevFallback:            true,
+	})
+}
+
+func TestCreateDevRequestIntakeToken_Happy(t *testing.T) {
+	s := &fakeIntakeTokenStore{}
+	audits := &memoryAuditStore{}
+	router := newIntakeAdminRouter(s, audits)
+
+	body := `{"client_label":"ops_portal","source_system":"ops","allowed_ips":["192.0.2.0/24","198.51.100.7"]}`
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/dev-request-tokens", body)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("code=%d body=%s", rec.Code, rec.Body.String())
+	}
+	// plain_token 은 1회 노출.
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"plain_token"`)) {
+		t.Errorf("expected plain_token in response: %s", rec.Body.String())
+	}
+	// hashed_token 은 절대 응답에 노출되지 않음.
+	if bytes.Contains(rec.Body.Bytes(), []byte(`"hashed_token"`)) {
+		t.Errorf("hashed_token must not be exposed: %s", rec.Body.String())
+	}
+	if len(s.rows) != 1 {
+		t.Errorf("expected 1 stored token, got %d", len(s.rows))
+	}
+	// store 에 plain 은 절대 저장 안 됨 — hashed 만.
+	for hashed, row := range s.rows {
+		if len(hashed) != 64 { // SHA-256 hex = 64 chars
+			t.Errorf("hashed_token must be sha256 hex (64), got len=%d", len(hashed))
+		}
+		if row.ClientLabel != "ops_portal" {
+			t.Errorf("client_label mismatch: %+v", row)
+		}
+		if len(row.AllowedIPs) != 2 {
+			t.Errorf("allowed_ips canonical len mismatch: %+v", row.AllowedIPs)
+		}
+	}
+	// audit: token.issued (plain 미포함)
+	gotAudit := false
+	for _, l := range audits.logs {
+		if l.Action == "dev_request_intake_token.issued" {
+			gotAudit = true
+			for k, v := range l.Payload {
+				if _, ok := v.(string); ok && k == "plain_token" {
+					t.Errorf("audit must not carry plain_token")
+				}
+			}
+		}
+	}
+	if !gotAudit {
+		t.Errorf("expected dev_request_intake_token.issued audit, got %+v", audits.logs)
+	}
+}
+
+func TestCreateDevRequestIntakeToken_RejectsMissingClientLabel(t *testing.T) {
+	router := newIntakeAdminRouter(&fakeIntakeTokenStore{}, &memoryAuditStore{})
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/dev-request-tokens",
+		`{"source_system":"ops","allowed_ips":["192.0.2.1"]}`)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, code=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestCreateDevRequestIntakeToken_RejectsMissingSourceSystem(t *testing.T) {
+	router := newIntakeAdminRouter(&fakeIntakeTokenStore{}, &memoryAuditStore{})
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/dev-request-tokens",
+		`{"client_label":"ops","allowed_ips":["192.0.2.1"]}`)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, code=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestCreateDevRequestIntakeToken_RejectsEmptyAllowedIPs(t *testing.T) {
+	router := newIntakeAdminRouter(&fakeIntakeTokenStore{}, &memoryAuditStore{})
+	// deny-by-default — 빈 allowlist 는 production 에서 모든 caller 차단이므로 admin 단계에서 거절.
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/dev-request-tokens",
+		`{"client_label":"ops","source_system":"ops","allowed_ips":[]}`)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, code=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"code":"invalid_allowed_ips"`)) {
+		t.Errorf("expected invalid_allowed_ips: %s", rec.Body.String())
+	}
+}
+
+func TestCreateDevRequestIntakeToken_RejectsInvalidCIDR(t *testing.T) {
+	router := newIntakeAdminRouter(&fakeIntakeTokenStore{}, &memoryAuditStore{})
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/dev-request-tokens",
+		`{"client_label":"ops","source_system":"ops","allowed_ips":["not-a-cidr/8"]}`)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, code=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"code":"invalid_allowed_ips"`)) {
+		t.Errorf("expected invalid_allowed_ips: %s", rec.Body.String())
+	}
+}
+
+func TestListDevRequestIntakeTokens_ExcludesHashedToken(t *testing.T) {
+	s := &fakeIntakeTokenStore{}
+	// seed: 1 issued, 1 revoked.
+	_, _ = s.CreateDevRequestIntakeToken(context.Background(), domain.DevRequestIntakeToken{
+		ClientLabel: "ops_a", HashedToken: "h-aaaa", AllowedIPs: []string{"192.0.2.1"}, SourceSystem: "ops_a", CreatedBy: "system",
+	})
+	_, _ = s.CreateDevRequestIntakeToken(context.Background(), domain.DevRequestIntakeToken{
+		ClientLabel: "ops_b", HashedToken: "h-bbbb", AllowedIPs: []string{"192.0.2.2"}, SourceSystem: "ops_b", CreatedBy: "system",
+	})
+
+	router := newIntakeAdminRouter(s, &memoryAuditStore{})
+	rec := doJSON(t, router, http.MethodGet, "/api/v1/dev-request-tokens", "")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("code=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if bytes.Contains(rec.Body.Bytes(), []byte(`"hashed_token"`)) {
+		t.Errorf("list must not expose hashed_token: %s", rec.Body.String())
+	}
+	if bytes.Contains(rec.Body.Bytes(), []byte(`"plain_token"`)) {
+		t.Errorf("list must never carry plain_token: %s", rec.Body.String())
+	}
+}
+
+func TestRevokeDevRequestIntakeToken_Happy(t *testing.T) {
+	s := &fakeIntakeTokenStore{}
+	tok, _ := s.CreateDevRequestIntakeToken(context.Background(), domain.DevRequestIntakeToken{
+		ClientLabel: "ops", HashedToken: "h-x", AllowedIPs: []string{"192.0.2.1"}, SourceSystem: "ops", CreatedBy: "system",
+	})
+
+	audits := &memoryAuditStore{}
+	router := newIntakeAdminRouter(s, audits)
+	rec := doJSON(t, router, http.MethodDelete, "/api/v1/dev-request-tokens/"+tok.TokenID, "")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("code=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"revoked_at"`)) {
+		t.Errorf("expected revoked_at in response: %s", rec.Body.String())
+	}
+	// store 에 revoked_at 채워졌는지 확인.
+	if s.rows["h-x"].RevokedAt == nil {
+		t.Errorf("store row revoked_at must be set")
+	}
+	// audit 발급.
+	gotAudit := false
+	for _, l := range audits.logs {
+		if l.Action == "dev_request_intake_token.revoked" {
+			gotAudit = true
+		}
+	}
+	if !gotAudit {
+		t.Errorf("expected dev_request_intake_token.revoked audit, got %+v", audits.logs)
+	}
+}
+
+func TestRevokeDevRequestIntakeToken_Idempotent(t *testing.T) {
+	s := &fakeIntakeTokenStore{}
+	tok, _ := s.CreateDevRequestIntakeToken(context.Background(), domain.DevRequestIntakeToken{
+		ClientLabel: "ops", HashedToken: "h-x", AllowedIPs: []string{"192.0.2.1"}, SourceSystem: "ops", CreatedBy: "system",
+	})
+	router := newIntakeAdminRouter(s, &memoryAuditStore{})
+	first := doJSON(t, router, http.MethodDelete, "/api/v1/dev-request-tokens/"+tok.TokenID, "")
+	if first.Code != http.StatusOK {
+		t.Fatalf("first revoke code=%d body=%s", first.Code, first.Body.String())
+	}
+	firstRevokedAt := s.rows["h-x"].RevokedAt
+	second := doJSON(t, router, http.MethodDelete, "/api/v1/dev-request-tokens/"+tok.TokenID, "")
+	if second.Code != http.StatusOK {
+		t.Fatalf("second revoke code=%d body=%s", second.Code, second.Body.String())
+	}
+	// revoked_at 이 변하지 않아야 (COALESCE 동작 정합).
+	if s.rows["h-x"].RevokedAt != firstRevokedAt {
+		t.Errorf("revoked_at must be idempotent across calls")
+	}
+}
+
+func TestRevokeDevRequestIntakeToken_NotFound(t *testing.T) {
+	router := newIntakeAdminRouter(&fakeIntakeTokenStore{}, &memoryAuditStore{})
+	rec := doJSON(t, router, http.MethodDelete, "/api/v1/dev-request-tokens/tok-ghost", "")
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, code=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestIntakeTokenAdmin_RoutePoliciesSystemAdminOnly(t *testing.T) {
+	// routePermissionTable 의 신규 3 endpoint 가 dev_request_intake_tokens resource 로
+	// 등록되어 있고 DefaultPermissionMatrix 에서 system_admin 만 true 인지 가드.
+	for _, tc := range []struct {
+		method, path string
+		action       domain.Action
+	}{
+		{http.MethodPost, "/api/v1/dev-request-tokens", domain.ActionCreate},
+		{http.MethodGet, "/api/v1/dev-request-tokens", domain.ActionView},
+		{http.MethodDelete, "/api/v1/dev-request-tokens/:token_id", domain.ActionDelete},
+	} {
+		policy, ok := lookupRoutePolicy(tc.method, tc.path)
+		if !ok {
+			t.Errorf("%s %s must exist in routePermissionTable", tc.method, tc.path)
+			continue
+		}
+		if policy.Resource != domain.ResourceDevRequestIntakeTokens || policy.Action != tc.action {
+			t.Errorf("%s %s policy mismatch: %+v", tc.method, tc.path, policy)
+		}
+		for _, role := range []string{"developer", "manager", "pmo_manager"} {
+			matrix, _ := domain.DefaultPermissionMatrix(role)
+			if domain.Allows(matrix, policy.Resource, policy.Action) {
+				t.Errorf("role=%s must NOT allow %s on %s", role, tc.action, policy.Resource)
+			}
+		}
+		matrixAdmin, _ := domain.DefaultPermissionMatrix("system_admin")
+		if !domain.Allows(matrixAdmin, policy.Resource, policy.Action) {
+			t.Errorf("system_admin must allow %s on %s", tc.action, policy.Resource)
+		}
 	}
 }
 

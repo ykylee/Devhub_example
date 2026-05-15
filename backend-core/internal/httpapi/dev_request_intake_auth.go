@@ -14,11 +14,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// IntakeTokenStore는 DREQ 외부 수신 토큰의 lookup/touch 인터페이스.
-// ADR-0012 §4.1.1 / §4.1.2 의 검증 흐름을 store layer 에 위임.
+// IntakeTokenStore는 DREQ 외부 수신 토큰의 lookup/touch + admin CRUD 인터페이스.
+// ADR-0012 §4.1.1 / §4.1.2 의 인증 검증 흐름 (Lookup / MarkUsed) + ADR-0014 의 admin
+// CRUD (Create / List / Revoke) 를 store layer 에 위임. plain token 자체는 절대
+// 저장하지 않으며 caller (handler) 가 SHA-256 hex 로 hash 한 뒤 Create 호출한다.
 type IntakeTokenStore interface {
 	LookupDevRequestIntakeToken(ctx context.Context, hashedToken string) (domain.DevRequestIntakeToken, error)
 	MarkDevRequestIntakeTokenUsed(ctx context.Context, tokenID string) error
+	CreateDevRequestIntakeToken(ctx context.Context, tok domain.DevRequestIntakeToken) (domain.DevRequestIntakeToken, error)
+	ListDevRequestIntakeTokens(ctx context.Context) ([]domain.DevRequestIntakeToken, error)
+	RevokeDevRequestIntakeToken(ctx context.Context, tokenID string) (domain.DevRequestIntakeToken, error)
 }
 
 // 컨텍스트 키 — DREQ intake 인증 통과 시 토큰의 source_system 매핑값을 핸들러에 전달.
