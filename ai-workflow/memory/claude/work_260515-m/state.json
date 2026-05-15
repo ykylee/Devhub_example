@@ -1,0 +1,53 @@
+{
+  "schema_version": "1",
+  "branch": "claude/work_260515-m",
+  "base": "main @ efec655 (PR #127 머지 직후, 2026-05-15 final EOD housekeeping)",
+  "updated_at": "2026-05-15T08:30:00Z",
+  "status": "in_progress (PR open 대기)",
+  "purpose": "2026-05-15 후속 세션 sprint 1. DREQ carve out 4건 묶음의 1번째 — DREQ-RBAC-ADR + DREQ-Promote-Tx 한 PR.",
+  "carve_out_position": "1/4 — RBAC-ADR + Promote-Tx",
+  "remaining_carve_outs": [
+    "2/4 DREQ-Admin-UI — intake token 발급/revoke admin endpoint + admin page",
+    "3/4 DREQ-E2E — Playwright + Vitest (TC-DREQ-* 발급)"
+  ],
+  "deliverables": {
+    "adr_0013": {
+      "file": "docs/adr/0013-dreq-rbac-row-scoping.md",
+      "status": "accepted",
+      "summary": "dev_requests resource 의 RBAC row-scoping 정책 사후 명문화. ADR-0011 §4.2 helper 의 dev_requests resource 적용 사례. handler wire-up 은 PR #124 (sprint i) 에서 이미 도입."
+    },
+    "promote_tx": {
+      "store_file": "backend-core/internal/store/dev_requests_promote.go",
+      "methods": [
+        "RegisterDevRequestWithNewApplication — pool.BeginTx + INSERT applications (+ optional application_repositories) + UPDATE dev_requests + Commit",
+        "RegisterDevRequestWithNewProject — pool.BeginTx + INSERT projects + UPDATE dev_requests + Commit"
+      ],
+      "handler_changes": "registerDevRequest 분기 — target_id (legacy) / application_payload / project_payload 셋 중 하나만. 둘 이상 또는 모두 비우면 400 dev_request_register_payload_invalid.",
+      "shared_const": "applications.go 의 INSERT SQL 들을 const (applicationsInsertQuery / projectsInsertQuery / applicationRepositoriesInsertQuery) 로 분리하여 CreateApplication 등 기존 메서드와 새 트랜잭션 메서드가 공유 — SQL drift 방지."
+    },
+    "tests": {
+      "new_unit_tests": [
+        "TestRegisterDevRequest_NewApplicationHappy",
+        "TestRegisterDevRequest_NewApplicationWithPrimaryRepo",
+        "TestRegisterDevRequest_NewProjectHappy",
+        "TestRegisterDevRequest_PayloadMutualExclusion (3 cases)",
+        "TestRegisterDevRequest_NewApplicationFKConflict — rollback semantics: 0 created apps + dev_request still pending",
+        "TestRegisterDevRequest_LegacyTargetIDStillSupported"
+      ],
+      "memoryDevRequestStore_extended": "knownUsers/knownRepoIDs/knownDevUnits + createdApps/createdProjects/createdRepoLinks slices for assertion; FK-style validation mirrors Postgres",
+      "result": "go test ./... PASS (전체 backend-core)"
+    },
+    "docs": {
+      "backend_api_contract": "API-62 spec 갱신 — mutual exclusion (target_id / application_payload / project_payload) + 단일 tx 효과 + 신규/legacy 응답 body + 신규 에러 코드 dev_request_register_payload_invalid",
+      "traceability_report": "§3 Dev Request row IMPL 컬럼 갱신 (IMPL-dreq-promote_tx-01) + §4 ADR-0013 row 추가",
+      "development_roadmap": "M5 §3 의 DREQ entry — Promote-Tx + RBAC-ADR 완료 표기 + 다음 carve out (Admin-UI / E2E) 표시"
+    }
+  },
+  "decisions_log": [
+    "INSERT SQL 을 const 로 추출 (applications.go) — 트랜잭션 메서드와 기존 메서드가 같은 SQL 사용. drift 방지.",
+    "payload mutual exclusion → 400 (둘 이상 채우거나 모두 비움) — code=dev_request_register_payload_invalid.",
+    "신규 생성 path 의 audit: application.created (or project.created) + dev_request.registered with payload.created=true. legacy path 는 dev_request.registered + payload.created=false.",
+    "application_payload.primary_repo 는 optional — 함께 application_repositories 1행 (role=primary 또는 caller 명시 role) INSERT.",
+    "store 메서드 시그니처: 결과로 (DevRequest, Application/Project, error) 3-tuple — caller (handler) 가 audit 에 신규 entity id 와 응답 body 둘 다 필요."
+  ]
+}

@@ -14,6 +14,10 @@ import (
 )
 
 // DevRequestStore는 dev_requests row CRUD interface. ARCH-DREQ-05 / API §14.
+// RegisterDevRequestWithNew* 두 메서드는 신규 application/project 생성 + dev_request
+// 상태 갱신을 단일 트랜잭션으로 수행한다 (REQ-FR-DREQ-005, ADR-0013 §5, sprint
+// claude/work_260515-m). 기존 MarkDevRequestRegistered 는 legacy "기존 target_id
+// 매핑" path 에서 그대로 사용한다.
 type DevRequestStore interface {
 	CreateDevRequest(ctx context.Context, dr domain.DevRequest) (domain.DevRequest, error)
 	GetDevRequest(ctx context.Context, id string) (domain.DevRequest, error)
@@ -22,6 +26,8 @@ type DevRequestStore interface {
 	TransitionDevRequestStatus(ctx context.Context, id string, to domain.DevRequestStatus, rejectedReason string) (domain.DevRequest, error)
 	ReassignDevRequest(ctx context.Context, id, newAssigneeUserID string) (domain.DevRequest, error)
 	MarkDevRequestRegistered(ctx context.Context, id string, targetType domain.DevRequestTargetType, targetID string) (domain.DevRequest, error)
+	RegisterDevRequestWithNewApplication(ctx context.Context, drID string, app domain.Application, primaryRepo *domain.ApplicationRepository) (domain.DevRequest, domain.Application, error)
+	RegisterDevRequestWithNewProject(ctx context.Context, drID string, project domain.Project) (domain.DevRequest, domain.Project, error)
 }
 
 func (h *Handler) devRequestStoreOrUnavailable(c *gin.Context) (DevRequestStore, bool) {
@@ -312,15 +318,58 @@ func (h *Handler) getDevRequest(c *gin.Context) {
 
 // --- API-62: POST /api/v1/dev-requests/:id/register (Promote) ---
 
+// registerDevRequestRequest accepts one of two mutually-exclusive payload shapes:
+//
+//  1. legacy "기존 target_id 매핑" — caller supplies `target_id` referring to an
+//     already-existing Application/Project row. handler calls
+//     MarkDevRequestRegistered (no transaction).
+//  2. new "promote + create" — caller supplies `application_payload` or
+//     `project_payload` (matching the field's target_type). handler calls the
+//     transactional store method which creates the target and flips the
+//     dev_request row to status='registered' atomically (REQ-FR-DREQ-005,
+//     ADR-0013 §5).
+//
+// 둘 다 채우거나 둘 다 비우면 400. application_payload + target_type='project'
+// (또는 그 반대) 와 같은 mismatch 도 400.
 type registerDevRequestRequest struct {
-	TargetType string `json:"target_type"` // "application" | "project"
-	// target_payload 는 application/project handler 의 요청 schema 와 동일.
-	// 본 sprint 는 단순 매핑으로 구현 — target_id 를 직접 받는 경량 형태 채택.
-	// 이상적으로는 target 신규 생성을 트랜잭션으로 묶지만 (REQ-FR-DREQ-005), 본
-	// sprint 는 ApplicationStore / DevRequestStore 두 인터페이스 사이 트랜잭션
-	// 분리 한계로 *기존* application/project id 를 매핑하는 흐름으로 1차 구현.
-	// 신규 생성 + 단일 트랜잭션은 carve out (DREQ-Backend follow-up).
-	TargetID string `json:"target_id"`
+	TargetType         string                          `json:"target_type"` // "application" | "project"
+	TargetID           string                          `json:"target_id,omitempty"`
+	ApplicationPayload *registerApplicationPayload     `json:"application_payload,omitempty"`
+	ProjectPayload     *registerProjectPayload         `json:"project_payload,omitempty"`
+}
+
+type registerApplicationPayload struct {
+	Key               string                          `json:"key"`
+	Name              string                          `json:"name"`
+	Description       string                          `json:"description"`
+	OwnerUserID       string                          `json:"owner_user_id"`
+	LeaderUserID      string                          `json:"leader_user_id"`
+	DevelopmentUnitID string                          `json:"development_unit_id"`
+	StartDate         string                          `json:"start_date"`
+	DueDate           string                          `json:"due_date"`
+	Visibility        string                          `json:"visibility"`
+	Status            string                          `json:"status"`
+	PrimaryRepo       *registerPrimaryRepoPayload     `json:"primary_repo,omitempty"`
+}
+
+type registerPrimaryRepoPayload struct {
+	RepoProvider   string `json:"repo_provider"`
+	RepoFullName   string `json:"repo_full_name"`
+	ExternalRepoID string `json:"external_repo_id"`
+	Role           string `json:"role"`
+}
+
+type registerProjectPayload struct {
+	ApplicationID string `json:"application_id"` // optional
+	RepositoryID  int64  `json:"repository_id"`  // required FK
+	Key           string `json:"key"`
+	Name          string `json:"name"`
+	Description   string `json:"description"`
+	OwnerUserID   string `json:"owner_user_id"`
+	StartDate     string `json:"start_date"`
+	DueDate       string `json:"due_date"`
+	Visibility    string `json:"visibility"`
+	Status        string `json:"status"`
 }
 
 func (h *Handler) registerDevRequest(c *gin.Context) {
@@ -343,11 +392,42 @@ func (h *Handler) registerDevRequest(c *gin.Context) {
 		})
 		return
 	}
-	if strings.TrimSpace(req.TargetID) == "" {
+
+	// Mutual exclusion: exactly one of target_id / application_payload / project_payload.
+	hasLegacyID := strings.TrimSpace(req.TargetID) != ""
+	hasAppPayload := req.ApplicationPayload != nil
+	hasProjectPayload := req.ProjectPayload != nil
+	payloadCount := 0
+	if hasLegacyID {
+		payloadCount++
+	}
+	if hasAppPayload {
+		payloadCount++
+	}
+	if hasProjectPayload {
+		payloadCount++
+	}
+	if payloadCount != 1 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status": "rejected",
-			"error":  "target_id is required",
-			"code":   "dev_request_register_target_invalid",
+			"error":  "exactly one of target_id / application_payload / project_payload is required",
+			"code":   "dev_request_register_payload_invalid",
+		})
+		return
+	}
+	if hasAppPayload && targetType != domain.DevRequestTargetApplication {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": "rejected",
+			"error":  "application_payload requires target_type='application'",
+			"code":   "dev_request_register_payload_invalid",
+		})
+		return
+	}
+	if hasProjectPayload && targetType != domain.DevRequestTargetProject {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": "rejected",
+			"error":  "project_payload requires target_type='project'",
+			"code":   "dev_request_register_payload_invalid",
 		})
 		return
 	}
@@ -373,14 +453,28 @@ func (h *Handler) registerDevRequest(c *gin.Context) {
 		return
 	}
 
-	updated, err := storeI.MarkDevRequestRegistered(c.Request.Context(), id, targetType, req.TargetID)
+	switch {
+	case hasLegacyID:
+		h.registerDevRequestLegacy(c, storeI, id, targetType, req.TargetID)
+	case hasAppPayload:
+		h.registerDevRequestWithNewApplication(c, storeI, id, req.ApplicationPayload)
+	case hasProjectPayload:
+		h.registerDevRequestWithNewProject(c, storeI, id, req.ProjectPayload)
+	}
+}
+
+// registerDevRequestLegacy is the pre-Promote-Tx path: caller maps the dev_request to
+// an already-existing Application/Project. Single UPDATE on dev_requests only.
+func (h *Handler) registerDevRequestLegacy(c *gin.Context, storeI DevRequestStore, drID string, targetType domain.DevRequestTargetType, targetID string) {
+	updated, err := storeI.MarkDevRequestRegistered(c.Request.Context(), drID, targetType, targetID)
 	if err != nil {
 		writeServerError(c, err, "dev_request.register.mark")
 		return
 	}
-	h.recordAuditBestEffort(c, "dev_request.registered", "dev_request", id, map[string]any{
+	h.recordAuditBestEffort(c, "dev_request.registered", "dev_request", drID, map[string]any{
 		"target_type": string(targetType),
-		"target_id":   req.TargetID,
+		"target_id":   targetID,
+		"created":     false,
 	})
 	c.JSON(http.StatusOK, gin.H{
 		"status": "ok",
@@ -388,7 +482,222 @@ func (h *Handler) registerDevRequest(c *gin.Context) {
 			"dev_request": devRequestResponse(updated),
 			"registered_target": gin.H{
 				"target_type": string(targetType),
-				"target_id":   req.TargetID,
+				"target_id":   targetID,
+				"created":     false,
+			},
+		},
+	})
+}
+
+// registerDevRequestWithNewApplication invokes the transactional store method that
+// (1) inserts a new Application, (2) optionally links one primary repository, and
+// (3) flips the dev_request row to status='registered' — all atomically.
+func (h *Handler) registerDevRequestWithNewApplication(c *gin.Context, storeI DevRequestStore, drID string, p *registerApplicationPayload) {
+	if !applicationKeyPattern.MatchString(p.Key) {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"status": "rejected",
+			"error":  "application_payload.key must match ^[A-Za-z0-9]{10}$",
+			"code":   "invalid_application_key",
+		})
+		return
+	}
+	if strings.TrimSpace(p.Name) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "application_payload.name is required"})
+		return
+	}
+	if strings.TrimSpace(p.OwnerUserID) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "application_payload.owner_user_id is required"})
+		return
+	}
+	if strings.TrimSpace(p.LeaderUserID) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "application_payload.leader_user_id is required"})
+		return
+	}
+	if strings.TrimSpace(p.DevelopmentUnitID) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "application_payload.development_unit_id is required"})
+		return
+	}
+	if !validApplicationVisibilities[p.Visibility] {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "application_payload.visibility must be one of public/internal/restricted"})
+		return
+	}
+	if !validApplicationStatuses[p.Status] {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "application_payload.status must be one of planning/active/on_hold/closed/archived"})
+		return
+	}
+	startDate, err := parseDate(p.StartDate)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "application_payload.start_date must be YYYY-MM-DD"})
+		return
+	}
+	dueDate, err := parseDate(p.DueDate)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "application_payload.due_date must be YYYY-MM-DD"})
+		return
+	}
+	app := domain.Application{
+		Key:               p.Key,
+		Name:              p.Name,
+		Description:       p.Description,
+		Status:            domain.ApplicationStatus(p.Status),
+		Visibility:        domain.ApplicationVisibility(p.Visibility),
+		OwnerUserID:       p.OwnerUserID,
+		LeaderUserID:      p.LeaderUserID,
+		DevelopmentUnitID: p.DevelopmentUnitID,
+		StartDate:         startDate,
+		DueDate:           dueDate,
+	}
+	var primaryRepo *domain.ApplicationRepository
+	if p.PrimaryRepo != nil {
+		if strings.TrimSpace(p.PrimaryRepo.RepoProvider) == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "primary_repo.repo_provider is required"})
+			return
+		}
+		if strings.TrimSpace(p.PrimaryRepo.RepoFullName) == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "primary_repo.repo_full_name is required"})
+			return
+		}
+		role := p.PrimaryRepo.Role
+		if strings.TrimSpace(role) == "" {
+			role = string(domain.ApplicationRepositoryRolePrimary)
+		}
+		primaryRepo = &domain.ApplicationRepository{
+			RepoProvider:   p.PrimaryRepo.RepoProvider,
+			RepoFullName:   p.PrimaryRepo.RepoFullName,
+			ExternalRepoID: p.PrimaryRepo.ExternalRepoID,
+			Role:           domain.ApplicationRepositoryRole(role),
+			SyncStatus:     domain.SyncStatusRequested,
+		}
+	}
+
+	updatedDR, createdApp, err := storeI.RegisterDevRequestWithNewApplication(c.Request.Context(), drID, app, primaryRepo)
+	if errors.Is(err, store.ErrConflict) {
+		c.JSON(http.StatusConflict, gin.H{
+			"status": "conflict",
+			"error":  "application key conflict or referenced owner/leader/development_unit not found",
+			"code":   "application_key_conflict",
+		})
+		return
+	}
+	if errors.Is(err, store.ErrNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "dev_request not found"})
+		return
+	}
+	if err != nil {
+		writeServerError(c, err, "dev_request.register.promote_application")
+		return
+	}
+	h.recordAuditBestEffort(c, "application.created", "application", createdApp.ID, map[string]any{
+		"key":              createdApp.Key,
+		"status":           string(createdApp.Status),
+		"via_dev_request":  drID,
+	})
+	h.recordAuditBestEffort(c, "dev_request.registered", "dev_request", drID, map[string]any{
+		"target_type": string(domain.DevRequestTargetApplication),
+		"target_id":   createdApp.ID,
+		"created":     true,
+	})
+	c.JSON(http.StatusOK, gin.H{
+		"status": "ok",
+		"data": gin.H{
+			"dev_request": devRequestResponse(updatedDR),
+			"registered_target": gin.H{
+				"target_type": string(domain.DevRequestTargetApplication),
+				"target_id":   createdApp.ID,
+				"created":     true,
+				"application": applicationResponse(createdApp),
+			},
+		},
+	})
+}
+
+// registerDevRequestWithNewProject invokes the transactional store method that
+// (1) inserts a new Project and (2) flips the dev_request row to status='registered'
+// — all atomically.
+func (h *Handler) registerDevRequestWithNewProject(c *gin.Context, storeI DevRequestStore, drID string, p *registerProjectPayload) {
+	if p.RepositoryID == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "project_payload.repository_id is required"})
+		return
+	}
+	if strings.TrimSpace(p.Key) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "project_payload.key is required"})
+		return
+	}
+	if strings.TrimSpace(p.Name) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "project_payload.name is required"})
+		return
+	}
+	if strings.TrimSpace(p.OwnerUserID) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "project_payload.owner_user_id is required"})
+		return
+	}
+	if !validApplicationVisibilities[p.Visibility] {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "project_payload.visibility must be one of public/internal/restricted"})
+		return
+	}
+	if !validApplicationStatuses[p.Status] {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "project_payload.status must be one of planning/active/on_hold/closed/archived"})
+		return
+	}
+	startDate, err := parseDate(p.StartDate)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "project_payload.start_date must be YYYY-MM-DD"})
+		return
+	}
+	dueDate, err := parseDate(p.DueDate)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "project_payload.due_date must be YYYY-MM-DD"})
+		return
+	}
+	project := domain.Project{
+		ApplicationID: p.ApplicationID,
+		RepositoryID:  p.RepositoryID,
+		Key:           p.Key,
+		Name:          p.Name,
+		Description:   p.Description,
+		Status:        domain.ApplicationStatus(p.Status),
+		Visibility:    domain.ApplicationVisibility(p.Visibility),
+		OwnerUserID:   p.OwnerUserID,
+		StartDate:     startDate,
+		DueDate:       dueDate,
+	}
+	updatedDR, createdProject, err := storeI.RegisterDevRequestWithNewProject(c.Request.Context(), drID, project)
+	if errors.Is(err, store.ErrConflict) {
+		c.JSON(http.StatusConflict, gin.H{
+			"status": "conflict",
+			"error":  "project key conflict or referenced application/repository not found",
+			"code":   "project_key_conflict",
+		})
+		return
+	}
+	if errors.Is(err, store.ErrNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "dev_request not found"})
+		return
+	}
+	if err != nil {
+		writeServerError(c, err, "dev_request.register.promote_project")
+		return
+	}
+	h.recordAuditBestEffort(c, "project.created", "project", createdProject.ID, map[string]any{
+		"key":              createdProject.Key,
+		"repository_id":    createdProject.RepositoryID,
+		"status":           string(createdProject.Status),
+		"via_dev_request":  drID,
+	})
+	h.recordAuditBestEffort(c, "dev_request.registered", "dev_request", drID, map[string]any{
+		"target_type": string(domain.DevRequestTargetProject),
+		"target_id":   createdProject.ID,
+		"created":     true,
+	})
+	c.JSON(http.StatusOK, gin.H{
+		"status": "ok",
+		"data": gin.H{
+			"dev_request": devRequestResponse(updatedDR),
+			"registered_target": gin.H{
+				"target_type": string(domain.DevRequestTargetProject),
+				"target_id":   createdProject.ID,
+				"created":     true,
+				"project":     projectResponse(createdProject),
 			},
 		},
 	})

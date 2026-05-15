@@ -193,18 +193,22 @@ func (s *PostgresStore) GetApplicationByKey(ctx context.Context, key string) (do
 	return app, nil
 }
 
-func (s *PostgresStore) CreateApplication(ctx context.Context, app domain.Application) (domain.Application, error) {
-	// PR #110 integration test fail #1 정정 (sprint claude/work_260514-f) —
-	// status='archived' 로 직접 생성 시 archived_at 자동 채움. CHECK
-	// applications_archived_consistency 위반 회피. UpdateApplication 의 archived_at
-	// 자동 갱신 패턴 (CASE WHEN status='archived') 과 대칭.
-	const insertQuery = `
+// applicationsInsertQuery is the canonical INSERT used by CreateApplication and by
+// the DREQ promote transaction (dev_requests_promote.go). Sharing the query keeps the
+// archived_at consistency CHECK invariant identical across entry points.
+//
+// PR #110 integration test fail #1 정정 (sprint claude/work_260514-f) —
+// status='archived' 로 직접 생성 시 archived_at 자동 채움. CHECK
+// applications_archived_consistency 위반 회피. UpdateApplication 의 archived_at
+// 자동 갱신 패턴 (CASE WHEN status='archived') 과 대칭.
+const applicationsInsertQuery = `
 INSERT INTO applications (key, name, description, status, visibility, owner_user_id, leader_user_id, development_unit_id, start_date, due_date, archived_at)
 VALUES ($1, $2, NULLIF($3, ''), $4, $5, NULLIF($6, ''), NULLIF($7, ''), NULLIF($8, ''), $9, $10,
         CASE WHEN $4 = 'archived' THEN NOW() ELSE NULL END)
 RETURNING` + applicationsSelectColumns
 
-	row := s.pool.QueryRow(ctx, insertQuery,
+func (s *PostgresStore) CreateApplication(ctx context.Context, app domain.Application) (domain.Application, error) {
+	row := s.pool.QueryRow(ctx, applicationsInsertQuery,
 		app.Key, app.Name, app.Description, app.Status, app.Visibility,
 		app.OwnerUserID, app.LeaderUserID, app.DevelopmentUnitID, app.StartDate, app.DueDate,
 	)
@@ -365,8 +369,11 @@ ORDER BY repo_provider ASC, repo_full_name ASC`
 	return links, nil
 }
 
-func (s *PostgresStore) CreateApplicationRepository(ctx context.Context, link domain.ApplicationRepository) (domain.ApplicationRepository, error) {
-	const insertQuery = `
+// applicationRepositoriesInsertQuery is the canonical INSERT used by
+// CreateApplicationRepository and by the DREQ promote transaction
+// (dev_requests_promote.go) when a primary repository link is supplied alongside a
+// new Application. Sharing it keeps the composite PK + sync_status default in sync.
+const applicationRepositoriesInsertQuery = `
 INSERT INTO application_repositories (
 	application_id, repo_provider, repo_full_name, external_repo_id, role, sync_status
 ) VALUES (
@@ -374,8 +381,9 @@ INSERT INTO application_repositories (
 )
 RETURNING` + applicationRepositoriesSelectColumns
 
+func (s *PostgresStore) CreateApplicationRepository(ctx context.Context, link domain.ApplicationRepository) (domain.ApplicationRepository, error) {
 	syncStatus := string(link.SyncStatus)
-	row := s.pool.QueryRow(ctx, insertQuery,
+	row := s.pool.QueryRow(ctx, applicationRepositoriesInsertQuery,
 		link.ApplicationID, link.RepoProvider, link.RepoFullName,
 		link.ExternalRepoID, link.Role, syncStatus,
 	)
@@ -623,8 +631,10 @@ func (s *PostgresStore) GetProject(ctx context.Context, projectID string) (domai
 	return p, nil
 }
 
-func (s *PostgresStore) CreateProject(ctx context.Context, project domain.Project) (domain.Project, error) {
-	const insertQuery = `
+// projectsInsertQuery is the canonical INSERT used by CreateProject and by the DREQ
+// promote transaction (dev_requests_promote.go). Sharing it keeps the (repository_id,
+// key) UNIQUE constraint and NULLIF semantics identical across entry points.
+const projectsInsertQuery = `
 INSERT INTO projects (
 	application_id, repository_id, key, name, description, status, visibility,
 	owner_user_id, start_date, due_date
@@ -634,7 +644,8 @@ INSERT INTO projects (
 )
 RETURNING` + projectsSelectColumns
 
-	row := s.pool.QueryRow(ctx, insertQuery,
+func (s *PostgresStore) CreateProject(ctx context.Context, project domain.Project) (domain.Project, error) {
+	row := s.pool.QueryRow(ctx, projectsInsertQuery,
 		project.ApplicationID, project.RepositoryID, project.Key, project.Name,
 		project.Description, project.Status, project.Visibility,
 		project.OwnerUserID, project.StartDate, project.DueDate,
