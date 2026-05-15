@@ -1,0 +1,36 @@
+{
+  "schema_version": "1",
+  "branch": "claude/work_260515-q",
+  "base": "main @ 2147d6d (PR #131 머지 직후)",
+  "updated_at": "2026-05-15T10:20:00Z",
+  "status": "in_progress (PR open 대기)",
+  "purpose": "2026-05-15 post-EOD 후속 세션 housekeeping. 직전 final EOD (sprint l, PR #127) 이후 추가 머지된 4 PR (sprint m/n/o/p, PR #128~#131) 의 main flat memory 흡수 + 각 sprint state finalize + auto-memory 갱신 + 다음 세션 directive (3/4 DREQ-E2E) 명시.",
+  "absorbed_session_prs_since_l_housekeeping": [
+    {"pr": 128, "sprint": "claude/work_260515-m", "merge_commit": "1f9ec50", "title": "DREQ-Promote-Tx 단일 트랜잭션 + ADR-0013 RBAC row-scoping"},
+    {"pr": 129, "sprint": "claude/work_260515-n", "merge_commit": "5546a41", "title": "codex review hotfix #4 — PR #128 의 P1 + P2 + self-review P2 #1"},
+    {"pr": 130, "sprint": "claude/work_260515-o", "merge_commit": "0bdf299", "title": "DREQ-Admin-UI backend — intake token admin (API-66..68) + ADR-0014"},
+    {"pr": 131, "sprint": "claude/work_260515-p", "merge_commit": "2147d6d", "title": "DREQ-Admin-UI frontend — /admin/settings/dev-request-tokens + plain-1회 modal"}
+  ],
+  "post_eod_session_inventory_total": {
+    "merged_prs": 4,
+    "sprints_completed": 4,
+    "self_review_cycles": 4,
+    "codex_review_cycles": 1,
+    "carve_outs_closed": "1/4 RBAC-ADR + Promote-Tx + 2/4 Admin-UI backend + 2/4 Admin-UI frontend"
+  },
+  "dreq_carve_out_progress": {
+    "1_4": "✅ sprint m (PR #128) + codex hotfix #4 sprint n (PR #129)",
+    "2_4_backend": "✅ sprint o (PR #130)",
+    "2_4_frontend": "✅ sprint p (PR #131)",
+    "3_4_e2e": "⏳ 다음 sprint 진입 — Playwright + Vitest + TC-DREQ-* + P2 carve out 누적 6건 흡수 후보"
+  },
+  "p2_carve_out_accumulated": [
+    "promote-tx race 가드 (UPDATE WHERE status IN ('pending', 'in_review'))",
+    "memoryDevRequestStore.failPromote dead field (fault-injection test 추가 또는 제거)",
+    "window.confirm 대신 destructive confirm dialog 컴포넌트",
+    "plain_token reveal phase Show/Hide toggle (shoulder-surfing 차단)",
+    "token rotation policy (expires_at + cron revoke) — ADR-0014 §6",
+    "allowed_ips mutation endpoint — 현재는 revoke+재발급 (별도 ADR 후보)"
+  ],
+  "next_session_directive": "DREQ carve out 3/4 (DREQ-E2E) — Playwright spec (intake auth → admin token issue → dashboard widget → promote → revoke) + IntakeTokenTable/Modal Vitest + TC-DREQ-* 발급. P2 carve out 누적 6건 흡수 후보. carve 1/4 + 2/4 backend+frontend 가 완료됐으므로 남은 carve 가 1건 (3/4). 본 sprint plan 의 4번째 carve (E2E) 가 마지막."
+}

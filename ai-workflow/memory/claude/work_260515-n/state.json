@@ -3,7 +3,7 @@
   "branch": "claude/work_260515-n",
   "base": "main @ 1f9ec50 (PR #128 머지 직후)",
   "updated_at": "2026-05-15T08:50:00Z",
-  "status": "in_progress (PR open 대기)",
+  "status": "done (merged into main as PR #129 / commit 5546a41)",
   "purpose": "codex hotfix #4. PR #128 의 codex inline 리뷰 (P1 + P2) + self-review P2 #1 (rejected_reason NULL) 일괄 흡수.",
   "absorbed_findings": {
     "codex_p1": "RegisterDevRequestWithNewApplication 의 primaryRepo 분기에서 application_repositories_role_check 같은 CHECK constraint 위반이 isUniqueViolation / isForeignKeyViolation 어느 쪽에도 매칭 안 되어 500 으로 surface. 예: role='owner' → CHECK 위반 → writeServerError.",
