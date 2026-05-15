@@ -281,6 +281,12 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.PATCH("/dev-requests/:dev_request_id", handler.patchDevRequest)
 	v1.DELETE("/dev-requests/:dev_request_id", handler.closeDevRequest)
 
+	// DREQ intake token admin (sprint claude/work_260515-o, ADR-0014).
+	// system_admin 일임 — routePermissionTable 의 dev_request_intake_tokens resource gate.
+	v1.POST("/dev-request-tokens", handler.createDevRequestIntakeToken)
+	v1.GET("/dev-request-tokens", handler.listDevRequestIntakeTokens)
+	v1.DELETE("/dev-request-tokens/:token_id", handler.revokeDevRequestIntakeToken)
+
 	// Kratos self-service hooks (PR-M2-AUDIT, claude/login_usermanagement_finish).
 	// Bypasses authenticateActor + enforceRoutePermission via publicAPIPaths +
 	// routePermissionTable {Bypass: true}; authenticates inbound calls with

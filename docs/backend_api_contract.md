@@ -1973,9 +1973,11 @@ auth_intake_token_invalid
 auth_intake_token_revoked
 auth_intake_ip_denied
 auth_intake_token_missing
+invalid_allowed_ips                            # sprint o (ADR-0014): intake token admin 발급의 allowed_ips 빈 배열/CIDR 오류
+intake_token_collision                         # sprint o (ADR-0014): hashed_token UNIQUE 위반 (사실상 발생 불가)
 ```
 
-### 14.9 API ID 인덱스 (sprint `claude/work_260515-f`)
+### 14.9 API ID 인덱스 (sprint `claude/work_260515-f`, intake token admin sprint `o`)
 
 | API ID | endpoint |
 | --- | --- |
@@ -1986,3 +1988,31 @@ auth_intake_token_missing
 | API-63 | `POST /api/v1/dev-requests/:id/reject` |
 | API-64 | `PATCH /api/v1/dev-requests/:id` (Reassign) |
 | API-65 | `DELETE /api/v1/dev-requests/:id` (Close) |
+| API-66 | `POST /api/v1/dev-request-tokens` (intake token 발급, sprint `o` / ADR-0014) |
+| API-67 | `GET /api/v1/dev-request-tokens` (intake token 목록) |
+| API-68 | `DELETE /api/v1/dev-request-tokens/:token_id` (intake token revoke) |
+
+### 14.10 Intake Token Admin (API-66..68, sprint `claude/work_260515-o` / ADR-0014)
+
+`dev_request_intake_tokens` resource 의 system_admin 일임 endpoint. plain token 은 발급 응답에 1회만 노출, server 는 SHA-256(plain) hex 만 보관. accounts_admin temp_password 패턴과 정합.
+
+#### API-66 `POST /api/v1/dev-request-tokens` — 발급
+
+- **인증**: OIDC + RBAC `dev_request_intake_tokens:create` (system_admin only).
+- **요청**: `{ "client_label": "ops_portal", "source_system": "ops", "allowed_ips": ["10.0.0.0/24", "192.0.2.7"] }`. 모두 필수. `allowed_ips` 빈 배열 거절 (`invalid_allowed_ips`).
+- **처리**: server 가 32-byte base64url plain token 생성 → SHA-256 hex 저장. `created_by` = actor.login.
+- **응답 — 201**: `plain_token` 1회 노출 + token_id / client_label / source_system / allowed_ips / created_at / created_by / last_used_at / revoked_at. **`hashed_token` 미노출**.
+- **audit**: `dev_request_intake_token.issued` (plain/hashed 모두 미포함).
+- **에러**: 400 `invalid_allowed_ips` / 400 missing client_label or source_system / 409 `intake_token_collision`.
+
+#### API-67 `GET /api/v1/dev-request-tokens` — 목록
+
+- **인증**: OIDC + RBAC `dev_request_intake_tokens:view` (system_admin only).
+- **응답 — 200**: `{ "data": [{...}], "meta": {"total": N} }`. revoked 행 포함, `created_at DESC`. **`plain_token` / `hashed_token` 모두 미노출**.
+
+#### API-68 `DELETE /api/v1/dev-request-tokens/:token_id` — revoke
+
+- **인증**: OIDC + RBAC `dev_request_intake_tokens:delete` (system_admin only).
+- **처리**: `revoked_at = COALESCE(revoked_at, NOW())` — idempotent.
+- **응답 — 200**: 갱신된 row (plain_token 미포함). **404** `not_found` (token_id 미존재).
+- **audit**: `dev_request_intake_token.revoked`.

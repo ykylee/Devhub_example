@@ -21,6 +21,9 @@ const (
 	ResourceSCMProviders            Resource = "scm_providers"
 	// ResourceDevRequests — sprint claude/work_260515-i (ADR-0012 / ARCH-DREQ-04).
 	ResourceDevRequests Resource = "dev_requests"
+	// ResourceDevRequestIntakeTokens — sprint claude/work_260515-o (ADR-0014).
+	// system_admin 일임 자원: intake token 발급/조회/revoke admin endpoint.
+	ResourceDevRequestIntakeTokens Resource = "dev_request_intake_tokens"
 )
 
 // Action is the RBAC action axis defined by docs/backend_api_contract.md section 12.0.3.
@@ -72,6 +75,7 @@ func AllResources() []Resource {
 		ResourceProjects,
 		ResourceSCMProviders,
 		ResourceDevRequests,
+		ResourceDevRequestIntakeTokens,
 	}
 }
 
@@ -167,6 +171,8 @@ func DefaultPermissionMatrix(roleID string) (PermissionMatrix, bool) {
 			// dev_requests: route gate 는 view 만 통과. handler 가 row-level filter
 			// (`assignee_user_id == actor.login`) 로 추가 제한. ARCH-DREQ-04.
 			ResourceDevRequests: {View: true},
+			// dev_request_intake_tokens: system_admin 일임 (ADR-0014). developer 는 차단.
+			ResourceDevRequestIntakeTokens: {},
 		}, true
 	case string(AppRoleManager):
 		return PermissionMatrix{
@@ -181,6 +187,8 @@ func DefaultPermissionMatrix(roleID string) (PermissionMatrix, bool) {
 			ResourceSCMProviders:            {},
 			// dev_requests: developer 와 동일 — view 만, row-level filter 는 handler.
 			ResourceDevRequests: {View: true},
+			// dev_request_intake_tokens: system_admin 일임 (ADR-0014). manager 차단.
+			ResourceDevRequestIntakeTokens: {},
 		}, true
 	case string(AppRoleSystemAdmin):
 		return PermissionMatrix{
@@ -194,6 +202,7 @@ func DefaultPermissionMatrix(roleID string) (PermissionMatrix, bool) {
 			ResourceProjects:                {View: true, Create: true, Edit: true, Delete: true},
 			ResourceSCMProviders:            {View: true, Create: true, Edit: true, Delete: true},
 			ResourceDevRequests:             {View: true, Create: true, Edit: true, Delete: true},
+			ResourceDevRequestIntakeTokens:  {View: true, Create: true, Edit: true, Delete: true},
 		}, true
 	case string(AppRolePMOManager):
 		// REQ-FR-PROJ-010 정책 매핑 (sprint claude/work_260515-d):
@@ -217,6 +226,8 @@ func DefaultPermissionMatrix(roleID string) (PermissionMatrix, bool) {
 			// 가 추가로 system_admin 검증 (REQ-FR-DREQ-007/008 + ARCH-DREQ-04).
 			// create 는 외부 intake auth 경로라 RBAC 외 — false.
 			ResourceDevRequests: {View: true, Edit: true},
+			// dev_request_intake_tokens: system_admin 일임 (ADR-0014). pmo_manager 도 차단.
+			ResourceDevRequestIntakeTokens: {},
 		}, true
 	default:
 		return nil, false

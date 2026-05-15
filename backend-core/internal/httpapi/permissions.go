@@ -254,6 +254,11 @@ var routePermissionTable = map[routeKey]routePolicy{
 	{http.MethodPost, "/api/v1/dev-requests/:dev_request_id/reject"}:     {Resource: domain.ResourceDevRequests, Action: domain.ActionEdit},
 	{http.MethodPatch, "/api/v1/dev-requests/:dev_request_id"}:           {Resource: domain.ResourceDevRequests, Action: domain.ActionEdit},
 	{http.MethodDelete, "/api/v1/dev-requests/:dev_request_id"}:          {Resource: domain.ResourceDevRequests, Action: domain.ActionDelete},
+
+	// DREQ intake token admin (sprint claude/work_260515-o, ADR-0014). system_admin 일임.
+	{http.MethodPost, "/api/v1/dev-request-tokens"}:             {Resource: domain.ResourceDevRequestIntakeTokens, Action: domain.ActionCreate},
+	{http.MethodGet, "/api/v1/dev-request-tokens"}:              {Resource: domain.ResourceDevRequestIntakeTokens, Action: domain.ActionView},
+	{http.MethodDelete, "/api/v1/dev-request-tokens/:token_id"}: {Resource: domain.ResourceDevRequestIntakeTokens, Action: domain.ActionDelete},
 }
 
 // lookupRoutePolicy is exported for tests to assert the table contents without
