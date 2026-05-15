@@ -283,6 +283,10 @@ const (
 	AppRoleDeveloper   AppRole = "developer"
 	AppRoleManager     AppRole = "manager"
 	AppRoleSystemAdmin AppRole = "system_admin"
+	// AppRolePMOManager — ADR-0011 §4.2 / REQ-FR-PROJ-010 (sprint claude/work_260515-d).
+	// Application/Project 운영 위양 role. application Edit 수정만 + project 전체 + project 멤버.
+	// 시스템 설정/RBAC 정책/계정 변경 금지.
+	AppRolePMOManager AppRole = "pmo_manager"
 )
 
 type UserType string

@@ -190,10 +190,11 @@ func TestListRBACPolicies_SystemRolesFirstWithDefaults(t *testing.T) {
 		} `json:"meta"`
 	}
 	decodeJSON(t, rec.Body.Bytes(), &resp)
-	if len(resp.Data) != 3 {
-		t.Fatalf("got %d roles, want 3", len(resp.Data))
+	// developer, manager, system_admin, pmo_manager (4 system roles, sprint claude/work_260515-d).
+	if len(resp.Data) != 4 {
+		t.Fatalf("got %d roles, want 4", len(resp.Data))
 	}
-	wantOrder := []string{"developer", "manager", "system_admin"}
+	wantOrder := []string{"developer", "manager", "system_admin", "pmo_manager"}
 	for i, want := range wantOrder {
 		if resp.Data[i].ID != want {
 			t.Errorf("data[%d].id = %q, want %q", i, resp.Data[i].ID, want)
@@ -217,7 +218,18 @@ func TestListRBACPolicies_SystemRolesFirstWithDefaults(t *testing.T) {
 	if sysadmin.Permissions[domain.ResourceAudit].Create || sysadmin.Permissions[domain.ResourceAudit].Edit || sysadmin.Permissions[domain.ResourceAudit].Delete {
 		t.Errorf("system_admin audit invariant violated: %+v", sysadmin.Permissions[domain.ResourceAudit])
 	}
-	if !resp.Meta.Editable || resp.Meta.PolicyVersion == "" || len(resp.Meta.SystemRoles) != 3 {
+	// pmo_manager: applications view+edit (수정만), projects 전체, repo link 비허용.
+	pmo := resp.Data[3]
+	if !pmo.Permissions[domain.ResourceApplications].Edit || pmo.Permissions[domain.ResourceApplications].Create || pmo.Permissions[domain.ResourceApplications].Delete {
+		t.Errorf("pmo_manager applications should be view+edit only: %+v", pmo.Permissions[domain.ResourceApplications])
+	}
+	if !pmo.Permissions[domain.ResourceProjects].Edit || !pmo.Permissions[domain.ResourceProjects].Delete {
+		t.Errorf("pmo_manager projects should be full CRUD: %+v", pmo.Permissions[domain.ResourceProjects])
+	}
+	if pmo.Permissions[domain.ResourceApplicationRepositories].Create {
+		t.Errorf("pmo_manager should not have application_repositories create: %+v", pmo.Permissions[domain.ResourceApplicationRepositories])
+	}
+	if !resp.Meta.Editable || resp.Meta.PolicyVersion == "" || len(resp.Meta.SystemRoles) != 4 {
 		t.Errorf("meta = %+v", resp.Meta)
 	}
 }

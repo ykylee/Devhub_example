@@ -448,6 +448,14 @@ func (h *Handler) updateApplication(c *gin.Context) {
 		return
 	}
 
+	// ADR-0011 §4.2 row-level 위양: system_admin / pmo_manager / owner-self 만 허용.
+	// route-level RBAC gate 가 applications:edit 를 권한 있는 role 만 통과시키고,
+	// 본 helper 가 row 단위 owner/위양 검사. caller 가 owner 와 일치하거나 위양
+	// role 인 경우 통과, 그 외는 audit auth.row_denied + 403.
+	if !h.enforceRowOwnership(c, current.OwnerUserID, string(domain.AppRolePMOManager)) {
+		return
+	}
+
 	updated := current
 	if req.Name != nil {
 		if strings.TrimSpace(*req.Name) == "" {
@@ -631,6 +639,23 @@ func (h *Handler) archiveApplication(c *gin.Context) {
 	var req archiveApplicationRequest
 	// DELETE body 가 비어도 허용 (archived_reason 은 권장).
 	_ = c.ShouldBindJSON(&req)
+
+	// ADR-0011 §4.2 row-level 위양: archive 도 owner-self 또는 pmo_manager 가
+	// 가능해야 하므로 archive 직전에 lookup + 검증한다. Application 이 없으면
+	// ArchiveApplication 의 ErrNotFound 분기와 동일하게 404.
+	current, err := storeI.GetApplication(c.Request.Context(), id)
+	if errors.Is(err, store.ErrNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "application not found"})
+		return
+	}
+	if err != nil {
+		writeServerError(c, err, "applications.archive.lookup")
+		return
+	}
+	if !h.enforceRowOwnership(c, current.OwnerUserID, string(domain.AppRolePMOManager)) {
+		return
+	}
+
 	archived, err := storeI.ArchiveApplication(c.Request.Context(), id, req.ArchivedReason)
 	if errors.Is(err, store.ErrNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "application not found"})

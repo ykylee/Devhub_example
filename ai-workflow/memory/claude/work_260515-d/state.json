@@ -1,0 +1,43 @@
+{
+  "schema_version": "1",
+  "branch": "claude/work_260515-d",
+  "base": "main @ 519a508 (PR #118 머지 직후)",
+  "updated_at": "2026-05-15T03:25:00Z",
+  "status": "in_progress",
+  "purpose": "Codex 외부 리뷰 hotfix sprint — PR #114/#118 의 P1/P2 inline 코멘트 4건 처리.",
+  "codex_findings": {
+    "pr_114_p1": {
+      "title": "Remove immutable key from application PATCH payload",
+      "location": "frontend/components/project/ApplicationCreationModal.tsx",
+      "issue": "edit 시 formData 전체를 PATCH 로 보내고 거기에 key 가 포함됨. 백엔드 updateApplication 가 key 변경을 immutable 로 reject. → edit 모든 시도 실패.",
+      "fix": "isEdit 분기에서 key 를 payload 에서 제외 (또는 omit key + omit immutable other fields)"
+    },
+    "pr_114_p2": {
+      "title": "Parse date-only fields without local timezone conversion",
+      "location": "frontend/components/project/{ApplicationTable,ProjectTable,RepositoryTable}.tsx + 모달들",
+      "issue": "new Date(YYYY-MM-DD) 가 UTC midnight 으로 해석 → local timezone 시 하루 차이 표시.",
+      "fix": "string split + Date.UTC 또는 dedicated safe parser. 본 sprint 는 간단히 string 이미 YYYY-MM-DD 인 경우 직접 format 함수에 넘기지 않고 date-fns 의 parseISO 사용."
+    },
+    "pr_118_p1": {
+      "title": "Wire row-ownership checks into mutation handlers",
+      "location": "backend-core/internal/httpapi/permissions.go (helper) + applications.go + projects.go (호출처)",
+      "issue": "enforceRowOwnership 가 permissions_test.go 외 호출 없음 → REQ-FR-PROJ-009 effective 활성화 아님.",
+      "fix_scope": [
+        "pmo_manager RBAC matrix seed migration (000021_rbac_pmo_manager.up.sql) — REQ-FR-PROJ-010 기본 후보 범위",
+        "domain.SystemRoles() / rbac.go 의 pmo_manager 정의 추가",
+        "Application PATCH/DELETE handler 에 enforceRowOwnership(c, app.OwnerUserID, 'pmo_manager') 추가",
+        "Project PATCH/DELETE handler 에 enforceRowOwnership(c, project.OwnerUserID, 'pmo_manager') 추가",
+        "Application-Repository link/unlink handler 에도 application 의 owner 기준 row check 추가",
+        "통합 테스트: pmo_manager 가 edit 가능 + non-owner developer 가 deny + owner-self 가 edit 가능"
+      ]
+    },
+    "pr_115_p1": {
+      "title": "Restore localhost fallback for API rewrite target",
+      "status": "이미 해소 — 본인이 PR #115 의 보강 commit f621189 (endpoints 통일 모듈) 에서 localhost default 로 복원. codex 가 첫 commit bb5a450 시점만 리뷰. 본 sprint 에서 action 없음."
+    }
+  },
+  "carve_out_for_next_sprint": [
+    "owner-self 활성화: route-level RBAC gate 가 applications:edit 를 system_admin/pmo_manager 만 허용하므로 owner-self 가 route gate 에서 막힘. owner-self 가 통과하려면 route gate 정책 변경 (예: bypass owner-self 또는 신규 권한축) 필요. 정책 결정 + ADR 갱신 필요라 별도 sprint 로 carve.",
+    "Project owner_user_id 자동 정합: domain.Project.OwnerUserID 가 row-level row guard 의 진실 소스가 되므로 마이그레이션 시 NULL 처리/backfill 정책 확인 필요."
+  ]
+}

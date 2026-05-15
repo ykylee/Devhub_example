@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FolderKanban, Clock, User, ChevronRight } from "lucide-react";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { Project, ProjectStatus } from "@/lib/services/project.types";
 import { Badge } from "@/components/ui/Badge";
@@ -76,9 +76,9 @@ export function ProjectTable({
                     <div className="flex items-center gap-1.5">
                       <Clock className="w-3 h-3 opacity-40" />
                       <span>
-                        {project.start_date ? format(new Date(project.start_date), "MMM d") : "TBD"}
+                        {project.start_date ? format(parseISO(project.start_date), "MMM d") : "TBD"}
                         {" → "}
-                        {project.due_date ? format(new Date(project.due_date), "MMM d") : "TBD"}
+                        {project.due_date ? format(parseISO(project.due_date), "MMM d") : "TBD"}
                       </span>
                     </div>
                   </td>

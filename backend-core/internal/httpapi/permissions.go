@@ -278,6 +278,14 @@ func lookupRoutePolicy(method, path string) (routePolicy, bool) {
 // ownerUserID 가 "" 이면 owner-self 규칙은 비활성화 (system_admin / allowedRoles
 // 만 통과). 잘못된 데이터(미설정 owner) 가 우연히 익명에게 허용되는 일을 방지.
 func (h Handler) enforceRowOwnership(c *gin.Context, ownerUserID string, allowedRoles ...string) bool {
+	// dev fallback (AuthDevFallback=true) 환경은 actor 가 컨텍스트에 주입되지
+	// 않으므로 enforceRoutePermission 과 동일하게 bypass — 그러지 않으면 핸들러
+	// 단위 테스트가 모두 403 으로 깨진다. 운영에서는 devFallbackEnabled=false 라
+	// 정상 평가 흐름을 탄다.
+	if devFallbackEnabled(c) {
+		return true
+	}
+
 	loginVal, _ := c.Get("devhub_actor_login")
 	roleVal, _ := c.Get("devhub_actor_role")
 	actorLogin, _ := loginVal.(string)
