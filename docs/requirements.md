@@ -318,8 +318,9 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
 #### 5.5.1 기능 요구사항 (REQ-FR-DREQ)
 
 - **REQ-FR-DREQ-001 (MVP):** 외부 시스템은 인증된 API 호출로 개발 의뢰를 등록할 수 있어야 한다.
-    - 필수 필드: `title` (≤200자), `requester` (외부 시스템상의 의뢰자 식별자), `assignee_user_id` (DevHub `users.user_id` FK), `source_system`.
-    - 선택 필드: `details` (markdown), `external_ref` (외부 시스템 ticket id 등).
+    - **Client 가 보내는 필수 필드**: `title` (≤200자), `requester` (외부 시스템상의 의뢰자 식별자), `assignee_user_id` (DevHub `users.user_id` FK).
+    - **선택 필드**: `details` (markdown), `external_ref` (외부 시스템 ticket id 등).
+    - **Server 가 자동 채우는 필드** (body 의 self-claim 무시 — ADR-0012 §4.1.2 spoofing 방지): `source_system` — 인증된 intake token 의 매핑 값에서 자동 추출.
     - `(source_system, external_ref)` 조합은 UNIQUE — 동일 외부 ticket 의 재수신은 409 또는 idempotent OK 응답.
 - **REQ-FR-DREQ-002 (MVP):** DevHub 는 수신 직후 의뢰의 검증(필수 필드 / assignee_user_id 존재)을 수행하고, 성공 시 `pending` 상태로 저장한다. 검증 실패 시 `rejected` 상태 + `rejected_reason="invalid_intake"` 로 저장한다 (audit 보존 목적, 절대 drop 하지 않는다).
 - **REQ-FR-DREQ-003 (MVP):** 의뢰의 상태 머신은 `received → pending → in_review → registered | rejected | closed` 로 한정되며, 모든 전이는 `dev_request.*` audit action 으로 기록되어야 한다. (받음/등록됨/거절됨/재오픈됨/닫힘)

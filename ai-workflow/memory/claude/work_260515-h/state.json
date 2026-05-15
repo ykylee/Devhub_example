@@ -1,0 +1,47 @@
+{
+  "schema_version": "1",
+  "branch": "claude/work_260515-h",
+  "base": "main @ 4d0277f (PR #122 머지 직후)",
+  "updated_at": "2026-05-15T05:30:00Z",
+  "status": "in_progress",
+  "purpose": "Codex 외부 리뷰 hotfix #2 — PR #119/#120/#121 의 P1×2 + P2×2 일괄 처리.",
+  "codex_findings": {
+    "pr_119_p1": {
+      "title": "Reassign subjects before deleting pmo_manager role",
+      "location": "backend-core/migrations/000021_rbac_pmo_manager.down.sql",
+      "issue": "users.role 이 rbac_policies(role_id) FK 를 참조 (000006). pmo_manager 사용자가 있을 때 down 실행 시 FK 위반으로 rollback 불가.",
+      "fix": "DELETE 전에 UPDATE users SET role='developer' WHERE role='pmo_manager' 추가"
+    },
+    "pr_121_p1": {
+      "title": "Restrict DREQ close permission to system_admin",
+      "location": "docs/backend_api_contract.md §14.7",
+      "issue": "API-65 close 권한이 system_admin/pmo_manager 로 적혔으나 REQ-FR-DREQ-008 은 system_admin 만 명시. architecture.md §7.4 pmo_manager 매트릭스에도 delete 권한 없음.",
+      "fix": "§14.7 인증 줄을 system_admin only 로 갱신"
+    },
+    "pr_121_p2": {
+      "title": "Remove source_system from required intake payload",
+      "location": "docs/requirements.md REQ-FR-DREQ-001",
+      "issue": "REQ 는 source_system 을 client required 로 표기, API spec §14.1 은 server-derived (token 에서 자동 채움, body 의 self-claim 무시). 검증 일관성 깨짐.",
+      "fix": "REQ-FR-DREQ-001 의 필수 client 필드에서 source_system 제거 + 'server-derived' 별도 표기"
+    },
+    "pr_120_p2": {
+      "title": "Mark sprint state as done at session-close snapshot",
+      "location": "ai-workflow/memory/claude/work_260515-*/state.json",
+      "issue": "머지된 sprint 의 state.json 이 in_progress 로 남아 다음 agent 가 재실행 위험.",
+      "fix": "work_260515-a..g 7개 sprint state.json status → done 일괄 갱신 (본 sprint 가 직전 머지 sprint 들의 state finalize 책임 흡수)"
+    }
+  },
+  "scope": {
+    "files_to_change": [
+      "backend-core/migrations/000021_rbac_pmo_manager.down.sql (FK reassign 추가)",
+      "docs/backend_api_contract.md §14.7 (close 권한 system_admin only)",
+      "docs/requirements.md REQ-FR-DREQ-001 (source_system 서버 유도)",
+      "ai-workflow/memory/claude/work_260515-{a,b,c,d,e,f,g}/state.json (status → done)"
+    ]
+  },
+  "next_session_candidates_after_merge": [
+    "DREQ-Backend (domain + store + handler + migration 000022 + 000023 + requireIntakeToken middleware + API-59..65 활성화)",
+    "DREQ-Frontend",
+    "DREQ-RBAC-ADR"
+  ]
+}

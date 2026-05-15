@@ -3,7 +3,7 @@
   "branch": "claude/work_260515-c",
   "base": "main @ 68f031e (PR #117 머지 직후)",
   "updated_at": "2026-05-15T02:50:00Z",
-  "status": "in_progress",
+  "status": "done (merged into main)",
   "purpose": "ADR-0011 §4.2 enforceRowOwnership helper 도입 — Application/Project Owner 위양 (2차 단계) 의 audit-grade entry point. REQ-FR-PROJ-009 활성화.",
   "scope": {
     "deliverables": [

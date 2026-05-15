@@ -3,7 +3,7 @@
   "branch": "claude/work_260515-a",
   "base": "main @ 3f387cd (rebased onto 25f97ba post own-PR merge)",
   "updated_at": "2026-05-15T02:10:00Z",
-  "status": "in_progress (housekeeping)",
+  "status": "done (merged into main)",
   "purpose": "본인 PR 2건(#114 codex/260514-a, #115 gemini/frontend_redesign_260514) 에 대해 4단계 리뷰어 모드 (diff→코멘트→보강 commit→squash merge) + main flat memory housekeeping (PR #112 누락분 포함 3건 흡수).",
   "scope": {
     "review_mode_targets": [
