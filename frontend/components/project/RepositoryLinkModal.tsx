@@ -79,7 +79,7 @@ export function RepositoryLinkModal({ applicationId, onClose, onLinked }: Reposi
               <Link className="w-5 h-5 text-pink-400" />
             </div>
             <div>
-              <h2 className="text-xl font-black text-primary-foreground uppercase tracking-tight">
+              <h2 className="text-xl font-black text-foreground dark:text-primary-foreground uppercase tracking-tight">
                 Link <span className="text-pink-400">Repository</span>
               </h2>
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
@@ -95,14 +95,14 @@ export function RepositoryLinkModal({ applicationId, onClose, onLinked }: Reposi
         <form onSubmit={handleSubmit} className="p-8 space-y-6">
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-primary-foreground/40 uppercase tracking-widest px-1">SCM Provider</label>
+              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">SCM Provider</label>
               {loadingProviders ? (
                 <div className="h-12 bg-muted/20 animate-pulse rounded-2xl" />
               ) : (
                 <select
                   value={formData.repo_provider}
                   onChange={e => setFormData({ ...formData, repo_provider: e.target.value })}
-                  className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-primary-foreground focus:outline-none focus:ring-1 focus:ring-pink-400/50 appearance-none"
+                  className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-pink-400/50 appearance-none"
                 >
                   {providers.map(p => (
                     <option key={p.provider_key} value={p.provider_key} className="bg-slate-900">
@@ -115,7 +115,7 @@ export function RepositoryLinkModal({ applicationId, onClose, onLinked }: Reposi
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-primary-foreground/40 uppercase tracking-widest px-1">Repository Full Name</label>
+              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Repository Full Name</label>
               <div className="relative group">
                 <GitBranch className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-foreground/20 group-focus-within:text-pink-400 transition-colors" />
                 <input
@@ -123,14 +123,14 @@ export function RepositoryLinkModal({ applicationId, onClose, onLinked }: Reposi
                   value={formData.repo_full_name}
                   onChange={e => setFormData({ ...formData, repo_full_name: e.target.value })}
                   placeholder="e.g. devhub/backend-core"
-                  className="w-full bg-muted/30 border border-border rounded-2xl pl-12 pr-4 py-3 text-sm text-primary-foreground focus:outline-none focus:ring-1 focus:ring-pink-400/50"
+                  className="w-full bg-muted/30 border border-border rounded-2xl pl-12 pr-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-pink-400/50"
                 />
               </div>
               <p className="text-[9px] text-muted-foreground px-1 italic">Format: org/repo or user/repo</p>
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-primary-foreground/40 uppercase tracking-widest px-1">Role in Application</label>
+              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Role in Application</label>
               <div className="grid grid-cols-3 gap-2">
                 {(['primary', 'sub', 'shared'] as ApplicationRepositoryRole[]).map((r) => (
                   <button
@@ -161,7 +161,7 @@ export function RepositoryLinkModal({ applicationId, onClose, onLinked }: Reposi
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 glass border-border text-primary-foreground font-bold py-4 rounded-2xl hover:bg-muted/30 transition-all uppercase tracking-widest text-[10px]"
+              className="flex-1 glass border-border text-foreground dark:text-primary-foreground font-bold py-4 rounded-2xl hover:bg-muted/30 transition-all uppercase tracking-widest text-[10px]"
             >
               Cancel
             </button>

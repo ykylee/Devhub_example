@@ -1,0 +1,36 @@
+{
+  "schema_version": "1",
+  "branch": "claude/work_260515-b",
+  "base": "main @ cbc36b0 (PR #116 머지 직후)",
+  "updated_at": "2026-05-15T02:30:00Z",
+  "status": "in_progress",
+  "purpose": "PR #114 가 추가한 frontend 모달/테이블 컴포넌트들의 text-primary-foreground 직접 사용을 PR #115 의 token 정책 (text-foreground / text-foreground dark:text-primary-foreground) 으로 일관 sweep. light theme 가독성 회귀 차단 + dropdown 새 UI 와 일관성 정착.",
+  "scope": {
+    "sweep_targets": {
+      "files": [
+        "frontend/components/project/ApplicationCreationModal.tsx (24건)",
+        "frontend/components/project/ProjectCreationModal.tsx (18건)",
+        "frontend/components/project/RepositoryLinkModal.tsx (8건)",
+        "frontend/components/project/ApplicationTable.tsx (1건)",
+        "frontend/components/project/ProjectTable.tsx (1건)",
+        "frontend/components/project/RepositoryTable.tsx (1건)"
+      ],
+      "total_occurrences": 53,
+      "policy": "기본은 text-foreground. 다크에서 강조가 필요한 위치만 text-foreground dark:text-primary-foreground. 보조 텍스트는 text-muted-foreground 유지.",
+      "policy_reference": "PR #115 (b669bc7) 가 정착한 패턴 — components/ui/Modal.tsx / Toast.tsx / Header.tsx / organization 모달에서 적용된 안과 동일."
+    },
+    "not_in_scope": [
+      "components 외부의 다른 page-level text-primary-foreground (별도 sweep 필요 시 후속)",
+      "dropdown trigger 자체의 동작 (PR #115 에서 이미 정착)",
+      "ARCH 정책 한 줄 명시 (별도 후속 PR)"
+    ]
+  },
+  "next_session_candidates_after_merge": [
+    "ADR-0011 §4.2 enforceRowOwnership helper",
+    "critical_warning_count 임계치 외부화",
+    "Repository commit activity ingest",
+    "Project active→closed 가드 정책",
+    "M4 RM-M4-XX 본격 진입",
+    "traceability follow-up (TC-NAV-* row + endpoints ARCH 한 줄)"
+  ]
+}
