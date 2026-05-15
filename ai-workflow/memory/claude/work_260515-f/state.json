@@ -1,0 +1,42 @@
+{
+  "schema_version": "1",
+  "branch": "claude/work_260515-f",
+  "base": "main @ feac299 (PR #120 머지 직후)",
+  "updated_at": "2026-05-15T04:50:00Z",
+  "status": "in_progress",
+  "purpose": "개발 의뢰 (DREQ) 도메인 컨셉 + 요구사항 + Usecase + 설계 + 로드맵 + 추적성 일괄 문서화. 외부 시스템 API 로 의뢰 수신 → 대기 목록 → 담당자 dashboard 표시 → application/repository/project 중 하나로 등록 흐름.",
+  "scope": {
+    "domain": "DREQ (Dev Request)",
+    "abbreviation_decision": "DREQ (4글자, PROJ/APP/AUD 패턴 정합)",
+    "documents_to_produce": [
+      "docs/planning/development_request_concept.md (신규)",
+      "docs/requirements.md — REQ-FR-DREQ-001..N + REQ-NFR-DREQ 신규 §",
+      "docs/planning/system_usecases.md — UC-DREQ-01..N 신규",
+      "docs/architecture.md — DREQ 컴포넌트 § + ARCH-DREQ 발급",
+      "docs/backend_api_contract.md — DREQ API 신규 § (API-59..N)",
+      "docs/development_roadmap.md — DREQ 진입 row",
+      "docs/traceability/report.md — §2 인덱스 + §3 도메인 row",
+      "docs/planning/README.md — 인덱스 hook"
+    ],
+    "out_of_scope": [
+      "code 구현 (handlers / store / migration) — 별도 sprint",
+      "frontend UI 구현 — 별도 sprint",
+      "UT / TC 발급 — 별도 sprint",
+      "외부 시스템 인증 정책 상세 (HMAC 시그니처 vs API key vs OAuth client_credentials) — ADR 후보"
+    ]
+  },
+  "domain_assumptions": {
+    "fields": ["title (string, required)", "details (text)", "requester (string, 외부 시스템 식별자)", "assignee_user_id (string, FK users.user_id)"],
+    "lifecycle": ["received → pending → in_review → registered (application/project 매핑) / rejected / closed"],
+    "external_intake_auth": "1차 컨셉은 'API 토큰 + IP allowlist' 권장 — ADR 결정 carve out",
+    "ui_surface": "담당자 dashboard 의 '내 대기 의뢰' 위젯 + /admin/settings/dev-requests 관리 페이지 (system_admin)",
+    "promotion": "의뢰 → application 신규 / project 신규 / 기존 application 의 repository link 중 하나. 의뢰 자체는 registered 상태로 audit 보존, app/project 의 origin_dreq_id 로 추적."
+  },
+  "next_session_candidates_after_merge": [
+    "DREQ backend 구현 — store / handler / migration",
+    "DREQ frontend UI — 담당자 dashboard 위젯 + 관리 페이지",
+    "DREQ → application/project promotion 시 owner_user_id / leader_user_id 자동 매핑 정책 ADR",
+    "외부 수신 endpoint 인증 ADR (HMAC / API key / OAuth)",
+    "UT-DREQ / TC-DREQ 발급 sprint"
+  ]
+}

@@ -108,6 +108,19 @@
 - **역할별 UX 제공 방식 정렬**:
   - ⏳ **F·X**: 역할별 UX는 기본 진입 페이지 우선순위로 제공하고, 시스템 영역은 `system_admin` 권한 전용 노출 정책으로 유지.
 
+### M5: 개발 의뢰 (Dev Request, DREQ) — Concept staged (sprint `claude/work_260515-f`)
+
+외부 시스템 → DevHub → application/project 으로 이어지는 upstream intake 흐름. 컨셉/요구사항/Usecase/설계/API contract 1차 stage 완료 (본 sprint). 후속 sprint hook:
+
+- ⏳ **A (ADR)**: 외부 수신 endpoint 인증 정책 (API token + IP allowlist / HMAC / OAuth client_credentials) — DREQ-AuthADR.
+- ⏳ **B**: backend 구현 (domain.DevRequest / store / handler / migration 000022) + API-59..65 활성화. ADR 머지 후 진입.
+- ⏳ **F**: 담당자 dashboard 의 "내 대기 의뢰" 위젯 + `/admin/settings/dev-requests` 페이지 + Promote-to-Application/Project 연계.
+- ⏳ **A (ADR)**: PMO Manager / 담당자 위양 정책 (ADR-0011 §4.2 패턴) — DREQ-RBAC-ADR. backend 구현과 병행.
+- ⏳ **B·F·X**: UT-dreq / TC-DREQ-* 발급 + Playwright spec.
+- ⏳ **B (carve)**: 외부 시스템 callback (webhook 송신) — MVP 안정화 후.
+
+문서 hub: [`docs/planning/development_request_concept.md`](./planning/development_request_concept.md), 추적성 [`docs/traceability/report.md §2/§3 DREQ`](./traceability/report.md).
+
 ---
 
 ## 4. 트랙별 세부 작업 매핑
