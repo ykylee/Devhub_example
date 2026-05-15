@@ -304,6 +304,8 @@ erDiagram
       bigint id PK
       uuid provider_id FK
       text event_key UK
+      text global_event_id UK
+      text trace_id
       text resource_type
       text event_type
       text status
@@ -337,6 +339,10 @@ erDiagram
 > **스코프 FK 메모**:
 > - `INTEGRATION_BINDINGS.scope_type` 이 `application` 인 경우 `scope_id -> applications.id`, `project` 인 경우 `scope_id -> projects.id` 를 의미한다.
 > - 물리 FK는 polymorphic 제약으로 단일 컬럼에 직접 강제하기 어렵기 때문에 앱 레이어 + partial unique 인덱스로 보완한다.
+
+> **이벤트 추적성 메모**:
+> - `INTEGRATION_EVENTS` 는 `global_event_id`/`trace_id` 를 통해 바인딩/도메인 엔터티와의 논리 연결을 추적한다.
+> - 외부 시스템 키(`external_key`, `resource_type`, `event_key`) 조합으로 연관 관계를 복원하며, 물리 FK 없이도 재처리/감사 추적이 가능하도록 설계한다.
 
 ## 3. 통합 ERD (현행 + Project 확장)
 

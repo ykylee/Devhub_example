@@ -351,6 +351,9 @@ plain token 은 발급 직후 1회만 admin 에게 노출하고 어디에도 저
 
 - Core 는 provider 중립 계약만 유지하고, provider-specific API 차이는 Adapter 내부에서 흡수한다.
 - provider 장애는 격리 경계로 취급해 전체 파이프라인 중단으로 확산되지 않게 한다.
+- `Adapter Router` 는 provider별 webhook 검증 전략을 분리한다.
+  - 예: HMAC-SHA256, token compare, provider SDK verifier
+  - 공통 contract: `Verify(headers, body) -> (ok, reason)` 를 제공하고 API-73 ingest 전에 실행
 
 ### 8.2 동기화 전략 (ARCH-INT-02)
 
@@ -451,3 +454,6 @@ infra_services
 - provider별 retry/backoff 정책을 독립적으로 적용한다.
 - 특정 provider 의 반복 실패는 circuit-open 상태로 격리하고, 나머지 provider 파이프라인은 지속 처리한다.
 - 운영자는 provider 단위로 수동 재동기화(re-sync) 요청을 트리거할 수 있어야 한다.
+- `degraded` 전이 임계값은 설정 가능(configurable)해야 한다.
+  - 기본 예시: `failure_threshold=3`, `window=5m`, `cooldown=10m`
+  - 홈랩/사내망 환경 특성에 맞춰 provider별 override 를 허용한다.

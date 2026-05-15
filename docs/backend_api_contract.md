@@ -2108,6 +2108,9 @@ intake_token_collision                         # sprint o (ADR-0014): hashed_tok
 - **인증**: provider별 webhook 인증(header signature/token); OIDC 미적용.
 - **설명**: raw event 저장 + 검증 + normalize enqueue.
 - **응답**: 202 accepted / 401 invalid signature / 409 duplicate delivery.
+- **검증 확장성**:
+  - `Adapter Router` 가 provider별 verifier 전략을 선택해 검증한다.
+  - verifier contract 예: `Verify(headers, body) -> (ok, reason)` (`hmac_sha256`, `shared_token`, `provider_sdk` 등).
 - **헤더(권장 공통)**:
   - `X-Integration-Delivery`: 외부 전송 고유 ID (없으면 payload hash로 보조 dedupe)
   - `X-Integration-Event`: 이벤트 타입

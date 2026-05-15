@@ -74,6 +74,13 @@
 - Edge: 서비스 간 의존 (API, DB, Queue, Webhook)
 - Snapshot + Event: 현재 상태 + 변경 이력(`infra.node.updated`, `infra.service.updated`)
 
+### 4.3 DREQ Intake Token 과의 경계
+
+- `dev_request_intake_tokens` 는 DREQ 외부 수신을 위한 **도메인 특화 Push-only intake 채널**로 취급한다.
+- 1차 정책은 Integration Provider Registry 와 분리 관리한다.
+  - 이유: DREQ intake 는 일반 provider catalog 수명주기(조회/동기화/reconcile)보다 인증·수신 경계가 우선이기 때문.
+- 단, 운영 통합 관점에서는 "external intake endpoint" 메타를 공통 관제 화면에서 함께 노출할 수 있도록 확장 여지를 둔다.
+
 ## 5. 시스템별 초기 정책 (컨셉 수준)
 
 ### 5.1 Jira / Confluence
