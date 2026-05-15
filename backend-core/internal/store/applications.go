@@ -53,6 +53,38 @@ const applicationsSelectColumns = `
 	created_at,
 	updated_at`
 
+// applicationsSearchPredicate은 ListApplications의 `q` 파라미터($3)를 키/이름/오너/리더/
+// 부서 + 부서 라벨 + 연결된 repository · project 로 매칭한다. count/list 쿼리에서 공유.
+const applicationsSearchPredicate = `
+    $3 = ''
+    OR key ILIKE '%' || $3 || '%'
+    OR name ILIKE '%' || $3 || '%'
+    OR owner_user_id ILIKE '%' || $3 || '%'
+    OR leader_user_id ILIKE '%' || $3 || '%'
+    OR development_unit_id ILIKE '%' || $3 || '%'
+    OR EXISTS (
+      SELECT 1 FROM org_units ou
+      WHERE ou.unit_id = applications.development_unit_id
+        AND ou.label ILIKE '%' || $3 || '%'
+    )
+    OR EXISTS (
+      SELECT 1 FROM application_repositories ar
+      WHERE ar.application_id = applications.id
+        AND (
+          ar.repo_full_name ILIKE '%' || $3 || '%'
+          OR ar.external_repo_id ILIKE '%' || $3 || '%'
+        )
+    )
+    OR EXISTS (
+      SELECT 1 FROM projects p
+      WHERE p.application_id = applications.id
+        AND (
+          p.key ILIKE '%' || $3 || '%'
+          OR p.name ILIKE '%' || $3 || '%'
+        )
+    )
+`
+
 func scanApplication(row pgx.Row) (domain.Application, error) {
 	var (
 		app                domain.Application
@@ -97,79 +129,23 @@ func (s *PostgresStore) ListApplications(ctx context.Context, opts ApplicationLi
 SELECT COUNT(*) FROM applications
 WHERE ($1 = '' OR status = $1)
   AND ($2 OR status <> 'archived')
-  AND (
-    $3 = ''
-    OR key ILIKE '%' || $3 || '%'
-    OR name ILIKE '%' || $3 || '%'
-    OR owner_user_id ILIKE '%' || $3 || '%'
-    OR leader_user_id ILIKE '%' || $3 || '%'
-    OR development_unit_id ILIKE '%' || $3 || '%'
-    OR EXISTS (
-      SELECT 1 FROM org_units ou
-      WHERE ou.unit_id = applications.development_unit_id
-        AND ou.label ILIKE '%' || $3 || '%'
-    )
-    OR EXISTS (
-      SELECT 1 FROM application_repositories ar
-      WHERE ar.application_id = applications.id
-        AND (
-          ar.repo_full_name ILIKE '%' || $3 || '%'
-          OR ar.external_repo_id ILIKE '%' || $3 || '%'
-        )
-    )
-    OR EXISTS (
-      SELECT 1 FROM projects p
-      WHERE p.application_id = applications.id
-        AND (
-          p.key ILIKE '%' || $3 || '%'
-          OR p.name ILIKE '%' || $3 || '%'
-        )
-    )
-  )`
+  AND (` + applicationsSearchPredicate + `)`
 
 	var total int
 	if err := s.pool.QueryRow(ctx, countQuery, opts.Status, opts.IncludeArchived, opts.Query).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count applications: %w", err)
 	}
 
-	query := `
+	const listQuery = `
 SELECT` + applicationsSelectColumns + `
 FROM applications
-WHERE ($3 = '' OR status = $3)
-  AND ($4 OR status <> 'archived')
-  AND (
-    $5 = ''
-    OR key ILIKE '%' || $5 || '%'
-    OR name ILIKE '%' || $5 || '%'
-    OR owner_user_id ILIKE '%' || $5 || '%'
-    OR leader_user_id ILIKE '%' || $5 || '%'
-    OR development_unit_id ILIKE '%' || $5 || '%'
-    OR EXISTS (
-      SELECT 1 FROM org_units ou
-      WHERE ou.unit_id = applications.development_unit_id
-        AND ou.label ILIKE '%' || $5 || '%'
-    )
-    OR EXISTS (
-      SELECT 1 FROM application_repositories ar
-      WHERE ar.application_id = applications.id
-        AND (
-          ar.repo_full_name ILIKE '%' || $5 || '%'
-          OR ar.external_repo_id ILIKE '%' || $5 || '%'
-        )
-    )
-    OR EXISTS (
-      SELECT 1 FROM projects p
-      WHERE p.application_id = applications.id
-        AND (
-          p.key ILIKE '%' || $5 || '%'
-          OR p.name ILIKE '%' || $5 || '%'
-        )
-    )
-  )
+WHERE ($1 = '' OR status = $1)
+  AND ($2 OR status <> 'archived')
+  AND (` + applicationsSearchPredicate + `)
 ORDER BY key ASC
-LIMIT $1 OFFSET $2`
+LIMIT $4 OFFSET $5`
 
-	rows, err := s.pool.Query(ctx, query, limit, offset, opts.Status, opts.IncludeArchived, opts.Query)
+	rows, err := s.pool.Query(ctx, listQuery, opts.Status, opts.IncludeArchived, opts.Query, limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list applications: %w", err)
 	}
