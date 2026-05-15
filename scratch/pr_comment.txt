@@ -1,0 +1,7 @@
+전반적으로 매우 훌륭한 개선사항입니다. 특히 Docker Entrypoint에서 `sed`를 활용해 런타임에 환경변수를 주입하는 방식이 인상적입니다. 몇 가지 사소한 리뷰 의견을 남깁니다.
+
+1. **보안 설정**: `kratos.deploy.yaml`에 포함된 `secrets.cookie` 및 `secrets.cipher` 값은 현재 PoC용으로 하드코딩되어 있습니다. 운영 환경에서는 이 값들도 `__KRATOS_SECRET__` 등의 placeholder를 사용하거나 환경변수를 직접 참조하도록 개선하는 것이 좋겠습니다.
+2. **Webhook Token**: `DEVHUB_KRATOS_WEBHOOK_TOKEN`이 기본값(`dev-token`)을 가지고 있는데, 운영 배포 시에는 반드시 복잡한 토큰값으로 변경이 필요함을 가이드에 명시하면 더 완벽할 것 같습니다.
+3. **명칭 통일**: `__FRONTEND_PUBLIC_BASE_URL__` placeholder 명칭이 `kratos.deploy.yaml`에서 사용되는데, 향후 변수가 많아질 경우를 대비해 `${VARIABLE}` 형태의 표준 envsubst 스타일로의 전환도 고려해볼 만합니다 (현재 동작에는 문제 없습니다).
+
+위 내용들 외에는 전체 E2E 통과(43/43)까지 확인되어 머지하기에 충분한 상태입니다.

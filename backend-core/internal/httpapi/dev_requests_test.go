@@ -28,9 +28,6 @@ type memoryDevRequestStore struct {
 	createdApps      []domain.Application
 	createdProjects  []domain.Project
 	createdRepoLinks []domain.ApplicationRepository
-	// failPromote, when non-empty, makes promote methods return that error
-	// (used to assert tx rollback semantics from the handler's perspective).
-	failPromote error
 }
 
 func newMemoryDevRequestStore() *memoryDevRequestStore {
@@ -187,9 +184,6 @@ func (s *memoryDevRequestStore) MarkDevRequestRegistered(_ context.Context, id s
 func (s *memoryDevRequestStore) RegisterDevRequestWithNewApplication(_ context.Context, drID string, app domain.Application, primaryRepo *domain.ApplicationRepository) (domain.DevRequest, domain.Application, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.failPromote != nil {
-		return domain.DevRequest{}, domain.Application{}, s.failPromote
-	}
 	dr, ok := s.rows[drID]
 	if !ok {
 		return domain.DevRequest{}, domain.Application{}, store.ErrNotFound
@@ -232,9 +226,6 @@ func (s *memoryDevRequestStore) RegisterDevRequestWithNewApplication(_ context.C
 func (s *memoryDevRequestStore) RegisterDevRequestWithNewProject(_ context.Context, drID string, project domain.Project) (domain.DevRequest, domain.Project, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.failPromote != nil {
-		return domain.DevRequest{}, domain.Project{}, s.failPromote
-	}
 	dr, ok := s.rows[drID]
 	if !ok {
 		return domain.DevRequest{}, domain.Project{}, store.ErrNotFound

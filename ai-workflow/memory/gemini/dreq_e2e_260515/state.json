@@ -1,0 +1,19 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "gemini/dreq_e2e_260515",
+  "status": "planned",
+  "updated_at": "2026-05-15T21:20:00Z",
+  "milestones": {
+    "DREQ-E2E": {
+      "status": "planned",
+      "started_at": "2026-05-15",
+      "notes": "DREQ carve out 3/4: Playwright E2E + Vitest Unit + P2 carve out absorption"
+    }
+  },
+  "next_actions": [
+    "DREQ-E2E-PLAYWRIGHT: Intake flow E2E spec 작성",
+    "DREQ-E2E-VITEST: IntakeToken UI 컴포넌트 단위 테스트 작성",
+    "DREQ-P2-ABSORPTION: P2 carve out 누적 6건 흡수"
+  ]
+}
