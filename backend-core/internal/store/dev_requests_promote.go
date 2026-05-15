@@ -14,11 +14,17 @@ import (
 // (target_type, target_id). It is the transactional twin of
 // MarkDevRequestRegistered (which runs on the pool, outside any tx), but reuses
 // the same column list so a refactor of devRequestsSelectColumns picks both up.
+//
+// codex hotfix #4 / self-review P2 #1 (sprint claude/work_260515-n) —
+// rejected_reason 을 명시적으로 NULL 로 비운다. reopen (rejected → pending) 후
+// promote 시 이전 rejected_reason 잔재가 남는 정합 차이 차단. TransitionDevRequestStatus
+// 의 `CASE WHEN $2='rejected' ...` 와 같은 정책 (status='registered' 면 reason NULL).
 const dreqMarkRegisteredUpdateQuery = `
 UPDATE dev_requests SET
     status = 'registered',
     registered_target_type = $2,
     registered_target_id   = $3,
+    rejected_reason        = NULL,
     updated_at = NOW()
 WHERE id = $1::uuid
 RETURNING` + devRequestsSelectColumns
@@ -69,6 +75,14 @@ func (s *PostgresStore) RegisterDevRequestWithNewApplication(
 				return domain.DevRequest{}, domain.Application{}, ErrConflict
 			}
 			if isForeignKeyViolation(err) {
+				return domain.DevRequest{}, domain.Application{}, ErrConflict
+			}
+			// codex hotfix #4 P1 (sprint claude/work_260515-n) — application_repositories
+			// 의 role / sync_status / sync_error_code CHECK 위반은 client-side
+			// 검증 가능한 deterministic input 문제이므로 generic 500 대신
+			// ErrConflict 로 매핑한다. handler 의 role gate 가 1차 방어선이지만
+			// 다른 path 의 호출자 또는 schema 추가에 대비한 defense-in-depth.
+			if isCheckViolation(err, "") {
 				return domain.DevRequest{}, domain.Application{}, ErrConflict
 			}
 			return domain.DevRequest{}, domain.Application{}, fmt.Errorf("promote: link primary repo: %w", err)

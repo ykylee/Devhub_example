@@ -1932,7 +1932,7 @@ integration_policy_violation
 ```
 
 - **응답 — 200** (legacy target_id path): registered_target 의 `created=false`, entity body 미포함.
-- **에러 400** `dev_request_register_target_invalid` (target_type 이 application/project 외) / `dev_request_register_payload_invalid` (payload mutual exclusion 위반). **422** application_payload.key 정규식 위반 (`invalid_application_key`). **409** `dev_request_already_registered` (status 가 이미 registered/rejected/closed) / `application_key_conflict` / `project_key_conflict` (신규 생성 path 에서 FK 또는 UNIQUE 위반 → tx 롤백). **403** `auth_row_denied`.
+- **에러 400** `dev_request_register_target_invalid` (target_type 이 application/project 외) / `dev_request_register_payload_invalid` (payload mutual exclusion 위반). **422** `invalid_application_key` (application_payload.key 정규식 위반) / `invalid_repo_link_role` (primary_repo.role 이 primary/sub/shared 외 — codex hotfix #4, sprint `claude/work_260515-n`) / `unsupported_repo_provider` (primary_repo.repo_provider 가 SCM 카탈로그에 없거나 disabled — codex hotfix #4). **409** `dev_request_already_registered` (status 가 이미 registered/rejected/closed) / `application_key_conflict` / `project_key_conflict` (신규 생성 path 에서 FK 또는 UNIQUE 또는 CHECK 위반 → tx 롤백). **403** `auth_row_denied`.
 
 ### 14.5 거절 — `POST /api/v1/dev-requests/:id/reject`  *(API-63)*
 
@@ -1960,9 +1960,15 @@ dev_request_invalid_intake
 dev_request_idempotency_conflict
 dev_request_register_target_invalid
 dev_request_register_target_mismatch
+dev_request_register_payload_invalid          # promote: target_id / application_payload / project_payload mutual exclusion (sprint m)
 dev_request_assignee_not_found
 dev_request_reason_required
 invalid_status_transition_close
+invalid_application_key                        # promote application_payload.key 정규식 (재사용)
+invalid_repo_link_role                         # codex hotfix #4 (sprint n): primary_repo.role 의 application-level gate
+unsupported_repo_provider                      # codex hotfix #4 (sprint n): primary_repo.repo_provider 의 SCM enablement gate (legacy 재사용)
+application_key_conflict                       # promote application 신규 생성 시 FK/UNIQUE/CHECK 위반
+project_key_conflict                           # promote project 신규 생성 시 FK/UNIQUE 위반
 auth_intake_token_invalid
 auth_intake_token_revoked
 auth_intake_ip_denied

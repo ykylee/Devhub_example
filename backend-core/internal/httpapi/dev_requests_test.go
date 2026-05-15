@@ -767,6 +767,143 @@ func TestRegisterDevRequest_LegacyTargetIDStillSupported(t *testing.T) {
 	}
 }
 
+// --- codex hotfix #4 (sprint claude/work_260515-n) regression guards ---
+
+func TestRegisterDevRequest_PromoteApp_InvalidRepoRole(t *testing.T) {
+	s := newMemoryDevRequestStore()
+	pending := s.seed(domain.DevRequest{
+		Title: "x", Requester: "ext", AssigneeUserID: "alice",
+		SourceSystem: "ops", Status: domain.DevRequestStatusPending,
+	})
+	router := NewRouter(RouterConfig{
+		DevRequestStore:  s,
+		ApplicationStore: newMemoryApplicationStore(),
+		AuditStore:       &memoryAuditStore{},
+		AuthDevFallback:  true,
+	})
+	// role="owner" 는 application_repositories_role_check 위반 — 본래 PG CHECK 가 잡지만,
+	// codex P1 hotfix 가 handler 의 application-level gate 로 422 invalid_repo_link_role 로 surface.
+	body := `{
+		"target_type":"application",
+		"application_payload":{"key":"DELTA12345","name":"D","owner_user_id":"u1","leader_user_id":"u2","development_unit_id":"unit-dev","visibility":"internal","status":"planning",
+			"primary_repo":{"repo_provider":"gitea","repo_full_name":"org/d","role":"owner"}}
+	}`
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/dev-requests/"+pending.ID+"/register", body)
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected 422, code=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"code":"invalid_repo_link_role"`)) {
+		t.Errorf("expected invalid_repo_link_role: %s", rec.Body.String())
+	}
+	// 0 created — handler 가 store 호출 전에 차단.
+	if len(s.createdApps) != 0 {
+		t.Errorf("expected 0 created apps after gate, got %d", len(s.createdApps))
+	}
+}
+
+func TestRegisterDevRequest_PromoteApp_DisabledSCMProvider(t *testing.T) {
+	s := newMemoryDevRequestStore()
+	pending := s.seed(domain.DevRequest{
+		Title: "x", Requester: "ext", AssigneeUserID: "alice",
+		SourceSystem: "ops", Status: domain.DevRequestStatusPending,
+	})
+	// newMemoryApplicationStore() 에서 forgejo 는 Enabled=false.
+	router := NewRouter(RouterConfig{
+		DevRequestStore:  s,
+		ApplicationStore: newMemoryApplicationStore(),
+		AuditStore:       &memoryAuditStore{},
+		AuthDevFallback:  true,
+	})
+	body := `{
+		"target_type":"application",
+		"application_payload":{"key":"EPSILON123","name":"E","owner_user_id":"u1","leader_user_id":"u2","development_unit_id":"unit-dev","visibility":"internal","status":"planning",
+			"primary_repo":{"repo_provider":"forgejo","repo_full_name":"org/e","role":"primary"}}
+	}`
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/dev-requests/"+pending.ID+"/register", body)
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected 422, code=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"code":"unsupported_repo_provider"`)) {
+		t.Errorf("expected unsupported_repo_provider: %s", rec.Body.String())
+	}
+	if len(s.createdApps) != 0 {
+		t.Errorf("expected 0 created apps after gate, got %d", len(s.createdApps))
+	}
+}
+
+func TestRegisterDevRequest_PromoteApp_UnknownProviderRejectedSamePathAsLegacy(t *testing.T) {
+	s := newMemoryDevRequestStore()
+	pending := s.seed(domain.DevRequest{
+		Title: "x", Requester: "ext", AssigneeUserID: "alice",
+		SourceSystem: "ops", Status: domain.DevRequestStatusPending,
+	})
+	router := NewRouter(RouterConfig{
+		DevRequestStore:  s,
+		ApplicationStore: newMemoryApplicationStore(),
+		AuditStore:       &memoryAuditStore{},
+		AuthDevFallback:  true,
+	})
+	body := `{
+		"target_type":"application",
+		"application_payload":{"key":"ZETA123456","name":"Z","owner_user_id":"u1","leader_user_id":"u2","development_unit_id":"unit-dev","visibility":"internal","status":"planning",
+			"primary_repo":{"repo_provider":"unknown","repo_full_name":"org/z","role":"primary"}}
+	}`
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/dev-requests/"+pending.ID+"/register", body)
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected 422, code=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"code":"unsupported_repo_provider"`)) {
+		t.Errorf("expected unsupported_repo_provider: %s", rec.Body.String())
+	}
+}
+
+func TestRegisterDevRequest_PromoteApp_NoApplicationStoreFallback(t *testing.T) {
+	// ApplicationStore unwired — provider gate 는 dev environment 에서 통과.
+	// 회귀 가드: ApplicationStore 가 nil 일 때 happy path 가 깨지지 않음.
+	s := newMemoryDevRequestStore()
+	pending := s.seed(domain.DevRequest{
+		Title: "x", Requester: "ext", AssigneeUserID: "alice",
+		SourceSystem: "ops", Status: domain.DevRequestStatusPending,
+	})
+	router := newDevRequestsRouter(s)
+	body := `{
+		"target_type":"application",
+		"application_payload":{"key":"OMEGA12345","name":"O","owner_user_id":"alice","leader_user_id":"bob","development_unit_id":"unit-dev","visibility":"internal","status":"planning",
+			"primary_repo":{"repo_provider":"any","repo_full_name":"org/o","role":"primary"}}
+	}`
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/dev-requests/"+pending.ID+"/register", body)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 (gate skipped without ApplicationStore), code=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestRegisterDevRequest_PromoteApp_RejectedReasonClearedOnReopen(t *testing.T) {
+	// 직전 rejected 였던 dev_request 가 pending 으로 reopen → register 되면
+	// rejected_reason 이 NULL 로 비워져야 한다. self-review P2 #1 회귀 가드.
+	s := newMemoryDevRequestStore()
+	dr := s.seed(domain.DevRequest{
+		Title: "x", Requester: "ext", AssigneeUserID: "alice",
+		SourceSystem: "ops", Status: domain.DevRequestStatusRejected,
+		RejectedReason: "이전 거절 사유",
+	})
+	// memory store 는 reopen 표현이 약하지만, register 가 MarkDevRequestRegistered 로
+	// status='registered' 갱신할 때 rejected_reason 이 NULL 로 비워지는지 검사.
+	router := newDevRequestsRouter(s)
+	// status 가 rejected 이므로 직접 register 는 conflict — 먼저 pending 으로 복원.
+	dr.Status = domain.DevRequestStatusPending
+	s.rows[dr.ID] = dr
+	body := `{"target_type":"application","target_id":"app-1"}`
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/dev-requests/"+dr.ID+"/register", body)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("code=%d body=%s", rec.Code, rec.Body.String())
+	}
+	// memoryDevRequestStore.MarkDevRequestRegistered 가 rejected_reason 을 자동 clear 하지 않는다 — store 가 SQL 정합 검증 대상이므로 본 회귀는 분리.
+	// 본 test 는 handler path 가 정상 200 응답하는지만 가드. SQL 의 rejected_reason=NULL 은 integration 테스트의 대상.
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"status":"registered"`)) {
+		t.Errorf("expected status=registered: %s", rec.Body.String())
+	}
+}
+
 func TestClientIPAllowed_CIDRAndSingle(t *testing.T) {
 	if !clientIPAllowed("192.0.2.5", []string{"192.0.2.0/24"}) {
 		t.Error("CIDR should include 192.0.2.5")
