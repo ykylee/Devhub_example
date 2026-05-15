@@ -241,7 +241,6 @@ class AuthService {
         cache: "no-store",
       });
       if (!response.ok) {
-        this.runtimeConfig = fallback;
         return fallback;
       }
 
@@ -252,7 +251,6 @@ class AuthService {
       return this.runtimeConfig;
     } catch (error) {
       console.warn("[AuthService] runtime OIDC config fetch failed, using fallback", error);
-      this.runtimeConfig = fallback;
       return fallback;
     }
   }
