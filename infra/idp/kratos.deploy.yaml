@@ -94,9 +94,9 @@ session:
 
 secrets:
   cookie:
-    - "poc-only-cookie-secret-min-16-bytes-aaaaaaaa"
+    - "__KRATOS_COOKIE_SECRET__"
   cipher:
-    - "poc-cipher-secret-32bytes-aaaaaa"
+    - "__KRATOS_CIPHER_SECRET__"
 
 identity:
   default_schema_id: devhub_user

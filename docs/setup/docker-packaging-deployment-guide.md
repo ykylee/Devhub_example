@@ -153,6 +153,9 @@ export DEVHUB_KRATOS_ADMIN_URL=http://<host>:14434
 export HYDRA_DSN='postgres://<user>:<pw>@<db-host>:5432/<db>?sslmode=disable&search_path=hydra'
 export KRATOS_DSN='postgres://<user>:<pw>@<db-host>:5432/<db>?sslmode=disable&search_path=kratos'
 export DB_URL='postgres://<user>:<pw>@<db-host>:5432/<db>?sslmode=disable'
+export DEVHUB_KRATOS_WEBHOOK_TOKEN='<strong-random-token>'
+export KRATOS_COOKIE_SECRET='<min-16-bytes-random-secret>'
+export KRATOS_CIPHER_SECRET='<min-32-bytes-random-secret>'
 export OIDC_AUTH_URL=http://<host>:14444/oauth2/auth
 export OIDC_REDIRECT_URI=${PUBLIC_BASE_URL}/auth/callback
 export NEXT_PUBLIC_OIDC_AUTH_URL=http://<host>:14444/oauth2/auth
@@ -167,6 +170,7 @@ docker compose -f docker-compose.deploy.yml up -d
 ```
 
 `IMAGE_TAG`와 IdP/Hydra/Kratos 관련 URL은 필수다. 미지정 시 compose가 오류로 중단되도록 설정되어 있다.
+`DEVHUB_KRATOS_WEBHOOK_TOKEN`, `KRATOS_COOKIE_SECRET`, `KRATOS_CIPHER_SECRET`도 운영 배포 필수값이며, 예시 기본값(`dev-token` 류) 사용은 금지한다.
 
 ### 8.1.1 변수 스키마 (권장)
 
