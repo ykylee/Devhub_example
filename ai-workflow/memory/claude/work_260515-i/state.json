@@ -1,0 +1,50 @@
+{
+  "schema_version": "1",
+  "branch": "claude/work_260515-i",
+  "base": "main @ 1d24acf (PR #123 머지 직후)",
+  "updated_at": "2026-05-15T05:50:00Z",
+  "status": "done (merged into main)",
+  "purpose": "DREQ-Backend sprint — Dev Request 도메인 backend 1차 활성화. ADR-0012 의 옵션 A (API 토큰 + IP allowlist) 인증 정책 + API-59..65 7 endpoint + audit + RBAC matrix 적용.",
+  "scope": {
+    "files_to_create": [
+      "backend-core/internal/domain/dev_request.go (DevRequest struct + status/target enum + 상태 전이 표)",
+      "backend-core/internal/store/dev_requests.go (DevRequestStore interface + PostgresStore 구현)",
+      "backend-core/internal/store/dev_request_intake_tokens.go (IntakeTokenStore — Lookup/MarkUsed/Revoke)",
+      "backend-core/internal/httpapi/dev_requests.go (7 handler — API-59..65)",
+      "backend-core/internal/httpapi/dev_request_intake_auth.go (requireIntakeToken middleware)",
+      "backend-core/internal/httpapi/dev_requests_test.go (memoryDevRequestStore + handler unit tests)",
+      "backend-core/internal/httpapi/dev_request_intake_auth_test.go (middleware tests)",
+      "backend-core/migrations/000022_dev_requests.{up,down}.sql",
+      "backend-core/migrations/000023_dev_request_intake_tokens.{up,down}.sql",
+      "backend-core/migrations/000024_rbac_dev_request_resource.{up,down}.sql"
+    ],
+    "files_to_modify": [
+      "backend-core/internal/domain/rbac.go (AllResources / DefaultPermissionMatrix 에 dev_requests 추가)",
+      "backend-core/internal/httpapi/router.go (7 신규 route + RouterConfig.DevRequestStore + RouterConfig.IntakeTokenStore)",
+      "backend-core/internal/httpapi/permissions.go (routePermissionTable 에 7 신규 row — POST /api/v1/dev-requests 는 IntakeAuth 또는 Bypass 처리)",
+      "backend-core/internal/store/postgres.go (필요 시 추가 sql helper)",
+      "backend-core/main.go (DevRequestStore + IntakeTokenStore 와이어링)"
+    ],
+    "endpoint_mapping": {
+      "API-59": "POST /api/v1/dev-requests (외부 수신, intake auth)",
+      "API-60": "GET /api/v1/dev-requests (목록, OIDC + RBAC + row-filter)",
+      "API-61": "GET /api/v1/dev-requests/:id (상세, row-level)",
+      "API-62": "POST /api/v1/dev-requests/:id/register (Promote — 단일 트랜잭션)",
+      "API-63": "POST /api/v1/dev-requests/:id/reject",
+      "API-64": "PATCH /api/v1/dev-requests/:id (Reassign — system_admin only)",
+      "API-65": "DELETE /api/v1/dev-requests/:id (Close — system_admin only)"
+    },
+    "out_of_scope": [
+      "DREQ frontend UI (별도 sprint)",
+      "intake token 발급 admin endpoint (별도 sprint — DREQ-Admin-UI)",
+      "TC-DREQ-* e2e (별도 sprint — DREQ-E2E)",
+      "외부 시스템 callback / webhook 송신 (carve out)"
+    ]
+  },
+  "implementation_notes": {
+    "intake_token_storage": "plain token never stored. SHA-256(plain) 만 dev_request_intake_tokens.hashed_token UNIQUE 인덱스. 발급 시점에 1회만 admin 에게 plain 노출.",
+    "intake_auth_bypass": "routePermissionTable 의 `POST /api/v1/dev-requests` 는 Bypass: true 로 설정. requireIntakeToken 미들웨어가 v1 group middleware 보다 먼저 실행 (route group 단위).",
+    "promote_transaction": "store.RegisterDevRequest(ctx, dreqID, targetType, targetPayload) 가 단일 트랜잭션으로 (a) target 생성 + (b) dreq status=registered + (c) registered_target_type/id 갱신. 부분 실패 시 rollback.",
+    "row_ownership": "handler 가 enforceRowOwnership(c, dreq.AssigneeUserID, 'pmo_manager') 호출. assignee 본인 or system_admin or pmo_manager 통과. API-64 (Reassign) + API-65 (Close) 는 system_admin only — handler 가 추가로 actor.role 검증."
+  }
+}

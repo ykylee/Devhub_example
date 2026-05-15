@@ -1861,38 +1861,78 @@ integration_policy_violation
 ### 14.4 Promote (등록) — `POST /api/v1/dev-requests/:id/register`  *(API-62)*
 
 - **인증**: OIDC + RBAC `dev_requests:edit` + row-level (system_admin / pmo_manager / assignee 본인).
-- **요청 (JSON)**:
+- **요청 schema (mutual exclusion)**: 다음 셋 중 정확히 하나만 채워야 한다. 둘 이상 채우거나 모두 비우면 `400 dev_request_register_payload_invalid`. (sprint `claude/work_260515-m` 도입)
+  1. `target_id` (legacy 매핑) — 이미 존재하는 application/project id 로 dev_request 를 묶기만 한다. dev_requests row 만 UPDATE 한다 (단일 row, 트랜잭션 불요).
+  2. `application_payload` (target_type=application 필수) — 새 Application 을 생성하고 dev_request 를 registered 로 갱신한다. **단일 Postgres 트랜잭션** (REQ-FR-DREQ-005, ADR-0013 §5). `primary_repo` 필드는 optional 이며 함께 application_repositories 행 1개를 추가한다.
+  3. `project_payload` (target_type=project 필수) — 새 Project 를 생성하고 dev_request 를 registered 로 갱신한다. 단일 Postgres 트랜잭션.
+
+- **요청 (JSON, legacy 매핑)**:
+
+```json
+{ "target_type": "application", "target_id": "5e1c..." }
+```
+
+- **요청 (JSON, 신규 application 생성)**:
 
 ```json
 {
-  "target_type": "application",  // "application" | "project"
-  "target_payload": {
+  "target_type": "application",
+  "application_payload": {
     "key": "PLATFORM26",
     "name": "Platform 2026",
+    "description": "DREQ intake 로 생성",
     "owner_user_id": "charlie",
     "leader_user_id": "charlie",
     "development_unit_id": "dept-eng",
+    "visibility": "internal",
+    "status": "planning",
+    "primary_repo": {
+      "repo_provider": "gitea",
+      "repo_full_name": "org/platform-2026",
+      "external_repo_id": "",
+      "role": "primary"
+    }
+  }
+}
+```
+
+- **요청 (JSON, 신규 project 생성)**:
+
+```json
+{
+  "target_type": "project",
+  "project_payload": {
+    "application_id": "",
+    "repository_id": 42,
+    "key": "PROJ1",
+    "name": "Proj1",
+    "owner_user_id": "alice",
     "visibility": "internal",
     "status": "planning"
   }
 }
 ```
 
-- **`target_type: "project"`** 인 경우 `target_payload` 는 `POST /api/v1/repositories/:repository_id/projects` 와 동일 schema. handler 는 url 의 `repository_id` 대신 payload 의 `repository_id` 필드를 사용.
-- **단일 트랜잭션** (REQ-FR-DREQ-005): (a) target entity 생성, (b) DREQ.status → `registered`, (c) DREQ.registered_target_type/id 갱신, (d) audit `dev_request.registered` + `application.created` (또는 `project.created`). 부분 실패 시 모두 롤백.
-- **응답 — 201**:
+- **단일 트랜잭션 효과** (REQ-FR-DREQ-005, ADR-0013 §5, sprint `claude/work_260515-m`): payload 분기에서 (a) 신규 target entity 생성 (+ optional primary_repo link), (b) `dev_requests.status='registered'`, (c) `registered_target_type/id` 갱신이 모두 한 Postgres tx 안에서 일어난다. 부분 실패 시 모두 롤백. audit emit 은 tx commit 이후: `application.created` (또는 `project.created`) + `dev_request.registered` (`payload.created=true`).
+- **응답 — 200** (신규 생성 path): registered_target 의 `created=true` 와 함께 생성된 entity body 포함.
 
 ```json
 {
   "status": "ok",
   "data": {
-    "dev_request": { /* DREQ with status=registered, registered_target_* filled */ },
-    "registered_target": { /* application or project response shape */ }
+    "dev_request": { "status": "registered", "registered_target_type": "application", "registered_target_id": "...", ... },
+    "registered_target": {
+      "target_type": "application",
+      "target_id": "...",
+      "created": true,
+      "application": { /* application response shape */ }
+    }
   }
 }
 ```
 
-- **에러 409** `dev_request_already_registered` (status 가 이미 registered/rejected/closed). **422** target_payload 검증 실패 (각 도메인 검증 규칙 그대로). **403** `auth_row_denied`.
+- **응답 — 200** (legacy target_id path): registered_target 의 `created=false`, entity body 미포함.
+- **에러 400** `dev_request_register_target_invalid` (target_type 이 application/project 외) / `dev_request_register_payload_invalid` (payload mutual exclusion 위반). **422** `invalid_application_key` (application_payload.key 정규식 위반) / `invalid_repo_link_role` (primary_repo.role 이 primary/sub/shared 외 — codex hotfix #4, sprint `claude/work_260515-n`) / `unsupported_repo_provider` (primary_repo.repo_provider 가 SCM 카탈로그에 없거나 disabled — codex hotfix #4). **409** `dev_request_already_registered` (status 가 이미 registered/rejected/closed) / `application_key_conflict` / `project_key_conflict` (신규 생성 path 에서 FK 또는 UNIQUE 또는 CHECK 위반 → tx 롤백). **403** `auth_row_denied`.
 
 ### 14.5 거절 — `POST /api/v1/dev-requests/:id/reject`  *(API-63)*
 
@@ -1920,16 +1960,24 @@ dev_request_invalid_intake
 dev_request_idempotency_conflict
 dev_request_register_target_invalid
 dev_request_register_target_mismatch
+dev_request_register_payload_invalid          # promote: target_id / application_payload / project_payload mutual exclusion (sprint m)
 dev_request_assignee_not_found
 dev_request_reason_required
 invalid_status_transition_close
+invalid_application_key                        # promote application_payload.key 정규식 (재사용)
+invalid_repo_link_role                         # codex hotfix #4 (sprint n): primary_repo.role 의 application-level gate
+unsupported_repo_provider                      # codex hotfix #4 (sprint n): primary_repo.repo_provider 의 SCM enablement gate (legacy 재사용)
+application_key_conflict                       # promote application 신규 생성 시 FK/UNIQUE/CHECK 위반
+project_key_conflict                           # promote project 신규 생성 시 FK/UNIQUE 위반
 auth_intake_token_invalid
 auth_intake_token_revoked
 auth_intake_ip_denied
 auth_intake_token_missing
+invalid_allowed_ips                            # sprint o (ADR-0014): intake token admin 발급의 allowed_ips 빈 배열/CIDR 오류
+intake_token_collision                         # sprint o (ADR-0014): hashed_token UNIQUE 위반 (사실상 발생 불가)
 ```
 
-### 14.9 API ID 인덱스 (sprint `claude/work_260515-f`)
+### 14.9 API ID 인덱스 (sprint `claude/work_260515-f`, intake token admin sprint `o`)
 
 | API ID | endpoint |
 | --- | --- |
@@ -1940,3 +1988,31 @@ auth_intake_token_missing
 | API-63 | `POST /api/v1/dev-requests/:id/reject` |
 | API-64 | `PATCH /api/v1/dev-requests/:id` (Reassign) |
 | API-65 | `DELETE /api/v1/dev-requests/:id` (Close) |
+| API-66 | `POST /api/v1/dev-request-tokens` (intake token 발급, sprint `o` / ADR-0014) |
+| API-67 | `GET /api/v1/dev-request-tokens` (intake token 목록) |
+| API-68 | `DELETE /api/v1/dev-request-tokens/:token_id` (intake token revoke) |
+
+### 14.10 Intake Token Admin (API-66..68, sprint `claude/work_260515-o` / ADR-0014)
+
+`dev_request_intake_tokens` resource 의 system_admin 일임 endpoint. plain token 은 발급 응답에 1회만 노출, server 는 SHA-256(plain) hex 만 보관. accounts_admin temp_password 패턴과 정합.
+
+#### API-66 `POST /api/v1/dev-request-tokens` — 발급
+
+- **인증**: OIDC + RBAC `dev_request_intake_tokens:create` (system_admin only).
+- **요청**: `{ "client_label": "ops_portal", "source_system": "ops", "allowed_ips": ["10.0.0.0/24", "192.0.2.7"] }`. 모두 필수. `allowed_ips` 빈 배열 거절 (`invalid_allowed_ips`).
+- **처리**: server 가 32-byte base64url plain token 생성 → SHA-256 hex 저장. `created_by` = actor.login.
+- **응답 — 201**: `plain_token` 1회 노출 + token_id / client_label / source_system / allowed_ips / created_at / created_by / last_used_at / revoked_at. **`hashed_token` 미노출**.
+- **audit**: `dev_request_intake_token.issued` (plain/hashed 모두 미포함).
+- **에러**: 400 `invalid_allowed_ips` / 400 missing client_label or source_system / 409 `intake_token_collision`.
+
+#### API-67 `GET /api/v1/dev-request-tokens` — 목록
+
+- **인증**: OIDC + RBAC `dev_request_intake_tokens:view` (system_admin only).
+- **응답 — 200**: `{ "data": [{...}], "meta": {"total": N} }`. revoked 행 포함, `created_at DESC`. **`plain_token` / `hashed_token` 모두 미노출**.
+
+#### API-68 `DELETE /api/v1/dev-request-tokens/:token_id` — revoke
+
+- **인증**: OIDC + RBAC `dev_request_intake_tokens:delete` (system_admin only).
+- **처리**: `revoked_at = COALESCE(revoked_at, NOW())` — idempotent.
+- **응답 — 200**: 갱신된 row (plain_token 미포함). **404** `not_found` (token_id 미존재).
+- **audit**: `dev_request_intake_token.revoked`.

@@ -1,0 +1,30 @@
+{
+  "schema_version": "1",
+  "branch": "claude/work_260515-k",
+  "base": "main @ 58033d2 (PR #125 머지 직후)",
+  "updated_at": "2026-05-15T07:00:00Z",
+  "status": "done (merged into main)",
+  "purpose": "Codex 외부 리뷰 hotfix #3 — PR #122/#124/#125 의 P1×2 + P2×2.",
+  "codex_findings": {
+    "pr_124_p1": {
+      "title": "Handle assignee FK conflicts as rejected intake records",
+      "issue": "store.CreateDevRequest 가 FK 위반을 ErrConflict 로 wrap → handler 가 409 + return. assignee 미존재 인 row 가 audit 보존 없이 drop. REQ-FR-DREQ-002 (검증 실패도 rejected row 저장) 위반.",
+      "fix": "migration 000025 — dev_requests.assignee_user_id NULLABLE 화. handler 의 invalid_intake 분기에서 assignee 가 미존재거나 비어 있으면 assignee_user_id = NULL 로 rejected (invalid_intake) row 저장."
+    },
+    "pr_124_p2": {
+      "title": "Parse limit and offset",
+      "issue": "listDevRequests 가 Limit:50 하드코딩, Offset:0. pagination 망가짐.",
+      "fix": "c.DefaultQuery + strconv.Atoi parse + clamp (limit 1..100, offset >=0)"
+    },
+    "pr_125_p1": {
+      "title": "Point widget links to an accessible route",
+      "issue": "Widget 이 developer/manager dashboard 에 표시되지만 모든 CTA 가 /admin/settings/dev-requests (system_admin only) 로. 일반 담당자는 진입 불가.",
+      "fix": "신규 일반 사용자용 페이지 /dev-requests (admin layout 외, 본인 의뢰만 boby row-filter 활용). Widget link 갱신. /admin/settings/dev-requests 는 system_admin 전체관리 페이지로 유지."
+    },
+    "pr_122_p2": {
+      "title": "Align intake auth header with ADR-0012",
+      "issue": "work_260515-g session_handoff.md 가 X-DREQ-Token 표기, ADR-0012 / architecture / API §14.1 는 Authorization: Bearer. session 복원 시 다음 agent 가 잘못 구현 위험.",
+      "fix": "work_260515-g session_handoff.md 의 X-DREQ-Token → Authorization: Bearer 로 정정"
+    }
+  }
+}

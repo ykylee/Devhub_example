@@ -29,6 +29,8 @@ func main() {
 	var auditStore httpapi.AuditStore
 	var organizationStore httpapi.OrganizationStore
 	var applicationStore httpapi.ApplicationStore
+	var devRequestStore httpapi.DevRequestStore
+	var devRequestIntakeTokenStore httpapi.IntakeTokenStore
 	var rbacStore httpapi.RBACStore
 	realtimeHub := httpapi.NewRealtimeHub()
 	var worker *commandworker.Worker
@@ -48,6 +50,8 @@ func main() {
 		auditStore = pgStore
 		organizationStore = pgStore
 		applicationStore = pgStore
+		devRequestStore = pgStore
+		devRequestIntakeTokenStore = pgStore
 		rbacStore = pgStore
 
 		worker = &commandworker.Worker{Store: pgStore, Publisher: realtimeHub}
@@ -129,8 +133,10 @@ func main() {
 		CommandStore:        commandStore,
 		AuditStore:          auditStore,
 		OrganizationStore:   organizationStore,
-		ApplicationStore:    applicationStore,
-		RBACStore:           rbacStore,
+		ApplicationStore:           applicationStore,
+		DevRequestStore:            devRequestStore,
+		DevRequestIntakeTokenStore: devRequestIntakeTokenStore,
+		RBACStore:                  rbacStore,
 		BearerTokenVerifier: verifier,
 		KratosLogin:         kratosLogin,
 		HydraAdmin:          hydraAdmin,

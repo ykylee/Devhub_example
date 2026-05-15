@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { infraService } from "@/lib/services/infra.service";
 import { Metric } from "@/lib/services/types";
 import { useEffect } from "react";
+import { MyPendingDevRequestsWidget } from "@/components/dev-request/MyPendingDevRequestsWidget";
 
 export default function DeveloperDashboard() {
   const { isDeepFocus, setDeepFocus, addToast } = useStore();
@@ -95,6 +96,9 @@ export default function DeveloperDashboard() {
           </button>
         </motion.div>
       </div>
+
+      {/* 내 대기 의뢰 위젯 (DREQ-Frontend, sprint claude/work_260515-j) */}
+      <MyPendingDevRequestsWidget />
 
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">

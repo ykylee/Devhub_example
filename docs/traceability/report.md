@@ -34,17 +34,17 @@
 - **Architecture**: ARCH-01 ~ ARCH-17 + `ARCH-DREQ-01..06` (sprint `claude/work_260515-f`, DREQ 도메인 컴포넌트/상태머신/인증경계/RBAC/데이터모델/audit). `docs/architecture.md` + `docs/org_chart_ux_spec.md` + `docs/organizational_hierarchy_spec.md` 분포.
 - **API contract**: API-01 ~ API-58 — *ID 공간 = 58, 전 도메인 activated*. 이전 sprint 결정으로 일부 ID 는 composite (`API-07` = infra/edges + infra/topology, `API-13` = risks + risks/critical, `API-55`/`API-56` = composite Project endpoint set, `API-58` = composite Integration CRUD) 또는 결손 (`API-03` 미정의 — 후속 발급 후보) 이 존재한다. **API-41..50** 활성화 sprint = `claude/work_260514-b`. **API-51..58** 활성화 sprint = `claude/work_260514-c`. **API-59..65** (DREQ 도메인) spec staged sprint = `claude/work_260515-f` — **활성화는 DREQ-Backend sprint 에서**. 실제 endpoint 매핑은 본 §2.2 아래 도메인별 서브 표가 source-of-truth.
 
-#### DREQ API §14 — endpoint 매핑 (sprint `claude/work_260515-f`, spec staged 단계)
+#### DREQ API §14 — endpoint 매핑 (spec staged sprint `claude/work_260515-f`, **activated sprint `claude/work_260515-i`**)
 
 | API ID | 본문 위치 | 항목 | 상태 |
 | --- | --- | --- | --- |
-| `API-59` | §14.1 | `POST /api/v1/dev-requests` (외부 수신) | spec staged |
-| `API-60` | §14.2 | `GET /api/v1/dev-requests` (목록) | spec staged |
-| `API-61` | §14.3 | `GET /api/v1/dev-requests/:id` (상세) | spec staged |
-| `API-62` | §14.4 | `POST /api/v1/dev-requests/:id/register` (Promote) | spec staged |
-| `API-63` | §14.5 | `POST /api/v1/dev-requests/:id/reject` | spec staged |
-| `API-64` | §14.6 | `PATCH /api/v1/dev-requests/:id` (Reassign) | spec staged |
-| `API-65` | §14.7 | `DELETE /api/v1/dev-requests/:id` (Close) | spec staged |
+| `API-59` | §14.1 | `POST /api/v1/dev-requests` (외부 수신, intake auth) | **activated (sprint `i`)** |
+| `API-60` | §14.2 | `GET /api/v1/dev-requests` (목록) | **activated (sprint `i`)** |
+| `API-61` | §14.3 | `GET /api/v1/dev-requests/:id` (상세) | **activated (sprint `i`)** |
+| `API-62` | §14.4 | `POST /api/v1/dev-requests/:id/register` (Promote) | **activated (sprint `i`)** — 단순 매핑 형태. 신규 target 생성과의 단일 트랜잭션은 carve out. |
+| `API-63` | §14.5 | `POST /api/v1/dev-requests/:id/reject` | **activated (sprint `i`)** |
+| `API-64` | §14.6 | `PATCH /api/v1/dev-requests/:id` (Reassign — system_admin only) | **activated (sprint `i`)** |
+| `API-65` | §14.7 | `DELETE /api/v1/dev-requests/:id` (Close — system_admin only) | **activated (sprint `i`)** |
 
 #### Application/Repository API §13 — endpoint 매핑 (sprint `claude/work_260514-a`, scaffolded 단계)
 
@@ -305,7 +305,7 @@
 | **대시보드 / 메트릭 / me** | FR-1–11, 28–36, 81, 85, 88, 89, 96 | UC-GITEA-03, UC-RT-01 | ARCH-10; API-05, 32, 36, 38 (32 = `GET /api/v1/me`, 정밀 매핑: §2.2 Infra/Dashboard + Account/Org/Me + RBAC 서브 표) | (Phase 4 이전 완료) | dashboard-01; me-01 (책임 정의: §2.4 IMPL-dashboard/me 서브 표); frontend-dashboard-01; frontend-role-01..03; frontend-store-01; frontend-layout-01..02; frontend-service-api-01 | httpapi-08, 11, 22 | TC-NAV-01..03; TC-NAV-SIM-01 |
 | **CI / 거버넌스** | NFR-1 (no-docker) | UC-GITEA-01 | ADR-0001 §5; [ADR-0003](../adr/0003-no-docker-policy-ci-scope.md) | M2-16 (CI 1차, PR #86); FU-CI-1..4 (PR #87); ADR-0003 (PR #88); 거버넌스 + 매트릭스 1차 (PR #89); 갭 분석 + 메타 헤더 표준화 (본 PR / sprint `claude/work_260513-d`) | (build infra: `.github/workflows/ci.yml`, `scripts/ci-setup.sh`, `infra/idp/*.ci.yaml`); `docs/governance/*`, `docs/traceability/*` | (lint 미도입, FU-CI 향후) | (CI run 자체가 검증) |
 | **Application/Project 도메인** | REQ-FR-APP-001..012; REQ-FR-PROJ-000..010; REQ-NFR-PROJ-001..006 | UC-APP-01..10, UC-PROJ-01..10 | API-41..58 (전 도메인 activated — §2.2 Application/Repository 서브 표). ADR-0011 (RBAC row-scoping, accepted). | M3 backlog (design entry) — RM 발급은 후속 sprint | IMPL-application-{store,handler,router,rbac,repo_ops,rollup,integration}-01 + IMPL-project-handler-01 + 마이그레이션 000012..000018 | UT-application-handler-XX (25 test, sprint -b) + UT-project-handler-XX (8) + UT-integration-handler-XX (6) + UT-application-rollup-XX (4) = 43 test (sprint -b + -c) | (carve out — e2e 다음 sprint) |
-| **Dev Request (DREQ) 도메인** | REQ-FR-DREQ-001..011; REQ-NFR-DREQ-001..006 (§5.5) | UC-DREQ-01..10 | ARCH-DREQ-01..06 (`docs/architecture.md §7`); API-59..65 (§14, spec staged, sprint `claude/work_260515-f`). ADR-0012 (외부 수신 인증, accepted, sprint `claude/work_260515-g`). | M5 (Concept staged, sprint `claude/work_260515-f`) + AuthADR (sprint `claude/work_260515-g`) — RM 발급은 DREQ-Backend sprint | (미진입 — DREQ-Backend sprint 진입 가능: IMPL-dreq-{store,handler,router,rbac,intake_auth} + 마이그레이션 000022 dev_requests + 000023 dev_request_intake_tokens) | (미진입 — UT-dreq-* 후속 sprint) | (미진입 — TC-DREQ-* 후속 sprint) |
+| **Dev Request (DREQ) 도메인** | REQ-FR-DREQ-001..011; REQ-NFR-DREQ-001..006 (§5.5) | UC-DREQ-01..10 | ARCH-DREQ-01..06 (`docs/architecture.md §7`); API-59..65 (§14, **activated** sprint `claude/work_260515-i`, API-62 promote 1차 → **promote-tx 단일 트랜잭션 활성화** sprint `claude/work_260515-m`); API-66..68 intake token admin (§14.10, **activated** sprint `claude/work_260515-o` / ADR-0014). ADR-0012 (외부 수신 인증, accepted, sprint `claude/work_260515-g`) + ADR-0013 (RBAC row-scoping, accepted, sprint `claude/work_260515-m`) + ADR-0014 (intake token admin, accepted, sprint `claude/work_260515-o`). | M5 — Concept staged (sprint `f`) + AuthADR (sprint `g`) + Backend 1차 (sprint `i`) + RBAC-ADR / Promote-Tx (sprint `m`) + Admin backend (sprint `o`). RM-DREQ-XX 본격 발급은 Frontend admin UI (sprint `p`) + E2E sprint 와 함께. | IMPL-dreq-{domain,store,handler,router,rbac,intake_auth,promote_tx,intake_admin}-01 + IMPL-dreq-frontend-{page,widget,table,modal,service,intake_admin}-01 (sprint `j` + `p`) + 마이그레이션 000022 dev_requests + 000023 dev_request_intake_tokens + 000024 RBAC seed (sprint `i`) + 000026 RBAC dev_request_intake_tokens seed (sprint `o`) | UT-dreq-handler-XX (15 + 5 promote + 8 intake admin tests, sprint `i` + `m` + `o`) + UT-dreq-intake_auth-XX (4) + UT-clientIP-01 | (미진입 — TC-DREQ-* 후속 DREQ-E2E sprint) |
 | **M4 (planned, 정의: §2.3.2)** | FR-37–48, 56–57, 60, 90–94 (일부 — Realtime / Task / Admin) | UC-RT-01..02 (확장 예정), UC-APP/UC-PROJ (확장 예정) | API-14 (WebSocket 확장) | RM-M4-01..03, 06..09 (정의: §2.3.2 RM-M4 표) | (미진입 — sprint plan 진입 시 IMPL-task-XX 발급) | (미진입) | (미진입) |
 > Note — 매트릭스 셀의 ID 는 §2 의 단계별 인덱스를 줄여서 표기 (예: `auth-01..07` = `IMPL-auth-01..IMPL-auth-07`). 한 도메인이 여러 단계에 걸쳐 영향을 주므로 정확한 1:1 매핑은 §2 인덱스 (REQ/UC/ARCH/API) + 단계별 문서 본문의 ID 노출 (`document-standards.md` §5) 로 확인.
 
@@ -325,6 +325,8 @@
 | [ADR-0010](../adr/0010-primary-dept-resolution.md) | `users.primary_unit_id` 자동 판정 알고리즘 (leader 우선 + total_count tie-break + lexicographic) | accepted (2026-05-13, sprint `claude/work_260513-n`). 1차 알고리즘 + 5 단위테스트 PASS. backfill worker carve. | M3 organization polish |
 | [ADR-0011](../adr/0011-rbac-row-scoping.md) | Application/Project Owner 위양과 RBAC row-level scoping | accepted (2026-05-14, sprint `claude/work_260514-a`). 옵션 C (handler/service 코드 검증) 1차 채택, 옵션 B (row_predicate) 단계적 확장 옵션 보존. 옵션 A (Casbin), D (PG RLS) 거부. 1차 매트릭스 seed (4 resource × system_admin) 본 sprint 처리 (migration 000018). | Application/Project RBAC |
 | [ADR-0012](../adr/0012-dreq-external-intake-auth.md) | Dev Request 외부 수신 endpoint 인증 정책 | accepted (2026-05-15, sprint `claude/work_260515-g`). 옵션 A (API 토큰 + IP allowlist) 1차 채택, B (HMAC) / C (OAuth client_credentials) 는 후속 마이그레이션 경로. `dev_request_intake_tokens` 테이블 + `requireIntakeToken` middleware + audit 2 action 정책 정의. | DREQ 외부 수신 |
+| [ADR-0013](../adr/0013-dreq-rbac-row-scoping.md) | Dev Request 도메인의 RBAC row-scoping 정책 | accepted (2026-05-15, sprint `claude/work_260515-m`). ADR-0011 §4.2 helper `enforceRowOwnership(c, dr.AssigneeUserID, "pmo_manager")` 의 dev_requests resource 적용 사례 사후 명문화. handler wire-up 은 PR #124 (sprint `claude/work_260515-i`) 에서 이미 도입. reassign/close 의 system_admin only carve 도 본 ADR 가 명시. | DREQ RBAC |
+| [ADR-0014](../adr/0014-dreq-intake-token-admin.md) | Dev Request intake token admin (발급/조회/revoke) 정책 | accepted (2026-05-15, sprint `claude/work_260515-o`). 신규 RBAC resource `dev_request_intake_tokens` 도입 (system_admin 일임). plain token 발급 1회 노출 + hashed 절대 미노출 + idempotent revoke (`revoked_at = COALESCE`). accounts_admin temp_password 패턴과 정합. | DREQ admin |
 
 ## 5. Gap 요약
 

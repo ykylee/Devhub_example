@@ -1,0 +1,50 @@
+{
+  "schema_version": "1",
+  "branch": "claude/work_260515-o",
+  "base": "main @ 5546a41 (PR #129 머지 직후, codex hotfix #4)",
+  "updated_at": "2026-05-15T09:30:00Z",
+  "status": "done (merged into main as PR #130 / commit 0bdf299)",
+  "purpose": "DREQ carve out 2/4 part 1 — Admin-UI backend. intake token 발급/조회/revoke admin endpoint (API-66..68) + ADR-0014 + migration 000026 RBAC seed. frontend 페이지는 별도 sprint p 로 분할.",
+  "carve_out_position": "2/4 part 1 — Admin-UI backend",
+  "deliverables": {
+    "adr_0014": {
+      "file": "docs/adr/0014-dreq-intake-token-admin.md",
+      "status": "accepted",
+      "summary": "신규 RBAC resource `dev_request_intake_tokens` (system_admin 일임). plain 1회 노출 + hashed 절대 미노출 + idempotent revoke. accounts_admin temp_password 패턴과 정합."
+    },
+    "endpoints": [
+      "API-66 POST /api/v1/dev-request-tokens — 발급. server 가 32-byte base64url plain token 생성, SHA-256(hex) 만 저장.",
+      "API-67 GET /api/v1/dev-request-tokens — 목록. hashed_token 미노출.",
+      "API-68 DELETE /api/v1/dev-request-tokens/:token_id — revoke. revoked_at = COALESCE(revoked_at, NOW()) (idempotent)."
+    ],
+    "files": {
+      "domain": "internal/domain/rbac.go — ResourceDevRequestIntakeTokens + AllResources + DefaultPermissionMatrix 4 role 갱신",
+      "store": "internal/store/dev_request_intake_tokens.go — CreateDevRequestIntakeToken / ListDevRequestIntakeTokens / RevokeDevRequestIntakeToken + scanIntakeToken helper",
+      "httpapi_iface": "internal/httpapi/dev_request_intake_auth.go — IntakeTokenStore interface 에 admin 3 메서드 추가",
+      "httpapi_handler": "internal/httpapi/dev_request_intake_tokens_admin.go — 3 handler + validateAllowedIPs + generatePlainIntakeToken + intakeTokenResponse",
+      "router": "internal/httpapi/router.go — 3 endpoint 등록",
+      "permissions": "internal/httpapi/permissions.go — routePermissionTable 3 row 추가",
+      "migration_up": "backend-core/migrations/000026_rbac_dev_request_intake_tokens.up.sql",
+      "migration_down": "backend-core/migrations/000026_rbac_dev_request_intake_tokens.down.sql",
+      "docs": "docs/adr/0014-dreq-intake-token-admin.md + backend_api_contract §14.10 + traceability §3 DREQ row + §4 ADR + development_roadmap M5 DREQ entry"
+    },
+    "tests": {
+      "new_unit_tests_8": [
+        "TestCreateDevRequestIntakeToken_Happy — plain_token 1회 노출 + hashed_token 미노출 + audit 발급 (plain 미포함)",
+        "TestCreateDevRequestIntakeToken_RejectsMissingClientLabel",
+        "TestCreateDevRequestIntakeToken_RejectsMissingSourceSystem",
+        "TestCreateDevRequestIntakeToken_RejectsEmptyAllowedIPs (deny-by-default)",
+        "TestCreateDevRequestIntakeToken_RejectsInvalidCIDR",
+        "TestListDevRequestIntakeTokens_ExcludesHashedToken (응답에 hashed_token / plain_token 둘 다 없음)",
+        "TestRevokeDevRequestIntakeToken_Happy + Idempotent + NotFound",
+        "TestIntakeTokenAdmin_RoutePoliciesSystemAdminOnly — routePermissionTable + DefaultPermissionMatrix 둘 다 검증 (4 role 가드)"
+      ],
+      "fakeIntakeTokenStore_extended": "byID/nextID/failCreate + CreateDevRequestIntakeToken / List / Revoke 구현",
+      "result": "go test ./... PASS (전체 backend-core)"
+    }
+  },
+  "next_carve": {
+    "2_4_part_2": "DREQ-Admin-UI frontend (sprint p) — /admin/settings/dev-request-tokens 페이지. accounts_admin password issuance modal 패턴 따름.",
+    "3_4": "DREQ-E2E (sprint q) — Playwright spec (intake → dashboard widget → promote → admin token issue/revoke) + TC-DREQ-* 발급. promote-tx P2 carve out (race 가드 / failPromote dead field) 도 흡수 후보."
+  }
+}

@@ -241,6 +241,24 @@ var routePermissionTable = map[routeKey]routePolicy{
 	{http.MethodPost, "/api/v1/integrations"}:                   {Resource: domain.ResourceApplications, Action: domain.ActionEdit},
 	{http.MethodPatch, "/api/v1/integrations/:integration_id"}:  {Resource: domain.ResourceApplications, Action: domain.ActionEdit},
 	{http.MethodDelete, "/api/v1/integrations/:integration_id"}: {Resource: domain.ResourceApplications, Action: domain.ActionEdit},
+
+	// Dev Request (DREQ) API-59..65 (sprint claude/work_260515-i, ADR-0012).
+	// POST /api/v1/dev-requests 는 별도 intake group 으로 등록되어 v1 의
+	// authenticateActor + enforceRoutePermission 가 적용되지 않으나, router.Routes()
+	// 가 모든 라우트를 반환하므로 routePermissionTable 검증 테스트 통과 위해
+	// Bypass: true 로 등록한다 (intake 인증은 requireIntakeToken 미들웨어가 책임).
+	{http.MethodPost, "/api/v1/dev-requests"}:                            {Bypass: true},
+	{http.MethodGet, "/api/v1/dev-requests"}:                             {Resource: domain.ResourceDevRequests, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/dev-requests/:dev_request_id"}:             {Resource: domain.ResourceDevRequests, Action: domain.ActionView},
+	{http.MethodPost, "/api/v1/dev-requests/:dev_request_id/register"}:   {Resource: domain.ResourceDevRequests, Action: domain.ActionEdit},
+	{http.MethodPost, "/api/v1/dev-requests/:dev_request_id/reject"}:     {Resource: domain.ResourceDevRequests, Action: domain.ActionEdit},
+	{http.MethodPatch, "/api/v1/dev-requests/:dev_request_id"}:           {Resource: domain.ResourceDevRequests, Action: domain.ActionEdit},
+	{http.MethodDelete, "/api/v1/dev-requests/:dev_request_id"}:          {Resource: domain.ResourceDevRequests, Action: domain.ActionDelete},
+
+	// DREQ intake token admin (sprint claude/work_260515-o, ADR-0014). system_admin 일임.
+	{http.MethodPost, "/api/v1/dev-request-tokens"}:             {Resource: domain.ResourceDevRequestIntakeTokens, Action: domain.ActionCreate},
+	{http.MethodGet, "/api/v1/dev-request-tokens"}:              {Resource: domain.ResourceDevRequestIntakeTokens, Action: domain.ActionView},
+	{http.MethodDelete, "/api/v1/dev-request-tokens/:token_id"}: {Resource: domain.ResourceDevRequestIntakeTokens, Action: domain.ActionDelete},
 }
 
 // lookupRoutePolicy is exported for tests to assert the table contents without

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
-import { Users, Network, Shield, FileText, Box } from "lucide-react";
+import { Users, Network, Shield, FileText, Box, Inbox, Key } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/lib/store";
 import { defaultLandingFor, isSystemAdmin } from "@/lib/auth/role-routing";
@@ -14,6 +14,8 @@ const subTabs = [
   { href: "/admin/settings/organization", label: "Organization", icon: Network },
   { href: "/admin/settings/permissions", label: "Permissions", icon: Shield },
   { href: "/admin/settings/applications", label: "Applications", icon: Box },
+  { href: "/admin/settings/dev-requests", label: "Dev Requests", icon: Inbox },
+  { href: "/admin/settings/dev-request-tokens", label: "Intake Tokens", icon: Key },
   { href: "/admin/settings/audit", label: "Audit", icon: FileText },
 ];
 
