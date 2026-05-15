@@ -23,6 +23,6 @@
 
 DREQ-Backend 진입 가능. ADR-0012 의 결정에 따라:
 - `dev_request_intake_tokens` 테이블 도입 (token_id / hashed_token / client_label / allowed_ips JSON / created_at / revoked_at / last_used_at)
-- intake auth middleware: header `X-DREQ-Token` + caller IP 검증 + last_used_at 갱신
+- intake auth middleware: header `Authorization: Bearer <plain-token>` (ADR-0012 §4.1.2 / API §14.1 canonical) + caller IP 검증 + last_used_at 갱신 — *원본 표기 `X-DREQ-Token` 은 canonical spec 과 불일치. codex PR #122 review P2 정정 (sprint claude/work_260515-k)*
 - migration 000022 (dev_requests) + 000023 (intake tokens)
 - API-59 의 handler 가 token 인증 통과 후 routePermissionTable Bypass 처리

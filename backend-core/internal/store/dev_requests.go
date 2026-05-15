@@ -27,7 +27,7 @@ const devRequestsSelectColumns = `
 	title,
 	COALESCE(details, ''),
 	requester,
-	assignee_user_id,
+	COALESCE(assignee_user_id, ''),
 	source_system,
 	COALESCE(external_ref, ''),
 	status,
@@ -90,7 +90,7 @@ INSERT INTO dev_requests (
     status, registered_target_type, registered_target_id, rejected_reason, received_at
 )
 VALUES (
-    $1, NULLIF($2, ''), $3, $4, $5, NULLIF($6, ''),
+    $1, NULLIF($2, ''), $3, NULLIF($4, ''), $5, NULLIF($6, ''),
     $7, NULLIF($8, ''), NULLIF($9, ''), NULLIF($10, ''), $11
 )
 RETURNING` + devRequestsSelectColumns
