@@ -1789,7 +1789,12 @@ integration_policy_violation
 
 ### 14.1 외부 수신 — `POST /api/v1/dev-requests`  *(API-59)*
 
-- **인증**: 일반 OIDC 사용자 흐름이 아닌 별도 정책. 1차 후보: API 토큰 + IP allowlist. 최종 결정은 [DREQ-AuthADR] 머지에서. `source_system` 은 호출 caller 의 인증된 identity 에서 자동 채움 — body 의 self-claim 은 신뢰하지 않음.
+- **인증**: 별도 middleware `requireIntakeToken`. [ADR-0012](./adr/0012-dreq-external-intake-auth.md) 가 옵션 A (API 토큰 + IP allowlist) 채택.
+  - `Authorization: Bearer <plain-token>` 헤더 필수.
+  - middleware 가 `SHA-256(token)` 으로 `dev_request_intake_tokens` lookup + `allowed_ips` CIDR 검증 + `revoked_at IS NULL` 확인.
+  - 실패 시 401 (`auth_intake_token_invalid` / `auth_intake_ip_denied` / `auth_intake_token_revoked`) + audit `dev_request.intake_auth_failed`.
+  - 성공 시 audit `dev_request.intake_auth_succeeded` + `last_used_at` 갱신.
+- `source_system` 은 토큰의 매핑 값에서 자동 채움 — body 의 self-claim 은 무시 (ADR-0012 §4.1.2 spoofing 방지).
 - **요청 (JSON)**:
 
 ```json
@@ -1918,6 +1923,10 @@ dev_request_register_target_mismatch
 dev_request_assignee_not_found
 dev_request_reason_required
 invalid_status_transition_close
+auth_intake_token_invalid
+auth_intake_token_revoked
+auth_intake_ip_denied
+auth_intake_token_missing
 ```
 
 ### 14.9 API ID 인덱스 (sprint `claude/work_260515-f`)

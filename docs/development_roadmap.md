@@ -112,8 +112,8 @@
 
 외부 시스템 → DevHub → application/project 으로 이어지는 upstream intake 흐름. 컨셉/요구사항/Usecase/설계/API contract 1차 stage 완료 (본 sprint). 후속 sprint hook:
 
-- ⏳ **A (ADR)**: 외부 수신 endpoint 인증 정책 (API token + IP allowlist / HMAC / OAuth client_credentials) — DREQ-AuthADR.
-- ⏳ **B**: backend 구현 (domain.DevRequest / store / handler / migration 000022) + API-59..65 활성화. ADR 머지 후 진입.
+- ✅ **A (ADR)**: 외부 수신 endpoint 인증 정책 — **[ADR-0012](./adr/0012-dreq-external-intake-auth.md) (sprint `claude/work_260515-g`, accepted 2026-05-15)** 가 옵션 A (API 토큰 + IP allowlist) 채택. B (HMAC) / C (OAuth) 는 후속 마이그레이션 경로.
+- ⏳ **B**: backend 구현 (`domain.DevRequest` / store / handler / migration 000022 dev_requests + 000023 dev_request_intake_tokens + `requireIntakeToken` middleware) + API-59..65 활성화. ADR-0012 머지로 진입 조건 충족.
 - ⏳ **F**: 담당자 dashboard 의 "내 대기 의뢰" 위젯 + `/admin/settings/dev-requests` 페이지 + Promote-to-Application/Project 연계.
 - ⏳ **A (ADR)**: PMO Manager / 담당자 위양 정책 (ADR-0011 §4.2 패턴) — DREQ-RBAC-ADR. backend 구현과 병행.
 - ⏳ **B·F·X**: UT-dreq / TC-DREQ-* 발급 + Playwright spec.
