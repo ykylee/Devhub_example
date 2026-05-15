@@ -3,6 +3,7 @@
 - 브랜치: `codex/memory-next-step-20260515`
 - 날짜: 2026-05-15
 - 상태: in_progress (PR 준비 완료)
+- PR: https://github.com/ykylee/Devhub_example/pull/135
 
 ## 핵심 메모
 - 외부 시스템 연동 도메인 문서화 초안은 아래 축으로 연결 완료:

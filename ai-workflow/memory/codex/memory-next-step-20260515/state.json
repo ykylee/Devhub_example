@@ -22,6 +22,6 @@
   "env_notes": {
     "context": "docs 중심 기획/설계 작업",
     "verification": "문서 키워드 연결(REQ/UC/ARCH/API/traceability) rg 기반 점검 완료",
-    "open_pr": "생성 예정"
+    "open_pr": "https://github.com/ykylee/Devhub_example/pull/135"
   }
 }
