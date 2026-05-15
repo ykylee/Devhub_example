@@ -29,9 +29,9 @@
 $ErrorActionPreference = "Stop"
 
 $AdminUrl = if ($env:HYDRA_ADMIN_URL) { $env:HYDRA_ADMIN_URL } else { "http://localhost:4445" }
-$ClientId = "devhub-frontend"
-$RedirectUri = "http://localhost:3000/auth/callback"
-$PostLogoutUri = "http://localhost:3000/"
+$ClientId = if ($env:DEVHUB_OIDC_CLIENT_ID) { $env:DEVHUB_OIDC_CLIENT_ID } else { "devhub-frontend" }
+$RedirectUri = if ($env:DEVHUB_OIDC_REDIRECT_URI) { $env:DEVHUB_OIDC_REDIRECT_URI } else { "http://localhost:3000/auth/callback" }
+$PostLogoutUri = if ($env:DEVHUB_OIDC_POST_LOGOUT_URI) { $env:DEVHUB_OIDC_POST_LOGOUT_URI } else { "http://localhost:3000/" }
 
 $body = @{
     client_id                  = $ClientId

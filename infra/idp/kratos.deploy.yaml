@@ -1,0 +1,114 @@
+version: v1.0.0
+
+serve:
+  public:
+    base_url: __KRATOS_PUBLIC_EXTERNAL_URL__
+    port: 4433
+    host: 0.0.0.0
+    cors:
+      enabled: true
+      allowed_origins:
+        - __FRONTEND_PUBLIC_BASE_URL__
+      allowed_methods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+      allowed_headers:
+        - Authorization
+        - Content-Type
+        - Cookie
+        - X-Session-Token
+      exposed_headers:
+        - Content-Type
+        - Set-Cookie
+      allow_credentials: true
+  admin:
+    base_url: __KRATOS_ADMIN_EXTERNAL_URL__
+    port: 4434
+    host: 0.0.0.0
+
+dsn: __KRATOS_DSN__
+
+selfservice:
+  default_browser_return_url: __FRONTEND_PUBLIC_BASE_URL__/
+  allowed_return_urls:
+    - __FRONTEND_PUBLIC_BASE_URL__
+
+  methods:
+    password:
+      enabled: true
+      config:
+        haveibeenpwned_enabled: false
+        min_password_length: 12
+    profile:
+      enabled: true
+    link:
+      enabled: false
+    code:
+      enabled: false
+
+  flows:
+    error:
+      ui_url: __FRONTEND_PUBLIC_BASE_URL__/auth/error
+    settings:
+      ui_url: __FRONTEND_PUBLIC_BASE_URL__/account
+      privileged_session_max_age: 15m
+      required_aal: highest_available
+      after:
+        password:
+          hooks:
+            - hook: web_hook
+              config:
+                url: __KRATOS_HOOK_TARGET_URL__
+                method: POST
+                body: file://./infra/idp/kratos_webhooks/settings_password_after.jsonnet
+                response:
+                  ignore: true
+                auth:
+                  type: api_key
+                  config:
+                    in: header
+                    name: Authorization
+                    value: Bearer __DEVHUB_KRATOS_WEBHOOK_TOKEN__
+    recovery:
+      enabled: false
+    verification:
+      enabled: false
+    logout:
+      after:
+        default_browser_return_url: __FRONTEND_PUBLIC_BASE_URL__/
+    login:
+      ui_url: __FRONTEND_PUBLIC_BASE_URL__/auth/login
+      lifespan: 10m
+    registration:
+      enabled: false
+      ui_url: __FRONTEND_PUBLIC_BASE_URL__/auth/register
+
+session:
+  lifespan: 24h
+  cookie:
+    persistent: true
+    same_site: Lax
+
+secrets:
+  cookie:
+    - "poc-only-cookie-secret-min-16-bytes-aaaaaaaa"
+  cipher:
+    - "poc-cipher-secret-32bytes-aaaaaa"
+
+identity:
+  default_schema_id: devhub_user
+  schemas:
+    - id: devhub_user
+      url: file://./infra/idp/identity.schema.json
+
+courier:
+  smtp:
+    connection_uri: smtps://test:test@127.0.0.1:1025/?skip_ssl_verify=true&disable_starttls=true
+
+log:
+  level: info
+  format: text
+  leak_sensitive_values: false

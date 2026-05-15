@@ -1,0 +1,61 @@
+serve:
+  public:
+    port: 4444
+    host: 0.0.0.0
+    cors:
+      enabled: true
+      allowed_origins:
+        - __FRONTEND_PUBLIC_BASE_URL__
+      allowed_methods:
+        - POST
+        - GET
+      allowed_headers:
+        - Authorization
+        - Content-Type
+      allow_credentials: true
+  admin:
+    port: 4445
+    host: 0.0.0.0
+  cookies:
+    same_site_mode: Lax
+
+dsn: __HYDRA_DSN__
+
+urls:
+  self:
+    issuer: __HYDRA_PUBLIC_EXTERNAL_URL__
+    public: __HYDRA_PUBLIC_EXTERNAL_URL__
+  consent: __FRONTEND_PUBLIC_BASE_URL__/api/v1/auth/consent
+  login: __FRONTEND_PUBLIC_BASE_URL__/auth/login
+  logout: __FRONTEND_PUBLIC_BASE_URL__/auth/logout
+  error: __FRONTEND_PUBLIC_BASE_URL__/auth/error
+  post_logout_redirect: __FRONTEND_PUBLIC_BASE_URL__/
+
+secrets:
+  system:
+    - "poc-only-do-not-use-in-prod-system-secret-aaaaaaaa"
+
+oidc:
+  subject_identifiers:
+    supported_types:
+      - public
+
+oauth2:
+  expose_internal_errors: true
+  pkce:
+    enforced: true
+    enforced_for_public_clients: true
+
+strategies:
+  access_token: jwt
+
+ttl:
+  access_token: 30m
+  refresh_token: 720h
+  id_token: 30m
+  auth_code: 10m
+
+log:
+  level: info
+  format: text
+  leak_sensitive_values: false
