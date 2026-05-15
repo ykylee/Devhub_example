@@ -1,12 +1,50 @@
-# Session Handoff — main (2026-05-14 EOD)
+# Session Handoff — main (2026-05-15 sprint claude/work_260515-a)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
-- 범위: 2026-05-14 세션 종료. 본 세션 추가 7 PR (PR #104~#110) — Application/Repository/Project 도메인 backend 1차 완성 (API-01~58 전체 activated) + codex 외부 리뷰 흡수 2회 + postgres integration test + CI backend-integration job.
+- 범위: 2026-05-15 sprint claude/work_260515-a — 본인 PR 2건(#114, #115) 리뷰어 모드 + main flat memory housekeeping. PR #112 (2026-05-14 머지) 도 함께 흡수.
 - 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
-- 상태: M1/M2/M3 모두 1차 closing (이전). **Application 도메인 1차 완성** (본 세션) — API-41~58 activated, 마이그레이션 000012~000018 (7), ADR-0011 accepted, RBAC matrix 4 신규 resource (system_admin 일임), CI 5 job. 다음 진입 후보: frontend UI / ADR-0011 §4.2 owner 위양 / critical 임계치 외부화 / Repository commit activity ingest / Project 가드 정책 / M4 RM-M4-XX 본격.
-- 최종 수정일: 2026-05-14 (세션 종료, PR #110 + housekeeping)
+- 상태: M1/M2/M3 모두 1차 closing (이전). **Application 도메인 backend 1차 완성** (2026-05-14). 본 sprint (2026-05-15) 는 frontend UI(/admin/settings/applications) scaffolded + Light theme + endpoints 통일 모듈 + Application leader/dev_unit 모델 확장 + auth_login 보완. 다음 진입 후보: frontend UI 정교화 / ADR-0011 §4.2 owner 위양 / critical 임계치 외부화 / Repository commit activity ingest / Project 가드 정책 / M4 RM-M4-XX 본격.
+- 최종 수정일: 2026-05-15 (sprint claude/work_260515-a housekeeping)
 - 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [상태 스냅샷](./state.json), [거버넌스](../../docs/governance/README.md), [추적성 매트릭스](../../docs/traceability/report.md), [Project 도메인 컨셉](../../docs/planning/project_management_concept.md), [ADR-0011 RBAC row-scoping](../../docs/adr/0011-rbac-row-scoping.md).
-- 브랜치: `main` (HEAD `d29f2ac`, PR #110 squash 직후. 본 housekeeping 머지 후 추가 갱신).
+- 브랜치: `main` (HEAD `25f97ba`, PR #114 squash 직후. 본 housekeeping 머지 후 추가 갱신).
+
+## 0. 2026-05-15 머지 흐름 (PR #112, #115, #114 — 3건 누적 흡수)
+
+```
+25f97ba PR #114 — feat(application): leader/dev_unit 모델 확장 + applications 검색 확장 + auth_login 보완 + search predicate refactor + leader backfill (codex/260514-a, 본인 4단계 리뷰)
+b669bc7 PR #115 — feat(frontend): Light theme + dropdown refactor + endpoints 통일 + standalone gate + Switch View 테스트 정리 (gemini/frontend_redesign_260514, 본인 4단계 리뷰)
+3f387cd PR #112 — feat(frontend/org): Admin UI 개선, iPad 터치 안정화 및 백엔드 트랜잭션 강화 (codex/frontend_color_review, 2026-05-14 머지지만 flat memory 흡수 누락)
+```
+
+### 0.1 본 sprint 핵심 결정/도입
+
+- **frontend/lib/config/endpoints.ts 신설** — 모든 서비스 URL default 단일 진실 소스. 정책: 코드 default = native(localhost), docker 는 env override (CLAUDE.md "native default, docker optional" + 메모리 [docker env-specific]). 사용처 8개 service 일괄 갱신 (`next.config`, `infra`, `rbac`, `realtime`, `websocket`, `auth`, `kratos-logout`). `frontend/.env.example` + `.gitignore` 의 .env.example 예외 nested 까지 확장.
+- **theme FOUC 방지 패턴 도입** — `app/layout.tsx` 의 inline `<script>` 가 paint 전 `theme-dark` class 적용. Header.tsx 의 useState 는 `document.documentElement.classList.contains` 로 lazy initialize. `ThemeToggle.tsx` 컴포넌트는 단일 진입점 (Header dropdown) 으로 통합 후 dead code 제거.
+- **next.config.ts `output: "standalone"` 은 NEXT_OUTPUT env 로 gate** — `next start` 와 호환 안 되는 standalone 모드를 docker 빌드 단계에서만 활성화. CI/native dev 의 e2e webServer 회귀 방지.
+- **Application 도메인 search 확장 + helper 추출** — `applicationsSearchPredicate` const 로 count/list 쿼리 33줄 중복 해소. 검색 범위: key/name/owner/leader/dev_unit + org_units.label + linked repository/project.
+- **migration 000020 (leader_user_id + development_unit_id)** + `leader_user_id ← owner_user_id` backfill — 기존 row update 422 회귀 방지. dev_unit 는 운영 후속.
+- **auth_login canonical Hydra challenge** + skip + credential 동시 전달 시 password flow 재인증 — 보안 강화.
+
+### 0.2 본 sprint 리뷰어 모드 학습 (다음 세션 적용)
+
+본인 PR 두 건 (#114, #115) 에 대해 4단계 리뷰 (diff 재검토 → gh pr comment → 보강 commit → squash merge) 일관 적용. PR #115 의 E2E 가 두 번 실패 (8m56s → 8m58s), service-logs artifact 의 `frontend.log` + raw job log 분석으로 두 layer 식별:
+1. **Layer 1 (server 자체)**: `output: "standalone"` 이 `next start` 와 호환 안 됨 → frontend.log 의 워닝 "next start does not work with output standalone" 가 직접 단서.
+2. **Layer 2 (e2e 의도와 실제)**: PR 이 의도적으로 제거한 dropdown Switch View 섹션을 e2e (`header-switch-view.spec.ts`) 가 여전히 검증 → `getByRole("button", { name: "Developer" })` 30s timeout.
+
+본 sprint 가 정착한 패턴: **CI fail 분석 시 artifact + raw log 둘 다 본다**. artifact 만 보면 서비스 자체 워닝까지만 보이고, raw log 에는 실패 테스트 이름이 박혀 있어 둘이 상호 보완.
+
+## 1. 다음 세션 진입 후보 (우선순위 순, 본 sprint 결과 반영)
+
+1. **frontend `/admin/settings/applications` UI 정교화** — PR #114 가 페이지 + ApplicationCreationModal + ApplicationTable + Project/Repository 모달 일괄 추가했으나 `text-primary-foreground` 직접 사용 등 PR #115 의 token 정책과 충돌. light theme sweep + accessibility 보강 후속 필요.
+2. **ADR-0011 §4.2 enforceRowOwnership helper** — Owner 위양 2차 단계 (pmo_manager 활성화 sprint).
+3. **critical_warning_count 임계치 외부화** — concept §13.2.1 운영 정책 테이블 신설.
+4. **CountApplicationCriticalWarnings lightweight SQL** — 성능 분리.
+5. **Repository commit activity ingest** — pr_activities 외 commit 단위 이벤트.
+6. **Project active→closed 가드 정책** — Application 만 critical 가드, Project 는 단순 transition.
+7. **pr_activities.payload sanitization** — system_admin 외 노출 방어.
+8. **quality_snapshots idempotency 결정** — UNIQUE 추가 vs history retention.
+9. **M4 RM-M4-XX 본격 진입** — WebSocket 확장 / replay / System Admin 대시보드 등.
+10. **traceability follow-up** — 본 sprint 가 명시적으로 후속 정리 대상으로 남긴 row: TC-NAV-01/02/SIM-01 (e2e 삭제됨), ARCH 정책 1줄 (endpoints 모듈 도입).
 
 ## 0. 2026-05-14 머지 흐름 (PR #104~#110, 7건)
 

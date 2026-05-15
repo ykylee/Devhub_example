@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-05-14 세션 종료 (housekeeping sync). 추가 7 PR 머지 — #104 (Application/Repository/Project 설계 고도화 + SCM 어댑터) / #105 (Application Design 1차 scaffolded + ADR-0011 accepted) / #106 (Application Design 2차 — API-41~50 activated) / #107 (API-51~58 활성화 + active→closed critical 가드) / #108 (codex hotfix — custom weight normalize + UpdateIntegration unique) / #109 (postgres integration test 23) / #110 (CI backend-integration job + 2 SQL fix + GITHUB_STEP_SUMMARY). **API 도메인 1차 완성** — API-01~58 전체 activated, 마이그레이션 000012~000018 (7개), ADR-0011 accepted, RBAC matrix 4 신규 resource, CI 5 job (Backend Integration 신설). 다음 세션 진입 후보: (a) frontend `/admin/settings/applications` UI, (b) ADR-0011 §4.2 enforceRowOwnership (pmo_manager 활성화), (c) critical 임계치 외부화 + CountApplicationCriticalWarnings 성능 분리, (d) Repository commit activity ingest, (e) Project active→closed 가드 정책 결정, (f) pr_activities.payload sanitization, (g) M4 RM-M4-XX 본격 진입.",
-  "updated_at": "2026-05-14T05:00:00Z",
-  "head_commit": "d29f2ac",
-  "head_summary": "Merge pull request #110 (fix(test,ci,store): PR #109 codex review hotfix — B1 fixture + I1 setup + I3 backend-integration job, sprint claude/work_260514-f)",
+  "status": "2026-05-15 sprint claude/work_260515-a — 리뷰어 모드 + housekeeping. 3 PR 머지 흡수: #112 (codex/frontend_color_review, 2026-05-14 머지 — Admin UI 개선 + iPad 터치 안정화 + 백엔드 조직 단위 트랜잭션), #115 (gemini/frontend_redesign_260514 — light theme + dropdown refactor + endpoints 통일 모듈 + standalone gate + Switch View 테스트 정리), #114 (codex/260514-a — Application leader/dev_unit 모델 + search 확장 + auth_login canonical challenge + search predicate refactor + leader backfill). 본 sprint 핵심: 본인 PR 2건(#114, #115)에 대해 4단계 리뷰 (diff→코멘트→보강→머지) 수행. **endpoints 통일 모듈** 도입 (frontend/lib/config/endpoints.ts) — 모든 서비스 URL default 단일 진실 소스, native default + env override 정책 명문화 (CLAUDE.md '환경 특화 자산은 git 외'). PR #115 의 E2E FAIL 2회 디버깅으로 'output: standalone vs next start' 호환 이슈 + 'dropdown 의도적 제거 vs e2e 잔존' 두 layer 식별. 다음 세션 진입 후보: 이전 state 의 application_domain_carve_out (frontend UI 정교화 / ADR-0011 §4.2 / critical 임계치 외부화 / Repository commit activity / Project 가드 정책) 또는 M4 RM-M4-XX 본격. 이전 status: '2026-05-14 세션 종료 (housekeeping sync). 추가 7 PR 머지 — #104~#110. Application 도메인 backend 1차 완성 — API-01~58 전체 activated, 마이그레이션 000012~000018 (7개), ADR-0011 accepted, RBAC matrix 4 신규 resource, CI 5 job (Backend Integration 신설).'",
+  "updated_at": "2026-05-15T02:05:00Z",
+  "head_commit": "25f97ba",
+  "head_summary": "Merge pull request #114 (feat(application): leader/dev_unit 모델 확장 + applications 검색 확장 + auth_login 보완, sprint codex/260514-a)",
   "milestones": {
     "M0": {
       "status": "done",
@@ -158,7 +158,12 @@
     {"pr": 107, "sprint": "claude/work_260514-c", "title": "feat(application,store,httpapi,docs): API-51~58 세트 활성화 + active→closed critical 가드 + self-review 11건 보강", "merge_commit": "f11bdbb"},
     {"pr": 108, "sprint": "claude/work_260514-d", "title": "fix(application,store,httpapi): PR #107 codex review hotfix — P1 custom weight normalize + P2 UpdateIntegration unique mapping", "merge_commit": "7822a91"},
     {"pr": 109, "sprint": "claude/work_260514-e", "title": "test(store): postgres integration test 도입 + P1/P2 회귀 guard (23 test)", "merge_commit": "1e38c4d"},
-    {"pr": 110, "sprint": "claude/work_260514-f", "title": "fix(test,ci,store): PR #109 codex review hotfix — B1 fixture + I1 setup + I3 backend-integration job + 2 SQL fix + GITHUB_STEP_SUMMARY", "merge_commit": "d29f2ac"}
+    {"pr": 110, "sprint": "claude/work_260514-f", "title": "fix(test,ci,store): PR #109 codex review hotfix — B1 fixture + I1 setup + I3 backend-integration job + 2 SQL fix + GITHUB_STEP_SUMMARY", "merge_commit": "d29f2ac"},
+    {"pr": 112, "sprint": "codex/frontend_color_review", "title": "feat(frontend/org): Admin UI 개선, iPad 터치 안정화 및 백엔드 트랜잭션 강화 — ActionMenu 공통 컴포넌트 + 테마 토큰 정리 + 조직 단위 생성/수정 트랜잭션", "merge_commit": "3f387cd"}
+  ],
+  "merged_prs_2026_05_15": [
+    {"pr": 115, "sprint": "gemini/frontend_redesign_260514", "title": "feat(frontend): Light theme + dropdown refactor + endpoints 통일 + standalone gate + Switch View 테스트 정리", "merge_commit": "b669bc7"},
+    {"pr": 114, "sprint": "codex/260514-a", "title": "feat(application): leader/dev_unit 모델 확장 + applications 검색 확장 + auth_login 보완 + search predicate refactor + leader backfill", "merge_commit": "25f97ba"}
   ],
   "next_actions": {
     "m1_remaining": [],
