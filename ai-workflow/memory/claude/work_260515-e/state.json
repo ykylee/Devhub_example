@@ -3,7 +3,7 @@
   "branch": "claude/work_260515-e",
   "base": "main @ bca612e (PR #119 머지 직후)",
   "updated_at": "2026-05-15T04:30:00Z",
-  "status": "in_progress (housekeeping)",
+  "status": "done (merged into main)",
   "purpose": "2026-05-15 세션 종료 housekeeping — 본 세션 7 PR (#112, #114~#119) 흡수 + auto memory 갱신.",
   "absorbed_session_prs": [
     {"pr": 112, "sprint": "codex/frontend_color_review", "merge_commit": "3f387cd", "note": "2026-05-14 머지지만 flat memory 흡수 누락"},

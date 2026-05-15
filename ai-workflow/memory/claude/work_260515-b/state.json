@@ -3,7 +3,7 @@
   "branch": "claude/work_260515-b",
   "base": "main @ cbc36b0 (PR #116 머지 직후)",
   "updated_at": "2026-05-15T02:30:00Z",
-  "status": "in_progress",
+  "status": "done (merged into main)",
   "purpose": "PR #114 가 추가한 frontend 모달/테이블 컴포넌트들의 text-primary-foreground 직접 사용을 PR #115 의 token 정책 (text-foreground / text-foreground dark:text-primary-foreground) 으로 일관 sweep. light theme 가독성 회귀 차단 + dropdown 새 UI 와 일관성 정착.",
   "scope": {
     "sweep_targets": {

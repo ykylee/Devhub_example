@@ -3,7 +3,7 @@
   "branch": "claude/work_260515-d",
   "base": "main @ 519a508 (PR #118 머지 직후)",
   "updated_at": "2026-05-15T03:25:00Z",
-  "status": "in_progress",
+  "status": "done (merged into main)",
   "purpose": "Codex 외부 리뷰 hotfix sprint — PR #114/#118 의 P1/P2 inline 코멘트 4건 처리.",
   "codex_findings": {
     "pr_114_p1": {

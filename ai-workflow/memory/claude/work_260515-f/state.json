@@ -3,7 +3,7 @@
   "branch": "claude/work_260515-f",
   "base": "main @ feac299 (PR #120 머지 직후)",
   "updated_at": "2026-05-15T04:50:00Z",
-  "status": "in_progress",
+  "status": "done (merged into main)",
   "purpose": "개발 의뢰 (DREQ) 도메인 컨셉 + 요구사항 + Usecase + 설계 + 로드맵 + 추적성 일괄 문서화. 외부 시스템 API 로 의뢰 수신 → 대기 목록 → 담당자 dashboard 표시 → application/repository/project 중 하나로 등록 흐름.",
   "scope": {
     "domain": "DREQ (Dev Request)",

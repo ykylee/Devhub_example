@@ -1908,7 +1908,7 @@ integration_policy_violation
 
 ### 14.7 닫기 — `DELETE /api/v1/dev-requests/:id`  *(API-65)*
 
-- **인증**: OIDC + RBAC `dev_requests:delete` (system_admin / pmo_manager).
+- **인증**: OIDC + RBAC `dev_requests:delete` — **system_admin 만**. (REQ-FR-DREQ-008 + ARCH-DREQ-04 의 pmo_manager 매트릭스가 delete 권한을 부여하지 않음과 정합. codex PR #121 review P1, sprint `claude/work_260515-h` 반영.)
 - **전이**: `registered` 또는 `rejected` → `closed`. `pending` / `in_review` 는 거부 (먼저 reject 후 close).
 - **응답 — 200** `{ "status":"ok", "data": <dev_request with status=closed> }`. **422** `invalid_status_transition_close` (pending/in_review 에서 시도). audit `dev_request.closed`.
 

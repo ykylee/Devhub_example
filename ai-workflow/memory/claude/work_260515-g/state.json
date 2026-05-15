@@ -3,7 +3,7 @@
   "branch": "claude/work_260515-g",
   "base": "main @ 52f6ad8 (PR #121 머지 직후)",
   "updated_at": "2026-05-15T05:10:00Z",
-  "status": "in_progress",
+  "status": "done (merged into main)",
   "purpose": "DREQ-AuthADR — Dev Request 외부 수신 endpoint (POST /api/v1/dev-requests) 의 인증 정책 결정. 옵션 A (API 토큰 + IP allowlist) 채택.",
   "decision": {
     "selected": "A — API 토큰 + IP allowlist",
