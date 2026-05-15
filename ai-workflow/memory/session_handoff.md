@@ -1,14 +1,14 @@
-# Session Handoff — main (2026-05-15 post-EOD final, sprint claude/work_260515-q)
+# Session Handoff — main (2026-05-15 post-EOD final + docker packaging merge)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
 - 범위: 2026-05-15 직전 final EOD (sprint l) 이후의 후속 세션 종료. 추가 5 PR 흡수 (#128 m / #129 n / #130 o / #131 p / 본 q housekeeping). **DREQ carve out 1/4 + 2/4 전체 완료** (RBAC-ADR / Promote-Tx / codex hotfix #4 / Admin-UI backend / Admin-UI frontend).
 - 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
 - 상태: M1/M2/M3 1차 closing (이전). Application 도메인 backend 1차 (2026-05-14). DREQ 도메인 1차 완성 (sprint l 종료, 2026-05-15). 본 후속 세션 — **DREQ carve out 1/4 (RBAC-ADR + Promote-Tx) + 2/4 (Admin-UI backend + frontend) 완료**. 4 sprint (m/n/o/p), 본인 4단계 리뷰 4회 clean, codex review cycle 1회 (hotfix #4). ADR-0013 + ADR-0014 누적. API-66..68 + 신규 RBAC resource `dev_request_intake_tokens` activated. /admin/settings/dev-request-tokens 페이지.
-- 최종 수정일: 2026-05-15 (post-EOD, sprint claude/work_260515-q)
+- 최종 수정일: 2026-05-15 (PR #133 merge 반영)
 - 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [상태 스냅샷](./state.json), [거버넌스](../../docs/governance/README.md), [추적성 매트릭스](../../docs/traceability/report.md), [Project 도메인 컨셉](../../docs/planning/project_management_concept.md), [Dev Request 도메인 컨셉](../../docs/planning/development_request_concept.md), [ADR-0011 RBAC row-scoping](../../docs/adr/0011-rbac-row-scoping.md), [ADR-0012 DREQ 외부 수신 인증](../../docs/adr/0012-dreq-external-intake-auth.md), [ADR-0013 DREQ RBAC row-scoping](../../docs/adr/0013-dreq-rbac-row-scoping.md), [ADR-0014 DREQ intake token admin](../../docs/adr/0014-dreq-intake-token-admin.md).
-- 브랜치: `main` (HEAD `2147d6d`, PR #131 squash 직후. 본 housekeeping 머지 후 추가 갱신).
+- 브랜치: `main` (HEAD `4892a78`, PR #133 squash merge 반영).
 
-## 본 후속 세션 (2026-05-15 post-EOD) 누적 머지 — 5 PR
+## 본 후속 세션 (2026-05-15 post-EOD) 누적 머지 — 7 PR
 
 | PR | sha | sprint | 작업 |
 | --- | --- | --- | --- |
@@ -16,7 +16,8 @@
 | #129 | 5546a41 | claude/work_260515-n | codex review hotfix #4 — PR #128 의 P1 (CHECK 매핑) + P2 (SCM gate) + self-review P2 #1 (rejected_reason NULL) |
 | #130 | 0bdf299 | claude/work_260515-o | DREQ-Admin-UI backend — intake token admin (API-66..68) + ADR-0014 |
 | #131 | 2147d6d | claude/work_260515-p | DREQ-Admin-UI frontend — /admin/settings/dev-request-tokens 페이지 + plain-1회 modal |
-| (본) | TBD | claude/work_260515-q | post-EOD housekeeping (main flat memory sync + sprint finalize) |
+| #132 | 253063e | claude/work_260515-q | post-EOD housekeeping (main flat memory sync + sprint finalize) |
+| #133 | 4892a78 | codex/docker-packaging-guide | Docker deploy 패키지 안정화 + runtime-config/OIDC/토큰 모달/권한 UI 리뷰 반영 + 보안 placeholder 강화 |
 
 ## 본 후속 세션 도입 핵심 (재참조 가능)
 
