@@ -27,9 +27,11 @@
    - `frontend/app/login/page.tsx` 및 `frontend/components/layout/AuthGuard.tsx` 구현으로 접근 제어 실체화.
    - `frontend/app/(dashboard)/account/page.tsx` (본인 프로필/비밀번호 변경) 구현.
    - `MemberTable.tsx`에 시스템 관리자용 계정 제어(발급/회수/강제재설정) 액션 추가 및 `account.service.ts` (Mock) 연동 완료.
-3. **실시간 WebSocket 연동 (Phase 3)**:
-   - `websocket.service.ts` 생성하여 Pub/Sub 패턴 기반 연결 및 이벤트 파싱 구조 확립.
-   - `AuthGuard`에서 연결 생명주기 관리 및 전역 알림(Zustand) 연동 완료 (현재 UI 테스트용 Mock 이벤트 발생 중).
+3. **대시보드 UI 안정화 및 고도화 (Dashboard Stabilization)**:
+   - `DashboardHeader` 컴포넌트 통합으로 Developer/Manager 대시보드 헤더 표준화.
+   - `recharts` 기반 실데이터(Mock) 차트 구현으로 플레이스홀더 제거.
+   - Talent Load Balancing 위젯에 인터랙션 및 호버 효과 추가.
+   - 로그아웃 과정의 플리커 현상 해결을 위한 `LogoutOverlay` 및 전역 상태 관리 도입.
 
 ## 🚀 다음 세션 작업 제안
 1. **IdP 인증 백엔드 완성 대기 (Phase 13)**: 백엔드의 Ory Kratos 연동이 완료되면, 현재 `account.service.ts`의 Mock 로직을 실제 Kratos API로 치환.

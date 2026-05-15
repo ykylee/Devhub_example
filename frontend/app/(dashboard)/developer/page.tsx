@@ -25,6 +25,7 @@ import { infraService } from "@/lib/services/infra.service";
 import { Metric } from "@/lib/services/types";
 import { useEffect } from "react";
 import { MyPendingDevRequestsWidget } from "@/components/dev-request/MyPendingDevRequestsWidget";
+import { DashboardHeader } from "@/components/ui/DashboardHeader";
 
 export default function DeveloperDashboard() {
   const { isDeepFocus, setDeepFocus, addToast } = useStore();
@@ -57,45 +58,37 @@ export default function DeveloperDashboard() {
 
   return (
     <div className="space-y-10 pb-20">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-        >
-          <h1 className="text-4xl font-extrabold tracking-tight text-foreground dark:text-primary-foreground mb-2">
-            Developer <span className="text-gradient">Workspace</span>
-          </h1>
-          <p className="text-muted-foreground text-lg flex items-center gap-2">
+      <DashboardHeader 
+        titlePrefix="Developer"
+        titleGradient="Workspace"
+        subtitle={(
+          <>
             Welcome back, <span className="text-foreground dark:text-primary-foreground font-bold">YK Lee</span> • <Badge variant="success" dot>Active Now</Badge>
-          </p>
-        </motion.div>
-
-        <motion.div 
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="flex items-center gap-4"
-        >
-          <button 
-            onClick={toggleFocus}
-            className={cn(
-              "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border",
-              isDeepFocus 
-                ? "bg-primary text-primary-foreground border-primary shadow-[0_0_20px_rgba(139,92,246,0.5)]" 
-                : "glass border-border text-muted-foreground hover:text-foreground dark:hover:text-primary-foreground"
-            )}
-          >
-            {isDeepFocus ? <Zap className="w-4 h-4 fill-current" /> : <Coffee className="w-4 h-4" />}
-            {isDeepFocus ? "Deep Focus Active" : "Start Deep Focus"}
-          </button>
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="glass text-foreground dark:text-primary-foreground px-6 py-2 rounded-xl text-sm font-bold hover:bg-muted/40 transition-all border border-border flex items-center gap-2"
-          >
-            <Info className="w-4 h-4" /> Project Info
-          </button>
-        </motion.div>
-      </div>
+          </>
+        )}
+        actions={(
+          <>
+            <button 
+              onClick={toggleFocus}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border",
+                isDeepFocus 
+                  ? "bg-primary text-primary-foreground border-primary shadow-[0_0_20px_rgba(139,92,246,0.5)]" 
+                  : "glass border-border text-muted-foreground hover:text-foreground dark:hover:text-primary-foreground"
+              )}
+            >
+              {isDeepFocus ? <Zap className="w-4 h-4 fill-current" /> : <Coffee className="w-4 h-4" />}
+              {isDeepFocus ? "Deep Focus Active" : "Start Deep Focus"}
+            </button>
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="glass text-foreground dark:text-primary-foreground px-6 py-2 rounded-xl text-sm font-bold hover:bg-muted/40 transition-all border border-border flex items-center gap-2"
+            >
+              <Info className="w-4 h-4" /> Project Info
+            </button>
+          </>
+        )}
+      />
 
       {/* 내 대기 의뢰 위젯 (DREQ-Frontend, sprint claude/work_260515-j) */}
       <MyPendingDevRequestsWidget />
@@ -112,7 +105,7 @@ export default function DeveloperDashboard() {
           >
             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">{stat.label}</p>
             <div className="flex items-center justify-between">
-              <h3 className="text-2xl font-black text-foreground dark:text-primary-foreground">{stat.value}</h3>
+              <h3 className="text-xl md:text-2xl font-black text-foreground dark:text-primary-foreground">{stat.value}</h3>
               <span className={cn("text-[10px] font-black uppercase tracking-tighter", stat.color)}>
                 {stat.trend}
               </span>
@@ -257,7 +250,7 @@ export default function DeveloperDashboard() {
           {/* AI Gardener Widget */}
           <motion.div 
             whileHover={{ y: -5 }}
-            className="relative p-8 rounded-3xl overflow-hidden group"
+            className="relative p-6 rounded-2xl overflow-hidden group"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-accent/20 to-transparent opacity-50 transition-opacity group-hover:opacity-70" />
             <div className="absolute inset-0 glass opacity-50" />

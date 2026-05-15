@@ -25,15 +25,14 @@
     "current_baseline": "Frontend Phase 5 조직 관리 UI 고도화 완료",
     "current_axis": "Frontend Phase 6 권한 관리(RBAC) UI 고도화",
     "current_focus": "사용자 및 그룹별 세부 권한 설정, 권한 편집기(Permission Editor) 컴포넌트 구현",
-    "in_progress_items": [
-      "TASK-FRONTEND-PHASE6-RBAC"
-    ],
+    "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
       "TASK-FRONTEND-PHASE2",
       "TASK-FRONTEND-PHASE3",
       "TASK-FRONTEND-PHASE5-ORG",
-      "TASK-FRONTEND-PHASE12-API"
+      "TASK-FRONTEND-PHASE12-API",
+      "TASK-FRONTEND-DASHBOARD-STABILIZATION"
     ],
     "environment_constraints": [
       "Docker/Docker-compose required for full system",
