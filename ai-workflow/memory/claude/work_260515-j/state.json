@@ -3,7 +3,7 @@
   "branch": "claude/work_260515-j",
   "base": "main @ 333edc9 (PR #124 머지 직후)",
   "updated_at": "2026-05-15T06:30:00Z",
-  "status": "in_progress",
+  "status": "done (merged into main)",
   "purpose": "DREQ-Frontend sprint — 담당자 dashboard 위젯 + /admin/settings/dev-requests 관리 페이지 + 상세 modal 도입. Backend API-59..65 (sprint i) 와 연계.",
   "scope": {
     "deliverables": [

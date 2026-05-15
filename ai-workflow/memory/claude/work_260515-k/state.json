@@ -3,7 +3,7 @@
   "branch": "claude/work_260515-k",
   "base": "main @ 58033d2 (PR #125 머지 직후)",
   "updated_at": "2026-05-15T07:00:00Z",
-  "status": "in_progress",
+  "status": "done (merged into main)",
   "purpose": "Codex 외부 리뷰 hotfix #3 — PR #122/#124/#125 의 P1×2 + P2×2.",
   "codex_findings": {
     "pr_124_p1": {
