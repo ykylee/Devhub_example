@@ -334,7 +334,7 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
 
 #### 5.5.2 비기능 / 운영 요구사항 (REQ-NFR-DREQ)
 
-- **REQ-NFR-DREQ-001 (MVP):** 외부 수신 endpoint 의 인증은 운영 진입 전에 [ADR (DREQ-AuthADR)] 으로 결정한다. 후보: (A) API 토큰 + IP allowlist, (B) HMAC 시그니처, (C) OAuth client_credentials.
+- **REQ-NFR-DREQ-001 (MVP, 확정 — [ADR-0012](./adr/0012-dreq-external-intake-auth.md), sprint `claude/work_260515-g`):** 외부 수신 endpoint 의 인증은 **옵션 A — API 토큰 + IP allowlist** 를 사용한다. token 은 `Authorization: Bearer <token>` 헤더로 전달하며, 외부 시스템별로 별도 발급 + DB 에 hashed 저장 + IP allowlist (CIDR) 로 2차 방어. 운영 정책: 12개월 회전 / 즉시 revoke 가능 / `last_used_at` 모니터링. 옵션 B (HMAC) 와 C (OAuth client_credentials) 는 후속 단계 마이그레이션 경로 (ADR-0012 §3.2).
 - **REQ-NFR-DREQ-002 (MVP):** 외부 수신 요청은 idempotency 를 갖는다 — `(source_system, external_ref)` 동일한 재호출은 동일 의뢰 id 로 동일 응답을 반환한다 (혹은 명시적 409 + 기존 id 반환).
 - **REQ-NFR-DREQ-003 (MVP):** 모든 상태 전이는 audit_logs 에 기록된다. payload 는 의뢰 id / 전이 from-to / actor / 변경 사유를 포함한다.
 - **REQ-NFR-DREQ-004 (MVP):** `details` 필드는 markdown 렌더링 시 XSS 방어를 위해 sanitize 되어야 한다 (frontend 책임). backend 는 raw 저장.

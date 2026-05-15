@@ -113,17 +113,19 @@
 - 의뢰 SLA / 자동 escalation (assignee 가 N일 이내 미응답 시 system_admin 으로 전환)
 - repository 단독 등록 (application 없이 repository 만 만들기) — 1차는 application 또는 project 만, repository 는 application 의 link 로 흡수
 
-## 7. 외부 수신 인증 정책 후보 (ADR carve out)
+## 7. 외부 수신 인증 정책 — [ADR-0012](../adr/0012-dreq-external-intake-auth.md) 결정
 
-세 가지 옵션 중 1차 결정 미루기:
+**[ADR-0012](../adr/0012-dreq-external-intake-auth.md)** (sprint `claude/work_260515-g`, accepted 2026-05-15) 가 옵션 A — **API 토큰 + IP allowlist** 를 1차 채택. 옵션 B (HMAC) 와 C (OAuth client_credentials) 는 후속 단계 마이그레이션 경로.
 
-| 옵션 | 요약 | 장점 | 단점 |
-| --- | --- | --- | --- |
-| **A. API 토큰 + IP allowlist** | 정적 long-lived token + 호출 IP whitelist | 도입 비용 0, 외부 시스템에 친화적 | 토큰 회전 정책 별도, IP 변경에 취약 |
-| **B. HMAC 시그니처** | 요청 body + timestamp + nonce 를 secret 으로 HMAC | replay 방지 가능, 토큰 노출 시에도 secret 분리 | 외부 시스템에 SDK 또는 가이드 필요 |
-| **C. OAuth client_credentials** | Hydra 의 client_credentials grant 로 access_token 발급 | 인증 모델 일관 (DevHub 내부 인증 = Hydra), 토큰 회전 자동 | 외부 시스템이 Hydra 호출 흐름 구현 부담 |
+요약:
+- 외부 호출은 `Authorization: Bearer <plain-token>` 헤더로 도착.
+- middleware `requireIntakeToken` 가 `SHA-256(token)` 으로 `dev_request_intake_tokens` lookup + IP allowlist (CIDR) 검증 + revoke 상태 확인.
+- 성공 시 `source_system` 컨텍스트 주입 + audit `dev_request.intake_auth_succeeded` + `last_used_at` 갱신.
+- 실패 시 401 + audit `dev_request.intake_auth_failed`.
+- 토큰은 발급 직후 1회만 admin 에게 노출, 이후 DB 에는 hashed 만 저장.
+- 운영 정책: 12개월 회전 / 즉시 revoke 가능 / 30일 미사용 시 운영자 알림.
 
-본 컨셉은 **A (API 토큰 + IP allowlist)** 를 1차 추정으로 두고, **후속 ADR** 에서 운영 환경/외부 시스템 역량/감사 요구를 기준으로 결정. ADR 발급 전까지 backend 구현 sprint 진입 보류 권장.
+자세한 결정 근거 / 단계적 마이그레이션 경로 (A → B → C) / 데이터 모델 / audit 카탈로그는 ADR-0012 참조.
 
 ## 8. 미해결 항목 (carve out)
 
@@ -152,3 +154,4 @@
 | 일자 | 변경 |
 | --- | --- |
 | 2026-05-15 | 1차 작성 — DREQ 도메인 컨셉 staged. 후속 sprint hook 6건 명시. ID 미발급 (본 sprint 가 함께 발급할 REQ-FR-DREQ / UC-DREQ / ARCH-DREQ / API-DREQ 는 본 컨셉 머지 PR 의 다른 문서에서 발급). |
+| 2026-05-15 | §7 외부 수신 인증 정책 결정 — [ADR-0012](../adr/0012-dreq-external-intake-auth.md) 가 옵션 A (API 토큰 + IP allowlist) 1차 채택. sprint `claude/work_260515-g`. |

@@ -245,9 +245,15 @@ Audit Log는 최소한 `actor_id`, `actor_role`, `action`, `target_type`, `targe
 
 ### 7.3 외부 수신 인증 경계 (ARCH-DREQ-03)
 
-- 외부 수신 endpoint (`POST /api/v1/dev-requests`) 는 일반 사용자 OIDC 흐름이 아닌 별도 정책을 사용. 후보 (A) API 토큰 + IP allowlist, (B) HMAC 시그니처, (C) OAuth client_credentials — [컨셉 §7](./planning/development_request_concept.md) 참조.
-- 본 endpoint 는 routePermissionTable 의 Bypass 또는 별도 middleware 로 처리 (운영 진입 전 ADR 로 확정).
-- 인증 성공 시 `source_system` 은 caller 의 identity 에서 자동 채움 (request body 의 self-claim 은 신뢰하지 않음 — spoofing 방지).
+- 외부 수신 endpoint (`POST /api/v1/dev-requests`) 는 일반 사용자 OIDC 흐름이 아닌 **별도 인증 middleware (`requireIntakeToken`)** 를 사용. **[ADR-0012](./adr/0012-dreq-external-intake-auth.md)** 가 옵션 A (API 토큰 + IP allowlist) 를 채택. 옵션 B (HMAC) / C (OAuth client_credentials) 는 후속 단계 마이그레이션 경로.
+- 검증 흐름 (ADR-0012 §4.1.2):
+  - 외부 호출은 `Authorization: Bearer <plain-token>` 헤더로 도착.
+  - middleware 가 `SHA-256(plain-token)` 으로 `dev_request_intake_tokens.hashed_token` lookup.
+  - 매칭 없음 또는 `revoked_at IS NOT NULL` → 401.
+  - caller IP 가 row 의 `allowed_ips` CIDR 범위 밖 → 401.
+  - 검증 성공 시 `source_system` 컨텍스트 주입 + `last_used_at` 갱신 + audit `dev_request.intake_auth_succeeded` emit.
+- 본 endpoint 는 `routePermissionTable` 의 `Bypass: true` 또는 별도 `IntakeAuth: true` 플래그로 일반 OIDC enforce 를 건너뛴다.
+- 인증 성공 시 `source_system` 은 토큰의 매핑 값에서 자동 채움 (request body 의 self-claim 은 신뢰하지 않음 — spoofing 방지).
 - 그 외 endpoint (GET 목록 / 상세 / Promote / Reject / Reassign / Close) 는 일반 OIDC + RBAC + 본 sprint 의 `enforceRowOwnership` 패턴([ADR-0011 §4.2](./adr/0011-rbac-row-scoping.md))으로 보호. 담당자 본인 의뢰 또는 system_admin / pmo_manager 만 가능.
 
 ### 7.4 RBAC 자원 (ARCH-DREQ-04)
@@ -288,6 +294,23 @@ dev_requests
 
 application / project 의 `origin_dreq_id` 역참조 컬럼 도입 여부는 REQ-FR-DREQ-009 의 ADR 후속에서 결정.
 
+#### 외부 수신 토큰 테이블 (ADR-0012 §4.1.1)
+
+```text
+dev_request_intake_tokens
+  token_id        uuid       PK
+  client_label    text       NOT NULL  -- 운영용 식별자 (예: "ops_portal")
+  hashed_token    text       NOT NULL  UNIQUE  -- SHA-256 hex of plain token
+  allowed_ips     jsonb      NOT NULL  -- CIDR 배열
+  source_system   text       NOT NULL  -- token 매핑되는 source_system 값
+  created_at      timestamptz NOT NULL DEFAULT NOW()
+  created_by      text       NOT NULL  REFERENCES users(user_id)
+  last_used_at    timestamptz NULLABLE
+  revoked_at      timestamptz NULLABLE
+```
+
+plain token 은 발급 직후 1회만 admin 에게 노출하고 어디에도 저장하지 않는다 (Kratos password issuance 패턴, [accounts_admin](../backend/) 참조).
+
 ### 7.6 Audit action 카탈로그 (ARCH-DREQ-06)
 
 | action | target_type | 비고 |
@@ -298,4 +321,6 @@ application / project 의 `origin_dreq_id` 역참조 컬럼 도입 여부는 REQ
 | `dev_request.reassigned` | `dev_request` | from / to assignee |
 | `dev_request.reopened` | `dev_request` | rejected → pending |
 | `dev_request.closed` | `dev_request` | registered/rejected → closed |
+| `dev_request.intake_auth_succeeded` | `dev_request_intake_token` | ADR-0012 §4.1.6 — payload `{token_id, client_label, source_ip}`. token plain 값은 절대 기록 안 함. |
+| `dev_request.intake_auth_failed` | `dev_request_intake_token` 또는 `route` | ADR-0012 §4.1.6 — payload `{reason, source_ip, header_present, token_prefix_4chars}`. token full 값은 절대 기록 안 함. |
 | `auth.row_denied` | `route` | enforceRowOwnership 패턴, 본 도메인 row 거절 |

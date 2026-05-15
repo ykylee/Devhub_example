@@ -1,0 +1,35 @@
+{
+  "schema_version": "1",
+  "branch": "claude/work_260515-g",
+  "base": "main @ 52f6ad8 (PR #121 머지 직후)",
+  "updated_at": "2026-05-15T05:10:00Z",
+  "status": "in_progress",
+  "purpose": "DREQ-AuthADR — Dev Request 외부 수신 endpoint (POST /api/v1/dev-requests) 의 인증 정책 결정. 옵션 A (API 토큰 + IP allowlist) 채택.",
+  "decision": {
+    "selected": "A — API 토큰 + IP allowlist",
+    "rejected": ["B — HMAC 시그니처", "C — OAuth client_credentials"],
+    "rationale_summary": "1차 도입 비용 최소 + 운영 친숙도 + 외부 시스템 on-boarding 부담 최소. token rotation/revoke 운영 정책 + IP allowlist 관리 + 감사 로깅으로 보안 보강. 후속에 보안 강화 필요 시 B 또는 C 로 마이그레이션."
+  },
+  "scope": {
+    "deliverables": [
+      "docs/adr/0012-dreq-external-intake-auth.md (신규)",
+      "docs/planning/development_request_concept.md §7 / §9 갱신 (결정 사항 반영, ADR 링크)",
+      "docs/requirements.md REQ-NFR-DREQ-001 갱신 (결정된 옵션 명시)",
+      "docs/architecture.md ARCH-DREQ-03 갱신 + 데이터 모델에 dev_request_intake_tokens 테이블 도입 가이드",
+      "docs/backend_api_contract.md §14.1 인증 섹션 갱신",
+      "docs/traceability/report.md §4 ADR 인덱스 + §3 DREQ row ADR 컬럼",
+      "docs/development_roadmap.md M5 DREQ-Backend 진입 조건 갱신 (AuthADR 머지 후)"
+    ],
+    "out_of_scope": [
+      "code 구현 (handlers / store / migration) — DREQ-Backend sprint",
+      "토큰 발급 UI — DREQ-Frontend sprint",
+      "rate limiting / RPS 제한 — REQ-NFR-DREQ-006 후속"
+    ]
+  },
+  "next_session_candidates_after_merge": [
+    "DREQ-Backend (domain + store + handler + migration 000022 + API-59..65 활성화 + intake auth middleware)",
+    "DREQ-Frontend (담당자 dashboard 위젯 + 관리 페이지)",
+    "DREQ-RBAC-ADR (pmo_manager 위양 정책)",
+    "DREQ-E2E"
+  ]
+}
