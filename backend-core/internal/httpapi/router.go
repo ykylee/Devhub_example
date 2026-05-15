@@ -123,7 +123,10 @@ type RouterConfig struct {
 	BearerTokenVerifier BearerTokenVerifier
 	OrganizationStore   OrganizationStore
 	ApplicationStore    ApplicationStore
-	RBACStore           RBACStore
+	// DevRequestStore + DevRequestIntakeTokenStore — DREQ 도메인 (ADR-0012, sprint claude/work_260515-i).
+	DevRequestStore            DevRequestStore
+	DevRequestIntakeTokenStore IntakeTokenStore
+	RBACStore                  RBACStore
 	PermissionCache     *PermissionCache
 	KratosLogin         KratosLoginClient
 	HydraAdmin          HydraLoginAdmin
@@ -264,6 +267,20 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.PATCH("/integrations/:integration_id", handler.updateIntegration)
 	v1.DELETE("/integrations/:integration_id", handler.deleteIntegration)
 	v1.POST("/integrations/gitea/webhooks", handler.receiveGiteaWebhook)
+
+	// DREQ 도메인 API-59..65 (sprint claude/work_260515-i, ADR-0012).
+	// 외부 수신 POST 는 별도 intake group 에서 requireIntakeToken 미들웨어를 사용.
+	// 나머지 6 endpoint 는 일반 OIDC + RBAC + enforceRowOwnership 로 보호.
+	intakeGroup := router.Group("/api/v1")
+	intakeGroup.Use(handler.requireIntakeToken)
+	intakeGroup.POST("/dev-requests", handler.intakeDevRequest)
+	v1.GET("/dev-requests", handler.listDevRequests)
+	v1.GET("/dev-requests/:dev_request_id", handler.getDevRequest)
+	v1.POST("/dev-requests/:dev_request_id/register", handler.registerDevRequest)
+	v1.POST("/dev-requests/:dev_request_id/reject", handler.rejectDevRequest)
+	v1.PATCH("/dev-requests/:dev_request_id", handler.patchDevRequest)
+	v1.DELETE("/dev-requests/:dev_request_id", handler.closeDevRequest)
+
 	// Kratos self-service hooks (PR-M2-AUDIT, claude/login_usermanagement_finish).
 	// Bypasses authenticateActor + enforceRoutePermission via publicAPIPaths +
 	// routePermissionTable {Bypass: true}; authenticates inbound calls with
