@@ -1,0 +1,25 @@
+{
+  "schema_version": "1",
+  "branch": "claude/work_260515-n",
+  "base": "main @ 1f9ec50 (PR #128 머지 직후)",
+  "updated_at": "2026-05-15T08:50:00Z",
+  "status": "in_progress (PR open 대기)",
+  "purpose": "codex hotfix #4. PR #128 의 codex inline 리뷰 (P1 + P2) + self-review P2 #1 (rejected_reason NULL) 일괄 흡수.",
+  "absorbed_findings": {
+    "codex_p1": "RegisterDevRequestWithNewApplication 의 primaryRepo 분기에서 application_repositories_role_check 같은 CHECK constraint 위반이 isUniqueViolation / isForeignKeyViolation 어느 쪽에도 매칭 안 되어 500 으로 surface. 예: role='owner' → CHECK 위반 → writeServerError.",
+    "codex_p2": "promote 의 primary_repo path 가 SCM provider enablement gate (scm_providers.enabled) 를 적용하지 않음. legacy createApplicationRepository 는 unsupported_repo_provider 422 를 반환하지만 promote path 는 disabled provider 도 통과.",
+    "self_review_p2_1": "dreqMarkRegisteredUpdateQuery + MarkDevRequestRegistered 가 status='registered' 갱신 시 rejected_reason 을 명시적으로 NULL 로 비우지 않음. reopen → promote 시 잔재 가능 (TransitionDevRequestStatus 와 정합 차이)."
+  },
+  "fix_summary": {
+    "handler_dev_requests": "registerDevRequestWithNewApplication 의 primary_repo 분기에 (a) validApplicationRepoRoles[role] 검증 → 422 invalid_repo_link_role, (b) h.cfg.ApplicationStore.ListSCMProviders + Enabled gate → 422 unsupported_repo_provider. ApplicationStore 가 nil 인 dev 환경 (test) 에서는 gate 통과 (in-memory).",
+    "store_dev_requests": "MarkDevRequestRegistered + dreqMarkRegisteredUpdateQuery 의 UPDATE 절에 rejected_reason = NULL 추가.",
+    "store_dev_requests_promote": "RegisterDevRequestWithNewApplication 의 link insert 분기에 isCheckViolation defense-in-depth 매핑 → ErrConflict. 다른 호출자 / schema 변경 시에도 500 방어.",
+    "docs": "ADR-0013 §7 변경 이력 row 추가. backend_api_contract §14.4 의 에러 매핑 + §14.8 에러 코드 카탈로그 갱신 (3 신규 표시: invalid_repo_link_role / unsupported_repo_provider / application_key_conflict).",
+    "tests": "5 신규 회귀 가드: InvalidRepoRole / DisabledSCMProvider / UnknownProviderRejectedSamePathAsLegacy / NoApplicationStoreFallback / RejectedReasonClearedOnReopen (handler path only — SQL clear 은 integration carve)."
+  },
+  "verification": "go test ./... PASS (전체 backend-core)",
+  "carve_out_remaining": [
+    "race 가드 (UPDATE WHERE status IN (...)) — 운영 빈도 모니터링 후 결정. ADR-0013 §6 (carve).",
+    "memoryDevRequestStore.failPromote dead field — fault-injection test 추가 시 활용 또는 제거."
+  ]
+}

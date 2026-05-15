@@ -251,12 +251,17 @@ RETURNING` + devRequestsSelectColumns
 // (target 생성과 함께 단일 트랜잭션. application/project handler 가 store 호출
 // 시점에 이미 row 가 생성되어 있어야 하므로, 본 store 는 status 갱신만 책임)
 // caller 가 target row 생성 후 status='registered' + target_type/id 갱신을 위임.
+//
+// codex hotfix #4 / self-review P2 #1 (sprint claude/work_260515-n) —
+// rejected_reason 을 명시적으로 NULL 로 비워 reopen 후 promote 흐름의 잔재
+// 차단. dreqMarkRegisteredUpdateQuery (promote transaction) 과 동일 정책.
 func (s *PostgresStore) MarkDevRequestRegistered(ctx context.Context, id string, targetType domain.DevRequestTargetType, targetID string) (domain.DevRequest, error) {
 	const updateQuery = `
 UPDATE dev_requests SET
     status = 'registered',
     registered_target_type = $2,
     registered_target_id   = $3,
+    rejected_reason        = NULL,
     updated_at = NOW()
 WHERE id = $1::uuid
 RETURNING` + devRequestsSelectColumns

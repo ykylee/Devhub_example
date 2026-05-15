@@ -561,6 +561,48 @@ func (h *Handler) registerDevRequestWithNewApplication(c *gin.Context, storeI De
 		if strings.TrimSpace(role) == "" {
 			role = string(domain.ApplicationRepositoryRolePrimary)
 		}
+		// codex hotfix #4 P1 (sprint claude/work_260515-n) — primary_repo.role
+		// 가 application_repositories_role_check 의 허용 값 (primary/sub/shared)
+		// 외이면 store insert 가 PG CHECK 위반으로 500 을 일으킨다. legacy
+		// createApplicationRepository handler 와 동일한 application-level gate 를
+		// 적용해 422 invalid_repo_link_role 로 surface.
+		if !validApplicationRepoRoles[role] {
+			c.JSON(http.StatusUnprocessableEntity, gin.H{
+				"status": "rejected",
+				"error":  "primary_repo.role must be one of primary/sub/shared",
+				"code":   "invalid_repo_link_role",
+			})
+			return
+		}
+		// codex hotfix #4 P2 (sprint claude/work_260515-n) — legacy
+		// createApplicationRepository 는 ListSCMProviders 로 enabled 여부를
+		// 검증해 unsupported_repo_provider 422 를 반환한다. promote path 가 이
+		// gate 를 우회하면 disabled provider 도 application_repositories 행을
+		// 만들어 정책이 깨진다. ApplicationStore 가 wire 안 됐을 땐 dev 환경의
+		// in-memory store 케이스이므로 통과시킨다 (devRequests test 케이스는
+		// ApplicationStore 없이 동작 — 통합 검증은 production wire 에서).
+		if h.cfg.ApplicationStore != nil {
+			providers, err := h.cfg.ApplicationStore.ListSCMProviders(c.Request.Context())
+			if err != nil {
+				writeServerError(c, err, "dev_request.register.promote_application.lookup_provider")
+				return
+			}
+			enabled := false
+			for _, prov := range providers {
+				if prov.ProviderKey == p.PrimaryRepo.RepoProvider && prov.Enabled {
+					enabled = true
+					break
+				}
+			}
+			if !enabled {
+				c.JSON(http.StatusUnprocessableEntity, gin.H{
+					"status": "rejected",
+					"error":  "primary_repo.repo_provider is not registered or disabled",
+					"code":   "unsupported_repo_provider",
+				})
+				return
+			}
+		}
 		primaryRepo = &domain.ApplicationRepository{
 			RepoProvider:   p.PrimaryRepo.RepoProvider,
 			RepoFullName:   p.PrimaryRepo.RepoFullName,
