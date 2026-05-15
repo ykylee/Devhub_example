@@ -1,0 +1,46 @@
+{
+  "schema_version": "1",
+  "branch": "claude/work_260515-e",
+  "base": "main @ bca612e (PR #119 머지 직후)",
+  "updated_at": "2026-05-15T04:30:00Z",
+  "status": "in_progress (housekeeping)",
+  "purpose": "2026-05-15 세션 종료 housekeeping — 본 세션 7 PR (#112, #114~#119) 흡수 + auto memory 갱신.",
+  "absorbed_session_prs": [
+    {"pr": 112, "sprint": "codex/frontend_color_review", "merge_commit": "3f387cd", "note": "2026-05-14 머지지만 flat memory 흡수 누락"},
+    {"pr": 115, "sprint": "gemini/frontend_redesign_260514", "merge_commit": "b669bc7"},
+    {"pr": 114, "sprint": "codex/260514-a", "merge_commit": "25f97ba"},
+    {"pr": 116, "sprint": "claude/work_260515-a", "merge_commit": "cbc36b0"},
+    {"pr": 117, "sprint": "claude/work_260515-b", "merge_commit": "68f031e"},
+    {"pr": 118, "sprint": "claude/work_260515-c", "merge_commit": "519a508"},
+    {"pr": 119, "sprint": "claude/work_260515-d", "merge_commit": "bca612e"}
+  ],
+  "session_inventory": {
+    "self_review_cycles": 4,
+    "self_review_targets": ["#114", "#115", "#117", "#118"],
+    "codex_review_cycles": 1,
+    "codex_review_target": "#119 (P1×3 + P2×1 흡수)",
+    "ci_e2e_failures_recovered": 3,
+    "ci_e2e_failures_detail": [
+      "#115 first push — output: standalone vs next start (frontend.log artifact)",
+      "#115 second push — header-switch-view.spec selector vs dropdown refactor (raw job log)",
+      "#119 first push — admin-users-crud.spec 'Manager' substring vs new PMO Manager option"
+    ]
+  },
+  "key_patterns_introduced": [
+    "frontend/lib/config/endpoints.ts (single SoT, native default + env override)",
+    "app/layout.tsx inline script for theme FOUC prevention",
+    "next.config.ts output: standalone gated by NEXT_OUTPUT env",
+    "ADR-0011 §4.2 enforceRowOwnership helper + audit auth.row_denied + pmo_manager seed migration 000021"
+  ],
+  "carve_out_for_next_session": [
+    "owner-self route gate 활성화 — 현재 route gate 가 system_admin/pmo_manager 만 통과시키므로 owner-self 가 막힘. 정책 결정 + ADR 갱신 동반.",
+    "critical_warning_count 임계치 외부화",
+    "CountApplicationCriticalWarnings lightweight SQL 분리",
+    "Repository commit activity ingest",
+    "Project active→closed 가드 정책",
+    "pr_activities.payload sanitization",
+    "quality_snapshots idempotency",
+    "M4 RM-M4-XX 본격 진입",
+    "traceability follow-up — TC-NAV-01/02/SIM-01 row 정리, endpoints 모듈 ARCH 한 줄, pmo_manager seed traceability"
+  ]
+}

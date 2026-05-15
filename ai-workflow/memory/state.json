@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-05-15 sprint claude/work_260515-a — 리뷰어 모드 + housekeeping. 3 PR 머지 흡수: #112 (codex/frontend_color_review, 2026-05-14 머지 — Admin UI 개선 + iPad 터치 안정화 + 백엔드 조직 단위 트랜잭션), #115 (gemini/frontend_redesign_260514 — light theme + dropdown refactor + endpoints 통일 모듈 + standalone gate + Switch View 테스트 정리), #114 (codex/260514-a — Application leader/dev_unit 모델 + search 확장 + auth_login canonical challenge + search predicate refactor + leader backfill). 본 sprint 핵심: 본인 PR 2건(#114, #115)에 대해 4단계 리뷰 (diff→코멘트→보강→머지) 수행. **endpoints 통일 모듈** 도입 (frontend/lib/config/endpoints.ts) — 모든 서비스 URL default 단일 진실 소스, native default + env override 정책 명문화 (CLAUDE.md '환경 특화 자산은 git 외'). PR #115 의 E2E FAIL 2회 디버깅으로 'output: standalone vs next start' 호환 이슈 + 'dropdown 의도적 제거 vs e2e 잔존' 두 layer 식별. 다음 세션 진입 후보: 이전 state 의 application_domain_carve_out (frontend UI 정교화 / ADR-0011 §4.2 / critical 임계치 외부화 / Repository commit activity / Project 가드 정책) 또는 M4 RM-M4-XX 본격. 이전 status: '2026-05-14 세션 종료 (housekeeping sync). 추가 7 PR 머지 — #104~#110. Application 도메인 backend 1차 완성 — API-01~58 전체 activated, 마이그레이션 000012~000018 (7개), ADR-0011 accepted, RBAC matrix 4 신규 resource, CI 5 job (Backend Integration 신설).'",
-  "updated_at": "2026-05-15T02:05:00Z",
-  "head_commit": "25f97ba",
-  "head_summary": "Merge pull request #114 (feat(application): leader/dev_unit 모델 확장 + applications 검색 확장 + auth_login 보완, sprint codex/260514-a)",
+  "status": "2026-05-15 세션 종료 (sprint claude/work_260515-e housekeeping). 본 세션 7 PR 흡수: #112 (codex/frontend_color_review, 2026-05-14 머지 누락분 — Admin UI + ActionMenu + iPad 터치 + 백엔드 트랜잭션), #115 (light theme + dropdown refactor + endpoints 통일 모듈 + standalone gate), #114 (Application leader/dev_unit 모델 + search 확장 + auth_login canonical), #116 (sprint 260515-a housekeeping), #117 (sprint 260515-b — PR #114 신규 컴포넌트 token 정책 일관 sweep), #118 (sprint 260515-c — enforceRowOwnership helper + ADR-0011 §4.2 + REQ-FR-PROJ-009 활성화), #119 (sprint 260515-d — codex review hotfix). **핵심 도입 4 패턴**: (1) frontend/lib/config/endpoints.ts 단일 진실 소스 (native default + env override), (2) theme FOUC inline script in layout.tsx, (3) output: standalone 을 NEXT_OUTPUT env 로 gate, (4) ADR-0011 row-level helper enforceRowOwnership + audit auth.row_denied + pmo_manager seed migration 000021. **본인 PR 4단계 리뷰 4회** (#114/#115/#117/#118) + **codex 외부 리뷰 hotfix 1회** (#119, P1×3 + P2×1 흡수). 다음 세션 후보: owner-self route gate 활성화 (정책 결정 + ADR 갱신) / critical 임계치 외부화 / Repository commit activity ingest / Project active→closed 가드 / M4 RM-M4-XX 본격 / traceability follow-up (TC-NAV-* row + endpoints ARCH 한 줄). 이전 status: '2026-05-14 세션 종료 (housekeeping sync). 추가 7 PR 머지 — #104~#110. Application 도메인 backend 1차 완성.'",
+  "updated_at": "2026-05-15T04:30:00Z",
+  "head_commit": "bca612e",
+  "head_summary": "Merge pull request #119 (fix(frontend,backend,migrations): codex review hotfix — PR #114 + PR #118, sprint claude/work_260515-d)",
   "milestones": {
     "M0": {
       "status": "done",
@@ -163,7 +163,11 @@
   ],
   "merged_prs_2026_05_15": [
     {"pr": 115, "sprint": "gemini/frontend_redesign_260514", "title": "feat(frontend): Light theme + dropdown refactor + endpoints 통일 + standalone gate + Switch View 테스트 정리", "merge_commit": "b669bc7"},
-    {"pr": 114, "sprint": "codex/260514-a", "title": "feat(application): leader/dev_unit 모델 확장 + applications 검색 확장 + auth_login 보완 + search predicate refactor + leader backfill", "merge_commit": "25f97ba"}
+    {"pr": 114, "sprint": "codex/260514-a", "title": "feat(application): leader/dev_unit 모델 확장 + applications 검색 확장 + auth_login 보완 + search predicate refactor + leader backfill", "merge_commit": "25f97ba"},
+    {"pr": 116, "sprint": "claude/work_260515-a", "title": "docs(memory): 2026-05-15 sprint claude/work_260515-a housekeeping", "merge_commit": "cbc36b0"},
+    {"pr": 117, "sprint": "claude/work_260515-b", "title": "refactor(frontend): PR #114 신규 컴포넌트 token 정책 일관 sweep — Application/Project/Repository 모달 3종 + Table 3종", "merge_commit": "68f031e"},
+    {"pr": 118, "sprint": "claude/work_260515-c", "title": "feat(httpapi,adr): enforceRowOwnership helper — ADR-0011 §4.2 + REQ-FR-PROJ-009 활성화", "merge_commit": "519a508"},
+    {"pr": 119, "sprint": "claude/work_260515-d", "title": "fix(frontend,backend,migrations): codex review hotfix — PR #114 + PR #118 (pmo_manager seed migration 000021 + handler wire + e2e regex anchor)", "merge_commit": "bca612e"}
   ],
   "next_actions": {
     "m1_remaining": [],
