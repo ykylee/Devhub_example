@@ -1,0 +1,35 @@
+{
+  "schema_version": "1",
+  "branch": "claude/work_260515-j",
+  "base": "main @ 333edc9 (PR #124 머지 직후)",
+  "updated_at": "2026-05-15T06:30:00Z",
+  "status": "in_progress",
+  "purpose": "DREQ-Frontend sprint — 담당자 dashboard 위젯 + /admin/settings/dev-requests 관리 페이지 + 상세 modal 도입. Backend API-59..65 (sprint i) 와 연계.",
+  "scope": {
+    "deliverables": [
+      "frontend/lib/services/dev_request.types.ts (신규)",
+      "frontend/lib/services/dev_request.service.ts (신규) — 7 메서드 (intake 제외, list/get/register/reject/reassign/close + getMyPending)",
+      "frontend/app/(dashboard)/admin/settings/dev-requests/page.tsx (신규) — 목록 + 필터 + 상세 modal trigger",
+      "frontend/app/(dashboard)/admin/settings/layout.tsx (수정) — sidebar entry 추가",
+      "frontend/components/dev-request/DevRequestDetailModal.tsx (신규) — 상세 + 액션 4 (Register App/Project, Reject, Reassign)",
+      "frontend/components/dev-request/DevRequestTable.tsx (신규)",
+      "frontend/components/dev-request/MyPendingDevRequestsWidget.tsx (신규) — 담당자 dashboard 위젯",
+      "frontend/app/(dashboard)/developer/page.tsx (수정) — widget 통합",
+      "frontend/app/(dashboard)/manager/page.tsx (수정) — widget 통합"
+    ],
+    "out_of_scope": [
+      "intake token 발급/revoke admin UI (별도 sprint DREQ-Admin-UI)",
+      "외부 시스템 callback 알림 UI (carve out)",
+      "Playwright e2e + Vitest (별도 sprint DREQ-E2E)",
+      "AI 분류 추천 / 자동 매핑 UI (v2)",
+      "Promote 의 신규 target 생성 인라인 (현재는 기존 application/project id 매핑만 — backend 한계)"
+    ]
+  },
+  "token_policy_reference": "PR #115/#117 의 token 정책 (text-foreground / text-foreground dark:text-primary-foreground / text-muted-foreground). PR #114 의 UserCreationModal reference 패턴.",
+  "next_session_candidates_after_merge": [
+    "DREQ-Admin-UI (intake token 발급/revoke)",
+    "DREQ-Promote-Tx (단일 트랜잭션 신규 target 생성)",
+    "DREQ-RBAC-ADR",
+    "DREQ-E2E (TC-DREQ-*)"
+  ]
+}

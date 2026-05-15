@@ -19,6 +19,7 @@ import { riskService } from "@/lib/services/risk.service";
 import { infraService } from "@/lib/services/infra.service";
 import { realtimeService } from "@/lib/services/realtime.service";
 import { Metric, Risk } from "@/lib/services/types";
+import { MyPendingDevRequestsWidget } from "@/components/dev-request/MyPendingDevRequestsWidget";
 
 type RiskCreatedEvent = Risk;
 type CommandStatusEvent = {
@@ -132,6 +133,9 @@ export default function ManagerDashboard() {
         </div>
       ) : (
         <>
+          {/* 내 대기 의뢰 위젯 (DREQ-Frontend, sprint claude/work_260515-j) */}
+          <MyPendingDevRequestsWidget />
+
           {/* KPI Overview */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {stats.map((stat, i) => (
