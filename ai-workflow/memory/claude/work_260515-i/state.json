@@ -3,7 +3,7 @@
   "branch": "claude/work_260515-i",
   "base": "main @ 1d24acf (PR #123 머지 직후)",
   "updated_at": "2026-05-15T05:50:00Z",
-  "status": "in_progress",
+  "status": "done (merged into main)",
   "purpose": "DREQ-Backend sprint — Dev Request 도메인 backend 1차 활성화. ADR-0012 의 옵션 A (API 토큰 + IP allowlist) 인증 정책 + API-59..65 7 endpoint + audit + RBAC matrix 적용.",
   "scope": {
     "files_to_create": [

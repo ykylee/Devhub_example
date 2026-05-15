@@ -3,7 +3,7 @@
   "branch": "claude/work_260515-h",
   "base": "main @ 4d0277f (PR #122 머지 직후)",
   "updated_at": "2026-05-15T05:30:00Z",
-  "status": "in_progress",
+  "status": "done (merged into main)",
   "purpose": "Codex 외부 리뷰 hotfix #2 — PR #119/#120/#121 의 P1×2 + P2×2 일괄 처리.",
   "codex_findings": {
     "pr_119_p1": {

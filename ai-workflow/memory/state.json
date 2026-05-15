@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-05-15 세션 종료 (sprint claude/work_260515-e housekeeping). 본 세션 7 PR 흡수: #112 (codex/frontend_color_review, 2026-05-14 머지 누락분 — Admin UI + ActionMenu + iPad 터치 + 백엔드 트랜잭션), #115 (light theme + dropdown refactor + endpoints 통일 모듈 + standalone gate), #114 (Application leader/dev_unit 모델 + search 확장 + auth_login canonical), #116 (sprint 260515-a housekeeping), #117 (sprint 260515-b — PR #114 신규 컴포넌트 token 정책 일관 sweep), #118 (sprint 260515-c — enforceRowOwnership helper + ADR-0011 §4.2 + REQ-FR-PROJ-009 활성화), #119 (sprint 260515-d — codex review hotfix). **핵심 도입 4 패턴**: (1) frontend/lib/config/endpoints.ts 단일 진실 소스 (native default + env override), (2) theme FOUC inline script in layout.tsx, (3) output: standalone 을 NEXT_OUTPUT env 로 gate, (4) ADR-0011 row-level helper enforceRowOwnership + audit auth.row_denied + pmo_manager seed migration 000021. **본인 PR 4단계 리뷰 4회** (#114/#115/#117/#118) + **codex 외부 리뷰 hotfix 1회** (#119, P1×3 + P2×1 흡수). 다음 세션 후보: owner-self route gate 활성화 (정책 결정 + ADR 갱신) / critical 임계치 외부화 / Repository commit activity ingest / Project active→closed 가드 / M4 RM-M4-XX 본격 / traceability follow-up (TC-NAV-* row + endpoints ARCH 한 줄). 이전 status: '2026-05-14 세션 종료 (housekeeping sync). 추가 7 PR 머지 — #104~#110. Application 도메인 backend 1차 완성.'",
-  "updated_at": "2026-05-15T04:30:00Z",
-  "head_commit": "bca612e",
-  "head_summary": "Merge pull request #119 (fix(frontend,backend,migrations): codex review hotfix — PR #114 + PR #118, sprint claude/work_260515-d)",
+  "status": "2026-05-15 세션 종료 EOD (sprint claude/work_260515-l). 본 세션 누적 15 PR (#112 흡수 + #114..#126). **DREQ 도메인 1차 완성**: 컨셉(#121) + ADR-0012 옵션 A(#122) + Backend API-59..65 activated(#124) + Frontend dashboard 위젯 + admin page + 일반 사용자 페이지(#125) + codex hotfix 2회(#123 #126). 본 세션 12 sprint (a~l), 본인 4단계 리뷰 9회, codex review cycle 3회, CI E2E 회복 3회. **다음 세션 directive (사용자 지시)**: DREQ carve out 4건을 묶어서 진입 — (1) DREQ-RBAC-ADR (pmo_manager 위양 정책, 독립), (2) DREQ-Promote-Tx (단일 트랜잭션 신규 target 생성, backend), (3) DREQ-Admin-UI (intake token 발급/revoke endpoint + UI), (4) DREQ-E2E (Playwright + TC-DREQ-* 발급, 다른 3건 완료 후). 진행 순서 권장: RBAC-ADR + Promote-Tx 병행 → Admin-UI → E2E. 본 세션 도입 핵심 4 패턴(이전 status 유지) + DREQ 도메인 4 결정(컨셉/AuthADR/Backend/Frontend) 정착. 이전 status: '2026-05-14 세션 종료 — Application 도메인 backend 1차 완성.'",
+  "updated_at": "2026-05-15T07:30:00Z",
+  "head_commit": "bb164c4",
+  "head_summary": "Merge pull request #126 (fix(backend,frontend,migrations,memory): codex review hotfix #3 — PR #122/#124/#125, sprint claude/work_260515-k)",
   "milestones": {
     "M0": {
       "status": "done",
@@ -167,7 +167,20 @@
     {"pr": 116, "sprint": "claude/work_260515-a", "title": "docs(memory): 2026-05-15 sprint claude/work_260515-a housekeeping", "merge_commit": "cbc36b0"},
     {"pr": 117, "sprint": "claude/work_260515-b", "title": "refactor(frontend): PR #114 신규 컴포넌트 token 정책 일관 sweep — Application/Project/Repository 모달 3종 + Table 3종", "merge_commit": "68f031e"},
     {"pr": 118, "sprint": "claude/work_260515-c", "title": "feat(httpapi,adr): enforceRowOwnership helper — ADR-0011 §4.2 + REQ-FR-PROJ-009 활성화", "merge_commit": "519a508"},
-    {"pr": 119, "sprint": "claude/work_260515-d", "title": "fix(frontend,backend,migrations): codex review hotfix — PR #114 + PR #118 (pmo_manager seed migration 000021 + handler wire + e2e regex anchor)", "merge_commit": "bca612e"}
+    {"pr": 119, "sprint": "claude/work_260515-d", "title": "fix(frontend,backend,migrations): codex review hotfix — PR #114 + PR #118 (pmo_manager seed migration 000021 + handler wire + e2e regex anchor)", "merge_commit": "bca612e"},
+    {"pr": 120, "sprint": "claude/work_260515-e", "title": "docs(memory): 2026-05-15 sprint claude/work_260515-e housekeeping", "merge_commit": "feac299"},
+    {"pr": 121, "sprint": "claude/work_260515-f", "title": "docs(planning,requirements,architecture,api,roadmap,traceability): Dev Request (DREQ) 도메인 컨셉~설계 staged", "merge_commit": "52f6ad8"},
+    {"pr": 122, "sprint": "claude/work_260515-g", "title": "docs(adr,...): ADR-0012 — DREQ 외부 수신 인증 정책 (옵션 A 채택)", "merge_commit": "4d0277f"},
+    {"pr": 123, "sprint": "claude/work_260515-h", "title": "fix(migrations,docs,memory): codex review hotfix #2 — PR #119/#120/#121", "merge_commit": "1d24acf"},
+    {"pr": 124, "sprint": "claude/work_260515-i", "title": "feat(domain,store,httpapi,migrations): DREQ-Backend 1차 — API-59..65 activated", "merge_commit": "333edc9"},
+    {"pr": 125, "sprint": "claude/work_260515-j", "title": "feat(frontend,dev-request): DREQ-Frontend 1차 — 담당자 dashboard 위젯 + 관리 페이지", "merge_commit": "58033d2"},
+    {"pr": 126, "sprint": "claude/work_260515-k", "title": "fix(backend,frontend,migrations,memory): codex review hotfix #3 — PR #122/#124/#125", "merge_commit": "bb164c4"}
+  ],
+  "dreq_domain_carve_out_for_next_session": [
+    "DREQ-RBAC-ADR (pmo_manager 위양 정책 ADR — ADR-0011 §4.2 패턴, 독립)",
+    "DREQ-Promote-Tx (신규 application/project 생성 + dev_request 상태 갱신 단일 트랜잭션 — REQ-FR-DREQ-005 정합 완성)",
+    "DREQ-Admin-UI (intake token 발급/revoke endpoint + admin page — accounts_admin 의 plain 1회 노출 패턴)",
+    "DREQ-E2E (Playwright + Vitest + TC-DREQ-* 발급 — 다른 3건 완료 후)"
   ],
   "next_actions": {
     "m1_remaining": [],

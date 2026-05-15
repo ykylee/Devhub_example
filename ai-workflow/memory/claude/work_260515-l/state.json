@@ -1,0 +1,37 @@
+{
+  "schema_version": "1",
+  "branch": "claude/work_260515-l",
+  "base": "main @ bb164c4 (PR #126 머지 직후)",
+  "updated_at": "2026-05-15T07:30:00Z",
+  "status": "in_progress (EOD housekeeping)",
+  "purpose": "2026-05-15 세션 종료 EOD housekeeping. 본 세션 누적 6 추가 PR (#121~#126) 흡수 + 다음 세션 진입점 (DREQ carve out 4건 묶음) 명시 + sprint state finalize.",
+  "absorbed_session_prs_since_e_housekeeping": [
+    {"pr": 121, "sprint": "claude/work_260515-f", "merge_commit": "52f6ad8", "title": "Dev Request (DREQ) 도메인 컨셉~설계 staged"},
+    {"pr": 122, "sprint": "claude/work_260515-g", "merge_commit": "4d0277f", "title": "ADR-0012 — DREQ 외부 수신 인증 정책 (옵션 A 채택)"},
+    {"pr": 123, "sprint": "claude/work_260515-h", "merge_commit": "1d24acf", "title": "codex review hotfix #2 — PR #119/#120/#121"},
+    {"pr": 124, "sprint": "claude/work_260515-i", "merge_commit": "333edc9", "title": "DREQ-Backend 1차 — API-59..65 activated"},
+    {"pr": 125, "sprint": "claude/work_260515-j", "merge_commit": "58033d2", "title": "DREQ-Frontend 1차"},
+    {"pr": 126, "sprint": "claude/work_260515-k", "merge_commit": "bb164c4", "title": "codex review hotfix #3 — PR #122/#124/#125"}
+  ],
+  "session_inventory_total": {
+    "merged_prs": 15,
+    "sprints_completed": 12,
+    "self_review_cycles": 9,
+    "codex_review_cycles": 3,
+    "ci_e2e_failures_recovered": 3
+  },
+  "dreq_domain_status": {
+    "concept": "✅ sprint f (PR #121)",
+    "auth_adr": "✅ sprint g (PR #122, ADR-0012 옵션 A)",
+    "backend_1차": "✅ sprint i (PR #124, API-59..65 activated)",
+    "frontend_1차": "✅ sprint j (PR #125, dashboard widget + admin page)",
+    "codex_hotfixes": "✅ sprint h (#123), k (#126)",
+    "remaining_carve_out": [
+      "DREQ-Promote-Tx — 신규 application/project 생성 + 단일 트랜잭션 (REQ-FR-DREQ-005)",
+      "DREQ-Admin-UI — intake token 발급/revoke admin endpoint + UI",
+      "DREQ-RBAC-ADR — pmo_manager 위양 정책 세부 (ADR-0011 §4.2 패턴)",
+      "DREQ-E2E — Playwright + Vitest (TC-DREQ-* 발급)"
+    ]
+  },
+  "next_session_directive": "사용자 지시 — carve out 4건을 묶어서 한 sprint plan 으로 진입. 4건 의존 그래프: AuthADR/RBAC-ADR → Backend feature (Promote-Tx + intake admin endpoint) → Frontend feature (Admin-UI) → E2E. DREQ-RBAC-ADR 는 다른 3건과 독립. Promote-Tx 는 backend store/handler. Admin-UI 는 backend admin endpoint + frontend UI. E2E 는 모든 기능 완성 후."
+}
