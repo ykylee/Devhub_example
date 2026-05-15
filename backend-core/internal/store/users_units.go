@@ -12,10 +12,6 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-// ErrConflict signals a uniqueness or referential conflict at the store layer
-// (e.g. duplicate user_id, foreign-key violation when a parent unit is missing).
-var ErrConflict = errors.New("conflict")
-
 func isUniqueViolation(err error) bool {
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) {

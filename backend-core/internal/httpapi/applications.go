@@ -39,34 +39,36 @@ func (h *Handler) applicationStoreOrUnavailable(c *gin.Context) (ApplicationStor
 // applicationResponse converts a domain.Application to the wire shape used by §13.2.
 func applicationResponse(app domain.Application) gin.H {
 	return gin.H{
-		"id":            app.ID,
-		"key":           app.Key,
-		"name":          app.Name,
-		"description":   app.Description,
-		"status":        string(app.Status),
-		"visibility":    string(app.Visibility),
-		"owner_user_id": app.OwnerUserID,
-		"start_date":    formatDatePtr(app.StartDate),
-		"due_date":      formatDatePtr(app.DueDate),
-		"archived_at":   formatTimePtr(app.ArchivedAt),
-		"created_at":    app.CreatedAt.UTC().Format(time.RFC3339),
-		"updated_at":    app.UpdatedAt.UTC().Format(time.RFC3339),
+		"id":                  app.ID,
+		"key":                 app.Key,
+		"name":                app.Name,
+		"description":         app.Description,
+		"status":              string(app.Status),
+		"visibility":          string(app.Visibility),
+		"owner_user_id":       app.OwnerUserID,
+		"leader_user_id":      app.LeaderUserID,
+		"development_unit_id": app.DevelopmentUnitID,
+		"start_date":          formatDatePtr(app.StartDate),
+		"due_date":            formatDatePtr(app.DueDate),
+		"archived_at":         formatTimePtr(app.ArchivedAt),
+		"created_at":          app.CreatedAt.UTC().Format(time.RFC3339),
+		"updated_at":          app.UpdatedAt.UTC().Format(time.RFC3339),
 	}
 }
 
 func applicationRepositoryResponse(link domain.ApplicationRepository) gin.H {
 	return gin.H{
-		"application_id":         link.ApplicationID,
-		"repo_provider":          link.RepoProvider,
-		"repo_full_name":         link.RepoFullName,
-		"external_repo_id":       link.ExternalRepoID,
-		"role":                   string(link.Role),
-		"sync_status":            string(link.SyncStatus),
-		"sync_error_code":        string(link.SyncErrorCode),
-		"sync_error_retryable":   link.SyncErrorRetryable,
-		"sync_error_at":          formatTimePtr(link.SyncErrorAt),
-		"last_sync_at":           formatTimePtr(link.LastSyncAt),
-		"linked_at":              link.LinkedAt.UTC().Format(time.RFC3339),
+		"application_id":       link.ApplicationID,
+		"repo_provider":        link.RepoProvider,
+		"repo_full_name":       link.RepoFullName,
+		"external_repo_id":     link.ExternalRepoID,
+		"role":                 string(link.Role),
+		"sync_status":          string(link.SyncStatus),
+		"sync_error_code":      string(link.SyncErrorCode),
+		"sync_error_retryable": link.SyncErrorRetryable,
+		"sync_error_at":        formatTimePtr(link.SyncErrorAt),
+		"last_sync_at":         formatTimePtr(link.LastSyncAt),
+		"linked_at":            link.LinkedAt.UTC().Format(time.RFC3339),
 	}
 }
 
@@ -270,14 +272,16 @@ func (h *Handler) listApplications(c *gin.Context) {
 }
 
 type createApplicationRequest struct {
-	Key         string `json:"key"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	OwnerUserID string `json:"owner_user_id"`
-	StartDate   string `json:"start_date"`
-	DueDate     string `json:"due_date"`
-	Visibility  string `json:"visibility"`
-	Status      string `json:"status"`
+	Key               string `json:"key"`
+	Name              string `json:"name"`
+	Description       string `json:"description"`
+	OwnerUserID       string `json:"owner_user_id"`
+	LeaderUserID      string `json:"leader_user_id"`
+	DevelopmentUnitID string `json:"development_unit_id"`
+	StartDate         string `json:"start_date"`
+	DueDate           string `json:"due_date"`
+	Visibility        string `json:"visibility"`
+	Status            string `json:"status"`
 }
 
 func (h *Handler) createApplication(c *gin.Context) {
@@ -306,6 +310,14 @@ func (h *Handler) createApplication(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "owner_user_id is required"})
 		return
 	}
+	if strings.TrimSpace(req.LeaderUserID) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "leader_user_id is required"})
+		return
+	}
+	if strings.TrimSpace(req.DevelopmentUnitID) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "development_unit_id is required"})
+		return
+	}
 	if !validApplicationVisibilities[req.Visibility] {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "visibility must be one of public/internal/restricted"})
 		return
@@ -325,14 +337,16 @@ func (h *Handler) createApplication(c *gin.Context) {
 		return
 	}
 	app := domain.Application{
-		Key:         req.Key,
-		Name:        req.Name,
-		Description: req.Description,
-		Status:      domain.ApplicationStatus(req.Status),
-		Visibility:  domain.ApplicationVisibility(req.Visibility),
-		OwnerUserID: req.OwnerUserID,
-		StartDate:   startDate,
-		DueDate:     dueDate,
+		Key:               req.Key,
+		Name:              req.Name,
+		Description:       req.Description,
+		Status:            domain.ApplicationStatus(req.Status),
+		Visibility:        domain.ApplicationVisibility(req.Visibility),
+		OwnerUserID:       req.OwnerUserID,
+		LeaderUserID:      req.LeaderUserID,
+		DevelopmentUnitID: req.DevelopmentUnitID,
+		StartDate:         startDate,
+		DueDate:           dueDate,
 	}
 	created, err := storeI.CreateApplication(c.Request.Context(), app)
 	if errors.Is(err, store.ErrConflict) {
@@ -390,17 +404,19 @@ func (h *Handler) getApplication(c *gin.Context) {
 }
 
 type updateApplicationRequest struct {
-	Key            *string `json:"key"` // 거부용
-	Name           *string `json:"name"`
-	Description    *string `json:"description"`
-	OwnerUserID    *string `json:"owner_user_id"`
-	StartDate      *string `json:"start_date"`
-	DueDate        *string `json:"due_date"`
-	Visibility     *string `json:"visibility"`
-	Status         *string `json:"status"`
-	HoldReason     string  `json:"hold_reason"`
-	ResumeReason   string  `json:"resume_reason"`
-	ArchivedReason string  `json:"archived_reason"`
+	Key               *string `json:"key"` // 거부용
+	Name              *string `json:"name"`
+	Description       *string `json:"description"`
+	OwnerUserID       *string `json:"owner_user_id"`
+	LeaderUserID      *string `json:"leader_user_id"`
+	DevelopmentUnitID *string `json:"development_unit_id"`
+	StartDate         *string `json:"start_date"`
+	DueDate           *string `json:"due_date"`
+	Visibility        *string `json:"visibility"`
+	Status            *string `json:"status"`
+	HoldReason        string  `json:"hold_reason"`
+	ResumeReason      string  `json:"resume_reason"`
+	ArchivedReason    string  `json:"archived_reason"`
 }
 
 func (h *Handler) updateApplication(c *gin.Context) {
@@ -445,6 +461,20 @@ func (h *Handler) updateApplication(c *gin.Context) {
 	}
 	if req.OwnerUserID != nil {
 		updated.OwnerUserID = *req.OwnerUserID
+	}
+	if req.LeaderUserID != nil {
+		if strings.TrimSpace(*req.LeaderUserID) == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "leader_user_id cannot be empty"})
+			return
+		}
+		updated.LeaderUserID = *req.LeaderUserID
+	}
+	if req.DevelopmentUnitID != nil {
+		if strings.TrimSpace(*req.DevelopmentUnitID) == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "development_unit_id cannot be empty"})
+			return
+		}
+		updated.DevelopmentUnitID = *req.DevelopmentUnitID
 	}
 	if req.Visibility != nil {
 		if !validApplicationVisibilities[*req.Visibility] {
@@ -543,9 +573,9 @@ func (h *Handler) updateApplication(c *gin.Context) {
 				}
 				if count > 0 {
 					c.JSON(http.StatusUnprocessableEntity, gin.H{
-						"status": "rejected",
-						"error":  "active→closed requires critical warning count = 0",
-						"code":   "application_close_precondition_failed",
+						"status":                 "rejected",
+						"error":                  "active→closed requires critical warning count = 0",
+						"code":                   "application_close_precondition_failed",
 						"critical_warning_count": count,
 					})
 					return

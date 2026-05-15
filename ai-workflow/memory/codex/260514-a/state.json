@@ -1,0 +1,27 @@
+{
+  "status": "in_progress",
+  "branch": "codex/260514-a",
+  "updated_at": "2026-05-14",
+  "current_focus": "Application 등록 모델(leader/department) 확장 완료, PR 리뷰 대응 준비",
+  "completed": [
+    "gemini/260514-a 머지 및 충돌 해소",
+    "auth login canonical challenge/skip 경로 보완",
+    "Application 모델에 leader_user_id/development_unit_id 추가",
+    "applications 검색 q 확장 (leader/department/repository/project)",
+    "DB migration 000020 적용 완료 (version=20)",
+    "admin-applications e2e 보강 및 flaky(networkidle) 제거",
+    "독립 포트(3100/18080) 기준 e2e 재검증 통과",
+    "브랜치 푸시 + PR 생성 (#114)"
+  ],
+  "next_actions": [
+    "PR #114 리뷰 코멘트 반영",
+    "필요 시 traceability 문서(row/체크리스트) 업데이트",
+    "main 병합 전 최종 회귀 테스트"
+  ],
+  "env_notes": {
+    "hoplab_db_dsn": "postgres://devhub:devhub@192.168.0.38:5432/devhub?sslmode=disable",
+    "verified_at": "2026-05-14",
+    "migration_version": "20",
+    "pr_url": "https://github.com/ykylee/Devhub_example/pull/114"
+  }
+}

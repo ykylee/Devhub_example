@@ -82,8 +82,8 @@ func (h Handler) authLogin(c *gin.Context) {
 		writeServerError(c, err, "auth.login.get_request")
 		return
 	}
-	if hydraReq.Skip {
-		redirectTo, err := h.cfg.HydraAdmin.AcceptLoginRequest(ctx, req.LoginChallenge, hydraReq.Subject, req.Remember, defaultRememberForSeconds)
+	if hydraReq.Skip && req.Identifier == "" && req.Password == "" {
+		redirectTo, err := h.cfg.HydraAdmin.AcceptLoginRequest(ctx, hydraReq.Challenge, hydraReq.Subject, req.Remember, defaultRememberForSeconds)
 		if err != nil {
 			writeServerError(c, err, "auth.login.accept_skip")
 			return
@@ -146,7 +146,7 @@ func (h Handler) authLogin(c *gin.Context) {
 	h.cfg.KratosSessionCache.Put(subject, identity.SessionToken)
 
 	logRequest(c, "[authLogin] Accepting login request for subject %s", subject)
-	redirectTo, err := h.cfg.HydraAdmin.AcceptLoginRequest(ctx, req.LoginChallenge, subject, req.Remember, defaultRememberForSeconds)
+	redirectTo, err := h.cfg.HydraAdmin.AcceptLoginRequest(ctx, hydraReq.Challenge, subject, req.Remember, defaultRememberForSeconds)
 	if err != nil {
 		writeServerError(c, err, "auth.login.accept")
 		return

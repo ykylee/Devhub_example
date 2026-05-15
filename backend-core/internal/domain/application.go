@@ -56,14 +56,14 @@ const (
 type SyncErrorCode string
 
 const (
-	SyncErrorProviderUnreachable    SyncErrorCode = "provider_unreachable"     // retryable=true
-	SyncErrorAuthInvalid            SyncErrorCode = "auth_invalid"             // retryable=false
-	SyncErrorPermissionDenied       SyncErrorCode = "permission_denied"        // retryable=false
-	SyncErrorRateLimited            SyncErrorCode = "rate_limited"             // retryable=true
+	SyncErrorProviderUnreachable     SyncErrorCode = "provider_unreachable"      // retryable=true
+	SyncErrorAuthInvalid             SyncErrorCode = "auth_invalid"              // retryable=false
+	SyncErrorPermissionDenied        SyncErrorCode = "permission_denied"         // retryable=false
+	SyncErrorRateLimited             SyncErrorCode = "rate_limited"              // retryable=true
 	SyncErrorWebhookSignatureInvalid SyncErrorCode = "webhook_signature_invalid" // retryable=false
-	SyncErrorPayloadSchemaMismatch  SyncErrorCode = "payload_schema_mismatch"  // retryable=false
-	SyncErrorResourceNotFound       SyncErrorCode = "resource_not_found"       // retryable=false
-	SyncErrorInternalAdapterError   SyncErrorCode = "internal_adapter_error"   // retryable=true
+	SyncErrorPayloadSchemaMismatch   SyncErrorCode = "payload_schema_mismatch"   // retryable=false
+	SyncErrorResourceNotFound        SyncErrorCode = "resource_not_found"        // retryable=false
+	SyncErrorInternalAdapterError    SyncErrorCode = "internal_adapter_error"    // retryable=true
 )
 
 // IsRetryableSyncError reports whether the given code is operationally retryable
@@ -113,18 +113,20 @@ const (
 
 // Application is the top-level governance entity for a product/service lifecycle.
 type Application struct {
-	ID          string // UUID
-	Key         string // 10-char immutable identifier (REQ-FR-APP-003)
-	Name        string
-	Description string
-	Status      ApplicationStatus
-	Visibility  ApplicationVisibility
-	OwnerUserID string // FK users.user_id, may be empty if unset
-	StartDate   *time.Time
-	DueDate     *time.Time
-	ArchivedAt  *time.Time
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID                string // UUID
+	Key               string // 10-char immutable identifier (REQ-FR-APP-003)
+	Name              string
+	Description       string
+	Status            ApplicationStatus
+	Visibility        ApplicationVisibility
+	OwnerUserID       string // legacy ownership field (kept for compatibility)
+	LeaderUserID      string // application leader, FK users.user_id
+	DevelopmentUnitID string // development department unit_id, FK org_units.unit_id
+	StartDate         *time.Time
+	DueDate           *time.Time
+	ArchivedAt        *time.Time
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }
 
 // ApplicationRepository is one link between an Application and an external Repository
@@ -238,13 +240,13 @@ type QualitySnapshot struct {
 // (REQ-FR-APP-005). 1차 구현은 pr_activities + build_runs 의 기간 집계 — commit
 // activity 의 실제 commit 이벤트는 후속 ingest pipeline 도입 시점에 추가.
 type RepositoryActivity struct {
-	RepositoryID     int64
-	WindowFrom       time.Time
-	WindowTo         time.Time
-	PREventCount     int      // pr_activities 의 event 수
+	RepositoryID       int64
+	WindowFrom         time.Time
+	WindowTo           time.Time
+	PREventCount       int      // pr_activities 의 event 수
 	ActiveContributors []string // PR 이벤트의 distinct actor_login
-	BuildRunCount    int
-	BuildSuccessRate float64 // 0.0~1.0
+	BuildRunCount      int
+	BuildSuccessRate   float64 // 0.0~1.0
 }
 
 // --- Application 롤업 (REQ-FR-APP-012 / REQ-NFR-PROJ-006, concept §13.4) ---
@@ -272,12 +274,12 @@ const CustomWeightTolerance = 0.001
 
 // ApplicationRollupMeta는 롤업 응답의 meta 필드 (api §13.6).
 type ApplicationRollupMeta struct {
-	Period         RollupPeriod                 `json:"period"`
-	Filters        map[string]any               `json:"filters"`
-	WeightPolicy   WeightPolicy                 `json:"weight_policy"`
-	AppliedWeights map[string]float64           `json:"applied_weights"` // repo → final weight
-	Fallbacks      []RollupFallback             `json:"fallbacks"`
-	DataGaps       []RollupDataGap              `json:"data_gaps"`
+	Period         RollupPeriod       `json:"period"`
+	Filters        map[string]any     `json:"filters"`
+	WeightPolicy   WeightPolicy       `json:"weight_policy"`
+	AppliedWeights map[string]float64 `json:"applied_weights"` // repo → final weight
+	Fallbacks      []RollupFallback   `json:"fallbacks"`
+	DataGaps       []RollupDataGap    `json:"data_gaps"`
 }
 
 // RollupPeriod is the time window of the rollup.
@@ -288,9 +290,9 @@ type RollupPeriod struct {
 
 // RollupFallback notes when a repo weight is filled in by a fallback policy.
 type RollupFallback struct {
-	RepoFullName string  `json:"repo_full_name"`
-	Provider     string  `json:"provider"`
-	Reason       string  `json:"reason"`        // e.g., "custom_weight_missing"
+	RepoFullName  string  `json:"repo_full_name"`
+	Provider      string  `json:"provider"`
+	Reason        string  `json:"reason"` // e.g., "custom_weight_missing"
 	AppliedWeight float64 `json:"applied_weight"`
 }
 
@@ -304,11 +306,11 @@ type RollupDataGap struct {
 
 // ApplicationRollup is the aggregated rollup payload (api §13.6 응답 data).
 type ApplicationRollup struct {
-	PullRequestDistribution map[string]int            `json:"pull_request_distribution"` // opened/merged/closed/...
-	BuildSuccessRate        float64                   `json:"build_success_rate"`         // weighted average 0.0~1.0
-	BuildAvgDurationSeconds int                       `json:"build_avg_duration_seconds"` // weighted average
-	QualityScore            float64                   `json:"quality_score"`              // weighted average
-	QualityGateFailedCount  int                       `json:"quality_gate_failed_count"`
-	CriticalWarningCount    int                       `json:"critical_warning_count"`     // active→closed 가드 의존
-	Meta                    ApplicationRollupMeta     `json:"-"`                          // 별도 meta 필드로 serialize
+	PullRequestDistribution map[string]int        `json:"pull_request_distribution"`  // opened/merged/closed/...
+	BuildSuccessRate        float64               `json:"build_success_rate"`         // weighted average 0.0~1.0
+	BuildAvgDurationSeconds int                   `json:"build_avg_duration_seconds"` // weighted average
+	QualityScore            float64               `json:"quality_score"`              // weighted average
+	QualityGateFailedCount  int                   `json:"quality_gate_failed_count"`
+	CriticalWarningCount    int                   `json:"critical_warning_count"` // active→closed 가드 의존
+	Meta                    ApplicationRollupMeta `json:"-"`                      // 별도 meta 필드로 serialize
 }
