@@ -81,7 +81,7 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
               <FolderKanban className="w-5 h-5 text-indigo-400" />
             </div>
             <div>
-              <h2 className="text-xl font-black text-primary-foreground uppercase tracking-tight">
+              <h2 className="text-xl font-black text-foreground dark:text-primary-foreground uppercase tracking-tight">
                 {isEdit ? "Edit" : "Create"} <span className="text-indigo-400">Project</span>
               </h2>
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
@@ -97,7 +97,7 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
         <form onSubmit={handleSubmit} className="p-8 space-y-6 max-h-[75vh] overflow-y-auto custom-scrollbar">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-primary-foreground/40 uppercase tracking-widest px-1">Project Key</label>
+              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Project Key</label>
               <input
                 required
                 disabled={isEdit}
@@ -105,32 +105,32 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
                 onChange={e => setFormData({ ...formData, key: e.target.value.toUpperCase() })}
                 placeholder="E.G. API-V1"
                 className={cn(
-                  "w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm font-mono text-primary-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400/50 uppercase",
+                  "w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm font-mono text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400/50 uppercase",
                   isEdit && "opacity-50 cursor-not-allowed"
                 )}
               />
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-primary-foreground/40 uppercase tracking-widest px-1">Display Name</label>
+              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Display Name</label>
               <input
                 required
                 value={formData.name}
                 onChange={e => setFormData({ ...formData, name: e.target.value })}
                 placeholder="e.g. Backend Refactoring"
-                className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-primary-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400/50"
+                className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400/50"
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-primary-foreground/40 uppercase tracking-widest px-1">Target Repository</label>
+            <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Target Repository</label>
             <div className="relative group">
               <GitBranch className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/40" />
               <select
                 disabled={isEdit}
                 value={formData.repository_id}
                 onChange={e => setFormData({ ...formData, repository_id: Number(e.target.value) })}
-                className="w-full bg-muted/30 border border-border rounded-2xl pl-12 pr-4 py-3 text-sm text-primary-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400/50 appearance-none"
+                className="w-full bg-muted/30 border border-border rounded-2xl pl-12 pr-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400/50 appearance-none"
               >
                 <option value={0} disabled>Select a repository...</option>
                 {repositories
@@ -152,33 +152,33 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-primary-foreground/40 uppercase tracking-widest px-1">Description</label>
+            <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Description</label>
             <textarea
               value={formData.description}
               onChange={e => setFormData({ ...formData, description: e.target.value })}
               placeholder="Scope and deliverables..."
               rows={3}
-              className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-primary-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400/50 resize-none"
+              className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400/50 resize-none"
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-primary-foreground/40 uppercase tracking-widest px-1">Owner</label>
+              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Owner</label>
               <input
                 required
                 value={formData.owner_user_id}
                 onChange={e => setFormData({ ...formData, owner_user_id: e.target.value })}
                 placeholder="User ID..."
-                className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-primary-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400/50"
+                className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400/50"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-primary-foreground/40 uppercase tracking-widest px-1">Status</label>
+              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Status</label>
               <select
                 value={formData.status}
                 onChange={e => setFormData({ ...formData, status: e.target.value as ProjectStatus })}
-                className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-primary-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400/50 appearance-none"
+                className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400/50 appearance-none"
               >
                 <option value="planning" className="bg-slate-900">Planning</option>
                 <option value="active" className="bg-slate-900">Active</option>
@@ -189,7 +189,7 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-primary-foreground/40 uppercase tracking-widest px-1">Visibility</label>
+              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Visibility</label>
               <div className="grid grid-cols-3 gap-2">
                 {(['public', 'internal', 'restricted'] as ApplicationVisibility[]).map((v) => (
                   <button
@@ -209,20 +209,20 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
               </div>
             </div>
             <div className="space-y-2">
-               <label className="text-[10px] font-black text-primary-foreground/40 uppercase tracking-widest px-1">Period (Optional)</label>
+               <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Period (Optional)</label>
                <div className="flex items-center gap-2">
                   <input
                     type="date"
                     value={formData.start_date}
                     onChange={e => setFormData({ ...formData, start_date: e.target.value })}
-                    className="w-full bg-muted/20 border border-border/40 rounded-xl px-3 py-2 text-xs text-primary-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400/50"
+                    className="w-full bg-muted/20 border border-border/40 rounded-xl px-3 py-2 text-xs text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400/50"
                   />
                   <span className="text-muted-foreground/40">→</span>
                   <input
                     type="date"
                     value={formData.due_date}
                     onChange={e => setFormData({ ...formData, due_date: e.target.value })}
-                    className="w-full bg-muted/20 border border-border/40 rounded-xl px-3 py-2 text-xs text-primary-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400/50"
+                    className="w-full bg-muted/20 border border-border/40 rounded-xl px-3 py-2 text-xs text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400/50"
                   />
                </div>
             </div>
@@ -238,7 +238,7 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 glass border-border text-primary-foreground font-bold py-4 rounded-2xl hover:bg-muted/30 transition-all uppercase tracking-widest text-[10px]"
+              className="flex-1 glass border-border text-foreground dark:text-primary-foreground font-bold py-4 rounded-2xl hover:bg-muted/30 transition-all uppercase tracking-widest text-[10px]"
             >
               Cancel
             </button>
