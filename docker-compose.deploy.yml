@@ -17,6 +17,7 @@ services:
 
   hydra-migrate:
     image: oryd/hydra:v2.2.0
+    restart: on-failure
     command: migrate sql --yes '${HYDRA_DSN:-postgres://user:pass@db:5432/devhub?sslmode=disable&search_path=hydra}'
     environment:
       FRONTEND_PUBLIC_BASE_URL: ${FRONTEND_PUBLIC_BASE_URL:?set FRONTEND_PUBLIC_BASE_URL}
@@ -47,6 +48,7 @@ services:
 
   kratos-migrate:
     image: oryd/kratos:v1.1.0
+    restart: on-failure
     command: migrate sql --yes '${KRATOS_DSN:-postgres://user:pass@db:5432/devhub?sslmode=disable&search_path=kratos}'
     environment:
       FRONTEND_PUBLIC_BASE_URL: ${FRONTEND_PUBLIC_BASE_URL:?set FRONTEND_PUBLIC_BASE_URL}

@@ -22,7 +22,7 @@
     "runtime_checks": "docker compose -f docker-compose.deploy.yml --profile local-db up -d"
   },
   "session": {
-    "current_baseline": "docker deploy 패키지(local-db profile)에서 auth E2E 6/6 통과, 전체 E2E 43건 중 41/43 통과 후 permissions spec 2건 수정 및 재통과.",
+    "current_baseline": "docker deploy 패키지(local-db profile)에서 auth E2E 6/6 통과, permissions spec 2건 수정 후 전체 E2E 43/43 통과.",
     "current_axis": "public/internal/db 환경변수 스키마 정착 + 외부 DB 대응 + E2E 안정화",
     "current_focus": "docker-compose.deploy.yml 프로파일 분리(local-db)와 DSN 치환 안정화, 실패 E2E 2건 수정",
     "in_progress_items": [],

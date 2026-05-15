@@ -14,7 +14,8 @@
 - docker deploy 패키지에 `local-db` profile을 추가해 번들 DB/외부 DB 모드를 분리했다.
 - IdP deploy 설정의 DB DSN/hook target URL을 환경변수로 치환 가능하게 변경했다.
 - sed 치환에서 DSN `&` 문자로 깨지던 문제를 escape 처리로 수정했다.
-- 전체 E2E 실행 결과 `41/43`였고, 실패 2건(`admin-permissions.spec.ts`)은 selector/플레이키 이슈로 수정 후 해당 spec 재실행 `2/2` 통과를 확인했다.
+- migrate 컨테이너(`hydra-migrate`, `kratos-migrate`)에 `restart: on-failure`를 적용해 로컬 DB 초기화 타이밍에서의 간헐 실패를 완화했다.
+- 전체 E2E를 재실행해 `43/43` 통과를 확인했다.
 
 ## Work Status
 
@@ -27,7 +28,7 @@
 
 ## Next Actions
 
-- [ ] 전체 E2E 43건 재실행으로 최종 `43/43` 확인 (permissions fix 반영 상태)
+- [x] 전체 E2E 43건 재실행으로 최종 `43/43` 확인 (permissions fix 반영 상태)
 - [ ] 외부 DB 모드(프로파일 없이)에서 auth spec/전체 spec 검증
 - [ ] 배포 환경 `.env` 템플릿에 public/internal/db 변수 스키마 반영
 
