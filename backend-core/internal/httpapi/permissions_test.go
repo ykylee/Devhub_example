@@ -208,3 +208,137 @@ func TestEnforceRoutePermission_BypassesMeAndWebhook(t *testing.T) {
 		t.Errorf("/api/v1/me should bypass RBAC gate (got 403 body=%s)", rec.Body.String())
 	}
 }
+
+// --- ADR-0011 §4.2 enforceRowOwnership ---
+//
+// helper 의 세 allow 규칙(system_admin / allowedRoles / owner-self) 과 deny
+// 시의 audit + 403 envelope 을 검증한다. handler 단독 unit 호출이므로
+// gin.CreateTestContext 로 컨텍스트만 만들고 c.Set 으로 actor 를 주입한다.
+
+func newOwnershipTestContext(t *testing.T, login, role string) (*gin.Context, *memoryAuditStore, *httptest.ResponseRecorder, Handler) {
+	t.Helper()
+	gin.SetMode(gin.TestMode)
+	audits := &memoryAuditStore{}
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	c.Request = httptest.NewRequest(http.MethodPatch, "/api/v1/applications/app-1", nil)
+	c.Set("devhub_actor_login", login)
+	c.Set("devhub_actor_role", role)
+	handler := Handler{cfg: RouterConfig{AuditStore: audits}}
+	return c, audits, rec, handler
+}
+
+func TestEnforceRowOwnership_SystemAdminAllowed(t *testing.T) {
+	c, audits, rec, h := newOwnershipTestContext(t, "charlie", "system_admin")
+
+	if got := h.enforceRowOwnership(c, "alice", "pmo_manager"); !got {
+		t.Fatal("system_admin should always be allowed")
+	}
+	if rec.Code != 0 && rec.Code != http.StatusOK {
+		t.Errorf("expected no abort, got status=%d", rec.Code)
+	}
+	if c.IsAborted() {
+		t.Error("expected context not aborted on allow")
+	}
+	if len(audits.logs) != 0 {
+		t.Errorf("expected no audit on allow, got %+v", audits.logs)
+	}
+}
+
+func TestEnforceRowOwnership_AllowedRoleWhitelist(t *testing.T) {
+	c, audits, _, h := newOwnershipTestContext(t, "bob", "pmo_manager")
+
+	if got := h.enforceRowOwnership(c, "alice", "pmo_manager"); !got {
+		t.Fatal("pmo_manager in allowedRoles should be allowed")
+	}
+	if c.IsAborted() {
+		t.Error("expected context not aborted on allow")
+	}
+	if len(audits.logs) != 0 {
+		t.Errorf("expected no audit on allow, got %+v", audits.logs)
+	}
+}
+
+func TestEnforceRowOwnership_OwnerSelfAllowed(t *testing.T) {
+	c, _, _, h := newOwnershipTestContext(t, "alice", "developer")
+
+	if got := h.enforceRowOwnership(c, "alice"); !got {
+		t.Fatal("owner-self should be allowed even without allowedRoles")
+	}
+	if c.IsAborted() {
+		t.Error("expected context not aborted on owner-self allow")
+	}
+}
+
+func TestEnforceRowOwnership_DeniedEmitsAuditAndForbidden(t *testing.T) {
+	c, audits, rec, h := newOwnershipTestContext(t, "bob", "developer")
+
+	if got := h.enforceRowOwnership(c, "alice", "pmo_manager"); got {
+		t.Fatal("non-owner non-allowed role should be denied")
+	}
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("expected 403, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	if !c.IsAborted() {
+		t.Error("expected context aborted on deny")
+	}
+	var resp struct {
+		Status string `json:"status"`
+		Error  string `json:"error"`
+		Code   string `json:"code"`
+	}
+	decodeJSON(t, rec.Body.Bytes(), &resp)
+	if resp.Code != "auth_row_denied" {
+		t.Errorf("envelope code = %q, want auth_row_denied", resp.Code)
+	}
+	if resp.Status != "forbidden" {
+		t.Errorf("envelope status = %q, want forbidden", resp.Status)
+	}
+	if len(audits.logs) != 1 {
+		t.Fatalf("expected exactly one audit entry, got %d: %+v", len(audits.logs), audits.logs)
+	}
+	got := audits.logs[0]
+	if got.Action != "auth.row_denied" {
+		t.Errorf("action = %q, want auth.row_denied", got.Action)
+	}
+	// payload 키 검증.
+	payload := got.Payload
+	if payload["denied_reason"] != "owner_mismatch" {
+		t.Errorf("payload.denied_reason = %v, want owner_mismatch", payload["denied_reason"])
+	}
+	if payload["actor_role"] != "developer" {
+		t.Errorf("payload.actor_role = %v, want developer", payload["actor_role"])
+	}
+	if payload["owner_user_id"] != "alice" {
+		t.Errorf("payload.owner_user_id = %v, want alice", payload["owner_user_id"])
+	}
+}
+
+func TestEnforceRowOwnership_EmptyOwnerDisablesSelfRule(t *testing.T) {
+	// ownerUserID 가 "" 일 때 actor 가 "" 라고 해서 owner-self 가 통과되면 안 됨.
+	c, _, rec, h := newOwnershipTestContext(t, "", "developer")
+
+	if got := h.enforceRowOwnership(c, ""); got {
+		t.Fatal("empty ownerUserID should not match empty actor login (rule disabled)")
+	}
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("expected 403, got %d", rec.Code)
+	}
+}
+
+func TestEnforceRowOwnership_NoActorContextDenied(t *testing.T) {
+	// actor 키가 컨텍스트에 없으면 (auth middleware 누락) deny 가 안전한 기본 동작.
+	gin.SetMode(gin.TestMode)
+	audits := &memoryAuditStore{}
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	c.Request = httptest.NewRequest(http.MethodPatch, "/api/v1/applications/app-1", nil)
+	h := Handler{cfg: RouterConfig{AuditStore: audits}}
+
+	if got := h.enforceRowOwnership(c, "alice", "pmo_manager"); got {
+		t.Fatal("missing actor context should deny")
+	}
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("expected 403, got %d", rec.Code)
+	}
+}

@@ -1,0 +1,45 @@
+{
+  "schema_version": "1",
+  "branch": "claude/work_260515-c",
+  "base": "main @ 68f031e (PR #117 머지 직후)",
+  "updated_at": "2026-05-15T02:50:00Z",
+  "status": "in_progress",
+  "purpose": "ADR-0011 §4.2 enforceRowOwnership helper 도입 — Application/Project Owner 위양 (2차 단계) 의 audit-grade entry point. REQ-FR-PROJ-009 활성화.",
+  "scope": {
+    "deliverables": [
+      "backend-core/internal/httpapi/permissions.go — enforceRowOwnership(c, ownerUserID, allowedRoles...) bool",
+      "backend-core/internal/httpapi/permissions_test.go — allow (system_admin / allowedRoles / owner-self) + deny (audit + 403) 케이스",
+      "docs/adr/0011-rbac-row-scoping.md §7 변경 이력 row 1줄 + §5 결과 갱신",
+      "docs/requirements.md §5.4.1 REQ-FR-PROJ-009 활성화 marker 갱신",
+      "docs/traceability/report.md — IMPL-application-* row 의 enforceRowOwnership 매핑 한 줄 (가능 시)"
+    ],
+    "decisions": {
+      "signature": "func (h Handler) enforceRowOwnership(c *gin.Context, ownerUserID string, allowedRoles ...string) bool",
+      "allow_rules": [
+        "(1) actor.role == AppRoleSystemAdmin (always)",
+        "(2) actor.role ∈ allowedRoles (whitelist — 예: pmo_manager)",
+        "(3) actor.login == ownerUserID (owner-self)"
+      ],
+      "deny_behavior": "audit auth.row_denied + 403 + AbortWithStatusJSON",
+      "audit_payload": "{actor_role, owner_user_id, resource (route-policy 매핑에서 추출), action, denied_reason: 'owner_mismatch'}"
+    },
+    "not_in_scope": [
+      "pmo_manager role 의 RBAC matrix seed (별도 sprint — 활성화 시점에 결정)",
+      "Application/Project handler 의 실제 helper 호출 (REQ-FR-PROJ-009 활성화는 별도 sprint — 본 PR 은 helper + test + 활성화 가능 상태 만듦)",
+      "row_predicate (3차 단계, ADR-0011 §4.3)"
+    ]
+  },
+  "implementation_notes": {
+    "actor_extraction": "c.Get('devhub_actor_login') for user_id, c.Get('devhub_actor_role') for role. devhub_actor_subject 는 Hydra subject (= login 같을 수도 있지만 일반적이지 않음). Application.OwnerUserID 가 users.user_id (=login) 와 매핑되므로 login 사용.",
+    "audit_pattern": "recordAuditBestEffort(c, action, target_type, target_id, payload) — accounts_admin.go reference. target_type=resource, target_id=c.FullPath()는 fallback (실제 row id 는 caller 가 알지만 helper 시그니처 단순화 위해 path).",
+    "domain_const": "domain.AppRoleSystemAdmin = 'system_admin' 사용. pmo_manager 는 string literal."
+  },
+  "next_session_candidates_after_merge": [
+    "Application/Project handler 에 enforceRowOwnership 호출 도입 (pmo_manager 활성화 시점)",
+    "critical_warning_count 임계치 외부화 + Count*CriticalWarnings 성능 분리",
+    "Repository commit activity ingest",
+    "Project active→closed 가드 정책",
+    "M4 RM-M4-XX 본격 진입",
+    "traceability follow-up (TC-NAV-* row + endpoints ARCH 한 줄)"
+  ]
+}

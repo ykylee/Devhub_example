@@ -250,6 +250,67 @@ func lookupRoutePolicy(method, path string) (routePolicy, bool) {
 	return policy, ok
 }
 
+// enforceRowOwnership는 ADR-0011 §4.2 의 row-level 위양 진입점. caller 가
+// ownerUserID 의 row 에 대해 쓰기 권한을 가지는지를 다음 규칙으로 결정한다:
+//
+//  1. actor.role == "system_admin"  (전역 일임 — 항상 통과)
+//  2. actor.role ∈ allowedRoles      (예: "pmo_manager" — 화이트리스트)
+//  3. actor.login == ownerUserID    (owner-self)
+//
+// 한 가지라도 만족하면 true 반환. 만족 못 하면 audit `auth.row_denied` 를
+// emit 하고 403 으로 abort 한 뒤 false 반환. caller 는 단순히
+// `if !h.enforceRowOwnership(c, app.OwnerUserID, "pmo_manager") { return }`
+// 패턴으로 사용한다.
+//
+// audit payload (ADR-0011 §6):
+//
+//	{
+//	  "actor_role":    <actor role>,
+//	  "owner_user_id": <ownerUserID>,
+//	  "resource":      <route policy resource>,
+//	  "action":        <route policy action>,
+//	  "denied_reason": "owner_mismatch"
+//	}
+//
+// resource/action 은 enforceRoutePermission 이 이미 통과시킨 route 의 매핑에서
+// 추출 — 미매핑 route 라면 ""로 채운다 (audit consumer 가 N/A 로 해석).
+//
+// ownerUserID 가 "" 이면 owner-self 규칙은 비활성화 (system_admin / allowedRoles
+// 만 통과). 잘못된 데이터(미설정 owner) 가 우연히 익명에게 허용되는 일을 방지.
+func (h Handler) enforceRowOwnership(c *gin.Context, ownerUserID string, allowedRoles ...string) bool {
+	loginVal, _ := c.Get("devhub_actor_login")
+	roleVal, _ := c.Get("devhub_actor_role")
+	actorLogin, _ := loginVal.(string)
+	actorRole, _ := roleVal.(string)
+
+	if actorRole == string(domain.AppRoleSystemAdmin) {
+		return true
+	}
+	for _, allowed := range allowedRoles {
+		if actorRole == allowed {
+			return true
+		}
+	}
+	if ownerUserID != "" && actorLogin == ownerUserID {
+		return true
+	}
+
+	policy, _ := lookupRoutePolicy(c.Request.Method, c.FullPath())
+	h.recordAuditBestEffort(c, "auth.row_denied", string(policy.Resource), c.FullPath(), map[string]any{
+		"actor_role":    actorRole,
+		"owner_user_id": ownerUserID,
+		"resource":      string(policy.Resource),
+		"action":        string(policy.Action),
+		"denied_reason": "owner_mismatch",
+	})
+	c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+		"status": "forbidden",
+		"error":  "owner_mismatch — row write requires owner or elevated role",
+		"code":   "auth_row_denied",
+	})
+	return false
+}
+
 // enforceRoutePermission is the v1 group middleware that resolves the request
 // route against routePermissionTable, looks up the actor's role in the
 // PermissionCache, and applies section 12.9 deny-by-default for unmapped

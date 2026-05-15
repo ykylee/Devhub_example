@@ -278,7 +278,7 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
 - **REQ-FR-PROJ-007 (MVP, 확정):** 스프린트는 Repository 단위로 운영되어야 하며, Application 레벨은 주간/월간 cadence로 상태를 롤업해야 한다.
     - 권장 cadence: 주간 Program Sync, 월간 KPI/리스크 리뷰.
 - **REQ-FR-PROJ-008 (후속):** Project 영구 삭제는 `archive 후 N일 보존 + 관리자 재확인` 정책을 따라야 한다.
-- **REQ-FR-PROJ-009 (후속):** Owner 위양(RBAC row-level)은 ADR-0011 후보 결정 후 활성화한다.
+- **REQ-FR-PROJ-009 (활성화, 2026-05-15 sprint `claude/work_260515-c`):** Owner 위양(RBAC row-level)은 ADR-0011 §4.2 의 `enforceRowOwnership(c, ownerUserID, allowedRoles...)` helper 로 활성화한다. allow 규칙: (1) `system_admin`, (2) `allowedRoles` 화이트리스트, (3) `actor.login == ownerUserID`. deny 시 `auth.row_denied` audit + 403 + `code=auth_row_denied`. handler 단위 호출은 별도 sprint (pmo_manager seed 결정 후).
 - **REQ-FR-PROJ-010 (후속):** `pmo_manager` 역할 활성화 시 권한 범위는 정책 확정 후 단계적으로 허용한다.
     - 기본 후보 범위: `project.manage`, `project.member.manage`, `milestone.mapping.manage`.
     - 제한 후보 범위: `application.manage`(수정만), `application.repo.link`(초기 비허용 권장).
