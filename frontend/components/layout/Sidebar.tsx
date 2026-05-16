@@ -16,8 +16,11 @@ interface MenuItem {
 }
 
 const baseMenu: MenuItem[] = [
-  { href: "/developer", icon: LayoutDashboard, label: "Developer", color: "text-blue-400" },
-  { href: "/manager", icon: Users, label: "Manager", color: "text-emerald-400" },
+  { href: "/developer", icon: LayoutDashboard, label: "Work Status", color: "text-blue-400" },
+  { href: "/manager", icon: Users, label: "Quality Status", color: "text-emerald-400" },
+  { href: "/applications", icon: Zap, label: "Applications", color: "text-purple-400" },
+  { href: "/repositories", icon: Server, label: "Repositories", color: "text-cyan-400" },
+  { href: "/projects", icon: Settings, label: "Projects", color: "text-pink-400" },
 ];
 
 const systemMenu: MenuItem[] = [

@@ -19,15 +19,16 @@ export const getMockMetrics = (role: UserRole): Metric[] => {
     case "Developer":
       return [
         { label: "Active Tasks", value: "3", trend: "On Track", color: "text-blue-500" },
-        { label: "Build Success", value: "98%", trend: "+2%", color: "text-emerald-500" },
-        { label: "Code Review", value: "2", trend: "Pending", color: "text-amber-500" },
+        { label: "Open PRs", value: "2", trend: "Reviewing", color: "text-indigo-500" },
+        { label: "Weekly Velocity", value: "42 pts", trend: "+15%", color: "text-emerald-500" },
+        { label: "Assigned DREQs", value: "5", trend: "+1 new", color: "text-purple-500" },
       ];
     case "Manager":
       return [
-        { label: "Completion", value: "72%", trend: "+5%", color: "text-indigo-500" },
-        { label: "Team Velocity", value: "48", trend: "+12%", color: "text-purple-500" },
-        { label: "Open Risks", value: "2", trend: "High", color: "text-rose-500" },
-        { label: "Avg Cycle Time", value: "4.2d", trend: "-0.5d", color: "text-emerald-500" },
+        { label: "SLA Compliance", value: "96%", trend: "+1.2%", color: "text-emerald-500" },
+        { label: "Critical Vulnerabilities", value: "0", trend: "Stable", color: "text-green-500" },
+        { label: "Code Coverage", value: "84.2%", trend: "+2.1%", color: "text-indigo-500" },
+        { label: "Security Score", value: "A+", trend: "Top Tier", color: "text-purple-500" },
       ];
     case "System Admin":
       return [
@@ -46,11 +47,11 @@ export const mockBuildLogs = [
 ];
 
 export const mockVelocityData = [
-  { name: "Mon", velocity: 45, load: 60 },
-  { name: "Tue", velocity: 52, load: 65 },
-  { name: "Wed", velocity: 48, load: 70 },
-  { name: "Thu", velocity: 61, load: 68 },
-  { name: "Fri", velocity: 55, load: 72 },
-  { name: "Sat", velocity: 42, load: 40 },
-  { name: "Sun", velocity: 38, load: 35 },
+  { name: "Mon", quality: 45, security: 60 },
+  { name: "Tue", quality: 52, security: 65 },
+  { name: "Wed", quality: 48, security: 70 },
+  { name: "Thu", quality: 61, security: 68 },
+  { name: "Fri", quality: 55, security: 72 },
+  { name: "Sat", quality: 42, security: 40 },
+  { name: "Sun", quality: 38, security: 35 },
 ];

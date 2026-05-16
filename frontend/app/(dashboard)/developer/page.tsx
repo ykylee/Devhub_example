@@ -59,8 +59,8 @@ export default function DeveloperDashboard() {
   return (
     <div className="space-y-10 pb-20">
       <DashboardHeader 
-        titlePrefix="Developer"
-        titleGradient="Workspace"
+        titlePrefix="Work"
+        titleGradient="Status (업무 현황)"
         subtitle={(
           <>
             Welcome back, <span className="text-foreground dark:text-primary-foreground font-bold">YK Lee</span> • <Badge variant="success" dot>Active Now</Badge>

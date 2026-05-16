@@ -21,7 +21,7 @@ export interface RbacPolicyMeta {
 
 // SYSTEM_ROLE_IDS lists the immutable role ids the backend seeds. UI uses this
 // to gate destructive operations on system roles even before the matrix loads.
-export const SYSTEM_ROLE_IDS: readonly string[] = ["developer", "manager", "system_admin"];
+export const SYSTEM_ROLE_IDS: readonly string[] = ["developer", "manager", "system_admin", "pmo_manager"];
 
 export function isSystemRole(roleId: string): boolean {
   return SYSTEM_ROLE_IDS.includes(roleId);
@@ -51,6 +51,8 @@ export const defaultRoles: Role[] = [
       application_repositories: { view: true, create: true, edit: true, delete: true },
       projects:                 { view: true, create: true, edit: true, delete: true },
       scm_providers:            { view: true, create: true, edit: true, delete: true },
+      dev_requests:             { view: true, create: true, edit: true, delete: true },
+      dev_request_intake_tokens: { view: true, create: true, edit: true, delete: true },
     },
   },
   {
@@ -68,6 +70,8 @@ export const defaultRoles: Role[] = [
       application_repositories: { view: false, create: false, edit: false, delete: false },
       projects:                 { view: false, create: false, edit: false, delete: false },
       scm_providers:            { view: false, create: false, edit: false, delete: false },
+      dev_requests:             { view: true, create: false, edit: false, delete: false },
+      dev_request_intake_tokens: { view: false, create: false, edit: false, delete: false },
     },
   },
   {
@@ -85,6 +89,27 @@ export const defaultRoles: Role[] = [
       application_repositories: { view: false, create: false, edit: false, delete: false },
       projects:                 { view: false, create: false, edit: false, delete: false },
       scm_providers:            { view: false, create: false, edit: false, delete: false },
+      dev_requests:             { view: true, create: false, edit: false, delete: false },
+      dev_request_intake_tokens: { view: false, create: false, edit: false, delete: false },
+    },
+  },
+  {
+    id: "pmo_manager",
+    name: "PMO Manager",
+    description: "Application 수정 + Project 운영/멤버 관리 위양. 시스템/계정/RBAC 변경 금지.",
+    system: true,
+    permissions: {
+      infrastructure:           { view: true, create: false, edit: false, delete: false },
+      pipelines:                { view: true, create: false, edit: false, delete: false },
+      organization:             { view: true, create: false, edit: false, delete: false },
+      security:                 { view: true, create: false, edit: false, delete: false },
+      audit:                    { view: true, create: false, edit: false, delete: false },
+      applications:             { view: true, create: false, edit: true,  delete: false },
+      application_repositories: { view: true, create: false, edit: false, delete: false },
+      projects:                 { view: true, create: true,  edit: true,  delete: true },
+      scm_providers:            { view: true, create: false, edit: false, delete: false },
+      dev_requests:             { view: true, create: false, edit: true,  delete: false },
+      dev_request_intake_tokens: { view: false, create: false, edit: false, delete: false },
     },
   },
 ];

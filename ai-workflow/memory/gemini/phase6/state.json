@@ -1,11 +1,11 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-05-07",
+  "generated_at": "2026-05-16",
   "source_of_truth": {
-    "project_profile_path": "docs/PROJECT_PROFILE.md",
+    "project_profile_path": "ai-workflow/memory/PROJECT_PROFILE.md",
     "session_handoff_path": "ai-workflow/memory/gemini/phase6/session_handoff.md",
     "work_backlog_index_path": "ai-workflow/memory/gemini/phase6/work_backlog.md",
-    "latest_backlog_path": "ai-workflow/memory/gemini/phase6/backlog/2026-05-07.md",
+    "latest_backlog_path": "ai-workflow/memory/gemini/phase6/backlog/2026-05-16.md",
     "repository_assessment_path": "ai-workflow/memory/repository_assessment.md"
   },
   "project": {
@@ -17,22 +17,22 @@
     "environment_path": "ai-workflow/memory/environments/"
   },
   "commands": {
-    "quick_tests": "pytest ai-workflow/tests/check_docs.py",
+    "quick_tests": "npm run lint",
     "isolated_tests": "go test ./backend-core/... && pytest backend-ai/",
     "runtime_checks": "docker-compose ps"
   },
   "session": {
-    "current_baseline": "Frontend Phase 5 조직 관리 UI 고도화 완료",
-    "current_axis": "Frontend Phase 6 권한 관리(RBAC) UI 고도화",
-    "current_focus": "사용자 및 그룹별 세부 권한 설정, 권한 편집기(Permission Editor) 컴포넌트 구현",
+    "current_baseline": "RBAC UI Sync & Dashboard Accessibility Fixes",
+    "current_axis": "Dashboard Refactoring & Status Domain Overhaul",
+    "current_focus": "Rebranding Dashboards and Building Application/Repository/Project Status Views",
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
-      "TASK-FRONTEND-PHASE2",
-      "TASK-FRONTEND-PHASE3",
-      "TASK-FRONTEND-PHASE5-ORG",
-      "TASK-FRONTEND-PHASE12-API",
-      "TASK-FRONTEND-DASHBOARD-STABILIZATION"
+      "DASHBOARD-REBRANDING",
+      "APPLICATION-STATUS-VIEW",
+      "REPOSITORY-STATUS-VIEW",
+      "PROJECT-STATUS-VIEW",
+      "SIDEBAR-NAVIGATION-UPDATE"
     ],
     "environment_constraints": [
       "Docker/Docker-compose required for full system",
@@ -40,32 +40,22 @@
     ]
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/backlog/2026-05-07.md",
-    "task_count": 20,
-    "in_progress_items": [
-      "TASK-FRONTEND-PHASE6-RBAC"
-    ],
+    "latest_backlog_path": "ai-workflow/memory/gemini/phase6/backlog/2026-05-16.md",
+    "task_count": 25,
+    "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
-      "TASK-002",
-      "TASK-013",
-      "TASK-014",
-      "TASK-015",
-      "TASK-016",
-      "TASK-017",
-      "TASK-018",
-      "TASK-019",
-      "TASK-FRONTEND-PHASE2",
-      "TASK-FRONTEND-PHASE3",
+      "TASK-FRONTEND-PHASE6-DASHBOARD-OVERHAUL",
+      "TASK-FRONTEND-PHASE6-RBAC-SYNC",
       "TASK-FRONTEND-PHASE5-ORG",
       "TASK-FRONTEND-PHASE12-API"
     ]
   },
   "next_documents": [
-    "docs/frontend_development_roadmap.md",
-    "ai-workflow/memory/session_handoff.md",
+    "docs/README.md",
+    "ai-workflow/memory/gemini/phase6/session_handoff.md",
     "docs/backend_api_contract.md",
-    "ai-workflow/memory/backlog/2026-05-07.md"
+    "ai-workflow/memory/gemini/phase6/backlog/2026-05-16.md"
   ],
   "repository_assessment": {
     "path": "ai-workflow/memory/repository_assessment.md",

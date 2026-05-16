@@ -4,17 +4,23 @@
 - 범위: 프로젝트 개요, 문서 구조, 기본 명령, 검증 포인트, 예외 규칙
 - 대상 독자: 개발자, 운영자, AI 에이전트, 온보딩 담당자
 - 상태: active
-- 최종 수정일: 2026-05-10
+- 최종 수정일: 2026-05-16
 - 관련 문서: [공통 표준](../core/global_workflow_standard.md)
 
 ## 1. 프로젝트 개요
 
 - 프로젝트명: DevHub Example
 - 프로젝트 목적: 역할별 기본 진입 우선순위 대시보드와 AI 분석 도구를 포함한 통합 관리 플랫폼.
+- 주요 도메인:
+  - UI/UX: Glassmorphism, Dark/Light Mode, Dashboard Widgets
+  - RBAC: Fine-grained Resource-Action matrix (11 resources)
+  - DREQ: Development Request Intake with Auth Tokens & IP Filtering
+  - PMO: Application/Project management delegation (pmo_manager role)
 - 주요 이해관계자:
-  - Developers (개발 대시보드 및 API 사용)
-  - Managers (관리 대시보드 기반 프로젝트/리스크 관리)
-  - System Admins (시스템 대시보드/시스템 설정 접근, 인프라 및 권한 제어)
+  - Developers (DREQ assignee, Repository/CI/Risk view)
+  - Managers (Risk triage, Team load balancing, DREQ oversight)
+  - PMO Managers (Application/Project lifecycle management)
+  - System Admins (System control, RBAC policy, DREQ Token admin)
 
 ## 2. 문서 구조 (Path)
 
