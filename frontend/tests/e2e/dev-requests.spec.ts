@@ -17,7 +17,12 @@ test.describe("DREQ E2E", () => {
     const clientLabel = `e2e_client_${Date.now()}`;
     await page.getByLabel(/client label/i).fill(clientLabel);
     await page.getByLabel(/source system/i).fill("e2e_sys");
-    await page.getByLabel(/allowed ips/i).first().fill("0.0.0.0/0"); // allow all for test
+    // CI runner can hit intake via IPv6 loopback(::1), so include both IPv4/IPv6 allow entries.
+    const allowedIpInputs = page.getByPlaceholder(/10\.0\.0\.0/i);
+    await allowedIpInputs.first().fill("0.0.0.0/0");
+    await page.getByRole("button", { name: /add ip\s*\/\s*cidr/i }).click();
+    await expect(allowedIpInputs).toHaveCount(2);
+    await allowedIpInputs.nth(1).fill("::1");
     
     // Submit
     await page.getByRole("dialog").getByRole("button", { name: /issue token/i }).click();
