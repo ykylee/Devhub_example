@@ -22,12 +22,14 @@ test.describe("DREQ E2E", () => {
     // Submit
     await page.getByRole("dialog").getByRole("button", { name: /issue token/i }).click();
 
-    // Reveal Phase - grab the token
-    await expect(page.getByText(/token shown once/i)).toBeVisible();
-    await page.getByRole("button", { name: /show token/i }).click();
-    const plainTokenCode = page.locator("code").first();
-    const plainToken = await plainTokenCode.textContent();
-    expect(plainToken).toBeTruthy();
+    // Reveal phase: extract the issued token from the modal in a deterministic way.
+    const tokenModal = page.getByRole("dialog");
+    await expect(tokenModal.getByText(/token shown once/i)).toBeVisible();
+    await tokenModal.getByRole("button", { name: /show token/i }).click();
+    const plainTokenCode = tokenModal.locator("code").first();
+    await expect(plainTokenCode).toContainText(/^ptk_/i);
+    const plainToken = (await plainTokenCode.textContent())?.trim();
+    expect(plainToken).toMatch(/^ptk_/i);
 
     // Close modal
     await page.getByRole("button", { name: /저장 완료 — 닫기/i }).click();
@@ -49,7 +51,12 @@ test.describe("DREQ E2E", () => {
         external_ref: externalRef,
       },
     });
-    expect(intakeResponse.ok()).toBeTruthy();
+    if (!intakeResponse.ok()) {
+      const intakeErrorBody = await intakeResponse.text();
+      throw new Error(
+        `intake failed: status=${intakeResponse.status()} body=${intakeErrorBody}`
+      );
+    }
     const intakeBody = await intakeResponse.json();
     expect(intakeBody.status).toBe("ok");
     const dreqId = intakeBody.data.id;
@@ -82,22 +89,21 @@ test.describe("DREQ E2E", () => {
     await expect(detailModal).toBeVisible();
     await expect(detailModal.getByText(requestTitle)).toBeVisible();
     
-    // 4. Promote action is role-gated; execute only when visible in current actor context.
+    // 4. Promote step is mandatory in this lifecycle.
     const promoteBtn = detailModal.getByRole("button", { name: /promote/i });
-    if (await promoteBtn.isVisible().catch(() => false)) {
-      await promoteBtn.click();
+    await expect(promoteBtn).toBeVisible();
+    await promoteBtn.click();
 
-      // Optional UI path depending on current promote UX implementation.
-      const promoteAppBtn = devPage.getByRole("button", { name: /새 어플리케이션/i });
-      if (await promoteAppBtn.isVisible().catch(() => false)) {
-        await promoteAppBtn.click();
-        await devPage.getByLabel(/application key/i).fill(`E2EAPP${Math.floor(Math.random() * 10000)}`);
-        await devPage.getByLabel(/application name/i).fill("E2E Promoted App");
-        await devPage.getByLabel(/owner/i).fill(SEEDED.developer.user_id);
-        await devPage.getByLabel(/leader/i).fill(SEEDED.developer.user_id);
-        await devPage.getByRole("button", { name: /create application/i }).click();
-        await expect(devPage.getByText(/registered/i).first()).toBeVisible({ timeout: 10000 });
-      }
+    // Optional UI path depending on current promote UX implementation.
+    const promoteAppBtn = devPage.getByRole("button", { name: /새 어플리케이션/i });
+    if (await promoteAppBtn.isVisible().catch(() => false)) {
+      await promoteAppBtn.click();
+      await devPage.getByLabel(/application key/i).fill(`E2EAPP${Math.floor(Math.random() * 10000)}`);
+      await devPage.getByLabel(/application name/i).fill("E2E Promoted App");
+      await devPage.getByLabel(/owner/i).fill(SEEDED.developer.user_id);
+      await devPage.getByLabel(/leader/i).fill(SEEDED.developer.user_id);
+      await devPage.getByRole("button", { name: /create application/i }).click();
+      await expect(devPage.getByText(/registered/i).first()).toBeVisible({ timeout: 10000 });
     }
 
     // Close dev context
