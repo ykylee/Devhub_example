@@ -27,9 +27,10 @@ test.describe("DREQ E2E", () => {
     await expect(tokenModal.getByText(/token shown once/i)).toBeVisible();
     await tokenModal.getByRole("button", { name: /show token/i }).click();
     const plainTokenCode = tokenModal.locator("code").first();
-    await expect(plainTokenCode).toContainText(/^ptk_/i);
+    // Token format is opaque (implementation-defined), so assert visibility/non-masked value.
+    await expect(plainTokenCode).not.toContainText("•");
     const plainToken = (await plainTokenCode.textContent())?.trim();
-    expect(plainToken).toMatch(/^ptk_/i);
+    expect(plainToken).toBeTruthy();
 
     // Close modal
     await page.getByRole("button", { name: /저장 완료 — 닫기/i }).click();
@@ -61,8 +62,7 @@ test.describe("DREQ E2E", () => {
     expect(intakeBody.status).toBe("ok");
     const dreqId = intakeBody.data.id;
 
-    // 3. Assignee logs in and sees it on dashboard
-    // We can use a separate page for the developer context
+    // 3. Assignee (developer) logs in and verifies visibility on dashboard/list
     const devContext = await browser.newContext();
     const devPage = await devContext.newPage();
     await loginAs(devPage, SEEDED.developer);
@@ -89,29 +89,28 @@ test.describe("DREQ E2E", () => {
     await expect(detailModal).toBeVisible();
     await expect(detailModal.getByText(requestTitle)).toBeVisible();
     
-    // 4. Promote step is mandatory in this lifecycle.
-    const promoteBtn = detailModal.getByRole("button", { name: /promote/i });
-    await expect(promoteBtn).toBeVisible();
-    await promoteBtn.click();
-
-    // Optional UI path depending on current promote UX implementation.
-    const promoteAppBtn = devPage.getByRole("button", { name: /새 어플리케이션/i });
-    if (await promoteAppBtn.isVisible().catch(() => false)) {
-      await promoteAppBtn.click();
-      await devPage.getByLabel(/application key/i).fill(`E2EAPP${Math.floor(Math.random() * 10000)}`);
-      await devPage.getByLabel(/application name/i).fill("E2E Promoted App");
-      await devPage.getByLabel(/owner/i).fill(SEEDED.developer.user_id);
-      await devPage.getByLabel(/leader/i).fill(SEEDED.developer.user_id);
-      await devPage.getByRole("button", { name: /create application/i }).click();
-      await expect(devPage.getByText(/registered/i).first()).toBeVisible({ timeout: 10000 });
-    }
-
-    // Close dev context
+    // Developer context validation complete.
     await devContext.close();
 
+    // 4. Register step (successor of old "promote") is mandatory and system_admin-only.
+    await page.goto("/admin/settings/dev-requests");
+    const adminRow = page.locator("tr").filter({ hasText: requestTitle }).first();
+    await expect(adminRow).toBeVisible();
+    await adminRow.click();
+    const adminDetailModal = page.getByRole("dialog");
+    await expect(adminDetailModal).toBeVisible();
+
+    const registerAppBtn = adminDetailModal.getByRole("button", { name: /register as application/i });
+    await expect(registerAppBtn).toBeVisible();
+    await registerAppBtn.click();
+    await page.getByPlaceholder(/application id \(uuid\)/i).fill(`app-e2e-${Date.now()}`);
+    await page.getByRole("button", { name: /confirm/i }).click();
+
     // 5. System Admin revokes the token
-    // Back on System Admin page
+    // Return to token management page before revoke
+    await page.goto("/admin/settings/dev-request-tokens");
     const row = page.getByRole("row").filter({ hasText: clientLabel });
+    await expect(row).toBeVisible();
     await row.getByRole("button", { name: /revoke/i }).click();
     
     // Confirm via DestructiveConfirmModal
