@@ -1,0 +1,25 @@
+{
+  "status": "in_progress",
+  "branch": "codex/next-step-20260516",
+  "updated_at": "2026-05-16",
+  "current_focus": "Integration API-69~75 baseline + verifier 1차 + 추적성/테스트 보고 동기화 완료",
+  "completed": [
+    "PR #136 (e2e/unit test 안정화) 머지 완료",
+    "main 동기화 이후 새 작업 브랜치 생성 (codex/next-step-20260516)",
+    "CI 실패 원인(auth_intake_ip_denied) 분석 및 E2E 보강 반영 완료",
+    "Integration registry/binding baseline 구현 (migration 000027, API-69~75 handler/store/router/RBAC/test)",
+    "traceability report API-69~75 activated baseline 동기화",
+    "API-73 webhook verifier 1차 구현 (hmac_sha256/shared-token)",
+    "Integration 테스트 실행 보고서(report_20260516_m4_integration.md) 반영"
+  ],
+  "next_actions": [
+    "API-76~78(HomeLab infra) 구현",
+    "API-73 provider별 verifier strategy 확장",
+    "Integration role-based/resilience E2E 강화"
+  ],
+  "env_notes": {
+    "verification": "backend-core go test ./... 통과",
+    "latest_merged_pr": "https://github.com/ykylee/Devhub_example/pull/136",
+    "working_branch": "codex/next-step-20260516"
+  }
+}

@@ -186,6 +186,66 @@ type ProjectIntegration struct {
 	UpdatedAt       time.Time
 }
 
+// IntegrationProviderType classifies provider domain.
+type IntegrationProviderType string
+
+const (
+	IntegrationProviderTypeALM   IntegrationProviderType = "alm"
+	IntegrationProviderTypeSCM   IntegrationProviderType = "scm"
+	IntegrationProviderTypeCICD  IntegrationProviderType = "ci_cd"
+	IntegrationProviderTypeDoc   IntegrationProviderType = "doc"
+	IntegrationProviderTypeInfra IntegrationProviderType = "infra"
+)
+
+// IntegrationAuthMode is the credentials mode for a provider.
+type IntegrationAuthMode string
+
+const (
+	IntegrationAuthModeToken       IntegrationAuthMode = "token"
+	IntegrationAuthModeBasic       IntegrationAuthMode = "basic"
+	IntegrationAuthModeOAuth2      IntegrationAuthMode = "oauth2"
+	IntegrationAuthModeAppPassword IntegrationAuthMode = "app_password"
+	IntegrationAuthModeAgent       IntegrationAuthMode = "agent"
+)
+
+// IntegrationScopeType defines binding scope.
+type IntegrationScopeType string
+
+const (
+	IntegrationScopeTypeApplication IntegrationScopeType = "application"
+	IntegrationScopeTypeProject     IntegrationScopeType = "project"
+)
+
+// IntegrationProvider is one row in integration_providers.
+type IntegrationProvider struct {
+	ID             string
+	ProviderKey    string
+	ProviderType   IntegrationProviderType
+	DisplayName    string
+	Enabled        bool
+	AuthMode       IntegrationAuthMode
+	CredentialsRef string
+	Capabilities   []string
+	SyncStatus     string
+	LastSyncAt     *time.Time
+	LastErrorCode  string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+}
+
+// IntegrationBinding is one row in integration_bindings.
+type IntegrationBinding struct {
+	ID          string
+	ScopeType   IntegrationScopeType
+	ScopeID     string
+	ProviderID  string
+	ExternalKey string
+	Policy      IntegrationPolicy
+	Enabled     bool
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
 // SCMProvider is one entry of the SCM adapter catalog (concept §12.2 + api §13.1.1).
 type SCMProvider struct {
 	ProviderKey    string

@@ -19,14 +19,16 @@ import (
 // 정규식, immutable, 상태 전이 가드, RBAC denial) 만 검증 대상. PostgreSQL 통합
 // 테스트는 별도 (build-tagged) — 본 sprint 의 carve out.
 type memoryApplicationStore struct {
-	mu               sync.Mutex
-	apps             map[string]domain.Application
-	links            map[string][]domain.ApplicationRepository
-	providers        map[string]domain.SCMProvider
-	projects         map[string]domain.Project
-	activeLinkCounts map[string]int
-	integrations     map[string]domain.ProjectIntegration
-	criticalCounts   map[string]int // override for CountApplicationCriticalWarnings tests
+	mu                   sync.Mutex
+	apps                 map[string]domain.Application
+	links                map[string][]domain.ApplicationRepository
+	providers            map[string]domain.SCMProvider
+	projects             map[string]domain.Project
+	activeLinkCounts     map[string]int
+	integrations         map[string]domain.ProjectIntegration
+	integrationProviders map[string]domain.IntegrationProvider
+	integrationBindings  map[string]domain.IntegrationBinding
+	criticalCounts       map[string]int // override for CountApplicationCriticalWarnings tests
 }
 
 func newMemoryApplicationStore() *memoryApplicationStore {
@@ -38,10 +40,12 @@ func newMemoryApplicationStore() *memoryApplicationStore {
 			"gitea":     {ProviderKey: "gitea", DisplayName: "Gitea", Enabled: true, AdapterVersion: "0.0.1"},
 			"forgejo":   {ProviderKey: "forgejo", DisplayName: "Forgejo", Enabled: false, AdapterVersion: "0.0.1"},
 		},
-		projects:         make(map[string]domain.Project),
-		activeLinkCounts: make(map[string]int),
-		integrations:     make(map[string]domain.ProjectIntegration),
-		criticalCounts:   make(map[string]int),
+		projects:             make(map[string]domain.Project),
+		activeLinkCounts:     make(map[string]int),
+		integrations:         make(map[string]domain.ProjectIntegration),
+		integrationProviders: make(map[string]domain.IntegrationProvider),
+		integrationBindings:  make(map[string]domain.IntegrationBinding),
+		criticalCounts:       make(map[string]int),
 	}
 }
 
@@ -444,6 +448,135 @@ func (s *memoryApplicationStore) DeleteIntegration(_ context.Context, id string)
 	}
 	delete(s.integrations, id)
 	return nil
+}
+
+func (s *memoryApplicationStore) ListIntegrationProviders(_ context.Context, opts store.IntegrationProviderListOptions) ([]domain.IntegrationProvider, int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]domain.IntegrationProvider, 0)
+	for _, p := range s.integrationProviders {
+		if string(opts.ProviderType) != "" && string(p.ProviderType) != string(opts.ProviderType) {
+			continue
+		}
+		if opts.Enabled != nil && p.Enabled != *opts.Enabled {
+			continue
+		}
+		out = append(out, p)
+	}
+	return out, len(out), nil
+}
+
+func (s *memoryApplicationStore) GetIntegrationProviderByID(_ context.Context, providerID string) (domain.IntegrationProvider, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	p, ok := s.integrationProviders[providerID]
+	if !ok {
+		return domain.IntegrationProvider{}, store.ErrNotFound
+	}
+	return p, nil
+}
+
+func (s *memoryApplicationStore) GetIntegrationProviderByKey(_ context.Context, providerKey string) (domain.IntegrationProvider, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, p := range s.integrationProviders {
+		if p.ProviderKey == providerKey {
+			return p, nil
+		}
+	}
+	return domain.IntegrationProvider{}, store.ErrNotFound
+}
+
+func (s *memoryApplicationStore) CreateIntegrationProvider(_ context.Context, p domain.IntegrationProvider) (domain.IntegrationProvider, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, existing := range s.integrationProviders {
+		if existing.ProviderKey == p.ProviderKey {
+			return domain.IntegrationProvider{}, store.ErrConflict
+		}
+	}
+	if p.ID == "" {
+		p.ID = "prov-" + p.ProviderKey
+	}
+	now := time.Now().UTC()
+	p.CreatedAt = now
+	p.UpdatedAt = now
+	s.integrationProviders[p.ID] = p
+	return p, nil
+}
+
+func (s *memoryApplicationStore) UpdateIntegrationProvider(_ context.Context, p domain.IntegrationProvider) (domain.IntegrationProvider, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	current, ok := s.integrationProviders[p.ID]
+	if !ok {
+		return domain.IntegrationProvider{}, store.ErrNotFound
+	}
+	current.DisplayName = p.DisplayName
+	current.Enabled = p.Enabled
+	current.CredentialsRef = p.CredentialsRef
+	current.Capabilities = append([]string(nil), p.Capabilities...)
+	current.UpdatedAt = time.Now().UTC()
+	s.integrationProviders[p.ID] = current
+	return current, nil
+}
+
+func (s *memoryApplicationStore) CreateIntegrationSyncJob(_ context.Context, providerID string, _ string) (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.integrationProviders[providerID]; !ok {
+		return "", store.ErrNotFound
+	}
+	return "job-" + providerID, nil
+}
+
+func (s *memoryApplicationStore) ListIntegrationBindings(_ context.Context, opts store.IntegrationBindingListOptions) ([]domain.IntegrationBinding, int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]domain.IntegrationBinding, 0)
+	for _, b := range s.integrationBindings {
+		if string(opts.ScopeType) != "" && string(b.ScopeType) != string(opts.ScopeType) {
+			continue
+		}
+		if opts.ScopeID != "" && b.ScopeID != opts.ScopeID {
+			continue
+		}
+		if opts.Enabled != nil && b.Enabled != *opts.Enabled {
+			continue
+		}
+		if string(opts.ProviderType) != "" {
+			p, ok := s.integrationProviders[b.ProviderID]
+			if !ok || string(p.ProviderType) != string(opts.ProviderType) {
+				continue
+			}
+		}
+		out = append(out, b)
+	}
+	return out, len(out), nil
+}
+
+func (s *memoryApplicationStore) CreateIntegrationBinding(_ context.Context, b domain.IntegrationBinding) (domain.IntegrationBinding, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.integrationProviders[b.ProviderID]; !ok {
+		return domain.IntegrationBinding{}, store.ErrConflict
+	}
+	for _, existing := range s.integrationBindings {
+		if existing.ScopeType == b.ScopeType &&
+			existing.ScopeID == b.ScopeID &&
+			existing.ProviderID == b.ProviderID &&
+			existing.ExternalKey == b.ExternalKey {
+			return domain.IntegrationBinding{}, store.ErrConflict
+		}
+	}
+	if b.ID == "" {
+		b.ID = "bind-" + b.ScopeID + "-" + b.ExternalKey
+	}
+	now := time.Now().UTC()
+	b.CreatedAt = now
+	b.UpdatedAt = now
+	s.integrationBindings[b.ID] = b
+	return b, nil
 }
 
 // --- handler tests ---

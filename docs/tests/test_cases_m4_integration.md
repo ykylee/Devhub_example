@@ -4,7 +4,7 @@
 - 범위: Provider/Biding/Ingest/HomeLab API 및 동기화 파이프라인의 단위/통합/E2E 테스트 초안.
 - 대상 독자: Backend/Frontend 개발자, QA, 운영 담당자, AI 에이전트.
 - 상태: draft
-- 최종 수정일: 2026-05-15
+- 최종 수정일: 2026-05-16
 - 관련 문서: [requirements.md](../requirements.md), [planning/system_usecases.md](../planning/system_usecases.md), [architecture.md](../architecture.md), [backend_api_contract.md](../backend_api_contract.md), [e2e_testing_strategy.md](./e2e_testing_strategy.md)
 
 ## 1. 기능 맵 (REQ/UC 기준)
@@ -63,3 +63,23 @@
 | 일자 | 변경 |
 | --- | --- |
 | 2026-05-15 | 초안 작성 — Integration 도메인 테스트 계층/우선 TC/E2E 시나리오 정의. |
+| 2026-05-16 | API-69~75 baseline 구현 기준 실행 스냅샷 반영 (IT 중심), E2E 미진입 항목 명시. |
+
+## 8. 실행 스냅샷 (2026-05-16)
+
+- 실행 환경: `backend-core` 로컬 테스트
+- 실행 명령:
+  - `go test ./internal/httpapi -run 'IntegrationProviderWebhook|CreateIntegrationProvider|ListIntegrationProviders|CreateIntegrationBinding|RoutePermissionTable_CoversAllProtectedV1Routes'`
+  - `go test ./...`
+- 결과: PASS
+
+| TC ID | 결과 | 근거 |
+| --- | --- | --- |
+| TC-INT-PROVIDER-01 | PASS | `TestCreateIntegrationProvider_Happy` |
+| TC-INT-PROVIDER-02 | PASS | `TestCreateIntegrationProvider_Duplicate` |
+| TC-INT-INGEST-01 | PASS | `TestIntegrationProviderWebhook_Happy` (ingest accepted) |
+| TC-INT-INGEST-02 | PASS | `TestIntegrationProviderWebhook_InvalidSignature` (401) |
+| TC-INT-BINDING-01 | PASS | `TestCreateIntegrationBinding_Happy` |
+| TC-INT-BINDING-02 | 미진입 | role별 e2e 권한 시나리오는 UI/플로우 구현 후 수행 |
+| TC-INT-HOMELAB-01..03 | 미진입 | API-76..78 draft 단계 (미구현) |
+| TC-INT-RESILIENCE-01 | 미진입 | provider failover/degraded 시뮬레이션 후속 |

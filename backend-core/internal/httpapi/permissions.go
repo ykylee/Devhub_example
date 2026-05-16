@@ -124,10 +124,11 @@ type routeKey struct {
 // instead of silent.
 var routePermissionTable = map[routeKey]routePolicy{
 	// Bypass — section 12.8.1 (auth-only, no matrix lookup)
-	{http.MethodGet, "/api/v1/me"}:                           {Bypass: true},
-	{http.MethodGet, "/api/v1/realtime/ws"}:                  {Bypass: true},
-	{http.MethodPost, "/api/v1/integrations/gitea/webhooks"}:                            {Bypass: true},
-	{http.MethodPost, "/api/v1/integrations/kratos/hook/settings/password/after"}:       {Bypass: true},
+	{http.MethodGet, "/api/v1/me"}:                                                {Bypass: true},
+	{http.MethodGet, "/api/v1/realtime/ws"}:                                       {Bypass: true},
+	{http.MethodPost, "/api/v1/integrations/gitea/webhooks"}:                      {Bypass: true},
+	{http.MethodPost, "/api/v1/integration/providers/:provider_id/webhook"}:       {Bypass: true},
+	{http.MethodPost, "/api/v1/integrations/kratos/hook/settings/password/after"}: {Bypass: true},
 	// Self-service password change (L4-D, work_26_05_11-e). RBAC matrix is
 	// not the right tool here — every authenticated user can change their
 	// own password; admin-driven resets go through /accounts/:user_id/password
@@ -182,10 +183,10 @@ var routePermissionTable = map[routeKey]routePolicy{
 	// account admin (PR-S3) — credential issuance + force reset + state toggle + revoke.
 	// Credential mutations are a security-grade resource; route the auth-y ones to
 	// security:edit so only system_admin (per default matrix) can hit them.
-	{http.MethodPost, "/api/v1/accounts"}:                     {Resource: domain.ResourceSecurity, Action: domain.ActionCreate},
-	{http.MethodPut, "/api/v1/accounts/:user_id/password"}:    {Resource: domain.ResourceSecurity, Action: domain.ActionEdit},
-	{http.MethodPatch, "/api/v1/accounts/:user_id"}:           {Resource: domain.ResourceOrganization, Action: domain.ActionEdit},
-	{http.MethodDelete, "/api/v1/accounts/:user_id"}:          {Resource: domain.ResourceOrganization, Action: domain.ActionDelete},
+	{http.MethodPost, "/api/v1/accounts"}:                  {Resource: domain.ResourceSecurity, Action: domain.ActionCreate},
+	{http.MethodPut, "/api/v1/accounts/:user_id/password"}: {Resource: domain.ResourceSecurity, Action: domain.ActionEdit},
+	{http.MethodPatch, "/api/v1/accounts/:user_id"}:        {Resource: domain.ResourceOrganization, Action: domain.ActionEdit},
+	{http.MethodDelete, "/api/v1/accounts/:user_id"}:       {Resource: domain.ResourceOrganization, Action: domain.ActionDelete},
 
 	// organization — units
 	{http.MethodGet, "/api/v1/organization/hierarchy"}:              {Resource: domain.ResourceOrganization, Action: domain.ActionView},
@@ -200,30 +201,30 @@ var routePermissionTable = map[routeKey]routePolicy{
 	// organization — RBAC subject role assignment
 	{http.MethodGet, "/api/v1/rbac/subjects/:subject_id/roles"}: {Resource: domain.ResourceOrganization, Action: domain.ActionView},
 	{http.MethodPut, "/api/v1/rbac/subjects/:subject_id/roles"}: {Resource: domain.ResourceOrganization, Action: domain.ActionEdit},
-	{http.MethodGet, "/api/v1/hr/lookup"}:                        {Resource: domain.ResourceOrganization, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/hr/lookup"}:                       {Resource: domain.ResourceOrganization, Action: domain.ActionView},
 
 	// SCM Provider catalog (API-41..42, sprint claude/work_260514-a, ADR-0011 §4.1 1차).
-	{http.MethodGet, "/api/v1/scm/providers"}:                  {Resource: domain.ResourceSCMProviders, Action: domain.ActionView},
-	{http.MethodPatch, "/api/v1/scm/providers/:provider_key"}:  {Resource: domain.ResourceSCMProviders, Action: domain.ActionEdit},
+	{http.MethodGet, "/api/v1/scm/providers"}:                 {Resource: domain.ResourceSCMProviders, Action: domain.ActionView},
+	{http.MethodPatch, "/api/v1/scm/providers/:provider_key"}: {Resource: domain.ResourceSCMProviders, Action: domain.ActionEdit},
 
 	// Applications (API-43..47, sprint claude/work_260514-a).
-	{http.MethodGet, "/api/v1/applications"}:                          {Resource: domain.ResourceApplications, Action: domain.ActionView},
-	{http.MethodPost, "/api/v1/applications"}:                         {Resource: domain.ResourceApplications, Action: domain.ActionCreate},
-	{http.MethodGet, "/api/v1/applications/:application_id"}:          {Resource: domain.ResourceApplications, Action: domain.ActionView},
-	{http.MethodPatch, "/api/v1/applications/:application_id"}:        {Resource: domain.ResourceApplications, Action: domain.ActionEdit},
-	{http.MethodDelete, "/api/v1/applications/:application_id"}:       {Resource: domain.ResourceApplications, Action: domain.ActionDelete},
+	{http.MethodGet, "/api/v1/applications"}:                    {Resource: domain.ResourceApplications, Action: domain.ActionView},
+	{http.MethodPost, "/api/v1/applications"}:                   {Resource: domain.ResourceApplications, Action: domain.ActionCreate},
+	{http.MethodGet, "/api/v1/applications/:application_id"}:    {Resource: domain.ResourceApplications, Action: domain.ActionView},
+	{http.MethodPatch, "/api/v1/applications/:application_id"}:  {Resource: domain.ResourceApplications, Action: domain.ActionEdit},
+	{http.MethodDelete, "/api/v1/applications/:application_id"}: {Resource: domain.ResourceApplications, Action: domain.ActionDelete},
 
 	// Application-Repository link (API-48..50, sprint claude/work_260514-a).
-	{http.MethodGet, "/api/v1/applications/:application_id/repositories"}:                       {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionView},
-	{http.MethodPost, "/api/v1/applications/:application_id/repositories"}:                      {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionCreate},
-	{http.MethodDelete, "/api/v1/applications/:application_id/repositories/*repo_key"}:          {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionDelete},
+	{http.MethodGet, "/api/v1/applications/:application_id/repositories"}:              {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionView},
+	{http.MethodPost, "/api/v1/applications/:application_id/repositories"}:             {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionCreate},
+	{http.MethodDelete, "/api/v1/applications/:application_id/repositories/*repo_key"}: {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionDelete},
 
 	// Repository 운영 지표 (API-51..54, sprint claude/work_260514-c). 본 endpoint 들은
 	// Application 의 연결 Repository 메트릭이므로 application_repositories:view 로 매핑.
-	{http.MethodGet, "/api/v1/repositories/:repository_id/activity"}:           {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionView},
-	{http.MethodGet, "/api/v1/repositories/:repository_id/pull-requests"}:      {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionView},
-	{http.MethodGet, "/api/v1/repositories/:repository_id/build-runs"}:         {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionView},
-	{http.MethodGet, "/api/v1/repositories/:repository_id/quality-snapshots"}:  {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/repositories/:repository_id/activity"}:          {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/repositories/:repository_id/pull-requests"}:     {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/repositories/:repository_id/build-runs"}:        {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/repositories/:repository_id/quality-snapshots"}: {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionView},
 
 	// Project CRUD (API-55..56, sprint claude/work_260514-c).
 	{http.MethodGet, "/api/v1/repositories/:repository_id/projects"}:  {Resource: domain.ResourceProjects, Action: domain.ActionView},
@@ -237,23 +238,29 @@ var routePermissionTable = map[routeKey]routePolicy{
 
 	// Integration CRUD (API-58, sprint claude/work_260514-c) — applications:edit cross-cut
 	// (관리 행위라 admin 일임).
-	{http.MethodGet, "/api/v1/integrations"}:                    {Resource: domain.ResourceApplications, Action: domain.ActionView},
-	{http.MethodPost, "/api/v1/integrations"}:                   {Resource: domain.ResourceApplications, Action: domain.ActionEdit},
-	{http.MethodPatch, "/api/v1/integrations/:integration_id"}:  {Resource: domain.ResourceApplications, Action: domain.ActionEdit},
-	{http.MethodDelete, "/api/v1/integrations/:integration_id"}: {Resource: domain.ResourceApplications, Action: domain.ActionEdit},
+	{http.MethodGet, "/api/v1/integrations"}:                             {Resource: domain.ResourceApplications, Action: domain.ActionView},
+	{http.MethodPost, "/api/v1/integrations"}:                            {Resource: domain.ResourceApplications, Action: domain.ActionEdit},
+	{http.MethodPatch, "/api/v1/integrations/:integration_id"}:           {Resource: domain.ResourceApplications, Action: domain.ActionEdit},
+	{http.MethodDelete, "/api/v1/integrations/:integration_id"}:          {Resource: domain.ResourceApplications, Action: domain.ActionEdit},
+	{http.MethodGet, "/api/v1/integration/providers"}:                    {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
+	{http.MethodPost, "/api/v1/integration/providers"}:                   {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
+	{http.MethodPatch, "/api/v1/integration/providers/:provider_id"}:     {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
+	{http.MethodPost, "/api/v1/integration/providers/:provider_id/sync"}: {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
+	{http.MethodGet, "/api/v1/integration/bindings"}:                     {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
+	{http.MethodPost, "/api/v1/integration/bindings"}:                    {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
 
 	// Dev Request (DREQ) API-59..65 (sprint claude/work_260515-i, ADR-0012).
 	// POST /api/v1/dev-requests 는 별도 intake group 으로 등록되어 v1 의
 	// authenticateActor + enforceRoutePermission 가 적용되지 않으나, router.Routes()
 	// 가 모든 라우트를 반환하므로 routePermissionTable 검증 테스트 통과 위해
 	// Bypass: true 로 등록한다 (intake 인증은 requireIntakeToken 미들웨어가 책임).
-	{http.MethodPost, "/api/v1/dev-requests"}:                            {Bypass: true},
-	{http.MethodGet, "/api/v1/dev-requests"}:                             {Resource: domain.ResourceDevRequests, Action: domain.ActionView},
-	{http.MethodGet, "/api/v1/dev-requests/:dev_request_id"}:             {Resource: domain.ResourceDevRequests, Action: domain.ActionView},
-	{http.MethodPost, "/api/v1/dev-requests/:dev_request_id/register"}:   {Resource: domain.ResourceDevRequests, Action: domain.ActionEdit},
-	{http.MethodPost, "/api/v1/dev-requests/:dev_request_id/reject"}:     {Resource: domain.ResourceDevRequests, Action: domain.ActionEdit},
-	{http.MethodPatch, "/api/v1/dev-requests/:dev_request_id"}:           {Resource: domain.ResourceDevRequests, Action: domain.ActionEdit},
-	{http.MethodDelete, "/api/v1/dev-requests/:dev_request_id"}:          {Resource: domain.ResourceDevRequests, Action: domain.ActionDelete},
+	{http.MethodPost, "/api/v1/dev-requests"}:                          {Bypass: true},
+	{http.MethodGet, "/api/v1/dev-requests"}:                           {Resource: domain.ResourceDevRequests, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/dev-requests/:dev_request_id"}:           {Resource: domain.ResourceDevRequests, Action: domain.ActionView},
+	{http.MethodPost, "/api/v1/dev-requests/:dev_request_id/register"}: {Resource: domain.ResourceDevRequests, Action: domain.ActionEdit},
+	{http.MethodPost, "/api/v1/dev-requests/:dev_request_id/reject"}:   {Resource: domain.ResourceDevRequests, Action: domain.ActionEdit},
+	{http.MethodPatch, "/api/v1/dev-requests/:dev_request_id"}:         {Resource: domain.ResourceDevRequests, Action: domain.ActionEdit},
+	{http.MethodDelete, "/api/v1/dev-requests/:dev_request_id"}:        {Resource: domain.ResourceDevRequests, Action: domain.ActionDelete},
 
 	// DREQ intake token admin (sprint claude/work_260515-o, ADR-0014). system_admin 일임.
 	{http.MethodPost, "/api/v1/dev-request-tokens"}:             {Resource: domain.ResourceDevRequestIntakeTokens, Action: domain.ActionCreate},
