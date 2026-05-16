@@ -16,7 +16,7 @@ import (
 func (s *PostgresStore) LookupDevRequestIntakeToken(ctx context.Context, hashedToken string) (domain.DevRequestIntakeToken, error) {
 	const query = `
 SELECT token_id::text, client_label, hashed_token, allowed_ips, source_system,
-       created_at, created_by, last_used_at, revoked_at
+       created_at, created_by, last_used_at, revoked_at, expires_at
 FROM dev_request_intake_tokens
 WHERE hashed_token = $1`
 	row := s.pool.QueryRow(ctx, query, hashedToken)
@@ -37,6 +37,7 @@ WHERE hashed_token = $1`
 		&tok.CreatedBy,
 		&lastUsedAt,
 		&revokedAt,
+		&tok.ExpiresAt,
 	); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.DevRequestIntakeToken{}, ErrNotFound
@@ -75,12 +76,12 @@ func (s *PostgresStore) CreateDevRequestIntakeToken(ctx context.Context, tok dom
 		return domain.DevRequestIntakeToken{}, fmt.Errorf("encode allowed_ips: %w", err)
 	}
 	const query = `
-INSERT INTO dev_request_intake_tokens (client_label, hashed_token, allowed_ips, source_system, created_by)
-VALUES ($1, $2, $3::jsonb, $4, $5)
+INSERT INTO dev_request_intake_tokens (client_label, hashed_token, allowed_ips, source_system, created_by, expires_at)
+VALUES ($1, $2, $3::jsonb, $4, $5, $6)
 RETURNING token_id::text, client_label, hashed_token, allowed_ips, source_system,
-          created_at, created_by, last_used_at, revoked_at`
+          created_at, created_by, last_used_at, revoked_at, expires_at`
 
-	row := s.pool.QueryRow(ctx, query, tok.ClientLabel, tok.HashedToken, allowedIPs, tok.SourceSystem, tok.CreatedBy)
+	row := s.pool.QueryRow(ctx, query, tok.ClientLabel, tok.HashedToken, allowedIPs, tok.SourceSystem, tok.CreatedBy, tok.ExpiresAt)
 	created, err := scanIntakeToken(row)
 	if isUniqueViolation(err) {
 		return domain.DevRequestIntakeToken{}, ErrConflict
@@ -96,7 +97,7 @@ RETURNING token_id::text, client_label, hashed_token, allowed_ips, source_system
 func (s *PostgresStore) ListDevRequestIntakeTokens(ctx context.Context) ([]domain.DevRequestIntakeToken, error) {
 	const query = `
 SELECT token_id::text, client_label, hashed_token, allowed_ips, source_system,
-       created_at, created_by, last_used_at, revoked_at
+       created_at, created_by, last_used_at, revoked_at, expires_at
 FROM dev_request_intake_tokens
 ORDER BY created_at DESC`
 	rows, err := s.pool.Query(ctx, query)
@@ -126,7 +127,7 @@ UPDATE dev_request_intake_tokens
 SET revoked_at = COALESCE(revoked_at, NOW())
 WHERE token_id = $1::uuid
 RETURNING token_id::text, client_label, hashed_token, allowed_ips, source_system,
-          created_at, created_by, last_used_at, revoked_at`
+          created_at, created_by, last_used_at, revoked_at, expires_at`
 	row := s.pool.QueryRow(ctx, query, tokenID)
 	tok, err := scanIntakeToken(row)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -134,6 +135,30 @@ RETURNING token_id::text, client_label, hashed_token, allowed_ips, source_system
 	}
 	if err != nil {
 		return domain.DevRequestIntakeToken{}, fmt.Errorf("revoke intake token: %w", err)
+	}
+	return tok, nil
+}
+
+// UpdateDevRequestIntakeTokenIPs는 admin allowed_ips 수정 (sprint gemini/dreq_e2e_260515 hardening).
+// revoke 없이 접근 권한만 동적으로 변경할 때 사용.
+func (s *PostgresStore) UpdateDevRequestIntakeTokenIPs(ctx context.Context, tokenID string, allowedIPs []string) (domain.DevRequestIntakeToken, error) {
+	ipsJSON, err := json.Marshal(allowedIPs)
+	if err != nil {
+		return domain.DevRequestIntakeToken{}, fmt.Errorf("encode allowed_ips: %w", err)
+	}
+	const query = `
+UPDATE dev_request_intake_tokens
+SET allowed_ips = $2::jsonb, updated_at = NOW()
+WHERE token_id = $1::uuid
+RETURNING token_id::text, client_label, hashed_token, allowed_ips, source_system,
+          created_at, created_by, last_used_at, revoked_at, expires_at`
+	row := s.pool.QueryRow(ctx, query, tokenID, ipsJSON)
+	tok, err := scanIntakeToken(row)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.DevRequestIntakeToken{}, ErrNotFound
+	}
+	if err != nil {
+		return domain.DevRequestIntakeToken{}, fmt.Errorf("update intake token ips: %w", err)
 	}
 	return tok, nil
 }
@@ -155,6 +180,7 @@ func scanIntakeToken(row pgx.Row) (domain.DevRequestIntakeToken, error) {
 		&tok.CreatedBy,
 		&lastUsedAt,
 		&revokedAt,
+		&tok.ExpiresAt,
 	); err != nil {
 		return domain.DevRequestIntakeToken{}, err
 	}

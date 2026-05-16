@@ -511,6 +511,17 @@ func (f *fakeIntakeTokenStore) RevokeDevRequestIntakeToken(_ context.Context, to
 	return row, nil
 }
 
+func (f *fakeIntakeTokenStore) UpdateDevRequestIntakeTokenIPs(_ context.Context, tokenID string, allowedIPs []string) (domain.DevRequestIntakeToken, error) {
+	hashed, ok := f.byID[tokenID]
+	if !ok {
+		return domain.DevRequestIntakeToken{}, store.ErrNotFound
+	}
+	row := f.rows[hashed]
+	row.AllowedIPs = allowedIPs
+	f.rows[hashed] = row
+	return row, nil
+}
+
 func TestIntakeAuth_MissingHeaderDenies(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
@@ -588,6 +599,29 @@ func TestIntakeAuth_RevokedTokenDenies(t *testing.T) {
 	}
 	if !bytes.Contains(rec.Body.Bytes(), []byte(`"code":"auth_intake_token_revoked"`)) {
 		t.Errorf("expected auth_intake_token_revoked: %s", rec.Body.String())
+	}
+}
+
+func TestIntakeAuth_ExpiredTokenDenies(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	plain := "expired-token-data-abcdef0123456789"
+	hashed := hashIntakeToken(plain)
+	past := time.Now().Add(-1 * time.Hour)
+	tokenStore := &fakeIntakeTokenStore{rows: map[string]domain.DevRequestIntakeToken{
+		hashed: {TokenID: "tok-e", ClientLabel: "ops", HashedToken: hashed, AllowedIPs: []string{"0.0.0.0/0"}, SourceSystem: "ops", ExpiresAt: &past},
+	}}
+	h := Handler{cfg: RouterConfig{DevRequestIntakeTokenStore: tokenStore, AuditStore: &memoryAuditStore{}}}
+	router.POST("/intake", h.requireIntakeToken, func(c *gin.Context) { c.String(http.StatusOK, "ok") })
+	req := httptest.NewRequest(http.MethodPost, "/intake", nil)
+	req.Header.Set("Authorization", "Bearer "+plain)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("code=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"code":"auth_intake_token_expired"`)) {
+		t.Errorf("expected auth_intake_token_expired: %s", rec.Body.String())
 	}
 }
 

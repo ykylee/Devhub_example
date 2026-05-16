@@ -286,6 +286,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.POST("/dev-request-tokens", handler.createDevRequestIntakeToken)
 	v1.GET("/dev-request-tokens", handler.listDevRequestIntakeTokens)
 	v1.DELETE("/dev-request-tokens/:token_id", handler.revokeDevRequestIntakeToken)
+	v1.PATCH("/dev-request-tokens/:token_id", handler.updateDevRequestIntakeTokenIPs)
 
 	// Kratos self-service hooks (PR-M2-AUDIT, claude/login_usermanagement_finish).
 	// Bypasses authenticateActor + enforceRoutePermission via publicAPIPaths +

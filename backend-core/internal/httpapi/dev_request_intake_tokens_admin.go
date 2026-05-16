@@ -11,6 +11,7 @@ import (
 	"github.com/devhub/backend-core/internal/domain"
 	"github.com/devhub/backend-core/internal/store"
 	"github.com/gin-gonic/gin"
+	"time"
 )
 
 // DREQ intake token admin endpoints (sprint claude/work_260515-o, ADR-0014).
@@ -23,6 +24,12 @@ type intakeTokenAdminCreateRequest struct {
 	ClientLabel  string   `json:"client_label"`
 	SourceSystem string   `json:"source_system"`
 	AllowedIPs   []string `json:"allowed_ips"`
+	ExpiresAt    *string  `json:"expires_at"` // RFC3339 string
+}
+
+// intakeTokenAdminUpdateIPsRequest is the body for PATCH /api/v1/dev-request-tokens/:token_id.
+type intakeTokenAdminUpdateIPsRequest struct {
+	AllowedIPs []string `json:"allowed_ips"`
 }
 
 // generatePlainIntakeToken returns a 32-byte base64url-encoded random token
@@ -82,6 +89,7 @@ func intakeTokenResponse(tok domain.DevRequestIntakeToken, plain string) gin.H {
 		"created_by":    tok.CreatedBy,
 		"last_used_at":  tok.LastUsedAt,
 		"revoked_at":    tok.RevokedAt,
+		"expires_at":    tok.ExpiresAt,
 	}
 	if plain != "" {
 		// 1회 노출 — 클라이언트가 안전한 저장소에 옮긴 뒤 즉시 폐기해야 한다.
@@ -137,12 +145,23 @@ func (h Handler) createDevRequestIntakeToken(c *gin.Context) {
 		actorLogin = "system"
 	}
 
+	var expiresAt *time.Time
+	if req.ExpiresAt != nil && *req.ExpiresAt != "" {
+		parsed, err := time.Parse(time.RFC3339, *req.ExpiresAt)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "expires_at must be RFC3339 string"})
+			return
+		}
+		expiresAt = &parsed
+	}
+
 	created, err := h.cfg.DevRequestIntakeTokenStore.CreateDevRequestIntakeToken(c.Request.Context(), domain.DevRequestIntakeToken{
 		ClientLabel:  clientLabel,
 		HashedToken:  hashed,
 		AllowedIPs:   canonIPs,
 		SourceSystem: sourceSystem,
 		CreatedBy:    actorLogin,
+		ExpiresAt:    expiresAt,
 	})
 	if errors.Is(err, store.ErrConflict) {
 		// hashed_token collision — extremely unlikely with 256-bit entropy, but caller can retry.
@@ -228,5 +247,52 @@ func (h Handler) revokeDevRequestIntakeToken(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status": "ok",
 		"data":   intakeTokenResponse(revoked, ""),
+	})
+}
+
+// PATCH /api/v1/dev-request-tokens/:token_id
+func (h Handler) updateDevRequestIntakeTokenIPs(c *gin.Context) {
+	if h.cfg.DevRequestIntakeTokenStore == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"status": "unavailable",
+			"error":  "dev_request intake token admin requires IntakeTokenStore",
+		})
+		return
+	}
+	tokenID := strings.TrimSpace(c.Param("token_id"))
+	if tokenID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "token_id is required"})
+		return
+	}
+	var req intakeTokenAdminUpdateIPsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "invalid json body"})
+		return
+	}
+	canonIPs, problem := validateAllowedIPs(req.AllowedIPs)
+	if problem != "" {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": problem, "code": "invalid_allowed_ips"})
+		return
+	}
+
+	updated, err := h.cfg.DevRequestIntakeTokenStore.UpdateDevRequestIntakeTokenIPs(c.Request.Context(), tokenID, canonIPs)
+	if errors.Is(err, store.ErrNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "intake token not found"})
+		return
+	}
+	if err != nil {
+		writeServerError(c, err, "dev_request_intake_tokens.update_ips")
+		return
+	}
+
+	h.recordAuditBestEffort(c, "dev_request_intake_token.updated", "dev_request_intake_token", updated.TokenID, map[string]any{
+		"client_label":  updated.ClientLabel,
+		"source_system": updated.SourceSystem,
+		"allowed_ips":   updated.AllowedIPs,
+	})
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "ok",
+		"data":   intakeTokenResponse(updated, ""),
 	})
 }

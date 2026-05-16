@@ -21,6 +21,7 @@ export function IssueIntakeTokenModal({ onClose, onIssued }: IssueIntakeTokenMod
   const [clientLabel, setClientLabel] = useState("");
   const [sourceSystem, setSourceSystem] = useState("");
   const [allowedIPs, setAllowedIPs] = useState<string[]>([""]);
+  const [expiresAt, setExpiresAt] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [issued, setIssued] = useState<IssuedDevRequestIntakeToken | null>(null);
@@ -59,6 +60,7 @@ export function IssueIntakeTokenModal({ onClose, onIssued }: IssueIntakeTokenMod
         client_label: clientLabel.trim(),
         source_system: sourceSystem.trim(),
         allowed_ips: cleanedIPs,
+        expires_at: expiresAt ? new Date(expiresAt).toISOString() : undefined,
       });
       setIssued(result);
       setPhase("reveal");
@@ -152,6 +154,18 @@ export function IssueIntakeTokenModal({ onClose, onIssued }: IssueIntakeTokenMod
                 className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-orange-400/50"
               />
               <p className="text-[10px] text-muted-foreground/60 px-1">intake 요청의 dev_request.source_system 자동 채움 값 (body spoof 방지).</p>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="expiresAt" className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Expires At (Optional)</label>
+              <input
+                id="expiresAt"
+                type="datetime-local"
+                value={expiresAt}
+                onChange={(e) => setExpiresAt(e.target.value)}
+                className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-orange-400/50"
+              />
+              <p className="text-[10px] text-muted-foreground/60 px-1">토큰 만료 일시. 비워두면 무기한 사용 가능합니다.</p>
             </div>
 
             <div className="space-y-3">

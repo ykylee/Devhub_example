@@ -43,6 +43,7 @@ export function IntakeTokenTable({ items, onRevoke, revokingTokenID }: IntakeTok
               <th className="px-6 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Client / Source</th>
               <th className="px-6 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Allowed IPs</th>
               <th className="px-6 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-center">Status</th>
+              <th className="px-6 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Expires</th>
               <th className="px-6 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Created</th>
               <th className="px-6 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Last Used</th>
               <th className="px-6 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-right">Actions</th>
@@ -52,6 +53,7 @@ export function IntakeTokenTable({ items, onRevoke, revokingTokenID }: IntakeTok
             <AnimatePresence mode="popLayout">
               {items.map((tok) => {
                 const isRevoked = Boolean(tok.revoked_at);
+                const isExpired = tok.expires_at && new Date(tok.expires_at) < new Date();
                 const isBusy = revokingTokenID === tok.token_id;
                 return (
                   <motion.tr
@@ -95,11 +97,20 @@ export function IntakeTokenTable({ items, onRevoke, revokingTokenID }: IntakeTok
                         <Badge variant="glass" className="bg-red-500/10 text-red-400 border-red-500/30">
                           Revoked
                         </Badge>
+                      ) : isExpired ? (
+                        <Badge variant="glass" className="bg-amber-500/10 text-amber-400 border-amber-500/30">
+                          Expired
+                        </Badge>
                       ) : (
                         <Badge variant="glass" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
                           Active
                         </Badge>
                       )}
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className={`text-[11px] flex items-center gap-1.5 ${isExpired ? "text-amber-400 font-bold" : "text-muted-foreground"}`}>
+                        {tok.expires_at ? safeFormat(tok.expires_at) : "무기한"}
+                      </div>
                     </td>
                     <td className="px-6 py-5">
                       <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
