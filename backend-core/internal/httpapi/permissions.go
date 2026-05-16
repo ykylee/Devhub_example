@@ -259,6 +259,7 @@ var routePermissionTable = map[routeKey]routePolicy{
 	{http.MethodPost, "/api/v1/dev-request-tokens"}:             {Resource: domain.ResourceDevRequestIntakeTokens, Action: domain.ActionCreate},
 	{http.MethodGet, "/api/v1/dev-request-tokens"}:              {Resource: domain.ResourceDevRequestIntakeTokens, Action: domain.ActionView},
 	{http.MethodDelete, "/api/v1/dev-request-tokens/:token_id"}: {Resource: domain.ResourceDevRequestIntakeTokens, Action: domain.ActionDelete},
+	{http.MethodPatch, "/api/v1/dev-request-tokens/:token_id"}:  {Resource: domain.ResourceDevRequestIntakeTokens, Action: domain.ActionEdit},
 }
 
 // lookupRoutePolicy is exported for tests to assert the table contents without

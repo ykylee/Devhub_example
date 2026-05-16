@@ -3,6 +3,7 @@ import type {
   DevRequestIntakeToken,
   IssueDevRequestIntakeTokenInput,
   IssuedDevRequestIntakeToken,
+  UpdateDevRequestIntakeTokenIPsInput,
 } from "./dev_request_token.types";
 
 class DevRequestTokenService {
@@ -27,6 +28,15 @@ class DevRequestTokenService {
     const resp = await apiClient<{ data: DevRequestIntakeToken }>(
       "DELETE",
       `/api/v1/dev-request-tokens/${tokenID}`,
+    );
+    return resp.data;
+  }
+
+  async updateIPs(tokenID: string, input: UpdateDevRequestIntakeTokenIPsInput): Promise<DevRequestIntakeToken> {
+    const resp = await apiClient<{ data: DevRequestIntakeToken }>(
+      "PATCH",
+      `/api/v1/dev-request-tokens/${tokenID}`,
+      input,
     );
     return resp.data;
   }
