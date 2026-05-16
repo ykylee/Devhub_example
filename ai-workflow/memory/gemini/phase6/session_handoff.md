@@ -21,16 +21,18 @@
    - **어플리케이션 현황 (`/applications`)**: 서비스 상태 및 리소스 지표.
    - **저장소 현황 (`/repositories`)**: 코드 활동성 및 보안 취약점 지표.
    - **과제 현황 (`/projects`)**: 마일스톤 및 로드맵 진척도 지표.
-3. **RBAC 및 접근성 개선**:
+3. **실시간 데이터 연동 및 서비스 레이어**:
+   - `application.service.ts`, `repository.service.ts`, `project.service.ts` 구현.
+   - 현황 뷰(Applications, Repositories, Projects)를 실제 백엔드 API와 연동 완료.
+4. **RBAC 및 접근성 개선**:
    - 11개 표준 리소스 동기화 (`dev_requests` 등 추가).
    - `manager/page.tsx` 차트/툴팁의 테마 변수 적용 (라이트 모드 가독성 확보).
-4. **검증**:
+5. **검증**:
    - `npm run lint` 및 주요 경로 시각적 점검 완료.
 
 ## 🚀 다음 세션 작업 제안
-1. **실시간 데이터 연동**: 현재 Mock 데이터로 구현된 현황 뷰들을 백엔드 메트릭 API(InfluxDB/Prometheus 연동부)와 실시간 연결.
-2. **필터링 및 상세 페이지**: 저장소/어플리케이션 목록에서 개별 항목 클릭 시 상세 리포트 페이지로 이동하는 기능 구현.
-3. **RBAC Persistence**: `PermissionEditor`의 변경 사항을 백엔드 정책 DB에 영구 저장하는 `PUT /api/v1/rbac/policies` 연동 완료.
+1. **필터링 및 상세 페이지**: 저장소/어플리케이션 목록에서 개별 항목 클릭 시 상세 리포트 페이지로 이동하는 기능 구현.
+2. **RBAC Persistence**: `PermissionEditor`의 변경 사항을 백엔드 정책 DB에 영구 저장하는 연동 로직 검증 및 QA.
 
 ## ⚠️ 주의 사항
 - **Layout Invariant**: 모든 신규 대시보드 페이지는 `(dashboard)` 그룹 내에 위치해야 하며, `DashboardHeader`를 공통으로 사용하여 일관된 디자인 시스템을 유지해야 합니다.
