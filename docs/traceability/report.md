@@ -4,7 +4,7 @@
 - 범위: M0–M3 (M4 는 planned 표기). ADR 은 별도 §4 인덱스.
 - 대상 독자: 모든 contributor, 후속 리뷰어, 외부 감사.
 - 상태: accepted
-- 최종 수정일: 2026-05-13
+- 최종 수정일: 2026-05-15
 - 결정 근거 sprint: `claude/work_260513-c`.
 - 관련 문서: [`README.md`](./README.md), [`conventions.md`](./conventions.md), [`sync-checklist.md`](./sync-checklist.md), [`../governance/document-standards.md`](../governance/document-standards.md).
 
@@ -23,16 +23,17 @@
 - **Non-functional**: REQ-NFR-01 ~ REQ-NFR-26 (총 26 항목, 보안/성능/배포 정책 + 운영 hygiene + API 표준).
 - **Application/Project 요구사항 확장**: `REQ-FR-APP-001..012`, `REQ-FR-PROJ-000..010`, `REQ-NFR-PROJ-001..006` (`docs/requirements.md` §5.4).
 - **Dev Request (DREQ) 도메인 신규**: `REQ-FR-DREQ-001..011`, `REQ-NFR-DREQ-001..006` (`docs/requirements.md` §5.5, sprint `claude/work_260515-f`, **컨셉/요구사항 단계 — 구현은 carve out**).
+- **External Integration 도메인 신규**: `REQ-FR-INT-001..012`, `REQ-NFR-INT-001..008` (`docs/requirements.md` §5.6, sprint `codex/memory-next-step-20260515`).
 
 ### 2.1.5 Usecase (UC)
 
-- `UC-AUTH-01..03`, `UC-ACCOUNT-01..03`, `UC-ORG-01..04`, `UC-RBAC-01..03`, `UC-GITEA-01..03`, `UC-CMD-01..03`, `UC-AUD-01..02`, `UC-RT-01..02`, `UC-APP-01..10`, `UC-PROJ-01..10`, `UC-DREQ-01..10` (총 53 항목, `docs/planning/system_usecases.md`).
+- `UC-AUTH-01..03`, `UC-ACCOUNT-01..03`, `UC-ORG-01..04`, `UC-RBAC-01..03`, `UC-GITEA-01..03`, `UC-CMD-01..03`, `UC-AUD-01..02`, `UC-RT-01..02`, `UC-APP-01..10`, `UC-PROJ-01..10`, `UC-DREQ-01..10`, `UC-INT-01..14` (`docs/planning/system_usecases.md`).
 - 정책: 신규 도메인은 `REQ → UC → ARCH/API` 순서를 기본 체인으로 사용한다. 기존 도메인은 점진 전환.
 
 ### 2.2 Design (ARCH / API)
 
-- **Architecture**: ARCH-01 ~ ARCH-17 + `ARCH-DREQ-01..06` (sprint `claude/work_260515-f`, DREQ 도메인 컴포넌트/상태머신/인증경계/RBAC/데이터모델/audit). `docs/architecture.md` + `docs/org_chart_ux_spec.md` + `docs/organizational_hierarchy_spec.md` 분포.
-- **API contract**: API-01 ~ API-58 — *ID 공간 = 58, 전 도메인 activated*. 이전 sprint 결정으로 일부 ID 는 composite (`API-07` = infra/edges + infra/topology, `API-13` = risks + risks/critical, `API-55`/`API-56` = composite Project endpoint set, `API-58` = composite Integration CRUD) 또는 결손 (`API-03` 미정의 — 후속 발급 후보) 이 존재한다. **API-41..50** 활성화 sprint = `claude/work_260514-b`. **API-51..58** 활성화 sprint = `claude/work_260514-c`. **API-59..65** (DREQ 도메인) spec staged sprint = `claude/work_260515-f` — **활성화는 DREQ-Backend sprint 에서**. 실제 endpoint 매핑은 본 §2.2 아래 도메인별 서브 표가 source-of-truth.
+- **Architecture**: ARCH-01 ~ ARCH-17 + `ARCH-DREQ-01..06` + `ARCH-INT-01..06` (INT sprint `codex/memory-next-step-20260515`). `docs/architecture.md` + `docs/org_chart_ux_spec.md` + `docs/organizational_hierarchy_spec.md` 분포.
+- **API contract**: API-01 ~ API-78 (INT draft 포함). 기존 composite/결손 정책은 유지. **API-69..78** 은 외부 시스템 연동 도메인 초안(§15)으로 staged.
 
 #### DREQ API §14 — endpoint 매핑 (spec staged sprint `claude/work_260515-f`, **activated sprint `claude/work_260515-i`**)
 
@@ -45,6 +46,21 @@
 | `API-63` | §14.5 | `POST /api/v1/dev-requests/:id/reject` | **activated (sprint `i`)** |
 | `API-64` | §14.6 | `PATCH /api/v1/dev-requests/:id` (Reassign — system_admin only) | **activated (sprint `i`)** |
 | `API-65` | §14.7 | `DELETE /api/v1/dev-requests/:id` (Close — system_admin only) | **activated (sprint `i`)** |
+
+#### Integration API §15 — endpoint 매핑 (draft sprint `codex/memory-next-step-20260515`)
+
+| API ID | 본문 위치 | 항목 | 상태 |
+| --- | --- | --- | --- |
+| `API-69` | §15.2 | `GET /api/v1/integration/providers` | draft |
+| `API-70` | §15.2 | `POST /api/v1/integration/providers` | draft |
+| `API-71` | §15.2 | `PATCH /api/v1/integration/providers/{provider_id}` | draft |
+| `API-72` | §15.2 | `POST /api/v1/integration/providers/{provider_id}/sync` | draft |
+| `API-73` | §15.3 | `POST /api/v1/integration/providers/{provider_key}/webhook` | draft |
+| `API-74` | §15.3 | `GET /api/v1/integration/bindings` | draft |
+| `API-75` | §15.3 | `POST /api/v1/integration/bindings` | draft |
+| `API-76` | §15.4 | `GET /api/v1/infra/services` | draft |
+| `API-77` | §15.4 | `POST /api/v1/infra/services/snapshot` | draft |
+| `API-78` | §15.4 | `GET /api/v1/infra/topology/v2` | draft |
 
 #### Application/Repository API §13 — endpoint 매핑 (sprint `claude/work_260514-a`, scaffolded 단계)
 
@@ -274,6 +290,19 @@
 | `IMPL-application-migration-01..07` | `backend-core/migrations/000012..000018_*.sql` | scm_providers / applications / application_repositories / projects / project_members + project_integrations / pr_activities + build_runs + quality_snapshots / RBAC seed 확장. up + down + 인덱스 + CHECK 제약. |
 
 > store body 는 미작성 (`ErrNotImplemented`). handler 는 stub (501). 응답 body schema / 요청 validation / status transition guard 는 후속 sprint 의 carve out (state.json `carve_out` 참조).
+
+#### IMPL-int-XX 정의 (sprint `codex/memory-next-step-20260515`, planned)
+
+| IMPL ID | 코드 위치 | 책임 |
+| --- | --- | --- |
+| `IMPL-int-domain-01` | `backend-core/internal/domain/integration.go` (planned) | Integration Provider/Binding/Event/Infra(Node/Service) 도메인 타입 + enum(`provider_type`, `sync_status`, `binding_policy`) 정의. |
+| `IMPL-int-store-01` | `backend-core/internal/store/integrations.go` (planned) | provider/binding/event CRUD + snapshot upsert + dedupe key 조회/저장 persistence 구현. |
+| `IMPL-int-handler-01` | `backend-core/internal/httpapi/integrations.go` (planned) | API-69..75 handler 구현 (Provider Catalog/등록/수정/sync/binding 조회·생성). |
+| `IMPL-int-handler-02` | `backend-core/internal/httpapi/infra_integrations.go` (planned) | API-76..78 handler 구현 (서비스 조회/snapshot ingest/topology v2). |
+| `IMPL-int-webhook-01` | `backend-core/internal/httpapi/integration_webhook.go` (planned) | API-73 provider webhook 인증/중복검사/ingest enqueue 처리. |
+| `IMPL-int-router-rbac-01` | `backend-core/internal/httpapi/router.go`, `permissions.go`, `internal/domain/rbac.go` (planned) | Integration/Infra endpoint route 등록 + RBAC resource/permission matrix 확장. |
+| `IMPL-int-migration-01..03` | `backend-core/migrations/0000xx_integration_*.sql` (planned) | `integration_providers`, `integration_bindings`, `integration_events`, `infra_nodes`, `infra_services` 스키마 및 인덱스/제약 생성. |
+| `IMPL-int-adapter-01` | `backend-core/internal/integrations/adapters/*` (planned) | provider adapter contract(`pull`, `webhook_ingest`, `normalize`, `health_check`) 및 초기 provider 구현체(우선 Gitea/Jenkins/HomeLab Agent). |
 - **Frontend**: IMPL-frontend-auth-01..06, login-01..03, logout-01, dashboard-01, account-01, admin-01, admin-users-01, admin-org-01, admin-rbac-01, admin-audit-01, org-01, org-comp-01..03, role-01..03, service-auth-01, service-account-01, service-rbac-01, service-audit-01, service-org-01, service-realtime-01, service-api-01, layout-01..02, store-01 (32 항목).
 - **Backend AI**: 미사용 (Phase 4 분석에서 placeholder 만 발견).
 
@@ -286,6 +315,7 @@
 
 - **M2 (28 TC)**: TC-USR-01..06, TC-USR-CRUD-01..03, TC-ACC-01..03, TC-ACC-PROFILE-01, TC-NAV-01..03 + TC-NAV-SIM-01, TC-AUD-01..02, TC-AUTH-NEG-01, TC-AUTH-NOAUTH-01, TC-AUTH-SIGNOUT-REDIR-01, TC-USER-SWITCH-01, TC-RBAC-SUB-01, TC-RBAC-MGR-01, TC-SIGNUP-01..04, TC-PERMISSIONS-SMOKE-01 (`docs/tests/test_cases_m2_auth.md`).
 - **M3 (9 TC)**: TC-ORG-LIST-01..02, TC-ORG-UNIT-01..03, TC-ORG-MEM-01..02, TC-ORG-CHART-01..02 (`docs/tests/test_cases_m3_organization.md`).
+- **M4 Integration draft (10 TC)**: TC-INT-PROVIDER-01..02, TC-INT-INGEST-01..02, TC-INT-BINDING-01..02, TC-INT-HOMELAB-01..03, TC-INT-RESILIENCE-01 (`docs/tests/test_cases_m4_integration.md`, draft).
 - **추가** (spec 파일 안에만 정의되어 TC 카탈로그 외): `auth.spec.ts` 의 TC-AUTH-01..06 등 — 향후 TC 카탈로그로 흡수 권장.
 
 ## 3. 종합 매트릭스 (도메인 그룹 단위)
@@ -306,6 +336,7 @@
 | **CI / 거버넌스** | NFR-1 (no-docker) | UC-GITEA-01 | ADR-0001 §5; [ADR-0003](../adr/0003-no-docker-policy-ci-scope.md) | M2-16 (CI 1차, PR #86); FU-CI-1..4 (PR #87); ADR-0003 (PR #88); 거버넌스 + 매트릭스 1차 (PR #89); 갭 분석 + 메타 헤더 표준화 (본 PR / sprint `claude/work_260513-d`) | (build infra: `.github/workflows/ci.yml`, `scripts/ci-setup.sh`, `infra/idp/*.ci.yaml`); `docs/governance/*`, `docs/traceability/*` | (lint 미도입, FU-CI 향후) | (CI run 자체가 검증) |
 | **Application/Project 도메인** | REQ-FR-APP-001..012; REQ-FR-PROJ-000..010; REQ-NFR-PROJ-001..006 | UC-APP-01..10, UC-PROJ-01..10 | API-41..58 (전 도메인 activated — §2.2 Application/Repository 서브 표). ADR-0011 (RBAC row-scoping, accepted). | M3 backlog (design entry) — RM 발급은 후속 sprint | IMPL-application-{store,handler,router,rbac,repo_ops,rollup,integration}-01 + IMPL-project-handler-01 + 마이그레이션 000012..000018 | UT-application-handler-XX (25 test, sprint -b) + UT-project-handler-XX (8) + UT-integration-handler-XX (6) + UT-application-rollup-XX (4) = 43 test (sprint -b + -c) | (carve out — e2e 다음 sprint) |
 | **Dev Request (DREQ) 도메인** | REQ-FR-DREQ-001..011; REQ-NFR-DREQ-001..006 (§5.5) | UC-DREQ-01..10 | ARCH-DREQ-01..06 (`docs/architecture.md §7`); API-59..65 (§14, **activated** sprint `claude/work_260515-i`, API-62 promote 1차 → **promote-tx 단일 트랜잭션 활성화** sprint `claude/work_260515-m`); API-66..68 intake token admin (§14.10, **activated** sprint `claude/work_260515-o` / ADR-0014). ADR-0012 (외부 수신 인증, accepted, sprint `claude/work_260515-g`) + ADR-0013 (RBAC row-scoping, accepted, sprint `claude/work_260515-m`) + ADR-0014 (intake token admin, accepted, sprint `claude/work_260515-o`). | M5 — Concept staged (sprint `f`) + AuthADR (sprint `g`) + Backend 1차 (sprint `i`) + RBAC-ADR / Promote-Tx (sprint `m`) + Admin backend (sprint `o`). RM-DREQ-XX 본격 발급은 Frontend admin UI (sprint `p`) + E2E sprint 와 함께. | IMPL-dreq-{domain,store,handler,router,rbac,intake_auth,promote_tx,intake_admin}-01 + IMPL-dreq-frontend-{page,widget,table,modal,service,intake_admin}-01 (sprint `j` + `p`) + 마이그레이션 000022 dev_requests + 000023 dev_request_intake_tokens + 000024 RBAC seed (sprint `i`) + 000026 RBAC dev_request_intake_tokens seed (sprint `o`) | UT-dreq-handler-XX (15 + 5 promote + 8 intake admin tests, sprint `i` + `m` + `o`) + UT-dreq-intake_auth-XX (4) + UT-clientIP-01 | (미진입 — TC-DREQ-* 후속 DREQ-E2E sprint) |
+| **External Integration 도메인** | REQ-FR-INT-001..012; REQ-NFR-INT-001..008 (§5.6) | UC-INT-01..14 | ARCH-INT-01..06 (`docs/architecture.md §8`); API-69..78 (`docs/backend_api_contract.md §15`, draft). | M4/M5 설계 진입 + 테스트 초안 완료 (`docs/tests/test_cases_m4_integration.md`) — RM-INT-XX 발급은 후속 | IMPL-int-{domain,store,handler,webhook,router-rbac,migration,adapter}-01 (planned) | UT-int-handler-XX; UT-int-store-XX; UT-int-webhook-XX; UT-int-adapter-XX (planned) | TC-INT-PROVIDER-01..02; TC-INT-INGEST-01..02; TC-INT-BINDING-01..02; TC-INT-HOMELAB-01..03; TC-INT-RESILIENCE-01 (draft) |
 | **M4 (planned, 정의: §2.3.2)** | FR-37–48, 56–57, 60, 90–94 (일부 — Realtime / Task / Admin) | UC-RT-01..02 (확장 예정), UC-APP/UC-PROJ (확장 예정) | API-14 (WebSocket 확장) | RM-M4-01..03, 06..09 (정의: §2.3.2 RM-M4 표) | (미진입 — sprint plan 진입 시 IMPL-task-XX 발급) | (미진입) | (미진입) |
 > Note — 매트릭스 셀의 ID 는 §2 의 단계별 인덱스를 줄여서 표기 (예: `auth-01..07` = `IMPL-auth-01..IMPL-auth-07`). 한 도메인이 여러 단계에 걸쳐 영향을 주므로 정확한 1:1 매핑은 §2 인덱스 (REQ/UC/ARCH/API) + 단계별 문서 본문의 ID 노출 (`document-standards.md` §5) 로 확인.
 
@@ -340,6 +371,7 @@
 | 실시간 (WebSocket) | M3 planned. 현재는 `command.status.updated` 만 publish | M3 진입 시: TC-WS-CONNECT-01, TC-WS-CMD-STATUS-01, TC-WS-RESILIENCE-01 (re-connect) | P3 (M3 의존) |
 | 인프라 토폴로지 React Flow | 정적 데이터 렌더만 e2e 미커버 | TC-INFRA-RENDER-01, TC-INFRA-NODE-CLICK-01, TC-INFRA-GROUP-TOGGLE-01 — sprint `claude/work_260513-i` 가 카탈로그 추가, 실제 spec ts 작성은 후속 sprint | P2 (카탈로그 closed, spec ts open) |
 | Webhook 처리 (gitea HMAC) | 단위테스트 (`UT-httpapi-14`, `UT-gitea-01`) 로 검증, 외부 영향 e2e 어려움 | E2E 후보 없음 — 통합 테스트 (Go test + 모의 webhook server) 가 자연 | P3 (E2E 외 검증으로 충분) |
+| External Integration (provider/binding/homelab) | 설계/TC 초안 완료, 구현·자동화 테스트 미진입 | `docs/tests/test_cases_m4_integration.md` 기준으로 IT 우선 + E2E 4 시나리오(등록/ingest/topology/degraded) 구현 필요 | P1 (M4 진입 게이트) |
 
 ### 5.2 ID 부재 / 매핑 누락
 

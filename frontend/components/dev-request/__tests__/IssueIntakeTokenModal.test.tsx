@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { IssueIntakeTokenModal } from "../IssueIntakeTokenModal";
 import { devRequestTokenService } from "@/lib/services/dev_request_token.service";
@@ -9,12 +9,6 @@ vi.mock("@/lib/services/dev_request_token.service", () => ({
     issue: vi.fn(),
   },
 }));
-
-Object.assign(navigator, {
-  clipboard: {
-    writeText: vi.fn(),
-  },
-});
 
 describe("IssueIntakeTokenModal", () => {
   const mockOnClose = vi.fn();
@@ -26,12 +20,20 @@ describe("IssueIntakeTokenModal", () => {
 
   it("renders form phase initially", () => {
     render(<IssueIntakeTokenModal onClose={mockOnClose} onIssued={mockOnIssued} />);
-    expect(screen.getByText("Issue Intake Token")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Issue Intake Token/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/Client Label/i)).toBeInTheDocument();
   });
 
   it("submits form and transitions to reveal phase", async () => {
     const user = userEvent.setup();
+    if (!navigator.clipboard) {
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: { writeText: async () => {} },
+      });
+    }
+    const writeTextSpy = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined);
+
     const mockToken = {
       token_id: "tok_123",
       client_label: "test_client",
@@ -76,7 +78,7 @@ describe("IssueIntakeTokenModal", () => {
 
     // Test copy
     await user.click(screen.getByRole("button", { name: /Copy/i }));
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith("ptk_abcdef123456");
+    expect(writeTextSpy).toHaveBeenCalledWith("ptk_abcdef123456");
 
     // Close button in reveal phase
     await user.click(screen.getByRole("button", { name: /저장 완료 — 닫기/i }));

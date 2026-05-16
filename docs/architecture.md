@@ -5,7 +5,7 @@
 - 대상 독자: Backend / 프론트엔드 / DevOps 개발자, AI agent, 아키텍처 검토자.
 - 상태: accepted (sections marked Draft/Confirmed 안에서 부분 진화)
 - 작성일: 2026-04-29
-- 최종 수정일: 2026-05-13 (메타 헤더 표준화, sprint `claude/work_260513-d`)
+- 최종 수정일: 2026-05-15 (외부 시스템 연동 설계 초안, §8 ARCH-INT 추가)
 - 관련 문서: [요구사항 정의서](./requirements.md), [백엔드 API 계약](./backend_api_contract.md), [ADR-0001 IdP](./adr/0001-idp-selection.md), [ADR-0002 RBAC](./adr/0002-rbac-policy-edit-api.md), [ADR-0003 No-Docker CI scope](./adr/0003-no-docker-policy-ci-scope.md), [추적성 매트릭스](./traceability/report.md), [프로젝트 프로파일](../ai-workflow/memory/PROJECT_PROFILE.md).
 
 ## 1. 개요
@@ -324,3 +324,136 @@ plain token 은 발급 직후 1회만 admin 에게 노출하고 어디에도 저
 | `dev_request.intake_auth_succeeded` | `dev_request_intake_token` | ADR-0012 §4.1.6 — payload `{token_id, client_label, source_ip}`. token plain 값은 절대 기록 안 함. |
 | `dev_request.intake_auth_failed` | `dev_request_intake_token` 또는 `route` | ADR-0012 §4.1.6 — payload `{reason, source_ip, header_present, token_prefix_4chars}`. token full 값은 절대 기록 안 함. |
 | `auth.row_denied` | `route` | enforceRowOwnership 패턴, 본 도메인 row 거절 |
+
+## 8. 외부 시스템 연동 (Integration) 도메인
+
+컨셉 문서: [`docs/planning/external_system_integration_concept.md`](./planning/external_system_integration_concept.md), 요구사항: [`docs/requirements.md §5.6`](./requirements.md), Usecase: [`UC-INT-01..14`](./planning/system_usecases.md).
+
+### 8.1 컴포넌트 경계 (ARCH-INT-01)
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                    Go Core Integration Domain                        │
+│                                                                      │
+│  Provider Registry ──┬── Adapter Router ──┬── Ingest Pipeline        │
+│  (type,capability,   │                    │   (webhook/pull)         │
+│   enabled,auth,scope)│                    │                           │
+│                      │                    └── Normalize Pipeline       │
+│                      │                        (repo/pr/build/doc/infra)│
+│                      │                                                │
+│                      └── Health/Status Manager (sync_status)         │
+└──────────────────────────────────────────────────────────────────────┘
+           │                         │                           │
+           ▼                         ▼                           ▼
+   External ALM/SCM/CI         External Doc System          HomeLab Agents
+ (Jira/Bitbucket/Gitea/...)    (Confluence 등)             (node/service telemetry)
+```
+
+- Core 는 provider 중립 계약만 유지하고, provider-specific API 차이는 Adapter 내부에서 흡수한다.
+- provider 장애는 격리 경계로 취급해 전체 파이프라인 중단으로 확산되지 않게 한다.
+- `Adapter Router` 는 provider별 webhook 검증 전략을 분리한다.
+  - 예: HMAC-SHA256, token compare, provider SDK verifier
+  - 공통 contract: `Verify(headers, body) -> (ok, reason)` 를 제공하고 API-73 ingest 전에 실행
+
+### 8.2 동기화 전략 (ARCH-INT-02)
+
+- 두 경로를 병행한다.
+  - 실시간 경로: webhook ingest
+  - 보정 경로: scheduled pull (reconciliation)
+- 동일 자원에 대해 idempotency key를 사용해 중복 처리/중복 저장을 방지한다.
+- 정규화 결과는 snapshot + event history 로 분리 저장한다.
+- 동기화 우선순위 규칙:
+  - 동일 `resource_type + external_id` 에 대해 `occurred_at` 이 더 최신인 이벤트를 우선한다.
+  - `occurred_at` 이 같으면 `ingested_at` 이 더 늦은 이벤트를 최종 반영한다.
+  - pull 경로는 webhook 미수신 구간 보정만 수행하며, 최신 watermark 이후 데이터만 처리한다.
+- 충돌 정책:
+  - 외부 SoT 필드와 DevHub 내부 주석성 필드가 충돌할 때 SoT 필드는 외부 원천값 우선.
+  - 충돌 감지 시 `integration.conflict.detected` audit 을 기록하고 운영 화면에 경고 배지를 노출한다.
+
+### 8.3 데이터 모델 초안 (ARCH-INT-03)
+
+```text
+integration_providers
+  provider_id          uuid PK
+  provider_key         text UNIQUE            -- jira, confluence, gitea, forgejo, bitbucket, jenkins, bamboo, homelab
+  provider_type        text NOT NULL          -- alm | scm | ci_cd | doc | infra
+  display_name         text NOT NULL
+  enabled              boolean NOT NULL
+  auth_mode            text NOT NULL          -- token | basic | oauth2 | app_password | agent
+  capabilities         jsonb NOT NULL         -- ["repo.read","pr.read",...]
+  sync_status          text NOT NULL          -- requested | verifying | active | degraded | disconnected
+  last_sync_at         timestamptz NULL
+  last_error_code      text NULL
+  created_at, updated_at timestamptz NOT NULL
+
+integration_bindings
+  binding_id           uuid PK
+  scope_type           text NOT NULL          -- application | project
+  scope_id             text NOT NULL
+  provider_id          uuid NOT NULL REFERENCES integration_providers(provider_id)
+  external_key         text NOT NULL
+  policy               text NOT NULL          -- summary_only | execution_system | bidirectional_candidate
+  created_at, updated_at timestamptz NOT NULL
+  UNIQUE(scope_type, scope_id, provider_id, external_key)
+
+infra_nodes
+  node_id              text PK
+  provider_id          uuid NOT NULL REFERENCES integration_providers(provider_id)
+  hostname             text NOT NULL
+  ip_address           text NOT NULL
+  environment          text NOT NULL          -- homelab | stage | prod
+  status               text NOT NULL          -- stable | warning | down
+  metrics              jsonb NOT NULL         -- cpu/mem/disk/load
+  observed_at          timestamptz NOT NULL
+
+infra_services
+  service_id           text PK
+  node_id              text NOT NULL REFERENCES infra_nodes(node_id)
+  name                 text NOT NULL
+  version              text NULL
+  port                 int NULL
+  health_status        text NOT NULL          -- healthy | degraded | down
+  metadata             jsonb NOT NULL
+  observed_at          timestamptz NOT NULL
+```
+
+- `capabilities` 는 provider type 별 최소 표준 키를 포함한다.
+  - `alm`: `issue.read`, `epic.read`, `issue.link`
+  - `scm`: `repo.read`, `pr.read`, `branch.read`, `webhook.ingest`
+  - `ci_cd`: `build.read`, `deploy.read`, `job.rerun`
+  - `doc`: `page.read`, `space.read`, `doc.link`
+  - `infra`: `node.read`, `service.read`, `snapshot.ingest`
+- `integration_bindings.policy` 는 scope-연동 책임을 의미한다.
+  - `summary_only`: 읽기 전용 요약
+  - `execution_system`: 실행/상태 판단의 기준 시스템
+  - `bidirectional_candidate`: write-back 후보(ADR 승인 전 비활성)
+
+### 8.4 보안/권한 경계 (ARCH-INT-04)
+
+- Provider credential 은 평문 저장을 금지한다 (encrypted at rest 또는 external secret manager 참조).
+- 연동 생성/수정/비활성화는 `system_admin` 권한만 허용한다.
+- 조회는 scope 기반으로 제한한다:
+  - `system_admin`: 전체 조회
+  - 일반 역할: 자신의 접근 가능한 Application/Project scope 한정
+- 감사로그 action namespace: `integration.*`, `infra.node.*`, `infra.service.*`
+
+### 8.5 홈랩 수집 경계 (ARCH-INT-05)
+
+- 홈랩은 infra provider 로 취급한다 (`provider_type=infra`).
+- 수집 방식은 1차에 Agent Push 를 기본 후보로 둔다.
+  - Agent 가 node/service 상태를 DevHub ingest endpoint 로 전송
+  - DevHub 는 마지막 스냅샷 + 상태 변경 이력을 동시 관리
+- 수집 실패 시 provider 상태를 `degraded` 로 전이하고 경고를 노출한다.
+- Agent payload 최소 계약:
+  - `agent_id`, `snapshot_at`, `nodes[]`, `services[]`, `trace_id`
+  - 각 node/service 는 `observed_at` 필수
+  - 동일 `agent_id + snapshot_at` 재전송은 idempotent 처리
+
+### 8.6 장애 격리 및 복구 (ARCH-INT-06)
+
+- provider별 retry/backoff 정책을 독립적으로 적용한다.
+- 특정 provider 의 반복 실패는 circuit-open 상태로 격리하고, 나머지 provider 파이프라인은 지속 처리한다.
+- 운영자는 provider 단위로 수동 재동기화(re-sync) 요청을 트리거할 수 있어야 한다.
+- `degraded` 전이 임계값은 설정 가능(configurable)해야 한다.
+  - 기본 예시: `failure_threshold=3`, `window=5m`, `cooldown=10m`
+  - 홈랩/사내망 환경 특성에 맞춰 provider별 override 를 허용한다.
