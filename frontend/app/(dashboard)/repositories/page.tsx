@@ -6,7 +6,6 @@ import {
   GitBranch, 
   GitCommit, 
   GitPullRequest, 
-  Github, 
   Globe, 
   Heart,
   ExternalLink,
@@ -15,8 +14,10 @@ import {
   Activity,
   Loader2
 } from "lucide-react";
+import Link from "next/link";
 import { DashboardHeader } from "@/components/ui/DashboardHeader";
 import { Badge } from "@/components/ui/Badge";
+import { FilterBar } from "@/components/ui/FilterBar";
 import { repositoryService, Repository, RepositoryActivity } from "@/lib/services/repository.service";
 
 interface RepositoryWithActivity extends Repository {
@@ -27,6 +28,8 @@ export default function RepositoriesStatusPage() {
   const [repos, setRepos] = useState<RepositoryWithActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [visibilityFilter, setVisibilityFilter] = useState("all");
 
   useEffect(() => {
     const loadData = async () => {
@@ -53,6 +56,14 @@ export default function RepositoriesStatusPage() {
     };
     loadData();
   }, []);
+
+  const filteredRepos = repos.filter((repo) => {
+    const matchesSearch = repo.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                         repo.owner_login.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesVisibility = visibilityFilter === "all" || 
+                             (visibilityFilter === "private" ? repo.private : !repo.private);
+    return matchesSearch && matchesVisibility;
+  });
 
   const totalRepos = repos.length;
   const activePRs = repos.reduce((acc, repo) => acc + (repo.activity?.pr_event_count || 0), 0);
@@ -85,7 +96,7 @@ export default function RepositoriesStatusPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: "Total Repositories", value: totalRepos.toString(), icon: Github, color: "text-foreground" },
+          { label: "Total Repositories", value: totalRepos.toString(), icon: Globe, color: "text-foreground" },
           { label: "Active PRs (30d)", value: activePRs.toString(), icon: GitPullRequest, color: "text-blue-500" },
           { label: "Total Contributors", value: totalContributors.toString(), icon: Users, color: "text-purple-500" },
           { label: "Build Success Rate", value: `${avgBuildSuccess}%`, icon: Activity, color: "text-emerald-500" },
@@ -108,8 +119,20 @@ export default function RepositoriesStatusPage() {
         ))}
       </div>
 
+      <FilterBar 
+        onSearch={setSearchQuery}
+        onFilterChange={setVisibilityFilter}
+        activeFilter={visibilityFilter}
+        filterOptions={[
+          { label: "All Repos", value: "all" },
+          { label: "Public", value: "public" },
+          { label: "Private", value: "private" },
+        ]}
+        placeholder="Search repositories by name or owner..."
+      />
+
       <div className="grid gap-6">
-        {repos.map((repo, i) => (
+        {filteredRepos.map((repo, i) => (
           <motion.div
             key={repo.id}
             initial={{ opacity: 0, x: -20 }}
@@ -123,8 +146,10 @@ export default function RepositoriesStatusPage() {
               </div>
               <div>
                 <div className="flex items-center gap-3 mb-1">
-                  <h3 className="text-lg font-bold text-foreground dark:text-primary-foreground">{repo.name}</h3>
-                  <Badge variant={repo.private ? "secondary" : "outline"}>{repo.private ? "Private" : "Public"}</Badge>
+                  <Link href={`/repositories/${repo.id}`} className="hover:underline decoration-primary underline-offset-4 decoration-2">
+                    <h3 className="text-lg font-bold text-foreground dark:text-primary-foreground">{repo.name}</h3>
+                  </Link>
+                  <Badge variant={repo.private ? "secondary" : "glass"}>{repo.private ? "Private" : "Public"}</Badge>
                 </div>
                 <div className="flex items-center gap-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                   <span className="flex items-center gap-1"><GitBranch className="w-3 h-3" /> {repo.default_branch}</span>
@@ -147,20 +172,30 @@ export default function RepositoriesStatusPage() {
                   {repo.activity ? `${(repo.activity.build_success_rate * 100).toFixed(1)}%` : "N/A"}
                 </p>
               </div>
-              <a 
-                href={repo.html_url} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="p-3 rounded-xl hover:bg-muted/30 transition-all text-muted-foreground hover:text-primary"
-              >
-                <ExternalLink className="w-5 h-5" />
-              </a>
+              <div className="flex items-center gap-2">
+                <Link 
+                  href={`/repositories/${repo.id}`}
+                  className="p-3 rounded-xl hover:bg-primary/10 text-primary transition-all"
+                  title="Internal Report"
+                >
+                  <Activity className="w-5 h-5" />
+                </Link>
+                <a 
+                  href={repo.html_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="p-3 rounded-xl hover:bg-muted/30 transition-all text-muted-foreground hover:text-primary"
+                  title="SCM Link"
+                >
+                  <ExternalLink className="w-5 h-5" />
+                </a>
+              </div>
             </div>
           </motion.div>
         ))}
-        {repos.length === 0 && !loading && (
+        {filteredRepos.length === 0 && !loading && (
           <div className="text-center py-20 glass-card">
-            <p className="text-muted-foreground">No repositories found.</p>
+            <p className="text-muted-foreground font-black uppercase tracking-widest text-xs opacity-50">No repositories matching your filters</p>
           </div>
         )}
       </div>

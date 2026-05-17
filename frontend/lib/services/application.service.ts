@@ -56,6 +56,12 @@ class ApplicationService {
     return body.data;
   }
 
+  async getApplication(applicationId: string): Promise<Application> {
+    const url = `${this.baseUrl}/api/v1/applications/${applicationId}`;
+    const body = await apiClient<any>("GET", url);
+    return body.data;
+  }
+
   async getApplicationRollup(applicationId: string): Promise<ApplicationRollup> {
     const url = `${this.baseUrl}/api/v1/applications/${applicationId}/rollup`;
     const body = await apiClient<RollupResult>("GET", url);

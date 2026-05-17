@@ -13,8 +13,10 @@ import {
   ExternalLink,
   Loader2
 } from "lucide-react";
+import Link from "next/link";
 import { DashboardHeader } from "@/components/ui/DashboardHeader";
 import { Badge } from "@/components/ui/Badge";
+import { FilterBar } from "@/components/ui/FilterBar";
 import { applicationService, Application, ApplicationRollup } from "@/lib/services/application.service";
 
 interface ApplicationWithRollup extends Application {
@@ -25,6 +27,8 @@ export default function ApplicationsStatusPage() {
   const [apps, setApps] = useState<ApplicationWithRollup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   useEffect(() => {
     const loadData = async () => {
@@ -51,6 +55,13 @@ export default function ApplicationsStatusPage() {
     };
     loadData();
   }, []);
+
+  const filteredApps = apps.filter((app) => {
+    const matchesSearch = app.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                         app.key.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === "all" || app.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   const totalApps = apps.length;
   const avgSuccessRate = apps.length > 0 
@@ -105,8 +116,22 @@ export default function ApplicationsStatusPage() {
         ))}
       </div>
 
+      <FilterBar 
+        onSearch={setSearchQuery}
+        onFilterChange={setStatusFilter}
+        activeFilter={statusFilter}
+        filterOptions={[
+          { label: "All Status", value: "all" },
+          { label: "Active", value: "active" },
+          { label: "Planning", value: "planning" },
+          { label: "On Hold", value: "on_hold" },
+          { label: "Archived", value: "archived" },
+        ]}
+        placeholder="Search applications by name or key..."
+      />
+
       <div className="grid gap-6">
-        {apps.map((app, i) => (
+        {filteredApps.map((app, i) => (
           <motion.div
             key={app.id}
             initial={{ opacity: 0, x: -20 }}
@@ -120,11 +145,13 @@ export default function ApplicationsStatusPage() {
               </div>
               <div>
                 <div className="flex items-center gap-3 mb-1">
-                  <h3 className="text-lg font-bold text-foreground dark:text-primary-foreground">{app.name}</h3>
+                  <Link href={`/applications/${app.id}`} className="hover:underline decoration-primary underline-offset-4 decoration-2">
+                    <h3 className="text-lg font-bold text-foreground dark:text-primary-foreground">{app.name}</h3>
+                  </Link>
                   <Badge variant={app.status === "active" ? "success" : "warning"} dot>{app.status}</Badge>
                 </div>
                 <div className="flex items-center gap-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                  <span className="flex items-center gap-1"><Cpu className="w-3 h-3" /> Build: {(app.rollup?.build_success_rate || 0) * 100}%</span>
+                  <span className="flex items-center gap-1"><Cpu className="w-3 h-3" /> Build: {((app.rollup?.build_success_rate || 0) * 100).toFixed(1)}%</span>
                   <span>•</span>
                   <span className="flex items-center gap-1"><ShieldCheck className="w-3 h-3" /> Quality: {app.rollup?.quality_score?.toFixed(1) || "N/A"}</span>
                   <span>•</span>
@@ -146,15 +173,15 @@ export default function ApplicationsStatusPage() {
                   {app.rollup?.quality_score?.toFixed(2) || "N/A"}
                 </p>
               </div>
-              <button className="p-3 rounded-xl hover:bg-muted/30 transition-all text-muted-foreground hover:text-primary">
+              <Link href={`/applications/${app.id}`} className="p-3 rounded-xl hover:bg-muted/30 transition-all text-muted-foreground hover:text-primary">
                 <ExternalLink className="w-5 h-5" />
-              </button>
+              </Link>
             </div>
           </motion.div>
         ))}
-        {apps.length === 0 && !loading && (
+        {filteredApps.length === 0 && !loading && (
           <div className="text-center py-20 glass-card">
-            <p className="text-muted-foreground">No applications found.</p>
+            <p className="text-muted-foreground font-black uppercase tracking-widest text-xs opacity-50">No applications matching your filters</p>
           </div>
         )}
       </div>

@@ -14,15 +14,20 @@ import {
   Users,
   Loader2
 } from "lucide-react";
+import Link from "next/link";
 import { DashboardHeader } from "@/components/ui/DashboardHeader";
 import { Badge } from "@/components/ui/Badge";
-import { projectService, Project } from "@/lib/services/project.service";
+import { FilterBar } from "@/components/ui/FilterBar";
+import { projectService } from "@/lib/services/project.service";
+import type { Project } from "@/lib/services/project.types";
 import { repositoryService } from "@/lib/services/repository.service";
 
 export default function ProjectsStatusPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   useEffect(() => {
     const loadData = async () => {
@@ -39,6 +44,14 @@ export default function ProjectsStatusPage() {
     };
     loadData();
   }, []);
+
+  const filteredProjects = projects.filter((project) => {
+    const matchesSearch = project.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                         project.key.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         (project.description || "").toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === "all" || project.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   const totalProjects = projects.length;
   const activeProjects = projects.filter(p => p.status === "active").length;
@@ -59,11 +72,12 @@ export default function ProjectsStatusPage() {
         titlePrefix="Project"
         titleGradient="Milestones (과제 현황)"
         subtitle="Tracking development projects, milestones, and delivery timelines."
-      >
-        <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-opacity">
-          <Plus className="w-4 h-4" /> New Project
-        </button>
-      </DashboardHeader>
+        actions={
+          <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-opacity">
+            <Plus className="w-4 h-4" /> New Project
+          </button>
+        }
+      />
 
       {error && (
         <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
@@ -96,8 +110,23 @@ export default function ProjectsStatusPage() {
         ))}
       </div>
 
+      <FilterBar 
+        onSearch={setSearchQuery}
+        onFilterChange={setStatusFilter}
+        activeFilter={statusFilter}
+        filterOptions={[
+          { label: "All Projects", value: "all" },
+          { label: "Active", value: "active" },
+          { label: "Planning", value: "planning" },
+          { label: "On Hold", value: "on_hold" },
+          { label: "Archived", value: "archived" },
+          { label: "Closed", value: "closed" },
+        ]}
+        placeholder="Search projects by name, key, or description..."
+      />
+
       <div className="grid gap-6">
-        {projects.map((project, i) => (
+        {filteredProjects.map((project, i) => (
           <motion.div
             key={project.id}
             initial={{ opacity: 0, y: 20 }}
@@ -113,7 +142,9 @@ export default function ProjectsStatusPage() {
                     project.status === "planning" ? "warning" : 
                     "secondary"
                   } dot>{project.status}</Badge>
-                  <h3 className="text-xl font-bold text-foreground dark:text-primary-foreground">{project.name}</h3>
+                  <Link href={`/projects/${project.id}`} className="hover:underline decoration-primary underline-offset-4 decoration-2">
+                    <h3 className="text-xl font-bold text-foreground dark:text-primary-foreground">{project.name}</h3>
+                  </Link>
                 </div>
                 <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
                   {project.description || "No description provided."}
@@ -141,17 +172,20 @@ export default function ProjectsStatusPage() {
                   <button className="p-2 rounded-lg hover:bg-muted/30 transition-colors">
                     <MoreHorizontal className="w-5 h-5 text-muted-foreground" />
                   </button>
-                  <button className="px-4 py-2 rounded-lg bg-muted/30 border border-border text-xs font-bold hover:bg-muted/50 transition-all">
+                  <Link 
+                    href={`/projects/${project.id}`}
+                    className="px-4 py-2 rounded-lg bg-muted/30 border border-border text-xs font-bold hover:bg-muted/50 transition-all"
+                  >
                     View Details
-                  </button>
+                  </Link>
                 </div>
               </div>
             </div>
           </motion.div>
         ))}
-        {projects.length === 0 && !loading && (
+        {filteredProjects.length === 0 && !loading && (
           <div className="text-center py-20 glass-card">
-            <p className="text-muted-foreground">No projects found.</p>
+            <p className="text-muted-foreground font-black uppercase tracking-widest text-xs opacity-50">No projects matching your filters</p>
           </div>
         )}
       </div>

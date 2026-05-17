@@ -42,6 +42,11 @@ class RepositoryService {
     return body.data;
   }
 
+  async getRepository(repositoryId: number): Promise<Repository | undefined> {
+    const repos = await this.listRepositories();
+    return repos.find(r => r.id === repositoryId);
+  }
+
   async getRepositoryActivity(repositoryId: number): Promise<RepositoryActivity> {
     const url = `${this.baseUrl}/api/v1/repositories/${repositoryId}/activity`;
     const body = await apiClient<ActivityResult>("GET", url);

@@ -1,11 +1,11 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-05-16",
+  "generated_at": "2026-05-17",
   "source_of_truth": {
     "project_profile_path": "ai-workflow/memory/PROJECT_PROFILE.md",
     "session_handoff_path": "ai-workflow/memory/gemini/phase6/session_handoff.md",
     "work_backlog_index_path": "ai-workflow/memory/gemini/phase6/work_backlog.md",
-    "latest_backlog_path": "ai-workflow/memory/gemini/phase6/backlog/2026-05-16.md",
+    "latest_backlog_path": "ai-workflow/memory/gemini/phase6/backlog/2026-05-17.md",
     "repository_assessment_path": "ai-workflow/memory/repository_assessment.md"
   },
   "project": {
@@ -22,9 +22,9 @@
     "runtime_checks": "docker-compose ps"
   },
   "session": {
-    "current_baseline": "RBAC UI Sync & Dashboard Accessibility Fixes",
-    "current_axis": "Dashboard Refactoring & Status Domain Overhaul",
-    "current_focus": "Rebranding Dashboards and Integrating Real-time Data for Status Views",
+    "current_baseline": "DREQ E2E Green Pass & Next.js Build Stabilization",
+    "current_axis": "E2E Verification, Projects Refinement & Build Optimization",
+    "current_focus": "RBAC E2E 검증, 과제 상세 API 동적 연동, Next.js Turbopack/Standalone Docker 빌드 수정, DREQ SQL/RBAC 마이그레이션 수동 반영, DREQ spec 100% 합격",
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
@@ -33,30 +33,47 @@
       "REPOSITORY-STATUS-VIEW",
       "PROJECT-STATUS-VIEW",
       "REALTIME-DATA-INTEGRATION",
-      "SIDEBAR-NAVIGATION-UPDATE"
+      "PROJECT-SERVICE-UNIT-TESTS",
+      "TRACEABILITY-REPORT-UPDATE",
+      "FILTERBAR-USERS-PAGE",
+      "FILTERBAR-ADMIN-APPLICATIONS-PAGE",
+      "FILTERBAR-DEV-REQUESTS-PAGE",
+      "AUDIT-LOG-REDESIGN",
+      "DETAIL-PAGE-METRIC-REFINEMENT",
+      "RBAC-E2E-VERIFICATION",
+      "PROJECT-DETAIL-REALTIME-API",
+      "NEXTJS-TURBOPACK-BUILD-FIX",
+      "NEXTJS-DOCKER-STANDALONE-FIX",
+      "DREQ-SQL-RBAC-MIGRATION",
+      "DREQ-LIFECYCLE-E2E-GREEN"
     ],
     "environment_constraints": [
       "Docker/Docker-compose required for full system",
-      "Backend Core API on :8080 (REST + WS)"
+      "Backend Core API on :8080 (REST + WS)",
+      "Local PostgreSQL on :5433"
     ]
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/gemini/phase6/backlog/2026-05-16.md",
-    "task_count": 25,
+    "latest_backlog_path": "ai-workflow/memory/gemini/phase6/backlog/2026-05-17.md",
+    "task_count": 35,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
       "TASK-FRONTEND-PHASE6-DASHBOARD-OVERHAUL",
+      "TASK-FRONTEND-PHASE6-PROJECT-SERVICE-TESTS",
       "TASK-FRONTEND-PHASE6-RBAC-SYNC",
       "TASK-FRONTEND-PHASE5-ORG",
-      "TASK-FRONTEND-PHASE12-API"
+      "TASK-FRONTEND-PHASE12-API",
+      "TASK-FRONTEND-PHASE6-FILTER-STANDARDIZATION",
+      "TASK-FRONTEND-PHASE6-DREQ-E2E-STABILIZATION",
+      "TASK-FRONTEND-PHASE6-BUILD-STABILIZATION"
     ]
   },
   "next_documents": [
     "docs/README.md",
     "ai-workflow/memory/gemini/phase6/session_handoff.md",
     "docs/backend_api_contract.md",
-    "ai-workflow/memory/gemini/phase6/backlog/2026-05-16.md"
+    "ai-workflow/memory/gemini/phase6/backlog/2026-05-17.md"
   ],
   "repository_assessment": {
     "path": "ai-workflow/memory/repository_assessment.md",
