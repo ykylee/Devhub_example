@@ -80,6 +80,8 @@
 | TC-INT-INGEST-01 | PASS | `TestIntegrationProviderWebhook_Happy` (ingest accepted) |
 | TC-INT-INGEST-02 | PASS | `TestIntegrationProviderWebhook_InvalidSignature` (401) |
 | TC-INT-BINDING-01 | PASS | `TestCreateIntegrationBinding_Happy` |
-| TC-INT-BINDING-02 | 미진입 | role별 e2e 권한 시나리오는 UI/플로우 구현 후 수행 |
-| TC-INT-HOMELAB-01..03 | 미진입 | API-76..78 draft 단계 (미구현) |
-| TC-INT-RESILIENCE-01 | 미진입 | provider failover/degraded 시뮬레이션 후속 |
+| TC-INT-BINDING-02 | PASS | `TestCreateIntegrationBinding_ForbiddenForDeveloperRole` (403) |
+| TC-INT-HOMELAB-01 | PASS | `TestInfraServicesSnapshotIngestAndRead` (202 + 서비스 조회 반영) |
+| TC-INT-HOMELAB-02 | PASS | `TestInfraServicesSnapshotRejectsUnauthorized` (401) |
+| TC-INT-HOMELAB-03 | PASS | `TestInfraTopologyV2ContainsMeta`, `TestInfraServicesHydratesFromPersistedSnapshot` (meta + 영속 스냅샷 복원) |
+| TC-INT-RESILIENCE-01 | PASS | `TestIntegrationProviderWebhook_DuplicateDeliveryConflict`(409) + `TestIntegrationProviderWebhook_InvalidSignatureMarksOnlyTargetProviderDegraded`(provider 격리 degraded 전이) |

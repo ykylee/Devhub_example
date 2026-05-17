@@ -90,12 +90,16 @@ func verifyIntegrationWebhookSignature(provider domain.IntegrationProvider, body
 	if credentials == "" {
 		return false
 	}
-	// phase-1 verifier strategy:
-	// - hmac_sha256:<secret> => HMAC signature verification
+	// verifier strategy:
+	// - hmac_sha256:<secret> => generic HMAC signature verification
+	// - provider_sdk:<provider>[:<secret>] => provider-bound verifier routing
 	// - otherwise => shared token constant-time compare
 	if strings.HasPrefix(credentials, "hmac_sha256:") {
 		secret := strings.TrimPrefix(credentials, "hmac_sha256:")
 		return gitea.VerifySignature(body, secret, signature)
+	}
+	if strings.HasPrefix(credentials, "provider_sdk:") {
+		return verifyProviderSDKWebhookSignature(provider, body, signature, strings.TrimPrefix(credentials, "provider_sdk:"))
 	}
 	if subtle.ConstantTimeCompare([]byte(signature), []byte(credentials)) == 1 {
 		return true
@@ -105,6 +109,57 @@ func verifyIntegrationWebhookSignature(provider domain.IntegrationProvider, body
 		return subtle.ConstantTimeCompare([]byte(token), []byte(credentials)) == 1
 	}
 	return false
+}
+
+func (h *Handler) updateProviderSyncStateBestEffort(c *gin.Context, provider domain.IntegrationProvider, status, errorCode string) {
+	storeI, ok := h.applicationStoreOrUnavailable(c)
+	if !ok {
+		return
+	}
+	updated := provider
+	updated.SyncStatus = status
+	updated.LastErrorCode = strings.TrimSpace(errorCode)
+	now := time.Now().UTC()
+	updated.LastSyncAt = &now
+	_, _ = storeI.UpdateIntegrationProvider(c.Request.Context(), updated)
+}
+
+func verifyProviderSDKWebhookSignature(provider domain.IntegrationProvider, body []byte, signature, strategy string) bool {
+	parts := strings.SplitN(strings.TrimSpace(strategy), ":", 2)
+	providerKey := strings.TrimSpace(provider.ProviderKey)
+	secret := ""
+	if len(parts) > 0 && strings.TrimSpace(parts[0]) != "" {
+		providerKey = strings.TrimSpace(parts[0])
+	}
+	if len(parts) == 2 {
+		secret = strings.TrimSpace(parts[1])
+	}
+	if secret == "" {
+		secret = strings.TrimSpace(provider.CredentialsRef)
+	}
+	if strings.HasPrefix(secret, "provider_sdk:") {
+		secretParts := strings.SplitN(strings.TrimPrefix(secret, "provider_sdk:"), ":", 2)
+		if len(secretParts) == 2 {
+			secret = strings.TrimSpace(secretParts[1])
+		}
+	}
+	if secret == "" {
+		return false
+	}
+	switch normalizeProviderSDKKey(providerKey) {
+	case "gitea", "forgejo", "github", "gitlab", "jira", "bitbucket", "jenkins", "bamboo":
+		return gitea.VerifySignature(body, secret, signature)
+	default:
+		return false
+	}
+}
+
+func normalizeProviderSDKKey(v string) string {
+	v = strings.ToLower(strings.TrimSpace(v))
+	if i := strings.Index(v, "-"); i > 0 {
+		return v[:i]
+	}
+	return v
 }
 
 // API-69
@@ -341,6 +396,7 @@ func (h *Handler) ingestIntegrationProviderWebhook(c *gin.Context) {
 		return
 	}
 	if !verifyIntegrationWebhookSignature(provider, payload, signature) {
+		h.updateProviderSyncStateBestEffort(c, provider, "degraded", string(domain.SyncErrorWebhookSignatureInvalid))
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"status": "rejected",
 			"error":  "invalid webhook signature",
@@ -376,6 +432,7 @@ func (h *Handler) ingestIntegrationProviderWebhook(c *gin.Context) {
 			return
 		}
 	}
+	h.updateProviderSyncStateBestEffort(c, provider, "active", "")
 	h.recordAuditBestEffort(c, "integration.provider.webhook_ingested", "integration_provider", provider.ID, map[string]any{
 		"provider_key": providerKey,
 		"event_type":   eventType,

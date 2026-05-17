@@ -11,6 +11,7 @@ import (
 	"github.com/devhub/backend-core/internal/domain"
 	"github.com/devhub/backend-core/internal/store"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type WebhookEventStore interface {
@@ -123,6 +124,9 @@ type RouterConfig struct {
 	// value makes the route respond 503 so a forgotten env in production
 	// fails loud. Wired from cfg.KratosWebhookToken via main.go.
 	KratosWebhookToken  string
+	InfraAgentToken     string
+	HomeLabProviderKey  string
+	HomeLabDegradedRaw  string
 	EventStore          WebhookEventStore
 	EventProcessor      WebhookEventProcessor
 	HealthStore         HealthStore
@@ -191,6 +195,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 
 	handler := Handler{cfg: cfg}
 	router.GET("/health", handler.health)
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	v1 := router.Group("/api/v1")
 	v1.Use(handler.requireRequestID)
@@ -202,6 +207,9 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.GET("/infra/edges", handler.infraEdges)
 	v1.GET("/infra/nodes", handler.infraNodes)
 	v1.GET("/infra/topology", handler.infraTopology)
+	v1.GET("/infra/services", handler.listInfraServices)
+	v1.POST("/infra/services/snapshot", handler.ingestInfraServicesSnapshot)
+	v1.GET("/infra/topology/v2", handler.infraTopologyV2)
 	v1.GET("/repositories", handler.repositories)
 	v1.GET("/issues", handler.issues)
 	v1.GET("/pull-requests", handler.pullRequests)

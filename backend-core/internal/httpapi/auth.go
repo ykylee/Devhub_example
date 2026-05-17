@@ -28,6 +28,7 @@ var publicAPIPaths = map[string]bool{
 	"/api/v1/integrations/gitea/webhooks":                      true,
 	"/api/v1/integration/providers/:provider_id/webhook":       true,
 	"/api/v1/integrations/kratos/hook/settings/password/after": true,
+	"/api/v1/infra/services/snapshot":                          true,
 	"/api/v1/auth/login":                                       true,
 	"/api/v1/auth/logout":                                      true,
 	"/api/v1/auth/token":                                       true,

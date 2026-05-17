@@ -47,6 +47,31 @@ type Config struct {
 	// production environments fail loud instead of silently accepting
 	// every payload. Toggle with DEVHUB_KRATOS_WEBHOOK_TOKEN.
 	KratosWebhookToken string
+	// InfraAgentToken is the shared secret used by HomeLab agents on
+	// POST /api/v1/infra/services/snapshot (API-77). Empty value keeps the
+	// endpoint unavailable (503) so ingest auth misconfiguration fails loud.
+	InfraAgentToken string
+	// HomeLabDegradedStatuses configures which health_status values should be
+	// treated as degraded for adapter policy (comma-separated, e.g.
+	// "warning,degraded,down").
+	HomeLabDegradedStatuses string
+	// HomeLabProviderKey is the provider identifier used in degraded_providers
+	// emitted by HomeLab adapter policy.
+	HomeLabProviderKey string
+	// HomeLabPullEnabled enables background pull-and-ingest loop.
+	HomeLabPullEnabled bool
+	// HomeLabPullInterval controls pull loop interval (time.ParseDuration format).
+	HomeLabPullInterval string
+	// HomeLabPullFile points to a local JSON fixture file for File puller mode.
+	HomeLabPullFile string
+	// HomeLabPullURL points to HomeLab agent snapshot endpoint for HTTP pull mode.
+	HomeLabPullURL string
+	// HomeLabPullToken is an optional bearer token for HTTP pull mode.
+	HomeLabPullToken string
+	// HomeLabPullHTTPRetryMax is max retry count for HTTP pull mode.
+	HomeLabPullHTTPRetryMax int
+	// HomeLabPullHTTPRetryBackoff controls retry backoff duration (time.ParseDuration format).
+	HomeLabPullHTTPRetryBackoff string
 }
 
 func Load() Config {
@@ -68,6 +93,16 @@ func Load() Config {
 		KratosPublicURL:              strings.TrimSpace(os.Getenv("DEVHUB_KRATOS_PUBLIC_URL")),
 		KratosAdminURL:               strings.TrimSpace(os.Getenv("DEVHUB_KRATOS_ADMIN_URL")),
 		KratosWebhookToken:           strings.TrimSpace(os.Getenv("DEVHUB_KRATOS_WEBHOOK_TOKEN")),
+		InfraAgentToken:              strings.TrimSpace(os.Getenv("DEVHUB_INFRA_AGENT_TOKEN")),
+		HomeLabDegradedStatuses:      strings.TrimSpace(os.Getenv("DEVHUB_HOMELAB_DEGRADED_STATUSES")),
+		HomeLabProviderKey:           strings.TrimSpace(os.Getenv("DEVHUB_HOMELAB_PROVIDER_KEY")),
+		HomeLabPullEnabled:           envBool("DEVHUB_HOMELAB_PULL_ENABLED"),
+		HomeLabPullInterval:          strings.TrimSpace(os.Getenv("DEVHUB_HOMELAB_PULL_INTERVAL")),
+		HomeLabPullFile:              strings.TrimSpace(os.Getenv("DEVHUB_HOMELAB_PULL_FILE")),
+		HomeLabPullURL:               strings.TrimSpace(os.Getenv("DEVHUB_HOMELAB_PULL_URL")),
+		HomeLabPullToken:             strings.TrimSpace(os.Getenv("DEVHUB_HOMELAB_PULL_TOKEN")),
+		HomeLabPullHTTPRetryMax:      envInt("DEVHUB_HOMELAB_PULL_HTTP_RETRY_MAX"),
+		HomeLabPullHTTPRetryBackoff:  strings.TrimSpace(os.Getenv("DEVHUB_HOMELAB_PULL_HTTP_RETRY_BACKOFF")),
 	}
 }
 
@@ -96,4 +131,9 @@ func envOrDefault(key, fallback string) string {
 func envBool(key string) bool {
 	enabled, _ := strconv.ParseBool(strings.TrimSpace(os.Getenv(key)))
 	return enabled
+}
+
+func envInt(key string) int {
+	n, _ := strconv.Atoi(strings.TrimSpace(os.Getenv(key)))
+	return n
 }

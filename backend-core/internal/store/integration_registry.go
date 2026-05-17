@@ -246,6 +246,9 @@ SET display_name = $2,
 	enabled = $3,
 	credentials_ref = $4,
 	capabilities = $5::jsonb,
+	sync_status = $6,
+	last_sync_at = $7,
+	last_error_code = NULLIF($8, ''),
 	updated_at = NOW()
 WHERE provider_id = $1::uuid
 RETURNING
@@ -270,6 +273,9 @@ RETURNING
 		p.Enabled,
 		p.CredentialsRef,
 		string(caps),
+		p.SyncStatus,
+		p.LastSyncAt,
+		p.LastErrorCode,
 	))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return domain.IntegrationProvider{}, ErrNotFound

@@ -29,6 +29,15 @@ type memoryApplicationStore struct {
 	integrationProviders map[string]domain.IntegrationProvider
 	integrationBindings  map[string]domain.IntegrationBinding
 	criticalCounts       map[string]int // override for CountApplicationCriticalWarnings tests
+	infraSnapshot        memoryInfraSnapshot
+}
+
+type memoryInfraSnapshot struct {
+	snapshotAt        time.Time
+	nodesJSON         []byte
+	servicesJSON      []byte
+	degradedProviders []string
+	loaded            bool
 }
 
 func newMemoryApplicationStore() *memoryApplicationStore {
@@ -516,6 +525,9 @@ func (s *memoryApplicationStore) UpdateIntegrationProvider(_ context.Context, p 
 	current.Enabled = p.Enabled
 	current.CredentialsRef = p.CredentialsRef
 	current.Capabilities = append([]string(nil), p.Capabilities...)
+	current.SyncStatus = p.SyncStatus
+	current.LastSyncAt = p.LastSyncAt
+	current.LastErrorCode = p.LastErrorCode
 	current.UpdatedAt = time.Now().UTC()
 	s.integrationProviders[p.ID] = current
 	return current, nil
@@ -577,6 +589,32 @@ func (s *memoryApplicationStore) CreateIntegrationBinding(_ context.Context, b d
 	b.UpdatedAt = now
 	s.integrationBindings[b.ID] = b
 	return b, nil
+}
+
+func (s *memoryApplicationStore) SaveInfraSnapshot(_ context.Context, _ string, _ string, snapshotAt time.Time, _ string, nodesJSON, servicesJSON []byte, degradedProviders []string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.infraSnapshot = memoryInfraSnapshot{
+		snapshotAt:        snapshotAt.UTC(),
+		nodesJSON:         append([]byte(nil), nodesJSON...),
+		servicesJSON:      append([]byte(nil), servicesJSON...),
+		degradedProviders: append([]string(nil), degradedProviders...),
+		loaded:            true,
+	}
+	return nil
+}
+
+func (s *memoryApplicationStore) LoadLatestInfraSnapshot(_ context.Context) (time.Time, []byte, []byte, []string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if !s.infraSnapshot.loaded {
+		return time.Time{}, nil, nil, nil, store.ErrNotFound
+	}
+	return s.infraSnapshot.snapshotAt,
+		append([]byte(nil), s.infraSnapshot.nodesJSON...),
+		append([]byte(nil), s.infraSnapshot.servicesJSON...),
+		append([]string(nil), s.infraSnapshot.degradedProviders...),
+		nil
 }
 
 // --- handler tests ---

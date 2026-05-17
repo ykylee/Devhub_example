@@ -129,6 +129,7 @@ var routePermissionTable = map[routeKey]routePolicy{
 	{http.MethodPost, "/api/v1/integrations/gitea/webhooks"}:                      {Bypass: true},
 	{http.MethodPost, "/api/v1/integration/providers/:provider_id/webhook"}:       {Bypass: true},
 	{http.MethodPost, "/api/v1/integrations/kratos/hook/settings/password/after"}: {Bypass: true},
+	{http.MethodPost, "/api/v1/infra/services/snapshot"}:                          {Bypass: true},
 	// Self-service password change (L4-D, work_26_05_11-e). RBAC matrix is
 	// not the right tool here — every authenticated user can change their
 	// own password; admin-driven resets go through /accounts/:user_id/password
@@ -147,7 +148,9 @@ var routePermissionTable = map[routeKey]routePolicy{
 	{http.MethodGet, "/api/v1/events"}:                        {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
 	{http.MethodGet, "/api/v1/infra/edges"}:                   {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
 	{http.MethodGet, "/api/v1/infra/nodes"}:                   {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/infra/services"}:                {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
 	{http.MethodGet, "/api/v1/infra/topology"}:                {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/infra/topology/v2"}:             {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
 	{http.MethodPost, "/api/v1/admin/service-actions"}:        {Resource: domain.ResourceInfrastructure, Action: domain.ActionCreate},
 	{http.MethodGet, "/api/v1/commands/:command_id"}:          {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
 	{http.MethodPost, "/api/v1/commands/:command_id/approve"}: {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
