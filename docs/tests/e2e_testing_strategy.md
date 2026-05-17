@@ -83,3 +83,4 @@
 - [조직 관리 테스트 케이스](./test_cases_m3_org.md)
 *   [인증/사용자 관리 테스트 케이스](./test_cases_m2_auth_user.md)
 *   [E2E 실행 상세 가이드](../setup/e2e-test-guide.md)
+*   [외부 시스템 연동 테스트 케이스 초안 (M4)](./test_cases_m4_integration.md)

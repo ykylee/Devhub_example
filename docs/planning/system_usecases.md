@@ -4,7 +4,7 @@
 - 범위: backend-core 주요 모듈(auth/account/org/rbac/gitea ingest/command/audit/realtime/store) + 신규 Project 도메인.
 - 대상 독자: 프로젝트 리드, 시스템 관리자, Backend/Frontend 설계 담당, 추적성 리뷰어.
 - 상태: draft
-- 최종 수정일: 2026-05-13
+- 최종 수정일: 2026-05-15 (외부 시스템 연동 UC-INT 초안 추가)
 - 관련 문서: [요구사항](../requirements.md), [아키텍처](../architecture.md), [API 계약](../backend_api_contract.md), [ERD 카탈로그](./system_erd.md), [통합 로드맵](../development_roadmap.md)
 
 ## 1. 모듈 기준
@@ -130,6 +130,25 @@
 | `UC-DREQ-08` | 의뢰 닫기(close) | registered/rejected 만 closed 로 전이, 기타는 거부 | REQ-FR-DREQ-008 |
 | `UC-DREQ-09` | 전체 의뢰 관리 (system_admin) | 모든 의뢰 조회 + 필터 + 액션 (reassign/close) | REQ-FR-DREQ-004,007,008 |
 | `UC-DREQ-10` | 의뢰 상태 머신 가드 | invalid 전이 거절 + dev_request.* audit emit | REQ-FR-DREQ-003 / REQ-NFR-DREQ-003 |
+
+### 2.12 External Integration (ALM/SCM/CI-CD/문서/홈랩)
+
+| UC ID | Usecase | 성공 조건 | 관련 REQ |
+| --- | --- | --- | --- |
+| `UC-INT-01` | Provider 등록/수정/비활성화 | system_admin 가 provider 메타와 인증 모드를 관리하고 상태를 제어할 수 있다 | REQ-FR-INT-001 |
+| `UC-INT-02` | Provider Catalog/Capability 조회 | provider 별 capability와 활성 상태를 조회할 수 있다 | REQ-FR-INT-002 |
+| `UC-INT-03` | Webhook ingest 수집 처리 | webhook 이벤트를 검증/저장/정규화 큐로 전달한다 | REQ-FR-INT-003 / REQ-NFR-INT-003 |
+| `UC-INT-04` | Scheduled pull 동기화 | 주기 실행으로 누락 데이터를 보정하고 최신 스냅샷을 갱신한다 | REQ-FR-INT-003 |
+| `UC-INT-05` | SCM 정규화 처리 | bitbucket/gitea/forgejo 이벤트를 공통 Repository/PR/Activity 모델로 변환한다 | REQ-FR-INT-004 |
+| `UC-INT-06` | CI/CD 정규화 처리 | bamboo/jenkins 결과를 공통 BuildRun 모델로 변환한다 | REQ-FR-INT-005 |
+| `UC-INT-07` | ALM/문서 링크형 연동 | Jira key 및 Confluence 문서 메타를 Application/Project scope에 연결한다 | REQ-FR-INT-006,007 |
+| `UC-INT-08` | 홈랩 Node/Service 인벤토리 관리 | 노드/서비스 등록 및 버전/포트/헬스 상태를 조회할 수 있다 | REQ-FR-INT-008 |
+| `UC-INT-09` | 홈랩 토폴로지 조회 | nodes/edges/services 기반 인프라 상태 지도를 제공한다 | REQ-FR-INT-009 |
+| `UC-INT-10` | 연동 상태 수명주기 관리 | requested/verifying/active/degraded/disconnected 상태를 일관되게 전이/표시한다 | REQ-FR-INT-010 |
+| `UC-INT-11` | 권한 기반 통합 현황 조회 | system_admin 전체 조회, 일반 역할은 scope 기반 제한 조회가 적용된다 | REQ-FR-INT-011 |
+| `UC-INT-12` | 연동 운영 감사 추적 | 연동 생성/변경/실패/복구 이벤트가 audit로 추적 가능하다 | REQ-NFR-INT-002 |
+| `UC-INT-13` | Provider 장애 격리 처리 | 특정 provider 장애가 전체 수집 파이프라인 중단으로 확산되지 않는다 | REQ-NFR-INT-004 |
+| `UC-INT-14` | 연동 데이터 조회 품질 보장 | 페이지네이션/필터/최신스냅샷-이력이 일관된 계약으로 제공된다 | REQ-NFR-INT-005,006 |
 
 ## 3. 설계/구현 반영 규칙
 

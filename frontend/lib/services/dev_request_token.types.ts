@@ -17,6 +17,7 @@ export interface DevRequestIntakeToken {
   created_by: string;
   last_used_at: string | null;
   revoked_at: string | null;
+  expires_at: string | null;
 }
 
 /** Response shape of `POST /api/v1/dev-request-tokens` — same as DevRequestIntakeToken
@@ -28,5 +29,10 @@ export interface IssuedDevRequestIntakeToken extends DevRequestIntakeToken {
 export interface IssueDevRequestIntakeTokenInput {
   client_label: string;
   source_system: string;
+  allowed_ips: string[];
+  expires_at?: string; // RFC3339
+}
+
+export interface UpdateDevRequestIntakeTokenIPsInput {
   allowed_ips: string[];
 }

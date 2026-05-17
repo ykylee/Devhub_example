@@ -2,16 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, FileText, RefreshCw, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileText, RefreshCw, Search, XCircle, Filter } from "lucide-react";
 import { auditService } from "@/lib/services/audit.service";
 import type { AuditLogEntry, AuditLogFilters } from "@/lib/services/audit.types";
+import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 50;
 
-// AdminSettingsAuditPage — system_admin only (AuthGuard + layout guard).
-// Backed by GET /api/v1/audit-logs (handler.listAuditLogs in audit.go).
-// Filter inputs map 1:1 to ListAuditLogsOptions; debounce the change handler
-// so users can type freely without flooding the backend.
 export default function AdminSettingsAuditPage() {
   const [entries, setEntries] = useState<AuditLogEntry[]>([]);
   const [count, setCount] = useState<number>(0);
@@ -22,10 +19,6 @@ export default function AdminSettingsAuditPage() {
 
   const [draftFilters, setDraftFilters] = useState<AuditLogFilters>({});
   const [appliedFilters, setAppliedFilters] = useState<AuditLogFilters>({});
-  // reloadTick bumps when the operator clicks Refresh; useEffect re-runs
-  // without us having to call setState synchronously from outside (which
-  // the react-hooks/set-state-in-effect rule rejects for cascading-render
-  // reasons).
   const [reloadTick, setReloadTick] = useState(0);
 
   useEffect(() => {
@@ -83,11 +76,8 @@ export default function AdminSettingsAuditPage() {
   };
 
   const canPrev = offset > 0;
-  const canNext = count === PAGE_SIZE; // backend may have more if the page is full
+  const canNext = count === PAGE_SIZE;
 
-  // Stable list of action labels seen in the current page — feeds the
-  // "common values" hints below each filter so operators can discover
-  // valid filter values without consulting docs.
   const sampledActions = useMemo(() => Array.from(new Set(entries.map((e) => e.action))).slice(0, 6), [entries]);
   const sampledTargetTypes = useMemo(() => Array.from(new Set(entries.map((e) => e.target_type))).slice(0, 6), [entries]);
 
@@ -96,74 +86,79 @@ export default function AdminSettingsAuditPage() {
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass border-border/50 rounded-2xl p-5 space-y-4"
+        className="glass border border-border/50 rounded-2xl p-6 space-y-6 shadow-xl"
       >
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <FileText className="w-4 h-4 text-orange-400" />
-            <h2 className="text-xs font-black uppercase tracking-widest text-foreground">Audit Log Filters</h2>
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Filter className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-xs font-black uppercase tracking-widest text-foreground">Audit Log Intelligence</h2>
+              <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tighter mt-1">Refine system audit events</p>
+            </div>
           </div>
           <button
             type="button"
             onClick={refresh}
-            className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
-            title="Refresh current page"
+            className="px-3 py-1.5 rounded-lg glass border border-border/60 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground flex items-center gap-2 transition-all"
           >
-            <RefreshCw className="w-3 h-3" /> Refresh
+            <RefreshCw className={cn("w-3 h-3", isLoading && "animate-spin")} /> Refresh
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <FilterField
             label="Actor login"
             value={draftFilters.actor_login ?? ""}
             onChange={(v) => setDraftFilters({ ...draftFilters, actor_login: v || undefined })}
-            placeholder="e.g. alice"
+            placeholder="e.g. yklee"
             hints={[]}
           />
           <FilterField
             label="Action"
             value={draftFilters.action ?? ""}
             onChange={(v) => setDraftFilters({ ...draftFilters, action: v || undefined })}
-            placeholder="e.g. auth.login.succeeded"
+            placeholder="e.g. rbac.policy.updated"
             hints={sampledActions}
           />
           <FilterField
             label="Target type"
             value={draftFilters.target_type ?? ""}
             onChange={(v) => setDraftFilters({ ...draftFilters, target_type: v || undefined })}
-            placeholder="e.g. user, command"
+            placeholder="e.g. role, app"
             hints={sampledTargetTypes}
           />
           <FilterField
             label="Target id"
             value={draftFilters.target_id ?? ""}
             onChange={(v) => setDraftFilters({ ...draftFilters, target_id: v || undefined })}
-            placeholder="exact id"
+            placeholder="Search by ID..."
             hints={[]}
           />
         </div>
 
-        <div className="flex justify-end gap-2 pt-1">
+        <div className="flex justify-end gap-3 pt-2 border-t border-border/30">
           <button
             type="button"
             onClick={clearFilters}
-            className="px-4 py-2 rounded-xl border border-border text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
+            className="px-6 py-2.5 rounded-xl glass border border-border text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground transition-all flex items-center gap-2"
           >
-            Clear
+            <XCircle className="w-3.5 h-3.5" /> Reset
           </button>
           <button
             type="button"
             onClick={applyFilters}
-            className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-opacity flex items-center gap-1"
+            className="px-8 py-2.5 rounded-xl bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-all flex items-center gap-2 shadow-lg shadow-primary/20 border border-primary/20"
           >
-            <Search className="w-3 h-3" /> Apply
+            <Search className="w-3.5 h-3.5" /> Execute Filter
           </button>
         </div>
       </motion.div>
 
       {loadError && (
-        <div className="glass border-rose-500/30 rounded-2xl p-4 text-xs text-rose-400">
+        <div className="glass border-rose-500/30 rounded-2xl p-4 text-xs text-rose-400 flex items-center gap-3">
+          <div className="w-2 h-2 bg-rose-500 rounded-full animate-pulse" />
           Load failed: {loadError}
         </div>
       )}
@@ -171,38 +166,42 @@ export default function AdminSettingsAuditPage() {
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass border-border/50 rounded-2xl overflow-hidden"
+        className="glass-card border border-border/50 overflow-hidden shadow-2xl"
       >
-        <div className="px-5 py-3 border-b border-border/30 flex items-center justify-between">
-          <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-            {isLoading ? "Loading audit logs..." : `Showing ${count} entries (offset ${offset})`}
-          </h2>
+        <div className="px-6 py-4 border-b border-border/30 flex items-center justify-between bg-muted/5">
+          <div className="flex items-center gap-3">
+            <FileText className="w-4 h-4 text-primary" />
+            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+              {isLoading ? "Analyzing Logs..." : `Audit Stream (${count} entries)`}
+            </h2>
+          </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
               disabled={!canPrev || isLoading}
               onClick={goPrev}
-              className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              title="Previous page"
+              className="p-2 rounded-xl glass border border-border/60 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
-              <ChevronLeft className="w-3.5 h-3.5" />
+              <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               type="button"
               disabled={!canNext || isLoading}
               onClick={goNext}
-              className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              title="Next page"
+              className="p-2 rounded-xl glass border border-border/60 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
-              <ChevronRight className="w-3.5 h-3.5" />
+              <ChevronRight className="w-4 h-4" />
             </button>
           </div>
         </div>
 
         <div className="divide-y divide-border/30">
           {entries.length === 0 && !isLoading && (
-            <div className="p-10 text-center text-xs text-muted-foreground">
-              No audit log entries match the current filters.
+            <div className="p-20 text-center space-y-4">
+              <div className="w-16 h-16 bg-muted/20 rounded-full flex items-center justify-center mx-auto border border-border/40">
+                <Search className="w-8 h-8 text-muted-foreground/40" />
+              </div>
+              <p className="text-xs text-muted-foreground font-medium">No audit log entries match the current filters.</p>
             </div>
           )}
           {entries.map((entry) => {
@@ -212,39 +211,47 @@ export default function AdminSettingsAuditPage() {
                 key={entry.audit_id}
                 type="button"
                 onClick={() => setExpandedId(isExpanded ? null : entry.audit_id)}
-                className="w-full text-left px-5 py-3 hover:bg-primary/5 transition-colors"
+                className={cn(
+                  "w-full text-left px-6 py-4 hover:bg-primary/5 transition-all group relative overflow-hidden",
+                  isExpanded && "bg-primary/5"
+                )}
               >
-                <div className="flex items-center gap-4 text-xs">
-                  <span className="font-mono text-[10px] text-muted-foreground w-44 shrink-0">
+                {isExpanded && <div className="absolute left-0 top-0 w-1 h-full bg-primary" />}
+                <div className="flex items-center gap-6 text-xs">
+                  <span className="font-mono text-[10px] text-muted-foreground w-48 shrink-0 flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 bg-muted-foreground/30 rounded-full" />
                     {formatTimestamp(entry.created_at)}
                   </span>
-                  <span className="font-bold text-foreground w-28 shrink-0 truncate" title={entry.actor_login}>
+                  <span className="font-black text-foreground w-32 shrink-0 truncate group-hover:text-primary transition-colors">
                     {entry.actor_login || "(system)"}
                   </span>
-                  <span className="font-mono text-accent w-64 shrink-0 truncate" title={entry.action}>
+                  <span className="font-mono text-accent w-64 shrink-0 truncate font-bold">
                     {entry.action}
                   </span>
-                  <span className="text-muted-foreground w-32 shrink-0 truncate" title={entry.target_type}>
+                  <span className="text-muted-foreground w-32 shrink-0 truncate font-medium uppercase tracking-tighter text-[10px]">
                     {entry.target_type}
                   </span>
-                  <span className="font-mono text-muted-foreground truncate flex-1" title={entry.target_id}>
+                  <span className="font-mono text-muted-foreground/60 truncate flex-1 text-[10px]" title={entry.target_id}>
                     {entry.target_id}
                   </span>
                 </div>
                 {isExpanded && (
-                  <div className="mt-3 ml-44 space-y-2">
-                    <Detail label="audit_id" value={entry.audit_id} mono />
-                    {entry.command_id && <Detail label="command_id" value={entry.command_id} mono />}
-                    {entry.source_type && <Detail label="source_type" value={entry.source_type} />}
-                    {entry.source_ip && <Detail label="source_ip" value={entry.source_ip} mono />}
-                    {entry.request_id && <Detail label="request_id" value={entry.request_id} mono />}
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    className="mt-6 ml-48 space-y-4 p-4 glass rounded-xl border border-border/40"
+                  >
+                    <Detail label="Audit ID" value={entry.audit_id} mono />
+                    {entry.command_id && <Detail label="Command ID" value={entry.command_id} mono />}
+                    {entry.source_type && <Detail label="Source" value={entry.source_type} />}
+                    {entry.source_ip && <Detail label="IP Address" value={entry.source_ip} mono />}
                     <Detail
-                      label="payload"
+                      label="Payload"
                       value={JSON.stringify(entry.payload ?? {}, null, 2)}
                       mono
                       multiline
                     />
-                  </div>
+                  </motion.div>
                 )}
               </button>
             );
@@ -265,23 +272,23 @@ interface FilterFieldProps {
 
 function FilterField({ label, value, onChange, placeholder, hints = [] }: FilterFieldProps) {
   return (
-    <label className="flex flex-col gap-1">
-      <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">{label}</span>
+    <label className="flex flex-col gap-2">
+      <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1">{label}</span>
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="bg-input border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
+        className="glass border border-border/60 rounded-xl px-4 py-2.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all font-medium placeholder:text-muted-foreground/40"
       />
       {hints.length > 0 && (
-        <div className="flex flex-wrap gap-1 mt-0.5">
+        <div className="flex flex-wrap gap-1.5 mt-1 px-1">
           {hints.map((h) => (
             <button
               key={h}
               type="button"
               onClick={() => onChange(h)}
-              className="text-[9px] font-mono text-muted-foreground hover:text-primary transition-colors px-1.5 py-0.5 rounded border border-border/50"
+              className="text-[9px] font-black uppercase tracking-tighter text-muted-foreground hover:text-primary transition-all px-2 py-0.5 rounded-lg border border-border/40 hover:border-primary/30"
             >
               {h}
             </button>
@@ -301,14 +308,14 @@ interface DetailProps {
 
 function Detail({ label, value, mono, multiline }: DetailProps) {
   return (
-    <div className="text-[11px] flex gap-2">
-      <span className="font-bold uppercase tracking-widest text-muted-foreground w-24 shrink-0">{label}</span>
+    <div className="text-[11px] flex gap-4">
+      <span className="font-black uppercase tracking-widest text-muted-foreground/60 w-24 shrink-0">{label}</span>
       <span
-        className={[
-          mono ? "font-mono" : "",
-          multiline ? "whitespace-pre-wrap break-words" : "truncate",
-          "text-foreground/90 flex-1",
-        ].join(" ")}
+        className={cn(
+          "flex-1",
+          mono ? "font-mono text-foreground/80" : "font-medium text-foreground",
+          multiline ? "whitespace-pre-wrap break-words bg-black/20 p-3 rounded-lg border border-border/20" : "truncate"
+        )}
       >
         {value}
       </span>

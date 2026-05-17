@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { X, Key, Loader2, Plus, Trash2, Copy, AlertTriangle, Check } from "lucide-react";
+import { X, Key, Loader2, Plus, Trash2, Copy, AlertTriangle, Check, Eye, EyeOff } from "lucide-react";
 import { devRequestTokenService } from "@/lib/services/dev_request_token.service";
 import type {
   DevRequestIntakeToken,
@@ -21,10 +21,12 @@ export function IssueIntakeTokenModal({ onClose, onIssued }: IssueIntakeTokenMod
   const [clientLabel, setClientLabel] = useState("");
   const [sourceSystem, setSourceSystem] = useState("");
   const [allowedIPs, setAllowedIPs] = useState<string[]>([""]);
+  const [expiresAt, setExpiresAt] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [issued, setIssued] = useState<IssuedDevRequestIntakeToken | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showToken, setShowToken] = useState(false);
   const canCloseForm = phase === "form" && !submitting;
 
   useEffect(() => {
@@ -57,6 +59,7 @@ export function IssueIntakeTokenModal({ onClose, onIssued }: IssueIntakeTokenMod
         client_label: clientLabel.trim(),
         source_system: sourceSystem.trim(),
         allowed_ips: cleanedIPs,
+        expires_at: expiresAt ? new Date(expiresAt).toISOString() : undefined,
       });
       setIssued(result);
       setPhase("reveal");
@@ -127,8 +130,9 @@ export function IssueIntakeTokenModal({ onClose, onIssued }: IssueIntakeTokenMod
         {phase === "form" && (
           <form onSubmit={handleSubmit} className="p-8 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Client Label</label>
+              <label htmlFor="clientLabel" className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Client Label</label>
               <input
+                id="clientLabel"
                 required
                 value={clientLabel}
                 onChange={(e) => setClientLabel(e.target.value)}
@@ -139,8 +143,9 @@ export function IssueIntakeTokenModal({ onClose, onIssued }: IssueIntakeTokenMod
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Source System</label>
+              <label htmlFor="sourceSystem" className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Source System</label>
               <input
+                id="sourceSystem"
                 required
                 value={sourceSystem}
                 onChange={(e) => setSourceSystem(e.target.value)}
@@ -150,11 +155,24 @@ export function IssueIntakeTokenModal({ onClose, onIssued }: IssueIntakeTokenMod
               <p className="text-[10px] text-muted-foreground/60 px-1">intake 요청의 dev_request.source_system 자동 채움 값 (body spoof 방지).</p>
             </div>
 
+            <div className="space-y-2">
+              <label htmlFor="expiresAt" className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Expires At (Optional)</label>
+              <input
+                id="expiresAt"
+                type="datetime-local"
+                value={expiresAt}
+                onChange={(e) => setExpiresAt(e.target.value)}
+                className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-orange-400/50"
+              />
+              <p className="text-[10px] text-muted-foreground/60 px-1">토큰 만료 일시. 비워두면 무기한 사용 가능합니다.</p>
+            </div>
+
             <div className="space-y-3">
-              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Allowed IPs / CIDRs</label>
+              <label htmlFor="allowedIPs-0" className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Allowed IPs / CIDRs</label>
               {allowedIPs.map((ip, idx) => (
                 <div key={idx} className="flex gap-2">
                   <input
+                    id={`allowedIPs-${idx}`}
                     value={ip}
                     onChange={(e) => updateIP(idx, e.target.value)}
                     placeholder="e.g. 10.0.0.0/24 or 192.0.2.7"
@@ -231,8 +249,16 @@ export function IssueIntakeTokenModal({ onClose, onIssued }: IssueIntakeTokenMod
               <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Plain Token</label>
               <div className="flex gap-2">
                 <code className="flex-1 bg-muted/40 border border-border rounded-2xl px-4 py-3 text-xs font-mono text-foreground dark:text-primary-foreground break-all">
-                  {issued.plain_token}
+                  {showToken ? issued.plain_token : "•".repeat(32)}
                 </code>
+                <button
+                  type="button"
+                  onClick={() => setShowToken(!showToken)}
+                  className="glass border-border px-4 rounded-2xl hover:bg-muted/40 transition-all text-foreground dark:text-primary-foreground flex items-center justify-center text-[10px] font-black uppercase tracking-widest"
+                  aria-label={showToken ? "Hide token" : "Show token"}
+                >
+                  {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
                 <button
                   type="button"
                   onClick={handleCopy}

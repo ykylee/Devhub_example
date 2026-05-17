@@ -5,7 +5,7 @@
 - 대상 독자: Backend / 프론트엔드 개발자, AI agent, 외부 API consumer, QA.
 - 상태: accepted
 - 기준일: 2026-05-04
-- 최종 수정일: 2026-05-13 (메타 헤더 표준화, sprint `claude/work_260513-d`. 직전 본문 갱신 2026-05-08 — §12 RBAC 모델/라우트 매핑/audit, ADR-0002 채택 반영, M1 PR-G1)
+- 최종 수정일: 2026-05-15 (외부 시스템 연동 API 초안 §15 추가, API-69..78)
 - 관련 문서: [아키텍처](./architecture.md), [기술 스택](./tech_stack.md), [프론트 연동 요구사항](./backend/frontend_integration_requirements.md), [백엔드 요구사항 리뷰](./backend/requirements_review.md), [ADR-0002 RBAC](./adr/0002-rbac-policy-edit-api.md), [백엔드 로드맵](../ai-workflow/memory/backend_development_roadmap.md), [추적성 매트릭스](./traceability/report.md).
 
 ## 1. 공통 응답 원칙
@@ -1109,6 +1109,12 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 | `organization` | users, org units, hierarchy, unit members, subject role assignment |
 | `security` | risks, risk mitigation command, RBAC policy 자체 (조회·편집) |
 | `audit` | audit-logs 조회 (audit 생성은 시스템 전용) |
+| `applications` | application 관리 |
+| `application_repositories` | application-repository 매핑 관리 |
+| `projects` | project 관리 |
+| `scm_providers` | SCM provider 활성화/설정 관리 |
+| `dev_requests` | 개발 의뢰(DREQ) 조회/관리 |
+| `dev_request_intake_tokens` | DREQ 외부 수신 토큰 발급/관리 |
 
 > 본 5종은 ADR-0002 §4.2 채택. 신규 자원이 추가되면 본 contract 갱신 + 매핑 표 (§12.6) 갱신.
 
@@ -1136,6 +1142,7 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 | `developer` | view | view | view | view | — |
 | `manager` | view | view | view | view, create | view |
 | `system_admin` | view, create, edit, delete | view, create, edit, delete | view, create, edit, delete | view, create, edit, delete | view |
+| `pmo_manager` | view | view | view | view | view |
 
 > `audit` 의 create/edit/delete 는 §12.0.4 invariant 로 모든 role 에서 false. system_admin 도 view 만 true.
 
@@ -1342,6 +1349,17 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 | `DELETE /api/v1/organization/units/:unit_id` | organization | delete |
 | `GET /api/v1/organization/units/:unit_id/members` | organization | view |
 | `PUT /api/v1/organization/units/:unit_id/members` | organization | edit |
+| `GET /api/v1/dev-requests` | dev_requests | view |
+| `POST /api/v1/dev-requests` | dev_requests | (intake token auth) |
+| `GET /api/v1/dev-requests/:id` | dev_requests | view |
+| `POST /api/v1/dev-requests/:id/register` | dev_requests | edit |
+| `POST /api/v1/dev-requests/:id/reject` | dev_requests | edit |
+| `PATCH /api/v1/dev-requests/:id` | dev_requests | edit |
+| `DELETE /api/v1/dev-requests/:id` | dev_requests | delete |
+| `POST /api/v1/dev-request-tokens` | dev_request_intake_tokens | create |
+| `GET /api/v1/dev-request-tokens` | dev_request_intake_tokens | view |
+| `DELETE /api/v1/dev-request-tokens/:token_id` | dev_request_intake_tokens | delete |
+| `PATCH /api/v1/dev-request-tokens/:token_id` | dev_request_intake_tokens | edit |
 
 > 신규 v1 라우트가 추가되면 본 표에 행 추가가 *필수*. 누락 시 §12.9 deny-by-default 가 발동해 모든 사용자 거부 + audit 알림.
 
@@ -1991,6 +2009,7 @@ intake_token_collision                         # sprint o (ADR-0014): hashed_tok
 | API-66 | `POST /api/v1/dev-request-tokens` (intake token 발급, sprint `o` / ADR-0014) |
 | API-67 | `GET /api/v1/dev-request-tokens` (intake token 목록) |
 | API-68 | `DELETE /api/v1/dev-request-tokens/:token_id` (intake token revoke) |
+| API-79 | `PATCH /api/v1/dev-request-tokens/:token_id` (intake token IP mutation) |
 
 ### 14.10 Intake Token Admin (API-66..68, sprint `claude/work_260515-o` / ADR-0014)
 
@@ -2016,3 +2035,215 @@ intake_token_collision                         # sprint o (ADR-0014): hashed_tok
 - **처리**: `revoked_at = COALESCE(revoked_at, NOW())` — idempotent.
 - **응답 — 200**: 갱신된 row (plain_token 미포함). **404** `not_found` (token_id 미존재).
 - **audit**: `dev_request_intake_token.revoked`.
+
+#### API-79 `PATCH /api/v1/dev-request-tokens/:token_id` — IP mutation
+
+- **인증**: OIDC + RBAC `dev_request_intake_tokens:edit` (system_admin only).
+- **요청**: `{ "allowed_ips": ["10.0.0.1/32"] }`. 필수.
+- **처리**: allowed_ips 갱신.
+- **응답 — 200**: 갱신된 row.
+- **audit**: `dev_request_intake_token.updated`.
+
+## 15. 외부 시스템 연동 (Integration) API 초안
+
+본 섹션은 [`docs/planning/external_system_integration_concept.md`](./planning/external_system_integration_concept.md) 및 [`docs/requirements.md §5.6`](./requirements.md) 의 1차 API 계약 초안이다. ID는 임시 발급(`API-69..78`)이며 상세 응답 스키마는 설계 sprint 에서 확정한다.
+
+### 15.1 API ID 인덱스 (draft)
+
+| API ID | endpoint | 목적 |
+| --- | --- | --- |
+| API-69 | `GET /api/v1/integration/providers` | Provider catalog 조회 |
+| API-70 | `POST /api/v1/integration/providers` | Provider 등록 |
+| API-71 | `PATCH /api/v1/integration/providers/{provider_id}` | Provider 수정/활성화/비활성화 |
+| API-72 | `POST /api/v1/integration/providers/{provider_id}/sync` | Provider 수동 재동기화 트리거 |
+| API-73 | `POST /api/v1/integration/providers/{provider_key}/webhook` | Provider webhook ingest |
+| API-74 | `GET /api/v1/integration/bindings` | scope별 Integration binding 조회 |
+| API-75 | `POST /api/v1/integration/bindings` | scope별 Integration binding 생성 |
+| API-76 | `GET /api/v1/infra/services` | 홈랩 서비스 인벤토리 조회 |
+| API-77 | `POST /api/v1/infra/services/snapshot` | 홈랩 서비스 상태 스냅샷 수집 ingest |
+| API-78 | `GET /api/v1/infra/topology/v2` | 노드+서비스+의존성 통합 토폴로지 조회 |
+
+### 15.2 Provider Catalog
+
+#### API-69 `GET /api/v1/integration/providers`
+
+- **인증**: OIDC + RBAC (`infrastructure:view` 또는 `pipelines:view`).
+- **응답 — 200**: provider 목록 + `provider_type`, `enabled`, `capabilities`, `sync_status`, `last_sync_at`, `last_error_code`.
+
+#### API-70 `POST /api/v1/integration/providers`
+
+- **인증**: OIDC + RBAC `infrastructure:edit` (system_admin only).
+- **요청**: `provider_key`, `provider_type`, `display_name`, `auth_mode`, `credentials_ref`, `capabilities`, `scope`.
+- **응답 — 201**: 생성된 provider.
+- **에러**: 409 `integration_provider_conflict`, 400 `invalid_provider_type`.
+
+요청 예시:
+
+```json
+{
+  "provider_key": "jira-main",
+  "provider_type": "alm",
+  "display_name": "Jira Cloud (Main)",
+  "auth_mode": "oauth2",
+  "credentials_ref": "secret://integrations/jira-main",
+  "capabilities": ["issue.read", "epic.read", "issue.link"],
+  "scope": {
+    "scope_type": "project",
+    "scope_id": "PRJ-001"
+  }
+}
+```
+
+응답 예시:
+
+```json
+{
+  "status": "created",
+  "data": {
+    "provider_id": "8f8cdb8d-c690-458f-a243-a8b8b67f9a4d",
+    "provider_key": "jira-main",
+    "provider_type": "alm",
+    "display_name": "Jira Cloud (Main)",
+    "enabled": true,
+    "auth_mode": "oauth2",
+    "capabilities": ["issue.read", "epic.read", "issue.link"],
+    "sync_status": "requested",
+    "last_sync_at": null,
+    "last_error_code": null,
+    "created_at": "2026-05-15T14:00:00Z",
+    "updated_at": "2026-05-15T14:00:00Z"
+  }
+}
+```
+
+#### API-71 `PATCH /api/v1/integration/providers/{provider_id}`
+
+- **인증**: OIDC + RBAC `infrastructure:edit` (system_admin only).
+- **요청**: `enabled`, `display_name`, `capabilities`, `credentials_ref` 일부 수정.
+- **응답 — 200**: 수정된 provider.
+
+#### API-72 `POST /api/v1/integration/providers/{provider_id}/sync`
+
+- **인증**: OIDC + RBAC `infrastructure:edit` (system_admin only).
+- **설명**: provider 단위 수동 reconciliation job enqueue.
+- **응답 — 202**: `{status:"accepted", job_id:"..."}`.
+
+### 15.3 Ingest / Binding
+
+#### API-73 `POST /api/v1/integration/providers/{provider_key}/webhook`
+
+- **인증**: provider별 webhook 인증(header signature/token); OIDC 미적용.
+- **설명**: raw event 저장 + 검증 + normalize enqueue.
+- **응답**: 202 accepted / 401 invalid signature / 409 duplicate delivery.
+- **검증 확장성**:
+  - `Adapter Router` 가 provider별 verifier 전략을 선택해 검증한다.
+  - verifier contract 예: `Verify(headers, body) -> (ok, reason)` (`hmac_sha256`, `shared_token`, `provider_sdk` 등).
+- **헤더(권장 공통)**:
+  - `X-Integration-Delivery`: 외부 전송 고유 ID (없으면 payload hash로 보조 dedupe)
+  - `X-Integration-Event`: 이벤트 타입
+  - `X-Integration-Signature`: provider 정책 기반 서명값
+
+#### API-74 `GET /api/v1/integration/bindings`
+
+- **인증**: OIDC + RBAC view.
+- **쿼리**: `scope_type`, `scope_id`, `provider_type`, `enabled`, `limit`, `offset`.
+- **응답 — 200**: binding 목록 + pagination meta.
+
+#### API-75 `POST /api/v1/integration/bindings`
+
+- **인증**: OIDC + RBAC edit (system_admin only).
+- **요청**: `scope_type` (`application|project`), `scope_id`, `provider_id`, `external_key`, `policy`.
+- **응답 — 201**: 생성 binding.
+- **에러**: 409 `integration_binding_conflict`, 422 `integration_policy_violation`.
+
+요청 예시:
+
+```json
+{
+  "scope_type": "application",
+  "scope_id": "APP-001",
+  "provider_id": "8f8cdb8d-c690-458f-a243-a8b8b67f9a4d",
+  "external_key": "PROJ",
+  "policy": "execution_system"
+}
+```
+
+### 15.4 HomeLab Infra
+
+#### API-76 `GET /api/v1/infra/services`
+
+- **인증**: OIDC + RBAC `infrastructure:view`.
+- **응답 — 200**: 서비스 인벤토리(`service_id`, `node_id`, `name`, `version`, `port`, `health_status`, `observed_at`).
+
+#### API-77 `POST /api/v1/infra/services/snapshot`
+
+- **인증**: Agent 토큰 기반 ingest 인증 (OIDC 미적용).
+- **요청**: 노드/서비스 상태 스냅샷 배열.
+- **응답 — 202**: 수집 accepted + ingest_id.
+- **영속화 정책 (baseline)**:
+  - ingest payload(`nodes`, `services`)는 `infra_service_snapshots`에 저장한다.
+  - 동일 프로세스 런타임 캐시가 비어 있으면 최신 persisted snapshot을 hydrate해 조회 응답에 사용한다.
+
+요청 예시:
+
+```json
+{
+  "agent_id": "homelab-agent-a",
+  "snapshot_at": "2026-05-15T14:10:00Z",
+  "trace_id": "trc_01jv7w2mm4m7",
+  "nodes": [
+    {
+      "node_id": "node-nas-01",
+      "hostname": "nas-01.local",
+      "ip_address": "192.168.0.20",
+      "environment": "homelab",
+      "status": "stable",
+      "metrics": { "cpu_percent": 21.3, "mem_percent": 63.1, "disk_percent": 57.2 },
+      "observed_at": "2026-05-15T14:09:58Z"
+    }
+  ],
+  "services": [
+    {
+      "service_id": "svc-jenkins",
+      "node_id": "node-nas-01",
+      "name": "jenkins",
+      "version": "2.504.1",
+      "port": 8080,
+      "health_status": "healthy",
+      "metadata": { "runtime": "docker", "compose_project": "ci-stack" },
+      "observed_at": "2026-05-15T14:09:59Z"
+    }
+  ]
+}
+```
+
+#### API-78 `GET /api/v1/infra/topology/v2`
+
+- **인증**: OIDC + RBAC `infrastructure:view`.
+- **응답 — 200**: `nodes`, `edges`, `services`, `meta`(`snapshot_at`, `degraded_providers`).
+- **상태 반영 (baseline)**:
+  - `meta.snapshot_at`: 최신 ingest 시각 (런타임 캐시 또는 persisted snapshot 기준).
+  - `meta.degraded_providers`: snapshot 서비스 상태가 `degraded|down`인 provider 집합.
+
+### 15.5 공통 에러 코드 (초안)
+
+```
+integration_provider_conflict
+integration_provider_not_found
+integration_provider_disabled
+integration_binding_conflict
+integration_binding_not_found
+integration_policy_violation
+integration_webhook_signature_invalid
+integration_event_duplicate
+integration_sync_job_rejected
+infra_snapshot_invalid
+infra_agent_unauthorized
+```
+
+### 15.6 값 제약 (draft)
+
+- `provider_type`: `alm | scm | ci_cd | doc | infra`
+- `sync_status`: `requested | verifying | active | degraded | disconnected`
+- `binding.policy`: `summary_only | execution_system | bidirectional_candidate`
+- `infra.health_status`: `healthy | degraded | down`

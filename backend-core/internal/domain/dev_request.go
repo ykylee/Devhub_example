@@ -103,9 +103,16 @@ type DevRequestIntakeToken struct {
 	CreatedBy    string // user_id FK
 	LastUsedAt   *time.Time
 	RevokedAt    *time.Time
+	ExpiresAt    *time.Time
 }
 
 // IsActive reports whether the token is still usable.
 func (t DevRequestIntakeToken) IsActive() bool {
-	return t.RevokedAt == nil
+	if t.RevokedAt != nil {
+		return false
+	}
+	if t.ExpiresAt != nil && time.Now().After(*t.ExpiresAt) {
+		return false
+	}
+	return true
 }

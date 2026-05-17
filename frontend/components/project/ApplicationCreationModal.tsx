@@ -103,10 +103,11 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
         <form onSubmit={handleSubmit} className="p-8 space-y-6 max-h-[75vh] overflow-y-auto custom-scrollbar">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Application Key</label>
+              <label htmlFor="appKey" className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Application Key</label>
               <div className="relative group">
                 <Info className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-foreground/20 group-focus-within:text-purple-400 transition-colors" />
                 <input
+                  id="appKey"
                   required
                   disabled={isEdit}
                   value={formData.key}
@@ -125,8 +126,9 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
               )}
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Display Name</label>
+              <label htmlFor="appName" className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Display Name</label>
               <input
+                id="appName"
                 required
                 value={formData.name}
                 onChange={e => setFormData({ ...formData, name: e.target.value })}
@@ -137,8 +139,9 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Description</label>
+            <label htmlFor="appDesc" className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Description</label>
             <textarea
+              id="appDesc"
               value={formData.description}
               onChange={e => setFormData({ ...formData, description: e.target.value })}
               placeholder="Strategic goals, KPI, and scope summary..."
@@ -149,10 +152,11 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Application Leader</label>
+              <label htmlFor="appLeader" className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Application Leader</label>
               <div className="relative group">
                 <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-foreground/20 group-focus-within:text-purple-400 transition-colors" />
                 <input
+                  id="appLeader"
                   required
                   value={formData.leader_user_id}
                   onChange={e => setFormData({ ...formData, leader_user_id: e.target.value })}
@@ -162,10 +166,11 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Development Department</label>
+              <label htmlFor="appDept" className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Development Department</label>
               <div className="relative group">
                 <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-foreground/20 group-focus-within:text-purple-400 transition-colors" />
                 <input
+                  id="appDept"
                   required
                   value={formData.development_unit_id}
                   onChange={e => setFormData({ ...formData, development_unit_id: e.target.value })}
@@ -178,10 +183,11 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Owner User (Legacy)</label>
+              <label htmlFor="appOwner" className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Owner User (Legacy)</label>
               <div className="relative group">
                 <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-foreground/20 group-focus-within:text-purple-400 transition-colors" />
                 <input
+                  id="appOwner"
                   required
                   value={formData.owner_user_id}
                   onChange={e => setFormData({ ...formData, owner_user_id: e.target.value })}

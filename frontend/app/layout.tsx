@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ToastContainer } from "@/components/ui/Toast";
+import { LogoutOverlay } from "@/components/ui/LogoutOverlay";
 
 export const metadata: Metadata = {
   title: "DevHub - Team Integrated Development Hub",
@@ -23,6 +24,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col font-sans">
         {children}
+        <LogoutOverlay />
         <ToastContainer />
       </body>
     </html>

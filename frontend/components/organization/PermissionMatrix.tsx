@@ -16,7 +16,9 @@ export type ResourceType =
   | "applications"
   | "application_repositories"
   | "projects"
-  | "scm_providers";
+  | "scm_providers"
+  | "dev_requests"
+  | "dev_request_intake_tokens";
 
 export interface PermissionState {
   [resource: string]: {
@@ -44,6 +46,8 @@ const resources: { id: ResourceType; label: string }[] = [
   { id: "application_repositories", label: "Application Repositories" },
   { id: "projects", label: "Projects" },
   { id: "scm_providers", label: "SCM Providers" },
+  { id: "dev_requests", label: "Development Requests (DREQ)" },
+  { id: "dev_request_intake_tokens", label: "DREQ Intake Tokens" },
 ];
 
 const actions: { id: ActionType; label: string }[] = [

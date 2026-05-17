@@ -11,6 +11,7 @@ import (
 	"github.com/devhub/backend-core/internal/domain"
 	"github.com/devhub/backend-core/internal/store"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type WebhookEventStore interface {
@@ -93,6 +94,15 @@ type ApplicationStore interface {
 	CreateIntegration(context.Context, domain.ProjectIntegration) (domain.ProjectIntegration, error)
 	UpdateIntegration(context.Context, domain.ProjectIntegration) (domain.ProjectIntegration, error)
 	DeleteIntegration(context.Context, string) error
+	// Integration registry/binding (API-69..75)
+	ListIntegrationProviders(context.Context, store.IntegrationProviderListOptions) ([]domain.IntegrationProvider, int, error)
+	GetIntegrationProviderByID(context.Context, string) (domain.IntegrationProvider, error)
+	GetIntegrationProviderByKey(context.Context, string) (domain.IntegrationProvider, error)
+	CreateIntegrationProvider(context.Context, domain.IntegrationProvider) (domain.IntegrationProvider, error)
+	UpdateIntegrationProvider(context.Context, domain.IntegrationProvider) (domain.IntegrationProvider, error)
+	CreateIntegrationSyncJob(context.Context, string, string) (string, error)
+	ListIntegrationBindings(context.Context, store.IntegrationBindingListOptions) ([]domain.IntegrationBinding, int, error)
+	CreateIntegrationBinding(context.Context, domain.IntegrationBinding) (domain.IntegrationBinding, error)
 }
 
 type KratosAdmin interface {
@@ -108,12 +118,15 @@ type HRDBClient interface {
 }
 
 type RouterConfig struct {
-	WebhookSecret       string
+	WebhookSecret string
 	// KratosWebhookToken is the shared secret expected on
 	// /api/v1/integrations/kratos/hook/* webhook calls (PR-M2-AUDIT). Empty
 	// value makes the route respond 503 so a forgotten env in production
 	// fails loud. Wired from cfg.KratosWebhookToken via main.go.
 	KratosWebhookToken  string
+	InfraAgentToken     string
+	HomeLabProviderKey  string
+	HomeLabDegradedRaw  string
 	EventStore          WebhookEventStore
 	EventProcessor      WebhookEventProcessor
 	HealthStore         HealthStore
@@ -127,16 +140,16 @@ type RouterConfig struct {
 	DevRequestStore            DevRequestStore
 	DevRequestIntakeTokenStore IntakeTokenStore
 	RBACStore                  RBACStore
-	PermissionCache     *PermissionCache
-	KratosLogin         KratosLoginClient
-	HydraAdmin          HydraLoginAdmin
-	HydraLogout         HydraLogoutAdmin
-	HydraToken          HydraTokenExchanger
-	HydraRevoker        HydraTokenRevoker
-	KratosAdmin         KratosAdmin
-	HRDB                HRDBClient
-	SnapshotProvider    SnapshotProvider
-	RealtimeHub         *RealtimeHub
+	PermissionCache            *PermissionCache
+	KratosLogin                KratosLoginClient
+	HydraAdmin                 HydraLoginAdmin
+	HydraLogout                HydraLogoutAdmin
+	HydraToken                 HydraTokenExchanger
+	HydraRevoker               HydraTokenRevoker
+	KratosAdmin                KratosAdmin
+	HRDB                       HRDBClient
+	SnapshotProvider           SnapshotProvider
+	RealtimeHub                *RealtimeHub
 	// KratosSessionCache stores user_id → kratos session_token mappings
 	// captured at login time (DEC-D=α, L4-B). NewRouter lazily creates one
 	// when the caller leaves it nil so handler tests get a working cache
@@ -182,6 +195,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 
 	handler := Handler{cfg: cfg}
 	router.GET("/health", handler.health)
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	v1 := router.Group("/api/v1")
 	v1.Use(handler.requireRequestID)
@@ -193,6 +207,9 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.GET("/infra/edges", handler.infraEdges)
 	v1.GET("/infra/nodes", handler.infraNodes)
 	v1.GET("/infra/topology", handler.infraTopology)
+	v1.GET("/infra/services", handler.listInfraServices)
+	v1.POST("/infra/services/snapshot", handler.ingestInfraServicesSnapshot)
+	v1.GET("/infra/topology/v2", handler.infraTopologyV2)
 	v1.GET("/repositories", handler.repositories)
 	v1.GET("/issues", handler.issues)
 	v1.GET("/pull-requests", handler.pullRequests)
@@ -267,6 +284,13 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.PATCH("/integrations/:integration_id", handler.updateIntegration)
 	v1.DELETE("/integrations/:integration_id", handler.deleteIntegration)
 	v1.POST("/integrations/gitea/webhooks", handler.receiveGiteaWebhook)
+	v1.GET("/integration/providers", handler.listIntegrationProviders)
+	v1.POST("/integration/providers", handler.createIntegrationProvider)
+	v1.PATCH("/integration/providers/:provider_id", handler.updateIntegrationProvider)
+	v1.POST("/integration/providers/:provider_id/sync", handler.syncIntegrationProvider)
+	v1.POST("/integration/providers/:provider_id/webhook", handler.ingestIntegrationProviderWebhook)
+	v1.GET("/integration/bindings", handler.listIntegrationBindings)
+	v1.POST("/integration/bindings", handler.createIntegrationBinding)
 
 	// DREQ 도메인 API-59..65 (sprint claude/work_260515-i, ADR-0012).
 	// 외부 수신 POST 는 별도 intake group 에서 requireIntakeToken 미들웨어를 사용.
@@ -286,6 +310,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.POST("/dev-request-tokens", handler.createDevRequestIntakeToken)
 	v1.GET("/dev-request-tokens", handler.listDevRequestIntakeTokens)
 	v1.DELETE("/dev-request-tokens/:token_id", handler.revokeDevRequestIntakeToken)
+	v1.PATCH("/dev-request-tokens/:token_id", handler.updateDevRequestIntakeTokenIPs)
 
 	// Kratos self-service hooks (PR-M2-AUDIT, claude/login_usermanagement_finish).
 	// Bypasses authenticateActor + enforceRoutePermission via publicAPIPaths +

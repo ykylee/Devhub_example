@@ -26,7 +26,7 @@ UPDATE dev_requests SET
     registered_target_id   = $3,
     rejected_reason        = NULL,
     updated_at = NOW()
-WHERE id = $1::uuid
+WHERE id = $1::uuid AND status IN ('pending', 'in_review')
 RETURNING` + devRequestsSelectColumns
 
 // RegisterDevRequestWithNewApplication promotes a pending/in_review dev_request

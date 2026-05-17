@@ -8,6 +8,7 @@ import type { DevRequestIntakeToken } from "@/lib/services/dev_request_token.typ
 import { IntakeTokenTable } from "@/components/dev-request/IntakeTokenTable";
 import { IssueIntakeTokenModal } from "@/components/dev-request/IssueIntakeTokenModal";
 import { useToast } from "@/components/ui/Toast";
+import { DestructiveConfirmModal } from "@/components/ui/DestructiveConfirmModal";
 
 export default function AdminSettingsDevRequestTokensPage() {
   const [tokens, setTokens] = useState<DevRequestIntakeToken[]>([]);
@@ -53,20 +54,25 @@ export default function AdminSettingsDevRequestTokensPage() {
     setTokens((prev) => [tok, ...prev]);
   };
 
-  const handleRevoke = async (tok: DevRequestIntakeToken) => {
-    if (!window.confirm(`'${tok.client_label}' 토큰을 revoke 하시겠습니까? 이 작업은 즉시 적용되며 인증이 차단됩니다.`)) {
-      return;
-    }
-    setRevokingTokenID(tok.token_id);
+  const [tokenToRevoke, setTokenToRevoke] = useState<DevRequestIntakeToken | null>(null);
+
+  const handleRevoke = (tok: DevRequestIntakeToken) => {
+    setTokenToRevoke(tok);
+  };
+
+  const confirmRevoke = async () => {
+    if (!tokenToRevoke) return;
+    setRevokingTokenID(tokenToRevoke.token_id);
     try {
-      const updated = await devRequestTokenService.revoke(tok.token_id);
+      const updated = await devRequestTokenService.revoke(tokenToRevoke.token_id);
       setTokens((prev) => prev.map((t) => (t.token_id === updated.token_id ? updated : t)));
-      toast(`토큰 '${tok.client_label}' 이 revoke 되었습니다.`, "success");
+      toast(`토큰 '${tokenToRevoke.client_label}' 이 revoke 되었습니다.`, "success");
     } catch (error) {
       console.error("[admin/settings/dev-request-tokens] revoke failed:", error);
       toast("토큰 revoke 에 실패했습니다.", "error");
     } finally {
       setRevokingTokenID(null);
+      setTokenToRevoke(null);
     }
   };
 
@@ -117,6 +123,19 @@ export default function AdminSettingsDevRequestTokensPage() {
           onIssued={handleIssued}
         />
       )}
+
+      <DestructiveConfirmModal
+        isOpen={!!tokenToRevoke}
+        onClose={() => setTokenToRevoke(null)}
+        onConfirm={confirmRevoke}
+        title="Revoke Token"
+        description={
+          tokenToRevoke
+            ? `'${tokenToRevoke.client_label}' 토큰을 revoke 하시겠습니까? 이 작업은 즉시 적용되며 인증이 차단됩니다.`
+            : ""
+        }
+        confirmText="Revoke"
+      />
     </div>
   );
 }
