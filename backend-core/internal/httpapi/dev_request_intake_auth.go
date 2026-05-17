@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/devhub/backend-core/internal/domain"
 	"github.com/devhub/backend-core/internal/store"
@@ -24,6 +25,7 @@ type IntakeTokenStore interface {
 	CreateDevRequestIntakeToken(ctx context.Context, tok domain.DevRequestIntakeToken) (domain.DevRequestIntakeToken, error)
 	ListDevRequestIntakeTokens(ctx context.Context) ([]domain.DevRequestIntakeToken, error)
 	RevokeDevRequestIntakeToken(ctx context.Context, tokenID string) (domain.DevRequestIntakeToken, error)
+	UpdateDevRequestIntakeTokenIPs(ctx context.Context, tokenID string, allowedIPs []string) (domain.DevRequestIntakeToken, error)
 }
 
 // 컨텍스트 키 — DREQ intake 인증 통과 시 토큰의 source_system 매핑값을 핸들러에 전달.
@@ -98,15 +100,25 @@ func (h Handler) requireIntakeToken(c *gin.Context) {
 	}
 
 	if !row.IsActive() {
+		reason := "token_revoked"
+		errCode := "auth_intake_token_revoked"
+		errText := "intake token is revoked"
+
+		if row.ExpiresAt != nil && time.Now().After(*row.ExpiresAt) {
+			reason = "token_expired"
+			errCode = "auth_intake_token_expired"
+			errText = "intake token is expired"
+		}
+
 		h.recordAuditBestEffort(c, "dev_request.intake_auth_failed", "dev_request_intake_token", row.TokenID, map[string]any{
-			"reason":        "token_revoked",
-			"source_ip":     c.ClientIP(),
-			"client_label":  row.ClientLabel,
+			"reason":       reason,
+			"source_ip":    c.ClientIP(),
+			"client_label": row.ClientLabel,
 		})
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 			"status": "unauthorized",
-			"error":  "intake token is revoked",
-			"code":   "auth_intake_token_revoked",
+			"error":  errText,
+			"code":   errCode,
 		})
 		return
 	}

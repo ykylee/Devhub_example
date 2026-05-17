@@ -1,31 +1,54 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Filter, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { projectService } from "@/lib/services/project.service";
 import { Application } from "@/lib/services/project.types";
 import { ApplicationTable } from "@/components/project/ApplicationTable";
 import { ApplicationCreationModal } from "@/components/project/ApplicationCreationModal";
+import { FilterBar } from "@/components/ui/FilterBar";
 import { useToast } from "@/components/ui/Toast";
+
+const STATUS_OPTIONS = [
+  { label: "All Status", value: "all" },
+  { label: "Active", value: "active" },
+  { label: "Planning", value: "planning" },
+  { label: "On Hold", value: "on_hold" },
+  { label: "Closed", value: "closed" },
+  { label: "Archived", value: "archived" },
+];
 
 export default function AdminSettingsApplicationsPage() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [query, setQuery] = useState("");
+  const [activeStatus, setActiveStatus] = useState("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingApp, setEditingApp] = useState<Application | null>(null);
   const { toast } = useToast();
 
-  const refresh = async (searchQuery: string = query) => {
+  const filteredApplications = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return applications.filter((app) => {
+      const matchesQuery = !q || 
+        app.name.toLowerCase().includes(q) ||
+        app.key.toLowerCase().includes(q) ||
+        app.description.toLowerCase().includes(q);
+      
+      const matchesStatus = activeStatus === "all" || app.status === activeStatus;
+      
+      return matchesQuery && matchesStatus;
+    });
+  }, [applications, query, activeStatus]);
+
+  const refresh = async () => {
     setIsLoading(true);
     try {
-      const q = searchQuery.trim();
-      const data = await projectService.getApplications(q ? { q } : undefined);
+      const data = await projectService.getApplications();
       setApplications(data);
     } catch (error) {
       console.error("[admin/settings/applications] load failed:", error);
-      // For demo/design purposes, if 501, we might show empty or mock
       if ((error as { status?: number })?.status === 501) {
         toast("Backend API not implemented yet (501). Showing empty list.", "warning");
       }
@@ -35,25 +58,8 @@ export default function AdminSettingsApplicationsPage() {
   };
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const q = query.trim();
-        const data = await projectService.getApplications(q ? { q } : undefined);
-        if (!cancelled) setApplications(data);
-      } catch (error) {
-        console.error("[admin/settings/applications] load failed:", error);
-        if (!cancelled && (error as { status?: number })?.status === 501) {
-          toast("Backend API not implemented yet (501). Showing empty list.", "warning");
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [toast, query]);
+    refresh();
+  }, []);
 
   const handleCreate = () => {
     setEditingApp(null);
@@ -79,23 +85,14 @@ export default function AdminSettingsApplicationsPage() {
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-4 flex-1">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by name, key, or owner..."
-              className="w-full glass border-border rounded-2xl pl-12 pr-6 py-3.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-purple-500/30 transition-all"
-            />
-          </div>
-          <button
-            type="button"
-            className="glass border-border p-3.5 rounded-2xl text-muted-foreground hover:bg-muted/40 transition-all"
-          >
-            <Filter className="w-5 h-5" />
-          </button>
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex-1">
+          <FilterBar 
+            onSearch={setQuery}
+            onFilterChange={setActiveStatus}
+            activeFilter={activeStatus}
+            filterOptions={STATUS_OPTIONS}
+            placeholder="Search by name, key, or owner..."
+          />
         </motion.div>
 
         <motion.button
@@ -104,7 +101,7 @@ export default function AdminSettingsApplicationsPage() {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={handleCreate}
-          className="bg-purple-600 text-white px-6 py-3.5 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2 shadow-xl shadow-purple-500/20 transition-all"
+          className="bg-primary text-primary-foreground px-6 py-3.5 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-2 shadow-xl shadow-primary/20 transition-all border border-primary/20"
         >
           <Plus className="w-4 h-4" />
           New Application
@@ -113,12 +110,12 @@ export default function AdminSettingsApplicationsPage() {
 
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-32 gap-4">
-          <div className="w-12 h-12 border-4 border-purple-500/20 border-t-purple-500 rounded-full animate-spin" />
+          <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
           <p className="text-muted-foreground font-bold animate-pulse uppercase tracking-[0.3em] text-[10px]">Loading Applications...</p>
         </div>
       ) : (
         <ApplicationTable
-          applications={applications}
+          applications={filteredApplications}
           onEdit={handleEdit}
           onArchive={handleArchive}
           onViewRepositories={(app) => {

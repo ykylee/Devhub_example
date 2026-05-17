@@ -107,6 +107,20 @@ class ProjectService {
   async archiveProject(id: string): Promise<void> {
     await apiClient("DELETE", `/api/v1/projects/${id}`);
   }
+
+  // Helper to fetch all projects across all repositories
+  async listAllProjects(repositoryIds: number[]): Promise<Project[]> {
+    const allProjects: Project[] = [];
+    for (const repoId of repositoryIds) {
+      try {
+        const projects = await this.getRepositoryProjects(repoId);
+        allProjects.push(...projects);
+      } catch (err) {
+        console.error(`Failed to fetch projects for repo ${repoId}:`, err);
+      }
+    }
+    return allProjects;
+  }
 }
 
 export const projectService = new ProjectService();

@@ -18,8 +18,19 @@
 | #131 | 2147d6d | claude/work_260515-p | DREQ-Admin-UI frontend — /admin/settings/dev-request-tokens 페이지 + plain-1회 modal |
 | #132 | 253063e | claude/work_260515-q | post-EOD housekeeping (main flat memory sync + sprint finalize) |
 | #133 | 4892a78 | codex/docker-packaging-guide | Docker deploy 패키지 안정화 + runtime-config/OIDC/토큰 모달/권한 UI 리뷰 반영 + 보안 placeholder 강화 |
+| #134 | ab1a764 | gemini/dreq_e2e_260515 | 대시보드 UI 안정화 (Header 통합, Recharts 실데이터 차트, 위젯 고도화) + 로그아웃 플리커 최적화 + Codex 리뷰 반영 (Zustand persist 필터링, E2E 토큰 노출 로직 수정) |
 
 ## 본 후속 세션 도입 핵심 (재참조 가능)
+
+### 0. 대시보드 UI 안정화 및 성능 최적화 (sprint gemini, PR #134)
+
+- **UI 표준화**: `DashboardHeader` 컴포넌트 통합으로 Developer/Manager 대시보드 헤더의 타이포그래피, 그라데이션, 애니메이션 정합성 확보.
+- **데이터 시각화**: `recharts` 라이브러리 도입 및 Manager 대시보드의 "Resource Utilization" 플레이스홀더를 실제 `AreaChart` (Mock 시계열 데이터 연동)로 교체.
+- **인터랙션 강화**: "Talent Load Balancing" 위젯에 호버 효과 및 이동 인디케이터 추가로 관리 유용성 증대.
+- **성능 최적화**: OIDC 로그아웃 리다이렉트 과정의 시각적 플리커 해결을 위해 `LogoutOverlay` 및 `isLoggingOut` 상태 관리 도입.
+- **Codex 리뷰 반영**:
+  - `isLoggingOut` 상태를 Zustand `persist` 대상에서 제외(partialize)하여 비정상 종료 시 화면 갇힘 방지.
+  - E2E 테스트(`dev-requests.spec.ts`)에서 마스킹된 토큰을 읽기 전 `show token` 버튼을 클릭하도록 로직 수정.
 
 ### 1. DREQ carve out 1/4 — RBAC-ADR + Promote-Tx (sprint m, PR #128)
 

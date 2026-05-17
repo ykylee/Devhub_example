@@ -2,18 +2,22 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "gemini/dreq_e2e_260515",
-  "status": "planned",
-  "updated_at": "2026-05-15T21:20:00Z",
+  "status": "done",
+  "updated_at": "2026-05-16T21:00:00Z",
   "milestones": {
     "DREQ-E2E": {
-      "status": "planned",
-      "started_at": "2026-05-15",
-      "notes": "DREQ carve out 3/4: Playwright E2E + Vitest Unit + P2 carve out absorption"
+      "status": "done",
+      "ended_at": "2026-05-16",
+      "notes": "PR #136 stabilized E2E flows. Merged into main."
+    },
+    "DREQ-HARDENING": {
+      "status": "done",
+      "ended_at": "2026-05-16",
+      "notes": "P2 items (expires_at + allowed_ips mutation) implemented and verified via unit tests."
     }
   },
   "next_actions": [
-    "DREQ-E2E-PLAYWRIGHT: Intake flow E2E spec 작성",
-    "DREQ-E2E-VITEST: IntakeToken UI 컴포넌트 단위 테스트 작성",
-    "DREQ-P2-ABSORPTION: P2 carve out 누적 6건 흡수"
+    "PR: DREQ hardening 내역 main 병합 검토",
+    "QA: 운영 환경 배포 후 intake token 만료 동작 실검증"
   ]
 }

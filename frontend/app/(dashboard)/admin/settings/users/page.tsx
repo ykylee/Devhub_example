@@ -2,12 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Search, Filter } from "lucide-react";
 import { identityService, OrgMember } from "@/lib/services/identity.service";
 import { MemberTable } from "@/components/organization/MemberTable";
 import { defaultRoles, Role } from "@/lib/services/rbac.types";
 import { rbacService } from "@/lib/services/rbac.service";
-
+import { FilterBar } from "@/components/ui/FilterBar";
 import { useToast } from "@/components/ui/Toast";
 
 export default function AdminSettingsUsersPage() {
@@ -16,17 +15,30 @@ export default function AdminSettingsUsersPage() {
   const [roles, setRoles] = useState<Role[]>(defaultRoles);
   const [isLoading, setIsLoading] = useState(true);
   const [query, setQuery] = useState("");
+  const [activeRole, setActiveRole] = useState("all");
   const { toast } = useToast();
+
+  const roleOptions = useMemo(() => {
+    const options = [{ label: "All Roles", value: "all" }];
+    roles.forEach(r => {
+      options.push({ label: r.name, value: r.name });
+    });
+    return options;
+  }, [roles]);
 
   const filteredMembers = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return members;
-    return members.filter((m) =>
-      m.name.toLowerCase().includes(q) ||
-      m.email.toLowerCase().includes(q) ||
-      m.role.toLowerCase().includes(q)
-    );
-  }, [members, query]);
+    return members.filter((m) => {
+      const matchesQuery = !q || 
+        m.name.toLowerCase().includes(q) ||
+        m.email.toLowerCase().includes(q) ||
+        m.role.toLowerCase().includes(q);
+      
+      const matchesRole = activeRole === "all" || m.role === activeRole;
+      
+      return matchesQuery && matchesRole;
+    });
+  }, [members, query, activeRole]);
 
   useEffect(() => {
     const load = async () => {
@@ -76,27 +88,15 @@ export default function AdminSettingsUsersPage() {
 
   return (
     <div className="space-y-8">
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by name, email, or role..."
-            aria-label="Search users"
-            className="w-full glass border-border rounded-2xl pl-12 pr-6 py-3.5 text-sm text-foreground text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all"
-          />
-        </div>
-        <button
-          type="button"
-          disabled
-          title="Advanced filters coming soon"
-          aria-label="Advanced filters coming soon"
-          className="glass border-border p-3.5 rounded-2xl text-muted-foreground/40 cursor-not-allowed transition-all"
-        >
-          <Filter className="w-5 h-5" />
-        </button>
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+        <FilterBar 
+          onSearch={setQuery}
+          onFilterChange={setActiveRole}
+          activeFilter={activeRole}
+          filterOptions={roleOptions}
+          placeholder="Search by name, email, or role..."
+          searchLabel="Search users"
+        />
       </motion.div>
 
       {isLoading ? (

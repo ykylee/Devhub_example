@@ -1,24 +1,29 @@
-# Session Handoff: DREQ-E2E & P2 Absorption
+# Session Handoff: DREQ Hardening (P2)
 
-- **Date**: 2026-05-15
+- **Date**: 2026-05-16
 - **Agent**: Gemini
 - **Branch**: `gemini/dreq_e2e_260515`
 
 ## Summary of Goals
-- **DREQ-E2E Validation**: Implement full-cycle Playwright E2E tests for the Development Request (DREQ) domain.
-- **UI Component Hardening**: Add Vitest unit tests for new DREQ admin components (`IntakeTokenTable`, `IssueIntakeTokenModal`).
-- **P2 Carve-out Absorption**: Address accumulated tech debt and minor enhancements for the DREQ domain.
+- **Token Expiration (`expires_at`)**: Implement server-side expiration checks and UI configuration.
+- **IP Mutation (`PATCH`)**: Allow dynamic updates to token `allowed_ips` without revocation.
+- **Admin UI Polish**: Enhance the token management table with status visibility and expiration data.
 
 ## Current State
-- **Branch**: `gemini/dreq_e2e_260515` initialized from `main` (post-PR #131).
-- **Environment**: Backend API-59..68 activated, Frontend DREQ Admin UI implemented.
-- **Goal**: Achieve 3/4 of the DREQ carve-out plan.
+- **Backend**:
+  - Migration `000027_add_expires_at_to_intake_tokens` applied.
+  - `expires_at` logic implemented in Domain/Store/Middleware.
+  - `PATCH /api/v1/dev-request-tokens/:token_id` endpoint implemented and RBAC-secured.
+  - Unit tests updated/added for expiration logic.
+- **Frontend**:
+  - `DevRequestTokenService` updated with new endpoints.
+  - `IssueIntakeTokenModal` and `IntakeTokenTable` updated with expiration support and status badges.
+- **Milestone**: DREQ-HARDENING phase completed.
 
 ## Next Steps
-1. **Research existing E2E specs**: Analyze `frontend/e2e/` to align with established patterns.
-2. **Implement TASK-DREQ-E2E**: Focus on the intake-to-promote flow.
-3. **Implement TASK-DREQ-UNIT**: Ensure UI robustness for token management.
-4. **Absorb P2 items**: Sequentially address race guards, dead fields, and UI polish.
+1. **Pull Request**: Create a PR to merge `gemini/dreq_e2e_260515` into `main`.
+2. **QA**: Perform full regression on the DREQ intake flow using the new token policies.
+3. **Docs**: Update `docs/backend_api_contract.md` with the new `PATCH` endpoint details.
 
 ## Known Issues / Blockers
-- **None**: Baseline DREQ functionality is stable on `main`.
+- **None**: Baseline and Hardening features are verified and stable.
