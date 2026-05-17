@@ -75,9 +75,9 @@ func doHomeLabHTTPPull(client *http.Client, req *http.Request) (HomeLabRawSnapsh
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
+		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 1024))
 		retryable := resp.StatusCode >= 500 || resp.StatusCode == http.StatusTooManyRequests
-		return HomeLabRawSnapshot{}, retryable, fmt.Errorf("homelab pull request failed: status=%d body=%q", resp.StatusCode, strings.TrimSpace(string(body)))
+		return HomeLabRawSnapshot{}, retryable, fmt.Errorf("homelab pull request failed: status=%d", resp.StatusCode)
 	}
 
 	var raw HomeLabRawSnapshot

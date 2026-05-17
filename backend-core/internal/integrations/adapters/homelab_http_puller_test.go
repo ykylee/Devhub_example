@@ -3,9 +3,9 @@ package adapters
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -54,7 +54,7 @@ func TestHomeLabHTTPPullerRejectsInvalidPayload(t *testing.T) {
 
 func TestHomeLabHTTPPullerRejectsHTTPError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "bad upstream", http.StatusBadGateway)
+		http.Error(w, "bad upstream secret-token", http.StatusBadGateway)
 	}))
 	defer server.Close()
 
@@ -62,6 +62,12 @@ func TestHomeLabHTTPPullerRejectsHTTPError(t *testing.T) {
 	_, err := puller.PullSnapshot(context.Background())
 	if err == nil {
 		t.Fatal("expected error for non-2xx")
+	}
+	if msg := err.Error(); msg == "" {
+		t.Fatalf("unexpected error message: %q", msg)
+	}
+	if msg := err.Error(); strings.Contains(msg, "secret-token") {
+		t.Fatalf("error leaked response body: %q", msg)
 	}
 }
 
@@ -141,7 +147,7 @@ func TestHomeLabHTTPPullerStopsAfterRetryLimit(t *testing.T) {
 	if calls != 3 {
 		t.Fatalf("calls=%d; want 3", calls)
 	}
-	if msg := fmt.Sprint(err); msg == "" {
+	if msg := err.Error(); msg == "" {
 		t.Fatal("expected non-empty error message")
 	}
 }
