@@ -91,7 +91,7 @@ export default function AdminSettingsApplicationsPage() {
             onFilterChange={setActiveStatus}
             activeFilter={activeStatus}
             filterOptions={STATUS_OPTIONS}
-            placeholder="Search by name, key, or description..."
+            placeholder="Search by name, key, or owner..."
           />
         </motion.div>
 

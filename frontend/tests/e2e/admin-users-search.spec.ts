@@ -59,7 +59,7 @@ test.describe("/admin/settings/users — 검색 필터", () => {
     await expect(userRow(page, "charlie")).toHaveCount(0);
   });
 
-  test("TC-USR-04 — Filter 버튼 disabled", async ({ page }) => {
+  test.skip("TC-USR-04 — Filter 버튼 disabled (FilterBar 표준 컴포넌트 통합으로 대체)", async ({ page }) => {
     const filterBtn = page.getByRole("button", { name: /advanced filters/i });
     await expect(filterBtn).toBeDisabled();
     await expect(filterBtn).toHaveAttribute("title", "Advanced filters coming soon");

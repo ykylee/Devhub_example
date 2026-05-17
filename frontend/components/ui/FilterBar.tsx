@@ -15,6 +15,7 @@ interface FilterBarProps {
   filterOptions: FilterOption[];
   placeholder?: string;
   activeFilter?: string;
+  searchLabel?: string;
 }
 
 export function FilterBar({ 
@@ -22,7 +23,8 @@ export function FilterBar({
   onFilterChange, 
   filterOptions, 
   placeholder = "Search resources...",
-  activeFilter = "all"
+  activeFilter = "all",
+  searchLabel
 }: FilterBarProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -45,6 +47,7 @@ export function FilterBar({
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder={placeholder}
+          aria-label={searchLabel}
           className="w-full pl-11 pr-11 py-3 rounded-2xl glass border border-border/50 focus:ring-2 focus:ring-primary/20 focus:border-primary/50 outline-none transition-all text-sm font-medium"
         />
         {searchQuery && (

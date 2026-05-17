@@ -95,6 +95,7 @@ export default function AdminSettingsUsersPage() {
           activeFilter={activeRole}
           filterOptions={roleOptions}
           placeholder="Search by name, email, or role..."
+          searchLabel="Search users"
         />
       </motion.div>
 
