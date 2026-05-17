@@ -448,6 +448,12 @@ infra_services
   - `agent_id`, `snapshot_at`, `nodes[]`, `services[]`, `trace_id`
   - 각 node/service 는 `observed_at` 필수
   - 동일 `agent_id + snapshot_at` 재전송은 idempotent 처리
+- Adapter 연동 범위 (baseline):
+  - API-77 ingest payload를 `infra_service_snapshots`로 영속화하고, API-76/API-78 조회 시 최신 persisted snapshot hydrate를 지원한다.
+  - adapter 계약은 `save_snapshot/load_latest_snapshot` 읽기·쓰기 경계까지만 포함한다.
+- Adapter 연동 범위 (후속):
+  - provider별 delta upsert (`infra_nodes`, `infra_services`)와 변경 이력(event log) 분리 저장.
+  - pull/reconciliation 경로와 push ingest 간 watermark 정합, 충돌 해결 정책 적용.
 
 ### 8.6 장애 격리 및 복구 (ARCH-INT-06)
 

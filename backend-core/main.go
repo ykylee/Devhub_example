@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/devhub/backend-core/internal/auth"
@@ -12,6 +13,7 @@ import (
 	"github.com/devhub/backend-core/internal/domain"
 	"github.com/devhub/backend-core/internal/hrdb"
 	"github.com/devhub/backend-core/internal/httpapi"
+	"github.com/devhub/backend-core/internal/integrations/adapters"
 	"github.com/devhub/backend-core/internal/normalize"
 	"github.com/devhub/backend-core/internal/serviceaction"
 	"github.com/devhub/backend-core/internal/store"
@@ -35,6 +37,7 @@ func main() {
 	realtimeHub := httpapi.NewRealtimeHub()
 	var worker *commandworker.Worker
 	var liveWorker *commandworker.LiveWorker
+	var homeLabAdapterStore adapters.InfraSnapshotStore
 
 	if cfg.DBURL != "" {
 		pgStore, err := store.NewPostgresStore(ctx, cfg.DBURL)
@@ -53,6 +56,7 @@ func main() {
 		devRequestStore = pgStore
 		devRequestIntakeTokenStore = pgStore
 		rbacStore = pgStore
+		homeLabAdapterStore = pgStore
 
 		worker = &commandworker.Worker{Store: pgStore, Publisher: realtimeHub}
 		if cfg.ServiceActionExecutorMode != "" {
@@ -124,27 +128,30 @@ func main() {
 	log.Println("HR DB Mock client initialized")
 
 	router := httpapi.NewRouter(httpapi.RouterConfig{
-		WebhookSecret:       cfg.GiteaWebhookSecret,
-		KratosWebhookToken:  cfg.KratosWebhookToken,
-		EventStore:          eventStore,
-		EventProcessor:      eventProcessor,
-		HealthStore:         healthStore,
-		DomainStore:         domainStore,
-		CommandStore:        commandStore,
-		AuditStore:          auditStore,
-		OrganizationStore:   organizationStore,
+		WebhookSecret:              cfg.GiteaWebhookSecret,
+		KratosWebhookToken:         cfg.KratosWebhookToken,
+		InfraAgentToken:            cfg.InfraAgentToken,
+		HomeLabProviderKey:         cfg.HomeLabProviderKey,
+		HomeLabDegradedRaw:         cfg.HomeLabDegradedStatuses,
+		EventStore:                 eventStore,
+		EventProcessor:             eventProcessor,
+		HealthStore:                healthStore,
+		DomainStore:                domainStore,
+		CommandStore:               commandStore,
+		AuditStore:                 auditStore,
+		OrganizationStore:          organizationStore,
 		ApplicationStore:           applicationStore,
 		DevRequestStore:            devRequestStore,
 		DevRequestIntakeTokenStore: devRequestIntakeTokenStore,
 		RBACStore:                  rbacStore,
-		BearerTokenVerifier: verifier,
-		KratosLogin:         kratosLogin,
-		HydraAdmin:          hydraAdmin,
-		HydraLogout:         hydraLogout,
-		HydraToken:          hydraToken,
-		HydraRevoker:        hydraRevoker,
-		KratosAdmin:         kratosAdmin,
-		HRDB:                hrdbMock,
+		BearerTokenVerifier:        verifier,
+		KratosLogin:                kratosLogin,
+		HydraAdmin:                 hydraAdmin,
+		HydraLogout:                hydraLogout,
+		HydraToken:                 hydraToken,
+		HydraRevoker:               hydraRevoker,
+		KratosAdmin:                kratosAdmin,
+		HRDB:                       hrdbMock,
 		SnapshotProvider: httpapi.RuntimeSnapshotProvider{
 			Base:         httpapi.StaticSnapshotProvider{},
 			HealthStore:  healthStore,
@@ -169,8 +176,87 @@ func main() {
 			}
 		}()
 	}
+	if cfg.HomeLabPullEnabled && homeLabAdapterStore != nil {
+		policy := buildHomeLabHealthPolicy(cfg.HomeLabProviderKey, cfg.HomeLabDegradedStatuses)
+		var (
+			puller     adapters.HomeLabPuller
+			pullerDesc string
+		)
+		if filePath := strings.TrimSpace(cfg.HomeLabPullFile); filePath != "" {
+			puller = adapters.HomeLabFilePuller{Path: filePath}
+			pullerDesc = "file=" + filePath
+		} else if endpoint := strings.TrimSpace(cfg.HomeLabPullURL); endpoint != "" {
+			retryBackoff := time.Second
+			if strings.TrimSpace(cfg.HomeLabPullHTTPRetryBackoff) != "" {
+				if parsed, err := time.ParseDuration(cfg.HomeLabPullHTTPRetryBackoff); err == nil && parsed > 0 {
+					retryBackoff = parsed
+				} else {
+					log.Printf("invalid DEVHUB_HOMELAB_PULL_HTTP_RETRY_BACKOFF=%q; fallback to %s", cfg.HomeLabPullHTTPRetryBackoff, retryBackoff)
+				}
+			}
+			retryMax := cfg.HomeLabPullHTTPRetryMax
+			if retryMax < 0 {
+				retryMax = 0
+			}
+			puller = adapters.HomeLabHTTPPuller{
+				URL:          endpoint,
+				Token:        cfg.HomeLabPullToken,
+				RetryMax:     retryMax,
+				RetryBackoff: retryBackoff,
+			}
+			pullerDesc = "url=" + endpoint
+		}
+		if puller == nil {
+			log.Printf("homelab pull loop skipped: set DEVHUB_HOMELAB_PULL_FILE or DEVHUB_HOMELAB_PULL_URL")
+		} else {
+			adapter := adapters.HomeLabAdapter{
+				Store:        homeLabAdapterStore,
+				Puller:       puller,
+				HealthPolicy: policy,
+			}
+			interval := 30 * time.Second
+			if strings.TrimSpace(cfg.HomeLabPullInterval) != "" {
+				if parsed, err := time.ParseDuration(cfg.HomeLabPullInterval); err == nil && parsed > 0 {
+					interval = parsed
+				} else {
+					log.Printf("invalid DEVHUB_HOMELAB_PULL_INTERVAL=%q; fallback to %s", cfg.HomeLabPullInterval, interval)
+				}
+			}
+			go func() {
+				err := adapters.RunHomeLabPullLoop(ctx, adapter, interval, func(runErr error) {
+					log.Printf("homelab pull loop error: %v", runErr)
+				})
+				if err != nil && err != context.Canceled {
+					log.Printf("homelab pull loop stopped: %v", err)
+				}
+			}()
+			log.Printf("homelab pull loop enabled (%s interval=%s)", pullerDesc, interval)
+		}
+	}
 	if err := router.Run(":" + cfg.Port); err != nil {
 		log.Fatalf("run server: %v", err)
+	}
+}
+
+func buildHomeLabHealthPolicy(providerKey, degradedRaw string) adapters.HomeLabHealthPolicy {
+	statuses := map[string]bool{}
+	for _, item := range strings.Split(degradedRaw, ",") {
+		status := strings.ToLower(strings.TrimSpace(item))
+		if status == "" {
+			continue
+		}
+		statuses[status] = true
+	}
+	if len(statuses) == 0 {
+		statuses = map[string]bool{"warning": true, "degraded": true, "down": true}
+	}
+	key := strings.TrimSpace(providerKey)
+	if key == "" {
+		key = "homelab-agent"
+	}
+	return adapters.HomeLabHealthPolicy{
+		DegradedStatuses: statuses,
+		ProviderKey:      key,
 	}
 }
 

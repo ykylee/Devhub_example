@@ -2180,6 +2180,9 @@ intake_token_collision                         # sprint o (ADR-0014): hashed_tok
 - **인증**: Agent 토큰 기반 ingest 인증 (OIDC 미적용).
 - **요청**: 노드/서비스 상태 스냅샷 배열.
 - **응답 — 202**: 수집 accepted + ingest_id.
+- **영속화 정책 (baseline)**:
+  - ingest payload(`nodes`, `services`)는 `infra_service_snapshots`에 저장한다.
+  - 동일 프로세스 런타임 캐시가 비어 있으면 최신 persisted snapshot을 hydrate해 조회 응답에 사용한다.
 
 요청 예시:
 
@@ -2218,6 +2221,9 @@ intake_token_collision                         # sprint o (ADR-0014): hashed_tok
 
 - **인증**: OIDC + RBAC `infrastructure:view`.
 - **응답 — 200**: `nodes`, `edges`, `services`, `meta`(`snapshot_at`, `degraded_providers`).
+- **상태 반영 (baseline)**:
+  - `meta.snapshot_at`: 최신 ingest 시각 (런타임 캐시 또는 persisted snapshot 기준).
+  - `meta.degraded_providers`: snapshot 서비스 상태가 `degraded|down`인 provider 집합.
 
 ### 15.5 공통 에러 코드 (초안)
 
