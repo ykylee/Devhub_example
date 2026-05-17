@@ -24,7 +24,7 @@ snapshot 영속화와 adapter 경계를 도입하고, pull scheduler + HTTP pull
   - Prometheus 지표 추가 + `/metrics` endpoint 노출
   - 관련 config/env 확장
 - migration/store
-  - `000028_infra_service_snapshots` 추가
+  - `000029_infra_service_snapshots` 추가
   - `SaveInfraSnapshot/LoadLatestInfraSnapshot` 구현
 - docs
   - architecture/api_contract/traceability 동기화

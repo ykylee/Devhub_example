@@ -17,7 +17,7 @@
   - `GET /api/v1/infra/topology/v2`
   - `routePermissionTable` + `publicAPIPaths` 동기화
   - snapshot 영속화 baseline:
-    - migration `000028_infra_service_snapshots`
+    - migration `000029_infra_service_snapshots`
     - `PostgresStore.SaveInfraSnapshot/LoadLatestInfraSnapshot`
     - runtime cache 비어 있을 때 persisted snapshot hydrate
   - adapter skeleton:

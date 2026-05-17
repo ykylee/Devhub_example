@@ -301,9 +301,9 @@
 | `IMPL-int-handler-02` | `backend-core/internal/httpapi/infra_integrations.go` | API-76..78 handler 구현 (서비스 조회/snapshot ingest/topology v2 + infra agent token 인증 + persisted snapshot hydrate). |
 | `IMPL-int-webhook-01` | `backend-core/internal/httpapi/integration_registry.go` | API-73 provider webhook ingest baseline (provider 존재/상태 검증 + dedupe + accepted envelope). |
 | `IMPL-int-router-rbac-01` | `backend-core/internal/httpapi/router.go`, `permissions.go`, `auth.go` | Integration endpoint route 등록 + RBAC/public path 매핑 반영. |
-| `IMPL-int-migration-01` | `backend-core/migrations/000027_integration_registry_*.sql` | `integration_providers`, `integration_bindings`, `integration_sync_jobs` 스키마 및 인덱스/제약 생성. |
+| `IMPL-int-migration-01` | `backend-core/migrations/000028_integration_registry_*.sql` | `integration_providers`, `integration_bindings`, `integration_sync_jobs` 스키마 및 인덱스/제약 생성. |
 | `IMPL-int-store-02` | `backend-core/internal/store/infra_snapshots.go` | HomeLab snapshot 영속화 (`SaveInfraSnapshot`, `LoadLatestInfraSnapshot`) persistence 구현. |
-| `IMPL-int-migration-02` | `backend-core/migrations/000028_infra_service_snapshots_*.sql` | `infra_service_snapshots` 스키마 + 최신 snapshot 조회 인덱스 생성. |
+| `IMPL-int-migration-02` | `backend-core/migrations/000029_infra_service_snapshots_*.sql` | `infra_service_snapshots` 스키마 + 최신 snapshot 조회 인덱스 생성. |
 | `IMPL-int-adapter-01` | `backend-core/internal/integrations/adapters/{contract.go,homelab.go,homelab_file_puller.go}` | HomeLab adapter 고도화 1차 (`InfraSnapshotStore`, `HomeLabPuller`, `HomeLabAdapter.{NormalizeSnapshot,IngestSnapshot,PullAndIngest,LoadLatestSnapshot}`, health policy override, File puller). |
 - **Frontend**: IMPL-frontend-auth-01..06, login-01..03, logout-01, dashboard-01, account-01, admin-01, admin-users-01, admin-org-01, admin-rbac-01, admin-audit-01, org-01, org-comp-01..03, role-01..03, service-auth-01, service-account-01, service-rbac-01, service-audit-01, service-org-01, service-realtime-01, service-api-01, layout-01..02, store-01 (32 항목).
 - **Backend AI**: 미사용 (Phase 4 분석에서 placeholder 만 발견).
