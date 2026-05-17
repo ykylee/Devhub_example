@@ -5,6 +5,7 @@ import {
   AlertTriangle, 
   BarChart3, 
   CheckCircle2, 
+  ShieldCheck,
   Target, 
   Users,
   Calendar,
@@ -110,8 +111,8 @@ export default function ManagerDashboard() {
   return (
     <div className="space-y-10 pb-20">
       <DashboardHeader 
-        titlePrefix="Project"
-        titleGradient="Intelligence"
+        titlePrefix="Quality"
+        titleGradient="Status (품질 현황)"
         subtitle={(
           <>
             <Calendar className="w-4 h-4 text-primary" /> Milestone v1.0 • <span className="text-foreground dark:text-primary-foreground font-bold">Week 12</span> of 16
@@ -121,7 +122,7 @@ export default function ManagerDashboard() {
           <>
             <div className="glass px-4 py-2 rounded-xl border border-border flex items-center gap-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              <span className="text-xs font-bold text-primary-foreground uppercase tracking-wider">On Track</span>
+              <span className="text-xs font-bold text-foreground dark:text-primary-foreground uppercase tracking-wider">On Track</span>
             </div>
             <button className="bg-primary text-primary-foreground px-6 py-2 rounded-xl text-sm font-bold hover:bg-primary/90 transition-all shadow-xl flex items-center gap-2">
               <FileText className="w-4 h-4" /> Weekly Report
@@ -152,7 +153,11 @@ export default function ManagerDashboard() {
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className={cn("p-2 rounded-xl bg-muted/30 border border-border", stat.color)}>
-                    <Target className="w-5 h-5" />
+                    {stat.label.includes("SLA") && <CheckCircle2 className="w-5 h-5" />}
+                    {stat.label.includes("Vulnerabilities") && <ShieldCheck className="w-5 h-5" />}
+                    {stat.label.includes("Coverage") && <BarChart3 className="w-5 h-5" />}
+                    {stat.label.includes("Security") && <Target className="w-5 h-5" />}
+                    {!["SLA", "Vulnerabilities", "Coverage", "Security"].some(k => stat.label.includes(k)) && <Target className="w-5 h-5" />}
                   </div>
                   <span className="text-[10px] font-black text-green-400 bg-green-500/10 px-2 py-1 rounded-lg">
                     {stat.trend}
@@ -200,7 +205,7 @@ export default function ManagerDashboard() {
                           <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Assigned to</p>
                           <div className="flex items-center gap-2 justify-end">
                             <div className="w-5 h-5 rounded-full bg-primary/20 border border-primary/20" />
-                            <span className="text-xs font-bold text-primary-foreground">{risk.owner}</span>
+                            <span className="text-xs font-bold text-foreground dark:text-primary-foreground">{risk.owner}</span>
                           </div>
                         </div>
                         <button 
@@ -220,17 +225,17 @@ export default function ManagerDashboard() {
             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 opacity-30" />
             <div className="flex items-center justify-between mb-8 relative z-10">
               <div>
-                <h3 className="text-lg font-bold text-foreground dark:text-primary-foreground">Resource Utilization Velocity</h3>
-                <p className="text-xs text-muted-foreground">Real-time velocity tracking and burndown analytics</p>
+                <h3 className="text-lg font-bold text-foreground dark:text-primary-foreground">Quality & Security Velocity</h3>
+                <p className="text-xs text-muted-foreground">Historical trend of code health and vulnerability resolution</p>
               </div>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full bg-primary" />
-                  <span className="text-[10px] font-black text-muted-foreground uppercase">Velocity</span>
+                  <span className="text-[10px] font-black text-muted-foreground uppercase">Quality</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full bg-accent" />
-                  <span className="text-[10px] font-black text-muted-foreground uppercase">Load</span>
+                  <span className="text-[10px] font-black text-muted-foreground uppercase">Security</span>
                 </div>
               </div>
             </div>
@@ -248,12 +253,12 @@ export default function ManagerDashboard() {
                       <stop offset="95%" stopColor="#ec4899" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" opacity={0.3} />
                   <XAxis 
                     dataKey="name" 
                     axisLine={false} 
                     tickLine={false} 
-                    tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: 700 }}
+                    tick={{ fill: 'var(--muted-foreground)', fontSize: 10, fontWeight: 700 }}
                     dy={10}
                   />
                   <YAxis 
@@ -261,18 +266,19 @@ export default function ManagerDashboard() {
                   />
                   <Tooltip 
                     contentStyle={{ 
-                      backgroundColor: 'rgba(15, 15, 20, 0.9)', 
+                      backgroundColor: 'var(--card)', 
                       borderRadius: '16px', 
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
-                      backdropFilter: 'blur(10px)'
+                      border: '1px solid var(--border)',
+                      boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+                      backdropFilter: 'blur(10px)',
+                      color: 'var(--foreground)'
                     }}
                     itemStyle={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase' }}
-                    labelStyle={{ fontSize: '12px', fontWeight: 800, marginBottom: '4px', color: '#fff' }}
+                    labelStyle={{ fontSize: '12px', fontWeight: 800, marginBottom: '4px', color: 'var(--foreground)' }}
                   />
                   <Area 
                     type="monotone" 
-                    dataKey="velocity" 
+                    dataKey="quality" 
                     stroke="#8b5cf6" 
                     strokeWidth={3}
                     fillOpacity={1} 
@@ -280,7 +286,7 @@ export default function ManagerDashboard() {
                   />
                   <Area 
                     type="monotone" 
-                    dataKey="load" 
+                    dataKey="security" 
                     stroke="#ec4899" 
                     strokeWidth={3}
                     fillOpacity={1} 
@@ -374,7 +380,7 @@ export default function ManagerDashboard() {
             <div className="p-6 rounded-2xl bg-rose-500/5 border border-rose-500/20">
               <div className="flex items-center gap-3 mb-4">
                 <Badge variant="danger">{selectedRisk.impact} Impact</Badge>
-                <h4 className="text-xl font-bold text-primary-foreground">{selectedRisk.title}</h4>
+                <h4 className="text-xl font-bold text-foreground dark:text-primary-foreground">{selectedRisk.title}</h4>
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 {selectedRisk.reason}
@@ -391,7 +397,7 @@ export default function ManagerDashboard() {
                 ].map((plan, i) => (
                   <div key={i} className="glass p-4 rounded-xl border border-border/60 flex items-center justify-between group hover:border-primary/30 transition-all">
                     <div>
-                      <p className="text-sm font-bold text-primary-foreground">{plan.title}</p>
+                      <p className="text-sm font-bold text-foreground dark:text-primary-foreground">{plan.title}</p>
                       <p className="text-xs text-muted-foreground">{plan.desc}</p>
                     </div>
                     <button 
@@ -412,7 +418,7 @@ export default function ManagerDashboard() {
                 ))}
               </div>
               <p className="text-xs text-muted-foreground">
-                <span className="text-primary-foreground font-bold">3 stakeholders</span> are currently reviewing this mitigation plan.
+                <span className="text-foreground dark:text-primary-foreground font-bold">3 stakeholders</span> are currently reviewing this mitigation plan.
               </p>
             </div>
           </div>

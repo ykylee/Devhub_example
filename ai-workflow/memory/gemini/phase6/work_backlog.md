@@ -1,10 +1,10 @@
 # 작업 백로그 인덱스
 
 - 문서 목적: 날짜별 백로그 이력 관리
-- 범위: 2026-04-29 ~ 2026-05-07
+- 범위: 2026-04-29 ~ 2026-05-16
 - 대상 독자: AI Agent, 프로젝트 관리자
 - 상태: in_progress
-- 최종 수정일: 2026-05-07
+- 최종 수정일: 2026-05-16
 - 관련 문서: [세션 인계](./session_handoff.md), [프로젝트 프로파일](../../../../docs/PROJECT_PROFILE.md)
 
 ## 운영 원칙
@@ -18,3 +18,5 @@
 - [2026-05-04](./backlog/2026-05-04.md)
 - [2026-05-06](./backlog/2026-05-06.md)
 - [2026-05-07](./backlog/2026-05-07.md)
+- [2026-05-16](./backlog/2026-05-16.md) ← Dashboard Refactoring + Filter Standardization
+- [2026-05-17](./backlog/2026-05-17.md) ← E2E Verification & Projects Refinement + DREQ Stabilization

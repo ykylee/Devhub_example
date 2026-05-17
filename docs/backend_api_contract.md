@@ -1109,6 +1109,12 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 | `organization` | users, org units, hierarchy, unit members, subject role assignment |
 | `security` | risks, risk mitigation command, RBAC policy 자체 (조회·편집) |
 | `audit` | audit-logs 조회 (audit 생성은 시스템 전용) |
+| `applications` | application 관리 |
+| `application_repositories` | application-repository 매핑 관리 |
+| `projects` | project 관리 |
+| `scm_providers` | SCM provider 활성화/설정 관리 |
+| `dev_requests` | 개발 의뢰(DREQ) 조회/관리 |
+| `dev_request_intake_tokens` | DREQ 외부 수신 토큰 발급/관리 |
 
 > 본 5종은 ADR-0002 §4.2 채택. 신규 자원이 추가되면 본 contract 갱신 + 매핑 표 (§12.6) 갱신.
 
@@ -1136,6 +1142,7 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 | `developer` | view | view | view | view | — |
 | `manager` | view | view | view | view, create | view |
 | `system_admin` | view, create, edit, delete | view, create, edit, delete | view, create, edit, delete | view, create, edit, delete | view |
+| `pmo_manager` | view | view | view | view | view |
 
 > `audit` 의 create/edit/delete 는 §12.0.4 invariant 로 모든 role 에서 false. system_admin 도 view 만 true.
 
@@ -1342,6 +1349,17 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 | `DELETE /api/v1/organization/units/:unit_id` | organization | delete |
 | `GET /api/v1/organization/units/:unit_id/members` | organization | view |
 | `PUT /api/v1/organization/units/:unit_id/members` | organization | edit |
+| `GET /api/v1/dev-requests` | dev_requests | view |
+| `POST /api/v1/dev-requests` | dev_requests | (intake token auth) |
+| `GET /api/v1/dev-requests/:id` | dev_requests | view |
+| `POST /api/v1/dev-requests/:id/register` | dev_requests | edit |
+| `POST /api/v1/dev-requests/:id/reject` | dev_requests | edit |
+| `PATCH /api/v1/dev-requests/:id` | dev_requests | edit |
+| `DELETE /api/v1/dev-requests/:id` | dev_requests | delete |
+| `POST /api/v1/dev-request-tokens` | dev_request_intake_tokens | create |
+| `GET /api/v1/dev-request-tokens` | dev_request_intake_tokens | view |
+| `DELETE /api/v1/dev-request-tokens/:token_id` | dev_request_intake_tokens | delete |
+| `PATCH /api/v1/dev-request-tokens/:token_id` | dev_request_intake_tokens | edit |
 
 > 신규 v1 라우트가 추가되면 본 표에 행 추가가 *필수*. 누락 시 §12.9 deny-by-default 가 발동해 모든 사용자 거부 + audit 알림.
 
@@ -1991,6 +2009,7 @@ intake_token_collision                         # sprint o (ADR-0014): hashed_tok
 | API-66 | `POST /api/v1/dev-request-tokens` (intake token 발급, sprint `o` / ADR-0014) |
 | API-67 | `GET /api/v1/dev-request-tokens` (intake token 목록) |
 | API-68 | `DELETE /api/v1/dev-request-tokens/:token_id` (intake token revoke) |
+| API-79 | `PATCH /api/v1/dev-request-tokens/:token_id` (intake token IP mutation) |
 
 ### 14.10 Intake Token Admin (API-66..68, sprint `claude/work_260515-o` / ADR-0014)
 
@@ -2016,6 +2035,14 @@ intake_token_collision                         # sprint o (ADR-0014): hashed_tok
 - **처리**: `revoked_at = COALESCE(revoked_at, NOW())` — idempotent.
 - **응답 — 200**: 갱신된 row (plain_token 미포함). **404** `not_found` (token_id 미존재).
 - **audit**: `dev_request_intake_token.revoked`.
+
+#### API-79 `PATCH /api/v1/dev-request-tokens/:token_id` — IP mutation
+
+- **인증**: OIDC + RBAC `dev_request_intake_tokens:edit` (system_admin only).
+- **요청**: `{ "allowed_ips": ["10.0.0.1/32"] }`. 필수.
+- **처리**: allowed_ips 갱신.
+- **응답 — 200**: 갱신된 row.
+- **audit**: `dev_request_intake_token.updated`.
 
 ## 15. 외부 시스템 연동 (Integration) API 초안
 
