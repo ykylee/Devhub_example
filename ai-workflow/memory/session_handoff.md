@@ -1,14 +1,62 @@
-# Session Handoff — main (2026-05-15 post-EOD final + docker packaging merge)
+# Session Handoff — main (2026-05-18 메모리 갭 동기화 세션)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
-- 범위: 2026-05-15 직전 final EOD (sprint l) 이후의 후속 세션 종료. 추가 5 PR 흡수 (#128 m / #129 n / #130 o / #131 p / 본 q housekeeping). **DREQ carve out 1/4 + 2/4 전체 완료** (RBAC-ADR / Promote-Tx / codex hotfix #4 / Admin-UI backend / Admin-UI frontend).
+- 범위: 직전 claude EOD (sprint q PR #132, 2026-05-15) 이후 외부 에이전트(codex/gemini) 가 2026-05-15~17 사이 8 PR (#133~#140) 을 main 에 머지했으나 flat memory 는 미반영 상태였음. 본 세션은 새 코드 작업 없이 **메모리 sync 만 수행** + 결과로 **DREQ 모든 P2 carve out 6건 해소 확인** + **External Integration 도메인 신규 1차 완성 흡수**.
 - 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
-- 상태: M1/M2/M3 1차 closing (이전). Application 도메인 backend 1차 (2026-05-14). DREQ 도메인 1차 완성 (sprint l 종료, 2026-05-15). 본 후속 세션 — **DREQ carve out 1/4 (RBAC-ADR + Promote-Tx) + 2/4 (Admin-UI backend + frontend) 완료**. 4 sprint (m/n/o/p), 본인 4단계 리뷰 4회 clean, codex review cycle 1회 (hotfix #4). ADR-0013 + ADR-0014 누적. API-66..68 + 신규 RBAC resource `dev_request_intake_tokens` activated. /admin/settings/dev-request-tokens 페이지.
-- 최종 수정일: 2026-05-15 (PR #133 merge 반영)
-- 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [상태 스냅샷](./state.json), [거버넌스](../../docs/governance/README.md), [추적성 매트릭스](../../docs/traceability/report.md), [Project 도메인 컨셉](../../docs/planning/project_management_concept.md), [Dev Request 도메인 컨셉](../../docs/planning/development_request_concept.md), [ADR-0011 RBAC row-scoping](../../docs/adr/0011-rbac-row-scoping.md), [ADR-0012 DREQ 외부 수신 인증](../../docs/adr/0012-dreq-external-intake-auth.md), [ADR-0013 DREQ RBAC row-scoping](../../docs/adr/0013-dreq-rbac-row-scoping.md), [ADR-0014 DREQ intake token admin](../../docs/adr/0014-dreq-intake-token-admin.md).
-- 브랜치: `main` (HEAD `4892a78`, PR #133 squash merge 반영).
+- 상태: M1/M2/M3 1차 closing (이전). Application 도메인 backend 1차 (2026-05-14). DREQ 도메인 1차 완성 (sprint l 종료, 2026-05-15) + carve out 1/4 + 2/4 + (외부 흡수) 3/4 부분 완료. **External Integration 도메인 concept staged + backend 1차** (PR #135 + PR #139, 외부 에이전트). 본인 4단계 리뷰는 본 세션 수행 안 함 (메모리 sync only).
+- 최종 수정일: 2026-05-18 (메모리 갭 동기화 세션)
+- 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [상태 스냅샷](./state.json), [거버넌스](../../docs/governance/README.md), [추적성 매트릭스](../../docs/traceability/report.md), [Dev Request 도메인 컨셉](../../docs/planning/development_request_concept.md), [External Integration 컨셉](../../docs/planning/external_system_integration_concept.md), [HomeLab pull strategy](../../docs/planning/homelab_adapter_pull_strategy.md), [ADR-0014 DREQ intake token admin](../../docs/adr/0014-dreq-intake-token-admin.md).
+- 브랜치: `main` (HEAD `caa80c7`, PR #140 squash merge 직후).
 
-## 본 후속 세션 (2026-05-15 post-EOD) 누적 머지 — 7 PR
+## 2026-05-18 메모리 갭 동기화 세션 — 핵심 사실
+
+직전 메모리 상태는 PR #132 (2026-05-15T07:22Z, sha `253063e`) 까지였고, 그 이후 외부 에이전트가 main 에 머지한 **8 PR (#133~#140)** 이 미반영. 본 세션이 일괄 흡수.
+
+### A. P2 carve out 누적 6건 → 0건 모두 해소 (코드 검증 완료)
+
+| # | 항목 | 해소 경로 | 검증 |
+| --- | --- | --- | --- |
+| 1 | promote-tx race 가드 | `WHERE id = $1 AND status IN ('pending', 'in_review')` | `dev_requests.go:266` + `dev_requests_promote.go:29` grep PASS |
+| 2 | `memoryDevRequestStore.failPromote` dead field | 제거 | `grep -r failPromote backend-core` → 0 hit |
+| 3 | window.confirm → DestructiveConfirmModal | 컴포넌트 신규 + dev-request-tokens 페이지 wire (PR #140) | `frontend/components/ui/DestructiveConfirmModal.tsx` 존재 + `grep window.confirm frontend` → 0 hit |
+| 4 | plain_token Show/Hide toggle | Eye/EyeOff icon + aria-label | `IssueIntakeTokenModal.tsx:29` `showToken` state, line 253/257/259/261 |
+| 5 | token rotation expires_at | migration 000027 + `auth_intake_token_expired` middleware (PR #137) | 마이그레이션 + 미들웨어 wire |
+| 6 | allowed_ips mutation endpoint | PATCH /api/v1/dev-request-tokens/:token_id (PR #137) | endpoint 활성화 |
+
+### B. DREQ carve out 3/4 (E2E) 부분 흡수
+
+| PR | 기여 |
+| --- | --- |
+| #136 (codex/e2e-fix-20260515) | `frontend/tests/e2e/dev-requests.spec.ts` 신규 — 위젯→list→detail flow + Promote 조건부 + `signout.spec.ts` login form visibility 기반 검증 |
+| #138 (gemini/main_review_260516) | DREQ E2E 전반 안정화 + 감사로그 selector 정정 + TC-USR-04 legacy advanced filters 호환 |
+| #140 (gemini/ui_standardization_260517) | dev-requests page FilterBar 적용 (검색·상태 필터 표준화) + E2E selector 호환 |
+
+**잔여**: intake auth Playwright spec (admin token issue → bearer header → POST 외부 의뢰 → assignee dashboard widget 노출 → promote → revoke 전체 흐름), TC-DREQ-* 정식 발급, traceability §3 row 갱신 (외부 에이전트 PR 들의 ID 매핑 미반영 가능성 확인).
+
+### C. External Integration 도메인 신규 1차 완성
+
+| 단계 | PR | 결과 |
+| --- | --- | --- |
+| Concept staged | #135 (codex/memory-next-step-20260515) | `docs/planning/external_system_integration_concept.md` + `external_integration_capability_matrix.md` + REQ-FR-INT + REQ-NFR-INT + UC-INT + ARCH-INT + API-69..78 + traceability §3 row + IMPL-int planned 분해 + TC-INT |
+| Backend 1차 | #139 (codex/next-step-20260516) | `internal/integrations/adapters/{contract,homelab,homelab_file_puller,homelab_http_puller,homelab_pull_loop,metrics}.go` + `internal/store/integration_registry.go` + `infra_snapshots.go` + `httpapi/integration_registry.go` + `infra_integrations.go` + API-73..78 활성화 + Prometheus `/metrics` + migration 000028 (integration_registry) + 000029 (infra_service_snapshots) |
+| Supporting docs | (PR #139 부수) | `docs/planning/homelab_adapter_pull_strategy.md` + `prometheus_homelab_alerts.md` + `docs/tests/test_cases_m4_integration.md` + `reports/report_20260516_m4_integration.md` |
+
+### D. Frontend 대시보드 리브랜딩 + 현황 페이지 신설 (PR #138)
+
+- 개발자/관리자 대시보드 → 업무 현황/품질 현황 리브랜딩
+- Applications / Repositories / Projects 전용 현황 페이지 (`page.tsx` + `[id]/page.tsx` 6 신규)
+- 공통 FilterBar 컴포넌트 (`frontend/components/ui/FilterBar.tsx`)
+- 감사 로그 페이지 Glassmorphism 리디자인
+
+### E. Docker deploy 패키지 안정화 (PR #133)
+
+- `docker-compose.deploy.yml` + `local-db` profile (번들 DB vs 외부 DB 분리)
+- `infra/idp/{hydra.deploy.yaml, kratos.deploy.yaml}` + `infra/nginx/devhub.deploy.conf`
+- `/api/runtime-config` 도입 (배포 환경별 OIDC callback URL 정합)
+- `.github/workflows/docker-image-publish.yml` 신규
+- 메모: CLAUDE.md 의 docker = env-specific 정책상 본 자산이 git 추적되는 것은 `docs/setup/docker-packaging-deployment-guide.md` 의 가이드 + deploy compose 만이고, 실제 prod compose 는 사용자 로컬에 둠 (cf. [feedback_no_docker])
+
+## 본 후속 세션 (2026-05-15 post-EOD) 누적 머지 — 13 PR (5 claude + 8 외부)
 
 | PR | sha | sprint | 작업 |
 | --- | --- | --- | --- |
@@ -17,8 +65,14 @@
 | #130 | 0bdf299 | claude/work_260515-o | DREQ-Admin-UI backend — intake token admin (API-66..68) + ADR-0014 |
 | #131 | 2147d6d | claude/work_260515-p | DREQ-Admin-UI frontend — /admin/settings/dev-request-tokens 페이지 + plain-1회 modal |
 | #132 | 253063e | claude/work_260515-q | post-EOD housekeeping (main flat memory sync + sprint finalize) |
-| #133 | 4892a78 | codex/docker-packaging-guide | Docker deploy 패키지 안정화 + runtime-config/OIDC/토큰 모달/권한 UI 리뷰 반영 + 보안 placeholder 강화 |
-| #134 | ab1a764 | gemini/dreq_e2e_260515 | 대시보드 UI 안정화 (Header 통합, Recharts 실데이터 차트, 위젯 고도화) + 로그아웃 플리커 최적화 + Codex 리뷰 반영 (Zustand persist 필터링, E2E 토큰 노출 로직 수정) |
+| #133 | 4892a78 | codex/docker-packaging-guide | Docker deploy 패키지 안정화 + runtime-config + admin-permissions E2E 2건 안정화 |
+| #134 | 09528bf | gemini/dreq_e2e_260515 | 대시보드 UI 안정화 (Header 통합, Recharts 실차트, 위젯 인터랙션) + LogoutOverlay |
+| #135 | 62a2088 | codex/memory-next-step-20260515 | [Docs] External Integration 컨셉~설계 패키지 |
+| #136 | c61274b | codex/e2e-fix-20260515 | dev-requests + signout E2E flow 안정화 (strict locator + unique title + UX 정합) |
+| #137 | 72bf265 | gemini/dreq_e2e_260515 | DREQ token expires_at + PATCH allowed_ips — **P2 #5 + #6 해소** |
+| #138 | c0134a1 | gemini/main_review_260516 | 대시보드 리브랜딩 + Applications/Repositories/Projects 현황 페이지 + FilterBar 공통화 + DREQ E2E 안정화 |
+| #139 | e2a76fb | codex/next-step-20260516 | External Integration backend 1차 (HomeLab pull adapter + Prometheus + integration_registry + infra_snapshots + API-73..78 + migration 000028/000029) |
+| #140 | caa80c7 | gemini/ui_standardization_260517 | FilterBar 표준화 종합 + dev-requests page 적용 + DestructiveConfirmModal — **P2 #3 해소** |
 
 ## 본 후속 세션 도입 핵심 (재참조 가능)
 
@@ -61,17 +115,23 @@
 - `dev_request_token.{service,types}.ts` — thin wrapper.
 - npm run build PASS (26 static pages) + vitest 41 tests PASS.
 
-## 다음 세션 directive
+## 다음 세션 directive (2026-05-18 sync 기준 재산정)
 
-**DREQ carve out 3/4 — DREQ-E2E** (sprint q' 또는 다음 세션 진입).
+P2 carve out 6/6 모두 해소 + DREQ E2E 부분 흡수 + External Integration 1차 backend activated 상태에서 진입 후보:
 
-| 작업 | scope |
-| --- | --- |
-| Playwright spec | intake auth (token bearer) → admin issue token → dashboard widget (assignee 본인 의뢰) → promote (신규 application/project 생성 단일 tx) → revoke token. TC-DREQ-* 발급 |
-| Vitest unit | IntakeTokenTable / IssueIntakeTokenModal 두 phase (form / reveal) + clipboard mock + outside-click 차단 검증 |
-| P2 carve out 흡수 후보 (누적 6건) | (1) promote-tx race 가드 (UPDATE WHERE status IN ...) — sprint m P2 #2; (2) memoryDevRequestStore.failPromote dead field — sprint m P2 #3; (3) window.confirm 대신 destructive confirm dialog — sprint p P2 #2; (4) plain_token reveal Show/Hide toggle — sprint p P2 #3; (5) token rotation policy (expires_at + cron) — ADR-0014 §6; (6) allowed_ips mutation endpoint — ADR-0014 §6 |
+| 우선순위 | 작업 | scope |
+| --- | --- | --- |
+| 1 | **traceability 동기화** | 외부 에이전트 PR #133~#140 의 ID 매핑(REQ-FR-INT / ARCH-INT / API-69..78 / IMPL-int / TC-INT / TC-DREQ-*) 이 `docs/traceability/report.md` §3 매트릭스 행에 반영됐는지 검수. PR #135 본문에 staged 가 있지만 후속 PR (#139) backend 활성화 후 status 갱신 필요. PR template 의 추적성 영향 섹션 누락 가능성. |
+| 2 | **DREQ-E2E 잔여** | intake auth Playwright spec — admin token issue → bearer header → POST 외부 의뢰 → assignee dashboard widget 노출 → promote (신규 application/project 단일 tx) → revoke. TC-DREQ-* 정식 발급. `dev-requests.spec.ts` (PR #136) 가 widget→list→detail flow 만 커버, intake 경로 미커버 추정. |
+| 3 | **External Integration design/impl carve out** | (a) Frontend 진입점 (system_admin 페이지 또는 admin/settings 통합), (b) API-69..72 (verifier strategy 외 endpoint) wire 검증 grep, (c) ADR 발급 (HomeLab adapter pull strategy + Prometheus alerts 정책 — `docs/planning/homelab_adapter_pull_strategy.md` + `prometheus_homelab_alerts.md` 의 결정 사항 ADR 화 후보). |
+| 4 | **ADR-0014 §6 본문 검수** | PR #137 이 expires_at + allowed_ips PATCH 를 활성화했지만 ADR-0014 §6 의 carve out 항목이 "구현됨" 으로 갱신됐는지 외부 에이전트가 처리했는지 미확인. |
+| 5 | **기존 m3/m4 carve out + Application 도메인 frontend** | 이전 session_handoff §3 후보 (M4 RM-M4-XX, Application 도메인 frontend UI, critical_warning_count 임계치 외부화 등) — 우선순위 낮음, 신규 작업 1~3 처리 후 재평가 권장. |
 
-본 4건 carve out 중 1/4 + 2/4 완료. 3/4 만 남음 (4/4 는 본 sprint plan 에서 carve 2 가 2 개 sprint 로 분할되며 자연 흡수, 별도 1 carve 가 아니라 묶음의 일부).
+**메모리 메타 정합**: 외부 에이전트 sprint 디렉터리는 `ai-workflow/memory/{codex,gemini}/<sprint>/` 에 각각 존재 — 본 세션이 main flat memory 만 갱신했고, 외부 sprint 디렉터리는 그대로 유지 (해당 에이전트가 next session 에 자체 정리).
+
+---
+
+(이하: 직전 sprint q EOD 시점의 누적 작업 기록은 historical reference 로 보존)
 
 ## 다음 세션 directive (사용자 지시)
 
