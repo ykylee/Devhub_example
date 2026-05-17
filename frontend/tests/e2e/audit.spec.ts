@@ -14,7 +14,7 @@ test.describe("/admin/settings/audit", () => {
     await expect(page).toHaveURL(/\/admin\/settings\/audit/);
 
     // Filter card heading + first action column come from page.tsx.
-    await expect(page.getByText(/Audit Log Filters/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/Audit Log Intelligence/i)).toBeVisible({ timeout: 10_000 });
 
     // Backend has audit rows from every prior login (auth.login.succeeded),
     // so the first page should contain at least one entry. The page renders
