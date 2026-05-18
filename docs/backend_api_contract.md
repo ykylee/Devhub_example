@@ -660,8 +660,8 @@ System Admin 이 다른 사용자의 identity 를 발급/회수/잠금 해제할
 
 | method/path | 용도 | audit action |
 | --- | --- | --- |
-| `POST /api/v1/accounts` | DevHub user + Kratos identity 동시 생성 (temp password) | `account.created` |
-| `PUT /api/v1/accounts/{user_id}/password` | admin 비밀번호 재설정 (Kratos admin recovery / direct update) | `account.password_reset` |
+| `POST /api/v1/accounts` | DevHub user + IdP account 발급 (temp password) | `account.created` |
+| `PUT /api/v1/accounts/{user_id}/password` | admin 비밀번호 재설정 (IdP admin API) | `account.password_reset` |
 | `PATCH /api/v1/accounts/{user_id}` | identity 상태 변경 (disable / enable, traits 조정) | `account.status_changed` |
 | `DELETE /api/v1/accounts/{user_id}` | identity 회수 + DevHub user soft-delete | `account.deleted` |
 
@@ -690,7 +690,7 @@ System Admin 이 다른 사용자의 identity 를 발급/회수/잠금 해제할
   "status": "created",
   "data": {
     "user_id": "u-new-2026",
-    "kratos_identity_id": "01H...",
+    "idp_subject": "1f3d3b0a-....",
     "temp_password_expires_at": "2026-05-20T00:00:00Z"
   },
   "meta": { "audit_log_id": "aud-001" }
@@ -706,7 +706,7 @@ System Admin 이 다른 사용자의 identity 를 발급/회수/잠금 해제할
 | 401 | `unauthenticated` | Bearer token 부재 또는 검증 실패 |
 | 403 | `forbidden` | RBAC `security:create` 미보유 |
 | 409 | `conflict` | `user_id` 또는 email 중복 |
-| 500 | (없음) | Kratos identity 생성 실패 또는 DevHub user 저장 실패 |
+| 500 | (없음) | IdP account 생성 실패 또는 DevHub user 저장 실패 |
 
 > 자세한 schema (모든 endpoint 의 request/response/error 매트릭스) 는 후속 sprint 의 spec 정리 후보. 본 절은 1차 노출.
 
@@ -719,7 +719,7 @@ System Admin 이 다른 사용자의 identity 를 발급/회수/잠금 해제할
 | `GET /api/v1/users` | 사용자 목록 조회 (query: `unit_id`, `role`, `status`, `q`) | (조회, audit 미작성) |
 | `POST /api/v1/users` | DevHub user master data 생성 (identity 발급은 §10.2 `POST /api/v1/accounts` 가 담당) | `user.created` |
 | `GET /api/v1/users/{user_id}` | 개별 사용자 조회 | (조회, audit 미작성) |
-| `PATCH /api/v1/users/{user_id}` | user 정보 수정 (display_name, role, status, kratos_identity_id 등) | `user.updated` |
+| `PATCH /api/v1/users/{user_id}` | user 정보 수정 (display_name, role, status, idp_subject 등) | `user.updated` |
 | `DELETE /api/v1/users/{user_id}` | DevHub user soft-delete (identity 는 별도 §10.2 가 담당) | `user.deleted` |
 
 #### 권한
@@ -731,7 +731,7 @@ System Admin 이 다른 사용자의 identity 를 발급/회수/잠금 해제할
 ```json
 {
   "status": "ok",
-  "data": { "user_id": "...", "email": "...", "display_name": "...", "role": "...", "status": "active", "system_id": "...", "kratos_identity_id": "..." },
+  "data": { "user_id": "...", "email": "...", "display_name": "...", "role": "...", "status": "active", "system_id": "...", "idp_subject": "..." },
   "meta": { "audit_log_id": "..." }
 }
 ```
@@ -899,7 +899,7 @@ unit 의 member 목록을 bulk replace. 누락된 user 는 unit 에서 제거, �
 
 ## 11. 계정 및 인증 (Keycloak/OIDC)
 
-DevHub는 자체 `/api/v1/accounts/*`, `/api/v1/auth/*` 인증 API를 만들지 않는다. 인증과 credential/session lifecycle은 Ory Keycloak/OIDC가 소유하고, Go Core는 검증된 token claim에서 actor를 도출한다.
+DevHub 인증 경계는 Keycloak 기반 OIDC 표준 흐름을 사용한다. Go Core는 토큰 검증과 actor 매핑, 권한/감사 정책 enforcement를 담당하며, 자체 `/api/v1/auth/*` 프록시 API는 제공하지 않는다.
 
 정책 기준은 [ADR-0001](./adr/0001-idp-selection.md), [architecture.md 6.2절](./architecture.md#62-사용자user--계정account-도메인-분리)을 따른다.
 
@@ -908,139 +908,52 @@ DevHub는 자체 `/api/v1/accounts/*`, `/api/v1/auth/*` 인증 API를 만들지 
 | 영역 | Source of truth | DevHub 역할 |
 | --- | --- | --- |
 | 조직/사용자 master data | Go Core `users`, `org_units`, `unit_memberships` | 사용자/조직 CRUD, 권한/소속 조회, audit |
-| credential, recovery, session | Kratos | identity, password, recovery, verification flow |
-| OAuth2/OIDC token | Hydra | authorization code, token, JWKS, introspection |
-| frontend session UX | Next.js + Kratos public flow | 로그인/로그아웃/비밀번호 변경 flow orchestration |
+| credential, recovery, session | Keycloak | identity, password, recovery, session lifecycle |
+| OAuth2/OIDC token | Keycloak | authorization code, token, JWKS/introspection |
+| frontend session UX | Next.js + OIDC client | 로그인/로그아웃/세션 갱신 UI orchestration |
 
-`users.user_id`는 Kratos identity 또는 Hydra ID token의 안정적인 subject와 1:1로 매핑한다. email/display name/status 같은 업무 속성은 DevHub `users`가 제공하고, credential secret은 DevHub API 응답과 audit payload에 포함하지 않는다.
+`users.user_id`는 OIDC `sub`와 안정적으로 매핑되는 내부 식별자로 운영한다. credential secret과 토큰 원문은 DevHub API 응답 및 audit payload에 포함하지 않는다.
 
-### 11.2 Hydra 표준 endpoint
+### 11.2 OIDC 표준 endpoint
 
-다른 앱과 DevHub frontend는 Hydra 표준 endpoint를 사용한다. Go Core는 아래 endpoint를 재정의하지 않는다.
+다른 앱과 DevHub frontend는 IdP의 OIDC 표준 endpoint를 사용한다. Go Core는 아래 endpoint를 재정의하지 않는다.
 
 | endpoint | 용도 |
 | --- | --- |
 | `/.well-known/openid-configuration` | issuer, authorization/token/JWKS endpoint discovery |
-| `/oauth2/auth` | authorization code flow 시작 |
-| `/oauth2/token` | code/token 교환 |
-| `/oauth2/revoke` | refresh/access token revoke |
-| `/oauth2/introspect` | opaque token 또는 서버 간 token introspection |
-| `/.well-known/jwks.json` 또는 discovery의 `jwks_uri` | JWT access token signature 검증 |
+| `.../protocol/openid-connect/auth` | authorization code flow 시작 |
+| `.../protocol/openid-connect/token` | code/token 교환 |
+| `.../protocol/openid-connect/logout` | RP-initiated logout |
+| `.../protocol/openid-connect/userinfo` | 사용자 claim 조회 |
+| `.../protocol/openid-connect/certs` (또는 discovery `jwks_uri`) | JWT signature 검증 |
 
-로컬 PoC 기본 issuer는 `infra/idp/hydra.yaml` 기준 `http://localhost:4444/`다. 운영 환경에서는 issuer, audience, JWKS URI를 환경별 설정으로 주입한다.
+운영 환경에서는 issuer, audience, JWKS URI, clock-skew 허용치를 환경별 설정으로 주입한다.
 
 ### 11.3 Go Core Bearer token 경계 (API-19)
 
 Go Core `/api/v1/*` 라우터는 `Authorization: Bearer <token>`을 받으면 configured verifier에 위임한다.
 
-- verifier가 성공하면 `subject`, `login`, `role` claim을 내부 request context에 저장하고 command/audit actor로 사용한다.
-- verifier가 실패하면 `401 unauthenticated`를 반환한다.
-- verifier가 설정되지 않은 개발 환경에서는 Bearer token을 actor로 신뢰하지 않고 `X-Devhub-Auth: bearer_unverified`만 응답한다.
-- `X-Devhub-Actor` fallback 헤더는 [ADR-0004](./adr/0004-x-devhub-actor-removal.md) (2026-05-13) 로 폐기됐다 — prod 코드는 어떤 분기에서도 처리하지 않고 회귀 방지 negative 테스트만 유지.
+- verifier 성공 시 `subject`, `login`, `role` claim을 내부 request context에 저장하고 command/audit actor로 사용한다.
+- verifier 실패 시 `401 unauthenticated`를 반환한다.
+- `X-Devhub-Actor` fallback 헤더는 [ADR-0004](./adr/0004-x-devhub-actor-removal.md) (2026-05-13)로 폐기됐고, prod 코드는 해당 헤더를 처리하지 않는다.
 
-현재 구현된 경계는 verifier interface와 actor context 연결까지다. Hydra JWKS 또는 introspection 기반 실제 verifier는 후속 작업에서 연결한다.
+### 11.4 DevHub 계정/권한 관련 API 범위
 
-### 11.4 DevHub admin identity wrapper 예정 API
-
-시스템 관리자가 identity 발급/회수/복구를 수행할 때는 Go Core가 Kratos admin API를 감싸는 `/api/v1/admin/identities/*` endpoint를 제공한다. 이 endpoint들은 DevHub 권한, audit log, 조직/사용자 상태 검증을 추가하는 thin wrapper다.
+현재 DevHub API에서 인증 연계로 유지하는 endpoint는 다음 범위다.
 
 | method/path | 목적 | audit action |
 | --- | --- | --- |
-| `GET /api/v1/admin/identities` | `user_id`, `email`, `identity_id` 기준 identity 조회 | 없음 |
-| `POST /api/v1/admin/identities` | DevHub user에 연결되는 Kratos identity 생성 | `identity.created` |
-| `PATCH /api/v1/admin/identities/{identity_id}` | trait/status/metadata 조정 | `identity.updated` |
-| `POST /api/v1/admin/identities/{identity_id}/recovery-link` | 관리자 주도 recovery link 발급 | `identity.recovery_link_created` |
-| `DELETE /api/v1/admin/identities/{identity_id}` | identity 회수 또는 비활성화 | `identity.disabled` |
+| `GET /api/v1/me` | OIDC subject 기준 DevHub user profile/role/org context 조회 | 없음 |
+| `POST /api/v1/account/password` | **본인 비밀번호 변경** (OIDC 인증 하 self-service) | `account.password_self_change` |
+| `POST /api/v1/accounts` | 시스템 관리자 계정 발급 | `account.created` |
+| `PUT /api/v1/accounts/{user_id}/password` | 시스템 관리자 강제 비밀번호 재설정 | `account.password_reset` |
+| `DELETE /api/v1/accounts/{user_id}` | 시스템 관리자 계정 회수/비활성화 | `account.disabled` |
 
-요청/응답 schema는 Kratos admin payload를 그대로 노출하지 않고 DevHub user 매핑과 audit metadata를 포함하는 envelope로 확정한다.
+`/api/v1/auth/login`, `/api/v1/auth/logout`, `/api/v1/auth/token`, `/api/v1/auth/signup`, `/api/v1/auth/consent` 는 제거된 legacy endpoint다.
 
-### 11.5 Self-service flow
+### 11.5 비밀번호 변경 (`POST /api/v1/account/password`, API-35)
 
-frontend 는 OIDC code flow 진입과 권한 정합을 backend proxy 로 운반한다. 직접 Kratos public flow 만 사용하지 않고, DevHub `/api/v1/auth/*` + `/api/v1/account/*` 가 Kratos/Hydra 와의 server-to-server 통신을 담당한다 (PR-LOGIN-1/2, PR-L3/L4).
-
-| API | method/path | 용도 | audit action |
-| --- | --- | --- | --- |
-| `API-20` | `POST /api/v1/auth/login` | login_challenge + identifier/password → Kratos api-mode login + Hydra accept | `auth.login.succeeded` / `auth.login.failed` |
-| `API-21` | `POST /api/v1/auth/logout` | logout_challenge + refresh_token → Hydra revoke + accept | `auth.logout.succeeded` |
-| `API-22` | `POST /api/v1/auth/token` | authorization_code → Hydra `/oauth2/token` 교환 | (passthrough) |
-| `API-23` | `POST /api/v1/auth/signup` | HRDB lookup + Kratos identity 생성 | `account.signup.requested` |
-| `API-24` | `GET /api/v1/auth/consent` | Hydra consent flow auto-accept | (passthrough) |
-| `API-35` | `POST /api/v1/account/password` | **본인 비밀번호 변경** — current_password 검증 + Kratos settings flow proxy | `account.password_self_change` |
-
-#### 11.5.2 `POST /api/v1/auth/signup` (API-23, RM-M3-01)
-
-인사 DB 조회 → Kratos identity 생성 → DevHub user 생성 → audit log. 인증 없이 진입 가능한 self-service flow (`publicAPIPaths` 등재). 대상은 인사 DB 에 존재하는 인원에 한정 — `system_id` + `employee_id` + `name` 3 키 모두 일치해야 가입 가능 (대소문자 무시).
-
-##### 요청 body
-
-```json
-{
-  "name": "YK Lee",
-  "system_id": "yklee",
-  "employee_id": "1001",
-  "password": "ChangeMe-12345!"
-}
-```
-
-- `name`: 사용자 표시 이름. HR DB 의 `name` 과 case-insensitive 매칭.
-- `system_id`: 사내 ID (계정명 prefix). HR DB 의 `system_id` 와 case-insensitive 매칭.
-- `employee_id`: 사번. HR DB 의 `employee_id` 와 정확 매칭.
-- `password`: 초기 비밀번호. Kratos identity 생성에 사용. 길이/복잡성은 Kratos schema 가 enforce (1차 PoC = 12자 이상 권장).
-
-모든 필드 필수.
-
-##### 정상 응답 (`201 Created`)
-
-```json
-{
-  "status": "created",
-  "data": {
-    "user_id": "yklee",
-    "kratos_id": "01H...",
-    "department": "Engineering",
-    "message": "Account created successfully. You can now sign in."
-  }
-}
-```
-
-- `user_id` = HR DB 의 `system_id` (DevHub `users.user_id` 와 1:1).
-- `kratos_id` = Kratos identity UUID (`metadata_public.user_id` 와 매핑).
-- `department` = HR DB 의 `department_name` (조직 단위 자동 배정은 carve out — 본 sprint 는 표시용).
-
-##### 에러 매트릭스
-
-| status | code | 의미 | 조건 |
-| --- | --- | --- | --- |
-| 400 | `invalid_payload` | body parse 실패 또는 필드 누락 | 필드 누락 |
-| 400 | `x_devhub_actor_removed` | inbound `X-Devhub-Actor` 헤더 발견 ([ADR-0006](./adr/0006-x-devhub-actor-reject-inbound.md)) | legacy 헤더 사용 |
-| 403 | `hr_lookup_failed` | HR DB 조회 실패 | 3 키 mismatch 또는 미등록 인원 |
-| 500 | (없음) | Kratos identity 생성 실패 | `KratosAdmin.CreateIdentity` 에러 |
-| 503 | (없음) | `HRDB` / `KratosAdmin` 미주입 | 운영 환경 누락 |
-
-##### Audit 매핑
-
-성공 시 두 가지 action 중 하나 emit (§11.6):
-
-| action | target | payload | 조건 |
-| --- | --- | --- | --- |
-| `account.signup.requested` | `user` / `user_id` | `kratos_id`, `email`, `department`, `system_id` | DevHub user 생성 성공 (정상 path) |
-| `account.signup.partial_failure` | `user` / `user_id` | `reason=devhub_user_create_failed`, `kratos_id`, `email`, `department`, `error_class` | Kratos identity 는 생성됐으나 DevHub user 생성 실패 (충돌 등). 운영자 reconciliation 대상. |
-
-HR DB miss / Kratos 실패 시 audit row 작성 없음 — Kratos identity 가 만들어지기 전이라 reconciliation 대상이 아님.
-
-##### IMPL / 후속
-
-- `IMPL-auth-06` (`internal/httpapi/auth_signup.go::authSignUp`) + `IMPL-hrdb-01` (`internal/hrdb/mock.go::MockClient`, PoC).
-- production HR DB 어댑터 결정: [ADR-0008](./adr/0008-hrdb-production-adapter.md) (PostgreSQL `hrdb` schema 채택, 실 구현 carve out).
-- 부분 실패 (`account.signup.partial_failure`) 의 자동 rollback / retry: 후속 sprint carve.
-
-#### 11.5.1 `POST /api/v1/account/password` (PR-L4) (API-35)
-
-self-service 비밀번호 변경 proxy. 호출자는 자신의 OIDC access token (`Authorization: Bearer …`) 으로 인증한다. 다른 사용자의 비밀번호 재설정은 `PUT /api/v1/accounts/{user_id}/password` (PR-S3) 가 담당한다.
-
-- 인증: required Bearer. system fallback 은 거절 (`401 reauth_required`).
-- 권한: RBAC 매트릭스 bypass (§12.8.1 self-info 패턴). 본 endpoint 는 caller 본인의 identity 만 mutate.
-- 흐름: caller email lookup → Kratos api-mode login(current_password) → 새 session_token 으로 settings flow → password 변경. 새 session_token 은 `KratosSessionCache` 에 user_id 기준으로 저장 (DEC-D=α, 단일 instance PoC).
+self-service 비밀번호 변경 API. 호출자는 자신의 OIDC access token (`Authorization: Bearer ...`)으로 인증한다.
 
 요청 body:
 
@@ -1056,37 +969,28 @@ self-service 비밀번호 변경 proxy. 호출자는 자신의 OIDC access token
 
 에러 매트릭스:
 
-| status | code | 의미 | frontend 처리 |
-| --- | --- | --- | --- |
-| 400 | `validation` | Kratos 가 new_password 거절 (길이, breach, complexity). `error` 에 사유 | `SettingsFlowError(VALIDATION)` 로 inline 표시 |
-| 400 | (없음) | `current_password == new_password` 또는 body parse 실패 | 폼 검증 메시지 |
-| 401 | `current_password_invalid` | Kratos 가 current_password 거절 | `SettingsFlowError(CURRENT_PASSWORD_INVALID)` — 현재 비밀번호 입력 강조 |
-| 401 | `reauth_required` | session_token 만료/거절, actor 누락, DevHub users miss | `SettingsFlowError(REAUTH_REQUIRED)` → `/login` |
-| 410 | `flow_expired` | settings flow lifespan 경과 (생성 직후라 거의 발생 안 함) | `SettingsFlowError(FLOW_INIT_FAILED)` 재시도 안내 |
-| 500 | (없음) | Kratos 호출 실패 또는 invariant 위반 | `SettingsFlowError(SUBMIT_FAILED)` |
-| 503 | (없음) | `KratosLogin` / `OrganizationStore` 미주입 환경 | `SettingsFlowError(SUBMIT_FAILED)` |
-
-frontend 는 인증 완료 후 Keycloak/OIDC 세션 또는 token 에서 얻은 subject 를 기준으로 `GET /api/v1/me` 를 호출해 DevHub user profile, role, organization context 를 조회한다.
+| status | code | 의미 |
+| --- | --- | --- |
+| 400 | `validation` | 신규 비밀번호 정책 위반 |
+| 400 | (없음) | body parse 실패 또는 입력값 불량 |
+| 401 | `current_password_invalid` | 현재 비밀번호 불일치 |
+| 401 | `reauth_required` | 세션 만료/재인증 필요 |
+| 500 | (없음) | IdP 호출 실패 또는 내부 invariant 위반 |
 
 ### 11.6 Audit log 매핑
 
 | event | action | target_type |
 | --- | --- | --- |
-| admin identity 생성 | `identity.created` | `identity` |
-| admin identity 비활성화 | `identity.disabled` | `identity` |
-| admin recovery link 생성 | `identity.recovery_link_created` | `identity` |
-| Kratos login 성공 webhook | `auth.login.succeeded` | `identity` |
-| Kratos login 실패 webhook | `auth.login.failed` | `identity` 또는 `login_id` |
-| 본인 비밀번호 변경 성공 (`POST /api/v1/account/password`) | `account.password_self_change` | `user` |
-| 본인 비밀번호 변경 — current 비번 실패 | `account.password_self_change.invalid_current` | `user` |
-| 본인 비밀번호 변경 — DevHub users 미존재 | `account.password_self_change.no_user` | `user` |
-| token 기반 command 생성 | command별 action | `service`, `risk` 등 command target |
-| RBAC role 가드 거부 | `auth.role_denied` | `route` |
-| RBAC 매핑 누락 거부 (deny-by-default) | `auth.policy_unmapped` | `route` |
-| RBAC policy 매트릭스 갱신 (PUT /api/v1/rbac/policies) | `rbac.policy.updated` | `rbac_role` |
-| Subject role 할당 갱신 (PUT /api/v1/rbac/subjects/:id/roles) | `rbac.role.assigned` | `user` |
+| 계정 발급 | `account.created` | `account` |
+| 계정 회수/비활성화 | `account.disabled` | `account` |
+| 관리자 비밀번호 재설정 | `account.password_reset` | `account` |
+| 본인 비밀번호 변경 성공 | `account.password_self_change` | `user` |
+| 본인 비밀번호 변경 실패 (현재 비번 오류) | `account.password_self_change.invalid_current` | `user` |
+| token 기반 command 생성 | command별 action | command target |
+| RBAC 권한 거부 | `auth.role_denied` | `route` |
 
-Kratos/Hydra event를 audit log에 반영할 때 password, recovery token, session secret, access token 전문은 저장하지 않는다. RBAC audit payload 에는 이전 role/permission 매트릭스의 `before`/`after` 다이프, 변경 actor, request_id 를 포함한다 (M1 PR-D 의 audit actor 보강과 정합).
+비밀번호 평문/해시, recovery token, 세션 시크릿, access token 원문은 audit payload에 저장하지 않는다.
+
 
 ## 12. 권한 관리 (RBAC Policy Management)
 

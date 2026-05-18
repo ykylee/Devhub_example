@@ -2,23 +2,22 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "codex/keycloak-only-refactor-plan",
-  "status": "Keycloak-only 전환 대규모 정리 반영 완료. 레거시 Hydra/Kratos 실행 경로 제거 및 idp_subject 마이그레이션 적용.",
-  "updated_at": "2026-05-18T13:45:20Z",
-  "head_commit": "e64e2fa",
-  "head_summary": "refactor(idp): finalize keycloak-only transition and clean legacy hydra/kratos paths",
+  "status": "Keycloak-only 전환 코드/문서 정리 완료. 핵심 요구사항/설계/API 계약 문서에서 legacy IdP 경로를 deprecated 또는 제거 상태로 정합화.",
+  "updated_at": "2026-05-18T14:05:00Z",
+  "head_commit": "29302d4",
+  "head_summary": "docs(memory): sync keycloak-only transition progress",
   "current_focus": [
-    "잔여 Kratos/Hydra 명칭/문서 흔적 제거",
-    "traceability 문서 최종 동기화",
-    "프론트 auth UX 문구/시나리오 정합화"
+    "문서-코드 정합성 최종 점검",
+    "traceability 영향 항목 갱신",
+    "잔여 레거시 표현 최소화"
   ],
   "next_actions": [
-    "backend/frontend/docs 잔여 레거시 텍스트 전수 치환",
-    "traceability ID(REQ/ARCH/API/IMPL/UT/TC) 최종 반영",
-    "병합 전 최종 회귀 테스트"
+    "추적성(REQ/ARCH/API/IMPL/UT/TC) 영향 섹션 보강",
+    "프론트 auth UX 문구와 OIDC 동작 시나리오 최종 교차검증",
+    "PR 생성 전 최종 diff 리뷰"
   ],
   "risks": [
-    "문서와 실제 런타임 계약 불일치 가능성",
-    "E2E fixture/seed 방식 전환 지연 가능성",
-    "레거시 명칭 잔존으로 인한 운영 혼선 가능성"
+    "일부 historical 섹션의 legacy endpoint 표기가 혼선을 줄 가능성",
+    "문서 표현 변경이 테스트 케이스 명칭과 불일치할 가능성"
   ]
 }

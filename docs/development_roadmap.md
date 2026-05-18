@@ -52,8 +52,8 @@
 인증/계정 및 사용자 관리의 핵심 흐름이 모두 완성되었다. 1차 완성 sprint (`claude/login_usermanagement_finish`)를 통해 UX 결함과 audit 정합성, 그리고 CI 자동화 파이프라인까지 구축하여 운영 진입 게이트를 통과했다.
 
 - **로그인 / 로그아웃 흐름**:
-  - ✅ **B**: `/api/v1/auth/{login,logout,token,signup,consent}` Kratos/Hydra 프록시.
-  - ✅ **F**: `/auth/login` 패스워드 폼, `/auth/callback` 토큰 교환 + 저장, Header Sign Out → Hydra `/oauth2/sessions/logout` (PR-LOGIN-1~4, PR #33·#34·#45·#51).
+  - ✅ **B**: Keycloak OIDC 토큰 검증 경계 및 actor 매핑 정착.
+  - ✅ **F**: `/auth/login`, `/auth/callback` OIDC code flow 기반 세션 연동 (PR-LOGIN-1~4, PR #33·#34·#45·#51).
 - **사용자 관리 기능 (User Management)**:
   - ✅ **B**: `/api/v1/users` CRUD + 조직원 연동 (Phase 12).
   - ✅ **B**: 시스템 관리자용 `/api/v1/accounts` 발급/잠금/재설정/회수 4 endpoint (PR #54).
@@ -67,16 +67,16 @@
 #### 1차 완성 sprint 완료 (`claude/login_usermanagement_finish`)
 
 - ✅ **PR-UX1**: `/admin/settings/users` SearchInput 실 필터링 (DONE).
-- ✅ **PR-UX2**: `/account` Kratos privileged session 안내 (DONE).
+- ✅ **PR-UX2**: `/account` 비밀번호 변경/재인증 UX 안내 (DONE).
 - ✅ **PR-UX3**: Header Switch View 한계 안내 (DONE).
-- ✅ **PR-M2-AUDIT**: Kratos webhook → DevHub `audit_logs` 통합 (DONE).
+- ✅ **PR-M2-AUDIT**: 인증 이벤트 → DevHub `audit_logs` 통합 (DONE).
 - ✅ **PR-T4**: GitHub Actions CI 구축 및 35종 E2E 테스트 자동화 (DONE).
 
 세부는 [sprint_plan](../ai-workflow/memory/claude/login_usermanagement_finish/sprint_plan.md) 참조.
 
 #### M2 명시적 out-of-scope (별도 sprint)
 
-- Hydra JWKS / introspection verifier 실구현 → 보안 강화 sprint.
+- OIDC JWKS/introspection verifier 실구현 → 보안 강화 sprint.
 - Sign Up (셀프 가입, 인사 DB 연동) → M3.
 - MFA / Two-Factor → M4.
 
@@ -90,7 +90,7 @@
 - ✅ CI/CD GHA (Unit + E2E + actionlint) — PR #86~#88 + ADR-0005.
 
 **M3 잔여**:
-- ⏳ **Sign Up (셀프 가입)**: 인사 DB 연동 기반 사용자 셀프 등록 (`POST /api/v1/auth/signup` 의 hrdb lookup arm).
+- ⏳ **Sign Up (셀프 가입)**: 인사 DB 연동 기반 사용자 셀프 등록 (IdP admin API 연계 hrdb lookup arm).
     - 대상: 이름, 사내 ID, 사번, 부서명이 인사 DB에 존재하는 인원.
 - ⏳ **인사 DB 스키마 (초기)**: `name`, `system_id`, `employee_id`, `department_name`. `internal/hrdb/` 모듈 활용.
 - ⏳ **조직 polish**: 본 sprint 시리즈가 carve out 한 `backend_api_contract.md` §10.4 의 자세한 schema, `parent_id` 검증, primary_dept 자동 판정 등 (§5 백로그 항목).
@@ -188,7 +188,7 @@
 
 | 주제 | 폐기된 표현 | 채택된 표현 | 결정 출처 |
 | --- | --- | --- | --- |
-| 인증/계정 구현 | 자체 `accounts` 테이블, 자체 7 endpoint (`requirements §2.5`, `architecture §6.2`, `backend/requirements §5`, `api_contract §11` historical) | 정책 invariant 만 보존, 구현은 **Keycloak** (Kratos가 credential master, `users` 테이블은 organizational metadata 만) | ADR-0001 (2026-05-07) |
+| 인증/계정 구현 | 자체 `accounts` 테이블, 자체 7 endpoint (`requirements §2.5`, `architecture §6.2`, `backend/requirements §5`, `api_contract §11` historical) | 정책 invariant 만 보존, 구현은 **Keycloak OIDC** (DevHub `users` 는 organizational metadata master) | ADR-0001 (2026-05-07) |
 | 브라우저↔서버 실시간 | gRPC stream (`backend/requirements §1`) | **REST snapshot + WebSocket** | requirements_review §3.1, frontend_integration §2.1 |
 | 역할 wire 형식 | `DEVELOPER\|MANAGER\|ADMIN` (`backend/requirements §4`) | **`developer\|manager\|system_admin`** | api_contract §2, requirements_review §3.3 |
 | 명령성 액션 응답 | boolean `ActionResponse` (`backend/requirements §2`) | **`command_id` + `command_status` lifecycle** | api_contract §9 |

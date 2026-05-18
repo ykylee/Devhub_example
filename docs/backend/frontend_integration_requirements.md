@@ -220,16 +220,14 @@ PUT /api/v1/organizations/{unit_id}/members
 
 ### 3.8 사용자 계정 / 로그인 관리
 
-> ⚠ **Deprecated (2026-05-13, sprint `claude/work_260513-d` 명확화)** — 본 §3.8 의 7개 endpoint 는 자체 `accounts` 전제로 작성됐으나 [ADR-0001](../adr/0001-idp-selection.md) (2026-05-07) 채택 + Phase 13 (M2 login_action sprint, 2026-05-08~11) 머지로 다음으로 **실 구현 대체** 완료:
-> - 로그인: Hydra OIDC Authorization Code + PKCE → [`backend_api_contract.md` §11.5](../backend_api_contract.md) (`/api/v1/auth/{login,logout,token,signup,consent}`).
-> - 본인 비밀번호 변경: Kratos self-service flow → [§11.5.1](../backend_api_contract.md) (`/api/v1/account/password`).
-> - 시스템 관리자의 계정 발급/회수/잠금 해제/강제 재설정: Kratos admin API wrapper → [§12.8.2](../backend_api_contract.md) (`/api/v1/accounts`, `/api/v1/admin/identities`).
->
-> 아래 표는 historical baseline 으로만 유지한다. 실제 구현·API 호출은 위 링크의 endpoint 를 사용.
+> ⚠ **Deprecated (2026-05-18 정리)** — 아래의 자체 auth endpoint 목록은 폐기됐다. 현재 구현은 [ADR-0001](../adr/0001-idp-selection.md) 기준 Keycloak OIDC 표준 흐름을 사용한다.
+> - 로그인/로그아웃: frontend OIDC client + IdP 표준 endpoint 사용.
+> - 본인 비밀번호 변경: [`backend_api_contract.md` §11.5](../backend_api_contract.md) `POST /api/v1/account/password`.
+> - 시스템 관리자 계정 관리: [`backend_api_contract.md` §11.4](../backend_api_contract.md) `POST /api/v1/accounts`, `PUT /api/v1/accounts/{user_id}/password`, `DELETE /api/v1/accounts/{user_id}`.
 
 DevHub 자체 사용자 계정(Account) 1:1 컨셉 도입에 따라 추가되는 프론트 ↔ 백엔드 연동 항목.
 
-필요 API (계약은 `backend_api_contract.md §11`):
+Historical baseline (폐기된 예시 API):
 
 ```text
 POST   /api/v1/accounts
@@ -237,8 +235,8 @@ GET    /api/v1/accounts/{user_id}
 PATCH  /api/v1/accounts/{user_id}
 PUT    /api/v1/accounts/{user_id}/password
 DELETE /api/v1/accounts/{user_id}
-POST   /api/v1/auth/login
-POST   /api/v1/auth/logout
+POST   /api/v1/auth/login   (removed)
+POST   /api/v1/auth/logout  (removed)
 ```
 
 프론트 화면 영향:

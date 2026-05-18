@@ -124,7 +124,7 @@ Hourly Pull reconciliation은 Webhook 누락을 보완하는 동기화 경로이
 
 ## 6. 보안 및 인증
 
-초기 구현은 Gitea Webhook 수집과 시스템 관리자 기능의 오남용 방지를 우선하며, DevHub 자체 사용자 계정(Account) 기반 1차 인증을 도입한 뒤 Gitea SSO 통합을 후속 단계로 분리합니다. AI 가드너 기반 분석/추천 기능은 v2 범위로 분리합니다.
+초기 구현은 Gitea Webhook 수집과 시스템 관리자 기능의 오남용 방지를 우선하며, 인증은 Keycloak 기반 OIDC 표준 흐름으로 통일합니다. AI 가드너 기반 분석/추천 기능은 v2 범위로 분리합니다.
 
 ### 6.1 초기 구현 범위
 
@@ -146,22 +146,11 @@ users (이미 존재)
   display_name   text
   role           text  CHECK in (developer, manager, system_admin)
   status         text  CHECK in (active, pending, deactivated)
+  idp_subject    text  unique      -- OIDC subject 매핑
   primary_unit_id, current_unit_id, is_seconded, joined_at, ...
-
-accounts (신규)
-  id              bigserial PK
-  user_id         text NOT NULL UNIQUE  REFERENCES users(user_id) ON DELETE CASCADE
-  login_id        text NOT NULL UNIQUE
-  password_hash   text NOT NULL
-  password_algo   text NOT NULL          -- 예: 'bcrypt', 'argon2id'
-  status          text NOT NULL CHECK (status IN ('active','disabled','locked','password_reset_required'))
-  failed_login_attempts integer NOT NULL DEFAULT 0
-  last_login_at   timestamptz
-  password_changed_at timestamptz NOT NULL DEFAULT NOW()
-  created_at, updated_at timestamptz NOT NULL DEFAULT NOW()
 ```
 
-`accounts.user_id`의 `UNIQUE` 제약이 1:1 invariant 의 1차 방어선입니다. 도메인 레이어와 HTTP 핸들러도 이 invariant 를 함께 검사하며, 계정 생성 시 동일 사용자에 대한 중복 시도는 `409 Conflict`로 거절합니다. `users` 행이 삭제되면 `ON DELETE CASCADE` 로 계정도 함께 삭제됩니다.
+인증 credential(비밀번호/세션/복구)은 Keycloak 이 소유하고, DevHub는 사용자/조직 메타데이터와 권한 모델을 소유합니다.
 
 #### 6.2.2 비밀번호 처리 원칙
 
@@ -172,22 +161,22 @@ accounts (신규)
 
 #### 6.2.3 인증 흐름 (1차)
 
-> **결정 (2026-05-07, [ADR-0001](./adr/0001-idp-selection.md))**: DevHub 의 계정/인증 구현은 자체 `accounts` 테이블이 아니라 **Keycloak** 를 도입한다. DevHub 자체는 Hydra 의 first-party OIDC client 로 동작하고, 다른 앱들도 동일 Hydra 를 OIDC IdP 로 사용할 수 있다. `users` 는 사람·조직 master 로 유지하고 Kratos 가 credential·세션 master 가 된다.
+> **결정 (2026-05-07, [ADR-0001](./adr/0001-idp-selection.md))**: DevHub 인증은 **Keycloak OIDC** 표준 흐름으로 통일한다. `users` 는 사람·조직 master 로 유지하고, credential·session lifecycle 은 IdP가 소유한다.
 
 흐름 (사용자가 DevHub Next.js 에서 로그인하는 first-party 케이스 기준):
 
-1. 브라우저가 DevHub Next.js `/login` 에 진입하면 Next.js 는 Hydra `/oauth2/auth` 로 Authorization Code + PKCE 흐름을 시작합니다.
-2. Hydra 가 `login_challenge` 와 함께 Next.js login UI 로 redirect 하면, Next.js 는 Kratos public flow API 로 자격 증명을 검증합니다. 실패 카운터/잠금 정책은 Kratos 가 책임집니다.
-3. 검증 성공 시 Next.js 는 Hydra `accept login` → first-party client 의 자동 consent 처리 → callback 에서 token endpoint 호출로 ID Token + Access Token + Refresh Token 을 받습니다.
-4. Go Core 는 인입 요청의 Bearer access token 을 Hydra JWKS 또는 introspect endpoint 로 검증하고, ID Token `sub` claim 에 담긴 `users.user_id` 를 actor 로 사용합니다. `X-Devhub-Actor` fallback 헤더는 M0 SEC-4 에서 prod 코드 처리가 제거됐고 [ADR-0004](./adr/0004-x-devhub-actor-removal.md) (2026-05-13) 가 폐기 완료를 선언합니다 — 회귀 방지 테스트만 유지합니다.
-5. 다른 앱은 Hydra 에 별도 OIDC client 로 등록되어 동일 표준 흐름을 사용합니다. consent UI 노출 여부는 신뢰 경계 결정(ADR-0001 §8) 에 따릅니다.
+1. 브라우저가 DevHub Next.js `/login` 에 진입하면 Next.js 는 Keycloak authorization endpoint로 Authorization Code + PKCE 흐름을 시작합니다.
+2. 인증 성공 후 callback 에서 token endpoint 호출로 ID Token + Access Token (+ 필요 시 Refresh Token)을 발급받습니다.
+3. Go Core 는 인입 요청의 Bearer token 을 issuer/JWKS 기준으로 검증하고, `sub` claim 을 DevHub actor(`users.idp_subject`)와 매핑합니다.
+4. `X-Devhub-Actor` fallback 헤더는 [ADR-0004](./adr/0004-x-devhub-actor-removal.md) (2026-05-13) 기준 폐기되어 prod 코드에서 처리하지 않습니다.
+5. 다른 앱도 동일 IdP에 OIDC client 로 등록해 표준 흐름을 사용합니다.
 
 ### 6.3 RBAC 단계화
 
 | 단계 | 범위 | 기준 |
 | --- | --- | --- |
 | Phase 1 | Webhook secret 검증, system admin role 분리, 관리자 작업 Audit Log | TASK-007 및 초기 시스템 관리자 기능 구현 기준 |
-| Phase 2 | Ory Keycloak 도입, DevHub 의 OIDC client 화, Kratos 기반 자격 증명/로그인/비밀번호 변경/계정 상태 관리, Kratos 이벤트 → DevHub audit log 매핑 | Keycloak/OIDC 컨테이너 운영 진입 및 backend Phase 13 완료 시점 ([ADR-0001](./adr/0001-idp-selection.md)) |
+| Phase 2 | Keycloak 기반 OIDC 도입, DevHub OIDC client 전환, token 검증/actor 매핑/audit 경계 정착 | Keycloak/OIDC 운영 진입 및 backend Phase 13 완료 시점 ([ADR-0001](./adr/0001-idp-selection.md)) |
 | Phase 3 | Gitea 사용자/조직/저장소 권한 동기화, Repository 하위 Project role 매핑 | Application-Repository-Project 매핑과 관리자 대시보드 확장 시점 |
 | Phase 4 | Gitea SSO 연동 기반 통합 인증, 자체 계정과의 병행/대체 정책 결정 | 운영 환경 전환 전 별도 보안 검토 후 도입 |
 
@@ -309,7 +298,7 @@ dev_request_intake_tokens
   revoked_at      timestamptz NULLABLE
 ```
 
-plain token 은 발급 직후 1회만 admin 에게 노출하고 어디에도 저장하지 않는다 (Kratos password issuance 패턴, [accounts_admin](../backend/) 참조).
+plain token 은 발급 직후 1회만 admin 에게 노출하고 어디에도 저장하지 않는다 (IdP admin password issuance 패턴, [accounts_admin](../backend/) 참조).
 
 ### 7.6 Audit action 카탈로그 (ARCH-DREQ-06)
 
