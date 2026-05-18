@@ -17,6 +17,12 @@ export default function AdminSettingsIntegrationsPage() {
   const [syncingProviderID, setSyncingProviderID] = useState<string | null>(null);
   const { toast } = useToast();
 
+  // codex hotfix #6 P1 #1 (PR #148): `useToast()` 가 매 render 마다 새 toast
+  // callback 을 반환해서 `[toast]` dep 이 매번 변경 → effect 무한 재실행 → request
+  // spam. 첫 mount 만 실행하는 게 의도이므로 dep 을 비우고 ESLint 를 명시적으로
+  // suppress. toast 의 stale closure 는 빈 페이지의 1회 호출에서만 사용되므로
+  // 실 영향 없음.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -36,7 +42,7 @@ export default function AdminSettingsIntegrationsPage() {
     return () => {
       cancelled = true;
     };
-  }, [toast]);
+  }, []);
 
   const handleSaved = (saved: IntegrationProvider) => {
     setProviders((prev) => {
@@ -54,9 +60,16 @@ export default function AdminSettingsIntegrationsPage() {
   const handleSync = async (provider: IntegrationProvider) => {
     setSyncingProviderID(provider.provider_id);
     try {
-      const updated = await integrationService.syncProvider(provider.provider_id);
-      setProviders((prev) => prev.map((p) => (p.provider_id === updated.provider_id ? updated : p)));
-      toast(`Sync triggered: ${provider.display_name}`, "success");
+      // API-72 는 {status: "accepted", job_id} 만 반환 (provider envelope 없음).
+      // 실 sync_status 는 backend job 결과 — UI 는 즉시 "requested" 로 optimistic
+      // update + 후속 list refresh 로 정합 (codex hotfix #6 P1 #2, PR #148).
+      const result = await integrationService.syncProvider(provider.provider_id);
+      setProviders((prev) =>
+        prev.map((p) =>
+          p.provider_id === provider.provider_id ? { ...p, sync_status: "requested" } : p,
+        ),
+      );
+      toast(`Sync triggered: ${provider.display_name} (job ${result.job_id})`, "success");
     } catch (error) {
       console.error("[admin/settings/integrations] sync failed:", error);
       toast("sync 호출에 실패했습니다.", "error");

@@ -174,13 +174,22 @@ upd AS (
   RETURNING token_id::text, client_label, hashed_token, allowed_ips, source_system,
             created_at, created_by, last_used_at, revoked_at, expires_at
 )
-SELECT (SELECT token_id FROM locked) AS lock_token_id,
-       (SELECT revoked_at FROM locked) AS lock_revoked_at,
-       upd.*
-FROM locked LEFT JOIN upd ON true;
+-- 한 행 anchor (root) 위에서 두 CTE 를 LEFT JOIN — locked 가 empty (token 미존재)
+-- 이라도 row 1개는 반드시 반환되어 `lock_token_id IS NULL → 404` 분기 가능.
+-- codex hotfix #6 P2 (PR #147): 원래 `FROM locked LEFT JOIN upd` 패턴은 locked
+-- 가 empty 일 때 zero rows 를 내서 not-found 매핑이 불가했음.
+SELECT locked.token_id  AS lock_token_id,
+       locked.revoked_at AS lock_revoked_at,
+       upd.token_id     AS upd_token_id,
+       upd.client_label,
+       upd.allowed_ips,
+       upd.updated_at
+FROM (VALUES (1)) AS root(_)
+LEFT JOIN locked ON true
+LEFT JOIN upd    ON true;
 ```
 
-handler 는 row 결과를 보고 `lock_token_id IS NULL` → 404, `lock_revoked_at IS NOT NULL` → 409, `upd.token_id IS NOT NULL` → 200 으로 분기. 트랜잭션 격리 (READ COMMITTED 기본) + `FOR UPDATE` row lock 으로 atomic 보장.
+handler 는 단일 row 결과를 보고 `lock_token_id IS NULL` → 404, `lock_revoked_at IS NOT NULL` → 409, `upd_token_id IS NOT NULL` → 200 으로 분기. 트랜잭션 격리 (READ COMMITTED 기본) + `FOR UPDATE` row lock 으로 atomic 보장.
 
 ## 7. 변경 이력
 
@@ -188,4 +197,5 @@ handler 는 row 결과를 보고 `lock_token_id IS NULL` → 404, `lock_revoked_
 | --- | --- | --- |
 | 2026-05-16 | PR #137 활성화 — migration 000027 + middleware 만료 체크 + PATCH endpoint (API-79). | sprint `gemini/dreq_e2e_260515` |
 | 2026-05-18 | accepted — ADR 형식으로 사후 명문화. expires_at NULL 허용 (기존 호환), 만료 체크는 lazy (cron carve out), PATCH 는 allowed_ips only (audit anchor 보존), 에러 코드 3종 + audit action 2종 추가. ADR-0014 §6 의 두 carve out 중 본 ADR 가 활성화한 부분 명시. | sprint `claude/work_260518-c` (PR #143) |
-| 2026-05-18 | §6 atomicity carve out 추가 — PR #146 (codex hotfix #5) 가 store 에 revoked guard 를 추가했지만 2 query 패턴이라 between-query race window 존재. PR #146 self-review P2 가 발견. CTE 단일 query + `FOR UPDATE` row lock 으로 atomic 보장하는 reference SQL 본문 추가. 실제 false positive 영향은 mutation 차단으로 같지만 정확한 status code 보장은 별도 sprint 후속. | sprint `claude/work_260518-f` |
+| 2026-05-18 | §6 atomicity carve out 추가 — PR #146 (codex hotfix #5) 가 store 에 revoked guard 를 추가했지만 2 query 패턴이라 between-query race window 존재. PR #146 self-review P2 가 발견. CTE 단일 query + `FOR UPDATE` row lock 으로 atomic 보장하는 reference SQL 본문 추가. 실제 false positive 영향은 mutation 차단으로 같지만 정확한 status code 보장은 별도 sprint 후속. | sprint `claude/work_260518-f` (PR #147) |
+| 2026-05-18 | §6 atomicity reference CTE 정정 — codex hotfix #6 P2 (PR #147 review) 가 원래 `FROM locked LEFT JOIN upd ON true` 패턴이 locked empty 시 zero rows 를 내서 `lock_token_id IS NULL → 404` 분기가 불가함을 지적. `(VALUES (1)) AS root(_) LEFT JOIN locked LEFT JOIN upd` anchor 패턴으로 정정 — token 미존재 / revoked / 정상 갱신 3 분기 모두 단일 row 결과로 분류 가능. | sprint `claude/work_260518-i` |
