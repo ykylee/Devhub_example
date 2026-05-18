@@ -517,6 +517,10 @@ func (f *fakeIntakeTokenStore) UpdateDevRequestIntakeTokenIPs(_ context.Context,
 		return domain.DevRequestIntakeToken{}, store.ErrNotFound
 	}
 	row := f.rows[hashed]
+	// ADR-0017 §4.2 — revoked row 의 mutation 차단 (real store 의 WHERE revoked_at IS NULL 가드 mirror).
+	if row.RevokedAt != nil {
+		return domain.DevRequestIntakeToken{}, store.ErrConflict
+	}
 	row.AllowedIPs = allowedIPs
 	f.rows[hashed] = row
 	return row, nil
@@ -1158,6 +1162,68 @@ func TestRevokeDevRequestIntakeToken_NotFound(t *testing.T) {
 	rec := doJSON(t, router, http.MethodDelete, "/api/v1/dev-request-tokens/tok-ghost", "")
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, code=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+// TC-DREQ-ADMIN-TOKEN-PATCH-01 (handler 단위) — PATCH allowed_ips happy path.
+// ADR-0017 §4.2. PR #143 codex hotfix #5 P2 #3 회귀 가드.
+func TestUpdateDevRequestIntakeTokenIPs_Happy(t *testing.T) {
+	s := &fakeIntakeTokenStore{}
+	tok, _ := s.CreateDevRequestIntakeToken(context.Background(), domain.DevRequestIntakeToken{
+		ClientLabel: "ops", HashedToken: "h-patch", AllowedIPs: []string{"10.0.0.0/24"}, SourceSystem: "ops", CreatedBy: "system",
+	})
+	router := newIntakeAdminRouter(s, &memoryAuditStore{})
+	body := `{"allowed_ips":["192.0.2.0/24","203.0.113.5"]}`
+	rec := doJSON(t, router, http.MethodPatch, "/api/v1/dev-request-tokens/"+tok.TokenID, body)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("code=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"192.0.2.0/24"`)) || !bytes.Contains(rec.Body.Bytes(), []byte(`"203.0.113.5"`)) {
+		t.Errorf("response missing updated allowed_ips: %s", rec.Body.String())
+	}
+	if bytes.Contains(rec.Body.Bytes(), []byte(`"plain_token"`)) {
+		t.Errorf("PATCH must not expose plain_token: %s", rec.Body.String())
+	}
+}
+
+// ADR-0017 §4.3 — 404 응답에 intake_token_not_found code 필드.
+// codex hotfix #5 P2 #3.
+func TestUpdateDevRequestIntakeTokenIPs_NotFound(t *testing.T) {
+	router := newIntakeAdminRouter(&fakeIntakeTokenStore{}, &memoryAuditStore{})
+	body := `{"allowed_ips":["192.0.2.0/24"]}`
+	rec := doJSON(t, router, http.MethodPatch, "/api/v1/dev-request-tokens/tok-ghost", body)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, code=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"code":"intake_token_not_found"`)) {
+		t.Errorf("expected intake_token_not_found code: %s", rec.Body.String())
+	}
+}
+
+// ADR-0017 §4.2 + §4.3 — revoked row 의 mutation 은 409 intake_token_revoked.
+// 본 test 가 코드/문서 drift 의 핵심 회귀 가드 (codex hotfix #5 P2 #3).
+// 회귀 시: PATCH 가 revoked row 도 UPDATE 하던 PR #137 동작이 그대로 발생.
+func TestUpdateDevRequestIntakeTokenIPs_Revoked(t *testing.T) {
+	s := &fakeIntakeTokenStore{}
+	tok, _ := s.CreateDevRequestIntakeToken(context.Background(), domain.DevRequestIntakeToken{
+		ClientLabel: "ops", HashedToken: "h-rev", AllowedIPs: []string{"10.0.0.0/24"}, SourceSystem: "ops", CreatedBy: "system",
+	})
+	// revoke 사전 진입.
+	if _, err := s.RevokeDevRequestIntakeToken(context.Background(), tok.TokenID); err != nil {
+		t.Fatalf("setup revoke: %v", err)
+	}
+	router := newIntakeAdminRouter(s, &memoryAuditStore{})
+	body := `{"allowed_ips":["192.0.2.0/24"]}`
+	rec := doJSON(t, router, http.MethodPatch, "/api/v1/dev-request-tokens/"+tok.TokenID, body)
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("expected 409, code=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"code":"intake_token_revoked"`)) {
+		t.Errorf("expected intake_token_revoked code: %s", rec.Body.String())
+	}
+	// allowed_ips 는 변하지 않아야 (revoked row 의 mutation 차단 확인).
+	if got := s.rows["h-rev"].AllowedIPs; len(got) != 1 || got[0] != "10.0.0.0/24" {
+		t.Errorf("allowed_ips must not change for revoked token, got %v", got)
 	}
 }
 

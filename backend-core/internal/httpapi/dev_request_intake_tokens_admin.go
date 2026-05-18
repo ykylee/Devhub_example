@@ -277,7 +277,20 @@ func (h Handler) updateDevRequestIntakeTokenIPs(c *gin.Context) {
 
 	updated, err := h.cfg.DevRequestIntakeTokenStore.UpdateDevRequestIntakeTokenIPs(c.Request.Context(), tokenID, canonIPs)
 	if errors.Is(err, store.ErrNotFound) {
-		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "intake token not found"})
+		c.JSON(http.StatusNotFound, gin.H{
+			"status": "not_found",
+			"error":  "intake token not found",
+			"code":   "intake_token_not_found",
+		})
+		return
+	}
+	if errors.Is(err, store.ErrConflict) {
+		// ADR-0017 §4.2 — revoked token 의 mutation 은 의미 없음.
+		c.JSON(http.StatusConflict, gin.H{
+			"status": "conflict",
+			"error":  "intake token already revoked",
+			"code":   "intake_token_revoked",
+		})
 		return
 	}
 	if err != nil {
