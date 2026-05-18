@@ -1,0 +1,25 @@
+{
+  "branch": "adr0018-reverse-proxy",
+  "status": "done",
+  "last_updated": "2026-05-18T22:15:00+09:00",
+  "goals": {
+    "nginx_reverse_proxy_configuration": "done",
+    "nextjs_basepath_dynamic_resolution": "done",
+    "endpoints_runtime_adaptation": "done",
+    "test_server_deployment_guidelines": "done",
+    "traceability_report_synchronization": "done"
+  },
+  "deliverables": [
+    "docs/adr/0018-single-port-reverse-proxy-policy.md",
+    "infra/nginx/devhub.conf",
+    "frontend/next.config.ts",
+    "frontend/lib/config/endpoints.ts",
+    "docs/setup/test-server-deployment.md",
+    "docs/traceability/report.md"
+  ],
+  "verification": {
+    "typescript_compilation": "pass",
+    "frontend_vitest": "pass",
+    "backend_unit_tests": "pass"
+  }
+}
