@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-05-18 post-EOD #2 종합 — 직전 EOD housekeeping (PR #158 sprint -q) 이후 6 PR 추가 머지. 흐름: PR #159 (sprint -r, **Jira 보고서 self-review hotfix** — P1 3건 + P2 4건) → PR #160 (sprint -s, **ADR-0016 §6 (1)+(2) resolved** — Alertmanager 운영 가이드 + Grafana dashboard JSON 5 panel) → PR #161 (sprint -t, **ADR-0017 §6 (a)+(c)+(d) resolved** — DREQ intake token cron + 만료/staleness Prometheus metric + audit dev_request_intake_token.auto_revoked) → PR #162 (sprint -u, **단일 외부 포트 reverse proxy design 검토** — /devhub prefix + nginx 권장 + ADR-0018 후보) → PR #163 (sprint -v, **외부 Keycloak SSO federation design 검토** — Kratos upstream OIDC provider + HRDB employee_id strict link + ADR-0019 후보) → PR #164 (sprint -w, **codex review hotfix #8** — P1 3건 + P2 6건 일괄 흡수). **ADR carve out 종결 누적**: ADR-0017 §6 atomicity ✅ (sprint -o, PR #156) + ADR-0015 §6 (1)+(2) ✅ (-p, PR #157) + ADR-0016 §6 (1)+(2) ✅ (-s, PR #160) + ADR-0017 §6 (a)+(c)+(d) ✅ (-t, PR #161). **신규 design 문서 2건**: single_port_reverse_proxy.md + keycloak_sso_federation.md (Phase 2 진입 시 ADR-0018/0019 승격). **본 세션 누적 17 PR** (sprint a..w, EOD #1+#2 두 housekeeping 포함). main HEAD `4dd02ad`. **본 후속 세션 학습**: (a) `io.ErrUnexpectedEOF` 는 transient transport 실패도 포함 — oversized 분류는 byte counter (LimitedReader.N) 명시 감지; (b) PromQL 의 single Prometheus + multi-env scrape 시 expr 에 environment matcher 필수; (c) spec ts 의 always-mounted shell assertion = false positive — `page.waitForResponse` + body schema 검증 패턴; (d) planning 문서의 env 변수 안내는 backend 코드 실제 endpoint 사용처 검증 필수. **다음 세션 directive (우선순위 재산정)**: (1) ADR-0015 §6 (3)+(4) — dedicated worker binary (M4) + push/pull dedup (별도 ADR); (2) ADR-0016 §6 (3)+(4)+(5) — baseline 1주 관찰 / push metric / stage→prod 확정; (3) ADR-0017 §6 (b) — PATCH expires_at + admin UI 편집 modal; (4) **ADR-0018 승격 + Phase 2 staging** (single port reverse proxy); (5) **ADR-0019 승격 + Phase 2 staging** (Keycloak SSO); (6) External Integration 후속 강화 — React Flow group sub-node + WebSocket 실시간; (7) M4 RM-M4-XX 본격 진입. 이전 status: 'post-EOD 종합 sprint -l~p 5 PR 흡수 + ADR carve out 종결 4건.'",
-  "updated_at": "2026-05-18T19:30:00Z",
-  "head_commit": "4dd02ad",
-  "head_summary": "Merge pull request #164 (fix(backend,frontend,docs): codex review hotfix #8 — P1 3건 + P2 6건 일괄 흡수, sprint claude/work_260518-w)",
+  "status": "2026-05-18 post-EOD #2 종합 — 직전 EOD housekeeping (PR #158 sprint -q) 이후 6 PR 추가 머지 및 PR #166 (**단일 외부 포트 역프록시 Nginx 구성 및 basePath 구현** — Same-Origin CORS 무력화 + basePath /devhub 런타임 dynamic endpoints resolution + Codex P1 피드백 반영 완료) 최종 병합 완결.",
+  "updated_at": "2026-05-18T23:05:00Z",
+  "head_commit": "694e694b2a23c86d51761cc0678ae3d7d61e10ad",
+  "head_summary": "feat(infra): implement single-port reverse proxy (ADR-0018) (#166)",
   "milestones": {
     "M0": {
       "status": "done",
