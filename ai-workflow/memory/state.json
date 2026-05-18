@@ -4,8 +4,8 @@
   "branch": "main",
   "status": "2026-05-18 post-EOD #2 종합 — PR #166 (역프록시) 병합 및 PR #167 (Keycloak 단일화) 병합 완결 후, 전역 workflow 메모리 갱신 housekeeping (PR #168) 최종 병합 완결.",
   "updated_at": "2026-05-18T23:50:00Z",
-  "head_commit": "TBD (PR #168 squash merge 후 갱신)",
-  "head_summary": "Merge pull request #168 from ykylee/codex/memory-update-post-167",
+  "head_commit": "09f4ca18a7a03f4be8a846c434f0d36746f34586",
+  "head_summary": "chore(workflow): update global memory state after merging PR #167 (#168)",
   "milestones": {
     "M0": {
       "status": "done",

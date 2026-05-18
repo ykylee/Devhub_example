@@ -3,7 +3,7 @@
 - 문서 목적: main 브랜치 기준 상위 백로그 인덱스. 세부 sprint backlog 는 브랜치별 메모리 디렉터리 참조.
 - 범위: 마일스톤 상태, 최근 머지, 잔여/후속 작업
 - 대상 독자: 프로젝트 리드, 후속 에이전트, 트랙 담당자
-- 상태: M1·M2·M3 done. Application Domain backend 1차. DREQ 도메인 종합 closing. External Integration 도메인 및 Identity Provider(IdP) Keycloak 단일화 전격 완료. **2026-05-18 단일 세션 누적 26 PR** (EOD #1 12건 + post-EOD #1 6건 + post-EOD #2 6건 + reverse-proxy PR #166 + keycloak-only PR #167 + housekeeping PR #168). **ADR carve out 종결 누적 9건** + **ADR-0018 Accepted**. main HEAD `TBD (PR #168 squash merge 후 갱신)`. **다음 세션 directive**: (1) ADR-0015 §6 (3)+(4), (2) ADR-0016 §6 (3)+(4)+(5), (3) ADR-0017 §6 (b), (4) **ADR-0019 Keycloak SSO federation (HRDB employee_id strict link) 구현 및 Phase 2 staging**, (5) M4 RM-M4-XX.
+- 상태: M1·M2·M3 done. Application Domain backend 1차. DREQ 도메인 종합 closing. External Integration 도메인 및 Identity Provider(IdP) Keycloak 단일화 전격 완료. **2026-05-18 단일 세션 누적 26 PR** (EOD #1 12건 + post-EOD #1 6건 + post-EOD #2 6건 + reverse-proxy PR #166 + keycloak-only PR #167 + housekeeping PR #168). **ADR carve out 종결 누적 9건** + **ADR-0018 Accepted**. main HEAD `09f4ca18a7a03f4be8a846c434f0d36746f34586`. **다음 세션 directive**: (1) ADR-0015 §6 (3)+(4), (2) ADR-0016 §6 (3)+(4)+(5), (3) ADR-0017 §6 (b), (4) **ADR-0019 Keycloak SSO federation (HRDB employee_id strict link) 구현 및 Phase 2 staging**, (5) M4 RM-M4-XX.
 - 최종 수정일: 2026-05-18
 - 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [세션 인계](./session_handoff.md), [상태 스냅샷](./state.json), [M1 PR 리뷰 actions](./M1-PR-review-actions.md)
 
