@@ -18,9 +18,9 @@ const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH
 const isBrowser = typeof window !== "undefined";
 
 // --- client-side API ---
-// When reverse proxy is active (BASE_PATH is set), direct fetch to same-origin relative '/devhub/api'
+// When reverse proxy is active (BASE_PATH is set), direct fetch to same-origin relative BASE_PATH
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? (BASE_PATH ? `${BASE_PATH}/api` : "");
+  process.env.NEXT_PUBLIC_API_URL ?? (BASE_PATH ? BASE_PATH : "");
 
 // --- realtime / websocket ---
 // Dynamically resolve protocol (ws/wss) and host at runtime in browser for maximum cloud-native portability.

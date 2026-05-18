@@ -1,4 +1,5 @@
 import { tokenStore } from "@/lib/auth/token-store";
+import { API_BASE_URL } from "@/lib/config/endpoints";
 
 export class ApiError extends Error {
   constructor(public status: number, public payload: unknown, message: string) {
@@ -25,7 +26,10 @@ export async function apiClient<T>(method: string, path: string, body?: unknown)
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const response = await fetch(path, {
+  // Prepend same-origin API_BASE_URL (basePath prefix) if path is relative /api/v1/*
+  const resolvedUrl = path.startsWith("/api/") ? `${API_BASE_URL}${path}` : path;
+
+  const response = await fetch(resolvedUrl, {
     method,
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,

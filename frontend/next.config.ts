@@ -9,11 +9,6 @@ const nextConfig: NextConfig = {
   basePath: process.env.NEXT_PUBLIC_BASE_PATH ? `/${process.env.NEXT_PUBLIC_BASE_PATH.replace(/^\//, "")}` : undefined,
   output: process.env.NEXT_OUTPUT === "standalone" ? "standalone" : undefined,
   async rewrites() {
-    // If NEXT_PUBLIC_BASE_PATH is configured (production/staging via Nginx), 
-    // bypass internal rewrites since Nginx handles api path mapping directly.
-    if (process.env.NEXT_PUBLIC_BASE_PATH) {
-      return [];
-    }
     return [
       {
         source: "/api/:path*",
