@@ -37,6 +37,11 @@
 | TC-INT-HOMELAB-02 | P0 | IT | 필수 필드 누락 snapshot | 422 `infra_snapshot_invalid` |
 | TC-INT-HOMELAB-03 | P1 | E2E | 토폴로지 조회 화면에서 node/service 표시 | nodes/services/edges 일관 노출 |
 | TC-INT-RESILIENCE-01 | P1 | IT | 특정 provider 연속 실패 | 해당 provider만 `degraded`, 타 provider 정상 |
+| TC-INT-FRONTEND-LIST-01 | P1 | E2E | system_admin 이 `/admin/settings/integrations` 접근 → Provider 목록 노출 | ProviderTable 렌더 + provider_type/auth_mode/sync_status badge 정합 |
+| TC-INT-FRONTEND-CREATE-01 | P1 | E2E | Register Provider 모달에서 provider_key/type/display_name/auth_mode/credentials_ref 입력 후 등록 | API-70 호출 → 목록 row 추가 + sync_status `requested` 노출 |
+| TC-INT-FRONTEND-EDIT-01 | P1 | E2E | Provider row 의 Edit → display_name/credentials_ref/enabled 갱신 | API-71 호출 → row 즉시 갱신 (provider_key/type/auth_mode 는 immutable) |
+| TC-INT-FRONTEND-SYNC-01 | P1 | E2E | Provider row 의 Sync 버튼 click | API-72 호출 → sync_status badge `requested` 로 즉시 전이 + last_sync_at 갱신 |
+| TC-INT-FRONTEND-RBAC-01 | P2 | E2E | non-system_admin (developer / manager) 이 `/admin/settings/integrations` 직접 접근 | AuthGuard + layout.tsx 의 `isSystemAdmin` 가드로 default landing 으로 redirect |
 
 ## 4. E2E 시나리오 초안
 
@@ -64,6 +69,7 @@
 | --- | --- |
 | 2026-05-15 | 초안 작성 — Integration 도메인 테스트 계층/우선 TC/E2E 시나리오 정의. |
 | 2026-05-16 | API-69~75 baseline 구현 기준 실행 스냅샷 반영 (IT 중심), E2E 미진입 항목 명시. |
+| 2026-05-18 | sprint `claude/work_260518-g` — TC-INT-FRONTEND-{LIST,CREATE,EDIT,SYNC,RBAC}-01 신규 발급 (External Integration frontend 진입점 1차, `/admin/settings/integrations` 페이지). E2E spec ts 작성은 후속 carve out. |
 
 ## 8. 실행 스냅샷 (2026-05-16)
 
