@@ -49,15 +49,14 @@ test.describe("External Integration admin UI", () => {
       await expect(row).toBeVisible();
       await expect(row.getByText(providerKey)).toBeVisible();
 
-      // provider_id 추출 — API list 호출 (page.request 가 OIDC session 공유).
-      const listResp = await page.request.get("/api/v1/integration/providers");
-      expect(listResp.ok()).toBeTruthy();
-      const listBody = await listResp.json();
-      const target = (listBody.data as Array<{ provider_id: string; provider_key: string }>).find(
-        (p) => p.provider_key === providerKey
-      );
-      expect(target).toBeTruthy();
-      providerID = target!.provider_id;
+      // provider_id 추출 — page.request.get 의 OIDC session propagation 이
+      // CI 에서 flaky (codex hotfix #7+, sprint claude/work_260518-m). 대신
+      // ProviderTable row 의 data-provider-id attribute 에서 직접 읽어
+      // 결정적 매핑 보장.
+      const newRow = page.locator(`tr[data-provider-id]`).filter({ hasText: providerKey }).first();
+      await expect(newRow).toBeVisible({ timeout: 10_000 });
+      providerID = (await newRow.getAttribute("data-provider-id")) ?? "";
+      expect(providerID).toBeTruthy();
     });
 
     await test.step("TC-INT-FRONTEND-EDIT-01 — Edit 모달에서 display_name + capabilities + enabled 갱신", async () => {

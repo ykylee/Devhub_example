@@ -87,6 +87,7 @@ export function ProviderTable({ items, onEdit, onSync, onDelete, syncingProvider
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     className="group hover:bg-muted/30 transition-colors"
+                    data-provider-id={p.provider_id}
                   >
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-4">

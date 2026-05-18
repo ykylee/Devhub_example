@@ -34,17 +34,13 @@ test.describe("External Integration bindings admin UI", () => {
       await seedModal.getByRole("button", { name: /^register$/i }).click();
       await expect(page.getByRole("dialog")).toBeHidden({ timeout: 10_000 });
 
-      // provider_id 추출 (API-69 GET — page.request 가 OIDC session 공유).
-      // dev-requests.spec.ts:186 의 PATCH/DELETE page.request 패턴 정합 — GET 은
-      // body 없어 propagation 차이 안전.
-      const listResp = await page.request.get("/api/v1/integration/providers");
-      expect(listResp.ok()).toBeTruthy();
-      const listBody = await listResp.json();
-      const target = (listBody.data as Array<{ provider_id: string; provider_key: string }>).find(
-        (p) => p.provider_key === providerKey,
-      );
-      expect(target).toBeTruthy();
-      providerID = target!.provider_id;
+      // provider_id 추출 — page.request.get 의 OIDC session propagation 이
+      // CI 에서 flaky 한 시점 회피. ProviderTable row 의 data-provider-id
+      // attribute 에서 직접 읽어 결정적 매핑.
+      const seededRow = page.locator(`tr[data-provider-id]`).filter({ hasText: providerKey }).first();
+      await expect(seededRow).toBeVisible({ timeout: 10_000 });
+      providerID = (await seededRow.getAttribute("data-provider-id")) ?? "";
+      expect(providerID).toBeTruthy();
     });
 
     await test.step("TC-INT-FRONTEND-BIND-LIST-01 — system_admin 이 /admin/settings/integration-bindings 접근", async () => {
