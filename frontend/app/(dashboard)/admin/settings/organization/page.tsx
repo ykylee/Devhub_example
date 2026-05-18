@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Plus, LayoutGrid, List, Network } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { OrgUnitTable } from "@/components/organization/OrgUnitTable";
@@ -8,7 +8,7 @@ import { OrgUnitGrid } from "@/components/organization/OrgUnitGrid";
 import { OrgTree } from "@/components/organization/OrgTree";
 import { MemberManagementModal } from "@/components/organization/MemberManagementModal";
 import { UnitManagementModal } from "@/components/organization/UnitManagementModal";
-import { identityService, OrgNode, OrgMember } from "@/lib/services/identity.service";
+import { identityService, OrgNode, OrgMember, OrgUnit, CreateUnitPayload, UpdateUnitPayload } from "@/lib/services/identity.service";
 
 export default function AdminSettingsOrganizationPage() {
   const [view, setView] = useState<"list" | "grid" | "chart">("list");
@@ -24,8 +24,8 @@ export default function AdminSettingsOrganizationPage() {
   const [editingUnitId, setEditingUnitId] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const loadData = async () => {
-    setIsLoading(true);
+  const loadData = useCallback(async (showLoading = true) => {
+    if (showLoading) setIsLoading(true);
     try {
       const [{ nodes }, allMembers] = await Promise.all([
         identityService.getOrgHierarchy(),
@@ -73,27 +73,33 @@ export default function AdminSettingsOrganizationPage() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  useEffect(() => {
-    loadData();
   }, []);
 
-  const handleCreateUnit = async (data: any) => {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void loadData(false);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [loadData]);
+
+  const handleCreateUnit = async (data: CreateUnitPayload | UpdateUnitPayload) => {
+    if (!("unit_id" in data)) return;
     try {
       await identityService.createUnit(data);
       setIsCreating(false);
-      loadData();
+      void loadData();
     } catch (err) {
       console.error("Failed to create unit:", err);
     }
   };
 
-  const handleUpdateUnit = async (data: any) => {
+  const handleUpdateUnit = async (data: CreateUnitPayload | UpdateUnitPayload) => {
+    if ("unit_id" in data) return;
+    if (!editingUnitId) return;
     try {
-      await identityService.updateUnit(data.unit_id, data);
+      await identityService.updateUnit(editingUnitId, data);
       setEditingUnitId(null);
-      loadData();
+      void loadData();
     } catch (err) {
       console.error("Failed to update unit:", err);
     }
@@ -103,7 +109,7 @@ export default function AdminSettingsOrganizationPage() {
     if (confirm("Are you sure you want to delete this unit? This cannot be undone.")) {
       try {
         await identityService.deleteUnit(unitId);
-        loadData();
+        void loadData();
       } catch (err) {
         console.error("Failed to delete unit:", err);
       }
@@ -118,8 +124,8 @@ export default function AdminSettingsOrganizationPage() {
         await identityService.updateUnit(unitId, { leader_user_id: leaderId });
       }
       setManagingUnitId(null);
-      loadData();
-    } catch (err) {
+      void loadData();
+    } catch {
       setSaveError("Failed to save member changes.");
     }
   };
@@ -180,7 +186,7 @@ export default function AdminSettingsOrganizationPage() {
             <p className="text-red-400 font-bold mb-2">Service Unavailable</p>
             <p className="text-xs text-muted-foreground mb-6">{error}</p>
             <button
-              onClick={() => loadData()}
+              onClick={() => void loadData()}
               className="px-6 py-2 bg-muted/20 border border-border rounded-xl text-xs font-bold text-foreground hover:bg-muted/40 transition-all"
             >
               Retry Connection
@@ -248,7 +254,7 @@ export default function AdminSettingsOrganizationPage() {
             initialData={{
               unit_id: editingUnitId,
               label: orgNodes.find((n) => n.id === editingUnitId)?.data.label,
-              unit_type: orgNodes.find((n) => n.id === editingUnitId)?.data.type as any,
+              unit_type: (orgNodes.find((n) => n.id === editingUnitId)?.data.type as OrgUnit["unit_type"] | undefined) ?? "team",
               parent_unit_id: "",
               leader_user_id: unitLeaders[editingUnitId] ?? "",
             }}

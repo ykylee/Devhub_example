@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus } from "lucide-react";
 import { projectService } from "@/lib/services/project.service";
@@ -42,8 +42,8 @@ export default function AdminSettingsApplicationsPage() {
     });
   }, [applications, query, activeStatus]);
 
-  const refresh = async () => {
-    setIsLoading(true);
+  const refresh = useCallback(async (showLoading = true) => {
+    if (showLoading) setIsLoading(true);
     try {
       const data = await projectService.getApplications();
       setApplications(data);
@@ -55,11 +55,14 @@ export default function AdminSettingsApplicationsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
-    refresh();
-  }, []);
+    const timer = setTimeout(() => {
+      void refresh(false);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [refresh]);
 
   const handleCreate = () => {
     setEditingApp(null);

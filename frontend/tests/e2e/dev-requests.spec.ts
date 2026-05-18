@@ -66,6 +66,7 @@ test.describe("DREQ E2E", () => {
     const intakeBody = await intakeResponse.json();
     expect(intakeBody.status).toBe("ok");
     const dreqId = intakeBody.data.id;
+    expect(dreqId).toBeTruthy();
 
     // 3. Assignee (developer) logs in and verifies visibility on dashboard/list
     const devContext = await browser.newContext();

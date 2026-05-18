@@ -11,17 +11,9 @@ function trimTrailingSlash(value: string): string {
   return value.replace(/\/+$/, "");
 }
 
-function requestOrigin(request: NextRequest): string {
-  const forwardedProto = request.headers.get("x-forwarded-proto");
-  const forwardedHost = request.headers.get("x-forwarded-host");
-  if (forwardedProto && forwardedHost) {
-    return `${forwardedProto}://${forwardedHost}`;
-  }
-  return request.nextUrl.origin;
-}
-
 export async function GET(request: NextRequest) {
-  const origin = requestOrigin(request);
+  // Use Next.js parsed origin to avoid trusting spoofable forwarded headers.
+  const origin = request.nextUrl.origin;
   const runtimeEnv = process.env;
   const oidcAuthURL =
     runtimeEnv["OIDC_AUTH_URL"] ??

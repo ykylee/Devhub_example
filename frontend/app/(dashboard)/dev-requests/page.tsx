@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Inbox } from "lucide-react";
 import { devRequestService } from "@/lib/services/dev_request.service";
 import { DevRequest, DevRequestStatus } from "@/lib/services/dev_request.types";
 import { DevRequestTable } from "@/components/dev-request/DevRequestTable";
@@ -84,7 +83,7 @@ export default function MyDevRequestsPage() {
       >
         <FilterBar 
           onSearch={setSearchQuery}
-          onFilterChange={(val) => setStatusFilter(val as any)}
+          onFilterChange={(val) => setStatusFilter(val as DevRequestStatus | "all")}
           activeFilter={statusFilter}
           filterOptions={STATUS_OPTIONS}
           placeholder="Search by ID, title, or description..."

@@ -4,10 +4,8 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { 
   GitBranch, 
-  GitCommit, 
   GitPullRequest, 
   Globe, 
-  Heart,
   ExternalLink,
   Code2,
   Users,

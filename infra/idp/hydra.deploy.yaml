@@ -33,7 +33,7 @@ urls:
 
 secrets:
   system:
-    - "poc-only-do-not-use-in-prod-system-secret-aaaaaaaa"
+    - "__HYDRA_SYSTEM_SECRET__"
 
 oidc:
   subject_identifiers:

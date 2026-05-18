@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { IssueIntakeTokenModal } from "../IssueIntakeTokenModal";
 import { devRequestTokenService } from "@/lib/services/dev_request_token.service";
+import type { IssuedDevRequestIntakeToken } from "@/lib/services/dev_request_token.types";
 
 vi.mock("@/lib/services/dev_request_token.service", () => ({
   devRequestTokenService: {
@@ -34,14 +35,14 @@ describe("IssueIntakeTokenModal", () => {
     }
     const writeTextSpy = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined);
 
-    const mockToken = {
+    const mockToken: IssuedDevRequestIntakeToken = {
       token_id: "tok_123",
       client_label: "test_client",
       source_system: "test_sys",
       allowed_ips: ["1.1.1.1"],
       plain_token: "ptk_abcdef123456",
     };
-    vi.mocked(devRequestTokenService.issue).mockResolvedValue(mockToken as any);
+    vi.mocked(devRequestTokenService.issue).mockResolvedValue(mockToken);
 
     render(<IssueIntakeTokenModal onClose={mockOnClose} onIssued={mockOnIssued} />);
 
@@ -87,14 +88,14 @@ describe("IssueIntakeTokenModal", () => {
 
   it("prevents ESC key from closing during reveal phase", async () => {
     const user = userEvent.setup();
-    const mockToken = {
+    const mockToken: IssuedDevRequestIntakeToken = {
       token_id: "tok_123",
       client_label: "test",
       source_system: "sys",
       allowed_ips: ["0.0.0.0/0"],
       plain_token: "ptk_secret",
     };
-    vi.mocked(devRequestTokenService.issue).mockResolvedValue(mockToken as any);
+    vi.mocked(devRequestTokenService.issue).mockResolvedValue(mockToken);
 
     render(<IssueIntakeTokenModal onClose={mockOnClose} onIssued={mockOnIssued} />);
 

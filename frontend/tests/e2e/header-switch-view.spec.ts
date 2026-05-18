@@ -1,4 +1,4 @@
-import { test, expect, loginAs, SEEDED } from "./fixtures";
+import { test, loginAs, SEEDED } from "./fixtures";
 
 // header-switch-view.spec — F3 헤더 / 네비게이션.
 //

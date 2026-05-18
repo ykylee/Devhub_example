@@ -15,14 +15,40 @@ services:
       timeout: 5s
       retries: 5
 
+  db-init:
+    image: postgres:15
+    profiles: ["local-db"]
+    restart: "no"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pass}
+      POSTGRES_DB: ${POSTGRES_DB:-devhub}
+    entrypoint:
+      - /bin/sh
+      - -lc
+      - |
+        export PGPASSWORD="$${POSTGRES_PASSWORD}"
+        psql -h db -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -v ON_ERROR_STOP=1 <<'SQL'
+        CREATE SCHEMA IF NOT EXISTS hydra;
+        CREATE SCHEMA IF NOT EXISTS kratos;
+        SQL
+    depends_on:
+      db:
+        condition: service_healthy
+
   hydra-migrate:
     image: oryd/hydra:v2.2.0
     restart: on-failure
-    command: migrate sql --yes '${HYDRA_DSN:-postgres://user:pass@db:5432/devhub?sslmode=disable&search_path=hydra}'
+    command: migrate sql --yes '${HYDRA_DSN:?set HYDRA_DSN}'
     environment:
       FRONTEND_PUBLIC_BASE_URL: ${FRONTEND_PUBLIC_BASE_URL:?set FRONTEND_PUBLIC_BASE_URL}
       HYDRA_PUBLIC_EXTERNAL_URL: ${HYDRA_PUBLIC_EXTERNAL_URL:?set HYDRA_PUBLIC_EXTERNAL_URL}
-      HYDRA_DSN: ${HYDRA_DSN:-postgres://user:pass@db:5432/devhub?sslmode=disable&search_path=hydra}
+      HYDRA_DSN: ${HYDRA_DSN:?set HYDRA_DSN}
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
     volumes:
       - ./:/repo:ro
 
@@ -31,25 +57,30 @@ services:
     entrypoint:
       - /bin/sh
       - -lc
-      - 'HYDRA_DSN_ESC=$${HYDRA_DSN//&/\\&}; sed -e "s|__FRONTEND_PUBLIC_BASE_URL__|$${FRONTEND_PUBLIC_BASE_URL}|g" -e "s|__HYDRA_PUBLIC_EXTERNAL_URL__|$${HYDRA_PUBLIC_EXTERNAL_URL}|g" -e "s|__HYDRA_DSN__|$${HYDRA_DSN_ESC}|g" /repo/infra/idp/hydra.deploy.yaml > /tmp/hydra.deploy.rendered.yaml && hydra serve all --config /tmp/hydra.deploy.rendered.yaml --dev'
+      - 'HYDRA_DSN_ESC=$${HYDRA_DSN//&/\\&}; sed -e "s|__FRONTEND_PUBLIC_BASE_URL__|$${FRONTEND_PUBLIC_BASE_URL}|g" -e "s|__HYDRA_PUBLIC_EXTERNAL_URL__|$${HYDRA_PUBLIC_EXTERNAL_URL}|g" -e "s|__HYDRA_DSN__|$${HYDRA_DSN_ESC}|g" -e "s|__HYDRA_SYSTEM_SECRET__|$${HYDRA_SYSTEM_SECRET}|g" /repo/infra/idp/hydra.deploy.yaml > /tmp/hydra.deploy.rendered.yaml && hydra serve all --config /tmp/hydra.deploy.rendered.yaml'
     restart: unless-stopped
     environment:
       FRONTEND_PUBLIC_BASE_URL: ${FRONTEND_PUBLIC_BASE_URL:?set FRONTEND_PUBLIC_BASE_URL}
       HYDRA_PUBLIC_EXTERNAL_URL: ${HYDRA_PUBLIC_EXTERNAL_URL:?set HYDRA_PUBLIC_EXTERNAL_URL}
-      HYDRA_DSN: ${HYDRA_DSN:-postgres://user:pass@db:5432/devhub?sslmode=disable&search_path=hydra}
+      HYDRA_DSN: ${HYDRA_DSN:?set HYDRA_DSN}
+      HYDRA_SYSTEM_SECRET: ${HYDRA_SYSTEM_SECRET:?set HYDRA_SYSTEM_SECRET}
     volumes:
       - ./:/repo:ro
     ports:
       - "${HYDRA_PUBLIC_PORT:-24444}:4444"
       - "${HYDRA_ADMIN_PORT:-24445}:4445"
     depends_on:
+      db-init:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
       hydra-migrate:
         condition: service_completed_successfully
 
   kratos-migrate:
     image: oryd/kratos:v1.1.0
     restart: on-failure
-    command: migrate sql --yes '${KRATOS_DSN:-postgres://user:pass@db:5432/devhub?sslmode=disable&search_path=kratos}'
+    command: migrate sql --yes '${KRATOS_DSN:?set KRATOS_DSN}'
     environment:
       FRONTEND_PUBLIC_BASE_URL: ${FRONTEND_PUBLIC_BASE_URL:?set FRONTEND_PUBLIC_BASE_URL}
       KRATOS_PUBLIC_EXTERNAL_URL: ${KRATOS_PUBLIC_EXTERNAL_URL:?set KRATOS_PUBLIC_EXTERNAL_URL}
@@ -57,11 +88,16 @@ services:
       DEVHUB_KRATOS_WEBHOOK_TOKEN: ${DEVHUB_KRATOS_WEBHOOK_TOKEN:?set DEVHUB_KRATOS_WEBHOOK_TOKEN}
       KRATOS_COOKIE_SECRET: ${KRATOS_COOKIE_SECRET:?set KRATOS_COOKIE_SECRET}
       KRATOS_CIPHER_SECRET: ${KRATOS_CIPHER_SECRET:?set KRATOS_CIPHER_SECRET}
-      KRATOS_DSN: ${KRATOS_DSN:-postgres://user:pass@db:5432/devhub?sslmode=disable&search_path=kratos}
+      KRATOS_DSN: ${KRATOS_DSN:?set KRATOS_DSN}
       KRATOS_HOOK_TARGET_URL: ${KRATOS_HOOK_TARGET_URL:-http://backend-core:8080/api/v1/integrations/kratos/hook/settings/password/after}
     volumes:
       - ./:/repo:ro
     working_dir: /repo
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
 
   kratos:
     image: oryd/kratos:v1.1.0
@@ -77,7 +113,7 @@ services:
       DEVHUB_KRATOS_WEBHOOK_TOKEN: ${DEVHUB_KRATOS_WEBHOOK_TOKEN:?set DEVHUB_KRATOS_WEBHOOK_TOKEN}
       KRATOS_COOKIE_SECRET: ${KRATOS_COOKIE_SECRET:?set KRATOS_COOKIE_SECRET}
       KRATOS_CIPHER_SECRET: ${KRATOS_CIPHER_SECRET:?set KRATOS_CIPHER_SECRET}
-      KRATOS_DSN: ${KRATOS_DSN:-postgres://user:pass@db:5432/devhub?sslmode=disable&search_path=kratos}
+      KRATOS_DSN: ${KRATOS_DSN:?set KRATOS_DSN}
       KRATOS_HOOK_TARGET_URL: ${KRATOS_HOOK_TARGET_URL:-http://backend-core:8080/api/v1/integrations/kratos/hook/settings/password/after}
     volumes:
       - ./:/repo:ro
@@ -90,20 +126,20 @@ services:
         condition: service_completed_successfully
 
   backend-ai:
-    image: ${REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:-ykylee/devhub_example}/backend-ai:${IMAGE_TAG:?set IMAGE_TAG}
+    image: ${IMAGE_REPO_PREFIX:-ghcr.io/ykylee/devhub_example}/backend-ai:${IMAGE_TAG:?set IMAGE_TAG}
     restart: unless-stopped
     ports:
       - "${BACKEND_AI_PORT:-8000}:8000"
 
   backend-core:
-    image: ${REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:-ykylee/devhub_example}/backend-core:${IMAGE_TAG:?set IMAGE_TAG}
+    image: ${IMAGE_REPO_PREFIX:-ghcr.io/ykylee/devhub_example}/backend-core:${IMAGE_TAG:?set IMAGE_TAG}
     restart: unless-stopped
     ports:
       - "${BACKEND_CORE_PORT:-8080}:8080"
     environment:
-      DB_URL: ${DB_URL:-postgres://user:pass@db:5432/devhub?sslmode=disable}
+      DB_URL: ${DB_URL:?set DB_URL}
       BACKEND_AI_URL: ${BACKEND_AI_URL:-http://backend-ai:8000}
-      DEVHUB_AUTH_DEV_FALLBACK: ${DEVHUB_AUTH_DEV_FALLBACK:-1}
+      DEVHUB_AUTH_DEV_FALLBACK: ${DEVHUB_AUTH_DEV_FALLBACK:-0}
       DEVHUB_HYDRA_ADMIN_URL: ${DEVHUB_HYDRA_ADMIN_URL:-http://hydra:4445}
       DEVHUB_HYDRA_PUBLIC_URL: ${DEVHUB_HYDRA_PUBLIC_URL:-http://hydra:4444}
       DEVHUB_KRATOS_PUBLIC_URL: ${DEVHUB_KRATOS_PUBLIC_URL:-http://kratos:4433}
@@ -118,7 +154,7 @@ services:
         condition: service_started
 
   frontend:
-    image: ${REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:-ykylee/devhub_example}/frontend:${IMAGE_TAG:?set IMAGE_TAG}
+    image: ${IMAGE_REPO_PREFIX:-ghcr.io/ykylee/devhub_example}/frontend:${IMAGE_TAG:?set IMAGE_TAG}
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-3000}:3000"

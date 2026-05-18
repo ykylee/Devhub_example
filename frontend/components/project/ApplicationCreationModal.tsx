@@ -49,7 +49,8 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
       if (isEdit && initialData.id) {
         // PATCH 시 `key` 는 백엔드(updateApplication)에서 immutable 로 reject 되므로
         // payload 에서 제외한다. (codex PR #114 review P1)
-        const { key: _omitKey, ...patchPayload } = formData;
+        const patchPayload: Partial<typeof formData> = { ...formData };
+        delete patchPayload.key;
         result = await projectService.updateApplication(initialData.id, patchPayload);
       } else {
         result = await projectService.createApplication(formData);

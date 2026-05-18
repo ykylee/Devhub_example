@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { X, Building2, Check, AlertCircle } from "lucide-react";
 import { OrgUnit, CreateUnitPayload, UpdateUnitPayload, OrgNode, OrgMember } from "@/lib/services/identity.service";
-import { cn } from "@/lib/utils";
 
 interface UnitManagementModalProps {
   mode: "create" | "edit";
