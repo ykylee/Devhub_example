@@ -1,7 +1,10 @@
 import { apiClient } from "./api-client";
 import type {
+  CreateIntegrationBindingInput,
   CreateIntegrationProviderInput,
+  IntegrationBinding,
   IntegrationProvider,
+  ListIntegrationBindingsOptions,
   ListIntegrationProvidersOptions,
   UpdateIntegrationProviderInput,
 } from "./integration.types";
@@ -51,6 +54,30 @@ class IntegrationService {
       "DELETE",
       `/api/v1/integration/providers/${providerID}`,
     );
+  }
+
+  /** API-74 — provider ↔ application/project binding 목록. RBAC view.
+   *  sprint claude/work_260518-m. */
+  async listBindings(opts: ListIntegrationBindingsOptions = {}): Promise<{ data: IntegrationBinding[]; total: number }> {
+    const params = new URLSearchParams();
+    if (opts.scope_type) params.set("scope_type", opts.scope_type);
+    if (opts.scope_id) params.set("scope_id", opts.scope_id);
+    if (opts.provider_type) params.set("provider_type", opts.provider_type);
+    if (opts.enabled !== undefined) params.set("enabled", String(opts.enabled));
+    if (opts.limit) params.set("limit", String(opts.limit));
+    if (opts.offset) params.set("offset", String(opts.offset));
+    const qs = params.toString();
+    const path = qs ? `/api/v1/integration/bindings?${qs}` : "/api/v1/integration/bindings";
+    const resp = await apiClient<{ data: IntegrationBinding[]; meta?: { total: number } }>("GET", path);
+    return { data: resp.data, total: resp.meta?.total ?? resp.data.length };
+  }
+
+  /** API-75 — binding 생성. RBAC edit (system_admin only). 409
+   *  `integration_binding_conflict` (중복 또는 provider 미존재), 422
+   *  `integration_policy_violation` 분기 가능. */
+  async createBinding(input: CreateIntegrationBindingInput): Promise<IntegrationBinding> {
+    const resp = await apiClient<{ data: IntegrationBinding }>("POST", "/api/v1/integration/bindings", input);
+    return resp.data;
   }
 }
 

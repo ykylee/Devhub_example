@@ -182,32 +182,48 @@ test.describe("DREQ E2E", () => {
     await expect(page.getByText(/token shown once/i)).toBeVisible();
     await page.getByRole("button", { name: /저장 완료 — 닫기/i }).click();
 
-    // token_id 추출 — 목록 API (page.request 가 OIDC session 공유).
-    const listResp = await page.request.get("/api/v1/dev-request-tokens");
-    expect(listResp.ok()).toBeTruthy();
-    const listBody = await listResp.json();
-    const target = (listBody.data as Array<{ token_id: string; client_label: string }>).find(
-      (t) => t.client_label === clientLabel
-    );
-    expect(target).toBeTruthy();
-    const tokenId = target!.token_id;
+    // token_id 추출 — IntakeTokenTable 의 data-token-id attribute 에서 직접
+    // 읽음. page.request.get 의 OIDC session propagation 이 CI 에서 flaky
+    // (codex hotfix 회피 패턴 — sprint claude/work_260518-m).
+    const tokenRow = page.locator(`tr[data-token-id]`).filter({ hasText: clientLabel }).first();
+    await expect(tokenRow).toBeVisible({ timeout: 10_000 });
+    const tokenId = (await tokenRow.getAttribute("data-token-id")) ?? "";
+    expect(tokenId).toBeTruthy();
 
-    // PATCH allowed_ips
-    const patchResp = await page.request.patch(`/api/v1/dev-request-tokens/${tokenId}`, {
-      data: {
-        allowed_ips: ["192.0.2.0/24", "203.0.113.5"],
-      },
-    });
-    expect(patchResp.ok()).toBeTruthy();
-    const patchBody = await patchResp.json();
-    expect(patchBody.status).toBe("ok");
+    // PATCH allowed_ips — page.request 의 OIDC session propagation 이 CI 에서
+    // flaky. page.evaluate 의 browser context fetch 가 cookies + sessionStorage
+    // 의 Bearer token (apiClient 와 동일 구조) 을 사용해 modal form submit 와
+    // 같은 인증 보장 (sprint claude/work_260518-m hotfix #4+5).
+    const patchResult = await page.evaluate(async (id: string) => {
+      const accessToken = sessionStorage.getItem("devhub_access_token");
+      const resp = await fetch(`/api/v1/dev-request-tokens/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({ allowed_ips: ["192.0.2.0/24", "203.0.113.5"] }),
+        credentials: "include",
+      });
+      const body = await resp.json();
+      return { ok: resp.ok, status: resp.status, body };
+    }, tokenId);
+    expect(patchResult.ok).toBeTruthy();
+    expect(patchResult.body.status).toBe("ok");
     // backend 가 dedup / canonicalize 할 수 있어 정확한 순서·길이 의존하지 않고
     // sorted equality 로 검증.
-    expect([...patchBody.data.allowed_ips].sort()).toEqual(
+    expect([...patchResult.body.data.allowed_ips].sort()).toEqual(
       ["192.0.2.0/24", "203.0.113.5"].sort()
     );
 
-    // 정리 — 본 test 가 생성한 token revoke (cleanup).
-    await page.request.delete(`/api/v1/dev-request-tokens/${tokenId}`);
+    // 정리 — 본 test 가 생성한 token revoke (cleanup, 동일 패턴).
+    await page.evaluate(async (id: string) => {
+      const accessToken = sessionStorage.getItem("devhub_access_token");
+      await fetch(`/api/v1/dev-request-tokens/${id}`, {
+        method: "DELETE",
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+        credentials: "include",
+      });
+    }, tokenId);
   });
 });

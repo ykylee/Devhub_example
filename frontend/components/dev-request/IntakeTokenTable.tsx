@@ -63,6 +63,7 @@ export function IntakeTokenTable({ items, onRevoke, revokingTokenID }: IntakeTok
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     className="group hover:bg-muted/30 transition-colors"
+                    data-token-id={tok.token_id}
                   >
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-4">

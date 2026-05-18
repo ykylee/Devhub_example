@@ -44,6 +44,9 @@
 | TC-INT-FRONTEND-RBAC-01 | P2 | E2E | non-system_admin (developer / manager) 이 `/admin/settings/integrations` 직접 접근 | AuthGuard + layout.tsx 의 `isSystemAdmin` 가드로 default landing 으로 redirect |
 | TC-INT-FRONTEND-DELETE-01 | P1 | E2E | Provider row 의 Delete 버튼 → DestructiveConfirmModal 확인 → binding 없는 provider 삭제 | API-80 호출 + 200 응답 + table row 제거 + 성공 toast |
 | TC-INT-FRONTEND-DELETE-NEG-01 | P1 | E2E | binding 이 있는 provider 삭제 시도 | API-80 호출 → 409 `integration_provider_has_bindings` → 에러 toast + row 유지 |
+| TC-INT-FRONTEND-BIND-LIST-01 | P1 | E2E | system_admin 이 `/admin/settings/integration-bindings` 접근 → BindingsTable 또는 empty state 렌더 | scope/provider/external_key/policy 컬럼 노출, scope filter dropdown 동작 |
+| TC-INT-FRONTEND-BIND-CREATE-01 | P1 | E2E | Create Binding 모달에서 scope_type/scope_id/provider/external_key/policy 입력 후 등록 | API-75 호출 → 200/201 → table row 추가 + scope 별 badge + provider display_name 정합 |
+| TC-INT-FRONTEND-BIND-RBAC-01 | P2 | E2E | non-system_admin (developer / manager) 이 `/admin/settings/integration-bindings` 직접 접근 | AuthGuard + layout.tsx 의 `isSystemAdmin` 가드로 default landing 으로 redirect |
 
 ### 3.1 Frontend 카버리지 매핑 (sprint `claude/work_260518-h`)
 
@@ -58,6 +61,9 @@
 | `TC-INT-FRONTEND-RBAC-01` | `non-system_admin redirect` | ✅ active (developer 로그인 → `/developer` 로 redirect 검증) |
 | `TC-INT-FRONTEND-DELETE-01` | `provider lifecycle` step 5 (DELETE 버튼 → DestructiveConfirmModal → API-80) | ✅ active (sprint `claude/work_260518-j`, mega test cleanup → 명시 delete 로 전환) |
 | `TC-INT-FRONTEND-DELETE-NEG-01` | UT/IT 영역 (binding 시드 후 DELETE → 409) — backend `TestDeleteIntegrationProvider_HasBindings` 가 cover. E2E carve out. | 🟡 UT only (backend test 활성) |
+| `TC-INT-FRONTEND-BIND-LIST-01` | `admin-integration-bindings.spec.ts` 의 `bindings lifecycle` step 2 (BindingsTable / empty state 렌더) | ✅ active (sprint `claude/work_260518-m`) |
+| `TC-INT-FRONTEND-BIND-CREATE-01` | `admin-integration-bindings.spec.ts` 의 `bindings lifecycle` step 3 (Create Binding 모달 → API-75 호출 검증 + table row + display_name 매핑) | ✅ active (sprint `claude/work_260518-m`) |
+| `TC-INT-FRONTEND-BIND-RBAC-01` | `admin-integration-bindings.spec.ts` 의 `non-system_admin redirect` test | ✅ active (sprint `claude/work_260518-m`) |
 
 ## 4. E2E 시나리오 초안
 
