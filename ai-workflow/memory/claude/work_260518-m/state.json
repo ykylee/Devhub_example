@@ -1,0 +1,29 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260518-m",
+  "branch": "claude/work_260518-m",
+  "status": "in_progress",
+  "started_at": "2026-05-18T12:38:00Z",
+  "scope": "External Integration bindings 관리 UI — /admin/settings/integration-bindings 페이지 + BindingsTable + CreateBindingModal + service/types 확장 (API-74 GET / API-75 POST). 다음 세션 directive 1순위 (state.json 51c79af 후속).",
+  "directive_source": "main flat state.json '다음 세션 directive (1)' + session_handoff.md '다음 세션 directive (1)' — bindings 관리 UI (API-74, 75) — provider ↔ application/project scope 매핑",
+  "decisions": [
+    "layout 의 subTabs 패턴 일관성 위해 별도 페이지 /admin/settings/integration-bindings 채택 (dev-requests + dev-request-tokens 분리 패턴 따름)",
+    "system_admin only RBAC — AuthGuard + /admin/* prefix 가 이미 보호. backend 는 permissions.go 에서 ResourceInfrastructure + ActionEdit 매핑 확인.",
+    "scope_type 은 application | project 만 (backend domain.IntegrationScopeType*). policy 는 summary_only | execution_system.",
+    "scope_id 는 자유 텍스트 입력 (Application/Project ID) — 별도 lookup combobox 는 후속 carve out 으로 미룬다 (성능/UX 트레이드오프 + 첫 진입은 진입점 활성화 우선).",
+    "provider 선택은 ProviderTable 의 row select 가 아닌 modal 내 select dropdown — 페이지 진입 후 binding 만 관리하는 흐름이므로 provider list 는 dropdown 으로 보조."
+  ],
+  "todo": [
+    "frontend/lib/services/integration.types.ts — IntegrationBinding + ListBindingsOptions + CreateBindingInput 추가",
+    "frontend/lib/services/integration.service.ts — listBindings + createBinding",
+    "frontend/components/integration/BindingsTable.tsx",
+    "frontend/components/integration/CreateBindingModal.tsx",
+    "frontend/app/(dashboard)/admin/settings/integration-bindings/page.tsx",
+    "frontend/app/(dashboard)/admin/settings/layout.tsx — subTabs 에 Bindings 추가",
+    "frontend/tests/e2e/admin-integrations.spec.ts 또는 신규 admin-integration-bindings.spec.ts — TC-INT-FRONTEND-BIND-* 발급",
+    "docs/tests/test_cases_m4_integration.md 또는 적합 카탈로그에 BIND TC 추가",
+    "docs/traceability/report.md — TC + binding row 갱신",
+    "npm run build PASS + vitest PASS + go test PASS"
+  ],
+  "verification": "frontend build + vitest + e2e local smoke (mocked or seeded); backend go test ./internal/httpapi/ -run TestCreateIntegrationBinding"
+}

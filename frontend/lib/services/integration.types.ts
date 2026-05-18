@@ -1,11 +1,9 @@
 /**
- * External Integration provider types.
- * Mirrors backend-core/internal/httpapi/integration_registry.go (API-69..75).
- * Sprint claude/work_260518-g (External Integration frontend 진입점 1차).
+ * External Integration provider + binding types.
+ * Mirrors backend-core/internal/httpapi/integration_registry.go (API-69..75, 80).
+ * Provider scope: sprint claude/work_260518-g.
+ * Binding scope: sprint claude/work_260518-m (bindings 관리 UI).
  * ADR-INT-* + ARCH-INT-01..06.
- *
- * scope: provider list / create / update / sync. binding 관리 + infra topology v2
- * 는 후속 carve out.
  */
 
 export type IntegrationProviderType = "alm" | "scm" | "ci_cd" | "doc" | "infra";
@@ -48,4 +46,41 @@ export interface ListIntegrationProvidersOptions {
   provider_type?: IntegrationProviderType;
   enabled?: boolean;
   limit?: number;
+}
+
+// Bindings — sprint claude/work_260518-m.
+// 1 provider 가 N 개의 application/project scope 에 매핑되어 외부 시스템과의
+// 구체 연결 (Jira PROJ key, Gitea repo path 등) 을 표현. backend §15.2 API-74/75.
+
+export type IntegrationScopeType = "application" | "project";
+
+export type IntegrationPolicy = "summary_only" | "execution_system";
+
+export interface IntegrationBinding {
+  binding_id: string;
+  scope_type: IntegrationScopeType;
+  scope_id: string;
+  provider_id: string;
+  external_key: string;
+  policy: IntegrationPolicy;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateIntegrationBindingInput {
+  scope_type: IntegrationScopeType;
+  scope_id: string;
+  provider_id: string;
+  external_key: string;
+  policy: IntegrationPolicy;
+}
+
+export interface ListIntegrationBindingsOptions {
+  scope_type?: IntegrationScopeType;
+  scope_id?: string;
+  provider_type?: IntegrationProviderType;
+  enabled?: boolean;
+  limit?: number;
+  offset?: number;
 }

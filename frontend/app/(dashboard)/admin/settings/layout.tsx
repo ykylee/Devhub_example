@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
-import { Users, Network, Shield, FileText, Box, Inbox, Key, Plug } from "lucide-react";
+import { Users, Network, Shield, FileText, Box, Inbox, Key, Plug, Link2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/lib/store";
 import { defaultLandingFor, isSystemAdmin } from "@/lib/auth/role-routing";
@@ -17,6 +17,7 @@ const subTabs = [
   { href: "/admin/settings/dev-requests", label: "Dev Requests", icon: Inbox },
   { href: "/admin/settings/dev-request-tokens", label: "Intake Tokens", icon: Key },
   { href: "/admin/settings/integrations", label: "Integrations", icon: Plug },
+  { href: "/admin/settings/integration-bindings", label: "Bindings", icon: Link2 },
   { href: "/admin/settings/audit", label: "Audit", icon: FileText },
 ];
 
