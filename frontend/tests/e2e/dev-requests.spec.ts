@@ -190,22 +190,34 @@ test.describe("DREQ E2E", () => {
     const tokenId = (await tokenRow.getAttribute("data-token-id")) ?? "";
     expect(tokenId).toBeTruthy();
 
-    // PATCH allowed_ips
-    const patchResp = await page.request.patch(`/api/v1/dev-request-tokens/${tokenId}`, {
-      data: {
-        allowed_ips: ["192.0.2.0/24", "203.0.113.5"],
-      },
-    });
-    expect(patchResp.ok()).toBeTruthy();
-    const patchBody = await patchResp.json();
-    expect(patchBody.status).toBe("ok");
+    // PATCH allowed_ips — page.request 의 OIDC session propagation 이 CI 에서
+    // flaky. page.evaluate 의 browser context fetch 가 동일 cookies/headers 를
+    // 자동 사용 — modal form submit 와 같은 origin 으로 보장 (sprint
+    // claude/work_260518-m hotfix #4).
+    const patchResult = await page.evaluate(async (id: string) => {
+      const resp = await fetch(`/api/v1/dev-request-tokens/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ allowed_ips: ["192.0.2.0/24", "203.0.113.5"] }),
+        credentials: "include",
+      });
+      const body = await resp.json();
+      return { ok: resp.ok, status: resp.status, body };
+    }, tokenId);
+    expect(patchResult.ok).toBeTruthy();
+    expect(patchResult.body.status).toBe("ok");
     // backend 가 dedup / canonicalize 할 수 있어 정확한 순서·길이 의존하지 않고
     // sorted equality 로 검증.
-    expect([...patchBody.data.allowed_ips].sort()).toEqual(
+    expect([...patchResult.body.data.allowed_ips].sort()).toEqual(
       ["192.0.2.0/24", "203.0.113.5"].sort()
     );
 
-    // 정리 — 본 test 가 생성한 token revoke (cleanup).
-    await page.request.delete(`/api/v1/dev-request-tokens/${tokenId}`);
+    // 정리 — 본 test 가 생성한 token revoke (cleanup, 동일 패턴).
+    await page.evaluate(async (id: string) => {
+      await fetch(`/api/v1/dev-request-tokens/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+    }, tokenId);
   });
 });
