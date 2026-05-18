@@ -248,6 +248,7 @@ var routePermissionTable = map[routeKey]routePolicy{
 	{http.MethodGet, "/api/v1/integration/providers"}:                    {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
 	{http.MethodPost, "/api/v1/integration/providers"}:                   {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
 	{http.MethodPatch, "/api/v1/integration/providers/:provider_id"}:     {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
+	{http.MethodDelete, "/api/v1/integration/providers/:provider_id"}:    {Resource: domain.ResourceInfrastructure, Action: domain.ActionDelete},
 	{http.MethodPost, "/api/v1/integration/providers/:provider_id/sync"}: {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
 	{http.MethodGet, "/api/v1/integration/bindings"}:                     {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
 	{http.MethodPost, "/api/v1/integration/bindings"}:                    {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},

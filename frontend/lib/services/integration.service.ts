@@ -42,6 +42,16 @@ class IntegrationService {
       `/api/v1/integration/providers/${providerID}/sync`,
     );
   }
+
+  /** API-80 — Provider 삭제 (sprint claude/work_260518-j). FK guard:
+   *  active binding 존재 시 backend 가 409 `integration_provider_has_bindings`
+   *  반환 — caller 는 ApiError.payload.code 로 분기 처리. */
+  async deleteProvider(providerID: string): Promise<void> {
+    await apiClient<{ status: string }>(
+      "DELETE",
+      `/api/v1/integration/providers/${providerID}`,
+    );
+  }
 }
 
 export const integrationService = new IntegrationService();

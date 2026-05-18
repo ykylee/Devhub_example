@@ -1,6 +1,6 @@
 "use client";
 
-import { Plug, Settings, RefreshCw } from "lucide-react";
+import { Plug, Settings, RefreshCw, Trash2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/Badge";
@@ -10,7 +10,9 @@ interface ProviderTableProps {
   items: IntegrationProvider[];
   onEdit: (provider: IntegrationProvider) => void;
   onSync: (provider: IntegrationProvider) => void;
+  onDelete: (provider: IntegrationProvider) => void;
   syncingProviderID: string | null;
+  deletingProviderID: string | null;
 }
 
 function safeFormat(iso: string | null | undefined): string {
@@ -43,7 +45,7 @@ function syncStatusBadge(s: string): { variant: BadgeVariant; label: string } {
   return { variant: "secondary", label: s || "—" };
 }
 
-export function ProviderTable({ items, onEdit, onSync, syncingProviderID }: ProviderTableProps) {
+export function ProviderTable({ items, onEdit, onSync, onDelete, syncingProviderID, deletingProviderID }: ProviderTableProps) {
   if (items.length === 0) {
     return (
       <div className="glass border-border rounded-3xl py-20 flex flex-col items-center justify-center gap-3">
@@ -75,6 +77,7 @@ export function ProviderTable({ items, onEdit, onSync, syncingProviderID }: Prov
             <AnimatePresence mode="popLayout">
               {items.map((p) => {
                 const isSyncing = syncingProviderID === p.provider_id;
+                const isDeleting = deletingProviderID === p.provider_id;
                 const sync = syncStatusBadge(p.sync_status);
                 return (
                   <motion.tr
@@ -138,6 +141,16 @@ export function ProviderTable({ items, onEdit, onSync, syncingProviderID }: Prov
                         >
                           <Settings className="w-3 h-3" />
                           Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onDelete(p)}
+                          disabled={isDeleting}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-[10px] font-bold uppercase tracking-widest text-red-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          aria-label={`Delete ${p.display_name}`}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          {isDeleting ? "Deleting" : "Delete"}
                         </button>
                       </div>
                     </td>

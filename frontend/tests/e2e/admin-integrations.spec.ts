@@ -109,13 +109,30 @@ test.describe("External Integration admin UI", () => {
       await expect(row.getByText(/pending/i)).toBeVisible({ timeout: 5_000 });
     });
 
-    // Cleanup — 본 test 가 생성한 provider 는 backend 에 영구 남으므로 disabled 처리만 함.
-    // (DELETE endpoint 가 별도로 없으므로 backend 의 provider 삭제는 carve out.)
-    await test.step("Cleanup note", async () => {
-      // 본 test 는 enabled=false 로 종료 — production CI 에서 누적된 e2e provider 는
-      // 운영자가 별도 정리하거나, store 가 e2e 패턴 (`e2e-int-*` prefix) 을 인식하는
-      // cleanup job 을 carve out 으로 가져갈 수 있음.
-      expect(providerID).toBeTruthy();
+    await test.step("TC-INT-FRONTEND-DELETE-01 — Delete 버튼 → DestructiveConfirmModal → API-80", async () => {
+      // sprint claude/work_260518-j: 명시 DELETE endpoint (API-80) 도입으로
+      // mega test 의 cleanup 이 실제 row 제거로 전환. binding 없는 provider 이므로
+      // 200 OK 예상.
+      const row = page.locator("tr").filter({ hasText: updatedDisplayName }).first();
+      const deleteResponsePromise = page.waitForResponse(
+        (resp) =>
+          resp.url().includes(`/api/v1/integration/providers/${providerID}`) &&
+          resp.request().method() === "DELETE",
+      );
+      await row.getByRole("button", { name: /delete/i }).click();
+
+      // DestructiveConfirmModal 의 confirm.
+      const confirmModal = page.getByRole("dialog");
+      await expect(confirmModal.getByText(/delete provider/i)).toBeVisible();
+      await confirmModal.getByRole("button", { name: /delete/i, exact: true }).click();
+
+      const deleteResponse = await deleteResponsePromise;
+      expect(deleteResponse.ok()).toBeTruthy();
+
+      // table row 가 사라졌는지 — display name 으로 찾아 0 카운트 확인.
+      await expect(page.locator("tr").filter({ hasText: updatedDisplayName })).toHaveCount(0, {
+        timeout: 10_000,
+      });
     });
   });
 

@@ -100,6 +100,7 @@ type ApplicationStore interface {
 	GetIntegrationProviderByKey(context.Context, string) (domain.IntegrationProvider, error)
 	CreateIntegrationProvider(context.Context, domain.IntegrationProvider) (domain.IntegrationProvider, error)
 	UpdateIntegrationProvider(context.Context, domain.IntegrationProvider) (domain.IntegrationProvider, error)
+	DeleteIntegrationProvider(context.Context, string) error
 	CreateIntegrationSyncJob(context.Context, string, string) (string, error)
 	ListIntegrationBindings(context.Context, store.IntegrationBindingListOptions) ([]domain.IntegrationBinding, int, error)
 	CreateIntegrationBinding(context.Context, domain.IntegrationBinding) (domain.IntegrationBinding, error)
@@ -287,6 +288,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.GET("/integration/providers", handler.listIntegrationProviders)
 	v1.POST("/integration/providers", handler.createIntegrationProvider)
 	v1.PATCH("/integration/providers/:provider_id", handler.updateIntegrationProvider)
+	v1.DELETE("/integration/providers/:provider_id", handler.deleteIntegrationProvider)
 	v1.POST("/integration/providers/:provider_id/sync", handler.syncIntegrationProvider)
 	v1.POST("/integration/providers/:provider_id/webhook", handler.ingestIntegrationProviderWebhook)
 	v1.GET("/integration/bindings", handler.listIntegrationBindings)

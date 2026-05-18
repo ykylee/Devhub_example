@@ -286,6 +286,30 @@ RETURNING
 	return updated, nil
 }
 
+// DeleteIntegrationProvider — API-80 (sprint claude/work_260518-j).
+// FK guard: integration_bindings 가 1건 이상이면 ErrConflict 반환 (`integration_provider_has_bindings`).
+// integration_sync_jobs 는 ON DELETE CASCADE 라 자동 제거. binding 만 운영 정책상
+// 명시 차단 — 실수 cascade 방지 (binding 정리는 운영자가 명시적으로 수행).
+func (s *PostgresStore) DeleteIntegrationProvider(ctx context.Context, providerID string) error {
+	const bindingCountQuery = `SELECT COUNT(*) FROM integration_bindings WHERE provider_id = $1::uuid`
+	var bindingCount int
+	if err := s.pool.QueryRow(ctx, bindingCountQuery, providerID).Scan(&bindingCount); err != nil {
+		return fmt.Errorf("count bindings for provider %s: %w", providerID, err)
+	}
+	if bindingCount > 0 {
+		return ErrConflict
+	}
+	const deleteQuery = `DELETE FROM integration_providers WHERE provider_id = $1::uuid RETURNING provider_id`
+	var deletedID string
+	if err := s.pool.QueryRow(ctx, deleteQuery, providerID).Scan(&deletedID); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrNotFound
+		}
+		return fmt.Errorf("delete integration provider %s: %w", providerID, err)
+	}
+	return nil
+}
+
 func (s *PostgresStore) CreateIntegrationSyncJob(ctx context.Context, providerID string, requestedBy string) (string, error) {
 	const query = `
 INSERT INTO integration_sync_jobs (provider_id, requested_by, status)
