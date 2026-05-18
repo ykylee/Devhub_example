@@ -4,8 +4,14 @@
 - 범위: 10 항목 (로그인 / 사용자 관리 / 조직 관리 / 과제 관리 + 요구사항 / 유스케이스 / 설계 + 단위테스트 / E2E 테스트 + 추적성 관리).
 - 대상 독자: 외부 stakeholder (Jira reader), PM/PO, 운영 담당자.
 - 상태: draft (2026-05-18 기준 main HEAD `6648105`)
-- 최종 수정일: 2026-05-18
+- 최종 수정일: 2026-05-18 (sprint -r self-review hotfix 적용)
 - 관련 문서: [통합 로드맵](../development_roadmap.md), [추적성 매트릭스](../traceability/report.md), [거버넌스](../governance/README.md), [세션 인계](../../ai-workflow/memory/session_handoff.md).
+
+## 본 문서 사용 안내
+
+- **렌더 환경 가정**: 본 문서는 GitHub 마크다운 렌더 기준. Mermaid 다이어그램 (§0) 은 GitHub / GitLab / Notion 등에서 자동 렌더되지만, **Jira Cloud / On-premise 의 기본 마크다운은 Mermaid 미지원**. Jira 에 업로드 시 (a) Mermaid 다이어그램을 PNG/SVG 로 export 해 이미지 첨부, (b) 또는 Mermaid plugin (e.g., Confluence Mermaid Macro) 사용 권장.
+- **sprint code 안내**: 본 문서의 `sprint -m`, `sprint -p` 등은 git branch `claude/work_260518-<letter>` 의 줄임 — 사내 일자별 작업 단위. 외부 reader 는 PR 번호 (#xxx) 만 참조해도 흐름 파악 충분.
+- **PR 번호 매핑**: 본 보고서가 다루는 PR 누적 = 2026-05-08 ~ 2026-05-18, #1 ~ #159. 자세한 매핑은 부록 A + `git log --oneline main`.
 
 ---
 
@@ -50,14 +56,14 @@ gantt
 | --- | --- |
 | REQ-FR (Functional Requirements) | 105 + (Application/Project 확장) + (DREQ 11) + (INT 12) ≈ **140+** |
 | REQ-NFR (Non-Functional) | 26 + (DREQ 6) + (INT 8) ≈ **40** |
-| ARCH (Architecture) | 17 + ARCH-INT-01..06 = **23** |
+| ARCH (Architecture) | ARCH-01..17 + ARCH-DREQ-01..06 + ARCH-INT-01..06 = **29** |
 | API (Backend endpoints) | 80 (API-01..80) |
 | ADR (Architecture Decision Records) | **17** (ADR-0001~0017 모두 accepted) |
 | RM (Roadmap items) | RM-M3-01..03 (done) + RM-M4-01..09 (planned) |
 | IMPL | 79 + (Application/DREQ/INT 확장) |
 | UT (Unit Tests) | 47 + (application 43 + DREQ 19 + INT) |
-| TC (E2E Test Cases) | 37 + TC-DREQ-* 13 + TC-INT-FRONTEND-* 13 + TC-INT-HOMELAB-03 |
-| 누적 PR | 158 (2026-05-08 ~ 2026-05-18) |
+| TC (E2E Test Cases) | 37 + TC-DREQ-* 13 + TC-INT-FRONTEND-* 12 + TC-INT-HOMELAB-03 = **63** |
+| 누적 PR | 159 (2026-05-08 ~ 2026-05-18, 본 hotfix #159 포함) |
 
 ---
 
@@ -88,7 +94,9 @@ OIDC + PKCE 기반 자체 로그인 + RP-initiated logout 완성. Ory Hydra (OAu
 ### 1.5 관련 PR / ID
 
 - M0 SEC: PR #14~#19
-- M1 RBAC: PR #20~#31, #45~#57
+- M1 RBAC 핵심: PR #20~#23, #27~#31
+- M1 cleanup (envelope + audit actor enrichment): PR #56 (PR-B+C), #57 (PR-D)
+- M2 login/logout/account/admin/org: PR #45 (PR-L1), #50 (PR-L3), #51 (PR-L2), #49 (deploy guide), #52~#55 (Track S1~S4)
 - M2 UX 1차 완성: PR #85 (`claude/login_usermanagement_finish`)
 - M3 Sign Up: PR #98, #99 (RM-M3-01)
 - ADR: [ADR-0001 IdP selection](../adr/0001-idp-selection.md), [ADR-0006 X-Devhub-Actor 거부](../adr/0006-x-devhub-actor-inbound-rejected.md)
@@ -448,7 +456,7 @@ CI E2E shard 1/2 + 2/2 (Playwright chromium) — 약 50+ test (2026-05-18 기준
   - `test_cases_m2_auth.md` (login + logout + signout + accounts)
   - `test_cases_m3_command_infra.md` (M3 carve)
   - `test_cases_m5_dreq.md` (**13 TC-DREQ-***, sprint -d, PR #144)
-  - `test_cases_m4_integration.md` (TC-INT-* + TC-INT-FRONTEND-* + TC-INT-HOMELAB-03 + TC-INT-FRONTEND-BIND-* + TC-INT-FRONTEND-TOPOLOGY-V2-*)
+  - `test_cases_m4_integration.md` — TC-INT-FRONTEND-* **12건** (LIST/CREATE/EDIT/SYNC/RBAC/DELETE/DELETE-NEG + BIND-{LIST,CREATE,RBAC} + TOPOLOGY-V2-{NAV,RBAC}) + TC-INT-HOMELAB-03
 - **active spec ts**:
   - `auth.spec.ts` / `password-change.spec.ts` / `signout.spec.ts` / `admin-permissions.spec.ts` / `admin-users-crud.spec.ts`
   - `dev-requests.spec.ts` (DREQ 6 step + intake auth negative + PATCH allowed_ips)
@@ -538,7 +546,8 @@ CI E2E shard 1/2 + 2/2 (Playwright chromium) — 약 50+ test (2026-05-18 기준
 | #155 | `-n` | Infra topology v2 시각화 (React Flow + degraded banner) |
 | #156 | `-o` | ADR-0017 §6 atomicity 실 구현 (CTE + FOR UPDATE + race test) |
 | #157 | `-p` | ADR-0015 §6 carve outs (size limit + streaming + token rotation SOP) |
-| 본 | `-q` | post-EOD 종합 housekeeping + 본 Jira 보고 status 문서 |
+| #158 | `-q` | post-EOD 종합 housekeeping + 본 Jira 보고 status 문서 (1차 draft) |
+| #159 | `-r` | 본 보고서 self-review hotfix — P1 3건 (ARCH/TC count + M1 RBAC PR 범위) + P2 4건 (Mermaid caveat + 정확 sum + sprint 안내 + PR #158 명시) |
 
 ## 부록 B — production 환경 스크린샷 캡처 가이드
 
@@ -556,4 +565,5 @@ CI E2E shard 1/2 + 2/2 (Playwright chromium) — 약 50+ test (2026-05-18 기준
 
 | 일자 | 변경 | sprint |
 | --- | --- | --- |
-| 2026-05-18 | 1차 draft — 10 항목 + Mermaid 진척도 + ASCII mockup + 캡처 가이드 | `claude/work_260518-q` |
+| 2026-05-18 | 1차 draft — 10 항목 + Mermaid 진척도 + ASCII mockup + 캡처 가이드 | `claude/work_260518-q` (PR #158) |
+| 2026-05-18 | self-review hotfix — P1 3건 (ARCH 23→29 / TC-INT-FRONTEND-* 13→12 + 총 TC sum 63 명시 / M1 RBAC PR 범위 정정) + P2 4건 (Mermaid Jira 호환 caveat + 사용 안내 / sprint code 안내 / 부록 A PR #158 + 본 #159 추가 / 누적 PR 158→159) | `claude/work_260518-r` (본 PR) |
