@@ -75,9 +75,12 @@ test.describe("External Integration admin UI", () => {
       // display_name 갱신.
       const nameInput = modal.getByLabel(/display name/i);
       await nameInput.fill(updatedDisplayName);
-      // enabled checkbox toggle (default true → false).
+      // enabled checkbox 존재 + checked 상태 검증. backend syncIntegrationProvider
+      // 의 `if !provider.Enabled` 가드 (409 integration_provider_disabled) 가 본
+      // mega test 의 후속 SYNC step 을 차단하므로 enabled=true 그대로 유지.
+      // 별도 disable scenario 는 후속 carve out (codex hotfix sprint).
       const enabledCheckbox = modal.getByLabel(/enabled/i);
-      await enabledCheckbox.uncheck();
+      await expect(enabledCheckbox).toBeChecked();
 
       await modal.getByRole("button", { name: /^save$/i }).click();
       await expect(page.getByRole("dialog")).toBeHidden({ timeout: 10_000 });
@@ -85,8 +88,8 @@ test.describe("External Integration admin UI", () => {
       // table row 갱신 — updated display name.
       const updatedRow = page.locator("tr").filter({ hasText: updatedDisplayName }).first();
       await expect(updatedRow).toBeVisible();
-      // enabled badge = "No" (disabled).
-      await expect(updatedRow.getByText(/^no$/i)).toBeVisible();
+      // enabled badge = "Yes" (toggle 없이 유지).
+      await expect(updatedRow.getByText(/^yes$/i)).toBeVisible();
     });
 
     await test.step("TC-INT-FRONTEND-SYNC-01 — Sync 버튼 클릭 → API-72 호출 + sync_status 전이", async () => {

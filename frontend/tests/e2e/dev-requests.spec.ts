@@ -182,15 +182,13 @@ test.describe("DREQ E2E", () => {
     await expect(page.getByText(/token shown once/i)).toBeVisible();
     await page.getByRole("button", { name: /저장 완료 — 닫기/i }).click();
 
-    // token_id 추출 — 목록 API (page.request 가 OIDC session 공유).
-    const listResp = await page.request.get("/api/v1/dev-request-tokens");
-    expect(listResp.ok()).toBeTruthy();
-    const listBody = await listResp.json();
-    const target = (listBody.data as Array<{ token_id: string; client_label: string }>).find(
-      (t) => t.client_label === clientLabel
-    );
-    expect(target).toBeTruthy();
-    const tokenId = target!.token_id;
+    // token_id 추출 — IntakeTokenTable 의 data-token-id attribute 에서 직접
+    // 읽음. page.request.get 의 OIDC session propagation 이 CI 에서 flaky
+    // (codex hotfix 회피 패턴 — sprint claude/work_260518-m).
+    const tokenRow = page.locator(`tr[data-token-id]`).filter({ hasText: clientLabel }).first();
+    await expect(tokenRow).toBeVisible({ timeout: 10_000 });
+    const tokenId = (await tokenRow.getAttribute("data-token-id")) ?? "";
+    expect(tokenId).toBeTruthy();
 
     // PATCH allowed_ips
     const patchResp = await page.request.patch(`/api/v1/dev-request-tokens/${tokenId}`, {
