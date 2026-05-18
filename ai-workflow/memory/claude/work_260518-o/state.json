@@ -1,0 +1,24 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260518-o",
+  "branch": "claude/work_260518-o",
+  "status": "in_progress",
+  "started_at": "2026-05-18T14:00:00Z",
+  "scope": "ADR-0017 §6 atomicity 실 구현 — store.UpdateDevRequestIntakeTokenIPs 의 2 query → 단일 CTE + FOR UPDATE row lock + (VALUES (1)) AS root(_) anchor 패턴. concurrent race 회귀 가드 (integration test). 다음 세션 directive 3순위.",
+  "directive_source": "main flat state.json '다음 세션 directive (3)' + session_handoff.md — ADR-0017 §6 atomicity 실제 구현 (CTE refactor + tx.Begin() + FOR UPDATE row lock). ADR-0017 §6 reference SQL 그대로 적용.",
+  "decisions": [
+    "ADR-0017 §6 의 reference SQL (CTE + VALUES anchor + FOR UPDATE) 그대로 구현 — codex hotfix #6 P2 의 anchor 패턴 정정 정합.",
+    "handler 분기 contract 동일 유지 (ErrNotFound → 404 intake_token_not_found / ErrConflict → 409 intake_token_revoked / nil → 200) — frontend 영향 없음.",
+    "회귀 가드는 Postgres integration test (DEVHUB_TEST_DB_URL) — CI backend-integration job. concurrent goroutine race 시나리오 포함.",
+    "fakeIntakeTokenStore (handler unit test 용 in-memory) 의 mirror 동작은 동일 contract 유지 — 기존 unit test 3건 (Happy/NotFound/Revoked) PASS 보장."
+  ],
+  "todo": [
+    "backend-core/internal/store/dev_request_intake_tokens.go — UpdateDevRequestIntakeTokenIPs CTE refactor + derefString/derefTime helper",
+    "backend-core/internal/store/dev_request_intake_tokens_integration_test.go — TestIntegration_UpdateDevRequestIntakeTokenIPs_Atomicity (4 sub-test)",
+    "docs/adr/0017-dreq-intake-token-operational-hardening.md §6 carve out 마지막 항목 resolved 갱신 + §7 변경 이력 row",
+    "docs/traceability/report.md §6 변경 이력 sprint -o row",
+    "go vet + test compile 검증 (network 제한 시 CI 가 실 race test 검증)",
+    "PR + self-review 4단계 + squash merge"
+  ],
+  "verification": "go vet store PASS + test compile PASS (DEVHUB_TEST_DB_URL skip) + CI backend-integration job 의 race test 그린"
+}
