@@ -240,16 +240,16 @@ docker compose -f docker-compose.deploy.yml --profile local-db up -d
 - docker 전용 이슈 1: `frontend`의 `/api` 프록시 대상이 이미지 빌드 시점 기본값(`http://localhost:8080`)으로 굳어질 수 있다.
   - 증상: 로그인 흐름에서 `Failed to proxy http://localhost:8080/...`
   - 대응: 배포 패키지의 `nginx`에서 `/api/v1/*`를 `backend-core:8080`으로 직접 프록시한다.
-- docker 전용 이슈 2: Hydra `urls.consent`를 내부 DNS(`http://backend-core:8080/...`)로 두면 외부 브라우저가 `backend-core`를 해석하지 못한다.
-  - 증상: 로그인 후 `DNS_PROBE_FINISHED_NXDOMAIN` (`backend-core`)
-  - 대응: deploy Hydra 설정에서 `consent`를 외부 진입 URL(`__FRONTEND_PUBLIC_BASE_URL__/api/v1/auth/consent`)로 설정한다.
+- docker 전용 이슈 2: OIDC issuer/redirect/logout URL 을 내부 DNS(`http://backend-core:8080` 등)로 두면 외부 브라우저가 해당 호스트를 해석하지 못한다.
+  - 증상: 로그인/로그아웃 후 `DNS_PROBE_FINISHED_NXDOMAIN` 또는 callback 실패
+  - 대응: IdP client 설정의 `redirect_uris`/`post_logout_redirect_uris` 와 app env 의 public URL을 외부 접근 가능한 host 로 일치시킨다.
 - 공통 설정 이슈: OIDC redirect URI를 `/api/auth/callback`로 주면 라우트 불일치가 발생한다.
   - 기준 라우트: `/auth/callback`
-  - 대응: `OIDC_REDIRECT_URI`, `NEXT_PUBLIC_OIDC_REDIRECT_URI`, Hydra client `redirect_uris`를 동일하게 `/auth/callback`으로 맞춘다.
+  - 대응: `OIDC_REDIRECT_URI`, `NEXT_PUBLIC_OIDC_REDIRECT_URI`, IdP client `redirect_uris`를 동일하게 `/auth/callback`으로 맞춘다.
 
 최소 검증 순서:
 
 1. `curl http://<host>:<nginx-port>/api/runtime-config`에서 OIDC URL/redirect 값 확인
-2. `curl http://<host>:<hydra-public-port>/.well-known/openid-configuration` 확인
+2. `curl <OIDC_ISSUER_URL>/.well-known/openid-configuration` 확인
 3. Playwright 단건 검증  
-   `PLAYWRIGHT_BASE_URL=http://<host>:<nginx-port> KRATOS_ADMIN_URL=http://<host>:<kratos-admin-port> npm run e2e -- tests/e2e/auth.spec.ts --grep "developer lands on /developer"`
+   `PLAYWRIGHT_BASE_URL=http://<host>:<nginx-port> npm run e2e -- tests/e2e/auth.spec.ts --grep "developer lands on /developer"`
