@@ -511,7 +511,11 @@ func (f *fakeIntakeTokenStore) RevokeDevRequestIntakeToken(_ context.Context, to
 	return row, nil
 }
 
-func (f *fakeIntakeTokenStore) UpdateDevRequestIntakeTokenIPs(_ context.Context, tokenID string, allowedIPs []string) (domain.DevRequestIntakeToken, error) {
+func (f *fakeIntakeTokenStore) UpdateDevRequestIntakeTokenIPs(ctx context.Context, tokenID string, allowedIPs []string) (domain.DevRequestIntakeToken, error) {
+	return f.UpdateDevRequestIntakeToken(ctx, tokenID, allowedIPs, nil, true, false)
+}
+
+func (f *fakeIntakeTokenStore) UpdateDevRequestIntakeToken(_ context.Context, tokenID string, allowedIPs []string, expiresAt *time.Time, updateIPs bool, updateExpiresAt bool) (domain.DevRequestIntakeToken, error) {
 	hashed, ok := f.byID[tokenID]
 	if !ok {
 		return domain.DevRequestIntakeToken{}, store.ErrNotFound
@@ -521,9 +525,76 @@ func (f *fakeIntakeTokenStore) UpdateDevRequestIntakeTokenIPs(_ context.Context,
 	if row.RevokedAt != nil {
 		return domain.DevRequestIntakeToken{}, store.ErrConflict
 	}
-	row.AllowedIPs = allowedIPs
+	if updateIPs {
+		row.AllowedIPs = allowedIPs
+	}
+	if updateExpiresAt {
+		row.ExpiresAt = expiresAt
+	}
 	f.rows[hashed] = row
 	return row, nil
+}
+
+// HardRevokeExpiredIntakeTokens — ADR-0017 §6 carve (a) mirror.
+// sprint claude/work_260518-t. real store 의 batch UPDATE 동작 정합.
+func (f *fakeIntakeTokenStore) HardRevokeExpiredIntakeTokens(_ context.Context, before time.Time) ([]string, error) {
+	out := make([]string, 0)
+	for hashed, row := range f.rows {
+		if row.ExpiresAt == nil || row.ExpiresAt.After(before) {
+			continue
+		}
+		if row.RevokedAt != nil {
+			continue
+		}
+		revoked := before
+		row.RevokedAt = &revoked
+		f.rows[hashed] = row
+		out = append(out, row.TokenID)
+	}
+	return out, nil
+}
+
+// CountExpiringSoonIntakeTokens — ADR-0017 §6 carve (c) mirror.
+func (f *fakeIntakeTokenStore) CountExpiringSoonIntakeTokens(_ context.Context, threshold time.Time) (int, error) {
+	now := time.Now()
+	n := 0
+	for _, row := range f.rows {
+		if row.RevokedAt != nil {
+			continue
+		}
+		if row.ExpiresAt == nil {
+			continue
+		}
+		if row.ExpiresAt.After(threshold) {
+			continue
+		}
+		if !row.ExpiresAt.After(now) {
+			continue
+		}
+		n++
+	}
+	return n, nil
+}
+
+// CountStaleIntakeTokens — ADR-0017 §6 carve (d) mirror.
+func (f *fakeIntakeTokenStore) CountStaleIntakeTokens(_ context.Context, before time.Time) (int, error) {
+	n := 0
+	for _, row := range f.rows {
+		if row.RevokedAt != nil {
+			continue
+		}
+		if row.LastUsedAt != nil {
+			if !row.LastUsedAt.After(before) {
+				n++
+			}
+			continue
+		}
+		// last_used_at IS NULL — created_at 으로 fallback.
+		if !row.CreatedAt.After(before) {
+			n++
+		}
+	}
+	return n, nil
 }
 
 func TestIntakeAuth_MissingHeaderDenies(t *testing.T) {
@@ -1202,7 +1273,15 @@ func TestUpdateDevRequestIntakeTokenIPs_NotFound(t *testing.T) {
 
 // ADR-0017 §4.2 + §4.3 — revoked row 의 mutation 은 409 intake_token_revoked.
 // 본 test 가 코드/문서 drift 의 핵심 회귀 가드 (codex hotfix #5 P2 #3).
-// 회귀 시: PATCH 가 revoked row 도 UPDATE 하던 PR #137 동작이 그대로 발생.
+//
+// 회귀 시나리오 (6개월 후 grep 가능하도록 명시):
+//   PR #137 (gemini/dreq_e2e_260515) 가 UpdateDevRequestIntakeTokenIPs 를 도입할 때
+//   WHERE revoked_at IS NULL 가드를 누락 → revoked token 의 silent allowed_ips
+//   변경이 가능했음. codex review (PR #143 inline P2 #3) 가 지적 → PR #146 hotfix #5
+//   가 store 에 가드 + handler 의 409 intake_token_revoked 분기 추가. 본 test 가
+//   회귀 발생 시 즉시 실패 (UPDATE 가 revoked row 를 변경하거나, handler 가
+//   ErrConflict 를 다른 status 로 매핑하는 경우 모두 catch).
+//   2 query 패턴의 atomicity 강화 carve out 은 ADR-0017 §6 의 마지막 항목 참조.
 func TestUpdateDevRequestIntakeTokenIPs_Revoked(t *testing.T) {
 	s := &fakeIntakeTokenStore{}
 	tok, _ := s.CreateDevRequestIntakeToken(context.Background(), domain.DevRequestIntakeToken{

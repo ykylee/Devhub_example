@@ -1966,6 +1966,7 @@ intake_token_collision                         # sprint o (ADR-0014): hashed_tok
 | API-76 | `GET /api/v1/infra/services` | 홈랩 서비스 인벤토리 조회 |
 | API-77 | `POST /api/v1/infra/services/snapshot` | 홈랩 서비스 상태 스냅샷 수집 ingest |
 | API-78 | `GET /api/v1/infra/topology/v2` | 노드+서비스+의존성 통합 토폴로지 조회 |
+| API-80 | `DELETE /api/v1/integration/providers/{provider_id}` | Provider 삭제 (FK guard, sprint `claude/work_260518-j`) |
 
 ### 15.2 Provider Catalog
 
@@ -2031,6 +2032,17 @@ intake_token_collision                         # sprint o (ADR-0014): hashed_tok
 - **인증**: OIDC + RBAC `infrastructure:edit` (system_admin only).
 - **설명**: provider 단위 수동 reconciliation job enqueue.
 - **응답 — 202**: `{status:"accepted", job_id:"..."}`.
+
+#### API-80 `DELETE /api/v1/integration/providers/{provider_id}`
+
+- **인증**: OIDC + RBAC `infrastructure:delete` (system_admin only).
+- **설명**: Provider 삭제. `integration_sync_jobs` 는 `ON DELETE CASCADE` 로 자동 정리. `integration_bindings` 는 **FK guard** — 1건 이상 존재 시 명시 차단 (실수 cascade 방지).
+- **응답**:
+  - 200 `{status:"ok"}` — 정상 삭제.
+  - 404 `{status:"not_found", code:"integration_provider_not_found"}` — 미존재.
+  - 409 `{status:"conflict", code:"integration_provider_has_bindings"}` — 활성 binding 존재. 운영자가 binding 삭제 후 재시도.
+- **audit**: `integration.provider.deleted` + payload `{provider_key, provider_type, display_name}`.
+- **운영 메모**: cascade binding 정리는 별도 ADR 후보 (1차 정책은 명시 차단).
 
 ### 15.3 Ingest / Binding
 

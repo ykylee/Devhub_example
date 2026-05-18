@@ -9,6 +9,7 @@ import (
 	"github.com/devhub/backend-core/internal/auth"
 	"github.com/devhub/backend-core/internal/commandworker"
 	"github.com/devhub/backend-core/internal/config"
+	"github.com/devhub/backend-core/internal/devrequest"
 	"github.com/devhub/backend-core/internal/domain"
 	"github.com/devhub/backend-core/internal/hrdb"
 	"github.com/devhub/backend-core/internal/httpapi"
@@ -159,8 +160,12 @@ func main() {
 			puller     adapters.HomeLabPuller
 			pullerDesc string
 		)
+		maxBytes := cfg.HomeLabPullMaxBytes
+		if maxBytes < 0 {
+			maxBytes = 0
+		}
 		if filePath := strings.TrimSpace(cfg.HomeLabPullFile); filePath != "" {
-			puller = adapters.HomeLabFilePuller{Path: filePath}
+			puller = adapters.HomeLabFilePuller{Path: filePath, MaxBytes: maxBytes}
 			pullerDesc = "file=" + filePath
 		} else if endpoint := strings.TrimSpace(cfg.HomeLabPullURL); endpoint != "" {
 			retryBackoff := time.Second
@@ -180,6 +185,7 @@ func main() {
 				Token:        cfg.HomeLabPullToken,
 				RetryMax:     retryMax,
 				RetryBackoff: retryBackoff,
+				MaxBytes:     maxBytes,
 			}
 			pullerDesc = "url=" + endpoint
 		}
@@ -210,8 +216,73 @@ func main() {
 			log.Printf("homelab pull loop enabled (%s interval=%s)", pullerDesc, interval)
 		}
 	}
+
+	// DREQ intake token cron loop — ADR-0017 §6 (a)+(c)+(d), sprint claude/work_260518-t.
+	// 만료 token 자동 hard-revoke + expiring_soon/stale Prometheus gauge emit.
+	// store 와 audit emitter 가 모두 준비된 경우만 활성화 — config gate 가 false 거나
+	// store 가 nil 이면 skip (no-op).
+	if cfg.DREQTokenCronEnabled && devRequestIntakeTokenStore != nil {
+		if cronStore, ok := devRequestIntakeTokenStore.(devrequest.IntakeTokenStore); ok {
+			interval := 10 * time.Minute
+			if strings.TrimSpace(cfg.DREQTokenCronInterval) != "" {
+				if parsed, err := time.ParseDuration(cfg.DREQTokenCronInterval); err == nil && parsed > 0 {
+					interval = parsed
+				} else {
+					log.Printf("invalid DEVHUB_DREQ_TOKEN_CRON_INTERVAL=%q; fallback to %s", cfg.DREQTokenCronInterval, interval)
+				}
+			}
+			expiringThreshold := 24 * time.Hour
+			if strings.TrimSpace(cfg.DREQTokenExpiringSoonThreshold) != "" {
+				if parsed, err := time.ParseDuration(cfg.DREQTokenExpiringSoonThreshold); err == nil && parsed > 0 {
+					expiringThreshold = parsed
+				}
+			}
+			staleThreshold := 720 * time.Hour // 30d default
+			if strings.TrimSpace(cfg.DREQTokenStaleThreshold) != "" {
+				if parsed, err := time.ParseDuration(cfg.DREQTokenStaleThreshold); err == nil {
+					// 0 또는 음수 = disable (운영자가 stale 알림 미사용 결정 명시).
+					staleThreshold = parsed
+				}
+			}
+			emitter := buildIntakeTokenAuditEmitter(auditStore)
+			opts := devrequest.IntakeTokenCronOptions{
+				Interval:              interval,
+				ExpiringSoonThreshold: expiringThreshold,
+				StaleThreshold:        staleThreshold,
+				AuditEmitter:          emitter,
+			}
+			go func() {
+				err := devrequest.RunIntakeTokenCron(ctx, cronStore, opts)
+				if err != nil && err != context.Canceled {
+					log.Printf("dreq intake token cron stopped: %v", err)
+				}
+			}()
+			log.Printf("dreq intake token cron enabled (interval=%s expiring=%s stale=%s)", interval, expiringThreshold, staleThreshold)
+		}
+	}
+
 	if err := router.Run(":" + cfg.Port); err != nil {
 		log.Fatalf("run server: %v", err)
+	}
+}
+
+// buildIntakeTokenAuditEmitter — DREQ intake token cron 의 best-effort audit emit
+// 콜백. auditStore 가 nil 이면 nil 반환 (cron 이 audit 생략). sprint -t.
+func buildIntakeTokenAuditEmitter(auditStore httpapi.AuditStore) devrequest.AuditEmitter {
+	if auditStore == nil {
+		return nil
+	}
+	return func(ctx context.Context, action, targetType, targetID string, payload map[string]any) {
+		entry := domain.AuditLog{
+			ActorLogin: "system:dreq-cron",
+			Action:     action,
+			TargetType: targetType,
+			TargetID:   targetID,
+			SourceType: domain.AuditSourceSystem,
+			Payload:    payload,
+		}
+		// best-effort — cron 자체는 audit 실패 시에도 계속 (HomeLab pull loop 패턴).
+		_, _ = auditStore.CreateAuditLog(ctx, entry)
 	}
 }
 

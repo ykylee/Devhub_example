@@ -10,14 +10,25 @@
 
 const stripTrailingSlash = (u: string) => u.replace(/\/$/, "");
 
+// Retrieve and normalize NEXT_PUBLIC_BASE_PATH (e.g. "/devhub")
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH
+  ? `/${process.env.NEXT_PUBLIC_BASE_PATH.replace(/^\//, "").replace(/\/$/, "")}`
+  : "";
+
+const isBrowser = typeof window !== "undefined";
+
 // --- client-side API ---
-// next.config.ts 의 rewrites 로 `/api/*` 를 BACKEND_API_URL 로 프록시하므로
-// 클라이언트는 기본적으로 relative path 를 쓴다 (CORS 회피).
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
+// When reverse proxy is active (BASE_PATH is set), direct fetch to same-origin relative BASE_PATH
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ?? (BASE_PATH ? BASE_PATH : "");
 
 // --- realtime / websocket ---
+// Dynamically resolve protocol (ws/wss) and host at runtime in browser for maximum cloud-native portability.
 export const WS_BASE_URL =
-  process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:8080/api/v1/realtime/ws";
+  process.env.NEXT_PUBLIC_WS_URL ??
+  (isBrowser
+    ? `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}${BASE_PATH ? BASE_PATH : ""}/api/v1/realtime/ws`
+    : "ws://localhost:8080/api/v1/realtime/ws");
 
 // --- IdP (Keycloak OIDC default) ---
 export const IDP_PROVIDER = process.env.NEXT_PUBLIC_IDP_PROVIDER ?? "keycloak";
@@ -30,8 +41,12 @@ export const OIDC_AUTH_URL =
   process.env.NEXT_PUBLIC_OIDC_AUTH_URL ??
   `${OIDC_ISSUER_URL}/protocol/openid-connect/auth`;
 
+// Dynamically construct OIDC redirect callback URL based on current origin to support multiple environments seamlessly.
 export const OIDC_REDIRECT_URI =
-  process.env.NEXT_PUBLIC_OIDC_REDIRECT_URI ?? "http://localhost:3000/auth/callback";
+  process.env.NEXT_PUBLIC_OIDC_REDIRECT_URI ??
+  (isBrowser
+    ? `${window.location.origin}${BASE_PATH}/auth/callback`
+    : "http://localhost:3000/auth/callback");
 
 // --- server-only (next.config / route handlers / tests) ---
 // next.config.ts 의 rewrites 가 사용. docker 에서는 compose env 로 override.

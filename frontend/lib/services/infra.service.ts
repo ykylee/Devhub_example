@@ -92,6 +92,24 @@ class InfraService {
     return result.data!.command_status === 'pending';
   }
 
+  /** API-76 + API-78 — infra topology v2 (HomeLab snapshot 기반).
+   *  sprint claude/work_260518-n. backend response (`/api/v1/infra/topology/v2`):
+   *  - data: { nodes: ApiInfraNodeV2[], edges: ApiServiceEdgeV2[], services: ApiInfraServiceV2[] }
+   *  - meta: { snapshot_at: string, degraded_providers: string[] }
+   */
+  async getTopologyV2(): Promise<InfraTopologyV2Response> {
+    const result = await apiClient<{
+      data: { nodes: ApiInfraNodeV2[]; edges: ApiServiceEdgeV2[]; services: ApiInfraServiceV2[] };
+      meta: InfraTopologyV2Meta;
+    }>("GET", `${this.baseUrl}/api/v1/infra/topology/v2`);
+    return {
+      nodes: result.data.nodes,
+      edges: result.data.edges,
+      services: result.data.services,
+      meta: result.meta,
+    };
+  }
+
   public formatBytes(bytes: number): string {
     return formatBytes(bytes);
   }
@@ -109,4 +127,49 @@ interface ApiServiceNode {
   kind?: string;
   region?: string;
   updated_at?: string;
+}
+
+// v2 (HomeLab snapshot 기반) — backend infra_integrations.go 의 schema mirror.
+// sprint claude/work_260518-n. v1 (ApiServiceNode) 와 schema 다름:
+// v1 = { id, label, status, cpu_percent, memory_bytes, ... }
+// v2 = { node_id, hostname, ip_address, environment, status, metrics, observed_at }
+
+export interface ApiInfraNodeV2 {
+  node_id: string;
+  hostname: string;
+  ip_address?: string;
+  environment?: string;
+  status: string;
+  metrics?: Record<string, unknown>;
+  observed_at?: string;
+}
+
+export interface ApiInfraServiceV2 {
+  service_id: string;
+  node_id: string;
+  name: string;
+  version?: string;
+  port?: number;
+  health_status: string;
+  observed_at?: string;
+}
+
+export interface ApiServiceEdgeV2 {
+  id: string;
+  source_id: string;
+  target_id: string;
+  label?: string;
+  status?: string;
+}
+
+export interface InfraTopologyV2Meta {
+  snapshot_at: string;
+  degraded_providers: string[];
+}
+
+export interface InfraTopologyV2Response {
+  nodes: ApiInfraNodeV2[];
+  edges: ApiServiceEdgeV2[];
+  services: ApiInfraServiceV2[];
+  meta: InfraTopologyV2Meta;
 }

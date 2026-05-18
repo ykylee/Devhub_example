@@ -1,0 +1,23 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260518-u",
+  "branch": "claude/work_260518-u",
+  "status": "in_progress",
+  "started_at": "2026-05-18T17:30:00Z",
+  "scope": "Design 검토 문서 작성 — 단일 외부 포트로 frontend 가 /devhub 대표 path 로 모든 트래픽을 받고 backend 들을 /devhub/{backend} 로 reverse proxy 하는 구성. 사용자 요청 'jira 보고 이후 추가 검토'. 코드 변경 없음 — 검토 문서 (planning) 만 작성, 결정 후 ADR 승격은 별도 sprint.",
+  "directive_source": "사용자 요청 — '서비스 url 구성을 frontend가 대표로 /devhub로 지정되고 나머지 백엔드가 /devhub/{backend}로 구성되어서 외부 접속은 포트 하나로만으로도 가능하도록 구성해보는걸 검토하자.'",
+  "decisions": [
+    "1차 산출물 = planning 문서 (docs/planning/single_port_reverse_proxy.md). 코드 변경 없음. 결정 후 ADR 승격은 별도 sprint.",
+    "design scope = 외부 접속 단일 포트 (예: 80/443) + 내부는 multi-process native (기존 5 process 유지). 외부 SSL/TLS termination 위치 결정 포함.",
+    "후보 reverse proxy = nginx (검증된 + ops-monitoring 정합) vs Caddy (자동 HTTPS) vs Traefik (k8s 친화) vs Next.js custom server vs Go reverse proxy. 비교 표 + 권장.",
+    "경로 매핑 = /devhub (frontend SPA) + /devhub/api/* (backend-core) + /devhub/ai/* (backend-ai placeholder) + /devhub/auth/hydra/* + /devhub/auth/kratos/*. cookie path + OIDC redirect URI 정합.",
+    "단계별 진입 = (Phase 1) 운영 환경 nginx 가이드 + 기존 localhost dev 유지 → (Phase 2) staging 검증 → (Phase 3) prod cutover. 본 sprint 는 Phase 1 문서만."
+  ],
+  "todo": [
+    "docs/planning/single_port_reverse_proxy.md 신규 — 14 section (배경/현재 multi-port/후보 비교/경로 매핑/OIDC 영향/cookie scope/CORS/정적 자산/local dev/CI E2E/배포/관측/단계별 진입/잔여 carve)",
+    "docs/planning/README.md index 갱신 — design 검토 카탈로그에 row 추가",
+    "docs/traceability/report.md §6 변경 이력 sprint -u row",
+    "commit + push + PR + self-review + 머지"
+  ],
+  "verification": "docs-only — workflow-lint 그린. markdown 가독성 + Mermaid 다이어그램 (배포 토폴로지) syntax 정합."
+}

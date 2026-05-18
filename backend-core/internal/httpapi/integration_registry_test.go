@@ -126,6 +126,92 @@ func TestCreateIntegrationBinding_ForbiddenForDeveloperRole(t *testing.T) {
 	}
 }
 
+// API-80 DELETE handler tests (sprint claude/work_260518-j).
+// FK guard: binding 1건 이상이면 409 integration_provider_has_bindings — 실수
+// cascade 방지. integration_sync_jobs 는 schema 의 ON DELETE CASCADE 로 자동 정리.
+
+func TestDeleteIntegrationProvider_Happy(t *testing.T) {
+	router := newApplicationsRouter(newMemoryApplicationStore())
+	seed := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
+		`{"provider_key":"jira-main","provider_type":"alm","display_name":"Jira","auth_mode":"oauth2","credentials_ref":"secret://jira"}`)
+	if seed.Code != http.StatusCreated {
+		t.Fatalf("seed failed: %s", seed.Body.String())
+	}
+	rec := doJSON(t, router, http.MethodDelete, "/api/v1/integration/providers/prov-jira-main", "")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	// 삭제 후 GET 은 404 (이미 row 없음).
+	check := doJSON(t, router, http.MethodGet, "/api/v1/integration/providers", "")
+	if bytes.Contains(check.Body.Bytes(), []byte(`"provider_key":"jira-main"`)) {
+		t.Errorf("provider must be gone from list: %s", check.Body.String())
+	}
+}
+
+func TestDeleteIntegrationProvider_NotFound(t *testing.T) {
+	router := newApplicationsRouter(newMemoryApplicationStore())
+	rec := doJSON(t, router, http.MethodDelete, "/api/v1/integration/providers/prov-ghost", "")
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"code":"integration_provider_not_found"`)) {
+		t.Errorf("expected integration_provider_not_found code: %s", rec.Body.String())
+	}
+}
+
+func TestDeleteIntegrationProvider_HasBindings(t *testing.T) {
+	router := newApplicationsRouter(newMemoryApplicationStore())
+	seed := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
+		`{"provider_key":"jira-main","provider_type":"alm","display_name":"Jira","auth_mode":"oauth2","credentials_ref":"secret://jira"}`)
+	if seed.Code != http.StatusCreated {
+		t.Fatalf("seed failed: %s", seed.Body.String())
+	}
+	binding := doJSON(t, router, http.MethodPost, "/api/v1/integration/bindings",
+		`{"scope_type":"application","scope_id":"APP-001","provider_id":"prov-jira-main","external_key":"PROJ","policy":"execution_system"}`)
+	if binding.Code != http.StatusCreated {
+		t.Fatalf("seed binding failed: %s", binding.Body.String())
+	}
+	rec := doJSON(t, router, http.MethodDelete, "/api/v1/integration/providers/prov-jira-main", "")
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("expected 409, status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"code":"integration_provider_has_bindings"`)) {
+		t.Errorf("expected integration_provider_has_bindings code: %s", rec.Body.String())
+	}
+}
+
+func TestDeleteIntegrationProvider_ForbiddenForDeveloperRole(t *testing.T) {
+	store := newMemoryApplicationStore()
+	if _, err := store.CreateIntegrationProvider(context.Background(), domain.IntegrationProvider{
+		ID:             "prov-jira-main",
+		ProviderKey:    "jira-main",
+		ProviderType:   domain.IntegrationProviderType("alm"),
+		DisplayName:    "Jira",
+		Enabled:        true,
+		AuthMode:       domain.IntegrationAuthMode("oauth2"),
+		CredentialsRef: "secret://jira",
+		SyncStatus:     "requested",
+	}); err != nil {
+		t.Fatalf("seed provider: %v", err)
+	}
+
+	router := NewRouter(RouterConfig{
+		ApplicationStore: store,
+		BearerTokenVerifier: &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+			Login:   "dev-user",
+			Subject: "user-dev-user",
+			Role:    "developer",
+		}},
+	})
+
+	req, _ := http.NewRequest(http.MethodDelete, "/api/v1/integration/providers/prov-jira-main", nil)
+	req.Header.Set("Authorization", "Bearer t")
+	rec := httptestDo(t, router, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestIntegrationProviderWebhook_Happy(t *testing.T) {
 	router := newApplicationsRouter(newMemoryApplicationStore())
 	seed := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",

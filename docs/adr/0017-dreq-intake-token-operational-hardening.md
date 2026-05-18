@@ -155,14 +155,50 @@ ADR-0014 §4.4 의 정책 ("plain / hashed token 자체는 audit 에 절대 기�
 
 ## 6. 후속 작업
 
-- **(carve, ADR-0014 §6 유지)** 자동 cron revoke — `expires_at <= NOW()` 인 token 을 주기적으로 hard-revoke 처리. 현재는 middleware lazy 체크만. 운영 빈도 확인 후 별도 결정.
-- **(carve)** PATCH 의 `expires_at` 갱신 — 본 ADR 은 `allowed_ips` 만 변경 허용. `expires_at` 갱신은 revoke + 재발급 우회 (1차 정책).
-- **(carve)** 토큰 만료 알림 — `expires_at` 임박 시 운영자에게 알림 (Prometheus metric `devhub_intake_token_expiring_soon` 또는 audit + 대시보드).
-- **(carve)** `last_used_at` 기반 staleness alert — `last_used_at` 컬럼은 ADR-0014 §4.2 응답 schema 에 이미 존재. N일 미사용 token 자동 정리는 별도 ADR.
+- **✅ resolved (sprint `claude/work_260518-t`, 본 PR)** 자동 cron revoke — `store.HardRevokeExpiredIntakeTokens(before)` 신규 (단일 batch UPDATE WHERE expires_at <= before AND revoked_at IS NULL → RETURNING token_id list). `internal/devrequest/RunIntakeTokenCron` goroutine 이 env (`DEVHUB_DREQ_TOKEN_CRON_ENABLED`, `_INTERVAL` 기본 10m) gate 로 활성화 → tick 마다 revoke + audit emit `dev_request_intake_token.auto_revoked` (per token, `SourceType=system`) + counter `devhub_intake_token_auto_revoked_total` increment. HomeLab pull loop 패턴 정합 (lightweight goroutine + ctx cancellation + best-effort audit).
+- **✅ resolved (sprint `adr0017-token-mutation`, 본 PR)** PATCH 의 `expires_at` 갱신 — `PATCH /api/v1/dev-request-tokens/:token_id` endpoint 가 `allowed_ips` 뿐만 아니라 `expires_at` (optional, RFC3339 string/null) 도 지원하도록 확장 완료. `expires_at` 을 `null` 로 설정하여 무기한 토큰으로의 환원도 완벽히 지원. `store.UpdateDevRequestIntakeToken(...)` 및 httpapi handler, audit payload 갱신 완료.
+- **✅ resolved (sprint `claude/work_260518-t`, 본 PR)** 토큰 만료 알림 metric — `store.CountExpiringSoonIntakeTokens(threshold)` (expires_at <= threshold AND > NOW() AND revoked_at IS NULL) + Prometheus gauge `devhub_intake_token_expiring_soon`. env `DEVHUB_DREQ_TOKEN_EXPIRING_SOON_THRESHOLD` (기본 24h). cron tick 마다 갱신.
+- **✅ resolved (sprint `claude/work_260518-t`, 본 PR)** `last_used_at` staleness alert metric — `store.CountStaleIntakeTokens(before)` (last_used_at <= before OR (NULL AND created_at <= before) AND revoked_at IS NULL) + Prometheus gauge `devhub_intake_token_stale`. env `DEVHUB_DREQ_TOKEN_STALE_THRESHOLD` (기본 720h = 30d, 0 = disable). 알림 후 운영자가 수동 revoke 결정 (자동 hard-revoke 안 함 — 잘못 사용 중인 token 도 last_used_at NULL 가능).
+- **✅ resolved (sprint `claude/work_260518-o`, 본 PR)** `UpdateDevRequestIntakeTokenIPs` 의 atomicity 강화 — 이전 2 query 패턴 (UPDATE WHERE revoked_at IS NULL → ErrNoRows 시 별도 SELECT) 의 between-query race window 를 단일 CTE + `FOR UPDATE` row lock + `(VALUES (1)) AS root(_)` anchor 패턴으로 해소. `store/dev_request_intake_tokens.go::UpdateDevRequestIntakeTokenIPs` 구현 + `store/dev_request_intake_tokens_integration_test.go::TestIntegration_UpdateDevRequestIntakeTokenIPs_Atomicity` 회귀 가드 (Happy / NotFound / Revoked / ConcurrentUpdateAndRevoke 4 sub-test). DEVHUB_TEST_DB_URL CI backend-integration job 에서 회귀 검증. handler 분기 (ErrNotFound → 404 intake_token_not_found / ErrConflict → 409 intake_token_revoked / nil → 200) 는 contract 동일 유지.
+
+```sql
+-- 단일 query CTE 예시 (carve out 의 reference)
+WITH locked AS (
+  SELECT token_id, revoked_at FROM dev_request_intake_tokens
+  WHERE token_id = $1::uuid FOR UPDATE
+),
+upd AS (
+  UPDATE dev_request_intake_tokens
+  SET allowed_ips = $2::jsonb, updated_at = NOW()
+  WHERE token_id = $1::uuid AND revoked_at IS NULL
+  RETURNING token_id::text, client_label, hashed_token, allowed_ips, source_system,
+            created_at, created_by, last_used_at, revoked_at, expires_at
+)
+-- 한 행 anchor (root) 위에서 두 CTE 를 LEFT JOIN — locked 가 empty (token 미존재)
+-- 이라도 row 1개는 반드시 반환되어 `lock_token_id IS NULL → 404` 분기 가능.
+-- codex hotfix #6 P2 (PR #147): 원래 `FROM locked LEFT JOIN upd` 패턴은 locked
+-- 가 empty 일 때 zero rows 를 내서 not-found 매핑이 불가했음.
+SELECT locked.token_id  AS lock_token_id,
+       locked.revoked_at AS lock_revoked_at,
+       upd.token_id     AS upd_token_id,
+       upd.client_label,
+       upd.allowed_ips,
+       upd.updated_at
+FROM (VALUES (1)) AS root(_)
+LEFT JOIN locked ON true
+LEFT JOIN upd    ON true;
+```
+
+handler 는 단일 row 결과를 보고 `lock_token_id IS NULL` → 404, `lock_revoked_at IS NOT NULL` → 409, `upd_token_id IS NOT NULL` → 200 으로 분기. 트랜잭션 격리 (READ COMMITTED 기본) + `FOR UPDATE` row lock 으로 atomic 보장.
 
 ## 7. 변경 이력
 
 | 일자 | 변경 | 메모 |
 | --- | --- | --- |
 | 2026-05-16 | PR #137 활성화 — migration 000027 + middleware 만료 체크 + PATCH endpoint (API-79). | sprint `gemini/dreq_e2e_260515` |
-| 2026-05-18 | accepted — ADR 형식으로 사후 명문화. expires_at NULL 허용 (기존 호환), 만료 체크는 lazy (cron carve out), PATCH 는 allowed_ips only (audit anchor 보존), 에러 코드 3종 + audit action 2종 추가. ADR-0014 §6 의 두 carve out 중 본 ADR 가 활성화한 부분 명시. | sprint `claude/work_260518-c` |
+| 2026-05-18 | accepted — ADR 형식으로 사후 명문화. expires_at NULL 허용 (기존 호환), 만료 체크는 lazy (cron carve out), PATCH 는 allowed_ips only (audit anchor 보존), 에러 코드 3종 + audit action 2종 추가. ADR-0014 §6 의 두 carve out 중 본 ADR 가 활성화한 부분 명시. | sprint `claude/work_260518-c` (PR #143) |
+| 2026-05-18 | §6 atomicity carve out 추가 — PR #146 (codex hotfix #5) 가 store 에 revoked guard 를 추가했지만 2 query 패턴이라 between-query race window 존재. PR #146 self-review P2 가 발견. CTE 단일 query + `FOR UPDATE` row lock 으로 atomic 보장하는 reference SQL 본문 추가. 실제 false positive 영향은 mutation 차단으로 같지만 정확한 status code 보장은 별도 sprint 후속. | sprint `claude/work_260518-f` (PR #147) |
+| 2026-05-18 | §6 atomicity reference CTE 정정 — codex hotfix #6 P2 (PR #147 review) 가 원래 `FROM locked LEFT JOIN upd ON true` 패턴이 locked empty 시 zero rows 를 내서 `lock_token_id IS NULL → 404` 분기가 불가함을 지적. `(VALUES (1)) AS root(_) LEFT JOIN locked LEFT JOIN upd` anchor 패턴으로 정정 — token 미존재 / revoked / 정상 갱신 3 분기 모두 단일 row 결과로 분류 가능. | sprint `claude/work_260518-i` |
+| 2026-05-18 | §6 atomicity **resolved** — `store/dev_request_intake_tokens.go::UpdateDevRequestIntakeTokenIPs` 의 2 query 패턴 → 단일 CTE + `FOR UPDATE` row lock + VALUES anchor 패턴 실 구현. `store/dev_request_intake_tokens_integration_test.go::TestIntegration_UpdateDevRequestIntakeTokenIPs_Atomicity` (4 sub-test: Happy/NotFound/Revoked/ConcurrentUpdateAndRevoke) 회귀 가드 추가. handler 분기 contract 동일 유지 (ErrNotFound → 404 / ErrConflict → 409). 본 ADR §6 의 마지막 carve out 종결. | sprint `claude/work_260518-o` (PR #156) |
+| 2026-05-18 | §6 (a)+(c)+(d) **resolved** — (a) `store.HardRevokeExpiredIntakeTokens` + `internal/devrequest/RunIntakeTokenCron` goroutine (env `DEVHUB_DREQ_TOKEN_CRON_*` gate) + audit emit `dev_request_intake_token.auto_revoked` + counter `devhub_intake_token_auto_revoked_total`. (c) `store.CountExpiringSoonIntakeTokens` + gauge `devhub_intake_token_expiring_soon`. (d) `store.CountStaleIntakeTokens` + gauge `devhub_intake_token_stale`. `internal/devrequest/metrics.go` 신규 (HomeLab adapters/metrics.go 패턴 정합). `internal/devrequest/intake_token_cron.go` 신규 (cron loop helper). store integration test 3 sub-test 추가 (HardRevokeExpired / CountExpiringSoon / CountStale). cron unit test 5건 (FirstTick / StaleDisabled / ExpiringDisabled / StoreErrors / NoRevokesNoAudit). (b) PATCH expires_at 는 frontend UI 영향 + ADR §4.2 정책 변경 필요로 carve out 유지. | sprint `claude/work_260518-t` (본 PR) |
+| 2026-05-18 | §6 (b) resolved — PATCH endpoints 에 expires_at 동적 변경 지원 확장 및 store.UpdateDevRequestIntakeToken CTE 통합 구현. Admin UI 에 Glassmorphism EditIntakeTokenModal 연동. | sprint `adr0017-token-mutation` (본 PR) |

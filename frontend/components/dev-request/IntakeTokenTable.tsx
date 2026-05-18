@@ -1,6 +1,6 @@
 "use client";
 
-import { Key, Globe, ShieldOff, Clock } from "lucide-react";
+import { Key, Globe, ShieldOff, Clock, Settings } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/Badge";
@@ -9,6 +9,7 @@ import type { DevRequestIntakeToken } from "@/lib/services/dev_request_token.typ
 interface IntakeTokenTableProps {
   items: DevRequestIntakeToken[];
   onRevoke: (token: DevRequestIntakeToken) => void;
+  onEdit?: (token: DevRequestIntakeToken) => void;
   revokingTokenID: string | null;
 }
 
@@ -21,7 +22,7 @@ function safeFormat(iso: string | null | undefined): string {
   }
 }
 
-export function IntakeTokenTable({ items, onRevoke, revokingTokenID }: IntakeTokenTableProps) {
+export function IntakeTokenTable({ items, onRevoke, onEdit, revokingTokenID }: IntakeTokenTableProps) {
   if (items.length === 0) {
     return (
       <div className="glass border-border rounded-3xl py-20 flex flex-col items-center justify-center gap-3">
@@ -63,6 +64,7 @@ export function IntakeTokenTable({ items, onRevoke, revokingTokenID }: IntakeTok
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     className="group hover:bg-muted/30 transition-colors"
+                    data-token-id={tok.token_id}
                   >
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-4">
@@ -122,15 +124,28 @@ export function IntakeTokenTable({ items, onRevoke, revokingTokenID }: IntakeTok
                     <td className="px-6 py-5 text-[11px] text-muted-foreground">{safeFormat(tok.last_used_at)}</td>
                     <td className="px-6 py-5 text-right">
                       {!isRevoked && (
-                        <button
-                          type="button"
-                          onClick={() => onRevoke(tok)}
-                          disabled={isBusy}
-                          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 disabled:opacity-40 transition-all text-[10px] font-black uppercase tracking-widest"
-                        >
-                          <ShieldOff className="w-3.5 h-3.5" />
-                          {isBusy ? "Revoking…" : "Revoke"}
-                        </button>
+                        <div className="inline-flex gap-2 justify-end">
+                          {onEdit && (
+                            <button
+                              type="button"
+                              onClick={() => onEdit(tok)}
+                              disabled={isBusy}
+                              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-orange-500/10 border border-orange-500/30 text-orange-400 hover:bg-orange-500/20 disabled:opacity-40 transition-all text-[10px] font-black uppercase tracking-widest"
+                            >
+                              <Settings className="w-3.5 h-3.5" />
+                              Edit
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => onRevoke(tok)}
+                            disabled={isBusy}
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 disabled:opacity-40 transition-all text-[10px] font-black uppercase tracking-widest"
+                          >
+                            <ShieldOff className="w-3.5 h-3.5" />
+                            {isBusy ? "Revoking…" : "Revoke"}
+                          </button>
+                        </div>
                       )}
                     </td>
                   </motion.tr>

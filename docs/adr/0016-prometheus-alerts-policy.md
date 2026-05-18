@@ -98,16 +98,16 @@ label `environment: stage|prod` 로 Alertmanager 라우팅 분리.
 
 본 ADR 은 운영 정책 결정이므로 코드 변경 없음. backend 측 구현은 [ADR-0015](./0015-homelab-adapter-pull-strategy.md) 의 §5 가 다룸.
 
-- Alertmanager 규칙 YAML — `docs/planning/prometheus_homelab_alerts.md` §2~§2.2 의 stage/prod baseline 이 본 ADR 의 결정과 정합.
-- Dashboard JSON 모델 — 운영팀이 §4.3 의 PromQL 기준으로 Grafana 에서 생성 (Devhub 저장소 외부, 운영 자산 — `docs/setup/test-server-deployment.md` 의 docker = env-specific 정책 정합).
+- Alertmanager 규칙 YAML — `docs/planning/prometheus_homelab_alerts.md` §2~§2.2 의 stage/prod baseline 이 본 ADR 의 결정과 정합. **운영 자산 setup 가이드는 [`docs/setup/prometheus_alertmanager_setup.md`](../setup/prometheus_alertmanager_setup.md) — 외부 git 이관 layout + raw YAML reference + Alertmanager 라우팅 + 운영 SOP** (sprint `claude/work_260518-s`, §6 carve (1) resolved).
+- Dashboard JSON 모델 — **[`docs/setup/grafana/homelab_dashboard.json`](../setup/grafana/homelab_dashboard.json) 신규** (sprint `claude/work_260518-s`, §6 carve (2) resolved). Grafana schemaVersion 38 + 5 panel + Prometheus datasource + environment template variable. 운영팀이 Grafana 에 import 후 ops 저장소의 사본으로 deploy.
 
 ## 6. 후속 작업
 
-- **(carve)** Alertmanager 규칙 raw YAML 을 별도 git 위치 (운영 자산) 로 이관 + ADR 본문에 link. 본 ADR 은 의도 + 임계 source-of-truth.
-- **(carve)** Grafana dashboard JSON 모델 — 5 panel 의 raw JSON. 운영팀 자산.
-- **(carve)** pull latency p95 alert — baseline 1주 관찰 후 임계 결정 + 본 ADR 후속 갱신.
+- **✅ resolved (sprint `claude/work_260518-s`, 본 PR)** Alertmanager 규칙 raw YAML 외부 git 이관 + 운영 SOP — [`docs/setup/prometheus_alertmanager_setup.md`](../setup/prometheus_alertmanager_setup.md) 신규. 외부 git layout (ops-monitoring 저장소) + Prometheus scrape + stage/prod raw YAML reference + Alertmanager 라우팅 (Slack/PagerDuty receiver) + 운영 SOP (rule 추가/변경/검증/배포 + 신규 알림 진단 + 임계 튜닝 + multi-instance aggregation).
+- **✅ resolved (sprint `claude/work_260518-s`, 본 PR)** Grafana dashboard JSON 모델 — [`docs/setup/grafana/homelab_dashboard.json`](../setup/grafana/homelab_dashboard.json) 신규. schemaVersion 38 + 5 panel (§4.3 PromQL 정합) + Prometheus datasource + environment template variable + ADR-0015/0016/setup 가이드 link.
+- **(carve)** pull latency p95 alert — baseline 1주 관찰 후 임계 결정 + 본 ADR 후속 갱신. Grafana JSON 의 Panel 2 (Pull Latency p95) 가 baseline 관찰용으로 이미 active — 임계 결정만 carve out.
 - **(carve)** push 경로 (`API-73`) 의 알림 — webhook 수신 실패율 metric 도입 후 별도 ADR.
-- **(carve)** stage → prod 임계값 확정 — 1주 관찰 후 본 §7 변경 이력에 row 추가.
+- **(carve)** stage → prod 임계값 확정 — 1주 관찰 후 본 §7 변경 이력에 row 추가. 본 가이드 §6.3 의 튜닝 체크리스트 따라 진행.
 
 ## 7. 변경 이력
 
@@ -115,3 +115,5 @@ label `environment: stage|prod` 로 Alertmanager 라우팅 분리.
 | --- | --- | --- |
 | 2026-05-17 | 1차 초안 (`docs/planning/prometheus_homelab_alerts.md`) — 3 alert + stage/prod 임계값 분리. | PR #139 활성화 시점 |
 | 2026-05-18 | accepted — ADR 형식으로 사후 명문화. baseline = production 임계, stage 1주 관찰 후 prod 확정. multi-instance aggregation = `max by(provider)`. latency p95 alert 는 carve out. | sprint `claude/work_260518-c` |
+| 2026-05-18 | §6 carve out (1)+(2) **resolved** — (1) Alertmanager 운영 자산 setup 가이드 `docs/setup/prometheus_alertmanager_setup.md` 신규 (외부 git 이관 layout + raw YAML reference + 라우팅 예시 + 운영 SOP). (2) Grafana dashboard JSON 모델 `docs/setup/grafana/homelab_dashboard.json` 신규 (5 panel + Prometheus datasource + environment template variable). §5 결과에 두 신규 자산 link 추가. (3)/(4)/(5) carve out 유지 — baseline 1주 관찰 / push 경로 metric / stage→prod 확정 모두 사전 조건 부재. | sprint `claude/work_260518-s` (PR #160) |
+| 2026-05-18 | codex hotfix #8 P1 #2 + P2 #6 — `docs/setup/prometheus_alertmanager_setup.md` §4 prod/stage rule expr 에 `{environment="prod\|stage"}` matcher 명시 (P1: 단일 Prometheus 가 stage+prod scrape 시 cross-env contamination 회피 — 이전 expr 은 metric 양쪽 평가 후 label 만 rewrite → 잘못된 receiver routing) + `DevhubHomeLabPullNoRecentSuccess` 와 `DegradedProvidersDetected` 의 expr 를 `max by(provider)` aggregation 으로 (P2: multi-instance 시 instance 별 series 가 single-instance staleness 로도 알림하는 회귀 회피 — §6.4 의 운영 지침 정합). §8 DREQ rule 도 동일 패턴 (`environment` matcher + `max`/`sum` aggregation). | sprint `claude/work_260518-w` (본 PR) |

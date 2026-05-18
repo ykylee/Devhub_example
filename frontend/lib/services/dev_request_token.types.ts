@@ -36,3 +36,8 @@ export interface IssueDevRequestIntakeTokenInput {
 export interface UpdateDevRequestIntakeTokenIPsInput {
   allowed_ips: string[];
 }
+
+export interface UpdateDevRequestIntakeTokenInput {
+  allowed_ips?: string[];
+  expires_at?: string | null;
+}

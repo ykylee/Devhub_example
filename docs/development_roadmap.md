@@ -4,7 +4,7 @@
 - 범위: 머지된 PR #12 이후 시점부터 다음 단계 작업의 마일스톤·우선순위·의존 관계. 트랙별 *세부* 작업은 각 트랙의 세부 로드맵에서 관리.
 - 대상 독자: 프로젝트 리드, 백엔드/프론트엔드 개발자, 운영 담당자, 후속 작업자
 - 상태: draft (2026-05-08 신규 작성)
-- 최종 수정일: 2026-05-13 (Application/Project 도메인 요구사항 고도화 — Usecase/ERD 산출물 반영)
+- 최종 수정일: 2026-05-18 (post-EOD #2 — M5 DREQ closing + M6 External Integration 신규 + ADR-0011~0017 인덱스 + ADR-0018/0019 design 검토 후보 + RM-M4-09 구체화)
 - 관련 문서:
   - 백엔드 세부 로드맵: [`ai-workflow/memory/backend_development_roadmap.md`](../ai-workflow/memory/backend_development_roadmap.md)
   - 프론트엔드 세부 로드맵: [`./frontend_development_roadmap.md`](./frontend_development_roadmap.md)
@@ -119,10 +119,42 @@
 - ✅ **B (Promote-Tx)**: API-62 promote 의 단일 트랜잭션 (신규 application/project 생성 + dev_request 상태 갱신 + audit) — sprint `claude/work_260515-m` (REQ-FR-DREQ-005 정합 완성, ADR-0013 §5).
 - ✅ **B (Admin-UI backend)**: intake token 발급/revoke/list admin endpoint (API-66..68) + ADR-0014 + migration 000026 RBAC seed — sprint `claude/work_260515-o` (carve 2/4 part 1).
 - ✅ **F (Admin-UI frontend)**: `/admin/settings/dev-request-tokens` 페이지 + IntakeTokenTable + IssueIntakeTokenModal (plain-1회-노출 reveal phase) + dev_request_token service/types — sprint `claude/work_260515-p` (carve 2/4 part 2).
-- ⏳ **B·F·X (E2E)**: UT-dreq promote-tx 추가 + TC-DREQ-* 발급 + Playwright spec — DREQ carve out 3/4 (다른 carve 들 완료 후).
+- ✅ **B·F·X (E2E)**: TC-DREQ-* 13건 정식 발급 + `dev-requests.spec.ts` 6 step + 신규 2 test — sprint `claude/work_260518-d` (PR #144). 추가 회귀: dev-requests.spec PATCH page.evaluate fetch 정합 (sprint -m hotfix #5, PR #154).
+- ✅ **B (Atomicity)**: `UpdateDevRequestIntakeTokenIPs` 단일 CTE + `FOR UPDATE` row lock + concurrent race test — sprint `claude/work_260518-o` (PR #156, [ADR-0017 §6 atomicity](./adr/0017-dreq-intake-token-operational-hardening.md) resolved).
+- ✅ **B (Cron + Metric)**: 자동 만료 token revoke + 만료/staleness Prometheus metric (devhub_intake_token_expiring_soon/_stale/_auto_revoked_total) — sprint `claude/work_260518-t` (PR #161, [ADR-0017 §6](./adr/0017-dreq-intake-token-operational-hardening.md) (a)+(c)+(d) resolved).
+- ⏳ **B·F (carve)**: PATCH expires_at + admin UI 편집 modal — [ADR-0017 §6](./adr/0017-dreq-intake-token-operational-hardening.md) (b) carve out 유지 (정책 변경 필요).
 - ⏳ **B (carve)**: 외부 시스템 callback (webhook 송신) — MVP 안정화 후.
 
 문서 hub: [`docs/planning/development_request_concept.md`](./planning/development_request_concept.md), 추적성 [`docs/traceability/report.md §2/§3 DREQ`](./traceability/report.md).
+
+### M6: External Integration — 1차 종합 closing (2026-05-15 ~ 18)
+
+외부 ALM/SCM/CI-CD/문서/HomeLab 시스템과의 provider/binding/snapshot 통합. concept staged → backend 1차 → ADR 3 신규 → frontend 진입점 → API-80 DELETE → bindings UI → topology v2 → 운영 자산 (Alertmanager 가이드 + Grafana JSON).
+
+- ✅ **B (Concept)**: External Integration 컨셉 (REQ-FR-INT + REQ-NFR-INT + UC-INT + ARCH-INT-01..06 + API-69..78 spec) — sprint `codex/memory-next-step-20260515` (PR #135).
+- ✅ **B (Backend 1차)**: HomeLab pull adapter (file + HTTP) + Prometheus `/metrics` + `integration_registry` + `infra_service_snapshots` + API-73..78 activated — sprint `codex/next-step-20260516` (PR #139).
+- ✅ **A (ADR)**: [ADR-0015 HomeLab pull strategy](./adr/0015-homelab-adapter-pull-strategy.md) + [ADR-0016 Prometheus alerts policy](./adr/0016-prometheus-alerts-policy.md) — sprint `claude/work_260518-c` (PR #143).
+- ✅ **F (Provider UI)**: `/admin/settings/integrations` 페이지 + ProviderTable + ProviderModal + API-69~72 service — sprint `claude/work_260518-g` (PR #148).
+- ✅ **B·F (API-80 DELETE)**: DELETE provider endpoint + FK guard + Delete UI — sprint `claude/work_260518-j` (PR #151).
+- ✅ **F (Bindings UI)**: `/admin/settings/integration-bindings` 페이지 + BindingsTable + CreateBindingModal + API-74/75 service — sprint `claude/work_260518-m` (PR #154).
+- ✅ **F (Topology v2)**: `/admin/topology-v2` 페이지 + React Flow + nodes/services/edges + degraded providers banner + snapshot_at 메타 — sprint `claude/work_260518-n` (PR #155).
+- ✅ **B (Size limit + token rotation SOP)**: HomeLabFilePuller/HTTPPuller MaxBytes + streaming decode + agent token rotation SOP — sprint `claude/work_260518-p` (PR #157, [ADR-0015 §6](./adr/0015-homelab-adapter-pull-strategy.md) (1)+(2) resolved).
+- ✅ **X (Alertmanager + Grafana)**: `docs/setup/prometheus_alertmanager_setup.md` + `docs/setup/grafana/homelab_dashboard.json` — sprint `claude/work_260518-s` (PR #160, [ADR-0016 §6](./adr/0016-prometheus-alerts-policy.md) (1)+(2) resolved).
+- ⏳ **B (carve)**: dedicated worker binary — M4 진입 시 재평가 ([ADR-0015 §6](./adr/0015-homelab-adapter-pull-strategy.md) (3)).
+- ⏳ **B (carve)**: push/pull dedup 정책 — 별도 ADR ([ADR-0015 §6](./adr/0015-homelab-adapter-pull-strategy.md) (4)).
+- ⏳ **X (carve)**: pull latency p95 alert / push 경로 webhook 알림 / stage→prod 임계 확정 — baseline 1주 관찰 후 ([ADR-0016 §6](./adr/0016-prometheus-alerts-policy.md) (3)+(4)+(5)).
+- ⏳ **F (carve)**: React Flow group sub-node (services as node children) + WebSocket 실시간 갱신 (`infra.node.updated` / `infra.service.updated`) + v2 node click action.
+- ⏳ **F (carve)**: bindings UI 강화 — scope_id lookup combobox + Edit/Delete binding + pagination.
+
+API 인벤토리: **API-69..78 + API-80** 모두 activated (API-79 는 DREQ allowed_ips PATCH).
+TC 인벤토리: **TC-INT-FRONTEND-* 12건** (LIST/CREATE/EDIT/SYNC/RBAC/DELETE/DELETE-NEG + BIND-{LIST,CREATE,RBAC} + TOPOLOGY-V2-{NAV,RBAC}) + **TC-INT-HOMELAB-03** active.
+
+문서 hub: [`docs/planning/external_system_integration_concept.md`](./planning/external_system_integration_concept.md), [`docs/setup/homelab_agent_token_rotation.md`](./setup/homelab_agent_token_rotation.md), [`docs/setup/prometheus_alertmanager_setup.md`](./setup/prometheus_alertmanager_setup.md), 추적성 [`docs/traceability/report.md §3 External Integration`](./traceability/report.md).
+
+### Design 검토 (Phase 1 planning, 결정 후 ADR 승격 예정)
+
+- 📋 **[`docs/planning/single_port_reverse_proxy.md`](./planning/single_port_reverse_proxy.md)** — 외부 단일 포트 reverse proxy (nginx + `/devhub` prefix + backend/Hydra/Kratos sub-path 매핑). sprint `claude/work_260518-u` (PR #162). 결정 후 **ADR-0018** 승격 + Phase 2 staging.
+- 📋 **[`docs/planning/keycloak_sso_federation.md`](./planning/keycloak_sso_federation.md)** — Keycloak 을 Kratos upstream OIDC provider 로 federation. sprint `claude/work_260518-v` (PR #163). HRDB user mapping = employee_id strict link. RM-M4-09 구체화. 결정 후 **ADR-0019** 승격 + Phase 2 staging.
 
 ---
 
@@ -209,7 +241,11 @@
 | 2026-05-08 | §6 충돌 해소 표에 RBAC 모델/enforcement 결정 2행 추가. | M1 PR-G1, ADR-0002 채택 반영. claude/m1-pr-g1-rbac-contract 브랜치. |
 | 2026-05-12 | §3 M2 갱신 — 핵심 흐름(로그인/로그아웃/계정/RBAC) done 표기 + 1차 완성 sprint 잔여 5 PR 명시 + out-of-scope 분리. | claude/login_usermanagement_finish 진입. |
 | 2026-05-13 | §5 백로그에 "Application/Project 도메인 (총괄 + 기간성 운영)" 1행 추가. 컨셉 문서 staged 상태로 안내. | sprint `claude/work_260513-p`. |
-| 2026-05-13 | Application/Project 요구사항 고도화 반영 — REQ-FR-APP/REQ-FR-PROJ + 모듈별 UC/ERD 카탈로그(`planning/system_usecases.md`, `planning/system_erd.md`) 연결. 다음 단계(ARCH/API) 전환 기준 명시. | current session |
+| 2026-05-13 | Application/Project 요구사항 고도화 반영 — REQ-FR-APP/REQ-FR-PROJ + 모듈별 UC/ERD 카탈로그(`planning/system_usecases.md`, `planning/system_erd.md`) 연결. 다음 단계(ARCH/API) 전환 기준 명시. | sprint `claude/work_260513-p` 외 |
+| 2026-05-14 | Application 도메인 backend 1차 완성 — PR #104~#110. API-41..58 activated + 마이그레이션 000012~000018 + ADR-0011 (RBAC row-scoping) + CI backend-integration job 신설. 23 integration test. | sprint `claude/work_260514-*` |
+| 2026-05-15 | M5 DREQ 도메인 1차 — concept (REQ-FR-DREQ + UC-DREQ + ARCH-DREQ + API-59..68) + ADR-0012 (intake auth) + backend (PR #124) + frontend (PR #125) + Promote-Tx + ADR-0013 + Admin-UI (ADR-0014). 외부 8 PR (#133~#140) 으로 docker packaging + 대시보드 + token expires_at + IP mutation. | sprint `claude/work_260515-*` (15 PR) |
+| 2026-05-18 | **M5 DREQ closing** — TC-DREQ-* 13건 정식 발급 + ADR-0017 §6 atomicity + cron revoke + 만료/staleness metric. **M6 External Integration 1차 종합 closing** — provider lifecycle + bindings UI + topology v2 + API-80 DELETE + ADR-0015/0016/0017 신규 + 운영 자산 (Alertmanager + Grafana). codex hotfix #5/#6/#7/#8 cycle. | sprint `claude/work_260518-*` (24 PR 누적, EOD #1 12건 + post-EOD #1 6건 + post-EOD #2 6건) |
+| 2026-05-18 | **Design 검토 2건 staged** — single port reverse proxy (ADR-0018 후보, sprint -u PR #162) + Keycloak SSO federation (ADR-0019 후보, sprint -v PR #163). RM-M4-09 구체화. 결정 후 Phase 2 staging 진입. | post-EOD #2 |
 
 ---
 
