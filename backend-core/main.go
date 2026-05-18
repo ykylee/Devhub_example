@@ -182,8 +182,12 @@ func main() {
 			puller     adapters.HomeLabPuller
 			pullerDesc string
 		)
+		maxBytes := cfg.HomeLabPullMaxBytes
+		if maxBytes < 0 {
+			maxBytes = 0
+		}
 		if filePath := strings.TrimSpace(cfg.HomeLabPullFile); filePath != "" {
-			puller = adapters.HomeLabFilePuller{Path: filePath}
+			puller = adapters.HomeLabFilePuller{Path: filePath, MaxBytes: maxBytes}
 			pullerDesc = "file=" + filePath
 		} else if endpoint := strings.TrimSpace(cfg.HomeLabPullURL); endpoint != "" {
 			retryBackoff := time.Second
@@ -203,6 +207,7 @@ func main() {
 				Token:        cfg.HomeLabPullToken,
 				RetryMax:     retryMax,
 				RetryBackoff: retryBackoff,
+				MaxBytes:     maxBytes,
 			}
 			pullerDesc = "url=" + endpoint
 		}

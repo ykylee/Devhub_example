@@ -72,6 +72,10 @@ type Config struct {
 	HomeLabPullHTTPRetryMax int
 	// HomeLabPullHTTPRetryBackoff controls retry backoff duration (time.ParseDuration format).
 	HomeLabPullHTTPRetryBackoff string
+	// HomeLabPullMaxBytes caps the snapshot payload size (file or HTTP body) in
+	// bytes. 0 (default) means unlimited (legacy behavior). Production-recommended
+	// value is 5 MB. ADR-0015 §6 (1) — size limit + streaming decode.
+	HomeLabPullMaxBytes int64
 }
 
 func Load() Config {
@@ -103,6 +107,7 @@ func Load() Config {
 		HomeLabPullToken:             strings.TrimSpace(os.Getenv("DEVHUB_HOMELAB_PULL_TOKEN")),
 		HomeLabPullHTTPRetryMax:      envInt("DEVHUB_HOMELAB_PULL_HTTP_RETRY_MAX"),
 		HomeLabPullHTTPRetryBackoff:  strings.TrimSpace(os.Getenv("DEVHUB_HOMELAB_PULL_HTTP_RETRY_BACKOFF")),
+		HomeLabPullMaxBytes:          envInt64("DEVHUB_HOMELAB_PULL_MAX_BYTES"),
 	}
 }
 
@@ -135,5 +140,10 @@ func envBool(key string) bool {
 
 func envInt(key string) int {
 	n, _ := strconv.Atoi(strings.TrimSpace(os.Getenv(key)))
+	return n
+}
+
+func envInt64(key string) int64 {
+	n, _ := strconv.ParseInt(strings.TrimSpace(os.Getenv(key)), 10, 64)
 	return n
 }
