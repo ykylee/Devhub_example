@@ -1,7 +1,7 @@
 # E2E Test Guide (Playwright, native Keycloak/OIDC)
 
-> ⚠ 2026-05-18 주의: 본 문서에는 Hydra/Kratos 용어와 포트 예시가 일부 남아 있다.
-> 실행 시에는 Keycloak OIDC 기준 env/엔드포인트를 우선 적용하고, `/api/v1/auth/*` 및 challenge 기반 로그아웃 단계는 제외한다.
+> ⚠ 2026-05-18 주의: 일부 운영 예시는 legacy 용어가 남아 있을 수 있다.
+> 실행/검증은 Keycloak OIDC 기준 env/엔드포인트를 우선 적용한다.
 
 - 문서 목적: DevHub Example 의 Playwright e2e 스위트를 사용자 환경에서 실행하기 위한 사전 조건과 절차를 정의한다.
 - 범위: 사전 조건, 시드 데이터, 실행 명령, 시나리오 목록, 트러블슈팅
@@ -13,7 +13,7 @@
 ## 0. 정책
 
 - **DEC-3=A**: e2e 는 mock IdP 가 아니라 실 Keycloak/OIDC 환경에서 실행한다. 운영 흐름과 동일한 OIDC 코드 흐름을 검증.
-- **Single worker**: Kratos session 이 브라우저 context 별이라 시나리오 간 cross-contamination 방지 위해 1 worker.
+- **Single worker**: IdP session state 충돌 방지를 위해 E2E 테스트는 1 worker 유지.
 - **사용자 native**: 5개 프로세스 (PostgreSQL + Keycloak + backend-core + frontend) 를 사용자가 직접 기동. Playwright 의 `webServer` 옵션은 의도적으로 비활성.
 
 ## 1. 사전 조건
@@ -157,7 +157,7 @@ PLAYWRIGHT_BASE_URL=http://10.0.0.5:3000 npm run e2e
 | `auth.spec.ts` | manager 로그인 → `/manager` | PR-S1 role-based landing |
 | `auth.spec.ts` | system_admin 로그인 → `/admin` | PR-S1 role-based landing |
 | `auth.spec.ts` | developer 가 `/admin/settings` 직진입 → `/developer` | AuthGuard `pathRequiresSystemAdmin` |
-| `signout.spec.ts` | Sign Out 후 `/login` 진입 시 password 재요청 | PR-L2 Hydra session 종료 |
+| `signout.spec.ts` | Sign Out 후 `/login` 진입 시 password 재요청 | PR-L2 IdP session 종료 |
 | `password-change.spec.ts` | 비밀번호 변경 → Sign Out → 재로그인 → 원복 | PR-L4 `POST /api/v1/account/password` backend proxy. 자동 시드와 함께 활성 (PR-T3.5) |
 
 ## 6. 트러블슈팅
@@ -168,7 +168,7 @@ PLAYWRIGHT_BASE_URL=http://10.0.0.5:3000 npm run e2e
 | 로그인 폼에서 401 (invalid credentials) | Kratos identity 시드 password 가 일치 안 함 | `npm run e2e` 를 한 번 더 실행. PR-T3.5 hardening 이후 globalSetup 이 PUT 으로 시드 비밀번호를 force-reset 하므로 stale rotation 자동 복구. 그래도 실패하면 §2 의 시드 비밀번호 (`ChangeMe-12345!`) 와 시드 SEEDS 배열을 비교 |
 | `/account` 비밀번호 변경 시 "Re-authentication required" | Kratos `privileged_session_max_age=15m` 초과 | PR-L4 backend proxy 가 매 호출마다 fresh api-mode 로그인을 돌려 privileged window 를 갱신하므로 정상 시나리오에서는 발생하지 않음. 그래도 노출되면 backend 의 `DEVHUB_KEYCLOAK_ADMIN_URL` env 누락/오설정 가능성 |
 | `/account` 비밀번호 변경 시 "current password is incorrect" | 입력한 current_password 가 Kratos 시드와 불일치 | §2 의 시드 비밀번호 확인 (`ChangeMe-12345!`). password-change 시나리오가 중간에 실패해 회전이 남았다면 `npm run e2e` 재실행으로 globalSetup 이 자동 force-reset (PR-T3.5 hardening) |
-| `Sign Out` 후에도 `/login` 이 silent re-auth | Hydra session 종료 안 됨. id_token_hint 누락 가능성 | tokenStore 의 id_token 저장 확인 (PR-L2 fix-up). `/oauth2/sessions/logout` 호출 URL 확인 |
+| `Sign Out` 후에도 `/login` 이 silent re-auth | IdP session 종료 안 됨. id_token_hint 누락 가능성 | tokenStore 의 id_token 저장 확인. end-session endpoint 호출 URL 확인 |
 | 사용자 환경 Chromium 다운로드 실패 | 사내 SSL inspection / 외부 미러 차단 | `PLAYWRIGHT_BROWSERS_PATH` 또는 사내 미러 사용. `npx playwright install --dry-run` 으로 다운로드 URL 확인 |
 
 ## 7. 향후 확장 (PR-T4 범위)
