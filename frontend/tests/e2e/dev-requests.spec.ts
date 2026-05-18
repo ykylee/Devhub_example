@@ -191,13 +191,17 @@ test.describe("DREQ E2E", () => {
     expect(tokenId).toBeTruthy();
 
     // PATCH allowed_ips — page.request 의 OIDC session propagation 이 CI 에서
-    // flaky. page.evaluate 의 browser context fetch 가 동일 cookies/headers 를
-    // 자동 사용 — modal form submit 와 같은 origin 으로 보장 (sprint
-    // claude/work_260518-m hotfix #4).
+    // flaky. page.evaluate 의 browser context fetch 가 cookies + sessionStorage
+    // 의 Bearer token (apiClient 와 동일 구조) 을 사용해 modal form submit 와
+    // 같은 인증 보장 (sprint claude/work_260518-m hotfix #4+5).
     const patchResult = await page.evaluate(async (id: string) => {
+      const accessToken = sessionStorage.getItem("devhub_access_token");
       const resp = await fetch(`/api/v1/dev-request-tokens/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
         body: JSON.stringify({ allowed_ips: ["192.0.2.0/24", "203.0.113.5"] }),
         credentials: "include",
       });
@@ -214,8 +218,10 @@ test.describe("DREQ E2E", () => {
 
     // 정리 — 본 test 가 생성한 token revoke (cleanup, 동일 패턴).
     await page.evaluate(async (id: string) => {
+      const accessToken = sessionStorage.getItem("devhub_access_token");
       await fetch(`/api/v1/dev-request-tokens/${id}`, {
         method: "DELETE",
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
         credentials: "include",
       });
     }, tokenId);
