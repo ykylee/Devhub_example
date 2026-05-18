@@ -2,22 +2,20 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "codex/keycloak-only-refactor-plan",
-  "status": "Keycloak-only 전환 코드/문서 정리 완료. 핵심 요구사항/설계/API 계약 문서에서 legacy IdP 경로를 deprecated 또는 제거 상태로 정합화.",
-  "updated_at": "2026-05-18T14:05:00Z",
-  "head_commit": "29302d4",
-  "head_summary": "docs(memory): sync keycloak-only transition progress",
+  "status": "Keycloak-only 전환 마무리 단계. 코드/문서/테스트 가이드의 핵심 실행 경로를 Keycloak OIDC 기준으로 정합화 완료.",
+  "updated_at": "2026-05-18T14:32:30Z",
+  "head_commit": "fa8b9a7",
+  "head_summary": "docs(frontend-integration): collapse deprecated auth section to current keycloak contracts",
   "current_focus": [
-    "문서-코드 정합성 최종 점검",
-    "traceability 영향 항목 갱신",
-    "잔여 레거시 표현 최소화"
+    "PR 생성 및 리뷰 준비",
+    "historical 문서와 current 문서의 경계 명확화 유지"
   ],
   "next_actions": [
-    "추적성(REQ/ARCH/API/IMPL/UT/TC) 영향 섹션 보강",
-    "프론트 auth UX 문구와 OIDC 동작 시나리오 최종 교차검증",
-    "PR 생성 전 최종 diff 리뷰"
+    "PR 본문(변경 요약/검증/추적성 영향) 정리",
+    "리뷰 코멘트 반영 후 최종 머지 준비"
   ],
   "risks": [
-    "일부 historical 섹션의 legacy endpoint 표기가 혼선을 줄 가능성",
-    "문서 표현 변경이 테스트 케이스 명칭과 불일치할 가능성"
+    "일부 historical 테스트/ADR 문서의 과거 용어가 혼선을 줄 가능성",
+    "e2e 코드 주석과 운영 문서 표현 간 경미한 불일치 가능성"
   ]
 }

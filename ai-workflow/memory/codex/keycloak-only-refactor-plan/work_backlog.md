@@ -15,6 +15,7 @@
 | KC-PR-A | config/provider 스켈레톤 구현 | done | 완료 커밋: `b8eb2ba` |
 | KC-PR-B | Keycloak JWT/JWKS verifier 전환 | done | verifier tests + main wiring |
 | KC-PR-C | account/admin API Keycloak Admin 연동 | done | KeycloakAdminClient + main wiring |
-| KC-PR-D | frontend auth/logout flow 전환 | planned | OIDC discovery 기반 |
+| KC-PR-D | frontend auth/logout flow 전환 | done | OIDC discovery 기준 전환 + legacy 경로 제거 |
 | KC-PR-E | identity 컬럼 일반화 마이그레이션 | done | `000021_rename_kratos_identity_to_idp_subject` |
-| KC-PR-F | 테스트/문서/traceability 동기화 | in_progress | 문서 5종 정리 완료, traceability 잔여 |
+| KC-PR-F | 테스트/문서/traceability 동기화 | done | current source-of-truth 문서/가이드 정합 완료 |
+| KC-PR-G | PR 생성 및 리뷰 반영 | in_progress | 본 세션에서 PR 생성 |
