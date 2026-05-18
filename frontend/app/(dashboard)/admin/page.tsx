@@ -1,6 +1,7 @@
 "use client";
 
-import { Activity, Settings, Shield, Globe, Zap, Terminal } from "lucide-react";
+import { Activity, ArrowRight, Settings, Shield, Globe, Zap, Terminal } from "lucide-react";
+import Link from "next/link";
 import { 
   ReactFlow,
   MiniMap,
@@ -174,11 +175,17 @@ export default function AdminDashboard() {
           </p>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           className="flex items-center gap-3"
         >
+          <Link
+            href="/admin/topology-v2"
+            className="glass border-border text-foreground dark:text-primary-foreground px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-muted/40 transition-all flex items-center gap-2"
+          >
+            <ArrowRight className="w-4 h-4 text-primary" /> Topology v2
+          </Link>
           <button className="glass border-border text-foreground dark:text-primary-foreground px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-muted/40 transition-all flex items-center gap-2">
             <Shield className="w-4 h-4 text-accent" /> Security Audit
           </button>
