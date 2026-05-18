@@ -526,6 +526,68 @@ func (f *fakeIntakeTokenStore) UpdateDevRequestIntakeTokenIPs(_ context.Context,
 	return row, nil
 }
 
+// HardRevokeExpiredIntakeTokens — ADR-0017 §6 carve (a) mirror.
+// sprint claude/work_260518-t. real store 의 batch UPDATE 동작 정합.
+func (f *fakeIntakeTokenStore) HardRevokeExpiredIntakeTokens(_ context.Context, before time.Time) ([]string, error) {
+	out := make([]string, 0)
+	for hashed, row := range f.rows {
+		if row.ExpiresAt == nil || row.ExpiresAt.After(before) {
+			continue
+		}
+		if row.RevokedAt != nil {
+			continue
+		}
+		revoked := before
+		row.RevokedAt = &revoked
+		f.rows[hashed] = row
+		out = append(out, row.TokenID)
+	}
+	return out, nil
+}
+
+// CountExpiringSoonIntakeTokens — ADR-0017 §6 carve (c) mirror.
+func (f *fakeIntakeTokenStore) CountExpiringSoonIntakeTokens(_ context.Context, threshold time.Time) (int, error) {
+	now := time.Now()
+	n := 0
+	for _, row := range f.rows {
+		if row.RevokedAt != nil {
+			continue
+		}
+		if row.ExpiresAt == nil {
+			continue
+		}
+		if row.ExpiresAt.After(threshold) {
+			continue
+		}
+		if !row.ExpiresAt.After(now) {
+			continue
+		}
+		n++
+	}
+	return n, nil
+}
+
+// CountStaleIntakeTokens — ADR-0017 §6 carve (d) mirror.
+func (f *fakeIntakeTokenStore) CountStaleIntakeTokens(_ context.Context, before time.Time) (int, error) {
+	n := 0
+	for _, row := range f.rows {
+		if row.RevokedAt != nil {
+			continue
+		}
+		if row.LastUsedAt != nil {
+			if !row.LastUsedAt.After(before) {
+				n++
+			}
+			continue
+		}
+		// last_used_at IS NULL — created_at 으로 fallback.
+		if !row.CreatedAt.After(before) {
+			n++
+		}
+	}
+	return n, nil
+}
+
 func TestIntakeAuth_MissingHeaderDenies(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()

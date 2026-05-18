@@ -237,6 +237,58 @@ backend-core 가 2개 이상 인스턴스로 배포된 경우:
 - **(4) push 경로 (API-73 webhook) 알림** — webhook 수신 실패율 metric (`devhub_integration_webhook_*` 후보) 도입 후 별도 ADR + 본 가이드 §4 확장.
 - **(5) stage→prod 임계 확정** — 1주 관찰 후 §4 의 stage/prod 표 통합 (또는 영구 분리 결정).
 
+## 8. DREQ intake token 만료/staleness alert (ADR-0017 §6 정합)
+
+[ADR-0017 §6 (c)+(d)](../adr/0017-dreq-intake-token-operational-hardening.md#6-후속-작업) 가 도입한 새 metric (sprint `claude/work_260518-t`, PR #161):
+
+- `devhub_intake_token_expiring_soon` (gauge) — `expires_at` 이 임계 (기본 24h) 안에 있고 활성인 token 개수
+- `devhub_intake_token_stale` (gauge) — `last_used_at <= NOW() - 임계` 인 활성 token 개수 (기본 30d)
+- `devhub_intake_token_auto_revoked_total` (counter) — cron 이 hard-revoke 한 token 누계
+
+운영자가 본 metric 위에 alert 부착 예시 (`ops-monitoring/prometheus/rules/devhub-dreq-tokens-prod.yml` 같은 별도 group):
+
+```yaml
+groups:
+  - name: devhub-dreq-tokens-prod
+    rules:
+      - alert: DevhubDREQTokenExpiringSoon
+        expr: devhub_intake_token_expiring_soon > 0
+        for: 1h
+        labels:
+          severity: warning
+          environment: prod
+        annotations:
+          summary: "DREQ intake token 만료 임박"
+          description: "{{ $value }} 개의 intake token 이 24h 이내 만료 예정. 외부 client 가 영향받기 전에 rotation SOP 진행 권장."
+          runbook_url: "https://internal.example.com/runbooks/devhub-dreq-token-rotation"
+
+      - alert: DevhubDREQTokenStaleDetected
+        expr: devhub_intake_token_stale > 0
+        for: 24h
+        labels:
+          severity: warning
+          environment: prod
+        annotations:
+          summary: "DREQ intake token 장기 미사용"
+          description: "{{ $value }} 개의 intake token 이 30일 이상 미사용. 운영자가 /admin/settings/dev-request-tokens 에서 검토 후 수동 revoke 결정."
+
+      - alert: DevhubDREQTokenAutoRevokeBurst
+        expr: increase(devhub_intake_token_auto_revoked_total[1h]) > 5
+        for: 5m
+        labels:
+          severity: warning
+          environment: prod
+        annotations:
+          summary: "DREQ intake token 자동 revoke 급증"
+          description: "1시간 윈도우 내 자동 revoke {{ $value }}회 — 일괄 만료 또는 시간대 오류 가능성. cron 로그 확인."
+```
+
+cron 운영 정책:
+- `DEVHUB_DREQ_TOKEN_CRON_ENABLED=true` + `_INTERVAL=10m` (기본) — production 권장
+- `_EXPIRING_SOON_THRESHOLD=24h` (기본) — 24h 이내 만료 임박 인지
+- `_STALE_THRESHOLD=720h` (기본 30d, `0` = stale 알림 비활성)
+- audit `dev_request_intake_token.auto_revoked` 은 `SourceType=system`, `target_type=dev_request_intake_token`
+
 ## 8. 변경 이력
 
 | 일자 | 변경 | sprint |

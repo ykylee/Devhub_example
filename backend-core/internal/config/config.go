@@ -76,6 +76,19 @@ type Config struct {
 	// bytes. 0 (default) means unlimited (legacy behavior). Production-recommended
 	// value is 5 MB. ADR-0015 §6 (1) — size limit + streaming decode.
 	HomeLabPullMaxBytes int64
+	// DREQTokenCronEnabled toggles the DREQ intake token cron loop (ADR-0017
+	// §6 (a)+(c)+(d)). When true, a goroutine periodically hard-revokes expired
+	// tokens and emits expiring-soon / stale Prometheus gauges. Default false.
+	DREQTokenCronEnabled bool
+	// DREQTokenCronInterval controls cron loop interval (time.ParseDuration
+	// format). Default 10m when unset.
+	DREQTokenCronInterval string
+	// DREQTokenExpiringSoonThreshold marks tokens whose expires_at is within this
+	// duration as "expiring soon" (time.ParseDuration). Default 24h.
+	DREQTokenExpiringSoonThreshold string
+	// DREQTokenStaleThreshold marks tokens with no last_used_at within this
+	// duration as "stale". Empty / "0" disables the stale metric (no count). Default 720h (30d).
+	DREQTokenStaleThreshold string
 }
 
 func Load() Config {
@@ -108,6 +121,10 @@ func Load() Config {
 		HomeLabPullHTTPRetryMax:      envInt("DEVHUB_HOMELAB_PULL_HTTP_RETRY_MAX"),
 		HomeLabPullHTTPRetryBackoff:  strings.TrimSpace(os.Getenv("DEVHUB_HOMELAB_PULL_HTTP_RETRY_BACKOFF")),
 		HomeLabPullMaxBytes:          envInt64("DEVHUB_HOMELAB_PULL_MAX_BYTES"),
+		DREQTokenCronEnabled:           envBool("DEVHUB_DREQ_TOKEN_CRON_ENABLED"),
+		DREQTokenCronInterval:          strings.TrimSpace(os.Getenv("DEVHUB_DREQ_TOKEN_CRON_INTERVAL")),
+		DREQTokenExpiringSoonThreshold: strings.TrimSpace(os.Getenv("DEVHUB_DREQ_TOKEN_EXPIRING_SOON_THRESHOLD")),
+		DREQTokenStaleThreshold:        strings.TrimSpace(os.Getenv("DEVHUB_DREQ_TOKEN_STALE_THRESHOLD")),
 	}
 }
 

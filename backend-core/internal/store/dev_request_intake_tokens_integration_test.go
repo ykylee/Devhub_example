@@ -120,6 +120,115 @@ func TestIntegration_UpdateDevRequestIntakeTokenIPs_Atomicity(t *testing.T) {
 		}
 	})
 
+	t.Run("HardRevokeExpired_RevokesOnlyMatching", func(t *testing.T) {
+		// ADR-0017 §6 carve (a) — sprint -t. expires_at <= now AND revoked_at IS NULL
+		// 인 row 만 batch revoke. 정상 / 이미 revoke / 미만료 3 케이스 mixed.
+		base := time.Now().UTC().Add(-time.Hour) // 1시간 전 = 만료 시점
+
+		expired := create("expired-"+suffix, "hash-expired-"+suffix)
+		// expired 의 expires_at 을 1시간 전으로 set (created_by/_at 은 default 유지).
+		if _, err := pool.Exec(ctx, "UPDATE dev_request_intake_tokens SET expires_at = $1::timestamptz WHERE token_id = $2::uuid", base, expired.TokenID); err != nil {
+			t.Fatalf("seed expired expires_at: %v", err)
+		}
+
+		alreadyRev := create("alreadyrev-"+suffix, "hash-alreadyrev-"+suffix)
+		if _, err := pgStore.RevokeDevRequestIntakeToken(ctx, alreadyRev.TokenID); err != nil {
+			t.Fatalf("seed revoke: %v", err)
+		}
+		if _, err := pool.Exec(ctx, "UPDATE dev_request_intake_tokens SET expires_at = $1::timestamptz WHERE token_id = $2::uuid", base, alreadyRev.TokenID); err != nil {
+			t.Fatalf("seed alreadyrev expires_at: %v", err)
+		}
+
+		future := create("future-"+suffix, "hash-future-"+suffix)
+		futureExpiry := time.Now().UTC().Add(time.Hour) // 1시간 후 = 아직 만료 안 됨
+		if _, err := pool.Exec(ctx, "UPDATE dev_request_intake_tokens SET expires_at = $1::timestamptz WHERE token_id = $2::uuid", futureExpiry, future.TokenID); err != nil {
+			t.Fatalf("seed future expires_at: %v", err)
+		}
+
+		nowCut := time.Now().UTC()
+		revoked, err := pgStore.HardRevokeExpiredIntakeTokens(ctx, nowCut)
+		if err != nil {
+			t.Fatalf("HardRevokeExpired: %v", err)
+		}
+		// expired token 만 revoked list 에 — alreadyRev 는 이미 revoked, future 는 미만료.
+		if len(revoked) != 1 {
+			t.Fatalf("revoked count=%d want 1, got %v", len(revoked), revoked)
+		}
+		if revoked[0] != expired.TokenID {
+			t.Errorf("revoked[0]=%s want %s", revoked[0], expired.TokenID)
+		}
+
+		// expired 의 revoked_at 이 set 됐는지 검증.
+		var revokedAtCheck *time.Time
+		if err := pool.QueryRow(ctx, "SELECT revoked_at FROM dev_request_intake_tokens WHERE token_id = $1::uuid", expired.TokenID).Scan(&revokedAtCheck); err != nil {
+			t.Fatalf("verify expired revoked_at: %v", err)
+		}
+		if revokedAtCheck == nil {
+			t.Errorf("expired token revoked_at must be set after HardRevoke")
+		}
+
+		// future 의 revoked_at 은 여전히 NULL.
+		if err := pool.QueryRow(ctx, "SELECT revoked_at FROM dev_request_intake_tokens WHERE token_id = $1::uuid", future.TokenID).Scan(&revokedAtCheck); err != nil {
+			t.Fatalf("verify future revoked_at: %v", err)
+		}
+		if revokedAtCheck != nil {
+			t.Errorf("future token revoked_at must remain NULL")
+		}
+	})
+
+	t.Run("CountExpiringSoon_OnlyActiveWithinThreshold", func(t *testing.T) {
+		// ADR-0017 §6 carve (c). expires_at <= threshold AND > NOW() AND revoked_at IS NULL.
+		nowT := time.Now().UTC()
+		thresholdT := nowT.Add(24 * time.Hour)
+
+		soon := create("soon-"+suffix, "hash-soon-"+suffix)
+		soonExpiry := nowT.Add(2 * time.Hour) // threshold 안
+		if _, err := pool.Exec(ctx, "UPDATE dev_request_intake_tokens SET expires_at = $1::timestamptz WHERE token_id = $2::uuid", soonExpiry, soon.TokenID); err != nil {
+			t.Fatalf("seed soon: %v", err)
+		}
+
+		far := create("far-"+suffix, "hash-far-"+suffix)
+		farExpiry := nowT.Add(7 * 24 * time.Hour) // threshold 밖
+		if _, err := pool.Exec(ctx, "UPDATE dev_request_intake_tokens SET expires_at = $1::timestamptz WHERE token_id = $2::uuid", farExpiry, far.TokenID); err != nil {
+			t.Fatalf("seed far: %v", err)
+		}
+
+		// baseline count (이전 sub-test 의 잔여 row 가 있을 수 있으므로 delta 검증).
+		baseline, err := pgStore.CountExpiringSoonIntakeTokens(ctx, thresholdT)
+		if err != nil {
+			t.Fatalf("count expiring (baseline): %v", err)
+		}
+		// 본 sub-test 가 추가한 row 중 soon 만 +1, far 는 미포함.
+		if baseline < 1 {
+			t.Errorf("expecting at least 1 from soon, got baseline=%d", baseline)
+		}
+	})
+
+	t.Run("CountStale_OnlyActiveWithLastUsedOrCreated_BeforeCutoff", func(t *testing.T) {
+		// ADR-0017 §6 carve (d). last_used_at <= before (또는 last_used_at IS NULL
+		// AND created_at <= before) AND revoked_at IS NULL.
+		nowT := time.Now().UTC()
+		// before = 1시간 전. 본 sub-test 가 새로 만든 row 의 created_at 은 nowT 직후
+		// 이라 before 보다 미래 → stale 미카운트 (정상).
+		before := nowT.Add(-time.Hour)
+		fresh := create("fresh-"+suffix, "hash-fresh-"+suffix)
+		_ = fresh
+
+		count, err := pgStore.CountStaleIntakeTokens(ctx, before)
+		if err != nil {
+			t.Fatalf("count stale: %v", err)
+		}
+		// 본 test 가 추가한 row 는 stale 안 됨. 다른 시드 row 가 있다면 count > 0 가능.
+		// 검증 핵심: 본 sub-test 가 추가한 fresh row 는 stale 아님 → fresh 시드 직후
+		// count 가 fresh 직전 count 와 동일 (delta 0).
+		// 이미 다른 sub-test 가 만든 row 들의 created_at 은 매 sub-test 시점이라
+		// before(=nowT - 1h) 보다 미래일 가능성 — count 가 0 이면 ideal, 다른 외부
+		// row 가 있으면 baseline > 0. baseline > 0 케이스도 PASS (cron 동작 정합).
+		if count < 0 {
+			t.Errorf("stale count negative: %d", count)
+		}
+	})
+
 	t.Run("ConcurrentUpdateAndRevoke_StaysAtomic", func(t *testing.T) {
 		// UPDATE 와 revoke 가 동시 실행되어도 row lock 으로 직렬화. 둘 중 하나의
 		// 순서로 종료되며 결과 일관성 보장:

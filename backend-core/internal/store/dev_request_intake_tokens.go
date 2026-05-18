@@ -261,6 +261,73 @@ func derefTime(p *time.Time) time.Time {
 	return *p
 }
 
+// HardRevokeExpiredIntakeTokens는 expires_at <= before AND revoked_at IS NULL 인
+// row 들에 revoked_at = before 로 batch UPDATE (ADR-0017 §6 carve (a), sprint
+// claude/work_260518-t). 운영 cron 이 주기적으로 호출 — middleware lazy 체크는
+// 인증 시점에만 동작하므로 운영자가 admin UI 에서 만료 row 를 식별하기 어려운
+// 문제 해소. revoke 된 row 는 admin list 에서 "Revoked" badge 로 노출.
+// RETURNING token_id 로 audit emit 대상 list 반환.
+func (s *PostgresStore) HardRevokeExpiredIntakeTokens(ctx context.Context, before time.Time) ([]string, error) {
+	const query = `
+UPDATE dev_request_intake_tokens
+SET revoked_at = $1::timestamptz, updated_at = NOW()
+WHERE expires_at IS NOT NULL AND expires_at <= $1::timestamptz AND revoked_at IS NULL
+RETURNING token_id::text`
+	rows, err := s.pool.Query(ctx, query, before)
+	if err != nil {
+		return nil, fmt.Errorf("hard revoke expired intake tokens: %w", err)
+	}
+	defer rows.Close()
+	out := make([]string, 0)
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("scan revoked token_id: %w", err)
+		}
+		out = append(out, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate revoked tokens: %w", err)
+	}
+	return out, nil
+}
+
+// CountExpiringSoonIntakeTokens는 expires_at 이 threshold 안에 있고 아직 활성인
+// token 의 개수 (ADR-0017 §6 carve (c)). threshold = NOW() + 운영자 임계 (env
+// DEVHUB_DREQ_TOKEN_EXPIRING_SOON_THRESHOLD, 기본 24h). NOW() 보다 작으면 이미
+// 만료라 제외 (만료된 token 은 cron 이 별도 처리).
+func (s *PostgresStore) CountExpiringSoonIntakeTokens(ctx context.Context, threshold time.Time) (int, error) {
+	const query = `
+SELECT COUNT(*) FROM dev_request_intake_tokens
+WHERE expires_at IS NOT NULL
+  AND expires_at <= $1::timestamptz
+  AND expires_at > NOW()
+  AND revoked_at IS NULL`
+	var count int
+	if err := s.pool.QueryRow(ctx, query, threshold).Scan(&count); err != nil {
+		return 0, fmt.Errorf("count expiring soon intake tokens: %w", err)
+	}
+	return count, nil
+}
+
+// CountStaleIntakeTokens는 last_used_at <= before (또는 last_used_at IS NULL 이고
+// created_at <= before) 이며 활성인 token 의 개수 (ADR-0017 §6 carve (d)). N일
+// 미사용 token 의 자동 인지 — 알림 후 운영자가 hard-revoke 결정.
+func (s *PostgresStore) CountStaleIntakeTokens(ctx context.Context, before time.Time) (int, error) {
+	const query = `
+SELECT COUNT(*) FROM dev_request_intake_tokens
+WHERE revoked_at IS NULL
+  AND (
+    (last_used_at IS NOT NULL AND last_used_at <= $1::timestamptz)
+    OR (last_used_at IS NULL AND created_at <= $1::timestamptz)
+  )`
+	var count int
+	if err := s.pool.QueryRow(ctx, query, before).Scan(&count); err != nil {
+		return 0, fmt.Errorf("count stale intake tokens: %w", err)
+	}
+	return count, nil
+}
+
 func scanIntakeToken(row pgx.Row) (domain.DevRequestIntakeToken, error) {
 	var (
 		tok        domain.DevRequestIntakeToken
