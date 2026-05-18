@@ -17,29 +17,46 @@ test.describe("External Integration bindings admin UI", () => {
 
     await test.step("seed — system_admin 으로 provider 1건 생성 (binding 생성 사전 조건)", async () => {
       await loginAs(page, SEEDED.systemAdmin);
-      // page.request 가 OIDC session 을 공유해 API-70 호출.
-      const createResp = await page.request.post("/api/v1/integration/providers", {
-        data: {
-          provider_key: providerKey,
-          provider_type: "scm",
-          display_name: providerDisplay,
-          auth_mode: "token",
-          credentials_ref: "hmac_sha256:e2e-bind-secret",
-          capabilities: ["webhook"],
-        },
-      });
-      expect(createResp.ok()).toBeTruthy();
-      const body = await createResp.json();
-      providerID = body.data.provider_id as string;
-      expect(providerID).toBeTruthy();
+      // admin-integrations.spec.ts 의 검증된 패턴 따름 — modal 폼 submit 으로
+      // 등록. page.request.post 직접 호출은 CI 환경의 OIDC session/cookie
+      // propagation 차이로 fail 가능. modal 폼은 browser fetch 와 cookie 가
+      // 일관 — provider 생성 보장.
+      await page.goto("/admin/settings/integrations");
+      await page.getByRole("button", { name: /register provider/i }).click();
+      const seedModal = page.getByRole("dialog");
+      await expect(seedModal).toBeVisible();
+      await seedModal.getByLabel(/provider key/i).fill(providerKey);
+      await seedModal.getByLabel(/^type/i).selectOption("scm");
+      await seedModal.getByLabel(/auth mode/i).selectOption("token");
+      await seedModal.getByLabel(/display name/i).fill(providerDisplay);
+      await seedModal.getByLabel(/credentials ref/i).fill("hmac_sha256:e2e-bind-secret");
+      await seedModal.getByLabel(/capabilities/i).fill("webhook");
+      await seedModal.getByRole("button", { name: /^register$/i }).click();
+      await expect(page.getByRole("dialog")).toBeHidden({ timeout: 10_000 });
+
+      // provider_id 추출 (API-69 GET — page.request 가 OIDC session 공유).
+      // dev-requests.spec.ts:186 의 PATCH/DELETE page.request 패턴 정합 — GET 은
+      // body 없어 propagation 차이 안전.
+      const listResp = await page.request.get("/api/v1/integration/providers");
+      expect(listResp.ok()).toBeTruthy();
+      const listBody = await listResp.json();
+      const target = (listBody.data as Array<{ provider_id: string; provider_key: string }>).find(
+        (p) => p.provider_key === providerKey,
+      );
+      expect(target).toBeTruthy();
+      providerID = target!.provider_id;
     });
 
     await test.step("TC-INT-FRONTEND-BIND-LIST-01 — system_admin 이 /admin/settings/integration-bindings 접근", async () => {
       await page.goto("/admin/settings/integration-bindings");
       await expect(page.getByRole("heading", { name: /integration bindings/i })).toBeVisible();
       // 페이지 로드 후 BindingsTable 또는 empty state 렌더 완료.
+      // Playwright 의 CSS 셀렉터는 list 안에 text=/regex/ engine selector 를
+      // 직접 못 둠 → invalid CSS 파싱 에러. locator.or() 패턴으로 두 후보를
+      // chain.
       const tableOrEmpty = page
-        .locator("table, text=/등록된 binding 이 없습니다/i")
+        .locator("table")
+        .or(page.getByText(/등록된 binding 이 없습니다/i))
         .first();
       await expect(tableOrEmpty).toBeVisible();
     });

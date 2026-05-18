@@ -18,7 +18,13 @@ test.describe("External Integration admin UI", () => {
       await page.goto("/admin/settings/integrations");
       await expect(page.getByRole("heading", { name: /integration providers/i })).toBeVisible();
       // 페이지 로드 후 ProviderTable 또는 empty state 렌더 완료.
-      const tableOrEmpty = page.locator("table, text=/등록된 integration provider 가 없습니다/i").first();
+      // Playwright 의 CSS 셀렉터는 list 안에 text=/regex/ engine selector 를
+      // 직접 못 둠 → invalid CSS 파싱 에러. locator.or() 패턴으로 두 후보를
+      // chain (codex hotfix #7 P1, sprint claude/work_260518-m).
+      const tableOrEmpty = page
+        .locator("table")
+        .or(page.getByText(/등록된 integration provider 가 없습니다/i))
+        .first();
       await expect(tableOrEmpty).toBeVisible();
     });
 
