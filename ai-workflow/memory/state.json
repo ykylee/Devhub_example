@@ -203,7 +203,7 @@
     {"pr": 146, "sprint": "claude/work_260518-e", "title": "fix(backend,docs,traceability): codex review hotfix #5 — PR #142 (§2.2 API-78→79) + PR #143 (ADR-0015 default vs 권장값 + ADR-0017 PATCH revoked guard + 회귀 가드 3 unit test) 의 P2 3건", "merge_commit": "52981b9"},
     {"pr": 147, "sprint": "claude/work_260518-f", "title": "docs(adr,traceability),test: PR #146 self-review 후속 — ADR-0017 §6 atomicity carve out (race window 명시 + CTE + FOR UPDATE reference SQL) + test 회귀 시나리오 주석 보강", "merge_commit": "951c0c8"},
     {"pr": 148, "sprint": "claude/work_260518-g", "title": "feat(frontend,integration),docs(tests,traceability): External Integration frontend 진입점 1차 — /admin/settings/integrations 페이지 + ProviderTable + ProviderModal + integration.{service,types}.ts + layout subTabs", "merge_commit": "7b4ad18"},
-    {"pr": 149, "sprint": "claude/work_260518-h", "title": "test(e2e),docs(tests,traceability): admin-integrations.spec.ts 신규 — TC-INT-FRONTEND-* 5건 active (mega lifecycle 4 step + RBAC negative)", "merge_commit": "d24a41e"},
+    {"pr": 149, "sprint": "claude/work_260518-h", "title": "test(e2e),docs(tests,traceability): admin-integrations.spec.ts 신규 — TC-INT-FRONTEND-* 5건 active (mega lifecycle 4 step + RBAC negative)", "merge_commit": "bb83520"},
     {"pr": 150, "sprint": "claude/work_260518-i", "title": "fix(frontend,test,adr,traceability): codex review hotfix #6 — PR #147 + #148 + #149 의 P1 ×2 (useEffect toast dep + syncProvider 응답 형식) + P2 ×2 (ADR-0017 CTE LEFT JOIN empty → not-found 분기 불가 + spec ts SYNC assertion 약함)", "merge_commit": "99c0833"},
     {"pr": 151, "sprint": "claude/work_260518-j", "title": "feat(backend,frontend,test,docs): API-80 DELETE integration provider endpoint + FK guard (binding count > 0 시 409 has_bindings) + handler 4 unit test + DestructiveConfirmModal + spec ts mega test DELETE step 5", "merge_commit": "51c79af"}
   ],
@@ -230,7 +230,7 @@
     "supporting_docs": "docs/planning/homelab_adapter_pull_strategy.md + prometheus_homelab_alerts.md + docs/tests/test_cases_m4_integration.md + reports/report_20260516_m4_integration.md",
     "adr_pr": "PR #143 (sprint c, claude/work_260518-c, merge d2c0031) — ADR-0015 (pull strategy 사후 명문화) + ADR-0016 (Prometheus alerts policy)",
     "frontend_entry_pr": "PR #148 (sprint g, claude/work_260518-g, merge 7b4ad18) — /admin/settings/integrations + ProviderTable + ProviderModal + integration.{service,types}.ts + layout subTabs Integrations 탭",
-    "e2e_spec_pr": "PR #149 (sprint h, claude/work_260518-h, merge d24a41e) — admin-integrations.spec.ts — TC-INT-FRONTEND-* 5건 active (mega lifecycle 4 step + RBAC negative)",
+    "e2e_spec_pr": "PR #149 (sprint h, claude/work_260518-h, merge bb83520) — admin-integrations.spec.ts — TC-INT-FRONTEND-* 5건 active (mega lifecycle 4 step + RBAC negative)",
     "delete_endpoint_pr": "PR #151 (sprint j, claude/work_260518-j, merge 51c79af) — API-80 DELETE + FK guard (binding count > 0 → 409 integration_provider_has_bindings) + handler 4 unit test + DestructiveConfirmModal + spec ts mega test DELETE step 5",
     "carve_out_for_next_session": [
       "Bindings 관리 UI (API-74, 75) — provider ↔ application/project 매핑 (별도 페이지 또는 admin/settings/integrations 의 sub-tab)",
