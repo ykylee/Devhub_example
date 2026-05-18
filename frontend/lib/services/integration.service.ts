@@ -32,13 +32,15 @@ class IntegrationService {
     return resp.data;
   }
 
-  /** API-72 — trigger out-of-band sync. backend 가 sync_status 를 비동기 갱신. */
-  async syncProvider(providerID: string): Promise<IntegrationProvider> {
-    const resp = await apiClient<{ data: IntegrationProvider }>(
+  /** API-72 — trigger out-of-band sync. backend 가 sync_status 를 비동기 갱신.
+   *  응답은 `{status: "accepted", job_id: ...}` 형식이며 provider envelope 가
+   *  아니다 (codex hotfix #6 P1 #2, PR #148). caller 는 sync_status 갱신을
+   *  보려면 listProviders() 로 refresh 하거나 optimistic update 한다. */
+  async syncProvider(providerID: string): Promise<{ status: string; job_id: string }> {
+    return await apiClient<{ status: string; job_id: string }>(
       "POST",
       `/api/v1/integration/providers/${providerID}/sync`,
     );
-    return resp.data;
   }
 }
 

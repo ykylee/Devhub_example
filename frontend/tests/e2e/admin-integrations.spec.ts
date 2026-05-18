@@ -84,13 +84,29 @@ test.describe("External Integration admin UI", () => {
       await expect(updatedRow.getByText(/^no$/i)).toBeVisible();
     });
 
-    await test.step("TC-INT-FRONTEND-SYNC-01 — Sync 버튼 클릭 → sync_status 즉시 전이", async () => {
+    await test.step("TC-INT-FRONTEND-SYNC-01 — Sync 버튼 클릭 → API-72 호출 + sync_status 전이", async () => {
       const row = page.locator("tr").filter({ hasText: updatedDisplayName }).first();
       const syncBtn = row.getByRole("button", { name: /sync/i });
+
+      // codex hotfix #6 P2 (PR #149): cell visibility 만 검증하면 click 전후
+      // 동일하게 PASS 되어 false positive. API-72 호출 자체를 network 으로 검증
+      // + sync_status badge 가 "Pending" 으로 전이됐는지 확인 (page.tsx 의
+      // optimistic update — handleSync 가 즉시 sync_status="requested" 로
+      // setProviders, badge 매핑이 "Pending" label).
+      const syncResponsePromise = page.waitForResponse(
+        (resp) =>
+          resp.url().includes(`/api/v1/integration/providers/${providerID}/sync`) &&
+          resp.request().method() === "POST",
+      );
       await syncBtn.click();
-      // API-72 호출 후 sync_status badge 갱신 (요청 시점에 backend 가 어떤 status 를
-      // 돌려주는지에 따라 다름 — "OK" / "Pending" / "Error" 중 하나가 표시되면 OK).
-      await expect(row.locator("td").nth(4)).toBeVisible();
+      const syncResponse = await syncResponsePromise;
+      expect(syncResponse.ok()).toBeTruthy();
+      const syncBody = await syncResponse.json();
+      expect(syncBody.status).toBe("accepted");
+      expect(syncBody.job_id).toBeTruthy();
+
+      // optimistic update — badge 가 "Pending" 으로 즉시 전이.
+      await expect(row.getByText(/pending/i)).toBeVisible({ timeout: 5_000 });
     });
 
     // Cleanup — 본 test 가 생성한 provider 는 backend 에 영구 남으므로 disabled 처리만 함.
