@@ -1,0 +1,25 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260518-x",
+  "branch": "claude/work_260518-x",
+  "status": "in_progress",
+  "started_at": "2026-05-18T19:00:00Z",
+  "scope": "post-EOD #2 종합 housekeeping — 직전 housekeeping (PR #158 sprint -q) 이후 6 PR (#159~#164) 추가 흡수 + 로드맵 갱신 (M5 DREQ closing + M6 External Integration 신규).",
+  "directive_source": "사용자 요청 '여기까지 작업내역 정리하고 메모리 갱신, 로드맵도 갱신'.",
+  "decisions": [
+    "main flat memory 3 파일 + auto-memory + traceability + 로드맵 단일 PR 으로 묶음",
+    "로드맵 §3 에 M5 DREQ closing 표기 + M6 External Integration 신규 추가",
+    "auto-memory post_eod #2 신규 — sprint r..w 6 PR 종합",
+    "로드맵 §7 변경 이력에 17 PR 누적 (post-EOD 전후) row 추가"
+  ],
+  "todo": [
+    "ai-workflow/memory/state.json — merged_prs_2026_05_18 (#159~#164) + status + HEAD + next_actions",
+    "ai-workflow/memory/session_handoff.md — 추가 6 PR 표 + 학습 + 다음 directive",
+    "ai-workflow/memory/work_backlog.md — milestone + 변경 이력 row",
+    "docs/development_roadmap.md — M5 closing + M6 신규 + §5 백로그 + §7 변경 이력",
+    "auto-memory project_2026_05_18_post_eod_session_2.md 신규 + MEMORY.md",
+    "docs/traceability/report.md §6 sprint -x row",
+    "commit + push + PR + self-review + 머지"
+  ],
+  "verification": "docs-only — workflow-lint 그린"
+}

@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-05-18 post-EOD 종합 — 직전 EOD (PR #152 sprint -k) 후속 6 PR 추가 머지. 흐름: PR #153 (sprint -l, **codex hotfix #7** — PR #149 merge_commit SHA 정정) → PR #154 (sprint -m, **External Integration bindings 관리 UI** /admin/settings/integration-bindings + 5 hotfix iteration 으로 CI 그린화) → PR #155 (sprint -n, **Infra topology v2 시각화** /admin/topology-v2 + React Flow + degraded banner) → PR #156 (sprint -o, **ADR-0017 §6 atomicity 실 구현** — UpdateDevRequestIntakeTokenIPs 단일 CTE + FOR UPDATE + concurrent race test) → PR #157 (sprint -p, **ADR-0015 §6 carve outs (1)+(2)** — size limit + streaming decode 5 회귀 test + agent token rotation SOP) → PR #158 (sprint -q, 본 housekeeping). **신규 ID**: TC-INT-FRONTEND-BIND-{LIST,CREATE,RBAC}-01 (3건) + TC-INT-HOMELAB-03 active + TC-INT-FRONTEND-TOPOLOGY-V2-{NAV,RBAC}-01 (2건) + 신규 env DEVHUB_HOMELAB_PULL_MAX_BYTES. **ADR carve out 종결**: ADR-0017 §6 atomicity ✅ resolved (-o) + ADR-0015 §6 (1)+(2) ✅ resolved (-p). **External Integration domain 종합 closing**: backend (PR #139) + ADR (PR #143) + provider frontend (PR #148) + E2E (PR #149) + API-80 DELETE (PR #151) + bindings UI (PR #154) + topology v2 (PR #155). main HEAD `6648105`. **본 세션 학습**: (a) page.request OIDC session propagation 이 CI 에서 flaky — DOM data-XXX-id attribute + page.evaluate fetch + sessionStorage Bearer 패턴으로 회피 (sprint -m hotfix #1~5 5 iteration); (b) Playwright CSS list 안에 text=/regex/ 못 둠 — locator.or() chain; (c) backend integration test 의 created_by FK 는 시드 user u1 사용; (d) backend env 변수 default = 보수적 (legacy 호환) / 운영 권장값 = ADR 별도 컬럼. **다음 세션 directive (우선순위 순)**: (1) ADR-0016 §6 carve outs (Alertmanager raw YAML 외부 git, Grafana JSON, pull latency p95 alert baseline 1주 관찰 후, push 경로 알림, stage→prod 임계 확정); (2) ADR-0017 §6 잔여 (자동 cron revoke, PATCH expires_at, 만료/staleness alert metric); (3) ADR-0015 §6 (3)+(4) — dedicated worker binary (M4) + push/pull dedup (별도 ADR); (4) M4 RM-M4-XX 본격 진입 (WebSocket 확장, AI Gardener gRPC, System Admin 대시보드). 이전 status: '2026-05-18 EOD — 단일 세션 11 PR 머지 (sprint a..k).'",
-  "updated_at": "2026-05-18T15:30:00Z",
-  "head_commit": "6648105",
-  "head_summary": "Merge pull request #157 (fix(backend,adapter,config,adr,docs): ADR-0015 §6 carve outs 부분 처리, sprint claude/work_260518-p)",
+  "status": "2026-05-18 post-EOD #2 종합 — 직전 EOD housekeeping (PR #158 sprint -q) 이후 6 PR 추가 머지. 흐름: PR #159 (sprint -r, **Jira 보고서 self-review hotfix** — P1 3건 + P2 4건) → PR #160 (sprint -s, **ADR-0016 §6 (1)+(2) resolved** — Alertmanager 운영 가이드 + Grafana dashboard JSON 5 panel) → PR #161 (sprint -t, **ADR-0017 §6 (a)+(c)+(d) resolved** — DREQ intake token cron + 만료/staleness Prometheus metric + audit dev_request_intake_token.auto_revoked) → PR #162 (sprint -u, **단일 외부 포트 reverse proxy design 검토** — /devhub prefix + nginx 권장 + ADR-0018 후보) → PR #163 (sprint -v, **외부 Keycloak SSO federation design 검토** — Kratos upstream OIDC provider + HRDB employee_id strict link + ADR-0019 후보) → PR #164 (sprint -w, **codex review hotfix #8** — P1 3건 + P2 6건 일괄 흡수). **ADR carve out 종결 누적**: ADR-0017 §6 atomicity ✅ (sprint -o, PR #156) + ADR-0015 §6 (1)+(2) ✅ (-p, PR #157) + ADR-0016 §6 (1)+(2) ✅ (-s, PR #160) + ADR-0017 §6 (a)+(c)+(d) ✅ (-t, PR #161). **신규 design 문서 2건**: single_port_reverse_proxy.md + keycloak_sso_federation.md (Phase 2 진입 시 ADR-0018/0019 승격). **본 세션 누적 17 PR** (sprint a..w, EOD #1+#2 두 housekeeping 포함). main HEAD `4dd02ad`. **본 후속 세션 학습**: (a) `io.ErrUnexpectedEOF` 는 transient transport 실패도 포함 — oversized 분류는 byte counter (LimitedReader.N) 명시 감지; (b) PromQL 의 single Prometheus + multi-env scrape 시 expr 에 environment matcher 필수; (c) spec ts 의 always-mounted shell assertion = false positive — `page.waitForResponse` + body schema 검증 패턴; (d) planning 문서의 env 변수 안내는 backend 코드 실제 endpoint 사용처 검증 필수. **다음 세션 directive (우선순위 재산정)**: (1) ADR-0015 §6 (3)+(4) — dedicated worker binary (M4) + push/pull dedup (별도 ADR); (2) ADR-0016 §6 (3)+(4)+(5) — baseline 1주 관찰 / push metric / stage→prod 확정; (3) ADR-0017 §6 (b) — PATCH expires_at + admin UI 편집 modal; (4) **ADR-0018 승격 + Phase 2 staging** (single port reverse proxy); (5) **ADR-0019 승격 + Phase 2 staging** (Keycloak SSO); (6) External Integration 후속 강화 — React Flow group sub-node + WebSocket 실시간; (7) M4 RM-M4-XX 본격 진입. 이전 status: 'post-EOD 종합 sprint -l~p 5 PR 흡수 + ADR carve out 종결 4건.'",
+  "updated_at": "2026-05-18T19:30:00Z",
+  "head_commit": "4dd02ad",
+  "head_summary": "Merge pull request #164 (fix(backend,frontend,docs): codex review hotfix #8 — P1 3건 + P2 6건 일괄 흡수, sprint claude/work_260518-w)",
   "milestones": {
     "M0": {
       "status": "done",
@@ -211,7 +211,14 @@
     {"pr": 154, "sprint": "claude/work_260518-m", "title": "feat(frontend,integration),docs(tests,traceability): External Integration bindings 관리 UI 1차 — /admin/settings/integration-bindings + BindingsTable + CreateBindingModal + service/types wrapper (API-74 GET / API-75 POST) + layout subTabs Bindings + admin-integration-bindings.spec.ts (3 test) + 5 hotfix iteration (CSS locator + DOM data-provider-id + SYNC enabled gate + page.evaluate fetch + sessionStorage Bearer)", "merge_commit": "b5bc54b"},
     {"pr": 155, "sprint": "claude/work_260518-n", "title": "feat(frontend,integration),docs(tests,traceability): Infra topology v2 시각화 1차 — /admin/topology-v2 + React Flow + nodes/services/edges 매핑 + degraded providers banner + snapshot_at 메타 + node click modal + infraService.getTopologyV2() + admin-topology-v2.spec.ts (3 test)", "merge_commit": "dc0ed1c"},
     {"pr": 156, "sprint": "claude/work_260518-o", "title": "fix(backend,store,adr,test): ADR-0017 §6 atomicity 실 구현 — UpdateDevRequestIntakeTokenIPs 단일 CTE + FOR UPDATE row lock + (VALUES (1)) AS root(_) anchor 패턴 + TestIntegration_UpdateDevRequestIntakeTokenIPs_Atomicity (Happy/NotFound/Revoked/ConcurrentUpdateAndRevoke 4 sub-test)", "merge_commit": "eaa91a7"},
-    {"pr": 157, "sprint": "claude/work_260518-p", "title": "fix(backend,adapter,config,adr,docs): ADR-0015 §6 carve outs (1)+(2) — size limit + streaming decode (file os.Stat + HTTP Content-Length + io.LimitReader + json.NewDecoder streaming) + DEVHUB_HOMELAB_PULL_MAX_BYTES env + 5 회귀 unit test + agent token rotation SOP (docs/setup/homelab_agent_token_rotation.md 신규)", "merge_commit": "6648105"}
+    {"pr": 157, "sprint": "claude/work_260518-p", "title": "fix(backend,adapter,config,adr,docs): ADR-0015 §6 carve outs (1)+(2) — size limit + streaming decode (file os.Stat + HTTP Content-Length + io.LimitReader + json.NewDecoder streaming) + DEVHUB_HOMELAB_PULL_MAX_BYTES env + 5 회귀 unit test + agent token rotation SOP (docs/setup/homelab_agent_token_rotation.md 신규)", "merge_commit": "6648105"},
+    {"pr": 158, "sprint": "claude/work_260518-q", "title": "docs(memory,reports): 2026-05-18 post-EOD #1 종합 housekeeping + Jira 보고용 개발 현황 status 문서 (10 항목 + Mermaid + ASCII mockup + 캡처 가이드)", "merge_commit": "87fb93e"},
+    {"pr": 159, "sprint": "claude/work_260518-r", "title": "docs(reports): Jira 보고 status 문서 self-review hotfix — P1 3건 (ARCH 29 / TC 12 / M1 RBAC PR 범위) + P2 4건 (Mermaid caveat / sprint code 안내 / 부록 A PR #158)", "merge_commit": "79c0ec3"},
+    {"pr": 160, "sprint": "claude/work_260518-s", "title": "docs(adr,setup,traceability): ADR-0016 §6 carve outs (1)+(2) resolved — Alertmanager 운영 가이드 (외부 git 이관 layout + stage/prod raw YAML + 라우팅 + 운영 SOP) + Grafana dashboard JSON 모델 (5 panel + Prometheus datasource + environment template variable)", "merge_commit": "31cdad6"},
+    {"pr": 161, "sprint": "claude/work_260518-t", "title": "feat(backend,devrequest,store,adr,setup,test): ADR-0017 §6 (a)+(c)+(d) resolved — DREQ intake token cron + 만료/staleness Prometheus metric + audit dev_request_intake_token.auto_revoked + counter devhub_intake_token_auto_revoked_total + 5 cron unit test + 3 store integration sub-test", "merge_commit": "8802a5b"},
+    {"pr": 162, "sprint": "claude/work_260518-u", "title": "docs(planning,traceability): 단일 외부 포트 reverse proxy design 검토 — /devhub prefix + backend/Hydra/Kratos sub-path + nginx 권장 + Mermaid 토폴로지 + OIDC URL 정합 + cookie scope + 보안 점검 + cutover 절차 + ADR-0018 후보", "merge_commit": "338c430"},
+    {"pr": 163, "sprint": "claude/work_260518-v", "title": "docs(planning,traceability): 외부 Keycloak SSO federation design 검토 — Kratos upstream OIDC provider + HRDB employee_id strict link + claim mapping + audit auth.sso.* 4 action + cutover Phase 2/3/4 + ADR-0019 후보 (RM-M4-09 구체화)", "merge_commit": "cdd73b0"},
+    {"pr": 164, "sprint": "claude/work_260518-w", "title": "fix(backend,frontend,docs): codex review hotfix #8 — P1 3건 (HTTP puller ErrUnexpectedEOF retry 회귀 + PromQL env scoping + Hydra admin URL) + P2 6건 (scopeFilter prepend / spec react-flow assertion / file puller trailing JSON / ADR-0006+0012 link / NoRecentSuccess aggregation)", "merge_commit": "4dd02ad"}
   ],
   "dreq_domain_carve_out_progress": {
     "1_4_rbac_adr_promote_tx": "✅ sprint m PR #128 (ADR-0013 사후 명문화 + Promote-Tx 단일 트랜잭션) + codex hotfix #4 sprint n PR #129",
@@ -247,10 +254,21 @@
       "✅ resolved (PR #155, sprint -n) — infra topology v2 시각화 (API-76, 78, React Flow)",
       "✅ resolved (PR #156, sprint -o) — ADR-0017 §6 atomicity 실 구현 (CTE + FOR UPDATE + race test)",
       "✅ resolved (PR #157, sprint -p) — ADR-0015 §6 (1) size limit + streaming decode + (2) agent token rotation SOP",
+      "✅ resolved (PR #160, sprint -s) — ADR-0016 §6 (1) Alertmanager 운영 가이드 + (2) Grafana dashboard JSON",
+      "✅ resolved (PR #161, sprint -t) — ADR-0017 §6 (a) cron revoke + (c) 만료 metric + (d) staleness metric",
+      "✅ design 검토 완료 (PR #162, sprint -u) — single port reverse proxy (ADR-0018 후보, Phase 2 staging 진입 후 승격)",
+      "✅ design 검토 완료 (PR #163, sprint -v) — Keycloak SSO federation (ADR-0019 후보, RM-M4-09 구체화)",
+      "✅ resolved (PR #164, sprint -w) — codex hotfix #8 P1 3건 + P2 6건",
       "(carve) ADR-0015 §6 (3) dedicated worker binary — M4 진입 시 재평가",
       "(carve) ADR-0015 §6 (4) push/pull 동시 운영 dedup 정책 — 별도 ADR 후보",
-      "(carve) ADR-0016 §6 — Alertmanager raw YAML 외부 git, Grafana JSON, pull latency p95 alert (baseline 1주 관찰 후), push 경로 알림, stage→prod 임계 확정",
-      "(carve) ADR-0017 §6 잔여 — 자동 cron revoke, PATCH expires_at 갱신, 토큰 만료 알림 metric, last_used_at staleness alert"
+      "(carve) ADR-0016 §6 (3) pull latency p95 alert — baseline 1주 관찰 후",
+      "(carve) ADR-0016 §6 (4) push 경로 webhook 알림 metric",
+      "(carve) ADR-0016 §6 (5) stage→prod 임계값 확정",
+      "(carve) ADR-0017 §6 (b) PATCH expires_at — admin UI 편집 modal + 정책 변경",
+      "(carve) ADR-0018 승격 + Phase 2 staging (single port reverse proxy)",
+      "(carve) ADR-0019 승격 + Phase 2 staging (Keycloak SSO federation)",
+      "(carve) External Integration 후속 강화 — React Flow group sub-node + WebSocket 실시간 + v2 node click action",
+      "(carve) M4 RM-M4-XX 본격 진입 — WebSocket replay, AI Gardener gRPC, System Admin 대시보드, Gitea Hourly Pull"
     ]
   },
   "next_actions": {
