@@ -321,13 +321,37 @@ NEXT_PUBLIC_KRATOS_PUBLIC_URL=/devhub/auth/kratos
 
 ### 10.3 backend env
 
-backend-core 자체는 path 변경 영향 거의 없음 (nginx 가 `/devhub` strip 후 전달). 다만 `BearerTokenVerifier` 의 Hydra introspection URL 은 환경 변수로 갱신:
+backend-core 자체는 path 변경 영향 거의 없음 (nginx 가 `/devhub` strip 후 전달). 다만 `BearerTokenVerifier` 의 Hydra **admin** API 호출 (`/admin/oauth2/introspect`, `/admin/oauth2/auth/requests/*` 등 — `internal/auth/hydra_introspection.go` + `internal/httpapi/hydra_admin_client.go`) 은 admin endpoint 를 가리켜야 하므로 별도 path 또는 internal port 직접 사용 (codex hotfix #8 P1 #3).
+
+**❌ 잘못된 안내 (이전 draft)**: `DEVHUB_HYDRA_ADMIN_URL=https://devhub.example.com/devhub/auth/hydra` — 이 path 는 §3 의 nginx config 에서 Hydra **public** (4444) 으로 가게 매핑되어 있어 admin API 호출이 public endpoint 로 가서 404/wrong-response → backend 의 token 검증/consent flow 실패.
+
+**✅ 올바른 옵션 두 가지**:
+
+옵션 A (권장) — admin endpoint 는 외부 노출 안 함 (security best practice). backend 가 internal 로 직접:
 
 ```
-DEVHUB_HYDRA_ADMIN_URL=https://devhub.example.com/devhub/auth/hydra
+DEVHUB_HYDRA_ADMIN_URL=http://127.0.0.1:4445
 ```
 
-또는 nginx 가 admin endpoint (4445) 도 reverse proxy 한다면 동일 prefix.
+옵션 B — nginx 에 별도 path 추가 (admin 노출이 필요한 경우, 운영팀이 IP allowlist + mTLS 같은 추가 가드 필수):
+
+```nginx
+location /devhub/auth/hydra-admin/ {
+    # 운영팀 인지! admin endpoint 노출 = 보안 위험
+    allow 10.0.0.0/8;          # 사내 운영망 IP 허용
+    deny all;
+    proxy_pass http://127.0.0.1:4445/;
+    include /etc/nginx/proxy_common.conf;
+}
+```
+
+```
+DEVHUB_HYDRA_ADMIN_URL=https://devhub.example.com/devhub/auth/hydra-admin
+```
+
+§3 의 nginx config skeleton 의 `location /devhub/auth/hydra/` 는 **public 전용** — admin 호출은 옵션 A 또는 옵션 B 의 별도 path 가 처리.
+
+같은 패턴이 Kratos 의 admin endpoint (`DEVHUB_KRATOS_ADMIN_URL` = `http://127.0.0.1:4434`) 에도 적용 — public 만 외부 노출, admin 은 internal-only (옵션 A 권장).
 
 ### 10.4 Hydra config 변경
 
@@ -440,3 +464,4 @@ ADR §3 검토 옵션 표 + §4 결정 + §6 carve out 은 본 §2/§13 의 비�
 | 일자 | 변경 | sprint |
 | --- | --- | --- |
 | 2026-05-18 | 1차 draft — 14 section + nginx config skeleton + Mermaid 토폴로지 + env 분기 + cutover 절차 + 보안 점검 + carve out + ADR-0018 후보. | `claude/work_260518-u` |
+| 2026-05-18 | codex hotfix #8 P1 #3 — §10.3 의 `DEVHUB_HYDRA_ADMIN_URL` 안내 정정. 이전 draft 는 public path (`/devhub/auth/hydra`) 를 가리켜 backend admin API 호출 시 잘못된 upstream 으로 routing → token 검증/consent flow 실패. 옵션 A (internal-only `http://127.0.0.1:4445`, 권장) + 옵션 B (별도 path `/devhub/auth/hydra-admin` + IP allowlist) 두 가지 명시. Kratos admin endpoint 도 같은 패턴 (internal-only 권장). | `claude/work_260518-w` |

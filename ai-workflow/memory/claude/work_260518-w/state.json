@@ -1,0 +1,43 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260518-w",
+  "branch": "claude/work_260518-w",
+  "status": "in_progress",
+  "started_at": "2026-05-18T18:30:00Z",
+  "scope": "codex review hotfix #8 — 본 세션 PR #154/#155/#157/#158/#160/#162 의 codex 외부 리뷰 P1 3건 + P2 6건 일괄 흡수. feedback_codex_review_cycle 패턴 정합.",
+  "directive_source": "사용자 요청 '미흡수 codex review 확인' + 본 세션 PR 중 6건의 inline review 발견 → 사용자 진입 승인",
+  "p1_items": [
+    "PR #157 homelab_http_puller.go:107 — io.ErrUnexpectedEOF non-retryable 매핑이 transient transport 실패도 차단 → MAX_BYTES enabled 운영에서 retry 무력화. Fix: byte counter 기반 oversized 감지로 분리.",
+    "PR #160 prometheus_alertmanager_setup.md:73 — PromQL 의 metric 쿼리에 environment label filter 누락 → 단일 Prometheus 가 stage+prod scrape 시 cross-env contamination. Fix: rule expr 에 {environment=...} 매처.",
+    "PR #162 single_port_reverse_proxy.md:327 — DEVHUB_HYDRA_ADMIN_URL 안내가 public path. Fix: admin endpoint 별도 path (예: /devhub/auth/hydra-admin) 또는 internal-only port 명시."
+  ],
+  "p2_items": [
+    "PR #154 integration-bindings/page.tsx:58 — handleCreated 가 scope_type 위반 prepend → filter 일관성. Fix: filter 매칭 시만 prepend, 불일치 시 skip + toast 안내.",
+    "PR #155 admin-topology-v2.spec.ts:24 — .react-flow shell 항상 마운트 → fetch 실패도 PASS. Fix: snapshot meta + node/service row 검증.",
+    "PR #157 homelab_file_puller.go:53 — Decode 후 EOF 미체크. Fix: Decode 후 dec.Token() 또는 더 디코드 시도해 io.EOF 확인.",
+    "PR #158 ADR-0006 link 파일명 정정 (inbound-rejected → reject-inbound).",
+    "PR #158 ADR-0012 link 파일명 정정 (intake-auth → external-intake-auth).",
+    "PR #160 prometheus_alertmanager_setup.md:80 — NoRecentSuccess rule 의 max by(provider) aggregation 누락. Fix: expr 를 max by(provider) (...) 로."
+  ],
+  "decisions": [
+    "단일 PR (codex hotfix #8) 으로 묶음 처리 — 분리된 파일이지만 모두 본 세션 PR review 정합 + 회귀 위험 낮음.",
+    "PR #162 (planning 문서) 정정도 본 PR 에 포함 — design 문서의 환경 변수 안내 오류는 readers (운영자) 영향 큼.",
+    "ADR-0015 §7 변경 이력 + ADR-0016 §7 변경 이력 row 추가 (codex hotfix #8).",
+    "회귀 unit test 추가 — HTTP puller retry 동작 (unexpected EOF transient vs oversize), file puller trailing JSON 거부."
+  ],
+  "todo": [
+    "backend-core/internal/integrations/adapters/homelab_http_puller.go — ErrUnexpectedEOF 분리 (byte counter + readBuffer 기반 oversized 감지)",
+    "backend-core/internal/integrations/adapters/homelab_file_puller.go — Decode 후 EOF 체크",
+    "backend-core/internal/integrations/adapters/homelab_http_puller_test.go — retry 회귀 + trailing JSON 거부 unit test",
+    "backend-core/internal/integrations/adapters/homelab_file_puller_test.go — trailing JSON 거부 unit test",
+    "docs/setup/prometheus_alertmanager_setup.md — §4 prod/stage rule expr 의 환경 매처 추가 + §8 DREQ rule 의 환경 매처 + §4 NoRecentSuccess aggregation",
+    "frontend/app/(dashboard)/admin/settings/integration-bindings/page.tsx — handleCreated 의 scopeFilter 정합 (필터 위반 시 skip)",
+    "frontend/tests/e2e/admin-topology-v2.spec.ts — assertion 강화 (snapshot meta + node/service row 또는 명시 empty state)",
+    "docs/reports/jira_status_2026_05_18.md — ADR-0006 + ADR-0012 link 정정 + 변경 이력",
+    "docs/planning/single_port_reverse_proxy.md — DEVHUB_HYDRA_ADMIN_URL 안내 정정 + 변경 이력",
+    "docs/adr/0015 §7 + docs/adr/0016 §7 — codex hotfix #8 row 추가",
+    "docs/traceability/report.md §6 sprint -w row",
+    "PR + self-review + 머지"
+  ],
+  "verification": "go vet store + adapters + config PASS + backend-unit/integration + e2e (1차 그린) — codex hotfix #5 회귀 패턴 정합"
+}

@@ -9,6 +9,18 @@ import { test, expect, SEEDED, loginAs } from "./fixtures";
 test.describe("Infra topology v2 admin UI", () => {
   test("TC-INT-HOMELAB-03 — system_admin 이 /admin/topology-v2 접근 + 노드/서비스/snapshot 메타 렌더", async ({ page }) => {
     await loginAs(page, SEEDED.systemAdmin);
+
+    // codex hotfix #8 P2 #2 (PR #155) — 이전 assertion 은 `.react-flow` shell 이
+    // 항상 마운트되어 API-78 fetch 실패에도 PASS 되는 false positive 였음.
+    // page.waitForResponse 로 API-78 호출 자체를 검증 + 응답 body 의 meta/data
+    // 형식 검증 + node/service row 또는 명시 empty state 로 fetch 결과 반영 검증.
+    const topologyResponsePromise = page.waitForResponse(
+      (resp) =>
+        resp.url().includes("/api/v1/infra/topology/v2") &&
+        resp.request().method() === "GET",
+      { timeout: 20_000 },
+    );
+
     await page.goto("/admin/topology-v2");
 
     // Header — v2 view 의 marker.
@@ -17,16 +29,25 @@ test.describe("Infra topology v2 admin UI", () => {
     // snapshot_at 메타 tag — `Last snapshot:` 텍스트가 헤더에 노출.
     await expect(page.getByText(/last snapshot:/i)).toBeVisible();
 
-    // React Flow canvas 또는 empty state — 첫 진입은 backend snapshot 의존이라
-    // 둘 중 하나는 보장. 둘을 .or() chain (admin-integrations.spec.ts 패턴 정합).
-    const canvasOrEmpty = page
-      .locator(".react-flow")
-      .or(page.getByText(/등록된 infra node 가 없습니다/i))
-      .first();
-    await expect(canvasOrEmpty).toBeVisible({ timeout: 10_000 });
+    // API-78 호출 검증 — fetch 실패 시 즉시 fail.
+    const topologyResponse = await topologyResponsePromise;
+    expect(topologyResponse.ok()).toBeTruthy();
+    const topologyBody = await topologyResponse.json();
+    expect(topologyBody.meta).toBeDefined();
+    expect(typeof topologyBody.meta.snapshot_at).toBe("string");
+    expect(topologyBody.data).toBeDefined();
+    expect(Array.isArray(topologyBody.data.nodes)).toBeTruthy();
+    expect(Array.isArray(topologyBody.data.services)).toBeTruthy();
 
-    // Services sidebar — heading "Services (N)" 가 노출.
-    await expect(page.getByRole("heading", { name: /^services/i })).toBeVisible();
+    // fetch 결과를 UI 가 정확히 반영했는지 — node 가 0 건이면 명시 empty state,
+    // 1건 이상이면 sidebar list 에 service row 노출 (또는 sidebar heading 의 count 가 양수).
+    const nodeCount = topologyBody.data.nodes.length;
+    if (nodeCount === 0) {
+      await expect(page.getByText(/등록된 infra node 가 없습니다/i)).toBeVisible({ timeout: 5_000 });
+    } else {
+      // 1+ node — sidebar heading "Services (N)" 또는 empty 도 가능 (services 가 비어도 OK).
+      await expect(page.getByRole("heading", { name: /^services/i })).toBeVisible();
+    }
   });
 
   test("TC-INT-FRONTEND-TOPOLOGY-V2-NAV-01 — /admin 페이지의 v2 nav link → /admin/topology-v2", async ({ page }) => {

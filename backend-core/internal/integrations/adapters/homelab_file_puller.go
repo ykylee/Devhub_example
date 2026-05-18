@@ -57,6 +57,12 @@ func (p HomeLabFilePuller) PullSnapshot(_ context.Context) (HomeLabRawSnapshot, 
 		}
 		return HomeLabRawSnapshot{}, fmt.Errorf("decode homelab pull file: %w", err)
 	}
+	// codex hotfix #8 P2 #3 — Decode 만 호출하면 후행 JSON object (예:
+	// `{"agent_id":...}{"extra":...}`) 가 silent 무시. 이전 json.Unmarshal 구현은
+	// trailing data 를 거부했으므로 회귀 방지를 위해 명시적 EOF 검증.
+	if _, err := dec.Token(); !errors.Is(err, io.EOF) {
+		return HomeLabRawSnapshot{}, fmt.Errorf("homelab pull file has trailing data after snapshot: %w", ErrInvalidHomeLabSnapshot)
+	}
 	if strings.TrimSpace(raw.AgentID) == "" || strings.TrimSpace(raw.SnapshotAt) == "" {
 		return HomeLabRawSnapshot{}, ErrInvalidHomeLabSnapshot
 	}

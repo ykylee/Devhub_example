@@ -99,7 +99,7 @@ OIDC + PKCE 기반 자체 로그인 + RP-initiated logout 완성. Ory Hydra (OAu
 - M2 login/logout/account/admin/org: PR #45 (PR-L1), #50 (PR-L3), #51 (PR-L2), #49 (deploy guide), #52~#55 (Track S1~S4)
 - M2 UX 1차 완성: PR #85 (`claude/login_usermanagement_finish`)
 - M3 Sign Up: PR #98, #99 (RM-M3-01)
-- ADR: [ADR-0001 IdP selection](../adr/0001-idp-selection.md), [ADR-0006 X-Devhub-Actor 거부](../adr/0006-x-devhub-actor-inbound-rejected.md)
+- ADR: [ADR-0001 IdP selection](../adr/0001-idp-selection.md), [ADR-0006 X-Devhub-Actor 거부](../adr/0006-x-devhub-actor-reject-inbound.md)
 
 ### 1.6 캡처 가이드 (production 환경)
 
@@ -270,7 +270,7 @@ production `/admin/settings/users` 진입 후:
 - DREQ Admin-UI: PR #130, #131
 - DREQ token expiry: PR #137 (gemini)
 - DREQ atomicity: PR #156 (sprint -o)
-- ADR: [ADR-0011 row-scoping](../adr/0011-rbac-row-scoping.md), [ADR-0012 intake auth](../adr/0012-dreq-intake-auth.md), [ADR-0013 row-scoping](../adr/0013-dreq-rbac-row-scoping.md), [ADR-0014 admin endpoint](../adr/0014-dreq-intake-token-admin.md), [ADR-0017 operational hardening](../adr/0017-dreq-intake-token-operational-hardening.md)
+- ADR: [ADR-0011 row-scoping](../adr/0011-rbac-row-scoping.md), [ADR-0012 intake auth](../adr/0012-dreq-external-intake-auth.md), [ADR-0013 row-scoping](../adr/0013-dreq-rbac-row-scoping.md), [ADR-0014 admin endpoint](../adr/0014-dreq-intake-token-admin.md), [ADR-0017 operational hardening](../adr/0017-dreq-intake-token-operational-hardening.md)
 
 ### 4.6 캡처 가이드
 
@@ -566,4 +566,5 @@ CI E2E shard 1/2 + 2/2 (Playwright chromium) — 약 50+ test (2026-05-18 기준
 | 일자 | 변경 | sprint |
 | --- | --- | --- |
 | 2026-05-18 | 1차 draft — 10 항목 + Mermaid 진척도 + ASCII mockup + 캡처 가이드 | `claude/work_260518-q` (PR #158) |
-| 2026-05-18 | self-review hotfix — P1 3건 (ARCH 23→29 / TC-INT-FRONTEND-* 13→12 + 총 TC sum 63 명시 / M1 RBAC PR 범위 정정) + P2 4건 (Mermaid Jira 호환 caveat + 사용 안내 / sprint code 안내 / 부록 A PR #158 + 본 #159 추가 / 누적 PR 158→159) | `claude/work_260518-r` (본 PR) |
+| 2026-05-18 | self-review hotfix — P1 3건 (ARCH 23→29 / TC-INT-FRONTEND-* 13→12 + 총 TC sum 63 명시 / M1 RBAC PR 범위 정정) + P2 4건 (Mermaid Jira 호환 caveat + 사용 안내 / sprint code 안내 / 부록 A PR #158 + 본 #159 추가 / 누적 PR 158→159) | `claude/work_260518-r` (PR #159) |
+| 2026-05-18 | codex hotfix #8 P2 #4/#5 — §1.5 ADR-0006 link 파일명 정정 (`inbound-rejected.md` → `reject-inbound.md`) + §4.5 ADR-0012 link 파일명 정정 (`intake-auth.md` → `external-intake-auth.md`). 외부 보고서의 dead link 회귀 가드. | `claude/work_260518-w` (본 PR) |
