@@ -3,7 +3,6 @@ package adapters
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -88,23 +87,30 @@ func doHomeLabHTTPPull(client *http.Client, req *http.Request, maxBytes int64) (
 	}
 
 	// Size guard (ADR-0015 §6 (1)) — Content-Length 사전 검사로 network IO 절약,
-	// LimitReader 로 streaming cap (Content-Length 미제공 또는 거짓 경우 대비).
+	// LimitedReader 로 streaming cap (Content-Length 미제공 또는 거짓 경우 대비).
 	// maxBytes = 0 (default) 면 unlimited — legacy behavior.
 	if maxBytes > 0 && resp.ContentLength > 0 && resp.ContentLength > maxBytes {
 		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 1024))
 		return HomeLabRawSnapshot{}, false, fmt.Errorf("homelab pull response exceeds max bytes (content-length %d > %d): %w", resp.ContentLength, maxBytes, ErrInvalidHomeLabSnapshot)
 	}
 	var body io.Reader = resp.Body
+	var lr *io.LimitedReader
 	if maxBytes > 0 {
-		body = io.LimitReader(resp.Body, maxBytes+1)
+		// LimitedReader 보존 — N=0 시 cap 도달 = oversized 명시 감지
+		// (codex hotfix #8 P1: ErrUnexpectedEOF 는 transient transport 실패도 포함).
+		lr = &io.LimitedReader{R: resp.Body, N: maxBytes + 1}
+		body = lr
 	}
 
 	var raw HomeLabRawSnapshot
 	if err := json.NewDecoder(body).Decode(&raw); err != nil {
-		// LimitReader 가 cap 초과 시 unexpected EOF — invalid snapshot 으로 분류
-		// (retry 불필요 — 같은 body 재시도해도 같은 결과).
-		if maxBytes > 0 && errors.Is(err, io.ErrUnexpectedEOF) {
-			return HomeLabRawSnapshot{}, false, fmt.Errorf("homelab pull response oversized or truncated: %w", ErrInvalidHomeLabSnapshot)
+		// codex hotfix #8 P1 #1 — ErrUnexpectedEOF 만으로 invalid 분류 금지.
+		// upstream 의 mid-response connection close 같은 transient 실패도
+		// ErrUnexpectedEOF 로 surface 되므로, oversized 는 LimitedReader.N 이
+		// 0 까지 소진된 경우만 명시 감지. 그 외는 retryable.
+		oversized := lr != nil && lr.N == 0
+		if oversized {
+			return HomeLabRawSnapshot{}, false, fmt.Errorf("homelab pull response oversized (exceeded max bytes %d): %w", maxBytes, ErrInvalidHomeLabSnapshot)
 		}
 		return HomeLabRawSnapshot{}, true, fmt.Errorf("decode homelab pull response: %w", err)
 	}

@@ -55,9 +55,19 @@ export default function AdminSettingsIntegrationBindingsPage() {
   }, [providers]);
 
   const handleCreated = (binding: IntegrationBinding) => {
-    setBindings((prev) => [binding, ...prev]);
     const provider = providersByID[binding.provider_id];
     const label = provider?.display_name ?? binding.provider_id;
+    // codex hotfix #8 P2 #1 — 활성 scopeFilter 와 다른 scope_type 의 신규 binding 은
+    // 현재 view 에 포함되지 않으므로 table prepend 안 함. UX 일관성 (사용자가
+    // "필터된 view 안에 갑자기 다른 scope row 가 나타나는" 혼란 방지).
+    if (scopeFilter && binding.scope_type !== scopeFilter) {
+      toast(
+        `Binding 생성됨 — 현재 '${scopeFilter}' 필터에 가려져 있습니다. All scopes 로 전환하면 노출됩니다.`,
+        "info",
+      );
+      return;
+    }
+    setBindings((prev) => [binding, ...prev]);
     toast(`Binding '${binding.scope_id} → ${label}' 이(가) 생성되었습니다.`, "success");
   };
 

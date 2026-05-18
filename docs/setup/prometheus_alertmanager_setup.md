@@ -61,12 +61,16 @@ stage 환경은 `environment: stage` label + 별도 target.
 
 ADR-0016 §4.2 의 baseline. **`ops-monitoring/prometheus/rules/devhub-homelab-prod.yml`** 사본:
 
+codex hotfix #8 P1: 단일 Prometheus 가 stage + prod target 을 모두 scrape 하는 환경에서, rule expr 이 environment label 로 사전 filter 하지 않으면 양쪽 environment 의 metric 이 합쳐져 평가되고 alert label 만 단일 environment 로 rewrite 됨 → cross-env contamination + 잘못된 receiver routing. 모든 expr 에 `{environment="prod"}` 또는 `{environment="stage"}` matcher 명시.
+
+codex hotfix #8 P2: `DevhubHomeLabPullNoRecentSuccess` 의 raw `devhub_homelab_last_success_unixtime` 는 instance 별 series 를 만들어 다중 인스턴스 환경에서 single-instance staleness 만으로도 알림. §6.4 의 `max by(provider)` aggregation 으로 정합.
+
 ```yaml
 groups:
   - name: devhub-homelab-prod
     rules:
       - alert: DevhubHomeLabPullFailing
-        expr: increase(devhub_homelab_pull_runs_total{result="error"}[10m]) >= 3
+        expr: increase(devhub_homelab_pull_runs_total{result="error", environment="prod"}[10m]) >= 3
         for: 5m
         labels:
           severity: warning
@@ -77,18 +81,18 @@ groups:
           runbook_url: "https://internal.example.com/runbooks/devhub-homelab-pull-failing"
 
       - alert: DevhubHomeLabPullNoRecentSuccess
-        expr: (time() - devhub_homelab_last_success_unixtime) > 900
+        expr: (time() - max by (provider) (devhub_homelab_last_success_unixtime{environment="prod"})) > 900
         for: 5m
         labels:
           severity: critical
           environment: prod
         annotations:
           summary: "HomeLab pull 성공 지연 (prod, 15m+)"
-          description: "최근 15분 이상 pull 성공 기록이 없습니다. push 경로도 끊겼는지 확인."
+          description: "최근 15분 이상 pull 성공 기록이 없습니다. push 경로도 끊겼는지 확인. multi-instance: max by(provider) aggregation 적용."
           runbook_url: "https://internal.example.com/runbooks/devhub-homelab-no-recent-success"
 
       - alert: DevhubHomeLabDegradedProvidersDetected
-        expr: devhub_homelab_degraded_providers > 0
+        expr: max by (provider) (devhub_homelab_degraded_providers{environment="prod"}) > 0
         for: 10m
         labels:
           severity: warning
@@ -105,7 +109,7 @@ groups:
   - name: devhub-homelab-stage
     rules:
       - alert: DevhubHomeLabPullFailing
-        expr: increase(devhub_homelab_pull_runs_total{result="error"}[15m]) >= 5
+        expr: increase(devhub_homelab_pull_runs_total{result="error", environment="stage"}[15m]) >= 5
         for: 10m
         labels:
           severity: warning
@@ -115,17 +119,17 @@ groups:
           description: "stage: 15분 윈도우 내 pull error 5회 이상. 1주 baseline 관찰 중."
 
       - alert: DevhubHomeLabPullNoRecentSuccess
-        expr: (time() - devhub_homelab_last_success_unixtime) > 1800
+        expr: (time() - max by (provider) (devhub_homelab_last_success_unixtime{environment="stage"})) > 1800
         for: 10m
         labels:
           severity: critical
           environment: stage
         annotations:
           summary: "HomeLab pull 성공 지연 (stage, 30m+)"
-          description: "stage: 최근 30분 이상 pull 성공 없음."
+          description: "stage: 최근 30분 이상 pull 성공 없음. multi-instance: max by(provider) aggregation 적용."
 
       - alert: DevhubHomeLabDegradedProvidersDetected
-        expr: devhub_homelab_degraded_providers > 0
+        expr: max by (provider) (devhub_homelab_degraded_providers{environment="stage"}) > 0
         for: 15m
         labels:
           severity: warning
@@ -247,12 +251,14 @@ backend-core 가 2개 이상 인스턴스로 배포된 경우:
 
 운영자가 본 metric 위에 alert 부착 예시 (`ops-monitoring/prometheus/rules/devhub-dreq-tokens-prod.yml` 같은 별도 group):
 
+codex hotfix #8 정합 — DREQ rule 도 environment matcher + multi-instance 시 sum/max aggregation 명시 (gauge 는 instance 별 동일 row 수 가정 — sum 으로 안전 누계, counter 는 sum by(env) 로 환경별).
+
 ```yaml
 groups:
   - name: devhub-dreq-tokens-prod
     rules:
       - alert: DevhubDREQTokenExpiringSoon
-        expr: devhub_intake_token_expiring_soon > 0
+        expr: max(devhub_intake_token_expiring_soon{environment="prod"}) > 0
         for: 1h
         labels:
           severity: warning
@@ -263,7 +269,7 @@ groups:
           runbook_url: "https://internal.example.com/runbooks/devhub-dreq-token-rotation"
 
       - alert: DevhubDREQTokenStaleDetected
-        expr: devhub_intake_token_stale > 0
+        expr: max(devhub_intake_token_stale{environment="prod"}) > 0
         for: 24h
         labels:
           severity: warning
@@ -273,7 +279,7 @@ groups:
           description: "{{ $value }} 개의 intake token 이 30일 이상 미사용. 운영자가 /admin/settings/dev-request-tokens 에서 검토 후 수동 revoke 결정."
 
       - alert: DevhubDREQTokenAutoRevokeBurst
-        expr: increase(devhub_intake_token_auto_revoked_total[1h]) > 5
+        expr: sum(increase(devhub_intake_token_auto_revoked_total{environment="prod"}[1h])) > 5
         for: 5m
         labels:
           severity: warning
@@ -294,3 +300,4 @@ cron 운영 정책:
 | 일자 | 변경 | sprint |
 | --- | --- | --- |
 | 2026-05-18 | draft 1차 — ADR-0016 §6 carve (1) 의 운영 자산 git 이관 layout + raw YAML reference + Alertmanager 라우팅 + 운영 SOP. | `claude/work_260518-s` |
+| 2026-05-18 | codex hotfix #8 (P1 + P2) — §4 prod/stage rule expr 에 `{environment="prod\|stage"}` matcher 명시 (P1: cross-env contamination 회피) + `DevhubHomeLabPullNoRecentSuccess` + `DegradedProvidersDetected` 가 `max by(provider)` aggregation (P2: multi-instance staleness 정합). §8 DREQ rule 도 environment matcher + `max`/`sum` aggregation 적용. | `claude/work_260518-w` |

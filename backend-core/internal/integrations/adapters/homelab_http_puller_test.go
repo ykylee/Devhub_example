@@ -194,6 +194,56 @@ func TestHomeLabHTTPPullerRejectsBodyOverLimit(t *testing.T) {
 	}
 }
 
+// codex hotfix #8 P1 #1 — ErrUnexpectedEOF 가 transient transport 실패도 포함
+// 하므로, oversized 와 transient 를 명시 분리. body 가 limit 안에서 close 되면
+// retryable=true 로 유지.
+func TestHomeLabHTTPPullerTreatsTransientEOFAsRetryable(t *testing.T) {
+	var calls int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		w.Header().Set("Content-Type", "application/json")
+		if calls == 1 {
+			// 1st call — mid-response 에서 connection hijack + close (transient).
+			// hijacker 로 raw conn 잡고 partial JSON 만 보내고 즉시 close.
+			hj, ok := w.(http.Hijacker)
+			if !ok {
+				t.Fatal("response writer not hijacker")
+			}
+			conn, _, err := hj.Hijack()
+			if err != nil {
+				t.Fatalf("hijack: %v", err)
+			}
+			_, _ = conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{\"agent_id\":\"home"))
+			_ = conn.Close()
+			return
+		}
+		// 2nd call — 정상 응답.
+		_, _ = w.Write([]byte(`{
+			"agent_id":"homelab-agent-a",
+			"snapshot_at":"2026-05-18T17:00:00Z",
+			"nodes":[{"node_id":"n1"}]
+		}`))
+	}))
+	defer server.Close()
+
+	puller := HomeLabHTTPPuller{
+		URL:          server.URL,
+		MaxBytes:     1024,
+		RetryMax:     2,
+		RetryBackoff: 10 * time.Millisecond,
+	}
+	raw, err := puller.PullSnapshot(context.Background())
+	if err != nil {
+		t.Fatalf("expected retry to succeed: %v", err)
+	}
+	if raw.AgentID != "homelab-agent-a" {
+		t.Fatalf("unexpected agent_id: %q", raw.AgentID)
+	}
+	if calls != 2 {
+		t.Fatalf("calls=%d; want 2 (transient EOF → retry)", calls)
+	}
+}
+
 // MaxBytes = 0 은 unlimited (legacy behavior).
 func TestHomeLabHTTPPullerUnlimitedWhenMaxBytesZero(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

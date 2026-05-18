@@ -78,6 +78,22 @@ func TestHomeLabFilePullerRejectsOversizedFile(t *testing.T) {
 	}
 }
 
+// codex hotfix #8 P2 #3 — Decode 후 EOF 미체크 시 후행 JSON object 가 silent
+// 무시되는 회귀 가드. 이전 json.Unmarshal 구현은 trailing data 를 reject.
+func TestHomeLabFilePullerRejectsTrailingJSON(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "trailing.json")
+	content := `{"agent_id":"homelab-agent-a","snapshot_at":"2026-05-18T00:00:00Z","nodes":[{"node_id":"n1"}]}{"extra":"silently_ignored"}`
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+	puller := HomeLabFilePuller{Path: path}
+	_, err := puller.PullSnapshot(context.Background())
+	if !errors.Is(err, ErrInvalidHomeLabSnapshot) {
+		t.Fatalf("err=%v; want ErrInvalidHomeLabSnapshot (trailing data)", err)
+	}
+}
+
 // MaxBytes = 0 은 unlimited (legacy behavior) — large fixture 도 정상 처리.
 func TestHomeLabFilePullerUnlimitedWhenMaxBytesZero(t *testing.T) {
 	dir := t.TempDir()
