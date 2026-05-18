@@ -42,6 +42,8 @@
 | TC-INT-FRONTEND-EDIT-01 | P1 | E2E | Provider row 의 Edit → display_name/credentials_ref/enabled 갱신 | API-71 호출 → row 즉시 갱신 (provider_key/type/auth_mode 는 immutable) |
 | TC-INT-FRONTEND-SYNC-01 | P1 | E2E | Provider row 의 Sync 버튼 click | API-72 호출 → sync_status badge `requested` 로 즉시 전이 + last_sync_at 갱신 |
 | TC-INT-FRONTEND-RBAC-01 | P2 | E2E | non-system_admin (developer / manager) 이 `/admin/settings/integrations` 직접 접근 | AuthGuard + layout.tsx 의 `isSystemAdmin` 가드로 default landing 으로 redirect |
+| TC-INT-FRONTEND-DELETE-01 | P1 | E2E | Provider row 의 Delete 버튼 → DestructiveConfirmModal 확인 → binding 없는 provider 삭제 | API-80 호출 + 200 응답 + table row 제거 + 성공 toast |
+| TC-INT-FRONTEND-DELETE-NEG-01 | P1 | E2E | binding 이 있는 provider 삭제 시도 | API-80 호출 → 409 `integration_provider_has_bindings` → 에러 toast + row 유지 |
 
 ### 3.1 Frontend 카버리지 매핑 (sprint `claude/work_260518-h`)
 
@@ -54,6 +56,8 @@
 | `TC-INT-FRONTEND-EDIT-01` | `provider lifecycle` step 3 (Edit 모달 + immutable field 가드 검증 — provider_key 입력 부재 + type/auth_mode disabled) | ✅ active |
 | `TC-INT-FRONTEND-SYNC-01` | `provider lifecycle` step 4 (Sync 버튼) | ✅ active |
 | `TC-INT-FRONTEND-RBAC-01` | `non-system_admin redirect` | ✅ active (developer 로그인 → `/developer` 로 redirect 검증) |
+| `TC-INT-FRONTEND-DELETE-01` | `provider lifecycle` step 5 (DELETE 버튼 → DestructiveConfirmModal → API-80) | ✅ active (sprint `claude/work_260518-j`, mega test cleanup → 명시 delete 로 전환) |
+| `TC-INT-FRONTEND-DELETE-NEG-01` | UT/IT 영역 (binding 시드 후 DELETE → 409) — backend `TestDeleteIntegrationProvider_HasBindings` 가 cover. E2E carve out. | 🟡 UT only (backend test 활성) |
 
 ## 4. E2E 시나리오 초안
 
@@ -83,6 +87,7 @@
 | 2026-05-16 | API-69~75 baseline 구현 기준 실행 스냅샷 반영 (IT 중심), E2E 미진입 항목 명시. |
 | 2026-05-18 | sprint `claude/work_260518-g` — TC-INT-FRONTEND-{LIST,CREATE,EDIT,SYNC,RBAC}-01 신규 발급 (External Integration frontend 진입점 1차, `/admin/settings/integrations` 페이지). E2E spec ts 작성은 후속 carve out. |
 | 2026-05-18 | sprint `claude/work_260518-h` — TC-INT-FRONTEND-* 5건의 E2E spec ts 활성화. `frontend/tests/e2e/admin-integrations.spec.ts` 신규 (2 test: mega lifecycle 4 step + RBAC negative). §3.1 카버리지 매핑 표 신설 — TC ID ↔ spec ts step 1:1. carve out → active 전환. |
+| 2026-05-18 | sprint `claude/work_260518-j` — **API-80 DELETE endpoint + frontend Delete UI**. TC-INT-FRONTEND-DELETE-01 (E2E active — mega test step 5) + DELETE-NEG-01 (UT only — `TestDeleteIntegrationProvider_HasBindings`) 발급. backend handler 4 신규 unit test (Happy / NotFound / HasBindings / RBAC). frontend: service.deleteProvider + ProviderTable Delete 버튼 + DestructiveConfirmModal. spec ts cleanup 부분이 명시 DELETE 호출로 전환. |
 
 ## 8. 실행 스냅샷 (2026-05-16)
 

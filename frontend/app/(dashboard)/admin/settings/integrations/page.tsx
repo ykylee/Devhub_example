@@ -8,6 +8,8 @@ import type { IntegrationProvider } from "@/lib/services/integration.types";
 import { ProviderTable } from "@/components/integration/ProviderTable";
 import { ProviderModal } from "@/components/integration/ProviderModal";
 import { useToast } from "@/components/ui/Toast";
+import { DestructiveConfirmModal } from "@/components/ui/DestructiveConfirmModal";
+import { ApiError } from "@/lib/services/api-client";
 
 export default function AdminSettingsIntegrationsPage() {
   const [providers, setProviders] = useState<IntegrationProvider[]>([]);
@@ -15,6 +17,8 @@ export default function AdminSettingsIntegrationsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [editingProvider, setEditingProvider] = useState<IntegrationProvider | null>(null);
   const [syncingProviderID, setSyncingProviderID] = useState<string | null>(null);
+  const [deletingProviderID, setDeletingProviderID] = useState<string | null>(null);
+  const [providerToDelete, setProviderToDelete] = useState<IntegrationProvider | null>(null);
   const { toast } = useToast();
 
   // codex hotfix #6 P1 #1 (PR #148): `useToast()` 가 매 render 마다 새 toast
@@ -55,6 +59,39 @@ export default function AdminSettingsIntegrationsPage() {
       return [saved, ...prev];
     });
     toast(`Provider '${saved.display_name}' 이(가) 저장되었습니다.`, "success");
+  };
+
+  const handleDeleteRequest = (provider: IntegrationProvider) => {
+    setProviderToDelete(provider);
+  };
+
+  const confirmDelete = async () => {
+    if (!providerToDelete) return;
+    const target = providerToDelete;
+    setDeletingProviderID(target.provider_id);
+    try {
+      await integrationService.deleteProvider(target.provider_id);
+      setProviders((prev) => prev.filter((p) => p.provider_id !== target.provider_id));
+      toast(`Provider '${target.display_name}' 삭제 완료`, "success");
+    } catch (error) {
+      // ADR-INT-* / backend §15.2 — 409 integration_provider_has_bindings 분기
+      // 사용자 환기 메시지로 토스트 (binding 정리 후 재시도 안내).
+      if (error instanceof ApiError && error.status === 409) {
+        const payload = error.payload as { code?: string } | null;
+        if (payload?.code === "integration_provider_has_bindings") {
+          toast(
+            `'${target.display_name}' 에 연결된 binding 이 남아 있어 삭제할 수 없습니다. 먼저 binding 을 정리한 후 다시 시도하세요.`,
+            "error",
+          );
+          return;
+        }
+      }
+      console.error("[admin/settings/integrations] delete failed:", error);
+      toast("provider 삭제에 실패했습니다.", "error");
+    } finally {
+      setDeletingProviderID(null);
+      setProviderToDelete(null);
+    }
   };
 
   const handleSync = async (provider: IntegrationProvider) => {
@@ -117,7 +154,9 @@ export default function AdminSettingsIntegrationsPage() {
           items={providers}
           onEdit={setEditingProvider}
           onSync={handleSync}
+          onDelete={handleDeleteRequest}
           syncingProviderID={syncingProviderID}
+          deletingProviderID={deletingProviderID}
         />
       )}
 
@@ -135,6 +174,19 @@ export default function AdminSettingsIntegrationsPage() {
           onSaved={handleSaved}
         />
       )}
+
+      <DestructiveConfirmModal
+        isOpen={!!providerToDelete}
+        onClose={() => setProviderToDelete(null)}
+        onConfirm={confirmDelete}
+        title="Delete Provider"
+        description={
+          providerToDelete
+            ? `'${providerToDelete.display_name}' provider 를 삭제하시겠습니까? 연결된 binding 이 남아 있으면 삭제가 차단됩니다 (실수 cascade 방지).`
+            : ""
+        }
+        confirmText="Delete"
+      />
     </div>
   );
 }

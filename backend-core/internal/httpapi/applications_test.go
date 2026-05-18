@@ -533,6 +533,22 @@ func (s *memoryApplicationStore) UpdateIntegrationProvider(_ context.Context, p 
 	return current, nil
 }
 
+func (s *memoryApplicationStore) DeleteIntegrationProvider(_ context.Context, providerID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.integrationProviders[providerID]; !ok {
+		return store.ErrNotFound
+	}
+	// FK guard mirror: binding count > 0 이면 ErrConflict.
+	for _, b := range s.integrationBindings {
+		if b.ProviderID == providerID {
+			return store.ErrConflict
+		}
+	}
+	delete(s.integrationProviders, providerID)
+	return nil
+}
+
 func (s *memoryApplicationStore) CreateIntegrationSyncJob(_ context.Context, providerID string, _ string) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

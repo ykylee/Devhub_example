@@ -369,6 +369,64 @@ func (h *Handler) syncIntegrationProvider(c *gin.Context) {
 	c.JSON(http.StatusAccepted, gin.H{"status": "accepted", "job_id": jobID})
 }
 
+// API-80 DELETE /api/v1/integration/providers/:provider_id — provider 삭제.
+// FK guard: integration_bindings 가 1건 이상이면 409 `integration_provider_has_bindings`
+// (실수 cascade 방지 — binding 정리는 운영자가 명시적으로 수행).
+// integration_sync_jobs 는 schema 의 ON DELETE CASCADE 로 자동 정리.
+// sprint claude/work_260518-j.
+func (h *Handler) deleteIntegrationProvider(c *gin.Context) {
+	storeI, ok := h.applicationStoreOrUnavailable(c)
+	if !ok {
+		return
+	}
+	providerID := strings.TrimSpace(c.Param("provider_id"))
+	if providerID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "provider_id is required"})
+		return
+	}
+	// 삭제 전 audit 본문에 담을 정보를 조회. not_found 면 404 직진.
+	provider, err := storeI.GetIntegrationProviderByID(c.Request.Context(), providerID)
+	if errors.Is(err, store.ErrNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{
+			"status": "not_found",
+			"error":  "provider not found",
+			"code":   "integration_provider_not_found",
+		})
+		return
+	}
+	if err != nil {
+		writeServerError(c, err, "integration.providers.delete.lookup")
+		return
+	}
+	if err := storeI.DeleteIntegrationProvider(c.Request.Context(), providerID); err != nil {
+		if errors.Is(err, store.ErrConflict) {
+			c.JSON(http.StatusConflict, gin.H{
+				"status": "conflict",
+				"error":  "provider has active bindings; remove bindings first",
+				"code":   "integration_provider_has_bindings",
+			})
+			return
+		}
+		if errors.Is(err, store.ErrNotFound) {
+			// 사전 조회 후 race 로 사라진 경우 — 404 로 정합.
+			c.JSON(http.StatusNotFound, gin.H{
+				"status": "not_found",
+				"error":  "provider not found",
+				"code":   "integration_provider_not_found",
+			})
+			return
+		}
+		writeServerError(c, err, "integration.providers.delete")
+		return
+	}
+	h.recordAuditBestEffort(c, "integration.provider.deleted", "integration_provider", providerID, map[string]any{
+		"provider_key":  provider.ProviderKey,
+		"provider_type": string(provider.ProviderType),
+		"display_name":  provider.DisplayName,
+	})
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+}
+
 // API-73 minimal ingest (phase-1): provider existence + dedupe + accepted envelope.
 func (h *Handler) ingestIntegrationProviderWebhook(c *gin.Context) {
 	storeI, ok := h.applicationStoreOrUnavailable(c)
