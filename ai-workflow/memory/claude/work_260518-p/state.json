@@ -1,0 +1,29 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260518-p",
+  "branch": "claude/work_260518-p",
+  "status": "in_progress",
+  "started_at": "2026-05-18T14:30:00Z",
+  "scope": "ADR-0015 §6 carve outs 부분 처리 — (1) size limit + streaming decode (file + HTTP puller), (2) agent token rotation SOP 문서. (3) dedicated worker binary 와 (4) push/pull dedup 정책은 carve out 유지 (M4 진입 시 재평가).",
+  "directive_source": "main flat state.json '다음 세션 directive (4)' + ADR-0015 §6 4 carve out 중 backend 단독 변경 가능 2개 + 운영 문서 1건 1차 처리.",
+  "decisions": [
+    "DEVHUB_HOMELAB_PULL_MAX_BYTES env 신규 — file/HTTP puller 공통. default 0 (unlimited, legacy 호환) — ADR §4.3 의 '코드 default 보수적, 권장 운영값 별도' 패턴 정합. 권장 운영값 5MB (5_242_880 bytes).",
+    "file puller — os.Stat 으로 사전 사이즈 검사 (limit 초과 시 ErrInvalidHomeLabSnapshot) + os.Open + json.NewDecoder streaming (in-memory ReadFile 회피).",
+    "HTTP puller — Content-Length header 가 있고 limit 초과 시 사전 reject + io.LimitReader(resp.Body, limit+1) 로 cap + json.NewDecoder streaming. limit+1 로 cap → decoder 가 EOF 외 추가 byte 발견 시 실패 → oversized 감지.",
+    "agent token rotation SOP — 별도 문서 docs/setup/homelab_agent_token_rotation.md. 코드 영향 0, ops/runbook 만.",
+    "dedicated worker binary (옵션 3.2.C) 와 push/pull dedup 은 별도 ADR / sprint — M4 운영 진입 시점에 재평가."
+  ],
+  "todo": [
+    "backend-core/internal/integrations/adapters/homelab_file_puller.go — MaxBytes field + os.Stat + streaming decode",
+    "backend-core/internal/integrations/adapters/homelab_http_puller.go — MaxBytes field + Content-Length 사전 검사 + io.LimitReader + streaming decode",
+    "backend-core/main.go (또는 pull loop wire 부) — DEVHUB_HOMELAB_PULL_MAX_BYTES env → puller MaxBytes 전달",
+    "backend-core/internal/integrations/adapters/homelab_file_puller_test.go — oversized file 회귀 test",
+    "backend-core/internal/integrations/adapters/homelab_http_puller_test.go — oversized response 회귀 test 2건 (Content-Length 사전 검사 + body cap)",
+    "docs/setup/homelab_agent_token_rotation.md 신규 — rotation SOP",
+    "docs/adr/0015-homelab-adapter-pull-strategy.md §4.3 env 표에 MAX_BYTES 추가 + §6 carve out (1) + (2) → resolved + §7 변경 이력",
+    "docs/traceability/report.md §6 변경 이력 sprint -p row",
+    "go vet + go test ./internal/integrations/adapters/ PASS",
+    "PR + self-review + 머지"
+  ],
+  "verification": "go vet PASS + adapter unit test PASS (oversized 회귀 가드) + CI 전체 그린"
+}

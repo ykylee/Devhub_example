@@ -89,6 +89,7 @@ backend-core/main.go::main()
 | `DEVHUB_HOMELAB_PULL_TOKEN` | unset | Bearer token (env 으로 주입) | HTTP mode: caller → HomeLab agent 인증 |
 | `DEVHUB_HOMELAB_PULL_HTTP_RETRY_MAX` | `0` (재시도 없음) | `3` | exponential backoff 최대 시도 횟수. 코드 default 0 은 1회 시도 후 즉시 error metric +1 — 운영에서는 `3` 이상 권장 |
 | `DEVHUB_HOMELAB_PULL_HTTP_RETRY_BACKOFF` | `1s` | `2s` | 최초 backoff 간격 (지수 증가) |
+| `DEVHUB_HOMELAB_PULL_MAX_BYTES` | `0` (unlimited, legacy) | `5242880` (5 MB) | snapshot payload size cap (file size 또는 HTTP response body). `0` 은 legacy unlimited, 운영 권장은 5 MB. sprint `claude/work_260518-p` (§6 resolved). file mode 는 `os.Stat` 사전 검사 + streaming decode, HTTP mode 는 Content-Length 사전 검사 + `io.LimitReader(body, limit+1)` streaming decode. 초과 시 `ErrInvalidHomeLabSnapshot`. |
 
 > **운영 노트**: 코드 default 는 보수적인 보장 (재시도 없음 + 짧은 tick) 으로, 알림 노이즈를 피하려면 운영 환경에서는 env 로 권장 운영값을 명시 설정한다. 알림 임계 ([ADR-0016](./0016-prometheus-alerts-policy.md)) 는 권장 운영값 (60s interval + retry 3) 을 가정 — env 미설정 상태에서 운영하면 false positive 빈도가 높아질 수 있다.
 
@@ -125,8 +126,8 @@ backend-core/main.go::main()
 
 ## 6. 후속 작업
 
-- **(carve)** size limit + streaming decode — 대용량 payload 보호. 본 1차는 in-memory full decode.
-- **(carve)** agent token rotation 정책 — HomeLab agent 의 `DEVHUB_HOMELAB_PULL_TOKEN` 갱신 절차 문서화 (운영 SOP).
+- **✅ resolved (sprint `claude/work_260518-p`, 본 PR)** size limit + streaming decode — `HomeLabFilePuller.MaxBytes` + `HomeLabHTTPPuller.MaxBytes` 필드 도입. file mode 는 `os.Stat` 사전 검사 + `os.Open` + `json.NewDecoder` streaming (in-memory full ReadFile 회피), HTTP mode 는 Content-Length 사전 검사 + `io.LimitReader(body, limit+1)` + streaming decode. 회귀 가드 unit test 5건 (file oversized + unlimited + HTTP Content-Length oversized + body over limit + unlimited). env: `DEVHUB_HOMELAB_PULL_MAX_BYTES` (§4.3 참조).
+- **✅ resolved (sprint `claude/work_260518-p`, 본 PR)** agent token rotation 정책 — `docs/setup/homelab_agent_token_rotation.md` 신규. 발급/배포/주기 rotation/zero-downtime 절차/비상 revoke/자동화 carve out 명시. `DEVHUB_HOMELAB_PULL_TOKEN` + `DEVHUB_INFRA_AGENT_TOKEN` 양쪽 다룸.
 - **(carve)** dedicated worker binary (옵션 3.2.C) — M4 운영 진입 시 트래픽 패턴 기반 재평가.
 - **(carve)** push/pull 경로 동시 운영 시 `snapshot_at` 기준 + `source` tag 의 dedup 정책 — 현재는 file/HTTP exclusive 만 다룸. push 와의 정합은 별도 ADR 후보.
 
@@ -137,3 +138,4 @@ backend-core/main.go::main()
 | 2026-05-16 | 1차 결정 (`docs/planning/homelab_adapter_pull_strategy.md` §2.1) — lightweight goroutine + feature flag. | PR #139 활성화 |
 | 2026-05-18 | accepted — ADR 형식으로 사후 명문화. source mode = file + HTTP mutually exclusive, 실행 컨테이너 = lightweight goroutine + feature flag, retry = exponential backoff env-controlled. 메트릭 5종 명시 (알림 규칙은 ADR-0016 분기). | sprint `claude/work_260518-c` (PR #143) |
 | 2026-05-18 | codex hotfix #5 P2 — §4.3 환경 변수 표를 "코드 default" / "권장 운영값" 두 컬럼으로 분리. PR #143 머지 직후 codex 외부 리뷰가 "ADR 의 default(60s/3/2s) 가 main.go 의 실제 default(30s/0/1s) 와 drift" 를 지적 → 운영자가 ADR 을 source-of-truth 로 보고 알림 임계 설계 시 오탐 가능성. 코드 default 는 보수적, 권장 운영값은 [ADR-0016](./0016-prometheus-alerts-policy.md) 알림 임계가 가정하는 값으로 명시. | sprint `claude/work_260518-e` |
+| 2026-05-18 | §6 carve out (1) + (2) **resolved** — (1) size limit + streaming decode: `HomeLabFilePuller.MaxBytes` + `HomeLabHTTPPuller.MaxBytes` 필드 추가 + `os.Stat` / Content-Length 사전 검사 + `io.LimitReader` + `json.NewDecoder` streaming. 회귀 unit test 5건. `Config.HomeLabPullMaxBytes` (env `DEVHUB_HOMELAB_PULL_MAX_BYTES`) wire. §4.3 env 표에 MAX_BYTES row 추가. (2) agent token rotation SOP: `docs/setup/homelab_agent_token_rotation.md` 신규. dedicated worker binary 와 push/pull dedup 은 carve out 유지 (M4 진입 시 재평가). | sprint `claude/work_260518-p` (본 PR) |
