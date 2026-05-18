@@ -27,9 +27,11 @@ type intakeTokenAdminCreateRequest struct {
 	ExpiresAt    *string  `json:"expires_at"` // RFC3339 string
 }
 
-// intakeTokenAdminUpdateIPsRequest is the body for PATCH /api/v1/dev-request-tokens/:token_id.
-type intakeTokenAdminUpdateIPsRequest struct {
+// intakeTokenAdminUpdateRequest is the body for PATCH /api/v1/dev-request-tokens/:token_id.
+// allowed_ips 와 expires_at 둘 다 optional 이며 최소 하나는 body 에 제공되어야 합니다.
+type intakeTokenAdminUpdateRequest struct {
 	AllowedIPs []string `json:"allowed_ips"`
+	ExpiresAt  *string  `json:"expires_at"` // optional RFC3339 string (nil/null 이면 만료 해제)
 }
 
 // generatePlainIntakeToken returns a 32-byte base64url-encoded random token
@@ -264,18 +266,76 @@ func (h Handler) updateDevRequestIntakeTokenIPs(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "token_id is required"})
 		return
 	}
-	var req intakeTokenAdminUpdateIPsRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+
+	var raw map[string]any
+	if err := c.ShouldBindJSON(&raw); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "invalid json body"})
 		return
 	}
-	canonIPs, problem := validateAllowedIPs(req.AllowedIPs)
-	if problem != "" {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": problem, "code": "invalid_allowed_ips"})
+
+	_, hasIPs := raw["allowed_ips"]
+	_, hasExpires := raw["expires_at"]
+	if !hasIPs && !hasExpires {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": "rejected",
+			"error":  "either allowed_ips or expires_at must be provided for update",
+			"code":   "invalid_update_payload",
+		})
 		return
 	}
 
-	updated, err := h.cfg.DevRequestIntakeTokenStore.UpdateDevRequestIntakeTokenIPs(c.Request.Context(), tokenID, canonIPs)
+	var canonIPs []string
+	if hasIPs {
+		rawIPs, ok := raw["allowed_ips"].([]any)
+		if !ok && raw["allowed_ips"] != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "allowed_ips must be an array of strings"})
+			return
+		}
+		var strIPs []string
+		for _, rip := range rawIPs {
+			s, ok := rip.(string)
+			if !ok {
+				c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "allowed_ips entries must be strings"})
+				return
+			}
+			strIPs = append(strIPs, s)
+		}
+		var problem string
+		canonIPs, problem = validateAllowedIPs(strIPs)
+		if problem != "" {
+			c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": problem, "code": "invalid_allowed_ips"})
+			return
+		}
+	}
+
+	var expiresAt *time.Time
+	if hasExpires {
+		val := raw["expires_at"]
+		if val != nil {
+			strVal, ok := val.(string)
+			if !ok {
+				c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "expires_at must be a string or null"})
+				return
+			}
+			if strVal != "" {
+				parsed, err := time.Parse(time.RFC3339, strVal)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "expires_at must be RFC3339 string"})
+					return
+				}
+				expiresAt = &parsed
+			}
+		}
+	}
+
+	updated, err := h.cfg.DevRequestIntakeTokenStore.UpdateDevRequestIntakeToken(
+		c.Request.Context(),
+		tokenID,
+		canonIPs,
+		expiresAt,
+		hasIPs,
+		hasExpires,
+	)
 	if errors.Is(err, store.ErrNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{
 			"status": "not_found",
@@ -285,7 +345,6 @@ func (h Handler) updateDevRequestIntakeTokenIPs(c *gin.Context) {
 		return
 	}
 	if errors.Is(err, store.ErrConflict) {
-		// ADR-0017 §4.2 — revoked token 의 mutation 은 의미 없음.
 		c.JSON(http.StatusConflict, gin.H{
 			"status": "conflict",
 			"error":  "intake token already revoked",
@@ -294,15 +353,22 @@ func (h Handler) updateDevRequestIntakeTokenIPs(c *gin.Context) {
 		return
 	}
 	if err != nil {
-		writeServerError(c, err, "dev_request_intake_tokens.update_ips")
+		writeServerError(c, err, "dev_request_intake_tokens.update")
 		return
 	}
 
-	h.recordAuditBestEffort(c, "dev_request_intake_token.updated", "dev_request_intake_token", updated.TokenID, map[string]any{
+	auditPayload := map[string]any{
 		"client_label":  updated.ClientLabel,
 		"source_system": updated.SourceSystem,
-		"allowed_ips":   updated.AllowedIPs,
-	})
+	}
+	if hasIPs {
+		auditPayload["allowed_ips"] = updated.AllowedIPs
+	}
+	if hasExpires {
+		auditPayload["expires_at"] = updated.ExpiresAt
+	}
+
+	h.recordAuditBestEffort(c, "dev_request_intake_token.updated", "dev_request_intake_token", updated.TokenID, auditPayload)
 
 	c.JSON(http.StatusOK, gin.H{
 		"status": "ok",

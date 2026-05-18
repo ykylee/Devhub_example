@@ -1,4 +1,4 @@
-import { vi, beforeEach, afterEach } from "vitest";
+import { vi, beforeEach, afterEach, describe, it, expect } from "vitest";
 
 // auth.service.signup unit test — RM-M3-01 frontend half (sprint
 // claude/work_260513-m). Mocks fetch and asserts the POST /api/v1/auth/signup

@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { vi, beforeEach } from "vitest";
+import { vi, beforeEach, describe, it, expect } from "vitest";
 
 // Mocks for next/navigation + zustand store + downstream services. Kept
 // intentionally minimal — full coverage of AuthGuard's role-routing logic

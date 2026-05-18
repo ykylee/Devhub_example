@@ -3,9 +3,9 @@
 - 문서 목적: 외부 접속을 단일 포트로 통합하고 frontend 가 `/devhub` 대표 prefix 로 모든 트래픽을 받아 backend 들을 `/devhub/{backend}` sub-path 로 reverse proxy 하는 구성의 design 검토. 1차 산출물은 planning 단계 — 결정 후 ADR 승격은 별도 sprint.
 - 범위: 외부 진입 + 경로 매핑 + OIDC redirect URI / cookie scope / CORS / 정적 자산 / local dev vs prod / CI E2E / 배포 / 관측 영향. 내부 process 구성 (5 process native, no-docker 정책) 자체는 유지.
 - 대상 독자: 아키텍트, 운영자 (SRE), Backend / Frontend / IdP 담당자.
-- 상태: planning (draft 1차)
+- 상태: Accepted (ADR-0018 승격 및 실 구현 완결)
 - 최종 수정일: 2026-05-18
-- 결정 근거 sprint: `claude/work_260518-u` (본 sprint, 사용자 요청 정합)
+- 결정 근거 sprint: `adr0018-reverse-proxy` (본 sprint)
 - 관련 문서: [ADR-0001 IdP selection](../adr/0001-idp-selection.md), [ADR-0003 no-docker CI 정책](../adr/0003-no-docker-policy-ci-scope.md), [environment setup](../setup/environment-setup.md), [test-server-deployment](../setup/test-server-deployment.md), [docker-packaging-deployment-guide](../setup/docker-packaging-deployment-guide.md), [frontend endpoints 모듈](../../frontend/lib/config/endpoints.ts).
 
 ## 1. 컨텍스트 + 동기

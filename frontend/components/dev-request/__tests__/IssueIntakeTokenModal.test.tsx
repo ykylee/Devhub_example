@@ -41,6 +41,11 @@ describe("IssueIntakeTokenModal", () => {
       source_system: "test_sys",
       allowed_ips: ["1.1.1.1"],
       plain_token: "ptk_abcdef123456",
+      created_at: "2026-05-18T12:00:00Z",
+      created_by: "system",
+      last_used_at: null,
+      revoked_at: null,
+      expires_at: null,
     };
     vi.mocked(devRequestTokenService.issue).mockResolvedValue(mockToken);
 
@@ -94,6 +99,11 @@ describe("IssueIntakeTokenModal", () => {
       source_system: "sys",
       allowed_ips: ["0.0.0.0/0"],
       plain_token: "ptk_secret",
+      created_at: "2026-05-18T12:00:00Z",
+      created_by: "system",
+      last_used_at: null,
+      revoked_at: null,
+      expires_at: null,
     };
     vi.mocked(devRequestTokenService.issue).mockResolvedValue(mockToken);
 

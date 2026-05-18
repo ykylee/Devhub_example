@@ -140,23 +140,24 @@ RETURNING token_id::text, client_label, hashed_token, allowed_ips, source_system
 }
 
 // UpdateDevRequestIntakeTokenIPs는 admin allowed_ips 수정 (sprint gemini/dreq_e2e_260515 hardening).
-// revoke 없이 접근 권한만 동적으로 변경할 때 사용. revoke 된 row 는 ErrConflict 반환
-// (ADR-0017 §4.2 — 이미 revoked 이면 mutation 의미 없음. codex hotfix #5 P2 #3 회귀 가드).
-//
-// ADR-0017 §6 atomicity (sprint claude/work_260518-o) — 이전 2 query 패턴
-// (UPDATE WHERE revoked_at IS NULL → ErrNoRows 시 별도 SELECT) 가 between-query
-// race window 를 가졌음. 본 구현은 단일 CTE + FOR UPDATE row lock + VALUES anchor
-// 패턴으로 atomic 보장:
-//   (1) locked CTE 가 token row 를 FOR UPDATE 로 잠그며 revoked_at 도 함께 조회
-//   (2) upd CTE 가 WHERE revoked_at IS NULL 가드로 UPDATE 시도
-//   (3) (VALUES (1)) AS root(_) anchor 가 단일 row 반환 보장 — locked empty 여도
-//       lock_token_id IS NULL 로 not_found 분기 가능 (codex hotfix #6 P2 정정 정합)
-// handler 분기: lock_token_id IS NULL → ErrNotFound / lock_revoked_at IS NOT NULL
-// → ErrConflict / upd_token_id IS NOT NULL → success.
+// 하위 호환성을 위해 유지하며, 내부적으로 UpdateDevRequestIntakeToken을 호출합니다.
 func (s *PostgresStore) UpdateDevRequestIntakeTokenIPs(ctx context.Context, tokenID string, allowedIPs []string) (domain.DevRequestIntakeToken, error) {
-	ipsJSON, err := json.Marshal(allowedIPs)
-	if err != nil {
-		return domain.DevRequestIntakeToken{}, fmt.Errorf("encode allowed_ips: %w", err)
+	return s.UpdateDevRequestIntakeToken(ctx, tokenID, allowedIPs, nil, true, false)
+}
+
+// UpdateDevRequestIntakeToken은 DREQ Intake Token의 allowed_ips와 expires_at을 선택적/동적으로 수정합니다 (ADR-0017 §6 carve (b)).
+// revoke 없이 접근 권한이나 만료일을 동적으로 변경할 때 사용. revoke 된 row 는 ErrConflict 반환.
+//
+// ADR-0017 §6 atomicity (sprint claude/work_260518-o) — CTE 기반 단일 쿼리 + row lock + values anchor 패턴으로
+// 동시성 레이스를 완벽하게 방지하며, 선택적 칼럼 업데이트를 지원합니다.
+func (s *PostgresStore) UpdateDevRequestIntakeToken(ctx context.Context, tokenID string, allowedIPs []string, expiresAt *time.Time, updateIPs bool, updateExpiresAt bool) (domain.DevRequestIntakeToken, error) {
+	var ipsJSON []byte
+	if updateIPs {
+		var err error
+		ipsJSON, err = json.Marshal(allowedIPs)
+		if err != nil {
+			return domain.DevRequestIntakeToken{}, fmt.Errorf("encode allowed_ips: %w", err)
+		}
 	}
 	const query = `
 WITH locked AS (
@@ -165,7 +166,10 @@ WITH locked AS (
 ),
 upd AS (
   UPDATE dev_request_intake_tokens
-  SET allowed_ips = $2::jsonb, updated_at = NOW()
+  SET 
+    allowed_ips = CASE WHEN $2::boolean THEN $3::jsonb ELSE allowed_ips END,
+    expires_at = CASE WHEN $4::boolean THEN $5::timestamptz ELSE expires_at END,
+    updated_at = NOW()
   WHERE token_id = $1::uuid AND revoked_at IS NULL
   RETURNING token_id::text, client_label, hashed_token, allowed_ips, source_system,
             created_at, created_by, last_used_at, revoked_at, expires_at
@@ -200,7 +204,7 @@ LEFT JOIN upd    ON true`
 		updRevokedAt   *time.Time
 		updExpiresAt   *time.Time
 	)
-	if scanErr := s.pool.QueryRow(ctx, query, tokenID, ipsJSON).Scan(
+	if scanErr := s.pool.QueryRow(ctx, query, tokenID, updateIPs, ipsJSON, updateExpiresAt, expiresAt).Scan(
 		&lockTokenID,
 		&lockRevokedAt,
 		&updTokenID,
@@ -214,7 +218,7 @@ LEFT JOIN upd    ON true`
 		&updRevokedAt,
 		&updExpiresAt,
 	); scanErr != nil {
-		return domain.DevRequestIntakeToken{}, fmt.Errorf("update intake token ips: %w", scanErr)
+		return domain.DevRequestIntakeToken{}, fmt.Errorf("update intake token: %w", scanErr)
 	}
 	if lockTokenID == nil {
 		return domain.DevRequestIntakeToken{}, ErrNotFound
@@ -226,7 +230,7 @@ LEFT JOIN upd    ON true`
 		// locked exists + not revoked + upd nil — pgx 가 다른 transaction 의 변경을
 		// 동시 감지한 극단 케이스 (FOR UPDATE 가 잠그기 직전에 revoked + lock 후 다시
 		// 풀린). defense-in-depth — read-after-write 불일치로 분류.
-		return domain.DevRequestIntakeToken{}, fmt.Errorf("update intake token ips: unexpected upd nil for token_id=%s", tokenID)
+		return domain.DevRequestIntakeToken{}, fmt.Errorf("update intake token: unexpected upd nil for token_id=%s", tokenID)
 	}
 	tok := domain.DevRequestIntakeToken{
 		TokenID:      derefString(updTokenID),

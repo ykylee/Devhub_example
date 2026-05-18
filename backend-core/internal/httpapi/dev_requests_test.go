@@ -511,7 +511,11 @@ func (f *fakeIntakeTokenStore) RevokeDevRequestIntakeToken(_ context.Context, to
 	return row, nil
 }
 
-func (f *fakeIntakeTokenStore) UpdateDevRequestIntakeTokenIPs(_ context.Context, tokenID string, allowedIPs []string) (domain.DevRequestIntakeToken, error) {
+func (f *fakeIntakeTokenStore) UpdateDevRequestIntakeTokenIPs(ctx context.Context, tokenID string, allowedIPs []string) (domain.DevRequestIntakeToken, error) {
+	return f.UpdateDevRequestIntakeToken(ctx, tokenID, allowedIPs, nil, true, false)
+}
+
+func (f *fakeIntakeTokenStore) UpdateDevRequestIntakeToken(_ context.Context, tokenID string, allowedIPs []string, expiresAt *time.Time, updateIPs bool, updateExpiresAt bool) (domain.DevRequestIntakeToken, error) {
 	hashed, ok := f.byID[tokenID]
 	if !ok {
 		return domain.DevRequestIntakeToken{}, store.ErrNotFound
@@ -521,7 +525,12 @@ func (f *fakeIntakeTokenStore) UpdateDevRequestIntakeTokenIPs(_ context.Context,
 	if row.RevokedAt != nil {
 		return domain.DevRequestIntakeToken{}, store.ErrConflict
 	}
-	row.AllowedIPs = allowedIPs
+	if updateIPs {
+		row.AllowedIPs = allowedIPs
+	}
+	if updateExpiresAt {
+		row.ExpiresAt = expiresAt
+	}
 	f.rows[hashed] = row
 	return row, nil
 }

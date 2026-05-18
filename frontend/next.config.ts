@@ -6,6 +6,7 @@ import { BACKEND_API_URL_SERVER } from "./lib/config/endpoints";
 // 않아 e2e CI 의 webServer 와 native dev 가 깨진다. docker 빌드 시에만 활성화한다.
 // 예: docker 의 build 단계에서 `NEXT_OUTPUT=standalone npm run build` 로 켠다.
 const nextConfig: NextConfig = {
+  basePath: process.env.NEXT_PUBLIC_BASE_PATH ? `/${process.env.NEXT_PUBLIC_BASE_PATH.replace(/^\//, "")}` : undefined,
   output: process.env.NEXT_OUTPUT === "standalone" ? "standalone" : undefined,
   async rewrites() {
     return [

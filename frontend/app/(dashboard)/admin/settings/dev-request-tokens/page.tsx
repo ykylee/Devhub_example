@@ -7,6 +7,7 @@ import { devRequestTokenService } from "@/lib/services/dev_request_token.service
 import type { DevRequestIntakeToken } from "@/lib/services/dev_request_token.types";
 import { IntakeTokenTable } from "@/components/dev-request/IntakeTokenTable";
 import { IssueIntakeTokenModal } from "@/components/dev-request/IssueIntakeTokenModal";
+import { EditIntakeTokenModal } from "@/components/dev-request/EditIntakeTokenModal";
 import { useToast } from "@/components/ui/Toast";
 import { DestructiveConfirmModal } from "@/components/ui/DestructiveConfirmModal";
 
@@ -14,6 +15,7 @@ export default function AdminSettingsDevRequestTokensPage() {
   const [tokens, setTokens] = useState<DevRequestIntakeToken[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showIssue, setShowIssue] = useState(false);
+  const [editingToken, setEditingToken] = useState<DevRequestIntakeToken | null>(null);
   const [revokingTokenID, setRevokingTokenID] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -111,7 +113,7 @@ export default function AdminSettingsDevRequestTokensPage() {
           </p>
         </div>
       ) : (
-        <IntakeTokenTable items={tokens} onRevoke={handleRevoke} revokingTokenID={revokingTokenID} />
+        <IntakeTokenTable items={tokens} onRevoke={handleRevoke} onEdit={(tok) => setEditingToken(tok)} revokingTokenID={revokingTokenID} />
       )}
 
       {showIssue && (
@@ -121,6 +123,17 @@ export default function AdminSettingsDevRequestTokensPage() {
             void refresh();
           }}
           onIssued={handleIssued}
+        />
+      )}
+
+      {editingToken && (
+        <EditIntakeTokenModal
+          token={editingToken}
+          onClose={() => setEditingToken(null)}
+          onUpdated={(updated) => {
+            setTokens((prev) => prev.map((t) => (t.token_id === updated.token_id ? updated : t)));
+            toast(`토큰 '${updated.client_label}' 의 설정이 변경되었습니다.`, "success");
+          }}
         />
       )}
 
