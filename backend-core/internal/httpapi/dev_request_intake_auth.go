@@ -26,6 +26,15 @@ type IntakeTokenStore interface {
 	ListDevRequestIntakeTokens(ctx context.Context) ([]domain.DevRequestIntakeToken, error)
 	RevokeDevRequestIntakeToken(ctx context.Context, tokenID string) (domain.DevRequestIntakeToken, error)
 	UpdateDevRequestIntakeTokenIPs(ctx context.Context, tokenID string, allowedIPs []string) (domain.DevRequestIntakeToken, error)
+	// HardRevokeExpiredIntakeTokens — ADR-0017 §6 carve (a). 만료된 token 일괄
+	// hard-revoke. RETURNING token_id 로 audit emit 대상 list 반환. sprint -t.
+	HardRevokeExpiredIntakeTokens(ctx context.Context, before time.Time) ([]string, error)
+	// CountExpiringSoonIntakeTokens — ADR-0017 §6 carve (c). threshold 안에 만료
+	// 예정인 활성 token 개수. Prometheus gauge devhub_intake_token_expiring_soon.
+	CountExpiringSoonIntakeTokens(ctx context.Context, threshold time.Time) (int, error)
+	// CountStaleIntakeTokens — ADR-0017 §6 carve (d). before 이전 미사용
+	// 활성 token 개수. Prometheus gauge devhub_intake_token_stale.
+	CountStaleIntakeTokens(ctx context.Context, before time.Time) (int, error)
 }
 
 // 컨텍스트 키 — DREQ intake 인증 통과 시 토큰의 source_system 매핑값을 핸들러에 전달.
