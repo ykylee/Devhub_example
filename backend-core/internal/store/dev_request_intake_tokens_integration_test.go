@@ -279,3 +279,128 @@ func TestIntegration_UpdateDevRequestIntakeTokenIPs_Atomicity(t *testing.T) {
 		}
 	})
 }
+
+// TestIntegration_UpdateDevRequestIntakeToken은 DREQ Intake Token의 allowed_ips와 expires_at을 선택적/동적으로 수정하는 기능을 검증합니다 (ADR-0017 §6 carve (b)).
+func TestIntegration_UpdateDevRequestIntakeToken(t *testing.T) {
+	dbURL := os.Getenv("DEVHUB_TEST_DB_URL")
+	if dbURL == "" {
+		t.Skip("DEVHUB_TEST_DB_URL is not set")
+	}
+
+	ctx := context.Background()
+	pgStore, err := store.NewPostgresStore(ctx, dbURL)
+	if err != nil {
+		t.Fatalf("connect postgres store: %v", err)
+	}
+	defer pgStore.Close()
+
+	pool, err := pgxpool.New(ctx, dbURL)
+	if err != nil {
+		t.Fatalf("connect cleanup pool: %v", err)
+	}
+	defer pool.Close()
+
+	suffix := fmt.Sprintf("mut-%d", time.Now().UnixNano())
+	createdTokens := make([]string, 0, 5)
+	defer func() {
+		for _, id := range createdTokens {
+			_, _ = pool.Exec(ctx, "DELETE FROM dev_request_intake_tokens WHERE token_id = $1::uuid", id)
+		}
+	}()
+
+	const seedUserID = "u1"
+
+	create := func(label, hashed string, expiresAt *time.Time) domain.DevRequestIntakeToken {
+		tok := domain.DevRequestIntakeToken{
+			ClientLabel:  label,
+			HashedToken:  hashed,
+			AllowedIPs:   []string{"10.0.0.0/24"},
+			SourceSystem: "mutation-test",
+			CreatedBy:    seedUserID,
+			ExpiresAt:    expiresAt,
+		}
+		out, err := pgStore.CreateDevRequestIntakeToken(ctx, tok)
+		if err != nil {
+			t.Fatalf("create intake token (%s): %v", label, err)
+		}
+		createdTokens = append(createdTokens, out.TokenID)
+		return out
+	}
+
+	t.Run("UpdateIPsOnly_PreservesExpiry", func(t *testing.T) {
+		expiry := time.Now().UTC().Add(24 * time.Hour).Truncate(time.Microsecond)
+		tok := create("ip-only-"+suffix, "hash-ip-only-"+suffix, &expiry)
+
+		updated, err := pgStore.UpdateDevRequestIntakeToken(ctx, tok.TokenID, []string{"192.168.1.1"}, nil, true, false)
+		if err != nil {
+			t.Fatalf("update failed: %v", err)
+		}
+
+		if len(updated.AllowedIPs) != 1 || updated.AllowedIPs[0] != "192.168.1.1" {
+			t.Errorf("allowed_ips mismatch: got %v want [192.168.1.1]", updated.AllowedIPs)
+		}
+		if updated.ExpiresAt == nil || !updated.ExpiresAt.Equal(expiry) {
+			t.Errorf("expiry must be preserved: got %v want %v", updated.ExpiresAt, expiry)
+		}
+	})
+
+	t.Run("UpdateExpiryOnly_PreservesIPs", func(t *testing.T) {
+		tok := create("exp-only-"+suffix, "hash-exp-only-"+suffix, nil)
+		newExpiry := time.Now().UTC().Add(48 * time.Hour).Truncate(time.Microsecond)
+
+		updated, err := pgStore.UpdateDevRequestIntakeToken(ctx, tok.TokenID, nil, &newExpiry, false, true)
+		if err != nil {
+			t.Fatalf("update failed: %v", err)
+		}
+
+		if len(updated.AllowedIPs) != 1 || updated.AllowedIPs[0] != "10.0.0.0/24" {
+			t.Errorf("allowed_ips must be preserved: got %v", updated.AllowedIPs)
+		}
+		if updated.ExpiresAt == nil || !updated.ExpiresAt.Equal(newExpiry) {
+			t.Errorf("expiry mismatch: got %v want %v", updated.ExpiresAt, newExpiry)
+		}
+	})
+
+	t.Run("UpdateBoth_SavesAllChanges", func(t *testing.T) {
+		tok := create("both-"+suffix, "hash-both-"+suffix, nil)
+		newExpiry := time.Now().UTC().Add(2 * time.Hour).Truncate(time.Microsecond)
+
+		updated, err := pgStore.UpdateDevRequestIntakeToken(ctx, tok.TokenID, []string{"172.16.0.0/12"}, &newExpiry, true, true)
+		if err != nil {
+			t.Fatalf("update failed: %v", err)
+		}
+
+		if len(updated.AllowedIPs) != 1 || updated.AllowedIPs[0] != "172.16.0.0/12" {
+			t.Errorf("allowed_ips mismatch: got %v", updated.AllowedIPs)
+		}
+		if updated.ExpiresAt == nil || !updated.ExpiresAt.Equal(newExpiry) {
+			t.Errorf("expiry mismatch: got %v want %v", updated.ExpiresAt, newExpiry)
+		}
+	})
+
+	t.Run("RemoveExpiry_ToInfiniteToken", func(t *testing.T) {
+		expiry := time.Now().UTC().Add(12 * time.Hour)
+		tok := create("inf-"+suffix, "hash-inf-"+suffix, &expiry)
+
+		updated, err := pgStore.UpdateDevRequestIntakeToken(ctx, tok.TokenID, nil, nil, false, true)
+		if err != nil {
+			t.Fatalf("update failed: %v", err)
+		}
+
+		if updated.ExpiresAt != nil {
+			t.Errorf("expiry must be nil (infinite token), got %v", updated.ExpiresAt)
+		}
+	})
+
+	t.Run("ConflictOnRevokedToken", func(t *testing.T) {
+		tok := create("conf-"+suffix, "hash-conf-"+suffix, nil)
+		if _, err := pgStore.RevokeDevRequestIntakeToken(ctx, tok.TokenID); err != nil {
+			t.Fatalf("revoke failed: %v", err)
+		}
+
+		_, err := pgStore.UpdateDevRequestIntakeToken(ctx, tok.TokenID, []string{"1.1.1.1"}, nil, true, false)
+		if !errors.Is(err, store.ErrConflict) {
+			t.Errorf("expected ErrConflict, got %v", err)
+		}
+	})
+}

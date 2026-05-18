@@ -1,0 +1,344 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "adr0017-token-mutation",
+  "status": "done (ADR-0017 §6 (b) DREQ Intake Token expires_at 및 allowed_ips 편집 및 UI 모달 연동 완결)",
+  "updated_at": "2026-05-18T22:30:00+09:00",
+  "head_commit": "4dd02ad",
+  "head_summary": "Merge pull request #164 (fix(backend,frontend,docs): codex review hotfix #8 — P1 3건 + P2 6건 일괄 흡수, sprint claude/work_260518-w)",
+  "milestones": {
+    "M0": {
+      "status": "done",
+      "ended_at": "2026-05-08",
+      "notes": "Authentication and authorization gate normalized. SEC-1..SEC-4 resolved."
+    },
+    "M1": {
+      "status": "done",
+      "started_at": "2026-05-08",
+      "ended_at": "2026-05-11",
+      "notes": "T-M1-01..08 모두 완결. RBAC track via PR #20-23, #29-31, #27, #28 (2026-05-08). PR-B + PR-C via #56 (envelope + types + WS + CommandStatus enum + dry-run/live boundary, 2026-05-11). PR-D via #57 (audit actor enrichment + request_id middleware + 000008 마이그레이션 + Codex P1 fix-up SetTrustedProxies(nil), 2026-05-11)."
+    },
+    "M2": {
+      "status": "done",
+      "started_at": "2026-05-08",
+      "ended_at": "2026-05-11",
+      "notes": "login_action sprint (2026-05-08): PR-LOGIN-1/2 (backend login + frontend form). work_26_05_11 sprint (2026-05-11): logout(#45/#51) + account password(#50) + deploy guide(#49). Track S (#52-#55) ships system_admin gating + /admin/settings + accounts admin endpoints + org chart drag/leader.",
+      "first_completion_sprint": "claude/login_usermanagement_finish (PR #85, 2026-05-12 머지) — M2 1차 완성 sprint: 로드맵 정합 + UX hygiene 묶음 (PR-UX1+2+3) + Kratos settings/password/after webhook → audit_logs (PR-M2-AUDIT) + 30 TC e2e 게이트 추가."
+    },
+    "CI": {
+      "status": "done",
+      "started_at": "2026-05-12",
+      "ended_at": "2026-05-13",
+      "notes": "GitHub Actions CI 도입. PR #86 (gemini/prepare-github-action) — backend-unit (go test ./...) + frontend-unit (Vitest) + e2e (Playwright 40 TC) 3잡. PR #87 (claude/work_260513-a) — playwright install scope (chromium 단일), actions/cache@v4 (go mod + ms-playwright), frontend readiness 120s, playwright install split. ADR-0003 + PR #88 (claude/work_260513-b) — no-docker 정책 CI 확장으로 services: postgres 제거 + pgdg native PG15 (pg-14 dropcluster + --port=5432 강제). FU-CI-1..4 모두 처리 완료."
+    },
+    "Governance": {
+      "status": "done (1차)",
+      "started_at": "2026-05-13",
+      "ended_at": "2026-05-13",
+      "notes": "PR #89 (claude/work_260513-c) — docs/governance/ (README + document-standards.md) + docs/traceability/ (README + conventions.md + sync-checklist.md + report.md) + .github/pull_request_template.md + AGENTS/GEMINI 진입점 안내. 1차 종합 매트릭스: REQ-FR 105 + REQ-NFR 26 + ARCH 17 + API 40 + RM 28 + IMPL 79 + UT 47 + TC 37 = 412 항목, 도메인 그룹 13행. PR #90 (claude/work_260513-d) — §5 gap 표 형식 통일 + §5.2/§5.3 일부 closed + 메타 헤더 표준화 9 문서."
+    }
+  },
+  "components": {
+    "frontend": {
+      "phase": "Phase 6 done + frontend wire/UI types split (PR-B2). auth flow complete (login + logout + callback + account); /admin/settings shell live with users/organization/permissions sub-routes; sidebar gates system menu on actor.role.",
+      "auth": "OIDC code flow with PKCE end-to-end. tokenStore persists access/refresh/id; apiClient auto Authorization. AuthGuard 401 -> /login + system route gate. Header Sign Out drives Hydra /oauth2/sessions/logout via id_token_hint, Kratos cookie killed via fetch.",
+      "build_check": "PASS — Next.js 16.2.4, 18 static pages.",
+      "rbac": "PermissionEditor at /admin/settings/permissions wired to /api/v1/rbac/policies. defaultLandingFor + isSystemAdmin + pathRequiresSystemAdmin in lib/auth/role-routing.ts."
+    },
+    "backend": {
+      "phase": "M1 + M2 done. Auth proxy: /api/v1/auth/{login,logout,token,signup,consent} + accounts admin (/api/v1/accounts {POST/PUT password/PATCH/DELETE}). Audit enrichment (source_ip/request_id/source_type) + requireRequestID middleware + CommandStatus enum + envelope alignment.",
+      "auth": "BearerTokenVerifier (Hydra introspection) + enforceRoutePermission. Logout: Hydra accept + revoke. Accounts admin proxies Kratos admin. SetTrustedProxies(nil) so audit_logs.source_ip cannot be forged via X-Forwarded-For.",
+      "test_check": "PASS — go test ./... (httpapi: 10 accounts admin + 11 logout + 5 envelope + 4 audit enrichment + auth + RBAC; domain: CommandStatus 36-cell matrix).",
+      "rbac": "rbac_policies seeded with developer/manager/system_admin. /api/v1/accounts gated as security:create / security:edit / organization:edit / organization:delete.",
+      "auth_envs": "DEVHUB_HYDRA_ADMIN_URL, DEVHUB_HYDRA_PUBLIC_URL (revoke), DEVHUB_KRATOS_PUBLIC_URL (login), DEVHUB_KRATOS_ADMIN_URL (signup + accounts admin).",
+      "request_context": "X-Request-ID 응답 헤더 + audit_logs.request_id 동일값. caller-supplied X-Request-ID 우선, 없으면 req_<hex24> 자동 생성 (DEC-3=B)."
+    },
+    "infra_idp": {
+      "scaffold": "infra/idp/ (hydra.yaml, kratos.yaml, schemas, scripts) — verified 2026-05-08 sandbox.",
+      "deploy_guide": "docs/setup/test-server-deployment.md — native binary, no-docker, full e2e flow."
+    }
+  },
+  "session_pointers": {
+    "session_handoff_path": "ai-workflow/memory/session_handoff.md",
+    "work_backlog_path": "ai-workflow/memory/work_backlog.md",
+    "integrated_roadmap": "docs/development_roadmap.md",
+    "frontend_roadmap": "docs/frontend_development_roadmap.md",
+    "backend_roadmap": "ai-workflow/memory/backend_development_roadmap.md",
+    "deploy_guide": "docs/setup/test-server-deployment.md",
+    "adr_idp": "docs/adr/0001-idp-selection.md",
+    "adr_rbac": "docs/adr/0002-rbac-policy-edit-api.md",
+    "sprints": {
+      "m0_merge_roadmap": "ai-workflow/memory/claude/merge_roadmap/",
+      "m1_sprint_plan": "ai-workflow/memory/claude/m1-sprint-plan/backlog/2026-05-08.md",
+      "m2_login_action": "ai-workflow/memory/claude/login_action/backlog/2026-05-08.md",
+      "work_26_05_11": "ai-workflow/memory/claude/work_26_05_11/backlog/2026-05-11.md (CLOSED)",
+      "work_26_05_11_b": "ai-workflow/memory/claude/work_26_05_11-b/backlog/2026-05-11.md (CLOSED, PR #56)",
+      "work_26_05_11_c": "ai-workflow/memory/claude/work_26_05_11-c/backlog/2026-05-11.md (CLOSED, PR #57)",
+      "work_26_05_11_d": "ai-workflow/memory/claude/work_26_05_11-d/backlog/2026-05-11.md (CLOSED, PR #58)",
+      "work_260512_f": "ai-workflow/memory/claude/work_260512-f/ (CLOSED, PR #76 hardening + #77 close)",
+      "work_260512_g": "ai-workflow/memory/claude/work_260512-g/ (CLOSED, PR #78 follow-up + #79 close)",
+      "work_260512_i": "ai-workflow/memory/claude/work_260512-i/ (CLOSED, PR #80 PR-D follow-up + #81 close)",
+      "work_260512_j": "ai-workflow/memory/claude/work_260512-j/ (CLOSED, PR #82 second-pass fix + #83 close)",
+      "login_usermanagement_finish": "ai-workflow/memory/claude/login_usermanagement_finish/ (CLOSED, PR #85 M2 1차 완성 sprint — UX hygiene + Kratos audit + 30 TC)",
+      "gemini_prepare_github_action": "ai-workflow/memory/gemini/prepare-github-action/ (CLOSED, PR #86 GHA CI 그린 + 리뷰어 모드 2-pass)",
+      "work_260513_a": "ai-workflow/memory/claude/work_260513-a/ (CLOSED, PR #87 GHA 최적화 FU-CI-2/3/4 + main flat sync)",
+      "work_260513_b": "ai-workflow/memory/claude/work_260513-b/ (CLOSED, PR #88 ADR-0003 + native PG 15)",
+      "work_260513_c": "ai-workflow/memory/claude/work_260513-c/ (CLOSED, PR #89 governance + traceability + 1차 매트릭스)",
+      "work_260513_d": "ai-workflow/memory/claude/work_260513-d/ (CLOSED, PR #90 갭 분석 정리 + 메타 헤더 표준화 + main flat sync)",
+      "work_260513_e": "ai-workflow/memory/claude/work_260513-e/ (CLOSED, PR #91 A 묶음 — M1 PR-D 정합 마무리 + Pass 1 review 보강 흡수)",
+      "work_260513_f": "ai-workflow/memory/claude/work_260513-f/ (CLOSED, PR #92 B 묶음 — RBAC 도메인 1차 + Pass 1 review 보강으로 §3 행 정리)",
+      "work_260513_g": "ai-workflow/memory/claude/work_260513-g/ (CLOSED, PR #93 B1 auth 도메인 2차 — §11 본문 ID 노출 + IMPL-auth-01..07 책임 정의)",
+      "work_260513_h": "ai-workflow/memory/claude/work_260513-h/ (CLOSED, PR #94 B4 X-Devhub-Actor 폐기 ADR-0004 + Pass 1 review 보강으로 spec 잔재 6 위치 흡수)",
+      "work_260513_i": "ai-workflow/memory/claude/work_260513-i/ (CLOSED, PR #95 대형 묶음 B1~D5 — Pass 1 review clean)",
+      "work_260513_j": "ai-workflow/memory/claude/work_260513-j/ (CLOSED, PR #96 M3 진입 전 잔여 후속 일괄 — Pass 1 review e2e relax 보강)",
+      "work_260513_k": "ai-workflow/memory/claude/work_260513-k/ (CLOSED, PR #97 M3/M4 drift 정합 — Pass 1 review clean)",
+      "work_260513_l": "ai-workflow/memory/claude/work_260513-l/ (CLOSED, PR #98 M3 진입 1차 — RM-M3-01..03)",
+      "work_260513_m": "ai-workflow/memory/claude/work_260513-m/ (CLOSED, PR #99 M3 후속 1-4 일괄)",
+      "work_260513_n": "ai-workflow/memory/claude/work_260513-n/ (CLOSED, PR #100 M4 전 잔여 일괄)",
+      "work_260513_o": "ai-workflow/memory/claude/work_260513-o/ (CLOSED, PR #101 housekeeping sync)",
+      "work_260513_p": "ai-workflow/memory/claude/work_260513-p/ (CLOSED, PR #102 Project 도메인 컨셉 1차)",
+      "work_260513_q": "ai-workflow/memory/claude/work_260513-q/ (IN PROGRESS, 2026-05-13 세션 종료 housekeeping sync 2차 — PR #102 흡수)"
+    },
+    "governance_entry": "docs/governance/README.md",
+    "traceability_entry": "docs/traceability/README.md",
+    "traceability_matrix": "docs/traceability/report.md",
+    "adr_no_docker_ci": "docs/adr/0003-no-docker-policy-ci-scope.md"
+  },
+  "merged_prs_2026_05_11": [
+    {"pr": 45, "sprint": "work_26_05_11", "title": "feat(auth): /api/v1/auth/logout proxy (PR-L1)", "merge_commit": "61541da"},
+    {"pr": 51, "sprint": "work_26_05_11", "title": "feat(auth): /auth/logout + Kratos browser logout (PR-L2)", "merge_commit": "858129f"},
+    {"pr": 50, "sprint": "work_26_05_11", "title": "feat(account): /account password via Kratos settings (PR-L3)", "merge_commit": "205980e"},
+    {"pr": 49, "sprint": "work_26_05_11", "title": "docs(setup): test server deployment guide", "merge_commit": "92b3459"},
+    {"pr": 52, "sprint": "work_26_05_11", "title": "feat(ui): role-based landing + system_admin sidebar gating (PR-S1)", "merge_commit": "a2f707e"},
+    {"pr": 53, "sprint": "work_26_05_11", "title": "feat(ui): /admin/settings shell + relocate organization 4 tabs (PR-S2)", "merge_commit": "2d0075e"},
+    {"pr": 54, "sprint": "work_26_05_11", "title": "feat(account): admin endpoints for issue/reset/disable/delete (PR-S3)", "merge_commit": "b935876"},
+    {"pr": 55, "sprint": "work_26_05_11", "title": "feat(org): persist drag positions + leader change (PR-S4)", "merge_commit": "818d54a"},
+    {"pr": 56, "sprint": "work_26_05_11-b", "title": "feat(M1 cleanup): envelope alignment + wire/UI split + CommandStatus enum (PR-B + PR-C)", "merge_commit": "9b6b3ea"},
+    {"pr": 57, "sprint": "work_26_05_11-c", "title": "feat(audit): actor enrichment + request_id middleware (PR-D, M1 final)", "merge_commit": "4e831a3"},
+    {"pr": 58, "sprint": "work_26_05_11-d", "title": "test: TDD foundation — Vitest + Playwright + first scenarios", "merge_commit": "adce7ec"}
+  ],
+  "merged_prs_2026_05_12": [
+    {"pr": 76, "sprint": "work_260512-f", "title": "test(e2e): force-reset seeded passwords (PR-T3.5 hardening)", "merge_commit": "e2393a3"},
+    {"pr": 77, "sprint": "work_260512-f-close", "title": "docs(memory): close work_260512-f slot", "merge_commit": "354609b"},
+    {"pr": 78, "sprint": "work_260512-g", "title": "test(e2e): best-effort cleanup in password-change.spec (PR-T3.5 follow-up)", "merge_commit": "6d2274c"},
+    {"pr": 79, "sprint": "work_260512-g-close", "title": "docs(memory): close work_260512-g slot", "merge_commit": "9549395"},
+    {"pr": 80, "sprint": "work_260512-i", "title": "feat(audit): PR-D follow-up — commands enrichment + log request_id + TRUSTED_PROXIES", "merge_commit": "ffcaec6"},
+    {"pr": 81, "sprint": "work_260512-i-close", "title": "docs(memory): close work_260512-i slot", "merge_commit": "d40b73a"},
+    {"pr": 82, "sprint": "work_260512-j", "title": "fix(audit): fall back to nil trust when DEVHUB_TRUSTED_PROXIES invalid", "merge_commit": "6121828"},
+    {"pr": 83, "sprint": "work_260512-j-close", "title": "docs(memory): close work_260512-j slot", "merge_commit": "29a90bd"},
+    {"pr": 84, "sprint": "main flat sync", "title": "docs(memory): main flat state/handoff EOD update for 2026-05-12", "merge_commit": "531ff8e"},
+    {"pr": 85, "sprint": "login_usermanagement_finish", "title": "feat(M2): 1차 완성 sprint — 로드맵 정합 + UX hygiene + Kratos audit", "merge_commit": "84b2dde"}
+  ],
+  "merged_prs_2026_05_13": [
+    {"pr": 86, "sprint": "gemini/prepare-github-action", "title": "ci: E2E 테스트 안정화 및 GitHub Actions CI 파이프라인 구축", "merge_commit": "450cc24"},
+    {"pr": 87, "sprint": "work_260513-a", "title": "ci: FU-CI-2/3/4 (playwright scope, GHA cache, frontend readiness) + main flat memory sync", "merge_commit": "e86f38f"},
+    {"pr": 88, "sprint": "work_260513-b", "title": "docs(adr): ADR-0003 no-docker policy CI scope — drop services: postgres + native PG 15", "merge_commit": "9268227"},
+    {"pr": 89, "sprint": "work_260513-c", "title": "docs: governance + traceability 체계 도입 + 1차 종합 매트릭스", "merge_commit": "7fac5bf"},
+    {"pr": 90, "sprint": "work_260513-d", "title": "docs(governance,traceability): 갭 분석 정리 + 메타 헤더 표준화 + main flat sync", "merge_commit": "ea8df91"},
+    {"pr": 91, "sprint": "work_260513-e", "title": "feat(backend): A 묶음 — M1 PR-D 정합 마무리 (writeRBACServerError + writeAuthLoginServerError 통합 + X-Request-ID validation + ctx 표준 request_id 전파)", "merge_commit": "ae8b459"},
+    {"pr": 92, "sprint": "work_260513-f", "title": "docs(traceability,api): B 묶음 — RBAC API §12 IMPL 정밀 매핑 + 본문 ID 노출", "merge_commit": "a73dba1"},
+    {"pr": 93, "sprint": "work_260513-g", "title": "docs(traceability,api): B1 auth 도메인 2차 — §11 본문 ID 노출 + IMPL-auth-01..07 책임 정의", "merge_commit": "594be74"},
+    {"pr": 94, "sprint": "work_260513-h", "title": "docs(adr): ADR-0004 X-Devhub-Actor 폐기 완료 선언 (B4)", "merge_commit": "ceb0f6f"},
+    {"pr": 95, "sprint": "work_260513-i", "title": "docs(traceability,adr,ci),test(frontend): 대형 묶음 B1~D5", "merge_commit": "cb9e6d5"},
+    {"pr": 96, "sprint": "work_260513-j", "title": "feat(auth),docs(adr,api,traceability),test: M3 진입 전 잔여 후속 일괄", "merge_commit": "f551e6a"},
+    {"pr": 97, "sprint": "work_260513-k", "title": "docs(roadmap,traceability): M3/M4 drift 정합", "merge_commit": "3d7d5a2"},
+    {"pr": 98, "sprint": "work_260513-l", "title": "feat(auth),docs(adr,api,traceability),test: M3 진입 1차 — RM-M3-01..03", "merge_commit": "b1268ce"},
+    {"pr": 99, "sprint": "work_260513-m", "title": "feat(hrdb,org,signup),docs(adr,traceability),test: M3 후속 1-4 일괄", "merge_commit": "c7c2f35"},
+    {"pr": 100, "sprint": "work_260513-n", "title": "feat(domain,migrations),docs(adr,traceability),scripts: M4 전 잔여 일괄", "merge_commit": "4134b37"},
+    {"pr": 101, "sprint": "work_260513-o", "title": "docs(memory): 2026-05-13 세션 종료 housekeeping sync", "merge_commit": "118899b"},
+    {"pr": 102, "sprint": "work_260513-p", "title": "docs(planning): Project 도메인 컨셉 1차 — CRUD + 등록 + 조회 MVP scope", "merge_commit": "244f6b1"}
+  ],
+  "discarded_sprints_2026_05_12": [
+    {"slot": "work_260512-h", "reason": "진입 직후 후보 (M2 hygiene users.kratos_identity_id) 가 PR-L4 (809f525, work_26_05_11-e) 에 이미 머지된 것 확인. 신규 작업 없어 폐기."}
+  ],
+  "merged_prs_2026_05_14": [
+    {"pr": 104, "sprint": "codex/project_concept_design", "title": "docs: Application/Repository/Project 설계 고도화 및 SCM 어댑터 모델 정리 + self-review 13건 보강", "merge_commit": "63a7ea2"},
+    {"pr": 105, "sprint": "claude/work_260514-a", "title": "feat(application,adr,docs): Application Design 1차 + ADR-0011 결정 + self-review 10건 보강", "merge_commit": "642d976"},
+    {"pr": 106, "sprint": "claude/work_260514-b", "title": "feat(application,store,httpapi,docs): Application Design 2차 — A1+A2+A3 (API-41~50 activated) + self-review 9건 보강", "merge_commit": "66ab5ff"},
+    {"pr": 107, "sprint": "claude/work_260514-c", "title": "feat(application,store,httpapi,docs): API-51~58 세트 활성화 + active→closed critical 가드 + self-review 11건 보강", "merge_commit": "f11bdbb"},
+    {"pr": 108, "sprint": "claude/work_260514-d", "title": "fix(application,store,httpapi): PR #107 codex review hotfix — P1 custom weight normalize + P2 UpdateIntegration unique mapping", "merge_commit": "7822a91"},
+    {"pr": 109, "sprint": "claude/work_260514-e", "title": "test(store): postgres integration test 도입 + P1/P2 회귀 guard (23 test)", "merge_commit": "1e38c4d"},
+    {"pr": 110, "sprint": "claude/work_260514-f", "title": "fix(test,ci,store): PR #109 codex review hotfix — B1 fixture + I1 setup + I3 backend-integration job + 2 SQL fix + GITHUB_STEP_SUMMARY", "merge_commit": "d29f2ac"},
+    {"pr": 112, "sprint": "codex/frontend_color_review", "title": "feat(frontend/org): Admin UI 개선, iPad 터치 안정화 및 백엔드 트랜잭션 강화 — ActionMenu 공통 컴포넌트 + 테마 토큰 정리 + 조직 단위 생성/수정 트랜잭션", "merge_commit": "3f387cd"}
+  ],
+  "merged_prs_2026_05_15": [
+    {"pr": 115, "sprint": "gemini/frontend_redesign_260514", "title": "feat(frontend): Light theme + dropdown refactor + endpoints 통일 + standalone gate + Switch View 테스트 정리", "merge_commit": "b669bc7"},
+    {"pr": 114, "sprint": "codex/260514-a", "title": "feat(application): leader/dev_unit 모델 확장 + applications 검색 확장 + auth_login 보완 + search predicate refactor + leader backfill", "merge_commit": "25f97ba"},
+    {"pr": 116, "sprint": "claude/work_260515-a", "title": "docs(memory): 2026-05-15 sprint claude/work_260515-a housekeeping", "merge_commit": "cbc36b0"},
+    {"pr": 117, "sprint": "claude/work_260515-b", "title": "refactor(frontend): PR #114 신규 컴포넌트 token 정책 일관 sweep — Application/Project/Repository 모달 3종 + Table 3종", "merge_commit": "68f031e"},
+    {"pr": 118, "sprint": "claude/work_260515-c", "title": "feat(httpapi,adr): enforceRowOwnership helper — ADR-0011 §4.2 + REQ-FR-PROJ-009 활성화", "merge_commit": "519a508"},
+    {"pr": 119, "sprint": "claude/work_260515-d", "title": "fix(frontend,backend,migrations): codex review hotfix — PR #114 + PR #118 (pmo_manager seed migration 000021 + handler wire + e2e regex anchor)", "merge_commit": "bca612e"},
+    {"pr": 120, "sprint": "claude/work_260515-e", "title": "docs(memory): 2026-05-15 sprint claude/work_260515-e housekeeping", "merge_commit": "feac299"},
+    {"pr": 121, "sprint": "claude/work_260515-f", "title": "docs(planning,requirements,architecture,api,roadmap,traceability): Dev Request (DREQ) 도메인 컨셉~설계 staged", "merge_commit": "52f6ad8"},
+    {"pr": 122, "sprint": "claude/work_260515-g", "title": "docs(adr,...): ADR-0012 — DREQ 외부 수신 인증 정책 (옵션 A 채택)", "merge_commit": "4d0277f"},
+    {"pr": 123, "sprint": "claude/work_260515-h", "title": "fix(migrations,docs,memory): codex review hotfix #2 — PR #119/#120/#121", "merge_commit": "1d24acf"},
+    {"pr": 124, "sprint": "claude/work_260515-i", "title": "feat(domain,store,httpapi,migrations): DREQ-Backend 1차 — API-59..65 activated", "merge_commit": "333edc9"},
+    {"pr": 125, "sprint": "claude/work_260515-j", "title": "feat(frontend,dev-request): DREQ-Frontend 1차 — 담당자 dashboard 위젯 + 관리 페이지", "merge_commit": "58033d2"},
+    {"pr": 126, "sprint": "claude/work_260515-k", "title": "fix(backend,frontend,migrations,memory): codex review hotfix #3 — PR #122/#124/#125", "merge_commit": "bb164c4"},
+    {"pr": 127, "sprint": "claude/work_260515-l", "title": "docs(memory): 2026-05-15 final EOD housekeeping (sprint claude/work_260515-l)", "merge_commit": "efec655"},
+    {"pr": 128, "sprint": "claude/work_260515-m", "title": "feat(domain,store,httpapi,docs): DREQ-Promote-Tx 단일 트랜잭션 + ADR-0013 RBAC row-scoping", "merge_commit": "1f9ec50"},
+    {"pr": 129, "sprint": "claude/work_260515-n", "title": "fix(backend,docs,memory): codex review hotfix #4 — PR #128 의 P1 + P2 + self-review P2 #1", "merge_commit": "5546a41"},
+    {"pr": 130, "sprint": "claude/work_260515-o", "title": "feat(domain,store,httpapi,migrations,docs): DREQ-Admin-UI backend — intake token admin (API-66..68) + ADR-0014", "merge_commit": "0bdf299"},
+    {"pr": 131, "sprint": "claude/work_260515-p", "title": "feat(frontend,dev-request): DREQ-Admin-UI frontend — /admin/settings/dev-request-tokens 페이지 + plain-1회-노출 modal", "merge_commit": "2147d6d"},
+    {"pr": 132, "sprint": "claude/work_260515-q", "title": "docs(memory): 2026-05-15 post-EOD housekeeping (sprint claude/work_260515-q)", "merge_commit": "253063e"},
+    {"pr": 133, "sprint": "codex/docker-packaging-guide", "title": "Docker deploy 패키지 안정화 + E2E 43/43 정합화 — docker-compose.deploy.yml + local-db profile + Hydra/Kratos deploy yaml + nginx + /api/runtime-config + docker-image-publish.yml workflow", "merge_commit": "4892a78"},
+    {"pr": 134, "sprint": "gemini/dreq_e2e_260515", "title": "feat(frontend): stabilize dashboard UI and optimize logout performance — DashboardHeader + LogoutOverlay + real charts + widget interactivity", "merge_commit": "09528bf"},
+    {"pr": 135, "sprint": "codex/memory-next-step-20260515", "title": "[Docs] External Integration 컨셉~설계 초안 패키지 — REQ-FR-INT + REQ-NFR-INT + UC-INT + ARCH-INT + API-69..78 + capability matrix + IMPL-int planned + TC-INT", "merge_commit": "62a2088"}
+  ],
+  "merged_prs_2026_05_16": [
+    {"pr": 136, "sprint": "codex/e2e-fix-20260515", "title": "test(e2e): stabilize dev-request and signout flows — strict locator + 타임스탬프 unique title + 위젯→list→detail flow 정합 + signout login form visibility 기반 검증", "merge_commit": "c61274b"},
+    {"pr": 137, "sprint": "gemini/dreq_e2e_260515", "title": "feat(dreq): implement token expiration policy and IP mutation endpoint — migration 000027 expires_at + auth_intake_token_expired + PATCH /api/v1/dev-request-tokens/:token_id allowed_ips mutation", "merge_commit": "72bf265"}
+  ],
+  "merged_prs_2026_05_17": [
+    {"pr": 138, "sprint": "gemini/main_review_260516", "title": "feat: 대시보드 리팩토링 + FilterBar 표준화 + DREQ E2E 안정화 — Applications/Repositories/Projects 전용 현황 페이지 신설 + FilterBar 공통 컴포넌트 + 감사로그 Glassmorphism", "merge_commit": "c0134a1"},
+    {"pr": 139, "sprint": "codex/next-step-20260516", "title": "feat(infra/integration): HomeLab pull adapter, persistence, and Prometheus observability — integration_registry + infra_snapshots + HomeLab file/HTTP puller + retry/backoff + pull loop scheduler + Prometheus /metrics + API-73..78 활성화 + migration 000028/000029", "merge_commit": "e2a76fb"},
+    {"pr": 140, "sprint": "gemini/ui_standardization_260517", "title": "feat: standardize FilterBar and stabilize frontend/backend build & E2E — dev-requests page FilterBar 적용 + DestructiveConfirmModal 도입 + IssueIntakeTokenModal Show/Hide toggle + 감사로그 리디자인", "merge_commit": "caa80c7"}
+  ],
+  "merged_prs_2026_05_18": [
+    {"pr": 141, "sprint": "claude/work_260518-a", "title": "docs(memory): 2026-05-18 메모리 갭 동기화 — 외부 에이전트 8 PR (#133~#140) flat memory 흡수 + DREQ P2 carve out 6/6 모두 해소 확인 + External Integration 도메인 1차 흡수", "merge_commit": "98fa4a7"},
+    {"pr": 142, "sprint": "claude/work_260518-b", "title": "docs(traceability): 외부 8 PR 사후 추적성 동기화 — §2.2 DREQ API §14 sub 표 API-66/67/68 + API-79 + §3 매트릭스 DREQ row + §5.1 E2E 미커버 표 + §6 변경 이력 PR #133~#141", "merge_commit": "d1461bd"},
+    {"pr": 143, "sprint": "claude/work_260518-c", "title": "docs(adr,traceability): ADR-0015 (HomeLab pull strategy) + ADR-0016 (Prometheus alerts policy) + ADR-0017 (DREQ intake token operational hardening) 3 신규 발급 + ADR-0014 §6 갱신", "merge_commit": "d2c0031"},
+    {"pr": 144, "sprint": "claude/work_260518-d", "title": "test(e2e),docs(tests,traceability): DREQ-E2E TC 정식 발급 (13건) + spec ts test.step() 마킹 + 신규 2 test (INTAKE-AUTH-NEG-01 + ADMIN-TOKEN-PATCH-01) — test_cases_m5_dreq.md 신규", "merge_commit": "d24a41e"},
+    {"pr": 145, "sprint": "codex/docker-packaging-guide", "title": "배포 패키징 안정화 + 로컬 이미지 참조/스모크 이슈 수정 — IMAGE_REPO_PREFIX + local-db profile db-init + DEV_FALLBACK=0 + Hydra --dev 제거 + system secret env + runtime-config forwarded-header 신뢰 제거 + codex P1/P2 해소 commit", "merge_commit": "f2e18a2"},
+    {"pr": 146, "sprint": "claude/work_260518-e", "title": "fix(backend,docs,traceability): codex review hotfix #5 — PR #142 (§2.2 API-78→79) + PR #143 (ADR-0015 default vs 권장값 + ADR-0017 PATCH revoked guard + 회귀 가드 3 unit test) 의 P2 3건", "merge_commit": "52981b9"},
+    {"pr": 147, "sprint": "claude/work_260518-f", "title": "docs(adr,traceability),test: PR #146 self-review 후속 — ADR-0017 §6 atomicity carve out (race window 명시 + CTE + FOR UPDATE reference SQL) + test 회귀 시나리오 주석 보강", "merge_commit": "951c0c8"},
+    {"pr": 148, "sprint": "claude/work_260518-g", "title": "feat(frontend,integration),docs(tests,traceability): External Integration frontend 진입점 1차 — /admin/settings/integrations 페이지 + ProviderTable + ProviderModal + integration.{service,types}.ts + layout subTabs", "merge_commit": "7b4ad18"},
+    {"pr": 149, "sprint": "claude/work_260518-h", "title": "test(e2e),docs(tests,traceability): admin-integrations.spec.ts 신규 — TC-INT-FRONTEND-* 5건 active (mega lifecycle 4 step + RBAC negative)", "merge_commit": "bb83520"},
+    {"pr": 150, "sprint": "claude/work_260518-i", "title": "fix(frontend,test,adr,traceability): codex review hotfix #6 — PR #147 + #148 + #149 의 P1 ×2 (useEffect toast dep + syncProvider 응답 형식) + P2 ×2 (ADR-0017 CTE LEFT JOIN empty → not-found 분기 불가 + spec ts SYNC assertion 약함)", "merge_commit": "99c0833"},
+    {"pr": 151, "sprint": "claude/work_260518-j", "title": "feat(backend,frontend,test,docs): API-80 DELETE integration provider endpoint + FK guard (binding count > 0 시 409 has_bindings) + handler 4 unit test + DestructiveConfirmModal + spec ts mega test DELETE step 5", "merge_commit": "51c79af"},
+    {"pr": 152, "sprint": "claude/work_260518-k", "title": "docs(memory): 2026-05-18 EOD 종합 housekeeping — 단일 일자 11 PR (a..k claude 10 + 외부 #145 codex 1) 종합 sync", "merge_commit": "4056ab4"},
+    {"pr": 153, "sprint": "claude/work_260518-l", "title": "fix(memory,traceability): codex review hotfix #7 — PR #149 merge_commit SHA d24a41e → bb83520 정정", "merge_commit": "f11a8c7"},
+    {"pr": 154, "sprint": "claude/work_260518-m", "title": "feat(frontend,integration),docs(tests,traceability): External Integration bindings 관리 UI 1차 — /admin/settings/integration-bindings + BindingsTable + CreateBindingModal + service/types wrapper (API-74 GET / API-75 POST) + layout subTabs Bindings + admin-integration-bindings.spec.ts (3 test) + 5 hotfix iteration (CSS locator + DOM data-provider-id + SYNC enabled gate + page.evaluate fetch + sessionStorage Bearer)", "merge_commit": "b5bc54b"},
+    {"pr": 155, "sprint": "claude/work_260518-n", "title": "feat(frontend,integration),docs(tests,traceability): Infra topology v2 시각화 1차 — /admin/topology-v2 + React Flow + nodes/services/edges 매핑 + degraded providers banner + snapshot_at 메타 + node click modal + infraService.getTopologyV2() + admin-topology-v2.spec.ts (3 test)", "merge_commit": "dc0ed1c"},
+    {"pr": 156, "sprint": "claude/work_260518-o", "title": "fix(backend,store,adr,test): ADR-0017 §6 atomicity 실 구현 — UpdateDevRequestIntakeTokenIPs 단일 CTE + FOR UPDATE row lock + (VALUES (1)) AS root(_) anchor 패턴 + TestIntegration_UpdateDevRequestIntakeTokenIPs_Atomicity (Happy/NotFound/Revoked/ConcurrentUpdateAndRevoke 4 sub-test)", "merge_commit": "eaa91a7"},
+    {"pr": 157, "sprint": "claude/work_260518-p", "title": "fix(backend,adapter,config,adr,docs): ADR-0015 §6 carve outs (1)+(2) — size limit + streaming decode (file os.Stat + HTTP Content-Length + io.LimitReader + json.NewDecoder streaming) + DEVHUB_HOMELAB_PULL_MAX_BYTES env + 5 회귀 unit test + agent token rotation SOP (docs/setup/homelab_agent_token_rotation.md 신규)", "merge_commit": "6648105"},
+    {"pr": 158, "sprint": "claude/work_260518-q", "title": "docs(memory,reports): 2026-05-18 post-EOD #1 종합 housekeeping + Jira 보고용 개발 현황 status 문서 (10 항목 + Mermaid + ASCII mockup + 캡처 가이드)", "merge_commit": "87fb93e"},
+    {"pr": 159, "sprint": "claude/work_260518-r", "title": "docs(reports): Jira 보고 status 문서 self-review hotfix — P1 3건 (ARCH 29 / TC 12 / M1 RBAC PR 범위) + P2 4건 (Mermaid caveat / sprint code 안내 / 부록 A PR #158)", "merge_commit": "79c0ec3"},
+    {"pr": 160, "sprint": "claude/work_260518-s", "title": "docs(adr,setup,traceability): ADR-0016 §6 carve outs (1)+(2) resolved — Alertmanager 운영 가이드 (외부 git 이관 layout + stage/prod raw YAML + 라우팅 + 운영 SOP) + Grafana dashboard JSON 모델 (5 panel + Prometheus datasource + environment template variable)", "merge_commit": "31cdad6"},
+    {"pr": 161, "sprint": "claude/work_260518-t", "title": "feat(backend,devrequest,store,adr,setup,test): ADR-0017 §6 (a)+(c)+(d) resolved — DREQ intake token cron + 만료/staleness Prometheus metric + audit dev_request_intake_token.auto_revoked + counter devhub_intake_token_auto_revoked_total + 5 cron unit test + 3 store integration sub-test", "merge_commit": "8802a5b"},
+    {"pr": 162, "sprint": "claude/work_260518-u", "title": "docs(planning,traceability): 단일 외부 포트 reverse proxy design 검토 — /devhub prefix + backend/Hydra/Kratos sub-path + nginx 권장 + Mermaid 토폴로지 + OIDC URL 정합 + cookie scope + 보안 점검 + cutover 절차 + ADR-0018 후보", "merge_commit": "338c430"},
+    {"pr": 163, "sprint": "claude/work_260518-v", "title": "docs(planning,traceability): 외부 Keycloak SSO federation design 검토 — Kratos upstream OIDC provider + HRDB employee_id strict link + claim mapping + audit auth.sso.* 4 action + cutover Phase 2/3/4 + ADR-0019 후보 (RM-M4-09 구체화)", "merge_commit": "cdd73b0"},
+    {"pr": 164, "sprint": "claude/work_260518-w", "title": "fix(backend,frontend,docs): codex review hotfix #8 — P1 3건 (HTTP puller ErrUnexpectedEOF retry 회귀 + PromQL env scoping + Hydra admin URL) + P2 6건 (scopeFilter prepend / spec react-flow assertion / file puller trailing JSON / ADR-0006+0012 link / NoRecentSuccess aggregation)", "merge_commit": "4dd02ad"}
+  ],
+  "dreq_domain_carve_out_progress": {
+    "1_4_rbac_adr_promote_tx": "✅ sprint m PR #128 (ADR-0013 사후 명문화 + Promote-Tx 단일 트랜잭션) + codex hotfix #4 sprint n PR #129",
+    "2_4_admin_ui_backend": "✅ sprint o PR #130 (API-66..68 + ADR-0014 + 신규 RBAC resource `dev_request_intake_tokens` + migration 000026)",
+    "2_4_admin_ui_frontend": "✅ sprint p PR #131 (/admin/settings/dev-request-tokens 페이지 + IssueIntakeTokenModal 2 phase + IntakeTokenTable + service/types)",
+    "3_4_e2e": "✅ 완료 — sprint d (PR #144) 가 TC-DREQ-* 13건 정식 발급 + frontend/tests/e2e/dev-requests.spec.ts test.step() 6 단계 마킹 + 신규 2 test (INTAKE-AUTH-NEG-01 invalid bearer + ADMIN-TOKEN-PATCH-01 API-79). test_cases_m5_dreq.md 신규 카탈로그.",
+    "addendum_2026_05_16_17": "PR #137 (token expires_at + IP mutation) 가 ADR-0014 §6 carve out 항목을 backend 에서 활성화 — 메모리 P2 #5/#6 해소.",
+    "addendum_2026_05_18_adr": "sprint c (PR #143) 가 ADR-0014 §6 carve out 본문 갱신 + ADR-0017 (intake token operational hardening) 발급으로 사후 명문화 완료. sprint i (PR #150 codex hotfix #6 P2) 가 ADR-0017 §6 reference CTE 의 LEFT JOIN empty → not-found 분기 불가 문제 정정 (VALUES anchor 패턴)."
+  },
+  "p2_carve_out_resolved_2026_05_15_to_17": [
+    "✅ promote-tx race 가드 — `WHERE id = $1 AND status IN ('pending', 'in_review')` (dev_requests.go:266 + dev_requests_promote.go:29). 어느 외부 에이전트 PR 이 이를 추가했는지 매핑 미확인 (다음 세션 git blame).",
+    "✅ memoryDevRequestStore.failPromote dead field — 코드 base 에서 grep 결과 0건 (제거 완료)",
+    "✅ window.confirm → DestructiveConfirmModal — 컴포넌트 신규 (frontend/components/ui/DestructiveConfirmModal.tsx) + dev-request-tokens 페이지 wire (PR #140). 전 frontend 의 window.confirm grep 0건",
+    "✅ plain_token Show/Hide toggle — IssueIntakeTokenModal:29 `showToken` state + Eye/EyeOff icon (line 253/257/259/261). aria-label 'Show token' / 'Hide token'",
+    "✅ token rotation expires_at — migration 000027 + auth_intake_token_expired error code + middleware 만료 체크 (PR #137)",
+    "✅ allowed_ips mutation endpoint — PATCH /api/v1/dev-request-tokens/:token_id (PR #137)"
+  ],
+  "external_integration_domain_2026_05_15_to_18": {
+    "status": "1차 종합 closing — concept staged → backend 1차 → ADR 3 신규 → provider frontend (CRUD + sync + DELETE) → bindings 관리 UI → topology v2 시각화. M4 진입 게이트 통과.",
+    "bindings_pr": "PR #154 (sprint m, claude/work_260518-m, merge b5bc54b) — /admin/settings/integration-bindings 페이지 + BindingsTable + CreateBindingModal + service/types (API-74 GET + API-75 POST wrapper) + layout subTabs Bindings (Link2 icon) + admin-integration-bindings.spec.ts (3 test) + 5 hotfix iteration. TC-INT-FRONTEND-BIND-{LIST,CREATE,RBAC}-01 active.",
+    "topology_v2_pr": "PR #155 (sprint n, claude/work_260518-n, merge dc0ed1c) — /admin/topology-v2 페이지 + React Flow + nodes/services/edges + degraded_providers banner + snapshot_at 메타 + node click modal + infraService.getTopologyV2() + admin-topology-v2.spec.ts. TC-INT-HOMELAB-03 active + TC-INT-FRONTEND-TOPOLOGY-V2-{NAV,RBAC}-01 신규.",
+    "carve_out_resolved_summary": "frontend 진입점 (provider CRUD + sync + delete + bindings + topology v2) 모두 active. degraded providers 시각화는 v2 페이지 헤더 banner 로 도입.",
+    "deferred_status": "concept staged → backend 1차 activated → frontend 진입점 활성화 + API-80 DELETE + E2E spec ts active",
+    "concept_pr": "PR #135 (codex/memory-next-step-20260515, merge 62a2088, 2026-05-15) — docs/planning/external_system_integration_concept.md + capability_matrix.md + REQ-FR-INT + REQ-NFR-INT + UC-INT + ARCH-INT + API-69..78 + traceability §3 row",
+    "backend_pr": "PR #139 (codex/next-step-20260516, merge e2a76fb, 2026-05-17) — internal/integrations/adapters/{contract,homelab,homelab_file_puller,homelab_http_puller,homelab_pull_loop,metrics}.go + internal/store/integration_registry.go + infra_snapshots.go + httpapi/integration_registry.go + infra_integrations.go + API-73..78 활성화 + Prometheus /metrics + migration 000028 integration_registry + 000029 infra_service_snapshots",
+    "supporting_docs": "docs/planning/homelab_adapter_pull_strategy.md + prometheus_homelab_alerts.md + docs/tests/test_cases_m4_integration.md + reports/report_20260516_m4_integration.md",
+    "adr_pr": "PR #143 (sprint c, claude/work_260518-c, merge d2c0031) — ADR-0015 (pull strategy 사후 명문화) + ADR-0016 (Prometheus alerts policy)",
+    "frontend_entry_pr": "PR #148 (sprint g, claude/work_260518-g, merge 7b4ad18) — /admin/settings/integrations + ProviderTable + ProviderModal + integration.{service,types}.ts + layout subTabs Integrations 탭",
+    "e2e_spec_pr": "PR #149 (sprint h, claude/work_260518-h, merge bb83520) — admin-integrations.spec.ts — TC-INT-FRONTEND-* 5건 active (mega lifecycle 4 step + RBAC negative)",
+    "delete_endpoint_pr": "PR #151 (sprint j, claude/work_260518-j, merge 51c79af) — API-80 DELETE + FK guard (binding count > 0 → 409 integration_provider_has_bindings) + handler 4 unit test + DestructiveConfirmModal + spec ts mega test DELETE step 5",
+    "carve_out_for_next_session": [
+      "✅ resolved (PR #154, sprint -m) — Bindings 관리 UI (API-74, 75)",
+      "✅ resolved (PR #155, sprint -n) — infra topology v2 시각화 (API-76, 78, React Flow)",
+      "✅ resolved (PR #156, sprint -o) — ADR-0017 §6 atomicity 실 구현 (CTE + FOR UPDATE + race test)",
+      "✅ resolved (PR #157, sprint -p) — ADR-0015 §6 (1) size limit + streaming decode + (2) agent token rotation SOP",
+      "✅ resolved (PR #160, sprint -s) — ADR-0016 §6 (1) Alertmanager 운영 가이드 + (2) Grafana dashboard JSON",
+      "✅ resolved (PR #161, sprint -t) — ADR-0017 §6 (a) cron revoke + (c) 만료 metric + (d) staleness metric",
+      "✅ design 검토 완료 (PR #162, sprint -u) — single port reverse proxy (ADR-0018 후보, Phase 2 staging 진입 후 승격)",
+      "✅ design 검토 완료 (PR #163, sprint -v) — Keycloak SSO federation (ADR-0019 후보, RM-M4-09 구체화)",
+      "✅ resolved (PR #164, sprint -w) — codex hotfix #8 P1 3건 + P2 6건",
+      "(carve) ADR-0015 §6 (3) dedicated worker binary — M4 진입 시 재평가",
+      "(carve) ADR-0015 §6 (4) push/pull 동시 운영 dedup 정책 — 별도 ADR 후보",
+      "(carve) ADR-0016 §6 (3) pull latency p95 alert — baseline 1주 관찰 후",
+      "(carve) ADR-0016 §6 (4) push 경로 webhook 알림 metric",
+      "(carve) ADR-0016 §6 (5) stage→prod 임계값 확정",
+      "✅ resolved (sprint adr0017-token-mutation) — ADR-0017 §6 (b) PATCH expires_at — admin UI 편집 modal + 정책 변경",
+      "(carve) ADR-0018 승격 + Phase 2 staging (single port reverse proxy)",
+      "(carve) ADR-0019 승격 + Phase 2 staging (Keycloak SSO federation)",
+      "(carve) External Integration 후속 강화 — React Flow group sub-node + WebSocket 실시간 + v2 node click action",
+      "(carve) M4 RM-M4-XX 본격 진입 — WebSocket replay, AI Gardener gRPC, System Admin 대시보드, Gitea Hourly Pull"
+    ]
+  },
+  "next_actions": {
+    "m1_remaining": [],
+    "tdd_followups": [
+      "PR-T5 (CI 도입, DEC-4) — PARTIAL-DONE: PR #86 (2026-05-13 머지) 으로 backend-unit + frontend-unit + e2e (Playwright 40 TC) 3잡 GHA 도입 완료. 본 sprint claude/work_260513-a 가 FU-CI-2/3/4 처리. 잔여 follow-up: FU-CI-1 (no-docker policy 정합).",
+      "hygiene-test-admin — PoC `test/test` 시드 제거 (운영 진입 직전, test-server-deployment §10 체크리스트)."
+    ],
+    "ci_followups": [],
+    "ci_decisions_2026_05_13": [
+      "ADR-0003 (2026-05-13) — no-docker 정책이 CI 까지 적용됨을 명문화. `.github/workflows/ci.yml` 의 `services: postgres:15` sidecar 제거 + pgdg apt repo 로 native PostgreSQL 15 설치하는 step 으로 교체. 본 결정으로 FU-CI-1 항목 처리 완료."
+    ],
+    "m2_followups": [
+      "Kratos webhook 수신 → DevHub audit_logs 통합 (self-service password 변경 등 audit)",
+      "Hydra JWKS / introspection verifier 실구현 (현재는 introspection 기반)"
+    ],
+    "pr_d_followups": [],
+    "pr_d_followups_closed_by_work_260513_e": [
+      "caller-supplied X-Request-ID 콘텐츠 validation — `validateCallerRequestID` (정규식 `^[A-Za-z0-9_-]{1,128}$`) + `requireRequestID` 폴백.",
+      "ctx 표준 request_id 전파 — `requireRequestID` 가 c.Request.Context() 에도 stash, `requestIDFromContext` + `logRequestCtx` ctx-aware helper. kratos_login_client.go 2건 + kratos_identity_resolver.go 1건 치환.",
+      "writeRBACServerError → writeServerError 통합 — rbac.go 의 helper 제거 + 11 호출 일괄 치환."
+    ],
+    "ux_hygiene": [
+      "/admin/settings/users 의 SearchInput 실제 필터링 미구현 (placeholder)",
+      "/account 폼의 current_password 라벨 — Kratos privileged session 안내 보강",
+      "Header Switch View 시뮬레이션이 actor.role 을 우회 못함을 명시 (UX 안내)"
+    ],
+    "m3_entry_candidates": [
+      "RM-M3-01: Sign Up (셀프 가입) — POST /api/v1/auth/signup 의 hrdb lookup arm",
+      "RM-M3-02: 인사 DB 스키마 (name / system_id / employee_id / department_name) + internal/hrdb/ 모듈",
+      "RM-M3-03: 조직 polish — backend_api_contract §10.4 자세한 schema + parent_id 검증 + primary_dept 자동 판정"
+    ],
+    "m4_entry_candidates": [
+      "RM-M4-01: WebSocket 확장 (backend infra.node.updated / ci.run.updated / risk.updated publish)",
+      "RM-M4-02: WebSocket replay (last event) + 리소스 필터링",
+      "RM-M4-03: frontend command status WebSocket UI (Phase 4 마무리)",
+      "RM-M4-04: AI Gardener gRPC (Python AnalysisService + Go Core client)",
+      "RM-M4-05: AI Suggestion Feed 실데이터 바인딩 (frontend)",
+      "RM-M4-06: Gitea Hourly Pull worker (과제 추적 reconciliation, Phase 10)",
+      "RM-M4-07: System Admin 대시보드 (Runner 상태 + 시스템 설정)",
+      "RM-M4-08: ADR-0007 RBAC PermissionCache LISTEN/NOTIFY 실제 구현 + 통합 테스트",
+      "RM-M4-09: 외부 SSO 통합 (Gitea 연동 등)"
+    ],
+    "application_domain_carve_out_2026_05_14": [
+      "frontend `/admin/settings/applications` UI (별도 frontend sprint) — IA 설계부터",
+      "ADR-0011 §4.2 enforceRowOwnership helper 1차 구현 (pmo_manager 활성화 sprint) — Owner 위양 2차 단계",
+      "critical_warning_count 임계치 외부화 (concept §13.2.1) — 운영 정책 테이블 신설",
+      "CountApplicationCriticalWarnings lightweight SQL 분리 (성능 — 현재는 전체 rollup compute 재호출)",
+      "pr_activities.payload sanitization 또는 field allowlist (system_admin 외 노출 방어)",
+      "Project active→closed 가드 정책 결정 (현재 Application 만 critical 가드, Project 는 단순 transition)",
+      "quality_snapshots idempotency 결정 — UNIQUE 추가 vs history retention",
+      "Repository commit activity ingest (pr_activities 외 commit 단위 이벤트)",
+      "fixture 의 transactional cleanup 도입 (PR #109 I2 성능)",
+      "API-41..58 의 e2e TC (Playwright) 작성"
+    ],
+    "application_domain_done_2026_05_14": {
+      "scope": "Application/Repository/Project 도메인 backend 1차 완성. API-01~58 전체 activated.",
+      "components": {
+        "domain_types": "Application / ApplicationRepository / SCMProvider / Project / ProjectMember / ProjectIntegration / PRActivity / BuildRun / QualitySnapshot / RepositoryActivity / WeightPolicy / RollupOptions / RollupMeta / RollupPeriod / RollupFallback / RollupDataGap / ApplicationRollup + CustomWeightTolerance(=0.001)",
+        "migrations": "000012 scm_providers (seed bitbucket/gitea/forgejo/github) / 000013 applications (UUID PK, key UNIQUE, archived_consistency CHECK) / 000014 application_repositories (composite PK + sync_status + sync_error_code 8종 CHECK) / 000015 projects (UUID PK + UNIQUE (repository_id, key)) / 000016 project_members + project_integrations (scope polymorphism partial UNIQUE) / 000017 pr_activities + build_runs + quality_snapshots / 000018 RBAC matrix 4 신규 resource seed",
+        "store_methods": "27 (ApplicationStore interface) — Applications 5 + ApplicationRepository 4 + SCMProvider 2 + Project 5 + Repository ops 4 + Rollup 2 + Integration 5",
+        "handlers": "14 endpoint — API-41 SCM list, API-42 SCM update, API-43..47 Application CRUD, API-48..50 Link CRUD, API-51..54 Repository ops, API-55..56 Project CRUD, API-57 Rollup, API-58 Integration CRUD",
+        "tests": "Application handler 25 + Project handler 8 + Integration handler 6 + Rollup handler 4 + integration tests 25 (CI backend-integration job)",
+        "guards_active": "Application 상태 전이 머신 (allowedStatusTransitions table); planning→active 활성 repo ≥1; hold/resume/archived_reason 필수; active→closed critical_warning_count=0; application_key_immutable; SCM adapter_version_immutable; weight_policy normalize sum=1.0 ±0.001",
+        "audit_namespace": "application.{created,updated,archived} / application_repository.{linked,unlinked} / scm_provider.updated / project.{created,updated,archived} / integration.{created,updated,deleted}",
+        "rbac_resources": "applications / application_repositories / projects / scm_providers (system_admin only — ADR-0011 §4.1 1차)",
+        "ci_jobs": "5 (Workflow Lint / Backend Unit / Frontend Unit / E2E / Backend Integration 신설)"
+      },
+      "adr": "ADR-0011 accepted (옵션 C handler/service 코드 검증 1차 채택, 옵션 B row_predicate 단계적 확장 옵션 보존)"
+    },
+    "ops_verification": "사용자 환경에서 docs/setup/test-server-deployment.md 의 §6-§7 e2e 절차 1회 수행 권장. E2E baseline 자동화는 PR #58 이후 `cd frontend && npm run e2e` 한 줄. PR #76 hardening 으로 stale rotation 도 다음 실행에서 자동 복구. 본 세션에서 backend integration test 가 CI 에서 검증되므로 추가 ops 확인 권장사항: 사용자 환경 (`DEVHUB_TEST_DB_URL`) 에서 `scripts/setup-test-db.sh && cd backend-core && go test -v -run TestIntegration_ ./internal/store/...` 1회 실행."
+  }
+}

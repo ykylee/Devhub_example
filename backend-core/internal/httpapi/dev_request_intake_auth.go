@@ -26,6 +26,8 @@ type IntakeTokenStore interface {
 	ListDevRequestIntakeTokens(ctx context.Context) ([]domain.DevRequestIntakeToken, error)
 	RevokeDevRequestIntakeToken(ctx context.Context, tokenID string) (domain.DevRequestIntakeToken, error)
 	UpdateDevRequestIntakeTokenIPs(ctx context.Context, tokenID string, allowedIPs []string) (domain.DevRequestIntakeToken, error)
+	// UpdateDevRequestIntakeToken — ADR-0017 §6 carve (b). 토큰의 IP 및 만료시간을 선택적/동시 수정.
+	UpdateDevRequestIntakeToken(ctx context.Context, tokenID string, allowedIPs []string, expiresAt *time.Time, updateIPs bool, updateExpiresAt bool) (domain.DevRequestIntakeToken, error)
 	// HardRevokeExpiredIntakeTokens — ADR-0017 §6 carve (a). 만료된 token 일괄
 	// hard-revoke. RETURNING token_id 로 audit emit 대상 list 반환. sprint -t.
 	HardRevokeExpiredIntakeTokens(ctx context.Context, before time.Time) ([]string, error)

@@ -14,8 +14,8 @@ describe("IntakeTokenTable", () => {
       created_by: "admin1",
       created_at: "2026-05-15T10:00:00Z",
       revoked_at: null,
-      revoked_by: null,
       last_used_at: "2026-05-15T10:30:00Z",
+      expires_at: null,
     },
     {
       token_id: "tok_2",
@@ -25,8 +25,8 @@ describe("IntakeTokenTable", () => {
       created_by: "admin2",
       created_at: "2026-05-14T10:00:00Z",
       revoked_at: "2026-05-14T11:00:00Z",
-      revoked_by: "admin2",
       last_used_at: null,
+      expires_at: null,
     },
   ];
 
