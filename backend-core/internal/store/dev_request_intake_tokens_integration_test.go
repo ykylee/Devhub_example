@@ -54,13 +54,17 @@ func TestIntegration_UpdateDevRequestIntakeTokenIPs_Atomicity(t *testing.T) {
 		}
 	}()
 
+	// created_by 는 users(user_id) FK — backend 시드 user "u1" (system_admin) 사용.
+	// 다른 integration test 들도 동일 패턴 (applications_integration_test.go).
+	const seedUserID = "u1"
+
 	create := func(label, hashed string) domain.DevRequestIntakeToken {
 		tok := domain.DevRequestIntakeToken{
 			ClientLabel:  label,
 			HashedToken:  hashed,
 			AllowedIPs:   []string{"10.0.0.0/24"},
 			SourceSystem: "atomicity-test",
-			CreatedBy:    "system:" + suffix,
+			CreatedBy:    seedUserID,
 		}
 		out, err := pgStore.CreateDevRequestIntakeToken(ctx, tok)
 		if err != nil {
