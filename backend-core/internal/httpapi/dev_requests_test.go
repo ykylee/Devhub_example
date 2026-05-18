@@ -1202,7 +1202,15 @@ func TestUpdateDevRequestIntakeTokenIPs_NotFound(t *testing.T) {
 
 // ADR-0017 §4.2 + §4.3 — revoked row 의 mutation 은 409 intake_token_revoked.
 // 본 test 가 코드/문서 drift 의 핵심 회귀 가드 (codex hotfix #5 P2 #3).
-// 회귀 시: PATCH 가 revoked row 도 UPDATE 하던 PR #137 동작이 그대로 발생.
+//
+// 회귀 시나리오 (6개월 후 grep 가능하도록 명시):
+//   PR #137 (gemini/dreq_e2e_260515) 가 UpdateDevRequestIntakeTokenIPs 를 도입할 때
+//   WHERE revoked_at IS NULL 가드를 누락 → revoked token 의 silent allowed_ips
+//   변경이 가능했음. codex review (PR #143 inline P2 #3) 가 지적 → PR #146 hotfix #5
+//   가 store 에 가드 + handler 의 409 intake_token_revoked 분기 추가. 본 test 가
+//   회귀 발생 시 즉시 실패 (UPDATE 가 revoked row 를 변경하거나, handler 가
+//   ErrConflict 를 다른 status 로 매핑하는 경우 모두 catch).
+//   2 query 패턴의 atomicity 강화 carve out 은 ADR-0017 §6 의 마지막 항목 참조.
 func TestUpdateDevRequestIntakeTokenIPs_Revoked(t *testing.T) {
 	s := &fakeIntakeTokenStore{}
 	tok, _ := s.CreateDevRequestIntakeToken(context.Background(), domain.DevRequestIntakeToken{

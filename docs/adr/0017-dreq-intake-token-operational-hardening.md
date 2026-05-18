@@ -159,10 +159,33 @@ ADR-0014 §4.4 의 정책 ("plain / hashed token 자체는 audit 에 절대 기�
 - **(carve)** PATCH 의 `expires_at` 갱신 — 본 ADR 은 `allowed_ips` 만 변경 허용. `expires_at` 갱신은 revoke + 재발급 우회 (1차 정책).
 - **(carve)** 토큰 만료 알림 — `expires_at` 임박 시 운영자에게 알림 (Prometheus metric `devhub_intake_token_expiring_soon` 또는 audit + 대시보드).
 - **(carve)** `last_used_at` 기반 staleness alert — `last_used_at` 컬럼은 ADR-0014 §4.2 응답 schema 에 이미 존재. N일 미사용 token 자동 정리는 별도 ADR.
+- **(carve)** `UpdateDevRequestIntakeTokenIPs` 의 atomicity 강화 — PR #146 (codex hotfix #5) 가 추가한 revoked guard 는 2 query 패턴: (1) `UPDATE ... WHERE revoked_at IS NULL RETURNING ...`, (2) ErrNoRows 시 별도 `SELECT revoked_at WHERE token_id` 로 not_found vs revoked 분기. 두 query 가 별도 pgxpool connection 에서 실행될 수 있어 between-query race window 존재 — UPDATE 가 ErrNoRows 후 다른 transaction 이 row 를 삭제/revoke 한 경우 SELECT 결과가 사실과 다른 분기 (ErrNotFound vs ErrConflict) 를 낼 수 있음. 실제 영향은 의미상 둘 다 mutation 차단으로 같지만 (false positive 가 보안 영향 없음), 정확한 status code 가 client/runbook 의 분기 로직에 영향 줄 수 있음. 권장 해소: 단일 query CTE 또는 `tx.Begin()` + `SELECT ... FOR UPDATE` + UPDATE 로 atomic 보장. PR #146 self-review P2.
+
+```sql
+-- 단일 query CTE 예시 (carve out 의 reference)
+WITH locked AS (
+  SELECT token_id, revoked_at FROM dev_request_intake_tokens
+  WHERE token_id = $1::uuid FOR UPDATE
+),
+upd AS (
+  UPDATE dev_request_intake_tokens
+  SET allowed_ips = $2::jsonb, updated_at = NOW()
+  WHERE token_id = $1::uuid AND revoked_at IS NULL
+  RETURNING token_id::text, client_label, hashed_token, allowed_ips, source_system,
+            created_at, created_by, last_used_at, revoked_at, expires_at
+)
+SELECT (SELECT token_id FROM locked) AS lock_token_id,
+       (SELECT revoked_at FROM locked) AS lock_revoked_at,
+       upd.*
+FROM locked LEFT JOIN upd ON true;
+```
+
+handler 는 row 결과를 보고 `lock_token_id IS NULL` → 404, `lock_revoked_at IS NOT NULL` → 409, `upd.token_id IS NOT NULL` → 200 으로 분기. 트랜잭션 격리 (READ COMMITTED 기본) + `FOR UPDATE` row lock 으로 atomic 보장.
 
 ## 7. 변경 이력
 
 | 일자 | 변경 | 메모 |
 | --- | --- | --- |
 | 2026-05-16 | PR #137 활성화 — migration 000027 + middleware 만료 체크 + PATCH endpoint (API-79). | sprint `gemini/dreq_e2e_260515` |
-| 2026-05-18 | accepted — ADR 형식으로 사후 명문화. expires_at NULL 허용 (기존 호환), 만료 체크는 lazy (cron carve out), PATCH 는 allowed_ips only (audit anchor 보존), 에러 코드 3종 + audit action 2종 추가. ADR-0014 §6 의 두 carve out 중 본 ADR 가 활성화한 부분 명시. | sprint `claude/work_260518-c` |
+| 2026-05-18 | accepted — ADR 형식으로 사후 명문화. expires_at NULL 허용 (기존 호환), 만료 체크는 lazy (cron carve out), PATCH 는 allowed_ips only (audit anchor 보존), 에러 코드 3종 + audit action 2종 추가. ADR-0014 §6 의 두 carve out 중 본 ADR 가 활성화한 부분 명시. | sprint `claude/work_260518-c` (PR #143) |
+| 2026-05-18 | §6 atomicity carve out 추가 — PR #146 (codex hotfix #5) 가 store 에 revoked guard 를 추가했지만 2 query 패턴이라 between-query race window 존재. PR #146 self-review P2 가 발견. CTE 단일 query + `FOR UPDATE` row lock 으로 atomic 보장하는 reference SQL 본문 추가. 실제 false positive 영향은 mutation 차단으로 같지만 정확한 status code 보장은 별도 sprint 후속. | sprint `claude/work_260518-f` |
