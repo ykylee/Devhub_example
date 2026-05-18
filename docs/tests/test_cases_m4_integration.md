@@ -43,6 +43,18 @@
 | TC-INT-FRONTEND-SYNC-01 | P1 | E2E | Provider row 의 Sync 버튼 click | API-72 호출 → sync_status badge `requested` 로 즉시 전이 + last_sync_at 갱신 |
 | TC-INT-FRONTEND-RBAC-01 | P2 | E2E | non-system_admin (developer / manager) 이 `/admin/settings/integrations` 직접 접근 | AuthGuard + layout.tsx 의 `isSystemAdmin` 가드로 default landing 으로 redirect |
 
+### 3.1 Frontend 카버리지 매핑 (sprint `claude/work_260518-h`)
+
+`frontend/tests/e2e/admin-integrations.spec.ts` 가 source-of-truth. LIST/CREATE/EDIT/SYNC 4건은 mega lifecycle test 한 케이스로 묶고 `test.step()` 으로 분리. RBAC 는 별도 test (developer 로그인 컨텍스트 분리 필요).
+
+| TC ID | spec ts test 명 / step | 상태 |
+| --- | --- | --- |
+| `TC-INT-FRONTEND-LIST-01` | `provider lifecycle` step 1 | ✅ active |
+| `TC-INT-FRONTEND-CREATE-01` | `provider lifecycle` step 2 (Register 모달 → API-70) | ✅ active |
+| `TC-INT-FRONTEND-EDIT-01` | `provider lifecycle` step 3 (Edit 모달 + immutable field 가드 검증 — provider_key 입력 부재 + type/auth_mode disabled) | ✅ active |
+| `TC-INT-FRONTEND-SYNC-01` | `provider lifecycle` step 4 (Sync 버튼) | ✅ active |
+| `TC-INT-FRONTEND-RBAC-01` | `non-system_admin redirect` | ✅ active (developer 로그인 → `/developer` 로 redirect 검증) |
+
 ## 4. E2E 시나리오 초안
 
 | 시나리오 ID | 설명 | 사전 조건 |
@@ -70,6 +82,7 @@
 | 2026-05-15 | 초안 작성 — Integration 도메인 테스트 계층/우선 TC/E2E 시나리오 정의. |
 | 2026-05-16 | API-69~75 baseline 구현 기준 실행 스냅샷 반영 (IT 중심), E2E 미진입 항목 명시. |
 | 2026-05-18 | sprint `claude/work_260518-g` — TC-INT-FRONTEND-{LIST,CREATE,EDIT,SYNC,RBAC}-01 신규 발급 (External Integration frontend 진입점 1차, `/admin/settings/integrations` 페이지). E2E spec ts 작성은 후속 carve out. |
+| 2026-05-18 | sprint `claude/work_260518-h` — TC-INT-FRONTEND-* 5건의 E2E spec ts 활성화. `frontend/tests/e2e/admin-integrations.spec.ts` 신규 (2 test: mega lifecycle 4 step + RBAC negative). §3.1 카버리지 매핑 표 신설 — TC ID ↔ spec ts step 1:1. carve out → active 전환. |
 
 ## 8. 실행 스냅샷 (2026-05-16)
 
