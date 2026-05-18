@@ -1,12 +1,102 @@
-# Session Handoff — main (2026-05-18 EOD)
+# Session Handoff — main (2026-05-18 post-EOD)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
-- 범위: 2026-05-18 단일 세션 11 sprint (a..k claude 10 + 외부 #145 codex) 종합. 시작: memory gap sync (외부 8 PR 흡수) → ADR 3 신규 + DREQ-E2E TC 발급 + External Integration frontend 진입점 + API-80 DELETE + codex hotfix 2회.
+- 범위: 2026-05-18 EOD 직후 후속 세션 6 PR (#152~#157) 누적. 흐름: EOD housekeeping (-k) → codex hotfix #7 (-l) → bindings UI (-m) → topology v2 (-n) → ADR-0017 atomicity (-o) → ADR-0015 carve outs (-p) → 본 종합 housekeeping (-q).
 - 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
-- 상태: M1/M2/M3 1차 closing (이전). Application 도메인 backend 1차 (2026-05-14). **DREQ 도메인 종합 closing** (carve out 1/4 + 2/4 + 3/4 모두 활성화 + P2 6/6 해소 + ADR-0013/0014/0017 누적). **External Integration 도메인 frontend 진입점 1차 + API-80 DELETE** (sprint g~j). ADR 인덱스: ADR-0015/0016/0017 신규.
-- 최종 수정일: 2026-05-18 (sprint k 종료 housekeeping)
-- 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [상태 스냅샷](./state.json), [거버넌스](../../docs/governance/README.md), [추적성 매트릭스](../../docs/traceability/report.md), [Dev Request 도메인 컨셉](../../docs/planning/development_request_concept.md), [External Integration 컨셉](../../docs/planning/external_system_integration_concept.md), [ADR-0015 HomeLab pull](../../docs/adr/0015-homelab-adapter-pull-strategy.md), [ADR-0016 Prometheus alerts](../../docs/adr/0016-prometheus-alerts-policy.md), [ADR-0017 intake token hardening](../../docs/adr/0017-dreq-intake-token-operational-hardening.md), [test_cases_m5_dreq](../../docs/tests/test_cases_m5_dreq.md), [test_cases_m4_integration](../../docs/tests/test_cases_m4_integration.md).
-- 브랜치: `main` (HEAD `51c79af`, PR #151 squash merge 직후. 본 housekeeping 머지 후 추가 갱신).
+- 상태: M1/M2/M3 1차 closing (이전). Application 도메인 backend 1차 (2026-05-14). **DREQ 도메인 종합 closing** (이전). **External Integration 도메인 1차 종합 closing** — provider lifecycle + bindings + topology v2 + API-80 DELETE 모두 active. **ADR carve out 추가 종결**: ADR-0017 §6 atomicity ✅ resolved + ADR-0015 §6 (1)+(2) ✅ resolved.
+- 최종 수정일: 2026-05-18 (sprint q post-EOD housekeeping)
+- 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [상태 스냅샷](./state.json), [거버넌스](../../docs/governance/README.md), [추적성 매트릭스](../../docs/traceability/report.md), [Dev Request 도메인 컨셉](../../docs/planning/development_request_concept.md), [External Integration 컨셉](../../docs/planning/external_system_integration_concept.md), [ADR-0015 HomeLab pull](../../docs/adr/0015-homelab-adapter-pull-strategy.md), [ADR-0016 Prometheus alerts](../../docs/adr/0016-prometheus-alerts-policy.md), [ADR-0017 intake token hardening](../../docs/adr/0017-dreq-intake-token-operational-hardening.md), [HomeLab agent token rotation SOP](../../docs/setup/homelab_agent_token_rotation.md), [test_cases_m5_dreq](../../docs/tests/test_cases_m5_dreq.md), [test_cases_m4_integration](../../docs/tests/test_cases_m4_integration.md), [Jira 보고 status 2026-05-18](../../docs/reports/jira_status_2026_05_18.md).
+- 브랜치: `main` (HEAD `6648105`, PR #157 squash merge 직후. 본 housekeeping 머지 후 추가 갱신).
+
+## 2026-05-18 post-EOD 후속 세션 6 PR (sprint k..p + q)
+
+| Sprint | PR | sha | 핵심 |
+| --- | --- | --- | --- |
+| `-k` | #152 | `4056ab4` | EOD 종합 housekeeping (단일 일자 11 PR sync) |
+| `-l` | #153 | `f11a8c7` | **codex hotfix #7** — PR #149 merge_commit SHA d24a41e → bb83520 정정 |
+| `-m` | #154 | `b5bc54b` | **External Integration bindings 관리 UI** — /admin/settings/integration-bindings + BindingsTable + CreateBindingModal + service/types (API-74 GET + API-75 POST) + admin-integration-bindings.spec.ts. **5 hotfix iteration** 으로 CI 그린화 (CSS locator → DOM attribute → SYNC gate → page.evaluate fetch → sessionStorage Bearer) |
+| `-n` | #155 | `dc0ed1c` | **Infra topology v2 시각화** — /admin/topology-v2 + React Flow + nodes/services/edges + degraded banner + snapshot_at 메타 + node click modal. 1차 CI 그린 (sprint -m 학습 직접 효과) |
+| `-o` | #156 | `eaa91a7` | **ADR-0017 §6 atomicity 실 구현** — UpdateDevRequestIntakeTokenIPs 단일 CTE + FOR UPDATE + (VALUES (1)) AS root(_) anchor + Happy/NotFound/Revoked/ConcurrentUpdateAndRevoke 4 sub-test |
+| `-p` | #157 | `6648105` | **ADR-0015 §6 carve outs (1)+(2)** — size limit + streaming decode (file os.Stat + HTTP Content-Length + io.LimitReader) + DEVHUB_HOMELAB_PULL_MAX_BYTES env + 5 회귀 unit test + agent token rotation SOP |
+| `-q` | (본) | TBD | post-EOD 종합 housekeeping + Jira 보고 status 문서 |
+
+## 신규 ID 종합 (본 세션 후속)
+
+| 종류 | ID | 출처 sprint |
+| --- | --- | --- |
+| TC | TC-INT-FRONTEND-BIND-{LIST,CREATE,RBAC}-01 (3건) | `-m` PR #154 |
+| TC | TC-INT-HOMELAB-03 (carve out → active) + TC-INT-FRONTEND-TOPOLOGY-V2-{NAV,RBAC}-01 (2건) | `-n` PR #155 |
+| env | `DEVHUB_HOMELAB_PULL_MAX_BYTES` (int64, default 0 unlimited, 운영 권장 5 MB) | `-p` PR #157 |
+| 문서 | `docs/setup/homelab_agent_token_rotation.md` (운영 SOP) | `-p` PR #157 |
+| 문서 | `docs/reports/jira_status_2026_05_18.md` (Jira 보고용 10 항목 status) | `-q` (본) |
+
+## External Integration 도메인 1차 종합 closing
+
+| 영역 | 상태 | 출처 |
+| --- | --- | --- |
+| Concept staged (REQ-FR-INT + ARCH-INT + API-69..78 + IMPL-int + TC-INT) | ✅ | 외부 PR #135 |
+| Backend 1차 (HomeLab pull + Prometheus + integration_registry + infra_snapshots) | ✅ | 외부 PR #139 |
+| ADR (pull strategy / alerts policy / intake token hardening) | ✅ ADR-0015/0016/0017 | sprint -c PR #143 |
+| Provider frontend 진입점 (/admin/settings/integrations) | ✅ | sprint -g PR #148 |
+| Provider E2E spec (5 TC) | ✅ | sprint -h PR #149 |
+| API-80 DELETE + FK guard + Delete UI | ✅ | sprint -j PR #151 |
+| **Bindings 관리 UI** (/admin/settings/integration-bindings) | ✅ | sprint -m PR #154 |
+| **Topology v2 시각화** (/admin/topology-v2 + React Flow + degraded banner) | ✅ | sprint -n PR #155 |
+| ADR-0015 §6 (1) size limit + streaming decode | ✅ resolved | sprint -p PR #157 |
+| ADR-0015 §6 (2) agent token rotation SOP | ✅ resolved | sprint -p PR #157 |
+| ADR-0015 §6 (3) dedicated worker binary | ⏳ carve (M4 진입 시) | — |
+| ADR-0015 §6 (4) push/pull dedup | ⏳ carve (별도 ADR) | — |
+| React Flow group sub-node (services as node children) | ⏳ carve | — |
+| WebSocket 실시간 갱신 (infra.node.updated / infra.service.updated) | ⏳ carve | — |
+| ADR-0017 §6 atomicity 실 구현 | ✅ resolved | sprint -o PR #156 |
+| ADR-0017 §6 잔여 (cron revoke / PATCH expires_at / 만료/staleness alert) | ⏳ carve | — |
+| ADR-0016 §6 carve outs (Alertmanager YAML / Grafana JSON / p95 alert / push 알림 / 임계 확정) | ⏳ carve | 다음 세션 directive 1 |
+
+## 본 후속 세션 핵심 학습 (다음 세션이 참조)
+
+### 1. page.request OIDC session propagation 의 CI flaky (sprint -m, 5 hotfix iteration)
+
+직전 PR #145 (외부 codex docker hardening + Hydra prod mode + runtime-config + forwarded-header 신뢰 제거) 머지 후 `page.request.*` (GET/PATCH/DELETE) 가 CI 에서 일관 fail. 회피 패턴 정착:
+
+- **DOM attribute 추출** — `tr[data-provider-id]` / `tr[data-token-id]` 등 row 에 attribute 추가, spec ts 가 `getAttribute()` 로 결정적 매핑. `page.request.get` 의존 제거.
+- **mutation (PATCH/DELETE)** — `page.evaluate(async (id) => { const accessToken = sessionStorage.getItem("devhub_access_token"); return fetch(url, { method: "PATCH", headers: { ..., Authorization: \`Bearer ${accessToken}\` }, credentials: "include" }); }, id)` 패턴. apiClient 와 동일 인증 구조.
+- **modal submit 우선** — POST 는 가능하면 modal form submit 으로 (apiClient 가 자동 Bearer 추가 → 안정적).
+
+### 2. Playwright CSS list 안에 engine selector 못 둠 (sprint -m)
+
+`page.locator("table, text=/regex/i")` 는 invalid CSS — `locator.or()` chain 으로 분리:
+```ts
+const el = page.locator("table").or(page.getByText(/regex/i)).first();
+```
+
+### 3. backend integration test 의 created_by FK (sprint -o)
+
+`dev_request_intake_tokens.created_by` 는 `users(user_id)` FK. CI 환경 시드 user 는 migration 000004 의 u1/u2/u3 (Kratos 시드 alice/bob/charlie 와 별개). integration test 는 `CreatedBy: "u1"` 사용 패턴 (applications_integration_test.go 와 동일).
+
+### 4. backend env 변수 default vs 권장 운영값 분리 (sprint -p)
+
+ADR §4.3 환경 변수 표는 두 컬럼:
+- **코드 default** — 보수적 (legacy 호환), 예: `MAX_BYTES=0` (unlimited)
+- **권장 운영값** — ADR-0016 알림 임계가 가정하는 값, 예: `MAX_BYTES=5242880` (5 MB)
+
+이전 codex hotfix #5 P2 (sprint -e) 가 발견한 default drift 패턴 정합.
+
+### 5. CTE + FOR UPDATE + VALUES anchor 패턴 (sprint -o)
+
+2 query (UPDATE + SELECT) 의 between-query race → 단일 CTE + FOR UPDATE row lock + `(VALUES (1)) AS root(_) LEFT JOIN locked LEFT JOIN upd` anchor. locked empty 여도 단일 row 반환 보장 (codex hotfix #6 P2 의 zero-rows 문제 정합).
+
+## 다음 세션 directive (우선순위 순 — post-EOD 기준 재산정)
+
+1. **ADR-0016 §6 carve outs** — (a) Alertmanager raw YAML 외부 git 이관, (b) Grafana JSON 모델, (c) pull latency p95 alert (baseline 1주 관찰 후), (d) push 경로 (API-73) 알림, (e) stage→prod 임계 확정.
+2. **ADR-0017 §6 잔여 carve outs** — (a) 자동 cron revoke (expires_at 임박 정리), (b) PATCH expires_at 갱신 허용, (c) 토큰 만료 알림 metric (devhub_intake_token_expiring_soon), (d) last_used_at staleness alert.
+3. **ADR-0015 §6 (3)+(4)** — dedicated worker binary (M4 진입 시) / push/pull dedup 정책 (별도 ADR).
+4. **External Integration 후속 강화** — React Flow group sub-node + WebSocket 실시간 갱신 + 토폴로지 v2 의 node click action (v1 ServiceActionCommand 패턴 확장).
+5. **M4 RM-M4-XX 본격 진입** — WebSocket 확장 (RM-M4-01..03), AI Gardener gRPC (RM-M4-04..05), Gitea Hourly Pull worker (RM-M4-06), System Admin 대시보드 (RM-M4-07).
+6. **bindings UI 강화** — scope_id 의 application/project lookup combobox, Edit/Delete binding 액션, pagination.
+
+---
+
+(이하: 직전 EOD (sprint k 종료) 시점의 누적 작업 기록은 historical reference 로 보존)
 
 ## 2026-05-18 단일 세션 11 PR 누적 (sprint a..k + 외부 #145)
 
