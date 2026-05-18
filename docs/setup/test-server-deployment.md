@@ -224,6 +224,37 @@ psql -U postgres -d devhub -f infra/idp/sql/003_seed_test_admin.sql
 
 운영 진입 전에 §10 체크리스트의 "test/test 제거" 항목으로 일소.
 
+### 4.4 단일 외부 포트 역프록시(Nginx) 연동 (ADR-0018)
+
+Staging/Production 환경 배포 시 외부 방화벽과의 충돌을 방지하고 Same-Origin 이점을 취하기 위해 단일 포트 역프록시 구성을 적용합니다.
+
+#### 1) Nginx 설정 적용
+[devhub.conf](file:///Users/yklee/repos/Devhub_example_gemini/infra/nginx/devhub.conf) 파일의 설정을 Nginx에 반영합니다.
+```bash
+sudo cp infra/nginx/devhub.conf /etc/nginx/sites-available/
+sudo ln -s /etc/nginx/sites-available/devhub.conf /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+#### 2) Frontend 갱신
+프론트엔드 빌드/시동 시 `NEXT_PUBLIC_BASE_PATH`를 제공하여 SPA의 relative root를 지정합니다.
+```bash
+export NEXT_PUBLIC_BASE_PATH=/devhub
+export NEXT_PUBLIC_OIDC_CLIENT_ID=devhub-frontend
+export NEXT_PUBLIC_OIDC_SCOPE="openid offline_access email profile"
+# 런타임에 window.location.origin을 동적 파싱하므로 URL 도메인 하드코딩이 불필요합니다.
+npm run build && npm run start
+```
+
+#### 3) Backend 갱신
+백엔드 기동 시 internal local network를 직접 타고 통신할 수 있도록 `DEVHUB_HYDRA_ADMIN_URL`을 로컬로 지정하고, Nginx의 forwarded IP를 신뢰하도록 `DEVHUB_TRUSTED_PROXIES`를 정합합니다.
+```bash
+export DEVHUB_HYDRA_ADMIN_URL=http://127.0.0.1:4445
+export DEVHUB_KRATOS_ADMIN_URL=http://127.0.0.1:4434
+export DEVHUB_TRUSTED_PROXIES=127.0.0.1
+# Nginx 가 strip 한 /api/v1/* 경로를 수용하므로 backend 기동은 기존과 동일합니다.
+```
+
 ## 5. 기동 순서
 
 각 프로세스를 별도 창/터미널에서 실행. 한 창이 죽으면 그 컴포넌트만 재기동.
