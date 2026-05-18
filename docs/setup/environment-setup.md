@@ -110,11 +110,10 @@ backend-core/Dockerfile
 backend-ai/Dockerfile
 frontend/Dockerfile
 docker-compose.yml
-infra/idp/hydra.docker.yaml
-infra/idp/kratos.docker.yaml
+infra/idp/<idp-config>.docker.yaml
 ```
 
-IdP docker config (`infra/idp/*.docker.yaml`) 도 같은 정책 — 호스트명/CORS origin/secrets 모두 환경 의존이므로 git 추적 외. `infra/idp/hydra.yaml` (native localhost) + `hydra.ci.yaml` (CI) 를 베이스로 본인 환경에 맞춰 secret/host 를 치환해 로컬에서 생성한다.
+IdP docker config 도 같은 정책 — 호스트명/CORS origin/secrets 모두 환경 의존이므로 git 추적 외. Keycloak OIDC 기준 값(issuer/redirect/logout URL, client 설정)을 본인 환경에 맞춰 로컬에서 생성한다.
 
 표준 골격은 사내 위키의 "DevHub docker compose 표준 자산" 페이지(또는 팀 공유 위치)를 참고한다. 프로젝트 루트 README 에는 별도 진입점을 두지 않는다.
 
