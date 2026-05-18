@@ -2,8 +2,8 @@ package httpapi
 
 import "testing"
 
-func TestKratosSessionCache_PutGetDelete(t *testing.T) {
-	c := NewKratosSessionCache()
+func TestIDPSessionCache_PutGetDelete(t *testing.T) {
+	c := NewIDPSessionCache()
 
 	if _, ok := c.Get("alice"); ok {
 		t.Errorf("empty cache should miss")
@@ -31,8 +31,8 @@ func TestKratosSessionCache_PutGetDelete(t *testing.T) {
 	}
 }
 
-func TestKratosSessionCache_IgnoresEmptyInputs(t *testing.T) {
-	c := NewKratosSessionCache()
+func TestIDPSessionCache_IgnoresEmptyInputs(t *testing.T) {
+	c := NewIDPSessionCache()
 	c.Put("", "tok")
 	c.Put("alice", "")
 	if c.Len() != 0 {
@@ -44,8 +44,8 @@ func TestKratosSessionCache_IgnoresEmptyInputs(t *testing.T) {
 	c.Delete("") // must not panic
 }
 
-func TestKratosSessionCache_NilReceiverSafe(t *testing.T) {
-	var c *KratosSessionCache
+func TestIDPSessionCache_NilReceiverSafe(t *testing.T) {
+	var c *IDPSessionCache
 	c.Put("a", "b")
 	if _, ok := c.Get("a"); ok {
 		t.Errorf("nil receiver Get should miss")

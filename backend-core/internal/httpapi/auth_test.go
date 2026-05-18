@@ -219,7 +219,7 @@ func TestAuthenticateActor_LogsNonNotFoundGetUserError(t *testing.T) {
 
 	orgs := &orgStoreGetUserError{
 		memoryOrganizationStore: newMemoryOrganizationStore(),
-		err:                     errors.New("ERROR: column \"kratos_identity_id\" does not exist (SQLSTATE 42703)"),
+		err:                     errors.New("ERROR: column \"idp_subject\" does not exist (SQLSTATE 42703)"),
 	}
 	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
 		Login:   "bob",

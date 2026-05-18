@@ -1,14 +1,13 @@
 import { test, expect, loginAs, SEEDED } from "./fixtures";
 
-// signout.spec — Sign Out drives Hydra /oauth2/sessions/logout via
-// id_token_hint (PR-L2) and the next /login attempt must prompt for the
-// password again (Hydra session terminated).
+// signout.spec — Sign Out drives IdP end-session endpoint via id_token_hint
+// and the next /login attempt must prompt for credentials again.
 //
 // 2026-05-12 (claude/login_usermanagement_finish): added
 // TC-AUTH-SIGNOUT-REDIR-01 (post-signout AuthGuard redirect) and
 // TC-USER-SWITCH-01 (clean user switch across signout boundary).
 
-test.describe("Sign Out terminates Hydra session", () => {
+test.describe("Sign Out terminates IdP session", () => {
   test("after Sign Out, /login flow asks for credentials again", async ({ page }) => {
     await loginAs(page, SEEDED.developer);
 
@@ -46,9 +45,9 @@ test.describe("Sign Out terminates Hydra session", () => {
 
     // After the post_logout_redirect resolves, try going back into a
     // guarded route directly. AuthGuard's whoAmI() must see no session
-    // and route to /login → OIDC dance → Kratos password form. ERR_ABORTED
+    // and route to /login → OIDC dance → sign-in form. ERR_ABORTED
     // tolerated for the same reason as auth.spec / signout.spec above:
-    // /login does a client-side window.location.assign to Hydra authorize.
+    // /login does a client-side window.location.assign to OIDC authorize.
     await page.goto("/developer").catch((err) => {
       const msg = err instanceof Error ? err.message : String(err);
       if (!msg.includes("ERR_ABORTED")) throw err;
@@ -74,7 +73,7 @@ test.describe("user switch across Sign Out", () => {
       const msg = err instanceof Error ? err.message : String(err);
       if (!msg.includes("ERR_ABORTED")) throw err;
     });
-    await page.waitForURL(/\/auth\/login\?login_challenge=/, { timeout: 30_000 });
+    await page.waitForURL(/\/auth\/login/, { timeout: 30_000 });
     await page.getByLabel(/system id/i).fill(SEEDED.manager.user_id);
     await page.getByLabel(/^password$/i).fill(SEEDED.manager.password);
     await page.getByRole("button", { name: /sign in/i }).click();

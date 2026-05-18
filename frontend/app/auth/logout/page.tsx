@@ -1,22 +1,13 @@
 "use client";
 
-import { Suspense, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { authService } from "@/lib/services/auth.service";
 
-function LogoutInner() {
-  const searchParams = useSearchParams();
-
+export default function AuthLogoutPage() {
   useEffect(() => {
-    const challenge = searchParams.get("logout_challenge");
-    if (!challenge) {
-      // Direct visit (no Hydra challenge) — nothing to accept; bounce to /login.
-      window.location.replace("/login");
-      return;
-    }
-    void authService.completeRPInitiatedLogout(challenge);
-  }, [searchParams]);
+    void authService.logout();
+  }, []);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
@@ -33,17 +24,5 @@ function LogoutInner() {
         </div>
       </div>
     </div>
-  );
-}
-
-export default function AuthLogoutPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-      </div>
-    }>
-      <LogoutInner />
-    </Suspense>
   );
 }

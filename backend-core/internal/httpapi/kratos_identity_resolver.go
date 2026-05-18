@@ -6,19 +6,19 @@ import (
 	"strings"
 )
 
-// resolveKratosIdentityID returns the Kratos identity_id for a DevHub user.
+// resolveIdPSubject returns the Kratos identity_id for a DevHub user.
 //
-// Fast path (L4-A, work_26_05_11-e): read users.kratos_identity_id from the
+// Fast path (L4-A, work_26_05_11-e): read users.idp_subject from the
 // OrganizationStore. When that comes back empty (rows seeded before
 // migration 000009, or freshly-created identities the eager path could not
-// stamp) we fall back to KratosAdmin.FindIdentityByUserID's
+// stamp) we fall back to IdentityAdmin.FindIdentityByUserID's
 // /admin/identities page scan and best-effort backfill the column for next
 // time.
 //
-// Returns ErrKratosIdentityNotFound when neither the cache nor Kratos knows
+// Returns ErrIdentityNotFound when neither the cache nor Kratos knows
 // the user_id. Callers treat that as "user has never been onboarded to
 // Kratos".
-func (h Handler) resolveKratosIdentityID(ctx context.Context, userID string) (string, error) {
+func (h Handler) resolveIdPSubject(ctx context.Context, userID string) (string, error) {
 	userID = strings.TrimSpace(userID)
 	if userID == "" {
 		return "", errors.New("user_id is required")
@@ -27,7 +27,7 @@ func (h Handler) resolveKratosIdentityID(ctx context.Context, userID string) (st
 	// Fast path — DB cache.
 	if h.cfg.OrganizationStore != nil {
 		if user, err := h.cfg.OrganizationStore.GetUser(ctx, userID); err == nil {
-			if id := strings.TrimSpace(user.KratosIdentityID); id != "" {
+			if id := strings.TrimSpace(user.IdPSubject); id != "" {
 				return id, nil
 			}
 		}
@@ -35,20 +35,20 @@ func (h Handler) resolveKratosIdentityID(ctx context.Context, userID string) (st
 	}
 
 	// Slow path — scan Kratos and lazy-backfill the cache.
-	if h.cfg.KratosAdmin == nil {
-		return "", ErrKratosIdentityNotFound
+	if h.cfg.IdentityAdmin == nil {
+		return "", ErrIdentityNotFound
 	}
-	identityID, err := h.cfg.KratosAdmin.FindIdentityByUserID(ctx, userID)
+	identityID, err := h.cfg.IdentityAdmin.FindIdentityByUserID(ctx, userID)
 	if err != nil {
 		return "", err
 	}
 
 	if h.cfg.OrganizationStore != nil {
 		// Best-effort: when the user row is absent (some tests use a bare
-		// newMemoryOrganizationStore without CreateUser) SetKratosIdentityID
+		// newMemoryOrganizationStore without CreateUser) SetIdPSubject
 		// returns ErrNotFound; that is non-fatal here.
-		if setErr := h.cfg.OrganizationStore.SetKratosIdentityID(ctx, userID, identityID); setErr != nil {
-			logRequestCtx(ctx, "[kratos-cache] backfill kratos_identity_id for %s skipped: %v", userID, setErr)
+		if setErr := h.cfg.OrganizationStore.SetIdPSubject(ctx, userID, identityID); setErr != nil {
+			logRequestCtx(ctx, "[kratos-cache] backfill idp_subject for %s skipped: %v", userID, setErr)
 		}
 	}
 	return identityID, nil

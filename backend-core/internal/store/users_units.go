@@ -61,7 +61,7 @@ SELECT
 	role,
 	status,
 	COALESCE(user_type, 'human'),
-	COALESCE(kratos_identity_id, ''),
+	COALESCE(idp_subject, ''),
 	COALESCE(primary_unit_id, ''),
 	COALESCE(current_unit_id, ''),
 	is_seconded,
@@ -96,7 +96,7 @@ LIMIT $1 OFFSET $2`
 			&role,
 			&status,
 			&userType,
-			&user.KratosIdentityID,
+			&user.IdPSubject,
 			&user.PrimaryUnitID,
 			&user.CurrentUnitID,
 			&user.IsSeconded,
@@ -139,7 +139,7 @@ SELECT
 	display_name,
 	role,
 	status,
-	COALESCE(kratos_identity_id, ''),
+	COALESCE(idp_subject, ''),
 	COALESCE(primary_unit_id, ''),
 	COALESCE(current_unit_id, ''),
 	is_seconded,
@@ -160,7 +160,7 @@ LIMIT 1`
 		&user.DisplayName,
 		&role,
 		&status,
-		&user.KratosIdentityID,
+		&user.IdPSubject,
 		&user.PrimaryUnitID,
 		&user.CurrentUnitID,
 		&user.IsSeconded,
@@ -171,7 +171,7 @@ LIMIT 1`
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			// Match the convention used elsewhere in this file
-			// (UpdateUser, DeleteUser, SetKratosIdentityID): wrap with
+			// (UpdateUser, DeleteUser, SetIdPSubject): wrap with
 			// the store.ErrNotFound sentinel so callers can `errors.Is`
 			// portably. The earlier `%w pgx.ErrNoRows` shape silently
 			// broke organization.go's 404 path and authenticateActor's
@@ -355,7 +355,7 @@ SELECT DISTINCT
 	u.display_name,
 	u.role,
 	u.status,
-	COALESCE(u.kratos_identity_id, ''),
+	COALESCE(u.idp_subject, ''),
 	COALESCE(u.primary_unit_id, ''),
 	COALESCE(u.current_unit_id, ''),
 	u.is_seconded,
@@ -386,7 +386,7 @@ ORDER BY u.user_id ASC`
 			&user.DisplayName,
 			&role,
 			&status,
-			&user.KratosIdentityID,
+			&user.IdPSubject,
 			&user.PrimaryUnitID,
 			&user.CurrentUnitID,
 			&user.IsSeconded,
@@ -622,12 +622,12 @@ func (s *PostgresStore) DeleteUser(ctx context.Context, userID string) error {
 	return nil
 }
 
-// SetKratosIdentityID caches the Kratos identity_id on the DevHub users row so
+// SetIdPSubject caches the Kratos identity_id on the DevHub users row so
 // subsequent identity lookups can skip the /admin/identities page scan.
 // Migration 000009 added the column; this is the only writer. Returns
 // ErrNotFound when no user matches the given user_id — best-effort callers
 // (lazy backfill paths) typically ignore that case.
-func (s *PostgresStore) SetKratosIdentityID(ctx context.Context, userID, identityID string) error {
+func (s *PostgresStore) SetIdPSubject(ctx context.Context, userID, identityID string) error {
 	if strings.TrimSpace(userID) == "" {
 		return errors.New("user_id is required")
 	}
@@ -635,14 +635,14 @@ func (s *PostgresStore) SetKratosIdentityID(ctx context.Context, userID, identit
 		return errors.New("identity_id is required")
 	}
 	tag, err := s.pool.Exec(ctx,
-		`UPDATE users SET kratos_identity_id = $2, updated_at = NOW() WHERE user_id = $1`,
+		`UPDATE users SET idp_subject = $2, updated_at = NOW() WHERE user_id = $1`,
 		userID, identityID,
 	)
 	if err != nil {
 		if isUniqueViolation(err) {
-			return fmt.Errorf("kratos_identity_id %s already mapped: %w", identityID, ErrConflict)
+			return fmt.Errorf("idp_subject %s already mapped: %w", identityID, ErrConflict)
 		}
-		return fmt.Errorf("set kratos_identity_id for %s: %w", userID, err)
+		return fmt.Errorf("set idp_subject for %s: %w", userID, err)
 	}
 	if tag.RowsAffected() == 0 {
 		return fmt.Errorf("user %s: %w", userID, ErrNotFound)

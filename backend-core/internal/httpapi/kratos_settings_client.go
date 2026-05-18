@@ -11,38 +11,38 @@ import (
 	"strings"
 )
 
-// KratosSettingsCode classifies the outcomes the /api/v1/account/password
+// PasswordSettingsCode classifies the outcomes the /api/v1/account/password
 // proxy needs to surface to its caller (L4-C, work_26_05_11-e). The /account
 // frontend maps these to its SettingsFlowErrorCode (REAUTH_REQUIRED /
 // VALIDATION / FLOW_INIT_FAILED / SUBMIT_FAILED) so the UI can either show
 // inline validation or hand the user back through /login.
-type KratosSettingsCode string
+type PasswordSettingsCode string
 
 const (
-	// KratosSettingsValidation — Kratos rejected the new password (length,
+	// PasswordSettingsValidation — Kratos rejected the new password (length,
 	// breach list, complexity). Message carries the operator-visible reason.
-	KratosSettingsValidation KratosSettingsCode = "validation"
-	// KratosSettingsSessionInvalid — the session_token is unknown or expired.
+	PasswordSettingsValidation PasswordSettingsCode = "validation"
+	// PasswordSettingsSessionInvalid — the session_token is unknown or expired.
 	// Caller returns 401 + REAUTH_REQUIRED so the frontend can re-auth.
-	KratosSettingsSessionInvalid KratosSettingsCode = "session_invalid"
-	// KratosSettingsPrivilegedRequired — Kratos requires a fresh login flow
+	PasswordSettingsSessionInvalid PasswordSettingsCode = "session_invalid"
+	// PasswordSettingsPrivilegedRequired — Kratos requires a fresh login flow
 	// before privileged actions (privileged_session_max_age=15m). Same UI
 	// outcome as session_invalid but a different audit reason.
-	KratosSettingsPrivilegedRequired KratosSettingsCode = "privileged_required"
-	// KratosSettingsFlowExpired — the flow was created but the lifespan
+	PasswordSettingsPrivilegedRequired PasswordSettingsCode = "privileged_required"
+	// PasswordSettingsFlowExpired — the flow was created but the lifespan
 	// elapsed before submission. Caller can choose to retry the create.
-	KratosSettingsFlowExpired KratosSettingsCode = "flow_expired"
+	PasswordSettingsFlowExpired PasswordSettingsCode = "flow_expired"
 )
 
-// KratosSettingsError is returned from the settings flow helpers when Kratos
+// PasswordSettingsError is returned from the settings flow helpers when Kratos
 // reports a specific user-actionable outcome. Other failure modes (network,
 // 5xx, decode) surface as plain errors so writeServerError can log them.
-type KratosSettingsError struct {
-	Code    KratosSettingsCode
+type PasswordSettingsError struct {
+	Code    PasswordSettingsCode
 	Message string
 }
 
-func (e *KratosSettingsError) Error() string {
+func (e *PasswordSettingsError) Error() string {
 	if e == nil {
 		return ""
 	}
@@ -52,10 +52,10 @@ func (e *KratosSettingsError) Error() string {
 	return string(e.Code)
 }
 
-// IsKratosSettingsError returns the underlying KratosSettingsError when err
+// IsPasswordSettingsError returns the underlying PasswordSettingsError when err
 // wraps one, nil otherwise. Convenience for handler dispatch.
-func IsKratosSettingsError(err error) *KratosSettingsError {
-	var se *KratosSettingsError
+func IsPasswordSettingsError(err error) *PasswordSettingsError {
+	var se *PasswordSettingsError
 	if errors.As(err, &se) {
 		return se
 	}
@@ -96,12 +96,12 @@ type kratosSettingsErrorEnvelope struct {
 // identified by sessionToken. Returns the flow id; the caller passes it to
 // SubmitSettingsPassword. We do not return ui because the password method
 // has fixed fields and no per-flow csrf_token in api-mode.
-func (c *KratosClient) CreateSettingsFlow(ctx context.Context, sessionToken string) (string, error) {
+func (c *PasswordAuthHTTPClient) CreateSettingsFlow(ctx context.Context, sessionToken string) (string, error) {
 	if strings.TrimSpace(c.PublicURL) == "" {
-		return "", errors.New("KratosClient.PublicURL is not configured")
+		return "", errors.New("PasswordAuthHTTPClient.PublicURL is not configured")
 	}
 	if strings.TrimSpace(sessionToken) == "" {
-		return "", &KratosSettingsError{Code: KratosSettingsSessionInvalid, Message: "session_token is empty"}
+		return "", &PasswordSettingsError{Code: PasswordSettingsSessionInvalid, Message: "session_token is empty"}
 	}
 
 	endpoint := strings.TrimRight(c.PublicURL, "/") + "/self-service/settings/api"
@@ -133,28 +133,28 @@ func (c *KratosClient) CreateSettingsFlow(ctx context.Context, sessionToken stri
 		}
 		return flow.ID, nil
 	case http.StatusUnauthorized:
-		return "", &KratosSettingsError{Code: KratosSettingsSessionInvalid, Message: "session_token rejected by kratos"}
+		return "", &PasswordSettingsError{Code: PasswordSettingsSessionInvalid, Message: "session_token rejected by kratos"}
 	case http.StatusForbidden:
 		env := decodeSettingsErrorEnvelope(body)
 		if env.Error.ID == "session_refresh_required" {
-			return "", &KratosSettingsError{Code: KratosSettingsPrivilegedRequired, Message: "privileged session required"}
+			return "", &PasswordSettingsError{Code: PasswordSettingsPrivilegedRequired, Message: "privileged session required"}
 		}
-		return "", &KratosSettingsError{Code: KratosSettingsSessionInvalid, Message: env.Error.Reason}
+		return "", &PasswordSettingsError{Code: PasswordSettingsSessionInvalid, Message: env.Error.Reason}
 	default:
 		return "", fmt.Errorf("kratos settings flow status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
 	}
 }
 
 // SubmitSettingsPassword posts a password change against an existing
-// settings flow id. Maps Kratos's responses onto KratosSettingsError so the
+// settings flow id. Maps Kratos's responses onto PasswordSettingsError so the
 // /api/v1/account/password handler can pick the right HTTP status without
 // re-parsing JSON.
-func (c *KratosClient) SubmitSettingsPassword(ctx context.Context, sessionToken, flowID, newPassword string) error {
+func (c *PasswordAuthHTTPClient) SubmitSettingsPassword(ctx context.Context, sessionToken, flowID, newPassword string) error {
 	if strings.TrimSpace(c.PublicURL) == "" {
-		return errors.New("KratosClient.PublicURL is not configured")
+		return errors.New("PasswordAuthHTTPClient.PublicURL is not configured")
 	}
 	if strings.TrimSpace(sessionToken) == "" {
-		return &KratosSettingsError{Code: KratosSettingsSessionInvalid, Message: "session_token is empty"}
+		return &PasswordSettingsError{Code: PasswordSettingsSessionInvalid, Message: "session_token is empty"}
 	}
 	if strings.TrimSpace(flowID) == "" {
 		return errors.New("flow_id is required")
@@ -196,9 +196,9 @@ func (c *KratosClient) SubmitSettingsPassword(ctx context.Context, sessionToken,
 		// 200 with state="show_form" means validation messages were attached
 		// without an HTTP error code; surface them as a validation error.
 		if msg := collectSettingsMessages(flow); msg != "" {
-			return &KratosSettingsError{Code: KratosSettingsValidation, Message: msg}
+			return &PasswordSettingsError{Code: PasswordSettingsValidation, Message: msg}
 		}
-		return &KratosSettingsError{Code: KratosSettingsValidation, Message: "settings flow returned 200 without success state"}
+		return &PasswordSettingsError{Code: PasswordSettingsValidation, Message: "settings flow returned 200 without success state"}
 	case http.StatusBadRequest:
 		// Validation failures arrive as 400 + ui.messages (per-field) or
 		// ui.nodes[].messages. Decode using the settings flow envelope so
@@ -209,17 +209,17 @@ func (c *KratosClient) SubmitSettingsPassword(ctx context.Context, sessionToken,
 		if msg == "" {
 			msg = "password did not pass validation"
 		}
-		return &KratosSettingsError{Code: KratosSettingsValidation, Message: msg}
+		return &PasswordSettingsError{Code: PasswordSettingsValidation, Message: msg}
 	case http.StatusUnauthorized:
-		return &KratosSettingsError{Code: KratosSettingsSessionInvalid, Message: "session_token rejected by kratos"}
+		return &PasswordSettingsError{Code: PasswordSettingsSessionInvalid, Message: "session_token rejected by kratos"}
 	case http.StatusForbidden:
 		env := decodeSettingsErrorEnvelope(body)
 		if env.Error.ID == "session_refresh_required" {
-			return &KratosSettingsError{Code: KratosSettingsPrivilegedRequired, Message: "privileged session required"}
+			return &PasswordSettingsError{Code: PasswordSettingsPrivilegedRequired, Message: "privileged session required"}
 		}
-		return &KratosSettingsError{Code: KratosSettingsSessionInvalid, Message: env.Error.Reason}
+		return &PasswordSettingsError{Code: PasswordSettingsSessionInvalid, Message: env.Error.Reason}
 	case http.StatusGone:
-		return &KratosSettingsError{Code: KratosSettingsFlowExpired, Message: "settings flow expired"}
+		return &PasswordSettingsError{Code: PasswordSettingsFlowExpired, Message: "settings flow expired"}
 	default:
 		return fmt.Errorf("kratos settings submit status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
 	}

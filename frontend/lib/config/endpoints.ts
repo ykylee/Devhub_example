@@ -30,19 +30,16 @@ export const WS_BASE_URL =
     ? `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}${BASE_PATH ? BASE_PATH : ""}/api/v1/realtime/ws`
     : "ws://localhost:8080/api/v1/realtime/ws");
 
-// --- IdP (Kratos / Hydra) ---
-export const KRATOS_PUBLIC_URL = stripTrailingSlash(
-  process.env.NEXT_PUBLIC_KRATOS_PUBLIC_URL ??
-    (BASE_PATH ? `${BASE_PATH}/auth/kratos` : "http://localhost:4433"),
+// --- IdP (Keycloak OIDC default) ---
+export const IDP_PROVIDER = process.env.NEXT_PUBLIC_IDP_PROVIDER ?? "keycloak";
+
+export const OIDC_ISSUER_URL = stripTrailingSlash(
+  process.env.NEXT_PUBLIC_OIDC_ISSUER_URL ?? "",
 );
 
 export const OIDC_AUTH_URL =
   process.env.NEXT_PUBLIC_OIDC_AUTH_URL ??
-  (BASE_PATH
-    ? `${BASE_PATH}/auth/hydra/oauth2/auth`
-    : "http://localhost:4444/oauth2/auth");
-
-export const HYDRA_PUBLIC_BASE = OIDC_AUTH_URL.replace(/\/oauth2\/auth\/?$/, "");
+  `${OIDC_ISSUER_URL}/protocol/openid-connect/auth`;
 
 // Dynamically construct OIDC redirect callback URL based on current origin to support multiple environments seamlessly.
 export const OIDC_REDIRECT_URI =

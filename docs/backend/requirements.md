@@ -52,7 +52,7 @@
 
 ## 5. 사용자 계정 및 인증 (User Account & Authentication)
 
-> **구현 방식 결정 (2026-05-07, [ADR-0001](../adr/0001-idp-selection.md))**: 자체 `accounts` 테이블/핸들러 구현 대신 **Ory Hydra + Kratos** 도입. 본 §5 의 정책 invariant(1:1 매핑, 평문/해시 미노출, 자동 lock, audit log) 는 그대로 유효하며 책임 주체만 바뀐다. 구체 task 목록은 [backend_development_roadmap.md Phase 13](../../ai-workflow/memory/backend_development_roadmap.md) 의 P1 큐로 통합한다.
+> **구현 방식 결정 (2026-05-07, [ADR-0001](../adr/0001-idp-selection.md))**: 자체 `accounts` 테이블/핸들러 구현 대신 **Ory Keycloak** 도입. 본 §5 의 정책 invariant(1:1 매핑, 평문/해시 미노출, 자동 lock, audit log) 는 그대로 유효하며 책임 주체만 바뀐다. 구체 task 목록은 [backend_development_roadmap.md Phase 13](../../ai-workflow/memory/backend_development_roadmap.md) 의 P1 큐로 통합한다.
 
 DevHub 자체 사용자 계정(Account) 도입에 따라 다음 백엔드 API/도메인 작업이 필요하다. 정책 기반은 [요구사항 정의서 2.5](../requirements.md#25-사용자-계정-관리-user-account-management) 와 [architecture.md 6.2](../architecture.md#62-사용자user--계정account-도메인-분리), 계약은 [backend_api_contract.md §11](../backend_api_contract.md#11-계정-및-인증-account--auth) 을 참조한다.
 
@@ -67,7 +67,7 @@ DevHub 자체 사용자 계정(Account) 도입에 따라 다음 백엔드 API/�
 - `PATCH /api/v1/accounts/{user_id}` — login_id/status 변경 (시스템 관리자).
 - `PUT /api/v1/accounts/{user_id}/password` — 본인 변경 또는 시스템 관리자 강제 재설정.
 - `DELETE /api/v1/accounts/{user_id}` — 회수 (시스템 관리자).
-- `POST /api/v1/auth/login`, `POST /api/v1/auth/logout` — 인증 lifecycle.
+- 인증 lifecycle 은 Keycloak OIDC 표준 endpoint(authorization/token/logout) 사용, DevHub는 `GET /api/v1/me` + `POST /api/v1/account/password` + `/api/v1/accounts/*` 관리 API만 제공.
 
 ### 5.3 비기능 요구
 - 비밀번호 평문은 어떤 응답/audit/log 에도 포함하지 않는다.

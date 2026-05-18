@@ -144,7 +144,7 @@ export default function AccountPage() {
                     id="current-password-help"
                     className="text-[10px] text-muted-foreground/80 px-1 leading-relaxed"
                   >
-                    Required by our identity provider (Ory Kratos) for sensitive changes. If your session has expired you will be asked to sign in again — use the Sign In Again button if the error below appears.
+                    Required by our identity provider (Keycloak OIDC) for sensitive changes. If your session has expired you will be asked to sign in again.
                   </p>
                 </div>
 

@@ -12,22 +12,22 @@ import (
 	"time"
 )
 
-// ErrKratosInvalidCredentials is returned when Kratos rejects the password.
+// ErrInvalidCredentials is returned when Kratos rejects the password.
 // The handler maps this to a 401 with a generic message so callers cannot
 // distinguish "user does not exist" from "wrong password" (timing/oracle
 // hardening per OWASP ASVS V2.1.10).
-var ErrKratosInvalidCredentials = errors.New("invalid credentials")
+var ErrInvalidCredentials = errors.New("invalid credentials")
 
-// ErrKratosFlowExpired signals that a previously created login flow lifetime
+// ErrLoginFlowExpired signals that a previously created login flow lifetime
 // (kratos.yaml selfservice.flows.login.lifespan, default 10m) has elapsed.
 // The frontend should restart the OIDC flow.
-var ErrKratosFlowExpired = errors.New("kratos login flow expired")
+var ErrLoginFlowExpired = errors.New("kratos login flow expired")
 
-// KratosClient drives the password self-service login flow on the Ory Kratos
+// PasswordAuthHTTPClient drives the password self-service login flow on the Ory Kratos
 // public API. It only owns the steps needed by /api/v1/auth/login; settings
 // (password change), recovery, and registration flows live in their own
 // helpers introduced by later PRs.
-type KratosClient struct {
+type PasswordAuthHTTPClient struct {
 	// PublicURL is the base URL of the Kratos public API
 	// (e.g. http://127.0.0.1:4433). Required.
 	PublicURL string
@@ -35,9 +35,9 @@ type KratosClient struct {
 	HTTPClient *http.Client
 }
 
-// KratosIdentity is the slice of an identity that the login proxy needs to
+// IDPIdentity is the slice of an identity that the login proxy needs to
 // authenticate the caller and pass a stable subject to Hydra.
-type KratosIdentity struct {
+type IDPIdentity struct {
 	// ID is the Kratos UUID (identity.id). Stable for the lifetime of the
 	// identity but not the value DevHub stores on rbac/users — that is
 	// metadata_public.user_id below.
@@ -53,16 +53,16 @@ type KratosIdentity struct {
 	DisplayName string
 	// SessionToken carries the Kratos api-mode session token returned by
 	// /self-service/login/api submission (L4-B, work_26_05_11-e). The
-	// authLogin handler caches it in KratosSessionCache so the later
+	// authLogin handler caches it in IDPSessionCache so the later
 	// /api/v1/account/password proxy can drive Kratos settings flow on
 	// behalf of the user without holding a browser cookie.
 	SessionToken string
 }
 
-// KratosLoginFlow is the minimum subset of the Kratos login flow response
+// IDPLoginFlow is the minimum subset of the Kratos login flow response
 // that /api/v1/auth/login round-trips: the flow id (used as the form action
 // id) plus the CSRF token nested in the password method node.
-type KratosLoginFlow struct {
+type IDPLoginFlow struct {
 	ID        string
 	CSRFToken string
 	ExpiresAt time.Time
@@ -72,29 +72,29 @@ type KratosLoginFlow struct {
 // return_to optional) instead of browser-mode because the DevHub login proxy
 // drives the flow server-to-server; browser-mode would require us to mirror
 // Kratos cookies back to the user agent.
-func (c *KratosClient) CreateLoginFlow(ctx context.Context) (KratosLoginFlow, error) {
+func (c *PasswordAuthHTTPClient) CreateLoginFlow(ctx context.Context) (IDPLoginFlow, error) {
 	if strings.TrimSpace(c.PublicURL) == "" {
-		return KratosLoginFlow{}, errors.New("KratosClient.PublicURL is not configured")
+		return IDPLoginFlow{}, errors.New("PasswordAuthHTTPClient.PublicURL is not configured")
 	}
 	endpoint := strings.TrimRight(c.PublicURL, "/") + "/self-service/login/api"
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
-		return KratosLoginFlow{}, fmt.Errorf("build kratos login flow request: %w", err)
+		return IDPLoginFlow{}, fmt.Errorf("build kratos login flow request: %w", err)
 	}
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.client().Do(req)
 	if err != nil {
-		return KratosLoginFlow{}, fmt.Errorf("call kratos login flow: %w", err)
+		return IDPLoginFlow{}, fmt.Errorf("call kratos login flow: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return KratosLoginFlow{}, fmt.Errorf("read kratos login flow: %w", err)
+		return IDPLoginFlow{}, fmt.Errorf("read kratos login flow: %w", err)
 	}
 	if resp.StatusCode/100 != 2 {
-		return KratosLoginFlow{}, fmt.Errorf("kratos login flow status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+		return IDPLoginFlow{}, fmt.Errorf("kratos login flow status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
 	}
 
 	return parseLoginFlow(body)
@@ -102,9 +102,9 @@ func (c *KratosClient) CreateLoginFlow(ctx context.Context) (KratosLoginFlow, er
 
 // SubmitLogin posts password credentials against an existing flow id. The
 // caller is responsible for creating the flow with CreateLoginFlow first.
-func (c *KratosClient) SubmitLogin(ctx context.Context, flow KratosLoginFlow, identifier, password string) (KratosIdentity, error) {
+func (c *PasswordAuthHTTPClient) SubmitLogin(ctx context.Context, flow IDPLoginFlow, identifier, password string) (IDPIdentity, error) {
 	if strings.TrimSpace(c.PublicURL) == "" {
-		return KratosIdentity{}, errors.New("KratosClient.PublicURL is not configured")
+		return IDPIdentity{}, errors.New("PasswordAuthHTTPClient.PublicURL is not configured")
 	}
 	endpoint := strings.TrimRight(c.PublicURL, "/") + "/self-service/login?flow=" + flow.ID
 	payload := map[string]any{
@@ -117,44 +117,44 @@ func (c *KratosClient) SubmitLogin(ctx context.Context, flow KratosLoginFlow, id
 	}
 	encoded, err := json.Marshal(payload)
 	if err != nil {
-		return KratosIdentity{}, fmt.Errorf("encode kratos login payload: %w", err)
+		return IDPIdentity{}, fmt.Errorf("encode kratos login payload: %w", err)
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(encoded))
 	if err != nil {
-		return KratosIdentity{}, fmt.Errorf("build kratos login submit: %w", err)
+		return IDPIdentity{}, fmt.Errorf("build kratos login submit: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.client().Do(req)
 	if err != nil {
-		return KratosIdentity{}, fmt.Errorf("call kratos login submit: %w", err)
+		return IDPIdentity{}, fmt.Errorf("call kratos login submit: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return KratosIdentity{}, fmt.Errorf("read kratos login submit: %w", err)
+		return IDPIdentity{}, fmt.Errorf("read kratos login submit: %w", err)
 	}
 
 	switch {
 	case resp.StatusCode == http.StatusOK:
 		return parseLoginSuccess(body)
 	case resp.StatusCode == http.StatusBadRequest:
-		logRequestCtx(ctx, "[KratosClient] SubmitLogin 400: %s", string(body))
+		logRequestCtx(ctx, "[PasswordAuthHTTPClient] SubmitLogin 400: %s", string(body))
 		// 400 is Kratos's response for both schema errors and rejected
 		// credentials; treat the latter as the dominant case to keep
 		// callers from leaking which arm fired.
-		return KratosIdentity{}, ErrKratosInvalidCredentials
+		return IDPIdentity{}, ErrInvalidCredentials
 	case resp.StatusCode == http.StatusGone || resp.StatusCode == http.StatusUnauthorized:
-		return KratosIdentity{}, ErrKratosFlowExpired
+		return IDPIdentity{}, ErrLoginFlowExpired
 	default:
-		logRequestCtx(ctx, "[KratosClient] SubmitLogin status %d: %s", resp.StatusCode, string(body))
-		return KratosIdentity{}, fmt.Errorf("kratos login submit status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+		logRequestCtx(ctx, "[PasswordAuthHTTPClient] SubmitLogin status %d: %s", resp.StatusCode, string(body))
+		return IDPIdentity{}, fmt.Errorf("kratos login submit status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
 	}
 }
 
-func (c *KratosClient) client() *http.Client {
+func (c *PasswordAuthHTTPClient) client() *http.Client {
 	if c.HTTPClient != nil {
 		return c.HTTPClient
 	}
@@ -178,15 +178,15 @@ type kratosLoginFlowResponse struct {
 	} `json:"ui"`
 }
 
-func parseLoginFlow(body []byte) (KratosLoginFlow, error) {
+func parseLoginFlow(body []byte) (IDPLoginFlow, error) {
 	var raw kratosLoginFlowResponse
 	if err := json.Unmarshal(body, &raw); err != nil {
-		return KratosLoginFlow{}, fmt.Errorf("decode kratos login flow: %w", err)
+		return IDPLoginFlow{}, fmt.Errorf("decode kratos login flow: %w", err)
 	}
 	if raw.ID == "" {
-		return KratosLoginFlow{}, errors.New("kratos login flow missing id")
+		return IDPLoginFlow{}, errors.New("kratos login flow missing id")
 	}
-	flow := KratosLoginFlow{ID: raw.ID, ExpiresAt: raw.ExpiresAt}
+	flow := IDPLoginFlow{ID: raw.ID, ExpiresAt: raw.ExpiresAt}
 	for _, node := range raw.UI.Nodes {
 		if node.Attributes.Name == "csrf_token" {
 			if s, ok := node.Attributes.Value.(string); ok {
@@ -220,16 +220,16 @@ type kratosIdentityRaw struct {
 	} `json:"metadata_public"`
 }
 
-func parseLoginSuccess(body []byte) (KratosIdentity, error) {
+func parseLoginSuccess(body []byte) (IDPIdentity, error) {
 	var raw kratosLoginSuccessResponse
 	if err := json.Unmarshal(body, &raw); err != nil {
-		return KratosIdentity{}, fmt.Errorf("decode kratos login success: %w", err)
+		return IDPIdentity{}, fmt.Errorf("decode kratos login success: %w", err)
 	}
 	identity := raw.Session.Identity
 	if identity.ID == "" {
-		return KratosIdentity{}, errors.New("kratos login success missing identity.id")
+		return IDPIdentity{}, errors.New("kratos login success missing identity.id")
 	}
-	return KratosIdentity{
+	return IDPIdentity{
 		ID:           identity.ID,
 		UserID:       strings.TrimSpace(identity.MetadataPublic.UserID),
 		SystemID:     identity.Traits.SystemID,

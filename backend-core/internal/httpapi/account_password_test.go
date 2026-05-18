@@ -22,13 +22,13 @@ func (s staticActorAuth) VerifyBearerToken(_ context.Context, _ string) (Authent
 	return AuthenticatedActor{Login: s.actorLogin, Role: "developer"}, nil
 }
 
-func newAccountPasswordRouter(actorLogin string, orgStore OrganizationStore, kratos KratosLoginClient, audits *memoryAuditStore, cache *KratosSessionCache) http.Handler {
+func newAccountPasswordRouter(actorLogin string, orgStore OrganizationStore, kratos PasswordAuthClient, audits *memoryAuditStore, cache *IDPSessionCache) http.Handler {
 	return NewRouter(RouterConfig{
 		KratosLogin:         kratos,
 		OrganizationStore:   orgStore,
 		AuditStore:          audits,
 		BearerTokenVerifier: staticActorAuth{actorLogin: actorLogin},
-		KratosSessionCache:  cache,
+		IDPSessionCache:  cache,
 	})
 }
 
@@ -62,12 +62,12 @@ func TestAccountPassword_Success(t *testing.T) {
 	seedActorUser(t, orgStore, "alice", "alice@example.com")
 
 	kratos := &fakeKratosLogin{
-		flow:           KratosLoginFlow{ID: "login-flow-1"},
-		identity:       KratosIdentity{ID: "kratos-uuid-alice", UserID: "alice", SessionToken: "fresh-sess-1"},
+		flow:           IDPLoginFlow{ID: "login-flow-1"},
+		identity:       IDPIdentity{ID: "kratos-uuid-alice", UserID: "alice", SessionToken: "fresh-sess-1"},
 		settingsFlowID: "settings-flow-1",
 	}
 	audits := &memoryAuditStore{}
-	cache := NewKratosSessionCache()
+	cache := NewIDPSessionCache()
 	router := newAccountPasswordRouter("alice", orgStore, kratos, audits, cache)
 
 	rec := postAccountPassword(router,
@@ -103,7 +103,7 @@ func TestAccountPassword_Success(t *testing.T) {
 func TestAccountPassword_RejectsMissingFields(t *testing.T) {
 	orgStore := newMemoryOrganizationStore()
 	seedActorUser(t, orgStore, "alice", "alice@example.com")
-	router := newAccountPasswordRouter("alice", orgStore, &fakeKratosLogin{}, &memoryAuditStore{}, NewKratosSessionCache())
+	router := newAccountPasswordRouter("alice", orgStore, &fakeKratosLogin{}, &memoryAuditStore{}, NewIDPSessionCache())
 
 	rec := postAccountPassword(router, `{"new_password":"only"}`)
 	if rec.Code != http.StatusBadRequest {
@@ -119,7 +119,7 @@ func TestAccountPassword_RejectsMissingFields(t *testing.T) {
 func TestAccountPassword_RejectsSamePassword(t *testing.T) {
 	orgStore := newMemoryOrganizationStore()
 	seedActorUser(t, orgStore, "alice", "alice@example.com")
-	router := newAccountPasswordRouter("alice", orgStore, &fakeKratosLogin{}, &memoryAuditStore{}, NewKratosSessionCache())
+	router := newAccountPasswordRouter("alice", orgStore, &fakeKratosLogin{}, &memoryAuditStore{}, NewIDPSessionCache())
 
 	rec := postAccountPassword(router, `{"current_password":"same-pass","new_password":"same-pass"}`)
 	if rec.Code != http.StatusBadRequest {
@@ -134,7 +134,7 @@ func TestAccountPassword_RejectsSamePassword(t *testing.T) {
 func TestAccountPassword_UnknownDevhubUser(t *testing.T) {
 	orgStore := newMemoryOrganizationStore() // no users seeded
 	audits := &memoryAuditStore{}
-	router := newAccountPasswordRouter("ghost", orgStore, &fakeKratosLogin{}, audits, NewKratosSessionCache())
+	router := newAccountPasswordRouter("ghost", orgStore, &fakeKratosLogin{}, audits, NewIDPSessionCache())
 
 	rec := postAccountPassword(router, `{"current_password":"a","new_password":"b"}`)
 	if rec.Code != http.StatusUnauthorized {
@@ -156,11 +156,11 @@ func TestAccountPassword_InvalidCurrent(t *testing.T) {
 	orgStore := newMemoryOrganizationStore()
 	seedActorUser(t, orgStore, "alice", "alice@example.com")
 	kratos := &fakeKratosLogin{
-		flow:      KratosLoginFlow{ID: "f"},
-		submitErr: ErrKratosInvalidCredentials,
+		flow:      IDPLoginFlow{ID: "f"},
+		submitErr: ErrInvalidCredentials,
 	}
 	audits := &memoryAuditStore{}
-	router := newAccountPasswordRouter("alice", orgStore, kratos, audits, NewKratosSessionCache())
+	router := newAccountPasswordRouter("alice", orgStore, kratos, audits, NewIDPSessionCache())
 
 	rec := postAccountPassword(router, `{"current_password":"wrong","new_password":"new-pass-12!"}`)
 	if rec.Code != http.StatusUnauthorized {
@@ -188,11 +188,11 @@ func TestAccountPassword_PrivilegedRequiredFromSettingsFlow(t *testing.T) {
 	orgStore := newMemoryOrganizationStore()
 	seedActorUser(t, orgStore, "alice", "alice@example.com")
 	kratos := &fakeKratosLogin{
-		flow:            KratosLoginFlow{ID: "f"},
-		identity:        KratosIdentity{ID: "id", UserID: "alice", SessionToken: "sess"},
-		settingsFlowErr: &KratosSettingsError{Code: KratosSettingsPrivilegedRequired},
+		flow:            IDPLoginFlow{ID: "f"},
+		identity:        IDPIdentity{ID: "id", UserID: "alice", SessionToken: "sess"},
+		settingsFlowErr: &PasswordSettingsError{Code: PasswordSettingsPrivilegedRequired},
 	}
-	router := newAccountPasswordRouter("alice", orgStore, kratos, &memoryAuditStore{}, NewKratosSessionCache())
+	router := newAccountPasswordRouter("alice", orgStore, kratos, &memoryAuditStore{}, NewIDPSessionCache())
 
 	rec := postAccountPassword(router, `{"current_password":"old","new_password":"new-pass-12!"}`)
 	if rec.Code != http.StatusUnauthorized {
@@ -208,12 +208,12 @@ func TestAccountPassword_ValidationFromSettingsSubmit(t *testing.T) {
 	orgStore := newMemoryOrganizationStore()
 	seedActorUser(t, orgStore, "alice", "alice@example.com")
 	kratos := &fakeKratosLogin{
-		flow:              KratosLoginFlow{ID: "f"},
-		identity:          KratosIdentity{ID: "id", UserID: "alice", SessionToken: "sess"},
+		flow:              IDPLoginFlow{ID: "f"},
+		identity:          IDPIdentity{ID: "id", UserID: "alice", SessionToken: "sess"},
 		settingsFlowID:    "settings-1",
-		settingsSubmitErr: &KratosSettingsError{Code: KratosSettingsValidation, Message: "password too short"},
+		settingsSubmitErr: &PasswordSettingsError{Code: PasswordSettingsValidation, Message: "password too short"},
 	}
-	router := newAccountPasswordRouter("alice", orgStore, kratos, &memoryAuditStore{}, NewKratosSessionCache())
+	router := newAccountPasswordRouter("alice", orgStore, kratos, &memoryAuditStore{}, NewIDPSessionCache())
 
 	rec := postAccountPassword(router, `{"current_password":"old","new_password":"shrt"}`)
 	if rec.Code != http.StatusBadRequest {
@@ -244,10 +244,10 @@ func TestAccountPassword_EmptySessionTokenSurface500(t *testing.T) {
 	orgStore := newMemoryOrganizationStore()
 	seedActorUser(t, orgStore, "alice", "alice@example.com")
 	kratos := &fakeKratosLogin{
-		flow:     KratosLoginFlow{ID: "f"},
-		identity: KratosIdentity{ID: "id", UserID: "alice", SessionToken: ""}, // empty
+		flow:     IDPLoginFlow{ID: "f"},
+		identity: IDPIdentity{ID: "id", UserID: "alice", SessionToken: ""}, // empty
 	}
-	router := newAccountPasswordRouter("alice", orgStore, kratos, &memoryAuditStore{}, NewKratosSessionCache())
+	router := newAccountPasswordRouter("alice", orgStore, kratos, &memoryAuditStore{}, NewIDPSessionCache())
 
 	rec := postAccountPassword(router, `{"current_password":"old","new_password":"new-pass-12!"}`)
 	if rec.Code != http.StatusInternalServerError {

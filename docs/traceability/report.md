@@ -114,14 +114,10 @@
 | API ID | 본문 위치 | 항목 |
 | --- | --- | --- |
 | `API-19` | §11.3 | Go Core Bearer token 경계 (`Authorization: Bearer ...` verifier interface + actor context) |
-| `API-20` | §11.5 | `POST /api/v1/auth/login` (login_challenge → Kratos api-mode login + Hydra accept) |
-| `API-21` | §11.5 | `POST /api/v1/auth/logout` (logout_challenge → Hydra revoke + accept) |
-| `API-22` | §11.5 | `POST /api/v1/auth/token` (authorization_code → Hydra `/oauth2/token`) |
-| `API-23` | §11.5 | `POST /api/v1/auth/signup` (HRDB lookup + Kratos identity 생성) |
-| `API-24` | §11.5 | `GET /api/v1/auth/consent` (Hydra consent flow auto-accept) |
+| `API-32` | §10 | `GET /api/v1/me` (OIDC subject 기준 profile/role/org context 조회) |
 | `API-35` | §11.5.1 | `POST /api/v1/account/password` (self-service password change — 인증/계정 도메인 cross-cut) |
 
-> §11.2 Hydra 표준 endpoint (외부, DevHub 재정의 0) 와 §11.4 admin identity wrapper (planned, M3 진입 시 ID 발급) 는 본 매핑 표에서 제외 — `conventions.md` §5.2 의 외부 의존성 / planned 항목 정책.
+> `/api/v1/auth/*` 는 Keycloak 전환 이후 제거된 legacy endpoint다. §11.2 OIDC 표준 endpoint(외부, DevHub 재정의 0) 는 본 매핑 표에서 제외 — `conventions.md` §5.2 정책.
 
 #### Infra / Dashboard API §6 — endpoint 매핑 (sprint `claude/work_260513-i`)
 
@@ -202,7 +198,7 @@
 
 ### 2.4 Implementation (IMPL)
 
-- **Backend (`backend-core`)**: IMPL-auth-01..07, rbac-01..04, audit-01..02, account-01..04, org-01..04, command-01..05, serviceaction-01, domain-01..03, dashboard-01, infra-01, store-01..03, gitea-01..02, kratos-01..04, config-01, hrdb-01, realtime-01, me-01, health-01, idp-schema-01 (47 항목).
+- **Backend (`backend-core`)**: IMPL-auth-01..03, rbac-01..04, audit-01..02, account-01..04, org-01..04, command-01..05, serviceaction-01, domain-01..03, dashboard-01, infra-01, store-01..03, gitea-01..02, config-01, hrdb-01, realtime-01, me-01, health-01, idp-schema-01 (축약 반영; 상세는 각 서브 표 기준).
 
 #### IMPL-rbac-XX 정의 (sprint `claude/work_260513-f`)
 
@@ -217,15 +213,11 @@
 
 | IMPL ID | 코드 위치 | 책임 |
 | --- | --- | --- |
-| `IMPL-auth-01` | `backend-core/internal/auth/hydra_introspection.go` + `internal/httpapi/auth.go` (`BearerTokenVerifier` interface) | §11.3 Bearer token verifier interface + Hydra introspection 구현 |
+| `IMPL-auth-01` | `backend-core/internal/auth/keycloak_verifier.go` + `internal/httpapi/auth.go` (`BearerTokenVerifier` interface) | §11.3 Bearer token verifier interface + Keycloak JWKS/discovery verifier 구현 |
 | `IMPL-auth-02` | `internal/httpapi/auth.go` (`authenticateActor` middleware + `AuthenticatedActor` context) | §11.3 검증 결과를 request context 의 actor 로 전파 |
-| `IMPL-auth-03` | `internal/httpapi/auth_login.go` | API-20 `POST /api/v1/auth/login` handler |
-| `IMPL-auth-04` | `internal/httpapi/auth_logout.go` | API-21 `POST /api/v1/auth/logout` handler |
-| `IMPL-auth-05` | `internal/httpapi/auth_token.go` | API-22 `POST /api/v1/auth/token` handler |
-| `IMPL-auth-06` | `internal/httpapi/auth_signup.go` | API-23 `POST /api/v1/auth/signup` handler |
-| `IMPL-auth-07` | `internal/httpapi/auth_consent.go` | API-24 `GET /api/v1/auth/consent` handler |
+| `IMPL-auth-03` | `internal/httpapi/router.go` + `internal/httpapi/permissions.go` | 인증 경계 라우팅/권한 enforcement + legacy `/api/v1/auth/*` 제거 반영 |
 
-> API-35 `POST /api/v1/account/password` 의 IMPL 은 account 도메인 (별도 sprint 의 `internal/httpapi/account_password.go`). 매트릭스 §3 의 인증 행 + 계정 관리 행 양쪽에 ID 가 노출되는 cross-cut.
+> API-35 `POST /api/v1/account/password` 의 IMPL 은 account 도메인 (`internal/httpapi/account_password.go`). 매트릭스 §3 의 인증 행 + 계정 관리 행 양쪽에 ID 가 노출되는 cross-cut.
 
 #### IMPL-account-XX 정의 (sprint `claude/work_260513-i`)
 
@@ -328,8 +320,8 @@
 
 | 도메인 | REQ | USECASE | ARCH / API | ROADMAP | IMPL | UT | TC |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| **인증 (auth / OIDC)** | FR-19, 21–24, 65, 67; NFR-3, 18 | UC-AUTH-01..03 | ARCH-11, 12; API-19–24, 35 (정밀 매핑: §2.2 Auth API 서브 표) | M1-04, M2-01, 02, 03, 09 | auth-01..07 (책임 정의: §2.4 IMPL-auth-XX 서브 표); frontend-auth-01..06; login-01..03; logout-01 | httpapi-01..04; auth-01; frontend-auth-01..04 | TC-AUTH-NEG-01, NOAUTH-01, SIGNOUT-REDIR-01; TC-USER-SWITCH-01 |
-| **회원가입 (signup)** | FR-25, 61–63 | UC-AUTH-01, UC-ACCOUNT-01 | ARCH-12; API-23 (§11.5.2 신설 본격 spec, 정밀 매핑: §2.2 Auth API 서브 표) | RM-M3-01 (Sign Up — 1차 정합화 sprint `claude/work_260513-l` 에서 audit emit + 단위테스트 4 case + §11.5.2 spec); RM-M3-02 (ADR-0008 결정 — PostgreSQL `hrdb` schema, 실 구현 carve) | auth-06 (`auth_signup.go`, §2.4 IMPL-auth-XX 서브 표); hrdb-01 (PoC MockClient); hrdb-02 (planned, ADR-0008); frontend-login-03 | httpapi-15, signup-01..04 (auth_signup_test) | TC-SIGNUP-01..04 |
+| **인증 (auth / OIDC)** | FR-19, 21–24, 65, 67; NFR-3, 18 | UC-AUTH-01..03 | ARCH-11, 12; API-19, 32, 35 (정밀 매핑: §2.2 Auth API 서브 표) | M1-04, M2-01, 02, 03, 09 | auth-01..03 (책임 정의: §2.4 IMPL-auth-XX 서브 표); frontend-auth-01..06; login-01..03; logout-01 | httpapi-01..04; auth-01; frontend-auth-01..04 | TC-AUTH-NEG-01, NOAUTH-01, SIGNOUT-REDIR-01; TC-USER-SWITCH-01 |
+| **회원가입 (signup)** | FR-25, 61–63 | UC-AUTH-01, UC-ACCOUNT-01 | ARCH-12; (legacy API-23 제거, 신규 경로는 후속 명세) | RM-M3-01 (Sign Up — IdP admin 연계 재설계 in_progress); RM-M3-02 (ADR-0008 결정 — PostgreSQL `hrdb` schema, 실 구현 carve) | hrdb-01 (PoC MockClient); hrdb-02 (planned, ADR-0008); frontend-login-03 | (후속 갱신) | TC-SIGNUP-01..04 |
 | **RBAC** | FR-27, 86; NFR-26 | UC-RBAC-01..03 | ARCH-13; API-26–31, 38–40 (정밀 매핑: §2.2 RBAC API 서브 표) | M1-01, 02, 03; M2-11 | rbac-01..04 (책임 정의: §2.4 IMPL-rbac-XX 서브 표); frontend-admin-rbac-01; frontend-service-rbac-01; org-comp-02 | rbac-01..03; domain-01 | TC-RBAC-SUB-01, MGR-01; TC-PERMISSIONS-SMOKE-01 |
 | **계정 관리 (account admin + self-service)** | FR-15–18, 20, 22, 23, 26, 61–67; NFR-3, 4, 5, 7, 17, 19, 20 | UC-ACCOUNT-01..03 | ARCH-12, 14; API-25, 32, 35 (API-35 = §11.5.1 cross-cut with 인증, 정밀 매핑: §2.2 Auth API 서브 표) | M2-04, 05, 06 | account-01..04 (`account_password.go` 가 API-35 의 IMPL); frontend-account-01; frontend-admin-users-01; frontend-service-account-01 | httpapi-05, 06, 07 | TC-USR-01..06; TC-USR-CRUD-01..03; TC-ACC-01..03; TC-ACC-PROFILE-01 |
 | **조직 계층 (organization)** | FR-68–80; NFR-21 | UC-ORG-01..04 | ARCH-15, 16, 17; API-33, 34 (정밀 매핑: §2.2 Account/Org/Me 서브 표 + §10.4.1~§10.4.4 mutation endpoint 본문 spec 1차 — sprint `claude/work_260513-l`) | M2-07, 08; RM-M3-03 (조직 polish 1차 §10.4 schema 보강, planned cycle 검증 / primary_dept 자동 판정 코드는 carve) | org-01..04 (책임 정의: §2.4 IMPL-org-XX 서브 표); frontend-org-01; frontend-admin-org-01; frontend-org-comp-01..03; frontend-service-org-01 | httpapi-07; store-01 | TC-ORG-LIST-01..02; TC-ORG-UNIT-01..03; TC-ORG-MEM-01..02; TC-ORG-CHART-01..02 |
@@ -350,7 +342,7 @@
 
 | ADR | 제목 | 상태 | 영향 도메인 |
 | --- | --- | --- | --- |
-| [ADR-0001](../adr/0001-idp-selection.md) | IdP 선정 (Ory Hydra + Kratos) | accepted (2026-05-07) | 인증, 회원가입, 계정 관리 |
+| [ADR-0001](../adr/0001-idp-selection.md) | IdP 선정 (Ory Keycloak) | accepted (2026-05-07) | 인증, 회원가입, 계정 관리 |
 | [ADR-0002](../adr/0002-rbac-policy-edit-api.md) | RBAC policy edit API (DB-backed matrix) | accepted (2026-05-08) | RBAC |
 | [ADR-0003](../adr/0003-no-docker-policy-ci-scope.md) | No-Docker 정책 CI 범위 명문화 | accepted (2026-05-13, PR #88) | CI / 거버넌스 |
 | [ADR-0004](../adr/0004-x-devhub-actor-removal.md) | `X-Devhub-Actor` 헤더 폐기 완료 선언 | accepted (2026-05-13, sprint `claude/work_260513-h`) | 인증 (auth) |
@@ -441,7 +433,7 @@
 | 2026-05-14 | PR #112 (codex/frontend_color_review) 자체 + codex 합본 리뷰 보강 commit: **IMPL-org-04** 갱신 — `users_units.go` 의 `CreateOrgUnit` / `UpdateOrgUnit` 에 unit_appointments leader 자동 sync (demote-then-promote in tx). 회귀 가드: `SELECT ... FOR UPDATE` 직렬화 + migration `000019_unit_single_leader.up.sql` 의 partial unique index `unit_single_leader_idx WHERE appointment_role='leader'` 로 single-leader invariant 를 SQL 레벨에서 강제. `normalizedLeaderUserID` helper 로 `org_units.leader_user_id` 와 `unit_appointments.user_id` normalize 단일화 (TrimSpace 1회). 신규 integration test 3건 (`TestPostgresStore_CreateOrgUnit_LeaderSync`, `TestPostgresStore_UpdateOrgUnit_LeaderPromoteDemote`, `TestPostgresStore_UpdateOrgUnit_LeaderClear`). **frontend 보안 hotfix** — `/admin/settings/organization` 의 read-path 자동 leader PATCH 제거 (audit log poisoning + 권한 상승 경로 차단). **PKCE 회귀 가드** — `pkce.test.ts` 에 RFC 7636 Appendix B vector + sha256Fallback ≡ subtle 50개 fuzz parity case 추가. **a11y** — `ActionMenu` keyboard activation (`onClick` fallback + `role="menu"` / `aria-haspopup` / `aria-expanded`) + `touchedRef` 자동 350ms reset (silent click swallow 차단). **policy** — 환경 특화 docker 자산 (`infra/idp/*.docker.yaml`) + 개인 환경 디버그 스크립트 (`frontend/pw-login-check.cjs`) 를 git 추적 외로 이동, `.gitignore` 패턴 추가. | PR #112 보강 commit |
 | 2026-05-16 | sprint `gemini/phase6` (Frontend ProjectService): `frontend/lib/services/project.service.ts` 구현 보완 (getProject, listAllProjects) 및 `project.service.test.ts` 정합성 확보 (기존 getApplications 등 유지). Vitest 3 case PASS (`UT-frontend-services-02`). | current session |
 | 2026-05-17 | sprint `gemini/phase6` (E2E & Refinements): **(1) RBAC E2E 테스트 검증** — DB connection DSN 환경변수 연동을 통한 Playwright E2E 테스트(`admin-permissions.spec.ts`) 시딩 & 테스트 2건 전면 성공. **(2) Projects 상세 페이지 실시간 API 연동** — `identityService.getUsers()`와 project 속성(`start_date`, `due_date`, `owner_user_id`)을 매핑하여 하드코딩 데이터를 동적 연동 리팩토링. **(3) 추적성 문서 업데이트** — 공통 필터 표준화 및 감사 로그 프리미엄 리팩토링에 따른 IMPL/TC ID 갱신. **(4) 개발 의뢰 필터 바 표준화** — `dev-requests/page.tsx`에 공통 표준 컴포넌트인 `FilterBar`를 바인딩하고 비표준 커스텀 버튼/필터 방식을 제거하여 대시보드 UI의 일관성을 확보함. | current session |
-| 2026-05-15 | sprint `codex/docker-packaging-guide` (PR #133, sha `4892a78`) — Docker deploy 패키지 안정화 + E2E 43/43 정합화. `docker-compose.deploy.yml` + `local-db` profile + Hydra/Kratos deploy yaml + nginx + `/api/runtime-config` + `docker-image-publish.yml` workflow + admin-permissions E2E 2건 안정화. 추적성 변경 없음 (인프라/배포 자산 도입, 신규 ID 발급 없음). | 본 sprint (`claude/work_260518-b`) 가 사후 등록 |
+| 2026-05-15 | sprint `codex/docker-packaging-guide` (PR #133, sha `4892a78`) — Docker deploy 패키지 안정화 + E2E 43/43 정합화. `docker-compose.deploy.yml` + `local-db` profile + Keycloak/OIDC deploy yaml + nginx + `/api/runtime-config` + `docker-image-publish.yml` workflow + admin-permissions E2E 2건 안정화. 추적성 변경 없음 (인프라/배포 자산 도입, 신규 ID 발급 없음). | 본 sprint (`claude/work_260518-b`) 가 사후 등록 |
 | 2026-05-15 | sprint `codex/memory-next-step-20260515` (PR #135, sha `62a2088`) — **External Integration 컨셉~설계 staged**: `docs/planning/external_system_integration_concept.md` + `external_integration_capability_matrix.md` + `REQ-FR-INT-001..012` + `REQ-NFR-INT-001..008` + `UC-INT-01..14` + `ARCH-INT-01..06` (`architecture.md §8`) + `API-69..78` spec staged (`backend_api_contract.md §15`) + `IMPL-int-XX` planned 분해 + `TC-INT-*` 카탈로그. 본 §3 매트릭스에 External Integration row 신규. §2.2 §15 sub 표 도입은 후속 sprint (`codex/next-step-20260516`) 의 baseline activation 과 함께. | 본 sprint 가 사후 등록 |
 | 2026-05-16 | sprint `codex/e2e-fix-20260515` (PR #136, sha `c61274b`) — dev-request + signout E2E flow 안정화. `frontend/tests/e2e/dev-requests.spec.ts` 신규 (위젯→list→detail flow + 타임스탬프 unique title + strict locator + Promote 조건부 분기) + `signout.spec.ts` login form visibility 기반 검증. 본 §5.1 의 DREQ row 가 "부분 활성화" 로 등록되는 근거. | 본 sprint 가 사후 등록 |
 | 2026-05-16 | sprint `gemini/dreq_e2e_260515` (PR #137, sha `72bf265`) — **DREQ token expires_at + IP mutation PATCH**. `migration 000027` `expires_at` 추가 + `requireIntakeToken` 만료 체크 + `auth_intake_token_expired` 에러 코드 + `PATCH /api/v1/dev-request-tokens/:token_id` 신규 endpoint (allowed_ips 동적 변경, **API-79** ID 발급). 본 §2.2 DREQ API §14 sub 표에 API-66..68 + API-79 row 추가. §3 매트릭스 DREQ row IMPL/UT 컬럼에 token_expiry / allowed_ips_mutation 추가. ADR-0014 §6 carve out 의 일부 활성화. | 본 sprint 가 사후 등록 |

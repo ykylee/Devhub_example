@@ -9,12 +9,12 @@ import (
 	"github.com/devhub/backend-core/internal/domain"
 )
 
-// Cache hit: when the DevHub users row already carries a kratos_identity_id,
-// resolveKratosIdentityID must return that value without calling the slow
+// Cache hit: when the DevHub users row already carries a idp_subject,
+// resolveIdPSubject must return that value without calling the slow
 // /admin/identities scan.
-func TestResolveKratosIdentityID_CacheHit(t *testing.T) {
+func TestResolveIdPSubject_CacheHit(t *testing.T) {
 	orgStore := newMemoryOrganizationStore()
-	kratos := &MockKratosAdmin{
+	kratos := &MockIdentityAdmin{
 		FindError: errors.New("FindIdentityByUserID should not be called when cache is warm"),
 	}
 	if _, err := orgStore.CreateUser(context.Background(), domain.CreateUserInput{
@@ -28,12 +28,12 @@ func TestResolveKratosIdentityID_CacheHit(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("seed user: %v", err)
 	}
-	if err := orgStore.SetKratosIdentityID(context.Background(), "alice", "cached-identity-id"); err != nil {
-		t.Fatalf("set kratos_identity_id: %v", err)
+	if err := orgStore.SetIdPSubject(context.Background(), "alice", "cached-identity-id"); err != nil {
+		t.Fatalf("set idp_subject: %v", err)
 	}
 
-	h := Handler{cfg: RouterConfig{OrganizationStore: orgStore, KratosAdmin: kratos}}
-	id, err := h.resolveKratosIdentityID(context.Background(), "alice")
+	h := Handler{cfg: RouterConfig{OrganizationStore: orgStore, IdentityAdmin: kratos}}
+	id, err := h.resolveIdPSubject(context.Background(), "alice")
 	if err != nil {
 		t.Fatalf("resolve: %v", err)
 	}
@@ -48,9 +48,9 @@ func TestResolveKratosIdentityID_CacheHit(t *testing.T) {
 // Lazy backfill: when the DevHub users row exists but the column is empty,
 // the slow path fires once and writes the result back so the next call hits
 // the cache.
-func TestResolveKratosIdentityID_LazyBackfill(t *testing.T) {
+func TestResolveIdPSubject_LazyBackfill(t *testing.T) {
 	orgStore := newMemoryOrganizationStore()
-	kratos := &MockKratosAdmin{FindIDOverride: map[string]string{"bob": "scanned-identity-id"}}
+	kratos := &MockIdentityAdmin{FindIDOverride: map[string]string{"bob": "scanned-identity-id"}}
 	if _, err := orgStore.CreateUser(context.Background(), domain.CreateUserInput{
 		UserID:      "bob",
 		Email:       "bob@example.com",
@@ -63,9 +63,9 @@ func TestResolveKratosIdentityID_LazyBackfill(t *testing.T) {
 		t.Fatalf("seed user: %v", err)
 	}
 
-	h := Handler{cfg: RouterConfig{OrganizationStore: orgStore, KratosAdmin: kratos}}
+	h := Handler{cfg: RouterConfig{OrganizationStore: orgStore, IdentityAdmin: kratos}}
 
-	id, err := h.resolveKratosIdentityID(context.Background(), "bob")
+	id, err := h.resolveIdPSubject(context.Background(), "bob")
 	if err != nil {
 		t.Fatalf("first resolve: %v", err)
 	}
@@ -81,12 +81,12 @@ func TestResolveKratosIdentityID_LazyBackfill(t *testing.T) {
 	if err != nil {
 		t.Fatalf("re-fetch user: %v", err)
 	}
-	if user.KratosIdentityID != "scanned-identity-id" {
-		t.Errorf("cache not populated; KratosIdentityID=%q", user.KratosIdentityID)
+	if user.IdPSubject != "scanned-identity-id" {
+		t.Errorf("cache not populated; IdPSubject=%q", user.IdPSubject)
 	}
 
 	// Second call must not re-scan.
-	id, err = h.resolveKratosIdentityID(context.Background(), "bob")
+	id, err = h.resolveIdPSubject(context.Background(), "bob")
 	if err != nil {
 		t.Fatalf("second resolve: %v", err)
 	}
@@ -100,15 +100,15 @@ func TestResolveKratosIdentityID_LazyBackfill(t *testing.T) {
 
 // Missing user row: when the DevHub users row does not exist at all (e.g.
 // tests that use bare newMemoryOrganizationStore() without CreateUser), the
-// resolver falls through to the slow scan and tolerates the SetKratosIdentityID
+// resolver falls through to the slow scan and tolerates the SetIdPSubject
 // best-effort failure. This is the path the legacy accounts_admin tests
 // exercise — we keep it green.
-func TestResolveKratosIdentityID_NoUserRowFallsBackToScan(t *testing.T) {
+func TestResolveIdPSubject_NoUserRowFallsBackToScan(t *testing.T) {
 	orgStore := newMemoryOrganizationStore()
-	kratos := &MockKratosAdmin{}
-	h := Handler{cfg: RouterConfig{OrganizationStore: orgStore, KratosAdmin: kratos}}
+	kratos := &MockIdentityAdmin{}
+	h := Handler{cfg: RouterConfig{OrganizationStore: orgStore, IdentityAdmin: kratos}}
 
-	id, err := h.resolveKratosIdentityID(context.Background(), "carol")
+	id, err := h.resolveIdPSubject(context.Background(), "carol")
 	if err != nil {
 		t.Fatalf("resolve: %v", err)
 	}
@@ -120,25 +120,25 @@ func TestResolveKratosIdentityID_NoUserRowFallsBackToScan(t *testing.T) {
 	}
 }
 
-// Propagates ErrKratosIdentityNotFound so callers can return 404 instead of
+// Propagates ErrIdentityNotFound so callers can return 404 instead of
 // 500.
-func TestResolveKratosIdentityID_NotFoundPropagates(t *testing.T) {
+func TestResolveIdPSubject_NotFoundPropagates(t *testing.T) {
 	orgStore := newMemoryOrganizationStore()
-	kratos := &MockKratosAdmin{FindError: ErrKratosIdentityNotFound}
-	h := Handler{cfg: RouterConfig{OrganizationStore: orgStore, KratosAdmin: kratos}}
+	kratos := &MockIdentityAdmin{FindError: ErrIdentityNotFound}
+	h := Handler{cfg: RouterConfig{OrganizationStore: orgStore, IdentityAdmin: kratos}}
 
-	_, err := h.resolveKratosIdentityID(context.Background(), "ghost")
-	if !errors.Is(err, ErrKratosIdentityNotFound) {
-		t.Errorf("err = %v, want ErrKratosIdentityNotFound", err)
+	_, err := h.resolveIdPSubject(context.Background(), "ghost")
+	if !errors.Is(err, ErrIdentityNotFound) {
+		t.Errorf("err = %v, want ErrIdentityNotFound", err)
 	}
 }
 
 // Eager backfill on account.create: createAccount must stamp the new
 // identity_id on the users row so the next admin/self-service action hits
 // the cache.
-func TestCreateAccount_EagerBackfillsKratosIdentityID(t *testing.T) {
+func TestCreateAccount_EagerBackfillsIdPSubject(t *testing.T) {
 	orgStore := newMemoryOrganizationStore()
-	kratos := &MockKratosAdmin{}
+	kratos := &MockIdentityAdmin{}
 	router := newAccountsAdminRouter(orgStore, kratos, &memoryAuditStore{})
 
 	rec := doJSON(t, router, "POST", "/api/v1/accounts",
@@ -151,7 +151,7 @@ func TestCreateAccount_EagerBackfillsKratosIdentityID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get user after create: %v", err)
 	}
-	if user.KratosIdentityID != "mock-k-id-dora" {
-		t.Errorf("KratosIdentityID = %q, want mock-k-id-dora", user.KratosIdentityID)
+	if user.IdPSubject != "mock-k-id-dora" {
+		t.Errorf("IdPSubject = %q, want mock-k-id-dora", user.IdPSubject)
 	}
 }

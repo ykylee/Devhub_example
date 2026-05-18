@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, ShieldCheck } from "lucide-react";
-import Link from "next/link";
 import { authService } from "@/lib/services/auth.service";
 
 export default function LoginPage() {
@@ -55,8 +54,8 @@ export default function LoginPage() {
 
         <div className="glass border-border/60 rounded-[2rem] p-10 shadow-2xl backdrop-blur-2xl">
           <p className="text-sm text-muted-foreground text-center mb-8">
-            DevHub uses Ory Hydra and Kratos for identity. Continue to the secure
-            sign-in flow to authenticate.
+            DevHub uses a unified Keycloak OIDC identity flow. Continue to the secure
+            sign-in screen to authenticate.
           </p>
 
           <button
@@ -75,16 +74,14 @@ export default function LoginPage() {
 
           <div className="text-center pt-8">
             <p className="text-xs text-muted-foreground uppercase tracking-widest font-black">
-              New to DevHub?{" "}
-              <Link href="/auth/signup" className="text-primary hover:underline ml-1">
-                Create Account
-              </Link>
+              Need an account?{" "}
+              <span className="text-primary ml-1">Contact your system administrator</span>
             </p>
           </div>
 
           <div className="mt-8 pt-8 border-t border-border/40 text-center">
             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
-              Secured by Ory Hydra + Kratos
+              Secured by Keycloak OIDC
             </p>
           </div>
         </div>

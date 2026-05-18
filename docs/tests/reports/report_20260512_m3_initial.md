@@ -36,7 +36,7 @@
 
 ## 4. 결함 및 관찰 사항 (Failures & Observations)
 - **조직 관리(ORG)**: 구현된 UI의 텍스트와 테스트 코드의 Selector(`getByText`)가 일치하지 않아 대부분의 테스트가 실패함. (앵커 텍스트 수정 필요)
-- **회원가입(SIGNUP)**: `/auth/signup` 페이지 로딩 시 간헐적으로 Timeout이 발생함. 이는 Kratos 응답 속도 또는 렌더링 지연으로 보임.
+- **회원가입(SIGNUP)**: 당시 self-signup 구현 경로 기준 `/auth/signup` 페이지 로딩 타임아웃이 간헐적으로 발생함. 현재는 Keycloak 전환 단계에서 self-signup 비활성화 정책으로 변경됨.
 - **UI 타이밍**: 모달이 열리거나 메뉴가 닫히는 동작에서 `expect`가 너무 일찍 실행되어 실패하는 케이스가 확인됨. `waitFor` 로직 보강 필요.
 
 ## 5. 종합 의견 (Conclusion)

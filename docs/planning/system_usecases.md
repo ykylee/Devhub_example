@@ -28,7 +28,7 @@
 | UC ID | Usecase | 성공 조건 | 관련 REQ |
 | --- | --- | --- | --- |
 | `UC-AUTH-01` | 로그인(code flow) 수행 | 인증 성공 시 actor context 확정 + 토큰 교환 경로 완료 | FR-19, FR-21..24 |
-| `UC-AUTH-02` | 로그아웃/세션 종료 | Hydra/Kratos 세션 무효화 + 재진입 시 재인증 | FR-22, FR-23 |
+| `UC-AUTH-02` | 로그아웃/세션 종료 | Keycloak/OIDC 세션 무효화 + 재진입 시 재인증 | FR-22, FR-23 |
 | `UC-AUTH-03` | 인증 실패 처리 | invalid 토큰/권한 부족 시 표준 에러 및 감사 추적 | NFR-3, NFR-18 |
 
 ### 2.2 Account

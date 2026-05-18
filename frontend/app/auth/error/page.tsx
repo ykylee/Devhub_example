@@ -5,10 +5,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AlertTriangle } from "lucide-react";
 
-// Hydra (urls.error) and Kratos (selfservice.flows.error.ui_url) redirect
-// here when the OIDC or self-service flow itself fails — bad client_id,
-// expired challenge, schema validation, etc. We display the human-readable
-// hint and offer a single "restart" link back to /login.
+// IdP/authorization server error redirects land here when the OIDC flow fails
+// (bad client_id, expired code/state, policy error, etc.).
 
 interface ErrorPayload {
   id?: string;
@@ -17,10 +15,7 @@ interface ErrorPayload {
 }
 
 function decode(searchParams: URLSearchParams): ErrorPayload {
-  // Both Hydra (?error=...&error_description=...) and Kratos (?id=<error_id>)
-  // funnel through here. Kratos requires a follow-up GET /self-service/errors
-  // call to fetch the structured payload; for now we display whatever is in
-  // the query string and link the operator at the id for follow-up.
+  // Provider-specific payload shapes differ, so we normalize common keys.
   return {
     id: searchParams.get("id") ?? searchParams.get("error") ?? undefined,
     reason: searchParams.get("error_hint") ?? searchParams.get("reason") ?? undefined,

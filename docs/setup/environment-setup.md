@@ -83,12 +83,13 @@ frontend 의 `/login` 화면이 OIDC redirect 흐름으로 진입하므로 다�
 
 | 변수 | default | 용도 |
 | --- | --- | --- |
-| `NEXT_PUBLIC_OIDC_LOGIN_URL` | `http://127.0.0.1:4444/oauth2/auth` | Hydra public authorize endpoint |
-| `NEXT_PUBLIC_OIDC_CLIENT_ID` | `devhub-frontend` | Hydra OIDC client id (Phase 13 PoC 에서 등록) |
-| `NEXT_PUBLIC_OIDC_REDIRECT_URI` | `http://127.0.0.1:3000/login/callback` | Hydra → frontend callback URL |
-| `NEXT_PUBLIC_OIDC_SCOPE` | `openid offline` | 요청 scope |
+| `NEXT_PUBLIC_OIDC_ISSUER_URL` | `http://127.0.0.1:8081/realms/devhub` | Keycloak issuer URL |
+| `NEXT_PUBLIC_OIDC_AUTH_URL` | `${NEXT_PUBLIC_OIDC_ISSUER_URL}/protocol/openid-connect/auth` | OIDC authorize endpoint (생략 시 issuer 기반 기본값 사용) |
+| `NEXT_PUBLIC_OIDC_CLIENT_ID` | `devhub-frontend` | OIDC client id |
+| `NEXT_PUBLIC_OIDC_REDIRECT_URI` | `http://127.0.0.1:3000/auth/callback` | OIDC callback URL |
+| `NEXT_PUBLIC_OIDC_SCOPE` | `openid offline_access email profile` | 요청 scope |
 
-또한 dev 모드에서 backend `/api/v1/me` 가 401 을 반환하지 않도록 Hydra/Kratos PoC 가 가동 중이어야 한다 (`DEVHUB_AUTH_DEV_FALLBACK=1` 은 Authorization 헤더 없는 요청 통과만 허용 — `X-Devhub-Actor` 폴백 헤더는 [ADR-0004](../adr/0004-x-devhub-actor-removal.md) 로 폐기됐다).
+또한 dev 모드에서 backend `/api/v1/me` 가 401 을 반환하지 않도록 Keycloak/OIDC PoC 가 가동 중이어야 한다 (`DEVHUB_AUTH_DEV_FALLBACK=1` 은 Authorization 헤더 없는 요청 통과만 허용 — `X-Devhub-Actor` 폴백 헤더는 [ADR-0004](../adr/0004-x-devhub-actor-removal.md) 로 폐기됐다).
 
 ### 2.5 검증
 
@@ -109,11 +110,10 @@ backend-core/Dockerfile
 backend-ai/Dockerfile
 frontend/Dockerfile
 docker-compose.yml
-infra/idp/hydra.docker.yaml
-infra/idp/kratos.docker.yaml
+infra/idp/<idp-config>.docker.yaml
 ```
 
-IdP docker config (`infra/idp/*.docker.yaml`) 도 같은 정책 — 호스트명/CORS origin/secrets 모두 환경 의존이므로 git 추적 외. `infra/idp/hydra.yaml` (native localhost) + `hydra.ci.yaml` (CI) 를 베이스로 본인 환경에 맞춰 secret/host 를 치환해 로컬에서 생성한다.
+IdP docker config 도 같은 정책 — 호스트명/CORS origin/secrets 모두 환경 의존이므로 git 추적 외. Keycloak OIDC 기준 값(issuer/redirect/logout URL, client 설정)을 본인 환경에 맞춰 로컬에서 생성한다.
 
 표준 골격은 사내 위키의 "DevHub docker compose 표준 자산" 페이지(또는 팀 공유 위치)를 참고한다. 프로젝트 루트 README 에는 별도 진입점을 두지 않는다.
 

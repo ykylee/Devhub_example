@@ -2,8 +2,8 @@ import { test as base, expect, type Page } from "@playwright/test";
 
 // Test fixtures + helpers for the e2e suite (PR-T3, work_26_05_11-d).
 //
-// Seeded users — these must already exist in Kratos (with metadata_public.
-// user_id matching) and in DevHub `users`. The e2e guide
+// Seeded users — these must already exist in IdP identity store (with
+// metadata_public.user_id matching) and in DevHub `users`. The e2e guide
 // (docs/setup/e2e-test-guide.md) walks operators through the seeding step.
 
 export type SeededUser = {
@@ -43,17 +43,17 @@ export const SEEDED: Record<"developer" | "manager" | "systemAdmin", SeededUser>
 
 /**
  * Drives the login form at /auth/login. The caller is responsible for
- * starting from /login (which redirects through Hydra and lands the
- * browser on /auth/login?login_challenge=...).
+ * starting from /login (which redirects through OIDC authorize and lands the
+ * browser on the sign-in form route).
  */
 export async function loginAs(page: Page, user: SeededUser) {
   await page.goto("/login");
   // The /login route auto-triggers the OIDC dance; we end up at the
-  // Kratos-backed /auth/login form.
-  await page.waitForURL(/\/auth\/login\?login_challenge=/, { timeout: 30_000 });
+  // OIDC sign-in form route.
+  await page.waitForURL(/\/auth\/login/, { timeout: 30_000 });
 
   // /auth/login asks for the System ID (DevHub users.user_id), not the
-  // email — Kratos resolves credentials via metadata_public.user_id. The
+  // email — identity store resolves credentials via metadata_public.user_id. The
   // label is "System ID" + the input is wired with htmlFor=identifier.
   await page.getByLabel(/system id/i).fill(user.user_id);
   await page.getByLabel(/^password$/i).fill(user.password);
@@ -73,7 +73,7 @@ export async function expectActorIs(page: Page, user: SeededUser) {
   await expect(page.getByText(user.user_id, { exact: false }).first()).toBeVisible({ timeout: 10_000 });
 }
 
-// Kratos admin API helpers — used by spec files that need to drive
+// IdP admin API helpers — used by spec files that need to drive
 // identity lifecycle outside the normal browser flow (signup cleanup,
 // audit target_id matching). KRATOS_ADMIN_URL env mirrors the one used
 // by global-setup.ts; defaults to localhost:4434.

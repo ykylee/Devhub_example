@@ -11,7 +11,7 @@
 
 ## 1. 컨텍스트
 
-DevHub 의 사용자 인증은 OIDC (Hydra + Kratos) 기반이며, 모든 `/api/v1/*` route 는 `enforceRoutePermission` middleware 가 Bearer access token + RBAC matrix 로 보호한다. 그러나 **외부 시스템에서 들어오는 의뢰 수신 endpoint** 는 다음 두 가지 이유로 일반 OIDC 흐름을 그대로 적용할 수 없다:
+DevHub 의 사용자 인증은 OIDC (Keycloak) 기반이며, 모든 `/api/v1/*` route 는 `enforceRoutePermission` middleware 가 Bearer access token + RBAC matrix 로 보호한다. 그러나 **외부 시스템에서 들어오는 의뢰 수신 endpoint** 는 다음 두 가지 이유로 일반 OIDC 흐름을 그대로 적용할 수 없다:
 
 1. **외부 시스템은 DevHub 의 user 가 아니다.** ops portal / ITSM / 사내 워크플로우 도구 같은 외부 시스템은 사람 사용자가 아닌 service 단위로 호출하므로 Kratos 의 identity 모델에 직접 매핑되지 않는다.
 2. **외부 시스템마다 인증 모델 도입 비용이 다르다.** 일부 외부 시스템은 OAuth flow 를 구현할 수 있고, 일부는 단순한 정적 토큰만 지원한다. 1차 도입 시 진입 장벽이 낮은 메커니즘이 운영 친화적이다.

@@ -128,20 +128,12 @@ var routePermissionTable = map[routeKey]routePolicy{
 	{http.MethodGet, "/api/v1/realtime/ws"}:                                       {Bypass: true},
 	{http.MethodPost, "/api/v1/integrations/gitea/webhooks"}:                      {Bypass: true},
 	{http.MethodPost, "/api/v1/integration/providers/:provider_id/webhook"}:       {Bypass: true},
-	{http.MethodPost, "/api/v1/integrations/kratos/hook/settings/password/after"}: {Bypass: true},
 	{http.MethodPost, "/api/v1/infra/services/snapshot"}:                          {Bypass: true},
 	// Self-service password change (L4-D, work_26_05_11-e). RBAC matrix is
 	// not the right tool here — every authenticated user can change their
 	// own password; admin-driven resets go through /accounts/:user_id/password
 	// which is already mapped to security:edit.
 	{http.MethodPost, "/api/v1/account/password"}: {Bypass: true},
-	// Auth proxy endpoints run before the user has a token; Hydra's
-	// challenge tokens (single-use, lifespan-bound) protect them.
-	{http.MethodPost, "/api/v1/auth/login"}:  {Bypass: true},
-	{http.MethodPost, "/api/v1/auth/logout"}: {Bypass: true},
-	{http.MethodPost, "/api/v1/auth/token"}:  {Bypass: true},
-	{http.MethodPost, "/api/v1/auth/signup"}: {Bypass: true},
-	{http.MethodGet, "/api/v1/auth/consent"}: {Bypass: true},
 
 	// infrastructure
 	{http.MethodGet, "/api/v1/dashboard/metrics"}:             {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},

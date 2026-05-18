@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"log"
-	"net/url"
 	"strings"
 	"time"
 
@@ -77,47 +76,30 @@ func main() {
 	}
 
 	var verifier httpapi.BearerTokenVerifier
-	if cfg.HydraAdminURL != "" {
-		parsed, err := url.Parse(cfg.HydraAdminURL)
-		if err != nil {
-			log.Fatalf("startup refused: DEVHUB_HYDRA_ADMIN_URL is not a valid URL: %v", err)
-		}
-		verifier = &auth.HydraIntrospectionVerifier{
-			AdminURL:  cfg.HydraAdminURL,
-			RoleClaim: cfg.HydraRoleClaim,
-		}
-		log.Printf("bearer token verifier: hydra introspection at %s (role_claim=%q)", parsed.Redacted(), cfg.HydraRoleClaim)
+	verifier = &auth.KeycloakJWKSVerifier{
+		IssuerURL: cfg.OIDCIssuerURL,
+		JWKSURL:   cfg.OIDCJWKSURL,
+		ClientID:  cfg.OIDCClientID,
 	}
+	log.Printf("bearer token verifier: keycloak jwks (issuer=%q jwks=%q client_id=%q)", cfg.OIDCIssuerURL, cfg.OIDCJWKSURL, cfg.OIDCClientID)
 	if err := cfg.Validate(verifier != nil); err != nil {
 		log.Fatalf("startup refused: %v", err)
 	}
 
 	var (
-		hydraAdmin   httpapi.HydraLoginAdmin
-		hydraLogout  httpapi.HydraLogoutAdmin
-		hydraToken   httpapi.HydraTokenExchanger
-		hydraRevoker httpapi.HydraTokenRevoker
-		kratosLogin  httpapi.KratosLoginClient
-		kratosAdmin  httpapi.KratosAdmin
+		kratosAdmin  httpapi.IdentityAdmin
 	)
-	if cfg.HydraAdminURL != "" {
-		adminClient := &httpapi.HydraAdminClient{AdminURL: cfg.HydraAdminURL}
-		hydraAdmin = adminClient
-		hydraLogout = adminClient
-	}
-	if cfg.HydraPublicURL != "" {
-		tokenClient := &httpapi.HydraTokenClient{PublicURL: cfg.HydraPublicURL}
-		hydraToken = tokenClient
-		hydraRevoker = tokenClient
-	}
-	if cfg.KratosPublicURL != "" {
-		kratosLogin = &httpapi.KratosClient{PublicURL: cfg.KratosPublicURL}
-	}
-	if cfg.KratosAdminURL != "" {
-		kratosAdmin = &httpapi.KratosAdminClient{AdminURL: cfg.KratosAdminURL}
+	if cfg.KeycloakAdminURL != "" && cfg.KeycloakAdminRealm != "" && cfg.KeycloakAdminClientID != "" && cfg.KeycloakAdminClientSecret != "" {
+		kratosAdmin = &httpapi.KeycloakAdminClient{
+			AdminURL:     cfg.KeycloakAdminURL,
+			Realm:        cfg.KeycloakAdminRealm,
+			ClientID:     cfg.KeycloakAdminClientID,
+			ClientSecret: cfg.KeycloakAdminClientSecret,
+			IssuerURL:    cfg.OIDCIssuerURL,
+		}
+		log.Printf("identity admin client: keycloak (admin_url=%q realm=%q client_id=%q)", cfg.KeycloakAdminURL, cfg.KeycloakAdminRealm, cfg.KeycloakAdminClientID)
 	} else {
-		kratosAdmin = &httpapi.MockKratosAdmin{}
-		log.Println("Kratos Admin URL not set; using MockKratosAdmin for development")
+		log.Println("keycloak provider mode: account admin adapter is not fully configured")
 	}
 
 	// Seed local admin account for development using regular APIs
@@ -130,7 +112,6 @@ func main() {
 
 	router := httpapi.NewRouter(httpapi.RouterConfig{
 		WebhookSecret:              cfg.GiteaWebhookSecret,
-		KratosWebhookToken:         cfg.KratosWebhookToken,
 		InfraAgentToken:            cfg.InfraAgentToken,
 		HomeLabProviderKey:         cfg.HomeLabProviderKey,
 		HomeLabDegradedRaw:         cfg.HomeLabDegradedStatuses,
@@ -146,12 +127,8 @@ func main() {
 		DevRequestIntakeTokenStore: devRequestIntakeTokenStore,
 		RBACStore:                  rbacStore,
 		BearerTokenVerifier:        verifier,
-		KratosLogin:                kratosLogin,
-		HydraAdmin:                 hydraAdmin,
-		HydraLogout:                hydraLogout,
-		HydraToken:                 hydraToken,
-		HydraRevoker:               hydraRevoker,
-		KratosAdmin:                kratosAdmin,
+		IdentityAdmin:                kratosAdmin,
+		IdPProvider:                cfg.IdPProvider,
 		HRDB:                       hrdbMock,
 		SnapshotProvider: httpapi.RuntimeSnapshotProvider{
 			Base:         httpapi.StaticSnapshotProvider{},
@@ -337,10 +314,10 @@ func buildHomeLabHealthPolicy(providerKey, degradedRaw string) adapters.HomeLabH
 // interface.
 type seedOrgStore interface {
 	CreateUser(context.Context, domain.CreateUserInput) (domain.AppUser, error)
-	SetKratosIdentityID(context.Context, string, string) error
+	SetIdPSubject(context.Context, string, string) error
 }
 
-func seedLocalAdmin(ctx context.Context, kratosAdmin httpapi.KratosAdmin, orgStore seedOrgStore) {
+func seedLocalAdmin(ctx context.Context, kratosAdmin httpapi.IdentityAdmin, orgStore seedOrgStore) {
 	const (
 		adminLogin    = "test"
 		adminEmail    = "test@example.com"
@@ -381,7 +358,7 @@ func seedLocalAdmin(ctx context.Context, kratosAdmin httpapi.KratosAdmin, orgSto
 	}
 
 	// 3. Link
-	err = orgStore.SetKratosIdentityID(ctx, adminLogin, kratosID)
+	err = orgStore.SetIdPSubject(ctx, adminLogin, kratosID)
 	if err != nil {
 		log.Printf("[seedLocalAdmin] Failed to link Kratos ID: %v", err)
 	} else {

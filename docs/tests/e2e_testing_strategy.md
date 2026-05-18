@@ -10,9 +10,9 @@
 
 ## 1. 테스트 원칙 (Core Principles)
 
-1.  **현실성 (Realism)**: Mock IdP가 아닌 실제 Ory Hydra/Kratos 환경에서 테스트를 수행하여 OIDC 흐름의 완전성을 검증한다.
+1.  **현실성 (Realism)**: Mock IdP가 아닌 실제 Ory Keycloak/OIDC 환경에서 테스트를 수행하여 OIDC 흐름의 완전성을 검증한다.
 2.  **멱등성 (Idempotency)**: 테스트 전 `globalSetup`을 통해 필요한 시드 데이터를 자동 복구하며, 테스트 실행이 환경을 오염시키지 않도록 관리한다.
-3.  **단일 워커 (Single Worker)**: Kratos 세션 충돌 방지를 위해 E2E 테스트는 원칙적으로 `workers: 1` 설정을 유지한다.
+3.  **단일 워커 (Single Worker)**: IdP 세션 상태 충돌 방지를 위해 E2E 테스트는 원칙적으로 `workers: 1` 설정을 유지한다.
 4.  **자동화 우선 (Automation First)**: 모든 신규 기능 개발 시 대응하는 E2E 테스트 케이스를 작성하고 CI 파이프라인에 통합한다.
 
 ---

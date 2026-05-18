@@ -20,7 +20,7 @@ External Integration 도메인 (PR #135 concept staged + PR #139 backend 1차) �
 
 ## 2. 결정 동인
 
-- **blast radius 최소화**: pull 실패가 command worker lifecycle, Hydra/Kratos session, audit emit 등 다른 책임에 영향 주지 않아야 한다.
+- **blast radius 최소화**: pull 실패가 command worker lifecycle, Keycloak/OIDC session, audit emit 등 다른 책임에 영향 주지 않아야 한다.
 - **로컬/CI 재현성**: 외부 HomeLab agent 없이 fixture JSON 으로 pull-and-ingest 경로 회귀 검증 가능해야 한다 (CI 환경 = no external network 정합 — ADR-0003 / CLAUDE.md).
 - **운영 가시성**: pull success/error/latency 가 Prometheus 로 노출되어 [ADR-0016](./0016-prometheus-alerts-policy.md) 의 알림 규칙이 부착될 수 있어야 한다.
 - **feature flag 1차 도입**: 운영 환경에서 점진적 활성화. on/off 토글이 인프라 변경 없이 가능해야 한다.

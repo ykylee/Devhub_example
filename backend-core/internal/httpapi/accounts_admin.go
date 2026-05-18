@@ -47,10 +47,10 @@ func generateTempPassword() (string, error) {
 }
 
 func (h Handler) createAccount(c *gin.Context) {
-	if h.cfg.OrganizationStore == nil || h.cfg.KratosAdmin == nil {
+	if h.cfg.OrganizationStore == nil || h.cfg.IdentityAdmin == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
 			"status": "unavailable",
-			"error":  "account admin requires OrganizationStore + KratosAdmin",
+			"error":  h.accountAdminUnavailableError(),
 		})
 		return
 	}
@@ -106,7 +106,7 @@ func (h Handler) createAccount(c *gin.Context) {
 	// 2) Kratos identity. If this fails we leave the DevHub row in place
 	// and return 500 — operator can either delete it or retry the call,
 	// which CreateUser will reject as duplicate.
-	identityID, err := h.cfg.KratosAdmin.CreateIdentity(ctx, req.Email, req.DisplayName, req.UserID, tempPassword)
+	identityID, err := h.cfg.IdentityAdmin.CreateIdentity(ctx, req.Email, req.DisplayName, req.UserID, tempPassword)
 	if err != nil {
 		h.recordAuditBestEffort(c, "account.issue.kratos_failed", "user", req.UserID, map[string]any{
 			"reason": err.Error(),
@@ -120,7 +120,7 @@ func (h Handler) createAccount(c *gin.Context) {
 	// Failure here is non-fatal: the lazy backfill path will catch it on the
 	// next lookup, and surfacing 500 would leave the DevHub+Kratos pair in
 	// the correct state but make the caller think creation failed.
-	if cacheErr := h.cfg.OrganizationStore.SetKratosIdentityID(ctx, req.UserID, identityID); cacheErr != nil {
+	if cacheErr := h.cfg.OrganizationStore.SetIdPSubject(ctx, req.UserID, identityID); cacheErr != nil {
 		logRequest(c, "[kratos-cache] eager backfill on account.create for %s skipped: %v", req.UserID, cacheErr)
 	}
 
@@ -143,10 +143,10 @@ func (h Handler) createAccount(c *gin.Context) {
 }
 
 func (h Handler) resetAccountPassword(c *gin.Context) {
-	if h.cfg.KratosAdmin == nil {
+	if h.cfg.IdentityAdmin == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
 			"status": "unavailable",
-			"error":  "account admin requires KratosAdmin",
+			"error":  h.accountAdminUnavailableError(),
 		})
 		return
 	}
@@ -183,8 +183,8 @@ func (h Handler) resetAccountPassword(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	identityID, err := h.resolveKratosIdentityID(ctx, userID)
-	if errors.Is(err, ErrKratosIdentityNotFound) {
+	identityID, err := h.resolveIdPSubject(ctx, userID)
+	if errors.Is(err, ErrIdentityNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "kratos identity not found for user_id"})
 		return
 	}
@@ -193,7 +193,7 @@ func (h Handler) resetAccountPassword(c *gin.Context) {
 		return
 	}
 
-	if err := h.cfg.KratosAdmin.UpdateIdentityPassword(ctx, identityID, tempPassword); err != nil {
+	if err := h.cfg.IdentityAdmin.UpdateIdentityPassword(ctx, identityID, tempPassword); err != nil {
 		writeServerError(c, err, "account.reset.update_password")
 		return
 	}
@@ -213,10 +213,10 @@ func (h Handler) resetAccountPassword(c *gin.Context) {
 }
 
 func (h Handler) updateAccountStatus(c *gin.Context) {
-	if h.cfg.OrganizationStore == nil || h.cfg.KratosAdmin == nil {
+	if h.cfg.OrganizationStore == nil || h.cfg.IdentityAdmin == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
 			"status": "unavailable",
-			"error":  "account admin requires OrganizationStore + KratosAdmin",
+			"error":  h.accountAdminUnavailableError(),
 		})
 		return
 	}
@@ -238,8 +238,8 @@ func (h Handler) updateAccountStatus(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	identityID, err := h.resolveKratosIdentityID(ctx, userID)
-	if errors.Is(err, ErrKratosIdentityNotFound) {
+	identityID, err := h.resolveIdPSubject(ctx, userID)
+	if errors.Is(err, ErrIdentityNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "kratos identity not found for user_id"})
 		return
 	}
@@ -249,7 +249,7 @@ func (h Handler) updateAccountStatus(c *gin.Context) {
 	}
 
 	active := status == "active"
-	if err := h.cfg.KratosAdmin.SetIdentityState(ctx, identityID, active); err != nil {
+	if err := h.cfg.IdentityAdmin.SetIdentityState(ctx, identityID, active); err != nil {
 		writeServerError(c, err, "account.status.kratos_state")
 		return
 	}
@@ -265,7 +265,7 @@ func (h Handler) updateAccountStatus(c *gin.Context) {
 	}
 	if _, err := h.cfg.OrganizationStore.UpdateUser(ctx, userID, domain.UpdateUserInput{Status: &devhubStatus}); err != nil {
 		// Roll back the Kratos state change so the two stores stay in sync.
-		_ = h.cfg.KratosAdmin.SetIdentityState(ctx, identityID, !active)
+		_ = h.cfg.IdentityAdmin.SetIdentityState(ctx, identityID, !active)
 		writeServerError(c, err, "account.status.devhub_user")
 		return
 	}
@@ -285,10 +285,10 @@ func (h Handler) updateAccountStatus(c *gin.Context) {
 }
 
 func (h Handler) deleteAccount(c *gin.Context) {
-	if h.cfg.OrganizationStore == nil || h.cfg.KratosAdmin == nil {
+	if h.cfg.OrganizationStore == nil || h.cfg.IdentityAdmin == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
 			"status": "unavailable",
-			"error":  "account admin requires OrganizationStore + KratosAdmin",
+			"error":  h.accountAdminUnavailableError(),
 		})
 		return
 	}
@@ -299,16 +299,16 @@ func (h Handler) deleteAccount(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	identityID, err := h.resolveKratosIdentityID(ctx, userID)
+	identityID, err := h.resolveIdPSubject(ctx, userID)
 	// Missing Kratos identity is non-fatal — proceed with DevHub delete so an
 	// orphaned users row can still be cleaned up.
-	if err != nil && !errors.Is(err, ErrKratosIdentityNotFound) {
+	if err != nil && !errors.Is(err, ErrIdentityNotFound) {
 		writeServerError(c, err, "account.delete.find_identity")
 		return
 	}
 
 	if identityID != "" {
-		if err := h.cfg.KratosAdmin.DeleteIdentity(ctx, identityID); err != nil && !errors.Is(err, ErrKratosIdentityNotFound) {
+		if err := h.cfg.IdentityAdmin.DeleteIdentity(ctx, identityID); err != nil && !errors.Is(err, ErrIdentityNotFound) {
 			writeServerError(c, err, "account.delete.kratos")
 			return
 		}
@@ -327,4 +327,11 @@ func (h Handler) deleteAccount(c *gin.Context) {
 		"status": "ok",
 		"data":   gin.H{"user_id": userID},
 	})
+}
+
+func (h Handler) accountAdminUnavailableError() string {
+	if strings.TrimSpace(h.cfg.IdPProvider) == "keycloak" {
+		return "account admin keycloak adapter is not configured yet"
+	}
+	return "account admin requires OrganizationStore + IdentityAdmin"
 }
