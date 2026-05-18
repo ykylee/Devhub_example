@@ -10,10 +10,10 @@ import (
 	"github.com/devhub/backend-core/internal/domain"
 )
 
-func newAccountsAdminRouter(orgStore OrganizationStore, kratos KratosAdmin, audits *memoryAuditStore) http.Handler {
+func newAccountsAdminRouter(orgStore OrganizationStore, kratos IdentityAdmin, audits *memoryAuditStore) http.Handler {
 	return NewRouter(RouterConfig{
 		OrganizationStore: orgStore,
-		KratosAdmin:       kratos,
+		IdentityAdmin:       kratos,
 		AuditStore:        audits,
 		AuthDevFallback:   true, // bypass bearer auth so handler tests can hit the routes
 	})
@@ -31,7 +31,7 @@ func doJSON(t *testing.T, router http.Handler, method, path, body string) *httpt
 // 1) POST /api/v1/accounts — happy: temp_password supplied.
 func TestCreateAccount_HappyExplicitPassword(t *testing.T) {
 	orgStore := newMemoryOrganizationStore()
-	kratos := &MockKratosAdmin{}
+	kratos := &MockIdentityAdmin{}
 	audits := &memoryAuditStore{}
 	router := newAccountsAdminRouter(orgStore, kratos, audits)
 
@@ -54,7 +54,7 @@ func TestCreateAccount_HappyExplicitPassword(t *testing.T) {
 // 2) POST /api/v1/accounts — happy: server generates temp_password.
 func TestCreateAccount_HappyAutoPassword(t *testing.T) {
 	orgStore := newMemoryOrganizationStore()
-	kratos := &MockKratosAdmin{}
+	kratos := &MockIdentityAdmin{}
 	router := newAccountsAdminRouter(orgStore, kratos, &memoryAuditStore{})
 
 	rec := doJSON(t, router, http.MethodPost, "/api/v1/accounts",
@@ -71,7 +71,7 @@ func TestCreateAccount_HappyAutoPassword(t *testing.T) {
 
 // 3) POST /api/v1/accounts — temp_password too short → 400.
 func TestCreateAccount_ShortPassword(t *testing.T) {
-	router := newAccountsAdminRouter(newMemoryOrganizationStore(), &MockKratosAdmin{}, &memoryAuditStore{})
+	router := newAccountsAdminRouter(newMemoryOrganizationStore(), &MockIdentityAdmin{}, &memoryAuditStore{})
 	rec := doJSON(t, router, http.MethodPost, "/api/v1/accounts",
 		`{"user_id":"u","email":"u@example.com","display_name":"U","temp_password":"short"}`)
 	if rec.Code != http.StatusBadRequest {
@@ -79,7 +79,7 @@ func TestCreateAccount_ShortPassword(t *testing.T) {
 	}
 }
 
-// 4) POST /api/v1/accounts — KratosAdmin nil → 503.
+// 4) POST /api/v1/accounts — IdentityAdmin nil → 503.
 func TestCreateAccount_Unavailable(t *testing.T) {
 	router := NewRouter(RouterConfig{OrganizationStore: newMemoryOrganizationStore(), AuthDevFallback: true})
 	rec := doJSON(t, router, http.MethodPost, "/api/v1/accounts",
@@ -91,7 +91,7 @@ func TestCreateAccount_Unavailable(t *testing.T) {
 
 // 5) PUT /api/v1/accounts/:user_id/password — happy.
 func TestResetAccountPassword_Happy(t *testing.T) {
-	kratos := &MockKratosAdmin{}
+	kratos := &MockIdentityAdmin{}
 	audits := &memoryAuditStore{}
 	router := newAccountsAdminRouter(newMemoryOrganizationStore(), kratos, audits)
 
@@ -113,7 +113,7 @@ func TestResetAccountPassword_Happy(t *testing.T) {
 
 // 5b) PUT /api/v1/accounts/:user_id/password with empty body → server generates temp password.
 func TestResetAccountPassword_EmptyBodyAutoGenerates(t *testing.T) {
-	kratos := &MockKratosAdmin{}
+	kratos := &MockIdentityAdmin{}
 	router := newAccountsAdminRouter(newMemoryOrganizationStore(), kratos, &memoryAuditStore{})
 	rec := doJSON(t, router, http.MethodPut, "/api/v1/accounts/alice/password", "")
 	if rec.Code != http.StatusOK {
@@ -126,7 +126,7 @@ func TestResetAccountPassword_EmptyBodyAutoGenerates(t *testing.T) {
 
 // 6) PUT /api/v1/accounts/:user_id/password — identity not found → 404.
 func TestResetAccountPassword_NotFound(t *testing.T) {
-	kratos := &MockKratosAdmin{FindError: ErrKratosIdentityNotFound}
+	kratos := &MockIdentityAdmin{FindError: ErrIdentityNotFound}
 	router := newAccountsAdminRouter(newMemoryOrganizationStore(), kratos, &memoryAuditStore{})
 	rec := doJSON(t, router, http.MethodPut, "/api/v1/accounts/ghost/password",
 		`{"temp_password":"AnyTempPass123"}`)
@@ -145,7 +145,7 @@ func TestUpdateAccountStatus_Disable(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("seed user: %v", err)
 	}
-	kratos := &MockKratosAdmin{}
+	kratos := &MockIdentityAdmin{}
 	audits := &memoryAuditStore{}
 	router := newAccountsAdminRouter(orgStore, kratos, audits)
 
@@ -169,7 +169,7 @@ func TestUpdateAccountStatus_Disable(t *testing.T) {
 
 // 8) PATCH /api/v1/accounts/:user_id — invalid status → 400.
 func TestUpdateAccountStatus_Invalid(t *testing.T) {
-	router := newAccountsAdminRouter(newMemoryOrganizationStore(), &MockKratosAdmin{}, &memoryAuditStore{})
+	router := newAccountsAdminRouter(newMemoryOrganizationStore(), &MockIdentityAdmin{}, &memoryAuditStore{})
 	rec := doJSON(t, router, http.MethodPatch, "/api/v1/accounts/alice", `{"status":"frozen"}`)
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status=%d, want 400", rec.Code)
@@ -185,7 +185,7 @@ func TestDeleteAccount_Happy(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("seed user: %v", err)
 	}
-	kratos := &MockKratosAdmin{}
+	kratos := &MockIdentityAdmin{}
 	audits := &memoryAuditStore{}
 	router := newAccountsAdminRouter(orgStore, kratos, audits)
 
@@ -219,7 +219,7 @@ func TestDeleteAccount_KratosMissingStillSucceeds(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("seed user: %v", err)
 	}
-	kratos := &MockKratosAdmin{FindError: ErrKratosIdentityNotFound}
+	kratos := &MockIdentityAdmin{FindError: ErrIdentityNotFound}
 	router := newAccountsAdminRouter(orgStore, kratos, &memoryAuditStore{})
 
 	rec := doJSON(t, router, http.MethodDelete, "/api/v1/accounts/alice", "")

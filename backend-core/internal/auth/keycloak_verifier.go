@@ -2,23 +2,248 @@ package auth
 
 import (
 	"context"
+	"crypto/rsa"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
+	"math/big"
+	"net/http"
 	"strings"
+	"time"
 
 	"github.com/devhub/backend-core/internal/httpapi"
+	"github.com/golang-jwt/jwt/v5"
 )
 
-// KeycloakJWKSVerifier is a PR-A skeleton for Keycloak-based bearer token
-// verification. Real JWT/JWKS verification is implemented in PR-B.
+// KeycloakJWKSVerifier verifies JWT bearer tokens against a Keycloak-compatible
+// JWKS endpoint. JWKS can be configured explicitly or discovered from issuer.
 type KeycloakJWKSVerifier struct {
-	IssuerURL string
-	JWKSURL   string
-	ClientID  string
+	IssuerURL  string
+	JWKSURL    string
+	ClientID   string
+	HTTPClient *http.Client
 }
 
-func (v *KeycloakJWKSVerifier) VerifyBearerToken(_ context.Context, _ string) (httpapi.AuthenticatedActor, error) {
+func (v *KeycloakJWKSVerifier) VerifyBearerToken(ctx context.Context, token string) (httpapi.AuthenticatedActor, error) {
 	if strings.TrimSpace(v.IssuerURL) == "" && strings.TrimSpace(v.JWKSURL) == "" {
 		return httpapi.AuthenticatedActor{}, errors.New("KeycloakJWKSVerifier requires DEVHUB_OIDC_ISSUER_URL or DEVHUB_OIDC_JWKS_URL")
 	}
-	return httpapi.AuthenticatedActor{}, errors.New("KeycloakJWKSVerifier is not implemented yet")
+	keySet, err := v.fetchJWKS(ctx)
+	if err != nil {
+		return httpapi.AuthenticatedActor{}, err
+	}
+
+	parserOpts := []jwt.ParserOption{jwt.WithValidMethods([]string{"RS256", "RS384", "RS512"})}
+	if issuer := strings.TrimSpace(v.IssuerURL); issuer != "" {
+		parserOpts = append(parserOpts, jwt.WithIssuer(issuer))
+	}
+	if aud := strings.TrimSpace(v.ClientID); aud != "" {
+		parserOpts = append(parserOpts, jwt.WithAudience(aud))
+	}
+
+	claims := jwt.MapClaims{}
+	parsed, err := jwt.ParseWithClaims(token, claims, func(t *jwt.Token) (any, error) {
+		kid, _ := t.Header["kid"].(string)
+		if strings.TrimSpace(kid) == "" {
+			return nil, errors.New("token header missing kid")
+		}
+		pub, ok := keySet[kid]
+		if !ok {
+			return nil, fmt.Errorf("jwks key not found for kid=%q", kid)
+		}
+		return pub, nil
+	}, parserOpts...)
+	if err != nil {
+		return httpapi.AuthenticatedActor{}, fmt.Errorf("verify keycloak token: %w", err)
+	}
+	if !parsed.Valid {
+		return httpapi.AuthenticatedActor{}, errors.New("invalid token")
+	}
+
+	subject := claimString(claims, "sub")
+	if subject == "" {
+		return httpapi.AuthenticatedActor{}, errors.New("token subject(sub) is required")
+	}
+	login := claimString(claims, "preferred_username")
+	if login == "" {
+		login = claimString(claims, "email")
+	}
+	if login == "" {
+		login = subject
+	}
+
+	return httpapi.AuthenticatedActor{
+		Subject: subject,
+		Login:   login,
+		Role:    extractKeycloakRole(claims),
+	}, nil
+}
+
+type openIDConfiguration struct {
+	JWKSURI string `json:"jwks_uri"`
+}
+
+type jwksDocument struct {
+	Keys []jwk `json:"keys"`
+}
+
+type jwk struct {
+	Kty string `json:"kty"`
+	Kid string `json:"kid"`
+	N   string `json:"n"`
+	E   string `json:"e"`
+}
+
+func (v *KeycloakJWKSVerifier) fetchJWKS(ctx context.Context) (map[string]*rsa.PublicKey, error) {
+	jwksURL, err := v.resolveJWKSURL(ctx)
+	if err != nil {
+		return nil, err
+	}
+	body, err := v.getJSON(ctx, jwksURL)
+	if err != nil {
+		return nil, fmt.Errorf("fetch jwks: %w", err)
+	}
+	var doc jwksDocument
+	if err := json.Unmarshal(body, &doc); err != nil {
+		return nil, fmt.Errorf("decode jwks: %w", err)
+	}
+
+	out := make(map[string]*rsa.PublicKey, len(doc.Keys))
+	for _, k := range doc.Keys {
+		if strings.ToUpper(strings.TrimSpace(k.Kty)) != "RSA" || strings.TrimSpace(k.Kid) == "" {
+			continue
+		}
+		pub, err := rsaPublicKeyFromJWK(k.N, k.E)
+		if err != nil {
+			continue
+		}
+		out[k.Kid] = pub
+	}
+	if len(out) == 0 {
+		return nil, errors.New("jwks did not contain usable RSA keys")
+	}
+	return out, nil
+}
+
+func (v *KeycloakJWKSVerifier) resolveJWKSURL(ctx context.Context) (string, error) {
+	if explicit := strings.TrimSpace(v.JWKSURL); explicit != "" {
+		return explicit, nil
+	}
+	issuer := strings.TrimSpace(v.IssuerURL)
+	if issuer == "" {
+		return "", errors.New("missing OIDC issuer and jwks url")
+	}
+	discoveryURL := strings.TrimRight(issuer, "/") + "/.well-known/openid-configuration"
+	body, err := v.getJSON(ctx, discoveryURL)
+	if err != nil {
+		return "", fmt.Errorf("fetch openid configuration: %w", err)
+	}
+	var cfg openIDConfiguration
+	if err := json.Unmarshal(body, &cfg); err != nil {
+		return "", fmt.Errorf("decode openid configuration: %w", err)
+	}
+	jwks := strings.TrimSpace(cfg.JWKSURI)
+	if jwks == "" {
+		return "", errors.New("openid configuration missing jwks_uri")
+	}
+	return jwks, nil
+}
+
+func (v *KeycloakJWKSVerifier) getJSON(ctx context.Context, endpoint string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("build request: %w", err)
+	}
+	req.Header.Set("Accept", "application/json")
+
+	client := v.HTTPClient
+	if client == nil {
+		client = &http.Client{Timeout: 5 * time.Second}
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("call endpoint: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read response: %w", err)
+	}
+	if resp.StatusCode/100 != 2 {
+		return nil, fmt.Errorf("endpoint status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+	return body, nil
+}
+
+func rsaPublicKeyFromJWK(nRaw, eRaw string) (*rsa.PublicKey, error) {
+	nBytes, err := base64.RawURLEncoding.DecodeString(strings.TrimSpace(nRaw))
+	if err != nil {
+		return nil, fmt.Errorf("decode jwk n: %w", err)
+	}
+	eBytes, err := base64.RawURLEncoding.DecodeString(strings.TrimSpace(eRaw))
+	if err != nil {
+		return nil, fmt.Errorf("decode jwk e: %w", err)
+	}
+	if len(nBytes) == 0 || len(eBytes) == 0 {
+		return nil, errors.New("invalid jwk rsa parameters")
+	}
+	n := new(big.Int).SetBytes(nBytes)
+	e := new(big.Int).SetBytes(eBytes).Int64()
+	if e <= 1 {
+		return nil, errors.New("invalid rsa exponent")
+	}
+	return &rsa.PublicKey{N: n, E: int(e)}, nil
+}
+
+func claimString(claims jwt.MapClaims, key string) string {
+	raw, ok := claims[key]
+	if !ok {
+		return ""
+	}
+	v, ok := raw.(string)
+	if !ok {
+		return ""
+	}
+	return strings.TrimSpace(v)
+}
+
+func extractKeycloakRole(claims jwt.MapClaims) string {
+	if role := claimString(claims, "role"); role != "" {
+		return role
+	}
+	if raw, ok := claims["roles"]; ok {
+		if roles := anyToStrings(raw); len(roles) > 0 {
+			return roles[0]
+		}
+	}
+	if raw, ok := claims["realm_access"]; ok {
+		if m, ok := raw.(map[string]any); ok {
+			if roles := anyToStrings(m["roles"]); len(roles) > 0 {
+				return roles[0]
+			}
+		}
+	}
+	return ""
+}
+
+func anyToStrings(v any) []string {
+	list, ok := v.([]any)
+	if !ok {
+		return nil
+	}
+	out := make([]string, 0, len(list))
+	for _, item := range list {
+		s, ok := item.(string)
+		if !ok {
+			continue
+		}
+		s = strings.TrimSpace(s)
+		if s != "" {
+			out = append(out, s)
+		}
+	}
+	return out
 }

@@ -12,15 +12,15 @@ import (
 	"testing"
 )
 
-// These tests pin the wire contract of KratosAdminClient against the Ory
+// These tests pin the wire contract of IdentityAdminClient against the Ory
 // Kratos Admin API. They exist because a prior rewrite turned
 // UpdateIdentityPassword / SetIdentityState / DeleteIdentity into noop
 // stubs and shipped a CreateIdentity payload that did not match the
 // devhub_user schema — both regressions were masked by tests that only
-// exercised MockKratosAdmin. Anything that touches this file must keep
+// exercised MockIdentityAdmin. Anything that touches this file must keep
 // these HTTP-level assertions intact.
 
-func TestKratosAdminClient_CreateIdentity_SuccessPayload(t *testing.T) {
+func TestIdentityAdminClient_CreateIdentity_SuccessPayload(t *testing.T) {
 	var captured map[string]any
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -41,7 +41,7 @@ func TestKratosAdminClient_CreateIdentity_SuccessPayload(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := &KratosAdminClient{AdminURL: srv.URL}
+	c := &IdentityAdminClient{AdminURL: srv.URL}
 	id, err := c.CreateIdentity(context.Background(), "alice@example.com", "Alice", "alice", "Pass1234567!")
 	if err != nil {
 		t.Fatalf("CreateIdentity: %v", err)
@@ -85,14 +85,14 @@ func TestKratosAdminClient_CreateIdentity_SuccessPayload(t *testing.T) {
 	}
 }
 
-func TestKratosAdminClient_CreateIdentity_NonCreatedSurfacesStatus(t *testing.T) {
+func TestIdentityAdminClient_CreateIdentity_NonCreatedSurfacesStatus(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusConflict)
 		_, _ = w.Write([]byte(`{"error":{"id":"conflict"}}`))
 	}))
 	defer srv.Close()
 
-	c := &KratosAdminClient{AdminURL: srv.URL}
+	c := &IdentityAdminClient{AdminURL: srv.URL}
 	_, err := c.CreateIdentity(context.Background(), "a@b.c", "A", "a", "Pass1234567!")
 	if err == nil {
 		t.Fatalf("expected error on 409")
@@ -102,16 +102,16 @@ func TestKratosAdminClient_CreateIdentity_NonCreatedSurfacesStatus(t *testing.T)
 	}
 }
 
-func TestKratosAdminClient_CreateIdentity_RejectsEmptyAdminURL(t *testing.T) {
-	c := &KratosAdminClient{}
+func TestIdentityAdminClient_CreateIdentity_RejectsEmptyAdminURL(t *testing.T) {
+	c := &IdentityAdminClient{}
 	_, err := c.CreateIdentity(context.Background(), "a@b.c", "A", "a", "p")
 	if err == nil {
 		t.Fatalf("expected error for empty AdminURL")
 	}
 }
 
-func TestKratosAdminClient_FindIdentityByUserID_MatchesMetadataPublic(t *testing.T) {
-	// Regression guard: the previous rewrite decoded into KratosIdentity
+func TestIdentityAdminClient_FindIdentityByUserID_MatchesMetadataPublic(t *testing.T) {
+	// Regression guard: the previous rewrite decoded into IDPIdentity
 	// (no JSON tags) and checked ident.UserID — Kratos returns user_id
 	// under metadata_public.user_id, so every match silently failed.
 	// Forces the slow scan by returning [] for the credentials_identifier
@@ -135,7 +135,7 @@ func TestKratosAdminClient_FindIdentityByUserID_MatchesMetadataPublic(t *testing
 	}))
 	defer srv.Close()
 
-	c := &KratosAdminClient{AdminURL: srv.URL}
+	c := &IdentityAdminClient{AdminURL: srv.URL}
 	id, err := c.FindIdentityByUserID(context.Background(), "alice")
 	if err != nil {
 		t.Fatalf("Find: %v", err)
@@ -145,7 +145,7 @@ func TestKratosAdminClient_FindIdentityByUserID_MatchesMetadataPublic(t *testing
 	}
 }
 
-func TestKratosAdminClient_FindIdentityByUserID_FastPathHit(t *testing.T) {
+func TestIdentityAdminClient_FindIdentityByUserID_FastPathHit(t *testing.T) {
 	// credentials_identifier=alice returns exactly one match with the
 	// expected metadata_public.user_id — Find should return immediately
 	// without touching the paginated scan.
@@ -160,7 +160,7 @@ func TestKratosAdminClient_FindIdentityByUserID_FastPathHit(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := &KratosAdminClient{AdminURL: srv.URL}
+	c := &IdentityAdminClient{AdminURL: srv.URL}
 	id, err := c.FindIdentityByUserID(context.Background(), "alice")
 	if err != nil {
 		t.Fatalf("Find: %v", err)
@@ -173,7 +173,7 @@ func TestKratosAdminClient_FindIdentityByUserID_FastPathHit(t *testing.T) {
 	}
 }
 
-func TestKratosAdminClient_FindIdentityByUserID_FastPathMetadataMismatchFallsThrough(t *testing.T) {
+func TestIdentityAdminClient_FindIdentityByUserID_FastPathMetadataMismatchFallsThrough(t *testing.T) {
 	// Defence-in-depth: credentials_identifier=alice returns an identity
 	// whose metadata_public.user_id is missing (operator setup divergence).
 	// Find must not silently return that wrong identity — it must fall
@@ -189,7 +189,7 @@ func TestKratosAdminClient_FindIdentityByUserID_FastPathMetadataMismatchFallsThr
 	}))
 	defer srv.Close()
 
-	c := &KratosAdminClient{AdminURL: srv.URL}
+	c := &IdentityAdminClient{AdminURL: srv.URL}
 	id, err := c.FindIdentityByUserID(context.Background(), "alice")
 	if err != nil {
 		t.Fatalf("Find: %v", err)
@@ -202,7 +202,7 @@ func TestKratosAdminClient_FindIdentityByUserID_FastPathMetadataMismatchFallsThr
 	}
 }
 
-func TestKratosAdminClient_FindIdentityByUserID_FastPathNon200FallsThrough(t *testing.T) {
+func TestIdentityAdminClient_FindIdentityByUserID_FastPathNon200FallsThrough(t *testing.T) {
 	// Older Kratos releases reject the credentials_identifier query (or
 	// future versions might deprecate it). A non-200 must be a silent miss
 	// so the slow scan still runs — never a hard error to the caller.
@@ -216,7 +216,7 @@ func TestKratosAdminClient_FindIdentityByUserID_FastPathNon200FallsThrough(t *te
 	}))
 	defer srv.Close()
 
-	c := &KratosAdminClient{AdminURL: srv.URL}
+	c := &IdentityAdminClient{AdminURL: srv.URL}
 	id, err := c.FindIdentityByUserID(context.Background(), "alice")
 	if err != nil {
 		t.Fatalf("Find: %v", err)
@@ -226,11 +226,11 @@ func TestKratosAdminClient_FindIdentityByUserID_FastPathNon200FallsThrough(t *te
 	}
 }
 
-func TestKratosAdminClient_FindIdentityByUserID_Paginates(t *testing.T) {
+func TestIdentityAdminClient_FindIdentityByUserID_Paginates(t *testing.T) {
 	// Kratos /admin/identities pagination is 0-based — verified empirically
 	// against v26.2.0 (page=0 returns first batch, page=1 returns second).
 	// The earlier 1-based start silently returned empty first page and
-	// short-circuited to ErrKratosIdentityNotFound.
+	// short-circuited to ErrIdentityNotFound.
 	var pages int
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Force the slow scan: return [] for the credentials_identifier
@@ -267,7 +267,7 @@ func TestKratosAdminClient_FindIdentityByUserID_Paginates(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := &KratosAdminClient{AdminURL: srv.URL}
+	c := &IdentityAdminClient{AdminURL: srv.URL}
 	id, err := c.FindIdentityByUserID(context.Background(), "target")
 	if err != nil {
 		t.Fatalf("Find: %v", err)
@@ -280,28 +280,28 @@ func TestKratosAdminClient_FindIdentityByUserID_Paginates(t *testing.T) {
 	}
 }
 
-func TestKratosAdminClient_FindIdentityByUserID_NotFound(t *testing.T) {
+func TestIdentityAdminClient_FindIdentityByUserID_NotFound(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte(`[]`))
 	}))
 	defer srv.Close()
 
-	c := &KratosAdminClient{AdminURL: srv.URL}
+	c := &IdentityAdminClient{AdminURL: srv.URL}
 	_, err := c.FindIdentityByUserID(context.Background(), "ghost")
-	if !errors.Is(err, ErrKratosIdentityNotFound) {
-		t.Errorf("err = %v, want ErrKratosIdentityNotFound", err)
+	if !errors.Is(err, ErrIdentityNotFound) {
+		t.Errorf("err = %v, want ErrIdentityNotFound", err)
 	}
 }
 
-func TestKratosAdminClient_FindIdentityByUserID_EmptyUserID(t *testing.T) {
-	c := &KratosAdminClient{AdminURL: "http://unused"}
+func TestIdentityAdminClient_FindIdentityByUserID_EmptyUserID(t *testing.T) {
+	c := &IdentityAdminClient{AdminURL: "http://unused"}
 	_, err := c.FindIdentityByUserID(context.Background(), "")
 	if err == nil {
 		t.Fatalf("expected error for empty user_id")
 	}
 }
 
-func TestKratosAdminClient_FindIdentityByUserID_StopsAt10kCap(t *testing.T) {
+func TestIdentityAdminClient_FindIdentityByUserID_StopsAt10kCap(t *testing.T) {
 	// FindIdentityByUserID caps the PoC scan at 40 pages (pages 0..39 =
 	// 10k identities at per_page=250). The cap matters because Kratos has
 	// no server-side metadata filter; without it, a misconfigured
@@ -329,17 +329,17 @@ func TestKratosAdminClient_FindIdentityByUserID_StopsAt10kCap(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := &KratosAdminClient{AdminURL: srv.URL}
+	c := &IdentityAdminClient{AdminURL: srv.URL}
 	_, err := c.FindIdentityByUserID(context.Background(), "missing")
-	if !errors.Is(err, ErrKratosIdentityNotFound) {
-		t.Fatalf("err = %v, want ErrKratosIdentityNotFound", err)
+	if !errors.Is(err, ErrIdentityNotFound) {
+		t.Fatalf("err = %v, want ErrIdentityNotFound", err)
 	}
 	if requests != 40 {
 		t.Errorf("requests = %d, want exactly 40 (10k identity PoC cap)", requests)
 	}
 }
 
-func TestKratosAdminClient_UpdateIdentityPassword_RoundTrips(t *testing.T) {
+func TestIdentityAdminClient_UpdateIdentityPassword_RoundTrips(t *testing.T) {
 	// Kratos has no first-class admin "set password"; the contract is
 	// GET → mutate credentials.password.config → PUT. A prior regression
 	// silently returned nil from this method, so this test pins both
@@ -374,7 +374,7 @@ func TestKratosAdminClient_UpdateIdentityPassword_RoundTrips(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := &KratosAdminClient{AdminURL: srv.URL}
+	c := &IdentityAdminClient{AdminURL: srv.URL}
 	if err := c.UpdateIdentityPassword(context.Background(), "id-1", "NewPass-2026!"); err != nil {
 		t.Fatalf("UpdateIdentityPassword: %v", err)
 	}
@@ -394,28 +394,28 @@ func TestKratosAdminClient_UpdateIdentityPassword_RoundTrips(t *testing.T) {
 	}
 }
 
-func TestKratosAdminClient_UpdateIdentityPassword_NotFoundOnGet(t *testing.T) {
+func TestIdentityAdminClient_UpdateIdentityPassword_NotFoundOnGet(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 	}))
 	defer srv.Close()
 
-	c := &KratosAdminClient{AdminURL: srv.URL}
+	c := &IdentityAdminClient{AdminURL: srv.URL}
 	err := c.UpdateIdentityPassword(context.Background(), "missing", "Pass1234567!")
-	if !errors.Is(err, ErrKratosIdentityNotFound) {
-		t.Errorf("err = %v, want ErrKratosIdentityNotFound", err)
+	if !errors.Is(err, ErrIdentityNotFound) {
+		t.Errorf("err = %v, want ErrIdentityNotFound", err)
 	}
 }
 
-func TestKratosAdminClient_UpdateIdentityPassword_RejectsEmptyPassword(t *testing.T) {
-	c := &KratosAdminClient{AdminURL: "http://unused"}
+func TestIdentityAdminClient_UpdateIdentityPassword_RejectsEmptyPassword(t *testing.T) {
+	c := &IdentityAdminClient{AdminURL: "http://unused"}
 	err := c.UpdateIdentityPassword(context.Background(), "id", "")
 	if err == nil {
 		t.Fatalf("expected error for empty password")
 	}
 }
 
-func TestKratosAdminClient_SetIdentityState_ActiveAndInactive(t *testing.T) {
+func TestIdentityAdminClient_SetIdentityState_ActiveAndInactive(t *testing.T) {
 	cases := []struct {
 		name      string
 		active    bool
@@ -439,7 +439,7 @@ func TestKratosAdminClient_SetIdentityState_ActiveAndInactive(t *testing.T) {
 			}))
 			defer srv.Close()
 
-			c := &KratosAdminClient{AdminURL: srv.URL}
+			c := &IdentityAdminClient{AdminURL: srv.URL}
 			if err := c.SetIdentityState(context.Background(), "id-1", tc.active); err != nil {
 				t.Fatalf("SetIdentityState: %v", err)
 			}
@@ -450,7 +450,7 @@ func TestKratosAdminClient_SetIdentityState_ActiveAndInactive(t *testing.T) {
 	}
 }
 
-func TestKratosAdminClient_DeleteIdentity_Success(t *testing.T) {
+func TestIdentityAdminClient_DeleteIdentity_Success(t *testing.T) {
 	var called bool
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		called = true
@@ -464,7 +464,7 @@ func TestKratosAdminClient_DeleteIdentity_Success(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := &KratosAdminClient{AdminURL: srv.URL}
+	c := &IdentityAdminClient{AdminURL: srv.URL}
 	if err := c.DeleteIdentity(context.Background(), "id-1"); err != nil {
 		t.Fatalf("DeleteIdentity: %v", err)
 	}
@@ -473,27 +473,27 @@ func TestKratosAdminClient_DeleteIdentity_Success(t *testing.T) {
 	}
 }
 
-func TestKratosAdminClient_DeleteIdentity_NotFound(t *testing.T) {
+func TestIdentityAdminClient_DeleteIdentity_NotFound(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 	}))
 	defer srv.Close()
 
-	c := &KratosAdminClient{AdminURL: srv.URL}
+	c := &IdentityAdminClient{AdminURL: srv.URL}
 	err := c.DeleteIdentity(context.Background(), "ghost")
-	if !errors.Is(err, ErrKratosIdentityNotFound) {
-		t.Errorf("err = %v, want ErrKratosIdentityNotFound", err)
+	if !errors.Is(err, ErrIdentityNotFound) {
+		t.Errorf("err = %v, want ErrIdentityNotFound", err)
 	}
 }
 
-func TestKratosAdminClient_DeleteIdentity_SurfacesUnexpectedStatus(t *testing.T) {
+func TestIdentityAdminClient_DeleteIdentity_SurfacesUnexpectedStatus(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(`{"error":"boom"}`))
 	}))
 	defer srv.Close()
 
-	c := &KratosAdminClient{AdminURL: srv.URL}
+	c := &IdentityAdminClient{AdminURL: srv.URL}
 	err := c.DeleteIdentity(context.Background(), "id-1")
 	if err == nil {
 		t.Fatalf("expected error on 500")
@@ -503,7 +503,7 @@ func TestKratosAdminClient_DeleteIdentity_SurfacesUnexpectedStatus(t *testing.T)
 	}
 }
 
-func TestKratosAdminClient_DeleteIdentity_EscapesIdentityID(t *testing.T) {
+func TestIdentityAdminClient_DeleteIdentity_EscapesIdentityID(t *testing.T) {
 	// Identity IDs are UUIDs in production, but the URL builder uses
 	// url.PathEscape; a future caller might pass a value with slashes
 	// (e.g. composite IDs in tests) and we want that to stay scoped to
@@ -515,7 +515,7 @@ func TestKratosAdminClient_DeleteIdentity_EscapesIdentityID(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := &KratosAdminClient{AdminURL: srv.URL}
+	c := &IdentityAdminClient{AdminURL: srv.URL}
 	if err := c.DeleteIdentity(context.Background(), "id/with/slash"); err != nil {
 		t.Fatalf("DeleteIdentity: %v", err)
 	}

@@ -23,8 +23,8 @@
 
 ## 2. 환경 전제
 
-- 5-process native stack 가동 (PostgreSQL + Hydra + Kratos + backend-core + frontend), `docs/setup/e2e-test-guide.md` 절차.
-- backend-core 와 Kratos 양쪽에 **`DEVHUB_KRATOS_WEBHOOK_TOKEN=<같은 값>`** export 후 Kratos 재기동 (PR-M2-AUDIT 변경 반영).
+- 5-process native stack 가동 (PostgreSQL + Keycloak + backend-core + frontend), `docs/setup/e2e-test-guide.md` 절차.
+- backend-core 와 Kratos 양쪽에 **`DEVHUB_KEYCLOAK_ADMIN_URL=<같은 값>`** export 후 Kratos 재기동 (PR-M2-AUDIT 변경 반영).
 - Kratos 설정파일 `infra/idp/kratos.yaml` 의 `settings.after.password.hooks` 가 새 jsonnet (`infra/idp/kratos_webhooks/settings_password_after.jsonnet`) 으로 작동.
 - e2e seed: globalSetup 이 alice/bob/charlie 3명 idempotent 시드 + 비밀번호 force-reset.
 - 실행: `cd frontend && npm run e2e`.
@@ -253,7 +253,7 @@
 - **목적**: Kratos self-service password 변경이 DevHub `audit_logs` 에 **`source_type=kratos`** 행으로 자동 기록되는지 확인. 단순 행 노출이 아니라 entry detail 의 `source_type` 필드까지 검증해 webhook 이 실제로 발화됐다는 강한 증거를 확보 (false-positive 회피).
 - **사전 조건**:
   - 5-process stack 가동
-  - 양쪽에 `DEVHUB_KRATOS_WEBHOOK_TOKEN` 동일 값 export
+  - 양쪽에 `DEVHUB_KEYCLOAK_ADMIN_URL` 동일 값 export
   - Kratos 재기동으로 새 hook 활성
   - 본 spec 는 alice 의 password 를 임시 변경하므로 `account.spec.ts` 와 같은 run 에 함께 실행될 때 ordering 충돌 위험 → 본 spec 의 try/finally rollback + globalSetup 자동 복구로 mitigated.
 - **단계**:

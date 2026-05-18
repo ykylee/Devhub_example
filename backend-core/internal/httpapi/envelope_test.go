@@ -36,26 +36,6 @@ func TestEnvelope_NewlyFixedHandlersHaveStatusKey(t *testing.T) {
 		wantStatuses map[int]bool // expected HTTP status -> envelope status key required
 	}{
 		{
-			name:   "auth/signup invalid payload -> rejected",
-			method: http.MethodPost,
-			path:   "/api/v1/auth/signup",
-			body:   `{}`,
-			setupRouter: func() http.Handler {
-				return NewRouter(RouterConfig{AuthDevFallback: true})
-			},
-			wantStatuses: map[int]bool{http.StatusBadRequest: true},
-		},
-		{
-			name:   "auth/signup unavailable when HRDB nil -> unavailable",
-			method: http.MethodPost,
-			path:   "/api/v1/auth/signup",
-			body:   `{"name":"a","system_id":"b","employee_id":"c","password":"d"}`,
-			setupRouter: func() http.Handler {
-				return NewRouter(RouterConfig{AuthDevFallback: true})
-			},
-			wantStatuses: map[int]bool{http.StatusServiceUnavailable: true},
-		},
-		{
 			name:   "hr/lookup missing query -> rejected",
 			method: http.MethodGet,
 			path:   "/api/v1/hr/lookup",

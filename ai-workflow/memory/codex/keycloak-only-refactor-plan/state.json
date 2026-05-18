@@ -2,19 +2,19 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "codex/keycloak-only-refactor-plan",
-  "status": "Keycloak 단일화 리팩토링 계획 수립 단계. 구현안 문서화 완료, 코드 변경 전.",
-  "updated_at": "2026-05-18T00:00:00Z",
-  "head_commit": "f2e18a2",
-  "head_summary": "main 기준 분기 생성 직후",
+  "status": "PR-B(Keycloak JWT/JWKS verifier) 구현 완료. PR-C(account/admin Keycloak 연동) 착수.",
+  "updated_at": "2026-05-18T12:31:07Z",
+  "head_commit": "b8eb2ba",
+  "head_summary": "plan(keycloak): add execution docs and PR-A provider config skeleton",
   "current_focus": [
-    "Keycloak 단일화 실행 계획 문서화",
-    "브랜치 전용 memory 초기화",
-    "PR 분할 구현 순서 확정"
+    "PR-C 범위(account/admin API Keycloak 연동) 인터페이스/어댑터 설계",
+    "keycloak provider 모드에서 Kratos mock 주입 방지",
+    "traceability 영향 ID 초안 정리"
   ],
   "next_actions": [
-    "PR-A 범위 파일 식별 및 config/provider 스켈레톤 구현",
-    "Keycloak local/external 모드 env 계약을 backend/frontend에 반영",
-    "traceability ID 발급 범위 사전 정의"
+    "account/admin API용 Keycloak Admin adapter 구현(PR-C)",
+    "identity/subject 매핑 정책 확정(kratos_identity_id 대체 경로)",
+    "traceability ID(REQ/ARCH/API/IMPL/UT/TC) 초안 작성"
   ],
   "risks": [
     "Hydra/Kratos 결합 코드 경로가 넓어 회귀 범위 확대 가능",

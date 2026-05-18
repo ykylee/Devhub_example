@@ -1,6 +1,6 @@
 # Keycloak 단일화 리팩토링 실행 계획
 
-- 문서 목적: DevHub 인증 체계를 Ory Hydra/Kratos 결합 구조에서 Keycloak 단일 체계로 전환하는 구현 계획을 정의한다.
+- 문서 목적: DevHub 인증 체계를 Ory Keycloak/OIDC 결합 구조에서 Keycloak 단일 체계로 전환하는 구현 계획을 정의한다.
 - 범위: 아키텍처 전환, Keycloak 서버 구성(내장/외부), 단계별 구현/검증/롤백 전략
 - 대상 독자: backend-core, frontend, 인프라/운영, QA, 릴리즈 담당자
 - 상태: planned
@@ -22,9 +22,9 @@
 
 ## 3. 현재 상태 요약 (main 기준)
 
-- 백엔드는 `HydraIntrospectionVerifier`, Hydra/Kratos client wiring에 결합.
-- 프론트는 OIDC code+PKCE를 사용하나 logout/password/account flow가 Hydra/Kratos endpoint 전제.
-- 문서/테스트/환경설정이 Hydra/Kratos를 표준으로 가정.
+- 백엔드는 `HydraIntrospectionVerifier`, Keycloak/OIDC client wiring에 결합.
+- 프론트는 OIDC code+PKCE를 사용하나 logout/password/account flow가 Keycloak/OIDC endpoint 전제.
+- 문서/테스트/환경설정이 Keycloak/OIDC를 표준으로 가정.
 
 ## 4. 목표 아키텍처
 
@@ -112,7 +112,7 @@
 
 4. PR-D: Frontend OIDC 전환
 - authorize/callback/logout/account flow 전환
-- Hydra/Kratos 전용 코드 제거
+- Keycloak/OIDC 전용 코드 제거
 
 5. PR-E: DB 마이그레이션
 - `kratos_identity_id` 일반화 (`idp_subject`)

@@ -3,7 +3,7 @@
 - 문서 목적: Keycloak 단일화 리팩토링 브랜치의 진행 상태를 인계한다.
 - 범위: 계획 수립, 문서화, 다음 구현 진입점
 - 대상 독자: 후속 에이전트, 리뷰어, 프로젝트 리드
-- 상태: planned
+- 상태: in_progress
 - 최종 수정일: 2026-05-18
 - 관련 문서: `docs/planning/keycloak_only_refactor_execution_plan.md`
 
@@ -12,6 +12,10 @@
 - `main` 기준 신규 브랜치 `codex/keycloak-only-refactor-plan` 생성.
 - Keycloak 단일화 상세 실행안 문서 생성 완료.
 - 브랜치 전용 memory 문서(state/handoff/backlog) 초기화 완료.
+- PR-A 범위(config/provider 스켈레톤) 코드 반영 완료.
+- PR-B 범위(Keycloak JWT/JWKS verifier + discovery + main wiring) 반영 완료.
+- PR-C 착수: keycloak provider 모드에서 Kratos mock 주입 방지.
+- 검증: `cd backend-core && go test ./...` 통과.
 
 ## 현재 결정 사항
 
@@ -21,6 +25,6 @@
 
 ## 다음 세션 첫 작업
 
-1. PR-A 구현 시작: backend/frontend config + provider 스켈레톤.
-2. env 예시 파일(.env.example)과 실행 가이드에 keycloak 계약 반영.
+1. PR-C 본 구현: account/admin API를 Keycloak Admin API 경로로 전환.
+2. `kratos_identity_id` 의존 구간을 `idp_subject` 중심으로 점진 치환.
 3. traceability 영향 ID(REQ/ARCH/API/IMPL/UT/TC) 초안 발급.

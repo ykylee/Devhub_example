@@ -88,7 +88,7 @@ frontend 의 `/login` 화면이 OIDC redirect 흐름으로 진입하므로 다�
 | `NEXT_PUBLIC_OIDC_REDIRECT_URI` | `http://127.0.0.1:3000/login/callback` | Hydra → frontend callback URL |
 | `NEXT_PUBLIC_OIDC_SCOPE` | `openid offline` | 요청 scope |
 
-또한 dev 모드에서 backend `/api/v1/me` 가 401 을 반환하지 않도록 Hydra/Kratos PoC 가 가동 중이어야 한다 (`DEVHUB_AUTH_DEV_FALLBACK=1` 은 Authorization 헤더 없는 요청 통과만 허용 — `X-Devhub-Actor` 폴백 헤더는 [ADR-0004](../adr/0004-x-devhub-actor-removal.md) 로 폐기됐다).
+또한 dev 모드에서 backend `/api/v1/me` 가 401 을 반환하지 않도록 Keycloak/OIDC PoC 가 가동 중이어야 한다 (`DEVHUB_AUTH_DEV_FALLBACK=1` 은 Authorization 헤더 없는 요청 통과만 허용 — `X-Devhub-Actor` 폴백 헤더는 [ADR-0004](../adr/0004-x-devhub-actor-removal.md) 로 폐기됐다).
 
 ### 2.5 검증
 

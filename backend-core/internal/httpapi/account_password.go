@@ -101,7 +101,7 @@ func (h Handler) updateMyPassword(c *gin.Context) {
 	}
 	identity, err := h.cfg.KratosLogin.SubmitLogin(ctx, flow, email, req.CurrentPassword)
 	switch {
-	case errors.Is(err, ErrKratosInvalidCredentials):
+	case errors.Is(err, ErrInvalidCredentials):
 		h.recordAuditBestEffort(c, "account.password_self_change.invalid_current", "user", actor.Login, nil)
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"status": "unauthenticated",
@@ -109,7 +109,7 @@ func (h Handler) updateMyPassword(c *gin.Context) {
 			"code":   "current_password_invalid",
 		})
 		return
-	case errors.Is(err, ErrKratosFlowExpired):
+	case errors.Is(err, ErrLoginFlowExpired):
 		writeServerError(c, err, "account.password.login_flow_expired")
 		return
 	case err != nil:
@@ -124,7 +124,7 @@ func (h Handler) updateMyPassword(c *gin.Context) {
 	// 2) Settings flow → submit new password.
 	flowID, err := h.cfg.KratosLogin.CreateSettingsFlow(ctx, identity.SessionToken)
 	if err != nil {
-		if se := IsKratosSettingsError(err); se != nil {
+		if se := IsPasswordSettingsError(err); se != nil {
 			respondSettingsError(c, se, "account.password.settings_create")
 			return
 		}
@@ -132,7 +132,7 @@ func (h Handler) updateMyPassword(c *gin.Context) {
 		return
 	}
 	if err := h.cfg.KratosLogin.SubmitSettingsPassword(ctx, identity.SessionToken, flowID, req.NewPassword); err != nil {
-		if se := IsKratosSettingsError(err); se != nil {
+		if se := IsPasswordSettingsError(err); se != nil {
 			respondSettingsError(c, se, "account.password.settings_submit")
 			return
 		}
@@ -142,7 +142,7 @@ func (h Handler) updateMyPassword(c *gin.Context) {
 
 	// 3) Refresh cache so subsequent self-service calls reuse the new
 	// privileged session.
-	h.cfg.KratosSessionCache.Put(actor.Login, identity.SessionToken)
+	h.cfg.IDPSessionCache.Put(actor.Login, identity.SessionToken)
 
 	h.recordAuditBestEffort(c, "account.password_self_change", "user", actor.Login, map[string]any{
 		"identity_id": identity.ID,
@@ -154,23 +154,23 @@ func (h Handler) updateMyPassword(c *gin.Context) {
 	})
 }
 
-// respondSettingsError maps KratosSettingsError onto the HTTP shape the
+// respondSettingsError maps PasswordSettingsError onto the HTTP shape the
 // frontend account.service.ts.SettingsFlowError consumes.
-func respondSettingsError(c *gin.Context, se *KratosSettingsError, op string) {
+func respondSettingsError(c *gin.Context, se *PasswordSettingsError, op string) {
 	switch se.Code {
-	case KratosSettingsValidation:
+	case PasswordSettingsValidation:
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status": "rejected",
 			"error":  se.Message,
 			"code":   "validation",
 		})
-	case KratosSettingsPrivilegedRequired, KratosSettingsSessionInvalid:
+	case PasswordSettingsPrivilegedRequired, PasswordSettingsSessionInvalid:
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"status": "unauthenticated",
 			"error":  "re-authentication required",
 			"code":   "reauth_required",
 		})
-	case KratosSettingsFlowExpired:
+	case PasswordSettingsFlowExpired:
 		c.JSON(http.StatusGone, gin.H{
 			"status": "gone",
 			"error":  "settings flow expired; retry",

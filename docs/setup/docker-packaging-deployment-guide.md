@@ -146,25 +146,17 @@ docker push devhub/frontend:${GIT_SHA}
 export IMAGE_TAG=<git-sha-or-release-tag>
 export IMAGE_REPO_PREFIX=ghcr.io/<owner>/<repo>   # 로컬 검증 시 devhub
 export PUBLIC_BASE_URL=http://<host>:23000
-export DEVHUB_HYDRA_ADMIN_URL=http://<host>:14445
-export DEVHUB_HYDRA_PUBLIC_URL=http://<host>:14444
-export DEVHUB_KRATOS_PUBLIC_URL=http://<host>:14433
-export DEVHUB_KRATOS_ADMIN_URL=http://<host>:14434
-export HYDRA_DSN='postgres://<user>:<pw>@<db-host>:5432/<db>?sslmode=disable&search_path=hydra'
-export HYDRA_SYSTEM_SECRET='<min-32-bytes-random-secret>'
-export KRATOS_DSN='postgres://<user>:<pw>@<db-host>:5432/<db>?sslmode=disable&search_path=kratos'
 export DB_URL='postgres://<user>:<pw>@<db-host>:5432/<db>?sslmode=disable'
-export DEVHUB_KRATOS_WEBHOOK_TOKEN='<strong-random-token>'
-export KRATOS_COOKIE_SECRET='<min-16-bytes-random-secret>'
-export KRATOS_CIPHER_SECRET='<min-32-bytes-random-secret>'
-export OIDC_AUTH_URL=http://<host>:14444/oauth2/auth
-export OIDC_REDIRECT_URI=${PUBLIC_BASE_URL}/auth/callback
-export NEXT_PUBLIC_OIDC_AUTH_URL=http://<host>:14444/oauth2/auth
-export NEXT_PUBLIC_OIDC_REDIRECT_URI=${PUBLIC_BASE_URL}/auth/callback
-export FRONTEND_PUBLIC_BASE_URL=${PUBLIC_BASE_URL}
-export KRATOS_PUBLIC_EXTERNAL_URL=http://<host>:14433
-export KRATOS_ADMIN_EXTERNAL_URL=http://<host>:14434
-export HYDRA_PUBLIC_EXTERNAL_URL=http://<host>:14444
+export DEVHUB_IDP_PROVIDER=keycloak
+export DEVHUB_OIDC_ISSUER_URL=http://<host>:18080/realms/devhub
+export DEVHUB_OIDC_CLIENT_ID=devhub-web
+export DEVHUB_OIDC_CLIENT_SECRET='<oidc-client-secret>'
+export DEVHUB_KEYCLOAK_ADMIN_URL=http://<host>:18080
+export DEVHUB_KEYCLOAK_ADMIN_REALM=devhub
+export DEVHUB_KEYCLOAK_ADMIN_CLIENT_ID=devhub-admin
+export DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET='<keycloak-admin-secret>'
+export NEXT_PUBLIC_IDP_PROVIDER=keycloak
+export NEXT_PUBLIC_OIDC_ISSUER_URL=http://<host>:18080/realms/devhub
 export NGINX_PORT=23000
 docker compose -f docker-compose.deploy.yml pull
 docker compose -f docker-compose.deploy.yml up -d
@@ -178,16 +170,16 @@ export IMAGE_REPO_PREFIX=devhub
 docker compose -f docker-compose.deploy.yml up -d
 ```
 
-`IMAGE_TAG`와 IdP/Hydra/Kratos 관련 URL은 필수다. 미지정 시 compose가 오류로 중단되도록 설정되어 있다.
-`DB_URL`, `HYDRA_DSN`, `KRATOS_DSN`도 필수다. 미지정 시 compose가 오류로 중단된다.
-`HYDRA_SYSTEM_SECRET`, `DEVHUB_KRATOS_WEBHOOK_TOKEN`, `KRATOS_COOKIE_SECRET`, `KRATOS_CIPHER_SECRET`도 운영 배포 필수값이며, 예시 기본값(`dev-token` 류) 사용은 금지한다.
+`IMAGE_TAG`와 Keycloak/OIDC 관련 URL은 필수다. 미지정 시 compose가 오류로 중단되도록 설정되어 있다.
+`DB_URL`도 필수다. 미지정 시 compose가 오류로 중단된다.
+`DEVHUB_OIDC_CLIENT_SECRET`, `DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET`은 운영 배포 필수값이며, 예시 기본값(`dev-token` 류) 사용은 금지한다.
 `DEVHUB_AUTH_DEV_FALLBACK` 기본값은 `0`(비활성)이며, 배포 환경에서 `1`로 켜지지 않도록 유지한다.
 
 ### 8.1.1 변수 스키마 (권장)
 
-- Public (브라우저가 직접 접근): `PUBLIC_BASE_URL`, `OIDC_AUTH_URL`, `OIDC_REDIRECT_URI`, `NEXT_PUBLIC_OIDC_*`
-- Internal (서비스 간 통신): `DEVHUB_HYDRA_ADMIN_URL`, `DEVHUB_HYDRA_PUBLIC_URL`, `DEVHUB_KRATOS_PUBLIC_URL`, `DEVHUB_KRATOS_ADMIN_URL`, `BACKEND_API_URL`, `KRATOS_HOOK_TARGET_URL`
-- DB: `DB_URL`, `HYDRA_DSN`, `KRATOS_DSN`
+- Public (브라우저가 직접 접근): `PUBLIC_BASE_URL`, `NEXT_PUBLIC_IDP_PROVIDER`, `NEXT_PUBLIC_OIDC_ISSUER_URL`
+- Internal (서비스 간 통신): `DEVHUB_OIDC_*`, `DEVHUB_KEYCLOAK_ADMIN_*`, `BACKEND_API_URL`
+- DB: `DB_URL`
 
 `localhost`는 fallback일 뿐 표준값이 아니다. 서버를 분리 배치하는 경우에는 위 3축을 환경별로 명시 주입한다.
 

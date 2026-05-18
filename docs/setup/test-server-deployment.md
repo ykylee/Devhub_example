@@ -27,7 +27,7 @@
 | Ory Kratos | v1.x | `kratos version` |
 | `migrate` CLI | v4.19.1 | `migrate -version` |
 
-### 1.2 Hydra/Kratos binary 설치 (필요 시)
+### 1.2 Keycloak/OIDC binary 설치 (필요 시)
 
 ADR-0001 §8.6: 사용자 터미널에서 직접 실행. 사내 GoProxy mirror 가 잡혀있는 환경에서:
 
@@ -40,7 +40,7 @@ go install github.com/ory/kratos/cmd/kratos@latest
 
 ### 1.3 PostgreSQL 데이터베이스/스키마
 
-DevHub 본 데이터베이스 1개 + Hydra/Kratos 용 schema 2개를 같은 인스턴스에 둔다 (ADR-0001 §8.1 결정).
+DevHub 본 데이터베이스 1개 + Keycloak/OIDC 용 schema 2개를 같은 인스턴스에 둔다 (ADR-0001 §8.1 결정).
 
 ```sh
 createdb -U postgres devhub
@@ -102,16 +102,16 @@ kratos migrate sql --yes "postgres://devhub:<pw>@<host>:5432/devhub?sslmode=disa
 | `PORT` | `8080` | gin 바인딩 포트 |
 | `DEVHUB_ENV` | `prod` | `prod` 시 verifier 미주입/dev fallback 활성 시 startup 거부 |
 | `DB_URL` | `postgres://devhub:<pw>@localhost:5432/devhub?sslmode=disable` | DevHub master DB |
-| `DEVHUB_HYDRA_ADMIN_URL` | `http://localhost:4445` | Bearer token introspection + login/logout/consent admin |
-| `DEVHUB_HYDRA_PUBLIC_URL` | `http://localhost:4444` | `/oauth2/token` (PKCE 교환), `/oauth2/revoke` (refresh token revoke) |
-| `DEVHUB_KRATOS_PUBLIC_URL` | `http://localhost:4433` | login self-service flow |
-| `DEVHUB_KRATOS_ADMIN_URL` | `http://localhost:4434` | identity 발급 (Sign Up) |
-| `DEVHUB_HYDRA_ROLE_CLAIM` | `ext.role` (default) | introspection 응답에서 role 추출 경로 |
+| `DEVHUB_OIDC_ISSUER_URL` | `http://localhost:4445` | Bearer token introspection + login/logout/consent admin |
+| `DEVHUB_OIDC_ISSUER_URL` | `http://localhost:4444` | `/oauth2/token` (PKCE 교환), `/oauth2/revoke` (refresh token revoke) |
+| `DEVHUB_KEYCLOAK_ADMIN_URL` | `http://localhost:4433` | login self-service flow |
+| `DEVHUB_KEYCLOAK_ADMIN_URL` | `http://localhost:4434` | identity 발급 (Sign Up) |
+| `DEVHUB_OIDC_ISSUER_URL` | `ext.role` (default) | introspection 응답에서 role 추출 경로 |
 | `DEVHUB_AUTH_DEV_FALLBACK` | (미설정) | `prod` 에서는 절대 1 로 두지 않는다 |
 | `BACKEND_AI_URL` | `http://localhost:8000` | AI 서비스 미사용 시 비워도 됨 |
 | `GITEA_URL` / `GITEA_TOKEN` / `GITEA_WEBHOOK_SECRET` | (환경별) | Gitea 연동 시만 |
 | `SERVICE_ACTION_EXECUTOR_MODE` | `simulation` 또는 비움 | live executor 활성 여부 |
-| `DEVHUB_KRATOS_WEBHOOK_TOKEN` | (운영 환경마다 임의 토큰) | Kratos `settings/password/after` web_hook 의 shared secret. 미설정 시 webhook 라우트가 503 응답 → 운영 환경에서 audit 누락이 silent fail 하지 않도록 강제. `infra/idp/kratos.yaml` 의 hook 의 `auth.config.value` 도 같은 값으로 export. 자세히는 §3.4. |
+| `DEVHUB_KEYCLOAK_ADMIN_URL` | (운영 환경마다 임의 토큰) | Kratos `settings/password/after` web_hook 의 shared secret. 미설정 시 webhook 라우트가 503 응답 → 운영 환경에서 audit 누락이 silent fail 하지 않도록 강제. `infra/idp/kratos.yaml` 의 hook 의 `auth.config.value` 도 같은 값으로 export. 자세히는 §3.4. |
 | `DEVHUB_TRUSTED_PROXIES` | (미설정 권장) | reverse proxy 뒤일 때만 CIDR/IP 명시. 자세히는 `backend-core/internal/httpapi/router.go::trustedProxiesFromEnv` |
 
 ### 3.2 frontend
@@ -127,7 +127,7 @@ kratos migrate sql --yes "postgres://devhub:<pw>@<host>:5432/devhub?sslmode=disa
 | `NEXT_PUBLIC_OIDC_SCOPE` | `openid offline_access email profile` | refresh_token 발급에 `offline_access` 필수 |
 | `NEXT_PUBLIC_KRATOS_PUBLIC_URL` | `http://localhost:4433` | `/account` 비밀번호 변경 + Sign Out 의 Kratos browser logout |
 
-### 3.3 Hydra/Kratos 설정 파일
+### 3.3 Keycloak/OIDC 설정 파일
 
 저장소의 `infra/idp/hydra.yaml`, `infra/idp/kratos.yaml` 을 그대로 사용하거나 호스트/포트 조정.
 
@@ -145,8 +145,8 @@ PR-M2-AUDIT 도입 (claude/login_usermanagement_finish). Kratos self-service pas
 운영 절차:
 
 1. **토큰 발급** — 운영 환경마다 임의의 고엔트로피 토큰을 1회 생성한다 (예: `openssl rand -hex 32`). 토큰은 backend-core 와 Kratos 양쪽이 같은 값을 봐야 한다.
-2. **backend-core env** — `DEVHUB_KRATOS_WEBHOOK_TOKEN=<발급한 토큰>` 으로 export. 미설정 시 webhook 라우트가 503 응답 → 운영 환경에서 audit 누락이 silent fail 하지 않도록 강제.
-3. **Kratos env** — Kratos 프로세스도 같은 env 를 볼 수 있어야 한다. `infra/idp/kratos.yaml` 의 hook `auth.config.value` 가 `Bearer ${DEVHUB_KRATOS_WEBHOOK_TOKEN}` 으로 expand 된다. systemd unit / Windows service 등록 시 양쪽에 동일하게 주입.
+2. **backend-core env** — `DEVHUB_KEYCLOAK_ADMIN_URL=<발급한 토큰>` 으로 export. 미설정 시 webhook 라우트가 503 응답 → 운영 환경에서 audit 누락이 silent fail 하지 않도록 강제.
+3. **Kratos env** — Kratos 프로세스도 같은 env 를 볼 수 있어야 한다. `infra/idp/kratos.yaml` 의 hook `auth.config.value` 가 `Bearer ${DEVHUB_KEYCLOAK_ADMIN_URL}` 으로 expand 된다. systemd unit / Windows service 등록 시 양쪽에 동일하게 주입.
 4. **검증** — Kratos 로 비밀번호 변경 1회 수행 후 `SELECT action, target_id, source_type FROM audit_logs WHERE source_type='kratos' ORDER BY created_at DESC LIMIT 1;` 로 row 1건 확인.
 
 운영 hygiene:
@@ -243,10 +243,10 @@ kratos serve --config infra/idp/kratos.yaml
 cd backend-core
 DEVHUB_ENV=prod \
 DB_URL="postgres://devhub:<pw>@localhost:5432/devhub?sslmode=disable" \
-DEVHUB_HYDRA_ADMIN_URL=http://localhost:4445 \
-DEVHUB_HYDRA_PUBLIC_URL=http://localhost:4444 \
-DEVHUB_KRATOS_PUBLIC_URL=http://localhost:4433 \
-DEVHUB_KRATOS_ADMIN_URL=http://localhost:4434 \
+DEVHUB_OIDC_ISSUER_URL=http://localhost:4445 \
+DEVHUB_OIDC_ISSUER_URL=http://localhost:4444 \
+DEVHUB_KEYCLOAK_ADMIN_URL=http://localhost:4433 \
+DEVHUB_KEYCLOAK_ADMIN_URL=http://localhost:4434 \
 ./bin/devhub-backend
 
 # 5) frontend
@@ -302,7 +302,7 @@ psql -U devhub -d devhub -c "SELECT action, target_type, target_id, created_at F
 | backend 코드 hotfix | `cd backend-core && go build -o bin/devhub-backend . && (기존 프로세스 종료 후) ./bin/devhub-backend` |
 | frontend 코드 hotfix | `cd frontend && npm run build && (기존 npm run start 종료 후) npm run start` |
 | DB 스키마 롤백 | `MIGRATE_DB_URL=... make migrate-down` |
-| Hydra/Kratos 재시작 | 해당 프로세스만 재기동. DB 는 유지 |
+| Keycloak/OIDC 재시작 | 해당 프로세스만 재기동. DB 는 유지 |
 | 시크릿 교체 | `infra/idp/{hydra,kratos}.yaml` 의 `secrets.*` 갱신 → 두 프로세스 재기동. session 모두 무효화됨 |
 | OIDC client 재생성 | `register-devhub-client.ps1` 재실행 (idempotent — 같은 `client_id` 면 PUT 으로 갱신) |
 
@@ -311,7 +311,7 @@ psql -U devhub -d devhub -c "SELECT action, target_type, target_id, created_at F
 | 증상 | 원인 | 조치 |
 | --- | --- | --- |
 | `/login` 진입 시 무한 redirect | Hydra `urls.login` 호스트가 frontend 와 다름 | `infra/idp/hydra.yaml` 의 `urls.login` 정정 후 Hydra 재기동 |
-| 로그인 후 `/api/v1/me` 401 | backend 가 token 검증 못 함 | `DEVHUB_HYDRA_ADMIN_URL` 셋·도달 가능 여부 확인 |
+| 로그인 후 `/api/v1/me` 401 | backend 가 token 검증 못 함 | `DEVHUB_OIDC_ISSUER_URL` 셋·도달 가능 여부 확인 |
 | 로그인 후 RBAC 권한 거부 (auth.policy_unmapped, auth.role_denied) | Kratos identity 의 `metadata_public.user_id` 누락 → subject 가 UUID 로 fallback | §4.2 의 identity payload 에 `metadata_public.user_id` 포함 + DevHub `users` 같은 user_id 로 row 존재 확인 |
 | Sign Out 후 다시 `/login` 가도 password 재입력 안 함 | Hydra session 종료 안 됨 (id_token 미저장 fallback) | frontend 가 token-store 에 id_token 저장하는지(=callback 흐름이 정상이었는지) 확인. 또는 Hydra cookie 직접 삭제 |
 | `/account` 비밀번호 변경 시 "Sign In Again" 노출 | Kratos privileged_session_max_age=15m 초과 | 사용자가 다시 로그인하면 자동 해소. 무한 발생 시 Kratos 세션 cookie 도메인/SameSite 정책 점검 |
@@ -321,13 +321,13 @@ psql -U devhub -d devhub -c "SELECT action, target_type, target_id, created_at F
 ## 10. 운영 체크리스트 (테스트 → 운영 전환 시)
 
 - [ ] PoC secrets (`secrets.system`, `secrets.cookie`, `secrets.cipher`) 운영용 임의 값으로 교체
-- [ ] Hydra/Kratos `--dev` 플래그 제거, HTTPS 강제
-- [ ] Hydra/Kratos `urls.*` 와 frontend host 가 동일한 origin 으로 통일 (또는 SameSite/CORS 정책 일관)
+- [ ] Keycloak/OIDC `--dev` 플래그 제거, HTTPS 강제
+- [ ] Keycloak/OIDC `urls.*` 와 frontend host 가 동일한 origin 으로 통일 (또는 SameSite/CORS 정책 일관)
 - [ ] OIDC client 의 `redirect_uris` / `post_logout_redirect_uris` 에 운영 host 만 포함
 - [ ] backend `DEVHUB_AUTH_DEV_FALLBACK` 가 unset (또는 0)
 - [ ] backend `DEVHUB_ENV=prod` 설정 (verifier 미주입 시 startup 거부)
 - [ ] PostgreSQL 사용자/롤 분리 (DevHub / Hydra / Kratos 각자)
-- [ ] Hydra/Kratos `/admin` 포트(4445/4434) 외부 차단
+- [ ] Keycloak/OIDC `/admin` 포트(4445/4434) 외부 차단
 - [ ] backend `audit_logs` 모니터링 (`auth.login.subject_fallback` / `auth.logout.revoke_failed` / `auth.policy_unmapped` / `auth.role_denied` 알림 연결)
 - [ ] 시스템 서비스 등록 (Windows Service / systemd / launchd) — 후속 phase
 - [ ] PoC 빠른 진입용 `test`/`test` 시스템 관리자 계정 제거 — Kratos identity 삭제 (`DELETE /admin/identities/{id}`) + DevHub `users` 의 `user_id='test'` 행 삭제 + `infra/idp/sql/003_seed_test_admin.sql` 운영 시드 경로에서 제외

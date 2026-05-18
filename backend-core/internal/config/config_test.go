@@ -23,6 +23,7 @@ func TestValidate(t *testing.T) {
 		{"invalid idp provider rejected", Config{IdPProvider: "unknown"}, true, true},
 		{"keycloak idp provider accepted", Config{IdPProvider: "keycloak"}, true, false},
 		{"empty idp provider defaults accepted", Config{}, true, false},
+		{"hydra_kratos idp provider rejected", Config{IdPProvider: "hydra_kratos"}, true, true},
 	}
 	for _, tc := range cases {
 		err := tc.cfg.Validate(tc.hasVerifier)

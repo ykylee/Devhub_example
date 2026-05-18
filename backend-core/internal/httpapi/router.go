@@ -105,7 +105,7 @@ type ApplicationStore interface {
 	CreateIntegrationBinding(context.Context, domain.IntegrationBinding) (domain.IntegrationBinding, error)
 }
 
-type KratosAdmin interface {
+type IdentityAdmin interface {
 	CreateIdentity(ctx context.Context, email, name, userID, password string) (string, error)
 	FindIdentityByUserID(ctx context.Context, userID string) (string, error)
 	UpdateIdentityPassword(ctx context.Context, identityID, password string) error
@@ -141,21 +141,18 @@ type RouterConfig struct {
 	DevRequestIntakeTokenStore IntakeTokenStore
 	RBACStore                  RBACStore
 	PermissionCache            *PermissionCache
-	KratosLogin                KratosLoginClient
-	HydraAdmin                 HydraLoginAdmin
-	HydraLogout                HydraLogoutAdmin
-	HydraToken                 HydraTokenExchanger
-	HydraRevoker               HydraTokenRevoker
-	KratosAdmin                KratosAdmin
+	KratosLogin                PasswordAuthClient
+	IdentityAdmin              IdentityAdmin
+	IdPProvider                string
 	HRDB                       HRDBClient
 	SnapshotProvider           SnapshotProvider
 	RealtimeHub                *RealtimeHub
-	// KratosSessionCache stores user_id → kratos session_token mappings
+	// IDPSessionCache stores user_id → kratos session_token mappings
 	// captured at login time (DEC-D=α, L4-B). NewRouter lazily creates one
 	// when the caller leaves it nil so handler tests get a working cache
 	// without explicit wiring; production wiring (main.go) gets the same
 	// default and shares the cache across requests via the single Handler.
-	KratosSessionCache *KratosSessionCache
+	IDPSessionCache *IDPSessionCache
 	// AuthDevFallback toggles dev-only authentication fallbacks: empty Authorization passes through authenticateActor and requireMinRole. Actor identity always resolves to "system" without a verifier. Default false: production-safe.
 	AuthDevFallback bool
 }
@@ -189,8 +186,8 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	if cfg.PermissionCache == nil {
 		cfg.PermissionCache = NewPermissionCache(cfg.RBACStore)
 	}
-	if cfg.KratosSessionCache == nil {
-		cfg.KratosSessionCache = NewKratosSessionCache()
+	if cfg.IDPSessionCache == nil {
+		cfg.IDPSessionCache = NewIDPSessionCache()
 	}
 
 	handler := Handler{cfg: cfg}
@@ -312,17 +309,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.DELETE("/dev-request-tokens/:token_id", handler.revokeDevRequestIntakeToken)
 	v1.PATCH("/dev-request-tokens/:token_id", handler.updateDevRequestIntakeTokenIPs)
 
-	// Kratos self-service hooks (PR-M2-AUDIT, claude/login_usermanagement_finish).
-	// Bypasses authenticateActor + enforceRoutePermission via publicAPIPaths +
-	// routePermissionTable {Bypass: true}; authenticates inbound calls with
-	// the DEVHUB_KRATOS_WEBHOOK_TOKEN shared secret instead.
-	v1.POST("/integrations/kratos/hook/settings/password/after", handler.kratosWebhookSettingsPasswordAfter)
 	v1.GET("/hr/lookup", handler.hrLookup)
-	v1.POST("/auth/signup", handler.authSignUp)
-	v1.POST("/auth/login", handler.authLogin)
-	v1.POST("/auth/logout", handler.authLogout)
-	v1.POST("/auth/token", handler.authToken)
-	v1.GET("/auth/consent", handler.authConsent)
 	if cfg.RealtimeHub != nil {
 		v1.GET("/realtime/ws", handler.handleRealtimeWebSocket)
 	}

@@ -143,12 +143,12 @@ func (s *memoryOrganizationStore) DeleteUser(_ context.Context, userID string) e
 	return nil
 }
 
-func (s *memoryOrganizationStore) SetKratosIdentityID(_ context.Context, userID, identityID string) error {
+func (s *memoryOrganizationStore) SetIdPSubject(_ context.Context, userID, identityID string) error {
 	user, ok := s.users[userID]
 	if !ok {
 		return fmt.Errorf("user %s: %w", userID, store.ErrNotFound)
 	}
-	user.KratosIdentityID = identityID
+	user.IdPSubject = identityID
 	user.UpdatedAt = time.Date(2026, 5, 7, 13, 0, 0, 0, time.UTC)
 	s.users[userID] = user
 	return nil

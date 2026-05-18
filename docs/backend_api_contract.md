@@ -639,7 +639,7 @@ command 및 조직/사용자 관리 변경에서 생성된 audit log를 최신�
 ## 10. 구현된 / 예정 API 보충
 
 - `GET /api/v1/me` (API-32) — 구현됨 (`backend-core/internal/httpapi/me.go`). authenticated actor (login / subject / role / actor_source) 반환. 별도 spec 절은 후속 sprint 의 본문 작성 후보 (현재는 본 §10 행이 1차 노출).
-- Hydra/Kratos JWKS 또는 introspection 기반 Bearer token verification (예정 — ADR-0001 §9 후속 step).
+- Keycloak/OIDC JWKS 또는 introspection 기반 Bearer token verification (예정 — ADR-0001 §9 후속 step).
 - WebSocket 인증, 구독 필터, 마지막 event replay (M3 진입 시).
 
 도메인 정규화 테이블 설계 이후 별도 spec 절로 분리한다.
@@ -897,9 +897,9 @@ unit 의 member 목록을 bulk replace. 누락된 user 는 unit 에서 제거, �
 
 > primary_dept 자동 판정 (겸임 우선순위, 동급 시 자식 노드 수) 은 본 endpoint 의 후속 결정 — `docs/backend_requirements_org_hierarchy.md` §1·2 의 미해결 항목. 본 sprint 는 spec 의도만 노출.
 
-## 11. 계정 및 인증 (Hydra/Kratos)
+## 11. 계정 및 인증 (Keycloak/OIDC)
 
-DevHub는 자체 `/api/v1/accounts/*`, `/api/v1/auth/*` 인증 API를 만들지 않는다. 인증과 credential/session lifecycle은 Ory Hydra/Kratos가 소유하고, Go Core는 검증된 token claim에서 actor를 도출한다.
+DevHub는 자체 `/api/v1/accounts/*`, `/api/v1/auth/*` 인증 API를 만들지 않는다. 인증과 credential/session lifecycle은 Ory Keycloak/OIDC가 소유하고, Go Core는 검증된 token claim에서 actor를 도출한다.
 
 정책 기준은 [ADR-0001](./adr/0001-idp-selection.md), [architecture.md 6.2절](./architecture.md#62-사용자user--계정account-도메인-분리)을 따른다.
 
@@ -1066,7 +1066,7 @@ self-service 비밀번호 변경 proxy. 호출자는 자신의 OIDC access token
 | 500 | (없음) | Kratos 호출 실패 또는 invariant 위반 | `SettingsFlowError(SUBMIT_FAILED)` |
 | 503 | (없음) | `KratosLogin` / `OrganizationStore` 미주입 환경 | `SettingsFlowError(SUBMIT_FAILED)` |
 
-frontend 는 인증 완료 후 Hydra/Kratos 세션 또는 token 에서 얻은 subject 를 기준으로 `GET /api/v1/me` 를 호출해 DevHub user profile, role, organization context 를 조회한다.
+frontend 는 인증 완료 후 Keycloak/OIDC 세션 또는 token 에서 얻은 subject 를 기준으로 `GET /api/v1/me` 를 호출해 DevHub user profile, role, organization context 를 조회한다.
 
 ### 11.6 Audit log 매핑
 

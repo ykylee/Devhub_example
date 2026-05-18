@@ -329,12 +329,12 @@ type AppUser struct {
 	Role          AppRole
 	Status        UserStatus
 	Type          UserType
-	// KratosIdentityID caches the Kratos identity_id so handlers can skip
+	// IdPSubject caches the Kratos identity_id so handlers can skip
 	// the O(n) /admin/identities scan. Empty when the row has not been
 	// backfilled yet. Populated eagerly on account.create and lazily on
 	// the first admin/self-service action against the user (migration
 	// 000009).
-	KratosIdentityID string
+	IdPSubject string
 	PrimaryUnitID    string
 	CurrentUnitID    string
 	IsSeconded       bool

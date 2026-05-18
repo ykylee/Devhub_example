@@ -3,7 +3,7 @@
 - 문서 목적: 당시 프론트엔드 구현을 기준으로 백엔드가 프론트엔드에 전달해야 할 계약과 백엔드 개발 필요 항목을 도출한다.
 - 범위: REST snapshot API + WebSocket 실시간 이벤트 + 명령성 액션 + 역할별 KPI metric. 본 문서는 분석 결과 모음 — 실제 endpoint shape 는 `docs/backend_api_contract.md` 가 source-of-truth.
 - 대상 독자: Backend 개발자, AI agent, 프로젝트 리드.
-- 상태: accepted (일부 §3 항목은 ADR-0001 으로 deprecate 됨 — §3.8 의 자체 accounts 테이블 endpoint 7종은 Ory Hydra/Kratos 로 대체. 자세히는 본 문서 §3.8 의 deprecated 노트 참조)
+- 상태: accepted (일부 §3 항목은 ADR-0001 으로 deprecate 됨 — §3.8 의 자체 accounts 테이블 endpoint 7종은 Ory Keycloak/OIDC 로 대체. 자세히는 본 문서 §3.8 의 deprecated 노트 참조)
 - 기준일: 2026-05-02
 - 최종 수정일: 2026-05-13 (메타 헤더 표준화 + §3.8 deprecated 노트 추가, sprint `claude/work_260513-d`)
 - 관련 문서: [백엔드 요구사항](./requirements.md), [백엔드 요구사항 리뷰](./requirements_review.md), [백엔드 API 계약](../backend_api_contract.md), [ADR-0001 IdP](../adr/0001-idp-selection.md), [백엔드 로드맵](../../ai-workflow/memory/backend_development_roadmap.md).

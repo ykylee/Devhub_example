@@ -172,7 +172,7 @@ accounts (신규)
 
 #### 6.2.3 인증 흐름 (1차)
 
-> **결정 (2026-05-07, [ADR-0001](./adr/0001-idp-selection.md))**: DevHub 의 계정/인증 구현은 자체 `accounts` 테이블이 아니라 **Ory Hydra + Ory Kratos** 를 도입한다. DevHub 자체는 Hydra 의 first-party OIDC client 로 동작하고, 다른 앱들도 동일 Hydra 를 OIDC IdP 로 사용할 수 있다. `users` 는 사람·조직 master 로 유지하고 Kratos 가 credential·세션 master 가 된다.
+> **결정 (2026-05-07, [ADR-0001](./adr/0001-idp-selection.md))**: DevHub 의 계정/인증 구현은 자체 `accounts` 테이블이 아니라 **Keycloak** 를 도입한다. DevHub 자체는 Hydra 의 first-party OIDC client 로 동작하고, 다른 앱들도 동일 Hydra 를 OIDC IdP 로 사용할 수 있다. `users` 는 사람·조직 master 로 유지하고 Kratos 가 credential·세션 master 가 된다.
 
 흐름 (사용자가 DevHub Next.js 에서 로그인하는 first-party 케이스 기준):
 
@@ -187,7 +187,7 @@ accounts (신규)
 | 단계 | 범위 | 기준 |
 | --- | --- | --- |
 | Phase 1 | Webhook secret 검증, system admin role 분리, 관리자 작업 Audit Log | TASK-007 및 초기 시스템 관리자 기능 구현 기준 |
-| Phase 2 | Ory Hydra + Kratos 도입, DevHub 의 OIDC client 화, Kratos 기반 자격 증명/로그인/비밀번호 변경/계정 상태 관리, Kratos 이벤트 → DevHub audit log 매핑 | Hydra/Kratos 컨테이너 운영 진입 및 backend Phase 13 완료 시점 ([ADR-0001](./adr/0001-idp-selection.md)) |
+| Phase 2 | Ory Keycloak 도입, DevHub 의 OIDC client 화, Kratos 기반 자격 증명/로그인/비밀번호 변경/계정 상태 관리, Kratos 이벤트 → DevHub audit log 매핑 | Keycloak/OIDC 컨테이너 운영 진입 및 backend Phase 13 완료 시점 ([ADR-0001](./adr/0001-idp-selection.md)) |
 | Phase 3 | Gitea 사용자/조직/저장소 권한 동기화, Repository 하위 Project role 매핑 | Application-Repository-Project 매핑과 관리자 대시보드 확장 시점 |
 | Phase 4 | Gitea SSO 연동 기반 통합 인증, 자체 계정과의 병행/대체 정책 결정 | 운영 환경 전환 전 별도 보안 검토 후 도입 |
 

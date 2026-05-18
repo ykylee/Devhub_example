@@ -2,9 +2,9 @@ import { defineConfig, devices } from "@playwright/test";
 
 // Playwright config (PR-T3, work_26_05_11-d sprint).
 //
-// DEC-3=A: the e2e suite runs against the real Hydra/Kratos/backend/
+// DEC-3=A: the e2e suite runs against the real Keycloak/OIDC/backend/
 // frontend stack on the operator's machine, not against mocks. The
-// operator brings up the 5 processes (PostgreSQL + Hydra + Kratos +
+// operator brings up the 5 processes (PostgreSQL + Keycloak +
 // backend + frontend) following docs/setup/e2e-test-guide.md, then
 // invokes `npm run e2e`.
 //
@@ -21,7 +21,7 @@ export default defineConfig({
   // seeding from a separate stage. KRATOS_ADMIN_URL + DSN env vars are
   // documented in docs/setup/e2e-test-guide.md §2.
   globalSetup: "./tests/e2e/global-setup.ts",
-  fullyParallel: false, // Hydra/Kratos sessions are global per-browser-context
+  fullyParallel: false, // Keycloak/OIDC sessions are global per-browser-context
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: 1, // single worker keeps Kratos session state predictable

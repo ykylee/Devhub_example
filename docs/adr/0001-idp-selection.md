@@ -1,4 +1,4 @@
-# ADR-0001: 사용자 계정/인증 — IdP 선택 (Ory Hydra + Kratos)
+# ADR-0001: 사용자 계정/인증 — IdP 선택 (Ory Keycloak)
 
 - 문서 목적: DevHub 사용자 계정/인증 구현 방식을 자체 구현이 아닌 외부 IdP(Identity Provider) 도입으로 전환하는 결정과 그 근거를 기록한다.
 - 범위: Phase 13 (사용자 계정 1차) 의 구현 방식 — 데이터 모델 master, 인증 토큰 형식, 운영 토폴로지.
@@ -61,7 +61,7 @@
 - 장점: 모던 UI, 디자이너식 flow 편집기, OIDC/SAML/LDAP, 활발한 개발.
 - 단점: Python 런타임 추가. Keycloak 대비 운영 사례 적음.
 
-### 3.5 Ory Hydra + Kratos (Go, 모듈형) — **선정**
+### 3.5 Ory Keycloak (Go, 모듈형) — **선정**
 
 - **Hydra**: OAuth2 + OIDC server (headless, no UI). OIDC 인증 완료.
 - **Kratos**: Identity & user management (headless, no UI). 자격 증명, 자체 등록, 로그인, 비밀번호 변경, 계정 복구, MFA(TOTP/WebAuthn) 표준 지원.
@@ -71,18 +71,18 @@
 - Go 네이티브 — backend-core 와 동일 런타임/배포 패턴. **single static binary 로 배포 가능 → Docker 미사용 정책에 부합** (Ory 공식 release 의 binary 또는 소스 빌드 둘 다 가능).
 - **Headless = 로그인 UI 를 DevHub Next.js 에서 직접 구현**. `frontend_development_roadmap.md` Phase 5 의 `/login`, `/account` 화면과 자연스럽게 합쳐진다. 사용자가 별도 IdP UI 로 점프하지 않음.
 - Hydra 가 OIDC 표준을 책임짐 — DevHub 는 login_challenge → 인증 → consent_challenge 만 처리.
-- Hydra + Kratos 모두 PostgreSQL 사용. DevHub 의 기존 `devhub` DB 인프라 재사용 가능 (별도 DB 또는 별도 schema).
+- Keycloak 모두 PostgreSQL 사용. DevHub 의 기존 `devhub` DB 인프라 재사용 가능 (별도 DB 또는 별도 schema).
 - 메모리 footprint 작음 (각 ~50-100MB), 부팅 빠름.
 - OIDC certified.
 
 단점:
-- 컴포넌트 2개 운영 (Hydra + Kratos). 학습 곡선.
+- 컴포넌트 2개 운영 (Keycloak). 학습 곡선.
 - Admin UI 없음 → 시스템 관리자 화면을 DevHub admin 안에서 직접 구현 필요. **다만 이는 Phase 5 (frontend) 에서 어차피 만들 화면이므로 추가 비용은 작다.**
 - Kratos 의 identity schema 와 DevHub `users` 사이에 동기화 책임이 생김 (§5 참조).
 
 ## 4. 결정 (Decision)
 
-DevHub 의 사용자 인증/계정 구현은 **Ory Hydra + Ory Kratos** 를 도입한다.
+DevHub 의 사용자 인증/계정 구현은 **Keycloak** 를 도입한다.
 
 - **Hydra**: OAuth2/OIDC server. 외부 앱(다른 사내/외부 클라이언트) 이 DevHub 로 OIDC 로그인하는 표준 endpoint 를 책임진다.
 - **Kratos**: identity store + 인증 흐름 처리. 비밀번호 해시, 로그인, 비밀번호 변경/복구, MFA(후속), 자격 증명 lifecycle 을 책임진다.
@@ -154,23 +154,23 @@ sequenceDiagram
 
 - 운영 토폴로지에 native 프로세스 2개 추가 (Hydra, Kratos). 호스트 시스템 서비스(Windows Service / systemd / launchd) 또는 직접 실행 스크립트로 lifecycle 관리. **Docker 미사용 정책 준수**.
 - Kratos identity ↔ DevHub `users` 동기화 어댑터 신규 구현 (Go).
-- 시스템 관리자 화면(계정 발급/회수/잠금 해제/강제 재설정) 을 DevHub admin 에서 직접 구현 — Hydra/Kratos admin API 호출.
+- 시스템 관리자 화면(계정 발급/회수/잠금 해제/강제 재설정) 을 DevHub admin 에서 직접 구현 — Keycloak/OIDC admin API 호출.
 - `backend_api_contract.md §11` 의 7개 endpoint 재설계 필요 — 다음 형태로 재구성.
     - 외부 클라이언트용: OIDC discovery + token endpoint (Hydra 표준 path).
     - 내부 관리용: `/api/v1/admin/identities/*` — Kratos admin API wrap.
     - 내부 self-service: Next.js 가 직접 Kratos public flow API 호출.
-- 사내 SSL inspection 환경에서 Hydra/Kratos **release binary** 다운로드 경로 / 사내 mirror 또는 소스 빌드 경로 사전 확인 필요.
+- 사내 SSL inspection 환경에서 Keycloak/OIDC **release binary** 다운로드 경로 / 사내 mirror 또는 소스 빌드 경로 사전 확인 필요.
 
 ### 7.3 RBAC 단계화 영향
 
-`architecture.md §6.3` 의 RBAC Phase 2 정의가 바뀐다. "자체 `accounts` 테이블 도입" → "**Ory Hydra + Kratos 도입 및 DevHub OIDC client 화**" 로 갱신.
+`architecture.md §6.3` 의 RBAC Phase 2 정의가 바뀐다. "자체 `accounts` 테이블 도입" → "**Ory Keycloak 도입 및 DevHub OIDC client 화**" 로 갱신.
 
 ## 8. 미해결 항목 (Open questions) → 결정 결과
 
 본 절은 ADR 채택 시점에 보류했던 항목들과 그 후속 결정을 함께 기록한다. 결정은 별도 ADR 없이 본 ADR 의 인라인 갱신으로 관리한다.
 
-1. **Hydra/Kratos 데이터베이스 분리 정책**: 기존 `devhub` DB 안에 별도 schema 로 둘지, 별도 DB 인스턴스를 띄울지.
-   - **결정 (2026-05-07)**: **기존 `devhub` DB 안에 `hydra`, `kratos` 별도 schema** 로 분리. Hydra/Kratos 의 `dsn` URL 에 `?search_path=hydra` / `?search_path=kratos` 를 적용해 Hydra/Kratos 자체 migration 이 schema 단위로 격리되도록 한다. 운영 트래픽 진입 시점에 별도 DB 인스턴스 분리를 재평가한다.
+1. **Keycloak/OIDC 데이터베이스 분리 정책**: 기존 `devhub` DB 안에 별도 schema 로 둘지, 별도 DB 인스턴스를 띄울지.
+   - **결정 (2026-05-07)**: **기존 `devhub` DB 안에 `hydra`, `kratos` 별도 schema** 로 분리. Keycloak/OIDC 의 `dsn` URL 에 `?search_path=hydra` / `?search_path=kratos` 를 적용해 Keycloak/OIDC 자체 migration 이 schema 단위로 격리되도록 한다. 운영 트래픽 진입 시점에 별도 DB 인스턴스 분리를 재평가한다.
 
 2. **외부 앱 신뢰 경계**: 사내 N개 앱만 first-party trust 로 보고 consent 화면을 생략할지, 또는 외부 SaaS 도 대상이 될 수 있는지.
    - **결정 (2026-05-07)**: **단계적 도입**. 1차 (Phase 13) 는 **사내 first-party only** 로 한정해 silent consent (Hydra `skip_consent=true`) 로 진행. 외부 SaaS client 추가는 후속 phase 에서 consent UI 구현과 함께. ADR 의 데이터 모델은 외부 client 등록도 가능하도록 그대로 유지(Hydra 표준 client registration 모델이 자체 지원).
@@ -185,7 +185,7 @@ sequenceDiagram
 5. **Gitea SSO (RBAC Phase 4)**: Hydra 가 Gitea 의 OIDC client 가 되거나, Gitea 가 Hydra 의 upstream identity provider 가 되는 구도 가능.
    - **결정 (2026-05-07)**: **본 ADR 범위 밖 — Phase 13 완료 후 별도 ADR 로 처리** (예: `docs/adr/0002-gitea-sso.md`). 1차 결정 보류.
 
-6. **Binary 획득 경로 (Docker 미사용 전제)**: Ory Hydra/Kratos binary 를 어떻게 가져올지.
+6. **Binary 획득 경로 (Docker 미사용 전제)**: Ory Keycloak/OIDC binary 를 어떻게 가져올지.
    - **결정 (2026-05-07)**: **`go install github.com/ory/hydra/v2/cmd/hydra@vX.Y.Z` / `go install github.com/ory/kratos/cmd/kratos@vX.Y.Z` 를 사용자 터미널(샌드박스 외)에서 수동 실행**. 사내 GoProxy 미러는 직전 세션에서 backend 의존성 해소에 사용된 것과 동일 경로를 재사용. AI 자동화(샌드박스 모드) 환경은 외부 다운로드가 차단되므로 binary 설치 자체는 항상 사용자 수동 단계로 처리하고, AI 는 설정 파일·검증 스크립트·테스트 작성에 한정한다.
 
 7. **호스트 시스템 서비스 등록 방식**: Windows Service / systemd / launchd 중 어느 표준을 쓸지.
@@ -195,7 +195,7 @@ sequenceDiagram
 
 세부 task 분해는 후속 backlog 항목으로 관리한다. Phase 13 1차 implementation 단계의 상위 흐름:
 
-1. **PoC (Docker 미사용)**: Ory Hydra + Kratos release binary 를 호스트에 설치(또는 소스 빌드)하고 직접 실행. 로컬 PostgreSQL `devhub` DB 에 별도 schema(`hydra`, `kratos`) 또는 별도 DB 생성. 설정 파일(`hydra.yaml`, `kratos.yaml`) 을 `backend-core/configs/` 또는 별도 위치에 둔다. DevHub 가 Hydra 의 OIDC client 로 등록되어 Next.js `/login` 으로 OIDC 코드 흐름 1회 성공.
+1. **PoC (Docker 미사용)**: Ory Keycloak release binary 를 호스트에 설치(또는 소스 빌드)하고 직접 실행. 로컬 PostgreSQL `devhub` DB 에 별도 schema(`hydra`, `kratos`) 또는 별도 DB 생성. 설정 파일(`hydra.yaml`, `kratos.yaml`) 을 `backend-core/configs/` 또는 별도 위치에 둔다. DevHub 가 Hydra 의 OIDC client 로 등록되어 Next.js `/login` 으로 OIDC 코드 흐름 1회 성공.
 2. **identity schema 정의**: Kratos identity schema 에 `traits.email`, `traits.display_name`, `metadata_public.user_id` 정의. DevHub `users` 와 1:1 매핑 검증 테스트.
 3. **동기화 어댑터**: Kratos webhook 수신 endpoint 를 Go Core 에 추가. identity 생성/비활성화 시 `users.status` 갱신과 `audit_logs` 기록.
 4. **시스템 관리자 화면**: Next.js admin 에서 Kratos admin API 호출 wrapper. 발급(initial password 강제 재설정 토큰)/회수/잠금 해제/강제 재설정.
@@ -207,6 +207,6 @@ sequenceDiagram
 
 다음 사건 발생 시 본 ADR 을 재검토한다.
 
-- Ory Hydra/Kratos 의 메이저 라이선스 변경 또는 메인테이너 이탈.
-- DevHub 가 SAML 2.0 IdP 역할도 직접 수행해야 한다는 요구가 추가될 때 (Hydra/Kratos 는 SAML 미지원 → Keycloak 또는 Authentik 재검토).
+- Ory Keycloak/OIDC 의 메이저 라이선스 변경 또는 메인테이너 이탈.
+- DevHub 가 SAML 2.0 IdP 역할도 직접 수행해야 한다는 요구가 추가될 때 (Keycloak/OIDC 는 SAML 미지원 → Keycloak 또는 Authentik 재검토).
 - 운영 인력이 Java/JVM 운영을 더 선호하고 Go 운영을 부담스러워하는 변화가 생겼을 때.

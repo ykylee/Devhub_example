@@ -12,8 +12,8 @@ import (
 	"github.com/devhub/backend-core/internal/httpapi"
 )
 
-// kratosAdminFake satisfies httpapi.KratosAdmin with per-method error
-// injection. Local to main_test.go because httpapi.MockKratosAdmin lacks
+// kratosAdminFake satisfies httpapi.IdentityAdmin with per-method error
+// injection. Local to main_test.go because httpapi.MockIdentityAdmin lacks
 // a Create-failure path and we want to exercise the seedLocalAdmin
 // fallback (Create error → Find).
 type kratosAdminFake struct {
@@ -24,7 +24,7 @@ type kratosAdminFake struct {
 	findCalls   int
 }
 
-var _ httpapi.KratosAdmin = (*kratosAdminFake)(nil)
+var _ httpapi.IdentityAdmin = (*kratosAdminFake)(nil)
 
 func (f *kratosAdminFake) CreateIdentity(_ context.Context, _, _, userID, _ string) (string, error) {
 	if f.createError != nil {
@@ -53,7 +53,7 @@ func (f *kratosAdminFake) DeleteIdentity(_ context.Context, _ string) error     
 
 type orgStoreFake struct {
 	createUserCalls       int
-	setKratosIdentityArgs []setIdentityCall
+	setIDPSubjectArgs     []setIdentityCall
 	createError           error
 }
 
@@ -71,8 +71,8 @@ func (f *orgStoreFake) CreateUser(_ context.Context, in domain.CreateUserInput) 
 	return domain.AppUser{UserID: in.UserID, Email: in.Email}, nil
 }
 
-func (f *orgStoreFake) SetKratosIdentityID(_ context.Context, userID, identityID string) error {
-	f.setKratosIdentityArgs = append(f.setKratosIdentityArgs, setIdentityCall{userID, identityID})
+func (f *orgStoreFake) SetIdPSubject(_ context.Context, userID, identityID string) error {
+	f.setIDPSubjectArgs = append(f.setIDPSubjectArgs, setIdentityCall{userID, identityID})
 	return nil
 }
 
@@ -97,8 +97,8 @@ func TestSeedLocalAdmin_CreateSucceeds(t *testing.T) {
 	if org.createUserCalls != 1 {
 		t.Errorf("createUserCalls = %d, want 1", org.createUserCalls)
 	}
-	if len(org.setKratosIdentityArgs) != 1 || org.setKratosIdentityArgs[0].IdentityID != "kratos-fresh-1" {
-		t.Errorf("SetKratosIdentityID args = %+v, want [{test kratos-fresh-1}]", org.setKratosIdentityArgs)
+	if len(org.setIDPSubjectArgs) != 1 || org.setIDPSubjectArgs[0].IdentityID != "kratos-fresh-1" {
+		t.Errorf("SetIDPSubject args = %+v, want [{test kratos-fresh-1}]", org.setIDPSubjectArgs)
 	}
 }
 
@@ -119,8 +119,8 @@ func TestSeedLocalAdmin_CreateFailsFindSucceeds(t *testing.T) {
 	if org.createUserCalls != 1 {
 		t.Errorf("createUserCalls = %d, want 1", org.createUserCalls)
 	}
-	if len(org.setKratosIdentityArgs) != 1 || org.setKratosIdentityArgs[0].IdentityID != "kratos-existing-1" {
-		t.Errorf("linked identity = %+v, want kratos-existing-1", org.setKratosIdentityArgs)
+	if len(org.setIDPSubjectArgs) != 1 || org.setIDPSubjectArgs[0].IdentityID != "kratos-existing-1" {
+		t.Errorf("linked identity = %+v, want kratos-existing-1", org.setIDPSubjectArgs)
 	}
 }
 
@@ -142,7 +142,7 @@ func TestSeedLocalAdmin_BothKratosCallsFail(t *testing.T) {
 	if org.createUserCalls != 0 {
 		t.Errorf("createUserCalls = %d, want 0 (DB ops must skip when Kratos unreachable)", org.createUserCalls)
 	}
-	if len(org.setKratosIdentityArgs) != 0 {
-		t.Errorf("SetKratosIdentityID must not be called, got %+v", org.setKratosIdentityArgs)
+	if len(org.setIDPSubjectArgs) != 0 {
+		t.Errorf("SetIDPSubject must not be called, got %+v", org.setIDPSubjectArgs)
 	}
 }

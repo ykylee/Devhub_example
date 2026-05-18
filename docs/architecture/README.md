@@ -38,7 +38,7 @@ DevHub 의 아키텍처 자료는 다음 4 영역에 분산되어 있다.
 
 | 번호 | 제목 | 상태 | 결정 요약 |
 | --- | --- | --- | --- |
-| [ADR-0001](../adr/0001-idp-selection.md) | IdP 선택 | accepted (2026-05-07) | DevHub 자체 accounts 폐기, **Ory Hydra (OAuth 2.0 / OIDC)** + **Ory Kratos (identity)** 도입. Kratos 가 credential master, `users` 테이블은 organizational metadata. PostgreSQL schema 분리(`hydra`, `kratos`), first-party silent consent, 1차 MFA 미도입, Gitea SSO 는 별도 ADR-0002 예정. |
+| [ADR-0001](../adr/0001-idp-selection.md) | IdP 선택 | accepted (2026-05-07) | DevHub 자체 accounts 폐기, **Keycloak(OIDC)** 중심으로 인증/계정 관리 통합. `users` 테이블은 organizational metadata + IdP subject 캐시(`idp_subject`)를 유지. |
 
 향후 ADR 후보 (통합 로드맵 §3.5 M4 진입 시 작성):
 
