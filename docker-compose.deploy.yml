@@ -44,11 +44,6 @@ services:
       FRONTEND_PUBLIC_BASE_URL: ${FRONTEND_PUBLIC_BASE_URL:?set FRONTEND_PUBLIC_BASE_URL}
       HYDRA_PUBLIC_EXTERNAL_URL: ${HYDRA_PUBLIC_EXTERNAL_URL:?set HYDRA_PUBLIC_EXTERNAL_URL}
       HYDRA_DSN: ${HYDRA_DSN:?set HYDRA_DSN}
-    depends_on:
-      db-init:
-        condition: service_completed_successfully
-      db:
-        condition: service_healthy
     volumes:
       - ./:/repo:ro
 
@@ -57,7 +52,7 @@ services:
     entrypoint:
       - /bin/sh
       - -lc
-      - 'HYDRA_DSN_ESC=$${HYDRA_DSN//&/\\&}; sed -e "s|__FRONTEND_PUBLIC_BASE_URL__|$${FRONTEND_PUBLIC_BASE_URL}|g" -e "s|__HYDRA_PUBLIC_EXTERNAL_URL__|$${HYDRA_PUBLIC_EXTERNAL_URL}|g" -e "s|__HYDRA_DSN__|$${HYDRA_DSN_ESC}|g" -e "s|__HYDRA_SYSTEM_SECRET__|$${HYDRA_SYSTEM_SECRET}|g" /repo/infra/idp/hydra.deploy.yaml > /tmp/hydra.deploy.rendered.yaml && hydra serve all --config /tmp/hydra.deploy.rendered.yaml'
+      - 'HYDRA_DSN_ESC=$${HYDRA_DSN//\\/\\\\}; HYDRA_DSN_ESC=$${HYDRA_DSN_ESC//&/\\&}; HYDRA_SYSTEM_SECRET_ESC=$${HYDRA_SYSTEM_SECRET//\\/\\\\}; HYDRA_SYSTEM_SECRET_ESC=$${HYDRA_SYSTEM_SECRET_ESC//&/\\&}; sed -e "s|__FRONTEND_PUBLIC_BASE_URL__|$${FRONTEND_PUBLIC_BASE_URL}|g" -e "s|__HYDRA_PUBLIC_EXTERNAL_URL__|$${HYDRA_PUBLIC_EXTERNAL_URL}|g" -e "s|__HYDRA_DSN__|$${HYDRA_DSN_ESC}|g" -e "s|__HYDRA_SYSTEM_SECRET__|$${HYDRA_SYSTEM_SECRET_ESC}|g" /repo/infra/idp/hydra.deploy.yaml > /tmp/hydra.deploy.rendered.yaml && hydra serve all --config /tmp/hydra.deploy.rendered.yaml'
     restart: unless-stopped
     environment:
       FRONTEND_PUBLIC_BASE_URL: ${FRONTEND_PUBLIC_BASE_URL:?set FRONTEND_PUBLIC_BASE_URL}
@@ -70,10 +65,6 @@ services:
       - "${HYDRA_PUBLIC_PORT:-24444}:4444"
       - "${HYDRA_ADMIN_PORT:-24445}:4445"
     depends_on:
-      db-init:
-        condition: service_completed_successfully
-      db:
-        condition: service_healthy
       hydra-migrate:
         condition: service_completed_successfully
 
@@ -93,11 +84,6 @@ services:
     volumes:
       - ./:/repo:ro
     working_dir: /repo
-    depends_on:
-      db-init:
-        condition: service_completed_successfully
-      db:
-        condition: service_healthy
 
   kratos:
     image: oryd/kratos:v1.1.0
