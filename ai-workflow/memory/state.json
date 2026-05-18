@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-05-18 post-EOD #2 종합 — 직전 EOD housekeeping (PR #158 sprint -q) 이후 6 PR 추가 머지 및 PR #166 (**단일 외부 포트 역프록시 Nginx 구성 및 basePath 구현** — Same-Origin CORS 무력화 + basePath /devhub 런타임 dynamic endpoints resolution + Codex P1 피드백 반영 완료) 최종 병합 완결.",
-  "updated_at": "2026-05-18T23:05:00Z",
-  "head_commit": "694e694b2a23c86d51761cc0678ae3d7d61e10ad",
-  "head_summary": "feat(infra): implement single-port reverse proxy (ADR-0018) (#166)",
+  "status": "2026-05-18 post-EOD #2 종합 — PR #166 (역프록시) 병합 및 PR #167 (Keycloak 단일화) 병합 완결 후, 전역 workflow 메모리 갱신 housekeeping (PR #168) 최종 병합 완결.",
+  "updated_at": "2026-05-18T23:50:00Z",
+  "head_commit": "TBD (PR #168 squash merge 후 갱신)",
+  "head_summary": "Merge pull request #168 from ykylee/codex/memory-update-post-167",
   "milestones": {
     "M0": {
       "status": "done",

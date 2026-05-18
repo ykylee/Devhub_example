@@ -1,14 +1,14 @@
 # Session Handoff — main (2026-05-18 post-EOD #2)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
-- 범위: 2026-05-18 단일 세션 누적 18 PR (sprint a..w + reverse-proxy). post-EOD #2 (PR #164) 이후 PR #166 추가 흡수 및 본 housekeeping.
+- 범위: 2026-05-18 단일 세션 누적 20 PR (sprint a..w + reverse-proxy + keycloak-only + housekeeping). post-EOD #2 (PR #164) 이후 PR #166 및 PR #167, PR #168 추가 흡수 및 본 housekeeping.
 - 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
-- 상태: M1/M2/M3 1차 closing (이전). Application 도메인 backend 1차 (2026-05-14). DREQ 도메인 종합 closing (sprint -t 까지). **External Integration 도메인 1차 종합 closing**. **ADR-0018 Accepted 완료**. **ADR carve out 추가 종결 누적**: ADR-0017 §6 atomicity ✅ (-o) + ADR-0015 §6 (1)+(2) ✅ (-p) + ADR-0016 §6 (1)+(2) ✅ (-s) + ADR-0017 §6 (a)+(c)+(d) ✅ (-t). **design 승격 완료**: single port reverse proxy (ADR-0018) + Keycloak SSO federation (ADR-0019 후보).
-- 최종 수정일: 2026-05-18 (reverse-proxy post-merge housekeeping)
+- 상태: M1/M2/M3 done. **단일 외부 포트 역프록시(ADR-0018) 및 Keycloak 단일 Identity Provider(IdP) 완전 정착 완료**. **ADR carve out 추가 종결 누적**: ADR-0017 §6 atomicity ✅ (-o) + ADR-0015 §6 (1)+(2) ✅ (-p) + ADR-0016 §6 (1)+(2) ✅ (-s) + ADR-0017 §6 (a)+(c)+(d) ✅ (-t). **design 승격 완료**: single port reverse proxy (ADR-0018 Accepted) + Keycloak SSO federation (ADR-0019 후보).
+- 최종 수정일: 2026-05-18 (keycloak-only & housekeeping post-merge)
 - 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [상태 스냅샷](./state.json), [거버넌스](../../docs/governance/README.md), [추적성 매트릭스](../../docs/traceability/report.md), [Dev Request 도메인 컨셉](../../docs/planning/development_request_concept.md), [External Integration 컨셉](../../docs/planning/external_system_integration_concept.md), [ADR-0015 HomeLab pull](../../docs/adr/0015-homelab-adapter-pull-strategy.md), [ADR-0016 Prometheus alerts](../../docs/adr/0016-prometheus-alerts-policy.md), [ADR-0017 intake token hardening](../../docs/adr/0017-dreq-intake-token-operational-hardening.md), [ADR-0018 reverse proxy policy](../../docs/adr/0018-single-port-reverse-proxy-policy.md), [HomeLab agent token rotation SOP](../../docs/setup/homelab_agent_token_rotation.md), [Prometheus Alertmanager setup](../../docs/setup/prometheus_alertmanager_setup.md), [Grafana dashboard JSON](../../docs/setup/grafana/homelab_dashboard.json), [single_port_reverse_proxy design](../../docs/planning/single_port_reverse_proxy.md), [keycloak_sso_federation design](../../docs/planning/keycloak_sso_federation.md), [Jira 보고 status](../../docs/reports/jira_status_2026_05_18.md).
-- 브랜치: `main` (HEAD `694e694b2a23c86d51761cc0678ae3d7d61e10ad`, PR #166 squash merge 직후).
+- 브랜치: `main` (HEAD `TBD (PR #168 squash merge 후 갱신)`).
 
-## 2026-05-18 post-EOD #2 후속 세션 7 PR (sprint r..w + reverse-proxy)
+## 2026-05-18 post-EOD #2 후속 세션 9 PR (sprint r..w + reverse-proxy + keycloak-only + housekeeping)
 
 | Sprint | PR | sha | 핵심 |
 | --- | --- | --- | --- |
@@ -19,6 +19,8 @@
 | `-v` | #163 | `cdd73b0` | **Keycloak SSO federation design 검토** — `docs/planning/keycloak_sso_federation.md` (16 section, Kratos federation 권장, HRDB employee_id strict link, ADR-0019 후보, RM-M4-09 구체화) |
 | `-w` | #164 | `4dd02ad` | **codex review hotfix #8** — P1 3건 (HTTP puller ErrUnexpectedEOF retry / PromQL env scoping / Hydra admin URL) + P2 6건 (scopeFilter / react-flow assertion / file puller trailing JSON / ADR-0006+0012 link / NoRecentSuccess aggregation) |
 | `reverse-proxy` | #166 | `694e694` | **단일 외부 포트 역프록시(Nginx) 구성 및 basePath 구현** — Same-Origin CORS 무력화 + basePath /devhub 런타임 dynamic endpoints resolution + Codex P1 피드백 반영 완료 |
+| `keycloak-only` | #167 | `dff487d` | **Keycloak OIDC 단일화 및 코드/문서/테스트 가이드 최종 정합화** — Kratos/Hydra 전면 제거 + OIDC Discovery 도입 + In-Memory JWKS 캐싱 및 client roles(resource_access) 매핑 완결 |
+| `housekeeping` | #168 | `TBD` | **PR #167 병합 후속 전역 메모리 갱신** — Keycloak 단일화 병합에 따른 global state/backlog 및 handoff 동기화 완결 |
 
 ## ADR carve out 진행 현황 (누적)
 
