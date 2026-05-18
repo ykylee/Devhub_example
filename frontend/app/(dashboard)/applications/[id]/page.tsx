@@ -1,14 +1,12 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { 
   Activity, 
   ArrowLeft, 
   Box, 
-  Cpu, 
   Globe, 
-  HardDrive, 
   ShieldCheck, 
   Zap,
   Clock,
@@ -19,9 +17,7 @@ import {
   GitBranch,
   Code2
 } from "lucide-react";
-import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
-import { DashboardHeader } from "@/components/ui/DashboardHeader";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 import { applicationService, Application, ApplicationRollup } from "@/lib/services/application.service";
@@ -48,12 +44,23 @@ const mockHistoryData = [
   { name: "Day 7", build: 96, quality: 90 },
 ];
 
+type ApplicationRepositorySummary = {
+  repo_provider: string;
+  repo_full_name: string;
+  role: string;
+  sync_status: string;
+};
+
+type ApplicationWithRepositories = Application & {
+  repositories?: ApplicationRepositorySummary[];
+};
+
 export default function ApplicationDetailPage() {
   const params = useParams();
   const id = params.id as string;
   const router = useRouter();
   
-  const [app, setApp] = useState<Application | null>(null);
+  const [app, setApp] = useState<ApplicationWithRepositories | null>(null);
   const [rollup, setRollup] = useState<ApplicationRollup | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -260,7 +267,7 @@ export default function ApplicationDetailPage() {
           </h3>
         </div>
         <div className="divide-y divide-border/50">
-          {(app as any).repositories?.map((repo: any, i: number) => (
+          {app.repositories?.map((repo, i: number) => (
             <div key={i} className="p-6 flex items-center justify-between hover:bg-muted/5 transition-colors group">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-xl bg-muted/30 border border-border flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -279,7 +286,7 @@ export default function ApplicationDetailPage() {
               </div>
             </div>
           ))}
-          {(!app || !(app as any).repositories || (app as any).repositories.length === 0) && (
+          {(!app || !app.repositories || app.repositories.length === 0) && (
             <div className="p-20 text-center text-muted-foreground text-sm">
               No repositories linked to this application.
             </div>

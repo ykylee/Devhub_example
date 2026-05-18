@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { UserPlus, Mail, Shield, ArrowRightLeft, Crown, Key, UserX, KeyRound, Bot, Copy, Check } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useStore } from "@/lib/store";
 import { accountService } from "@/lib/services/account.service";
 import { useToast } from "@/components/ui/Toast";

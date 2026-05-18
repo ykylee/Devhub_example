@@ -71,6 +71,8 @@ export const useStore = create<AppState>()(
         name: "devhub-storage",
         partialize: (state) => {
           const { isLoggingOut, toasts, ...rest } = state;
+          void isLoggingOut;
+          void toasts;
           return rest;
         },
       }

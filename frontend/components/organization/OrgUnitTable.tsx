@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Users, Shield, Settings, UserPlus, Trash2, Search, Filter } from "lucide-react";
 import { OrgNode, OrgMember } from "@/lib/services/identity.service";
-import { cn } from "@/lib/utils";
 import { ActionMenu } from "@/components/ui/ActionMenu";
 
 interface OrgUnitTableProps {

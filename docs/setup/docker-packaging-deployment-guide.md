@@ -144,13 +144,14 @@ docker push devhub/frontend:${GIT_SHA}
 
 ```sh
 export IMAGE_TAG=<git-sha-or-release-tag>
-export IMAGE_NAMESPACE=<owner>/<repo>
+export IMAGE_REPO_PREFIX=ghcr.io/<owner>/<repo>   # 로컬 검증 시 devhub
 export PUBLIC_BASE_URL=http://<host>:23000
 export DEVHUB_HYDRA_ADMIN_URL=http://<host>:14445
 export DEVHUB_HYDRA_PUBLIC_URL=http://<host>:14444
 export DEVHUB_KRATOS_PUBLIC_URL=http://<host>:14433
 export DEVHUB_KRATOS_ADMIN_URL=http://<host>:14434
 export HYDRA_DSN='postgres://<user>:<pw>@<db-host>:5432/<db>?sslmode=disable&search_path=hydra'
+export HYDRA_SYSTEM_SECRET='<min-32-bytes-random-secret>'
 export KRATOS_DSN='postgres://<user>:<pw>@<db-host>:5432/<db>?sslmode=disable&search_path=kratos'
 export DB_URL='postgres://<user>:<pw>@<db-host>:5432/<db>?sslmode=disable'
 export DEVHUB_KRATOS_WEBHOOK_TOKEN='<strong-random-token>'
@@ -169,8 +170,18 @@ docker compose -f docker-compose.deploy.yml pull
 docker compose -f docker-compose.deploy.yml up -d
 ```
 
+로컬 빌드 이미지를 그대로 사용할 때:
+
+```sh
+export IMAGE_TAG=$(git rev-parse --short HEAD)
+export IMAGE_REPO_PREFIX=devhub
+docker compose -f docker-compose.deploy.yml up -d
+```
+
 `IMAGE_TAG`와 IdP/Hydra/Kratos 관련 URL은 필수다. 미지정 시 compose가 오류로 중단되도록 설정되어 있다.
-`DEVHUB_KRATOS_WEBHOOK_TOKEN`, `KRATOS_COOKIE_SECRET`, `KRATOS_CIPHER_SECRET`도 운영 배포 필수값이며, 예시 기본값(`dev-token` 류) 사용은 금지한다.
+`DB_URL`, `HYDRA_DSN`, `KRATOS_DSN`도 필수다. 미지정 시 compose가 오류로 중단된다.
+`HYDRA_SYSTEM_SECRET`, `DEVHUB_KRATOS_WEBHOOK_TOKEN`, `KRATOS_COOKIE_SECRET`, `KRATOS_CIPHER_SECRET`도 운영 배포 필수값이며, 예시 기본값(`dev-token` 류) 사용은 금지한다.
+`DEVHUB_AUTH_DEV_FALLBACK` 기본값은 `0`(비활성)이며, 배포 환경에서 `1`로 켜지지 않도록 유지한다.
 
 ### 8.1.1 변수 스키마 (권장)
 
@@ -189,6 +200,9 @@ docker compose -f docker-compose.deploy.yml up -d
 
 ```sh
 # 1) 번들 DB 모드
+export DB_URL='postgres://<user>:<pw>@db:5432/<db>?sslmode=disable'
+export HYDRA_DSN='postgres://<user>:<pw>@db:5432/<db>?sslmode=disable&search_path=hydra'
+export KRATOS_DSN='postgres://<user>:<pw>@db:5432/<db>?sslmode=disable&search_path=kratos'
 docker compose -f docker-compose.deploy.yml --profile local-db up -d
 
 # 2) 외부 DB 모드
@@ -196,6 +210,17 @@ docker compose -f docker-compose.deploy.yml up -d
 ```
 
 `docker-compose.deploy.yml`은 `nginx`를 포함한다. 외부 진입은 `http://<host>:${NGINX_PORT}` 하나로 통일하고, `frontend`/`backend-core` 포트는 운영망에서 필요 시에만 노출한다.
+`local-db` 프로필에서는 `db-init` 단계가 `hydra`/`kratos` 스키마를 자동 생성한 뒤 migrate가 실행된다.
+
+주의:
+
+- `HYDRA_SYSTEM_SECRET`를 변경한 상태에서 기존 DB 볼륨을 재사용하면 OIDC discovery에서 `server_error`가 발생할 수 있다.
+- 로컬 재검증 시 시크릿을 바꿨다면 아래처럼 볼륨까지 초기화 후 재기동한다.
+
+```sh
+docker compose -f docker-compose.deploy.yml --profile local-db down -v
+docker compose -f docker-compose.deploy.yml --profile local-db up -d
+```
 
 ### 8.2 GitHub Actions 이미지 퍼블리시
 

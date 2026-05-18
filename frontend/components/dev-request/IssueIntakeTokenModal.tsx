@@ -27,7 +27,6 @@ export function IssueIntakeTokenModal({ onClose, onIssued }: IssueIntakeTokenMod
   const [issued, setIssued] = useState<IssuedDevRequestIntakeToken | null>(null);
   const [copied, setCopied] = useState(false);
   const [showToken, setShowToken] = useState(false);
-
   const canCloseForm = phase === "form" && !submitting;
 
   useEffect(() => {

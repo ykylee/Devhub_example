@@ -7,7 +7,6 @@ import {
   Box, 
   Cpu, 
   Globe, 
-  HardDrive, 
   ShieldCheck, 
   Zap,
   ExternalLink,

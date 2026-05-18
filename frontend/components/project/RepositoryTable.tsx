@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { GitBranch, ExternalLink, Activity, ShieldCheck, AlertCircle, Unlink } from "lucide-react";
+import { GitBranch, Activity, Unlink } from "lucide-react";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { ApplicationRepository, ApplicationRepositorySyncStatus, SyncErrorCode } from "@/lib/services/project.types";

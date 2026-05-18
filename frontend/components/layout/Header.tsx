@@ -5,13 +5,14 @@ import { Search, Bell, User, ChevronDown, Command, Sun, Moon, Settings, X } from
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
-import { useStore, type UserRole } from "@/lib/store";
+import { useStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import { authService } from "@/lib/services/auth.service";
 import { realtimeService, type ConnectionStatusEvent } from "@/lib/services/realtime.service";
 
 export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  const { role, actor, setRole, notifications, clearNotifications } = useStore();
+  const { role, actor, notifications, clearNotifications } = useStore();
+  const router = useRouter();
   const [showDropdown, setShowDropdown] = useState(false);
   const [isConnected, setIsConnected] = useState(realtimeService.isConnected);
   // 초기 theme 은 paint 전에 layout 의 inline script 가 html 에 적용하므로
@@ -20,7 +21,6 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
     if (typeof document === "undefined") return "light";
     return document.documentElement.classList.contains("theme-dark") ? "dark" : "light";
   });
-  const router = useRouter();
 
   const toggleTheme = () => {
     const newTheme = theme === "light" ? "dark" : "light";
@@ -39,19 +39,6 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
     });
     return () => unsubscribe();
   }, []);
-
-  const handleRoleChange = (newRole: UserRole) => {
-    setRole(newRole);
-    setShowDropdown(false);
-    
-    // Role-based navigation
-    const pathMap: Record<UserRole, string> = {
-      "Developer": "/developer",
-      "Manager": "/manager",
-      "System Admin": "/admin"
-    };
-    router.push(pathMap[newRole]);
-  };
 
   const handleLogout = async () => {
     setShowDropdown(false);

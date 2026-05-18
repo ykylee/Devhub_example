@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import { 
   Activity, 
   ArrowLeft, 
-  Code2, 
   GitBranch, 
   GitCommit, 
   GitPullRequest, 
@@ -16,12 +15,9 @@ import {
   Loader2,
   Lock,
   Unlock,
-  History,
   AlertCircle
 } from "lucide-react";
-import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
-import { DashboardHeader } from "@/components/ui/DashboardHeader";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 import { repositoryService, Repository, RepositoryActivity } from "@/lib/services/repository.service";
@@ -33,9 +29,6 @@ import {
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
-  BarChart,
-  Bar,
-  Cell
 } from "recharts";
 
 // Mock historical activity
@@ -235,7 +228,7 @@ export default function RepositoryDetailPage() {
                     <span className="text-sm font-bold text-foreground dark:text-primary-foreground group-hover:text-primary transition-colors">{user}</span>
                   </div>
                   <Badge variant="glass" className="opacity-50 group-hover:opacity-100 transition-opacity">
-                    {Math.floor(Math.random() * 50) + 10} Commits
+                    {10 + i * 7} Commits
                   </Badge>
                 </div>
               ))}

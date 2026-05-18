@@ -38,7 +38,17 @@ export interface ListApplicationsResult {
 export interface RollupResult {
   status: string;
   data: ApplicationRollup;
-  meta: any;
+  meta: {
+    [key: string]: unknown;
+  };
+}
+
+export interface GetApplicationResult {
+  status: string;
+  data: Application;
+  meta?: {
+    [key: string]: unknown;
+  };
 }
 
 class ApplicationService {
@@ -58,7 +68,7 @@ class ApplicationService {
 
   async getApplication(applicationId: string): Promise<Application> {
     const url = `${this.baseUrl}/api/v1/applications/${applicationId}`;
-    const body = await apiClient<any>("GET", url);
+    const body = await apiClient<GetApplicationResult>("GET", url);
     return body.data;
   }
 

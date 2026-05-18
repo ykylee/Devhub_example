@@ -6,10 +6,7 @@ import {
   ArrowLeft, 
   Briefcase, 
   Calendar, 
-  CheckCircle2, 
   Clock, 
-  Layout, 
-  MoreHorizontal,
   Plus,
   Target,
   Users,
@@ -19,19 +16,12 @@ import {
   Paperclip,
   TrendingUp
 } from "lucide-react";
-import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
-import { DashboardHeader } from "@/components/ui/DashboardHeader";
 import { Badge } from "@/components/ui/Badge";
 import { projectService } from "@/lib/services/project.service";
 import type { Project } from "@/lib/services/project.types";
 import { identityService, OrgMember } from "@/lib/services/identity.service";
 import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
   PieChart,
