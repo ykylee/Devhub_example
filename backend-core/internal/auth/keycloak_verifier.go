@@ -11,6 +11,7 @@ import (
 	"math/big"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/devhub/backend-core/internal/httpapi"
@@ -24,7 +25,16 @@ type KeycloakJWKSVerifier struct {
 	JWKSURL    string
 	ClientID   string
 	HTTPClient *http.Client
+
+	// Optional cache TTL. Zero means defaultTTL.
+	CacheTTL time.Duration
+
+	mu          sync.RWMutex
+	cachedKeys  map[string]*rsa.PublicKey
+	cachedUntil time.Time
 }
+
+const defaultJWKSTTL = 5 * time.Minute
 
 func (v *KeycloakJWKSVerifier) VerifyBearerToken(ctx context.Context, token string) (httpapi.AuthenticatedActor, error) {
 	if strings.TrimSpace(v.IssuerURL) == "" && strings.TrimSpace(v.JWKSURL) == "" {
@@ -97,6 +107,10 @@ type jwk struct {
 }
 
 func (v *KeycloakJWKSVerifier) fetchJWKS(ctx context.Context) (map[string]*rsa.PublicKey, error) {
+	if keys := v.readCachedKeys(); len(keys) > 0 {
+		return keys, nil
+	}
+
 	jwksURL, err := v.resolveJWKSURL(ctx)
 	if err != nil {
 		return nil, err
@@ -124,7 +138,36 @@ func (v *KeycloakJWKSVerifier) fetchJWKS(ctx context.Context) (map[string]*rsa.P
 	if len(out) == 0 {
 		return nil, errors.New("jwks did not contain usable RSA keys")
 	}
+	v.writeCachedKeys(out)
 	return out, nil
+}
+
+func (v *KeycloakJWKSVerifier) readCachedKeys() map[string]*rsa.PublicKey {
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+	if len(v.cachedKeys) == 0 || time.Now().After(v.cachedUntil) {
+		return nil
+	}
+	out := make(map[string]*rsa.PublicKey, len(v.cachedKeys))
+	for k, pk := range v.cachedKeys {
+		out[k] = pk
+	}
+	return out
+}
+
+func (v *KeycloakJWKSVerifier) writeCachedKeys(keys map[string]*rsa.PublicKey) {
+	ttl := v.CacheTTL
+	if ttl <= 0 {
+		ttl = defaultJWKSTTL
+	}
+	copyMap := make(map[string]*rsa.PublicKey, len(keys))
+	for k, pk := range keys {
+		copyMap[k] = pk
+	}
+	v.mu.Lock()
+	v.cachedKeys = copyMap
+	v.cachedUntil = time.Now().Add(ttl)
+	v.mu.Unlock()
 }
 
 func (v *KeycloakJWKSVerifier) resolveJWKSURL(ctx context.Context) (string, error) {
@@ -223,6 +266,19 @@ func extractKeycloakRole(claims jwt.MapClaims) string {
 		if m, ok := raw.(map[string]any); ok {
 			if roles := anyToStrings(m["roles"]); len(roles) > 0 {
 				return roles[0]
+			}
+		}
+	}
+	if raw, ok := claims["resource_access"]; ok {
+		if byClient, ok := raw.(map[string]any); ok {
+			for _, clientAccess := range byClient {
+				m, ok := clientAccess.(map[string]any)
+				if !ok {
+					continue
+				}
+				if roles := anyToStrings(m["roles"]); len(roles) > 0 {
+					return roles[0]
+				}
 			}
 		}
 	}

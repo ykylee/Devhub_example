@@ -6,8 +6,9 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
-	"net/http"
 	"net/http/httptest"
+	"net/http"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -116,6 +117,78 @@ func TestKeycloakJWKSVerifier_VerifyBearerTokenWithDiscovery(t *testing.T) {
 	}
 	if actor.Login != "bob@example.com" {
 		t.Fatalf("login = %q; want %q", actor.Login, "bob@example.com")
+	}
+}
+
+func TestKeycloakJWKSVerifier_CachesJWKSBetweenVerifications(t *testing.T) {
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generate rsa key: %v", err)
+	}
+	kid := "kid-cache"
+	issuer := "https://issuer.example.com/realms/devhub"
+	aud := "devhub-web"
+
+	var hits int32
+	mux := http.NewServeMux()
+	mux.HandleFunc("/jwks", func(w http.ResponseWriter, _ *http.Request) {
+		atomic.AddInt32(&hits, 1)
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"keys": []map[string]any{{
+				"kty": "RSA",
+				"kid": kid,
+				"n":   base64.RawURLEncoding.EncodeToString(key.PublicKey.N.Bytes()),
+				"e":   base64.RawURLEncoding.EncodeToString([]byte{0x01, 0x00, 0x01}),
+			}},
+		})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	v := &KeycloakJWKSVerifier{
+		IssuerURL: issuer,
+		JWKSURL:   srv.URL + "/jwks",
+		ClientID:  aud,
+		CacheTTL:  time.Hour,
+	}
+
+	token1 := mustSignToken(t, key, kid, jwt.MapClaims{
+		"iss":                issuer,
+		"aud":                aud,
+		"sub":                "user-cache-1",
+		"preferred_username": "alice",
+		"exp":                time.Now().Add(5 * time.Minute).Unix(),
+	})
+	token2 := mustSignToken(t, key, kid, jwt.MapClaims{
+		"iss":                issuer,
+		"aud":                aud,
+		"sub":                "user-cache-2",
+		"preferred_username": "bob",
+		"exp":                time.Now().Add(5 * time.Minute).Unix(),
+	})
+
+	if _, err := v.VerifyBearerToken(context.Background(), token1); err != nil {
+		t.Fatalf("first verify err: %v", err)
+	}
+	if _, err := v.VerifyBearerToken(context.Background(), token2); err != nil {
+		t.Fatalf("second verify err: %v", err)
+	}
+	if got := atomic.LoadInt32(&hits); got != 1 {
+		t.Fatalf("jwks endpoint hits = %d; want 1", got)
+	}
+}
+
+func TestExtractKeycloakRole_UsesResourceAccessFallback(t *testing.T) {
+	claims := jwt.MapClaims{
+		"resource_access": map[string]any{
+			"devhub-frontend": map[string]any{
+				"roles": []any{"system_admin"},
+			},
+		},
+	}
+	role := extractKeycloakRole(claims)
+	if role != "system_admin" {
+		t.Fatalf("role = %q; want %q", role, "system_admin")
 	}
 }
 
