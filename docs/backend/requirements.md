@@ -67,7 +67,7 @@ DevHub 자체 사용자 계정(Account) 도입에 따라 다음 백엔드 API/�
 - `PATCH /api/v1/accounts/{user_id}` — login_id/status 변경 (시스템 관리자).
 - `PUT /api/v1/accounts/{user_id}/password` — 본인 변경 또는 시스템 관리자 강제 재설정.
 - `DELETE /api/v1/accounts/{user_id}` — 회수 (시스템 관리자).
-- `POST /api/v1/auth/login`, `POST /api/v1/auth/logout` — 인증 lifecycle.
+- 인증 lifecycle 은 Keycloak OIDC 표준 endpoint(authorization/token/logout) 사용, DevHub는 `GET /api/v1/me` + `POST /api/v1/account/password` + `/api/v1/accounts/*` 관리 API만 제공.
 
 ### 5.3 비기능 요구
 - 비밀번호 평문은 어떤 응답/audit/log 에도 포함하지 않는다.

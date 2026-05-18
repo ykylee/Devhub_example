@@ -55,8 +55,8 @@ export default function LoginPage() {
 
         <div className="glass border-border/60 rounded-[2rem] p-10 shadow-2xl backdrop-blur-2xl">
           <p className="text-sm text-muted-foreground text-center mb-8">
-            DevHub uses Ory Hydra and Kratos for identity. Continue to the secure
-            sign-in flow to authenticate.
+            DevHub uses a unified Keycloak OIDC identity flow. Continue to the secure
+            sign-in screen to authenticate.
           </p>
 
           <button
@@ -84,7 +84,7 @@ export default function LoginPage() {
 
           <div className="mt-8 pt-8 border-t border-border/40 text-center">
             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
-              Secured by Ory Hydra + Kratos
+              Secured by Keycloak OIDC
             </p>
           </div>
         </div>

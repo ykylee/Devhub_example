@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 interface RuntimeConfigResponse {
   oidc_auth_url: string;
   oidc_redirect_uri: string;
+  oidc_issuer_url: string;
 }
 
 function trimTrailingSlash(value: string): string {
@@ -23,10 +24,15 @@ export async function GET(request: NextRequest) {
     runtimeEnv["OIDC_REDIRECT_URI"] ??
     runtimeEnv["NEXT_PUBLIC_OIDC_REDIRECT_URI"] ??
     `${trimTrailingSlash(origin)}/auth/callback`;
+  const oidcIssuerURL =
+    runtimeEnv["OIDC_ISSUER_URL"] ??
+    runtimeEnv["NEXT_PUBLIC_OIDC_ISSUER_URL"] ??
+    "http://localhost:8081/realms/devhub";
 
   const payload: RuntimeConfigResponse = {
     oidc_auth_url: oidcAuthURL,
     oidc_redirect_uri: oidcRedirectURI,
+    oidc_issuer_url: oidcIssuerURL,
   };
 
   return NextResponse.json(payload, {

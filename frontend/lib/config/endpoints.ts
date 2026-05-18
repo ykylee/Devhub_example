@@ -19,21 +19,16 @@ export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 export const WS_BASE_URL =
   process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:8080/api/v1/realtime/ws";
 
-// --- IdP (Hydra/Kratos default, Keycloak optional) ---
-export const IDP_PROVIDER = process.env.NEXT_PUBLIC_IDP_PROVIDER ?? "hydra_kratos";
+// --- IdP (Keycloak OIDC default) ---
+export const IDP_PROVIDER = process.env.NEXT_PUBLIC_IDP_PROVIDER ?? "keycloak";
 
 export const OIDC_ISSUER_URL = stripTrailingSlash(
   process.env.NEXT_PUBLIC_OIDC_ISSUER_URL ?? "",
 );
 
-export const KRATOS_PUBLIC_URL = stripTrailingSlash(
-  process.env.NEXT_PUBLIC_KRATOS_PUBLIC_URL ?? "http://localhost:4433",
-);
-
 export const OIDC_AUTH_URL =
-  process.env.NEXT_PUBLIC_OIDC_AUTH_URL ?? "http://localhost:4444/oauth2/auth";
-
-export const HYDRA_PUBLIC_BASE = OIDC_AUTH_URL.replace(/\/oauth2\/auth\/?$/, "");
+  process.env.NEXT_PUBLIC_OIDC_AUTH_URL ??
+  `${OIDC_ISSUER_URL}/protocol/openid-connect/auth`;
 
 export const OIDC_REDIRECT_URI =
   process.env.NEXT_PUBLIC_OIDC_REDIRECT_URI ?? "http://localhost:3000/auth/callback";

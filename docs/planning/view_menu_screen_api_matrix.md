@@ -91,7 +91,7 @@ PMO 후보 role 정책:
 
 | 공통 화면 | 설명 | API |
 | --- | --- | --- |
-| 로그인/콜백 | OIDC 로그인, 토큰 교환 | `POST /api/v1/auth/login`, `POST /api/v1/auth/token`, `POST /api/v1/auth/logout`, `GET /api/v1/auth/consent` |
+| 로그인/콜백 | OIDC 로그인, 토큰 교환 | IdP OIDC 표준 endpoint (`authorization` / `token` / `logout`) + `GET /api/v1/me` |
 | 내 계정 | 내 프로필/비밀번호 변경 | `GET /api/v1/me`, `POST /api/v1/account/password` |
 | 실시간 채널 | 명령 상태/이벤트 반영 | `GET /api/v1/realtime/ws` |
 

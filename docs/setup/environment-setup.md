@@ -83,10 +83,11 @@ frontend 의 `/login` 화면이 OIDC redirect 흐름으로 진입하므로 다�
 
 | 변수 | default | 용도 |
 | --- | --- | --- |
-| `NEXT_PUBLIC_OIDC_LOGIN_URL` | `http://127.0.0.1:4444/oauth2/auth` | Hydra public authorize endpoint |
-| `NEXT_PUBLIC_OIDC_CLIENT_ID` | `devhub-frontend` | Hydra OIDC client id (Phase 13 PoC 에서 등록) |
-| `NEXT_PUBLIC_OIDC_REDIRECT_URI` | `http://127.0.0.1:3000/login/callback` | Hydra → frontend callback URL |
-| `NEXT_PUBLIC_OIDC_SCOPE` | `openid offline` | 요청 scope |
+| `NEXT_PUBLIC_OIDC_ISSUER_URL` | `http://127.0.0.1:8081/realms/devhub` | Keycloak issuer URL |
+| `NEXT_PUBLIC_OIDC_AUTH_URL` | `${NEXT_PUBLIC_OIDC_ISSUER_URL}/protocol/openid-connect/auth` | OIDC authorize endpoint (생략 시 issuer 기반 기본값 사용) |
+| `NEXT_PUBLIC_OIDC_CLIENT_ID` | `devhub-frontend` | OIDC client id |
+| `NEXT_PUBLIC_OIDC_REDIRECT_URI` | `http://127.0.0.1:3000/auth/callback` | OIDC callback URL |
+| `NEXT_PUBLIC_OIDC_SCOPE` | `openid offline_access email profile` | 요청 scope |
 
 또한 dev 모드에서 backend `/api/v1/me` 가 401 을 반환하지 않도록 Keycloak/OIDC PoC 가 가동 중이어야 한다 (`DEVHUB_AUTH_DEV_FALLBACK=1` 은 Authorization 헤더 없는 요청 통과만 허용 — `X-Devhub-Actor` 폴백 헤더는 [ADR-0004](../adr/0004-x-devhub-actor-removal.md) 로 폐기됐다).
 

@@ -1,5 +1,9 @@
 # 테스트 서버 배포 가이드 (Native, no-docker)
 
+> ⚠ 2026-05-18 주의: 본 문서는 Hydra/Kratos 기반 legacy 절차가 다수 남아 있다.
+> 현재 인증 source-of-truth 는 Keycloak OIDC 이며, 최신 계약은 `docs/backend_api_contract.md §11`과 `docs/architecture.md §6.2`를 우선 참조한다.
+> `/api/v1/auth/*`, `logout_challenge` 전제 흐름은 최신 구현과 불일치할 수 있다.
+
 - 문서 목적: DevHub Example 을 단일 테스트 서버에 native binary 로 빌드·배포·기동하는 표준 절차를 정의한다. 5개 컴포넌트 (PostgreSQL, Hydra, Kratos, backend-core, frontend) 를 Docker 없이 직접 실행한다.
 - 범위: 사전 준비, 빌드(`go build` + `npm run build`), 환경변수, 기동 순서, OIDC client 등록, 시드 사용자, 헬스체크, 로그인 e2e, 재기동/롤백.
 - 대상 독자: 테스트 서버 운영자, QA, 신규 환경 부트스트랩 담당.

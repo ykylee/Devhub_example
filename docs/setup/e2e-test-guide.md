@@ -1,5 +1,8 @@
 # E2E Test Guide (Playwright, native Keycloak/OIDC)
 
+> ⚠ 2026-05-18 주의: 본 문서에는 Hydra/Kratos 용어와 포트 예시가 일부 남아 있다.
+> 실행 시에는 Keycloak OIDC 기준 env/엔드포인트를 우선 적용하고, `/api/v1/auth/*` 및 challenge 기반 로그아웃 단계는 제외한다.
+
 - 문서 목적: DevHub Example 의 Playwright e2e 스위트를 사용자 환경에서 실행하기 위한 사전 조건과 절차를 정의한다.
 - 범위: 사전 조건, 시드 데이터, 실행 명령, 시나리오 목록, 트러블슈팅
 - 대상 독자: 본인 환경에서 회귀 검증을 돌리는 개발자, QA

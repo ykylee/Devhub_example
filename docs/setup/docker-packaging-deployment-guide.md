@@ -1,5 +1,8 @@
 # Docker 패키징/배포 가이드
 
+> ⚠ 2026-05-18 주의: 본 문서의 일부 Hydra/Kratos 운영 항목은 legacy 참고용이다.
+> 배포 설정은 Keycloak OIDC 기준(`DEVHUB_OIDC_*`, `DEVHUB_KEYCLOAK_ADMIN_*`, `NEXT_PUBLIC_OIDC_*`)을 우선 사용한다.
+
 - 문서 목적: DevHub Example에서 Docker 패키징 오류를 줄이기 위한 표준 빌드 절차와 배포 방식(이미지 배포 vs compose 배포) 선택 기준을 정의한다.
 - 범위: 이미지 태깅 규칙, 빌드/푸시 절차, compose 사용 범위, 운영 권장안
 - 대상 독자: 개발자, 릴리즈 담당자, 운영자
