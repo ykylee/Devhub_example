@@ -1,12 +1,100 @@
-# Session Handoff — main (2026-05-18 메모리 갭 동기화 세션)
+# Session Handoff — main (2026-05-18 EOD)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
-- 범위: 직전 claude EOD (sprint q PR #132, 2026-05-15) 이후 외부 에이전트(codex/gemini) 가 2026-05-15~17 사이 8 PR (#133~#140) 을 main 에 머지했으나 flat memory 는 미반영 상태였음. 본 세션은 새 코드 작업 없이 **메모리 sync 만 수행** + 결과로 **DREQ 모든 P2 carve out 6건 해소 확인** + **External Integration 도메인 신규 1차 완성 흡수**.
+- 범위: 2026-05-18 단일 세션 11 sprint (a..k claude 10 + 외부 #145 codex) 종합. 시작: memory gap sync (외부 8 PR 흡수) → ADR 3 신규 + DREQ-E2E TC 발급 + External Integration frontend 진입점 + API-80 DELETE + codex hotfix 2회.
 - 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
-- 상태: M1/M2/M3 1차 closing (이전). Application 도메인 backend 1차 (2026-05-14). DREQ 도메인 1차 완성 (sprint l 종료, 2026-05-15) + carve out 1/4 + 2/4 + (외부 흡수) 3/4 부분 완료. **External Integration 도메인 concept staged + backend 1차** (PR #135 + PR #139, 외부 에이전트). 본인 4단계 리뷰는 본 세션 수행 안 함 (메모리 sync only).
-- 최종 수정일: 2026-05-18 (메모리 갭 동기화 세션)
-- 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [상태 스냅샷](./state.json), [거버넌스](../../docs/governance/README.md), [추적성 매트릭스](../../docs/traceability/report.md), [Dev Request 도메인 컨셉](../../docs/planning/development_request_concept.md), [External Integration 컨셉](../../docs/planning/external_system_integration_concept.md), [HomeLab pull strategy](../../docs/planning/homelab_adapter_pull_strategy.md), [ADR-0014 DREQ intake token admin](../../docs/adr/0014-dreq-intake-token-admin.md).
-- 브랜치: `main` (HEAD `caa80c7`, PR #140 squash merge 직후).
+- 상태: M1/M2/M3 1차 closing (이전). Application 도메인 backend 1차 (2026-05-14). **DREQ 도메인 종합 closing** (carve out 1/4 + 2/4 + 3/4 모두 활성화 + P2 6/6 해소 + ADR-0013/0014/0017 누적). **External Integration 도메인 frontend 진입점 1차 + API-80 DELETE** (sprint g~j). ADR 인덱스: ADR-0015/0016/0017 신규.
+- 최종 수정일: 2026-05-18 (sprint k 종료 housekeeping)
+- 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [상태 스냅샷](./state.json), [거버넌스](../../docs/governance/README.md), [추적성 매트릭스](../../docs/traceability/report.md), [Dev Request 도메인 컨셉](../../docs/planning/development_request_concept.md), [External Integration 컨셉](../../docs/planning/external_system_integration_concept.md), [ADR-0015 HomeLab pull](../../docs/adr/0015-homelab-adapter-pull-strategy.md), [ADR-0016 Prometheus alerts](../../docs/adr/0016-prometheus-alerts-policy.md), [ADR-0017 intake token hardening](../../docs/adr/0017-dreq-intake-token-operational-hardening.md), [test_cases_m5_dreq](../../docs/tests/test_cases_m5_dreq.md), [test_cases_m4_integration](../../docs/tests/test_cases_m4_integration.md).
+- 브랜치: `main` (HEAD `51c79af`, PR #151 squash merge 직후. 본 housekeeping 머지 후 추가 갱신).
+
+## 2026-05-18 단일 세션 11 PR 누적 (sprint a..k + 외부 #145)
+
+| Sprint | PR | sha | 핵심 |
+| --- | --- | --- | --- |
+| `-a` | #141 | `98fa4a7` | 메모리 갭 동기화 — 외부 8 PR (#133~#140) flat memory 흡수 + **DREQ P2 6/6 모두 해소 확인** |
+| `-b` | #142 | `d1461bd` | traceability §2.2 (API-79 추가) + §3 + §5.1 + §6 — 외부 PR ID 매핑 사후 정합 |
+| `-c` | #143 | `d2c0031` | **ADR-0015** (HomeLab pull strategy) + **ADR-0016** (Prometheus alerts) + **ADR-0017** (intake token hardening) + ADR-0014 §6 갱신 |
+| `-d` | #144 | `d24a41e` | DREQ-E2E TC-DREQ-* 13건 정식 발급 + `dev-requests.spec.ts` 6 step + 신규 2 test (INTAKE-AUTH-NEG-01 + ADMIN-TOKEN-PATCH-01) + `test_cases_m5_dreq.md` 신규 |
+| (외부) | #145 | `f2e18a2` | docker packaging hardening (IMAGE_REPO_PREFIX + local-db db-init + DEV_FALLBACK=0 + Hydra prod mode + system secret env + runtime-config forwarded-header 신뢰 제거) + codex P1/P2 해소 |
+| `-e` | #146 | `52981b9` | **codex hotfix #5** — PR #142 (§2.2 API-78→79) + PR #143 (ADR-0015 default vs 권장값, ADR-0017 PATCH revoked guard + 3 회귀 unit test) P2 3건 |
+| `-f` | #147 | `951c0c8` | PR #146 self-review carve out — ADR-0017 §6 atomicity (CTE + FOR UPDATE reference SQL) + test 회귀 시나리오 주석 |
+| `-g` | #148 | `7b4ad18` | **External Integration frontend 진입점** — `/admin/settings/integrations` + ProviderTable + ProviderModal + integration.{service,types}.ts + layout subTabs Plug 아이콘 |
+| `-h` | #149 | `bb83520` | External Integration E2E — `admin-integrations.spec.ts` (mega lifecycle 4 step + RBAC negative). TC-INT-FRONTEND-{LIST,CREATE,EDIT,SYNC,RBAC}-01 active |
+| `-i` | #150 | `99c0833` | **codex hotfix #6** — PR #147+#148+#149 의 P1×2 (useEffect [toast] dep + syncProvider 응답 형식) + P2×2 (ADR-0017 CTE LEFT JOIN empty → not-found 분기 불가 + SYNC assertion false positive) |
+| `-j` | #151 | `51c79af` | **API-80 DELETE integration provider + FK guard** (binding count > 0 → 409) + handler 4 unit test + DestructiveConfirmModal + spec ts DELETE step 5 |
+| `-k` | (본) | TBD | 종합 housekeeping (state.json / session_handoff / work_backlog / auto-memory) |
+
+## 신규 ID 종합 (본 세션)
+
+| 종류 | ID | 출처 sprint |
+| --- | --- | --- |
+| ADR | ADR-0015 HomeLab adapter pull strategy | `-c` PR #143 |
+| ADR | ADR-0016 Prometheus alerts policy | `-c` PR #143 |
+| ADR | ADR-0017 DREQ intake token operational hardening | `-c` PR #143 |
+| API | API-79 PATCH `/api/v1/dev-request-tokens/:token_id` (allowed_ips mutation, 이전 PR #137 활성화의 ID 정합) | `-b` PR #142 |
+| API | API-80 DELETE `/api/v1/integration/providers/:provider_id` (FK guard) | `-j` PR #151 |
+| TC | TC-DREQ-* 13건 (ADMIN-TOKEN-01/REVOKE-01/PATCH-01 + INTAKE-AUTH-01/NEG-01/03/EXPIRED-01/NEG-02 + WIDGET-FLOW-01 + PROMOTE-TX-01 + ADMIN-TOKEN-PATCH-NEG-01 + RBAC-NEG-01/02 + RBAC-ROW-01) | `-d` PR #144 |
+| TC | TC-INT-FRONTEND-* 7건 (LIST/CREATE/EDIT/SYNC/RBAC/DELETE/DELETE-NEG-01) | `-g`+`-h`+`-j` |
+
+## DREQ 도메인 종합 (closing 1차 + carve out 모두 해소)
+
+| 영역 | 상태 | 출처 |
+| --- | --- | --- |
+| Concept / AuthADR | ✅ ADR-0012 옵션 A | sprint f/g (2026-05-15) |
+| Backend 1차 (API-59..65) | ✅ activated | sprint i (2026-05-15) |
+| Frontend 1차 (위젯 + 페이지) | ✅ activated | sprint j (2026-05-15) |
+| Promote-Tx 단일 트랜잭션 (API-62) | ✅ activated + ADR-0013 | sprint m (2026-05-15) |
+| Admin-UI backend (API-66..68) + ADR-0014 | ✅ activated | sprint o (2026-05-15) |
+| Admin-UI frontend (페이지 + plain-1회 modal) | ✅ activated | sprint p (2026-05-15) |
+| token expires_at + middleware 만료 체크 + API-79 PATCH allowed_ips | ✅ activated + ADR-0017 | 외부 PR #137 (gemini, 2026-05-16) + 본 세션 `-c` 사후 명문화 |
+| Promote-Tx race 가드 (P2 #1) | ✅ `WHERE status IN ('pending','in_review')` | 외부 시기 미상, 본 세션 `-a` 에서 확인 |
+| failPromote dead field 제거 (P2 #2) | ✅ grep 0건 | 외부 시기 미상 |
+| DestructiveConfirmModal (P2 #3) | ✅ wire 완료 | 외부 PR #140 |
+| plain_token Show/Hide toggle (P2 #4) | ✅ Eye/EyeOff | 외부 PR (시기 미상) |
+| TC-DREQ-* 정식 발급 + spec ts active | ✅ 13건 | 본 세션 `-d` PR #144 |
+| PATCH revoked guard (codex hotfix) | ✅ store guard + 회귀 가드 3 unit test | 본 세션 `-e` PR #146 |
+| PATCH atomicity (race window 강화) | 🟡 ADR-0017 §6 carve out (CTE + FOR UPDATE reference SQL 만 명문화, 실 구현 미진입) | `-f`/`-i` ADR 본문 |
+
+## External Integration 도메인 (frontend 진입점 + DELETE 까지 1차 완성)
+
+| 영역 | 상태 | 출처 |
+| --- | --- | --- |
+| Concept staged (REQ-FR-INT + ARCH-INT + API-69..78 + IMPL-int + TC-INT) | ✅ | 외부 PR #135 (codex, 2026-05-15) |
+| Backend 1차 (HomeLab pull adapter + Prometheus + integration_registry + infra_snapshots + API-73..78) | ✅ | 외부 PR #139 (codex, 2026-05-17) |
+| ADR (pull strategy + alerts policy) | ✅ ADR-0015/0016 | 본 세션 `-c` PR #143 |
+| Frontend 진입점 `/admin/settings/integrations` | ✅ activated | 본 세션 `-g` PR #148 |
+| E2E spec ts (5 TC) | ✅ active | 본 세션 `-h` PR #149 |
+| API-80 DELETE + FK guard + Delete UI | ✅ activated | 본 세션 `-j` PR #151 |
+| Bindings 관리 UI (API-74, 75) | ⏳ 미진입 | 다음 세션 directive 1 |
+| Infra topology v2 시각화 (API-76, 78, React Flow) | ⏳ 미진입 | 다음 세션 directive 2 |
+
+## codex review cycle (본 세션 2회)
+
+- **hotfix #5** (sprint `-e` PR #146) — PR #142 P2 (§2.2 API range) + PR #143 P2×2 (ADR-0015 default drift + ADR-0017 PATCH revoked guard 누락 → store 가드 + handler ErrConflict + 회귀 가드 3 unit test)
+- **hotfix #6** (sprint `-i` PR #150) — PR #147 P2 (ADR-0017 CTE LEFT JOIN empty → not-found 분기 불가) + PR #148 P1×2 (useEffect [toast] dep 무한 재실행 + syncProvider 응답 형식 mismatch) + PR #149 P2 (SYNC assertion false positive)
+- **clean** — PR #150 (hotfix #5 자체) + PR #151 (API-80) 모두 codex review 0건
+
+## 다음 세션 directive (우선순위 순)
+
+1. **Bindings 관리 UI** (API-74, 75) — provider ↔ application/project scope 매핑. 별도 페이지 `/admin/settings/integration-bindings` 또는 `/admin/settings/integrations` 의 sub-tab. backend 는 이미 activated, frontend 진입점만 필요. system_admin only RBAC.
+2. **Infra topology v2 시각화** (API-76, 78) — React Flow 그래프. TC-INT-HOMELAB-03 활성화 후보. backend `/api/v1/infra/services` + `/infra/topology/v2` 가 hydrate 된 상태이므로 frontend 패턴은 기존 infra-topology.spec.ts + frontend/app/(dashboard)/infra/ 의 React Flow 패턴 따름.
+3. **ADR-0017 §6 atomicity 실제 구현** (CTE refactor) — `store.UpdateDevRequestIntakeTokenIPs` 의 2 query 패턴을 단일 CTE + `FOR UPDATE` row lock 으로 atomic 보장. ADR §6 의 reference SQL 그대로 적용 + 회귀 race test (concurrent goroutine).
+4. **ADR-0015 §6 carve outs** — (a) size limit + streaming decode (대용량 payload 보호), (b) agent token rotation SOP, (c) dedicated worker binary 평가 (M4 진입 시), (d) push/pull 동시 운영 시 `snapshot_at` + `source` tag dedup 정책.
+5. **ADR-0016 §6 carve outs** — (a) Alertmanager raw YAML 외부 git 이관, (b) Grafana JSON 모델, (c) pull latency p95 alert (baseline 1주 관찰 후), (d) push 경로 (API-73) 알림, (e) stage → prod 임계 확정 1주 관찰 후.
+6. **ADR-0017 §6 잔여 carve outs** — (a) 자동 cron revoke (expires_at 임박 정리), (b) PATCH 의 expires_at 갱신 허용, (c) 토큰 만료 알림 metric, (d) `last_used_at` staleness alert.
+
+## 본 세션 학습 (다음 세션이 참조)
+
+- **useEffect 의 hook 결과 dep 위험**: `useToast()` 가 매 render 새 callback → `[toast]` dep 이 effect 무한 재실행. 페이지 작성 시 hook 결과 dep 항목은 자동 의심 + ESLint disable 명시 패턴 (PR #150 hotfix #6 P1 #1).
+- **service ↔ backend 응답 형식 verify**: typescript cast 만으로는 wire 검증 안 됨. service 작성 시 backend handler 의 `c.JSON(...)` 본문 grep 으로 실 응답 schema 확인 패턴 (PR #150 hotfix #6 P1 #2 — syncProvider 의 `{status, job_id}` vs provider envelope).
+- **spec ts assertion 강도**: cell visibility 등 click 전후 변하지 않는 elementen 만 검증하면 false positive. `page.waitForResponse` + response body 검증 + optimistic update 결과 검증 3 layer 패턴 (PR #150 hotfix #6 P2 #4).
+- **FK guard hard delete**: schema CASCADE 가 있더라도 운영 안전을 위해 handler 단에서 명시 차단. `integration_provider_has_bindings` 패턴은 다른 도메인의 DELETE 도입 시 reference (`-j` PR #151).
+- **ADR reference SQL 의 row anchor 필요성**: CTE LEFT JOIN 만으로는 empty CTE 시 zero rows. `(VALUES (1)) AS root(_) LEFT JOIN ... LEFT JOIN ...` 패턴이 모든 분기 단일 row 보장 (PR #150 hotfix #6 P2 #3).
+
+---
+
+(이하: 직전 sprint 의 누적 작업 기록은 historical reference 로 보존)
 
 ## 2026-05-18 메모리 갭 동기화 세션 — 핵심 사실
 

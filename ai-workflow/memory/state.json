@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-05-18 메모리 갭 동기화 세션. 직전 claude EOD (sprint q PR #132, 2026-05-15) 이후 외부 에이전트(codex/gemini)가 2026-05-15~17 사이 8 PR (#133~#140) 을 main 에 머지했으나 flat memory 는 미반영 상태였음. 본 세션은 새 코드 작업 없이 메모리 sync 만 수행. **External Integration 도메인 신규 1차 완성** (concept staged PR #135 → backend 1차 PR #139 HomeLab pull adapter + Prometheus + integration_registry + infra_snapshots, API-69..78 + REQ-FR-INT + ARCH-INT + IMPL-int + TC-INT + migration 000028/000029). **DREQ carve out 3/4 (E2E) 부분 흡수** — PR #136 (dev-requests + signout flow strict locator + UX 정합) + PR #138 (DREQ E2E 안정화) + PR #140 (FilterBar 표준화 + dev-requests 페이지 적용) + 신규 frontend/tests/e2e/dev-requests.spec.ts. **P2 carve out 누적 6건 → 0건 모두 해소** — (1) promote-tx race 가드 `WHERE status IN ('pending', 'in_review')` 적용 (dev_requests.go:266 + dev_requests_promote.go:29), (2) failPromote dead field 제거, (3) window.confirm → DestructiveConfirmModal 컴포넌트 도입 + dev-request-tokens 페이지 wire (PR #140), (4) plain_token Show/Hide toggle (Eye/EyeOff icon) IssueIntakeTokenModal:29, (5) token expires_at + auth_intake_token_expired (PR #137 migration 000027), (6) PATCH /api/v1/dev-request-tokens/:token_id allowed_ips mutation (PR #137). **Docker deploy 패키지 안정화** PR #133 — docker-compose.deploy.yml + local-db profile + Hydra/Kratos deploy yaml + nginx + /api/runtime-config + docker-image-publish.yml workflow. **Frontend 대시보드 리브랜딩 + 현황 페이지 신설** PR #138 — Applications/Repositories/Projects 전용 페이지 + LogoutOverlay + DashboardHeader + FilterBar 공통 컴포넌트 + 감사로그 Glassmorphism. main HEAD `caa80c7` (PR #140). 다음 세션 directive: External Integration design/impl 후속 + DREQ-E2E 잔여 (intake auth path + token issuance flow + revoke 회귀 가드) + TC-DREQ-* 정식 발급 + traceability §3 row 갱신 (외부 에이전트 PR 들의 ID 매핑 미반영 가능성 확인). 이전 status: '2026-05-15 post-EOD 후속 세션 종료 (sprint q housekeeping), DREQ carve out 1/4 + 2/4 완료.'",
-  "updated_at": "2026-05-18T00:00:00Z",
-  "head_commit": "caa80c7",
-  "head_summary": "Merge pull request #140 (feat: standardize FilterBar and stabilize frontend/backend build & E2E, gemini/ui_standardization_260517)",
+  "status": "2026-05-18 EOD — 단일 세션 11 PR 머지 (sprint a..k claude 10 + 외부 #145 codex). 흐름: (-a 메모리 갭 동기화 → -b traceability 외부 8 PR 사후 정합 → -c **ADR-0015/0016/0017 발급** → -d DREQ-E2E TC 정식 발급 + spec ts → -e codex hotfix #5 (P2 3건) → -f ADR-0017 §6 atomicity carve out + test 주석 → -g **External Integration frontend 진입점** /admin/settings/integrations → -h E2E spec ts → -i codex hotfix #6 (P1 ×2 + P2 ×2) → -j **API-80 DELETE endpoint + Delete UI** + FK guard → -k 본 housekeeping). **신규 ID 7개**: ADR-0015 (HomeLab pull strategy) / ADR-0016 (Prometheus alerts) / ADR-0017 (intake token hardening) / API-79 (PATCH allowed_ips) / API-80 (DELETE provider) + TC-DREQ-* 13건 + TC-INT-FRONTEND-* 7건. **DREQ P2 carve out 6/6 모두 해소 확인** (sprint -a). ADR-0014 §6 carve out 2건 → ADR-0017 활성화 (-c). ADR-0017 §6 atomicity carve out 신규 (-f) + reference SQL 정정 (-i). codex review cycle 2회 (hotfix #5/#6) 완료. PR #150 (hotfix #5) + PR #151 (API-80) codex review clean. main HEAD `51c79af`. **다음 세션 directive (우선순위 순)**: (1) bindings 관리 UI (API-74, 75) — provider ↔ application/project 매핑 페이지 또는 sub-tab; (2) infra topology v2 시각화 (API-76, 78, React Flow) — TC-INT-HOMELAB-03; (3) ADR-0017 §6 atomicity 실제 구현 (CTE refactor + tx.Begin() + FOR UPDATE row lock); (4) ADR-0015 §6 carve outs (size limit + streaming decode, agent token rotation SOP); (5) ADR-0016 §6 carve outs (Alertmanager raw YAML 외부 git, Grafana JSON, stage→prod 임계 확정 1주 관찰 후). 이전 status: '2026-05-18 메모리 갭 동기화 세션, 외부 8 PR 흡수 + DREQ P2 6/6 해소.'",
+  "updated_at": "2026-05-18T23:59:00Z",
+  "head_commit": "51c79af",
+  "head_summary": "Merge pull request #151 (feat(backend,frontend,test,docs): API-80 DELETE integration provider endpoint + FK guard, sprint claude/work_260518-j)",
   "milestones": {
     "M0": {
       "status": "done",
@@ -194,12 +194,26 @@
     {"pr": 139, "sprint": "codex/next-step-20260516", "title": "feat(infra/integration): HomeLab pull adapter, persistence, and Prometheus observability — integration_registry + infra_snapshots + HomeLab file/HTTP puller + retry/backoff + pull loop scheduler + Prometheus /metrics + API-73..78 활성화 + migration 000028/000029", "merge_commit": "e2a76fb"},
     {"pr": 140, "sprint": "gemini/ui_standardization_260517", "title": "feat: standardize FilterBar and stabilize frontend/backend build & E2E — dev-requests page FilterBar 적용 + DestructiveConfirmModal 도입 + IssueIntakeTokenModal Show/Hide toggle + 감사로그 리디자인", "merge_commit": "caa80c7"}
   ],
+  "merged_prs_2026_05_18": [
+    {"pr": 141, "sprint": "claude/work_260518-a", "title": "docs(memory): 2026-05-18 메모리 갭 동기화 — 외부 에이전트 8 PR (#133~#140) flat memory 흡수 + DREQ P2 carve out 6/6 모두 해소 확인 + External Integration 도메인 1차 흡수", "merge_commit": "98fa4a7"},
+    {"pr": 142, "sprint": "claude/work_260518-b", "title": "docs(traceability): 외부 8 PR 사후 추적성 동기화 — §2.2 DREQ API §14 sub 표 API-66/67/68 + API-79 + §3 매트릭스 DREQ row + §5.1 E2E 미커버 표 + §6 변경 이력 PR #133~#141", "merge_commit": "d1461bd"},
+    {"pr": 143, "sprint": "claude/work_260518-c", "title": "docs(adr,traceability): ADR-0015 (HomeLab pull strategy) + ADR-0016 (Prometheus alerts policy) + ADR-0017 (DREQ intake token operational hardening) 3 신규 발급 + ADR-0014 §6 갱신", "merge_commit": "d2c0031"},
+    {"pr": 144, "sprint": "claude/work_260518-d", "title": "test(e2e),docs(tests,traceability): DREQ-E2E TC 정식 발급 (13건) + spec ts test.step() 마킹 + 신규 2 test (INTAKE-AUTH-NEG-01 + ADMIN-TOKEN-PATCH-01) — test_cases_m5_dreq.md 신규", "merge_commit": "d24a41e"},
+    {"pr": 145, "sprint": "codex/docker-packaging-guide", "title": "배포 패키징 안정화 + 로컬 이미지 참조/스모크 이슈 수정 — IMAGE_REPO_PREFIX + local-db profile db-init + DEV_FALLBACK=0 + Hydra --dev 제거 + system secret env + runtime-config forwarded-header 신뢰 제거 + codex P1/P2 해소 commit", "merge_commit": "f2e18a2"},
+    {"pr": 146, "sprint": "claude/work_260518-e", "title": "fix(backend,docs,traceability): codex review hotfix #5 — PR #142 (§2.2 API-78→79) + PR #143 (ADR-0015 default vs 권장값 + ADR-0017 PATCH revoked guard + 회귀 가드 3 unit test) 의 P2 3건", "merge_commit": "52981b9"},
+    {"pr": 147, "sprint": "claude/work_260518-f", "title": "docs(adr,traceability),test: PR #146 self-review 후속 — ADR-0017 §6 atomicity carve out (race window 명시 + CTE + FOR UPDATE reference SQL) + test 회귀 시나리오 주석 보강", "merge_commit": "951c0c8"},
+    {"pr": 148, "sprint": "claude/work_260518-g", "title": "feat(frontend,integration),docs(tests,traceability): External Integration frontend 진입점 1차 — /admin/settings/integrations 페이지 + ProviderTable + ProviderModal + integration.{service,types}.ts + layout subTabs", "merge_commit": "7b4ad18"},
+    {"pr": 149, "sprint": "claude/work_260518-h", "title": "test(e2e),docs(tests,traceability): admin-integrations.spec.ts 신규 — TC-INT-FRONTEND-* 5건 active (mega lifecycle 4 step + RBAC negative)", "merge_commit": "d24a41e"},
+    {"pr": 150, "sprint": "claude/work_260518-i", "title": "fix(frontend,test,adr,traceability): codex review hotfix #6 — PR #147 + #148 + #149 의 P1 ×2 (useEffect toast dep + syncProvider 응답 형식) + P2 ×2 (ADR-0017 CTE LEFT JOIN empty → not-found 분기 불가 + spec ts SYNC assertion 약함)", "merge_commit": "99c0833"},
+    {"pr": 151, "sprint": "claude/work_260518-j", "title": "feat(backend,frontend,test,docs): API-80 DELETE integration provider endpoint + FK guard (binding count > 0 시 409 has_bindings) + handler 4 unit test + DestructiveConfirmModal + spec ts mega test DELETE step 5", "merge_commit": "51c79af"}
+  ],
   "dreq_domain_carve_out_progress": {
     "1_4_rbac_adr_promote_tx": "✅ sprint m PR #128 (ADR-0013 사후 명문화 + Promote-Tx 단일 트랜잭션) + codex hotfix #4 sprint n PR #129",
     "2_4_admin_ui_backend": "✅ sprint o PR #130 (API-66..68 + ADR-0014 + 신규 RBAC resource `dev_request_intake_tokens` + migration 000026)",
     "2_4_admin_ui_frontend": "✅ sprint p PR #131 (/admin/settings/dev-request-tokens 페이지 + IssueIntakeTokenModal 2 phase + IntakeTokenTable + service/types)",
-    "3_4_e2e": "🟡 부분 완료 (외부 에이전트 흡수) — PR #136 (dev-requests + signout flow strict locator + UX 정합) + PR #138 (DREQ E2E 안정화) + PR #140 (dev-requests page FilterBar). 잔여: intake auth flow Playwright spec (admin token issue → bearer header → POST 외부 의뢰 → assignee dashboard widget 노출 → promote → revoke) + IntakeTokenTable/Modal Vitest (PR #131 이후 신규 __tests__ 디렉터리 존재 확인) + TC-DREQ-* 정식 발급 + traceability §3 row 갱신",
-    "addendum_2026_05_16_17": "PR #137 (token expires_at + IP mutation) 가 ADR-0014 §6 carve out 항목을 backend 에서 활성화 — 메모리 P2 #5/#6 해소. 단 ADR-0014 §6 본문은 외부 에이전트가 갱신했는지 미확인 (다음 세션 docs/adr/0014 검수 항목)"
+    "3_4_e2e": "✅ 완료 — sprint d (PR #144) 가 TC-DREQ-* 13건 정식 발급 + frontend/tests/e2e/dev-requests.spec.ts test.step() 6 단계 마킹 + 신규 2 test (INTAKE-AUTH-NEG-01 invalid bearer + ADMIN-TOKEN-PATCH-01 API-79). test_cases_m5_dreq.md 신규 카탈로그.",
+    "addendum_2026_05_16_17": "PR #137 (token expires_at + IP mutation) 가 ADR-0014 §6 carve out 항목을 backend 에서 활성화 — 메모리 P2 #5/#6 해소.",
+    "addendum_2026_05_18_adr": "sprint c (PR #143) 가 ADR-0014 §6 carve out 본문 갱신 + ADR-0017 (intake token operational hardening) 발급으로 사후 명문화 완료. sprint i (PR #150 codex hotfix #6 P2) 가 ADR-0017 §6 reference CTE 의 LEFT JOIN empty → not-found 분기 불가 문제 정정 (VALUES anchor 패턴)."
   },
   "p2_carve_out_resolved_2026_05_15_to_17": [
     "✅ promote-tx race 가드 — `WHERE id = $1 AND status IN ('pending', 'in_review')` (dev_requests.go:266 + dev_requests_promote.go:29). 어느 외부 에이전트 PR 이 이를 추가했는지 매핑 미확인 (다음 세션 git blame).",
@@ -209,15 +223,21 @@
     "✅ token rotation expires_at — migration 000027 + auth_intake_token_expired error code + middleware 만료 체크 (PR #137)",
     "✅ allowed_ips mutation endpoint — PATCH /api/v1/dev-request-tokens/:token_id (PR #137)"
   ],
-  "external_integration_domain_2026_05_15_to_17": {
-    "status": "concept staged → backend 1차 activated",
+  "external_integration_domain_2026_05_15_to_18": {
+    "status": "concept staged → backend 1차 activated → frontend 진입점 활성화 + API-80 DELETE + E2E spec ts active",
     "concept_pr": "PR #135 (codex/memory-next-step-20260515, merge 62a2088, 2026-05-15) — docs/planning/external_system_integration_concept.md + capability_matrix.md + REQ-FR-INT + REQ-NFR-INT + UC-INT + ARCH-INT + API-69..78 + traceability §3 row",
     "backend_pr": "PR #139 (codex/next-step-20260516, merge e2a76fb, 2026-05-17) — internal/integrations/adapters/{contract,homelab,homelab_file_puller,homelab_http_puller,homelab_pull_loop,metrics}.go + internal/store/integration_registry.go + infra_snapshots.go + httpapi/integration_registry.go + infra_integrations.go + API-73..78 활성화 + Prometheus /metrics + migration 000028 integration_registry + 000029 infra_service_snapshots",
     "supporting_docs": "docs/planning/homelab_adapter_pull_strategy.md + prometheus_homelab_alerts.md + docs/tests/test_cases_m4_integration.md + reports/report_20260516_m4_integration.md",
+    "adr_pr": "PR #143 (sprint c, claude/work_260518-c, merge d2c0031) — ADR-0015 (pull strategy 사후 명문화) + ADR-0016 (Prometheus alerts policy)",
+    "frontend_entry_pr": "PR #148 (sprint g, claude/work_260518-g, merge 7b4ad18) — /admin/settings/integrations + ProviderTable + ProviderModal + integration.{service,types}.ts + layout subTabs Integrations 탭",
+    "e2e_spec_pr": "PR #149 (sprint h, claude/work_260518-h, merge d24a41e) — admin-integrations.spec.ts — TC-INT-FRONTEND-* 5건 active (mega lifecycle 4 step + RBAC negative)",
+    "delete_endpoint_pr": "PR #151 (sprint j, claude/work_260518-j, merge 51c79af) — API-80 DELETE + FK guard (binding count > 0 → 409 integration_provider_has_bindings) + handler 4 unit test + DestructiveConfirmModal + spec ts mega test DELETE step 5",
     "carve_out_for_next_session": [
-      "External Integration frontend (UI 진입점 — system_admin 페이지 신설 또는 기존 admin/settings 통합)",
-      "API-69..72 (verifier strategy 외 endpoint) 실제 wire 검증 — 외부 에이전트가 어디까지 활성화했는지 grep + traceability row 점검",
-      "ADR 발급 (HomeLab adapter pull strategy + Prometheus alerts 정책)"
+      "Bindings 관리 UI (API-74, 75) — provider ↔ application/project 매핑 (별도 페이지 또는 admin/settings/integrations 의 sub-tab)",
+      "infra topology v2 시각화 (API-76, 78, React Flow 그래프) — TC-INT-HOMELAB-03 활성화",
+      "ADR-0015 §6 carve outs — size limit + streaming decode, agent token rotation SOP, dedicated worker binary 평가 (M4 진입 시), push/pull 동시 운영 시 dedup 정책",
+      "ADR-0016 §6 carve outs — Alertmanager raw YAML 외부 git 이관, Grafana JSON 모델, pull latency p95 alert (baseline 1주 관찰 후), push 경로 (API-73) 알림, stage → prod 임계 확정",
+      "ADR-0017 §6 carve outs — 자동 cron revoke (expires_at 임박 정리), PATCH 의 expires_at 갱신, 토큰 만료 알림 (devhub_intake_token_expiring_soon), last_used_at 기반 staleness alert, store.UpdateDevRequestIntakeTokenIPs 의 2 query → CTE refactor (atomicity 강화)"
     ]
   },
   "next_actions": {
