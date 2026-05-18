@@ -80,15 +80,17 @@ backend-core/main.go::main()
 
 ### 4.3 환경 변수 contract
 
-| 변수 | 기본 | 의미 |
-| --- | --- | --- |
-| `DEVHUB_HOMELAB_PULL_ENABLED` | `"false"` | `"true"` 일 때만 loop 시작 |
-| `DEVHUB_HOMELAB_PULL_INTERVAL` | `60s` | tick 주기 (`time.ParseDuration` 형식) |
-| `DEVHUB_HOMELAB_PULL_FILE` | unset | file mode: JSON fixture 절대 경로 |
-| `DEVHUB_HOMELAB_PULL_URL` | unset | HTTP mode: HomeLab agent snapshot endpoint |
-| `DEVHUB_HOMELAB_PULL_TOKEN` | unset | HTTP mode: Bearer token (caller → HomeLab agent 인증) |
-| `DEVHUB_HOMELAB_PULL_HTTP_RETRY_MAX` | `3` | exponential backoff 최대 시도 횟수 |
-| `DEVHUB_HOMELAB_PULL_HTTP_RETRY_BACKOFF` | `2s` | 최초 backoff 간격 (지수 증가) |
+| 변수 | 코드 default (env 미설정 시) | 권장 운영값 | 의미 |
+| --- | --- | --- | --- |
+| `DEVHUB_HOMELAB_PULL_ENABLED` | `"false"` | `"true"` (운영 활성화) | `"true"` 일 때만 loop 시작 |
+| `DEVHUB_HOMELAB_PULL_INTERVAL` | `30s` | `60s` | tick 주기 (`time.ParseDuration` 형식). 운영 부하 기준 1분 권장 |
+| `DEVHUB_HOMELAB_PULL_FILE` | unset | unset (HTTP mode 권장) | file mode: JSON fixture 절대 경로 |
+| `DEVHUB_HOMELAB_PULL_URL` | unset | HomeLab agent snapshot endpoint | HTTP mode |
+| `DEVHUB_HOMELAB_PULL_TOKEN` | unset | Bearer token (env 으로 주입) | HTTP mode: caller → HomeLab agent 인증 |
+| `DEVHUB_HOMELAB_PULL_HTTP_RETRY_MAX` | `0` (재시도 없음) | `3` | exponential backoff 최대 시도 횟수. 코드 default 0 은 1회 시도 후 즉시 error metric +1 — 운영에서는 `3` 이상 권장 |
+| `DEVHUB_HOMELAB_PULL_HTTP_RETRY_BACKOFF` | `1s` | `2s` | 최초 backoff 간격 (지수 증가) |
+
+> **운영 노트**: 코드 default 는 보수적인 보장 (재시도 없음 + 짧은 tick) 으로, 알림 노이즈를 피하려면 운영 환경에서는 env 로 권장 운영값을 명시 설정한다. 알림 임계 ([ADR-0016](./0016-prometheus-alerts-policy.md)) 는 권장 운영값 (60s interval + retry 3) 을 가정 — env 미설정 상태에서 운영하면 false positive 빈도가 높아질 수 있다.
 
 ### 4.4 수용 기준 (PR #139 활성화 기준)
 
@@ -133,4 +135,5 @@ backend-core/main.go::main()
 | 일자 | 변경 | 메모 |
 | --- | --- | --- |
 | 2026-05-16 | 1차 결정 (`docs/planning/homelab_adapter_pull_strategy.md` §2.1) — lightweight goroutine + feature flag. | PR #139 활성화 |
-| 2026-05-18 | accepted — ADR 형식으로 사후 명문화. source mode = file + HTTP mutually exclusive, 실행 컨테이너 = lightweight goroutine + feature flag, retry = exponential backoff env-controlled. 메트릭 5종 명시 (알림 규칙은 ADR-0016 분기). | sprint `claude/work_260518-c` |
+| 2026-05-18 | accepted — ADR 형식으로 사후 명문화. source mode = file + HTTP mutually exclusive, 실행 컨테이너 = lightweight goroutine + feature flag, retry = exponential backoff env-controlled. 메트릭 5종 명시 (알림 규칙은 ADR-0016 분기). | sprint `claude/work_260518-c` (PR #143) |
+| 2026-05-18 | codex hotfix #5 P2 — §4.3 환경 변수 표를 "코드 default" / "권장 운영값" 두 컬럼으로 분리. PR #143 머지 직후 codex 외부 리뷰가 "ADR 의 default(60s/3/2s) 가 main.go 의 실제 default(30s/0/1s) 와 drift" 를 지적 → 운영자가 ADR 을 source-of-truth 로 보고 알림 임계 설계 시 오탐 가능성. 코드 default 는 보수적, 권장 운영값은 [ADR-0016](./0016-prometheus-alerts-policy.md) 알림 임계가 가정하는 값으로 명시. | sprint `claude/work_260518-e` |
