@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Filter, Inbox } from "lucide-react";
+import { Inbox } from "lucide-react";
 import { devRequestService } from "@/lib/services/dev_request.service";
 import { DevRequest, DevRequestStatus } from "@/lib/services/dev_request.types";
 import { DevRequestTable } from "@/components/dev-request/DevRequestTable";
@@ -10,10 +10,10 @@ import { DevRequestDetailModal } from "@/components/dev-request/DevRequestDetail
 import { useToast } from "@/components/ui/Toast";
 import { useStore } from "@/lib/store";
 import { isSystemAdmin } from "@/lib/auth/role-routing";
-import { cn } from "@/lib/utils";
+import { FilterBar } from "@/components/ui/FilterBar";
 
-const STATUS_FILTERS: { label: string; value: DevRequestStatus | "all" }[] = [
-  { label: "All", value: "all" },
+const STATUS_OPTIONS = [
+  { label: "All Requests", value: "all" },
   { label: "Pending", value: "pending" },
   { label: "In Review", value: "in_review" },
   { label: "Registered", value: "registered" },
@@ -96,35 +96,18 @@ export default function AdminSettingsDevRequestsPage() {
             </p>
           </div>
         </motion.div>
-
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-muted-foreground" />
-          <input
-            value={sourceSystem}
-            onChange={(e) => setSourceSystem(e.target.value)}
-            placeholder="source_system filter"
-            className="glass border-border rounded-2xl px-4 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-orange-400/50"
-          />
-        </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {STATUS_FILTERS.map((f) => (
-          <button
-            key={f.value}
-            type="button"
-            onClick={() => setStatusFilter(f.value)}
-            className={cn(
-              "px-4 py-2 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all",
-              statusFilter === f.value
-                ? "bg-orange-500/10 border-orange-500/40 text-orange-400"
-                : "bg-muted/20 border-border/60 text-muted-foreground hover:bg-muted/40",
-            )}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+        <FilterBar 
+          onSearch={setSourceSystem}
+          onFilterChange={(val) => setStatusFilter(val as DevRequestStatus | "all")}
+          activeFilter={statusFilter}
+          filterOptions={STATUS_OPTIONS}
+          placeholder="Search by source system name..."
+          searchLabel="Search dev requests"
+        />
+      </motion.div>
 
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-32 gap-4">

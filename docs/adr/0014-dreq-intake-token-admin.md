@@ -135,12 +135,13 @@ migration `000026_rbac_dev_request_intake_tokens` (sprint `claude/work_260515-o`
 
 ## 6. 후속 작업
 
-- **(sprint `p`)** frontend `/admin/settings/dev-request-tokens` 페이지 — `accounts_admin` `/admin/settings/users` 의 plain-1회-노출 modal 패턴 재사용. carve 2/4 part 2.
-- **(carve)** token rotation policy — 만료 자동화 (`expires_at` 컬럼 + cron revoke). 운영 빈도 확인 후 결정.
-- **(carve)** allowed_ips 의 mutation endpoint — 현재는 발급 후 변경 불가, revoke + 재발급으로 우회. 필요 시 별도 ADR.
+- **(sprint `p`, ✅ done)** frontend `/admin/settings/dev-request-tokens` 페이지 — `accounts_admin` `/admin/settings/users` 의 plain-1회-노출 modal 패턴 재사용. carve 2/4 part 2 (PR #131).
+- **(✅ partial activated, PR #137 / [ADR-0017](./0017-dreq-intake-token-operational-hardening.md))** token rotation policy — `expires_at` 컬럼 + middleware 만료 체크 + `auth_intake_token_expired` 에러 코드는 활성화 (migration 000027). 자동 cron revoke 는 carve 유지.
+- **(✅ activated, PR #137 / [ADR-0017](./0017-dreq-intake-token-operational-hardening.md))** allowed_ips 의 mutation endpoint — `PATCH /api/v1/dev-request-tokens/:token_id` (API-79) 신규 발급. revoke + 재발급 우회 가능. ADR-0017 가 본문 결정 명문화.
 
 ## 7. 변경 이력
 
 | 일자 | 변경 | 메모 |
 | --- | --- | --- |
-| 2026-05-15 | accepted — `dev_request_intake_tokens` resource 신규 도입, system_admin 일임. plain 1회 노출 + hashed 절대 미노출 + idempotent revoke. accounts_admin password issuance 패턴과 정합. | sprint `claude/work_260515-o` (PR TBD) |
+| 2026-05-15 | accepted — `dev_request_intake_tokens` resource 신규 도입, system_admin 일임. plain 1회 노출 + hashed 절대 미노출 + idempotent revoke. accounts_admin password issuance 패턴과 정합. | sprint `claude/work_260515-o` (PR #130) |
+| 2026-05-18 | §6 carve out 갱신 — token expires_at + middleware 만료 체크 + PATCH allowed_ips 가 PR #137 로 활성화 (사후 명문화는 [ADR-0017](./0017-dreq-intake-token-operational-hardening.md)). 자동 cron revoke 는 carve 유지. | sprint `claude/work_260518-c` |

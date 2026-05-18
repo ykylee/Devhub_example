@@ -140,27 +140,43 @@ RETURNING token_id::text, client_label, hashed_token, allowed_ips, source_system
 }
 
 // UpdateDevRequestIntakeTokenIPs는 admin allowed_ips 수정 (sprint gemini/dreq_e2e_260515 hardening).
-// revoke 없이 접근 권한만 동적으로 변경할 때 사용.
+// revoke 없이 접근 권한만 동적으로 변경할 때 사용. revoke 된 row 는 ErrConflict 반환
+// (ADR-0017 §4.2 — 이미 revoked 이면 mutation 의미 없음. codex hotfix #5 P2 #3 회귀 가드).
 func (s *PostgresStore) UpdateDevRequestIntakeTokenIPs(ctx context.Context, tokenID string, allowedIPs []string) (domain.DevRequestIntakeToken, error) {
 	ipsJSON, err := json.Marshal(allowedIPs)
 	if err != nil {
 		return domain.DevRequestIntakeToken{}, fmt.Errorf("encode allowed_ips: %w", err)
 	}
-	const query = `
+	// WHERE revoked_at IS NULL 가드로 revoked row 의 mutation 차단.
+	// 단일 query 로 not_found / revoked 둘 다 ErrNoRows 가 되므로 별도 SELECT 로 분기.
+	const updateQuery = `
 UPDATE dev_request_intake_tokens
 SET allowed_ips = $2::jsonb, updated_at = NOW()
-WHERE token_id = $1::uuid
+WHERE token_id = $1::uuid AND revoked_at IS NULL
 RETURNING token_id::text, client_label, hashed_token, allowed_ips, source_system,
           created_at, created_by, last_used_at, revoked_at, expires_at`
-	row := s.pool.QueryRow(ctx, query, tokenID, ipsJSON)
-	tok, err := scanIntakeToken(row)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return domain.DevRequestIntakeToken{}, ErrNotFound
+	row := s.pool.QueryRow(ctx, updateQuery, tokenID, ipsJSON)
+	tok, scanErr := scanIntakeToken(row)
+	if scanErr == nil {
+		return tok, nil
 	}
-	if err != nil {
-		return domain.DevRequestIntakeToken{}, fmt.Errorf("update intake token ips: %w", err)
+	if !errors.Is(scanErr, pgx.ErrNoRows) {
+		return domain.DevRequestIntakeToken{}, fmt.Errorf("update intake token ips: %w", scanErr)
 	}
-	return tok, nil
+	// ErrNoRows — token_id 가 없거나 이미 revoked. 구분을 위해 별도 조회.
+	const existsQuery = `SELECT revoked_at FROM dev_request_intake_tokens WHERE token_id = $1::uuid`
+	var revokedAt *time.Time
+	if err := s.pool.QueryRow(ctx, existsQuery, tokenID).Scan(&revokedAt); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.DevRequestIntakeToken{}, ErrNotFound
+		}
+		return domain.DevRequestIntakeToken{}, fmt.Errorf("check intake token state: %w", err)
+	}
+	if revokedAt != nil {
+		return domain.DevRequestIntakeToken{}, ErrConflict
+	}
+	// 이 분기는 발생할 일이 없음 (UPDATE 가드와 SELECT 결과 모순) — defense-in-depth.
+	return domain.DevRequestIntakeToken{}, fmt.Errorf("update intake token ips: unexpected state for token_id=%s", tokenID)
 }
 
 func scanIntakeToken(row pgx.Row) (domain.DevRequestIntakeToken, error) {
