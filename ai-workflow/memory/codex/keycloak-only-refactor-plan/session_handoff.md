@@ -16,6 +16,10 @@
 - PR-B 범위(Keycloak JWT/JWKS verifier + discovery + main wiring) 반영 완료.
 - PR-C 착수: keycloak provider 모드에서 Kratos mock 주입 방지.
 - 검증: `cd backend-core && go test ./...` 통과.
+- Keycloak-only 전환 대규모 정리 커밋 반영 (`e64e2fa`).
+  - 레거시 auth/hydra/kratos 실행 경로 삭제
+  - `kratos_identity_id` → `idp_subject` 마이그레이션 추가
+  - config/runtime 계약 keycloak 중심으로 정리
 
 ## 현재 결정 사항
 
@@ -25,6 +29,6 @@
 
 ## 다음 세션 첫 작업
 
-1. PR-C 본 구현: account/admin API를 Keycloak Admin API 경로로 전환.
-2. `kratos_identity_id` 의존 구간을 `idp_subject` 중심으로 점진 치환.
-3. traceability 영향 ID(REQ/ARCH/API/IMPL/UT/TC) 초안 발급.
+1. 문서/주석/프론트 테스트의 잔여 레거시 용어(Hydra/Kratos) 전수 치환.
+2. traceability 영향 ID(REQ/ARCH/API/IMPL/UT/TC) 최종 반영.
+3. 병합 전 회귀 테스트 + PR 정리.

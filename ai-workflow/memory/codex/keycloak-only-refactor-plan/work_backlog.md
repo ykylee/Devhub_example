@@ -14,7 +14,7 @@
 | KC-BOOT-01 | 브랜치 memory 초기화(state/handoff/backlog) | done | 본 브랜치 디렉터리 생성 완료 |
 | KC-PR-A | config/provider 스켈레톤 구현 | done | 완료 커밋: `b8eb2ba` |
 | KC-PR-B | Keycloak JWT/JWKS verifier 전환 | done | `internal/auth/keycloak_verifier.go` + verifier tests + main wiring |
-| KC-PR-C | account/admin API Keycloak Admin 연동 | in_progress | keycloak 모드 Kratos mock 주입 방지까지 반영 |
+| KC-PR-C | account/admin API Keycloak Admin 연동 | done | KeycloakAdminClient + main wiring 반영 |
 | KC-PR-D | frontend auth/logout flow 전환 | planned | OIDC discovery 기반 |
-| KC-PR-E | identity 컬럼 일반화 마이그레이션 | planned | `kratos_identity_id` -> `idp_subject` |
-| KC-PR-F | 테스트/문서/traceability 동기화 | planned | e2e + 계약 문서 갱신 |
+| KC-PR-E | identity 컬럼 일반화 마이그레이션 | done | `000021_rename_kratos_identity_to_idp_subject` 추가 |
+| KC-PR-F | 테스트/문서/traceability 동기화 | in_progress | backend test 통과, 문서/traceability 잔여 정리 중 |

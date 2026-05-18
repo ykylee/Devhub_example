@@ -2,23 +2,23 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "codex/keycloak-only-refactor-plan",
-  "status": "PR-B(Keycloak JWT/JWKS verifier) 구현 완료. PR-C(account/admin Keycloak 연동) 착수.",
-  "updated_at": "2026-05-18T12:31:07Z",
-  "head_commit": "b8eb2ba",
-  "head_summary": "plan(keycloak): add execution docs and PR-A provider config skeleton",
+  "status": "Keycloak-only 전환 대규모 정리 반영 완료. 레거시 Hydra/Kratos 실행 경로 제거 및 idp_subject 마이그레이션 적용.",
+  "updated_at": "2026-05-18T13:45:20Z",
+  "head_commit": "e64e2fa",
+  "head_summary": "refactor(idp): finalize keycloak-only transition and clean legacy hydra/kratos paths",
   "current_focus": [
-    "PR-C 범위(account/admin API Keycloak 연동) 인터페이스/어댑터 설계",
-    "keycloak provider 모드에서 Kratos mock 주입 방지",
-    "traceability 영향 ID 초안 정리"
+    "잔여 Kratos/Hydra 명칭/문서 흔적 제거",
+    "traceability 문서 최종 동기화",
+    "프론트 auth UX 문구/시나리오 정합화"
   ],
   "next_actions": [
-    "account/admin API용 Keycloak Admin adapter 구현(PR-C)",
-    "identity/subject 매핑 정책 확정(kratos_identity_id 대체 경로)",
-    "traceability ID(REQ/ARCH/API/IMPL/UT/TC) 초안 작성"
+    "backend/frontend/docs 잔여 레거시 텍스트 전수 치환",
+    "traceability ID(REQ/ARCH/API/IMPL/UT/TC) 최종 반영",
+    "병합 전 최종 회귀 테스트"
   ],
   "risks": [
-    "Hydra/Kratos 결합 코드 경로가 넓어 회귀 범위 확대 가능",
-    "계정/비밀번호 관리 API의 Keycloak Admin API 매핑 복잡도",
-    "E2E fixture/seed 방식 전환 필요"
+    "문서와 실제 런타임 계약 불일치 가능성",
+    "E2E fixture/seed 방식 전환 지연 가능성",
+    "레거시 명칭 잔존으로 인한 운영 혼선 가능성"
   ]
 }
