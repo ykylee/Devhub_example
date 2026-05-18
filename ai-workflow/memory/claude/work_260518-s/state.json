@@ -1,0 +1,23 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260518-s",
+  "branch": "claude/work_260518-s",
+  "status": "in_progress",
+  "started_at": "2026-05-18T16:00:00Z",
+  "scope": "ADR-0016 §6 carve outs 부분 처리 — (1) Alertmanager 규칙 raw YAML 외부 git 이관 운영 가이드 + (2) Grafana dashboard JSON 모델 (5 panel). (3) pull latency p95 alert / (4) push 경로 알림 / (5) stage→prod 임계 확정 은 baseline 데이터 / metric 미도입으로 carve out 유지.",
+  "directive_source": "main flat state.json '다음 세션 directive (1)' — ADR-0016 §6 5 carve out 중 본 환경에서 처리 가능한 운영 자산 2개 1차 활성화.",
+  "decisions": [
+    "(1) Alertmanager 운영 가이드 = docs/setup/prometheus_alertmanager_setup.md 신규 — 외부 git 이관 layout 권장 (운영 자산은 별도 git 또는 vault) + ADR-0016 §4.2 의 stage/prod 임계 raw YAML reference + Alertmanager 라우팅 (severity / environment label 기반) 예시 + 운영 SOP 절차 (rule 추가/변경/검증).",
+    "(2) Grafana JSON = docs/setup/grafana/homelab_dashboard.json 신규 — Grafana schemaVersion 16+ 호환 dashboard JSON, 5 panel (Pull Success/Error + Pull Latency p95 + Last Success Age + Degraded Providers + Observed Services) + variables (datasource Prometheus) + time range default 1h.",
+    "ADR-0016 §6 carve out (1)+(2) → resolved 표기. (3)/(4)/(5) carve out 유지 — 본 환경에서는 baseline 1주 관찰 데이터 / push 경로 metric 도입 / stage→prod 확정 모두 사전 조건 부재.",
+    "운영 자산이 git 추적 외부에 두는 것이 정책 ([feedback_no_docker] 정합) — 본 PR 의 raw YAML / JSON 은 reference (운영자가 별도 git 또는 vault 로 이관 권장)."
+  ],
+  "todo": [
+    "docs/setup/prometheus_alertmanager_setup.md 신규 — Alertmanager 운영 가이드",
+    "docs/setup/grafana/homelab_dashboard.json 신규 — 5 panel JSON 모델",
+    "docs/adr/0016-prometheus-alerts-policy.md §5 결과 + §6 carve out (1)+(2) → resolved + §7 변경 이력",
+    "docs/traceability/report.md §6 변경 이력 sprint -s row",
+    "commit + push + PR + self-review + 머지"
+  ],
+  "verification": "docs-only — workflow-lint 그린 + Grafana JSON 의 schema 정합 (syntax check 만)"
+}
