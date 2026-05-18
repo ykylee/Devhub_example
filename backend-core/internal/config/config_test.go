@@ -20,6 +20,9 @@ func TestValidate(t *testing.T) {
 		{"prod uppercase normalized: no verifier rejected", Config{Env: "PROD"}, false, true},
 		{"prod with whitespace normalized: verifier OK", Config{Env: " prod "}, true, false},
 		{"prod with whitespace + dev fallback rejected", Config{Env: " Prod ", AuthDevFallback: true}, true, true},
+		{"invalid idp provider rejected", Config{IdPProvider: "unknown"}, true, true},
+		{"keycloak idp provider accepted", Config{IdPProvider: "keycloak"}, true, false},
+		{"empty idp provider defaults accepted", Config{}, true, false},
 	}
 	for _, tc := range cases {
 		err := tc.cfg.Validate(tc.hasVerifier)

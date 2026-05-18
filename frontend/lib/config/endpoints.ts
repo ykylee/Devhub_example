@@ -19,7 +19,13 @@ export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 export const WS_BASE_URL =
   process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:8080/api/v1/realtime/ws";
 
-// --- IdP (Kratos / Hydra) ---
+// --- IdP (Hydra/Kratos default, Keycloak optional) ---
+export const IDP_PROVIDER = process.env.NEXT_PUBLIC_IDP_PROVIDER ?? "hydra_kratos";
+
+export const OIDC_ISSUER_URL = stripTrailingSlash(
+  process.env.NEXT_PUBLIC_OIDC_ISSUER_URL ?? "",
+);
+
 export const KRATOS_PUBLIC_URL = stripTrailingSlash(
   process.env.NEXT_PUBLIC_KRATOS_PUBLIC_URL ?? "http://localhost:4433",
 );

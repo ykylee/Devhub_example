@@ -1,0 +1,24 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "codex/keycloak-only-refactor-plan",
+  "status": "Keycloak 단일화 리팩토링 계획 수립 단계. 구현안 문서화 완료, 코드 변경 전.",
+  "updated_at": "2026-05-18T00:00:00Z",
+  "head_commit": "f2e18a2",
+  "head_summary": "main 기준 분기 생성 직후",
+  "current_focus": [
+    "Keycloak 단일화 실행 계획 문서화",
+    "브랜치 전용 memory 초기화",
+    "PR 분할 구현 순서 확정"
+  ],
+  "next_actions": [
+    "PR-A 범위 파일 식별 및 config/provider 스켈레톤 구현",
+    "Keycloak local/external 모드 env 계약을 backend/frontend에 반영",
+    "traceability ID 발급 범위 사전 정의"
+  ],
+  "risks": [
+    "Hydra/Kratos 결합 코드 경로가 넓어 회귀 범위 확대 가능",
+    "계정/비밀번호 관리 API의 Keycloak Admin API 매핑 복잡도",
+    "E2E fixture/seed 방식 전환 필요"
+  ]
+}
