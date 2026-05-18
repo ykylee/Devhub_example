@@ -4,26 +4,6 @@ import { AuthenticatedActor, useStore } from "../store";
 import { identityService } from "./identity.service";
 import { tokenStore } from "@/lib/auth/token-store";
 import { consumeVerifier, createPkceState } from "@/lib/auth/pkce";
-import { apiClient } from "./api-client";
-
-// SignUpPayload mirrors backend_api_contract.md §11.5.2 (POST /api/v1/auth/signup).
-// All four fields are required; HR DB validation runs server-side.
-export interface SignUpPayload {
-  name: string;
-  system_id: string;
-  employee_id: string;
-  password: string;
-}
-
-export interface SignUpResponse {
-  status: "created";
-  data: {
-    user_id: string;
-    kratos_id: string;
-    department: string;
-    message: string;
-  };
-}
 
 import { OIDC_AUTH_URL, OIDC_ISSUER_URL, OIDC_REDIRECT_URI as OIDC_REDIRECT_URI_DEFAULT } from "../config/endpoints";
 
@@ -211,15 +191,6 @@ class AuthService {
     return this.discoveryDoc;
   }
 
-  /**
-   * Self-service Sign Up (RM-M3-01). POSTs to /api/v1/auth/signup; the
-   * backend verifies the (name, system_id, employee_id) triple against the
-   * HR DB and creates Kratos identity + DevHub user. See
-   * backend_api_contract.md §11.5.2 for the response/error matrix.
-   */
-  public async signup(payload: SignUpPayload): Promise<SignUpResponse> {
-    return apiClient<SignUpResponse>("POST", "/api/v1/auth/signup", payload);
-  }
 }
 
 export const authService = AuthService.getInstance();

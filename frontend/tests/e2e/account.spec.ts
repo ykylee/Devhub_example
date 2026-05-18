@@ -15,7 +15,7 @@ test.describe("/account — UX 안내 + 사용자 정보", () => {
 
     const help = page.locator("#current-password-help");
     await expect(help).toBeVisible();
-    await expect(help).toContainText(/Ory Kratos/);
+    await expect(help).toContainText(/Keycloak OIDC/);
     await expect(help).toContainText(/Sign In Again/i);
 
     // ARIA 연결 — input 에 aria-describedby=current-password-help.

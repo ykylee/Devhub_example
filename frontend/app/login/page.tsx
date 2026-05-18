@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, ShieldCheck } from "lucide-react";
-import Link from "next/link";
 import { authService } from "@/lib/services/auth.service";
 
 export default function LoginPage() {
@@ -75,10 +74,8 @@ export default function LoginPage() {
 
           <div className="text-center pt-8">
             <p className="text-xs text-muted-foreground uppercase tracking-widest font-black">
-              New to DevHub?{" "}
-              <Link href="/auth/signup" className="text-primary hover:underline ml-1">
-                Create Account
-              </Link>
+              Need an account?{" "}
+              <span className="text-primary ml-1">Contact your system administrator</span>
             </p>
           </div>
 
