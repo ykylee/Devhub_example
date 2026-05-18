@@ -23,7 +23,7 @@
 - PostgreSQL `devhub` DB + `hydra` / `kratos` schema 가 마이그레이션 완료
 - Keycloak/OIDC 가 native binary 로 가동 중 (포트 4444/4445/4433/4434)
 - backend-core (8080) + frontend (3000) 가동 중
-- OIDC client `devhub-frontend` 가 Hydra 에 등록 완료 (`infra/idp/scripts/register-devhub-client.ps1`)
+- OIDC client `devhub-frontend` 가 IdP(Keycloak)에 등록 완료
 
 검증:
 ```sh
@@ -164,11 +164,11 @@ PLAYWRIGHT_BASE_URL=http://10.0.0.5:3000 npm run e2e
 
 | 증상 | 원인 | 조치 |
 | --- | --- | --- |
-| `loginAs` 가 `/auth/login?login_challenge=...` 까지 못 감 | Hydra `urls.login` 이 frontend host 와 다름 | `infra/idp/hydra.yaml` 의 `urls.login` 정정 후 Hydra 재기동 |
+| `loginAs` 가 `/auth/login` 까지 못 감 | IdP redirect/callback URI 또는 frontend host 불일치 | IdP client 설정의 redirect URI 및 frontend origin 재확인 |
 | 로그인 폼에서 401 (invalid credentials) | Kratos identity 시드 password 가 일치 안 함 | `npm run e2e` 를 한 번 더 실행. PR-T3.5 hardening 이후 globalSetup 이 PUT 으로 시드 비밀번호를 force-reset 하므로 stale rotation 자동 복구. 그래도 실패하면 §2 의 시드 비밀번호 (`ChangeMe-12345!`) 와 시드 SEEDS 배열을 비교 |
 | `/account` 비밀번호 변경 시 "Re-authentication required" | Kratos `privileged_session_max_age=15m` 초과 | PR-L4 backend proxy 가 매 호출마다 fresh api-mode 로그인을 돌려 privileged window 를 갱신하므로 정상 시나리오에서는 발생하지 않음. 그래도 노출되면 backend 의 `DEVHUB_KEYCLOAK_ADMIN_URL` env 누락/오설정 가능성 |
 | `/account` 비밀번호 변경 시 "current password is incorrect" | 입력한 current_password 가 Kratos 시드와 불일치 | §2 의 시드 비밀번호 확인 (`ChangeMe-12345!`). password-change 시나리오가 중간에 실패해 회전이 남았다면 `npm run e2e` 재실행으로 globalSetup 이 자동 force-reset (PR-T3.5 hardening) |
-| `Sign Out` 후에도 `/login` 이 silent re-auth | IdP session 종료 안 됨. id_token_hint 누락 가능성 | tokenStore 의 id_token 저장 확인. end-session endpoint 호출 URL 확인 |
+| `Sign Out` 후에도 `/login` 이 silent re-auth | IdP session 종료 안 됨. id_token_hint 누락 가능성 | tokenStore 의 `id_token` 저장 여부와 end-session endpoint 호출 URL 확인 |
 | 사용자 환경 Chromium 다운로드 실패 | 사내 SSL inspection / 외부 미러 차단 | `PLAYWRIGHT_BROWSERS_PATH` 또는 사내 미러 사용. `npx playwright install --dry-run` 으로 다운로드 URL 확인 |
 
 ## 7. 향후 확장 (PR-T4 범위)
