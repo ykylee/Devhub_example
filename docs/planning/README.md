@@ -101,6 +101,7 @@ PR 단위의 의사결정과 보안 리뷰 결과는 *통합 로드맵 산출물
 | [`system_erd.md`](./system_erd.md) | erd | 코드베이스 전체 모듈 ERD 카탈로그 + 통합 ERD (현행 + Project 확장). |
 | [`view_menu_screen_api_matrix.md`](./view_menu_screen_api_matrix.md) | ux+api matrix | 역할별(Developer/Manager/System Admin) 메뉴/화면 구성과 API 목록 매트릭스. M4/v2 범위 분리 포함. |
 | [`single_port_reverse_proxy.md`](./single_port_reverse_proxy.md) | design 검토 (draft 1차) | 외부 단일 포트로 frontend 가 `/devhub` 대표 path 로 모든 트래픽을 받고 backend/Hydra/Kratos 를 `/devhub/{backend}` sub-path 로 reverse proxy. nginx 권장 + 경로 매핑 + OIDC URL 정합 + cookie scope + Mermaid 토폴로지 + cutover 절차 + carve out. 결정 후 ADR-0018 후보 승격. sprint `claude/work_260518-u`. |
+| [`keycloak_sso_federation.md`](./keycloak_sso_federation.md) | design 검토 (draft 1차) | 외부 Keycloak 을 Kratos 의 upstream OIDC provider 로 federation. 옵션 3종 비교 (전체 대체 / **Kratos federation** / Hydra brokering) + Kratos config + claim mapping + HRDB user mapping 4 옵션 (**employee_id strict link** 권장) + cutover 절차 + 단일 포트 design 정합 + 보안 점검 + carve out. RM-M4-09 의 구체화. 결정 후 ADR-0019 후보 승격. sprint `claude/work_260518-v`. |
 
 ## 6. 변경 이력
 
@@ -116,6 +117,7 @@ PR 단위의 의사결정과 보안 리뷰 결과는 *통합 로드맵 산출물
 | 2026-05-15 | §5.1 외부 시스템 연동 도메인 컨셉 신규 — `external_system_integration_concept.md`. ALM/SCM/CI-CD/문서/홈랩 연동의 SoT 경계, 공통 어댑터 모델, MVP 범위 정의. |
 | 2026-05-15 | §5.1 외부 연동 capability matrix 추가 — `external_integration_capability_matrix.md`. provider별 capability/수집 방식/인증 모드/MVP 우선순위 정리. |
 | 2026-05-18 | §5.1 단일 외부 포트 reverse proxy design 검토 신규 — `single_port_reverse_proxy.md`. 외부 단일 포트 + `/devhub` prefix + backend/Hydra/Kratos sub-path 매핑 + nginx 권장 + OIDC URL 정합 + cookie scope + cutover 절차. 결정 후 ADR-0018 후보 승격. sprint `claude/work_260518-u`. |
+| 2026-05-18 | §5.1 외부 Keycloak SSO federation design 검토 신규 — `keycloak_sso_federation.md`. 옵션 3종 비교 (전체 대체/**Kratos federation**/Hydra brokering) + Kratos config + claim mapping + HRDB user mapping 4 옵션 (**employee_id strict link** 권장) + cutover 절차 + 단일 포트 design 정합 + 보안 점검 + carve out. RM-M4-09 의 구체화. 결정 후 ADR-0019 후보 승격. sprint `claude/work_260518-v`. |
 
 ## 7. 신규 자료 작성 규칙
 
