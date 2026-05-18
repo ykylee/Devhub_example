@@ -225,29 +225,24 @@ PUT /api/v1/organizations/{unit_id}/members
 > - 본인 비밀번호 변경: [`backend_api_contract.md` §11.5](../backend_api_contract.md) `POST /api/v1/account/password`.
 > - 시스템 관리자 계정 관리: [`backend_api_contract.md` §11.4](../backend_api_contract.md) `POST /api/v1/accounts`, `PUT /api/v1/accounts/{user_id}/password`, `DELETE /api/v1/accounts/{user_id}`.
 
-DevHub 자체 사용자 계정(Account) 1:1 컨셉 도입에 따라 추가되는 프론트 ↔ 백엔드 연동 항목.
-
-Historical baseline (폐기된 예시 API):
+현재 프론트 ↔ 백엔드 연동 기준:
 
 ```text
+GET    /api/v1/me
+POST   /api/v1/account/password
 POST   /api/v1/accounts
-GET    /api/v1/accounts/{user_id}
-PATCH  /api/v1/accounts/{user_id}
 PUT    /api/v1/accounts/{user_id}/password
 DELETE /api/v1/accounts/{user_id}
-POST   /api/v1/auth/login   (removed)
-POST   /api/v1/auth/logout  (removed)
 ```
 
 프론트 화면 영향:
-- 시스템 관리자 화면 — 사용자 row 옆에 "계정 발급/회수/잠금 해제/비밀번호 강제 재설정" action.
-- 모든 사용자 — "내 계정" 화면에서 로그인 ID 표시(읽기 전용)와 비밀번호 변경.
-- 로그인 화면 — `login_id` + `password` 만 입력. 응답 `must_change_password=true` 면 비밀번호 변경 화면으로 강제 라우팅.
-- 계정이 회수(`disabled`)되거나 잠긴(`locked`) 상태에서 사용자가 시스템에 접근 시 명시적 안내 + 시스템 관리자 연락 안내.
+- 로그인/로그아웃: OIDC client 표준 흐름으로 처리 (`/login` → `/auth/callback`).
+- 시스템 관리자 화면: 사용자별 계정 발급/회수/강제 비밀번호 재설정 action 제공.
+- 모든 사용자: `/account` 화면에서 본인 비밀번호 변경 (`POST /api/v1/account/password`).
 
 데이터 표시 메모:
 - `password`, `password_hash`, `initial_password` 는 어떤 화면에도 표시/저장하지 않는다.
-- 시스템 관리자가 강제 재설정한 임시 비밀번호는 1회 표시 후 별도 저장 없이 시스템 관리자가 사용자에게 전달하는 흐름으로 한다.
+- 강제 재설정 시 임시 비밀번호는 1회성 전달만 허용하고 별도 저장하지 않는다.
 
 ## 4. 프론트엔드에 요청할 정리 사항
 
