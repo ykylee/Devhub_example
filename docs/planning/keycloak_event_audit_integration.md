@@ -41,12 +41,12 @@ DevHub `audit_logs` 의 actor enrichment + request_id 정책 ([M1 PR-D](../../ai
 
 ### 3.1 Keycloak admin event endpoint
 
-Keycloak Admin API 가 2 종류의 event 제공:
+Keycloak Admin API 가 2 종류의 event 제공 (codex review #9 검증 — Keycloak Admin REST API 표준 path):
 
 | Endpoint | 내용 | 권장 query |
 | --- | --- | --- |
-| `GET /admin/realms/{realm}/events` | 사용자 event (LOGIN / LOGOUT / REGISTER / UPDATE_PASSWORD / IDENTITY_PROVIDER_LINK 등) | `?from=<unix_ms>&max=500` (paged) |
-| `GET /admin/realms/{realm}/events/admin` | admin event (USER:CREATE / USER:UPDATE / USER:DELETE / ROLE:CREATE 등) | `?dateFrom=<ISO8601>&max=500` |
+| `GET /admin/realms/{realm}/events` | 사용자 event (LOGIN / LOGOUT / REGISTER / UPDATE_PASSWORD / IDENTITY_PROVIDER_LINK 등) | `?dateFrom=<ISO8601>&max=500` (paged) |
+| `GET /admin/realms/{realm}/admin-events` | admin event (USER:CREATE / USER:UPDATE / USER:DELETE / ROLE:CREATE 등) | `?dateFrom=<ISO8601>&max=500` |
 
 **Keycloak 측 사전 활성화** (운영 SOP):
 - Realm settings → Events → Login Events Settings → "Save Events" ON + Event Listeners 에 `jboss-logging` 외 `metrics-listener` (Keycloak 25+) 또는 default 활성

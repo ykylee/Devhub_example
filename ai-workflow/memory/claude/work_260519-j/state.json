@@ -1,0 +1,42 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260519-j",
+  "branch": "claude/work_260519-j",
+  "status": "in_progress",
+  "started_at": "2026-05-19T09:00:00Z",
+  "scope": "codex review hotfix #9 — sprint -b~-h 7 PR 에 codex 가 inline P2 review 9건 남김. 모두 docs 영역 사실관계/정합 정정. 단일 hotfix PR 일괄 흡수.",
+  "directive_source": "사용자 요청 'pr 정리하고 가자, codex 리뷰 확인' — sprint -i housekeeping 종료 직후. CLAUDE.md memory feedback_codex_review_cycle.md 패턴 (머지 후 codex inline P1/P2 발견 시 hotfix PR 즉시 진입) 정합.",
+  "codex_p2_inline_comments_count": 9,
+  "verified_facts": {
+    "kratos_residual": "backend-core/internal/httpapi/ 에 kratos_*.go (8 files) + account_password_test.go + main_test.go + main.go (RouterConfig.KratosLogin / IDPSessionCache) 잔재. state.json 의 'Hydra/Kratos test 파일은 제거됨' 표기 부정확.",
+    "hrdb_schema_actual": "migration 000010_create_hrdb_persons.up.sql — hrdb.persons (system_id PK, employee_id UNIQUE, name, department_name, email, updated_at). active 컬럼 없음. design 의 hrdb.employees + active = false 부정확.",
+    "authenticateActor_no_setidpsubject": "auth.go:34 의 authenticateActor 는 SetIdPSubject 호출 안 함. accounts_admin.go:123 만 호출. SOP §8.1 step 5 '첫 로그인 자동 sync' 부정확.",
+    "jwks_cache_ttl_actual": "defaultJWKSTTL = 5 minute (keycloak_verifier.go:37). SOP §6 의 10분 표기 부정확.",
+    "logout_redirect_uri_window_origin": "frontend auth.service.ts:116 의 ${window.location.origin}/ = scheme + host + port (no path). ADR-0018 basePath /devhub 환경에서 'https://devhub.example.com/' 만 보냄 — whitelist '/devhub/' 와 정합 안 됨.",
+    "keycloak_event_api_path": "Keycloak Admin REST: GET /admin/realms/{realm}/events?dateFrom=... (not from) + GET /admin/realms/{realm}/admin-events (not /events/admin)."
+  },
+  "decisions": [
+    "단일 hotfix PR (sprint -j) 일괄 흡수 — 9 정정 + traceability §6 변경 이력 sprint -j row.",
+    "각 정정 = docs 영역만. backend code 변경 0.",
+    "#1 state.json — components.backend.test_check + phase 표기 정정 (Kratos 잔재 명시).",
+    "#2 §8.1 step 5 — '(자동)' → '(carve — 첫 로그인 자동 sync 미구현)' + backend authenticateActor 확장 carve.",
+    "#3 §6 — cache TTL 5분 (5 minute) 일관 + '수동 재시작 불필요' → cache TTL 만료 또는 backend 재시작 (또는 stale-while-error fallback carve).",
+    "#4 §8.5.2 — whitelist URI ${origin} 정합 (path 미포함) 또는 frontend basePath 포함 logout URI carve.",
+    "#5 §3.1 event API path 표 정정 — /admin/realms/{realm}/events + /admin-events.",
+    "#6 §3.2 step 3 — Default Group 권장 철회 + multi-role 처리 carve.",
+    "#7 §3.1 ETL script admin path — $KC_ADMIN/admin/realms/{realm}/... 통일.",
+    "#8 §3.1 ETL script hrdb schema — hrdb.persons + active 컬럼 없음. 권장 = users.status 직접 UPDATE (옵션 B).",
+    "#9 §1.2 + §3 graceful window — 'best case 5-10분' + 'worst case 0 (timing 겹침 시)' + stale-while-error fallback carve."
+  ],
+  "todo": [
+    "ai-workflow/memory/state.json — components.backend 정정 (#1)",
+    "docs/setup/keycloak_operations.md — §6 cache TTL + §8.1 step 5 + §8.5.2 logout redirect (#2 #3 #4)",
+    "docs/planning/keycloak_event_audit_integration.md — §3.1 event API path 표 (#5)",
+    "docs/planning/keycloak_groups_rbac_mapping.md — §3.2 Default Group 철회 (#6)",
+    "docs/planning/keycloak_offboarding_immediacy.md — §3.1 admin path + hrdb schema (#7 #8)",
+    "docs/planning/keycloak_failover.md — §1.2 + §3 graceful window (#9)",
+    "docs/traceability/report.md §6 변경 이력 sprint -j row",
+    "commit + push + PR + 4단계 self-review + 머지"
+  ],
+  "verification": "docs-only — backend 변경 없음."
+}
