@@ -2,23 +2,35 @@
 
 import { motion } from "framer-motion";
 import { User, Mail, Shield, Key, ExternalLink } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useStore } from "@/lib/store";
-import { OIDC_ISSUER_URL } from "@/lib/config/endpoints";
+import { authService } from "@/lib/services/auth.service";
 
 // ADR-0019 / sprint claude/work_260519-ad: self-service password change is
 // delegated to the Keycloak Account Console. DevHub no longer proxies the
 // flow (the previous Kratos-based proxy was wire-deleted along with the
 // rest of the Kratos residual).
-function keycloakAccountConsoleURL(): string {
-  if (!OIDC_ISSUER_URL) {
-    return "";
-  }
-  return `${OIDC_ISSUER_URL}/account/`;
-}
+//
+// Stage 3 (codex P1 + self-review P1-2): the Account Console URL is resolved
+// via authService.getAccountConsoleURL() so deployments that surface the
+// issuer through /api/runtime-config (server env) keep the link working
+// without baking NEXT_PUBLIC_OIDC_ISSUER_URL into the browser bundle.
 
 export default function AccountPage() {
   const { actor } = useStore();
-  const accountConsoleURL = keycloakAccountConsoleURL();
+  const [accountConsoleURL, setAccountConsoleURL] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    authService.getAccountConsoleURL().then((url) => {
+      if (!cancelled) setAccountConsoleURL(url);
+    }).catch(() => {
+      if (!cancelled) setAccountConsoleURL("");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto pb-12">
@@ -115,8 +127,11 @@ export default function AccountPage() {
                     <ExternalLink className="w-4 h-4" />
                   </a>
                 ) : (
-                  <span className="text-[10px] text-amber-400 font-bold uppercase tracking-widest">
-                    NEXT_PUBLIC_OIDC_ISSUER_URL is not configured
+                  <span
+                    data-testid="account-console-unavailable"
+                    className="text-[10px] text-amber-400 font-bold uppercase tracking-widest"
+                  >
+                    OIDC issuer URL is not configured
                   </span>
                 )}
               </div>
