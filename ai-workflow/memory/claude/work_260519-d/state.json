@@ -2,8 +2,10 @@
   "schema_version": "1",
   "sprint": "claude/work_260519-d",
   "branch": "claude/work_260519-d",
-  "status": "in_progress",
+  "status": "done",
   "started_at": "2026-05-19T03:00:00Z",
+  "ended_at": "2026-05-19T03:55:00Z",
+  "merged_pr": {"pr": 172, "merge_commit": "d11917b", "merged_at": "2026-05-19T03:55:00Z"},
   "scope": "ADR-0019 §5.3 SSO logout chain (RP-initiated logout) carve out 진입 — 현재 frontend 의 RP-initiated logout 표준 구현 (auth.service.ts:100-125) 의 운영 SOP 측면 명문화 + Keycloak admin console 의 post-logout redirect URI 등록 SOP.",
   "directive_source": "사용자 요청 'ADR 19 진행하자' + carve 선택 'SSO logout chain (RP-initiated logout)' — sprint -c 종료 직후 §5.3 잔여 6 항목 중 코드 측면 진입 가능한 가장 자연스러운 다음 항목.",
   "context": {

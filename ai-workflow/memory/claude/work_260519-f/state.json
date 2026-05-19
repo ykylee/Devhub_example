@@ -2,8 +2,10 @@
   "schema_version": "1",
   "sprint": "claude/work_260519-f",
   "branch": "claude/work_260519-f",
-  "status": "in_progress",
+  "status": "done",
   "started_at": "2026-05-19T05:00:00Z",
+  "ended_at": "2026-05-19T05:55:00Z",
+  "merged_pr": {"pr": 174, "merge_commit": "947bd2f", "merged_at": "2026-05-19T05:55:00Z"},
   "scope": "ADR-0019 §5.3 (8) Keycloak groups → DevHub RBAC role 자동 매핑 design — 옵션 4종 비교 + 권장 B (Keycloak group composite role, backend 변경 없음) + Keycloak 운영 SOP §4.3 group 절 갱신.",
   "directive_source": "사용자 요청 'MFA 는 제외하고 다른거 검토' + carve 선택 'groups → RBAC role 자동 매핑' — sprint -e 종료 직후 §5.3 잔여 4 항목 중 DevHub git 안에서 결정 가능 + ADR 가치 있는 항목.",
   "context": {

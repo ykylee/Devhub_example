@@ -1,0 +1,25 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260519-i",
+  "branch": "claude/work_260519-i",
+  "status": "in_progress",
+  "started_at": "2026-05-19T08:00:00Z",
+  "scope": "main flat memory housekeeping — sprint -c~-h 6 PR (#171-#176) 누적 흡수 + ADR-0019 §5.3 design 완결 milestone 명문화 (MFA 제외 7/7 100%) + 다음 directive 재산정.",
+  "directive_source": "사용자 요청 'main flat memory housekeeping 진행' — sprint -h (failover design) 종료 직후, §5.3 design 완결 milestone 명문화 필요 시점.",
+  "decisions": [
+    "main flat state.json — head_commit 455556b (sprint -h PR #176) + merged_prs_2026_05_19 배열에 6 PR 추가 (#171-#176) + ADR-0019 §5.3 design 완결 milestone 명시 + next_actions 갱신 (잔여 4 design+carve).",
+    "main flat session_handoff.md — header (HEAD 455556b + design 100% 완결) + 신규 section '2026-05-19 ADR-0019 §5.3 design 완결 milestone' + 다음 directive 재산정.",
+    "main flat work_backlog.md — milestone (§5.3 design 7/7 완결) + 변경 이력 6 row + main HEAD 갱신.",
+    "sprint -c ~ -h state.json finalize 6개 (status: in_progress → done + ended_at + merged_pr).",
+    "auto-memory project memory 신규 — sprint -c~-h 6 PR 종합 + ADR governance milestone (§5.3 design 완결) + 학습."
+  ],
+  "todo": [
+    "ai-workflow/memory/state.json 갱신 (head_commit + merged_prs + ADR carve + next_actions)",
+    "ai-workflow/memory/session_handoff.md 갱신 (header + 신규 section + directive)",
+    "ai-workflow/memory/work_backlog.md 갱신 (milestone + 변경 이력 6 row)",
+    "sprint -c/-d/-e/-f/-g/-h state.json finalize",
+    "auto-memory MEMORY.md + project_2026_05_19_session_adr_0019_phase2.md 신규",
+    "commit + push + PR + 4단계 self-review + 머지"
+  ],
+  "verification": "docs-only — workflow-lint + check_docs 그린"
+}
