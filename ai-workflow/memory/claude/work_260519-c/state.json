@@ -2,8 +2,10 @@
   "schema_version": "1",
   "sprint": "claude/work_260519-c",
   "branch": "claude/work_260519-c",
-  "status": "in_progress",
+  "status": "done",
   "started_at": "2026-05-19T02:00:00Z",
+  "ended_at": "2026-05-19T02:55:00Z",
+  "merged_pr": {"pr": 171, "merge_commit": "23602f5", "merged_at": "2026-05-19T02:55:00Z"},
   "scope": "ADR-0019 §5.3 Keycloak realm SOP carve out 진입 — 단일 통합 SOP 문서 (docs/setup/keycloak_operations.md) 로 realm/client/role + JWKS rotation + admin user attribute 매핑 3 항목 처리.",
   "directive_source": "사용자 요청 'ADR-0019 §5.3 Keycloak realm SOP 카브 진입하자' — sprint -b housekeeping 종료 직후 1순위 directive 진입.",
   "decisions": [

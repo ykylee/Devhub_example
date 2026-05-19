@@ -2,8 +2,10 @@
   "schema_version": "1",
   "sprint": "claude/work_260519-h",
   "branch": "claude/work_260519-h",
-  "status": "in_progress",
+  "status": "done",
   "started_at": "2026-05-19T07:00:00Z",
+  "ended_at": "2026-05-19T07:55:00Z",
+  "merged_pr": {"pr": 176, "merge_commit": "455556b", "merged_at": "2026-05-19T07:55:00Z"},
   "scope": "ADR-0019 §5.3 (6) Keycloak failover (HA) design — §5.3 의 마지막 잔여 carve (MFA 제외). 사내 인프라 결정 영역이지만 design 자체는 DevHub git 안에서 가능. DevHub 측 graceful degradation 동작 + Keycloak HA 옵션 + DR site 정리.",
   "directive_source": "사용자 요청 'failover design 진행' — sprint -g 종료 직후 §5.3 마지막 잔여 carve.",
   "context": {

@@ -2,8 +2,10 @@
   "schema_version": "1",
   "sprint": "claude/work_260519-g",
   "branch": "claude/work_260519-g",
-  "status": "in_progress",
+  "status": "done",
   "started_at": "2026-05-19T06:00:00Z",
+  "ended_at": "2026-05-19T06:55:00Z",
+  "merged_pr": {"pr": 175, "merge_commit": "aa0c029", "merged_at": "2026-05-19T06:55:00Z"},
   "scope": "ADR-0019 §5.3 (7) off-boarding 즉시성 design — HR ETL ↔ Keycloak ↔ DevHub propagation chain. ADR-0008 §6 의 '실시간 sync 요구' 항목과 묶음. 즉시성 향상 옵션 비교 + 권장 + cutover.",
   "directive_source": "사용자 요청 'off-boarding 즉시성 design 진행' — sprint -f 종료 직후 §5.3 잔여 3 항목 (MFA 제외 / failover / off-boarding) 중 가장 critical 한 운영 영역.",
   "context": {

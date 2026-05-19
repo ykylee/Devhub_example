@@ -2,8 +2,10 @@
   "schema_version": "1",
   "sprint": "claude/work_260519-e",
   "branch": "claude/work_260519-e",
-  "status": "in_progress",
+  "status": "done",
   "started_at": "2026-05-19T04:00:00Z",
+  "ended_at": "2026-05-19T04:55:00Z",
+  "merged_pr": {"pr": 173, "merge_commit": "6245bda", "merged_at": "2026-05-19T04:55:00Z"},
   "scope": "ADR-0019 §5.3 audit event listener / SPI → DevHub audit_logs 통합 design 1차 작성. Keycloak event 통합 옵션 3종 비교 + 권장 결정 (polling) + audit_logs 매핑 + 구현 단계 명문화. 실 backend 구현 (cron + admin client 확장) 은 별도 후속 sprint.",
   "directive_source": "사용자 요청 'audit event listener 진행하자' — sprint -d 종료 직후 ADR-0019 §5.3 잔여 5 항목 중 코드 측면 진입 가능한 항목.",
   "context": {
