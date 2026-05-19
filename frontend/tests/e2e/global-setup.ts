@@ -1,160 +1,160 @@
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 
-// global-setup.ts (PR-T3.5, work_26_05_11-e): idempotently seed the three
-// e2e users used by frontend/tests/e2e/fixtures.ts. Runs once per
-// `npm run e2e` invocation. Skip via DEVHUB_E2E_SKIP_SEED=1 for CI matrix
-// runs that drive seeding from a separate stage.
-//
-// ⚠️ deprecated (2026-05-19, sprint claude/work_260519-m, ADR-0019 Keycloak 단일화 후 잔재):
-//   본 파일은 Kratos admin API (`/admin/identities`) 의존 잔재. 사내 e2e 환경의 Kratos staging 가동 시에만 동작.
-//   Phase 2 별도 sprint 에서 Keycloak admin API (`/admin/realms/{realm}/users`) 로 전환 — design 은
-//   docs/planning/e2e_keycloak_migration.md §3 (admin token 획득 + user seed + group 가입 + DevHub users sync).
-//
-// The seed is split in two:
-//   1. Kratos identities — POST /admin/identities when missing, PUT
-//      /admin/identities/{id} to force-reset the seed password when the
-//      identity already exists (PR-T3.5 hardening, work_260512-f). The PUT
-//      keeps traits/state/metadata intact and only refreshes
-//      credentials.password — Kratos hashes the plaintext on receive, and
-//      other credential methods (if any) survive because PUT only updates
-//      methods supplied in the payload. This closes the documented
-//      stale-rotation gap: if password-change.spec's finally rollback fails
-//      mid-run, the next `npm run e2e` restores the seed automatically.
-//   2. DevHub users row — runs `go run ./cmd/idp-apply-schemas -sql
-//      infra/idp/sql/002_seed_e2e_users.sql`. The helper is already used by
-//      operators in the manual flow; reusing it keeps a single seeding
-//      pathway. Requires DSN env so the helper can connect to PostgreSQL.
+const KC_BASE_URL = (process.env.DEVHUB_KEYCLOAK_ADMIN_URL ?? "http://localhost:8180/devhub/auth/keycloak").replace(/\/+$/, "");
+const KC_REALM = (process.env.DEVHUB_KEYCLOAK_ADMIN_REALM ?? "devhub").trim();
+const KC_ADMIN_CLIENT_ID = (process.env.DEVHUB_KEYCLOAK_ADMIN_CLIENT_ID ?? "devhub-backend").trim();
+const KC_ADMIN_CLIENT_SECRET = (process.env.DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET ?? "").trim();
 
-const KRATOS_ADMIN_URL = (process.env.KRATOS_ADMIN_URL ?? "http://localhost:4434").replace(/\/$/, "");
 const DSN = process.env.DSN ?? "";
 const SKIP_SEED = process.env.DEVHUB_E2E_SKIP_SEED === "1";
 
-interface KratosSeed {
+type Seed = {
   user_id: string;
   email: string;
   display_name: string;
   password: string;
-  role: string;
-}
+  role: "developer" | "manager" | "system_admin";
+};
 
-const SEEDS: readonly KratosSeed[] = [
+const SEEDS: readonly Seed[] = [
   { user_id: "alice", email: "alice@example.com", display_name: "Alice", password: "ChangeMe-12345!", role: "developer" },
   { user_id: "bob", email: "bob@example.com", display_name: "Bob", password: "ChangeMe-12345!", role: "manager" },
   { user_id: "charlie", email: "charlie@example.com", display_name: "Charlie", password: "ChangeMe-12345!", role: "system_admin" },
 ];
 
-interface KratosIdentityFull {
+type KeycloakUser = {
   id: string;
-  schema_id: string;
-  state: string;
-  traits?: { email?: string; [k: string]: unknown };
-  metadata_public?: Record<string, unknown> | null;
-  metadata_admin?: Record<string, unknown> | null;
-}
+  username?: string;
+  email?: string;
+};
 
-async function listExistingIdentities(): Promise<Map<string, KratosIdentityFull>> {
-  // Returns email (lowercased) -> identity mapping. Kratos /admin/identities
-  // pagination is 0-based — verified against v26.2.0 (page=0 returns first
-  // batch). The earlier 1-based start silently returned an empty first page
-  // and made the seed dedupe check think no identities existed, which then
-  // 409'd on POST.
-  const out = new Map<string, KratosIdentityFull>();
-  let page = 0;
-  const perPage = 250;
-  while (page < 40) {
-    const url = `${KRATOS_ADMIN_URL}/admin/identities?page=${page}&per_page=${perPage}`;
-    const resp = await fetch(url, { headers: { Accept: "application/json" } });
-    if (!resp.ok) {
-      throw new Error(`Kratos admin list identities ${resp.status}: ${await resp.text()}`);
-    }
-    const batch = (await resp.json()) as KratosIdentityFull[];
-    for (const ident of batch) {
-      const email = ident.traits?.email?.toLowerCase();
-      if (email && ident.id) out.set(email, ident);
-    }
-    if (batch.length < perPage) break;
-    page += 1;
+type KeycloakRole = {
+  id: string;
+  name: string;
+};
+
+async function fetchAdminToken(): Promise<string> {
+  if (!KC_ADMIN_CLIENT_SECRET) {
+    throw new Error("DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET is required for e2e global setup");
   }
-  return out;
-}
-
-async function createKratosIdentity(seed: KratosSeed): Promise<void> {
-  const payload = {
-    schema_id: "devhub_user",
-    state: "active",
-    traits: { system_id: seed.user_id, email: seed.email, display_name: seed.display_name },
-    metadata_public: { user_id: seed.user_id },
-    credentials: { password: { config: { password: seed.password } } },
-  };
-  const resp = await fetch(`${KRATOS_ADMIN_URL}/admin/identities`, {
+  const tokenURL = `${KC_BASE_URL}/realms/${encodeURIComponent(KC_REALM)}/protocol/openid-connect/token`;
+  const resp = await fetch(tokenURL, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify(payload),
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "client_credentials",
+      client_id: KC_ADMIN_CLIENT_ID,
+      client_secret: KC_ADMIN_CLIENT_SECRET,
+    }),
   });
   if (!resp.ok) {
-    throw new Error(`Kratos admin create identity ${seed.user_id} → ${resp.status}: ${await resp.text()}`);
+    throw new Error(`Keycloak token grant failed ${resp.status}: ${await resp.text()}`);
   }
+  const body = (await resp.json()) as { access_token?: string };
+  if (!body.access_token) {
+    throw new Error("Keycloak token response missing access_token");
+  }
+  return body.access_token;
 }
 
-async function resetKratosPassword(identity: KratosIdentityFull, seed: KratosSeed): Promise<void> {
-  // PUT /admin/identities/{id} replaces the identity. We echo schema_id /
-  // traits / metadata from the list response so unmanaged fields
-  // (e.g. metadata_admin populated by another process) survive, and supply
-  // credentials.password as plaintext — Kratos hashes on receive. Kratos
-  // only updates credential methods present in the payload, so non-password
-  // methods (if ever added) are not wiped.
-  //
-  // state is forced back to "active" rather than echoed: if some prior
-  // step disabled the seeded identity, echoing `inactive` would leave the
-  // seed unusable even after the password reset. The seeded users
-  // (alice/bob/charlie) are e2e-only and have no legitimate reason to be
-  // inactive, so the force-active is congruent with the seed contract.
-  const traits = {
-    ...(identity.traits ?? {}),
-    system_id: seed.user_id,
+async function findUserByEmail(token: string, email: string): Promise<KeycloakUser | null> {
+  const url = `${KC_BASE_URL}/admin/realms/${encodeURIComponent(KC_REALM)}/users?email=${encodeURIComponent(email)}&exact=true`;
+  const resp = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+  });
+  if (!resp.ok) {
+    throw new Error(`Keycloak list users failed ${resp.status}: ${await resp.text()}`);
+  }
+  const users = (await resp.json()) as KeycloakUser[];
+  return users[0] ?? null;
+}
+
+async function createUser(token: string, seed: Seed): Promise<string> {
+  const url = `${KC_BASE_URL}/admin/realms/${encodeURIComponent(KC_REALM)}/users`;
+  const payload = {
+    username: seed.user_id,
     email: seed.email,
-    display_name: seed.display_name,
+    firstName: seed.display_name,
+    enabled: true,
+    emailVerified: true,
+    attributes: {
+      user_id: [seed.user_id],
+      employee_id: [seed.user_id],
+    },
   };
-  const metadataPublic = {
-    ...(identity.metadata_public ?? {}),
-    user_id: seed.user_id,
-  };
-  const payload: Record<string, unknown> = {
-    schema_id: identity.schema_id,
-    state: "active",
-    traits,
-    metadata_public: metadataPublic,
-    credentials: { password: { config: { password: seed.password } } },
-  };
-  if (identity.metadata_admin != null) payload.metadata_admin = identity.metadata_admin;
-  const resp = await fetch(`${KRATOS_ADMIN_URL}/admin/identities/${identity.id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
+  const resp = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify(payload),
   });
+  if (resp.status !== 201) {
+    throw new Error(`Keycloak create user ${seed.user_id} failed ${resp.status}: ${await resp.text()}`);
+  }
+  const location = resp.headers.get("location") ?? "";
+  const id = location.split("/").pop()?.trim();
+  if (!id) {
+    throw new Error(`Keycloak create user ${seed.user_id} missing Location header`);
+  }
+  return id;
+}
+
+async function resetPassword(token: string, userID: string, password: string): Promise<void> {
+  const url = `${KC_BASE_URL}/admin/realms/${encodeURIComponent(KC_REALM)}/users/${encodeURIComponent(userID)}/reset-password`;
+  const resp = await fetch(url, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ type: "password", value: password, temporary: false }),
+  });
   if (!resp.ok) {
-    throw new Error(`Kratos admin reset password ${seed.email} → ${resp.status}: ${await resp.text()}`);
+    throw new Error(`Keycloak reset password ${userID} failed ${resp.status}: ${await resp.text()}`);
   }
 }
 
-async function seedKratos(): Promise<void> {
-  const existing = await listExistingIdentities();
+async function ensureRealmRole(token: string, userID: string, roleName: Seed["role"]): Promise<void> {
+  const roleURL = `${KC_BASE_URL}/admin/realms/${encodeURIComponent(KC_REALM)}/roles/${encodeURIComponent(roleName)}`;
+  const roleResp = await fetch(roleURL, {
+    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+  });
+  if (!roleResp.ok) {
+    throw new Error(`Keycloak role lookup ${roleName} failed ${roleResp.status}: ${await roleResp.text()}`);
+  }
+  const role = (await roleResp.json()) as KeycloakRole;
+
+  const mappingURL = `${KC_BASE_URL}/admin/realms/${encodeURIComponent(KC_REALM)}/users/${encodeURIComponent(userID)}/role-mappings/realm`;
+  const mapResp = await fetch(mappingURL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify([{ id: role.id, name: role.name }]),
+  });
+  if (!mapResp.ok) {
+    throw new Error(`Keycloak role map ${userID} -> ${roleName} failed ${mapResp.status}: ${await mapResp.text()}`);
+  }
+}
+
+async function seedKeycloakUsers(): Promise<void> {
+  const token = await fetchAdminToken();
   for (const seed of SEEDS) {
-    const identity = existing.get(seed.email.toLowerCase());
-    if (identity) {
-      await resetKratosPassword(identity, seed);
-      console.log(`[e2e seed] kratos identity ${seed.email} present → password force-reset to seed value`);
-      continue;
-    }
-    await createKratosIdentity(seed);
-    console.log(`[e2e seed] created kratos identity ${seed.email}`);
+    const existing = await findUserByEmail(token, seed.email);
+    const userID = existing?.id ?? (await createUser(token, seed));
+    await resetPassword(token, userID, seed.password);
+    await ensureRealmRole(token, userID, seed.role);
+    console.log(`[e2e seed] keycloak user ${seed.email} ${existing ? "present" : "created"} → password reset + role mapped (${seed.role})`);
   }
 }
 
 function seedDevhubUsers(): void {
   if (!DSN) {
-    throw new Error("DSN env var is required for global-setup to seed DevHub users (see docs/setup/e2e-test-guide.md §2)");
+    throw new Error("DSN env var is required for global-setup (DevHub users seed)");
   }
   const backendDir = path.resolve(__dirname, "..", "..", "..", "backend-core");
   const sqlPath = path.resolve(__dirname, "..", "..", "..", "infra", "idp", "sql", "002_seed_e2e_users.sql");
@@ -165,16 +165,16 @@ function seedDevhubUsers(): void {
     shell: process.platform === "win32",
   });
   if (result.status !== 0) {
-    throw new Error(`idp-apply-schemas exited with status ${result.status} (DSN seed for 002_seed_e2e_users.sql)`);
+    throw new Error(`idp-apply-schemas exited with status ${result.status}`);
   }
   console.log("[e2e seed] DevHub users row seeded via idp-apply-schemas");
 }
 
 export default async function globalSetup(): Promise<void> {
   if (SKIP_SEED) {
-    console.log("[e2e seed] DEVHUB_E2E_SKIP_SEED=1 → skipping seed");
+    console.log("[e2e seed] DEVHUB_E2E_SKIP_SEED=1 -> skipping seed");
     return;
   }
-  await seedKratos();
+  await seedKeycloakUsers();
   seedDevhubUsers();
 }

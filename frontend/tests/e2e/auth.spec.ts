@@ -1,4 +1,4 @@
-import { test, expect, loginAs, SEEDED } from "./fixtures";
+import { test, expect, loginAs, SEEDED, submitSignInForm, waitForSignInForm } from "./fixtures";
 
 // auth.spec — login + role-based landing (PR-S1) + system route gating.
 // Source-of-truth: defaultLandingFor + pathRequiresSystemAdmin in
@@ -37,17 +37,17 @@ test.describe("system route gating", () => {
 
 test.describe("login failure + auth guard (2026-05-12)", () => {
   test("TC-AUTH-NEG-01 — wrong password keeps the user on the sign-in form", async ({ page }) => {
-    await page.goto("/login");
-    await page.waitForURL(/\/auth\/login/, { timeout: 15_000 });
-
-    await page.getByLabel(/system id/i).fill(SEEDED.developer.user_id);
-    await page.getByLabel(/^password$/i).fill("wrong-password-not-real");
-    await page.getByRole("button", { name: /sign in/i }).click();
+    await page.goto("/login").catch((err) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!msg.includes("ERR_ABORTED")) throw err;
+    });
+    await waitForSignInForm(page);
+    await submitSignInForm(page, SEEDED.developer.user_id, "wrong-password-not-real");
 
     // Provider validation echoes a credential-invalid message. Exact wording is version dependent, so we
     // assert on a loose substring and confirm the URL stays on the
     // login form (login_challenge unchanged → no advance).
-    await expect(page).toHaveURL(/\/auth\/login/, { timeout: 10_000 });
+    await waitForSignInForm(page);
     // The frontend renders provider error messages
     // messages — at least one error indicator must appear.
     await expect(
@@ -70,6 +70,6 @@ test.describe("login failure + auth guard (2026-05-12)", () => {
       const msg = err instanceof Error ? err.message : String(err);
       if (!msg.includes("ERR_ABORTED")) throw err;
     });
-    await page.waitForURL(/\/auth\/login/, { timeout: 20_000 });
+    await waitForSignInForm(page);
   });
 });
