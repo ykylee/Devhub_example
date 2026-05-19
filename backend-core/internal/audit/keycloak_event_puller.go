@@ -62,7 +62,9 @@ type KeycloakAdminEvent struct {
 
 // AuditEmitter — Keycloak event 1건마다 audit_logs INSERT 콜백. main.go wire 시 주입.
 // design 문서 §3.4 audit_logs INSERT 매핑 정합 (action / target_type / target_id / payload 등).
-type AuditEmitter func(ctx context.Context, action, targetType, targetID string, payload map[string]any)
+// sourceEventID 는 puller 의 SHA256 dedup hash — store layer 가 partial UNIQUE INDEX
+// (migration 000032, sprint -w PR-D) 로 중복 INSERT 차단 (at-least-once 가드).
+type AuditEmitter func(ctx context.Context, action, targetType, targetID, sourceEventID string, payload map[string]any)
 
 // KeycloakEventPullerOptions — cron loop 설정.
 type KeycloakEventPullerOptions struct {
@@ -191,7 +193,7 @@ func pullUserEvents(
 		}
 		action, targetType, targetID := mapUserEventToAudit(ev)
 		if opts.AuditEmitter != nil {
-			opts.AuditEmitter(ctx, action, targetType, targetID, userEventPayload(ev))
+			opts.AuditEmitter(ctx, action, targetType, targetID, evHash, userEventPayload(ev))
 		}
 		ObserveEventProcessed("user", action)
 		if evTime.After(latestTime) {
@@ -247,7 +249,7 @@ func pullAdminEvents(
 		}
 		action, targetType, targetID := mapAdminEventToAudit(ev)
 		if opts.AuditEmitter != nil {
-			opts.AuditEmitter(ctx, action, targetType, targetID, adminEventPayload(ev))
+			opts.AuditEmitter(ctx, action, targetType, targetID, evHash, adminEventPayload(ev))
 		}
 		ObserveEventProcessed("admin", action)
 		if evTime.After(latestTime) {

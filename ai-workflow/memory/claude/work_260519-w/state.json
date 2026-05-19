@@ -1,0 +1,30 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260519-w",
+  "branch": "claude/work_260519-w",
+  "status": "in_progress",
+  "started_at": "2026-05-19T22:00:00Z",
+  "scope": "ADR-0019 §5.3 (9) audit event listener Phase 2 PR-D — store-level dedup. migration 000032 audit_logs.source_event_id + partial UNIQUE INDEX + domain.AuditLog.SourceEventID + store CreateAuditLog ON CONFLICT DO NOTHING + getAuditLogBySourceEventID lookup + audit.AuditEmitter 시그니처 확장 + puller hash 를 sourceEventID 로 전달 + main.go emitter 가 entry.SourceEventID set + integration test 2건. §5.3 (9) Phase 2 backend (PR-B~PR-D) 모두 resolved.",
+  "directive_source": "사용자 요청 'PR-D 진행하자' — sprint -v closing 직후 5단계 중 3번째.",
+  "decisions": [
+    "ON CONFLICT (cols) WHERE source_event_id IS NOT NULL DO NOTHING — partial UNIQUE INDEX 와 정합. caller 가 idempotency 의식 없이 사용 가능하도록 ErrNoRows 분기에서 getAuditLogBySourceEventID 로 기존 row SELECT 후 반환 (silent dedup 가시화).",
+    "AuditEmitter 시그니처 확장 (옵션 A — payload reserved key 대신 명시 파라미터) — sourceEventID 가 puller-specific 이지만 audit 패키지 안에 한정되어 generic signature 영향 적음. devrequest.AuditEmitter 는 별도 type 이므로 영향 없음.",
+    "partial UNIQUE INDEX WHERE source_event_id IS NOT NULL — 기존 audit_logs row (commands flow / Kratos hook / Gitea webhook 등) 가 NULL 로 남아 unique 제약 영향 없음 (legacy 데이터 회귀 0). Keycloak event listener 같은 deterministic id emitter 만 dedup 대상.",
+    "ListAuditLogs SELECT 도 source_event_id COALESCE column 포함 — 향후 admin UI / API 가 dedup key 노출 가능.",
+    "integration test 는 DEVHUB_TEST_DB_URL skip pattern — postgres_*_test.go + applications_integration_test.go 패턴 정합. CI backend-unit job 은 skip, 로컬 / staging migration 적용 환경에서 실 실행."
+  ],
+  "todo": [
+    "migrations/000032_audit_logs_source_event_id.{up,down}.sql 신규 (완료)",
+    "domain.AuditLog SourceEventID 필드 추가 (완료)",
+    "store/audit_logs.go CreateAuditLog + ON CONFLICT + getAuditLogBySourceEventID lookup + ListAuditLogs SELECT (완료)",
+    "audit/keycloak_event_puller.go AuditEmitter 시그니처 확장 + pull*Events 에서 evHash 전달 (완료)",
+    "main.go buildKeycloakEventAuditEmitter 가 entry.SourceEventID set (완료)",
+    "기존 audit 패키지 test 의 emitter callback signature 정정 (완료)",
+    "audit/integration_test 의 sourceEventID 검증 추가 (완료)",
+    "store/audit_logs_dedup_integration_test.go 2건 신규 (완료 + DEVHUB_TEST_DB_URL 미설정 시 skip)",
+    "ADR-0019 §5.3 (9) row + 변경 이력 row 갱신 (완료)",
+    "docs/traceability/report.md §6 sprint -w row (완료)",
+    "commit + push + PR + 4단계 self-review"
+  ],
+  "verification": "go build ./... PASS. go test -count=1 ./internal/audit/... ./internal/store/... ./internal/domain/... ./internal/httpapi/... 모두 PASS (audit 0.576s + store 0.946s + domain + httpapi 1.020s). store dedup integration test 2건 — DEVHUB_TEST_DB_URL 미설정 시 t.Skip (postgres_*_test.go 패턴 정합), set 시 (a) 동일 (source_type, source_event_id) INSERT 2회 → 1개 row + ON CONFLICT 후 SELECT 반환 검증, (b) 빈 source_event_id 2회 → 2개 row 정상 (partial WHERE 가 NULL row 제외)."
+}

@@ -146,7 +146,7 @@ func TestPullUserEvents_SkipsConfiguredEventTypes(t *testing.T) {
 	})
 
 	var emitted []string
-	emitter := AuditEmitter(func(_ context.Context, action, _, _ string, _ map[string]any) {
+	emitter := AuditEmitter(func(_ context.Context, action, _, _, _ string, _ map[string]any) {
 		emitted = append(emitted, action)
 	})
 
@@ -184,7 +184,7 @@ func TestPullUserEvents_AdvancesCursor(t *testing.T) {
 	})
 
 	opts := KeycloakEventPullerOptions{
-		AuditEmitter:       AuditEmitter(func(_ context.Context, _, _, _ string, _ map[string]any) {}),
+		AuditEmitter:       AuditEmitter(func(_ context.Context, _, _, _, _ string, _ map[string]any) {}),
 		Now:                func() time.Time { return start },
 		SkipUserEventTypes: defaultSkipUserEventTypes(),
 		MaxEvents:          500,
@@ -250,7 +250,7 @@ func TestPullUserEvents_FiltersAlreadyProcessed(t *testing.T) {
 
 	var emitted []string
 	opts := KeycloakEventPullerOptions{
-		AuditEmitter: AuditEmitter(func(_ context.Context, _, _, targetID string, _ map[string]any) {
+		AuditEmitter: AuditEmitter(func(_ context.Context, _, _, targetID, _ string, _ map[string]any) {
 			emitted = append(emitted, targetID)
 		}),
 		Now:                func() time.Time { return cursor },
@@ -282,7 +282,7 @@ func TestPullUserEvents_BoundarySameHash_Skipped(t *testing.T) {
 
 	var emitted int
 	opts := KeycloakEventPullerOptions{
-		AuditEmitter: AuditEmitter(func(_ context.Context, _, _, _ string, _ map[string]any) {
+		AuditEmitter: AuditEmitter(func(_ context.Context, _, _, _, _ string, _ map[string]any) {
 			emitted++
 		}),
 		Now:                func() time.Time { return cursor },
@@ -314,7 +314,7 @@ func TestPullAdminEvents_AdvancesCursor(t *testing.T) {
 
 	var emitted []string
 	opts := KeycloakEventPullerOptions{
-		AuditEmitter: AuditEmitter(func(_ context.Context, action, _, _ string, _ map[string]any) {
+		AuditEmitter: AuditEmitter(func(_ context.Context, action, _, _, _ string, _ map[string]any) {
 			emitted = append(emitted, action)
 		}),
 		Now:       func() time.Time { return start },
