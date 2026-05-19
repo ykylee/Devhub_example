@@ -2,8 +2,11 @@
   "schema_version": "1",
   "sprint": "claude/work_260519-u",
   "branch": "claude/work_260519-u",
-  "status": "in_progress",
+  "status": "done",
   "started_at": "2026-05-19T20:00:00Z",
+  "ended_at": "2026-05-19T20:45:00Z",
+  "merged_pr": 189,
+  "merge_commit": "d6e0f99",
   "scope": "ADR-0019 §5.3 (9) audit event listener / SPI → DevHub audit_logs 통합 — Phase 2 PR-B (skeleton). migration 000031 event_cursors + EventCursorStore + KeycloakAdminClient.ListUserEvents/ListAdminEvents + KeycloakEventPuller (pullUserEvents/pullAdminEvents/loadCursor/매핑 표 22 row) + unit test 15건. main.go wire + Prometheus metric + integration test 는 PR-C 별도 carve.",
   "directive_source": "사용자 요청 'audit event listener 실 구현 Phase 2 PR-B 진입' (AskUserQuestion 응답 — sprint -t closing 직후 5단계 중 1번째).",
   "decisions": [

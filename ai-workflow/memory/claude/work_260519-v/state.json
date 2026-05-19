@@ -2,8 +2,11 @@
   "schema_version": "1",
   "sprint": "claude/work_260519-v",
   "branch": "claude/work_260519-v",
-  "status": "in_progress",
+  "status": "done",
   "started_at": "2026-05-19T21:00:00Z",
+  "ended_at": "2026-05-19T21:45:00Z",
+  "merged_pr": 190,
+  "merge_commit": "2ddece2",
   "scope": "ADR-0019 §5.3 (9) audit event listener Phase 2 PR-C — main.go wire + Prometheus metric + integration test. domain.AuditSourceKeycloakEvent enum + audit/metrics.go (3종 metric) + keycloak_admin_adapter.go (HTTPAPIEventLister mirror + adapter) + main.go cron wire (config gate + thin wrapper + emitter) + pullOnce firstErr 패턴 정정. PR-D (schema dedup UNIQUE) / PR-E (operations §8.6 SOP) carve 유지.",
   "directive_source": "사용자 요청 'PR-C 진행하자' — sprint -u closing 직후 5단계 중 2번째.",
   "decisions": [

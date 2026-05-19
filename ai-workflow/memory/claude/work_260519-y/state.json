@@ -2,8 +2,11 @@
   "schema_version": "1",
   "sprint": "claude/work_260519-y",
   "branch": "claude/work_260519-y",
-  "status": "in_progress",
+  "status": "done",
   "started_at": "2026-05-20T00:00:00Z",
+  "ended_at": "2026-05-20T00:30:00Z",
+  "merged_pr": 193,
+  "merge_commit": "f3f640b",
   "scope": "codex review hotfix #10 일괄 흡수 (PR #189~#192 의 P1×3 + P2×2). P1-A puller skip-only page cursor advance + P1-B loadCursor 즉시 영구 UPSERT + P1-C §8.6.1 사전 조건 갱신 + P2-D hashUserEvent/hashAdminEvent 7-tuple 확장 + P2-E §8.6.2 Expiration wording 정정. false positive 1건 (PR #189 same-ms boundary) 는 sprint -u Stage 3 에서 이미 해소.",
   "directive_source": "사용자 요청 'pr들 확인해보고 codex 코멘트 달린게 있는지 검토해' → 6건 발견 → 'hotfix 방식?' AskUserQuestion → '단일 hotfix PR 일괄 흡수' 선택.",
   "decisions": [
