@@ -2,8 +2,10 @@
   "schema_version": "1",
   "sprint": "claude/work_260519-k",
   "branch": "claude/work_260519-k",
-  "status": "in_progress",
+  "status": "done",
   "started_at": "2026-05-19T10:00:00Z",
+  "ended_at": "2026-05-19T10:55:00Z",
+  "merged_pr": {"pr": 179, "merge_commit": "b3f8153", "merged_at": "2026-05-19T10:55:00Z"},
   "scope": "infra/runtime 자산 Keycloak 정합 — PR #167 KC-PR-D 가 backend/frontend code 만 전환했으나 docker-compose.deploy.yml + infra/nginx/devhub.conf + devhub.deploy.conf 의 Hydra+Kratos stack 그대로 잔재. ADR-0019 채택 후 누락된 infra 자산 정합.",
   "directive_source": "사용자 요청 'keycloak 으로 전환하는 과정에서 docker 구성이나 infra 구성도 전환 내용이 적용되어있는지 확인' — sprint -j codex hotfix 종료 직후 검토 결과 + 정합 작업.",
   "discovery": {
