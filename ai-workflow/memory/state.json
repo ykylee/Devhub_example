@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-05-19 ADR-0019 §5.3 (9) audit event listener Phase 2 종결 + codex hotfix #11/#12 + **sprint -ad Kratos 잔재 residual cleanup** — sprint -a~-i 누적 9 PR + sprint -j~-t 누적 11 PR + sprint -u~-y 5 PR (audit event listener Phase 2) + sprint -z (housekeeping #1) + sprint -aa (codex hotfix #11 same-ms boundary) + -ab (codex hotfix #12 sprint -n~-t finalize) + -ac (housekeeping #2) + **-ad (Kratos 잔재 residual cleanup, ADR-0019 정공법)**.",
-  "updated_at": "2026-05-20T07:00:00Z",
-  "head_commit": "TBD (sprint -ad PR TBD, squash merge 후 갱신)",
-  "head_summary": "TBD — sprint claude/work_260519-ad Kratos 잔재 residual cleanup (PR TBD, squash merge 후 갱신)",
+  "status": "2026-05-20 main flat memory housekeeping #3 — sprint -ad finalize (PR #198 `bcca86a`) + 2026-05-20 sprint -a (PR #199 계정/사용자 관리 리팩토링 Phase 1 매트릭스) + sprint -b (PR #200 Phase 2 책임 분리 design + 명시 결정 6건) + 외부 PR #201 (codex/keycloak-only-refactor-plan post-PR-#200 + Keycloak E2E CI 정합) + PR #202 (ci-fix signout flake) 일괄 흡수. 2026-05-19 단일 세션 누적 30 PR + 2026-05-20 sprint -a/-b/외부 4 PR + 본 housekeeping sprint -c. 계정/사용자 관리 리팩토링 Phase 1/2 (PR #199/#200) 가 다음 Phase 3 (실 구현) 진입 자산. ADR-0019 §5.3 design 완결 + audit event listener Phase 2 풀스택 종결 + Kratos 잔재 residual cleanup 누적 그대로.",
+  "updated_at": "2026-05-20T15:00:00Z",
+  "head_commit": "abc8cc9",
+  "head_summary": "Merge pull request #202 from ykylee/ci-fix — ci: align e2e pipeline to keycloak and add sync guard (signout user-switch flow timeout relax + session clear 대기)",
   "milestones": {
     "M0": {
       "status": "done",
@@ -252,7 +252,15 @@
     {"pr": 193, "sprint": "claude/work_260519-y", "title": "fix(audit,docs): codex hotfix #10 일괄 흡수 — PR #189~#192 의 P1×3 + P2×2 (skip-only cursor advance + loadCursor 즉시 영구 seed + §8.6.1 seed 명시 + hash 7-tuple 확장 + Expiration wording 정정) + 4건 신규 test + PR #189 P2 same-ms boundary false positive 응답", "merge_commit": "f3f640b"},
     {"pr": 194, "sprint": "claude/work_260519-z", "title": "docs(memory): 2026-05-19 main flat memory housekeeping #1 — sprint -u~-y 5 PR 흡수 + ADR-0019 §5.3 (9) audit event listener Phase 2 종결 milestone 명문화", "merge_commit": "61dcbb4"},
     {"pr": 195, "sprint": "claude/work_260519-aa", "title": "fix(audit): codex hotfix #11 — PR #193 same-ms boundary 에서 emit-able event 의 hash 우선 (latestEmittable bool flag 도입, skip event hash 가 latestHash 로 저장되어 다음 tick re-emit + metric inflation 되던 side effect 해소, 2건 test)", "merge_commit": "d9bcd82"},
-    {"pr": 196, "sprint": "claude/work_260519-ab", "title": "docs(memory): codex hotfix #12 — sprint -n~-t 7 branch state finalize 누락 정정 + sprint -z/-aa 본인 finalize (PR #194 codex P2 응답, AGENTS.md 세션 복원 위험 회피)", "merge_commit": "86e5b0d"}
+    {"pr": 196, "sprint": "claude/work_260519-ab", "title": "docs(memory): codex hotfix #12 — sprint -n~-t 7 branch state finalize 누락 정정 + sprint -z/-aa 본인 finalize (PR #194 codex P2 응답, AGENTS.md 세션 복원 위험 회피)", "merge_commit": "86e5b0d"},
+    {"pr": 197, "sprint": "claude/work_260519-ac", "title": "docs(memory): 2026-05-19 main flat memory housekeeping #2 — sprint -z + -aa + -ab 3 PR 흡수 + codex hotfix #10/#11/#12 cycle 종결", "merge_commit": "569a16e"},
+    {"pr": 198, "sprint": "claude/work_260519-ad", "title": "refactor(httpapi,frontend): Kratos 잔재 residual cleanup — ADR-0019 정공법 (backend 11 파일 삭제 + frontend account password form 제거 + Keycloak Account Console redirect + identity_resolver.go 신규 + `domain.AuditSourceKratos` enum + audit action 이름 historical 보존)", "merge_commit": "bcca86a"}
+  ],
+  "merged_prs_2026_05_20": [
+    {"pr": 199, "sprint": "claude/work_260520-a", "title": "docs(planning): 계정/사용자 관리 리팩토링 Phase 1 — 현황 파악 매트릭스 (docs/planning/account_user_management_redesign.md 신규, 235 lines; §1 책임 분리 매트릭스 13 row + §2 backend 17 endpoint + §3 frontend 4 page + §4 DB schema + §4.5 Phase 2 입력 옵션 A~D; 핵심 발견 5건: role 이중 source-of-truth / status 이중 source / POST `/accounts` vs POST `/users` 중복 / dead frontend code / `PUT /rbac/subjects/:id/roles` UI 미구현)", "merge_commit": "b0bcced"},
+    {"pr": 200, "sprint": "claude/work_260520-b", "title": "docs(planning): 계정/사용자 관리 리팩토링 Phase 2 — 책임 분리 design + 명시 결정 6건 확정 (옵션 A 전면 폐기 / B `/login` entry minimal page 유지 / C event listener 확장 + lazy hot path / D `rbac_subject_roles` 완전 제거 / E read-only mode 도입 안 함 / F JWKS stale-while-error expiry case 확장; §5 Phase 2 design 신규 10 sub-section + §5.10 ADR-0020 후보 outline; backend `rbac_subject_roles` 테이블 자체가 없음을 §5.9 에서 정정)", "merge_commit": "95d6909"},
+    {"pr": 201, "sprint": "codex/keycloak-only-refactor-plan (post-#200)", "title": "chore: PR #200 반영 + Keycloak E2E 안정화 — 외부 codex가 main 의 PR #200 design 갱신을 squash 머지 conflict 해소 + e2e/auth Keycloak login + runtime OIDC defaults + signup/audit 시나리오 안정화 + frontend e2e 47 passed (codex 작성, main 흡수 commit 7건: 08fab34/a66f67d/9b288e5/348d149/0c69f9c/257ae70/bae9990 + scripts/ci-e2e-sync-check.sh 신규)", "merge_commit": "cff97d4"},
+    {"pr": 202, "sprint": "ci-fix", "title": "ci: align e2e pipeline to keycloak and add sync guard — signout user-switch flow timeout relax (af743bc) + signout 후 session clear 대기 (e285326) 2 commit. 외부 본인 commit 으로 직전 PR #201 의 signout flake 정정", "merge_commit": "abc8cc9"}
   ],
   "adr_0019_section_53_9_phase2_complete_milestone_2026_05_19": {
     "milestone": "§5.3 (9) audit event listener — design (sprint -e) + 실 구현 Phase 2 PR-B~PR-E (sprint -u~-x) + codex hotfix #10 (sprint -y) 6 sprint 완전 종결",
@@ -388,6 +396,34 @@
       "(carve) External Integration 후속 강화 — React Flow group sub-node + WebSocket 실시간 + v2 node click action",
       "(carve) M4 RM-M4-XX 본격 진입 — WebSocket replay, AI Gardener gRPC, System Admin 대시보드, Gitea Hourly Pull"
     ]
+  },
+  "account_user_management_redesign_2026_05_20": {
+    "status": "Phase 1 (매트릭스) + Phase 2 (책임 분리 design + 명시 결정 6건) 완료 — Phase 3 (실 구현) 진입 대기. PR #199/#200 의 docs/planning/account_user_management_redesign.md 가 단일 source-of-truth.",
+    "phase1_pr": "PR #199 (sprint claude/work_260520-a, merge `b0bcced`) — 현황 파악 매트릭스 235 lines, 4 경로 (`/api/v1/accounts/*` + `/api/v1/users/*` + `/api/v1/organization/*` + `/api/v1/rbac/*`) 책임 분산 + Keycloak Admin REST 매핑 + Phase 2 입력 옵션 A~D",
+    "phase2_pr": "PR #200 (sprint claude/work_260520-b, merge `95d6909`) — 명시 결정 6건 확정 + §5 책임 분리 design 10 sub-section + ADR-0020 후보 outline + Phase 1 매트릭스 `rbac_subject_roles` 오류 정정",
+    "explicit_decisions_6_items": [
+      "A: `/api/v1/accounts/*` 4 endpoint **전면 폐기** (IdP 팀 별도 운영 + manage-users 권한 없음 + /users 계열 정합)",
+      "B: `/login` page **entry minimal page 유지** (DevHub brand 첫인상 + 명시 step + error message)",
+      "C: role/status sync **event listener 확장 + lazy hot path** (sprint -u~-y 자연 확장, USER:UPDATE + MEMBERSHIP 매핑 추가)",
+      "D: `rbac_subject_roles` **완전 제거** (별도 테이블 없음 — `users.role` 직접 write 발견, 결정 C 와 충돌, /users/:id PATCH 와 중복)",
+      "E: read-only 모드 carve **도입 안 함** (self-reverse, signature skip 안티패턴)",
+      "F: JWKS stale-while-error **expiry case 까지 확장** (sprint -r kid mismatch fallback 자연 확장)"
+    ],
+    "phase3_implementation_carve": [
+      "backend code 제거 — accounts_admin handler 4 + KeycloakAdminClient manage-users 메서드 4 호출처 모두",
+      "`authenticateActor` lazy auto-create 실 구현",
+      "Keycloak event listener (sprint -u~-y) USER:UPDATE / MEMBERSHIP / USER:DELETE 매핑 추가 + DevHub `users` write",
+      "JWKS stale-while-error expiry case 확장 (sprint -r kid mismatch fallback 패턴 정합)",
+      "frontend cleanup — `account.service.ts` 폐기 + MemberTable.tsx 정리 + `/admin/settings/users` UI 정리",
+      "service account 권한 축소 — Keycloak admin SOP 갱신 (manage-users 제거)",
+      "governance 협약 SOP — `keycloak_operations.md §8.5c` 신규",
+      "ADR-0020 draft 작성 + 사내 검토"
+    ],
+    "future_adr_candidate": "ADR-0020 (계정/사용자 관리 책임 경계 — DevHub /accounts 폐기 + 옵션 A Keycloak 단일화)"
+  },
+  "external_pr_2026_05_20_ci_e2e_keycloak": {
+    "pr_201": "codex/keycloak-only-refactor-plan post-#200 merge — Keycloak E2E CI 정합. main 의 PR #200 design 갱신 conflict 해소 (bae9990) + e2e/auth Keycloak login + runtime OIDC defaults (08fab34) + e2e 파이프라인 Keycloak 정합 + `scripts/ci-e2e-sync-check.sh` 신규 (a66f67d) + runner 호환 (9b288e5) + keycloak service-account admin role (348d149) + audience mapper (0c69f9c, 257ae70). 외부 codex 작성 (`docs/setup/keycloak_operations.md` + global-setup.ts + fixtures.ts + .github/workflows/ci.yml + audit.spec.ts + auth.spec.ts + signup.spec.ts 등 다수 정합).",
+    "pr_202": "ci-fix branch — signout user-switch flow timeout relax (af743bc) + signout 후 session clear 대기 (e285326). 외부 본인 commit. PR #201 머지 후 signout flake 잔존 — TC-SIGNOUT-* 2개 wait 패턴 강화."
   },
   "next_actions": {
     "m1_remaining": [],
