@@ -1,0 +1,29 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260519-f",
+  "branch": "claude/work_260519-f",
+  "status": "in_progress",
+  "started_at": "2026-05-19T05:00:00Z",
+  "scope": "ADR-0019 §5.3 (8) Keycloak groups → DevHub RBAC role 자동 매핑 design — 옵션 4종 비교 + 권장 B (Keycloak group composite role, backend 변경 없음) + Keycloak 운영 SOP §4.3 group 절 갱신.",
+  "directive_source": "사용자 요청 'MFA 는 제외하고 다른거 검토' + carve 선택 'groups → RBAC role 자동 매핑' — sprint -e 종료 직후 §5.3 잔여 4 항목 중 DevHub git 안에서 결정 가능 + ADR 가치 있는 항목.",
+  "context": {
+    "current_role_extraction": "internal/auth/keycloak_verifier.go:260-285 의 3단계 fallback — claims[\"roles\"] / claims[\"realm_access\"][\"roles\"] / claims[\"resource_access\"][client_id][\"roles\"]. groups claim 은 현재 미사용.",
+    "current_role_assignment_sop": "keycloak_operations.md §8.1 신규 user 생성 step 3 — Keycloak admin 이 user 마다 realm role 4종 직접 할당 (개별 user 할당). 다중 user 일괄 처리 어려움.",
+    "rbac_seed": "DevHub backend 의 rbac_policies seed (migration 000004) — developer / manager / pmo_manager / system_admin. ADR-0011 row-scoping 정합."
+  },
+  "decisions": [
+    "design 문서 docs/planning/keycloak_groups_rbac_mapping.md 신규 — 옵션 4종 비교 + 권장 결정.",
+    "권장 옵션 B (Keycloak group composite role) — Realm Groups 4개 (devhub-developers / -managers / -pmo-managers / -system-admins) 각 group 에 corresponding realm role composite assign. User 가 group 추가 시 realm role 자동 token 상속. backend 변경 없음 (keycloak_verifier.go realm_access.roles 그대로 동작).",
+    "옵션 C (groups claim mapper + backend logic) 는 nested group hierarchy 활용 시 future option — Phase 2 carve.",
+    "ADR-0019 §5.3 (8) groups → RBAC carve resolved (design) 마킹 + 본문 link. ADR 별도 발행 여부는 design 본문에서 결정 (옵션 B 의 변경 minimal 측면 — ADR 가치 낮음, ADR-0019 §5.3 resolved 만으로 충분 가능).",
+    "keycloak_operations.md §4.3 group section 의 carve 표기 → group composite SOP 로 갱신. §8.1 신규 user 생성 step 3 의 'role 할당' → 'group 추가' 로 SOP 단순화."
+  ],
+  "todo": [
+    "docs/planning/keycloak_groups_rbac_mapping.md 신규",
+    "docs/adr/0019-keycloak-only-idp.md §5.3 (8) groups → RBAC carve resolved + §6 변경 이력",
+    "docs/setup/keycloak_operations.md §4.3 group SOP 보강 + §8.1 step 3 정합",
+    "docs/traceability/report.md §6 변경 이력 sprint -f row",
+    "commit + push + PR + 4단계 self-review"
+  ],
+  "verification": "docs-only — workflow-lint + check_docs 그린. backend keycloak_verifier.go 변경 없음 (옵션 B 의 backend impact 0)."
+}
