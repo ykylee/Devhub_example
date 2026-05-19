@@ -176,6 +176,7 @@ func pullUserEvents(
 
 	var latestTime time.Time
 	var latestHash string
+	var latestEmittable bool // sprint -aa codex hotfix #11 — same-ms boundary 에서 emit-able 우선
 	for _, ev := range events {
 		evTime := time.UnixMilli(ev.Time).UTC()
 		// 명백히 cursor 이전인 event 는 이미 처리됨. 동일 ms boundary event 는
@@ -188,14 +189,24 @@ func pullUserEvents(
 		if evTime.Equal(cursor.LastEventAt) && evHash == cursor.LastEventHash {
 			continue
 		}
+		isSkip := opts.SkipUserEventTypes[ev.Type]
 		// cursor 는 skip type 까지 포함해 advance — skip-only page (REFRESH_TOKEN 등으로
 		// 가득 찬 페이지) 에서도 cursor 가 멈추지 않게 (sprint -y codex hotfix #10 P1-A).
-		// 그 다음 emit / observe 분기에서 skip type 만 audit 생략.
+		// latestHash 는 emit-able event 의 hash 를 우선 — same-ms 에 skip+emit 가 함께
+		// 들어오면 emit-able event 의 hash 가 cursor.LastEventHash 에 저장되어, 다음 tick
+		// 의 boundary dedup 이 정확히 emit-able event 를 차단 (sprint -aa codex hotfix #11
+		// P2 정정 — skip event 의 hash 가 latestHash 로 set 되어 emit-able event 가 매 tick
+		// re-emit + ObserveEventProcessed counter 누적되던 side effect 해소).
 		if evTime.After(latestTime) {
 			latestTime = evTime
 			latestHash = evHash
+			latestEmittable = !isSkip
+		} else if evTime.Equal(latestTime) && !isSkip && !latestEmittable {
+			// same-ms 에서 emit-able 가 처음 등장 → skip event 의 hash 를 overwrite.
+			latestHash = evHash
+			latestEmittable = true
 		}
-		if opts.SkipUserEventTypes[ev.Type] {
+		if isSkip {
 			continue
 		}
 		action, targetType, targetID := mapUserEventToAudit(ev)
