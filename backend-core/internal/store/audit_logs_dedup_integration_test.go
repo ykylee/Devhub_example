@@ -95,6 +95,66 @@ func TestIntegration_AuditLogs_SourceEventID_DedupesViaUniqueIndex(t *testing.T)
 	}
 }
 
+// TestIntegration_AuditLogs_EmptySourceType_NotDeduped — Stage 3 보강 정합 검증.
+// SourceType 이 빈 문자열 + SourceEventID 가 nonempty 인 row 2건 INSERT 시도 시,
+// partial WHERE 의 source_type IS NOT NULL 가드로 unique 제약 적용 안 됨 → 2개 row
+// 정상 INSERT. (운영 path 에서는 emitter 가 SourceType 항상 set 이지만, 잘못된
+// emitter 회귀 방지 검증.)
+func TestIntegration_AuditLogs_EmptySourceType_NotDeduped(t *testing.T) {
+	dbURL := os.Getenv("DEVHUB_TEST_DB_URL")
+	if dbURL == "" {
+		t.Skip("DEVHUB_TEST_DB_URL is not set")
+	}
+	ctx := context.Background()
+	pgStore, err := store.NewPostgresStore(ctx, dbURL)
+	if err != nil {
+		t.Fatalf("connect postgres store: %v", err)
+	}
+	defer pgStore.Close()
+
+	pool, err := pgxpool.New(ctx, dbURL)
+	if err != nil {
+		t.Fatalf("connect raw pool: %v", err)
+	}
+	defer pool.Close()
+
+	sourceEventID := fmt.Sprintf("test-empty-type-%d", time.Now().UnixNano())
+	defer func() {
+		_, _ = pool.Exec(ctx, `DELETE FROM audit_logs WHERE source_event_id = $1`, sourceEventID)
+	}()
+
+	// 빈 SourceType + 동일 SourceEventID 로 2회 INSERT — partial WHERE 가
+	// source_type IS NOT NULL 가드로 unique 제약 미적용 → 2 row 모두 정상 INSERT.
+	row1, err := pgStore.CreateAuditLog(ctx, domain.AuditLog{
+		ActorLogin:    "a",
+		Action:        "x.y",
+		SourceEventID: sourceEventID,
+		// SourceType: "" — intentionally empty
+	})
+	if err != nil {
+		t.Fatalf("first INSERT empty SourceType: %v", err)
+	}
+	row2, err := pgStore.CreateAuditLog(ctx, domain.AuditLog{
+		ActorLogin:    "b",
+		Action:        "x.y",
+		SourceEventID: sourceEventID,
+	})
+	if err != nil {
+		t.Fatalf("second INSERT empty SourceType: %v", err)
+	}
+	if row1.ID == row2.ID {
+		t.Fatalf("rows must be distinct (partial WHERE source_type IS NOT NULL must exclude): id1=%d id2=%d", row1.ID, row2.ID)
+	}
+
+	var count int
+	if err := pool.QueryRow(ctx, `SELECT COUNT(*) FROM audit_logs WHERE source_event_id = $1`, sourceEventID).Scan(&count); err != nil {
+		t.Fatalf("count rows: %v", err)
+	}
+	if count != 2 {
+		t.Fatalf("audit_logs rows = %d; want 2 (empty source_type rows must NOT be unique-constrained)", count)
+	}
+}
+
 // TestIntegration_AuditLogs_EmptySourceEventID_AllowsMultipleRows — partial UNIQUE
 // INDEX 의 WHERE source_event_id IS NOT NULL 가 작동하는지 검증. 빈 source_event_id
 // row 는 unique 제약을 받지 않아 여러 row 가 정상 INSERT.

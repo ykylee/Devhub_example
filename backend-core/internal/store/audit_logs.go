@@ -59,7 +59,7 @@ func (s *PostgresStore) CreateAuditLog(ctx context.Context, log domain.AuditLog)
 	const query = `
 INSERT INTO audit_logs (audit_id, actor_login, action, target_type, target_id, command_id, payload, source_ip, request_id, source_type, source_event_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7, NULLIF($8, ''), NULLIF($9, ''), NULLIF($10, ''), NULLIF($11, ''))
-ON CONFLICT (source_type, source_event_id) WHERE source_event_id IS NOT NULL DO NOTHING
+ON CONFLICT (source_type, source_event_id) WHERE source_event_id IS NOT NULL AND source_type IS NOT NULL DO NOTHING
 RETURNING id, audit_id, actor_login, action, target_type, target_id, COALESCE(command_id, ''), payload, COALESCE(source_ip, ''), COALESCE(request_id, ''), COALESCE(source_type, ''), COALESCE(source_event_id, ''), created_at`
 
 	var inserted domain.AuditLog
@@ -118,9 +118,12 @@ RETURNING id, audit_id, actor_login, action, target_type, target_id, COALESCE(co
 
 // getAuditLogBySourceEventID — ON CONFLICT DO NOTHING dedup 시 기존 row 조회.
 // migration 000032 의 partial UNIQUE INDEX (source_type, source_event_id) 에 정합.
-// sourceEventID 가 빈 문자열이면 호출되지 않아야 함 (caller 의 책임 — INSERT 가
-// 실패하지 않는 경로).
+// sourceEventID 가 빈 문자열이면 호출되지 않아야 함 — partial WHERE 가 NULL row 제외이므로
+// 검색 자체가 무의미. caller 의 잘못된 사용을 sentinel error 로 차단 (Stage 3 보강).
 func (s *PostgresStore) getAuditLogBySourceEventID(ctx context.Context, sourceType, sourceEventID string) (domain.AuditLog, error) {
+	if sourceEventID == "" {
+		return domain.AuditLog{}, errors.New("getAuditLogBySourceEventID: sourceEventID must be non-empty (callers must invoke only after ON CONFLICT dedup on a non-NULL source_event_id row)")
+	}
 	const q = `
 SELECT id, audit_id, actor_login, action, target_type, target_id, COALESCE(command_id, ''), payload, COALESCE(source_ip, ''), COALESCE(request_id, ''), COALESCE(source_type, ''), COALESCE(source_event_id, ''), created_at
 FROM audit_logs

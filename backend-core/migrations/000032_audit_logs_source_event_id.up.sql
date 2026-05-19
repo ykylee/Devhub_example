@@ -18,6 +18,12 @@ ALTER TABLE audit_logs
 -- partial UNIQUE INDEX — source_event_id 가 NULL 인 legacy row 에는 적용 안 됨.
 -- (source_type, source_event_id) 조합으로 unique — 서로 다른 source_type 의 동일
 -- event_id 충돌 회피 (예: keycloak_event 와 향후 다른 emitter 의 우연 hash 충돌).
+--
+-- WHERE source_type IS NOT NULL 도 명시 — PostgreSQL UNIQUE INDEX 의 NULL 비교는
+-- 항상 distinct 로 취급되므로 source_type 이 NULL 이면 (NULL, 'hash-x') row 들이
+-- dedup 안 됨. 운영 path 의 Keycloak emitter 는 항상 AuditSourceKeycloakEvent
+-- 를 set 하지만, 잘못된 emitter (SourceType 빠뜨림) 의 회귀 방지 (sprint -w PR-D
+-- Stage 3 self-review 보강).
 CREATE UNIQUE INDEX IF NOT EXISTS audit_logs_source_event_id_uniq
     ON audit_logs (source_type, source_event_id)
-    WHERE source_event_id IS NOT NULL;
+    WHERE source_event_id IS NOT NULL AND source_type IS NOT NULL;

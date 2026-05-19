@@ -26,5 +26,5 @@
     "docs/traceability/report.md §6 sprint -w row (완료)",
     "commit + push + PR + 4단계 self-review"
   ],
-  "verification": "go build ./... PASS. go test -count=1 ./internal/audit/... ./internal/store/... ./internal/domain/... ./internal/httpapi/... 모두 PASS (audit 0.576s + store 0.946s + domain + httpapi 1.020s). store dedup integration test 2건 — DEVHUB_TEST_DB_URL 미설정 시 t.Skip (postgres_*_test.go 패턴 정합), set 시 (a) 동일 (source_type, source_event_id) INSERT 2회 → 1개 row + ON CONFLICT 후 SELECT 반환 검증, (b) 빈 source_event_id 2회 → 2개 row 정상 (partial WHERE 가 NULL row 제외)."
+  "verification": "go build ./... PASS. go test -count=1 ./internal/audit/... ./internal/store/... ./internal/domain/... ./internal/httpapi/... 모두 PASS. store dedup integration test 3건 — DEVHUB_TEST_DB_URL 미설정 시 t.Skip (postgres_*_test.go 패턴 정합), set 시 (a) 동일 (source_type, source_event_id) INSERT 2회 → 1개 row + ON CONFLICT 후 SELECT 반환 검증, (b) 빈 source_event_id 2회 → 2개 row 정상 (partial WHERE 가 NULL row 제외), (c) 빈 source_type + 동일 source_event_id 2회 → 2개 row 정상 (Stage 3 보강 partial WHERE source_type IS NOT NULL 가드 검증). **Stage 3 보강** — P2 #1 getAuditLogBySourceEventID 에 sourceEventID == '' guard error (caller 의 invariant enforcement). P2 #2 partial UNIQUE INDEX WHERE 에 source_type IS NOT NULL 추가 (NULL 가 unique 비교에서 distinct 취급되는 PG 동작 가드)."
 }
