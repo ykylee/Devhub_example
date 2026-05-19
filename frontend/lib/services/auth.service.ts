@@ -55,8 +55,8 @@ class AuthService {
    */
   public async getAuthorizeURL(): Promise<string> {
     const { state, codeChallenge, codeChallengeMethod } = await createPkceState();
-    const discovery = await this.getDiscovery();
     const runtimeConfig = await this.getRuntimeOIDCConfig();
+    const discovery = await this.getDiscovery();
 
     const url = new URL(discovery.authorization_endpoint || runtimeConfig.oidcAuthURL);
     url.searchParams.set("client_id", OIDC_CLIENT_ID);
@@ -205,11 +205,24 @@ class AuthService {
 
     const runtimeConfig = await this.getRuntimeOIDCConfig();
     const discoveryURL = `${runtimeConfig.oidcIssuerURL}/.well-known/openid-configuration`;
-    const response = await fetch(discoveryURL, { method: "GET", cache: "no-store" });
-    if (!response.ok) {
-      throw new Error("OIDC discovery failed");
+    try {
+      const response = await fetch(discoveryURL, { method: "GET", cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`OIDC discovery failed: ${response.status}`);
+      }
+      this.discoveryDoc = await response.json() as OIDCDiscoveryDocument;
+      return this.discoveryDoc;
+    } catch (error) {
+      // Some environments block cross-origin discovery fetch in the browser.
+      // Fall back to issuer-derived endpoints so login can still begin.
+      console.warn("[AuthService] discovery fetch failed, using issuer-derived endpoints", error);
+      const issuer = runtimeConfig.oidcIssuerURL.replace(/\/+$/, "");
+      this.discoveryDoc = {
+        authorization_endpoint: runtimeConfig.oidcAuthURL || `${issuer}/protocol/openid-connect/auth`,
+        token_endpoint: `${issuer}/protocol/openid-connect/token`,
+        end_session_endpoint: `${issuer}/protocol/openid-connect/logout`,
+      };
     }
-    this.discoveryDoc = await response.json() as OIDCDiscoveryDocument;
     return this.discoveryDoc;
   }
 

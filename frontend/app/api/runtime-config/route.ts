@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   const oidcAuthURL =
     runtimeEnv["OIDC_AUTH_URL"] ??
     runtimeEnv["NEXT_PUBLIC_OIDC_AUTH_URL"] ??
-    "http://localhost:4444/oauth2/auth";
+    "http://localhost:8180/devhub/auth/keycloak/realms/devhub/protocol/openid-connect/auth";
   const oidcRedirectURI =
     runtimeEnv["OIDC_REDIRECT_URI"] ??
     runtimeEnv["NEXT_PUBLIC_OIDC_REDIRECT_URI"] ??
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
   const oidcIssuerURL =
     runtimeEnv["OIDC_ISSUER_URL"] ??
     runtimeEnv["NEXT_PUBLIC_OIDC_ISSUER_URL"] ??
-    "http://localhost:8081/realms/devhub";
+    "http://localhost:8180/devhub/auth/keycloak/realms/devhub";
 
   const payload: RuntimeConfigResponse = {
     oidc_auth_url: oidcAuthURL,

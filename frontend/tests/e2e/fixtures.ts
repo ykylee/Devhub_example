@@ -41,26 +41,138 @@ export const SEEDED: Record<"developer" | "manager" | "systemAdmin", SeededUser>
   },
 };
 
-/**
- * Drives the login form at /auth/login. The caller is responsible for
- * starting from /login (which redirects through OIDC authorize and lands the
- * browser on the sign-in form route).
- */
+async function firstVisibleLocator(page: Page, selectors: string[]): Promise<import("@playwright/test").Locator> {
+  for (const selector of selectors) {
+    const locator = page.locator(selector).first();
+    if ((await locator.count()) > 0 && (await locator.isVisible().catch(() => false))) {
+      return locator;
+    }
+  }
+  throw new Error(`none of selectors are visible: ${selectors.join(", ")}`);
+}
+
+async function forceStartOIDCFlow(page: Page): Promise<void> {
+  const keycloakAdminURL = (process.env.DEVHUB_KEYCLOAK_ADMIN_URL ?? "http://localhost:8180/devhub/auth/keycloak").replace(/\/+$/, "");
+  const keycloakRealm = (process.env.DEVHUB_KEYCLOAK_ADMIN_REALM ?? "devhub").trim();
+  await page.evaluate(async ({ keycloakAdminURL, keycloakRealm }) => {
+    const authURL = `${keycloakAdminURL}/realms/${encodeURIComponent(keycloakRealm)}/protocol/openid-connect/auth`;
+    let redirectURI = `${window.location.origin}/auth/callback`;
+    try {
+      const runtimeResp = await fetch("/api/runtime-config", { cache: "no-store" });
+      if (runtimeResp.ok) {
+        const runtimeBody = (await runtimeResp.json()) as { oidc_redirect_uri?: string };
+        if (runtimeBody.oidc_redirect_uri?.trim()) {
+          redirectURI = runtimeBody.oidc_redirect_uri.trim();
+        }
+      }
+    } catch {
+      // Keep default fallback when runtime-config is unavailable.
+    }
+
+    const randomBytes = (n: number) => {
+      const b = new Uint8Array(n);
+      crypto.getRandomValues(b);
+      return b;
+    };
+    const b64u = (arr: Uint8Array) =>
+      btoa(String.fromCharCode(...arr)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+    const verifier = b64u(randomBytes(32));
+    const state = crypto.randomUUID ? crypto.randomUUID() : b64u(randomBytes(16));
+    const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier));
+    const challenge = b64u(new Uint8Array(hash));
+
+    sessionStorage.setItem("oidc_state", state);
+    sessionStorage.setItem("oidc_verifier", verifier);
+
+    const url = new URL(authURL);
+    url.searchParams.set("client_id", "devhub-frontend");
+    url.searchParams.set("response_type", "code");
+    url.searchParams.set("redirect_uri", redirectURI);
+    url.searchParams.set("scope", "openid offline_access email profile");
+    url.searchParams.set("state", state);
+    url.searchParams.set("code_challenge", challenge);
+    url.searchParams.set("code_challenge_method", "S256");
+    window.location.assign(url.toString());
+  }, { keycloakAdminURL, keycloakRealm });
+}
+
+export async function waitForSignInForm(page: Page): Promise<void> {
+  const deadline = Date.now() + 30_000;
+  let forcedOIDC = false;
+  while (Date.now() < deadline) {
+    const userVisible = await page.locator('input#username, input[name="username"], input#identifier, input[name="identifier"]').first().isVisible().catch(() => false);
+    const passVisible = await page.locator('input#password, input[name="password"]').first().isVisible().catch(() => false);
+    if (userVisible && passVisible) return;
+
+    const continueButton = page.getByRole("button", { name: /continue to sign in/i }).first();
+    if ((await continueButton.count()) > 0 && (await continueButton.isVisible().catch(() => false))) {
+      await continueButton.click();
+      if (!forcedOIDC) {
+        forcedOIDC = true;
+        await forceStartOIDCFlow(page).catch(() => {});
+      }
+    }
+    await page.waitForTimeout(500);
+  }
+  throw new Error("sign-in form was not shown within timeout");
+}
+
+export async function submitSignInForm(page: Page, userID: string, password: string): Promise<void> {
+  const userInput = await firstVisibleLocator(page, [
+    'input#identifier',
+    'input[name="identifier"]',
+    'input#username',
+    'input[name="username"]',
+  ]);
+  await userInput.fill(userID);
+
+  const passwordInput = await firstVisibleLocator(page, ['input#password', 'input[name="password"]']);
+  await passwordInput.fill(password);
+
+  const keycloakSubmit = page.locator('input#kc-login, input[type="submit"]#kc-login').first();
+  if ((await keycloakSubmit.count()) > 0 && (await keycloakSubmit.isVisible().catch(() => false))) {
+    await keycloakSubmit.click();
+    return;
+  }
+  await page.getByRole("button", { name: /sign in|log in|login/i }).first().click();
+}
+
+async function completeKeycloakRequiredActionsIfPresent(page: Page): Promise<void> {
+  const updateHeading = page.getByRole("heading", { name: /update account information/i }).first();
+  if ((await updateHeading.count()) === 0 || !(await updateHeading.isVisible().catch(() => false))) {
+    return;
+  }
+
+  const firstName = page.getByRole("textbox", { name: /first name/i }).first();
+  const lastName = page.getByRole("textbox", { name: /last name/i }).first();
+
+  if ((await firstName.count()) > 0) {
+    const value = await firstName.inputValue().catch(() => "");
+    if (!value.trim()) {
+      await firstName.fill("E2E");
+    }
+  }
+  if ((await lastName.count()) > 0) {
+    const value = await lastName.inputValue().catch(() => "");
+    if (!value.trim()) {
+      await lastName.fill("User");
+    }
+  }
+
+  const submit = page.getByRole("button", { name: /submit/i }).first();
+  if ((await submit.count()) > 0 && (await submit.isVisible().catch(() => false))) {
+    await submit.click();
+  }
+}
+
 export async function loginAs(page: Page, user: SeededUser) {
-  await page.goto("/login");
-  // The /login route auto-triggers the OIDC dance; we end up at the
-  // OIDC sign-in form route.
-  await page.waitForURL(/\/auth\/login/, { timeout: 30_000 });
-
-  // /auth/login asks for the System ID (DevHub users.user_id), not the
-  // email — identity store resolves credentials via metadata_public.user_id. The
-  // label is "System ID" + the input is wired with htmlFor=identifier.
-  await page.getByLabel(/system id/i).fill(user.user_id);
-  await page.getByLabel(/^password$/i).fill(user.password);
-  await page.getByRole("button", { name: /sign in/i }).click();
-
-  // After successful login the OIDC callback fires and AuthGuard +
-  // role-routing land the user on their default page.
+  await page.goto("/login").catch((err) => {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (!msg.includes("ERR_ABORTED")) throw err;
+  });
+  await waitForSignInForm(page);
+  await submitSignInForm(page, user.email, user.password);
+  await completeKeycloakRequiredActionsIfPresent(page);
   await page.waitForURL(new RegExp(`${user.landing}(/|$)`), { timeout: 30_000 });
 }
 
@@ -73,61 +185,61 @@ export async function expectActorIs(page: Page, user: SeededUser) {
   await expect(page.getByText(user.user_id, { exact: false }).first()).toBeVisible({ timeout: 10_000 });
 }
 
-// IdP admin API helpers — used by spec files that need to drive
-// identity lifecycle outside the normal browser flow (signup cleanup,
-// audit target_id matching). KRATOS_ADMIN_URL env mirrors the one used
-// by global-setup.ts; defaults to localhost:4434.
-//
-// ⚠️ deprecated (2026-05-19, sprint claude/work_260519-m, ADR-0019 Keycloak 단일화 후 잔재):
-//   본 helper 는 Kratos admin API 의존 잔재. Phase 2 별도 sprint 에서 Keycloak admin API
-//   (`/admin/realms/{realm}/users`) helper 로 전환 — design 은
-//   docs/planning/e2e_keycloak_migration.md §3.4 (getKeycloakUserIdByEmail + deleteKeycloakUserByEmail).
-const KRATOS_ADMIN_URL = (process.env.KRATOS_ADMIN_URL ?? "http://localhost:4434").replace(/\/$/, "");
+const KC_BASE_URL = (process.env.DEVHUB_KEYCLOAK_ADMIN_URL ?? "http://localhost:8180/devhub/auth/keycloak").replace(/\/+$/, "");
+const KC_REALM = (process.env.DEVHUB_KEYCLOAK_ADMIN_REALM ?? "devhub").trim();
+const KC_ADMIN_CLIENT_ID = (process.env.DEVHUB_KEYCLOAK_ADMIN_CLIENT_ID ?? "devhub-backend").trim();
+const KC_ADMIN_CLIENT_SECRET = (process.env.DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET ?? "").trim();
 
-interface KratosIdentityLite {
+interface KeycloakUserLite {
   id: string;
-  traits?: { email?: string; [k: string]: unknown };
+  email?: string;
 }
 
-/** Walks Kratos /admin/identities pagination to find the identity whose
- *  traits.email matches (case-insensitive). Returns the identity.id or
- *  null when no match exists. */
-export async function getKratosIdentityIdByEmail(email: string): Promise<string | null> {
-  const needle = email.trim().toLowerCase();
-  let pageNo = 0;
-  const perPage = 250;
-  while (pageNo < 40) {
-    const url = `${KRATOS_ADMIN_URL}/admin/identities?page=${pageNo}&per_page=${perPage}`;
-    const resp = await fetch(url, { headers: { Accept: "application/json" } });
-    if (!resp.ok) {
-      throw new Error(`Kratos admin list identities ${resp.status}: ${await resp.text()}`);
-    }
-    const batch = (await resp.json()) as KratosIdentityLite[];
-    for (const ident of batch) {
-      if (ident.traits?.email?.toLowerCase() === needle && ident.id) {
-        return ident.id;
-      }
-    }
-    if (batch.length < perPage) break;
-    pageNo += 1;
+async function fetchKeycloakAdminToken(): Promise<string> {
+  if (!KC_ADMIN_CLIENT_SECRET) {
+    throw new Error("DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET is required for keycloak e2e helpers");
   }
-  return null;
+  const tokenURL = `${KC_BASE_URL}/realms/${encodeURIComponent(KC_REALM)}/protocol/openid-connect/token`;
+  const resp = await fetch(tokenURL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "client_credentials",
+      client_id: KC_ADMIN_CLIENT_ID,
+      client_secret: KC_ADMIN_CLIENT_SECRET,
+    }),
+  });
+  if (!resp.ok) {
+    throw new Error(`Keycloak token grant failed ${resp.status}: ${await resp.text()}`);
+  }
+  const body = (await resp.json()) as { access_token?: string };
+  if (!body.access_token) throw new Error("Keycloak token response missing access_token");
+  return body.access_token;
 }
 
-/** Best-effort cleanup helper for spec files that create a new Kratos
- *  identity (currently only signup.spec). Silent no-op when the identity
- *  cannot be found — the next spec run will fail loudly if the leak
- *  actually matters. 404 from the DELETE is also tolerated for the same
- *  reason (already cleaned by a previous attempt). */
-export async function deleteKratosIdentityByEmail(email: string): Promise<void> {
-  const id = await getKratosIdentityIdByEmail(email);
+export async function getKeycloakUserIdByEmail(email: string): Promise<string | null> {
+  const token = await fetchKeycloakAdminToken();
+  const url = `${KC_BASE_URL}/admin/realms/${encodeURIComponent(KC_REALM)}/users?email=${encodeURIComponent(email)}&exact=true`;
+  const resp = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+  });
+  if (!resp.ok) {
+    throw new Error(`Keycloak user lookup ${email} failed ${resp.status}: ${await resp.text()}`);
+  }
+  const users = (await resp.json()) as KeycloakUserLite[];
+  return users[0]?.id ?? null;
+}
+
+export async function deleteKeycloakUserByEmail(email: string): Promise<void> {
+  const token = await fetchKeycloakAdminToken();
+  const id = await getKeycloakUserIdByEmail(email);
   if (!id) return;
-  const resp = await fetch(`${KRATOS_ADMIN_URL}/admin/identities/${id}`, {
+  const resp = await fetch(`${KC_BASE_URL}/admin/realms/${encodeURIComponent(KC_REALM)}/users/${encodeURIComponent(id)}`, {
     method: "DELETE",
-    headers: { Accept: "application/json" },
+    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
   });
   if (!resp.ok && resp.status !== 404) {
-    throw new Error(`Kratos admin delete identity ${id} (${email}) → ${resp.status}: ${await resp.text()}`);
+    throw new Error(`Keycloak user delete ${email} failed ${resp.status}: ${await resp.text()}`);
   }
 }
 

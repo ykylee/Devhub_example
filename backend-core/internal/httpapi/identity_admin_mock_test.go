@@ -29,7 +29,6 @@ type MockIdentityAdmin struct {
 // compile-time interface check — sprint claude/work_260519-ad Stage 3
 // (self-review P1-3). main_test.go 의 idpAdminFake 와 동일 패턴.
 var _ IdentityAdmin = (*MockIdentityAdmin)(nil)
-
 func (m *MockIdentityAdmin) CreateIdentity(_ context.Context, email, name, userID, password string) (string, error) {
 	fakeID := fmt.Sprintf("mock-k-id-%s", userID)
 	m.CreatedIDs = append(m.CreatedIDs, fakeID)
