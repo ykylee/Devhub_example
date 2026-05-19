@@ -55,7 +55,5 @@ export const OIDC_REDIRECT_URI =
 export const BACKEND_API_URL_SERVER =
   process.env.BACKEND_API_URL ?? "http://localhost:8080";
 
-// e2e/global-setup 에서 사용. native 기본값.
-export const KRATOS_ADMIN_URL_SERVER = stripTrailingSlash(
-  process.env.KRATOS_ADMIN_URL ?? "http://localhost:4434",
-);
+// e2e/global-setup + fixtures 는 KRATOS_ADMIN_URL env 를 직접 참조한다
+// (sprint -m design — docs/planning/e2e_keycloak_migration.md, 별도 carve).

@@ -622,11 +622,12 @@ func (s *PostgresStore) DeleteUser(ctx context.Context, userID string) error {
 	return nil
 }
 
-// SetIdPSubject caches the Kratos identity_id on the DevHub users row so
-// subsequent identity lookups can skip the /admin/identities page scan.
-// Migration 000009 added the column; this is the only writer. Returns
-// ErrNotFound when no user matches the given user_id — best-effort callers
-// (lazy backfill paths) typically ignore that case.
+// SetIdPSubject caches the IdP identity_id on the DevHub users row so
+// subsequent identity lookups can skip the IdP user-list scan. Migration
+// 000009 added the column (as kratos_identity_id); 000030 renamed it to
+// idp_subject after ADR-0019. This is the only writer. Returns ErrNotFound
+// when no user matches the given user_id — best-effort callers (lazy
+// backfill paths) typically ignore that case.
 func (s *PostgresStore) SetIdPSubject(ctx context.Context, userID, identityID string) error {
 	if strings.TrimSpace(userID) == "" {
 		return errors.New("user_id is required")

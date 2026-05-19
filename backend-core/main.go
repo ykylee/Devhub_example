@@ -90,10 +90,10 @@ func main() {
 	}
 
 	var (
-		kratosAdmin httpapi.IdentityAdmin
+		idpAdmin httpapi.IdentityAdmin
 	)
 	if cfg.KeycloakAdminURL != "" && cfg.KeycloakAdminRealm != "" && cfg.KeycloakAdminClientID != "" && cfg.KeycloakAdminClientSecret != "" {
-		kratosAdmin = &httpapi.KeycloakAdminClient{
+		idpAdmin = &httpapi.KeycloakAdminClient{
 			AdminURL:     cfg.KeycloakAdminURL,
 			Realm:        cfg.KeycloakAdminRealm,
 			ClientID:     cfg.KeycloakAdminClientID,
@@ -106,8 +106,8 @@ func main() {
 	}
 
 	// Seed local admin account for development using regular APIs
-	if cfg.AuthDevFallback && kratosAdmin != nil && organizationStore != nil {
-		seedLocalAdmin(ctx, kratosAdmin, organizationStore)
+	if cfg.AuthDevFallback && idpAdmin != nil && organizationStore != nil {
+		seedLocalAdmin(ctx, idpAdmin, organizationStore)
 	}
 
 	hrdbMock := hrdb.NewMockClient()
@@ -130,7 +130,7 @@ func main() {
 		DevRequestIntakeTokenStore: devRequestIntakeTokenStore,
 		RBACStore:                  rbacStore,
 		BearerTokenVerifier:        verifier,
-		IdentityAdmin:              kratosAdmin,
+		IdentityAdmin:              idpAdmin,
 		IdPProvider:                cfg.IdPProvider,
 		HRDB:                       hrdbMock,
 		SnapshotProvider: httpapi.RuntimeSnapshotProvider{
@@ -268,10 +268,10 @@ func main() {
 	// KeycloakAdminClient 로 /admin/realms/{realm}/events + /admin-events polling,
 	// audit_logs 로 emit (source_type=keycloak_event). 모든 wire 의존이 모두 준비된
 	// 경우에만 활성화 — config gate / KeycloakAdminClient / auditStore / eventCursorStore.
-	if cfg.KeycloakEventListenerEnabled && kratosAdmin != nil && auditStore != nil && eventCursorStore != nil {
-		kc, ok := kratosAdmin.(*httpapi.KeycloakAdminClient)
+	if cfg.KeycloakEventListenerEnabled && idpAdmin != nil && auditStore != nil && eventCursorStore != nil {
+		kc, ok := idpAdmin.(*httpapi.KeycloakAdminClient)
 		if !ok {
-			log.Printf("keycloak event listener skipped: identity admin is not *httpapi.KeycloakAdminClient (got %T) — provider mode mismatch or test fake", kratosAdmin)
+			log.Printf("keycloak event listener skipped: identity admin is not *httpapi.KeycloakAdminClient (got %T) — provider mode mismatch or test fake", idpAdmin)
 		} else {
 			interval := 30 * time.Second
 			if strings.TrimSpace(cfg.KeycloakEventListenerInterval) != "" {
@@ -441,7 +441,7 @@ type seedOrgStore interface {
 	SetIdPSubject(context.Context, string, string) error
 }
 
-func seedLocalAdmin(ctx context.Context, kratosAdmin httpapi.IdentityAdmin, orgStore seedOrgStore) {
+func seedLocalAdmin(ctx context.Context, idpAdmin httpapi.IdentityAdmin, orgStore seedOrgStore) {
 	const (
 		adminLogin    = "test"
 		adminEmail    = "test@example.com"
@@ -449,22 +449,22 @@ func seedLocalAdmin(ctx context.Context, kratosAdmin httpapi.IdentityAdmin, orgS
 		adminPassword = "test"
 	)
 
-	// 1. Kratos Identity — CreateIdentity 가 409 (already exists) 등으로
+	// 1. IdP Identity — CreateIdentity 가 409 (already exists) 등으로
 	// 실패하면 기존 identity 를 찾아 재사용. 양쪽 모두 실패하면 시딩
-	// 포기 (Kratos down / 스키마 미스매치 같은 운영 이슈를 묻히지 않도록
+	// 포기 (IdP down / 스키마 미스매치 같은 운영 이슈를 묻히지 않도록
 	// Find 에러까지 같이 surface).
-	kratosID, err := kratosAdmin.CreateIdentity(ctx, adminEmail, adminName, adminLogin, adminPassword)
+	idpID, err := idpAdmin.CreateIdentity(ctx, adminEmail, adminName, adminLogin, adminPassword)
 	if err != nil {
 		log.Printf("[seedLocalAdmin] CreateIdentity for %q failed: %v; falling back to FindIdentityByUserID", adminLogin, err)
-		existing, findErr := kratosAdmin.FindIdentityByUserID(ctx, adminLogin)
+		existing, findErr := idpAdmin.FindIdentityByUserID(ctx, adminLogin)
 		if findErr != nil {
 			log.Printf("[seedLocalAdmin] FindIdentityByUserID for %q also failed: %v; aborting seed", adminLogin, findErr)
 			return
 		}
-		kratosID = existing
+		idpID = existing
 	}
-	if kratosID == "" {
-		log.Printf("[seedLocalAdmin] resolved empty Kratos ID for %q; aborting seed", adminLogin)
+	if idpID == "" {
+		log.Printf("[seedLocalAdmin] resolved empty IdP ID for %q; aborting seed", adminLogin)
 		return
 	}
 
@@ -482,9 +482,9 @@ func seedLocalAdmin(ctx context.Context, kratosAdmin httpapi.IdentityAdmin, orgS
 	}
 
 	// 3. Link
-	err = orgStore.SetIdPSubject(ctx, adminLogin, kratosID)
+	err = orgStore.SetIdPSubject(ctx, adminLogin, idpID)
 	if err != nil {
-		log.Printf("[seedLocalAdmin] Failed to link Kratos ID: %v", err)
+		log.Printf("[seedLocalAdmin] Failed to link IdP subject: %v", err)
 	} else {
 		log.Printf("[seedLocalAdmin] Successfully ensured test admin '%s' via regular APIs", adminLogin)
 	}

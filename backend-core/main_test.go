@@ -12,11 +12,11 @@ import (
 	"github.com/devhub/backend-core/internal/httpapi"
 )
 
-// kratosAdminFake satisfies httpapi.IdentityAdmin with per-method error
+// idpAdminFake satisfies httpapi.IdentityAdmin with per-method error
 // injection. Local to main_test.go because httpapi.MockIdentityAdmin lacks
 // a Create-failure path and we want to exercise the seedLocalAdmin
-// fallback (Create error → Find).
-type kratosAdminFake struct {
+// fallback (Create error -> Find).
+type idpAdminFake struct {
 	createError error
 	createID    string
 	findError   error
@@ -24,9 +24,9 @@ type kratosAdminFake struct {
 	findCalls   int
 }
 
-var _ httpapi.IdentityAdmin = (*kratosAdminFake)(nil)
+var _ httpapi.IdentityAdmin = (*idpAdminFake)(nil)
 
-func (f *kratosAdminFake) CreateIdentity(_ context.Context, _, _, userID, _ string) (string, error) {
+func (f *idpAdminFake) CreateIdentity(_ context.Context, _, _, userID, _ string) (string, error) {
 	if f.createError != nil {
 		return "", f.createError
 	}
@@ -36,7 +36,7 @@ func (f *kratosAdminFake) CreateIdentity(_ context.Context, _, _, userID, _ stri
 	return "fake-create-" + userID, nil
 }
 
-func (f *kratosAdminFake) FindIdentityByUserID(_ context.Context, userID string) (string, error) {
+func (f *idpAdminFake) FindIdentityByUserID(_ context.Context, userID string) (string, error) {
 	f.findCalls++
 	if f.findError != nil {
 		return "", f.findError
@@ -47,9 +47,9 @@ func (f *kratosAdminFake) FindIdentityByUserID(_ context.Context, userID string)
 	return "fake-find-" + userID, nil
 }
 
-func (f *kratosAdminFake) UpdateIdentityPassword(_ context.Context, _, _ string) error { return nil }
-func (f *kratosAdminFake) SetIdentityState(_ context.Context, _ string, _ bool) error  { return nil }
-func (f *kratosAdminFake) DeleteIdentity(_ context.Context, _ string) error            { return nil }
+func (f *idpAdminFake) UpdateIdentityPassword(_ context.Context, _, _ string) error { return nil }
+func (f *idpAdminFake) SetIdentityState(_ context.Context, _ string, _ bool) error  { return nil }
+func (f *idpAdminFake) DeleteIdentity(_ context.Context, _ string) error            { return nil }
 
 type orgStoreFake struct {
 	createUserCalls       int
@@ -84,63 +84,63 @@ func TestMain(m *testing.M) {
 }
 
 // Happy path: Create succeeds, Find is never consulted, DB rows + link
-// both written with the freshly-created Kratos ID.
+// both written with the freshly-created IdP identity ID.
 func TestSeedLocalAdmin_CreateSucceeds(t *testing.T) {
-	kratos := &kratosAdminFake{createID: "kratos-fresh-1"}
+	idp := &idpAdminFake{createID: "idp-fresh-1"}
 	org := &orgStoreFake{}
 
-	seedLocalAdmin(context.Background(), kratos, org)
+	seedLocalAdmin(context.Background(), idp, org)
 
-	if kratos.findCalls != 0 {
-		t.Errorf("findCalls = %d, want 0 (Find must skip on Create success)", kratos.findCalls)
+	if idp.findCalls != 0 {
+		t.Errorf("findCalls = %d, want 0 (Find must skip on Create success)", idp.findCalls)
 	}
 	if org.createUserCalls != 1 {
 		t.Errorf("createUserCalls = %d, want 1", org.createUserCalls)
 	}
-	if len(org.setIDPSubjectArgs) != 1 || org.setIDPSubjectArgs[0].IdentityID != "kratos-fresh-1" {
-		t.Errorf("SetIDPSubject args = %+v, want [{test kratos-fresh-1}]", org.setIDPSubjectArgs)
+	if len(org.setIDPSubjectArgs) != 1 || org.setIDPSubjectArgs[0].IdentityID != "idp-fresh-1" {
+		t.Errorf("SetIDPSubject args = %+v, want [{test idp-fresh-1}]", org.setIDPSubjectArgs)
 	}
 }
 
 // Idempotent re-run: Create fails (409 in production), Find returns the
 // pre-existing identity, seed proceeds and links DB row to that ID.
 func TestSeedLocalAdmin_CreateFailsFindSucceeds(t *testing.T) {
-	kratos := &kratosAdminFake{
-		createError: errors.New("kratos create identity status 409"),
-		findID:      "kratos-existing-1",
+	idp := &idpAdminFake{
+		createError: errors.New("idp create identity status 409"),
+		findID:      "idp-existing-1",
 	}
 	org := &orgStoreFake{}
 
-	seedLocalAdmin(context.Background(), kratos, org)
+	seedLocalAdmin(context.Background(), idp, org)
 
-	if kratos.findCalls != 1 {
-		t.Errorf("findCalls = %d, want 1 (Find must run as fallback)", kratos.findCalls)
+	if idp.findCalls != 1 {
+		t.Errorf("findCalls = %d, want 1 (Find must run as fallback)", idp.findCalls)
 	}
 	if org.createUserCalls != 1 {
 		t.Errorf("createUserCalls = %d, want 1", org.createUserCalls)
 	}
-	if len(org.setIDPSubjectArgs) != 1 || org.setIDPSubjectArgs[0].IdentityID != "kratos-existing-1" {
-		t.Errorf("linked identity = %+v, want kratos-existing-1", org.setIDPSubjectArgs)
+	if len(org.setIDPSubjectArgs) != 1 || org.setIDPSubjectArgs[0].IdentityID != "idp-existing-1" {
+		t.Errorf("linked identity = %+v, want idp-existing-1", org.setIDPSubjectArgs)
 	}
 }
 
-// Operational outage: Kratos is unreachable. Both Create and Find fail.
+// Operational outage: IdP is unreachable. Both Create and Find fail.
 // seed must abort *before* touching the DB — otherwise we'd leave a
-// dangling AppUser row without a linked Kratos identity.
-func TestSeedLocalAdmin_BothKratosCallsFail(t *testing.T) {
-	kratos := &kratosAdminFake{
+// dangling AppUser row without a linked IdP identity.
+func TestSeedLocalAdmin_BothIdPCallsFail(t *testing.T) {
+	idp := &idpAdminFake{
 		createError: errors.New("connect: connection refused"),
 		findError:   errors.New("connect: connection refused"),
 	}
 	org := &orgStoreFake{}
 
-	seedLocalAdmin(context.Background(), kratos, org)
+	seedLocalAdmin(context.Background(), idp, org)
 
-	if kratos.findCalls != 1 {
-		t.Errorf("findCalls = %d, want 1", kratos.findCalls)
+	if idp.findCalls != 1 {
+		t.Errorf("findCalls = %d, want 1", idp.findCalls)
 	}
 	if org.createUserCalls != 0 {
-		t.Errorf("createUserCalls = %d, want 0 (DB ops must skip when Kratos unreachable)", org.createUserCalls)
+		t.Errorf("createUserCalls = %d, want 0 (DB ops must skip when IdP unreachable)", org.createUserCalls)
 	}
 	if len(org.setIDPSubjectArgs) != 0 {
 		t.Errorf("SetIDPSubject must not be called, got %+v", org.setIDPSubjectArgs)

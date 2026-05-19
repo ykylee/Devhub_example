@@ -1,12 +1,27 @@
-# Session Handoff — main (2026-05-19 ADR-0019 §5.3 (9) audit event listener Phase 2 종결)
+# Session Handoff — main (2026-05-19 ADR-0019 §5.3 (9) Phase 2 종결 + sprint -ad Kratos 잔재 residual cleanup)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
-- 범위: 2026-05-19 단일 세션 누적 29 PR (sprint -a~-ab + 외부 누락 #165~#168 사후 등록) + sprint -ac housekeeping #2. **ADR-0019 §5.3 design 완결 milestone** (MFA 제외, 10/10 = 100%) + **§5.3 (9) audit event listener Phase 2 완전 종결** (PR-B skeleton + PR-C wire+metric + PR-D store dedup + PR-E 운영 SOP + codex hotfix #10/#11/#12).
+- 범위: 2026-05-19 단일 세션 누적 30 PR (sprint -a~-ac + 외부 누락 #165~#168 사후 등록) + **sprint -ad Kratos 잔재 residual cleanup** (PR TBD). **ADR-0019 §5.3 design 완결 milestone** (MFA 제외, 10/10 = 100%) + **§5.3 (9) audit event listener Phase 2 완전 종결** (PR-B skeleton + PR-C wire+metric + PR-D store dedup + PR-E 운영 SOP + codex hotfix #10/#11/#12) + **Kratos 흐름 완전 제거 (ADR-0019 정공법 정착)**.
 - 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
-- 상태: M1/M2/M3 done. **Keycloak 단일 IdP 정합 완전 정착** (ADR-0019 accepted, ADR-0001 superseded). **단일 외부 포트 역프록시(ADR-0018) 완료**. **ADR-0019 §5.3 design 완결** (MFA 제외, 10/10 = 100% — SOP 4건 + design 5건) + **§5.3 (9) audit event listener Phase 2 풀스택 완전 종결** (backend cron + Prometheus 3종 metric + store-level partial UNIQUE INDEX dedup + 운영 SOP §8.6 + codex hotfix). **잔여 design+carve 5건** (group staging-prod 적용 / off-boarding Phase 1 운영 cron 실 deploy / HA Phase 2 / e2e Kratos → Keycloak 실 코드 전환 / event listener SPI push 전환). ADR carve out 종결 누적: ADR-0017 §6 atomicity + ADR-0015 §6 (1)+(2) + ADR-0016 §6 (1)+(2) + ADR-0017 §6 (a)+(c)+(d) + **ADR-0019 §5.3 모든 SOP + design + 실 구현 (sprint -c~-h + -m + -u~-y)**.
-- 최종 수정일: 2026-05-19 (sprint -ac housekeeping #2)
-- 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [상태 스냅샷](./state.json), [거버넌스](../../docs/governance/README.md), [추적성 매트릭스](../../docs/traceability/report.md), [ADR-0015 HomeLab pull](../../docs/adr/0015-homelab-adapter-pull-strategy.md), [ADR-0016 Prometheus alerts](../../docs/adr/0016-prometheus-alerts-policy.md), [ADR-0017 intake token hardening](../../docs/adr/0017-dreq-intake-token-operational-hardening.md), [ADR-0018 reverse proxy policy](../../docs/adr/0018-single-port-reverse-proxy-policy.md), [**ADR-0019 Keycloak 단일화 (현재 IdP)**](../../docs/adr/0019-keycloak-only-idp.md), [ADR-0001 IdP (Hydra+Kratos, superseded)](../../docs/adr/0001-idp-selection.md), [**keycloak_operations.md (§8.6 audit event listener 운영 SOP 포함)**](../../docs/setup/keycloak_operations.md), [keycloak_event_audit_integration design](../../docs/planning/keycloak_event_audit_integration.md), [Jira 보고 status](../../docs/reports/jira_status_2026_05_18.md).
-- 브랜치: `main` (HEAD `86e5b0d`, sprint -ab PR #196 squash merge 직후 + 본 sprint -ac housekeeping #2 진행).
+- 상태: M1/M2/M3 done. **Keycloak 단일 IdP 정합 완전 정착** (ADR-0019 accepted, ADR-0001 superseded). **단일 외부 포트 역프록시(ADR-0018) 완료**. **ADR-0019 §5.3 design 완결** (MFA 제외, 10/10 = 100% — SOP 4건 + design 5건) + **§5.3 (9) audit event listener Phase 2 풀스택 완전 종결** + **Kratos 잔재 residual cleanup 완료 (sprint -ad)** — backend 11 파일 삭제 + frontend account password form 제거 + `/api/v1/account/password` endpoint 폐기 (Keycloak Account Console redirect). **잔여 design+carve 5건 (모두 사내 동반)**: group staging-prod 적용 / off-boarding Phase 1 운영 cron 실 deploy / HA Phase 2 / e2e Kratos → Keycloak 실 코드 전환 / event listener SPI push 전환. ADR carve out 종결 누적: ADR-0017 §6 atomicity + ADR-0015 §6 (1)+(2) + ADR-0016 §6 (1)+(2) + ADR-0017 §6 (a)+(c)+(d) + **ADR-0019 §5.3 모든 SOP + design + 실 구현 (sprint -c~-h + -m + -u~-y + -ad)**.
+- 최종 수정일: 2026-05-20 (sprint -ad Kratos 잔재 residual cleanup)
+- 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [상태 스냅샷](./state.json), [거버넌스](../../docs/governance/README.md), [추적성 매트릭스](../../docs/traceability/report.md), [ADR-0015 HomeLab pull](../../docs/adr/0015-homelab-adapter-pull-strategy.md), [ADR-0016 Prometheus alerts](../../docs/adr/0016-prometheus-alerts-policy.md), [ADR-0017 intake token hardening](../../docs/adr/0017-dreq-intake-token-operational-hardening.md), [ADR-0018 reverse proxy policy](../../docs/adr/0018-single-port-reverse-proxy-policy.md), [**ADR-0019 Keycloak 단일화 (현재 IdP)**](../../docs/adr/0019-keycloak-only-idp.md), [ADR-0001 IdP (Hydra+Kratos, superseded)](../../docs/adr/0001-idp-selection.md), [**keycloak_operations.md (§8.5b self-service password + §8.6 audit event listener 운영 SOP 포함)**](../../docs/setup/keycloak_operations.md), [keycloak_event_audit_integration design](../../docs/planning/keycloak_event_audit_integration.md), [Jira 보고 status](../../docs/reports/jira_status_2026_05_18.md).
+- 브랜치: `main` (HEAD `TBD`, sprint -ad PR TBD squash merge 후 갱신. 직전 HEAD `569a16e` — sprint -ac housekeeping #2 PR #197).
+
+## 2026-05-20 sprint -ad — Kratos 잔재 residual cleanup (PR TBD)
+
+| Sprint | PR | sha | 핵심 |
+| --- | --- | --- | --- |
+| `-ad` | TBD | TBD | **Kratos 잔재 residual cleanup (ADR-0019 정공법)** — backend 11 파일 삭제 (`account_password.go` + `kratos_login_client/settings_client/session_cache/admin_client` + `password_auth_types` + 각 `_test`) + `router.go`/`permissions.go` 의 `KratosLogin`/`IDPSessionCache` field + `/account/password` route 일괄 제거 + `identity_resolver.go` 신규 + `identity_admin_mock_test.go` 신규 (MockIdentityAdmin test-only 분리). `main.go` 변수명 `kratosAdmin` → `idpAdmin`, `main_test.go` `kratosAdminFake` → `idpAdminFake` rename. `domain.AuditSourceKratos` enum + audit action 이름 (`account.issue.kratos_failed` 등) + audit details key (`kratos_id`) 는 DB historical row 정합 보존, comment 만 generic 화. frontend `/account/page.tsx` 의 password form 제거 + Keycloak Account Console (`${OIDC_ISSUER_URL}/account/`) 외부 link 카드 대체. `account.service.ts` 의 `updateMyPassword`/`SettingsFlowError` 류 제거 (admin 메서드 5개 보존). `account.service.test.ts` 삭제. `account.spec.ts` password 시나리오 삭제 + `TC-ACC-KEYCLOAK-CONSOLE-01` 신규. `endpoints.ts` 의 dead export `KRATOS_ADMIN_URL_SERVER` 제거. `docs/traceability/report.md` §6 + `docs/setup/keycloak_operations.md` §8.5b 신규 + §11 변경 이력 row 추가. backend `go test ./...` + frontend `npm run build` + vitest 8 file/34 test 모두 그린. |
+
+**변경 통계**: 31 파일 (11 D / 13 M / 2 신규 / 1 R), 239+ / 2939- LoC.
+
+**핵심 발견**: `/api/v1/account/password` endpoint 는 wire 누락 dead path 였음 — `RouterConfig.KratosLogin` field 가 `main.go` 에서 set 되지 않아 (PR #167 KC-PR-D 가 wire 제거) `h.cfg.KratosLogin == nil` 으로 503 영구 응답. 사용자 confirm 으로 옵션 A (Keycloak Account Console redirect) 채택. self-service 비밀번호 변경 자체 proxy 코드는 **절대 부활시키지 않음**.
+
+**보존 항목 (의식적)**:
+- `domain.AuditSourceKratos` enum + audit action 이름 (`account.issue.kratos_failed`/`kratos_promoted` 등) + audit details key (`kratos_id`) — DB historical row 정합. rename 은 dual-write/dual-read carve.
+- e2e `global-setup.ts` 의 Kratos admin API 직접 호출 — sprint -m design (e2e_keycloak_migration.md) 따른 별도 carve 로 보존 (사내 staging Keycloak 환경 동반).
+- `infra/idp/` 의 historical Kratos/Hydra yaml — PR #169 deprecation banner 부착 후 보존.
 
 ## 2026-05-19 Phase 4 — ADR-0019 §5.3 (9) audit event listener Phase 2 풀스택 (sprint -u ~ -y, 5 PR)
 
@@ -149,15 +164,18 @@ design 문서가 안내한 env 변수 (`DEVHUB_HYDRA_ADMIN_URL` 등) 는 backend
 ### 5. ADR §7 변경 이력 row 의 PR 번호 명시 (sprint -w + -x)
 ADR §7 의 변경 이력 row 에 sprint code 뒤 PR 번호 추가 (`sprint X (PR #N)`) — 후속 codex hotfix 가 정확한 PR 참조 필요. sprint -w 가 ADR-0015/0016 §7 row 의 PR 번호 추가 정정.
 
-## 다음 세션 directive (sprint -i 종료 시점 재산정 — ADR-0019 §5.3 design 완결 후)
+## 다음 세션 directive (sprint -ad 종료 시점 재산정 — Kratos 잔재 residual cleanup 후)
 
-### 1순위 — ADR-0019 §5.3 design+carve 실 구현 진입 (5 후보)
+### 1순위 — ADR-0019 §5.3 design+carve 실 구현 잔여 (5 후보, 모두 사내 동반 carve)
 
-1. **audit event listener 실 구현 Phase 2 (PR-B..E)** — backend scope 가장 큼: cron worker + event_cursors migration 신규 + admin client 확장 + Prometheus metric + integration test. sprint -e design 따름.
-2. **group staging-prod 적용** — 가장 가벼움: Keycloak admin 1회 작업 (group 4 생성 + composite role assign + Default Group 미설정 — sprint -j 정정 정합). backend 변경 없음.
-3. **off-boarding Phase 1 운영 cron** — `scripts/hrdb_etl_sync.sh` 신규 (hourly cron + psql UPSERT users.status + Keycloak Admin REST 호출 — admin path 정합) + 사내 운영 cron 배포 SOP.
-4. **HA Phase 2** — 사내 SRE / 인프라팀 결정 동반. ADR-0021 후보. Keycloak HA active-active (Infinispan + shared PG + LB).
-5. **e2e Kratos → Keycloak admin 실 코드 전환** — 사내 Keycloak e2e 환경 staging 진입 동반. sprint -m design 따름 (admin token + user seed + group 가입 + DevHub users sync).
+- ✅ **resolved (sprint -u~-y, PR #189~#193)** — audit event listener 실 구현 Phase 2 종결 (backend cron + Prometheus 3종 metric + store dedup + 운영 SOP)
+- ✅ **resolved (sprint -ad, PR TBD)** — Kratos 잔재 residual cleanup (backend 11 파일 삭제 + frontend account password form 제거 + Keycloak Account Console redirect — ADR-0019 정공법). historical audit action 이름 보존.
+
+1. **group staging-prod 적용** — 가장 가벼움: Keycloak admin 1회 작업 (group 4 생성 + composite role assign + Default Group 미설정 — sprint -j 정정 정합). backend 변경 없음.
+2. **off-boarding Phase 1 운영 cron 실 deploy** — `scripts/hrdb_etl_sync.sh` (sprint -p PR #184 신규) 의 사내 운영 cron 배포 SOP + 1회 staging 검증.
+3. **HA Phase 2** — 사내 SRE / 인프라팀 결정 동반. ADR-0021 후보. Keycloak HA active-active (Infinispan + shared PG + LB).
+4. **e2e Kratos → Keycloak admin 실 코드 전환** — 사내 Keycloak e2e 환경 staging 진입 동반. sprint -m design (e2e_keycloak_migration.md) 따름 (admin token + user seed + group 가입 + DevHub users sync). global-setup.ts 의 Kratos admin API 직접 호출 잔재가 본 carve 의 의식적 보존 항목.
+5. **audit event listener SPI push 전환** — polling latency 30s → < 1s. sprint -x §8.6.9 sub-carve.
 
 ### 2순위 — 기존 carve out 잔여
 
