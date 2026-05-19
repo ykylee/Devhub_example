@@ -1,0 +1,25 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260519-b",
+  "branch": "claude/work_260519-b",
+  "status": "in_progress",
+  "started_at": "2026-05-19T01:00:00Z",
+  "scope": "main flat memory housekeeping — 2026-05-19 sprint -a (ADR-0019 재산정) + 외부 누락 PR #165/#166/#167/#168 사후 등록 + ADR carve out 진행 현황 갱신 + 다음 directive 재산정.",
+  "directive_source": "사용자 요청 'main flat memory housekeeping 도 이어서 하자' — sprint -a 종료 직후.",
+  "decisions": [
+    "main flat state.json — head_commit 갱신 (3018927 PR #169) + merged_prs_2026_05_19 신규 (5 PR: #165/#166/#167/#168/#169) + ADR carve out 진행 표 갱신 + next_actions 재산정",
+    "main flat session_handoff.md — header 갱신 + 신규 section '2026-05-19 sprint -a (ADR-0019 재산정) + sprint -b (housekeeping)' + ADR-0019 Accepted 갱신 + 다음 directive 재산정",
+    "main flat work_backlog.md — milestone (ADR-0019 accepted 추가) + 변경 이력 sprint -a + -b row + 다음 directive 재산정",
+    "auto-memory MEMORY.md 신규 entry + project_2026_05_19_session_adr_0019.md 신규",
+    "sprint -a state.json finalize — status: in_progress → done + merged PR #169 sha 명시"
+  ],
+  "todo": [
+    "ai-workflow/memory/state.json 갱신",
+    "ai-workflow/memory/session_handoff.md 갱신",
+    "ai-workflow/memory/work_backlog.md 갱신",
+    "auto-memory C:\\Users\\sem\\.claude\\projects\\D--yklee-repos-Devhub-example\\memory\\ — MEMORY.md + project_2026_05_19_session_adr_0019.md",
+    "sprint -a state.json finalize",
+    "commit + push + PR + self-review + 머지"
+  ],
+  "verification": "docs-only — workflow-lint + check_docs 그린"
+}
