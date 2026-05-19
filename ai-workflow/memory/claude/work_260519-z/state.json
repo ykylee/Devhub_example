@@ -2,8 +2,11 @@
   "schema_version": "1",
   "sprint": "claude/work_260519-z",
   "branch": "claude/work_260519-z",
-  "status": "in_progress",
+  "status": "done",
   "started_at": "2026-05-20T01:00:00Z",
+  "ended_at": "2026-05-20T01:45:00Z",
+  "merged_pr": 194,
+  "merge_commit": "61dcbb4",
   "scope": "main flat memory housekeeping — sprint -u~-y 5 PR (#189~#193) 누적 흡수 + ADR-0019 §5.3 (9) audit event listener Phase 2 종결 milestone 명문화. main flat state.json + session_handoff + work_backlog 갱신. sprint -u/-v/-w/-x/-y state finalize 5개. auto-memory entry 신규 + MEMORY.md.",
   "directive_source": "사용자 요청 'main flat memory housekeeping 진행' — sprint -y closing 직후.",
   "decisions": [

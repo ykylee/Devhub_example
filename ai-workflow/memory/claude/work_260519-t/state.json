@@ -2,8 +2,11 @@
   "schema_version": "1",
   "sprint": "claude/work_260519-t",
   "branch": "claude/work_260519-t",
-  "status": "in_progress",
+  "status": "done",
   "started_at": "2026-05-19T19:00:00Z",
+  "ended_at": "2026-05-19T19:30:00Z",
+  "merged_pr": 188,
+  "merge_commit": "cebf255",
   "scope": "잔여 사항 순서대로 진행 #6 — backend 확장 #4: 자동 idp_subject sync (authenticateActor). sprint -j codex review #9 #2 backend 확장 carve 4건 중 4번째 (마지막).",
   "directive_source": "사용자 요청 '잔여 사항 진행하자. 순서대로 진행해' — sprint -s (basePath logout) 종료 직후 #6 항목.",
   "decisions": [
