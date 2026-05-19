@@ -271,7 +271,7 @@ func main() {
 	if cfg.KeycloakEventListenerEnabled && kratosAdmin != nil && auditStore != nil && eventCursorStore != nil {
 		kc, ok := kratosAdmin.(*httpapi.KeycloakAdminClient)
 		if !ok {
-			log.Printf("keycloak event listener skipped: identity admin is not KeycloakAdminClient (provider mode mismatch)")
+			log.Printf("keycloak event listener skipped: identity admin is not *httpapi.KeycloakAdminClient (got %T) — provider mode mismatch or test fake", kratosAdmin)
 		} else {
 			interval := 30 * time.Second
 			if strings.TrimSpace(cfg.KeycloakEventListenerInterval) != "" {

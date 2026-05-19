@@ -6,6 +6,7 @@
 package audit
 
 import (
+	"strings"
 	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -60,9 +61,23 @@ func registerCollector(c prometheus.Collector) {
 }
 
 // ObserveEventProcessed 는 audit emit 1건 직후 호출 (kind = "user" 또는 "admin").
+// action label 은 normalizeMetricAction 으로 bounded — unknown fallback 의 unbounded
+// TYPE suffix 가 Prometheus label cardinality 를 폭증시키지 않도록 unified label 사용.
 func ObserveEventProcessed(kind, action string) {
 	InitMetrics()
-	eventsProcessedTotal.WithLabelValues(kind, action).Inc()
+	eventsProcessedTotal.WithLabelValues(kind, normalizeMetricAction(action)).Inc()
+}
+
+// normalizeMetricAction — metric label cardinality 를 bounded 로 유지. 매핑 표가
+// 만든 known action prefix (`auth.*` / `keycloak.user.*` / `keycloak.client.*` /
+// `keycloak.realm.*`) 는 그대로 사용. unknown fallback (`keycloak.event.unknown:*` 또는
+// `keycloak.admin.*` 미매핑 조합) 은 "unknown" 으로 unified — audit_logs.action 의
+// unique 값은 그대로 보존, metric 만 normalize.
+func normalizeMetricAction(action string) string {
+	if strings.HasPrefix(action, "keycloak.event.unknown:") {
+		return "keycloak.event.unknown"
+	}
+	return action
 }
 
 // ObserveCursorLag 는 매 poll tick 직후 호출. lagSeconds = now - cursor.LastEventAt.

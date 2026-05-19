@@ -22,10 +22,10 @@
     "internal/config/config.go 신규 3 env (완료)",
     "backend-core/main.go cron wire + adapter + emitter helper (완료)",
     "internal/audit/keycloak_event_integration_test.go 1건 (완료 + PASS)",
-    "internal/audit/metrics_test.go 4건 (완료 + PASS)",
+    "internal/audit/metrics_test.go 6건 (완료 + PASS — Stage 3 보강 commit 의 normalizeMetricAction 2건 포함)",
     "ADR-0019 §5.3 (9) row + 변경 이력 row 갱신 (완료)",
     "docs/traceability/report.md §6 sprint -v row (완료)",
     "commit + push + PR + 4단계 self-review"
   ],
-  "verification": "go build ./... PASS (no output). go test -count=1 ./internal/audit/... ./internal/httpapi/... ./internal/store/... ./internal/config/... 모두 PASS (audit 0.832s + httpapi + store + config). integration test = TestEndToEnd_HTTPAPIAdapter_ToAuditEmitter (3-tick scenario, boundary dedup + payload + cursor advance 검증). metric test = InitMetrics idempotent + counter/gauge/pull-error observe 4건."
+  "verification": "go build ./... PASS (no output). go test -count=1 ./internal/audit/... ./internal/httpapi/... ./internal/store/... ./internal/config/... ./internal/domain/... 모두 PASS (audit 0.966s + 나머지 PASS). integration test = TestEndToEnd_HTTPAPIAdapter_ToAuditEmitter (3-tick scenario, boundary dedup + payload + cursor advance 검증). metric test = InitMetrics idempotent + counter/gauge/pull-error observe 4건 + Stage 3 보강 normalizeMetricAction + UnknownActionNormalized 2건. **Stage 3 보강** — P2 #1 (metric label cardinality unbounded — unknown:<TYPE> suffix 가 Prometheus 라벨 폭증) 정정: `normalizeMetricAction` 도입하여 `keycloak.event.unknown:*` → `keycloak.event.unknown` 으로 collapse + 테스트 2건. P2 #3 (type assertion silent fallback) — main.go 의 *httpapi.KeycloakAdminClient 검증 실패 log 에 `%T` 실제 타입 명시."
 }

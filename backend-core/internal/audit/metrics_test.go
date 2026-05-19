@@ -45,6 +45,41 @@ func TestObserveCursorLag_SetsGauge(t *testing.T) {
 	}
 }
 
+// TestObserveEventProcessed_UnknownActionNormalized — unknown fallback action 의
+// metric label 이 "keycloak.event.unknown" 단일 값으로 normalize 되어 cardinality
+// unbounded 폭증 회피 (Stage 3 self-review 보강 — P2 #1).
+// 서로 다른 suffix 의 unknown action 2건이 single counter 로 collapse 되는지 검증.
+func TestObserveEventProcessed_UnknownActionNormalized(t *testing.T) {
+	InitMetrics()
+	before := counterVecValue(t, eventsProcessedTotal, []string{"user", "keycloak.event.unknown"})
+	ObserveEventProcessed("user", "keycloak.event.unknown:FOO_BAR_BAZ")
+	ObserveEventProcessed("user", "keycloak.event.unknown:DIFFERENT_ONE")
+	after := counterVecValue(t, eventsProcessedTotal, []string{"user", "keycloak.event.unknown"})
+	if delta := after - before; delta != 2 {
+		t.Fatalf("unified unknown counter delta = %v; want 2 (both unknown:* must collapse to single label)", delta)
+	}
+}
+
+// TestNormalizeMetricAction — bounded label normalize 규칙 검증.
+func TestNormalizeMetricAction(t *testing.T) {
+	cases := []struct {
+		in, want string
+	}{
+		{"auth.login.success", "auth.login.success"},
+		{"keycloak.user.created", "keycloak.user.created"},
+		{"keycloak.event.unknown:FOO", "keycloak.event.unknown"},
+		{"keycloak.event.unknown:BAR_BAZ", "keycloak.event.unknown"},
+		// admin fallback 은 bounded 매핑 표의 ResourceType 한정이라 cardinality 제한 — 그대로 둠.
+		{"keycloak.admin.group:create", "keycloak.admin.group:create"},
+	}
+	for _, tc := range cases {
+		got := normalizeMetricAction(tc.in)
+		if got != tc.want {
+			t.Errorf("normalizeMetricAction(%q) = %q; want %q", tc.in, got, tc.want)
+		}
+	}
+}
+
 // TestObservePullError_IncrementsCounter — pull error counter 검증.
 func TestObservePullError_IncrementsCounter(t *testing.T) {
 	InitMetrics()
