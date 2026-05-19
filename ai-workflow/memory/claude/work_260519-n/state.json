@@ -2,8 +2,11 @@
   "schema_version": "1",
   "sprint": "claude/work_260519-n",
   "branch": "claude/work_260519-n",
-  "status": "in_progress",
+  "status": "done",
   "started_at": "2026-05-19T13:00:00Z",
+  "ended_at": "2026-05-19T13:30:00Z",
+  "merged_pr": 182,
+  "merge_commit": "871d6f0",
   "scope": "main flat memory housekeeping — sprint -j (codex hotfix #9) + -k (infra Keycloak 정합) + -l (migration 000021 충돌 정정) + -m (e2e Kratos → Keycloak design) 4 PR 누적 흡수 + §5.3 design 10/10 = 100% milestone 명문화.",
   "directive_source": "사용자 요청 'main flat memory housekeeping 진행' — sprint -m (e2e migration design) 종료 직후 4 PR 누적 housekeeping.",
   "decisions": [

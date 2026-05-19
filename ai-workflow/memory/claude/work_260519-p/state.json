@@ -2,8 +2,11 @@
   "schema_version": "1",
   "sprint": "claude/work_260519-p",
   "branch": "claude/work_260519-p",
-  "status": "in_progress",
+  "status": "done",
   "started_at": "2026-05-19T15:00:00Z",
+  "ended_at": "2026-05-19T15:30:00Z",
+  "merged_pr": 184,
+  "merge_commit": "4cc6f2a",
   "scope": "잔여 사항 순서대로 진행 #2 — off-boarding Phase 1 운영 cron script (scripts/hrdb_etl_sync.sh) 신규. sprint -g design 의 옵션 C HR ETL → Keycloak Admin API push 구현. sprint -j codex review #9 정정 정합 (hrdb.persons no active / admin REST path /admin/realms/).",
   "directive_source": "사용자 요청 '잔여 사항 진행하자. 순서대로 진행해' — sprint -o (CI lint) 종료 직후 #2 항목.",
   "decisions": [

@@ -1,0 +1,25 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260519-ab",
+  "branch": "claude/work_260519-ab",
+  "status": "in_progress",
+  "started_at": "2026-05-20T03:00:00Z",
+  "scope": "codex review hotfix #12 — PR #194 codex P2 정정. sprint -z housekeeping 시 work_backlog row 가 'sprint -n~-y 12개 finalize' 라 적었으나 실제로는 -u~-y 5개만 finalize 함. sprint -n~-t 7 branch state.json 의 status: in_progress → done + ended_at + merged_pr + merge_commit (#182~#188) 추가. sprint -z + -aa 본인도 finalize. work_backlog row 정정.",
+  "directive_source": "사용자 요청 'codex 리뷰 확인 한번 더 하고 메모리 갱신하고 반영하자' → PR #194 codex P2 1건 발견 → finalize 누락 정정.",
+  "decisions": [
+    "codex P2 정확 — 실제 sprint -z PR (#194) diff 에는 sprint -u~-y 5개 state.json 만 변경됐고 -n~-t 7개는 그대로 in_progress. AGENTS.md 의 세션 복원 규칙이 브랜치별 memory 우선 읽기라서 다음 에이전트가 PR #182~#188 작업을 진행 중으로 잘못 판단할 가능성.",
+    "ended_at 추정 — 각 sprint started_at + 30분 (이전 finalize 패턴 정합). 실제 PR merge 시각은 GitHub event timestamp 라 정확하지 않지만, sprint 단위 진행 시간 표시로 충분.",
+    "sprint -z 본인 finalize 도 추가 — sprint -z PR #194 이 머지된 사실 반영. sprint -aa 도 동일 (PR #195 머지 후).",
+    "work_backlog row 정정 — wording 만 '12개' → '5개 (-n~-t 7개 sprint -ab 후속 정정)' 으로 변경, 본 정정 사실 명시."
+  ],
+  "todo": [
+    "ai-workflow/memory/claude/work_260519-{n,o,p,q,r,s,t}/state.json finalize 7개 (완료)",
+    "ai-workflow/memory/claude/work_260519-z/state.json finalize 본인 (완료)",
+    "ai-workflow/memory/claude/work_260519-aa/state.json finalize 본인 (완료)",
+    "ai-workflow/memory/work_backlog.md sprint -z row 정정 + sprint -aa + -ab 신규 row (완료)",
+    "docs/adr/0019-keycloak-only-idp.md §6 변경 이력 row (완료)",
+    "docs/traceability/report.md §6 sprint -ab row (완료)",
+    "commit + push + PR + 4단계 self-review"
+  ],
+  "verification": "json 검증 7 file (-n~-t) + sprint -z + -aa + 본 -ab 모두 JSON 정합. 다음 세션의 AGENTS.md 세션 복원 시 브랜치별 memory 가 모두 done status 로 판독 가능."
+}

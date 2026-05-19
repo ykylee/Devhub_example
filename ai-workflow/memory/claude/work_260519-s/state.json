@@ -2,8 +2,11 @@
   "schema_version": "1",
   "sprint": "claude/work_260519-s",
   "branch": "claude/work_260519-s",
-  "status": "in_progress",
+  "status": "done",
   "started_at": "2026-05-19T18:00:00Z",
+  "ended_at": "2026-05-19T18:30:00Z",
+  "merged_pr": 187,
+  "merge_commit": "5c36653",
   "scope": "잔여 사항 순서대로 진행 #5 — backend 확장 #3: basePath 포함 logout URI (frontend). sprint -j codex review #9 #4 backend 확장 carve 4건 중 3번째.",
   "directive_source": "사용자 요청 '잔여 사항 진행하자. 순서대로 진행해' — sprint -r 종료 직후 #5 항목.",
   "decisions": [
