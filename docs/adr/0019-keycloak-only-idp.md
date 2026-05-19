@@ -197,14 +197,15 @@ sequenceDiagram
 
 ### 5.3 잔여 carve out
 
-- **(carve)** Keycloak realm/client/role 운영 SOP — `docs/setup/keycloak_operations.md` 신규 carve. 사내 환경 별 (local embedded vs external) 분기 가이드.
-- **(carve)** JWKS rotation 운영 SOP — Keycloak 의 key rotation 주기 + DevHub backend 의 JWKS cache invalidation policy + clock skew 허용 범위. 별도 SOP 문서 carve.
-- **(carve)** Keycloak ↔ HRDB sync — 옵션 B design (PR #163 §4) 의 employee_id strict link 정책 은 옵션 A 환경에서도 적용 가능 (Keycloak user attribute `employee_id` 가 HRDB primary key 와 sync). 본 carve 는 Keycloak admin 의 user attribute 매핑 SOP 와 함께 처리.
+- ✅ **resolved (2026-05-19, sprint `claude/work_260519-c`)** — Keycloak realm/client/role 운영 SOP — [`docs/setup/keycloak_operations.md`](../setup/keycloak_operations.md) §2~§4 + §7 local embedded vs external 분기 + §8 운영 SOP (생성/회수/secret rotation/장애).
+- ✅ **resolved (2026-05-19, sprint `claude/work_260519-c`)** — JWKS rotation 운영 SOP — [`docs/setup/keycloak_operations.md`](../setup/keycloak_operations.md) §6 (rotation 주기 + backend JWKS cache invalidation + 정상 rotation D-Day SOP + 비상 rotation 절차 §6.5).
+- ✅ **resolved (2026-05-19, sprint `claude/work_260519-c`)** — Keycloak ↔ HRDB sync (employee_id strict link) — [`docs/setup/keycloak_operations.md`](../setup/keycloak_operations.md) §5.2 `employee_id` custom claim 매핑 SOP (Keycloak admin console 설정 단계 + user attribute 입력 경로). 자동화 (SCIM bridge / HRDB ETL → Keycloak Admin API) 는 carve 유지.
 - **(carve)** Keycloak SSO logout chain — RP-initiated logout (id_token_hint) + Keycloak SSO logout + DevHub frontend redirect 의 chain order. design 문서 PR #163 §14 의 carve 가 옵션 A 환경에서도 유효.
 - **(carve)** MFA 도입 — Keycloak 의 표준 MFA 정책 활성화 + 사내 정책 결정. ADR-0001 §8.3 (MFA 1차 미도입) 의 자연 진입.
 - **(carve)** Keycloak failover — Keycloak 자체가 단일 장애점이 되는 위험. HA 구성 또는 backup IdP 정책 결정. M4 진입 시 재평가.
 - **(carve)** off-boarding 즉시성 — HR 시스템 → Keycloak → DevHub 의 사용자 비활성화 chain propagation 시간. Keycloak 의 token TTL (access 1h / refresh 24h) 와 ADR-0008 daily ETL cron 의 latency worst-case 24h+ 가능. M4 진입 시 ADR-0008 §6 의 ETL 운영 entry 와 함께 결정.
 - **(carve)** Keycloak `groups` claim → DevHub RBAC role 자동 매핑 — 현재는 `resource_access.{client_id}.roles` fallback (KC-PR-B) 만 지원. groups → role 매핑 정책은 별도 ADR 후보.
+- **(carve)** Keycloak event listener / admin event SPI → DevHub `audit_logs` 통합 — ADR-0019 §4.5 의 후속 SOP.
 
 ### 5.4 RM-M4-09 의미 재정의
 
@@ -220,4 +221,5 @@ ADR-0001 시점의 RM-M4-09 "외부 SSO 통합 (Gitea 연동 등)" 은 Hydra 가
 
 | 일자 | 변경 | sprint |
 | --- | --- | --- |
-| 2026-05-19 | 1차 발행. PR #167 (옵션 A 실 구현, 2026-05-18) 사후 명문화 + ADR-0001 supersession + 결정 근거 6 항목 + 잔여 carve out 7 항목 + RM-M4-09 의미 재정의. | `claude/work_260519-a` |
+| 2026-05-19 | 1차 발행. PR #167 (옵션 A 실 구현, 2026-05-18) 사후 명문화 + ADR-0001 supersession + 결정 근거 6 항목 + 잔여 carve out 8 항목 + RM-M4-09 의미 재정의. | `claude/work_260519-a` |
+| 2026-05-19 | §5.3 carve out (1) realm/client/role SOP + (2) JWKS rotation SOP + (3) Keycloak ↔ HRDB sync 3 항목 resolved — [`docs/setup/keycloak_operations.md`](../setup/keycloak_operations.md) 신규. §5.3 잔여 carve = 6 항목 (logout chain / MFA / failover / off-boarding / groups → RBAC + audit event listener 신규 carve). | `claude/work_260519-c` |
