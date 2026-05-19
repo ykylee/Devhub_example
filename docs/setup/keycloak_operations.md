@@ -440,6 +440,7 @@ Keycloak admin 이 사용자 강제 logout 시 (§8.2 off-boarding 또는 §6.5 
 | migration 000032 (`audit_logs.source_event_id` + partial UNIQUE INDEX) 적용 | `psql -c "\d audit_logs"` 의 `source_event_id` 컬럼 + `audit_logs_source_event_id_uniq` 인덱스 노출 |
 | `devhub-backend` client 의 service account 권한 | realm-management role `view-events` 또는 `realm-admin` (admin event 도 필요 시 `view-events` 만으로 충분) |
 | Keycloak admin console 의 Events 활성화 | Realm Settings → Events → User Events 의 Save events `ON` + Admin Events 의 Save events `ON` |
+| `event_cursors` row seed | **backend 자동** — `loadCursor` (sprint -y codex hotfix #10 P1-B) 가 row 미존재 시 즉시 `last_event_at = now()` UPSERT. 운영자 사전 INSERT 불필요. 다만 시작 전 backend 가 한 번 이상 tick 을 돌렸는지 `SELECT * FROM event_cursors` 로 확인 권장. |
 
 #### 8.6.2 Keycloak admin console 설정 (Events 활성화)
 
@@ -448,12 +449,12 @@ Keycloak admin 이 사용자 강제 logout 시 (§8.2 off-boarding 또는 §6.5 
 1. Realm Settings → **Events** 탭.
 2. **User events config**:
    - `Save events` → `ON`
-   - `Expiration` → `7 days` (운영 메모리 부담 회피, 본 SOP 의 cron 이 cursor 기반 polling 이므로 expiration 짧아도 무관)
+   - `Expiration` → 최소 **운영 outage tolerance + recovery time** 보다 길게 설정 (권장 `7 days` 이상 — sprint -y codex hotfix #10 P2-E 정정). cron 이 cursor 기반 polling 이라 정상 동작 중에는 짧은 expiration 도 가능해 보이지만, **backend 장기 outage / pull 실패가 누적되면 Keycloak 측 expired event 는 backfill 불가능**. 운영자가 7d 미만으로 줄이면 그만큼의 outage 동안 audit 영구 손실. 사내 운영 SLA 검토 후 결정.
    - `Included events` → 비워둠 (전체 emit, 본 SOP 의 `defaultSkipUserEventTypes` 가 REFRESH_TOKEN / CODE_TO_TOKEN / INTROSPECT_TOKEN 을 skip)
 3. **Admin events config**:
    - `Save events` → `ON`
    - `Include representation` → `OFF` (privacy 측면 권장, payload 에 user 비밀번호 / secret 등 노출 회피)
-   - `Expiration` → `7 days`
+   - `Expiration` → User events 와 동일 정책 (운영 outage tolerance + recovery time, 권장 `7 days` 이상)
 4. Save.
 
 > Keycloak SPI 측 event listener (예: `jboss-logging`) 는 DevHub 운영과 무관. 별도 SPI 등록 불필요 — DevHub backend 가 Admin REST `?dateFrom=<ISO8601>` polling 으로 끌어옴.
@@ -593,4 +594,5 @@ SELECT cursor_key, last_event_at, last_event_hash, updated_at FROM event_cursors
 | 일자 | 변경 | sprint |
 | --- | --- | --- |
 | 2026-05-19 | 1차 draft — §2 realm + §3 client 2종 + §4 role 4종 + §5 user attribute mapper (preferred_username / email / realm_access.roles / employee_id custom) + §6 JWKS rotation 운영 SOP + §7 local embedded vs external 분기 + §8 운영 SOP (생성/회수/secret rotation/장애) + §9 보안 점검 + §10 잔여 carve out 8 항목. [ADR-0019 §5.3 carve out (1)+(2)+(3) resolved](../adr/0019-keycloak-only-idp.md#53-잔여-carve-out) 의 source-of-truth. | `claude/work_260519-c` |
+| 2026-05-19 | §8.6.1 cursor seed row + §8.6.2 Expiration wording 정정 — sprint -y codex hotfix #10 (PR #189~#192) 의 P1-C (cursor bootstrap 명시) + P2-E (Expiration 이 운영 outage tolerance 보다 짧으면 audit 영구 손실 위험) 정정. P1-B backend 자동 seed 패치 (`loadCursor` 즉시 UPSERT) 와 정합. | `claude/work_260519-y` |
 | 2026-05-19 | §8.6 Keycloak event listener (audit_logs 통합) 운영 SOP 신규 (9 sub-section) — [ADR-0019 §5.3 (9)](../adr/0019-keycloak-only-idp.md#53-잔여-carve-out) Phase 2 PR-E 의 마지막 carve. 활성화 사전 조건 (migration 000031 + 000032 + service account 권한 + Keycloak Events 활성화) / Keycloak admin console 설정 (User+Admin events Save + Expiration 7d) / backend env 3종 (`DEVHUB_KEYCLOAK_EVENT_LISTENER_ENABLED` / `_INTERVAL` / `_MAX_EVENTS`) / Prometheus dashboard 4 panel (events_processed_total / cursor_lag_seconds / pull_errors_total + PromQL 예시) / 알람 3종 (cursor_lag_high 600s / cursor_lag_critical 3600s / pull_error_rate 5건/5분) / audit_logs dedup 동작 확인 query (최근 emit / 중복 검사 / cursor 위치) / 트러블슈팅 5 케이스 (audit row 없음 / cursor lag / 중복 등장 / pull error / unknown action 빈번) / disable/rollback / sub-carve 3 (SPI push 전환 / cold storage archival / dashboard JSON 자산). §9.2 audit log 통합 carve → resolved 표기로 갱신 + §10 의 audit 항목 strikethrough 표기. **ADR-0019 §5.3 (9) Phase 2 모든 carve (PR-B~PR-E) resolved.** | `claude/work_260519-x` |

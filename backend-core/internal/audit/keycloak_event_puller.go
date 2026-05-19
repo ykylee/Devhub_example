@@ -184,11 +184,18 @@ func pullUserEvents(
 		if evTime.Before(cursor.LastEventAt) {
 			continue
 		}
-		if opts.SkipUserEventTypes[ev.Type] {
-			continue
-		}
 		evHash := hashUserEvent(ev)
 		if evTime.Equal(cursor.LastEventAt) && evHash == cursor.LastEventHash {
+			continue
+		}
+		// cursor 는 skip type 까지 포함해 advance — skip-only page (REFRESH_TOKEN 등으로
+		// 가득 찬 페이지) 에서도 cursor 가 멈추지 않게 (sprint -y codex hotfix #10 P1-A).
+		// 그 다음 emit / observe 분기에서 skip type 만 audit 생략.
+		if evTime.After(latestTime) {
+			latestTime = evTime
+			latestHash = evHash
+		}
+		if opts.SkipUserEventTypes[ev.Type] {
 			continue
 		}
 		action, targetType, targetID := mapUserEventToAudit(ev)
@@ -196,10 +203,6 @@ func pullUserEvents(
 			opts.AuditEmitter(ctx, action, targetType, targetID, evHash, userEventPayload(ev))
 		}
 		ObserveEventProcessed("user", action)
-		if evTime.After(latestTime) {
-			latestTime = evTime
-			latestHash = evHash
-		}
 	}
 
 	if !latestTime.IsZero() {
@@ -274,17 +277,27 @@ func pullAdminEvents(
 }
 
 // loadCursor — event_cursors 에서 cursor 조회. row 없으면 now 로 초기화 (첫 run 시
-// 과거 event 모두 폭격 회피 — design §3.3).
+// 과거 event 모두 폭격 회피 — design §3.3) **+ 즉시 UPSERT 로 영구화**.
+//
+// 영구화 이유 (sprint -y codex hotfix #10 P1-B 정정): in-memory 초기화만 하면 첫
+// poll 이 빈 결과인 경우 latestTime zero → upsert path 진입 안 함 → 다음 tick 이 또
+// 새 now() 로 reinit → 두 tick 사이 발생한 Keycloak event 는 dateFrom 이 이미
+// 지나간 시각이라 응답에서 제외되어 영구 누락. 따라서 row 가 없으면 즉시 seed
+// upsert 후 반환.
 func loadCursor(ctx context.Context, cursors store.EventCursorStore, key string, now func() time.Time) (store.EventCursor, error) {
 	c, err := cursors.GetEventCursor(ctx, key)
 	if err == nil {
 		return c, nil
 	}
 	if isNotFound(err) {
-		return store.EventCursor{
+		seed := store.EventCursor{
 			CursorKey:   key,
 			LastEventAt: now().UTC(),
-		}, nil
+		}
+		if upsertErr := cursors.UpsertEventCursor(ctx, seed); upsertErr != nil {
+			return store.EventCursor{}, fmt.Errorf("seed cursor %s on first-run init: %w", key, upsertErr)
+		}
+		return seed, nil
 	}
 	return store.EventCursor{}, fmt.Errorf("load cursor %s: %w", key, err)
 }
@@ -296,15 +309,25 @@ func isNotFound(err error) bool {
 	return strings.Contains(err.Error(), "not found")
 }
 
-// hashUserEvent / hashAdminEvent — design §3.3 dedup hash (timestamp + type + userId).
-// SHA256(time|type|userId|ipAddr) — 동시 다발 event 의 중복 회피.
+// hashUserEvent / hashAdminEvent — design §3.3 dedup hash. store-level partial UNIQUE
+// INDEX (migration 000032) 의 source_event_id 로도 사용되므로 distinguishing 필드 모두
+// 포함 (sprint -y codex hotfix #10 P2-D — burst 동시 ms event 의 client/realm 차이를
+// hash 가 반영해 audit 손실 회피).
 func hashUserEvent(ev KeycloakUserEvent) string {
-	h := sha256.Sum256([]byte(fmt.Sprintf("%d|%s|%s|%s", ev.Time, ev.Type, ev.UserID, ev.IPAddr)))
+	// time + type + userId + ipAddr + clientId + realmId + sessionId (details)
+	// — burst LOGIN 시 (같은 ms, 같은 user, 다른 client) 의 distinct event 식별.
+	sessionID := ev.Details["sessionId"]
+	h := sha256.Sum256([]byte(fmt.Sprintf("%d|%s|%s|%s|%s|%s|%s",
+		ev.Time, ev.Type, ev.UserID, ev.IPAddr, ev.ClientID, ev.RealmID, sessionID)))
 	return hex.EncodeToString(h[:])
 }
 
 func hashAdminEvent(ev KeycloakAdminEvent) string {
-	h := sha256.Sum256([]byte(fmt.Sprintf("%d|%s:%s|%s|%s", ev.Time, ev.ResourceType, ev.OperationType, ev.ResourcePath, ev.AuthUserID)))
+	// time + resourceType:operationType + resourcePath + authUserID + authClientID
+	// + authIPAddr + realmID — burst admin action 의 distinct event 식별.
+	h := sha256.Sum256([]byte(fmt.Sprintf("%d|%s:%s|%s|%s|%s|%s|%s",
+		ev.Time, ev.ResourceType, ev.OperationType, ev.ResourcePath,
+		ev.AuthUserID, ev.AuthClientID, ev.AuthIPAddr, ev.RealmID)))
 	return hex.EncodeToString(h[:])
 }
 

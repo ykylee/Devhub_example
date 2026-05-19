@@ -1,0 +1,29 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260519-y",
+  "branch": "claude/work_260519-y",
+  "status": "in_progress",
+  "started_at": "2026-05-20T00:00:00Z",
+  "scope": "codex review hotfix #10 일괄 흡수 (PR #189~#192 의 P1×3 + P2×2). P1-A puller skip-only page cursor advance + P1-B loadCursor 즉시 영구 UPSERT + P1-C §8.6.1 사전 조건 갱신 + P2-D hashUserEvent/hashAdminEvent 7-tuple 확장 + P2-E §8.6.2 Expiration wording 정정. false positive 1건 (PR #189 same-ms boundary) 는 sprint -u Stage 3 에서 이미 해소.",
+  "directive_source": "사용자 요청 'pr들 확인해보고 codex 코멘트 달린게 있는지 검토해' → 6건 발견 → 'hotfix 방식?' AskUserQuestion → '단일 hotfix PR 일괄 흡수' 선택.",
+  "decisions": [
+    "단일 hotfix PR 일괄 흡수 — 이전 codex hotfix #1~#9 패턴 정합. P1-A/B 가 동일 puller cursor lifecycle, P1-C 는 P1-B 의 SOP 측면, P2-D/E 도 audit event listener 도메인 묶음이라 분리 의미 약함.",
+    "P1-A 정정 위치 — skip type 분기 '전' 에 latestTime/latestHash 갱신. 그래야 skip-only page 도 cursor advance. (분기 안으로 옮기면 emit 안 하면서 cursor 도 advance 안 되어 회귀 동일.)",
+    "P2-D hash 확장 — 7-tuple (time + type + userID + ipAddr + clientID + realmID + sessionId for user / equivalent for admin). 모든 details map 포함은 ordering instability 우려라 sessionId 만 picky. Keycloak 의 stable event id 가 없는 user event 한계 안에서 maximum distinguishing fields.",
+    "P2-E wording — '짧아도 무관' 은 정상 동작 가정만 본 안일한 표현. 'outage tolerance + recovery time 보다 길게 (권장 7d 이상)' 으로 정정.",
+    "false positive P2 #4 응답 처리 — sprint -u Stage 3 보강 commit 580c0db 에서 evTime.Before 로 변경된 사실을 codex 가 outdated commit 으로 본 case. 코멘트 응답으로 정합 명시."
+  ],
+  "todo": [
+    "internal/audit/keycloak_event_puller.go: pullUserEvents skip-only cursor advance (P1-A) (완료)",
+    "internal/audit/keycloak_event_puller.go: hashUserEvent/hashAdminEvent 7-tuple 확장 (P2-D) (완료)",
+    "internal/audit/keycloak_event_puller.go: loadCursor 즉시 UpsertEventCursor 호출 (P1-B) (완료)",
+    "internal/audit/keycloak_event_puller_test.go: 신규 test 4건 (완료 + PASS)",
+    "docs/setup/keycloak_operations.md §8.6.1 cursor seed row 추가 (P1-C) (완료)",
+    "docs/setup/keycloak_operations.md §8.6.2 Expiration wording 정정 (P2-E) (완료)",
+    "docs/setup/keycloak_operations.md §11 변경 이력 row (완료)",
+    "docs/adr/0019-keycloak-only-idp.md §6 변경 이력 row + 순서 정합 (완료)",
+    "docs/traceability/report.md §6 sprint -y row (완료)",
+    "commit + push + PR + 4단계 self-review + codex P2 #4 false positive 응답 코멘트"
+  ],
+  "verification": "go build ./... PASS. go test -count=1 ./internal/audit/... PASS (0.932s). 신규 test 4건 모두 PASS. 기존 12건 회귀 없음."
+}
