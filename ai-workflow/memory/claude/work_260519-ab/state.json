@@ -2,8 +2,11 @@
   "schema_version": "1",
   "sprint": "claude/work_260519-ab",
   "branch": "claude/work_260519-ab",
-  "status": "in_progress",
+  "status": "done",
   "started_at": "2026-05-20T03:00:00Z",
+  "ended_at": "2026-05-20T03:15:00Z",
+  "merged_pr": 196,
+  "merge_commit": "86e5b0d",
   "scope": "codex review hotfix #12 — PR #194 codex P2 정정. sprint -z housekeeping 시 work_backlog row 가 'sprint -n~-y 12개 finalize' 라 적었으나 실제로는 -u~-y 5개만 finalize 함. sprint -n~-t 7 branch state.json 의 status: in_progress → done + ended_at + merged_pr + merge_commit (#182~#188) 추가. sprint -z + -aa 본인도 finalize. work_backlog row 정정.",
   "directive_source": "사용자 요청 'codex 리뷰 확인 한번 더 하고 메모리 갱신하고 반영하자' → PR #194 codex P2 1건 발견 → finalize 누락 정정.",
   "decisions": [
