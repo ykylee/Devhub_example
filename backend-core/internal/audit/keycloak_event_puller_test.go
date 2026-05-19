@@ -366,3 +366,121 @@ func (s *cursorStoreErr) GetEventCursor(_ context.Context, _ string) (store.Even
 func (s *cursorStoreErr) UpsertEventCursor(_ context.Context, _ store.EventCursor) error {
 	return s.err
 }
+
+// TestLoadCursor_NotFound_PersistsSeed — sprint -y codex hotfix #10 P1-B 정정 검증.
+// row 미존재 시 in-memory init 만 하면 첫 poll 이 빈 결과 시 영구화 안 됨 → 다음 tick
+// now() 재초기화 → tick 사이 event 미수신. 정정 후 loadCursor 가 즉시 UPSERT 호출.
+func TestLoadCursor_NotFound_PersistsSeed(t *testing.T) {
+	cursors := newFakeCursorStore()
+	now := time.Date(2026, 5, 19, 12, 0, 0, 0, time.UTC)
+	_, err := loadCursor(context.Background(), cursors, "keycloak.events", func() time.Time { return now })
+	if err != nil {
+		t.Fatalf("loadCursor first-run: %v", err)
+	}
+	// fakeCursorStore.GetEventCursor 가 row 영구화되었는지 검증.
+	persisted, err := cursors.GetEventCursor(context.Background(), "keycloak.events")
+	if err != nil {
+		t.Fatalf("GetEventCursor after seed: %v", err)
+	}
+	if !persisted.LastEventAt.Equal(now) {
+		t.Fatalf("persisted.LastEventAt = %v; want now (%v)", persisted.LastEventAt, now)
+	}
+}
+
+// TestPullUserEvents_SkipOnlyPage_AdvancesCursor — sprint -y codex hotfix #10 P1-A 정정 검증.
+// 페이지가 default skip type (REFRESH_TOKEN 등) 만 들어와도 cursor 가 advance 되어야
+// 다음 tick 이 동일 페이지 무한 재pull 하지 않음.
+func TestPullUserEvents_SkipOnlyPage_AdvancesCursor(t *testing.T) {
+	start := time.Date(2026, 5, 19, 12, 0, 0, 0, time.UTC)
+	later := start.Add(5 * time.Second)
+	lister := &fakeKeycloakEventLister{
+		userEvents: []KeycloakUserEvent{
+			{Time: later.UnixMilli(), Type: "REFRESH_TOKEN", UserID: "u-noisy"},
+		},
+	}
+	cursors := newFakeCursorStore()
+	_ = cursors.UpsertEventCursor(context.Background(), store.EventCursor{
+		CursorKey:   userEventsCursor,
+		LastEventAt: start,
+	})
+
+	var emitted int
+	opts := KeycloakEventPullerOptions{
+		AuditEmitter: AuditEmitter(func(_ context.Context, _, _, _, _ string, _ map[string]any) {
+			emitted++
+		}),
+		Now:                func() time.Time { return later.Add(1 * time.Second) },
+		SkipUserEventTypes: defaultSkipUserEventTypes(),
+		MaxEvents:          500,
+	}
+	if err := pullUserEvents(context.Background(), lister, cursors, opts, opts.Now); err != nil {
+		t.Fatalf("pullUserEvents: %v", err)
+	}
+	if emitted != 0 {
+		t.Fatalf("emitted = %d; want 0 (REFRESH_TOKEN 만 들어왔으므로 audit 없음)", emitted)
+	}
+	// 핵심 검증 — cursor 가 later 로 advance.
+	got, err := cursors.GetEventCursor(context.Background(), userEventsCursor)
+	if err != nil {
+		t.Fatalf("GetEventCursor: %v", err)
+	}
+	if !got.LastEventAt.Equal(later) {
+		t.Fatalf("LastEventAt = %v; want %v (skip type 만 들어와도 cursor advance 필요)", got.LastEventAt, later)
+	}
+}
+
+// TestHashUserEvent_DistinguishesByClientID — sprint -y codex hotfix #10 P2-D 정정 검증.
+// 같은 (time, type, userID, ipAddr) 의 distinct event 가 client/realm/sessionId 다를 때
+// 다른 hash 를 생성해야 store-level dedup (UNIQUE INDEX) 이 burst 동시 ms event 를
+// audit_logs 에서 잃지 않음.
+func TestHashUserEvent_DistinguishesByClientID(t *testing.T) {
+	base := KeycloakUserEvent{
+		Time:    1747641600000,
+		Type:    "LOGIN",
+		UserID:  "alice",
+		IPAddr:  "10.0.0.1",
+		RealmID: "devhub",
+	}
+	clientA := base
+	clientA.ClientID = "devhub-frontend"
+	clientB := base
+	clientB.ClientID = "devhub-other-client"
+	clientASession := base
+	clientASession.ClientID = "devhub-frontend"
+	clientASession.Details = map[string]string{"sessionId": "sess-A"}
+	clientASession2 := base
+	clientASession2.ClientID = "devhub-frontend"
+	clientASession2.Details = map[string]string{"sessionId": "sess-B"}
+
+	h1 := hashUserEvent(clientA)
+	h2 := hashUserEvent(clientB)
+	if h1 == h2 {
+		t.Fatalf("hash collision: same hash for distinct client_id (%q vs %q): %s", clientA.ClientID, clientB.ClientID, h1)
+	}
+	h3 := hashUserEvent(clientASession)
+	h4 := hashUserEvent(clientASession2)
+	if h3 == h4 {
+		t.Fatalf("hash collision: same hash for distinct sessionId: %s", h3)
+	}
+}
+
+// TestHashAdminEvent_DistinguishesByAuthClient — admin event 도 동일 검증.
+func TestHashAdminEvent_DistinguishesByAuthClient(t *testing.T) {
+	base := KeycloakAdminEvent{
+		Time:          1747641600000,
+		ResourceType:  "USER",
+		OperationType: "UPDATE",
+		ResourcePath:  "users/u1",
+		AuthUserID:    "admin-x",
+		RealmID:       "devhub",
+	}
+	a := base
+	a.AuthClientID = "client-A"
+	a.AuthIPAddr = "10.0.0.1"
+	b := base
+	b.AuthClientID = "client-B"
+	b.AuthIPAddr = "10.0.0.1"
+	if hashAdminEvent(a) == hashAdminEvent(b) {
+		t.Fatalf("admin hash collision on distinct AuthClientID")
+	}
+}
