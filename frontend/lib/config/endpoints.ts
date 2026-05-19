@@ -11,7 +11,9 @@
 const stripTrailingSlash = (u: string) => u.replace(/\/$/, "");
 
 // Retrieve and normalize NEXT_PUBLIC_BASE_PATH (e.g. "/devhub")
-const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH
+// sprint -s (PR #187): exported for auth.service.ts logout URI 정합 (basePath 포함 logout
+// — sprint -j codex review #9 #4 backend 확장 carve #3 구현).
+export const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH
   ? `/${process.env.NEXT_PUBLIC_BASE_PATH.replace(/^\//, "").replace(/\/$/, "")}`
   : "";
 

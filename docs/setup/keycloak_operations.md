@@ -48,7 +48,7 @@ CLAUDE.md 의 docker = env-specific 정책 정합 — 환경 특화 자산 (Keyc
 | Service accounts | `disabled` |
 | **PKCE** | `S256` **required** |
 | Valid redirect URIs | local `http://localhost:3000/auth/callback`, prod `https://devhub.example.com/devhub/auth/callback` |
-| Valid post-logout redirect URIs | local `http://localhost:3000/`, prod `https://devhub.example.com/` — **codex review #9**: 현재 frontend `auth.service.ts:116` 의 `${window.location.origin}/` 는 basePath 미포함 (origin = scheme + host + port). ADR-0018 basePath `/devhub` 환경에서도 frontend 가 `https://devhub.example.com/` 만 보냄 → whitelist 도 동일하게 정합. 향후 basePath 포함 logout URI 로 변경 시 frontend code 변경 carve (`auth.service.ts:116` 의 `post_logout_redirect_uri` 에 `${basePath}/` 추가). |
+| Valid post-logout redirect URIs | local `http://localhost:3000/`, prod `https://devhub.example.com/devhub/` (sprint -s PR #187 — basePath 포함 정합). 이전 sprint -j codex review #9 #4 의 basePath 미포함 표기는 sprint -s 의 backend 확장 carve #3 으로 정합 — frontend `auth.service.ts:116` 의 `post_logout_redirect_uri` 가 `${origin}${BASE_PATH}/` 로 변경됨. |
 | Web Origins | local `http://localhost:3000`, prod `https://devhub.example.com` |
 | Front-channel logout | `enabled` |
 
@@ -374,7 +374,7 @@ Keycloak 이 RP-initiated logout 을 받기 위한 client 설정:
 1. Realm `devhub` → Clients → `devhub-frontend` → Settings
 2. **Valid post-logout redirect URIs** 필드 (§3.1 client 정의 참조):
    - local: `http://localhost:3000/`
-   - prod: `https://devhub.example.com/` — **codex review #9**: ADR-0018 basePath `/devhub` 환경에서도 frontend `auth.service.ts:116` 가 `${window.location.origin}/` (basePath 미포함) 만 보냄. basePath 포함 logout URI 사용 시 frontend code 변경 carve.
+   - prod: `https://devhub.example.com/devhub/` (sprint -s PR #187 정합 — frontend `auth.service.ts:116` 가 `${origin}${BASE_PATH}/` 로 변경됨, ADR-0018 basePath /devhub 환경 정합).
    - **wildcard 금지** — 정확한 URI 만 등록. `*` 사용 시 open redirect 취약점.
 3. **Front-channel logout** (선택): `enabled` — Keycloak 이 admin force logout 시 모든 active client 의 front-channel logout URL 호출. DevHub 가 server-side session 미사용 (JWT only) 이므로 front-channel logout URL 등록 불필요 (carve — future SOP).
 4. **Backchannel logout URL** (선택): 미사용 — DevHub 는 server-side session 없음.

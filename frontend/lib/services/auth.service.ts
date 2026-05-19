@@ -5,11 +5,14 @@ import { identityService } from "./identity.service";
 import { tokenStore } from "@/lib/auth/token-store";
 import { consumeVerifier, createPkceState } from "@/lib/auth/pkce";
 
-import { OIDC_AUTH_URL, OIDC_ISSUER_URL, OIDC_REDIRECT_URI as OIDC_REDIRECT_URI_DEFAULT } from "../config/endpoints";
+import { BASE_PATH, OIDC_AUTH_URL, OIDC_ISSUER_URL, OIDC_REDIRECT_URI as OIDC_REDIRECT_URI_DEFAULT } from "../config/endpoints";
 
 const OIDC_CLIENT_ID = process.env.NEXT_PUBLIC_OIDC_CLIENT_ID ?? "devhub-frontend";
+// sprint -s (PR #187) — basePath 포함 정합 (sprint -j codex review #9 #4 backend 확장 carve #3).
+// ADR-0018 basePath /devhub 환경에서 origin/auth/callback (basePath 없음) → origin/devhub/auth/callback 정합.
+// Keycloak whitelist 의 Valid redirect URIs 가 /devhub/auth/callback 으로 정합 (keycloak_operations §3.1).
 const OIDC_REDIRECT_URI = typeof window !== "undefined"
-  ? `${window.location.origin}/auth/callback`
+  ? `${window.location.origin}${BASE_PATH}/auth/callback`
   : OIDC_REDIRECT_URI_DEFAULT;
 const OIDC_SCOPE = process.env.NEXT_PUBLIC_OIDC_SCOPE ?? "openid offline_access email profile";
 
@@ -113,7 +116,10 @@ class AuthService {
     try {
       const url = new URL(endSessionEndpoint);
       url.searchParams.set("client_id", OIDC_CLIENT_ID);
-      url.searchParams.set("post_logout_redirect_uri", `${window.location.origin}/`);
+      // sprint -s (PR #187) basePath 포함 정합 — ADR-0018 basePath /devhub 환경에서
+      // logout 후 사용자가 DevHub 진입점 (/devhub/) 으로 redirect. sprint -j codex review #9 #4
+      // 의 basePath 미포함 표기는 sprint -s 에서 backend 확장 carve 로 정합.
+      url.searchParams.set("post_logout_redirect_uri", `${window.location.origin}${BASE_PATH}/`);
       if (idToken) {
         url.searchParams.set("id_token_hint", idToken);
       }
