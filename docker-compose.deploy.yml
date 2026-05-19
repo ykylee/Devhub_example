@@ -1,3 +1,10 @@
+# DevHub deploy compose — Keycloak 단일 IdP (ADR-0019, 2026-05-19 sprint claude/work_260519-k).
+# 직전 Hydra+Kratos 2 service stack 은 PR #167 (KC-PR-A..F) 로 backend/frontend 전환됐고
+# 본 sprint -k 가 docker-compose / nginx 정합. 자세한 SOP 는 docs/setup/keycloak_operations.md.
+#
+# CLAUDE.md 정책 (`feedback_no_docker.md`) — 환경 특화 자산이므로 git 추적 외 운영도 가능.
+# 본 파일은 사내 운영팀이 reference 로 사용. 실 운영 시 env 만 변경.
+
 services:
   db:
     image: postgres:15
@@ -29,87 +36,46 @@ services:
       - |
         export PGPASSWORD="$${POSTGRES_PASSWORD}"
         psql -h db -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -v ON_ERROR_STOP=1 <<'SQL'
-        CREATE SCHEMA IF NOT EXISTS hydra;
-        CREATE SCHEMA IF NOT EXISTS kratos;
+        CREATE SCHEMA IF NOT EXISTS keycloak;
         SQL
     depends_on:
       db:
         condition: service_healthy
 
-  hydra-migrate:
-    image: oryd/hydra:v2.2.0
-    restart: on-failure
-    command: migrate sql --yes '${HYDRA_DSN:?set HYDRA_DSN}'
-    environment:
-      FRONTEND_PUBLIC_BASE_URL: ${FRONTEND_PUBLIC_BASE_URL:?set FRONTEND_PUBLIC_BASE_URL}
-      HYDRA_PUBLIC_EXTERNAL_URL: ${HYDRA_PUBLIC_EXTERNAL_URL:?set HYDRA_PUBLIC_EXTERNAL_URL}
-      HYDRA_DSN: ${HYDRA_DSN:?set HYDRA_DSN}
-    volumes:
-      - ./:/repo:ro
-
-  hydra:
-    image: oryd/hydra:v2.2.0
-    entrypoint:
-      - /bin/sh
-      - -lc
-      - 'HYDRA_DSN_ESC=$${HYDRA_DSN//\\/\\\\}; HYDRA_DSN_ESC=$${HYDRA_DSN_ESC//&/\\&}; HYDRA_SYSTEM_SECRET_ESC=$${HYDRA_SYSTEM_SECRET//\\/\\\\}; HYDRA_SYSTEM_SECRET_ESC=$${HYDRA_SYSTEM_SECRET_ESC//&/\\&}; sed -e "s|__FRONTEND_PUBLIC_BASE_URL__|$${FRONTEND_PUBLIC_BASE_URL}|g" -e "s|__HYDRA_PUBLIC_EXTERNAL_URL__|$${HYDRA_PUBLIC_EXTERNAL_URL}|g" -e "s|__HYDRA_DSN__|$${HYDRA_DSN_ESC}|g" -e "s|__HYDRA_SYSTEM_SECRET__|$${HYDRA_SYSTEM_SECRET_ESC}|g" /repo/infra/idp/hydra.deploy.yaml > /tmp/hydra.deploy.rendered.yaml && hydra serve all --config /tmp/hydra.deploy.rendered.yaml'
+  keycloak:
+    # Keycloak 단일 IdP (ADR-0019). 사내 환경에서는 별도 운영 Keycloak instance 사용 권장 — 본 service 는 1차 reference.
+    # version 26.x = LTS 후보 (사내 결정 동반 — sprint -h failover §4 Phase 2 HA 진입 시 재평가).
+    image: quay.io/keycloak/keycloak:26.0
     restart: unless-stopped
+    command:
+      - start
+      - --hostname=${KEYCLOAK_HOSTNAME:?set KEYCLOAK_HOSTNAME}
+      - --proxy-headers=xforwarded
+      - --http-enabled=true
+      - --http-port=8080
+      - --import-realm
     environment:
-      FRONTEND_PUBLIC_BASE_URL: ${FRONTEND_PUBLIC_BASE_URL:?set FRONTEND_PUBLIC_BASE_URL}
-      HYDRA_PUBLIC_EXTERNAL_URL: ${HYDRA_PUBLIC_EXTERNAL_URL:?set HYDRA_PUBLIC_EXTERNAL_URL}
-      HYDRA_DSN: ${HYDRA_DSN:?set HYDRA_DSN}
-      HYDRA_SYSTEM_SECRET: ${HYDRA_SYSTEM_SECRET:?set HYDRA_SYSTEM_SECRET}
+      # Admin bootstrap (1차 setup 후 별도 admin user 발급 + 본 env 제거 권장)
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME:?set KC_BOOTSTRAP_ADMIN_USERNAME}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD:?set KC_BOOTSTRAP_ADMIN_PASSWORD}
+      # DB (사내 PostgreSQL 사용)
+      KC_DB: postgres
+      KC_DB_URL: ${KC_DB_URL:?set KC_DB_URL}
+      KC_DB_USERNAME: ${KC_DB_USERNAME:?set KC_DB_USERNAME}
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD:?set KC_DB_PASSWORD}
+      KC_DB_SCHEMA: ${KC_DB_SCHEMA:-keycloak}
+      # OIDC / token
+      KC_HOSTNAME_STRICT: ${KC_HOSTNAME_STRICT:-false}
+      KC_HOSTNAME_STRICT_HTTPS: ${KC_HOSTNAME_STRICT_HTTPS:-false}
+      KC_HTTP_RELATIVE_PATH: ${KC_HTTP_RELATIVE_PATH:-/devhub/auth/keycloak}
+      # Logging (운영 정책 별 결정 — 사내 보안팀 SOP 정합)
+      KC_LOG_LEVEL: ${KC_LOG_LEVEL:-INFO}
     volumes:
-      - ./:/repo:ro
+      # realm-export.json 을 사내 운영 git 외부에서 mount 권장. import-realm 시 1회 적용.
+      # 사내 환경 별 realm/client/role 설정은 docs/setup/keycloak_operations.md §2~§4 SOP 따름.
+      - ${KEYCLOAK_REALM_IMPORT_PATH:-./infra/idp/keycloak-realm.json}:/opt/keycloak/data/import/realm.json:ro
     ports:
-      - "${HYDRA_PUBLIC_PORT:-24444}:4444"
-      - "${HYDRA_ADMIN_PORT:-24445}:4445"
-    depends_on:
-      hydra-migrate:
-        condition: service_completed_successfully
-
-  kratos-migrate:
-    image: oryd/kratos:v1.1.0
-    restart: on-failure
-    command: migrate sql --yes '${KRATOS_DSN:?set KRATOS_DSN}'
-    environment:
-      FRONTEND_PUBLIC_BASE_URL: ${FRONTEND_PUBLIC_BASE_URL:?set FRONTEND_PUBLIC_BASE_URL}
-      KRATOS_PUBLIC_EXTERNAL_URL: ${KRATOS_PUBLIC_EXTERNAL_URL:?set KRATOS_PUBLIC_EXTERNAL_URL}
-      KRATOS_ADMIN_EXTERNAL_URL: ${KRATOS_ADMIN_EXTERNAL_URL:?set KRATOS_ADMIN_EXTERNAL_URL}
-      DEVHUB_KRATOS_WEBHOOK_TOKEN: ${DEVHUB_KRATOS_WEBHOOK_TOKEN:?set DEVHUB_KRATOS_WEBHOOK_TOKEN}
-      KRATOS_COOKIE_SECRET: ${KRATOS_COOKIE_SECRET:?set KRATOS_COOKIE_SECRET}
-      KRATOS_CIPHER_SECRET: ${KRATOS_CIPHER_SECRET:?set KRATOS_CIPHER_SECRET}
-      KRATOS_DSN: ${KRATOS_DSN:?set KRATOS_DSN}
-      KRATOS_HOOK_TARGET_URL: ${KRATOS_HOOK_TARGET_URL:-http://backend-core:8080/api/v1/integrations/kratos/hook/settings/password/after}
-    volumes:
-      - ./:/repo:ro
-    working_dir: /repo
-
-  kratos:
-    image: oryd/kratos:v1.1.0
-    entrypoint:
-      - /bin/sh
-      - -lc
-      - 'KRATOS_DSN_ESC=$${KRATOS_DSN//&/\\&}; KRATOS_HOOK_TARGET_URL_ESC=$${KRATOS_HOOK_TARGET_URL//&/\\&}; sed -e "s|__FRONTEND_PUBLIC_BASE_URL__|$${FRONTEND_PUBLIC_BASE_URL}|g" -e "s|__KRATOS_PUBLIC_EXTERNAL_URL__|$${KRATOS_PUBLIC_EXTERNAL_URL}|g" -e "s|__KRATOS_ADMIN_EXTERNAL_URL__|$${KRATOS_ADMIN_EXTERNAL_URL}|g" -e "s|__DEVHUB_KRATOS_WEBHOOK_TOKEN__|$${DEVHUB_KRATOS_WEBHOOK_TOKEN}|g" -e "s|__KRATOS_COOKIE_SECRET__|$${KRATOS_COOKIE_SECRET}|g" -e "s|__KRATOS_CIPHER_SECRET__|$${KRATOS_CIPHER_SECRET}|g" -e "s|__KRATOS_DSN__|$${KRATOS_DSN_ESC}|g" -e "s|__KRATOS_HOOK_TARGET_URL__|$${KRATOS_HOOK_TARGET_URL_ESC}|g" /repo/infra/idp/kratos.deploy.yaml > /tmp/kratos.deploy.rendered.yaml && kratos serve --config /tmp/kratos.deploy.rendered.yaml'
-    restart: unless-stopped
-    environment:
-      FRONTEND_PUBLIC_BASE_URL: ${FRONTEND_PUBLIC_BASE_URL:?set FRONTEND_PUBLIC_BASE_URL}
-      KRATOS_PUBLIC_EXTERNAL_URL: ${KRATOS_PUBLIC_EXTERNAL_URL:?set KRATOS_PUBLIC_EXTERNAL_URL}
-      KRATOS_ADMIN_EXTERNAL_URL: ${KRATOS_ADMIN_EXTERNAL_URL:?set KRATOS_ADMIN_EXTERNAL_URL}
-      DEVHUB_KRATOS_WEBHOOK_TOKEN: ${DEVHUB_KRATOS_WEBHOOK_TOKEN:?set DEVHUB_KRATOS_WEBHOOK_TOKEN}
-      KRATOS_COOKIE_SECRET: ${KRATOS_COOKIE_SECRET:?set KRATOS_COOKIE_SECRET}
-      KRATOS_CIPHER_SECRET: ${KRATOS_CIPHER_SECRET:?set KRATOS_CIPHER_SECRET}
-      KRATOS_DSN: ${KRATOS_DSN:?set KRATOS_DSN}
-      KRATOS_HOOK_TARGET_URL: ${KRATOS_HOOK_TARGET_URL:-http://backend-core:8080/api/v1/integrations/kratos/hook/settings/password/after}
-    volumes:
-      - ./:/repo:ro
-    working_dir: /repo
-    ports:
-      - "${KRATOS_PUBLIC_PORT:-24333}:4433"
-      - "${KRATOS_ADMIN_PORT:-24334}:4434"
-    depends_on:
-      kratos-migrate:
-        condition: service_completed_successfully
+      - "${KEYCLOAK_HTTP_PORT:-8180}:8080"
 
   backend-ai:
     image: ${IMAGE_REPO_PREFIX:-ghcr.io/ykylee/devhub_example}/backend-ai:${IMAGE_TAG:?set IMAGE_TAG}
@@ -126,17 +92,21 @@ services:
       DB_URL: ${DB_URL:?set DB_URL}
       BACKEND_AI_URL: ${BACKEND_AI_URL:-http://backend-ai:8000}
       DEVHUB_AUTH_DEV_FALLBACK: ${DEVHUB_AUTH_DEV_FALLBACK:-0}
-      DEVHUB_HYDRA_ADMIN_URL: ${DEVHUB_HYDRA_ADMIN_URL:-http://hydra:4445}
-      DEVHUB_HYDRA_PUBLIC_URL: ${DEVHUB_HYDRA_PUBLIC_URL:-http://hydra:4444}
-      DEVHUB_KRATOS_PUBLIC_URL: ${DEVHUB_KRATOS_PUBLIC_URL:-http://kratos:4433}
-      DEVHUB_KRATOS_ADMIN_URL: ${DEVHUB_KRATOS_ADMIN_URL:-http://kratos:4434}
-      DEVHUB_KRATOS_WEBHOOK_TOKEN: ${DEVHUB_KRATOS_WEBHOOK_TOKEN:?set DEVHUB_KRATOS_WEBHOOK_TOKEN}
+      # Keycloak 단일 IdP (ADR-0019 §4.2 환경설정 계약)
+      DEVHUB_IDP_PROVIDER: ${DEVHUB_IDP_PROVIDER:-keycloak}
+      DEVHUB_OIDC_ISSUER_URL: ${DEVHUB_OIDC_ISSUER_URL:?set DEVHUB_OIDC_ISSUER_URL}
+      DEVHUB_OIDC_CLIENT_ID: ${DEVHUB_OIDC_CLIENT_ID:-devhub-frontend}
+      DEVHUB_OIDC_CLIENT_SECRET: ${DEVHUB_OIDC_CLIENT_SECRET:?set DEVHUB_OIDC_CLIENT_SECRET}
+      DEVHUB_OIDC_AUDIENCE: ${DEVHUB_OIDC_AUDIENCE:-devhub-frontend}
+      DEVHUB_OIDC_JWKS_URL: ${DEVHUB_OIDC_JWKS_URL:-}
+      DEVHUB_KEYCLOAK_ADMIN_URL: ${DEVHUB_KEYCLOAK_ADMIN_URL:-http://keycloak:8080}
+      DEVHUB_KEYCLOAK_ADMIN_REALM: ${DEVHUB_KEYCLOAK_ADMIN_REALM:-devhub}
+      DEVHUB_KEYCLOAK_ADMIN_CLIENT_ID: ${DEVHUB_KEYCLOAK_ADMIN_CLIENT_ID:-devhub-backend}
+      DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET: ${DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET:?set DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET}
     depends_on:
       backend-ai:
         condition: service_started
-      hydra:
-        condition: service_started
-      kratos:
+      keycloak:
         condition: service_started
 
   frontend:
@@ -146,10 +116,11 @@ services:
       - "${FRONTEND_PORT:-3000}:3000"
     environment:
       BACKEND_API_URL: ${BACKEND_API_URL:-http://backend-core:8080}
-      OIDC_AUTH_URL: ${OIDC_AUTH_URL:?set OIDC_AUTH_URL}
-      OIDC_REDIRECT_URI: ${OIDC_REDIRECT_URI:?set OIDC_REDIRECT_URI}
-      NEXT_PUBLIC_OIDC_AUTH_URL: ${NEXT_PUBLIC_OIDC_AUTH_URL:?set NEXT_PUBLIC_OIDC_AUTH_URL}
+      # OIDC discovery 기반 — issuer URL 만 명시 + 나머지는 frontend OIDC client 가 discovery
+      NEXT_PUBLIC_OIDC_ISSUER_URL: ${NEXT_PUBLIC_OIDC_ISSUER_URL:?set NEXT_PUBLIC_OIDC_ISSUER_URL}
+      NEXT_PUBLIC_OIDC_CLIENT_ID: ${NEXT_PUBLIC_OIDC_CLIENT_ID:-devhub-frontend}
       NEXT_PUBLIC_OIDC_REDIRECT_URI: ${NEXT_PUBLIC_OIDC_REDIRECT_URI:?set NEXT_PUBLIC_OIDC_REDIRECT_URI}
+      NEXT_PUBLIC_OIDC_SCOPE: ${NEXT_PUBLIC_OIDC_SCOPE:-openid offline_access email profile}
     depends_on:
       backend-core:
         condition: service_started

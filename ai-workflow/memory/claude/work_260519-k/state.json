@@ -1,0 +1,32 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260519-k",
+  "branch": "claude/work_260519-k",
+  "status": "in_progress",
+  "started_at": "2026-05-19T10:00:00Z",
+  "scope": "infra/runtime 자산 Keycloak 정합 — PR #167 KC-PR-D 가 backend/frontend code 만 전환했으나 docker-compose.deploy.yml + infra/nginx/devhub.conf + devhub.deploy.conf 의 Hydra+Kratos stack 그대로 잔재. ADR-0019 채택 후 누락된 infra 자산 정합.",
+  "directive_source": "사용자 요청 'keycloak 으로 전환하는 과정에서 docker 구성이나 infra 구성도 전환 내용이 적용되어있는지 확인' — sprint -j codex hotfix 종료 직후 검토 결과 + 정합 작업.",
+  "discovery": {
+    "docker_compose": "전체 Hydra+Kratos 2 service stack (hydra-migrate + hydra + kratos-migrate + kratos) + DEVHUB_HYDRA_*/DEVHUB_KRATOS_* env + backend depends_on. Keycloak service 부재 — 운영 deploy 시 동작 안 함.",
+    "nginx_devhub_conf": "ADR-0018 reverse proxy 의 upstream devhub_hydra + devhub_kratos + /devhub/auth/hydra/ + /devhub/auth/kratos/ location. Keycloak path 미반영.",
+    "nginx_devhub_deploy_conf": "IdP path 자체 없음 (frontend + /api/v1/ + nginx-health 만). Keycloak path 추가 필요.",
+    "infra_idp": "sprint -a 에서 README + ENVIRONMENT_NOTES deprecation banner 부착. 본문은 historical 보존 carve.",
+    "frontend_env_example": "Keycloak/OIDC env 정합 (sprint -a/-c 흡수). L42 KRATOS_ADMIN_URL Playwright e2e 잔재.",
+    "frontend_e2e": "fixtures.ts + global-setup.ts 에 Kratos reference 잔재."
+  },
+  "decisions": [
+    "infra/nginx/devhub.conf — upstream devhub_hydra + devhub_kratos 2개 → upstream devhub_keycloak 1개로 단순화. /devhub/auth/hydra/ + /devhub/auth/kratos/ 2 location → /devhub/auth/keycloak/ 1 location. Keycloak default port 8080 + backend port 8080 충돌 회피 → Keycloak port 8180.",
+    "infra/nginx/devhub.deploy.conf — upstream devhub_keycloak 추가 + /devhub/auth/keycloak/ location 추가. basePath /devhub 정합.",
+    "docker-compose.deploy.yml — hydra-migrate / hydra / kratos-migrate / kratos 4 service 제거 + keycloak 1 service 신규 (quay.io/keycloak/keycloak:26.0 LTS 후보). backend env DEVHUB_HYDRA_*/DEVHUB_KRATOS_* 제거 + DEVHUB_IDP_PROVIDER + DEVHUB_OIDC_* + DEVHUB_KEYCLOAK_ADMIN_* 추가 (ADR-0019 §4.2 정합). backend depends_on hydra+kratos → keycloak. frontend OIDC env 정합. db-init schema = hydra + kratos → keycloak.",
+    "infra/idp/ Hydra+Kratos 자산 — 본 sprint scope 외. sprint -a deprecation banner 그대로 + historical 보존 carve. archive 위치 이전은 별도 carve.",
+    "frontend/.env.example KRATOS_ADMIN_URL + e2e Kratos reference — Phase 2 carve (e2e Playwright setup 영향 분석 필요)."
+  ],
+  "todo": [
+    "infra/nginx/devhub.conf 정합 (완료)",
+    "infra/nginx/devhub.deploy.conf 정합 (완료)",
+    "docker-compose.deploy.yml 정합 (완료)",
+    "docs/traceability/report.md §6 변경 이력 sprint -k row",
+    "commit + push + PR + 4단계 self-review"
+  ],
+  "verification": "docs-only + infra config — backend/frontend code 변경 없음. 실 docker-compose up 검증은 사내 운영팀 동반 carve."
+}
