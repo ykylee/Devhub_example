@@ -453,6 +453,8 @@ sprint `claude/work_260519-ad` (Kratos 잔재 cleanup) 이후, DevHub 는 self-s
 - **Keycloak admin 측 요구사항** — `devhub-frontend` client 의 Web Origins 가 Account Console URL 도 허용해야 함 (보통 동일 issuer 라 자동 정합).
 - **MFA enrollment 도 동일 경로** — Account Console > Signing In > Authenticator. DevHub 는 MFA 시도 결과를 Keycloak 의 token 발급으로 받아 그대로 적용.
 - **Audit log** — Keycloak Admin Events log 에 `UPDATE_PASSWORD` event 가 기록되며, sprint -u~-y 의 audit event listener (§8.6) 가 이를 polling 해 DevHub `audit_logs` 로 dedup-emit (source_type=`keycloak_event`, action 매핑은 §8.6 매핑 표 참조).
+- **Runtime config 정합 (sprint -ad Stage 3, codex P1 + self-review P1-2 통합 fix)** — `app/(dashboard)/account/page.tsx` 의 Account Console link 는 `authService.getAccountConsoleURL()` 을 통해 `/api/runtime-config` 응답의 `oidc_issuer_url` 로부터 빌드된다. server-side env (`OIDC_ISSUER_URL` 또는 `NEXT_PUBLIC_OIDC_ISSUER_URL`) 둘 다 지원되며, login flow (`auth.service.ts:getRuntimeOIDCConfig`) 와 동일 경로를 공유한다. 즉 빌드 시점에 `NEXT_PUBLIC_*` 가 inline 되지 않은 deployment 에서도 link 가 정상 동작한다.
+- **운영 로그 grep 룰 갱신 필요** — backend `identity_resolver.go` 의 IdP subject backfill log prefix 가 `[kratos-cache]` → `[idp-cache]` 로 변경됨 (sprint -ad). 기존 alert/grep 룰이 `[kratos-cache]` 를 watch 한다면 `[idp-cache]` 로 교체. 후속 backend 의 다른 cache 라인 (예: PermissionCache) 은 변경 없음.
 
 #### 8.5b.4 잔여 carve out (§8.5b sub-carve)
 

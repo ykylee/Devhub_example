@@ -444,6 +444,9 @@ func (h Handler) createUser(c *gin.Context) {
 		writeStoreError(c, err, "organization.create_user")
 		return
 	}
+	// audit_logs details key "kratos_id" is preserved verbatim for DB
+	// historical row compatibility (rows pre-dating ADR-0019 supersession).
+	// Rename to "idp_subject" + dual-read is a separate carve.
 	auditLog := h.recordAuditBestEffort(c, "user.created", "user", user.UserID, map[string]any{
 		"email":           user.Email,
 		"role":            string(user.Role),

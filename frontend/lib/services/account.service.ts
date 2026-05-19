@@ -12,7 +12,7 @@
  * proxies that flow.
  */
 
-import { apiClient, ApiError } from "@/lib/services/api-client";
+import { apiClient } from "@/lib/services/api-client";
 
 export interface AccountInfo {
   id: number;
@@ -82,7 +82,5 @@ class AccountService {
     );
   }
 }
-
-export { ApiError };
 
 export const accountService = new AccountService();
