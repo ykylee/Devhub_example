@@ -428,6 +428,134 @@ Keycloak admin 이 사용자 강제 logout 시 (§8.2 off-boarding 또는 §6.5 
 - **(carve)** Backchannel logout (`logout_token` 수신) — Keycloak → DevHub backend POST. server-side session 도입 시 의미 있음. 현재 미적용.
 - **(carve)** Multi-tab logout 동기화 — `tokenStore` 가 sessionStorage 인 경우 tab 간 sync 안 됨. localStorage + `storage` event listener 또는 BroadcastChannel API 로 carve.
 
+### 8.6 Keycloak event listener (audit_logs 통합) 운영 SOP
+
+[ADR-0019 §5.3 (9) audit event listener](../adr/0019-keycloak-only-idp.md#53-잔여-carve-out) 의 Phase 2 (PR-B~PR-D, sprint -u~-w) 가 머지된 후 운영 환경에서 활성화하는 절차. design 문서: [docs/planning/keycloak_event_audit_integration.md](../planning/keycloak_event_audit_integration.md).
+
+#### 8.6.1 활성화 사전 조건
+
+| 항목 | 확인 |
+| --- | --- |
+| migration 000031 (`event_cursors` 테이블) 적용 | `psql -c "\d event_cursors"` 가 표 노출 |
+| migration 000032 (`audit_logs.source_event_id` + partial UNIQUE INDEX) 적용 | `psql -c "\d audit_logs"` 의 `source_event_id` 컬럼 + `audit_logs_source_event_id_uniq` 인덱스 노출 |
+| `devhub-backend` client 의 service account 권한 | realm-management role `view-events` 또는 `realm-admin` (admin event 도 필요 시 `view-events` 만으로 충분) |
+| Keycloak admin console 의 Events 활성화 | Realm Settings → Events → User Events 의 Save events `ON` + Admin Events 의 Save events `ON` |
+
+#### 8.6.2 Keycloak admin console 설정 (Events 활성화)
+
+운영 staging/prod realm 에서 1회 설정. realm 별 분리 — devhub-dev 는 dev 운영팀, devhub-prod 는 운영팀.
+
+1. Realm Settings → **Events** 탭.
+2. **User events config**:
+   - `Save events` → `ON`
+   - `Expiration` → `7 days` (운영 메모리 부담 회피, 본 SOP 의 cron 이 cursor 기반 polling 이므로 expiration 짧아도 무관)
+   - `Included events` → 비워둠 (전체 emit, 본 SOP 의 `defaultSkipUserEventTypes` 가 REFRESH_TOKEN / CODE_TO_TOKEN / INTROSPECT_TOKEN 을 skip)
+3. **Admin events config**:
+   - `Save events` → `ON`
+   - `Include representation` → `OFF` (privacy 측면 권장, payload 에 user 비밀번호 / secret 등 노출 회피)
+   - `Expiration` → `7 days`
+4. Save.
+
+> Keycloak SPI 측 event listener (예: `jboss-logging`) 는 DevHub 운영과 무관. 별도 SPI 등록 불필요 — DevHub backend 가 Admin REST `?dateFrom=<ISO8601>` polling 으로 끌어옴.
+
+#### 8.6.3 backend env 변수 (운영자가 set)
+
+| env | default | 권장 운영값 | 비고 |
+| --- | --- | --- | --- |
+| `DEVHUB_KEYCLOAK_EVENT_LISTENER_ENABLED` | `false` | `true` (검증 후) | gate 활성화 — 사전 staging 에서 검증 후 prod 활성화 |
+| `DEVHUB_KEYCLOAK_EVENT_LISTENER_INTERVAL` | `30s` | `30s` ~ `60s` | tick 주기. 짧을수록 latency ↓ + Keycloak admin REST 부하 ↑ |
+| `DEVHUB_KEYCLOAK_EVENT_LISTENER_MAX_EVENTS` | `500` | `500` | 매 poll page size. Keycloak 의 events 응답 default 100 → 500 으로 확장 |
+| `DEVHUB_KEYCLOAK_ADMIN_URL` / `_REALM` / `_CLIENT_ID` / `_CLIENT_SECRET` | (필수) | — | 기존 §3.2 `devhub-backend` confidential client. event polling 도 같은 service account 사용 |
+
+활성화 후 backend 재기동. startup log 확인:
+
+```
+[keycloak-event-puller] starting (interval=30s, max_events=500)
+keycloak event listener enabled (interval=30s max_events=500)
+```
+
+#### 8.6.4 Prometheus dashboard panel (Grafana)
+
+| metric | 의미 | panel 권장 |
+| --- | --- | --- |
+| `devhub_keycloak_events_processed_total{kind="user",action="..."}` | user event 매핑 결과별 emit 누적 | stacked area, action 별 색상 |
+| `devhub_keycloak_events_processed_total{kind="admin",action="..."}` | admin event 매핑 결과별 emit 누적 | 같음 |
+| `devhub_keycloak_event_cursor_lag_seconds{cursor_key="..."}` | poll 직후 (now - cursor.LastEventAt) | line chart, cursor_key 별 |
+| `devhub_keycloak_event_pull_errors_total{kind="..."}` | user / admin pull 실패 누적 | counter delta, kind 별 |
+
+PromQL 예시:
+
+```promql
+# 5분 평균 event 처리율 (분당)
+rate(devhub_keycloak_events_processed_total[5m]) * 60
+
+# cursor lag 최대값
+max(devhub_keycloak_event_cursor_lag_seconds)
+
+# 최근 5분 pull error 건수
+increase(devhub_keycloak_event_pull_errors_total[5m])
+```
+
+#### 8.6.5 알람 조건
+
+| 알람 | 조건 | 의미 | 대응 |
+| --- | --- | --- | --- |
+| `cursor_lag_high` | `max(devhub_keycloak_event_cursor_lag_seconds) > 600 for 5m` | 10분 이상 새 event 미수신 — Keycloak 가용성 또는 backend cron 정지 의심 | §8.6.7 트러블슈팅 참조 |
+| `cursor_lag_critical` | `max(devhub_keycloak_event_cursor_lag_seconds) > 3600 for 10m` | 1시간 이상 lag — Keycloak 측 issues 또는 cron goroutine panic | backend 재기동 + Keycloak 헬스체크 |
+| `pull_error_rate` | `increase(devhub_keycloak_event_pull_errors_total[5m]) > 5` | 5분간 pull error 5건 이상 — Keycloak admin REST 401/403/timeout 의심 | service account 권한 / token 만료 확인 |
+
+> JWKS metric (§8.4 `devhub_jwks_fetch_total` / `devhub_jwks_cache_age_seconds`) 과 함께 보면 더 정확. JWKS 실패 + event lag 동시 발생 → Keycloak full outage.
+
+#### 8.6.6 audit_logs 정합 + dedup 동작 확인
+
+활성화 후 1~2분 내에 audit_logs 에 `source_type='keycloak_event'` row 가 누적 시작. 확인 query:
+
+```sql
+-- 최근 emit 된 Keycloak event
+SELECT id, audit_id, action, target_type, target_id, actor_login,
+       source_event_id, created_at, payload->>'keycloak_event_type' AS kc_type
+FROM audit_logs
+WHERE source_type = 'keycloak_event'
+ORDER BY created_at DESC
+LIMIT 20;
+
+-- dedup 통계 — 같은 source_event_id 가 중복 등장하지 않는지 (UNIQUE INDEX 보장)
+SELECT source_event_id, COUNT(*)
+FROM audit_logs
+WHERE source_type = 'keycloak_event'
+GROUP BY source_event_id
+HAVING COUNT(*) > 1;
+-- ↑ 결과 0 행이 정상 (partial UNIQUE INDEX 가 강제)
+
+-- cursor 위치 확인
+SELECT cursor_key, last_event_at, last_event_hash, updated_at FROM event_cursors;
+```
+
+#### 8.6.7 트러블슈팅
+
+| 증상 | 1차 의심 | 검증 / 대응 |
+| --- | --- | --- |
+| audit_logs 에 keycloak_event row 가 전혀 없음 | gate 비활성 / service account 권한 / Events 미활성화 | (1) `DEVHUB_KEYCLOAK_EVENT_LISTENER_ENABLED=true` 확인, (2) startup log 의 `keycloak event listener enabled` 메시지 확인, (3) Keycloak admin console 의 Save events `ON` 확인, (4) service account 의 view-events 권한 확인 |
+| `cursor_lag_high` 알람 | Keycloak admin REST 401/403 / timeout | (1) backend log 의 `[keycloak-event-puller] tick: ...` error 메시지 확인, (2) Keycloak admin URL 헬스체크 (`curl ${ADMIN_URL}/realms/master/.well-known/openid-configuration`), (3) service account client_secret 만료 의심 시 §8.3 rotation, (4) Keycloak Events expiration 이 너무 짧아 cursor 가 expire 된 event 를 못 잡으면 (드물지만) cursor 를 수동으로 advance: `UPDATE event_cursors SET last_event_at = NOW() WHERE cursor_key = 'keycloak.events';` |
+| 동일 keycloak_event 가 audit_logs 에 중복 등장 | partial UNIQUE INDEX 손상 / migration 미적용 | (1) `\d audit_logs_source_event_id_uniq` 로 인덱스 존재 확인, (2) 누락 시 migration 000032 재실행, (3) 기존 중복 row 정리: `DELETE FROM audit_logs WHERE id IN (SELECT id FROM audit_logs WHERE source_type='keycloak_event' AND id NOT IN (SELECT MIN(id) FROM audit_logs WHERE source_type='keycloak_event' GROUP BY source_event_id));` |
+| `pull_error_rate` 알람 | Keycloak Admin REST 4xx/5xx | backend log 의 `keycloak admin status <code>: ...` 메시지 + Keycloak access log 동시 확인. 가장 흔한 케이스 = client_secret 만료 또는 권한 회수. |
+| `keycloak.event.unknown` action 이 metric / audit 에 빈번 등장 | 새 Keycloak event type 도입 후 매핑 표 미갱신 | `internal/audit/keycloak_event_puller.go` 의 `mapUserEventToAudit` / `mapAdminEventToAudit` 에 case 추가 + design 문서 §4.1 / §4.2 표 갱신 (별도 PR) |
+
+#### 8.6.8 disable / rollback 절차
+
+운영 incident 발생 시 빠른 차단:
+
+1. `DEVHUB_KEYCLOAK_EVENT_LISTENER_ENABLED=false` 로 set + backend 재기동 → cron goroutine 정지, audit_logs 신규 INSERT 중단.
+2. cursor 는 그대로 유지 — 재활성화 시 마지막 cursor 부터 재개.
+3. migration 000031 / 000032 자체는 rollback 불필요 (legacy row 영향 없음 — partial WHERE 가드).
+4. 진짜 schema 까지 rollback 필요 시 `migrate down 2` 로 000032 → 000031 순서대로 down (운영 audit 데이터 손실 주의).
+
+#### 8.6.9 잔여 carve out (§8.6 의 sub-carve)
+
+- **(carve)** Keycloak event listener SPI 도입 — 현재 polling 방식이 latency 30s ~ interval. push 기반으로 전환하면 < 1s. SPI plugin 개발 + 사내 운영팀 동반 필요.
+- **(carve)** `audit_logs` cold storage archival — keycloak_event row 가 매일 수천 건 누적되면 6개월 이후 cold storage 이관 SOP 필요. 본 운영 SOP 의 scope 외 — DR / 백업 정책 차원.
+- **(carve)** dashboard JSON 정식 등록 — 본 SOP 의 PromQL 예시를 Grafana dashboard JSON 으로 ImportExport 화 + git 추적. 환경 별 자산이라 git 추적 외 (사내 Grafana repo).
+
 ## 9. 보안 점검
 
 ### 9.1 잠재 위협 + mitigation
@@ -440,9 +568,9 @@ Keycloak admin 이 사용자 강제 logout 시 (§8.2 off-boarding 또는 §6.5 
 | user attribute 위조 (employee_id) | Keycloak admin event log + 사내 운영팀의 attribute 변경 권한 제한 (system_admin 한정) |
 | brute force login | Keycloak Realm Settings → Security Defenses → Brute Force Detection ON (default) |
 
-### 9.2 audit log 통합 (carve)
+### 9.2 audit log 통합 (resolved, §8.6 운영 SOP)
 
-- Keycloak 의 event listener / admin event SPI 를 DevHub `audit_logs` 와 통합하는 SOP 는 별도 carve — [ADR-0019 §5.3 잔여 carve](../adr/0019-keycloak-only-idp.md#53-잔여-carve-out) 의 audit 항목.
+- Keycloak 의 event listener / admin event polling → DevHub `audit_logs` 통합은 [ADR-0019 §5.3 (9)](../adr/0019-keycloak-only-idp.md#53-잔여-carve-out) Phase 2 (PR-B~PR-E, sprint -u~-x) 로 backend + 운영 SOP 모두 resolved. 운영 활성화 절차 + dashboard panel + 알람 + 트러블슈팅은 [§8.6](#86-keycloak-event-listener-audit_logs-통합-운영-sop) 참조.
 
 ## 10. 잔여 carve out
 
@@ -455,7 +583,7 @@ Keycloak admin 이 사용자 강제 logout 시 (§8.2 off-boarding 또는 §6.5 
 | Keycloak failover (HA 구성 또는 backup IdP) | ADR-0019 §5.3 | 단일 장애점 회피 |
 | off-boarding 즉시성 | ADR-0019 §5.3 | HR 시스템 → Keycloak → DevHub propagation chain |
 | `groups` claim → DevHub RBAC role 자동 매핑 | ADR-0019 §5.3 (별도 ADR 후보) | composite role 또는 mapper 로 |
-| Keycloak event SPI → DevHub `audit_logs` 통합 | ADR-0019 §5.3 + ADR-0019 §4.5 | event listener |
+| ~~Keycloak event SPI → DevHub `audit_logs` 통합~~ | ~~ADR-0019 §5.3 + ADR-0019 §4.5~~ | **resolved** — Phase 2 (PR-B~PR-E, sprint -u~-x). polling 기반 구현 + 운영 SOP §8.6. SPI push 전환은 별도 carve (§8.6.9). |
 | 사내 LDAP/AD federation | ADR-0019 §5.4 RM-M4-09 | Keycloak User Federation |
 | Gitea SSO via Keycloak identity broker | ADR-0019 §5.4 RM-M4-09 | M4 RM-M4 진입 시 |
 
@@ -464,3 +592,4 @@ Keycloak admin 이 사용자 강제 logout 시 (§8.2 off-boarding 또는 §6.5 
 | 일자 | 변경 | sprint |
 | --- | --- | --- |
 | 2026-05-19 | 1차 draft — §2 realm + §3 client 2종 + §4 role 4종 + §5 user attribute mapper (preferred_username / email / realm_access.roles / employee_id custom) + §6 JWKS rotation 운영 SOP + §7 local embedded vs external 분기 + §8 운영 SOP (생성/회수/secret rotation/장애) + §9 보안 점검 + §10 잔여 carve out 8 항목. [ADR-0019 §5.3 carve out (1)+(2)+(3) resolved](../adr/0019-keycloak-only-idp.md#53-잔여-carve-out) 의 source-of-truth. | `claude/work_260519-c` |
+| 2026-05-19 | §8.6 Keycloak event listener (audit_logs 통합) 운영 SOP 신규 (9 sub-section) — [ADR-0019 §5.3 (9)](../adr/0019-keycloak-only-idp.md#53-잔여-carve-out) Phase 2 PR-E 의 마지막 carve. 활성화 사전 조건 (migration 000031 + 000032 + service account 권한 + Keycloak Events 활성화) / Keycloak admin console 설정 (User+Admin events Save + Expiration 7d) / backend env 3종 (`DEVHUB_KEYCLOAK_EVENT_LISTENER_ENABLED` / `_INTERVAL` / `_MAX_EVENTS`) / Prometheus dashboard 4 panel (events_processed_total / cursor_lag_seconds / pull_errors_total + PromQL 예시) / 알람 3종 (cursor_lag_high 600s / cursor_lag_critical 3600s / pull_error_rate 5건/5분) / audit_logs dedup 동작 확인 query (최근 emit / 중복 검사 / cursor 위치) / 트러블슈팅 5 케이스 (audit row 없음 / cursor lag / 중복 등장 / pull error / unknown action 빈번) / disable/rollback / sub-carve 3 (SPI push 전환 / cold storage archival / dashboard JSON 자산). §9.2 audit log 통합 carve → resolved 표기로 갱신 + §10 의 audit 항목 strikethrough 표기. **ADR-0019 §5.3 (9) Phase 2 모든 carve (PR-B~PR-E) resolved.** | `claude/work_260519-x` |
