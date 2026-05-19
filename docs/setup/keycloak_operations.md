@@ -90,9 +90,27 @@ client_secret 은 사내 vault 보관. 정기 rotation SOP 는 §6 JWKS rotation
 | Client Role (`devhub-frontend`) | (사용 안 함 — realm role 만 활용) |
 | Composite Role | (carve — 사내 권한 위계 결정 후) |
 
-### 4.3 group (carve)
+### 4.3 group (composite realm role 1:1 매핑)
 
-- group 기능은 본 SOP scope 외 — `groups` claim → DevHub RBAC role 자동 매핑은 [ADR-0019 §5.3 잔여 carve](../adr/0019-keycloak-only-idp.md#53-잔여-carve-out) (별도 ADR 후보).
+[docs/planning/keycloak_groups_rbac_mapping.md](../planning/keycloak_groups_rbac_mapping.md) 결정 — 옵션 B 채택. group 4개 ↔ realm role 4개 1:1 composite 매핑.
+
+| Keycloak Group | Composite Realm Role | DevHub `users.role` |
+| --- | --- | --- |
+| `devhub-developers` | `developer` | `developer` |
+| `devhub-managers` | `manager` | `manager` |
+| `devhub-pmo-managers` | `pmo_manager` | `pmo_manager` |
+| `devhub-system-admins` | `system_admin` | `system_admin` |
+
+**Keycloak admin 설정 SOP** (1회):
+1. Realm `devhub` → Groups → Create Group 4회 (위 표 group name)
+2. 각 Group → Role Mappings 탭 → realm role 1개 assign (group ↔ role 매핑)
+3. (선택) Realm Settings → User Profile → Default Groups → `devhub-developers` 추가 (신규 user default = developer)
+
+**backend 동작**: 변경 없음. group composite role 은 Keycloak 이 token 발급 시 `realm_access.roles` 에 자동 포함 → [keycloak_verifier.go:260-285](../../backend-core/internal/auth/keycloak_verifier.go) 의 추출 그대로 동작.
+
+**user 운영**: §8.1 step 3 의 "Role Mapping" → "**Groups 탭 → group 1개 가입**" 으로 단순화 (다중 user 일괄 처리 가능).
+
+**carve**: SCIM bridge / LDAP federation 자동 group sync + 옵션 C (groups claim mapper + multi-role) 확장 — design 문서 §8 잔여 carve.
 
 ## 5. user attribute mapper (token claim 매핑)
 
@@ -242,7 +260,7 @@ client_secret 은 사내 vault 보관. 정기 rotation SOP 는 §6 JWKS rotation
 | --- | --- | --- |
 | 1. Keycloak admin | Users → Add user | username (= DevHub `users.user_id` 와 일치 권장), email, first/last name |
 | 2. user attribute | Attributes 탭 | `employee_id` = HRDB primary key |
-| 3. role | Role Mapping 탭 | realm role 1개 선택 (developer / manager / pmo_manager / system_admin) |
+| 3. role (group 가입) | **Groups 탭** | **group 1개 가입** ([§4.3](#43-group-composite-realm-role-11-매핑) 4종 중 1개) — composite realm role 자동 상속. Default Group 적용 시 신규 user 는 `devhub-developers` 자동. |
 | 4. 초기 비밀번호 | Credentials 탭 | password 설정 + "Temporary" ON (첫 로그인 시 강제 변경) |
 | 5. DevHub `users` sync | (자동) | 첫 로그인 시 backend 가 `sub` ↔ `idp_subject` 매핑 + HRDB lookup 으로 `users` row 보강 |
 
