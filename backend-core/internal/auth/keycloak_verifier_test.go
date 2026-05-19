@@ -178,6 +178,133 @@ func TestKeycloakJWKSVerifier_CachesJWKSBetweenVerifications(t *testing.T) {
 	}
 }
 
+// TestKeycloakJWKSVerifier_RetriesJWKSOnKidMismatch — sprint claude/work_260519-r
+// (ADR-0019 §5.3 sprint -j codex review #9 #3 backend 확장 carve). Keycloak key
+// rotation 직후 새 kid 의 token 이 backend cache TTL 동안 401 되던 동작을
+// stale-while-error fallback 으로 보강. cache invalidate + 1회 forced refetch +
+// retry. 첫 fetch 는 old kid 응답, retry fetch 는 new kid 응답 시 token 정합.
+func TestKeycloakJWKSVerifier_RetriesJWKSOnKidMismatch(t *testing.T) {
+	oldKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generate old rsa key: %v", err)
+	}
+	newKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generate new rsa key: %v", err)
+	}
+	oldKid := "kid-old"
+	newKid := "kid-new"
+	issuer := "https://issuer.example.com/realms/devhub"
+	aud := "devhub-web"
+
+	var fetchCount int32
+	mux := http.NewServeMux()
+	mux.HandleFunc("/jwks", func(w http.ResponseWriter, _ *http.Request) {
+		n := atomic.AddInt32(&fetchCount, 1)
+		var pubKey *rsa.PublicKey
+		var kid string
+		if n == 1 {
+			pubKey = &oldKey.PublicKey
+			kid = oldKid
+		} else {
+			pubKey = &newKey.PublicKey
+			kid = newKid
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"keys": []map[string]any{{
+				"kty": "RSA",
+				"kid": kid,
+				"n":   base64.RawURLEncoding.EncodeToString(pubKey.N.Bytes()),
+				"e":   base64.RawURLEncoding.EncodeToString([]byte{0x01, 0x00, 0x01}),
+			}},
+		})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	v := &KeycloakJWKSVerifier{
+		IssuerURL: issuer,
+		JWKSURL:   srv.URL + "/jwks",
+		ClientID:  aud,
+		CacheTTL:  time.Hour,
+	}
+
+	token := mustSignToken(t, newKey, newKid, jwt.MapClaims{
+		"iss":                issuer,
+		"aud":                aud,
+		"sub":                "user-rotation",
+		"preferred_username": "alice",
+		"exp":                time.Now().Add(5 * time.Minute).Unix(),
+	})
+
+	actor, err := v.VerifyBearerToken(context.Background(), token)
+	if err != nil {
+		t.Fatalf("verify (retry expected to succeed): %v", err)
+	}
+	if actor.Subject != "user-rotation" {
+		t.Fatalf("actor.Subject = %q; want %q", actor.Subject, "user-rotation")
+	}
+	if got := atomic.LoadInt32(&fetchCount); got != 2 {
+		t.Fatalf("jwks endpoint hits = %d; want 2 (1 initial + 1 retry on kid mismatch)", got)
+	}
+}
+
+// TestKeycloakJWKSVerifier_DoesNotRetryOnSignatureError — non-kid error 시 retry
+// 안 함 (security 위협 회피). signature error 는 attacker token 의 endpoint 폭격
+// 위험 — retry 회피.
+func TestKeycloakJWKSVerifier_DoesNotRetryOnSignatureError(t *testing.T) {
+	correctKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generate correct rsa key: %v", err)
+	}
+	attackerKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generate attacker rsa key: %v", err)
+	}
+	kid := "kid-1"
+	issuer := "https://issuer.example.com/realms/devhub"
+	aud := "devhub-web"
+
+	var fetchCount int32
+	mux := http.NewServeMux()
+	mux.HandleFunc("/jwks", func(w http.ResponseWriter, _ *http.Request) {
+		atomic.AddInt32(&fetchCount, 1)
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"keys": []map[string]any{{
+				"kty": "RSA",
+				"kid": kid,
+				"n":   base64.RawURLEncoding.EncodeToString(correctKey.PublicKey.N.Bytes()),
+				"e":   base64.RawURLEncoding.EncodeToString([]byte{0x01, 0x00, 0x01}),
+			}},
+		})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	v := &KeycloakJWKSVerifier{
+		IssuerURL: issuer,
+		JWKSURL:   srv.URL + "/jwks",
+		ClientID:  aud,
+		CacheTTL:  time.Hour,
+	}
+
+	token := mustSignToken(t, attackerKey, kid, jwt.MapClaims{
+		"iss":                issuer,
+		"aud":                aud,
+		"sub":                "evil",
+		"preferred_username": "evil",
+		"exp":                time.Now().Add(5 * time.Minute).Unix(),
+	})
+
+	_, err = v.VerifyBearerToken(context.Background(), token)
+	if err == nil {
+		t.Fatal("expected signature verification error")
+	}
+	if got := atomic.LoadInt32(&fetchCount); got != 1 {
+		t.Fatalf("jwks endpoint hits = %d; want 1 (no retry on non-kid error)", got)
+	}
+}
+
 func TestExtractKeycloakRole_UsesResourceAccessFallback(t *testing.T) {
 	claims := jwt.MapClaims{
 		"resource_access": map[string]any{
