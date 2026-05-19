@@ -2,8 +2,11 @@
   "schema_version": "1",
   "sprint": "claude/work_260519-w",
   "branch": "claude/work_260519-w",
-  "status": "in_progress",
+  "status": "done",
   "started_at": "2026-05-19T22:00:00Z",
+  "ended_at": "2026-05-19T22:45:00Z",
+  "merged_pr": 191,
+  "merge_commit": "49bfb92",
   "scope": "ADR-0019 §5.3 (9) audit event listener Phase 2 PR-D — store-level dedup. migration 000032 audit_logs.source_event_id + partial UNIQUE INDEX + domain.AuditLog.SourceEventID + store CreateAuditLog ON CONFLICT DO NOTHING + getAuditLogBySourceEventID lookup + audit.AuditEmitter 시그니처 확장 + puller hash 를 sourceEventID 로 전달 + main.go emitter 가 entry.SourceEventID set + integration test 2건. §5.3 (9) Phase 2 backend (PR-B~PR-D) 모두 resolved.",
   "directive_source": "사용자 요청 'PR-D 진행하자' — sprint -v closing 직후 5단계 중 3번째.",
   "decisions": [

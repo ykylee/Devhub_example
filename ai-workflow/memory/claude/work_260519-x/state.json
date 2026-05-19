@@ -2,8 +2,11 @@
   "schema_version": "1",
   "sprint": "claude/work_260519-x",
   "branch": "claude/work_260519-x",
-  "status": "in_progress",
+  "status": "done",
   "started_at": "2026-05-19T23:00:00Z",
+  "ended_at": "2026-05-19T23:30:00Z",
+  "merged_pr": 192,
+  "merge_commit": "a72bde4",
   "scope": "ADR-0019 §5.3 (9) audit event listener Phase 2 PR-E — keycloak_operations.md §8.6 운영 SOP. docs-only. 9 sub-section (사전 조건 / Keycloak admin console 설정 / backend env / Prometheus dashboard panel + PromQL / 알람 / dedup 확인 SQL / 트러블슈팅 / disable·rollback / sub-carve). §5.3 (9) Phase 2 모든 carve (PR-B~PR-E) 종결.",
   "directive_source": "사용자 요청 'PR-E 진행하자' — sprint -w closing 직후 5단계 중 마지막.",
   "decisions": [
