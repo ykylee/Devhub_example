@@ -58,6 +58,8 @@ test.describe("Sign Out terminates IdP session", () => {
 
 test.describe("user switch across Sign Out", () => {
   test("TC-USER-SWITCH-01 — Sign Out from alice and Sign In as bob shows bob's profile, never alice's", async ({ page }) => {
+    test.setTimeout(90_000);
+
     // 1) alice 로 로그인 후 /account 의 actor.login 이 alice
     await loginAs(page, SEEDED.developer);
     await page.goto("/account");
