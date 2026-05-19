@@ -129,11 +129,6 @@ var routePermissionTable = map[routeKey]routePolicy{
 	{http.MethodPost, "/api/v1/integrations/gitea/webhooks"}:                      {Bypass: true},
 	{http.MethodPost, "/api/v1/integration/providers/:provider_id/webhook"}:       {Bypass: true},
 	{http.MethodPost, "/api/v1/infra/services/snapshot"}:                          {Bypass: true},
-	// Self-service password change (L4-D, work_26_05_11-e). RBAC matrix is
-	// not the right tool here — every authenticated user can change their
-	// own password; admin-driven resets go through /accounts/:user_id/password
-	// which is already mapped to security:edit.
-	{http.MethodPost, "/api/v1/account/password"}: {Bypass: true},
 
 	// infrastructure
 	{http.MethodGet, "/api/v1/dashboard/metrics"}:             {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},

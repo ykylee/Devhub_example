@@ -15,7 +15,7 @@ import (
 
 // adminCreateAccountRequest is the body for POST /api/v1/accounts. The
 // system admin issues a credential for a (possibly new) DevHub user; the
-// handler creates both the DevHub users row and the Kratos identity, then
+// handler creates both the DevHub users row and the IdP identity, then
 // returns the temporary password exactly once.
 type adminCreateAccountRequest struct {
 	UserID       string `json:"user_id" binding:"required"`
@@ -36,8 +36,8 @@ type adminUpdateAccountRequest struct {
 const minTempPasswordLength = 12
 
 // generateTempPassword returns a base64url-encoded 18-byte token (24 chars).
-// Sufficient entropy for one-shot temporary credentials and meets Kratos's
-// default min_password_length=12.
+// Sufficient entropy for one-shot temporary credentials and meets typical IdP
+// password policies (e.g. Keycloak length>=8).
 func generateTempPassword() (string, error) {
 	buf := make([]byte, 18)
 	if _, err := rand.Read(buf); err != nil {
@@ -87,7 +87,7 @@ func (h Handler) createAccount(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// 1) DevHub users row (master). Failures here surface to the caller
-	// before we touch Kratos so we never strand a Kratos identity without
+	// before we touch the IdP so we never strand an IdP identity without
 	// a matching DevHub record.
 	user, err := h.cfg.OrganizationStore.CreateUser(ctx, domain.CreateUserInput{
 		UserID:      req.UserID,
@@ -103,9 +103,12 @@ func (h Handler) createAccount(c *gin.Context) {
 		return
 	}
 
-	// 2) Kratos identity. If this fails we leave the DevHub row in place
+	// 2) IdP identity. If this fails we leave the DevHub row in place
 	// and return 500 — operator can either delete it or retry the call,
 	// which CreateUser will reject as duplicate.
+	// audit action name "account.issue.kratos_failed" is preserved verbatim for
+	// DB historical row compatibility (audit_logs rows pre-dating ADR-0019
+	// supersession). Rename + dual-read is a separate carve.
 	identityID, err := h.cfg.IdentityAdmin.CreateIdentity(ctx, req.Email, req.DisplayName, req.UserID, tempPassword)
 	if err != nil {
 		h.recordAuditBestEffort(c, "account.issue.kratos_failed", "user", req.UserID, map[string]any{
@@ -116,12 +119,10 @@ func (h Handler) createAccount(c *gin.Context) {
 	}
 
 	// 3) Eagerly cache the identity_id on the DevHub users row so subsequent
-	// admin/self-service flows skip the /admin/identities page scan (L4-A).
-	// Failure here is non-fatal: the lazy backfill path will catch it on the
-	// next lookup, and surfacing 500 would leave the DevHub+Kratos pair in
-	// the correct state but make the caller think creation failed.
+	// admin/self-service flows skip the IdP page scan. Failure here is
+	// non-fatal: the lazy backfill path will catch it on the next lookup.
 	if cacheErr := h.cfg.OrganizationStore.SetIdPSubject(ctx, req.UserID, identityID); cacheErr != nil {
-		logRequest(c, "[kratos-cache] eager backfill on account.create for %s skipped: %v", req.UserID, cacheErr)
+		logRequest(c, "[idp-cache] eager backfill on account.create for %s skipped: %v", req.UserID, cacheErr)
 	}
 
 	h.recordAuditBestEffort(c, "account.issued", "user", req.UserID, map[string]any{
@@ -185,7 +186,7 @@ func (h Handler) resetAccountPassword(c *gin.Context) {
 	ctx := c.Request.Context()
 	identityID, err := h.resolveIdPSubject(ctx, userID)
 	if errors.Is(err, ErrIdentityNotFound) {
-		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "kratos identity not found for user_id"})
+		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "idp identity not found for user_id"})
 		return
 	}
 	if err != nil {
@@ -240,7 +241,7 @@ func (h Handler) updateAccountStatus(c *gin.Context) {
 	ctx := c.Request.Context()
 	identityID, err := h.resolveIdPSubject(ctx, userID)
 	if errors.Is(err, ErrIdentityNotFound) {
-		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "kratos identity not found for user_id"})
+		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "idp identity not found for user_id"})
 		return
 	}
 	if err != nil {
@@ -257,14 +258,14 @@ func (h Handler) updateAccountStatus(c *gin.Context) {
 	// Map the public-facing "disabled" label to the persisted status
 	// constant. domain.UserStatusDeactivated is the value the DB
 	// users_status_check constraint actually accepts; using "disabled"
-	// would surface as a 500 after the Kratos state flip succeeds and
+	// would surface as a 500 after the IdP state flip succeeds and
 	// trigger the rollback path on every disable request.
 	devhubStatus := domain.UserStatusActive
 	if !active {
 		devhubStatus = domain.UserStatusDeactivated
 	}
 	if _, err := h.cfg.OrganizationStore.UpdateUser(ctx, userID, domain.UpdateUserInput{Status: &devhubStatus}); err != nil {
-		// Roll back the Kratos state change so the two stores stay in sync.
+		// Roll back the IdP state change so the two stores stay in sync.
 		_ = h.cfg.IdentityAdmin.SetIdentityState(ctx, identityID, !active)
 		writeServerError(c, err, "account.status.devhub_user")
 		return
@@ -300,7 +301,7 @@ func (h Handler) deleteAccount(c *gin.Context) {
 
 	ctx := c.Request.Context()
 	identityID, err := h.resolveIdPSubject(ctx, userID)
-	// Missing Kratos identity is non-fatal — proceed with DevHub delete so an
+	// Missing IdP identity is non-fatal — proceed with DevHub delete so an
 	// orphaned users row can still be cleaned up.
 	if err != nil && !errors.Is(err, ErrIdentityNotFound) {
 		writeServerError(c, err, "account.delete.find_identity")

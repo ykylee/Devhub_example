@@ -21,8 +21,8 @@ const (
 )
 
 // requestIDCtxKey is the typed context.Context key that mirrors the gin
-// store. Background work that only sees a context.Context (Kratos / Hydra
-// HTTP clients, store helpers, future workers) can pull the request id
+// store. Background work that only sees a context.Context (IdP HTTP
+// clients, store helpers, future workers) can pull the request id
 // from here, so log lines they emit stay correlated with the originating
 // HTTP request.
 //
@@ -73,8 +73,8 @@ func validateCallerRequestID(raw string) string {
 // requireRequestID stamps every /api/v1/* request with a request id, exposes
 // it on the response (X-Request-ID) for client-side correlation, and stashes
 // it on gin.Context AND the underlying request context so audit + error
-// helpers + downstream client/helper code (Kratos / Hydra HTTP clients,
-// background workers) can pick it up.
+// helpers + downstream client/helper code (IdP HTTP clients, background
+// workers) can pick it up.
 //
 // If the inbound request already carries a well-formed X-Request-ID header
 // (1..128 chars of [A-Za-z0-9_-]) we honour it as-is. Otherwise — empty or
@@ -103,9 +103,9 @@ func requestIDFrom(c *gin.Context) string {
 }
 
 // requestIDFromContext is the ctx-only counterpart of requestIDFrom. It is
-// the entry point for code that does not hold a *gin.Context — Kratos /
-// Hydra HTTP clients, store helpers, background workers — so their log
-// lines stay correlated with the originating request.
+// the entry point for code that does not hold a *gin.Context — IdP HTTP
+// clients, store helpers, background workers — so their log lines stay
+// correlated with the originating request.
 func requestIDFromContext(ctx context.Context) string {
 	if ctx == nil {
 		return ""

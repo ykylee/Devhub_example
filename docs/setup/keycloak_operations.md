@@ -428,6 +428,39 @@ Keycloak admin 이 사용자 강제 logout 시 (§8.2 off-boarding 또는 §6.5 
 - **(carve)** Backchannel logout (`logout_token` 수신) — Keycloak → DevHub backend POST. server-side session 도입 시 의미 있음. 현재 미적용.
 - **(carve)** Multi-tab logout 동기화 — `tokenStore` 가 sessionStorage 인 경우 tab 간 sync 안 됨. localStorage + `storage` event listener 또는 BroadcastChannel API 로 carve.
 
+### 8.5b Self-service 비밀번호 변경 (Keycloak Account Console 위임)
+
+sprint `claude/work_260519-ad` (Kratos 잔재 cleanup) 이후, DevHub 는 self-service 비밀번호 변경 흐름을 **자체 proxy 하지 않는다**. 사용자는 Keycloak Account Console 에서 직접 비밀번호를 변경한다.
+
+#### 8.5b.1 URL 구성
+
+| 항목 | 값 |
+| --- | --- |
+| Account Console URL | `${OIDC_ISSUER_URL}/account/` (예: `https://idp.example.com/realms/devhub/account/`) |
+| DevHub 진입점 | `/account` 페이지의 **"Open Keycloak Console"** 외부 link (`target="_blank"`). frontend `app/(dashboard)/account/page.tsx` 가 `OIDC_ISSUER_URL` 을 endpoints.ts 에서 조립한다. |
+| 변경 사항 | (a) `POST /api/v1/account/password` endpoint + Kratos login/settings proxy 제거, (b) `accountService.updateMyPassword` + `SettingsFlowError` 제거, (c) `/account` 페이지의 password form 제거 + Account Console redirect button 으로 대체. |
+
+#### 8.5b.2 사용자 흐름
+
+1. 사용자가 DevHub 의 `/account` 페이지에서 **"Open Keycloak Console"** 버튼 클릭 (새 탭)
+2. Keycloak Account Console (`{issuer}/account/`) 로 이동 — 이미 OIDC 로 sign-in 한 사용자는 자동 인증 (SSO)
+3. **Signing In** 또는 **Password** 메뉴에서 비밀번호 변경 (Keycloak 의 password policy + privileged session 시간창 정합)
+4. 변경 완료 후 DevHub 탭으로 돌아옴 — DevHub access_token 은 그대로 유효 (TTL 만료까지). 다음 로그인부터 새 비밀번호 적용.
+
+#### 8.5b.3 운영 요점
+
+- **DevHub 측 코드 변경 없음** — Keycloak Account Console 의 password policy / MFA enrollment / 활성 세션 관리 등 기능 모두 Keycloak admin 에서 컨트롤.
+- **Keycloak admin 측 요구사항** — `devhub-frontend` client 의 Web Origins 가 Account Console URL 도 허용해야 함 (보통 동일 issuer 라 자동 정합).
+- **MFA enrollment 도 동일 경로** — Account Console > Signing In > Authenticator. DevHub 는 MFA 시도 결과를 Keycloak 의 token 발급으로 받아 그대로 적용.
+- **Audit log** — Keycloak Admin Events log 에 `UPDATE_PASSWORD` event 가 기록되며, sprint -u~-y 의 audit event listener (§8.6) 가 이를 polling 해 DevHub `audit_logs` 로 dedup-emit (source_type=`keycloak_event`, action 매핑은 §8.6 매핑 표 참조).
+- **Runtime config 정합 (sprint -ad Stage 3, codex P1 + self-review P1-2 통합 fix)** — `app/(dashboard)/account/page.tsx` 의 Account Console link 는 `authService.getAccountConsoleURL()` 을 통해 `/api/runtime-config` 응답의 `oidc_issuer_url` 로부터 빌드된다. server-side env (`OIDC_ISSUER_URL` 또는 `NEXT_PUBLIC_OIDC_ISSUER_URL`) 둘 다 지원되며, login flow (`auth.service.ts:getRuntimeOIDCConfig`) 와 동일 경로를 공유한다. 즉 빌드 시점에 `NEXT_PUBLIC_*` 가 inline 되지 않은 deployment 에서도 link 가 정상 동작한다.
+- **운영 로그 grep 룰 갱신 필요** — backend `identity_resolver.go` 의 IdP subject backfill log prefix 가 `[kratos-cache]` → `[idp-cache]` 로 변경됨 (sprint -ad). 기존 alert/grep 룰이 `[kratos-cache]` 를 watch 한다면 `[idp-cache]` 로 교체. 후속 backend 의 다른 cache 라인 (예: PermissionCache) 은 변경 없음.
+
+#### 8.5b.4 잔여 carve out (§8.5b sub-carve)
+
+- **(carve)** DevHub 의 password change 진입점에 Account Console URL 을 명시적으로 보여주지 않고 SSO redirect 만 제공 — Account Console 진입 시 추가 인증을 요구하는 Keycloak 설정인 경우 사용자에게 ID/PW 재입력이 노출. 환경별 SOP 검토.
+- **(carve)** MFA enrollment 강제 (Required Actions) — Keycloak realm 의 Required Actions 에서 강제 enroll 설정 후 DevHub OIDC flow 가 그대로 MFA challenge 받음. 현재 사내 정책으로 MFA 도입 보류 (ADR-0019 §5.3 (5) excluded).
+
 ### 8.6 Keycloak event listener (audit_logs 통합) 운영 SOP
 
 [ADR-0019 §5.3 (9) audit event listener](../adr/0019-keycloak-only-idp.md#53-잔여-carve-out) 의 Phase 2 (PR-B~PR-D, sprint -u~-w) 가 머지된 후 운영 환경에서 활성화하는 절차. design 문서: [docs/planning/keycloak_event_audit_integration.md](../planning/keycloak_event_audit_integration.md).
@@ -596,3 +629,4 @@ SELECT cursor_key, last_event_at, last_event_hash, updated_at FROM event_cursors
 | 2026-05-19 | 1차 draft — §2 realm + §3 client 2종 + §4 role 4종 + §5 user attribute mapper (preferred_username / email / realm_access.roles / employee_id custom) + §6 JWKS rotation 운영 SOP + §7 local embedded vs external 분기 + §8 운영 SOP (생성/회수/secret rotation/장애) + §9 보안 점검 + §10 잔여 carve out 8 항목. [ADR-0019 §5.3 carve out (1)+(2)+(3) resolved](../adr/0019-keycloak-only-idp.md#53-잔여-carve-out) 의 source-of-truth. | `claude/work_260519-c` |
 | 2026-05-19 | §8.6.1 cursor seed row + §8.6.2 Expiration wording 정정 — sprint -y codex hotfix #10 (PR #189~#192) 의 P1-C (cursor bootstrap 명시) + P2-E (Expiration 이 운영 outage tolerance 보다 짧으면 audit 영구 손실 위험) 정정. P1-B backend 자동 seed 패치 (`loadCursor` 즉시 UPSERT) 와 정합. | `claude/work_260519-y` |
 | 2026-05-19 | §8.6 Keycloak event listener (audit_logs 통합) 운영 SOP 신규 (9 sub-section) — [ADR-0019 §5.3 (9)](../adr/0019-keycloak-only-idp.md#53-잔여-carve-out) Phase 2 PR-E 의 마지막 carve. 활성화 사전 조건 (migration 000031 + 000032 + service account 권한 + Keycloak Events 활성화) / Keycloak admin console 설정 (User+Admin events Save + Expiration 7d) / backend env 3종 (`DEVHUB_KEYCLOAK_EVENT_LISTENER_ENABLED` / `_INTERVAL` / `_MAX_EVENTS`) / Prometheus dashboard 4 panel (events_processed_total / cursor_lag_seconds / pull_errors_total + PromQL 예시) / 알람 3종 (cursor_lag_high 600s / cursor_lag_critical 3600s / pull_error_rate 5건/5분) / audit_logs dedup 동작 확인 query (최근 emit / 중복 검사 / cursor 위치) / 트러블슈팅 5 케이스 (audit row 없음 / cursor lag / 중복 등장 / pull error / unknown action 빈번) / disable/rollback / sub-carve 3 (SPI push 전환 / cold storage archival / dashboard JSON 자산). §9.2 audit log 통합 carve → resolved 표기로 갱신 + §10 의 audit 항목 strikethrough 표기. **ADR-0019 §5.3 (9) Phase 2 모든 carve (PR-B~PR-E) resolved.** | `claude/work_260519-x` |
+| 2026-05-20 | §8.5b Self-service 비밀번호 변경 (Keycloak Account Console 위임) 신규 4 sub-section — sprint -ad Kratos 잔재 residual cleanup 의 정합. (a) URL 구성 표 (`${OIDC_ISSUER_URL}/account/` + DevHub `/account` 의 "Open Keycloak Console" 외부 link), (b) 사용자 흐름 4 step, (c) 운영 요점 4건 (DevHub 측 코드 변경 없음 / Web Origins / MFA enrollment 동일 경로 / Audit log 는 sprint -u~-y event listener 가 자동 캡처), (d) sub-carve 2건 (Account Console URL 노출 / MFA enrollment 강제). DevHub 의 `POST /api/v1/account/password` proxy + Kratos login/settings client + frontend password form 모두 제거되어 ADR-0019 정합 완전 정착. | `claude/work_260519-ad` |

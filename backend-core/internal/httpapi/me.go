@@ -14,7 +14,7 @@ type meResponse struct {
 }
 
 // getMe returns the authenticated actor for the current request. Frontend
-// uses this to derive the active role after a successful Kratos+Hydra login.
+// uses this to derive the active role after a successful Keycloak OIDC login.
 // Returns 401 when the request did not produce an authenticated actor (no
 // Authorization header in production, or the dev fallback resolved actor to
 // "system"). The legacy X-Devhub-Actor header is intentionally ignored —

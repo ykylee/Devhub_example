@@ -19,11 +19,12 @@ type OrganizationStore interface {
 	CreateUser(context.Context, domain.CreateUserInput) (domain.AppUser, error)
 	UpdateUser(context.Context, string, domain.UpdateUserInput) (domain.AppUser, error)
 	DeleteUser(context.Context, string) error
-	// SetIdPSubject caches the Kratos identity_id on the DevHub users
-	// row (L4-A, work_26_05_11-e). Both eager (account.create) and lazy
-	// (first admin/self-service action) backfill paths call this. Stores
-	// that do not implement persistence (e.g. memory test fakes) may treat
-	// it as a no-op when the user row is absent.
+	// SetIdPSubject caches the IdP identity_id on the DevHub users row
+	// (L4-A, work_26_05_11-e; renamed from kratos_identity_id by migration
+	// 000030 / ADR-0019). Both eager (account.create) and lazy (first
+	// admin/self-service action) backfill paths call this. Stores that do
+	// not implement persistence (e.g. memory test fakes) may treat it as a
+	// no-op when the user row is absent.
 	SetIdPSubject(context.Context, string, string) error
 	GetHierarchy(context.Context) (domain.Hierarchy, error)
 	UpdateHierarchy(context.Context, domain.Hierarchy) error
@@ -410,11 +411,11 @@ func (h Handler) createUser(c *gin.Context) {
 		return
 	}
 
-	// Optional: Create Kratos Identity if password is provided
-	var kID string
+	// Optional: Create IdP Identity if password is provided
+	var idpID string
 	if req.Password != "" {
 		if h.cfg.IdentityAdmin == nil {
-			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Kratos admin service is not configured"})
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "identity admin service is not configured"})
 			return
 		}
 		id, err := h.cfg.IdentityAdmin.CreateIdentity(c.Request.Context(), req.Email, req.DisplayName, req.UserID, req.Password)
@@ -422,7 +423,7 @@ func (h Handler) createUser(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create identity", "details": err.Error()})
 			return
 		}
-		kID = id
+		idpID = id
 	}
 
 	input := domain.CreateUserInput{
@@ -443,12 +444,15 @@ func (h Handler) createUser(c *gin.Context) {
 		writeStoreError(c, err, "organization.create_user")
 		return
 	}
+	// audit_logs details key "kratos_id" is preserved verbatim for DB
+	// historical row compatibility (rows pre-dating ADR-0019 supersession).
+	// Rename to "idp_subject" + dual-read is a separate carve.
 	auditLog := h.recordAuditBestEffort(c, "user.created", "user", user.UserID, map[string]any{
 		"email":           user.Email,
 		"role":            string(user.Role),
 		"status":          string(user.Status),
 		"type":            string(user.Type),
-		"kratos_id":       kID,
+		"kratos_id":       idpID,
 		"primary_unit_id": user.PrimaryUnitID,
 		"current_unit_id": user.CurrentUnitID,
 	})

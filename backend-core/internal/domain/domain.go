@@ -171,8 +171,10 @@ type Command struct {
 
 // AuditSourceType classifies which authentication path produced an audit
 // row. Per DEC-2 (work_26_05_11-c, T-M1-04) the vocabulary is bounded to
-// oidc | webhook | kratos | system at this stage. New actor classes (cli,
-// api_token, ...) extend this enum when they become real.
+// oidc | webhook | kratos | system | keycloak_event at this stage. The
+// "kratos" value is deprecated (ADR-0001 superseded by ADR-0019) but
+// preserved so historical audit_logs rows decode cleanly. New actor
+// classes (cli, api_token, ...) extend this enum when they become real.
 type AuditSourceType string
 
 const (
@@ -336,11 +338,12 @@ type AppUser struct {
 	Role        AppRole
 	Status      UserStatus
 	Type        UserType
-	// IdPSubject caches the Kratos identity_id so handlers can skip
-	// the O(n) /admin/identities scan. Empty when the row has not been
-	// backfilled yet. Populated eagerly on account.create and lazily on
-	// the first admin/self-service action against the user (migration
-	// 000009).
+	// IdPSubject caches the IdP identity_id (Keycloak user UUID since
+	// ADR-0019, formerly Kratos identity.id) so handlers can skip the
+	// O(n) /admin/users scan. Empty when the row has not been backfilled
+	// yet. Populated eagerly on account.create and lazily on the first
+	// admin/self-service action against the user (migration 000009 added
+	// the column, 000030 renamed kratos_identity_id -> idp_subject).
 	IdPSubject    string
 	PrimaryUnitID string
 	CurrentUnitID string

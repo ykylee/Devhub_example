@@ -14,7 +14,7 @@ import (
 // /admin/identities scan.
 func TestResolveIdPSubject_CacheHit(t *testing.T) {
 	orgStore := newMemoryOrganizationStore()
-	kratos := &MockIdentityAdmin{
+	idp := &MockIdentityAdmin{
 		FindError: errors.New("FindIdentityByUserID should not be called when cache is warm"),
 	}
 	if _, err := orgStore.CreateUser(context.Background(), domain.CreateUserInput{
@@ -32,7 +32,7 @@ func TestResolveIdPSubject_CacheHit(t *testing.T) {
 		t.Fatalf("set idp_subject: %v", err)
 	}
 
-	h := Handler{cfg: RouterConfig{OrganizationStore: orgStore, IdentityAdmin: kratos}}
+	h := Handler{cfg: RouterConfig{OrganizationStore: orgStore, IdentityAdmin: idp}}
 	id, err := h.resolveIdPSubject(context.Background(), "alice")
 	if err != nil {
 		t.Fatalf("resolve: %v", err)
@@ -40,8 +40,8 @@ func TestResolveIdPSubject_CacheHit(t *testing.T) {
 	if id != "cached-identity-id" {
 		t.Errorf("identity_id = %q, want cached-identity-id", id)
 	}
-	if kratos.FindCalls != 0 {
-		t.Errorf("FindIdentityByUserID was called %d times; cache hit should skip the scan", kratos.FindCalls)
+	if idp.FindCalls != 0 {
+		t.Errorf("FindIdentityByUserID was called %d times; cache hit should skip the scan", idp.FindCalls)
 	}
 }
 
@@ -50,7 +50,7 @@ func TestResolveIdPSubject_CacheHit(t *testing.T) {
 // the cache.
 func TestResolveIdPSubject_LazyBackfill(t *testing.T) {
 	orgStore := newMemoryOrganizationStore()
-	kratos := &MockIdentityAdmin{FindIDOverride: map[string]string{"bob": "scanned-identity-id"}}
+	idp := &MockIdentityAdmin{FindIDOverride: map[string]string{"bob": "scanned-identity-id"}}
 	if _, err := orgStore.CreateUser(context.Background(), domain.CreateUserInput{
 		UserID:      "bob",
 		Email:       "bob@example.com",
@@ -63,7 +63,7 @@ func TestResolveIdPSubject_LazyBackfill(t *testing.T) {
 		t.Fatalf("seed user: %v", err)
 	}
 
-	h := Handler{cfg: RouterConfig{OrganizationStore: orgStore, IdentityAdmin: kratos}}
+	h := Handler{cfg: RouterConfig{OrganizationStore: orgStore, IdentityAdmin: idp}}
 
 	id, err := h.resolveIdPSubject(context.Background(), "bob")
 	if err != nil {
@@ -72,8 +72,8 @@ func TestResolveIdPSubject_LazyBackfill(t *testing.T) {
 	if id != "scanned-identity-id" {
 		t.Errorf("first resolve identity_id = %q, want scanned-identity-id", id)
 	}
-	if kratos.FindCalls != 1 {
-		t.Errorf("first resolve should have triggered exactly one scan; FindCalls=%d", kratos.FindCalls)
+	if idp.FindCalls != 1 {
+		t.Errorf("first resolve should have triggered exactly one scan; FindCalls=%d", idp.FindCalls)
 	}
 
 	// After the first call the cache must be populated.
@@ -93,20 +93,19 @@ func TestResolveIdPSubject_LazyBackfill(t *testing.T) {
 	if id != "scanned-identity-id" {
 		t.Errorf("second resolve identity_id = %q, want scanned-identity-id", id)
 	}
-	if kratos.FindCalls != 1 {
-		t.Errorf("second resolve should hit cache; FindCalls=%d", kratos.FindCalls)
+	if idp.FindCalls != 1 {
+		t.Errorf("second resolve should hit cache; FindCalls=%d", idp.FindCalls)
 	}
 }
 
 // Missing user row: when the DevHub users row does not exist at all (e.g.
 // tests that use bare newMemoryOrganizationStore() without CreateUser), the
 // resolver falls through to the slow scan and tolerates the SetIdPSubject
-// best-effort failure. This is the path the legacy accounts_admin tests
-// exercise — we keep it green.
+// best-effort failure.
 func TestResolveIdPSubject_NoUserRowFallsBackToScan(t *testing.T) {
 	orgStore := newMemoryOrganizationStore()
-	kratos := &MockIdentityAdmin{}
-	h := Handler{cfg: RouterConfig{OrganizationStore: orgStore, IdentityAdmin: kratos}}
+	idp := &MockIdentityAdmin{}
+	h := Handler{cfg: RouterConfig{OrganizationStore: orgStore, IdentityAdmin: idp}}
 
 	id, err := h.resolveIdPSubject(context.Background(), "carol")
 	if err != nil {
@@ -115,8 +114,8 @@ func TestResolveIdPSubject_NoUserRowFallsBackToScan(t *testing.T) {
 	if id != "mock-k-id-carol" {
 		t.Errorf("identity_id = %q, want mock-k-id-carol", id)
 	}
-	if kratos.FindCalls != 1 {
-		t.Errorf("FindIdentityByUserID should run once; FindCalls=%d", kratos.FindCalls)
+	if idp.FindCalls != 1 {
+		t.Errorf("FindIdentityByUserID should run once; FindCalls=%d", idp.FindCalls)
 	}
 }
 
@@ -124,8 +123,8 @@ func TestResolveIdPSubject_NoUserRowFallsBackToScan(t *testing.T) {
 // 500.
 func TestResolveIdPSubject_NotFoundPropagates(t *testing.T) {
 	orgStore := newMemoryOrganizationStore()
-	kratos := &MockIdentityAdmin{FindError: ErrIdentityNotFound}
-	h := Handler{cfg: RouterConfig{OrganizationStore: orgStore, IdentityAdmin: kratos}}
+	idp := &MockIdentityAdmin{FindError: ErrIdentityNotFound}
+	h := Handler{cfg: RouterConfig{OrganizationStore: orgStore, IdentityAdmin: idp}}
 
 	_, err := h.resolveIdPSubject(context.Background(), "ghost")
 	if !errors.Is(err, ErrIdentityNotFound) {
@@ -138,8 +137,8 @@ func TestResolveIdPSubject_NotFoundPropagates(t *testing.T) {
 // the cache.
 func TestCreateAccount_EagerBackfillsIdPSubject(t *testing.T) {
 	orgStore := newMemoryOrganizationStore()
-	kratos := &MockIdentityAdmin{}
-	router := newAccountsAdminRouter(orgStore, kratos, &memoryAuditStore{})
+	idp := &MockIdentityAdmin{}
+	router := newAccountsAdminRouter(orgStore, idp, &memoryAuditStore{})
 
 	rec := doJSON(t, router, "POST", "/api/v1/accounts",
 		`{"user_id":"dora","email":"dora@example.com","display_name":"Dora","temp_password":"InitialPass123!"}`)

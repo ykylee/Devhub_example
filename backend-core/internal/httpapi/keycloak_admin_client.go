@@ -14,9 +14,14 @@ import (
 	"time"
 )
 
+// ErrIdentityNotFound is returned by IdentityAdmin implementations when no
+// identity matches the supplied DevHub user_id (or the underlying GET returns
+// 404). Defined here because KeycloakAdminClient is the source-of-truth impl
+// (ADR-0019).
+var ErrIdentityNotFound = errors.New("identity not found")
+
 // KeycloakAdminClient maps account-admin operations to Keycloak Admin API.
-// It intentionally satisfies IdentityAdmin so existing handlers can be reused
-// during the migration window.
+// It satisfies IdentityAdmin.
 type KeycloakAdminClient struct {
 	AdminURL     string
 	Realm        string

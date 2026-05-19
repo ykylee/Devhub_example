@@ -1,56 +1,39 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { User, Mail, Shield, Key, Loader2, Save, AlertCircle, CheckCircle2 } from "lucide-react";
-import { useState } from "react";
+import { User, Mail, Shield, Key, ExternalLink } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useStore } from "@/lib/store";
-import { accountService, SettingsFlowError } from "@/lib/services/account.service";
+import { authService } from "@/lib/services/auth.service";
+
+// ADR-0019 / sprint claude/work_260519-ad: self-service password change is
+// delegated to the Keycloak Account Console. DevHub no longer proxies the
+// flow (the previous Kratos-based proxy was wire-deleted along with the
+// rest of the Kratos residual).
+//
+// Stage 3 (codex P1 + self-review P1-2): the Account Console URL is resolved
+// via authService.getAccountConsoleURL() so deployments that surface the
+// issuer through /api/runtime-config (server env) keep the link working
+// without baking NEXT_PUBLIC_OIDC_ISSUER_URL into the browser bundle.
 
 export default function AccountPage() {
   const { actor } = useStore();
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
-  const [reauthURL, setReauthURL] = useState<string | null>(null);
+  const [accountConsoleURL, setAccountConsoleURL] = useState("");
 
-  const handlePasswordUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newPassword !== confirmPassword) {
-      setMessage({ type: 'error', text: "New passwords do not match." });
-      return;
-    }
-
-    setSubmitting(true);
-    setMessage(null);
-    setReauthURL(null);
-    try {
-      await accountService.updateMyPassword(currentPassword, newPassword);
-      setMessage({ type: 'success', text: "Password updated successfully." });
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-    } catch (err) {
-      if (err instanceof SettingsFlowError && err.code === "REAUTH_REQUIRED") {
-        setReauthURL(err.redirectURL ?? "/login");
-        setMessage({
-          type: 'error',
-          text: "Re-authentication required to change your password. Please sign in again.",
-        });
-      } else if (err instanceof SettingsFlowError) {
-        setMessage({ type: 'error', text: err.message });
-      } else {
-        setMessage({ type: 'error', text: err instanceof Error ? err.message : "Failed to update password." });
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  useEffect(() => {
+    let cancelled = false;
+    authService.getAccountConsoleURL().then((url) => {
+      if (!cancelled) setAccountConsoleURL(url);
+    }).catch(() => {
+      if (!cancelled) setAccountConsoleURL("");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto pb-12">
-      {/* Header Section */}
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-black text-foreground dark:text-primary-foreground tracking-tighter uppercase">
           Account <span className="text-primary">Settings</span>
@@ -61,8 +44,7 @@ export default function AccountPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* Profile Info */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           className="md:col-span-1 space-y-6"
@@ -102,8 +84,7 @@ export default function AccountPage() {
           </div>
         </motion.div>
 
-        {/* Security / Password Form */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           className="md:col-span-2"
@@ -115,131 +96,46 @@ export default function AccountPage() {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-foreground dark:text-primary-foreground tracking-tight">Security Credentials</h3>
-                <p className="text-xs text-muted-foreground">Update your authentication password</p>
+                <p className="text-xs text-muted-foreground">Password management lives in the Keycloak Account Console</p>
               </div>
             </div>
-            
-            <form onSubmit={handlePasswordUpdate} className="p-8 space-y-6">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label
-                    htmlFor="current-password"
-                    className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1"
-                  >
-                    Current Password
-                  </label>
-                  <input
-                    id="current-password"
-                    name="current-password"
-                    type="password"
-                    autoComplete="current-password"
-                    required
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    aria-describedby="current-password-help"
-                    className="w-full bg-muted/30 dark:bg-background/70 border border-border rounded-2xl px-4 py-3 text-foreground dark:text-primary-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-muted-foreground/50"
-                    placeholder="Enter current password"
-                  />
-                  <p
-                    id="current-password-help"
-                    className="text-[10px] text-muted-foreground/80 px-1 leading-relaxed"
-                  >
-                    Required by our identity provider (Keycloak OIDC) for sensitive changes. If your session has expired you will be asked to sign in again.
-                  </p>
-                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label
-                      htmlFor="new-password"
-                      className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1"
-                    >
-                      New Password
-                    </label>
-                    <input
-                      id="new-password"
-                      name="new-password"
-                      type="password"
-                      autoComplete="new-password"
-                      required
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full bg-muted/30 dark:bg-background/70 border border-border rounded-2xl px-4 py-3 text-foreground dark:text-primary-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-muted-foreground/50"
-                      placeholder="Min 8 characters"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label
-                      htmlFor="confirm-new-password"
-                      className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1"
-                    >
-                      Confirm New Password
-                    </label>
-                    <input
-                      id="confirm-new-password"
-                      name="confirm-new-password"
-                      type="password"
-                      autoComplete="new-password"
-                      required
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full bg-muted/30 dark:bg-background/70 border border-border rounded-2xl px-4 py-3 text-foreground dark:text-primary-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-muted-foreground/50"
-                      placeholder="Repeat new password"
-                    />
-                  </div>
-                </div>
-              </div>
+            <div className="p-8 space-y-6 text-sm text-foreground/90 dark:text-primary-foreground/90 leading-relaxed">
+              <p>
+                DevHub uses Keycloak as its single identity provider (ADR-0019). To change your password,
+                set up multi-factor authentication, or review your active sessions, open the Keycloak
+                Account Console.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                You will sign in to Keycloak directly. After updating your credentials there, return
+                here and continue working — your DevHub session keeps its existing access token until
+                it expires.
+              </p>
 
-              {message && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={cn(
-                    "flex flex-col gap-3 p-4 rounded-2xl border text-sm font-medium",
-                    message.type === 'success'
-                      ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
-                      : "bg-rose-500/10 border-rose-500/20 text-rose-400"
-                  )}
-                >
-                  <div className="flex items-center gap-3">
-                    {message.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-                    {message.text}
-                  </div>
-                  {reauthURL && (
-                    <button
-                      type="button"
-                      onClick={() => window.location.assign(reauthURL)}
-                      className="self-start px-4 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-100 text-xs font-bold uppercase tracking-widest transition-all"
-                    >
-                      Sign In Again
-                    </button>
-                  )}
-                </motion.div>
-              )}
-
-              <div className="pt-4 border-t border-border/60 flex justify-end items-center gap-4">
-                <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest max-w-[200px]">
-                  Password must include uppercase, lowercase, and symbols.
+              <div className="pt-4 border-t border-border/60 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest max-w-[260px]">
+                  Identity actions are owned by Keycloak. DevHub no longer proxies password changes.
                 </p>
-                <button
-                  type="submit"
-                  disabled={submitting || !currentPassword || !newPassword}
-                  className="bg-primary text-primary-foreground font-black px-8 py-3.5 rounded-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2 shadow-lg shadow-primary/20 disabled:opacity-50 disabled:hover:scale-100 uppercase tracking-widest text-xs"
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Updating...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4" />
-                      Save Changes
-                    </>
-                  )}
-                </button>
+                {accountConsoleURL ? (
+                  <a
+                    href={accountConsoleURL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-primary text-primary-foreground font-black px-8 py-3.5 rounded-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2 shadow-lg shadow-primary/20 uppercase tracking-widest text-xs"
+                  >
+                    Open Keycloak Console
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                ) : (
+                  <span
+                    data-testid="account-console-unavailable"
+                    className="text-[10px] text-amber-400 font-bold uppercase tracking-widest"
+                  >
+                    OIDC issuer URL is not configured
+                  </span>
+                )}
               </div>
-            </form>
+            </div>
           </div>
 
           <div className="mt-8 glass border-border rounded-3xl p-8 border-l-4 border-l-amber-500/50">
@@ -250,11 +146,9 @@ export default function AccountPage() {
               <div className="space-y-1">
                 <h4 className="text-foreground dark:text-primary-foreground font-bold tracking-tight">Two-Factor Authentication</h4>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Enhance your account security by adding an extra layer of protection. This feature is currently in preview and will be available in v0.6.0.
+                  Enable MFA from the Keycloak Account Console under Signing In. DevHub honors any
+                  MFA decision Keycloak enforces during sign-in.
                 </p>
-                <button className="mt-4 text-[10px] font-black text-amber-500 uppercase tracking-widest hover:underline opacity-50 cursor-not-allowed">
-                  Setup MFA Coming Soon
-                </button>
               </div>
             </div>
           </div>
@@ -262,8 +156,4 @@ export default function AccountPage() {
       </div>
     </div>
   );
-}
-
-function cn(...inputs: (string | boolean | undefined | null)[]) {
-  return inputs.filter(Boolean).join(" ");
 }

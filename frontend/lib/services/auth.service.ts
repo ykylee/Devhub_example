@@ -182,6 +182,22 @@ class AuthService {
     }
   }
 
+  // getAccountConsoleURL returns the Keycloak Account Console URL
+  // (`${issuer}/account/`) using the same runtime OIDC config path that login
+  // / logout flows use. This keeps the link working in deployments that
+  // surface the issuer via /api/runtime-config server env (rather than baking
+  // NEXT_PUBLIC_OIDC_ISSUER_URL into the browser bundle).
+  // sprint claude/work_260519-ad Stage 3 — codex P1 (runtime config 정합) +
+  // self-review P1-2 (e2e env 미설정 시 link hidden) 통합 fix.
+  async getAccountConsoleURL(): Promise<string> {
+    const config = await this.getRuntimeOIDCConfig();
+    const issuer = config.oidcIssuerURL?.trim() ?? "";
+    if (!issuer) {
+      return "";
+    }
+    return `${issuer.replace(/\/$/, "")}/account/`;
+  }
+
   private async getDiscovery(): Promise<OIDCDiscoveryDocument> {
     if (this.discoveryDoc) {
       return this.discoveryDoc;
