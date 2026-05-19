@@ -1,0 +1,24 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260519-q",
+  "branch": "claude/work_260519-q",
+  "status": "in_progress",
+  "started_at": "2026-05-19T16:00:00Z",
+  "scope": "잔여 사항 순서대로 진행 #3 — backend 확장 (extractRole multi-role priority). sprint -j codex review #9 backend 확장 carve 4건 중 1번째. group composite role / Default Group 시 multi-role token 의 order-dependency 해소.",
+  "directive_source": "사용자 요청 '잔여 사항 진행하자. 순서대로 진행해' — sprint -p (off-boarding cron) 종료 직후 #3 항목.",
+  "decisions": [
+    "internal/auth/keycloak_verifier.go: devhubRolePriority map (system_admin 4 > pmo_manager 3 > manager 2 > developer 1) 신규 + selectHighestPriorityRole helper 신규.",
+    "extractKeycloakRole 의 3 fallback path 모두 selectHighestPriorityRole 호출 — `roles[0]` 직접 반환 패턴 폐기.",
+    "unknown role (priority 0) 시 첫 entry fallback — legacy behavior 호환.",
+    "unit test 9건 신규 — multi-role priority 7 case + selectHighestPriorityRole empty list 2 case."
+  ],
+  "todo": [
+    "internal/auth/keycloak_verifier.go 정합 (완료)",
+    "internal/auth/keycloak_verifier_test.go test 신규 (완료)",
+    "ADR-0019 §5.3 codex review #9 backend 확장 carve 갱신 (extractRole multi-role 1건 resolved)",
+    "docs/planning/keycloak_groups_rbac_mapping.md §3.3 multi-role priority 명시",
+    "docs/traceability/report.md §6 sprint -q row",
+    "commit + push + PR + 4단계 self-review"
+  ],
+  "verification": "사내 GoProxy 제약으로 local go build/test 차단. gofmt syntax 정합 (line ending 만 diff). 실 검증은 CI 의 backend-unit job."
+}

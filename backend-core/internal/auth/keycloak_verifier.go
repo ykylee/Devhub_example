@@ -253,19 +253,52 @@ func claimString(claims jwt.MapClaims, key string) string {
 	return strings.TrimSpace(v)
 }
 
+// devhubRolePriority — DevHub RBAC role 위계 (높을수록 우선). Keycloak token 의 multi-role
+// (group composite role 가입 시 자연 발생) 시 highest priority role 선택. ADR-0019 §5.3
+// codex review #9 의 'Default Group 권장 철회 + multi-role order-dependency 위험' 해소 —
+// sprint claude/work_260519-q 의 backend 확장 carve 구현.
+//
+// 정합: rbac_policies seed (migration 000004) 의 4 role + ADR-0011 row-scoping. 알 수 없는
+// role (예: Keycloak 측 임의 role) 은 priority 0 으로 처리 → 다른 known role 이 있으면 우선.
+var devhubRolePriority = map[string]int{
+	"system_admin": 4,
+	"pmo_manager":  3,
+	"manager":      2,
+	"developer":    1,
+}
+
+// selectHighestPriorityRole 는 roles list 에서 DevHub priority 가 가장 높은 role 을
+// 반환한다. 같은 priority 면 list 첫 번째 (Keycloak 의 token role include order 유지).
+// 모든 role 이 priority 0 (unknown) 이면 list[0] 반환 (legacy fallback).
+func selectHighestPriorityRole(roles []string) string {
+	if len(roles) == 0 {
+		return ""
+	}
+	best := roles[0]
+	bestPriority := devhubRolePriority[best]
+	for _, r := range roles[1:] {
+		p := devhubRolePriority[r]
+		if p > bestPriority {
+			best = r
+			bestPriority = p
+		}
+	}
+	return best
+}
+
 func extractKeycloakRole(claims jwt.MapClaims) string {
 	if role := claimString(claims, "role"); role != "" {
 		return role
 	}
 	if raw, ok := claims["roles"]; ok {
 		if roles := anyToStrings(raw); len(roles) > 0 {
-			return roles[0]
+			return selectHighestPriorityRole(roles)
 		}
 	}
 	if raw, ok := claims["realm_access"]; ok {
 		if m, ok := raw.(map[string]any); ok {
 			if roles := anyToStrings(m["roles"]); len(roles) > 0 {
-				return roles[0]
+				return selectHighestPriorityRole(roles)
 			}
 		}
 	}
@@ -277,7 +310,7 @@ func extractKeycloakRole(claims jwt.MapClaims) string {
 					continue
 				}
 				if roles := anyToStrings(m["roles"]); len(roles) > 0 {
-					return roles[0]
+					return selectHighestPriorityRole(roles)
 				}
 			}
 		}
