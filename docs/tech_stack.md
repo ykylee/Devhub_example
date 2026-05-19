@@ -6,7 +6,7 @@
 - 상태: accepted
 - 작성일: 2026-04-29
 - 최종 수정일: 2026-05-13 (메타 헤더 표준화, sprint `claude/work_260513-d`)
-- 관련 문서: [아키텍처 설계서](./architecture.md), [요구사항 정의서](./requirements.md), [테스트 서버 배포 가이드](./setup/test-server-deployment.md), [ADR-0001 IdP](./adr/0001-idp-selection.md), [ADR-0003 No-Docker CI scope](./adr/0003-no-docker-policy-ci-scope.md).
+- 관련 문서: [아키텍처 설계서](./architecture.md), [요구사항 정의서](./requirements.md), [테스트 서버 배포 가이드](./setup/test-server-deployment.md), [ADR-0019 Keycloak 단일화 (현재 IdP)](./adr/0019-keycloak-only-idp.md), [ADR-0001 IdP (Hydra+Kratos, superseded)](./adr/0001-idp-selection.md), [ADR-0003 No-Docker CI scope](./adr/0003-no-docker-policy-ci-scope.md).
 
 ## 1. 확정 기술 스택 (Technology Stack)
 

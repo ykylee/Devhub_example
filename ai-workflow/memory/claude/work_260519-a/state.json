@@ -1,0 +1,31 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260519-a",
+  "branch": "claude/work_260519-a",
+  "status": "in_progress",
+  "started_at": "2026-05-19T00:00:00Z",
+  "scope": "ADR-0019 재산정 — PR #167 (Keycloak-only refactor) 가 design 문서 PR #163 의 권장 옵션 B 를 뒤집고 옵션 A 를 실제 채택한 결정의 사후 명문화. ADR-0001 (Hydra+Kratos) supersession 처리 포함.",
+  "directive_source": "사용자 요청 'ADR-0019 재산정부터 가자' — main 최신화 직후 brokent ADR governance 정합화.",
+  "context": {
+    "trigger_pr_167": "외부 codex 가 ADR-0001 의 제목 + §3.5 heading 만 'Ory Keycloak' 으로 수정하고 §3.5 본문/§4 결정/§5 데이터 모델/§6 흐름/§7 결과/§8 결정/§9 구현 등은 Hydra+Kratos 그대로 둔 inconsistent 상태로 머지됨. ADR governance 의 immutable history 원칙 위반.",
+    "design_pr_163": "docs/planning/keycloak_sso_federation.md 가 옵션 B (Kratos federation, Keycloak upstream OIDC) 를 권장했으나, PR #167 은 옵션 A (Keycloak 단일화) 를 실제 채택. 결정 reversal 의 명문화 필요.",
+    "implementation_actual": "PR #167 의 KC-PR-A..F 6단계 모두 main 머지: keycloak_verifier.go + keycloak_admin_client.go + migration 000021 (rename kratos_identity_id → idp_subject) + JWKS cache + resource_access role fallback + frontend OIDC discovery 전환 + Hydra/Kratos 관련 코드 대거 삭제."
+  },
+  "decisions": [
+    "ADR-0019 신규 발행 (옵션 X1 채택) — ADR-0001 의 historical Hydra+Kratos 결정 immutable 보존 + ADR-0019 가 'Keycloak 단일화 사후 명문화 ADR'",
+    "ADR-0001 정정 — 제목 'Ory Keycloak' → 원래 'Ory Hydra+Kratos' 로 복원 + status 헤더에 'superseded by ADR-0019 (2026-05-19)' 추가 + §3.5 heading 도 원래대로 복원 + 본문은 historical context 로 보존 (immutable)",
+    "PR #163 design 문서 (keycloak_sso_federation.md) status → 'rejected — 옵션 B 미채택, ADR-0019 가 옵션 A 채택' + §15 의 ADR-0019 후보 문장 갱신",
+    "PR #167 execution plan (keycloak_only_refactor_execution_plan.md) status → 'done — PR #167 KC-PR-A..F 머지'",
+    "traceability §3 RM-M4-09 row 의미 재정의 (Keycloak 단일화 완료 후의 후속 SSO 통합 범위) + §4 ADR row (0001 superseded, 0019 신규) + §6 sprint -a 변경 이력"
+  ],
+  "todo": [
+    "docs/adr/0019-keycloak-only-idp.md 신규",
+    "docs/adr/0001-idp-selection.md 정정 (제목 복원 + supersession + §3.5 heading 복원)",
+    "docs/planning/keycloak_sso_federation.md status 갱신",
+    "docs/planning/keycloak_only_refactor_execution_plan.md status 갱신",
+    "docs/traceability/report.md §3/§4/§6 갱신",
+    "sprint backlog 종료 + main flat memory + session_handoff + work_backlog 갱신 (sprint 종료 시)",
+    "commit + push + PR + self-review + 머지"
+  ],
+  "verification": "docs-only — workflow-lint + check_docs 그린"
+}

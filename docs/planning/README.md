@@ -45,7 +45,7 @@
 | --- | --- | --- |
 | **B — Backend** | [`../../ai-workflow/memory/backend_development_roadmap.md`](../../ai-workflow/memory/backend_development_roadmap.md) | Go Core API, store, normalize, command worker, realtime hub |
 | **F — Frontend** | [`../frontend_development_roadmap.md`](../frontend_development_roadmap.md) | Next.js (역할별 기본 진입 우선순위 대시보드, 조직, 인증 UI, 실시간 통합, RBAC UI) |
-| **A — Auth & IdP** | [`../adr/0001-idp-selection.md`](../adr/0001-idp-selection.md) | Ory Keycloak, 토큰 검증, 권한 가드 |
+| **A — Auth & IdP** | [`../adr/0019-keycloak-only-idp.md`](../adr/0019-keycloak-only-idp.md) (current) / [`../adr/0001-idp-selection.md`](../adr/0001-idp-selection.md) (superseded) | Keycloak (단일 IdP), 토큰 검증, 권한 가드 |
 | **X — Cross / Contract** | [`../backend_api_contract.md`](../backend_api_contract.md), [`../architecture.md`](../architecture.md) | API 계약, 메시지 envelope, role wire format, 데이터 모델 |
 | **O — Operations** | [`../setup/environment-setup.md`](../setup/environment-setup.md) | 환경 셋업, 배포, 운영 모니터링 |
 | **AI** | [`../backend/requirements_review.md`](../backend/requirements_review.md) §3-P3 | Python AI service (gRPC), Gardener, weekly report |

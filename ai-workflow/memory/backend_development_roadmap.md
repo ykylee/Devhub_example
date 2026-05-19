@@ -8,7 +8,7 @@
 - 기준일: 2026-05-07
 - 상태: in_progress
 - 최종 수정일: 2026-05-12 (M2 1차 완성 sprint 진입 반영 — Phase 13 + P0 M2 갱신)
-- 관련 문서: [`docs/development_roadmap.md`](../../docs/development_roadmap.md) (통합), `docs/requirements.md`, `docs/architecture.md`, `docs/tech_stack.md`, `docs/backend_api_contract.md`, `docs/backend/frontend_integration_requirements.md`, `docs/backend/requirements_review.md`, `docs/adr/0001-idp-selection.md`, `ai-workflow/memory/codex/service-action-command/session_handoff.md`
+- 관련 문서: [`docs/development_roadmap.md`](../../docs/development_roadmap.md) (통합), `docs/requirements.md`, `docs/architecture.md`, `docs/tech_stack.md`, `docs/backend_api_contract.md`, `docs/backend/frontend_integration_requirements.md`, `docs/backend/requirements_review.md`, [`docs/adr/0019-keycloak-only-idp.md`](../../docs/adr/0019-keycloak-only-idp.md) (current IdP), [`docs/adr/0001-idp-selection.md`](../../docs/adr/0001-idp-selection.md) (Hydra+Kratos, superseded), `ai-workflow/memory/codex/service-action-command/session_handoff.md`
 - 현재 브랜치: `main`
 - 현재 기준선: `origin/main` 반영 완료. Phase 12 (조직/사용자), Phase 13 (IdP PoC), M1 (RBAC Core) 머지 완료.
 

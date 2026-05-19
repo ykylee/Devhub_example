@@ -38,7 +38,8 @@ DevHub 의 아키텍처 자료는 다음 4 영역에 분산되어 있다.
 
 | 번호 | 제목 | 상태 | 결정 요약 |
 | --- | --- | --- | --- |
-| [ADR-0001](../adr/0001-idp-selection.md) | IdP 선택 | accepted (2026-05-07) | DevHub 자체 accounts 폐기, **Keycloak(OIDC)** 중심으로 인증/계정 관리 통합. `users` 테이블은 organizational metadata + IdP subject 캐시(`idp_subject`)를 유지. |
+| [ADR-0001](../adr/0001-idp-selection.md) | IdP 선택 (Hydra+Kratos) | **superseded by [ADR-0019](../adr/0019-keycloak-only-idp.md) (2026-05-19)** | 원본 결정 (2026-05-07): Hydra+Kratos. PR #167 (2026-05-18) 로 Keycloak 단일화 실 구현 + ADR-0019 가 결정 reversal 사후 명문화. 본문은 historical context 로 immutable. |
+| [ADR-0019](../adr/0019-keycloak-only-idp.md) | Keycloak 단일화 (Hydra+Kratos 폐기) | accepted (2026-05-19) | DevHub 자체 accounts 폐기, **Keycloak 단일 IdP (OIDC)** 중심으로 인증/계정 관리 통합. `users` 테이블은 organizational metadata + IdP subject 캐시(`idp_subject`)를 유지. ADR-0001 supersession + 결정 근거 6 항목 + carve out 7 항목 + RM-M4-09 의미 재정의. |
 
 향후 ADR 후보 (통합 로드맵 §3.5 M4 진입 시 작성):
 
@@ -52,7 +53,7 @@ DevHub 의 아키텍처 자료는 다음 4 영역에 분산되어 있다.
 
 | 통합 로드맵 트랙 | 본 디렉터리에서 다루는 자료 |
 | --- | --- |
-| **A — Auth & IdP** | [ADR-0001](../adr/0001-idp-selection.md). 향후 ADR-0002 (Gitea SSO) 가 추가 예정. 본문 [`../architecture.md`](../architecture.md) §6 RBAC 단계화. |
+| **A — Auth & IdP** | [ADR-0019](../adr/0019-keycloak-only-idp.md) (현재 결정, Keycloak 단일화) / [ADR-0001](../adr/0001-idp-selection.md) (Hydra+Kratos, superseded). 향후 ADR (Gitea SSO via Keycloak federation 등) 후속. 본문 [`../architecture.md`](../architecture.md) §6 RBAC 단계화. |
 | **X — Cross / Contract** | API envelope / role wire / command lifecycle 표준은 [`../backend_api_contract.md`](../backend_api_contract.md). WebSocket envelope, AccountStatus invariant, 데이터 보존 정책 등은 [`../architecture.md`](../architecture.md) §4·§6. |
 | **B — Backend** | [`../architecture.md`](../architecture.md) §2 컴포넌트, §3 통신, §4 데이터. 백엔드 트랙 세부는 [`../../ai-workflow/memory/backend_development_roadmap.md`](../../ai-workflow/memory/backend_development_roadmap.md). |
 | **F — Frontend** | [`../architecture.md`](../architecture.md) §5 UI/UX. 프론트엔드 트랙 세부는 [`../frontend_development_roadmap.md`](../frontend_development_roadmap.md). |

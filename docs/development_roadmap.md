@@ -11,7 +11,7 @@
   - 요구사항: [`./requirements.md`](./requirements.md)
   - 시스템 설계: [`./architecture.md`](./architecture.md)
   - API 계약: [`./backend_api_contract.md`](./backend_api_contract.md)
-  - 인증 ADR: [`./adr/0001-idp-selection.md`](./adr/0001-idp-selection.md)
+  - 인증 ADR: [`./adr/0019-keycloak-only-idp.md`](./adr/0019-keycloak-only-idp.md) (현재 결정), [`./adr/0001-idp-selection.md`](./adr/0001-idp-selection.md) (Hydra+Kratos, superseded)
   - 보안 리뷰: [`../ai-workflow/memory/codebase-security-review-2026-05-08.md`](../ai-workflow/memory/codebase-security-review-2026-05-08.md)
 
 ---
@@ -42,7 +42,7 @@
 | --- | --- | --- |
 | **B / Backend** | Go Core API, store, normalize, command worker, realtime hub | [`ai-workflow/memory/backend_development_roadmap.md`](../ai-workflow/memory/backend_development_roadmap.md) |
 | **F / Frontend** | Next.js (역할별 기본 진입 우선순위 대시보드, 조직, 인증 UI, 실시간 통합, RBAC UI) | [`./frontend_development_roadmap.md`](./frontend_development_roadmap.md) |
-| **A / Auth & IdP** | Ory Keycloak, 토큰 검증, 권한 가드. ADR-0001 결정 사항 | [`./adr/0001-idp-selection.md`](./adr/0001-idp-selection.md) |
+| **A / Auth & IdP** | Keycloak (단일 IdP), 토큰 검증, 권한 가드. ADR-0019 (현재) / ADR-0001 (Hydra+Kratos, superseded) | [`./adr/0019-keycloak-only-idp.md`](./adr/0019-keycloak-only-idp.md) (current), [`./adr/0001-idp-selection.md`](./adr/0001-idp-selection.md) (superseded) |
 | **X / Cross / Contract** | API 계약, 메시지 envelope, role wire format, 데이터 모델 | [`./backend_api_contract.md`](./backend_api_contract.md) |
 
 ## 3. 기능 단위별 마일스톤 (Milestones by Functional Units)
@@ -183,7 +183,7 @@ TC 인벤토리: **TC-INT-FRONTEND-* 12건** (LIST/CREATE/EDIT/SYNC/RBAC/DELETE/
 | :--- | :--- | :--- |
 | 2026-05-08 | 시스템 기능 단위(Functional Units) 중심으로 로드맵 구조 재편 | gemini/redesign 세션 |
 ·§5.3-5 |
-| OS 서비스 wrapper 운영 진입 시점 결정 | M4 | P3 | ADR-0001 §8-7 |
+| OS 서비스 wrapper 운영 진입 시점 결정 | M4 | P3 | ADR-0001 §8-7 (historical); ADR-0019 §5.3 carve out (Keycloak realm 운영 SOP) 와 함께 재평가 |
 
 ### 4.6 AI (v2)
 
@@ -220,7 +220,7 @@ TC 인벤토리: **TC-INT-FRONTEND-* 12건** (LIST/CREATE/EDIT/SYNC/RBAC/DELETE/
 
 | 주제 | 폐기된 표현 | 채택된 표현 | 결정 출처 |
 | --- | --- | --- | --- |
-| 인증/계정 구현 | 자체 `accounts` 테이블, 자체 7 endpoint (`requirements §2.5`, `architecture §6.2`, `backend/requirements §5`, `api_contract §11` historical) | 정책 invariant 만 보존, 구현은 **Keycloak OIDC** (DevHub `users` 는 organizational metadata master) | ADR-0001 (2026-05-07) |
+| 인증/계정 구현 | 자체 `accounts` 테이블, 자체 7 endpoint (`requirements §2.5`, `architecture §6.2`, `backend/requirements §5`, `api_contract §11` historical) | 정책 invariant 만 보존, 구현은 **Keycloak (단일 IdP) OIDC** (DevHub `users` 는 organizational metadata master + `idp_subject` 캐시) | ADR-0001 (2026-05-07 Hydra+Kratos, superseded) → ADR-0019 (2026-05-19 Keycloak 단일화) |
 | 브라우저↔서버 실시간 | gRPC stream (`backend/requirements §1`) | **REST snapshot + WebSocket** | requirements_review §3.1, frontend_integration §2.1 |
 | 역할 wire 형식 | `DEVELOPER\|MANAGER\|ADMIN` (`backend/requirements §4`) | **`developer\|manager\|system_admin`** | api_contract §2, requirements_review §3.3 |
 | 명령성 액션 응답 | boolean `ActionResponse` (`backend/requirements §2`) | **`command_id` + `command_status` lifecycle** | api_contract §9 |
