@@ -34,7 +34,7 @@ DevHub 는 [ADR-0019](../adr/0019-keycloak-only-idp.md) 채택으로 Keycloak �
 | **조직 단위 (unit)** | DevHub | `organization_units` + `users.{primary_unit_id, current_unit_id}` | DevHub 자체 (Keycloak 무관) |
 | **조직 계층 (hierarchy)** | DevHub | `organization_hierarchy` (parent_unit_id) | DevHub 자체 |
 | **RBAC policy** (Resource × Action) | DevHub | `rbac_policies` | DevHub 자체 (`/api/v1/rbac/policies`) |
-| **RBAC subject-role assignment** | DevHub (admin 직접) **또는** Keycloak group composite (간접) | `rbac_subject_roles` (`/api/v1/rbac/subjects/:subject_id/roles`) | endpoint 정의됨, frontend UI 미구현 (carve). 실 권한 평가는 token claim 의 `realm_access.roles` 우선 |
+| **RBAC subject-role assignment** | Keycloak group composite (간접) | `users.role` 컬럼 직접 write (별도 테이블 없음 — Phase 1 §1 매트릭스 작성 시 `rbac_subject_roles` 표기 오류, [§5.9 참조](#59-phase-1-매트릭스-오류-정정)). endpoint 자체 결정 D 로 완전 제거 | endpoint 정의됐었으나 frontend UI 미구현. 결정 D 후 코드 자체 폐기 |
 | **audit log** | DevHub (인입 source 다양) | `audit_logs` | source_type=oidc/webhook/kratos(deprecated)/system/keycloak_event. Keycloak admin event 는 §5.3 (9) listener (sprint -u~-y) 가 polling-emit |
 
 ### 1.1 source-of-truth 이중화 issue (current)
@@ -173,12 +173,12 @@ DevHub 는 [ADR-0019](../adr/0019-keycloak-only-idp.md) 채택으로 Keycloak �
 
 Keycloak 무관. DevHub 자체 도메인.
 
-### 4.3 `rbac_policies` + `rbac_subject_roles`
+### 4.3 `rbac_policies` + (~~`rbac_subject_roles`~~)
 
 | 테이블 | 핵심 컬럼 | 역할 |
 | --- | --- | --- |
 | `rbac_policies` | `role_id` (TEXT), `resource` + `action`, `allow` | role × resource × action 매트릭스. system_admin / developer / manager / pmo_manager seed (migration 000004 + 000005) |
-| `rbac_subject_roles` | `subject_id` + `role_id` | user 별 role override (간접 — Keycloak group composite 가 1차) |
+| ~~`rbac_subject_roles`~~ | — | **Phase 1 매트릭스 작성 시 표기 오류** — 별도 테이블 없음. backend `GetSubjectRoles` / `SetSubjectRole` 은 `users.role` 컬럼 직접 read/write ([§5.9 정정](#59-phase-1-매트릭스-오류-정정), [결정 D](#51-명시-결정-6건-종합)) |
 
 ### 4.4 Keycloak realm 자산 (DevHub 외부)
 
@@ -260,7 +260,8 @@ CreateUser(ctx, CreateUserInput{
 | 항목 | 결정 |
 | --- | --- |
 | **조직 unit 자동 매핑** | **unassigned** — `primary_unit_id` NULL. admin 이 후속 `/admin/settings/users` 에서 unit 배치. (HRDB ETL push 가 사전에 unit 매핑 정보를 stage 하면 자동 배치 가능 — sprint -p `hrdb_etl_sync.sh` 확장 carve) |
-| **role 매핑** | token `realm_access.roles` 추출 — Keycloak group composite (`developer/manager/pmo_manager/system_admin`). 명시 결정 C 의 event listener 매핑 로직과 동일 함수 공유 |
+| **role 매핑** | token `realm_access.roles` 추출 — Keycloak group composite (`developer/manager/pmo_manager/system_admin`). 명시 결정 C 의 event listener 매핑 로직과 동일 함수 공유 (`extractKeycloakRole`, sprint -j PR #185 multi-role priority filter) |
+| **role 매핑 fallback** (sprint -b Stage 3 P1-3 결정) | token `realm_access.roles` 가 비어 있거나 매핑 가능한 role 없을 때 → **default `developer`** 부여 + audit `user.role_default_assigned`. backend `keycloak_verifier.go` 의 현재 fallback 동작과 정합. 별도 신규 role state (`unassigned`) 도입 안 함 — `rbac_policies` 의 4 role enum 유지 |
 | **status 초기값** | `active` — Keycloak `enabled=true` 인 token 발급 시점 정합 |
 | **audit action 이름** | `account.lazy_provisioned` 신규 (DB row 정합 영향 없음, 신규 row 만 emit) |
 | **HRDB pre-stage 와의 race** | HRDB ETL push 가 먼저 row 생성한 경우 → lazy auto-create 는 `GetUser` 가 row 발견 → noop. 두 경로 idempotent |
@@ -281,7 +282,7 @@ sprint -u~-y 의 audit event listener 가 `audit_logs` 만 emit. Phase 2 확장 
 | --- | --- | --- | --- |
 | `USER` | `UPDATE` | `users.email` / `users.display_name` / `users.status` (enabled boolean → active/deactivated) sync | `user.profile_updated` |
 | `USER` | `CREATE` | (lazy auto-create 정합 — DevHub 의 첫 진입 시점에 handler 가 처리. event 는 audit log 만) | `user.created_external` |
-| `USER` | `DELETE` | `users.status = deactivated` (DevHub soft delete) — 또는 별도 정책 (사내 보존) | `user.deleted_external` |
+| `USER` | `DELETE` | **`users.status = deactivated` (soft delete 채택, sprint -b Stage 3 P1-2 결정)** — DevHub `users` row 의 historical 정합 보존 (audit_logs 의 actor reference 깨짐 회피). archive 또는 hard delete 는 사내 보존 정책 따른 별도 carve | `user.deleted_external` |
 | `GROUP_MEMBERSHIP` | `CREATE` / `DELETE` | `users.role` 재계산 (token `realm_access.roles` 와 동일 추출 로직, group composite role 매핑 후 update) | `user.group_membership_changed` |
 | `USER` | `RESET_PASSWORD` (admin) | (audit only — DevHub `users` 영향 없음) | `account.password_reset_external` |
 | `USER` | `DISABLE_CREDENTIALS` | (audit only — token revocation 효과는 다음 token 만료 시점에) | `account.credentials_disabled_external` |
@@ -296,7 +297,7 @@ sprint -u~-y 의 audit event listener 가 `audit_logs` 만 emit. Phase 2 확장 
 #### 5.3.3 metric 확장 (sprint -u~-y `audit/metrics.go` 정합)
 
 신규 metric 3종:
-- `devhub_keycloak_user_sync_total{action="profile|membership|status"}` Counter — event listener 가 DevHub `users` 컬럼 write 한 회수
+- `devhub_keycloak_user_sync_total` Counter — label `action` ∈ {`profile`, `membership`, `status`}. event listener 가 DevHub `users` 컬럼 write 한 회수
 - `devhub_keycloak_user_sync_errors_total` Counter — write 실패 (DB error 등)
 - `devhub_keycloak_user_sync_lag_seconds` Gauge — event timestamp vs DevHub write timestamp 차이
 
@@ -337,6 +338,7 @@ Phase 2 정합:
 | user 삭제 | **Keycloak admin** (IdP 팀) | Keycloak admin console (Users — Delete) |
 | group membership (role 변경) | **Keycloak admin** (IdP 팀) | Keycloak admin console (User detail — Groups 탭) |
 | **user 조직 unit assignment** | **DevHub admin** | DevHub `/admin/settings/users` (PATCH `/api/v1/users/:id`) |
+| **신규 user 의 unit 초기 배치** (sprint -b Stage 3 P2-2) | **DevHub admin** (lazy auto-create 직후 후속 작업) | (a) HRDB ETL pre-stage 가 unit 정보 동반 시 자동 매핑, (b) 미동반 시 unit 미할당 (`primary_unit_id=NULL`) 으로 lazy create 후 admin 이 `/admin/settings/users` filter `unit_id=null` 로 식별 → 배치. 첫 진입 후 API call 차단 안 함 (단순 unit 미할당 상태) |
 | **DevHub `users.role` 직접 수정** | **금지** (event listener 가 자동 sync) | — |
 | 조직 unit (department/team) CRUD | **DevHub admin** | DevHub `/admin/settings/organization` (Keycloak 무관) |
 | RBAC policy (role × resource × action matrix) 편집 | **DevHub admin** | DevHub `/admin/settings/permissions` |
@@ -492,3 +494,4 @@ Phase 3 sprint 에서 작성:
 | 2026-05-20 | sprint `claude/work_260520-a` Phase 1 — 현황 파악 1차 작성. §1 책임 분리 매트릭스 + §2 backend 23 endpoint (18 row) + §3 frontend 4 page + service 매트릭스 + §4 DB schema (users 14 컬럼) + Keycloak attribute 정합 + §4.5 Phase 2 입력 옵션 A~D 후보 + §7 잔여 carve 5건. §5/§6 는 Phase 2/3 별도 sprint. |
 | 2026-05-20 | Self-review Stage 3 보강 — P1×2 + P2×1 흡수. (P1-1) §2 header endpoint count 17→23 + 묶음 row 안내 추가. (P1-2) §4.1 컬럼 count 14 (commit msg 정정). (P2-1) §4.5 옵션 A "lazy users row 자동 생성" wording → footnote 로 현재 mechanism (idp_subject 만 backfill) 과 신규 mechanism (row auto-create) 명확화. |
 | 2026-05-20 | sprint `claude/work_260520-a` Phase 2 design 작성 — 명시 결정 6건 토론 결과 (Q&A 6 round) 흡수. (1) §0/§4.5 결정 표기, (2) §5 신규 10 sub-section — §5.1 명시 결정 6건 종합 표 + §5.2 lazy auto-create mechanism (3 흐름 + 결정 항목 5 + 보안 검토) + §5.3 event listener 확장 (매핑 표 + store-level write + metric 3) + §5.4 frontend cleanup 매트릭스 (5 파일) + §5.5 service account 권한 축소 (`manage-users` 제거) + governance 협약 SOP 표 + §5.6 JWKS stale-while-error 확장 (sprint -r 자연 확장 + mitigation) + §5.7 `/login` 정리 + §5.8 `rbac_subject_roles` 폐기 (8 파일) + §5.9 Phase 1 §1 매트릭스 오류 정정 (rbac_subject_roles 테이블 없음, `users.role` 직접 write) + §5.10 ADR-0020 후보 outline. (3) §7 잔여 carve 갱신 — Phase 2 결정으로 resolved 5건 + Phase 3 실 구현 carve 7건 + 사내 동반 carve 3건. **명시 결정 A~F 모두 확정** — A 전면 폐기 / B entry minimal / C event listener 확장 / D rbac_subject_roles 완전 제거 / E read-only carve 도입 안 함 (self-reverse) / F JWKS stale-while-error 확장. Phase 3 (실 구현) 은 별도 sprint. |
+| 2026-05-20 | sprint `claude/work_260520-b` Self-review Stage 3 보강 — P1×3 + P2×2 일괄 흡수. (P1-1) §4.3 + §1 매트릭스의 `rbac_subject_roles` 표기 정정 (취소선 + §5.9 link). (P1-2) §5.3.1 `USER:DELETE` 정책 결정 명시 — soft delete (`status=deactivated`) 채택, audit_logs actor reference 깨짐 회피. (P1-3) §5.2.2 role 매핑 fallback 결정 명시 — token `realm_access.roles` 비어 있을 때 default `developer` 부여 + audit `user.role_default_assigned`. (P2-1) §5.3.3 metric label 표기 정정 `action="profile|membership|status"` → `label action ∈ {profile, membership, status}`. (P2-2) §5.5.2 governance 표 row 추가 — 신규 user 의 unit 초기 배치 (HRDB ETL pre-stage 자동 또는 admin filter 후속 배치, 첫 API call 차단 안 함). |
