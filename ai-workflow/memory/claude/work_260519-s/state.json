@@ -1,0 +1,22 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260519-s",
+  "branch": "claude/work_260519-s",
+  "status": "in_progress",
+  "started_at": "2026-05-19T18:00:00Z",
+  "scope": "잔여 사항 순서대로 진행 #5 — backend 확장 #3: basePath 포함 logout URI (frontend). sprint -j codex review #9 #4 backend 확장 carve 4건 중 3번째.",
+  "directive_source": "사용자 요청 '잔여 사항 진행하자. 순서대로 진행해' — sprint -r 종료 직후 #5 항목.",
+  "decisions": [
+    "endpoints.ts BASE_PATH unexported → exported.",
+    "auth.service.ts OIDC_REDIRECT_URI ${origin}/auth/callback → ${origin}${BASE_PATH}/auth/callback + L116 post_logout_redirect_uri ${origin}/ → ${origin}${BASE_PATH}/.",
+    "keycloak_operations.md §3.1 + §8.5.2 whitelist 재정정 — sprint -j 의 basePath 없음 표기 → basePath 포함 (/devhub/) 으로 갱신."
+  ],
+  "todo": [
+    "frontend code 정합 (완료)",
+    "keycloak_operations.md 정정 (완료)",
+    "ADR-0019 §5.3 (8) row 갱신",
+    "docs/traceability/report.md §6 sprint -s row",
+    "commit + push + PR + 4단계 self-review"
+  ],
+  "verification": "TypeScript compile — frontend npx tsc --noEmit (사용자 환경)"
+}
