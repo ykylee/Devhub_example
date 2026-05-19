@@ -389,6 +389,23 @@ jobs:
               -H "Authorization: Bearer ${admin_token}" \
               -H "Content-Type: application/json" \
               -d '{"clientId":"devhub-frontend","enabled":true,"publicClient":true,"standardFlowEnabled":true,"directAccessGrantsEnabled":false,"redirectUris":["http://localhost:3000/*"],"webOrigins":["http://localhost:3000"]}'
+            frontend_client_id=$(
+              curl -fsS -H "Authorization: Bearer ${admin_token}" \
+                "$base/admin/realms/devhub/clients?clientId=devhub-frontend" \
+                | python3 -c 'import json,sys; a=json.load(sys.stdin); print(a[0]["id"] if a else "")'
+            )
+          fi
+
+          frontend_aud_mapper_id=$(
+            curl -fsS -H "Authorization: Bearer ${admin_token}" \
+              "$base/admin/realms/devhub/clients/${frontend_client_id}/protocol-mappers/models" \
+              | python3 -c 'import json,sys; m=next((x for x in json.load(sys.stdin) if x.get("name")=="devhub-frontend-audience"), None); print(m.get("id","") if m else "")'
+          )
+          if [ -z "$frontend_aud_mapper_id" ]; then
+            curl -fsS -X POST "$base/admin/realms/devhub/clients/${frontend_client_id}/protocol-mappers/models" \
+              -H "Authorization: Bearer ${admin_token}" \
+              -H "Content-Type: application/json" \
+              -d '{"name":"devhub-frontend-audience","protocol":"openid-connect","protocolMapper":"oidc-audience-mapper","config":{"included.client.audience":"devhub-frontend","id.token.claim":"false","access.token.claim":"true"}}'
           fi
 
           backend_client_id=$(
