@@ -55,7 +55,7 @@ Keycloak user.enabled = false
 
 ### 3.1 ETL script 확장
 
-`scripts/hrdb_etl_seed.sql` 패턴 ([ADR-0008 §6](../adr/0008-hrdb-production-adapter.md#6-미해결-항목-open-questions)) 기반의 운영 ETL cron 확장:
+`scripts/hrdb_etl_seed.sql` 패턴 ([ADR-0008 §6](../adr/0008-hrdb-production-adapter.md#6-미해결-항목-open-questions)) 기반의 운영 ETL cron 확장. **실 구현**: [`scripts/hrdb_etl_sync.sh`](../../scripts/hrdb_etl_sync.sh) (sprint `claude/work_260519-p`, PR #184). 아래 skeleton 은 design 시점 sample — 실제 동작 script 는 sprint -p hotfix 이후 codex review #9 정정 (admin REST `/admin/realms/{realm}/...` + `users.status` 직접 UPDATE) 정합.
 
 ```bash
 # scripts/hrdb_etl_sync.sh (신규 운영 script — 사내 cron 운영)
