@@ -1,0 +1,27 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260519-l",
+  "branch": "claude/work_260519-l",
+  "status": "in_progress",
+  "started_at": "2026-05-19T11:00:00Z",
+  "scope": "migration 000021 prefix 중복 충돌 정정 — PR #167 KC-PR-E 가 추가한 000021_rename_kratos_identity_to_idp_subject 와 기존 000021_rbac_pmo_manager (PR #119) 의 sequence 충돌 + 운영 DB 정정 SOP.",
+  "directive_source": "사용자 요청 'db 마이그레이션도 확인해봐' (sprint -k 종료 시점) → critical 발견 → 사용자 결정 'sprint -l 즉시 진입'.",
+  "context": {
+    "migration_runner": "golang-migrate/migrate (backend-core/migrations/README.md:3)",
+    "conflict_files": "000021_rbac_pmo_manager.{up,down}.sql (PR #119 sprint -d 2026-05-15) + 000021_rename_kratos_identity_to_idp_subject.{up,down}.sql (PR #167 KC-PR-E 2026-05-18)",
+    "impact": "make migrate-up 실행 시 동일 version multiple file 발견 → ambiguous error 또는 silent drift. silent drift 경우 idp_subject rename 미적용 → users.kratos_identity_id 그대로 → backend SetIdPSubject + keycloak_verifier 의 idp_subject 컬럼 참조 SQL error 가능."
+  },
+  "decisions": [
+    "git mv 로 000021_rename_kratos_identity_to_idp_subject.{up,down}.sql → 000030_rename_kratos_identity_to_idp_subject.{up,down}.sql (sequence 재정렬, 000028/000029 다음).",
+    "docs/setup/migration_000021_conflict_resolution.md 신규 SOP — 충돌 발견 사실 + rename 결정 + clean DB 자연 적용 + 이미 적용된 운영 DB 정정 SQL.",
+    "ADR-0019 §6 변경 이력 row + traceability §6 row — 본 sprint -l 의 critical 정정 명시."
+  ],
+  "todo": [
+    "git mv 2 files (완료)",
+    "docs/setup/migration_000021_conflict_resolution.md 신규",
+    "docs/adr/0019-keycloak-only-idp.md §6 변경 이력 sprint -l row",
+    "docs/traceability/report.md §6 변경 이력 sprint -k PR sha 보강 + sprint -l row",
+    "commit + push + PR + 4단계 self-review"
+  ],
+  "verification": "git mv 만 — file 내용 변경 없음. 실 운영 DB 정정은 사내 운영팀 동반 carve."
+}
