@@ -35,13 +35,17 @@ frontend refresh 시도 → Keycloak unreachable → logout 또는 retry
 정상 동작 자동 복귀 (cache 자동 fetch)
 ```
 
-**worst case graceful degradation window** = max(JWKS cache TTL 5분, access_token TTL 5분) ≈ **5-10분**.
+**graceful degradation window** (codex review #9 정정 — best case 와 worst case 분리):
 
-→ 5-10분 window 내 Keycloak 복구 시 사용자 무영향. 그 이상 down 시 점진 logout.
+- **best case** ≈ **5-10분** — Keycloak down 발생 시점이 JWKS cache fetch 직후 + access_token 발급 직후 (둘 다 fresh) 일 때.
+- **worst case** ≈ **0초** — Keycloak down 시점이 cache TTL 만료 직전 + access_token 만료 직전 (둘 다 stale 직전) 과 겹칠 때. `readCachedKeys` 가 `cachedUntil` 만료 시 nil 반환 → `fetchJWKS` 가 Keycloak unreachable 로 fail → 즉시 401 반환 (stale-while-error fallback 없음).
+- **average case** ≈ 2-5분 — 통계적 분포.
+
+→ best case 시 5-10분 window 내 Keycloak 복구 시 무영향. **worst case 시 즉시 logout 발생 가능**. 운영자는 best case 보장 못 함을 인지 + 모니터링 + 복구 SLA 우선.
 
 ### 1.3 가용성 목표
 
-- **Phase 1 (단기)**: Keycloak instance uptime + graceful degradation 명문화. SLA = Keycloak instance uptime, 5-10분 미만 down 시 사용자 무영향.
+- **Phase 1 (단기)**: Keycloak instance uptime + graceful degradation 명문화. SLA = Keycloak instance uptime, **best case 5-10분 graceful window** (worst case 0 가능 명시). 운영자 알림 정책 보강 carve.
 - **Phase 2 (중기)**: Keycloak HA (active-active 또는 active-passive). uptime ≥ 99.9%.
 - **Phase 3 (장기, carve)**: DR site (별도 datacenter + DB replication + DNS failover). RTO ≤ N분 / RPO ≤ N분 (사내 SRE 결정).
 
@@ -52,7 +56,7 @@ frontend refresh 시도 → Keycloak unreachable → logout 또는 retry
 | **A. 단일 Keycloak instance (현행)** | 없음 | 없음 (graceful degradation 자연 동작) | instance uptime ≈ 99.5% | △ SPOF — 부족 |
 | **B. Keycloak HA (active-active cluster)** | Keycloak 다중 instance + Infinispan cache replication + shared PostgreSQL + 사내 load balancer | 없음 (DevHub 는 OIDC issuer URL 하나만 신뢰) | ≥ 99.9%, RTO ~ 0초 | ⭐ **Phase 2 권장** |
 | **C. Keycloak active-passive (standby)** | primary Keycloak + standby (cold/warm/hot) + DB replication + DNS 또는 LB failover | 없음 | 99.9%, RTO 분-수십분 | △ active-active 보다 단순하나 cutover latency |
-| **D. DevHub graceful degradation (명문화)** | DevHub 측 변경 없음 (이미 JWKS cache + access_token TTL 자연 graceful) | 없음 | 5-10분 graceful window | ⭐ **Phase 1 권장** (현행 인프라 그대로) |
+| **D. DevHub graceful degradation (명문화)** | DevHub 측 변경 없음 (이미 JWKS cache + access_token TTL 자연 graceful) | 없음 | best case 5-10분, **worst case 0 (codex review #9)** | ⭐ **Phase 1 권장** (현행 인프라 그대로) |
 | **E. backup IdP fallback** (자체 password method 부활) | ADR-0019 Keycloak-only 결정 회귀 — Kratos 또는 자체 auth backend 재도입 | 큼 — 옵션 B Kratos federation 회귀 의미 | — | ❌ **명시 제외** (ADR-0019 결정 충돌) |
 | **F. DR site (별도 datacenter)** | 별도 datacenter Keycloak instance + DB replication + DNS failover + 사내 datacenter 다중화 | 없음 (DNS 통한 자동 failover 가정) | RTO 수분-수십분 / RPO 초-분 | △ **Phase 3 carve** (사내 datacenter 다중화 시) |
 
@@ -73,7 +77,7 @@ DevHub backend 의 자연 graceful degradation:
 
 ### 3.2 운영 정책
 
-- **5분 미만 down**: 사용자 무영향 (cache + token 유효). 모니터링만, 사용자 공지 불필요.
+- **5분 미만 down**: best case 사용자 무영향 (cache + token 유효 시점에 발생 시). **worst case 즉시 401 가능** (cache 만료 + token 만료 직전 시점 겹침 — codex review #9). 모니터링 + 5분 미만이라도 alert 트리거 필요.
 - **5-10분 down**: 점진 logout 발생. 사용자 공지 (예: status page) + Keycloak 복구 진행 알림.
 - **10분 이상 down**: 전체 신규 인증 차단. Page on-call SRE + 사용자 영향 분석 + 사후 review.
 

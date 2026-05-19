@@ -48,7 +48,7 @@ CLAUDE.md 의 docker = env-specific 정책 정합 — 환경 특화 자산 (Keyc
 | Service accounts | `disabled` |
 | **PKCE** | `S256` **required** |
 | Valid redirect URIs | local `http://localhost:3000/auth/callback`, prod `https://devhub.example.com/devhub/auth/callback` |
-| Valid post-logout redirect URIs | local `http://localhost:3000/`, prod `https://devhub.example.com/devhub/` |
+| Valid post-logout redirect URIs | local `http://localhost:3000/`, prod `https://devhub.example.com/` — **codex review #9**: 현재 frontend `auth.service.ts:116` 의 `${window.location.origin}/` 는 basePath 미포함 (origin = scheme + host + port). ADR-0018 basePath `/devhub` 환경에서도 frontend 가 `https://devhub.example.com/` 만 보냄 → whitelist 도 동일하게 정합. 향후 basePath 포함 logout URI 로 변경 시 frontend code 변경 carve (`auth.service.ts:116` 의 `post_logout_redirect_uri` 에 `${basePath}/` 추가). |
 | Web Origins | local `http://localhost:3000`, prod `https://devhub.example.com` |
 | Front-channel logout | `enabled` |
 
@@ -104,7 +104,7 @@ client_secret 은 사내 vault 보관. 정기 rotation SOP 는 §6 JWKS rotation
 **Keycloak admin 설정 SOP** (1회):
 1. Realm `devhub` → Groups → Create Group 4회 (위 표 group name)
 2. 각 Group → Role Mappings 탭 → realm role 1개 assign (group ↔ role 매핑)
-3. (선택) Realm Settings → User Profile → Default Groups → `devhub-developers` 추가 (신규 user default = developer)
+3. **Default Groups 미설정 권장** (codex review #9, [keycloak_groups_rbac_mapping §3.2](../planning/keycloak_groups_rbac_mapping.md) 결정) — Default Group 적용 시 신규 manager/pmo/admin 도 자동 `devhub-developers` 가입 → token multi-role → `extractKeycloakRole` order-dependency 위험. 명시 group 1개 가입 강제 (§8.1 step 3).
 
 **backend 동작**: 변경 없음. group composite role 은 Keycloak 이 token 발급 시 `realm_access.roles` 에 자동 포함 → [keycloak_verifier.go:260-285](../../backend-core/internal/auth/keycloak_verifier.go) 의 추출 그대로 동작.
 
@@ -182,16 +182,19 @@ client_secret 은 사내 vault 보관. 정기 rotation SOP 는 §6 JWKS rotation
 
 ### 6.3 DevHub backend JWKS cache invalidation
 
-[`keycloak_verifier.go`](../../backend-core/internal/auth/keycloak_verifier.go) 의 JWKS cache:
+[`keycloak_verifier.go:37`](../../backend-core/internal/auth/keycloak_verifier.go) 의 JWKS cache:
 
-- TTL default = 10분 (PR #167 KC-PR-B 의 cache 구현)
-- cache miss 시 `${DEVHUB_OIDC_JWKS_URL}` 또는 issuer discovery 의 `/protocol/openid-connect/certs` fetch
-- `kid` (key ID) mismatch → 강제 refetch + cache 갱신
+- TTL default = **5분** (`defaultJWKSTTL = 5 * time.Minute`)
+- cache miss (TTL 만료 또는 빈 cache) 시 `${DEVHUB_OIDC_JWKS_URL}` 또는 issuer discovery 의 `/protocol/openid-connect/certs` fetch
+- **현재 동작 한계 (codex review #9)**: `kid` mismatch 시 자동 refetch 가 **아님** — `fetchJWKS` 가 cache 유효 동안 cached key set 반환 → `ParseWithClaims` 가 `jwks key not found` 실패. cache TTL 만료 후 다음 fetch 에서 새 key 흡수.
 
 **rotation 시 backend 동작**:
 1. Keycloak 에서 new active key 생성 (이전 key passive 이동)
-2. backend 가 새 token 의 `kid` 받으면 cache miss → JWKS refetch → 새 key 흡수
-3. cache TTL 만료 후에도 새 key 자동 흡수 보장 — **수동 backend 재시작 불필요**
+2. backend cache 유효 (rotation 후 최대 5분) 동안 새 kid 의 token 은 `jwks key not found` 401 — **graceful window 동안 정상 사용자 영향 가능**
+3. cache TTL 만료 후 fetch → 새 key 흡수 → 자동 정상화
+4. 즉시 새 key 흡수 필요 시 backend 재시작 (cache invalidate)
+
+**개선 carve**: `kid` mismatch 시 강제 refetch (stale-while-error fallback 패턴) — `KeycloakJWKSVerifier` 의 `fetchJWKS` 확장 필요 (backend code 변경 carve).
 
 ### 6.4 rotation 운영 SOP (D-Day)
 
@@ -260,9 +263,9 @@ client_secret 은 사내 vault 보관. 정기 rotation SOP 는 §6 JWKS rotation
 | --- | --- | --- |
 | 1. Keycloak admin | Users → Add user | username (= DevHub `users.user_id` 와 일치 권장), email, first/last name |
 | 2. user attribute | Attributes 탭 | `employee_id` = HRDB primary key |
-| 3. role (group 가입) | **Groups 탭** | **group 1개 가입** ([§4.3](#43-group-composite-realm-role-11-매핑) 4종 중 1개) — composite realm role 자동 상속. Default Group 적용 시 신규 user 는 `devhub-developers` 자동. |
+| 3. role (group 가입) | **Groups 탭** | **group 1개 가입** ([§4.3](#43-group-composite-realm-role-11-매핑) 4종 중 1개) — composite realm role 자동 상속. **Default Group 미설정 권장** (codex review #9 — multi-role order-dependency 위험). |
 | 4. 초기 비밀번호 | Credentials 탭 | password 설정 + "Temporary" ON (첫 로그인 시 강제 변경) |
-| 5. DevHub `users` sync | (자동) | 첫 로그인 시 backend 가 `sub` ↔ `idp_subject` 매핑 + HRDB lookup 으로 `users` row 보강 |
+| 5. DevHub `users` sync | **(carve — 자동 sync 미구현)** | 현재 backend [`authenticateActor`](../../backend-core/internal/auth/keycloak_verifier.go) 는 token 검증 + actor context stash 만. `SetIdPSubject` 호출은 `accounts_admin.go:123` (관리자 발급/PATCH path) 에서만. **신규 user 의 `users.idp_subject` + HRDB lookup 자동 sync 는 별도 SOP 또는 backend 확장 필요** — codex review #9 carve. 임시 SOP: admin 이 신규 user 발급 시 별도 `/api/v1/accounts` 호출 또는 직접 DB UPSERT. |
 
 ### 8.2 user 회수 (off-boarding)
 
@@ -307,7 +310,7 @@ client_secret 은 사내 vault 보관. 정기 rotation SOP 는 §6 JWKS rotation
 
 | 시나리오 | 즉시 대응 | 후속 |
 | --- | --- | --- |
-| Keycloak 자체 down (5분 미만) | 모니터링만 — DevHub 사용자 무영향 (JWKS cache 5분 + access_token TTL 5분 = graceful window) | Keycloak 복구 후 자동 정상화 |
+| Keycloak 자체 down (5분 미만) | best case 사용자 무영향 (JWKS cache + access_token 모두 fresh 시점 시작). **worst case 401 가능** (codex review #9 — cache 만료 + token 만료 시점 겹침) — 5분 미만이라도 alert 트리거 + 모니터링 | Keycloak 복구 후 자동 정상화 |
 | Keycloak 자체 down (5-10분) | 사용자 공지 (status page) + Keycloak 복구 진행 알림 | 점진 logout 발생 — 복구 후 재로그인 안내 |
 | Keycloak 자체 down (10분 이상) | Page on-call SRE + 사용자 영향 분석 | 사후 review + failover Phase 2 HA 도입 평가 ([keycloak_failover §4](../planning/keycloak_failover.md)) |
 | JWKS endpoint 응답 timeout | backend cache TTL 동안 유효 (5분, [keycloak_verifier.go:37](../../backend-core/internal/auth/keycloak_verifier.go) `defaultJWKSTTL`) | cache TTL 초과 시 모든 인증 실패 — Keycloak 복구 우선 |
@@ -373,7 +376,7 @@ Keycloak 이 RP-initiated logout 을 받기 위한 client 설정:
 1. Realm `devhub` → Clients → `devhub-frontend` → Settings
 2. **Valid post-logout redirect URIs** 필드 (§3.1 client 정의 참조):
    - local: `http://localhost:3000/`
-   - prod: `https://devhub.example.com/devhub/`
+   - prod: `https://devhub.example.com/` — **codex review #9**: ADR-0018 basePath `/devhub` 환경에서도 frontend `auth.service.ts:116` 가 `${window.location.origin}/` (basePath 미포함) 만 보냄. basePath 포함 logout URI 사용 시 frontend code 변경 carve.
    - **wildcard 금지** — 정확한 URI 만 등록. `*` 사용 시 open redirect 취약점.
 3. **Front-channel logout** (선택): `enabled` — Keycloak 이 admin force logout 시 모든 active client 의 front-channel logout URL 호출. DevHub 가 server-side session 미사용 (JWT only) 이므로 front-channel logout URL 등록 불필요 (carve — future SOP).
 4. **Backchannel logout URL** (선택): 미사용 — DevHub 는 server-side session 없음.

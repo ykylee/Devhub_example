@@ -66,26 +66,33 @@ Keycloak user.enabled = false
 HR_DISABLED_USERS=$(hr_export_disabled.sh)  # 사내 HR export 도구
 
 for user in $HR_DISABLED_USERS; do
-  # Step 1: DevHub hrdb schema sync (기존)
-  psql -c "INSERT INTO hrdb.employees ... ON CONFLICT (system_id) DO UPDATE SET active = false"
+  # Step 1: DevHub users 비활성화 (codex review #9 정정 — hrdb 의 actual schema 는 hrdb.persons + active 컬럼 없음.
+  # ADR-0008 §3 / migration 000010_create_hrdb_persons.up.sql 정합. 비활성화는 hrdb 가 아닌 users.status 직접 UPDATE.)
+  psql -c "UPDATE users SET status = 'deactivated', updated_at = NOW() WHERE system_id = '$user'"
+  # (hrdb 가 인사 master 의 사본 — 퇴사자는 hrdb.persons row 가 HR 시스템에서 사라지면 daily ETL upsert 의 자연 결과로 미동기.
+  # 즉 hrdb 는 활성 인사 의 사본만 보관. 회수 액션은 users.status 직접 UPDATE 가 자연.)
 
-  # Step 2 (신규): Keycloak admin disable + force logout
+  # Step 2 (신규): Keycloak admin disable + force logout (codex review #9 정정 — Admin REST base path /admin/realms/...)
   KC_TOKEN=$(curl -s -X POST "$KC_ISSUER/protocol/openid-connect/token" \
     -d "grant_type=client_credentials&client_id=devhub-backend&client_secret=$KC_SECRET" | jq -r .access_token)
 
   KC_USER_ID=$(curl -s -H "Authorization: Bearer $KC_TOKEN" \
-    "$KC_ADMIN/realms/devhub/users?username=$user" | jq -r '.[0].id')
+    "$KC_ADMIN/admin/realms/devhub/users?username=$user" | jq -r '.[0].id')
 
   # User disable
   curl -s -X PUT -H "Authorization: Bearer $KC_TOKEN" -H "Content-Type: application/json" \
-    "$KC_ADMIN/realms/devhub/users/$KC_USER_ID" \
+    "$KC_ADMIN/admin/realms/devhub/users/$KC_USER_ID" \
     -d '{"enabled": false}'
 
   # Force logout (모든 active session 종료)
   curl -s -X POST -H "Authorization: Bearer $KC_TOKEN" \
-    "$KC_ADMIN/realms/devhub/users/$KC_USER_ID/logout"
+    "$KC_ADMIN/admin/realms/devhub/users/$KC_USER_ID/logout"
 done
 ```
+
+> **codex review #9 정정 사항**:
+> - Admin REST base path = `$KC_ADMIN/admin/realms/{realm}/...` (이전 표기 `$KC_ADMIN/realms/...` 부정확). [`keycloak_admin_client.go`](../../backend-core/internal/httpapi/keycloak_admin_client.go) 의 `base + "/admin/realms/" + realm` 패턴과 정합.
+> - HRDB schema = `hrdb.persons` (no `active` column, migration 000010). 회수는 `users.status = 'deactivated'` 직접 UPDATE — `hrdb.employees` + `active = false` 패턴은 실 schema 와 불일치. 향후 hrdb.persons 의 비활성 컬럼 추가는 별도 migration carve.
 
 **핵심 변경**:
 - ETL cron 주기 = **daily → hourly** (Phase 1 latency 목표 1h)

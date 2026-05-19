@@ -63,7 +63,7 @@ Keycloak group 기능 (Group / Composite Role / Group Membership Mapper) 을 활
    - `devhub-managers` → `manager`
    - `devhub-pmo-managers` → `pmo_manager`
    - `devhub-system-admins` → `system_admin`
-3. (선택) Realm Settings → User Profile → Default Groups 에 `devhub-developers` 추가 — 신규 user 의 default 권한이 `developer`
+3. **Default Groups 미설정 권장** (codex review #9 정정) — `devhub-developers` 를 Default Groups 로 추가 시, 신규 manager / pmo_manager / system_admin user 도 자동 `devhub-developers` 가입 → token `realm_access.roles` 에 multiple role 포함 → backend `extractKeycloakRole` 가 `realm_access.roles[0]` 만 사용 (현재 [`keycloak_verifier.go:265-270`](../../backend-core/internal/auth/keycloak_verifier.go)) → role 순서 의존성 / 권한 downgrade 위험. Default Groups 미설정 + §8.1 SOP 의 명시 group 1개 가입 강제. 향후 multi-role 처리는 옵션 C 확장 carve (`extractRole` priority/filter 로직 추가).
 
 ### 3.3 backend 동작 (변경 없음)
 
@@ -180,7 +180,7 @@ Phase 2 진입 시 옵션 C 로 확장 시:
 - **(carve)** 옵션 C 의 multi-role 정책 — backend `users.role` single string 변경 + RBAC policy 재설계. ADR-0021 후보.
 - **(carve)** Keycloak token 의 role include order — multi group composite 시 `realm_access.roles[0]` 가 어느 role 인지 검수 SOP.
 - **(carve)** keycloak_event_audit_integration.md §4.2 admin event 매핑 표에 `GROUP_MEMBERSHIP:CREATE/DELETE` row 추가 — design + audit 통합 sprint 정합.
-- **(open)** Default Group 정책 — 신규 user 의 default group = `devhub-developers` 권장. 사내 보안팀 동의 필요.
+- **(closed by codex review #9)** Default Group 정책 — **미설정 권장** (§3.2 step 3). 사유: backend `extractKeycloakRole` 의 `realm_access.roles[0]` 사용으로 인한 multi-role order-dependency 위험.
 - **(open)** Keycloak `User Profile Provider` 의 user attribute 필수 group 매핑 정책 (Phase 2 자동화 carve).
 
 ## 9. 변경 이력
