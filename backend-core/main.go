@@ -98,7 +98,6 @@ func main() {
 			Realm:        cfg.KeycloakAdminRealm,
 			ClientID:     cfg.KeycloakAdminClientID,
 			ClientSecret: cfg.KeycloakAdminClientSecret,
-			IssuerURL:    cfg.OIDCIssuerURL,
 		}
 		log.Printf("identity admin client: keycloak (admin_url=%q realm=%q client_id=%q)", cfg.KeycloakAdminURL, cfg.KeycloakAdminRealm, cfg.KeycloakAdminClientID)
 	} else {
@@ -115,6 +114,8 @@ func main() {
 
 	router := httpapi.NewRouter(httpapi.RouterConfig{
 		WebhookSecret:              cfg.GiteaWebhookSecret,
+		KratosWebhookToken:         "", // Ory remnants
+		KeycloakWebhookSecret:      cfg.KeycloakWebhookSecret,
 		InfraAgentToken:            cfg.InfraAgentToken,
 		HomeLabProviderKey:         cfg.HomeLabProviderKey,
 		HomeLabDegradedRaw:         cfg.HomeLabDegradedStatuses,

@@ -124,10 +124,11 @@ type RouterConfig struct {
 	// /api/v1/integrations/kratos/hook/* webhook calls (PR-M2-AUDIT). Empty
 	// value makes the route respond 503 so a forgotten env in production
 	// fails loud. Wired from cfg.KratosWebhookToken via main.go.
-	KratosWebhookToken  string
-	InfraAgentToken     string
-	HomeLabProviderKey  string
-	HomeLabDegradedRaw  string
+	KratosWebhookToken    string
+	KeycloakWebhookSecret string
+	InfraAgentToken       string
+	HomeLabProviderKey    string
+	HomeLabDegradedRaw    string
 	EventStore          WebhookEventStore
 	EventProcessor      WebhookEventProcessor
 	HealthStore         HealthStore
@@ -184,6 +185,9 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	handler := Handler{cfg: cfg}
 	router.GET("/health", handler.health)
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
+
+	// Keycloak Event Listener SPI Webhook (unauthenticated, X-Webhook-Secret check)
+	router.POST("/api/v1/internal/keycloak-events", handler.receiveKeycloakEventWebhook)
 
 	v1 := router.Group("/api/v1")
 	v1.Use(handler.requireRequestID)

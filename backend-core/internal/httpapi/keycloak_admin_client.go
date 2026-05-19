@@ -38,7 +38,7 @@ func (c *KeycloakAdminClient) CreateIdentity(ctx context.Context, email, name, u
 		"enabled":     true,
 		"firstName":   name,
 		"attributes":  map[string][]string{"devhub_user_id": {userID}},
-		"credentials": []map[string]any{{"type": "password", "value": password, "temporary": true}},
+		"credentials": []map[string]any{{"type": "password", "value": password, "temporary": false}},
 	}
 	respBody, headers, err := c.adminJSON(ctx, http.MethodPost, "/users", payload)
 	if err != nil {

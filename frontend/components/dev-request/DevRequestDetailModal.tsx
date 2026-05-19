@@ -244,7 +244,7 @@ export function DevRequestDetailModal({
                   type="button"
                   onClick={handleRegister}
                   disabled={submitting}
-                  className="flex-1 bg-orange-600 text-white font-black py-3 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-widest text-[10px] disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-1 bg-warning text-warning-foreground font-black py-3 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-widest text-[10px] disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <><ArrowRight className="w-4 h-4" /> Confirm</>}
                 </button>
@@ -276,7 +276,7 @@ export function DevRequestDetailModal({
                   type="button"
                   onClick={handleReject}
                   disabled={submitting}
-                  className="flex-1 bg-rose-600 text-white font-black py-3 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-widest text-[10px] disabled:opacity-50"
+                  className="flex-1 bg-destructive text-destructive-foreground font-black py-3 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-widest text-[10px] disabled:opacity-50"
                 >
                   {submitting ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Reject"}
                 </button>
@@ -307,7 +307,7 @@ export function DevRequestDetailModal({
                   type="button"
                   onClick={handleReassign}
                   disabled={submitting}
-                  className="flex-1 bg-amber-600 text-white font-black py-3 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-widest text-[10px] disabled:opacity-50"
+                  className="flex-1 bg-warning text-warning-foreground font-black py-3 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-widest text-[10px] disabled:opacity-50"
                 >
                   {submitting ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Reassign"}
                 </button>

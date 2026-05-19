@@ -96,6 +96,8 @@ type Config struct {
 	// KeycloakEventListenerMaxEvents caps the per-tick page size. Default 500
 	// when unset.
 	KeycloakEventListenerMaxEvents int
+	// KeycloakWebhookSecret is the shared secret token to verify Keycloak SPI webhook pushes
+	KeycloakWebhookSecret string
 }
 
 func Load() Config {
@@ -138,6 +140,7 @@ func Load() Config {
 		KeycloakEventListenerEnabled:   envBool("DEVHUB_KEYCLOAK_EVENT_LISTENER_ENABLED"),
 		KeycloakEventListenerInterval:  strings.TrimSpace(os.Getenv("DEVHUB_KEYCLOAK_EVENT_LISTENER_INTERVAL")),
 		KeycloakEventListenerMaxEvents: envInt("DEVHUB_KEYCLOAK_EVENT_LISTENER_MAX_EVENTS"),
+		KeycloakWebhookSecret:          strings.TrimSpace(os.Getenv("DEVHUB_KEYCLOAK_SPI_WEBHOOK_SECRET")),
 	}
 }
 

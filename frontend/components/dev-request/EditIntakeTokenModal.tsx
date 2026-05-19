@@ -225,7 +225,7 @@ export function EditIntakeTokenModal({ token, onClose, onUpdated }: EditIntakeTo
             <button
               type="submit"
               disabled={submitting || success}
-              className="flex-1 bg-orange-500 text-white font-black py-4 px-8 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-orange-500/20 disabled:opacity-50 uppercase tracking-widest text-[10px] flex items-center justify-center gap-2"
+              className="flex-1 bg-warning text-warning-foreground font-black py-4 px-8 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl disabled:opacity-50 uppercase tracking-widest text-[10px] flex items-center justify-center gap-2"
             >
               {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Save Changes</>}
             </button>

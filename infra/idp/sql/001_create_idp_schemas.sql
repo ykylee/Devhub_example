@@ -13,6 +13,8 @@
 
 CREATE SCHEMA IF NOT EXISTS hydra;
 CREATE SCHEMA IF NOT EXISTS kratos;
+CREATE SCHEMA IF NOT EXISTS keycloak;
 
 COMMENT ON SCHEMA hydra IS 'Ory Hydra (OAuth2/OIDC server) — ADR-0001 도입';
 COMMENT ON SCHEMA kratos IS 'Ory Kratos (identity & user management) — ADR-0001 도입';
+COMMENT ON SCHEMA keycloak IS 'Keycloak (OAuth2/OIDC server) — ADR-0019 도입';
