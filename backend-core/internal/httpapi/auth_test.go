@@ -285,6 +285,109 @@ func TestAuthenticateActor_DoesNotLogGetUserNotFound(t *testing.T) {
 	}
 }
 
+// TestAuthenticateActor_BackfillsIdPSubjectOnFirstLogin — sprint claude/work_260519-t
+// (ADR-0019 §5.3 sprint -j codex review #9 #2 backend 확장 carve #4). user row 의
+// idp_subject 가 빈 상태로 첫 로그인 시 actor.Subject 로 lazy backfill 검증.
+func TestAuthenticateActor_BackfillsIdPSubjectOnFirstLogin(t *testing.T) {
+	orgs := newMemoryOrganizationStore()
+	// pre-existing user with empty IdPSubject (pre-migration 000030 or pre-OIDC migration state)
+	if _, err := orgs.CreateUser(context.Background(), domain.CreateUserInput{
+		UserID:      "alice",
+		Email:       "alice@example.com",
+		DisplayName: "Alice",
+		Role:        domain.AppRoleDeveloper,
+		Status:      domain.UserStatusActive,
+		Type:        domain.UserTypeHuman,
+	}); err != nil {
+		t.Fatalf("seed user: %v", err)
+	}
+
+	// pre-state: idp_subject should be empty
+	pre, err := orgs.GetUser(context.Background(), "alice")
+	if err != nil {
+		t.Fatalf("pre GetUser: %v", err)
+	}
+	if pre.IdPSubject != "" {
+		t.Fatalf("seed user should have empty IdPSubject, got %q", pre.IdPSubject)
+	}
+
+	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+		Login:   "alice",
+		Subject: "kc-uuid-alice", // Keycloak sub claim
+		Role:    "developer",
+	}}
+	router := NewRouter(RouterConfig{
+		OrganizationStore:   orgs,
+		BearerTokenVerifier: verifier,
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
+	req.Header.Set("Authorization", "Bearer t")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+
+	// post-state: idp_subject should be backfilled with actor.Subject
+	post, err := orgs.GetUser(context.Background(), "alice")
+	if err != nil {
+		t.Fatalf("post GetUser: %v", err)
+	}
+	if post.IdPSubject != "kc-uuid-alice" {
+		t.Fatalf("IdPSubject after first login = %q; want %q (lazy backfill)", post.IdPSubject, "kc-uuid-alice")
+	}
+}
+
+// TestAuthenticateActor_DoesNotResetIdPSubjectIfAlreadySet — 이미 idp_subject 가 있는
+// user 는 SetIdPSubject 호출 안 함 (불필요한 DB write 회피).
+func TestAuthenticateActor_DoesNotResetIdPSubjectIfAlreadySet(t *testing.T) {
+	orgs := newMemoryOrganizationStore()
+	if _, err := orgs.CreateUser(context.Background(), domain.CreateUserInput{
+		UserID:      "bob",
+		Email:       "bob@example.com",
+		DisplayName: "Bob",
+		Role:        domain.AppRoleManager,
+		Status:      domain.UserStatusActive,
+		Type:        domain.UserTypeHuman,
+	}); err != nil {
+		t.Fatalf("seed user: %v", err)
+	}
+	// IdPSubject 를 별도 SetIdPSubject 로 사전 세팅 (CreateUserInput 에 IdPSubject 필드 없음)
+	if err := orgs.SetIdPSubject(context.Background(), "bob", "kc-uuid-bob-existing"); err != nil {
+		t.Fatalf("seed IdPSubject: %v", err)
+	}
+
+	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+		Login:   "bob",
+		Subject: "kc-uuid-bob-different", // 다른 sub — overwrite 시도 검증
+		Role:    "manager",
+	}}
+	router := NewRouter(RouterConfig{
+		OrganizationStore:   orgs,
+		BearerTokenVerifier: verifier,
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
+	req.Header.Set("Authorization", "Bearer t")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+
+	// idp_subject 는 변경 없음 — 이미 있던 값 유지
+	post, err := orgs.GetUser(context.Background(), "bob")
+	if err != nil {
+		t.Fatalf("post GetUser: %v", err)
+	}
+	if post.IdPSubject != "kc-uuid-bob-existing" {
+		t.Fatalf("IdPSubject = %q; want %q (must not overwrite)", post.IdPSubject, "kc-uuid-bob-existing")
+	}
+}
+
 func TestPublicWebhookPathBypassesAuthentication(t *testing.T) {
 	router := NewRouter(RouterConfig{EventStore: &memoryEventStore{}})
 

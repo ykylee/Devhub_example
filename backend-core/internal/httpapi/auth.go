@@ -142,13 +142,24 @@ func (h Handler) authenticateActor(c *gin.Context) {
 		switch {
 		case err == nil:
 			finalRole = string(user.Role)
+			// sprint -t (PR #188): 자동 idp_subject sync — sprint -j codex review #9 #2 backend
+			// 확장 carve 4건 중 4번째. user row 가 있고 idp_subject 가 비어있으면 actor.Subject
+			// (Keycloak sub claim) 로 lazy backfill. ADR-0019 §4.3 데이터 모델 정합.
+			// best-effort — 실패 시 log only (다음 요청 재시도 idempotent).
+			if user.IdPSubject == "" && strings.TrimSpace(actor.Subject) != "" {
+				if setErr := h.cfg.OrganizationStore.SetIdPSubject(c.Request.Context(), login, actor.Subject); setErr != nil {
+					logRequest(c, "[authenticateActor] SetIdPSubject %q -> %q failed: %v (best-effort, next request retry)", login, actor.Subject, setErr)
+				} else {
+					logRequest(c, "[authenticateActor] idp_subject lazy backfill for %q -> %q", login, actor.Subject)
+				}
+			}
 		case errors.Is(err, store.ErrNotFound):
 			// User has a valid Hydra token but no DevHub users row yet
 			// (pre-onboarding). Fall through to the token role claim —
 			// not a misconfiguration, no log noise.
 		default:
 			// Schema drift or store outage. Without this surface, a
-			// missing migration (e.g. 000009 add idp_subject)
+			// missing migration (e.g. 000030 rename idp_subject)
 			// silently routes every actor to actor.Role's default —
 			// that masked the e2e regression where bob/charlie landed
 			// on /developer until we found the SQL error by accident.
