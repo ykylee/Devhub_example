@@ -272,6 +272,109 @@ client_secret 은 사내 vault 보관. 정기 rotation SOP 는 §6 JWKS rotation
 | `kid` mismatch (서명 검증 실패) | backend log 의 JWKS refetch 시도 확인 | 강제 cache invalidate (backend 재시작) 또는 Keycloak key rotation 검증 |
 | token 유출 의심 | §6.5 비상 rotation 절차 진행 | audit_logs + Keycloak event log 분석 |
 
+### 8.5 SSO logout chain (RP-initiated logout)
+
+[ADR-0019 §5.3](../adr/0019-keycloak-only-idp.md#53-잔여-carve-out) 의 SSO logout chain carve out. DevHub 가 OIDC RP (Relying Party) 로서 Keycloak 의 SSO 세션을 종료하는 [RP-initiated logout](https://openid.net/specs/openid-connect-rpinitiated-1_0.html) 표준 흐름 운영 SOP.
+
+#### 8.5.1 현재 구현 패턴 (frontend)
+
+`frontend/lib/services/auth.service.ts:100-126` 의 `logout()` 함수가 RP-initiated logout 표준 구현:
+
+```ts
+public async logout(): Promise<void> {
+  const idToken = tokenStore.getIdToken();                                  // 1. id_token 사전 회수
+  const runtimeConfig = await this.getRuntimeOIDCConfig();
+  const discovery = await this.getDiscovery();
+
+  tokenStore.clear();                                                       // 2. local 토큰 즉시 clear
+  useStore.getState().setIsLoggingOut(true);                                //    (LogoutOverlay UX 활성화)
+  useStore.getState().clearActor();                                         //    (actor 상태 초기화)
+
+  const endSessionEndpoint =
+    discovery.end_session_endpoint ||                                       // 3. OIDC discovery 우선
+    `${runtimeConfig.oidcIssuerURL}/protocol/openid-connect/logout`;        //    fallback (Keycloak 표준 path)
+
+  const url = new URL(endSessionEndpoint);
+  url.searchParams.set("client_id", OIDC_CLIENT_ID);                        // 4. URL params 구성
+  url.searchParams.set("post_logout_redirect_uri", `${window.location.origin}/`);
+  if (idToken) {
+    url.searchParams.set("id_token_hint", idToken);                         //    id_token_hint 권장 (silent logout)
+  }
+  window.location.assign(url.toString());                                   // 5. Keycloak 으로 redirect
+}
+```
+
+**핵심 패턴**:
+
+| Step | 동작 | 효과 |
+| --- | --- | --- |
+| 1 | `tokenStore.getIdToken()` 사전 회수 | clear 전에 `id_token_hint` 용 값 확보 |
+| 2 | `tokenStore.clear()` 즉시 | local 토큰 무효화 — Keycloak redirect 실패 시에도 frontend 안전 |
+| 3 | OIDC discovery → `end_session_endpoint` | Keycloak 표준 endpoint (default: `${issuer}/protocol/openid-connect/logout`) |
+| 4 | `id_token_hint` + `client_id` + `post_logout_redirect_uri` 명시 | Keycloak 이 SSO 세션 종료 + post-logout redirect URI whitelist 검증 |
+| 5 | `window.location.assign(url)` | Keycloak 으로 full redirect (SPA navigation 아님) |
+
+#### 8.5.2 Keycloak admin console 설정 SOP
+
+Keycloak 이 RP-initiated logout 을 받기 위한 client 설정:
+
+1. Realm `devhub` → Clients → `devhub-frontend` → Settings
+2. **Valid post-logout redirect URIs** 필드 (§3.1 client 정의 참조):
+   - local: `http://localhost:3000/`
+   - prod: `https://devhub.example.com/devhub/`
+   - **wildcard 금지** — 정확한 URI 만 등록. `*` 사용 시 open redirect 취약점.
+3. **Front-channel logout** (선택): `enabled` — Keycloak 이 admin force logout 시 모든 active client 의 front-channel logout URL 호출. DevHub 가 server-side session 미사용 (JWT only) 이므로 front-channel logout URL 등록 불필요 (carve — future SOP).
+4. **Backchannel logout URL** (선택): 미사용 — DevHub 는 server-side session 없음.
+
+#### 8.5.3 logout chain order
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant F as Frontend (Next.js)
+    participant KC as Keycloak
+    participant B as Backend-Core (Go)
+
+    U->>F: /auth/logout 진입
+    F->>F: tokenStore.clear() + setIsLoggingOut(true) + clearActor()
+    F->>KC: GET /realms/devhub/protocol/openid-connect/logout?<br/>id_token_hint=...&client_id=devhub-frontend&post_logout_redirect_uri=...
+    KC->>KC: id_token_hint 검증 + post_logout_redirect_uri whitelist 검증
+    KC->>KC: SSO 세션 종료 (Keycloak 사용자 세션 정리)
+    KC->>U: 302 redirect to post_logout_redirect_uri
+    U->>F: ${origin}/ (홈)
+    F->>F: AuthGuard → 미인증 → /auth/login redirect
+```
+
+**chain 순서가 보장하는 invariant**:
+- local 토큰 (access/refresh/id) clear 가 **Keycloak redirect 전에 발생** → redirect 실패 시에도 frontend 가 미인증 상태로 안전
+- Keycloak SSO 세션 종료가 `id_token_hint` 로 사용자 확인 → CSRF 방지 (id_token 보유자만 logout 가능)
+- post_logout_redirect_uri 가 Keycloak 의 whitelist 검증 통과 → open redirect 방지
+
+#### 8.5.4 admin force logout (front-channel)
+
+Keycloak admin 이 사용자 강제 logout 시 (§8.2 off-boarding 또는 §6.5 비상 rotation):
+
+1. Keycloak admin console → Users → 해당 user → Sessions 탭 → "Logout all sessions"
+2. **DevHub frontend 동작**: 다음 API 호출 시 access_token 만료 또는 invalid → backend 401 → frontend AuthGuard 가 `/auth/login` redirect
+   - access_token 의 `exp` 가 짧으면 (권장 5분) 강제 logout 효과가 5분 내 모든 client 에 전파
+   - refresh_token 도 무효화 → 재발급 불가
+3. **DevHub 측 추가 처리 불필요** — server-side session 없음 + JWT 만료 기반 자연 종료
+
+#### 8.5.5 보안 점검
+
+| 위협 | mitigation |
+| --- | --- |
+| open redirect (`post_logout_redirect_uri` 위조) | Keycloak client 의 Valid post-logout redirect URIs whitelist (§8.5.2). wildcard 금지. |
+| CSRF (타 사용자 logout 강제) | `id_token_hint` 필수 — Keycloak 이 id_token 의 `aud` + `sub` 검증 후 SSO 세션 종료 |
+| token replay (logout 후 재사용) | `tokenStore.clear()` 즉시 (§8.5.1 Step 2) + access_token 짧은 TTL (권장 5분) + refresh_token rotation 활성화 (Keycloak Tokens 탭 → Refresh Token Max Reuse = 0) |
+| LogoutOverlay UX 우회 | `useStore.getState().setIsLoggingOut(true)` 가 navigation 중에도 UI 잠금 — sprint `gemini/dreq_e2e_260515` (PR #134) 로 도입 |
+
+#### 8.5.6 잔여 carve out (§8.5 의 sub-carve)
+
+- **(carve)** Front-channel logout URL 등록 — Keycloak 의 admin force logout 시 DevHub 가 즉시 알람 받는 endpoint. 현재는 access_token TTL 기반 자연 종료. SLA 가 더 짧은 즉시 종료 요구 시 carve.
+- **(carve)** Backchannel logout (`logout_token` 수신) — Keycloak → DevHub backend POST. server-side session 도입 시 의미 있음. 현재 미적용.
+- **(carve)** Multi-tab logout 동기화 — `tokenStore` 가 sessionStorage 인 경우 tab 간 sync 안 됨. localStorage + `storage` event listener 또는 BroadcastChannel API 로 carve.
+
 ## 9. 보안 점검
 
 ### 9.1 잠재 위협 + mitigation
