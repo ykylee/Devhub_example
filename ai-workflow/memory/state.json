@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-05-19 ADR-0019 §5.3 (9) audit event listener Phase 2 종결 — sprint -a~-i 누적 9 PR (재산정 / housekeeping / 4 SOP / 4 design) + sprint -j~-t 누적 11 PR (critical fixes + housekeeping + ADR carve 4건) + **sprint -u~-y 5 PR (audit event listener Phase 2 — PR-B skeleton / PR-C wire+metric / PR-D store dedup / PR-E 운영 SOP / codex hotfix #10)** + sprint -z (본 housekeeping). 직전 외부 PR #165~#168 사후 등록 완결.",
-  "updated_at": "2026-05-20T01:00:00Z",
-  "head_commit": "f3f640b",
-  "head_summary": "fix(audit,docs): codex hotfix #10 일괄 흡수 — PR #189~#192 의 P1×3 + P2×2 (sprint claude/work_260519-y) (#193)",
+  "status": "2026-05-19 ADR-0019 §5.3 (9) audit event listener Phase 2 종결 + codex hotfix #11/#12 — sprint -a~-i 누적 9 PR + sprint -j~-t 누적 11 PR + sprint -u~-y 5 PR (audit event listener Phase 2) + sprint -z (housekeeping #1) + **sprint -aa (codex hotfix #11 same-ms boundary) + -ab (codex hotfix #12 sprint -n~-t finalize) + -ac (housekeeping #2)**. 직전 외부 PR #165~#168 사후 등록 완결.",
+  "updated_at": "2026-05-20T03:30:00Z",
+  "head_commit": "86e5b0d",
+  "head_summary": "docs(memory): codex hotfix #12 — sprint -n~-t 7 branch state finalize 누락 정정 + sprint -z/-aa 본인 finalize (sprint claude/work_260519-ab) (#196)",
   "milestones": {
     "M0": {
       "status": "done",
@@ -249,7 +249,10 @@
     {"pr": 190, "sprint": "claude/work_260519-v", "title": "feat(audit,main): ADR-0019 §5.3 (9) audit event listener Phase 2 PR-C wire + metric + integration test — domain.AuditSourceKeycloakEvent + Prometheus 3종 metric (events_processed_total / cursor_lag_seconds / pull_errors_total) + main.go cron wire + config 3 env + integration end-to-end + metric 4건 test", "merge_commit": "2ddece2"},
     {"pr": 191, "sprint": "claude/work_260519-w", "title": "feat(audit,store): ADR-0019 §5.3 (9) audit event listener Phase 2 PR-D store-level dedup — migration 000032 audit_logs.source_event_id + partial UNIQUE INDEX (source_type, source_event_id) WHERE NOT NULL AND source_type IS NOT NULL + domain.AuditLog.SourceEventID + ON CONFLICT DO NOTHING + getAuditLogBySourceEventID lookup + 3건 store integration test", "merge_commit": "49bfb92"},
     {"pr": 192, "sprint": "claude/work_260519-x", "title": "docs(setup): ADR-0019 §5.3 (9) audit event listener Phase 2 PR-E 운영 SOP — keycloak_operations.md §8.6 신규 9 sub-section (사전 조건 / Keycloak admin Events 설정 / backend env / Prometheus dashboard + PromQL / 알람 3종 / dedup 확인 SQL / 트러블슈팅 5 케이스 / disable·rollback / sub-carve)", "merge_commit": "a72bde4"},
-    {"pr": 193, "sprint": "claude/work_260519-y", "title": "fix(audit,docs): codex hotfix #10 일괄 흡수 — PR #189~#192 의 P1×3 + P2×2 (skip-only cursor advance + loadCursor 즉시 영구 seed + §8.6.1 seed 명시 + hash 7-tuple 확장 + Expiration wording 정정) + 4건 신규 test + PR #189 P2 same-ms boundary false positive 응답", "merge_commit": "f3f640b"}
+    {"pr": 193, "sprint": "claude/work_260519-y", "title": "fix(audit,docs): codex hotfix #10 일괄 흡수 — PR #189~#192 의 P1×3 + P2×2 (skip-only cursor advance + loadCursor 즉시 영구 seed + §8.6.1 seed 명시 + hash 7-tuple 확장 + Expiration wording 정정) + 4건 신규 test + PR #189 P2 same-ms boundary false positive 응답", "merge_commit": "f3f640b"},
+    {"pr": 194, "sprint": "claude/work_260519-z", "title": "docs(memory): 2026-05-19 main flat memory housekeeping #1 — sprint -u~-y 5 PR 흡수 + ADR-0019 §5.3 (9) audit event listener Phase 2 종결 milestone 명문화", "merge_commit": "61dcbb4"},
+    {"pr": 195, "sprint": "claude/work_260519-aa", "title": "fix(audit): codex hotfix #11 — PR #193 same-ms boundary 에서 emit-able event 의 hash 우선 (latestEmittable bool flag 도입, skip event hash 가 latestHash 로 저장되어 다음 tick re-emit + metric inflation 되던 side effect 해소, 2건 test)", "merge_commit": "d9bcd82"},
+    {"pr": 196, "sprint": "claude/work_260519-ab", "title": "docs(memory): codex hotfix #12 — sprint -n~-t 7 branch state finalize 누락 정정 + sprint -z/-aa 본인 finalize (PR #194 codex P2 응답, AGENTS.md 세션 복원 위험 회피)", "merge_commit": "86e5b0d"}
   ],
   "adr_0019_section_53_9_phase2_complete_milestone_2026_05_19": {
     "milestone": "§5.3 (9) audit event listener — design (sprint -e) + 실 구현 Phase 2 PR-B~PR-E (sprint -u~-x) + codex hotfix #10 (sprint -y) 6 sprint 완전 종결",

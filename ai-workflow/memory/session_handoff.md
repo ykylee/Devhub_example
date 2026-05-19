@@ -1,12 +1,12 @@
 # Session Handoff — main (2026-05-19 ADR-0019 §5.3 (9) audit event listener Phase 2 종결)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
-- 범위: 2026-05-19 단일 세션 누적 25 PR (sprint -a~-y + 외부 누락 #165~#168 사후 등록) + sprint -z housekeeping. **ADR-0019 §5.3 design 완결 milestone** (MFA 제외, 10/10 = 100%) + **§5.3 (9) audit event listener Phase 2 완전 종결** (PR-B skeleton + PR-C wire+metric + PR-D store dedup + PR-E 운영 SOP + codex hotfix #10).
+- 범위: 2026-05-19 단일 세션 누적 29 PR (sprint -a~-ab + 외부 누락 #165~#168 사후 등록) + sprint -ac housekeeping #2. **ADR-0019 §5.3 design 완결 milestone** (MFA 제외, 10/10 = 100%) + **§5.3 (9) audit event listener Phase 2 완전 종결** (PR-B skeleton + PR-C wire+metric + PR-D store dedup + PR-E 운영 SOP + codex hotfix #10/#11/#12).
 - 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
 - 상태: M1/M2/M3 done. **Keycloak 단일 IdP 정합 완전 정착** (ADR-0019 accepted, ADR-0001 superseded). **단일 외부 포트 역프록시(ADR-0018) 완료**. **ADR-0019 §5.3 design 완결** (MFA 제외, 10/10 = 100% — SOP 4건 + design 5건) + **§5.3 (9) audit event listener Phase 2 풀스택 완전 종결** (backend cron + Prometheus 3종 metric + store-level partial UNIQUE INDEX dedup + 운영 SOP §8.6 + codex hotfix). **잔여 design+carve 5건** (group staging-prod 적용 / off-boarding Phase 1 운영 cron 실 deploy / HA Phase 2 / e2e Kratos → Keycloak 실 코드 전환 / event listener SPI push 전환). ADR carve out 종결 누적: ADR-0017 §6 atomicity + ADR-0015 §6 (1)+(2) + ADR-0016 §6 (1)+(2) + ADR-0017 §6 (a)+(c)+(d) + **ADR-0019 §5.3 모든 SOP + design + 실 구현 (sprint -c~-h + -m + -u~-y)**.
-- 최종 수정일: 2026-05-19 (sprint -z housekeeping)
+- 최종 수정일: 2026-05-19 (sprint -ac housekeeping #2)
 - 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [상태 스냅샷](./state.json), [거버넌스](../../docs/governance/README.md), [추적성 매트릭스](../../docs/traceability/report.md), [ADR-0015 HomeLab pull](../../docs/adr/0015-homelab-adapter-pull-strategy.md), [ADR-0016 Prometheus alerts](../../docs/adr/0016-prometheus-alerts-policy.md), [ADR-0017 intake token hardening](../../docs/adr/0017-dreq-intake-token-operational-hardening.md), [ADR-0018 reverse proxy policy](../../docs/adr/0018-single-port-reverse-proxy-policy.md), [**ADR-0019 Keycloak 단일화 (현재 IdP)**](../../docs/adr/0019-keycloak-only-idp.md), [ADR-0001 IdP (Hydra+Kratos, superseded)](../../docs/adr/0001-idp-selection.md), [**keycloak_operations.md (§8.6 audit event listener 운영 SOP 포함)**](../../docs/setup/keycloak_operations.md), [keycloak_event_audit_integration design](../../docs/planning/keycloak_event_audit_integration.md), [Jira 보고 status](../../docs/reports/jira_status_2026_05_18.md).
-- 브랜치: `main` (HEAD `f3f640b`, sprint -y PR #193 squash merge 직후 + 본 sprint -z housekeeping 진행).
+- 브랜치: `main` (HEAD `86e5b0d`, sprint -ab PR #196 squash merge 직후 + 본 sprint -ac housekeeping #2 진행).
 
 ## 2026-05-19 Phase 4 — ADR-0019 §5.3 (9) audit event listener Phase 2 풀스택 (sprint -u ~ -y, 5 PR)
 
@@ -17,7 +17,10 @@
 | `-w` | #191 | `49bfb92` | **PR-D store-level dedup** — migration 000032 `audit_logs.source_event_id` + partial UNIQUE INDEX (source_type, source_event_id) WHERE NOT NULL AND source_type IS NOT NULL + `domain.AuditLog.SourceEventID` + `ON CONFLICT DO NOTHING` + `getAuditLogBySourceEventID` lookup + 3건 store integration test (DEVHUB_TEST_DB_URL skip pattern) |
 | `-x` | #192 | `a72bde4` | **PR-E 운영 SOP** — `keycloak_operations.md §8.6` 신규 9 sub-section (활성화 사전 조건 / Keycloak admin Events 설정 / backend env / Prometheus dashboard 4 panel + PromQL / 알람 3종 / dedup 확인 SQL / 트러블슈팅 5 케이스 / disable·rollback / sub-carve) |
 | `-y` | #193 | `f3f640b` | **codex review hotfix #10** — P1×3 (skip-only cursor advance + initial cursor 즉시 영구 seed + §8.6.1 seed 명시) + P2×2 (hash 7-tuple 확장 + Expiration wording 정정) + 4건 신규 test + PR #189 P2 same-ms false positive 응답 |
-| `-z` | (본) | TBD | main flat memory housekeeping (sprint -u~-y 5 PR 흡수). |
+| `-z` | #194 | `61dcbb4` | main flat memory housekeeping #1 (sprint -u~-y 5 PR 흡수 + Phase 4 milestone block 신규). |
+| `-aa` | #195 | `d9bcd82` | **codex hotfix #11** — PR #193 same-ms boundary 에서 emit-able event 의 hash 우선 (`latestEmittable bool` flag 도입). skip event hash 가 latestHash 로 set 되어 다음 tick 에서 emit-able event 가 re-emit + metric inflation 되던 side effect 해소. 신규 test 2건. |
+| `-ab` | #196 | `86e5b0d` | **codex hotfix #12** — PR #194 codex P2 정정. sprint -n~-t 7 branch state.json finalize 누락 정정 (`status: in_progress` → `done` + ended_at + merged_pr + merge_commit 추가). sprint -z + -aa 본인도 finalize. work_backlog row wording 정정. AGENTS.md 세션 복원 위험 회피. |
+| `-ac` | (본) | TBD | main flat memory housekeeping #2 (sprint -z + -aa + -ab 3 PR 흡수). |
 
 ## 2026-05-19 Phase 3 critical fixes (sprint -j ~ -t, 11 PR)
 
