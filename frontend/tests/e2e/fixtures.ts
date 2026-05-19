@@ -77,6 +77,11 @@ export async function expectActorIs(page: Page, user: SeededUser) {
 // identity lifecycle outside the normal browser flow (signup cleanup,
 // audit target_id matching). KRATOS_ADMIN_URL env mirrors the one used
 // by global-setup.ts; defaults to localhost:4434.
+//
+// ⚠️ deprecated (2026-05-19, sprint claude/work_260519-m, ADR-0019 Keycloak 단일화 후 잔재):
+//   본 helper 는 Kratos admin API 의존 잔재. Phase 2 별도 sprint 에서 Keycloak admin API
+//   (`/admin/realms/{realm}/users`) helper 로 전환 — design 은
+//   docs/planning/e2e_keycloak_migration.md §3.4 (getKeycloakUserIdByEmail + deleteKeycloakUserByEmail).
 const KRATOS_ADMIN_URL = (process.env.KRATOS_ADMIN_URL ?? "http://localhost:4434").replace(/\/$/, "");
 
 interface KratosIdentityLite {

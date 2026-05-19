@@ -6,6 +6,11 @@ import path from "node:path";
 // `npm run e2e` invocation. Skip via DEVHUB_E2E_SKIP_SEED=1 for CI matrix
 // runs that drive seeding from a separate stage.
 //
+// ⚠️ deprecated (2026-05-19, sprint claude/work_260519-m, ADR-0019 Keycloak 단일화 후 잔재):
+//   본 파일은 Kratos admin API (`/admin/identities`) 의존 잔재. 사내 e2e 환경의 Kratos staging 가동 시에만 동작.
+//   Phase 2 별도 sprint 에서 Keycloak admin API (`/admin/realms/{realm}/users`) 로 전환 — design 은
+//   docs/planning/e2e_keycloak_migration.md §3 (admin token 획득 + user seed + group 가입 + DevHub users sync).
+//
 // The seed is split in two:
 //   1. Kratos identities — POST /admin/identities when missing, PUT
 //      /admin/identities/{id} to force-reset the seed password when the

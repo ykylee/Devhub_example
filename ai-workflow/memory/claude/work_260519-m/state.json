@@ -1,0 +1,30 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260519-m",
+  "branch": "claude/work_260519-m",
+  "status": "in_progress",
+  "started_at": "2026-05-19T12:00:00Z",
+  "scope": "frontend e2e Kratos reference 정리 — global-setup.ts (170 line) + fixtures.ts (130 line) + .env.example L42 의 Kratos admin API 사용. design 문서 신규 + deprecation 명시. 실 코드 전환 (Kratos admin API → Keycloak admin API) 은 사내 Keycloak e2e 환경 동반 별도 sprint.",
+  "directive_source": "사용자 요청 'frontend e2e Kratos reference 도 정리하자' — sprint -l (migration 정정) 종료 직후. sprint -k 의 잔여 carve 5건 중 1건.",
+  "context": {
+    "global_setup_kratos_usage": "alice/bob/charlie 3 user 를 KRATOS_ADMIN_URL (default :4434) 의 /admin/identities POST/PUT/GET 으로 seed. devhub_user schema_id + metadata_public.user_id + credentials.password 패턴. DevHub users row 는 별도 go run ./cmd/idp-apply-schemas + infra/idp/sql/002_seed_e2e_users.sql.",
+    "fixtures_kratos_usage": "getKratosIdentityIdByEmail + deleteKratosIdentityByEmail helper — signup.spec cleanup 등에서 사용.",
+    "transition_complexity": "Kratos admin API (unauthenticated localhost bind) → Keycloak admin API (client_credentials grant 인증 + admin REST path + user payload schema 변경) — schema/auth/payload 모두 변경. 단순 rename 불가능."
+  },
+  "decisions": [
+    "design 문서 docs/planning/e2e_keycloak_migration.md 신규 — Kratos → Keycloak admin API 매핑 표 + 인증 패턴 변경 + payload schema 변경 + DevHub users seed 정합 + cutover Phase.",
+    "frontend/.env.example L42 KRATOS_ADMIN_URL 에 deprecation 주석 추가 — '실 e2e 전환은 사내 Keycloak staging 진입 동반 carve'.",
+    "frontend/tests/e2e/global-setup.ts + fixtures.ts 의 코드 자체는 그대로 유지 — e2e suite 가 현재 사내 Kratos staging 으로 동작 중일 가능성. 단순 deprecation 주석만 추가.",
+    "ADR-0019 §5.3 잔여 carve 추가 — e2e Kratos → Keycloak migration (별도 sprint).",
+    "실 코드 전환은 carve — 사내 Keycloak e2e 환경 staging 진입 후."
+  ],
+  "todo": [
+    "docs/planning/e2e_keycloak_migration.md 신규",
+    "frontend/.env.example L42 + L41 주석 갱신",
+    "frontend/tests/e2e/global-setup.ts + fixtures.ts 상단 주석에 deprecation note 추가",
+    "docs/adr/0019-keycloak-only-idp.md §5.3 carve out — e2e migration 항목 추가 (design+carve)",
+    "docs/traceability/report.md §6 변경 이력 sprint -m row",
+    "commit + push + PR + 4단계 self-review"
+  ],
+  "verification": "docs + comment 정리 — e2e 코드 동작 변경 없음 (실 Kratos admin API 사용 그대로). 실 e2e Keycloak 전환은 사내 환경 동반 carve."
+}
