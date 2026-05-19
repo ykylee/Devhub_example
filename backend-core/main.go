@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/devhub/backend-core/internal/audit"
 	"github.com/devhub/backend-core/internal/auth"
 	"github.com/devhub/backend-core/internal/commandworker"
 	"github.com/devhub/backend-core/internal/config"
@@ -38,6 +39,7 @@ func main() {
 	var worker *commandworker.Worker
 	var liveWorker *commandworker.LiveWorker
 	var homeLabAdapterStore adapters.InfraSnapshotStore
+	var eventCursorStore store.EventCursorStore
 
 	if cfg.DBURL != "" {
 		pgStore, err := store.NewPostgresStore(ctx, cfg.DBURL)
@@ -57,6 +59,7 @@ func main() {
 		devRequestIntakeTokenStore = pgStore
 		rbacStore = pgStore
 		homeLabAdapterStore = pgStore
+		eventCursorStore = pgStore
 
 		worker = &commandworker.Worker{Store: pgStore, Publisher: realtimeHub}
 		if cfg.ServiceActionExecutorMode != "" {
@@ -87,7 +90,7 @@ func main() {
 	}
 
 	var (
-		kratosAdmin  httpapi.IdentityAdmin
+		kratosAdmin httpapi.IdentityAdmin
 	)
 	if cfg.KeycloakAdminURL != "" && cfg.KeycloakAdminRealm != "" && cfg.KeycloakAdminClientID != "" && cfg.KeycloakAdminClientSecret != "" {
 		kratosAdmin = &httpapi.KeycloakAdminClient{
@@ -127,7 +130,7 @@ func main() {
 		DevRequestIntakeTokenStore: devRequestIntakeTokenStore,
 		RBACStore:                  rbacStore,
 		BearerTokenVerifier:        verifier,
-		IdentityAdmin:                kratosAdmin,
+		IdentityAdmin:              kratosAdmin,
 		IdPProvider:                cfg.IdPProvider,
 		HRDB:                       hrdbMock,
 		SnapshotProvider: httpapi.RuntimeSnapshotProvider{
@@ -261,8 +264,126 @@ func main() {
 		}
 	}
 
+	// Keycloak event listener cron — ADR-0019 §5.3 (9), sprint claude/work_260519-v PR-C.
+	// KeycloakAdminClient 로 /admin/realms/{realm}/events + /admin-events polling,
+	// audit_logs 로 emit (source_type=keycloak_event). 모든 wire 의존이 모두 준비된
+	// 경우에만 활성화 — config gate / KeycloakAdminClient / auditStore / eventCursorStore.
+	if cfg.KeycloakEventListenerEnabled && kratosAdmin != nil && auditStore != nil && eventCursorStore != nil {
+		kc, ok := kratosAdmin.(*httpapi.KeycloakAdminClient)
+		if !ok {
+			log.Printf("keycloak event listener skipped: identity admin is not KeycloakAdminClient (provider mode mismatch)")
+		} else {
+			interval := 30 * time.Second
+			if strings.TrimSpace(cfg.KeycloakEventListenerInterval) != "" {
+				if parsed, err := time.ParseDuration(cfg.KeycloakEventListenerInterval); err == nil && parsed > 0 {
+					interval = parsed
+				} else {
+					log.Printf("invalid DEVHUB_KEYCLOAK_EVENT_LISTENER_INTERVAL=%q; fallback to %s", cfg.KeycloakEventListenerInterval, interval)
+				}
+			}
+			maxEvents := cfg.KeycloakEventListenerMaxEvents
+			if maxEvents <= 0 {
+				maxEvents = 500
+			}
+			lister := audit.NewHTTPAPIEventListerAdapter(&keycloakAdminEventLister{kc: kc})
+			emitter := buildKeycloakEventAuditEmitter(auditStore)
+			opts := audit.KeycloakEventPullerOptions{
+				Interval:     interval,
+				MaxEvents:    maxEvents,
+				AuditEmitter: emitter,
+			}
+			go func() {
+				err := audit.RunKeycloakEventPuller(ctx, lister, eventCursorStore, opts)
+				if err != nil && err != context.Canceled {
+					log.Printf("keycloak event listener stopped: %v", err)
+				}
+			}()
+			log.Printf("keycloak event listener enabled (interval=%s max_events=%d)", interval, maxEvents)
+		}
+	}
+
 	if err := router.Run(":" + cfg.Port); err != nil {
 		log.Fatalf("run server: %v", err)
+	}
+}
+
+// keycloakAdminEventLister — httpapi.KeycloakAdminClient 를 audit.HTTPAPIEventLister
+// 로 변환하는 thin adapter. audit ← httpapi 순방향 의존만 유지하기 위해 본 wrapper 가
+// main.go 측에 존재. struct 필드는 동일하므로 named-type 변환만 수행.
+type keycloakAdminEventLister struct {
+	kc *httpapi.KeycloakAdminClient
+}
+
+func (a *keycloakAdminEventLister) ListUserEvents(ctx context.Context, dateFrom time.Time, max int) ([]audit.HTTPAPIUserEvent, error) {
+	src, err := a.kc.ListUserEvents(ctx, dateFrom, max)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]audit.HTTPAPIUserEvent, len(src))
+	for i, ev := range src {
+		out[i] = audit.HTTPAPIUserEvent{
+			Time:     ev.Time,
+			Type:     ev.Type,
+			RealmID:  ev.RealmID,
+			ClientID: ev.ClientID,
+			UserID:   ev.UserID,
+			IPAddr:   ev.IPAddr,
+			Details:  ev.Details,
+			Error:    ev.Error,
+		}
+	}
+	return out, nil
+}
+
+func (a *keycloakAdminEventLister) ListAdminEvents(ctx context.Context, dateFrom time.Time, max int) ([]audit.HTTPAPIAdminEvent, error) {
+	src, err := a.kc.ListAdminEvents(ctx, dateFrom, max)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]audit.HTTPAPIAdminEvent, len(src))
+	for i, ev := range src {
+		flat := audit.HTTPAPIAdminEvent{
+			Time:          ev.Time,
+			RealmID:       ev.RealmID,
+			OperationType: ev.OperationType,
+			ResourceType:  ev.ResourceType,
+			ResourcePath:  ev.ResourcePath,
+			Error:         ev.Error,
+		}
+		if ev.AuthDetails != nil {
+			flat.AuthUserID = ev.AuthDetails.UserID
+			flat.AuthClientID = ev.AuthDetails.ClientID
+			flat.AuthIPAddr = ev.AuthDetails.IPAddr
+		}
+		out[i] = flat
+	}
+	return out, nil
+}
+
+// buildKeycloakEventAuditEmitter — Keycloak event listener 의 best-effort audit emit
+// 콜백. auditStore 가 nil 이면 nil 반환 (cron 이 audit 생략). DREQ intake token cron 의
+// buildIntakeTokenAuditEmitter 패턴 정합.
+func buildKeycloakEventAuditEmitter(auditStore httpapi.AuditStore) audit.AuditEmitter {
+	if auditStore == nil {
+		return nil
+	}
+	return func(ctx context.Context, action, targetType, targetID string, payload map[string]any) {
+		actorLogin := "system:keycloak-event"
+		if uid, ok := payload["user_id"].(string); ok && uid != "" {
+			actorLogin = uid
+		} else if aid, ok := payload["auth_user_id"].(string); ok && aid != "" {
+			actorLogin = aid
+		}
+		entry := domain.AuditLog{
+			ActorLogin: actorLogin,
+			Action:     action,
+			TargetType: targetType,
+			TargetID:   targetID,
+			SourceType: domain.AuditSourceKeycloakEvent,
+			Payload:    payload,
+		}
+		// best-effort — cron 자체는 audit 실패 시에도 계속 (HomeLab pull loop 패턴).
+		_, _ = auditStore.CreateAuditLog(ctx, entry)
 	}
 }
 

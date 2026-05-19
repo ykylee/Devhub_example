@@ -1,0 +1,31 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260519-v",
+  "branch": "claude/work_260519-v",
+  "status": "in_progress",
+  "started_at": "2026-05-19T21:00:00Z",
+  "scope": "ADR-0019 §5.3 (9) audit event listener Phase 2 PR-C — main.go wire + Prometheus metric + integration test. domain.AuditSourceKeycloakEvent enum + audit/metrics.go (3종 metric) + keycloak_admin_adapter.go (HTTPAPIEventLister mirror + adapter) + main.go cron wire (config gate + thin wrapper + emitter) + pullOnce firstErr 패턴 정정. PR-D (schema dedup UNIQUE) / PR-E (operations §8.6 SOP) carve 유지.",
+  "directive_source": "사용자 요청 'PR-C 진행하자' — sprint -u closing 직후 5단계 중 2번째.",
+  "decisions": [
+    "domain.AuditSourceKeycloakEvent enum 추가는 PR-C 안에 포함 (PR-D 별도 분리 안 함) — code 1줄 + payload schema 무변경. PR-D 의 별도 scope = audit_logs 테이블의 dedup UNIQUE constraint (source_event_id 같은 신규 column + migration).",
+    "audit ← httpapi 순방향 의존만 유지 — audit/keycloak_admin_adapter.go 에 HTTPAPIUserEvent/HTTPAPIAdminEvent mirror + HTTPAPIEventLister interface 정의. main.go 가 httpapi.KeycloakAdminClient 를 wrap 한 keycloakAdminEventLister 로 httpapi → audit 변환 (nested AuthDetails 평탄화 포함).",
+    "actor_login resolver — payload `user_id` 우선 (user event 의 자연 actor) → fallback `auth_user_id` (admin event 의 자연 actor) → fallback 'system:keycloak-event' (둘 다 없는 케이스). DREQ intake token cron 의 'system:dreq-cron' 패턴 정합.",
+    "pullOnce 정정 — 한쪽 (user / admin) error 가 다른 쪽 emit 을 막지 않게 firstErr 패턴 + ObservePullError(kind) emit. cursor lag dashboard 가 한 cursor 만 stuck 인 케이스를 식별할 수 있게.",
+    "config gate 3개 — DEVHUB_KEYCLOAK_EVENT_LISTENER_ENABLED (default false), _INTERVAL (default 30s), _MAX_EVENTS (default 500). DREQTokenCron 패턴 정합.",
+    "metric 3종 — devhub_keycloak_events_processed_total (CounterVec) + devhub_keycloak_event_cursor_lag_seconds (GaugeVec) + devhub_keycloak_event_pull_errors_total (CounterVec). cursor lag 는 emit 없는 tick 에도 set (dashboard 가 'tick 발생 + 신규 event 없음' 가시화)."
+  ],
+  "todo": [
+    "domain.AuditSourceKeycloakEvent enum 신규 (완료)",
+    "internal/audit/metrics.go 신규 (완료)",
+    "internal/audit/keycloak_admin_adapter.go 신규 (완료)",
+    "internal/audit/keycloak_event_puller.go 정정 (pullOnce firstErr + emit/lag/error observe) (완료)",
+    "internal/config/config.go 신규 3 env (완료)",
+    "backend-core/main.go cron wire + adapter + emitter helper (완료)",
+    "internal/audit/keycloak_event_integration_test.go 1건 (완료 + PASS)",
+    "internal/audit/metrics_test.go 4건 (완료 + PASS)",
+    "ADR-0019 §5.3 (9) row + 변경 이력 row 갱신 (완료)",
+    "docs/traceability/report.md §6 sprint -v row (완료)",
+    "commit + push + PR + 4단계 self-review"
+  ],
+  "verification": "go build ./... PASS (no output). go test -count=1 ./internal/audit/... ./internal/httpapi/... ./internal/store/... ./internal/config/... 모두 PASS (audit 0.832s + httpapi + store + config). integration test = TestEndToEnd_HTTPAPIAdapter_ToAuditEmitter (3-tick scenario, boundary dedup + payload + cursor advance 검증). metric test = InitMetrics idempotent + counter/gauge/pull-error observe 4건."
+}
