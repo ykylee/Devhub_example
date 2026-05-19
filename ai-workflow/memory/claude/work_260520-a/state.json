@@ -1,0 +1,23 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260520-a",
+  "branch": "claude/work_260520-a",
+  "status": "done",
+  "started_at": "2026-05-20T06:00:00Z",
+  "ended_at": "2026-05-20T08:00:00Z",
+  "merged_pr": 199,
+  "merge_commit": "b0bcced",
+  "scope": "계정/사용자 관리 리팩토링 Phase 1 — 현황 파악 매트릭스 (docs/planning/account_user_management_redesign.md 신규, 235 lines, docs-only). 외부 Keycloak 단일 IdP 가정 하의 DevHub 계정/사용자 관리 책임 경계 재정의 design 문서. 4 경로 (/api/v1/accounts/* + /api/v1/users/* + /api/v1/organization/* + /api/v1/rbac/*) 책임 분산 매트릭스 13 row. Phase 2 (책임 분리 design + ADR-0020 후보) 와 Phase 3 (리팩토링 실행) 은 별도 sprint.",
+  "directive_source": "사용자 지시 — 외부 Keycloak 단일화 후 DevHub 의 계정/사용자 관리 책임 경계 재검토",
+  "decisions": [
+    "Phase 1 만 본 sprint — 현황 파악 + 매트릭스 + 발견. Phase 2 (책임 분리 design + ADR-0020 후보) 와 Phase 3 (리팩토링 실행) 은 별도 sprint.",
+    "5건 핵심 발견 명문화 — (1) role 이중 source-of-truth (Keycloak group composite 가 1차, users.role 컬럼은 cache, sync 없음), (2) status 이중 source (Keycloak enabled + DevHub users.status), (3) POST /accounts vs POST /users 중복, (4) dead frontend code (unlockAccount + deleteAccount), (5) PUT /rbac/subjects/:id/roles UI 미구현.",
+    "§4.5 Phase 2 입력 옵션 A~D 명시 — A 전면 폐기 / B 현재 유지 / C Hybrid / D Read-only mirror. 각 옵션의 trade-off + 권장 결정 + ADR-0020 발급은 Phase 2 sprint.",
+    "추적성 영향 docs-only — code / schema / test / migration 변경 없음. 본 문서가 Phase 2/3 의 input 자산."
+  ],
+  "todo": [
+    "docs/planning/account_user_management_redesign.md 신규 (§0 배경 + §1 매트릭스 + §2 backend endpoint + §3 frontend + §4 DB schema + §4.5 Phase 2 입력 + §7 잔여 carve + §8 변경 이력) — 완료",
+    "commit + push + PR #199 + 4단계 self-review + squash merge — 완료"
+  ],
+  "verification": "docs-only — diff visual review (가독성 + row count + Keycloak/DevHub 책임 분리 정합 spot-check) + §4.5 옵션 A~D 의 trade-off 가 Phase 2 design 진입에 충분한 입력인지 검토."
+}

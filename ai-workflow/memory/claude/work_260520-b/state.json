@@ -1,0 +1,35 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260520-b",
+  "branch": "claude/work_260520-b",
+  "status": "done",
+  "started_at": "2026-05-20T08:30:00Z",
+  "ended_at": "2026-05-20T11:00:00Z",
+  "merged_pr": 200,
+  "merge_commit": "95d6909",
+  "scope": "계정/사용자 관리 리팩토링 Phase 2 — 책임 분리 design + 명시 결정 6건 확정. docs/planning/account_user_management_redesign.md §5 신규 10 sub-section (270+/16- LoC). Phase 1 (PR #199) 의 §4.5 입력 옵션 A~D 토론 결과 사용자 Q&A 6 round 후 6건 명시 결정 확정. Phase 3 (실 구현) 은 별도 sprint.",
+  "directive_source": "Phase 1 (PR #199) 완료 후 사용자 Q&A 6 round 토론 — 옵션 A~D 의 trade-off 평가",
+  "decisions": [
+    "A: /api/v1/accounts/* 4 endpoint 전면 폐기 — IdP 팀 별도 운영 + DevHub 운영자 manage-users 권한 없음 + 자주 쓰는 동작은 /api/v1/users 계열 정합",
+    "B: /login page entry minimal page 유지 — DevHub brand 첫인상 + 명시 로그인 step + error message + 중복 정리",
+    "C: role/status sync event listener 확장 + lazy hot path — sprint -u~-y (audit event listener Phase 2) 자연 확장. USER:UPDATE + GROUP_MEMBERSHIP + USER:DELETE 매핑 추가 + DevHub users write",
+    "D: rbac_subject_roles 완전 제거 — 발견: 별도 테이블 없음, users.role 컬럼 직접 read/write. 결정 C 와 충돌, /users/:id PATCH 와 중복",
+    "E: read-only 모드 carve 도입 안 함 (self-reverse) — signature skip 은 token forgery 안티패턴. 진짜 정공법은 결정 F",
+    "F: JWKS stale-while-error expiry case 확장 — sprint -r (PR #186) kid mismatch fallback 자연 확장. signature 검증 유지 + uptime → 90일"
+  ],
+  "todo": [
+    "§5.1 명시 결정 6건 종합 표 — 완료",
+    "§5.2 lazy auto-create mechanism (흐름 + 결정 항목 5 + 보안 검토 3) — 완료",
+    "§5.3 Keycloak event listener 확장 매핑 표 (6 type) + store-level write + metric 3종 — 완료",
+    "§5.4 frontend cleanup 매트릭스 (5 파일) — 완료",
+    "§5.5 service account 권한 축소 + governance 협약 SOP 표 (9 운영 동작) — 완료",
+    "§5.6 JWKS stale-while-error 확장 (현재 vs Phase 2 흐름도 + 보안 검토 3 + metric 2종) — 완료",
+    "§5.7 /login page 정리 (4 파일) — 완료",
+    "§5.8 rbac_subject_roles 폐기 (8 파일 + migration 불필요 명시) — 완료",
+    "§5.9 Phase 1 §1 매트릭스 오류 정정 (테이블 자체 없음 발견) — 완료",
+    "§5.10 ADR-0020 후보 outline — 완료",
+    "§7 잔여 carve 갱신 (Phase 2 resolved 5 + Phase 3 carve 7 + 사내 동반 3) — 완료",
+    "commit + push + PR #200 + 4단계 self-review + squash merge — 완료"
+  ],
+  "verification": "docs-only — §5 의 10 sub-section 가 결정 6건 + Phase 2 동반 6건 모두 cover 하는지 spot-check + §5.3 event listener mapping 표가 sprint -u~-y audit mapping 표와 자연 확장 정합인지 확인 + §5.5.2 governance 표가 keycloak_operations.md §8.5b (sprint -ad self-service) 와 충돌 없는지 확인 + §5.6 의 stale-while-error 확장이 sprint -r (PR #186) kid mismatch fallback 패턴 정합인지 확인."
+}
