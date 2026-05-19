@@ -198,7 +198,13 @@ type AuditLog struct {
 	SourceIP   string
 	RequestID  string
 	SourceType AuditSourceType
-	CreatedAt  time.Time
+	// SourceEventID — deterministic dedup key for emitters that may
+	// at-least-once deliver (예: Keycloak event listener cron, ADR-0019 §5.3
+	// (9) Phase 2 PR-D). 같은 (SourceType, SourceEventID) 조합으로 audit_logs 의
+	// partial UNIQUE INDEX (migration 000032) 가 중복 INSERT 차단. 빈 문자열
+	// 인 row 는 unique 제약을 받지 않음 (partial WHERE NOT NULL).
+	SourceEventID string
+	CreatedAt     time.Time
 }
 
 type RiskMitigationCommandRequest struct {

@@ -362,12 +362,14 @@ func (a *keycloakAdminEventLister) ListAdminEvents(ctx context.Context, dateFrom
 
 // buildKeycloakEventAuditEmitter — Keycloak event listener 의 best-effort audit emit
 // 콜백. auditStore 가 nil 이면 nil 반환 (cron 이 audit 생략). DREQ intake token cron 의
-// buildIntakeTokenAuditEmitter 패턴 정합.
+// buildIntakeTokenAuditEmitter 패턴 정합. sourceEventID 는 puller 의 SHA256 dedup
+// hash — store layer 의 partial UNIQUE INDEX (migration 000032) 가 backend crash +
+// cursor revert 같은 edge 에서도 중복 INSERT 차단.
 func buildKeycloakEventAuditEmitter(auditStore httpapi.AuditStore) audit.AuditEmitter {
 	if auditStore == nil {
 		return nil
 	}
-	return func(ctx context.Context, action, targetType, targetID string, payload map[string]any) {
+	return func(ctx context.Context, action, targetType, targetID, sourceEventID string, payload map[string]any) {
 		actorLogin := "system:keycloak-event"
 		if uid, ok := payload["user_id"].(string); ok && uid != "" {
 			actorLogin = uid
@@ -375,12 +377,13 @@ func buildKeycloakEventAuditEmitter(auditStore httpapi.AuditStore) audit.AuditEm
 			actorLogin = aid
 		}
 		entry := domain.AuditLog{
-			ActorLogin: actorLogin,
-			Action:     action,
-			TargetType: targetType,
-			TargetID:   targetID,
-			SourceType: domain.AuditSourceKeycloakEvent,
-			Payload:    payload,
+			ActorLogin:    actorLogin,
+			Action:        action,
+			TargetType:    targetType,
+			TargetID:      targetID,
+			SourceType:    domain.AuditSourceKeycloakEvent,
+			SourceEventID: sourceEventID,
+			Payload:       payload,
 		}
 		// best-effort — cron 자체는 audit 실패 시에도 계속 (HomeLab pull loop 패턴).
 		_, _ = auditStore.CreateAuditLog(ctx, entry)

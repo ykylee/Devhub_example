@@ -76,10 +76,10 @@ func TestEndToEnd_HTTPAPIAdapter_ToAuditEmitter(t *testing.T) {
 
 	var emitted []emittedRecord
 	var emittedMu sync.Mutex
-	emitter := AuditEmitter(func(_ context.Context, action, targetType, targetID string, payload map[string]any) {
+	emitter := AuditEmitter(func(_ context.Context, action, targetType, targetID, sourceEventID string, payload map[string]any) {
 		emittedMu.Lock()
 		defer emittedMu.Unlock()
-		emitted = append(emitted, emittedRecord{action: action, targetType: targetType, targetID: targetID, payload: payload})
+		emitted = append(emitted, emittedRecord{action: action, targetType: targetType, targetID: targetID, sourceEventID: sourceEventID, payload: payload})
 	})
 
 	adapter := NewHTTPAPIEventListerAdapter(lister)
@@ -124,6 +124,20 @@ func TestEndToEnd_HTTPAPIAdapter_ToAuditEmitter(t *testing.T) {
 		t.Fatalf("emitted[1].payload.auth_user_id = %v; want admin-1", emitted[1].payload["auth_user_id"])
 	}
 
+	// sourceEventID 가 emit 마다 nonempty + deterministic (SHA256 hash) 검증.
+	for i, ev := range emitted {
+		if ev.sourceEventID == "" {
+			t.Fatalf("emitted[%d].sourceEventID = ''; want nonempty (PR-D store dedup key)", i)
+		}
+	}
+	// tick1 user LOGIN 의 sourceEventID 가 deterministic — 같은 event 입력이면 같은 hash.
+	// pullOnce 가 tick2 의 boundary 잔재 (동일 event) 를 hash dedup 으로 skip 했으므로
+	// emitted 에 등장하지 않음. tick3 의 t1 boundary 잔재도 dedup skip — emitted[2] 는
+	// 신규 t3 LOGOUT 이라 hash 가 emitted[0] (t1 LOGIN) 과 달라야 함.
+	if emitted[0].sourceEventID == emitted[2].sourceEventID {
+		t.Fatalf("emitted[0] (LOGIN t1) and emitted[2] (LOGOUT t3) sourceEventID 가 동일 — hash 충돌 의심: %s", emitted[0].sourceEventID)
+	}
+
 	// final cursor 가 t3 (user) / t2 (admin) 으로 advance 검증.
 	userCursor, _ := cursorStore.GetEventCursor(ctx, userEventsCursor)
 	if !userCursor.LastEventAt.Equal(t3) {
@@ -136,10 +150,11 @@ func TestEndToEnd_HTTPAPIAdapter_ToAuditEmitter(t *testing.T) {
 }
 
 type emittedRecord struct {
-	action     string
-	targetType string
-	targetID   string
-	payload    map[string]any
+	action        string
+	targetType    string
+	targetID      string
+	sourceEventID string
+	payload       map[string]any
 }
 
 type mockHTTPAPILister struct {
