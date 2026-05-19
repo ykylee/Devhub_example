@@ -22,5 +22,5 @@
     "docs/traceability/report.md §6 sprint -x row (완료)",
     "commit + push + PR + 4단계 self-review"
   ],
-  "verification": "docs-only PR — code/test 영향 없음. Markdown lint 등 자동 검증 가능하지만 본 SOP 는 운영자 가독성 우선. ADR-0019 §5.3 (9) row + §6 변경 이력 row + traceability §6 row + keycloak_operations §11 변경 이력 row 모두 정합."
+  "verification": "docs-only PR — code/test 영향 없음. Markdown lint 등 자동 검증 가능하지만 본 SOP 는 운영자 가독성 우선. ADR-0019 §5.3 (9) row + §6 변경 이력 row + traceability §6 row + keycloak_operations §11 변경 이력 row 모두 정합. **Stage 3 보강** — P2 #1 §8.6.7 cursor 수동 advance row 에 'advance 구간 event 영구 누락 위험' 명시 + 우선 시도 대안 (Keycloak Events Expiration 연장 + backend 재기동) 추가. P2 #2 §8.6.9 sub-carve 에 'alertmanager rule YAML 정식 등록' 항목 추가."
 }

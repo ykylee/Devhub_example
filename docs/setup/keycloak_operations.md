@@ -536,7 +536,7 @@ SELECT cursor_key, last_event_at, last_event_hash, updated_at FROM event_cursors
 | 증상 | 1차 의심 | 검증 / 대응 |
 | --- | --- | --- |
 | audit_logs 에 keycloak_event row 가 전혀 없음 | gate 비활성 / service account 권한 / Events 미활성화 | (1) `DEVHUB_KEYCLOAK_EVENT_LISTENER_ENABLED=true` 확인, (2) startup log 의 `keycloak event listener enabled` 메시지 확인, (3) Keycloak admin console 의 Save events `ON` 확인, (4) service account 의 view-events 권한 확인 |
-| `cursor_lag_high` 알람 | Keycloak admin REST 401/403 / timeout | (1) backend log 의 `[keycloak-event-puller] tick: ...` error 메시지 확인, (2) Keycloak admin URL 헬스체크 (`curl ${ADMIN_URL}/realms/master/.well-known/openid-configuration`), (3) service account client_secret 만료 의심 시 §8.3 rotation, (4) Keycloak Events expiration 이 너무 짧아 cursor 가 expire 된 event 를 못 잡으면 (드물지만) cursor 를 수동으로 advance: `UPDATE event_cursors SET last_event_at = NOW() WHERE cursor_key = 'keycloak.events';` |
+| `cursor_lag_high` 알람 | Keycloak admin REST 401/403 / timeout | (1) backend log 의 `[keycloak-event-puller] tick: ...` error 메시지 확인, (2) Keycloak admin URL 헬스체크 (`curl ${ADMIN_URL}/realms/master/.well-known/openid-configuration`), (3) service account client_secret 만료 의심 시 §8.3 rotation. (4) Keycloak Events expiration 이 너무 짧아 cursor 가 expire 된 event 를 못 잡는 케이스는 **먼저** Keycloak Events Expiration 을 7d → 30d 연장 + backend 재기동으로 회복 시도. **cursor 수동 advance (`UPDATE event_cursors SET last_event_at = NOW() WHERE cursor_key = 'keycloak.events';`) 는 advance 구간의 event 를 audit_logs 에 영구 누락시키는 최후의 수단** — 운영 incident 가 진행 중이고 lag 가 회복되지 않을 때만, 손실 감수 결정 후 실행. |
 | 동일 keycloak_event 가 audit_logs 에 중복 등장 | partial UNIQUE INDEX 손상 / migration 미적용 | (1) `\d audit_logs_source_event_id_uniq` 로 인덱스 존재 확인, (2) 누락 시 migration 000032 재실행, (3) 기존 중복 row 정리: `DELETE FROM audit_logs WHERE id IN (SELECT id FROM audit_logs WHERE source_type='keycloak_event' AND id NOT IN (SELECT MIN(id) FROM audit_logs WHERE source_type='keycloak_event' GROUP BY source_event_id));` |
 | `pull_error_rate` 알람 | Keycloak Admin REST 4xx/5xx | backend log 의 `keycloak admin status <code>: ...` 메시지 + Keycloak access log 동시 확인. 가장 흔한 케이스 = client_secret 만료 또는 권한 회수. |
 | `keycloak.event.unknown` action 이 metric / audit 에 빈번 등장 | 새 Keycloak event type 도입 후 매핑 표 미갱신 | `internal/audit/keycloak_event_puller.go` 의 `mapUserEventToAudit` / `mapAdminEventToAudit` 에 case 추가 + design 문서 §4.1 / §4.2 표 갱신 (별도 PR) |
@@ -555,6 +555,7 @@ SELECT cursor_key, last_event_at, last_event_hash, updated_at FROM event_cursors
 - **(carve)** Keycloak event listener SPI 도입 — 현재 polling 방식이 latency 30s ~ interval. push 기반으로 전환하면 < 1s. SPI plugin 개발 + 사내 운영팀 동반 필요.
 - **(carve)** `audit_logs` cold storage archival — keycloak_event row 가 매일 수천 건 누적되면 6개월 이후 cold storage 이관 SOP 필요. 본 운영 SOP 의 scope 외 — DR / 백업 정책 차원.
 - **(carve)** dashboard JSON 정식 등록 — 본 SOP 의 PromQL 예시를 Grafana dashboard JSON 으로 ImportExport 화 + git 추적. 환경 별 자산이라 git 추적 외 (사내 Grafana repo).
+- **(carve)** alertmanager rule YAML 정식 등록 — 본 SOP §8.6.5 의 3종 알람 (cursor_lag_high / cursor_lag_critical / pull_error_rate) 을 Prometheus `alerting_rules.yml` 정식 자산으로 등록 + 사내 alertmanager routing. 환경 별 자산이라 git 추적 외 (사내 monitoring repo).
 
 ## 9. 보안 점검
 
