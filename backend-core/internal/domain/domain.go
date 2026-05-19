@@ -176,10 +176,11 @@ type Command struct {
 type AuditSourceType string
 
 const (
-	AuditSourceOIDC    AuditSourceType = "oidc"    // Bearer-verified user request
-	AuditSourceWebhook AuditSourceType = "webhook" // signed inbound webhook (e.g. Gitea)
-	AuditSourceKratos  AuditSourceType = "kratos"  // Kratos self-service hook (e.g. settings/password/after)
-	AuditSourceSystem  AuditSourceType = "system"  // dev fallback or background job
+	AuditSourceOIDC          AuditSourceType = "oidc"           // Bearer-verified user request
+	AuditSourceWebhook       AuditSourceType = "webhook"        // signed inbound webhook (e.g. Gitea)
+	AuditSourceKratos        AuditSourceType = "kratos"         // Kratos self-service hook (legacy ADR-0001 — superseded by ADR-0019)
+	AuditSourceSystem        AuditSourceType = "system"         // dev fallback or background job
+	AuditSourceKeycloakEvent AuditSourceType = "keycloak_event" // Keycloak Admin REST event polling (ADR-0019 §5.3 (9), sprint -v PR-C)
 )
 
 type AuditLog struct {
@@ -322,26 +323,26 @@ const (
 )
 
 type AppUser struct {
-	ID            int64
-	UserID        string
-	Email         string
-	DisplayName   string
-	Role          AppRole
-	Status        UserStatus
-	Type          UserType
+	ID          int64
+	UserID      string
+	Email       string
+	DisplayName string
+	Role        AppRole
+	Status      UserStatus
+	Type        UserType
 	// IdPSubject caches the Kratos identity_id so handlers can skip
 	// the O(n) /admin/identities scan. Empty when the row has not been
 	// backfilled yet. Populated eagerly on account.create and lazily on
 	// the first admin/self-service action against the user (migration
 	// 000009).
-	IdPSubject string
-	PrimaryUnitID    string
-	CurrentUnitID    string
-	IsSeconded       bool
-	JoinedAt         time.Time
-	Appointments     []UnitAppointment
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
+	IdPSubject    string
+	PrimaryUnitID string
+	CurrentUnitID string
+	IsSeconded    bool
+	JoinedAt      time.Time
+	Appointments  []UnitAppointment
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
 }
 
 type OrgUnit struct {

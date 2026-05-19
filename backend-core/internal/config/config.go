@@ -84,45 +84,60 @@ type Config struct {
 	// DREQTokenStaleThreshold marks tokens with no last_used_at within this
 	// duration as "stale". Empty / "0" disables the stale metric (no count). Default 720h (30d).
 	DREQTokenStaleThreshold string
+	// KeycloakEventListenerEnabled toggles the Keycloak Admin event listener cron
+	// loop (ADR-0019 §5.3 (9), sprint claude/work_260519-v PR-C). When true and
+	// KeycloakAdminURL etc. are configured, a goroutine periodically polls
+	// /admin/realms/{realm}/events + /admin-events and emits to audit_logs.
+	// Default false.
+	KeycloakEventListenerEnabled bool
+	// KeycloakEventListenerInterval controls the puller tick interval
+	// (time.ParseDuration). Default 30s when unset.
+	KeycloakEventListenerInterval string
+	// KeycloakEventListenerMaxEvents caps the per-tick page size. Default 500
+	// when unset.
+	KeycloakEventListenerMaxEvents int
 }
 
 func Load() Config {
 	return Config{
-		Port:                         envOrDefault("PORT", "8080"),
-		DBURL:                        os.Getenv("DB_URL"),
-		GiteaURL:                     os.Getenv("GITEA_URL"),
-		GiteaToken:                   os.Getenv("GITEA_TOKEN"),
-		GiteaWebhookSecret:           os.Getenv("GITEA_WEBHOOK_SECRET"),
-		BackendAIURL:                 os.Getenv("BACKEND_AI_URL"),
-		Env:                          strings.ToLower(strings.TrimSpace(os.Getenv("DEVHUB_ENV"))),
-		IdPProvider:                  normalizeIDPProvider(os.Getenv("DEVHUB_IDP_PROVIDER")),
-		AuthDevFallback:              envBool("DEVHUB_AUTH_DEV_FALLBACK"),
-		ServiceActionExecutorMode:    strings.TrimSpace(os.Getenv("SERVICE_ACTION_EXECUTOR_MODE")),
-		ServiceActionAllowedServices: strings.TrimSpace(os.Getenv("SERVICE_ACTION_ALLOWED_SERVICES")),
-		ServiceActionAllowedActions:  strings.TrimSpace(os.Getenv("SERVICE_ACTION_ALLOWED_ACTIONS")),
-		OIDCIssuerURL:                strings.TrimSpace(os.Getenv("DEVHUB_OIDC_ISSUER_URL")),
-		OIDCJWKSURL:                  strings.TrimSpace(os.Getenv("DEVHUB_OIDC_JWKS_URL")),
-		OIDCClientID:                 strings.TrimSpace(os.Getenv("DEVHUB_OIDC_CLIENT_ID")),
-		OIDCClientSecret:             strings.TrimSpace(os.Getenv("DEVHUB_OIDC_CLIENT_SECRET")),
-		KeycloakAdminURL:             strings.TrimSpace(os.Getenv("DEVHUB_KEYCLOAK_ADMIN_URL")),
-		KeycloakAdminRealm:           strings.TrimSpace(os.Getenv("DEVHUB_KEYCLOAK_ADMIN_REALM")),
-		KeycloakAdminClientID:        strings.TrimSpace(os.Getenv("DEVHUB_KEYCLOAK_ADMIN_CLIENT_ID")),
-		KeycloakAdminClientSecret:    strings.TrimSpace(os.Getenv("DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET")),
-		InfraAgentToken:              strings.TrimSpace(os.Getenv("DEVHUB_INFRA_AGENT_TOKEN")),
-		HomeLabDegradedStatuses:      strings.TrimSpace(os.Getenv("DEVHUB_HOMELAB_DEGRADED_STATUSES")),
-		HomeLabProviderKey:           strings.TrimSpace(os.Getenv("DEVHUB_HOMELAB_PROVIDER_KEY")),
-		HomeLabPullEnabled:           envBool("DEVHUB_HOMELAB_PULL_ENABLED"),
-		HomeLabPullInterval:          strings.TrimSpace(os.Getenv("DEVHUB_HOMELAB_PULL_INTERVAL")),
-		HomeLabPullFile:              strings.TrimSpace(os.Getenv("DEVHUB_HOMELAB_PULL_FILE")),
-		HomeLabPullURL:               strings.TrimSpace(os.Getenv("DEVHUB_HOMELAB_PULL_URL")),
-		HomeLabPullToken:             strings.TrimSpace(os.Getenv("DEVHUB_HOMELAB_PULL_TOKEN")),
-		HomeLabPullHTTPRetryMax:      envInt("DEVHUB_HOMELAB_PULL_HTTP_RETRY_MAX"),
-		HomeLabPullHTTPRetryBackoff:  strings.TrimSpace(os.Getenv("DEVHUB_HOMELAB_PULL_HTTP_RETRY_BACKOFF")),
-		HomeLabPullMaxBytes:          envInt64("DEVHUB_HOMELAB_PULL_MAX_BYTES"),
+		Port:                           envOrDefault("PORT", "8080"),
+		DBURL:                          os.Getenv("DB_URL"),
+		GiteaURL:                       os.Getenv("GITEA_URL"),
+		GiteaToken:                     os.Getenv("GITEA_TOKEN"),
+		GiteaWebhookSecret:             os.Getenv("GITEA_WEBHOOK_SECRET"),
+		BackendAIURL:                   os.Getenv("BACKEND_AI_URL"),
+		Env:                            strings.ToLower(strings.TrimSpace(os.Getenv("DEVHUB_ENV"))),
+		IdPProvider:                    normalizeIDPProvider(os.Getenv("DEVHUB_IDP_PROVIDER")),
+		AuthDevFallback:                envBool("DEVHUB_AUTH_DEV_FALLBACK"),
+		ServiceActionExecutorMode:      strings.TrimSpace(os.Getenv("SERVICE_ACTION_EXECUTOR_MODE")),
+		ServiceActionAllowedServices:   strings.TrimSpace(os.Getenv("SERVICE_ACTION_ALLOWED_SERVICES")),
+		ServiceActionAllowedActions:    strings.TrimSpace(os.Getenv("SERVICE_ACTION_ALLOWED_ACTIONS")),
+		OIDCIssuerURL:                  strings.TrimSpace(os.Getenv("DEVHUB_OIDC_ISSUER_URL")),
+		OIDCJWKSURL:                    strings.TrimSpace(os.Getenv("DEVHUB_OIDC_JWKS_URL")),
+		OIDCClientID:                   strings.TrimSpace(os.Getenv("DEVHUB_OIDC_CLIENT_ID")),
+		OIDCClientSecret:               strings.TrimSpace(os.Getenv("DEVHUB_OIDC_CLIENT_SECRET")),
+		KeycloakAdminURL:               strings.TrimSpace(os.Getenv("DEVHUB_KEYCLOAK_ADMIN_URL")),
+		KeycloakAdminRealm:             strings.TrimSpace(os.Getenv("DEVHUB_KEYCLOAK_ADMIN_REALM")),
+		KeycloakAdminClientID:          strings.TrimSpace(os.Getenv("DEVHUB_KEYCLOAK_ADMIN_CLIENT_ID")),
+		KeycloakAdminClientSecret:      strings.TrimSpace(os.Getenv("DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET")),
+		InfraAgentToken:                strings.TrimSpace(os.Getenv("DEVHUB_INFRA_AGENT_TOKEN")),
+		HomeLabDegradedStatuses:        strings.TrimSpace(os.Getenv("DEVHUB_HOMELAB_DEGRADED_STATUSES")),
+		HomeLabProviderKey:             strings.TrimSpace(os.Getenv("DEVHUB_HOMELAB_PROVIDER_KEY")),
+		HomeLabPullEnabled:             envBool("DEVHUB_HOMELAB_PULL_ENABLED"),
+		HomeLabPullInterval:            strings.TrimSpace(os.Getenv("DEVHUB_HOMELAB_PULL_INTERVAL")),
+		HomeLabPullFile:                strings.TrimSpace(os.Getenv("DEVHUB_HOMELAB_PULL_FILE")),
+		HomeLabPullURL:                 strings.TrimSpace(os.Getenv("DEVHUB_HOMELAB_PULL_URL")),
+		HomeLabPullToken:               strings.TrimSpace(os.Getenv("DEVHUB_HOMELAB_PULL_TOKEN")),
+		HomeLabPullHTTPRetryMax:        envInt("DEVHUB_HOMELAB_PULL_HTTP_RETRY_MAX"),
+		HomeLabPullHTTPRetryBackoff:    strings.TrimSpace(os.Getenv("DEVHUB_HOMELAB_PULL_HTTP_RETRY_BACKOFF")),
+		HomeLabPullMaxBytes:            envInt64("DEVHUB_HOMELAB_PULL_MAX_BYTES"),
 		DREQTokenCronEnabled:           envBool("DEVHUB_DREQ_TOKEN_CRON_ENABLED"),
 		DREQTokenCronInterval:          strings.TrimSpace(os.Getenv("DEVHUB_DREQ_TOKEN_CRON_INTERVAL")),
 		DREQTokenExpiringSoonThreshold: strings.TrimSpace(os.Getenv("DEVHUB_DREQ_TOKEN_EXPIRING_SOON_THRESHOLD")),
 		DREQTokenStaleThreshold:        strings.TrimSpace(os.Getenv("DEVHUB_DREQ_TOKEN_STALE_THRESHOLD")),
+		KeycloakEventListenerEnabled:   envBool("DEVHUB_KEYCLOAK_EVENT_LISTENER_ENABLED"),
+		KeycloakEventListenerInterval:  strings.TrimSpace(os.Getenv("DEVHUB_KEYCLOAK_EVENT_LISTENER_INTERVAL")),
+		KeycloakEventListenerMaxEvents: envInt("DEVHUB_KEYCLOAK_EVENT_LISTENER_MAX_EVENTS"),
 	}
 }
 

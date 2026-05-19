@@ -106,6 +106,7 @@ func RunKeycloakEventPuller(
 	if opts.SkipUserEventTypes == nil {
 		opts.SkipUserEventTypes = defaultSkipUserEventTypes()
 	}
+	InitMetrics()
 
 	log.Printf("[keycloak-event-puller] starting (interval=%s, max_events=%d)", opts.Interval, opts.MaxEvents)
 
@@ -131,6 +132,8 @@ func RunKeycloakEventPuller(
 }
 
 // pullOnce — 1회 poll. user events + admin events 각각 처리.
+// 두 branch 가 독립이라 한쪽 error 가 다른 쪽 emit 을 막지 않도록 모두 시도 후 첫 error 보고
+// (cursor lag dashboard 가 한 cursor 만 stuck 인 케이스를 식별할 수 있게).
 func pullOnce(
 	ctx context.Context,
 	lister KeycloakEventLister,
@@ -138,13 +141,18 @@ func pullOnce(
 	opts KeycloakEventPullerOptions,
 	now func() time.Time,
 ) error {
+	var firstErr error
 	if err := pullUserEvents(ctx, lister, cursors, opts, now); err != nil {
-		return fmt.Errorf("user events: %w", err)
+		ObservePullError("user")
+		firstErr = fmt.Errorf("user events: %w", err)
 	}
 	if err := pullAdminEvents(ctx, lister, cursors, opts, now); err != nil {
-		return fmt.Errorf("admin events: %w", err)
+		ObservePullError("admin")
+		if firstErr == nil {
+			firstErr = fmt.Errorf("admin events: %w", err)
+		}
 	}
-	return nil
+	return firstErr
 }
 
 // pullUserEvents — Keycloak user events 1회 poll + dedup + audit emit + cursor 갱신.
@@ -181,10 +189,11 @@ func pullUserEvents(
 		if evTime.Equal(cursor.LastEventAt) && evHash == cursor.LastEventHash {
 			continue
 		}
+		action, targetType, targetID := mapUserEventToAudit(ev)
 		if opts.AuditEmitter != nil {
-			action, targetType, targetID := mapUserEventToAudit(ev)
 			opts.AuditEmitter(ctx, action, targetType, targetID, userEventPayload(ev))
 		}
+		ObserveEventProcessed("user", action)
 		if evTime.After(latestTime) {
 			latestTime = evTime
 			latestHash = evHash
@@ -199,6 +208,10 @@ func pullUserEvents(
 		}); err != nil {
 			return fmt.Errorf("upsert cursor %s: %w", userEventsCursor, err)
 		}
+		ObserveCursorLag(userEventsCursor, now().Sub(latestTime).Seconds())
+	} else {
+		// no advance — caller 의 dashboard 가 "tick 발생 + 신규 event 없음" 도 가시화하도록 cursor 의 lag emit
+		ObserveCursorLag(userEventsCursor, now().Sub(cursor.LastEventAt).Seconds())
 	}
 	return nil
 }
@@ -232,10 +245,11 @@ func pullAdminEvents(
 		if evTime.Equal(cursor.LastEventAt) && evHash == cursor.LastEventHash {
 			continue
 		}
+		action, targetType, targetID := mapAdminEventToAudit(ev)
 		if opts.AuditEmitter != nil {
-			action, targetType, targetID := mapAdminEventToAudit(ev)
 			opts.AuditEmitter(ctx, action, targetType, targetID, adminEventPayload(ev))
 		}
+		ObserveEventProcessed("admin", action)
 		if evTime.After(latestTime) {
 			latestTime = evTime
 			latestHash = evHash
@@ -250,6 +264,9 @@ func pullAdminEvents(
 		}); err != nil {
 			return fmt.Errorf("upsert cursor %s: %w", adminEventsCursor, err)
 		}
+		ObserveCursorLag(adminEventsCursor, now().Sub(latestTime).Seconds())
+	} else {
+		ObserveCursorLag(adminEventsCursor, now().Sub(cursor.LastEventAt).Seconds())
 	}
 	return nil
 }
