@@ -168,8 +168,10 @@ func pullUserEvents(
 	var latestHash string
 	for _, ev := range events {
 		evTime := time.UnixMilli(ev.Time).UTC()
-		if !evTime.After(cursor.LastEventAt) {
-			// 동일 timestamp + same hash 는 이미 처리됨 (at-least-once dedup).
+		// 명백히 cursor 이전인 event 는 이미 처리됨. 동일 ms boundary event 는
+		// hash dedup 으로 처리 — Keycloak dateFrom 은 inclusive 라 직전 처리 이벤트가
+		// 다음 poll 에 반복 등장 (design §3.3 at-least-once dedup).
+		if evTime.Before(cursor.LastEventAt) {
 			continue
 		}
 		if opts.SkipUserEventTypes[ev.Type] {
@@ -222,7 +224,8 @@ func pullAdminEvents(
 	var latestHash string
 	for _, ev := range events {
 		evTime := time.UnixMilli(ev.Time).UTC()
-		if !evTime.After(cursor.LastEventAt) {
+		// pullUserEvents 과 동일 boundary 처리 (design §3.3).
+		if evTime.Before(cursor.LastEventAt) {
 			continue
 		}
 		evHash := hashAdminEvent(ev)

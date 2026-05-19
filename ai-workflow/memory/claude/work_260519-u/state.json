@@ -19,11 +19,11 @@
     "backend-core/internal/store/event_cursors.go EventCursor + EventCursorStore + PostgresStore 구현 (완료)",
     "backend-core/internal/httpapi/keycloak_admin_client.go ListUserEvents + ListAdminEvents + struct 추가 (완료)",
     "backend-core/internal/audit/keycloak_event_puller.go RunKeycloakEventPuller + pullOnce + pullUserEvents + pullAdminEvents + 매핑 표 (완료)",
-    "backend-core/internal/audit/keycloak_event_puller_test.go unit test 11건 (완료 + PASS)",
+    "backend-core/internal/audit/keycloak_event_puller_test.go unit test 12건 (완료 + PASS — Stage 3 보강 commit 의 boundary hash dedup test 1건 포함)",
     "backend-core/internal/httpapi/keycloak_admin_client_events_test.go unit test 3건 (완료 + PASS)",
     "ADR-0019 §5.3 (9) row 갱신 (PR-B partial)",
     "docs/traceability/report.md §6 sprint -u row",
     "commit + push + PR + 4단계 self-review"
   ],
-  "verification": "go test PASS — `go test -count=1 ./internal/audit/... ./internal/httpapi/...` 양쪽 EXIT 0. audit package 0.950s + httpapi 1.139s. fakeKeycloakEventLister + fakeCursorStore + httptest.NewServer 패턴으로 cursor advance / skip / dedup / mapping / unknown fallback / default max / dateFrom omit 검증. PR-C wire + integration + Prometheus 는 별도 PR."
+  "verification": "go test PASS — `go test -count=1 ./internal/audit/... ./internal/httpapi/...` 양쪽 EXIT 0. audit package 1.002s + httpapi 1.139s. fakeKeycloakEventLister + fakeCursorStore + httptest.NewServer 패턴으로 cursor advance / boundary hash dedup (Stage 3 정정) / skip type / mapping / unknown fallback / default max / dateFrom omit 검증. **Stage 3 보강** — pullUserEvents/pullAdminEvents 의 `!evTime.After` 가 hash dedup branch 를 unreachable 만들던 dead-code 정정 (`evTime.Before` 로 변경), boundary same-hash dedup test 1건 신규 + FiltersAlreadyProcessed test 보강. PR-C wire + integration + Prometheus 는 별도 PR."
 }

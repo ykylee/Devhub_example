@@ -224,20 +224,28 @@ func TestPullUserEvents_NoEvents_DoesNotUpsertCursor(t *testing.T) {
 	}
 }
 
-// TestPullUserEvents_FiltersAlreadyProcessed — cursor 이전 event 는 skip (at-least-once dedup).
+// TestPullUserEvents_FiltersAlreadyProcessed — cursor 보다 strictly before event 는 skip.
+// boundary (동일 ms) event 는 cursor.LastEventHash 와 hash 같으면 skip (이미 처리한 그 event),
+// hash 다르면 emit (boundary 새 event). after cursor 는 무조건 emit.
 func TestPullUserEvents_FiltersAlreadyProcessed(t *testing.T) {
 	cursor := time.Date(2026, 5, 19, 12, 0, 0, 0, time.UTC)
+	// boundary event = cursor 시각에 이미 처리한 event (hash 도 사전 기록됨).
+	processedBoundary := KeycloakUserEvent{Time: cursor.UnixMilli(), Type: "LOGIN", UserID: "u2-boundary"}
+	processedHash := hashUserEvent(processedBoundary)
+
 	lister := &fakeKeycloakEventLister{
 		userEvents: []KeycloakUserEvent{
-			{Time: cursor.Add(-1 * time.Second).UnixMilli(), Type: "LOGIN", UserID: "u1"}, // before cursor → skip
-			{Time: cursor.UnixMilli(), Type: "LOGIN", UserID: "u2"},                       // equal cursor → skip
-			{Time: cursor.Add(1 * time.Second).UnixMilli(), Type: "LOGIN", UserID: "u3"},  // after cursor → emit
+			{Time: cursor.Add(-1 * time.Second).UnixMilli(), Type: "LOGIN", UserID: "u1-before"}, // strictly before cursor → skip
+			processedBoundary, // equal cursor + same hash → skip (이미 처리한 그 event)
+			{Time: cursor.UnixMilli(), Type: "LOGIN", UserID: "u2b-new-boundary"},              // equal cursor + 다른 hash → emit
+			{Time: cursor.Add(1 * time.Second).UnixMilli(), Type: "LOGIN", UserID: "u3-after"}, // after cursor → emit
 		},
 	}
 	cursors := newFakeCursorStore()
 	_ = cursors.UpsertEventCursor(context.Background(), store.EventCursor{
-		CursorKey:   userEventsCursor,
-		LastEventAt: cursor,
+		CursorKey:     userEventsCursor,
+		LastEventAt:   cursor,
+		LastEventHash: processedHash,
 	})
 
 	var emitted []string
@@ -252,8 +260,40 @@ func TestPullUserEvents_FiltersAlreadyProcessed(t *testing.T) {
 	if err := pullUserEvents(context.Background(), lister, cursors, opts, opts.Now); err != nil {
 		t.Fatalf("pullUserEvents: %v", err)
 	}
-	if len(emitted) != 1 || emitted[0] != "u3" {
-		t.Fatalf("emitted = %v; want [u3] only", emitted)
+	if len(emitted) != 2 || emitted[0] != "u2b-new-boundary" || emitted[1] != "u3-after" {
+		t.Fatalf("emitted = %v; want [u2b-new-boundary, u3-after] (before + processed-boundary skipped)", emitted)
+	}
+}
+
+// TestPullUserEvents_BoundarySameHash_Skipped — design §3.3 의 명시적 hash dedup 검증.
+// dateFrom inclusive 특성으로 직전 처리한 boundary event 가 반복 등장해도 skip.
+func TestPullUserEvents_BoundarySameHash_Skipped(t *testing.T) {
+	cursor := time.Date(2026, 5, 19, 12, 0, 0, 0, time.UTC)
+	boundary := KeycloakUserEvent{Time: cursor.UnixMilli(), Type: "LOGIN", UserID: "u-dup"}
+	h := hashUserEvent(boundary)
+
+	lister := &fakeKeycloakEventLister{userEvents: []KeycloakUserEvent{boundary}}
+	cursors := newFakeCursorStore()
+	_ = cursors.UpsertEventCursor(context.Background(), store.EventCursor{
+		CursorKey:     userEventsCursor,
+		LastEventAt:   cursor,
+		LastEventHash: h,
+	})
+
+	var emitted int
+	opts := KeycloakEventPullerOptions{
+		AuditEmitter: AuditEmitter(func(_ context.Context, _, _, _ string, _ map[string]any) {
+			emitted++
+		}),
+		Now:                func() time.Time { return cursor },
+		SkipUserEventTypes: defaultSkipUserEventTypes(),
+		MaxEvents:          500,
+	}
+	if err := pullUserEvents(context.Background(), lister, cursors, opts, opts.Now); err != nil {
+		t.Fatalf("pullUserEvents: %v", err)
+	}
+	if emitted != 0 {
+		t.Fatalf("emitted = %d; want 0 (boundary same-hash must be deduped per design §3.3)", emitted)
 	}
 }
 
