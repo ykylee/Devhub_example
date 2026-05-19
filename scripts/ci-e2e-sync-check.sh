@@ -27,14 +27,14 @@ required_e2e_tokens=(
 )
 
 for token in "${required_workflow_tokens[@]}"; do
-  if ! rg -q "$token" "$workflow_path" frontend/tests/e2e/global-setup.ts frontend/tests/e2e/fixtures.ts; then
+  if ! grep -Rqs -- "$token" "$workflow_path" frontend/tests/e2e/global-setup.ts frontend/tests/e2e/fixtures.ts; then
     echo "E2E-CI sync contract missing token: $token" >&2
     exit 1
   fi
 done
 
 for token in "${required_e2e_tokens[@]}"; do
-  if ! rg -q "$token" frontend/tests/e2e/global-setup.ts frontend/tests/e2e/fixtures.ts; then
+  if ! grep -Rqs -- "$token" frontend/tests/e2e/global-setup.ts frontend/tests/e2e/fixtures.ts; then
     echo "E2E helper missing required env token: $token" >&2
     exit 1
   fi
@@ -42,7 +42,7 @@ done
 
 # CI e2e job must not wire legacy Ory envs.
 for forbidden in DEVHUB_HYDRA_ADMIN_URL DEVHUB_HYDRA_PUBLIC_URL DEVHUB_KRATOS_PUBLIC_URL DEVHUB_KRATOS_ADMIN_URL; do
-  if rg -q "$forbidden" "$workflow_path"; then
+  if grep -Rqs -- "$forbidden" "$workflow_path"; then
     echo "E2E-CI sync contract violation: legacy env still present: $forbidden" >&2
     exit 1
   fi
