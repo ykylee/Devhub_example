@@ -3,9 +3,9 @@
 - 문서 목적: 외부 Keycloak 을 단일 IdP 로 사용한다는 전제로, DevHub 의 **계정 관리** + **사용자 관리** 의 책임 경계를 재정의하고 리팩토링한다. 본 문서 §1~§4 는 **Phase 1 — 현황 파악**, §5+ 는 후속 sprint 의 **Phase 2 — 책임 분리 design** + **Phase 3 — 리팩토링 실행 계획**.
 - 범위: backend `/api/v1/accounts/*` + `/api/v1/users/*` + `/api/v1/organization/*` + `/api/v1/rbac/*` + `/api/v1/me` endpoint, frontend `/account` + `/admin/settings/{users,organization,permissions}` page, DB schema (users + organization_units + rbac_policies + rbac_subject_roles), Keycloak realm 의 user/group/role + token claim 정합.
 - 대상 독자: 백엔드/프론트엔드/IdP 담당, 운영 (SRE), 보안.
-- 상태: draft (Phase 1 only)
+- 상태: draft (Phase 1 + Phase 2 명시 결정 6건 확정)
 - 최종 수정일: 2026-05-20
-- 결정 근거 sprint: `claude/work_260520-a` (Phase 1 현황 파악)
+- 결정 근거 sprint: `claude/work_260520-a` (Phase 1 현황 파악 + Phase 2 책임 분리 design)
 - 관련 문서: [ADR-0019 Keycloak 단일화](../adr/0019-keycloak-only-idp.md), [keycloak_operations.md (§8.5b self-service 비밀번호 변경 Account Console 위임)](../setup/keycloak_operations.md), [ADR-0011 RBAC row-scoping](../adr/0011-rbac-row-scoping.md), [keycloak_groups_rbac_mapping.md (group composite role)](./keycloak_groups_rbac_mapping.md), [keycloak_offboarding_immediacy.md (off-boarding chain)](./keycloak_offboarding_immediacy.md), [ADR-0008 HRDB production adapter](../adr/0008-hrdb-production-adapter.md), [traceability/report.md (REQ/API/IMPL 매트릭스)](../traceability/report.md).
 
 ## 0. 배경 + 문제 정의
@@ -34,7 +34,7 @@ DevHub 는 [ADR-0019](../adr/0019-keycloak-only-idp.md) 채택으로 Keycloak �
 | **조직 단위 (unit)** | DevHub | `organization_units` + `users.{primary_unit_id, current_unit_id}` | DevHub 자체 (Keycloak 무관) |
 | **조직 계층 (hierarchy)** | DevHub | `organization_hierarchy` (parent_unit_id) | DevHub 자체 |
 | **RBAC policy** (Resource × Action) | DevHub | `rbac_policies` | DevHub 자체 (`/api/v1/rbac/policies`) |
-| **RBAC subject-role assignment** | DevHub (admin 직접) **또는** Keycloak group composite (간접) | `rbac_subject_roles` (`/api/v1/rbac/subjects/:subject_id/roles`) | endpoint 정의됨, frontend UI 미구현 (carve). 실 권한 평가는 token claim 의 `realm_access.roles` 우선 |
+| **RBAC subject-role assignment** | Keycloak group composite (간접) | `users.role` 컬럼 직접 write (별도 테이블 없음 — Phase 1 §1 매트릭스 작성 시 `rbac_subject_roles` 표기 오류, [§5.9 참조](#59-phase-1-매트릭스-오류-정정)). endpoint 자체 결정 D 로 완전 제거 | endpoint 정의됐었으나 frontend UI 미구현. 결정 D 후 코드 자체 폐기 |
 | **audit log** | DevHub (인입 source 다양) | `audit_logs` | source_type=oidc/webhook/kratos(deprecated)/system/keycloak_event. Keycloak admin event 는 §5.3 (9) listener (sprint -u~-y) 가 polling-emit |
 
 ### 1.1 source-of-truth 이중화 issue (current)
@@ -173,12 +173,12 @@ DevHub 는 [ADR-0019](../adr/0019-keycloak-only-idp.md) 채택으로 Keycloak �
 
 Keycloak 무관. DevHub 자체 도메인.
 
-### 4.3 `rbac_policies` + `rbac_subject_roles`
+### 4.3 `rbac_policies` + (~~`rbac_subject_roles`~~)
 
 | 테이블 | 핵심 컬럼 | 역할 |
 | --- | --- | --- |
 | `rbac_policies` | `role_id` (TEXT), `resource` + `action`, `allow` | role × resource × action 매트릭스. system_admin / developer / manager / pmo_manager seed (migration 000004 + 000005) |
-| `rbac_subject_roles` | `subject_id` + `role_id` | user 별 role override (간접 — Keycloak group composite 가 1차) |
+| ~~`rbac_subject_roles`~~ | — | **Phase 1 매트릭스 작성 시 표기 오류** — 별도 테이블 없음. backend `GetSubjectRoles` / `SetSubjectRole` 은 `users.role` 컬럼 직접 read/write ([§5.9 정정](#59-phase-1-매트릭스-오류-정정), [결정 D](#51-명시-결정-6건-종합)) |
 
 ### 4.4 Keycloak realm 자산 (DevHub 외부)
 
@@ -200,19 +200,256 @@ Phase 2 (별도 sprint) 에서 결정할 책임 재정의 후보:
 | **C — Hybrid (write 일부만)** | 일부 (password reset / disable) 만 유지, create/delete 는 폐기 | 유지 | 생성/삭제 = Keycloak admin 직접, 일시 disable / password reset = DevHub UI 가 편의 | 동일 — 부분 정합 |
 | **D — Read-only DevHub admin** | 제거 + read-only mirror (`GET /api/v1/accounts/:id` 만 유지) | 유지 (read+update unit/role cache) | Keycloak admin 직접 + SCIM bridge | Keycloak group composite 유일 source |
 
-각 옵션의 trade-off + ADR 발급은 Phase 2 sprint.
+**Phase 2 결정 (sprint -a, 2026-05-20): 옵션 A 전면 폐기 확정** — 사용자 조건 (IdP 팀 별도 운영, DevHub 운영자 manage-users 권한 없음, 자주 쓰는 동작은 `/api/v1/users` 계열) 정합. 상세는 [§5.1 명시 결정 6건](#51-명시-결정-6건-종합) + [§5.2 lazy auto-create](#52-lazy-auto-create-mechanism).
 
 [^A-lazy]: 현재 (sprint -j PR #188) 의 자동 sync 는 `authenticateActor` 가 **`users.idp_subject` 컬럼만** lazy backfill (이미 존재하는 row 의 idp_subject 가 비어 있으면 Keycloak FindIdentityByUserID 로 조회 후 세팅). `users` row 자체가 없는 경우의 자동 생성은 **현재 mechanism 없음** — token 검증 시 GetUser miss → ErrIdentityNotFound. 옵션 A 채택 시 신규 mechanism 으로 lazy auto-create 추가 필요.
 
-## 5. (TBD — Phase 2) 책임 분리 design
+## 5. Phase 2 책임 분리 design (sprint -a, 2026-05-20 확정)
 
-Phase 2 sprint 에서 작성:
+본 sprint 의 명시 결정 토론 (Q&A 6 round) 결과 — 6건 결정 + Phase 2 동반 작업 6건 + Phase 1 매트릭스 오류 정정 1건.
 
-- §5.1 옵션 A/B/C/D 의 trade-off 표 (운영 부담 / divergence risk / 사용자 경험 / 마이그레이션 비용)
-- §5.2 권장 옵션 (잠정 — Option A 또는 D 가 ADR-0019 정공법 정합)
-- §5.3 provisioning 흐름 design (lazy / HRDB ETL push / SCIM bridge)
-- §5.4 role/status sync 정합 design (token 검증 시 cache invalidate / event listener 활용)
-- §5.5 ADR-0020 후보 — "Account/User management boundary with external Keycloak"
+### 5.1 명시 결정 6건 종합
+
+| # | 영역 | 결정 | 근거 |
+| --- | --- | --- | --- |
+| **A** | `/api/v1/accounts/*` 4 endpoint 향방 | **전면 폐기** (옵션 A) | 사용자 조건 — IdP 팀 별도 운영, DevHub 운영자 manage-users 권한 없음. 자주 쓰는 동작 (user 목록 view + 조직 unit/role assignment) 은 `/api/v1/users` 계열 (Keycloak 무관). divergence 원천 차단 + service account 권한 축소 + dead UI 메서드 자연 정리 |
+| **B** | `/login` page 향방 | **entry minimal page 유지** | DevHub brand 첫인상 + 명시 로그인 step + error message 표시 + `/login` ↔ `/auth/login` 중복 정리 |
+| **C** | role/status sync mechanism | **event listener 확장 (sprint -u~-y 자연 확장)** + lazy backfill/auto-create hot path 1회 | (a) token 검증 write-through, (b) stale 비교 모두 token claim 한계 (group_membership / status change 감지 불가). event listener 만 정확. hot path 영향 0, latency 30s 는 access_token 5분 stale 안에 묻힘 |
+| **D** | `rbac_subject_roles` (endpoint + store + interface) | **완전 제거** (옵션 a) | 발견: 별도 테이블 없음, `users.role` 컬럼 직접 write. 명시 결정 C 와 충돌 (event listener 가 곧 덮어쓰기). `PATCH /api/v1/users/:id` 와 기능 중복. ADR-0011 row-scoping 과 무관 |
+| **E** | read-only 모드 carve (Keycloak down 시 GET grace period) | **도입 안 함** (self-reverse) | signature 검증 skip 은 OIDC 표준 위반 + token forgery 위험 + revoked / audit forgery. 명시 결정 F 가 진짜 정공법 |
+| **F** | JWKS stale-while-error 확장 (expiry mismatch) | **확장 도입** (옵션 a) | sprint -r (PR #186) kid mismatch fallback 의 자연 확장. signature 검증 유지 (token forgery 위험 없음) + uptime → key rotation period (90일) 까지. revoked key 시나리오는 별도 mitigation |
+
+### 5.2 lazy auto-create mechanism (결정 A 동반 #1)
+
+신규 user 가 Keycloak admin console 에서 생성된 후 첫 DevHub 진입 시 `users` row 자동 생성.
+
+**현재 상태** (sprint -j PR #188): `authenticateActor` 가 **`users.idp_subject` 컬럼만** lazy backfill — `users` row 자체가 없으면 ErrIdentityNotFound → 401.
+
+**Phase 2 신규**: `users` row 자체가 없을 때 자동 INSERT.
+
+#### 5.2.1 흐름
+
+```text
+GET /api/v1/me 요청 (신규 user 의 첫 진입)
+  ↓
+authenticateActor
+  ↓ token 검증 통과 (Keycloak 의 user)
+  ↓
+GetUser(ctx, userID) → ErrNotFound (DevHub 에 row 없음)
+  ↓ (현재) 401 + "DevHub user 등록 안 됨" 안내
+  ↓ (Phase 2 신규) lazy auto-create
+  ↓
+CreateUser(ctx, CreateUserInput{
+  UserID:       token.preferred_username,
+  Email:        token.email,
+  DisplayName:  token.name,
+  Role:         extractRole(token.realm_access.roles),  // event listener 와 동일 로직
+  Status:       UserStatusActive,
+  Type:         UserTypeHuman,
+  IdPSubject:   token.sub,
+  // PrimaryUnitID, CurrentUnitID 는 default 또는 unassigned 상태로 둠
+  JoinedAt:     now(),
+})
+  ↓ audit: account.lazy_provisioned (action 이름 신규)
+  ↓
+정상 응답
+```
+
+#### 5.2.2 결정 항목
+
+| 항목 | 결정 |
+| --- | --- |
+| **조직 unit 자동 매핑** | **unassigned** — `primary_unit_id` NULL. admin 이 후속 `/admin/settings/users` 에서 unit 배치. (HRDB ETL push 가 사전에 unit 매핑 정보를 stage 하면 자동 배치 가능 — sprint -p `hrdb_etl_sync.sh` 확장 carve) |
+| **role 매핑** | token `realm_access.roles` 추출 — Keycloak group composite (`developer/manager/pmo_manager/system_admin`). 명시 결정 C 의 event listener 매핑 로직과 동일 함수 공유 (`extractKeycloakRole`, sprint -j PR #185 multi-role priority filter) |
+| **role 매핑 fallback** (sprint -b Stage 3 P1-3 결정) | token `realm_access.roles` 가 비어 있거나 매핑 가능한 role 없을 때 → **default `developer`** 부여 + audit `user.role_default_assigned`. backend `keycloak_verifier.go` 의 현재 fallback 동작과 정합. 별도 신규 role state (`unassigned`) 도입 안 함 — `rbac_policies` 의 4 role enum 유지 |
+| **status 초기값** | `active` — Keycloak `enabled=true` 인 token 발급 시점 정합 |
+| **audit action 이름** | `account.lazy_provisioned` 신규 (DB row 정합 영향 없음, 신규 row 만 emit) |
+| **HRDB pre-stage 와의 race** | HRDB ETL push 가 먼저 row 생성한 경우 → lazy auto-create 는 `GetUser` 가 row 발견 → noop. 두 경로 idempotent |
+
+#### 5.2.3 보안 검토
+
+- **token 검증 성공한 user 만 lazy create** — Keycloak 이 발급한 valid token signature 가 통과한 user 만. 즉 Keycloak 의 user lifecycle 정책 (enabled, group, etc) 이 1차 필터
+- **enumeration 위협 없음** — DevHub backend 가 자체 user list 노출 안 함. lazy create 자체가 token 인증 필수
+- **audit 추적** — `account.lazy_provisioned` row 가 모든 lazy create event 기록 (actor / source_ip / token claim summary)
+
+### 5.3 Keycloak event listener 확장 (결정 A 동반 #2 + 결정 C)
+
+sprint -u~-y 의 audit event listener 가 `audit_logs` 만 emit. Phase 2 확장 — DevHub `users` 컬럼 sync.
+
+#### 5.3.1 매핑 표 (sprint -u~-y §8.6.2 매핑 표 확장)
+
+| Keycloak Admin Event Type | Operation Type | DevHub 작용 | audit_logs action (기존 sprint -u~-y) |
+| --- | --- | --- | --- |
+| `USER` | `UPDATE` | `users.email` / `users.display_name` / `users.status` (enabled boolean → active/deactivated) sync | `user.profile_updated` |
+| `USER` | `CREATE` | (lazy auto-create 정합 — DevHub 의 첫 진입 시점에 handler 가 처리. event 는 audit log 만) | `user.created_external` |
+| `USER` | `DELETE` | **`users.status = deactivated` (soft delete 채택, sprint -b Stage 3 P1-2 결정)** — DevHub `users` row 의 historical 정합 보존 (audit_logs 의 actor reference 깨짐 회피). archive 또는 hard delete 는 사내 보존 정책 따른 별도 carve | `user.deleted_external` |
+| `GROUP_MEMBERSHIP` | `CREATE` / `DELETE` | `users.role` 재계산 (token `realm_access.roles` 와 동일 추출 로직, group composite role 매핑 후 update) | `user.group_membership_changed` |
+| `USER` | `RESET_PASSWORD` (admin) | (audit only — DevHub `users` 영향 없음) | `account.password_reset_external` |
+| `USER` | `DISABLE_CREDENTIALS` | (audit only — token revocation 효과는 다음 token 만료 시점에) | `account.credentials_disabled_external` |
+
+#### 5.3.2 store-level write 정합
+
+- **`users.role` write** = `extractRole(realm_access.roles)` 와 동일 로직. event payload 의 group 정보로 role 재계산
+- **`users.status` write** = `enabled=true` → `UserStatusActive`, `enabled=false` → `UserStatusDeactivated`
+- **`users.email` / `users.display_name` write** = event payload 의 새 값
+- **race condition** — 같은 ms 에 user 가 token refresh + event listener tick 동시 → token claim 기반 read 와 event 기반 write 가 1 tick 안에 정합. write 순서가 last-write-wins 이지만 둘 다 Keycloak 이 source 라 정합
+
+#### 5.3.3 metric 확장 (sprint -u~-y `audit/metrics.go` 정합)
+
+신규 metric 3종:
+- `devhub_keycloak_user_sync_total` Counter — label `action` ∈ {`profile`, `membership`, `status`}. event listener 가 DevHub `users` 컬럼 write 한 회수
+- `devhub_keycloak_user_sync_errors_total` Counter — write 실패 (DB error 등)
+- `devhub_keycloak_user_sync_lag_seconds` Gauge — event timestamp vs DevHub write timestamp 차이
+
+### 5.4 frontend cleanup 매트릭스 (결정 A 동반 #4)
+
+| 파일 | 변경 |
+| --- | --- |
+| `app/(dashboard)/admin/settings/users/page.tsx` | "Issue Account" 버튼 제거 + Keycloak admin console 안내 link (`${OIDC_ISSUER_URL}/admin/master/console/#/realms/{realm}/users` 또는 사내 운영 문서 link). modal 'Issue / Reset / Disable' action 모두 제거. user list view + role assignment + unit assignment 만 남김 |
+| `components/organization/MemberTable.tsx` | `accountService.issueAccount` / `forceResetPassword` / `disableAccount` 호출 제거. PATCH `/api/v1/users/:id` 호출만 유지 |
+| `lib/services/account.service.ts` | **파일 자체 제거** — 5 메서드 모두 폐기. (또는 admin-action helper 없는 빈 module 로 archive — 운영 결정) |
+| `lib/services/identity.service.ts` | 변경 없음 (`/api/v1/users` + `/api/v1/organization/*` 그대로) |
+| `app/(dashboard)/account/page.tsx` | 변경 없음 (sprint -ad Keycloak Account Console redirect 그대로) |
+
+### 5.5 service account 권한 축소 + governance 협약 SOP (결정 A 동반 #5+#6)
+
+#### 5.5.1 service account 권한
+
+| 기존 (sprint -ad 이전) | Phase 2 |
+| --- | --- |
+| `realm-management.view-users` | **유지** (사실상 사용 안 함 — 결정 A 후 dead. 단 view-events 만 필요한 case 분리 위해 별도 carve) |
+| `realm-management.manage-users` | **제거** (account/* endpoint 폐기로 불필요) |
+| `realm-management.view-events` | **유지** (audit event listener — sprint -u~-y) |
+
+Phase 2 정합:
+- `manage-users` 제거 → service account 가 user create / update / delete 불가
+- `view-events` + (선택) `view-users` 만 → read-only + event polling 만
+- DevHub backend 가 Keycloak Admin API write 호출 자체 안 함 (코드 변경 — `KeycloakAdminClient.CreateIdentity` / `UpdateIdentityPassword` / `SetIdentityState` / `DeleteIdentity` 메서드 호출처 모두 제거)
+
+#### 5.5.2 governance 협약 SOP
+
+`docs/setup/keycloak_operations.md §8.5c` (신규) 에 협약 문서:
+
+| 운영 동작 | 책임 주체 | 도구 |
+| --- | --- | --- |
+| user 생성 (account.create) | **Keycloak admin** (IdP 팀) | Keycloak admin console **또는** HRDB ETL push (`scripts/hrdb_etl_sync.sh`) |
+| user 비밀번호 reset | **Keycloak admin** (IdP 팀) | Keycloak admin console (Credentials 탭 — Reset Password) |
+| user status disable / enable | **Keycloak admin** (IdP 팀) | Keycloak admin console (User detail — Enabled toggle) **또는** HRDB ETL push |
+| user 삭제 | **Keycloak admin** (IdP 팀) | Keycloak admin console (Users — Delete) |
+| group membership (role 변경) | **Keycloak admin** (IdP 팀) | Keycloak admin console (User detail — Groups 탭) |
+| **user 조직 unit assignment** | **DevHub admin** | DevHub `/admin/settings/users` (PATCH `/api/v1/users/:id`) |
+| **신규 user 의 unit 초기 배치** (sprint -b Stage 3 P2-2) | **DevHub admin** (lazy auto-create 직후 후속 작업) | (a) HRDB ETL pre-stage 가 unit 정보 동반 시 자동 매핑, (b) 미동반 시 unit 미할당 (`primary_unit_id=NULL`) 으로 lazy create 후 admin 이 `/admin/settings/users` filter `unit_id=null` 로 식별 → 배치. 첫 진입 후 API call 차단 안 함 (단순 unit 미할당 상태) |
+| **DevHub `users.role` 직접 수정** | **금지** (event listener 가 자동 sync) | — |
+| 조직 unit (department/team) CRUD | **DevHub admin** | DevHub `/admin/settings/organization` (Keycloak 무관) |
+| RBAC policy (role × resource × action matrix) 편집 | **DevHub admin** | DevHub `/admin/settings/permissions` |
+
+### 5.6 JWKS stale-while-error 확장 (결정 F)
+
+sprint -r (PR #186) 의 kid mismatch fallback 의 자연 확장. expiry mismatch case 까지.
+
+#### 5.6.1 현재 (sprint -r)
+
+```text
+token 검증 시 cache lookup
+  ↓ cache hit → 정상 검증
+  ↓ cache miss (TTL 만료) → JWKS fetch 시도
+  ↓ fetch 성공 → cache update + 정상 검증
+  ↓ fetch 실패 → 401
+  ↓ kid mismatch 시 (current sprint -r) → cache forced refetch → 1회 retry
+```
+
+#### 5.6.2 Phase 2 (확장)
+
+```text
+token 검증 시 cache lookup
+  ↓ cache hit → 정상 검증
+  ↓ cache miss (TTL 만료) → JWKS fetch 시도
+  ↓ fetch 성공 → cache update + 정상 검증
+  ↓ fetch 실패 (Keycloak unreachable) → **stale key 로 검증 시도** (Phase 2 신규)
+  ↓ stale key 로 통과 → 정상 응답 + log 마킹 ("stale-while-error" 표시)
+  ↓ stale key 로도 실패 (kid mismatch + Keycloak unreachable) → 401
+  ↓ kid mismatch (Keycloak 도달 가능) → cache forced refetch → retry (sprint -r 정합)
+```
+
+#### 5.6.3 보안 검토 + mitigation
+
+| 위험 | mitigation |
+| --- | --- |
+| **revoked key 보호 깨짐** — Keycloak 이 의도적 rotation (security incident) 한 옛 key 가 stale 로 통과 | rotation 직후 운영 SOP — backend 강제 재시작 (JWKS cache 초기화) 또는 SIGHUP 으로 cache flush endpoint |
+| stale key TTL 무한 확장 | 별도 max stale duration (예: 24h) 설정. 그 후엔 stale-while-error 도 fail |
+| log noise — stale 검증 매번 log emit | log level WARN + structured (token.sub + stale_age_seconds) |
+
+#### 5.6.4 metric
+
+- `devhub_jwks_stale_while_error_total{result="ok|fail"}` Counter
+- `devhub_jwks_stale_age_seconds` Histogram — cache 만료 후 stale 사용 시간 분포
+
+### 5.7 `/login` page 정리 (결정 B)
+
+| 파일 | 변경 |
+| --- | --- |
+| `app/login/page.tsx` | "Sign in with Keycloak" 버튼 + error message 표시 영역. `?error=...` query param 처리 (예: `session_expired`, `login_failed`, `unauthorized`) |
+| `app/auth/login/page.tsx` | `/login` 으로 redirect (중복 정리) **또는** 제거 |
+| `app/auth/callback/page.tsx` | error 발생 시 `/login?error=...` 로 redirect (현재 `/auth/error` 와 정합 확인 후 결정) |
+| `app/auth/error/page.tsx` | 보존 — `/auth/callback` 의 critical error (예: invalid state) 처리. 일반 error 는 `/login?error=...` |
+
+### 5.8 `rbac_subject_roles` 폐기 (결정 D)
+
+| 파일 | 변경 |
+| --- | --- |
+| `backend-core/internal/httpapi/rbac.go` | `getSubjectRoles` + `setSubjectRoles` handler 제거 |
+| `backend-core/internal/httpapi/router.go` | `v1.GET("/rbac/subjects/:subject_id/roles", ...)` + `v1.PUT(...)` 2 route 제거 |
+| `backend-core/internal/httpapi/rbac.go` (RBACStore interface) | `GetSubjectRoles` + `SetSubjectRole` method signature 제거 |
+| `backend-core/internal/store/postgres_rbac.go` | `GetSubjectRoles` + `SetSubjectRole` impl 제거 |
+| `backend-core/internal/store/postgres_rbac_test.go` | 해당 test 제거 (TestRBAC_SetSubjectRole_* + TestRBAC_GetSubjectRoles_*) |
+| `backend-core/internal/httpapi/rbac_test.go` | `fakeRBACStore.GetSubjectRoles` + `SetSubjectRole` mock 제거 |
+| `backend-core/internal/httpapi/permissions.go` | `/api/v1/rbac/subjects/:subject_id/roles` 의 routePermissionTable entry 제거 |
+| `frontend/lib/services/rbac.service.ts` | 본 endpoint 호출 코드 없음 (UI 미구현) — 변경 없음 |
+| migration | **불필요** — `rbac_subject_roles` 테이블 자체가 없음 (`users.role` 컬럼 직접 write 였음). DB schema 변경 없음 |
+
+### 5.9 Phase 1 매트릭스 오류 정정
+
+§1 책임 분리 매트릭스의 "RBAC subject-role assignment" row 의 "DevHub 측 표상 = `rbac_subject_roles`" 표기 **오류**:
+- 실제로 `rbac_subject_roles` 테이블 자체가 없음
+- `GetSubjectRoles` 는 `SELECT role FROM users WHERE user_id = $1` (= `users.role` 컬럼 read)
+- `SetSubjectRole` 은 `UPDATE users SET role = $2 WHERE user_id = $1` (= `users.role` 컬럼 write)
+
+→ **결정 D 의 (a) 완전 제거로 자연 해소** — endpoint + 메서드 폐기 후 본 row 자체 매트릭스에서 제거.
+
+### 5.10 ADR-0020 후보 outline
+
+본 sprint 의 명시 결정 6건 종합을 ADR-0020 로 승격. draft outline:
+
+```markdown
+# ADR-0020: Account/User Management Boundary with External Keycloak
+
+## 1. 컨텍스트
+- ADR-0019 채택 후 Keycloak 단일 IdP 운영
+- 외부 Keycloak 시나리오 (IdP 팀 별도 운영) 에서 DevHub 의 계정/사용자 관리 책임 경계 재정의 필요
+- Phase 1 §1.1 의 source-of-truth 이중화 issue 3건 (role / status / idp_subject) 해결
+
+## 2. 결정 동인
+- divergence 원천 차단 (single source-of-truth)
+- 운영 거버넌스 명확화 (IdP 팀 vs DevHub admin 책임 분리)
+- 보안 권한 최소화 (service account permission)
+- OIDC 표준 정합 (signature 검증 의무)
+
+## 3. 검토 옵션 (Phase 1 §4.5 옵션 A~D)
+- A 전면 폐기 / B 현재 유지 / C Hybrid / D Read-only mirror
+
+## 4. 결정
+- **옵션 A 전면 폐기** 채택 (Phase 2 동반 6건 + 명시 결정 B/C/D/E/F 포함)
+
+## 5. 결과 / 영향
+- ... (sprint -a 의 종합 결정 매트릭스 인용)
+
+## 6. 변경 이력
+| 일자 | 변경 | sprint |
+| --- | --- | --- |
+| 2026-05-20 | draft (sprint -a 의 명시 결정 6건 종합) | `claude/work_260520-a` |
+```
+
+ADR-0020 draft 작성 + 사내 검토 → accepted 처리는 Phase 3 진입 시 동반.
 
 ## 6. (TBD — Phase 3) 리팩토링 실행 계획
 
@@ -224,13 +461,31 @@ Phase 3 sprint 에서 작성:
 - §6.4 traceability 영향 (REQ/API/IMPL/TC row 갱신)
 - §6.5 마이그레이션 단계 (Strangler Fig — 기존 endpoint deprecation banner → 새 흐름 도입 → 폐기)
 
-## 7. 잔여 carve (Phase 1 시점 식별)
+## 7. 잔여 carve
 
-- **(carve)** `users.role` 의 source-of-truth 정합 mechanism — token 검증 시 cache 자동 sync 또는 Keycloak event listener 가 group change 감지 → DevHub users.role update
-- **(carve)** account.service.ts 의 dead UI 메서드 (`unlockAccount`, `deleteAccount`) — Phase 2 결정 따라 UI 추가 또는 service 제거
-- **(carve)** `PUT /api/v1/rbac/subjects/:subject_id/roles` UI 또는 endpoint 제거 결정 — Phase 2 design 입력
-- **(carve)** `POST /api/v1/accounts` vs `POST /api/v1/users` atomic 단일 작업 통합 또는 명확한 책임 분리 (one-shot create with unit assignment)
-- **(carve)** email / display_name 변경 시 Keycloak → DevHub 동기화 (현재 미동기화 — account.create 시 1회만)
+### 7.1 Phase 2 결정으로 resolved
+
+- ✅ `users.role` source-of-truth — **결정 C** (event listener 확장) 로 해소. §5.3 매핑 표 참조
+- ✅ `account.service.ts` dead UI 메서드 — **결정 A** 의 frontend cleanup 으로 모듈 제거. §5.4 참조
+- ✅ `PUT /api/v1/rbac/subjects/:subject_id/roles` 처리 — **결정 D** 완전 제거. §5.8 참조
+- ✅ `POST /api/v1/accounts` vs `/api/v1/users` 중복 — **결정 A** 로 accounts POST 폐기. `/api/v1/users` POST 만 유지 (또는 lazy auto-create 자동 흐름)
+- ✅ email / display_name sync — **결정 C** event listener 확장 (`USER:UPDATE` 매핑) 으로 해소
+
+### 7.2 Phase 3 (실 구현) sprint 영역
+
+- **(carve)** Phase 3 — backend code 제거 (account_password / kratos_* 잔재 이후 account_admin handler 제거. §5.4 frontend cleanup 매트릭스)
+- **(carve)** Phase 3 — lazy auto-create mechanism 실 구현 (`authenticateActor` 확장). §5.2 따름
+- **(carve)** Phase 3 — event listener 확장 (USER:UPDATE + MEMBERSHIP + USER:DELETE 매핑). §5.3 따름
+- **(carve)** Phase 3 — JWKS stale-while-error 확장 (expiry case). §5.6 따름
+- **(carve)** Phase 3 — service account 권한 축소 (manage-users 제거, view-events 보장)
+- **(carve)** Phase 3 — governance 협약 SOP `keycloak_operations.md §8.5c` 신규
+- **(carve)** Phase 3 — ADR-0020 draft 작성 + 사내 검토 + accepted 처리
+
+### 7.3 사내 동반 carve
+
+- **(carve)** HRDB ETL push 의 unit 매핑 정보 stage — sprint -p `hrdb_etl_sync.sh` 확장. 신규 user 의 unit 자동 매핑 자동화
+- **(carve)** Keycloak admin console 운영 SOP — IdP 팀과 DevHub 운영자 간 책임 분리 협약 문서화 (§5.5.2 governance 표를 사내 정책 문서 로 승격)
+- **(carve)** JWKS rotation 직후 backend cache flush SOP — §5.6.3 mitigation (rotation 직후 backend 강제 재시작 또는 cache flush endpoint)
 
 ## 8. 변경 이력
 
@@ -238,3 +493,5 @@ Phase 3 sprint 에서 작성:
 | --- | --- |
 | 2026-05-20 | sprint `claude/work_260520-a` Phase 1 — 현황 파악 1차 작성. §1 책임 분리 매트릭스 + §2 backend 23 endpoint (18 row) + §3 frontend 4 page + service 매트릭스 + §4 DB schema (users 14 컬럼) + Keycloak attribute 정합 + §4.5 Phase 2 입력 옵션 A~D 후보 + §7 잔여 carve 5건. §5/§6 는 Phase 2/3 별도 sprint. |
 | 2026-05-20 | Self-review Stage 3 보강 — P1×2 + P2×1 흡수. (P1-1) §2 header endpoint count 17→23 + 묶음 row 안내 추가. (P1-2) §4.1 컬럼 count 14 (commit msg 정정). (P2-1) §4.5 옵션 A "lazy users row 자동 생성" wording → footnote 로 현재 mechanism (idp_subject 만 backfill) 과 신규 mechanism (row auto-create) 명확화. |
+| 2026-05-20 | sprint `claude/work_260520-a` Phase 2 design 작성 — 명시 결정 6건 토론 결과 (Q&A 6 round) 흡수. (1) §0/§4.5 결정 표기, (2) §5 신규 10 sub-section — §5.1 명시 결정 6건 종합 표 + §5.2 lazy auto-create mechanism (3 흐름 + 결정 항목 5 + 보안 검토) + §5.3 event listener 확장 (매핑 표 + store-level write + metric 3) + §5.4 frontend cleanup 매트릭스 (5 파일) + §5.5 service account 권한 축소 (`manage-users` 제거) + governance 협약 SOP 표 + §5.6 JWKS stale-while-error 확장 (sprint -r 자연 확장 + mitigation) + §5.7 `/login` 정리 + §5.8 `rbac_subject_roles` 폐기 (8 파일) + §5.9 Phase 1 §1 매트릭스 오류 정정 (rbac_subject_roles 테이블 없음, `users.role` 직접 write) + §5.10 ADR-0020 후보 outline. (3) §7 잔여 carve 갱신 — Phase 2 결정으로 resolved 5건 + Phase 3 실 구현 carve 7건 + 사내 동반 carve 3건. **명시 결정 A~F 모두 확정** — A 전면 폐기 / B entry minimal / C event listener 확장 / D rbac_subject_roles 완전 제거 / E read-only carve 도입 안 함 (self-reverse) / F JWKS stale-while-error 확장. Phase 3 (실 구현) 은 별도 sprint. |
+| 2026-05-20 | sprint `claude/work_260520-b` Self-review Stage 3 보강 — P1×3 + P2×2 일괄 흡수. (P1-1) §4.3 + §1 매트릭스의 `rbac_subject_roles` 표기 정정 (취소선 + §5.9 link). (P1-2) §5.3.1 `USER:DELETE` 정책 결정 명시 — soft delete (`status=deactivated`) 채택, audit_logs actor reference 깨짐 회피. (P1-3) §5.2.2 role 매핑 fallback 결정 명시 — token `realm_access.roles` 비어 있을 때 default `developer` 부여 + audit `user.role_default_assigned`. (P2-1) §5.3.3 metric label 표기 정정 `action="profile|membership|status"` → `label action ∈ {profile, membership, status}`. (P2-2) §5.5.2 governance 표 row 추가 — 신규 user 의 unit 초기 배치 (HRDB ETL pre-stage 자동 또는 admin filter 후속 배치, 첫 API call 차단 안 함). |
