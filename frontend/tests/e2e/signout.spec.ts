@@ -7,6 +7,19 @@ import { test, expect, loginAs, SEEDED, submitSignInForm, waitForSignInForm } fr
 // TC-AUTH-SIGNOUT-REDIR-01 (post-signout AuthGuard redirect) and
 // TC-USER-SWITCH-01 (clean user switch across signout boundary).
 
+async function waitForSessionCleared(page: import("@playwright/test").Page): Promise<void> {
+  await expect
+    .poll(
+      async () =>
+        page.evaluate(async () => {
+          const resp = await fetch("/api/v1/me", { credentials: "include", cache: "no-store" });
+          return resp.status;
+        }),
+      { timeout: 20_000, intervals: [250, 500, 1000] }
+    )
+    .toBe(401);
+}
+
 test.describe("Sign Out terminates IdP session", () => {
   test("after Sign Out, /login flow asks for credentials again", async ({ page }) => {
     await loginAs(page, SEEDED.developer);
@@ -14,6 +27,7 @@ test.describe("Sign Out terminates IdP session", () => {
     // Open the header dropdown and click Sign Out
     await page.getByText(SEEDED.developer.user_id, { exact: false }).first().click();
     await page.getByRole("button", { name: /sign out/i }).click();
+    await waitForSessionCleared(page);
 
     // After redirects we should be back at / (post_logout_redirect_uri)
     // or /login. Either way, /login should kick off a fresh OIDC dance
@@ -42,6 +56,7 @@ test.describe("Sign Out terminates IdP session", () => {
     // Sign Out via header dropdown
     await page.getByText(SEEDED.developer.user_id, { exact: false }).first().click();
     await page.getByRole("button", { name: /sign out/i }).click();
+    await waitForSessionCleared(page);
 
     // After the post_logout_redirect resolves, try going back into a
     // guarded route directly. AuthGuard's whoAmI() must see no session
@@ -58,6 +73,8 @@ test.describe("Sign Out terminates IdP session", () => {
 
 test.describe("user switch across Sign Out", () => {
   test("TC-USER-SWITCH-01 — Sign Out from alice and Sign In as bob shows bob's profile, never alice's", async ({ page }) => {
+    test.setTimeout(90_000);
+
     // 1) alice 로 로그인 후 /account 의 actor.login 이 alice
     await loginAs(page, SEEDED.developer);
     await page.goto("/account");
@@ -66,6 +83,7 @@ test.describe("user switch across Sign Out", () => {
     // 2) Sign Out
     await page.getByText(SEEDED.developer.user_id, { exact: false }).first().click();
     await page.getByRole("button", { name: /sign out/i }).click();
+    await waitForSessionCleared(page);
 
     // 3) bob (manager) 로 로그인 — signout 직후 loginAs 의 goto('/login') 에서
     // ERR_ABORTED 가 발생할 수 있으므로, 직접 OIDC dance 를 수행한다.
