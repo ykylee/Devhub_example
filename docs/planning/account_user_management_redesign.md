@@ -43,7 +43,9 @@ DevHub 는 [ADR-0019](../adr/0019-keycloak-only-idp.md) 채택으로 Keycloak �
 - **status 이중 source** — Keycloak `enabled` 와 DevHub `users.status` 둘 다 보유. DevHub `/api/v1/accounts/:user_id` PATCH 가 atomic update (SetIdentityState + UpdateUser, rollback 보호). 그러나 Keycloak admin console 직접 변경 (DevHub 우회) 시 DevHub `users.status` 가 stale.
 - **identity_id (idp_subject) lazy backfill** — sprint -j 의 자동 sync 가 `authenticateActor` 에서 처리. 첫 로그인 시 DB write 발생 (perf 영향 microscopic).
 
-## 2. Backend endpoint 매트릭스 (17 endpoint)
+## 2. Backend endpoint 매트릭스 (23 endpoint, 18 row)
+
+> 표의 마지막 두 row 는 묶음 — `rbac/policies` 는 4 endpoint (GET/POST/PUT/DELETE), `rbac/subjects/:subject_id/roles` 는 2 endpoint (GET/PUT).
 
 | Method | Endpoint | Handler | DB 작용 (R/W) | Keycloak 작용 | Audit action | RBAC 권한 |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -193,12 +195,14 @@ Phase 2 (별도 sprint) 에서 결정할 책임 재정의 후보:
 
 | 옵션 | DevHub backend `/api/v1/accounts/*` | DevHub backend `/api/v1/users/*` | provisioning 흐름 | role/status sync |
 | --- | --- | --- | --- | --- |
-| **A — DevHub admin endpoint 전면 폐기** | 제거 (404) | 조직 메타데이터만 (PATCH role/unit) | Keycloak admin 직접 + HRDB ETL push + token 검증 시 lazy users row 자동 생성 | Keycloak group composite 가 유일 source. `users.role` 은 cache 만 (token 검증 시마다 sync) |
+| **A — DevHub admin endpoint 전면 폐기** | 제거 (404) | 조직 메타데이터만 (PATCH role/unit) | Keycloak admin 직접 + HRDB ETL push + **token 검증 시 lazy users row 자동 생성 (Phase 2 신규 mechanism, 현재 미구현)** [^A-lazy] | Keycloak group composite 가 유일 source. `users.role` 은 cache 만 (token 검증 시마다 sync) |
 | **B — 현재 상태 유지 (Admin Client proxy)** | 유지 (DevHub admin UI 운영 편의) | 유지 (조직 메타데이터) | DevHub `/accounts` POST 또는 Keycloak admin 직접 (2 경로 동시) | 이중 source — 본 문서 §1.1 issue 재발 |
 | **C — Hybrid (write 일부만)** | 일부 (password reset / disable) 만 유지, create/delete 는 폐기 | 유지 | 생성/삭제 = Keycloak admin 직접, 일시 disable / password reset = DevHub UI 가 편의 | 동일 — 부분 정합 |
 | **D — Read-only DevHub admin** | 제거 + read-only mirror (`GET /api/v1/accounts/:id` 만 유지) | 유지 (read+update unit/role cache) | Keycloak admin 직접 + SCIM bridge | Keycloak group composite 유일 source |
 
 각 옵션의 trade-off + ADR 발급은 Phase 2 sprint.
+
+[^A-lazy]: 현재 (sprint -j PR #188) 의 자동 sync 는 `authenticateActor` 가 **`users.idp_subject` 컬럼만** lazy backfill (이미 존재하는 row 의 idp_subject 가 비어 있으면 Keycloak FindIdentityByUserID 로 조회 후 세팅). `users` row 자체가 없는 경우의 자동 생성은 **현재 mechanism 없음** — token 검증 시 GetUser miss → ErrIdentityNotFound. 옵션 A 채택 시 신규 mechanism 으로 lazy auto-create 추가 필요.
 
 ## 5. (TBD — Phase 2) 책임 분리 design
 
@@ -232,4 +236,5 @@ Phase 3 sprint 에서 작성:
 
 | 일자 | 변경 |
 | --- | --- |
-| 2026-05-20 | sprint `claude/work_260520-a` Phase 1 — 현황 파악 1차 작성. §1 책임 분리 매트릭스 + §2 backend 17 endpoint + §3 frontend 4 page + service 매트릭스 + §4 DB schema + Keycloak attribute 정합 + §4.5 Phase 2 입력 옵션 A~D 후보 + §7 잔여 carve 5건. §5/§6 는 Phase 2/3 별도 sprint. |
+| 2026-05-20 | sprint `claude/work_260520-a` Phase 1 — 현황 파악 1차 작성. §1 책임 분리 매트릭스 + §2 backend 23 endpoint (18 row) + §3 frontend 4 page + service 매트릭스 + §4 DB schema (users 14 컬럼) + Keycloak attribute 정합 + §4.5 Phase 2 입력 옵션 A~D 후보 + §7 잔여 carve 5건. §5/§6 는 Phase 2/3 별도 sprint. |
+| 2026-05-20 | Self-review Stage 3 보강 — P1×2 + P2×1 흡수. (P1-1) §2 header endpoint count 17→23 + 묶음 row 안내 추가. (P1-2) §4.1 컬럼 count 14 (commit msg 정정). (P2-1) §4.5 옵션 A "lazy users row 자동 생성" wording → footnote 로 현재 mechanism (idp_subject 만 backfill) 과 신규 mechanism (row auto-create) 명확화. |
