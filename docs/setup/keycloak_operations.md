@@ -301,12 +301,28 @@ client_secret 은 사내 vault 보관. 정기 rotation SOP 는 §6 JWKS rotation
 
 ### 8.4 장애 대응
 
+자세한 failover design 은 [docs/planning/keycloak_failover.md](../planning/keycloak_failover.md). 본 SOP 는 Phase 1 (graceful degradation) 운영 절차.
+
+#### 기본 시나리오
+
 | 시나리오 | 즉시 대응 | 후속 |
 | --- | --- | --- |
-| Keycloak 자체 down | 사내 운영팀 alert + DevHub 사용자 공지 (로그인 전체 불가) | failover 정책 별도 carve ([ADR-0019 §5.3](../adr/0019-keycloak-only-idp.md#53-잔여-carve-out)) |
-| JWKS endpoint 응답 timeout | backend cache TTL 동안 유효 (10분) — 그 사이 Keycloak 복구 | cache TTL 초과 시 모든 인증 실패 — Keycloak 복구 우선 |
+| Keycloak 자체 down (5분 미만) | 모니터링만 — DevHub 사용자 무영향 (JWKS cache 5분 + access_token TTL 5분 = graceful window) | Keycloak 복구 후 자동 정상화 |
+| Keycloak 자체 down (5-10분) | 사용자 공지 (status page) + Keycloak 복구 진행 알림 | 점진 logout 발생 — 복구 후 재로그인 안내 |
+| Keycloak 자체 down (10분 이상) | Page on-call SRE + 사용자 영향 분석 | 사후 review + failover Phase 2 HA 도입 평가 ([keycloak_failover §4](../planning/keycloak_failover.md)) |
+| JWKS endpoint 응답 timeout | backend cache TTL 동안 유효 (5분, [keycloak_verifier.go:37](../../backend-core/internal/auth/keycloak_verifier.go) `defaultJWKSTTL`) | cache TTL 초과 시 모든 인증 실패 — Keycloak 복구 우선 |
 | `kid` mismatch (서명 검증 실패) | backend log 의 JWKS refetch 시도 확인 | 강제 cache invalidate (backend 재시작) 또는 Keycloak key rotation 검증 |
 | token 유출 의심 | §6.5 비상 rotation 절차 진행 | audit_logs + Keycloak event log 분석 |
+
+#### Phase 2 carve — Keycloak HA 도입 시
+
+사내 인프라 결정 시 [keycloak_failover §4](../planning/keycloak_failover.md) 의 옵션 B (active-active cluster) 또는 옵션 C (active-passive) 로 RTO ≈ 0초 / 분 단위 단축. DevHub 측 변경 없음.
+
+#### 권장 모니터링 metric (carve, [keycloak_event_audit_integration §5.3](../planning/keycloak_event_audit_integration.md) PR-C 와 정합)
+
+- `devhub_jwks_fetch_total{status}` — JWKS fetch 성공/실패 counter
+- `devhub_jwks_cache_age_seconds` — cache 잔여 시간 gauge
+- alert: `devhub_jwks_fetch_total{status="failed"} > 0 for 2 minutes` → Keycloak 가용성 의심
 
 ### 8.5 SSO logout chain (RP-initiated logout)
 
