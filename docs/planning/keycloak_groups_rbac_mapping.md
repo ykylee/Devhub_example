@@ -63,11 +63,11 @@ Keycloak group 기능 (Group / Composite Role / Group Membership Mapper) 을 활
    - `devhub-managers` → `manager`
    - `devhub-pmo-managers` → `pmo_manager`
    - `devhub-system-admins` → `system_admin`
-3. **Default Groups 미설정 권장** (codex review #9 정정) — `devhub-developers` 를 Default Groups 로 추가 시, 신규 manager / pmo_manager / system_admin user 도 자동 `devhub-developers` 가입 → token `realm_access.roles` 에 multiple role 포함 → backend `extractKeycloakRole` 가 `realm_access.roles[0]` 만 사용 (현재 [`keycloak_verifier.go:265-270`](../../backend-core/internal/auth/keycloak_verifier.go)) → role 순서 의존성 / 권한 downgrade 위험. Default Groups 미설정 + §8.1 SOP 의 명시 group 1개 가입 강제. 향후 multi-role 처리는 옵션 C 확장 carve (`extractRole` priority/filter 로직 추가).
+3. **Default Groups 미설정 권장** (codex review #9 정정) — `devhub-developers` 를 Default Groups 로 추가 시, 신규 manager / pmo_manager / system_admin user 도 자동 `devhub-developers` 가입 → token `realm_access.roles` 에 multiple role 포함. **sprint -q (PR #185, 2026-05-19)** 에서 backend `extractKeycloakRole` 가 `selectHighestPriorityRole` helper + `devhubRolePriority` map (system_admin 4 > pmo_manager 3 > manager 2 > developer 1) 으로 multi-role priority filter 구현 — order-dependency 해소. **그러나 Default Groups 미설정 권장은 여전히 유효** (정책 안전성 + 명시 group 가입 SOP 일관). priority filter 는 fallback 정합 — operator 가 잘못 multi-role 부여해도 token 의 highest priority role 이 사용됨.
 
-### 3.3 backend 동작 (변경 없음)
+### 3.3 backend 동작 (sprint -q multi-role priority 구현)
 
-backend `internal/auth/keycloak_verifier.go:260-285` 의 role 추출 로직:
+backend `internal/auth/keycloak_verifier.go` 의 role 추출 로직 — sprint -q (PR #185) 의 `selectHighestPriorityRole` filter 적용 후:
 
 ```go
 if raw, ok := claims["realm_access"]; ok {

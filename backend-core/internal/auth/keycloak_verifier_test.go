@@ -192,6 +192,47 @@ func TestExtractKeycloakRole_UsesResourceAccessFallback(t *testing.T) {
 	}
 }
 
+// TestExtractKeycloakRole_MultiRolePriority — sprint claude/work_260519-q
+// (ADR-0019 §5.3 codex review #9 backend 확장 carve). Multi-role token (group
+// composite role 가입 시 자연 발생) 의 priority filter 검증. selectHighestPriorityRole
+// 가 4 known role (system_admin > pmo_manager > manager > developer) 의 highest
+// priority 만 반환해야 함. Order-dependency 회피.
+func TestExtractKeycloakRole_MultiRolePriority(t *testing.T) {
+	cases := []struct {
+		name  string
+		roles []any
+		want  string
+	}{
+		{"system_admin first wins over manager+developer", []any{"system_admin", "manager", "developer"}, "system_admin"},
+		{"system_admin last wins over manager+developer (order-independent)", []any{"developer", "manager", "system_admin"}, "system_admin"},
+		{"pmo_manager wins over manager", []any{"manager", "pmo_manager"}, "pmo_manager"},
+		{"developer only", []any{"developer"}, "developer"},
+		{"unknown role fallback to first", []any{"unknown_role"}, "unknown_role"},
+		{"known wins over unknown regardless of order", []any{"unknown_role", "developer"}, "developer"},
+		{"all 4 known roles → system_admin", []any{"developer", "manager", "pmo_manager", "system_admin"}, "system_admin"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			claims := jwt.MapClaims{
+				"realm_access": map[string]any{"roles": tc.roles},
+			}
+			role := extractKeycloakRole(claims)
+			if role != tc.want {
+				t.Fatalf("role = %q; want %q (roles=%v)", role, tc.want, tc.roles)
+			}
+		})
+	}
+}
+
+func TestSelectHighestPriorityRole_EmptyList(t *testing.T) {
+	if got := selectHighestPriorityRole(nil); got != "" {
+		t.Fatalf("empty list should return empty string, got %q", got)
+	}
+	if got := selectHighestPriorityRole([]string{}); got != "" {
+		t.Fatalf("empty slice should return empty string, got %q", got)
+	}
+}
+
 func TestKeycloakJWKSVerifier_VerifyBearerTokenRejectsInvalidAudience(t *testing.T) {
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
