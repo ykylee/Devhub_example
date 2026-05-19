@@ -1,12 +1,23 @@
-# Session Handoff — main (2026-05-19 ADR-0019 §5.3 design 완결 milestone)
+# Session Handoff — main (2026-05-19 ADR-0019 §5.3 design 완결 + critical fixes)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
-- 범위: 2026-05-19 단일 세션 누적 9 PR (sprint -a~-i + 외부 누락 #165~#168 사후 등록). **ADR-0019 §5.3 design 완결 milestone** (MFA 제외, 7/7 = 100%).
+- 범위: 2026-05-19 단일 세션 누적 13 PR (sprint -a~-m + 외부 누락 #165~#168 사후 등록). **ADR-0019 §5.3 design 완결 milestone** (MFA 제외, **10/10 = 100%**) + critical infra/migration 정정.
 - 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
-- 상태: M1/M2/M3 done. **Keycloak 단일 IdP 정합 완전 정착** (ADR-0019 accepted, ADR-0001 superseded). **단일 외부 포트 역프록시(ADR-0018) 완료**. **ADR-0019 §5.3 design 완결 milestone** (MFA 제외, 7/7 = 100% — SOP 4건 + design 4건). **잔여 design+carve 4건** (event listener 실 구현 / group staging-prod / off-boarding Phase 1 운영 cron / HA Phase 2). ADR carve out 종결 누적: ADR-0017 §6 atomicity + ADR-0015 §6 (1)+(2) + ADR-0016 §6 (1)+(2) + ADR-0017 §6 (a)+(c)+(d) + **ADR-0019 §5.3 4+4 (sprint -c~-h)**.
-- 최종 수정일: 2026-05-19 (sprint -i housekeeping)
+- 상태: M1/M2/M3 done. **Keycloak 단일 IdP 정합 완전 정착** (ADR-0019 accepted, ADR-0001 superseded). **단일 외부 포트 역프록시(ADR-0018) 완료**. **ADR-0019 §5.3 design 완결 milestone** (MFA 제외, **10/10 = 100%** — SOP 4건 + design 5건). **잔여 design+carve 5건** (event listener 실 구현 / group staging-prod / off-boarding Phase 1 운영 cron / HA Phase 2 / e2e Kratos → Keycloak 실 코드 전환). **Critical fixes phase**: codex hotfix #9 (P2×9 일괄) + infra Keycloak 정합 (docker-compose + nginx) + migration 000021 prefix 충돌 정정 (git mv → 000030) + frontend e2e migration design. ADR carve out 종결 누적: ADR-0017 §6 atomicity + ADR-0015 §6 (1)+(2) + ADR-0016 §6 (1)+(2) + ADR-0017 §6 (a)+(c)+(d) + **ADR-0019 §5.3 4 SOP + 5 design (sprint -c~-h + -m)**.
+- 최종 수정일: 2026-05-19 (sprint -n housekeeping)
 - 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [상태 스냅샷](./state.json), [거버넌스](../../docs/governance/README.md), [추적성 매트릭스](../../docs/traceability/report.md), [Dev Request 도메인 컨셉](../../docs/planning/development_request_concept.md), [External Integration 컨셉](../../docs/planning/external_system_integration_concept.md), [ADR-0015 HomeLab pull](../../docs/adr/0015-homelab-adapter-pull-strategy.md), [ADR-0016 Prometheus alerts](../../docs/adr/0016-prometheus-alerts-policy.md), [ADR-0017 intake token hardening](../../docs/adr/0017-dreq-intake-token-operational-hardening.md), [ADR-0018 reverse proxy policy](../../docs/adr/0018-single-port-reverse-proxy-policy.md), [**ADR-0019 Keycloak 단일화 (현재 IdP)**](../../docs/adr/0019-keycloak-only-idp.md), [ADR-0001 IdP (Hydra+Kratos, superseded)](../../docs/adr/0001-idp-selection.md), [HomeLab agent token rotation SOP](../../docs/setup/homelab_agent_token_rotation.md), [Prometheus Alertmanager setup](../../docs/setup/prometheus_alertmanager_setup.md), [Grafana dashboard JSON](../../docs/setup/grafana/homelab_dashboard.json), [single_port_reverse_proxy design](../../docs/planning/single_port_reverse_proxy.md), [keycloak_sso_federation design (rejected)](../../docs/planning/keycloak_sso_federation.md), [keycloak_only_refactor_execution_plan (done)](../../docs/planning/keycloak_only_refactor_execution_plan.md), [Jira 보고 status](../../docs/reports/jira_status_2026_05_18.md).
-- 브랜치: `main` (HEAD `455556b`, sprint -h PR #176 squash merge 직후 + 본 sprint -i housekeeping 진행).
+- 브랜치: `main` (HEAD `12cdf81`, sprint -m PR #181 squash merge 직후 + 본 sprint -n housekeeping 진행).
+
+## 2026-05-19 Phase 3 critical fixes (sprint -j ~ -m, 4 PR)
+
+| Sprint | PR | sha | 핵심 |
+| --- | --- | --- | --- |
+| `-j` | #178 | `22a1c15` | **codex review hotfix #9** — sprint -b~-h 7 PR P2 inline 9건 일괄 흡수 (Kratos 잔재 / SetIdPSubject 자동 sync 미구현 / JWKS TTL 10분→5분 / logout URI basePath / event API path / Default Group 권장 철회 / admin REST path / hrdb schema persons no active / failover graceful window worst case 0). backend 확장 carve 4건 추가. |
+| `-k` | #179 | `b3f8153` | **infra Keycloak 정합** — docker-compose.deploy.yml 의 hydra+kratos 4 service → keycloak 1 service (quay.io/keycloak/keycloak:26.0 LTS). nginx devhub.conf + devhub.deploy.conf 의 upstream/location 정합 (port 8180 + /devhub/auth/keycloak/ + KC_HTTP_RELATIVE_PATH). Stage 3 보강으로 proxy_pass trailing slash 제거 (basePath 정합). |
+| `-l` | #180 | `38e09aa` | **CRITICAL migration 000021 prefix 충돌 정정** — git mv `000021_rename_kratos_identity_to_idp_subject.{up,down}.sql` → `000030_*` (기존 `000021_rbac_pmo_manager` 와 prefix 충돌). golang-migrate 의 동일 version multiple file 처리 ambiguous error / silent drift 회피. `docs/setup/migration_000021_conflict_resolution.md` 신규 (clean DB + case A/B/C 운영 DB 정정 SOP). |
+| `-m` | #181 | `12cdf81` | **frontend e2e Kratos → Keycloak admin API migration design** — `docs/planning/e2e_keycloak_migration.md` 신규 (옵션 3종 + 권장 B Keycloak admin 전환 + admin API mapping 6 항목 표 + Phase 2 staging 동반 carve). `.env.example` + `global-setup.ts` + `fixtures.ts` deprecation 주석 추가 (실 코드 그대로). **ADR-0019 §5.3 10/10 milestone 달성**. |
+| `-n` | (본) | TBD | main flat memory housekeeping (sprint -j~-m 4 PR 흡수). |
+
 
 ## 2026-05-19 ADR-0019 §5.3 design 완결 milestone (sprint -a~-i 누적 9 PR)
 
@@ -118,12 +129,13 @@ ADR §7 의 변경 이력 row 에 sprint code 뒤 PR 번호 추가 (`sprint X (P
 
 ## 다음 세션 directive (sprint -i 종료 시점 재산정 — ADR-0019 §5.3 design 완결 후)
 
-### 1순위 — ADR-0019 §5.3 design+carve 실 구현 진입 (4 후보)
+### 1순위 — ADR-0019 §5.3 design+carve 실 구현 진입 (5 후보)
 
-1. **audit event listener 실 구현 Phase 2 (PR-B..E)** — backend scope 가장 큼: cron worker + event_cursors migration 000022 + admin client 확장 + Prometheus metric + integration test. sprint -e design 따름.
-2. **group staging-prod 적용** — 가장 가벼움: Keycloak admin 1회 작업 (group 4 생성 + composite role assign + Default Group 설정). backend 변경 없음.
-3. **off-boarding Phase 1 운영 cron** — `scripts/hrdb_etl_sync.sh` 신규 (hourly cron + psql UPSERT + Keycloak Admin REST 호출) + 사내 운영 cron 배포 SOP.
+1. **audit event listener 실 구현 Phase 2 (PR-B..E)** — backend scope 가장 큼: cron worker + event_cursors migration 신규 + admin client 확장 + Prometheus metric + integration test. sprint -e design 따름.
+2. **group staging-prod 적용** — 가장 가벼움: Keycloak admin 1회 작업 (group 4 생성 + composite role assign + Default Group 미설정 — sprint -j 정정 정합). backend 변경 없음.
+3. **off-boarding Phase 1 운영 cron** — `scripts/hrdb_etl_sync.sh` 신규 (hourly cron + psql UPSERT users.status + Keycloak Admin REST 호출 — admin path 정합) + 사내 운영 cron 배포 SOP.
 4. **HA Phase 2** — 사내 SRE / 인프라팀 결정 동반. ADR-0021 후보. Keycloak HA active-active (Infinispan + shared PG + LB).
+5. **e2e Kratos → Keycloak admin 실 코드 전환** — 사내 Keycloak e2e 환경 staging 진입 동반. sprint -m design 따름 (admin token + user seed + group 가입 + DevHub users sync).
 
 ### 2순위 — 기존 carve out 잔여
 

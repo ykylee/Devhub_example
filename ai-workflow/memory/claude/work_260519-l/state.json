@@ -2,8 +2,10 @@
   "schema_version": "1",
   "sprint": "claude/work_260519-l",
   "branch": "claude/work_260519-l",
-  "status": "in_progress",
+  "status": "done",
   "started_at": "2026-05-19T11:00:00Z",
+  "ended_at": "2026-05-19T11:55:00Z",
+  "merged_pr": {"pr": 180, "merge_commit": "38e09aa", "merged_at": "2026-05-19T11:55:00Z"},
   "scope": "migration 000021 prefix 중복 충돌 정정 — PR #167 KC-PR-E 가 추가한 000021_rename_kratos_identity_to_idp_subject 와 기존 000021_rbac_pmo_manager (PR #119) 의 sequence 충돌 + 운영 DB 정정 SOP.",
   "directive_source": "사용자 요청 'db 마이그레이션도 확인해봐' (sprint -k 종료 시점) → critical 발견 → 사용자 결정 'sprint -l 즉시 진입'.",
   "context": {
