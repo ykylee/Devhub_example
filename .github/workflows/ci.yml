@@ -68,20 +68,22 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check migration prefixes are unique
         run: |
-          set -e
+          set -euo pipefail
           # backend-core/migrations/{version}_{name}.{up,down}.sql 패턴.
           # 동일 version (= filename 첫 underscore 까지의 숫자) 다중 file = golang-migrate ambiguous.
           # up.sql 기준으로 prefix 추출 → 중복 검사.
-          duplicates=$(ls backend-core/migrations/*.up.sql 2>/dev/null \
-            | xargs -n1 basename \
-            | awk -F'_' '{print $1}' \
-            | sort \
-            | uniq -d)
+          duplicates=$(
+            find backend-core/migrations -maxdepth 1 -type f -name '*.up.sql' -print \
+              | awk -F'/' '{print $NF}' \
+              | awk -F'_' '{print $1}' \
+              | sort \
+              | uniq -d
+          )
           if [ -n "$duplicates" ]; then
             echo "::error::Migration prefix collision detected:"
             echo "$duplicates" | while read -r prefix; do
               echo "  prefix '${prefix}' is used by:"
-              ls backend-core/migrations/${prefix}_*.up.sql | sed 's/^/    /'
+              find backend-core/migrations -maxdepth 1 -type f -name "${prefix}_*.up.sql" -print | sed 's/^/    /'
             done
             echo "::error::See docs/setup/migration_000021_conflict_resolution.md for resolution SOP."
             exit 1
@@ -328,11 +330,99 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: cd frontend && npx playwright install chromium
       
-      - name: CI Environment Setup (Ory + DB)
-        run: sudo ./scripts/ci-setup.sh
-        env:
-          DB_URL: postgres://runner@localhost:5432/devhub?sslmode=disable
-          DEVHUB_KRATOS_WEBHOOK_TOKEN: ci-test-token-12345
+      - name: Start Keycloak (container)
+        run: |
+          set -euo pipefail
+          docker run -d --name devhub-keycloak \
+            -p 8180:8080 \
+            -e KC_BOOTSTRAP_ADMIN_USERNAME=admin \
+            -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin \
+            -e KC_HTTP_RELATIVE_PATH=/devhub/auth/keycloak \
+            quay.io/keycloak/keycloak:26.0 start-dev --http-enabled=true --hostname-strict=false > /tmp/keycloak-container-id
+
+      - name: Configure Keycloak realm + clients for E2E
+        run: |
+          set -euo pipefail
+          base="http://localhost:8180/devhub/auth/keycloak"
+
+          timeout 120s bash -c "until curl -fsS \"$base/realms/master/.well-known/openid-configuration\" >/dev/null; do sleep 2; done"
+
+          admin_token=$(
+            curl -fsS "$base/realms/master/protocol/openid-connect/token" \
+              -H "Content-Type: application/x-www-form-urlencoded" \
+              -d "grant_type=password" \
+              -d "client_id=admin-cli" \
+              -d "username=admin" \
+              -d "password=admin" \
+              | python3 -c 'import json,sys; print(json.load(sys.stdin)["access_token"])'
+          )
+
+          http_code=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer ${admin_token}" \
+            "$base/admin/realms/devhub")
+          if [ "$http_code" = "404" ]; then
+            curl -fsS -X POST "$base/admin/realms" \
+              -H "Authorization: Bearer ${admin_token}" \
+              -H "Content-Type: application/json" \
+              -d '{"realm":"devhub","enabled":true}'
+          fi
+
+          for role in developer manager system_admin; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" \
+              -H "Authorization: Bearer ${admin_token}" \
+              "$base/admin/realms/devhub/roles/$role")
+            if [ "$code" = "404" ]; then
+              curl -fsS -X POST "$base/admin/realms/devhub/roles" \
+                -H "Authorization: Bearer ${admin_token}" \
+                -H "Content-Type: application/json" \
+                -d "{\"name\":\"$role\"}"
+            fi
+          done
+
+          frontend_client_id=$(
+            curl -fsS -H "Authorization: Bearer ${admin_token}" \
+              "$base/admin/realms/devhub/clients?clientId=devhub-frontend" \
+              | python3 -c 'import json,sys; a=json.load(sys.stdin); print(a[0]["id"] if a else "")'
+          )
+          if [ -z "$frontend_client_id" ]; then
+            curl -fsS -X POST "$base/admin/realms/devhub/clients" \
+              -H "Authorization: Bearer ${admin_token}" \
+              -H "Content-Type: application/json" \
+              -d '{"clientId":"devhub-frontend","enabled":true,"publicClient":true,"standardFlowEnabled":true,"directAccessGrantsEnabled":false,"redirectUris":["http://localhost:3000/*"],"webOrigins":["http://localhost:3000"]}'
+          fi
+
+          backend_client_id=$(
+            curl -fsS -H "Authorization: Bearer ${admin_token}" \
+              "$base/admin/realms/devhub/clients?clientId=devhub-backend" \
+              | python3 -c 'import json,sys; a=json.load(sys.stdin); print(a[0]["id"] if a else "")'
+          )
+          if [ -z "$backend_client_id" ]; then
+            curl -fsS -X POST "$base/admin/realms/devhub/clients" \
+              -H "Authorization: Bearer ${admin_token}" \
+              -H "Content-Type: application/json" \
+              -d '{"clientId":"devhub-backend","enabled":true,"publicClient":false,"serviceAccountsEnabled":true,"standardFlowEnabled":false,"directAccessGrantsEnabled":false}'
+            backend_client_id=$(
+              curl -fsS -H "Authorization: Bearer ${admin_token}" \
+                "$base/admin/realms/devhub/clients?clientId=devhub-backend" \
+                | python3 -c 'import json,sys; a=json.load(sys.stdin); print(a[0]["id"] if a else "")'
+            )
+          fi
+
+          backend_secret=$(
+            curl -fsS -H "Authorization: Bearer ${admin_token}" \
+              "$base/admin/realms/devhub/clients/${backend_client_id}/client-secret" \
+              | python3 -c 'import json,sys; print(json.load(sys.stdin)["value"])'
+          )
+          echo "DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET=${backend_secret}" >> "$GITHUB_ENV"
+
+      - name: Apply app migrations
+        run: |
+          set -euo pipefail
+          sudo GOBIN=/usr/local/bin go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.19.1
+          migrate -path backend-core/migrations -database "postgres://runner@localhost:5432/devhub?sslmode=disable" up
+
+      - name: Validate E2E-CI Sync Contract
+        run: bash ./scripts/ci-e2e-sync-check.sh .github/workflows/ci.yml
       
       - name: Build App
         run: |
@@ -341,41 +431,25 @@ jobs:
           (cd backend-core && go build -o ../devhub-backend ./)
           (cd frontend && npm run build)
       
-      - name: Start Ory Kratos
-        # DSN + webhook token are hardcoded inside infra/idp/kratos.ci.yaml
-        # (Ory does not expand ${VAR} in YAML), so no env wiring is needed.
-        run: |
-          kratos serve --config infra/idp/kratos.ci.yaml > kratos.log 2>&1 &
-
-      - name: Start Ory Hydra
-        # DSN is hardcoded inside infra/idp/hydra.ci.yaml. --dev is required
-        # because the CI hydra serves over HTTP (no TLS).
-        run: |
-          hydra serve all --config infra/idp/hydra.ci.yaml --dev > hydra.log 2>&1 &
-      
-      - name: Wait for Ory Readiness
-        run: |
-          timeout 60s bash -c 'until curl -s http://localhost:4434/health/ready; do sleep 1; done'
-          timeout 60s bash -c 'until curl -s http://localhost:4445/health/ready; do sleep 1; done'
-      
-      - name: Register OIDC Client
-        run: ./infra/idp/scripts/register-devhub-client.sh
-      
       - name: Start Backend
         env:
           # backend-core reads DB_URL (see internal/config/config.go), not DSN.
           DB_URL: postgres://runner@localhost:5432/devhub?sslmode=disable
-          # Without DEVHUB_HYDRA_ADMIN_URL no bearer-token verifier is wired
-          # and admin/RBAC routes reject E2E requests. Point at the CI Hydra.
-          DEVHUB_HYDRA_ADMIN_URL: http://localhost:4445
-          DEVHUB_HYDRA_PUBLIC_URL: http://localhost:4444
-          DEVHUB_KRATOS_PUBLIC_URL: http://localhost:4433
-          DEVHUB_KRATOS_ADMIN_URL: http://localhost:4434
-          DEVHUB_KRATOS_WEBHOOK_TOKEN: ci-test-token-12345
+          DEVHUB_IDP_PROVIDER: keycloak
+          DEVHUB_OIDC_ISSUER_URL: http://localhost:8180/devhub/auth/keycloak/realms/devhub
+          DEVHUB_OIDC_CLIENT_ID: devhub-frontend
+          DEVHUB_OIDC_AUDIENCE: devhub-frontend
+          DEVHUB_KEYCLOAK_ADMIN_URL: http://localhost:8180/devhub/auth/keycloak
+          DEVHUB_KEYCLOAK_ADMIN_REALM: devhub
+          DEVHUB_KEYCLOAK_ADMIN_CLIENT_ID: devhub-backend
+          DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET: ${{ env.DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET }}
         run: |
           ./devhub-backend > backend.log 2>&1 &
       
       - name: Start Frontend
+        env:
+          NEXT_PUBLIC_OIDC_ISSUER_URL: http://localhost:8180/devhub/auth/keycloak/realms/devhub
+          NEXT_PUBLIC_OIDC_CLIENT_ID: devhub-frontend
         run: |
           cd frontend
           npm run start > ../frontend.log 2>&1 &
@@ -395,6 +469,10 @@ jobs:
           npx playwright test --shard=${{ matrix.shard }}/2
         env:
           DSN: postgres://runner@localhost:5432/devhub?sslmode=disable
+          DEVHUB_KEYCLOAK_ADMIN_URL: http://localhost:8180/devhub/auth/keycloak
+          DEVHUB_KEYCLOAK_ADMIN_REALM: devhub
+          DEVHUB_KEYCLOAK_ADMIN_CLIENT_ID: devhub-backend
+          DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET: ${{ env.DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET }}
       
       - name: Upload Playwright Report
         if: always()
