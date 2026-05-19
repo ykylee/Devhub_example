@@ -6,7 +6,7 @@
 - 상태: accepted (sections marked Draft/Confirmed 안에서 부분 진화)
 - 작성일: 2026-04-29
 - 최종 수정일: 2026-05-15 (외부 시스템 연동 설계 초안, §8 ARCH-INT 추가)
-- 관련 문서: [요구사항 정의서](./requirements.md), [백엔드 API 계약](./backend_api_contract.md), [ADR-0001 IdP](./adr/0001-idp-selection.md), [ADR-0002 RBAC](./adr/0002-rbac-policy-edit-api.md), [ADR-0003 No-Docker CI scope](./adr/0003-no-docker-policy-ci-scope.md), [추적성 매트릭스](./traceability/report.md), [프로젝트 프로파일](../ai-workflow/memory/PROJECT_PROFILE.md).
+- 관련 문서: [요구사항 정의서](./requirements.md), [백엔드 API 계약](./backend_api_contract.md), [ADR-0019 Keycloak 단일화 (현재 IdP 결정)](./adr/0019-keycloak-only-idp.md), [ADR-0001 IdP (Hydra+Kratos, superseded)](./adr/0001-idp-selection.md), [ADR-0002 RBAC](./adr/0002-rbac-policy-edit-api.md), [ADR-0003 No-Docker CI scope](./adr/0003-no-docker-policy-ci-scope.md), [추적성 매트릭스](./traceability/report.md), [프로젝트 프로파일](../ai-workflow/memory/PROJECT_PROFILE.md).
 
 ## 1. 개요
 본 문서는 DevHub의 시스템 구성, 서비스 간 통신 방식, 데이터 흐름 및 UI/UX 시각화 전략을 상세히 정의합니다.
@@ -161,7 +161,7 @@ users (이미 존재)
 
 #### 6.2.3 인증 흐름 (1차)
 
-> **결정 (2026-05-07, [ADR-0001](./adr/0001-idp-selection.md))**: DevHub 인증은 **Keycloak OIDC** 표준 흐름으로 통일한다. `users` 는 사람·조직 master 로 유지하고, credential·session lifecycle 은 IdP가 소유한다.
+> **결정 (2026-05-07 [ADR-0001](./adr/0001-idp-selection.md) → 2026-05-19 [ADR-0019](./adr/0019-keycloak-only-idp.md) 으로 supersede)**: DevHub 인증은 **Keycloak OIDC** 표준 흐름으로 통일한다. `users` 는 사람·조직 master 로 유지하고, credential·session lifecycle 은 IdP가 소유한다. ADR-0001 의 Hydra+Kratos 원본 결정은 PR #167 (2026-05-18) 로 Keycloak 단일화로 전환됐고 ADR-0019 가 결정 사후 명문화. ADR-0001 본문은 historical context 로 immutable 보존.
 
 흐름 (사용자가 DevHub Next.js 에서 로그인하는 first-party 케이스 기준):
 
@@ -176,7 +176,7 @@ users (이미 존재)
 | 단계 | 범위 | 기준 |
 | --- | --- | --- |
 | Phase 1 | Webhook secret 검증, system admin role 분리, 관리자 작업 Audit Log | TASK-007 및 초기 시스템 관리자 기능 구현 기준 |
-| Phase 2 | Keycloak 기반 OIDC 도입, DevHub OIDC client 전환, token 검증/actor 매핑/audit 경계 정착 | Keycloak/OIDC 운영 진입 및 backend Phase 13 완료 시점 ([ADR-0001](./adr/0001-idp-selection.md)) |
+| Phase 2 | Keycloak 기반 OIDC 도입, DevHub OIDC client 전환, token 검증/actor 매핑/audit 경계 정착 | Keycloak/OIDC 운영 진입 및 backend Phase 13 완료 시점 ([ADR-0019](./adr/0019-keycloak-only-idp.md), [ADR-0001](./adr/0001-idp-selection.md) superseded) |
 | Phase 3 | Gitea 사용자/조직/저장소 권한 동기화, Repository 하위 Project role 매핑 | Application-Repository-Project 매핑과 관리자 대시보드 확장 시점 |
 | Phase 4 | Gitea SSO 연동 기반 통합 인증, 자체 계정과의 병행/대체 정책 결정 | 운영 환경 전환 전 별도 보안 검토 후 도입 |
 

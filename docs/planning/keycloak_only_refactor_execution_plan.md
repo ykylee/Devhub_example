@@ -1,11 +1,14 @@
 # Keycloak 단일화 리팩토링 실행 계획
 
-- 문서 목적: DevHub 인증 체계를 Ory Keycloak/OIDC 결합 구조에서 Keycloak 단일 체계로 전환하는 구현 계획을 정의한다.
+- 문서 목적: DevHub 인증 체계를 Ory Hydra+Kratos 결합 구조에서 Keycloak 단일 체계로 전환하는 구현 계획을 정의한다.
 - 범위: 아키텍처 전환, Keycloak 서버 구성(내장/외부), 단계별 구현/검증/롤백 전략
 - 대상 독자: backend-core, frontend, 인프라/운영, QA, 릴리즈 담당자
-- 상태: planned
-- 최종 수정일: 2026-05-18
-- 관련 문서: `docs/backend_api_contract.md`, `docs/adr/0001-idp-selection.md`, `docs/tests/e2e-test-guide.md`, `docs/traceability/sync-checklist.md`
+- 상태: **done (1차 완성, 2026-05-19)** — PR #167 (merge `dff487d`, 2026-05-18) 으로 KC-PR-A..F 6단계 모두 main 머지. [ADR-0019](../adr/0019-keycloak-only-idp.md) 가 결정 근거 + 잔여 carve out 의 source-of-truth.
+- 최종 수정일: 2026-05-19
+- 결정 근거 sprint: `codex/keycloak-only-refactor-plan` (1차 작성, 2026-05-18) → `claude/work_260519-a` (done status 갱신, 2026-05-19)
+- 관련 문서: [ADR-0019 Keycloak 단일화 결정](../adr/0019-keycloak-only-idp.md), [ADR-0001 IdP selection (Hydra+Kratos, superseded)](../adr/0001-idp-selection.md), `docs/backend_api_contract.md`, `docs/tests/e2e-test-guide.md`, `docs/traceability/sync-checklist.md`
+
+> **✅ 실행 완료 (2026-05-19)**: 본 plan 의 §7 PR 분할 (PR-A..F) 은 PR #167 단일 묶음으로 머지 완료. 아래 §3 "현재 상태 요약" 은 plan 작성 시점 (2026-05-18) 의 historical snapshot 이며, 실 코드 상태는 PR #167 머지 결과를 따른다. ADR governance 측면의 결정 명문화는 ADR-0019 가 책임.
 
 ## 1. 목표
 
@@ -95,32 +98,37 @@
   - JWKS rotation/cache 설정
   - TLS/CA 신뢰체인
 
-## 7. 단계별 구현 계획 (PR 분할)
+## 7. 단계별 구현 계획 (PR 분할) — **모두 PR #167 로 머지됨**
 
-1. PR-A: 설정/추상화
+> **머지 사실**: 본 plan 의 6단계는 단일 PR #167 (merge commit `dff487d`, 2026-05-18) 묶음으로 모두 main 머지됨. 별도 PR 분할 없이 codex 가 단일 큰 PR 으로 처리.
+
+1. **PR-A: 설정/추상화** — ✅ **done** (PR #167 묶음)
 - IdP provider 플래그, env 로더, 공통 config 정리
 - `Keycloak` provider 스켈레톤 추가
 
-2. PR-B: Backend verifier 전환
-- JWKS 기반 토큰 검증 구현
-- role claim 매핑/actor context 정합
-- auth middleware 경로 회귀 테스트
+2. **PR-B: Backend verifier 전환** — ✅ **done** (PR #167 묶음)
+- JWKS 기반 토큰 검증 구현 (`internal/auth/keycloak_verifier.go`)
+- role claim 매핑/actor context 정합 (resource_access fallback)
+- auth middleware 경로 회귀 테스트 (`keycloak_verifier_test.go`)
 
-3. PR-C: Backend account/admin 전환
+3. **PR-C: Backend account/admin 전환** — ✅ **done** (PR #167 묶음)
 - KratosAdmin adapter 제거/대체
-- Keycloak Admin API로 account lifecycle 구현
+- Keycloak Admin API로 account lifecycle 구현 (`internal/httpapi/keycloak_admin_client.go` + `_test.go`)
 
-4. PR-D: Frontend OIDC 전환
-- authorize/callback/logout/account flow 전환
-- Keycloak/OIDC 전용 코드 제거
+4. **PR-D: Frontend OIDC 전환** — ✅ **done** (PR #167 묶음)
+- authorize/callback/logout/account flow 전환 (OIDC discovery 기반)
+- Hydra/Kratos 전용 코드 제거 (auth.service / kratos-logout / kratos-webhook 등)
+- legacy self-signup 비활성화
 
-5. PR-E: DB 마이그레이션
+5. **PR-E: DB 마이그레이션** — ✅ **done** (PR #167 묶음)
 - `kratos_identity_id` 일반화 (`idp_subject`)
+- migration `000021_rename_kratos_identity_to_idp_subject` (up + down)
 - backfill 및 조회 로직 전환
 
-6. PR-F: 테스트/문서/추적성
-- E2E 시나리오 갱신
-- API contract/ADR/guide/traceability 동기화
+6. **PR-F: 테스트/문서/추적성** — ✅ **done** (PR #167 묶음)
+- E2E 시나리오 갱신 (signup/auth specs Keycloak 정합)
+- API contract / setup 가이드 / E2E 가이드 / requirements / architecture / frontend_integration_requirements 동기화
+- ADR governance 측면 정정은 2026-05-19 sprint `claude/work_260519-a` 가 별도로 [ADR-0019](../adr/0019-keycloak-only-idp.md) 발행 + ADR-0001 supersession 으로 마무리.
 
 ## 8. 진척 관리 규칙
 

@@ -1,14 +1,17 @@
-# DevHub IdP — Ory Hydra + Kratos Setup Guide
+# DevHub IdP — Ory Hydra + Kratos Setup Guide (historical, deprecated 2026-05-19)
 
-- 문서 목적: ADR-0001 결정에 따라 Ory Hydra + Ory Kratos 를 native binary 로 가동하는 일반 환경 setup 가이드.
+- 문서 목적: ADR-0001 (Hydra+Kratos) 결정에 따라 Ory Hydra + Ory Kratos 를 native binary 로 가동하는 일반 환경 setup 가이드. **본 가이드는 2026-05-18 PR #167 (Keycloak 단일화 refactor) 로 deprecate 됨**.
 - 범위: binary 설치 → DB schema → 마이그레이션 → 가동 → OIDC client 등록 → round-trip 검증.
 - 대상 독자: DevHub 개발자 (신규 합류자 포함), 운영자.
-- 상태: active
-- 최종 수정일: 2026-05-07
+- 상태: **deprecated (2026-05-19)** — [ADR-0019 Keycloak 단일화](../../docs/adr/0019-keycloak-only-idp.md) 로 IdP stack 전환. 현재 운영 가이드는 [test-server-deployment.md](../../docs/setup/test-server-deployment.md) + [environment-setup.md](../../docs/setup/environment-setup.md) (Keycloak 기준 정합화, PR #167 KC-PR-F).
+- 최종 수정일: 2026-05-19 (deprecation banner 추가, sprint `claude/work_260519-a`)
 - 관련 문서:
-    - [ADR-0001 — IdP 선택](../../docs/adr/0001-idp-selection.md)
+    - [ADR-0019 — Keycloak 단일화 (현재 결정)](../../docs/adr/0019-keycloak-only-idp.md)
+    - [ADR-0001 — IdP 선택 (Hydra+Kratos, superseded)](../../docs/adr/0001-idp-selection.md)
     - [ENVIRONMENT_NOTES.md — 이 저장소가 가정하는 사내 corp 환경 특수 제약](./ENVIRONMENT_NOTES.md)
     - [backend_development_roadmap.md P1](../../ai-workflow/memory/backend_development_roadmap.md)
+
+> ⚠ **Deprecated (2026-05-19)**: 본 가이드의 Hydra/Kratos 가동 절차는 historical reference 로 보존된다. 현재 IdP 는 Keycloak 단일화 (ADR-0019). Keycloak 환경 구성은 docs/planning/keycloak_only_refactor_execution_plan.md §6 (Keycloak 서버 구성) + docs/setup/test-server-deployment.md 참조.
 
 > ℹ️ 본 가이드는 보통의 개발 환경(외부 인터넷 접근, Scoop/brew 등 표준 패키지 매니저 사용 가능)을 가정한다. 사내 SSL inspection·GoProxy 미러 제약이 있는 환경에 대한 우회 절차는 [ENVIRONMENT_NOTES.md](./ENVIRONMENT_NOTES.md) 를 별도로 본다.
 

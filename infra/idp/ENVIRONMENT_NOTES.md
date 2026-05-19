@@ -15,7 +15,7 @@
 | PostgreSQL | 로컬 native 설치, `127.0.0.1:5432`, DB `devhub` (`postgres`/`postgres`). **CLI 도구(`psql.exe`) 가 PATH 에 없음** — GUI 또는 별도 도구로 운영. |
 | Go | `C:\Program Files\Go\bin` PATH 등록. `go env GOPROXY=https://proxy.golang.org,direct`, `GOSUMDB=sum.golang.org` (기본값). |
 | 네트워크 | 사내 SSL inspection 환경. **`proxy.golang.org` / `sum.golang.org` 외부 접근 차단**. GitHub release binary 직접 다운로드(`https://github.com/.../releases/download/...`) 는 가능. |
-| 기타 | Docker / docker-compose 미사용 정책 (ADR-0001 §2). |
+| 기타 | Docker / docker-compose 미사용 정책 (ADR-0003, 또한 ADR-0001 §2 historical / superseded by ADR-0019). |
 
 ## 2. 환경 특수 제약과 우회 결정
 

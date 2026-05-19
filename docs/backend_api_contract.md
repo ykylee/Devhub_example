@@ -639,7 +639,7 @@ command 및 조직/사용자 관리 변경에서 생성된 audit log를 최신�
 ## 10. 구현된 / 예정 API 보충
 
 - `GET /api/v1/me` (API-32) — 구현됨 (`backend-core/internal/httpapi/me.go`). authenticated actor (login / subject / role / actor_source) 반환. 별도 spec 절은 후속 sprint 의 본문 작성 후보 (현재는 본 §10 행이 1차 노출).
-- Keycloak/OIDC JWKS 또는 introspection 기반 Bearer token verification (예정 — ADR-0001 §9 후속 step).
+- Keycloak JWKS 기반 Bearer token verification ([ADR-0019](./adr/0019-keycloak-only-idp.md) §4 — local JWT 서명 검증 + JWKS cache + resource_access role fallback. ADR-0001 §9 는 historical Hydra introspection plan, superseded).
 - WebSocket 인증, 구독 필터, 마지막 event replay (M3 진입 시).
 
 도메인 정규화 테이블 설계 이후 별도 spec 절로 분리한다.
@@ -901,7 +901,7 @@ unit 의 member 목록을 bulk replace. 누락된 user 는 unit 에서 제거, �
 
 DevHub 인증 경계는 Keycloak 기반 OIDC 표준 흐름을 사용한다. Go Core는 토큰 검증과 actor 매핑, 권한/감사 정책 enforcement를 담당하며, 자체 `/api/v1/auth/*` 프록시 API는 제공하지 않는다.
 
-정책 기준은 [ADR-0001](./adr/0001-idp-selection.md), [architecture.md 6.2절](./architecture.md#62-사용자user--계정account-도메인-분리)을 따른다.
+정책 기준은 [ADR-0019 Keycloak 단일화 (현재 결정)](./adr/0019-keycloak-only-idp.md), [ADR-0001 IdP selection (Hydra+Kratos, superseded)](./adr/0001-idp-selection.md), [architecture.md 6.2절](./architecture.md#62-사용자user--계정account-도메인-분리)을 따른다.
 
 ### 11.1 소유권 분리
 

@@ -19,7 +19,7 @@
 
 - **[Project Profile](./PROJECT_PROFILE.md)**: 프로젝트 개요, 목적, 설치/실행 가이드 및 워크플로우 기본 규칙.
 - **[Architecture (본문)](./architecture.md)**: 시스템 컴포넌트, 통신, 데이터 전략, 보안, UI/UX 시각화 전략의 narrative source-of-truth.
-- **[Architecture 디렉터리 진입점](./architecture/README.md)**: 시스템 본문 / ADR 인덱스 / 컴포넌트별 설계 자료의 디렉터리 안내. ADR-0001(IdP 선택) 등 결정 기록 진입점.
+- **[Architecture 디렉터리 진입점](./architecture/README.md)**: 시스템 본문 / ADR 인덱스 / 컴포넌트별 설계 자료의 디렉터리 안내. ADR-0019(Keycloak 단일화, 현재) / ADR-0001(Hydra+Kratos, superseded) 등 결정 기록 진입점.
 
 ## 2. 개발 및 표준 (Development)
 *코드 작성 및 문서 관리 표준을 다룹니다.*

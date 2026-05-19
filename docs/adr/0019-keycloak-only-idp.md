@@ -1,0 +1,223 @@
+# ADR-0019: Keycloak 단일화 (Hydra+Kratos 폐기) 결정의 사후 명문화
+
+## 1. 상태
+- **상태**: Accepted
+- **작성일**: 2026-05-19
+- **수정일**: 2026-05-19
+- **결정 근거 sprint**: `claude/work_260519-a`
+- **supersedes**: [ADR-0001 (Ory Hydra + Kratos 선정, 2026-05-07)](./0001-idp-selection.md)
+- **관련 문서**: [docs/planning/keycloak_only_refactor_execution_plan.md](../planning/keycloak_only_refactor_execution_plan.md) (실행 계획), [docs/planning/keycloak_sso_federation.md](../planning/keycloak_sso_federation.md) (rejected 옵션 B design), [ADR-0018 단일 포트 reverse proxy](./0018-single-port-reverse-proxy-policy.md)
+
+## 2. 컨텍스트
+
+### 2.1 historical 결정 (ADR-0001, 2026-05-07)
+
+ADR-0001 은 DevHub 의 IdP 로 **Ory Hydra + Kratos** 조합을 선정했다.
+- Hydra: OAuth2/OIDC server
+- Kratos: identity + self-service (password, signup, settings, recovery)
+- Go 네이티브 + headless + Docker 미사용 정책 부합
+
+이 결정으로 M0~M2 단계의 인증/계정/RBAC 트랙이 모두 완성됐고 audit/actor enrichment + request_id 미들웨어 + Bearer token verifier (Hydra introspection) 까지 정합화됐다 (2026-05-11 PR #57).
+
+### 2.2 2026-05-18 design 검토 (PR #163, sprint -v) — 옵션 B 권장
+
+`docs/planning/keycloak_sso_federation.md` (sprint `claude/work_260518-v`, PR #163, merge `cdd73b0`) 가 외부 Keycloak SSO 통합의 3가지 옵션을 비교:
+
+| 옵션 | 변경 범위 | 운영 부담 | 권장 |
+| --- | --- | --- | --- |
+| A. Keycloak 으로 Hydra+Kratos **전체 대체** | 매우 큼 — ADR-0001 reverse, backend verifier 재구현, frontend OIDC client 재구성 | Keycloak 1개로 simplify | ❌ blast radius 큼 |
+| B. Keycloak 을 Kratos 의 upstream OIDC provider 로 **federation** | 중간 — Kratos `selfservice.methods.oidc` + frontend SSO 버튼 + HRDB user mapping | 기존 stack 유지 + Keycloak 추가 | ⭐ **권장** |
+| C. Hydra 와 token brokering | 매우 큼 + 복잡 | brokering layer 추가 | ❌ over-engineering |
+
+design 문서는 **옵션 B 를 권장**했으며 §15 에서 "Phase 2 진입 시 ADR-0019 후보" 로 옵션 B 의 결정 명문화를 예고했다.
+
+### 2.3 2026-05-18 actual implementation (PR #167) — 옵션 A 채택
+
+같은 날 외부 codex 가 별도 브랜치 (`codex/keycloak-only-refactor-plan`, merge `dff487d`) 에서 **옵션 A (Keycloak 단일화) 실 구현을 main 에 머지**했다. 머지 commit 사실:
+
+- 신규: `backend-core/internal/auth/keycloak_verifier.go` + `keycloak_admin_client.go` + JWKS cache + resource_access role fallback
+- 신규: migration `000021_rename_kratos_identity_to_idp_subject` (`users.kratos_identity_id` → `users.idp_subject` 컬럼 일반화)
+- 삭제: `auth/hydra_introspection.go` + `httpapi/hydra_admin_client.go` + `hydra_token_client.go` + `auth_login.go` + `auth_logout.go` + `auth_consent.go` + `auth_signup.go` + `auth_token.go` + `kratos_webhook.go` + `kratos-logout.ts` 및 관련 테스트
+- 갱신: `infra/nginx/devhub.conf` (Keycloak 단일 진입), 프론트엔드 `auth.service.ts` OIDC discovery 기반, requirements/architecture/setup 가이드/E2E 테스트 가이드 정합화
+
+즉 **design 의 권장 (옵션 B) 이 reversal 되고 옵션 A 가 실제 채택**됐다.
+
+### 2.4 결정 reversal 의 명문화 필요성
+
+PR #167 의 codex 는 ADR-0001 의 **제목과 §3.5 heading 만** "Ory Keycloak" 으로 수정하고 §3.5 body / §4 결정 / §5 데이터 모델 / §6 인증 흐름 / §7 결과 / §8 미해결 / §9 구현 등은 **Hydra+Kratos 기준 그대로** 보존했다. 결과:
+
+- ADR-0001 의 제목과 본문이 충돌 (제목 "Ory Keycloak" + 본문 "Hydra: OAuth2/OIDC server. Kratos: identity store")
+- ADR governance 의 immutable history 원칙 위반
+- reader 가 ADR-0001 의 현재 결정을 가늠할 수 없음
+
+본 ADR-0019 가 **결정 reversal 의 정합적 사후 명문화**를 책임진다.
+
+## 3. 결정 사항
+
+### 3.1 Keycloak 단일화 채택 (옵션 A)
+
+DevHub 의 IdP 를 **Keycloak 단일 stack 으로 일원화**한다.
+
+- 인증 (OAuth2/OIDC): Keycloak realm 의 OIDC discovery endpoint
+- 계정/세션/비밀번호: Keycloak Admin API (`/admin/realms/{realm}/users`)
+- 토큰 검증: Keycloak JWKS 기반 JWT verifier (introspection 대신 local JWT 서명 검증 + JWKS cache)
+- frontend: OIDC code flow + PKCE (Keycloak public client `devhub-frontend`)
+- backend: confidential service-account client `devhub-backend` (Admin API 호출용)
+
+### 3.2 ADR-0001 supersession
+
+ADR-0001 (Hydra+Kratos 선정, 2026-05-07) 의 결정은 본 ADR-0019 가 supersede 한다.
+
+- ADR-0001 의 본문 §3~§9 는 historical context 로 immutable 보존
+- ADR-0001 의 status 헤더에 "superseded by ADR-0019 (2026-05-19)" 명시
+- ADR-0001 의 제목 + §3.5 heading 은 원래 "Ory Hydra + Kratos" 표기로 복원 (PR #167 의 partial heading 수정 정정)
+
+### 3.3 결정 근거 (왜 옵션 A 인가)
+
+design 문서 PR #163 §2 가 옵션 B 를 권장했음에도 옵션 A 가 채택된 사유:
+
+1. **운영 단순성**: 사내 운영팀이 Keycloak 을 이미 관리할 수 있는 환경에서 Hydra+Kratos 별도 운영은 인프라 부담 중복. 단일 Keycloak 으로 모든 인증/계정 stack 통합 시 운영 surface 축소.
+2. **자체 password 사용자와 SSO 사용자 공존 부담 회피**: 옵션 B 는 transitional 기간 동안 Kratos password 와 Keycloak SSO 두 method 공존 + identity link 충돌 처리 + cutover Phase 4 종료 시 password method 비활성화 등 단계적 복잡성. 옵션 A 는 Keycloak 으로 단일화하면서 password 정책도 Keycloak 의 표준 정책에 위임.
+3. **MFA / WebAuthn / account recovery 표준 기능 자연 흡수**: Keycloak 의 MFA / FIDO2 / WebAuthn / account recovery / password policy 가 표준 기능. 옵션 B 의 federation 으로는 Keycloak 의 MFA 정책 상속에 그치고 DevHub 의 자체 Kratos MFA 도 별도 운영 필요.
+4. **`users.idp_subject` 일반화**: migration 000021 로 `users.kratos_identity_id` → `users.idp_subject` 로 일반화하면 IdP 교체에 대한 결합도 감소 (옵션 A 의 부수 효과).
+5. **단일 포트 reverse proxy (ADR-0018) 와의 정합**: ADR-0018 의 `/devhub/auth/*` prefix 가 옵션 A 에서는 `/devhub/auth/keycloak/*` 단일 path 로 단순화. 옵션 B 는 `/devhub/auth/hydra/*` + `/devhub/auth/kratos/*` 두 path 유지.
+6. **off-boarding 즉시성**: 옵션 A 는 Keycloak 에서 사용자 비활성화 → DevHub 접근 즉시 차단 (token expiration window 내). 옵션 B 는 Kratos identity 의 별도 비활성화 sync 필요.
+
+trade-off:
+- 옵션 A 는 ADR-0001 의 모든 결정을 reverse — historical 결정 reversal 자체의 운영 부담 (코드 대거 삭제/재작성, migration 필요)
+- 그러나 이미 PR #167 으로 실 구현 완료된 상태 → 결정 reversal 의 sunk cost 는 회수 완료
+
+따라서 옵션 A 채택 + ADR-0001 supersession 으로 결정.
+
+## 4. 결과
+
+### 4.1 코드 변경 (PR #167 머지 사실)
+
+PR #167 (merge commit `dff487d`, 2026-05-18) 가 다음 6단계 (KC-PR-A..F) 를 단일 묶음으로 머지:
+
+| 단계 | 범위 | 결과 |
+| --- | --- | --- |
+| KC-PR-A | config/provider 스켈레톤 | `DEVHUB_IDP_PROVIDER=keycloak` env + config 로더 |
+| KC-PR-B | Keycloak JWT/JWKS verifier 전환 | `internal/auth/keycloak_verifier.go` + `keycloak_verifier_test.go` (JWKS cache + resource_access fallback) |
+| KC-PR-C | account/admin API Keycloak Admin 연동 | `internal/httpapi/keycloak_admin_client.go` + `keycloak_admin_client_test.go` (Kratos Admin 대체) |
+| KC-PR-D | frontend auth/logout flow 전환 | OIDC discovery 기반 authorize/callback/logout + Hydra/Kratos 전용 URL 제거 + legacy self-signup 비활성화 |
+| KC-PR-E | identity 컬럼 일반화 마이그레이션 | migration `000021_rename_kratos_identity_to_idp_subject` + backfill + 조회 로직 전환 |
+| KC-PR-F | 테스트/문서/traceability 동기화 | requirements / architecture / backend_api_contract / setup 가이드 / E2E 테스트 가이드 Keycloak 기준 정합화 |
+
+### 4.2 환경설정 계약
+
+#### 4.2.1 공통
+- `DEVHUB_IDP_PROVIDER=keycloak`
+- `DEVHUB_OIDC_ISSUER_URL`
+- `DEVHUB_OIDC_CLIENT_ID`
+- `DEVHUB_OIDC_CLIENT_SECRET` (confidential client)
+- `DEVHUB_OIDC_AUDIENCE` (선택)
+
+#### 4.2.2 Backend
+- `DEVHUB_OIDC_JWKS_URL` (선택: 없으면 issuer discovery)
+- `DEVHUB_KEYCLOAK_ADMIN_URL`
+- `DEVHUB_KEYCLOAK_ADMIN_REALM`
+- `DEVHUB_KEYCLOAK_ADMIN_CLIENT_ID`
+- `DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET`
+
+#### 4.2.3 Frontend
+- `NEXT_PUBLIC_OIDC_ISSUER_URL`
+- `NEXT_PUBLIC_OIDC_CLIENT_ID`
+- `NEXT_PUBLIC_OIDC_REDIRECT_URI`
+- `NEXT_PUBLIC_OIDC_SCOPE` (기본: `openid profile email`)
+
+### 4.3 데이터 모델
+
+migration 000021 가 도입한 `users.idp_subject` 컬럼이 IdP 발급 sub 의 단일 anchor.
+
+```text
+users (DevHub master)               keycloak users (IdP master)
+  user_id (PK, text)        ←→        sub (uuid, OIDC claim)
+  idp_subject (FK to sub)
+  email                                attributes.email
+  display_name                         attributes.name
+  role, status, primary_unit_id
+  ...
+```
+
+- `users.user_id` 는 그대로 DevHub 도메인 master
+- `users.idp_subject` 가 Keycloak `sub` claim 과 1:1 매핑
+- DevHub backend Bearer token verifier 는 access_token 의 `sub` claim 으로 `users` row 조회
+
+### 4.4 인증 흐름 (Keycloak 단일화 후)
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant F as Frontend (Next.js)
+    participant KC as Keycloak
+    participant B as Backend-Core (Go)
+
+    U->>F: /login 진입
+    F->>KC: OIDC authorize (PKCE)
+    U->>KC: 자격 증명 입력 (+ MFA, account recovery 등)
+    KC->>F: redirect /auth/callback?code=...
+    F->>KC: POST /oauth2/token (PKCE verifier)
+    KC->>F: access_token + refresh_token + id_token
+    F->>B: /api/v1/* with Authorization: Bearer <access_token>
+    B->>KC: GET /.well-known/openid-configuration (JWKS, cached)
+    B->>B: JWT 서명 검증 + claim 추출 (sub, roles, email 등)
+    B->>F: response
+```
+
+핵심: backend 가 **introspection 대신 local JWT 서명 검증 + JWKS cache** 로 동작 → Keycloak 의 admin endpoint 부담 감소 + latency 개선.
+
+### 4.5 audit_logs 영향
+
+- Kratos webhook 기반 audit 흐름 (PR-M2-AUDIT, ADR-0001 §7 의 결정) 은 제거됨
+- Keycloak 이벤트는 별도 SOP 로 후속 통합 (carve out, §5.3 참조)
+- `audit_logs.actor_login` 은 Keycloak `preferred_username` claim 으로 매핑
+- `audit_logs.source_ip` + `request_id` 는 ADR-0001 의 결정 그대로 (PR-D 의 actor enrichment 유지)
+
+## 5. 운영 영향 + 잔여 carve out
+
+### 5.1 cutover 진행 상태
+
+- ✅ 2026-05-18 PR #167 머지로 코드 cutover 완료
+- ✅ 2026-05-18 PR #168 + post-update 로 workflow memory sync 완료
+- ✅ 2026-05-19 본 sprint (`claude/work_260519-a`) 로 ADR governance 정정 완료
+- ⏳ Keycloak realm/client 운영 환경 구성 (사내 운영팀 책임) — local docker-compose 임베디드 모드 + external 모드 분기는 execution plan §6 참조
+
+### 5.2 trade-off
+
+| 항목 | Keycloak 단일화 (옵션 A, 본 결정) | Hydra+Kratos (ADR-0001) |
+| --- | --- | --- |
+| 운영 프로세스 | Keycloak 1개 (JVM ~512MB-1GB) | Hydra + Kratos 2개 (Go ~50-100MB each) |
+| Admin UI | Keycloak 내장 | 자체 구현 (`/admin/settings/*`) |
+| MFA / WebAuthn | Keycloak 표준 기능 | Kratos 표준 기능 (Phase 4 carve) |
+| account recovery | Keycloak 표준 기능 | Kratos 표준 기능 |
+| password policy | Keycloak 표준 정책 | Kratos 자체 정책 |
+| Docker 미사용 정책 (ADR-0003) | JVM 운영 — native binary 또는 컨테이너 둘 다 가능 (사내 환경 별도 결정) | Go static binary native 운영 자연스러움 |
+| 운영 학습 곡선 | Keycloak — 사내 운영팀 친숙도에 의존 | Hydra+Kratos — 신규 운영 자원 |
+
+### 5.3 잔여 carve out
+
+- **(carve)** Keycloak realm/client/role 운영 SOP — `docs/setup/keycloak_operations.md` 신규 carve. 사내 환경 별 (local embedded vs external) 분기 가이드.
+- **(carve)** JWKS rotation 운영 SOP — Keycloak 의 key rotation 주기 + DevHub backend 의 JWKS cache invalidation policy + clock skew 허용 범위. 별도 SOP 문서 carve.
+- **(carve)** Keycloak ↔ HRDB sync — 옵션 B design (PR #163 §4) 의 employee_id strict link 정책 은 옵션 A 환경에서도 적용 가능 (Keycloak user attribute `employee_id` 가 HRDB primary key 와 sync). 본 carve 는 Keycloak admin 의 user attribute 매핑 SOP 와 함께 처리.
+- **(carve)** Keycloak SSO logout chain — RP-initiated logout (id_token_hint) + Keycloak SSO logout + DevHub frontend redirect 의 chain order. design 문서 PR #163 §14 의 carve 가 옵션 A 환경에서도 유효.
+- **(carve)** MFA 도입 — Keycloak 의 표준 MFA 정책 활성화 + 사내 정책 결정. ADR-0001 §8.3 (MFA 1차 미도입) 의 자연 진입.
+- **(carve)** Keycloak failover — Keycloak 자체가 단일 장애점이 되는 위험. HA 구성 또는 backup IdP 정책 결정. M4 진입 시 재평가.
+- **(carve)** off-boarding 즉시성 — HR 시스템 → Keycloak → DevHub 의 사용자 비활성화 chain propagation 시간. Keycloak 의 token TTL (access 1h / refresh 24h) 와 ADR-0008 daily ETL cron 의 latency worst-case 24h+ 가능. M4 진입 시 ADR-0008 §6 의 ETL 운영 entry 와 함께 결정.
+- **(carve)** Keycloak `groups` claim → DevHub RBAC role 자동 매핑 — 현재는 `resource_access.{client_id}.roles` fallback (KC-PR-B) 만 지원. groups → role 매핑 정책은 별도 ADR 후보.
+
+### 5.4 RM-M4-09 의미 재정의
+
+ADR-0001 시점의 RM-M4-09 "외부 SSO 통합 (Gitea 연동 등)" 은 Hydra 가 외부 IdP (Gitea, Keycloak 등) 의 brokering layer 가 되는 그림을 가정했다. 본 ADR-0019 이후 RM-M4-09 의 scope 는 다음으로 재정의:
+
+- Keycloak 자체가 SSO 우산 (사내 AD/LDAP/SAML 다른 시스템과 연결) — Keycloak 의 federation 기능 사용
+- DevHub 는 Keycloak 의 OIDC client 로만 동작
+- Gitea 등 외부 시스템과의 SSO 는 Keycloak 의 identity broker / user federation 으로 처리 (DevHub 코드 변경 없음)
+
+이 재정의는 traceability §3 의 RM-M4-09 row 갱신과 함께 반영.
+
+## 6. 변경 이력
+
+| 일자 | 변경 | sprint |
+| --- | --- | --- |
+| 2026-05-19 | 1차 발행. PR #167 (옵션 A 실 구현, 2026-05-18) 사후 명문화 + ADR-0001 supersession + 결정 근거 6 항목 + 잔여 carve out 7 항목 + RM-M4-09 의미 재정의. | `claude/work_260519-a` |

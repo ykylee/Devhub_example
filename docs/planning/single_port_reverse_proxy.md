@@ -6,7 +6,7 @@
 - 상태: Accepted (ADR-0018 승격 및 실 구현 완결)
 - 최종 수정일: 2026-05-18
 - 결정 근거 sprint: `adr0018-reverse-proxy` (본 sprint)
-- 관련 문서: [ADR-0001 IdP selection](../adr/0001-idp-selection.md), [ADR-0003 no-docker CI 정책](../adr/0003-no-docker-policy-ci-scope.md), [environment setup](../setup/environment-setup.md), [test-server-deployment](../setup/test-server-deployment.md), [docker-packaging-deployment-guide](../setup/docker-packaging-deployment-guide.md), [frontend endpoints 모듈](../../frontend/lib/config/endpoints.ts).
+- 관련 문서: [ADR-0019 Keycloak 단일화 (현재 IdP)](../adr/0019-keycloak-only-idp.md), [ADR-0001 IdP selection (Hydra+Kratos, superseded)](../adr/0001-idp-selection.md), [ADR-0003 no-docker CI 정책](../adr/0003-no-docker-policy-ci-scope.md), [environment setup](../setup/environment-setup.md), [test-server-deployment](../setup/test-server-deployment.md), [docker-packaging-deployment-guide](../setup/docker-packaging-deployment-guide.md), [frontend endpoints 모듈](../../frontend/lib/config/endpoints.ts).
 
 ## 1. 컨텍스트 + 동기
 

@@ -63,7 +63,7 @@
 
 DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다. 인증은 Keycloak 기반 OIDC 표준 흐름을 1차 수단으로 사용한다.
 
-> **구현 방식 (2026-05-07, [ADR-0001](./adr/0001-idp-selection.md))**: 본 절의 정책 invariant(1:1 매핑, 비밀번호 평문 미보관, 자동 lock, audit log 대상) 는 그대로 유지하되, 구현은 **자체 `accounts` 테이블이 아닌 Ory Keycloak** 가 책임진다. 신규 요구 — DevHub 의 계정 서비스를 다른 앱에도 OIDC IdP 로 제공 — 를 충족하기 위한 결정이다. 정책 변경 없음.
+> **구현 방식 (2026-05-07 [ADR-0001](./adr/0001-idp-selection.md) → 2026-05-19 [ADR-0019](./adr/0019-keycloak-only-idp.md) supersede)**: 본 절의 정책 invariant(1:1 매핑, 비밀번호 평문 미보관, 자동 lock, audit log 대상) 는 그대로 유지하되, 구현은 **자체 `accounts` 테이블이 아닌 Keycloak (단일 IdP)** 가 책임진다. 신규 요구 — DevHub 의 계정 서비스를 다른 앱에도 OIDC IdP 로 제공 — 를 충족하기 위한 결정이다. ADR-0001 (Hydra+Kratos) 의 원본 결정은 PR #167 (2026-05-18) 로 Keycloak 단일화 전환됐고 ADR-0019 가 사후 명문화. 정책 변경 없음.
 
 - **핵심 니즈:** 식별 가능한 사람 단위 권한 관리, 분실/유출 시 빠른 회수, 감사 가능한 비밀번호 변경 기록.
 - **용어 분리:**
