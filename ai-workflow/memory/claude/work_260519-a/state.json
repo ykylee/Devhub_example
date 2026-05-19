@@ -2,8 +2,10 @@
   "schema_version": "1",
   "sprint": "claude/work_260519-a",
   "branch": "claude/work_260519-a",
-  "status": "in_progress",
+  "status": "done",
   "started_at": "2026-05-19T00:00:00Z",
+  "ended_at": "2026-05-19T00:55:00Z",
+  "merged_pr": {"pr": 169, "merge_commit": "3018927", "merged_at": "2026-05-19T00:55:00Z"},
   "scope": "ADR-0019 재산정 — PR #167 (Keycloak-only refactor) 가 design 문서 PR #163 의 권장 옵션 B 를 뒤집고 옵션 A 를 실제 채택한 결정의 사후 명문화. ADR-0001 (Hydra+Kratos) supersession 처리 포함.",
   "directive_source": "사용자 요청 'ADR-0019 재산정부터 가자' — main 최신화 직후 brokent ADR governance 정합화.",
   "context": {

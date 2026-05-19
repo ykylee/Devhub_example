@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-05-18 post-EOD #2 종합 — PR #166 (역프록시) 병합 및 PR #167 (Keycloak 단일화) 병합 완결 후, 전역 workflow 메모리 갱신 housekeeping (PR #168) 최종 병합 완결.",
-  "updated_at": "2026-05-18T23:50:00Z",
-  "head_commit": "09f4ca18a7a03f4be8a846c434f0d36746f34586",
-  "head_summary": "chore(workflow): update global memory state after merging PR #167 (#168)",
+  "status": "2026-05-19 ADR-0019 재산정 + main flat memory housekeeping 완결 — PR #169 (sprint -a, ADR-0019 신규 발행 + ADR-0001 supersession + 14 추가 정합) 머지 + 본 housekeeping (sprint -b) 진행. 직전 외부 PR #165 (sprint -x EOD housekeeping) + PR #166 (reverse-proxy ADR-0018 구현) + PR #167 (Keycloak-only refactor) + PR #168 (workflow memory sync) 누적 사후 등록.",
+  "updated_at": "2026-05-19T01:30:00Z",
+  "head_commit": "3018927",
+  "head_summary": "docs(adr,planning,traceability): ADR-0019 재산정 — Keycloak 단일화 사후 명문화 + ADR-0001 supersession (#169)",
   "milestones": {
     "M0": {
       "status": "done",
@@ -41,21 +41,21 @@
   "components": {
     "frontend": {
       "phase": "Phase 6 done + frontend wire/UI types split (PR-B2). auth flow complete (login + logout + callback + account); /admin/settings shell live with users/organization/permissions sub-routes; sidebar gates system menu on actor.role.",
-      "auth": "OIDC code flow with PKCE end-to-end. tokenStore persists access/refresh/id; apiClient auto Authorization. AuthGuard 401 -> /login + system route gate. Header Sign Out drives Hydra /oauth2/sessions/logout via id_token_hint, Kratos cookie killed via fetch.",
+      "auth": "Keycloak OIDC code flow with PKCE end-to-end (ADR-0019, 2026-05-19). tokenStore persists access/refresh/id; apiClient auto Authorization. AuthGuard 401 -> /login + system route gate. Header Sign Out drives Keycloak end_session_endpoint via id_token_hint. (Hydra/Kratos 흐름은 PR #167 머지로 제거 — historical ADR-0001 superseded.)",
       "build_check": "PASS — Next.js 16.2.4, 18 static pages.",
       "rbac": "PermissionEditor at /admin/settings/permissions wired to /api/v1/rbac/policies. defaultLandingFor + isSystemAdmin + pathRequiresSystemAdmin in lib/auth/role-routing.ts."
     },
     "backend": {
-      "phase": "M1 + M2 done. Auth proxy: /api/v1/auth/{login,logout,token,signup,consent} + accounts admin (/api/v1/accounts {POST/PUT password/PATCH/DELETE}). Audit enrichment (source_ip/request_id/source_type) + requireRequestID middleware + CommandStatus enum + envelope alignment.",
-      "auth": "BearerTokenVerifier (Hydra introspection) + enforceRoutePermission. Logout: Hydra accept + revoke. Accounts admin proxies Kratos admin. SetTrustedProxies(nil) so audit_logs.source_ip cannot be forged via X-Forwarded-For.",
-      "test_check": "PASS — go test ./... (httpapi: 10 accounts admin + 11 logout + 5 envelope + 4 audit enrichment + auth + RBAC; domain: CommandStatus 36-cell matrix).",
+      "phase": "M1 + M2 done. Keycloak 단일 IdP (ADR-0019, 2026-05-19). 자체 /api/v1/auth/* proxy 폐기 (PR #167 KC-PR-D). 계정 admin (/api/v1/accounts {POST/PUT password/PATCH/DELETE}) 은 Keycloak Admin Client 로 위임. Audit enrichment (source_ip/request_id/source_type) + requireRequestID middleware + CommandStatus enum + envelope alignment.",
+      "auth": "Keycloak JWKS-based BearerTokenVerifier (`internal/auth/keycloak_verifier.go`, PR #167 KC-PR-B) + enforceRoutePermission. JWKS cache + resource_access.{client_id}.roles fallback. Keycloak Admin Client (`internal/httpapi/keycloak_admin_client.go`, KC-PR-C) 가 account/admin operations 책임. SetTrustedProxies(nil) so audit_logs.source_ip cannot be forged via X-Forwarded-For. (historical Hydra introspection + Kratos webhook 은 PR #167 머지로 모두 제거.)",
+      "test_check": "PASS — go test ./... (keycloak_verifier_test, keycloak_admin_client_test, RBAC, audit 등). Hydra/Kratos test 파일은 제거됨.",
       "rbac": "rbac_policies seeded with developer/manager/system_admin. /api/v1/accounts gated as security:create / security:edit / organization:edit / organization:delete.",
-      "auth_envs": "DEVHUB_HYDRA_ADMIN_URL, DEVHUB_HYDRA_PUBLIC_URL (revoke), DEVHUB_KRATOS_PUBLIC_URL (login), DEVHUB_KRATOS_ADMIN_URL (signup + accounts admin).",
+      "auth_envs": "DEVHUB_IDP_PROVIDER=keycloak, DEVHUB_OIDC_ISSUER_URL, DEVHUB_OIDC_CLIENT_ID, DEVHUB_OIDC_CLIENT_SECRET, DEVHUB_OIDC_AUDIENCE, DEVHUB_OIDC_JWKS_URL, DEVHUB_KEYCLOAK_ADMIN_URL, DEVHUB_KEYCLOAK_ADMIN_REALM, DEVHUB_KEYCLOAK_ADMIN_CLIENT_ID, DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET (ADR-0019 §4.2). historical DEVHUB_HYDRA_*/DEVHUB_KRATOS_* env 는 PR #167 머지로 제거.",
       "request_context": "X-Request-ID 응답 헤더 + audit_logs.request_id 동일값. caller-supplied X-Request-ID 우선, 없으면 req_<hex24> 자동 생성 (DEC-3=B)."
     },
     "infra_idp": {
-      "scaffold": "infra/idp/ (hydra.yaml, kratos.yaml, schemas, scripts) — verified 2026-05-08 sandbox.",
-      "deploy_guide": "docs/setup/test-server-deployment.md — native binary, no-docker, full e2e flow."
+      "scaffold": "Keycloak 단일 IdP (ADR-0019, 2026-05-19). infra/idp/ 의 historical hydra.yaml / kratos.yaml + setup README/ENVIRONMENT_NOTES 는 deprecation banner 추가 (PR #169) 후 보존. local dev embedded 모드는 keycloak_only_refactor_execution_plan §6.1, external 모드는 §6.2 참조.",
+      "deploy_guide": "docs/setup/test-server-deployment.md — Keycloak 기준 native 운영 (PR #167 KC-PR-F 정합화). docs/setup/environment-setup.md + e2e-test-guide.md 도 Keycloak 정합. infra/idp/README.md 는 deprecated (PR #169)."
     }
   },
   "session_pointers": {
@@ -218,7 +218,14 @@
     {"pr": 161, "sprint": "claude/work_260518-t", "title": "feat(backend,devrequest,store,adr,setup,test): ADR-0017 §6 (a)+(c)+(d) resolved — DREQ intake token cron + 만료/staleness Prometheus metric + audit dev_request_intake_token.auto_revoked + counter devhub_intake_token_auto_revoked_total + 5 cron unit test + 3 store integration sub-test", "merge_commit": "8802a5b"},
     {"pr": 162, "sprint": "claude/work_260518-u", "title": "docs(planning,traceability): 단일 외부 포트 reverse proxy design 검토 — /devhub prefix + backend/Hydra/Kratos sub-path + nginx 권장 + Mermaid 토폴로지 + OIDC URL 정합 + cookie scope + 보안 점검 + cutover 절차 + ADR-0018 후보", "merge_commit": "338c430"},
     {"pr": 163, "sprint": "claude/work_260518-v", "title": "docs(planning,traceability): 외부 Keycloak SSO federation design 검토 — Kratos upstream OIDC provider + HRDB employee_id strict link + claim mapping + audit auth.sso.* 4 action + cutover Phase 2/3/4 + ADR-0019 후보 (RM-M4-09 구체화)", "merge_commit": "cdd73b0"},
-    {"pr": 164, "sprint": "claude/work_260518-w", "title": "fix(backend,frontend,docs): codex review hotfix #8 — P1 3건 (HTTP puller ErrUnexpectedEOF retry 회귀 + PromQL env scoping + Hydra admin URL) + P2 6건 (scopeFilter prepend / spec react-flow assertion / file puller trailing JSON / ADR-0006+0012 link / NoRecentSuccess aggregation)", "merge_commit": "4dd02ad"}
+    {"pr": 164, "sprint": "claude/work_260518-w", "title": "fix(backend,frontend,docs): codex review hotfix #8 — P1 3건 (HTTP puller ErrUnexpectedEOF retry 회귀 + PromQL env scoping + Hydra admin URL) + P2 6건 (scopeFilter prepend / spec react-flow assertion / file puller trailing JSON / ADR-0006+0012 link / NoRecentSuccess aggregation)", "merge_commit": "4dd02ad"},
+    {"pr": 165, "sprint": "claude/work_260518-x", "title": "docs(memory,roadmap,traceability): 2026-05-18 post-EOD #2 종합 housekeeping + 로드맵 갱신 (sprint -r..w 6 PR sync + ADR carve out 누적 8건 + ADR-0018/0019 후보 메모)", "merge_commit": "3e25628"},
+    {"pr": 166, "sprint": "gemini/reverse-proxy", "title": "feat(infra): implement single-port reverse proxy (ADR-0018) — nginx skeleton + Next.js basePath /devhub + endpoints.ts dynamic + test-server-deployment 가이드 + Same-Origin CORS 무력화", "merge_commit": "694e694"},
+    {"pr": 167, "sprint": "codex/keycloak-only-refactor-plan", "title": "refactor(idp): finalize keycloak-only transition and clean legacy hydra/kratos paths — Keycloak verifier + admin client + migration 000021 (kratos_identity_id → idp_subject) + JWKS cache + resource_access role fallback + frontend OIDC discovery + Hydra/Kratos 코드 대거 삭제 (KC-PR-A..F 6단계 단일 묶음)", "merge_commit": "dff487d"},
+    {"pr": 168, "sprint": "codex/keycloak-only-refactor-plan-housekeeping", "title": "chore(workflow): update global memory state after merging PR #167 — main flat state/handoff/work_backlog 후속 sync (외부 codex 작성)", "merge_commit": "09f4ca1"}
+  ],
+  "merged_prs_2026_05_19": [
+    {"pr": 169, "sprint": "claude/work_260519-a", "title": "docs(adr,planning,traceability): ADR-0019 재산정 — Keycloak 단일화 사후 명문화 + ADR-0001 supersession — §3 결정 근거 6 항목 + §4 KC-PR-A..F 머지 사실 + §5.3 carve out 8 항목 + §5.4 RM-M4-09 의미 재정의 + ADR-0001 본문 8개 위치 supersession banner + 14 추가 정합 docs", "merge_commit": "3018927"}
   ],
   "dreq_domain_carve_out_progress": {
     "1_4_rbac_adr_promote_tx": "✅ sprint m PR #128 (ADR-0013 사후 명문화 + Promote-Tx 단일 트랜잭션) + codex hotfix #4 sprint n PR #129",
@@ -256,17 +263,27 @@
       "✅ resolved (PR #157, sprint -p) — ADR-0015 §6 (1) size limit + streaming decode + (2) agent token rotation SOP",
       "✅ resolved (PR #160, sprint -s) — ADR-0016 §6 (1) Alertmanager 운영 가이드 + (2) Grafana dashboard JSON",
       "✅ resolved (PR #161, sprint -t) — ADR-0017 §6 (a) cron revoke + (c) 만료 metric + (d) staleness metric",
-      "✅ design 검토 완료 (PR #162, sprint -u) — single port reverse proxy (ADR-0018 후보, Phase 2 staging 진입 후 승격)",
-      "✅ design 검토 완료 (PR #163, sprint -v) — Keycloak SSO federation (ADR-0019 후보, RM-M4-09 구체화)",
+      "✅ design 검토 완료 (PR #162, sprint -u) — single port reverse proxy (ADR-0018 후보 → 2026-05-18 PR #166 으로 Accepted + 실 구현)",
+      "✅ design 검토 완료 (PR #163, sprint -v) — Keycloak SSO federation (ADR-0019 후보) → 2026-05-19 sprint -a PR #169 로 **ADR-0019 accepted (옵션 A Keycloak 단일화 채택, 옵션 B Kratos federation rejected)**",
       "✅ resolved (PR #164, sprint -w) — codex hotfix #8 P1 3건 + P2 6건",
+      "✅ resolved (PR #165, sprint -x) — post-EOD #2 종합 housekeeping + 로드맵 갱신",
+      "✅ resolved (PR #166, gemini/reverse-proxy, 2026-05-18) — ADR-0018 단일 외부 포트 reverse proxy 실 구현 (nginx + basePath /devhub)",
+      "✅ resolved (PR #167, codex/keycloak-only-refactor-plan, 2026-05-18) — Keycloak-only refactor KC-PR-A..F 6단계 머지 (옵션 A 채택)",
+      "✅ resolved (PR #168, codex housekeeping, 2026-05-18) — main flat memory PR #167 후속 sync",
+      "✅ resolved (PR #169, sprint -a, 2026-05-19) — **ADR-0019 재산정** (Keycloak 단일화 사후 명문화 + ADR-0001 supersession + 14 추가 정합 docs)",
       "(carve) ADR-0015 §6 (3) dedicated worker binary — M4 진입 시 재평가",
       "(carve) ADR-0015 §6 (4) push/pull 동시 운영 dedup 정책 — 별도 ADR 후보",
       "(carve) ADR-0016 §6 (3) pull latency p95 alert — baseline 1주 관찰 후",
       "(carve) ADR-0016 §6 (4) push 경로 webhook 알림 metric",
       "(carve) ADR-0016 §6 (5) stage→prod 임계값 확정",
       "(carve) ADR-0017 §6 (b) PATCH expires_at — admin UI 편집 modal + 정책 변경",
-      "(carve) ADR-0018 승격 + Phase 2 staging (single port reverse proxy)",
-      "(carve) ADR-0019 승격 + Phase 2 staging (Keycloak SSO federation)",
+      "(carve) ADR-0019 §5.3 Keycloak realm/client/role 운영 SOP (`docs/setup/keycloak_operations.md` 신규 후보)",
+      "(carve) ADR-0019 §5.3 JWKS rotation 운영 SOP",
+      "(carve) ADR-0019 §5.3 Keycloak ↔ HRDB sync (employee_id strict link)",
+      "(carve) ADR-0019 §5.3 Keycloak SSO logout chain (RP-initiated logout)",
+      "(carve) ADR-0019 §5.3 MFA / Keycloak failover / off-boarding 즉시성",
+      "(carve) ADR-0019 §5.3 Keycloak `groups` claim → DevHub RBAC role 자동 매핑",
+      "(carve) ADR-0019 §5.4 RM-M4-09 의미 재정의 — Keycloak identity broker / Gitea/AD 등 외부 SSO 후속 통합",
       "(carve) External Integration 후속 강화 — React Flow group sub-node + WebSocket 실시간 + v2 node click action",
       "(carve) M4 RM-M4-XX 본격 진입 — WebSocket replay, AI Gardener gRPC, System Admin 대시보드, Gitea Hourly Pull"
     ]
@@ -281,9 +298,10 @@
     "ci_decisions_2026_05_13": [
       "ADR-0003 (2026-05-13) — no-docker 정책이 CI 까지 적용됨을 명문화. `.github/workflows/ci.yml` 의 `services: postgres:15` sidecar 제거 + pgdg apt repo 로 native PostgreSQL 15 설치하는 step 으로 교체. 본 결정으로 FU-CI-1 항목 처리 완료."
     ],
-    "m2_followups": [
-      "Kratos webhook 수신 → DevHub audit_logs 통합 (self-service password 변경 등 audit)",
-      "Hydra JWKS / introspection verifier 실구현 (현재는 introspection 기반)"
+    "m2_followups": [],
+    "m2_followups_closed_by_adr_0019": [
+      "✅ obsolete (2026-05-19, ADR-0019) — Kratos webhook 수신 → audit_logs 통합 — Keycloak 단일화로 Kratos webhook 패턴 자체 제거. Keycloak event listener / admin event SPI 기반 audit 통합은 carve out (ADR-0019 §5.3 잔여).",
+      "✅ obsolete (2026-05-19, ADR-0019) — Hydra JWKS/introspection verifier 실구현 — PR #167 KC-PR-B 의 keycloak_verifier.go 가 Keycloak JWKS local 검증 (+ JWKS cache + resource_access fallback) 으로 대체."
     ],
     "pr_d_followups": [],
     "pr_d_followups_closed_by_work_260513_e": [
