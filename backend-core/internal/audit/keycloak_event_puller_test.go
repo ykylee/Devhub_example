@@ -484,3 +484,96 @@ func TestHashAdminEvent_DistinguishesByAuthClient(t *testing.T) {
 		t.Fatalf("admin hash collision on distinct AuthClientID")
 	}
 }
+
+// TestPullUserEvents_SameMsSkipAndEmit_PrefersEmittableHash — sprint -aa codex hotfix
+// #11 P2 정정 검증. 같은 ms 에 skip type (REFRESH_TOKEN) 과 emit-able type (LOGIN)
+// 이 함께 들어오면, cursor.LastEventHash 가 emit-able event 의 hash 로 저장되어야
+// 다음 tick 의 dateFrom inclusive boundary 에서 emit-able event 가 dedup 차단되고
+// re-emit + metric inflation 회피.
+func TestPullUserEvents_SameMsSkipAndEmit_PrefersEmittableHash(t *testing.T) {
+	start := time.Date(2026, 5, 19, 12, 0, 0, 0, time.UTC)
+	boundary := start.Add(10 * time.Second)
+
+	// Tick 1 events: 같은 ms 에 skip type + emit-able 동시 등장.
+	skipEv := KeycloakUserEvent{Time: boundary.UnixMilli(), Type: "REFRESH_TOKEN", UserID: "u1", IPAddr: "10.0.0.1"}
+	emitEv := KeycloakUserEvent{Time: boundary.UnixMilli(), Type: "LOGIN", UserID: "u1", IPAddr: "10.0.0.1"}
+
+	lister := &fakeKeycloakEventLister{
+		userEvents: []KeycloakUserEvent{skipEv, emitEv},
+	}
+	cursors := newFakeCursorStore()
+	_ = cursors.UpsertEventCursor(context.Background(), store.EventCursor{
+		CursorKey:   userEventsCursor,
+		LastEventAt: start,
+	})
+
+	opts := KeycloakEventPullerOptions{
+		AuditEmitter:       AuditEmitter(func(_ context.Context, _, _, _, _ string, _ map[string]any) {}),
+		Now:                func() time.Time { return boundary.Add(1 * time.Second) },
+		SkipUserEventTypes: defaultSkipUserEventTypes(),
+		MaxEvents:          500,
+	}
+	if err := pullUserEvents(context.Background(), lister, cursors, opts, opts.Now); err != nil {
+		t.Fatalf("tick 1 pullUserEvents: %v", err)
+	}
+
+	got, err := cursors.GetEventCursor(context.Background(), userEventsCursor)
+	if err != nil {
+		t.Fatalf("GetEventCursor: %v", err)
+	}
+	if !got.LastEventAt.Equal(boundary) {
+		t.Fatalf("cursor LastEventAt = %v; want %v", got.LastEventAt, boundary)
+	}
+	// 핵심 검증 — cursor.LastEventHash 가 emit-able event 의 hash 여야 함.
+	emitHash := hashUserEvent(emitEv)
+	skipHash := hashUserEvent(skipEv)
+	if got.LastEventHash == skipHash {
+		t.Fatalf("cursor.LastEventHash = skipEv hash (%s) — 다음 tick 에서 emit event 가 re-emit 됨 (codex hotfix #11 회귀)", skipHash)
+	}
+	if got.LastEventHash != emitHash {
+		t.Fatalf("cursor.LastEventHash = %s; want emitEv hash (%s)", got.LastEventHash, emitHash)
+	}
+}
+
+// TestPullUserEvents_SameMsSkipAndEmit_NextTickDedup — 위 scenario 의 다음 tick 회귀
+// 검증. Tick 2 에서 dateFrom inclusive 로 두 boundary event 가 다시 등장 — emit-able
+// event 의 hash 가 cursor 에 저장됐으므로 boundary dedup 으로 둘 다 차단.
+func TestPullUserEvents_SameMsSkipAndEmit_NextTickDedup(t *testing.T) {
+	start := time.Date(2026, 5, 19, 12, 0, 0, 0, time.UTC)
+	boundary := start.Add(10 * time.Second)
+	skipEv := KeycloakUserEvent{Time: boundary.UnixMilli(), Type: "REFRESH_TOKEN", UserID: "u1", IPAddr: "10.0.0.1"}
+	emitEv := KeycloakUserEvent{Time: boundary.UnixMilli(), Type: "LOGIN", UserID: "u1", IPAddr: "10.0.0.1"}
+
+	// cursor 가 이미 emit-able event hash 로 set 된 상태 — Tick 1 simulation.
+	emitHash := hashUserEvent(emitEv)
+	cursors := newFakeCursorStore()
+	_ = cursors.UpsertEventCursor(context.Background(), store.EventCursor{
+		CursorKey:     userEventsCursor,
+		LastEventAt:   boundary,
+		LastEventHash: emitHash,
+	})
+
+	// Tick 2: 같은 두 event 다시 등장 (Keycloak dateFrom inclusive).
+	lister := &fakeKeycloakEventLister{
+		userEvents: []KeycloakUserEvent{skipEv, emitEv},
+	}
+
+	var emitCount int
+	opts := KeycloakEventPullerOptions{
+		AuditEmitter: AuditEmitter(func(_ context.Context, _, _, _, _ string, _ map[string]any) {
+			emitCount++
+		}),
+		Now:                func() time.Time { return boundary.Add(2 * time.Second) },
+		SkipUserEventTypes: defaultSkipUserEventTypes(),
+		MaxEvents:          500,
+	}
+	if err := pullUserEvents(context.Background(), lister, cursors, opts, opts.Now); err != nil {
+		t.Fatalf("tick 2 pullUserEvents: %v", err)
+	}
+	// emit-able event 의 hash == cursor.LastEventHash → boundary dedup 으로 skip 되어야 함.
+	// skip-type event 는 default skip list 로 emit 안 됨.
+	// 따라서 emitCount == 0 이 정상.
+	if emitCount != 0 {
+		t.Fatalf("emitCount = %d; want 0 (emit-able boundary 가 dedup 되어야 — codex hotfix #11 회귀)", emitCount)
+	}
+}
