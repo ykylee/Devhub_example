@@ -222,4 +222,4 @@ ADR-0001 시점의 RM-M4-09 "외부 SSO 통합 (Gitea 연동 등)" 은 Hydra 가
 | 일자 | 변경 | sprint |
 | --- | --- | --- |
 | 2026-05-19 | 1차 발행. PR #167 (옵션 A 실 구현, 2026-05-18) 사후 명문화 + ADR-0001 supersession + 결정 근거 6 항목 + 잔여 carve out 8 항목 + RM-M4-09 의미 재정의. | `claude/work_260519-a` |
-| 2026-05-19 | §5.3 carve out (1) realm/client/role SOP + (2) JWKS rotation SOP + (3) Keycloak ↔ HRDB sync 3 항목 resolved — [`docs/setup/keycloak_operations.md`](../setup/keycloak_operations.md) 신규. §5.3 잔여 carve = 5 항목 (logout chain / MFA / failover / off-boarding / groups → RBAC) + audit event listener carve 1 항목 추가. | `claude/work_260519-c` |
+| 2026-05-19 | §5.3 carve out (1) realm/client/role SOP + (2) JWKS rotation SOP + (3) Keycloak ↔ HRDB sync 3 항목 resolved — [`docs/setup/keycloak_operations.md`](../setup/keycloak_operations.md) 신규. §5.3 잔여 carve = 6 항목 (logout chain / MFA / failover / off-boarding / groups → RBAC + audit event listener 신규 carve). | `claude/work_260519-c` |
