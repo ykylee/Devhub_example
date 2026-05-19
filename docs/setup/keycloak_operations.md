@@ -266,11 +266,29 @@ client_secret 은 사내 vault 보관. 정기 rotation SOP 는 §6 JWKS rotation
 
 ### 8.2 user 회수 (off-boarding)
 
+자세한 즉시성 design 은 [docs/planning/keycloak_offboarding_immediacy.md](../planning/keycloak_offboarding_immediacy.md) — HR ETL ↔ Keycloak ↔ DevHub propagation chain. 본 SOP 는 Phase 1 (옵션 C HR ETL push) 운영 절차.
+
+#### 수동 즉시 회수 (긴급, Keycloak admin 직접)
+
 | 단계 | 위치 | 액션 |
 | --- | --- | --- |
 | 1. user 비활성화 | Users → 해당 user → Details → Enabled = OFF | 이후 로그인 차단 |
-| 2. 활성 session 무효화 | Sessions 탭 → "Logout all sessions" | 강제 logout (refresh token 까지) |
-| 3. DevHub `users.status` sync | (자동/수동 carve) | HRDB ETL cron 이 비활성 동기화 — `users.status = deactivated` |
+| 2. 활성 session 무효화 | Sessions 탭 → "Logout all sessions" | 강제 logout (refresh token 까지). access_token 은 TTL (권장 5분, [§6.2](#62-rotation-주기-권장)) 동안 유효. |
+| 3. DevHub `users.status` sync | (자동) | 다음 hourly HRDB ETL cron 에서 `users.status = deactivated` |
+| 4. audit 검수 | Keycloak admin event log | `USER:UPDATE` (enabled=false) + `USER:ACTION` (LOGOUT) 발생 확인 ([keycloak_event_audit_integration.md §4.2](../planning/keycloak_event_audit_integration.md#42-admin-event) 매핑 정합) |
+
+#### 자동 회수 (운영 cron, Phase 1)
+
+| 단계 | 위치 | 액션 |
+| --- | --- | --- |
+| 1. HR 시스템 | 사내 HR system | 퇴사 / 비활성화 처리 |
+| 2. HR ETL cron 실행 | 사내 운영 cron (**hourly**, [Phase 1 design §3.1](../planning/keycloak_offboarding_immediacy.md)) | `scripts/hrdb_etl_sync.sh` 실행 — (a) DevHub `hrdb` schema UPSERT + (b) Keycloak Admin API user disable + (c) force logout |
+| 3. access_token TTL 만료 | (자동) | 권장 5분 TTL 후 새 token 발급 차단 → 실 권한 회수 |
+| 4. **worst case latency** | — | ETL 주기 (1h) + token TTL (5분) ≈ **1시간** |
+
+#### Phase 2 carve — LDAP/AD federation 도입 시
+
+사내 LDAP/AD 운영 중이면 Keycloak User Federation 으로 worst case ≤ 15분 ([offboarding §4](../planning/keycloak_offboarding_immediacy.md) Phase 2).
 
 ### 8.3 client_secret rotation
 
