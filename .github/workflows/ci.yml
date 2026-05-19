@@ -408,6 +408,43 @@ jobs:
             )
           fi
 
+          # Grant Keycloak Admin API permissions to devhub-backend service account
+          # so Playwright global setup can list/create users and map roles.
+          realm_mgmt_client_id=$(
+            curl -fsS -H "Authorization: Bearer ${admin_token}" \
+              "$base/admin/realms/devhub/clients?clientId=realm-management" \
+              | python3 -c 'import json,sys; a=json.load(sys.stdin); print(a[0]["id"] if a else "")'
+          )
+          service_account_user_id=$(
+            curl -fsS -H "Authorization: Bearer ${admin_token}" \
+              "$base/admin/realms/devhub/clients/${backend_client_id}/service-account-user" \
+              | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])'
+          )
+          role_payload=$(
+            {
+              printf '['
+              first=1
+              for role_name in view-users query-users manage-users view-realm; do
+                role_json=$(
+                  curl -fsS -H "Authorization: Bearer ${admin_token}" \
+                    "$base/admin/realms/devhub/clients/${realm_mgmt_client_id}/roles/${role_name}"
+                )
+                if [ "$first" -eq 1 ]; then
+                  printf '%s' "$role_json"
+                  first=0
+                else
+                  printf ',%s' "$role_json"
+                fi
+              done
+              printf ']'
+            }
+          )
+          curl -fsS -X POST \
+            "$base/admin/realms/devhub/users/${service_account_user_id}/role-mappings/clients/${realm_mgmt_client_id}" \
+            -H "Authorization: Bearer ${admin_token}" \
+            -H "Content-Type: application/json" \
+            -d "$role_payload" >/dev/null
+
           backend_secret=$(
             curl -fsS -H "Authorization: Bearer ${admin_token}" \
               "$base/admin/realms/devhub/clients/${backend_client_id}/client-secret" \
