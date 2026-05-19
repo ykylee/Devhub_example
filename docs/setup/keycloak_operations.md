@@ -186,15 +186,13 @@ client_secret 은 사내 vault 보관. 정기 rotation SOP 는 §6 JWKS rotation
 
 - TTL default = **5분** (`defaultJWKSTTL = 5 * time.Minute`)
 - cache miss (TTL 만료 또는 빈 cache) 시 `${DEVHUB_OIDC_JWKS_URL}` 또는 issuer discovery 의 `/protocol/openid-connect/certs` fetch
-- **현재 동작 한계 (codex review #9)**: `kid` mismatch 시 자동 refetch 가 **아님** — `fetchJWKS` 가 cache 유효 동안 cached key set 반환 → `ParseWithClaims` 가 `jwks key not found` 실패. cache TTL 만료 후 다음 fetch 에서 새 key 흡수.
+- **kid mismatch 시 stale-while-error fallback** (sprint -r PR #186, 2026-05-19): `kid` mismatch (codex review #9 #3 carve resolved) 시 backend 가 자동 `invalidateCache` + JWKS forced refetch + 1회 retry. Keycloak key rotation 직후 새 kid 의 token 이 cache TTL 만료 전이라도 정합. signature/expired/issuer/audience 등 non-kid error 는 retry 안 함 (security 위협 회피).
 
-**rotation 시 backend 동작**:
+**rotation 시 backend 동작** (sprint -r stale-while-error fallback 적용 후):
 1. Keycloak 에서 new active key 생성 (이전 key passive 이동)
-2. backend cache 유효 (rotation 후 최대 5분) 동안 새 kid 의 token 은 `jwks key not found` 401 — **graceful window 동안 정상 사용자 영향 가능**
-3. cache TTL 만료 후 fetch → 새 key 흡수 → 자동 정상화
-4. 즉시 새 key 흡수 필요 시 backend 재시작 (cache invalidate)
-
-**개선 carve**: `kid` mismatch 시 강제 refetch (stale-while-error fallback 패턴) — `KeycloakJWKSVerifier` 의 `fetchJWKS` 확장 필요 (backend code 변경 carve).
+2. backend 가 새 kid token 받음 → 1차 parse 시 `errKidMismatch` → `invalidateCache` + JWKS forced refetch → 2차 parse 성공
+3. **graceful window 0 — 사용자 영향 없음**
+4. signature / expired / issuer / audience error 는 retry 안 함 (security)
 
 ### 6.4 rotation 운영 SOP (D-Day)
 

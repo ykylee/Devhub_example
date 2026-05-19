@@ -1,0 +1,25 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260519-r",
+  "branch": "claude/work_260519-r",
+  "status": "in_progress",
+  "started_at": "2026-05-19T17:00:00Z",
+  "scope": "잔여 사항 순서대로 진행 #4 — backend 확장 #2: JWKS kid mismatch stale-while-error fallback. sprint -j codex review #9 #3 backend 확장 carve 4건 중 2번째.",
+  "directive_source": "사용자 요청 '잔여 사항 진행하자. 순서대로 진행해' — sprint -q (extractRole multi-role) 종료 직후 #4 항목.",
+  "decisions": [
+    "internal/auth/keycloak_verifier.go: errKidMismatch sentinel error 신규 — wrap 패턴 (fmt.Errorf '%w' + errors.Is).",
+    "VerifyBearerToken 의 parse 단계 → parseWithJWKS helper 분리 — retry path 의 단일 entry.",
+    "VerifyBearerToken 메인: 1차 parseWithJWKS → errKidMismatch 감지 시 invalidateCache + 2차 parseWithJWKS. 다른 error (signature / expired / issuer / audience) 는 retry 안 함 (security 위협 회피).",
+    "invalidateCache method 신규 — cachedKeys = nil + cachedUntil = time.Time{}.",
+    "unit test 2건 신규 — RetriesJWKSOnKidMismatch (rotation 시뮬레이션 with 2 RSA key) + DoesNotRetryOnSignatureError (attacker token, retry 안 함 검증)."
+  ],
+  "todo": [
+    "internal/auth/keycloak_verifier.go 정합 (완료)",
+    "internal/auth/keycloak_verifier_test.go unit test 신규 (완료)",
+    "ADR-0019 §5.3 e2e migration row 갱신 (event listener row 아래에 sprint -r backend 확장 #2 reference)",
+    "docs/setup/keycloak_operations.md §6.3 갱신 — stale-while-error fallback 적용 명시",
+    "docs/traceability/report.md §6 sprint -r row",
+    "commit + push + PR + 4단계 self-review"
+  ],
+  "verification": "사내 GoProxy 제약으로 local go build/test 차단. CI backend-unit job 실 검증."
+}

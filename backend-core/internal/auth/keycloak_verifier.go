@@ -36,13 +36,15 @@ type KeycloakJWKSVerifier struct {
 
 const defaultJWKSTTL = 5 * time.Minute
 
+// errKidMismatch — token 의 kid 가 cached JWKS 에 없을 때 reported (stale-while-error
+// retry trigger). sprint -j codex review #9 (#3) 의 backend 확장 carve — keycloak_verifier
+// 가 cache 유효 동안 새 kid 의 token 을 401 처리하던 동작을 1회 forced refetch + retry 로 보강.
+// sprint claude/work_260519-r 구현.
+var errKidMismatch = errors.New("jwks key not found")
+
 func (v *KeycloakJWKSVerifier) VerifyBearerToken(ctx context.Context, token string) (httpapi.AuthenticatedActor, error) {
 	if strings.TrimSpace(v.IssuerURL) == "" && strings.TrimSpace(v.JWKSURL) == "" {
 		return httpapi.AuthenticatedActor{}, errors.New("KeycloakJWKSVerifier requires DEVHUB_OIDC_ISSUER_URL or DEVHUB_OIDC_JWKS_URL")
-	}
-	keySet, err := v.fetchJWKS(ctx)
-	if err != nil {
-		return httpapi.AuthenticatedActor{}, err
 	}
 
 	parserOpts := []jwt.ParserOption{jwt.WithValidMethods([]string{"RS256", "RS384", "RS512"})}
@@ -53,6 +55,34 @@ func (v *KeycloakJWKSVerifier) VerifyBearerToken(ctx context.Context, token stri
 		parserOpts = append(parserOpts, jwt.WithAudience(aud))
 	}
 
+	// 1차 시도 — cached JWKS 우선
+	actor, err := v.parseWithJWKS(ctx, token, parserOpts)
+	if err == nil {
+		return actor, nil
+	}
+
+	// stale-while-error fallback: kid mismatch 시 cache invalidate + JWKS forced refetch + 1회 retry
+	// (Keycloak key rotation 직후 새 kid token 이 cache TTL 만료까지 401 되는 문제 해소).
+	// 다른 error (signature / expired / issuer / audience 등) 은 retry 안 함 — security 위협 회피.
+	if errors.Is(err, errKidMismatch) {
+		v.invalidateCache()
+		actor, err = v.parseWithJWKS(ctx, token, parserOpts)
+		if err != nil {
+			return httpapi.AuthenticatedActor{}, err
+		}
+		return actor, nil
+	}
+
+	return httpapi.AuthenticatedActor{}, err
+}
+
+// parseWithJWKS — VerifyBearerToken 의 핵심 parse 단계 분리. retry path 의 단일 entry.
+func (v *KeycloakJWKSVerifier) parseWithJWKS(ctx context.Context, token string, parserOpts []jwt.ParserOption) (httpapi.AuthenticatedActor, error) {
+	keySet, err := v.fetchJWKS(ctx)
+	if err != nil {
+		return httpapi.AuthenticatedActor{}, err
+	}
+
 	claims := jwt.MapClaims{}
 	parsed, err := jwt.ParseWithClaims(token, claims, func(t *jwt.Token) (any, error) {
 		kid, _ := t.Header["kid"].(string)
@@ -61,11 +91,15 @@ func (v *KeycloakJWKSVerifier) VerifyBearerToken(ctx context.Context, token stri
 		}
 		pub, ok := keySet[kid]
 		if !ok {
-			return nil, fmt.Errorf("jwks key not found for kid=%q", kid)
+			return nil, fmt.Errorf("%w for kid=%q", errKidMismatch, kid)
 		}
 		return pub, nil
 	}, parserOpts...)
 	if err != nil {
+		// errKidMismatch 는 wrap 해서 errors.Is 가 동작하도록 — caller 가 retry 분기.
+		if errors.Is(err, errKidMismatch) {
+			return httpapi.AuthenticatedActor{}, err
+		}
 		return httpapi.AuthenticatedActor{}, fmt.Errorf("verify keycloak token: %w", err)
 	}
 	if !parsed.Valid {
@@ -140,6 +174,15 @@ func (v *KeycloakJWKSVerifier) fetchJWKS(ctx context.Context) (map[string]*rsa.P
 	}
 	v.writeCachedKeys(out)
 	return out, nil
+}
+
+// invalidateCache — kid mismatch 시 stale-while-error fallback 의 forced refetch trigger.
+// sprint -j codex review #9 (#3) backend 확장 carve.
+func (v *KeycloakJWKSVerifier) invalidateCache() {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	v.cachedKeys = nil
+	v.cachedUntil = time.Time{}
 }
 
 func (v *KeycloakJWKSVerifier) readCachedKeys() map[string]*rsa.PublicKey {
