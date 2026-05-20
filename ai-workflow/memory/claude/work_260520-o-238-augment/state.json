@@ -1,0 +1,49 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260520-o-238-augment",
+  "branch": "codex/issue-238-single-port-nginx-v2 (Claude 인계, 사용자 결정 2026-05-20)",
+  "status": "in_progress",
+  "started_at": "2026-05-20T02:30:00Z",
+  "ended_at": null,
+  "merged_pr": null,
+  "merge_commit": null,
+  "issue": 238,
+  "carve": "P0-4 (codex 1차) + Claude 보강 P1+P2+P3",
+  "scope": "codex PR #245 (issue #238 single-port deployment) 본인 인계 + P1~P3 7건 보강 commits 추가. codex 1차 작업 (nginx + docker-compose + frontend auth + keycloak-realm + docs/setup) 위에 healthcheck / TLS cert SOP / dev local mode / 404→302 redirect / Dockerfile build args / Keycloak wildcard SOP 추가. 단일 PR (#245) force push 머지.",
+  "directive_source": "사용자 지시 — '#238 작업 내역 전체적으로 확인하고 #238 목표에 따라 작업해야할 내역이 있는지 검토' + 'codex의 PR을 확인해봐 (#245) 그리고 이걸 포함해서 P1,P2,P3 전수 작업하자' + 'PR #245 보강을 codex 브랜치 본인 인계 + 추가 commit (단일 PR)'",
+  "decisions": [
+    "단일 PR (#245) 전략 — codex 브랜치 본인 인계 + 보강 commits 추가 + force push. codex 1차 commit (943543d / 2dcbbee / 2876263) 보존, Claude 보강 commit 위에 쌓음",
+    "Claude 보강 영역 (P1~P3 7건 → 5 commit 그룹화) — (1) healthcheck (2) single_port_deployment.md (TLS SOP + dev mode) (3) nginx 404→302 (4) docker-packaging §11+§12 (Dockerfile build args + Keycloak wildcard) (5) keycloak_operations §11 운영 hardening (6) memory",
+    "충돌 없음 — codex 영역과 본인 보강 영역이 모두 docker-compose + nginx + docs/setup 으로 같은 파일이지만 신규 섹션 추가 + 기존 section 분리 갱신으로 line conflict 0",
+    "본인 4단계 review 정책 적용 — 본인 commits 위에 codex 외부 review 도 가능 (force push 후 새 CI run)",
+    "PR #244 (sub-carve E) codex P1 finding 별도 sprint -p hotfix — 사용자 결정. POST /api/v1/users password silent drop → 4xx 명시. frontend UserCreationModal (Gemini sub-carve B-frontend) 동반"
+  ],
+  "todo_done": [
+    "Commit 1 (P1-1) — backend-ai/backend-core/frontend/keycloak healthcheck + nginx depends_on healthy (commit 9b9cb56)",
+    "Commit 2 (P1-2 + P1-3) — single_port_deployment.md 신규 (TLS SOP 3옵션 + 운영 부트 + dev local mode + troubleshooting) (commit 07b0e67)",
+    "Commit 3 (P2-1) — nginx /login/auth/callback/logout 404→302 redirect (commit 091c1d8)",
+    "Commit 4 (P2-2 + P3-1) — docker-packaging §11 frontend Dockerfile build args + §12 Keycloak wildcard SOP (commit e8f6e10)",
+    "Commit 5 (P3-1 보강) — keycloak_operations §11 단일 포트 운영 보안 강화 SOP 5 sub-section (commit fd11e93)"
+  ],
+  "todo": [
+    "Commit 6 — sprint -o state.json + codex memory 인계 표기",
+    "force push → PR #245 update + CI 재검증 + squash merge",
+    "main 후 sprint -p (PR #244 codex P1 hotfix) 진입"
+  ],
+  "verification": "docker-compose YAML syntax 정합. nginx conf syntax 정합. docs markdown 정합. 본인 변경 영역은 backend 코드 0건 (docs + infra 만) — backend test 영향 없음.",
+  "augment_summary": {
+    "p1_1_healthcheck": "docker-compose.deploy.yml — backend-ai/backend-core/frontend/keycloak 4개 healthcheck 추가 + nginx depends_on healthy. KC_HEALTH_ENABLED=true 추가.",
+    "p1_2_tls_sop": "docs/setup/single_port_deployment.md §3 — Let's Encrypt + mkcert + Self-signed 3옵션 SOP. cert 파일 권한 + 갱신 절차.",
+    "p1_3_dev_local_mode": "docs/setup/single_port_deployment.md §6 — native dev (nginx 우회 + basePath off + localhost:3000 직접) 운영 분기 명시.",
+    "p2_1_404_to_302": "infra/nginx/devhub.deploy.conf — /login + /auth/callback + /auth/logout 404 → 302 redirect to /devhub/* (query string 보존).",
+    "p2_2_dockerfile_build_args": "docs/setup/docker-packaging-deployment-guide.md §11 — NEXT_PUBLIC_* build-time inline. Dockerfile ARG → ENV 패턴 + docker build --build-arg 예시.",
+    "p3_1_keycloak_wildcard": "docs/setup/docker-packaging-deployment-guide.md §12 + keycloak_operations.md §11 — realm wildcard 좁히기 + KC_HOSTNAME_STRICT + bruteForceProtected + KC_HEALTH_ENABLED 보안 영향."
+  },
+  "shared_files_with_codex": {
+    "docker-compose.deploy.yml": "codex commit 1+2 가 base. Claude commit 1 이 healthcheck 추가 (codex 가 건드린 기존 section 보존, 새 section 추가).",
+    "infra/nginx/devhub.deploy.conf": "codex commit 1+2 가 base. Claude commit 3 이 /login/auth/* 의 404 → 302 만 변경.",
+    "docs/setup/keycloak_operations.md": "codex 가 §2 1줄만 건드림. Claude commit 5 가 §11 신규 + §12 (변경 이력) number shift.",
+    "docs/setup/docker-packaging-deployment-guide.md": "codex 가 §3-§8 갱신. Claude commit 4 가 §11 + §12 신규 추가 (codex section 보존).",
+    "docs/setup/single_port_deployment.md": "Claude commit 2 신규 파일 — codex 가 안 건드림."
+  }
+}
