@@ -62,6 +62,8 @@ services:
       # Admin bootstrap (1차 setup 후 별도 admin user 발급 + 본 env 제거 권장)
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME:?set KC_BOOTSTRAP_ADMIN_USERNAME}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD:?set KC_BOOTSTRAP_ADMIN_PASSWORD}
+      # Management interface 활성화 (healthcheck 의 /health/ready 응답 필요).
+      KC_HEALTH_ENABLED: "true"
       # DB (사내 PostgreSQL 사용)
       KC_DB: postgres
       KC_DB_URL: ${KC_DB_URL:?set KC_DB_URL}
@@ -80,6 +82,15 @@ services:
       - ${KEYCLOAK_REALM_IMPORT_PATH:-./infra/idp/keycloak-realm.json}:/opt/keycloak/data/import/realm.json:ro
     expose:
       - "8080"
+    healthcheck:
+      # Keycloak 26.x 의 management interface 는 :9000/health/ready (KC_HEALTH_ENABLED=true
+      # 환경변수로 활성). distroless image 라 wget/curl 부재 — bash builtin /dev/tcp 사용.
+      # /health/ready 가 ready 면 realm import + DB migration 완료.
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && echo -e 'GET /health/ready HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q 'UP' <&3 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 12
+      start_period: 90s
     networks:
       - devhub-internal
 
@@ -88,6 +99,14 @@ services:
     restart: unless-stopped
     expose:
       - "8000"
+    healthcheck:
+      # backend-ai/main.py 의 GET /health (FastAPI). wget/curl 둘 다 image 에 없을 수
+      # 있어 python 으로 fallback (slim image 도 python 보유).
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health',timeout=2).status==200 else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
     networks:
       - devhub-internal
 
@@ -115,7 +134,15 @@ services:
       DEVHUB_TRUSTED_PROXIES: ${DEVHUB_TRUSTED_PROXIES:-172.16.0.0/12}
     depends_on:
       backend-ai:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      # backend-core 의 GET /health (router.go:186). distroless/scratch image 면 wget 부재 가능 —
+      # native http via /proc/net/tcp ping fallback 필요. 1차는 wget BusyBox 가정.
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:8080/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 45s
     networks:
       - devhub-internal
 
@@ -138,7 +165,15 @@ services:
       NEXT_PUBLIC_OIDC_SCOPE: ${NEXT_PUBLIC_OIDC_SCOPE:-openid offline_access email profile}
     depends_on:
       backend-core:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      # Next.js standalone server. /api/runtime-config (frontend/app/api/runtime-config/route.ts)
+      # 는 항상 200 응답 (build env fallback). basePath 활성 시 /devhub prefix.
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:3000/${NEXT_PUBLIC_BASE_PATH:-devhub}/api/runtime-config || wget -q -O- http://localhost:3000/api/runtime-config || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
     networks:
       - devhub-internal
 
@@ -154,9 +189,9 @@ services:
       - ${NGINX_TLS_KEY_PATH:-./infra/nginx/certs/tls.key}:/etc/nginx/certs/tls.key:ro
     depends_on:
       frontend:
-        condition: service_started
+        condition: service_healthy
       backend-core:
-        condition: service_started
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "nc -z 127.0.0.1 80 || exit 1"]
       interval: 15s
