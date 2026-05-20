@@ -97,7 +97,12 @@ export function ComboBox({
                 className="w-full bg-transparent border-none outline-none py-2 text-sm text-foreground placeholder:text-muted-foreground"
               />
               {search && (
-                <button onClick={() => setSearch("")} className="p-1 rounded-lg hover:bg-muted/50">
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  className="p-1 rounded-lg hover:bg-muted/50"
+                  aria-label="Clear search"
+                >
                   <X className="w-3 h-3 text-muted-foreground" />
                 </button>
               )}

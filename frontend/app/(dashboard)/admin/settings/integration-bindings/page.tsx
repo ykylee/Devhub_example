@@ -77,7 +77,16 @@ export default function AdminSettingsIntegrationBindingsPage() {
     try {
       await integrationService.deleteBinding(deletingBinding.binding_id);
       toast(`Binding 을 삭제했습니다.`, "success");
-      load();
+      // codex P2 (PR #251 review): pagination offset clamp 후 reload.
+      // 마지막 페이지에서 1건 삭제 시 total < offset 가 되면 빈 페이지 표시 위험.
+      // setOffset trigger 시 useEffect 가 load() 자동 호출하므로 명시 load 생략.
+      const newTotal = Math.max(0, total - 1);
+      if (offset > 0 && offset >= newTotal) {
+        const clampedOffset = Math.max(0, Math.floor((newTotal - 1) / LIMIT) * LIMIT);
+        setOffset(clampedOffset);
+      } else {
+        load();
+      }
     } catch (err) {
       toast("Binding 삭제에 실패했습니다.", "error");
     } finally {
