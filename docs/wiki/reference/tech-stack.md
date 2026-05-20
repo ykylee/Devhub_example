@@ -1,5 +1,11 @@
 # Tech Stack
 
+- 문서 목적: DevHub의 공개 가능한 기술 스택 개요를 제공한다.
+- 범위: Backend/Frontend/Data 구성과 핵심 아키텍처 노트.
+- 대상 독자: 외부 개발자, 기술 검토자.
+- 상태: accepted
+- 최종 수정일: 2026-05-20
+
 ## Backend
 
 - **Go (Gin)**: API, 권한 경계, 외부 연동의 중심 서비스

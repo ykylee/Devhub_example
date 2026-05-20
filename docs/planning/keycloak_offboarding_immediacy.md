@@ -3,8 +3,8 @@
 - 문서 목적: [ADR-0019 §5.3](../adr/0019-keycloak-only-idp.md#53-잔여-carve-out) 잔여 carve out 의 off-boarding 즉시성 design + [ADR-0008 §6](../adr/0008-hrdb-production-adapter.md#6-미해결-항목-open-questions) 의 "실시간 sync 요구 시 별도 ADR" 항목 통합. 1차 산출물은 planning 단계 — Phase 2 LDAP/AD federation 진입 시 별도 ADR 승격 결정.
 - 범위: HR 시스템에서 사용자 비활성화 (퇴사 / 부서 이동 / 권한 회수) 가 Keycloak + DevHub 까지 전파되는 chain 의 latency 최소화. SCIM bridge / 실시간 webhook 등 고급 통합은 Phase 3 carve.
 - 대상 독자: 아키텍트, 운영자 (SRE / IdP), Security, HR 시스템 담당자, Backend 담당자.
-- 상태: planning (draft 1차)
-- 최종 수정일: 2026-05-19
+- 상태: draft
+- 최종 수정일: 2026-05-20
 - 결정 근거 sprint: `claude/work_260519-g`
 - 관련 문서: [ADR-0019 Keycloak 단일화](../adr/0019-keycloak-only-idp.md), [ADR-0008 HRDB production adapter](../adr/0008-hrdb-production-adapter.md), [ADR-0010 primary_dept resolution](../adr/0010-primary-dept-resolution.md), [keycloak_operations.md](../setup/keycloak_operations.md) §8.2, [keycloak_event_audit_integration.md](./keycloak_event_audit_integration.md) (admin event listener — off-boarding event 감지 활용).
 

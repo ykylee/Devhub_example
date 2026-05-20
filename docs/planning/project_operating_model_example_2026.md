@@ -3,8 +3,8 @@
 - 문서 목적: Application > Repository > Project 기반 하이브리드 운영 모델의 샘플을 제공한다.
 - 범위: Application 1건 + Repo 3건 + Repository 하위 Project 기준의 역할/연결/로드맵/cadence/KPI 예시.
 - 대상 독자: PMO, 시스템 관리자, Delivery PL, 개발 리드.
-- 상태: example
-- 최종 수정일: 2026-05-13
+- 상태: accepted
+- 최종 수정일: 2026-05-20
 - 관련 문서: [project_management_concept.md](./project_management_concept.md), [project_operating_model_template.md](./project_operating_model_template.md)
 
 ## 1. 기본 정보

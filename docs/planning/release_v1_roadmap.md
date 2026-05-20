@@ -96,7 +96,7 @@
 
 | ID | Carve | 출처 | 워커 | 비고 |
 | --- | --- | --- | --- | --- |
-| **P0-1** | ADR-0020 sub-carve B — `/api/v1/accounts/*` 4 endpoint 제거 + lazy auto-create + frontend `account.service.ts` 폐기 + admin/settings/users 페이지 정리 | sprint -d ADR-0020 §4.1 B | **Claude (backend)** + **Gemini (frontend done ✅)** | v1.0 Keycloak 단일 IdP 정합의 마지막 큰 변경. e2e TC-ACC-* 갱신 동반 |
+| **P0-1** | ADR-0020 sub-carve B — `/api/v1/accounts/*` 4 endpoint 제거 + lazy auto-create + frontend `account.service.ts` 폐기 + admin/settings/users 페이지 정리 | sprint -d ADR-0020 §4.1 B | **Claude (backend) + Gemini (frontend)** — 분담 또는 sequential | v1.0 Keycloak 단일 IdP 정합의 마지막 큰 변경. e2e TC-ACC-* 갱신 동반 |
 | **P0-2** | UI 디자인 polish 1차 (semantic theme 정합 + responsive + a11y baseline) | 사용자 지시 (2026-05-20) — "UI 띄워놓고 디자인 손보기" | **Gemini (frontend+UX)** | PR #203 의 hardcoded color → semantic theme 패턴 확장. 모든 modal + 페이지 |
 | **P0-3** | Playwright screenshot mode 도입 + CI artifact 업로드 | 사용자 지시 (2026-05-20) — UI 검증 방식 | **Codex (infra+CI) + Gemini (frontend test config)** | screenshot 자산이 Gemini 의 디자인 작업 source. shard 별 캡처 |
 
@@ -108,7 +108,7 @@
 | **P1-2** | ADR-0020 sub-carve D — JWKS stale-while-error expiry case 확장 | ADR-0020 §4.1 D | **Claude (backend)** | sprint -r kid mismatch fallback 자연 확장. Keycloak unreachable 시 uptime 보장 |
 | **P1-3** | ADR-0019 §5.3 — Keycloak group staging-prod 적용 | session_handoff 잔여 carve | **사용자 + Codex** | Keycloak admin 1회 작업 (group 4 + composite role assign) |
 | **P1-4** | ADR-0019 §5.3 — off-boarding Phase 1 cron 실 deploy | session_handoff 잔여 carve | **사용자 (운영팀) + Codex** | `scripts/hrdb_etl_sync.sh` (sprint -p) cron 등록 + 1회 staging 검증 |
-| **P1-5** | ADR-0019 §5.3 — e2e Kratos → Keycloak 실 코드 전환 | session_handoff 잔여 carve | **Gemini (frontend test done ✅) + Codex (CI infra)** | residual cleanup (ci-setup.sh 제거 + dev-up/down 정리) + global-setup.ts idp_subject UPSERT sync 정합 |
+| **P1-5** | ADR-0019 §5.3 — e2e Kratos → Keycloak 실 코드 전환 | session_handoff 잔여 carve | **Gemini (frontend test) + Codex (CI infra)** | sprint -m design 따름. 사내 staging Keycloak e2e 환경 동반. PR #203 의 `ci-e2e-sync-check.sh` 가 CI 단 일부 해소 |
 
 ### 3.3 P2 — v1.0 운영 안정성 + v1.1 carve
 

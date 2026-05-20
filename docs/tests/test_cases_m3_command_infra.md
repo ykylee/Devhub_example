@@ -3,8 +3,8 @@
 - 문서 목적: 매트릭스 §5.1 (E2E 미커버 도메인) 의 명령 lifecycle / 인프라 토폴로지 후보 TC 를 카탈로그화한다.
 - 범위: TC 등재 + 단계 + 기대 결과 (spec 작성 가이드). 실제 `.spec.ts` 파일 작성은 후속 sprint 의 carve out — 본 문서는 카탈로그 1차.
 - 대상 독자: E2E 작성자, QA, 프로젝트 리드.
-- 상태: draft (spec ts 미작성, 카탈로그만)
-- 최종 수정일: 2026-05-13
+- 상태: draft
+- 최종 수정일: 2026-05-20
 - 결정 근거 sprint: `claude/work_260513-i`.
 - 관련 문서: [추적성 매트릭스 §5.1](../traceability/report.md#51-e2e-미커버-도메인), [API 계약 §9 (command/audit)](../backend_api_contract.md#9-commandaudit-계약-초안), [API 계약 §6 (infra/dashboard)](../backend_api_contract.md#6-프론트-snapshot-api-1차).
 

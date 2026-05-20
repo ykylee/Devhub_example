@@ -1,5 +1,11 @@
 # E2E 테스트 결과 보고서
 
+- 문서 목적: 2026-05-12 전체 E2E 실행 결과와 결함 조치 내역을 기록한다.
+- 범위: `gemini/prepare-github-action` 브랜치의 full suite 실행 스냅샷.
+- 대상 독자: QA, frontend/backend 개발자, 릴리즈 검증 담당.
+- 상태: accepted
+- 최종 수정일: 2026-05-20
+
 - **일시**: 2026-05-12 23:59 KST
 - **브랜치**: `gemini/prepare-github-action`
 - **커밋**: `00f89a5`

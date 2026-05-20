@@ -3,8 +3,8 @@
 - 문서 목적: 외부 Keycloak 을 Kratos 의 upstream OIDC provider 로 federation 통합 (옵션 B) 의 design 검토. 1차 산출물은 planning 단계 — 결정 후 ADR-0019 승격은 별도 sprint.
 - 범위: 인증 flow 변경 + HRDB user mapping 정책 + claim 매핑 + cutover 절차 + local dev / staging / prod 분기 + 보안 점검. 코드 변경 없음.
 - 대상 독자: 아키텍트, 운영자 (SRE / IdP), Security, Backend / Frontend / IdP 담당자.
-- 상태: **rejected (2026-05-19)** — 본 문서의 권장 옵션 B (Kratos federation) 는 채택되지 않았다. 2026-05-18 PR #167 (Keycloak-only refactor) 가 옵션 A (Keycloak 단일화) 를 실 구현했고 2026-05-19 [ADR-0019](../adr/0019-keycloak-only-idp.md) 가 옵션 A 의 사후 명문화. 본 문서의 §2 옵션 비교 표 + §4 HRDB mapping 4 옵션 + §8 보안 점검 + §14 carve out 의 일부는 옵션 A 환경에서도 historical reference 로 유효.
-- 최종 수정일: 2026-05-19
+- 상태: deprecated
+- 최종 수정일: 2026-05-20
 - 결정 근거 sprint: `claude/work_260518-v` (draft 1차) → `claude/work_260519-a` (rejected status 갱신)
 - 관련 문서: [ADR-0019 Keycloak 단일화 (실 채택 결정)](../adr/0019-keycloak-only-idp.md), [ADR-0001 IdP selection (Hydra+Kratos, superseded)](../adr/0001-idp-selection.md), [ADR-0008 HRDB production adapter](../adr/0008-hrdb-production-adapter.md), [ADR-0010 primary_dept resolution](../adr/0010-primary-dept-resolution.md), [environment-setup](../setup/environment-setup.md), [single_port_reverse_proxy](./single_port_reverse_proxy.md) (단일 포트 design 과 cookie scope 정합), [통합 로드맵](../development_roadmap.md) RM-M4-09 (외부 SSO 통합 항목).
 

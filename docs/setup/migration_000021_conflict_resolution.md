@@ -3,8 +3,8 @@
 - 문서 목적: PR #167 KC-PR-E (2026-05-18, [ADR-0019](../adr/0019-keycloak-only-idp.md)) 가 추가한 `000021_rename_kratos_identity_to_idp_subject.{up,down}.sql` 과 기존 `000021_rbac_pmo_manager.{up,down}.sql` (PR #119, 2026-05-15) 의 prefix 중복 충돌 정정. sprint `claude/work_260519-l` 의 file rename + 사내 운영 DB 의 `schema_migrations` table 정정 SOP.
 - 범위: backend-core/migrations/ 파일 rename + golang-migrate runner 동작 + 사내 운영 DB 정정. backend code 변경 없음 — schema 자체는 동일.
 - 대상 독자: 운영자 (SRE / DBA), Backend 담당자, 사내 deploy 책임자.
-- 상태: critical (즉시 적용 권장)
-- 최종 수정일: 2026-05-19
+- 상태: accepted
+- 최종 수정일: 2026-05-20
 - 결정 근거 sprint: `claude/work_260519-l`
 - 관련 문서: [ADR-0019 Keycloak 단일화](../adr/0019-keycloak-only-idp.md), [keycloak_operations.md](./keycloak_operations.md), [backend-core/migrations/README.md](../../backend-core/migrations/README.md).
 

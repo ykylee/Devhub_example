@@ -3,8 +3,8 @@
 - 문서 목적: 프로젝트 특화 규칙과 실행/검증 기준을 정의한다.
 - 범위: 프로젝트 개요, 문서 구조, 기본 명령, 검증 포인트, 예외 규칙
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
-- 상태: active
-- 최종 수정일: 2026-05-10
+- 상태: accepted
+- 최종 수정일: 2026-05-20
 - 관련 문서: [공통 표준](../ai-workflow/core/global_workflow_standard.md)
 
 이 문서는 `ai-workflow/memory/PROJECT_PROFILE.md`와 같은 운영 기준을 docs 트리에서 참조할 수 있도록 유지하는 mirror 문서다.

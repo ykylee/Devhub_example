@@ -3,8 +3,8 @@
 - 문서 목적: [ADR-0016 Prometheus alerts policy](../adr/0016-prometheus-alerts-policy.md) §6 carve out (1) 의 운영 자산 — Alertmanager 규칙 raw YAML 의 외부 git 이관 layout + 운영 SOP + raw YAML reference.
 - 범위: Prometheus scrape (backend-core `/metrics`) + Alertmanager 규칙 배포 + 라우팅. Grafana dashboard JSON 모델은 [`grafana/homelab_dashboard.json`](./grafana/homelab_dashboard.json) 별도.
 - 대상 독자: 운영자 (SRE), On-call.
-- 상태: draft (1차)
-- 최종 수정일: 2026-05-18
+- 상태: draft
+- 최종 수정일: 2026-05-20
 - 관련 문서: [ADR-0015 HomeLab pull](../adr/0015-homelab-adapter-pull-strategy.md), [ADR-0016 alerts policy](../adr/0016-prometheus-alerts-policy.md), [HomeLab agent token rotation SOP](./homelab_agent_token_rotation.md), [`docs/planning/prometheus_homelab_alerts.md`](../planning/prometheus_homelab_alerts.md) (planning 1차 초안).
 
 ## 1. 배경 + 책임 분리

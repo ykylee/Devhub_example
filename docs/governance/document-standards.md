@@ -5,8 +5,16 @@
 - 대상 독자: 모든 contributor (사람 + AI agent), 후속 리뷰어.
 - 상태: accepted
 - 결정일: 2026-05-13
+- 최종 수정일: 2026-05-20
 - 결정 근거 sprint: `claude/work_260513-c`.
 - 관련 문서: [`../traceability/README.md`](../traceability/README.md) (추적성 체계), [`../traceability/conventions.md`](../traceability/conventions.md) (ID 표준).
+
+## 0. 문서 포맷 정책 (Source vs Report)
+
+- 원본 문서(source-of-truth)는 Markdown(`.md`)으로 관리한다.
+- HTML(`.html`)은 보고·취합·배포용 파생 산출물로만 사용한다.
+- HTML 직접 수동 수정은 금지한다. 내용 변경은 원본 Markdown을 수정한 뒤 재생성한다.
+- 권장 분리: 원본은 `docs/`, `ai-workflow/`; 파생 HTML은 `site/` 또는 `dist-docs/`.
 
 ## 1. 적용 대상
 
@@ -21,6 +29,13 @@
 | `docs/setup/*.md` | Setup / operations guide |
 | `docs/traceability/*.md`, `docs/governance/*.md` | Governance |
 | `ai-workflow/memory/state.json`, `*/session_handoff.md`, `*/work_backlog.md` | Workflow memory (브랜치별 별도 lifecycle, 본 표준의 메타 헤더만 적용) |
+
+### 1.1 포맷 분류 (현재 저장소)
+
+| 분류 | 경로 | 포맷 |
+| --- | --- | --- |
+| 원본 운영 문서 | `ai-workflow/**`, `docs/**`, `README.md`, `AGENTS.md`, `GEMINI.md`, `frontend/CLAUDE.md` | Markdown |
+| 보고/취합 산출물 | 추후 `site/**` 또는 `dist-docs/**` | HTML (Markdown에서 생성) |
 
 ## 2. 메타 헤더 (모든 문서)
 

@@ -3,8 +3,8 @@
 - 문서 목적: [ADR-0019 §5.3](../adr/0019-keycloak-only-idp.md#53-잔여-carve-out) 잔여 carve out 의 Keycloak failover design. 1차 산출물은 planning 단계 — Phase 2 HA 진입 시 별도 ADR 승격 결정.
 - 범위: Keycloak 단일 장애점 회피 + 가용성 향상. DevHub 측 graceful degradation 동작 분석 + Keycloak HA / DR 옵션 비교 + 권장 + cutover. backup IdP fallback 은 ADR-0019 Keycloak-only 결정과 충돌하므로 명시 제외.
 - 대상 독자: 아키텍트, 운영자 (SRE / IdP), Security, 인프라 담당자, Backend 담당자.
-- 상태: planning (draft 1차)
-- 최종 수정일: 2026-05-19
+- 상태: draft
+- 최종 수정일: 2026-05-20
 - 결정 근거 sprint: `claude/work_260519-h`
 - 관련 문서: [ADR-0019 Keycloak 단일화](../adr/0019-keycloak-only-idp.md), [ADR-0003 No-Docker policy CI scope](../adr/0003-no-docker-policy-ci-scope.md), [keycloak_operations.md](../setup/keycloak_operations.md) §6 JWKS rotation + §8.4 장애 대응, [backend-core/internal/auth/keycloak_verifier.go](../../backend-core/internal/auth/keycloak_verifier.go) (JWKS cache).
 
