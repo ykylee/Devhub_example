@@ -607,6 +607,42 @@ func (s *memoryApplicationStore) CreateIntegrationBinding(_ context.Context, b d
 	return b, nil
 }
 
+// PR #251 P2-4 sub-carve — Bindings UI 강화에 동반된 신규 interface method 3건.
+// production *store.PostgresStore 가 구현하므로 test fake 도 정합 보장 (compile-time).
+func (s *memoryApplicationStore) GetIntegrationBindingByID(_ context.Context, id string) (domain.IntegrationBinding, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	b, ok := s.integrationBindings[id]
+	if !ok {
+		return domain.IntegrationBinding{}, store.ErrNotFound
+	}
+	return b, nil
+}
+
+func (s *memoryApplicationStore) UpdateIntegrationBinding(_ context.Context, b domain.IntegrationBinding) (domain.IntegrationBinding, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	existing, ok := s.integrationBindings[b.ID]
+	if !ok {
+		return domain.IntegrationBinding{}, store.ErrNotFound
+	}
+	existing.ScopeID = b.ScopeID
+	existing.ExternalKey = b.ExternalKey
+	existing.UpdatedAt = time.Now().UTC()
+	s.integrationBindings[b.ID] = existing
+	return existing, nil
+}
+
+func (s *memoryApplicationStore) DeleteIntegrationBinding(_ context.Context, id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.integrationBindings[id]; !ok {
+		return store.ErrNotFound
+	}
+	delete(s.integrationBindings, id)
+	return nil
+}
+
 func (s *memoryApplicationStore) SaveInfraSnapshot(_ context.Context, _ string, _ string, snapshotAt time.Time, _ string, nodesJSON, servicesJSON []byte, degradedProviders []string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
