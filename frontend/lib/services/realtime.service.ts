@@ -5,6 +5,7 @@ import { WS_BASE_URL as WS_BASE } from "../config/endpoints";
 const DEFAULT_EVENT_TYPES = [
   'command.status.updated',
   'infra.node.updated',
+  'infra.service.updated',
   'infra.edge.updated',
   'risk.critical.created',
   'notification.created'

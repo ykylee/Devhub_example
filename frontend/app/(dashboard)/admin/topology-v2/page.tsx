@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import {
   ReactFlow,
   MiniMap,
@@ -9,12 +9,13 @@ import {
   useNodesState,
   useEdgesState,
   BackgroundVariant,
+  Panel,
   type Edge,
   type Node,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { motion } from "framer-motion";
-import { Activity, AlertTriangle, ArrowLeft, Globe, Server } from "lucide-react";
+import { Activity, AlertTriangle, ArrowLeft, Globe, Server, Layers, Zap } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { infraService } from "@/lib/services/infra.service";
 import type {
@@ -26,12 +27,11 @@ import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { realtimeService } from "@/lib/services/realtime.service";
+import type { WSEvent } from "@/lib/services/types";
 
 // Infra topology v2 (HomeLab snapshot 기반) — sprint claude/work_260518-n.
-// backend: API-76 /api/v1/infra/services + API-78 /api/v1/infra/topology/v2
-// (PR #139, sprint codex/next-step-20260516). 본 페이지는 v2 응답의 nodes 를
-// React Flow 로, services 를 사이드바 list 로 노출. degraded_providers 는
-// 페이지 헤더의 banner 로 시각화 (ADR-0015/0016 의 운영 의도 정합).
+// P2-5: React Flow group sub-node + WebSocket 실시간 (sprint gemini/work_260520-e).
 
 type NodeV2Data = {
   label: string;
@@ -39,6 +39,7 @@ type NodeV2Data = {
   status: string;
   environment?: string;
   ipAddress?: string;
+  isGroup?: boolean;
 };
 
 function nodeStatusVariant(status: string): {
@@ -88,25 +89,59 @@ export default function AdminTopologyV2Page() {
   const [selectedNode, setSelectedNode] = useState<ApiInfraNodeV2 | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<NodeV2Data>>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+  const [isGrouped, setIsGrouped] = useState(true);
 
-  // 1회 로드 — websocket 갱신은 후속 carve out.
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setIsLoading(true);
-      try {
-        const resp = await infraService.getTopologyV2();
-        if (cancelled) return;
-        setRawNodes(resp.nodes);
-        setServices(resp.services);
-        setMeta(resp.meta);
-
-        const flowNodes: Node<NodeV2Data>[] = resp.nodes.map((n, idx) => ({
-          id: n.node_id,
-          position: {
-            x: 80 + (idx % 3) * 280,
-            y: 80 + Math.floor(idx / 3) * 200,
+  const buildGraph = useCallback((nodeList: ApiInfraNodeV2[], edgeList: any[], grouped: boolean) => {
+    const flowNodes: Node<NodeV2Data>[] = [];
+    
+    if (grouped) {
+      const envs = Array.from(new Set(nodeList.map(n => n.environment || "unknown")));
+      
+      // Create group nodes
+      envs.forEach((env, idx) => {
+        const groupID = `group-${env}`;
+        flowNodes.push({
+          id: groupID,
+          type: 'group',
+          data: { label: env.toUpperCase(), hostname: '', status: 'stable', isGroup: true },
+          position: { x: 50 + idx * 450, y: 50 },
+          style: { 
+            width: 400, 
+            height: 350, 
+            backgroundColor: 'rgba(255, 255, 255, 0.02)',
+            border: '1px dashed rgba(255, 255, 255, 0.1)',
+            borderRadius: '24px'
           },
+        });
+
+        // Add child nodes
+        const envNodes = nodeList.filter(n => (n.environment || "unknown") === env);
+        envNodes.forEach((n, nIdx) => {
+          flowNodes.push({
+            id: n.node_id,
+            parentId: groupID,
+            position: { x: 50 + (nIdx % 2) * 220, y: 80 + Math.floor(nIdx / 2) * 120 },
+            data: {
+              label: n.hostname || n.node_id,
+              hostname: n.hostname,
+              status: n.status,
+              environment: n.environment,
+              ipAddress: n.ip_address,
+            },
+            extent: 'parent',
+            className: cn(
+              "glass rounded-xl p-4 font-black shadow-lg w-[180px] text-center border transition-all duration-500",
+              nodeStatusVariant(n.status).containerCN,
+            ),
+          });
+        });
+      });
+    } else {
+      // Flat layout
+      nodeList.forEach((n, idx) => {
+        flowNodes.push({
+          id: n.node_id,
+          position: { x: 80 + (idx % 3) * 280, y: 80 + Math.floor(idx / 3) * 200 },
           data: {
             label: n.hostname || n.node_id,
             hostname: n.hostname,
@@ -118,25 +153,38 @@ export default function AdminTopologyV2Page() {
             "glass rounded-2xl p-5 font-black shadow-2xl min-w-[200px] text-center border transition-all duration-500",
             nodeStatusVariant(n.status).containerCN,
           ),
-        }));
+        });
+      });
+    }
 
-        const flowEdges: Edge[] = resp.edges.map((e) => ({
-          id: e.id,
-          source: e.source_id,
-          target: e.target_id,
-          label: e.label,
-          animated: true,
-          style: {
-            stroke:
-              e.status === "stable" || e.status === "healthy"
-                ? "#10b981"
-                : "#f59e0b",
-            strokeWidth: 2,
-          },
-        }));
+    const flowEdges: Edge[] = edgeList.map((e) => ({
+      id: e.id,
+      source: e.source_id,
+      target: e.target_id,
+      label: e.label,
+      animated: true,
+      style: {
+        stroke: e.status === "stable" || e.status === "healthy" ? "var(--success)" : "var(--warning)",
+        strokeWidth: 2,
+      },
+    }));
 
-        setNodes(flowNodes);
-        setEdges(flowEdges);
+    setNodes(flowNodes);
+    setEdges(flowEdges);
+  }, [setNodes, setEdges]);
+
+  // Initial load
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setIsLoading(true);
+      try {
+        const resp = await infraService.getTopologyV2();
+        if (cancelled) return;
+        setRawNodes(resp.nodes);
+        setServices(resp.services);
+        setMeta(resp.meta);
+        buildGraph(resp.nodes, resp.edges, isGrouped);
       } catch (err) {
         if (cancelled) return;
         console.error("[admin/topology-v2] load failed:", err);
@@ -145,12 +193,43 @@ export default function AdminTopologyV2Page() {
         if (!cancelled) setIsLoading(false);
       }
     })();
+    return () => { cancelled = true; };
+  }, [isGrouped, buildGraph]);
+
+  // WebSocket 실시간 갱신
+  useEffect(() => {
+    const unsubNode = realtimeService.subscribe<ApiInfraNodeV2>('infra.node.updated', (ev) => {
+      const updatedNode = ev.data;
+      console.log(`[TopologyV2] Node updated: ${updatedNode.node_id} -> ${updatedNode.status}`);
+      
+      setRawNodes(prev => prev.map(n => n.node_id === updatedNode.node_id ? updatedNode : n));
+      
+      setNodes(nds => nds.map(n => {
+        if (n.id === updatedNode.node_id) {
+          return {
+            ...n,
+            data: { ...n.data, status: updatedNode.status, hostname: updatedNode.hostname, ipAddress: updatedNode.ip_address },
+            className: cn(
+              n.parentId ? "glass rounded-xl p-4 font-black shadow-lg w-[180px] text-center border transition-all duration-500" : "glass rounded-2xl p-5 font-black shadow-2xl min-w-[200px] text-center border transition-all duration-500",
+              nodeStatusVariant(updatedNode.status).containerCN,
+            ),
+          };
+        }
+        return n;
+      }));
+    });
+
+    const unsubService = realtimeService.subscribe<ApiInfraServiceV2>('infra.service.updated', (ev) => {
+      const updatedSvc = ev.data;
+      console.log(`[TopologyV2] Service updated: ${updatedSvc.service_id} -> ${updatedSvc.health_status}`);
+      setServices(prev => prev.map(s => (s.node_id === updatedSvc.node_id && s.service_id === updatedSvc.service_id) ? updatedSvc : s));
+    });
+
     return () => {
-      cancelled = true;
+      unsubNode();
+      unsubService();
     };
-    // setNodes/setEdges 의 stable identity — Next 가드 lint 통과 위한 minimal dep.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [setNodes]);
 
   const servicesByNode = useMemo(() => {
     const map: Record<string, ApiInfraServiceV2[]> = {};
@@ -162,6 +241,7 @@ export default function AdminTopologyV2Page() {
   }, [services]);
 
   const onNodeClick = (_: unknown, node: Node<NodeV2Data>) => {
+    if (node.data.isGroup) return;
     const raw = rawNodes.find((n) => n.node_id === node.id) ?? null;
     setSelectedNode(raw);
   };
@@ -193,6 +273,27 @@ export default function AdminTopologyV2Page() {
             </span>
           </p>
         </motion.div>
+
+        <div className="flex items-center gap-2 bg-muted/20 p-1 rounded-2xl border border-border/40">
+          <button
+            onClick={() => setIsGrouped(true)}
+            className={cn(
+              "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2",
+              isGrouped ? "bg-primary text-primary-foreground shadow-lg" : "text-muted-foreground hover:bg-muted/30"
+            )}
+          >
+            <Layers className="w-3.5 h-3.5" /> Grouped
+          </button>
+          <button
+            onClick={() => setIsGrouped(false)}
+            className={cn(
+              "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2",
+              !isGrouped ? "bg-primary text-primary-foreground shadow-lg" : "text-muted-foreground hover:bg-muted/30"
+            )}
+          >
+            <Zap className="w-3.5 h-3.5" /> Flat
+          </button>
+        </div>
       </div>
 
       {/* Degraded providers banner */}
@@ -200,15 +301,15 @@ export default function AdminTopologyV2Page() {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass border border-amber-500/40 bg-amber-500/10 rounded-2xl p-4 flex items-center gap-3"
+          className="glass border border-warning/40 bg-warning/10 rounded-2xl p-4 flex items-center gap-3"
           role="alert"
         >
-          <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0" />
+          <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0" />
           <div className="flex-1">
-            <p className="text-xs font-black text-amber-300 uppercase tracking-widest">
+            <p className="text-xs font-black text-warning uppercase tracking-widest">
               Degraded providers ({degradedCount})
             </p>
-            <p className="text-[11px] text-amber-200/80 font-mono mt-1">
+            <p className="text-[11px] text-warning/80 font-mono mt-1">
               {meta!.degraded_providers.join(", ")}
             </p>
           </div>
@@ -217,7 +318,7 @@ export default function AdminTopologyV2Page() {
 
       {/* Error state */}
       {errorMsg && (
-        <div className="glass border border-rose-500/40 bg-rose-500/10 rounded-2xl p-4 text-xs text-rose-300 font-bold">
+        <div className="glass border border-destructive/40 bg-destructive/10 rounded-2xl p-4 text-xs text-destructive font-bold">
           {errorMsg}
         </div>
       )}
@@ -262,6 +363,11 @@ export default function AdminTopologyV2Page() {
               style={{ background: "transparent" }}
             />
             <Background variant={BackgroundVariant.Lines} gap={30} size={1} color="rgba(255,255,255,0.03)" />
+            <Panel position="bottom-left" className="p-2">
+              <div className="flex items-center gap-2 bg-muted/50 backdrop-blur px-3 py-1.5 rounded-lg border border-border/40 text-[10px] font-bold uppercase text-muted-foreground">
+                <div className="w-2 h-2 rounded-full bg-success animate-pulse" /> Live WS Active
+              </div>
+            </Panel>
           </ReactFlow>
         </section>
 
@@ -282,8 +388,9 @@ export default function AdminTopologyV2Page() {
               services.map((s) => {
                 const variant = nodeStatusVariant(s.health_status);
                 return (
-                  <div
+                  <motion.div
                     key={`${s.node_id}::${s.service_id}`}
+                    layout
                     className="glass-card p-3 flex flex-col gap-1"
                     data-service-id={s.service_id}
                   >
@@ -298,7 +405,7 @@ export default function AdminTopologyV2Page() {
                       {s.port ? ` · :${s.port}` : ""}
                       {s.version ? ` · v${s.version}` : ""}
                     </p>
-                  </div>
+                  </motion.div>
                 );
               })
             )}

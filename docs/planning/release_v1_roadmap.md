@@ -118,7 +118,7 @@
 | **P2-2** | ADR-0016 §6 — pull latency p95 alert + push webhook 알림 + stage→prod 임계 확정 | ADR-0016 §6 (3)+(4)+(5) | **Codex (infra)** | baseline 1주 관찰 후 |
 | **P2-3** | ADR-0017 §6 (b) — PATCH expires_at + admin UI 편집 modal | ADR-0017 §6 (b) | **Gemini (frontend) + Claude (backend)** | 정책 변경 동반 (token rotation 정책) |
 | **P2-4** | Bindings UI 강화 — scope_id lookup combobox + Edit/Delete + pagination | development_roadmap §6 잔여 | **Gemini (frontend+UX)** | v1.0 UI polish 동반 |
-| **P2-5** | React Flow group sub-node + WebSocket 실시간 (`infra.node.updated` / `infra.service.updated`) | development_roadmap §6 잔여 | **Gemini (frontend) + Claude (backend WS)** | topology v2 강화. WebSocket 실시간은 RM-M4-01 cross-cut |
+| **P2-5** | React Flow group sub-node + WebSocket 실시간 (`infra.node.updated` / `infra.service.updated`) | development_roadmap §6 잔여 | **Gemini (frontend done ✅)** | topology v2 강화. WebSocket 실시간 연동 및 Environment 그룹화 완료. |
 | **P2-6** | Keycloak SPI provider JAR (PR #203 codex P2) | PR #203 codex review | **Codex (infra) + 사용자 (Java 빌드 환경)** | `infra/idp/devhub-event-listener/` Maven 또는 Gradle 빌드 + compose volume mount + 운영 SOP |
 | **P2-7** | 신규 user 의 unit 초기 배치 자동화 — HRDB ETL pre-stage 가 unit 정보 동반 | ADR-0020 §5.5.2 | **Claude (backend) + 사용자 (HRDB)** | `scripts/hrdb_etl_sync.sh` 확장 |
 
