@@ -17,7 +17,7 @@ test.describe("Header dropdown", () => {
   test("TC-NAV-03 — Account Profile 메뉴 → /account 이동", async ({ page }) => {
     await loginAs(page, SEEDED.developer);
 
-    await page.getByText(SEEDED.developer.user_id, { exact: false }).first().click();
+    await page.getByRole("banner").getByText(SEEDED.developer.user_id, { exact: false }).first().click();
     await page.getByRole("button", { name: /account profile/i }).click();
 
     await page.waitForURL(/\/account(\/|$)/, { timeout: 10_000 });

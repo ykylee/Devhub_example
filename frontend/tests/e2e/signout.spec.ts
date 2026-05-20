@@ -26,7 +26,7 @@ test.describe("Sign Out terminates IdP session", () => {
     await loginAs(page, SEEDED.developer);
 
     // Open the header dropdown and click Sign Out
-    await page.getByText(SEEDED.developer.user_id, { exact: false }).first().click();
+    await page.getByRole("banner").getByText(SEEDED.developer.user_id, { exact: false }).first().click();
     await page.getByRole("button", { name: /sign out/i }).click();
     await waitForSessionCleared(page);
 
@@ -55,7 +55,7 @@ test.describe("Sign Out terminates IdP session", () => {
     await loginAs(page, SEEDED.developer);
 
     // Sign Out via header dropdown
-    await page.getByText(SEEDED.developer.user_id, { exact: false }).first().click();
+    await page.getByRole("banner").getByText(SEEDED.developer.user_id, { exact: false }).first().click();
     await page.getByRole("button", { name: /sign out/i }).click();
     await waitForSessionCleared(page);
 
@@ -82,7 +82,7 @@ test.describe("user switch across Sign Out", () => {
     await expect(page.getByText(SEEDED.developer.user_id, { exact: true }).first()).toBeVisible({ timeout: 10_000 });
 
     // 2) Sign Out
-    await page.getByText(SEEDED.developer.user_id, { exact: false }).first().click();
+    await page.getByRole("banner").getByText(SEEDED.developer.user_id, { exact: false }).first().click();
     await page.getByRole("button", { name: /sign out/i }).click();
     await waitForSessionCleared(page);
 
