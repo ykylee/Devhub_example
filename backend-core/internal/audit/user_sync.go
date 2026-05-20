@@ -2,6 +2,7 @@ package audit
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -33,8 +34,13 @@ import (
 // UserSyncOrgStore is the narrow interface the user sync helpers depend on.
 // Implemented by *store.PostgresStore in production; tests inject a memory
 // fake. Keeps the audit package import graph small.
+//
+// GetUserByIdPSubject 는 sprint -k codex P1 hotfix 로 추가 — USER:DELETE 처리
+// 시 admin client GetUserDetails 가 404 (user 이미 gone) 라 idp_subject 컬럼
+// (Keycloak UUID) 으로 DevHub users 행 lookup 이 유일 경로.
 type UserSyncOrgStore interface {
 	GetUser(ctx context.Context, userID string) (domain.AppUser, error)
+	GetUserByIdPSubject(ctx context.Context, identityID string) (domain.AppUser, error)
 	UpdateUser(ctx context.Context, userID string, input domain.UpdateUserInput) (domain.AppUser, error)
 }
 
@@ -74,9 +80,14 @@ func SyncUserProfile(ctx context.Context, admin UserSyncAdminClient, orgs UserSy
 	}
 
 	// Look up the DevHub row. Missing row → lazy auto-create scope.
+	// PR #241 codex P1 hotfix: ErrNotFound 만 noop, 그 외 (DB 장애 등) propagate
+	// — caller 가 metric `_errors_total` 으로 노출. 이전엔 모든 err 를 swallow 해
+	// stale data silent 위험.
 	if _, err := orgs.GetUser(ctx, userID); err != nil {
-		// pre-onboarding은 정상 — caller가 metric만 보강하고 종료.
-		return nil
+		if errors.Is(err, store.ErrNotFound) {
+			return nil
+		}
+		return fmt.Errorf("user_sync profile lookup %s: %w", userID, err)
 	}
 
 	input := domain.UpdateUserInput{}
@@ -120,8 +131,12 @@ func SyncUserMembership(ctx context.Context, admin UserSyncAdminClient, orgs Use
 		return fmt.Errorf("user_sync membership %s: empty username", identityID)
 	}
 
+	// PR #241 codex P1 hotfix: ErrNotFound 만 noop, 그 외 propagate.
 	if _, err := orgs.GetUser(ctx, userID); err != nil {
-		return nil // pre-onboarding noop
+		if errors.Is(err, store.ErrNotFound) {
+			return nil
+		}
+		return fmt.Errorf("user_sync membership lookup %s: %w", userID, err)
 	}
 
 	role := pickHighestPriorityRole(groups)
@@ -143,24 +158,30 @@ func SyncUserMembership(ctx context.Context, admin UserSyncAdminClient, orgs Use
 // DevHub row is preserved so historical audit_logs.actor_login references do
 // not dangle.
 //
-// The admin event provides only ResourcePath (e.g. `users/abc-uuid`); the
-// caller is responsible for parsing the identity_id. We accept it explicitly
-// here and look up the username via GetUserDetails — but on USER:DELETE the
-// Keycloak user is already gone, so this lookup typically fails with 404.
-// In that case the caller should pass the username separately (cached from a
-// prior event or the audit emitter side).
-func MarkUserDeactivated(ctx context.Context, orgs UserSyncOrgStore, userID string) error {
-	if strings.TrimSpace(userID) == "" {
-		return fmt.Errorf("user_sync delete: empty user_id")
+// PR #241 codex P1 hotfix: 받는 인자는 Keycloak identity_id (ResourcePath 의
+// users/{id} 에서 파싱된 UUID) — admin client `GetUserDetails` 가 404 (user
+// 이미 gone) 이므로 DevHub `users.idp_subject` 컬럼 (UNIQUE) lookup 으로
+// user_id 추출. ErrNotFound 만 noop, 그 외 (DB 장애) propagate.
+//
+// 이전 (PR #241 머지 직전 시점) 의 잘못된 동작: identity UUID 를 user_id 로
+// 직접 GetUser 호출 → 매칭 안 됨 → silent noop + metric success → stale data
+// 위험. codex inline review P1 이 회귀 식별.
+func MarkUserDeactivated(ctx context.Context, orgs UserSyncOrgStore, identityID string) error {
+	if strings.TrimSpace(identityID) == "" {
+		return fmt.Errorf("user_sync delete: empty identity_id")
 	}
-	if _, err := orgs.GetUser(ctx, userID); err != nil {
-		// 이미 없거나 lookup 실패 → noop. 다음 진입 시 lazy auto-create 가 처리.
-		return nil
+	user, err := orgs.GetUserByIdPSubject(ctx, identityID)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			// DevHub row 없음 (pre-onboarding 또는 idp_subject lazy backfill 미완) → noop.
+			return nil
+		}
+		return fmt.Errorf("user_sync delete lookup idp_subject=%s: %w", identityID, err)
 	}
 	deactivated := domain.UserStatusDeactivated
 	input := domain.UpdateUserInput{Status: &deactivated}
-	if _, err := orgs.UpdateUser(ctx, userID, input); err != nil {
-		return fmt.Errorf("user_sync delete %s: %w", userID, err)
+	if _, err := orgs.UpdateUser(ctx, user.UserID, input); err != nil {
+		return fmt.Errorf("user_sync delete %s (idp_subject=%s): %w", user.UserID, identityID, err)
 	}
 	return nil
 }
