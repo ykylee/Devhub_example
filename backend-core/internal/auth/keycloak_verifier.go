@@ -119,10 +119,33 @@ func (v *KeycloakJWKSVerifier) parseWithJWKS(ctx context.Context, token string, 
 	}
 
 	return httpapi.AuthenticatedActor{
-		Subject: subject,
-		Login:   login,
-		Role:    extractKeycloakRole(claims),
+		Subject:     subject,
+		Login:       login,
+		Role:        extractKeycloakRole(claims),
+		Email:       claimString(claims, "email"),
+		DisplayName: extractDisplayName(claims),
 	}, nil
+}
+
+// extractDisplayName picks the friendliest user-visible name from the token
+// claims. Preference: `name` (full name) > `given_name family_name` composite
+// > `preferred_username` (login). Returns "" when no claim is usable so the
+// lazy auto-create path (ADR-0020 §5.2) can pick its own fallback.
+func extractDisplayName(claims jwt.MapClaims) string {
+	if name := strings.TrimSpace(claimString(claims, "name")); name != "" {
+		return name
+	}
+	given := strings.TrimSpace(claimString(claims, "given_name"))
+	family := strings.TrimSpace(claimString(claims, "family_name"))
+	switch {
+	case given != "" && family != "":
+		return given + " " + family
+	case given != "":
+		return given
+	case family != "":
+		return family
+	}
+	return ""
 }
 
 type openIDConfiguration struct {

@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"bytes"
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -58,6 +59,16 @@ func TestRequireMinRoleBypassesWhenDevFallback(t *testing.T) {
 }
 
 func TestRequireMinRoleBlocksInsufficientRole(t *testing.T) {
+	// ADR-0020 sub-carve B (sprint -i): dev-user pre-seed → lazy auto-create skip.
+	// 본 test 의 의도는 role denial 검증이지 lazy auto-create 부산물 검증이 아님.
+	orgs := newMemoryOrganizationStore()
+	if _, err := orgs.CreateUser(context.Background(), domain.CreateUserInput{
+		UserID: "dev-user", Email: "dev@example.com", DisplayName: "Dev User",
+		Role: domain.AppRoleDeveloper, Status: domain.UserStatusActive,
+		Type: domain.UserTypeHuman,
+	}); err != nil {
+		t.Fatalf("seed dev-user: %v", err)
+	}
 	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
 		Login:   "dev-user",
 		Subject: "user-dev",
@@ -65,7 +76,7 @@ func TestRequireMinRoleBlocksInsufficientRole(t *testing.T) {
 	}}
 	audits := &memoryAuditStore{}
 	router := NewRouter(RouterConfig{
-		OrganizationStore:   newMemoryOrganizationStore(),
+		OrganizationStore:   orgs,
 		AuditStore:          audits,
 		BearerTokenVerifier: verifier,
 	})

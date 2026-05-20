@@ -17,6 +17,12 @@ type AuthenticatedActor struct {
 	Login   string
 	Subject string
 	Role    string
+	// ADR-0020 sub-carve B (sprint -i, issue #209) — lazy auto-create 가 첫
+	// 진입 시 DevHub `users` row 생성에 사용. token claim (email, name)
+	// 에서 추출. 빈 값 허용 — 이후 event listener (sub-carve C, sprint -g)
+	// 가 USER:UPDATE event 로 sync.
+	Email       string
+	DisplayName string
 }
 
 type BearerTokenVerifier interface {
@@ -154,9 +160,22 @@ func (h Handler) authenticateActor(c *gin.Context) {
 				}
 			}
 		case errors.Is(err, store.ErrNotFound):
-			// User has a valid Hydra token but no DevHub users row yet
-			// (pre-onboarding). Fall through to the token role claim —
-			// not a misconfiguration, no log noise.
+			// ADR-0020 §5.2 sub-carve B (sprint -i, issue #209): lazy
+			// auto-create. Keycloak admin console 또는 HRDB ETL 로 신규
+			// 생성된 user 의 첫 DevHub 진입 시 `users` row 자동 생성.
+			//
+			// 흐름: token 검증 통과 → GetUser miss → CreateUser → audit emit.
+			// 이전 (sprint -ad 이전): Hydra token 만 있고 DevHub row 없는
+			// pre-onboarding 사용자 진입은 token role claim 으로 fall through,
+			// admin/settings/users 페이지 진입 시 직접 row 생성 필요.
+			//
+			// 변경 (sprint -i): row 자동 생성 + audit `account.lazy_provisioned`
+			// + role fallback default `developer` + audit `user.role_default_assigned`.
+			// HRDB ETL pre-stage 가 먼저 row 생성한 경우 GetUser hit → 본 분기 자체
+			// 도달 안 함 (idempotent).
+			if h.cfg.OrganizationStore != nil {
+				h.lazyAutoCreateUser(c, login, actor, finalRole)
+			}
 		default:
 			// Schema drift or store outage. Without this surface, a
 			// missing migration (e.g. 000030 rename idp_subject)
