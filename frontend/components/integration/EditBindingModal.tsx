@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent, useEffect, useMemo } from "react";
+import { useState, FormEvent } from "react";
 import { Link2, X, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -52,12 +52,9 @@ export function EditBindingModal({ binding, providers, onClose, onUpdated }: Edi
       onUpdated(updated);
       onClose();
     } catch (err) {
-      if (err instanceof ApiError) {
-        const payload = err.payload as { code?: string; error?: string } | null;
-        if (err.status === 409) {
-          setError("이미 동일한 (scope, provider, external_key) binding 이 존재합니다.");
-          return;
-        }
+      if (err instanceof ApiError && err.status === 409) {
+        setError("이미 동일한 (scope, provider, external_key) binding 이 존재합니다.");
+        return;
       }
       const msg = err instanceof Error ? err.message : "binding 수정에 실패했습니다.";
       setError(msg);

@@ -4,8 +4,8 @@
 - 범위: 전체 시스템 구조, 개발 환경 구축, 서브 시스템 안내
 - 대상 독자: 모든 개발자 및 운영자
 - 상태: stable
-- 최종 수정일: 2026-05-01
-- 관련 문서: [워크플로우 README](ai-workflow/README.md), [프로젝트 프로파일](ai-workflow/memory/PROJECT_PROFILE.md)
+- 최종 수정일: 2026-05-20
+- 관련 문서: [워크플로우 README](ai-workflow/README.md), [프로젝트 프로파일](ai-workflow/memory/PROJECT_PROFILE.md), [환경 구성 가이드](docs/setup/environment-setup.md), [개발 로드맵](docs/development_roadmap.md)
 
 # DevHub: Role-Prioritized Entry Team Hub
 

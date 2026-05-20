@@ -122,12 +122,7 @@ type HRDBClient interface {
 }
 
 type RouterConfig struct {
-	WebhookSecret string
-	// KratosWebhookToken is the shared secret expected on
-	// /api/v1/integrations/kratos/hook/* webhook calls (PR-M2-AUDIT). Empty
-	// value makes the route respond 503 so a forgotten env in production
-	// fails loud. Wired from cfg.KratosWebhookToken via main.go.
-	KratosWebhookToken    string
+	WebhookSecret         string
 	KeycloakWebhookSecret string
 	InfraAgentToken       string
 	HomeLabProviderKey    string

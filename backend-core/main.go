@@ -127,7 +127,6 @@ func main() {
 
 	router := httpapi.NewRouter(httpapi.RouterConfig{
 		WebhookSecret:              cfg.GiteaWebhookSecret,
-		KratosWebhookToken:         "", // Ory remnants
 		KeycloakWebhookSecret:      cfg.KeycloakWebhookSecret,
 		InfraAgentToken:            cfg.InfraAgentToken,
 		HomeLabProviderKey:         cfg.HomeLabProviderKey,

@@ -1,0 +1,86 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/codebase-cleanup-2026-05-20",
+  "branch": "claude/codebase-cleanup-2026-05-20",
+  "status": "in_progress",
+  "started_at": "2026-05-20T18:10:00Z",
+  "ended_at": null,
+  "merged_pr": null,
+  "merge_commit": null,
+  "issue": null,
+  "carve": "housekeeping",
+  "scope": "코드베이스 전체 self-review 후 dead code 제거 + outdated docs 갱신 + lint 노이즈 감축. main HEAD `3fdcf33` 기준 새 브랜치. PR 생성 보류 (사용자 지시 — '작업이 모두 완료될 때까지 pr은 생성하지 않아도 좋아'). 3 commit + push 완료 (커밋 1 dead code, 커밋 2 docs, 커밋 3 lint).",
+  "directive_source": "사용자 지시 — '현재 코드베이스 전체를 면밀히 리뷰해. 최신화되지 않은 문서를 최신화하고 더 이상 사용되지 않는 문서와 코드 내용을 모두 정리. 어지간한건 셀프 검토. 작업이 모두 완료될 때까지 pr은 생성하지 않아도 좋아. 단위테스트 및 e2e 테스트가 미흡한 점이 있는지도 확인.'",
+  "decisions": [
+    "dead code 제거 — backend `RouterConfig.KratosWebhookToken` 필드 (route 등록 없이 read 도 안 됨) + main.go 빈 string 할당 + 관련 dead comments. `backend-core/devhub-backend` 36.9MB Mach-O ARM64 binary (commit 218be81 부터 stuck) git rm.",
+    "frontend dead code — `public/*.svg` 5 boilerplate (file/globe/next/vercel/window) + `identity.service.ts::getTeams() + Team interface` (mock 만 self-reference) + `types.ts::BuildLog` interface (참조처 없음) + `app/signup/page.tsx` 의 stale comment (현재 placeholder spec 1건 vs comment 의 'TC-SIGNUP-01..04 4 specs').",
+    "stale tests/ — `tests/mock_backlog.md` (TASK-999 Antigravity 2026-05-01 placeholder) + `tests/repro_validation.py` (broken stub, `SOURCE_ROOT` undefined) — 디렉터리째 정리.",
+    "outdated docs 갱신 — docs/PROJECT_PROFILE.md + ai-workflow/memory/PROJECT_PROFILE.md (long-closed gemini/phase6 + codex/service-action-command 참조 제거 + make run/make build/docker desktop 정책 모순 제거) + docs/tech_stack.md (Next.js 15 → 16, React 19 → 19.2 정확화 + Section 2 native default 우선) + docs/setup/environment-setup.md (메타 2026-05-08 → stable 2026-05-20 + 'PR #18 이후' 같은 historical reference 제거 + /login → /auth/login 정정) + .github/workflows/docker-image-publish.yml (Hydra port 4444 build-arg 제거, runtime override 코멘트 추가) + Makefile (test-frontend/e2e 의 placeholder 코멘트 갱신) + README.md (메타 2026-05-01 → 2026-05-20 + 핵심 link 추가).",
+    "lint 노이즈 감축 — frontend/eslint.config.mjs 의 globalIgnores 에 `coverage/**`, `playwright-report/**`, `test-results/**` 추가 + EditBindingModal.tsx 의 미사용 React import (useEffect, useMemo) + dead payload 캐스트 정리. 22 → 18 problems (-4 warnings)."
+  ],
+  "todo": [
+    "Phase A (dead code) — DONE (commit dfda392)",
+    "Phase B (docs update) — DONE (commit d0f136b)",
+    "Phase C (lint cleanup) — DONE (commit eabcba1)",
+    "Phase D (workflow memory + auto-memory) — IN PROGRESS",
+    "Phase E (final commit + push) — NEXT"
+  ],
+  "verification": {
+    "go_build": "PASS — go build ./... silent",
+    "go_vet": "PASS — go vet ./... silent",
+    "go_test": "PASS — 14 packages all green (audit, auth, commandworker, config, devrequest, domain, gitea, hrdb, httpapi, integrations/adapters, normalize, serviceaction, store)",
+    "frontend_test": "PASS — vitest 8 test files / 34 tests green",
+    "frontend_build": "PASS — Next.js 16.2.6 build, 26 routes (static + dynamic)",
+    "frontend_lint": "PARTIAL — 22 problems → 18 (4 errors + 14 warnings 남음, 모두 pre-existing feature-code; gemini PRs 의 Topology v2 / integration-bindings / ComboBox useEffect 패턴 + topology-v2 의 any types). cleanup branch 외부 fix 권장.",
+    "check_docs": "PRE-EXISTING FAIL — gemini sprint memory dirs 의 metadata mojibake 와 broken links. cleanup 범위 외 (gemini 영역)."
+  },
+  "dead_code_removed": [
+    "backend-core/devhub-backend (36.9 MB Mach-O ARM64 binary)",
+    "backend-core/internal/httpapi/router.go::RouterConfig.KratosWebhookToken field + assignment + dead comments",
+    "backend-core/main.go KratosWebhookToken: \"\" line",
+    "backend-core/internal/httpapi/keycloak_events_webhook.go 의 KratosWebhookToken 패턴 참조 코멘트",
+    "frontend/public/file.svg + globe.svg + next.svg + vercel.svg + window.svg (Next.js boilerplate)",
+    "frontend/lib/services/identity.service.ts::getTeams() + Team interface",
+    "frontend/lib/services/types.ts::BuildLog interface",
+    "frontend/app/signup/page.tsx 의 stale TC-SIGNUP-01..04 4 specs 코멘트 (현재 1 placeholder spec)",
+    "tests/mock_backlog.md (TASK-999 generic placeholder)",
+    "tests/repro_validation.py (broken stub)",
+    "frontend/components/integration/EditBindingModal.tsx 의 unused React imports (useEffect, useMemo) + dead payload cast",
+    "empty 디렉터리 (ai-workflowmemoryclaudework_260518-lbacklog typo + backend-core/ai-workflow/memory/claude/work_260520-{k,l}-* 빈 dir 2개)"
+  ],
+  "docs_updated": [
+    "docs/PROJECT_PROFILE.md — mirror; codex/service-action-command + make run/build + docker desktop 정책 모순 정리 + Keycloak ADR-0019 명시",
+    "ai-workflow/memory/PROJECT_PROFILE.md — source; gemini/phase6 + codex/service-action-command 참조 제거 + native default 정합 + Keycloak/Hydra+Kratos supersession 명시",
+    "docs/tech_stack.md — 메타 2026-05-13 → 2026-05-20; Next.js 16 + React 19.2 + React Flow active + Keycloak PKCE auth flow 명시; Section 2 native default + docker optional",
+    "docs/setup/environment-setup.md — 상태 draft → stable; 메타 2026-05-08 → 2026-05-20; /login → /auth/login; PR #18 historical 제거; Keycloak 정합 강화",
+    ".github/workflows/docker-image-publish.yml — Hydra port 4444 build-arg 제거 + runtime override 코멘트",
+    "Makefile — test target 의 placeholder 코멘트 갱신 (Vitest / Playwright 가 이미 live)",
+    "README.md — 메타 2026-05-01 → 2026-05-20 + 핵심 link 추가"
+  ],
+  "test_gaps_documented": [
+    "P0 — DREQ intake token admin E2E Playwright spec 부재 (DREQ E2E carve 3/4 잔여 — 사용자 결정으로 lower priority)",
+    "P0 — JWKS metric (`devhub_jwks_stale_while_error_total{result}`) emission 명시 검증 부재 (현재 옵션 emitter callback 만)",
+    "P1 — Keycloak 실 OIDC e2e flow (login → idp callback → token store → /me → dashboard) 부재. global-setup.ts 의 idp_subject sync 만 있고 실 사용자 흐름 e2e 없음",
+    "P1 — Integration bindings PATCH/DELETE backend handler 테스트 부재",
+    "P1 — Single-port nginx e2e (ADR-0018) 부재",
+    "P2 — frontend service 단위 테스트 부재 (auth.service.ts / api-client.ts / websocket.service.ts)",
+    "P3 — backend-ai (FastAPI) test 폴더/pytest 구성 전무 (gRPC server 미구현 상태 반영)",
+    "P3 — dashboard page-level snapshot/render 테스트 전무"
+  ],
+  "pre_existing_issues_out_of_scope": [
+    "frontend ESLint 4 errors — Topology v2 (any types L86/L96) + integration-bindings page setState in useEffect (L52) + ComboBox useEffect setSearch pattern (L58). gemini PRs 의 feature code, refactor 필요.",
+    "ai-workflow/tests/check_docs.py 의 gemini sprint memory mojibake (cp949 인코딩 잔재) + broken docs/development_roadmap.md links. gemini 영역.",
+    "docker-compose.deploy.yml 이 `ghcr.io/ykylee/devhub_example/...` images 를 expect 하지만 backend-core/backend-ai/frontend Dockerfile 은 .gitignore 로 untracked. docker-image-publish.yml 워크플로우 실행 가능 여부는 환경별 자산 의존 — 운영팀 검수 필요."
+  ],
+  "commits": [
+    {"sha": "dfda392", "subject": "chore: remove dead code residue (sprint claude/codebase-cleanup-2026-05-20)"},
+    {"sha": "d0f136b", "subject": "docs: refresh stale references in profile/tech_stack/env-setup/Makefile"},
+    {"sha": "eabcba1", "subject": "chore(frontend): quiet eslint on generated dirs + drop dead imports"}
+  ],
+  "pr_status": "PR 생성 보류 (사용자 지시). 작업 완료 후 사용자 검토 → 본인 4단계 self-review 후 PR 발행 예정.",
+  "next_directive": [
+    "본 sprint state + branch session_handoff/work_backlog 생성 → 4번째 commit + push",
+    "사용자 검토 받은 후 PR 발행 + 4단계 self-review (diff 재검토 → gh pr comment → 보강 commit → squash merge)",
+    "잔여 carve (test 갭 8건) 는 별도 sprint 진입 시 우선순위 부여"
+  ]
+}
