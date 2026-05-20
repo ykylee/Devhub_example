@@ -1,0 +1,46 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260520-p-housekeeping8",
+  "branch": "claude/work_260520-p-housekeeping8",
+  "status": "in_progress",
+  "started_at": "2026-05-20T15:30:00Z",
+  "ended_at": null,
+  "merged_pr": null,
+  "merge_commit": null,
+  "issue": null,
+  "carve": "housekeeping",
+  "scope": "main flat memory housekeeping #8 — 오늘 머지된 9 PR (#244/#245/#246/#249/#251/#252/#253/#254/#255) 흡수. state.json + session_handoff + work_backlog 갱신 + sprint -n/-o/-p branch state finalize. ADR-0020 sub-carve 진척 6/8 명문화. v1.0 release gate (D-26) 잔여 3건 명시.",
+  "directive_source": "사용자 지시 — '3 진행해줘' (이전 보고의 '다음 action 추천' 중 3번 = memory housekeeping #8)",
+  "decisions": [
+    "main flat state.json — head_commit `de69dd4` (PR #251 머지) + status 재작성 (오늘 9 PR 흡수 + ADR-0020 6/8 + v1.0 release gate 잔여 3건) + merged_prs_2026_05_20 에 PR #243~#255 9 entry 추가 (각 PR 의 핵심 commit 5 line 요약 + Claude hotfix 명시)",
+    "session_handoff — header (HEAD + 본 sprint + 9 PR 요약) + 흡수 9 PR 표 (issue 매핑 + 핵심) + ADR-0020 sub-carve 6/8 표 + v1.0 release gate 잔여 3건",
+    "work_backlog — header (HEAD + 다음 directive 3 우선순위)",
+    "sprint -p 본 state 생성"
+  ],
+  "todo": [
+    "state.json + session_handoff + work_backlog + sprint -p 본 state — 완료",
+    "commit + push + PR + self-review + squash merge — 다음"
+  ],
+  "verification": "state.json JSON syntax PASS. 코드 변경 없음 (docs/memory only).",
+  "absorbed_prs": [
+    {"pr": 243, "issue": null, "domain": "memory", "merge": "2a1c627"},
+    {"pr": 244, "issue": 217, "domain": "backend+docs", "merge": "6810384"},
+    {"pr": 245, "issue": 238, "domain": "infra+frontend+docs", "merge": "6656c2a"},
+    {"pr": 246, "issue": 209, "domain": "frontend", "merge": "b1e34bd"},
+    {"pr": 249, "issue": 216, "domain": "infra+e2e", "merge": "7e8388d"},
+    {"pr": 251, "issue": 220, "domain": "backend+frontend", "merge": "de69dd4"},
+    {"pr": 252, "issue": 221, "domain": "frontend", "merge": "c44c33d"},
+    {"pr": 253, "issue": 247, "domain": "frontend", "merge": "4769fc5"},
+    {"pr": 254, "issue": null, "domain": "memory", "merge": "d92a01e"},
+    {"pr": 255, "issue": null, "domain": "docs", "merge": "ec487cf"}
+  ],
+  "adr_0020_sub_carve_progress": "6/8 done — A (sprint -d PR #205) + B-backend (sprint -i PR #239) + B-frontend (gemini PR #246) + C (sprint -k PR #241) + D (sprint -l PR #242) + E (sprint -n PR #244) + #247 P1-bug (gemini PR #253). 잔여: F /login 정리 (P3 sprint -? 후속) + SPI provider JAR (사내 인프라 carve)",
+  "v1_0_release_gate": {
+    "deadline": "2026-06-15 (D-26)",
+    "blocking": [
+      "#210 P0-2 UI polish (Gemini) — PR #248 e2e shard 2 3번째 fail, Playwright trace artifact 분석 필요",
+      "#214 P1-3 Keycloak group staging-prod (사내 운영자 1회 작업)",
+      "#215 P1-4 off-boarding Phase 1 cron 실 deploy (사내 운영팀 + Codex)"
+    ]
+  }
+}

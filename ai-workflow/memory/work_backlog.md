@@ -3,8 +3,8 @@
 - 문서 목적: main 브랜치 기준 상위 백로그 인덱스. 세부 sprint backlog 는 브랜치별 메모리 디렉터리 참조.
 - 범위: 마일스톤 상태, 최근 머지, 잔여/후속 작업
 - 대상 독자: 프로젝트 리드, 후속 에이전트, 트랙 담당자
-- 상태: M1·M2·M3 done. **Keycloak 단일 IdP 정합 완전 정착** (ADR-0019). **ADR-0019 §5.3 design 완결** + **§5.3 (9) audit event listener Phase 2 풀스택 종결**. **계정/사용자 관리 리팩토링 Phase 3 sub-carve A/B/C/D/F 완결**: Phase 3 sub-carve A (PR #205) + B backend (PR #239) + B frontend (PR #246) + C (PR #241) + D (PR #242) + F (PR #253) 모두 done. **v1.0 릴리즈 로드맵 진입**: P0-1, P0-2, P1-5, P2-4, P2-5 도메인 고도화 및 PR 발행. **docker-compose deploy 안정화**: single-port nginx reverse proxy (PR #245) 머지. main HEAD `7e8388d`. 본 sprint -n housekeeping #7 (8 PR 진척 사항 흡수) 진행 중. **다음 directive**: 1순위 = Issued PR (#248, #251, #252, #253) 머지 및 e2e 안정화 / 2순위 = #214 P1-3 sub-carve E service account 권한 축소 (Claude sprint -n) / 3순위 = M4 로드맵 과제 진입 / 4순위 = Keycloak SPI provider JAR P2-6 carve (사내 인프라 동반).
-- 최종 수정일: 2026-05-21 (sprint gemini/housekeeping-260520-status-update)
+- 상태: M1·M2·M3 done. **Keycloak 단일 IdP 정합 완전 정착** (ADR-0019). **ADR-0019 §5.3 design 완결** + **§5.3 (9) audit event listener Phase 2 풀스택 종결**. **ADR-0020 sub-carve 진척 6/8 done** (A/B-backend/B-frontend/C/D/E + #247 P1-bug). **v1.0 release gate (D-26, 2026-06-15)**: 잔여 3건 (#210 P0-2 UI polish PR #248 e2e fail / #214 group staging-prod 사내 / #215 off-boarding cron 사내). **GitHub Project 정합** (10 Done / 1 In review / 18 Backlog, 28 issue). main HEAD `de69dd4` (PR #251 P2-4 머지). 본 sprint -p housekeeping #8 (오늘 9 PR 흡수: #244/#245/#246/#249/#251/#252/#253/#254/#255) 진행 중. **다음 directive**: 1순위 = #248 (P0-2) Playwright trace artifact 분석 + 해결 / 2순위 = #214 + #215 사내 운영자 작업 / 3순위 = v1.1 carve (#218 alert / #219 ADR-0017 expires_at / #222 SPI JAR / #223 HRDB ETL pre-stage / #224 /login 정리 sub-carve F).
+- 최종 수정일: 2026-05-20 (sprint claude/work_260520-p-housekeeping8)
 - 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [세션 인계](./session_handoff.md), [상태 스냅샷](./state.json), [M1 PR 리뷰 actions](./M1-PR-review-actions.md)
 
 ## 1. 마일스톤 진행 상황

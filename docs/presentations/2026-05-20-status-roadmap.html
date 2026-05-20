@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DevHub Example — 개발 현황 & 로드맵 (2026-05-20)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    background: #0a0a14;
+    color: #e8e8f0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Pretendard", sans-serif;
+    overflow: hidden;
+    user-select: none;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* === Slide container === */
+  .slide {
+    position: absolute;
+    width: 100vw;
+    height: 100vh;
+    padding: 60px 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+    overflow-y: auto;
+  }
+  .slide.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* === Headings === */
+  h1 {
+    font-size: 64px;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+    margin-bottom: 28px;
+    background: linear-gradient(135deg, #7c3aed, #06b6d4);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  h2 {
+    font-size: 44px;
+    font-weight: 800;
+    margin-bottom: 32px;
+    color: #f5f5fa;
+    letter-spacing: -0.01em;
+  }
+  h2 .badge {
+    display: inline-block;
+    margin-right: 14px;
+    padding: 4px 14px;
+    background: #7c3aed;
+    color: white;
+    border-radius: 10px;
+    font-size: 18px;
+    font-weight: 700;
+    vertical-align: middle;
+  }
+  h3 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #a5a5b8;
+    margin: 16px 0 8px 0;
+  }
+  .subtitle {
+    font-size: 22px;
+    color: #8a8aa0;
+    margin-bottom: 16px;
+    font-weight: 400;
+  }
+
+  /* === Cover === */
+  .cover {
+    text-align: center;
+    align-items: center;
+  }
+  .cover h1 { font-size: 88px; }
+  .cover .date {
+    margin-top: 40px;
+    font-size: 18px;
+    color: #6a6a80;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .cover .meta {
+    margin-top: 80px;
+    display: flex;
+    gap: 60px;
+    justify-content: center;
+    color: #8a8aa0;
+    font-size: 15px;
+  }
+  .cover .meta span strong {
+    display: block;
+    color: #c5c5d0;
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  /* === Two column layouts === */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+  .grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 24px;
+  }
+
+  /* === Cards === */
+  .card {
+    background: rgba(124, 58, 237, 0.08);
+    border: 1px solid rgba(124, 58, 237, 0.25);
+    border-radius: 16px;
+    padding: 24px 28px;
+  }
+  .card.done {
+    background: rgba(34, 197, 94, 0.08);
+    border-color: rgba(34, 197, 94, 0.3);
+  }
+  .card.pending {
+    background: rgba(245, 158, 11, 0.08);
+    border-color: rgba(245, 158, 11, 0.3);
+  }
+  .card.cancelled {
+    background: rgba(100, 100, 120, 0.08);
+    border-color: rgba(100, 100, 120, 0.2);
+    opacity: 0.6;
+  }
+  .card h3 {
+    margin-top: 0;
+    color: #f5f5fa;
+    font-size: 20px;
+  }
+  .card .tag {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 6px;
+    background: rgba(124, 58, 237, 0.2);
+    color: #c4b5fd;
+    font-size: 12px;
+    font-weight: 600;
+    margin-right: 6px;
+  }
+  .card.done .tag { background: rgba(34, 197, 94, 0.2); color: #86efac; }
+  .card.pending .tag { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
+
+  /* === Tables === */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  th, td {
+    padding: 10px 16px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  th {
+    background: rgba(124, 58, 237, 0.15);
+    color: #d8b4fe;
+    font-weight: 700;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  td.center { text-align: center; }
+  td.status-done { color: #86efac; font-weight: 600; }
+  td.status-progress { color: #93c5fd; font-weight: 600; }
+  td.status-review { color: #fcd34d; font-weight: 600; }
+  td.status-backlog { color: #a5a5b8; }
+  td code, .inline-code {
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px;
+    padding: 2px 6px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 4px;
+    color: #d4d4dc;
+  }
+
+  /* === Lists === */
+  ul, ol { margin-left: 24px; line-height: 1.7; font-size: 16px; }
+  li { margin-bottom: 6px; }
+  ul.bare {
+    list-style: none;
+    margin-left: 0;
+  }
+  ul.bare li::before {
+    content: "▸ ";
+    color: #7c3aed;
+    margin-right: 8px;
+  }
+
+  /* === Stats === */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+    margin: 32px 0;
+  }
+  .stat {
+    background: rgba(124, 58, 237, 0.08);
+    border: 1px solid rgba(124, 58, 237, 0.2);
+    border-radius: 16px;
+    padding: 28px 24px;
+    text-align: center;
+  }
+  .stat .num {
+    font-size: 48px;
+    font-weight: 900;
+    background: linear-gradient(135deg, #7c3aed, #06b6d4);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    line-height: 1;
+  }
+  .stat .label {
+    margin-top: 10px;
+    font-size: 13px;
+    color: #8a8aa0;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+  }
+
+  /* === Progress bars === */
+  .progress {
+    margin: 20px 0;
+  }
+  .progress .label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    margin-bottom: 6px;
+  }
+  .progress .bar {
+    height: 10px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .progress .fill {
+    height: 100%;
+    background: linear-gradient(90deg, #7c3aed, #06b6d4);
+    border-radius: 6px;
+    transition: width 0.6s ease;
+  }
+  .progress .fill.done { background: linear-gradient(90deg, #22c55e, #06b6d4); }
+
+  /* === Navigation === */
+  .nav {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    background: rgba(20, 20, 30, 0.85);
+    padding: 10px 20px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    z-index: 100;
+  }
+  .nav button {
+    background: rgba(124, 58, 237, 0.15);
+    color: #c4b5fd;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.2s;
+  }
+  .nav button:hover {
+    background: rgba(124, 58, 237, 0.3);
+    color: white;
+  }
+  .nav button:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+  .nav .counter {
+    color: #8a8aa0;
+    font-size: 14px;
+    min-width: 70px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .progress-strip {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #7c3aed, #06b6d4);
+    transition: width 0.4s ease;
+    z-index: 99;
+  }
+
+  /* === Footer === */
+  .footer {
+    position: fixed;
+    bottom: 20px;
+    right: 30px;
+    font-size: 12px;
+    color: #5a5a70;
+    letter-spacing: 0.05em;
+  }
+
+  /* === Highlight === */
+  .highlight {
+    color: #c4b5fd;
+    font-weight: 700;
+  }
+  .ok { color: #86efac; }
+  .warn { color: #fcd34d; }
+  .danger { color: #fca5a5; }
+  .muted { color: #6a6a80; }
+
+  /* === Background glow === */
+  body::before {
+    content: "";
+    position: fixed;
+    top: -20%;
+    left: -10%;
+    width: 60%;
+    height: 60%;
+    background: radial-gradient(circle, rgba(124, 58, 237, 0.15), transparent 70%);
+    z-index: -1;
+    pointer-events: none;
+  }
+  body::after {
+    content: "";
+    position: fixed;
+    bottom: -20%;
+    right: -10%;
+    width: 60%;
+    height: 60%;
+    background: radial-gradient(circle, rgba(6, 182, 212, 0.12), transparent 70%);
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  /* === Print === */
+  @media print {
+    .slide { position: relative; opacity: 1 !important; page-break-after: always; pointer-events: auto; height: auto; min-height: 100vh; }
+    .nav, .progress-strip, .footer { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress-strip" id="progress-strip"></div>
+
+<!-- Slide 1: Cover -->
+<section class="slide cover active" data-slide="1">
+  <h1>DevHub Example</h1>
+  <div class="subtitle">개발 현황 & v1.0 릴리즈 로드맵</div>
+  <div class="meta">
+    <span><strong>2026-05-20</strong>스냅샷 일자</span>
+    <span><strong>v1.0</strong>릴리즈 마일스톤</span>
+    <span><strong>3-Worker</strong>Claude · Codex · Gemini</span>
+  </div>
+  <div class="date">DevHub Identity · Multi-Agent Engineering</div>
+</section>
+
+<!-- Slide 2: 목차 -->
+<section class="slide" data-slide="2">
+  <h2><span class="badge">01</span>오늘 다룰 내용</h2>
+  <div class="grid-2" style="margin-top: 16px;">
+    <div class="card">
+      <h3>① 현황 스냅샷</h3>
+      <ul class="bare">
+        <li>최근 머지된 PR 흐름</li>
+        <li>ADR-0020 sub-carve 진척</li>
+        <li>GitHub Project status 분포</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>② 로드맵</h3>
+      <ul class="bare">
+        <li>v1.0 / v1.1 / v2 마일스톤</li>
+        <li>잔여 carve P0~P3</li>
+        <li>다음 sprint priority</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>③ 워커 분업</h3>
+      <ul class="bare">
+        <li>Claude · Codex · Gemini 영역</li>
+        <li>2-트랙 협업 사례</li>
+        <li>충돌 회피 SOP</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>④ 품질 + 거버넌스</h3>
+      <ul class="bare">
+        <li>ADR 발급 / 회귀 test / 보안</li>
+        <li>codex review cycle</li>
+        <li>4-stage self-review</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- Slide 3: 마일스톤 -->
+<section class="slide" data-slide="3">
+  <h2><span class="badge">02</span>v1.0 릴리즈 마일스톤</h2>
+  <table>
+    <thead>
+      <tr><th style="width:22%">마일스톤</th><th style="width:14%">목표일</th><th>핵심 결과</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>M-v1.0 Release</strong></td><td>2026-06-15</td><td>인증/조직 + Application/Repo/Project + External Integration 1차 + 단일 포트 배포</td></tr>
+      <tr><td><strong>M-v1.1 Stability</strong></td><td>2026-07-31</td><td>off-boarding cron + e2e Keycloak 전환 + UI polish + sub-carve B-frontend</td></tr>
+      <tr><td><strong>M-v2 Extension</strong></td><td><span class="muted">미정</span></td><td>M4 (AI Gardener / Gitea Pull / RBAC LISTEN-NOTIFY / 외부 SSO / HA)</td></tr>
+    </tbody>
+  </table>
+  <h3 style="margin-top:36px">v1.0 핵심 시나리오 (제외 항목)</h3>
+  <ul class="bare">
+    <li><span class="muted">AI Gardener · MFA · WebSocket replay · System Admin · Gitea Pull · 외부 SSO</span> → v2</li>
+    <li><span class="danger">Sign Up 기능</span> 영구 취소 (DevHub 가 Keycloak admin 권한 없음, 2026-05-20 결정)</li>
+  </ul>
+</section>
+
+<!-- Slide 4: ADR-0020 sub-carve 진척 -->
+<section class="slide" data-slide="4">
+  <h2><span class="badge">03</span>ADR-0020 sub-carve 진척 — <span class="ok">5/8 done</span></h2>
+  <table>
+    <thead>
+      <tr><th>sub-carve</th><th>영역</th><th>sprint</th><th>PR</th><th>상태</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>A</strong></td><td>ADR-0020 발급 + <code>rbac_subject_roles</code> 완전 제거</td><td><code>-d</code></td><td>#205</td><td class="status-done center">✅ Done</td></tr>
+      <tr><td><strong>B (backend)</strong></td><td><code>/api/v1/accounts/*</code> 폐기 + lazy auto-create</td><td><code>-i</code></td><td>#239</td><td class="status-done center">✅ Done</td></tr>
+      <tr><td><strong>B (frontend)</strong></td><td><code>account.service.ts</code> 폐기 + admin/settings/users 정리</td><td>—</td><td>—</td><td class="status-backlog center">Gemini 영역</td></tr>
+      <tr><td><strong>C</strong></td><td>Keycloak event listener 확장 + DevHub users sync</td><td><code>-k</code></td><td>#241</td><td class="status-done center">✅ Done</td></tr>
+      <tr><td><strong>D</strong></td><td>JWKS stale-while-error expiry case 확장</td><td><code>-l</code></td><td>#242</td><td class="status-done center">✅ Done</td></tr>
+      <tr><td><strong>E</strong></td><td>service account 권한 축소 + governance SOP</td><td><code>-n</code></td><td>#244</td><td class="status-done center">✅ Done</td></tr>
+      <tr><td><strong>F</strong></td><td><code>/login</code> page 정리</td><td>—</td><td>—</td><td class="status-backlog center">Backlog</td></tr>
+      <tr><td>SPI carve</td><td>Keycloak SPI provider JAR (PR #203 후속)</td><td>—</td><td>—</td><td class="status-backlog center">사내 인프라</td></tr>
+    </tbody>
+  </table>
+  <div class="progress" style="margin-top: 28px">
+    <div class="label"><span>전체 진척</span><span class="ok">5/8 (62.5%)</span></div>
+    <div class="bar"><div class="fill done" style="width: 62.5%"></div></div>
+  </div>
+</section>
+
+<!-- Slide 5: 최근 sprint 흐름 -->
+<section class="slide" data-slide="5">
+  <h2><span class="badge">04</span>최근 머지된 sprint (-d ~ -n + -o 진행)</h2>
+  <table>
+    <thead>
+      <tr><th>sprint</th><th>PR</th><th>핵심</th><th>커밋 수</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>-d</code></td><td>#205</td><td>ADR-0020 발급 + sub-carve A (rbac_subject_roles 제거)</td><td class="center">9</td></tr>
+      <tr><td><code>-e,-f,-g</code></td><td>#206/#207/#208</td><td>housekeeping #4 + v1.0 로드맵 + 워커 분업 design + codex hotfix</td><td class="center">11</td></tr>
+      <tr><td><code>-h</code></td><td>#237</td><td>Playwright E2E screenshot mode (P0-3 Done)</td><td class="center">5</td></tr>
+      <tr><td><code>-i</code></td><td>#236/#239</td><td>Sign Up 영구 취소 + sub-carve B-backend (lazy auto-create)</td><td class="center">5</td></tr>
+      <tr><td><code>-j</code></td><td>#240</td><td>housekeeping #5 + GitHub Project #2 + 27 issues 등재</td><td class="center">1</td></tr>
+      <tr><td><code>-k</code></td><td>#241</td><td>sub-carve C — event listener users sync + Prometheus 3종 metric</td><td class="center">6</td></tr>
+      <tr><td><code>-l</code></td><td>#242</td><td>sub-carve D — JWKS stale-while-error + cachedUntil cutoff 정공법</td><td class="center">6</td></tr>
+      <tr><td><code>-m</code></td><td>#243</td><td>housekeeping #6 (sprint -k/-l 흡수)</td><td class="center">1</td></tr>
+      <tr><td><code>-n</code></td><td>#244</td><td>sub-carve E — service account 권한 축소 (호출처 5건 전면 제거)</td><td class="center">5</td></tr>
+      <tr><td><code>-o</code></td><td>#245 <span class="warn">OPEN</span></td><td>#238 codex 인계 + P1~P3 7건 보강 (healthcheck + TLS SOP + dev mode + 404→302)</td><td class="center">9</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- Slide 6: GitHub Project status -->
+<section class="slide" data-slide="6">
+  <h2><span class="badge">05</span>GitHub Project — Status 분포 (28 items)</h2>
+  <div class="stats">
+    <div class="stat"><div class="num">8</div><div class="label">Done</div></div>
+    <div class="stat"><div class="num">1</div><div class="label">In review</div></div>
+    <div class="stat"><div class="num">2</div><div class="label">Ready</div></div>
+    <div class="stat"><div class="num">16</div><div class="label">Backlog</div></div>
+  </div>
+  <div class="grid-2" style="margin-top: 12px">
+    <div class="card done">
+      <h3>✅ Done (8건)</h3>
+      <ul class="bare" style="font-size:14px">
+        <li><code>#209</code> P0-1 sub-carve B-backend</li>
+        <li><code>#211</code> P0-3 screenshot mode</li>
+        <li><code>#212</code> P1-1 sub-carve C</li>
+        <li><code>#213</code> P1-2 sub-carve D</li>
+        <li><code>#217</code> P2-1 sub-carve E <span class="muted">(매핑 정정)</span></li>
+      </ul>
+    </div>
+    <div class="card pending">
+      <h3>🔄 In review / Ready (3건)</h3>
+      <ul class="bare" style="font-size:14px">
+        <li><code>#238</code> P0-4 단일 포트 배포 <span class="warn">In review (#245)</span></li>
+        <li><code>#210</code> P0-2 UI polish <span class="muted">Ready (Gemini)</span></li>
+        <li><code>#247</code> P1-bug password silent drop <span class="muted">Ready (sprint -p)</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- Slide 7: 잔여 carve -->
+<section class="slide" data-slide="7">
+  <h2><span class="badge">06</span>잔여 carve — P0~P3 우선순위</h2>
+  <div class="grid-2" style="font-size: 14px">
+    <div class="card pending">
+      <h3>P0 우선 (v1.0 blocker)</h3>
+      <ul class="bare">
+        <li><code>#238</code> Docker 단일 포트 — PR #245 OPEN</li>
+        <li><code>#210</code> UI polish — Gemini</li>
+        <li><code>#247</code> password silent drop — sprint -p</li>
+        <li>sub-carve B-frontend — Gemini</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>P1 (v1.0 안정성)</h3>
+      <ul class="bare">
+        <li><code>#214</code> Keycloak group staging-prod — 사내 운영자</li>
+        <li><code>#215</code> off-boarding Phase 1 cron 실 deploy</li>
+        <li><code>#216</code> e2e Kratos → Keycloak 실 코드</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>P2 (v1.1)</h3>
+      <ul class="bare">
+        <li><code>#218</code> ADR-0016 §6 pull latency p95 alert</li>
+        <li><code>#219</code> ADR-0017 §6 (b) PATCH expires_at</li>
+        <li><code>#220</code> Bindings UI 강화</li>
+        <li><code>#221</code> React Flow group sub-node + WS</li>
+        <li><code>#222</code> Keycloak SPI provider JAR</li>
+        <li><code>#223</code> HRDB ETL pre-stage</li>
+      </ul>
+    </div>
+    <div class="card cancelled">
+      <h3>P3 (v2 / M4 carve)</h3>
+      <ul class="bare">
+        <li><code>#224</code> /login 정리 (sub-carve F)</li>
+        <li><code>#225/#226</code> ADR-0015 §6 worker / dedup</li>
+        <li><code>#227~#228</code> Keycloak HA + SPI push</li>
+        <li><code>#229~#234</code> M4 RM-M4-01..09</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- Slide 8: 워커 분업 -->
+<section class="slide" data-slide="8">
+  <h2><span class="badge">07</span>워커 분업 — 영역 + 협업 결과</h2>
+  <div class="grid-3">
+    <div class="card">
+      <h3><span style="color:#c4b5fd">🤖 Claude</span></h3>
+      <p style="font-size:13px; color:#a5a5b8; margin-bottom:12px">backend (Go) + design + governance</p>
+      <ul class="bare" style="font-size:13px">
+        <li>ADR-0020 8 sub-carve 진척 5건</li>
+        <li>JWKS stale + event listener + lazy auto-create</li>
+        <li>design doc: keycloak_operations / service_account_min_role / single_port_deployment</li>
+        <li>memory housekeeping #4/#5/#6</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3><span style="color:#fcd34d">🛠 Codex</span></h3>
+      <p style="font-size:13px; color:#a5a5b8; margin-bottom:12px">infra + CI/CD + security</p>
+      <ul class="bare" style="font-size:13px">
+        <li>#238 단일 포트 nginx + docker-compose + frontend auth</li>
+        <li>Keycloak-only refactor PR #167 (KC-PR-A..F)</li>
+        <li>e2e CI 정합 (PR #201/#202) + playwright TLS</li>
+        <li>codex inline review cycle (10+ hotfix)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3><span style="color:#86efac">🎨 Gemini</span></h3>
+      <p style="font-size:13px; color:#a5a5b8; margin-bottom:12px">frontend (Next.js) + UX</p>
+      <ul class="bare" style="font-size:13px">
+        <li>RBAC PermissionEditor UI</li>
+        <li>Bindings UI + Topology v2 (React Flow)</li>
+        <li>semantic theme refactor (PR #203 인계)</li>
+        <li><span class="warn">대기: sub-carve B-frontend + #210 UI polish</span></li>
+      </ul>
+    </div>
+  </div>
+  <h3 style="margin-top: 32px">2-트랙 협업 사례 (오늘 진행 중)</h3>
+  <table style="font-size:13px">
+    <thead><tr><th>트랙</th><th>scope</th><th>PR</th></tr></thead>
+    <tbody>
+      <tr><td>Claude</td><td>sub-carve E backend + design (호출처 5건 전면 제거)</td><td>#244 ✅</td></tr>
+      <tr><td>Codex + Claude 인계</td><td>#238 단일 포트 + Claude P1~P3 보강 6 commit</td><td>#245 <span class="warn">OPEN</span></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- Slide 9: 품질 메트릭 -->
+<section class="slide" data-slide="9">
+  <h2><span class="badge">08</span>품질 + 거버넌스 메트릭</h2>
+  <div class="stats">
+    <div class="stat"><div class="num">20+</div><div class="label">머지된 PR (5월)</div></div>
+    <div class="stat"><div class="num">20</div><div class="label">ADR 발급 (0001~0020)</div></div>
+    <div class="stat"><div class="num">50+</div><div class="label">회귀 test 신규</div></div>
+    <div class="stat"><div class="num">10+</div><div class="label">design doc 신규</div></div>
+  </div>
+  <div class="grid-2" style="margin-top: 20px">
+    <div class="card">
+      <h3>거버넌스 정착</h3>
+      <ul class="bare" style="font-size:14px">
+        <li><code>docs/governance/</code> document standards + worker division</li>
+        <li><code>docs/traceability/</code> REQ → UC → ARCH → API → IMPL → UT → TC 매트릭스</li>
+        <li><code>docs/adr/</code> 20 ADRs (immutable + supersession 패턴)</li>
+        <li>4-stage self-review (diff → comment → 보강 → squash merge)</li>
+        <li>codex review cycle (외부 review → hotfix → 회귀 test)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>보안 hardening (2026-05-20)</h3>
+      <ul class="bare" style="font-size:14px">
+        <li>Keycloak 단일 IdP (ADR-0019) + Hydra/Kratos 완전 제거</li>
+        <li>JWKS stale-while-error (uptime ↑ + signature 검증 유지)</li>
+        <li>service account PoLP (manage-users 제거)</li>
+        <li>X-Forwarded-* + DEVHUB_TRUSTED_PROXIES (audit forge 방어)</li>
+        <li>single-port + TLS hardening SOP (sprint -o)</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- Slide 10: 다음 sprint -->
+<section class="slide" data-slide="10">
+  <h2><span class="badge">09</span>다음 sprint priority</h2>
+  <table>
+    <thead>
+      <tr><th>순위</th><th>sprint</th><th>scope</th><th>워커</th><th>의존성</th></tr>
+    </thead>
+    <tbody>
+      <tr><td class="center">1</td><td><code>-p</code></td><td>#247 P1 hotfix — POST /users password 4xx + UserCreationModal</td><td>Claude + Gemini</td><td>#244 완료</td></tr>
+      <tr><td class="center">2</td><td>—</td><td>#210 P0-2 UI polish — semantic theme + a11y + responsive</td><td>Gemini</td><td>screenshot artifact (PR #237)</td></tr>
+      <tr><td class="center">3</td><td>—</td><td>sub-carve B-frontend — account.service.ts 폐기 + e2e TC-ACC-*</td><td>Gemini</td><td>#244 완료</td></tr>
+      <tr><td class="center">4</td><td>—</td><td>#214 Keycloak group staging-prod 1회 작업</td><td>사내 운영자</td><td>—</td></tr>
+      <tr><td class="center">5</td><td>—</td><td>#215 off-boarding Phase 1 cron 실 deploy</td><td>사내 운영자 + Codex</td><td>scripts/hrdb_etl_sync.sh (PR #184)</td></tr>
+      <tr><td class="center">6</td><td>—</td><td>#216 e2e Kratos → Keycloak 실 코드 전환</td><td>Gemini + Codex</td><td>codex PR #202 CI 정합</td></tr>
+      <tr><td class="center">7</td><td>—</td><td>#222 Keycloak SPI provider JAR (PR #203 P2 carve)</td><td>사내 인프라</td><td>—</td></tr>
+    </tbody>
+  </table>
+  <h3 style="margin-top: 24px">v1.0 Release Gate (2026-06-15)</h3>
+  <ul class="bare" style="font-size:15px">
+    <li>P0 4건 done (1/4 ✅ #211 / 진행 중: #238 #210 #209 frontend)</li>
+    <li>P1-hotfix #247 + sub-carve B-frontend done</li>
+    <li>e2e Playwright 47+ TC 안정</li>
+    <li>codex review cycle 클린 (P1 inline 0건)</li>
+  </ul>
+</section>
+
+<!-- Slide 11: 요약 -->
+<section class="slide" data-slide="11">
+  <h2><span class="badge">10</span>핵심 요약</h2>
+  <div class="grid-2">
+    <div class="card done">
+      <h3>오늘까지 달성</h3>
+      <ul class="bare">
+        <li><span class="ok">ADR-0020 sub-carve 5/8 done</span> — A/B-backend/C/D/E</li>
+        <li><span class="ok">Keycloak 단일 IdP 정합 완전 정착</span> (ADR-0019)</li>
+        <li><span class="ok">단일 포트 배포 1차 준비</span> — codex PR #245 + Claude 보강 6 commit</li>
+        <li><span class="ok">GitHub Project 운영 정착</span> — 28 issues + 4 status + milestone 3</li>
+        <li><span class="ok">2-트랙 협업 SOP 정착</span> — codex/Claude 동시 진행 + 충돌 0</li>
+      </ul>
+    </div>
+    <div class="card pending">
+      <h3>v1.0 까지 남은 핵심</h3>
+      <ul class="bare">
+        <li><span class="warn">PR #245 머지</span> + #247 P1 hotfix</li>
+        <li><span class="warn">sub-carve B-frontend</span> (Gemini)</li>
+        <li><span class="warn">#210 UI polish</span> (Gemini)</li>
+        <li><span class="warn">#214 / #215</span> 사내 운영자 1회 작업</li>
+        <li><span class="warn">e2e #216</span> Kratos → Keycloak 실 코드 전환</li>
+      </ul>
+    </div>
+  </div>
+  <h3 style="margin-top: 36px; text-align: center; color: #c4b5fd;">
+    DevHub Example v1.0 → 2026-06-15 (D-26)
+  </h3>
+</section>
+
+<!-- Navigation -->
+<div class="nav">
+  <button id="prev">‹ 이전</button>
+  <span class="counter"><span id="cur">1</span> / <span id="total">11</span></span>
+  <button id="next">다음 ›</button>
+</div>
+
+<div class="footer">DevHub Example · 2026-05-20 · ← → keys</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  const prevBtn = document.getElementById('prev');
+  const nextBtn = document.getElementById('next');
+  const curEl = document.getElementById('cur');
+  const totalEl = document.getElementById('total');
+  const strip = document.getElementById('progress-strip');
+  let cur = 0;
+
+  totalEl.textContent = total;
+
+  function show(i) {
+    if (i < 0 || i >= total) return;
+    slides[cur].classList.remove('active');
+    cur = i;
+    slides[cur].classList.add('active');
+    curEl.textContent = cur + 1;
+    strip.style.width = ((cur + 1) / total * 100) + '%';
+    prevBtn.disabled = cur === 0;
+    nextBtn.disabled = cur === total - 1;
+  }
+
+  show(0);
+
+  prevBtn.addEventListener('click', () => show(cur - 1));
+  nextBtn.addEventListener('click', () => show(cur + 1));
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+      e.preventDefault();
+      show(cur + 1);
+    } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+      e.preventDefault();
+      show(cur - 1);
+    } else if (e.key === 'Home') {
+      show(0);
+    } else if (e.key === 'End') {
+      show(total - 1);
+    }
+  });
+
+  // Click anywhere on slide (not buttons) to advance
+  slides.forEach((s) => {
+    s.addEventListener('click', (e) => {
+      if (e.target.tagName === 'BUTTON' || e.target.closest('.nav')) return;
+      show(cur + 1);
+    });
+  });
+</script>
+
+</body>
+</html>
