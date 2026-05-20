@@ -254,3 +254,124 @@ docker compose -f docker-compose.deploy.yml --profile local-db up -d
 2. `curl <OIDC_ISSUER_URL>/.well-known/openid-configuration` 확인
 3. Playwright 단건 검증  
    `PLAYWRIGHT_BASE_URL=https://<host>/devhub npm run e2e -- tests/e2e/auth.spec.ts --grep "developer lands on /developer"`
+
+## 11. frontend Dockerfile build args — `NEXT_PUBLIC_*` build-time inline (issue #238 P2-2)
+
+Next.js 의 `NEXT_PUBLIC_*` 환경변수는 **build time** 에 client bundle 에 inline 된다. docker-compose 의 `environment:` 는 runtime env 만 set 하므로 frontend 이미지를 빌드할 때 `--build-arg` 로 전달해야 client 코드에 반영된다.
+
+### 11.1 build args 매트릭스
+
+| build arg | 용도 | 운영 예시 |
+| --- | --- | --- |
+| `NEXT_PUBLIC_BASE_PATH` | Next.js basePath (`next.config.ts:9`) | `devhub` |
+| `NEXT_PUBLIC_OIDC_ISSUER_URL` | client OIDC issuer | `https://devhub.example.com/devhub/auth/keycloak/realms/devhub` |
+| `NEXT_PUBLIC_OIDC_CLIENT_ID` | client id | `devhub-frontend` |
+| `NEXT_PUBLIC_OIDC_REDIRECT_URI` | callback URL | `https://devhub.example.com/devhub/auth/callback` |
+| `NEXT_PUBLIC_OIDC_SCOPE` | OIDC scope | `openid offline_access email profile` |
+| `NEXT_OUTPUT` | standalone server build | `standalone` |
+
+### 11.2 build 명령 예시
+
+```bash
+docker build -f frontend/Dockerfile \
+  --build-arg NEXT_PUBLIC_BASE_PATH=devhub \
+  --build-arg NEXT_PUBLIC_OIDC_ISSUER_URL=https://devhub.example.com/devhub/auth/keycloak/realms/devhub \
+  --build-arg NEXT_PUBLIC_OIDC_CLIENT_ID=devhub-frontend \
+  --build-arg NEXT_PUBLIC_OIDC_REDIRECT_URI=https://devhub.example.com/devhub/auth/callback \
+  --build-arg NEXT_OUTPUT=standalone \
+  -t devhub/frontend:${GIT_SHA} frontend
+```
+
+Dockerfile 내부 (`frontend/Dockerfile`, 운영자 책임 자산이라 git 추적 외) 에서는:
+
+```dockerfile
+FROM node:20-alpine AS builder
+ARG NEXT_PUBLIC_BASE_PATH
+ARG NEXT_PUBLIC_OIDC_ISSUER_URL
+ARG NEXT_PUBLIC_OIDC_CLIENT_ID
+ARG NEXT_PUBLIC_OIDC_REDIRECT_URI
+ARG NEXT_PUBLIC_OIDC_SCOPE
+ARG NEXT_OUTPUT=standalone
+
+ENV NEXT_PUBLIC_BASE_PATH=$NEXT_PUBLIC_BASE_PATH
+ENV NEXT_PUBLIC_OIDC_ISSUER_URL=$NEXT_PUBLIC_OIDC_ISSUER_URL
+# ... (나머지 ARG → ENV mapping)
+ENV NEXT_OUTPUT=$NEXT_OUTPUT
+
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+```
+
+### 11.3 빌드 ↔ 런타임 환경변수 구분
+
+| 변수 | build-time 인라인 | runtime env |
+| --- | --- | --- |
+| `NEXT_PUBLIC_*` | **YES** — bundle 에 박힘 | (no-op — bundle 이 이미 build 된 값 가짐) |
+| `BACKEND_API_URL` | NO | YES — Next.js standalone server 가 동적 사용 |
+| `OIDC_ISSUER_URL` / `OIDC_REDIRECT_URI` | NO | YES — runtime-config route 가 동적 응답 |
+
+운영자가 환경 별로 frontend image 를 별도 빌드 (`https://stage.devhub.example.com` vs `https://devhub.example.com`) 또는 빌드 시점에 placeholder 사용 후 runtime config endpoint (`/api/runtime-config`) 로 동적 override 하는 패턴 (codex PR #245 도입) 채택.
+
+## 12. Keycloak realm 운영 보안 — wildcard 좁히기 SOP (issue #238 P3-1)
+
+`infra/idp/keycloak-realm.json` 의 client 설정에 dev 친화 wildcard 가 포함되어 있어 운영 배포 전 specific 도메인으로 좁혀야 한다.
+
+### 12.1 현재 (dev 친화) 설정
+
+```json
+{
+  "redirectUris": [
+    "https://*/devhub/*",
+    "http://*/devhub/*",
+    "http://localhost:3000/*",
+    "http://localhost:3000/auth/callback",
+    "http://localhost:3000/devhub/auth/callback"
+  ],
+  "webOrigins": [
+    "+",
+    "http://localhost:3000"
+  ],
+  "attributes": {
+    "post.logout.redirect.uris": "https://*/devhub/*##http://*/devhub/*##http://localhost:3000/*##http://localhost:3000/##http://localhost:3000/devhub/"
+  }
+}
+```
+
+### 12.2 운영 (specific 도메인) 설정
+
+```json
+{
+  "redirectUris": [
+    "https://devhub.example.com/devhub/auth/callback"
+  ],
+  "webOrigins": [
+    "https://devhub.example.com"
+  ],
+  "attributes": {
+    "post.logout.redirect.uris": "https://devhub.example.com/devhub/##https://devhub.example.com/devhub/auth/login"
+  }
+}
+```
+
+### 12.3 변경 절차 (Keycloak admin console)
+
+1. Clients → `devhub-frontend` → Settings 탭 → **Valid Redirect URIs**:
+   - wildcard 5건 제거 → `https://<운영도메인>/devhub/auth/callback` 만 유지
+2. **Web Origins**:
+   - `+` 제거 → `https://<운영도메인>` 명시
+3. **Logout Settings** → **Valid Post Logout Redirect URIs**:
+   - wildcard 패턴 (`https://*/devhub/*##http://*/devhub/*`) 제거
+   - `https://<운영도메인>/devhub/##https://<운영도메인>/devhub/auth/login` 등 명시
+4. **Save** + 운영 검증:
+   - 브라우저로 `https://<운영도메인>/devhub` 진입 → OIDC login → callback → logout 전체 흐름 정상 종료 확인
+   - Keycloak admin event log 에 `INVALID_REDIRECT_URI` error 없음
+
+### 12.4 추가 운영 강화 (CSRF + hostname strict)
+
+- `KC_HOSTNAME_STRICT=true` + `KC_HOSTNAME_STRICT_HTTPS=true` (docker-compose env). issuer URL hijack 방어.
+- Keycloak realm 의 `bruteForceProtected: true` 활성 (admin console → Realm settings → Security defenses → Brute Force Detection).
+
+자세한 Keycloak 운영 SOP 는 [keycloak_operations.md](./keycloak_operations.md) 참조.
