@@ -622,7 +622,64 @@ SELECT cursor_key, last_event_at, last_event_hash, updated_at FROM event_cursors
 | 사내 LDAP/AD federation | ADR-0019 §5.4 RM-M4-09 | Keycloak User Federation |
 | Gitea SSO via Keycloak identity broker | ADR-0019 §5.4 RM-M4-09 | M4 RM-M4 진입 시 |
 
-## 11. 변경 이력
+## 11. 단일 포트 운영 보안 강화 SOP (Issue #238)
+
+ADR-0018 단일 포트 reverse proxy 배포 (issue #238) 운영 진입 시 Keycloak 측 hardening 5건. dev 친화 wildcard / strict mode 비활성 / brute force 미보호 상태에서 운영 전환하기 전 점검.
+
+자세한 운영 가이드는 [single_port_deployment.md](./single_port_deployment.md) + [docker-packaging-deployment-guide.md §12](./docker-packaging-deployment-guide.md) 참조.
+
+### 11.1 realm wildcard 좁히기
+
+`infra/idp/keycloak-realm.json` 의 `devhub-frontend` client 가 dev 환경 wildcard 보유:
+- `redirectUris`: `https://*/devhub/*`, `http://*/devhub/*` (open redirect 위협)
+- `webOrigins`: `+` (CORS allow all)
+- `attributes.post.logout.redirect.uris`: `https://*/devhub/*##http://*/devhub/*` 패턴
+
+운영 전환 절차 4 step + 검증은 [docker-packaging-deployment-guide.md §12.3](./docker-packaging-deployment-guide.md) 참조.
+
+### 11.2 `KC_HOSTNAME_STRICT` 운영 활성
+
+docker-compose.deploy.yml 의 keycloak service 환경변수:
+
+```yaml
+KC_HOSTNAME_STRICT: "true"           # 운영 권장 (issuer URL hijack 방어)
+KC_HOSTNAME_STRICT_HTTPS: "true"     # 운영 권장 (HTTPS 강제)
+```
+
+dev 환경에서는 `false` 유지 (codex `#238` 기본값) — issuer URL 가 `https://localhost/devhub/...` 같은 사내망 도메인일 때 문제 회피.
+
+### 11.3 bruteForceProtected realm 설정
+
+Keycloak admin console → Realm settings → Security defenses → **Brute Force Detection**:
+- Enabled: ✓
+- Failure factor: 5 (5회 실패 후 lock)
+- Wait increment: 60 (seconds)
+- Max wait: 900 (15분)
+- Failure reset time: 43200 (12시간)
+- Quick login check ms: 1000
+
+realm-export.json 에 `bruteForceProtected: true` + `failureFactor: 5` 등 명시 가능.
+
+### 11.4 X-Forwarded-* 검증
+
+Keycloak 의 `--proxy-headers=xforwarded` (codex 기본값) 가 nginx 의 X-Forwarded-* 신뢰. nginx 가 `X-Forwarded-Proto=$scheme` 명시 (codex `devhub.deploy.conf` 정합). 운영 진입 전 검증:
+
+```bash
+# Keycloak 이 https issuer URL 응답하는지
+curl -k https://devhub.example.com/devhub/auth/keycloak/realms/devhub/.well-known/openid-configuration | jq .issuer
+# expected: "https://devhub.example.com/devhub/auth/keycloak/realms/devhub"
+# 만약 "http://" 응답이면 X-Forwarded-Proto 미전달
+```
+
+### 11.5 `KC_HEALTH_ENABLED` 보안 영향
+
+본 sprint -o 가 docker-compose 에 `KC_HEALTH_ENABLED=true` 추가 (healthcheck 의 `/health/ready` 응답 위함). management interface 는 별도 포트 :9000 에 노출되며 internal network (`devhub-internal`) 만 접근 가능. host port mapping 절대 추가 금지 — `/metrics` endpoint 가 noauth 로 노출되어 정보 누설 위험.
+
+운영 환경 추가 보호:
+- nginx 에 별도 listener 추가 안 함 (host 노출 0)
+- backend 가 :9000 직접 접근 시 docker network ACL 제한
+
+## 12. 변경 이력
 
 | 일자 | 변경 | sprint |
 | --- | --- | --- |
@@ -630,3 +687,4 @@ SELECT cursor_key, last_event_at, last_event_hash, updated_at FROM event_cursors
 | 2026-05-19 | §8.6.1 cursor seed row + §8.6.2 Expiration wording 정정 — sprint -y codex hotfix #10 (PR #189~#192) 의 P1-C (cursor bootstrap 명시) + P2-E (Expiration 이 운영 outage tolerance 보다 짧으면 audit 영구 손실 위험) 정정. P1-B backend 자동 seed 패치 (`loadCursor` 즉시 UPSERT) 와 정합. | `claude/work_260519-y` |
 | 2026-05-19 | §8.6 Keycloak event listener (audit_logs 통합) 운영 SOP 신규 (9 sub-section) — [ADR-0019 §5.3 (9)](../adr/0019-keycloak-only-idp.md#53-잔여-carve-out) Phase 2 PR-E 의 마지막 carve. 활성화 사전 조건 (migration 000031 + 000032 + service account 권한 + Keycloak Events 활성화) / Keycloak admin console 설정 (User+Admin events Save + Expiration 7d) / backend env 3종 (`DEVHUB_KEYCLOAK_EVENT_LISTENER_ENABLED` / `_INTERVAL` / `_MAX_EVENTS`) / Prometheus dashboard 4 panel (events_processed_total / cursor_lag_seconds / pull_errors_total + PromQL 예시) / 알람 3종 (cursor_lag_high 600s / cursor_lag_critical 3600s / pull_error_rate 5건/5분) / audit_logs dedup 동작 확인 query (최근 emit / 중복 검사 / cursor 위치) / 트러블슈팅 5 케이스 (audit row 없음 / cursor lag / 중복 등장 / pull error / unknown action 빈번) / disable/rollback / sub-carve 3 (SPI push 전환 / cold storage archival / dashboard JSON 자산). §9.2 audit log 통합 carve → resolved 표기로 갱신 + §10 의 audit 항목 strikethrough 표기. **ADR-0019 §5.3 (9) Phase 2 모든 carve (PR-B~PR-E) resolved.** | `claude/work_260519-x` |
 | 2026-05-20 | §8.5b Self-service 비밀번호 변경 (Keycloak Account Console 위임) 신규 4 sub-section — sprint -ad Kratos 잔재 residual cleanup 의 정합. (a) URL 구성 표 (`${OIDC_ISSUER_URL}/account/` + DevHub `/account` 의 "Open Keycloak Console" 외부 link), (b) 사용자 흐름 4 step, (c) 운영 요점 4건 (DevHub 측 코드 변경 없음 / Web Origins / MFA enrollment 동일 경로 / Audit log 는 sprint -u~-y event listener 가 자동 캡처), (d) sub-carve 2건 (Account Console URL 노출 / MFA enrollment 강제). DevHub 의 `POST /api/v1/account/password` proxy + Kratos login/settings client + frontend password form 모두 제거되어 ADR-0019 정합 완전 정착. | `claude/work_260519-ad` |
+| 2026-05-20 | §11 단일 포트 운영 보안 강화 SOP 신규 — issue #238 single-port deployment (ADR-0018) 의 운영 hardening 5 sub-section. (a) realm 설정 wildcard 좁히기 — `docker-packaging-deployment-guide.md` §12 reference. (b) `KC_HOSTNAME_STRICT=true` + `KC_HOSTNAME_STRICT_HTTPS=true` 운영 활성. (c) bruteForceProtected realm 설정. (d) X-Forwarded-* 검증 (Keycloak `--proxy-headers=xforwarded` + nginx X-Forwarded-Proto). (e) `KC_HEALTH_ENABLED=true` 보안 영향 (management interface :9000 internal network 만, host 노출 금지). 잔여 carve 항목은 §11 (이전) → §10 (잔여 carve out) 으로 number shift. | `claude/work_260520-o-238-augment` |
