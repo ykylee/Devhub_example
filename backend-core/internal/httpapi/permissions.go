@@ -129,6 +129,13 @@ var routePermissionTable = map[routeKey]routePolicy{
 	{http.MethodPost, "/api/v1/integrations/gitea/webhooks"}:                      {Bypass: true},
 	{http.MethodPost, "/api/v1/integration/providers/:provider_id/webhook"}:       {Bypass: true},
 	{http.MethodPost, "/api/v1/infra/services/snapshot"}:                          {Bypass: true},
+	// Keycloak Event Listener SPI webhook (PR #203). Bypass — registered outside
+	// the v1 group (router.go) so authenticateActor + enforceRoutePermission do
+	// not run; secret verification via X-Webhook-Secret header is fail-closed in
+	// receiveKeycloakEventWebhook (sprint -d Stage 3 codex P1 hotfix). Entry
+	// kept here so TestRoutePermissionTable_CoversAllProtectedV1Routes recognizes
+	// this path as authorized.
+	{http.MethodPost, "/api/v1/internal/keycloak-events"}:                         {Bypass: true},
 
 	// infrastructure
 	{http.MethodGet, "/api/v1/dashboard/metrics"}:             {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},

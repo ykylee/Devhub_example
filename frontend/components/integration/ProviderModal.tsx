@@ -256,7 +256,7 @@ export function ProviderModal({ initial, onClose, onSaved }: ProviderModalProps)
             <button
               type="submit"
               disabled={submitting}
-              className="flex-1 px-6 py-3 rounded-2xl bg-orange-500 text-white font-black uppercase tracking-widest text-[10px] shadow-xl shadow-orange-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-6 py-3 rounded-2xl bg-primary text-primary-foreground font-black uppercase tracking-widest text-[10px] shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? "Saving..." : isEdit ? "Save" : "Register"}
             </button>

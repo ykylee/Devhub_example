@@ -90,7 +90,7 @@ export function DestructiveConfirmModal({
             <button
               onClick={handleConfirm}
               disabled={submitting}
-              className="flex-1 bg-red-600 text-white font-black py-3 px-6 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-red-600/20 disabled:opacity-50 uppercase tracking-widest text-[10px] flex items-center justify-center gap-2"
+              className="flex-1 bg-destructive text-destructive-foreground font-black py-3 px-6 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl disabled:opacity-50 uppercase tracking-widest text-[10px] flex items-center justify-center gap-2"
             >
               {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : confirmText}
             </button>
