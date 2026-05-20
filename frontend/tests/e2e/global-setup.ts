@@ -141,33 +141,59 @@ async function ensureRealmRole(token: string, userID: string, roleName: Seed["ro
   }
 }
 
-async function seedKeycloakUsers(): Promise<void> {
+async function seedKeycloakUsers(): Promise<Record<string, string>> {
   const token = await fetchAdminToken();
+  const idMap: Record<string, string> = {};
   for (const seed of SEEDS) {
     const existing = await findUserByEmail(token, seed.email);
     const userID = existing?.id ?? (await createUser(token, seed));
     await resetPassword(token, userID, seed.password);
     await ensureRealmRole(token, userID, seed.role);
-    console.log(`[e2e seed] keycloak user ${seed.email} ${existing ? "present" : "created"} → password reset + role mapped (${seed.role})`);
+    idMap[seed.email] = userID;
+    console.log(`[e2e seed] keycloak user ${seed.email} ${existing ? "present" : "created"} (sub: ${userID}) → password reset + role mapped (${seed.role})`);
   }
+  return idMap;
 }
 
-function seedDevhubUsers(): void {
+function seedDevhubUsers(idMap: Record<string, string>): void {
   if (!DSN) {
     throw new Error("DSN env var is required for global-setup (DevHub users seed)");
   }
+
+  // Create dynamic SQL for UPSERTing users with correct idp_subject (Option 1)
+  const values = SEEDS.map(s => {
+    const sub = idMap[s.email];
+    return `('${s.user_id}', '${s.email}', '${s.display_name}', '${s.role}', 'active', '2026-01-01', 'human', '${sub}')`;
+  }).join(",\n    ");
+
+  const sql = `-- Dynamic seed from global-setup.ts
+INSERT INTO users (user_id, email, display_name, role, status, joined_at, user_type, idp_subject)
+VALUES
+    ${values}
+ON CONFLICT (user_id) DO UPDATE SET
+    idp_subject = EXCLUDED.idp_subject,
+    role = EXCLUDED.role,
+    status = EXCLUDED.status;
+`;
+
+  const tempSqlPath = path.resolve(__dirname, "temp_seed_e2e_users.sql");
+  require("node:fs").writeFileSync(tempSqlPath, sql);
+
   const backendDir = path.resolve(__dirname, "..", "..", "..", "backend-core");
-  const sqlPath = path.resolve(__dirname, "..", "..", "..", "infra", "idp", "sql", "002_seed_e2e_users.sql");
-  const result = spawnSync("go", ["run", "./cmd/idp-apply-schemas", "-dsn", DSN, "-sql", sqlPath], {
+  const result = spawnSync("go", ["run", "./cmd/idp-apply-schemas", "-dsn", DSN, "-sql", tempSqlPath], {
     cwd: backendDir,
     env: { ...process.env, DSN, DEVHUB_DB_URL: DSN },
     stdio: "inherit",
     shell: process.platform === "win32",
   });
+
+  // Clean up temp SQL
+  try { require("node:fs").unlinkSync(tempSqlPath); } catch {}
+
   if (result.status !== 0) {
     throw new Error(`idp-apply-schemas exited with status ${result.status}`);
   }
-  console.log("[e2e seed] DevHub users row seeded via idp-apply-schemas");
+  console.log("[e2e seed] DevHub users row seeded with idp_subject sync");
 }
 
 export default async function globalSetup(): Promise<void> {
@@ -175,6 +201,6 @@ export default async function globalSetup(): Promise<void> {
     console.log("[e2e seed] DEVHUB_E2E_SKIP_SEED=1 -> skipping seed");
     return;
   }
-  await seedKeycloakUsers();
-  seedDevhubUsers();
+  const idMap = await seedKeycloakUsers();
+  seedDevhubUsers(idMap);
 }

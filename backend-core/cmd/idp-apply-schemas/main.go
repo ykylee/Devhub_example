@@ -86,24 +86,6 @@ func main() {
 		log.Fatalf("exec sql: %v", err)
 	}
 
-	rows, err := conn.Query(ctx, "SELECT schema_name FROM information_schema.schemata WHERE schema_name IN ('hydra','kratos') ORDER BY schema_name")
-	if err != nil {
-		log.Fatalf("verify query: %v", err)
-	}
-	defer rows.Close()
-
-	fmt.Println("Schemas present:")
-	for rows.Next() {
-		var name string
-		if err := rows.Scan(&name); err != nil {
-			log.Fatalf("scan: %v", err)
-		}
-		fmt.Printf("  - %s\n", name)
-	}
-	if err := rows.Err(); err != nil {
-		log.Fatalf("rows err: %v", err)
-	}
-
 	fmt.Println("Done.")
 }
 

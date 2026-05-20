@@ -1,6 +1,6 @@
 # dev-up.ps1 - DevHub local services launcher (Windows PowerShell 5.1)
 #
-# Brings up: PostgreSQL migrations (idempotent), Kratos, Hydra, backend-core, frontend.
+# Brings up: PostgreSQL migrations (idempotent), backend-core, frontend.
 # Run from repo root:
 #
 #   .\dev-up.ps1           # start all services
@@ -28,7 +28,7 @@ if ($args.Count -gt 0 -and $args[0] -eq 'restart') {
     Start-Sleep -Seconds 2
 }
 
-Write-Host 'Starting DevHub local services...'
+Write-Host 'Starting DevHub local services (Keycloak IdP base)...'
 
 $PidDir = Join-Path $RepoRoot '.pids'
 if (-not (Test-Path $PidDir)) {
@@ -36,10 +36,6 @@ if (-not (Test-Path $PidDir)) {
 }
 
 function Test-PortListening {
-    # Quick, one-shot check whether something already holds the port. Used to
-    # respect externally-managed Kratos/Hydra/backend/frontend instances: if
-    # the port is taken, dev-up neither spawns a duplicate nor writes a PID
-    # file, so dev-down later leaves the external process alone.
     param([Parameter(Mandatory)][int]$Port)
     $conn = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
     return [bool]$conn
@@ -93,10 +89,6 @@ function Start-BackgroundService {
         NoNewWindow            = $true
         PassThru               = $true
     }
-    # Start-Process's ArgumentList rejects an empty array (parameter
-    # validation: "element of the argument collection contains a null value").
-    # Only attach it when there are real arguments — the new go-build backend
-    # path launches a binary with no args.
     if ($Arguments -and $Arguments.Count -gt 0) { $params.ArgumentList = $Arguments }
     if ($WorkingDir) { $params.WorkingDirectory = $WorkingDir }
     $proc = Start-Process @params
@@ -108,28 +100,13 @@ function Mask-Dsn {
     return ($Dsn -replace ':[^:@/]+@', ':***@')
 }
 
-function Get-IdpDsn {
-    # Derive the Kratos/Hydra DSN from $DB_URL by appending search_path. Both
-    # YAML configs (infra/idp/{kratos,hydra}.yaml) intentionally omit
-    # credentials so the same file works across operators; injecting DSN via
-    # env (Ory binaries respect $DSN as an override of the yaml dsn field)
-    # keeps credentials in the operator's shell rather than the repo.
-    param(
-        [Parameter(Mandatory)][string]$Dsn,
-        [Parameter(Mandatory)][string]$Schema
-    )
-    $separator = if ($Dsn -match '\?') { '&' } else { '?' }
-    return "$Dsn${separator}search_path=$Schema"
-}
-
 # Resolve DB_URL once so migrate-up + backend both see the same value.
 if (-not $env:DB_URL) {
     $env:DB_URL = 'postgres://postgres:postgres@localhost:5432/devhub?sslmode=disable'
 }
 $DbUrl = $env:DB_URL
 
-# 1. Migrations - idempotent. Skips silently if golang-migrate is not installed
-#    (the operator can run `make migrate-tools` once to install it).
+# 1. Migrations
 if ($env:DEVHUB_SKIP_MIGRATE -eq '1') {
     Write-Host '[skip-migrate] Skipping migrate-up.'
 } elseif (Get-Command migrate -ErrorAction SilentlyContinue) {
@@ -142,102 +119,30 @@ if ($env:DEVHUB_SKIP_MIGRATE -eq '1') {
     Write-Warning 'migrate not on PATH. Run `make migrate-tools` once to install golang-migrate, or set DEVHUB_SKIP_MIGRATE=1 to suppress.'
 }
 
-# 1b. IdP schemas + Kratos/Hydra migrations. All three are idempotent
-#     (CREATE SCHEMA IF NOT EXISTS; migrate up skips applied versions), so the
-#     overhead on a warm DB is ~1-2 s. Set DEVHUB_SKIP_IDP_MIGRATE=1 to skip.
-if ($env:DEVHUB_SKIP_IDP_MIGRATE -eq '1') {
-    Write-Host '[skip-idp-migrate] Skipping IdP schema + migrate.'
+# 2. Keycloak check
+if (Test-PortListening -Port 8180) {
+    Write-Host '  Keycloak detected on port 8180.'
 } else {
-    Write-Host 'Applying IdP schemas (hydra, kratos)...'
-    Push-Location (Join-Path $RepoRoot 'backend-core')
-    try {
-        & go run ./cmd/idp-apply-schemas -dsn $DbUrl -sql ../infra/idp/sql/001_create_idp_schemas.sql
-        if ($LASTEXITCODE -ne 0) { throw "idp-apply-schemas failed with exit code $LASTEXITCODE" }
-    } finally {
-        Pop-Location
-    }
-    if (Get-Command kratos -ErrorAction SilentlyContinue) {
-        Write-Host 'Applying kratos migrations...'
-        & kratos migrate sql up --yes (Get-IdpDsn -Dsn $DbUrl -Schema 'kratos')
-        if ($LASTEXITCODE -ne 0) { throw "kratos migrate failed with exit code $LASTEXITCODE" }
-    } else {
-        Write-Warning 'kratos not on PATH; skipping kratos migrate.'
-    }
-    if (Get-Command hydra -ErrorAction SilentlyContinue) {
-        Write-Host 'Applying hydra migrations...'
-        & hydra migrate sql up --yes (Get-IdpDsn -Dsn $DbUrl -Schema 'hydra')
-        if ($LASTEXITCODE -ne 0) { throw "hydra migrate failed with exit code $LASTEXITCODE" }
-    } else {
-        Write-Warning 'hydra not on PATH; skipping hydra migrate.'
-    }
+    Write-Warning 'Keycloak not detected on port 8180. Auth may not work.'
+    Write-Host '  Run: docker run -d -p 8180:8080 -e KC_BOOTSTRAP_ADMIN_USERNAME=admin -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin quay.io/keycloak/keycloak:26.0 start-dev'
 }
 
-# 2. Kratos
-if (Test-PortListening -Port 4433) {
-    Write-Host '  external instance detected on port 4433; using existing kratos (PID file not written)'
-} elseif (Get-Command kratos -ErrorAction SilentlyContinue) {
-    $env:DSN = Get-IdpDsn -Dsn $DbUrl -Schema 'kratos'
-    Start-BackgroundService -Name 'kratos' -Executable 'kratos' `
-        -Arguments @('serve', '-c', 'infra/idp/kratos.yaml', '--dev') `
-        -LogFile 'kratos.log'
-    Wait-ForPort -Name 'kratos-public' -Port 4433
-    Wait-ForPort -Name 'kratos-admin'  -Port 4434
-} else {
-    Write-Warning 'kratos not on PATH; skipping. Backend will not be able to authenticate users.'
-}
-
-# 3. Hydra
-if (Test-PortListening -Port 4444) {
-    Write-Host '  external instance detected on port 4444; using existing hydra (PID file not written)'
-} elseif (Get-Command hydra -ErrorAction SilentlyContinue) {
-    $env:DSN = Get-IdpDsn -Dsn $DbUrl -Schema 'hydra'
-    Start-BackgroundService -Name 'hydra' -Executable 'hydra' `
-        -Arguments @('serve', 'all', '-c', 'infra/idp/hydra.yaml', '--dev') `
-        -LogFile 'hydra.log'
-    Wait-ForPort -Name 'hydra-public' -Port 4444
-    Wait-ForPort -Name 'hydra-admin'  -Port 4445
-} else {
-    Write-Warning 'hydra not on PATH; skipping. OIDC code flow will not complete.'
-}
-Remove-Item Env:DSN -ErrorAction SilentlyContinue
-
-# 3b. OIDC client registration. Idempotent (the script DELETEs an existing
-#     entry then POSTs fresh), so re-runs are safe. Gated on hydra-admin
-#     (4445) reachability so external/missing hydra doesn't trip the script.
-if ($env:DEVHUB_SKIP_OIDC_REGISTER -eq '1') {
-    Write-Host '[skip-oidc-register] Skipping OIDC client registration.'
-} elseif (Test-PortListening -Port 4445) {
-    Write-Host 'Registering OIDC client (devhub-frontend)...'
-    # The inner script sets $ErrorActionPreference = 'Stop', so any failure
-    # there propagates here as a terminating error. $LASTEXITCODE is not
-    # updated by PS-to-PS calls, so don't gate on it.
-    & (Join-Path $RepoRoot 'infra\idp\scripts\register-devhub-client.ps1')
-} else {
-    Write-Warning 'Hydra admin (4445) not listening; skipping OIDC client registration.'
-}
-
-# 4. backend-core
+# 3. backend-core
 $env:AUTH_DEV_FALLBACK          = 'true'
 $env:DEVHUB_AUTH_DEV_FALLBACK   = '1'
-$env:DEVHUB_KRATOS_PUBLIC_URL   = 'http://localhost:4433'
-$env:DEVHUB_KRATOS_ADMIN_URL    = 'http://localhost:4434'
-$env:DEVHUB_HYDRA_PUBLIC_URL    = 'http://localhost:4444'
-$env:DEVHUB_HYDRA_ADMIN_URL     = 'http://localhost:4445'
+if (-not $env:DEVHUB_IDP_PROVIDER)     { $env:DEVHUB_IDP_PROVIDER = 'keycloak' }
+if (-not $env:DEVHUB_OIDC_ISSUER_URL)  { $env:DEVHUB_OIDC_ISSUER_URL = 'http://localhost:8180/realms/devhub' }
+if (-not $env:DEVHUB_OIDC_CLIENT_ID)   { $env:DEVHUB_OIDC_CLIENT_ID = 'devhub-frontend' }
+
 if (Test-PortListening -Port 8080) {
     Write-Host '  external instance detected on port 8080; using existing backend (PID file not written)'
 } else {
-    # Build to a binary so the launched process is the backend itself, not a
-    # `go run` parent whose actual server is a grandchild. With the parent ==
-    # listener invariant, dev-down's PID-kill terminates the backend directly;
-    # the port-sweep stays as a safety net but no longer carries semantic load.
     $BinDir = Join-Path $RepoRoot 'dev-bin'
     if (-not (Test-Path $BinDir)) {
-        New-Item -ItemType Directory -Path $BinDir | Out-Null
+        New-Item -ItemType Directory -Path $PidDir | Out-Null
     }
     $BackendBin = Join-Path $BinDir 'backend-core.exe'
     Write-Host 'Compiling backend...'
-    # backend-core has its own go.mod (no root module), so the build must run
-    # from inside that directory with the binary written back out to dev-bin/.
     Push-Location (Join-Path $RepoRoot 'backend-core')
     try {
         & go build -o $BackendBin .
@@ -251,9 +156,7 @@ if (Test-PortListening -Port 8080) {
     Wait-ForPort -Name 'backend' -Port 8080
 }
 
-# 5. frontend
-# Use npm.cmd explicitly: Start-Process resolves bare 'npm' to npm.ps1, which is
-# not a Win32 executable, so CreateProcess refuses with "%1 is not a valid Win32 application."
+# 4. frontend
 if (Test-PortListening -Port 3000) {
     Write-Host '  external instance detected on port 3000; using existing frontend (PID file not written)'
 } else {
@@ -266,8 +169,6 @@ if (Test-PortListening -Port 3000) {
 
 Write-Host ''
 Write-Host 'All services up:'
-Write-Host '  kratos      public 4433, admin 4434'
-Write-Host '  hydra       public 4444, admin 4445'
 Write-Host '  backend     8080  (http://localhost:8080/health)'
 Write-Host '  frontend    3000  (http://localhost:3000/)'
 Write-Host ''

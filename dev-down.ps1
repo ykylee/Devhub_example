@@ -79,8 +79,6 @@ Write-Host 'Stopping DevHub local services...'
 $servicePorts = [ordered]@{
     'frontend' = @(3000)
     'backend'  = @(8080)
-    'hydra'    = @(4444, 4445)
-    'kratos'   = @(4433, 4434)
 }
 
 $sweepPorts = New-Object System.Collections.Generic.List[int]
