@@ -27,7 +27,7 @@ test.describe("Sign Out terminates IdP session", () => {
 
     // Open the header dropdown and click Sign Out
     await page.getByText(SEEDED.developer.user_id, { exact: false }).first().click();
-    await page.getByRole("menuitem", { name: /sign out/i }).click();
+    await page.getByRole("button", { name: /sign out/i }).click();
     await waitForSessionCleared(page);
 
     // After redirects we should be back at / (post_logout_redirect_uri)
@@ -56,7 +56,7 @@ test.describe("Sign Out terminates IdP session", () => {
 
     // Sign Out via header dropdown
     await page.getByText(SEEDED.developer.user_id, { exact: false }).first().click();
-    await page.getByRole("menuitem", { name: /sign out/i }).click();
+    await page.getByRole("button", { name: /sign out/i }).click();
     await waitForSessionCleared(page);
 
     // After the post_logout_redirect resolves, try going back into a
@@ -83,7 +83,7 @@ test.describe("user switch across Sign Out", () => {
 
     // 2) Sign Out
     await page.getByText(SEEDED.developer.user_id, { exact: false }).first().click();
-    await page.getByRole("menuitem", { name: /sign out/i }).click();
+    await page.getByRole("button", { name: /sign out/i }).click();
     await waitForSessionCleared(page);
 
     // 3) bob (manager) 로 로그인 — signout 직후 loginAs 의 goto('/login') 에서
