@@ -570,16 +570,3 @@
     "ops_verification": "사용자 환경에서 docs/setup/test-server-deployment.md 의 §6-§7 e2e 절차 1회 수행 권장. E2E baseline 자동화는 PR #58 이후 `cd frontend && npm run e2e` 한 줄. PR #76 hardening 으로 stale rotation 도 다음 실행에서 자동 복구. 본 세션에서 backend integration test 가 CI 에서 검증되므로 추가 ops 확인 권장사항: 사용자 환경 (`DEVHUB_TEST_DB_URL`) 에서 `scripts/setup-test-db.sh && cd backend-core && go test -v -run TestIntegration_ ./internal/store/...` 1회 실행."
   }
 }
-ernal/store/...` 1회 실행."
-  }
-}
-resume/archived_reason 필수; active→closed critical_warning_count=0; application_key_immutable; SCM adapter_version_immutable; weight_policy normalize sum=1.0 ±0.001",
-        "audit_namespace": "application.{created,updated,archived} / application_repository.{linked,unlinked} / scm_provider.updated / project.{created,updated,archived} / integration.{created,updated,deleted}",
-        "rbac_resources": "applications / application_repositories / projects / scm_providers (system_admin only — ADR-0011 §4.1 1차)",
-        "ci_jobs": "5 (Workflow Lint / Backend Unit / Frontend Unit / E2E / Backend Integration 신설)"
-      },
-      "adr": "ADR-0011 accepted (옵션 C handler/service 코드 검증 1차 채택, 옵션 B row_predicate 단계적 확장 옵션 보존)"
-    },
-    "ops_verification": "사용자 환경에서 docs/setup/test-server-deployment.md 의 §6-§7 e2e 절차 1회 수행 권장. E2E baseline 자동화는 PR #58 이후 `cd frontend && npm run e2e` 한 줄. PR #76 hardening 으로 stale rotation 도 다음 실행에서 자동 복구. 본 세션에서 backend integration test 가 CI 에서 검증되므로 추가 ops 확인 권장사항: 사용자 환경 (`DEVHUB_TEST_DB_URL`) 에서 `scripts/setup-test-db.sh && cd backend-core && go test -v -run TestIntegration_ ./internal/store/...` 1회 실행."
-  }
-}
