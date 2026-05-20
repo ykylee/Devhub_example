@@ -1,8 +1,8 @@
 # Prometheus Alerts/Dashboard Draft for HomeLab
 
 - 문서 목적: HomeLab pull/push 관측 지표 기반의 운영 알림과 대시보드 초안을 제공한다.
-- 상태: active
-- 최종 수정일: 2026-05-17
+- 상태: accepted
+- 최종 수정일: 2026-05-20
 - 관련 코드: `backend-core/internal/integrations/adapters/metrics.go`, `backend-core/internal/httpapi/router.go`
 
 ## 1. 전제

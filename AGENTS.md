@@ -70,6 +70,7 @@
 - backlog 위치: `ai-workflow/memory/<agent>/<branch>/backlog/`
 - session handoff 위치: `ai-workflow/memory/<agent>/<branch>/session_handoff.md`
 - flat memory 위치: legacy fallback 및 공용 색인 전용
+- 문서 포맷 원칙: 원본은 Markdown(`.md`) 유지, HTML은 보고/취합용 파생 산출물로만 사용 (`docs/governance/document-standards.md` §0)
 
 ## Codex 전용 메모
 

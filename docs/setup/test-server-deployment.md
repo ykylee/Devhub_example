@@ -3,8 +3,8 @@
 - 문서 목적: DevHub Example 을 단일 테스트 서버에 native binary 로 빌드·배포·기동하는 표준 절차를 정의한다.
 - 범위: 사전 준비, 빌드, 환경변수, 기동 순서, OIDC client 등록, 시드 사용자, 헬스체크, 로그인 검증.
 - 대상 독자: 테스트 서버 운영자, QA, 신규 환경 부트스트랩 담당.
-- 상태: active
-- 최종 수정일: 2026-05-18
+- 상태: accepted
+- 최종 수정일: 2026-05-20
 - 관련 문서: [개발 환경 구성](./environment-setup.md), [백엔드 API 계약](../backend_api_contract.md), [아키텍처](../architecture.md), [E2E 가이드](./e2e-test-guide.md)
 
 ## 0. 원칙

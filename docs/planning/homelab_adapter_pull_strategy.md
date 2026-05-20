@@ -1,8 +1,8 @@
 # HomeLab Adapter Pull Source Strategy
 
 - 문서 목적: HomeLab adapter의 pull source 구현체 도입 단계를 합의 가능한 최소 단위로 정의한다.
-- 상태: active
-- 최종 수정일: 2026-05-17
+- 상태: accepted
+- 최종 수정일: 2026-05-20
 - 관련 코드: `backend-core/internal/integrations/adapters/{contract.go,homelab.go,homelab_http_puller.go}`
 
 ## 1. 현재 baseline

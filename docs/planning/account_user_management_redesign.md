@@ -3,7 +3,7 @@
 - 문서 목적: 외부 Keycloak 을 단일 IdP 로 사용한다는 전제로, DevHub 의 **계정 관리** + **사용자 관리** 의 책임 경계를 재정의하고 리팩토링한다. 본 문서 §1~§4 는 **Phase 1 — 현황 파악**, §5+ 는 후속 sprint 의 **Phase 2 — 책임 분리 design** + **Phase 3 — 리팩토링 실행 계획**.
 - 범위: backend `/api/v1/accounts/*` + `/api/v1/users/*` + `/api/v1/organization/*` + `/api/v1/rbac/*` + `/api/v1/me` endpoint, frontend `/account` + `/admin/settings/{users,organization,permissions}` page, DB schema (users + organization_units + rbac_policies + rbac_subject_roles), Keycloak realm 의 user/group/role + token claim 정합.
 - 대상 독자: 백엔드/프론트엔드/IdP 담당, 운영 (SRE), 보안.
-- 상태: draft (Phase 1 + Phase 2 명시 결정 6건 확정)
+- 상태: draft
 - 최종 수정일: 2026-05-20
 - 결정 근거 sprint: `claude/work_260520-a` (Phase 1 현황 파악 + Phase 2 책임 분리 design)
 - 관련 문서: [ADR-0019 Keycloak 단일화](../adr/0019-keycloak-only-idp.md), [keycloak_operations.md (§8.5b self-service 비밀번호 변경 Account Console 위임)](../setup/keycloak_operations.md), [ADR-0011 RBAC row-scoping](../adr/0011-rbac-row-scoping.md), [keycloak_groups_rbac_mapping.md (group composite role)](./keycloak_groups_rbac_mapping.md), [keycloak_offboarding_immediacy.md (off-boarding chain)](./keycloak_offboarding_immediacy.md), [ADR-0008 HRDB production adapter](../adr/0008-hrdb-production-adapter.md), [traceability/report.md (REQ/API/IMPL 매트릭스)](../traceability/report.md).

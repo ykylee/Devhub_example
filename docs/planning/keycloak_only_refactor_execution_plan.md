@@ -3,8 +3,8 @@
 - 문서 목적: DevHub 인증 체계를 Ory Hydra+Kratos 결합 구조에서 Keycloak 단일 체계로 전환하는 구현 계획을 정의한다.
 - 범위: 아키텍처 전환, Keycloak 서버 구성(내장/외부), 단계별 구현/검증/롤백 전략
 - 대상 독자: backend-core, frontend, 인프라/운영, QA, 릴리즈 담당자
-- 상태: **done (1차 완성, 2026-05-19)** — PR #167 (merge `dff487d`, 2026-05-18) 으로 KC-PR-A..F 6단계 모두 main 머지. [ADR-0019](../adr/0019-keycloak-only-idp.md) 가 결정 근거 + 잔여 carve out 의 source-of-truth.
-- 최종 수정일: 2026-05-19
+- 상태: accepted
+- 최종 수정일: 2026-05-20
 - 결정 근거 sprint: `codex/keycloak-only-refactor-plan` (1차 작성, 2026-05-18) → `claude/work_260519-a` (done status 갱신, 2026-05-19)
 - 관련 문서: [ADR-0019 Keycloak 단일화 결정](../adr/0019-keycloak-only-idp.md), [ADR-0001 IdP selection (Hydra+Kratos, superseded)](../adr/0001-idp-selection.md), `docs/backend_api_contract.md`, `docs/tests/e2e-test-guide.md`, `docs/traceability/sync-checklist.md`
 

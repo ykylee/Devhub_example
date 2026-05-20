@@ -3,9 +3,8 @@
 - 문서 목적: `docs/planning/` 디렉터리의 진입점. 마일스톤·로드맵·sprint plan·작업 트래커를 종류별로 안내한다.
 - 범위: 통합 로드맵, 트랙별 세부 로드맵, 마일스톤별 backlog 위치, PR 별 트래커, 보안 리뷰 트래커, 향후 sprint plan
 - 대상 독자: 프로젝트 리드, 백엔드/프론트엔드/Auth/AI/운영 트랙 담당자, 후속 작업자
-- 상태: stable
-- 최종 수정일: 2026-05-13 (§5.1 도메인 컨셉 인덱스 신설 — Project 도메인 컨셉 1차 진입점 추가)
-- 최종 수정일: 2026-05-15 (§5.1 외부 시스템 연동 도메인 컨셉 인덱스 추가)
+- 상태: accepted
+- 최종 수정일: 2026-05-20
 - 관련 문서: [../README.md](../README.md), [../development_roadmap.md](../development_roadmap.md), [../DOCUMENT_INDEX.md](../DOCUMENT_INDEX.md)
 
 ## 0. 진입점 — 무엇부터 읽는가

@@ -5,8 +5,8 @@
 - 문서 목적: DevHub 프로젝트의 전체 개발 방향을 단일 진입점에서 정리한다. 백엔드·프론트엔드·인증/IdP·운영 트랙이 동일 마일스톤 체계 위에서 진행되도록 하는 1차 참조 문서.
 - 범위: 머지된 PR #12 이후 시점부터 다음 단계 작업의 마일스톤·우선순위·의존 관계. 트랙별 *세부* 작업은 각 트랙의 세부 로드맵에서 관리.
 - 대상 독자: 프로젝트 리드, 백엔드/프론트엔드 개발자, 운영 담당자, 후속 작업자
-- 상태: draft (2026-05-08 신규 작성)
-- 최종 수정일: 2026-05-18 (post-EOD #2 — M5 DREQ closing + M6 External Integration 신규 + ADR-0011~0017 인덱스 + ADR-0018/0019 design 검토 후보 + RM-M4-09 구체화)
+- 상태: draft
+- 최종 수정일: 2026-05-20
 - 관련 문서:
   - 백엔드 세부 로드맵: [`ai-workflow/memory/backend_development_roadmap.md`](../ai-workflow/memory/backend_development_roadmap.md)
   - 프론트엔드 세부 로드맵: [`./frontend_development_roadmap.md`](./frontend_development_roadmap.md)

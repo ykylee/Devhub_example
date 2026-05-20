@@ -3,8 +3,8 @@
 - 문서 목적: [ADR-0019 §5.3](../adr/0019-keycloak-only-idp.md#53-잔여-carve-out) 잔여 carve out 의 audit event listener / SPI → DevHub `audit_logs` 통합 design. 1차 산출물은 planning 단계 — 결정 후 ADR-0020 으로 승격은 별도 sprint.
 - 범위: Keycloak event (사용자 / admin) 를 DevHub `audit_logs` 에 통합하는 옵션 비교 + 권장 + audit_logs 매핑 + 구현 단계. 실 backend 구현 (cron + Keycloak Admin Client 확장 + 단위/integration 테스트) 은 별도 후속 sprint.
 - 대상 독자: 아키텍트, 운영자 (SRE / IdP), Security, Backend 담당자.
-- 상태: planning (draft 1차)
-- 최종 수정일: 2026-05-19
+- 상태: draft
+- 최종 수정일: 2026-05-20
 - 결정 근거 sprint: `claude/work_260519-e`
 - 관련 문서: [ADR-0019 Keycloak 단일화](../adr/0019-keycloak-only-idp.md), [ADR-0008 HRDB production adapter](../adr/0008-hrdb-production-adapter.md), [ADR-0015 HomeLab pull strategy](../adr/0015-homelab-adapter-pull-strategy.md) (cron + adapter 패턴 reference), [ADR-0017 DREQ intake token cron](../adr/0017-dreq-intake-token-operational-hardening.md) (cron + metric 패턴 reference), [keycloak_operations.md](../setup/keycloak_operations.md), [backend_api_contract.md §11](../backend_api_contract.md#11-계정-및-인증-account--auth).
 

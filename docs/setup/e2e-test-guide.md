@@ -6,8 +6,8 @@
 - 문서 목적: DevHub Example 의 Playwright e2e 스위트를 사용자 환경에서 실행하기 위한 사전 조건과 절차를 정의한다.
 - 범위: 사전 조건, 시드 데이터, 실행 명령, 시나리오 목록, 트러블슈팅
 - 대상 독자: 본인 환경에서 회귀 검증을 돌리는 개발자, QA
-- 상태: draft (PR-T3, work_26_05_11-d sprint)
-- 최종 수정일: 2026-05-11
+- 상태: draft
+- 최종 수정일: 2026-05-20
 - 관련 문서: [테스트 서버 배포 가이드](./test-server-deployment.md), [Playwright config](../../frontend/playwright.config.ts), [e2e fixtures](../../frontend/tests/e2e/fixtures.ts)
 
 ## 0. 정책

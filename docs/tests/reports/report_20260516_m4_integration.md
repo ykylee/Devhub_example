@@ -1,9 +1,14 @@
 # M4 Integration 실행 보고서 (2026-05-16)
 
+- 문서 목적: M4 Integration(API-69~75) 실행 결과와 관찰 사항을 기록한다.
+- 범위: `codex/next-step-20260516` 브랜치의 integration 테스트 실행 스냅샷.
+- 대상 독자: backend 개발자, QA, 추적성 리뷰어.
+- 상태: accepted
+- 최종 수정일: 2026-05-20
+
 - 범위: API-69~75 baseline (Provider/Binding/Webhook ingest)
 - 브랜치: `codex/next-step-20260516`
 - 실행자: Codex
-- 상태: partial-pass (IT pass, E2E pending)
 
 ## 1) 실행 명령
 
