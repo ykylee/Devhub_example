@@ -1,0 +1,30 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260520-h-screenshot",
+  "branch": "claude/work_260520-h-screenshot",
+  "status": "done",
+  "started_at": "2026-05-20T19:00:00Z",
+  "ended_at": "2026-05-20T20:30:00Z",
+  "merged_pr": 237,
+  "merge_commit": "c202fa0",
+  "issue": 211,
+  "carve": "P0-3",
+  "scope": "Playwright E2E screenshot mode 도입 — issue #211 P0-3 done. screenshots.spec.ts 신규 (19 페이지 fullPage, 4 test) + Upload UI Screenshots CI step + Stage 3 보강 2회 (timeout + codex P1 응답 networkidle 명시 timeout 5s).",
+  "directive_source": "사용자 답변 (Playwright screenshot mode 채택) + PR #207 머지 후 자연 진입",
+  "decisions": [
+    "19 페이지 fullPage 캡처 — role 분배 (system_admin 12 + login + developer 6 + manager 1)",
+    "test.setTimeout(180_000) admin + test.setTimeout(120_000) user — default 30s 초과 회피",
+    "NETWORK_IDLE_TIMEOUT_MS = 5000 — codex P1 응답 (silent catch 30s 회피)",
+    "fullyParallel=false + workers=1 유지 — 기존 Keycloak session 정합",
+    "test 분리 안 함 (대안 거부) — loginAs 12× 재실행 → CI 시간 12배 증가",
+    "ci.yml Upload UI Screenshots step — if: always + retention 30d + if-no-files-found: warn"
+  ],
+  "todo": [
+    "screenshots.spec.ts 작성 — 완료",
+    ".github/workflows/ci.yml Upload UI Screenshots step — 완료",
+    "Stage 3 #1 timeout 180s/120s — 완료",
+    "Stage 3 #2 networkidle 5s + codex P1 응답 — 완료",
+    "commit + push + PR #237 + 4단계 self-review + squash merge — 완료"
+  ],
+  "verification": "CI 8 check SUCCESS (Backend Unit + Integration + Frontend Unit + E2E shard 1/2 모두 그린). codex review 1건 (P1 networkidle, Stage 3 #2 에서 해소)."
+}

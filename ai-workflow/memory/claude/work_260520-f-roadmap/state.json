@@ -1,0 +1,28 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260520-f-roadmap",
+  "branch": "claude/work_260520-f-roadmap",
+  "status": "done",
+  "started_at": "2026-05-20T16:00:00Z",
+  "ended_at": "2026-05-20T17:30:00Z",
+  "merged_pr": 207,
+  "merge_commit": "a08ffd3",
+  "scope": "v1.0 릴리즈 로드맵 + 워커 분업 design 신규 진입 자산. release_v1_roadmap.md (306 lines) + worker_division.md (180 lines) + development_roadmap.md/governance/README.md/AGENTS.md/GEMINI.md 갱신. 사용자 지시 (2026-05-20) — 코드베이스 현황파악 + 잔여 carve 우선순위 + 1차 릴리즈 + 워커 분업 + UI 우선 + GitHub project/milestone 응답.",
+  "directive_source": "사용자 메시지 — '코드베이스 현황파악 및 정리 + idp 변경건 포함 개발 현황 및 방향 재검토 + 로드맵 갱신 + 잔여 carve 우선순위 + 1차 릴리즈 + 워커 분업 (codex/gemini/claude) + GitHub project/milestone' + AskUserQuestion 답변 (v1.0 scope 3 domain / Playwright screenshot / 영역별 분업)",
+  "decisions": [
+    "v1.0 scope 3 domain — 인증/조직/대시보드 + Application/Repository/Project + External Integration. 사용자 답변 정합",
+    "제외 기능 — AI Gardener / Sign Up (M3 잔여, v1.1) / MFA / WebSocket replay / System Admin 대시보드 / Gitea Hourly Pull / 외부 SSO",
+    "잔여 carve 30+ → P0/P1/P2/P3 우선순위 매트릭스 + 마일스톤 3종 (M-v1.0 2026-06-15 / M-v1.1 2026-07-31 / M-v2)",
+    "워커 분업 영역별 — Claude=backend+design / Codex=infra+CI+security / Gemini=frontend+UX. 사용자 답변 정합. 누적 이력 명시.",
+    "UI 검증 — Playwright screenshot mode (18 페이지 fullPage 캡처). 사용자 답변 정합",
+    "지침 문서 (AGENTS/GEMINI) 간결 형식 — link 2개만 안내, 상세는 별도 doc. 사용자 정정 반영",
+    "CLAUDE.md 제외 — .gitignore per-user 파일"
+  ],
+  "todo": [
+    "release_v1_roadmap.md 작성 — 완료",
+    "worker_division.md 작성 — 완료",
+    "development_roadmap.md / governance/README.md / AGENTS.md / GEMINI.md 갱신 — 완료",
+    "commit + push + PR #207 + 4단계 self-review + squash merge — 완료"
+  ],
+  "verification": "docs only PR. CI Detect Changed Paths + Workflow Lint SUCCESS, 그 외 SKIPPED. codex review 0건. main HEAD a08ffd3."
+}

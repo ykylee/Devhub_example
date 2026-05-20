@@ -1,0 +1,28 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260520-j-housekeeping",
+  "branch": "claude/work_260520-j-housekeeping",
+  "status": "in_progress",
+  "started_at": "2026-05-20T22:00:00Z",
+  "ended_at": null,
+  "merged_pr": null,
+  "merge_commit": null,
+  "scope": "main flat memory housekeeping #5 — sprint -e housekeeping #4 (PR #206) 이후 5 PR (#207/#208/#236/#237/#239) + GitHub 자산 등재 흡수. branch naming 신규 규칙 따라 housekeeping carve 패턴 적용 (issue 없음 + key 만).",
+  "directive_source": "사용자 지시 — 'memory housekeeping 진행해' (PR #239 sub-carve B backend 머지 직후)",
+  "decisions": [
+    "5 PR 흡수 — state.json merged_prs_2026_05_20 에 6 entry 추가 (#206/#207/#208/#236/#237/#239), 추가로 housekeeping 시점에 누락됐던 PR #206 도 정합",
+    "github_project_setup_2026_05_20 객체 신규 — Project ID + 19 labels + 3 milestones + 27 issues + branch naming rule 명시",
+    "sub_carve_split 정정 — B 를 B_backend (done sprint -i PR #239) + B_frontend (carve, Gemini 별도 sprint) 분리. C/D/E/F sprint label shift (-k/-l/-m/-n)",
+    "sprint -f/-g/-h/-i-cancel-signup state 신규 생성 (housekeeping #5 동반)",
+    "branch naming 적용 — claude/work_260520-j-housekeeping. issue 없는 housekeeping carve 패턴 (worker_division.md §2.5 예외)"
+  ],
+  "todo": [
+    "state.json (head_commit + merged_prs + github_project_setup + sub_carve_split) — 완료",
+    "session_handoff.md (header + sprint -j 표 + 5 PR 흡수 표 + GitHub 자산 + branch naming + 다음 directive) — 완료",
+    "work_backlog.md (header + 변경 이력 5 row + sprint -e finalize) — 완료",
+    "sprint -f/-g/-h/-i-cancel-signup/-i-209 branch state finalize 5개 + sprint -j state — 완료",
+    "auto-memory entry — 다음",
+    "commit + push + PR + 4단계 self-review + squash merge — 다음"
+  ],
+  "verification": "JSON 정합 PASS. 본 sprint merge 후 -j state 의 status: in_progress → done 은 후속 housekeeping 또는 본 sprint Stage 3 가 처리 (codex hotfix #12 패턴 회피)."
+}

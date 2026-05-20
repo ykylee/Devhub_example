@@ -1,18 +1,54 @@
-# Session Handoff — main (2026-05-20 sprint -e housekeeping #4 — sprint -d + PR #203 흡수)
+# Session Handoff — main (2026-05-20 sprint -j housekeeping #5 — 5 PR 흡수 + GitHub 자산 등재)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
-- 범위: 2026-05-19 단일 세션 누적 30 PR (sprint -a~-ad) + 2026-05-20 sprint -a/-b/외부 #201/#202 + sprint -c housekeeping #3 (PR #204) + **sprint -d Phase 3 sub-carve A (PR #205 `f2a389a`: ADR-0020 + `rbac_subject_roles` 폐기 + codex P1 hotfix)** + **PR #203 (gemini → 본인 인수, `a294baf`: Keycloak SPI webhook + theme + Backend Unit Test 회귀 fix + codex P1 secret fail-closed)** + 본 sprint -e housekeeping #4.
+- 범위: sprint -e housekeeping #4 (PR #206 `7e7ac33`) 이후 머지된 5 PR + GitHub Project/Milestones/Issues 등재. 흡수 대상: PR #207 (sprint -f v1.0 로드맵 + worker_division), PR #208 (codex P2 hotfix), PR #236 (P3-12 Sign Up 취소), PR #237 (sprint -h P0-3 screenshot mode), PR #239 (sprint -i sub-carve B backend). 본 sprint -j 가 main flat memory + sprint state finalize.
 - 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
-- 상태: M1/M2/M3 done. **Keycloak 단일 IdP 정합 완전 정착** (ADR-0019). **ADR-0019 §5.3 design 완결** + **§5.3 (9) audit event listener Phase 2 풀스택 종결**. **계정/사용자 관리 리팩토링 Phase 1/2/3 진입**: Phase 1 (PR #199) + Phase 2 (PR #200) + **Phase 3 sub-carve A (sprint -d, PR #205): ADR-0020 + `rbac_subject_roles` 완전 제거**. **외부 인수 PR #203**: Keycloak SPI webhook + semantic theme. 잔여 carve: sub-carve B~F (5건, sprint -f..-j 로 shift — sprint -e housekeeping #4 으로 소진됨) + ADR-0019 §5.3 사내 동반 carve 5건 + **신규: Keycloak SPI provider JAR carve** (PR #203 codex P2 후속).
-- 최종 수정일: 2026-05-20 (sprint claude/work_260520-e housekeeping #4)
-- 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [상태 스냅샷](./state.json), [거버넌스](../../docs/governance/README.md), [추적성 매트릭스](../../docs/traceability/report.md), [**ADR-0020 계정/사용자 관리 책임 경계**](../../docs/adr/0020-account-user-management-boundary.md), [ADR-0019 Keycloak 단일화](../../docs/adr/0019-keycloak-only-idp.md), [**계정/사용자 관리 리팩토링 (Phase 1/2/3 design)**](../../docs/planning/account_user_management_redesign.md), [keycloak_operations.md](../../docs/setup/keycloak_operations.md).
-- 브랜치: `main` (HEAD `a294baf` — PR #203 본인 인수 merge. 직전: PR #205 `f2a389a` sprint -d, PR #204 `12bb557` sprint -c). 본 sprint -e HEAD TBD (housekeeping #4 PR TBD).
+- 상태: M1/M2/M3 done. **Keycloak 단일 IdP 정합 완전 정착** (ADR-0019). **ADR-0019 §5.3 design 완결** + **§5.3 (9) audit event listener Phase 2 풀스택 종결**. **계정/사용자 관리 리팩토링 Phase 1/2/3 진입**: Phase 1 + 2 (PR #199/#200 design) + **Phase 3 sub-carve A (sprint -d, PR #205) + sub-carve B backend (sprint -i, PR #239)** 모두 done. **v1.0 릴리즈 로드맵 + 워커 분업 design 정착** (PR #207, release_v1_roadmap.md + worker_division.md). **GitHub 자산 등재**: Project 'Devhub Example 1차 개발' (#2) + 3 milestones (v1.0/v1.1/v2) + 27 issues + 19 labels. **Playwright screenshot mode 도입** (PR #237, 19 페이지 캡처, P0-3 done). **branch naming 신규 규칙** (worker_division.md §2.5, `<worker>/work_<YYMMDD>-<sprint-seq>-<issue-num>-<short-key>`, sprint -i 첫 적용). 잔여 carve: sub-carve B frontend (Gemini 별도 sprint) + C~F (sprint -k..-n shift) + ADR-0019 §5.3 사내 동반 5건 + Keycloak SPI provider JAR (P2-6) + P0-2 UI polish + P0-4 docker single-port (Codex 작업 중).
+- 최종 수정일: 2026-05-20 (sprint claude/work_260520-j-housekeeping #5)
+- 관련 문서: [v1.0 릴리즈 로드맵 (신규 진입점)](../../docs/planning/release_v1_roadmap.md), [워커 분업](../../docs/governance/worker_division.md), [통합 로드맵](../../docs/development_roadmap.md), [상태 스냅샷](./state.json), [거버넌스](../../docs/governance/README.md), [추적성 매트릭스](../../docs/traceability/report.md), [ADR-0020 계정/사용자 관리 책임 경계](../../docs/adr/0020-account-user-management-boundary.md), [ADR-0019 Keycloak 단일화](../../docs/adr/0019-keycloak-only-idp.md), [계정/사용자 관리 리팩토링 (Phase 1/2/3 design)](../../docs/planning/account_user_management_redesign.md), [keycloak_operations.md](../../docs/setup/keycloak_operations.md).
+- 브랜치: `main` (HEAD `d21e801` — PR #239 sub-carve B backend merge). 본 sprint -j HEAD TBD.
 
-## 2026-05-20 sprint -e (본 PR) — housekeeping #4 (sprint -d + PR #203 흡수)
+## 2026-05-20 sprint -j (본 PR) — housekeeping #5 (5 PR 흡수 + GitHub 자산 등재)
 
 | Sprint | PR | sha | 핵심 |
 | --- | --- | --- | --- |
-| `claude/work_260520-e` | (본 PR) | TBD | **housekeeping #4** — sprint -d (PR #205 `f2a389a`) + 외부 인수 PR #203 (`a294baf`) 2 PR 흡수. state.json (head_commit `a294baf` + merged_prs_2026_05_20 에 PR #205/#203 추가 + sub_carve_split sprint label shift + external_carve_keycloak_spi_provider_jar 신규) + session_handoff (header + sprint -e 표 + sprint -d finalize + PR #203 인수 row + sub-carve B 진입 directive) + work_backlog (header + 변경 이력 2 row) + sprint -d branch state finalize (in_progress → done, merge_commit f2a389a) + sprint -e branch state. design doc §6.1 sprint label 정정 (sub-carve B → sprint -f 로 shift). |
+| `claude/work_260520-j-housekeeping` | (본 PR) | TBD | **housekeeping #5** — state.json (head_commit `d21e801` + merged_prs_2026_05_20 5 entry 추가 + `github_project_setup_2026_05_20` 객체 신규 + sub_carve_split 정정 sub-carve B backend done) + session_handoff + work_backlog + sprint -f/-g/-h/-i state finalize + 본 sprint -j state. main flat memory drift 해소. |
+
+### 흡수 5 PR
+
+| PR | sha | sprint / issue | 핵심 |
+| --- | --- | --- | --- |
+| #207 | `a08ffd3` | sprint -f-roadmap | release_v1_roadmap.md 신규 (306 lines, v1.0 scope + 30+ carve P0~P3 + 마일스톤 + 워커 분업 + GitHub plan) + worker_division.md 신규 (180 lines) + AGENTS/GEMINI 진입점 갱신 |
+| #208 | `bb4a0f4` | sprint -g-codex-hotfix | codex P2 hotfix — worker_division.md §4.2 ADR reversal dead link → 5 step 표준 절차 본문 명시 + ADR-0019/0001 supersession canonical 사례 |
+| #236 | `64d37f5` | sprint -i-cancel-signup | P3-12 Sign Up 영구 취소 (사용자 결정 — DevHub Keycloak admin 권한 없음). release_v1_roadmap.md §1.2/§3.4/§4.2/§5.2 strikethrough + issue #235 closed |
+| #237 | `c202fa0` | sprint -h-screenshot **(issue #211, P0-3 done)** | Playwright screenshot mode — screenshots.spec.ts 신규 (19 페이지 fullPage, 4 test) + Upload UI Screenshots CI step + Stage 3 보강 2회 (timeout 180s + codex P1 networkidle 5s) |
+| #239 | `d21e801` | sprint -i-209-accounts-deprecation **(issue #209, P0-1 backend done)** | ADR-0020 sub-carve B (backend) — /api/v1/accounts/* 4 endpoint 폐기 + lazy_auto_create.go 신규 + AuthenticatedActor Email/DisplayName + 신규 audit action 2종 + 회귀 test 5건 + 기존 test 3건 admin pre-seed fix + docs 4 file 정합 |
+
+### GitHub 자산 등재 (사용자 + 본인 협업)
+
+- **Project** `Devhub Example 1차 개발` (`PVT_kwHOCKCvOs4BYOna`, number 2) — 사용자 생성
+- **Milestones** 3개 — v1.0 Release (2026-06-15) / v1.1 Stability (2026-07-31) / v2 Extension
+- **Issues** 27개 (P0-1 ~ P0-3 + P1-1 ~ P1-5 + P2-1 ~ P2-7 + P3-1 ~ P3-11 + P0-4 신규 + P3-12 cancelled)
+- **Labels** 19개 — priority/{p0..p3} + worker/{claude,codex,gemini,user} + domain/{auth,app-repo-project,dreq,integration,ui-polish,infra} + type/{feature,refactor,test,docs,ci}
+- **Status 분류**: Ready 3 (#209/#210/#211→Done/#238) / In review 0 / Backlog 23 (P1~P3)
+- **권한**: `gh auth refresh -s read:project,project` 사용자가 별도 터미널 실행 후 본인이 26 issue 일괄 추가 + Status 분류
+
+### branch naming 신규 규칙 (worker_division.md §2.5)
+
+`<worker>/work_<YYMMDD>-<sprint-seq>-<issue-num>-<short-key>` 패턴:
+- 본 sprint -i 가 첫 적용 사례 (`claude/work_260520-i-209-accounts-deprecation`)
+- 예외: housekeeping/hotfix (issue 없음, key 만): `claude/work_260520-j-housekeeping`, `claude/work_260520-g-codex-hotfix`
+- 외부 contribution 자유 branch 허용
+
+## 다음 sprint 권장 진입
+
+| 우선순위 | sprint 후보 | 작업 | 워커 |
+| --- | --- | --- | --- |
+| 1 | sub-carve B frontend cleanup | `account.service.ts` 폐기 + `/admin/settings/users` admin actions 제거 + e2e TC-ACC-* 갱신 | Gemini |
+| 2 | issue #210 P0-2 UI polish | semantic theme + responsive + a11y. screenshot artifact (PR #237 결과) review source | Gemini |
+| 3 | issue #212 P1-1 sub-carve C | event listener 확장 (USER:UPDATE / GROUP_MEMBERSHIP / USER:DELETE) — sub-carve B backend done 자연 follow-up | Claude (sprint -k) |
+| 4 | issue #213 P1-2 sub-carve D | JWKS stale-while-error expiry case 확장 — 독립적 | Claude (sprint -l) |
+| 5 | issue #238 P0-4 docker single-port review | Codex 작업 branch 발견 시 review 모드 | Claude (review only) | sprint -d (PR #205 `f2a389a`) + 외부 인수 PR #203 (`a294baf`) 2 PR 흡수. state.json (head_commit `a294baf` + merged_prs_2026_05_20 에 PR #205/#203 추가 + sub_carve_split sprint label shift + external_carve_keycloak_spi_provider_jar 신규) + session_handoff (header + sprint -e 표 + sprint -d finalize + PR #203 인수 row + sub-carve B 진입 directive) + work_backlog (header + 변경 이력 2 row) + sprint -d branch state finalize (in_progress → done, merge_commit f2a389a) + sprint -e branch state. design doc §6.1 sprint label 정정 (sub-carve B → sprint -f 로 shift). |
 
 ### PR #205 sprint -d (`f2a389a`) finalize — 계정/사용자 관리 리팩토링 Phase 3 sub-carve A
 
