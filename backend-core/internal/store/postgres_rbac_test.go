@@ -170,13 +170,15 @@ func TestRBAC_AuditInvariantOnCreate(t *testing.T) {
 	}
 }
 
+// TestRBAC_DeleteCustomRoleInUse covers the ErrRoleInUse path. ADR-0020
+// (sprint -d) removed SetSubjectRole, so we assign the custom role at user
+// creation time (users.role FK to rbac_policies.role_id, migration 000006).
 func TestRBAC_DeleteCustomRoleInUse(t *testing.T) {
 	s, ctx := newTestRBACStore(t)
 	roleID := fmt.Sprintf("custom-inuse-%d", time.Now().UnixNano())
 	userID := fmt.Sprintf("u-rbac-test-%d", time.Now().UnixNano())
 	t.Cleanup(func() {
 		bg := context.Background()
-		_ = s.SetSubjectRole(bg, userID, "developer")
 		_ = s.DeleteUser(bg, userID)
 		_ = s.DeleteRBACRole(bg, roleID)
 	})
@@ -194,50 +196,14 @@ func TestRBAC_DeleteCustomRoleInUse(t *testing.T) {
 		UserID:      userID,
 		Email:       userID + "@example.com",
 		DisplayName: "RBAC Test User",
-		Role:        domain.AppRoleDeveloper,
+		Role:        domain.AppRole(roleID),
 		Status:      domain.UserStatusActive,
 		JoinedAt:    time.Now().UTC(),
 	}); err != nil {
 		t.Fatalf("create user: %v", err)
-	}
-
-	if err := s.SetSubjectRole(ctx, userID, roleID); err != nil {
-		t.Fatalf("set subject role: %v", err)
 	}
 
 	if err := s.DeleteRBACRole(ctx, roleID); !errors.Is(err, store.ErrRoleInUse) {
 		t.Errorf("delete in-use role err = %v, want ErrRoleInUse", err)
-	}
-}
-
-func TestRBAC_SetSubjectRole_RoleNotFound(t *testing.T) {
-	s, ctx := newTestRBACStore(t)
-	userID := fmt.Sprintf("u-rbac-nf-%d", time.Now().UnixNano())
-	t.Cleanup(func() { _ = s.DeleteUser(context.Background(), userID) })
-
-	if _, err := s.CreateUser(ctx, domain.CreateUserInput{
-		UserID:      userID,
-		Email:       userID + "@example.com",
-		DisplayName: "RBAC NF User",
-		Role:        domain.AppRoleDeveloper,
-		Status:      domain.UserStatusActive,
-		JoinedAt:    time.Now().UTC(),
-	}); err != nil {
-		t.Fatalf("create user: %v", err)
-	}
-
-	if err := s.SetSubjectRole(ctx, userID, "custom-nope-not-real"); !errors.Is(err, store.ErrNotFound) {
-		t.Errorf("set non-existent role err = %v, want ErrNotFound", err)
-	}
-}
-
-func TestRBAC_GetSubjectRoles_SingleRoleMode(t *testing.T) {
-	s, ctx := newTestRBACStore(t)
-	roles, err := s.GetSubjectRoles(ctx, "u1")
-	if err != nil {
-		t.Skipf("seed user u1 not present (env-dependent): %v", err)
-	}
-	if len(roles) != 1 {
-		t.Errorf("GetSubjectRoles len = %d, want 1 (single role mode)", len(roles))
 	}
 }

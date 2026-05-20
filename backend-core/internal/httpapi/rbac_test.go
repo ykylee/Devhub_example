@@ -132,25 +132,6 @@ func (f *fakeRBACStore) DeleteRBACRole(ctx context.Context, roleID string) error
 	return nil
 }
 
-func (f *fakeRBACStore) GetSubjectRoles(ctx context.Context, userID string) ([]string, error) {
-	role, ok := f.subjects[userID]
-	if !ok {
-		return nil, store.ErrNotFound
-	}
-	return []string{role}, nil
-}
-
-func (f *fakeRBACStore) SetSubjectRole(ctx context.Context, userID, roleID string) error {
-	if _, ok := f.roles[roleID]; !ok {
-		return store.ErrNotFound
-	}
-	if _, ok := f.subjects[userID]; !ok {
-		return store.ErrNotFound
-	}
-	f.subjects[userID] = roleID
-	return nil
-}
-
 func TestGetRBACPolicyLegacy_Returns410Gone(t *testing.T) {
 	router := testRouter(RouterConfig{RBACStore: newFakeRBACStore()})
 	rec := httptest.NewRecorder()
@@ -366,61 +347,6 @@ func TestDeleteRBACPolicy_CustomRole(t *testing.T) {
 	}
 	if _, exists := store.roles["custom-x"]; exists {
 		t.Errorf("role still present after delete")
-	}
-}
-
-func TestSubjectRoles_GetAndPut(t *testing.T) {
-	rbacStore := newFakeRBACStore()
-	rbacStore.subjects["u1"] = "developer"
-	router := testRouter(RouterConfig{RBACStore: rbacStore})
-
-	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/rbac/subjects/u1/roles", nil))
-	if rec.Code != http.StatusOK {
-		t.Fatalf("get code = %d", rec.Code)
-	}
-	var getResp struct {
-		Data []string `json:"data"`
-	}
-	decodeJSON(t, rec.Body.Bytes(), &getResp)
-	if len(getResp.Data) != 1 || getResp.Data[0] != "developer" {
-		t.Errorf("get data = %v, want [developer]", getResp.Data)
-	}
-
-	body := bytes.NewBufferString(`{"roles": ["manager"]}`)
-	rec = httptest.NewRecorder()
-	router.ServeHTTP(rec, httptest.NewRequest(http.MethodPut, "/api/v1/rbac/subjects/u1/roles", body))
-	if rec.Code != http.StatusOK {
-		t.Fatalf("put code = %d body=%s", rec.Code, rec.Body.String())
-	}
-	if rbacStore.subjects["u1"] != "manager" {
-		t.Errorf("subject role = %q, want manager", rbacStore.subjects["u1"])
-	}
-}
-
-func TestSubjectRoles_PutSingleRoleRequired(t *testing.T) {
-	rbacStore := newFakeRBACStore()
-	rbacStore.subjects["u1"] = "developer"
-	router := testRouter(RouterConfig{RBACStore: rbacStore})
-
-	body := bytes.NewBufferString(`{"roles": ["developer", "manager"]}`)
-	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, httptest.NewRequest(http.MethodPut, "/api/v1/rbac/subjects/u1/roles", body))
-	if rec.Code != http.StatusUnprocessableEntity {
-		t.Errorf("code = %d, want 422", rec.Code)
-	}
-}
-
-func TestSubjectRoles_PutRoleNotFound(t *testing.T) {
-	rbacStore := newFakeRBACStore()
-	rbacStore.subjects["u1"] = "developer"
-	router := testRouter(RouterConfig{RBACStore: rbacStore})
-
-	body := bytes.NewBufferString(`{"roles": ["custom-missing"]}`)
-	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, httptest.NewRequest(http.MethodPut, "/api/v1/rbac/subjects/u1/roles", body))
-	if rec.Code != http.StatusNotFound {
-		t.Errorf("code = %d, want 404", rec.Code)
 	}
 }
 

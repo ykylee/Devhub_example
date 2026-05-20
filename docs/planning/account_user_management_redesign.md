@@ -404,7 +404,8 @@ token 검증 시 cache lookup
 | `backend-core/internal/store/postgres_rbac_test.go` | 해당 test 제거 (TestRBAC_SetSubjectRole_* + TestRBAC_GetSubjectRoles_*) |
 | `backend-core/internal/httpapi/rbac_test.go` | `fakeRBACStore.GetSubjectRoles` + `SetSubjectRole` mock 제거 |
 | `backend-core/internal/httpapi/permissions.go` | `/api/v1/rbac/subjects/:subject_id/roles` 의 routePermissionTable entry 제거 |
-| `frontend/lib/services/rbac.service.ts` | 본 endpoint 호출 코드 없음 (UI 미구현) — 변경 없음 |
+| `frontend/lib/services/rbac.service.ts` | dead method 정리 — `getSubjectRoles` + `setSubjectRole` + `SubjectRolesEnvelope` interface 제거 (호출처 0건이지만 dead 코드 정리. sprint -d Stage 3 보강) |
+| `docs/backend_api_contract.md` | §12.6 (API-30) + §12.7 (API-31) 본문 spec 폐기 마킹 + §12.8 routing table 2 row strikethrough + §12.10 cache reload trigger 참조 정정 + §12.5 (DELETE policy) 본문 "재할당 안내" 정정 (Keycloak admin console + event listener 경로로) |
 | migration | **불필요** — `rbac_subject_roles` 테이블 자체가 없음 (`users.role` 컬럼 직접 write 였음). DB schema 변경 없음 |
 
 ### 5.9 Phase 1 매트릭스 오류 정정
@@ -451,15 +452,75 @@ token 검증 시 cache lookup
 
 ADR-0020 draft 작성 + 사내 검토 → accepted 처리는 Phase 3 진입 시 동반.
 
-## 6. (TBD — Phase 3) 리팩토링 실행 계획
+## 6. Phase 3 리팩토링 실행 계획 (sprint `-d`, 2026-05-20)
 
-Phase 3 sprint 에서 작성:
+[ADR-0020](../adr/0020-account-user-management-boundary.md) 가 Phase 2 결정 6건 명문화 + sub-carve 6건 분리. 본 sprint `-d` 가 Phase 3 진입 (sub-carve A 흡수 + 후속 sub-carve B~F 분리).
 
-- §6.1 endpoint 폐기/유지 결정에 따른 backend migration (route 제거 + handler 삭제)
-- §6.2 frontend UI 변경 (admin/settings/users 의 admin endpoint 호출 → read-only mirror 또는 제거)
-- §6.3 DB schema 정리 (필요 시 `users.role` deprecation 또는 cache-only 표시)
-- §6.4 traceability 영향 (REQ/API/IMPL/TC row 갱신)
-- §6.5 마이그레이션 단계 (Strangler Fig — 기존 endpoint deprecation banner → 새 흐름 도입 → 폐기)
+### 6.1 sub-carve 분담
+
+| sub-carve | 영역 | 영향 파일 (요약) | 위험 | sprint |
+| --- | --- | --- | --- | --- |
+| **A** — ADR-0020 + design §6 + `rbac_subject_roles` 폐기 (결정 D) | `docs/adr/0020-*` + design doc §6 + backend rbac.go/router.go/permissions.go/postgres_rbac.go + test | docs + 격리된 dead code 제거 | 낮음 | **`-d` (본 sprint)** |
+| **B** — `/api/v1/accounts/*` 4 endpoint 제거 + lazy auto-create + frontend `account.service.ts` 폐기 | backend `accounts_admin.go` + `KeycloakAdminClient` write 메서드 호출처 + `authenticateActor` 확장 + frontend `account.service.ts` + admin/settings/users page + e2e spec | 큰 변경 — backend handler 제거 + frontend UI 정리 + lazy auto-create 신규 mechanism | 중간 (e2e 회귀 위험) | `-e` (후속) |
+| **C** — event listener 확장 (USER:UPDATE / GROUP_MEMBERSHIP / USER:DELETE) | backend `keycloak_event_puller.go` + `audit_logs` action 매핑 + `users` write + metric 3종 (`audit/metrics.go`) | sprint -u~-y 자연 확장. event handler 가 DevHub `users` write 추가 | 중간 (event listener 회귀 위험) | `-f` (후속) |
+| **D** — JWKS stale-while-error expiry case 확장 | backend `keycloak_verifier.go` + JWKS cache + metric 2종 | sprint -r kid mismatch fallback 자연 확장 | 낮음 | `-g` (후속) |
+| **E** — service account 권한 축소 + governance SOP | `keycloak_operations.md §8.5c` 신규 + §3.2 SOP 갱신 | docs only | 낮음 | `-h` (후속) |
+| **F** — `/login` page 정리 (결정 B) | frontend `app/login/page.tsx` + `app/auth/login/page.tsx` + `app/auth/callback/page.tsx` + `app/auth/error/page.tsx` | minor frontend UX 정리 | 낮음 | `-i` (후속, 우선순위 가장 낮음) |
+
+### 6.2 sub-carve A — `rbac_subject_roles` 완전 제거 (결정 D, 본 sprint 흡수 범위)
+
+§5.8 의 8 파일 변경 — backend 의 dead-end endpoint 제거 (frontend UI 미구현). 위험 낮음 (Keycloak group composite 가 실 권한 source, 본 endpoint 는 `users.role` 컬럼 직접 write 였음).
+
+#### 변경 매트릭스
+
+| 파일 | 변경 |
+| --- | --- |
+| `backend-core/internal/httpapi/rbac.go` | `getSubjectRoles` + `setSubjectRoles` handler 제거 + `rbacAuditActionAssigned` const 제거 + `rbacSubjectRolesRequest` wire struct 제거 + `RBACStore` interface 의 `GetSubjectRoles` + `SetSubjectRole` 메서드 제거 |
+| `backend-core/internal/httpapi/router.go` | `v1.GET("/rbac/subjects/:subject_id/roles", ...)` + `v1.PUT(...)` 2 route 제거 |
+| `backend-core/internal/httpapi/permissions.go` | `routePermissionTable` 의 `/rbac/subjects/:subject_id/roles` 2 entry 제거 |
+| `backend-core/internal/store/postgres_rbac.go` | `GetSubjectRoles` + `SetSubjectRole` impl 제거 |
+| `backend-core/internal/store/postgres_rbac_test.go` | `TestRBAC_SetSubjectRole_*` + `TestRBAC_GetSubjectRoles_*` 제거 |
+| `backend-core/internal/httpapi/rbac_test.go` | `fakeRBACStore.GetSubjectRoles` + `SetSubjectRole` mock + 관련 handler test 제거 |
+| `frontend/lib/services/rbac.service.ts` | dead method 정리 (sprint -d Stage 3 보강) — `getSubjectRoles` + `setSubjectRole` + `SubjectRolesEnvelope` interface 제거 |
+| `docs/backend_api_contract.md` | §12.6/§12.7 본문 spec 폐기 마킹 + §12.8 routing table 2 row + §12.10 cache reload trigger + §12.5 본문 정정 (sprint -d Stage 3 보강) |
+| migration | **불필요** — `rbac_subject_roles` 테이블 자체가 없음 (`users.role` 컬럼 직접 write 였음). DB schema 변경 없음 |
+
+#### 검증
+
+- backend `go build ./...` PASS
+- backend `go test ./internal/httpapi/... ./internal/store/...` PASS (제거된 test 외 회귀 없음)
+- traceability `docs/traceability/report.md` §2 API-26..40 매트릭스의 `/rbac/subjects/:subject_id/roles` row 제거 + §6 변경 이력 row
+
+### 6.3 sub-carve B~F 진입 순서 권장
+
+1. **B (accounts/* 제거 + lazy auto-create)** — Phase 3 의 가장 큰 carve. Keycloak admin 책임 이관의 실질적 출발점
+2. **C (event listener 확장)** — B 와 의존성 있음 (lazy auto-create 의 role 추출 로직과 event listener 의 role 매핑 로직 공유 → `extractKeycloakRole` 공유 함수)
+3. **E (governance SOP)** — B + C 완료 후 운영 협약 SOP 작성. 사내 IdP 팀과의 협약 동반
+4. **D (JWKS expiry case 확장)** — 독립적, B~C 와 무관. 언제든 진행 가능
+5. **F (`/login` 정리)** — 우선순위 가장 낮음. frontend UX 정리만
+
+### 6.4 traceability 영향 (sub-carve A 본 sprint)
+
+| 단계 | 영향 |
+| --- | --- |
+| REQ | 없음 (endpoint 제거는 REQ 변경 아님) |
+| ARCH | 없음 |
+| API | API-26..40 (RBAC) 매트릭스의 `/rbac/subjects/:subject_id/roles` row 2개 제거 |
+| RM | 없음 |
+| IMPL | `IMPL-rbac-01` (handler — getSubjectRoles/setSubjectRoles 2개 제거 후 4 endpoint) + `IMPL-rbac-02` (store — GetSubjectRoles/SetSubjectRole 2 method 제거 후 6 method) 갱신. `IMPL-rbac-03` (permissions.go route table) 도 2 entry 제거. |
+| UT | `TestRBAC_GetSubjectRoles_*` + `TestRBAC_SetSubjectRole_*` (postgres_rbac_test.go + rbac_test.go) 제거. `TestRBAC_DeleteCustomRoleInUse` 는 `CreateUser` 의 `Role: domain.AppRole(roleID)` 로 재구성 (`users.role` FK to `rbac_policies.role_id` 활용, migration 000006). |
+| TC | 없음 (e2e 미구현이라 TC-RBAC-SUBJECT-* 없었음) |
+
+### 6.5 Strangler Fig 패턴 (sub-carve B 진입 시 적용)
+
+sub-carve B (accounts/* 제거) 는 frontend UI 호출과 backend handler 가 함께 변경되므로 명시 단계 분리 권장:
+
+1. **deprecation banner** — `/api/v1/accounts/*` 4 endpoint 에 `X-Devhub-Deprecation: 410-after-2026-XX-XX` 헤더 추가 + audit `account.deprecated_call_warning` (1 sprint)
+2. **frontend cleanup** — admin/settings/users 의 admin actions 제거 + `account.service.ts` 폐기 (다음 sprint)
+3. **backend route 제거** — handler 4개 삭제 + service account `manage-users` permission 제거 SOP 안내 (다음 sprint)
+4. **e2e spec 정리** — TC-ACC-* 의 admin issue/disable 시나리오 제거 + Keycloak admin console flow 안내 link 검증으로 대체
+
+본 sprint `-d` 는 sub-carve A 만. Strangler Fig 의 1단계 deprecation 은 sub-carve B 진입 시 다시 검토.
 
 ## 7. 잔여 carve
 
@@ -473,13 +534,13 @@ Phase 3 sprint 에서 작성:
 
 ### 7.2 Phase 3 (실 구현) sprint 영역
 
-- **(carve)** Phase 3 — backend code 제거 (account_password / kratos_* 잔재 이후 account_admin handler 제거. §5.4 frontend cleanup 매트릭스)
-- **(carve)** Phase 3 — lazy auto-create mechanism 실 구현 (`authenticateActor` 확장). §5.2 따름
-- **(carve)** Phase 3 — event listener 확장 (USER:UPDATE + MEMBERSHIP + USER:DELETE 매핑). §5.3 따름
-- **(carve)** Phase 3 — JWKS stale-while-error 확장 (expiry case). §5.6 따름
-- **(carve)** Phase 3 — service account 권한 축소 (manage-users 제거, view-events 보장)
-- **(carve)** Phase 3 — governance 협약 SOP `keycloak_operations.md §8.5c` 신규
-- **(carve)** Phase 3 — ADR-0020 draft 작성 + 사내 검토 + accepted 처리
+- ✅ resolved (sprint `-d`, ADR-0020 발급) — ADR-0020 draft + accepted (§6.1 sub-carve A)
+- ✅ resolved (sprint `-d`, §5.8 따름) — `rbac_subject_roles` 완전 제거 (backend rbac.go/router.go/permissions.go/postgres_rbac.go + test 정리)
+- **(carve, sub-carve B)** sprint `-e` — backend `/api/v1/accounts/*` 4 endpoint 제거 + `KeycloakAdminClient` write 메서드 호출처 제거 + `authenticateActor` lazy auto-create 실 구현 (§5.2) + frontend `account.service.ts` 폐기 (§5.4)
+- **(carve, sub-carve C)** sprint `-f` — event listener 확장 (USER:UPDATE / GROUP_MEMBERSHIP / USER:DELETE 매핑 + `users` write + metric 3종). §5.3 따름
+- **(carve, sub-carve D)** sprint `-g` — JWKS stale-while-error expiry case 확장. §5.6 따름
+- **(carve, sub-carve E)** sprint `-h` — service account 권한 축소 + governance 협약 SOP (`keycloak_operations.md §8.5c` 신규, §5.5)
+- **(carve, sub-carve F)** sprint `-i` (우선순위 가장 낮음) — `/login` page 정리 (§5.7)
 
 ### 7.3 사내 동반 carve
 
@@ -494,4 +555,6 @@ Phase 3 sprint 에서 작성:
 | 2026-05-20 | sprint `claude/work_260520-a` Phase 1 — 현황 파악 1차 작성. §1 책임 분리 매트릭스 + §2 backend 23 endpoint (18 row) + §3 frontend 4 page + service 매트릭스 + §4 DB schema (users 14 컬럼) + Keycloak attribute 정합 + §4.5 Phase 2 입력 옵션 A~D 후보 + §7 잔여 carve 5건. §5/§6 는 Phase 2/3 별도 sprint. |
 | 2026-05-20 | Self-review Stage 3 보강 — P1×2 + P2×1 흡수. (P1-1) §2 header endpoint count 17→23 + 묶음 row 안내 추가. (P1-2) §4.1 컬럼 count 14 (commit msg 정정). (P2-1) §4.5 옵션 A "lazy users row 자동 생성" wording → footnote 로 현재 mechanism (idp_subject 만 backfill) 과 신규 mechanism (row auto-create) 명확화. |
 | 2026-05-20 | sprint `claude/work_260520-a` Phase 2 design 작성 — 명시 결정 6건 토론 결과 (Q&A 6 round) 흡수. (1) §0/§4.5 결정 표기, (2) §5 신규 10 sub-section — §5.1 명시 결정 6건 종합 표 + §5.2 lazy auto-create mechanism (3 흐름 + 결정 항목 5 + 보안 검토) + §5.3 event listener 확장 (매핑 표 + store-level write + metric 3) + §5.4 frontend cleanup 매트릭스 (5 파일) + §5.5 service account 권한 축소 (`manage-users` 제거) + governance 협약 SOP 표 + §5.6 JWKS stale-while-error 확장 (sprint -r 자연 확장 + mitigation) + §5.7 `/login` 정리 + §5.8 `rbac_subject_roles` 폐기 (8 파일) + §5.9 Phase 1 §1 매트릭스 오류 정정 (rbac_subject_roles 테이블 없음, `users.role` 직접 write) + §5.10 ADR-0020 후보 outline. (3) §7 잔여 carve 갱신 — Phase 2 결정으로 resolved 5건 + Phase 3 실 구현 carve 7건 + 사내 동반 carve 3건. **명시 결정 A~F 모두 확정** — A 전면 폐기 / B entry minimal / C event listener 확장 / D rbac_subject_roles 완전 제거 / E read-only carve 도입 안 함 (self-reverse) / F JWKS stale-while-error 확장. Phase 3 (실 구현) 은 별도 sprint. |
+| 2026-05-20 | sprint `claude/work_260520-d` Stage 3 보강 #2 — PR #205 codex review P1 응답. `validAppRoles` 에 `pmo_manager` 추가 (`backend-core/internal/httpapi/organization.go`) + error message 정정 + 회귀 test 2건 (`TestCreateUserAcceptsPMOManager` + `TestUpdateUserAcceptsPMOManagerRole`). ADR-0020 §5.5 신규 hotfix 섹션 (sprint -f 의 event listener sync 가 정공법, sprint -d hotfix 는 backward compat 임시) + §7 변경 이력 row. **codex P1 회귀 응답** — sprint -d 의 `/rbac/subjects/:id/roles` 폐기 후 `pmo_manager` 가 API 로 할당 불가능했던 회귀 해소. custom role 임의 할당은 결정 C 의 event listener (sprint -f) 자연 흡수 + sub-carve E (sprint -h) governance SOP 동반. |
+| 2026-05-20 | sprint `claude/work_260520-d` Phase 3 진입 (sub-carve A) — (1) ADR-0020 발급 ([docs/adr/0020-account-user-management-boundary.md](../adr/0020-account-user-management-boundary.md) 신규) — Phase 2 명시 결정 6건 종합 + sub-carve B~F 분리 plan. (2) §6 Phase 3 실행 계획 신규 — sub-carve 분담 표 + sub-carve A 변경 매트릭스 + sub-carve B~F 진입 순서 권장 + Strangler Fig 패턴 (sub-carve B 진입 시 적용). (3) §5.8 따라 `rbac_subject_roles` 완전 제거 — backend `rbac.go` handler 2개 + interface method 2개 + audit action const + wire struct 제거, `router.go` 2 route 제거, `permissions.go` 2 routePermissionTable entry 제거, `postgres_rbac.go` impl 2개 제거, `postgres_rbac_test.go` 테스트 3건 제거 (Delete-in-use 테스트는 `CreateUser` 의 `Role: domain.AppRole(roleID)` 로 재구성), `rbac_test.go` fake mock 2개 + handler test 3건 제거. (4) §7.2 Phase 3 carve list 갱신 — sub-carve A resolved 2건 + sub-carve B~F (5건 carve) 분담. (5) traceability §2.2 API-30/31 strikethrough + §2.4 IMPL-rbac-01/02 책임 갱신 + §4 ADR-0020 row 추가 + §6 변경 이력 row. backend go build + go test (httpapi + store) PASS. |
 | 2026-05-20 | sprint `claude/work_260520-b` Self-review Stage 3 보강 — P1×3 + P2×2 일괄 흡수. (P1-1) §4.3 + §1 매트릭스의 `rbac_subject_roles` 표기 정정 (취소선 + §5.9 link). (P1-2) §5.3.1 `USER:DELETE` 정책 결정 명시 — soft delete (`status=deactivated`) 채택, audit_logs actor reference 깨짐 회피. (P1-3) §5.2.2 role 매핑 fallback 결정 명시 — token `realm_access.roles` 비어 있을 때 default `developer` 부여 + audit `user.role_default_assigned`. (P2-1) §5.3.3 metric label 표기 정정 `action="profile|membership|status"` → `label action ∈ {profile, membership, status}`. (P2-2) §5.5.2 governance 표 row 추가 — 신규 user 의 unit 초기 배치 (HRDB ETL pre-stage 자동 또는 admin filter 후속 배치, 첫 API call 차단 안 함). |

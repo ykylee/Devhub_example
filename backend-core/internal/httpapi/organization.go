@@ -313,9 +313,17 @@ type updateUserRequest struct {
 	JoinedAt      *string `json:"joined_at"`
 }
 
+// validAppRoles enumerates the system roles seeded in rbac_policies (migration
+// 000004 + 000021 pmo_manager). PR #205 codex review (P1, sprint -d): pmo_manager
+// 가 누락된 상태로 sprint -d 의 `/rbac/subjects/:id/roles` 폐기와 합쳐지면
+// pmo_manager 가 API 로 할당 불가능한 회귀 — 본 sprint hotfix 로 추가.
+// custom role 임의 할당은 ADR-0020 결정 C (sprint -f 의 event listener sync) 가
+// Keycloak group composite 경로로 흡수. DevHub UI 의 임의 role assignment 는
+// sub-carve C 완성 후 frontend cleanup (sub-carve B) 으로 자연 제거.
 var validAppRoles = map[string]bool{
 	"developer":    true,
 	"manager":      true,
+	"pmo_manager":  true,
 	"system_admin": true,
 }
 
@@ -398,7 +406,7 @@ func (h Handler) createUser(c *gin.Context) {
 		return
 	}
 	if !validAppRoles[req.Role] {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "role must be developer, manager, or system_admin"})
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "role must be developer, manager, pmo_manager, or system_admin"})
 		return
 	}
 	if !validUserStatuses[req.Status] {
@@ -507,7 +515,7 @@ func (h Handler) updateUser(c *gin.Context) {
 	if req.Role != nil {
 		trimmed := strings.TrimSpace(*req.Role)
 		if !validAppRoles[trimmed] {
-			c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "role must be developer, manager, or system_admin"})
+			c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "role must be developer, manager, pmo_manager, or system_admin"})
 			return
 		}
 		role := domain.AppRole(trimmed)

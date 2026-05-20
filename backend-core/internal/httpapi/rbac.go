@@ -21,14 +21,11 @@ type RBACStore interface {
 	UpdateRBACRolePermissions(ctx context.Context, roleID string, perms domain.PermissionMatrix) (domain.RBACRole, error)
 	UpdateRBACRoleMetadata(ctx context.Context, roleID, name, description string) (domain.RBACRole, error)
 	DeleteRBACRole(ctx context.Context, roleID string) error
-	GetSubjectRoles(ctx context.Context, userID string) ([]string, error)
-	SetSubjectRole(ctx context.Context, userID, roleID string) error
 }
 
 const (
-	rbacPolicyVersion       = "2026-05-08.adr-0002.v1"
-	rbacAuditActionUpdated  = "rbac.policy.updated"
-	rbacAuditActionAssigned = "rbac.role.assigned"
+	rbacPolicyVersion      = "2026-05-08.adr-0002.v1"
+	rbacAuditActionUpdated = "rbac.policy.updated"
 )
 
 type rbacRoleWire struct {
@@ -55,10 +52,6 @@ type rbacCreateRoleRequest struct {
 	Name        string                  `json:"name"`
 	Description string                  `json:"description"`
 	Permissions domain.PermissionMatrix `json:"permissions"`
-}
-
-type rbacSubjectRolesRequest struct {
-	Roles []string `json:"roles"`
 }
 
 func wireFromRBACRole(role domain.RBACRole) rbacRoleWire {
@@ -413,101 +406,3 @@ func (h Handler) deleteRBACPolicy(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// getSubjectRoles serves section 12.6 — GET /api/v1/rbac/subjects/:subject_id/roles.
-func (h Handler) getSubjectRoles(c *gin.Context) {
-	if h.cfg.RBACStore == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "rbac store is not configured"})
-		return
-	}
-
-	subjectID := strings.TrimSpace(c.Param("subject_id"))
-	if subjectID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "subject_id is required"})
-		return
-	}
-
-	roles, err := h.cfg.RBACStore.GetSubjectRoles(c.Request.Context(), subjectID)
-	if errors.Is(err, store.ErrNotFound) {
-		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": fmt.Sprintf("subject %q not found", subjectID)})
-		return
-	}
-	if err != nil {
-		writeServerError(c, err, "rbac.get_subject_roles")
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"status": "ok",
-		"data":   roles,
-		"meta": gin.H{
-			"subject_id":       subjectID,
-			"single_role_mode": true,
-		},
-	})
-}
-
-// setSubjectRoles serves section 12.7 — PUT /api/v1/rbac/subjects/:subject_id/roles.
-// Single-role mode: roles array must have exactly one entry.
-func (h Handler) setSubjectRoles(c *gin.Context) {
-	if h.cfg.RBACStore == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "rbac store is not configured"})
-		return
-	}
-
-	subjectID := strings.TrimSpace(c.Param("subject_id"))
-	if subjectID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "subject_id is required"})
-		return
-	}
-
-	var req rbacSubjectRolesRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "invalid json body"})
-		return
-	}
-	if len(req.Roles) != 1 {
-		c.JSON(http.StatusUnprocessableEntity, gin.H{"status": "rejected", "error": "exactly one role required (single-role mode)", "code": "single_role_required"})
-		return
-	}
-	roleID := strings.TrimSpace(req.Roles[0])
-	if roleID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "role id cannot be empty"})
-		return
-	}
-
-	ctx := c.Request.Context()
-	before, err := h.cfg.RBACStore.GetSubjectRoles(ctx, subjectID)
-	if errors.Is(err, store.ErrNotFound) {
-		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": fmt.Sprintf("subject %q not found", subjectID)})
-		return
-	}
-	if err != nil {
-		writeServerError(c, err, "rbac.set_subject_roles.lookup")
-		return
-	}
-
-	if err := h.cfg.RBACStore.SetSubjectRole(ctx, subjectID, roleID); err != nil {
-		if errors.Is(err, store.ErrNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": fmt.Sprintf("role %q not found or subject missing", roleID)})
-			return
-		}
-		writeServerError(c, err, "rbac.set_subject_roles.update")
-		return
-	}
-
-	auditLog := h.recordAuditBestEffort(c, rbacAuditActionAssigned, "user", subjectID, map[string]any{
-		"before": before,
-		"after":  []string{roleID},
-	})
-
-	response := gin.H{
-		"status": "ok",
-		"data":   []string{roleID},
-		"meta": gin.H{
-			"subject_id":       subjectID,
-			"single_role_mode": true,
-		},
-	}
-	addAuditMeta(response, auditLog)
-	c.JSON(http.StatusOK, response)
-}

@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-05-20 main flat memory housekeeping #3 — sprint -ad finalize (PR #198 `bcca86a`) + 2026-05-20 sprint -a (PR #199 계정/사용자 관리 리팩토링 Phase 1 매트릭스) + sprint -b (PR #200 Phase 2 책임 분리 design + 명시 결정 6건) + 외부 PR #201 (codex/keycloak-only-refactor-plan post-PR-#200 + Keycloak E2E CI 정합) + PR #202 (ci-fix signout flake) 일괄 흡수. 2026-05-19 단일 세션 누적 30 PR + 2026-05-20 sprint -a/-b/외부 4 PR + 본 housekeeping sprint -c. 계정/사용자 관리 리팩토링 Phase 1/2 (PR #199/#200) 가 다음 Phase 3 (실 구현) 진입 자산. ADR-0019 §5.3 design 완결 + audit event listener Phase 2 풀스택 종결 + Kratos 잔재 residual cleanup 누적 그대로.",
-  "updated_at": "2026-05-20T15:00:00Z",
-  "head_commit": "abc8cc9",
-  "head_summary": "Merge pull request #202 from ykylee/ci-fix — ci: align e2e pipeline to keycloak and add sync guard (signout user-switch flow timeout relax + session clear 대기)",
+  "status": "2026-05-20 sprint -d 계정/사용자 관리 리팩토링 Phase 3 진입 (sub-carve A) — **ADR-0020 발급** (외부 Keycloak 가정 하의 계정/사용자 책임 경계 — Phase 2 명시 결정 6건 종합, 옵션 A 전면 폐기 채택) + **design doc §6 실행 계획 신규** (sub-carve A~F 분담 plan) + **`rbac_subject_roles` 완전 제거** (결정 D, §5.8 따름: backend rbac.go/router.go/permissions.go/postgres_rbac.go + test 정리, frontend 변경 없음, migration 불필요). sub-carve B~F (5건) 후속 sprint -e..-i 로 분리. 직전 sprint -c housekeeping #3 (PR #204 `12bb557`) 이후 진행.",
+  "updated_at": "2026-05-20T17:00:00Z",
+  "head_commit": "TBD (sprint -d PR TBD)",
+  "head_summary": "TBD — sprint claude/work_260520-d Phase 3 진입 sub-carve A (ADR-0020 + rbac_subject_roles 폐기)",
   "milestones": {
     "M0": {
       "status": "done",
@@ -260,7 +260,8 @@
     {"pr": 199, "sprint": "claude/work_260520-a", "title": "docs(planning): 계정/사용자 관리 리팩토링 Phase 1 — 현황 파악 매트릭스 (docs/planning/account_user_management_redesign.md 신규, 235 lines; §1 책임 분리 매트릭스 13 row + §2 backend 17 endpoint + §3 frontend 4 page + §4 DB schema + §4.5 Phase 2 입력 옵션 A~D; 핵심 발견 5건: role 이중 source-of-truth / status 이중 source / POST `/accounts` vs POST `/users` 중복 / dead frontend code / `PUT /rbac/subjects/:id/roles` UI 미구현)", "merge_commit": "b0bcced"},
     {"pr": 200, "sprint": "claude/work_260520-b", "title": "docs(planning): 계정/사용자 관리 리팩토링 Phase 2 — 책임 분리 design + 명시 결정 6건 확정 (옵션 A 전면 폐기 / B `/login` entry minimal page 유지 / C event listener 확장 + lazy hot path / D `rbac_subject_roles` 완전 제거 / E read-only mode 도입 안 함 / F JWKS stale-while-error expiry case 확장; §5 Phase 2 design 신규 10 sub-section + §5.10 ADR-0020 후보 outline; backend `rbac_subject_roles` 테이블 자체가 없음을 §5.9 에서 정정)", "merge_commit": "95d6909"},
     {"pr": 201, "sprint": "codex/keycloak-only-refactor-plan (post-#200)", "title": "chore: PR #200 반영 + Keycloak E2E 안정화 — 외부 codex 작성, main PR #200 conflict 해소 (bae9990) + e2e/auth Keycloak login + runtime OIDC defaults (08fab34) + 09fefb3 (Phase 2 design duplicate from #200). frontend e2e 47 passed. 코드 변경 영역: frontend e2e/audit/auth/signup spec + lib/services/auth.service.ts + global-setup/fixtures + api/runtime-config.", "merge_commit": "cff97d4"},
-    {"pr": 202, "sprint": "ci-fix", "title": "ci: align e2e pipeline to keycloak and add sync guard — 외부 본인 commit 7건: scripts/ci-e2e-sync-check.sh 신규 (a66f67d) + e2e pipeline Keycloak 정합 + runner 호환 (9b288e5) + Keycloak service-account admin role 부여 (348d149) + audience mapper for e2e tokens (0c69f9c/257ae70) + signout user-switch flow timeout relax (af743bc) + signout 후 session clear 대기 (e285326). 변경 영역: .github/workflows/ci.yml + scripts/ci-e2e-sync-check.sh + frontend e2e signout/auth fixtures.", "merge_commit": "abc8cc9"}
+    {"pr": 202, "sprint": "ci-fix", "title": "ci: align e2e pipeline to keycloak and add sync guard — 외부 본인 commit 7건: scripts/ci-e2e-sync-check.sh 신규 (a66f67d) + e2e pipeline Keycloak 정합 + runner 호환 (9b288e5) + Keycloak service-account admin role 부여 (348d149) + audience mapper for e2e tokens (0c69f9c/257ae70) + signout user-switch flow timeout relax (af743bc) + signout 후 session clear 대기 (e285326). 변경 영역: .github/workflows/ci.yml + scripts/ci-e2e-sync-check.sh + frontend e2e signout/auth fixtures.", "merge_commit": "abc8cc9"},
+    {"pr": 204, "sprint": "claude/work_260520-c", "title": "docs(memory): 2026-05-20 housekeeping #3 — PR #198~#202 5건 흡수 (sprint -c) + Self-review Stage 3 보강 (PR #201/#202 commit 귀속 정정)", "merge_commit": "12bb557"}
   ],
   "adr_0019_section_53_9_phase2_complete_milestone_2026_05_19": {
     "milestone": "§5.3 (9) audit event listener — design (sprint -e) + 실 구현 Phase 2 PR-B~PR-E (sprint -u~-x) + codex hotfix #10 (sprint -y) 6 sprint 완전 종결",
@@ -397,8 +398,35 @@
       "(carve) M4 RM-M4-XX 본격 진입 — WebSocket replay, AI Gardener gRPC, System Admin 대시보드, Gitea Hourly Pull"
     ]
   },
+  "account_user_management_redesign_phase3_progress_2026_05_20": {
+    "status": "Phase 3 진입 (sprint -d, sub-carve A 흡수). ADR-0020 발급 (accepted) + design doc §6 실행 계획 작성 + sub-carve A (rbac_subject_roles 완전 제거, 결정 D) 완료. sub-carve B~F (5건) 후속 sprint -e..-i 로 분리.",
+    "adr_0020_pr": "PR TBD (sprint -d) — docs/adr/0020-account-user-management-boundary.md 신규. Phase 2 명시 결정 6건 종합 (옵션 A 전면 폐기 / B `/login` minimal entry / C event listener 확장 + lazy hot path / D `rbac_subject_roles` 완전 제거 / E read-only mode self-reverse / F JWKS stale-while-error expiry case 확장).",
+    "sub_carve_split": {
+      "A": "✅ resolved (sprint -d) — ADR-0020 발급 + design doc §6 + rbac_subject_roles 완전 제거 (8 파일 변경)",
+      "B": "carve (sprint -e 후속) — /api/v1/accounts/* 4 endpoint 제거 + KeycloakAdminClient write 메서드 호출처 제거 + authenticateActor lazy auto-create 실 구현 + frontend account.service.ts 폐기",
+      "C": "carve (sprint -f 후속) — event listener 확장 USER:UPDATE/GROUP_MEMBERSHIP/USER:DELETE 매핑 + users write + metric 3종",
+      "D": "carve (sprint -g 후속) — JWKS stale-while-error expiry case 확장",
+      "E": "carve (sprint -h 후속) — service account 권한 축소 + governance 협약 SOP (keycloak_operations.md §8.5c 신규)",
+      "F": "carve (sprint -i 후속, 우선순위 가장 낮음) — /login page 정리"
+    },
+    "sub_carve_a_changes": {
+      "files_changed": 8,
+      "files": [
+        "docs/adr/0020-account-user-management-boundary.md (신규)",
+        "docs/planning/account_user_management_redesign.md (§6 신규 + §7.2 갱신 + §8 변경 이력)",
+        "docs/traceability/report.md (§2.2 API-30/31 strikethrough + §2.4 IMPL-rbac-01/02 + §4 ADR-0020 row + §6 변경 이력)",
+        "backend-core/internal/httpapi/rbac.go (handler 2개 + interface method 2개 + audit action const + wire struct 제거)",
+        "backend-core/internal/httpapi/router.go (2 route 제거)",
+        "backend-core/internal/httpapi/permissions.go (2 routePermissionTable entry 제거 + ADR-0020 reference 주석)",
+        "backend-core/internal/store/postgres_rbac.go (impl 2개 제거)",
+        "backend-core/internal/store/postgres_rbac_test.go (Get/Set 테스트 3건 제거, Delete-in-use 테스트는 CreateUser 의 Role:domain.AppRole(roleID) 로 재구성)",
+        "backend-core/internal/httpapi/rbac_test.go (fake mock 2개 + handler test 3건 제거)"
+      ],
+      "verification": "go build ./... + go test ./internal/httpapi/... ./internal/store/... PASS. 전체 backend test 전 패키지 PASS."
+    }
+  },
   "account_user_management_redesign_2026_05_20": {
-    "status": "Phase 1 (매트릭스) + Phase 2 (책임 분리 design + 명시 결정 6건) 완료 — Phase 3 (실 구현) 진입 대기. PR #199/#200 의 docs/planning/account_user_management_redesign.md 가 단일 source-of-truth.",
+    "status": "Phase 1 (매트릭스) + Phase 2 (책임 분리 design + 명시 결정 6건) 완료 — Phase 3 sub-carve A (sprint -d) 흡수. sub-carve B~F 는 후속 sprint -e..-i. PR #199/#200 의 docs/planning/account_user_management_redesign.md + sprint -d 의 ADR-0020 가 단일 source-of-truth.",
     "phase1_pr": "PR #199 (sprint claude/work_260520-a, merge `b0bcced`) — 현황 파악 매트릭스 235 lines, 4 경로 (`/api/v1/accounts/*` + `/api/v1/users/*` + `/api/v1/organization/*` + `/api/v1/rbac/*`) 책임 분산 + Keycloak Admin REST 매핑 + Phase 2 입력 옵션 A~D",
     "phase2_pr": "PR #200 (sprint claude/work_260520-b, merge `95d6909`) — 명시 결정 6건 확정 + §5 책임 분리 design 10 sub-section + ADR-0020 후보 outline + Phase 1 매트릭스 `rbac_subject_roles` 오류 정정",
     "explicit_decisions_6_items": [

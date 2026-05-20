@@ -1154,52 +1154,25 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 
 ### 12.5 `DELETE /api/v1/rbac/policies/:role_id` (사용자 정의 role 삭제) (API-29)
 
-사용자 정의 role 만 삭제 가능. 시스템 role (`developer`, `manager`, `system_admin`) 은 422 + `system_role_not_deletable`. 삭제 직전 해당 role 이 할당된 subject 가 있으면 store 가 cascade 또는 422 거부 — *cascade 거부* 채택 (subject 가 있으면 422 + `role_in_use`). 호출자가 `PUT /api/v1/rbac/subjects/:id/roles` 로 먼저 재할당한 뒤 삭제.
+사용자 정의 role 만 삭제 가능. 시스템 role (`developer`, `manager`, `system_admin`) 은 422 + `system_role_not_deletable`. 삭제 직전 해당 role 이 할당된 subject 가 있으면 store 가 cascade 또는 422 거부 — *cascade 거부* 채택 (subject 가 있으면 422 + `role_in_use`). 호출자가 Keycloak admin console 의 group membership 변경 (ADR-0020 결정 D — sprint -d 의 `PUT /rbac/subjects/.../roles` 폐기 이후 단일 경로) 으로 재할당한 뒤 event listener (sprint -f 후속) sync 가 DevHub `users.role` 컬럼 갱신을 기다린 후 삭제.
 
 #### 권한
 
 `security:edit` (system_admin).
 
-### 12.6 `GET /api/v1/rbac/subjects/{subject_id}/roles` (API-30)
+### 12.6 ~~`GET /api/v1/rbac/subjects/{subject_id}/roles`~~ (API-30) — **폐기**
 
-특정 사용자(Subject)에게 할당된 role 목록을 조회. 1차에서는 *single role* 만 보장 (현 backend `users.role` 단일 필드). 응답 array 의 길이는 0~1.
+**상태**: 폐기 (sprint `claude/work_260520-d`, [ADR-0020](./adr/0020-account-user-management-boundary.md) 결정 D, 2026-05-20).
 
-#### 권한
+**폐기 이유**: backend-only dead-end (frontend UI 미구현). 실제로 `users.role` 컬럼 직접 read 였고 Keycloak group composite 가 실 권한 source. ADR-0020 결정 C 의 event listener 확장 (sprint -f 후속) 이 `users.role` 자동 sync 를 담당 — DevHub UI 가 직접 role assignment 를 노출할 필요 없음.
 
-`organization:view` (모든 시스템 role 이 보유 — 사용자 정보 일부).
+호출자는 `GET /api/v1/users/{user_id}` (API-33) 의 응답에서 `role` 필드 확인.
 
-#### 응답 예시
+### 12.7 ~~`PUT /api/v1/rbac/subjects/{subject_id}/roles`~~ (API-31) — **폐기**
 
-```json
-{
-  "status": "ok",
-  "data": ["manager"],
-  "meta": {
-    "subject_id": "u123",
-    "single_role_mode": true
-  }
-}
-```
+**상태**: 폐기 (sprint `claude/work_260520-d`, [ADR-0020](./adr/0020-account-user-management-boundary.md) 결정 D, 2026-05-20).
 
-### 12.7 `PUT /api/v1/rbac/subjects/{subject_id}/roles` (API-31)
-
-특정 사용자에게 role 을 할당. 1차에서는 single role 만 허용 — 요청 body 의 `roles` 배열 길이는 정확히 1 (그 외는 422 + `single_role_required`). 다중 role + rank 합산은 §6 미해결로 후속 phase.
-
-#### 권한
-
-`organization:edit` (default policy 상 `system_admin` 단독).
-
-#### 요청 예시
-
-```json
-{
-  "roles": ["manager"]
-}
-```
-
-#### 응답
-
-200 + `{ "status": "ok", "data": ["manager"], "meta": { "subject_id": "u123" } }`. audit log 에 `rbac.role.assigned` (target_type=`user`, target_id=subject id, payload=`{before, after}`).
+**폐기 이유**: 동일 (§12.6 참조). role assignment 는 Keycloak admin console 에서 group membership 으로 처리 + DevHub `users.role` 컬럼은 event listener (sprint -f) 가 자동 sync. 본 endpoint 가 `users.role` 직접 write 였던 동작은 결정 C 와 충돌 (event listener 가 곧 덮어쓰기).
 
 ### 12.8 라우트 → (resource, action) 매핑 표 (API-38)
 
@@ -1237,8 +1210,8 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 | `POST /api/v1/rbac/policies` | security | edit |
 | `PUT /api/v1/rbac/policies` | security | edit |
 | `DELETE /api/v1/rbac/policies/:role_id` | security | edit |
-| `GET /api/v1/rbac/subjects/:subject_id/roles` | organization | view |
-| `PUT /api/v1/rbac/subjects/:subject_id/roles` | organization | edit |
+| ~~`GET /api/v1/rbac/subjects/:subject_id/roles`~~ | ~~organization~~ | ~~view~~ — **폐기 (ADR-0020, sprint -d)** |
+| ~~`PUT /api/v1/rbac/subjects/:subject_id/roles`~~ | ~~organization~~ | ~~edit~~ — **폐기 (ADR-0020, sprint -d)** |
 | `POST /api/v1/admin/service-actions` | infrastructure | create |
 | `GET /api/v1/commands/:command_id` | infrastructure | view |
 | `GET /api/v1/users` | organization | view |
@@ -1280,7 +1253,7 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 ### 12.10 Cache 와 무효화 (API-40)
 
 - store 적중 비용 회피를 위해 `requirePermission` 은 in-memory matrix cache (per process) 를 유지한다.
-- `PUT/POST/DELETE /api/v1/rbac/policies` 또는 `PUT /api/v1/rbac/subjects/.../roles` 머지 시 동일 프로세스 내 cache reload.
+- `PUT/POST/DELETE /api/v1/rbac/policies` 머지 시 동일 프로세스 내 cache reload. (`PUT /api/v1/rbac/subjects/.../roles` 는 ADR-0020 결정 D 로 sprint -d 폐기 — cache reload trigger 도 자연 제거.)
 - 다중 인스턴스 환경의 cache 일관성은 §6 미해결 — 운영 phase 진입 시 pub/sub 또는 polling 으로 보강.
 
 ## 13. Application/Repository/Project 관리 API (혼합 — scaffolded + planned)

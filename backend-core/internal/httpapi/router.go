@@ -211,8 +211,6 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.POST("/rbac/policies", handler.createRBACPolicy)
 	v1.PUT("/rbac/policies", handler.updateRBACPolicies)
 	v1.DELETE("/rbac/policies/:role_id", handler.deleteRBACPolicy)
-	v1.GET("/rbac/subjects/:subject_id/roles", handler.getSubjectRoles)
-	v1.PUT("/rbac/subjects/:subject_id/roles", handler.setSubjectRoles)
 	v1.POST("/admin/service-actions", handler.createServiceAction)
 	v1.POST("/risks/:risk_id/mitigations", handler.createRiskMitigation)
 	v1.GET("/commands/:command_id", handler.getCommand)
