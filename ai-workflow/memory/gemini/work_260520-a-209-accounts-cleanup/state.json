@@ -1,0 +1,18 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "gemini/work_260520-a-209-accounts-cleanup",
+  "status": "2026-05-20 sprint gemini/work_260520-a — frontend accounts cleanup done",
+  "last_update": "2026-05-20T10:00:00Z",
+  "completed_tasks": [
+    "Remove account.service.ts",
+    "Cleanup MemberTable.tsx (remove admin actions)",
+    "Update AdminSettingsUsersPage.tsx (add Keycloak Admin link)",
+    "Update E2E tests (remove TC-USR-CRUD-03)",
+    "Update traceability report"
+  ],
+  "next_actions": [
+    "Commit and push changes",
+    "Open PR"
+  ]
+}

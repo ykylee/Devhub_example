@@ -57,3 +57,17 @@ export const BACKEND_API_URL_SERVER =
 
 // e2e/global-setup + fixtures 는 DEVHUB_KEYCLOAK_ADMIN_URL env 를 직접 참조한다
 // (sprint -m design — docs/planning/e2e_keycloak_migration.md, 별도 carve).
+
+export const KC_ADMIN_URL = process.env.NEXT_PUBLIC_KC_ADMIN_URL || (OIDC_ISSUER_URL ? OIDC_ISSUER_URL.split("/realms/")[0] + "/admin" : "");
+
+export const getKCAdminConsoleUrl = () => {
+  if (process.env.NEXT_PUBLIC_KC_ADMIN_URL) return process.env.NEXT_PUBLIC_KC_ADMIN_URL;
+  try {
+    const url = new URL(OIDC_ISSUER_URL);
+    const realmMatch = url.pathname.match(/\/realms\/([^/]+)/);
+    const realm = realmMatch ? realmMatch[1] : 'master';
+    return `${url.origin}/admin/${realm}/console/`;
+  } catch {
+    return KC_ADMIN_URL;
+  }
+};

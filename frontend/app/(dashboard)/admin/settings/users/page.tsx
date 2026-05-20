@@ -8,8 +8,12 @@ import { defaultRoles, Role } from "@/lib/services/rbac.types";
 import { rbacService } from "@/lib/services/rbac.service";
 import { FilterBar } from "@/components/ui/FilterBar";
 import { useToast } from "@/components/ui/Toast";
+import { ExternalLink, Info } from "lucide-react";
+import { getKCAdminConsoleUrl } from "@/lib/config/endpoints";
+import { useStore } from "@/lib/store";
 
 export default function AdminSettingsUsersPage() {
+  const { role: currentUserRole } = useStore();
   const [members, setMembers] = useState<OrgMember[]>([]);
   const [unitLeaderIds, setUnitLeaderIds] = useState<string[]>([]);
   const [roles, setRoles] = useState<Role[]>(defaultRoles);
@@ -88,6 +92,30 @@ export default function AdminSettingsUsersPage() {
 
   return (
     <div className="space-y-8">
+      {currentUserRole === "System Admin" && (
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }} 
+          animate={{ opacity: 1, y: 0 }}
+          className="glass-card p-4 border-accent/20 bg-accent/5 flex items-start gap-3"
+        >
+          <div className="p-2 bg-accent/20 rounded-lg">
+            <Info className="w-4 h-4 text-accent" />
+          </div>
+          <div className="flex-1 space-y-1">
+            <p className="text-xs font-bold text-foreground dark:text-primary-foreground uppercase tracking-tight">Account Management moved to Keycloak</p>
+            <p className="text-[10px] text-muted-foreground">For security and audit consistency, administrative account operations (Issue, Password Reset, Disable) are now managed through the central IdP console.</p>
+            <a 
+              href={getKCAdminConsoleUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-[10px] font-black text-accent hover:text-accent/80 transition-colors uppercase tracking-widest pt-2 group"
+            >
+              Open Keycloak Admin Console <ExternalLink className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+            </a>
+          </div>
+        </motion.div>
+      )}
+
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         <FilterBar 
           onSearch={setQuery}
