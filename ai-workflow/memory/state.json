@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-05-20 sprint -m housekeeping #6 — 3 PR 흡수 (#240 sprint -j housekeeping #5 + #241 sprint -k sub-carve C event listener + #242 sprint -l sub-carve D JWKS stale-while-error). ADR-0020 8 sub-carve 진척: A(#205) ✅ + B-backend(#239) ✅ + C(#241) ✅ + D(#242) ✅ — 잔여 4건 (B-frontend gemini 별도 / E service account 권한 축소 / F /login page 정리). Stage 3 codex P1 hotfix 2건 — PR #241 (GetUserByIdPSubject UNIQUE lookup + ErrNotFound 만 noop) + PR #242 (readStaleCachedKeys cutoff = cachedUntil + maxStale 정공법). 회귀 test 5건 신규 (JWKS stale-while-error 시나리오 전체).",
-  "updated_at": "2026-05-20T23:55:00Z",
-  "head_commit": "cb6646d",
-  "head_summary": "PR #242 squash merge — feat(auth,config,main,docs): ADR-0020 sub-carve D — JWKS stale-while-error expiry case 확장 (sprint -l, issue #213)",
+  "status": "2026-05-20 sprint -n housekeeping #7 — 8 PR 진척 (#245 single-port nginx 머지 + #246 sub-carve B frontend cleanup 머지 + #249 e2e Kratos legacy 제거 머지 + #248 UI polish 1차 PR + #251 Bindings UI PR + #252 Topology V2 PR + #253 password 제거 및 /login 정리 PR). ADR-0020 sub-carve B-frontend ✅ + C ✅ + D ✅ 완료. P0-1, P0-2, P1-5, P2-4, P2-5 도메인 고도화 및 안정화.",
+  "updated_at": "2026-05-21T00:30:00Z",
+  "head_commit": "7e8388d",
+  "head_summary": "EOD status update - housekeeping #7. Today's progress: 3 PRs merged, 4 PRs issued. P0-P2 critical path advancement.",
   "milestones": {
     "M0": {
       "status": "done",
@@ -36,12 +36,17 @@
       "started_at": "2026-05-13",
       "ended_at": "2026-05-13",
       "notes": "PR #89 (claude/work_260513-c) — docs/governance/ (README + document-standards.md) + docs/traceability/ (README + conventions.md + sync-checklist.md + report.md) + .github/pull_request_template.md + AGENTS/GEMINI 진입점 안내. 1차 종합 매트릭스: REQ-FR 105 + REQ-NFR 26 + ARCH 17 + API 40 + RM 28 + IMPL 79 + UT 47 + TC 37 = 412 항목, 도메인 그룹 13행. PR #90 (claude/work_260513-d) — §5 gap 표 형식 통일 + §5.2/§5.3 일부 closed + 메타 헤더 표준화 9 문서."
+    },
+    "M-v1.0": {
+      "status": "in_progress",
+      "started_at": "2026-05-20",
+      "notes": "v1.0 Release 로드맵 진입. P0/P1 우선순위 과제 수행 중. 2026-05-20: P0-1, P0-2, P1-5, P2-4, P2-5 완료 또는 PR 발행."
     }
   },
   "components": {
     "frontend": {
-      "phase": "Phase 6 done + frontend wire/UI types split (PR-B2). auth flow complete (login + logout + callback + account); /admin/settings shell live with users/organization/permissions sub-routes; sidebar gates system menu on actor.role.",
-      "auth": "Keycloak OIDC code flow with PKCE end-to-end (ADR-0019, 2026-05-19). tokenStore persists access/refresh/id; apiClient auto Authorization. AuthGuard 401 -> /login + system route gate. Header Sign Out drives Keycloak end_session_endpoint via id_token_hint. self-service 비밀번호 변경 은 Keycloak Account Console (`${OIDC_ISSUER_URL}/account/`) 외부 redirect (sprint -ad, ADR-0019 정공법). (Hydra/Kratos 흐름은 PR #167 머지로 제거 — historical ADR-0001 superseded.)",
+      "phase": "Phase 7 in progress. sub-carve B cleanup (PR #246) 머지 — account.service.ts 삭제 및 admin actions 제거. UI polish 1차 (PR #248) — semantic theme, responsive sidebar, a11y 적용. Bindings UI (PR #251) 및 Topology V2 (PR #252) 고도화. /login 페이지 정리 및 password 필드 제거 (PR #253).",
+      "auth": "Keycloak OIDC code flow with PKCE end-to-end (ADR-0019, 2026-05-19). tokenStore persists access/refresh/id; apiClient auto Authorization. AuthGuard 401 -> /login + system route gate. Header Sign Out drives Keycloak end_session_endpoint via id_token_hint. **e2e Kratos legacy 제거 및 dynamic idp_subject sync 도입 (PR #249 머지).**",
       "build_check": "PASS — Next.js 16.2.4, 18 static pages.",
       "rbac": "PermissionEditor at /admin/settings/permissions wired to /api/v1/rbac/policies. defaultLandingFor + isSystemAdmin + pathRequiresSystemAdmin in lib/auth/role-routing.ts."
     },
@@ -556,6 +561,19 @@
         "handlers": "14 endpoint — API-41 SCM list, API-42 SCM update, API-43..47 Application CRUD, API-48..50 Link CRUD, API-51..54 Repository ops, API-55..56 Project CRUD, API-57 Rollup, API-58 Integration CRUD",
         "tests": "Application handler 25 + Project handler 8 + Integration handler 6 + Rollup handler 4 + integration tests 25 (CI backend-integration job)",
         "guards_active": "Application 상태 전이 머신 (allowedStatusTransitions table); planning→active 활성 repo ≥1; hold/resume/archived_reason 필수; active→closed critical_warning_count=0; application_key_immutable; SCM adapter_version_immutable; weight_policy normalize sum=1.0 ±0.001",
+        "audit_namespace": "application.{created,updated,archived} / application_repository.{linked,unlinked} / scm_provider.updated / project.{created,updated,archived} / integration.{created,updated,deleted}",
+        "rbac_resources": "applications / application_repositories / projects / scm_providers (system_admin only — ADR-0011 §4.1 1차)",
+        "ci_jobs": "5 (Workflow Lint / Backend Unit / Frontend Unit / E2E / Backend Integration 신설)"
+      },
+      "adr": "ADR-0011 accepted (옵션 C handler/service 코드 검증 1차 채택, 옵션 B row_predicate 단계적 확장 옵션 보존)"
+    },
+    "ops_verification": "사용자 환경에서 docs/setup/test-server-deployment.md 의 §6-§7 e2e 절차 1회 수행 권장. E2E baseline 자동화는 PR #58 이후 `cd frontend && npm run e2e` 한 줄. PR #76 hardening 으로 stale rotation 도 다음 실행에서 자동 복구. 본 세션에서 backend integration test 가 CI 에서 검증되므로 추가 ops 확인 권장사항: 사용자 환경 (`DEVHUB_TEST_DB_URL`) 에서 `scripts/setup-test-db.sh && cd backend-core && go test -v -run TestIntegration_ ./internal/store/...` 1회 실행."
+  }
+}
+ernal/store/...` 1회 실행."
+  }
+}
+resume/archived_reason 필수; active→closed critical_warning_count=0; application_key_immutable; SCM adapter_version_immutable; weight_policy normalize sum=1.0 ±0.001",
         "audit_namespace": "application.{created,updated,archived} / application_repository.{linked,unlinked} / scm_provider.updated / project.{created,updated,archived} / integration.{created,updated,deleted}",
         "rbac_resources": "applications / application_repositories / projects / scm_providers (system_admin only — ADR-0011 §4.1 1차)",
         "ci_jobs": "5 (Workflow Lint / Backend Unit / Frontend Unit / E2E / Backend Integration 신설)"
