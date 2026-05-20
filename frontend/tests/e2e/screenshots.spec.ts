@@ -53,6 +53,10 @@ const SETTLE_MS = 1500;
 
 test.describe("UI screenshot capture (P0-3, design review source)", () => {
   test("admin pages (system_admin) — 12 captures", async ({ page }) => {
+    // Default 30s timeout 은 loginAs(~10s) + 12 × (goto + networkidle + 1.5s settle + screenshot ~ 5-7s)
+    // ≈ 70-90s 를 초과한다. PR #237 CI run 26136054183 (shard 2/2 fail) 분석 결과
+    // "Test timeout of 30000ms exceeded" 발생 — 180s 로 확장.
+    test.setTimeout(180_000);
     await loginAs(page, SEEDED.systemAdmin);
     for (const { path, name } of ADMIN_PAGES) {
       await page.goto(path);
@@ -70,6 +74,8 @@ test.describe("UI screenshot capture (P0-3, design review source)", () => {
   });
 
   test("user pages (developer) — 6 captures", async ({ page }) => {
+    // 동일 timeout 사유 — loginAs + 6 페이지 캡처 ≈ 40-50s, 30s 초과. 120s 로 확장.
+    test.setTimeout(120_000);
     await loginAs(page, SEEDED.developer);
     for (const { path, name } of USER_PAGES) {
       await page.goto(path);
@@ -80,6 +86,7 @@ test.describe("UI screenshot capture (P0-3, design review source)", () => {
   });
 
   test("manager dashboard (manager) — 1 capture", async ({ page }) => {
+    // loginAs + 1 페이지 캡처 ~ 15-20s, default 30s 안전 마진. 명시는 안 함.
     await loginAs(page, SEEDED.manager);
     await page.goto("/manager");
     await page.waitForLoadState("networkidle").catch(() => undefined);
