@@ -116,10 +116,11 @@ func main() {
 		log.Println("keycloak provider mode: account admin adapter is not fully configured")
 	}
 
-	// Seed local admin account for development using regular APIs
-	if cfg.AuthDevFallback && idpAdmin != nil && organizationStore != nil {
-		seedLocalAdmin(ctx, idpAdmin, organizationStore)
-	}
+	// ADR-0020 sub-carve E (sprint -n) — seedLocalAdmin Keycloak `CreateIdentity`
+	// 호출 정공법 제거. dev 운영자가 Keycloak admin console 또는 realm-export.json
+	// 으로 `test` user 1회 시드. DevHub `users` row 는 infra/idp/sql/003_seed_test_admin.sql
+	// (idempotent) 가 담당. 첫 로그인 시 lazy_auto_create (sprint -i, PR #239) 가
+	// idp_subject 매핑.
 
 	hrdbMock := hrdb.NewMockClient()
 	log.Println("HR DB Mock client initialized")
@@ -475,60 +476,3 @@ func buildHomeLabHealthPolicy(providerKey, degradedRaw string) adapters.HomeLabH
 	}
 }
 
-// seedOrgStore is the narrow subset of httpapi.OrganizationStore that
-// seedLocalAdmin actually drives. Keeping it local lets the seed unit
-// tests use a 2-method fake instead of stubbing the full 14-method
-// interface.
-type seedOrgStore interface {
-	CreateUser(context.Context, domain.CreateUserInput) (domain.AppUser, error)
-	SetIdPSubject(context.Context, string, string) error
-}
-
-func seedLocalAdmin(ctx context.Context, idpAdmin httpapi.IdentityAdmin, orgStore seedOrgStore) {
-	const (
-		adminLogin    = "test"
-		adminEmail    = "test@example.com"
-		adminName     = "Test Admin"
-		adminPassword = "test"
-	)
-
-	// 1. IdP Identity — CreateIdentity 가 409 (already exists) 등으로
-	// 실패하면 기존 identity 를 찾아 재사용. 양쪽 모두 실패하면 시딩
-	// 포기 (IdP down / 스키마 미스매치 같은 운영 이슈를 묻히지 않도록
-	// Find 에러까지 같이 surface).
-	idpID, err := idpAdmin.CreateIdentity(ctx, adminEmail, adminName, adminLogin, adminPassword)
-	if err != nil {
-		log.Printf("[seedLocalAdmin] CreateIdentity for %q failed: %v; falling back to FindIdentityByUserID", adminLogin, err)
-		existing, findErr := idpAdmin.FindIdentityByUserID(ctx, adminLogin)
-		if findErr != nil {
-			log.Printf("[seedLocalAdmin] FindIdentityByUserID for %q also failed: %v; aborting seed", adminLogin, findErr)
-			return
-		}
-		idpID = existing
-	}
-	if idpID == "" {
-		log.Printf("[seedLocalAdmin] resolved empty IdP ID for %q; aborting seed", adminLogin)
-		return
-	}
-
-	// 2. DevHub User
-	_, err = orgStore.CreateUser(ctx, domain.CreateUserInput{
-		UserID:      adminLogin,
-		Email:       adminEmail,
-		DisplayName: adminName,
-		Role:        domain.AppRoleSystemAdmin,
-		Status:      domain.UserStatusActive,
-		Type:        domain.UserTypeHuman,
-	})
-	if err != nil {
-		log.Printf("[seedLocalAdmin] DB User creation failed or skipped: %v", err)
-	}
-
-	// 3. Link
-	err = orgStore.SetIdPSubject(ctx, adminLogin, idpID)
-	if err != nil {
-		log.Printf("[seedLocalAdmin] Failed to link IdP subject: %v", err)
-	} else {
-		log.Printf("[seedLocalAdmin] Successfully ensured test admin '%s' via regular APIs", adminLogin)
-	}
-}
