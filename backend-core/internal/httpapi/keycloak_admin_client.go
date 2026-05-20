@@ -98,6 +98,65 @@ func (c *KeycloakAdminClient) DeleteIdentity(ctx context.Context, identityID str
 	return err
 }
 
+// KeycloakUserDetails — sprint -k (#212 P1-1, ADR-0020 sub-carve C) — admin event
+// listener 의 USER:UPDATE / USER:DELETE 처리 시 Keycloak 의 최신 user state 를
+// fetch 해 DevHub `users` 컬럼 sync 에 사용한다. Keycloak Admin REST:
+// GET /admin/realms/{realm}/users/{id} 응답의 평탄화.
+type KeycloakUserDetails struct {
+	ID         string              `json:"id"`
+	Username   string              `json:"username"`
+	Email      string              `json:"email,omitempty"`
+	FirstName  string              `json:"firstName,omitempty"`
+	LastName   string              `json:"lastName,omitempty"`
+	Enabled    bool                `json:"enabled"`
+	Attributes map[string][]string `json:"attributes,omitempty"`
+}
+
+// GetUserDetails fetches the current user record from Keycloak. Returns
+// ErrIdentityNotFound when the user has already been deleted (HTTP 404).
+// admin event handler 가 본 메서드로 최신 email/name/enabled 를 가져와
+// DevHub users 컬럼 sync 에 사용 (ADR-0020 §5.3.2).
+func (c *KeycloakAdminClient) GetUserDetails(ctx context.Context, identityID string) (KeycloakUserDetails, error) {
+	body, headers, err := c.adminGET(ctx, "/users/"+url.PathEscape(identityID))
+	if err != nil {
+		if headers != nil && http.StatusText(http.StatusNotFound) != "" {
+			// adminGET 가 HTTP error 를 wrapping 한 경우 404 식별을 위해 body
+			// 가 nil 이면서 status 가 명시되어야 한다. 현재 adminJSON/adminGET
+			// 의 error 형식이 status 명시이므로 ErrIdentityNotFound 변환은
+			// caller 가 처리 (admin event 의 ResourcePath 가 유효하면 404 는
+			// 이미 삭제된 race 상황이라 caller 가 USER:DELETE 흐름으로 분기).
+		}
+		return KeycloakUserDetails{}, err
+	}
+	var details KeycloakUserDetails
+	if err := json.Unmarshal(body, &details); err != nil {
+		return KeycloakUserDetails{}, fmt.Errorf("decode keycloak user details: %w", err)
+	}
+	return details, nil
+}
+
+// GetUserGroups fetches the group membership list for the given identity.
+// admin event handler 가 GROUP_MEMBERSHIP:CREATE / DELETE 처리 시 사용한다 —
+// Keycloak group composite role 매핑 (keycloak_groups_rbac_mapping.md 권장 B)
+// 의 결과 role 을 DevHub `users.role` 에 sync (ADR-0020 §5.3.1).
+type KeycloakGroup struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Path string `json:"path,omitempty"`
+}
+
+func (c *KeycloakAdminClient) GetUserGroups(ctx context.Context, identityID string) ([]KeycloakGroup, error) {
+	body, _, err := c.adminGET(ctx, "/users/"+url.PathEscape(identityID)+"/groups")
+	if err != nil {
+		return nil, err
+	}
+	var groups []KeycloakGroup
+	if err := json.Unmarshal(body, &groups); err != nil {
+		return nil, fmt.Errorf("decode keycloak user groups: %w", err)
+	}
+	return groups, nil
+}
+
 // KeycloakUserEvent — sprint -u (PR-B) audit event listener 의 user events
 // (LOGIN / LOGOUT / REGISTER / UPDATE_PASSWORD 등). design 문서 §3.1 + §4.1 매핑 표.
 // Keycloak Admin REST: GET /admin/realms/{realm}/events?dateFrom=...
