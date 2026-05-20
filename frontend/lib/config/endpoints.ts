@@ -58,16 +58,19 @@ export const BACKEND_API_URL_SERVER =
 // e2e/global-setup + fixtures 는 DEVHUB_KEYCLOAK_ADMIN_URL env 를 직접 참조한다
 // (sprint -m design — docs/planning/e2e_keycloak_migration.md, 별도 carve).
 
-export const KC_ADMIN_URL = process.env.NEXT_PUBLIC_KC_ADMIN_URL || (OIDC_ISSUER_URL ? OIDC_ISSUER_URL.split("/realms/")[0] + "/admin" : "");
-
-export const getKCAdminConsoleUrl = () => {
+// Keycloak Admin Console URL.
+// caller (admin users page) 가 빈 string 받으면 <a href=""> 가 되어 same-page reload 위험.
+// Stage 3 hotfix (PR #246 review): 환경변수 미설정 시 명시 null 반환 + caller 측 fallback 분기.
+export const getKCAdminConsoleUrl = (): string | null => {
   if (process.env.NEXT_PUBLIC_KC_ADMIN_URL) return process.env.NEXT_PUBLIC_KC_ADMIN_URL;
+  if (!OIDC_ISSUER_URL) return null;
   try {
     const url = new URL(OIDC_ISSUER_URL);
     const realmMatch = url.pathname.match(/\/realms\/([^/]+)/);
     const realm = realmMatch ? realmMatch[1] : 'master';
     return `${url.origin}/admin/${realm}/console/`;
   } catch {
-    return KC_ADMIN_URL;
+    // Invalid OIDC_ISSUER_URL — no fallback (caller hides the link).
+    return null;
   }
 };

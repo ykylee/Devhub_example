@@ -62,8 +62,7 @@ export function MemberTable({ members, unitLeaderIds = [], roles, onUpdateMember
               <th className="px-6 py-2">User</th>
               <th className="px-6 py-2">Role</th>
               <th className="px-6 py-2">Department</th>
-              <th className="px-6 py-2">Status</th>
-              <th className="px-6 py-2 text-right">Action</th>
+              <th className="px-6 py-2 text-right">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -146,13 +145,10 @@ export function MemberTable({ members, unitLeaderIds = [], roles, onUpdateMember
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 text-right rounded-r-2xl">
                     <Badge variant={member.status === 'active' ? 'success' : member.status === 'pending' ? 'warning' : 'danger'} dot>
                       {member.status}
                     </Badge>
-                  </td>
-                  <td className="px-6 py-4 text-right rounded-r-2xl relative">
-                    {/* Admin actions (Issue/Reset/Revoke) moved to Keycloak Admin Console */}
                   </td>
                 </motion.tr>
               );
