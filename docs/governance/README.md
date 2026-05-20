@@ -26,7 +26,8 @@ DevHub 의 거버넌스는 다음 두 축으로 운영된다:
 docs/
 ├── governance/
 │   ├── README.md             ← 본 문서
-│   └── document-standards.md ← 문서 작성·관리 표준
+│   ├── document-standards.md ← 문서 작성·관리 표준
+│   └── worker_division.md    ← 워커 분업 (Claude / Codex / Gemini), 2026-05-20 신규
 └── traceability/
     ├── README.md             ← 추적성 체계 개요
     ├── conventions.md        ← ID 컨벤션 표준

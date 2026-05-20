@@ -1,11 +1,18 @@
 # AGENTS.md
 
 - 문서 목적: Codex 가 이 저장소에서 먼저 읽어야 할 workflow 진입 규칙과 기본 작업 원칙을 제공한다.
-- 범위: 세션 복원, workflow state docs 참조 순서, 사용자 보고 언어, 기본 실행/검증 명령
+- 범위: 세션 복원, workflow state docs 참조 순서, 사용자 보고 언어, 기본 실행/검증 명령, **v1.0 릴리즈 로드맵 + 워커 분업**
 - 대상 독자: Codex, 저장소 관리자, workflow 설계자
 - 상태: active
-- 최종 수정일: 2026-05-07
-- 관련 문서: `ai-workflow/MEMORY_GOVERNANCE.md`, `ai-workflow/memory/<agent>/<branch>/state.json`, `ai-workflow/memory/PROJECT_PROFILE.md`, `docs/governance/README.md` (거버넌스 진입점), `docs/governance/document-standards.md`, `docs/traceability/README.md`
+- 최종 수정일: 2026-05-20 (v1.0 로드맵 + 워커 분업 참조 추가)
+- 관련 문서: `ai-workflow/MEMORY_GOVERNANCE.md`, `ai-workflow/memory/<agent>/<branch>/state.json`, `ai-workflow/memory/PROJECT_PROFILE.md`, `docs/governance/README.md` (거버넌스 진입점), `docs/governance/document-standards.md`, `docs/governance/worker_division.md` (**워커 분업 — Codex 영역**), `docs/planning/release_v1_roadmap.md` (**v1.0 릴리즈 로드맵**), `docs/traceability/README.md`
+
+## v1.0 릴리즈 로드맵 + 워커 분업
+
+모든 신규 sprint 진입 전 다음 2 문서 확인:
+
+- [`docs/planning/release_v1_roadmap.md`](docs/planning/release_v1_roadmap.md) — v1.0 scope + 잔여 carve 우선순위 (P0~P3) + 마일스톤 + sprint 별 워커 분담
+- [`docs/governance/worker_division.md`](docs/governance/worker_division.md) — Codex 영역 (infra + CI + security) + 인계 SOP + 충돌 처리
 
 ## 목적
 
