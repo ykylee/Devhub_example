@@ -1,4 +1,4 @@
-import { test, expect, loginAs, SEEDED } from "./fixtures";
+import { test, expect, loginAs, SEEDED, appPath } from "./fixtures";
 
 /**
  * rbac-routes.spec.ts
@@ -18,7 +18,7 @@ test.describe("RBAC route matrix", () => {
     ];
 
     for (const route of subRoutes) {
-      await page.goto(route);
+      await page.goto(appPath(route));
       // pathRequiresSystemAdmin(<any admin path>) === true,
       // isSystemAdmin('developer') === false → router.replace('/developer').
       await expect(page).toHaveURL(/\/developer(\/|$)/, { timeout: 10_000 });
@@ -28,7 +28,7 @@ test.describe("RBAC route matrix", () => {
   test("TC-RBAC-MGR-01 — manager is bounced off /admin", async ({ page }) => {
     await loginAs(page, SEEDED.manager);
 
-    await page.goto("/admin");
+    await page.goto(appPath("/admin"));
     // pathRequiresSystemAdmin('/admin') === true,
     // isSystemAdmin('manager') === false → /manager.
     await expect(page).toHaveURL(/\/manager(\/|$)/, { timeout: 10_000 });

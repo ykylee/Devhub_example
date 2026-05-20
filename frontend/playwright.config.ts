@@ -28,6 +28,7 @@ export default defineConfig({
   reporter: process.env.CI ? "github" : "html",
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000",
+    ignoreHTTPSErrors: true,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     // video: "off" — Playwright's video capture requires the bundled ffmpeg
