@@ -423,3 +423,79 @@ RETURNING
 	}
 	return created, nil
 }
+
+func (s *PostgresStore) GetIntegrationBindingByID(ctx context.Context, bindingID string) (domain.IntegrationBinding, error) {
+	const query = `
+SELECT
+	binding_id::text,
+	scope_type,
+	scope_id,
+	provider_id::text,
+	external_key,
+	policy,
+	enabled,
+	created_at,
+	updated_at
+FROM integration_bindings
+WHERE binding_id = $1::uuid`
+	b, err := scanIntegrationBinding(s.pool.QueryRow(ctx, query, bindingID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.IntegrationBinding{}, ErrNotFound
+	}
+	if err != nil {
+		return domain.IntegrationBinding{}, fmt.Errorf("get integration binding: %w", err)
+	}
+	return b, nil
+}
+
+func (s *PostgresStore) UpdateIntegrationBinding(ctx context.Context, b domain.IntegrationBinding) (domain.IntegrationBinding, error) {
+	const query = `
+UPDATE integration_bindings
+SET provider_id = $2::uuid,
+	external_key = $3,
+	policy = $4,
+	enabled = $5,
+	updated_at = NOW()
+WHERE binding_id = $1::uuid
+RETURNING
+	binding_id::text,
+	scope_type,
+	scope_id,
+	provider_id::text,
+	external_key,
+	policy,
+	enabled,
+	created_at,
+	updated_at`
+	updated, err := scanIntegrationBinding(s.pool.QueryRow(
+		ctx,
+		query,
+		b.ID,
+		b.ProviderID,
+		b.ExternalKey,
+		string(b.Policy),
+		b.Enabled,
+	))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.IntegrationBinding{}, ErrNotFound
+	}
+	if isUniqueViolation(err) || isForeignKeyViolation(err) || isCheckViolation(err, "") {
+		return domain.IntegrationBinding{}, ErrConflict
+	}
+	if err != nil {
+		return domain.IntegrationBinding{}, fmt.Errorf("update integration binding: %w", err)
+	}
+	return updated, nil
+}
+
+func (s *PostgresStore) DeleteIntegrationBinding(ctx context.Context, bindingID string) error {
+	const query = `DELETE FROM integration_bindings WHERE binding_id = $1::uuid RETURNING binding_id`
+	var deletedID string
+	if err := s.pool.QueryRow(ctx, query, bindingID).Scan(&deletedID); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrNotFound
+		}
+		return fmt.Errorf("delete integration binding %s: %w", bindingID, err)
+	}
+	return nil
+}

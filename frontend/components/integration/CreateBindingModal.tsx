@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect, useMemo } from "react";
 import { Link2, X } from "lucide-react";
 import { motion } from "framer-motion";
 import { integrationService } from "@/lib/services/integration.service";
+import { projectService } from "@/lib/services/project.service";
 import { ApiError } from "@/lib/services/api-client";
+import { ComboBox } from "@/components/ui/ComboBox";
 import type {
   IntegrationBinding,
   IntegrationPolicy,
@@ -28,8 +30,41 @@ export function CreateBindingModal({ providers, onClose, onCreated }: CreateBind
   const [externalKey, setExternalKey] = useState("");
   const [policy, setPolicy] = useState<IntegrationPolicy>("execution_system");
 
+  const [apps, setApps] = useState<{ id: string; key: string; name: string }[]>([]);
+  const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
+  const [isLoadingResources, setIsLoadingResources] = useState(false);
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      setIsLoadingResources(true);
+      try {
+        const [appsResp] = await Promise.all([
+          projectService.getApplications({ include_archived: false }),
+        ]);
+        setApps(appsResp.map(a => ({ id: a.id, key: a.key, name: a.name })));
+        
+        // Projects are harder to fetch all at once without pagination or bulk API
+        // For now, if scope is project, we might need a project search API.
+        // projectService has listAllProjects but needs repository IDs.
+        // Assuming we have a way to list projects or just use apps for now if it's most common.
+      } catch (err) {
+        console.error("Failed to load resources for ComboBox:", err);
+      } finally {
+        setIsLoadingResources(false);
+      }
+    })();
+  }, []);
+
+  const scopeOptions = useMemo(() => {
+    if (scopeType === "application") {
+      return apps.map(a => ({ label: `${a.key} - ${a.name}`, value: a.key, description: a.name }));
+    }
+    // Dummy projects for now or implement projectService.getProjects if available
+    return [];
+  }, [scopeType, apps]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -124,7 +159,10 @@ export function CreateBindingModal({ providers, onClose, onCreated }: CreateBind
               <select
                 id="scope_type"
                 value={scopeType}
-                onChange={(e) => setScopeType(e.target.value as IntegrationScopeType)}
+                onChange={(e) => {
+                  setScopeType(e.target.value as IntegrationScopeType);
+                  setScopeID("");
+                }}
                 className="w-full px-4 py-3 rounded-xl bg-muted/30 border border-border text-foreground dark:text-primary-foreground text-sm focus:outline-none focus:border-orange-400"
               >
                 {scopeTypeOptions.map((s) => (
@@ -136,15 +174,25 @@ export function CreateBindingModal({ providers, onClose, onCreated }: CreateBind
               <label htmlFor="scope_id" className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2">
                 Scope ID *
               </label>
-              <input
-                id="scope_id"
-                type="text"
-                value={scopeID}
-                onChange={(e) => setScopeID(e.target.value)}
-                placeholder="APP-001 또는 PROJ-001"
-                className="w-full px-4 py-3 rounded-xl bg-muted/30 border border-border text-foreground dark:text-primary-foreground font-mono text-sm focus:outline-none focus:border-orange-400"
-                required
-              />
+              {scopeType === "application" ? (
+                <ComboBox
+                  options={scopeOptions}
+                  value={scopeID}
+                  onChange={setScopeID}
+                  placeholder="Search application..."
+                  emptyText="No applications found"
+                />
+              ) : (
+                <input
+                  id="scope_id"
+                  type="text"
+                  value={scopeID}
+                  onChange={(e) => setScopeID(e.target.value)}
+                  placeholder="PROJ-001"
+                  className="w-full px-4 py-3 rounded-xl bg-muted/30 border border-border text-foreground dark:text-primary-foreground font-mono text-sm focus:outline-none focus:border-orange-400"
+                  required
+                />
+              )}
             </div>
           </div>
 

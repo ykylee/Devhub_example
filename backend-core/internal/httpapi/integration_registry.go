@@ -602,3 +602,86 @@ func (h *Handler) createIntegrationBinding(c *gin.Context) {
 	h.recordAuditBestEffort(c, "integration.binding.created", "integration_binding", created.ID, nil)
 	c.JSON(http.StatusCreated, gin.H{"status": "created", "data": integrationBindingResponse(created)})
 }
+
+type updateIntegrationBindingRequest struct {
+	ProviderID  *string `json:"provider_id"`
+	ExternalKey *string `json:"external_key"`
+	Policy      *string `json:"policy"`
+	Enabled     *bool   `json:"enabled"`
+}
+
+func (h *Handler) updateIntegrationBinding(c *gin.Context) {
+	storeI, ok := h.applicationStoreOrUnavailable(c)
+	if !ok {
+		return
+	}
+	bindingID := c.Param("binding_id")
+	var req updateIntegrationBindingRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": err.Error()})
+		return
+	}
+
+	current, err := storeI.GetIntegrationBindingByID(c.Request.Context(), bindingID)
+	if errors.Is(err, store.ErrNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "binding not found"})
+		return
+	}
+	if err != nil {
+		writeServerError(c, err, "integration.bindings.update.lookup")
+		return
+	}
+
+	updated := current
+	if req.ProviderID != nil {
+		updated.ProviderID = *req.ProviderID
+	}
+	if req.ExternalKey != nil {
+		updated.ExternalKey = *req.ExternalKey
+	}
+	if req.Policy != nil {
+		if *req.Policy != string(domain.IntegrationPolicySummaryOnly) && *req.Policy != string(domain.IntegrationPolicyExecutionSystem) {
+			c.JSON(http.StatusUnprocessableEntity, gin.H{"status": "rejected", "error": "unsupported policy"})
+			return
+		}
+		updated.Policy = domain.IntegrationPolicy(*req.Policy)
+	}
+	if req.Enabled != nil {
+		updated.Enabled = *req.Enabled
+	}
+
+	result, err := storeI.UpdateIntegrationBinding(c.Request.Context(), updated)
+	if errors.Is(err, store.ErrConflict) {
+		c.JSON(http.StatusConflict, gin.H{"status": "conflict", "error": "binding already exists or provider not found"})
+		return
+	}
+	if errors.Is(err, store.ErrNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "binding or provider not found"})
+		return
+	}
+	if err != nil {
+		writeServerError(c, err, "integration.bindings.update")
+		return
+	}
+
+	h.recordAuditBestEffort(c, "integration.binding.updated", "integration_binding", result.ID, nil)
+	c.JSON(http.StatusOK, gin.H{"status": "ok", "data": integrationBindingResponse(result)})
+}
+
+func (h *Handler) deleteIntegrationBinding(c *gin.Context) {
+	storeI, ok := h.applicationStoreOrUnavailable(c)
+	if !ok {
+		return
+	}
+	bindingID := c.Param("binding_id")
+	if err := storeI.DeleteIntegrationBinding(c.Request.Context(), bindingID); err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "binding not found"})
+			return
+		}
+		writeServerError(c, err, "integration.bindings.delete")
+		return
+	}
+	h.recordAuditBestEffort(c, "integration.binding.deleted", "integration_binding", bindingID, nil)
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+}

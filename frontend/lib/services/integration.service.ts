@@ -79,6 +79,22 @@ class IntegrationService {
     const resp = await apiClient<{ data: IntegrationBinding }>("POST", "/api/v1/integration/bindings", input);
     return resp.data;
   }
+
+  async updateBinding(bindingID: string, input: Partial<CreateIntegrationBindingInput> & { enabled?: boolean }): Promise<IntegrationBinding> {
+    const resp = await apiClient<{ data: IntegrationBinding }>(
+      "PATCH",
+      `/api/v1/integration/bindings/${bindingID}`,
+      input,
+    );
+    return resp.data;
+  }
+
+  async deleteBinding(bindingID: string): Promise<void> {
+    await apiClient<{ status: string }>(
+      "DELETE",
+      `/api/v1/integration/bindings/${bindingID}`,
+    );
+  }
 }
 
 export const integrationService = new IntegrationService();

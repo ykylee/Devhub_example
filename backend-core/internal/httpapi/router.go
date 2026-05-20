@@ -103,7 +103,10 @@ type ApplicationStore interface {
 	DeleteIntegrationProvider(context.Context, string) error
 	CreateIntegrationSyncJob(context.Context, string, string) (string, error)
 	ListIntegrationBindings(context.Context, store.IntegrationBindingListOptions) ([]domain.IntegrationBinding, int, error)
+	GetIntegrationBindingByID(context.Context, string) (domain.IntegrationBinding, error)
 	CreateIntegrationBinding(context.Context, domain.IntegrationBinding) (domain.IntegrationBinding, error)
+	UpdateIntegrationBinding(context.Context, domain.IntegrationBinding) (domain.IntegrationBinding, error)
+	DeleteIntegrationBinding(context.Context, string) error
 }
 
 // IdentityAdmin — ADR-0020 sub-carve E (sprint -n) — Keycloak admin = 별도
@@ -279,6 +282,8 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.POST("/integration/providers/:provider_id/webhook", handler.ingestIntegrationProviderWebhook)
 	v1.GET("/integration/bindings", handler.listIntegrationBindings)
 	v1.POST("/integration/bindings", handler.createIntegrationBinding)
+	v1.PATCH("/integration/bindings/:binding_id", handler.updateIntegrationBinding)
+	v1.DELETE("/integration/bindings/:binding_id", handler.deleteIntegrationBinding)
 
 	// DREQ 도메인 API-59..65 (sprint claude/work_260515-i, ADR-0012).
 	// 외부 수신 POST 는 별도 intake group 에서 requireIntakeToken 미들웨어를 사용.
