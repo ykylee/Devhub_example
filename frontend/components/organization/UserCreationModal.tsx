@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { X, UserPlus, Mail, Shield, Building2, Loader2, Search, Bot, User, Key } from "lucide-react";
+import { X, UserPlus, Mail, Shield, Building2, Loader2, Search, Bot, User, Key, Info } from "lucide-react";
 import { identityService, OrgMember } from "@/lib/services/identity.service";
 import { Role } from "@/lib/services/rbac.types";
 import { cn } from "@/lib/utils";
@@ -21,7 +21,6 @@ export function UserCreationModal({ onClose, onCreated, roles }: UserCreationMod
     role: "Developer",
     status: "active",
     type: "human" as "human" | "system",
-    password: "",
   });
   const [submitting, setSubmitting] = useState(false);
   const [lookingUp, setLookingUp] = useState(false);
@@ -66,7 +65,6 @@ export function UserCreationModal({ onClose, onCreated, roles }: UserCreationMod
         role: formData.role as OrgMember["role"],
         status: formData.status as OrgMember["status"],
         type: formData.type,
-        password: formData.password || undefined,
       });
       onCreated(created);
       onClose();
@@ -220,18 +218,21 @@ export function UserCreationModal({ onClose, onCreated, roles }: UserCreationMod
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Account Password (Optional)</label>
-              <div className="relative group">
-                <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-foreground/20 group-focus-within:text-primary transition-colors" />
-                <input
-                  type="password"
-                  value={formData.password}
-                  onChange={e => setFormData({ ...formData, password: e.target.value })}
-                  placeholder="Set to enable immediate login"
-                  className="w-full bg-muted/30 border border-border rounded-2xl pl-12 pr-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
-                />
+              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Authentication</label>
+              <div className="bg-muted/20 border border-border/40 rounded-2xl px-4 py-3 h-[46px] flex items-center gap-2">
+                <Key className="w-4 h-4 text-muted-foreground/40" />
+                <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-tight">Keycloak Admin Managed</span>
               </div>
             </div>
+          </div>
+
+          <div className="p-4 bg-muted/10 border border-border/40 rounded-2xl space-y-2">
+            <p className="text-[10px] font-bold text-foreground/70 uppercase tracking-widest flex items-center gap-2">
+              <Info className="w-3 h-3 text-primary" /> User Provisioning Notice
+            </p>
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
+              DevHub does not manage passwords directly. After creation, use the **Keycloak Admin Console** to set temporary passwords or send enrollment emails.
+            </p>
           </div>
 
           {error && (
