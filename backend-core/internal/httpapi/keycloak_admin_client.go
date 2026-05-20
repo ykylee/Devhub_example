@@ -31,30 +31,6 @@ type KeycloakAdminClient struct {
 	HTTPClient   *http.Client
 }
 
-func (c *KeycloakAdminClient) CreateIdentity(ctx context.Context, email, name, userID, password string) (string, error) {
-	payload := map[string]any{
-		"username":    userID,
-		"email":       email,
-		"enabled":     true,
-		"firstName":   name,
-		"attributes":  map[string][]string{"devhub_user_id": {userID}},
-		"credentials": []map[string]any{{"type": "password", "value": password, "temporary": false}},
-	}
-	respBody, headers, err := c.adminJSON(ctx, http.MethodPost, "/users", payload)
-	if err != nil {
-		return "", err
-	}
-	_ = respBody
-	if id := keycloakIDFromLocation(headers.Get("Location")); id != "" {
-		return id, nil
-	}
-	id, err := c.FindIdentityByUserID(ctx, userID)
-	if err != nil {
-		return "", err
-	}
-	return id, nil
-}
-
 func (c *KeycloakAdminClient) FindIdentityByUserID(ctx context.Context, userID string) (string, error) {
 	q := url.Values{}
 	q.Set("username", userID)
@@ -77,26 +53,11 @@ func (c *KeycloakAdminClient) FindIdentityByUserID(ctx context.Context, userID s
 	return "", ErrIdentityNotFound
 }
 
-func (c *KeycloakAdminClient) UpdateIdentityPassword(ctx context.Context, identityID, password string) error {
-	payload := map[string]any{
-		"type":      "password",
-		"value":     password,
-		"temporary": true,
-	}
-	_, _, err := c.adminJSON(ctx, http.MethodPut, "/users/"+url.PathEscape(identityID)+"/reset-password", payload)
-	return err
-}
-
-func (c *KeycloakAdminClient) SetIdentityState(ctx context.Context, identityID string, active bool) error {
-	payload := map[string]any{"enabled": active}
-	_, _, err := c.adminJSON(ctx, http.MethodPut, "/users/"+url.PathEscape(identityID), payload)
-	return err
-}
-
-func (c *KeycloakAdminClient) DeleteIdentity(ctx context.Context, identityID string) error {
-	_, _, err := c.adminJSON(ctx, http.MethodDelete, "/users/"+url.PathEscape(identityID), nil)
-	return err
-}
+// ADR-0020 sub-carve E (sprint -n) — Keycloak admin = 별도 운영팀 (PoLP).
+// write methods (CreateIdentity / UpdateIdentityPassword / SetIdentityState /
+// DeleteIdentity) 는 정공법 제거. service account 는 view-users + view-events
+// 만 요구. password reset / state change / delete 는 Keycloak admin console 가
+// 책임.
 
 // KeycloakUserDetails — sprint -k (#212 P1-1, ADR-0020 sub-carve C) — admin event
 // listener 의 USER:UPDATE / USER:DELETE 처리 시 Keycloak 의 최신 user state 를
@@ -346,17 +307,3 @@ func (c *KeycloakAdminClient) client() *http.Client {
 	return &http.Client{Timeout: 5 * time.Second}
 }
 
-func keycloakIDFromLocation(location string) string {
-	location = strings.TrimSpace(location)
-	if location == "" {
-		return ""
-	}
-	if parsed, err := url.Parse(location); err == nil {
-		location = parsed.Path
-	}
-	parts := strings.Split(strings.TrimRight(location, "/"), "/")
-	if len(parts) == 0 {
-		return ""
-	}
-	return strings.TrimSpace(parts[len(parts)-1])
-}
