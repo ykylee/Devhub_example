@@ -37,6 +37,12 @@ type Config struct {
 	// that call IdP token/admin endpoints.
 	OIDCClientID     string
 	OIDCClientSecret string
+	// OIDCJWKSMaxStaleDuration — ADR-0020 sub-carve D (sprint -l, issue #213).
+	// JWKS cache TTL 만료 후 Keycloak unreachable 시 stale-while-error fallback
+	// 으로 사용 가능한 최대 시간 (e.g. "24h", "12h"). 빈 값 또는 invalid 면
+	// keycloak_verifier 내부 default (24h) 적용. Keycloak key rotation 주기
+	// (권장 90일) 보다 짧게 운영해야 revoked key 보호 회복 한도 유지.
+	OIDCJWKSMaxStaleDuration string
 	// Keycloak admin access settings (used by Keycloak adapter paths).
 	KeycloakAdminURL          string
 	KeycloakAdminRealm        string
@@ -116,6 +122,7 @@ func Load() Config {
 		ServiceActionAllowedActions:    strings.TrimSpace(os.Getenv("SERVICE_ACTION_ALLOWED_ACTIONS")),
 		OIDCIssuerURL:                  strings.TrimSpace(os.Getenv("DEVHUB_OIDC_ISSUER_URL")),
 		OIDCJWKSURL:                    strings.TrimSpace(os.Getenv("DEVHUB_OIDC_JWKS_URL")),
+		OIDCJWKSMaxStaleDuration:       strings.TrimSpace(os.Getenv("DEVHUB_OIDC_JWKS_MAX_STALE_DURATION")),
 		OIDCClientID:                   strings.TrimSpace(os.Getenv("DEVHUB_OIDC_CLIENT_ID")),
 		OIDCClientSecret:               strings.TrimSpace(os.Getenv("DEVHUB_OIDC_CLIENT_SECRET")),
 		KeycloakAdminURL:               strings.TrimSpace(os.Getenv("DEVHUB_KEYCLOAK_ADMIN_URL")),

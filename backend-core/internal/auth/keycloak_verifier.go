@@ -29,12 +29,25 @@ type KeycloakJWKSVerifier struct {
 	// Optional cache TTL. Zero means defaultTTL.
 	CacheTTL time.Duration
 
+	// MaxStaleDuration — ADR-0020 sub-carve D (sprint -l, issue #213).
+	// cache TTL 만료 후 stale-while-error fallback 으로 사용 가능한 최대
+	// 시간. Keycloak unreachable 시 DevHub uptime 보장 (key rotation 주기
+	// 90일 이내로 운영 권장). 0 이면 defaultJWKSMaxStale (24h).
+	//
+	// 보안 trade-off: revoked key 보호 깨짐 위험. rotation 직후 운영 SOP —
+	// backend 강제 재시작 또는 cache flush endpoint 도입 carve (별도 sprint).
+	MaxStaleDuration time.Duration
+
 	mu          sync.RWMutex
 	cachedKeys  map[string]*rsa.PublicKey
-	cachedUntil time.Time
+	cachedAt    time.Time // ADR-0020 sub-carve D — stale-while-error 의 fresh 판정 기준
+	cachedUntil time.Time // fresh 보장 만료 (= cachedAt + CacheTTL)
 }
 
-const defaultJWKSTTL = 5 * time.Minute
+const (
+	defaultJWKSTTL      = 5 * time.Minute
+	defaultJWKSMaxStale = 24 * time.Hour
+)
 
 // errKidMismatch — token 의 kid 가 cached JWKS 에 없을 때 reported (stale-while-error
 // retry trigger). sprint -j codex review #9 (#3) 의 backend 확장 carve — keycloak_verifier
@@ -168,6 +181,33 @@ func (v *KeycloakJWKSVerifier) fetchJWKS(ctx context.Context) (map[string]*rsa.P
 		return keys, nil
 	}
 
+	// ADR-0020 sub-carve D (sprint -l, issue #213): stale-while-error fallback.
+	// cache TTL 만료 → network fetch 시도 → 실패 시 stale cache 로 검증 시도
+	// (Keycloak unreachable 시 DevHub uptime 보장). stale 만료 (MaxStaleDuration
+	// 초과) 면 stale 사용 안 함 — security 보호 (revoked key 회복 한도).
+	keys, fetchErr := v.fetchAndCacheJWKS(ctx)
+	if fetchErr == nil {
+		return keys, nil
+	}
+	// network fetch 실패 — stale cache 시도
+	staleKeys, staleAt := v.readStaleCachedKeys()
+	if len(staleKeys) > 0 {
+		staleAge := time.Since(staleAt).Seconds()
+		observeJWKSStaleWhileError("ok")
+		observeJWKSStaleAge(staleAge)
+		// log WARN — 운영 dashboard 가 stale 사용 식별. log noise 최소화 위해
+		// stale_age + token.sub 로 structured.
+		fmt.Printf("[keycloak_verifier] stale-while-error JWKS fallback: keycloak unreachable (%v), using stale cache (age=%.0fs)\n", fetchErr, staleAge)
+		return staleKeys, nil
+	}
+	observeJWKSStaleWhileError("fail")
+	return nil, fetchErr
+}
+
+// fetchAndCacheJWKS — network fetch + parse + cache write. fetchJWKS 의 1차
+// 시도 path. 실패 (Keycloak unreachable / 5xx / decode 실패) 시 caller 가
+// stale-while-error fallback 분기.
+func (v *KeycloakJWKSVerifier) fetchAndCacheJWKS(ctx context.Context) (map[string]*rsa.PublicKey, error) {
 	jwksURL, err := v.resolveJWKSURL(ctx)
 	if err != nil {
 		return nil, err
@@ -230,10 +270,44 @@ func (v *KeycloakJWKSVerifier) writeCachedKeys(keys map[string]*rsa.PublicKey) {
 	for k, pk := range keys {
 		copyMap[k] = pk
 	}
+	now := time.Now()
 	v.mu.Lock()
 	v.cachedKeys = copyMap
-	v.cachedUntil = time.Now().Add(ttl)
+	v.cachedAt = now
+	v.cachedUntil = now.Add(ttl)
 	v.mu.Unlock()
+}
+
+// readStaleCachedKeys — ADR-0020 sub-carve D (sprint -l). cachedUntil 이 만료
+// 됐어도 **cachedUntil + MaxStaleDuration** 안이면 stale key 반환. caller
+// (fetchJWKS) 가 network fetch 실패 시 fallback 으로 사용. 반환된 keys +
+// lastWriteAt 으로 caller 가 stale_age_seconds metric 보고.
+//
+// PR #242 codex P1 hotfix: MaxStaleDuration 의 의미는 "TTL 만료 후 grace
+// period" 임. 이전 (PR #242 머지 직전) 의 잘못된 cutoff 는 cachedAt + maxStale
+// — CacheTTL 만큼 stale window 축소 (예: TTL=12h + maxStale=24h → 본인 코드
+// 24h, 정공법 12h+24h=36h). codex inline P1 review (discussion 295) 가 정확
+// 식별. 정공법 = cachedUntil + maxStale.
+func (v *KeycloakJWKSVerifier) readStaleCachedKeys() (map[string]*rsa.PublicKey, time.Time) {
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+	if len(v.cachedKeys) == 0 {
+		return nil, time.Time{}
+	}
+	maxStale := v.MaxStaleDuration
+	if maxStale <= 0 {
+		maxStale = defaultJWKSMaxStale
+	}
+	if time.Now().After(v.cachedUntil.Add(maxStale)) {
+		// 너무 오래된 stale → 사용 금지. 보안 보호 (revoked key 보호 회복 한도).
+		// 기준 = TTL 만료 후 maxStale 추가 (cachedUntil + maxStale).
+		return nil, time.Time{}
+	}
+	out := make(map[string]*rsa.PublicKey, len(v.cachedKeys))
+	for k, pk := range v.cachedKeys {
+		out[k] = pk
+	}
+	return out, v.cachedAt
 }
 
 func (v *KeycloakJWKSVerifier) resolveJWKSURL(ctx context.Context) (string, error) {

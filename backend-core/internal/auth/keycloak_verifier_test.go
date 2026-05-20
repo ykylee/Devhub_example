@@ -409,3 +409,324 @@ func mustSignToken(t *testing.T, key *rsa.PrivateKey, kid string, claims jwt.Map
 	}
 	return signed
 }
+
+// TestKeycloakJWKSVerifier_StaleWhileError_KeycloakUnreachable — ADR-0020
+// sub-carve D (sprint -l, issue #213). cache TTL 만료 후 Keycloak unreachable
+// 시 stale cache 로 검증 통과 + log mark.
+func TestKeycloakJWKSVerifier_StaleWhileError_KeycloakUnreachable(t *testing.T) {
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generate rsa key: %v", err)
+	}
+	kid := "kid-stale-1"
+	issuer := "https://issuer.example.com/realms/devhub"
+	aud := "devhub-web"
+
+	var jwksCallCount atomic.Int32
+	jwksHandler := func(w http.ResponseWriter, _ *http.Request) {
+		jwksCallCount.Add(1)
+		// 첫 호출 (cache 채우기) 만 응답 — 두 번째부터는 500 (Keycloak unreachable 시뮬레이션)
+		if jwksCallCount.Load() == 1 {
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"keys": []map[string]any{{
+					"kty": "RSA",
+					"kid": kid,
+					"n":   base64.RawURLEncoding.EncodeToString(key.PublicKey.N.Bytes()),
+					"e":   base64.RawURLEncoding.EncodeToString([]byte{0x01, 0x00, 0x01}),
+				}},
+			})
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte("simulated keycloak outage"))
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/jwks", jwksHandler)
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	token := mustSignToken(t, key, kid, jwt.MapClaims{
+		"iss":                issuer,
+		"aud":                aud,
+		"sub":                "user-stale",
+		"preferred_username": "alice",
+		"exp":                time.Now().Add(5 * time.Minute).Unix(),
+	})
+
+	v := &KeycloakJWKSVerifier{
+		IssuerURL:        issuer,
+		JWKSURL:          srv.URL + "/jwks",
+		ClientID:         aud,
+		CacheTTL:         10 * time.Millisecond, // 빠르게 만료
+		MaxStaleDuration: 1 * time.Hour,         // stale 1h 안전
+	}
+
+	// 1차 호출 — cache 채움
+	if _, err := v.VerifyBearerToken(context.Background(), token); err != nil {
+		t.Fatalf("1차 호출 err: %v", err)
+	}
+
+	// cache TTL 만료 대기
+	time.Sleep(20 * time.Millisecond)
+
+	// 2차 호출 — JWKS 500 응답 (Keycloak unreachable) → stale fallback 통과해야
+	actor, err := v.VerifyBearerToken(context.Background(), token)
+	if err != nil {
+		t.Fatalf("stale-while-error fallback 실패: %v", err)
+	}
+	if actor.Login != "alice" {
+		t.Errorf("actor.Login = %q; want alice", actor.Login)
+	}
+	// JWKS endpoint 가 2회 호출됐어야 (1차 fetch + 2차 fetch attempt 후 fail → stale)
+	if jwksCallCount.Load() != 2 {
+		t.Errorf("JWKS endpoint call count = %d; want 2 (1차 fetch + 2차 fetch attempt → fail → stale fallback)", jwksCallCount.Load())
+	}
+}
+
+// TestKeycloakJWKSVerifier_StaleExpired_Fails401 — MaxStaleDuration 초과 후
+// fetch 실패 시 stale 사용 안 함, 401.
+func TestKeycloakJWKSVerifier_StaleExpired_Fails401(t *testing.T) {
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generate rsa key: %v", err)
+	}
+	kid := "kid-expired-1"
+	issuer := "https://issuer.example.com/realms/devhub"
+	aud := "devhub-web"
+
+	var jwksCallCount atomic.Int32
+	jwksHandler := func(w http.ResponseWriter, _ *http.Request) {
+		jwksCallCount.Add(1)
+		if jwksCallCount.Load() == 1 {
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"keys": []map[string]any{{
+					"kty": "RSA",
+					"kid": kid,
+					"n":   base64.RawURLEncoding.EncodeToString(key.PublicKey.N.Bytes()),
+					"e":   base64.RawURLEncoding.EncodeToString([]byte{0x01, 0x00, 0x01}),
+				}},
+			})
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/jwks", jwksHandler)
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	token := mustSignToken(t, key, kid, jwt.MapClaims{
+		"iss":                issuer,
+		"aud":                aud,
+		"sub":                "user-expired",
+		"preferred_username": "ghost",
+		"exp":                time.Now().Add(5 * time.Minute).Unix(),
+	})
+
+	v := &KeycloakJWKSVerifier{
+		IssuerURL:        issuer,
+		JWKSURL:          srv.URL + "/jwks",
+		ClientID:         aud,
+		CacheTTL:         10 * time.Millisecond,
+		MaxStaleDuration: 50 * time.Millisecond, // 매우 짧음 — stale 빠르게 만료
+	}
+
+	// 1차 호출 — cache 채움
+	if _, err := v.VerifyBearerToken(context.Background(), token); err != nil {
+		t.Fatalf("1차 호출 err: %v", err)
+	}
+
+	// CacheTTL 10ms + MaxStaleDuration 50ms = 60ms — 그 이상 대기
+	time.Sleep(80 * time.Millisecond)
+
+	// 2차 호출 — Keycloak unreachable + stale 도 expired → 401
+	_, err = v.VerifyBearerToken(context.Background(), token)
+	if err == nil {
+		t.Fatal("stale expired 후 fetch fail 은 401 이어야 (revoked key 보호)")
+	}
+}
+
+// TestKeycloakJWKSVerifier_FreshCache_NoStaleFallback — fresh cache hit 시
+// stale path 진입 안 함 (network 호출 0회).
+func TestKeycloakJWKSVerifier_FreshCache_NoStaleFallback(t *testing.T) {
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generate rsa key: %v", err)
+	}
+	kid := "kid-fresh-1"
+	issuer := "https://issuer.example.com/realms/devhub"
+	aud := "devhub-web"
+
+	var jwksCallCount atomic.Int32
+	mux := http.NewServeMux()
+	mux.HandleFunc("/jwks", func(w http.ResponseWriter, _ *http.Request) {
+		jwksCallCount.Add(1)
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"keys": []map[string]any{{
+				"kty": "RSA",
+				"kid": kid,
+				"n":   base64.RawURLEncoding.EncodeToString(key.PublicKey.N.Bytes()),
+				"e":   base64.RawURLEncoding.EncodeToString([]byte{0x01, 0x00, 0x01}),
+			}},
+		})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	token := mustSignToken(t, key, kid, jwt.MapClaims{
+		"iss":                issuer,
+		"aud":                aud,
+		"sub":                "user-fresh",
+		"preferred_username": "bob",
+		"exp":                time.Now().Add(5 * time.Minute).Unix(),
+	})
+
+	v := &KeycloakJWKSVerifier{
+		IssuerURL:        issuer,
+		JWKSURL:          srv.URL + "/jwks",
+		ClientID:         aud,
+		CacheTTL:         10 * time.Second, // 길게 — TTL 안 만료
+		MaxStaleDuration: 1 * time.Hour,
+	}
+
+	// 3회 호출 — 1차 fetch + 2/3차 cache hit. JWKS endpoint call count = 1
+	for i := 0; i < 3; i++ {
+		if _, err := v.VerifyBearerToken(context.Background(), token); err != nil {
+			t.Fatalf("call %d err: %v", i, err)
+		}
+	}
+	if jwksCallCount.Load() != 1 {
+		t.Errorf("fresh cache hit 시 JWKS network call = 1 expected, got %d", jwksCallCount.Load())
+	}
+}
+
+// TestKeycloakJWKSVerifier_StaleCutoff_BasedOnTTLExpiry — PR #242 codex P1
+// hotfix 회귀. MaxStaleDuration 의 의미는 "TTL 만료 후 grace period". 즉
+// stale 사용 가능 window = cachedUntil + MaxStaleDuration. 본 회귀 test 는
+// CacheTTL=200ms + MaxStaleDuration=200ms 로 (이전 잘못된 cutoff = cachedAt +
+// 200ms 면 250ms 대기 후 401. 정공법 = cachedUntil + 200ms = cachedAt + 400ms
+// 까지 stale 사용 → 250ms 대기 후 stale 통과).
+func TestKeycloakJWKSVerifier_StaleCutoff_BasedOnTTLExpiry(t *testing.T) {
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generate rsa key: %v", err)
+	}
+	kid := "kid-cutoff-1"
+	issuer := "https://issuer.example.com/realms/devhub"
+	aud := "devhub-web"
+
+	var jwksCallCount atomic.Int32
+	mux := http.NewServeMux()
+	mux.HandleFunc("/jwks", func(w http.ResponseWriter, _ *http.Request) {
+		jwksCallCount.Add(1)
+		if jwksCallCount.Load() == 1 {
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"keys": []map[string]any{{
+					"kty": "RSA",
+					"kid": kid,
+					"n":   base64.RawURLEncoding.EncodeToString(key.PublicKey.N.Bytes()),
+					"e":   base64.RawURLEncoding.EncodeToString([]byte{0x01, 0x00, 0x01}),
+				}},
+			})
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	token := mustSignToken(t, key, kid, jwt.MapClaims{
+		"iss":                issuer,
+		"aud":                aud,
+		"sub":                "user-cutoff",
+		"preferred_username": "dave",
+		"exp":                time.Now().Add(5 * time.Minute).Unix(),
+	})
+
+	v := &KeycloakJWKSVerifier{
+		IssuerURL:        issuer,
+		JWKSURL:          srv.URL + "/jwks",
+		ClientID:         aud,
+		CacheTTL:         200 * time.Millisecond,
+		MaxStaleDuration: 200 * time.Millisecond,
+	}
+
+	// 1차 호출 — cache 채움 (T=0). cachedAt ≈ 0, cachedUntil ≈ 200ms.
+	if _, err := v.VerifyBearerToken(context.Background(), token); err != nil {
+		t.Fatalf("1차 호출: %v", err)
+	}
+
+	// T=250ms 대기. TTL 만료 (200ms) 후 50ms 경과.
+	// 정공법: stale window = cachedUntil(200ms) + maxStale(200ms) = 400ms → 250ms 안전 (stale 통과).
+	// 이전 잘못된 cutoff (cachedAt + maxStale = 200ms 만 사용 가능) → 250ms 초과로 401.
+	time.Sleep(250 * time.Millisecond)
+
+	actor, err := v.VerifyBearerToken(context.Background(), token)
+	if err != nil {
+		t.Fatalf("stale window 안인데 401 (PR #242 codex P1 회귀): %v", err)
+	}
+	if actor.Login != "dave" {
+		t.Errorf("actor.Login = %q; want dave", actor.Login)
+	}
+}
+
+// TestKeycloakJWKSVerifier_StaleFallback_DefaultMaxStale — MaxStaleDuration
+// 0 (unset) 시 internal default (24h) 적용 검증. 짧은 CacheTTL 후 fetch fail
+// 에도 stale 사용 성공.
+func TestKeycloakJWKSVerifier_StaleFallback_DefaultMaxStale(t *testing.T) {
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generate rsa key: %v", err)
+	}
+	kid := "kid-default-1"
+	issuer := "https://issuer.example.com/realms/devhub"
+	aud := "devhub-web"
+
+	var jwksCallCount atomic.Int32
+	mux := http.NewServeMux()
+	mux.HandleFunc("/jwks", func(w http.ResponseWriter, _ *http.Request) {
+		jwksCallCount.Add(1)
+		if jwksCallCount.Load() == 1 {
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"keys": []map[string]any{{
+					"kty": "RSA",
+					"kid": kid,
+					"n":   base64.RawURLEncoding.EncodeToString(key.PublicKey.N.Bytes()),
+					"e":   base64.RawURLEncoding.EncodeToString([]byte{0x01, 0x00, 0x01}),
+				}},
+			})
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	token := mustSignToken(t, key, kid, jwt.MapClaims{
+		"iss":                issuer,
+		"aud":                aud,
+		"sub":                "user-default",
+		"preferred_username": "carol",
+		"exp":                time.Now().Add(5 * time.Minute).Unix(),
+	})
+
+	v := &KeycloakJWKSVerifier{
+		IssuerURL: issuer,
+		JWKSURL:   srv.URL + "/jwks",
+		ClientID:  aud,
+		CacheTTL:  10 * time.Millisecond,
+		// MaxStaleDuration 미설정 — defaultJWKSMaxStale (24h) 적용
+	}
+
+	if _, err := v.VerifyBearerToken(context.Background(), token); err != nil {
+		t.Fatalf("1차 호출: %v", err)
+	}
+	time.Sleep(20 * time.Millisecond)
+	actor, err := v.VerifyBearerToken(context.Background(), token)
+	if err != nil {
+		t.Fatalf("default MaxStaleDuration 안에 stale fallback 실패: %v", err)
+	}
+	if actor.Login != "carol" {
+		t.Errorf("actor.Login = %q; want carol", actor.Login)
+	}
+}

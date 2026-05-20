@@ -79,11 +79,23 @@ func main() {
 	}
 
 	var verifier httpapi.BearerTokenVerifier
-	verifier = &auth.KeycloakJWKSVerifier{
+	jwksVerifier := &auth.KeycloakJWKSVerifier{
 		IssuerURL: cfg.OIDCIssuerURL,
 		JWKSURL:   cfg.OIDCJWKSURL,
 		ClientID:  cfg.OIDCClientID,
 	}
+	// ADR-0020 sub-carve D (sprint -l, issue #213) — stale-while-error fallback
+	// 의 MaxStaleDuration env wire. 빈 값 또는 invalid 면 keycloak_verifier
+	// 내부 default (24h) 적용. log 로 명시 가시화.
+	if raw := strings.TrimSpace(cfg.OIDCJWKSMaxStaleDuration); raw != "" {
+		if parsed, err := time.ParseDuration(raw); err == nil && parsed > 0 {
+			jwksVerifier.MaxStaleDuration = parsed
+			log.Printf("jwks stale-while-error max_stale_duration = %s", parsed)
+		} else {
+			log.Printf("invalid DEVHUB_OIDC_JWKS_MAX_STALE_DURATION=%q; fallback to default (24h)", raw)
+		}
+	}
+	verifier = jwksVerifier
 	log.Printf("bearer token verifier: keycloak jwks (issuer=%q jwks=%q client_id=%q)", cfg.OIDCIssuerURL, cfg.OIDCJWKSURL, cfg.OIDCClientID)
 	if err := cfg.Validate(verifier != nil); err != nil {
 		log.Fatalf("startup refused: %v", err)
