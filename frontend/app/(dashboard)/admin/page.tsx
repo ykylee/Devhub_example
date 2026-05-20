@@ -330,8 +330,3 @@ export default function AdminDashboard() {
     </div>
   );
 }
-ts-none" />
-      </section>
-    </div>
-  );
-}
