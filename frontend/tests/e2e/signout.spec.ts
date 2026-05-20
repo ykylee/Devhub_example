@@ -1,4 +1,4 @@
-import { test, expect, loginAs, SEEDED, submitSignInForm, waitForSignInForm } from "./fixtures";
+import { test, expect, loginAs, SEEDED, submitSignInForm, waitForSignInForm, appPath } from "./fixtures";
 
 // signout.spec — Sign Out drives IdP end-session endpoint via id_token_hint
 // and the next /login attempt must prompt for credentials again.
@@ -8,13 +8,14 @@ import { test, expect, loginAs, SEEDED, submitSignInForm, waitForSignInForm } fr
 // TC-USER-SWITCH-01 (clean user switch across signout boundary).
 
 async function waitForSessionCleared(page: import("@playwright/test").Page): Promise<void> {
+  const mePath = appPath("/api/v1/me");
   await expect
     .poll(
       async () =>
-        page.evaluate(async () => {
-          const resp = await fetch("/api/v1/me", { credentials: "include", cache: "no-store" });
+        page.evaluate(async ({ mePath }) => {
+          const resp = await fetch(mePath, { credentials: "include", cache: "no-store" });
           return resp.status;
-        }),
+        }, { mePath }),
       { timeout: 20_000, intervals: [250, 500, 1000] }
     )
     .toBe(401);
@@ -38,7 +39,7 @@ test.describe("Sign Out terminates IdP session", () => {
     // turbopack dev mode; the page actually arrives at the form, but
     // page.goto rejects with ERR_ABORTED. We swallow that specific abort
     // and let the subsequent waitForURL prove the redirect landed.
-    await page.goto("/login").catch((err) => {
+    await page.goto(appPath("/login")).catch((err) => {
       const msg = err instanceof Error ? err.message : String(err);
       if (!msg.includes("ERR_ABORTED")) throw err;
     });
@@ -63,7 +64,7 @@ test.describe("Sign Out terminates IdP session", () => {
     // and route to /login → OIDC dance → sign-in form. ERR_ABORTED
     // tolerated for the same reason as auth.spec / signout.spec above:
     // /login does a client-side window.location.assign to OIDC authorize.
-    await page.goto("/developer").catch((err) => {
+    await page.goto(appPath("/developer")).catch((err) => {
       const msg = err instanceof Error ? err.message : String(err);
       if (!msg.includes("ERR_ABORTED")) throw err;
     });
@@ -77,7 +78,7 @@ test.describe("user switch across Sign Out", () => {
 
     // 1) alice 로 로그인 후 /account 의 actor.login 이 alice
     await loginAs(page, SEEDED.developer);
-    await page.goto("/account");
+    await page.goto(appPath("/account"));
     await expect(page.getByText(SEEDED.developer.user_id, { exact: true }).first()).toBeVisible({ timeout: 10_000 });
 
     // 2) Sign Out
@@ -87,7 +88,7 @@ test.describe("user switch across Sign Out", () => {
 
     // 3) bob (manager) 로 로그인 — signout 직후 loginAs 의 goto('/login') 에서
     // ERR_ABORTED 가 발생할 수 있으므로, 직접 OIDC dance 를 수행한다.
-    await page.goto("/login").catch((err) => {
+    await page.goto(appPath("/login")).catch((err) => {
       const msg = err instanceof Error ? err.message : String(err);
       if (!msg.includes("ERR_ABORTED")) throw err;
     });
@@ -96,7 +97,7 @@ test.describe("user switch across Sign Out", () => {
     await page.waitForURL(/\/(manager|admin|developer)/, { timeout: 30_000 });
 
     // 4) /account 의 사용자 정보가 bob, alice 의 잔재 없음
-    await page.goto("/account");
+    await page.goto(appPath("/account"));
     await expect(page.getByText(SEEDED.manager.user_id, { exact: true }).first()).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText(`${SEEDED.manager.user_id}@example.com`)).toBeVisible();
     // alice 의 user_id 가 어떤 곳에도 노출되지 않아야 한다 — actor 가

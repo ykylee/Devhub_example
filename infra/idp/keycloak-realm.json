@@ -56,16 +56,19 @@
       "publicClient": true,
       "directAccessGrantsEnabled": false,
       "redirectUris": [
+        "https://*/devhub/*",
+        "http://*/devhub/*",
         "http://localhost:3000/*",
         "http://localhost:3000/auth/callback",
         "http://localhost:3000/devhub/auth/callback"
       ],
       "webOrigins": [
+        "+",
         "http://localhost:3000"
       ],
       "attributes": {
         "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "http://localhost:3000/*##http://localhost:3000/##http://localhost:3000/devhub/"
+        "post.logout.redirect.uris": "https://*/devhub/*##http://*/devhub/*##http://localhost:3000/*##http://localhost:3000/##http://localhost:3000/devhub/"
       },
       "protocolMappers": [
         {

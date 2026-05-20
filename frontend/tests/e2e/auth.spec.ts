@@ -1,4 +1,4 @@
-import { test, expect, loginAs, SEEDED, submitSignInForm, waitForSignInForm } from "./fixtures";
+import { test, expect, loginAs, SEEDED, submitSignInForm, waitForSignInForm, appPath } from "./fixtures";
 
 // auth.spec — login + role-based landing (PR-S1) + system route gating.
 // Source-of-truth: defaultLandingFor + pathRequiresSystemAdmin in
@@ -28,7 +28,7 @@ test.describe("role-based landing", () => {
 test.describe("system route gating", () => {
   test("developer cannot reach /admin/settings — AuthGuard bounces to default landing", async ({ page }) => {
     await loginAs(page, SEEDED.developer);
-    await page.goto("/admin/settings");
+    await page.goto(appPath("/admin/settings"));
     // pathRequiresSystemAdmin + isSystemAdmin guard in AuthGuard.tsx
     // redirects to defaultLandingFor(actor.role) = /developer.
     await expect(page).toHaveURL(/\/developer(\/|$)/, { timeout: 10_000 });
@@ -37,7 +37,7 @@ test.describe("system route gating", () => {
 
 test.describe("login failure + auth guard (2026-05-12)", () => {
   test("TC-AUTH-NEG-01 — wrong password keeps the user on the sign-in form", async ({ page }) => {
-    await page.goto("/login").catch((err) => {
+    await page.goto(appPath("/login")).catch((err) => {
       const msg = err instanceof Error ? err.message : String(err);
       if (!msg.includes("ERR_ABORTED")) throw err;
     });
@@ -66,7 +66,7 @@ test.describe("login failure + auth guard (2026-05-12)", () => {
     // shape as signout.spec — we swallow the specific abort and rely
     // on the subsequent waitForURL to assert the redirect chain
     // landed on the sign-in form.
-    await page.goto("/developer").catch((err) => {
+    await page.goto(appPath("/developer")).catch((err) => {
       const msg = err instanceof Error ? err.message : String(err);
       if (!msg.includes("ERR_ABORTED")) throw err;
     });

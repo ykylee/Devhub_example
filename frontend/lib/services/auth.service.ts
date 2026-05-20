@@ -162,7 +162,7 @@ class AuthService {
     };
 
     try {
-      const response = await fetch("/api/runtime-config", {
+      const response = await fetch(`${BASE_PATH}/api/runtime-config`, {
         method: "GET",
         cache: "no-store",
       });

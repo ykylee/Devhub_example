@@ -41,6 +41,13 @@ export const SEEDED: Record<"developer" | "manager" | "systemAdmin", SeededUser>
   },
 };
 
+const E2E_BASE_PATH = (process.env.PLAYWRIGHT_BASE_PATH ?? "").trim().replace(/\/+$/, "");
+
+export function appPath(path: string): string {
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  return E2E_BASE_PATH ? `${E2E_BASE_PATH}${normalized}` : normalized;
+}
+
 async function firstVisibleLocator(page: Page, selectors: string[]): Promise<import("@playwright/test").Locator> {
   for (const selector of selectors) {
     const locator = page.locator(selector).first();
@@ -54,11 +61,12 @@ async function firstVisibleLocator(page: Page, selectors: string[]): Promise<imp
 async function forceStartOIDCFlow(page: Page): Promise<void> {
   const keycloakAdminURL = (process.env.DEVHUB_KEYCLOAK_ADMIN_URL ?? "http://localhost:8180/devhub/auth/keycloak").replace(/\/+$/, "");
   const keycloakRealm = (process.env.DEVHUB_KEYCLOAK_ADMIN_REALM ?? "devhub").trim();
-  await page.evaluate(async ({ keycloakAdminURL, keycloakRealm }) => {
+  const runtimeConfigPath = appPath("/api/runtime-config");
+  await page.evaluate(async ({ keycloakAdminURL, keycloakRealm, runtimeConfigPath }) => {
     const authURL = `${keycloakAdminURL}/realms/${encodeURIComponent(keycloakRealm)}/protocol/openid-connect/auth`;
     let redirectURI = `${window.location.origin}/auth/callback`;
     try {
-      const runtimeResp = await fetch("/api/runtime-config", { cache: "no-store" });
+      const runtimeResp = await fetch(runtimeConfigPath, { cache: "no-store" });
       if (runtimeResp.ok) {
         const runtimeBody = (await runtimeResp.json()) as { oidc_redirect_uri?: string };
         if (runtimeBody.oidc_redirect_uri?.trim()) {
@@ -93,7 +101,7 @@ async function forceStartOIDCFlow(page: Page): Promise<void> {
     url.searchParams.set("code_challenge", challenge);
     url.searchParams.set("code_challenge_method", "S256");
     window.location.assign(url.toString());
-  }, { keycloakAdminURL, keycloakRealm });
+  }, { keycloakAdminURL, keycloakRealm, runtimeConfigPath });
 }
 
 export async function waitForSignInForm(page: Page): Promise<void> {
@@ -166,7 +174,7 @@ async function completeKeycloakRequiredActionsIfPresent(page: Page): Promise<voi
 }
 
 export async function loginAs(page: Page, user: SeededUser) {
-  await page.goto("/login").catch((err) => {
+  await page.goto(appPath("/login")).catch((err) => {
     const msg = err instanceof Error ? err.message : String(err);
     if (!msg.includes("ERR_ABORTED")) throw err;
   });
