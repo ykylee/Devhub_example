@@ -1,0 +1,31 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260520-q-215-hrdb-cancel",
+  "branch": "claude/work_260520-q-215-hrdb-cancel",
+  "status": "in_progress",
+  "started_at": "2026-05-20T17:00:00Z",
+  "ended_at": null,
+  "merged_pr": null,
+  "merge_commit": null,
+  "issue": 215,
+  "carve": "P1-4 cancelled",
+  "scope": "HRDB ETL cron 폐기 정합 작업 — 사용자 결정 (외부 Keycloak 시나리오 채택, HR ↔ Keycloak sync 책임이 외부 IdP 팀으로 이관) 후속. issue #215 close (not planned) 정합화: (1) scripts/hrdb_etl_sync.sh deprecation banner. (2) keycloak_offboarding_immediacy.md §3.1 Phase 1 cron deprecation. (3) ADR-0019 §5.3 (7) row 갱신 + 변경 이력. (4) release_v1_roadmap §3.2 P1-4 strikethrough + §4.2 v1.1 milestone 정정. (5) traceability row.",
+  "directive_source": "사용자 지시 — '정합 작업 진행해' (issue #215 close + Claude review 결과 후속)",
+  "decisions": [
+    "scripts/hrdb_etl_sync.sh 자체는 보존 (historical reference) — header 에 DEPRECATED banner 추가",
+    "대체 흐름 명시 — 외부 Keycloak user disable → backend Keycloak event listener (sub-carve C, PR #241) → user_sync.go::SyncUserProfile → DevHub users.status='deactivated' 자동 sync",
+    "ADR-0019 §5.3 (7) row 를 'design resolved' → 'decision shift' 로 변경 (immutable history 패턴 — supersession 안 함, design 자체는 historical 보존, implementation 폐기만)",
+    "release_v1_roadmap §3.2 P1-4 strikethrough + v1.1 milestone 에서 제외 (P3-12 Sign Up 과 동일 패턴)"
+  ],
+  "todo_done": [
+    "Commit 1 — scripts/hrdb_etl_sync.sh deprecation banner",
+    "Commit 2 — docs/planning/keycloak_offboarding_immediacy.md deprecation banner",
+    "Commit 3 — docs/adr/0019-keycloak-only-idp.md §5.3 (7) row 갱신 + 변경 이력 row 추가",
+    "Commit 4 — docs/planning/release_v1_roadmap.md §3.2 P1-4 strikethrough + §4.2 v1.1 milestone 정정 (P1-4 제외)",
+    "Commit 5 — docs/traceability/report.md 변경 이력 row + sprint -q state"
+  ],
+  "todo": [
+    "commit (단일 commit 으로 묶음) + push + PR + squash merge"
+  ],
+  "verification": "코드 변경 없음 (docs/script header only). markdown 정합."
+}

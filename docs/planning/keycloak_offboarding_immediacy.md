@@ -1,5 +1,12 @@
 # Design 검토 — Off-boarding 즉시성 (HR ↔ Keycloak ↔ DevHub propagation chain)
 
+> ⚠ **2026-05-20 결정 변경 (issue #215 cancelled, sprint claude/work_260520-q-215-hrdb-cancel)**: 사용자가 DevHub 외부 Keycloak 시나리오 채택 — 사내 IdP 팀이 별도 운영. **HR ↔ Keycloak sync 책임이 외부 IdP 팀 (Keycloak User Federation 또는 사내 ETL → Keycloak Admin REST) 로 이관**. 본 design 의 **Phase 1 cron (§3.1 옵션 C)** 은 사용자 결정으로 **폐기**. 대체 흐름:
+> 1. 외부 IdP 팀이 HR 'terminated' → Keycloak user disable (Keycloak admin console 또는 사내 ETL)
+> 2. DevHub backend 의 Keycloak event listener (sub-carve C, PR #241) 가 admin event polling — USER:UPDATE event 감지
+> 3. `user_sync.go::SyncUserProfile` 가 DevHub `users.status='deactivated'` 자동 sync
+>
+> 따라서 본 design 의 Phase 1 cron 부분 + `scripts/hrdb_etl_sync.sh` (sprint -p PR #184) 는 **historical reference 로 보존**. Phase 2 LDAP/AD federation 또는 외부 Keycloak provider 가 운영 시나리오. issue #215 close (not planned).
+
 - 문서 목적: [ADR-0019 §5.3](../adr/0019-keycloak-only-idp.md#53-잔여-carve-out) 잔여 carve out 의 off-boarding 즉시성 design + [ADR-0008 §6](../adr/0008-hrdb-production-adapter.md#6-미해결-항목-open-questions) 의 "실시간 sync 요구 시 별도 ADR" 항목 통합. 1차 산출물은 planning 단계 — Phase 2 LDAP/AD federation 진입 시 별도 ADR 승격 결정.
 - 범위: HR 시스템에서 사용자 비활성화 (퇴사 / 부서 이동 / 권한 회수) 가 Keycloak + DevHub 까지 전파되는 chain 의 latency 최소화. SCIM bridge / 실시간 webhook 등 고급 통합은 Phase 3 carve.
 - 대상 독자: 아키텍트, 운영자 (SRE / IdP), Security, HR 시스템 담당자, Backend 담당자.

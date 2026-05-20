@@ -107,7 +107,7 @@
 | **P1-1** | ADR-0020 sub-carve C — Keycloak event listener 확장 (USER:UPDATE / GROUP_MEMBERSHIP / USER:DELETE 매핑) + DevHub `users` write + metric 3종 | ADR-0020 §4.1 C, design doc §5.3 | **Claude (backend)** | sprint -u~-y 자연 확장. P0-1 의 lazy auto-create 와 role 추출 로직 공유 |
 | **P1-2** | ADR-0020 sub-carve D — JWKS stale-while-error expiry case 확장 | ADR-0020 §4.1 D | **Claude (backend)** | sprint -r kid mismatch fallback 자연 확장. Keycloak unreachable 시 uptime 보장 |
 | **P1-3** | ADR-0019 §5.3 — Keycloak group staging-prod 적용 | session_handoff 잔여 carve | **사용자 + Codex** | Keycloak admin 1회 작업 (group 4 + composite role assign) |
-| **P1-4** | ADR-0019 §5.3 — off-boarding Phase 1 cron 실 deploy | session_handoff 잔여 carve | **사용자 (운영팀) + Codex** | `scripts/hrdb_etl_sync.sh` (sprint -p) cron 등록 + 1회 staging 검증 |
+| ~~**P1-4**~~ | ~~ADR-0019 §5.3 — off-boarding Phase 1 cron 실 deploy~~ | ~~session_handoff 잔여 carve~~ | — | **permanently cancelled (2026-05-20, issue #215 close)** — 외부 Keycloak 시나리오 채택. HR ↔ Keycloak sync 는 외부 IdP 팀 책임. DevHub off-boarding sync 는 sub-carve C event listener (PR #241) 가 정공법. `scripts/hrdb_etl_sync.sh` deprecation. |
 | **P1-5** | ADR-0019 §5.3 — e2e Kratos → Keycloak 실 코드 전환 | session_handoff 잔여 carve | **Gemini (frontend test) + Codex (CI infra)** | sprint -m design 따름. 사내 staging Keycloak e2e 환경 동반. PR #203 의 `ci-e2e-sync-check.sh` 가 CI 단 일부 해소 |
 
 ### 3.3 P2 — v1.0 운영 안정성 + v1.1 carve
@@ -159,7 +159,7 @@
 | 항목 | priority | 워커 |
 | --- | --- | --- |
 | P1-3 group staging-prod 적용 | P1 | 사용자+Codex |
-| P1-4 off-boarding cron deploy | P1 | 사용자+Codex |
+| ~~P1-4 off-boarding cron deploy~~ | **cancelled (2026-05-20)** | — |
 | P1-5 e2e Keycloak admin 실 코드 전환 | P1 | Gemini+Codex |
 | P2-2 ADR-0016 §6 alert 임계 | P2 | Codex |
 | P2-3 ADR-0017 §6 (b) PATCH expires_at | P2 | Gemini+Claude |
@@ -229,7 +229,7 @@
 | Milestone | due | 포함 carve |
 | --- | --- | --- |
 | `v1.0 Release` | 2026-06-15 | P0-1, P0-2, P0-3, P1-1, P1-2, P2-1, + v1.0 종합 검증 |
-| `v1.1 Stability` | 2026-07-31 | P1-3, P1-4, P1-5, P2-2..P2-7, P3-1 (P3-12 Sign Up 은 2026-05-20 cancelled — DevHub Keycloak admin 권한 없음) |
+| `v1.1 Stability` | 2026-07-31 | P1-3, P1-5, P2-2..P2-7, P3-1 (P1-4 off-boarding cron + P3-12 Sign Up 은 2026-05-20 cancelled — 외부 Keycloak / IdP 팀 책임 시나리오 채택) |
 | `v2 Extension` | 2026-Q3+ | P3-2..P3-11 (단 P3-13 MFA 는 사내 정책 제외) |
 
 ### 6.3 Issue 발급 plan
