@@ -1,18 +1,54 @@
-# Session Handoff — main (2026-05-20 sprint -n housekeeping #7 — 8 PR 진척)
+# Session Handoff — main (2026-05-20 sprint -p housekeeping #8 — 9 PR 흡수)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
-- 범위: sprint -m housekeeping #6 (PR #242 HEAD `cb6646d`) 이후 진행된 8 PR 진척 사항 흡수. 대상: PR #245 (single-port nginx), PR #246 (sub-carve B frontend), PR #249 (e2e Kratos 제거), PR #248 (UI polish), PR #251 (Bindings UI), PR #252 (Topology V2), PR #253 (password 제거 및 /login 정리).
+- 범위: sprint -m housekeeping #6 (PR #243 머지) 이후 진행된 **9 PR 흡수**. 대상: PR #244 sub-carve E + PR #245 #238 single-port + PR #246 sub-carve B-frontend + PR #249 P1-5 e2e + PR #251 P2-4 Bindings + PR #252 P2-5 Topology + PR #253 #247 P1-bug + PR #254 housekeeping #7 + PR #255 docs format v2. 본 sprint -p (PR TBD) 가 housekeeping #8.
 - 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
-- 상태: M1/M2/M3 done. **Keycloak 단일 IdP 정합 완전 정착** (ADR-0019). **ADR-0019 §5.3 design 완결** + **§5.3 (9) audit event listener Phase 2 풀스택 종결**. **계정/사용자 관리 리팩토링 Phase 3 sub-carve A/B/C/D/F 완결**: Phase 3 sub-carve A (PR #205) + B backend (PR #239) + B frontend (PR #246) + C (PR #241) + D (PR #242) + F (PR #253) 모두 done. **v1.0 릴리즈 로드맵 진입**: P0-1, P0-2, P1-5, P2-4, P2-5 도메인 작업 PR 발행 및 머지. **docker-compose deploy 안정화**: single-port nginx reverse proxy (PR #245) 머지.
-- 최종 수정일: 2026-05-21 (sprint gemini/housekeeping-260520-status-update)
-- 관련 문서: [v1.0 릴리즈 로드맵](../../docs/planning/release_v1_roadmap.md), [워커 분업](../../docs/governance/worker_division.md), [통합 로드맵](../../docs/development_roadmap.md), [상태 스냅샷](./state.json), [ADR-0020 계정/사용자 관리 책임 경계](../../docs/adr/0020-account-user-management-boundary.md), [keycloak_operations.md](../../docs/setup/keycloak_operations.md).
-- 브랜치: `main` (HEAD `7e8388d`).
+- 상태: M1/M2/M3 done. **Keycloak 단일 IdP 정합 완전 정착** (ADR-0019). **ADR-0019 §5.3 design 완결** + **§5.3 (9) audit event listener Phase 2 풀스택 종결**. **ADR-0020 sub-carve 진척 6/8 done**: A (sprint -d PR #205) + B-backend (sprint -i PR #239) + **B-frontend (gemini PR #246)** + C (sprint -k PR #241) + D (sprint -l PR #242) + **E (sprint -n PR #244)** + #247 P1-bug (gemini PR #253). 잔여 carve: B-frontend 사후 fine-tune (carve F /login page 정리 = sub-carve F) + 사내 운영자 후속 (manage-users role 제거 + Keycloak group staging-prod + off-boarding cron). **v1.0 release gate (D-26)**: 잔여 3건 (#210 PR #248 e2e fail / #214 group staging-prod / #215 off-boarding cron). **codex/Gemini PR 9건 머지** (#244/#245/#246/#249/#251/#252/#253/#254/#255).
+- 최종 수정일: 2026-05-20 (sprint claude/work_260520-p-housekeeping8)
+- 관련 문서: [v1.0 릴리즈 로드맵](../../docs/planning/release_v1_roadmap.md), [워커 분업](../../docs/governance/worker_division.md), [상태 스냅샷](./state.json), [ADR-0020](../../docs/adr/0020-account-user-management-boundary.md), [keycloak_operations.md](../../docs/setup/keycloak_operations.md), [single_port_deployment.md](../../docs/setup/single_port_deployment.md) (PR #245 신규), [keycloak_service_account_min_role.md](../../docs/planning/keycloak_service_account_min_role.md) (PR #244 신규).
+- 브랜치: `main` (HEAD `de69dd4` — PR #251 P2-4 머지). 본 sprint -p HEAD TBD.
 
-## 2026-05-20 sprint -n (본 PR) — housekeeping #7 (8 PR 진척)
+## 2026-05-20 sprint -p (본 PR) — housekeeping #8 (9 PR 흡수)
 
 | Sprint | PR | sha | 핵심 |
 | --- | --- | --- | --- |
-| `gemini/housekeeping-260520-status-update` | (본 PR) | TBD | **housekeeping #7** — state.json (head_commit `7e8388d` + merged_prs_2026_05_20 에 PR #245, #246, #249, #248, #251, #252, #253 추가 + sub_carve_split B-frontend/F done + status 재작성) + session_handoff (header + 오늘 PR 본문 + 다음 directive 갱신) + work_backlog (header + 변경 이력 row). |
+| `claude/work_260520-p-housekeeping8` | (본 PR) | TBD | **housekeeping #8** — state.json (head_commit `de69dd4` + merged_prs_2026_05_20 에 PR #243~#255 9 entry 추가 + status 재작성) + session_handoff (header + 본 sprint -p 표 + 9 PR 본문 + 다음 directive 갱신) + work_backlog (header + 변경 이력) + sprint -n/-o/-p branch state finalize. main flat memory drift 해소. |
+
+### 흡수 9 PR
+
+| PR | sha | sprint / issue | 핵심 |
+| --- | --- | --- | --- |
+| #243 | `2a1c627` | sprint -m housekeeping #6 | sprint -k (PR #241) + sprint -l (PR #242) 흡수 |
+| #244 | `6810384` | sprint -n-214-service-account-min-role **(issue #217 P2-1 done)** | ADR-0020 sub-carve E 옵션 A 정공법 — 5 commit: organization.go password 분기 제거 + main.go seedLocalAdmin + KeycloakAdminClient write methods 4건 + IdentityAdmin interface 정리 + docs/planning/keycloak_service_account_min_role.md 신규 |
+| #245 | `6656c2a` | codex/issue-238-single-port-nginx-v2 → claude/work_260520-o-238-augment **(issue #238 P0-4 done)** | 단일 포트 reverse proxy (ADR-0018) — codex 1차 3 commit + Claude 인계 보강 6 commit (healthcheck + TLS SOP + dev local mode + 404→302 + Dockerfile build args + Keycloak wildcard SOP) |
+| #246 | `b1e34bd` | gemini/work_260520-a-209-accounts-cleanup **(issue #209 P0-1 frontend done)** | ADR-0020 sub-carve B-frontend — account.service.ts 폐기 + MemberTable admin actions 제거 + AdminSettingsUsersPage Keycloak Console link + Claude hotfix (broken merge marker + null 가드 + 빈 td) |
+| #249 | `7e8388d` | gemini/work_260520-c-216-kratos-keycloak-e2e **(issue #216 P1-5 done)** | P1-5 e2e Kratos→Keycloak 실 코드 전환 — legacy SQL/scripts 5 file 삭제 + setup-keycloak.sh 신규 + dev-up.sh Keycloak 전환 + global-setup.ts 동적 idp_subject sync + Claude hotfix (38MB binary + manage-users → view-events + SQL injection 방어) |
+| #251 | `de69dd4` | gemini/work_260520-d-220-bindings-ui-enhancement **(issue #220 P2-4 done)** | Bindings UI 강화 — Backend PATCH/DELETE + Frontend ComboBox + EditModal + pagination + Claude hotfix (interface method + routePermissionTable + e2e spec 정합 + codex P2×2: pagination clamp + ComboBox button type) |
+| #252 | `c44c33d` | gemini/work_260520-e-topology-v2-websocket-grouping **(issue #221 P2-5 done)** | Topology v2 강화 — React Flow Environment 그룹화 + WebSocket 실시간 + Claude hotfix (realtime default unsupported event + isGrouped refetch 분리) |
+| #253 | `4769fc5` | gemini/work_260520-f-247-user-creation-password-cleanup **(issue #247 P1-bug done)** | UserCreationModal password 필드 제거 + Claude rebase 회귀 정정 (codex #238 auth 라우팅 회귀 → 2 file 만 retain) |
+| #254 | `d92a01e` | gemini/housekeeping-260520-status-update | housekeeping #7 — main flat memory 동기화 + Claude hotfix (state.json trailing garbage 제거) |
+| #255 | `ec487cf` | codex/workflow_refactoring_v2 | docs format/lifecycle 표준화 (Markdown source-of-truth + HTML derived) — 50+ docs file 메타 헤더 + Claude hotfix (docs/setup 4 file 회귀 복원) |
+
+### ADR-0020 sub-carve 진척 (5/8 → 6/8)
+
+| sub-carve | 상태 | sprint / PR |
+| --- | --- | --- |
+| A | ✅ done | sprint -d PR #205 |
+| B-backend | ✅ done | sprint -i PR #239 |
+| B-frontend | ✅ done | **gemini PR #246** |
+| C | ✅ done | sprint -k PR #241 |
+| D | ✅ done | sprint -l PR #242 |
+| E | ✅ done | **sprint -n PR #244** |
+| F /login 정리 | carve | sprint -? 후속 (P3) |
+| SPI provider JAR | carve | 사내 인프라 동반 (P2) |
+
+### v1.0 Release Gate (D-26, 2026-06-15)
+
+| issue | 영역 | 상태 |
+| --- | --- | --- |
+| **#210 P0-2 UI polish** | Frontend (Gemini) | **In review — PR #248 e2e shard 2 3번째 fail**. Header trigger 영역 fundamental incompatibility 의심. Playwright trace artifact 분석 필요 |
+| **#214 P1-3 Keycloak group staging-prod** | Infra (사내 운영자) | Backlog — Keycloak admin console 1회 작업 |
+| **#215 P1-4 off-boarding cron** | Infra (사내 운영팀 + Codex) | Backlog — scripts/hrdb_etl_sync.sh 실 deploy |
 
 ### 금일 진척 PR (8건)
 
