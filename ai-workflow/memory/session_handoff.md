@@ -1,28 +1,64 @@
-# Session Handoff — main (2026-05-20 sprint -d Phase 3 진입 sub-carve A — ADR-0020 + `rbac_subject_roles` 폐기)
+# Session Handoff — main (2026-05-20 sprint -e housekeeping #4 — sprint -d + PR #203 흡수)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
-- 범위: 2026-05-19 단일 세션 누적 30 PR (sprint -a~-ad) + 2026-05-20 sprint -a/-b/외부 #201/#202 + sprint -c housekeeping #3 (PR #204 `12bb557`) 완료. **본 sprint claude/work_260520-d 가 계정/사용자 관리 리팩토링 Phase 3 진입 (sub-carve A 흡수)**: ADR-0020 발급 (accepted) + design doc §6 실행 계획 + `rbac_subject_roles` 완전 제거 (결정 D). 후속 sub-carve B~F (5건) 는 sprint -e..-i 로 분리.
+- 범위: 2026-05-19 단일 세션 누적 30 PR (sprint -a~-ad) + 2026-05-20 sprint -a/-b/외부 #201/#202 + sprint -c housekeeping #3 (PR #204) + **sprint -d Phase 3 sub-carve A (PR #205 `f2a389a`: ADR-0020 + `rbac_subject_roles` 폐기 + codex P1 hotfix)** + **PR #203 (gemini → 본인 인수, `a294baf`: Keycloak SPI webhook + theme + Backend Unit Test 회귀 fix + codex P1 secret fail-closed)** + 본 sprint -e housekeeping #4.
 - 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
-- 상태: M1/M2/M3 done. **Keycloak 단일 IdP 정합 완전 정착** (ADR-0019 accepted, ADR-0001 superseded). **단일 외부 포트 역프록시(ADR-0018) 완료**. **ADR-0019 §5.3 design 완결** (MFA 제외, 10/10 = 100%) + **§5.3 (9) audit event listener Phase 2 풀스택 완전 종결** + **Kratos 잔재 residual cleanup 완료 (sprint -ad, PR #198 `bcca86a`)**. **계정/사용자 관리 리팩토링 Phase 1/2 design 완료** + **Phase 3 진입 — sub-carve A (sprint -d): ADR-0020 발급 + `rbac_subject_roles` 완전 제거**. 잔여 carve: sub-carve B~F (5건, sprint -e..-i) + ADR-0019 §5.3 사내 동반 carve 5건.
-- 최종 수정일: 2026-05-20 (sprint claude/work_260520-d Phase 3 진입 sub-carve A)
-- 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [상태 스냅샷](./state.json), [거버넌스](../../docs/governance/README.md), [추적성 매트릭스](../../docs/traceability/report.md), [**ADR-0020 계정/사용자 관리 책임 경계 (현재 sprint)**](../../docs/adr/0020-account-user-management-boundary.md), [ADR-0019 Keycloak 단일화](../../docs/adr/0019-keycloak-only-idp.md), [**계정/사용자 관리 리팩토링 (Phase 1/2/3 design)**](../../docs/planning/account_user_management_redesign.md), [keycloak_operations.md](../../docs/setup/keycloak_operations.md), [Jira 보고 status](../../docs/reports/jira_status_2026_05_18.md).
-- 브랜치: `main` (HEAD `12bb557` — PR #204 housekeeping merge. 직전: PR #202 `abc8cc9`). 본 sprint -d HEAD TBD.
+- 상태: M1/M2/M3 done. **Keycloak 단일 IdP 정합 완전 정착** (ADR-0019). **ADR-0019 §5.3 design 완결** + **§5.3 (9) audit event listener Phase 2 풀스택 종결**. **계정/사용자 관리 리팩토링 Phase 1/2/3 진입**: Phase 1 (PR #199) + Phase 2 (PR #200) + **Phase 3 sub-carve A (sprint -d, PR #205): ADR-0020 + `rbac_subject_roles` 완전 제거**. **외부 인수 PR #203**: Keycloak SPI webhook + semantic theme. 잔여 carve: sub-carve B~F (5건, sprint -f..-j 로 shift — sprint -e housekeeping #4 으로 소진됨) + ADR-0019 §5.3 사내 동반 carve 5건 + **신규: Keycloak SPI provider JAR carve** (PR #203 codex P2 후속).
+- 최종 수정일: 2026-05-20 (sprint claude/work_260520-e housekeeping #4)
+- 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [상태 스냅샷](./state.json), [거버넌스](../../docs/governance/README.md), [추적성 매트릭스](../../docs/traceability/report.md), [**ADR-0020 계정/사용자 관리 책임 경계**](../../docs/adr/0020-account-user-management-boundary.md), [ADR-0019 Keycloak 단일화](../../docs/adr/0019-keycloak-only-idp.md), [**계정/사용자 관리 리팩토링 (Phase 1/2/3 design)**](../../docs/planning/account_user_management_redesign.md), [keycloak_operations.md](../../docs/setup/keycloak_operations.md).
+- 브랜치: `main` (HEAD `a294baf` — PR #203 본인 인수 merge. 직전: PR #205 `f2a389a` sprint -d, PR #204 `12bb557` sprint -c). 본 sprint -e HEAD TBD (housekeeping #4 PR TBD).
 
-## 2026-05-20 sprint -d (본 PR) — 계정/사용자 관리 리팩토링 Phase 3 진입 (sub-carve A)
+## 2026-05-20 sprint -e (본 PR) — housekeeping #4 (sprint -d + PR #203 흡수)
 
 | Sprint | PR | sha | 핵심 |
 | --- | --- | --- | --- |
-| `claude/work_260520-d` | TBD | TBD | **Phase 3 진입 sub-carve A** — (1) **ADR-0020 발급** ([docs/adr/0020-account-user-management-boundary.md](../../docs/adr/0020-account-user-management-boundary.md) 신규, accepted) — Phase 2 명시 결정 6건 종합 (옵션 A 전면 폐기 / B `/login` minimal / C event listener 확장 + lazy / D `rbac_subject_roles` 완전 제거 / E read-only self-reverse / F JWKS expiry 확장) + §4.1 sub-carve A~F 분담 plan. (2) **design doc §6 실행 계획 신규** — sub-carve 분담 표 + sub-carve A 변경 매트릭스 + sub-carve B~F 진입 순서 권장 + Strangler Fig 패턴 (sub-carve B 진입 시). (3) **`rbac_subject_roles` 완전 제거 (결정 D, §5.8 따름)** — backend `rbac.go` (`getSubjectRoles`/`setSubjectRoles` handler 2개 + interface method 2개 + `rbacAuditActionAssigned` const + `rbacSubjectRolesRequest` wire struct 제거) + `router.go` (`v1.GET/PUT "/rbac/subjects/:subject_id/roles"` 2 route 제거) + `permissions.go` (2 routePermissionTable entry 제거 + ADR-0020 reference 주석) + `postgres_rbac.go` (impl 2개 제거) + `postgres_rbac_test.go` (Get/Set 테스트 3건 제거, Delete-in-use 테스트는 `CreateUser` 의 `Role: domain.AppRole(roleID)` 로 재구성 — `users.role` FK to `rbac_policies.role_id` 활용) + `rbac_test.go` (fake mock 2개 + handler test 3건 제거). frontend `rbac.service.ts` 변경 없음 (UI 미구현). migration 불필요 (`rbac_subject_roles` 테이블 자체 없음, `users.role` 직접 write 였음). (4) **traceability** §2.2 API-30/31 strikethrough + §2.4 IMPL-rbac-01/02 책임 갱신 + §4 ADR-0020 row + §6 변경 이력. backend `go build ./...` + `go test ./internal/httpapi/... ./internal/store/...` PASS, 전체 backend test 전 패키지 PASS. |
+| `claude/work_260520-e` | (본 PR) | TBD | **housekeeping #4** — sprint -d (PR #205 `f2a389a`) + 외부 인수 PR #203 (`a294baf`) 2 PR 흡수. state.json (head_commit `a294baf` + merged_prs_2026_05_20 에 PR #205/#203 추가 + sub_carve_split sprint label shift + external_carve_keycloak_spi_provider_jar 신규) + session_handoff (header + sprint -e 표 + sprint -d finalize + PR #203 인수 row + sub-carve B 진입 directive) + work_backlog (header + 변경 이력 2 row) + sprint -d branch state finalize (in_progress → done, merge_commit f2a389a) + sprint -e branch state. design doc §6.1 sprint label 정정 (sub-carve B → sprint -f 로 shift). |
 
-### sub-carve B~F (후속 sprint 분담)
+### PR #205 sprint -d (`f2a389a`) finalize — 계정/사용자 관리 리팩토링 Phase 3 sub-carve A
+
+| 단계 | 내용 |
+| --- | --- |
+| ADR-0020 발급 | accepted, Phase 2 명시 결정 6건 명문화 (A 전면 폐기 / B `/login` minimal / C event listener 확장 / D `rbac_subject_roles` 완전 제거 / E read-only self-reverse / F JWKS expiry 확장) |
+| design doc §6 신규 | sub-carve A~F 분담 + Strangler Fig 패턴 |
+| `rbac_subject_roles` 폐기 | 8 파일 변경 (handler 2개 + interface method 2개 + audit const + wire struct + 2 route + permissions entry + store impl 2개 + test cleanup) |
+| Stage 3 보강 #1 | frontend rbac.service.ts dead method + backend_api_contract §12 정리 + design doc §6.4 IMPL 정정 |
+| Stage 3 보강 #2 (codex P1) | `validAppRoles` 에 `pmo_manager` 추가 (sprint -f 의 event listener sync 가 정공법, sprint -d 는 backward compat) + 회귀 test 2건 (CreateUser + UpdateUser) + ADR-0020 §5.5 hotfix 섹션 |
+
+### PR #203 (gemini → 본인 인수, `a294baf`) — Keycloak SPI webhook + semantic theme
+
+| 단계 | 내용 |
+| --- | --- |
+| 원본 (gemini) | (1) `seedLocalAdmin` `temporary:false` + audience mapper → Keycloak 로그인 endless loop 해소, (2) 다수 modal hardcoded color → semantic theme variable (bg-warning/primary/destructive), (3) Keycloak SPI webhook (`/api/v1/internal/keycloak-events`) + handler + test 신규 |
+| 본인 인수 fix `6ece5be` | (a) `TestRoutePermissionTable_CoversAllProtectedV1Routes` 회귀 해소 — `permissions.go` Bypass 섹션에 `POST /api/v1/internal/keycloak-events` entry 추가 + 주석. (b) codex P1 응답 — secret fail-closed (미설정 시 503, KratosWebhookToken 패턴 정합). (c) 회귀 test `TestReceiveKeycloakEventWebhook_SecretNotConfigured` 신규. main rebase (sprint -d 위, conflict 없음). |
+| codex P2 carve out | `infra/idp/keycloak-realm.json` 의 `devhub-event-listener` SPI 가 provider JAR 미동반 → 사내 인프라 동반 carve: (a) Keycloak SPI plugin 빌드 + (b) compose volume mount + (c) 운영 SOP. ADR-0020 §6 미해결 carve 등재 예정. |
+
+## 다음 sprint -f 진입 directive — sub-carve B (`/api/v1/accounts/*` 폐기 + lazy auto-create)
+
+ADR-0020 §4.1 sub-carve B 본격 진입. 권장 작업 단위:
+
+1. **backend handler 제거** — `accounts_admin.go` 의 4 endpoint (POST `/api/v1/accounts` createAccount, PUT `/api/v1/accounts/:user_id/password` resetAccountPassword, PATCH `/api/v1/accounts/:user_id` updateAccountStatus, DELETE `/api/v1/accounts/:user_id` deleteAccount) 모두 제거
+2. **router.go** v1.POST/PUT/PATCH/DELETE accounts 4 route 제거
+3. **permissions.go** 4 routePermissionTable entry 제거
+4. **`KeycloakAdminClient` write 메서드 호출처 제거** — `CreateIdentity` / `UpdateIdentityPassword` / `SetIdentityState` / `DeleteIdentity` 메서드 자체는 보존 (lazy auto-create 가 향후 사용 가능)
+5. **`authenticateActor` lazy auto-create 실 구현** — ADR-0020 §5.2 따름. `users` row 자체가 없을 때 `CreateUser` + audit `account.lazy_provisioned`. role 매핑 = `extractKeycloakRole(token.realm_access.roles)` (sprint -j PR #185 multi-role priority filter 공유) + fallback default `developer` + audit `user.role_default_assigned` (ADR-0020 §5.2.2 P1-3 결정)
+6. **frontend `account.service.ts` 파일 제거** — 5 메서드 모두 폐기
+7. **frontend `/admin/settings/users` page** — "Issue Account" 버튼 + modal 'Issue / Reset / Disable' 액션 제거. user list view + role/unit assignment 만 남김
+8. **e2e spec** — TC-ACC-* 의 admin issue/disable 시나리오 제거 + Keycloak admin console flow 안내 link 검증으로 대체
+9. **traceability 영향** — API-25 (POST /accounts) + API-25-PWD/STATUS/DELETE 폐기 strikethrough + IMPL-account-* 정리 + TC-ACC-* 갱신
+10. **Strangler Fig 옵션 검토** — design doc §6.5 의 deprecation banner 단계 적용 여부 (외부 caller 없으면 즉시 제거 가능, frontend 만 caller 이므로 같은 PR 에서 frontend cleanup 동반 권장)
+
+위험: e2e 회귀 (TC-ACC-*). 검증 = backend `go test ./...` + frontend `npm run build` + e2e Playwright shard 1/2 모두 PASS.
+
+### sub-carve B~F (sprint label shift — sprint -e housekeeping #4 으로 소진)
 
 | sub-carve | sprint | 영역 | 위험 |
 | --- | --- | --- | --- |
-| **B** | `-e` | `/api/v1/accounts/*` 4 endpoint 제거 + `KeycloakAdminClient` write 메서드 호출처 제거 + `authenticateActor` lazy auto-create 실 구현 + frontend `account.service.ts` 폐기 + admin/settings/users page + e2e spec | 중간 (e2e 회귀) |
-| **C** | `-f` | event listener 확장 (USER:UPDATE / GROUP_MEMBERSHIP / USER:DELETE 매핑) + `users` write + metric 3종 (`devhub_keycloak_user_sync_*`) | 중간 (event listener 회귀) |
-| **D** | `-g` | JWKS stale-while-error expiry case 확장 + cache flush SOP | 낮음 |
-| **E** | `-h` | service account 권한 축소 (`manage-users` 제거) + governance 협약 SOP `keycloak_operations.md §8.5c` 신규 | 낮음 (docs only + Keycloak admin SOP) |
-| **F** | `-i` | `/login` page 정리 (결정 B, 우선순위 가장 낮음) | 낮음 |
+| **B** | `-f` | `/api/v1/accounts/*` 4 endpoint 제거 + `KeycloakAdminClient` write 메서드 호출처 제거 + `authenticateActor` lazy auto-create 실 구현 + frontend `account.service.ts` 폐기 + admin/settings/users page + e2e spec | 중간 (e2e 회귀) |
+| **C** | `-g` | event listener 확장 (USER:UPDATE / GROUP_MEMBERSHIP / USER:DELETE 매핑) + `users` write + metric 3종 (`devhub_keycloak_user_sync_*`) | 중간 (event listener 회귀) |
+| **D** | `-h` | JWKS stale-while-error expiry case 확장 + cache flush SOP | 낮음 |
+| **E** | `-i` | service account 권한 축소 (`manage-users` 제거) + governance 협약 SOP `keycloak_operations.md §8.5c` 신규 | 낮음 (docs only + Keycloak admin SOP) |
+| **F** | `-j` | `/login` page 정리 (결정 B, 우선순위 가장 낮음) | 낮음 |
+| (신규 carve) | TBD | **Keycloak SPI provider JAR** — PR #203 codex P2 후속 (devhub-event-listener 빌드 + compose mount + 운영 SOP). 사내 인프라 동반 carve | 중간 (사내 인프라) |
 
 ## 2026-05-20 housekeeping #3 (sprint claude/work_260520-c, PR #204 `12bb557`) — sprint -ad finalize + 2026-05-20 sprint -a/-b + 외부 PR #201/#202
 
