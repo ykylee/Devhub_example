@@ -31,6 +31,40 @@ func (m *mockAuditStore) ListAuditLogs(ctx context.Context, opts store.ListAudit
 	return m.logs, nil
 }
 
+// TestReceiveKeycloakEventWebhook_SecretNotConfigured covers PR #203 codex P1
+// hotfix (sprint -d): the handler must fail-closed (503) when
+// DEVHUB_KEYCLOAK_SPI_WEBHOOK_SECRET is unset rather than disabling auth.
+func TestReceiveKeycloakEventWebhook_SecretNotConfigured(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, r := gin.CreateTestContext(w)
+
+	store := &mockAuditStore{}
+	handler := Handler{
+		cfg: RouterConfig{
+			KeycloakWebhookSecret: "", // not configured
+			AuditStore:            store,
+		},
+	}
+
+	r.POST("/api/v1/internal/keycloak-events", handler.receiveKeycloakEventWebhook)
+
+	reqBody := `{"id":"test-event-no-secret"}`
+	c.Request, _ = http.NewRequest("POST", "/api/v1/internal/keycloak-events", bytes.NewBufferString(reqBody))
+	c.Request.Header.Set("Content-Type", "application/json")
+	// Even without any X-Webhook-Secret header the response must be 503
+	// (handler fails closed rather than silently accepting).
+
+	r.ServeHTTP(w, c.Request)
+
+	if w.Code != http.StatusServiceUnavailable {
+		t.Errorf("Expected status 503 (secret not configured fail-closed), got %d", w.Code)
+	}
+	if len(store.logs) != 0 {
+		t.Errorf("Expected no audit logs emitted when secret unset, got %d", len(store.logs))
+	}
+}
+
 func TestReceiveKeycloakEventWebhook_Unauthorized(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
