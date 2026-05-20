@@ -18,7 +18,7 @@ test.describe("Header dropdown", () => {
     await loginAs(page, SEEDED.developer);
 
     await openHeaderUserMenu(page, SEEDED.developer);
-    await page.getByRole("button", { name: /account profile/i }).click();
+    await page.getByRole("menuitem", { name: /account profile/i }).click();
 
     await page.waitForURL(/\/account(\/|$)/, { timeout: 10_000 });
   });
