@@ -535,7 +535,20 @@ jobs:
           name: playwright-report-shard-${{ matrix.shard }}
           path: frontend/playwright-report/
           retention-days: 30
-      
+
+      # P0-3 (sprint -h, issue #211): UI screenshot 자산을 디자인 review
+      # source 로 업로드. screenshots.spec.ts 가 캡처한 18 페이지 png 를
+      # CI artifact 로 노출하여 Gemini (UI polish) 와 사용자가 디자인 issue
+      # 발견에 사용. release_v1_roadmap.md §8.2 참조.
+      - name: Upload UI Screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-screenshots-shard-${{ matrix.shard }}
+          path: frontend/test-results/screenshots/
+          retention-days: 30
+          if-no-files-found: warn
+
       - name: Upload Logs on Failure
         if: failure()
         uses: actions/upload-artifact@v4
