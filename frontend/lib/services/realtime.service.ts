@@ -2,10 +2,12 @@ import { WSEvent, WSEventHandler } from "./types";
 import { useStore } from "@/lib/store";
 
 import { WS_BASE_URL as WS_BASE } from "../config/endpoints";
+// codex P1 (PR #252 review): `infra.service.updated` 는 backend
+// handleRealtimeWebSocket 의 supported types 에 없음 — default 에 포함 시
+// secured 환경에서 WS handshake fail. topology-v2 page 가 ad-hoc subscribe.
 const DEFAULT_EVENT_TYPES = [
   'command.status.updated',
   'infra.node.updated',
-  'infra.service.updated',
   'infra.edge.updated',
   'risk.critical.created',
   'notification.created'

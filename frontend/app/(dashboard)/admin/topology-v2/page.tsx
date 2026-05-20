@@ -82,6 +82,8 @@ function safeFormat(iso: string | null | undefined): string {
 
 export default function AdminTopologyV2Page() {
   const [rawNodes, setRawNodes] = useState<ApiInfraNodeV2[]>([]);
+  // codex P2 (PR #252 review) — rawEdges 보존으로 isGrouped toggle 시 refetch 없이 re-layout.
+  const [rawEdges, setRawEdges] = useState<any[]>([]);
   const [services, setServices] = useState<ApiInfraServiceV2[]>([]);
   const [meta, setMeta] = useState<InfraTopologyV2Meta | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -173,7 +175,10 @@ export default function AdminTopologyV2Page() {
     setEdges(flowEdges);
   }, [setNodes, setEdges]);
 
-  // Initial load
+  // Initial load — 진입 시 1회 fetch. isGrouped toggle 시 re-layout 만 (별도 effect 처리).
+  // codex P2 (PR #252 review): isGrouped dep 으로 인한 매 toggle 시 getTopologyV2()
+  // refetch 회피.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -182,6 +187,7 @@ export default function AdminTopologyV2Page() {
         const resp = await infraService.getTopologyV2();
         if (cancelled) return;
         setRawNodes(resp.nodes);
+        setRawEdges(resp.edges);
         setServices(resp.services);
         setMeta(resp.meta);
         buildGraph(resp.nodes, resp.edges, isGrouped);
@@ -194,7 +200,13 @@ export default function AdminTopologyV2Page() {
       }
     })();
     return () => { cancelled = true; };
-  }, [isGrouped, buildGraph]);
+  }, []);
+
+  // isGrouped toggle 시 re-layout 만 (refetch 없음).
+  useEffect(() => {
+    if (rawNodes.length === 0) return;
+    buildGraph(rawNodes, rawEdges, isGrouped);
+  }, [isGrouped, rawNodes, rawEdges, buildGraph]);
 
   // WebSocket 실시간 갱신
   useEffect(() => {
