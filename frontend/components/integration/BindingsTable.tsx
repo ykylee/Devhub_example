@@ -1,14 +1,17 @@
 "use client";
 
-import { Link2 } from "lucide-react";
+import { Link2, Edit2, Trash2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/Badge";
+import { ActionMenu } from "@/components/ui/ActionMenu";
 import type { IntegrationBinding, IntegrationProvider } from "@/lib/services/integration.types";
 
 interface BindingsTableProps {
   items: IntegrationBinding[];
   providersByID: Record<string, IntegrationProvider>;
+  onEdit: (binding: IntegrationBinding) => void;
+  onDelete: (binding: IntegrationBinding) => void;
 }
 
 function safeFormat(iso: string | null | undefined): string {
@@ -30,7 +33,7 @@ function policyVariant(p: IntegrationBinding["policy"]): BadgeVariant {
   return p === "execution_system" ? "success" : "secondary";
 }
 
-export function BindingsTable({ items, providersByID }: BindingsTableProps) {
+export function BindingsTable({ items, providersByID, onEdit, onDelete }: BindingsTableProps) {
   if (items.length === 0) {
     return (
       <div className="glass border-border rounded-3xl py-20 flex flex-col items-center justify-center gap-3">
@@ -58,6 +61,7 @@ export function BindingsTable({ items, providersByID }: BindingsTableProps) {
               <th className="px-6 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Policy</th>
               <th className="px-6 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-center">Enabled</th>
               <th className="px-6 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Created</th>
+              <th className="px-6 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/40">
@@ -102,6 +106,26 @@ export function BindingsTable({ items, providersByID }: BindingsTableProps) {
                     </td>
                     <td className="px-6 py-5">
                       <span className="text-[10px] text-muted-foreground font-mono">{safeFormat(b.created_at)}</span>
+                    </td>
+                    <td className="px-6 py-5 text-right">
+                      <ActionMenu
+                        title="Binding Actions"
+                        items={[
+                          {
+                            key: "edit",
+                            label: "Edit Binding",
+                            onClick: () => onEdit(b),
+                            icon: <Edit2 className="w-3.5 h-3.5 text-primary" />,
+                          },
+                          {
+                            key: "delete",
+                            label: "Delete Binding",
+                            onClick: () => onDelete(b),
+                            icon: <Trash2 className="w-3.5 h-3.5" />,
+                            tone: "danger",
+                          },
+                        ]}
+                      />
                     </td>
                   </motion.tr>
                 );

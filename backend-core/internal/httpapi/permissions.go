@@ -245,6 +245,9 @@ var routePermissionTable = map[routeKey]routePolicy{
 	{http.MethodPost, "/api/v1/integration/providers/:provider_id/sync"}: {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
 	{http.MethodGet, "/api/v1/integration/bindings"}:                     {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
 	{http.MethodPost, "/api/v1/integration/bindings"}:                    {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
+	// PR #251 P2-4 sub-carve — Bindings UI 강화. API-81 PATCH + API-82 DELETE.
+	{http.MethodPatch, "/api/v1/integration/bindings/:binding_id"}:       {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
+	{http.MethodDelete, "/api/v1/integration/bindings/:binding_id"}:      {Resource: domain.ResourceInfrastructure, Action: domain.ActionDelete},
 
 	// Dev Request (DREQ) API-59..65 (sprint claude/work_260515-i, ADR-0012).
 	// POST /api/v1/dev-requests 는 별도 intake group 으로 등록되어 v1 의

@@ -33,7 +33,7 @@
 ### 2.2 Design (ARCH / API)
 
 - **Architecture**: ARCH-01 ~ ARCH-17 + `ARCH-DREQ-01..06` + `ARCH-INT-01..06` (INT sprint `codex/memory-next-step-20260515`). `docs/architecture.md` + `docs/org_chart_ux_spec.md` + `docs/organizational_hierarchy_spec.md` 분포.
-- **API contract**: API-01 ~ API-79 (INT draft 포함 + DREQ token PATCH allowed_ips). 기존 composite/결손 정책은 유지. **API-69..78** 은 외부 시스템 연동 도메인 초안(§15)으로 staged. **API-79** 는 DREQ intake token IP mutation (§14.10, ADR-0017).
+- **API contract**: API-01 ~ API-82 (INT draft 포함 + DREQ token PATCH allowed_ips). 기존 composite/결손 정책은 유지. **API-69..78, 80..82** 은 외부 시스템 연동 도메인 (§15) 으로 activated. **API-79** 는 DREQ intake token IP mutation (§14.10, ADR-0017).
 
 #### DREQ API §14 — endpoint 매핑 (spec staged sprint `claude/work_260515-f`, **activated sprint `claude/work_260515-i`**)
 
@@ -62,6 +62,9 @@
 | `API-73` | §15.3 | `POST /api/v1/integration/providers/{provider_key}/webhook` | **activated (baseline)** |
 | `API-74` | §15.3 | `GET /api/v1/integration/bindings` | **activated (baseline)** |
 | `API-75` | §15.3 | `POST /api/v1/integration/bindings` | **activated (baseline)** |
+| `API-80` | §15.2 | `DELETE /api/v1/integration/providers/:provider_id` | **activated (sprint `j`)** |
+| `API-81` | §15.3 | `PATCH /api/v1/integration/bindings/:binding_id` | **activated (sprint gemini/work_260520-d)** |
+| `API-82` | §15.3 | `DELETE /api/v1/integration/bindings/:binding_id` | **activated (sprint gemini/work_260520-d)** |
 | `API-76` | §15.4 | `GET /api/v1/infra/services` | **activated (baseline)** |
 | `API-77` | §15.4 | `POST /api/v1/infra/services/snapshot` | **activated (baseline)** |
 | `API-78` | §15.4 | `GET /api/v1/infra/topology/v2` | **activated (baseline)** |
