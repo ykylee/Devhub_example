@@ -1,6 +1,25 @@
 #!/bin/bash
 # scripts/hrdb_etl_sync.sh — off-boarding Phase 1 운영 cron (sprint claude/work_260519-p).
 #
+# ⚠ DEPRECATED (2026-05-20, sprint claude/work_260520-q-215-hrdb-cancel)
+# ──────────────────────────────────────────────────────────────────────────────
+# 사용자 결정 (issue #215, 2026-05-20): DevHub 가 외부 Keycloak 시나리오 채택 —
+# 사내 IdP 팀이 별도 운영하는 Keycloak. HR ↔ Keycloak sync 는 IdP 팀 책임 (Keycloak
+# User Federation 또는 사내 ETL → Keycloak Admin REST). DevHub 가 자체 cron 으로
+# HRDB sync 하지 않음.
+#
+# 대체 흐름 (ADR-0020 결정 A + sub-carve C):
+#   1. 외부 IdP 팀이 HR 'terminated' → Keycloak user disable (Keycloak admin console
+#      또는 사내 ETL → Keycloak Admin REST PUT /users/{id} {enabled: false})
+#   2. Keycloak event listener (sprint -k PR #241 의 backend cron) 가 admin event
+#      polling — USER:UPDATE event 감지
+#   3. DevHub backend 가 user_sync.go::SyncUserProfile 호출 → `users.status =
+#      'deactivated'` 자동 sync (PR #241 의 정공법)
+#
+# 본 script 는 historical reference 로 보존 (별도 운영팀이 사내 환경에서 참고용으로
+# 활용 가능). DevHub 운영 cron 에 등록하지 않음.
+# ──────────────────────────────────────────────────────────────────────────────
+#
 # [ADR-0019 §5.3](../docs/adr/0019-keycloak-only-idp.md#53-잔여-carve-out) off-boarding 즉시성 carve out
 # 의 Phase 1 권장 옵션 C 구현. design 은 docs/planning/keycloak_offboarding_immediacy.md §3.
 #
