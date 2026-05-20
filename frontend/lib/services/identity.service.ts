@@ -115,7 +115,6 @@ export interface CreateUserPayload {
   role: OrgMember["role"];
   status: OrgMember["status"];
   type: "human" | "system";
-  password?: string;
   primary_dept_id?: string;
   current_dept_id?: string;
   is_seconded?: boolean;
@@ -315,19 +314,19 @@ export class IdentityService {
     );
     return (result.data ?? []).map(mapBackendUser);
   }
+async createUser(payload: CreateUserPayload): Promise<OrgMember> {
+  const body = {
+    user_id: payload.user_id,
+    email: payload.email,
+    display_name: payload.display_name,
+    role: ROLE_UI_TO_BACKEND[payload.role],
+    status: payload.status,
+    primary_unit_id: payload.primary_dept_id ?? "",
+    current_unit_id: payload.current_dept_id ?? "",
+    is_seconded: !!payload.is_seconded,
+    joined_at: payload.joined_at ?? "",
+  };
 
-  async createUser(payload: CreateUserPayload): Promise<OrgMember> {
-    const body = {
-      user_id: payload.user_id,
-      email: payload.email,
-      display_name: payload.display_name,
-      role: ROLE_UI_TO_BACKEND[payload.role],
-      status: payload.status,
-      primary_unit_id: payload.primary_dept_id ?? "",
-      current_unit_id: payload.current_dept_id ?? "",
-      is_seconded: !!payload.is_seconded,
-      joined_at: payload.joined_at ?? "",
-    };
     const result = await apiClient<ApiResponse<BackendUser>>("POST", `/api/v1/users`, body);
     if (!result.data) throw new ApiError(500, result, "missing user payload");
     return mapBackendUser(result.data);
