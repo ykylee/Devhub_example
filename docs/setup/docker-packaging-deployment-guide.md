@@ -191,6 +191,8 @@ docker compose -f docker-compose.deploy.yml up -d
 ### 8.1.2 DB 모드 선택
 
 - 번들 DB 모드 (`local-db` profile): compose 내부 `db`(postgres:15) 포함 기동
+- 번들 Keycloak 모드 (`local-idp` profile): compose 내부 `keycloak` 포함 기동
+- 외부 DB/외부 Keycloak 모드(기본): profile 없이 기동하고 `DB_URL`, `DEVHUB_OIDC_ISSUER_URL`, `DEVHUB_KEYCLOAK_ADMIN_URL`, `OIDC_ISSUER_URL`, `OIDC_REDIRECT_URI`를 외부 주소로 지정
 - 외부 DB 모드 (default): compose 내부 `db` 미기동, `DB_URL`은 외부 DSN 지정
 
 예시:
@@ -198,7 +200,7 @@ docker compose -f docker-compose.deploy.yml up -d
 ```sh
 # 1) 번들 DB 모드
 export DB_URL='postgres://<user>:<pw>@db:5432/<db>?sslmode=disable'
-docker compose -f docker-compose.deploy.yml --profile local-db up -d
+docker compose -f docker-compose.deploy.yml --profile local-db --profile local-idp up -d
 
 # 2) 외부 DB 모드
 docker compose -f docker-compose.deploy.yml up -d

@@ -43,7 +43,7 @@ function AuthErrorInner() {
           )}
         </div>
         <Link
-          href="/login"
+          href="/auth/login"
           className="inline-flex items-center justify-center w-full bg-primary text-primary-foreground font-black py-3 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-widest text-xs"
         >
           Restart sign-in

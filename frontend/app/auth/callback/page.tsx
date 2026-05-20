@@ -67,7 +67,7 @@ function CallbackInner() {
           <h2 className="text-xl font-bold text-foreground">Authentication Failed</h2>
           <p className="text-muted-foreground text-sm leading-relaxed">{error}</p>
           <button
-            onClick={() => router.replace("/login")}
+            onClick={() => router.replace("/auth/login")}
             className="w-full py-3 bg-card/60 hover:bg-card border border-border rounded-xl text-foreground text-sm font-bold transition-all"
           >
             Back to Sign In

@@ -25,11 +25,13 @@ export function isSystemAdmin(role: UserRole | null | undefined): boolean {
 // Keep the prefix list narrow — adding more paths here also hides them
 // from non-admin sidebars (Sidebar consults this same predicate).
 export function pathRequiresSystemAdmin(pathname: string): boolean {
-  if (pathname === "/admin") return true;
-  if (pathname.startsWith("/admin/")) return true;
+  const adminBase = "/admin";
+  const orgBase = "/organization";
+  if (pathname === adminBase) return true;
+  if (pathname.startsWith(`${adminBase}/`)) return true;
   // /organization stays system_admin-only until PR-S2 retires it in favour
   // of /admin/settings/*. Once that migration ships, drop this clause.
-  if (pathname === "/organization") return true;
-  if (pathname.startsWith("/organization/")) return true;
+  if (pathname === orgBase) return true;
+  if (pathname.startsWith(`${orgBase}/`)) return true;
   return false;
 }

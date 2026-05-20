@@ -22,7 +22,7 @@ export default function SignUpPage() {
 
         <div className="flex flex-col gap-3">
           <Link
-            href="/login"
+            href="/auth/login"
             className="w-full bg-primary text-primary-foreground font-black py-3 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-widest text-xs"
           >
             Back to Sign In
