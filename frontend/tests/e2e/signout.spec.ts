@@ -1,4 +1,4 @@
-import { test, expect, loginAs, SEEDED, submitSignInForm, waitForSignInForm, appPath } from "./fixtures";
+import { test, expect, loginAs, openHeaderUserMenu, SEEDED, submitSignInForm, waitForSignInForm, appPath } from "./fixtures";
 
 // signout.spec — Sign Out drives IdP end-session endpoint via id_token_hint
 // and the next /login attempt must prompt for credentials again.
@@ -26,7 +26,7 @@ test.describe("Sign Out terminates IdP session", () => {
     await loginAs(page, SEEDED.developer);
 
     // Open the header dropdown and click Sign Out
-    await page.getByRole("banner").getByText(SEEDED.developer.user_id, { exact: false }).first().click();
+    await openHeaderUserMenu(page, SEEDED.developer);
     await page.getByRole("button", { name: /sign out/i }).click();
     await waitForSessionCleared(page);
 
@@ -55,7 +55,7 @@ test.describe("Sign Out terminates IdP session", () => {
     await loginAs(page, SEEDED.developer);
 
     // Sign Out via header dropdown
-    await page.getByRole("banner").getByText(SEEDED.developer.user_id, { exact: false }).first().click();
+    await openHeaderUserMenu(page, SEEDED.developer);
     await page.getByRole("button", { name: /sign out/i }).click();
     await waitForSessionCleared(page);
 
@@ -82,7 +82,7 @@ test.describe("user switch across Sign Out", () => {
     await expect(page.getByText(SEEDED.developer.user_id, { exact: true }).first()).toBeVisible({ timeout: 10_000 });
 
     // 2) Sign Out
-    await page.getByRole("banner").getByText(SEEDED.developer.user_id, { exact: false }).first().click();
+    await openHeaderUserMenu(page, SEEDED.developer);
     await page.getByRole("button", { name: /sign out/i }).click();
     await waitForSessionCleared(page);
 

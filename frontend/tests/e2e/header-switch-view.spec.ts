@@ -1,4 +1,4 @@
-import { test, loginAs, SEEDED } from "./fixtures";
+import { test, loginAs, openHeaderUserMenu, SEEDED } from "./fixtures";
 
 // header-switch-view.spec — F3 헤더 / 네비게이션.
 //
@@ -17,7 +17,7 @@ test.describe("Header dropdown", () => {
   test("TC-NAV-03 — Account Profile 메뉴 → /account 이동", async ({ page }) => {
     await loginAs(page, SEEDED.developer);
 
-    await page.getByRole("banner").getByText(SEEDED.developer.user_id, { exact: false }).first().click();
+    await openHeaderUserMenu(page, SEEDED.developer);
     await page.getByRole("button", { name: /account profile/i }).click();
 
     await page.waitForURL(/\/account(\/|$)/, { timeout: 10_000 });
