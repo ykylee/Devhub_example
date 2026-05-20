@@ -58,8 +58,8 @@ export default function GardenerPage() {
             <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground mb-6">Autonomous Stats</h3>
             <div className="space-y-6">
               {[
-                { label: "Optimization Score", value: "94/100", icon: Zap, color: "text-amber-400" },
-                { label: "Security Posture", value: "Locked", icon: ShieldCheck, color: "text-emerald-400" },
+                { label: "Optimization Score", value: "94/100", icon: Zap, color: "text-warning" },
+                { label: "Security Posture", value: "Locked", icon: ShieldCheck, color: "text-success" },
               ].map((stat, i) => (
                 <div key={i} className="flex items-center gap-4">
                   <div className={cn("p-2 rounded-lg bg-muted/30 border border-border", stat.color)}>

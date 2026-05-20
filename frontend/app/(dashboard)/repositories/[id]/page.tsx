@@ -136,8 +136,8 @@ export default function RepositoryDetailPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
           { label: "Commit Activity", value: "142", icon: GitCommit, color: "text-foreground", trend: "+12%" },
-          { label: "Active PRs", value: activity?.pr_event_count.toString() || "0", icon: GitPullRequest, color: "text-blue-500", trend: "+2" },
-          { label: "Build Success", value: `${((activity?.build_success_rate || 0) * 100).toFixed(1)}%`, icon: Activity, color: "text-emerald-500", trend: "Stable" },
+          { label: "Active PRs", value: activity?.pr_event_count.toString() || "0", icon: GitPullRequest, color: "text-info", trend: "+2" },
+          { label: "Build Success", value: `${((activity?.build_success_rate || 0) * 100).toFixed(1)}%`, icon: Activity, color: "text-success", trend: "Stable" },
           { label: "Contributors", value: activity?.active_contributors.length.toString() || "0", icon: Users, color: "text-purple-500", trend: "Top 1%" },
         ].map((stat, i) => (
           <motion.div 
@@ -152,8 +152,8 @@ export default function RepositoryDetailPage() {
                 <stat.icon className="w-5 h-5" />
               </div>
               <span className={cn("text-[10px] font-black uppercase tracking-tighter", 
-                stat.trend.startsWith('+') ? "text-emerald-500" : 
-                stat.trend.startsWith('-') ? "text-rose-500" : 
+                stat.trend.startsWith('+') ? "text-success" : 
+                stat.trend.startsWith('-') ? "text-destructive" : 
                 "text-muted-foreground"
               )}>
                 {stat.trend}
@@ -235,17 +235,17 @@ export default function RepositoryDetailPage() {
             </div>
           </section>
 
-          <section className="glass-card p-8 border-rose-500/10">
-            <h3 className="text-sm font-black uppercase tracking-widest text-rose-500/50 mb-6 flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-rose-500" /> Security Status
+          <section className="glass-card p-8 border-destructive/10">
+            <h3 className="text-sm font-black uppercase tracking-widest text-destructive/50 mb-6 flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-destructive" /> Security Status
             </h3>
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 rounded-xl bg-rose-500/5 border border-rose-500/20">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-destructive/5 border border-destructive/20">
                 <div className="flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-rose-500" />
-                  <span className="text-xs font-bold text-rose-500">2 Critical Vulnerabilities</span>
+                  <AlertCircle className="w-4 h-4 text-destructive" />
+                  <span className="text-xs font-bold text-destructive">2 Critical Vulnerabilities</span>
                 </div>
-                <button className="text-[10px] font-black uppercase text-rose-500 hover:underline">Fix</button>
+                <button className="text-[10px] font-black uppercase text-destructive hover:underline">Fix</button>
               </div>
               <p className="text-[10px] text-muted-foreground leading-relaxed">
                 Automated scan detected dependency vulnerabilities in `package.json`. Immediate patching recommended.

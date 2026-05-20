@@ -141,9 +141,9 @@ export default function ApplicationDetailPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: "Build Success", value: `${((rollup?.build_success_rate || 0) * 100).toFixed(1)}%`, icon: Activity, color: "text-emerald-500", trend: "+2.4%" },
-          { label: "Quality Score", value: rollup?.quality_score?.toFixed(1) || "N/A", icon: ShieldCheck, color: "text-blue-500", trend: "+0.1" },
-          { label: "Critical Warnings", value: rollup?.critical_warning_count.toString() || "0", icon: Zap, color: (rollup?.critical_warning_count || 0) > 0 ? "text-red-500" : "text-green-500", trend: "Stable" },
+          { label: "Build Success", value: `${((rollup?.build_success_rate || 0) * 100).toFixed(1)}%`, icon: Activity, color: "text-success", trend: "+2.4%" },
+          { label: "Quality Score", value: rollup?.quality_score?.toFixed(1) || "N/A", icon: ShieldCheck, color: "text-info", trend: "+0.1" },
+          { label: "Critical Warnings", value: rollup?.critical_warning_count.toString() || "0", icon: Zap, color: (rollup?.critical_warning_count || 0) > 0 ? "text-destructive" : "text-success", trend: "Stable" },
           { label: "Gate Failures", value: rollup?.quality_gate_failed_count.toString() || "0", icon: Globe, color: "text-purple-500", trend: "0" },
         ].map((stat, i) => (
           <motion.div 
@@ -158,8 +158,8 @@ export default function ApplicationDetailPage() {
                 <stat.icon className="w-5 h-5" />
               </div>
               <span className={cn("text-[10px] font-black uppercase tracking-tighter", 
-                stat.trend.startsWith('+') ? "text-emerald-500" : 
-                stat.trend.startsWith('-') ? "text-rose-500" : 
+                stat.trend.startsWith('+') ? "text-success" : 
+                stat.trend.startsWith('-') ? "text-destructive" : 
                 "text-muted-foreground"
               )}>
                 {stat.trend}

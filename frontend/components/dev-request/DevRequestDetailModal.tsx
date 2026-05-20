@@ -121,12 +121,12 @@ export function DevRequestDetailModal({
       >
         <div className="p-8 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-orange-500/20 rounded-xl flex items-center justify-center">
-              <Inbox className="w-5 h-5 text-orange-400" />
+            <div className="w-10 h-10 bg-accent/20 rounded-xl flex items-center justify-center">
+              <Inbox className="w-5 h-5 text-accent" />
             </div>
             <div>
               <h2 className="text-xl font-black text-foreground dark:text-primary-foreground uppercase tracking-tight">
-                Dev <span className="text-orange-400">Request</span>
+                Dev <span className="text-accent">Request</span>
               </h2>
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                 {request.source_system} · {request.status}
@@ -162,14 +162,14 @@ export function DevRequestDetailModal({
           </div>
 
           {request.status === "registered" && (
-            <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-[11px] text-emerald-400">
+            <div className="p-4 bg-success/10 border border-success/20 rounded-2xl text-[11px] text-success">
               Registered as <span className="font-bold">{request.registered_target_type}</span>{" "}
               <span className="font-mono">{request.registered_target_id}</span>
             </div>
           )}
 
           {request.status === "rejected" && request.rejected_reason && (
-            <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-[11px] text-rose-400">
+            <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-2xl text-[11px] text-destructive">
               Rejected — {request.rejected_reason}
             </div>
           )}
@@ -230,7 +230,7 @@ export function DevRequestDetailModal({
                 value={targetID}
                 onChange={(e) => setTargetID(e.target.value)}
                 placeholder={targetType === "application" ? "application id (uuid)" : "project id (uuid)"}
-                className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm font-mono text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-orange-400/50"
+                className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm font-mono text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-accent/50"
               />
               <div className="flex gap-3">
                 <button
@@ -262,7 +262,7 @@ export function DevRequestDetailModal({
                 onChange={(e) => setRejectedReason(e.target.value)}
                 rows={3}
                 placeholder="중복 의뢰 / 범위 외 / 정보 부족 ..."
-                className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-rose-400/50 resize-none"
+                className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-destructive/50 resize-none"
               />
               <div className="flex gap-3">
                 <button
@@ -293,7 +293,7 @@ export function DevRequestDetailModal({
                 value={newAssignee}
                 onChange={(e) => setNewAssignee(e.target.value)}
                 placeholder="new assignee user_id"
-                className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-amber-400/50"
+                className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-warning/50"
               />
               <div className="flex gap-3">
                 <button
@@ -316,7 +316,7 @@ export function DevRequestDetailModal({
           )}
 
           {error && (
-            <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-[11px] text-rose-400 font-medium">
+            <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-2xl text-[11px] text-destructive font-medium">
               {error}
             </div>
           )}
@@ -349,8 +349,8 @@ function ActionButton({
   const palette = {
     purple: "bg-purple-500/10 border-purple-500/30 text-purple-400 hover:bg-purple-500/20",
     indigo: "bg-indigo-500/10 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/20",
-    rose: "bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20",
-    amber: "bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20",
+    rose: "bg-destructive/10 border-destructive/30 text-destructive hover:bg-destructive/20",
+    amber: "bg-warning/10 border-warning/30 text-warning hover:bg-warning/20",
   }[color];
   return (
     <button

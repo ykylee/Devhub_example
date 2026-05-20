@@ -30,7 +30,7 @@ function AuthErrorInner() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md glass border-border/60 rounded-[2rem] p-10 shadow-2xl backdrop-blur-2xl text-center space-y-6">
-        <div className="inline-flex p-4 rounded-3xl bg-red-500/15 border border-red-500/30">
+        <div className="inline-flex p-4 rounded-3xl bg-destructive/15 border border-destructive/30">
           <AlertTriangle className="w-10 h-10 text-red-300" />
         </div>
         <div className="space-y-2">

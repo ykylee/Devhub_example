@@ -91,8 +91,8 @@ export function ProviderTable({ items, onEdit, onSync, onDelete, syncingProvider
                   >
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20">
-                          <Plug className="w-5 h-5 text-orange-400" />
+                        <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center border border-accent/20">
+                          <Plug className="w-5 h-5 text-accent" />
                         </div>
                         <div className="min-w-0">
                           <div className="text-xs font-black text-foreground dark:text-primary-foreground tracking-tight truncate max-w-[280px]">
@@ -116,7 +116,7 @@ export function ProviderTable({ items, onEdit, onSync, onDelete, syncingProvider
                     <td className="px-6 py-5 text-center">
                       <Badge variant={sync.variant}>{sync.label}</Badge>
                       {p.last_error_code && (
-                        <p className="text-[9px] text-red-400 mt-1 font-mono">{p.last_error_code}</p>
+                        <p className="text-[9px] text-destructive mt-1 font-mono">{p.last_error_code}</p>
                       )}
                     </td>
                     <td className="px-6 py-5">
@@ -147,7 +147,7 @@ export function ProviderTable({ items, onEdit, onSync, onDelete, syncingProvider
                           type="button"
                           onClick={() => onDelete(p)}
                           disabled={isDeleting}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-[10px] font-bold uppercase tracking-widest text-red-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-destructive/10 hover:bg-destructive/20 text-[10px] font-bold uppercase tracking-widest text-destructive transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           aria-label={`Delete ${p.display_name}`}
                         >
                           <Trash2 className="w-3 h-3" />

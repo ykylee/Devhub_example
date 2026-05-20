@@ -79,7 +79,7 @@ export const OrgNode = memo(({ id, data, selected }: NodeProps<Node<OrgNodeData>
         }}
         className={cn(
           "glass rounded-2xl border p-4 flex flex-col justify-between shadow-2xl",
-          selected ? "border-blue-500/50 ring-2 ring-blue-500/20" : "border-border group-hover:border-border"
+          selected ? "border-info/50 ring-2 ring-info/20" : "border-border group-hover:border-border"
         )}
       >
         <div className="flex items-start justify-between">
@@ -127,12 +127,12 @@ export const OrgNode = memo(({ id, data, selected }: NodeProps<Node<OrgNodeData>
                   </div>
                 </div>
                 <div>
-                  <span className="text-[10px] font-black text-orange-400 uppercase tracking-widest">Leader ID</span>
+                  <span className="text-[10px] font-black text-accent uppercase tracking-widest">Leader ID</span>
                   <input 
                     value={editedLeader}
                     onChange={(e) => setEditedLeader(e.target.value)}
                     placeholder="Enter Leader ID (e.g. u1)"
-                    className="bg-muted/40 border border-border rounded-lg px-2 py-1.5 text-xs font-bold text-foreground focus:outline-none focus:border-orange-500/50 w-full mt-1"
+                    className="bg-muted/40 border border-border rounded-lg px-2 py-1.5 text-xs font-bold text-foreground focus:outline-none focus:border-accent/50 w-full mt-1"
                     onClick={(e) => e.stopPropagation()}
                   />
                 </div>
@@ -146,7 +146,7 @@ export const OrgNode = memo(({ id, data, selected }: NodeProps<Node<OrgNodeData>
           <div className="flex flex-col gap-2 mt-2">
             <div className="flex items-center justify-between border-t border-border/60 pt-2">
                {data.leader_id ? (
-                <div className="flex items-center gap-1.5 text-[9px] font-black text-orange-400 bg-orange-400/10 px-2 py-1 rounded-full border border-orange-400/20">
+                <div className="flex items-center gap-1.5 text-[9px] font-black text-accent bg-accent/10 px-2 py-1 rounded-full border border-accent/20">
                   <Crown className="w-2.5 h-2.5" />
                   {data.leader_id}
                 </div>
@@ -180,7 +180,7 @@ export const OrgNode = memo(({ id, data, selected }: NodeProps<Node<OrgNodeData>
             <>
               <button 
                 onClick={(e) => { e.stopPropagation(); data.onDelete?.(id); }}
-                className="p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+                className="p-1.5 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
                 title="Delete"
               >
                 <Minus className="w-3.5 h-3.5" />

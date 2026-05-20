@@ -131,7 +131,7 @@ function SyncStatusBadge({ status, errorCode }: { status: ApplicationRepositoryS
       return (
         <div className="flex flex-col items-center gap-1">
           <Badge variant="warning" dot>Degraded</Badge>
-          {errorCode && <span className="text-[8px] font-mono text-amber-500 opacity-70">{errorCode}</span>}
+          {errorCode && <span className="text-[8px] font-mono text-warning opacity-70">{errorCode}</span>}
         </div>
       );
     case "disconnected":

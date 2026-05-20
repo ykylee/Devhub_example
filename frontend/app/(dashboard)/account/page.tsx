@@ -78,7 +78,7 @@ export default function AccountPage() {
               </div>
               <div className="flex items-center justify-between px-2">
                 <span className="text-[10px] font-bold text-primary-foreground/50 uppercase tracking-widest">MFA Status</span>
-                <span className="text-[10px] font-bold text-emerald-400 uppercase">Disabled</span>
+                <span className="text-[10px] font-bold text-success uppercase">Disabled</span>
               </div>
             </div>
           </div>
@@ -129,7 +129,7 @@ export default function AccountPage() {
                 ) : (
                   <span
                     data-testid="account-console-unavailable"
-                    className="text-[10px] text-amber-400 font-bold uppercase tracking-widest"
+                    className="text-[10px] text-warning font-bold uppercase tracking-widest"
                   >
                     OIDC issuer URL is not configured
                   </span>
@@ -138,9 +138,9 @@ export default function AccountPage() {
             </div>
           </div>
 
-          <div className="mt-8 glass border-border rounded-3xl p-8 border-l-4 border-l-amber-500/50">
+          <div className="mt-8 glass border-border rounded-3xl p-8 border-l-4 border-l-warning/50">
             <div className="flex items-start gap-4">
-              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500">
+              <div className="p-2.5 rounded-xl bg-warning/10 border border-warning/20 text-warning">
                 <Shield className="w-5 h-5" />
               </div>
               <div className="space-y-1">

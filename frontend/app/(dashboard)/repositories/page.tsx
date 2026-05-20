@@ -87,7 +87,7 @@ export default function RepositoriesStatusPage() {
       />
 
       {error && (
-        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+        <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-sm">
           {error}
         </div>
       )}
@@ -95,9 +95,9 @@ export default function RepositoriesStatusPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
           { label: "Total Repositories", value: totalRepos.toString(), icon: Globe, color: "text-foreground" },
-          { label: "Active PRs (30d)", value: activePRs.toString(), icon: GitPullRequest, color: "text-blue-500" },
+          { label: "Active PRs (30d)", value: activePRs.toString(), icon: GitPullRequest, color: "text-info" },
           { label: "Total Contributors", value: totalContributors.toString(), icon: Users, color: "text-purple-500" },
-          { label: "Build Success Rate", value: `${avgBuildSuccess}%`, icon: Activity, color: "text-emerald-500" },
+          { label: "Build Success Rate", value: `${avgBuildSuccess}%`, icon: Activity, color: "text-success" },
         ].map((stat, i) => (
           <motion.div 
             key={stat.label}
@@ -166,7 +166,7 @@ export default function RepositoriesStatusPage() {
               </div>
               <div>
                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Build Success</p>
-                <p className="text-sm font-mono font-bold text-emerald-500">
+                <p className="text-sm font-mono font-bold text-success">
                   {repo.activity ? `${(repo.activity.build_success_rate * 100).toFixed(1)}%` : "N/A"}
                 </p>
               </div>

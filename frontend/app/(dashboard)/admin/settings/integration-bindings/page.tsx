@@ -98,12 +98,12 @@ export default function AdminSettingsIntegrationBindingsPage() {
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-primary/10 border border-primary/30 rounded-2xl flex items-center justify-center">
-            <Link2 className="w-6 h-6 text-primary" />
+          <div className="w-12 h-12 bg-accent/10 border border-accent/30 rounded-2xl flex items-center justify-center">
+            <Link2 className="w-6 h-6 text-accent" />
           </div>
           <div>
             <h2 className="text-xl font-black text-foreground dark:text-primary-foreground uppercase tracking-tight">
-              Integration <span className="text-primary">Bindings</span>
+              Integration <span className="text-accent">Bindings</span>
             </h2>
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
               provider 와 application/project scope 매핑
@@ -119,7 +119,7 @@ export default function AdminSettingsIntegrationBindingsPage() {
               setScopeFilter(e.target.value as "" | IntegrationScopeType);
               setOffset(0);
             }}
-            className="px-4 py-3 rounded-xl bg-muted/30 border border-border text-foreground dark:text-primary-foreground text-xs font-bold uppercase tracking-widest focus:outline-none focus:border-primary"
+            className="px-4 py-3 rounded-xl bg-muted/30 border border-border text-foreground dark:text-primary-foreground text-xs font-bold uppercase tracking-widest focus:outline-none focus:border-accent"
           >
             <option value="">All scopes</option>
             <option value="application">application</option>
@@ -129,7 +129,7 @@ export default function AdminSettingsIntegrationBindingsPage() {
             type="button"
             onClick={() => setShowCreate(true)}
             disabled={providers.length === 0}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-primary text-primary-foreground font-black uppercase tracking-widest text-[10px] shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-accent text-white font-black uppercase tracking-widest text-[10px] shadow-xl shadow-accent/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus className="w-4 h-4" />
             Create Binding
@@ -138,9 +138,9 @@ export default function AdminSettingsIntegrationBindingsPage() {
       </div>
 
       {providers.length === 0 && !isLoading && (
-        <div className="glass border border-warning/30 bg-warning/5 rounded-2xl p-4 text-xs text-warning font-bold">
+        <div className="glass border border-warning/30 bg-warning/5 rounded-2xl p-4 text-xs text-yellow-300 font-bold">
           등록된 provider 가 없어 binding 을 생성할 수 없습니다. 먼저{" "}
-          <a href="/admin/settings/integrations" className="underline decoration-primary hover:text-primary/80">
+          <a href="/admin/settings/integrations" className="underline decoration-accent hover:text-orange-300">
             Integrations
           </a>{" "}
           탭에서 provider 를 등록하세요.
@@ -149,7 +149,7 @@ export default function AdminSettingsIntegrationBindingsPage() {
 
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-32 gap-4">
-          <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+          <div className="w-12 h-12 border-4 border-accent/20 border-t-accent rounded-full animate-spin" />
           <p className="text-muted-foreground font-bold animate-pulse uppercase tracking-[0.3em] text-[10px]">
             Loading Bindings...
           </p>

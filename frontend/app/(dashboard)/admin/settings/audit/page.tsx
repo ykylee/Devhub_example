@@ -157,8 +157,8 @@ export default function AdminSettingsAuditPage() {
       </motion.div>
 
       {loadError && (
-        <div className="glass border-rose-500/30 rounded-2xl p-4 text-xs text-rose-400 flex items-center gap-3">
-          <div className="w-2 h-2 bg-rose-500 rounded-full animate-pulse" />
+        <div className="glass border-destructive/30 rounded-2xl p-4 text-xs text-destructive flex items-center gap-3">
+          <div className="w-2 h-2 bg-destructive rounded-full animate-pulse" />
           Load failed: {loadError}
         </div>
       )}

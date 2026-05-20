@@ -85,16 +85,16 @@ export default function ApplicationsStatusPage() {
       />
 
       {error && (
-        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+        <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-sm">
           {error}
         </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: "Total Applications", value: totalApps.toString(), icon: Box, color: "text-blue-500" },
-          { label: "Avg. Build Success", value: `${avgSuccessRate}%`, icon: Activity, color: "text-emerald-500" },
-          { label: "Critical Warnings", value: totalCritical.toString(), icon: ShieldCheck, color: totalCritical > 0 ? "text-red-500" : "text-green-500" },
+          { label: "Total Applications", value: totalApps.toString(), icon: Box, color: "text-info" },
+          { label: "Avg. Build Success", value: `${avgSuccessRate}%`, icon: Activity, color: "text-success" },
+          { label: "Critical Warnings", value: totalCritical.toString(), icon: ShieldCheck, color: totalCritical > 0 ? "text-destructive" : "text-success" },
           { label: "Active Regions", value: "Global", icon: Globe, color: "text-purple-500" },
         ].map((stat, i) => (
           <motion.div 

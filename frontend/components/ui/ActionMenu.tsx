@@ -155,7 +155,7 @@ export function ActionMenu({
                   className={cn(
                     "w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors text-left",
                     item.tone === "danger"
-                      ? "text-red-400 hover:bg-red-400/10"
+                      ? "text-destructive hover:bg-destructive/10"
                       : "text-foreground hover:bg-primary/10",
                   )}
                 >

@@ -150,7 +150,7 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
                   ))}
               </select>
             </div>
-            <p className="text-[9px] text-orange-400/60 px-1 italic">
+            <p className="text-[9px] text-accent/60 px-1 italic">
               Note: only repositories with numeric `repository_id` can create projects.
             </p>
           </div>
@@ -233,7 +233,7 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
           </div>
 
           {error && (
-            <div className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl text-[11px] text-orange-400 font-medium">
+            <div className="p-4 bg-accent/10 border border-accent/20 rounded-2xl text-[11px] text-accent font-medium">
               {error}
             </div>
           )}

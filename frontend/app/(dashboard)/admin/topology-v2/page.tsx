@@ -50,19 +50,19 @@ function nodeStatusVariant(status: string): {
   if (norm === "healthy" || norm === "stable" || norm === "ok") {
     return {
       badge: "success",
-      containerCN: "bg-emerald-500/10 border-emerald-500/30 text-emerald-400",
+      containerCN: "bg-success/10 border-success/30 text-success",
     };
   }
   if (norm === "degraded" || norm === "warning") {
     return {
       badge: "warning",
-      containerCN: "bg-amber-500/10 border-amber-500/30 text-amber-400",
+      containerCN: "bg-warning/10 border-warning/30 text-warning",
     };
   }
   if (norm === "down" || norm === "error" || norm === "failed") {
     return {
       badge: "danger",
-      containerCN: "bg-rose-500/10 border-rose-500/30 text-rose-400",
+      containerCN: "bg-destructive/10 border-destructive/30 text-destructive",
     };
   }
   return {
@@ -328,9 +328,8 @@ export default function AdminTopologyV2Page() {
         </motion.div>
       )}
 
-      {/* Error state */}
       {errorMsg && (
-        <div className="glass border border-destructive/40 bg-destructive/10 rounded-2xl p-4 text-xs text-destructive font-bold">
+        <div className="glass border border-destructive/40 bg-destructive/10 rounded-2xl p-4 text-xs text-rose-300 font-bold">
           {errorMsg}
         </div>
       )}

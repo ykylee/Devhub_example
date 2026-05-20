@@ -267,7 +267,7 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
             <motion.div 
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
-              className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl text-[11px] text-orange-400 font-medium"
+              className="p-4 bg-accent/10 border border-accent/20 rounded-2xl text-[11px] text-accent font-medium"
             >
               {error}
             </motion.div>

@@ -39,8 +39,8 @@ export function DevRequestTable({ items, onSelect }: DevRequestTableProps) {
                 >
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20">
-                        <Inbox className="w-5 h-5 text-orange-400" />
+                      <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center border border-accent/20">
+                        <Inbox className="w-5 h-5 text-accent" />
                       </div>
                       <div className="min-w-0">
                         <div className="text-xs font-black text-foreground dark:text-primary-foreground tracking-tight truncate max-w-[420px]">

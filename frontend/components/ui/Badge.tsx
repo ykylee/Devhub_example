@@ -11,9 +11,9 @@ const variants = {
   primary: "bg-primary/10 text-primary border-primary/20",
   secondary: "bg-muted text-muted-foreground border-border",
   accent: "bg-accent/10 text-accent border-accent/20",
-  success: "bg-green-500/10 text-green-500 border-green-500/20",
-  warning: "bg-amber-500/10 text-amber-500 border-amber-500/20",
-  danger: "bg-rose-500/10 text-rose-500 border-rose-500/20",
+  success: "bg-success/10 text-success border-success/20",
+  warning: "bg-warning/10 text-warning border-warning/20",
+  danger: "bg-destructive/10 text-destructive border-destructive/20",
   glass: "glass text-foreground/80 border-border/50",
 };
 

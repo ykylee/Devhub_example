@@ -61,8 +61,8 @@ function CallbackInner() {
           animate={{ opacity: 1, scale: 1 }}
           className="glass border-border/60 rounded-3xl p-8 max-w-md w-full text-center space-y-6 shadow-2xl"
         >
-          <div className="inline-flex p-4 rounded-2xl bg-red-500/10 border border-red-500/20">
-            <AlertCircle className="w-8 h-8 text-red-400" />
+          <div className="inline-flex p-4 rounded-2xl bg-destructive/10 border border-destructive/20">
+            <AlertCircle className="w-8 h-8 text-destructive" />
           </div>
           <h2 className="text-xl font-bold text-foreground">Authentication Failed</h2>
           <p className="text-muted-foreground text-sm leading-relaxed">{error}</p>

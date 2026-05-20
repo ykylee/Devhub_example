@@ -15,7 +15,7 @@ export default function OrganizationDeprecatedPage() {
   }, [router]);
   return (
     <div className="flex items-center justify-center py-20">
-      <Loader2 className="w-6 h-6 text-orange-400 animate-spin" />
+      <Loader2 className="w-6 h-6 text-accent animate-spin" />
     </div>
   );
 }

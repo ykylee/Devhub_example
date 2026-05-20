@@ -128,8 +128,8 @@ export function CreateBindingModal({ providers, onClose, onCreated }: CreateBind
       >
         <div className="flex items-center justify-between p-6 border-b border-border/60">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20">
-              <Link2 className="w-5 h-5 text-orange-400" />
+            <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center border border-accent/20">
+              <Link2 className="w-5 h-5 text-accent" />
             </div>
             <div>
               <h3 className="text-lg font-black text-foreground dark:text-primary-foreground uppercase tracking-tight">
@@ -163,7 +163,7 @@ export function CreateBindingModal({ providers, onClose, onCreated }: CreateBind
                   setScopeType(e.target.value as IntegrationScopeType);
                   setScopeID("");
                 }}
-                className="w-full px-4 py-3 rounded-xl bg-muted/30 border border-border text-foreground dark:text-primary-foreground text-sm focus:outline-none focus:border-orange-400"
+                className="w-full px-4 py-3 rounded-xl bg-muted/30 border border-border text-foreground dark:text-primary-foreground text-sm focus:outline-none focus:border-accent"
               >
                 {scopeTypeOptions.map((s) => (
                   <option key={s} value={s}>{s}</option>
@@ -189,7 +189,7 @@ export function CreateBindingModal({ providers, onClose, onCreated }: CreateBind
                   value={scopeID}
                   onChange={(e) => setScopeID(e.target.value)}
                   placeholder="PROJ-001"
-                  className="w-full px-4 py-3 rounded-xl bg-muted/30 border border-border text-foreground dark:text-primary-foreground font-mono text-sm focus:outline-none focus:border-orange-400"
+                  className="w-full px-4 py-3 rounded-xl bg-muted/30 border border-border text-foreground dark:text-primary-foreground font-mono text-sm focus:outline-none focus:border-accent"
                   required
                 />
               )}
@@ -204,7 +204,7 @@ export function CreateBindingModal({ providers, onClose, onCreated }: CreateBind
               id="provider_id"
               value={providerID}
               onChange={(e) => setProviderID(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-muted/30 border border-border text-foreground dark:text-primary-foreground text-sm focus:outline-none focus:border-orange-400"
+              className="w-full px-4 py-3 rounded-xl bg-muted/30 border border-border text-foreground dark:text-primary-foreground text-sm focus:outline-none focus:border-accent"
               required
             >
               {providers.length === 0 && <option value="">등록된 provider 가 없습니다</option>}
@@ -226,7 +226,7 @@ export function CreateBindingModal({ providers, onClose, onCreated }: CreateBind
               value={externalKey}
               onChange={(e) => setExternalKey(e.target.value)}
               placeholder="JIRA: PROJ / Gitea: org/repo"
-              className="w-full px-4 py-3 rounded-xl bg-muted/30 border border-border text-foreground dark:text-primary-foreground font-mono text-sm focus:outline-none focus:border-orange-400"
+              className="w-full px-4 py-3 rounded-xl bg-muted/30 border border-border text-foreground dark:text-primary-foreground font-mono text-sm focus:outline-none focus:border-accent"
               required
             />
             <p className="text-[10px] text-muted-foreground mt-1.5">
@@ -242,7 +242,7 @@ export function CreateBindingModal({ providers, onClose, onCreated }: CreateBind
               id="policy"
               value={policy}
               onChange={(e) => setPolicy(e.target.value as IntegrationPolicy)}
-              className="w-full px-4 py-3 rounded-xl bg-muted/30 border border-border text-foreground dark:text-primary-foreground text-sm focus:outline-none focus:border-orange-400"
+              className="w-full px-4 py-3 rounded-xl bg-muted/30 border border-border text-foreground dark:text-primary-foreground text-sm focus:outline-none focus:border-accent"
             >
               {policyOptions.map((p) => (
                 <option key={p} value={p}>{p}</option>
@@ -254,7 +254,7 @@ export function CreateBindingModal({ providers, onClose, onCreated }: CreateBind
           </div>
 
           {error && (
-            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-bold">
+            <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-xs font-bold">
               {error}
             </div>
           )}

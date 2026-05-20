@@ -95,7 +95,7 @@ export function PermissionEditor({
                 "flex items-center gap-2 px-4 py-2 font-bold rounded-xl transition-all text-sm",
                 saving || !isDirty
                   ? "bg-muted/50 text-muted-foreground cursor-not-allowed"
-                  : "bg-emerald-500 text-emerald-50 hover:bg-emerald-500/90"
+                  : "bg-success text-emerald-50 hover:bg-success/90"
               )}
             >
               <Save className="w-4 h-4" />
@@ -114,7 +114,7 @@ export function PermissionEditor({
       </div>
 
       {errorMessage && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-red-300">
           {errorMessage}
         </div>
       )}
@@ -140,9 +140,9 @@ export function PermissionEditor({
                   )}
                 >
                   <div className={cn("absolute top-0 left-0 w-1.5 h-full",
-                    role.id === 'system_admin' ? "bg-orange-500" :
-                    role.id === 'manager' ? "bg-emerald-500" :
-                    isSelected ? "bg-primary" : "bg-blue-500"
+                    role.id === 'system_admin' ? "bg-accent" :
+                    role.id === 'manager' ? "bg-success" :
+                    isSelected ? "bg-primary" : "bg-info"
                   )} />
 
                   <div className="flex flex-col gap-3 ml-2">
@@ -154,7 +154,7 @@ export function PermissionEditor({
                         <button
                           onClick={(e) => { e.stopPropagation(); handleDeleteRole(role.id); }}
                           disabled={saving}
-                          className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-30"
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-30"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -169,7 +169,7 @@ export function PermissionEditor({
                         {Object.keys(role.permissions).length} Resources Configured
                       </span>
                       {role.system && (
-                        <span className="text-[10px] font-bold text-orange-400/70 uppercase tracking-wider ml-1">
+                        <span className="text-[10px] font-bold text-accent/70 uppercase tracking-wider ml-1">
                           System
                         </span>
                       )}
@@ -238,7 +238,7 @@ function LegendChip({ type, label }: { type: 'read' | 'write' | 'admin'; label: 
   };
   const styles = {
     read: "bg-muted/40 border-border text-foreground",
-    write: "bg-blue-500/10 border-blue-500/30 text-blue-300",
+    write: "bg-info/10 border-info/30 text-blue-300",
     admin: "bg-accent/15 border-accent/40 text-accent"
   };
   const Icon = icons[type];

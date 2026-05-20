@@ -75,7 +75,7 @@ export function OrgUnitGrid({ nodes, unitMembers, onManage }: OrgUnitGridProps) 
                   {node.data.label}
                 </h4>
                 {node.data.leader_id && (
-                  <div className="flex items-center gap-1.5 text-[10px] font-bold text-orange-400 mb-6 bg-orange-400/10 w-fit px-2 py-0.5 rounded-full border border-orange-400/20">
+                  <div className="flex items-center gap-1.5 text-[10px] font-bold text-accent mb-6 bg-accent/10 w-fit px-2 py-0.5 rounded-full border border-accent/20">
                     Leader: {node.data.leader_id}
                   </div>
                 )}

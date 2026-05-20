@@ -67,9 +67,9 @@ export default function AdminDashboard() {
           },
           className: cn(
             "glass rounded-2xl p-6 font-black shadow-2xl min-w-[200px] text-center border transition-all duration-500",
-            n.status === 'stable' ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" :
-            n.status === 'warning' ? "bg-amber-500/10 border-amber-500/30 text-amber-400" :
-            "bg-rose-500/10 border-rose-500/30 text-rose-400"
+            n.status === 'stable' ? "bg-success/10 border-success/30 text-success" :
+            n.status === 'warning' ? "bg-warning/10 border-warning/30 text-warning" :
+            "bg-destructive/10 border-destructive/30 text-destructive"
           )
         }));
 
@@ -80,7 +80,7 @@ export default function AdminDashboard() {
           label: e.label,
           animated: true,
           style: { 
-            stroke: e.status === 'stable' ? '#10b981' : '#f59e0b', 
+            stroke: e.status === 'stable' ? 'var(--success)' : 'var(--warning)', 
             strokeWidth: 2 
           }
         }));
@@ -119,9 +119,9 @@ export default function AdminDashboard() {
             },
             className: cn(
               "glass rounded-2xl p-6 font-black shadow-2xl min-w-[200px] text-center border transition-all duration-500",
-              updatedNode.status === 'stable' ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" :
-              updatedNode.status === 'warning' ? "bg-amber-500/10 border-amber-500/30 text-amber-400" :
-              "bg-rose-500/10 border-rose-500/30 text-rose-400"
+              updatedNode.status === 'stable' ? "bg-success/10 border-success/30 text-success" :
+              updatedNode.status === 'warning' ? "bg-warning/10 border-warning/30 text-warning" :
+              "bg-destructive/10 border-destructive/30 text-destructive"
             )
           };
         }
@@ -171,7 +171,7 @@ export default function AdminDashboard() {
             System <span className="text-gradient">Infrastructure</span>
           </h1>
           <p className="text-muted-foreground text-lg flex items-center gap-2">
-            <Globe className="w-4 h-4 text-primary" /> Global Cluster Status • <span className="text-foreground font-bold uppercase tracking-widest text-xs bg-green-500/20 px-2 py-0.5 rounded border border-green-500/20">All Systems Nominal</span>
+            <Globe className="w-4 h-4 text-primary" /> Global Cluster Status • <span className="text-foreground font-bold uppercase tracking-widest text-xs bg-success/20 px-2 py-0.5 rounded border border-success/20">All Systems Nominal</span>
           </p>
         </motion.div>
 
@@ -326,6 +326,11 @@ export default function AdminDashboard() {
         {/* Decorative corner glow */}
         <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute -top-20 -left-20 w-80 h-80 bg-accent/10 rounded-full blur-[120px] pointer-events-none" />
+      </section>
+    </div>
+  );
+}
+ts-none" />
       </section>
     </div>
   );

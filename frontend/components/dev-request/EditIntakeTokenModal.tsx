@@ -104,12 +104,12 @@ export function EditIntakeTokenModal({ token, onClose, onUpdated }: EditIntakeTo
       >
         <div className="p-8 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-orange-500/20 rounded-xl flex items-center justify-center">
-              <Key className="w-5 h-5 text-orange-400" />
+            <div className="w-10 h-10 bg-accent/20 rounded-xl flex items-center justify-center">
+              <Key className="w-5 h-5 text-accent" />
             </div>
             <div>
               <h2 id="edit-token-modal-title" className="text-xl font-black text-foreground dark:text-primary-foreground uppercase tracking-tight">
-                Edit <span className="text-orange-400">Intake Token</span>
+                Edit <span className="text-accent">Intake Token</span>
               </h2>
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                 토큰 운영 설정 변경 및 기간 연장
@@ -151,7 +151,7 @@ export function EditIntakeTokenModal({ token, onClose, onUpdated }: EditIntakeTo
               type="datetime-local"
               value={expiresAt}
               onChange={(e) => setExpiresAt(e.target.value)}
-              className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-orange-400/50"
+              className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-accent/50"
             />
             <p className="text-[10px] text-muted-foreground/60 px-1">토큰 만료 일시. 비워두면 무기한 사용 가능한 토큰으로 연장됩니다.</p>
           </div>
@@ -165,13 +165,13 @@ export function EditIntakeTokenModal({ token, onClose, onUpdated }: EditIntakeTo
                   value={ip}
                   onChange={(e) => updateIP(idx, e.target.value)}
                   placeholder="e.g. 10.0.0.0/24 or 192.0.2.7"
-                  className="flex-1 bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm font-mono text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-orange-400/50"
+                  className="flex-1 bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm font-mono text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-accent/50"
                 />
                 <button
                   type="button"
                   onClick={() => removeIP(idx)}
                   disabled={allowedIPs.length === 1 && ip === ""}
-                  className="glass border-border px-4 rounded-2xl hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 transition-all text-muted-foreground disabled:opacity-30"
+                  className="glass border-border px-4 rounded-2xl hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive transition-all text-muted-foreground disabled:opacity-30"
                   aria-label={`Remove IP ${idx + 1}`}
                 >
                   <Trash2 className="w-4 h-4" />
@@ -195,7 +195,7 @@ export function EditIntakeTokenModal({ token, onClose, onUpdated }: EditIntakeTo
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
-              className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl text-[11px] text-orange-400 font-medium flex items-center gap-2"
+              className="p-4 bg-accent/10 border border-accent/20 rounded-2xl text-[11px] text-accent font-medium flex items-center gap-2"
             >
               <AlertTriangle className="w-4 h-4" />
               {error}
@@ -206,7 +206,7 @@ export function EditIntakeTokenModal({ token, onClose, onUpdated }: EditIntakeTo
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-[11px] text-emerald-400 font-bold flex items-center gap-2"
+              className="p-4 bg-success/10 border border-success/20 rounded-2xl text-[11px] text-success font-bold flex items-center gap-2"
             >
               <Check className="w-4 h-4" />
               성공적으로 변경 사항이 갱신되었습니다!

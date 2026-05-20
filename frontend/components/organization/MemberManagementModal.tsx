@@ -196,14 +196,14 @@ export function MemberManagementModal({
                     className={cn(
                       "flex items-center justify-between p-3 rounded-xl group transition-colors border",
                       isLeader
-                        ? "bg-amber-500/10 border-amber-500/30"
+                        ? "bg-warning/10 border-warning/30"
                         : "border-transparent hover:border-accent/20 hover:bg-accent/10",
                     )}
                   >
                     <button
                       type="button"
                       onClick={() => toggleMember(member.id)}
-                      className="p-1.5 rounded-lg bg-red-500/10 text-red-400 opacity-100 transition-opacity"
+                      className="p-1.5 rounded-lg bg-destructive/10 text-destructive opacity-100 transition-opacity"
                       title="Remove from unit"
                     >
                       <ChevronLeft className="w-4 h-4" />
@@ -211,7 +211,7 @@ export function MemberManagementModal({
                     <div className="flex items-center gap-3 text-right flex-1 justify-end">
                       <div className="text-right">
                         <p className="text-sm font-bold text-foreground group-hover:text-accent transition-colors flex items-center justify-end gap-2">
-                          {isLeader && <Crown className="w-3.5 h-3.5 text-amber-400" />}
+                          {isLeader && <Crown className="w-3.5 h-3.5 text-warning" />}
                           {member.name}
                         </p>
                         <p className="text-[10px] text-muted-foreground flex items-center justify-end gap-2">
@@ -231,7 +231,7 @@ export function MemberManagementModal({
                       className={cn(
                         "ml-2 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1",
                         isLeader
-                          ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                          ? "bg-warning/20 text-amber-300 border border-warning/40"
                           : "bg-muted/30 text-muted-foreground border border-border opacity-100",
                       )}
                       title={isLeader ? "Remove leader" : "Set as leader"}
@@ -256,12 +256,12 @@ export function MemberManagementModal({
           <div className="flex flex-col gap-1 min-w-0">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
               {selectedIds.size} total personnel · leader:{" "}
-              <span className={cn("ml-1", leaderId ? "text-amber-500" : "text-muted-foreground")}>
+              <span className={cn("ml-1", leaderId ? "text-warning" : "text-muted-foreground")}>
                 {leaderId ? allMembers.find((m) => m.id === leaderId)?.name ?? leaderId : "(none)"}
               </span>
             </p>
             {saveError && (
-              <p className="text-[10px] font-bold text-red-400 truncate" title={saveError}>
+              <p className="text-[10px] font-bold text-destructive truncate" title={saveError}>
                 {saveError}
               </p>
             )}
