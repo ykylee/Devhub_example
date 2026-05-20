@@ -1,0 +1,112 @@
+{
+  "_comment_header": [
+    "DevHub production realm — REFERENCE TEMPLATE for external Keycloak operations.",
+    "",
+    "본 파일은 git 추적되는 reference 다. 실제 운영 realm 은 사내 운영팀이 별도 관리하며",
+    "본 저장소의 docker-compose.deploy.yml 은 본 파일을 자동 import 하지 않는다.",
+    "운영팀은 본 파일을 export 자산으로 가져가 적용 후 환경별 수정 (DEVHUB_HOST 치환,",
+    "client secret 발급, user federation 등) 을 수행한다.",
+    "",
+    "치환 placeholder:",
+    "  __DEVHUB_HOST__               = devhub 외부 hostname (예: devhub.example.com)",
+    "  __DEVHUB_BACKEND_SECRET__     = devhub-backend confidential client secret (운영팀 발급)",
+    "",
+    "관련 ADR / 문서:",
+    "  - docs/adr/0018-single-port-reverse-proxy-policy.md",
+    "  - docs/adr/0019-keycloak-only-idp.md",
+    "  - docs/setup/keycloak_operations.md",
+    "  - infra/idp/README.md §2.2 외부 Keycloak 모드"
+  ],
+  "id": "devhub",
+  "realm": "devhub",
+  "enabled": true,
+  "displayName": "DevHub (production)",
+  "eventsListeners": [ "jboss-logging", "devhub-event-listener" ],
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "roles": {
+    "realm": [
+      { "name": "developer",     "description": "DevHub Developer Role" },
+      { "name": "manager",       "description": "DevHub Manager Role" },
+      { "name": "pmo_manager",   "description": "DevHub PMO Manager Role" },
+      { "name": "system_admin",  "description": "DevHub System Administrator Role" }
+    ]
+  },
+  "groups": [
+    { "name": "devhub-developers",     "path": "/devhub-developers",     "realmRoles": [ "developer" ] },
+    { "name": "devhub-managers",       "path": "/devhub-managers",       "realmRoles": [ "manager" ] },
+    { "name": "devhub-pmo-managers",   "path": "/devhub-pmo-managers",   "realmRoles": [ "pmo_manager" ] },
+    { "name": "devhub-system-admins",  "path": "/devhub-system-admins",  "realmRoles": [ "system_admin" ] }
+  ],
+  "clients": [
+    {
+      "clientId": "devhub-frontend",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "https://__DEVHUB_HOST__/devhub/auth/callback"
+      ],
+      "webOrigins": [
+        "https://__DEVHUB_HOST__"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "https://__DEVHUB_HOST__/devhub/##https://__DEVHUB_HOST__/devhub/auth/login"
+      },
+      "protocolMappers": [
+        {
+          "name": "audience-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "devhub-frontend",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        },
+        {
+          "name": "employee_id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "employee_id",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "employee_id",
+            "jsonType.label": "String",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "devhub-backend",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "__DEVHUB_BACKEND_SECRET__",
+      "serviceAccountsEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "authorizationServicesEnabled": false
+    }
+  ],
+  "users": [
+    {
+      "username": "service-account-devhub-backend",
+      "enabled": true,
+      "serviceAccountClientId": "devhub-backend",
+      "clientRoles": {
+        "realm-management": [
+          "view-users",
+          "query-users",
+          "view-events",
+          "view-realm"
+        ]
+      }
+    }
+  ]
+}

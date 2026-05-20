@@ -1,214 +1,57 @@
-# DevHub IdP — Ory Hydra + Kratos Setup Guide (historical, deprecated 2026-05-19)
+# DevHub IdP 자산 — Keycloak 단일화 (ADR-0019)
 
-- 문서 목적: ADR-0001 (Hydra+Kratos) 결정에 따라 Ory Hydra + Ory Kratos 를 native binary 로 가동하는 일반 환경 setup 가이드. **본 가이드는 2026-05-18 PR #167 (Keycloak 단일화 refactor) 로 deprecate 됨**.
-- 범위: binary 설치 → DB schema → 마이그레이션 → 가동 → OIDC client 등록 → round-trip 검증.
-- 대상 독자: DevHub 개발자 (신규 합류자 포함), 운영자.
-- 상태: **deprecated (2026-05-19)** — [ADR-0019 Keycloak 단일화](../../docs/adr/0019-keycloak-only-idp.md) 로 IdP stack 전환. 현재 운영 가이드는 [test-server-deployment.md](../../docs/setup/test-server-deployment.md) + [environment-setup.md](../../docs/setup/environment-setup.md) (Keycloak 기준 정합화, PR #167 KC-PR-F).
-- 최종 수정일: 2026-05-19 (deprecation banner 추가, sprint `claude/work_260519-a`)
+- 문서 목적: DevHub 의 IdP 자산 디렉터리 (`infra/idp/`) 의 현행 구성과 사용 방법을 정의한다.
+- 범위: 로컬 테스트 모드 (compose `local-idp` profile) 와 외부 Keycloak 모드의 분기, realm import 파일 사용 SOP.
+- 대상 독자: DevHub 개발자, 운영자, 신규 합류자.
+- 상태: active
+- 최종 수정일: 2026-05-20
 - 관련 문서:
-    - [ADR-0019 — Keycloak 단일화 (현재 결정)](../../docs/adr/0019-keycloak-only-idp.md)
-    - [ADR-0001 — IdP 선택 (Hydra+Kratos, superseded)](../../docs/adr/0001-idp-selection.md)
-    - [ENVIRONMENT_NOTES.md — 이 저장소가 가정하는 사내 corp 환경 특수 제약](./ENVIRONMENT_NOTES.md)
-    - [backend_development_roadmap.md P1](../../ai-workflow/memory/backend_development_roadmap.md)
-
-> ⚠ **Deprecated (2026-05-19)**: 본 가이드의 Hydra/Kratos 가동 절차는 historical reference 로 보존된다. 현재 IdP 는 Keycloak 단일화 (ADR-0019). Keycloak 환경 구성은 docs/planning/keycloak_only_refactor_execution_plan.md §6 (Keycloak 서버 구성) + docs/setup/test-server-deployment.md 참조.
-
-> ℹ️ 본 가이드는 보통의 개발 환경(외부 인터넷 접근, Scoop/brew 등 표준 패키지 매니저 사용 가능)을 가정한다. 사내 SSL inspection·GoProxy 미러 제약이 있는 환경에 대한 우회 절차는 [ENVIRONMENT_NOTES.md](./ENVIRONMENT_NOTES.md) 를 별도로 본다.
-
-## 0. 전제
-
-- 로컬 PostgreSQL 가 `127.0.0.1:5432` 에 가동 중이고 DB `devhub` 에 접근 가능 (`postgres`/`postgres`, 또는 동등 사용자).
-- DevHub backend-core 마이그레이션 `000001~000004` 가 적용된 상태.
-- DevHub backend-core (`go run ./backend-core`) 와 frontend (`npm run dev`) 가 가동 가능한 상태.
-- **Docker / docker-compose 미사용** (정책, ADR-0001 §2).
-
-## 1. Hydra / Kratos binary 설치
-
-> Ory Hydra/Kratos 의 `go.mod` 가 `replace` 지시문을 포함하므로 **`go install` 은 사용할 수 없다** (Go 도구의 일반 제약). 표준 설치 경로는 OS 별 패키지 매니저 또는 GitHub release binary.
-
-### 1.1 Windows (권장: Scoop 또는 헬퍼 스크립트)
-
-옵션 A — **Scoop**:
-
-```powershell
-scoop bucket add ory https://github.com/ory/scoop.git
-scoop install ory/hydra ory/kratos
-```
-
-옵션 B — **본 저장소 헬퍼 스크립트** (Scoop 사용 불가 시):
-
-```powershell
-.\infra\idp\scripts\install-binaries.ps1
-# 버전/위치 지정:
-.\infra\idp\scripts\install-binaries.ps1 -Version 26.2.0 -BinDir "$env:USERPROFILE\go\bin"
-```
-
-스크립트는 GitHub release 에서 `<name>_<ver>-windows_sqlite_64bit.zip` 을 받아 `$env:USERPROFILE\go\bin\` 에 `.exe` 를 배치한다. SQLite 변형은 CGO 의존이 없고 embed 된 migration 자산을 포함한다.
-
-### 1.2 macOS
-
-```bash
-brew install ory/tap/hydra ory/tap/kratos
-```
-
-### 1.3 Linux
-
-GitHub release 의 tar.gz 를 다운로드해 PATH 에 풀거나, 사용 중인 distro 의 패키지 매니저를 사용한다.
-
-- https://github.com/ory/hydra/releases/latest
-- https://github.com/ory/kratos/releases/latest
-
-### 1.4 설치 확인
-
-```powershell
-hydra version
-kratos version
-```
-
-두 명령 모두 동일한 release-train 버전 (예: `v26.2.0`) 을 출력해야 한다.
-
-## 2. DB schema 생성
-
-Hydra/Kratos 는 `?search_path=...` DSN 옵션이 가리키는 schema 안에 자체 테이블을 만든다. 하지만 schema 자체는 미리 만들어 둬야 한다 (ADR-0001 §8.1 결정 — 단일 `devhub` DB 안 분리).
-
-> 💡 본 절(2) 과 다음 절(3, Hydra/Kratos migrate) 의 단계는 `dev-up.ps1` / `dev-up.sh` 가 자동 실행한다 (모두 idempotent). 일상 개발에선 본 절차를 외울 필요 없이 `./dev-up.sh` 한 번이면 충분하다. `DEVHUB_SKIP_IDP_MIGRATE=1` 로 자동화를 우회할 수 있다. 아래 내용은 디버깅이나 수동 실행이 필요한 경우의 reference.
-
-### 2.1 표준 경로 — psql
-
-```powershell
-psql -U postgres -d devhub -f infra/idp/sql/001_create_idp_schemas.sql
-psql -U postgres -d devhub -c "\dn"
-```
-
-`hydra`, `kratos` schema 가 출력되면 성공.
-
-### 2.2 폴백 — psql 없는 환경용 Go 헬퍼
-
-dev workstation 에 `psql` 이 설치되어 있지 않을 경우 본 저장소의 헬퍼를 사용한다:
-
-```powershell
-Push-Location backend-core
-go run ./cmd/idp-apply-schemas -sql ..\infra\idp\sql\001_create_idp_schemas.sql
-Pop-Location
-```
-
-헬퍼는 backend-core 의 pgx/v5 의존성을 재사용해 SQL 파일을 실행한다. 자세한 배경은 [ENVIRONMENT_NOTES.md](./ENVIRONMENT_NOTES.md) 참조.
-
-## 3. Hydra / Kratos 자체 마이그레이션
-
-각 도구가 자기 schema 안에 테이블을 생성한다.
-
-```powershell
-$DSN_HYDRA  = "postgres://postgres:postgres@127.0.0.1:5432/devhub?sslmode=disable&search_path=hydra"
-$DSN_KRATOS = "postgres://postgres:postgres@127.0.0.1:5432/devhub?sslmode=disable&search_path=kratos"
-
-hydra migrate sql up --yes $DSN_HYDRA
-kratos migrate sql up --yes $DSN_KRATOS
-```
-
-> Hydra v26 부터 `hydra migrate sql` (목적어 없는 형태) 는 deprecated. 위처럼 `up` 을 명시한다.
-
-상태 확인:
-
-```powershell
-hydra migrate sql status $DSN_HYDRA | Select-Object -Last 5
-kratos migrate sql status $DSN_KRATOS | Select-Object -Last 5
-```
-
-모든 행이 `Applied` 상태여야 한다.
-
-## 4. Hydra / Kratos 가동
-
-별도 창 2개에서 각각 실행 (운영 환경에서는 시스템 서비스로 등록 — ADR-0001 §8.7).
-
-> ⚠️ Kratos 는 `identity.schemas[].url=file://./...` 를 **process working directory 기준** 으로 해석한다. 반드시 **저장소 루트**에서 launch 한다.
-
-```powershell
-# 창 A — Kratos (저장소 루트에서)
-kratos serve --config infra\idp\kratos.yaml
-
-# 창 B — Hydra (개발용 --dev: HTTPS 강제 해제)
-hydra serve all --config infra\idp\hydra.yaml --dev
-```
-
-가동 확인:
-
-```powershell
-Invoke-WebRequest http://localhost:4444/.well-known/openid-configuration -UseBasicParsing | ConvertFrom-Json | Select-Object issuer, authorization_endpoint, token_endpoint, jwks_uri
-Invoke-WebRequest http://localhost:4445/health/ready -UseBasicParsing
-Invoke-WebRequest http://localhost:4433/health/ready -UseBasicParsing
-Invoke-WebRequest http://localhost:4434/health/ready -UseBasicParsing
-```
-
-Hydra `:4444 / :4445`, Kratos `:4433 / :4434` 가 모두 응답하면 OK.
-
-## 5. DevHub OIDC client 등록
-
-Hydra 가 가동 중인 상태에서 한 번만 실행한다 (멱등 — 기존 `devhub-frontend` client 가 있으면 삭제 후 재생성).
-
-> 💡 본 단계도 `dev-up.ps1` / `dev-up.sh` 가 hydra 준비 직후 자동 호출한다. 일상 개발은 본 절차를 외울 필요 없이 `./dev-up.sh` 하나로 충분. `DEVHUB_SKIP_OIDC_REGISTER=1` 로 자동화를 우회할 수 있다. 아래 명령은 디버깅 / 수동 재등록용 reference.
-
-```powershell
-.\infra\idp\scripts\register-devhub-client.ps1
-```
-
-macOS / Linux:
-
-```sh
-./infra/idp/scripts/register-devhub-client.sh
-```
-
-확인:
-
-```powershell
-hydra list oauth2-clients --endpoint http://localhost:4445
-```
-
-`devhub-frontend` 가 목록에 보여야 한다.
-
-> 본 스크립트는 Hydra Admin REST API (`POST /admin/clients`) 를 호출해 `client_id=devhub-frontend` 를 명시적으로 지정한다. Hydra v26 의 `hydra create oauth2-client` CLI 는 `--client-id` 플래그를 무시하고 UUID 를 자동 발급하므로 재현 가능한 PoC 에는 부적합하다.
-
-## 6. round-trip 검증
-
-> 이 단계는 frontend `/auth/login`, `/auth/consent`, `/auth/callback` 라우트 구현이 선행되어야 한다 (Phase 5). frontend 라우트가 준비되면 본 절차로 검증한다.
-
-흐름:
-1. 브라우저에서 `http://localhost:3000/auth/login` 진입 → DevHub Next.js 가 Hydra `/oauth2/auth?client_id=devhub-frontend&code_challenge=...&...` 로 redirect.
-2. Hydra 가 `login_challenge` 를 붙여 Kratos 의 login UI URL (Next.js `/auth/login`) 로 redirect.
-3. 사용자가 Kratos public flow 로 자격 증명 검증.
-4. Next.js 가 Hydra `accept login` (admin API) → `skip_consent=true` 로 자동 consent → `/auth/callback?code=...` 로 redirect.
-5. Next.js 가 Hydra `/oauth2/token` 으로 code 교환 → ID Token + Access Token + Refresh Token 수신.
-
-## 포트 요약
-
-| 서비스 | URL |
-| --- | --- |
-| Frontend (Next.js) | http://localhost:3000 |
-| Backend Core (Go Core) | http://localhost:8080 |
-| Hydra public | http://localhost:4444 |
-| Hydra admin | http://localhost:4445 |
-| Kratos public | http://localhost:4433 |
-| Kratos admin | http://localhost:4434 |
-| PostgreSQL | 127.0.0.1:5432 (DB=devhub) |
-
-## 일반적인 함정 (general gotchas)
-
-`go install` 미지원 외에도 환경에 무관하게 적용되는 Ory 도구의 quirks:
-
-- **Hydra v26 CLI `--client-id` 무시**: `hydra create oauth2-client` 는 client_id 를 자동 UUID 로 발급. 재현 가능한 등록은 admin REST API 사용 (본 저장소의 `register-devhub-client.ps1` 가 이 경로).
-- **`hydra migrate sql` deprecated**: v26 부터 `hydra migrate sql up` 으로 명시.
-- **Kratos identity schema URL 의 cwd 의존**: `identity.schemas[].url=file://./...` 가 process cwd 기준 해석. 저장소 루트에서 launch 해야 한다.
-- **Kratos `secrets.cipher` 길이 ≤ 32 byte**: AES-256 의 max key length. 더 길면 부팅 실패.
-
-## 운영 환경 전환 시 검토 항목
-
-PoC 가동 후 운영 진입 전 별도 결정·교체 필요:
-
-- `hydra.yaml` `secrets.system`, `kratos.yaml` `secrets.cookie` / `secrets.cipher` 운영 secret 으로 교체 (예: 사내 vault).
-- Hydra `--dev` 플래그 제거 + 운영 도메인 HTTPS 인증서.
-- Hydra/Kratos 호스트 시스템 서비스 등록 (Windows Service / systemd / launchd) — ADR-0001 §8.7.
-- Hydra/Kratos 별 전용 DB role 분리 (현재 `postgres` 슈퍼유저 그대로).
-- `register-devhub-client.ps1` 의 redirect URI / post-logout URI 를 운영 도메인으로 교체.
-- `kratos.yaml` `courier.smtp` 를 실제 메일 서버 (예: 사내 SMTP relay) 로 교체. recovery flow 활성 결정.
-- Hydra 서명 키 회전 정책 결정 (PoC 는 default JWKS 자동 생성).
-- 외부 SaaS client 추가 시 consent UI 구현 (ADR-0001 §8.2).
+  - [ADR-0019 — Keycloak 단일화](../../docs/adr/0019-keycloak-only-idp.md)
+  - [ADR-0018 — 단일 외부 포트 역프록시 정책](../../docs/adr/0018-single-port-reverse-proxy-policy.md)
+  - [docs/setup/keycloak_operations.md](../../docs/setup/keycloak_operations.md)
+  - [docs/setup/single_port_deployment.md](../../docs/setup/single_port_deployment.md)
+  - [_archive_hydra_kratos/](./_archive_hydra_kratos/) — ADR-0001 시기 Hydra/Kratos 자산 (archive)
+
+## 1. 구성 파일
+
+| 파일 | 용도 | 모드 |
+| --- | --- | --- |
+| `keycloak-realm.dev.json` | 로컬 테스트 / CI / smoke 용 realm import. `displayName: "DevHub Local Testing"`. localhost wildcard 포함. | 로컬 모드 only |
+| `keycloak-realm.prod.json` | 외부 Keycloak 운영팀 reference 템플릿. 실제 운영 hostname 만 redirect_uri 허용. | 외부 모드 template |
+| `identity.schema.json` | Kratos 시기 identity schema (legacy). Keycloak 으로 전환 후 직접 사용되지 않으나 user 속성 mapping 참고용으로 보존. | reference |
+| `sql/003_seed_test_admin.sql` | smoke test 용 `test` 계정 시드 (`users` 테이블, DevHub schema). Idempotent. | dev / smoke |
+| `_archive_hydra_kratos/` | ADR-0001 시기 자산 (deprecated, ADR-0019 supersedes). | archive only |
+
+## 2. 두 가지 모드
+
+### 2.1 로컬 테스트 모드 (compose `local-idp` profile)
+- 용도: 개발자 워크스테이션 또는 CI 에서 짧게 띄우는 일회용 Keycloak 인스턴스.
+- 가동: `docker-compose -f docker-compose.deploy.yml --profile local-idp --profile local-db up`
+- 자동 import: `keycloak-realm.dev.json` (compose 의 `KEYCLOAK_REALM_IMPORT_PATH` default 가 dev.json).
+- 외부 hostname: `KEYCLOAK_HOSTNAME` 으로 nginx 의 외부 hostname 과 일치시킨다.
+- 관계 path: `KC_HTTP_RELATIVE_PATH=/devhub/auth/keycloak` (compose default) — 단일 포트 reverse proxy 와 정합.
+- realm 의 redirect_uris 가 localhost wildcard 를 허용하므로 **운영 환경에서는 절대 사용 금지**.
+
+### 2.2 외부 Keycloak 모드 (compose `local-idp` profile 미활성)
+- 용도: 사내 운영팀이 별도로 관리하는 Keycloak 인스턴스 사용.
+- compose 의 `keycloak` 서비스는 시작되지 않는다.
+- nginx 의 Keycloak upstream 은 `KEYCLOAK_UPSTREAM` 환경변수로 외부 host:port 지정. 예:
+  ```
+  KEYCLOAK_UPSTREAM=kc.internal.example.com:8443
+  ```
+  자세한 절차는 [infra/nginx/README.md](../nginx/README.md).
+- realm 구성: 운영팀이 `keycloak-realm.prod.json` 을 reference 로 자체 realm 을 발급 / 관리. 본 저장소는 추적성 외에 운영 realm 을 git 으로 관리하지 않는다 (CLAUDE.md "환경 특화 자산은 git 추적 외" 정책 정합).
+- backend / frontend env:
+  - `DEVHUB_OIDC_ISSUER_URL=https://<external-keycloak>/<relative-path>/realms/devhub`
+  - `DEVHUB_KEYCLOAK_ADMIN_URL=https://<external-keycloak>/<relative-path>` (또는 internal-only URL)
+  - `NEXT_PUBLIC_OIDC_ISSUER_URL=https://<devhub-host>/devhub/auth/keycloak/realms/devhub` (사용자 브라우저는 항상 DevHub origin 을 거쳐 도달 — 단일 포트 정합)
+
+## 3. realm import 정합 SOP
+
+`docs/setup/keycloak_operations.md` 의 §2 ~ §4 절차를 따른다. 본 README 는 모드 분기와 파일 매핑만 정의한다.
+
+## 4. 단일 포트 컨셉 정합 가드
+
+- 운영 realm 의 `redirectUris` / `webOrigins` 는 단일 포트 entry origin (`https://<devhub-host>/devhub/*`) 만 허용해야 한다.
+- localhost wildcard 또는 `["*"]` 는 dev 외 환경에서 금지.
+- 자세한 정합성 리뷰: [docs/reports/2026-05-20-network-docker-single-port-review.md](../../docs/reports/2026-05-20-network-docker-single-port-review.md).

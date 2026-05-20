@@ -106,19 +106,24 @@ fi
 
 # 2. Keycloak (local dev)
 # Keycloak 은 보통 docker 로 띄우는 것을 권장하나, 8180 포트가 비어있으면 경고를 낸다.
+# KC_HTTP_RELATIVE_PATH=/devhub/auth/keycloak 를 명시해 dev 와 prod 의 issuer path 구조를 일관화
+# (docs/reports/2026-05-20-network-docker-single-port-review.md §4.8 정정).
 if is_port_listening 8180; then
     echo "  Keycloak detected on port 8180."
 else
     echo -e "${YELLOW}Warning: Keycloak not detected on port 8180. 인증이 동작하지 않을 수 있습니다.${NC}"
-    echo "  docker run -d -p 8180:8080 -e KC_BOOTSTRAP_ADMIN_USERNAME=admin -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin quay.io/keycloak/keycloak:26.0 start-dev"
+    echo "  docker run -d -p 8180:8080 \\"
+    echo "    -e KC_BOOTSTRAP_ADMIN_USERNAME=admin -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin \\"
+    echo "    -e KC_HTTP_RELATIVE_PATH=/devhub/auth/keycloak \\"
+    echo "    quay.io/keycloak/keycloak:26.0 start-dev --http-enabled=true --hostname-strict=false"
 fi
 
 # 3. backend-core
 export AUTH_DEV_FALLBACK=true
 export DEVHUB_AUTH_DEV_FALLBACK=1
-# Keycloak default envs for local dev
+# Keycloak default envs for local dev — issuer path 가 prod 와 동일 prefix (/devhub/auth/keycloak/...).
 export DEVHUB_IDP_PROVIDER="${DEVHUB_IDP_PROVIDER:-keycloak}"
-export DEVHUB_OIDC_ISSUER_URL="${DEVHUB_OIDC_ISSUER_URL:-http://localhost:8180/realms/devhub}"
+export DEVHUB_OIDC_ISSUER_URL="${DEVHUB_OIDC_ISSUER_URL:-http://localhost:8180/devhub/auth/keycloak/realms/devhub}"
 export DEVHUB_OIDC_CLIENT_ID="${DEVHUB_OIDC_CLIENT_ID:-devhub-frontend}"
 
 if is_port_listening 8080; then
