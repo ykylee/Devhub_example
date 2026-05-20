@@ -3,8 +3,8 @@
 - 문서 목적: `docs/architecture/` 디렉터리의 진입점. 시스템 설계 자료를 종류별로 안내한다.
 - 범위: 시스템 전체 설계 본문, ADR (Architecture Decision Records), 컴포넌트별 설계 자료, 통합 로드맵의 아키텍처 측 매핑
 - 대상 독자: 개발자, 설계자, 후속 ADR 작성자
-- 상태: stable
-- 최종 수정일: 2026-05-08 (TBD 스텁 → 인덱스 채움)
+- 상태: accepted
+- 최종 수정일: 2026-05-20
 - 관련 문서: [../README.md](../README.md), [../development_roadmap.md](../development_roadmap.md), [../PROJECT_PROFILE.md](../PROJECT_PROFILE.md)
 
 ## 0. 자료의 위치

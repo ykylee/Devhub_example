@@ -3,8 +3,8 @@
 - 문서 목적: 로그인 세션 모듈과 사용자/조직 관리 모듈의 추적성 미흡 항목을 계획적으로 보완한다.
 - 범위: REQ→UC→ARCH/API→IMPL→UT/TC 체인 보강, API 계약 본문 보강, E2E 카탈로그-실구현 정합성 회복.
 - 대상 독자: Backend/Frontend 담당, QA, 추적성 리뷰어.
-- 상태: active
-- 최종 수정일: 2026-05-13
+- 상태: draft
+- 최종 수정일: 2026-05-20
 - 관련 문서: [추적성 매트릭스](./report.md), [동기화 체크리스트](./sync-checklist.md), [API 계약](../backend_api_contract.md), [M2 인증 TC](../tests/test_cases_m2_auth.md), [M3 조직 TC](../tests/test_cases_m3_organization.md)
 
 ## 1. 미흡 항목 요약
@@ -91,4 +91,3 @@
 | 점검일 | GAP-AUTH-01 | GAP-AUTH-02 | GAP-ORG-01 | GAP-AUTH-03 | 메모 |
 | --- | --- | --- | --- | --- | --- |
 | 2026-05-13 | open | open | open | open | 초기 계획 수립 |
-

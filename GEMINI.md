@@ -66,6 +66,7 @@
 - 백로그 위치 (Branch): `ai-workflow/memory/{branch_name}/backlog/`
 - 세션 인계 문서 (Branch): `ai-workflow/memory/{branch_name}/session_handoff.md`
 - 프로젝트 통합 상태 (Main): `ai-workflow/memory/` 루트 파일
+- 문서 포맷 원칙: 원본은 Markdown(`.md`) 유지, HTML은 보고/취합용 파생 산출물로만 사용 (`docs/governance/document-standards.md` §0)
 
 ## Gemini CLI 전용 메모
 

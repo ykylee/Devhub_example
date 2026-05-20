@@ -3,8 +3,8 @@
 - 문서 목적: [ADR-0019](../adr/0019-keycloak-only-idp.md) Keycloak 단일화 후 frontend e2e (Playwright) 의 잔재 Kratos admin API 의존을 Keycloak admin API 로 전환하는 design.
 - 범위: `frontend/tests/e2e/global-setup.ts` (170 line) + `fixtures.ts` (130 line) + `.env.example` L41-42 의 `KRATOS_ADMIN_URL` 잔재. e2e 시작 시 user seed + signup.spec cleanup 패턴.
 - 대상 독자: Frontend QA, Backend, IdP 운영팀.
-- 상태: planning (draft 1차)
-- 최종 수정일: 2026-05-19
+- 상태: draft
+- 최종 수정일: 2026-05-20
 - 결정 근거 sprint: `claude/work_260519-m`
 - 관련 문서: [ADR-0019 Keycloak 단일화](../adr/0019-keycloak-only-idp.md), [keycloak_operations.md](../setup/keycloak_operations.md), [keycloak_offboarding_immediacy.md](./keycloak_offboarding_immediacy.md) (admin REST path pattern reference).
 

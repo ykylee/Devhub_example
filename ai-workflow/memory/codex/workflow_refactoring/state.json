@@ -1,0 +1,38 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-05-20",
+  "source_of_truth": {
+    "project_profile_path": "ai-workflow/memory/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/codex/workflow_refactoring/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/codex/workflow_refactoring/work_backlog.md",
+    "latest_backlog_path": "ai-workflow/memory/codex/workflow_refactoring/backlog/2026-05-20.md",
+    "repository_assessment_path": "ai-workflow/memory/repository_assessment.md"
+  },
+  "project": {
+    "project_name": "DevHub Example",
+    "document_home": "README.md",
+    "backlog_path": "ai-workflow/memory/codex/workflow_refactoring/backlog/",
+    "handoff_path": "ai-workflow/memory/codex/workflow_refactoring/session_handoff.md"
+  },
+  "session": {
+    "current_baseline": "main 최신 동기화 후 codex/workflow_refactoring 브랜치에서 문서 워크플로우 정리 진행 중.",
+    "current_axis": "문서 포맷 정책 정착 (Markdown source + HTML 파생 산출물) 및 문서 메타 표준화.",
+    "current_focus": "docs/governance, docs/traceability, docs/planning, docs/tests/setup/backend/architecture, docs 루트 정리.",
+    "in_progress_items": [
+      "TASK-DOC-WORKFLOW-REFINEMENT"
+    ],
+    "blocked_items": [],
+    "recent_done_items": [
+      "문서 포맷 정책을 governance/agent 가이드에 반영",
+      "planning 문서 상태값 표준화",
+      "tests/setup/backend/architecture 문서 헤더/상태 정리",
+      "docs 루트 문서 상태값 및 메타 헤더 정리"
+    ]
+  },
+  "branch_memory": {
+    "agent": "codex",
+    "branch": "codex/workflow_refactoring",
+    "path": "ai-workflow/memory/codex/workflow_refactoring/",
+    "flat_memory_policy": "legacy_fallback_and_shared_index_only"
+  }
+}

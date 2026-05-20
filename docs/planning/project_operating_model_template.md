@@ -3,8 +3,8 @@
 - 문서 목적: Application > Repository > Project 기반 운영안을 표준 템플릿으로 기록한다.
 - 범위: 계층 구조, 역할, Jira/Confluence 연결, 로드맵/마일스톤, cadence, KPI, 리스크/의존성.
 - 대상 독자: Chief PL, Delivery PL, 시스템 관리자, 트랙 리드.
-- 상태: template
-- 최종 수정일: 2026-05-13
+- 상태: accepted
+- 최종 수정일: 2026-05-20
 - 관련 문서: [project_management_concept.md](./project_management_concept.md)
 
 ## 1. 기본 정보

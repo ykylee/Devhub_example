@@ -3,8 +3,8 @@
 - 문서 목적: Jira 등 외부 보고용 개발 현황 정리. 본 문서는 작성만 — upload 는 보고자가 직접.
 - 범위: 10 항목 (로그인 / 사용자 관리 / 조직 관리 / 과제 관리 + 요구사항 / 유스케이스 / 설계 + 단위테스트 / E2E 테스트 + 추적성 관리).
 - 대상 독자: 외부 stakeholder (Jira reader), PM/PO, 운영 담당자.
-- 상태: draft (2026-05-18 기준 main HEAD `6648105`)
-- 최종 수정일: 2026-05-18 (sprint -r self-review hotfix 적용)
+- 상태: draft
+- 최종 수정일: 2026-05-20
 - 관련 문서: [통합 로드맵](../development_roadmap.md), [추적성 매트릭스](../traceability/report.md), [거버넌스](../governance/README.md), [세션 인계](../../ai-workflow/memory/session_handoff.md).
 
 ## 본 문서 사용 안내

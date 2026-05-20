@@ -1,5 +1,11 @@
 # Test Report - 2026-05-12 (Milestone M3 Initial)
 
+- 문서 목적: M3 초기 테스트 실행 결과(PASS/FAIL)와 결함 관찰 사항을 기록한다.
+- 범위: 2026-05-12 기준 M2/M3 관련 E2E 수행 결과 스냅샷.
+- 대상 독자: QA, frontend/backend 개발자, 마일스톤 리뷰어.
+- 상태: accepted
+- 최종 수정일: 2026-05-20
+
 ## 1. 요약 (Summary)
 - **총 테스트 수**: 40
 - **성공(Pass)**: 29

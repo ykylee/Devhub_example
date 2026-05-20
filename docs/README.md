@@ -1,5 +1,12 @@
 # DevHub Project Wiki
 
+- 문서 목적: `docs/` 디렉터리의 핵심 문서 진입점을 제공한다.
+- 범위: 요구사항, 아키텍처, 로드맵, 운영/워크플로우 문서 링크.
+- 대상 독자: 모든 contributor (사람 + AI agent), 신규 온보딩 사용자.
+- 상태: accepted
+- 최종 수정일: 2026-05-20
+- 관련 문서: [문서 작성·관리 표준](./governance/document-standards.md), [거버넌스 진입점](./governance/README.md)
+
 Welcome to the DevHub Project Wiki. This directory contains all development-related documentation, including requirements, architecture, and technical specifications.
 
 ## 📖 핵심 문서 (Core Documents)
@@ -22,6 +29,3 @@ AI 워크플로우와 관련된 메타 데이터 및 세션 관리 문서는 `ai
 - **[프로젝트 워크플로우 프로파일](../ai-workflow/memory/PROJECT_PROFILE.md)**: 프로젝트 특화 규칙 및 기본 명령 정의.
 - **[작업 백로그](../ai-workflow/memory/work_backlog.md)**: 현재 진행 중인 작업과 향후 계획.
 - **[세션 인계 문서](../ai-workflow/memory/session_handoff.md)**: 세션 간 작업 상태 공유를 위한 문서.
-
----
-*Last updated: 2026-05-13*

@@ -1,7 +1,10 @@
 # Auth/RBAC 의사결정에서 얻은 교훈
 
+- 문서 목적: Auth/RBAC 의사결정 과정에서 확인된 설계 교훈을 공유한다.
+- 범위: 인증 경계, 문서-런타임 정합성, 권한 노출/실행 분리 원칙.
+- 대상 독자: 외부 개발자, 아키텍처/보안 관심 독자.
 - 상태: draft
-- 최종 수정일: 2026-05-10
+- 최종 수정일: 2026-05-20
 - 원천 문서: `docs/adr/0001-idp-selection.md`, `docs/adr/0002-rbac-policy-edit-api.md`, `docs/architecture.md`
 
 ## 왜 이 주제가 중요했나

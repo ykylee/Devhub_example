@@ -3,8 +3,8 @@
 - 문서 목적: [ADR-0019 §5.3](../adr/0019-keycloak-only-idp.md#53-잔여-carve-out) 잔여 carve out 의 Keycloak `groups` claim → DevHub RBAC role 자동 매핑 design. 1차 산출물은 planning 단계 — Phase 2 진입 시 별도 ADR 승격 결정.
 - 범위: Keycloak group 운영을 통한 DevHub RBAC role 자동 할당 옵션 비교 + 권장 + 운영 SOP. Application/Project Owner 위양 등 [ADR-0011 RBAC row-scoping](../adr/0011-rbac-row-scoping.md) 영역은 본 design 범위 밖.
 - 대상 독자: 아키텍트, 운영자 (SRE / IdP), Backend / IdP 담당자, RBAC 정책 결정자.
-- 상태: planning (draft 1차)
-- 최종 수정일: 2026-05-19
+- 상태: draft
+- 최종 수정일: 2026-05-20
 - 결정 근거 sprint: `claude/work_260519-f`
 - 관련 문서: [ADR-0019 Keycloak 단일화](../adr/0019-keycloak-only-idp.md), [ADR-0011 RBAC row-scoping](../adr/0011-rbac-row-scoping.md), [ADR-0002 RBAC policy edit API](../adr/0002-rbac-policy-edit-api.md), [keycloak_operations.md](../setup/keycloak_operations.md) §4, [backend-core/internal/auth/keycloak_verifier.go](../../backend-core/internal/auth/keycloak_verifier.go) (role extraction logic).
 

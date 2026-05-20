@@ -3,8 +3,8 @@
 - 문서 목적: GitHub Wiki에 게시할 대외 공유용 칼럼/가이드 원고를 관리한다.
 - 범위: 공개 대상 칼럼, 공개형 가이드, 공개형 레퍼런스 요약본
 - 대상 독자: 외부 개발자, 잠재 사용자, 기술 블로그 독자
-- 상태: active
-- 최종 수정일: 2026-05-10
+- 상태: accepted
+- 최종 수정일: 2026-05-20
 - 관련 문서: [분류 기준](./meta/publication_matrix.md), [작성 가이드](./meta/style_guide.md), [내부 docs 인덱스](../docs/DOCUMENT_INDEX.md)
 
 ## 운영 원칙
