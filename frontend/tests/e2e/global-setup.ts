@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import fs from "node:fs";
 import path from "node:path";
 
 const KC_BASE_URL = (process.env.DEVHUB_KEYCLOAK_ADMIN_URL ?? "http://localhost:8180/devhub/auth/keycloak").replace(/\/+$/, "");
@@ -141,33 +142,67 @@ async function ensureRealmRole(token: string, userID: string, roleName: Seed["ro
   }
 }
 
-async function seedKeycloakUsers(): Promise<void> {
+async function seedKeycloakUsers(): Promise<Record<string, string>> {
   const token = await fetchAdminToken();
+  const idMap: Record<string, string> = {};
   for (const seed of SEEDS) {
     const existing = await findUserByEmail(token, seed.email);
     const userID = existing?.id ?? (await createUser(token, seed));
     await resetPassword(token, userID, seed.password);
     await ensureRealmRole(token, userID, seed.role);
-    console.log(`[e2e seed] keycloak user ${seed.email} ${existing ? "present" : "created"} → password reset + role mapped (${seed.role})`);
+    idMap[seed.email] = userID;
+    console.log(`[e2e seed] keycloak user ${seed.email} ${existing ? "present" : "created"} (sub: ${userID}) → password reset + role mapped (${seed.role})`);
   }
+  return idMap;
 }
 
-function seedDevhubUsers(): void {
+// PostgreSQL single-quote escape (' → ''). SEEDS 는 hardcoded array 라 실 위험
+// 낮지만 prepared statement 패턴이 없는 idp-apply-schemas 경로라 명시 escape.
+function sqlEscape(value: string): string {
+  return value.replace(/'/g, "''");
+}
+
+function seedDevhubUsers(idMap: Record<string, string>): void {
   if (!DSN) {
     throw new Error("DSN env var is required for global-setup (DevHub users seed)");
   }
-  const backendDir = path.resolve(__dirname, "..", "..", "..", "backend-core");
-  const sqlPath = path.resolve(__dirname, "..", "..", "..", "infra", "idp", "sql", "002_seed_e2e_users.sql");
-  const result = spawnSync("go", ["run", "./cmd/idp-apply-schemas", "-dsn", DSN, "-sql", sqlPath], {
-    cwd: backendDir,
-    env: { ...process.env, DSN, DEVHUB_DB_URL: DSN },
-    stdio: "inherit",
-    shell: process.platform === "win32",
-  });
-  if (result.status !== 0) {
-    throw new Error(`idp-apply-schemas exited with status ${result.status}`);
+
+  // Dynamic SQL for UPSERTing users with correct idp_subject (sprint -m design Option 1).
+  const values = SEEDS.map(s => {
+    const sub = idMap[s.email] ?? "";
+    return `('${sqlEscape(s.user_id)}', '${sqlEscape(s.email)}', '${sqlEscape(s.display_name)}', '${sqlEscape(s.role)}', 'active', '2026-01-01', 'human', '${sqlEscape(sub)}')`;
+  }).join(",\n    ");
+
+  const sql = `-- Dynamic seed from global-setup.ts
+INSERT INTO users (user_id, email, display_name, role, status, joined_at, user_type, idp_subject)
+VALUES
+    ${values}
+ON CONFLICT (user_id) DO UPDATE SET
+    idp_subject = EXCLUDED.idp_subject,
+    role = EXCLUDED.role,
+    status = EXCLUDED.status;
+`;
+
+  // Unique file name — parallel e2e shard 간 collision 회피 (process.pid + timestamp).
+  const tempSqlPath = path.resolve(__dirname, `temp_seed_e2e_users_${process.pid}_${Date.now()}.sql`);
+  fs.writeFileSync(tempSqlPath, sql);
+
+  try {
+    const backendDir = path.resolve(__dirname, "..", "..", "..", "backend-core");
+    const result = spawnSync("go", ["run", "./cmd/idp-apply-schemas", "-dsn", DSN, "-sql", tempSqlPath], {
+      cwd: backendDir,
+      env: { ...process.env, DSN, DEVHUB_DB_URL: DSN },
+      stdio: "inherit",
+      shell: process.platform === "win32",
+    });
+    if (result.status !== 0) {
+      throw new Error(`idp-apply-schemas exited with status ${result.status}`);
+    }
+    console.log("[e2e seed] DevHub users row seeded with idp_subject sync");
+  } finally {
+    // Always clean up temp SQL even on error.
+    try { fs.unlinkSync(tempSqlPath); } catch { /* ignore */ }
   }
-  console.log("[e2e seed] DevHub users row seeded via idp-apply-schemas");
 }
 
 export default async function globalSetup(): Promise<void> {
@@ -175,6 +210,6 @@ export default async function globalSetup(): Promise<void> {
     console.log("[e2e seed] DEVHUB_E2E_SKIP_SEED=1 -> skipping seed");
     return;
   }
-  await seedKeycloakUsers();
-  seedDevhubUsers();
+  const idMap = await seedKeycloakUsers();
+  seedDevhubUsers(idMap);
 }

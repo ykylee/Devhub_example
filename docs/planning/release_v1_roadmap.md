@@ -108,7 +108,7 @@
 | **P1-2** | ADR-0020 sub-carve D — JWKS stale-while-error expiry case 확장 | ADR-0020 §4.1 D | **Claude (backend)** | sprint -r kid mismatch fallback 자연 확장. Keycloak unreachable 시 uptime 보장 |
 | **P1-3** | ADR-0019 §5.3 — Keycloak group staging-prod 적용 | session_handoff 잔여 carve | **사용자 + Codex** | Keycloak admin 1회 작업 (group 4 + composite role assign) |
 | **P1-4** | ADR-0019 §5.3 — off-boarding Phase 1 cron 실 deploy | session_handoff 잔여 carve | **사용자 (운영팀) + Codex** | `scripts/hrdb_etl_sync.sh` (sprint -p) cron 등록 + 1회 staging 검증 |
-| **P1-5** | ADR-0019 §5.3 — e2e Kratos → Keycloak 실 코드 전환 | session_handoff 잔여 carve | **Gemini (frontend test) + Codex (CI infra)** | sprint -m design 따름. 사내 staging Keycloak e2e 환경 동반. PR #203 의 `ci-e2e-sync-check.sh` 가 CI 단 일부 해소 |
+| **P1-5** | ADR-0019 §5.3 — e2e Kratos → Keycloak 실 코드 전환 | session_handoff 잔여 carve | **Gemini (frontend test done ✅) + Codex (CI infra)** | residual cleanup (ci-setup.sh 제거 + dev-up/down 정리) + global-setup.ts idp_subject UPSERT sync 정합 |
 
 ### 3.3 P2 — v1.0 운영 안정성 + v1.1 carve
 

@@ -40,7 +40,6 @@ jobs:
               - 'backend-ai/**'
               - 'frontend/**'
               - 'infra/idp/**'
-              - 'scripts/ci-setup.sh'
               - 'tests/**'
               - 'Makefile'
             workflow:
