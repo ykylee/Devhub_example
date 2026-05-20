@@ -18,6 +18,11 @@ var (
 	eventsProcessedTotal *prometheus.CounterVec
 	cursorLagSeconds     *prometheus.GaugeVec
 	pullErrorsTotal      *prometheus.CounterVec
+
+	// ADR-0020 sub-carve C (sprint -k, issue #212) — user_sync 운영 가시성.
+	userSyncTotal   *prometheus.CounterVec
+	userSyncErrors  *prometheus.CounterVec
+	userSyncLagSec  prometheus.Histogram
 )
 
 // InitMetrics 는 Keycloak event listener metric 을 한 번만 등록한다. caller (main.go)
@@ -49,6 +54,32 @@ func InitMetrics() {
 		registerCollector(eventsProcessedTotal)
 		registerCollector(cursorLagSeconds)
 		registerCollector(pullErrorsTotal)
+
+		// ADR-0020 sub-carve C (sprint -k, issue #212) — user_sync 3종.
+		userSyncTotal = prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "devhub_keycloak_user_sync_total",
+				Help: "DevHub `users` 컬럼 sync 횟수 (Keycloak admin event 처리 시). action ∈ {profile, membership, status}. ADR-0020 §5.3.",
+			},
+			[]string{"action"},
+		)
+		userSyncErrors = prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "devhub_keycloak_user_sync_errors_total",
+				Help: "DevHub `users` 컬럼 sync 실패 횟수 (admin client fetch / DB UPDATE error 등). ADR-0020 §5.3.",
+			},
+			[]string{"action"},
+		)
+		userSyncLagSec = prometheus.NewHistogram(
+			prometheus.HistogramOpts{
+				Name:    "devhub_keycloak_user_sync_lag_seconds",
+				Help:    "Keycloak event timestamp 와 DevHub `users` write timestamp 의 차이 (s). ADR-0020 §5.3.",
+				Buckets: prometheus.ExponentialBuckets(1, 2, 10), // 1s ~ 1024s (~17m)
+			},
+		)
+		registerCollector(userSyncTotal)
+		registerCollector(userSyncErrors)
+		registerCollector(userSyncLagSec)
 	})
 }
 
@@ -91,4 +122,24 @@ func ObserveCursorLag(cursorKey string, lagSeconds float64) {
 func ObservePullError(kind string) {
 	InitMetrics()
 	pullErrorsTotal.WithLabelValues(kind).Inc()
+}
+
+// ObserveUserSync — ADR-0020 sub-carve C (sprint -k, issue #212). admin event
+// 1건 처리 후 user_sync 1회 성공 시 호출. action label ∈ SyncUserAction.
+func ObserveUserSync(action SyncUserAction) {
+	InitMetrics()
+	userSyncTotal.WithLabelValues(string(action)).Inc()
+}
+
+// ObserveUserSyncError — admin client fetch 또는 DB UPDATE 실패 시 호출.
+func ObserveUserSyncError(action SyncUserAction) {
+	InitMetrics()
+	userSyncErrors.WithLabelValues(string(action)).Inc()
+}
+
+// ObserveUserSyncLag — Keycloak event timestamp 와 DevHub `users` write
+// timestamp 의 차이 (s). lag 가 alert threshold 초과 시 dashboard 가 식별.
+func ObserveUserSyncLag(lagSeconds float64) {
+	InitMetrics()
+	userSyncLagSec.Observe(lagSeconds)
 }

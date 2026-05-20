@@ -191,6 +191,67 @@ LIMIT 1`
 	return user, nil
 }
 
+// GetUserByIdPSubject — ADR-0020 sub-carve C (sprint -k, issue #212 codex P1
+// hotfix). Keycloak admin event 처리 시 ResourcePath 의 identity_id (Keycloak
+// UUID) 로 DevHub users 행을 lookup. USER:DELETE 이벤트 처리 시 Keycloak user
+// 가 이미 gone 이라 admin client GetUserDetails 가 404 — 본 메서드가 유일 lookup
+// 경로. idp_subject 컬럼은 UNIQUE (migration 000009 + 000030 rename) 이라
+// O(1) lookup.
+func (s *PostgresStore) GetUserByIdPSubject(ctx context.Context, identityID string) (domain.AppUser, error) {
+	const query = `
+SELECT
+	id,
+	user_id,
+	email,
+	display_name,
+	role,
+	status,
+	COALESCE(idp_subject, ''),
+	COALESCE(primary_unit_id, ''),
+	COALESCE(current_unit_id, ''),
+	is_seconded,
+	joined_at,
+	created_at,
+	updated_at
+FROM users
+WHERE idp_subject = $1
+LIMIT 1`
+
+	var user domain.AppUser
+	var role string
+	var status string
+	err := s.pool.QueryRow(ctx, query, identityID).Scan(
+		&user.ID,
+		&user.UserID,
+		&user.Email,
+		&user.DisplayName,
+		&role,
+		&status,
+		&user.IdPSubject,
+		&user.PrimaryUnitID,
+		&user.CurrentUnitID,
+		&user.IsSeconded,
+		&user.JoinedAt,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.AppUser{}, fmt.Errorf("user idp_subject=%s: %w", identityID, ErrNotFound)
+		}
+		return domain.AppUser{}, fmt.Errorf("get user idp_subject=%s: %w", identityID, err)
+	}
+	user.Role = domain.AppRole(role)
+	user.Status = domain.UserStatus(status)
+
+	appointments, err := s.GetUserAppointments(ctx, user.UserID)
+	if err != nil {
+		return domain.AppUser{}, err
+	}
+	user.Appointments = appointments
+	return user, nil
+}
+
 // GetUserAppointments returns the appointments (unit memberships and leader
 // assignments) for a single user.
 func (s *PostgresStore) GetUserAppointments(ctx context.Context, userID string) ([]domain.UnitAppointment, error) {

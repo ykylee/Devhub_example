@@ -98,6 +98,9 @@ func TestMapAdminEventToAudit(t *testing.T) {
 		{"USER", "DELETE", "keycloak.user.deleted", "user"},
 		{"REALM_ROLE_MAPPING", "CREATE", "keycloak.user.role.granted", "user"},
 		{"REALM_ROLE_MAPPING", "DELETE", "keycloak.user.role.revoked", "user"},
+		// ADR-0020 sub-carve C (sprint -k, issue #212) — GROUP_MEMBERSHIP 매핑 신규
+		{"GROUP_MEMBERSHIP", "CREATE", "keycloak.user.group.joined", "user"},
+		{"GROUP_MEMBERSHIP", "DELETE", "keycloak.user.group.left", "user"},
 		{"CLIENT", "UPDATE", "keycloak.client.updated", "client"},
 		{"REALM", "UPDATE", "keycloak.realm.updated", "realm"},
 	}
@@ -575,5 +578,137 @@ func TestPullUserEvents_SameMsSkipAndEmit_NextTickDedup(t *testing.T) {
 	// 따라서 emitCount == 0 이 정상.
 	if emitCount != 0 {
 		t.Fatalf("emitCount = %d; want 0 (emit-able boundary 가 dedup 되어야 — codex hotfix #11 회귀)", emitCount)
+	}
+}
+
+// TestClassifyAdminEventForSync — ADR-0020 sub-carve C (sprint -k, issue #212).
+// admin event 분류 helper 의 4 case 검증.
+func TestClassifyAdminEventForSync(t *testing.T) {
+	cases := []struct {
+		name          string
+		ev            KeycloakAdminEvent
+		wantAction    SyncUserAction
+		wantIdentity  string
+	}{
+		{
+			name:         "USER:UPDATE → profile",
+			ev:           KeycloakAdminEvent{ResourceType: "USER", OperationType: "UPDATE", ResourcePath: "users/abc-uuid"},
+			wantAction:   SyncActionProfile,
+			wantIdentity: "abc-uuid",
+		},
+		{
+			name:         "USER:DELETE → status",
+			ev:           KeycloakAdminEvent{ResourceType: "USER", OperationType: "DELETE", ResourcePath: "users/abc-uuid"},
+			wantAction:   SyncActionStatus,
+			wantIdentity: "abc-uuid",
+		},
+		{
+			name:         "GROUP_MEMBERSHIP:CREATE → membership",
+			ev:           KeycloakAdminEvent{ResourceType: "GROUP_MEMBERSHIP", OperationType: "CREATE", ResourcePath: "users/abc-uuid/groups/g1"},
+			wantAction:   SyncActionMembership,
+			wantIdentity: "abc-uuid",
+		},
+		{
+			name:         "USER:CREATE → noop (lazy auto-create scope, identityID 도 미반환)",
+			ev:           KeycloakAdminEvent{ResourceType: "USER", OperationType: "CREATE", ResourcePath: "users/abc-uuid"},
+			wantAction:   "",
+			wantIdentity: "", // noop case 는 identityID 도 미반환 (caller 가 사용 안 함)
+		},
+		{
+			name:         "REALM:UPDATE → noop",
+			ev:           KeycloakAdminEvent{ResourceType: "REALM", OperationType: "UPDATE", ResourcePath: "realm"},
+			wantAction:   "",
+			wantIdentity: "",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			action, identityID, _ := classifyAdminEventForSync(tc.ev)
+			if action != tc.wantAction {
+				t.Errorf("action = %q; want %q", action, tc.wantAction)
+			}
+			if identityID != tc.wantIdentity {
+				t.Errorf("identityID = %q; want %q", identityID, tc.wantIdentity)
+			}
+		})
+	}
+}
+
+// TestPullAdminEvents_InvokesUserSyncCallback — ADR-0020 sub-carve C (sprint -k).
+// admin event loop 에서 USER:UPDATE / USER:DELETE / GROUP_MEMBERSHIP 의 sync
+// callback 호출 검증.
+func TestPullAdminEvents_InvokesUserSyncCallback(t *testing.T) {
+	start := time.Date(2026, 5, 20, 12, 0, 0, 0, time.UTC)
+	events := []KeycloakAdminEvent{
+		{Time: start.Add(1 * time.Second).UnixMilli(), ResourceType: "USER", OperationType: "UPDATE", ResourcePath: "users/u-update-1"},
+		{Time: start.Add(2 * time.Second).UnixMilli(), ResourceType: "USER", OperationType: "DELETE", ResourcePath: "users/u-delete-1"},
+		{Time: start.Add(3 * time.Second).UnixMilli(), ResourceType: "GROUP_MEMBERSHIP", OperationType: "CREATE", ResourcePath: "users/u-group-1/groups/g1"},
+		{Time: start.Add(4 * time.Second).UnixMilli(), ResourceType: "REALM", OperationType: "UPDATE", ResourcePath: "realm"}, // sync 미발동
+	}
+
+	lister := &fakeKeycloakEventLister{adminEvents: events}
+	cursors := newFakeCursorStore()
+	// cursor pre-seed — events 가 cursor.LastEventAt 이전이면 모두 skip 됨.
+	_ = cursors.UpsertEventCursor(context.Background(), store.EventCursor{
+		CursorKey:   adminEventsCursor,
+		LastEventAt: start,
+	})
+	type syncCall struct {
+		action     SyncUserAction
+		identityID string
+	}
+	var calls []syncCall
+	opts := KeycloakEventPullerOptions{
+		AuditEmitter: AuditEmitter(func(_ context.Context, _, _, _, _ string, _ map[string]any) {}),
+		UserSync: UserSyncCallback(func(_ context.Context, action SyncUserAction, identityID, _ string) {
+			calls = append(calls, syncCall{action: action, identityID: identityID})
+		}),
+		Now:       func() time.Time { return start.Add(10 * time.Second) },
+		MaxEvents: 500,
+	}
+	if err := pullAdminEvents(context.Background(), lister, cursors, opts, opts.Now); err != nil {
+		t.Fatalf("pullAdminEvents: %v", err)
+	}
+	want := []syncCall{
+		{action: SyncActionProfile, identityID: "u-update-1"},
+		{action: SyncActionStatus, identityID: "u-delete-1"},
+		{action: SyncActionMembership, identityID: "u-group-1"},
+	}
+	if len(calls) != len(want) {
+		t.Fatalf("sync callback count = %d; want %d (REALM:UPDATE 는 noop)", len(calls), len(want))
+	}
+	for i, c := range calls {
+		if c != want[i] {
+			t.Errorf("call[%d] = %+v; want %+v", i, c, want[i])
+		}
+	}
+}
+
+// TestPullAdminEvents_NilUserSync_BackwardCompatible — UserSync nil 일 때
+// pullAdminEvents 가 panic 없이 동작 (이전 sprint -u~-y 동작 동등).
+func TestPullAdminEvents_NilUserSync_BackwardCompatible(t *testing.T) {
+	start := time.Date(2026, 5, 20, 13, 0, 0, 0, time.UTC)
+	events := []KeycloakAdminEvent{
+		{Time: start.UnixMilli(), ResourceType: "USER", OperationType: "UPDATE", ResourcePath: "users/u1"},
+	}
+	lister := &fakeKeycloakEventLister{adminEvents: events}
+	cursors := newFakeCursorStore()
+	// cursor pre-seed — events 가 cursor.LastEventAt 이전이면 모두 skip 됨.
+	_ = cursors.UpsertEventCursor(context.Background(), store.EventCursor{
+		CursorKey:   adminEventsCursor,
+		LastEventAt: start.Add(-1 * time.Second),
+	})
+	var emitCount int
+	opts := KeycloakEventPullerOptions{
+		AuditEmitter: AuditEmitter(func(_ context.Context, _, _, _, _ string, _ map[string]any) { emitCount++ }),
+		UserSync:     nil, // backward compatible — sub-carve C 비활성
+		Now:          func() time.Time { return start.Add(5 * time.Second) },
+		MaxEvents:    500,
+	}
+	if err := pullAdminEvents(context.Background(), lister, cursors, opts, opts.Now); err != nil {
+		t.Fatalf("pullAdminEvents nil UserSync: %v", err)
+	}
+	if emitCount != 1 {
+		t.Errorf("emit count = %d; want 1 (audit emit 은 그대로)", emitCount)
 	}
 }

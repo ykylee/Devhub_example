@@ -26,6 +26,12 @@ type OrganizationStore interface {
 	// not implement persistence (e.g. memory test fakes) may treat it as a
 	// no-op when the user row is absent.
 	SetIdPSubject(context.Context, string, string) error
+	// GetUserByIdPSubject — ADR-0020 sub-carve C (sprint -k, issue #212 codex
+	// P1 hotfix). Keycloak USER:DELETE event 처리 시 admin client 의
+	// GetUserDetails 가 404 (user 이미 gone) — 본 lookup 이 유일 경로.
+	// idp_subject 컬럼은 UNIQUE (migration 000009 + 000030 rename) O(1).
+	// PostgresStore impl + 테스트 fake 가 satisfies.
+	GetUserByIdPSubject(context.Context, string) (domain.AppUser, error)
 	GetHierarchy(context.Context) (domain.Hierarchy, error)
 	UpdateHierarchy(context.Context, domain.Hierarchy) error
 	GetOrgUnit(context.Context, string) (domain.OrgUnit, error)

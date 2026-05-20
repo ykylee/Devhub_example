@@ -154,6 +154,18 @@ func (s *memoryOrganizationStore) SetIdPSubject(_ context.Context, userID, ident
 	return nil
 }
 
+// GetUserByIdPSubject — ADR-0020 sub-carve C (sprint -k, issue #212 codex P1
+// hotfix). idp_subject 컬럼 lookup. 메모리 fake 는 O(n) 선형 탐색이지만
+// test 용이라 acceptable.
+func (s *memoryOrganizationStore) GetUserByIdPSubject(_ context.Context, identityID string) (domain.AppUser, error) {
+	for _, user := range s.users {
+		if user.IdPSubject == identityID {
+			return user, nil
+		}
+	}
+	return domain.AppUser{}, fmt.Errorf("user idp_subject=%s: %w", identityID, store.ErrNotFound)
+}
+
 func (s *memoryOrganizationStore) GetHierarchy(_ context.Context) (domain.Hierarchy, error) {
 	units := make([]domain.OrgUnit, 0, len(s.units))
 	for _, unit := range s.units {
