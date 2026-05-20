@@ -294,3 +294,4 @@ P1 은 즉시 정정 (image 빌드 가 production 환경에서 부정합 / 보�
   - 초기: localhost 사용 + reverse proxy 정합성 (P1×1 / P2×4 / P3×2)
   - 보강 (사용자 directive): 포트 변경 axes 6개 (redirect, 절대 URL port, build-time inline, Set-Cookie, OIDC allowlist, WebSocket) 추가 점검 → `setup-keycloak.sh` 의 임의 포트 + wildcard 발견 (P1 추가) + dev/prod issuer path 불일치 발견 (P3 추가)
 - **2026-05-20** (브랜치 `claude/network-docker-single-port-cleanup`): 9 항목 중 carve A~H (8건) 동일 PR 에서 정정. Keycloak 로컬/외부 모드 분리 + 단일 포트 컨셉 정합 가드 강화. §6 정정 내역 표 참조.
+- **2026-05-20 (codex hotfix #1)**: PR #259 codex review P1 — carve E (runtime-config prod fail-fast) 가 OIDC_AUTH_URL 도 strict 요구하여 회귀 유발 (compose 의 `OIDC_AUTH_URL=${OIDC_AUTH_URL:-}` optional default + frontend healthcheck `/api/runtime-config` 가 500 응답 시 frontend unhealthy → nginx `depends_on` 차단). 정정: issuer URL 만 strict 요구, auth URL 은 missing 시 issuer 에서 `/protocol/openid-connect/auth` suffix 로 derive.
