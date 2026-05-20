@@ -156,11 +156,15 @@
 
 ### 4.2 ADR 결정 reversal
 
-[feedback_adr_supersession_pattern.md](#) 의 immutable history 패턴 따름:
-- 본문 partial 수정 **금지**
-- 새 ADR 분리 발행 + supersede 대상 ADR 메타 헤더 갱신 + inline supersession banner
+immutable history 패턴 따름 — 본문 partial 수정 **금지**, 새 ADR 분리 발행 + supersede 대상 ADR 메타 헤더 갱신 + inline supersession banner. 표준 절차:
 
-**예시**: PR #167 (codex) 가 ADR-0001 본문 partial 수정 → sprint -a (claude PR #169) 가 ADR-0019 발행 + ADR-0001 supersession 으로 정정.
+1. **새 ADR 발행** — `docs/adr/NNNN-<topic>.md` 신규. 메타 헤더에 `supersedes: [ADR-XXXX](./XXXX-*.md)` 명시
+2. **supersede 대상 ADR 갱신** — 메타 헤더 `상태: superseded by [ADR-NNNN](./NNNN-*.md)` + §0 / 각 § heading 에 inline supersession banner 추가
+3. **본문 immutable 보존** — supersede 된 ADR 의 본문은 historical context 로 그대로 유지
+4. **traceability §4 row** — 매트릭스 ADR 인덱스에 supersession 관계 명시
+5. **관련 문서 정합 (≥5개 docs)** — architecture / requirements / api_contract / setup / planning 등에서 supersede 된 ADR 참조 위치를 새 ADR 로 redirect
+
+**canonical 사례**: [ADR-0019 Keycloak 단일화](../adr/0019-keycloak-only-idp.md) 가 [ADR-0001 Hydra+Kratos](../adr/0001-idp-selection.md) supersession (sprint `claude/work_260519-a`, PR #169). 직전 PR #167 (codex) 가 ADR-0001 본문 partial 수정 → sprint -a 가 ADR-0019 발행으로 정공법 정정 + 14 추가 정합 docs.
 
 ### 4.3 우선순위 충돌
 
@@ -178,3 +182,4 @@ P0 > P1 > P2 > P3 강제. P0 carve 진행 중 P2 carve 진입 금지 (예외: �
 | 일자 | 변경 | sprint |
 | --- | --- | --- |
 | 2026-05-20 | 1차 작성 — Claude (backend+design) / Codex (infra+CI+security) / Gemini (frontend+UX) 분담 + 인계 SOP 4 패턴 + 충돌 처리 SOP + 사용자 역할 명시 | `claude/work_260520-f-roadmap` |
+| 2026-05-20 | codex review hotfix (P2) — §4.2 ADR reversal 의 dead link (`[feedback_adr_supersession_pattern.md](#)`) 정정. per-user auto-memory 파일이라 repo 에 없음 → 5 step 표준 절차 본문 명시 + canonical 사례 ADR-0019/ADR-0001 supersession (PR #169) 인용으로 대체 | `claude/work_260520-g-codex-hotfix` |
