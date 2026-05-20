@@ -1,0 +1,27 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260520-m-housekeeping6",
+  "branch": "claude/work_260520-m-housekeeping6",
+  "status": "in_progress",
+  "started_at": "2026-05-20T23:55:00Z",
+  "ended_at": null,
+  "merged_pr": null,
+  "merge_commit": null,
+  "issue": null,
+  "carve": "housekeeping",
+  "scope": "main flat memory housekeeping #6 — sprint -j housekeeping #5 (PR #240) 이후 머지된 PR #241 (sprint -k sub-carve C event listener + users sync) + PR #242 (sprint -l sub-carve D JWKS stale-while-error expiry) 흡수. state.json + session_handoff + work_backlog + sprint -k/-l branch state finalize + sprint -m 본 state.",
+  "directive_source": "사용자 지시 — 'sprint -l 진입' 후 자연 follow-up. sprint -k + -l 머지 완료 → housekeeping #6 진입.",
+  "decisions": [
+    "main flat state.json — head_commit `cb6646d` + merged_prs_2026_05_20 에 PR #240/#241/#242 3 entry 추가 + sub_carve_split 에 C_done/D_done row 추가 + carve 후속 sprint label shift (E sprint -n / F sprint -o) + components.backend.auth 에 stale-while-error fallback 정합 + components.backend.auth_envs 에 DEVHUB_OIDC_JWKS_MAX_STALE_DURATION + DEVHUB_KEYCLOAK_EVENT_LISTENER_* 명시 + status 재작성",
+    "session_handoff — header (branch + 본 sprint + 상태) + 본 sprint -m 표 + 흡수 3 PR row + ADR-0020 sub-carve 진척 표 (3/8 → 5/8) + sprint -j 이전 finalize 표 + 다음 directive 6 row 갱신 (sub-carve E sprint -n / F sprint -o / P0-4 review / SPI carve)",
+    "work_backlog — header 갱신 (HEAD + 다음 directive 6 row)",
+    "sprint -k state.json finalize — status done + ended_at + merged_pr 241 + merge_commit 9ea7e1c + todo → todo_done + codex_review iteration_1 (P1×2 hotfix)",
+    "sprint -l state.json finalize — status done + ended_at + merged_pr 242 + merge_commit cb6646d",
+    "sprint -m 본 state 생성"
+  ],
+  "todo": [
+    "state.json + session_handoff + work_backlog + sprint -k/-l state finalize + sprint -m 본 state — 완료",
+    "commit + push + PR + self-review + squash merge — 다음"
+  ],
+  "verification": "state.json JSON syntax PASS. 코드 변경 없음 (docs/memory only)."
+}
