@@ -600,6 +600,76 @@ func TestKeycloakJWKSVerifier_FreshCache_NoStaleFallback(t *testing.T) {
 	}
 }
 
+// TestKeycloakJWKSVerifier_StaleCutoff_BasedOnTTLExpiry — PR #242 codex P1
+// hotfix 회귀. MaxStaleDuration 의 의미는 "TTL 만료 후 grace period". 즉
+// stale 사용 가능 window = cachedUntil + MaxStaleDuration. 본 회귀 test 는
+// CacheTTL=200ms + MaxStaleDuration=200ms 로 (이전 잘못된 cutoff = cachedAt +
+// 200ms 면 250ms 대기 후 401. 정공법 = cachedUntil + 200ms = cachedAt + 400ms
+// 까지 stale 사용 → 250ms 대기 후 stale 통과).
+func TestKeycloakJWKSVerifier_StaleCutoff_BasedOnTTLExpiry(t *testing.T) {
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generate rsa key: %v", err)
+	}
+	kid := "kid-cutoff-1"
+	issuer := "https://issuer.example.com/realms/devhub"
+	aud := "devhub-web"
+
+	var jwksCallCount atomic.Int32
+	mux := http.NewServeMux()
+	mux.HandleFunc("/jwks", func(w http.ResponseWriter, _ *http.Request) {
+		jwksCallCount.Add(1)
+		if jwksCallCount.Load() == 1 {
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"keys": []map[string]any{{
+					"kty": "RSA",
+					"kid": kid,
+					"n":   base64.RawURLEncoding.EncodeToString(key.PublicKey.N.Bytes()),
+					"e":   base64.RawURLEncoding.EncodeToString([]byte{0x01, 0x00, 0x01}),
+				}},
+			})
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	token := mustSignToken(t, key, kid, jwt.MapClaims{
+		"iss":                issuer,
+		"aud":                aud,
+		"sub":                "user-cutoff",
+		"preferred_username": "dave",
+		"exp":                time.Now().Add(5 * time.Minute).Unix(),
+	})
+
+	v := &KeycloakJWKSVerifier{
+		IssuerURL:        issuer,
+		JWKSURL:          srv.URL + "/jwks",
+		ClientID:         aud,
+		CacheTTL:         200 * time.Millisecond,
+		MaxStaleDuration: 200 * time.Millisecond,
+	}
+
+	// 1차 호출 — cache 채움 (T=0). cachedAt ≈ 0, cachedUntil ≈ 200ms.
+	if _, err := v.VerifyBearerToken(context.Background(), token); err != nil {
+		t.Fatalf("1차 호출: %v", err)
+	}
+
+	// T=250ms 대기. TTL 만료 (200ms) 후 50ms 경과.
+	// 정공법: stale window = cachedUntil(200ms) + maxStale(200ms) = 400ms → 250ms 안전 (stale 통과).
+	// 이전 잘못된 cutoff (cachedAt + maxStale = 200ms 만 사용 가능) → 250ms 초과로 401.
+	time.Sleep(250 * time.Millisecond)
+
+	actor, err := v.VerifyBearerToken(context.Background(), token)
+	if err != nil {
+		t.Fatalf("stale window 안인데 401 (PR #242 codex P1 회귀): %v", err)
+	}
+	if actor.Login != "dave" {
+		t.Errorf("actor.Login = %q; want dave", actor.Login)
+	}
+}
+
 // TestKeycloakJWKSVerifier_StaleFallback_DefaultMaxStale — MaxStaleDuration
 // 0 (unset) 시 internal default (24h) 적용 검증. 짧은 CacheTTL 후 fetch fail
 // 에도 stale 사용 성공.

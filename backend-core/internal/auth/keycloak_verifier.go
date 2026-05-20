@@ -279,9 +279,15 @@ func (v *KeycloakJWKSVerifier) writeCachedKeys(keys map[string]*rsa.PublicKey) {
 }
 
 // readStaleCachedKeys — ADR-0020 sub-carve D (sprint -l). cachedUntil 이 만료
-// 됐어도 cachedAt + MaxStaleDuration 안이면 stale key 반환. caller (fetchJWKS)
-// 가 network fetch 실패 시 fallback 으로 사용. 반환된 keys + lastWriteAt 으로
-// caller 가 stale_age_seconds metric 보고.
+// 됐어도 **cachedUntil + MaxStaleDuration** 안이면 stale key 반환. caller
+// (fetchJWKS) 가 network fetch 실패 시 fallback 으로 사용. 반환된 keys +
+// lastWriteAt 으로 caller 가 stale_age_seconds metric 보고.
+//
+// PR #242 codex P1 hotfix: MaxStaleDuration 의 의미는 "TTL 만료 후 grace
+// period" 임. 이전 (PR #242 머지 직전) 의 잘못된 cutoff 는 cachedAt + maxStale
+// — CacheTTL 만큼 stale window 축소 (예: TTL=12h + maxStale=24h → 본인 코드
+// 24h, 정공법 12h+24h=36h). codex inline P1 review (discussion 295) 가 정확
+// 식별. 정공법 = cachedUntil + maxStale.
 func (v *KeycloakJWKSVerifier) readStaleCachedKeys() (map[string]*rsa.PublicKey, time.Time) {
 	v.mu.RLock()
 	defer v.mu.RUnlock()
@@ -292,8 +298,9 @@ func (v *KeycloakJWKSVerifier) readStaleCachedKeys() (map[string]*rsa.PublicKey,
 	if maxStale <= 0 {
 		maxStale = defaultJWKSMaxStale
 	}
-	if time.Now().After(v.cachedAt.Add(maxStale)) {
+	if time.Now().After(v.cachedUntil.Add(maxStale)) {
 		// 너무 오래된 stale → 사용 금지. 보안 보호 (revoked key 보호 회복 한도).
+		// 기준 = TTL 만료 후 maxStale 추가 (cachedUntil + maxStale).
 		return nil, time.Time{}
 	}
 	out := make(map[string]*rsa.PublicKey, len(v.cachedKeys))
