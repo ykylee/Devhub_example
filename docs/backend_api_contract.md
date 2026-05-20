@@ -648,15 +648,28 @@ command 및 조직/사용자 관리 변경에서 생성된 audit log를 최신�
 
 | API ID | 본문 위치 | endpoint set | IMPL |
 | --- | --- | --- | --- |
-| `API-25` | §10.2 | `/api/v1/accounts/*` admin (POST + PUT password + PATCH + DELETE) | `IMPL-account-01..04` (`accounts_admin.go`) |
+| ~~`API-25`~~ | ~~§10.2~~ | ~~`/api/v1/accounts/*` admin (POST + PUT password + PATCH + DELETE)~~ | **폐기 (sprint -i, ADR-0020 sub-carve B, 2026-05-20)**: DevHub Keycloak admin 권한 없음 → IdP 팀 + HRDB ETL 책임. lazy auto-create (`authenticateActor`, ADR-0020 §5.2) 가 첫 진입 시 `users` row 자동 생성. |
 | `API-33` | §10.3 | `/api/v1/users` CRUD (5 endpoint) | `IMPL-org-01` (`organization.go::users handlers`) |
 | `API-34` | §10.4 | `/api/v1/organization/*` (hierarchy + units 5 endpoint + unit members 2 endpoint) | `IMPL-org-02..04` (`organization.go::org handlers`) |
 | `API-36` | §8 envelope | `command.status.updated` WebSocket event envelope | `IMPL-realtime-01` (`realtime.go`) |
 | `API-37` | §11.6 | command lifecycle audit 매핑 (cross-cut audit + command 도메인) | `IMPL-audit-01..02` (`audit.go` + `store/audit_logs.go`) |
 
-### 10.2 `POST /api/v1/accounts` / `PUT /api/v1/accounts/{user_id}/password` / `PATCH /api/v1/accounts/{user_id}` / `DELETE /api/v1/accounts/{user_id}` (API-25)
+### 10.2 ~~`POST /api/v1/accounts` / `PUT /api/v1/accounts/{user_id}/password` / `PATCH /api/v1/accounts/{user_id}` / `DELETE /api/v1/accounts/{user_id}` (API-25)~~ — **폐기**
 
-System Admin 이 다른 사용자의 identity 를 발급/회수/잠금 해제할 때 사용하는 admin endpoint set. self-service 비밀번호 변경 (API-35 `POST /api/v1/account/password`) 와 구별된다.
+**상태**: 폐기 (sprint `claude/work_260520-i-209-accounts-deprecation`, ADR-0020 sub-carve B Commit 2/3, 2026-05-20)
+
+**폐기 이유**: ADR-0020 결정 A — DevHub 가 Keycloak admin 권한이 없는 외부 IdP 운영 시나리오 정합. user 생성/비밀번호 reset/상태 변경/삭제 책임은 사내 IdP 팀 (Keycloak admin console) 또는 HRDB ETL push (`scripts/hrdb_etl_sync.sh`).
+
+**대체 흐름**:
+- 신규 user 생성: Keycloak admin console (User → Add user) 또는 HRDB ETL push
+- 첫 DevHub 진입: `authenticateActor` 가 lazy auto-create (ADR-0020 §5.2) — `users` row 자동 생성 + audit `account.lazy_provisioned` emit
+- 비밀번호 reset: Keycloak admin console 또는 사용자가 Keycloak Account Console 직접 (sprint -ad ADR-0019 정공법, §8.5b 참조)
+- status 변경: Keycloak admin console (Enabled toggle) → DevHub `users.status` 는 event listener (ADR-0020 sub-carve C, sprint -g 후속) 가 sync 예정
+- user 삭제: Keycloak admin console — DevHub `users.status=deactivated` soft delete (sub-carve C 의 `USER:DELETE` 매핑)
+
+historical 본문 (이전 spec) 은 §11 변경 이력 row 참조.
+
+(아래 §10.2.1 ~ §10.2.4 는 폐기된 endpoint 의 historical spec — 본문 보존, 신규 호출 안 함)
 
 | method/path | 용도 | audit action |
 | --- | --- | --- |

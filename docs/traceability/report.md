@@ -157,7 +157,7 @@
 
 | API ID | 본문 위치 | 항목 |
 | --- | --- | --- |
-| `API-25` | §10.1 (spec carve out) | `/api/v1/accounts/*` admin endpoint set (POST /accounts, PUT /accounts/:id/password, PATCH /accounts/:id/status, DELETE /accounts/:id) |
+| ~~`API-25`~~ | ~~§10.1 (spec carve out)~~ | ~~`/api/v1/accounts/*` admin endpoint set~~ — **폐기 (sprint -i, ADR-0020 sub-carve B, 2026-05-20)**. lazy auto-create (`authenticateActor`, ADR-0020 §5.2) 가 첫 진입 시 `users` row 자동 생성. IdP 팀 (Keycloak admin console) + HRDB ETL push 책임. |
 | `API-32` | §10 | `GET /api/v1/me` (현재 §10 의 1차 노출, 별도 spec 절은 후속 sprint) |
 | `API-33` | §10.1 (spec carve out) | `/api/v1/users` CRUD set |
 | `API-34` | §10.1 (spec carve out) | `/api/v1/organization/*` set (hierarchy + units + members) |
@@ -223,10 +223,11 @@
 
 | IMPL ID | 코드 위치 | 책임 |
 | --- | --- | --- |
-| `IMPL-account-01` | `internal/httpapi/accounts_admin.go` (`createAccount`) | API-25 `POST /api/v1/accounts` — Kratos identity 생성 + DevHub users 행 + temp password |
-| `IMPL-account-02` | `internal/httpapi/accounts_admin.go` (`resetAccountPassword`) | API-25 `PUT /api/v1/accounts/:id/password` — admin reset |
-| `IMPL-account-03` | `internal/httpapi/accounts_admin.go` (`updateAccountStatus`, `deleteAccount`) | API-25 PATCH/DELETE — disable / delete identity + users |
-| `IMPL-account-04` | `internal/httpapi/account_password.go` | API-35 `POST /api/v1/account/password` — self-service password change (Kratos settings flow proxy) |
+| ~~`IMPL-account-01`~~ | ~~`internal/httpapi/accounts_admin.go` (`createAccount`)~~ | ~~API-25 POST~~ — **폐기 (sprint -i, ADR-0020 sub-carve B)**. 대체 = `lazy_auto_create.go::lazyAutoCreateUser` (authenticateActor 가 ErrNotFound 시 호출). |
+| ~~`IMPL-account-02`~~ | ~~`internal/httpapi/accounts_admin.go` (`resetAccountPassword`)~~ | ~~API-25 PUT password~~ — **폐기**. 대체 = Keycloak admin console 또는 Account Console (§8.5b). |
+| ~~`IMPL-account-03`~~ | ~~`internal/httpapi/accounts_admin.go` (`updateAccountStatus`, `deleteAccount`)~~ | ~~API-25 PATCH/DELETE~~ — **폐기**. 대체 = Keycloak admin (Enabled toggle / Delete) + event listener (sub-carve C, sprint -g 후속) sync. |
+| ~~`IMPL-account-04`~~ | ~~`internal/httpapi/account_password.go`~~ | ~~API-35 self-service~~ — sprint -ad 에서 이미 폐기 (Keycloak Account Console redirect). |
+| `IMPL-account-05` (신규) | `internal/httpapi/lazy_auto_create.go` (`lazyAutoCreateUser`) + `internal/httpapi/auth.go::authenticateActor` 의 lazy 분기 | ADR-0020 sub-carve B — 신규 user 첫 진입 시 `users` row 자동 생성 + audit `account.lazy_provisioned` + role default fallback (`user.role_default_assigned`). sprint -i (PR TBD). |
 
 #### IMPL-org-XX 정의 (sprint `claude/work_260513-i`)
 
@@ -408,6 +409,7 @@
 
 | 일자 | 변경 |
 | --- | --- |
+| 2026-05-20 | sprint `claude/work_260520-i-209-accounts-deprecation` (Phase 3 sub-carve B) — **ADR-0020 sub-carve B 실 구현**. (Commit 1) worker_division.md §2.5 branch 명명 규칙. (Commit 2) `/api/v1/accounts/*` 4 endpoint 폐기 — `accounts_admin.go` 삭제 + router 4 route 제거 + permissions.go 4 entry 제거 + accounts_admin_test.go 삭제 + identity_resolver_test.go 의 `TestCreateAccount_EagerBackfillsIdPSubject` 제거 + testhelpers_test.go 신규 (doJSON 보존). (Commit 3) lazy auto-create 실 구현 — `lazy_auto_create.go` 신규 + `AuthenticatedActor` Email/DisplayName 필드 추가 + `keycloak_verifier.go::extractDisplayName` 신규 + `authenticateActor::ErrNotFound` 분기에서 `lazyAutoCreateUser` 호출. 신규 audit action 2종 (`account.lazy_provisioned` / `user.role_default_assigned`). 회귀 test 5건 + 기존 test 3건 admin pre-seed fix. backend `go test ./...` PASS. (Commit 4 본) docs (backend_api_contract §10.2 폐기 마킹 + IMPL-account-* strikethrough + IMPL-account-05 신규 + ADR-0020 §4.1 sub-carve B done 마킹) + memory. | current session |
 | 2026-05-20 | sprint `claude/work_260520-d` Stage 3 보강 #2 — **PR #205 codex review P1 응답** (organization.go `validAppRoles` 에 `pmo_manager` 추가, 회귀 test 2건). sprint -d 의 `/rbac/subjects/:id/roles` 폐기 후 `pmo_manager` API 할당 불가능 회귀 해소. ADR-0020 §5.5 신규 hotfix 섹션 + 변경 이력 row. custom role 임의 할당은 결정 C 의 event listener (sprint -f) 자연 흡수. | current session |
 | 2026-05-20 | sprint `claude/work_260520-d` (Phase 3 진입, sub-carve A) — **ADR-0020 발급 + `rbac_subject_roles` 완전 제거**. `docs/adr/0020-account-user-management-boundary.md` 신규 (외부 Keycloak 가정 하의 계정/사용자 책임 경계 — Phase 2 명시 결정 6건 종합, 옵션 A 전면 폐기 채택, sub-carve B~F 분리 plan). `docs/planning/account_user_management_redesign.md` §6 Phase 3 실행 계획 신규 (sub-carve 분담 표 + sub-carve A 변경 매트릭스 + Strangler Fig 패턴 — sub-carve B 진입 시 적용). backend `rbac.go` (handler 2개 + interface method 2개 + audit action const + wire struct 제거) + `router.go` (2 route 제거) + `permissions.go` (2 routePermissionTable entry 제거 + ADR-0020 reference 주석) + `postgres_rbac.go` (impl 2개 제거) + `postgres_rbac_test.go` (Get/Set 테스트 3건 제거, Delete-in-use 테스트는 CreateUser 의 `Role: domain.AppRole(roleID)` 로 재구성) + `rbac_test.go` (fake mock 2개 + handler test 3건 제거). 본 §2.2 RBAC API 매핑 표 API-30/31 strikethrough + §2.4 IMPL-rbac-01/02 책임 갱신 + §4 ADR-0020 row 추가. 추적성 영향: REQ/ARCH/RM 없음 / API-30/31 폐기 / IMPL-rbac-01 (handler 4 endpoint) + IMPL-rbac-02 (store 6 method) 갱신 / UT `TestRBAC_GetSubjectRoles_*` + `TestRBAC_SetSubjectRole_*` (3건) 제거 / TC 없음 (e2e 미구현). go build + go test (httpapi + store) PASS. | current session |
 | 2026-05-13 | 1차 작성 (sprint `claude/work_260513-c`). Phase 1–6 분석 결과 통합 + 도메인 그룹 13행 매트릭스 + Gap 요약 §5. |

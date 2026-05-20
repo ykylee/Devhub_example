@@ -1,0 +1,31 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260520-i-209-accounts-deprecation",
+  "branch": "claude/work_260520-i-209-accounts-deprecation",
+  "status": "in_progress",
+  "started_at": "2026-05-20T20:00:00Z",
+  "ended_at": null,
+  "merged_pr": null,
+  "merge_commit": null,
+  "scope": "ADR-0020 sub-carve B (backend) — issue #209. /api/v1/accounts/* 4 endpoint 폐기 + authenticateActor lazy auto-create 실 구현 + AuthenticatedActor Email/DisplayName 필드 추가 + keycloak_verifier extractDisplayName + 신규 audit action 2종 (account.lazy_provisioned / user.role_default_assigned). frontend cleanup (account.service.ts + admin/settings/users + e2e) 은 Gemini 별도 sprint. branch naming 신규 규칙 적용 첫 사례 (sprint -i 가 housekeeping #4 으로 소진된 sprint -e 다음 sequence).",
+  "directive_source": "사용자 지시 — 'PR #237 머지하고 P0-4 진행해' 직후 'P0-4는 codex 가 시작' + 'P0-1 sub-carve B backend 분담 진입' AskUserQuestion 답변",
+  "decisions": [
+    "branch naming 신규 규칙 적용 — claude/work_<YYMMDD>-<sprint-seq>-<issue-num>-<short-key> 패턴 (worker_division.md §2.5). 본 sprint 가 첫 사례.",
+    "4 commit 분리 — (1) worker_division.md §2.5 branch naming + §6 변경 이력. (2) accounts_admin.go + accounts_admin_test.go 삭제 + router + permissions 정리 + testhelpers_test.go 신규 (doJSON 보존). (3) lazy_auto_create.go 신규 + AuthenticatedActor 확장 + keycloak_verifier extractDisplayName + authenticateActor 분기 + 회귀 test 5건 + 기존 test 3건 admin pre-seed fix. (4) docs (backend_api_contract §10.2 폐기 마킹 + traceability §2 API-25 strikethrough + IMPL-account-* + IMPL-account-05 신규 + ADR-0020 §4.1 sub-carve 표 + 변경 이력 + design doc §6.1 + §8) + memory.",
+    "ADR-0020 §5.2 lazy auto-create 결정 6건 모두 정합 — role 매핑 (token realm_access.roles priority filter), role fallback (default developer + audit user.role_default_assigned), status (active), unit (unassigned NULL), audit (account.lazy_provisioned), HRDB race (idempotent).",
+    "isValidLazyRole helper — domain.AppRoleDeveloper/Manager/SystemAdmin + pmo_manager (string literal, migration 000021 seed). organization.go validAppRoles 와 동일 set 유지 정합.",
+    "DisplayName fallback — token claim name → given_name family_name → empty → login fallback (audit/UI legibility).",
+    "frontend cleanup 분리 — frontend account.service.ts 폐기 + admin/settings/users page + e2e TC-ACC-* 갱신은 Gemini 별도 sprint (workflow_div §1.3). backend 만 본 sprint scope.",
+    "KeycloakAdminClient write 메서드 (CreateIdentity/UpdateIdentityPassword/SetIdentityState/DeleteIdentity) 자체 보존 — codex P0-4 (issue #238 docker single-port) 작업 영역 영향 회피 + 향후 lazy auto-create 가 enhanced provisioning 시 사용 가능.",
+    "audit action 신규 2종 — account.lazy_provisioned (DB row 정합 신규 row 만 emit, idempotent) + user.role_default_assigned (token 의 role 매핑 실패 시 default developer 적용 감사 추적). domain.AuditAction enum 무관 — audit_logs.action 은 free-form string.",
+    "기존 test 3건 admin pre-seed — TestAuditEnrichment_BearerActorTagsOIDCSource + TestBearerTokenActorWritesAuditWithoutFallbackWarning + TestRequireMinRoleBlocksInsufficientRole. 본 test 들의 의도는 lazy auto-create 부산물 검증이 아니라 audit source / role denial 검증. seed 추가가 가장 명시적."
+  ],
+  "todo": [
+    "Commit 1 — worker_division.md §2.5 branch naming + §6 변경 이력 — 완료",
+    "Commit 2 — accounts_admin 4 handler 제거 + router + permissions + testhelpers_test.go 신규 — 완료",
+    "Commit 3 — lazy_auto_create.go + AuthenticatedActor 확장 + verifier extractDisplayName + authenticateActor 분기 + 회귀 test — 완료",
+    "Commit 4 — docs (backend_api_contract + traceability + ADR-0020 §4.1 + design doc §6.1/§8) + memory + sprint -i state — 진행",
+    "commit + push + PR + 4단계 self-review + codex review 응답 + squash merge — 다음"
+  ],
+  "verification": "backend go build ./... + go test ./... PASS 전 패키지 (httpapi 0.993s). frontend 변경 없음."
+}

@@ -81,12 +81,13 @@
 
 | sub-carve | 영역 | sprint |
 | --- | --- | --- |
-| **A** | ADR-0020 발급 + design doc §6 실행 계획 + `rbac_subject_roles` 완전 제거 (결정 D, §5.8 따름) | `-d` (본 sprint) |
-| **B** | `/api/v1/accounts/*` 4 endpoint 제거 + `KeycloakAdminClient` write 메서드 호출처 제거 + `authenticateActor` lazy auto-create 실 구현 (결정 A + §5.2) + frontend `account.service.ts` 폐기 | `-e` (후속) |
-| **C** | event listener 확장 — USER:UPDATE / GROUP_MEMBERSHIP / USER:DELETE 매핑 + DevHub `users` write + metric 3종 (결정 C + §5.3) | `-f` (후속) |
-| **D** | JWKS stale-while-error expiry case 확장 (결정 F + §5.6) | `-g` (후속) |
-| **E** | service account 권한 축소 + governance 협약 SOP (`keycloak_operations.md §8.5c` 신규, §5.5) | `-h` (후속) |
-| **F** | `/login` page 정리 (결정 B + §5.7) | `-i` (후속, 우선순위 낮음) |
+| **A** | ADR-0020 발급 + design doc §6 실행 계획 + `rbac_subject_roles` 완전 제거 (결정 D, §5.8 따름) | ✅ `-d` (PR #205 `f2a389a`) |
+| **B (backend)** | `/api/v1/accounts/*` 4 endpoint 제거 + `KeycloakAdminClient` write 메서드 호출처 제거 + `authenticateActor` lazy auto-create 실 구현 (결정 A + §5.2) + audit action `account.lazy_provisioned` / `user.role_default_assigned` 신규 | ✅ `-i` (PR TBD, sprint `claude/work_260520-i-209-accounts-deprecation`) |
+| **B (frontend)** | frontend `account.service.ts` 폐기 + admin/settings/users page 의 admin actions 제거 + e2e TC-ACC-* 갱신 | `-?` (Gemini 별도 sprint) |
+| **C** | event listener 확장 — USER:UPDATE / GROUP_MEMBERSHIP / USER:DELETE 매핑 + DevHub `users` write + metric 3종 (결정 C + §5.3) | `-g` (후속, sprint label shift) |
+| **D** | JWKS stale-while-error expiry case 확장 (결정 F + §5.6) | `-h` (후속) |
+| **E** | service account 권한 축소 + governance 협약 SOP (`keycloak_operations.md §8.5c` 신규, §5.5) | `-i` (후속) |
+| **F** | `/login` page 정리 (결정 B + §5.7) | `-j` (후속, 우선순위 낮음) |
 
 ### 4.2 보안 영향
 
@@ -178,3 +179,4 @@ sprint -d 이후 custom role (예: `pmo_director`, `qa_lead` 등 `rbac_policies`
 | --- | --- | --- |
 | 2026-05-20 | draft + Accepted — Phase 2 명시 결정 6건 종합 (옵션 A 전면 폐기) + Phase 3 sub-carve 6건 분리 plan | `claude/work_260520-d` |
 | 2026-05-20 | Stage 3 보강 — PR #205 codex review P1 응답. `validAppRoles` 에 `pmo_manager` 추가 (sprint -d 시점 backward compat) + §5.5 신규 hotfix 섹션 + 회귀 test 2건 (TestCreateUserAcceptsPMOManager + TestUpdateUserAcceptsPMOManagerRole). custom role 처리는 옵션 (1) Keycloak admin console + event listener (sprint -f 권장) / 옵션 (2) DB direct UPDATE (sub-carve E 의 SOP 동반) 으로 명시. | `claude/work_260520-d` |
+| 2026-05-20 | **sub-carve B (backend) resolved** — `/api/v1/accounts/*` 4 endpoint 제거 + `authenticateActor` lazy auto-create 실 구현 (`lazy_auto_create.go::lazyAutoCreateUser`) + `AuthenticatedActor` Email/DisplayName 필드 추가 + `keycloak_verifier::extractDisplayName` + 신규 audit action 2종 (`account.lazy_provisioned` / `user.role_default_assigned`) + 회귀 test 5건 + 기존 test 3건 admin pre-seed fix. §4.1 sub-carve 표 갱신 (B backend done, B frontend 별도 sprint, C/D/E/F sprint label shift). | `claude/work_260520-i-209-accounts-deprecation` |
