@@ -51,11 +51,14 @@
 
 | 영역 | 영향 | 비고 |
 | --- | --- | --- |
-| **Backend authenticateActor** | "프로필 완료 여부" 판단 기준 추가 (필드 정합 정책 결정 필요) | lazy auto-create 유지 / 폐기 / 부분 변경 옵션 결정 |
+| **Backend authenticateActor** | "프로필 완료 여부" 판단 기준 추가 + 미등록 사용자의 token-only actor 처리 | lazy auto-create 폐기(온보딩 완료 시 DB 등록) |
 | **Backend onboarding API** | 사용자 self-service profile completion endpoint 신규 (`PATCH /api/v1/me` 또는 `POST /api/v1/me/onboarding`) | ADR-0020 의 책임 경계와 정합 필요 |
+| **Backend admin registration API** | 관리자가 시스템 설정에서 사용자 등록/초기화 가능한 admin endpoint 추가 | self-service 와 병행 |
+| **Backend review workflow** | onboarding 완료 후 관리자 검토/수정 상태(`pending_review`/`reviewed`) 관리 | 검토 전 무소속 제한 접근 정책 필요 |
 | **Backend organizations search API** | 현재 `?q=` 검색 endpoint **없음** — 신규 추가 또는 hierarchy 응답을 frontend 가 클라이언트 측 필터 | 조직 트리 규모에 따라 선택 |
 | **Frontend onboarding page** | `/onboarding` (또는 `/welcome`, `/profile/setup`) 신규 페이지 + form | basePath `/devhub/onboarding` 정합 |
 | **Frontend gating layout** | 모든 일반 페이지가 actor 의 onboarding 상태 확인 + redirect | dashboard layout / middleware 위치 결정 |
+| **Frontend limited-access UX** | 검토 미완료 사용자의 제한 메뉴/화면 구성 | 할당 리소스 + 공통 메뉴만 노출 |
 | **Frontend org picker component** | 검색 가능한 조직 selector | 재사용 가능한 형태로 |
 | **Audit** | `account.onboarding_completed` (제안 — 실제 이벤트명 미정) audit row | 기존 `account.lazy_provisioned` 와 짝 |
 | **ADR / 정책** | ADR-0020 §3.2 (DevHub admin = unit assignment) 의 책임 경계 일부 변경 — self-service unit selection 허용 추가 | ADR-0020 확장 또는 신규 ADR 발급 |
@@ -80,7 +83,7 @@ sequenceDiagram
   FE->>BE: GET /api/v1/me  (Authorization: Bearer ...)
   BE->>DB: SELECT users WHERE idp_subject=...
   alt user row missing OR profile incomplete
-    BE->>DB: (lazy auto-create OR mark pending — TBD)
+    BE->>DB: user row missing 시 생성하지 않음 (onboarding 완료 시점 INSERT)
     BE-->>FE: 200 { actor: {...}, onboarding_required: true }
     FE->>U: redirect /devhub/onboarding
     U->>FE: form 입력 (이름 + 소속 search/select)
@@ -88,7 +91,7 @@ sequenceDiagram
     BE-->>FE: 후보 list
     U->>FE: 선택 + submit
     FE->>BE: POST /api/v1/me/onboarding { display_name, primary_unit_id }
-    BE->>DB: UPDATE users SET display_name=..., primary_unit_id=...
+    BE->>DB: user row upsert + onboarding_completed_at=NOW()
     BE->>DB: INSERT audit { event: account.onboarding_completed }
     BE-->>FE: 200 { actor: {...} }
     FE->>U: redirect /devhub/  (정상 진입)
@@ -113,7 +116,11 @@ sequenceDiagram
 | **B. 신규 컬럼 `onboarding_completed_at TIMESTAMP NULL`** | 명시적 onboarding 완료 마킹 | ✅ 의미 명확 + audit 친화 ✅ 향후 onboarding step 추가 시 확장 용이 ⚠ migration + state 정합 SOP 필요 |
 | **C. 신규 컬럼 `profile_status ENUM(incomplete, complete, ...)`** | 상태 머신 | ✅ 다단계 onboarding 확장 가능 ⚠ 현 시점에 과한 모델링 |
 
-옵션 A 는 lazy auto-create 와의 최소 결합, 옵션 B 는 추적성 우월, 옵션 C 는 향후 확장. requirements phase 에서 선택.
+옵션 A 는 lazy auto-create 와의 최소 결합, 옵션 B 는 추적성 우월, 옵션 C 는 향후 확장.
+**결정(2026-05-20): 옵션 B 채택** — onboarding 완료 기준은 `onboarding_completed_at IS NOT NULL` 로 정의한다.
+- 적용 범위:
+  - `DB 미등록 사용자`: 첫 로그인 시 user row 미생성 상태로 온보딩 강제, onboarding 제출 시 user row 생성 + 완료 처리.
+  - `DB 등록-미완료 사용자`: `onboarding_completed_at=NULL` 이면 온보딩 강제.
 
 ### 5.2 Lazy auto-create 와 onboarding 의 관계
 **질문**: lazy auto-create 는 유지하는가, 폐기하는가, 부분 변경하는가?
@@ -125,6 +132,7 @@ sequenceDiagram
 | **C. lazy create 유지 + `primary_unit_id` 외 필드 NULL 도 허용 + onboarding 으로 채움** | row 는 minimal 로 생성, display_name 도 사용자가 onboarding 에서 확인 | ✅ 사용자 능동성 확보 ✅ A 의 변형 |
 
 옵션 A 가 가장 작은 변경. ADR-0020 의 lazy provisioned audit + role default assigned 추적성 유지 측면도 옵션 A 우호적.
+**결정(2026-05-20): 옵션 B 채택** — lazy auto-create 를 폐기하고, 사용자 DB 등록은 onboarding 완료 시점에 수행한다.
 
 ### 5.3 소속 (unit) 검색 UX
 **질문**: 사용자가 organization 트리 중 어떻게 자신의 소속을 찾아 선택하는가?
@@ -136,29 +144,50 @@ sequenceDiagram
 | **C. A + B 하이브리드** | 검색 + 트리 둘 다 제공 | A + B 둘 다 |
 
 조직 규모 / 사용자 인지 패턴 따라 선택. A 가 가장 빠르고 검색 친화적이나 사용자가 정확한 부서명을 모르면 trial-and-error. B 는 사용자가 본부 위치만 알면 됨. requirements phase 에서 user persona 와 함께 결정.
+**결정(2026-05-20): 옵션 C(하이브리드) 채택** — 검색(typeahead) + 트리 선택기를 함께 제공한다.
+- 세부 기준:
+  - 검색은 최소 2글자 입력 시 동작.
+  - 검색 결과는 최대 20개 반환.
+  - 검색 결과 표시 포맷은 조직명만 사용.
 
 ### 5.4 사용자가 자신의 소속을 잘못 선택할 수 있다는 risk
 **질문**: 사용자가 임의로 소속을 선택할 때 데이터 정확성을 어떻게 보장하는가?
 
 | 옵션 | 정책 | 장단점 |
 | --- | --- | --- |
-| **A. 사용자 입력 그대로 신뢰** | 사용자 자기 진술 | ✅ UX 단순 ⚠ 부정확한 소속 등록 시 RBAC scope leak (sales 가 dev 소속으로 등록되면 dev 권한 접근 가능) |
+| **A. 사용자 입력 그대로 신뢰** | 사용자 자기 진술 | ✅ UX 단순 ⚠ 부정확한 소속 등록으로 조직 데이터 품질 저하/관리 비용 증가 |
 | **B. status=`pending` → admin review → `active`** | 사용자가 등록 후 admin 이 confirm 해야 정상 활성화 | ✅ 데이터 정확성 ⚠ admin 부담 + 사용자 첫 진입 후 또 대기 |
 | **C. HRDB 와 cross-check (자동 검증)** | 사용자 입력 + HRDB 의 직원 ↔ 부서 매핑 비교 + 불일치 시 경고/차단 | ✅ 자동 검증 ⚠ HRDB 의존 ⚠ ADR-0008 deprecated 후 HRDB ETL 폐기 (#215) 사실 정합 필요 |
 | **D. Keycloak group → unit 매핑** | 사용자의 Keycloak group membership 으로 자동 유추 + 사용자가 확인만 | ✅ 자동 + 확인 ⚠ group → unit 매핑 정책 결정 + ADR-0019 §5.3 sub-carve 의 group staging-prod (잔여) 와 결합 |
 
 옵션 D 가 가장 매끄러우나 사전 carve 의존. 옵션 A 는 작게 시작하되 추후 옵션 B / D 로 격상 가능.
+**결정(2026-05-20): 옵션 B 변형 채택** — onboarding 은 사용자 제출 시 완료 처리하되, 이후 관리자 검토/수정 단계를 별도로 둔다.
+- 정책:
+  - 사용자 onboarding 제출 시 `onboarding_completed_at` 은 설정한다.
+  - 동시에 사용자 소속 검토 상태를 `pending_review` 로 두고, 관리자 검토 후 `reviewed` 로 확정한다(필드명/모델은 requirements 단계 확정).
+  - 검토 미완료(`pending_review`) 사용자는 시스템에서 **무소속**으로 취급한다.
+  - 검토 미완료 사용자의 접근 범위는 `할당된 과제`, `할당된 저장소`, `할당된 어플리케이션`, `공통 메뉴`로 제한한다.
+
+### 5.8 권한(Role) 정책 — 확정
+- **온보딩 화면에서는 권한(role)을 입력/선택하지 않는다.**
+- 권한은 온보딩과 분리된 정책으로만 결정한다:
+  - Keycloak token claim (`realm_access.roles`) 매핑 결과를 사용하거나,
+  - 매핑 불가 시 시스템 기본 권한(`developer`)을 일괄 적용한다.
+- 즉, onboarding payload 는 `display_name`, `primary_unit_id` 범위로 제한하고, role 변경 API 는 본 scope 에 포함하지 않는다.
+- 이 정책으로 "소속 선택 = 권한 상승" 경로를 차단한다.
 
 ### 5.5 Onboarding gating 위치
 **질문**: 어디서 "onboarding 필요" 를 감지하고 redirect 시키는가?
 
 | 옵션 | 위치 | 장단점 |
 | --- | --- | --- |
-| **A. Frontend layout middleware** | `app/(dashboard)/layout.tsx` 가 actor 상태 확인 후 redirect | ✅ UX 빠름 (서버 round-trip 1회) ⚠ frontend 가 actor 응답 shape 의존 |
+| **A. Frontend layout middleware** | `app/(dashboard)/layout.tsx` 가 actor 상태 확인 후 redirect | ✅ UX 빠름 (서버 round-trip 1회) ⚠ frontend 단독으로는 API 직접 호출 우회 방지 불가 |
 | **B. Backend `/api/v1/me` 응답 + frontend 분기** | backend 가 `{ onboarding_required: true }` flag 반환 + frontend redirect | ✅ 책임 명확 ✅ 다른 client 에도 일관 적용 가능 |
 | **C. Backend 모든 endpoint 가 미완료 user 차단** | 403 + `code: onboarding_required` 응답 | ✅ 가장 강한 가드 ⚠ allowlist (onboarding endpoint 자체) 관리 부담 |
 
-A + B 혼합 (B 가 source of truth, A 가 UX) 이 일반적.
+**결정(2026-05-20): 옵션 B + C + A 조합 채택**  
+- Source of truth 는 Backend: 미완료 사용자는 allowlist API 외 모두 차단 (`403`, `code=onboarding_required`).
+- Frontend 는 UX 레이어: `/api/v1/me` 의 `onboarding_required` 를 보고 즉시 `/devhub/onboarding` 으로 redirect.
 
 ### 5.6 onboarding 화면의 추가 입력 항목
 **질문**: 이름 + 소속 외에 본 onboarding 에서 받을 정보는?
@@ -170,17 +199,24 @@ A + B 혼합 (B 가 source of truth, A 가 UX) 이 일반적.
 - 전화번호 / Slack ID 등 연락처
 - 부서장 / 팀장 확인
 
-기본 컨셉은 **이름 + 소속 만** 으로 minimum viable onboarding 으로 시작. 후속 확장은 별도 sprint.
+**결정(2026-05-20)**: onboarding 입력 항목은 **필수 항목만** 사용한다.
+- 필수: `display_name`, `primary_unit_id`
+- 제외: 사진/아바타, 닉네임, 입사일, 연락처, 기타 부가 정보
 
 ### 5.7 다국어 / 접근성
 - DevHub 기본 언어는 한국어 — onboarding 화면도 한국어 우선.
 - 접근성 (a11y): form label, focus order, screen reader, 키보드 검색 (Combobox role).
-- requirements phase 에서 wireframe 과 함께 결정.
+**결정(2026-05-20, i18n)**:
+- UI 언어는 한국어 고정(영문 UI는 본 범위 제외).
+- 이름 표기는 단일 `display_name` 필드 자유 입력(한글/영문/혼용 허용)으로 처리하고 별도 영문명 필드는 두지 않는다.
+- 확장성: 추후 옵션으로 영문 프로필 필드(예: `display_name_en`)를 추가할 수 있도록 API/DB/프론트 모델은 nullable 확장에 호환되는 구조로 설계한다.
+- requirements phase 에서 wireframe 과 함께 세부 문구만 확정.
 
 ## 6. 변경/신규 자산 후보 (high-level)
 
 ### 6.1 backend-core 신규/변경
 - (신규) `internal/httpapi/me_onboarding.go` — `PATCH /api/v1/me` 또는 `POST /api/v1/me/onboarding`
+- (신규) `internal/httpapi/admin_users_registration.go` — 관리자 수동 등록/초기화 endpoint (경로 TBD)
 - (신규) `internal/httpapi/organizations_search.go` — `GET /api/v1/organizations/search?q=...&limit=...` (5.3 옵션 A 채택 시)
 - (변경) `internal/httpapi/lazy_auto_create.go` — 5.2 결정에 따라 동작 부분 변경 가능
 - (변경) `internal/httpapi/router.go` — 신규 endpoint 라우팅
@@ -226,18 +262,61 @@ A + B 혼합 (B 가 source of truth, A 가 UX) 이 일반적.
 
 ## 8. Open question (요구사항 phase 입력)
 
-1. **5.1 의 "프로필 미완료" 정의**: 옵션 A (NULL check) vs B (`onboarding_completed_at` 컬럼) vs C (state machine) — requirements 에서 명시.
-2. **5.2 lazy auto-create 유지 / 폐기**: 옵션 A (유지) vs B (폐기) vs C (부분 변경).
-3. **5.3 소속 검색 UX**: typeahead vs tree picker vs hybrid.
-4. **5.4 데이터 정확성 보장**: 사용자 신뢰 vs admin review vs HRDB cross-check vs Keycloak group 매핑.
-5. **5.5 onboarding gating 위치**: frontend layout vs backend response flag vs backend endpoint guard.
-6. **5.6 입력 항목 확장 범위**: minimum (name + unit) vs extended (photo, phone, etc.).
+1. **5.2 lazy auto-create 정책**
+   - **결정(2026-05-20)**: lazy auto-create 폐기.
+   - `DB 미등록` + `DB 등록-미완료` 사용자 모두 온보딩 강제 대상.
+   - 사용자 DB 등록은 onboarding 완료 제출 시점에 수행.
+2. **관리자 수동 등록 범위**: 시스템 설정에서 생성 가능한 필드 범위(이름/소속/상태).
+   - **결정(2026-05-20)**: 관리자 등록 시 기본 프로필 정보는 입력 가능하되 `onboarding_completed_at` 은 설정하지 않는다.
+   - 사용자가 첫 로그인 후 onboarding 화면에서 정보를 1회 확인/수정하고 제출해야 완료 처리된다.
+3. **5.3 소속 검색 UX**
+   - **결정(2026-05-20)**: 하이브리드(typeahead + tree picker) 채택.
+   - 검색 최소 입력 2글자, 결과 최대 20개, 결과 표시는 조직명만 사용.
+4. **5.4 데이터 정확성 보장**
+   - **결정(2026-05-20)**: 사용자 onboarding 제출은 완료 처리하되 관리자 검토/수정 단계를 별도 운영.
+   - 검토 미완료 사용자는 무소속 취급 + 할당된 과제/저장소/어플리케이션 + 공통 메뉴만 접근 허용.
+5. **5.5 onboarding gating 위치**
+   - **결정(2026-05-20)**: Backend 강제 + Frontend UX 보조.
+   - Backend 는 미완료 사용자에 대해 allowlist API 외 전부 `403(code=onboarding_required)` 차단.
+   - Frontend 는 `/api/v1/me` 의 `onboarding_required` 플래그로 `/devhub/onboarding` 즉시 redirect.
+6. **5.6 입력 항목 범위**
+   - **결정(2026-05-20)**: 필수 항목만 사용(`display_name`, `primary_unit_id`).
+   - 사진/아바타/닉네임/입사일/연락처 등 부가 항목은 본 범위에서 제외.
 7. **사용자가 onboarding 중간에 빠져나갈 수 있는가?** (force completion vs skip-and-resume vs admin escalation)
-8. **organization picker 의 권한 가드**: 어떤 사용자가 어떤 unit 까지 선택 가능한가? (모든 unit 노출 vs HRDB filter vs Keycloak group filter)
-9. **onboarding 완료 후 사용자가 자신의 소속을 추후 수정할 수 있는가?** 가능하다면 어디서? (`/account` 페이지에서 self-service vs admin-only)
-10. **국제 사용자 (i18n)**: 한국어 외 언어 우선순위 / 이름 표기 (한글 / 영문 / 양쪽).
-11. **모바일 반응형 + 접근성** 의 minimum 기준.
-12. **테스트 데이터 / 시드**: dev 환경에서 onboarding 화면 검증용 시드 사용자 (smoke 용 `test` 계정 정합 정책).
+8. **organization picker 의 권한 가드**
+   - **결정(2026-05-20)**: 모든 사용자에게 모든 organization 후보를 노출한다.
+9. **onboarding 완료 후 소속 수정 정책**
+   - **결정(2026-05-20)**: `/account` 페이지에서 사용자 self-service 수정 허용.
+   - 사용자가 소속을 변경하면 검토 상태를 `pending_review` 로 되돌리고, 관리자 검토/수정 후 `reviewed` 로 확정.
+   - `pending_review` 기간에는 기존 정책대로 무소속 제한 접근(할당 리소스 + 공통 메뉴) 적용.
+10. **국제 사용자 (i18n)**
+   - **결정(2026-05-20)**: UI 언어는 한국어 고정(영문 UI는 본 범위 제외).
+   - 이름 표기는 단일 `display_name` 필드 자유 입력(한글/영문/혼용 허용), 별도 영문명 필드 없음.
+   - 추후 영문 프로필 필드(예: `display_name_en`)를 옵션으로 추가 가능한 확장 구조를 유지.
+11. **모바일 반응형 + 접근성 최소 기준**
+   - **결정(2026-05-20)**: 모바일 반응형은 본 범위에서 제외.
+   - **필수(접근성)**:
+     - 모든 입력 필드에 label 연결.
+     - 키보드만으로 검색/선택/제출 가능.
+     - 에러는 색상만으로 전달하지 않고 텍스트 메시지 제공.
+     - 포커스 순서/가시성 보장.
+     - organization picker는 combobox role/ARIA 속성 준수.
+   - **필수(제출/검증 UX)**:
+     - 필수값 누락 시 필드별 인라인 에러 표시.
+     - 제출 성공/실패 상태를 `aria-live`로 전달.
+12. **테스트 데이터 / 시드**
+   - **결정(2026-05-20)**: 이전 결정사항 전체를 검증 가능한 최소 시드 세트로 구성한다.
+   - 계정 네이밍: `test_` prefix 고정.
+   - 시드 세트:
+     - `test_self_new_user`: DB 미등록 상태에서 첫 로그인 시 onboarding 진입 검증.
+     - `test_admin_seeded_incomplete`: 관리자 사전등록 + `onboarding_completed_at=NULL` 상태 검증.
+     - `test_completed_pending_review`: onboarding 완료 + `pending_review` 상태, 무소속 제한 접근(할당 리소스 + 공통 메뉴) 검증.
+     - `test_completed_reviewed`: onboarding 완료 + `reviewed` 상태, 정상 접근 검증.
+     - `test_reviewed_then_unit_change`: `reviewed` 사용자의 소속 self-service 변경 시 `pending_review` 재진입 검증.
+     - `org_fixture_bulk`: organization 25개 이상 샘플(2글자 검색, 최대 20개 제한, 조직명-only 표시 검증용).
+   - 운영 규칙:
+     - 시드는 단일 초기화/재적재 스크립트로 관리한다.
+     - role 은 onboarding 입력이 아닌 Keycloak claim 매핑 또는 기본값 정책으로만 세팅한다.
 
 ## 9. 다음 단계 (next phase)
 
