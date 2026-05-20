@@ -301,7 +301,6 @@ type createUserRequest struct {
 	Role          string `json:"role"`
 	Status        string `json:"status"`
 	Type          string `json:"type"`
-	Password      string `json:"password,omitempty"`
 	PrimaryUnitID string `json:"primary_unit_id"`
 	CurrentUnitID string `json:"current_unit_id"`
 	IsSeconded    bool   `json:"is_seconded"`
@@ -425,21 +424,9 @@ func (h Handler) createUser(c *gin.Context) {
 		return
 	}
 
-	// Optional: Create IdP Identity if password is provided
-	var idpID string
-	if req.Password != "" {
-		if h.cfg.IdentityAdmin == nil {
-			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "identity admin service is not configured"})
-			return
-		}
-		id, err := h.cfg.IdentityAdmin.CreateIdentity(c.Request.Context(), req.Email, req.DisplayName, req.UserID, req.Password)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create identity", "details": err.Error()})
-			return
-		}
-		idpID = id
-	}
-
+	// ADR-0020 sub-carve E (sprint -n) — Keycloak admin = 별도 운영팀 (PoLP).
+	// DevHub `users` row 만 생성. Keycloak identity 는 별도 운영자가 관리.
+	// 첫 로그인 시 lazy_auto_create (sprint -i, PR #239) 가 idp_subject 매핑.
 	input := domain.CreateUserInput{
 		UserID:        req.UserID,
 		Email:         req.Email,
@@ -458,15 +445,11 @@ func (h Handler) createUser(c *gin.Context) {
 		writeStoreError(c, err, "organization.create_user")
 		return
 	}
-	// audit_logs details key "kratos_id" is preserved verbatim for DB
-	// historical row compatibility (rows pre-dating ADR-0019 supersession).
-	// Rename to "idp_subject" + dual-read is a separate carve.
 	auditLog := h.recordAuditBestEffort(c, "user.created", "user", user.UserID, map[string]any{
 		"email":           user.Email,
 		"role":            string(user.Role),
 		"status":          string(user.Status),
 		"type":            string(user.Type),
-		"kratos_id":       idpID,
 		"primary_unit_id": user.PrimaryUnitID,
 		"current_unit_id": user.CurrentUnitID,
 	})

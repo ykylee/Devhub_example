@@ -106,12 +106,12 @@ type ApplicationStore interface {
 	CreateIntegrationBinding(context.Context, domain.IntegrationBinding) (domain.IntegrationBinding, error)
 }
 
+// IdentityAdmin — ADR-0020 sub-carve E (sprint -n) — Keycloak admin = 별도
+// 운영팀 (PoLP). write methods 제거 (CreateIdentity / UpdateIdentityPassword /
+// SetIdentityState / DeleteIdentity). service account 는 view-users +
+// view-events 만 요구.
 type IdentityAdmin interface {
-	CreateIdentity(ctx context.Context, email, name, userID, password string) (string, error)
 	FindIdentityByUserID(ctx context.Context, userID string) (string, error)
-	UpdateIdentityPassword(ctx context.Context, identityID, password string) error
-	SetIdentityState(ctx context.Context, identityID string, active bool) error
-	DeleteIdentity(ctx context.Context, identityID string) error
 }
 
 type HRDBClient interface {
