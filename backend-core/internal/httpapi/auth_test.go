@@ -31,6 +31,14 @@ func (v *fakeBearerTokenVerifier) VerifyBearerToken(_ context.Context, token str
 
 func TestBearerTokenActorWritesAuditWithoutFallbackWarning(t *testing.T) {
 	orgs := newMemoryOrganizationStore()
+	// ADR-0020 sub-carve B (sprint -i): admin user pre-seed → lazy auto-create skip.
+	if _, err := orgs.CreateUser(context.Background(), domain.CreateUserInput{
+		UserID: "token-admin", Email: "token-admin@example.com", DisplayName: "Token Admin",
+		Role: domain.AppRoleSystemAdmin, Status: domain.UserStatusActive,
+		Type: domain.UserTypeHuman,
+	}); err != nil {
+		t.Fatalf("seed token-admin: %v", err)
+	}
 	audits := &memoryAuditStore{}
 	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
 		Login:   "token-admin",
@@ -442,5 +450,161 @@ func TestXDevhubActorRejectedEvenWhenDevFallbackOn(t *testing.T) {
 	}
 	if len(commandStore.commands) != 0 {
 		t.Fatalf("command must not be persisted when X-Devhub-Actor is rejected, got %d", len(commandStore.commands))
+	}
+}
+
+// ADR-0020 sub-carve B (sprint -i, issue #209) lazy auto-create — Keycloak
+// admin console 또는 HRDB ETL 로 신규 생성된 user 의 첫 DevHub 진입 시
+// `users` row 자동 생성. 이전 (sprint -ad 이전) ErrNotFound 시 token role
+// claim 으로 fall-through 만 했던 동작이 본 sprint 부터 CreateUser 흐름으로 확장.
+
+func TestAuthenticateActor_LazyAutoCreate_HappyPath(t *testing.T) {
+	orgs := newMemoryOrganizationStore()
+	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+		Login:       "newcomer",
+		Subject:     "kc-uuid-newcomer",
+		Role:        "developer",
+		Email:       "newcomer@example.com",
+		DisplayName: "Newcomer User",
+	}}
+	router := NewRouter(RouterConfig{
+		OrganizationStore:   orgs,
+		BearerTokenVerifier: verifier,
+		AuditStore:          &memoryAuditStore{},
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
+	req.Header.Set("Authorization", "Bearer t")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d body = %s", rec.Code, rec.Body.String())
+	}
+	created, err := orgs.GetUser(context.Background(), "newcomer")
+	if err != nil {
+		t.Fatalf("lazy-created user not found: %v", err)
+	}
+	if created.Email != "newcomer@example.com" || created.DisplayName != "Newcomer User" ||
+		created.Role != domain.AppRoleDeveloper || created.Status != domain.UserStatusActive {
+		t.Errorf("lazy-created user = %+v, expected token claim values", created)
+	}
+	if created.IdPSubject != "kc-uuid-newcomer" {
+		t.Errorf("IdPSubject = %q, want kc-uuid-newcomer (best-effort backfill)", created.IdPSubject)
+	}
+}
+
+func TestAuthenticateActor_LazyAutoCreate_DefaultsRoleWhenTokenEmpty(t *testing.T) {
+	orgs := newMemoryOrganizationStore()
+	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+		Login:   "ghost-role",
+		Subject: "kc-uuid-ghost",
+		Role:    "", // empty — verifier picked nothing from realm_access.roles
+	}}
+	router := NewRouter(RouterConfig{
+		OrganizationStore:   orgs,
+		BearerTokenVerifier: verifier,
+		AuditStore:          &memoryAuditStore{},
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
+	req.Header.Set("Authorization", "Bearer t")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d body = %s", rec.Code, rec.Body.String())
+	}
+	created, err := orgs.GetUser(context.Background(), "ghost-role")
+	if err != nil {
+		t.Fatalf("lazy-created user not found: %v", err)
+	}
+	if created.Role != domain.AppRoleDeveloper {
+		t.Errorf("Role = %q, want developer (lazyAutoCreateDefaultRole, ADR-0020 §5.2.2 P1-3)", created.Role)
+	}
+}
+
+func TestAuthenticateActor_LazyAutoCreate_PMOManagerAccepted(t *testing.T) {
+	orgs := newMemoryOrganizationStore()
+	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+		Login:   "pmo-newcomer",
+		Subject: "kc-uuid-pmo",
+		Role:    "pmo_manager", // migration 000021 seeded
+	}}
+	router := NewRouter(RouterConfig{
+		OrganizationStore:   orgs,
+		BearerTokenVerifier: verifier,
+		AuditStore:          &memoryAuditStore{},
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
+	req.Header.Set("Authorization", "Bearer t")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d body = %s", rec.Code, rec.Body.String())
+	}
+	created, err := orgs.GetUser(context.Background(), "pmo-newcomer")
+	if err != nil {
+		t.Fatalf("lazy-created user not found: %v", err)
+	}
+	if string(created.Role) != "pmo_manager" {
+		t.Errorf("Role = %q, want pmo_manager (token claim preserved when valid)", created.Role)
+	}
+}
+
+func TestAuthenticateActor_LazyAutoCreate_FallbackDisplayNameWhenClaimsEmpty(t *testing.T) {
+	orgs := newMemoryOrganizationStore()
+	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+		Login:       "minimal",
+		Subject:     "kc-uuid-minimal",
+		Role:        "developer",
+		Email:       "", // missing email claim
+		DisplayName: "", // missing name claim
+	}}
+	router := NewRouter(RouterConfig{
+		OrganizationStore:   orgs,
+		BearerTokenVerifier: verifier,
+		AuditStore:          &memoryAuditStore{},
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
+	req.Header.Set("Authorization", "Bearer t")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d body = %s", rec.Code, rec.Body.String())
+	}
+	created, err := orgs.GetUser(context.Background(), "minimal")
+	if err != nil {
+		t.Fatalf("lazy-created user not found: %v", err)
+	}
+	if created.DisplayName != "minimal" {
+		t.Errorf("DisplayName = %q, want login fallback %q", created.DisplayName, "minimal")
+	}
+}
+
+func TestAuthenticateActor_LazyAutoCreate_SkippedWhenStoreNil(t *testing.T) {
+	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+		Login:   "no-store",
+		Subject: "kc-uuid-no-store",
+		Role:    "developer",
+	}}
+	// no OrganizationStore — lazy auto-create branch must skip without panic.
+	router := NewRouter(RouterConfig{
+		BearerTokenVerifier: verifier,
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
+	req.Header.Set("Authorization", "Bearer t")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	// /me handler returns 200 with token role even without store (auth path is
+	// the focus of this test; the handler itself works with the bearer actor).
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d body = %s", rec.Code, rec.Body.String())
 	}
 }

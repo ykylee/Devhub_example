@@ -331,6 +331,17 @@ func TestAuditEnrichment_SourceIPHonoursTrustedProxy(t *testing.T) {
 // test pins the OIDC branch (the load-bearing production path).
 func TestAuditEnrichment_BearerActorTagsOIDCSource(t *testing.T) {
 	orgs := newMemoryOrganizationStore()
+	// ADR-0020 sub-carve B (sprint -i, issue #209): admin user pre-seed so
+	// authenticateActor 의 GetUser hit, lazy auto-create 분기 skip. 본 test 의
+	// 의도는 bearer→OIDC source 정합 검증이지 lazy auto-create 의 audit 부산물
+	// 검증이 아님.
+	if _, err := orgs.CreateUser(context.Background(), domain.CreateUserInput{
+		UserID: "admin", Email: "admin@example.com", DisplayName: "Admin",
+		Role: domain.AppRoleSystemAdmin, Status: domain.UserStatusActive,
+		Type: domain.UserTypeHuman,
+	}); err != nil {
+		t.Fatalf("seed admin: %v", err)
+	}
 	audits := &memoryAuditStore{}
 	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
 		Login: "admin", Subject: "user-admin", Role: "system_admin",

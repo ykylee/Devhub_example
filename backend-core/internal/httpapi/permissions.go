@@ -177,13 +177,12 @@ var routePermissionTable = map[routeKey]routePolicy{
 	{http.MethodPatch, "/api/v1/users/:user_id"}:  {Resource: domain.ResourceOrganization, Action: domain.ActionEdit},
 	{http.MethodDelete, "/api/v1/users/:user_id"}: {Resource: domain.ResourceOrganization, Action: domain.ActionDelete},
 
-	// account admin (PR-S3) — credential issuance + force reset + state toggle + revoke.
-	// Credential mutations are a security-grade resource; route the auth-y ones to
-	// security:edit so only system_admin (per default matrix) can hit them.
-	{http.MethodPost, "/api/v1/accounts"}:                  {Resource: domain.ResourceSecurity, Action: domain.ActionCreate},
-	{http.MethodPut, "/api/v1/accounts/:user_id/password"}: {Resource: domain.ResourceSecurity, Action: domain.ActionEdit},
-	{http.MethodPatch, "/api/v1/accounts/:user_id"}:        {Resource: domain.ResourceOrganization, Action: domain.ActionEdit},
-	{http.MethodDelete, "/api/v1/accounts/:user_id"}:       {Resource: domain.ResourceOrganization, Action: domain.ActionDelete},
+	// ADR-0020 sub-carve B (sprint -i, issue #209): /api/v1/accounts/* 4 entry
+	// 제거. user 생성/비밀번호/상태/삭제는 Keycloak admin console 또는 HRDB ETL
+	// push 책임. lazy auto-create 가 authenticateActor 에서 자동 처리 (§5.2).
+	// 이전: POST /accounts (security:create), PUT /accounts/:user_id/password
+	// (security:edit), PATCH /accounts/:user_id (organization:edit), DELETE
+	// /accounts/:user_id (organization:delete).
 
 	// organization — units
 	{http.MethodGet, "/api/v1/organization/hierarchy"}:              {Resource: domain.ResourceOrganization, Action: domain.ActionView},
