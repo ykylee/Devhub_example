@@ -230,38 +230,6 @@ func (s *PostgresStore) DeleteRBACRole(ctx context.Context, roleID string) error
 	return nil
 }
 
-// GetSubjectRoles returns the roles assigned to a single user. In single-role
-// mode (section 12.6) the slice is always length 0 (user not found returns
-// ErrNotFound) or 1.
-func (s *PostgresStore) GetSubjectRoles(ctx context.Context, userID string) ([]string, error) {
-	var roleID string
-	err := s.pool.QueryRow(ctx, `SELECT role FROM users WHERE user_id = $1`, userID).Scan(&roleID)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, fmt.Errorf("subject %s: %w", userID, ErrNotFound)
-	}
-	if err != nil {
-		return nil, fmt.Errorf("get subject %s roles: %w", userID, err)
-	}
-	return []string{roleID}, nil
-}
-
-// SetSubjectRole assigns a single role to a user. The role must already exist
-// in rbac_policies (FK enforced). Returns ErrNotFound for missing user or
-// missing role.
-func (s *PostgresStore) SetSubjectRole(ctx context.Context, userID, roleID string) error {
-	tag, err := s.pool.Exec(ctx, `UPDATE users SET role = $2, updated_at = NOW() WHERE user_id = $1`, userID, roleID)
-	if err != nil {
-		if isForeignKeyViolation(err) {
-			return fmt.Errorf("assign role %s to %s: %w", roleID, userID, ErrNotFound)
-		}
-		return fmt.Errorf("assign role %s to %s: %w", roleID, userID, err)
-	}
-	if tag.RowsAffected() == 0 {
-		return fmt.Errorf("assign role to subject %s: %w", userID, ErrNotFound)
-	}
-	return nil
-}
-
 // rbacRowScanner is satisfied by both pgx.Rows and pgx.Row, letting scanRBACRole
 // serve list and single-row paths uniformly.
 type rbacRowScanner interface {

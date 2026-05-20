@@ -188,10 +188,10 @@ var routePermissionTable = map[routeKey]routePolicy{
 	{http.MethodGet, "/api/v1/organization/units/:unit_id/members"}: {Resource: domain.ResourceOrganization, Action: domain.ActionView},
 	{http.MethodPut, "/api/v1/organization/units/:unit_id/members"}: {Resource: domain.ResourceOrganization, Action: domain.ActionEdit},
 
-	// organization — RBAC subject role assignment
-	{http.MethodGet, "/api/v1/rbac/subjects/:subject_id/roles"}: {Resource: domain.ResourceOrganization, Action: domain.ActionView},
-	{http.MethodPut, "/api/v1/rbac/subjects/:subject_id/roles"}: {Resource: domain.ResourceOrganization, Action: domain.ActionEdit},
-	{http.MethodGet, "/api/v1/hr/lookup"}:                       {Resource: domain.ResourceOrganization, Action: domain.ActionView},
+	// organization — HR lookup. ADR-0020 (sprint -d): rbac/subjects/:subject_id/roles
+	// 2 entry 제거 — backend-only dead-end (frontend UI 미구현). users.role 직접 write
+	// 였고 Keycloak group composite 가 실 권한 source. PATCH /api/v1/users/:id 와 중복.
+	{http.MethodGet, "/api/v1/hr/lookup"}: {Resource: domain.ResourceOrganization, Action: domain.ActionView},
 
 	// SCM Provider catalog (API-41..42, sprint claude/work_260514-a, ADR-0011 §4.1 1차).
 	{http.MethodGet, "/api/v1/scm/providers"}:                 {Resource: domain.ResourceSCMProviders, Action: domain.ActionView},

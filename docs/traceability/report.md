@@ -99,8 +99,8 @@
 | `API-27` | §12.3 | `PUT /api/v1/rbac/policies` |
 | `API-28` | §12.4 | `POST /api/v1/rbac/policies` (사용자 정의 role 생성) |
 | `API-29` | §12.5 | `DELETE /api/v1/rbac/policies/:role_id` (사용자 정의 role 삭제) |
-| `API-30` | §12.6 | `GET /api/v1/rbac/subjects/:subject_id/roles` |
-| `API-31` | §12.7 | `PUT /api/v1/rbac/subjects/:subject_id/roles` |
+| ~~`API-30`~~ | ~~§12.6~~ | ~~`GET /api/v1/rbac/subjects/:subject_id/roles`~~ — **폐기 (sprint -d, ADR-0020, PR TBD)**: backend-only dead-end (frontend UI 미구현). `users.role` 직접 read 였고 Keycloak group composite 가 실 권한 source. |
+| ~~`API-31`~~ | ~~§12.7~~ | ~~`PUT /api/v1/rbac/subjects/:subject_id/roles`~~ — **폐기 (sprint -d, ADR-0020, PR TBD)**: `users.role` 직접 write. 결정 C (event listener 자동 sync) 와 충돌, `PATCH /api/v1/users/:id` 와 중복. |
 | `API-38` | §12.8 | 라우트 → (resource, action) 매핑 표 (정책 정의) |
 | `API-39` | §12.9 | 매핑 누락 정책 (deny-by-default) |
 | `API-40` | §12.10 | Cache 와 무효화 정책 |
@@ -204,8 +204,8 @@
 
 | IMPL ID | 코드 위치 | 책임 |
 | --- | --- | --- |
-| `IMPL-rbac-01` | `backend-core/internal/httpapi/rbac.go` | API-26..31 의 6 endpoint handler + §6 legacy gone (`listRBACPolicies`, `createRBACPolicy`, `updateRBACPolicies`, `deleteRBACPolicy`, `getSubjectRoles`, `setSubjectRoles`, `getRBACPolicyLegacyGone`) |
-| `IMPL-rbac-02` | `backend-core/internal/store/postgres_rbac.go` | RBAC role + subject-role assignment persistence (`ListRBACRoles`, `GetRBACRole`, `CreateRBACRole`, `UpdateRBACRolePermissions`, `UpdateRBACRoleMetadata`, `DeleteRBACRole`, `GetSubjectRoles`, `SetSubjectRole`) |
+| `IMPL-rbac-01` | `backend-core/internal/httpapi/rbac.go` | API-26..29 의 4 endpoint handler + §6 legacy gone (`listRBACPolicies`, `createRBACPolicy`, `updateRBACPolicies`, `deleteRBACPolicy`, `getRBACPolicyLegacyGone`). API-30/31 `getSubjectRoles`/`setSubjectRoles` 는 sprint -d (ADR-0020) 로 폐기. |
+| `IMPL-rbac-02` | `backend-core/internal/store/postgres_rbac.go` | RBAC role persistence (`ListRBACRoles`, `GetRBACRole`, `CreateRBACRole`, `UpdateRBACRolePermissions`, `UpdateRBACRoleMetadata`, `DeleteRBACRole`). subject-role assignment (`GetSubjectRoles`, `SetSubjectRole`) 은 sprint -d (ADR-0020) 로 폐기 — `users.role` 직접 read/write 였음, event listener 자동 sync 로 대체 예정. |
 | `IMPL-rbac-03` | `backend-core/internal/httpapi/permissions.go` (`routePermissionTable` + `enforceRoutePermission`) | API-38 라우트 매핑 source-of-truth + 미들웨어 enforcement + API-39 deny-by-default |
 | `IMPL-rbac-04` | `backend-core/internal/httpapi/permissions.go` (`PermissionCache`) | API-40 in-memory matrix cache + Invalidate |
 
@@ -361,6 +361,7 @@
 | [ADR-0017](../adr/0017-dreq-intake-token-operational-hardening.md) | DREQ intake token 운영 hardening (expires_at + PATCH allowed_ips) | accepted (2026-05-18 사후 명문화, 실 활성화 2026-05-16 PR #137, sprint `gemini/dreq_e2e_260515` → 본 sprint `claude/work_260518-c`). ADR-0014 §6 의 두 carve out 활성화: migration 000027 `expires_at` + `auth_intake_token_expired` middleware 만료 체크 (lazy, cron revoke 는 carve 유지), `PATCH /api/v1/dev-request-tokens/:token_id` (API-79) 의 `allowed_ips` only mutation (audit anchor 보존). | DREQ admin / 운영 |
 | [ADR-0018](../adr/0018-single-port-reverse-proxy-policy.md) | 단일 외부 포트 역프록시(Nginx) 구성 정책 | accepted (2026-05-18). 단일 외부 80/443 포트 연동, `/devhub` sub-path prefix 아키텍처 공식화, Same-Origin CORS 무력화 이점, Hydra/Kratos 쿠키 strict isolation (`Path=/devhub/auth/...`), local dev vs prod 비대칭 분기 가드, 컷오버/롤백 SOP 가이드라인 수립. | 인프라 / 인증 / 운영 |
 | [ADR-0019](../adr/0019-keycloak-only-idp.md) | Keycloak 단일화 (Hydra+Kratos 폐기) — ADR-0001 supersession | accepted (2026-05-19, sprint `claude/work_260519-a`). 2026-05-18 PR #167 (외부 codex 의 `codex/keycloak-only-refactor-plan`) 가 옵션 A (Keycloak 단일화) 실 구현 머지. [design 문서 PR #163](../planning/keycloak_sso_federation.md) 의 옵션 B (Kratos federation) 권장은 미채택 (rejected). 본 ADR 가 결정 reversal 사후 명문화: §3 결정 근거 6 항목 (운영 단순성 / SSO 사용자 공존 부담 회피 / MFA-WebAuthn-recovery 표준 흡수 / `users.idp_subject` 일반화 / ADR-0018 정합 / off-boarding 즉시성) + §4 KC-PR-A..F 머지 사실 + §5.3 carve out 8 항목 (Keycloak realm SOP / JWKS rotation / Keycloak ↔ HRDB sync / SSO logout chain / MFA / failover / off-boarding / `groups` claim → RBAC role) + §5.4 RM-M4-09 의미 재정의. | 인증, 회원가입, 계정 관리, 운영 |
+| [ADR-0020](../adr/0020-account-user-management-boundary.md) | 외부 Keycloak 가정 하의 계정/사용자 관리 책임 경계 — Phase 2 명시 결정 6건 종합 | accepted (2026-05-20, sprint `claude/work_260520-d`). [Phase 1 PR #199](../planning/account_user_management_redesign.md) 의 4 경로 책임 분산 매트릭스 + 핵심 발견 5건 + [Phase 2 PR #200](../planning/account_user_management_redesign.md#5-phase-2-책임-분리-design-sprint--a-2026-05-20-확정) 명시 결정 6건 (A 전면 폐기 / B `/login` minimal entry / C event listener 확장 + lazy hot path / D `rbac_subject_roles` 완전 제거 / E read-only mode self-reverse / F JWKS stale-while-error expiry case 확장) 종합. §4.1 sub-carve 6건 분담 (A 본 sprint, B~F 후속). 본 sprint `-d` 는 sub-carve A (`rbac_subject_roles` 완전 제거 — backend rbac.go/router.go/permissions.go/postgres_rbac.go + test 정리) 흡수. | 인증, 회원가입, 계정 관리, 운영 |
 
 ## 5. Gap 요약
 
@@ -407,6 +408,7 @@
 
 | 일자 | 변경 |
 | --- | --- |
+| 2026-05-20 | sprint `claude/work_260520-d` (Phase 3 진입, sub-carve A) — **ADR-0020 발급 + `rbac_subject_roles` 완전 제거**. `docs/adr/0020-account-user-management-boundary.md` 신규 (외부 Keycloak 가정 하의 계정/사용자 책임 경계 — Phase 2 명시 결정 6건 종합, 옵션 A 전면 폐기 채택, sub-carve B~F 분리 plan). `docs/planning/account_user_management_redesign.md` §6 Phase 3 실행 계획 신규 (sub-carve 분담 표 + sub-carve A 변경 매트릭스 + Strangler Fig 패턴 — sub-carve B 진입 시 적용). backend `rbac.go` (handler 2개 + interface method 2개 + audit action const + wire struct 제거) + `router.go` (2 route 제거) + `permissions.go` (2 routePermissionTable entry 제거 + ADR-0020 reference 주석) + `postgres_rbac.go` (impl 2개 제거) + `postgres_rbac_test.go` (Get/Set 테스트 3건 제거, Delete-in-use 테스트는 CreateUser 의 `Role: domain.AppRole(roleID)` 로 재구성) + `rbac_test.go` (fake mock 2개 + handler test 3건 제거). 본 §2.2 RBAC API 매핑 표 API-30/31 strikethrough + §2.4 IMPL-rbac-01/02 책임 갱신 + §4 ADR-0020 row 추가. 추적성 영향: REQ/ARCH/RM 없음 / API-30/31 폐기 / IMPL-rbac-01 (handler 4 endpoint) + IMPL-rbac-02 (store 6 method) 갱신 / UT `TestRBAC_GetSubjectRoles_*` + `TestRBAC_SetSubjectRole_*` (3건) 제거 / TC 없음 (e2e 미구현). go build + go test (httpapi + store) PASS. | current session |
 | 2026-05-13 | 1차 작성 (sprint `claude/work_260513-c`). Phase 1–6 분석 결과 통합 + 도메인 그룹 13행 매트릭스 + Gap 요약 §5. |
 | 2026-05-13 | 리뷰어 모드 2-pass: §3 의 CI/거버넌스 행을 PR 단위 산출 (PR #86 / #87 / #88 / 본 PR) 로 명세화. §4 ADR-0003 행에 ※ 노트 추가 — 본 PR 매트릭스가 PR #88 미머지 상태와 정합하지 않을 가능성 자체 인지. |
 | 2026-05-13 | 후속 sprint `claude/work_260513-d`: ADR-0003 가 main 에 머지된 후 §4 ADR-0003 행을 정상 link 로 활성화 + §3 의 ※ 마킹 제거. §5.1 / §5.2 / §5.3 을 표 형식으로 통일 + 상태(open/closed) 컬럼 도입. §5.2 의 auth.spec.ts TC 미흡수 항목과 §5.3 의 frontend_integration_requirements §3.8 deprecation 항목을 closed 처리. 본 sprint 의 메타 헤더 표준화 commit 도 §3 CI/거버넌스 행에 추가. |
