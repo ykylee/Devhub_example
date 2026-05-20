@@ -119,6 +119,40 @@
 ### 5.4 결정 E self-reverse — read-only mode carve (Keycloak down 시)
 - **본인 제안 → self-reverse** — signature 검증 skip 은 token forgery 안티패턴. 진짜 정공법은 결정 F (JWKS stale-while-error expiry case 확장)
 
+## 5.5 codex review hotfix (sprint -d Stage 3, P1 응답)
+
+PR #205 의 codex review (P1, 2026-05-20) 가 본 ADR 결정 D (`rbac_subject_roles` 폐기) 의 backward compatibility 회귀 발견:
+
+> Removing the subject-role routes here eliminates the only backend path that could assign arbitrary existing RBAC roles to users. The remaining user update path still validates role against a fixed allowlist (`developer|manager|system_admin` in `organization.go`), so `custom-*` roles and even `pmo_manager` can no longer be assigned via API.
+
+### 응답 — 결정 D 의 호환성 보강
+
+본 ADR 의 결정 C (event listener 확장, sprint -f 후속) 가 완성되면 DevHub UI 의 role assignment 가 폐기되고 Keycloak admin console group membership 변경 → event listener sync 만이 유일 경로. 그러나 sprint -d 만 머지된 상태에서는 sub-carve C 미완성으로 일시적 호환 필요.
+
+#### sprint -d Stage 3 hotfix
+
+`backend-core/internal/httpapi/organization.go` 의 `validAppRoles` map 에 `pmo_manager` 추가 (이전: `developer/manager/system_admin` 3개만, sprint -d 까지는 `/rbac/subjects/:id/roles` 가 backup 경로였음). error message 도 4 role 명시.
+
+| 영역 | sprint -d 이전 | sprint -d Stage 3 후 | sub-carve C (sprint -f) 완성 후 |
+| --- | --- | --- | --- |
+| `PATCH /api/v1/users/:id` role allowlist | `developer/manager/system_admin` | `developer/manager/pmo_manager/system_admin` | (sub-carve B 진입 시 본 endpoint 자체 폐기 검토) |
+| `PUT /api/v1/rbac/subjects/:id/roles` (custom role 포함 임의 role 허용) | ✅ | ❌ 폐기 (sprint -d) | (변경 없음) |
+| Keycloak admin console group membership → event listener sync → `users.role` write | (없음) | (없음 — 사내 운영자가 token refresh 기다림) | ✅ 자동 sync |
+
+#### custom role 처리
+
+sprint -d 이후 custom role (예: `pmo_director`, `qa_lead` 등 `rbac_policies` 의 user-defined role) 은 DevHub API 로 직접 할당 불가. 사내 운영자가 임시로 사용 시 옵션:
+1. **권장 (Phase 3 정공법)** — Keycloak admin console 에서 group composite role 매핑 + DevHub event listener (sprint -f 후속) 가 자동 sync
+2. **임시 우회 (sprint -f 미완성 동안)** — DB direct UPDATE `users.role` (`users.role` FK to `rbac_policies.role_id` 가 그대로 보호). 운영자 SOP 동반 carve
+3. **신규 API endpoint 발급** — `validAppRoles` 를 `rbac_policies` dynamic lookup 으로 변경 (handler + store 변경 필요). 본 ADR 의 결정 C 와 충돌 (event listener 가 곧 덮어쓰기) → **거부**
+
+본 sprint -d 의 Stage 3 hotfix 는 옵션 (1) 의 임시 호환만 보장 (`pmo_manager` 명시 추가) + 옵션 (2) 의 DB direct UPDATE SOP 는 sub-carve E (governance SOP, sprint -h) 가 명문화 예정.
+
+#### 회귀 test (sprint -d Stage 3)
+
+- `TestCreateUserAcceptsPMOManager` — `POST /api/v1/users` 의 `role: pmo_manager` 가 201 반환
+- `TestUpdateUserAcceptsPMOManagerRole` — `PATCH /api/v1/users/:id` 의 role 필드를 `pmo_manager` 로 변경 시 200 + role 갱신 확인
+
 ## 6. 미해결 / 후속 작업
 
 ### 6.1 후속 ADR 후보
@@ -143,3 +177,4 @@
 | 일자 | 변경 | sprint |
 | --- | --- | --- |
 | 2026-05-20 | draft + Accepted — Phase 2 명시 결정 6건 종합 (옵션 A 전면 폐기) + Phase 3 sub-carve 6건 분리 plan | `claude/work_260520-d` |
+| 2026-05-20 | Stage 3 보강 — PR #205 codex review P1 응답. `validAppRoles` 에 `pmo_manager` 추가 (sprint -d 시점 backward compat) + §5.5 신규 hotfix 섹션 + 회귀 test 2건 (TestCreateUserAcceptsPMOManager + TestUpdateUserAcceptsPMOManagerRole). custom role 처리는 옵션 (1) Keycloak admin console + event listener (sprint -f 권장) / 옵션 (2) DB direct UPDATE (sub-carve E 의 SOP 동반) 으로 명시. | `claude/work_260520-d` |
