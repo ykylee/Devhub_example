@@ -3,8 +3,8 @@
 - 문서 목적: DevHub Example 을 단일 테스트 서버에 native binary 로 빌드·배포·기동하는 표준 절차를 정의한다.
 - 범위: 사전 준비, 빌드, 환경변수, 기동 순서, OIDC client 등록, 시드 사용자, 헬스체크, 로그인 검증.
 - 대상 독자: 테스트 서버 운영자, QA, 신규 환경 부트스트랩 담당.
-- 상태: accepted
-- 최종 수정일: 2026-05-20
+- 상태: active
+- 최종 수정일: 2026-05-18
 - 관련 문서: [개발 환경 구성](./environment-setup.md), [백엔드 API 계약](../backend_api_contract.md), [아키텍처](../architecture.md), [E2E 가이드](./e2e-test-guide.md)
 
 ## 0. 원칙
@@ -145,3 +145,21 @@ curl http://localhost:8081/realms/devhub/.well-known/openid-configuration
 - OIDC client secret 을 git 에 커밋하지 않음
 - Keycloak admin endpoint 접근 제어
 - 테스트용 공용 계정/기본 비밀번호 제거
+
+## 11. Docker 단일 포트 배포 (issue #238)
+
+`docker-compose.deploy.yml` 기준 운영 모드에서는 외부 노출 포트를 `nginx` 하나로 제한한다.
+
+- 외부 노출: `80` / `443` (`nginx`)
+- 내부 통신 전용: `frontend:3000`, `backend-core:8080`, `keycloak:8080`, `backend-ai:8000` (`devhub-internal` 네트워크)
+- URL 기준:
+  - `https://<host>/devhub/` → frontend
+  - `https://<host>/devhub/api/*` → backend
+  - `https://<host>/devhub/auth/keycloak/*` → keycloak
+
+필수 환경값:
+
+- `NEXT_PUBLIC_BASE_PATH=devhub`
+- `NEXT_PUBLIC_OIDC_REDIRECT_URI=https://<host>/devhub/auth/callback`
+- `DEVHUB_OIDC_ISSUER_URL=https://<host>/devhub/auth/keycloak/realms/devhub`
+- `DEVHUB_TRUSTED_PROXIES=172.16.0.0/12` (또는 운영 네트워크 CIDR)

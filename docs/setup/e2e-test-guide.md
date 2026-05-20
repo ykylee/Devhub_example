@@ -1,12 +1,11 @@
-# E2E Test Guide (Playwright, native Keycloak/OIDC)
+# E2E Test Guide (Playwright, Keycloak/OIDC)
 
-> ⚠ 2026-05-18 주의: 일부 운영 예시는 legacy 용어가 남아 있을 수 있다.
-> 실행/검증은 Keycloak OIDC 기준 env/엔드포인트를 우선 적용한다.
+> ⚠ 2026-05-20 정정: 본 문서는 Keycloak-only 운영 기준으로 갱신되었다.
 
 - 문서 목적: DevHub Example 의 Playwright e2e 스위트를 사용자 환경에서 실행하기 위한 사전 조건과 절차를 정의한다.
 - 범위: 사전 조건, 시드 데이터, 실행 명령, 시나리오 목록, 트러블슈팅
 - 대상 독자: 본인 환경에서 회귀 검증을 돌리는 개발자, QA
-- 상태: draft
+- 상태: active
 - 최종 수정일: 2026-05-20
 - 관련 문서: [테스트 서버 배포 가이드](./test-server-deployment.md), [Playwright config](../../frontend/playwright.config.ts), [e2e fixtures](../../frontend/tests/e2e/fixtures.ts)
 
@@ -14,22 +13,21 @@
 
 - **DEC-3=A**: e2e 는 mock IdP 가 아니라 실 Keycloak/OIDC 환경에서 실행한다. 운영 흐름과 동일한 OIDC 코드 흐름을 검증.
 - **Single worker**: IdP session state 충돌 방지를 위해 E2E 테스트는 1 worker 유지.
-- **사용자 native**: 5개 프로세스 (PostgreSQL + Keycloak + backend-core + frontend) 를 사용자가 직접 기동. Playwright 의 `webServer` 옵션은 의도적으로 비활성.
+- **사용자 native 또는 compose**: PostgreSQL + Keycloak + backend-core + frontend 가 먼저 기동되어야 한다. Playwright 의 `webServer` 옵션은 비활성.
 
 ## 1. 사전 조건
 
 본 가이드는 [`test-server-deployment.md`](./test-server-deployment.md) 의 §1-§5 가 이미 끝난 상태에서 시작한다. 즉:
 
-- PostgreSQL `devhub` DB + `hydra` / `kratos` schema 가 마이그레이션 완료
-- Keycloak/OIDC 가 native binary 로 가동 중 (포트 4444/4445/4433/4434)
-- backend-core (8080) + frontend (3000) 가동 중
+- PostgreSQL `devhub` DB 마이그레이션 완료
+- Keycloak/OIDC 가 가동 중 (`/devhub/auth/keycloak` 경로 또는 issuer URL 접근 가능)
+- backend-core + frontend 가동 중
 - OIDC client `devhub-frontend` 가 IdP(Keycloak)에 등록 완료
 
 검증:
 ```sh
 curl http://localhost:8080/health
-curl http://localhost:4444/health/ready
-curl http://localhost:4433/health/ready
+curl http://localhost:8180/devhub/auth/keycloak/realms/devhub/.well-known/openid-configuration
 curl -I http://localhost:3000/
 ```
 모두 200/OK 이면 다음 단계.
@@ -50,7 +48,10 @@ Playwright `globalSetup` (`frontend/tests/e2e/global-setup.ts`) 이 매 `npm run
 
 | 변수 | 의미 | 기본값 |
 | --- | --- | --- |
-| `KRATOS_ADMIN_URL` | Kratos admin endpoint (identity 생성) | `http://localhost:4434` |
+| `DEVHUB_KEYCLOAK_ADMIN_URL` | Keycloak admin base URL (seed API 호출) | `http://localhost:8180/devhub/auth/keycloak` |
+| `DEVHUB_KEYCLOAK_ADMIN_REALM` | realm 명 | `devhub` |
+| `DEVHUB_KEYCLOAK_ADMIN_CLIENT_ID` | service account client id | `devhub-backend` |
+| `DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET` | service account client secret | (필수) |
 | `DSN` | DevHub users 행을 INSERT 할 PostgreSQL DSN. `idp-apply-schemas` 헬퍼가 사용 | (필수) |
 | `DEVHUB_E2E_SKIP_SEED` | `1` 이면 시드 단계를 건너뜀 (CI matrix 가 별도 stage 에서 시드할 때) | (미설정) |
 
@@ -64,36 +65,16 @@ npm run e2e
 
 자동 시드는 다음 동작을 한다:
 
-1. Kratos admin `/admin/identities` 페이지 스캔으로 email 기준 존재 여부 확인
-   - 누락된 identity → POST `/admin/identities`
-   - 이미 있는 identity → PUT `/admin/identities/{id}` 로 비밀번호를 시드 값으로 **force-reset** (traits / state / metadata 는 그대로 echo, password method 만 새 plaintext 로 갱신 → Kratos 가 hash). password-change.spec 의 finally rollback 이 fatal 실패 시에도 다음 `npm run e2e` 가 자동 원복 (PR-T3.5 hardening, work_260512-f).
+1. Keycloak Admin API 기준으로 email 기준 사용자 존재 여부 확인
+   - 누락된 identity → Keycloak 사용자 생성
+   - 기존 identity → 테스트 비밀번호/속성 재시드
 2. backend-core 의 `cmd/idp-apply-schemas -sql infra/idp/sql/002_seed_e2e_users.sql` 호출 (ON CONFLICT DO NOTHING).
 
-두 번째 실행부터는 DB 측은 no-op, Kratos 측은 동일 비밀번호 재적용이라 사실상 no-op (네트워크 1 RTT 만 발생). 즉 시드 비밀번호로의 회복은 어떤 중단 상태에서도 자동.
+두 번째 실행부터는 DB 측은 no-op, Keycloak 측은 동일 값 재적용이라 사실상 no-op.
 
-### 2.1 수동 시드 (fallback) — Kratos identity (3건)
+### 2.1 수동 시드 (fallback) — Keycloak identity (3건)
 
-각 사용자에 대해 다음 호출 1번씩:
-
-```sh
-curl -X POST http://localhost:4434/admin/identities \
-  -H "Content-Type: application/json" \
-  -d '{
-    "schema_id": "devhub_user",
-    "traits": {
-      "system_id": "alice",
-      "email": "alice@example.com",
-      "display_name": "Alice"
-    },
-    "metadata_public": { "user_id": "alice" },
-    "credentials": {
-      "password": { "config": { "password": "ChangeMe-12345!" } }
-    }
-  }'
-```
-(`bob` / `charlie` 도 동일 패턴, role 만 다름)
-
-`traits.system_id` 가 `identity.schema.json` 의 password identifier 다 — 로그인 폼의 "System ID" 입력값이 이 값과 매칭된다. 누락하면 Kratos 가 400 `missing properties: "system_id"` 로 거절한다.
+수동 시드는 [keycloak_operations.md](./keycloak_operations.md)의 사용자 생성 절차를 따른다.
 
 ### 2.2 수동 시드 (fallback) — DevHub users
 
@@ -165,9 +146,8 @@ PLAYWRIGHT_BASE_URL=http://10.0.0.5:3000 npm run e2e
 | 증상 | 원인 | 조치 |
 | --- | --- | --- |
 | `loginAs` 가 `/auth/login` 까지 못 감 | IdP redirect/callback URI 또는 frontend host 불일치 | IdP client 설정의 redirect URI 및 frontend origin 재확인 |
-| 로그인 폼에서 401 (invalid credentials) | Kratos identity 시드 password 가 일치 안 함 | `npm run e2e` 를 한 번 더 실행. PR-T3.5 hardening 이후 globalSetup 이 PUT 으로 시드 비밀번호를 force-reset 하므로 stale rotation 자동 복구. 그래도 실패하면 §2 의 시드 비밀번호 (`ChangeMe-12345!`) 와 시드 SEEDS 배열을 비교 |
-| `/account` 비밀번호 변경 시 "Re-authentication required" | Kratos `privileged_session_max_age=15m` 초과 | PR-L4 backend proxy 가 매 호출마다 fresh api-mode 로그인을 돌려 privileged window 를 갱신하므로 정상 시나리오에서는 발생하지 않음. 그래도 노출되면 backend 의 `DEVHUB_KEYCLOAK_ADMIN_URL` env 누락/오설정 가능성 |
-| `/account` 비밀번호 변경 시 "current password is incorrect" | 입력한 current_password 가 Kratos 시드와 불일치 | §2 의 시드 비밀번호 확인 (`ChangeMe-12345!`). password-change 시나리오가 중간에 실패해 회전이 남았다면 `npm run e2e` 재실행으로 globalSetup 이 자동 force-reset (PR-T3.5 hardening) |
+| 로그인 폼에서 401 (invalid credentials) | Keycloak 사용자 시드 password 불일치 | `npm run e2e` 재실행 후 globalSetup 시드 단계 확인 |
+| `/account` 관련 시나리오 실패 | Keycloak Account Console/redirect 설정 불일치 | `NEXT_PUBLIC_OIDC_REDIRECT_URI`, issuer, Keycloak client redirect URI 정합 확인 |
 | `Sign Out` 후에도 `/login` 이 silent re-auth | IdP session 종료 안 됨. id_token_hint 누락 가능성 | tokenStore 의 `id_token` 저장 여부와 end-session endpoint 호출 URL 확인 |
 | 사용자 환경 Chromium 다운로드 실패 | 사내 SSL inspection / 외부 미러 차단 | `PLAYWRIGHT_BROWSERS_PATH` 또는 사내 미러 사용. `npx playwright install --dry-run` 으로 다운로드 URL 확인 |
 
@@ -176,7 +156,7 @@ PLAYWRIGHT_BASE_URL=http://10.0.0.5:3000 npm run e2e
 - 조직 관리 e2e — `/admin/settings/organization` 부서 추가/이동/삭제 + 차트 drag 좌표 영속화
 - 사용자 관리 e2e — 계정 발급/리셋/disable 흐름 (PR-S3)
 - 권한 매트릭스 e2e — PermissionEditor 정책 변경 + audit 확인
-- ~~시드 자동화 — pre-test hook 으로 Kratos admin API 자동 시드 (현재는 수동)~~ — PR-T3.5 에서 globalSetup 으로 처리
+- 시드 자동화 고도화 — Keycloak admin rate limit/재시도 정책 강화
 
 ## 8. 변경 이력
 
@@ -186,3 +166,4 @@ PLAYWRIGHT_BASE_URL=http://10.0.0.5:3000 npm run e2e
 | 2026-05-11 | PR-L4 `POST /api/v1/account/password` backend proxy 도입에 따라 password-change 시나리오 사전 조건/트러블슈팅 갱신 (work_26_05_11-e) |
 | 2026-05-11 | PR-T3.5 Playwright globalSetup 자동 시드 도입 + password-change.spec unskip (work_26_05_11-e) |
 | 2026-05-12 | PR-T3.5 hardening — globalSetup 이 기존 identity 의 비밀번호를 PUT 으로 force-reset, stale rotation 자동 복구 (work_260512-f) |
+| 2026-05-20 | Keycloak-only 운영 기준으로 사전조건/시드/트러블슈팅 전면 정정 (Hydra/Kratos 절차 제거) |
