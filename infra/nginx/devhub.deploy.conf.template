@@ -1,3 +1,17 @@
+# DevHub nginx reverse-proxy template — single-port ingress (ADR-0018) + Keycloak 단일 IdP (ADR-0019)
+#
+# 본 파일은 nginx 공식 이미지의 envsubst 템플릿 entrypoint 가 처리한다 (compose 의
+# /etc/nginx/templates/ mount → /etc/nginx/conf.d/*.conf 로 변환).
+#
+# 치환 환경변수 (compose 의 nginx 서비스 environment 에서 주입):
+#   ${KEYCLOAK_UPSTREAM}              Keycloak upstream host:port
+#                                      - 로컬 모드 (compose local-idp profile)  : keycloak:8080
+#                                      - 외부 모드 (사내 운영 Keycloak)         : kc.internal.example.com:8443
+#   ${KEYCLOAK_ADMIN_ALLOW_CIDR}      Keycloak Admin REST API 접근 허용 CIDR (예: 10.0.0.0/8)
+#                                      - 빈 값이면 admin path 외부 노출 차단 안 함 (기본은 internal-only 권장)
+#
+# 자세한 사용 SOP 는 infra/nginx/README.md 참조.
+
 upstream devhub_frontend {
     server frontend:3000;
 }
@@ -6,8 +20,9 @@ upstream devhub_backend_core {
     server backend-core:8080;
 }
 
+# Keycloak upstream — 로컬 / 외부 모드 분기 지점.
 upstream devhub_keycloak {
-    server keycloak:8080;
+    server ${KEYCLOAK_UPSTREAM};
 }
 
 server {
@@ -36,11 +51,7 @@ server {
 
     client_max_body_size 20m;
 
-    # Legacy root-level auth routes — friendly 302 to canonical /devhub/* entries
-    # so external bookmarks / search-engine-cached links don't dead-end with 404.
-    # (Previously: 404 — too harsh for users hitting stale pre-basePath links.
-    # issue #238 follow-up, P2-1 sprint -o boundary.)
-    # $is_args + $args preserve query string (esp. /auth/callback?code=... state).
+    # Legacy root-level auth routes — friendly 302 to canonical /devhub/* entries.
     location = /login {
         return 302 /devhub/auth/login;
     }
@@ -64,7 +75,6 @@ server {
     }
 
     # Some pre-basePath frontend bundles still reference root /_next assets.
-    # Proxy those to frontend to avoid JS/CSS 404 during transition.
     location /_next/ {
         proxy_pass $frontend_upstream;
         proxy_http_version 1.1;
@@ -80,7 +90,6 @@ server {
     location = /devhub {
         return 302 /devhub/developer;
     }
-
     location = /devhub/ {
         return 302 /devhub/developer;
     }
@@ -100,12 +109,30 @@ server {
         proxy_send_timeout 300s;
     }
 
-    # Keycloak OIDC + admin-console + realm endpoints (ADR-0019 §4.2 환경설정 계약 정합).
+    # Keycloak Admin REST API — internal-only (carve G — P3 정합).
+    # 본 location 은 /devhub/auth/keycloak/ 의 일반 location 보다 우선 매칭되어야 하므로
+    # location ^~ (prefix 가장 우선 매칭) 로 선언한다. ${KEYCLOAK_ADMIN_ALLOW_CIDR} 미지정
+    # (빈 값) 시 deny all 만 적용 → 외부 차단 + backend 는 keycloak:8080 직접 통신 사용.
+    location ^~ /devhub/auth/keycloak/admin/ {
+        allow ${KEYCLOAK_ADMIN_ALLOW_CIDR};
+        deny all;
+
+        proxy_pass http://devhub_keycloak;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_read_timeout 60s;
+        proxy_send_timeout 60s;
+    }
+
+    # Keycloak OIDC public endpoints (authorize / token / userinfo / .well-known / logout).
     # backend Keycloak Admin Client (devhub-backend service account) 는 internal network 의 keycloak:8080 직접 호출.
-    # 사용자 (browser) 의 OIDC authorize / token / logout 은 본 path 로 reverse proxy.
+    # 사용자 (browser) 의 OIDC flow 만 본 path 로 reverse proxy.
     location /devhub/auth/keycloak/ {
         # Keycloak 이 own URL 생성 시 basePath (KC_HTTP_RELATIVE_PATH=/devhub/auth/keycloak) 포함 가정.
-        # nginx 는 prefix strip 없이 그대로 forward — trailing slash 제거.
         proxy_pass http://devhub_keycloak;
         proxy_http_version 1.1;
         proxy_set_header Host $host;

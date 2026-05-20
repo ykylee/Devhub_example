@@ -67,6 +67,11 @@ jobs:
           tags: |
             ${{ steps.vars.outputs.registry }}/backend-ai:${{ steps.vars.outputs.tag }}
 
+      # OIDC URL 은 image 빌드 시점에 박지 않는다 — 운영 환경별 외부 Keycloak 주소가 달라지므로
+      # 런타임에 /api/runtime-config (frontend/app/api/runtime-config/route.ts) + OIDC discovery
+      # 로 해결한다 (ADR-0019 §4.2 환경설정 계약 + ADR-0018 §3.3 단일 포트 정합).
+      # 과거에 NEXT_PUBLIC_OIDC_AUTH_URL / NEXT_PUBLIC_OIDC_REDIRECT_URI build-arg 가 있었으나
+      # 2026-05-20 docs/reports/2026-05-20-network-docker-single-port-review.md §4.1 정정.
       - name: Build and push frontend
         uses: docker/build-push-action@v6
         with:
@@ -75,8 +80,6 @@ jobs:
           push: true
           build-args: |
             BACKEND_API_URL=http://backend-core:8080
-            NEXT_PUBLIC_OIDC_AUTH_URL=http://localhost:4444/oauth2/auth
-            NEXT_PUBLIC_OIDC_REDIRECT_URI=http://localhost:3000/auth/callback
           tags: |
             ${{ steps.vars.outputs.registry }}/frontend:${{ steps.vars.outputs.tag }}
 

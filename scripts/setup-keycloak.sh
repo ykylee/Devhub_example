@@ -1,13 +1,57 @@
 #!/bin/bash
-# scripts/setup-keycloak.sh — Local Keycloak realm/client/role setup.
+# scripts/setup-keycloak.sh — Keycloak realm/client/role setup (로컬 + 외부 모드 공용).
 # Based on .github/workflows/ci.yml logic.
+#
+# 환경변수:
+#   KEYCLOAK_URL                Keycloak base URL (필수, fallback 은 dev-up.sh 정합 dev default).
+#                                 - 로컬 모드 (dev-up.sh) : http://localhost:8180/devhub/auth/keycloak
+#                                 - 외부 모드 (사내 Keycloak): https://kc.internal.example.com/auth (또는 사내 path)
+#   KC_BOOTSTRAP_ADMIN_USERNAME Keycloak admin user (기본 admin)
+#   KC_BOOTSTRAP_ADMIN_PASSWORD Keycloak admin password (기본 admin — 운영은 vault 권장)
+#   DEVHUB_REALM                DevHub realm name (기본 devhub)
+#   DEVHUB_FRONTEND_ORIGIN      devhub-frontend client 의 redirect_uri / webOrigin origin (필수).
+#                                 - 로컬 모드: http://localhost:3000
+#                                 - 외부 모드: https://devhub.example.com
+#                                 - 단일 포트 reverse-proxy 정합: https://devhub.example.com (basePath /devhub)
+#   DEVHUB_FRONTEND_BASEPATH    Next.js basePath (기본 /devhub). 빈 값이면 native dev 모드.
+#
+# 단일 포트 컨셉 가드 (ADR-0018, ADR-0019):
+#   - redirectUris / webOrigins 에 wildcard "*" 또는 임의 host 허용을 자동 적용하지 않는다.
+#   - DEVHUB_FRONTEND_ORIGIN 이 비어있으면 fail-fast.
 
 set -euo pipefail
 
-BASE_URL="${KEYCLOAK_URL:-http://localhost:23000/devhub/auth/keycloak}"
+BASE_URL="${KEYCLOAK_URL:-http://localhost:8180/devhub/auth/keycloak}"
 ADMIN_USER="${KC_BOOTSTRAP_ADMIN_USERNAME:-admin}"
 ADMIN_PASS="${KC_BOOTSTRAP_ADMIN_PASSWORD:-admin}"
 REALM="${DEVHUB_REALM:-devhub}"
+FRONTEND_ORIGIN="${DEVHUB_FRONTEND_ORIGIN:-}"
+FRONTEND_BASEPATH="${DEVHUB_FRONTEND_BASEPATH:-/devhub}"
+
+if [ -z "$FRONTEND_ORIGIN" ]; then
+  echo "ERROR: DEVHUB_FRONTEND_ORIGIN 미설정. 단일 포트 컨셉 (ADR-0018) 정합을 위해 redirect_uri origin 을 명시해야 한다." >&2
+  echo "예: DEVHUB_FRONTEND_ORIGIN=http://localhost:3000 (native dev)" >&2
+  echo "    DEVHUB_FRONTEND_ORIGIN=https://devhub.example.com (단일 포트 reverse proxy)" >&2
+  exit 1
+fi
+
+# Strip trailing slash from FRONTEND_ORIGIN; ensure FRONTEND_BASEPATH starts with /.
+FRONTEND_ORIGIN="${FRONTEND_ORIGIN%/}"
+case "$FRONTEND_BASEPATH" in
+  /*) ;;
+  "") ;;
+  *) FRONTEND_BASEPATH="/$FRONTEND_BASEPATH" ;;
+esac
+
+# redirect_uris allowlist — 단일 origin 만 허용.
+if [ -n "$FRONTEND_BASEPATH" ]; then
+  REDIRECT_URIS="[\"${FRONTEND_ORIGIN}${FRONTEND_BASEPATH}/auth/callback\",\"${FRONTEND_ORIGIN}${FRONTEND_BASEPATH}/*\"]"
+  POST_LOGOUT_URIS="${FRONTEND_ORIGIN}${FRONTEND_BASEPATH}/##${FRONTEND_ORIGIN}${FRONTEND_BASEPATH}/auth/login"
+else
+  REDIRECT_URIS="[\"${FRONTEND_ORIGIN}/auth/callback\",\"${FRONTEND_ORIGIN}/*\"]"
+  POST_LOGOUT_URIS="${FRONTEND_ORIGIN}/##${FRONTEND_ORIGIN}/auth/login"
+fi
+WEB_ORIGINS="[\"${FRONTEND_ORIGIN}\"]"
 
 echo "Waiting for Keycloak at $BASE_URL..."
 timeout 120s bash -c "until curl -fsS \"$BASE_URL/realms/master/.well-known/openid-configuration\" >/dev/null; do echo -n '.'; sleep 2; done"
@@ -64,11 +108,11 @@ frontend_client_id=$(
     | python3 -c 'import json,sys; a=json.load(sys.stdin); print(a[0]["id"] if a else "")'
 )
 if [ -z "$frontend_client_id" ]; then
-  echo "  Creating client 'devhub-frontend'..."
+  echo "  Creating client 'devhub-frontend' (redirect_uris=${REDIRECT_URIS}, webOrigins=${WEB_ORIGINS})..."
   curl -fsS -X POST "$BASE_URL/admin/realms/$REALM/clients" \
     -H "Authorization: Bearer ${admin_token}" \
     -H "Content-Type: application/json" \
-    -d '{"clientId":"devhub-frontend","enabled":true,"publicClient":true,"standardFlowEnabled":true,"directAccessGrantsEnabled":false,"redirectUris":["*"],"webOrigins":["*"]}'
+    -d "{\"clientId\":\"devhub-frontend\",\"enabled\":true,\"publicClient\":true,\"standardFlowEnabled\":true,\"directAccessGrantsEnabled\":false,\"redirectUris\":${REDIRECT_URIS},\"webOrigins\":${WEB_ORIGINS},\"attributes\":{\"pkce.code.challenge.method\":\"S256\",\"post.logout.redirect.uris\":\"${POST_LOGOUT_URIS}\"}}"
   frontend_client_id=$(
     curl -fsS -H "Authorization: Bearer ${admin_token}" \
       "$BASE_URL/admin/realms/$REALM/clients?clientId=devhub-frontend" \

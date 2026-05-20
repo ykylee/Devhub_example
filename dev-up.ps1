@@ -120,18 +120,23 @@ if ($env:DEVHUB_SKIP_MIGRATE -eq '1') {
 }
 
 # 2. Keycloak check
+# KC_HTTP_RELATIVE_PATH=/devhub/auth/keycloak so dev and prod issuer paths line up
+# (docs/reports/2026-05-20-network-docker-single-port-review.md section 4.8).
 if (Test-PortListening -Port 8180) {
     Write-Host '  Keycloak detected on port 8180.'
 } else {
     Write-Warning 'Keycloak not detected on port 8180. Auth may not work.'
-    Write-Host '  Run: docker run -d -p 8180:8080 -e KC_BOOTSTRAP_ADMIN_USERNAME=admin -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin quay.io/keycloak/keycloak:26.0 start-dev'
+    Write-Host '  Run: docker run -d -p 8180:8080 `'
+    Write-Host '         -e KC_BOOTSTRAP_ADMIN_USERNAME=admin -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin `'
+    Write-Host '         -e KC_HTTP_RELATIVE_PATH=/devhub/auth/keycloak `'
+    Write-Host '         quay.io/keycloak/keycloak:26.0 start-dev --http-enabled=true --hostname-strict=false'
 }
 
 # 3. backend-core
 $env:AUTH_DEV_FALLBACK          = 'true'
 $env:DEVHUB_AUTH_DEV_FALLBACK   = '1'
 if (-not $env:DEVHUB_IDP_PROVIDER)     { $env:DEVHUB_IDP_PROVIDER = 'keycloak' }
-if (-not $env:DEVHUB_OIDC_ISSUER_URL)  { $env:DEVHUB_OIDC_ISSUER_URL = 'http://localhost:8180/realms/devhub' }
+if (-not $env:DEVHUB_OIDC_ISSUER_URL)  { $env:DEVHUB_OIDC_ISSUER_URL = 'http://localhost:8180/devhub/auth/keycloak/realms/devhub' }
 if (-not $env:DEVHUB_OIDC_CLIENT_ID)   { $env:DEVHUB_OIDC_CLIENT_ID = 'devhub-frontend' }
 
 if (Test-PortListening -Port 8080) {

@@ -2,7 +2,7 @@
   "id": "devhub",
   "realm": "devhub",
   "enabled": true,
-  "displayName": "DevHub Local Testing",
+  "displayName": "DevHub Local Testing (dev-only — DO NOT import into production)",
   "eventsListeners": [ "jboss-logging", "devhub-event-listener" ],
   "sslRequired": "external",
   "registrationAllowed": false,
@@ -56,19 +56,21 @@
       "publicClient": true,
       "directAccessGrantsEnabled": false,
       "redirectUris": [
-        "https://*/devhub/*",
-        "http://*/devhub/*",
+        "http://localhost/devhub/*",
         "http://localhost:3000/*",
         "http://localhost:3000/auth/callback",
-        "http://localhost:3000/devhub/auth/callback"
+        "http://localhost:3000/devhub/auth/callback",
+        "http://localhost:8080/devhub/*"
       ],
       "webOrigins": [
         "+",
-        "http://localhost:3000"
+        "http://localhost:3000",
+        "http://localhost",
+        "http://localhost:8080"
       ],
       "attributes": {
         "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "https://*/devhub/*##http://*/devhub/*##http://localhost:3000/*##http://localhost:3000/##http://localhost:3000/devhub/"
+        "post.logout.redirect.uris": "http://localhost/devhub/*##http://localhost:3000/*##http://localhost:3000/##http://localhost:3000/devhub/##http://localhost:8080/devhub/*"
       },
       "protocolMappers": [
         {
