@@ -34,12 +34,11 @@ type keycloakWebhookRequest struct {
 }
 
 func (h Handler) receiveKeycloakEventWebhook(c *gin.Context) {
-	// 1. Verify webhook secret — fail-closed if not configured (PR #203 codex P1
-	// hotfix, sprint -d). The route is registered outside the v1 auth group so
-	// without the secret check anyone reachable on /api/v1/internal/keycloak-
-	// events could POST arbitrary Keycloak events and create audit rows. A
-	// missing DEVHUB_KEYCLOAK_SPI_WEBHOOK_SECRET env => 503 so deployments fail
-	// loud (matches the KratosWebhookToken pattern from PR-M2-AUDIT).
+	// Verify webhook secret — fail-closed if not configured. The route is
+	// registered outside the v1 auth group, so without this check anyone able to
+	// reach /api/v1/internal/keycloak-events could POST arbitrary events and
+	// create audit rows. A missing DEVHUB_KEYCLOAK_SPI_WEBHOOK_SECRET => 503 so
+	// misconfigured deployments fail loud.
 	if h.cfg.KeycloakWebhookSecret == "" {
 		log.Printf("[keycloak-webhook] Rejecting request: DEVHUB_KEYCLOAK_SPI_WEBHOOK_SECRET not configured")
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "keycloak webhook secret not configured"})

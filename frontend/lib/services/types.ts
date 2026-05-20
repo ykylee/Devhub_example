@@ -41,14 +41,6 @@ export interface Risk {
   created_at?: string;
 }
 
-export interface BuildLog {
-  id: string;
-  repo: string;
-  status: "success" | "failed" | "running";
-  time: string;
-  duration: string;
-}
-
 export interface ServiceNode {
   id: string;
   label: string;

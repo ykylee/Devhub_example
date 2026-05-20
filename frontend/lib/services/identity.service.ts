@@ -18,15 +18,6 @@ export interface OrgMember {
   joined_at: string;
 }
 
-export interface Team {
-  id: string;
-  name: string;
-  description: string;
-  member_count: number;
-  project_count: number;
-  lead_id: string;
-}
-
 export interface OrgNode {
   id: string;
   type?: 'division' | 'team' | 'group' | 'part' | 'company' | 'input';
@@ -240,27 +231,6 @@ export class IdentityService {
   async getUsers(): Promise<OrgMember[]> {
     const result = await apiClient<ApiResponse<BackendUser[]>>("GET", "/api/v1/users");
     return (result.data ?? []).map(mapBackendUser);
-  }
-
-  async getTeams(): Promise<Team[]> {
-    return [
-      {
-        id: "team-infra",
-        name: "Infrastructure",
-        description: "Cloud resources and Kubernetes management",
-        member_count: 5,
-        project_count: 3,
-        lead_id: "u1"
-      },
-      {
-        id: "team-frontend",
-        name: "Frontend",
-        description: "DevHub Web interface and Mobile apps",
-        member_count: 8,
-        project_count: 2,
-        lead_id: "u3"
-      }
-    ];
   }
 
   async updateOrgHierarchy(nodes: OrgNode[], edges: { source: string; target: string }[]): Promise<void> {
