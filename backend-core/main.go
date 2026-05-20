@@ -288,10 +288,40 @@ func main() {
 			}
 			lister := audit.NewHTTPAPIEventListerAdapter(&keycloakAdminEventLister{kc: kc})
 			emitter := buildKeycloakEventAuditEmitter(auditStore)
+			// ADR-0020 sub-carve C (sprint -k, issue #212) — user_sync dispatcher
+			// callback. admin event 처리 시 DevHub `users` 컬럼 자동 sync.
+			// orgStore nil 인 경우 sync 생략 (이전 sprint -u~-y 동작 동등).
+			var userSync audit.UserSyncCallback
+			if organizationStore != nil {
+				userSync = func(syncCtx context.Context, action audit.SyncUserAction, identityID, _ string) {
+					start := time.Now()
+					var err error
+					switch action {
+					case audit.SyncActionProfile:
+						err = audit.SyncUserProfile(syncCtx, kc, organizationStore, identityID)
+					case audit.SyncActionMembership:
+						err = audit.SyncUserMembership(syncCtx, kc, organizationStore, identityID)
+					case audit.SyncActionStatus:
+						// USER:DELETE — Keycloak user 가 이미 gone. caller 가 username hint
+						// 없이 호출하므로 GetUserDetails 가 404. MarkUserDeactivated 는
+						// userID 가 빈 문자열이면 noop 반환. 이 경로는 PR #212 후속의
+						// audit_logs.actor_login 캐시 lookup 으로 보강 예정 (carve out).
+						err = audit.MarkUserDeactivated(syncCtx, organizationStore, identityID)
+					}
+					if err != nil {
+						log.Printf("user_sync %s identity=%s failed: %v", action, identityID, err)
+						audit.ObserveUserSyncError(action)
+						return
+					}
+					audit.ObserveUserSync(action)
+					audit.ObserveUserSyncLag(time.Since(start).Seconds())
+				}
+			}
 			opts := audit.KeycloakEventPullerOptions{
 				Interval:     interval,
 				MaxEvents:    maxEvents,
 				AuditEmitter: emitter,
+				UserSync:     userSync,
 			}
 			go func() {
 				err := audit.RunKeycloakEventPuller(ctx, lister, eventCursorStore, opts)
