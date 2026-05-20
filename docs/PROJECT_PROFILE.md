@@ -21,8 +21,11 @@
 ## 2. 문서 구조 (Path)
 
 - 문서 위키 홈: `README.md`, `docs/README.md`
-- 운영 문서 홈 (브랜치별): `ai-workflow/memory/<agent>/<branch>/`
-- main 기준 source-of-truth: `ai-workflow/memory/state.json`, `session_handoff.md`, `work_backlog.md`
+- 운영 문서 위치 (브랜치별 분리): `ai-workflow/memory/<agent>/<branch>/`
+- source-of-truth 결정 규칙 (CLAUDE.md 정합):
+  - **sprint 브랜치 작업 시** → `ai-workflow/memory/<agent>/<branch>/{state.json,session_handoff.md,work_backlog.md}` 가 활성 source-of-truth
+  - **main 브랜치 작업 시** → flat 경로 (`ai-workflow/memory/state.json` 등) 가 활성 source-of-truth
+  - flat 경로는 main HEAD 동기화 + sprint 브랜치 디렉터리 없을 때 fallback. 두 위치 모두 존재하면 브랜치 디렉터리가 우선
 - 백로그 위치: `ai-workflow/memory/backlog/` (main) 또는 `ai-workflow/memory/<agent>/<branch>/backlog/` (sprint)
 - 세션 인계 문서: `ai-workflow/memory/session_handoff.md` (main) 또는 `<agent>/<branch>/session_handoff.md` (sprint)
 - 환경 기록 위치: `ai-workflow/memory/environments/`
