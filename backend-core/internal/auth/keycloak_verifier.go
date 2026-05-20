@@ -181,6 +181,33 @@ func (v *KeycloakJWKSVerifier) fetchJWKS(ctx context.Context) (map[string]*rsa.P
 		return keys, nil
 	}
 
+	// ADR-0020 sub-carve D (sprint -l, issue #213): stale-while-error fallback.
+	// cache TTL 만료 → network fetch 시도 → 실패 시 stale cache 로 검증 시도
+	// (Keycloak unreachable 시 DevHub uptime 보장). stale 만료 (MaxStaleDuration
+	// 초과) 면 stale 사용 안 함 — security 보호 (revoked key 회복 한도).
+	keys, fetchErr := v.fetchAndCacheJWKS(ctx)
+	if fetchErr == nil {
+		return keys, nil
+	}
+	// network fetch 실패 — stale cache 시도
+	staleKeys, staleAt := v.readStaleCachedKeys()
+	if len(staleKeys) > 0 {
+		staleAge := time.Since(staleAt).Seconds()
+		observeJWKSStaleWhileError("ok")
+		observeJWKSStaleAge(staleAge)
+		// log WARN — 운영 dashboard 가 stale 사용 식별. log noise 최소화 위해
+		// stale_age + token.sub 로 structured.
+		fmt.Printf("[keycloak_verifier] stale-while-error JWKS fallback: keycloak unreachable (%v), using stale cache (age=%.0fs)\n", fetchErr, staleAge)
+		return staleKeys, nil
+	}
+	observeJWKSStaleWhileError("fail")
+	return nil, fetchErr
+}
+
+// fetchAndCacheJWKS — network fetch + parse + cache write. fetchJWKS 의 1차
+// 시도 path. 실패 (Keycloak unreachable / 5xx / decode 실패) 시 caller 가
+// stale-while-error fallback 분기.
+func (v *KeycloakJWKSVerifier) fetchAndCacheJWKS(ctx context.Context) (map[string]*rsa.PublicKey, error) {
 	jwksURL, err := v.resolveJWKSURL(ctx)
 	if err != nil {
 		return nil, err
