@@ -51,6 +51,12 @@ const CAPTURE_DIR = "test-results/screenshots";
 // captured mid-skeleton.
 const SETTLE_MS = 1500;
 
+// PR #237 codex P1 review (discussion r3270758280) — networkidle 의 default
+// (30s) 가 long-polling / WebSocket 페이지 (예: /admin/topology-v2 의 React
+// Flow + WS subscribe 가능성) 에서 silent 30s 소비 → 누적 timeout 초과 위험.
+// 5s 명시로 non-idle 페이지를 빠르게 통과시키고 그 후 SETTLE_MS 가 안정성 보강.
+const NETWORK_IDLE_TIMEOUT_MS = 5000;
+
 test.describe("UI screenshot capture (P0-3, design review source)", () => {
   test("admin pages (system_admin) — 12 captures", async ({ page }) => {
     // Default 30s timeout 은 loginAs(~10s) + 12 × (goto + networkidle + 1.5s settle + screenshot ~ 5-7s)
@@ -60,7 +66,7 @@ test.describe("UI screenshot capture (P0-3, design review source)", () => {
     await loginAs(page, SEEDED.systemAdmin);
     for (const { path, name } of ADMIN_PAGES) {
       await page.goto(path);
-      await page.waitForLoadState("networkidle").catch(() => undefined);
+      await page.waitForLoadState("networkidle", { timeout: NETWORK_IDLE_TIMEOUT_MS }).catch(() => undefined);
       await page.waitForTimeout(SETTLE_MS);
       await page.screenshot({ path: `${CAPTURE_DIR}/${name}.png`, fullPage: true });
     }
@@ -68,7 +74,7 @@ test.describe("UI screenshot capture (P0-3, design review source)", () => {
 
   test("login page — unauthenticated capture", async ({ page }) => {
     await page.goto("/login");
-    await page.waitForLoadState("networkidle").catch(() => undefined);
+    await page.waitForLoadState("networkidle", { timeout: NETWORK_IDLE_TIMEOUT_MS }).catch(() => undefined);
     await page.waitForTimeout(SETTLE_MS);
     await page.screenshot({ path: `${CAPTURE_DIR}/00-login.png`, fullPage: true });
   });
@@ -79,7 +85,7 @@ test.describe("UI screenshot capture (P0-3, design review source)", () => {
     await loginAs(page, SEEDED.developer);
     for (const { path, name } of USER_PAGES) {
       await page.goto(path);
-      await page.waitForLoadState("networkidle").catch(() => undefined);
+      await page.waitForLoadState("networkidle", { timeout: NETWORK_IDLE_TIMEOUT_MS }).catch(() => undefined);
       await page.waitForTimeout(SETTLE_MS);
       await page.screenshot({ path: `${CAPTURE_DIR}/${name}.png`, fullPage: true });
     }
@@ -89,7 +95,7 @@ test.describe("UI screenshot capture (P0-3, design review source)", () => {
     // loginAs + 1 페이지 캡처 ~ 15-20s, default 30s 안전 마진. 명시는 안 함.
     await loginAs(page, SEEDED.manager);
     await page.goto("/manager");
-    await page.waitForLoadState("networkidle").catch(() => undefined);
+    await page.waitForLoadState("networkidle", { timeout: NETWORK_IDLE_TIMEOUT_MS }).catch(() => undefined);
     await page.waitForTimeout(SETTLE_MS);
     await page.screenshot({ path: `${CAPTURE_DIR}/19-manager-dashboard.png`, fullPage: true });
   });
