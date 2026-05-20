@@ -132,25 +132,7 @@ func TestResolveIdPSubject_NotFoundPropagates(t *testing.T) {
 	}
 }
 
-// Eager backfill on account.create: createAccount must stamp the new
-// identity_id on the users row so the next admin/self-service action hits
-// the cache.
-func TestCreateAccount_EagerBackfillsIdPSubject(t *testing.T) {
-	orgStore := newMemoryOrganizationStore()
-	idp := &MockIdentityAdmin{}
-	router := newAccountsAdminRouter(orgStore, idp, &memoryAuditStore{})
-
-	rec := doJSON(t, router, "POST", "/api/v1/accounts",
-		`{"user_id":"dora","email":"dora@example.com","display_name":"Dora","temp_password":"InitialPass123!"}`)
-	if rec.Code != 201 {
-		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
-	}
-
-	user, err := orgStore.GetUser(context.Background(), "dora")
-	if err != nil {
-		t.Fatalf("get user after create: %v", err)
-	}
-	if user.IdPSubject != "mock-k-id-dora" {
-		t.Errorf("IdPSubject = %q, want mock-k-id-dora", user.IdPSubject)
-	}
-}
+// ADR-0020 sub-carve B (sprint -i, issue #209): TestCreateAccount_EagerBackfillsIdPSubject
+// 제거 — POST /api/v1/accounts 폐기. eager backfill 흐름은 lazy auto-create
+// (authenticateActor, §5.2) 로 대체. 신규 lazy 시나리오 test 는 별도 commit 에서
+// 추가 (CreateUser 호출 시 IdPSubject set 확인).

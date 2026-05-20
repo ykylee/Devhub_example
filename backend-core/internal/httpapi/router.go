@@ -225,10 +225,11 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.GET("/users/:user_id", handler.getUser)
 	v1.PATCH("/users/:user_id", handler.updateUser)
 	v1.DELETE("/users/:user_id", handler.deleteUser)
-	v1.POST("/accounts", handler.createAccount)
-	v1.PUT("/accounts/:user_id/password", handler.resetAccountPassword)
-	v1.PATCH("/accounts/:user_id", handler.updateAccountStatus)
-	v1.DELETE("/accounts/:user_id", handler.deleteAccount)
+	// ADR-0020 sub-carve B (sprint -i, issue #209): /api/v1/accounts/* 4 endpoint
+	// 폐기. user 생성/비밀번호/상태/삭제는 Keycloak admin console 또는 HRDB ETL
+	// push 책임 (사내 IdP 팀). frontend admin actions cleanup 은 Gemini 별도 sprint.
+	// lazy auto-create 가 첫 진입 시 DevHub `users` row 자동 생성 (authenticateActor,
+	// ADR-0020 §5.2).
 	v1.GET("/organization/hierarchy", handler.getHierarchy)
 	v1.PUT("/organization/hierarchy", handler.updateHierarchy)
 	v1.POST("/organization/units", handler.createOrgUnit)
