@@ -99,10 +99,12 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
           <div className="h-6 w-px bg-muted/40 hidden sm:block"></div>
           
           <div className="relative">
-            <motion.div 
+            {/* Native <button> instead of role="button" motion.div — Playwright trusted click events
+                + accessibility tree consistency. e2e regression hotfix (PR #248). */}
+            <button
+              type="button"
               onClick={() => setShowDropdown(!showDropdown)}
               className="flex items-center gap-3 py-1.5 px-3 rounded-2xl hover:bg-muted/30 transition-all cursor-pointer group"
-              role="button"
               aria-haspopup="true"
               aria-expanded={showDropdown}
               aria-label="User menu"
@@ -116,7 +118,7 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
                   {role || "No Role"} <ChevronDown className={cn("w-3 h-3 transition-transform duration-300", showDropdown && "rotate-180")} aria-hidden="true" />
                 </span>
               </div>
-            </motion.div>
+            </button>
 
             <AnimatePresence>
               {showDropdown && (
@@ -124,7 +126,9 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
                   initial={{ opacity: 0, y: 10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute top-full right-0 mt-4 w-56 rounded-2xl glass border border-border p-2 z-50 shadow-2xl"
+                  // z-[200] (originally z-50) — Sidebar mobile drawer is z-[150];
+                  // header sticky stacking context conflict 회피.
+                  className="absolute top-full right-0 mt-4 w-56 rounded-2xl glass border border-border p-2 z-[200] shadow-2xl"
                   role="menu"
                 >
                   <p className="px-3 pt-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-50">
