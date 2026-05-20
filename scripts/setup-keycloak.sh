@@ -123,7 +123,11 @@ role_payload=$(
   {
     printf '['
     first=1
-    for role_name in view-users query-users manage-users view-realm; do
+    # ADR-0020 sub-carve E (PR #244 merge 6810384) 정합 — service account
+    # 는 view-users + view-events + view-realm 만 요구. manage-users 는 정
+    # 공법 제거 (backend KeycloakAdminClient.CreateIdentity 등 write API 호
+    # 출처 5건 모두 제거됨). docs/planning/keycloak_service_account_min_role.md.
+    for role_name in view-users query-users view-events view-realm; do
       role_json=$(
         curl -fsS -H "Authorization: Bearer ${admin_token}" \
           "$BASE_URL/admin/realms/$REALM/clients/${realm_mgmt_client_id}/roles/${role_name}"
@@ -176,15 +180,18 @@ if [ "$user_exists" = "false" ]; then
     -H "Content-Type: application/json" \
     -d '{"type":"password","value":"test","temporary":false}'
   
-  echo "  Assigning 'developer' role to 'test'..."
-  dev_role_json=$(
+  # infra/idp/sql/003_seed_test_admin.sql 정합 — DevHub users.role 이 system_admin
+  # 으로 시드되므로 Keycloak 측도 일치시켜야 첫 로그인 시 lazy_auto_create
+  # (sprint -i PR #239) 의 role merge 정합.
+  echo "  Assigning 'system_admin' role to 'test'..."
+  admin_role_json=$(
     curl -fsS -H "Authorization: Bearer ${admin_token}" \
-      "$BASE_URL/admin/realms/$REALM/roles/developer"
+      "$BASE_URL/admin/realms/$REALM/roles/system_admin"
   )
   curl -fsS -X POST "$BASE_URL/admin/realms/$REALM/users/$test_user_id/role-mappings/realm" \
     -H "Authorization: Bearer ${admin_token}" \
     -H "Content-Type: application/json" \
-    -d "[$dev_role_json]"
+    -d "[$admin_role_json]"
 else
   echo "  User 'test' already exists."
 fi

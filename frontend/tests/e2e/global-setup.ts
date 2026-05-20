@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import fs from "node:fs";
 import path from "node:path";
 
 const KC_BASE_URL = (process.env.DEVHUB_KEYCLOAK_ADMIN_URL ?? "http://localhost:8180/devhub/auth/keycloak").replace(/\/+$/, "");
@@ -155,15 +156,21 @@ async function seedKeycloakUsers(): Promise<Record<string, string>> {
   return idMap;
 }
 
+// PostgreSQL single-quote escape (' → ''). SEEDS 는 hardcoded array 라 실 위험
+// 낮지만 prepared statement 패턴이 없는 idp-apply-schemas 경로라 명시 escape.
+function sqlEscape(value: string): string {
+  return value.replace(/'/g, "''");
+}
+
 function seedDevhubUsers(idMap: Record<string, string>): void {
   if (!DSN) {
     throw new Error("DSN env var is required for global-setup (DevHub users seed)");
   }
 
-  // Create dynamic SQL for UPSERTing users with correct idp_subject (Option 1)
+  // Dynamic SQL for UPSERTing users with correct idp_subject (sprint -m design Option 1).
   const values = SEEDS.map(s => {
-    const sub = idMap[s.email];
-    return `('${s.user_id}', '${s.email}', '${s.display_name}', '${s.role}', 'active', '2026-01-01', 'human', '${sub}')`;
+    const sub = idMap[s.email] ?? "";
+    return `('${sqlEscape(s.user_id)}', '${sqlEscape(s.email)}', '${sqlEscape(s.display_name)}', '${sqlEscape(s.role)}', 'active', '2026-01-01', 'human', '${sqlEscape(sub)}')`;
   }).join(",\n    ");
 
   const sql = `-- Dynamic seed from global-setup.ts
@@ -176,24 +183,26 @@ ON CONFLICT (user_id) DO UPDATE SET
     status = EXCLUDED.status;
 `;
 
-  const tempSqlPath = path.resolve(__dirname, "temp_seed_e2e_users.sql");
-  require("node:fs").writeFileSync(tempSqlPath, sql);
+  // Unique file name — parallel e2e shard 간 collision 회피 (process.pid + timestamp).
+  const tempSqlPath = path.resolve(__dirname, `temp_seed_e2e_users_${process.pid}_${Date.now()}.sql`);
+  fs.writeFileSync(tempSqlPath, sql);
 
-  const backendDir = path.resolve(__dirname, "..", "..", "..", "backend-core");
-  const result = spawnSync("go", ["run", "./cmd/idp-apply-schemas", "-dsn", DSN, "-sql", tempSqlPath], {
-    cwd: backendDir,
-    env: { ...process.env, DSN, DEVHUB_DB_URL: DSN },
-    stdio: "inherit",
-    shell: process.platform === "win32",
-  });
-
-  // Clean up temp SQL
-  try { require("node:fs").unlinkSync(tempSqlPath); } catch {}
-
-  if (result.status !== 0) {
-    throw new Error(`idp-apply-schemas exited with status ${result.status}`);
+  try {
+    const backendDir = path.resolve(__dirname, "..", "..", "..", "backend-core");
+    const result = spawnSync("go", ["run", "./cmd/idp-apply-schemas", "-dsn", DSN, "-sql", tempSqlPath], {
+      cwd: backendDir,
+      env: { ...process.env, DSN, DEVHUB_DB_URL: DSN },
+      stdio: "inherit",
+      shell: process.platform === "win32",
+    });
+    if (result.status !== 0) {
+      throw new Error(`idp-apply-schemas exited with status ${result.status}`);
+    }
+    console.log("[e2e seed] DevHub users row seeded with idp_subject sync");
+  } finally {
+    // Always clean up temp SQL even on error.
+    try { fs.unlinkSync(tempSqlPath); } catch { /* ignore */ }
   }
-  console.log("[e2e seed] DevHub users row seeded with idp_subject sync");
 }
 
 export default async function globalSetup(): Promise<void> {

@@ -96,7 +96,7 @@ DB_URL="${DB_URL:-postgres://${USER}@localhost:5432/devhub?sslmode=disable}"
 export DB_URL
 
 if [ "${DEVHUB_SKIP_MIGRATE:-}" = "1" ]; then
-    echo "[skip-migrate] migrate-up 단계 건너뜜."
+    echo "[skip-migrate] migrate-up 단계 건너뜀."
 elif command -v migrate >/dev/null 2>&1; then
     echo "Applying migrations against $(mask_dsn "$DB_URL")..."
     migrate -path backend-core/migrations -database "$DB_URL" up
