@@ -45,12 +45,12 @@ run:
 	@echo "  Docker:  docker-compose up      (requires local, untracked docker-compose.yml)"
 
 # ----------------------------------------------------------------------------
-# Test targets (PR-T1 / work_26_05_11-d sprint)
-# - `test`        : backend Go test ./... (frontend test added once PR-T2 lands)
-# - `test-race`   : same with -race + -count=1 to expose data races
+# Test targets
+# - `test`         : backend Go `go test ./...`
+# - `test-race`    : same with -race + -count=1 to expose data races
 # - `test-coverage`: writes coverage.out + prints package-level summary
-# - `test-frontend`: placeholder, populated by PR-T2 (Vitest)
-# - `e2e`         : placeholder, populated by PR-T3 (Playwright)
+# - `test-frontend`: frontend Vitest unit suite
+# - `e2e`          : frontend Playwright e2e suite
 # ----------------------------------------------------------------------------
 
 test:

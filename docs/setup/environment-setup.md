@@ -1,11 +1,11 @@
 # 개발 환경 구성 가이드
 
-- 문서 목적: DevHub Example 의 개발/검증 환경을 구성하는 표준 절차를 docker 모드와 native(no-docker) 모드 두 갈래로 제공한다.
-- 범위: 사전 준비, 데이터베이스 기동, 백엔드 2종(backend-core/backend-ai) 실행, frontend 실행, 마이그레이션, 검증
+- 문서 목적: DevHub Example 의 개발/검증 환경을 구성하는 표준 절차를 native (no-docker) default 와 docker (optional) 두 갈래로 제공한다.
+- 범위: 사전 준비, 데이터베이스 기동, 백엔드 2종(backend-core/backend-ai) 실행, frontend 실행, 마이그레이션, 검증, 인증 (Keycloak)
 - 대상 독자: 신규 개발자, 환경 트러블슈팅 담당자
-- 상태: draft
-- 최종 수정일: 2026-05-08
-- 관련 문서: [Makefile](../../Makefile), [tech_stack.md](../tech_stack.md), [ai-workflow/memory/environments/homelab-postgresql.md](../../ai-workflow/memory/environments/homelab-postgresql.md)
+- 상태: stable
+- 최종 수정일: 2026-05-20 (메타 갱신 + Keycloak 정합, sprint `claude/codebase-cleanup-2026-05-20`)
+- 관련 문서: [Makefile](../../Makefile), [tech_stack.md](../tech_stack.md), [test-server-deployment.md](./test-server-deployment.md), [keycloak_operations.md](./keycloak_operations.md), [ADR-0019 Keycloak 단일 IdP](../adr/0019-keycloak-only-idp.md), [ai-workflow/memory/environments/homelab-postgresql.md](../../ai-workflow/memory/environments/homelab-postgresql.md)
 
 ## 0. 자산 관리 원칙
 
@@ -77,9 +77,9 @@ npm run dev
 
 `BACKEND_API_URL` 환경변수를 별도로 지정하지 않으면 `next.config.ts` 의 native default(`http://localhost:8080`) 를 사용해 backend-core 로 프록시한다. compose 환경처럼 다른 호스트명을 쓰려면 `BACKEND_API_URL` 을 export 하면 된다.
 
-#### Auth env (PR #18 이후 적용)
+#### Auth env (Keycloak OIDC)
 
-frontend 의 `/login` 화면이 OIDC redirect 흐름으로 진입하므로 다음 env 를 설정한다 (default 는 PoC 용).
+frontend 의 `/auth/login` 화면이 Keycloak OIDC redirect 흐름으로 진입하므로 다음 env 를 설정한다 (default 는 로컬 PoC 용; 실 운영 값은 `keycloak_operations.md` 참조).
 
 | 변수 | default | 용도 |
 | --- | --- | --- |
@@ -89,7 +89,7 @@ frontend 의 `/login` 화면이 OIDC redirect 흐름으로 진입하므로 다�
 | `NEXT_PUBLIC_OIDC_REDIRECT_URI` | `http://127.0.0.1:3000/auth/callback` | OIDC callback URL |
 | `NEXT_PUBLIC_OIDC_SCOPE` | `openid offline_access email profile` | 요청 scope |
 
-또한 dev 모드에서 backend `/api/v1/me` 가 401 을 반환하지 않도록 Keycloak/OIDC PoC 가 가동 중이어야 한다 (`DEVHUB_AUTH_DEV_FALLBACK=1` 은 Authorization 헤더 없는 요청 통과만 허용 — `X-Devhub-Actor` 폴백 헤더는 [ADR-0004](../adr/0004-x-devhub-actor-removal.md) 로 폐기됐다).
+또한 dev 모드에서 backend `/api/v1/me` 가 401 을 반환하지 않도록 Keycloak OIDC 가 가동 중이어야 한다 (`DEVHUB_AUTH_DEV_FALLBACK=1` 은 Authorization 헤더 없는 요청을 통과시켜 `system` 액터로 인식 — production 에서는 `DEVHUB_ENV=prod` 가 fail-fast 로 거부; `X-Devhub-Actor` 폴백 헤더는 [ADR-0004](../adr/0004-x-devhub-actor-removal.md) 로 폐기됐다).
 
 ### 2.5 검증
 

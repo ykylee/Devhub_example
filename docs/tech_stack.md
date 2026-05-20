@@ -5,8 +5,8 @@
 - 대상 독자: 모든 개발자, DevOps, AI agent, 신규 환경 부트스트랩 담당.
 - 상태: accepted
 - 작성일: 2026-04-29
-- 최종 수정일: 2026-05-13 (메타 헤더 표준화, sprint `claude/work_260513-d`)
-- 관련 문서: [아키텍처 설계서](./architecture.md), [요구사항 정의서](./requirements.md), [테스트 서버 배포 가이드](./setup/test-server-deployment.md), [ADR-0019 Keycloak 단일화 (현재 IdP)](./adr/0019-keycloak-only-idp.md), [ADR-0001 IdP (Hydra+Kratos, superseded)](./adr/0001-idp-selection.md), [ADR-0003 No-Docker CI scope](./adr/0003-no-docker-policy-ci-scope.md).
+- 최종 수정일: 2026-05-20 (Next.js 16 / React 19.2 / native default 정합, sprint `claude/codebase-cleanup-2026-05-20`)
+- 관련 문서: [아키텍처 설계서](./architecture.md), [요구사항 정의서](./requirements.md), [환경 구성 가이드](./setup/environment-setup.md), [테스트 서버 배포 가이드](./setup/test-server-deployment.md), [ADR-0019 Keycloak 단일화 (현재 IdP)](./adr/0019-keycloak-only-idp.md), [ADR-0001 IdP (Hydra+Kratos, superseded)](./adr/0001-idp-selection.md), [ADR-0003 No-Docker CI scope](./adr/0003-no-docker-policy-ci-scope.md), [ADR-0018 Single-Port Reverse Proxy](./adr/0018-single-port-reverse-proxy-policy.md).
 
 ## 1. 확정 기술 스택 (Technology Stack)
 
@@ -23,13 +23,13 @@ DevHub은 Gitea 연동, AI 분석, 실시간 대시보드 제공을 위해 다�
     - REST/HTTP는 외부 API 및 상태 확인용 endpoint에 사용하며, Go Core와 Python AI 간 분석 요청/응답의 기본 계약은 gRPC로 둡니다.
 
 ### 1.2 Frontend
-- **Framework:** **Next.js (React 19, App Router)**
+- **Framework:** **Next.js 16 (React 19.2, App Router)**
     - 역할: 역할별 기본 진입 우선순위 대시보드, 실시간 상태 시각화.
-- **Styling:** **Tailwind CSS**
-- **Data Fetching:** **TanStack Query (React Query)** (도입 예정)
-    - 상태: 확정 스택이나 현재 scaffold에는 미설치. API 연동 구현 시 추가.
-- **Interactive UI:** **React Flow** (인프라 구성도용, 도입 예정)
-    - 상태: 확정 스택이나 현재 scaffold에는 미설치. 시스템 관리자 인프라 뷰 구현 시 추가.
+    - 현재 버전: `next@16.2.x`, `react@19.2.x` (`frontend/package.json`). 빌드 산출물 26 routes (static + dynamic 혼합).
+- **Styling:** **Tailwind CSS** + semantic theme (CSS 변수 기반 다크/라이트 모드).
+- **Data Fetching:** 현재는 `lib/services/*.service.ts` + `apiClient` (커스텀 wrapper) 사용. TanStack Query 도입은 carve out 상태.
+- **Interactive UI:** **React Flow** (`@xyflow/react`) — Organization hierarchy editor + Topology v2 (Environment grouping + WebSocket 실시간 갱신) 에 active 사용.
+- **Auth flow:** Keycloak OIDC code flow with PKCE — `lib/auth/pkce.ts` + `lib/auth/token-store.ts` + `app/auth/login,callback,logout,signup` routes ([ADR-0019](./adr/0019-keycloak-only-idp.md)).
 
 ### 1.3 Database
 - **Main DB:** **PostgreSQL (v15+)**
@@ -39,17 +39,19 @@ DevHub은 Gitea 연동, AI 분석, 실시간 대시보드 제공을 위해 다�
 
 ## 2. 개발 환경 설정 (Environment Setup)
 
-### 2.1 사전 요구 사항 (Prerequisites)
-- **Docker & Docker Compose**
-- **Go**: 기준 v1.26.2 (`backend-core/go.mod`, `backend-core/Dockerfile` 기준). 로컬 `go`도 같은 minor 버전을 권장.
-- **Python**: 기준 v3.11 (`backend-ai/Dockerfile` 기준), 최소 v3.10 이상. `make setup`과 `make proto`는 로컬 `python3`를 그대로 사용하므로 v3.10 미만에서는 실패할 수 있음.
-- **Node.js**: 기준 v22 (`frontend/Dockerfile` 기준), 최소 v20 이상. 로컬 `npm install`과 `npm run` 계열 명령은 로컬 Node.js를 사용하므로 v20 미만에서는 지원하지 않음.
-- **protoc** (gRPC 컴파일러)
-- **Go protoc plugins:** `protoc-gen-go`, `protoc-gen-go-grpc` (`make proto-tools`로 설치)
-- **Python gRPC tools:** `grpcio`, `grpcio-tools` (`make setup`으로 `backend-ai/requirements.txt` 설치)
-- **DB migration tool:** `golang-migrate/migrate` v4.19.1 (PostgreSQL driver 포함, `make migrate-tools`로 설치)
+본 저장소는 **native (no-docker) 모드를 default** 로 한다 ([ADR-0003](./adr/0003-no-docker-policy-ci-scope.md)). 컨테이너 자산 (`docker-compose.yml`, 각 서비스 `Dockerfile`, `.dockerignore`) 은 환경별 제약이 달라 git 추적에서 제외되며 (`.gitignore` 의 `DEV ENVIRONMENT` 섹션), 절차는 [`docs/setup/environment-setup.md`](./setup/environment-setup.md) 가 source-of-truth.
 
-Docker 기반 실행은 각 서비스 Dockerfile의 기준 버전을 사용합니다. 로컬 초기화와 검증 명령(`make setup`, `make proto`, `cd backend-core && go test ./...`, `cd frontend && npm run lint`)은 호스트에 설치된 런타임을 사용하므로 위 최소 버전을 먼저 맞춥니다.
+### 2.1 사전 요구 사항 (Prerequisites)
+- **Go**: 기준 v1.26.2 (`backend-core/go.mod`). 로컬 `go` 도 같은 minor 버전을 권장.
+- **Python**: v3.11+ 권장 (최소 v3.10). `make setup` 과 `make proto` 는 로컬 `python3` 를 그대로 사용한다.
+- **Node.js**: v20 LTS+ (Next.js 16 빌드 요구). 로컬 `npm install` 과 `npm run` 계열 명령은 로컬 Node.js 를 사용한다.
+- **PostgreSQL**: v15 (호스트 native 또는 시스템 서비스로 기동).
+- **protoc** (gRPC 컴파일러)
+- **Go protoc plugins:** `protoc-gen-go`, `protoc-gen-go-grpc` (`make proto-tools` 로 설치)
+- **Python gRPC tools:** `grpcio`, `grpcio-tools` (`make setup` 으로 `backend-ai/requirements.txt` 설치)
+- **DB migration tool:** `golang-migrate/migrate` v4.19.1 (PostgreSQL driver 포함, `make migrate-tools` 로 설치)
+- **Keycloak (인증)**: v26+ — 로컬에서는 native binary 또는 별도 docker 자산으로 기동. `docs/setup/keycloak_operations.md` 참고.
+- **Docker / Docker Compose (optional)**: 사용자 환경에서 컨테이너 모드를 쓸 때만 필요. git 추적 외 자산으로 사내 위키 등에서 환경별로 관리.
 
 ### 2.2 프로젝트 초기화 (Initialization)
 루트 디렉토리에서 제공된 `Makefile`을 사용하여 의존성을 설치합니다.
@@ -68,12 +70,17 @@ make proto
 ```
 
 ### 2.3 로컬 실행 (Running Locally)
-Docker Compose를 사용하여 전체 시스템(DB, Backend, Frontend)을 한 번에 구동합니다.
+
+`make build` / `make run` 은 환경별 절차 안내만 출력한다. 실제 기동 절차는 [`docs/setup/environment-setup.md`](./setup/environment-setup.md) 의 두 갈래 가이드를 따른다.
 
 ```bash
-# 서비스 빌드 및 실행
-make build
-make run
+# Native (default):
+(cd backend-core && go run .)        # :8080
+python backend-ai/main.py            # :8000   (또는 uvicorn main:app)
+(cd frontend && npm run dev)         # :3000
+
+# Docker (optional, 사용자 로컬 자산):
+docker-compose up -d                 # docker-compose.yml 은 환경별로 git 외부 보관
 ```
 
 ### 2.4 주요 서비스 포트 정보
