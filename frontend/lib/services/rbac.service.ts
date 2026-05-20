@@ -13,12 +13,6 @@ interface RoleEnvelope {
   data: Role;
 }
 
-interface SubjectRolesEnvelope {
-  status: string;
-  data: string[];
-  meta: { subject_id: string; single_role_mode: boolean };
-}
-
 interface DeleteEnvelope {
   status: string;
   data: { role_id: string };
@@ -81,27 +75,6 @@ class RbacService {
     }
   }
 
-  // GET /api/v1/rbac/subjects/:subject_id/roles — section 12.6. Single-role
-  // mode: response array length is 0 (only when subject not found, which
-  // surfaces as 404) or 1.
-  async getSubjectRoles(subjectId: string): Promise<string[]> {
-    try {
-      const body = await apiClient<SubjectRolesEnvelope>("GET", `${this.baseUrl}/api/v1/rbac/subjects/${encodeURIComponent(subjectId)}/roles`);
-      return body.data;
-    } catch (err) {
-      throw await rbacErrorFromApi(err, "getSubjectRoles");
-    }
-  }
-
-  // PUT /api/v1/rbac/subjects/:subject_id/roles — section 12.7. Single-role
-  // mode requires exactly one entry; the helper enforces it client-side too.
-  async setSubjectRole(subjectId: string, roleId: string): Promise<void> {
-    try {
-      await apiClient("PUT", `${this.baseUrl}/api/v1/rbac/subjects/${encodeURIComponent(subjectId)}/roles`, { roles: [roleId] });
-    } catch (err) {
-      throw await rbacErrorFromApi(err, "setSubjectRole");
-    }
-  }
 }
 
 

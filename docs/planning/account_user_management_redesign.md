@@ -404,7 +404,8 @@ token 검증 시 cache lookup
 | `backend-core/internal/store/postgres_rbac_test.go` | 해당 test 제거 (TestRBAC_SetSubjectRole_* + TestRBAC_GetSubjectRoles_*) |
 | `backend-core/internal/httpapi/rbac_test.go` | `fakeRBACStore.GetSubjectRoles` + `SetSubjectRole` mock 제거 |
 | `backend-core/internal/httpapi/permissions.go` | `/api/v1/rbac/subjects/:subject_id/roles` 의 routePermissionTable entry 제거 |
-| `frontend/lib/services/rbac.service.ts` | 본 endpoint 호출 코드 없음 (UI 미구현) — 변경 없음 |
+| `frontend/lib/services/rbac.service.ts` | dead method 정리 — `getSubjectRoles` + `setSubjectRole` + `SubjectRolesEnvelope` interface 제거 (호출처 0건이지만 dead 코드 정리. sprint -d Stage 3 보강) |
+| `docs/backend_api_contract.md` | §12.6 (API-30) + §12.7 (API-31) 본문 spec 폐기 마킹 + §12.8 routing table 2 row strikethrough + §12.10 cache reload trigger 참조 정정 + §12.5 (DELETE policy) 본문 "재할당 안내" 정정 (Keycloak admin console + event listener 경로로) |
 | migration | **불필요** — `rbac_subject_roles` 테이블 자체가 없음 (`users.role` 컬럼 직접 write 였음). DB schema 변경 없음 |
 
 ### 5.9 Phase 1 매트릭스 오류 정정
@@ -480,7 +481,8 @@ ADR-0020 draft 작성 + 사내 검토 → accepted 처리는 Phase 3 진입 시 
 | `backend-core/internal/store/postgres_rbac.go` | `GetSubjectRoles` + `SetSubjectRole` impl 제거 |
 | `backend-core/internal/store/postgres_rbac_test.go` | `TestRBAC_SetSubjectRole_*` + `TestRBAC_GetSubjectRoles_*` 제거 |
 | `backend-core/internal/httpapi/rbac_test.go` | `fakeRBACStore.GetSubjectRoles` + `SetSubjectRole` mock + 관련 handler test 제거 |
-| `frontend/lib/services/rbac.service.ts` | 변경 없음 (UI 미구현이라 호출처 없음) |
+| `frontend/lib/services/rbac.service.ts` | dead method 정리 (sprint -d Stage 3 보강) — `getSubjectRoles` + `setSubjectRole` + `SubjectRolesEnvelope` interface 제거 |
+| `docs/backend_api_contract.md` | §12.6/§12.7 본문 spec 폐기 마킹 + §12.8 routing table 2 row + §12.10 cache reload trigger + §12.5 본문 정정 (sprint -d Stage 3 보강) |
 | migration | **불필요** — `rbac_subject_roles` 테이블 자체가 없음 (`users.role` 컬럼 직접 write 였음). DB schema 변경 없음 |
 
 #### 검증
@@ -505,8 +507,8 @@ ADR-0020 draft 작성 + 사내 검토 → accepted 처리는 Phase 3 진입 시 
 | ARCH | 없음 |
 | API | API-26..40 (RBAC) 매트릭스의 `/rbac/subjects/:subject_id/roles` row 2개 제거 |
 | RM | 없음 |
-| IMPL | `IMPL-rbac-04` (getSubjectRoles/setSubjectRoles) 제거 |
-| UT | `TestRBAC_GetSubjectRoles_*` + `TestRBAC_SetSubjectRole_*` (postgres_rbac_test.go + rbac_test.go) 제거 |
+| IMPL | `IMPL-rbac-01` (handler — getSubjectRoles/setSubjectRoles 2개 제거 후 4 endpoint) + `IMPL-rbac-02` (store — GetSubjectRoles/SetSubjectRole 2 method 제거 후 6 method) 갱신. `IMPL-rbac-03` (permissions.go route table) 도 2 entry 제거. |
+| UT | `TestRBAC_GetSubjectRoles_*` + `TestRBAC_SetSubjectRole_*` (postgres_rbac_test.go + rbac_test.go) 제거. `TestRBAC_DeleteCustomRoleInUse` 는 `CreateUser` 의 `Role: domain.AppRole(roleID)` 로 재구성 (`users.role` FK to `rbac_policies.role_id` 활용, migration 000006). |
 | TC | 없음 (e2e 미구현이라 TC-RBAC-SUBJECT-* 없었음) |
 
 ### 6.5 Strangler Fig 패턴 (sub-carve B 진입 시 적용)
