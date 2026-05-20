@@ -1,6 +1,5 @@
 # DevHub deploy compose — Keycloak 단일 IdP (ADR-0019, 2026-05-19 sprint claude/work_260519-k).
-# 직전 Hydra+Kratos 2 service stack 은 PR #167 (KC-PR-A..F) 로 backend/frontend 전환됐고
-# 본 sprint -k 가 docker-compose / nginx 정합. 자세한 SOP 는 docs/setup/keycloak_operations.md.
+# 단일 포트 reverse proxy 정합(ADR-0018, issue #238). 자세한 SOP 는 docs/setup/keycloak_operations.md.
 #
 # CLAUDE.md 정책 (`feedback_no_docker.md`) — 환경 특화 자산이므로 git 추적 외 운영도 가능.
 # 본 파일은 사내 운영팀이 reference 로 사용. 실 운영 시 env 만 변경.
@@ -21,6 +20,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - devhub-internal
 
   db-init:
     image: postgres:15
@@ -41,6 +42,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - devhub-internal
 
   keycloak:
     # Keycloak 단일 IdP (ADR-0019). 사내 환경에서는 별도 운영 Keycloak instance 사용 권장 — 본 service 는 1차 reference.
@@ -74,20 +77,24 @@ services:
       # realm-export.json 을 사내 운영 git 외부에서 mount 권장. import-realm 시 1회 적용.
       # 사내 환경 별 realm/client/role 설정은 docs/setup/keycloak_operations.md §2~§4 SOP 따름.
       - ${KEYCLOAK_REALM_IMPORT_PATH:-./infra/idp/keycloak-realm.json}:/opt/keycloak/data/import/realm.json:ro
-    ports:
-      - "${KEYCLOAK_HTTP_PORT:-8180}:8080"
+    expose:
+      - "8080"
+    networks:
+      - devhub-internal
 
   backend-ai:
     image: ${IMAGE_REPO_PREFIX:-ghcr.io/ykylee/devhub_example}/backend-ai:${IMAGE_TAG:?set IMAGE_TAG}
     restart: unless-stopped
-    ports:
-      - "${BACKEND_AI_PORT:-8000}:8000"
+    expose:
+      - "8000"
+    networks:
+      - devhub-internal
 
   backend-core:
     image: ${IMAGE_REPO_PREFIX:-ghcr.io/ykylee/devhub_example}/backend-core:${IMAGE_TAG:?set IMAGE_TAG}
     restart: unless-stopped
-    ports:
-      - "${BACKEND_CORE_PORT:-8080}:8080"
+    expose:
+      - "8080"
     environment:
       DB_URL: ${DB_URL:?set DB_URL}
       BACKEND_AI_URL: ${BACKEND_AI_URL:-http://backend-ai:8000}
@@ -103,19 +110,24 @@ services:
       DEVHUB_KEYCLOAK_ADMIN_REALM: ${DEVHUB_KEYCLOAK_ADMIN_REALM:-devhub}
       DEVHUB_KEYCLOAK_ADMIN_CLIENT_ID: ${DEVHUB_KEYCLOAK_ADMIN_CLIENT_ID:-devhub-backend}
       DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET: ${DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET:?set DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET}
+      # nginx reverse proxy 뒤 운영 시 X-Forwarded-* 신뢰 범위 (docker bridge CIDR)
+      DEVHUB_TRUSTED_PROXIES: ${DEVHUB_TRUSTED_PROXIES:-172.16.0.0/12}
     depends_on:
       backend-ai:
         condition: service_started
       keycloak:
         condition: service_started
+    networks:
+      - devhub-internal
 
   frontend:
     image: ${IMAGE_REPO_PREFIX:-ghcr.io/ykylee/devhub_example}/frontend:${IMAGE_TAG:?set IMAGE_TAG}
     restart: unless-stopped
-    ports:
-      - "${FRONTEND_PORT:-3000}:3000"
+    expose:
+      - "3000"
     environment:
       BACKEND_API_URL: ${BACKEND_API_URL:-http://backend-core:8080}
+      NEXT_PUBLIC_BASE_PATH: ${NEXT_PUBLIC_BASE_PATH:-devhub}
       # OIDC discovery 기반 — issuer URL 만 명시 + 나머지는 frontend OIDC client 가 discovery
       NEXT_PUBLIC_OIDC_ISSUER_URL: ${NEXT_PUBLIC_OIDC_ISSUER_URL:?set NEXT_PUBLIC_OIDC_ISSUER_URL}
       NEXT_PUBLIC_OIDC_CLIENT_ID: ${NEXT_PUBLIC_OIDC_CLIENT_ID:-devhub-frontend}
@@ -124,17 +136,36 @@ services:
     depends_on:
       backend-core:
         condition: service_started
+    networks:
+      - devhub-internal
 
   nginx:
     image: nginx:1.27-alpine
     restart: unless-stopped
     ports:
-      - "${NGINX_PORT:-23000}:80"
+      - "${NGINX_HTTP_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
     volumes:
       - ./infra/nginx/devhub.deploy.conf:/etc/nginx/conf.d/default.conf:ro
+      - ${NGINX_TLS_CERT_PATH:-./infra/nginx/certs/tls.crt}:/etc/nginx/certs/tls.crt:ro
+      - ${NGINX_TLS_KEY_PATH:-./infra/nginx/certs/tls.key}:/etc/nginx/certs/tls.key:ro
     depends_on:
       frontend:
         condition: service_started
+      backend-core:
+        condition: service_started
+      keycloak:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 80 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    networks:
+      - devhub-internal
 
 volumes:
   devhub-postgres:
+
+networks:
+  devhub-internal:

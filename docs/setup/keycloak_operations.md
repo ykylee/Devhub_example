@@ -32,7 +32,7 @@ CLAUDE.md 의 docker = env-specific 정책 정합 — 환경 특화 자산 (Keyc
 
 - backend `DEVHUB_OIDC_ISSUER_URL` + frontend `NEXT_PUBLIC_OIDC_ISSUER_URL` 가 동일한 issuer 가리킴
 - ADR-0018 단일 포트 환경에서는 `https://devhub.example.com/devhub/auth/keycloak/realms/devhub` 형태
-- nginx 가 `/devhub/auth/keycloak/*` prefix 를 Keycloak `:8080` 으로 strip-and-proxy
+- nginx 가 `/devhub/auth/keycloak/*` prefix 를 Keycloak `:8080` 으로 reverse proxy
 
 ## 3. client 정의 (2종)
 

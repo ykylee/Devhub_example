@@ -1,13 +1,12 @@
 # Docker 패키징/배포 가이드
 
-> ⚠ 2026-05-18 주의: 본 문서의 일부 Hydra/Kratos 운영 항목은 legacy 참고용이다.
-> 배포 설정은 Keycloak OIDC 기준(`DEVHUB_OIDC_*`, `DEVHUB_KEYCLOAK_ADMIN_*`, `NEXT_PUBLIC_OIDC_*`)을 우선 사용한다.
+> ⚠ 2026-05-20 정정: 본 문서는 Keycloak-only 배포 기준이다. Hydra/Kratos 변수/절차는 사용하지 않는다.
 
 - 문서 목적: DevHub Example에서 Docker 패키징 오류를 줄이기 위한 표준 빌드 절차와 배포 방식(이미지 배포 vs compose 배포) 선택 기준을 정의한다.
 - 범위: 이미지 태깅 규칙, 빌드/푸시 절차, compose 사용 범위, 운영 권장안
 - 대상 독자: 개발자, 릴리즈 담당자, 운영자
 - 상태: draft
-- 최종 수정일: 2026-05-15
+- 최종 수정일: 2026-05-20
 - 관련 문서: [개발 환경 구성 가이드](./environment-setup.md), [테스트 서버 배포 가이드](./test-server-deployment.md), [ADR-0003](../adr/0003-no-docker-policy-ci-scope.md)
 
 ## 1. 현재 저장소 기준 Docker 자산
@@ -148,19 +147,22 @@ docker push devhub/frontend:${GIT_SHA}
 ```sh
 export IMAGE_TAG=<git-sha-or-release-tag>
 export IMAGE_REPO_PREFIX=ghcr.io/<owner>/<repo>   # 로컬 검증 시 devhub
-export PUBLIC_BASE_URL=http://<host>:23000
+export PUBLIC_BASE_URL=https://<host>/devhub
 export DB_URL='postgres://<user>:<pw>@<db-host>:5432/<db>?sslmode=disable'
 export DEVHUB_IDP_PROVIDER=keycloak
-export DEVHUB_OIDC_ISSUER_URL=http://<host>:18080/realms/devhub
+export DEVHUB_OIDC_ISSUER_URL=https://<host>/devhub/auth/keycloak/realms/devhub
 export DEVHUB_OIDC_CLIENT_ID=devhub-web
 export DEVHUB_OIDC_CLIENT_SECRET='<oidc-client-secret>'
-export DEVHUB_KEYCLOAK_ADMIN_URL=http://<host>:18080
+export DEVHUB_KEYCLOAK_ADMIN_URL=http://keycloak:8080
 export DEVHUB_KEYCLOAK_ADMIN_REALM=devhub
 export DEVHUB_KEYCLOAK_ADMIN_CLIENT_ID=devhub-admin
 export DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET='<keycloak-admin-secret>'
 export NEXT_PUBLIC_IDP_PROVIDER=keycloak
-export NEXT_PUBLIC_OIDC_ISSUER_URL=http://<host>:18080/realms/devhub
-export NGINX_PORT=23000
+export NEXT_PUBLIC_OIDC_ISSUER_URL=https://<host>/devhub/auth/keycloak/realms/devhub
+export NEXT_PUBLIC_BASE_PATH=devhub
+export NEXT_PUBLIC_OIDC_REDIRECT_URI=https://<host>/devhub/auth/callback
+export NGINX_HTTP_PORT=80
+export NGINX_HTTPS_PORT=443
 docker compose -f docker-compose.deploy.yml pull
 docker compose -f docker-compose.deploy.yml up -d
 ```
@@ -189,28 +191,25 @@ docker compose -f docker-compose.deploy.yml up -d
 ### 8.1.2 DB 모드 선택
 
 - 번들 DB 모드 (`local-db` profile): compose 내부 `db`(postgres:15) 포함 기동
-- 외부 DB 모드 (default): compose 내부 `db` 미기동, `DB_URL`/`HYDRA_DSN`/`KRATOS_DSN`을 외부 DSN으로 지정
+- 외부 DB 모드 (default): compose 내부 `db` 미기동, `DB_URL`은 외부 DSN 지정
 
 예시:
 
 ```sh
 # 1) 번들 DB 모드
 export DB_URL='postgres://<user>:<pw>@db:5432/<db>?sslmode=disable'
-export HYDRA_DSN='postgres://<user>:<pw>@db:5432/<db>?sslmode=disable&search_path=hydra'
-export KRATOS_DSN='postgres://<user>:<pw>@db:5432/<db>?sslmode=disable&search_path=kratos'
 docker compose -f docker-compose.deploy.yml --profile local-db up -d
 
 # 2) 외부 DB 모드
 docker compose -f docker-compose.deploy.yml up -d
 ```
 
-`docker-compose.deploy.yml`은 `nginx`를 포함한다. 외부 진입은 `http://<host>:${NGINX_PORT}` 하나로 통일하고, `frontend`/`backend-core` 포트는 운영망에서 필요 시에만 노출한다.
-`local-db` 프로필에서는 `db-init` 단계가 `hydra`/`kratos` 스키마를 자동 생성한 뒤 migrate가 실행된다.
+`docker-compose.deploy.yml`은 `nginx`를 포함한다. 외부 진입은 `https://<host>/devhub` 기준으로 통일하고, `frontend`/`backend-core`/`keycloak`/`backend-ai`는 host에 직접 노출하지 않는다.
+`local-db` 프로필에서는 `db-init` 단계가 keycloak schema를 준비한다.
 
 주의:
 
-- `HYDRA_SYSTEM_SECRET`를 변경한 상태에서 기존 DB 볼륨을 재사용하면 OIDC discovery에서 `server_error`가 발생할 수 있다.
-- 로컬 재검증 시 시크릿을 바꿨다면 아래처럼 볼륨까지 초기화 후 재기동한다.
+- 로컬 재검증 시 realm/secret 변경 후 불일치가 발생하면 아래처럼 볼륨 초기화 후 재기동한다.
 
 ```sh
 docker compose -f docker-compose.deploy.yml --profile local-db down -v
@@ -249,7 +248,7 @@ docker compose -f docker-compose.deploy.yml --profile local-db up -d
 
 최소 검증 순서:
 
-1. `curl http://<host>:<nginx-port>/api/runtime-config`에서 OIDC URL/redirect 값 확인
+1. `curl -k https://<host>/devhub/api/runtime-config`에서 OIDC URL/redirect 값 확인
 2. `curl <OIDC_ISSUER_URL>/.well-known/openid-configuration` 확인
 3. Playwright 단건 검증  
-   `PLAYWRIGHT_BASE_URL=http://<host>:<nginx-port> npm run e2e -- tests/e2e/auth.spec.ts --grep "developer lands on /developer"`
+   `PLAYWRIGHT_BASE_URL=https://<host>/devhub npm run e2e -- tests/e2e/auth.spec.ts --grep "developer lands on /developer"`

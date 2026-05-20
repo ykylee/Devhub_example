@@ -145,3 +145,21 @@ curl http://localhost:8081/realms/devhub/.well-known/openid-configuration
 - OIDC client secret 을 git 에 커밋하지 않음
 - Keycloak admin endpoint 접근 제어
 - 테스트용 공용 계정/기본 비밀번호 제거
+
+## 11. Docker 단일 포트 배포 (issue #238)
+
+`docker-compose.deploy.yml` 기준 운영 모드에서는 외부 노출 포트를 `nginx` 하나로 제한한다.
+
+- 외부 노출: `80` / `443` (`nginx`)
+- 내부 통신 전용: `frontend:3000`, `backend-core:8080`, `keycloak:8080`, `backend-ai:8000` (`devhub-internal` 네트워크)
+- URL 기준:
+  - `https://<host>/devhub/` → frontend
+  - `https://<host>/devhub/api/*` → backend
+  - `https://<host>/devhub/auth/keycloak/*` → keycloak
+
+필수 환경값:
+
+- `NEXT_PUBLIC_BASE_PATH=devhub`
+- `NEXT_PUBLIC_OIDC_REDIRECT_URI=https://<host>/devhub/auth/callback`
+- `DEVHUB_OIDC_ISSUER_URL=https://<host>/devhub/auth/keycloak/realms/devhub`
+- `DEVHUB_TRUSTED_PROXIES=172.16.0.0/12` (또는 운영 네트워크 CIDR)
