@@ -32,7 +32,7 @@
 | 기능 | 분류 | 이유 |
 | --- | --- | --- |
 | **AI Gardener gRPC + Suggestion Feed** | v2 P3 | 보조 기능, 1차 릴리즈 핵심 가치 외부. backend `backend-ai/` Python 모듈 + Go Core client 미구현 |
-| **Sign Up (셀프 가입)** | v1.1 carve | M3 잔여 — 운영자가 Keycloak admin console 또는 HRDB ETL push 로 user 생성. 사용자 셀프 등록은 v1.1 |
+| ~~**Sign Up (셀프 가입)**~~ | **permanently cancelled (2026-05-20)** | DevHub 가 Keycloak admin 권한이 없는 외부 IdP 운영 시나리오 (ADR-0020 결정 A 정합). user 생성은 IdP 팀 admin console 또는 HRDB ETL push 책임. DevHub 셀프 가입 흐름 미운영. 이전 'v1.1 carve' 분류 → cancelled. issue #235 closed. |
 | **MFA / 2FA** | v1.1 carve | ADR-0019 §5.3 (5) 사내 정책 제외 — Keycloak MFA enrollment 는 Account Console 위임. DevHub UI 무관 |
 | **Weekly report worker** | v2 P3 | frontend_integration §3.4 — backend 미구현 |
 | **WebSocket replay + 리소스 필터링** | v1.1 carve | RM-M4-02 — backend WebSocket 기반 인프라 + last event replay. v1.0 은 polling/refresh 로 충분 |
@@ -137,7 +137,7 @@
 | **P3-9** | RM-M4-07 System Admin 대시보드 (Runner 상태) | development_roadmap M4 | **Claude (backend) + Gemini (frontend)** | v2 |
 | **P3-10** | RM-M4-08 ADR-0007 PermissionCache LISTEN/NOTIFY 실 구현 | development_roadmap M4 | **Claude (backend)** | 다중 인스턴스 시 |
 | **P3-11** | RM-M4-09 외부 SSO (Gitea / AD federation) | development_roadmap M4 | **Codex (infra)** | Keycloak identity broker |
-| **P3-12** | Sign Up (셀프 가입) — 인사 DB 연동 | M3 잔여 | **Claude (backend) + Gemini (frontend)** | v1.1 |
+| ~~**P3-12**~~ | ~~Sign Up (셀프 가입) — 인사 DB 연동~~ | **cancelled (2026-05-20)** — DevHub Keycloak admin 권한 없음, IdP 팀 책임. issue #235 closed | — | — |
 | **P3-13** | MFA / 2FA | M4 + ADR-0019 §5.3 (5) | (제외) | 사내 정책 — Keycloak Account Console 위임 |
 
 ## 4. 마일스톤 재정의
@@ -168,7 +168,7 @@
 | P2-6 Keycloak SPI provider JAR | P2 | Codex+사용자 |
 | P2-7 HRDB ETL unit pre-stage | P2 | Claude+사용자 |
 | P3-1 sub-carve F `/login` 정리 | P3 | Gemini |
-| P3-12 Sign Up 셀프 가입 | P3 | Claude+Gemini |
+| ~~P3-12 Sign Up 셀프 가입~~ | **cancelled (2026-05-20)** | — |
 
 ### 4.3 M-v2 — 확장 기능 (target: 2026-Q3 이후)
 
@@ -229,7 +229,7 @@
 | Milestone | due | 포함 carve |
 | --- | --- | --- |
 | `v1.0 Release` | 2026-06-15 | P0-1, P0-2, P0-3, P1-1, P1-2, P2-1, + v1.0 종합 검증 |
-| `v1.1 Stability` | 2026-07-31 | P1-3, P1-4, P1-5, P2-2..P2-7, P3-1, P3-12 |
+| `v1.1 Stability` | 2026-07-31 | P1-3, P1-4, P1-5, P2-2..P2-7, P3-1 (P3-12 Sign Up 은 2026-05-20 cancelled — DevHub Keycloak admin 권한 없음) |
 | `v2 Extension` | 2026-Q3+ | P3-2..P3-11 (단 P3-13 MFA 는 사내 정책 제외) |
 
 ### 6.3 Issue 발급 plan
@@ -304,3 +304,4 @@ test.describe("UI screenshot capture", () => {
 | 일자 | 변경 | sprint |
 | --- | --- | --- |
 | 2026-05-20 | 1차 작성 — v1.0 scope 정의 (3 domain) + 잔여 carve 통합 인벤토리 (P0/P1/P2/P3, 30+ item) + 마일스톤 재정의 (M-v1.0 / M-v1.1 / M-v2) + 워커 분업 매트릭스 (Claude=backend / Codex=infra+CI / Gemini=frontend+UX) + GitHub project + milestone plan + UI Playwright screenshot mode | `claude/work_260520-f-roadmap` |
+| 2026-05-20 | **P3-12 Sign Up 영구 취소** — 사용자 결정. DevHub 가 Keycloak admin 권한이 없는 외부 IdP 운영 시나리오 (ADR-0020 결정 A 정합). user 생성은 IdP 팀 admin console 또는 HRDB ETL push 책임. §1.2 제외 기능 표 분류 'v1.1 carve' → 'permanently cancelled' + §3.4 P3-12 strikethrough + §5.2 워커 분담 표 strikethrough + §4.2 v1.1 milestone 본문 정정 + issue #235 closed | `claude/work_260520-i-cancel-signup` |
