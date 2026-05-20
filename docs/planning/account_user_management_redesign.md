@@ -460,12 +460,13 @@ ADR-0020 draft 작성 + 사내 검토 → accepted 처리는 Phase 3 진입 시 
 
 | sub-carve | 영역 | 영향 파일 (요약) | 위험 | sprint |
 | --- | --- | --- | --- | --- |
-| **A** — ADR-0020 + design §6 + `rbac_subject_roles` 폐기 (결정 D) | `docs/adr/0020-*` + design doc §6 + backend rbac.go/router.go/permissions.go/postgres_rbac.go + test | docs + 격리된 dead code 제거 | 낮음 | **`-d` (본 sprint)** |
-| **B** — `/api/v1/accounts/*` 4 endpoint 제거 + lazy auto-create + frontend `account.service.ts` 폐기 | backend `accounts_admin.go` + `KeycloakAdminClient` write 메서드 호출처 + `authenticateActor` 확장 + frontend `account.service.ts` + admin/settings/users page + e2e spec | 큰 변경 — backend handler 제거 + frontend UI 정리 + lazy auto-create 신규 mechanism | 중간 (e2e 회귀 위험) | `-e` (후속) |
-| **C** — event listener 확장 (USER:UPDATE / GROUP_MEMBERSHIP / USER:DELETE) | backend `keycloak_event_puller.go` + `audit_logs` action 매핑 + `users` write + metric 3종 (`audit/metrics.go`) | sprint -u~-y 자연 확장. event handler 가 DevHub `users` write 추가 | 중간 (event listener 회귀 위험) | `-f` (후속) |
-| **D** — JWKS stale-while-error expiry case 확장 | backend `keycloak_verifier.go` + JWKS cache + metric 2종 | sprint -r kid mismatch fallback 자연 확장 | 낮음 | `-g` (후속) |
-| **E** — service account 권한 축소 + governance SOP | `keycloak_operations.md §8.5c` 신규 + §3.2 SOP 갱신 | docs only | 낮음 | `-h` (후속) |
-| **F** — `/login` page 정리 (결정 B) | frontend `app/login/page.tsx` + `app/auth/login/page.tsx` + `app/auth/callback/page.tsx` + `app/auth/error/page.tsx` | minor frontend UX 정리 | 낮음 | `-i` (후속, 우선순위 가장 낮음) |
+| **A** — ADR-0020 + design §6 + `rbac_subject_roles` 폐기 (결정 D) | `docs/adr/0020-*` + design doc §6 + backend rbac.go/router.go/permissions.go/postgres_rbac.go + test | docs + 격리된 dead code 제거 | 낮음 | ✅ **`-d` (PR #205 `f2a389a`)** |
+| **B** — `/api/v1/accounts/*` 4 endpoint 제거 + lazy auto-create + frontend `account.service.ts` 폐기 | backend `accounts_admin.go` + `KeycloakAdminClient` write 메서드 호출처 + `authenticateActor` 확장 + frontend `account.service.ts` + admin/settings/users page + e2e spec | 큰 변경 — backend handler 제거 + frontend UI 정리 + lazy auto-create 신규 mechanism | 중간 (e2e 회귀 위험) | `-f` (sprint -e 가 housekeeping #4 으로 소진됨) |
+| **C** — event listener 확장 (USER:UPDATE / GROUP_MEMBERSHIP / USER:DELETE) | backend `keycloak_event_puller.go` + `audit_logs` action 매핑 + `users` write + metric 3종 (`audit/metrics.go`) | sprint -u~-y 자연 확장. event handler 가 DevHub `users` write 추가 | 중간 (event listener 회귀 위험) | `-g` (후속) |
+| **D** — JWKS stale-while-error expiry case 확장 | backend `keycloak_verifier.go` + JWKS cache + metric 2종 | sprint -r kid mismatch fallback 자연 확장 | 낮음 | `-h` (후속) |
+| **E** — service account 권한 축소 + governance SOP | `keycloak_operations.md §8.5c` 신규 + §3.2 SOP 갱신 | docs only | 낮음 | `-i` (후속) |
+| **F** — `/login` page 정리 (결정 B) | frontend `app/login/page.tsx` + `app/auth/login/page.tsx` + `app/auth/callback/page.tsx` + `app/auth/error/page.tsx` | minor frontend UX 정리 | 낮음 | `-j` (후속, 우선순위 가장 낮음) |
+| (신규) — **Keycloak SPI provider JAR** (PR #203 codex P2 후속) | `infra/idp/devhub-event-listener/` (신규 SPI module 빌드) + `docker-compose.deploy.yml` (volume mount) + `keycloak_operations.md` 운영 SOP | 사내 인프라 동반 — Keycloak SPI Java 빌드 + Maven/Gradle 자산 | 중간 (사내 인프라 결정 동반) | TBD (사내 인프라 진입 시) |
 
 ### 6.2 sub-carve A — `rbac_subject_roles` 완전 제거 (결정 D, 본 sprint 흡수 범위)
 
