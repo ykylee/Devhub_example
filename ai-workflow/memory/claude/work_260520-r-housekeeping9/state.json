@@ -1,0 +1,65 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260520-r-housekeeping9",
+  "branch": "claude/work_260520-r-housekeeping9",
+  "status": "in_progress",
+  "started_at": "2026-05-20T17:45:00Z",
+  "ended_at": null,
+  "merged_pr": null,
+  "merge_commit": null,
+  "issue": null,
+  "carve": "housekeeping",
+  "scope": "main flat memory housekeeping #9 — sprint -p housekeeping #8 (PR #256) 후 추가 머지된 2 PR (#256 본인 + #257 sprint -q HRDB ETL 폐기 정합) 흡수 + 사용자 결정 (외부 Keycloak 시나리오 채택, issue #215 cancelled) 반영. main flat state/handoff/backlog 최종 finalize. v1.0 release gate 잔여 2건 명시.",
+  "directive_source": "사용자 지시 — '이 내용을 정리하고 main 에 반영하자 pr 만들어줘' (sprint -q HRDB ETL 폐기 정합 + 오늘 세션 12 PR 머지 + 사용자 결정 종합)",
+  "decisions": [
+    "main flat state.json — head_commit `3fdcf33` (PR #257 머지) + status 재작성 (외부 Keycloak 시나리오 정착 + v1.0 release gate 잔여 2건 명시) + merged_prs_2026_05_20 에 PR #256/#257 entry 추가",
+    "session_handoff — header (HEAD + 본 sprint + 외부 Keycloak 시나리오 정착 + ADR-0020 6/8 + v1.0 잔여 2건) + 본 sprint -r 표 + 흡수 2 PR + 사용자 결정 정착 영향 5건 + v1.0 release gate 표 + 오늘 머지 12 PR 매트릭스",
+    "work_backlog — header (HEAD + 외부 Keycloak 시나리오 + 잔여 2건 + 다음 directive 3 우선순위)",
+    "sprint -r 본 state 생성"
+  ],
+  "todo": [
+    "state.json + session_handoff + work_backlog + sprint -r 본 state — 완료",
+    "commit + push + PR + squash merge — 다음"
+  ],
+  "verification": "state.json JSON syntax PASS. 코드 변경 없음 (docs/memory only).",
+  "absorbed_prs": [
+    {"pr": 256, "issue": null, "domain": "memory+presentations", "merge": "e388868"},
+    {"pr": 257, "issue": 215, "domain": "adr+docs+scripts", "merge": "3fdcf33"}
+  ],
+  "today_session_total_merged": 12,
+  "session_pr_list": [
+    {"pr": 243, "merge": "2a1c627", "scope": "sprint -m housekeeping #6"},
+    {"pr": 244, "merge": "6810384", "issue": 217, "scope": "sub-carve E"},
+    {"pr": 245, "merge": "6656c2a", "issue": 238, "scope": "단일 포트 + Claude 인계 보강"},
+    {"pr": 246, "merge": "b1e34bd", "issue": 209, "scope": "sub-carve B-frontend"},
+    {"pr": 249, "merge": "7e8388d", "issue": 216, "scope": "P1-5 e2e Kratos→Keycloak"},
+    {"pr": 251, "merge": "de69dd4", "issue": 220, "scope": "P2-4 Bindings UI"},
+    {"pr": 252, "merge": "c44c33d", "issue": 221, "scope": "P2-5 Topology v2"},
+    {"pr": 253, "merge": "4769fc5", "issue": 247, "scope": "#247 P1-bug"},
+    {"pr": 254, "merge": "d92a01e", "scope": "housekeeping #7"},
+    {"pr": 255, "merge": "ec487cf", "scope": "docs format v2"},
+    {"pr": 256, "merge": "e388868", "scope": "housekeeping #8 + 슬라이드쇼"},
+    {"pr": 257, "merge": "3fdcf33", "issue": 215, "scope": "sprint -q HRDB ETL 폐기 정합 (cancelled)"}
+  ],
+  "v1_0_release_gate_final": {
+    "deadline": "2026-06-15 (D-26)",
+    "remaining": 2,
+    "blocking": [
+      "#210 P0-2 UI polish (Gemini) — PR #248 e2e shard 2 3번째 fail, Playwright trace 분석 필요",
+      "#214 P1-3 Keycloak group staging-prod (사내 운영자 1회 작업)"
+    ],
+    "cancelled_today": [
+      "#215 P1-4 off-boarding cron — 외부 Keycloak 시나리오 채택 (사용자 결정 2026-05-20)"
+    ]
+  },
+  "user_decision_2026_05_20": {
+    "summary": "외부 Keycloak 시나리오 채택 — DevHub 가 사내 IdP 팀이 별도 운영하는 Keycloak 사용. HR ↔ Keycloak sync 책임이 외부 IdP 팀으로 이관 (Keycloak User Federation 또는 사내 ETL → Keycloak Admin REST).",
+    "impacts": [
+      "HRDB ETL cron 폐기 (scripts/hrdb_etl_sync.sh deprecation)",
+      "DevHub off-boarding sync = sub-carve C event listener (PR #241) 정공법",
+      "service account `manage-users` 제거 가능 (sub-carve E PR #244)",
+      "frontend account.service.ts 폐기 (sub-carve B-frontend PR #246)",
+      "/api/v1/accounts/* 4 endpoint 폐기 + lazy auto-create (sub-carve B-backend PR #239)"
+    ]
+  }
+}

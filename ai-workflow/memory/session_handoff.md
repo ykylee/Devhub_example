@@ -1,12 +1,63 @@
-# Session Handoff — main (2026-05-20 sprint -p housekeeping #8 — 9 PR 흡수)
+# Session Handoff — main (2026-05-20 sprint -r housekeeping #9 — sprint -p 후 추가 2 PR 흡수)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
-- 범위: sprint -m housekeeping #6 (PR #243 머지) 이후 진행된 **9 PR 흡수**. 대상: PR #244 sub-carve E + PR #245 #238 single-port + PR #246 sub-carve B-frontend + PR #249 P1-5 e2e + PR #251 P2-4 Bindings + PR #252 P2-5 Topology + PR #253 #247 P1-bug + PR #254 housekeeping #7 + PR #255 docs format v2. 본 sprint -p (PR TBD) 가 housekeeping #8.
+- 범위: sprint -p housekeeping #8 (PR #256 머지) 이후 추가 2 PR 흡수 — PR #256 housekeeping #8 본인 + PR #257 sprint -q HRDB ETL 폐기 정합. **사용자 결정 (2026-05-20)**: issue #215 cancelled (외부 Keycloak 시나리오 채택). 본 sprint -r (PR TBD) 가 housekeeping #9 + main flat memory 최종 finalize.
 - 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
-- 상태: M1/M2/M3 done. **Keycloak 단일 IdP 정합 완전 정착** (ADR-0019). **ADR-0019 §5.3 design 완결** + **§5.3 (9) audit event listener Phase 2 풀스택 종결**. **ADR-0020 sub-carve 진척 6/8 done**: A (sprint -d PR #205) + B-backend (sprint -i PR #239) + **B-frontend (gemini PR #246)** + C (sprint -k PR #241) + D (sprint -l PR #242) + **E (sprint -n PR #244)** + #247 P1-bug (gemini PR #253). 잔여 carve: B-frontend 사후 fine-tune (carve F /login page 정리 = sub-carve F) + 사내 운영자 후속 (manage-users role 제거 + Keycloak group staging-prod + off-boarding cron). **v1.0 release gate (D-26)**: 잔여 3건 (#210 PR #248 e2e fail / #214 group staging-prod / #215 off-boarding cron). **codex/Gemini PR 9건 머지** (#244/#245/#246/#249/#251/#252/#253/#254/#255).
-- 최종 수정일: 2026-05-20 (sprint claude/work_260520-p-housekeeping8)
-- 관련 문서: [v1.0 릴리즈 로드맵](../../docs/planning/release_v1_roadmap.md), [워커 분업](../../docs/governance/worker_division.md), [상태 스냅샷](./state.json), [ADR-0020](../../docs/adr/0020-account-user-management-boundary.md), [keycloak_operations.md](../../docs/setup/keycloak_operations.md), [single_port_deployment.md](../../docs/setup/single_port_deployment.md) (PR #245 신규), [keycloak_service_account_min_role.md](../../docs/planning/keycloak_service_account_min_role.md) (PR #244 신규).
-- 브랜치: `main` (HEAD `de69dd4` — PR #251 P2-4 머지). 본 sprint -p HEAD TBD.
+- 상태: M1/M2/M3 done. **Keycloak 단일 IdP 정합 완전 정착** (ADR-0019). **ADR-0019 §5.3 design 완결** + **§5.3 (9) audit event listener Phase 2 풀스택 종결**. **ADR-0020 sub-carve 진척 6/8 done**: A (sprint -d PR #205) + B-backend (sprint -i PR #239) + B-frontend (gemini PR #246) + C (sprint -k PR #241) + D (sprint -l PR #242) + E (sprint -n PR #244) + #247 P1-bug (gemini PR #253). 잔여 carve: F /login 정리 (P3) + SPI provider JAR (사내). **외부 Keycloak 시나리오 채택 (2026-05-20)** — HR ↔ Keycloak sync 책임이 외부 IdP 팀으로 이관. issue #215 cancelled (not planned). DevHub off-boarding sync 는 sub-carve C event listener 가 정공법. **v1.0 release gate (D-26): 잔여 2건** (#210 P0-2 UI polish [PR #248 e2e shard 2 3번째 fail] + #214 P1-3 Keycloak group staging-prod [사내 운영자 1회 작업]). **오늘 머지된 PR 총 12건** (#243~#249 + #251~#257 minus open #248/#250).
+- 최종 수정일: 2026-05-20 (sprint claude/work_260520-r-housekeeping9)
+- 관련 문서: [v1.0 릴리즈 로드맵](../../docs/planning/release_v1_roadmap.md), [워커 분업](../../docs/governance/worker_division.md), [상태 스냅샷](./state.json), [ADR-0020](../../docs/adr/0020-account-user-management-boundary.md), [keycloak_operations.md](../../docs/setup/keycloak_operations.md), [single_port_deployment.md](../../docs/setup/single_port_deployment.md), [keycloak_service_account_min_role.md](../../docs/planning/keycloak_service_account_min_role.md), [keycloak_offboarding_immediacy.md (Phase 1 cron deprecated)](../../docs/planning/keycloak_offboarding_immediacy.md).
+- 브랜치: `main` (HEAD `3fdcf33` — PR #257 sprint -q 머지). 본 sprint -r HEAD TBD.
+
+## 2026-05-20 sprint -r (본 PR) — housekeeping #9
+
+| Sprint | PR | sha | 핵심 |
+| --- | --- | --- | --- |
+| `claude/work_260520-r-housekeeping9` | (본 PR) | TBD | **housekeeping #9** — state.json (head_commit `3fdcf33` + status 재작성 + merged_prs_2026_05_20 에 PR #256/#257 2 entry 추가) + session_handoff (header + 본 sprint -r 표 + #215 cancel decision + v1.0 release gate 잔여 2건) + work_backlog (header + 다음 directive 2 우선순위) + sprint -r 본 state. |
+
+### 흡수 2 PR
+
+| PR | sha | sprint / issue | 핵심 |
+| --- | --- | --- | --- |
+| #256 | `e388868` | sprint -p housekeeping #8 | 9 PR (#243~#255) 흡수 + 개발현황 슬라이드쇼 11 슬라이드 PPT-style |
+| #257 | `3fdcf33` | sprint -q HRDB ETL 폐기 정합 **(issue #215 cancelled)** | scripts/hrdb_etl_sync.sh deprecation + keycloak_offboarding_immediacy §3.1 deprecation + ADR-0019 §5.3 (7) decision shift + release_v1_roadmap P1-4 strikethrough |
+
+### 사용자 결정 정착 (2026-05-20)
+
+**외부 Keycloak 시나리오 채택** — DevHub 가 사내 IdP 팀이 별도 운영하는 Keycloak 사용 가정. HR ↔ Keycloak sync 책임이 외부 IdP 팀 (Federation 또는 사내 ETL → Keycloak Admin REST) 으로 이관. ADR-0020 결정 A 의 자연 확장.
+
+영향:
+- HRDB ETL cron (sub-carve, PR #184 sprint -p) 폐기 (script header DEPRECATED + design doc decision shift banner)
+- DevHub off-boarding sync = sub-carve C event listener (PR #241) 가 정공법 — 외부 Keycloak user disable → admin event polling → user_sync.go::SyncUserProfile → users.status='deactivated' 자동
+- service account `devhub-backend` 가 `manage-users` 없이 `view-users + view-events` 만으로 동작 가능 (sub-carve E PR #244)
+- frontend `account.service.ts` 폐기 + admin actions UI 제거 (sub-carve B-frontend PR #246)
+- `/api/v1/accounts/*` 4 endpoint 폐기 + lazy auto-create (sub-carve B-backend PR #239)
+
+### v1.0 Release Gate (D-26, 2026-06-15) — 잔여 2건
+
+| issue | 영역 | 상태 |
+| --- | --- | --- |
+| **#210 P0-2 UI polish** | Frontend (Gemini) | In review — PR #248 e2e shard 2 3번째 fail. Header dropdown trigger 의 fundamental incompatibility 의심. Playwright trace artifact 분석 필요 |
+| **#214 P1-3 Keycloak group staging-prod** | Infra (사내 운영자) | Backlog — Keycloak admin console 1회 작업 (group 4 생성 + composite role assign) |
+| ~~#215 P1-4 off-boarding cron~~ | — | **cancelled (2026-05-20)** — 외부 Keycloak 시나리오 |
+
+### 오늘 머지된 PR 총 12건
+
+| PR | sprint/scope | merge |
+| --- | --- | --- |
+| #243 | sprint -m housekeeping #6 | `2a1c627` |
+| #244 | sprint -n sub-carve E (issue #217) | `6810384` |
+| #245 | codex/issue-238 + Claude 인계 (issue #238) | `6656c2a` |
+| #246 | gemini sub-carve B-frontend (issue #209) | `b1e34bd` |
+| #249 | gemini P1-5 e2e (issue #216) | `7e8388d` |
+| #251 | gemini P2-4 Bindings (issue #220) | `de69dd4` |
+| #252 | gemini P2-5 Topology (issue #221) | `c44c33d` |
+| #253 | gemini #247 P1-bug | `4769fc5` |
+| #254 | gemini housekeeping #7 | `d92a01e` |
+| #255 | codex docs format v2 | `ec487cf` |
+| #256 | sprint -p housekeeping #8 | `e388868` |
+| #257 | sprint -q HRDB ETL 폐기 정합 (issue #215) | `3fdcf33` |
+| ~~#250~~ | ~~codex docs (closed, codex v2 로 대체)~~ | — |
+| **#248** | gemini P0-2 UI polish (open, e2e fail 지속) | — |
 
 ## 2026-05-20 sprint -p (본 PR) — housekeeping #8 (9 PR 흡수)
 
