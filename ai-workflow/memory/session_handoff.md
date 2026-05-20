@@ -1,39 +1,54 @@
-# Session Handoff — main (2026-05-20 sprint -m housekeeping #6 — 3 PR 흡수)
+# Session Handoff — main (2026-05-20 sprint -n housekeeping #7 — 8 PR 진척)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
-- 범위: sprint -j housekeeping #5 (PR #240 `80120c8`) 이후 머지된 3 PR 흡수. 대상: PR #241 (sprint -k sub-carve C event listener + DevHub users sync), PR #242 (sprint -l sub-carve D JWKS stale-while-error expiry case). 본 sprint -m 가 main flat memory + sprint state finalize.
+- 범위: sprint -m housekeeping #6 (PR #242 HEAD `cb6646d`) 이후 진행된 8 PR 진척 사항 흡수. 대상: PR #245 (single-port nginx), PR #246 (sub-carve B frontend), PR #249 (e2e Kratos 제거), PR #248 (UI polish), PR #251 (Bindings UI), PR #252 (Topology V2), PR #253 (password 제거 및 /login 정리).
 - 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
-- 상태: M1/M2/M3 done. **Keycloak 단일 IdP 정합 완전 정착** (ADR-0019). **ADR-0019 §5.3 design 완결** + **§5.3 (9) audit event listener Phase 2 풀스택 종결**. **계정/사용자 관리 리팩토링 Phase 1/2/3 진입**: Phase 1 + 2 (PR #199/#200 design) + **Phase 3 sub-carve A (sprint -d, PR #205) + B backend (sprint -i, PR #239) + C (sprint -k, PR #241) + D (sprint -l, PR #242)** 모두 done. **v1.0 릴리즈 로드맵 + 워커 분업 design 정착** (PR #207). **GitHub 자산 등재**: Project #2 + 3 milestones + 27 issues + 19 labels. **branch naming 신규 규칙** 정착 (sprint -i/-k/-l 적용). 잔여 carve: sub-carve B frontend (Gemini 별도 sprint) + E (sprint -n service account 권한 축소) + F (sprint -o `/login` 정리) + ADR-0019 §5.3 사내 동반 5건 + Keycloak SPI provider JAR (P2-6) + P0-2 UI polish (Gemini) + P0-4 docker single-port (Codex 작업 중).
-- 최종 수정일: 2026-05-20 (sprint claude/work_260520-m-housekeeping6)
-- 관련 문서: [v1.0 릴리즈 로드맵](../../docs/planning/release_v1_roadmap.md), [워커 분업](../../docs/governance/worker_division.md), [통합 로드맵](../../docs/development_roadmap.md), [상태 스냅샷](./state.json), [거버넌스](../../docs/governance/README.md), [추적성 매트릭스](../../docs/traceability/report.md), [ADR-0020 계정/사용자 관리 책임 경계](../../docs/adr/0020-account-user-management-boundary.md), [ADR-0019 Keycloak 단일화](../../docs/adr/0019-keycloak-only-idp.md), [계정/사용자 관리 리팩토링 (Phase 1/2/3 design)](../../docs/planning/account_user_management_redesign.md), [keycloak_operations.md](../../docs/setup/keycloak_operations.md).
-- 브랜치: `main` (HEAD `cb6646d` — PR #242 sub-carve D merge). 본 sprint -m HEAD TBD.
+- 상태: M1/M2/M3 done. **Keycloak 단일 IdP 정합 완전 정착** (ADR-0019). **ADR-0019 §5.3 design 완결** + **§5.3 (9) audit event listener Phase 2 풀스택 종결**. **계정/사용자 관리 리팩토링 Phase 3 sub-carve A/B/C/D/F 완결**: Phase 3 sub-carve A (PR #205) + B backend (PR #239) + B frontend (PR #246) + C (PR #241) + D (PR #242) + F (PR #253) 모두 done. **v1.0 릴리즈 로드맵 진입**: P0-1, P0-2, P1-5, P2-4, P2-5 도메인 작업 PR 발행 및 머지. **docker-compose deploy 안정화**: single-port nginx reverse proxy (PR #245) 머지.
+- 최종 수정일: 2026-05-21 (sprint gemini/housekeeping-260520-status-update)
+- 관련 문서: [v1.0 릴리즈 로드맵](../../docs/planning/release_v1_roadmap.md), [워커 분업](../../docs/governance/worker_division.md), [통합 로드맵](../../docs/development_roadmap.md), [상태 스냅샷](./state.json), [ADR-0020 계정/사용자 관리 책임 경계](../../docs/adr/0020-account-user-management-boundary.md), [keycloak_operations.md](../../docs/setup/keycloak_operations.md).
+- 브랜치: `main` (HEAD `7e8388d`).
 
-## 2026-05-20 sprint -m (본 PR) — housekeeping #6 (3 PR 흡수)
+## 2026-05-20 sprint -n (본 PR) — housekeeping #7 (8 PR 진척)
 
 | Sprint | PR | sha | 핵심 |
 | --- | --- | --- | --- |
-| `claude/work_260520-m-housekeeping6` | (본 PR) | TBD | **housekeeping #6** — state.json (head_commit `cb6646d` + merged_prs_2026_05_20 에 PR #240/#241/#242 3 entry 추가 + sub_carve_split C/D done + components.backend.auth/auth_envs JWKS stale-while-error 정합 + status 재작성) + session_handoff (본 표 + sprint -k/-l 본문 + 다음 directive 갱신) + work_backlog (header + 변경 이력 row) + sprint -k/-l/-m branch state finalize. main flat memory drift 해소. |
+| `gemini/housekeeping-260520-status-update` | (본 PR) | TBD | **housekeeping #7** — state.json (head_commit `7e8388d` + merged_prs_2026_05_20 에 PR #245, #246, #249, #248, #251, #252, #253 추가 + sub_carve_split B-frontend/F done + status 재작성) + session_handoff (header + 오늘 PR 본문 + 다음 directive 갱신) + work_backlog (header + 변경 이력 row). |
 
-### 흡수 3 PR
+### 금일 진척 PR (8건)
 
 | PR | sha | sprint / issue | 핵심 |
 | --- | --- | --- | --- |
-| #240 | `80120c8` | sprint -j-housekeeping5 | main flat memory housekeeping #5 — 5 PR (#207/#208/#236/#237/#239) 흡수 + GitHub Project #2 + 19 labels + 3 milestones + 27 issues + branch 명명 규칙 정착 |
-| #241 | `9ea7e1c` | sprint -k-212-event-listener **(issue #212, P1-1 done)** | ADR-0020 sub-carve C — Keycloak event listener 확장 + DevHub users sync. `audit/user_sync.go` 신규 (SyncUserProfile/SyncUserMembership/MarkUserDeactivated + UserSyncOrgStore/UserSyncAdminClient narrow interface + SyncUserAction enum + classifyAdminEventForSync helper) + `keycloak_event_puller` 매핑 10 row (GROUP_MEMBERSHIP:CREATE/DELETE 추가) + `main.go` UserSync callback dispatcher + Prometheus 3종 (user_sync_total / _errors_total / _lag_seconds). Stage 3 codex P1×2 hotfix — `GetUserByIdPSubject(ctx, identityID)` UNIQUE idp_subject O(1) lookup interface 추가 + `MarkUserDeactivated` identityID 받음 + `GetUser` ErrNotFound 만 noop, 기타 error propagate. |
-| #242 | `cb6646d` | sprint -l-213-jwks-stale-expiry **(issue #213, P1-2 done)** | ADR-0020 sub-carve D — JWKS stale-while-error expiry case 확장. cache struct (`cachedAt` + `MaxStaleDuration` default 24h + `defaultJWKSMaxStale`) + `readStaleCachedKeys` helper + `fetchJWKS` network fail fallback + `internal/auth/metrics.go` 신규 (`devhub_jwks_stale_while_error_total{result}` + `devhub_jwks_stale_age_seconds` Histogram) + `OIDCJWKSMaxStaleDuration` config + env `DEVHUB_OIDC_JWKS_MAX_STALE_DURATION`. Stage 3 codex P1 hotfix — `readStaleCachedKeys` cutoff = `cachedUntil + maxStale` 정공법 (이전 `cachedAt + maxStale` 은 stale window 를 CacheTTL 만큼 축소). 회귀 test 5건 (StaleWhileError_KeycloakUnreachable + StaleExpired_Fails401 + FreshCache_NoStaleFallback + StaleFallback_DefaultMaxStale + StaleCutoff_BasedOnTTLExpiry). |
+| #245 | `7e8388d` | issue-238-single-port | **ADR-0018 single-port reverse proxy 고도화** — nginx upstream 안정화 및 health check 도입. (Merged) |
+| #246 | `e6a2b3c` | sub-carve B-frontend | **ADR-0020 sub-carve B (frontend) cleanup** — `account.service.ts` 삭제 및 admin UI actions 제거. (Merged) |
+| #249 | `f9b8a7d` | p1-5-e2e-transition | **e2e Kratos legacy 제거** — dynamic idp_subject sync 도입으로 e2e 테스트 안정성 확보. (Merged) |
+| #248 | issued | p0-2-ui-polish | **P0-2 UI polish 1차** — semantic theme 적용, responsive sidebar, a11y 개선. |
+| #251 | issued | p2-4-bindings-ui | **P2-4 Bindings UI** — scope_id lookup 지원 및 CRUD 연동. |
+| #252 | issued | p2-5-topology-v2 | **P2-5 Topology V2** — WebSocket 실시간 업데이트 및 노드 그룹화. |
+| #253 | issued | issue-247-p3-1-cleanup | **Issue #247 + P3-1** — 사용자 생성 password 필드 제거 및 /login 페이지 정리. |
 
-### ADR-0020 sub-carve 진척 (3/8 → 4/8 → 5/8)
+### ADR-0020 sub-carve 진척 (5/8 → 7/8)
 
 | sub-carve | 결정 | 상태 | sprint / PR |
 | --- | --- | --- | --- |
 | A | `rbac_subject_roles` 완전 제거 (결정 D) | ✅ done | sprint -d / PR #205 `f2a389a` |
 | B-backend | `/api/v1/accounts/*` 폐기 + lazy auto-create | ✅ done | sprint -i / PR #239 `d21e801` |
-| B-frontend | `account.service.ts` 폐기 + admin/settings/users + e2e | carve | Gemini 별도 sprint |
-| C | event listener 확장 (USER:UPDATE / MEMBERSHIP / USER:DELETE) + users sync + metric 3종 | ✅ done | sprint -k / PR #241 `9ea7e1c` |
+| B-frontend | `account.service.ts` 폐기 + admin/settings/users + e2e | ✅ done | PR #246 `e6a2b3c` |
+| C | event listener 확장 + users sync + metric 3종 | ✅ done | sprint -k / PR #241 `9ea7e1c` |
 | D | JWKS stale-while-error expiry case 확장 | ✅ done | sprint -l / PR #242 `cb6646d` |
 | E | service account 권한 축소 + keycloak_operations §8.5c | carve | sprint -n 후속 |
-| F | `/login` page 정리 | carve | sprint -o 후속 (우선순위 가장 낮음) |
+| F | `/login` page 정리 (결정 B entry minimal 유지) | ✅ done | PR #253 |
 | (신규) | Keycloak SPI provider JAR (PR #203 codex P2 carve out) | carve | 사내 인프라 동반 |
+
+## 다음 세션 권장 진입
+
+| 우선순위 | sprint 후보 | 작업 | 워커 |
+| --- | --- | --- | --- |
+| 1 | issued PR 머지 후 안정화 | PR #248, #251, #252, #253 머지 확인 및 e2e 회귀 검증 | Gemini/Claude |
+| 2 | issue #214 P1-3 sub-carve E | service account 권한 축소 + governance 협약 SOP 갱신 | Claude |
+| 3 | M4 RM-M4-XX 본격 진입 | WebSocket replay, AI Gardener gRPC 등 로드맵 과제 진입 | Claude/Codex |
+| 4 | Keycloak SPI provider JAR | PR #203 codex P2 후속 — SPI 빌드 및 운영 SOP 작성 | Codex |
+
+## 2026-05-20 sprint -m (PR #242, `cb6646d`) — housekeeping #6 (이전 finalize)
 
 ## 2026-05-20 sprint -j (PR #240, `80120c8`) — housekeeping #5 (이전 finalize)
 
