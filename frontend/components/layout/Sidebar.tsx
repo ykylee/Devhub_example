@@ -55,9 +55,13 @@ export function Sidebar({ className, ...props }: React.HTMLAttributes<HTMLDivEle
         )}
       </AnimatePresence>
 
+      {/* z-[150] only when the mobile drawer is *active*. On lg+ (sticky desktop sidebar),
+          drop to z-[10] so the Header dropdown menu (z-50) stacks above it — otherwise
+          desktop user_id click → dropdown menu never appears in front. */}
       <aside className={cn(
-        "glass border-r border-border h-screen flex flex-col transition-all duration-300 z-[150]",
+        "glass border-r border-border h-screen flex flex-col transition-all duration-300",
         "fixed inset-y-0 left-0 w-72 lg:sticky lg:top-0 lg:w-64 lg:translate-x-0",
+        "z-[150] lg:z-[10]",
         isSidebarOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full lg:translate-x-0",
         className
       )} {...props}>
