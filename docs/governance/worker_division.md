@@ -1,0 +1,180 @@
+# 워커 분업 — Claude / Codex / Gemini
+
+- 문서 목적: DevHub 의 3 워커 (Claude, Codex, Gemini) 가 영역별 작업을 분담하고 인계하는 규칙. 사용자 1명이 모든 워커를 invoke 하지만, 워커별 강점/이력/스타일이 다름.
+- 범위: 워커별 책임 영역, 작업 스타일, 인계 SOP, 충돌 처리.
+- 대상 독자: 모든 워커, 사용자.
+- 상태: draft
+- 최종 수정일: 2026-05-20
+- 결정 근거 sprint: `claude/work_260520-f-roadmap`
+- 관련 문서: [v1.0 릴리즈 로드맵 §5 분업 매트릭스](../planning/release_v1_roadmap.md), [governance/README](./README.md), [document-standards](./document-standards.md), `AGENTS.md`.
+
+## 1. 영역별 분담
+
+### 1.1 Claude — Backend (Go) + Design (ADR + docs)
+
+**주요 책임**:
+- Go Core API (`backend-core/`)
+- ADR 발급 + design doc 작성
+- 추적성 매트릭스 (`docs/traceability/report.md`) 갱신
+- M3+ 백엔드 기능 (HRDB, organization, RBAC, Application, DREQ, Audit event listener)
+- 외부 워커의 design 리뷰 (PR review mode)
+- workflow memory 관리 (`ai-workflow/memory/`)
+
+**작업 스타일**:
+- 큰 단위 design 우선 (현황 파악 → 옵션 비교 → 결정 → 실 구현) Phase 분리
+- 4단계 self-review (diff 재검토 → gh pr comment → 보강 commit → squash merge)
+- codex 외부 review 후 hotfix PR 즉시 진입
+- ADR governance 엄격 준수 (immutable history, supersession 패턴)
+
+**누적 이력 (2026-05-20 기준)**:
+- 30+ sprint, 60+ PR
+- ADR 0002, 0003, 0004, 0005, 0006, 0007, 0008, 0009, 0010, 0011, 0013, 0014, 0017 (일부 codex 도 발급) + 0019, 0020 발급
+- M1 RBAC track + M2 1차 완성 + M3 HRDB/Sign Up + M5 DREQ + M6 External Integration design + ADR-0019 §5.3 전체 design 완결 + ADR-0020 sub-carve A
+
+### 1.2 Codex — Infra (Docker/Nginx/CI) + Security + Build
+
+**주요 책임**:
+- Docker packaging (`docker-compose.deploy.yml`, `Dockerfile`, infra/nginx/)
+- GitHub Actions workflow (`.github/workflows/ci.yml`)
+- Keycloak infra (realm.json, SPI plugin, admin SOP)
+- Security review (외부 리뷰 P1/P2 발견 가장 활발)
+- Build / packaging hardening
+- e2e CI 정합 (`scripts/ci-e2e-sync-check.sh`)
+
+**작업 스타일**:
+- 외부 리뷰 우선 (PR 머지 직후 P1/P2 inline 발견)
+- Infrastructure-as-Code (compose / nginx config / realm.json)
+- 운영 SOP 동반 docs
+
+**누적 이력 (2026-05-20 기준)**:
+- 7+ PR — packaging guide / reverse-proxy / Keycloak-only refactor / next-step External Integration backend / E2E fix / memory housekeeping / e2e CI 정합
+- 주요 contribution: PR #135 (External Integration concept), PR #139 (backend 1차), PR #166 (reverse proxy 실 구현 ADR-0018), PR #167 (Keycloak-only refactor KC-PR-A..F), PR #201 (Keycloak E2E CI 정합), PR #203 SPI webhook (gemini 가 머지차단, claude 가 인수)
+- review cycle: hotfix #1..#12 누적 (codex 외부 리뷰 inline P1/P2 → claude hotfix PR)
+
+### 1.3 Gemini — Frontend + UX + Test fixtures + Design polish
+
+**주요 책임**:
+- Next.js frontend (`frontend/app/`, `frontend/components/`, `frontend/lib/`)
+- e2e Playwright (`frontend/tests/e2e/`)
+- Semantic theme (`frontend/app/globals.css` + tailwind variables)
+- Dashboard / modal / FilterBar 재설계
+- UI/UX polish + responsive + a11y
+
+**작업 스타일**:
+- 큰 frontend redesign sweep
+- 다수 modal 일괄 theme 정합
+- e2e selector 정합 + flaky fix
+
+**누적 이력 (2026-05-20 기준)**:
+- 5+ PR — frontend redesign / dashboard UI + LogoutOverlay / FilterBar 표준화 + dev-requests + audit log redesign / DREQ E2E 안정화 / Keycloak test login + semantic theme (PR #203, claude 가 인수해서 머지)
+- 주요 contribution: PR #115 (light theme + dropdown + endpoints), PR #134 (dashboard UI + LogoutOverlay), PR #138 (dashboard rebrand + Applications/Repositories/Projects 현황 페이지 + FilterBar), PR #140 (FilterBar standardize + DestructiveConfirmModal), PR #203 (semantic theme)
+
+## 2. v1.0 sprint 별 분담
+
+[release_v1_roadmap.md §5.2](../planning/release_v1_roadmap.md) 참조. 요약:
+
+| sprint | 작업 | 주도 워커 | 보조 워커 |
+| --- | --- | --- | --- |
+| -f | sub-carve B (`/api/v1/accounts/*` 폐기) | Claude (backend) | Gemini (frontend cleanup) |
+| -g | Playwright screenshot mode | Codex (CI artifact) | Gemini (fixture) |
+| -g/-h | UI polish 1차 | **Gemini** | — |
+| -i | sub-carve C event listener 확장 | Claude (backend) | — |
+| -j | sub-carve D + E | Claude (D) + Codex (E SOP) | — |
+| -k | v1.0 종합 검증 | 전 워커 | — |
+
+## 3. 인계 SOP
+
+### 3.1 Claude → Codex
+
+**예시 시나리오**: Claude 가 ADR-0019 §5.3 (9) audit event listener design 작성 → Codex 가 (a) Keycloak admin event polling SOP 운영 자산, (b) infra/ 자산 (Keycloak realm 설정 export) 실 구현.
+
+**인계 자산**:
+- design doc (예: `docs/planning/keycloak_event_audit_integration.md`)
+- 작업 범위 명시 (어떤 파일 / 어떤 SOP / 어떤 운영 작업)
+- 검증 기준 (Prometheus metric / Grafana panel / 운영 SOP 항목)
+
+**인계 형식**:
+1. Claude 가 design doc + ADR 발급 PR 머지
+2. issue 생성 — `worker/codex` label + 작업 범위 본문
+3. Codex 가 issue claim + PR 발급
+
+### 3.2 Claude → Gemini
+
+**예시 시나리오**: Claude 가 `/api/v1/accounts/*` 4 endpoint 제거 PR 머지 (backend) → Gemini 가 frontend `account.service.ts` 폐기 + admin/settings/users page 정리 + e2e TC-ACC-* 갱신.
+
+**인계 자산**:
+- API spec (제거된 endpoint + 대체 흐름)
+- 응답 schema (변경된 경우)
+- 영향 받는 page + service + test 명시
+
+**인계 형식**:
+1. Claude 가 backend PR 머지 + frontend 영향 영역 issue 생성
+2. issue label `worker/gemini` + `domain/<area>` + `type/refactor`
+3. Gemini 가 issue claim + PR 발급
+4. Gemini 가 backend API 누락/부정합 발견 시 PR review comment + 신규 issue
+
+### 3.3 Codex → Claude
+
+**예시 시나리오**: Codex 가 PR review 에서 P1 발견 (예: PR #205 의 `pmo_manager` 누락 회귀) → Claude 가 hotfix PR.
+
+**인계 자산**:
+- codex review comment URL
+- P1/P2 마킹 + finding 본문
+- 권장 fix 옵션 (codex 가 보통 1~3 옵션 제시)
+
+**인계 형식**:
+1. Codex 가 GitHub PR comment 로 review 게시 (inline + P1/P2 badge)
+2. Claude 가 review 인지 → 옵션 분석 + 사용자 confirm 필요 시 question → fix PR 진입
+3. fix PR 의 commit message 에 codex review URL 인용 + P1/P2 응답 명시
+
+### 3.4 Gemini → Claude
+
+**예시 시나리오**: Gemini 가 admin/settings/users 정리 중 backend GET /api/v1/users 의 response schema 가 frontend type 과 부정합 발견 → Claude 가 backend handler 갱신.
+
+**인계 자산**:
+- frontend 가 기대하는 schema (type 정의)
+- backend 의 실제 response (curl 또는 spec inspect)
+- 차이점 정리
+
+**인계 형식**:
+1. Gemini 가 PR review comment 또는 신규 issue
+2. label `worker/claude` + `type/refactor` + `domain/<area>`
+3. Claude 가 backend 진입 + 검증
+
+## 4. 충돌 처리
+
+### 4.1 같은 파일 동시 작업
+
+**원칙**: 영역별 분담 따르면 같은 파일 동시 작업 거의 없음. 발생 시:
+- `router.go` / `permissions.go` / `state.json` 같은 cross-cut 파일이 가장 잦음
+- 후착 워커가 rebase 책임 + 충돌 해소
+
+**SOP**:
+1. 후착 워커가 main rebase
+2. 충돌 영역 분석 + 양 쪽 의도 보존
+3. 본인 fix commit + force-push (lease) + PR review comment 로 충돌 해소 사실 명시
+
+### 4.2 ADR 결정 reversal
+
+[feedback_adr_supersession_pattern.md](#) 의 immutable history 패턴 따름:
+- 본문 partial 수정 **금지**
+- 새 ADR 분리 발행 + supersede 대상 ADR 메타 헤더 갱신 + inline supersession banner
+
+**예시**: PR #167 (codex) 가 ADR-0001 본문 partial 수정 → sprint -a (claude PR #169) 가 ADR-0019 발행 + ADR-0001 supersession 으로 정정.
+
+### 4.3 우선순위 충돌
+
+P0 > P1 > P2 > P3 강제. P0 carve 진행 중 P2 carve 진입 금지 (예외: 같은 워커가 idle 상태일 때만).
+
+## 5. 사용자 (Owner) 의 역할
+
+- **invoke 책임**: 모든 워커는 사용자가 invoke. 자동 트리거 없음
+- **사내 동반 carve**: `worker/user` label 항목은 사내 인프라/운영팀 동반 작업 (Keycloak admin 작업, HRDB ETL deploy, HA Phase 2 등)
+- **결정 권한**: ADR 결정 + 우선순위 변경 + 마일스톤 변경
+- **review 최종 승인**: 모든 PR 의 squash merge 권한
+
+## 6. 변경 이력
+
+| 일자 | 변경 | sprint |
+| --- | --- | --- |
+| 2026-05-20 | 1차 작성 — Claude (backend+design) / Codex (infra+CI+security) / Gemini (frontend+UX) 분담 + 인계 SOP 4 패턴 + 충돌 처리 SOP + 사용자 역할 명시 | `claude/work_260520-f-roadmap` |
