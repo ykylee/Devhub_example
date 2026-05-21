@@ -10,13 +10,14 @@ import { ApiError } from "@/lib/services/api-client";
 import { defaultLandingFor, isSystemAdmin, pathRequiresSystemAdmin } from "@/lib/auth/role-routing";
 import { isOnboardingSkipped } from "@/lib/storage/onboardingSkip";
 
-// Routes that limited-mode (onboarding incomplete) users can still access
-// after dismissing onboarding. Account self-service editing requires a
-// completed profile, so /account is intentionally NOT in this list.
-const LIMITED_MODE_ALLOWED_PREFIXES = ["/onboarding", "/auth/"] as const;
+// limited-mode (skip 단계) 사용자가 client-side 에서 차단되는 경로.
+// TC-ONBOARD-SKIP-PROTECTED-01 (P0) 가 `/account` 진입 시 hard redirect 를 요구한다 —
+// `/account` self-service 편집은 완료된 프로필을 전제로 한다.
+// /admin 계열은 별도 `pathRequiresSystemAdmin` 가드로 차단되므로 본 목록에 포함하지 않는다.
+const LIMITED_MODE_BLOCKED_PREFIXES = ["/account"] as const;
 
-function pathAllowedInLimitedMode(path: string): boolean {
-  return LIMITED_MODE_ALLOWED_PREFIXES.some((p) => path.startsWith(p));
+function pathBlockedInLimitedMode(path: string): boolean {
+  return LIMITED_MODE_BLOCKED_PREFIXES.some((p) => path.startsWith(p));
 }
 
 type NotificationPayload = { message?: string };
@@ -50,21 +51,15 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
           onboarding_completed_at: resolved.onboarding_completed_at ?? null,
           review_status: resolved.review_status ?? null,
         });
-        // 3-branch gating (REQ-FR-ONBOARD-010):
-        //   1) skip 액션 미실행 + 미완료 → /onboarding 강제 redirect
-        //   2) skip 액션 + 미완료 + limited-mode 허용 경로 → 정상 진입 + banner
-        //   3) skip 액션 + 미완료 + 보호 경로 → /onboarding hard redirect
-        //   4) 완료 (onboarding_required=false) → 정상 진입
-        // §16.2 spec 정합: `onboarding_required: true` 는 항상 `onboarding_completed_at IS NULL`
-        // (DB row 없음 OR admin pre-seed 후 첫 로그인 미제출). 두 sub-case 모두 limited-mode 라
-        // 보호 경로 (예: /account self-service) 진입은 차단.
+        // REQ-FR-ONBOARD-010 3-branch gating:
+        //   1) skip 액션 미실행 + 미완료 → /onboarding 강제 redirect (첫 진입)
+        //   2) skip 액션 + 미완료 + 일반 페이지 → 정상 진입 + banner 노출
+        //   3) skip 액션 + 미완료 + /account → /onboarding hard redirect (TC-ONBOARD-SKIP-PROTECTED-01)
+        // 이전 구현은 whitelist (`["/onboarding", "/auth/"]`) 였는데 default landing
+        // (/developer, /manager) 까지 막아 skip 직후 무한 redirect 루프가 발생했다.
+        // blocklist 방식으로 전환 — /account 만 명시 차단하고 나머지는 banner 와 함께 통과.
         if (resolved.onboarding_required && pathname !== "/onboarding") {
-          const skipped = isOnboardingSkipped();
-          if (!skipped) {
-            router.replace("/onboarding");
-            return;
-          }
-          if (!pathAllowedInLimitedMode(pathname)) {
+          if (!isOnboardingSkipped() || pathBlockedInLimitedMode(pathname)) {
             router.replace("/onboarding");
             return;
           }
