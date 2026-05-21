@@ -192,12 +192,13 @@ sequenceDiagram
   - skip 시 사용자는 **한정 접근 모드 (limited mode)** 로 진입한다. user row 는 생성하지 않는다 (§5.2 옵션 B "row 존재 = 완료" 의미 보존).
   - 한정 접근 모드는 **token-only actor** 로 동작한다 — backend `authenticateActor` 는 token claim 만으로 actor 구성 + DB row miss 를 정상 상태로 취급한다.
 - 한정 접근 모드 허용 범위:
-  - 공통 메뉴 (메인 페이지, 도움말, `/account` 의 본인 정보 표시 영역).
+  - 공통 메뉴 (메인 페이지, 도움말 등 정적/공개 페이지).
   - `/devhub/onboarding` 페이지 자체 (재진입 + 제출).
   - `GET /api/v1/me` (응답 = `{ actor: { ...token... }, onboarding_required: true }`).
 - 한정 접근 모드 차단 범위:
   - 모든 도메인 API → `403 Forbidden`, body `{ "code": "onboarding_required", ... }` (§5.5 allowlist 정책 재사용).
   - 할당 리소스 페이지/위젯 → API 가 403 반환하므로 자연 차단. UI 는 "프로필을 먼저 완료해 주세요" 빈 상태 노출.
+  - `/account` 페이지 (§8 #9) — onboarding 완료 후 사용자의 self-service 소속 변경 경로이므로, skip 모드 (DB row 미존재) 사용자는 접근하지 않는다. skip 사용자가 프로필을 처음 입력하려면 `/devhub/onboarding` 으로 진입.
 - 횟수/시간 제한 없음:
   - skip 자체에 횟수/시간 제한을 두지 않는다. 매 로그인 시 onboarding 화면이 다시 강제 표시되므로 사실상의 reminder 가 작동한다.
   - 일반 페이지 접근 시도 시 403 응답 자체가 완료 동기를 제공한다.
@@ -227,7 +228,10 @@ sequenceDiagram
 
 **결정(2026-05-20): 옵션 B + C + A 조합 채택**  
 - Source of truth 는 Backend: 미완료 사용자는 allowlist API 외 모두 차단 (`403`, `code=onboarding_required`).
-- Frontend 는 UX 레이어: `/api/v1/me` 의 `onboarding_required` 를 보고 즉시 `/devhub/onboarding` 으로 redirect.
+- Frontend 는 UX 레이어 — `/api/v1/me` 의 `onboarding_required` 가 `true` 일 때 frontend 동작은 3분기 (§5.9 정합):
+  - **첫 진입** (skip 액션 미실행): `/devhub/onboarding` 으로 즉시 redirect.
+  - **skip 액션 이후** (session-scoped skip flag set): `/devhub/onboarding` 자동 redirect 없음 + 모든 페이지 상단에 dismissible banner 노출.
+  - **보호 리소스 진입 시도** (backend 가 403/`onboarding_required` 반환): skip 여부 무관 hard redirect.
 
 ### 5.6 onboarding 화면의 추가 입력 항목
 **질문**: 이름 + 소속 외에 본 onboarding 에서 받을 정보는?
@@ -262,7 +266,7 @@ sequenceDiagram
 - (변경) `internal/httpapi/router.go` — 신규 endpoint 라우팅
 - (변경) `internal/httpapi/permissions.go` — `/api/v1/me/onboarding` 등 신규 endpoint 의 RBAC route permission
 - (변경) `internal/domain/domain.go` — audit event 신규 (`account.onboarding_completed` 등)
-- (마이그레이션) `backend-core/migrations/0000XX_user_onboarding_completed.up.sql` — 5.1 옵션 B/C 채택 시
+- (마이그레이션) `backend-core/migrations/0000XX_user_onboarding_completed.up.sql` — §5.1 옵션 B 채택, 필수 (`onboarding_completed_at TIMESTAMP NULL` 컬럼 신규)
 
 ### 6.2 frontend 신규/변경
 - (신규) `frontend/app/onboarding/page.tsx` — 초기 등록 화면 (basePath 정합)
@@ -379,4 +383,4 @@ sequenceDiagram
 ## 10. 변경 이력
 
 - **2026-05-20** (`main` HEAD `63e0157`): 초기 컨셉 작성. lazy auto-create 의 현 상태 + 사용자 요구의 gap + 결정 후보 옵션 정리.
-- **2026-05-21** (`main` HEAD `c1a090f`, sprint `claude/keycloak-onboarding-concept-2026-05-21`): §5.9 신규 (onboarding 중도 이탈 skip-and-resume 정책) + §8 #7 결정. 정합 갱신 — §3 영향 영역 표 비고 (skip vs pending_review 2단계 limited mode 명시, organizations search endpoint 필수 확정, gating layout 의 banner/redirect 분기) + §6.1 lazy_auto_create.go 비고를 "폐기" 로 정합 + §6.1 organizations_search.go 비고를 §5.3 옵션 C (하이브리드) 로 정합. 컨셉 단계 잔여 open question 0건 — 다음 단계는 요구사항 phase 진입.
+- **2026-05-21** (`main` HEAD `c1a090f`, sprint `claude/keycloak-onboarding-concept-2026-05-21`): §5.9 신규 (onboarding 중도 이탈 skip-and-resume 정책) + §8 #7 결정. 정합 갱신 — §3 영향 영역 표 비고 (skip vs pending_review 2단계 limited mode 명시, organizations search endpoint 필수 확정, gating layout 의 banner/redirect 분기) + §6.1 lazy_auto_create.go 비고를 "폐기" 로 정합 + §6.1 organizations_search.go 비고를 §5.3 옵션 C (하이브리드) 로 정합 + §6.1 migration filename 의 stale "옵션 B/C 채택 시" 조건부 정리. **Self-review Stage 3 보강** — §5.5 결정문에 §5.9 banner-vs-redirect 3분기 명시 (P1 #1) + §5.9 한정 접근 모드에서 `/account` 를 차단 범위로 이동 (P1 #2 self-contradiction 해소). 컨셉 단계 잔여 open question 0건 — 다음 단계는 요구사항 phase 진입.
