@@ -1,0 +1,20 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "codex/work_260521-c-db-docker-option",
+  "status": "done",
+  "updated_at": "2026-05-21T04:00:00Z",
+  "head_commit": "ef244a0",
+  "head_summary": "docs(memory): finalize db docker option session state",
+  "current_focus": [
+    "deploy-from-env.sh 에 DB_MODE=docker 옵션 추가",
+    "local-db profile 렌더/배포 정합 검증"
+  ],
+  "next_actions": [
+    "커밋/푸시 및 PR 생성"
+  ],
+  "risks": [
+    "compose config 는 inactive service 변수도 검증하므로 keycloak 기본값 유지 필요"
+  ],
+  "handoff_note": "DB_MODE=docker 시 db/db-init 를 local-db profile로 함께 다루는 deploy wrapper"
+}

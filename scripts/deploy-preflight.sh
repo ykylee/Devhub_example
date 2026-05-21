@@ -20,6 +20,17 @@ set -a
 source "$ENV_FILE"
 set +a
 
+compose_profile_args=()
+if [ -n "${COMPOSE_PROFILES:-}" ]; then
+  IFS=',' read -r -a compose_profiles <<< "$COMPOSE_PROFILES"
+  for profile in "${compose_profiles[@]}"; do
+    profile="${profile// /}"
+    if [ -n "$profile" ]; then
+      compose_profile_args+=(--profile "$profile")
+    fi
+  done
+fi
+
 required_vars=(
   IMAGE_TAG
   DB_URL
@@ -93,7 +104,7 @@ docker compose version >/dev/null
 echo "[2/3] Compose render validation"
 (
   cd "$ROOT_DIR"
-  docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" config >/tmp/devhub_deploy_compose_rendered.yml
+  docker compose "${compose_profile_args[@]}" --env-file "$ENV_FILE" -f "$COMPOSE_FILE" config >/tmp/devhub_deploy_compose_rendered.yml
 )
 
 echo "[3/3] OIDC endpoint reachability checks"
