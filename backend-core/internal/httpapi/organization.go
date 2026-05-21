@@ -442,7 +442,8 @@ func (h Handler) createUser(c *gin.Context) {
 
 	// ADR-0020 sub-carve E (sprint -n) — Keycloak admin = 별도 운영팀 (PoLP).
 	// DevHub `users` row 만 생성. Keycloak identity 는 별도 운영자가 관리.
-	// 첫 로그인 시 lazy_auto_create (sprint -i, PR #239) 가 idp_subject 매핑.
+	// 2026-05-21 lazy 폐기 sprint (issue #284) 이후 idp_subject 는
+	// authenticateActor 의 SetIdPSubject 분기 (DB row hit 시) 에서 매핑.
 	input := domain.CreateUserInput{
 		UserID:        req.UserID,
 		Email:         req.Email,

@@ -142,7 +142,8 @@ func SyncUserMembership(ctx context.Context, admin UserSyncAdminClient, orgs Use
 	role := pickHighestPriorityRole(groups)
 	if role == "" {
 		// 본인 token claim 기반 role 도 빈 경우 default fallback (developer).
-		// ADR-0020 §5.2.2 의 lazyAutoCreateDefaultRole 정합.
+		// ADR-0020 §5.2.2 의 default role 정합 (lazy_auto_create.go 가 2026-05-21
+		// issue #284 sprint 에서 삭제됐으나 동일 default 유지).
 		role = string(domain.AppRoleDeveloper)
 	}
 	roleVal := domain.AppRole(role)
