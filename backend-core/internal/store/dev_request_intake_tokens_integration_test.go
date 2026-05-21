@@ -403,4 +403,19 @@ func TestIntegration_UpdateDevRequestIntakeToken(t *testing.T) {
 			t.Errorf("expected ErrConflict, got %v", err)
 		}
 	})
+
+	t.Run("ExtendExpiredToken_OptionB_Success", func(t *testing.T) {
+		pastExpiry := time.Now().UTC().Add(-2 * time.Hour).Truncate(time.Microsecond)
+		tok := create("expired-extend-"+suffix, "hash-expired-extend-"+suffix, &pastExpiry)
+
+		newExpiry := time.Now().UTC().Add(4 * time.Hour).Truncate(time.Microsecond)
+		updated, err := pgStore.UpdateDevRequestIntakeToken(ctx, tok.TokenID, nil, &newExpiry, false, true)
+		if err != nil {
+			t.Fatalf("update failed: %v", err)
+		}
+
+		if updated.ExpiresAt == nil || !updated.ExpiresAt.Equal(newExpiry) {
+			t.Errorf("expiry mismatch: got %v want %v", updated.ExpiresAt, newExpiry)
+		}
+	})
 }

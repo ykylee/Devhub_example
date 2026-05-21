@@ -1257,6 +1257,33 @@ func TestUpdateDevRequestIntakeTokenIPs_Happy(t *testing.T) {
 	}
 }
 
+func TestUpdateDevRequestIntakeToken_ExtendExpired_Happy(t *testing.T) {
+	s := &fakeIntakeTokenStore{}
+	pastExpiry := time.Now().UTC().Add(-2 * time.Hour)
+	tok, _ := s.CreateDevRequestIntakeToken(context.Background(), domain.DevRequestIntakeToken{
+		ClientLabel: "ops", HashedToken: "h-extend", AllowedIPs: []string{"10.0.0.0/24"}, SourceSystem: "ops", CreatedBy: "system", ExpiresAt: &pastExpiry,
+	})
+	router := newIntakeAdminRouter(s, &memoryAuditStore{})
+	
+	newExpiry := time.Now().UTC().Add(4 * time.Hour).Format(time.RFC3339)
+	body := fmt.Sprintf(`{"expires_at":"%s"}`, newExpiry)
+	rec := doJSON(t, router, http.MethodPatch, "/api/v1/dev-request-tokens/"+tok.TokenID, body)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("code=%d body=%s", rec.Code, rec.Body.String())
+	}
+	
+	// Check response has the new expiry
+	if !bytes.Contains(rec.Body.Bytes(), []byte(newExpiry)) {
+		t.Errorf("response missing updated expires_at: %s", rec.Body.String())
+	}
+	
+	// Check store has been updated
+	updatedTok := s.rows["h-extend"]
+	if updatedTok.ExpiresAt == nil || updatedTok.ExpiresAt.Format(time.RFC3339) != newExpiry {
+		t.Errorf("store has invalid expires_at: %v, want %s", updatedTok.ExpiresAt, newExpiry)
+	}
+}
+
 // ADR-0017 §4.3 — 404 응답에 intake_token_not_found code 필드.
 // codex hotfix #5 P2 #3.
 func TestUpdateDevRequestIntakeTokenIPs_NotFound(t *testing.T) {

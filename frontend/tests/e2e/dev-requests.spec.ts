@@ -190,11 +190,12 @@ test.describe("DREQ E2E", () => {
     const tokenId = (await tokenRow.getAttribute("data-token-id")) ?? "";
     expect(tokenId).toBeTruthy();
 
-    // PATCH allowed_ips — page.request 의 OIDC session propagation 이 CI 에서
+    // PATCH allowed_ips & expires_at — page.request 의 OIDC session propagation 이 CI 에서
     // flaky. page.evaluate 의 browser context fetch 가 cookies + sessionStorage
     // 의 Bearer token (apiClient 와 동일 구조) 을 사용해 modal form submit 와
     // 같은 인증 보장 (sprint claude/work_260518-m hotfix #4+5).
-    const patchResult = await page.evaluate(async (id: string) => {
+    const futureDate = new Date(Date.now() + 86400000).toISOString(); // 1 day in the future
+    const patchResult = await page.evaluate(async ({ id, expiresAt }) => {
       const accessToken = sessionStorage.getItem("devhub_access_token");
       const resp = await fetch(`/api/v1/dev-request-tokens/${id}`, {
         method: "PATCH",
@@ -202,12 +203,15 @@ test.describe("DREQ E2E", () => {
           "Content-Type": "application/json",
           ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
-        body: JSON.stringify({ allowed_ips: ["192.0.2.0/24", "203.0.113.5"] }),
+        body: JSON.stringify({
+          allowed_ips: ["192.0.2.0/24", "203.0.113.5"],
+          expires_at: expiresAt,
+        }),
         credentials: "include",
       });
       const body = await resp.json();
       return { ok: resp.ok, status: resp.status, body };
-    }, tokenId);
+    }, { id: tokenId, expiresAt: futureDate });
     expect(patchResult.ok).toBeTruthy();
     expect(patchResult.body.status).toBe("ok");
     // backend 가 dedup / canonicalize 할 수 있어 정확한 순서·길이 의존하지 않고
@@ -215,6 +219,10 @@ test.describe("DREQ E2E", () => {
     expect([...patchResult.body.data.allowed_ips].sort()).toEqual(
       ["192.0.2.0/24", "203.0.113.5"].sort()
     );
+    expect(patchResult.body.data.expires_at).toBeTruthy();
+    const gotTime = new Date(patchResult.body.data.expires_at).getTime();
+    const wantTime = new Date(futureDate).getTime();
+    expect(Math.abs(gotTime - wantTime)).toBeLessThan(5000);
 
     // 정리 — 본 test 가 생성한 token revoke (cleanup, 동일 패턴).
     await page.evaluate(async (id: string) => {
