@@ -700,6 +700,75 @@ func TestIntakeAuth_ExpiredTokenDenies(t *testing.T) {
 	}
 }
 
+// TestIntakeAuth_IPDeniedWhenNotInAllowlist — non-empty allowlist + caller IP
+// 가 그 어느 CIDR 에도 속하지 않을 때 401 auth_intake_ip_denied. 기존
+// TestIntakeAuth_IPDeniedWithEmptyAllowlist 가 empty 케이스만 cover 해서
+// non-empty mismatch 가드를 보강한다 (sprint claude/test-gaps-p0-2026-05-21).
+func TestIntakeAuth_IPDeniedWhenNotInAllowlist(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	plain := "non-empty-allowlist-test-tokenabcdef"
+	hashed := hashIntakeToken(plain)
+	tokenStore := &fakeIntakeTokenStore{rows: map[string]domain.DevRequestIntakeToken{
+		hashed: {
+			TokenID: "tok-mismatch", ClientLabel: "ops", HashedToken: hashed,
+			// caller IP (RemoteAddr 명시 10.99.99.99 — RFC1918) 와 매치 안
+			// 되도록 RFC5737 TEST-NET-2/3 만 등록.
+			AllowedIPs:   []string{"198.51.100.0/24", "203.0.113.5"},
+			SourceSystem: "ops",
+		},
+	}}
+	h := Handler{cfg: RouterConfig{DevRequestIntakeTokenStore: tokenStore, AuditStore: &memoryAuditStore{}}}
+	router.POST("/intake", h.requireIntakeToken, func(c *gin.Context) { c.String(http.StatusOK, "ok") })
+	req := httptest.NewRequest(http.MethodPost, "/intake", nil)
+	req.Header.Set("Authorization", "Bearer "+plain)
+	// httptest.NewRequest 의 RemoteAddr default 는 `192.0.2.1:1234` (TEST-NET-1).
+	// allowlist 에 192.0.2.0/24 가 들어가면 우연 매치되므로 caller IP 를 명시
+	// 변경해 mismatch 분기 보장.
+	req.RemoteAddr = "10.99.99.99:54321"
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("non-empty allowlist + IP mismatch should 401 (code=%d body=%s)", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"code":"auth_intake_ip_denied"`)) {
+		t.Errorf("expected auth_intake_ip_denied: %s", rec.Body.String())
+	}
+}
+
+// TestClientIPAllowed — `clientIPAllowed` 순수함수의 분기를 직접 검증한다.
+// middleware-level test 는 c.ClientIP() 값에 의존하므로 (TestMode 의 IP 가
+// 환경별 ::1 vs 127.0.0.1 로 갈림) edge case 를 흡수하려면 함수 수준에서
+// 명시 검증이 안정적.
+func TestClientIPAllowed(t *testing.T) {
+	cases := []struct {
+		name    string
+		caller  string
+		cidrs   []string
+		allowed bool
+	}{
+		{"empty allowlist denies all", "192.0.2.1", nil, false},
+		{"exact IP match (no CIDR)", "192.0.2.5", []string{"192.0.2.5"}, true},
+		{"exact IP mismatch (no CIDR)", "192.0.2.6", []string{"192.0.2.5"}, false},
+		{"CIDR /24 contains", "192.0.2.42", []string{"192.0.2.0/24"}, true},
+		{"CIDR /24 excludes", "10.0.0.1", []string{"192.0.2.0/24"}, false},
+		{"open CIDR allows IPv4", "10.0.0.1", []string{"0.0.0.0/0"}, true},
+		{"multiple entries — first match wins", "203.0.113.5", []string{"192.0.2.0/24", "203.0.113.5"}, true},
+		{"multiple entries — none match", "198.51.100.1", []string{"192.0.2.0/24", "203.0.113.5"}, false},
+		{"invalid caller IP rejected", "not-an-ip", []string{"0.0.0.0/0"}, false},
+		{"malformed CIDR entry skipped (no panic)", "192.0.2.1", []string{"not/a/cidr", "192.0.2.0/24"}, true},
+		{"IPv6 loopback exact", "::1", []string{"::1"}, true},
+		{"IPv6 CIDR contains", "2001:db8::1", []string{"2001:db8::/32"}, true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := clientIPAllowed(tc.caller, tc.cidrs); got != tc.allowed {
+				t.Errorf("clientIPAllowed(%q, %v) = %v; want %v", tc.caller, tc.cidrs, got, tc.allowed)
+			}
+		})
+	}
+}
+
 // --- DREQ-Promote-Tx (sprint claude/work_260515-m) handler tests ---
 
 func TestRegisterDevRequest_NewApplicationHappy(t *testing.T) {
