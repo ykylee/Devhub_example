@@ -370,18 +370,16 @@ sequenceDiagram
 ## 9. 다음 단계 (next phase)
 
 1. ~~**요구사항 분석** (`docs/requirements.md` 확장 또는 `docs/planning/keycloak_user_onboarding_requirements.md` 신규)~~ — **2026-05-21 done**: `docs/requirements.md` §5.7 신규 (REQ-FR-ONBOARD-001..012 + REQ-NFR-ONBOARD-001..008, sprint `claude/onboarding-requirements-2026-05-21`).
-2. **설계** (architecture + API 계약 + UX wireframe)
-   - `docs/architecture.md` 신규 §9 (또는 적절 위치) — ARCH-ONBOARD-XX 발급, gating sequence diagram, 3단계 접근 상태머신.
-   - `docs/backend_api_contract.md` 신규 §16 (또는 적절 위치) — API-XX (`POST /api/v1/me/onboarding`, `GET /api/v1/organizations/search`, `POST /api/v1/admin/users` 사전등록, `PATCH /api/v1/me/unit` self-service 변경 등) request/response shape + error matrix.
-   - UC-ONBOARD-XX 발급 (`docs/planning/system_usecases.md`).
-3. **ADR 발행** (필요 시) — ADR-0020 §3.2 확장 (self-service unit selection 허용 명문화) vs 신규 ADR-XX. requirements §5.7 의 결정 종합으로 충분할 가능성도 있음 — design phase 진입 시 결정.
-4. **구현 carve 분할** — backend (handler/store/migration/gating) + frontend (page/picker/banner/account-edit) + docs (cross-link 갱신) 별 sprint 단위.
-5. **traceability 매트릭스 row** — IMPL / UT / TC 까지 자동 발급 (현재 매트릭스 row 의 미진입 마킹된 셀 채우기).
+2. ~~**설계** (architecture + API 계약 + UX wireframe)~~ — **2026-05-21 done**: `docs/planning/system_usecases.md` §2.13 (UC-ONBOARD-01..11) + `docs/architecture.md` §9 (ARCH-ONBOARD-01..06) + `docs/backend_api_contract.md` §16 (API-83..86 spec staged + API-32 / API-33 확장 명시), sprint `claude/onboarding-arch-2026-05-21`. UX wireframe 은 별도 carve.
+3. **ADR 발행** (필요 시) — ADR-0020 §3.2 확장 (self-service unit selection 허용 명문화) vs 신규 ADR-XX. requirements §5.7 + ARCH §9 의 결정 종합으로 충분할 가능성도 있음 — IMPL carve 전에 결정.
+4. **구현 carve 분할** — backend (handler/store/migration/gating/review_transition) + frontend (page/picker/banner/account-edit) + docs (cross-link 갱신) 별 sprint 단위. ARCH §9.1 의 backend handler 목록 + concept §6.2 의 frontend 자산 목록을 분담 기준으로.
+5. **traceability 매트릭스 cell 채우기** — IMPL / UT / TC 까지 발급 (현재 매트릭스 row 의 미진입 마킹된 셀, IMPL carve 진행과 동기화).
 
-본 컨셉 문서는 §5.7 (REQ row 발급) 의 직접 입력 자료로 사용됐다. 후속 단계는 §5.7 의 REQ ID 를 기준으로 추적된다.
+본 컨셉 문서는 §5.7 (REQ row 발급) + §9 (ARCH row 발급) + §16 (API spec staged) 의 직접 입력 자료로 사용됐다. 후속 단계는 §5.7 의 REQ ID + §9 의 ARCH ID + §16 의 API ID 를 기준으로 추적된다.
 
 ## 10. 변경 이력
 
 - **2026-05-20** (`main` HEAD `63e0157`): 초기 컨셉 작성. lazy auto-create 의 현 상태 + 사용자 요구의 gap + 결정 후보 옵션 정리.
 - **2026-05-21** (`main` HEAD `c1a090f`, sprint `claude/keycloak-onboarding-concept-2026-05-21`): §5.9 신규 (onboarding 중도 이탈 skip-and-resume 정책) + §8 #7 결정. 정합 갱신 — §3 영향 영역 표 비고 (skip vs pending_review 2단계 limited mode 명시, organizations search endpoint 필수 확정, gating layout 의 banner/redirect 분기) + §6.1 lazy_auto_create.go 비고를 "폐기" 로 정합 + §6.1 organizations_search.go 비고를 §5.3 옵션 C (하이브리드) 로 정합 + §6.1 migration filename 의 stale "옵션 B/C 채택 시" 조건부 정리. **Self-review Stage 3 보강** — §5.5 결정문에 §5.9 banner-vs-redirect 3분기 명시 (P1 #1) + §5.9 한정 접근 모드에서 `/account` 를 차단 범위로 이동 (P1 #2 self-contradiction 해소). 컨셉 단계 잔여 open question 0건 — 다음 단계는 요구사항 phase 진입.
 - **2026-05-21** (`main` HEAD `e9b7543`, sprint `claude/onboarding-requirements-2026-05-21`): **요구사항 phase 진입**. `docs/requirements.md` §5.7 신규 (REQ-FR-ONBOARD-001..012 + REQ-NFR-ONBOARD-001..008) — 본 컨셉의 §5 결정 + §8 open question 결정을 acceptance criteria 로 변환. `docs/traceability/report.md` §2.1 인덱스 + §3 매트릭스 + §6 변경 이력에 Onboarding 도메인 row 추가 (UC/ARCH/API/IMPL/UT/TC 후속 carve 마킹). 본 문서 §9 다음 단계 1번 done 마크 + 2~5번 (설계 → ADR → 구현 carve → 매트릭스 cell 채우기) 으로 진행.
+- **2026-05-21** (`main` HEAD `4d882d5`, sprint `claude/onboarding-arch-2026-05-21`): **ARCH phase 진입**. `docs/planning/system_usecases.md` §2.13 신규 (UC-ONBOARD-01..11) + `docs/architecture.md` §9 신규 (ARCH-ONBOARD-01..06 — 컴포넌트 / 3-tier 상태머신 / Gating 정책 / RBAC route permission / 데이터 모델 / Audit 카탈로그) + `docs/backend_api_contract.md` §16 신규 (API-83 POST /me/onboarding + API-84 GET /organizations/search + API-85 PATCH /me + API-86 POST /admin/users/:id/review + API-32 / API-33 확장 명시). `docs/traceability/report.md` §2.1.5 + §2.2 + §3 매트릭스 + §6 changelog 동기화. 본 문서 §9 next-phase #2 (설계) done. **Self-review Stage 3 보강** — §16.3 POST /me/onboarding 응답 status code `200 OK` → `201 Created` 정합 (P1 #1, POST /dev-requests / POST /users 패턴 일관) + REQ §5.7 forward reference 5곳 stale 정정 (P2 #2, concrete ARCH/API reference 로 갱신) + ARCH §9.4 표에 `onboardingGate` column 추가 (P2 #3, 7 endpoint 의 allowlist 분기 명시) + §16.7 `reviewed_at` / `reviewed_by` source-of-truth 명시 (P2 #4, audit_logs join default + 컬럼 신규 대안 명시). 다음 단계 = #3 ADR 발행 결정.

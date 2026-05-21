@@ -4,7 +4,7 @@
 - 범위: backend-core 주요 모듈(auth/account/org/rbac/gitea ingest/command/audit/realtime/store) + 신규 Project 도메인.
 - 대상 독자: 프로젝트 리드, 시스템 관리자, Backend/Frontend 설계 담당, 추적성 리뷰어.
 - 상태: draft
-- 최종 수정일: 2026-05-15 (외부 시스템 연동 UC-INT 초안 추가)
+- 최종 수정일: 2026-05-21 (Onboarding 도메인 UC-ONBOARD 초안 추가, §2.13)
 - 관련 문서: [요구사항](../requirements.md), [아키텍처](../architecture.md), [API 계약](../backend_api_contract.md), [ERD 카탈로그](./system_erd.md), [통합 로드맵](../development_roadmap.md)
 
 ## 1. 모듈 기준
@@ -149,6 +149,22 @@
 | `UC-INT-12` | 연동 운영 감사 추적 | 연동 생성/변경/실패/복구 이벤트가 audit로 추적 가능하다 | REQ-NFR-INT-002 |
 | `UC-INT-13` | Provider 장애 격리 처리 | 특정 provider 장애가 전체 수집 파이프라인 중단으로 확산되지 않는다 | REQ-NFR-INT-004 |
 | `UC-INT-14` | 연동 데이터 조회 품질 보장 | 페이지네이션/필터/최신스냅샷-이력이 일관된 계약으로 제공된다 | REQ-NFR-INT-005,006 |
+
+### 2.13 Onboarding (Keycloak 인증 통과 사용자의 self-service 초기 등록)
+
+| UC ID | Usecase | 성공 조건 | 관련 REQ |
+| --- | --- | --- | --- |
+| `UC-ONBOARD-01` | 미완료 사용자의 첫 진입 redirect | `GET /api/v1/me` 가 `onboarding_required: true` 반환 + frontend 가 `/devhub/onboarding` 으로 redirect | REQ-FR-ONBOARD-001, REQ-FR-ONBOARD-010 |
+| `UC-ONBOARD-02` | Onboarding 제출 — user row 생성 + pending_review | 단일 트랜잭션으로 (INSERT users + onboarding_completed_at + review_status=pending_review + audit) 성공 | REQ-FR-ONBOARD-002, REQ-FR-ONBOARD-003, REQ-FR-ONBOARD-005 |
+| `UC-ONBOARD-03` | 소속 검색 (typeahead) | 2글자 이상 입력 시 `/api/v1/organizations/search` 가 최대 20개 결과 반환 (조직명만) | REQ-FR-ONBOARD-004 |
+| `UC-ONBOARD-04` | 소속 선택 (tree) | 기존 `/api/v1/organization/hierarchy` 응답 기반 트리에서 선택 → 동일 결과 | REQ-FR-ONBOARD-004 |
+| `UC-ONBOARD-05` | 관리자 검토 → reviewed 전이 | system_admin 이 transition 호출 → review_status=reviewed + audit | REQ-FR-ONBOARD-005 |
+| `UC-ONBOARD-06` | pending_review 사용자 제한 접근 | 공통 메뉴 + 할당된 과제/저장소/어플리케이션 접근 / 그 외 도메인 API 는 정상 응답 (무소속 처리만 적용) | REQ-FR-ONBOARD-006 |
+| `UC-ONBOARD-07` | 사용자 self-service 소속 변경 → pending_review 재진입 | `/account` 에서 `PATCH /api/v1/me` 호출 → primary_unit_id 변경 + review_status=pending_review 재진입 + audit | REQ-FR-ONBOARD-007 |
+| `UC-ONBOARD-08` | 관리자 사전 등록 | admin pre-register endpoint 호출 → user row 생성 + onboarding_completed_at=NULL (사용자 첫 로그인 시 onboarding 강제 진입) | REQ-FR-ONBOARD-008 |
+| `UC-ONBOARD-09` | Backend gating 403 차단 | 미완료 사용자가 allowlist 외 endpoint 호출 시 403 + `code=onboarding_required` 반환 | REQ-FR-ONBOARD-009 |
+| `UC-ONBOARD-10` | Skip → 한정 접근 모드 | "나중에 하기" 액션 → user row 미생성 + 공통 메뉴 + `/devhub/onboarding` + `GET /me` 만 접근 | REQ-FR-ONBOARD-011, REQ-FR-ONBOARD-006 |
+| `UC-ONBOARD-11` | Skip 후 dismissible banner | session-scoped skip flag set + 모든 페이지 상단에 banner 노출 (자동 redirect 없음) | REQ-FR-ONBOARD-010 |
 
 ## 3. 설계/구현 반영 규칙
 
