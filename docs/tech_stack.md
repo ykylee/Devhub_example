@@ -39,7 +39,7 @@ DevHub은 Gitea 연동, AI 분석, 실시간 대시보드 제공을 위해 다�
 
 ## 2. 개발 환경 설정 (Environment Setup)
 
-본 저장소는 **native (no-docker) 모드를 default** 로 한다 ([ADR-0003](./adr/0003-no-docker-policy-ci-scope.md)). 컨테이너 자산 (`docker-compose.yml`, 각 서비스 `Dockerfile`, `.dockerignore`) 은 환경별 제약이 달라 git 추적에서 제외되며 (`.gitignore` 의 `DEV ENVIRONMENT` 섹션), 절차는 [`docs/setup/environment-setup.md`](./setup/environment-setup.md) 가 source-of-truth.
+본 저장소는 **native (no-docker) 모드를 default** 로 한다 ([ADR-0003](./adr/0003-no-docker-policy-ci-scope.md)). 컨테이너 자산 중 `docker-compose.yml` 과 로컬 오버라이드는 환경별 제약이 달라 git 추적에서 제외되지만, 각 서비스의 `Dockerfile` 은 빌드 계약이므로 git 추적 대상이다. 절차는 [`docs/setup/environment-setup.md`](./setup/environment-setup.md) 가 source-of-truth.
 
 ### 2.1 사전 요구 사항 (Prerequisites)
 - **Go**: 기준 v1.26.2 (`backend-core/go.mod`). 로컬 `go` 도 같은 minor 버전을 권장.
