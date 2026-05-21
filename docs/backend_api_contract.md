@@ -2212,7 +2212,7 @@ Keycloak 인증 통과 + DevHub 프로필 미완료 사용자의 self-service �
   - `display_name`: 필수, 1~100자.
   - `primary_unit_id`: 필수, `organization_units(unit_id)` FK.
   - **role 필드는 받지 않는다** — payload 에 `role` 이 포함되어도 무시 (REQ-FR-ONBOARD-002, REQ-FR-ONBOARD-008). Keycloak claim 매핑 + fallback `developer` 로만 결정.
-- **응답 — 201 Created** (단일 트랜잭션 성공 — INSERT users + onboarding_completed_at + review_status=pending_review + audit; POST /dev-requests / POST /users 패턴과 일관):
+- **응답 — 201 Created** (단일 트랜잭션 성공 — `users` row **INSERT (DB 미등록 사용자) 또는 UPDATE (관리자 사전 등록된 미완료 사용자)** + `onboarding_completed_at=NOW()` + `review_status=pending_review` + audit emit; REQ-FR-ONBOARD-003 의 "row INSERT 또는 UPDATE" + UC-ONBOARD-08 정합. POST /dev-requests / POST /users 패턴과 일관):
 
 ```json
 {
