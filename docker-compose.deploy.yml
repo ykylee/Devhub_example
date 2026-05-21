@@ -212,7 +212,19 @@ services:
     environment:
       BACKEND_API_URL: ${BACKEND_API_URL:-http://backend-core:8080}
       NEXT_PUBLIC_BASE_PATH: ${NEXT_PUBLIC_BASE_PATH:-devhub}
+      # DEVHUB_PUBLIC_BASE_URL 는 server-side runtime-config route 가 redirect
+      # URI 생성에 사용 — runtime env 로 inject 가능. primary path.
       DEVHUB_PUBLIC_BASE_URL: ${DEVHUB_PUBLIC_BASE_URL:?set DEVHUB_PUBLIC_BASE_URL}
+      # NOTE — NEXT_PUBLIC_APP_ORIGIN 은 `endpoints.ts` 가 client-side bundle 에서
+      # 참조하는 fallback 변수다. Next.js `NEXT_PUBLIC_*` 변수는 **build-time** 에
+      # bundle 에 inline 되며, 본 deploy compose 는 build 없이 image 만 사용하므로
+      # runtime env 로 set 해도 client bundle 에 반영되지 않는다. 즉 본 line 은
+      # **dead set** — client-side fallback 은 `window.location.origin` 으로 자연
+      # fallback 한다 (intended behavior — frontend image 환경간 재사용 + OIDC
+      # endpoint 는 runtime-config route 가 primary 로 동적 주입). image build 시점에
+      # 환경별 NEXT_PUBLIC_APP_ORIGIN 을 inline 하고 싶으면 frontend Dockerfile 의
+      # build-arg 로 전달해야 한다 (운영 환경별 image 분리 패턴).
+      # (PR #278 review P2 #1 정합 — claude follow-up)
       NEXT_PUBLIC_APP_ORIGIN: ${DEVHUB_PUBLIC_BASE_URL:?set DEVHUB_PUBLIC_BASE_URL}
       # Runtime config route(frontend/app/api/runtime-config) fallback overrides.
       OIDC_ISSUER_URL: ${OIDC_ISSUER_URL:?set OIDC_ISSUER_URL}

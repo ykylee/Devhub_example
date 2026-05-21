@@ -97,7 +97,16 @@ echo "[2/3] Compose render validation"
 )
 
 echo "[3/3] OIDC endpoint reachability checks"
-curl -fsS "$OIDC_ISSUER_URL/.well-known/openid-configuration" >/dev/null
+# issuer reachability — `docs/setup/deploy.prod.env.example` 가 권장하는 issuer/JWKS
+# 분리 시나리오 (issuer = public, JWKS = internal) 에서 deploy 머신이 internal
+# 환경 (public DNS 차단) 일 경우 issuer URL 도달 불가. 해당 case 에서는
+# `SKIP_OIDC_ISSUER_REACH=1` 로 issuer reachability 검증을 건너뛰고 JWKS reachability
+# 만 강제. (PR #278 review P2 #2 정합 — claude follow-up)
+if [ "${SKIP_OIDC_ISSUER_REACH:-0}" = "1" ]; then
+  echo "  SKIP_OIDC_ISSUER_REACH=1 — issuer reachability 검증 skip (issuer/JWKS split scenario)"
+else
+  curl -fsS "$OIDC_ISSUER_URL/.well-known/openid-configuration" >/dev/null
+fi
 if [ -n "${DEVHUB_OIDC_JWKS_URL:-}" ]; then
   curl -fsS "$DEVHUB_OIDC_JWKS_URL" >/dev/null
 fi
