@@ -191,14 +191,16 @@ ADR-0020 의 **핵심 결정** (옵션 A — Keycloak account vs DevHub user 책
 
 ### 6.1 IMPL carve
 
-본 ADR 의 결정을 실 구현하는 sprint 분담:
+본 ADR 의 결정을 실 구현하는 sprint 분담 — 상세 plan 은 [`docs/planning/onboarding_impl_plan.md`](../planning/onboarding_impl_plan.md) (2026-05-21 sprint `claude/onboarding-impl-carve-plan-2026-05-21` 신규).
 
-| Carve | 영역 | 우선순위 |
-| --- | --- | --- |
-| **IMPL-onboarding-backend** | migration + onboardingGate middleware + 4 endpoint handler (API-83/84/85/86) + audit event const + lazy_auto_create 폐기 | P1 |
-| **IMPL-onboarding-frontend** | `/onboarding` page + OrganizationPicker (typeahead + tree) + skip flag sessionStorage + banner + `(dashboard)/layout` 3-branch gating + `/account` unit edit | P1 |
-| **IMPL-onboarding-admin** | `/admin/settings/users` 의 "Confirm Review" 액션 + pending_review user list filter | P1 |
-| **IMPL-onboarding-tests** | UT-onboarding-* (handler 단위) + TC-ONBOARD-* (E2E mega lifecycle, concept §8 #12 의 6 시드 활용) | P1 |
+| Carve | RM ID | 영역 | Worker | Milestone | 진입 조건 |
+| --- | --- | --- | --- | --- | --- |
+| **IMPL-onboarding-backend** | RM-ONBOARD-01 | migration + onboardingGate middleware + 5 endpoint handler (API-83/84/85/86 + API-32/33 확장) + audit event const + lazy_auto_create 폐기. Feature flag default OFF. | Claude | M-v1.1 | 없음 (단독 진입 가능) |
+| **IMPL-onboarding-frontend** | RM-ONBOARD-02 | `/onboarding` page + OrganizationPicker (typeahead + tree) + skip flag sessionStorage + banner + `(dashboard)/layout` 3-branch gating + `/account` unit edit | Gemini | M-v1.1 | Carve A 머지 후 |
+| **IMPL-onboarding-admin** | RM-ONBOARD-03 | `/admin/settings/users` 의 "Confirm Review" 액션 + pending_review user list filter + `ConfirmReviewModal` | Gemini | M-v1.1 | Carve A 머지 후. Carve B 와 병행 가능 |
+| **IMPL-onboarding-tests** | RM-ONBOARD-04 | UT-onboarding-* (handler 단위) + TC-ONBOARD-* (E2E mega lifecycle, concept §8 #12 의 6 시드 활용) + `docs/tests/test_cases_m7_onboarding.md` | Claude (UT) + Gemini (E2E) | M-v1.1 | Carve A + B + C 모두 머지 후 |
+
+GitHub issue 등록: P2-8 ~ P2-11 (4건, `release_v1_roadmap.md` §3.3 매트릭스 참조).
 
 ### 6.2 후속 carve (concept §5.4 옵션 C/D)
 
@@ -215,3 +217,5 @@ ADR-0020 의 **핵심 결정** (옵션 A — Keycloak account vs DevHub user 책
 | 일자 | 변경 | sprint |
 | --- | --- | --- |
 | 2026-05-21 | 본 ADR 발급. ADR-0020 의 lazy auto-create 결정 (§3.2 / §4.1 sub-carve B / §4.2 / §6.2) partial supersession + self-service unit selection 책임 경계 확장. 3 tier 접근 상태머신 + skip-and-resume + role 권한 상승 차단 정합. 컨셉 (PR #260 + #265) + 요구사항 (PR #266) + 설계 (PR #267) 의 누적 결정 명문화. | `claude/onboarding-adr-2026-05-21` |
+| 2026-05-21 | codex review hotfix (PR #270) — ADR-0020 메타 헤더 3 line (상태 / partial superseded by / supersession 안내 box) 의 supersession scope "4 위치" → "5 위치" + §6.1 explicit 정합. 본 ADR 본문은 변경 없음. | `claude/onboarding-codex-hotfix-2026-05-21` |
+| 2026-05-21 | §6.1 IMPL carve 표 확장 — RM-ONBOARD-01..04 + worker / milestone / 진입 조건 column 추가 + [`onboarding_impl_plan.md`](../planning/onboarding_impl_plan.md) cross-link. GitHub issue 매핑 (P2-8..11). | `claude/onboarding-impl-carve-plan-2026-05-21` |

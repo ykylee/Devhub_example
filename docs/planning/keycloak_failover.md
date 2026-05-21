@@ -225,10 +225,10 @@ backup IdP 가 필요한 진짜 case 가 발생하면 ADR-0019 재검토 (옵션
 본 design 의 ADR governance 측면:
 
 - Phase 1 (옵션 D graceful degradation) = 운영 SOP 수준 — 별도 ADR 발행 가치 낮음
-- Phase 2 (옵션 B HA) = Keycloak HA 도입 결정 — ADR-0021 후보 (현재 별도 ADR 없음, ADR-0019 §5.3 carve resolved 만으로 충분 가능)
-- Phase 3 (옵션 F DR site) = 별도 ADR (ADR-0022+) 후보
+- Phase 2 (옵션 B HA) = Keycloak HA 도입 결정 — **별도 ADR 후보** (ADR-0021 은 Onboarding 으로 2026-05-21 발급됨 — Phase 2 진입 시점에 다음 번호 사용). 현재 별도 ADR 없음, ADR-0019 §5.3 carve resolved 만으로 충분 가능.
+- Phase 3 (옵션 F DR site) = 별도 ADR (ADR-0022 또는 이후) 후보
 
-**1차 결정**: ADR-0019 §5.3 (6) carve resolved (design) 만으로 한정. Phase 2 진입 시 ADR-0021 재평가. ADR-0019 의 옵션 E 명시 제외도 본 design 에서 결정.
+**1차 결정**: ADR-0019 §5.3 (6) carve resolved (design) 만으로 한정. Phase 2 진입 시 별도 ADR 재평가. ADR-0019 의 옵션 E 명시 제외도 본 design 에서 결정.
 
 ## 10. 잔여 carve out / open question
 

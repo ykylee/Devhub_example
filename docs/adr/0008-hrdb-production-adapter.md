@@ -111,7 +111,7 @@ WHERE lower(system_id) = lower($1) AND employee_id = $2 AND lower(name) = lower(
 | --- | --- |
 | ETL 책임 (수동 SQL / cron / 외부 ETL tool) | **부분 결정 (2026-05-13, sprint `claude/work_260513-n`)**: 1차 PoC seed 는 `scripts/hrdb_etl_seed.sql` (idempotent `INSERT ... ON CONFLICT`). 운영 cron 은 별도 운영 sprint 의 결정으로 위임 (1차 권장: daily `psql -f` cron + 사내 HR 시스템 export → sync 패턴). |
 | `email` 컬럼 fallback 정책 (env var vs 별도 ADR) | 구현 시점. 1차 env var. |
-| 실시간 sync 요구 (퇴사자 즉시 차단) 시 별도 ADR | **부분 결정 (2026-05-19, sprint `claude/work_260519-g`)**: [docs/planning/keycloak_offboarding_immediacy.md](../planning/keycloak_offboarding_immediacy.md) 신규 design 으로 1차 명문화. Phase 1 = 옵션 C HR ETL → Keycloak Admin API push (hourly ETL + access_token TTL 5분, worst case ≤ 1h). Phase 2 = 옵션 E LDAP/AD federation (≤ 15분). ADR-0021 별도 발행은 Phase 2 진입 시 재평가 — 1차는 ADR-0019 §5.3 carve resolved 만으로 한정. ADR-0019 와 통합 reference. |
+| 실시간 sync 요구 (퇴사자 즉시 차단) 시 별도 ADR | **부분 결정 (2026-05-19, sprint `claude/work_260519-g`)**: [docs/planning/keycloak_offboarding_immediacy.md](../planning/keycloak_offboarding_immediacy.md) 신규 design 으로 1차 명문화. Phase 1 = 옵션 C HR ETL → Keycloak Admin API push (hourly ETL + access_token TTL 5분, worst case ≤ 1h). Phase 2 = 옵션 E LDAP/AD federation (≤ 15분). **별도 ADR 발행은 Phase 2 진입 시 재평가** (ADR-0021 은 Onboarding 으로 2026-05-21 발급됨 — Phase 2 진입 시점에 다음 번호 사용) — 1차는 ADR-0019 §5.3 carve resolved 만으로 한정. ADR-0019 와 통합 reference. |
 | `MockClient` 의 dev / 테스트 영구 유지 vs deprecation | 구현 시점. 1차 = 그대로 유지 (dev / 테스트 격리용). |
 
 ## 7. 변경 이력

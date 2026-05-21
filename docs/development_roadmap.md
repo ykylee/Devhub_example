@@ -6,7 +6,7 @@
 - 범위: 머지된 PR #12 이후 시점부터 다음 단계 작업의 마일스톤·우선순위·의존 관계. 트랙별 *세부* 작업은 각 트랙의 세부 로드맵에서 관리.
 - 대상 독자: 프로젝트 리드, 백엔드/프론트엔드 개발자, 운영 담당자, 후속 작업자
 - 상태: draft
-- 최종 수정일: 2026-05-20
+- 최종 수정일: 2026-05-21 (M7 Onboarding 도메인 1차 closing — Concept/Requirements/Design/ADR/IMPL plan)
 - 관련 문서:
   - 백엔드 세부 로드맵: [`ai-workflow/memory/backend_development_roadmap.md`](../ai-workflow/memory/backend_development_roadmap.md)
   - 프론트엔드 세부 로드맵: [`./frontend_development_roadmap.md`](./frontend_development_roadmap.md)
@@ -153,6 +153,25 @@ TC 인벤토리: **TC-INT-FRONTEND-* 12건** (LIST/CREATE/EDIT/SYNC/RBAC/DELETE/
 
 문서 hub: [`docs/planning/external_system_integration_concept.md`](./planning/external_system_integration_concept.md), [`docs/setup/homelab_agent_token_rotation.md`](./setup/homelab_agent_token_rotation.md), [`docs/setup/prometheus_alertmanager_setup.md`](./setup/prometheus_alertmanager_setup.md), 추적성 [`docs/traceability/report.md §3 External Integration`](./traceability/report.md).
 
+### M7: 사용자 초기 등록 (Onboarding) — Concept/Requirements/Design/ADR closing (2026-05-21)
+
+Keycloak 인증 통과 + DevHub 프로필 미완료 사용자의 self-service 초기 등록 흐름. 컨셉/요구사항/Usecase/설계/API contract/ADR 1차 stage 완료 (2026-05-21 sprint 5건 누적). IMPL carve 4건은 후속 (RM-ONBOARD-01..04, M-v1.1 진입).
+
+- ✅ **A (Concept)**: 컨셉 1차 + skip-and-resume (§5.9, §8 #7 결정) — sprint `claude/keycloak-user-onboarding-concept` (PR #260) + `claude/keycloak-onboarding-concept-2026-05-21` (PR #265).
+- ✅ **A (Requirements)**: REQ-FR-ONBOARD-001..012 + REQ-NFR-ONBOARD-001..008 (`docs/requirements.md §5.7`) — sprint `claude/onboarding-requirements-2026-05-21` (PR #266).
+- ✅ **A (Design)**: UC-ONBOARD-01..11 (`system_usecases.md §2.13`) + ARCH-ONBOARD-01..06 (`architecture.md §9`) + API-83..86 + API-32/33 확장 (`backend_api_contract.md §16`) — sprint `claude/onboarding-arch-2026-05-21` (PR #267).
+- ✅ **A (ADR)**: [ADR-0021 Onboarding self-service unit selection + lazy auto-create supersession](./adr/0021-onboarding-self-service-unit-selection.md) — sprint `claude/onboarding-adr-2026-05-21` (PR #269). ADR-0020 partial supersession (5 위치).
+- ✅ **A (Plan)**: IMPL carve 4건 분할 plan ([`docs/planning/onboarding_impl_plan.md`](./planning/onboarding_impl_plan.md)) + RM-ONBOARD-01..04 발급 — 본 sprint `claude/onboarding-impl-carve-plan-2026-05-21`.
+- ⏳ **B (Backend)**: RM-ONBOARD-01 — migration + `onboardingGate` middleware + 5 handler (API-83/84/85/86 + API-32/33 확장) + lazy_auto_create.go 폐기 + audit event const. M-v1.1, Claude.
+- ⏳ **F (Frontend)**: RM-ONBOARD-02 — `/onboarding` page + OrganizationPicker (typeahead + tree) + skip flag sessionStorage + dismissible banner + `(dashboard)/layout` 3-branch gating + `/account` self-service unit edit. M-v1.1, Gemini.
+- ⏳ **F (Admin UI)**: RM-ONBOARD-03 — `/admin/settings/users` 의 "Confirm Review" 액션 + pending_review filter. M-v1.1, Gemini.
+- ⏳ **T (Tests)**: RM-ONBOARD-04 — UT-onboarding-* (backend) + TC-ONBOARD-* 11건 (E2E mega lifecycle) + 6 test seed. M-v1.1, Claude (UT) + Gemini (E2E).
+
+API 인벤토리: **API-83..86** (spec staged) + **API-32 / API-33** 확장 명시.
+TC 인벤토리: **TC-ONBOARD-* 11건** (planned — Carve D 발급).
+
+문서 hub: [`docs/planning/keycloak_user_onboarding_concept.md`](./planning/keycloak_user_onboarding_concept.md), [`docs/planning/onboarding_impl_plan.md`](./planning/onboarding_impl_plan.md), [ADR-0021](./adr/0021-onboarding-self-service-unit-selection.md), 추적성 [`docs/traceability/report.md §3 Onboarding`](./traceability/report.md).
+
 ### Design 검토 (Phase 1 planning, 결정 후 ADR 승격 예정)
 
 - 📋 **[`docs/planning/single_port_reverse_proxy.md`](./planning/single_port_reverse_proxy.md)** — 외부 단일 포트 reverse proxy (nginx + `/devhub` prefix + backend/Hydra/Kratos sub-path 매핑). sprint `claude/work_260518-u` (PR #162). 결정 후 **ADR-0018** 승격 + Phase 2 staging.
@@ -248,6 +267,7 @@ TC 인벤토리: **TC-INT-FRONTEND-* 12건** (LIST/CREATE/EDIT/SYNC/RBAC/DELETE/
 | 2026-05-15 | M5 DREQ 도메인 1차 — concept (REQ-FR-DREQ + UC-DREQ + ARCH-DREQ + API-59..68) + ADR-0012 (intake auth) + backend (PR #124) + frontend (PR #125) + Promote-Tx + ADR-0013 + Admin-UI (ADR-0014). 외부 8 PR (#133~#140) 으로 docker packaging + 대시보드 + token expires_at + IP mutation. | sprint `claude/work_260515-*` (15 PR) |
 | 2026-05-18 | **M5 DREQ closing** — TC-DREQ-* 13건 정식 발급 + ADR-0017 §6 atomicity + cron revoke + 만료/staleness metric. **M6 External Integration 1차 종합 closing** — provider lifecycle + bindings UI + topology v2 + API-80 DELETE + ADR-0015/0016/0017 신규 + 운영 자산 (Alertmanager + Grafana). codex hotfix #5/#6/#7/#8 cycle. | sprint `claude/work_260518-*` (24 PR 누적, EOD #1 12건 + post-EOD #1 6건 + post-EOD #2 6건) |
 | 2026-05-18 | **Design 검토 2건 staged** — single port reverse proxy (ADR-0018 후보, sprint -u PR #162) + Keycloak SSO federation (ADR-0019 후보, sprint -v PR #163). RM-M4-09 구체화. 결정 후 Phase 2 staging 진입. | post-EOD #2 |
+| 2026-05-21 | **M7 Onboarding 도메인 1차 (Concept + Requirements + Design + ADR + IMPL plan closing)** — concept §5.9 skip-and-resume (PR #265) + REQ-FR-ONBOARD-001..012 / REQ-NFR-ONBOARD-001..008 (PR #266) + UC-ONBOARD-01..11 + ARCH-ONBOARD-01..06 + API-83..86 + API-32/33 확장 (PR #267) + ADR-0021 (PR #269, ADR-0020 partial supersession 5 위치) + codex hotfix PR #270 + IMPL carve plan (본 sprint, RM-ONBOARD-01..04). IMPL carve 4건 (backend / frontend / admin UI / tests) 은 M-v1.1 진입 (별도 sprint). | sprint `claude/onboarding-impl-carve-plan-2026-05-21` |
 
 ---
 
