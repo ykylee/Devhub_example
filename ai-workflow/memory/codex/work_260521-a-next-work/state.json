@@ -2,21 +2,14 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "codex/work_260521-a-next-work",
-  "status": "in_progress",
-  "updated_at": "2026-05-21T00:00:00Z",
-  "head_commit": "WORKTREE DIRTY (memory update pending commit)",
-  "head_summary": "브랜치 memory 초기화 및 세션 상태 갱신",
+  "status": "done",
+  "updated_at": "2026-05-21T02:06:51Z",
+  "head_commit": "1e83c86",
+  "head_summary": "docs(memory): initialize branch workflow memory",
   "current_focus": [
-    "브랜치별 memory 문서 생성/갱신",
-    "memory 변경분만 분리 커밋 후 원격 push"
+    "브랜치별 memory 문서 상태 done 기준 정리"
   ],
-  "next_actions": [
-    "memory 문서 커밋",
-    "origin/codex/work_260521-a-next-work 로 push"
-  ],
-  "risks": [
-    "worktree에 memory 외 변경 파일이 다수 있어 커밋 범위 오염 위험",
-    "원격 브랜치 선행 커밋 존재 시 non-fast-forward 가능성"
-  ],
+  "next_actions": [],
+  "risks": [],
   "handoff_note": "본 브랜치는 ai-workflow/memory/codex/work_260521-a-next-work/ 경로를 source-of-truth 로 사용"
 }
