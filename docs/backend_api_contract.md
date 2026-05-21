@@ -2212,7 +2212,7 @@ Keycloak 인증 통과 + DevHub 프로필 미완료 사용자의 self-service �
   - `display_name`: 필수, 1~100자.
   - `primary_unit_id`: 필수, `organization_units(unit_id)` FK.
   - **role 필드는 받지 않는다** — payload 에 `role` 이 포함되어도 무시 (REQ-FR-ONBOARD-002, REQ-FR-ONBOARD-008). Keycloak claim 매핑 + fallback `developer` 로만 결정.
-- **응답 — 200 OK** (단일 트랜잭션 성공 — INSERT users + onboarding_completed_at + review_status=pending_review + audit):
+- **응답 — 201 Created** (단일 트랜잭션 성공 — INSERT users + onboarding_completed_at + review_status=pending_review + audit; POST /dev-requests / POST /users 패턴과 일관):
 
 ```json
 {
@@ -2372,7 +2372,10 @@ Keycloak 인증 통과 + DevHub 프로필 미완료 사용자의 self-service �
 - **에러 — 409** `review_already_confirmed` (이미 `review_status='reviewed'`).
 - **에러 — 422** `onboarding_not_completed` (사용자가 아직 `onboarding_completed_at IS NULL` — 검토 대상 아님).
 - **Audit**: `account.review_confirmed` emit (ARCH-ONBOARD-06).
-- **Note** — `reviewed_at` 필드는 응답에 노출되나 컬럼 추가 여부는 IMPL carve 에서 결정 (audit_logs 의 `created_at` 으로 추적 가능하므로 컬럼 신규는 선택). `reviewed_by` 도 audit_logs 의 `actor` 필드로 추적 가능.
+- **`reviewed_at` / `reviewed_by` source-of-truth**:
+  - **권장 (default)**: audit_logs join — `account.review_confirmed` event 의 `created_at` (→ `reviewed_at`) + `actor` (→ `reviewed_by`). 추가 schema 없음, audit 가 single source-of-truth.
+  - **대안**: `users` 테이블에 `reviewed_at timestamptz NULLABLE` + `reviewed_by text NULLABLE` 컬럼 신규. read latency 우월하나 schema overhead.
+  - 응답에는 **항상 노출** (위 sample 처럼). 어느 source 든 동일 응답 shape 보장. 최종 결정은 IMPL carve 에서 (default = audit_logs join 권장).
 
 ### 16.8 공통 에러 코드 (Onboarding 신규)
 

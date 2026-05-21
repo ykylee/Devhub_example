@@ -572,14 +572,15 @@ Keycloak 인증 통과 + DevHub 프로필 미완료 사용자의 self-service �
 - 신규 RBAC resource **추가 없음**. 본 도메인의 권한 분기는 route-level 만으로 cover.
 - Route permission table 갱신:
 
-| Endpoint | RBAC 요구 | 비고 |
-| --- | --- | --- |
-| `GET /api/v1/me` | (인증만, 모든 role) | onboarding_required 분기 |
-| `POST /api/v1/me/onboarding` | (인증만, 모든 role — token-only actor 도 호출 가능) | 미완료 사용자가 제출 가능해야 하므로 `onboardingGate` allowlist + RBAC bypass |
-| `PATCH /api/v1/me` | (인증만, 본인) | `pending_review` 재진입 부수 효과 |
-| `GET /api/v1/organizations/search` | (인증만, 모든 role) | 모든 사용자에게 모든 조직 노출 (REQ-FR-ONBOARD-004) |
-| `POST /api/v1/users` | `users:create` (system_admin) | admin 사전 등록 |
-| `POST /api/v1/admin/users/:user_id/review` | `users:edit` (system_admin) | review_status transition |
+| Endpoint | RBAC 요구 | onboardingGate | 비고 |
+| --- | --- | --- | --- |
+| `GET /api/v1/me` | (인증만, 모든 role) | **allowlist** | onboarding_required 분기 |
+| `POST /api/v1/me/onboarding` | (인증만, 모든 role — token-only actor 도 호출 가능) | **allowlist** | 미완료 사용자가 제출 가능해야 하므로 gate bypass |
+| `GET /api/v1/organizations/search` | (인증만, 모든 role) | **allowlist** | 모든 사용자에게 모든 조직 노출 (REQ-FR-ONBOARD-004) |
+| `GET /api/v1/organization/hierarchy` | (인증만, 모든 role, 기존 endpoint) | **allowlist** | 트리 picker 소스 (§9.3 allowlist 정합) |
+| `PATCH /api/v1/me` | (인증만, 본인) | **외 (차단)** | 완료 사용자만 호출 — `pending_review` 재진입 부수 효과. 미완료 사용자는 `POST /me/onboarding` 으로 첫 제출 |
+| `POST /api/v1/users` | `users:create` (system_admin) | **외 (차단)** | admin 사전 등록 — admin 자신은 항상 완료 사용자 |
+| `POST /api/v1/admin/users/:user_id/review` | `users:edit` (system_admin) | **외 (차단)** | review_status transition |
 
 - pending_review 사용자의 "무소속" 처리는 RBAC 레벨이 아닌 **business logic 레벨** — 할당 리소스 조회 시 `user.primary_unit_id` 를 검토 상태에 따라 NULL 로 취급하거나 query filter 적용. 정확한 구현은 IMPL carve 에서.
 

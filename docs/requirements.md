@@ -413,7 +413,7 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
 - **REQ-FR-ONBOARD-003 (MVP):** Onboarding 제출은 단일 트랜잭션으로 (a) `users` row 신규 INSERT (또는 사전 등록된 row UPDATE), (b) `onboarding_completed_at = NOW()` 설정, (c) `review_status = 'pending_review'` 설정, (d) `account.onboarding_completed` audit event 기록 — 4 단계가 모두 이루어져야 한다. 부분 실패 시 모두 롤백한다.
 - **REQ-FR-ONBOARD-004 (MVP):** 소속(unit) 선택 UX 는 검색(typeahead) + 트리(계층 선택기) 하이브리드를 제공한다.
     - 검색: 최소 2글자 입력 시 동작, 최대 20개 결과, 표시 포맷은 조직명만 사용.
-    - 검색 endpoint: `GET /api/v1/organizations/search?q=...&limit=20` 신규 (후속 ARCH phase (`docs/architecture.md` 의 onboarding 섹션) 발급).
+    - 검색 endpoint: `GET /api/v1/organizations/search?q=...&limit=20` 신규 (**API-84**, [§16.4](./backend_api_contract.md) 에서 spec staged).
     - 트리: 기존 `GET /api/v1/organization/hierarchy` 응답 재사용.
     - 권한 가드 없음 — 모든 사용자에게 모든 organization 후보가 노출된다.
 - **REQ-FR-ONBOARD-005 (MVP):** 검토 상태 머신은 `pending_review → reviewed` 로 한정한다.
@@ -432,13 +432,13 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
     - **role 은 사전 등록 payload 에 포함되지 않는다** — onboarding 과 동일하게 Keycloak token claim (`realm_access.roles`) 매핑 또는 시스템 기본값 (`developer`) 으로만 결정 (REQ-FR-ONBOARD-002 정합). 관리자도 사전 등록 시 role 임의 설정 불가.
     - 사전 등록 시 `onboarding_completed_at` 은 설정하지 않는다 (`NULL` 유지).
     - 사전 등록된 사용자도 첫 로그인 시 onboarding 화면에서 정보를 확인/수정한 후 제출해야 완료 처리된다.
-    - 추가 필드 확장 (예: status, joined_at 의 관리자 override) 가능성은 후속 ARCH phase 에서 결정.
+    - 추가 필드 확장 (예: status, joined_at 의 관리자 override) 가능성은 IMPL carve 에서 결정.
 - **REQ-FR-ONBOARD-009 (MVP):** Backend 는 미완료 사용자에 대해 allowlist 외 모든 endpoint 를 `403 Forbidden` + body `{ "code": "onboarding_required", ... }` 로 차단해야 한다.
     - allowlist (backend endpoint 만 — frontend 정적/공통 페이지는 backend 호출 없이 렌더되므로 본 정책과 무관):
         - Onboarding 제출 API (예: `POST /api/v1/me/onboarding`).
         - Organizations search API (예: `GET /api/v1/organizations/search`).
         - `GET /api/v1/me`.
-        - 정적/공통 페이지가 호출하는 최소 backend endpoint (예: 정적 metadata, health check 등 인증 자체와 분리된 endpoint). 최종 allowlist 구성은 후속 ARCH phase 에서 확정.
+        - 정적/공통 페이지가 호출하는 최소 backend endpoint (예: 정적 metadata, health check 등 인증 자체와 분리된 endpoint). 최종 allowlist 구성은 [ARCH §9.3](./architecture.md) 에서 확정 — `GET /api/v1/me` + `POST /api/v1/me/onboarding` + `GET /api/v1/organizations/search` + `GET /api/v1/organization/hierarchy` (트리 picker) + `/health`.
     - 기존 lazy auto-create 폐기 — `authenticateActor` 는 DB row miss 를 정상 상태 (token-only actor) 로 취급한다.
 - **REQ-FR-ONBOARD-010 (MVP):** Frontend 는 `/api/v1/me` 의 `onboarding_required: true` 응답에 대해 **3분기** 로 동작해야 한다.
     - 첫 진입 (session 내 skip 액션 미실행): `/devhub/onboarding` 으로 즉시 redirect.
@@ -471,11 +471,11 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
 - **REQ-NFR-ONBOARD-006 (MVP):** 마이그레이션 — `users` 테이블에 다음 컬럼을 신규 추가한다.
     - `onboarding_completed_at TIMESTAMP NULL` — 완료 시점 마킹 (`NULL` = 미완료).
     - `review_status` (열거형 또는 텍스트 + CHECK 제약, 값: `pending_review`, `reviewed`) — 관리자 검토 단계.
-    - 컬럼 명/타입의 최종 확정은 후속 ARCH phase (`docs/architecture.md` 의 onboarding 섹션)의 ERD 갱신에서 한다.
+    - 컬럼 명/타입은 [ARCH §9.5](./architecture.md) 에서 확정: `onboarding_completed_at timestamptz NULLABLE` + `review_status text NULLABLE` + bi-implication CHECK 제약 (`completed_at NULL ↔ review_status NULL`).
 - **REQ-NFR-ONBOARD-007 (MVP):** Audit 정책.
-    - Onboarding 완료 시점에 `account.onboarding_completed` event 를 audit_logs 에 기록한다 (event 이름의 최종 확정은 후속 ARCH phase (`docs/architecture.md` 의 onboarding 섹션)).
+    - Onboarding 완료 시점에 `account.onboarding_completed` event 를 audit_logs 에 기록한다 ([ARCH §9.6](./architecture.md) 에서 이름 확정).
     - Skip 자체는 audit event 미발생 (state 변경 없음).
-    - 사용자 self-service 소속 변경은 별도 audit event (예: `account.unit_changed`) 로 기록한다. 이벤트 이름 확정은 후속 ARCH phase (`docs/architecture.md` 의 onboarding 섹션).
+    - 사용자 self-service 소속 변경은 `account.unit_changed` event 로 기록한다 ([ARCH §9.6](./architecture.md) 에서 이름 확정). 추가로 관리자 검토 transition 은 `account.review_confirmed` event 로 기록한다.
 - **REQ-NFR-ONBOARD-008 (MVP):** 테스트 데이터 / 시드 세트는 단일 초기화/재적재 스크립트로 관리한다.
     - 계정 네이밍: `test_` prefix 고정.
     - 필수 시드:
