@@ -113,6 +113,14 @@ func (s *memoryOrganizationStore) UpdateUser(_ context.Context, userID string, i
 		user.Status = *input.Status
 	}
 	if input.PrimaryUnitID != nil {
+		// production *store.PostgresStore 의 FK constraint mirror — primary_unit_id
+		// 가 organization_units(unit_id) 에 없으면 ErrNotFound. PATCH /me 의
+		// `unit_not_found` 404 분기 (API-85 §16.5) 검증에 필수.
+		if *input.PrimaryUnitID != "" {
+			if _, ok := s.units[*input.PrimaryUnitID]; !ok {
+				return domain.AppUser{}, fmt.Errorf("unit %s: %w", *input.PrimaryUnitID, store.ErrNotFound)
+			}
+		}
 		user.PrimaryUnitID = *input.PrimaryUnitID
 	}
 	if input.CurrentUnitID != nil {
