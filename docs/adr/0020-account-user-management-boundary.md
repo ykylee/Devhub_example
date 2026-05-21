@@ -1,11 +1,14 @@
 # ADR-0020: 외부 Keycloak 가정 하의 계정/사용자 관리 책임 경계
 
 ## 1. 상태
-- **상태**: Accepted
+- **상태**: Accepted (**partial supersession 2026-05-21** — §3.2 "신규 user 의 unit 초기 배치" row + §4.1 sub-carve B 의 lazy auto-create 실 구현 결정 + §4.2 의 lazy auto-create 보안 영향 + §6.2 carve out 의 동일 항목은 [ADR-0021](./0021-onboarding-self-service-unit-selection.md) 가 supersede. **핵심 결정** (옵션 A — Keycloak account vs DevHub user 책임 경계, `rbac_subject_roles` 제거, service account 권한 축소) 은 **변경 없이 유지**.)
 - **작성일**: 2026-05-20
 - **수정일**: 2026-05-20
 - **결정 근거 sprint**: `claude/work_260520-a` (Phase 1 현황 파악) + `claude/work_260520-b` (Phase 2 명시 결정 6건 확정) + `claude/work_260520-d` (Phase 3 실 구현 진입 + 본 ADR 발급)
-- **관련 문서**: [docs/planning/account_user_management_redesign.md](../planning/account_user_management_redesign.md) (Phase 1 매트릭스 + Phase 2 design + Phase 3 실행 계획), [ADR-0019 Keycloak 단일화](./0019-keycloak-only-idp.md), [ADR-0011 RBAC row-scoping](./0011-rbac-row-scoping.md), [ADR-0008 HRDB production adapter](./0008-hrdb-production-adapter.md), [keycloak_operations.md (§8.5b self-service + §8.5c governance, 후속 sprint 신규)](../setup/keycloak_operations.md), [keycloak_groups_rbac_mapping.md](../planning/keycloak_groups_rbac_mapping.md)
+- **partial superseded by**: [ADR-0021 Onboarding self-service unit selection + lazy auto-create supersession (2026-05-21)](./0021-onboarding-self-service-unit-selection.md) — lazy auto-create 결정 (§3.2 / §4.1 sub-carve B / §4.2 / §6.2) 의 partial supersession. §3.2 의 "user 조직 unit assignment" row 의 책임 주체는 "DevHub admin 단독" → "사용자 self-service onboarding + DevHub admin 검토" 로 확장 (reversal 아닌 확장).
+- **관련 문서**: [docs/planning/account_user_management_redesign.md](../planning/account_user_management_redesign.md) (Phase 1 매트릭스 + Phase 2 design + Phase 3 실행 계획), [ADR-0019 Keycloak 단일화](./0019-keycloak-only-idp.md), [ADR-0021 Onboarding (partial supersedes 본 ADR)](./0021-onboarding-self-service-unit-selection.md), [ADR-0011 RBAC row-scoping](./0011-rbac-row-scoping.md), [ADR-0008 HRDB production adapter](./0008-hrdb-production-adapter.md), [keycloak_operations.md (§8.5b self-service + §8.5c governance, 후속 sprint 신규)](../setup/keycloak_operations.md), [keycloak_groups_rbac_mapping.md](../planning/keycloak_groups_rbac_mapping.md)
+
+> **⚠️ partial supersession 안내 (2026-05-21)**: 본 ADR 의 §3.2 의 "신규 user 의 unit 초기 배치" row + §4.1 sub-carve B 의 "authenticateActor lazy auto-create 실 구현" + §4.2 의 lazy auto-create 보안 영향 + §6.2 carve out 의 동일 항목은 [ADR-0021 §3.3](./0021-onboarding-self-service-unit-selection.md#33-lazy-auto-create-폐기-adr-0020-부분-supersession) 가 supersede 한다. 현재 운영의 lazy auto-create 결정은 **폐기** — onboarding 완료 시점에 user row 가 INSERT 된다. §3.2 의 "user 조직 unit assignment" 책임 주체도 [ADR-0021 §3.1](./0021-onboarding-self-service-unit-selection.md#31-책임-경계-확장--self-service-unit-selection-허용) 의 확장 표로 supersede (사용자 self-service onboarding + admin 검토). 본 ADR 의 **핵심 결정** (옵션 A 책임 경계, `rbac_subject_roles` 제거, service account 권한 축소) 은 변경 없이 유지. 본문 본문은 immutable 보존.
 
 ## 2. 컨텍스트
 
@@ -55,6 +58,8 @@
 
 ### 3.2 책임 경계 결정 (옵션 A 채택)
 
+> **[2026-05-21 partial supersession]**: 본 §3.2 표의 "user 조직 unit assignment" row 의 책임 주체 (DevHub admin 단독) 는 [ADR-0021 §3.1](./0021-onboarding-self-service-unit-selection.md#31-책임-경계-확장--self-service-unit-selection-허용) 가 **확장 (reversal 아님)** — 사용자 self-service onboarding + DevHub admin 검토 (`reviewed` transition) 으로 분기. 본 §3.2 표의 "신규 user 의 unit 초기 배치" row 의 lazy-auto-create-후 정책은 [ADR-0021 §3.3](./0021-onboarding-self-service-unit-selection.md#33-lazy-auto-create-폐기-adr-0020-부분-supersession) 가 **supersede** — lazy auto-create 폐기 + onboarding 제출 시점에 row INSERT. 본 §3.2 표의 다른 row (Keycloak admin 책임 / `users.role` 직접 수정 금지 / 조직 unit CRUD / RBAC policy 편집) 는 변경 없이 유지.
+
 | 운영 동작 | 책임 주체 | 도구 |
 | --- | --- | --- |
 | user 생성 (account.create) | **Keycloak admin** (IdP 팀) | Keycloak admin console **또는** HRDB ETL push (`scripts/hrdb_etl_sync.sh`) |
@@ -79,6 +84,8 @@
 
 ### 4.1 backend code 변경 (Phase 3 sub-carve)
 
+> **[2026-05-21 partial supersession]**: 본 §4.1 표의 **sub-carve B (backend)** 항목의 "authenticateActor lazy auto-create 실 구현" 결정은 [ADR-0021 §3.3](./0021-onboarding-self-service-unit-selection.md#33-lazy-auto-create-폐기-adr-0020-부분-supersession) 가 supersede — lazy 폐기 + token-only actor 흐름 + onboarding 완료 시점 row INSERT 로 전환. sub-carve B 의 다른 변경 (`/api/v1/accounts/*` 4 endpoint 제거 + `KeycloakAdminClient` write 메서드 호출처 제거) 은 변경 없이 유지. 신규 audit event `account.lazy_provisioned` / `user.role_default_assigned` 의 신규 emit 은 본 ADR 시점부터 중단되나 audit_logs 의 기존 row 는 immutable 보존.
+
 | sub-carve | 영역 | sprint |
 | --- | --- | --- |
 | **A** | ADR-0020 발급 + design doc §6 실행 계획 + `rbac_subject_roles` 완전 제거 (결정 D, §5.8 따름) | ✅ `-d` (PR #205 `f2a389a`) |
@@ -93,7 +100,7 @@
 
 - service account 권한 축소 (`manage-users` 제거) → 최소 권한 원칙 정합. service account compromised 시 user lifecycle 조작 불가
 - JWKS stale-while-error expiry case 확장 → Keycloak unreachable 시 uptime 90일 까지 (key rotation 주기). signature 검증 유지로 token forgery 위험 없음 — rotation 직후 backend cache flush SOP 필요 (별도 carve)
-- lazy auto-create → token 검증 성공한 user 만 lazy create (Keycloak user lifecycle 정책이 1차 필터). enumeration 위협 없음
+- ~~lazy auto-create → token 검증 성공한 user 만 lazy create (Keycloak user lifecycle 정책이 1차 필터). enumeration 위협 없음~~ — **[2026-05-21 supersession]** [ADR-0021 §3.3](./0021-onboarding-self-service-unit-selection.md#33-lazy-auto-create-폐기-adr-0020-부분-supersession) 의 lazy 폐기로 본 항목 무효. 현재 운영은 `onboardingGate` middleware 가 미완료 사용자의 도메인 API 접근을 403 차단 — enumeration 방어 더 강화. ADR-0021 §4.3 참조.
 
 ### 4.3 운영 영향
 
@@ -157,11 +164,11 @@ sprint -d 이후 custom role (예: `pmo_director`, `qa_lead` 등 `rbac_policies`
 ## 6. 미해결 / 후속 작업
 
 ### 6.1 후속 ADR 후보
-- (없음 — 본 ADR 이 Phase 2 결정 6건 모두 cover)
+- ~~(없음 — 본 ADR 이 Phase 2 결정 6건 모두 cover)~~ — **[2026-05-21]** [ADR-0021 Onboarding self-service unit selection](./0021-onboarding-self-service-unit-selection.md) 가 발급되어 본 ADR 의 lazy auto-create 결정 (§3.2 / §4.1 / §4.2 / §6.2) 을 partial supersede.
 
 ### 6.2 carve out (Phase 3 sprint 영역)
 - backend `/api/v1/accounts/*` 4 endpoint 제거 (§4.1 sub-carve B)
-- `authenticateActor` lazy auto-create 실 구현 (§4.1 sub-carve B)
+- ~~`authenticateActor` lazy auto-create 실 구현 (§4.1 sub-carve B)~~ — **[2026-05-21 supersession]** [ADR-0021 §3.3](./0021-onboarding-self-service-unit-selection.md#33-lazy-auto-create-폐기-adr-0020-부분-supersession) 가 lazy 폐기 + onboarding 완료 시점 row INSERT 로 supersede.
 - event listener 확장 (§4.1 sub-carve C)
 - JWKS stale-while-error expiry case 확장 (§4.1 sub-carve D)
 - service account 권한 축소 + governance SOP (§4.1 sub-carve E)
@@ -183,3 +190,4 @@ sprint -d 이후 custom role (예: `pmo_director`, `qa_lead` 등 `rbac_policies`
 | 2026-05-20 | **sub-carve D resolved** — JWKS stale-while-error expiry case 확장. 5 commit: (1) cache struct 확장 (`cachedAt time.Time` + `MaxStaleDuration` 필드 + `defaultJWKSMaxStale = 24h`) + `readStaleCachedKeys` helper. (2) `fetchJWKS` 흐름 변경 — `fetchAndCacheJWKS` 별도 함수로 분리 + network fetch 실패 시 stale fallback 분기 + log WARN. (3) `internal/auth/metrics.go` 신규 — `devhub_jwks_stale_while_error_total{result}` CounterVec + `devhub_jwks_stale_age_seconds` Histogram (ExponentialBuckets 1m~4096m). (4) Config `OIDCJWKSMaxStaleDuration` (env `DEVHUB_OIDC_JWKS_MAX_STALE_DURATION`) + main.go wire (parse → verifier.MaxStaleDuration set + log + invalid fallback). (5) 회귀 test 4건 — StaleWhileError_KeycloakUnreachable (Keycloak 500 시 stale 통과) / StaleExpired_Fails401 (MaxStaleDuration 초과 시 401) / FreshCache_NoStaleFallback (cache 안 fresh 시 network 0 회) / StaleFallback_DefaultMaxStale (env 미설정 시 24h default 적용). §4.1 sub-carve 표 D done 마킹. | `claude/work_260520-l-213-jwks-stale-expiry` |
 | 2026-05-20 | **sub-carve C resolved** — Keycloak admin event 처리 시 DevHub `users` 컬럼 자동 sync. 5 commit. (1) `KeycloakAdminClient.GetUserDetails` + `GetUserGroups` 신규. (2) `audit/user_sync.go` 신규 — `SyncUserProfile`/`SyncUserMembership`/`MarkUserDeactivated` + helper (`composeDisplayName`/`pickHighestPriorityRole`/`groupNameToRole`/`ParseIdentityIDFromResourcePath`) + `UserSyncOrgStore`/`UserSyncAdminClient` narrow interface + `SyncUserAction` enum. (3) `keycloak_event_puller.go` 확장 — `KeycloakEventPullerOptions.UserSync UserSyncCallback` 신규 + `classifyAdminEventForSync` helper + `mapAdminEventToAudit` 에 `GROUP_MEMBERSHIP:CREATE/DELETE` 2 row 추가 (10 row 총) + admin event loop 분기 추가 (audit emit + sync callback). (4) `audit/metrics.go` 확장 — 신규 metric 3종 (`devhub_keycloak_user_sync_total{action}` + `_errors_total` + `_lag_seconds` Histogram) + 4 observe helpers + 회귀 test 4건 (GROUP_MEMBERSHIP 매핑 + classifyAdminEventForSync 5 case + InvokesUserSyncCallback + NilUserSync backward compat). (5) `main.go` wire — `UserSync` callback dispatcher (action 별 SyncUserProfile / Membership / MarkUserDeactivated 호출 + metric observe + error log). backward compatible (UserSync nil = sprint -u~-y 동작 동등). §4.1 sub-carve 표 갱신 (C done). | `claude/work_260520-k-212-event-listener-users-sync` |
 | 2026-05-20 | **sub-carve E resolved** — service account 권한 축소 정공법 (옵션 A 전면 호출처 제거). 5 commit. (1) `organization.go` `POST /api/v1/users` `req.Password` 분기 제거 + `createUserRequest.Password` field 폐기 + `audit_logs.details` dead key `kratos_id` 제거. (2) `main.go` `seedLocalAdmin` 함수 + 호출 + `seedOrgStore` interface 완전 제거. `main_test.go` 전체 삭제 (seedLocalAdmin 전용 test 3건 + `idpAdminFake` + `orgStoreFake`). (3) `KeycloakAdminClient.CreateIdentity` / `UpdateIdentityPassword` / `SetIdentityState` / `DeleteIdentity` 4 method 제거 + `keycloakIDFromLocation` dead helper 제거. `IdentityAdmin` interface 의 write method 4건 제거 (`FindIdentityByUserID` 만 view-users role 유지). `MockIdentityAdmin` + `keycloak_admin_client_test.go` 정리. (4) `docs/planning/keycloak_service_account_min_role.md` 신규 (현황 매트릭스 13 row + 옵션 A/B/C 비교 + 옵션 A 채택 + 운영 SOP 5 sub-section) + §4.1 sub-carve E done 마킹. (5) traceability + memory. backend service account 가 view-users + view-events realm role 만 요구 — Keycloak 운영자가 `manage-users` 제거 가능 (사내 운영팀 후속). | `claude/work_260520-n-214-service-account-min-role` |
+| 2026-05-21 | **partial supersession by ADR-0021** — [ADR-0021](./0021-onboarding-self-service-unit-selection.md) 가 본 ADR 의 lazy auto-create 결정 (§3.2 신규 user unit 초기 배치 row + §4.1 sub-carve B 의 lazy auto-create 실 구현 + §4.2 lazy auto-create 보안 영향 + §6.2 carve out 의 동일 항목) 을 supersede. §3.2 의 "user 조직 unit assignment" 책임 주체는 사용자 self-service onboarding + admin 검토로 **확장**. 본 ADR 의 핵심 결정 (옵션 A 책임 경계 / `rbac_subject_roles` 제거 / service account 권한 축소) 은 변경 없이 유지. 메타 헤더 + §3.2/§4.1/§4.2/§6.1/§6.2 4 위치에 inline supersession banner 추가 (메모리 `feedback_adr_supersession_pattern` 패턴). | `claude/onboarding-adr-2026-05-21` |
