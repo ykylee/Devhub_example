@@ -141,6 +141,11 @@ docker push devhub/frontend:${GIT_SHA}
 
 - `docker-compose.deploy.yml`: `build` 없이 `image`만 참조하는 배포용 compose 템플릿
 - `.github/workflows/docker-image-publish.yml`: backend-core/backend-ai/frontend 이미지 빌드+GHCR 푸시
+- `docs/setup/deploy.env.example`: 배포용 필수 env 템플릿
+- `docs/setup/deploy.stage.env.example`: stage 환경 템플릿
+- `docs/setup/deploy.prod.env.example`: production 환경 템플릿
+- `scripts/deploy-preflight.sh`: 배포 전 필수 env/compose 렌더/OIDC reachability 검증
+- `scripts/deploy-up.sh`: preflight + pull + up 일괄 실행
 
 ### 8.1 배포용 compose 실행 예시
 
@@ -167,6 +172,14 @@ docker compose -f docker-compose.deploy.yml pull
 docker compose -f docker-compose.deploy.yml up -d
 ```
 
+또는 저장소 표준 스크립트 사용:
+
+```sh
+cp docs/setup/deploy.env.example ./.env.deploy
+# .env.deploy 값 수정
+ENV_FILE=./.env.deploy ./scripts/deploy-up.sh
+```
+
 로컬 빌드 이미지를 그대로 사용할 때:
 
 ```sh
@@ -179,6 +192,7 @@ docker compose -f docker-compose.deploy.yml up -d
 `DB_URL`도 필수다. 미지정 시 compose가 오류로 중단된다.
 `DEVHUB_OIDC_CLIENT_SECRET`, `DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET`은 운영 배포 필수값이며, 예시 기본값(`dev-token` 류) 사용은 금지한다.
 `DEVHUB_AUTH_DEV_FALLBACK` 기본값은 `0`(비활성)이며, 배포 환경에서 `1`로 켜지지 않도록 유지한다.
+`db-migrate` 서비스가 항상 선행되어 신규 DB 는 1회 초기 마이그레이션, 기존 DB 는 증분 마이그레이션만 수행한다.
 
 ### 8.1.1 변수 스키마 (권장)
 
@@ -187,6 +201,10 @@ docker compose -f docker-compose.deploy.yml up -d
 - DB: `DB_URL`
 
 `localhost`는 fallback일 뿐 표준값이 아니다. 서버를 분리 배치하는 경우에는 위 3축을 환경별로 명시 주입한다.
+
+issuer/JWKS 분리 권장:
+- `DEVHUB_OIDC_ISSUER_URL`: 브라우저/토큰 claim 과 일치하는 public issuer
+- `DEVHUB_OIDC_JWKS_URL`: backend 가 실제로 접근 가능한 internal JWKS URL (필요 시)
 
 ### 8.1.2 DB 모드 선택
 
@@ -208,6 +226,13 @@ docker compose -f docker-compose.deploy.yml up -d
 
 `docker-compose.deploy.yml`은 `nginx`를 포함한다. 외부 진입은 `https://<host>/devhub` 기준으로 통일하고, `frontend`/`backend-core`/`keycloak`/`backend-ai`는 host에 직접 노출하지 않는다.
 `local-db` 프로필에서는 `db-init` 단계가 keycloak schema를 준비한다.
+
+### 8.1.3 DB 마이그레이션 정책 (자동)
+
+- `db-migrate` 서비스가 `migrate ... up`을 실행한 뒤 `backend-core`가 기동된다.
+- 빈 DB(first deploy): 전체 초기 스키마 자동 생성.
+- 기존 DB(redeploy): 미적용 버전만 증분 적용, 기존 데이터 보존.
+- 실패 시: `backend-core`가 시작되지 않으므로 partial rollout을 조기에 차단.
 
 주의:
 
@@ -255,65 +280,43 @@ docker compose -f docker-compose.deploy.yml --profile local-db up -d
 3. Playwright 단건 검증  
    `PLAYWRIGHT_BASE_URL=https://<host>/devhub npm run e2e -- tests/e2e/auth.spec.ts --grep "developer lands on /developer"`
 
-## 11. frontend Dockerfile build args — `NEXT_PUBLIC_*` build-time inline (issue #238 P2-2)
-
-Next.js 의 `NEXT_PUBLIC_*` 환경변수는 **build time** 에 client bundle 에 inline 된다. docker-compose 의 `environment:` 는 runtime env 만 set 하므로 frontend 이미지를 빌드할 때 `--build-arg` 로 전달해야 client 코드에 반영된다.
+## 11. frontend 패키징 정책 — runtime-config 우선 + 최소 build arg
 
 ### 11.1 build args 매트릭스
 
 | build arg | 용도 | 운영 예시 |
 | --- | --- | --- |
-| `NEXT_PUBLIC_BASE_PATH` | Next.js basePath (`next.config.ts:9`) | `devhub` |
-| `NEXT_PUBLIC_OIDC_ISSUER_URL` | client OIDC issuer | `https://devhub.example.com/devhub/auth/keycloak/realms/devhub` |
-| `NEXT_PUBLIC_OIDC_CLIENT_ID` | client id | `devhub-frontend` |
-| `NEXT_PUBLIC_OIDC_REDIRECT_URI` | callback URL | `https://devhub.example.com/devhub/auth/callback` |
-| `NEXT_PUBLIC_OIDC_SCOPE` | OIDC scope | `openid offline_access email profile` |
-| `NEXT_OUTPUT` | standalone server build | `standalone` |
+| `BACKEND_API_URL` | 서버측 rewrite 대상 (`next.config.ts`) | `http://backend-core:8080` |
 
 ### 11.2 build 명령 예시
 
 ```bash
 docker build -f frontend/Dockerfile \
-  --build-arg NEXT_PUBLIC_BASE_PATH=devhub \
-  --build-arg NEXT_PUBLIC_OIDC_ISSUER_URL=https://devhub.example.com/devhub/auth/keycloak/realms/devhub \
-  --build-arg NEXT_PUBLIC_OIDC_CLIENT_ID=devhub-frontend \
-  --build-arg NEXT_PUBLIC_OIDC_REDIRECT_URI=https://devhub.example.com/devhub/auth/callback \
-  --build-arg NEXT_OUTPUT=standalone \
+  --build-arg BACKEND_API_URL=http://backend-core:8080 \
   -t devhub/frontend:${GIT_SHA} frontend
 ```
 
-Dockerfile 내부 (`frontend/Dockerfile`, 운영자 책임 자산이라 git 추적 외) 에서는:
+OIDC 관련 URL(`OIDC_ISSUER_URL`, `OIDC_REDIRECT_URI`, `NEXT_PUBLIC_OIDC_ISSUER_URL` 등)은
+빌드에 고정하지 않고 런타임 env + `/api/runtime-config` 경로로 주입한다.
+
+Dockerfile 핵심 형태:
 
 ```dockerfile
 FROM node:20-alpine AS builder
-ARG NEXT_PUBLIC_BASE_PATH
-ARG NEXT_PUBLIC_OIDC_ISSUER_URL
-ARG NEXT_PUBLIC_OIDC_CLIENT_ID
-ARG NEXT_PUBLIC_OIDC_REDIRECT_URI
-ARG NEXT_PUBLIC_OIDC_SCOPE
-ARG NEXT_OUTPUT=standalone
-
-ENV NEXT_PUBLIC_BASE_PATH=$NEXT_PUBLIC_BASE_PATH
-ENV NEXT_PUBLIC_OIDC_ISSUER_URL=$NEXT_PUBLIC_OIDC_ISSUER_URL
-# ... (나머지 ARG → ENV mapping)
-ENV NEXT_OUTPUT=$NEXT_OUTPUT
-
-WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
+ARG BACKEND_API_URL=http://localhost:8080
+ENV BACKEND_API_URL=$BACKEND_API_URL
+...
 ```
 
 ### 11.3 빌드 ↔ 런타임 환경변수 구분
 
 | 변수 | build-time 인라인 | runtime env |
 | --- | --- | --- |
-| `NEXT_PUBLIC_*` | **YES** — bundle 에 박힘 | (no-op — bundle 이 이미 build 된 값 가짐) |
-| `BACKEND_API_URL` | NO | YES — Next.js standalone server 가 동적 사용 |
+| `BACKEND_API_URL` | YES (Dockerfile ARG/ENV) | YES (컨테이너 env) |
 | `OIDC_ISSUER_URL` / `OIDC_REDIRECT_URI` | NO | YES — runtime-config route 가 동적 응답 |
+| `NEXT_PUBLIC_OIDC_ISSUER_URL` | fallback 용도 | YES — runtime-config 미사용/실패 시 fallback |
 
-운영자가 환경 별로 frontend image 를 별도 빌드 (`https://stage.devhub.example.com` vs `https://devhub.example.com`) 또는 빌드 시점에 placeholder 사용 후 runtime config endpoint (`/api/runtime-config`) 로 동적 override 하는 패턴 (codex PR #245 도입) 채택.
+운영 기본 원칙: frontend 이미지는 환경간 재사용하고, OIDC endpoint 는 런타임 주입으로 분리한다.
 
 ## 12. Keycloak realm 운영 보안 — wildcard 좁히기 SOP (issue #238 P3-1)
 

@@ -26,7 +26,10 @@ ADMIN_USER="${KC_BOOTSTRAP_ADMIN_USERNAME:-admin}"
 ADMIN_PASS="${KC_BOOTSTRAP_ADMIN_PASSWORD:-admin}"
 REALM="${DEVHUB_REALM:-devhub}"
 FRONTEND_ORIGIN="${DEVHUB_FRONTEND_ORIGIN:-}"
-FRONTEND_BASEPATH="${DEVHUB_FRONTEND_BASEPATH:-/devhub}"
+# NOTE:
+# - If DEVHUB_FRONTEND_BASEPATH is unset, default to /devhub.
+# - If explicitly set to empty, honor empty (native root path mode).
+FRONTEND_BASEPATH="${DEVHUB_FRONTEND_BASEPATH-/devhub}"
 
 if [ -z "$FRONTEND_ORIGIN" ]; then
   echo "ERROR: DEVHUB_FRONTEND_ORIGIN 미설정. 단일 포트 컨셉 (ADR-0018) 정합을 위해 redirect_uri origin 을 명시해야 한다." >&2
@@ -43,12 +46,12 @@ case "$FRONTEND_BASEPATH" in
   *) FRONTEND_BASEPATH="/$FRONTEND_BASEPATH" ;;
 esac
 
-# redirect_uris allowlist — 단일 origin 만 허용.
+# redirect_uris allowlist — wildcard 없이 단일 callback URI만 허용.
 if [ -n "$FRONTEND_BASEPATH" ]; then
-  REDIRECT_URIS="[\"${FRONTEND_ORIGIN}${FRONTEND_BASEPATH}/auth/callback\",\"${FRONTEND_ORIGIN}${FRONTEND_BASEPATH}/*\"]"
+  REDIRECT_URIS="[\"${FRONTEND_ORIGIN}${FRONTEND_BASEPATH}/auth/callback\"]"
   POST_LOGOUT_URIS="${FRONTEND_ORIGIN}${FRONTEND_BASEPATH}/##${FRONTEND_ORIGIN}${FRONTEND_BASEPATH}/auth/login"
 else
-  REDIRECT_URIS="[\"${FRONTEND_ORIGIN}/auth/callback\",\"${FRONTEND_ORIGIN}/*\"]"
+  REDIRECT_URIS="[\"${FRONTEND_ORIGIN}/auth/callback\"]"
   POST_LOGOUT_URIS="${FRONTEND_ORIGIN}/##${FRONTEND_ORIGIN}/auth/login"
 fi
 WEB_ORIGINS="[\"${FRONTEND_ORIGIN}\"]"
@@ -119,6 +122,11 @@ if [ -z "$frontend_client_id" ]; then
       | python3 -c 'import json,sys; a=json.load(sys.stdin); print(a[0]["id"] if a else "")'
   )
 fi
+echo "  Upserting client 'devhub-frontend' redirect/web-origin settings..."
+curl -fsS -X PUT "$BASE_URL/admin/realms/$REALM/clients/${frontend_client_id}" \
+  -H "Authorization: Bearer ${admin_token}" \
+  -H "Content-Type: application/json" \
+  -d "{\"id\":\"${frontend_client_id}\",\"clientId\":\"devhub-frontend\",\"enabled\":true,\"publicClient\":true,\"standardFlowEnabled\":true,\"directAccessGrantsEnabled\":false,\"redirectUris\":${REDIRECT_URIS},\"webOrigins\":${WEB_ORIGINS},\"attributes\":{\"pkce.code.challenge.method\":\"S256\",\"post.logout.redirect.uris\":\"${POST_LOGOUT_URIS}\"}}"
 
 echo "Adding audience mapper to 'devhub-frontend'..."
 frontend_aud_mapper_id=$(
@@ -198,6 +206,63 @@ backend_secret=$(
     | python3 -c 'import json,sys; print(json.load(sys.stdin)["value"])'
 )
 
+echo "Configuring client 'devhub-e2e-seeder'..."
+e2e_client_id=$(
+  curl -fsS -H "Authorization: Bearer ${admin_token}" \
+    "$BASE_URL/admin/realms/$REALM/clients?clientId=devhub-e2e-seeder" \
+    | python3 -c 'import json,sys; a=json.load(sys.stdin); print(a[0]["id"] if a else "")'
+)
+if [ -z "$e2e_client_id" ]; then
+  echo "  Creating client 'devhub-e2e-seeder'..."
+  curl -fsS -X POST "$BASE_URL/admin/realms/$REALM/clients" \
+    -H "Authorization: Bearer ${admin_token}" \
+    -H "Content-Type: application/json" \
+    -d '{"clientId":"devhub-e2e-seeder","enabled":true,"publicClient":false,"serviceAccountsEnabled":true,"standardFlowEnabled":false,"directAccessGrantsEnabled":false}'
+  e2e_client_id=$(
+    curl -fsS -H "Authorization: Bearer ${admin_token}" \
+      "$BASE_URL/admin/realms/$REALM/clients?clientId=devhub-e2e-seeder" \
+      | python3 -c 'import json,sys; a=json.load(sys.stdin); print(a[0]["id"] if a else "")'
+  )
+fi
+
+echo "Granting e2e seed permissions to 'devhub-e2e-seeder' service account..."
+e2e_service_account_user_id=$(
+  curl -fsS -H "Authorization: Bearer ${admin_token}" \
+    "$BASE_URL/admin/realms/$REALM/clients/${e2e_client_id}/service-account-user" \
+    | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])'
+)
+e2e_role_payload=$(
+  {
+    printf '['
+    first=1
+    # e2e global setup 는 user create/reset-password/role mapping 을 수행한다.
+    for role_name in manage-users view-users query-users view-realm; do
+      role_json=$(
+        curl -fsS -H "Authorization: Bearer ${admin_token}" \
+          "$BASE_URL/admin/realms/$REALM/clients/${realm_mgmt_client_id}/roles/${role_name}"
+      )
+      if [ "$first" -eq 1 ]; then
+        printf '%s' "$role_json"
+        first=0
+      else
+        printf ',%s' "$role_json"
+      fi
+    done
+    printf ']'
+  }
+)
+curl -fsS -X POST \
+  "$BASE_URL/admin/realms/$REALM/users/${e2e_service_account_user_id}/role-mappings/clients/${realm_mgmt_client_id}" \
+  -H "Authorization: Bearer ${admin_token}" \
+  -H "Content-Type: application/json" \
+  -d "$e2e_role_payload" >/dev/null
+
+e2e_secret=$(
+  curl -fsS -H "Authorization: Bearer ${admin_token}" \
+    "$BASE_URL/admin/realms/$REALM/clients/${e2e_client_id}/client-secret" \
+    | python3 -c 'import json,sys; print(json.load(sys.stdin)["value"])'
+)
+
 echo "Creating default user 'test'..."
 user_exists=$(
   curl -fsS -H "Authorization: Bearer ${admin_token}" \
@@ -242,6 +307,9 @@ fi
 
 echo "Configuration complete."
 echo "--------------------------------------------------"
-echo "DEVHUB_OIDC_CLIENT_SECRET=$backend_secret"
+# DEVHUB_OIDC_CLIENT_SECRET 는 배포 정책에 따라 별도 관리한다.
+# (devhub-frontend client 가 publicClient=true 인 기본 구성에서는 필수 아님)
 echo "DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET=$backend_secret"
+echo "DEVHUB_E2E_KEYCLOAK_ADMIN_CLIENT_ID=devhub-e2e-seeder"
+echo "DEVHUB_E2E_KEYCLOAK_ADMIN_CLIENT_SECRET=$e2e_secret"
 echo "--------------------------------------------------"

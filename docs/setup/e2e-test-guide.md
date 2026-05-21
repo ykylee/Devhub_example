@@ -50,7 +50,7 @@ Playwright `globalSetup` (`frontend/tests/e2e/global-setup.ts`) 이 매 `npm run
 | --- | --- | --- |
 | `DEVHUB_KEYCLOAK_ADMIN_URL` | Keycloak admin base URL (seed API 호출) | `http://localhost:8180/devhub/auth/keycloak` |
 | `DEVHUB_KEYCLOAK_ADMIN_REALM` | realm 명 | `devhub` |
-| `DEVHUB_KEYCLOAK_ADMIN_CLIENT_ID` | service account client id | `devhub-backend` |
+| `DEVHUB_KEYCLOAK_ADMIN_CLIENT_ID` | e2e seed 전용 service account client id | `devhub-e2e-seeder` |
 | `DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET` | service account client secret | (필수) |
 | `DSN` | DevHub users 행을 INSERT 할 PostgreSQL DSN. `idp-apply-schemas` 헬퍼가 사용 | (필수) |
 | `DEVHUB_E2E_SKIP_SEED` | `1` 이면 시드 단계를 건너뜀 (CI matrix 가 별도 stage 에서 시드할 때) | (미설정) |
@@ -71,6 +71,10 @@ npm run e2e
 2. backend-core 의 `cmd/idp-apply-schemas -sql infra/idp/sql/002_seed_e2e_users.sql` 호출 (ON CONFLICT DO NOTHING).
 
 두 번째 실행부터는 DB 측은 no-op, Keycloak 측은 동일 값 재적용이라 사실상 no-op.
+
+`scripts/setup-keycloak.sh` 실행 시 아래 출력이 함께 제공된다:
+- `DEVHUB_E2E_KEYCLOAK_ADMIN_CLIENT_ID=devhub-e2e-seeder`
+- `DEVHUB_E2E_KEYCLOAK_ADMIN_CLIENT_SECRET=<secret>`
 
 ### 2.1 수동 시드 (fallback) — Keycloak identity (3건)
 

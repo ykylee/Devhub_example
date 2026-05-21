@@ -12,6 +12,11 @@ function trimTrailingSlash(value: string): string {
   return value.replace(/\/+$/, "");
 }
 
+function normalizeBasePath(raw: string | undefined): string {
+  if (!raw || raw.trim() === "") return "";
+  return `/${raw.replace(/^\//, "").replace(/\/$/, "")}`;
+}
+
 const DEV_FALLBACK_OIDC_ISSUER_URL =
   "http://localhost:8180/devhub/auth/keycloak/realms/devhub";
 
@@ -23,6 +28,9 @@ export async function GET(request: NextRequest) {
   const origin = request.nextUrl.origin;
   const runtimeEnv = process.env;
   const isProduction = runtimeEnv.NODE_ENV === "production";
+  const basePath = normalizeBasePath(runtimeEnv["NEXT_PUBLIC_BASE_PATH"]);
+  const publicBaseURL = runtimeEnv["DEVHUB_PUBLIC_BASE_URL"]?.trim() ?? "";
+  const redirectPath = `${basePath}/auth/callback`;
 
   const issuerEnv =
     runtimeEnv["OIDC_ISSUER_URL"] ??
@@ -59,10 +67,12 @@ export async function GET(request: NextRequest) {
     ? authURLEnv
     : `${trimTrailingSlash(oidcIssuerURL)}${OIDC_AUTH_PATH_SUFFIX}`;
 
+  const originForRedirect =
+    publicBaseURL !== "" ? trimTrailingSlash(publicBaseURL) : trimTrailingSlash(origin);
   const oidcRedirectURI =
     runtimeEnv["OIDC_REDIRECT_URI"] ??
     runtimeEnv["NEXT_PUBLIC_OIDC_REDIRECT_URI"] ??
-    `${trimTrailingSlash(origin)}/auth/callback`;
+    `${originForRedirect}${redirectPath}`;
 
   const payload: RuntimeConfigResponse = {
     oidc_auth_url: oidcAuthURL,

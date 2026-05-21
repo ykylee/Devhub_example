@@ -1,0 +1,19 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "codex/work_260521-a-next-work",
+  "status": "in_progress",
+  "updated_at": "2026-05-21T04:01:00Z",
+  "head_commit": "1e83c86",
+  "head_summary": "docs(memory): initialize branch workflow memory",
+  "current_focus": [
+    "public base URL 기반 redirect 정합 리팩토링 및 PR 준비"
+  ],
+  "next_actions": [
+    "커밋/푸시 및 PR 생성"
+  ],
+  "risks": [
+    "실환경 env 미반영 시 redirect mismatch 재발 가능"
+  ],
+  "handoff_note": "DEVHUB_PUBLIC_BASE_URL + NEXT_PUBLIC_BASE_PATH 조합으로 redirect URI를 일관 생성"
+}
