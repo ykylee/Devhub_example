@@ -4,17 +4,18 @@
   "branch": "codex/work_260521-c-db-docker-option",
   "status": "done",
   "updated_at": "2026-05-21T04:00:00Z",
-  "head_commit": "ef244a0",
-  "head_summary": "docs(memory): finalize db docker option session state",
+  "head_commit": "b558c53",
+  "head_summary": "fix(deploy): pin explicit dockerfile paths",
   "current_focus": [
-    "deploy-from-env.sh 에 DB_MODE=docker 옵션 추가",
-    "local-db profile 렌더/배포 정합 검증"
+    "deploy-from-env.sh 의 docker build 경로를 Dockerfile 명시 방식으로 고정",
+    "DB_MODE=docker 옵션과 local-db profile 렌더/배포 정합 유지"
   ],
   "next_actions": [
-    "커밋/푸시 및 PR 생성"
+    "브랜치 푸시 및 PR #282 업데이트 확인"
   ],
   "risks": [
-    "compose config 는 inactive service 변수도 검증하므로 keycloak 기본값 유지 필요"
+    "compose config 는 inactive service 변수도 검증하므로 keycloak 기본값 유지 필요",
+    "외부에서 실행 시 docker build 기본 Dockerfile 탐색이 꼬일 수 있어 -f 고정 필요"
   ],
-  "handoff_note": "DB_MODE=docker 시 db/db-init 를 local-db profile로 함께 다루는 deploy wrapper"
+  "handoff_note": "DB_MODE=docker 시 db/db-init 를 local-db profile로 함께 다루고, 빌드는 각 서비스 Dockerfile 을 -f 로 명시한다"
 }
