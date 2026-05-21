@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-05-21 sprint -s UI polish merge & Next Action — PR #248 (P0-2 UI 디자인 polish 1차) 가 성공적으로 E2E 검증을 100% 통과하여 main 브랜치에 최종 머지 완료 및 원격 origin/main 에 push 되었습니다. 이에 따라 issue #210이 closed 되었습니다. **v1.0 release gate (D-26): 잔여 1건** (#214 P1-3 Keycloak group staging-prod [사내 운영자 1회]). ADR-0020 sub-carve 진척 7/8 done (A/B-backend/B-frontend/C/D/E/UI-Polish + #247 P1-bug).",
-  "updated_at": "2026-05-21T00:12:00Z",
-  "head_commit": "05af1c7",
-  "head_summary": "Merge branch 'gemini/work_260520-b-210-ui-polish' into main",
+  "status": "2026-05-21 Onboarding 도메인 phase 1~4 closing + Carve A backend + 학습회 자료 (단일 일자 12 머지 PR). Onboarding PR 8건 (#265 concept §5.9 → #266 REQ §5.7 → #267 ARCH §9+API §16 → #269 ADR-0021 → #270 codex hotfix #1 → #271 IMPL carve plan + RM-ONBOARD-01..04 → #276 codex hotfix #2 → #278 ⚡ Carve A backend impl) + codex deploy refactor (#277) + 학습회 자료 (#280 + #281, slideshow + SVG 다이어그램). **v1.0 release gate (D-25): 잔여 1건** (#214 P1-3 Keycloak group staging-prod [사내 운영자 1회]). M-v1.1 Onboarding Carve 진척 1/4 done (Carve A backend ✅, B/C/D 잔여 — issue #273/#274/#275).",
+  "updated_at": "2026-05-21T05:00:00Z",
+  "head_commit": "73f3b30",
+  "head_summary": "docs(learning-session): slideshow + SVG 다이어그램 (사용자 피드백) (sprint claude/learning-session-slideshow-2026-05-21) (#281)",
   "milestones": {
     "M0": {
       "status": "done",

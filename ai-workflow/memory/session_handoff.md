@@ -1,12 +1,46 @@
-# Session Handoff — main (2026-05-21 sprint -s UI polish merge & Next Action)
+# Session Handoff — main (2026-05-21 Onboarding 도메인 종합 + 학습회 자료)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
-- 범위: PR #248 (P0-2 UI 디자인 polish 1차) 최종 머지 완료 및 origin/main push 완료. **v1.0 release gate (D-26) 잔여 1건** (#214 P1-3 Keycloak group staging-prod [사내 운영자 1회 작업]).
+- 범위: 2026-05-21 단일 일자 12 머지 PR — Onboarding 도메인 phase 1~4 closing (#265~#271 + #276) + Carve A backend (#278) + codex deploy refactor (#277) + 학습회 자료 (#280 + #281). **v1.0 release gate (D-25) 잔여 1건** (#214 P1-3 Keycloak group staging-prod [사내 운영자 1회 작업]).
 - 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
-- 상태: M1/M2/M3 done. **Keycloak 단일 IdP 정합 완전 정착** (ADR-0019). **ADR-0019 §5.3 design 완결** + **§5.3 (9) audit event listener Phase 2 풀스택 종결**. **ADR-0020 sub-carve 진척 7/8 done**: A (sprint -d PR #205) + B-backend (sprint -i PR #239) + B-frontend (gemini PR #246) + C (sprint -k PR #241) + D (sprint -l PR #242) + E (sprint -n PR #244) + UI-Polish (gemini PR #248) + #247 P1-bug (gemini PR #253). 잔여 carve: F /login 정리 (P3) + SPI provider JAR (사내). **외부 Keycloak 시나리오 채택 (2026-05-20)** — HR ↔ Keycloak sync 책임이 외부 IdP 팀으로 이관. issue #215 cancelled. DevHub off-boarding sync 는 sub-carve C event listener 가 정공법. **v1.0 release gate (D-26): 잔여 1건** (#214 P1-3 Keycloak group staging-prod). **오늘 머지된 PR 총 13건** (#243~#249 + #251~#257).
-- 최종 수정일: 2026-05-21 (sprint gemini/work_260520-b-210-ui-polish merge)
-- 관련 문서: [v1.0 릴리즈 로드맵](../../docs/planning/release_v1_roadmap.md), [워커 분업](../../docs/governance/worker_division.md), [상태 스냅샷](./state.json), [ADR-0020](../../docs/adr/0020-account-user-management-boundary.md), [keycloak_operations.md](../../docs/setup/keycloak_operations.md), [single_port_deployment.md](../../docs/setup/single_port_deployment.md), [keycloak_service_account_min_role.md](../../docs/planning/keycloak_service_account_min_role.md), [keycloak_offboarding_immediacy.md (Phase 1 cron deprecated)](../../docs/planning/keycloak_offboarding_immediacy.md).
-- 브랜치: `main` (HEAD `3fdcf33` — PR #257 sprint -q 머지). 본 sprint -r HEAD TBD.
+- 상태: M1/M2/M3/M5/M6 done + **M7 Onboarding closing**. ADR-0019 + ADR-0020 + **ADR-0021 신규 발급** (Onboarding self-service + ADR-0020 partial supersession 5 위치). **Onboarding Carve 진척 1/4 done**: Carve A backend (PR #278) ✅. 잔여 carve: B frontend (#273) + C admin UI (#274) + D tests (#275) M-v1.1. Feature flag `DEVHUB_ONBOARDING_GATE_ENABLED` default OFF — main 동작 변경 없음, Carve D acceptance + 1주 staging monitoring 후 별도 hotfix 로 default ON flip. **외부 Keycloak 시나리오** (2026-05-20) + **단일 포트 deploy 정합** (PR #277, `DEVHUB_PUBLIC_BASE_URL`).
+- 최종 수정일: 2026-05-21 (sprint claude/learning-session-slideshow-2026-05-21 머지)
+- 관련 문서: [v1.0 릴리즈 로드맵](../../docs/planning/release_v1_roadmap.md), [Onboarding IMPL plan](../../docs/planning/onboarding_impl_plan.md), [ADR-0021](../../docs/adr/0021-onboarding-self-service-unit-selection.md), [학습회 자료 HTML](../../docs/learning-session/2026-05-21/index.html), [traceability/report](../../docs/traceability/report.md).
+- 브랜치: `main` (HEAD `73f3b30` — PR #281 학습회 slideshow 머지 후).
+
+## 2026-05-21 단일 일자 머지 PR 12건
+
+| PR | sprint / 도메인 | sha | 핵심 |
+| --- | --- | --- | --- |
+| #265 | onboarding-concept-2026-05-21 | `e9b7543` | concept §5.9 skip-and-resume + §8 #7 결정 |
+| #266 | onboarding-requirements-2026-05-21 | `4d882d5` | REQ §5.7 (REQ-FR/NFR-ONBOARD-* 20개) |
+| #267 | onboarding-arch-2026-05-21 | `105b835` | UC-ONBOARD + ARCH §9 + API §16 (API-83..86) |
+| #269 | onboarding-adr-2026-05-21 | `a2e751a` | ADR-0021 + ADR-0020 partial supersession 5 위치 |
+| #270 | onboarding-codex-hotfix-2026-05-21 | `175bf9a` | codex P1 (§16.3 INSERT/UPDATE) + P2 (§6.1 scope) |
+| #271 | onboarding-impl-carve-plan-2026-05-21 | `759f101` | IMPL carve plan + RM-ONBOARD-01..04 + reservation fix 14 위치 |
+| #276 | onboarding-codex-hotfix2-2026-05-21 | `703b0f3` | codex P2 ADR-0021 본문 ↔ ADR-0020 cross-doc sync |
+| **#278** | issue-272-onboarding-backend | `4a77d08` | **Carve A backend** ⚡ — migration 000033 + 5 handler + UT 13 + feature flag |
+| #277 | codex/work_260521-a-next-work + claude follow-up | `d730fc6` | Codex deploy refactor (DEVHUB_PUBLIC_BASE_URL + db-migrate + preflight) + claude P2 보완 |
+| #280 | learning-session-materials-2026-05-21 | `9fc12cd` | 학습회 자료 5 step + HTML + Chart.js 4.4.0 로컬 |
+| **#281** | learning-session-slideshow-2026-05-21 | `73f3b30` | 학습회 자료 slideshow + SVG 다이어그램 (사용자 피드백) |
+
+## 다음 세션 directive (우선순위)
+
+1. **#214 P1-3 Keycloak group staging-prod 적용** (사내 운영자 1회 작업) — v1.0 release gate (D-25, 2026-06-15) 의 마지막 차단 carve.
+2. **Onboarding Carve B/C/D 진입** (Gemini 영역, M-v1.1):
+   - Carve B (#273) — `/onboarding` page + OrganizationPicker (typeahead + tree) + sessionStorage skip flag + dismissible banner + `(dashboard)/layout` 3-branch gating + `/account` self-service unit edit.
+   - Carve C (#274) — `/admin/settings/users` 의 Confirm Review 액션 + pending_review filter.
+   - Carve D (#275) — UT mega lifecycle + TC-ONBOARD-* 11 E2E + 6 test seed.
+3. **Feature flag default ON flip** — Carve D acceptance + 1주 staging monitoring 후 별도 hotfix PR.
+4. **lazy_auto_create.go deletion** — Carve D + default ON flip 후 별도 hotfix PR (M-v1.1 후반).
+
+## 학습 5건 (memory 저장)
+
+1. `feedback_stacked_pr_base_merge_autoclose.md` — stacked PR + base merge auto-close 패턴 (PR #268 → #269 recreate).
+2. `feedback_adr_supersession_cross_doc_sync.md` — partial supersession 시 양쪽 ADR + traceability §3/§4 동기 검증 (ADR-0021 3-round case).
+3. Codex review cycle 2-round (PR #270 hotfix → PR #276 새 P2 유발).
+4. Feature flag default-OFF 안전망 (lazy_auto_create flag conditional).
+5. npm pack 으로 vendor 추출 (CDN 차단 환경 대응).
 
 ## 2026-05-20 sprint -r (본 PR) — housekeeping #9
 
