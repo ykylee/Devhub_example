@@ -148,6 +148,16 @@ type RouterConfig struct {
 	RealtimeHub                *RealtimeHub
 	// AuthDevFallback toggles dev-only authentication fallbacks: empty Authorization passes through authenticateActor and requireMinRole. Actor identity always resolves to "system" without a verifier. Default false: production-safe.
 	AuthDevFallback bool
+	// OnboardingGateEnabled — RM-ONBOARD-01 (ADR-0021 §3.3, ARCH-ONBOARD-03).
+	// Feature flag (env `DEVHUB_ONBOARDING_GATE_ENABLED`) default **false** —
+	// Carve A 단독 머지 후 main 안정성을 위해 disable.
+	// - false: 기존 동작 (lazy auto-create 유지, ADR-0020 sub-carve B 정합).
+	//   authenticateActor 가 GetUser miss 시 lazyAutoCreateUser 호출, 모든
+	//   endpoint 일반 접근.
+	// - true: 신규 onboarding 흐름 (ADR-0021 §3.3 정합). authenticateActor 가
+	//   DB miss 를 token-only actor 정상 상태로 취급 + onboardingGate
+	//   middleware 가 미완료 사용자의 allowlist 외 endpoint 호출 시 403.
+	OnboardingGateEnabled bool
 }
 
 func NewRouter(cfg RouterConfig) *gin.Engine {
@@ -190,8 +200,17 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1 := router.Group("/api/v1")
 	v1.Use(handler.requireRequestID)
 	v1.Use(handler.authenticateActor)
+	// RM-ONBOARD-01 (ADR-0021 §3.3) — onboardingGate middleware.
+	// Feature flag default OFF (no-op) — Carve A 단독 머지 후 main 안정성.
+	// Flag ON 시 미완료 사용자의 allowlist 외 endpoint 호출 시 403.
+	v1.Use(handler.onboardingGate)
 	v1.Use(handler.enforceRoutePermission)
 	v1.GET("/me", handler.getMe)
+	// RM-ONBOARD-01 — API-83/84/85/86 onboarding endpoints.
+	v1.PATCH("/me", handler.patchMe)
+	v1.POST("/me/onboarding", handler.submitOnboarding)
+	v1.GET("/organizations/search", handler.searchOrganizations)
+	v1.POST("/admin/users/:user_id/review", handler.confirmUserReview)
 	v1.GET("/dashboard/metrics", handler.dashboardMetrics)
 	v1.GET("/events", handler.listWebhookEvents)
 	v1.GET("/infra/edges", handler.infraEdges)

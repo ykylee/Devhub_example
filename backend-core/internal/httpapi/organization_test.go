@@ -124,6 +124,9 @@ func (s *memoryOrganizationStore) UpdateUser(_ context.Context, userID string, i
 	if input.JoinedAt != nil {
 		user.JoinedAt = *input.JoinedAt
 	}
+	if input.ReviewStatus != nil {
+		user.ReviewStatus = *input.ReviewStatus
+	}
 	user.UpdatedAt = time.Date(2026, 5, 7, 13, 0, 0, 0, time.UTC)
 	s.users[userID] = user
 	return user, nil
@@ -305,6 +308,92 @@ func (s *memoryOrganizationStore) ReplaceUnitMembers(_ context.Context, unitID s
 		s.memberships[unitID] = current
 	}
 	return nil
+}
+
+// RM-ONBOARD-01 (ADR-0021 §3.3, API-83). Onboarding 제출 — row INSERT 또는
+// UPDATE 단일 트랜잭션 (memory store 에서는 단순 map mutation).
+func (s *memoryOrganizationStore) SubmitOnboarding(_ context.Context, input domain.OnboardingSubmitInput) (domain.AppUser, error) {
+	if _, ok := s.units[input.PrimaryUnitID]; !ok {
+		return domain.AppUser{}, fmt.Errorf("unit %s: %w", input.PrimaryUnitID, store.ErrNotFound)
+	}
+	now := time.Now().UTC()
+	role := input.FallbackRole
+	if role == "" {
+		role = domain.AppRoleDeveloper
+	}
+	if existing, ok := s.users[input.UserID]; ok {
+		if existing.OnboardingCompletedAt != nil {
+			return domain.AppUser{}, fmt.Errorf("user %s already completed onboarding: %w", input.UserID, store.ErrConflict)
+		}
+		existing.DisplayName = input.DisplayName
+		if input.Email != "" {
+			existing.Email = input.Email
+		}
+		existing.PrimaryUnitID = input.PrimaryUnitID
+		existing.CurrentUnitID = input.PrimaryUnitID
+		if input.IdPSubject != "" {
+			existing.IdPSubject = input.IdPSubject
+		}
+		completedAt := now
+		existing.OnboardingCompletedAt = &completedAt
+		existing.ReviewStatus = domain.ReviewStatusPendingReview
+		existing.UpdatedAt = now
+		s.users[input.UserID] = existing
+		return existing, nil
+	}
+	completedAt := now
+	user := domain.AppUser{
+		ID:                    int64(len(s.users) + 1),
+		UserID:                input.UserID,
+		Email:                 input.Email,
+		DisplayName:           input.DisplayName,
+		Role:                  role,
+		Status:                domain.UserStatusActive,
+		Type:                  domain.UserTypeHuman,
+		IdPSubject:            input.IdPSubject,
+		PrimaryUnitID:         input.PrimaryUnitID,
+		CurrentUnitID:         input.PrimaryUnitID,
+		JoinedAt:              now,
+		OnboardingCompletedAt: &completedAt,
+		ReviewStatus:          domain.ReviewStatusPendingReview,
+		CreatedAt:             now,
+		UpdatedAt:             now,
+	}
+	s.users[input.UserID] = user
+	return user, nil
+}
+
+// RM-ONBOARD-01 (API-86). admin 의 review confirm transition.
+func (s *memoryOrganizationStore) ConfirmUserReview(_ context.Context, userID string) (domain.AppUser, error) {
+	existing, ok := s.users[userID]
+	if !ok {
+		return domain.AppUser{}, fmt.Errorf("user %s: %w", userID, store.ErrNotFound)
+	}
+	if existing.OnboardingCompletedAt == nil || existing.ReviewStatus != domain.ReviewStatusPendingReview {
+		return domain.AppUser{}, fmt.Errorf("user %s review confirm: %w", userID, store.ErrNotFound)
+	}
+	existing.ReviewStatus = domain.ReviewStatusReviewed
+	existing.UpdatedAt = time.Now().UTC()
+	s.users[userID] = existing
+	return existing, nil
+}
+
+// RM-ONBOARD-01 (API-84). typeahead 검색 — label substring (case-insensitive).
+func (s *memoryOrganizationStore) SearchOrgUnits(_ context.Context, q string, limit int) ([]domain.OrgUnit, error) {
+	if limit <= 0 || limit > 20 {
+		limit = 20
+	}
+	needle := strings.ToLower(q)
+	results := make([]domain.OrgUnit, 0, limit)
+	for _, u := range s.units {
+		if strings.Contains(strings.ToLower(u.Label), needle) {
+			results = append(results, u)
+			if len(results) >= limit {
+				break
+			}
+		}
+	}
+	return results, nil
 }
 
 // helper to fire a request through a fresh router.

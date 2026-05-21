@@ -350,9 +350,24 @@ type AppUser struct {
 	IsSeconded    bool
 	JoinedAt      time.Time
 	Appointments  []UnitAppointment
+	// OnboardingCompletedAt — RM-ONBOARD-01 (ADR-0021 §3.3). 사용자 onboarding
+	// 제출 시 set (POST /api/v1/me/onboarding). nil = 미완료 (limited mode 또는
+	// admin pre-seed 직후 미완료 상태). bi-implication CHECK 제약 — ReviewStatus
+	// 와 동시 NULL 또는 동시 NOT NULL.
+	OnboardingCompletedAt *time.Time
+	// ReviewStatus — RM-ONBOARD-01. "pending_review" (제출 직후) 또는 "reviewed"
+	// (system_admin transition 후). 빈 문자열 = NULL = onboarding 미제출.
+	// `pending_review` 사용자는 시스템에서 무소속 취급 (ARCH-ONBOARD-02).
+	ReviewStatus  string
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 }
+
+// ReviewStatus 값 enum (ADR-0021 §3.2 / ARCH-ONBOARD-02).
+const (
+	ReviewStatusPendingReview = "pending_review"
+	ReviewStatusReviewed      = "reviewed"
+)
 
 type OrgUnit struct {
 	ID           int64
@@ -415,6 +430,28 @@ type UpdateUserInput struct {
 	CurrentUnitID *string
 	IsSeconded    *bool
 	JoinedAt      *time.Time
+	// ReviewStatus — RM-ONBOARD-01. PATCH /api/v1/me 의 primary_unit_id
+	// 변경 시 store layer 가 자동으로 ReviewStatus=pending_review 로 reset
+	// (ADR-0021 §3.2 / UC-ONBOARD-07). admin 의 review confirm transition 은
+	// 별도 SubmitOnboarding/ConfirmUserReview method 사용.
+	ReviewStatus *string
+}
+
+// OnboardingSubmitInput — RM-ONBOARD-01 (API-83). POST /api/v1/me/onboarding
+// 제출 시 SubmitOnboarding(ctx, login, input) 호출. store 가 단일 트랜잭션으로
+// (a) row INSERT 또는 UPDATE (admin pre-seeded 사용자 정합), (b) display_name +
+// primary_unit_id set, (c) onboarding_completed_at = NOW(), (d) review_status =
+// 'pending_review' 처리. role 은 fallback (Keycloak claim 또는 default
+// `developer`) 이 caller 책임.
+type OnboardingSubmitInput struct {
+	UserID        string
+	Email         string
+	DisplayName   string
+	PrimaryUnitID string
+	IdPSubject    string
+	// FallbackRole — token claim 매핑 결과 또는 default `developer`.
+	// onboarding payload 는 role 을 받지 않음 (REQ-FR-ONBOARD-002 / §3.1).
+	FallbackRole AppRole
 }
 
 type CreateOrgUnitInput struct {
