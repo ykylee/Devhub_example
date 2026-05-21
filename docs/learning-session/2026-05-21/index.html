@@ -3,12 +3,48 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DevHub Example — 2026-05-21 학습회 자료</title>
+  <title>DevHub Example — 2026-05-21 학습회 자료 (Slideshow)</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 
-<header class="cover">
+<!-- ────────── slideshow controls ─────────── -->
+<button class="slide-menu-toggle">☰ 목차</button>
+<nav class="slide-menu">
+  <a href="#cover"><span class="idx">1</span>표지</a>
+  <a href="#overview"><span class="idx">2</span>프로젝트 개요</a>
+  <a href="#stakeholders"><span class="idx">3</span>이해관계자</a>
+  <a href="#architecture"><span class="idx">4</span>시스템 아키텍처</a>
+  <a href="#policies"><span class="idx">5</span>운영 정책</a>
+  <a href="#domains"><span class="idx">6</span>도메인 인벤토리</a>
+  <a href="#milestones"><span class="idx">7</span>마일스톤 timeline</a>
+  <a href="#release"><span class="idx">8</span>릴리즈 로드맵</a>
+  <a href="#adr"><span class="idx">9</span>ADR 인덱스</a>
+  <a href="#traceability"><span class="idx">10</span>추적성 chain</a>
+  <a href="#chain-heatmap"><span class="idx">11</span>chain 채움률</a>
+  <a href="#implementation"><span class="idx">12</span>구현 현황</a>
+  <a href="#onboarding-carve"><span class="idx">13</span>Onboarding carve</a>
+  <a href="#ci"><span class="idx">14</span>CI 파이프라인</a>
+  <a href="#pr-today"><span class="idx">15</span>오늘의 PR</a>
+  <a href="#carve"><span class="idx">16</span>잔여 carve</a>
+  <a href="#takeaways"><span class="idx">17</span>핵심 메시지</a>
+  <a href="#outro"><span class="idx">18</span>Q&amp;A</a>
+</nav>
+
+<div class="progress-bar"></div>
+
+<div class="slide-controls">
+  <button class="prev" aria-label="이전 슬라이드">‹</button>
+  <span class="counter">1 / 18</span>
+  <button class="next" aria-label="다음 슬라이드">›</button>
+</div>
+
+<!-- ────────── slideshow container ─────────── -->
+<div class="slideshow">
+<div class="slides">
+
+<!-- ═══════ slide 1: cover ═══════ -->
+<section class="slide cover" id="cover">
   <h1>DevHub Example</h1>
   <div class="subtitle">팀 통합 개발 허브 — 학습회 자료</div>
   <div class="meta">
@@ -16,41 +52,25 @@
     <span class="badge">main HEAD: d730fc6</span>
     <span class="badge new">M7 Onboarding ⚡ closing</span>
   </div>
-</header>
+  <div class="hint">
+    <kbd>→</kbd> <kbd>←</kbd> 또는 <kbd>Space</kbd> <kbd>PgUp/PgDn</kbd> 로 슬라이드 이동 · <kbd>Esc</kbd> 메뉴 닫기
+  </div>
+</section>
 
-<div class="page">
+<!-- ═══════ slide 2: 프로젝트 개요 ═══════ -->
+<section class="slide" id="overview">
+  <span class="slide-num"></span>
+  <h2>1. 프로젝트 개요 <span class="h2-tag">— Value Proposition</span></h2>
 
-<nav class="toc">
-  <a href="#overview">1. 개요</a>
-  <a href="#architecture">2. 아키텍처</a>
-  <a href="#domains">3. 도메인 인벤토리</a>
-  <a href="#milestones">4. 마일스톤 timeline</a>
-  <a href="#release">5. 릴리즈 로드맵</a>
-  <a href="#adr">6. ADR 분포</a>
-  <a href="#traceability">7. 추적성 chain</a>
-  <a href="#chain-heatmap">8. chain 채움률</a>
-  <a href="#implementation">9. 구현 현황</a>
-  <a href="#ci">10. CI 파이프라인</a>
-  <a href="#pr-today">11. 오늘의 PR</a>
-  <a href="#carve">12. 잔여 carve</a>
-  <a href="#takeaways">13. 핵심 메시지</a>
-</nav>
-
-<!-- ═══════════════════════════════════════════════════════════════
-     §1 프로젝트 개요
-══════════════════════════════════════════════════════════════ -->
-<section id="overview">
-  <h2>1. 프로젝트 개요</h2>
-  <p style="font-size: 1.15em; padding: 16px 20px; background: var(--bg-elev); border-left: 4px solid var(--accent); border-radius: 8px;">
+  <p style="font-size: 1.15em; padding: 14px 18px; background: var(--bg-elev); border-left: 4px solid var(--accent); border-radius: 8px;">
     <strong>DevHub Example</strong> = 역할별 진입 페이지 우선순위로 UX 를 간접 제공하는 <strong>통합 개발 허브</strong>.
-    개발자/관리자/시스템 관리자가 동일 시스템에서 자기 역할에 최적화된 대시보드로 진입한다.
+    개발자/관리자/시스템 관리자가 동일 시스템에서 자기 역할에 최적화된 대시보드로 진입.
   </p>
 
-  <h3>핵심 가치 4건</h3>
-  <div class="grid">
+  <div class="grid" style="margin-top: 24px;">
     <div class="card">
       <h4>역할별 정보 탐색 최소화</h4>
-      <p>Developer / Manager / System Admin 의 기본 진입 페이지가 분리. 같은 권한 모델 위에 UX 만 분기.</p>
+      <p>Developer / Manager / System Admin 의 기본 진입 페이지 분리. 같은 권한 모델 위에 UX 분기.</p>
     </div>
     <div class="card">
       <h4>단일 진실 source (SoT)</h4>
@@ -58,447 +78,478 @@
     </div>
     <div class="card">
       <h4>외부 시스템 통합 single pane</h4>
-      <p>DREQ (외부 의뢰 intake) + External Integration (HomeLab/SCM/CI-CD/문서) 통합 surface.</p>
+      <p>DREQ (외부 의뢰) + External Integration (HomeLab/SCM/CI-CD) 통합 surface.</p>
     </div>
     <div class="card">
       <h4>자동화된 추적성</h4>
       <p>REQ → UC → ARCH → API → IMPL → UT → TC 7단계 매트릭스. PR 마다 ID 발급 강제.</p>
     </div>
   </div>
+</section>
 
-  <h3>이해관계자 6 역할</h3>
+<!-- ═══════ slide 3: 이해관계자 ═══════ -->
+<section class="slide" id="stakeholders">
+  <span class="slide-num"></span>
+  <h2>2. 이해관계자 <span class="h2-tag">— 6 역할 × 진입 dashboard</span></h2>
+
   <table>
     <thead><tr><th>역할</th><th>핵심 활동</th><th>진입 dashboard</th></tr></thead>
     <tbody>
-      <tr><td>Developer</td><td>repo/PR/CI/risk 조회, DREQ assignee 대응</td><td><code>/developer</code></td></tr>
+      <tr><td>Developer</td><td>repo / PR / CI / risk 조회, DREQ assignee 대응, profile 등록</td><td><code>/developer</code></td></tr>
       <tr><td>Manager</td><td>팀 부하, 일정 지연, DREQ oversight</td><td><code>/manager</code></td></tr>
-      <tr><td>PMO Manager</td><td>Application/Project 라이프사이클 (pmo_manager role)</td><td><code>/manager</code> (확장)</td></tr>
-      <tr><td>System Admin</td><td>Gitea runner, RBAC policy, DREQ token, event listener</td><td><code>/system-admin</code></td></tr>
-      <tr><td>외부 시스템</td><td>API token + IP allowlist 로 DevHub intake 호출</td><td>(백그라운드)</td></tr>
-      <tr><td>사용자 일반</td><td>onboarding 화면 → 소속 등록 → reviewed</td><td><code>/devhub/onboarding</code> <span class="badge new">신규</span></td></tr>
+      <tr><td>PMO Manager</td><td>Application / Project 라이프사이클 관리 (pmo_manager role)</td><td><code>/manager</code> (확장)</td></tr>
+      <tr><td>System Admin</td><td>Gitea runner / RBAC policy / DREQ token admin / event listener</td><td><code>/system-admin</code></td></tr>
+      <tr><td>외부 시스템 (Bitbucket / Jira / HomeLab)</td><td>API token + IP allowlist 로 DevHub intake 호출</td><td>(백그라운드)</td></tr>
+      <tr><td>사용자 일반 <span class="badge new">신규</span></td><td>onboarding 화면 → 소속 등록 → reviewed</td><td><code>/devhub/onboarding</code></td></tr>
     </tbody>
   </table>
 </section>
 
-<!-- ═══════════════════════════════════════════════════════════════
-     §2 아키텍처
-══════════════════════════════════════════════════════════════ -->
-<section id="architecture">
-  <h2>2. 시스템 아키텍처</h2>
+<!-- ═══════ slide 4: 시스템 아키텍처 (SVG) ═══════ -->
+<section class="slide" id="architecture">
+  <span class="slide-num"></span>
+  <h2>3. 시스템 아키텍처 <span class="h2-tag">— 단일 포트 + 5 도메인</span></h2>
 
-  <h3>컴포넌트 구조</h3>
-<pre><code>┌────────────────────────────────────────────────────────────────┐
-│                      User (Browser)                            │
-└──────────────────────────────┬─────────────────────────────────┘
-                               │ HTTPS (single port via nginx)
-                               ▼
-              ┌──────────────────────────────┐
-              │   nginx (reverse proxy)      │
-              │   /devhub/*   → frontend     │
-              │   /api/v1/*   → backend-core │
-              │   /devhub/auth/keycloak/* → KC│
-              └────┬─────────┬──────────┬────┘
-                   │         │          │
-                   ▼         ▼          ▼
-       ┌───────────────┐ ┌──────────────────┐ ┌──────────┐
-       │ Next.js       │ │ Go Core          │ │ Keycloak │
-       │ (frontend)    │ │ (backend-core)   │ │ (IdP)    │
-       └───────┬───────┘ └────────┬─────────┘ └────┬─────┘
-               │                  │                │
-               │                  ▼                │
-               │       ┌──────────────────┐        │
-               │       │ Postgres         │        │
-               │       │ users + 5도메인 + │◀───────┘
-               │       │ migration 33개   │ (event puller)
-               │       └──────────────────┘
-               │
-               ▼
-       ┌────────────────────┐
-       │ Python AI (v2)     │  (gRPC client)
-       └────────────────────┘</code></pre>
+  <svg class="diagram" viewBox="0 0 1000 540" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#38bdf8" />
+      </marker>
+      <marker id="arrow-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b" />
+      </marker>
+    </defs>
 
-  <h3>핵심 운영 정책 5건</h3>
-  <ol>
-    <li><strong>No-Docker 정책</strong> (default) — 로컬 개발은 native. Docker 자산은 환경별로 git 추적 외부 (<a href="../../adr/0003-no-docker-policy-ci-scope.md">ADR-0003</a>).</li>
-    <li><strong>단일 포트 진입</strong> — 외부 진입은 <code>https://&lt;host&gt;/devhub</code> 만 (<a href="../../adr/0018-single-port-reverse-proxy-policy.md">ADR-0018</a> + PR #277).</li>
-    <li><strong>자동 마이그레이션</strong> — <code>db-migrate</code> 컨테이너가 backend boot 전 적용 + 30 retry × 2s.</li>
-    <li><strong>추적성 자동 동기화</strong> — 모든 PR 이 traceability §3 매트릭스 갱신. ID 영구.</li>
-    <li><strong>self-review SOP</strong> — 본인 PR도 4단계 (diff 재검토 → comment → 보강 commit → squash merge).</li>
-  </ol>
-</section>
+    <!-- User -->
+    <rect class="node user" x="430" y="20" width="140" height="50" />
+    <text x="500" y="40" class="label">👤 User</text>
+    <text x="500" y="58" class="sub">(Browser)</text>
 
-<!-- ═══════════════════════════════════════════════════════════════
-     §3 도메인 인벤토리
-══════════════════════════════════════════════════════════════ -->
-<section id="domains">
-  <h2>3. 도메인 인벤토리 (6 + 기본)</h2>
-  <table>
-    <thead><tr><th>도메인</th><th>핵심 ADR</th><th>책임</th><th>상태</th></tr></thead>
-    <tbody>
-      <tr>
-        <td>인증 / 계정 / 사용자</td>
-        <td>0019, 0020</td>
-        <td>Keycloak OIDC + DevHub <code>users</code> + RBAC</td>
-        <td><span class="ok">✅</span> M2 done</td>
-      </tr>
-      <tr>
-        <td>RBAC</td>
-        <td>0002, 0011, 0007</td>
-        <td>11 resource × 4 action matrix + row-level scoping</td>
-        <td><span class="ok">✅</span> accepted + 1차 구현</td>
-      </tr>
-      <tr>
-        <td>Application / Project (PMO)</td>
-        <td>0011</td>
-        <td>promote-to-app/project + pmo_manager 위양</td>
-        <td><span class="ok">✅</span> M3 1차</td>
-      </tr>
-      <tr>
-        <td>Dev Request (DREQ)</td>
-        <td>0012, 0013, 0014, 0017</td>
-        <td>외부 → DevHub intake → Promote</td>
-        <td><span class="ok">✅</span> M5 + admin UI + E2E</td>
-      </tr>
-      <tr>
-        <td>External Integration</td>
-        <td>0015, 0016</td>
-        <td>ALM/SCM/CI-CD/문서/HomeLab provider + topology</td>
-        <td><span class="ok">✅</span> M6 + frontend</td>
-      </tr>
-      <tr>
-        <td>Onboarding <span class="badge new">신규</span></td>
-        <td>0021</td>
-        <td>self-service 초기 등록 + 3 tier 접근</td>
-        <td><span class="partial">⚡</span> <strong>2026-05-21 Carve A backend done</strong></td>
-      </tr>
-    </tbody>
-  </table>
-</section>
+    <!-- nginx single port -->
+    <rect class="node primary" x="320" y="120" width="360" height="70" />
+    <text x="500" y="142" class="label">nginx Reverse Proxy</text>
+    <text x="500" y="162" class="sub">/devhub/* /api/v1/* /devhub/auth/keycloak/*</text>
+    <text x="500" y="178" class="sub">— ADR-0018 단일 포트</text>
 
-<!-- ═══════════════════════════════════════════════════════════════
-     §4 마일스톤 timeline
-══════════════════════════════════════════════════════════════ -->
-<section id="milestones">
-  <h2>4. 마일스톤 timeline (M0 → M7)</h2>
+    <line class="edge" x1="500" y1="70" x2="500" y2="120" />
 
-  <div class="chart-wrap">
-    <div class="chart-title">M0~M7 + M4(planned) — 일자 기준 (D-0 = 2026-05-07)</div>
-    <canvas id="chart-milestone-timeline"></canvas>
-  </div>
+    <!-- 3 columns: frontend / backend / keycloak -->
+    <rect class="node accent2" x="60" y="240" width="220" height="120" />
+    <text x="170" y="262" class="label">Next.js Frontend</text>
+    <text x="170" y="285" class="sub">App Router</text>
+    <text x="170" y="305" class="sub">Dashboard / RBAC menu</text>
+    <text x="170" y="325" class="sub">Realtime WS client</text>
+    <text x="170" y="348" class="sub">— Tailwind + shadcn</text>
 
-  <details>
-    <summary>각 마일스톤 핵심 요약 (펼치기)</summary>
-    <ul>
-      <li><strong>M0 (2026-05-07)</strong> — 초기 스캐폴드. ADR-0001 Hydra+Kratos.</li>
-      <li><strong>M1 (2026-05-08)</strong> — M1 PR-A..G + RBAC ADR-0002.</li>
-      <li><strong>M2 (DONE, 2026-05-12)</strong> — 인증/계정 1차 + login/logout + admin/settings/*.</li>
-      <li><strong>M3 (2026-05-13)</strong> — User/Org 관리. ADR-0008/0009/0010.</li>
-      <li><strong>M5 (2026-05-15 ~ 18)</strong> — DREQ 종합 (15 sprint + 8 외부 PR). ADR-0012/13/14/17.</li>
-      <li><strong>M6 (2026-05-15 ~ 18)</strong> — Integration + topology v2. ADR-0015/16.</li>
-      <li><strong>M7 (2026-05-21)</strong> ⚡ — Onboarding self-service. ADR-0021 + Carve A backend.</li>
-      <li><strong>M4 (planned, v1.1+)</strong> — Realtime / AI Gardener / 외부 SSO.</li>
-    </ul>
-  </details>
-</section>
+    <rect class="node primary" x="390" y="240" width="220" height="120" />
+    <text x="500" y="262" class="label">Go Core (backend-core)</text>
+    <text x="500" y="285" class="sub">14 패키지</text>
+    <text x="500" y="305" class="sub">5 도메인 API + RBAC</text>
+    <text x="500" y="325" class="sub">Audit + Realtime + Onboarding</text>
+    <text x="500" y="348" class="sub">— gin + pgx</text>
 
-<!-- ═══════════════════════════════════════════════════════════════
-     §5 v1.0/v1.1/v2 carve 분포
-══════════════════════════════════════════════════════════════ -->
-<section id="release">
-  <h2>5. 릴리즈 로드맵 (v1.0 / v1.1 / v2)</h2>
+    <rect class="node accent2" x="720" y="240" width="220" height="120" />
+    <text x="830" y="262" class="label">Keycloak (IdP)</text>
+    <text x="830" y="285" class="sub">OIDC + admin REST</text>
+    <text x="830" y="305" class="sub">users + groups</text>
+    <text x="830" y="325" class="sub">event listener</text>
+    <text x="830" y="348" class="sub">— ADR-0019 단일화</text>
 
-  <div class="chart-wrap">
-    <div class="chart-title">밀스톤 × 우선순위별 잔여 carve 분포</div>
-    <canvas id="chart-carve-distribution"></canvas>
-  </div>
+    <line class="edge" x1="400" y1="190" x2="170" y2="240" />
+    <line class="edge" x1="500" y1="190" x2="500" y2="240" />
+    <line class="edge" x1="600" y1="190" x2="830" y2="240" />
 
-  <div class="grid">
-    <div class="card highlight">
-      <h4>v1.0 (D-25, 2026-06-15)</h4>
-      <p><strong>잔여 차단 1건</strong>: <code>#214 P1-3</code> Keycloak group staging-prod (사내 운영자 1회 작업)</p>
-      <p>나머지 DoD 8건 모두 PASS — Keycloak OIDC / admin/settings/* / App/Repo/Proj / HomeLab integration / DREQ 흐름 / E2E + go test / staging 1주 + 외부 사용자 5명 / UI polish.</p>
-    </div>
-    <div class="card">
-      <h4>v1.1 (target 2026-07-31)</h4>
-      <p>13 carve — P1-3/5 + P2-2..11 (Onboarding Carve A ✅, Carve B/C/D 잔여) + P3-1.</p>
-    </div>
-    <div class="card">
-      <h4>v2 (Q3 이후)</h4>
-      <p>10 carve — HA Phase 2 / SPI push / WebSocket replay / AI Gardener / Gitea Hourly Pull / 외부 SSO 등.</p>
-    </div>
-  </div>
+    <!-- Postgres (bottom) -->
+    <rect class="node ok" x="320" y="420" width="360" height="90" />
+    <text x="500" y="442" class="label">PostgreSQL (33 migration)</text>
+    <text x="500" y="465" class="sub">users + 5 도메인 model</text>
+    <text x="500" y="485" class="sub">audit_logs (JSONB payload)</text>
+    <text x="500" y="502" class="sub">— row-level locking</text>
 
-  <details>
-    <summary>Cancelled 3건 (2026-05-20)</summary>
-    <ul>
-      <li>~~P1-4 off-boarding cron deploy~~ — 외부 Keycloak 시나리오 채택.</li>
-      <li>~~P3-12 Sign Up 셀프 가입~~ — IdP 팀 책임.</li>
-      <li>~~P3-13 MFA / 2FA~~ — Keycloak Account Console 위임.</li>
-    </ul>
-  </details>
-</section>
+    <line class="edge" x1="500" y1="360" x2="500" y2="420" />
+    <line class="edge dim" x1="830" y1="360" x2="600" y2="445" stroke-dasharray="5,3" marker-end="url(#arrow-dim)" />
+    <text x="730" y="395" class="sub" style="font-style: italic;">event puller</text>
 
-<!-- ═══════════════════════════════════════════════════════════════
-     §6 ADR 분포
-══════════════════════════════════════════════════════════════ -->
-<section id="adr">
-  <h2>6. ADR 인덱스 (21건)</h2>
+    <!-- AI (right side, gRPC, v2) -->
+    <rect class="node warn" x="780" y="420" width="180" height="80" />
+    <text x="870" y="442" class="label">Python AI</text>
+    <text x="870" y="465" class="sub">FastAPI + gRPC</text>
+    <text x="870" y="482" class="sub">(backend-ai, v2)</text>
+    <text x="870" y="498" class="sub">— planned</text>
 
-  <div class="chart-wrap">
-    <div class="chart-title">ADR 도메인별 분포</div>
-    <canvas id="chart-adr-domain"></canvas>
-  </div>
+    <line class="edge dim" x1="610" y1="300" x2="780" y2="455" stroke-dasharray="5,3" marker-end="url(#arrow-dim)" />
 
-  <table>
-    <thead><tr><th>ADR</th><th>영향 도메인</th><th>결정</th><th>상태</th></tr></thead>
-    <tbody>
-      <tr><td>0001</td><td>인증</td><td>Hydra+Kratos 선정</td><td><span class="skip">superseded by 0019</span></td></tr>
-      <tr><td>0002</td><td>RBAC</td><td>DB-backed 11×4 matrix</td><td><span class="ok">accepted</span></td></tr>
-      <tr><td>0003</td><td>CI</td><td>No-Docker CI scope</td><td><span class="ok">accepted</span></td></tr>
-      <tr><td>0011</td><td>RBAC</td><td>row-scoping (assignee=본인)</td><td><span class="ok">accepted</span></td></tr>
-      <tr><td>0012</td><td>DREQ</td><td>외부 수신 = API token + IP allowlist</td><td><span class="ok">accepted</span></td></tr>
-      <tr><td>0018</td><td>인프라</td><td>single port reverse proxy</td><td><span class="ok">accepted</span></td></tr>
-      <tr><td>0019</td><td>인증</td><td>Keycloak 단일화 (ADR-0001 supersede)</td><td><span class="ok">accepted</span></td></tr>
-      <tr><td>0020</td><td>인증/계정</td><td>account/user 책임 경계</td><td><span class="partial">partial superseded by 0021</span></td></tr>
-      <tr><td>0021 <span class="badge new">신규</span></td><td>Onboarding</td><td>self-service unit selection + lazy 폐기</td><td><span class="ok">accepted (2026-05-21)</span></td></tr>
-    </tbody>
-  </table>
-  <details>
-    <summary>전체 21건 보기 (펼치기)</summary>
-    <p>상세는 <a href="../../traceability/report.md">traceability/report.md §4</a> 참조. 누적: 정책/인프라 3건 (0003/0005/0018) + 인증/계정 4건 (0001/0019/0020/0021) + RBAC 3건 (0002/0007/0011) + 조직 모델 3건 (0008/9/10) + DREQ 4건 (0012/13/14/17) + Integration 2건 (0015/16) + Legacy 2건 (0004/6) = <strong>21건</strong>.</p>
-  </details>
-</section>
+    <!-- HTTPS label -->
+    <text x="520" y="100" class="sub" style="fill: #94a3b8; font-style: italic;">HTTPS (single port)</text>
+  </svg>
 
-<!-- ═══════════════════════════════════════════════════════════════
-     §7 7단계 추적성 chain
-══════════════════════════════════════════════════════════════ -->
-<section id="traceability">
-  <h2>7. 7단계 추적성 chain</h2>
-
-<pre><code>┌──────────────┐  →  ┌──────────────┐  →  ┌──────────────┐  →  ┌──────────────┐
-│  REQ-FR-*    │     │  UC-*        │     │  ARCH-*      │     │  API-*       │
-│  REQ-NFR-*   │     │  (Usecase)   │     │  (Component) │     │  (Endpoint)  │
-└──────────────┘     └──────────────┘     └──────────────┘     └──────┬───────┘
-                                                                       │
-                ┌──────────────────────────────────────────────────────┘
-                ▼
-┌──────────────┐  →  ┌──────────────┐  →  ┌──────────────┐
-│  IMPL-*      │     │  UT-*        │     │  TC-*        │
-│  (Code path) │     │  (Unit test) │     │  (E2E spec)  │
-└──────────────┘     └──────────────┘     └──────────────┘</code></pre>
-
-  <div class="chart-wrap">
-    <div class="chart-title">단계별 ID 발급 누적 수</div>
-    <canvas id="chart-traceability-counts"></canvas>
-  </div>
-
-  <p><strong>원칙</strong>: 부여된 ID 는 <strong>재사용/재번호 안 함</strong> (immutable). 모든 PR 이 영향 단계의 ID 발급 + 매트릭스 row 동기화 강제.</p>
-</section>
-
-<!-- ═══════════════════════════════════════════════════════════════
-     §8 chain 채움률 heatmap
-══════════════════════════════════════════════════════════════ -->
-<section id="chain-heatmap">
-  <h2>8. 도메인 × chain 단계 채움률</h2>
-
-  <div class="heatmap">
-    <div class="hm-domain"></div>
-    <div class="hm-header">REQ</div>
-    <div class="hm-header">UC</div>
-    <div class="hm-header">ARCH</div>
-    <div class="hm-header">API</div>
-    <div class="hm-header">RM</div>
-    <div class="hm-header">IMPL</div>
-    <div class="hm-header">UT</div>
-    <div class="hm-header">TC</div>
-
-    <div class="hm-row" data-d="auth">
-      <div class="hm-domain">인증 (Auth/OIDC)</div>
-      <div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div>
-      <div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div>
-    </div>
-    <div class="hm-row">
-      <div class="hm-domain">RBAC</div>
-      <div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div>
-      <div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div>
-    </div>
-    <div class="hm-row">
-      <div class="hm-domain">계정 관리</div>
-      <div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div>
-      <div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div>
-    </div>
-    <div class="hm-row">
-      <div class="hm-domain">조직 계층</div>
-      <div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div>
-      <div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div>
-    </div>
-    <div class="hm-row">
-      <div class="hm-domain">감사 (audit)</div>
-      <div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div>
-      <div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div>
-    </div>
-    <div class="hm-row">
-      <div class="hm-domain">명령 lifecycle</div>
-      <div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell skip">⚪</div><div class="hm-cell ok">✅</div>
-      <div class="hm-cell partial">🟡</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell skip">⚪</div>
-    </div>
-    <div class="hm-row">
-      <div class="hm-domain">실시간 (WebSocket)</div>
-      <div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div>
-      <div class="hm-cell partial">🟡</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell skip">⚪</div>
-    </div>
-    <div class="hm-row">
-      <div class="hm-domain">인프라 토폴로지</div>
-      <div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div>
-      <div class="hm-cell partial">🟡</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell partial">🟡</div>
-    </div>
-    <div class="hm-row">
-      <div class="hm-domain">Webhook (gitea)</div>
-      <div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div>
-      <div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell skip">⚪</div>
-    </div>
-    <div class="hm-row">
-      <div class="hm-domain">대시보드 / me</div>
-      <div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div>
-      <div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div>
-    </div>
-    <div class="hm-row">
-      <div class="hm-domain">App/Project (PMO)</div>
-      <div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div>
-      <div class="hm-cell partial">🟡</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell partial">🟡</div>
-    </div>
-    <div class="hm-row">
-      <div class="hm-domain">Dev Request (DREQ)</div>
-      <div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div>
-      <div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div>
-    </div>
-    <div class="hm-row">
-      <div class="hm-domain">External Integration</div>
-      <div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div>
-      <div class="hm-cell partial">🟡</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div>
-    </div>
-    <div class="hm-row">
-      <div class="hm-domain">Onboarding ⚡</div>
-      <div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div>
-      <div class="hm-cell ok">✅</div><div class="hm-cell partial">🟡</div><div class="hm-cell partial">🟡</div><div class="hm-cell skip">⚪</div>
-    </div>
-  </div>
-
-  <p style="margin-top: 14px;">
-    <span class="badge ok">✅ 완료</span>
-    <span class="badge warn">🟡 Partial</span>
-    <span class="badge">⚪ 미진입 (의도된 후속)</span>
-    — 약 <strong>85% (110/136 cell)</strong> 채움. M4 (Realtime/AI) + v2 (gRPC) 는 의도된 후속.
+  <p style="margin-top: 12px; color: var(--fg-muted); font-size: 0.88em;">
+    <strong>핵심</strong>: 단일 포트 (<a href="../../adr/0018-single-port-reverse-proxy-policy.md">ADR-0018</a>) + Keycloak 단일 IdP (<a href="../../adr/0019-keycloak-only-idp.md">ADR-0019</a>) + No-Docker 로컬 (<a href="../../adr/0003-no-docker-policy-ci-scope.md">ADR-0003</a>)
   </p>
 </section>
 
-<!-- ═══════════════════════════════════════════════════════════════
-     §9 구현 현황
-══════════════════════════════════════════════════════════════ -->
-<section id="implementation">
-  <h2>9. 구현 현황 (코드/문서 통계)</h2>
+<!-- ═══════ slide 5: 운영 정책 ═══════ -->
+<section class="slide" id="policies">
+  <span class="slide-num"></span>
+  <h2>4. 운영 정책 핵심 <span class="h2-tag">— 5건</span></h2>
 
-  <div class="grid">
+  <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));">
+    <div class="card">
+      <h4>1. No-Docker 정책 (default)</h4>
+      <p>로컬 개발은 native (Go/Python/Node 직접 실행). Docker 자산은 환경별로 git 추적 외부. <strong>ADR-0003</strong>.</p>
+    </div>
+    <div class="card">
+      <h4>2. 단일 포트 진입</h4>
+      <p>외부 진입은 <code>https://&lt;host&gt;/devhub</code> 만. nginx 가 backend / Keycloak 분기. <strong>ADR-0018 + PR #277</strong>.</p>
+    </div>
+    <div class="card">
+      <h4>3. 자동 마이그레이션</h4>
+      <p><code>db-migrate</code> 컨테이너가 backend boot 전 적용 + 30 retry × 2s healthcheck.</p>
+    </div>
+    <div class="card">
+      <h4>4. 추적성 자동 동기화</h4>
+      <p>모든 PR 이 <code>traceability/report.md §3</code> 매트릭스 + 단계별 인덱스 갱신. <strong>ID 영구 (immutable)</strong>.</p>
+    </div>
+    <div class="card highlight">
+      <h4>5. self-review SOP (본인 PR 도 4단계)</h4>
+      <p>diff 재검토 → <code>gh pr comment</code> → 보강 commit → squash merge. codex review cycle 과 병행.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ slide 6: 도메인 인벤토리 ═══════ -->
+<section class="slide" id="domains">
+  <span class="slide-num"></span>
+  <h2>5. 도메인 인벤토리 <span class="h2-tag">— 6 도메인 + 기본</span></h2>
+
+  <table>
+    <thead><tr><th>도메인</th><th>핵심 ADR</th><th>핵심 책임</th><th>상태</th></tr></thead>
+    <tbody>
+      <tr><td>인증 / 계정 / 사용자</td><td>0019, 0020</td><td>Keycloak OIDC + DevHub <code>users</code> + RBAC</td><td><span class="ok">✅ M2 done</span></td></tr>
+      <tr><td>RBAC (권한 매트릭스)</td><td>0002, 0011, 0007</td><td>11 resource × 4 action + row-level scoping</td><td><span class="ok">✅ 1차 구현</span></td></tr>
+      <tr><td>Application / Project (PMO)</td><td>0011</td><td>promote-to-app/project + pmo_manager 위양</td><td><span class="ok">✅ M3 1차</span></td></tr>
+      <tr><td>Dev Request (DREQ)</td><td>0012, 0013, 0014, 0017</td><td>외부 → DevHub intake → assignee → Promote</td><td><span class="ok">✅ M5 + E2E</span></td></tr>
+      <tr><td>External Integration</td><td>0015, 0016</td><td>ALM/SCM/CI-CD/문서/HomeLab + topology v2</td><td><span class="ok">✅ M6 + frontend</span></td></tr>
+      <tr><td>Onboarding <span class="badge new">신규</span></td><td>0021</td><td>self-service 초기 등록 + 3 tier 접근</td><td><span class="partial">⚡ Carve A backend</span></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════ slide 7: 마일스톤 timeline (chart) ═══════ -->
+<section class="slide" id="milestones">
+  <span class="slide-num"></span>
+  <h2>6. 마일스톤 timeline <span class="h2-tag">— M0 → M7 (Gantt)</span></h2>
+
+  <div class="chart-wrap">
+    <div class="chart-title">M0~M7 + M4(planned) — D-0 = 2026-05-07</div>
+    <canvas id="chart-milestone-timeline" data-chart></canvas>
+  </div>
+
+  <details>
+    <summary>마일스톤별 핵심 요약 (펼치기)</summary>
+    <ul style="margin: 0; font-size: 0.88em;">
+      <li><strong>M0/M1</strong> — 초기 + 인증 RBAC 기반 (ADR-0001/0002)</li>
+      <li><strong>M2 (2026-05-12)</strong> — 인증/계정 1차 + admin/settings/*</li>
+      <li><strong>M3 (2026-05-13)</strong> — User/Org 관리 + HRDB (ADR-0008/9/10)</li>
+      <li><strong>M5 (2026-05-15 ~ 18)</strong> — DREQ 종합 (ADR-0012/13/14/17)</li>
+      <li><strong>M6 (2026-05-15 ~ 18)</strong> — Integration + topology v2 (ADR-0015/16)</li>
+      <li><strong>M7 (2026-05-21) ⚡</strong> — Onboarding self-service (ADR-0021 + Carve A)</li>
+      <li><strong>M4 (planned, v1.1+)</strong> — Realtime / AI Gardener / 외부 SSO</li>
+    </ul>
+  </details>
+</section>
+
+<!-- ═══════ slide 8: 릴리즈 로드맵 ═══════ -->
+<section class="slide" id="release">
+  <span class="slide-num"></span>
+  <h2>7. 릴리즈 로드맵 <span class="h2-tag">— v1.0 / v1.1 / v2</span></h2>
+
+  <div class="chart-wrap">
+    <div class="chart-title">밀스톤 × 우선순위별 잔여 carve 분포</div>
+    <canvas id="chart-carve-distribution" data-chart></canvas>
+  </div>
+
+  <div class="grid" style="margin-top: 14px;">
+    <div class="card highlight">
+      <h4>v1.0 (D-25, 2026-06-15)</h4>
+      <p><strong>잔여 차단 1건</strong>: <code>#214 P1-3</code> Keycloak group staging-prod (사내 운영자 1회).</p>
+    </div>
+    <div class="card">
+      <h4>v1.1 (target 2026-07-31)</h4>
+      <p>13 carve — Onboarding Carve A ✅, B/C/D 잔여 + P1-3/5 + P2-2..7.</p>
+    </div>
+    <div class="card">
+      <h4>v2 (Q3 이후)</h4>
+      <p>10 carve — HA Phase 2 / WebSocket replay / AI Gardener / 외부 SSO 등.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ slide 9: ADR 분포 ═══════ -->
+<section class="slide" id="adr">
+  <span class="slide-num"></span>
+  <h2>8. ADR 인덱스 <span class="h2-tag">— 21건 × 7 도메인</span></h2>
+
+  <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 16px;">
+    <div class="chart-wrap">
+      <div class="chart-title">ADR 도메인별 분포</div>
+      <canvas id="chart-adr-domain" data-chart></canvas>
+    </div>
+    <div>
+      <table>
+        <thead><tr><th>ADR</th><th>도메인</th><th>결정</th></tr></thead>
+        <tbody>
+          <tr><td>0019</td><td>인증</td><td>Keycloak 단일화 (0001 supersede)</td></tr>
+          <tr><td>0002</td><td>RBAC</td><td>DB-backed 11×4 matrix</td></tr>
+          <tr><td>0011</td><td>RBAC</td><td>row-scoping (assignee=본인)</td></tr>
+          <tr><td>0012</td><td>DREQ</td><td>외부 수신 API token + IP</td></tr>
+          <tr><td>0017</td><td>DREQ</td><td>intake token hardening</td></tr>
+          <tr><td>0015/16</td><td>Integration</td><td>HomeLab pull + Prometheus</td></tr>
+          <tr><td>0018</td><td>인프라</td><td>단일 포트 reverse proxy</td></tr>
+          <tr><td>0020</td><td>인증/계정</td><td>책임 경계 (partial sup. by 0021)</td></tr>
+          <tr><td>0021 <span class="badge new">신규</span></td><td>Onboarding</td><td>self-service unit + lazy 폐기</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ slide 10: 7단계 추적성 chain (SVG + chart) ═══════ -->
+<section class="slide" id="traceability">
+  <span class="slide-num"></span>
+  <h2>9. 7단계 추적성 chain <span class="h2-tag">— REQ → … → TC</span></h2>
+
+  <svg class="diagram" viewBox="0 0 1000 380" xmlns="http://www.w3.org/2000/svg" style="max-height: 35vh;">
+    <defs>
+      <marker id="arr1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#38bdf8" />
+      </marker>
+    </defs>
+
+    <!-- 4 boxes 가로 (REQ / UC / ARCH / API) -->
+    <rect class="node primary" x="40" y="40" width="180" height="80" />
+    <text x="130" y="62" class="label">REQ-FR-*</text>
+    <text x="130" y="82" class="sub">REQ-NFR-*</text>
+    <text x="130" y="102" class="sub">requirements.md</text>
+
+    <rect class="node primary" x="270" y="40" width="180" height="80" />
+    <text x="360" y="62" class="label">UC-*</text>
+    <text x="360" y="82" class="sub">Usecase</text>
+    <text x="360" y="102" class="sub">system_usecases.md</text>
+
+    <rect class="node primary" x="500" y="40" width="180" height="80" />
+    <text x="590" y="62" class="label">ARCH-*</text>
+    <text x="590" y="82" class="sub">Component</text>
+    <text x="590" y="102" class="sub">architecture.md</text>
+
+    <rect class="node primary" x="730" y="40" width="180" height="80" />
+    <text x="820" y="62" class="label">API-*</text>
+    <text x="820" y="82" class="sub">Endpoint</text>
+    <text x="820" y="102" class="sub">backend_api_contract.md</text>
+
+    <line class="edge" x1="220" y1="80" x2="270" y2="80" />
+    <line class="edge" x1="450" y1="80" x2="500" y2="80" />
+    <line class="edge" x1="680" y1="80" x2="730" y2="80" />
+
+    <!-- vertical drop from API -->
+    <line class="edge" x1="820" y1="120" x2="820" y2="170" />
+
+    <!-- 3 boxes 가로 (IMPL / UT / TC) -->
+    <rect class="node ok" x="500" y="190" width="180" height="80" />
+    <text x="590" y="212" class="label">IMPL-*</text>
+    <text x="590" y="232" class="sub">Code path</text>
+    <text x="590" y="252" class="sub">router/handler/store</text>
+
+    <rect class="node ok" x="270" y="190" width="180" height="80" />
+    <text x="360" y="212" class="label">UT-*</text>
+    <text x="360" y="232" class="sub">go test ./...</text>
+    <text x="360" y="252" class="sub">*_test.go</text>
+
+    <rect class="node ok" x="40" y="190" width="180" height="80" />
+    <text x="130" y="212" class="label">TC-*</text>
+    <text x="130" y="232" class="sub">Playwright</text>
+    <text x="130" y="252" class="sub">*.spec.ts</text>
+
+    <line class="edge" x1="730" y1="230" x2="680" y2="230" />
+    <line class="edge" x1="500" y1="230" x2="450" y2="230" />
+    <line class="edge" x1="270" y1="230" x2="220" y2="230" />
+
+    <!-- ADR side reference -->
+    <rect class="node warn" x="730" y="190" width="180" height="80" />
+    <text x="820" y="212" class="label">ADR-*</text>
+    <text x="820" y="232" class="sub">의사결정 (21건)</text>
+    <text x="820" y="252" class="sub">docs/adr/</text>
+
+    <!-- CI gate (bottom) -->
+    <rect class="node accent2" x="350" y="320" width="300" height="50" />
+    <text x="500" y="340" class="label">CI gate + Audit</text>
+    <text x="500" y="358" class="sub">PR 머지 → 자동 검증 + 매트릭스 동기화</text>
+
+    <line class="edge" x1="130" y1="270" x2="430" y2="320" />
+    <line class="edge" x1="360" y1="270" x2="500" y2="320" />
+    <line class="edge" x1="590" y1="270" x2="570" y2="320" />
+  </svg>
+
+  <div class="chart-wrap" style="margin-top: 8px;">
+    <div class="chart-title">단계별 ID 누적 발급 수</div>
+    <canvas id="chart-traceability-counts" data-chart></canvas>
+  </div>
+</section>
+
+<!-- ═══════ slide 11: chain heatmap ═══════ -->
+<section class="slide" id="chain-heatmap">
+  <span class="slide-num"></span>
+  <h2>10. chain 채움률 <span class="h2-tag">— 17 도메인 × 8 단계 heatmap</span></h2>
+
+  <div class="heatmap">
+    <div class="hm-domain"></div>
+    <div class="hm-header">REQ</div><div class="hm-header">UC</div><div class="hm-header">ARCH</div><div class="hm-header">API</div>
+    <div class="hm-header">RM</div><div class="hm-header">IMPL</div><div class="hm-header">UT</div><div class="hm-header">TC</div>
+
+    <div class="hm-row"><div class="hm-domain">인증 (Auth/OIDC)</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div></div>
+    <div class="hm-row"><div class="hm-domain">RBAC</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div></div>
+    <div class="hm-row"><div class="hm-domain">계정 관리</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div></div>
+    <div class="hm-row"><div class="hm-domain">조직 계층</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div></div>
+    <div class="hm-row"><div class="hm-domain">감사 (audit)</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div></div>
+    <div class="hm-row"><div class="hm-domain">명령 lifecycle</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell skip">⚪</div><div class="hm-cell ok">✅</div><div class="hm-cell partial">🟡</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell skip">⚪</div></div>
+    <div class="hm-row"><div class="hm-domain">실시간 (WS)</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell partial">🟡</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell skip">⚪</div></div>
+    <div class="hm-row"><div class="hm-domain">인프라 토폴로지</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell partial">🟡</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell partial">🟡</div></div>
+    <div class="hm-row"><div class="hm-domain">Webhook (gitea)</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell skip">⚪</div></div>
+    <div class="hm-row"><div class="hm-domain">대시보드 / me</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div></div>
+    <div class="hm-row"><div class="hm-domain">App/Project (PMO)</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell partial">🟡</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell partial">🟡</div></div>
+    <div class="hm-row"><div class="hm-domain">Dev Request (DREQ)</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div></div>
+    <div class="hm-row"><div class="hm-domain">External Integration</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell partial">🟡</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div></div>
+    <div class="hm-row"><div class="hm-domain">Onboarding ⚡</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell ok">✅</div><div class="hm-cell partial">🟡</div><div class="hm-cell partial">🟡</div><div class="hm-cell skip">⚪</div></div>
+  </div>
+
+  <p style="margin-top: 12px;">
+    <span class="badge ok">✅ 완료</span>
+    <span class="badge warn">🟡 Partial</span>
+    <span class="badge">⚪ 미진입 (의도된 후속)</span>
+    — 약 <strong>85% (110/136 cell)</strong> 채움. M4 / v2 는 의도된 후속.
+  </p>
+</section>
+
+<!-- ═══════ slide 12: 구현 현황 ═══════ -->
+<section class="slide" id="implementation">
+  <span class="slide-num"></span>
+  <h2>11. 구현 현황 <span class="h2-tag">— 코드 통계 + Migration</span></h2>
+
+  <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
     <div class="card"><span class="num">14</span><span class="label">Backend Go 패키지</span></div>
     <div class="card"><span class="num">33</span><span class="label">DB Migration</span></div>
-    <div class="card"><span class="num">84</span><span class="label">Backend API endpoint</span></div>
-    <div class="card"><span class="num">20</span><span class="label">Playwright E2E spec</span></div>
-    <div class="card"><span class="num">21</span><span class="label">ADR 발급</span></div>
+    <div class="card"><span class="num">84</span><span class="label">Backend API</span></div>
+    <div class="card"><span class="num">20</span><span class="label">Playwright E2E</span></div>
+    <div class="card"><span class="num">21</span><span class="label">ADR</span></div>
     <div class="card highlight"><span class="num">10</span><span class="label">2026-05-21 머지 PR</span></div>
   </div>
 
-  <h3>Migration 누적 곡선</h3>
-  <div class="chart-wrap">
+  <div class="chart-wrap" style="margin-top: 16px;">
     <div class="chart-title">Migration 000001 ~ 000033 누적</div>
-    <canvas id="chart-migration-cumulative"></canvas>
+    <canvas id="chart-migration-cumulative" data-chart></canvas>
   </div>
+</section>
 
-  <h3>Onboarding Carve 상태 (M-v1.1)</h3>
+<!-- ═══════ slide 13: Onboarding Carve 상태 ═══════ -->
+<section class="slide" id="onboarding-carve">
+  <span class="slide-num"></span>
+  <h2>12. Onboarding Carve 상태 <span class="h2-tag">— M-v1.1 진행 매트릭스</span></h2>
+
   <table>
     <thead><tr><th>Carve</th><th>RM ID</th><th>Worker</th><th>상태</th><th>Issue</th></tr></thead>
     <tbody>
       <tr><td>A backend</td><td>RM-ONBOARD-01</td><td>Claude</td><td><span class="ok">✅ done (PR #278)</span></td><td>#272</td></tr>
       <tr><td>B frontend</td><td>RM-ONBOARD-02</td><td>Gemini</td><td><span class="partial">⏳ M-v1.1</span></td><td>#273</td></tr>
       <tr><td>C admin UI</td><td>RM-ONBOARD-03</td><td>Gemini</td><td><span class="partial">⏳ M-v1.1</span></td><td>#274</td></tr>
-      <tr><td>D tests</td><td>RM-ONBOARD-04</td><td>Claude (UT) + Gemini (E2E)</td><td><span class="partial">⏳ A+B+C 머지 후</span></td><td>#275</td></tr>
+      <tr><td>D tests</td><td>RM-ONBOARD-04</td><td>Claude UT + Gemini E2E</td><td><span class="partial">⏳ A+B+C 머지 후</span></td><td>#275</td></tr>
     </tbody>
   </table>
+
+  <h3 style="margin-top: 24px;">Carve A 산출물 (PR #278)</h3>
+  <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
+    <div class="card">
+      <h4>Migration 000033</h4>
+      <p><code>users.onboarding_completed_at + review_status</code> + bi-implication CHECK + partial index</p>
+    </div>
+    <div class="card">
+      <h4>onboardingGate middleware</h4>
+      <p>allowlist 4 endpoint + feature flag conditional (default OFF)</p>
+    </div>
+    <div class="card">
+      <h4>5 신규 handler</h4>
+      <p>API-83/84/85/86 + API-32 응답 확장 (single tx + 201 + token-only actor 처리)</p>
+    </div>
+    <div class="card">
+      <h4>UT 13건</h4>
+      <p>gate / submit (happy + preseeded + 409 + 404 + 422) / search / confirm review / patch me</p>
+    </div>
+  </div>
 </section>
 
-<!-- ═══════════════════════════════════════════════════════════════
-     §10 CI 파이프라인
-══════════════════════════════════════════════════════════════ -->
-<section id="ci">
-  <h2>10. CI 파이프라인 (.github/workflows/ci.yml)</h2>
+<!-- ═══════ slide 14: CI 파이프라인 ═══════ -->
+<section class="slide" id="ci">
+  <span class="slide-num"></span>
+  <h2>13. CI 파이프라인 <span class="h2-tag">— .github/workflows/ci.yml</span></h2>
 
-  <div class="chart-wrap tall">
+  <div class="chart-wrap">
     <div class="chart-title">CI Job 평균 통과 시간</div>
-    <canvas id="chart-ci-jobs"></canvas>
+    <canvas id="chart-ci-jobs" data-chart></canvas>
   </div>
 
-  <p>
-    <span class="badge ok">PR #277/#278 — 전 job PASS (E2E 51 passed)</span>
-    <span class="badge accent">paths-skip 으로 docs-only PR 은 5 job 자동 SKIP</span>
+  <p style="margin-top: 12px;">
+    <span class="badge ok">PR #277 / #278 — 전 job PASS (E2E 51 passed)</span>
+    <span class="badge accent">paths-skip 으로 docs-only PR 은 5 job SKIP</span>
   </p>
 
   <details>
     <summary>Job 별 역할 (펼치기)</summary>
-    <ul>
-      <li><strong>Detect Changed Paths</strong> — backend/frontend/docs/.github path filter → 5 job 의 SKIP 결정.</li>
-      <li><strong>Workflow Lint (actionlint)</strong> — ADR-0005, workflow yml syntax 보장.</li>
-      <li><strong>Migration Prefix Uniqueness</strong> — <code>000XXX_*</code> 번호 중복 차단.</li>
-      <li><strong>Backend Unit Tests</strong> — <code>go test ./...</code> 14 패키지.</li>
-      <li><strong>Backend Integration Tests</strong> — postgres docker + PG-backed integration suite.</li>
-      <li><strong>Frontend Unit Tests</strong> — Vitest.</li>
-      <li><strong>E2E Tests</strong> — Playwright (shard 1/2 + 2/2 병렬, ~ 4분 each).</li>
+    <ul style="font-size: 0.9em;">
+      <li><strong>Detect Changed Paths</strong> — path filter → 5 job SKIP 결정</li>
+      <li><strong>Workflow Lint (actionlint)</strong> — ADR-0005, yml syntax 보장</li>
+      <li><strong>Migration Prefix Uniqueness</strong> — 000XXX 번호 중복 차단</li>
+      <li><strong>Backend Unit / Integration</strong> — go test ./... + PG-backed</li>
+      <li><strong>Frontend Unit</strong> — Vitest</li>
+      <li><strong>E2E Tests</strong> — Playwright shard 1/2 + 2/2 병렬</li>
     </ul>
   </details>
 </section>
 
-<!-- ═══════════════════════════════════════════════════════════════
-     §11 오늘의 PR
-══════════════════════════════════════════════════════════════ -->
-<section id="pr-today">
-  <h2>11. 2026-05-21 누적 PR (10건)</h2>
+<!-- ═══════ slide 15: 오늘의 PR ═══════ -->
+<section class="slide" id="pr-today">
+  <span class="slide-num"></span>
+  <h2>14. 2026-05-21 누적 PR <span class="h2-tag">— 10건 timeline</span></h2>
 
-  <div class="chart-wrap tall">
-    <div class="chart-title">2026-05-21 시간순 PR 머지</div>
-    <canvas id="chart-pr-timeline"></canvas>
-  </div>
-
-  <div class="timeline">
-    <div class="item docs"><span class="pr-num">#265</span> concept §5.9 skip-and-resume <span class="sha">e9b7543</span></div>
-    <div class="item docs"><span class="pr-num">#266</span> REQ-FR/NFR-ONBOARD-* 20개 발급 <span class="sha">4d882d5</span></div>
-    <div class="item docs"><span class="pr-num">#267</span> UC + ARCH-ONBOARD-01..06 + API-83..86 <span class="sha">105b835</span></div>
-    <div class="item docs"><span class="pr-num">#269</span> ADR-0021 발급 + ADR-0020 partial supersession <span class="sha">a2e751a</span></div>
-    <div class="item docs"><span class="pr-num">#270</span> codex hotfix #1 (§16.3 INSERT/UPDATE + §6.1 scope) <span class="sha">175bf9a</span></div>
-    <div class="item docs"><span class="pr-num">#271</span> IMPL carve plan + RM-ONBOARD-01..04 + reservation fix (14 위치) <span class="sha">759f101</span></div>
-    <div class="item docs"><span class="pr-num">#276</span> codex hotfix #2 (ADR scope cross-doc sync) <span class="sha">703b0f3</span></div>
-    <div class="item merged"><span class="pr-num">#278</span> <strong>Carve A backend</strong> ⚡ — migration 000033 + 5 handler + UT 13 <span class="sha">4a77d08</span></div>
-    <div class="item codex"><span class="pr-num">#277</span> Codex deploy refactor (DEVHUB_PUBLIC_BASE_URL + db-migrate) + claude follow-up <span class="sha">d730fc6</span></div>
+  <div class="chart-wrap">
+    <div class="chart-title">시간순 PR 머지</div>
+    <canvas id="chart-pr-timeline" data-chart></canvas>
   </div>
 
   <details>
-    <summary>오늘의 학습 3건 (memory 저장)</summary>
-    <ul>
-      <li><strong>ADR supersession 의 cross-document scope sync</strong> — PR #270 ↔ #276 round. 한쪽 ADR 만 update 시 mismatch 위험.</li>
-      <li><strong>Stacked PR + base merge = auto-close</strong> — PR #268 → #269 recreate. base squash merge + delete-branch 가 stacked PR 을 auto-close.</li>
-      <li><strong>Codex review cycle 2-round 패턴</strong> — self-review → codex round 1 → round 2. 매번 catch 항목 다름.</li>
-    </ul>
+    <summary>10 PR list (펼치기)</summary>
+    <div class="timeline">
+      <div class="item docs"><span class="pr-num">#265</span>concept §5.9 skip-and-resume <span class="sha">e9b7543</span></div>
+      <div class="item docs"><span class="pr-num">#266</span>REQ-FR/NFR-ONBOARD-* 20개 <span class="sha">4d882d5</span></div>
+      <div class="item docs"><span class="pr-num">#267</span>UC + ARCH + API-83..86 <span class="sha">105b835</span></div>
+      <div class="item docs"><span class="pr-num">#269</span>ADR-0021 + ADR-0020 partial supersession <span class="sha">a2e751a</span></div>
+      <div class="item docs"><span class="pr-num">#270</span>codex hotfix #1 <span class="sha">175bf9a</span></div>
+      <div class="item docs"><span class="pr-num">#271</span>IMPL carve plan + RM-ONBOARD-01..04 <span class="sha">759f101</span></div>
+      <div class="item docs"><span class="pr-num">#276</span>codex hotfix #2 <span class="sha">703b0f3</span></div>
+      <div class="item merged"><span class="pr-num">#278</span><strong>Carve A backend</strong> ⚡ <span class="sha">4a77d08</span></div>
+      <div class="item codex"><span class="pr-num">#277</span>Codex deploy refactor + follow-up <span class="sha">d730fc6</span></div>
+    </div>
   </details>
 </section>
 
-<!-- ═══════════════════════════════════════════════════════════════
-     §12 잔여 carve
-══════════════════════════════════════════════════════════════ -->
-<section id="carve">
-  <h2>12. 잔여 carve (D-25 기준)</h2>
+<!-- ═══════ slide 16: 잔여 carve ═══════ -->
+<section class="slide" id="carve">
+  <span class="slide-num"></span>
+  <h2>15. 잔여 carve <span class="h2-tag">— D-25 기준</span></h2>
 
   <h3>v1.0 차단 — 1건</h3>
   <table>
     <thead><tr><th>Issue</th><th>항목</th><th>Worker</th><th>비고</th></tr></thead>
     <tbody>
-      <tr><td>#214</td><td>P1-3 Keycloak group staging-prod 적용</td><td>사용자 + Codex</td><td>Keycloak admin 1회 작업 (group 4 생성 + composite role assign)</td></tr>
+      <tr><td>#214</td><td>P1-3 Keycloak group staging-prod 적용</td><td>사용자 + Codex</td><td>Keycloak admin 1회 작업</td></tr>
     </tbody>
   </table>
 
@@ -506,59 +557,64 @@
   <table>
     <thead><tr><th>Issue</th><th>Carve</th><th>Worker</th><th>의존</th></tr></thead>
     <tbody>
-      <tr><td>#273</td><td>RM-ONBOARD-02 frontend (page + picker + banner)</td><td>Gemini</td><td>Carve A 머지 후 ✅</td></tr>
-      <tr><td>#274</td><td>RM-ONBOARD-03 admin UI (Confirm Review)</td><td>Gemini</td><td>Carve A 머지 후 ✅ (병행)</td></tr>
-      <tr><td>#275</td><td>RM-ONBOARD-04 tests (UT + E2E mega lifecycle)</td><td>Claude+Gemini</td><td>A+B+C 모두 머지 후</td></tr>
+      <tr><td>#273</td><td>RM-ONBOARD-02 frontend</td><td>Gemini</td><td>Carve A 머지 후 ✅</td></tr>
+      <tr><td>#274</td><td>RM-ONBOARD-03 admin UI</td><td>Gemini</td><td>Carve A 머지 후 ✅ (병행)</td></tr>
+      <tr><td>#275</td><td>RM-ONBOARD-04 tests (UT + E2E)</td><td>Claude + Gemini</td><td>A+B+C 모두 머지 후</td></tr>
     </tbody>
   </table>
 
-  <p><strong>Feature flag default ON flip</strong> 은 별도 hotfix PR — Carve D acceptance + 1주 staging monitoring 후.</p>
+  <p style="margin-top: 14px;"><strong>Feature flag default ON flip</strong> — Carve D acceptance + 1주 staging monitoring 후 별도 hotfix PR.</p>
 
   <h3>v2 P3 — 10 carve</h3>
-  <p>HA Phase 2 / SPI push / WebSocket replay / AI Gardener / Gitea Hourly Pull / 외부 SSO / PermissionCache LISTEN-NOTIFY / System Admin dashboard / ADR-0015 dedicated worker / push-pull dedup.</p>
+  <p style="font-size: 0.92em; color: var(--fg-muted);">HA Phase 2 / SPI push / WebSocket replay / AI Gardener / Gitea Hourly Pull / 외부 SSO / PermissionCache LISTEN-NOTIFY / System Admin dashboard / ADR-0015 dedicated worker / push-pull dedup.</p>
 </section>
 
-<!-- ═══════════════════════════════════════════════════════════════
-     §13 핵심 메시지
-══════════════════════════════════════════════════════════════ -->
-<section id="takeaways">
-  <h2>13. 핵심 메시지 (학습회 정리)</h2>
+<!-- ═══════ slide 17: 핵심 메시지 ═══════ -->
+<section class="slide" id="takeaways">
+  <span class="slide-num"></span>
+  <h2>16. 핵심 메시지 <span class="h2-tag">— 학습회 정리</span></h2>
 
-  <div class="grid">
+  <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));">
     <div class="card highlight">
       <h4>1. Onboarding 도메인 1차 종합 closing</h4>
-      <p>2026-05-21 단일 일자에 <strong>10 머지 PR 누적</strong>으로 concept → REQ → ARCH/API → ADR → IMPL plan → Carve A backend 완성. M-v1.1 P2-8 ✅, P2-9/10/11 잔여.</p>
+      <p>2026-05-21 <strong>10 머지 PR 누적</strong>으로 concept → REQ → ARCH/API → ADR → IMPL plan → Carve A backend 완성.</p>
     </div>
     <div class="card highlight">
       <h4>2. Feature flag 안전망</h4>
-      <p>Carve A 머지 후에도 <code>DEVHUB_ONBOARDING_GATE_ENABLED=false</code> (default) — main 동작 변경 없음. Carve D acceptance + 1주 monitoring 후 hotfix PR 으로 default ON flip.</p>
+      <p>Carve A 머지 후에도 <code>DEVHUB_ONBOARDING_GATE_ENABLED=false</code> default — main 동작 변경 없음.</p>
     </div>
     <div class="card highlight">
       <h4>3. 17 도메인 × 8 chain ≈ 85% 채움</h4>
-      <p>매트릭스 136 cell 중 약 110 채움. M4 (Realtime/AI) + v2 (gRPC AI) 는 의도된 후속.</p>
+      <p>매트릭스 136 cell 중 약 110 채움. M4 (Realtime/AI) + v2 (gRPC) 는 의도된 후속.</p>
     </div>
     <div class="card highlight">
       <h4>4. 3-worker 분업</h4>
-      <p>Claude (backend + ADR + design) + Gemini (frontend + UX) + Codex (infra + CI + deploy) + 사용자 (사내 1회 작업).</p>
+      <p>Claude (backend + ADR) + Gemini (frontend + UX) + Codex (infra + CI) + 사용자 (사내).</p>
     </div>
     <div class="card highlight">
       <h4>5. v1.0 차단 1건만</h4>
-      <p>운영 자산 모두 준비 — <code>#214 Keycloak group staging-prod</code> 사내 운영자 1회 작업이 release blocker.</p>
+      <p>운영 자산 모두 준비 — <code>#214 Keycloak group staging-prod</code> 1회 작업이 release blocker.</p>
     </div>
     <div class="card highlight">
       <h4>6. 자동화된 추적성</h4>
-      <p>PR 마다 7단계 ID + matrix 갱신 강제. immutable ID. 9개월 후 신규 합류자가 PR #260 → ADR-0021 → migration 000033 → handler 까지 따라갈 수 있음.</p>
+      <p>PR 마다 7단계 ID + matrix 갱신 강제. 9개월 후 신규 합류자가 chain 전체 추적 가능.</p>
     </div>
   </div>
 </section>
 
-<footer class="foot">
-  <p>DevHub Example 학습회 자료 · main HEAD <code>d730fc6</code> · 2026-05-21</p>
-  <p>Sources: <a href="./01-project-overview.md">01-overview</a> · <a href="./02-roadmap-and-docs.md">02-roadmap</a> · <a href="./03-traceability-summary.md">03-traceability</a> · <a href="./04-implementation-status.md">04-implementation</a></p>
-  <p style="margin-top: 8px; color: var(--fg-dim);">Generated with Claude Code · 차트는 Chart.js 4.4.0 (로컬 vendor)</p>
-</footer>
+<!-- ═══════ slide 18: outro ═══════ -->
+<section class="slide outro" id="outro">
+  <h2>감사합니다 🙏</h2>
+  <p style="font-size: 1.3em; color: var(--fg-muted);">Q&amp;A 환영합니다.</p>
+  <div class="signature">
+    <p>DevHub Example · main HEAD <code>d730fc6</code> · 2026-05-21</p>
+    <p>Sources: <a href="./01-project-overview.md">01-overview</a> · <a href="./02-roadmap-and-docs.md">02-roadmap</a> · <a href="./03-traceability-summary.md">03-traceability</a> · <a href="./04-implementation-status.md">04-implementation</a></p>
+    <p style="margin-top: 12px;">Generated with Claude Code · Chart.js 4.4.0 로컬 vendor · 슬라이드: ← → / Space / PgUp PgDn</p>
+  </div>
+</section>
 
-</div><!-- /.page -->
+</div><!-- /.slides -->
+</div><!-- /.slideshow -->
 
 <script src="./vendor/chart.umd.min.js"></script>
 <script src="./app.js"></script>

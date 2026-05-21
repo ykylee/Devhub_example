@@ -1,5 +1,6 @@
-/* DevHub Example 학습회 자료 — 2026-05-21
- * Style: dark/light hybrid, semantic theme, slide-style scroll layout
+/* DevHub Example 학습회 자료 — 2026-05-21 (Slideshow Edition)
+ * - 1 viewport = 1 slide, 키보드 ← → / PgUp PgDn / Home End navigation
+ * - scroll-snap + transform 하이브리드. SVG 다이어그램 시각화.
  */
 
 :root {
@@ -16,139 +17,308 @@
   --gap: #f97316;
   --skip: #475569;
   --border: #334155;
-  --shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+  --shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
   --radius: 10px;
 }
 
 * { box-sizing: border-box; }
 
-html, body {
+html { overflow: hidden; }
+
+body {
   margin: 0;
-  padding: 0;
   background: var(--bg);
   color: var(--fg);
   font-family: -apple-system, "Segoe UI", "Noto Sans KR", Roboto, sans-serif;
-  font-size: 16px;
-  line-height: 1.6;
-  scroll-behavior: smooth;
+  font-size: 15px;
+  line-height: 1.5;
+  overflow: hidden;
+  height: 100vh;
 }
 
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 code, pre { font-family: "JetBrains Mono", Consolas, monospace; }
 code { background: rgba(56, 189, 248, 0.12); color: var(--accent); padding: 1px 6px; border-radius: 4px; font-size: 0.9em; }
-pre { background: var(--bg-elev); padding: 14px 18px; border-radius: var(--radius); overflow-x: auto; border: 1px solid var(--border); font-size: 0.85em; }
+pre { background: var(--bg-elev); padding: 12px 16px; border-radius: var(--radius); overflow-x: auto; border: 1px solid var(--border); font-size: 0.78em; }
 pre code { background: transparent; color: var(--fg); padding: 0; }
 
-/* layout */
-.page {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 24px 32px 96px;
+/* ────────── slideshow framework ──────────────────────── */
+
+.slideshow {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
 }
 
-header.cover {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #312e81 100%);
-  padding: 80px 32px;
+.slides {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
+.slide {
+  flex: 0 0 100vw;
+  width: 100vw;
+  height: 100vh;
+  padding: 56px 80px 80px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) transparent;
+  position: relative;
+}
+
+.slide::-webkit-scrollbar { width: 8px; }
+.slide::-webkit-scrollbar-track { background: transparent; }
+.slide::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 4px; }
+
+/* slide number indicator (top-right) */
+.slide-num {
+  position: absolute;
+  top: 16px;
+  right: 24px;
+  font-size: 0.8em;
+  color: var(--fg-dim);
+  background: var(--bg-elev);
+  padding: 4px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+/* progress bar (bottom) */
+.progress-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  transition: width 0.3s ease;
+  z-index: 50;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+}
+
+/* navigation controls (bottom-right) */
+.slide-controls {
+  position: fixed;
+  bottom: 16px;
+  right: 24px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(10px);
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  z-index: 60;
+  font-size: 0.85em;
+  color: var(--fg-muted);
+}
+
+.slide-controls button {
+  background: var(--bg-elev);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.slide-controls button:hover {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+}
+
+.slide-controls button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.slide-controls .counter {
+  min-width: 60px;
   text-align: center;
-  border-bottom: 3px solid var(--accent);
-  margin-bottom: 32px;
+  font-family: "JetBrains Mono", monospace;
 }
 
-header.cover h1 {
-  font-size: 2.6em;
-  margin: 0 0 16px;
+/* slide menu toggle (top-left) */
+.slide-menu-toggle {
+  position: fixed;
+  top: 16px;
+  left: 24px;
+  background: var(--bg-elev);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85em;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+}
+
+.slide-menu-toggle:hover {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+}
+
+.slide-menu {
+  position: fixed;
+  top: 60px;
+  left: 24px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  z-index: 70;
+  max-height: 80vh;
+  overflow-y: auto;
+  min-width: 280px;
+  box-shadow: var(--shadow);
+  display: none;
+}
+
+.slide-menu.open { display: block; }
+
+.slide-menu a {
+  display: block;
+  padding: 8px 12px;
+  border-radius: 6px;
+  color: var(--fg-muted);
+  font-size: 0.88em;
+  margin-bottom: 2px;
+  transition: all 0.1s ease;
+}
+
+.slide-menu a:hover, .slide-menu a.active {
+  background: var(--bg);
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.slide-menu a .idx {
+  display: inline-block;
+  width: 26px;
+  color: var(--fg-dim);
+  font-family: "JetBrains Mono", monospace;
+}
+
+/* ────────── cover slide (1st) ───────────────────────── */
+
+.slide.cover {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: radial-gradient(ellipse at center, #1e293b 0%, #0f172a 70%);
+  padding-top: 80px;
+}
+
+.slide.cover h1 {
+  font-size: 4.2em;
+  margin: 0 0 24px;
   background: linear-gradient(90deg, var(--accent), var(--accent-2));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  line-height: 1.1;
 }
 
-header.cover .subtitle {
-  font-size: 1.2em;
+.slide.cover .subtitle {
+  font-size: 1.5em;
   color: var(--fg-muted);
-  margin-bottom: 8px;
+  margin-bottom: 32px;
 }
 
-header.cover .meta {
-  font-size: 0.9em;
-  color: var(--fg-dim);
-}
-
-/* nav */
-nav.toc {
-  position: sticky;
-  top: 0;
-  background: rgba(15, 23, 42, 0.95);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--border);
-  padding: 12px 32px;
-  z-index: 100;
-  margin: -24px -32px 32px;
+.slide.cover .meta {
   display: flex;
-  gap: 6px;
+  gap: 12px;
   flex-wrap: wrap;
-  overflow-x: auto;
-  scrollbar-width: thin;
+  justify-content: center;
 }
 
-nav.toc a {
-  white-space: nowrap;
-  padding: 6px 12px;
-  border-radius: 6px;
-  color: var(--fg-muted);
-  font-size: 0.88em;
-  border: 1px solid transparent;
-  transition: all 0.15s ease;
+.slide.cover .hint {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--fg-dim);
+  font-size: 0.85em;
+  text-align: center;
 }
 
-nav.toc a:hover {
+.slide.cover .hint kbd {
+  display: inline-block;
   background: var(--bg-elev);
-  color: var(--fg);
-  text-decoration: none;
-  border-color: var(--border);
-}
-
-/* sections */
-section {
-  margin-bottom: 56px;
-  scroll-margin-top: 80px;
-}
-
-section h2 {
-  font-size: 1.7em;
-  border-left: 4px solid var(--accent);
-  padding-left: 14px;
-  margin-bottom: 20px;
-  color: var(--fg);
-}
-
-section h3 {
-  font-size: 1.2em;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: "JetBrains Mono", monospace;
+  margin: 0 2px;
+  font-size: 0.9em;
   color: var(--accent);
-  margin: 28px 0 12px;
 }
 
-section h4 {
+/* ────────── headings / typography ───────────────────── */
+
+.slide h2 {
+  font-size: 2em;
+  border-left: 5px solid var(--accent);
+  padding-left: 16px;
+  margin: 0 0 24px;
+  color: var(--fg);
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+
+.slide h2 .h2-tag {
+  font-size: 0.55em;
+  color: var(--fg-dim);
+  font-weight: 400;
+}
+
+.slide h3 {
+  font-size: 1.25em;
+  color: var(--accent);
+  margin: 22px 0 12px;
+}
+
+.slide h4 {
   font-size: 1.05em;
   color: var(--accent-2);
-  margin: 20px 0 8px;
+  margin: 16px 0 6px;
 }
 
-p, li { color: var(--fg); }
-li { margin: 4px 0; }
+.slide p, .slide li { color: var(--fg); margin: 4px 0; }
 
-/* cards + grid */
+/* ────────── cards / grid ────────────────────────────── */
+
 .grid {
   display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
 
 .card {
   background: var(--bg-card);
   border-radius: var(--radius);
-  padding: 18px 22px;
+  padding: 16px 20px;
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
 }
@@ -171,24 +341,22 @@ li { margin: 4px 0; }
   margin-bottom: 4px;
 }
 
-.card .label {
-  color: var(--fg-muted);
-  font-size: 0.9em;
-}
+.card .label { color: var(--fg-muted); font-size: 0.88em; }
 
-/* tables */
+/* ────────── tables ──────────────────────────────────── */
+
 table {
   width: 100%;
   border-collapse: collapse;
-  margin: 16px 0;
+  margin: 12px 0;
   background: var(--bg-card);
   border-radius: var(--radius);
   overflow: hidden;
-  font-size: 0.92em;
+  font-size: 0.88em;
 }
 
 th, td {
-  padding: 10px 14px;
+  padding: 8px 12px;
   text-align: left;
   border-bottom: 1px solid var(--border);
   vertical-align: top;
@@ -198,7 +366,7 @@ th {
   background: var(--bg-elev);
   color: var(--accent);
   font-weight: 600;
-  font-size: 0.85em;
+  font-size: 0.82em;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -212,35 +380,36 @@ td .partial { color: var(--warn); font-weight: 700; }
 td .skip { color: var(--skip); font-weight: 700; }
 td .new { color: var(--accent-2); font-weight: 700; }
 
-/* chart container */
+/* ────────── chart container ─────────────────────────── */
+
 .chart-wrap {
   background: var(--bg-card);
   border-radius: var(--radius);
-  padding: 20px;
+  padding: 16px;
   border: 1px solid var(--border);
-  margin: 16px 0;
+  margin: 12px 0;
   box-shadow: var(--shadow);
 }
 
 .chart-wrap .chart-title {
-  font-size: 1em;
+  font-size: 0.95em;
   color: var(--fg);
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   text-align: center;
+  font-weight: 500;
 }
 
 .chart-wrap canvas {
-  max-height: 380px;
+  max-height: 50vh !important;
 }
 
-.chart-wrap.tall canvas { max-height: 480px; }
+/* ────────── collapsible details ─────────────────────── */
 
-/* collapsible */
 details {
   background: var(--bg-card);
   border-radius: var(--radius);
-  padding: 14px 18px;
-  margin: 12px 0;
+  padding: 12px 16px;
+  margin: 10px 0;
   border: 1px solid var(--border);
 }
 
@@ -249,6 +418,7 @@ details summary {
   font-weight: 600;
   color: var(--accent);
   padding: 4px 0;
+  font-size: 0.92em;
 }
 
 details summary:hover { color: var(--accent-2); }
@@ -258,17 +428,18 @@ details[open] {
 }
 
 details[open] summary {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   border-bottom: 1px solid var(--border);
-  padding-bottom: 8px;
+  padding-bottom: 6px;
 }
 
-/* badges */
+/* ────────── badges ──────────────────────────────────── */
+
 .badge {
   display: inline-block;
-  padding: 2px 10px;
+  padding: 3px 12px;
   border-radius: 12px;
-  font-size: 0.75em;
+  font-size: 0.78em;
   font-weight: 600;
   background: var(--bg-elev);
   border: 1px solid var(--border);
@@ -281,17 +452,8 @@ details[open] summary {
 .badge.accent{ background: rgba(56, 189, 248, 0.15); color: var(--accent); border-color: var(--accent); }
 .badge.new   { background: rgba(167, 139, 250, 0.15); color: var(--accent-2); border-color: var(--accent-2); }
 
-/* footer */
-footer.foot {
-  margin-top: 60px;
-  padding: 24px 0;
-  border-top: 1px solid var(--border);
-  text-align: center;
-  color: var(--fg-dim);
-  font-size: 0.85em;
-}
+/* ────────── heatmap (CSS grid) ──────────────────────── */
 
-/* heatmap (simple CSS grid) */
 .heatmap {
   display: grid;
   grid-template-columns: 180px repeat(8, 1fr);
@@ -299,9 +461,7 @@ footer.foot {
   font-size: 0.78em;
 }
 
-.heatmap .hm-row {
-  display: contents;
-}
+.heatmap .hm-row { display: contents; }
 
 .heatmap .hm-domain {
   padding: 6px 10px;
@@ -317,7 +477,7 @@ footer.foot {
   color: var(--accent);
   font-weight: 700;
   text-transform: uppercase;
-  font-size: 0.75em;
+  font-size: 0.72em;
 }
 
 .heatmap .hm-cell {
@@ -331,30 +491,32 @@ footer.foot {
 .hm-cell.partial { background: rgba(234, 179, 8, 0.25); color: var(--warn); }
 .hm-cell.skip { background: rgba(71, 85, 105, 0.25); color: var(--fg-dim); }
 
-/* timeline */
+/* ────────── timeline (vertical) ─────────────────────── */
+
 .timeline {
   position: relative;
-  padding-left: 32px;
+  padding-left: 28px;
   border-left: 2px solid var(--border);
-  margin: 16px 0;
+  margin: 12px 0;
 }
 
 .timeline .item {
   position: relative;
-  margin-bottom: 16px;
-  padding: 8px 16px;
+  margin-bottom: 12px;
+  padding: 7px 14px;
   background: var(--bg-card);
   border-radius: var(--radius);
   border: 1px solid var(--border);
+  font-size: 0.88em;
 }
 
 .timeline .item::before {
   content: "";
   position: absolute;
-  left: -40px;
-  top: 16px;
-  width: 14px;
-  height: 14px;
+  left: -36px;
+  top: 14px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   background: var(--accent);
   border: 3px solid var(--bg);
@@ -376,18 +538,114 @@ footer.foot {
   color: var(--fg-dim);
 }
 
-/* responsive */
-@media (max-width: 720px) {
-  .page { padding: 16px; }
-  header.cover { padding: 48px 16px; }
-  header.cover h1 { font-size: 1.8em; }
-  nav.toc { margin: -16px -16px 24px; padding: 8px 16px; }
+/* ────────── SVG diagram ─────────────────────────────── */
+
+.diagram {
+  width: 100%;
+  max-height: 60vh;
+  margin: 12px 0;
+  display: block;
+}
+
+.diagram .node {
+  fill: var(--bg-card);
+  stroke: var(--border);
+  stroke-width: 1.5;
+  rx: 8;
+  ry: 8;
+}
+
+.diagram .node.primary { stroke: var(--accent); stroke-width: 2; }
+.diagram .node.accent2 { stroke: var(--accent-2); stroke-width: 2; }
+.diagram .node.ok { stroke: var(--ok); stroke-width: 2; fill: rgba(34, 197, 94, 0.1); }
+.diagram .node.warn { stroke: var(--warn); stroke-width: 2; fill: rgba(234, 179, 8, 0.1); }
+.diagram .node.user { stroke: var(--accent-2); stroke-width: 2; fill: rgba(167, 139, 250, 0.1); }
+.diagram .node.new { stroke: var(--accent-2); stroke-width: 3; fill: rgba(167, 139, 250, 0.15); }
+
+.diagram text {
+  fill: var(--fg);
+  font-family: -apple-system, "Segoe UI", "Noto Sans KR", sans-serif;
+  font-size: 13px;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.diagram text.label {
+  fill: var(--accent);
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.diagram text.sub {
+  fill: var(--fg-muted);
+  font-size: 11px;
+}
+
+.diagram .edge {
+  stroke: var(--accent);
+  stroke-width: 2;
+  fill: none;
+  marker-end: url(#arrow);
+}
+
+.diagram .edge.dim { stroke: var(--fg-dim); }
+.diagram .edge.dashed { stroke-dasharray: 5,3; }
+
+.diagram .group-bg {
+  fill: rgba(56, 189, 248, 0.04);
+  stroke: rgba(56, 189, 248, 0.3);
+  stroke-width: 1;
+  stroke-dasharray: 4,3;
+  rx: 12;
+  ry: 12;
+}
+
+/* ────────── footer ──────────────────────────────────── */
+
+.slide.outro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding-top: 80px;
+}
+
+.slide.outro h2 {
+  border-left: none;
+  padding-left: 0;
+  font-size: 3em;
+  margin-bottom: 24px;
+}
+
+.slide.outro .signature {
+  color: var(--fg-dim);
+  font-size: 0.9em;
+  margin-top: 32px;
+}
+
+/* ────────── responsive ──────────────────────────────── */
+
+@media (max-width: 980px) {
+  .slide { padding: 48px 40px 64px; }
+  .slide.cover h1 { font-size: 2.8em; }
+  .slide h2 { font-size: 1.6em; }
   .heatmap { grid-template-columns: 120px repeat(8, 1fr); font-size: 0.65em; }
+  .chart-wrap canvas { max-height: 45vh !important; }
+}
+
+@media (max-width: 640px) {
+  .slide { padding: 40px 20px 60px; }
+  .slide.cover h1 { font-size: 2em; }
+  .slide h2 { font-size: 1.3em; }
+  .slide-controls { right: 12px; bottom: 12px; }
+  .slide-menu-toggle { left: 12px; top: 12px; }
 }
 
 /* print */
 @media print {
-  body { background: white; color: black; }
-  nav.toc { display: none; }
-  .chart-wrap canvas { max-height: 280px; }
+  html, body { overflow: visible; height: auto; }
+  .slides { display: block; transform: none !important; }
+  .slide { width: 100%; height: auto; min-height: 100vh; page-break-after: always; }
+  .slide-controls, .slide-menu-toggle, .progress-bar { display: none; }
 }
