@@ -168,19 +168,25 @@ function seedDevhubUsers(idMap: Record<string, string>): void {
   }
 
   // Dynamic SQL for UPSERTing users with correct idp_subject (sprint -m design Option 1).
+  // PR #290 의 OnboardingGateEnabled default ON flip 이후, onboarding_completed_at NULL
+  // 사용자는 backend `onboardingGate` 가 allowlist 외 endpoint 호출을 403 으로 차단한다.
+  // e2e seed users 는 onboarding 완료 상태 (`reviewed`) 로 INSERT 해 admin/account 등
+  // 보호 endpoint 접근을 허용한다 (codex hotfix PR #288 회귀 추적의 e2e 갈래).
   const values = SEEDS.map(s => {
     const sub = idMap[s.email] ?? "";
-    return `('${sqlEscape(s.user_id)}', '${sqlEscape(s.email)}', '${sqlEscape(s.display_name)}', '${sqlEscape(s.role)}', 'active', '2026-01-01', 'human', '${sqlEscape(sub)}')`;
+    return `('${sqlEscape(s.user_id)}', '${sqlEscape(s.email)}', '${sqlEscape(s.display_name)}', '${sqlEscape(s.role)}', 'active', '2026-01-01', 'human', '${sqlEscape(sub)}', NOW(), 'reviewed')`;
   }).join(",\n    ");
 
   const sql = `-- Dynamic seed from global-setup.ts
-INSERT INTO users (user_id, email, display_name, role, status, joined_at, user_type, idp_subject)
+INSERT INTO users (user_id, email, display_name, role, status, joined_at, user_type, idp_subject, onboarding_completed_at, review_status)
 VALUES
     ${values}
 ON CONFLICT (user_id) DO UPDATE SET
     idp_subject = EXCLUDED.idp_subject,
     role = EXCLUDED.role,
-    status = EXCLUDED.status;
+    status = EXCLUDED.status,
+    onboarding_completed_at = EXCLUDED.onboarding_completed_at,
+    review_status = EXCLUDED.review_status;
 `;
 
   // Unique file name — parallel e2e shard 간 collision 회피 (process.pid + timestamp).
