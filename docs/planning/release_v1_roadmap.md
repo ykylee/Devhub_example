@@ -84,7 +84,7 @@
 | 모듈 | 위치 (backend) | 위치 (frontend) | v1.0 상태 |
 | --- | --- | --- | --- |
 | Concept §5.1~§5.9 + skip-and-resume | — (design doc) | — | ✅ done (PR #260 + #265) |
-| Requirements §5.7 (REQ-FR-ONBOARD-001..012 + REQ-NFR-001..008) | — (spec) | — | ✅ done (PR #266) |
+| Requirements §5.7 (REQ-FR-ONBOARD-001..012 + REQ-NFR-ONBOARD-001..008) | — (spec) | — | ✅ done (PR #266) |
 | Usecase + Architecture + API contract | — (spec) | — | ✅ done (PR #267 — UC-ONBOARD-01..11 + ARCH-ONBOARD-01..06 + API-83..86 + API-32/33 확장) |
 | ADR-0021 (책임 경계 확장 + lazy auto-create supersession) | — (ADR) | — | ✅ done (PR #269, ADR-0020 partial supersession 5 위치) |
 | IMPL carve plan + RM-ONBOARD-01..04 | [`docs/planning/onboarding_impl_plan.md`](./onboarding_impl_plan.md) | — | 본 sprint done |
