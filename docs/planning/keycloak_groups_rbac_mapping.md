@@ -156,7 +156,7 @@ Phase 2 진입 시 옵션 C 로 확장 시:
 
 - nested group hierarchy 요구 발생 시
 - backend `keycloak_verifier.go` 의 `extractRole` 에 groups claim 4단계 추가
-- 별도 ADR (ADR-0021 후보) 발행
+- 별도 ADR (별도 ADR 후보 (ADR-0021 은 Onboarding 으로 2026-05-21 발급됨 — Phase 2 진입 시점에 다음 번호 사용)) 발행
 
 ## 7. 보안 점검
 
@@ -177,7 +177,7 @@ Phase 2 진입 시 옵션 C 로 확장 시:
 ## 8. 잔여 carve out / open question
 
 - **(carve)** SCIM bridge / LDAP federation 자동 group sync — HR 시스템 → Keycloak group 자동 동기화. Phase 2 carve.
-- **(carve)** 옵션 C 의 multi-role 정책 — backend `users.role` single string 변경 + RBAC policy 재설계. ADR-0021 후보.
+- **(carve)** 옵션 C 의 multi-role 정책 — backend `users.role` single string 변경 + RBAC policy 재설계. 별도 ADR 후보 (ADR-0021 은 Onboarding 으로 2026-05-21 발급됨 — Phase 2 진입 시점에 다음 번호 사용).
 - **(carve)** Keycloak token 의 role include order — multi group composite 시 `realm_access.roles[0]` 가 어느 role 인지 검수 SOP.
 - **(carve)** keycloak_event_audit_integration.md §4.2 admin event 매핑 표에 `GROUP_MEMBERSHIP:CREATE/DELETE` row 추가 — design + audit 통합 sprint 정합.
 - **(closed by codex review #9)** Default Group 정책 — **미설정 권장** (§3.2 step 3). 사유: backend `extractKeycloakRole` 의 `realm_access.roles[0]` 사용으로 인한 multi-role order-dependency 위험.
