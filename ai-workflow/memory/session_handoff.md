@@ -32,7 +32,7 @@
    - Carve C (#274) — `/admin/settings/users` 의 Confirm Review 액션 + pending_review filter.
    - Carve D (#275) — UT mega lifecycle + TC-ONBOARD-* 11 E2E + 6 test seed.
 3. **Feature flag default ON flip** — Carve D acceptance + 1주 staging monitoring 후 별도 hotfix PR.
-4. **lazy_auto_create.go deletion** — Carve D + default ON flip 후 별도 hotfix PR (M-v1.1 후반).
+4. **lazy_auto_create.go deletion** — Carve D + default ON flip 후 별도 hotfix PR (M-v1.1 후반). **GitHub issue #284 등록** (P2-12, priority/p2 + worker/claude + domain/auth + type/refactor, M-v1.1) — prerequisite 5 단계 (Carve B/C/D 머지 + flag default ON flip + 1주 monitoring) + deletion scope (lazy_auto_create.go + onboarding_feature_flag.go 2 파일 삭제 + authenticateActor flag 분기 제거 + audit event emit 중단 + UT 정리) + acceptance 9건 + dependencies 다이어그램 명세.
 
 ## 학습 5건 (memory 저장)
 

@@ -4,7 +4,7 @@
 - 범위: 1차 릴리즈에 포함될 기능 scope, 제외 기능, 잔여 carve 우선순위, 신규 마일스톤(M-v1.0, M-v1.1, M-v2), GitHub project + milestone 등록 plan, UI 검증 방식.
 - 대상 독자: 프로젝트 리드, 모든 워커 (Claude, Codex, Gemini), 후속 작업자.
 - 상태: draft
-- 최종 수정일: 2026-05-21 (Onboarding 도메인 §2.3 신규 + P2-8..11 IMPL carve 4건 추가 + ADR-0021 reservation 정정 (HA Phase 2))
+- 최종 수정일: 2026-05-21 (Onboarding 도메인 §2.3 신규 + P2-8..11 IMPL carve 4건 + P2-12 lazy_auto_create deletion issue #284 + ADR-0021 reservation 정정)
 - 결정 근거 sprint: `claude/work_260520-f-roadmap` (본 문서)
 - 관련 문서: [통합 개발 로드맵](../development_roadmap.md) (M0~M6 historical), [requirements](../requirements.md), [architecture](../architecture.md), [ADR-0019 Keycloak](../adr/0019-keycloak-only-idp.md), [ADR-0020 계정/사용자 책임 경계](../adr/0020-account-user-management-boundary.md), [traceability matrix](../traceability/report.md), [account_user_management_redesign Phase 1/2/3](./account_user_management_redesign.md), [keycloak_operations](../setup/keycloak_operations.md).
 
@@ -139,6 +139,7 @@
 | **P2-9** | **RM-ONBOARD-02** IMPL-frontend — `/onboarding` page + OrganizationPicker (typeahead + tree) + skip flag sessionStorage + dismissible banner + `(dashboard)/layout.tsx` 3-branch gating + `/account` self-service unit edit | ADR-0021 §6.1, [onboarding_impl_plan.md](./onboarding_impl_plan.md) §2.2 | **Gemini (frontend+UX)** | Carve A 머지 후 진입. Carve C 와 병행 가능 |
 | **P2-10** | **RM-ONBOARD-03** IMPL-admin — `/admin/settings/users` 의 "Confirm Review" 액션 + pending_review filter + `ConfirmReviewModal.tsx` | ADR-0021 §6.1, [onboarding_impl_plan.md](./onboarding_impl_plan.md) §2.3 | **Gemini (frontend)** | Carve A 머지 후 진입. Carve B 와 병행 가능 |
 | **P2-11** | **RM-ONBOARD-04** IMPL-tests — UT-onboarding-* (backend handler + middleware) + TC-ONBOARD-* 11건 (E2E mega lifecycle, REQ-NFR-ONBOARD-008 의 6 test seed) + `docs/tests/test_cases_m7_onboarding.md` | ADR-0021 §6.1, [onboarding_impl_plan.md](./onboarding_impl_plan.md) §2.4 | **Claude (UT) + Gemini (E2E)** | Carve A + B + C 모두 머지 후 |
+| **P2-12** | **lazy_auto_create.go deletion** — ADR-0021 §3.3 정공법 완성. `lazy_auto_create.go` + `onboarding_feature_flag.go` 2 파일 삭제 + `authenticateActor` flag 분기 제거 + `account.lazy_provisioned`/`user.role_default_assigned` audit emit 중단 + UT 정리 + ADR-0020 §4.1 sub-carve B inline banner 갱신 | ADR-0021 §3.3, [issue #284](https://github.com/ykylee/Devhub_example/issues/284) | **Claude (backend)** | Carve D acceptance + feature flag default ON flip + 1주 staging monitoring 후 진입 |
 
 ### 3.4 P3 — v2 후순위
 
@@ -189,6 +190,7 @@
 | **P2-9 RM-ONBOARD-02 IMPL-frontend** (page + picker + banner + gating + /account edit) | P2 | Gemini |
 | **P2-10 RM-ONBOARD-03 IMPL-admin** (Confirm Review + filter) | P2 | Gemini |
 | **P2-11 RM-ONBOARD-04 IMPL-tests** (UT + E2E mega lifecycle) | P2 | Claude+Gemini |
+| **P2-12 lazy_auto_create.go deletion** ([#284](https://github.com/ykylee/Devhub_example/issues/284)) | P2 | Claude |
 | P3-1 sub-carve F `/login` 정리 | P3 | Gemini |
 | ~~P3-12 Sign Up 셀프 가입~~ | **cancelled (2026-05-20)** | — |
 
