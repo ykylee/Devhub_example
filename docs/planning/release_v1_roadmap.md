@@ -4,7 +4,7 @@
 - 범위: 1차 릴리즈에 포함될 기능 scope, 제외 기능, 잔여 carve 우선순위, 신규 마일스톤(M-v1.0, M-v1.1, M-v2), GitHub project + milestone 등록 plan, UI 검증 방식.
 - 대상 독자: 프로젝트 리드, 모든 워커 (Claude, Codex, Gemini), 후속 작업자.
 - 상태: draft
-- 최종 수정일: 2026-05-21 (Onboarding 도메인 §2.3 신규 + P2-8..11 IMPL carve 4건 + P2-12 lazy_auto_create deletion issue #284 + ADR-0021 reservation 정정)
+- 최종 수정일: 2026-05-21 (Onboarding 도메인 §2.3 신규 + P2-8..11 IMPL carve 4건 + P2-12 lazy_auto_create deletion issue #284 + ADR-0021 reservation 정정 + P2-3 stale issue #219 closing 정합)
 - 결정 근거 sprint: `claude/work_260520-f-roadmap` (본 문서)
 - 관련 문서: [통합 개발 로드맵](../development_roadmap.md) (M0~M6 historical), [requirements](../requirements.md), [architecture](../architecture.md), [ADR-0019 Keycloak](../adr/0019-keycloak-only-idp.md), [ADR-0020 계정/사용자 책임 경계](../adr/0020-account-user-management-boundary.md), [traceability matrix](../traceability/report.md), [account_user_management_redesign Phase 1/2/3](./account_user_management_redesign.md), [keycloak_operations](../setup/keycloak_operations.md).
 
@@ -130,7 +130,7 @@
 | --- | --- | --- | --- | --- |
 | **P2-1** | ADR-0020 sub-carve E — service account 권한 축소 (manage-users 제거) + governance SOP `keycloak_operations.md §8.5c` | ADR-0020 §4.1 E | **Codex (infra) + Claude (docs)** | docs only + Keycloak admin SOP. P0-1 머지 후 |
 | **P2-2** | ADR-0016 §6 — pull latency p95 alert + push webhook 알림 + stage→prod 임계 확정 | ADR-0016 §6 (3)+(4)+(5) | **Codex (infra)** | baseline 1주 관찰 후 |
-| **P2-3** | ADR-0017 §6 (b) — PATCH expires_at + admin UI 편집 modal | ADR-0017 §6 (b) | **Gemini (frontend) + Claude (backend)** | 정책 변경 동반 (token rotation 정책) |
+| ~~**P2-3**~~ | ADR-0017 §6 (b) — PATCH expires_at + admin UI 편집 modal | ADR-0017 §6 (b) | **Gemini (frontend) + Claude (backend)** | ✅ **resolved** (PR #137 sprint `gemini/work_260521-c-219-patch-token` + sprint `adr0017-token-mutation`). issue [#219](https://github.com/ykylee/Devhub_example/issues/219) backlog 누락분 closed (2026-05-21 검증). backend handler (`intakeTokenAdminUpdateRequest.ExpiresAt`) + frontend `EditIntakeTokenModal.tsx` + UT (`dev_requests_test.go` line 1335-1359) 모두 active. |
 | **P2-4** | Bindings UI 강화 — scope_id lookup combobox + Edit/Delete + pagination | development_roadmap §6 잔여 | **Gemini (frontend+UX done ✅)** | v1.0 UI polish 동반. backend CRUD 지원 추가 완료. |
 | **P2-5** | React Flow group sub-node + WebSocket 실시간 (`infra.node.updated` / `infra.service.updated`) | development_roadmap §6 잔여 | **Gemini (frontend done ✅)** | topology v2 강화. WebSocket 실시간 연동 및 Environment 그룹화 완료. |
 | **P2-6** | Keycloak SPI provider JAR (PR #203 codex P2) | PR #203 codex review | **Codex (infra) + 사용자 (Java 빌드 환경)** | `infra/idp/devhub-event-listener/` Maven 또는 Gradle 빌드 + compose volume mount + 운영 SOP |
@@ -181,7 +181,7 @@
 | ~~P1-4 off-boarding cron deploy~~ | **cancelled (2026-05-20)** | — |
 | P1-5 e2e Keycloak admin 실 코드 전환 | P1 | Gemini+Codex |
 | P2-2 ADR-0016 §6 alert 임계 | P2 | Codex |
-| P2-3 ADR-0017 §6 (b) PATCH expires_at | P2 | Gemini+Claude |
+| ~~P2-3 ADR-0017 §6 (b) PATCH expires_at~~ | **✅ resolved** (PR #137 + issue #219 closed 2026-05-21) | — |
 | P2-4 Bindings UI 강화 | P2 | Gemini |
 | P2-5 React Flow group + WebSocket 실시간 | P2 | Gemini+Claude |
 | P2-6 Keycloak SPI provider JAR | P2 | Codex+사용자 |
