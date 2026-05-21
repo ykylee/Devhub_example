@@ -222,7 +222,7 @@ test.describe("DREQ E2E", () => {
     expect(patchResult.body.data.expires_at).toBeTruthy();
     const gotTime = new Date(patchResult.body.data.expires_at).getTime();
     const wantTime = new Date(futureDate).getTime();
-    expect(Math.abs(gotTime - wantTime)).toBeLessThan(5000);
+    expect(Math.abs(gotTime - wantTime)).toBeLessThan(1000);
 
     // 정리 — 본 test 가 생성한 token revoke (cleanup, 동일 패턴).
     await page.evaluate(async (id: string) => {

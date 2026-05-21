@@ -2,8 +2,8 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "gemini/work_260521-c-219-patch-token",
-  "status": "2026-05-21 [P2-3] DREQ Intake Token PATCH expires_at & allowed_ips API 및 어드민 UI 편집 모달 구현 완료 (옵션 B 반영)",
-  "updated_at": "2026-05-21T00:17:50Z",
+  "status": "2026-05-21 [P2-3] DREQ Intake Token PATCH expires_at & allowed_ips API 및 어드민 UI 편집 모달 구현 완료 (리뷰 반영 완료 — P1 Blocker + P2 Hardening + P3 피드백 적용)",
+  "updated_at": "2026-05-21T00:43:00Z",
   "head_commit": "87f4262",
   "head_summary": "docs(memory): update flat memory for PR #248 (UI polish) merge and next actions",
   "milestones": {
