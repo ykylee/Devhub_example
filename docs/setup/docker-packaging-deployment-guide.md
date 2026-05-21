@@ -180,6 +180,7 @@ docker compose -f docker-compose.deploy.yml up -d
 `DB_URL`도 필수다. 미지정 시 compose가 오류로 중단된다.
 `DEVHUB_OIDC_CLIENT_SECRET`, `DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET`은 운영 배포 필수값이며, 예시 기본값(`dev-token` 류) 사용은 금지한다.
 `DEVHUB_AUTH_DEV_FALLBACK` 기본값은 `0`(비활성)이며, 배포 환경에서 `1`로 켜지지 않도록 유지한다.
+`db-migrate` 서비스가 항상 선행되어 신규 DB 는 1회 초기 마이그레이션, 기존 DB 는 증분 마이그레이션만 수행한다.
 
 ### 8.1.1 변수 스키마 (권장)
 
@@ -188,6 +189,10 @@ docker compose -f docker-compose.deploy.yml up -d
 - DB: `DB_URL`
 
 `localhost`는 fallback일 뿐 표준값이 아니다. 서버를 분리 배치하는 경우에는 위 3축을 환경별로 명시 주입한다.
+
+issuer/JWKS 분리 권장:
+- `DEVHUB_OIDC_ISSUER_URL`: 브라우저/토큰 claim 과 일치하는 public issuer
+- `DEVHUB_OIDC_JWKS_URL`: backend 가 실제로 접근 가능한 internal JWKS URL (필요 시)
 
 ### 8.1.2 DB 모드 선택
 
@@ -209,6 +214,13 @@ docker compose -f docker-compose.deploy.yml up -d
 
 `docker-compose.deploy.yml`은 `nginx`를 포함한다. 외부 진입은 `https://<host>/devhub` 기준으로 통일하고, `frontend`/`backend-core`/`keycloak`/`backend-ai`는 host에 직접 노출하지 않는다.
 `local-db` 프로필에서는 `db-init` 단계가 keycloak schema를 준비한다.
+
+### 8.1.3 DB 마이그레이션 정책 (자동)
+
+- `db-migrate` 서비스가 `migrate ... up`을 실행한 뒤 `backend-core`가 기동된다.
+- 빈 DB(first deploy): 전체 초기 스키마 자동 생성.
+- 기존 DB(redeploy): 미적용 버전만 증분 적용, 기존 데이터 보존.
+- 실패 시: `backend-core`가 시작되지 않으므로 partial rollout을 조기에 차단.
 
 주의:
 
