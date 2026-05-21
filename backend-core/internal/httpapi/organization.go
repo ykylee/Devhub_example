@@ -60,20 +60,22 @@ type appointmentResponse struct {
 }
 
 type appUserResponse struct {
-	ID            int64                 `json:"id"`
-	UserID        string                `json:"user_id"`
-	Email         string                `json:"email"`
-	DisplayName   string                `json:"display_name"`
-	Role          string                `json:"role"`
-	Status        string                `json:"status"`
-	Type          string                `json:"type"`
-	PrimaryUnitID string                `json:"primary_unit_id,omitempty"`
-	CurrentUnitID string                `json:"current_unit_id,omitempty"`
-	IsSeconded    bool                  `json:"is_seconded"`
-	JoinedAt      time.Time             `json:"joined_at"`
-	Appointments  []appointmentResponse `json:"appointments"`
-	CreatedAt     time.Time             `json:"created_at"`
-	UpdatedAt     time.Time             `json:"updated_at"`
+	ID                    int64                 `json:"id"`
+	UserID                string                `json:"user_id"`
+	Email                 string                `json:"email"`
+	DisplayName           string                `json:"display_name"`
+	Role                  string                `json:"role"`
+	Status                string                `json:"status"`
+	Type                  string                `json:"type"`
+	PrimaryUnitID         string                `json:"primary_unit_id,omitempty"`
+	CurrentUnitID         string                `json:"current_unit_id,omitempty"`
+	IsSeconded            bool                  `json:"is_seconded"`
+	JoinedAt              time.Time             `json:"joined_at"`
+	Appointments          []appointmentResponse `json:"appointments"`
+	CreatedAt             time.Time             `json:"created_at"`
+	UpdatedAt             time.Time             `json:"updated_at"`
+	OnboardingCompletedAt *time.Time            `json:"onboarding_completed_at,omitempty"`
+	ReviewStatus          string                `json:"review_status,omitempty"`
 }
 
 type orgUnitResponse struct {
@@ -110,20 +112,22 @@ func appUserFromDomain(user domain.AppUser) appUserResponse {
 		})
 	}
 	return appUserResponse{
-		ID:            user.ID,
-		UserID:        user.UserID,
-		Email:         user.Email,
-		DisplayName:   user.DisplayName,
-		Role:          string(user.Role),
-		Status:        string(user.Status),
-		Type:          string(user.Type),
-		PrimaryUnitID: user.PrimaryUnitID,
-		CurrentUnitID: user.CurrentUnitID,
-		IsSeconded:    user.IsSeconded,
-		JoinedAt:      user.JoinedAt,
-		Appointments:  appointments,
-		CreatedAt:     user.CreatedAt,
-		UpdatedAt:     user.UpdatedAt,
+		ID:                    user.ID,
+		UserID:                user.UserID,
+		Email:                 user.Email,
+		DisplayName:           user.DisplayName,
+		Role:                  string(user.Role),
+		Status:                string(user.Status),
+		Type:                  string(user.Type),
+		PrimaryUnitID:         user.PrimaryUnitID,
+		CurrentUnitID:         user.CurrentUnitID,
+		IsSeconded:            user.IsSeconded,
+		JoinedAt:              user.JoinedAt,
+		Appointments:          appointments,
+		CreatedAt:             user.CreatedAt,
+		UpdatedAt:             user.UpdatedAt,
+		OnboardingCompletedAt: user.OnboardingCompletedAt,
+		ReviewStatus:          user.ReviewStatus,
 	}
 }
 

@@ -8,6 +8,16 @@ import { websocketService, WsMessage } from "@/lib/services/websocket.service";
 import { identityService } from "@/lib/services/identity.service";
 import { ApiError } from "@/lib/services/api-client";
 import { defaultLandingFor, isSystemAdmin, pathRequiresSystemAdmin } from "@/lib/auth/role-routing";
+import { isOnboardingSkipped } from "@/lib/storage/onboardingSkip";
+
+// Routes that limited-mode (onboarding incomplete) users can still access
+// after dismissing onboarding. Account self-service editing requires a
+// completed profile, so /account is intentionally NOT in this list.
+const LIMITED_MODE_ALLOWED_PREFIXES = ["/onboarding", "/auth/"] as const;
+
+function pathAllowedInLimitedMode(path: string): boolean {
+  return LIMITED_MODE_ALLOWED_PREFIXES.some((p) => path.startsWith(p));
+}
 
 type NotificationPayload = { message?: string };
 
@@ -33,7 +43,33 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
           subject: resolved.subject,
           role: resolved.role,
           source: resolved.source,
+          display_name: resolved.display_name,
+          email: resolved.email,
+          primary_unit_id: resolved.primary_unit_id ?? null,
+          onboarding_required: resolved.onboarding_required,
+          onboarding_completed_at: resolved.onboarding_completed_at ?? null,
+          review_status: resolved.review_status ?? null,
         });
+        // 3-branch gating (REQ-FR-ONBOARD-010):
+        //   1) skip 액션 미실행 + 미완료 → /onboarding 강제 redirect
+        //   2) skip 액션 + 미완료 → 정상 진입 + banner (단 /account 같은 보호 경로는 차단)
+        //   3) 완료 → 정상 진입
+        if (resolved.onboarding_required && pathname !== "/onboarding") {
+          const skipped = isOnboardingSkipped();
+          if (!skipped) {
+            router.replace("/onboarding");
+            return;
+          }
+          if (!pathAllowedInLimitedMode(pathname)) {
+            const isPendingReview = resolved.onboarding_completed_at !== null;
+            // pending_review 단계는 limited mode 보다 넓은 접근 (할당 리소스 query 가능).
+            // skip 단계 (DB row 없음) 만 limited 보호 경로 차단.
+            if (!isPendingReview) {
+              router.replace("/onboarding");
+              return;
+            }
+          }
+        }
         // System routes (/admin, /admin/settings/*, /organization) must be
         // gated on actor.role — the source-of-truth for actual permissions —
         // not the zustand `role` field which Header's Switch View can

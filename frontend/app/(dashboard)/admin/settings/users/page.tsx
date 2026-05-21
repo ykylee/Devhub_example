@@ -11,6 +11,7 @@ import { useToast } from "@/components/ui/Toast";
 import { ExternalLink, Info } from "lucide-react";
 import { getKCAdminConsoleUrl } from "@/lib/config/endpoints";
 import { useStore } from "@/lib/store";
+import { PendingReviewPanel } from "@/components/admin/users/PendingReviewPanel";
 
 export default function AdminSettingsUsersPage() {
   const { role: currentUserRole } = useStore();
@@ -125,8 +126,22 @@ export default function AdminSettingsUsersPage() {
         );
       })()}
 
+      {!isLoading && (
+        <PendingReviewPanel
+          members={members}
+          onReviewed={(userId) => {
+            setMembers((prev) =>
+              prev.map((m) =>
+                m.id === userId ? { ...m, review_status: "reviewed" } : m,
+              ),
+            );
+            toast("검토를 확정했습니다.", "success");
+          }}
+        />
+      )}
+
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-        <FilterBar 
+        <FilterBar
           onSearch={setQuery}
           onFilterChange={setActiveRole}
           activeFilter={activeRole}

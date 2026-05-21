@@ -16,6 +16,8 @@ export interface OrgMember {
     role: 'leader' | 'member';
   }[];
   joined_at: string;
+  onboarding_completed_at?: string | null;
+  review_status?: "pending_review" | "reviewed" | null;
 }
 
 export interface OrgNode {
@@ -60,6 +62,8 @@ interface BackendUser {
   is_seconded?: boolean;
   appointments?: BackendAppointment[];
   joined_at?: string;
+  onboarding_completed_at?: string | null;
+  review_status?: string | null;
 }
 
 interface BackendUnit {
@@ -159,6 +163,14 @@ export interface MeResponse {
   subject?: string;
   role?: string;
   actor_source?: string;
+  user_id?: string;
+  email?: string;
+  display_name?: string;
+  primary_unit_id?: string | null;
+  current_unit_id?: string | null;
+  onboarding_required?: boolean;
+  onboarding_completed_at?: string | null;
+  review_status?: string | null;
 }
 
 export interface ResolvedActor {
@@ -166,6 +178,12 @@ export interface ResolvedActor {
   subject?: string;
   role: OrgMember["role"];
   source?: string;
+  display_name?: string;
+  email?: string;
+  primary_unit_id?: string | null;
+  onboarding_required: boolean;
+  onboarding_completed_at?: string | null;
+  review_status?: "pending_review" | "reviewed" | null;
 }
 
 
@@ -199,6 +217,8 @@ function mapBackendUser(u: BackendUser): OrgMember {
       role: a.appointment_role,
     })),
     joined_at: typeof u.joined_at === "string" ? u.joined_at.slice(0, 10) : (u.joined_at ?? ""),
+    onboarding_completed_at: u.onboarding_completed_at ?? null,
+    review_status: (u.review_status as OrgMember["review_status"]) ?? null,
   };
 }
 
@@ -225,6 +245,12 @@ export class IdentityService {
       subject: result.data.subject,
       role: ROLE_BACKEND_TO_UI[result.data.role ?? ""] ?? "Developer",
       source: result.data.actor_source,
+      display_name: result.data.display_name,
+      email: result.data.email,
+      primary_unit_id: result.data.primary_unit_id ?? null,
+      onboarding_required: result.data.onboarding_required ?? false,
+      onboarding_completed_at: result.data.onboarding_completed_at ?? null,
+      review_status: (result.data.review_status as ResolvedActor["review_status"]) ?? null,
     };
   }
 
