@@ -22,7 +22,7 @@
   "enabled": true,
   "displayName": "DevHub (production)",
   "eventsListeners": [ "jboss-logging", "devhub-event-listener" ],
-  "sslRequired": "external",
+  "sslRequired": "none",
   "registrationAllowed": false,
   "roles": {
     "realm": [

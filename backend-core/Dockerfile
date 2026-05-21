@@ -1,13 +1,7 @@
-FROM golang:1.26-alpine AS builder
+FROM alpine:3.21
+RUN apk add --no-cache ca-certificates
 WORKDIR /app
-COPY go.mod go.sum ./
-RUN go mod download
-COPY . .
-RUN go build -o main .
-
-FROM alpine:latest
-WORKDIR /app
-COPY --from=builder /app/main .
+COPY bin/main ./main
 COPY migrations ./migrations
 EXPOSE 8080
 CMD ["./main"]

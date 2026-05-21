@@ -28,10 +28,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 : "${NEXT_PUBLIC_BASE_PATH:=devhub}"
 : "${KEYCLOAK_UPSTREAM:=keycloak:8080}"
 : "${KEYCLOAK_ADMIN_ALLOW_CIDR:=127.0.0.1}"
-: "${NGINX_HTTP_PORT:=80}"
-: "${NGINX_HTTPS_PORT:=443}"
-: "${NGINX_TLS_CERT_PATH:=./infra/nginx/certs/tls.crt}"
-: "${NGINX_TLS_KEY_PATH:=./infra/nginx/certs/tls.key}"
+: "${NGINX_HTTP_PORT:=}"
 
 # Simple one-shot deploy helper.
 # Required env:
@@ -68,9 +65,6 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 #   POSTGRES_USER/PASSWORD/DB       default: user/pass/devhub
 #   DB_HOST/DB_PORT/DB_SSLMODE      default: db/5432/disable
 #   NGINX_HTTP_PORT                 default: 80
-#   NGINX_HTTPS_PORT                default: 443
-#   NGINX_TLS_CERT_PATH             default: ./infra/nginx/certs/tls.crt
-#   NGINX_TLS_KEY_PATH              default: ./infra/nginx/certs/tls.key
 
 require() {
   local var_name="$1"
@@ -83,7 +77,8 @@ require() {
 emit_env_line() {
   local key="$1"
   local value="$2"
-  printf "%s=%q\n" "$key" "$value"
+  local escaped="${value//\'/\'\"\'\"\'}"
+  printf "%s='%s'\n" "$key" "$escaped"
 }
 
 build_env_file() {
@@ -91,10 +86,18 @@ build_env_file() {
   local base_path="${NEXT_PUBLIC_BASE_PATH:-devhub}"
   local base_path_norm="/${base_path#/}"
   base_path_norm="${base_path_norm%/}"
-
+  local nginx_http_port="${NGINX_HTTP_PORT:-}"
+  if [ -z "$nginx_http_port" ]; then
+    if [[ "$public_base" =~ :([0-9]+)$ ]]; then
+      nginx_http_port="${BASH_REMATCH[1]}"
+    else
+      nginx_http_port="80"
+    fi
+  fi
   if [ "$DB_MODE" = "docker" ]; then
-    COMPOSE_PROFILES="local-db"
+    COMPOSE_PROFILES="local-db,local-idp"
     DB_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DB_HOST}:${DB_PORT}/${POSTGRES_DB}?sslmode=${DB_SSLMODE}"
+    KEYCLOAK_HOSTNAME="${KEYCLOAK_HOSTNAME:-$public_base}"
   elif [ "$DB_MODE" = "external" ]; then
     : "${DB_URL:?set DB_URL when DB_MODE=external}"
     COMPOSE_PROFILES="${COMPOSE_PROFILES:-}"
@@ -118,11 +121,9 @@ build_env_file() {
       emit_env_line COMPOSE_PROFILES "$COMPOSE_PROFILES"
     fi
     printf "\n"
-    emit_env_line NGINX_HTTP_PORT "${NGINX_HTTP_PORT:-80}"
-    emit_env_line NGINX_HTTPS_PORT "${NGINX_HTTPS_PORT:-443}"
-    emit_env_line NGINX_TLS_CERT_PATH "${NGINX_TLS_CERT_PATH:-./infra/nginx/certs/tls.crt}"
-    emit_env_line NGINX_TLS_KEY_PATH "${NGINX_TLS_KEY_PATH:-./infra/nginx/certs/tls.key}"
+    emit_env_line NGINX_HTTP_PORT "$nginx_http_port"
     emit_env_line DEVHUB_PUBLIC_BASE_URL "$DEVHUB_PUBLIC_BASE_URL"
+    emit_env_line NEXT_PUBLIC_APP_ORIGIN "$DEVHUB_PUBLIC_BASE_URL"
     printf "\n"
     emit_env_line KEYCLOAK_UPSTREAM "${KEYCLOAK_UPSTREAM:-keycloak:8080}"
     emit_env_line KEYCLOAK_ADMIN_ALLOW_CIDR "${KEYCLOAK_ADMIN_ALLOW_CIDR:-127.0.0.1}"
@@ -166,6 +167,9 @@ build_env_file() {
 }
 
 build_images() {
+  echo "[stage] build host artifacts"
+  ENV_FILE="$ENV_FILE" "$ROOT_DIR/scripts/build-artifacts.sh"
+
   echo "[build] backend-core"
   docker build \
     -f "$ROOT_DIR/backend-core/Dockerfile" \
@@ -202,6 +206,9 @@ main() {
   require DEVHUB_PUBLIC_BASE_URL
   require DEVHUB_OIDC_CLIENT_SECRET
   require DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET
+  if [ "$DB_MODE" = "external" ]; then
+    require DB_URL
+  fi
 
   build_env_file
   echo "Generated deploy env: $ENV_FILE"

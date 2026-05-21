@@ -73,8 +73,8 @@ sudo nginx -t && sudo systemctl reload nginx
 
 ## 4. SSL/TLS 인증서
 
-- compose 모드: `${NGINX_TLS_CERT_PATH}` / `${NGINX_TLS_KEY_PATH}` 환경변수 mount (docker-compose.deploy.yml 참조). 사내 운영 인증서 또는 self-signed (dev).
-- native 모드: host 의 표준 nginx 인증서 경로 (예: `/etc/letsencrypt/...`) 사용. `devhub.native.conf` 의 `ssl_certificate` line 을 사내 SOP 에 맞춰 수정.
+- compose 모드: TLS 미사용. `docker-compose.deploy.yml` 은 HTTP `:80` 만 노출한다.
+- native 모드: TLS 미사용. `devhub.native.conf` 역시 HTTP `:80` 만 사용한다.
 
 ## 5. 단일 포트 컨셉 정합 가드
 

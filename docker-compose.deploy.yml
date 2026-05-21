@@ -241,7 +241,7 @@ services:
     healthcheck:
       # Next.js standalone server. /api/runtime-config (frontend/app/api/runtime-config/route.ts)
       # 는 항상 200 응답 (build env fallback). basePath 활성 시 /devhub prefix.
-      test: ["CMD-SHELL", "wget -q -O- http://localhost:3000/${NEXT_PUBLIC_BASE_PATH:-devhub}/api/runtime-config || wget -q -O- http://localhost:3000/api/runtime-config || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:3000/${NEXT_PUBLIC_BASE_PATH:-devhub}/api/runtime-config || wget -q -O- http://127.0.0.1:3000/api/runtime-config || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 6
@@ -254,7 +254,6 @@ services:
     restart: unless-stopped
     ports:
       - "${NGINX_HTTP_PORT:-80}:80"
-      - "${NGINX_HTTPS_PORT:-443}:443"
     environment:
       # nginx 공식 이미지의 envsubst entrypoint 가 /etc/nginx/templates/*.template 의
       # ${VAR} placeholder 를 치환한 뒤 /etc/nginx/conf.d/ 로 emit 한다.
@@ -264,9 +263,8 @@ services:
       # backend 는 keycloak:8080 (또는 외부 internal-only URL) 로 직접 통신 사용.
       KEYCLOAK_ADMIN_ALLOW_CIDR: ${KEYCLOAK_ADMIN_ALLOW_CIDR:-127.0.0.1}
     volumes:
+      - ./infra/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - ./infra/nginx/devhub.deploy.conf.template:/etc/nginx/templates/devhub.deploy.conf.template:ro
-      - ${NGINX_TLS_CERT_PATH:-./infra/nginx/certs/tls.crt}:/etc/nginx/certs/tls.crt:ro
-      - ${NGINX_TLS_KEY_PATH:-./infra/nginx/certs/tls.key}:/etc/nginx/certs/tls.key:ro
     depends_on:
       frontend:
         condition: service_healthy

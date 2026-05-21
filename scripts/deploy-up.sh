@@ -5,6 +5,13 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE_FILE="${COMPOSE_FILE:-$ROOT_DIR/docker-compose.deploy.yml}"
 ENV_FILE="${ENV_FILE:-$ROOT_DIR/docs/setup/deploy.env.example}"
 
+if [ -f "$ENV_FILE" ]; then
+  # shellcheck disable=SC1090
+  set -a
+  source "$ENV_FILE"
+  set +a
+fi
+
 "$ROOT_DIR/scripts/deploy-preflight.sh"
 
 compose_profile_args=()
@@ -19,15 +26,23 @@ if [ -n "${COMPOSE_PROFILES:-}" ]; then
 fi
 
 echo "pulling images..."
-(
-  cd "$ROOT_DIR"
-  docker compose "${compose_profile_args[@]}" --env-file "$ENV_FILE" -f "$COMPOSE_FILE" pull
-)
+if [ "${SKIP_PULL:-0}" = "1" ] || [[ "${IMAGE_REPO_PREFIX:-}" == local/* ]]; then
+  echo "skip image pull (local images)"
+else
+  (
+    cd "$ROOT_DIR"
+    docker compose "${compose_profile_args[@]}" --env-file "$ENV_FILE" -f "$COMPOSE_FILE" pull
+  )
+fi
 
 echo "starting stack..."
 (
   cd "$ROOT_DIR"
-  docker compose "${compose_profile_args[@]}" --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d
+  if [ "${SKIP_PULL:-0}" = "1" ] || [[ "${IMAGE_REPO_PREFIX:-}" == local/* ]]; then
+    docker compose "${compose_profile_args[@]}" --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --pull never
+  else
+    docker compose "${compose_profile_args[@]}" --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d
+  fi
 )
 
 echo "services status"

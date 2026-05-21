@@ -1,23 +1,25 @@
 # Session Handoff — codex/work_260521-c-db-docker-option
 
-- 문서 목적: `deploy-from-env.sh` 에 DB docker 옵션을 추가한 작업 상태를 인계한다.
-- 범위: DB_MODE=docker, COMPOSE_PROFILES=local-db, env 파일 shell-safe 출력
+- 문서 목적: host build + runtime-only Docker packaging 전환 상태와 Keycloak SSL 완화 결과를 인계한다.
+- 범위: `scripts/build-artifacts.sh`, `deploy-from-env.sh`, runtime-only Dockerfiles, nginx 23000 정합, Keycloak dev/master realm `sslRequired`
 - 대상 독자: 후속 에이전트, 리뷰어
-- 상태: done
+- 상태: in_progress
 - 최종 수정일: 2026-05-21
 
 ## 이번 세션 요약
 
-- `scripts/deploy-from-env.sh` 에 `DB_MODE=docker` 를 추가했다.
-- docker DB 모드에서는 `db` / `db-init` 를 `local-db` profile 로 함께 다루도록 `deploy-preflight.sh` 와 `deploy-up.sh` 를 정리했다.
-- env 파일을 shell-safe 하게 출력하도록 바꿔 공백 포함 값도 안정적으로 source 되게 했다.
-- `docker build` 가 실행 위치에 덜 민감하도록 각 서비스의 `Dockerfile` 을 `-f` 로 명시했다.
-- `IMAGE_REPO_PREFIX` 기본값을 `local/devhub` 로 바꿔 로컬 전용 빌드가 더 쉽게 되도록 정리했다.
-- Dockerfile 3개를 git 추적 대상으로 전환했다.
-- `DB_MODE=docker` 빌드 경로와 `deploy-preflight.sh` 렌더를 검증했다.
-- 커밋 `cf29f9c` 로 정리했다.
+- `scripts/build-artifacts.sh` 를 추가해 backend-core, backend-ai, frontend 를 도커 밖에서 먼저 빌드하도록 바꿨다.
+- `deploy-from-env.sh` 가 host build 결과물을 만든 뒤 runtime-only Docker image 를 패키징하도록 연결했다.
+- `backend-core`, `backend-ai`, `frontend` Dockerfile 을 빌드 스테이지 없이 결과물만 복사하는 방식으로 전환했다.
+- nginx 80 서버 블록의 HTTP → HTTPS redirect 를 제거하고 `/devhub/*` 를 직접 프록시하도록 정리했다.
+- compose/native nginx 에서 443/TLS 포트와 인증서 마운트를 제거해 HTTP only 로 맞췄다.
+- `absolute_redirect off` 를 넣어 `/devhub` 리다이렉트가 포트를 잃지 않도록 조정했다.
+- `infra/idp/keycloak-realm.dev.json` 와 `infra/idp/keycloak-realm.prod.json` 의 `sslRequired` 를 `none` 으로 완화했다.
+- Keycloak 컨테이너 내부에서 `kcadm.sh` 로 `master` realm 도 `sslRequired=none` 으로 갱신했다.
+- `setup-keycloak.sh` 를 다시 돌려 `devhub-e2e-seeder` client 와 secret 을 재발급했다.
+- Playwright e2e 는 Keycloak 시드 단계까지 통과했지만, `idp-apply-schemas` 가 host 에서 `db` 호스트명을 해석하지 못해 실패했다. 이건 SSL/TLS 문제와 별개의 host-run DB 접근 문제다.
 
 ## 다음 세션 첫 작업
 
-1. 변경분 푸시/PR 업데이트 확인.
-2. 필요하면 `ACTION=deploy DB_MODE=docker` 로 실제 compose up 까지 확인.
+1. 이 변경분을 커밋/푸시하고 PR 에 반영한다.
+2. 필요하면 host-run e2e 가 DB 에 접근할 수 있도록 DSN/포트 노출 방식을 분리한다.

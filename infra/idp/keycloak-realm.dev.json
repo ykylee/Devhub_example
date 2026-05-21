@@ -4,7 +4,7 @@
   "enabled": true,
   "displayName": "DevHub Local Testing (dev-only — DO NOT import into production)",
   "eventsListeners": [ "jboss-logging", "devhub-event-listener" ],
-  "sslRequired": "external",
+  "sslRequired": "none",
   "registrationAllowed": false,
   "roles": {
     "realm": [

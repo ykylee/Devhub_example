@@ -2,12 +2,14 @@ import type { NextConfig } from "next";
 
 import { BACKEND_API_URL_SERVER } from "./lib/config/endpoints";
 
-// `output: "standalone"` 은 docker image minimize 용이지만 `next start` 와 호환되지
-// 않아 e2e CI 의 webServer 와 native dev 가 깨진다. docker 빌드 시에만 활성화한다.
-// 예: docker 의 build 단계에서 `NEXT_OUTPUT=standalone npm run build` 로 켠다.
+// `output: "standalone"` 은 host build 후 runtime-only Docker image 를 만들 때 사용한다.
+// native dev 와는 분리되므로, 배포 패키징 스크립트가 host build 단계에서만 켠다.
 const nextConfig: NextConfig = {
   basePath: process.env.NEXT_PUBLIC_BASE_PATH ? `/${process.env.NEXT_PUBLIC_BASE_PATH.replace(/^\//, "")}` : undefined,
   output: process.env.NEXT_OUTPUT === "standalone" ? "standalone" : undefined,
+  turbopack: {
+    root: process.cwd(),
+  },
   async rewrites() {
     return [
       {

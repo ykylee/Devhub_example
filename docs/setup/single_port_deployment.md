@@ -99,10 +99,7 @@ infra/nginx/certs/
 
 ```bash
 # === 단일 포트 외부 노출 ===
-NGINX_HTTP_PORT=80           # 80 → 443 redirect
-NGINX_HTTPS_PORT=443
-NGINX_TLS_CERT_PATH=./infra/nginx/certs/tls.crt
-NGINX_TLS_KEY_PATH=./infra/nginx/certs/tls.key
+NGINX_HTTP_PORT=80           # HTTP only in compose deploy mode
 
 # === 외부 도메인 ===
 KEYCLOAK_HOSTNAME=devhub.example.com    # Keycloak --hostname (issuer URL 도메인)
@@ -140,15 +137,14 @@ IMAGE_REPO_PREFIX=ghcr.io/ykylee/devhub_example
 ### 5.1 cold-start (영구 운영 환경)
 
 ```bash
-# 1. 인증서 발급 (§3 옵션 선택)
-# 2. .env 파일 작성 (§4 위 변수 모두)
-# 3. db init (PostgreSQL schema 생성)
+# 1. .env 파일 작성 (§4 위 변수 모두)
+# 2. db init (PostgreSQL schema 생성)
 docker compose -f docker-compose.deploy.yml --profile local-db up -d db db-init
 
-# 4. Keycloak start (1차 realm import)
+# 3. Keycloak start (1차 realm import)
 docker compose -f docker-compose.deploy.yml --profile local-idp up -d keycloak
 
-# 5. backend + frontend + nginx 시작 (healthcheck 따라 순차 진행)
+# 4. backend + frontend + nginx 시작 (healthcheck 따라 순차 진행)
 docker compose -f docker-compose.deploy.yml up -d backend-ai backend-core frontend nginx
 ```
 
@@ -178,7 +174,7 @@ nginx (15s × 10, depends on frontend + backend-core healthy)
 
 ```bash
 # 1. nginx 자체 health
-curl -k https://devhub.example.com/nginx-health
+curl http://devhub.example.com/nginx-health
 # expected: ok
 
 # 2. backend health (nginx 우회 안 됨 — internal network)
@@ -186,15 +182,15 @@ docker compose exec backend-core wget -q -O- http://localhost:8080/health
 # expected: {"status":"ok"}
 
 # 3. frontend → backend rewrite
-curl -k https://devhub.example.com/devhub/api/v1/health
+curl http://devhub.example.com/devhub/api/v1/health
 # expected: 200
 
 # 4. OIDC discovery (Keycloak)
-curl -k https://devhub.example.com/devhub/auth/keycloak/realms/devhub/.well-known/openid-configuration
+curl http://devhub.example.com/devhub/auth/keycloak/realms/devhub/.well-known/openid-configuration
 # expected: 200 + JSON issuer + authorization_endpoint 등
 
 # 5. 브라우저 진입
-# https://devhub.example.com → 302 /devhub → 302 /devhub/developer
+# http://devhub.example.com → 302 /devhub → 302 /devhub/developer
 # → AuthGuard /devhub/auth/login → Keycloak login → /devhub/auth/callback → /devhub/developer
 ```
 

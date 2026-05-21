@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+if [ -n "${ENV_FILE:-}" ] && [ -f "${ENV_FILE}" ]; then
+  # shellcheck disable=SC1090
+  set -a
+  source "$ENV_FILE"
+  set +a
+fi
+
+: "${BACKEND_API_URL:=http://backend-core:8080}"
+: "${NEXT_OUTPUT:=standalone}"
+: "${NEXT_PUBLIC_BASE_PATH:=devhub}"
+: "${NEXT_PUBLIC_APP_ORIGIN:=http://localhost:3000}"
+: "${NEXT_PUBLIC_OIDC_ISSUER_URL:=}"
+: "${NEXT_PUBLIC_OIDC_REDIRECT_URI:=}"
+: "${NEXT_PUBLIC_OIDC_CLIENT_ID:=devhub-frontend}"
+: "${NEXT_PUBLIC_OIDC_SCOPE:=openid offline_access email profile}"
+
+build_backend_core() {
+  echo "[host build] backend-core"
+  (
+    cd "$ROOT_DIR/backend-core"
+    mkdir -p bin
+    CGO_ENABLED=0 go build -o bin/main .
+  )
+}
+
+build_backend_ai() {
+  echo "[host build] backend-ai"
+  mkdir -p "$ROOT_DIR/backend-ai/.build/site-packages"
+  (
+    cd "$ROOT_DIR/backend-ai"
+    python3 -m pip install --disable-pip-version-check --no-cache-dir --target .build/site-packages -r requirements.txt
+  )
+}
+
+build_frontend() {
+  echo "[host build] frontend"
+  (
+    cd "$ROOT_DIR/frontend"
+    npm ci
+    BACKEND_API_URL="$BACKEND_API_URL" \
+      NEXT_OUTPUT="$NEXT_OUTPUT" \
+      NEXT_PUBLIC_BASE_PATH="$NEXT_PUBLIC_BASE_PATH" \
+      NEXT_PUBLIC_APP_ORIGIN="$NEXT_PUBLIC_APP_ORIGIN" \
+      NEXT_PUBLIC_OIDC_ISSUER_URL="$NEXT_PUBLIC_OIDC_ISSUER_URL" \
+      NEXT_PUBLIC_OIDC_REDIRECT_URI="$NEXT_PUBLIC_OIDC_REDIRECT_URI" \
+      NEXT_PUBLIC_OIDC_CLIENT_ID="$NEXT_PUBLIC_OIDC_CLIENT_ID" \
+      NEXT_PUBLIC_OIDC_SCOPE="$NEXT_PUBLIC_OIDC_SCOPE" \
+      npm run build
+  )
+}
+
+main() {
+  build_backend_core
+  build_backend_ai
+  build_frontend
+}
+
+main "$@"
