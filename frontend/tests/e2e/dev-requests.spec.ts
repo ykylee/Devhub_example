@@ -226,4 +226,54 @@ test.describe("DREQ E2E", () => {
       });
     }, tokenId);
   });
+
+  test("TC-DREQ-ADMIN-TOKEN-REVOKE-CANCEL-01 — DestructiveConfirmModal Cancel keeps token active", async ({ page }) => {
+    // Revoke 흐름의 cancel path 회귀 가드. 기존 REVOKE-01 mega test step 은
+    // confirm 흐름만 검증 — 사용자가 Cancel 을 누른 경우 토큰이 active 로
+    // 보존되는지는 별도 가드. ADR-0014 의 plain-1회 modal 흐름과 동일 fixture.
+    await loginAs(page, SEEDED.systemAdmin);
+    await page.goto("/admin/settings/dev-request-tokens");
+
+    const clientLabel = `cancel_e2e_${Date.now()}`;
+
+    await page.getByRole("button", { name: /issue token/i }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await page.getByLabel(/client label/i).fill(clientLabel);
+    await page.getByLabel(/source system/i).fill("cancel_sys");
+    await page.getByPlaceholder(/10\.0\.0\.0/i).first().fill("0.0.0.0/0");
+    await page.getByRole("dialog").getByRole("button", { name: /issue token/i }).click();
+    await expect(page.getByText(/token shown once/i)).toBeVisible();
+    await page.getByRole("button", { name: /저장 완료 — 닫기/i }).click();
+    await expect(page.getByRole("dialog")).toBeHidden();
+
+    // Revoke 버튼 → DestructiveConfirmModal 열기 → Cancel 클릭.
+    const row = page.getByRole("row").filter({ hasText: clientLabel });
+    await expect(row).toBeVisible();
+    await row.getByRole("button", { name: /revoke/i }).click();
+
+    const confirmModal = page.getByRole("dialog");
+    await expect(confirmModal.getByText(/revoke token/i)).toBeVisible();
+    await confirmModal.getByRole("button", { name: /^cancel$/i }).click();
+    await expect(page.getByRole("dialog")).toBeHidden();
+
+    // 회귀 검증 — token row 가 active (revoked 표시 없음). list 재렌더 후
+    // status badge 가 'revoked' 가 아닌지 확인.
+    const stillActive = page.getByRole("row").filter({ hasText: clientLabel });
+    await expect(stillActive).toBeVisible();
+    await expect(stillActive.getByText(/revoked/i)).toHaveCount(0);
+
+    // 정리 — 본 test 가 생성한 token revoke (확정 머지). page.evaluate fetch
+    // 패턴 (PATCH-01 과 동일) 으로 OIDC session propagation flakiness 회피.
+    const tokenId = (await stillActive.getAttribute("data-token-id")) ?? "";
+    if (tokenId) {
+      await page.evaluate(async (id: string) => {
+        const accessToken = sessionStorage.getItem("devhub_access_token");
+        await fetch(`/api/v1/dev-request-tokens/${id}`, {
+          method: "DELETE",
+          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+          credentials: "include",
+        });
+      }, tokenId);
+    }
+  });
 });

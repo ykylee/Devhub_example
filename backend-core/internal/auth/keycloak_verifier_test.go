@@ -6,14 +6,56 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
-	"net/http/httptest"
 	"net/http"
+	"net/http/httptest"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/prometheus/client_golang/prometheus"
+	dto "github.com/prometheus/client_model/go"
 )
+
+// counterVecValue — prometheus CounterVec 의 특정 label 값을 dto.Metric 으로 읽는다.
+// 다른 stale-while-error test 가 동일 label 을 건드릴 수 있어 절대값이 아닌
+// delta 검증에만 사용. audit/metrics_test.go 의 동명 헬퍼와 동일 패턴.
+func counterVecValue(t *testing.T, c *prometheus.CounterVec, labels []string) float64 {
+	t.Helper()
+	if c == nil {
+		return 0
+	}
+	m, err := c.GetMetricWithLabelValues(labels...)
+	if err != nil {
+		t.Fatalf("GetMetricWithLabelValues(%v): %v", labels, err)
+	}
+	pb := &dto.Metric{}
+	if err := m.Write(pb); err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+	if pb.Counter == nil {
+		return 0
+	}
+	return pb.Counter.GetValue()
+}
+
+// histogramSampleCount — prometheus Histogram 의 누적 sample 개수를 dto.Metric
+// 으로 읽는다. observe 횟수 delta 검증용 (bucket 분포는 별도 검증). audit 패턴에는
+// 아직 histogram 헬퍼가 없어 본 패키지가 처음 도입.
+func histogramSampleCount(t *testing.T, h prometheus.Histogram) uint64 {
+	t.Helper()
+	if h == nil {
+		return 0
+	}
+	pb := &dto.Metric{}
+	if err := h.(prometheus.Metric).Write(pb); err != nil {
+		t.Fatalf("Write histogram: %v", err)
+	}
+	if pb.Histogram == nil {
+		return 0
+	}
+	return pb.Histogram.GetSampleCount()
+}
 
 func TestKeycloakJWKSVerifier_VerifyBearerTokenWithJWKSURL(t *testing.T) {
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -469,6 +511,14 @@ func TestKeycloakJWKSVerifier_StaleWhileError_KeycloakUnreachable(t *testing.T) 
 	// cache TTL 만료 대기
 	time.Sleep(20 * time.Millisecond)
 
+	// metric emission 기준선 — 다른 stale test 가 동일 label 을 증가시킬 수 있어
+	// 절대값이 아닌 delta 검증. initJWKSMetrics 는 fetchJWKS stale 분기 진입 시
+	// 호출되므로 이미 초기화돼 있다고 가정 (1차 호출이 fetch 성공 path → metric
+	// 미진입). 안전을 위해 한 번 강제 init.
+	initJWKSMetrics()
+	beforeOK := counterVecValue(t, jwksStaleWhileErrorTotal, []string{"ok"})
+	beforeAge := histogramSampleCount(t, jwksStaleAgeSeconds)
+
 	// 2차 호출 — JWKS 500 응답 (Keycloak unreachable) → stale fallback 통과해야
 	actor, err := v.VerifyBearerToken(context.Background(), token)
 	if err != nil {
@@ -480,6 +530,17 @@ func TestKeycloakJWKSVerifier_StaleWhileError_KeycloakUnreachable(t *testing.T) 
 	// JWKS endpoint 가 2회 호출됐어야 (1차 fetch + 2차 fetch attempt 후 fail → stale)
 	if jwksCallCount.Load() != 2 {
 		t.Errorf("JWKS endpoint call count = %d; want 2 (1차 fetch + 2차 fetch attempt → fail → stale fallback)", jwksCallCount.Load())
+	}
+
+	// stale fallback 진입 시 `devhub_jwks_stale_while_error_total{result="ok"}`
+	// 1 증가 + `devhub_jwks_stale_age_seconds` Histogram 1 sample 추가
+	// (keycloak_verifier.go 의 observeJWKSStaleWhileError + observeJWKSStaleAge
+	// 콜 검증).
+	if delta := counterVecValue(t, jwksStaleWhileErrorTotal, []string{"ok"}) - beforeOK; delta != 1 {
+		t.Errorf("devhub_jwks_stale_while_error_total{result=ok} delta = %v; want 1", delta)
+	}
+	if delta := histogramSampleCount(t, jwksStaleAgeSeconds) - beforeAge; delta != 1 {
+		t.Errorf("devhub_jwks_stale_age_seconds sample delta = %v; want 1", delta)
 	}
 }
 
@@ -539,10 +600,25 @@ func TestKeycloakJWKSVerifier_StaleExpired_Fails401(t *testing.T) {
 	// CacheTTL 10ms + MaxStaleDuration 50ms = 60ms — 그 이상 대기
 	time.Sleep(80 * time.Millisecond)
 
+	// metric emission 기준선 — fail label delta 검증.
+	initJWKSMetrics()
+	beforeFail := counterVecValue(t, jwksStaleWhileErrorTotal, []string{"fail"})
+	beforeAge := histogramSampleCount(t, jwksStaleAgeSeconds)
+
 	// 2차 호출 — Keycloak unreachable + stale 도 expired → 401
 	_, err = v.VerifyBearerToken(context.Background(), token)
 	if err == nil {
 		t.Fatal("stale expired 후 fetch fail 은 401 이어야 (revoked key 보호)")
+	}
+
+	// stale 도 expired → `devhub_jwks_stale_while_error_total{result="fail"}` 1 증가.
+	// age histogram 은 fail 분기에서 stale 자체가 없거나 사용 안 되므로 sample
+	// 추가 없음 (metrics.go 의 observeJWKSStaleAge 는 ok 분기에서만 호출).
+	if delta := counterVecValue(t, jwksStaleWhileErrorTotal, []string{"fail"}) - beforeFail; delta != 1 {
+		t.Errorf("devhub_jwks_stale_while_error_total{result=fail} delta = %v; want 1", delta)
+	}
+	if delta := histogramSampleCount(t, jwksStaleAgeSeconds) - beforeAge; delta != 0 {
+		t.Errorf("devhub_jwks_stale_age_seconds sample delta = %v; want 0 (fail 분기는 age 미관측)", delta)
 	}
 }
 
@@ -589,6 +665,13 @@ func TestKeycloakJWKSVerifier_FreshCache_NoStaleFallback(t *testing.T) {
 		MaxStaleDuration: 1 * time.Hour,
 	}
 
+	// metric emission 기준선 — fresh cache hit 분기는 stale fallback 진입하지
+	// 않으므로 ok / fail 둘 다 delta 0 이어야 한다 (회귀 가드).
+	initJWKSMetrics()
+	beforeOK := counterVecValue(t, jwksStaleWhileErrorTotal, []string{"ok"})
+	beforeFail := counterVecValue(t, jwksStaleWhileErrorTotal, []string{"fail"})
+	beforeAge := histogramSampleCount(t, jwksStaleAgeSeconds)
+
 	// 3회 호출 — 1차 fetch + 2/3차 cache hit. JWKS endpoint call count = 1
 	for i := 0; i < 3; i++ {
 		if _, err := v.VerifyBearerToken(context.Background(), token); err != nil {
@@ -597,6 +680,17 @@ func TestKeycloakJWKSVerifier_FreshCache_NoStaleFallback(t *testing.T) {
 	}
 	if jwksCallCount.Load() != 1 {
 		t.Errorf("fresh cache hit 시 JWKS network call = 1 expected, got %d", jwksCallCount.Load())
+	}
+
+	// fresh path 회귀 가드 — stale metric 어느 쪽도 증가하지 않아야 한다.
+	if delta := counterVecValue(t, jwksStaleWhileErrorTotal, []string{"ok"}) - beforeOK; delta != 0 {
+		t.Errorf("devhub_jwks_stale_while_error_total{result=ok} delta = %v; want 0 (fresh path 회귀)", delta)
+	}
+	if delta := counterVecValue(t, jwksStaleWhileErrorTotal, []string{"fail"}) - beforeFail; delta != 0 {
+		t.Errorf("devhub_jwks_stale_while_error_total{result=fail} delta = %v; want 0 (fresh path 회귀)", delta)
+	}
+	if delta := histogramSampleCount(t, jwksStaleAgeSeconds) - beforeAge; delta != 0 {
+		t.Errorf("devhub_jwks_stale_age_seconds sample delta = %v; want 0 (fresh path 회귀)", delta)
 	}
 }
 
@@ -661,12 +755,25 @@ func TestKeycloakJWKSVerifier_StaleCutoff_BasedOnTTLExpiry(t *testing.T) {
 	// 이전 잘못된 cutoff (cachedAt + maxStale = 200ms 만 사용 가능) → 250ms 초과로 401.
 	time.Sleep(250 * time.Millisecond)
 
+	// metric emission 기준선 — stale window 안 진입 → ok label 1 + age sample 1.
+	initJWKSMetrics()
+	beforeOK := counterVecValue(t, jwksStaleWhileErrorTotal, []string{"ok"})
+	beforeAge := histogramSampleCount(t, jwksStaleAgeSeconds)
+
 	actor, err := v.VerifyBearerToken(context.Background(), token)
 	if err != nil {
 		t.Fatalf("stale window 안인데 401 (PR #242 codex P1 회귀): %v", err)
 	}
 	if actor.Login != "dave" {
 		t.Errorf("actor.Login = %q; want dave", actor.Login)
+	}
+
+	// PR #242 회귀 가드의 metric 면 — stale window 안에서 fetch fail → ok 1 증가.
+	if delta := counterVecValue(t, jwksStaleWhileErrorTotal, []string{"ok"}) - beforeOK; delta != 1 {
+		t.Errorf("devhub_jwks_stale_while_error_total{result=ok} delta = %v; want 1", delta)
+	}
+	if delta := histogramSampleCount(t, jwksStaleAgeSeconds) - beforeAge; delta != 1 {
+		t.Errorf("devhub_jwks_stale_age_seconds sample delta = %v; want 1", delta)
 	}
 }
 
@@ -722,11 +829,25 @@ func TestKeycloakJWKSVerifier_StaleFallback_DefaultMaxStale(t *testing.T) {
 		t.Fatalf("1차 호출: %v", err)
 	}
 	time.Sleep(20 * time.Millisecond)
+
+	// metric emission 기준선 — default MaxStaleDuration(24h) 적용 후 ok 1 증가.
+	initJWKSMetrics()
+	beforeOK := counterVecValue(t, jwksStaleWhileErrorTotal, []string{"ok"})
+	beforeAge := histogramSampleCount(t, jwksStaleAgeSeconds)
+
 	actor, err := v.VerifyBearerToken(context.Background(), token)
 	if err != nil {
 		t.Fatalf("default MaxStaleDuration 안에 stale fallback 실패: %v", err)
 	}
 	if actor.Login != "carol" {
 		t.Errorf("actor.Login = %q; want carol", actor.Login)
+	}
+
+	// MaxStaleDuration 미설정이라도 internal default(24h) 적용 → ok 분기 진입 검증.
+	if delta := counterVecValue(t, jwksStaleWhileErrorTotal, []string{"ok"}) - beforeOK; delta != 1 {
+		t.Errorf("devhub_jwks_stale_while_error_total{result=ok} delta = %v; want 1", delta)
+	}
+	if delta := histogramSampleCount(t, jwksStaleAgeSeconds) - beforeAge; delta != 1 {
+		t.Errorf("devhub_jwks_stale_age_seconds sample delta = %v; want 1", delta)
 	}
 }
