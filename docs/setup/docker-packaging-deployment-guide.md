@@ -142,6 +142,8 @@ docker push devhub/frontend:${GIT_SHA}
 - `docker-compose.deploy.yml`: `build` 없이 `image`만 참조하는 배포용 compose 템플릿
 - `.github/workflows/docker-image-publish.yml`: backend-core/backend-ai/frontend 이미지 빌드+GHCR 푸시
 - `docs/setup/deploy.env.example`: 배포용 필수 env 템플릿
+- `scripts/deploy-preflight.sh`: 배포 전 필수 env/compose 렌더/OIDC reachability 검증
+- `scripts/deploy-up.sh`: preflight + pull + up 일괄 실행
 
 ### 8.1 배포용 compose 실행 예시
 
@@ -166,6 +168,14 @@ export NGINX_HTTP_PORT=80
 export NGINX_HTTPS_PORT=443
 docker compose -f docker-compose.deploy.yml pull
 docker compose -f docker-compose.deploy.yml up -d
+```
+
+또는 저장소 표준 스크립트 사용:
+
+```sh
+cp docs/setup/deploy.env.example ./.env.deploy
+# .env.deploy 값 수정
+ENV_FILE=./.env.deploy ./scripts/deploy-up.sh
 ```
 
 로컬 빌드 이미지를 그대로 사용할 때:
