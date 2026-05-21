@@ -16,6 +16,7 @@
 - `absolute_redirect off` 를 넣어 `/devhub` 리다이렉트가 포트를 잃지 않도록 조정했다.
 - `infra/idp/keycloak-realm.dev.json` 와 `infra/idp/keycloak-realm.prod.json` 의 `sslRequired` 를 `none` 으로 완화했다.
 - Keycloak 컨테이너 내부에서 `kcadm.sh` 로 `master` realm 도 `sslRequired=none` 으로 갱신했다.
+- `backend-core/go.mod` 의 Go 기준 버전을 `1.25.9` 로 맞췄다.
 - `setup-keycloak.sh` 를 다시 돌려 `devhub-e2e-seeder` client 와 secret 을 재발급했다.
 - Playwright e2e 는 Keycloak 시드 단계까지 통과했지만, `idp-apply-schemas` 가 host 에서 `db` 호스트명을 해석하지 못해 실패했다. 이건 SSL/TLS 문제와 별개의 host-run DB 접근 문제다.
 

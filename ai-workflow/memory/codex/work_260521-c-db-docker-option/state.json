@@ -8,10 +8,11 @@
   "head_summary": "chore(infra): track dockerfiles in git",
   "current_focus": [
     "dev/prod realm 및 master realm 의 sslRequired 를 none 으로 완화",
-    "host build 패키징 + nginx HTTP only 직접 프록시 정합 유지"
+    "host build 패키징 + nginx HTTP only 직접 프록시 정합 유지",
+    "backend-core Go 버전을 1.25.9 로 고정"
   ],
   "next_actions": [
-    "패키징/ssl 완화 변경분 커밋 및 PR 갱신",
+    "패키징/ssl 완화/Go 버전 변경분 커밋 및 PR 갱신",
     "host-run e2e 의 DB 접근 경로를 별도 정리"
   ],
   "risks": [
@@ -20,5 +21,5 @@
     "host-run e2e 의 DSN 이 docker 내부 호스트명(db)을 가리키면 DB seed 가 실패할 수 있음",
     "기본 IMAGE_REPO_PREFIX 가 local 이므로 원격 배포는 명시적 override 가 필요"
   ],
-  "handoff_note": "이 브랜치는 host build 산출물을 도커가 복사하는 패키징으로 전환했고, compose/native nginx 모두 HTTP only 로 정리했다. Keycloak dev/prod/master realm 은 sslRequired=none 으로 완화했으며, host-run e2e 는 DB 접근 경로를 별도 정리해야 한다"
+  "handoff_note": "이 브랜치는 host build 산출물을 도커가 복사하는 패키징으로 전환했고, compose/native nginx 모두 HTTP only 로 정리했다. Keycloak dev/prod/master realm 은 sslRequired=none 으로 완화했으며, backend-core Go 버전은 1.25.9 로 고정했다. host-run e2e 는 DB 접근 경로를 별도 정리해야 한다"
 }

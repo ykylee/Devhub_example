@@ -5,7 +5,7 @@
 - 대상 독자: 모든 개발자, DevOps, AI agent, 신규 환경 부트스트랩 담당.
 - 상태: accepted
 - 작성일: 2026-04-29
-- 최종 수정일: 2026-05-20 (Next.js 16 / React 19.2 / native default 정합, sprint `claude/codebase-cleanup-2026-05-20`)
+- 최종 수정일: 2026-05-21 (Go 1.25.9 기준으로 정합, sprint `codex/work_260521-c-db-docker-option`)
 - 관련 문서: [아키텍처 설계서](./architecture.md), [요구사항 정의서](./requirements.md), [환경 구성 가이드](./setup/environment-setup.md), [테스트 서버 배포 가이드](./setup/test-server-deployment.md), [ADR-0019 Keycloak 단일화 (현재 IdP)](./adr/0019-keycloak-only-idp.md), [ADR-0001 IdP (Hydra+Kratos, superseded)](./adr/0001-idp-selection.md), [ADR-0003 No-Docker CI scope](./adr/0003-no-docker-policy-ci-scope.md), [ADR-0018 Single-Port Reverse Proxy](./adr/0018-single-port-reverse-proxy-policy.md).
 
 ## 1. 확정 기술 스택 (Technology Stack)
@@ -42,7 +42,7 @@ DevHub은 Gitea 연동, AI 분석, 실시간 대시보드 제공을 위해 다�
 본 저장소는 **native (no-docker) 모드를 default** 로 한다 ([ADR-0003](./adr/0003-no-docker-policy-ci-scope.md)). 컨테이너 자산 중 `docker-compose.yml` 과 로컬 오버라이드는 환경별 제약이 달라 git 추적에서 제외되지만, 각 서비스의 `Dockerfile` 은 빌드 계약이므로 git 추적 대상이다. 절차는 [`docs/setup/environment-setup.md`](./setup/environment-setup.md) 가 source-of-truth.
 
 ### 2.1 사전 요구 사항 (Prerequisites)
-- **Go**: 기준 v1.26.2 (`backend-core/go.mod`). 로컬 `go` 도 같은 minor 버전을 권장.
+- **Go**: 기준 v1.25.9 (`backend-core/go.mod`). 로컬 `go` 도 같은 버전을 권장.
 - **Python**: v3.11+ 권장 (최소 v3.10). `make setup` 과 `make proto` 는 로컬 `python3` 를 그대로 사용한다.
 - **Node.js**: v20 LTS+ (Next.js 16 빌드 요구). 로컬 `npm install` 과 `npm run` 계열 명령은 로컬 Node.js 를 사용한다.
 - **PostgreSQL**: v15 (호스트 native 또는 시스템 서비스로 기동).
