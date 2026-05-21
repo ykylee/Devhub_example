@@ -5,7 +5,7 @@
 - **작성일**: 2026-05-21
 - **수정일**: 2026-05-21
 - **결정 근거 sprint**: `claude/keycloak-user-onboarding-concept` (PR #260, 컨셉 1차) + `claude/keycloak-onboarding-concept-2026-05-21` (PR #265, §5.9 skip-and-resume) + `claude/onboarding-requirements-2026-05-21` (PR #266, REQ §5.7) + `claude/onboarding-arch-2026-05-21` (PR #267, ARCH §9 + API §16) + `claude/onboarding-adr-2026-05-21` (본 ADR 발급)
-- **partial supersedes**: [ADR-0020 외부 Keycloak 가정 하의 계정/사용자 관리 책임 경계 (2026-05-20)](./0020-account-user-management-boundary.md) — §3.2 의 "신규 user 의 unit 초기 배치" row 의 lazy-auto-create-후 정책 + §4.1 sub-carve B 의 lazy auto-create 실 구현 결정 + §4.2 의 lazy auto-create 관련 보안 영향 + §6.2 carve out 의 동일 항목. ADR-0020 의 **핵심 결정** (옵션 A 책임 경계 — Keycloak account vs DevHub user 분리) 은 reverse 하지 않고 **자연 확장**.
+- **partial supersedes**: [ADR-0020 외부 Keycloak 가정 하의 계정/사용자 관리 책임 경계 (2026-05-20)](./0020-account-user-management-boundary.md) — §3.2 의 "신규 user 의 unit 초기 배치" row 의 lazy-auto-create-후 정책 + §4.1 sub-carve B 의 lazy auto-create 실 구현 결정 + §4.2 의 lazy auto-create 관련 보안 영향 + §6.1 후속 ADR 후보 row + §6.2 carve out 의 동일 항목 (5 위치, 상세는 §4.1). ADR-0020 의 **핵심 결정** (옵션 A 책임 경계 — Keycloak account vs DevHub user 분리) 은 reverse 하지 않고 **자연 확장**.
 - **관련 문서**: [`docs/planning/keycloak_user_onboarding_concept.md`](../planning/keycloak_user_onboarding_concept.md), [`docs/requirements.md §5.7`](../requirements.md), [`docs/architecture.md §9`](../architecture.md), [`docs/backend_api_contract.md §16`](../backend_api_contract.md), [`docs/planning/system_usecases.md §2.13`](../planning/system_usecases.md), [ADR-0019 Keycloak 단일화](./0019-keycloak-only-idp.md), [ADR-0020 계정/사용자 책임 경계](./0020-account-user-management-boundary.md)
 
 ## 2. 컨텍스트
@@ -74,7 +74,7 @@ ADR-0020 §3.2 의 "user 조직 unit assignment" 책임 주체를 다음과 같�
 
 ### 3.3 Lazy auto-create 폐기 (ADR-0020 부분 supersession)
 
-ADR-0020 §3.2 / §4.1 sub-carve B / §4.2 / §6.2 의 **lazy auto-create 결정을 supersede**:
+ADR-0020 §3.2 / §4.1 sub-carve B / §4.2 / §6.1 / §6.2 의 **lazy auto-create 결정을 supersede** (5 위치):
 
 - `authenticateActor` 는 `GetUser` miss 시 user row 를 **생성하지 않는다** — DB row miss 를 정상 상태 (token-only actor) 로 취급한다.
 - `AuthenticatedActor` 의 `Email` / `DisplayName` 은 Keycloak token claim 에서 직접 추출 (PR #239 의 `keycloak_verifier.go::extractDisplayName` 재사용 — 함수 자체는 보존, 호출 시점만 변경).
@@ -122,6 +122,7 @@ Frontend (UX layer, REQ-FR-ONBOARD-010):
 | §3.2 "user 조직 unit assignment" row 의 책임 주체 | DevHub admin 단독 | §3.1 — DevHub admin + 사용자 self-service onboarding + 관리자 검토 |
 | §4.1 sub-carve B 항목 "authenticateActor lazy auto-create 실 구현" | lazy auto-create 도입 | §3.3 — lazy 폐기 + token-only actor 흐름 |
 | §4.2 의 lazy auto-create 보안 영향 | "token 검증 성공한 user 만 lazy create" | §3.3 — lazy 자체 폐기, 보안 영향 항목 무효 |
+| §6.1 후속 ADR 후보 row | "(없음 — 본 ADR 이 Phase 2 결정 6건 모두 cover)" | §6.1 갱신 — 본 ADR (ADR-0021) 발급 사실 추가 |
 | §6.2 carve out "authenticateActor lazy auto-create 실 구현" | 진행 항목 | §3.3 — 항목 자체 deprecated (이미 PR #239 머지 후 본 ADR 로 reversal) |
 
 ADR-0020 의 **핵심 결정** (옵션 A — Keycloak account vs DevHub user 책임 경계, `rbac_subject_roles` 제거, service account 권한 축소) 는 **변경 없이 유지**.
@@ -157,7 +158,7 @@ ADR-0020 의 **핵심 결정** (옵션 A — Keycloak account vs DevHub user 책
 ### 4.5 ADR governance
 
 - ADR-0020 의 메타 헤더에 "partial supersession by ADR-0021" 명시.
-- ADR-0020 의 §3.2 / §4.1 / §4.2 / §6.2 의 lazy auto-create 결정 위치에 inline supersession banner 추가 (메모리 `feedback_adr_supersession_pattern` 패턴).
+- ADR-0020 의 §3.2 / §4.1 / §4.2 / §6.1 / §6.2 의 lazy auto-create 결정 위치 (5 위치) 에 inline supersession banner 추가 (메모리 `feedback_adr_supersession_pattern` 패턴).
 - `docs/traceability/report.md` §4 ADR 인덱스 + §6 changelog 갱신.
 
 ## 5. 대안 / 거부된 옵션
@@ -216,6 +217,6 @@ GitHub issue 등록: P2-8 ~ P2-11 (4건, `release_v1_roadmap.md` §3.3 매트릭
 
 | 일자 | 변경 | sprint |
 | --- | --- | --- |
-| 2026-05-21 | 본 ADR 발급. ADR-0020 의 lazy auto-create 결정 (§3.2 / §4.1 sub-carve B / §4.2 / §6.2) partial supersession + self-service unit selection 책임 경계 확장. 3 tier 접근 상태머신 + skip-and-resume + role 권한 상승 차단 정합. 컨셉 (PR #260 + #265) + 요구사항 (PR #266) + 설계 (PR #267) 의 누적 결정 명문화. | `claude/onboarding-adr-2026-05-21` |
+| 2026-05-21 | 본 ADR 발급. ADR-0020 의 lazy auto-create 결정 (§3.2 / §4.1 sub-carve B / §4.2 / §6.1 / §6.2, 5 위치) partial supersession + self-service unit selection 책임 경계 확장. 3 tier 접근 상태머신 + skip-and-resume + role 권한 상승 차단 정합. 컨셉 (PR #260 + #265) + 요구사항 (PR #266) + 설계 (PR #267) 의 누적 결정 명문화. | `claude/onboarding-adr-2026-05-21` |
 | 2026-05-21 | codex review hotfix (PR #270) — ADR-0020 메타 헤더 3 line (상태 / partial superseded by / supersession 안내 box) 의 supersession scope "4 위치" → "5 위치" + §6.1 explicit 정합. 본 ADR 본문은 변경 없음. | `claude/onboarding-codex-hotfix-2026-05-21` |
 | 2026-05-21 | §6.1 IMPL carve 표 확장 — RM-ONBOARD-01..04 + worker / milestone / 진입 조건 column 추가 + [`onboarding_impl_plan.md`](../planning/onboarding_impl_plan.md) cross-link. GitHub issue 매핑 (P2-8..11). | `claude/onboarding-impl-carve-plan-2026-05-21` |

@@ -52,7 +52,7 @@
 | `backend-core/internal/httpapi/permissions.go` | 확장 | route permission 표에 5 endpoint 추가 (ARCH §9.4) |
 | `backend-core/internal/domain/domain.go` | 확장 | audit event const 3종 신규 (`account.onboarding_completed` / `account.review_confirmed` / `account.unit_changed`) — ARCH §9.6 |
 | `backend-core/internal/store/postgres_users.go` | 확장 | `UpsertUser` / `UpdateUserUnit` / `SetUserReviewed` method 신규 또는 확장 |
-| `backend-core/cmd/devhub-core/main.go` | 확장 | env `DEVHUB_ONBOARDING_GATE_ENABLED` 읽기 + `onboardingGate` wire (default: false — feature flag) |
+| `backend-core/main.go` | 확장 | env `DEVHUB_ONBOARDING_GATE_ENABLED` 읽기 + `onboardingGate` wire (default: false — feature flag) |
 
 **예상 LoC**: backend +800 / -150 (lazy_auto_create.go 삭제 -100 포함)
 
