@@ -18,6 +18,9 @@ import (
 // allowlist 외 — admin 자신은 항상 완료된 사용자.
 
 func (h Handler) confirmUserReview(c *gin.Context) {
+	if !h.requireOnboardingFlag(c) {
+		return
+	}
 	if h.cfg.OrganizationStore == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
 			"status": "unavailable",

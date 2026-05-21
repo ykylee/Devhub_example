@@ -27,6 +27,9 @@ type onboardingSubmitRequest struct {
 }
 
 func (h Handler) submitOnboarding(c *gin.Context) {
+	if !h.requireOnboardingFlag(c) {
+		return
+	}
 	if h.cfg.OrganizationStore == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
 			"status": "unavailable",
@@ -93,7 +96,7 @@ func (h Handler) submitOnboarding(c *gin.Context) {
 		}
 	}
 	fallbackRole := domain.AppRole(roleStr)
-	if !isValidLazyRole(fallbackRole) {
+	if !onboardingValidRole(fallbackRole) {
 		fallbackRole = domain.AppRoleDeveloper
 	}
 

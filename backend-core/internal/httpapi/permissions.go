@@ -131,8 +131,8 @@ var routePermissionTable = map[routeKey]routePolicy{
 	{http.MethodPost, "/api/v1/me/onboarding"}:                                    {Bypass: true},
 	{http.MethodGet, "/api/v1/organizations/search"}:                              {Bypass: true},
 	// RM-ONBOARD-01 (API-86) — admin 의 review confirm. system_admin 일임 —
-	// rbac matrix 의 users:edit 정합.
-	{http.MethodPost, "/api/v1/admin/users/:user_id/review"}:                      {Resource: domain.ResourceSecurity, Action: domain.ActionEdit},
+	// rbac matrix 의 organization:edit 정합 (user/organization management).
+	{http.MethodPost, "/api/v1/admin/users/:user_id/review"}:                      {Resource: domain.ResourceOrganization, Action: domain.ActionEdit},
 	{http.MethodGet, "/api/v1/realtime/ws"}:                                       {Bypass: true},
 	{http.MethodPost, "/api/v1/integrations/gitea/webhooks"}:                      {Bypass: true},
 	{http.MethodPost, "/api/v1/integration/providers/:provider_id/webhook"}:       {Bypass: true},

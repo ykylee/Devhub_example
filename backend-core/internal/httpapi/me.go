@@ -27,7 +27,9 @@ type meResponse struct {
 	Source                string     `json:"actor_source"`
 	OnboardingRequired    bool       `json:"onboarding_required"`
 	OnboardingCompletedAt *time.Time `json:"onboarding_completed_at"`
-	ReviewStatus          string     `json:"review_status,omitempty"`
+	// ReviewStatus — API §16.2 spec ("null | 'pending_review' | 'reviewed'").
+	// `*string` 으로 미설정 시 명시적 `null` 응답 — frontend 가 null 분기로 안전 처리.
+	ReviewStatus *string `json:"review_status"`
 }
 
 // getMe returns the authenticated actor for the current request. Frontend
@@ -82,7 +84,10 @@ func (h Handler) getMe(c *gin.Context) {
 			resp.PrimaryUnitID = user.PrimaryUnitID
 			resp.CurrentUnitID = user.CurrentUnitID
 			resp.OnboardingCompletedAt = user.OnboardingCompletedAt
-			resp.ReviewStatus = user.ReviewStatus
+			if user.ReviewStatus != "" {
+				rs := user.ReviewStatus
+				resp.ReviewStatus = &rs
+			}
 			resp.OnboardingRequired = user.OnboardingCompletedAt == nil
 		case errors.Is(err, store.ErrNotFound):
 			// token-only actor (DB row 미존재) — Email/DisplayName 은 token
@@ -127,6 +132,9 @@ type patchMeRequest struct {
 // 인증: OIDC + 본인 row 만. gating: onboardingGate allowlist 외 — 완료
 // 사용자만 호출 (미완료는 POST /me/onboarding 으로 첫 제출).
 func (h Handler) patchMe(c *gin.Context) {
+	if !h.requireOnboardingFlag(c) {
+		return
+	}
 	if h.cfg.OrganizationStore == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
 			"status": "unavailable",

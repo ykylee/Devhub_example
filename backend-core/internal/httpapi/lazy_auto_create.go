@@ -114,15 +114,13 @@ func (h Handler) lazyAutoCreateUser(c *gin.Context, login string, actor Authenti
 	logRequest(c, "[authenticateActor] lazy auto-create %q -> role=%q status=%q idp_subject=%q (ADR-0020 §5.2)", login, created.Role, created.Status, actor.Subject)
 }
 
-// isValidLazyRole returns true when the role string maps to a known
-// rbac_policies seed role. pmo_manager / developer / manager / system_admin
-// (organization.go 의 validAppRoles 와 동일 set + lower-case match).
+// isValidLazyRole — onboardingValidRole 의 alias. PR #278 self-review P1 #2
+// 정합 (Carve D 의 lazy_auto_create.go deletion 시점에 본 file 도 같이 사라짐;
+// onboardingValidRole 은 onboarding_roles.go 로 분리되어 me_onboarding.go 의
+// dependency 가 끊기지 않음). 기존 호출처 (lazy_auto_create.go 내부) 의
+// readability 유지를 위해 thin alias 보존.
 func isValidLazyRole(role domain.AppRole) bool {
-	switch role {
-	case domain.AppRoleDeveloper, domain.AppRoleManager, domain.AppRoleSystemAdmin, "pmo_manager":
-		return true
-	}
-	return false
+	return onboardingValidRole(role)
 }
 
 func roleSourceLabel(defaulted bool, tokenRole string) string {

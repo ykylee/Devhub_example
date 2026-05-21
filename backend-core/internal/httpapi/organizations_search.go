@@ -21,6 +21,9 @@ type orgSearchResponseRow struct {
 }
 
 func (h Handler) searchOrganizations(c *gin.Context) {
+	if !h.requireOnboardingFlag(c) {
+		return
+	}
 	if h.cfg.OrganizationStore == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
 			"status": "unavailable",

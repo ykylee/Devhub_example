@@ -53,6 +53,55 @@ func seedOnboardingFixture(t *testing.T, preseedIncomplete bool) *memoryOrganiza
 }
 
 // Carve A — feature flag OFF default = onboardingGate no-op + lazy 동작 유지.
+// TestOnboardingEndpoints_FlagOff404 — Stage 3 보강 (P1 #1). flag false 일 때
+// 신규 onboarding endpoint 4건이 404 onboarding_feature_disabled 반환 → main
+// 동작 변경 없음 (단독 머지 안정성). 본 case 의 핵심.
+func TestOnboardingEndpoints_FlagOff404(t *testing.T) {
+	store := seedOnboardingFixture(t, false)
+	// system_admin role 사용 — admin endpoint 의 enforceRoutePermission 통과 후
+	// flag guard 까지 도달 검증 가능.
+	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+		Login: "admin1", Subject: "sub-admin", Role: "system_admin",
+	}}
+	router := NewRouter(RouterConfig{
+		BearerTokenVerifier:   verifier,
+		OrganizationStore:     store,
+		OnboardingGateEnabled: false, // explicit
+	})
+
+	endpoints := []struct {
+		method, path, body string
+	}{
+		{http.MethodPost, "/api/v1/me/onboarding", `{"display_name":"X","primary_unit_id":"team-platform"}`},
+		{http.MethodPatch, "/api/v1/me", `{"display_name":"X"}`},
+		{http.MethodGet, "/api/v1/organizations/search?q=team", ""},
+		{http.MethodPost, "/api/v1/admin/users/admin1/review", `{}`},
+	}
+	for _, e := range endpoints {
+		var body *bytes.Reader
+		if e.body != "" {
+			body = bytes.NewReader([]byte(e.body))
+		} else {
+			body = bytes.NewReader(nil)
+		}
+		req := httptest.NewRequest(e.method, e.path, body)
+		req.Header.Set("Authorization", "Bearer t")
+		if e.body != "" {
+			req.Header.Set("Content-Type", "application/json")
+		}
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusNotFound {
+			t.Errorf("%s %s: expected 404 with flag off, got %d body=%s", e.method, e.path, rec.Code, rec.Body.String())
+			continue
+		}
+		if !strings.Contains(rec.Body.String(), "onboarding_feature_disabled") {
+			t.Errorf("%s %s: expected code=onboarding_feature_disabled, got %q", e.method, e.path, rec.Body.String())
+		}
+	}
+}
+
 // TestOnboardingGate_FeatureFlagOff_NoOp verifies that with the gate disabled,
 // /api/v1/me responds normally for an authenticated actor without an
 // onboarding_required block.
