@@ -4,7 +4,7 @@
 - 범위: 1차 릴리즈에 포함될 기능 scope, 제외 기능, 잔여 carve 우선순위, 신규 마일스톤(M-v1.0, M-v1.1, M-v2), GitHub project + milestone 등록 plan, UI 검증 방식.
 - 대상 독자: 프로젝트 리드, 모든 워커 (Claude, Codex, Gemini), 후속 작업자.
 - 상태: draft
-- 최종 수정일: 2026-05-21 (Onboarding 도메인 §2.3 신규 + P2-8..11 IMPL carve 4건 + P2-12 lazy_auto_create deletion issue #284 + ADR-0021 reservation 정정 + P2-3 stale issue #219 closing 정합)
+- 최종 수정일: 2026-05-21 (Onboarding 도메인 §2.3 신규 + P2-8..11 IMPL carve 4건 + P2-12 lazy_auto_create deletion issue #284 + ADR-0021 reservation 정정 + backlog hygiene sweep — P2-3 stale closing 정합 (issue #219) + P2-7 cancelled (issue #223))
 - 결정 근거 sprint: `claude/work_260520-f-roadmap` (본 문서)
 - 관련 문서: [통합 개발 로드맵](../development_roadmap.md) (M0~M6 historical), [requirements](../requirements.md), [architecture](../architecture.md), [ADR-0019 Keycloak](../adr/0019-keycloak-only-idp.md), [ADR-0020 계정/사용자 책임 경계](../adr/0020-account-user-management-boundary.md), [traceability matrix](../traceability/report.md), [account_user_management_redesign Phase 1/2/3](./account_user_management_redesign.md), [keycloak_operations](../setup/keycloak_operations.md).
 
@@ -134,7 +134,7 @@
 | **P2-4** | Bindings UI 강화 — scope_id lookup combobox + Edit/Delete + pagination | development_roadmap §6 잔여 | **Gemini (frontend+UX done ✅)** | v1.0 UI polish 동반. backend CRUD 지원 추가 완료. |
 | **P2-5** | React Flow group sub-node + WebSocket 실시간 (`infra.node.updated` / `infra.service.updated`) | development_roadmap §6 잔여 | **Gemini (frontend done ✅)** | topology v2 강화. WebSocket 실시간 연동 및 Environment 그룹화 완료. |
 | **P2-6** | Keycloak SPI provider JAR (PR #203 codex P2) | PR #203 codex review | **Codex (infra) + 사용자 (Java 빌드 환경)** | `infra/idp/devhub-event-listener/` Maven 또는 Gradle 빌드 + compose volume mount + 운영 SOP |
-| **P2-7** | 신규 user 의 unit 초기 배치 자동화 — HRDB ETL pre-stage 가 unit 정보 동반 | ADR-0020 §5.5.2 | **Claude (backend) + 사용자 (HRDB)** | `scripts/hrdb_etl_sync.sh` 확장 |
+| ~~**P2-7**~~ | ~~신규 user 의 unit 초기 배치 자동화 — HRDB ETL pre-stage 가 unit 정보 동반~~ | ADR-0020 §5.5.2 | — | **cancelled (2026-05-21, issue [#223](https://github.com/ykylee/Devhub_example/issues/223) closed not-planned)** — 외부 Keycloak 시나리오 (`hrdb_etl_sync.sh` 이미 DEPRECATED, PR #257) + ADR-0021 §3.1 self-service onboarding 이 unit 매핑 cover. 두 정합 결정으로 본 carve 무효화. |
 | **P2-8** | **RM-ONBOARD-01** IMPL-backend — `users` migration (`onboarding_completed_at` + `review_status` + CHECK) + `onboardingGate` middleware + 5 handler (API-83/84/85/86 + API-32/33 확장) + lazy_auto_create.go 폐기 + audit event const 3종 | ADR-0021 §6.1, [onboarding_impl_plan.md](./onboarding_impl_plan.md) §2.1 | **Claude (backend)** | feature flag default OFF — Carve A 단독 머지 후 main 안정성. Carve B/C 진입 dependency |
 | **P2-9** | **RM-ONBOARD-02** IMPL-frontend — `/onboarding` page + OrganizationPicker (typeahead + tree) + skip flag sessionStorage + dismissible banner + `(dashboard)/layout.tsx` 3-branch gating + `/account` self-service unit edit | ADR-0021 §6.1, [onboarding_impl_plan.md](./onboarding_impl_plan.md) §2.2 | **Gemini (frontend+UX)** | Carve A 머지 후 진입. Carve C 와 병행 가능 |
 | **P2-10** | **RM-ONBOARD-03** IMPL-admin — `/admin/settings/users` 의 "Confirm Review" 액션 + pending_review filter + `ConfirmReviewModal.tsx` | ADR-0021 §6.1, [onboarding_impl_plan.md](./onboarding_impl_plan.md) §2.3 | **Gemini (frontend)** | Carve A 머지 후 진입. Carve B 와 병행 가능 |
@@ -185,7 +185,7 @@
 | P2-4 Bindings UI 강화 | P2 | Gemini |
 | P2-5 React Flow group + WebSocket 실시간 | P2 | Gemini+Claude |
 | P2-6 Keycloak SPI provider JAR | P2 | Codex+사용자 |
-| P2-7 HRDB ETL unit pre-stage | P2 | Claude+사용자 |
+| ~~P2-7 HRDB ETL unit pre-stage~~ | **cancelled (2026-05-21, issue #223)** | — |
 | **P2-8 RM-ONBOARD-01 IMPL-backend** (handler + middleware + migration + lazy 폐기) | P2 | Claude |
 | **P2-9 RM-ONBOARD-02 IMPL-frontend** (page + picker + banner + gating + /account edit) | P2 | Gemini |
 | **P2-10 RM-ONBOARD-03 IMPL-admin** (Confirm Review + filter) | P2 | Gemini |
@@ -253,7 +253,7 @@
 | Milestone | due | 포함 carve |
 | --- | --- | --- |
 | `v1.0 Release` | 2026-06-15 | P0-1, P0-2, P0-3, P1-1, P1-2, P2-1, + v1.0 종합 검증 |
-| `v1.1 Stability` | 2026-07-31 | P1-3, P1-5, P2-2..P2-7, P3-1 (P1-4 off-boarding cron + P3-12 Sign Up 은 2026-05-20 cancelled — 외부 Keycloak / IdP 팀 책임 시나리오 채택) |
+| `v1.1 Stability` | 2026-07-31 | P1-3, P1-5, P2-2, P2-4..P2-6, P2-8..P2-12, P3-1 (P1-4 off-boarding cron + P2-7 HRDB ETL + P3-12 Sign Up 은 cancelled — 외부 Keycloak 시나리오 + ADR-0021 self-service 로 무효화. **P2-3 ✅ resolved** PR #137 + adr0017-token-mutation. **P2-8 ✅ resolved** PR #278 Carve A backend.) |
 | `v2 Extension` | 2026-Q3+ | P3-2..P3-11 (단 P3-13 MFA 는 사내 정책 제외) |
 
 ### 6.3 Issue 발급 plan
