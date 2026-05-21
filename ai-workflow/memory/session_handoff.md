@@ -1,12 +1,54 @@
-# Session Handoff — main (2026-05-21 Onboarding 도메인 종합 + 학습회 자료)
+# Session Handoff — main (2026-05-22 Onboarding Carve B/C/D + flag flip + codex hotfix #3)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
-- 범위: 2026-05-21 단일 일자 12 머지 PR — Onboarding 도메인 phase 1~4 closing (#265~#271 + #276) + Carve A backend (#278) + codex deploy refactor (#277) + 학습회 자료 (#280 + #281). **v1.0 release gate (D-25) 잔여 1건** (#214 P1-3 Keycloak group staging-prod [사내 운영자 1회 작업]).
+- 범위: 직전 EOD (#281, `73f3b30`) 이후 8 PR 흡수 — main flat memory housekeeping (#283) + backlog hygiene 3건 (#285/#286/#287) + Onboarding Carve B+C frontend (#288 ⚡) + Carve D backend UT + TC catalog (#289) + flag default ON flip + lazy_auto_create.go 폐기 (#290) + **codex hotfix #3 — AuthGuard whitelist → blocklist + e2e seed onboarding 회귀 흡수** (#291). Onboarding 도메인 Phase 1~4 + Carve A/B/C/D + flag flip 5/5 **closing**.
 - 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
-- 상태: M1/M2/M3/M5/M6 done + **M7 Onboarding closing**. ADR-0019 + ADR-0020 + **ADR-0021 신규 발급** (Onboarding self-service + ADR-0020 partial supersession 5 위치). **Onboarding Carve 진척 1/4 done**: Carve A backend (PR #278) ✅. 잔여 carve: B frontend (#273) + C admin UI (#274) + D tests (#275) M-v1.1. Feature flag `DEVHUB_ONBOARDING_GATE_ENABLED` default OFF — main 동작 변경 없음, Carve D acceptance + 1주 staging monitoring 후 별도 hotfix 로 default ON flip. **외부 Keycloak 시나리오** (2026-05-20) + **단일 포트 deploy 정합** (PR #277, `DEVHUB_PUBLIC_BASE_URL`).
-- 최종 수정일: 2026-05-21 (sprint claude/learning-session-slideshow-2026-05-21 머지)
-- 관련 문서: [v1.0 릴리즈 로드맵](../../docs/planning/release_v1_roadmap.md), [Onboarding IMPL plan](../../docs/planning/onboarding_impl_plan.md), [ADR-0021](../../docs/adr/0021-onboarding-self-service-unit-selection.md), [학습회 자료 HTML](../../docs/learning-session/2026-05-21/index.html), [traceability/report](../../docs/traceability/report.md).
-- 브랜치: `main` (HEAD `73f3b30` — PR #281 학습회 slideshow 머지 후).
+- 상태: M1/M2/M3/M5/M6 done + **M7 Onboarding closing**. Feature flag `DEVHUB_ONBOARDING_GATE_ENABLED` **default ON** (#290), `lazy_auto_create.go` 전체 삭제, ADR-0020 sub-carve B deprecated, ADR-0021 §3.3 sole policy. Rollback path 보존 (`DEVHUB_ONBOARDING_GATE_ENABLED=0`). 사용자 인계 — staging 1주 monitoring.
+- 최종 수정일: 2026-05-22 (sprint claude/work_260521-codex-hotfix-onboarding-pr288 머지 + 본 housekeeping)
+- 관련 문서: [v1.0 릴리즈 로드맵](../../docs/planning/release_v1_roadmap.md), [Onboarding IMPL plan](../../docs/planning/onboarding_impl_plan.md), [ADR-0021](../../docs/adr/0021-onboarding-self-service-unit-selection.md), [account/user redesign Phase 3](../../docs/planning/account_user_management_redesign.md), [traceability/report](../../docs/traceability/report.md).
+- 브랜치: `main` (HEAD `b7cc8a0` — PR #291 codex hotfix #3 머지 후).
+
+## 2026-05-22 본 세션 (PR #291 codex hotfix #3)
+
+| Stage | 내용 |
+| --- | --- |
+| 1 — diff 재정독 + spec grep | AuthGuard whitelist 진리표 4분기 + backend `onboardingGate` allowlist 정합 확인. P0/P1 없음, P2 noise 2건 보강 미진입. |
+| 2 — gh pr comment | self-review 결과 + 보강 미진입 결정 audit trail. |
+| 3 — 보강 commit | **CI fail 28건 발견 → main HEAD baseline 도 같은 fail = pre-existing 회귀 확정 → 같은 root cause (onboarding gating) scope 흡수**. `frontend/tests/e2e/global-setup.ts` 가 `users` INSERT/UPDATE 에 `onboarding_completed_at`+`review_status` 미 set → flag ON 후 alice/bob/charlie 모두 backend 403 차단. INSERT column + values + ON CONFLICT clause 정합 갱신. |
+| 4 — squash merge | E2E shard 1/2 + 2/2 SUCCESS, mergeable=CLEAN 확인 후 머지. main HEAD `b7cc8a0`. |
+
+**변경 통계**: 3 파일 / 142+ / 39- LoC.
+- `frontend/components/layout/AuthGuard.tsx` — whitelist (`/onboarding`+`/auth/`) → blocklist (`/account`), 진리표 4분기 정합.
+- `frontend/components/layout/AuthGuard.test.tsx` — vitest 회귀 가드 4 신규 (skip+/developer pass / skip+/account redirect / 미skip+/developer redirect / 완료+/developer pass).
+- `frontend/tests/e2e/global-setup.ts` — e2e seed `onboarding_completed_at=NOW()` + `review_status='reviewed'` 추가 + ON CONFLICT clause sync.
+
+**Codex P2 (false positive)**: `OnboardingBanner` 의 `onboarding_required` 게이트는 의도된 design. pending_review 는 `ProfileSelfEdit` 의 `review_status` 뱃지로 별도 표시.
+
+**학습 2건 memory 갱신**:
+- `feedback_ci_baseline_check.md` — PR CI fail 시 main HEAD baseline 도 확인 (pre-existing 회귀 오진단 회피)
+- `feedback_e2e_seed_new_column_sync.md` — migration 신규 컬럼 추가 시 `frontend/tests/e2e/global-setup.ts` INSERT/UPDATE 도 동시 갱신 (lazy backfill 폐기 후 NULL 표면화 패턴)
+
+## 2026-05-21 직전 7 PR 흡수 요약 (#283~#290)
+
+| PR | sprint/scope | sha | 핵심 |
+| --- | --- | --- | --- |
+| #283 | claude/work_260521-housekeeping-onboarding-session | 직전 #281 시점 main memory housekeeping (#281까지 반영) |
+| #285 | claude/work_260521-issue-284-cross-link | issue #284 (P2-12 lazy_auto_create deletion) cross-link |
+| #286 | claude/work_260521-issue-219-stale-close | P2-3 ADR-0017 §6 (b) 이미 resolved — issue #219 stale close |
+| #287 | claude/work_260521-backlog-hygiene-sweep | backlog hygiene sweep, P2-7 HRDB ETL #223 cancel + 13 issue 검증 |
+| **#288** | claude/issue-273-onboarding-frontend | `12f4721` | **Carve B+C frontend + admin UI** ⚡ — `/onboarding` page + OrganizationPicker + skip flag + banner + `(dashboard)/layout` 3-branch gating + `/account` self-service + `/admin/settings/users` Confirm Review + pending_review filter. +1158 LoC. claude override (Gemini 영역 직접 인계). |
+| #289 | claude/issue-275-onboarding-tests | `f23e8eb` | Carve D — backend UT 8건 + TC catalog. +366 LoC. |
+| #290 | claude/issue-284-lazy-deletion-flag-flip | `fa042c5` | **flag default ON flip + lazy_auto_create.go 폐기** — ADR-0020 sub-carve B deprecated, ADR-0021 §3.3 sole policy. -302 LoC net. Rollback path 보존. |
+| **#291** | claude/work_260521-codex-hotfix-onboarding-pr288 | `b7cc8a0` | **codex hotfix #3** — AuthGuard whitelist→blocklist + e2e seed 회귀 흡수 (본 세션). |
+
+## 다음 세션 directive (우선순위)
+
+1. **staging 1주 monitoring** (사내 운영자, Onboarding flag default ON 후 안정성 확인). 회귀 발견 시 `DEVHUB_ONBOARDING_GATE_ENABLED=0` rollback path.
+2. **v1.0 release gate (D-24, 2026-06-15) 잔여 1건**: #214 P1-3 Keycloak group staging-prod 적용 (사내 운영자 1회 작업).
+3. **ADR-0020 Phase 3 (실 구현) 8 carve 진입**: `docs/planning/account_user_management_redesign.md` Phase 3 정의. 결정 6건 (A 전면 폐기 / B `/login` 유지 / C event listener 확장 + lazy / D `rbac_subject_roles` 완전 제거 / E read-only self-reverse / F JWKS expiry 확장) 기반 카브 묶음.
+4. **flat memory housekeeping #N** — 본 housekeeping (sprint 본 세션) 이 #283 이후 8 PR 흡수 minimal entry 만 prepend. 표 통합 + work_backlog 의 carve out section sweep 은 다음 sprint.
+
+
 
 ## 2026-05-21 단일 일자 머지 PR 12건
 
