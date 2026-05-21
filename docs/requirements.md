@@ -428,11 +428,17 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
     - 관리자가 재검토하여 다시 `reviewed` 로 확정해야 한다.
     - `pending_review` 재진입 기간에는 REQ-FR-ONBOARD-006 의 `pending_review` 단계 접근 정책이 적용된다.
 - **REQ-FR-ONBOARD-008 (MVP):** 관리자는 사용자 사전 등록 endpoint 를 사용해 `users` row 를 사전 생성할 수 있어야 한다.
-    - 사전 등록 시 기본 프로필 (`display_name`, `primary_unit_id` 등) 입력 가능.
+    - 사전 등록 시 입력 허용 필드: `display_name`, `primary_unit_id` (onboarding payload 와 동일 범위).
+    - **role 은 사전 등록 payload 에 포함되지 않는다** — onboarding 과 동일하게 Keycloak token claim (`realm_access.roles`) 매핑 또는 시스템 기본값 (`developer`) 으로만 결정 (REQ-FR-ONBOARD-002 정합). 관리자도 사전 등록 시 role 임의 설정 불가.
     - 사전 등록 시 `onboarding_completed_at` 은 설정하지 않는다 (`NULL` 유지).
     - 사전 등록된 사용자도 첫 로그인 시 onboarding 화면에서 정보를 확인/수정한 후 제출해야 완료 처리된다.
+    - 추가 필드 확장 (예: status, joined_at 의 관리자 override) 가능성은 후속 ARCH phase 에서 결정.
 - **REQ-FR-ONBOARD-009 (MVP):** Backend 는 미완료 사용자에 대해 allowlist 외 모든 endpoint 를 `403 Forbidden` + body `{ "code": "onboarding_required", ... }` 로 차단해야 한다.
-    - allowlist: onboarding 제출 API + organizations search API + `GET /api/v1/me` + 공통 메뉴/정적 endpoint.
+    - allowlist (backend endpoint 만 — frontend 정적/공통 페이지는 backend 호출 없이 렌더되므로 본 정책과 무관):
+        - Onboarding 제출 API (예: `POST /api/v1/me/onboarding`).
+        - Organizations search API (예: `GET /api/v1/organizations/search`).
+        - `GET /api/v1/me`.
+        - 정적/공통 페이지가 호출하는 최소 backend endpoint (예: 정적 metadata, health check 등 인증 자체와 분리된 endpoint). 최종 allowlist 구성은 후속 ARCH phase 에서 확정.
     - 기존 lazy auto-create 폐기 — `authenticateActor` 는 DB row miss 를 정상 상태 (token-only actor) 로 취급한다.
 - **REQ-FR-ONBOARD-010 (MVP):** Frontend 는 `/api/v1/me` 의 `onboarding_required: true` 응답에 대해 **3분기** 로 동작해야 한다.
     - 첫 진입 (session 내 skip 액션 미실행): `/devhub/onboarding` 으로 즉시 redirect.
@@ -488,7 +494,7 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
 - 모바일 반응형 디자인.
 - HRDB 자동 cross-check 또는 Keycloak group → unit 자동 매핑 (concept §5.4 옵션 C/D — 사전 carve 의존).
 - Onboarding 완료 후의 `review_status` reversal 정책 (예: 재교육/재인증 필요 시 admin 이 `reviewed` → `pending_review` 강제 되돌리기) — 운영 정책 결정 후 후속 carve.
-- MFA / 2FA — ADR-0019 §5.3 sub-carve 와 분리 (REQ-NFR-DREQ §5.5 와 동일 기준).
+- MFA / 2FA — ADR-0019 §5.3 sub-carve 와 분리 (§2.5 사용자 계정 관리의 MFA 비도입 기준과 동일).
 
 ## 6. 기술 스택 결정 사항 (Technology Stack Decisions)
 
