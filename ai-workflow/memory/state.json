@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-05-21 Onboarding 도메인 phase 1~4 closing + Carve A backend + 학습회 자료 (단일 일자 12 머지 PR). Onboarding PR 8건 (#265 concept §5.9 → #266 REQ §5.7 → #267 ARCH §9+API §16 → #269 ADR-0021 → #270 codex hotfix #1 → #271 IMPL carve plan + RM-ONBOARD-01..04 → #276 codex hotfix #2 → #278 ⚡ Carve A backend impl) + codex deploy refactor (#277) + 학습회 자료 (#280 + #281, slideshow + SVG 다이어그램). **v1.0 release gate (D-25): 잔여 1건** (#214 P1-3 Keycloak group staging-prod [사내 운영자 1회]). M-v1.1 Onboarding Carve 진척 1/4 done (Carve A backend ✅, B/C/D 잔여 — issue #273/#274/#275).",
-  "updated_at": "2026-05-21T05:00:00Z",
-  "head_commit": "73f3b30",
-  "head_summary": "docs(learning-session): slideshow + SVG 다이어그램 (사용자 피드백) (sprint claude/learning-session-slideshow-2026-05-21) (#281)",
+  "status": "2026-05-22 main HEAD `b7cc8a0` (PR #291 codex hotfix #3 머지). 직전 EOD (#281, `73f3b30`) 이후 8 PR 흡수 — #283 (main flat memory housekeeping) → #285 (issue #284 cross-link) → #286 (#219 stale close) → #287 (backlog hygiene sweep, #223 cancel) → #288 (⚡ Onboarding Carve B+C frontend + admin UI, claude override) → #289 (Carve D backend UT 8 + TC catalog) → #290 (flag default ON flip + lazy_auto_create.go 폐기, ADR-0021 §3.3 sole policy) → #291 (codex hotfix #3 — AuthGuard whitelist → blocklist + e2e seed onboarding 회귀 흡수). **Onboarding 도메인 Phase 1~4 + Carve A/B/C/D + flag flip 5/5 closing**. v1.0 release gate (D-24) 잔여 1건 (#214 P1-3 Keycloak group staging-prod). 본 세션 학습 2건 — feedback_ci_baseline_check + feedback_e2e_seed_new_column_sync. 다음 directive: staging 1주 monitoring (사내) + ADR-0020 Phase 3 (실 구현) 8 carve + v1.0 release gate 마지막 #214.",
+  "updated_at": "2026-05-22T00:00:00Z",
+  "head_commit": "b7cc8a0",
+  "head_summary": "fix(onboarding): AuthGuard whitelist → blocklist (codex hotfix #3 — PR #288) (#291)",
   "milestones": {
     "M0": {
       "status": "done",

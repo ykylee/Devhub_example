@@ -3,8 +3,8 @@
 - 문서 목적: main 브랜치 기준 상위 백로그 인덱스. 세부 sprint backlog 는 브랜치별 메모리 디렉터리 참조.
 - 범위: 마일스톤 상태, 최근 머지, 잔여/후속 작업
 - 대상 독자: 프로젝트 리드, 후속 에이전트, 트랙 담당자
-- 상태: M1·M2·M3·M5·M6 done + **M7 Onboarding 1차 closing (2026-05-21)**. **ADR-0021 신규 발급** (Onboarding self-service unit selection + ADR-0020 partial supersession 5 위치). **Onboarding Carve 진척 1/4 done**: **Carve A backend ✅** (PR #278). 잔여: B frontend (#273) + C admin UI (#274) + D tests (#275) M-v1.1. Feature flag `DEVHUB_ONBOARDING_GATE_ENABLED` default OFF — Carve D acceptance + 1주 staging monitoring 후 별도 hotfix 로 default ON flip. **v1.0 release gate (D-25, 2026-06-15): 잔여 1건** (#214 P1-3 Keycloak group staging-prod 사내 운영자). **2026-05-21 머지 PR 총 12건** (#265~#270 + #271 + #276 + #277 + #278 + #280 + #281). **다음 directive**: 1순위 = #214 사내 운영자 1회 / 2순위 = Onboarding Carve B/C/D (Gemini) 진입 + v1.1 잔여 carve (#218/#219/#222/#223/#224).
-- 최종 수정일: 2026-05-21 (sprint claude/learning-session-slideshow-2026-05-21 머지)
+- 상태: M1·M2·M3·M5·M6 done + **M7 Onboarding 도메인 closing (2026-05-22)**. Onboarding Phase 1~4 + Carve A/B/C/D + flag flip **5/5 완결**. **Feature flag `DEVHUB_ONBOARDING_GATE_ENABLED` default ON** (#290), `lazy_auto_create.go` 폐기. **codex hotfix #3** (#291) — AuthGuard whitelist→blocklist + e2e seed 회귀 흡수. main HEAD `b7cc8a0`. **v1.0 release gate (D-24, 2026-06-15): 잔여 1건** (#214 P1-3 Keycloak group staging-prod 사내 운영자). **다음 directive**: 1순위 = staging 1주 monitoring (사내) + #214 사내 운영자 1회 / 2순위 = ADR-0020 Phase 3 (실 구현) 8 carve 진입 / 3순위 = backlog hygiene sweep 후속 (P2-3/P2-7 정합 완료 후 잔여 carve out 표 재확인).
+- 최종 수정일: 2026-05-22 (sprint claude/work_260521-codex-hotfix-onboarding-pr288 머지 후 housekeeping)
 - 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [세션 인계](./session_handoff.md), [상태 스냅샷](./state.json), [M1 PR 리뷰 actions](./M1-PR-review-actions.md)
 
 ## 1. 마일스톤 진행 상황
