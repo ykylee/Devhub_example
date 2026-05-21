@@ -66,6 +66,8 @@ SELECT
 	COALESCE(current_unit_id, ''),
 	is_seconded,
 	joined_at,
+	onboarding_completed_at,
+	COALESCE(review_status, ''),
 	created_at,
 	updated_at
 FROM users
@@ -101,6 +103,8 @@ LIMIT $1 OFFSET $2`
 			&user.CurrentUnitID,
 			&user.IsSeconded,
 			&user.JoinedAt,
+			&user.OnboardingCompletedAt,
+			&user.ReviewStatus,
 			&user.CreatedAt,
 			&user.UpdatedAt,
 		); err != nil {
@@ -144,6 +148,8 @@ SELECT
 	COALESCE(current_unit_id, ''),
 	is_seconded,
 	joined_at,
+	onboarding_completed_at,
+	COALESCE(review_status, ''),
 	created_at,
 	updated_at
 FROM users
@@ -165,6 +171,8 @@ LIMIT 1`
 		&user.CurrentUnitID,
 		&user.IsSeconded,
 		&user.JoinedAt,
+		&user.OnboardingCompletedAt,
+		&user.ReviewStatus,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -211,6 +219,8 @@ SELECT
 	COALESCE(current_unit_id, ''),
 	is_seconded,
 	joined_at,
+	onboarding_completed_at,
+	COALESCE(review_status, ''),
 	created_at,
 	updated_at
 FROM users
@@ -232,6 +242,8 @@ LIMIT 1`
 		&user.CurrentUnitID,
 		&user.IsSeconded,
 		&user.JoinedAt,
+		&user.OnboardingCompletedAt,
+		&user.ReviewStatus,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -421,6 +433,8 @@ SELECT DISTINCT
 	COALESCE(u.current_unit_id, ''),
 	u.is_seconded,
 	u.joined_at,
+	u.onboarding_completed_at,
+	COALESCE(u.review_status, ''),
 	u.created_at,
 	u.updated_at
 FROM users u
@@ -452,6 +466,8 @@ ORDER BY u.user_id ASC`
 			&user.CurrentUnitID,
 			&user.IsSeconded,
 			&user.JoinedAt,
+			&user.OnboardingCompletedAt,
+			&user.ReviewStatus,
 			&user.CreatedAt,
 			&user.UpdatedAt,
 		); err != nil {
@@ -644,6 +660,19 @@ func (s *PostgresStore) UpdateUser(ctx context.Context, userID string, input dom
 		args = append(args, *input.JoinedAt)
 		idx++
 	}
+	if input.ReviewStatus != nil {
+		// RM-ONBOARD-01: admin 의 명시 transition (예: ConfirmUserReview)
+		// 은 ConfirmUserReview method 사용 권장. UpdateUser 의
+		// ReviewStatus 분기는 system_admin 의 admin/settings/users 직접
+		// 갱신 backdoor (legacy / 예외 case) — onboarding_completed_at 변경 없음.
+		setClauses = append(setClauses, fmt.Sprintf("review_status = $%d", idx))
+		if *input.ReviewStatus == "" {
+			args = append(args, nil) // bi-implication CHECK 으로 onboarding_completed_at NULL 일 때만 가능
+		} else {
+			args = append(args, *input.ReviewStatus)
+		}
+		idx++
+	}
 
 	if len(setClauses) == 0 {
 		// Nothing to update — just return the current row.
@@ -683,6 +712,152 @@ func (s *PostgresStore) DeleteUser(ctx context.Context, userID string) error {
 	return nil
 }
 
+// SubmitOnboarding — RM-ONBOARD-01 (ADR-0021 §3.3, API-83 §16.3) — onboarding
+// 제출 시 단일 트랜잭션으로 (a) users row INSERT (DB 미등록 사용자) 또는
+// UPDATE (관리자 사전 등록된 미완료 사용자), (b) display_name + primary_unit_id
+// + email + idp_subject 설정, (c) onboarding_completed_at = NOW(), (d)
+// review_status = 'pending_review'. role 은 caller (handler) 가 결정 — Keycloak
+// claim 매핑 또는 fallback `developer` (REQ-FR-ONBOARD-002 / §3.1).
+//
+// 정합 정책 (codex P1 PR #270):
+//   - existing row 가 이미 onboarding_completed_at IS NOT NULL → ErrConflict
+//     (이미 완료된 사용자 중복 호출, API-83 의 409 분기).
+//   - existing row 가 onboarding_completed_at IS NULL → UPDATE (pre-seeded
+//     사용자가 첫 로그인 후 onboarding 화면에서 제출).
+//   - row 없음 → INSERT.
+//
+// Returns ErrConflict (이미 완료) / ErrNotFound (primary_unit_id 가
+// organization_units 에 없음, FK violation).
+func (s *PostgresStore) SubmitOnboarding(ctx context.Context, input domain.OnboardingSubmitInput) (domain.AppUser, error) {
+	if strings.TrimSpace(input.UserID) == "" {
+		return domain.AppUser{}, errors.New("user_id is required")
+	}
+	if strings.TrimSpace(input.DisplayName) == "" {
+		return domain.AppUser{}, errors.New("display_name is required")
+	}
+	if strings.TrimSpace(input.PrimaryUnitID) == "" {
+		return domain.AppUser{}, errors.New("primary_unit_id is required")
+	}
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return domain.AppUser{}, fmt.Errorf("begin submit onboarding tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	// 1. existing row 확인 (FOR UPDATE row lock).
+	var existing struct {
+		exists                bool
+		onboardingCompletedAt *time.Time
+	}
+	row := tx.QueryRow(ctx,
+		`SELECT onboarding_completed_at FROM users WHERE user_id = $1 FOR UPDATE`,
+		input.UserID,
+	)
+	scanErr := row.Scan(&existing.onboardingCompletedAt)
+	switch {
+	case scanErr == nil:
+		existing.exists = true
+		if existing.onboardingCompletedAt != nil {
+			return domain.AppUser{}, fmt.Errorf("user %s already completed onboarding: %w", input.UserID, ErrConflict)
+		}
+	case errors.Is(scanErr, pgx.ErrNoRows):
+		existing.exists = false
+	default:
+		return domain.AppUser{}, fmt.Errorf("submit onboarding lookup: %w", scanErr)
+	}
+
+	// 2. INSERT 또는 UPDATE.
+	role := input.FallbackRole
+	if role == "" {
+		role = domain.AppRoleDeveloper
+	}
+	if existing.exists {
+		_, err = tx.Exec(ctx, `
+UPDATE users SET
+	display_name = $2,
+	email = COALESCE(NULLIF($3, ''), email),
+	primary_unit_id = $4,
+	current_unit_id = $4,
+	idp_subject = COALESCE(NULLIF($5, ''), idp_subject),
+	onboarding_completed_at = NOW(),
+	review_status = 'pending_review',
+	updated_at = NOW()
+WHERE user_id = $1`,
+			input.UserID,
+			input.DisplayName,
+			input.Email,
+			input.PrimaryUnitID,
+			input.IdPSubject,
+		)
+	} else {
+		_, err = tx.Exec(ctx, `
+INSERT INTO users (
+	user_id, email, display_name, role, status, user_type,
+	idp_subject, primary_unit_id, current_unit_id, is_seconded, joined_at,
+	onboarding_completed_at, review_status
+) VALUES (
+	$1, $2, $3, $4, 'active', 'human',
+	NULLIF($5, ''), $6, $6, false, NOW(),
+	NOW(), 'pending_review'
+)`,
+			input.UserID,
+			input.Email,
+			input.DisplayName,
+			string(role),
+			input.IdPSubject,
+			input.PrimaryUnitID,
+		)
+	}
+	if err != nil {
+		if isUniqueViolation(err) {
+			return domain.AppUser{}, fmt.Errorf("submit onboarding %s: %w", input.UserID, ErrConflict)
+		}
+		if isForeignKeyViolation(err) {
+			return domain.AppUser{}, fmt.Errorf("submit onboarding %s references missing unit %s: %w", input.UserID, input.PrimaryUnitID, ErrNotFound)
+		}
+		return domain.AppUser{}, fmt.Errorf("submit onboarding %s: %w", input.UserID, err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return domain.AppUser{}, fmt.Errorf("commit submit onboarding: %w", err)
+	}
+
+	return s.GetUser(ctx, input.UserID)
+}
+
+// ConfirmUserReview — RM-ONBOARD-01 (API-86 §16.7). system_admin 의 명시
+// transition (pending_review → reviewed). 사용자의 onboarding 이 이미 완료된
+// 상태에서만 동작 (onboarding_completed_at IS NOT NULL).
+//
+// Returns ErrNotFound (user 미존재) / ErrConflict (이미 reviewed 이거나
+// onboarding 미제출).
+func (s *PostgresStore) ConfirmUserReview(ctx context.Context, userID string) (domain.AppUser, error) {
+	if strings.TrimSpace(userID) == "" {
+		return domain.AppUser{}, errors.New("user_id is required")
+	}
+	tag, err := s.pool.Exec(ctx, `
+UPDATE users SET
+	review_status = 'reviewed',
+	updated_at = NOW()
+WHERE user_id = $1
+  AND onboarding_completed_at IS NOT NULL
+  AND review_status = 'pending_review'`,
+		userID,
+	)
+	if err != nil {
+		return domain.AppUser{}, fmt.Errorf("confirm user review %s: %w", userID, err)
+	}
+	if tag.RowsAffected() == 0 {
+		// 정확한 분기는 caller (handler) 가 GetUser 로 다시 확인 후 결정.
+		// 본 store layer 는 단순 affected=0 → ErrNotFound 반환.
+		// handler 가 404 (user not found) 또는 409 (already reviewed) 또는
+		// 422 (onboarding not completed) 로 분기.
+		return domain.AppUser{}, fmt.Errorf("user %s review confirm: %w", userID, ErrNotFound)
+	}
+	return s.GetUser(ctx, userID)
+}
+
 // SetIdPSubject caches the IdP identity_id on the DevHub users row so
 // subsequent identity lookups can skip the IdP user-list scan. Migration
 // 000009 added the column (as kratos_identity_id); 000030 renamed it to
@@ -710,6 +885,66 @@ func (s *PostgresStore) SetIdPSubject(ctx context.Context, userID, identityID st
 		return fmt.Errorf("user %s: %w", userID, ErrNotFound)
 	}
 	return nil
+}
+
+// SearchOrgUnits — RM-ONBOARD-01 (API-84 §16.4) — typeahead 검색. case-
+// insensitive substring match on org_units.label. q 는 caller (handler) 가
+// >= 2 chars 검증. limit > 20 또는 <= 0 인 경우 20 으로 clamp.
+//
+// 응답 row 는 domain.OrgUnit 전체 shape — handler 가 unit_id + label 만 노출.
+// 권한 가드 없음 (REQ-FR-ONBOARD-004) — 모든 사용자에게 모든 조직 후보 노출.
+func (s *PostgresStore) SearchOrgUnits(ctx context.Context, q string, limit int) ([]domain.OrgUnit, error) {
+	if limit <= 0 || limit > 20 {
+		limit = 20
+	}
+	pattern := "%" + strings.ToLower(q) + "%"
+	const query = `
+SELECT
+	id,
+	unit_id,
+	COALESCE(parent_unit_id, ''),
+	unit_type,
+	label,
+	COALESCE(leader_user_id, ''),
+	position_x,
+	position_y,
+	created_at,
+	updated_at
+FROM org_units
+WHERE LOWER(label) LIKE $1
+ORDER BY label ASC, unit_id ASC
+LIMIT $2`
+
+	rows, err := s.pool.Query(ctx, query, pattern, limit)
+	if err != nil {
+		return nil, fmt.Errorf("search org units: %w", err)
+	}
+	defer rows.Close()
+	units := make([]domain.OrgUnit, 0, limit)
+	for rows.Next() {
+		var unit domain.OrgUnit
+		var unitType string
+		if err := rows.Scan(
+			&unit.ID,
+			&unit.UnitID,
+			&unit.ParentUnitID,
+			&unitType,
+			&unit.Label,
+			&unit.LeaderUserID,
+			&unit.PositionX,
+			&unit.PositionY,
+			&unit.CreatedAt,
+			&unit.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan org unit search: %w", err)
+		}
+		unit.UnitType = domain.UnitType(unitType)
+		units = append(units, unit)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate org unit search: %w", err)
+	}
+	return units, nil
 }
 
 // GetOrgUnit fetches a single org unit (without descendants).

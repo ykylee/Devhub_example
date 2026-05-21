@@ -125,6 +125,14 @@ type routeKey struct {
 var routePermissionTable = map[routeKey]routePolicy{
 	// Bypass — section 12.8.1 (auth-only, no matrix lookup)
 	{http.MethodGet, "/api/v1/me"}:                                                {Bypass: true},
+	// RM-ONBOARD-01 (ADR-0021 §3.5, §16.3..16.5). onboardingGate middleware
+	// 가 미완료 사용자의 본 endpoint 외 endpoint 호출 시 403 처리.
+	{http.MethodPatch, "/api/v1/me"}:                                              {Bypass: true},
+	{http.MethodPost, "/api/v1/me/onboarding"}:                                    {Bypass: true},
+	{http.MethodGet, "/api/v1/organizations/search"}:                              {Bypass: true},
+	// RM-ONBOARD-01 (API-86) — admin 의 review confirm. system_admin 일임 —
+	// rbac matrix 의 users:edit 정합.
+	{http.MethodPost, "/api/v1/admin/users/:user_id/review"}:                      {Resource: domain.ResourceSecurity, Action: domain.ActionEdit},
 	{http.MethodGet, "/api/v1/realtime/ws"}:                                       {Bypass: true},
 	{http.MethodPost, "/api/v1/integrations/gitea/webhooks"}:                      {Bypass: true},
 	{http.MethodPost, "/api/v1/integration/providers/:provider_id/webhook"}:       {Bypass: true},

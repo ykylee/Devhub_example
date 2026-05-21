@@ -152,8 +152,9 @@ func main() {
 			GiteaURL:     cfg.GiteaURL,
 			BackendAIURL: cfg.BackendAIURL,
 		},
-		RealtimeHub:     realtimeHub,
-		AuthDevFallback: cfg.AuthDevFallback,
+		RealtimeHub:           realtimeHub,
+		AuthDevFallback:       cfg.AuthDevFallback,
+		OnboardingGateEnabled: cfg.OnboardingGateEnabled,
 	})
 
 	if worker != nil {

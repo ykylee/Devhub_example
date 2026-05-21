@@ -21,6 +21,14 @@ type Config struct {
 	IdPProvider string
 	// AuthDevFallback enables development-only authentication fallbacks: requests with no Authorization header pass through authenticateActor, and the role guard middleware (requireMinRole) lets the request through without a role. Actor identity always falls back to "system" when no authenticated subject is present. Default false (production-safe). Toggle with DEVHUB_AUTH_DEV_FALLBACK=1.
 	AuthDevFallback bool
+	// OnboardingGateEnabled — RM-ONBOARD-01 (ADR-0021 §3.3). Feature flag
+	// default **false** (legacy 동작 — lazy auto-create 유지, ADR-0020 sub-carve B).
+	// Toggle with `DEVHUB_ONBOARDING_GATE_ENABLED=1`. true 시 신규 onboarding
+	// 흐름 활성화 — authenticateActor 가 DB miss 를 token-only actor 로 취급 +
+	// onboardingGate middleware 가 미완료 사용자의 allowlist 외 endpoint 차단.
+	// Carve A 단독 머지 후 main 안정성 보장 — Carve D acceptance 통과 후 별도
+	// hotfix PR 으로 default ON flip.
+	OnboardingGateEnabled bool
 	// ServiceActionExecutorMode enables the live service action worker only for supported explicit modes such as "simulation".
 	ServiceActionExecutorMode string
 	// ServiceActionAllowedServices is a comma-separated allowlist checked by the simulation service action executor.
@@ -117,6 +125,7 @@ func Load() Config {
 		Env:                            strings.ToLower(strings.TrimSpace(os.Getenv("DEVHUB_ENV"))),
 		IdPProvider:                    normalizeIDPProvider(os.Getenv("DEVHUB_IDP_PROVIDER")),
 		AuthDevFallback:                envBool("DEVHUB_AUTH_DEV_FALLBACK"),
+		OnboardingGateEnabled:          envBool("DEVHUB_ONBOARDING_GATE_ENABLED"),
 		ServiceActionExecutorMode:      strings.TrimSpace(os.Getenv("SERVICE_ACTION_EXECUTOR_MODE")),
 		ServiceActionAllowedServices:   strings.TrimSpace(os.Getenv("SERVICE_ACTION_ALLOWED_SERVICES")),
 		ServiceActionAllowedActions:    strings.TrimSpace(os.Getenv("SERVICE_ACTION_ALLOWED_ACTIONS")),

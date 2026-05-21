@@ -159,21 +159,43 @@ func (h Handler) authenticateActor(c *gin.Context) {
 					logRequest(c, "[authenticateActor] idp_subject lazy backfill for %q -> %q", login, actor.Subject)
 				}
 			}
+			// RM-ONBOARD-01 (ADR-0021 §3.3) — onboarding_required flag 정합.
+			// admin pre-seeded 사용자 (row 존재 + onboarding_completed_at NULL)
+			// 도 미완료로 취급 — 첫 로그인 시 onboarding 화면 강제 진입.
+			if h.cfg.OnboardingGateEnabled {
+				if user.OnboardingCompletedAt == nil {
+					c.Set("devhub_onboarding_required", true)
+				}
+			}
 		case errors.Is(err, store.ErrNotFound):
-			// ADR-0020 §5.2 sub-carve B (sprint -i, issue #209): lazy
-			// auto-create. Keycloak admin console 또는 HRDB ETL 로 신규
-			// 생성된 user 의 첫 DevHub 진입 시 `users` row 자동 생성.
+			// RM-ONBOARD-01 (ADR-0021 §3.3) — onboarding gate feature flag
+			// 분기:
+			//   - flag false (default): ADR-0020 sub-carve B 정합 (lazy
+			//     auto-create 유지). row 자동 생성 + audit emit.
+			//   - flag true: lazy 폐기. DB miss = 정상 token-only actor.
+			//     Email/DisplayName 은 token claim 에서 직접 추출.
+			//     onboardingGate middleware (별도 layer) 가 allowlist 외
+			//     endpoint 호출 시 403 onboarding_required 차단.
 			//
-			// 흐름: token 검증 통과 → GetUser miss → CreateUser → audit emit.
-			// 이전 (sprint -ad 이전): Hydra token 만 있고 DevHub row 없는
-			// pre-onboarding 사용자 진입은 token role claim 으로 fall through,
-			// admin/settings/users 페이지 진입 시 직접 row 생성 필요.
-			//
-			// 변경 (sprint -i): row 자동 생성 + audit `account.lazy_provisioned`
-			// + role fallback default `developer` + audit `user.role_default_assigned`.
-			// HRDB ETL pre-stage 가 먼저 row 생성한 경우 GetUser hit → 본 분기 자체
-			// 도달 안 함 (idempotent).
-			if h.cfg.OrganizationStore != nil {
+			// AuthenticatedActor 의 Email/DisplayName 필드는 sub-carve B
+			// 가 추가 (PR #239). token claim 추출 로직은 keycloak_verifier.go
+			// 의 extractDisplayName + email claim 처리 가 담당.
+			if h.cfg.OnboardingGateEnabled {
+				// flag true: token-only actor — context 에 token claim
+				// email + display_name 전달 (onboarding handler 가 활용).
+				if actor.Email != "" {
+					c.Set("devhub_actor_email", actor.Email)
+				}
+				if actor.DisplayName != "" {
+					c.Set("devhub_actor_display_name", actor.DisplayName)
+				}
+				// DB row 미존재 → onboarding_required 가 true. onboardingGate
+				// middleware 가 후속 처리 (allowlist + 403).
+				c.Set("devhub_onboarding_required", true)
+				logRequest(c, "[authenticateActor] %q DB miss + onboarding gate enabled = token-only actor (ADR-0021 §3.3)", login)
+			} else if h.cfg.OrganizationStore != nil {
+				// flag false (default): ADR-0020 sub-carve B lazy auto-create
+				// 흐름 유지 (legacy).
 				h.lazyAutoCreateUser(c, login, actor, finalRole)
 			}
 		default:

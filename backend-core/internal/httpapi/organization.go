@@ -40,6 +40,18 @@ type OrganizationStore interface {
 	DeleteOrgUnit(context.Context, string) error
 	ListUnitMembers(context.Context, string) ([]domain.AppUser, error)
 	ReplaceUnitMembers(context.Context, string, []string) error
+	// SubmitOnboarding — RM-ONBOARD-01 (ADR-0021 §3.3, API-83 §16.3) — onboarding
+	// 제출 시 row INSERT 또는 UPDATE 단일 트랜잭션. 자세한 정합 정책은
+	// PostgresStore.SubmitOnboarding 의 doc comment 참조.
+	SubmitOnboarding(context.Context, domain.OnboardingSubmitInput) (domain.AppUser, error)
+	// ConfirmUserReview — RM-ONBOARD-01 (API-86 §16.7) — system_admin 의 명시
+	// transition (pending_review → reviewed). ErrNotFound 시 caller 가 GetUser 로
+	// 다시 확인 후 404/409/422 분기.
+	ConfirmUserReview(context.Context, string) (domain.AppUser, error)
+	// SearchOrgUnits — RM-ONBOARD-01 (API-84 §16.4) — typeahead. q (>= 2 chars)
+	// 의 case-insensitive substring match on org_units.label. limit <= 20.
+	// 응답에는 unit_id + label 만 (REQ-FR-ONBOARD-004 정합).
+	SearchOrgUnits(context.Context, string, int) ([]domain.OrgUnit, error)
 }
 
 type appointmentResponse struct {
