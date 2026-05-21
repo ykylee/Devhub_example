@@ -4,7 +4,7 @@
 - 범위: 1차 릴리즈에 포함될 기능 scope, 제외 기능, 잔여 carve 우선순위, 신규 마일스톤(M-v1.0, M-v1.1, M-v2), GitHub project + milestone 등록 plan, UI 검증 방식.
 - 대상 독자: 프로젝트 리드, 모든 워커 (Claude, Codex, Gemini), 후속 작업자.
 - 상태: draft
-- 최종 수정일: 2026-05-20
+- 최종 수정일: 2026-05-21 (Onboarding 도메인 §2.3 신규 + P2-8..11 IMPL carve 4건 추가 + ADR-0021 reservation 정정 (HA Phase 2))
 - 결정 근거 sprint: `claude/work_260520-f-roadmap` (본 문서)
 - 관련 문서: [통합 개발 로드맵](../development_roadmap.md) (M0~M6 historical), [requirements](../requirements.md), [architecture](../architecture.md), [ADR-0019 Keycloak](../adr/0019-keycloak-only-idp.md), [ADR-0020 계정/사용자 책임 경계](../adr/0020-account-user-management-boundary.md), [traceability matrix](../traceability/report.md), [account_user_management_redesign Phase 1/2/3](./account_user_management_redesign.md), [keycloak_operations](../setup/keycloak_operations.md).
 
@@ -79,7 +79,21 @@
 | Project Integration CRUD (legacy, separate from External Integration) | API-58 | — | ✅ done |
 | **DREQ (Dev Request)** | API-59..68 + `requireIntakeToken` middleware + Promote-Tx | `app/(dashboard)/{dev-requests,admin/settings/{dev-requests,dev-request-tokens}}/page.tsx` | ✅ done (M5 closing) |
 
-### 2.3 External Integration
+### 2.3 Onboarding 도메인 (Keycloak self-service unit selection)
+
+| 모듈 | 위치 (backend) | 위치 (frontend) | v1.0 상태 |
+| --- | --- | --- | --- |
+| Concept §5.1~§5.9 + skip-and-resume | — (design doc) | — | ✅ done (PR #260 + #265) |
+| Requirements §5.7 (REQ-FR-ONBOARD-001..012 + REQ-NFR-001..008) | — (spec) | — | ✅ done (PR #266) |
+| Usecase + Architecture + API contract | — (spec) | — | ✅ done (PR #267 — UC-ONBOARD-01..11 + ARCH-ONBOARD-01..06 + API-83..86 + API-32/33 확장) |
+| ADR-0021 (책임 경계 확장 + lazy auto-create supersession) | — (ADR) | — | ✅ done (PR #269, ADR-0020 partial supersession 5 위치) |
+| IMPL carve plan + RM-ONBOARD-01..04 | [`docs/planning/onboarding_impl_plan.md`](./onboarding_impl_plan.md) | — | 본 sprint done |
+| RM-ONBOARD-01 IMPL-backend (handler + middleware + migration + lazy 폐기) | `internal/httpapi/{onboarding_gate,me_onboarding,organizations_search,users_admin_review}.go` 신규 | — | ⏳ M-v1.1 |
+| RM-ONBOARD-02 IMPL-frontend (page + picker + banner + gating) | — | `app/onboarding/page.tsx` + `components/onboarding/*` + `(dashboard)/layout.tsx` 확장 + `account/page.tsx` 확장 | ⏳ M-v1.1 |
+| RM-ONBOARD-03 IMPL-admin (Confirm Review + pending_review filter) | — | `app/admin/settings/users/page.tsx` 확장 + `ConfirmReviewModal.tsx` 신규 | ⏳ M-v1.1 |
+| RM-ONBOARD-04 IMPL-tests (UT + E2E mega lifecycle) | `internal/httpapi/onboarding{,_gate}_test.go` | `tests/e2e/onboarding.spec.ts` + 6 test seed | ⏳ M-v1.1 |
+
+### 2.4 External Integration
 
 | 모듈 | 위치 (backend) | 위치 (frontend) | v1.0 상태 |
 | --- | --- | --- | --- |
@@ -121,6 +135,10 @@
 | **P2-5** | React Flow group sub-node + WebSocket 실시간 (`infra.node.updated` / `infra.service.updated`) | development_roadmap §6 잔여 | **Gemini (frontend done ✅)** | topology v2 강화. WebSocket 실시간 연동 및 Environment 그룹화 완료. |
 | **P2-6** | Keycloak SPI provider JAR (PR #203 codex P2) | PR #203 codex review | **Codex (infra) + 사용자 (Java 빌드 환경)** | `infra/idp/devhub-event-listener/` Maven 또는 Gradle 빌드 + compose volume mount + 운영 SOP |
 | **P2-7** | 신규 user 의 unit 초기 배치 자동화 — HRDB ETL pre-stage 가 unit 정보 동반 | ADR-0020 §5.5.2 | **Claude (backend) + 사용자 (HRDB)** | `scripts/hrdb_etl_sync.sh` 확장 |
+| **P2-8** | **RM-ONBOARD-01** IMPL-backend — `users` migration (`onboarding_completed_at` + `review_status` + CHECK) + `onboardingGate` middleware + 5 handler (API-83/84/85/86 + API-32/33 확장) + lazy_auto_create.go 폐기 + audit event const 3종 | ADR-0021 §6.1, [onboarding_impl_plan.md](./onboarding_impl_plan.md) §2.1 | **Claude (backend)** | feature flag default OFF — Carve A 단독 머지 후 main 안정성. Carve B/C 진입 dependency |
+| **P2-9** | **RM-ONBOARD-02** IMPL-frontend — `/onboarding` page + OrganizationPicker (typeahead + tree) + skip flag sessionStorage + dismissible banner + `(dashboard)/layout.tsx` 3-branch gating + `/account` self-service unit edit | ADR-0021 §6.1, [onboarding_impl_plan.md](./onboarding_impl_plan.md) §2.2 | **Gemini (frontend+UX)** | Carve A 머지 후 진입. Carve C 와 병행 가능 |
+| **P2-10** | **RM-ONBOARD-03** IMPL-admin — `/admin/settings/users` 의 "Confirm Review" 액션 + pending_review filter + `ConfirmReviewModal.tsx` | ADR-0021 §6.1, [onboarding_impl_plan.md](./onboarding_impl_plan.md) §2.3 | **Gemini (frontend)** | Carve A 머지 후 진입. Carve B 와 병행 가능 |
+| **P2-11** | **RM-ONBOARD-04** IMPL-tests — UT-onboarding-* (backend handler + middleware) + TC-ONBOARD-* 11건 (E2E mega lifecycle, REQ-NFR-ONBOARD-008 의 6 test seed) + `docs/tests/test_cases_m7_onboarding.md` | ADR-0021 §6.1, [onboarding_impl_plan.md](./onboarding_impl_plan.md) §2.4 | **Claude (UT) + Gemini (E2E)** | Carve A + B + C 모두 머지 후 |
 
 ### 3.4 P3 — v2 후순위
 
@@ -129,7 +147,7 @@
 | **P3-1** | ADR-0020 sub-carve F — `/login` page 정리 | ADR-0020 §4.1 F | **Gemini (frontend)** | minor UX 정리. 우선순위 가장 낮음 |
 | **P3-2** | ADR-0015 §6 (3) dedicated worker binary | ADR-0015 §6 | **Claude (backend)** | M4 진입 시 재평가 |
 | **P3-3** | ADR-0015 §6 (4) push/pull dedup 정책 | ADR-0015 §6 | **Claude (backend)** | 별도 ADR 후보 |
-| **P3-4** | ADR-0019 §5.3 — HA Phase 2 (Infinispan + shared PG + LB) | ADR-0019 §5.3 (6) | **사용자 (인프라 결정) + Codex** | ADR-0021 후보 |
+| **P3-4** | ADR-0019 §5.3 — HA Phase 2 (Infinispan + shared PG + LB) | ADR-0019 §5.3 (6) | **사용자 (인프라 결정) + Codex** | 별도 ADR 후보 — ADR-0021 은 Onboarding 으로 발급됨 (2026-05-21), HA Phase 2 의 ADR 은 진입 시점에 다음 번호로 발급 |
 | **P3-5** | ADR-0019 §5.3 — audit event listener SPI push 전환 | ADR-0019 §5.3 (9) §8.6.9 | **Claude (backend)** | polling latency 30s → < 1s. P2-6 의 SPI JAR 도입 후 |
 | **P3-6** | RM-M4-01..03 WebSocket 확장 (replay + 리소스 필터링 + command status UI) | development_roadmap M4 | **Claude (backend) + Gemini (frontend)** | v1.1 또는 v2 |
 | **P3-7** | RM-M4-04..05 AI Gardener gRPC + Suggestion Feed | development_roadmap M4 | **Claude (backend) + Gemini (frontend)** | v2 보조 기능 |
@@ -167,6 +185,10 @@
 | P2-5 React Flow group + WebSocket 실시간 | P2 | Gemini+Claude |
 | P2-6 Keycloak SPI provider JAR | P2 | Codex+사용자 |
 | P2-7 HRDB ETL unit pre-stage | P2 | Claude+사용자 |
+| **P2-8 RM-ONBOARD-01 IMPL-backend** (handler + middleware + migration + lazy 폐기) | P2 | Claude |
+| **P2-9 RM-ONBOARD-02 IMPL-frontend** (page + picker + banner + gating + /account edit) | P2 | Gemini |
+| **P2-10 RM-ONBOARD-03 IMPL-admin** (Confirm Review + filter) | P2 | Gemini |
+| **P2-11 RM-ONBOARD-04 IMPL-tests** (UT + E2E mega lifecycle) | P2 | Claude+Gemini |
 | P3-1 sub-carve F `/login` 정리 | P3 | Gemini |
 | ~~P3-12 Sign Up 셀프 가입~~ | **cancelled (2026-05-20)** | — |
 
@@ -176,7 +198,7 @@
 | --- | --- |
 | P3-2 ADR-0015 §6 (3) dedicated worker | 운영 분리 |
 | P3-3 ADR-0015 §6 (4) push/pull dedup | 별도 ADR |
-| P3-4 HA Phase 2 (ADR-0021 후보) | 인프라 |
+| P3-4 HA Phase 2 (별도 ADR 후보 — ADR-0021 은 Onboarding 으로 발급됨 2026-05-21) | 인프라 |
 | P3-5 audit event listener SPI push 전환 | latency |
 | P3-6 RM-M4-01..03 WebSocket 확장 | 실시간 |
 | P3-7 RM-M4-04..05 AI Gardener | AI 보조 |

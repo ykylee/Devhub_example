@@ -226,10 +226,10 @@ Phase 1 단순 운영 audit = ETL script log + Keycloak admin event log (별도 
 본 design 은 ADR-0019 §5.3 carve + ADR-0008 §6 의 "실시간 sync" 항목 통합. ADR governance 측면:
 
 - Phase 1 (옵션 C HR ETL push) = 운영 SOP 수준 — 별도 ADR 발행 가치 낮음
-- Phase 2 (옵션 E LDAP federation) = Keycloak User Federation 도입 결정 — ADR-0021 후보 (현재 별도 ADR 없음)
-- Phase 3 (SCIM / webhook) = 별도 ADR (ADR-0022+) 후보
+- Phase 2 (옵션 E LDAP federation) = Keycloak User Federation 도입 결정 — **별도 ADR 후보** (ADR-0021 은 Onboarding 으로 2026-05-21 발급됨 — Phase 2 진입 시점에 다음 번호 사용)
+- Phase 3 (SCIM / webhook) = 별도 ADR (ADR-0022 또는 이후) 후보
 
-**1차 결정**: ADR-0019 §5.3 (7) carve resolved (design) 만으로 한정. ADR-0008 §6 "실시간 sync" 항목에 design link 추가. Phase 2 진입 시 ADR-0021 후보 재평가.
+**1차 결정**: ADR-0019 §5.3 (7) carve resolved (design) 만으로 한정. ADR-0008 §6 "실시간 sync" 항목에 design link 추가. Phase 2 진입 시 별도 ADR 재평가.
 
 ### 8.2 ADR-0008 §6 와의 정합
 
