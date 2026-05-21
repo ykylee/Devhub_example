@@ -43,12 +43,12 @@ case "$FRONTEND_BASEPATH" in
   *) FRONTEND_BASEPATH="/$FRONTEND_BASEPATH" ;;
 esac
 
-# redirect_uris allowlist — 단일 origin 만 허용.
+# redirect_uris allowlist — wildcard 없이 단일 callback URI만 허용.
 if [ -n "$FRONTEND_BASEPATH" ]; then
-  REDIRECT_URIS="[\"${FRONTEND_ORIGIN}${FRONTEND_BASEPATH}/auth/callback\",\"${FRONTEND_ORIGIN}${FRONTEND_BASEPATH}/*\"]"
+  REDIRECT_URIS="[\"${FRONTEND_ORIGIN}${FRONTEND_BASEPATH}/auth/callback\"]"
   POST_LOGOUT_URIS="${FRONTEND_ORIGIN}${FRONTEND_BASEPATH}/##${FRONTEND_ORIGIN}${FRONTEND_BASEPATH}/auth/login"
 else
-  REDIRECT_URIS="[\"${FRONTEND_ORIGIN}/auth/callback\",\"${FRONTEND_ORIGIN}/*\"]"
+  REDIRECT_URIS="[\"${FRONTEND_ORIGIN}/auth/callback\"]"
   POST_LOGOUT_URIS="${FRONTEND_ORIGIN}/##${FRONTEND_ORIGIN}/auth/login"
 fi
 WEB_ORIGINS="[\"${FRONTEND_ORIGIN}\"]"
@@ -242,6 +242,7 @@ fi
 
 echo "Configuration complete."
 echo "--------------------------------------------------"
-echo "DEVHUB_OIDC_CLIENT_SECRET=$backend_secret"
+# DEVHUB_OIDC_CLIENT_SECRET 는 배포 정책에 따라 별도 관리한다.
+# (devhub-frontend client 가 publicClient=true 인 기본 구성에서는 필수 아님)
 echo "DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET=$backend_secret"
 echo "--------------------------------------------------"
