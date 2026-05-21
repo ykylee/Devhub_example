@@ -167,11 +167,20 @@ build_env_file() {
 
 build_images() {
   echo "[build] backend-core"
-  docker build -t "${IMAGE_REPO_PREFIX}/backend-core:${IMAGE_TAG}" "$ROOT_DIR/backend-core"
+  docker build \
+    -f "$ROOT_DIR/backend-core/Dockerfile" \
+    -t "${IMAGE_REPO_PREFIX}/backend-core:${IMAGE_TAG}" \
+    "$ROOT_DIR/backend-core"
   echo "[build] backend-ai"
-  docker build -t "${IMAGE_REPO_PREFIX}/backend-ai:${IMAGE_TAG}" "$ROOT_DIR/backend-ai"
+  docker build \
+    -f "$ROOT_DIR/backend-ai/Dockerfile" \
+    -t "${IMAGE_REPO_PREFIX}/backend-ai:${IMAGE_TAG}" \
+    "$ROOT_DIR/backend-ai"
   echo "[build] frontend"
-  docker build -t "${IMAGE_REPO_PREFIX}/frontend:${IMAGE_TAG}" "$ROOT_DIR/frontend"
+  docker build \
+    -f "$ROOT_DIR/frontend/Dockerfile" \
+    -t "${IMAGE_REPO_PREFIX}/frontend:${IMAGE_TAG}" \
+    "$ROOT_DIR/frontend"
 }
 
 push_images() {
