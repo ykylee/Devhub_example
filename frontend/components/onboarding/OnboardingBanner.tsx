@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { AlertTriangle, X, UserPlus } from "lucide-react";
 import { useStore } from "@/lib/store";
 
+// REQ-FR-ONBOARD-010 의 dismissible 배너. §16.2 spec 상 `onboarding_required: true`
+// 는 항상 `onboarding_completed_at IS NULL` 이므로 배너는 limited-mode (skip 단계 또는
+// admin pre-seed 후 첫 로그인 미제출) 만 노출. pending_review 단계는 `onboarding_required:
+// false` 라 배너 자체가 안 보임 (검토 대기 상태 안내는 /account 의 ProfileSelfEdit 에서 별도 표시).
 export function OnboardingBanner() {
   const router = useRouter();
   const { actor } = useStore();
@@ -13,36 +17,19 @@ export function OnboardingBanner() {
   if (!actor?.onboarding_required) return null;
   if (dismissed) return null;
 
-  const isPendingReview = actor.onboarding_completed_at !== null;
-
-  if (isPendingReview) {
-    return (
-      <div
-        className="bg-amber-500/10 border-b border-amber-500/30 px-4 py-2 flex items-center gap-3 text-sm"
-        data-testid="onboarding-banner-pending-review"
-      >
-        <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
-        <span className="flex-1">관리자 검토 대기 중입니다. 일부 기능이 제한될 수 있습니다.</span>
-        <button
-          type="button"
-          onClick={() => setDismissed(true)}
-          className="p-1 hover:bg-card/50 rounded"
-          aria-label="배너 닫기"
-          data-testid="onboarding-banner-dismiss"
-        >
-          <X className="w-3 h-3" />
-        </button>
-      </div>
-    );
-  }
-
   return (
     <div
       className="bg-primary/10 border-b border-primary/30 px-4 py-2 flex items-center gap-3 text-sm"
-      data-testid="onboarding-banner-skip"
+      data-testid="onboarding-banner"
     >
-      <UserPlus className="w-4 h-4 text-primary flex-shrink-0" />
-      <span className="flex-1">프로필 등록이 완료되지 않았습니다. 일부 기능이 제한됩니다.</span>
+      {actor.primary_unit_id ? (
+        <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
+      ) : (
+        <UserPlus className="w-4 h-4 text-primary flex-shrink-0" />
+      )}
+      <span className="flex-1">
+        프로필 등록이 완료되지 않았습니다. 일부 기능이 제한됩니다.
+      </span>
       <button
         type="button"
         onClick={() => router.push("/onboarding")}

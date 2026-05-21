@@ -52,8 +52,12 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         });
         // 3-branch gating (REQ-FR-ONBOARD-010):
         //   1) skip 액션 미실행 + 미완료 → /onboarding 강제 redirect
-        //   2) skip 액션 + 미완료 → 정상 진입 + banner (단 /account 같은 보호 경로는 차단)
-        //   3) 완료 → 정상 진입
+        //   2) skip 액션 + 미완료 + limited-mode 허용 경로 → 정상 진입 + banner
+        //   3) skip 액션 + 미완료 + 보호 경로 → /onboarding hard redirect
+        //   4) 완료 (onboarding_required=false) → 정상 진입
+        // §16.2 spec 정합: `onboarding_required: true` 는 항상 `onboarding_completed_at IS NULL`
+        // (DB row 없음 OR admin pre-seed 후 첫 로그인 미제출). 두 sub-case 모두 limited-mode 라
+        // 보호 경로 (예: /account self-service) 진입은 차단.
         if (resolved.onboarding_required && pathname !== "/onboarding") {
           const skipped = isOnboardingSkipped();
           if (!skipped) {
@@ -61,13 +65,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
             return;
           }
           if (!pathAllowedInLimitedMode(pathname)) {
-            const isPendingReview = resolved.onboarding_completed_at !== null;
-            // pending_review 단계는 limited mode 보다 넓은 접근 (할당 리소스 query 가능).
-            // skip 단계 (DB row 없음) 만 limited 보호 경로 차단.
-            if (!isPendingReview) {
-              router.replace("/onboarding");
-              return;
-            }
+            router.replace("/onboarding");
+            return;
           }
         }
         // System routes (/admin, /admin/settings/*, /organization) must be
