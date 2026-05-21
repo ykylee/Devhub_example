@@ -22,7 +22,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 : "${DB_SSLMODE:=disable}"
 
 # Optional (override only when needed)
-: "${ACTION:=all}" # build|push|deploy|all
+: "${ACTION:=all}" # build|deploy|all
 : "${ENV_FILE:=/tmp/devhub-deploy.env}"
 : "${DOCKER_COMPOSE_FILE:=$ROOT_DIR/docker-compose.deploy.yml}"
 : "${NEXT_PUBLIC_BASE_PATH:=devhub}"
@@ -40,7 +40,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 #   DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET
 #
 # Optional env:
-#   ACTION                          build|push|deploy|all (default: all)
+#   ACTION                          build|deploy|all (default: all)
 #   ENV_FILE                        deploy env file path (default: /tmp/devhub-deploy.env)
 #   DOCKER_COMPOSE_FILE             compose file path (default: docker-compose.deploy.yml)
 #   DEVHUB_OIDC_ISSUER_URL          default: ${DEVHUB_PUBLIC_BASE_URL}/devhub/auth/keycloak/realms/devhub
@@ -187,15 +187,6 @@ build_images() {
     "$ROOT_DIR/frontend"
 }
 
-push_images() {
-  echo "[push] backend-core"
-  docker push "${IMAGE_REPO_PREFIX}/backend-core:${IMAGE_TAG}"
-  echo "[push] backend-ai"
-  docker push "${IMAGE_REPO_PREFIX}/backend-ai:${IMAGE_TAG}"
-  echo "[push] frontend"
-  docker push "${IMAGE_REPO_PREFIX}/frontend:${IMAGE_TAG}"
-}
-
 deploy_stack() {
   COMPOSE_FILE="$DOCKER_COMPOSE_FILE" ENV_FILE="$ENV_FILE" "$ROOT_DIR/scripts/deploy-up.sh"
 }
@@ -217,19 +208,15 @@ main() {
     build)
       build_images
       ;;
-    push)
-      push_images
-      ;;
     deploy)
       deploy_stack
       ;;
     all)
       build_images
-      push_images
       deploy_stack
       ;;
     *)
-      echo "ERROR: invalid ACTION=$ACTION (use: build|push|deploy|all)" >&2
+      echo "ERROR: invalid ACTION=$ACTION (use: build|deploy|all)" >&2
       exit 1
       ;;
   esac
