@@ -42,7 +42,7 @@ export default function AdminSettingsLayout({ children }: { children: React.Reac
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
           <h1 className="text-3xl font-black text-foreground dark:text-primary-foreground tracking-tighter uppercase">
-            System <span className="text-orange-400">Settings</span>
+            System <span className="text-accent">Settings</span>
           </h1>
           <p className="text-muted-foreground font-bold text-xs uppercase tracking-widest mt-2">
             system_admin only · users / organization / permissions
@@ -68,7 +68,7 @@ export default function AdminSettingsLayout({ children }: { children: React.Reac
                     transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                   />
                 )}
-                <tab.icon className={cn("w-4 h-4 relative z-10", isActive ? "text-orange-400" : "text-muted-foreground")} />
+                <tab.icon className={cn("w-4 h-4 relative z-10", isActive ? "text-accent" : "text-muted-foreground")} />
                 <span className="relative z-10">{tab.label}</span>
               </Link>
             );

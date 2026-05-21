@@ -7,7 +7,7 @@ export default function SignUpPage() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
       <div className="max-w-xl w-full glass border-border/60 rounded-[2.5rem] p-10 shadow-2xl text-center space-y-6">
-        <div className="w-16 h-16 bg-amber-500/15 border border-amber-500/30 rounded-2xl mx-auto flex items-center justify-center">
+        <div className="w-16 h-16 bg-warning/15 border border-warning/30 rounded-2xl mx-auto flex items-center justify-center">
           <ShieldAlert className="w-9 h-9 text-amber-300" />
         </div>
         <div className="space-y-2">

@@ -121,7 +121,7 @@ export default function ManagerDashboard() {
         actions={(
           <>
             <div className="glass px-4 py-2 rounded-xl border border-border flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              <div className="w-2 h-2 bg-success rounded-full animate-pulse" />
               <span className="text-xs font-bold text-foreground dark:text-primary-foreground uppercase tracking-wider">On Track</span>
             </div>
             <button className="bg-primary text-primary-foreground px-6 py-2 rounded-xl text-sm font-bold hover:bg-primary/90 transition-all shadow-xl flex items-center gap-2">
@@ -159,7 +159,7 @@ export default function ManagerDashboard() {
                     {stat.label.includes("Security") && <Target className="w-5 h-5" />}
                     {!["SLA", "Vulnerabilities", "Coverage", "Security"].some(k => stat.label.includes(k)) && <Target className="w-5 h-5" />}
                   </div>
-                  <span className="text-[10px] font-black text-green-400 bg-green-500/10 px-2 py-1 rounded-lg">
+                  <span className="text-[10px] font-black text-success bg-success/10 px-2 py-1 rounded-lg">
                     {stat.trend}
                   </span>
                 </div>
@@ -172,13 +172,13 @@ export default function ManagerDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Risk Management Section */}
             <div className="lg:col-span-2 space-y-6">
-              <section className="glass border-rose-500/20 rounded-2xl overflow-hidden relative">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-rose-500/50 to-transparent"></div>
-                <div className="p-8 border-b border-border/60 flex items-center justify-between bg-rose-500/5">
-                  <h2 className="text-xl font-bold text-rose-500 flex items-center gap-3">
+              <section className="glass border-destructive/20 rounded-2xl overflow-hidden relative">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-destructive/50 to-transparent"></div>
+                <div className="p-8 border-b border-border/60 flex items-center justify-between bg-destructive/5">
+                  <h2 className="text-xl font-bold text-destructive flex items-center gap-3">
                     <AlertTriangle className="w-6 h-6 animate-pulse" /> Critical Risk Detection
                   </h2>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-rose-500/50">AI-Monitored</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-destructive/50">AI-Monitored</span>
                 </div>
                 
                 <div className="divide-y divide-border/60">
@@ -191,7 +191,7 @@ export default function ManagerDashboard() {
                       <div className="space-y-2">
                         <div className="flex items-center gap-3">
                           <h3 className="text-lg font-bold text-foreground dark:text-primary-foreground">{risk.title}</h3>
-                          <span className="px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-500 text-[10px] font-black uppercase tracking-tighter">
+                          <span className="px-2 py-0.5 rounded-md bg-destructive/20 text-destructive text-[10px] font-black uppercase tracking-tighter">
                             {risk.impact} Impact
                           </span>
                         </div>
@@ -308,10 +308,10 @@ export default function ManagerDashboard() {
             
             <div className="space-y-6">
               {[
-                { name: "YK Lee", load: 85, status: "Critical", color: "bg-rose-500" },
-                { name: "Alex K.", load: 45, status: "Optimal", color: "bg-emerald-500" },
-                { name: "Sam J.", load: 92, status: "Overloaded", color: "bg-rose-500" },
-                { name: "Jordan M.", load: 60, status: "Optimal", color: "bg-emerald-500" }
+                { name: "YK Lee", load: 85, status: "Critical", color: "bg-destructive" },
+                { name: "Alex K.", load: 45, status: "Optimal", color: "bg-success" },
+                { name: "Sam J.", load: 92, status: "Overloaded", color: "bg-destructive" },
+                { name: "Jordan M.", load: 60, status: "Optimal", color: "bg-success" }
               ].map((member, i) => (
                 <motion.div 
                   key={i} 
@@ -321,7 +321,7 @@ export default function ManagerDashboard() {
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-bold text-foreground dark:text-primary-foreground group-hover/member:text-primary transition-colors">{member.name}</span>
                     <div className="flex items-center gap-2">
-                      <span className={cn("text-[10px] font-black uppercase tracking-tighter", member.load > 80 ? "text-rose-500" : "text-emerald-500")}>
+                      <span className={cn("text-[10px] font-black uppercase tracking-tighter", member.load > 80 ? "text-destructive" : "text-success")}>
                         {member.load}% Load
                       </span>
                       <ArrowRight className="w-3 h-3 text-primary opacity-0 group-hover/member:opacity-100 transition-all -translate-x-2 group-hover/member:translate-x-0" />
@@ -377,7 +377,7 @@ export default function ManagerDashboard() {
       >
         {selectedRisk && (
           <div className="space-y-8">
-            <div className="p-6 rounded-2xl bg-rose-500/5 border border-rose-500/20">
+            <div className="p-6 rounded-2xl bg-destructive/5 border border-destructive/20">
               <div className="flex items-center gap-3 mb-4">
                 <Badge variant="danger">{selectedRisk.impact} Impact</Badge>
                 <h4 className="text-xl font-bold text-foreground dark:text-primary-foreground">{selectedRisk.title}</h4>

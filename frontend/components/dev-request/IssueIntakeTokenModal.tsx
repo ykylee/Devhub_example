@@ -104,12 +104,12 @@ export function IssueIntakeTokenModal({ onClose, onIssued }: IssueIntakeTokenMod
       >
         <div className="p-8 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-orange-500/20 rounded-xl flex items-center justify-center">
-              <Key className="w-5 h-5 text-orange-400" />
+            <div className="w-10 h-10 bg-accent/20 rounded-xl flex items-center justify-center">
+              <Key className="w-5 h-5 text-accent" />
             </div>
             <div>
               <h2 id="intake-token-modal-title" className="text-xl font-black text-foreground dark:text-primary-foreground uppercase tracking-tight">
-                Issue <span className="text-orange-400">Intake Token</span>
+                Issue <span className="text-accent">Intake Token</span>
               </h2>
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                 {phase === "form" ? "외부 시스템 인증 자격 발급" : "토큰 1회 노출 — 안전 보관"}
@@ -137,7 +137,7 @@ export function IssueIntakeTokenModal({ onClose, onIssued }: IssueIntakeTokenMod
                 value={clientLabel}
                 onChange={(e) => setClientLabel(e.target.value)}
                 placeholder="e.g. ops_portal"
-                className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-orange-400/50"
+                className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-accent/50"
               />
               <p className="text-[10px] text-muted-foreground/60 px-1">운영 식별자 — log/audit 에 보이는 token 의 이름.</p>
             </div>
@@ -150,7 +150,7 @@ export function IssueIntakeTokenModal({ onClose, onIssued }: IssueIntakeTokenMod
                 value={sourceSystem}
                 onChange={(e) => setSourceSystem(e.target.value)}
                 placeholder="e.g. ops, jira, servicedesk"
-                className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-orange-400/50"
+                className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-accent/50"
               />
               <p className="text-[10px] text-muted-foreground/60 px-1">intake 요청의 dev_request.source_system 자동 채움 값 (body spoof 방지).</p>
             </div>
@@ -162,7 +162,7 @@ export function IssueIntakeTokenModal({ onClose, onIssued }: IssueIntakeTokenMod
                 type="datetime-local"
                 value={expiresAt}
                 onChange={(e) => setExpiresAt(e.target.value)}
-                className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-orange-400/50"
+                className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-accent/50"
               />
               <p className="text-[10px] text-muted-foreground/60 px-1">토큰 만료 일시. 비워두면 무기한 사용 가능합니다.</p>
             </div>
@@ -176,13 +176,13 @@ export function IssueIntakeTokenModal({ onClose, onIssued }: IssueIntakeTokenMod
                     value={ip}
                     onChange={(e) => updateIP(idx, e.target.value)}
                     placeholder="e.g. 10.0.0.0/24 or 192.0.2.7"
-                    className="flex-1 bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm font-mono text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-orange-400/50"
+                    className="flex-1 bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm font-mono text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-accent/50"
                   />
                   <button
                     type="button"
                     onClick={() => removeIP(idx)}
                     disabled={allowedIPs.length === 1 && ip === ""}
-                    className="glass border-border px-4 rounded-2xl hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 transition-all text-muted-foreground disabled:opacity-30"
+                    className="glass border-border px-4 rounded-2xl hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive transition-all text-muted-foreground disabled:opacity-30"
                     aria-label={`Remove IP ${idx + 1}`}
                   >
                     <Trash2 className="w-4 h-4" />
@@ -206,7 +206,7 @@ export function IssueIntakeTokenModal({ onClose, onIssued }: IssueIntakeTokenMod
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
-                className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl text-[11px] text-orange-400 font-medium"
+                className="p-4 bg-accent/10 border border-accent/20 rounded-2xl text-[11px] text-accent font-medium"
               >
                 {error}
               </motion.div>
@@ -234,11 +234,11 @@ export function IssueIntakeTokenModal({ onClose, onIssued }: IssueIntakeTokenMod
 
         {phase === "reveal" && issued && (
           <div className="p-8 space-y-6">
-            <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex gap-3">
-              <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+            <div className="p-4 bg-warning/10 border border-warning/30 rounded-2xl flex gap-3">
+              <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
               <div className="space-y-1">
-                <p className="text-xs font-black text-amber-400 uppercase tracking-widest">Token shown once</p>
-                <p className="text-[11px] text-amber-400/80">
+                <p className="text-xs font-black text-warning uppercase tracking-widest">Token shown once</p>
+                <p className="text-[11px] text-warning/80">
                   이 토큰은 본 화면에서만 1회 노출됩니다. 즉시 안전한 저장소 (vault, 비밀 관리자) 에 옮긴 뒤 이 창을 닫으세요.
                   창을 닫으면 server 의 SHA-256 해시만 남으며, 잃어버린 토큰은 복구할 수 없습니다 — revoke 후 재발급 해야 합니다.
                 </p>
@@ -264,7 +264,7 @@ export function IssueIntakeTokenModal({ onClose, onIssued }: IssueIntakeTokenMod
                   onClick={handleCopy}
                   className="glass border-border px-4 rounded-2xl hover:bg-muted/40 transition-all text-foreground dark:text-primary-foreground flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
                 >
-                  {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                  {copied ? <Check className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4" />}
                   {copied ? "Copied" : "Copy"}
                 </button>
               </div>

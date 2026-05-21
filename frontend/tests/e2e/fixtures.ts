@@ -184,6 +184,31 @@ export async function loginAs(page: Page, user: SeededUser) {
   await page.waitForURL(new RegExp(`${user.landing}(/|$)`), { timeout: 30_000 });
 }
 
+export async function openHeaderUserMenu(page: Page, user: SeededUser): Promise<void> {
+  const byAria = page.getByRole("button", { name: /user menu/i }).first();
+  if ((await byAria.count()) > 0 && (await byAria.isVisible().catch(() => false))) {
+    await byAria.click();
+    return;
+  }
+
+  const byClickableLogin = page
+    .locator("header [class*='cursor-pointer']")
+    .filter({ hasText: user.user_id })
+    .first();
+  if ((await byClickableLogin.count()) > 0 && (await byClickableLogin.isVisible().catch(() => false))) {
+    await byClickableLogin.click();
+    return;
+  }
+
+  const byBannerText = page.getByRole("banner").getByText(user.user_id, { exact: false }).first();
+  if ((await byBannerText.count()) > 0 && (await byBannerText.isVisible().catch(() => false))) {
+    await byBannerText.click();
+    return;
+  }
+
+  throw new Error(`failed to open header user menu for user_id=${user.user_id}`);
+}
+
 /**
  * Asserts the current header shows the supplied user as the active actor.
  * The Header (frontend/components/layout/Header.tsx) renders actor.login

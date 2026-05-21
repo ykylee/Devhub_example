@@ -175,19 +175,19 @@ function VisibilityBadge({ visibility }: { visibility: ApplicationVisibility }) 
   switch (visibility) {
     case "public":
       return (
-        <Badge variant="glass" className="border-blue-500/20 text-blue-400 bg-blue-500/5">
+        <Badge variant="glass" className="border-info/20 text-info bg-info/5">
           <Globe className="w-3 h-3" /> Public
         </Badge>
       );
     case "internal":
       return (
-        <Badge variant="glass" className="border-emerald-500/20 text-emerald-400 bg-emerald-500/5">
+        <Badge variant="glass" className="border-success/20 text-success bg-success/5">
           <Eye className="w-3 h-3" /> Internal
         </Badge>
       );
     case "restricted":
       return (
-        <Badge variant="glass" className="border-rose-500/20 text-rose-400 bg-rose-500/5">
+        <Badge variant="glass" className="border-destructive/20 text-destructive bg-destructive/5">
           <Shield className="w-3 h-3" /> Restricted
         </Badge>
       );

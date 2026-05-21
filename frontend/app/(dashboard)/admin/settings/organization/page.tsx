@@ -182,8 +182,8 @@ export default function AdminSettingsOrganizationPage() {
             </p>
           </div>
         ) : error ? (
-          <div className="glass border-red-500/20 bg-red-500/5 rounded-3xl p-12 text-center">
-            <p className="text-red-400 font-bold mb-2">Service Unavailable</p>
+          <div className="glass border-destructive/20 bg-destructive/5 rounded-3xl p-12 text-center">
+            <p className="text-destructive font-bold mb-2">Service Unavailable</p>
             <p className="text-xs text-muted-foreground mb-6">{error}</p>
             <button
               onClick={() => void loadData()}

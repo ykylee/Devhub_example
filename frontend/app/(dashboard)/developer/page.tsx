@@ -220,12 +220,12 @@ export default function DeveloperDashboard() {
                   <div className="flex items-center gap-4">
                     <div className={cn(
                       "w-10 h-10 rounded-xl flex items-center justify-center border",
-                      build.status === "Passed" ? "bg-green-500/10 border-green-500/20" : "bg-rose-500/10 border-rose-500/20"
+                      build.status === "Passed" ? "bg-success/10 border-success/20" : "bg-destructive/10 border-destructive/20"
                     )}>
                       {build.status === "Passed" ? (
-                        <CheckCircle2 className="w-5 h-5 text-green-500" />
+                        <CheckCircle2 className="w-5 h-5 text-success" />
                       ) : (
-                        <AlertTriangle className="w-5 h-5 text-rose-500" />
+                        <AlertTriangle className="w-5 h-5 text-destructive" />
                       )}
                     </div>
                     <div>
@@ -258,7 +258,7 @@ export default function DeveloperDashboard() {
             <div className="relative z-10 space-y-4">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded-lg bg-muted/40 border border-border/80">
-                  <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                  <Star className="w-4 h-4 text-warning fill-current" />
                 </div>
                 <span className="text-sm font-black uppercase tracking-widest text-foreground dark:text-primary-foreground">AI Gardener</span>
               </div>
@@ -281,7 +281,7 @@ export default function DeveloperDashboard() {
             <div className="space-y-4">
               <div className="p-4 rounded-2xl bg-muted/30 border border-border/60 space-y-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-[10px] font-bold text-primary-foreground">A</div>
+                  <div className="w-6 h-6 rounded-full bg-info flex items-center justify-center text-[10px] font-bold text-primary-foreground">A</div>
                   <span className="text-xs font-bold text-foreground dark:text-primary-foreground">@alex_dev</span>
                 </div>
                 <p className="text-xs text-muted-foreground dark:text-muted-foreground leading-relaxed">
@@ -297,15 +297,15 @@ export default function DeveloperDashboard() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-foreground/70 dark:text-primary-foreground/70">Gitea Server</span>
-                <span className="text-[10px] font-black text-green-500 uppercase">Operational</span>
+                <span className="text-[10px] font-black text-success uppercase">Operational</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-foreground/70 dark:text-primary-foreground/70">AI Runner</span>
-                <span className="text-[10px] font-black text-green-500 uppercase">Operational</span>
+                <span className="text-[10px] font-black text-success uppercase">Operational</span>
               </div>
               <div className="flex items-center justify-between opacity-50">
                 <span className="text-xs font-bold text-foreground/70 dark:text-primary-foreground/70">Metrics DB</span>
-                <span className="text-[10px] font-black text-amber-500 uppercase">Maintenance</span>
+                <span className="text-[10px] font-black text-warning uppercase">Maintenance</span>
               </div>
             </div>
           </div>

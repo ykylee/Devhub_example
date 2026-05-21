@@ -101,8 +101,8 @@ export function ProviderModal({ initial, onClose, onSaved }: ProviderModalProps)
       >
         <div className="flex items-center justify-between p-6 border-b border-border/60">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20">
-              <Plug className="w-5 h-5 text-orange-400" />
+            <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center border border-accent/20">
+              <Plug className="w-5 h-5 text-accent" />
             </div>
             <div>
               <h3 className="text-lg font-black text-foreground dark:text-primary-foreground uppercase tracking-tight">
@@ -135,7 +135,7 @@ export function ProviderModal({ initial, onClose, onSaved }: ProviderModalProps)
                 value={providerKey}
                 onChange={(e) => setProviderKey(e.target.value)}
                 placeholder="gitea_main / jenkins_prod"
-                className="w-full px-4 py-3 rounded-xl bg-muted/30 border border-border text-foreground dark:text-primary-foreground font-mono text-sm focus:outline-none focus:border-orange-400"
+                className="w-full px-4 py-3 rounded-xl bg-muted/30 border border-border text-foreground dark:text-primary-foreground font-mono text-sm focus:outline-none focus:border-accent"
                 required
               />
               <p className="text-[10px] text-muted-foreground mt-1.5">
@@ -154,7 +154,7 @@ export function ProviderModal({ initial, onClose, onSaved }: ProviderModalProps)
                 value={providerType}
                 onChange={(e) => setProviderType(e.target.value as IntegrationProviderType)}
                 disabled={isEdit}
-                className="w-full px-4 py-3 rounded-xl bg-muted/30 border border-border text-foreground dark:text-primary-foreground text-sm focus:outline-none focus:border-orange-400 disabled:opacity-60"
+                className="w-full px-4 py-3 rounded-xl bg-muted/30 border border-border text-foreground dark:text-primary-foreground text-sm focus:outline-none focus:border-accent disabled:opacity-60"
               >
                 {providerTypeOptions.map((t) => (
                   <option key={t} value={t}>{t}</option>
@@ -170,7 +170,7 @@ export function ProviderModal({ initial, onClose, onSaved }: ProviderModalProps)
                 value={authMode}
                 onChange={(e) => setAuthMode(e.target.value as IntegrationAuthMode)}
                 disabled={isEdit}
-                className="w-full px-4 py-3 rounded-xl bg-muted/30 border border-border text-foreground dark:text-primary-foreground text-sm focus:outline-none focus:border-orange-400 disabled:opacity-60"
+                className="w-full px-4 py-3 rounded-xl bg-muted/30 border border-border text-foreground dark:text-primary-foreground text-sm focus:outline-none focus:border-accent disabled:opacity-60"
               >
                 {authModeOptions.map((m) => (
                   <option key={m} value={m}>{m}</option>
@@ -189,7 +189,7 @@ export function ProviderModal({ initial, onClose, onSaved }: ProviderModalProps)
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               placeholder="Gitea Main / Jenkins Production"
-              className="w-full px-4 py-3 rounded-xl bg-muted/30 border border-border text-foreground dark:text-primary-foreground text-sm focus:outline-none focus:border-orange-400"
+              className="w-full px-4 py-3 rounded-xl bg-muted/30 border border-border text-foreground dark:text-primary-foreground text-sm focus:outline-none focus:border-accent"
             />
           </div>
 
@@ -203,7 +203,7 @@ export function ProviderModal({ initial, onClose, onSaved }: ProviderModalProps)
               value={credentialsRef}
               onChange={(e) => setCredentialsRef(e.target.value)}
               placeholder="hmac_sha256:<secret> 또는 provider_sdk:<vendor>:<secret>"
-              className="w-full px-4 py-3 rounded-xl bg-muted/30 border border-border text-foreground dark:text-primary-foreground text-sm font-mono focus:outline-none focus:border-orange-400"
+              className="w-full px-4 py-3 rounded-xl bg-muted/30 border border-border text-foreground dark:text-primary-foreground text-sm font-mono focus:outline-none focus:border-accent"
             />
             <p className="text-[10px] text-muted-foreground mt-1.5">
               webhook signature 검증 전략. 예: <code>hmac_sha256:abc...</code>, <code>provider_sdk:github:def...</code>
@@ -220,7 +220,7 @@ export function ProviderModal({ initial, onClose, onSaved }: ProviderModalProps)
               value={capabilitiesRaw}
               onChange={(e) => setCapabilitiesRaw(e.target.value)}
               placeholder="webhook, pull, snapshot"
-              className="w-full px-4 py-3 rounded-xl bg-muted/30 border border-border text-foreground dark:text-primary-foreground text-sm font-mono focus:outline-none focus:border-orange-400"
+              className="w-full px-4 py-3 rounded-xl bg-muted/30 border border-border text-foreground dark:text-primary-foreground text-sm font-mono focus:outline-none focus:border-accent"
             />
           </div>
 
@@ -231,7 +231,7 @@ export function ProviderModal({ initial, onClose, onSaved }: ProviderModalProps)
                 type="checkbox"
                 checked={enabled}
                 onChange={(e) => setEnabled(e.target.checked)}
-                className="w-4 h-4 accent-orange-400"
+                className="w-4 h-4 accent-accent"
               />
               <label htmlFor="enabled" className="text-xs font-bold text-foreground dark:text-primary-foreground cursor-pointer">
                 Enabled (수신/sync 활성)
@@ -240,7 +240,7 @@ export function ProviderModal({ initial, onClose, onSaved }: ProviderModalProps)
           )}
 
           {error && (
-            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-bold">
+            <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-xs font-bold">
               {error}
             </div>
           )}

@@ -68,8 +68,8 @@ export function IntakeTokenTable({ items, onRevoke, onEdit, revokingTokenID }: I
                   >
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20">
-                          <Key className="w-5 h-5 text-orange-400" />
+                        <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center border border-accent/20">
+                          <Key className="w-5 h-5 text-accent" />
                         </div>
                         <div className="min-w-0">
                           <div className="text-xs font-black text-foreground dark:text-primary-foreground tracking-tight truncate max-w-[280px]">
@@ -96,21 +96,21 @@ export function IntakeTokenTable({ items, onRevoke, onEdit, revokingTokenID }: I
                     </td>
                     <td className="px-6 py-5 text-center">
                       {isRevoked ? (
-                        <Badge variant="glass" className="bg-red-500/10 text-red-400 border-red-500/30">
+                        <Badge variant="glass" className="bg-destructive/10 text-destructive border-destructive/30">
                           Revoked
                         </Badge>
                       ) : isExpired ? (
-                        <Badge variant="glass" className="bg-amber-500/10 text-amber-400 border-amber-500/30">
+                        <Badge variant="glass" className="bg-warning/10 text-warning border-warning/30">
                           Expired
                         </Badge>
                       ) : (
-                        <Badge variant="glass" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+                        <Badge variant="glass" className="bg-success/10 text-success border-success/30">
                           Active
                         </Badge>
                       )}
                     </td>
                     <td className="px-6 py-5">
-                      <div className={`text-[11px] flex items-center gap-1.5 ${isExpired ? "text-amber-400 font-bold" : "text-muted-foreground"}`}>
+                      <div className={`text-[11px] flex items-center gap-1.5 ${isExpired ? "text-warning font-bold" : "text-muted-foreground"}`}>
                         {tok.expires_at ? safeFormat(tok.expires_at) : "무기한"}
                       </div>
                     </td>
@@ -130,7 +130,7 @@ export function IntakeTokenTable({ items, onRevoke, onEdit, revokingTokenID }: I
                               type="button"
                               onClick={() => onEdit(tok)}
                               disabled={isBusy}
-                              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-orange-500/10 border border-orange-500/30 text-orange-400 hover:bg-orange-500/20 disabled:opacity-40 transition-all text-[10px] font-black uppercase tracking-widest"
+                              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-accent/10 border border-accent/30 text-accent hover:bg-accent/20 disabled:opacity-40 transition-all text-[10px] font-black uppercase tracking-widest"
                             >
                               <Settings className="w-3.5 h-3.5" />
                               Edit
@@ -140,7 +140,7 @@ export function IntakeTokenTable({ items, onRevoke, onEdit, revokingTokenID }: I
                             type="button"
                             onClick={() => onRevoke(tok)}
                             disabled={isBusy}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 disabled:opacity-40 transition-all text-[10px] font-black uppercase tracking-widest"
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive hover:bg-destructive/20 disabled:opacity-40 transition-all text-[10px] font-black uppercase tracking-widest"
                           >
                             <ShieldOff className="w-3.5 h-3.5" />
                             {isBusy ? "Revoking…" : "Revoke"}

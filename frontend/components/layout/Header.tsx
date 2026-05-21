@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Bell, User, ChevronDown, Command, Sun, Moon, Settings, X } from "lucide-react";
+import { Search, Bell, User, ChevronDown, Command, Sun, Moon, Settings, X, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -11,7 +11,7 @@ import { authService } from "@/lib/services/auth.service";
 import { realtimeService, type ConnectionStatusEvent } from "@/lib/services/realtime.service";
 
 export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  const { role, actor, notifications, clearNotifications } = useStore();
+  const { role, actor, notifications, clearNotifications, setSidebarOpen } = useStore();
   const router = useRouter();
   const [showDropdown, setShowDropdown] = useState(false);
   const [isConnected, setIsConnected] = useState(realtimeService.isConnected);
@@ -47,62 +47,78 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
 
   return (
     <header className={cn("sticky top-0 z-50 w-full glass border-b border-border/60", className)} {...props}>
-      <div className="flex h-16 items-center px-8 gap-8">
+      <div className="flex h-16 items-center px-4 lg:px-8 gap-4 lg:gap-8">
+        <button 
+          onClick={() => setSidebarOpen(true)}
+          className="p-2 rounded-xl hover:bg-muted/30 text-muted-foreground lg:hidden"
+          aria-label="Open sidebar"
+        >
+          <Menu className="w-6 h-6" />
+        </button>
+
         <div className="flex-1 flex items-center gap-4">
           <div className="flex items-center gap-2 glass border-border px-3 py-1.5 rounded-xl">
             <div className={cn(
               "w-2 h-2 rounded-full animate-pulse",
-              isConnected ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]"
-            )} />
+              isConnected ? "bg-success shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-destructive shadow-[0_0_8px_rgba(244,63,94,0.5)]"
+            )} aria-hidden="true" />
             <span className="text-[10px] font-black text-muted-foreground dark:text-muted-foreground uppercase tracking-widest hidden lg:inline">
               {isConnected ? "Real-time Live" : "Offline"}
             </span>
           </div>
           <div className="relative w-full max-w-lg hidden md:flex items-center group">
             <div className="absolute left-3.5 flex items-center gap-2 pointer-events-none">
-              <Search className="h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Search className="h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" aria-hidden="true" />
               <div className="px-1.5 py-0.5 rounded border border-border bg-muted/30 text-[10px] font-mono text-muted-foreground">
-                <Command className="w-2 h-2 inline mr-0.5" /> K
+                <Command className="w-2 h-2 inline mr-0.5" aria-hidden="true" /> K
               </div>
             </div>
             <input
               type="search"
               placeholder="Search anything..."
               className="flex h-10 w-full rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-muted/40 transition-all pl-24"
+              aria-label="Global search"
             />
           </div>
         </div>
         
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3 lg:gap-6">
           <motion.button 
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={clearNotifications}
             className="relative p-2.5 rounded-xl hover:bg-muted/30 text-muted-foreground hover:text-foreground dark:hover:text-primary-foreground transition-all"
+            aria-label={`Notifications (${notifications} new)`}
           >
-            <Bell className="h-5 w-5" />
+            <Bell className="h-5 w-5" aria-hidden="true" />
             {notifications > 0 && (
               <span className="absolute top-2 right-2 w-2 h-2 bg-accent rounded-full border-2 border-background"></span>
             )}
           </motion.button>
           
-          <div className="h-6 w-px bg-muted/40"></div>
+          <div className="h-6 w-px bg-muted/40 hidden sm:block"></div>
           
           <div className="relative">
-            <motion.div 
+            {/* Native <button> instead of role="button" motion.div — Playwright trusted click events
+                + accessibility tree consistency. e2e regression hotfix (PR #248). */}
+            <button
+              type="button"
               onClick={() => setShowDropdown(!showDropdown)}
               className="flex items-center gap-3 py-1.5 px-3 rounded-2xl hover:bg-muted/30 transition-all cursor-pointer group"
+              aria-haspopup="true"
+              aria-expanded={showDropdown}
+              aria-label="User menu"
             >
               <div className="w-9 h-9 rounded-xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center border border-border ring-2 ring-primary/20">
-                <User className="w-5 h-5 text-primary" />
+                <User className="w-5 h-5 text-primary" aria-hidden="true" />
               </div>
               <div className="flex flex-col hidden sm:flex">
                 <span className="text-sm font-semibold leading-none text-foreground dark:text-primary-foreground">{actor?.login || "Guest User"}</span>
                 <span className="text-[10px] font-bold text-muted-foreground mt-1 flex items-center gap-1 uppercase tracking-wider">
-                  {role || "No Role"} <ChevronDown className={cn("w-3 h-3 transition-transform duration-300", showDropdown && "rotate-180")} />
+                  {role || "No Role"} <ChevronDown className={cn("w-3 h-3 transition-transform duration-300", showDropdown && "rotate-180")} aria-hidden="true" />
                 </span>
               </div>
-            </motion.div>
+            </button>
 
             <AnimatePresence>
               {showDropdown && (
@@ -110,7 +126,10 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
                   initial={{ opacity: 0, y: 10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute top-full right-0 mt-4 w-56 rounded-2xl glass border border-border p-2 z-50 shadow-2xl"
+                  // z-[200] (originally z-50) — Sidebar mobile drawer is z-[150];
+                  // header sticky stacking context conflict 회피.
+                  className="absolute top-full right-0 mt-4 w-56 rounded-2xl glass border border-border p-2 z-[200] shadow-2xl"
+                  role="menu"
                 >
                   <p className="px-3 pt-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-50">
                     Preferences
@@ -118,9 +137,10 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
                   <button
                     onClick={toggleTheme}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground dark:hover:text-primary-foreground hover:bg-muted/40 transition-all group"
+                    role="menuitem"
                   >
                     <div className="w-8 h-8 rounded-lg bg-muted/20 flex items-center justify-center">
-                      {theme === "light" ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-indigo-400" />}
+                      {theme === "light" ? <Sun className="w-4 h-4 text-warning" aria-hidden="true" /> : <Moon className="w-4 h-4 text-indigo-400" aria-hidden="true" />}
                     </div>
                     <span className="flex-1 text-left">{theme === "light" ? "Light Mode" : "Dark Mode"}</span>
                     <span className="text-[10px] opacity-40 font-bold uppercase tracking-widest">Switch</span>
@@ -131,9 +151,10 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
                   <button 
                     onClick={() => { router.push("/account"); setShowDropdown(false); }}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground dark:hover:text-primary-foreground hover:bg-muted/40 transition-all"
+                    role="menuitem"
                   >
                     <div className="w-8 h-8 rounded-lg bg-muted/20 flex items-center justify-center">
-                      <User className="w-4 h-4" />
+                      <User className="w-4 h-4" aria-hidden="true" />
                     </div>
                     Account Profile
                   </button>
@@ -142,9 +163,10 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
                     <button 
                       onClick={() => { router.push("/admin/settings"); setShowDropdown(false); }}
                       className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground dark:hover:text-primary-foreground hover:bg-muted/40 transition-all"
+                      role="menuitem"
                     >
                       <div className="w-8 h-8 rounded-lg bg-muted/20 flex items-center justify-center">
-                        <Settings className="w-4 h-4 text-orange-400" />
+                        <Settings className="w-4 h-4 text-accent" aria-hidden="true" />
                       </div>
                       System Settings
                     </button>
@@ -154,10 +176,11 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
                   
                   <button 
                     onClick={handleLogout}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-rose-400 hover:bg-rose-400/10 transition-all"
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-destructive hover:bg-destructive/10 transition-all"
+                    role="menuitem"
                   >
-                    <div className="w-8 h-8 rounded-lg bg-rose-400/10 flex items-center justify-center">
-                      <X className="w-4 h-4" />
+                    <div className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center">
+                      <X className="w-4 h-4" aria-hidden="true" />
                     </div>
                     Sign Out
                   </button>

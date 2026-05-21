@@ -50,8 +50,8 @@ export function MyPendingDevRequestsWidget() {
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-orange-500/10 border border-orange-500/30 rounded-2xl flex items-center justify-center">
-            <Inbox className="w-5 h-5 text-orange-400" />
+          <div className="w-10 h-10 bg-accent/10 border border-accent/30 rounded-2xl flex items-center justify-center">
+            <Inbox className="w-5 h-5 text-accent" />
           </div>
           <div>
             <h3 className="text-sm font-black text-foreground dark:text-primary-foreground uppercase tracking-tight">
@@ -64,7 +64,7 @@ export function MyPendingDevRequestsWidget() {
         </div>
         <Link
           href="/dev-requests"
-          className="flex items-center gap-1 text-[10px] font-black text-orange-400 hover:text-orange-300 uppercase tracking-widest"
+          className="flex items-center gap-1 text-[10px] font-black text-accent hover:text-orange-300 uppercase tracking-widest"
         >
           전체 보기 <ArrowRight className="w-3 h-3" />
         </Link>
@@ -72,12 +72,12 @@ export function MyPendingDevRequestsWidget() {
 
       {isLoading && (
         <div className="py-8 flex items-center justify-center">
-          <div className="w-6 h-6 border-2 border-orange-500/20 border-t-orange-500 rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-accent/20 border-t-accent rounded-full animate-spin" />
         </div>
       )}
 
       {!isLoading && error && (
-        <div className="flex items-center gap-2 p-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-[11px] text-rose-400">
+        <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-2xl text-[11px] text-destructive">
           <AlertCircle className="w-4 h-4" />
           {error}
         </div>
@@ -95,7 +95,7 @@ export function MyPendingDevRequestsWidget() {
             <li key={dr.id}>
               <Link
                 href="/dev-requests"
-                className="flex items-center gap-3 p-3 rounded-2xl bg-muted/20 border border-border/40 hover:bg-muted/30 hover:border-orange-500/30 transition-all group"
+                className="flex items-center gap-3 p-3 rounded-2xl bg-muted/20 border border-border/40 hover:bg-muted/30 hover:border-accent/30 transition-all group"
               >
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-bold text-foreground dark:text-primary-foreground truncate group-hover:text-orange-300">
@@ -105,7 +105,7 @@ export function MyPendingDevRequestsWidget() {
                     {dr.source_system} · {formatTime(dr.received_at)}
                   </p>
                 </div>
-                <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-orange-400 transition-colors" />
+                <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-accent transition-colors" />
               </Link>
             </li>
           ))}

@@ -104,7 +104,7 @@ export function PermissionMatrix({ permissions, onChange, readOnly = false, lock
                       className={cn(
                         "inline-flex items-center justify-center w-8 h-8 rounded-lg transition-all",
                         isGranted
-                          ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                          ? "bg-success/20 text-success border border-success/30"
                           : "bg-muted/40 text-muted-foreground border border-border hover:bg-muted/70",
                         disabled && "cursor-not-allowed opacity-70"
                       )}

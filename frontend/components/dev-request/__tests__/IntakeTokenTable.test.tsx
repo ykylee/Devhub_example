@@ -43,11 +43,11 @@ describe("IntakeTokenTable", () => {
 
     const activeBadge = screen.getByText("Active");
     expect(activeBadge).toBeInTheDocument();
-    expect(activeBadge.className).toContain("text-emerald-400");
+    expect(activeBadge.className).toContain("text-success");
 
     const revokedBadge = screen.getByText("Revoked");
     expect(revokedBadge).toBeInTheDocument();
-    expect(revokedBadge.className).toContain("text-red-400");
+    expect(revokedBadge.className).toContain("text-destructive");
   });
 
   it("calls onRevoke when revoke button is clicked", async () => {

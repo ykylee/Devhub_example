@@ -33,6 +33,8 @@ interface AppState {
   removeToast: (id: string) => void;
   isLoggingOut: boolean;
   setIsLoggingOut: (active: boolean) => void;
+  isSidebarOpen: boolean;
+  setSidebarOpen: (active: boolean) => void;
 }
 
 export const useStore = create<AppState>()(
@@ -66,13 +68,16 @@ export const useStore = create<AppState>()(
         })),
         isLoggingOut: false,
         setIsLoggingOut: (active) => set({ isLoggingOut: active }),
+        isSidebarOpen: false,
+        setSidebarOpen: (active) => set({ isSidebarOpen: active }),
       }),
       {
         name: "devhub-storage",
         partialize: (state) => {
-          const { isLoggingOut, toasts, ...rest } = state;
+          const { isLoggingOut, toasts, isSidebarOpen, ...rest } = state;
           void isLoggingOut;
           void toasts;
+          void isSidebarOpen;
           return rest;
         },
       }

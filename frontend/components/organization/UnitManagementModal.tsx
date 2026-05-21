@@ -115,9 +115,9 @@ export function UnitManagementModal({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {error && (
-            <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-start gap-3 animate-shake">
-              <AlertCircle className="w-4 h-4 text-red-400 mt-0.5" />
-              <p className="text-xs font-bold text-red-400">{error}</p>
+            <div className="p-4 rounded-2xl bg-destructive/10 border border-destructive/20 flex items-start gap-3 animate-shake">
+              <AlertCircle className="w-4 h-4 text-destructive mt-0.5" />
+              <p className="text-xs font-bold text-destructive">{error}</p>
             </div>
           )}
 

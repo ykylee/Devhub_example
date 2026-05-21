@@ -239,7 +239,7 @@ export function UserCreationModal({ onClose, onCreated, roles }: UserCreationMod
             <motion.div 
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
-              className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl text-[11px] text-orange-400 font-medium"
+              className="p-4 bg-accent/10 border border-accent/20 rounded-2xl text-[11px] text-accent font-medium"
             >
               {error}
             </motion.div>
@@ -248,7 +248,7 @@ export function UserCreationModal({ onClose, onCreated, roles }: UserCreationMod
           {/* Dev Helper */}
           <div className="p-4 bg-muted/30 rounded-2xl border border-border/60">
             <p className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-widest mb-2 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500/50" /> Dev Info: Mock HR Personnel
+              <span className="w-1.5 h-1.5 rounded-full bg-warning/50" /> Dev Info: Mock HR Personnel
             </p>
             <div className="flex flex-wrap gap-2">
               {['yklee', 'akim', 'sjones'].map(id => (

@@ -90,7 +90,7 @@ export function MemberTable({ members, unitLeaderIds = [], roles, onUpdateMember
                           <span className="font-black text-foreground">{member.name.charAt(0)}</span>
                         </div>
                         {isLeader && (
-                          <div className="absolute -top-1 -right-1 bg-orange-500 rounded-full p-0.5 border border-background">
+                          <div className="absolute -top-1 -right-1 bg-accent rounded-full p-0.5 border border-background">
                             <Crown className="w-2.5 h-2.5 text-primary-foreground" />
                           </div>
                         )}
@@ -116,8 +116,8 @@ export function MemberTable({ members, unitLeaderIds = [], roles, onUpdateMember
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
                       <Shield className={cn("w-3 h-3", 
-                        member.role === 'System Admin' ? "text-orange-400" : 
-                        member.role === 'Manager' ? "text-emerald-400" : "text-blue-400"
+                        member.role === 'System Admin' ? "text-accent" : 
+                        member.role === 'Manager' ? "text-success" : "text-info"
                       )} />
                       <select
                         value={member.role}
@@ -135,7 +135,7 @@ export function MemberTable({ members, unitLeaderIds = [], roles, onUpdateMember
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-foreground/90">{displayDept}</span>
                         {member.is_seconded && (
-                          <div className="flex items-center gap-1 bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 rounded text-[8px] font-black text-blue-400 uppercase">
+                          <div className="flex items-center gap-1 bg-info/10 border border-info/20 px-1.5 py-0.5 rounded text-[8px] font-black text-info uppercase">
                             <ArrowRightLeft className="w-2 h-2" /> Seconded
                           </div>
                         )}

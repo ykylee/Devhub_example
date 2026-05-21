@@ -80,16 +80,16 @@ export default function ProjectsStatusPage() {
       />
 
       {error && (
-        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+        <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-sm">
           {error}
         </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: "Total Projects", value: totalProjects.toString(), icon: Briefcase, color: "text-blue-500" },
-          { label: "Active", value: activeProjects.toString(), icon: Target, color: "text-emerald-500" },
-          { label: "Planning", value: planningProjects.toString(), icon: Clock, color: "text-amber-500" },
+          { label: "Total Projects", value: totalProjects.toString(), icon: Briefcase, color: "text-info" },
+          { label: "Active", value: activeProjects.toString(), icon: Target, color: "text-success" },
+          { label: "Planning", value: planningProjects.toString(), icon: Clock, color: "text-warning" },
           { label: "Completed", value: closedProjects.toString(), icon: CheckCircle2, color: "text-purple-500" },
         ].map((stat, i) => (
           <motion.div 
@@ -163,7 +163,7 @@ export default function ProjectsStatusPage() {
                   <div 
                     className={`h-full transition-all duration-1000 ${
                       project.status === "active" ? "bg-primary w-2/3" : 
-                      project.status === "closed" ? "bg-emerald-500 w-full" : 
+                      project.status === "closed" ? "bg-success w-full" : 
                       "bg-muted-foreground/30 w-1/4"
                     }`}
                   />

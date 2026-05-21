@@ -225,7 +225,7 @@ export default function ProjectDetailPage() {
                 <div>
                   <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Velocity</p>
                   <p className="text-lg font-bold text-foreground dark:text-primary-foreground flex items-center gap-1">
-                    <TrendingUp className="w-4 h-4 text-emerald-500" /> 14.2 <span className="text-[10px] text-muted-foreground">pts/wk</span>
+                    <TrendingUp className="w-4 h-4 text-success" /> 14.2 <span className="text-[10px] text-muted-foreground">pts/wk</span>
                   </p>
                 </div>
                 <div>
@@ -342,8 +342,8 @@ export default function ProjectDetailPage() {
                     <div className="relative">
                       <div className="w-8 h-8 rounded-full bg-muted/40 border border-border" />
                       <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background ${
-                        member.status === "Online" ? "bg-emerald-500" : 
-                        member.status === "Busy" ? "bg-rose-500" : "bg-muted-foreground"
+                        member.status === "Online" ? "bg-success" : 
+                        member.status === "Busy" ? "bg-destructive" : "bg-muted-foreground"
                       }`} />
                     </div>
                     <div>

@@ -40,9 +40,9 @@ export function GardenerFeed() {
 
   const getIcon = (type: string) => {
     switch (type) {
-      case "optimization": return <TrendingUp className="w-5 h-5 text-emerald-400" />;
-      case "security": return <ShieldAlert className="w-5 h-5 text-rose-400" />;
-      case "scaling": return <Zap className="w-5 h-5 text-amber-400" />;
+      case "optimization": return <TrendingUp className="w-5 h-5 text-success" />;
+      case "security": return <ShieldAlert className="w-5 h-5 text-destructive" />;
+      case "scaling": return <Zap className="w-5 h-5 text-warning" />;
       default: return <Sparkles className="w-5 h-5 text-primary" />;
     }
   };
@@ -78,7 +78,7 @@ export function GardenerFeed() {
             animate={{ opacity: 1 }}
             className="glass rounded-2xl p-10 text-center border-dashed border-border"
           >
-            <CheckCircle2 className="w-12 h-12 text-emerald-500/30 mx-auto mb-4" />
+            <CheckCircle2 className="w-12 h-12 text-success/30 mx-auto mb-4" />
             <p className="text-muted-foreground text-sm font-medium italic">All systems are optimized. No suggestions at this time.</p>
           </motion.div>
         ) : (
@@ -99,7 +99,7 @@ export function GardenerFeed() {
                 <div className="relative flex items-start gap-5">
                   <div className={cn(
                     "p-3 rounded-2xl bg-muted/30 border border-border",
-                    suggestion.impact === 'high' ? "border-rose-500/30 bg-rose-500/5" : "border-border"
+                    suggestion.impact === 'high' ? "border-destructive/30 bg-destructive/5" : "border-border"
                   )}>
                     {getIcon(suggestion.type)}
                   </div>
@@ -111,9 +111,9 @@ export function GardenerFeed() {
                       </h4>
                       <div className={cn(
                         "text-[9px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded border",
-                        suggestion.impact === 'high' ? "text-rose-400 border-rose-500/20 bg-rose-500/10" :
-                        suggestion.impact === 'medium' ? "text-amber-400 border-amber-500/20 bg-amber-500/10" :
-                        "text-emerald-400 border-emerald-500/20 bg-emerald-500/10"
+                        suggestion.impact === 'high' ? "text-destructive border-destructive/20 bg-destructive/10" :
+                        suggestion.impact === 'medium' ? "text-warning border-warning/20 bg-warning/10" :
+                        "text-success border-success/20 bg-success/10"
                       )}>
                         {suggestion.impact} Impact
                       </div>

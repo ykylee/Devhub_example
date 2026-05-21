@@ -6,10 +6,10 @@ import { useStore, type ToastType } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 const toastStyles: Record<ToastType, { icon: LucideIcon; color: string; bg: string; border: string }> = {
-  info: { icon: Info, color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
-  success: { icon: CheckCircle2, color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
-  warning: { icon: AlertTriangle, color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20" },
-  error: { icon: XCircle, color: "text-rose-400", bg: "bg-rose-500/10", border: "border-rose-500/20" },
+  info: { icon: Info, color: "text-info", bg: "bg-info/10", border: "border-info/20" },
+  success: { icon: CheckCircle2, color: "text-success", bg: "bg-success/10", border: "border-success/20" },
+  warning: { icon: AlertTriangle, color: "text-warning", bg: "bg-warning/10", border: "border-warning/20" },
+  error: { icon: XCircle, color: "text-destructive", bg: "bg-destructive/10", border: "border-destructive/20" },
 };
 
 export function ToastContainer() {

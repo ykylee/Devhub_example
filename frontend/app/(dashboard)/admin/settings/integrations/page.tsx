@@ -119,12 +119,12 @@ export default function AdminSettingsIntegrationsPage() {
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-orange-500/10 border border-orange-500/30 rounded-2xl flex items-center justify-center">
-            <Plug className="w-6 h-6 text-orange-400" />
+          <div className="w-12 h-12 bg-accent/10 border border-accent/30 rounded-2xl flex items-center justify-center">
+            <Plug className="w-6 h-6 text-accent" />
           </div>
           <div>
             <h2 className="text-xl font-black text-foreground dark:text-primary-foreground uppercase tracking-tight">
-              Integration <span className="text-orange-400">Providers</span>
+              Integration <span className="text-accent">Providers</span>
             </h2>
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
               외부 시스템 연동 — webhook / pull / agent 어댑터 등록
@@ -135,7 +135,7 @@ export default function AdminSettingsIntegrationsPage() {
         <button
           type="button"
           onClick={() => setShowCreate(true)}
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-orange-500 text-white font-black uppercase tracking-widest text-[10px] shadow-xl shadow-orange-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-accent text-white font-black uppercase tracking-widest text-[10px] shadow-xl shadow-accent/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
         >
           <Plus className="w-4 h-4" />
           Register Provider
@@ -144,7 +144,7 @@ export default function AdminSettingsIntegrationsPage() {
 
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-32 gap-4">
-          <div className="w-12 h-12 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin" />
+          <div className="w-12 h-12 border-4 border-accent/20 border-t-accent rounded-full animate-spin" />
           <p className="text-muted-foreground font-bold animate-pulse uppercase tracking-[0.3em] text-[10px]">
             Loading Providers...
           </p>
