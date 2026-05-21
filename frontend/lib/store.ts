@@ -15,6 +15,12 @@ export interface AuthenticatedActor {
   subject?: string;
   role: UserRole;
   source?: string;
+  display_name?: string;
+  email?: string;
+  primary_unit_id?: string | null;
+  onboarding_required?: boolean;
+  onboarding_completed_at?: string | null;
+  review_status?: "pending_review" | "reviewed" | null;
 }
 
 interface AppState {

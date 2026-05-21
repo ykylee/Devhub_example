@@ -1,6 +1,7 @@
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { AuthGuard } from "@/components/layout/AuthGuard";
+import { OnboardingBanner } from "@/components/onboarding/OnboardingBanner";
 
 export default function DashboardLayout({
   children,
@@ -13,6 +14,7 @@ export default function DashboardLayout({
         <Sidebar />
         <div className="flex flex-col flex-1 overflow-hidden">
           <Header />
+          <OnboardingBanner />
           <main className="flex-1 overflow-y-auto p-6 md:p-8 bg-card/10">
             <div className="mx-auto max-w-6xl">
               {children}

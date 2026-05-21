@@ -5,6 +5,7 @@ import { User, Mail, Shield, Key, ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useStore } from "@/lib/store";
 import { authService } from "@/lib/services/auth.service";
+import { ProfileSelfEdit } from "@/components/account/ProfileSelfEdit";
 
 // ADR-0019 / sprint claude/work_260519-ad: self-service password change is
 // delegated to the Keycloak Account Console. DevHub no longer proxies the
@@ -42,6 +43,8 @@ export default function AccountPage() {
           Manage your DevHub identity and security preferences
         </p>
       </div>
+
+      <ProfileSelfEdit />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <motion.div
