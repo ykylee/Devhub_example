@@ -13,4 +13,4 @@
 | DB-DOCKER-01 | `deploy-from-env.sh` 에 `DB_MODE=docker` 추가 | done | local-db profile 활성화 |
 | DB-DOCKER-02 | env 파일 shell-safe 출력으로 수정 | done | 공백 포함 값 대응 |
 | DB-DOCKER-03 | preflight/up 에 compose profiles 전달 | done | `COMPOSE_PROFILES=local-db` |
-| DB-DOCKER-04 | 브랜치 memory 기록/커밋/PR | done | `c3cb37d` |
+| DB-DOCKER-04 | 브랜치 memory 기록/커밋/PR | done | `cf29f9c` |
