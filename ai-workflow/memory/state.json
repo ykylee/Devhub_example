@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-05-20 sprint -r housekeeping #9 — sprint -p 후 추가 2 PR 흡수 (#256 housekeeping #8 + #257 sprint -q HRDB ETL cron 폐기 정합). **사용자 결정 (2026-05-20)**: DevHub 외부 Keycloak 시나리오 채택 — HR ↔ Keycloak sync 책임이 외부 IdP 팀 (Federation 또는 사내 ETL → Keycloak Admin REST) 으로 이관. issue #215 close (not planned). DevHub off-boarding sync 는 sub-carve C event listener (PR #241) 가 정공법. **v1.0 release gate (D-26): 잔여 3건 → 2건** (#210 P0-2 UI polish [PR #248 e2e fail] + #214 P1-3 Keycloak group staging-prod [사내 운영자 1회]). ADR-0020 sub-carve 진척 6/8 done (A/B-backend/B-frontend/C/D/E + #247 P1-bug). 오늘 머지된 PR 총 12건 (#243~#249 + #251~#257 minus open #248).",
-  "updated_at": "2026-05-20T17:30:00Z",
-  "head_commit": "3fdcf33",
-  "head_summary": "PR #257 squash merge — chore(adr,docs,scripts): #215 cancelled — HRDB ETL cron 폐기 정합 (sprint -q)",
+  "status": "2026-05-21 sprint -s UI polish merge & Next Action — PR #248 (P0-2 UI 디자인 polish 1차) 가 성공적으로 E2E 검증을 100% 통과하여 main 브랜치에 최종 머지 완료 및 원격 origin/main 에 push 되었습니다. 이에 따라 issue #210이 closed 되었습니다. **v1.0 release gate (D-26): 잔여 1건** (#214 P1-3 Keycloak group staging-prod [사내 운영자 1회]). ADR-0020 sub-carve 진척 7/8 done (A/B-backend/B-frontend/C/D/E/UI-Polish + #247 P1-bug).",
+  "updated_at": "2026-05-21T00:12:00Z",
+  "head_commit": "05af1c7",
+  "head_summary": "Merge branch 'gemini/work_260520-b-210-ui-polish' into main",
   "milestones": {
     "M0": {
       "status": "done",
@@ -40,12 +40,12 @@
     "M-v1.0": {
       "status": "in_progress",
       "started_at": "2026-05-20",
-      "notes": "v1.0 Release 로드맵 진입. P0/P1 우선순위 과제 수행 중. 2026-05-20: P0-1, P0-2, P1-5, P2-4, P2-5 완료 또는 PR 발행."
+      "notes": "v1.0 Release 로드맵 진입. P0/P1 우선순위 과제 수행 중. 2026-05-21: P0-1, P0-2, P0-3, P1-1, P1-2, P1-5, P2-1, P2-4, P2-5, P1-bug 모두 완료 및 main 머지 완료. v1.0 release gate Gemini 분담 항목이 전부 완료되었습니다."
     }
   },
   "components": {
     "frontend": {
-      "phase": "Phase 7 in progress. sub-carve B cleanup (PR #246) 머지 — account.service.ts 삭제 및 admin actions 제거. UI polish 1차 (PR #248) — semantic theme, responsive sidebar, a11y 적용. Bindings UI (PR #251) 및 Topology V2 (PR #252) 고도화. /login 페이지 정리 및 password 필드 제거 (PR #253).",
+      "phase": "Phase 7 in progress. sub-carve B cleanup (PR #246) 머지 — account.service.ts 삭제 및 admin actions 제거. UI polish 1차 (PR #248) 가 성공적으로 머지 완료되어 semantic theme, responsive sidebar, a11y 가 전체 UI에 완벽히 적용되었습니다. e2e 테스트 100% 성공을 확보했습니다. Bindings UI (PR #251) 및 Topology V2 (PR #252) 고도화. /login 페이지 정리 및 password 필드 제거 (PR #253).",
       "auth": "Keycloak OIDC code flow with PKCE end-to-end (ADR-0019, 2026-05-19). tokenStore persists access/refresh/id; apiClient auto Authorization. AuthGuard 401 -> /login + system route gate. Header Sign Out drives Keycloak end_session_endpoint via id_token_hint. **e2e Kratos legacy 제거 및 dynamic idp_subject sync 도입 (PR #249 머지).**",
       "build_check": "PASS — Next.js 16.2.4, 18 static pages.",
       "rbac": "PermissionEditor at /admin/settings/permissions wired to /api/v1/rbac/policies. defaultLandingFor + isSystemAdmin + pathRequiresSystemAdmin in lib/auth/role-routing.ts."
@@ -459,7 +459,7 @@
       "B_backend": "✅ resolved (sprint -i, PR #239 `d21e801`) — /api/v1/accounts/* 4 endpoint 폐기 + accounts_admin.go(338 lines) 삭제 + lazy_auto_create.go 신규 + AuthenticatedActor Email/DisplayName + keycloak_verifier extractDisplayName + audit action 2종 (account.lazy_provisioned/user.role_default_assigned) + 회귀 test 5 + 기존 test 3건 admin pre-seed fix",
       "C_done": "✅ resolved (sprint -k, PR #241 `9ea7e1c`) — Keycloak event listener 확장 + DevHub users sync. audit/user_sync.go 신규 (SyncUserProfile/SyncUserMembership/MarkUserDeactivated + narrow interface) + keycloak_event_puller 매핑 10 row (GROUP_MEMBERSHIP:CREATE/DELETE 추가) + main.go dispatcher + Prometheus 3종 신규 (user_sync_total/_errors_total/_lag_seconds). Stage 3 codex P1×2 hotfix — GetUserByIdPSubject UNIQUE idp_subject O(1) lookup + ErrNotFound 만 noop, 기타 error propagate.",
       "D_done": "✅ resolved (sprint -l, PR #242 `cb6646d`) — JWKS stale-while-error expiry case 확장. cache struct 확장 (cachedAt + MaxStaleDuration default 24h + readStaleCachedKeys helper) + fetchJWKS network fail fallback + internal/auth/metrics.go 신규 (stale_while_error_total{result} + stale_age_seconds Histogram) + DEVHUB_OIDC_JWKS_MAX_STALE_DURATION env. Stage 3 codex P1 hotfix — readStaleCachedKeys cutoff = `cachedUntil + maxStale` 정공법 (이전 `cachedAt + maxStale` 은 stale window 를 CacheTTL 만큼 축소). 회귀 test 5건.",
-      "B_frontend": "carve — frontend account.service.ts 폐기 + admin/settings/users page 의 admin actions 제거 + e2e TC-ACC-* 갱신. Gemini 별도 sprint (sprint label 미배정).",
+      "B_frontend": "✅ resolved (gemini PR #246) — account.service.ts 폐기 + MemberTable admin actions 제거 + AdminSettingsUsersPage Keycloak Console link",
       "E": "carve (sprint -n 후속) — service account 권한 축소 + governance 협약 SOP (keycloak_operations.md §8.5c 신규)",
       "F": "carve (sprint -o 후속, 우선순위 가장 낮음) — /login page 정리"
     },
