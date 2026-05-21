@@ -142,6 +142,8 @@ docker push devhub/frontend:${GIT_SHA}
 - `docker-compose.deploy.yml`: `build` 없이 `image`만 참조하는 배포용 compose 템플릿
 - `.github/workflows/docker-image-publish.yml`: backend-core/backend-ai/frontend 이미지 빌드+GHCR 푸시
 - `docs/setup/deploy.env.example`: 배포용 필수 env 템플릿
+- `docs/setup/deploy.stage.env.example`: stage 환경 템플릿
+- `docs/setup/deploy.prod.env.example`: production 환경 템플릿
 - `scripts/deploy-preflight.sh`: 배포 전 필수 env/compose 렌더/OIDC reachability 검증
 - `scripts/deploy-up.sh`: preflight + pull + up 일괄 실행
 
