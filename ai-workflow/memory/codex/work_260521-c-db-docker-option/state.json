@@ -3,16 +3,16 @@
   "project": "DevHub Example",
   "branch": "codex/work_260521-c-db-docker-option",
   "status": "in_progress",
-  "updated_at": "2026-05-21T09:15:00Z",
+  "updated_at": "2026-05-21T09:30:00Z",
   "head_commit": "cf29f9c",
   "head_summary": "chore(infra): track dockerfiles in git",
   "current_focus": [
-    "deploy-from-env.sh 에서 push 액션 제거",
+    "외부 접속 기준 주소/포트와 VM ingress 포트를 deploy-from-env.sh 에서 분리",
     "host build 패키징 + nginx HTTP only 직접 프록시 정합 유지",
     "backend-core Go 버전을 1.25.9 로 고정"
   ],
   "next_actions": [
-    "push 제거 변경분 검증 후 커밋",
+    "외부 접속 분리 변경분 검증 후 커밋",
     "host-run e2e 의 DB 접근 경로를 별도 정리"
   ],
   "risks": [

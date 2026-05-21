@@ -151,10 +151,13 @@ docker push devhub/frontend:${GIT_SHA}
 ```sh
 export IMAGE_TAG=<git-sha-or-release-tag>
 export IMAGE_REPO_PREFIX=local/devhub             # 원격 배포 시 ghcr.io/<owner>/<repo> 로 덮어쓰기
-export PUBLIC_BASE_URL=https://<host>/devhub
+export PUBLIC_ACCESS_SCHEME=http
+export PUBLIC_ACCESS_HOST=<host-ip-or-dns>
+export PUBLIC_ACCESS_PORT=13000
+export NGINX_HTTP_PORT=3000                       # VM ingress port
 export DB_URL='postgres://<user>:<pw>@<db-host>:5432/<db>?sslmode=disable'
 export DEVHUB_IDP_PROVIDER=keycloak
-export DEVHUB_OIDC_ISSUER_URL=https://<host>/devhub/auth/keycloak/realms/devhub
+export DEVHUB_OIDC_ISSUER_URL=http://<host-ip-or-dns>:13000/devhub/auth/keycloak/realms/devhub
 export DEVHUB_OIDC_CLIENT_ID=devhub-web
 export DEVHUB_OIDC_CLIENT_SECRET='<oidc-client-secret>'
 export DEVHUB_KEYCLOAK_ADMIN_URL=http://keycloak:8080
@@ -162,15 +165,10 @@ export DEVHUB_KEYCLOAK_ADMIN_REALM=devhub
 export DEVHUB_KEYCLOAK_ADMIN_CLIENT_ID=devhub-admin
 export DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET='<keycloak-admin-secret>'
 export NEXT_PUBLIC_IDP_PROVIDER=keycloak
-export NEXT_PUBLIC_OIDC_ISSUER_URL=https://<host>/devhub/auth/keycloak/realms/devhub
+export NEXT_PUBLIC_OIDC_ISSUER_URL=http://<host-ip-or-dns>:13000/devhub/auth/keycloak/realms/devhub
 export NEXT_PUBLIC_BASE_PATH=devhub
-export NEXT_PUBLIC_OIDC_REDIRECT_URI=https://<host>/devhub/auth/callback
-export NGINX_HTTP_PORT=80
-./scripts/build-artifacts.sh
-docker build -f backend-core/Dockerfile -t "${IMAGE_REPO_PREFIX}/backend-core:${IMAGE_TAG}" backend-core
-docker build -f backend-ai/Dockerfile -t "${IMAGE_REPO_PREFIX}/backend-ai:${IMAGE_TAG}" backend-ai
-docker build -f frontend/Dockerfile -t "${IMAGE_REPO_PREFIX}/frontend:${IMAGE_TAG}" frontend
-docker compose -f docker-compose.deploy.yml up -d
+export NEXT_PUBLIC_OIDC_REDIRECT_URI=http://<host-ip-or-dns>:13000/devhub/auth/callback
+./scripts/deploy-from-env.sh
 ```
 
 또는 저장소 표준 스크립트 사용:
@@ -204,7 +202,7 @@ docker compose -f docker-compose.deploy.yml up -d
 
 ### 8.1.1 변수 스키마 (권장)
 
-- Public (브라우저가 직접 접근): `PUBLIC_BASE_URL`, `NEXT_PUBLIC_IDP_PROVIDER`, `NEXT_PUBLIC_OIDC_ISSUER_URL`
+- Public (브라우저가 직접 접근): `PUBLIC_ACCESS_SCHEME`, `PUBLIC_ACCESS_HOST`, `PUBLIC_ACCESS_PORT`, `DEVHUB_PUBLIC_BASE_URL`, `NEXT_PUBLIC_IDP_PROVIDER`, `NEXT_PUBLIC_OIDC_ISSUER_URL`
 - Internal (서비스 간 통신): `DEVHUB_OIDC_*`, `DEVHUB_KEYCLOAK_ADMIN_*`, `BACKEND_API_URL`
 - DB: `DB_URL`
 

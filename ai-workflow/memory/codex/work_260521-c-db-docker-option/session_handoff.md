@@ -1,6 +1,6 @@
 # Session Handoff — codex/work_260521-c-db-docker-option
 
-- 문서 목적: host build + runtime-only Docker packaging 전환 상태와 로컬 전용 deploy 스크립트 정리 결과를 인계한다.
+- 문서 목적: host build + runtime-only Docker packaging 전환 상태와 외부 접속/VM ingress 분리 결과를 인계한다.
 - 범위: `scripts/build-artifacts.sh`, `deploy-from-env.sh`, runtime-only Dockerfiles, nginx 23000 정합, Keycloak dev/master realm `sslRequired`, backend-core `ca-certificates`, frontend `public`
 - 대상 독자: 후속 에이전트, 리뷰어
 - 상태: in_progress
@@ -20,6 +20,7 @@
 - `backend-core/Dockerfile` 에서 `apk add --no-cache ca-certificates` 를 제거해 사내 프록시망 / Alpine 패키지 미러 의존을 없앴다.
 - `frontend/public` 가 비어 있어 `frontend/Dockerfile` 의 `COPY public ./public` 를 제거했다.
 - `deploy-from-env.sh` 에서 `ACTION=push` 분기를 제거해 로컬 전용 흐름을 `build|deploy|all` 로 단순화했다.
+- `deploy-from-env.sh` 에 `PUBLIC_ACCESS_SCHEME/HOST/PORT` 를 추가해 외부 접속 기준 주소를 VM ingress 포트와 분리했다. 기본값은 `http://100.90.113.29:13000` + `NGINX_HTTP_PORT=3000` 이다.
 - `setup-keycloak.sh` 를 다시 돌려 `devhub-e2e-seeder` client 와 secret 을 재발급했다.
 - Playwright e2e 는 Keycloak 시드 단계까지 통과했지만, `idp-apply-schemas` 가 host 에서 `db` 호스트명을 해석하지 못해 실패했다. 이건 SSL/TLS 문제와 별개의 host-run DB 접근 문제다.
 

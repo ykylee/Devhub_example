@@ -20,4 +20,5 @@
 | BUILD-ARTIFACT-08 | host-run e2e 의 DB 접근 경로 정리 | in_progress | `db` 호스트명 host 해석 실패 |
 | BUILD-ARTIFACT-09 | backend-core Alpine ca-certificates 제거 | in_progress | HTTP-only 기준 프록시 의존 제거 |
 | BUILD-ARTIFACT-10 | frontend public copy 제거 | in_progress | 빈 public 디렉터리 정리 |
-| BUILD-ARTIFACT-11 | deploy-from-env.sh push 액션 제거 | in_progress | 로컬 전용 build/deploy 흐름 단순화 |
+| BUILD-ARTIFACT-11 | deploy-from-env.sh push 액션 제거 | done | 로컬 전용 build/deploy 흐름 단순화 |
+| BUILD-ARTIFACT-12 | 외부 접속 기준 주소/포트 분리 | in_progress | `PUBLIC_ACCESS_*` + `NGINX_HTTP_PORT=3000` |

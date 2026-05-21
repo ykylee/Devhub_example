@@ -9,7 +9,10 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # If the same variable is exported in shell, exported value wins.
 : "${IMAGE_TAG:=change-me-tag}"
 : "${IMAGE_REPO_PREFIX:=local/devhub}"
-: "${DEVHUB_PUBLIC_BASE_URL:=http://100.90.113.29:23000}"
+: "${PUBLIC_ACCESS_SCHEME:=http}"
+: "${PUBLIC_ACCESS_HOST:=100.90.113.29}"
+: "${PUBLIC_ACCESS_PORT:=13000}"
+: "${DEVHUB_PUBLIC_BASE_URL:=}"
 : "${DB_URL:=}"
 : "${DEVHUB_OIDC_CLIENT_SECRET:=change-me-oidc-secret}"
 : "${DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET:=change-me-keycloak-admin-secret}"
@@ -28,13 +31,14 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 : "${NEXT_PUBLIC_BASE_PATH:=devhub}"
 : "${KEYCLOAK_UPSTREAM:=keycloak:8080}"
 : "${KEYCLOAK_ADMIN_ALLOW_CIDR:=127.0.0.1}"
-: "${NGINX_HTTP_PORT:=}"
+: "${NGINX_HTTP_PORT:=3000}"
 
 # Simple one-shot deploy helper.
 # Required env:
 #   IMAGE_TAG
 #   IMAGE_REPO_PREFIX               (default: local/devhub)
-#   DEVHUB_PUBLIC_BASE_URL          (e.g. https://devhub.example.com or http://100.90.113.29:23000)
+#   PUBLIC_ACCESS_HOST / PORT       external client access endpoint (e.g. host:13000)
+#   DEVHUB_PUBLIC_BASE_URL          optional override, derived from PUBLIC_ACCESS_* when empty
 #   DB_URL
 #   DEVHUB_OIDC_CLIENT_SECRET
 #   DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET
@@ -43,10 +47,10 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 #   ACTION                          build|deploy|all (default: all)
 #   ENV_FILE                        deploy env file path (default: /tmp/devhub-deploy.env)
 #   DOCKER_COMPOSE_FILE             compose file path (default: docker-compose.deploy.yml)
-#   DEVHUB_OIDC_ISSUER_URL          default: ${DEVHUB_PUBLIC_BASE_URL}/devhub/auth/keycloak/realms/devhub
-#   DEVHUB_KEYCLOAK_ADMIN_URL       default: ${DEVHUB_PUBLIC_BASE_URL}/devhub/auth/keycloak
+#   DEVHUB_OIDC_ISSUER_URL          default: ${PUBLIC_ACCESS_SCHEME}://${PUBLIC_ACCESS_HOST}:${PUBLIC_ACCESS_PORT}/devhub/auth/keycloak/realms/devhub
+#   DEVHUB_KEYCLOAK_ADMIN_URL       default: ${PUBLIC_ACCESS_SCHEME}://${PUBLIC_ACCESS_HOST}:${PUBLIC_ACCESS_PORT}/devhub/auth/keycloak
 #   OIDC_ISSUER_URL                 default: DEVHUB_OIDC_ISSUER_URL
-#   OIDC_REDIRECT_URI               default: ${DEVHUB_PUBLIC_BASE_URL}/devhub/auth/callback
+#   OIDC_REDIRECT_URI               default: ${PUBLIC_ACCESS_SCHEME}://${PUBLIC_ACCESS_HOST}:${PUBLIC_ACCESS_PORT}/devhub/auth/callback
 #   NEXT_PUBLIC_OIDC_ISSUER_URL     default: OIDC_ISSUER_URL
 #   NEXT_PUBLIC_OIDC_REDIRECT_URI   default: OIDC_REDIRECT_URI
 #   NEXT_PUBLIC_BASE_PATH           default: devhub
@@ -64,7 +68,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 #   DB_MODE                         external|docker (docker will bring up db/db-init via compose profile)
 #   POSTGRES_USER/PASSWORD/DB       default: user/pass/devhub
 #   DB_HOST/DB_PORT/DB_SSLMODE      default: db/5432/disable
-#   NGINX_HTTP_PORT                 default: 80
+#   NGINX_HTTP_PORT                 default: 3000 (VM ingress port)
 
 require() {
   local var_name="$1"
@@ -83,17 +87,17 @@ emit_env_line() {
 
 build_env_file() {
   local public_base="${DEVHUB_PUBLIC_BASE_URL%/}"
+  if [ -z "$public_base" ]; then
+    if [ -n "${PUBLIC_ACCESS_PORT:-}" ]; then
+      public_base="${PUBLIC_ACCESS_SCHEME}://${PUBLIC_ACCESS_HOST}:${PUBLIC_ACCESS_PORT}"
+    else
+      public_base="${PUBLIC_ACCESS_SCHEME}://${PUBLIC_ACCESS_HOST}"
+    fi
+  fi
   local base_path="${NEXT_PUBLIC_BASE_PATH:-devhub}"
   local base_path_norm="/${base_path#/}"
   base_path_norm="${base_path_norm%/}"
   local nginx_http_port="${NGINX_HTTP_PORT:-}"
-  if [ -z "$nginx_http_port" ]; then
-    if [[ "$public_base" =~ :([0-9]+)$ ]]; then
-      nginx_http_port="${BASH_REMATCH[1]}"
-    else
-      nginx_http_port="80"
-    fi
-  fi
   if [ "$DB_MODE" = "docker" ]; then
     COMPOSE_PROFILES="local-db,local-idp"
     DB_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DB_HOST}:${DB_PORT}/${POSTGRES_DB}?sslmode=${DB_SSLMODE}"
@@ -116,14 +120,17 @@ build_env_file() {
   {
     emit_env_line IMAGE_TAG "$IMAGE_TAG"
     emit_env_line IMAGE_REPO_PREFIX "$IMAGE_REPO_PREFIX"
+    emit_env_line PUBLIC_ACCESS_SCHEME "$PUBLIC_ACCESS_SCHEME"
+    emit_env_line PUBLIC_ACCESS_HOST "$PUBLIC_ACCESS_HOST"
+    emit_env_line PUBLIC_ACCESS_PORT "$PUBLIC_ACCESS_PORT"
     emit_env_line DB_MODE "$DB_MODE"
     if [ -n "${COMPOSE_PROFILES:-}" ]; then
       emit_env_line COMPOSE_PROFILES "$COMPOSE_PROFILES"
     fi
     printf "\n"
     emit_env_line NGINX_HTTP_PORT "$nginx_http_port"
-    emit_env_line DEVHUB_PUBLIC_BASE_URL "$DEVHUB_PUBLIC_BASE_URL"
-    emit_env_line NEXT_PUBLIC_APP_ORIGIN "$DEVHUB_PUBLIC_BASE_URL"
+    emit_env_line DEVHUB_PUBLIC_BASE_URL "$public_base"
+    emit_env_line NEXT_PUBLIC_APP_ORIGIN "$public_base"
     printf "\n"
     emit_env_line KEYCLOAK_UPSTREAM "${KEYCLOAK_UPSTREAM:-keycloak:8080}"
     emit_env_line KEYCLOAK_ADMIN_ALLOW_CIDR "${KEYCLOAK_ADMIN_ALLOW_CIDR:-127.0.0.1}"
@@ -194,9 +201,11 @@ deploy_stack() {
 main() {
   require IMAGE_TAG
   require IMAGE_REPO_PREFIX
-  require DEVHUB_PUBLIC_BASE_URL
   require DEVHUB_OIDC_CLIENT_SECRET
   require DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET
+  if [ -z "${DEVHUB_PUBLIC_BASE_URL:-}" ]; then
+    require PUBLIC_ACCESS_HOST
+  fi
   if [ "$DB_MODE" = "external" ]; then
     require DB_URL
   fi
