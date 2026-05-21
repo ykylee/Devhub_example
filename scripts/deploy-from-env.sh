@@ -8,7 +8,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # =========================
 # If the same variable is exported in shell, exported value wins.
 : "${IMAGE_TAG:=change-me-tag}"
-: "${IMAGE_REPO_PREFIX:=ghcr.io/ykylee/devhub_example}"
+: "${IMAGE_REPO_PREFIX:=local/devhub}"
 : "${DEVHUB_PUBLIC_BASE_URL:=http://100.90.113.29:23000}"
 : "${DB_URL:=}"
 : "${DEVHUB_OIDC_CLIENT_SECRET:=change-me-oidc-secret}"
@@ -36,7 +36,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # Simple one-shot deploy helper.
 # Required env:
 #   IMAGE_TAG
-#   IMAGE_REPO_PREFIX               (e.g. ghcr.io/ykylee/devhub_example)
+#   IMAGE_REPO_PREFIX               (default: local/devhub)
 #   DEVHUB_PUBLIC_BASE_URL          (e.g. https://devhub.example.com or http://100.90.113.29:23000)
 #   DB_URL
 #   DEVHUB_OIDC_CLIENT_SECRET

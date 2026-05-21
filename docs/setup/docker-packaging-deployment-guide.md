@@ -151,7 +151,7 @@ docker push devhub/frontend:${GIT_SHA}
 
 ```sh
 export IMAGE_TAG=<git-sha-or-release-tag>
-export IMAGE_REPO_PREFIX=ghcr.io/<owner>/<repo>   # 로컬 검증 시 devhub
+export IMAGE_REPO_PREFIX=local/devhub             # 원격 배포 시 ghcr.io/<owner>/<repo> 로 덮어쓰기
 export PUBLIC_BASE_URL=https://<host>/devhub
 export DB_URL='postgres://<user>:<pw>@<db-host>:5432/<db>?sslmode=disable'
 export DEVHUB_IDP_PROVIDER=keycloak
@@ -184,7 +184,7 @@ ENV_FILE=./.env.deploy ./scripts/deploy-up.sh
 
 ```sh
 export IMAGE_TAG=$(git rev-parse --short HEAD)
-export IMAGE_REPO_PREFIX=devhub
+export IMAGE_REPO_PREFIX=local/devhub
 docker compose -f docker-compose.deploy.yml up -d
 ```
 
