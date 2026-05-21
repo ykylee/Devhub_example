@@ -3,8 +3,8 @@
 - 문서 목적: main 브랜치 기준 상위 백로그 인덱스. 세부 sprint backlog 는 브랜치별 메모리 디렉터리 참조.
 - 범위: 마일스톤 상태, 최근 머지, 잔여/후속 작업
 - 대상 독자: 프로젝트 리드, 후속 에이전트, 트랙 담당자
-- 상태: M1·M2·M3 done. **Keycloak 단일 IdP 정합 완전 정착** (ADR-0019). **ADR-0019 §5.3 design 완결** + **§5.3 (9) audit event listener Phase 2 풀스택 종결**. **ADR-0020 sub-carve 진척 7/8 done** (A/B-backend/B-frontend/C/D/E/UI-Polish + #247 P1-bug). **외부 Keycloak 시나리오 채택 (2026-05-20)** — HR ↔ Keycloak sync 책임 외부 IdP 팀 이관. issue #215 cancelled. DevHub off-boarding sync 는 sub-carve C event listener (PR #241) 정공법. **v1.0 release gate (D-26, 2026-06-15): 잔여 1건** (#214 P1-3 group staging-prod 사내 운영자). PR #248 (UI polish 1차) 머지 및 origin/main push 완료. **오늘 머지된 PR 총 13건** (#243~#249 + #251~#257). **다음 directive**: 1순위 = #214 사내 운영자 1회 작업 / 2순위 = v1.1 carve 진입 (#219 ADR-0017 §6 PATCH expires_at [이슈 #219, Gemini+Claude] / #218 ADR-0016 §6 alert / #222 SPI JAR / #223 HRDB ETL pre-stage / #224 sub-carve F /login 정리).
-- 최종 수정일: 2026-05-21 (sprint gemini/work_260520-b-210-ui-polish merge)
+- 상태: M1·M2·M3·M5·M6 done + **M7 Onboarding 1차 closing (2026-05-21)**. **ADR-0021 신규 발급** (Onboarding self-service unit selection + ADR-0020 partial supersession 5 위치). **Onboarding Carve 진척 1/4 done**: **Carve A backend ✅** (PR #278). 잔여: B frontend (#273) + C admin UI (#274) + D tests (#275) M-v1.1. Feature flag `DEVHUB_ONBOARDING_GATE_ENABLED` default OFF — Carve D acceptance + 1주 staging monitoring 후 별도 hotfix 로 default ON flip. **v1.0 release gate (D-25, 2026-06-15): 잔여 1건** (#214 P1-3 Keycloak group staging-prod 사내 운영자). **2026-05-21 머지 PR 총 12건** (#265~#270 + #271 + #276 + #277 + #278 + #280 + #281). **다음 directive**: 1순위 = #214 사내 운영자 1회 / 2순위 = Onboarding Carve B/C/D (Gemini) 진입 + v1.1 잔여 carve (#218/#219/#222/#223/#224).
+- 최종 수정일: 2026-05-21 (sprint claude/learning-session-slideshow-2026-05-21 머지)
 - 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [세션 인계](./session_handoff.md), [상태 스냅샷](./state.json), [M1 PR 리뷰 actions](./M1-PR-review-actions.md)
 
 ## 1. 마일스톤 진행 상황
