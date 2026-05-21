@@ -75,7 +75,16 @@ services:
       - /bin/sh
       - -lc
       - |
-        migrate -path=/migrations -database "$${DB_URL}" up
+        i=0
+        until migrate -path=/migrations -database "$${DB_URL}" up; do
+          i=$$((i+1))
+          if [ "$$i" -ge 30 ]; then
+            echo "db-migrate failed after $$i attempts"
+            exit 1
+          fi
+          echo "db-migrate retry $$i/30"
+          sleep 2
+        done
     environment:
       DB_URL: ${DB_URL:?set DB_URL}
     volumes:
