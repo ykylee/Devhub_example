@@ -212,6 +212,8 @@ services:
     environment:
       BACKEND_API_URL: ${BACKEND_API_URL:-http://backend-core:8080}
       NEXT_PUBLIC_BASE_PATH: ${NEXT_PUBLIC_BASE_PATH:-devhub}
+      DEVHUB_PUBLIC_BASE_URL: ${DEVHUB_PUBLIC_BASE_URL:?set DEVHUB_PUBLIC_BASE_URL}
+      NEXT_PUBLIC_APP_ORIGIN: ${DEVHUB_PUBLIC_BASE_URL:?set DEVHUB_PUBLIC_BASE_URL}
       # Runtime config route(frontend/app/api/runtime-config) fallback overrides.
       OIDC_ISSUER_URL: ${OIDC_ISSUER_URL:?set OIDC_ISSUER_URL}
       OIDC_AUTH_URL: ${OIDC_AUTH_URL:-}

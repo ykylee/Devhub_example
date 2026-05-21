@@ -23,6 +23,7 @@ set +a
 required_vars=(
   IMAGE_TAG
   DB_URL
+  DEVHUB_PUBLIC_BASE_URL
   DEVHUB_OIDC_ISSUER_URL
   DEVHUB_OIDC_CLIENT_SECRET
   DEVHUB_KEYCLOAK_ADMIN_URL
@@ -52,6 +53,24 @@ fi
 
 if [[ "$NEXT_PUBLIC_OIDC_REDIRECT_URI" != */auth/callback ]]; then
   echo "ERROR: NEXT_PUBLIC_OIDC_REDIRECT_URI must end with /auth/callback" >&2
+  exit 1
+fi
+
+public_base="${DEVHUB_PUBLIC_BASE_URL%/}"
+base_path_raw="${NEXT_PUBLIC_BASE_PATH:-devhub}"
+if [ -n "$base_path_raw" ]; then
+  base_path="/${base_path_raw#/}"
+  base_path="${base_path%/}"
+else
+  base_path=""
+fi
+expected_redirect_uri="${public_base}${base_path}/auth/callback"
+if [[ "$OIDC_REDIRECT_URI" != "$expected_redirect_uri" ]]; then
+  echo "ERROR: OIDC_REDIRECT_URI must equal ${expected_redirect_uri}" >&2
+  exit 1
+fi
+if [[ "$NEXT_PUBLIC_OIDC_REDIRECT_URI" != "$expected_redirect_uri" ]]; then
+  echo "ERROR: NEXT_PUBLIC_OIDC_REDIRECT_URI must equal ${expected_redirect_uri}" >&2
   exit 1
 fi
 

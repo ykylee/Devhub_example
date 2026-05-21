@@ -18,6 +18,11 @@ export const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH
   : "";
 
 const isBrowser = typeof window !== "undefined";
+const explicitPublicBaseURL = process.env.NEXT_PUBLIC_APP_ORIGIN
+  ? stripTrailingSlash(process.env.NEXT_PUBLIC_APP_ORIGIN)
+  : "";
+const resolvedBrowserOrigin = isBrowser ? window.location.origin : "http://localhost:3000";
+const APP_ORIGIN = explicitPublicBaseURL || resolvedBrowserOrigin;
 
 // --- client-side API ---
 // When reverse proxy is active (BASE_PATH is set), direct fetch to same-origin relative BASE_PATH
@@ -46,9 +51,7 @@ export const OIDC_AUTH_URL =
 // Dynamically construct OIDC redirect callback URL based on current origin to support multiple environments seamlessly.
 export const OIDC_REDIRECT_URI =
   process.env.NEXT_PUBLIC_OIDC_REDIRECT_URI ??
-  (isBrowser
-    ? `${window.location.origin}${BASE_PATH}/auth/callback`
-    : "http://localhost:3000/auth/callback");
+  `${APP_ORIGIN}${BASE_PATH}/auth/callback`;
 
 // --- server-only (next.config / route handlers / tests) ---
 // next.config.ts 의 rewrites 가 사용. docker 에서는 compose env 로 override.
