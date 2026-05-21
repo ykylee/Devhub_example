@@ -626,8 +626,30 @@ func (s *memoryApplicationStore) UpdateIntegrationBinding(_ context.Context, b d
 	if !ok {
 		return domain.IntegrationBinding{}, store.ErrNotFound
 	}
+	// ProviderID 변경 시 신규 provider 존재 검증 (production store 의 FK 가드 mirror).
+	if b.ProviderID != existing.ProviderID {
+		if _, ok := s.integrationProviders[b.ProviderID]; !ok {
+			return domain.IntegrationBinding{}, store.ErrNotFound
+		}
+	}
+	// duplicate 가드 — 같은 (scope_type, scope_id, provider_id, external_key) 4-tuple
+	// 이 다른 binding 으로 이미 존재하면 ErrConflict (production store 의 unique index).
+	for id, other := range s.integrationBindings {
+		if id == b.ID {
+			continue
+		}
+		if other.ScopeType == existing.ScopeType &&
+			other.ScopeID == existing.ScopeID &&
+			other.ProviderID == b.ProviderID &&
+			other.ExternalKey == b.ExternalKey {
+			return domain.IntegrationBinding{}, store.ErrConflict
+		}
+	}
 	existing.ScopeID = b.ScopeID
+	existing.ProviderID = b.ProviderID
 	existing.ExternalKey = b.ExternalKey
+	existing.Policy = b.Policy
+	existing.Enabled = b.Enabled
 	existing.UpdatedAt = time.Now().UTC()
 	s.integrationBindings[b.ID] = existing
 	return existing, nil

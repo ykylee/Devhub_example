@@ -212,6 +212,202 @@ func TestDeleteIntegrationProvider_ForbiddenForDeveloperRole(t *testing.T) {
 	}
 }
 
+// --- PATCH /api/v1/integration/bindings/:binding_id (API-74)
+// sprint claude/test-integration-bindings-handlers-2026-05-21.
+// 기존엔 TestCreateIntegrationBinding_* 만 cover 됐고 update handler 의
+// happy/404/422/409/RBAC 분기가 모두 미가드 상태였다.
+
+// seedBindingFixture — 새 router + seed (provider + binding 1건). 모든 PATCH/
+// DELETE happy/neg test 가 동일 진입점을 쓰도록 helper 화.
+func seedBindingFixture(t *testing.T) (http.Handler, string) {
+	t.Helper()
+	router := newApplicationsRouter(newMemoryApplicationStore())
+	seed := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
+		`{"provider_key":"jira-main","provider_type":"alm","display_name":"Jira","auth_mode":"oauth2","credentials_ref":"secret://jira"}`)
+	if seed.Code != http.StatusCreated {
+		t.Fatalf("seed provider: %s", seed.Body.String())
+	}
+	created := doJSON(t, router, http.MethodPost, "/api/v1/integration/bindings",
+		`{"scope_type":"application","scope_id":"APP-001","provider_id":"prov-jira-main","external_key":"PROJ","policy":"execution_system"}`)
+	if created.Code != http.StatusCreated {
+		t.Fatalf("seed binding: %s", created.Body.String())
+	}
+	// fake store 의 ID convention: "bind-<scope_id>-<external_key>". production
+	// store 는 UUID 라 별도 응답 body 에서 추출하지만, test 는 fake convention
+	// 으로 충분 — 모든 PATCH/DELETE handler 가 path :binding_id 만 사용.
+	return router, "bind-APP-001-PROJ"
+}
+
+func TestUpdateIntegrationBinding_Happy(t *testing.T) {
+	router, bindingID := seedBindingFixture(t)
+	rec := doJSON(t, router, http.MethodPatch, "/api/v1/integration/bindings/"+bindingID,
+		`{"external_key":"PROJ-RENAMED","policy":"summary_only","enabled":false}`)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	// handler 반환값으로 store 갱신 자연 검증 (handler 가 store.UpdateIntegrationBinding
+	// 결과를 그대로 직렬화). 다른 PATCH happy 테스트의 substring 패턴 정합.
+	body := rec.Body.String()
+	for _, want := range []string{
+		`"external_key":"PROJ-RENAMED"`,
+		`"policy":"summary_only"`,
+		`"enabled":false`,
+	} {
+		if !bytes.Contains([]byte(body), []byte(want)) {
+			t.Errorf("response missing %s: %s", want, body)
+		}
+	}
+}
+
+func TestUpdateIntegrationBinding_NotFound(t *testing.T) {
+	router := newApplicationsRouter(newMemoryApplicationStore())
+	rec := doJSON(t, router, http.MethodPatch, "/api/v1/integration/bindings/bind-ghost",
+		`{"policy":"summary_only"}`)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestUpdateIntegrationBinding_InvalidPolicy(t *testing.T) {
+	router, bindingID := seedBindingFixture(t)
+	rec := doJSON(t, router, http.MethodPatch, "/api/v1/integration/bindings/"+bindingID,
+		`{"policy":"not_a_valid_policy"}`)
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected 422, status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte("unsupported policy")) {
+		t.Errorf("expected 'unsupported policy' message: %s", rec.Body.String())
+	}
+}
+
+func TestUpdateIntegrationBinding_ConflictDuplicate(t *testing.T) {
+	router, firstID := seedBindingFixture(t)
+	// 같은 router 에 같은 provider 로 두 번째 binding (scope_id 가 다름) 생성.
+	second := doJSON(t, router, http.MethodPost, "/api/v1/integration/bindings",
+		`{"scope_type":"application","scope_id":"APP-002","provider_id":"prov-jira-main","external_key":"OTHER","policy":"execution_system"}`)
+	if second.Code != http.StatusCreated {
+		t.Fatalf("seed second binding: %s", second.Body.String())
+	}
+	// firstID 의 external_key 를 second 의 것 (OTHER) 으로 변경 시도 — fake store
+	// 의 (scope_type, scope_id, provider_id, external_key) 4-tuple 가드는 scope_id
+	// 가 다르면 충돌 안 함. 같은 충돌을 일으키려면 second 의 scope_id 와 일치시켜야
+	// 하는데, 여기선 different scope_id 라 production store unique index 위반 시나리오와
+	// 같이 검증하기 위해 fake 의 conflict 분기를 직접 트리거. firstID 와 동일
+	// scope_id 인 별도 binding 을 만들어 conflict 시뮬레이션:
+	dup := doJSON(t, router, http.MethodPost, "/api/v1/integration/bindings",
+		`{"scope_type":"application","scope_id":"APP-001","provider_id":"prov-jira-main","external_key":"DUPLICATE-CANDIDATE","policy":"execution_system"}`)
+	if dup.Code != http.StatusCreated {
+		t.Fatalf("seed dup-candidate: %s", dup.Body.String())
+	}
+	// 이제 firstID 의 external_key 를 "DUPLICATE-CANDIDATE" 로 PATCH → 4-tuple
+	// (application, APP-001, prov-jira-main, DUPLICATE-CANDIDATE) 충돌 → 409.
+	rec := doJSON(t, router, http.MethodPatch, "/api/v1/integration/bindings/"+firstID,
+		`{"external_key":"DUPLICATE-CANDIDATE"}`)
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("expected 409, status=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestUpdateIntegrationBinding_ForbiddenForDeveloperRole(t *testing.T) {
+	store := newMemoryApplicationStore()
+	// seed provider + binding 직접 (RBAC bypass 안 되는 router 라 doJSON 사용 불가).
+	if _, err := store.CreateIntegrationProvider(context.Background(), domain.IntegrationProvider{
+		ID: "prov-jira-main", ProviderKey: "jira-main",
+		ProviderType: domain.IntegrationProviderType("alm"), DisplayName: "Jira",
+		Enabled: true, AuthMode: domain.IntegrationAuthMode("oauth2"),
+		CredentialsRef: "secret://jira", SyncStatus: "requested",
+	}); err != nil {
+		t.Fatalf("seed provider: %v", err)
+	}
+	if _, err := store.CreateIntegrationBinding(context.Background(), domain.IntegrationBinding{
+		ID: "bind-APP-001-PROJ", ScopeType: "application", ScopeID: "APP-001",
+		ProviderID: "prov-jira-main", ExternalKey: "PROJ",
+		Policy: domain.IntegrationPolicyExecutionSystem, Enabled: true,
+	}); err != nil {
+		t.Fatalf("seed binding: %v", err)
+	}
+
+	router := NewRouter(RouterConfig{
+		ApplicationStore: store,
+		BearerTokenVerifier: &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+			Login: "dev-user", Subject: "user-dev-user", Role: "developer",
+		}},
+	})
+
+	req, _ := http.NewRequest(http.MethodPatch, "/api/v1/integration/bindings/bind-APP-001-PROJ",
+		bytes.NewBufferString(`{"policy":"summary_only"}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer t")
+	rec := httptestDo(t, router, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+// --- DELETE /api/v1/integration/bindings/:binding_id (API-74)
+
+func TestDeleteIntegrationBinding_Happy(t *testing.T) {
+	router, bindingID := seedBindingFixture(t)
+	rec := doJSON(t, router, http.MethodDelete, "/api/v1/integration/bindings/"+bindingID, "")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	// list 에서 사라졌는지 검증.
+	list := doJSON(t, router, http.MethodGet, "/api/v1/integration/bindings", "")
+	if bytes.Contains(list.Body.Bytes(), []byte(bindingID)) {
+		t.Errorf("deleted binding still in list: %s", list.Body.String())
+	}
+	// 두 번째 DELETE 는 404 (idempotency 검증 — 같은 store 가드).
+	rec2 := doJSON(t, router, http.MethodDelete, "/api/v1/integration/bindings/"+bindingID, "")
+	if rec2.Code != http.StatusNotFound {
+		t.Fatalf("second delete should 404, status=%d body=%s", rec2.Code, rec2.Body.String())
+	}
+}
+
+func TestDeleteIntegrationBinding_NotFound(t *testing.T) {
+	router := newApplicationsRouter(newMemoryApplicationStore())
+	rec := doJSON(t, router, http.MethodDelete, "/api/v1/integration/bindings/bind-ghost", "")
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"error":"binding not found"`)) {
+		t.Errorf("expected 'binding not found' error: %s", rec.Body.String())
+	}
+}
+
+func TestDeleteIntegrationBinding_ForbiddenForDeveloperRole(t *testing.T) {
+	store := newMemoryApplicationStore()
+	if _, err := store.CreateIntegrationProvider(context.Background(), domain.IntegrationProvider{
+		ID: "prov-jira-main", ProviderKey: "jira-main",
+		ProviderType: domain.IntegrationProviderType("alm"), DisplayName: "Jira",
+		Enabled: true, AuthMode: domain.IntegrationAuthMode("oauth2"),
+		CredentialsRef: "secret://jira", SyncStatus: "requested",
+	}); err != nil {
+		t.Fatalf("seed provider: %v", err)
+	}
+	if _, err := store.CreateIntegrationBinding(context.Background(), domain.IntegrationBinding{
+		ID: "bind-APP-001-PROJ", ScopeType: "application", ScopeID: "APP-001",
+		ProviderID: "prov-jira-main", ExternalKey: "PROJ",
+		Policy: domain.IntegrationPolicyExecutionSystem, Enabled: true,
+	}); err != nil {
+		t.Fatalf("seed binding: %v", err)
+	}
+
+	router := NewRouter(RouterConfig{
+		ApplicationStore: store,
+		BearerTokenVerifier: &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+			Login: "dev-user", Subject: "user-dev-user", Role: "developer",
+		}},
+	})
+
+	req, _ := http.NewRequest(http.MethodDelete, "/api/v1/integration/bindings/bind-APP-001-PROJ", nil)
+	req.Header.Set("Authorization", "Bearer t")
+	rec := httptestDo(t, router, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestIntegrationProviderWebhook_Happy(t *testing.T) {
 	router := newApplicationsRouter(newMemoryApplicationStore())
 	seed := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
