@@ -149,14 +149,14 @@ type RouterConfig struct {
 	// AuthDevFallback toggles dev-only authentication fallbacks: empty Authorization passes through authenticateActor and requireMinRole. Actor identity always resolves to "system" without a verifier. Default false: production-safe.
 	AuthDevFallback bool
 	// OnboardingGateEnabled — RM-ONBOARD-01 (ADR-0021 §3.3, ARCH-ONBOARD-03).
-	// Feature flag (env `DEVHUB_ONBOARDING_GATE_ENABLED`) default **false** —
-	// Carve A 단독 머지 후 main 안정성을 위해 disable.
-	// - false: 기존 동작 (lazy auto-create 유지, ADR-0020 sub-carve B 정합).
-	//   authenticateActor 가 GetUser miss 시 lazyAutoCreateUser 호출, 모든
-	//   endpoint 일반 접근.
-	// - true: 신규 onboarding 흐름 (ADR-0021 §3.3 정합). authenticateActor 가
-	//   DB miss 를 token-only actor 정상 상태로 취급 + onboardingGate
-	//   middleware 가 미완료 사용자의 allowlist 외 endpoint 호출 시 403.
+	// Feature flag (env `DEVHUB_ONBOARDING_GATE_ENABLED`) default **true** since
+	// the 2026-05-21 lazy 폐기 sprint (issue #284). authenticateActor 의
+	// token-only actor 처리는 항상 활성 — 본 flag 는 onboardingGate middleware
+	// 의 차단 동작에만 영향.
+	// - true (default): onboardingGate 가 미완료 사용자의 allowlist 외 endpoint
+	//   호출 시 403 onboarding_required 차단.
+	// - false (rollback): onboardingGate no-op (모든 endpoint 통과). token-only
+	//   actor 처리는 여전히 활성. 운영 사고 시 빠른 mitigation 경로.
 	OnboardingGateEnabled bool
 }
 

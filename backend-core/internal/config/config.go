@@ -22,12 +22,12 @@ type Config struct {
 	// AuthDevFallback enables development-only authentication fallbacks: requests with no Authorization header pass through authenticateActor, and the role guard middleware (requireMinRole) lets the request through without a role. Actor identity always falls back to "system" when no authenticated subject is present. Default false (production-safe). Toggle with DEVHUB_AUTH_DEV_FALLBACK=1.
 	AuthDevFallback bool
 	// OnboardingGateEnabled — RM-ONBOARD-01 (ADR-0021 §3.3). Feature flag
-	// default **false** (legacy 동작 — lazy auto-create 유지, ADR-0020 sub-carve B).
-	// Toggle with `DEVHUB_ONBOARDING_GATE_ENABLED=1`. true 시 신규 onboarding
-	// 흐름 활성화 — authenticateActor 가 DB miss 를 token-only actor 로 취급 +
-	// onboardingGate middleware 가 미완료 사용자의 allowlist 외 endpoint 차단.
-	// Carve A 단독 머지 후 main 안정성 보장 — Carve D acceptance 통과 후 별도
-	// hotfix PR 으로 default ON flip.
+	// default **true** since the 2026-05-21 lazy 폐기 sprint (issue #284):
+	// authenticateActor 가 DB miss 를 token-only actor 로 취급 + onboardingGate
+	// middleware 가 미완료 사용자의 allowlist 외 endpoint 차단 이 main 동작.
+	// Set `DEVHUB_ONBOARDING_GATE_ENABLED=0` to roll back to no-gate mode
+	// (token-only actor still applied — lazy_auto_create.go 는 삭제됨, rollback
+	// 은 onboardingGate middleware 비활성화만 의미). 운영 사고 시 빠른 mitigation.
 	OnboardingGateEnabled bool
 	// ServiceActionExecutorMode enables the live service action worker only for supported explicit modes such as "simulation".
 	ServiceActionExecutorMode string
@@ -125,7 +125,7 @@ func Load() Config {
 		Env:                            strings.ToLower(strings.TrimSpace(os.Getenv("DEVHUB_ENV"))),
 		IdPProvider:                    normalizeIDPProvider(os.Getenv("DEVHUB_IDP_PROVIDER")),
 		AuthDevFallback:                envBool("DEVHUB_AUTH_DEV_FALLBACK"),
-		OnboardingGateEnabled:          envBool("DEVHUB_ONBOARDING_GATE_ENABLED"),
+		OnboardingGateEnabled:          envBoolDefault("DEVHUB_ONBOARDING_GATE_ENABLED", true),
 		ServiceActionExecutorMode:      strings.TrimSpace(os.Getenv("SERVICE_ACTION_EXECUTOR_MODE")),
 		ServiceActionAllowedServices:   strings.TrimSpace(os.Getenv("SERVICE_ACTION_ALLOWED_SERVICES")),
 		ServiceActionAllowedActions:    strings.TrimSpace(os.Getenv("SERVICE_ACTION_ALLOWED_ACTIONS")),
@@ -191,6 +191,22 @@ func envOrDefault(key, fallback string) string {
 func envBool(key string) bool {
 	enabled, _ := strconv.ParseBool(strings.TrimSpace(os.Getenv(key)))
 	return enabled
+}
+
+// envBoolDefault returns the parsed bool when the env var is set to a parseable
+// value, otherwise the provided default. Use this for opt-out style flags where
+// the unset default should be true (e.g. DEVHUB_ONBOARDING_GATE_ENABLED after
+// the 2026-05-21 default ON flip — set the env to "0"/"false" to roll back).
+func envBoolDefault(key string, defaultValue bool) bool {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return defaultValue
+	}
+	parsed, err := strconv.ParseBool(raw)
+	if err != nil {
+		return defaultValue
+	}
+	return parsed
 }
 
 func envInt(key string) int {

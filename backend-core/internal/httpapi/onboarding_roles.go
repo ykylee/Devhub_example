@@ -6,10 +6,9 @@ import "github.com/devhub/backend-core/internal/domain"
 // rbac_policies seed role (developer / manager / pmo_manager / system_admin).
 //
 // 본 helper 는 me_onboarding.go (POST /me/onboarding) 의 fallback role
-// validation + lazy_auto_create.go 의 lazy provisioned default fallback
-// 두 곳에서 공유. lazy_auto_create.go 가 Carve D default ON flip 이후
-// deletion 시점에 본 helper 는 onboarding 흐름에서 계속 사용 — 별도
-// file 로 분리해 cross-file dependency 제거 (PR #278 self-review P1 #2).
+// validation 에서 사용. 2026-05-21 lazy 폐기 sprint (issue #284) 이전에는
+// lazy_auto_create.go 의 lazy provisioned default fallback 과 공유했으나
+// lazy_auto_create.go deletion 이후 본 helper 는 onboarding 흐름 전용.
 func onboardingValidRole(role domain.AppRole) bool {
 	switch role {
 	case domain.AppRoleDeveloper, domain.AppRoleManager, domain.AppRoleSystemAdmin, "pmo_manager":

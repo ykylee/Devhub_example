@@ -161,43 +161,28 @@ func (h Handler) authenticateActor(c *gin.Context) {
 			}
 			// RM-ONBOARD-01 (ADR-0021 §3.3) — onboarding_required flag 정합.
 			// admin pre-seeded 사용자 (row 존재 + onboarding_completed_at NULL)
-			// 도 미완료로 취급 — 첫 로그인 시 onboarding 화면 강제 진입.
-			if h.cfg.OnboardingGateEnabled {
-				if user.OnboardingCompletedAt == nil {
-					c.Set("devhub_onboarding_required", true)
-				}
+			// 도 미완료로 취급 — 첫 로그인 시 onboarding 화면 강제 진입. 2026-05-21
+			// lazy 폐기 sprint (issue #284) 이후 본 동작이 unconditional.
+			// OnboardingGateEnabled flag 는 onboardingGate middleware 의 차단
+			// 동작에만 영향 (rollback path).
+			if user.OnboardingCompletedAt == nil {
+				c.Set("devhub_onboarding_required", true)
 			}
 		case errors.Is(err, store.ErrNotFound):
-			// RM-ONBOARD-01 (ADR-0021 §3.3) — onboarding gate feature flag
-			// 분기:
-			//   - flag false (default): ADR-0020 sub-carve B 정합 (lazy
-			//     auto-create 유지). row 자동 생성 + audit emit.
-			//   - flag true: lazy 폐기. DB miss = 정상 token-only actor.
-			//     Email/DisplayName 은 token claim 에서 직접 추출.
-			//     onboardingGate middleware (별도 layer) 가 allowlist 외
-			//     endpoint 호출 시 403 onboarding_required 차단.
-			//
-			// AuthenticatedActor 의 Email/DisplayName 필드는 sub-carve B
-			// 가 추가 (PR #239). token claim 추출 로직은 keycloak_verifier.go
-			// 의 extractDisplayName + email claim 처리 가 담당.
-			if h.cfg.OnboardingGateEnabled {
-				// flag true: token-only actor — context 에 token claim
-				// email + display_name 전달 (onboarding handler 가 활용).
-				if actor.Email != "" {
-					c.Set("devhub_actor_email", actor.Email)
-				}
-				if actor.DisplayName != "" {
-					c.Set("devhub_actor_display_name", actor.DisplayName)
-				}
-				// DB row 미존재 → onboarding_required 가 true. onboardingGate
-				// middleware 가 후속 처리 (allowlist + 403).
-				c.Set("devhub_onboarding_required", true)
-				logRequest(c, "[authenticateActor] %q DB miss + onboarding gate enabled = token-only actor (ADR-0021 §3.3)", login)
-			} else if h.cfg.OrganizationStore != nil {
-				// flag false (default): ADR-0020 sub-carve B lazy auto-create
-				// 흐름 유지 (legacy).
-				h.lazyAutoCreateUser(c, login, actor, finalRole)
+			// RM-ONBOARD-01 (ADR-0021 §3.3) — 2026-05-21 lazy 폐기 sprint
+			// (issue #284) 이후 unconditional token-only actor 처리.
+			// AuthenticatedActor 의 Email/DisplayName 은 keycloak_verifier.go 의
+			// extractDisplayName + email claim 처리 가 token 에서 추출.
+			// onboardingGate middleware (별도 layer) 가 allowlist 외 endpoint
+			// 호출 시 403 onboarding_required 차단.
+			if actor.Email != "" {
+				c.Set("devhub_actor_email", actor.Email)
 			}
+			if actor.DisplayName != "" {
+				c.Set("devhub_actor_display_name", actor.DisplayName)
+			}
+			c.Set("devhub_onboarding_required", true)
+			logRequest(c, "[authenticateActor] %q DB miss = token-only actor (ADR-0021 §3.3, lazy 폐기 후 unconditional)", login)
 		default:
 			// Schema drift or store outage. Without this surface, a
 			// missing migration (e.g. 000030 rename idp_subject)

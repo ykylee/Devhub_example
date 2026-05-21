@@ -119,8 +119,9 @@ func main() {
 	// ADR-0020 sub-carve E (sprint -n) — seedLocalAdmin Keycloak `CreateIdentity`
 	// 호출 정공법 제거. dev 운영자가 Keycloak admin console 또는 realm-export.json
 	// 으로 `test` user 1회 시드. DevHub `users` row 는 infra/idp/sql/003_seed_test_admin.sql
-	// (idempotent) 가 담당. 첫 로그인 시 lazy_auto_create (sprint -i, PR #239) 가
-	// idp_subject 매핑.
+	// (idempotent) 가 담당. 2026-05-21 lazy 폐기 sprint (issue #284) 이후 첫
+	// 로그인 시 authenticateActor 의 SetIdPSubject 가 idp_subject 매핑 (DB row
+	// 존재 시) 또는 token-only actor 로 처리 (DB miss 시 → onboarding 화면).
 
 	hrdbMock := hrdb.NewMockClient()
 	log.Println("HR DB Mock client initialized")
