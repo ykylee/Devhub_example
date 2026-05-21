@@ -3,6 +3,8 @@ package httpapi
 import (
 	"bytes"
 	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -1323,6 +1325,38 @@ func TestUpdateDevRequestIntakeTokenIPs_Happy(t *testing.T) {
 	}
 	if bytes.Contains(rec.Body.Bytes(), []byte(`"plain_token"`)) {
 		t.Errorf("PATCH must not expose plain_token: %s", rec.Body.String())
+	}
+}
+
+func TestUpdateDevRequestIntakeToken_ExtendExpired_Happy(t *testing.T) {
+	s := &fakeIntakeTokenStore{}
+	pastExpiry := time.Now().UTC().Add(-2 * time.Hour)
+	tok, err := s.CreateDevRequestIntakeToken(context.Background(), domain.DevRequestIntakeToken{
+		ClientLabel: "ops", HashedToken: "h-extend", AllowedIPs: []string{"10.0.0.0/24"}, SourceSystem: "ops", CreatedBy: "system", ExpiresAt: &pastExpiry,
+	})
+	if err != nil {
+		t.Fatalf("seed token: %v", err)
+	}
+	router := newIntakeAdminRouter(s, &memoryAuditStore{})
+	
+	newExpiry := time.Now().UTC().Add(4 * time.Hour).Format(time.RFC3339)
+	body := fmt.Sprintf(`{"expires_at":"%s"}`, newExpiry)
+	rec := doJSON(t, router, http.MethodPatch, "/api/v1/dev-request-tokens/"+tok.TokenID, body)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("code=%d body=%s", rec.Code, rec.Body.String())
+	}
+	
+	// Check response has the new expiry (P2 #3: json unmarshal assertion)
+	var respBody struct {
+		Data struct {
+			ExpiresAt string `json:"expires_at"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &respBody); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if respBody.Data.ExpiresAt != newExpiry {
+		t.Errorf("expires_at = %q; want %q", respBody.Data.ExpiresAt, newExpiry)
 	}
 }
 
