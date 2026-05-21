@@ -3,16 +3,16 @@
   "project": "DevHub Example",
   "branch": "codex/work_260521-c-db-docker-option",
   "status": "in_progress",
-  "updated_at": "2026-05-21T08:40:00Z",
+  "updated_at": "2026-05-21T08:55:00Z",
   "head_commit": "cf29f9c",
   "head_summary": "chore(infra): track dockerfiles in git",
   "current_focus": [
-    "dev/prod realm 및 master realm 의 sslRequired 를 none 으로 완화",
+    "backend-core 런타임 이미지의 ca-certificates apk 의존 제거",
     "host build 패키징 + nginx HTTP only 직접 프록시 정합 유지",
     "backend-core Go 버전을 1.25.9 로 고정"
   ],
   "next_actions": [
-    "패키징/ssl 완화/Go 버전 변경분 커밋 및 PR 갱신",
+    "ca-certificates 제거 변경분 검증 후 커밋/푸시",
     "host-run e2e 의 DB 접근 경로를 별도 정리"
   ],
   "risks": [

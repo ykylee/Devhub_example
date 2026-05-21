@@ -18,3 +18,4 @@
 | BUILD-ARTIFACT-06 | compose nginx TLS 제거 | done | 443 포트/인증서 마운트 삭제 |
 | BUILD-ARTIFACT-07 | backend-core Go 버전 1.25.9 고정 | done | `go.mod` + docs 정합 |
 | BUILD-ARTIFACT-08 | host-run e2e 의 DB 접근 경로 정리 | in_progress | `db` 호스트명 host 해석 실패 |
+| BUILD-ARTIFACT-09 | backend-core Alpine ca-certificates 제거 | in_progress | HTTP-only 기준 프록시 의존 제거 |
