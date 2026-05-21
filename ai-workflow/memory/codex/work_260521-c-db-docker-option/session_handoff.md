@@ -1,7 +1,7 @@
 # Session Handoff — codex/work_260521-c-db-docker-option
 
-- 문서 목적: host build + runtime-only Docker packaging 전환 상태와 불필요한 Alpine 패키지 의존성 제거 결과를 인계한다.
-- 범위: `scripts/build-artifacts.sh`, `deploy-from-env.sh`, runtime-only Dockerfiles, nginx 23000 정합, Keycloak dev/master realm `sslRequired`, backend-core `ca-certificates`
+- 문서 목적: host build + runtime-only Docker packaging 전환 상태와 frontend 정적 파일 복사 정리 결과를 인계한다.
+- 범위: `scripts/build-artifacts.sh`, `deploy-from-env.sh`, runtime-only Dockerfiles, nginx 23000 정합, Keycloak dev/master realm `sslRequired`, backend-core `ca-certificates`, frontend `public`
 - 대상 독자: 후속 에이전트, 리뷰어
 - 상태: in_progress
 - 최종 수정일: 2026-05-21
@@ -18,6 +18,7 @@
 - Keycloak 컨테이너 내부에서 `kcadm.sh` 로 `master` realm 도 `sslRequired=none` 으로 갱신했다.
 - `backend-core/go.mod` 의 Go 기준 버전을 `1.25.9` 로 맞췄다.
 - `backend-core/Dockerfile` 에서 `apk add --no-cache ca-certificates` 를 제거해 사내 프록시망 / Alpine 패키지 미러 의존을 없앴다.
+- `frontend/public` 가 비어 있어 `frontend/Dockerfile` 의 `COPY public ./public` 를 제거했다.
 - `setup-keycloak.sh` 를 다시 돌려 `devhub-e2e-seeder` client 와 secret 을 재발급했다.
 - Playwright e2e 는 Keycloak 시드 단계까지 통과했지만, `idp-apply-schemas` 가 host 에서 `db` 호스트명을 해석하지 못해 실패했다. 이건 SSL/TLS 문제와 별개의 host-run DB 접근 문제다.
 
