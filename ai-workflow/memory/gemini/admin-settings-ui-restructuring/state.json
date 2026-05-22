@@ -3,9 +3,9 @@
   "project": "DevHub Example",
   "branch": "gemini/admin-settings-ui-restructuring",
   "status": "done",
-  "updated_at": "2026-05-22T07:08:00Z",
-  "head_commit": "9caed8c",
-  "head_summary": "Successfully completed admin settings UI restructuring with Collapsible Sidebar and verified via Playwright E2E. Addressed Codex PR #299 review to preserve JWKS reachability preflight safety gate with local loopback bypass.",
+  "updated_at": "2026-05-22T07:12:00Z",
+  "head_commit": "fe7ad09",
+  "head_summary": "Successfully completed admin settings UI restructuring with Collapsible Sidebar, resolved merge conflicts with PR #298 preserving skip and bypass OIDC safety gates, and verified via Playwright E2E.",
   "milestones": {
     "M-v1.0": {
       "status": "done",

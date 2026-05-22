@@ -21,4 +21,5 @@
 - [x] Next.js 빌드 성공 여부 검증 (`npx tsc --noEmit` 캐시 클리어 후 로컬 확인 통과)
 - [x] Docker stack 배포 및 접속 URL 정합 확인
 - [x] Playwright E2E 테스트 실행 및 탭 전환 및 가드 작동 여부 확인 (DB IP `172.24.0.2` & Seeder Secret 정합 적용하여 `2 passed` 확인)
-- [x] 변경 사항 커밋 및 푸시
+- [x] PR #298과의 병합 충돌 검토, preflight 안전성 통합 및 최종 E2E 재검증 완수 (`fe7ad09`)
+- [x] 최종 변경 사항 커밋 및 원격 브랜치 푸시 완료
