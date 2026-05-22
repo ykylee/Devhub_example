@@ -32,6 +32,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 : "${KEYCLOAK_UPSTREAM:=keycloak:8080}"
 : "${KEYCLOAK_ADMIN_ALLOW_CIDR:=127.0.0.1/32}"
 : "${NGINX_HTTP_PORT:=3000}"
+: "${AUTO_CONFIGURE_KEYCLOAK_REDIRECTS:=1}"
 
 # Simple one-shot deploy helper.
 # Required env:
@@ -73,6 +74,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 #   POSTGRES_USER/PASSWORD/DB       default: user/pass/devhub
 #   DB_HOST/DB_PORT/DB_SSLMODE      default: db/5432/disable
 #   NGINX_HTTP_PORT                 default: 3000 (VM ingress port)
+#   AUTO_CONFIGURE_KEYCLOAK_REDIRECTS default: 1 (local-idp deploy 후 redirect/webOrigin 자동 동기화)
 
 require() {
   local var_name="$1"
@@ -250,6 +252,36 @@ deploy_stack() {
   COMPOSE_FILE="$DOCKER_COMPOSE_FILE" ENV_FILE="$ENV_FILE" "$ROOT_DIR/scripts/deploy-up.sh"
 }
 
+sync_keycloak_redirects() {
+  if [[ ",${COMPOSE_PROFILES:-}," != *",local-idp,"* ]]; then
+    return 0
+  fi
+  if [ "${AUTO_CONFIGURE_KEYCLOAK_REDIRECTS:-1}" != "1" ]; then
+    echo "[post-deploy] skip Keycloak redirect sync (AUTO_CONFIGURE_KEYCLOAK_REDIRECTS=${AUTO_CONFIGURE_KEYCLOAK_REDIRECTS})"
+    return 0
+  fi
+
+  local public_base="${DEVHUB_PUBLIC_BASE_URL%/}"
+  if [ -z "$public_base" ]; then
+    if [ -n "${PUBLIC_ACCESS_PORT:-}" ]; then
+      public_base="${PUBLIC_ACCESS_SCHEME}://${PUBLIC_ACCESS_HOST}:${PUBLIC_ACCESS_PORT}"
+    else
+      public_base="${PUBLIC_ACCESS_SCHEME}://${PUBLIC_ACCESS_HOST}"
+    fi
+  fi
+  local base_path="/${NEXT_PUBLIC_BASE_PATH:-devhub}"
+  base_path="${base_path%/}"
+
+  echo "[post-deploy] sync Keycloak redirect/webOrigin with ${public_base}${base_path}"
+  KEYCLOAK_URL="${public_base}/devhub/auth/keycloak" \
+    DEVHUB_FRONTEND_ORIGIN="$public_base" \
+    DEVHUB_FRONTEND_BASEPATH="$base_path" \
+    DEVHUB_KEYCLOAK_SSL_REQUIRED="${DEVHUB_KEYCLOAK_SSL_REQUIRED:-none}" \
+    KC_BOOTSTRAP_ADMIN_USERNAME="${KC_BOOTSTRAP_ADMIN_USERNAME:-admin}" \
+    KC_BOOTSTRAP_ADMIN_PASSWORD="${KC_BOOTSTRAP_ADMIN_PASSWORD:-admin}" \
+    "$ROOT_DIR/scripts/setup-keycloak.sh"
+}
+
 main() {
   require IMAGE_TAG
   require IMAGE_REPO_PREFIX
@@ -275,10 +307,12 @@ main() {
       ;;
     deploy)
       deploy_stack
+      sync_keycloak_redirects
       ;;
     all)
       build_images
       deploy_stack
+      sync_keycloak_redirects
       ;;
     *)
       echo "ERROR: invalid ACTION=$ACTION (use: build|deploy|all)" >&2
