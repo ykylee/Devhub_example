@@ -389,7 +389,7 @@ token 검증 시 cache lookup
 | 파일 | 변경 |
 | --- | --- |
 | `app/login/page.tsx` | "Sign in with Keycloak" 버튼 + error message 표시 영역. `?error=...` query param 처리 (예: `session_expired`, `login_failed`, `unauthorized`) |
-| `app/auth/login/page.tsx` | `/login` 으로 redirect (중복 정리) **또는** 제거 |
+| `app/auth/login/page.tsx` | **제거** (2026-05-22 sub-carve F 옵션 B 채택 — 사용자 결정). 외부 bookmark 호환은 Keycloak realm + nginx + setup-keycloak.sh 의 allowlist URI 정합으로 대체. |
 | `app/auth/callback/page.tsx` | error 발생 시 `/login?error=...` 로 redirect (현재 `/auth/error` 와 정합 확인 후 결정) |
 | `app/auth/error/page.tsx` | 보존 — `/auth/callback` 의 critical error (예: invalid state) 처리. 일반 error 는 `/login?error=...` |
 
@@ -466,8 +466,19 @@ ADR-0020 draft 작성 + 사내 검토 → accepted 처리는 Phase 3 진입 시 
 | **C** — event listener 확장 (USER:UPDATE / GROUP_MEMBERSHIP / USER:DELETE) | backend `keycloak_event_puller.go` + `audit_logs` action 매핑 + `users` write + metric 3종 (`audit/metrics.go`) + `user_sync.go` 신규 + `KeycloakAdminClient.GetUserDetails`/`GetUserGroups` 신규 + `main.go` wire | sprint -u~-y 자연 확장. event handler 가 DevHub `users` write 추가 | 중간 (event listener 회귀 위험) | ✅ `-k` (sprint `claude/work_260520-k-212-event-listener-users-sync`, PR TBD) |
 | **D** — JWKS stale-while-error expiry case 확장 | backend `keycloak_verifier.go` + JWKS cache + metric 2종 + `internal/auth/metrics.go` 신규 + config OIDCJWKSMaxStaleDuration | sprint -r kid mismatch fallback 자연 확장 | 낮음 | ✅ `-l` (sprint `claude/work_260520-l-213-jwks-stale-expiry`, PR TBD) |
 | **E** — service account 권한 축소 + governance SOP | `keycloak_operations.md §8.5c` 신규 + §3.2 SOP 갱신 | docs only | 낮음 | `-i` (후속) |
-| **F** — `/login` page 정리 (결정 B) | frontend `app/login/page.tsx` + `app/auth/login/page.tsx` + `app/auth/callback/page.tsx` + `app/auth/error/page.tsx` | minor frontend UX 정리 | 낮음 | `-j` (후속, 우선순위 가장 낮음) |
+| **F** — `/login` page 정리 (결정 B) | frontend `app/login/page.tsx` 본문 swap + `app/auth/login/` **삭제** + callback/error/signup/AuthGuard/onboarding + role-routing.test + vitest 신규 + infra (realm.prod.json/nginx/setup-keycloak.sh) + 5 docs allowlist URI 정합 | frontend UX + infra/docs 일괄. 사내 운영자 Keycloak admin allowlist 1회 갱신 동반 | 낮음 (frontend) + 중간 (운영 동반) | ✅ `claude/work_260522-adr-0020-subcarve-f-login` (PR TBD) — 옵션 B (사용자 결정) |
 | (신규) — **Keycloak SPI provider JAR** (PR #203 codex P2 후속) | `infra/idp/devhub-event-listener/` (신규 SPI module 빌드) + `docker-compose.deploy.yml` (volume mount) + `keycloak_operations.md` 운영 SOP | 사내 인프라 동반 — Keycloak SPI Java 빌드 + Maven/Gradle 자산 | 중간 (사내 인프라 결정 동반) | TBD (사내 인프라 진입 시) |
+
+#### 6.1.1 Phase 3 closing status (2026-05-22)
+
+본 sprint `-d` 진입 이후 누적 결과 — **8 carve 중 6 closed + 1 사내 동반 + 1 잔여 (P3)**.
+
+| 진행 그룹 | 항목 |
+| --- | --- |
+| ✅ **closed (7/8)** | A (PR #205) + B-backend (#239, lazy 폐기는 #290) + B-frontend (gemini #246) + C (#241) + D (#242) + E (#244) + **F (sprint `claude/work_260522-adr-0020-subcarve-f-login`)** |
+| 🟡 **잔여 — 사내 동반** | **SPI provider JAR** (P2) — Keycloak SPI Java 빌드 + Maven/Gradle 자산 |
+
+→ ADR-0020 핵심 결정 + frontend UX 정리 모두 적용 완료. 잔여는 SPI JAR (사내 인프라 동반) 1건만. ADR-0020 §4.1.1 cross-link.
 
 ### 6.2 sub-carve A — `rbac_subject_roles` 완전 제거 (결정 D, 본 sprint 흡수 범위)
 
@@ -536,13 +547,17 @@ sub-carve B (accounts/* 제거) 는 frontend UI 호출과 backend handler 가 �
 
 ### 7.2 Phase 3 (실 구현) sprint 영역
 
-- ✅ resolved (sprint `-d`, ADR-0020 발급) — ADR-0020 draft + accepted (§6.1 sub-carve A)
-- ✅ resolved (sprint `-d`, §5.8 따름) — `rbac_subject_roles` 완전 제거 (backend rbac.go/router.go/permissions.go/postgres_rbac.go + test 정리)
-- **(carve, sub-carve B)** sprint `-e` — backend `/api/v1/accounts/*` 4 endpoint 제거 + `KeycloakAdminClient` write 메서드 호출처 제거 + `authenticateActor` lazy auto-create 실 구현 (§5.2) + frontend `account.service.ts` 폐기 (§5.4)
-- **(carve, sub-carve C)** sprint `-f` — event listener 확장 (USER:UPDATE / GROUP_MEMBERSHIP / USER:DELETE 매핑 + `users` write + metric 3종). §5.3 따름
-- **(carve, sub-carve D)** sprint `-g` — JWKS stale-while-error expiry case 확장. §5.6 따름
-- **(carve, sub-carve E)** sprint `-h` — service account 권한 축소 + governance 협약 SOP (`keycloak_operations.md §8.5c` 신규, §5.5)
-- **(carve, sub-carve F)** sprint `-i` (우선순위 가장 낮음) — `/login` page 정리 (§5.7)
+**Closed (7/8, 2026-05-22 기준)** — §6.1.1 closing status 참조:
+- ✅ resolved (sprint `-d`, PR #205 `f2a389a`) — ADR-0020 발급 + `rbac_subject_roles` 완전 제거 (sub-carve A)
+- ✅ resolved (sprint `-i`, PR #239 `d21e801`) — backend `/api/v1/accounts/*` 4 endpoint 제거 + lazy auto-create (sub-carve B backend). lazy auto-create 자체는 PR #290 `fa042c5` 가 ADR-0021 §3.3 따라 폐기 (token-only actor + onboarding 제출 시점 INSERT)
+- ✅ resolved (gemini `work_260520-a-209-accounts-cleanup`, PR #246 `b1e34bd`) — frontend `account.service.ts` 폐기 + admin/settings/users page 의 admin actions 제거 (sub-carve B frontend)
+- ✅ resolved (sprint `-k`, PR #241 `9ea7e1c`) — Keycloak event listener 확장 (USER:UPDATE / GROUP_MEMBERSHIP / USER:DELETE 매핑) + `users` write + metric 3종 (sub-carve C)
+- ✅ resolved (sprint `-l`, PR #242 `cb6646d`) — JWKS stale-while-error expiry case 확장 (sub-carve D)
+- ✅ resolved (sprint `-n`, PR #244 `6810384`) — service account 권한 축소 정공법 + governance SOP (sub-carve E, `keycloak_service_account_min_role.md` 신규)
+- ✅ resolved (sprint `claude/work_260522-adr-0020-subcarve-f-login`, PR TBD) — `/login` canonical page swap (`/auth/login` 96 LoC → `/login` + `?error=` 처리) + **`/auth/login` 완전 제거** (사용자 결정 옵션 B) + AuthGuard 401 fallback `/login?error=session_expired` + 호출처 8 위치 sync + vitest 회귀 가드 8건 + infra/scripts (realm.prod.json / nginx template / setup-keycloak.sh) 3건 + 5 docs allowlist URI 정합. **사내 운영자 1회 작업 동반** — Keycloak admin console 의 `devhub-frontend` client 의 Valid Post Logout Redirect URIs allowlist 갱신 (sub-carve F)
+
+**잔여 사내 동반 (1/8)**:
+- **(carve, SPI provider JAR, P2)** — Keycloak SPI Java 빌드 + Maven/Gradle 자산 + docker-compose volume mount. event listener push 전환 (현재 polling 이 정공법).
 
 ### 7.3 사내 동반 carve
 
@@ -563,3 +578,5 @@ sub-carve B (accounts/* 제거) 는 frontend UI 호출과 backend handler 가 �
 | 2026-05-20 | sprint `claude/work_260520-d` Stage 3 보강 #2 — PR #205 codex review P1 응답. `validAppRoles` 에 `pmo_manager` 추가 (`backend-core/internal/httpapi/organization.go`) + error message 정정 + 회귀 test 2건 (`TestCreateUserAcceptsPMOManager` + `TestUpdateUserAcceptsPMOManagerRole`). ADR-0020 §5.5 신규 hotfix 섹션 (sprint -f 의 event listener sync 가 정공법, sprint -d hotfix 는 backward compat 임시) + §7 변경 이력 row. **codex P1 회귀 응답** — sprint -d 의 `/rbac/subjects/:id/roles` 폐기 후 `pmo_manager` 가 API 로 할당 불가능했던 회귀 해소. custom role 임의 할당은 결정 C 의 event listener (sprint -f) 자연 흡수 + sub-carve E (sprint -h) governance SOP 동반. |
 | 2026-05-20 | sprint `claude/work_260520-d` Phase 3 진입 (sub-carve A) — (1) ADR-0020 발급 ([docs/adr/0020-account-user-management-boundary.md](../adr/0020-account-user-management-boundary.md) 신규) — Phase 2 명시 결정 6건 종합 + sub-carve B~F 분리 plan. (2) §6 Phase 3 실행 계획 신규 — sub-carve 분담 표 + sub-carve A 변경 매트릭스 + sub-carve B~F 진입 순서 권장 + Strangler Fig 패턴 (sub-carve B 진입 시 적용). (3) §5.8 따라 `rbac_subject_roles` 완전 제거 — backend `rbac.go` handler 2개 + interface method 2개 + audit action const + wire struct 제거, `router.go` 2 route 제거, `permissions.go` 2 routePermissionTable entry 제거, `postgres_rbac.go` impl 2개 제거, `postgres_rbac_test.go` 테스트 3건 제거 (Delete-in-use 테스트는 `CreateUser` 의 `Role: domain.AppRole(roleID)` 로 재구성), `rbac_test.go` fake mock 2개 + handler test 3건 제거. (4) §7.2 Phase 3 carve list 갱신 — sub-carve A resolved 2건 + sub-carve B~F (5건 carve) 분담. (5) traceability §2.2 API-30/31 strikethrough + §2.4 IMPL-rbac-01/02 책임 갱신 + §4 ADR-0020 row 추가 + §6 변경 이력 row. backend go build + go test (httpapi + store) PASS. |
 | 2026-05-20 | sprint `claude/work_260520-b` Self-review Stage 3 보강 — P1×3 + P2×2 일괄 흡수. (P1-1) §4.3 + §1 매트릭스의 `rbac_subject_roles` 표기 정정 (취소선 + §5.9 link). (P1-2) §5.3.1 `USER:DELETE` 정책 결정 명시 — soft delete (`status=deactivated`) 채택, audit_logs actor reference 깨짐 회피. (P1-3) §5.2.2 role 매핑 fallback 결정 명시 — token `realm_access.roles` 비어 있을 때 default `developer` 부여 + audit `user.role_default_assigned`. (P2-1) §5.3.3 metric label 표기 정정 `action="profile|membership|status"` → `label action ∈ {profile, membership, status}`. (P2-2) §5.5.2 governance 표 row 추가 — 신규 user 의 unit 초기 배치 (HRDB ETL pre-stage 자동 또는 admin filter 후속 배치, 첫 API call 차단 안 함). |
+| 2026-05-22 | sprint `claude/work_260522-adr-0020-phase3-closing-housekeeping` — **Phase 3 closing status 명문화**. §6.1.1 신규 sub-section (8 carve 중 6 closed + 1 잔여 P3 [F] + 1 사내 동반 [SPI JAR] 표 + memory directive 정정 안내) + §7.2 carve list 의 closed 6건 SHA 표기 (PR #205/#239/#246/#241/#242/#244) + 잔여 active 2건 (F + SPI) 그룹 분리. ADR-0020 §4.1.1 cross-link. main flat memory directive 의 misleading "8 carve" 표현 정정. |
+| 2026-05-22 | sprint `claude/work_260522-adr-0020-subcarve-f-login` — **sub-carve F resolved** (`/login` canonical page). `/auth/login` 96 LoC → `/login/page.tsx` swap (DevHub brand + `?error=` query 처리 + 자동 OIDC redirect 분기 — error 진입 시 자동 redirect 차단). `/auth/login` 14 LoC stub (외부 bookmark 호환). AuthGuard 401 fallback `/login?error=session_expired` + 비-401 `/login?error=login_failed`. 호출처 8 위치 sync — AuthGuard.tsx 2 + onboarding 1 + auth/callback 1 (error_description propagate) + auth/error 1 + auth/signup 1 + role-routing.test 1. vitest 신규 — `app/login/page.test.tsx` (resolveErrorMessage 6 unit) + AuthGuard.test.tsx fallback 회귀 2건. §6.1.1 표 F → done + §7.2 closed 7/8 + §6.1 sub-carve 분담 표 F sprint label resolved. |

@@ -1,12 +1,99 @@
-# Session Handoff — main (2026-05-22 Onboarding Carve B/C/D + flag flip + codex hotfix #3)
+# Session Handoff — main (2026-05-22 ADR-0020 sub-carve F resolved)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
-- 범위: 직전 EOD (#281, `73f3b30`) 이후 8 PR 흡수 — main flat memory housekeeping (#283) + backlog hygiene 3건 (#285/#286/#287) + Onboarding Carve B+C frontend (#288 ⚡) + Carve D backend UT + TC catalog (#289) + flag default ON flip + lazy_auto_create.go 폐기 (#290) + **codex hotfix #3 — AuthGuard whitelist → blocklist + e2e seed onboarding 회귀 흡수** (#291). Onboarding 도메인 Phase 1~4 + Carve A/B/C/D + flag flip 5/5 **closing**.
+- 범위: 직전 PR #294 (`d5e15f6` → `39acb62`, ADR-0020 Phase 3 closing housekeeping) 후 본 sprint `claude/work_260522-adr-0020-subcarve-f-login` 가 **sub-carve F resolved** — `/login` canonical page swap + `?error=` query 처리 5 케이스 + `/auth/login` stub 보존 + AuthGuard 401 fallback redirect target 정합 + 호출처 8 위치 sync + vitest 회귀 가드 신규 8건.
 - 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
-- 상태: M1/M2/M3/M5/M6 done + **M7 Onboarding closing**. Feature flag `DEVHUB_ONBOARDING_GATE_ENABLED` **default ON** (#290), `lazy_auto_create.go` 전체 삭제, ADR-0020 sub-carve B deprecated, ADR-0021 §3.3 sole policy. Rollback path 보존 (`DEVHUB_ONBOARDING_GATE_ENABLED=0`). 사용자 인계 — staging 1주 monitoring.
-- 최종 수정일: 2026-05-22 (sprint claude/work_260521-codex-hotfix-onboarding-pr288 머지 + 본 housekeeping)
-- 관련 문서: [v1.0 릴리즈 로드맵](../../docs/planning/release_v1_roadmap.md), [Onboarding IMPL plan](../../docs/planning/onboarding_impl_plan.md), [ADR-0021](../../docs/adr/0021-onboarding-self-service-unit-selection.md), [account/user redesign Phase 3](../../docs/planning/account_user_management_redesign.md), [traceability/report](../../docs/traceability/report.md).
-- 브랜치: `main` (HEAD `b7cc8a0` — PR #291 codex hotfix #3 머지 후).
+- 상태: M1/M2/M3/M5/M6 done + **M7 Onboarding 운영 SOP closing (PR #293)** + **ADR-0020 Phase 3 7/8 closing (PR #294 + 본 sprint)**. ADR-0020 핵심 결정 + frontend UX 정리 모두 적용 완료. 잔여: SPI JAR (사내 P2) + §6.3 사내 동반 carve 3건.
+- 최종 수정일: 2026-05-22 (sprint `claude/work_260522-adr-0020-subcarve-f-login` 머지 후)
+- 관련 문서: [v1.0 릴리즈 로드맵](../../docs/planning/release_v1_roadmap.md), [Onboarding IMPL plan](../../docs/planning/onboarding_impl_plan.md), [Onboarding 운영 SOP](../../docs/setup/onboarding_operations.md), [ADR-0020](../../docs/adr/0020-account-user-management-boundary.md), [ADR-0021](../../docs/adr/0021-onboarding-self-service-unit-selection.md), [account/user redesign Phase 3](../../docs/planning/account_user_management_redesign.md), [traceability/report](../../docs/traceability/report.md).
+- 브랜치: `main` (HEAD `39acb62` post PR #294 → 본 sprint 머지 후 `<TBD>`).
+
+## 2026-05-22 본 세션 (sprint `claude/work_260522-adr-0020-subcarve-f-login`)
+
+| Phase | 내용 |
+| --- | --- |
+| 1 — `/login` swap + `/auth/login` 제거 | `/auth/login` 의 96 LoC 본문 → `/login/page.tsx` + Suspense + `?error=` query 처리 (`resolveErrorMessage` helper export). error 진입 시 자동 OIDC redirect 차단. **`/auth/login` 디렉토리 자체 제거** (사용자 결정 옵션 B, stub 미유지). |
+| 2 — 호출처 일괄 | AuthGuard.tsx 2 (`/login?error=session_expired` + `?error=login_failed`) + onboarding 1 + auth/callback 1 (error_description propagate) + auth/error 1 Link + auth/signup 1 Link + role-routing.test 1 assertion. |
+| 3 — 회귀 가드 | `app/login/page.test.tsx` 신규 — `resolveErrorMessage` 6 unit (null/description-우선/3 mapping/fallback). AuthGuard.test.tsx 에 401 fallback 2 회귀 가드 추가 (`/login?error=session_expired` + `?error=login_failed`). ApiError mock 의 constructor signature 3-arg (status, payload, message) 정합. |
+| 4 — docs closing + infra 일괄 정합 (옵션 B) | ADR-0020 §4.1.1 표 F → done + §7 변경 이력 row. redesign §6.1 표 + §6.1.1 표 + §7.2 closed 7/8 + §8 변경 이력 row. **infra 일괄 정합** — realm.prod.json `post.logout.redirect.uris` + nginx template + setup-keycloak.sh `POST_LOGOUT_URIS` + 5 docs 의 `/auth/login` allowlist URI `/login` 으로 정정. **사내 운영자 1회 작업** — Keycloak admin console allowlist 갱신 (realm.prod.json 재 import 또는 setup-keycloak.sh 재실행). |
+| 검증 | TS `npx tsc --noEmit` 그린. vitest 8 file / 40 test 그린. lint 의 18 problems 는 모두 pre-existing (본 변경 파일 0건, `feedback_ci_baseline_check` 패턴). |
+
+**변경 통계** (추산): 19 파일 / +220 / -200 LoC.
+- `frontend/app/login/page.tsx` — 14 → 145 LoC (canonical entry)
+- `frontend/app/auth/login/page.tsx` — **삭제** (사용자 결정 옵션 B)
+- `infra/idp/keycloak-realm.prod.json` + `infra/nginx/devhub.deploy.conf.template` + `scripts/setup-keycloak.sh` — allowlist URI `/auth/login` → `/login`
+- `docs/setup/{docker-packaging-deployment-guide,environment-setup,keycloak_operations,single_port_deployment,e2e-test-guide}.md` — `/auth/login` 언급 정합 (8 위치)
+- `frontend/app/auth/callback/page.tsx` — error fallback button onClick (12 LoC 추가)
+- `frontend/app/auth/error/page.tsx` — Link href 1 (`/auth/login` → `/login`)
+- `frontend/app/auth/signup/page.tsx` — Link href 1
+- `frontend/components/layout/AuthGuard.tsx` — 401/error fallback redirect 2
+- `frontend/components/layout/AuthGuard.test.tsx` — ApiError mock 3-arg + 2 회귀 가드 신규
+- `frontend/app/onboarding/page.tsx` — 401 fallback redirect 1
+- `frontend/lib/auth/role-routing.test.ts` — `/login` assertion 추가
+- `frontend/app/login/page.test.tsx` — 신규 (resolveErrorMessage 6 unit)
+- `docs/adr/0020-*.md` + `docs/planning/account_user_management_redesign.md` — sub-carve F done 표기 + §7 변경 이력 row
+
+## 다음 directive (사용자 지정 순서)
+
+1. **B** — 사내 동반 carve docs 초안 3건 — (i) Keycloak admin 운영 SOP 승격 (ADR-0020 §3.2 표 → 사내 정책 문서), (ii) JWKS rotation 직후 backend cache flush SOP, (iii) HRDB ETL unit pre-stage 가이드. 사내 실 적용은 별도지만 docs 초안은 claude 영역.
+2. **1순위 (병행)** — Onboarding 운영 SOP 따른 staging 1주 monitoring 시작 (사내 운영자 영역).
+3. **v1.0 release gate (D-24)** 잔여 1건 (#214 P1-3 Keycloak group staging-prod, 사내 운영자).
+
+
+
+## 2026-05-22 본 세션 (sprint `claude/work_260522-adr-0020-phase3-closing-housekeeping`)
+
+| Stage | 내용 |
+| --- | --- |
+| 1 — Phase 3 sub-carve 상태 정밀 확인 | git log `--grep "#205\|#239\|#241\|#242\|#244\|#246\|#290"` 로 6 sub-carve 모두 closed 확인. ADR-0020 §4.1 + redesign §6.1 표 본문 + 메모리 directive 의 "8 carve 진입" 표현이 misleading 발견. 잔여 active = F (frontend `/login` P3) + SPI JAR (사내 P2) + §6.3 사내 동반 3건. |
+| 2 — ADR-0020 §4.1.1 신규 | sub-carve 8 closing 표 (PR/SHA/sprint label) + 핵심 결정 적용 완료 명시 + 잔여 F/SPI active 분리 + 사내 동반 carve 3건 cross-link. |
+| 3 — redesign §6.1.1 + §7.2 갱신 | §6.1.1 closing status sub-section 신규 (8 carve 중 closed/잔여/사내 동반 3 group 분리) + §7.2 carve list 의 closed 6건 PR/SHA 표기 + 잔여 active 2건 별도 그룹. |
+| 4 — memory directive 정정 + 다음 directive | state.json status 갱신 + handoff prepend + work_backlog 헤더 + 변경 이력. 사용자 지정 다음 진입 순서: C (본 sprint) → A (sub-carve F) → B (사내 동반 docs 초안). |
+
+**변경 통계**: 5 파일 / +60 / -10 LoC (추산).
+- `docs/adr/0020-account-user-management-boundary.md` — §4.1.1 신규 + §7 변경 이력 row
+- `docs/planning/account_user_management_redesign.md` — §6.1.1 신규 + §7.2 carve list 갱신 + §8 변경 이력 row
+- `ai-workflow/memory/state.json` — head/status/updated_at
+- `ai-workflow/memory/session_handoff.md` — 본 prepend
+- `ai-workflow/memory/work_backlog.md` — 헤더 + 변경 이력 row
+
+## 다음 directive (사용자 지정 순서)
+
+1. **A** — sub-carve F `/login` page 정리 (frontend `app/login/page.tsx` + `auth/login` + `auth/callback` + `auth/error`). worker_division 상 Gemini 영역. 사용자 override 명시 ("C 먼저 진행하고 다음 A와 B") — `feedback_worker_division_override` 패턴.
+2. **B** — 사내 동반 carve docs 초안 3건 — (i) Keycloak admin 운영 SOP 승격 (ADR-0020 §3.2 표 → 사내 정책 문서), (ii) JWKS rotation 직후 backend cache flush SOP, (iii) HRDB ETL unit pre-stage 가이드. 사내 실 적용은 별도지만 docs 초안은 claude 영역.
+3. **1순위 (병행)** — Onboarding 운영 SOP 따른 staging 1주 monitoring 시작 (사내 운영자 영역).
+4. **v1.0 release gate (D-24)** 잔여 1건 (#214 P1-3 Keycloak group staging-prod, 사내 운영자).
+
+
+
+## 2026-05-22 본 세션 (sprint `claude/work_260522-onboarding-ops-sop`)
+
+| Stage | 내용 |
+| --- | --- |
+| 1 — 1순위 검토 | staging 1주 monitoring 의 운영 자산 갭 5건 발견 — (1) `keycloak_operations.md` onboarding 항목 0건 + ADR-0021 monitoring/rollback keyword 0건, (2) Prometheus metric backend 미도입, (3) Incident response runbook 미정의, (4) Funnel/회귀 신호 정의 누락, (5) UX edge case 안내 누락. 사용자에게 3 sprint 후보 (A 운영 SOP / B Prometheus metric / C ADR-0021 §6 보강) 제시 → A 진입. |
+| 2 — Spec 확정 | audit 3종 (`account.onboarding_completed/review_confirmed/unit_changed`) + 응답 코드 4 endpoint + migration 000033 CHECK 제약 (bi-implication) + 3-tier state machine + feature flag 동작 (`envBoolDefault` opt-out). |
+| 3 — SOP 작성 + cross-link | `docs/setup/onboarding_operations.md` 신규 (+340 LoC 추산) + ADR-0021 메타 헤더 / §6.4 신규 / `onboarding_impl_plan.md` §7 #6 / `release_v1_roadmap.md` §1.3 #7 / `keycloak_operations.md` §10 (4 cross-link) 갱신. |
+| 4 — 추적성 + memory | 추적성 영향 N/A (docs-only, 신규 ID 발급 없음). main flat memory 3종 (state.json head/status, handoff prepend, work_backlog 헤더+변경 이력 row) 갱신. |
+
+**변경 통계** (예상): 5 파일 / +400 / -10 LoC.
+- `docs/setup/onboarding_operations.md` — 신규
+- `docs/adr/0021-onboarding-self-service-unit-selection.md` — 메타 헤더 + §6.4 신규
+- `docs/planning/onboarding_impl_plan.md` — §7 #6 verification cell 갱신
+- `docs/planning/release_v1_roadmap.md` — §1.3 #7 cross-link 추가
+- `docs/setup/keycloak_operations.md` — §10 잔여 carve out 표에 row 1건 추가
+
+**SOP §7 DoD 8 항목 (운영자가 1주 후 채워야 할 acceptance)**:
+1. 7일간 rollback 0회 / 2. submit 성공률 ≥95% / 3. pending_review 검토 latency 기록 / 4. CHECK 위반 0건 / 5. audit 3종 정합 / 6. rollback drill 1회 / 7. token-only actor baseline 기록 / 8. 종합 보고서.
+
+**SOP §8 잔여 carve 7건**:
+- Prometheus metric backend 도입 (P2) — `internal/httpapi/onboarding_*.go` + `me_onboarding.go` + `users_admin_review.go` 에 Counter/Histogram, [ADR-0019 §5.3 (9)](../../docs/adr/0019-keycloak-only-idp.md) Phase 2 PR-C 패턴 재사용.
+- Grafana dashboard JSON (P3) / Alertmanager rule YAML (P3) / pending_review admin SLA 정책 (P2) / pending_review aging alert (P3) / limited 사용자 reminder 알림 (P3) / Multi-region monitoring (v1.1+)
+
+## 2026-05-22 직전 housekeeping (PR #292, sprint `claude/work_260522-housekeeping-post-291`)
+
+직전 EOD (#281, `73f3b30`) 이후 8 PR (#283~#291) 미반영 → minimal entry prepend 로 인계 정합 회복. state.json head `73f3b30` → `b7cc8a0` + handoff/work_backlog 헤더 갱신. main HEAD `1239f3c`.
+
+
 
 ## 2026-05-22 본 세션 (PR #291 codex hotfix #3)
 

@@ -53,7 +53,7 @@
       ],
       "attributes": {
         "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "https://__DEVHUB_HOST__/devhub/##https://__DEVHUB_HOST__/devhub/auth/login"
+        "post.logout.redirect.uris": "https://__DEVHUB_HOST__/devhub/##https://__DEVHUB_HOST__/devhub/login"
       },
       "protocolMappers": [
         {

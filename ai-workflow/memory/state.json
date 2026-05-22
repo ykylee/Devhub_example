@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-05-22 main HEAD `b7cc8a0` (PR #291 codex hotfix #3 머지). 직전 EOD (#281, `73f3b30`) 이후 8 PR 흡수 — #283 (main flat memory housekeeping) → #285 (issue #284 cross-link) → #286 (#219 stale close) → #287 (backlog hygiene sweep, #223 cancel) → #288 (⚡ Onboarding Carve B+C frontend + admin UI, claude override) → #289 (Carve D backend UT 8 + TC catalog) → #290 (flag default ON flip + lazy_auto_create.go 폐기, ADR-0021 §3.3 sole policy) → #291 (codex hotfix #3 — AuthGuard whitelist → blocklist + e2e seed onboarding 회귀 흡수). **Onboarding 도메인 Phase 1~4 + Carve A/B/C/D + flag flip 5/5 closing**. v1.0 release gate (D-24) 잔여 1건 (#214 P1-3 Keycloak group staging-prod). 본 세션 학습 2건 — feedback_ci_baseline_check + feedback_e2e_seed_new_column_sync. 다음 directive: staging 1주 monitoring (사내) + ADR-0020 Phase 3 (실 구현) 8 carve + v1.0 release gate 마지막 #214.",
-  "updated_at": "2026-05-22T00:00:00Z",
-  "head_commit": "b7cc8a0",
-  "head_summary": "fix(onboarding): AuthGuard whitelist → blocklist (codex hotfix #3 — PR #288) (#291)",
+  "status": "2026-05-22 main HEAD `39acb62` (PR #294 ADR-0020 Phase 3 closing housekeeping). 후속 sprint `claude/work_260522-adr-0020-subcarve-f-login` 가 **sub-carve F resolved (옵션 B)** — `/login` canonical page swap (`/auth/login` 96 LoC → `/login` 본문 + `?error=` query 처리 5 케이스) + **`/auth/login` 완전 제거** (사용자 결정, frontend stub 미유지) + AuthGuard 401 fallback `/login?error=session_expired` + 비-401 `/login?error=login_failed` + 호출처 8 위치 sync + infra 일괄 정합 (realm.prod.json `post.logout.redirect.uris` + nginx template + setup-keycloak.sh + 5 docs allowlist URI 정정) + vitest 회귀 가드 신규 (resolveErrorMessage 6 unit + AuthGuard fallback 2). **사내 운영자 1회 작업 동반** — Keycloak admin console allowlist 갱신 (realm.prod.json 재 import 또는 setup-keycloak.sh 재실행). **ADR-0020 Phase 3: 7/8 closed + 1 사내 동반 (SPI JAR P2)**. 사용자 명시 override 진입 (worker_division 상 Gemini 영역, `feedback_worker_division_override`). vitest 8 file / 40 test 그린 + TS clean. v1.0 release gate (D-24) 잔여 1건 (#214 P1-3 Keycloak group staging-prod). 다음 directive (사용자 지정): B = 사내 동반 carve docs 초안 3건 (Keycloak admin SOP 승격 / JWKS rotation cache flush / HRDB ETL unit pre-stage). 그 외 1순위 SOP 따른 staging 1주 monitoring (사내 운영자) 진행 + Prometheus metric backend 도입 (SOP §8 잔여 carve P2).",
+  "updated_at": "2026-05-22T03:00:00Z",
+  "head_commit": "39acb62",
+  "head_summary": "docs(adr,planning,memory): ADR-0020 Phase 3 closing status 명문화 (6/8 carve) (#294)",
   "milestones": {
     "M0": {
       "status": "done",

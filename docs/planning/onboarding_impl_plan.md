@@ -256,7 +256,7 @@ ADR-0021 §6.2 의 후속 carve (Onboarding 1차 범위 외) 와 ADR-0019 §5.3 
 | 3 | UT-onboarding-* + TC-ONBOARD-* 의 traceability cell 모두 채워짐 | `docs/traceability/report.md §3` |
 | 4 | concept §9 next-phase #4 (IMPL carve) + #5 (매트릭스 cell) 모두 done 마크 | concept doc §9 |
 | 5 | ADR-0021 §6.1 IMPL carve 4건 모두 resolved 마킹 | ADR-0021 doc + §7 변경 이력 |
-| 6 | 운영 환경 (staging) 1주 monitoring — 403 spike / sessionStorage flag race 등 회귀 없음 | 운영 metric / log |
+| 6 | 운영 환경 (staging) 1주 monitoring — 403 spike / sessionStorage flag race 등 회귀 없음 | [`docs/setup/onboarding_operations.md`](../setup/onboarding_operations.md) SOP §4 신호 5종 + §7 DoD 8 항목 |
 
 ## 8. 후속 carve (Onboarding 도메인 1차 범위 외)
 

@@ -46,7 +46,7 @@ describe("pathRequiresSystemAdmin", () => {
     expect(pathRequiresSystemAdmin("/developer")).toBe(false);
     expect(pathRequiresSystemAdmin("/manager")).toBe(false);
     expect(pathRequiresSystemAdmin("/account")).toBe(false);
-    expect(pathRequiresSystemAdmin("/auth/login")).toBe(false);
+    expect(pathRequiresSystemAdmin("/login")).toBe(false);
     expect(pathRequiresSystemAdmin("/")).toBe(false);
   });
 });

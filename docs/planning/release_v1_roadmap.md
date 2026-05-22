@@ -48,7 +48,7 @@
 4. HomeLab integration provider 등록 + sync + binding 생성 + topology v2 시각화 동작
 5. DREQ 흐름 — intake token 발급 + 외부 시스템 → DevHub POST → assignee dashboard 노출 → Promote (신규 application/project 1tx) → close
 6. e2e Playwright 전 shard PASS + backend `go test ./...` PASS + frontend `npm run build` PASS
-7. 사내 staging 환경 1주 운영 + 외부 사용자 ≥ 5명 로그인 동작
+7. 사내 staging 환경 1주 운영 + 외부 사용자 ≥ 5명 로그인 동작 ([Onboarding 운영 SOP](../setup/onboarding_operations.md) §7 DoD 8 항목 통과)
 8. UI 디자인 polish 1차 완료 (semantic theme + responsive + a11y baseline)
 
 ## 2. 도메인 모듈 매트릭스

@@ -3,8 +3,8 @@
 - 문서 목적: main 브랜치 기준 상위 백로그 인덱스. 세부 sprint backlog 는 브랜치별 메모리 디렉터리 참조.
 - 범위: 마일스톤 상태, 최근 머지, 잔여/후속 작업
 - 대상 독자: 프로젝트 리드, 후속 에이전트, 트랙 담당자
-- 상태: M1·M2·M3·M5·M6 done + **M7 Onboarding 도메인 closing (2026-05-22)**. Onboarding Phase 1~4 + Carve A/B/C/D + flag flip **5/5 완결**. **Feature flag `DEVHUB_ONBOARDING_GATE_ENABLED` default ON** (#290), `lazy_auto_create.go` 폐기. **codex hotfix #3** (#291) — AuthGuard whitelist→blocklist + e2e seed 회귀 흡수. main HEAD `b7cc8a0`. **v1.0 release gate (D-24, 2026-06-15): 잔여 1건** (#214 P1-3 Keycloak group staging-prod 사내 운영자). **다음 directive**: 1순위 = staging 1주 monitoring (사내) + #214 사내 운영자 1회 / 2순위 = ADR-0020 Phase 3 (실 구현) 8 carve 진입 / 3순위 = backlog hygiene sweep 후속 (P2-3/P2-7 정합 완료 후 잔여 carve out 표 재확인).
-- 최종 수정일: 2026-05-22 (sprint claude/work_260521-codex-hotfix-onboarding-pr288 머지 후 housekeeping)
+- 상태: M1·M2·M3·M5·M6 done + **M7 Onboarding closing (PR #293)** + **ADR-0020 Phase 3 7/8 closing (PR #294 + 본 sprint)**. ADR-0020 핵심 결정 + frontend UX 정리 모두 적용 완료 — sub-carve A (#205) / B-backend (#239) / B-frontend (#246) / C (#241) / D (#242) / E (#244) / **F (본 sprint)** closed. 잔여: SPI JAR (사내 P2) + §6.3 사내 동반 carve 3건. main HEAD `39acb62` (post PR #294, 본 sprint 머지 전). **v1.0 release gate (D-24, 2026-06-15): 잔여 1건** (#214 P1-3 Keycloak group staging-prod 사내 운영자). **다음 directive** (사용자 지정 순서): B = 사내 동반 carve docs 초안 3건 (Keycloak admin SOP 승격 / JWKS rotation cache flush / HRDB ETL unit pre-stage) / 1순위 (병행) = SOP 따른 staging 1주 monitoring 시작 (사내) / v1.0 release gate 마지막 #214.
+- 최종 수정일: 2026-05-22 (sprint `claude/work_260522-adr-0020-subcarve-f-login` 머지 후)
 - 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [세션 인계](./session_handoff.md), [상태 스냅샷](./state.json), [M1 PR 리뷰 actions](./M1-PR-review-actions.md)
 
 ## 1. 마일스톤 진행 상황
@@ -82,6 +82,10 @@
 
 | 일자 | 변경 |
 | --- | --- |
+| 2026-05-22 | sprint `claude/work_260522-adr-0020-subcarve-f-login` — **ADR-0020 sub-carve F resolved**. `/login` 이 canonical entry page (결정 B). `/auth/login` 96 LoC → `/login` 본문 swap + `?error=` query 5 케이스 (`session_expired`/`login_failed`/`unauthorized` mapping + `error_description` propagate + 미매핑 fallback). **`/auth/login` 완전 제거** (사용자 결정 옵션 B) — frontend stub 미유지. AuthGuard 401 fallback `/login?error=session_expired` + 비-401 `/login?error=login_failed`. 호출처 8 위치 sync. vitest 회귀 가드 신규 8건 — `resolveErrorMessage` 6 unit + AuthGuard fallback 2. **infra 일괄 정합** — realm.prod.json `post.logout.redirect.uris` + nginx template + setup-keycloak.sh 의 allowlist URI + 5 docs (docker-packaging / environment-setup / keycloak_operations / single_port_deployment / e2e-test-guide) 의 `/auth/login` 언급 `/login` 으로 정정. **사내 운영자 1회 작업** — Keycloak admin console allowlist 갱신 (realm.prod.json 재 import 또는 setup-keycloak.sh 재실행으로 자동 정합). ADR-0020 §4.1.1 표 F → done + redesign §6.1.1 closed 7/8 + §7.2 carve list 갱신. ADR-0020 Phase 3 잔여 = SPI JAR (사내 P2) + §6.3 사내 동반 3건만. |
+| 2026-05-22 | sprint `claude/work_260522-adr-0020-phase3-closing-housekeeping` — **ADR-0020 Phase 3 closing status 명문화**. ADR-0020 §4.1.1 신규 (sub-carve 8 closing 표 + 잔여 F/SPI active 분리) + redesign §6.1.1 신규 + §7.2 carve list 의 closed 6건 PR/SHA 표기. main flat memory directive 의 misleading "8 carve 진입" 표현 정정 — 실제 잔여 active = F (frontend `/login` P3) + SPI JAR (사내 P2) + §6.3 사내 동반 3건. 사용자 지정 다음 순서: A → B. |
+| 2026-05-22 | PR #293 (sprint `claude/work_260522-onboarding-ops-sop`) — **Onboarding 운영 SOP 신규** ([`docs/setup/onboarding_operations.md`](../../docs/setup/onboarding_operations.md)). §1 책임 분리 + §2 state machine + §3 feature flag 운영 + §4 monitoring 신호 5종 + SQL 7개 + §5 rollback runbook 4 step + drill + §6 incident response 4 단계 + 패턴 5종 + escalation 3 level + §7 DoD 8 항목 + §8 잔여 carve 7건. cross-link 4 위치 — ADR-0021 메타 헤더 + §6.4 신규 + `onboarding_impl_plan.md` §7 #6 verification cell + `release_v1_roadmap.md` §1.3 #7 + `keycloak_operations.md` §10. 추적성 영향 N/A (docs-only, 신규 ID 발급 없음). |
+| 2026-05-22 | PR #292 (sprint `claude/work_260522-housekeeping-post-291`) — main flat memory housekeeping post PR #291. state.json head `73f3b30` → `b7cc8a0` + handoff/work_backlog 헤더 갱신. main HEAD `1239f3c`. |
 | 2026-05-07 | PR #12 통합 sprint 종료 (BLK/SEC/HYG 트래커 등록) |
 | 2026-05-08 | PR #13~#19 머지. 통합 로드맵 채택 + M0 sprint 종료. flat memory 갱신. |
 | 2026-05-08 | M1 sprint 진입. `claude/m1-sprint-plan` 브랜치 + backlog 초안. 진입 PR 5건 분할 결정. |

@@ -42,7 +42,7 @@ server {
 
     # Legacy root-level auth routes — friendly 302 to canonical /devhub/* entries.
     location = /login {
-        return 302 /devhub/auth/login;
+        return 302 /devhub/login;
     }
     location = /auth/callback {
         return 302 /devhub/auth/callback$is_args$args;
