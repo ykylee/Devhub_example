@@ -133,8 +133,9 @@ if [ -n "${DEVHUB_OIDC_JWKS_URL:-}" ]; then
   fi
 fi
 
-echo "[0/3] nginx conf sync (auto-fix)"
+echo "[0/3] nginx conf sync + template parity check"
 "$ROOT_DIR/scripts/nginx-conf-sync.sh" --fix
+"$ROOT_DIR/scripts/nginx-conf-sync.sh" --check
 
 echo "[1/3] Docker availability check"
 docker --version >/dev/null

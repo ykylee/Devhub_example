@@ -33,6 +33,10 @@ server {
     set $frontend_upstream http://frontend:3000;
 
     client_max_body_size 20m;
+    # Large OIDC headers/cookies (IdP + upstream auth chain) can exceed nginx defaults.
+    proxy_buffer_size 32k;
+    proxy_buffers 8 32k;
+    proxy_busy_buffers_size 64k;
 
     location = /nginx-health {
         access_log off;
