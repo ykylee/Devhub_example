@@ -114,6 +114,19 @@ if [[ "$DEVHUB_OIDC_ISSUER_URL" != "$OIDC_ISSUER_URL" ]]; then
   echo "      This is valid only when issuer/JWKS split is intentional." >&2
 fi
 
+if [[ ",${COMPOSE_PROFILES:-}," == *",local-idp,"* ]]; then
+  keycloak_hostname="${KEYCLOAK_HOSTNAME:-}"
+  if [ -z "$keycloak_hostname" ]; then
+    echo "ERROR: KEYCLOAK_HOSTNAME is required when local-idp profile is enabled" >&2
+    exit 1
+  fi
+  if [[ "$keycloak_hostname" != */devhub/auth/keycloak ]] && [[ "$keycloak_hostname" != */devhub/auth/keycloak/ ]]; then
+    echo "ERROR: KEYCLOAK_HOSTNAME must include /devhub/auth/keycloak when local-idp is enabled" >&2
+    echo "       current: $keycloak_hostname" >&2
+    exit 1
+  fi
+fi
+
 if [ -n "${DEVHUB_OIDC_JWKS_URL:-}" ]; then
   if ! [[ "$DEVHUB_OIDC_JWKS_URL" =~ /protocol/openid-connect/certs$ ]]; then
     echo "WARN: DEVHUB_OIDC_JWKS_URL does not end with /protocol/openid-connect/certs" >&2

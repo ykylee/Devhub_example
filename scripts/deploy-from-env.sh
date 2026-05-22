@@ -101,6 +101,24 @@ validate_cidr() {
   done
 }
 
+normalize_keycloak_hostname() {
+  local hostname="$1"
+  local normalized="${hostname%/}"
+  if [[ "$normalized" == */devhub/auth/keycloak ]]; then
+    printf "%s" "$normalized"
+    return
+  fi
+
+  # If only scheme://host[:port] is provided, append the Keycloak proxy path.
+  local remainder="${normalized#*://}"
+  if [[ "$normalized" =~ ^https?:// ]] && [[ "$remainder" != */* ]]; then
+    printf "%s/devhub/auth/keycloak" "$normalized"
+    return
+  fi
+
+  printf "%s" "$normalized"
+}
+
 emit_env_line() {
   local key="$1"
   local value="$2"
@@ -125,6 +143,7 @@ build_env_file() {
     COMPOSE_PROFILES="local-db,local-idp"
     DB_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DB_HOST}:${DB_PORT}/${POSTGRES_DB}?sslmode=${DB_SSLMODE}"
     KEYCLOAK_HOSTNAME="${KEYCLOAK_HOSTNAME:-$public_base/devhub/auth/keycloak}"
+    KEYCLOAK_HOSTNAME="$(normalize_keycloak_hostname "$KEYCLOAK_HOSTNAME")"
   elif [ "$DB_MODE" = "external" ]; then
     : "${DB_URL:?set DB_URL when DB_MODE=external}"
     COMPOSE_PROFILES="${COMPOSE_PROFILES:-}"
