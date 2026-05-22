@@ -33,6 +33,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 : "${KEYCLOAK_ADMIN_ALLOW_CIDR:=127.0.0.1/32}"
 : "${NGINX_HTTP_PORT:=3000}"
 : "${AUTO_CONFIGURE_KEYCLOAK_REDIRECTS:=1}"
+: "${GENERATED_KEYCLOAK_REALM_IMPORT:=/tmp/devhub-keycloak-realm.generated.json}"
 
 # Simple one-shot deploy helper.
 # Required env:
@@ -75,6 +76,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 #   DB_HOST/DB_PORT/DB_SSLMODE      default: db/5432/disable
 #   NGINX_HTTP_PORT                 default: 3000 (VM ingress port)
 #   AUTO_CONFIGURE_KEYCLOAK_REDIRECTS default: 1 (local-idp deploy 후 redirect/webOrigin 자동 동기화)
+#   GENERATED_KEYCLOAK_REALM_IMPORT default: /tmp/devhub-keycloak-realm.generated.json
 
 require() {
   local var_name="$1"
@@ -128,6 +130,56 @@ emit_env_line() {
   printf "%s='%s'\n" "$key" "$escaped"
 }
 
+generate_local_realm_import() {
+  local public_base="$1"
+  local base_path_norm="$2"
+  local source_realm="${KEYCLOAK_REALM_IMPORT_TEMPLATE:-$ROOT_DIR/infra/idp/keycloak-realm.dev.json}"
+  local output_realm="${GENERATED_KEYCLOAK_REALM_IMPORT:-/tmp/devhub-keycloak-realm.generated.json}"
+  local redirect_uri="${public_base}${base_path_norm}/auth/callback"
+  local post_logout_a="${public_base}${base_path_norm}/*"
+  local post_logout_b="${public_base}${base_path_norm}/"
+
+  python3 - "$source_realm" "$output_realm" "$public_base" "$redirect_uri" "$post_logout_a" "$post_logout_b" <<'PY'
+import json
+import pathlib
+import sys
+
+src = pathlib.Path(sys.argv[1])
+dst = pathlib.Path(sys.argv[2])
+origin = sys.argv[3]
+redirect_uri = sys.argv[4]
+post_logout_a = sys.argv[5]
+post_logout_b = sys.argv[6]
+
+doc = json.loads(src.read_text(encoding="utf-8"))
+for client in doc.get("clients", []):
+    if client.get("clientId") != "devhub-frontend":
+        continue
+
+    redirect_uris = client.get("redirectUris") or []
+    if redirect_uri not in redirect_uris:
+        redirect_uris.append(redirect_uri)
+    client["redirectUris"] = redirect_uris
+
+    web_origins = client.get("webOrigins") or []
+    if origin not in web_origins:
+        web_origins.append(origin)
+    client["webOrigins"] = web_origins
+
+    attrs = client.get("attributes") or {}
+    entries = [x for x in (attrs.get("post.logout.redirect.uris") or "").split("##") if x]
+    for candidate in (post_logout_a, post_logout_b):
+        if candidate not in entries:
+            entries.append(candidate)
+    attrs["post.logout.redirect.uris"] = "##".join(entries)
+    client["attributes"] = attrs
+    break
+
+dst.write_text(json.dumps(doc, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+print(str(dst))
+PY
+}
+
 build_env_file() {
   local public_base="${DEVHUB_PUBLIC_BASE_URL%/}"
   if [ -z "$public_base" ]; then
@@ -147,6 +199,7 @@ build_env_file() {
     KEYCLOAK_HOSTNAME="${KEYCLOAK_HOSTNAME:-$public_base/devhub/auth/keycloak}"
     KEYCLOAK_HOSTNAME="$(normalize_keycloak_hostname "$KEYCLOAK_HOSTNAME")"
     DEVHUB_KEYCLOAK_SSL_REQUIRED="${DEVHUB_KEYCLOAK_SSL_REQUIRED:-none}"
+    KEYCLOAK_REALM_IMPORT_PATH="$(generate_local_realm_import "$public_base" "$base_path_norm")"
   elif [ "$DB_MODE" = "external" ]; then
     : "${DB_URL:?set DB_URL when DB_MODE=external}"
     COMPOSE_PROFILES="${COMPOSE_PROFILES:-}"
@@ -194,6 +247,7 @@ build_env_file() {
     emit_env_line KC_DB_PASSWORD "${KC_DB_PASSWORD:-pass}"
     emit_env_line KC_DB_SCHEMA "${KC_DB_SCHEMA:-keycloak}"
     emit_env_line DEVHUB_KEYCLOAK_SSL_REQUIRED "${DEVHUB_KEYCLOAK_SSL_REQUIRED:-none}"
+    emit_env_line KEYCLOAK_REALM_IMPORT_PATH "${KEYCLOAK_REALM_IMPORT_PATH:-$ROOT_DIR/infra/idp/keycloak-realm.dev.json}"
     printf "\n"
     emit_env_line DB_URL "$DB_URL"
     emit_env_line POSTGRES_USER "$POSTGRES_USER"

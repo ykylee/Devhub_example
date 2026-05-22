@@ -60,17 +60,21 @@
         "http://localhost:3000/*",
         "http://localhost:3000/auth/callback",
         "http://localhost:3000/devhub/auth/callback",
-        "http://localhost:8080/devhub/*"
+        "http://localhost:8080/devhub/*",
+        "http://localhost:13000/*",
+        "http://localhost:13000/devhub/*",
+        "http://localhost:13000/devhub/auth/callback"
       ],
       "webOrigins": [
         "+",
         "http://localhost:3000",
         "http://localhost",
-        "http://localhost:8080"
+        "http://localhost:8080",
+        "http://localhost:13000"
       ],
       "attributes": {
         "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "http://localhost/devhub/*##http://localhost:3000/*##http://localhost:3000/##http://localhost:3000/devhub/##http://localhost:8080/devhub/*"
+        "post.logout.redirect.uris": "http://localhost/devhub/*##http://localhost:3000/*##http://localhost:3000/##http://localhost:3000/devhub/##http://localhost:8080/devhub/*##http://localhost:13000/*##http://localhost:13000/devhub/*"
       },
       "protocolMappers": [
         {
