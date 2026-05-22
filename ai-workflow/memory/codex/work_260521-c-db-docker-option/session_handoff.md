@@ -63,6 +63,19 @@
 - **host build 패키징 ABI 주의**: `pip install --target .build/site-packages` 가 host `python3` 를 사용 → 컨테이너의 3.12 와 메이저/마이너 mismatch 시 `grpcio` 등 compiled wheel 의 `*.so` ABI 충돌 (ImportError / segfault). 배포 머신의 host python 도 3.12 이어야 함.
 - 사내 환경 host python 점검 명령: `python3 --version` 출력이 `Python 3.12.x` 인지 확인. 아니면 pyenv 또는 별도 venv 로 3.12 잡고 PATH 정합.
 
+## 2026-05-22 ONBOARDING_GATE env propagate 세션 (`df81666`)
+
+- 발견된 gap: `docker-compose.deploy.yml` 의 backend-core service 가 `DEVHUB_ONBOARDING_GATE_ENABLED` 를 환경변수로 propagate 안 함. 셸 export 해도 container 미반영.
+- 조치 5 파일:
+  - `docker-compose.deploy.yml`: backend-core environment 에 `DEVHUB_ONBOARDING_GATE_ENABLED: ${DEVHUB_ONBOARDING_GATE_ENABLED:-1}` + 사용 SOP 주석
+  - `scripts/deploy-from-env.sh`: `build_env_file` 에 `emit_env_line` 추가 + 주석 블록에 SOP
+  - `docs/setup/deploy.env.example`: `=1` + 0 모드 사용 설명 (내부 Keycloak 테스트)
+  - `docs/setup/deploy.stage.env.example`: `=1` (운영 정합)
+  - `docs/setup/deploy.prod.env.example`: `=1` + 0 두지 말 것 경고
+- default `=1` 유지 → 운영 환경 영향 없음.
+- 사용자 사용 결정: 내부 Keycloak 테스트 시 `DEVHUB_ONBOARDING_GATE_ENABLED=0` export + redeploy → backend onboarding gate 해제 → frontend 가 첫 진입 시 `/onboarding` 으로 보내지만 사용자가 Skip 1회 클릭하면 이후 모든 페이지 자유 진입 (`onboardingSkip` localStorage flag).
+- 검증: `docker compose exec backend-core env | grep ONBOARDING` 으로 container 도달 확인 + Bearer token 으로 `/api/v1/me` 호출 시 200 응답 + 일반 endpoint (예: `/api/v1/me` 외) 도 200.
+
 ## 다음 세션 첫 작업
 
 1. **사용자 사내 환경 redeploy + :13000 smoke test** — preflight 가 nginx conf 자동 sync + Keycloak 25.0 pull. 아래 명령 참조.

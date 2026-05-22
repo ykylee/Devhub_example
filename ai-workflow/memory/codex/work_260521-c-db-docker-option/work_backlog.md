@@ -27,6 +27,7 @@
 | BUILD-ARTIFACT-15 | Keycloak image 25.0 pin | done | 2026-05-22 `42b18b1` — compose / CI / dev-up.sh 3 위치 (active code only). docs 의 historical 26.0 언급은 immutable 보존 |
 | BUILD-ARTIFACT-16 | ADR-0022 draft 발행 | done | 2026-05-22 `docs/adr/0022-keycloak-version-pin-25-0.md` draft (§3.1 retreat 사유 placeholder — 사용자 finalize 후 Accepted 승격) |
 | BUILD-ARTIFACT-17 | Python image 3.12 pin | done | 2026-05-22 `7626a8c` — backend-ai/Dockerfile 3.13 → 3.12 + tech_stack.md / environment-setup.md prerequisite 3.12 + build-artifacts.sh ABI 주의 주석. host `python3` 도 3.12 권장 (site-packages ABI 호환) |
+| BUILD-ARTIFACT-18 | DEVHUB_ONBOARDING_GATE_ENABLED env propagate | done | 2026-05-22 `df81666` — docker-compose.deploy.yml 의 backend-core service 가 env var propagate 안 하던 gap fix. default `1` (운영 안전, ADR-0021 §3.3 정합). 내부 Keycloak 테스트 시 `=0` 으로 backend gate 해제 → Keycloak 계정 자유 사용 + frontend `/onboarding` 진입 시 Skip 1회 클릭 패턴. deploy-from-env.sh emit + 3 env example (env / stage / prod) 정합 |
 
 ## 잔여 작업
 
