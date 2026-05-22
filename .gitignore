@@ -62,6 +62,11 @@ docker-compose.*.yml
 infra/idp/*.docker.yaml
 infra/nginx/certs/
 
+# auto-generated nginx conf (rendered from devhub.deploy.conf.template by
+# scripts/nginx-conf-sync.sh; docker deploy uses the .template directly via
+# nginx official image's envsubst entrypoint)
+infra/nginx/devhub.deploy.conf
+
 # === EDITOR / OS NOISE ===
 .DS_Store
 **/.DS_Store
