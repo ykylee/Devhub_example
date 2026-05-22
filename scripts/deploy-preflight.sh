@@ -125,6 +125,21 @@ if [[ ",${COMPOSE_PROFILES:-}," == *",local-idp,"* ]]; then
     echo "       current: $keycloak_hostname" >&2
     exit 1
   fi
+
+  # local-idp 토큰의 iss 는 외부 접근 URL 기준이어야 하며, backend verifier issuer
+  # 와 일치해야 한다. 내부 DNS(keycloak:8080) 를 issuer 로 사용하면 token issuer
+  # mismatch 로 /api/v1/me 401 이 반복될 수 있다.
+  expected_public_issuer="${DEVHUB_PUBLIC_BASE_URL%/}/devhub/auth/keycloak/realms/devhub"
+  if [[ "$DEVHUB_OIDC_ISSUER_URL" != "$expected_public_issuer" ]]; then
+    echo "ERROR: DEVHUB_OIDC_ISSUER_URL must equal ${expected_public_issuer} when local-idp profile is enabled" >&2
+    echo "       current: $DEVHUB_OIDC_ISSUER_URL" >&2
+    exit 1
+  fi
+
+  if [[ -z "${DEVHUB_OIDC_JWKS_URL:-}" ]]; then
+    echo "WARN: DEVHUB_OIDC_JWKS_URL is empty under local-idp profile." >&2
+    echo "      Consider setting a backend-reachable JWKS URL (e.g. host.docker.internal) to avoid localhost resolution issues." >&2
+  fi
 fi
 
 if [ -n "${DEVHUB_OIDC_JWKS_URL:-}" ]; then
@@ -160,7 +175,11 @@ else
   curl -fsS "$OIDC_ISSUER_URL/.well-known/openid-configuration" >/dev/null
 fi
 if [ -n "${DEVHUB_OIDC_JWKS_URL:-}" ]; then
-  curl -fsS "$DEVHUB_OIDC_JWKS_URL" >/dev/null
+  if [ "${SKIP_OIDC_JWKS_REACH:-0}" = "1" ]; then
+    echo "  SKIP_OIDC_JWKS_REACH=1 — JWKS reachability 검증 skip"
+  else
+    curl -fsS "$DEVHUB_OIDC_JWKS_URL" >/dev/null
+  fi
 fi
 
 echo "preflight OK"

@@ -103,8 +103,8 @@ func TestOnboardingEndpoints_FlagOff404(t *testing.T) {
 }
 
 // TestOnboardingGate_FeatureFlagOff_NoOp verifies that with the gate disabled,
-// /api/v1/me responds normally for an authenticated actor without an
-// onboarding_required block.
+// /api/v1/me still computes onboarding_required (state exposure) while the
+// middleware-level blocking remains off.
 func TestOnboardingGate_FeatureFlagOff_NoOp(t *testing.T) {
 	store := seedOnboardingFixture(t, false)
 	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
@@ -125,6 +125,15 @@ func TestOnboardingGate_FeatureFlagOff_NoOp(t *testing.T) {
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200 with gate off, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	var body struct {
+		Data meResponse `json:"data"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if !body.Data.OnboardingRequired {
+		t.Errorf("expected onboarding_required=true for token-only actor with gate off, got %+v", body.Data)
 	}
 }
 
