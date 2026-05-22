@@ -12,15 +12,17 @@
 
 | Phase | 내용 |
 | --- | --- |
-| 1 — `/login` swap | `/auth/login` 의 96 LoC 본문 → `/login/page.tsx` + Suspense + `?error=` query 처리 (`resolveErrorMessage` helper export). error 진입 시 자동 OIDC redirect 차단. `/auth/login` → 14 LoC stub redirect (쿼리 propagate). |
+| 1 — `/login` swap + `/auth/login` 제거 | `/auth/login` 의 96 LoC 본문 → `/login/page.tsx` + Suspense + `?error=` query 처리 (`resolveErrorMessage` helper export). error 진입 시 자동 OIDC redirect 차단. **`/auth/login` 디렉토리 자체 제거** (사용자 결정 옵션 B, stub 미유지). |
 | 2 — 호출처 일괄 | AuthGuard.tsx 2 (`/login?error=session_expired` + `?error=login_failed`) + onboarding 1 + auth/callback 1 (error_description propagate) + auth/error 1 Link + auth/signup 1 Link + role-routing.test 1 assertion. |
 | 3 — 회귀 가드 | `app/login/page.test.tsx` 신규 — `resolveErrorMessage` 6 unit (null/description-우선/3 mapping/fallback). AuthGuard.test.tsx 에 401 fallback 2 회귀 가드 추가 (`/login?error=session_expired` + `?error=login_failed`). ApiError mock 의 constructor signature 3-arg (status, payload, message) 정합. |
-| 4 — docs closing | ADR-0020 §4.1.1 표 F → done + §7 변경 이력 row. redesign §6.1 표 + §6.1.1 표 + §7.2 closed 7/8 + §8 변경 이력 row. |
+| 4 — docs closing + infra 일괄 정합 (옵션 B) | ADR-0020 §4.1.1 표 F → done + §7 변경 이력 row. redesign §6.1 표 + §6.1.1 표 + §7.2 closed 7/8 + §8 변경 이력 row. **infra 일괄 정합** — realm.prod.json `post.logout.redirect.uris` + nginx template + setup-keycloak.sh `POST_LOGOUT_URIS` + 5 docs 의 `/auth/login` allowlist URI `/login` 으로 정정. **사내 운영자 1회 작업** — Keycloak admin console allowlist 갱신 (realm.prod.json 재 import 또는 setup-keycloak.sh 재실행). |
 | 검증 | TS `npx tsc --noEmit` 그린. vitest 8 file / 40 test 그린. lint 의 18 problems 는 모두 pre-existing (본 변경 파일 0건, `feedback_ci_baseline_check` 패턴). |
 
-**변경 통계** (추산): 11 파일 / +180 / -110 LoC.
+**변경 통계** (추산): 19 파일 / +220 / -200 LoC.
 - `frontend/app/login/page.tsx` — 14 → 145 LoC (canonical entry)
-- `frontend/app/auth/login/page.tsx` — 96 → 30 LoC (stub)
+- `frontend/app/auth/login/page.tsx` — **삭제** (사용자 결정 옵션 B)
+- `infra/idp/keycloak-realm.prod.json` + `infra/nginx/devhub.deploy.conf.template` + `scripts/setup-keycloak.sh` — allowlist URI `/auth/login` → `/login`
+- `docs/setup/{docker-packaging-deployment-guide,environment-setup,keycloak_operations,single_port_deployment,e2e-test-guide}.md` — `/auth/login` 언급 정합 (8 위치)
 - `frontend/app/auth/callback/page.tsx` — error fallback button onClick (12 LoC 추가)
 - `frontend/app/auth/error/page.tsx` — Link href 1 (`/auth/login` → `/login`)
 - `frontend/app/auth/signup/page.tsx` — Link href 1

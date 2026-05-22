@@ -389,7 +389,7 @@ token 검증 시 cache lookup
 | 파일 | 변경 |
 | --- | --- |
 | `app/login/page.tsx` | "Sign in with Keycloak" 버튼 + error message 표시 영역. `?error=...` query param 처리 (예: `session_expired`, `login_failed`, `unauthorized`) |
-| `app/auth/login/page.tsx` | `/login` 으로 redirect (중복 정리) **또는** 제거 |
+| `app/auth/login/page.tsx` | **제거** (2026-05-22 sub-carve F 옵션 B 채택 — 사용자 결정). 외부 bookmark 호환은 Keycloak realm + nginx + setup-keycloak.sh 의 allowlist URI 정합으로 대체. |
 | `app/auth/callback/page.tsx` | error 발생 시 `/login?error=...` 로 redirect (현재 `/auth/error` 와 정합 확인 후 결정) |
 | `app/auth/error/page.tsx` | 보존 — `/auth/callback` 의 critical error (예: invalid state) 처리. 일반 error 는 `/login?error=...` |
 
@@ -466,7 +466,7 @@ ADR-0020 draft 작성 + 사내 검토 → accepted 처리는 Phase 3 진입 시 
 | **C** — event listener 확장 (USER:UPDATE / GROUP_MEMBERSHIP / USER:DELETE) | backend `keycloak_event_puller.go` + `audit_logs` action 매핑 + `users` write + metric 3종 (`audit/metrics.go`) + `user_sync.go` 신규 + `KeycloakAdminClient.GetUserDetails`/`GetUserGroups` 신규 + `main.go` wire | sprint -u~-y 자연 확장. event handler 가 DevHub `users` write 추가 | 중간 (event listener 회귀 위험) | ✅ `-k` (sprint `claude/work_260520-k-212-event-listener-users-sync`, PR TBD) |
 | **D** — JWKS stale-while-error expiry case 확장 | backend `keycloak_verifier.go` + JWKS cache + metric 2종 + `internal/auth/metrics.go` 신규 + config OIDCJWKSMaxStaleDuration | sprint -r kid mismatch fallback 자연 확장 | 낮음 | ✅ `-l` (sprint `claude/work_260520-l-213-jwks-stale-expiry`, PR TBD) |
 | **E** — service account 권한 축소 + governance SOP | `keycloak_operations.md §8.5c` 신규 + §3.2 SOP 갱신 | docs only | 낮음 | `-i` (후속) |
-| **F** — `/login` page 정리 (결정 B) | frontend `app/login/page.tsx` + `app/auth/login/page.tsx` + `app/auth/callback/page.tsx` + `app/auth/error/page.tsx` + `app/auth/signup/page.tsx` + `components/layout/AuthGuard.tsx` + `app/onboarding/page.tsx` + `lib/auth/role-routing.test.ts` + vitest 신규 | minor frontend UX 정리 | 낮음 | ✅ `claude/work_260522-adr-0020-subcarve-f-login` (PR TBD) |
+| **F** — `/login` page 정리 (결정 B) | frontend `app/login/page.tsx` 본문 swap + `app/auth/login/` **삭제** + callback/error/signup/AuthGuard/onboarding + role-routing.test + vitest 신규 + infra (realm.prod.json/nginx/setup-keycloak.sh) + 5 docs allowlist URI 정합 | frontend UX + infra/docs 일괄. 사내 운영자 Keycloak admin allowlist 1회 갱신 동반 | 낮음 (frontend) + 중간 (운영 동반) | ✅ `claude/work_260522-adr-0020-subcarve-f-login` (PR TBD) — 옵션 B (사용자 결정) |
 | (신규) — **Keycloak SPI provider JAR** (PR #203 codex P2 후속) | `infra/idp/devhub-event-listener/` (신규 SPI module 빌드) + `docker-compose.deploy.yml` (volume mount) + `keycloak_operations.md` 운영 SOP | 사내 인프라 동반 — Keycloak SPI Java 빌드 + Maven/Gradle 자산 | 중간 (사내 인프라 결정 동반) | TBD (사내 인프라 진입 시) |
 
 #### 6.1.1 Phase 3 closing status (2026-05-22)
@@ -554,7 +554,7 @@ sub-carve B (accounts/* 제거) 는 frontend UI 호출과 backend handler 가 �
 - ✅ resolved (sprint `-k`, PR #241 `9ea7e1c`) — Keycloak event listener 확장 (USER:UPDATE / GROUP_MEMBERSHIP / USER:DELETE 매핑) + `users` write + metric 3종 (sub-carve C)
 - ✅ resolved (sprint `-l`, PR #242 `cb6646d`) — JWKS stale-while-error expiry case 확장 (sub-carve D)
 - ✅ resolved (sprint `-n`, PR #244 `6810384`) — service account 권한 축소 정공법 + governance SOP (sub-carve E, `keycloak_service_account_min_role.md` 신규)
-- ✅ resolved (sprint `claude/work_260522-adr-0020-subcarve-f-login`, PR TBD) — `/login` canonical page swap (`/auth/login` 96 LoC → `/login` + `?error=` 처리) + `/auth/login` stub 보존 + AuthGuard 401 fallback `/login?error=session_expired` + 호출처 8 위치 sync + vitest 회귀 가드 신규 8건 (sub-carve F)
+- ✅ resolved (sprint `claude/work_260522-adr-0020-subcarve-f-login`, PR TBD) — `/login` canonical page swap (`/auth/login` 96 LoC → `/login` + `?error=` 처리) + **`/auth/login` 완전 제거** (사용자 결정 옵션 B) + AuthGuard 401 fallback `/login?error=session_expired` + 호출처 8 위치 sync + vitest 회귀 가드 8건 + infra/scripts (realm.prod.json / nginx template / setup-keycloak.sh) 3건 + 5 docs allowlist URI 정합. **사내 운영자 1회 작업 동반** — Keycloak admin console 의 `devhub-frontend` client 의 Valid Post Logout Redirect URIs allowlist 갱신 (sub-carve F)
 
 **잔여 사내 동반 (1/8)**:
 - **(carve, SPI provider JAR, P2)** — Keycloak SPI Java 빌드 + Maven/Gradle 자산 + docker-compose volume mount. event listener push 전환 (현재 polling 이 정공법).

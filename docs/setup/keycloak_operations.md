@@ -395,7 +395,7 @@ sequenceDiagram
     KC->>KC: SSO 세션 종료 (Keycloak 사용자 세션 정리)
     KC->>U: 302 redirect to post_logout_redirect_uri
     U->>F: ${origin}/ (홈)
-    F->>F: AuthGuard → 미인증 → /auth/login redirect
+    F->>F: AuthGuard → 미인증 → /login redirect
 ```
 
 **chain 순서가 보장하는 invariant**:
@@ -408,7 +408,7 @@ sequenceDiagram
 Keycloak admin 이 사용자 강제 logout 시 (§8.2 off-boarding 또는 §6.5 비상 rotation):
 
 1. Keycloak admin console → Users → 해당 user → Sessions 탭 → "Logout all sessions"
-2. **DevHub frontend 동작**: 다음 API 호출 시 access_token 만료 또는 invalid → backend 401 → frontend AuthGuard 가 `/auth/login` redirect
+2. **DevHub frontend 동작**: 다음 API 호출 시 access_token 만료 또는 invalid → backend 401 → frontend AuthGuard 가 `/login?error=session_expired` redirect
    - access_token 의 `exp` 가 짧으면 (권장 5분) 강제 logout 효과가 5분 내 모든 client 에 전파
    - refresh_token 도 무효화 → 재발급 불가
 3. **DevHub 측 추가 처리 불필요** — server-side session 없음 + JWT 만료 기반 자연 종료

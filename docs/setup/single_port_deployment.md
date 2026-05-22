@@ -195,7 +195,7 @@ curl -k https://devhub.example.com/devhub/auth/keycloak/realms/devhub/.well-know
 
 # 5. 브라우저 진입
 # https://devhub.example.com → 302 /devhub → 302 /devhub/developer
-# → AuthGuard /devhub/auth/login → Keycloak login → /devhub/auth/callback → /devhub/developer
+# → AuthGuard /devhub/login → Keycloak login → /devhub/auth/callback → /devhub/developer
 ```
 
 ## 6. Dev local mode (no TLS, no nginx, native dev)

@@ -6,9 +6,11 @@ import { motion } from "framer-motion";
 import { AlertCircle, ArrowRight, ShieldCheck } from "lucide-react";
 import { authService } from "@/lib/services/auth.service";
 
-// ADR-0020 §4.1.1 sub-carve F (decision B) — `/login` is the canonical entry
-// page. `/auth/login` is preserved as a stub redirect for external bookmark
-// compatibility. Provider / AuthGuard / callback failures land here with
+// ADR-0020 §4.1.1 sub-carve F (decision B, option B 채택) — `/login` is the
+// single canonical entry page. The legacy `/auth/login` route was removed
+// outright; Keycloak realm + nginx template + setup-keycloak.sh were updated
+// in the same sprint so `post.logout.redirect.uris` lands users here directly.
+// Provider / AuthGuard / callback failures land here with
 // `?error=<code>&error_description=<msg>` and the message is rendered above
 // the Continue button so a stuck user is not silently re-redirected.
 

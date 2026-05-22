@@ -149,7 +149,7 @@ PLAYWRIGHT_BASE_URL=http://10.0.0.5:3000 npm run e2e
 
 | 증상 | 원인 | 조치 |
 | --- | --- | --- |
-| `loginAs` 가 `/auth/login` 까지 못 감 | IdP redirect/callback URI 또는 frontend host 불일치 | IdP client 설정의 redirect URI 및 frontend origin 재확인 |
+| `loginAs` 가 `/login` 까지 못 감 | IdP redirect/callback URI 또는 frontend host 불일치 | IdP client 설정의 redirect URI 및 frontend origin 재확인 |
 | 로그인 폼에서 401 (invalid credentials) | Keycloak 사용자 시드 password 불일치 | `npm run e2e` 재실행 후 globalSetup 시드 단계 확인 |
 | `/account` 관련 시나리오 실패 | Keycloak Account Console/redirect 설정 불일치 | `NEXT_PUBLIC_OIDC_REDIRECT_URI`, issuer, Keycloak client redirect URI 정합 확인 |
 | `Sign Out` 후에도 `/login` 이 silent re-auth | IdP session 종료 안 됨. id_token_hint 누락 가능성 | tokenStore 의 `id_token` 저장 여부와 end-session endpoint 호출 URL 확인 |
