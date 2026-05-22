@@ -3,9 +3,9 @@
   "project": "DevHub Example",
   "branch": "gemini/admin-settings-ui-restructuring",
   "status": "done",
-  "updated_at": "2026-05-22T06:56:00Z",
-  "head_commit": "5cb5af2",
-  "head_summary": "Successfully completed admin settings UI restructuring with Collapsible Sidebar, Tailscale 13000 port deployment, TypeScript type-checking, and Playwright E2E verification. Committed premium Collapsible Global Sidebar with Zustand persistence.",
+  "updated_at": "2026-05-22T07:08:00Z",
+  "head_commit": "9caed8c",
+  "head_summary": "Successfully completed admin settings UI restructuring with Collapsible Sidebar and verified via Playwright E2E. Addressed Codex PR #299 review to preserve JWKS reachability preflight safety gate with local loopback bypass.",
   "milestones": {
     "M-v1.0": {
       "status": "done",

@@ -7,7 +7,7 @@
   - `layout.tsx` 파일의 UI 리팩토링 및 9개 메뉴 그룹화, 모바일 글래스모피즘 아코디언 드롭다운 및 **데스크톱 Collapsible Sidebar 토글 기능** 완벽 탑재.
   - 마운트 후 `localStorage` 조회 및 툴팁 제공, 그리드 가변 반응형 트랜지션까지 부드럽게 구현 완료.
   - Tailscale IP `100.90.113.29` 및 `NGINX_HTTP_PORT=13000` 명시적 바인딩을 통해 배포 환경(OIDC Issuer & JWKS Split) 정합 수정을 완수하여, Nginx 13000 포트 수신 및 Keycloak 리다이렉트 URI 동적 싱크(`setup-keycloak.sh`)를 단번에 완료했습니다.
-  - `deploy-preflight.sh`에 제거되었던 `DEVHUB_OIDC_JWKS_URL` curl 검증 블록을 원복하고, 이원화 환경을 감안한 조건부 예외(Skip) 처리를 덧붙여 형상 보존(Parity) 및 기동 안정성을 동시 획득했습니다.
+  - `deploy-preflight.sh`에 제거되었던 `DEVHUB_OIDC_JWKS_URL` curl 검증 블록을 완벽하게 원복하고, Codex PR #299 리뷰 의견을 수렴하여 `SKIP_OIDC_ISSUER_REACH=1`이 켜진 이원화(Split) 환경에서도 JWKS 도달성 검증(Safety Gate)을 유지하도록 개선했습니다. 로컬 single-node 샌드박스의 컨테이너 사설망(`keycloak:8080`)인 경우 로컬 Nginx 루프백(`127.0.0.1:13000`)으로 안전하게 자동 치환하여 검증(Probing)을 동적으로 우회 수행하도록 설계하여, 로컬 기동성과 실서버 검증 안전성을 동시에 확보했습니다.
   - 호스트 가상 네트워킹망 IP(`172.24.0.2`) 및 시더 시크릿 `OiV8WL5QkTObx8T4OYvIAdFmo8uRJOZG`과의 정합성을 동기화하여 Playwright E2E 테스트를 재구동한 결과, **`2 passed`**로 기능 무결성을 100% 입증했습니다.
   - Next.js 캐시 클렌징 상태에서 `npx tsc --noEmit`을 최종 구동한 결과, 타입 에러가 전혀 없이 완벽히 통과했습니다.
 
