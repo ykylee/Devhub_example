@@ -2,21 +2,21 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "gemini/admin-settings-ui-restructuring",
-  "status": "planned",
-  "updated_at": "2026-05-22T14:44:00Z",
-  "head_commit": "6ea9b89",
-  "head_summary": "Initial state for admin settings UI restructuring task",
+  "status": "done",
+  "updated_at": "2026-05-22T06:46:00Z",
+  "head_commit": "d16d8f5",
+  "head_summary": "Successfully completed admin settings UI restructuring with Collapsible Sidebar, Tailscale 13000 port deployment, TypeScript type-checking, and Playwright E2E verification",
   "milestones": {
     "M-v1.0": {
-      "status": "in_progress",
+      "status": "done",
       "started_at": "2026-05-22",
-      "notes": "Admin Settings UI Restructuring (세로형 사이드바 레이아웃 전환 및 메뉴 3그룹화)"
+      "notes": "Admin Settings UI Restructuring (세로형 사이드바 레이아웃 전환, 메뉴 3그룹화 및 Collapsible Sidebar 기능 추가 완료)"
     }
   },
   "components": {
     "frontend": {
-      "phase": "Planned: Refactoring admin/settings/layout.tsx to support responsive sidebar settings layout.",
-      "build_check": "PENDING"
+      "phase": "Completed: Successfully restructured layouts and added Collapsible Sidebar, fully verified via Playwright E2E tests.",
+      "build_check": "SUCCESS"
     }
   },
   "session_pointers": {

@@ -326,8 +326,15 @@ sync_keycloak_redirects() {
   local base_path="/${NEXT_PUBLIC_BASE_PATH:-devhub}"
   base_path="${base_path%/}"
 
-  echo "[post-deploy] sync Keycloak redirect/webOrigin with ${public_base}${base_path}"
-  KEYCLOAK_URL="${public_base}/devhub/auth/keycloak" \
+  local local_keycloak_url
+  if [ -n "${PUBLIC_ACCESS_PORT:-}" ]; then
+    local_keycloak_url="${PUBLIC_ACCESS_SCHEME}://127.0.0.1:${PUBLIC_ACCESS_PORT}/devhub/auth/keycloak"
+  else
+    local_keycloak_url="${PUBLIC_ACCESS_SCHEME}://127.0.0.1/devhub/auth/keycloak"
+  fi
+
+  echo "[post-deploy] sync Keycloak redirect/webOrigin with ${public_base}${base_path} (via ${local_keycloak_url})"
+  KEYCLOAK_URL="$local_keycloak_url" \
     DEVHUB_FRONTEND_ORIGIN="$public_base" \
     DEVHUB_FRONTEND_BASEPATH="$base_path" \
     DEVHUB_KEYCLOAK_SSL_REQUIRED="${DEVHUB_KEYCLOAK_SSL_REQUIRED:-none}" \

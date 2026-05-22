@@ -21,7 +21,7 @@
   "realm": "devhub",
   "enabled": true,
   "displayName": "DevHub (production)",
-  "eventsListeners": [ "jboss-logging", "devhub-event-listener" ],
+  "eventsListeners": [ "jboss-logging" ],
   "sslRequired": "none",
   "registrationAllowed": false,
   "roles": {

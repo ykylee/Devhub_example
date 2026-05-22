@@ -159,8 +159,13 @@ if [ "${SKIP_OIDC_ISSUER_REACH:-0}" = "1" ]; then
 else
   curl -fsS "$OIDC_ISSUER_URL/.well-known/openid-configuration" >/dev/null
 fi
+
 if [ -n "${DEVHUB_OIDC_JWKS_URL:-}" ]; then
-  curl -fsS "$DEVHUB_OIDC_JWKS_URL" >/dev/null
+  if [ "${SKIP_OIDC_ISSUER_REACH:-0}" = "1" ]; then
+    echo "  SKIP_OIDC_ISSUER_REACH=1 — JWKS reachability 검증 skip (issuer/JWKS split scenario)"
+  else
+    curl -fsS "$DEVHUB_OIDC_JWKS_URL" >/dev/null
+  fi
 fi
 
 echo "preflight OK"
