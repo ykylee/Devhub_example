@@ -4,6 +4,7 @@
  */
 
 import { API_BASE_URL, WS_BASE_URL } from "../config/endpoints";
+import { tokenStore } from "@/lib/auth/token-store";
 
 export interface WsMessage<T = unknown> {
   schema_version: string;
@@ -43,8 +44,13 @@ class WebSocketService {
 
     this.isIntentionalClose = false;
     try {
-      console.log(`[WebSocket] Connecting to ${this.url}...`);
-      this.ws = new WebSocket(this.url);
+      const token = tokenStore.getAccessToken();
+      const wsURL = new URL(this.url, typeof window !== "undefined" ? window.location.origin : "http://localhost");
+      if (token) {
+        wsURL.searchParams.set("access_token", token);
+      }
+      console.log(`[WebSocket] Connecting to ${wsURL.toString()}...`);
+      this.ws = new WebSocket(wsURL.toString());
 
       this.ws.onopen = () => {
         console.log("[WebSocket] Connected successfully.");
