@@ -23,8 +23,13 @@
 | BUILD-ARTIFACT-11 | deploy-from-env.sh push 액션 제거 | done | 로컬 전용 build/deploy 흐름 단순화 |
 | BUILD-ARTIFACT-12 | 외부 접속 기준 주소/포트 분리 | done | 2026-05-21 (`61e0937` post-rebase, `PUBLIC_ACCESS_*` + `NGINX_HTTP_PORT=3000`) |
 | BUILD-ARTIFACT-13 | main rebase + force-push | done | 2026-05-22 origin/main `1239f3c` 위로, 3 commit drop (PR #282 흡수분), 백업 ref `backup/pre-rebase-main-260522` |
+| BUILD-ARTIFACT-14 | nginx conf ↔ template auto-sync | done | 2026-05-22 `3ae46cf` — `scripts/nginx-conf-sync.sh` (envsubst render, `--check`/`--fix`) + `deploy-preflight.sh` 가 `[0/3]` 단계에서 `--fix` 자동 실행 + `infra/nginx/devhub.deploy.conf` `.gitignore` 추가 + stale 버전 git rm |
+| BUILD-ARTIFACT-15 | Keycloak image 25.0 pin | done | 2026-05-22 `42b18b1` — compose / CI / dev-up.sh 3 위치 (active code only). docs 의 historical 26.0 언급은 immutable 보존 |
+| BUILD-ARTIFACT-16 | ADR-0022 draft 발행 | done | 2026-05-22 `docs/adr/0022-keycloak-version-pin-25-0.md` draft (§3.1 retreat 사유 placeholder — 사용자 finalize 후 Accepted 승격) |
 
 ## 잔여 작업
 
-- **BUILD-ARTIFACT-08** 만 in_progress. `idp-apply-schemas` host-run 시 docker 내부 호스트명 `db` 해석 실패. DSN/포트 노출 분리 또는 host-network 모드 검토 필요.
+- **BUILD-ARTIFACT-08** in_progress. `idp-apply-schemas` host-run 시 docker 내부 호스트명 `db` 해석 실패. DSN/포트 노출 분리 또는 host-network 모드 검토 필요.
+- ADR-0022 §3.1 retreat 사유 사용자 finalize → Accepted 승격.
+- 사용자 사내 환경 redeploy + :13000 smoke test (preflight 가 nginx conf 자동 sync + Keycloak 25.0 image pull).
 - PR 생성 여부 결정 (현재 push 만 완료).
