@@ -2,19 +2,28 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "codex/work_260521-c-db-docker-option",
-  "status": "done",
-  "updated_at": "2026-05-21T04:00:00Z",
-  "head_commit": "ef244a0",
-  "head_summary": "docs(memory): finalize db docker option session state",
+  "status": "in_progress",
+  "updated_at": "2026-05-22T02:30:00Z",
+  "head_commit": "df81666",
+  "head_summary": "feat(deploy): propagate DEVHUB_ONBOARDING_GATE_ENABLED (default 1)",
   "current_focus": [
-    "deploy-from-env.sh 에 DB_MODE=docker 옵션 추가",
-    "local-db profile 렌더/배포 정합 검증"
+    "BUILD-ARTIFACT-08 (host-run e2e DB 접근 경로) 진입 잔여",
+    "ADR-0022 §3.1 retreat 사유 사용자 finalize",
+    "재배포 + :13000 smoke test (Keycloak 25.0 + Python 3.12 + DEVHUB_ONBOARDING_GATE_ENABLED 정합 확인)"
   ],
   "next_actions": [
-    "커밋/푸시 및 PR 생성"
+    "사용자 사내 환경에서 redeploy + :13000 smoke test 진행 (preflight 가 nginx conf 자동 sync + Keycloak 25.0 pull)",
+    "ADR-0022 §3.1 retreat 사유 finalize 후 Accepted 승격",
+    "host-run e2e 의 idp-apply-schemas 가 docker 내부 호스트명 `db` 를 해석하도록 DSN/포트 노출 분리 (BUILD-ARTIFACT-08)"
   ],
   "risks": [
-    "compose config 는 inactive service 변수도 검증하므로 keycloak 기본값 유지 필요"
+    "compose config 는 inactive service 변수도 검증하므로 keycloak 기본값 유지 필요",
+    "host build 결과물이 없으면 runtime-only Docker image 가 시작 실패할 수 있음",
+    "host-run e2e 의 DSN 이 docker 내부 호스트명(db)을 가리키면 DB seed 가 실패할 수 있음",
+    "기본 IMAGE_REPO_PREFIX 가 local 이므로 원격 배포는 명시적 override 가 필요",
+    "Keycloak 25.0 의 realm.json schema 가 26.0 export 와 호환 안 될 수 있음 — 첫 import 시 검증 필요",
+    "ADR-0022 가 draft 이므로 §3.1 사유 finalize 전에는 다른 ADR cross-link 추가 보류",
+    "Python 3.12 pin 으로 host python3 도 3.12 가 아니면 grpcio 등 compiled wheel ABI mismatch — site-packages import 실패 가능"
   ],
-  "handoff_note": "DB_MODE=docker 시 db/db-init 를 local-db profile로 함께 다루는 deploy wrapper"
+  "handoff_note": "2026-05-22 main rebase 완료 (`61e0937`) + nginx conf auto-sync (preflight hook + 스크립트, `3ae46cf`) + Keycloak 25.0 pin (`42b18b1`) + ADR-0022 draft 발행 (`af9b301`) + Python 3.12 pin (`7626a8c`) + DEVHUB_ONBOARDING_GATE_ENABLED env propagate (`df81666`, default 1 운영 안전, 내부 Keycloak 테스트 시 0 으로 backend gate 해제 + frontend Skip 1회 클릭). 외부 :13000 접근이 :80/devhub 로 redirect 되던 회귀는 stale `infra/nginx/devhub.deploy.conf` 가 원인 (template 과 sync 안 됨) — `.gitignore` 추가 + `scripts/nginx-conf-sync.sh --fix` 이 deploy-preflight 단계에서 자동 재생성. 사용자 사내 환경 재배포 smoke test 동반 (Keycloak 25.0 + Python 3.12 base image 함께 pull + ONBOARDING_GATE=0 옵션 검토)."
 }

@@ -102,8 +102,8 @@ services:
   keycloak:
     profiles: ["local-idp"]
     # Keycloak 단일 IdP (ADR-0019). 사내 환경에서는 별도 운영 Keycloak instance 사용 권장 — 본 service 는 1차 reference.
-    # version 26.x = LTS 후보 (사내 결정 동반 — sprint -h failover §4 Phase 2 HA 진입 시 재평가).
-    image: quay.io/keycloak/keycloak:26.0
+    # version 25.0 (사내 결정 동반 — sprint -h failover §4 Phase 2 HA 진입 시 LTS 재평가).
+    image: quay.io/keycloak/keycloak:25.0
     restart: unless-stopped
     command:
       - start
@@ -114,8 +114,11 @@ services:
       - --import-realm
     environment:
       # Admin bootstrap (1차 setup 후 별도 admin user 발급 + 본 env 제거 권장)
+      # Keycloak 25 호환: KC_BOOTSTRAP_* + legacy KEYCLOAK_ADMIN* 동시 주입.
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME:?set KC_BOOTSTRAP_ADMIN_USERNAME}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD:?set KC_BOOTSTRAP_ADMIN_PASSWORD}
+      KEYCLOAK_ADMIN: ${KC_BOOTSTRAP_ADMIN_USERNAME:?set KC_BOOTSTRAP_ADMIN_USERNAME}
+      KEYCLOAK_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD:?set KC_BOOTSTRAP_ADMIN_PASSWORD}
       # Management interface 활성화 (healthcheck 의 /health/ready 응답 필요).
       KC_HEALTH_ENABLED: "true"
       # DB (사내 PostgreSQL 사용)
@@ -175,6 +178,12 @@ services:
       DB_URL: ${DB_URL:?set DB_URL}
       BACKEND_AI_URL: ${BACKEND_AI_URL:-http://backend-ai:8000}
       DEVHUB_AUTH_DEV_FALLBACK: ${DEVHUB_AUTH_DEV_FALLBACK:-0}
+      # RM-ONBOARD-01 (ADR-0021 §3.3) — default true (운영 안전). 내부 Keycloak
+      # 테스트 시점에 admin pre-seed 없이 Keycloak 계정을 자유롭게 사용하려면
+      # `DEVHUB_ONBOARDING_GATE_ENABLED=0` 으로 backend gate 해제. frontend
+      # AuthGuard 는 첫 진입 시 /onboarding 으로 redirect 하지만, 사용자가 'Skip'
+      # 한 번 클릭하면 localStorage 에 저장되어 이후 자유 진입 가능.
+      DEVHUB_ONBOARDING_GATE_ENABLED: ${DEVHUB_ONBOARDING_GATE_ENABLED:-1}
       # Keycloak 단일 IdP (ADR-0019 §4.2 환경설정 계약)
       DEVHUB_IDP_PROVIDER: ${DEVHUB_IDP_PROVIDER:-keycloak}
       DEVHUB_OIDC_ISSUER_URL: ${DEVHUB_OIDC_ISSUER_URL:?set DEVHUB_OIDC_ISSUER_URL}
@@ -241,7 +250,7 @@ services:
     healthcheck:
       # Next.js standalone server. /api/runtime-config (frontend/app/api/runtime-config/route.ts)
       # 는 항상 200 응답 (build env fallback). basePath 활성 시 /devhub prefix.
-      test: ["CMD-SHELL", "wget -q -O- http://localhost:3000/${NEXT_PUBLIC_BASE_PATH:-devhub}/api/runtime-config || wget -q -O- http://localhost:3000/api/runtime-config || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:3000/${NEXT_PUBLIC_BASE_PATH:-devhub}/api/runtime-config || wget -q -O- http://127.0.0.1:3000/api/runtime-config || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 6
@@ -254,7 +263,6 @@ services:
     restart: unless-stopped
     ports:
       - "${NGINX_HTTP_PORT:-80}:80"
-      - "${NGINX_HTTPS_PORT:-443}:443"
     environment:
       # nginx 공식 이미지의 envsubst entrypoint 가 /etc/nginx/templates/*.template 의
       # ${VAR} placeholder 를 치환한 뒤 /etc/nginx/conf.d/ 로 emit 한다.
@@ -262,11 +270,10 @@ services:
       KEYCLOAK_UPSTREAM: ${KEYCLOAK_UPSTREAM:-keycloak:8080}
       # KEYCLOAK_ADMIN_ALLOW_CIDR 미설정 시 admin path 외부 노출 차단 (deny all).
       # backend 는 keycloak:8080 (또는 외부 internal-only URL) 로 직접 통신 사용.
-      KEYCLOAK_ADMIN_ALLOW_CIDR: ${KEYCLOAK_ADMIN_ALLOW_CIDR:-127.0.0.1}
+      KEYCLOAK_ADMIN_ALLOW_CIDR: ${KEYCLOAK_ADMIN_ALLOW_CIDR:-127.0.0.1/32}
     volumes:
+      - ./infra/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - ./infra/nginx/devhub.deploy.conf.template:/etc/nginx/templates/devhub.deploy.conf.template:ro
-      - ${NGINX_TLS_CERT_PATH:-./infra/nginx/certs/tls.crt}:/etc/nginx/certs/tls.crt:ro
-      - ${NGINX_TLS_KEY_PATH:-./infra/nginx/certs/tls.key}:/etc/nginx/certs/tls.key:ro
     depends_on:
       frontend:
         condition: service_healthy

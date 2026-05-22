@@ -2,6 +2,7 @@
 
 const OIDC_STATE_KEY = "oidc_state";
 const OIDC_VERIFIER_KEY = "oidc_verifier";
+const OIDC_PKCE_MAP_KEY = "oidc_pkce_map";
 
 function base64Url(input: Uint8Array): string {
   return btoa(String.fromCharCode(...input))
@@ -103,12 +104,39 @@ export async function createPkceState(): Promise<{ state: string; codeChallenge:
   const state = randomState();
   const verifier = randomVerifier();
   const codeChallenge = await challengeFromVerifier(verifier);
+  const pkceMapRaw = sessionStorage.getItem(OIDC_PKCE_MAP_KEY);
+  const pkceMap: Record<string, string> = pkceMapRaw ? JSON.parse(pkceMapRaw) as Record<string, string> : {};
+  pkceMap[state] = verifier;
+  sessionStorage.setItem(OIDC_PKCE_MAP_KEY, JSON.stringify(pkceMap));
+
+  // Legacy keys kept for backward compatibility with in-flight sessions.
   sessionStorage.setItem(OIDC_STATE_KEY, state);
   sessionStorage.setItem(OIDC_VERIFIER_KEY, verifier);
   return { state, codeChallenge, codeChallengeMethod: "S256" };
 }
 
 export function consumeVerifier(expectedState: string): string {
+  const pkceMapRaw = sessionStorage.getItem(OIDC_PKCE_MAP_KEY);
+  if (pkceMapRaw) {
+    const pkceMap = JSON.parse(pkceMapRaw) as Record<string, string>;
+    const verifier = pkceMap[expectedState];
+    if (!verifier) {
+      throw new Error("Invalid state (CSRF protection failed)");
+    }
+    delete pkceMap[expectedState];
+    if (Object.keys(pkceMap).length === 0) {
+      sessionStorage.removeItem(OIDC_PKCE_MAP_KEY);
+    } else {
+      sessionStorage.setItem(OIDC_PKCE_MAP_KEY, JSON.stringify(pkceMap));
+    }
+    if (sessionStorage.getItem(OIDC_STATE_KEY) === expectedState) {
+      sessionStorage.removeItem(OIDC_STATE_KEY);
+      sessionStorage.removeItem(OIDC_VERIFIER_KEY);
+    }
+    return verifier;
+  }
+
+  // Backward compatibility fallback for legacy sessions.
   const savedState = sessionStorage.getItem(OIDC_STATE_KEY);
   const verifier = sessionStorage.getItem(OIDC_VERIFIER_KEY);
   sessionStorage.removeItem(OIDC_STATE_KEY);

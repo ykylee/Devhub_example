@@ -26,30 +26,23 @@ upstream devhub_keycloak {
 }
 
 server {
-    listen 80;
+    listen 80 default_server;
     server_name _;
+    absolute_redirect off;
+    resolver 127.0.0.11 ipv6=off;
+    set $frontend_upstream http://frontend:3000;
+
+    client_max_body_size 20m;
+    # Large OIDC headers/cookies (IdP + upstream auth chain) can exceed nginx defaults.
+    proxy_buffer_size 32k;
+    proxy_buffers 8 32k;
+    proxy_busy_buffers_size 64k;
 
     location = /nginx-health {
         access_log off;
         add_header Content-Type text/plain;
         return 200 'ok';
     }
-
-    location / {
-        return 301 https://$host$request_uri;
-    }
-}
-
-server {
-    listen 443 ssl;
-    server_name _;
-
-    ssl_certificate /etc/nginx/certs/tls.crt;
-    ssl_certificate_key /etc/nginx/certs/tls.key;
-    resolver 127.0.0.11 ipv6=off;
-    set $frontend_upstream http://frontend:3000;
-
-    client_max_body_size 20m;
 
     # Legacy root-level auth routes — friendly 302 to canonical /devhub/* entries.
     location = /login {
@@ -66,7 +59,7 @@ server {
     location = /devhub/api/runtime-config {
         proxy_pass $frontend_upstream;
         proxy_http_version 1.1;
-        proxy_set_header Host $host;
+        proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
@@ -78,7 +71,7 @@ server {
     location /_next/ {
         proxy_pass $frontend_upstream;
         proxy_http_version 1.1;
-        proxy_set_header Host $host;
+        proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
@@ -99,7 +92,7 @@ server {
         rewrite ^/devhub/api/(.*)$ /api/$1 break;
         proxy_pass http://devhub_backend_core;
         proxy_http_version 1.1;
-        proxy_set_header Host $host;
+        proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
@@ -119,11 +112,12 @@ server {
 
         proxy_pass http://devhub_keycloak;
         proxy_http_version 1.1;
-        proxy_set_header Host $host;
+        proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Prefix /devhub/auth/keycloak;
         proxy_read_timeout 60s;
         proxy_send_timeout 60s;
     }
@@ -135,11 +129,12 @@ server {
         # Keycloak 이 own URL 생성 시 basePath (KC_HTTP_RELATIVE_PATH=/devhub/auth/keycloak) 포함 가정.
         proxy_pass http://devhub_keycloak;
         proxy_http_version 1.1;
-        proxy_set_header Host $host;
+        proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Prefix /devhub/auth/keycloak;
         proxy_read_timeout 60s;
         proxy_send_timeout 60s;
     }
@@ -161,11 +156,5 @@ server {
 
     location = / {
         return 302 /devhub;
-    }
-
-    location = /nginx-health {
-        access_log off;
-        add_header Content-Type text/plain;
-        return 200 'ok';
     }
 }

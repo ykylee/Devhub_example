@@ -9,7 +9,7 @@
 
 ## 0. 자산 관리 원칙
 
-`docker-compose.yml`, 각 서비스의 `Dockerfile`, `.dockerignore` 등 컨테이너 자산은 작업 환경마다 제약(사내 네트워크/SSL inspection/이미지 mirror 정책 등)이 다르므로 **git 추적에서 제외**한다 (`.gitignore` 의 `DEV ENVIRONMENT` 섹션 참조). 본 가이드는 두 모드 어디서나 동일한 결과(API 8080, AI 8000, DB 5432, Frontend 3000)를 만들 수 있도록 절차를 정의한다.
+`docker-compose.yml` 과 로컬 오버라이드는 작업 환경마다 제약(사내 네트워크/SSL inspection/이미지 mirror 정책 등)이 다르므로 기본적으로 **git 추적에서 제외**한다. 반면 각 서비스의 `Dockerfile` 은 빌드 계약이므로 git 에 포함한다. 본 가이드는 두 모드 어디서나 동일한 결과(API 8080, AI 8000, DB 5432, Frontend 3000)를 만들 수 있도록 절차를 정의한다.
 
 - 각 환경에서 사용한 docker 자산은 사내 위키 / 팀 노션 / 개인 작업 디렉터리 등 git 외부에 보관한다.
 - 정책 갱신/예외가 필요해지면 본 문서와 `ai-workflow/memory/feedback_no_docker.md`(claude memory) 를 함께 갱신한다.
@@ -19,7 +19,7 @@
 | 항목 | 권장 버전 | 비고 |
 | --- | --- | --- |
 | Go | 1.22+ | backend-core |
-| Python | 3.11+ | backend-ai |
+| Python | 3.12 | backend-ai (host `python3` 도 3.12 권장 — ABI 호환) |
 | Node.js | 20 LTS | frontend (Next.js 15) |
 | PostgreSQL | 15 | DB |
 | `migrate` CLI | v4.19.1 | `make migrate-tools` 로 설치 |

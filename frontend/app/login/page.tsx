@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { AlertCircle, ArrowRight, ShieldCheck } from "lucide-react";
@@ -40,14 +40,20 @@ function LoginInner() {
   const errorMessage = resolveErrorMessage(errorCode, errorDescription);
 
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const redirectStartedRef = useRef(false);
 
   const handleLogin = useCallback(async () => {
+    if (redirectStartedRef.current) {
+      return;
+    }
+    redirectStartedRef.current = true;
     setTimeout(() => setIsRedirecting(true), 0);
     try {
       const url = await authService.getAuthorizeURL();
       window.location.assign(url);
     } catch (error) {
       console.error("[LoginPage] Failed to start OIDC flow:", error);
+      redirectStartedRef.current = false;
       setTimeout(() => setIsRedirecting(false), 0);
     }
   }, []);

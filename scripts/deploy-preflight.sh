@@ -52,6 +52,25 @@ for v in "${required_vars[@]}"; do
   fi
 done
 
+validate_cidr() {
+  local cidr="$1"
+  if ! [[ "$cidr" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}/([0-9]|[12][0-9]|3[0-2])$ ]]; then
+    return 1
+  fi
+
+  local ip="${cidr%/*}"
+  local octet
+  IFS='.' read -r -a octets <<< "$ip"
+  if [ "${#octets[@]}" -ne 4 ]; then
+    return 1
+  fi
+  for octet in "${octets[@]}"; do
+    if [ "$octet" -lt 0 ] || [ "$octet" -gt 255 ]; then
+      return 1
+    fi
+  done
+}
+
 if [ "${DEVHUB_AUTH_DEV_FALLBACK:-0}" != "0" ]; then
   echo "ERROR: DEVHUB_AUTH_DEV_FALLBACK must be 0 in deploy profile" >&2
   exit 1
@@ -85,9 +104,27 @@ if [[ "$NEXT_PUBLIC_OIDC_REDIRECT_URI" != "$expected_redirect_uri" ]]; then
   exit 1
 fi
 
+if ! validate_cidr "${KEYCLOAK_ADMIN_ALLOW_CIDR:-127.0.0.1/32}"; then
+  echo "ERROR: KEYCLOAK_ADMIN_ALLOW_CIDR must be CIDR form (e.g. 127.0.0.1/32, 10.0.0.0/8)" >&2
+  exit 1
+fi
+
 if [[ "$DEVHUB_OIDC_ISSUER_URL" != "$OIDC_ISSUER_URL" ]]; then
   echo "WARN: DEVHUB_OIDC_ISSUER_URL and OIDC_ISSUER_URL differ." >&2
   echo "      This is valid only when issuer/JWKS split is intentional." >&2
+fi
+
+if [[ ",${COMPOSE_PROFILES:-}," == *",local-idp,"* ]]; then
+  keycloak_hostname="${KEYCLOAK_HOSTNAME:-}"
+  if [ -z "$keycloak_hostname" ]; then
+    echo "ERROR: KEYCLOAK_HOSTNAME is required when local-idp profile is enabled" >&2
+    exit 1
+  fi
+  if [[ "$keycloak_hostname" != */devhub/auth/keycloak ]] && [[ "$keycloak_hostname" != */devhub/auth/keycloak/ ]]; then
+    echo "ERROR: KEYCLOAK_HOSTNAME must include /devhub/auth/keycloak when local-idp is enabled" >&2
+    echo "       current: $keycloak_hostname" >&2
+    exit 1
+  fi
 fi
 
 if [ -n "${DEVHUB_OIDC_JWKS_URL:-}" ]; then
@@ -95,6 +132,10 @@ if [ -n "${DEVHUB_OIDC_JWKS_URL:-}" ]; then
     echo "WARN: DEVHUB_OIDC_JWKS_URL does not end with /protocol/openid-connect/certs" >&2
   fi
 fi
+
+echo "[0/3] nginx conf sync + template parity check"
+"$ROOT_DIR/scripts/nginx-conf-sync.sh" --fix
+"$ROOT_DIR/scripts/nginx-conf-sync.sh" --check
 
 echo "[1/3] Docker availability check"
 docker --version >/dev/null

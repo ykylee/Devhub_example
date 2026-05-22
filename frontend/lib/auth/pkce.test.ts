@@ -19,6 +19,8 @@ describe("createPkceState + consumeVerifier", () => {
     expect(codeChallenge).toMatch(/^[A-Za-z0-9_-]+$/); // base64url, no padding
     expect(sessionStorage.getItem("oidc_state")).toBe(state);
     expect(sessionStorage.getItem("oidc_verifier")).toBeTruthy();
+    const map = JSON.parse(sessionStorage.getItem("oidc_pkce_map") ?? "{}") as Record<string, string>;
+    expect(map[state]).toBeTruthy();
   });
 
   it("consumeVerifier returns the stored verifier when state matches and clears both keys", async () => {
@@ -39,6 +41,19 @@ describe("createPkceState + consumeVerifier", () => {
   it("throws when verifier is missing", async () => {
     sessionStorage.setItem("oidc_state", "abc");
     expect(() => consumeVerifier("abc")).toThrow(/Missing code verifier/);
+  });
+
+  it("supports overlapping OIDC starts and consumes by matching state", async () => {
+    const first = await createPkceState();
+    const second = await createPkceState();
+    const mapBefore = JSON.parse(sessionStorage.getItem("oidc_pkce_map") ?? "{}") as Record<string, string>;
+    expect(Object.keys(mapBefore).length).toBe(2);
+
+    const secondVerifier = consumeVerifier(second.state);
+    expect(secondVerifier).toBe(mapBefore[second.state]);
+    const mapAfter = JSON.parse(sessionStorage.getItem("oidc_pkce_map") ?? "{}") as Record<string, string>;
+    expect(mapAfter[first.state]).toBeTruthy();
+    expect(mapAfter[second.state]).toBeUndefined();
   });
 });
 

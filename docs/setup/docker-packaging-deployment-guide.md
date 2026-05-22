@@ -89,13 +89,12 @@ compose는 서비스 간 연결/개발 실행에 유용하지만, 배포 산출�
 ## 5. 표준 빌드 명령 예시
 
 ```sh
-# backend-core
+# host build (build artifacts only)
+ENV_FILE=./.env.deploy ./scripts/build-artifacts.sh
+
+# runtime image packaging
 docker build -f backend-core/Dockerfile -t devhub/backend-core:${GIT_SHA} backend-core
-
-# backend-ai
 docker build -f backend-ai/Dockerfile -t devhub/backend-ai:${GIT_SHA} backend-ai
-
-# frontend
 docker build -f frontend/Dockerfile -t devhub/frontend:${GIT_SHA} frontend
 ```
 
@@ -151,11 +150,14 @@ docker push devhub/frontend:${GIT_SHA}
 
 ```sh
 export IMAGE_TAG=<git-sha-or-release-tag>
-export IMAGE_REPO_PREFIX=ghcr.io/<owner>/<repo>   # 로컬 검증 시 devhub
-export PUBLIC_BASE_URL=https://<host>/devhub
+export IMAGE_REPO_PREFIX=local/devhub             # 원격 배포 시 ghcr.io/<owner>/<repo> 로 덮어쓰기
+export PUBLIC_ACCESS_SCHEME=http
+export PUBLIC_ACCESS_HOST=<host-ip-or-dns>
+export PUBLIC_ACCESS_PORT=13000
+export NGINX_HTTP_PORT=3000                       # VM ingress port
 export DB_URL='postgres://<user>:<pw>@<db-host>:5432/<db>?sslmode=disable'
 export DEVHUB_IDP_PROVIDER=keycloak
-export DEVHUB_OIDC_ISSUER_URL=https://<host>/devhub/auth/keycloak/realms/devhub
+export DEVHUB_OIDC_ISSUER_URL=http://<host-ip-or-dns>:13000/devhub/auth/keycloak/realms/devhub
 export DEVHUB_OIDC_CLIENT_ID=devhub-web
 export DEVHUB_OIDC_CLIENT_SECRET='<oidc-client-secret>'
 export DEVHUB_KEYCLOAK_ADMIN_URL=http://keycloak:8080
@@ -163,13 +165,10 @@ export DEVHUB_KEYCLOAK_ADMIN_REALM=devhub
 export DEVHUB_KEYCLOAK_ADMIN_CLIENT_ID=devhub-admin
 export DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET='<keycloak-admin-secret>'
 export NEXT_PUBLIC_IDP_PROVIDER=keycloak
-export NEXT_PUBLIC_OIDC_ISSUER_URL=https://<host>/devhub/auth/keycloak/realms/devhub
+export NEXT_PUBLIC_OIDC_ISSUER_URL=http://<host-ip-or-dns>:13000/devhub/auth/keycloak/realms/devhub
 export NEXT_PUBLIC_BASE_PATH=devhub
-export NEXT_PUBLIC_OIDC_REDIRECT_URI=https://<host>/devhub/auth/callback
-export NGINX_HTTP_PORT=80
-export NGINX_HTTPS_PORT=443
-docker compose -f docker-compose.deploy.yml pull
-docker compose -f docker-compose.deploy.yml up -d
+export NEXT_PUBLIC_OIDC_REDIRECT_URI=http://<host-ip-or-dns>:13000/devhub/auth/callback
+./scripts/deploy-from-env.sh
 ```
 
 또는 저장소 표준 스크립트 사용:
@@ -184,9 +183,16 @@ ENV_FILE=./.env.deploy ./scripts/deploy-up.sh
 
 ```sh
 export IMAGE_TAG=$(git rev-parse --short HEAD)
-export IMAGE_REPO_PREFIX=devhub
+export IMAGE_REPO_PREFIX=local/devhub
+./scripts/build-artifacts.sh
+docker build -f backend-core/Dockerfile -t "${IMAGE_REPO_PREFIX}/backend-core:${IMAGE_TAG}" backend-core
+docker build -f backend-ai/Dockerfile -t "${IMAGE_REPO_PREFIX}/backend-ai:${IMAGE_TAG}" backend-ai
+docker build -f frontend/Dockerfile -t "${IMAGE_REPO_PREFIX}/frontend:${IMAGE_TAG}" frontend
 docker compose -f docker-compose.deploy.yml up -d
 ```
+
+원격 레지스트리 이미지를 쓸 때만 `docker compose pull` 을 실행한다. `IMAGE_REPO_PREFIX=local/*`
+계열은 로컬 빌드 산출물을 바로 사용하므로 pull 이 필요 없다.
 
 `IMAGE_TAG`와 Keycloak/OIDC 관련 URL은 필수다. 미지정 시 compose가 오류로 중단되도록 설정되어 있다.
 `DB_URL`도 필수다. 미지정 시 compose가 오류로 중단된다.
@@ -196,7 +202,7 @@ docker compose -f docker-compose.deploy.yml up -d
 
 ### 8.1.1 변수 스키마 (권장)
 
-- Public (브라우저가 직접 접근): `PUBLIC_BASE_URL`, `NEXT_PUBLIC_IDP_PROVIDER`, `NEXT_PUBLIC_OIDC_ISSUER_URL`
+- Public (브라우저가 직접 접근): `PUBLIC_ACCESS_SCHEME`, `PUBLIC_ACCESS_HOST`, `PUBLIC_ACCESS_PORT`, `DEVHUB_PUBLIC_BASE_URL`, `NEXT_PUBLIC_IDP_PROVIDER`, `NEXT_PUBLIC_OIDC_ISSUER_URL`
 - Internal (서비스 간 통신): `DEVHUB_OIDC_*`, `DEVHUB_KEYCLOAK_ADMIN_*`, `BACKEND_API_URL`
 - DB: `DB_URL`
 
@@ -282,30 +288,35 @@ docker compose -f docker-compose.deploy.yml --profile local-db up -d
 
 ## 11. frontend 패키징 정책 — runtime-config 우선 + 최소 build arg
 
-### 11.1 build args 매트릭스
+### 11.1 build-time env 매트릭스
 
-| build arg | 용도 | 운영 예시 |
+| env | 용도 | 운영 예시 |
 | --- | --- | --- |
 | `BACKEND_API_URL` | 서버측 rewrite 대상 (`next.config.ts`) | `http://backend-core:8080` |
+| `NEXT_PUBLIC_BASE_PATH` | basePath / callback 경로 | `devhub` |
+| `NEXT_PUBLIC_APP_ORIGIN` | client fallback origin | `https://devhub.example.com` |
+| `NEXT_PUBLIC_OIDC_ISSUER_URL` | client fallback issuer | `https://devhub.example.com/devhub/auth/keycloak/realms/devhub` |
+| `NEXT_PUBLIC_OIDC_REDIRECT_URI` | client fallback callback | `https://devhub.example.com/devhub/auth/callback` |
 
 ### 11.2 build 명령 예시
 
 ```bash
-docker build -f frontend/Dockerfile \
-  --build-arg BACKEND_API_URL=http://backend-core:8080 \
-  -t devhub/frontend:${GIT_SHA} frontend
+ENV_FILE=./.env.deploy ./scripts/build-artifacts.sh
+docker build -f frontend/Dockerfile -t devhub/frontend:${GIT_SHA} frontend
 ```
 
 OIDC 관련 URL(`OIDC_ISSUER_URL`, `OIDC_REDIRECT_URI`, `NEXT_PUBLIC_OIDC_ISSUER_URL` 등)은
-빌드에 고정하지 않고 런타임 env + `/api/runtime-config` 경로로 주입한다.
+런타임 env + `/api/runtime-config` 경로를 우선 사용하고, host build 는 fallback 값만
+bundle 에 넣는다.
 
 Dockerfile 핵심 형태:
 
 ```dockerfile
-FROM node:20-alpine AS builder
-ARG BACKEND_API_URL=http://localhost:8080
-ENV BACKEND_API_URL=$BACKEND_API_URL
-...
+FROM node:20-alpine
+COPY .next/standalone ./
+COPY .next/static ./.next/static
+COPY public ./public
+CMD ["node", "server.js"]
 ```
 
 ### 11.3 빌드 ↔ 런타임 환경변수 구분
@@ -317,6 +328,7 @@ ENV BACKEND_API_URL=$BACKEND_API_URL
 | `NEXT_PUBLIC_OIDC_ISSUER_URL` | fallback 용도 | YES — runtime-config 미사용/실패 시 fallback |
 
 운영 기본 원칙: frontend 이미지는 환경간 재사용하고, OIDC endpoint 는 런타임 주입으로 분리한다.
+host build 는 `scripts/build-artifacts.sh` 가 담당하고, Dockerfile 은 결과물만 복사한다.
 
 ## 12. Keycloak realm 운영 보안 — wildcard 좁히기 SOP (issue #238 P3-1)
 
