@@ -39,11 +39,14 @@ vi.mock("@/lib/services/identity.service", () => ({
 }));
 
 vi.mock("@/lib/services/api-client", () => ({
+  // 실 ApiError 의 3-arg constructor (status, payload, message) 정합.
   ApiError: class extends Error {
     status: number;
-    constructor(status: number, message: string) {
+    payload: unknown;
+    constructor(status: number, payload: unknown, message: string) {
       super(message);
       this.status = status;
+      this.payload = payload;
     }
   },
 }));
@@ -172,5 +175,54 @@ describe("AuthGuard limited-mode (skip) gating", () => {
       expect(screen.getByTestId("protected")).toBeInTheDocument();
     });
     expect(routerReplace).not.toHaveBeenCalled();
+  });
+});
+
+// 회귀 가드: ADR-0020 sub-carve F (sprint claude/work_260522-adr-0020-subcarve-f-login)
+// — 401 + 기타 error fallback redirect 가 /auth/login (sub-carve F 이전) 에서
+// /login?error=... (이후) 로 변경됐다. 401 = session_expired / 그 외 = login_failed.
+// 사용자가 stuck 일 때 `?error=` query 가 살아 있어야 /login 페이지가 메시지를 노출한다.
+describe("AuthGuard 401/error fallback (ADR-0020 sub-carve F)", () => {
+  beforeEach(() => {
+    routerReplace.mockClear();
+    pathnameRef.current = "/developer";
+    storeState.actor = null;
+    storeState.setActor.mockClear();
+    storeState.clearActor.mockClear();
+    whoAmIMock.mockReset();
+    skipFlag.value = false;
+  });
+
+  it("401 ApiError 시 /login?error=session_expired 로 redirect 한다", async () => {
+    // Reproduce ApiError shape from the same mock factory the production
+    // module imports; constructing it directly would bypass the vi.mock.
+    const { ApiError } = await import("@/lib/services/api-client");
+    whoAmIMock.mockRejectedValue(new ApiError(401, null, "unauthenticated"));
+
+    render(
+      <AuthGuard>
+        <div data-testid="protected">child</div>
+      </AuthGuard>
+    );
+
+    await waitFor(() => {
+      expect(routerReplace).toHaveBeenCalledWith("/login?error=session_expired");
+    });
+    expect(storeState.clearActor).toHaveBeenCalled();
+  });
+
+  it("non-401 error 시 /login?error=login_failed 로 redirect 한다", async () => {
+    whoAmIMock.mockRejectedValue(new Error("network down"));
+
+    render(
+      <AuthGuard>
+        <div data-testid="protected">child</div>
+      </AuthGuard>
+    );
+
+    await waitFor(() => {
+      expect(routerReplace).toHaveBeenCalledWith("/login?error=login_failed");
+    });
+    expect(storeState.clearActor).toHaveBeenCalled();
   });
 });

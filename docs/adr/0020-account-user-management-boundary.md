@@ -94,11 +94,11 @@
 | **C** | event listener 확장 — USER:UPDATE / GROUP_MEMBERSHIP / USER:DELETE 매핑 + DevHub `users` write + metric 3종 (결정 C + §5.3) | ✅ `-k` (sprint `claude/work_260520-k-212-event-listener-users-sync`, PR TBD) |
 | **D** | JWKS stale-while-error expiry case 확장 (결정 F + §5.6) | ✅ `-l` (sprint `claude/work_260520-l-213-jwks-stale-expiry`, PR TBD) |
 | **E** | service account 권한 축소 + governance 협약 SOP (`docs/planning/keycloak_service_account_min_role.md` 신규, §5.5). 옵션 A 정공법 (호출처 전면 제거) 채택. organization.go POST /users password 분기 제거 + seedLocalAdmin 함수 + KeycloakAdminClient write methods 4건 + IdentityAdmin interface 정리 | ✅ `-n` (sprint `claude/work_260520-n-214-service-account-min-role`, PR TBD) |
-| **F** | `/login` page 정리 (결정 B + §5.7) | `-o` (후속, 우선순위 낮음) |
+| **F** | `/login` page 정리 (결정 B + §5.7) | ✅ `claude/work_260522-adr-0020-subcarve-f-login` (PR TBD) — `/login` canonical page swap + `?error=` 처리 + `/auth/login` stub 보존 + AuthGuard 401 fallback `/login?error=session_expired` |
 
 #### 4.1.1 Phase 3 closing status (2026-05-22)
 
-본 ADR 발급 이후 sub-carve 진행 결과 — **8 carve 중 6 closed + 1 사내 동반 + 1 잔여 (P3)**.
+본 ADR 발급 이후 sub-carve 진행 결과 — **8 carve 중 7 closed + 1 사내 동반**.
 
 | Sub-carve | 머지 | SHA | 비고 |
 | --- | --- | --- | --- |
@@ -108,10 +108,10 @@
 | C | PR #241 | `9ea7e1c` | sprint `-k` |
 | D | PR #242 | `cb6646d` | sprint `-l` |
 | E | PR #244 | `6810384` | sprint `-n` |
-| **F** | — | — | **carve, P3** — frontend `/login` page 정리. §5.7 따름. worker_division 상 Gemini 영역 (claude override 가능, 메모리 `feedback_worker_division_override` 참조). |
+| **F** | PR TBD | TBD | sprint `claude/work_260522-adr-0020-subcarve-f-login` — `/login` canonical page swap (`/auth/login` 96 LoC → `/login` + `?error=` 처리) + `/auth/login` stub 보존 (외부 bookmark 호환) + AuthGuard 401 fallback `/login?error=session_expired` + 비-401 fallback `/login?error=login_failed` + 호출처 8 위치 sync. worker_division 사용자 명시 override 진입 (`feedback_worker_division_override`). |
 | **SPI provider JAR** | — | — | **사내 동반 P2** — Keycloak SPI Java 빌드 + Maven/Gradle 자산. 사내 인프라 결정 동반. |
 
-**핵심 결정 (옵션 A 책임 경계 / `rbac_subject_roles` 제거 / service account 권한 축소)** 은 6 closed carve 로 완전 적용. 잔여 F + SPI 는 본 ADR 의 핵심 결정과 직교 — F 는 frontend UX 정리만, SPI 는 event listener push 전환 (현재 polling 정공법).
+**핵심 결정 (옵션 A 책임 경계 / `rbac_subject_roles` 제거 / service account 권한 축소)** 은 6 closed carve 로 완전 적용. 추가 F closing 으로 frontend UX 정리도 완료 — 잔여는 SPI JAR (사내 동반) 만.
 
 §6.3 사내 동반 carve 3건 (HRDB ETL push unit stage / Keycloak admin 운영 SOP 승격 / JWKS rotation 직후 cache flush SOP) 은 본 ADR 의 결정 적용 후속 운영 자산 — claude 가 docs 초안 작성 가능, 사내 실 적용은 IdP 팀 / 운영팀 동반.
 
@@ -211,3 +211,4 @@ sprint -d 이후 custom role (예: `pmo_director`, `qa_lead` 등 `rbac_policies`
 | 2026-05-20 | **sub-carve E resolved** — service account 권한 축소 정공법 (옵션 A 전면 호출처 제거). 5 commit. (1) `organization.go` `POST /api/v1/users` `req.Password` 분기 제거 + `createUserRequest.Password` field 폐기 + `audit_logs.details` dead key `kratos_id` 제거. (2) `main.go` `seedLocalAdmin` 함수 + 호출 + `seedOrgStore` interface 완전 제거. `main_test.go` 전체 삭제 (seedLocalAdmin 전용 test 3건 + `idpAdminFake` + `orgStoreFake`). (3) `KeycloakAdminClient.CreateIdentity` / `UpdateIdentityPassword` / `SetIdentityState` / `DeleteIdentity` 4 method 제거 + `keycloakIDFromLocation` dead helper 제거. `IdentityAdmin` interface 의 write method 4건 제거 (`FindIdentityByUserID` 만 view-users role 유지). `MockIdentityAdmin` + `keycloak_admin_client_test.go` 정리. (4) `docs/planning/keycloak_service_account_min_role.md` 신규 (현황 매트릭스 13 row + 옵션 A/B/C 비교 + 옵션 A 채택 + 운영 SOP 5 sub-section) + §4.1 sub-carve E done 마킹. (5) traceability + memory. backend service account 가 view-users + view-events realm role 만 요구 — Keycloak 운영자가 `manage-users` 제거 가능 (사내 운영팀 후속). | `claude/work_260520-n-214-service-account-min-role` |
 | 2026-05-21 | **partial supersession by ADR-0021** — [ADR-0021](./0021-onboarding-self-service-unit-selection.md) 가 본 ADR 의 lazy auto-create 결정 (§3.2 신규 user unit 초기 배치 row + §4.1 sub-carve B 의 lazy auto-create 실 구현 + §4.2 lazy auto-create 보안 영향 + §6.2 carve out 의 동일 항목) 을 supersede. §3.2 의 "user 조직 unit assignment" 책임 주체는 사용자 self-service onboarding + admin 검토로 **확장**. 본 ADR 의 핵심 결정 (옵션 A 책임 경계 / `rbac_subject_roles` 제거 / service account 권한 축소) 은 변경 없이 유지. 메타 헤더 + §3.2/§4.1/§4.2/§6.1/§6.2 4 위치에 inline supersession banner 추가 (메모리 `feedback_adr_supersession_pattern` 패턴). | `claude/onboarding-adr-2026-05-21` |
 | 2026-05-22 | **Phase 3 closing status 명문화** — §4.1.1 신규 sub-section (sub-carve 8 closing 표 + 핵심 결정 적용 완료 + 잔여 F/SPI active 표기). main flat memory directive 의 "ADR-0020 Phase 3 8 carve 진입" 표현이 misleading 했던 점 (잔여 active 는 F + SPI 만) 정정. | `claude/work_260522-adr-0020-phase3-closing-housekeeping` |
+| 2026-05-22 | **sub-carve F resolved** — `/login` 이 canonical entry page (결정 B). `/auth/login` 96 LoC → `/login` 본문 swap + `?error=` query 처리 (`session_expired/login_failed/unauthorized + error_description` 5 케이스) + `/auth/login` 14 LoC stub (외부 bookmark 호환) + AuthGuard 401 fallback `/login?error=session_expired` + 비-401 fallback `/login?error=login_failed` + 호출처 8 위치 sync (AuthGuard 2 + onboarding 1 + auth/callback 1 + auth/error 1 + auth/signup 1 + role-routing.test 1 + 1 신규 `/login` test). vitest 회귀 가드 신규 (`resolveErrorMessage` unit 6건 + AuthGuard fallback 2건). §4.1.1 표 F → done 표기. | `claude/work_260522-adr-0020-subcarve-f-login` |

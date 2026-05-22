@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-05-22 main HEAD `d5e15f6` (PR #293 Onboarding 운영 SOP 신규). 후속 sprint `claude/work_260522-adr-0020-phase3-closing-housekeeping` 가 **ADR-0020 Phase 3 closing status 명문화** — 직전 memory directive 의 misleading 'ADR-0020 Phase 3 8 carve 진입' 표현 정정. **8 sub-carve 중 6 closed** (A #205 / B-backend #239 / B-frontend #246 / C #241 / D #242 / E #244) + **1 잔여 active P3** (F `/login` 정리, frontend) + **1 사내 동반 P2** (SPI JAR). 핵심 결정 (옵션 A 책임 경계 / `rbac_subject_roles` 제거 / service account 권한 축소) 모두 적용 완료. ADR-0020 §4.1.1 + redesign §6.1.1 신규. v1.0 release gate (D-24) 잔여 1건 (#214 P1-3 Keycloak group staging-prod). 다음 directive (사용자 지정): A = sub-carve F `/login` page 정리 (frontend, worker_division override 명시) / B = 사내 동반 carve docs 초안 3건 (Keycloak admin SOP 승격 / JWKS rotation cache flush / HRDB ETL unit pre-stage). 그 외 1순위 SOP 따른 staging 1주 monitoring (사내 운영자) 진행 + Prometheus metric backend 도입 (SOP §8 잔여 carve P2).",
-  "updated_at": "2026-05-22T02:00:00Z",
-  "head_commit": "d5e15f6",
-  "head_summary": "docs(setup): Onboarding 운영 SOP 신규 (staging 1주 monitoring + rollback + incident response) (#293)",
+  "status": "2026-05-22 main HEAD `39acb62` (PR #294 ADR-0020 Phase 3 closing housekeeping). 후속 sprint `claude/work_260522-adr-0020-subcarve-f-login` 가 **sub-carve F resolved** — `/login` canonical page swap (`/auth/login` 96 LoC → `/login` 본문 + `?error=` query 처리 5 케이스) + `/auth/login` 14 LoC stub (외부 bookmark 호환) + AuthGuard 401 fallback `/login?error=session_expired` + 비-401 `/login?error=login_failed` + 호출처 8 위치 sync (AuthGuard.tsx 2 + onboarding 1 + auth/callback 1 + auth/error 1 + auth/signup 1 + role-routing.test 1) + vitest 회귀 가드 신규 (resolveErrorMessage 6 unit + AuthGuard fallback 2). **ADR-0020 Phase 3: 7/8 closed + 1 사내 동반 (SPI JAR P2)**. 사용자 명시 override 진입 (worker_division 상 Gemini 영역, `feedback_worker_division_override`). vitest 8 file / 40 test 그린 + TS clean. v1.0 release gate (D-24) 잔여 1건 (#214 P1-3 Keycloak group staging-prod). 다음 directive (사용자 지정): B = 사내 동반 carve docs 초안 3건 (Keycloak admin SOP 승격 / JWKS rotation cache flush / HRDB ETL unit pre-stage). 그 외 1순위 SOP 따른 staging 1주 monitoring (사내 운영자) 진행 + Prometheus metric backend 도입 (SOP §8 잔여 carve P2).",
+  "updated_at": "2026-05-22T03:00:00Z",
+  "head_commit": "39acb62",
+  "head_summary": "docs(adr,planning,memory): ADR-0020 Phase 3 closing status 명문화 (6/8 carve) (#294)",
   "milestones": {
     "M0": {
       "status": "done",
