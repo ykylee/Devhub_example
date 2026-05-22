@@ -6,7 +6,7 @@
 - **수정일**: 2026-05-21
 - **결정 근거 sprint**: `claude/keycloak-user-onboarding-concept` (PR #260, 컨셉 1차) + `claude/keycloak-onboarding-concept-2026-05-21` (PR #265, §5.9 skip-and-resume) + `claude/onboarding-requirements-2026-05-21` (PR #266, REQ §5.7) + `claude/onboarding-arch-2026-05-21` (PR #267, ARCH §9 + API §16) + `claude/onboarding-adr-2026-05-21` (본 ADR 발급)
 - **partial supersedes**: [ADR-0020 외부 Keycloak 가정 하의 계정/사용자 관리 책임 경계 (2026-05-20)](./0020-account-user-management-boundary.md) — §3.2 의 "신규 user 의 unit 초기 배치" row 의 lazy-auto-create-후 정책 + §4.1 sub-carve B 의 lazy auto-create 실 구현 결정 + §4.2 의 lazy auto-create 관련 보안 영향 + §6.1 후속 ADR 후보 row + §6.2 carve out 의 동일 항목 (5 위치, 상세는 §4.1). ADR-0020 의 **핵심 결정** (옵션 A 책임 경계 — Keycloak account vs DevHub user 분리) 은 reverse 하지 않고 **자연 확장**.
-- **관련 문서**: [`docs/planning/keycloak_user_onboarding_concept.md`](../planning/keycloak_user_onboarding_concept.md), [`docs/requirements.md §5.7`](../requirements.md), [`docs/architecture.md §9`](../architecture.md), [`docs/backend_api_contract.md §16`](../backend_api_contract.md), [`docs/planning/system_usecases.md §2.13`](../planning/system_usecases.md), [ADR-0019 Keycloak 단일화](./0019-keycloak-only-idp.md), [ADR-0020 계정/사용자 책임 경계](./0020-account-user-management-boundary.md)
+- **관련 문서**: [`docs/planning/keycloak_user_onboarding_concept.md`](../planning/keycloak_user_onboarding_concept.md), [`docs/requirements.md §5.7`](../requirements.md), [`docs/architecture.md §9`](../architecture.md), [`docs/backend_api_contract.md §16`](../backend_api_contract.md), [`docs/planning/system_usecases.md §2.13`](../planning/system_usecases.md), [`docs/setup/onboarding_operations.md`](../setup/onboarding_operations.md) (운영 SOP — staging 1주 monitoring + rollback + incident response), [ADR-0019 Keycloak 단일화](./0019-keycloak-only-idp.md), [ADR-0020 계정/사용자 책임 경계](./0020-account-user-management-boundary.md)
 
 ## 2. 컨텍스트
 
@@ -212,6 +212,12 @@ GitHub issue 등록: P2-8 ~ P2-11 (4건, `release_v1_roadmap.md` §3.3 매트릭
 ### 6.3 부가 프로필 필드 확장 (REQ-FR-ONBOARD-012 후속)
 
 - 사진/아바타, 닉네임, 입사일, 연락처 등 onboarding 완료 후 `/account` 에서 변경 가능한 필드는 본 ADR 의 1차 범위 밖. 별도 design carve.
+
+### 6.4 운영 SOP
+
+- Feature flag `DEVHUB_ONBOARDING_GATE_ENABLED` default ON flip (PR #290) 후 staging 1주 monitoring 절차 + 회귀 발견 시 rollback runbook + incident response 단계화는 [`docs/setup/onboarding_operations.md`](../setup/onboarding_operations.md) 가 source-of-truth.
+- 1주 acceptance (DoD) — [onboarding_operations §7](../setup/onboarding_operations.md#7-1주-종료-후-acceptance--dod) 의 8 항목 모두 통과 시 staging → prod promote 검토.
+- Prometheus metric backend 도입 + Grafana dashboard JSON + Alertmanager rule + `pending_review` admin 검토 SLA 정책은 [onboarding_operations §8](../setup/onboarding_operations.md#8-잔여-carve-out) 잔여 carve.
 
 ## 7. 변경 이력
 

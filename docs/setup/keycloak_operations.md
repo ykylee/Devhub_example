@@ -618,6 +618,7 @@ SELECT cursor_key, last_event_at, last_event_hash, updated_at FROM event_cursors
 | Keycloak failover (HA 구성 또는 backup IdP) | ADR-0019 §5.3 | 단일 장애점 회피 |
 | off-boarding 즉시성 | ADR-0019 §5.3 | HR 시스템 → Keycloak → DevHub propagation chain |
 | `groups` claim → DevHub RBAC role 자동 매핑 | ADR-0019 §5.3 (별도 ADR 후보) | composite role 또는 mapper 로 |
+| Onboarding 도메인 운영 SOP | [`onboarding_operations.md`](./onboarding_operations.md) | ADR-0021 운영 측면 — staging 1주 monitoring + rollback + incident response. 본 SOP 와 별도 자산 (Keycloak 운영 vs DevHub 도메인 운영). |
 | ~~Keycloak event SPI → DevHub `audit_logs` 통합~~ | ~~ADR-0019 §5.3 + ADR-0019 §4.5~~ | **resolved** — Phase 2 (PR-B~PR-E, sprint -u~-x). polling 기반 구현 + 운영 SOP §8.6. SPI push 전환은 별도 carve (§8.6.9). |
 | 사내 LDAP/AD federation | ADR-0019 §5.4 RM-M4-09 | Keycloak User Federation |
 | Gitea SSO via Keycloak identity broker | ADR-0019 §5.4 RM-M4-09 | M4 RM-M4 진입 시 |
