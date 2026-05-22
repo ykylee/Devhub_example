@@ -195,9 +195,12 @@ sprint -d 이후 custom role (예: `pmo_director`, `qa_lead` 등 `rbac_policies`
 - `/login` page 정리 (§4.1 sub-carve F)
 
 ### 6.3 사내 동반 carve
-- HRDB ETL push 의 unit 매핑 정보 stage — sprint -p `hrdb_etl_sync.sh` 확장 (신규 user unit 자동 매핑)
-- Keycloak admin 운영 SOP 협약 — IdP 팀 + DevHub 운영자 간 책임 분리 협약 문서화 (§3.2 표를 사내 정책 문서로 승격)
-- JWKS rotation 직후 backend cache flush SOP — rotation 직후 backend 강제 재시작 또는 cache flush endpoint
+
+> **[2026-05-22 docs 초안 resolved]** sprint `claude/work_260522-internal-coordinated-carve-docs` 가 3 carve 의 docs 초안 신규. 사내 실 적용 (IdP 팀 / HRDB 팀 / 운영팀 동반) 은 별도.
+
+- ✅ resolved (docs 초안) — [HRDB ETL push 의 unit 매핑 정보 stage](../setup/hrdb_unit_pre_stage.md) (옵션 A Keycloak user attribute 권장 / 옵션 B DevHub hrdb.persons 보조 / 옵션 C self-service only)
+- ✅ resolved (docs 초안) — [Keycloak admin 운영 SOP 협약](../governance/keycloak_admin_responsibility.md) (§3.2 표를 사내 정책 문서로 승격 — IdP 팀 vs DevHub 운영자 책임 매트릭스 5 sub-section + escalation 4 level + 명시 금지 5건)
+- ✅ resolved (docs 초안) — [JWKS rotation 직후 backend cache flush SOP](../setup/jwks_rotation_cache_flush.md) (강제 재기동 정공법 4 환경 + 검증 4 step + cache flush endpoint carve P3)
 
 ## 7. 변경 이력
 
@@ -212,3 +215,4 @@ sprint -d 이후 custom role (예: `pmo_director`, `qa_lead` 등 `rbac_policies`
 | 2026-05-21 | **partial supersession by ADR-0021** — [ADR-0021](./0021-onboarding-self-service-unit-selection.md) 가 본 ADR 의 lazy auto-create 결정 (§3.2 신규 user unit 초기 배치 row + §4.1 sub-carve B 의 lazy auto-create 실 구현 + §4.2 lazy auto-create 보안 영향 + §6.2 carve out 의 동일 항목) 을 supersede. §3.2 의 "user 조직 unit assignment" 책임 주체는 사용자 self-service onboarding + admin 검토로 **확장**. 본 ADR 의 핵심 결정 (옵션 A 책임 경계 / `rbac_subject_roles` 제거 / service account 권한 축소) 은 변경 없이 유지. 메타 헤더 + §3.2/§4.1/§4.2/§6.1/§6.2 4 위치에 inline supersession banner 추가 (메모리 `feedback_adr_supersession_pattern` 패턴). | `claude/onboarding-adr-2026-05-21` |
 | 2026-05-22 | **Phase 3 closing status 명문화** — §4.1.1 신규 sub-section (sub-carve 8 closing 표 + 핵심 결정 적용 완료 + 잔여 F/SPI active 표기). main flat memory directive 의 "ADR-0020 Phase 3 8 carve 진입" 표현이 misleading 했던 점 (잔여 active 는 F + SPI 만) 정정. | `claude/work_260522-adr-0020-phase3-closing-housekeeping` |
 | 2026-05-22 | **sub-carve F resolved** — `/login` 이 canonical entry page (결정 B). `/auth/login` 96 LoC → `/login` 본문 swap + `?error=` query 처리 (`session_expired/login_failed/unauthorized + error_description` 5 케이스) + **`/auth/login` 완전 제거** (사용자 결정 옵션 B, 사내 운영자 Keycloak admin console allowlist 1회 갱신 동반) + AuthGuard 401 fallback `/login?error=session_expired` + 비-401 fallback `/login?error=login_failed` + 호출처 8 위치 sync (AuthGuard 2 + onboarding 1 + auth/callback 1 + auth/error 1 + auth/signup 1 + role-routing.test 1 + 1 신규 `/login` test) + infra (realm.prod.json + nginx template + setup-keycloak.sh) 3건 + 5 docs (docker-packaging / environment-setup / keycloak_operations / single_port_deployment / e2e-test-guide) 의 `/devhub/auth/login` allowlist URI 정합. vitest 회귀 가드 신규 (`resolveErrorMessage` unit 6건 + AuthGuard fallback 2건). §4.1.1 표 F → done 표기. | `claude/work_260522-adr-0020-subcarve-f-login` |
+| 2026-05-22 | **§6.3 사내 동반 carve 3건 docs 초안 resolved** — sprint `claude/work_260522-internal-coordinated-carve-docs`. (1) [`docs/governance/keycloak_admin_responsibility.md`](../governance/keycloak_admin_responsibility.md) 신규 (§3.2 표를 사내 정책 문서로 승격 — IdP 팀 vs DevHub 운영자 책임 매트릭스 5 sub-section + escalation 4 level + 명시 금지 5건 + 변경 절차). (2) [`docs/setup/jwks_rotation_cache_flush.md`](../setup/jwks_rotation_cache_flush.md) 신규 (revoked key 위협 대응 — backend 강제 재기동 4 환경별 + 검증 4 step + cache flush endpoint carve P3). (3) [`docs/setup/hrdb_unit_pre_stage.md`](../setup/hrdb_unit_pre_stage.md) 신규 (옵션 A Keycloak user attribute 권장 / 옵션 B DevHub hrdb.persons 보조 / 옵션 C self-service only + ADR-0021 §6.2 onboarding cross-check 결정 옵션 3가지). 사내 실 적용 (IdP 팀 / HRDB 팀 / Security sign-off) 은 별도. §6.3 carve list 3건 모두 docs 초안 마킹. | `claude/work_260522-internal-coordinated-carve-docs` |

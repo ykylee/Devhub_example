@@ -30,9 +30,10 @@ DevHub 의 거버넌스는 다음 두 축으로 운영된다:
 ```
 docs/
 ├── governance/
-│   ├── README.md             ← 본 문서
-│   ├── document-standards.md ← 문서 작성·관리 표준
-│   └── worker_division.md    ← 워커 분업 (Claude / Codex / Gemini), 2026-05-20 신규
+│   ├── README.md                          ← 본 문서
+│   ├── document-standards.md              ← 문서 작성·관리 표준
+│   ├── worker_division.md                 ← 워커 분업 (Claude / Codex / Gemini), 2026-05-20 신규
+│   └── keycloak_admin_responsibility.md   ← IdP 팀 ↔ DevHub 운영자 책임 분리 협약, 2026-05-22 신규 (ADR-0020 §3.2 승격)
 └── traceability/
     ├── README.md             ← 추적성 체계 개요
     ├── conventions.md        ← ID 컨벤션 표준
@@ -51,3 +52,4 @@ docs/
 | 일자 | 변경 |
 | --- | --- |
 | 2026-05-13 | 1차 작성 (sprint `claude/work_260513-c`). |
+| 2026-05-22 | `keycloak_admin_responsibility.md` 신규 — ADR-0020 §3.2 책임 매트릭스 승격 + escalation path + 명시 금지 5건 (sprint `claude/work_260522-internal-coordinated-carve-docs`). |

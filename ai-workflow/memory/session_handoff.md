@@ -1,12 +1,45 @@
-# Session Handoff — main (2026-05-22 ADR-0020 sub-carve F resolved)
+# Session Handoff — main (2026-05-22 ADR-0020 §6.3 사내 동반 carve docs 초안 resolved)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
-- 범위: 직전 PR #294 (`d5e15f6` → `39acb62`, ADR-0020 Phase 3 closing housekeeping) 후 본 sprint `claude/work_260522-adr-0020-subcarve-f-login` 가 **sub-carve F resolved** — `/login` canonical page swap + `?error=` query 처리 5 케이스 + `/auth/login` stub 보존 + AuthGuard 401 fallback redirect target 정합 + 호출처 8 위치 sync + vitest 회귀 가드 신규 8건.
+- 범위: 본 세션 누적 5 PR (#293 Onboarding SOP + #294 Phase 3 closing housekeeping + #295 sub-carve F /login canonical + #296 외부 codex OIDC PKCE + 본 sprint) + 사내 동반 carve docs 초안 3건. ADR-0020 §6.3 + redesign §7.3 carve list 모두 docs 초안 mark.
 - 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
-- 상태: M1/M2/M3/M5/M6 done + **M7 Onboarding 운영 SOP closing (PR #293)** + **ADR-0020 Phase 3 7/8 closing (PR #294 + 본 sprint)**. ADR-0020 핵심 결정 + frontend UX 정리 모두 적용 완료. 잔여: SPI JAR (사내 P2) + §6.3 사내 동반 carve 3건.
-- 최종 수정일: 2026-05-22 (sprint `claude/work_260522-adr-0020-subcarve-f-login` 머지 후)
-- 관련 문서: [v1.0 릴리즈 로드맵](../../docs/planning/release_v1_roadmap.md), [Onboarding IMPL plan](../../docs/planning/onboarding_impl_plan.md), [Onboarding 운영 SOP](../../docs/setup/onboarding_operations.md), [ADR-0020](../../docs/adr/0020-account-user-management-boundary.md), [ADR-0021](../../docs/adr/0021-onboarding-self-service-unit-selection.md), [account/user redesign Phase 3](../../docs/planning/account_user_management_redesign.md), [traceability/report](../../docs/traceability/report.md).
-- 브랜치: `main` (HEAD `39acb62` post PR #294 → 본 sprint 머지 후 `<TBD>`).
+- 상태: M1/M2/M3/M5/M6 done + **M7 Onboarding 운영 SOP closing (PR #293)** + **ADR-0020 Phase 3 7/8 closing (#294 + #295)** + **외부 codex OIDC PKCE + ADR-0022 Keycloak 25.0 pin 흡수 (#296 + claude P0 fix)** + **사내 동반 carve 3건 docs 초안 resolved (본 sprint)**. ADR-0020 핵심 결정 + frontend UX + 사내 운영 docs 모두 적용 완료. 잔여: SPI JAR (사내 P2) + PR #296 follow-up 6건.
+- 최종 수정일: 2026-05-22 (sprint `claude/work_260522-internal-coordinated-carve-docs` 머지 후)
+- 관련 문서: [v1.0 릴리즈 로드맵](../../docs/planning/release_v1_roadmap.md), [Onboarding 운영 SOP](../../docs/setup/onboarding_operations.md), [Keycloak admin responsibility](../../docs/governance/keycloak_admin_responsibility.md) (본 sprint 신규), [JWKS rotation cache flush SOP](../../docs/setup/jwks_rotation_cache_flush.md) (본 sprint 신규), [HRDB unit pre-stage 가이드](../../docs/setup/hrdb_unit_pre_stage.md) (본 sprint 신규), [ADR-0020](../../docs/adr/0020-account-user-management-boundary.md), [ADR-0021](../../docs/adr/0021-onboarding-self-service-unit-selection.md), [ADR-0022](../../docs/adr/0022-keycloak-version-pin-25-0.md), [account/user redesign Phase 3](../../docs/planning/account_user_management_redesign.md).
+- 브랜치: `main` (HEAD `6ea9b89` post PR #296 → 본 sprint 머지 후 `<TBD>`).
+
+## 2026-05-22 본 세션 (sprint `claude/work_260522-internal-coordinated-carve-docs`)
+
+ADR-0020 §6.3 사내 동반 carve 3건의 docs 초안 작성. 사내 실 적용은 별도 (IdP 팀 / HRDB 팀 / Security sign-off 동반).
+
+| 산출물 | 위치 | 핵심 |
+| --- | --- | --- |
+| Keycloak admin 책임 분리 협약 | `docs/governance/keycloak_admin_responsibility.md` | ADR-0020 §3.2 + ADR-0021 §3.1 표 governance 정책 문서 승격. §2 책임 매트릭스 5 sub-section (사용자 lifecycle / 조직 unit assignment / RBAC / IdP 자산 / monitoring + incident). §3 escalation 4 level (L1 SRE → L2 backend/frontend → L3 IdP 팀 / DBA). §4 명시 금지 5건. §5 변경 절차. |
+| JWKS rotation 직후 cache flush SOP | `docs/setup/jwks_rotation_cache_flush.md` | revoked key 위협 대응. §3 trigger 3 분류 (정상 / 비상 / passive cleanup). §4 강제 재기동 정공법 4 환경별 명령 (docker / systemd / k8s / supervisor) + 검증 4 step + 영향 + 후속 점검. §5 cache flush endpoint carve P3. §6 트러블슈팅 4 case. |
+| HRDB ETL unit pre-stage 가이드 | `docs/setup/hrdb_unit_pre_stage.md` | §2 데이터 경로 3 옵션 (A Keycloak user attribute 권장 / B DevHub hrdb.persons 보조 / C self-service only 현 1차). §3 옵션 A 운영 절차 (사내 HRDB ETL + Keycloak User Attribute Mapper + backend 자동 매핑 carve). §4 옵션 B (ADR-0008 §4.2 schema 확장 carve). §5 onboarding cross-check 후속 carve 결정 옵션 3가지. §6 잔여 carve 7건. |
+| Cross-link | ADR-0020 §6.3 / redesign §7.3 / governance README §디렉터리 구조 + 변경 이력 | 3 carve 모두 ✅ resolved (docs 초안) 표기 + 변경 이력 row |
+
+## 본 세션 누적 5 PR + 본 sprint
+
+| PR | sprint | 핵심 |
+| --- | --- | --- |
+| #293 | `work_260522-onboarding-ops-sop` | Onboarding 운영 SOP 신규 (1순위 directive) |
+| #294 | `work_260522-adr-0020-phase3-closing-housekeeping` | ADR-0020 Phase 3 closing status 명문화 (2순위 C) |
+| #295 | `work_260522-adr-0020-subcarve-f-login` | sub-carve F — `/auth/login` 제거 + `/login` canonical (2순위 A 옵션 B) |
+| #296 | 외부 codex + claude P0 fix | OIDC PKCE race fix + Keycloak 25.0 pin + ADR-0022 + admin env 호환성 fix |
+| **본** | `work_260522-internal-coordinated-carve-docs` | §6.3 사내 동반 carve 3건 docs 초안 (2순위 B) |
+
+## 다음 directive
+
+| 순위 | 항목 | 영역 |
+| --- | --- | --- |
+| 1 | Onboarding 운영 SOP 따른 staging 1주 monitoring 시작 | 사내 운영자 (DevHub SRE) |
+| 2 | PR #296 follow-up carve 6건 — `localhost:13000` magic / python3 사전조건 / sync idempotent / KEYCLOAK_REALM_IMPORT_PATH fallback / generated 파일 git 추적 / ADR-0022 §3.1 retreat 사유 finalize | 사용자 (ADR-0022 finalize) + claude (docs / refactor 일부) |
+| 3 | v1.0 release gate (D-24) #214 P1-3 Keycloak group staging-prod | 사내 운영자 (Infra) |
+| 4 | Prometheus metric backend 도입 (Onboarding SOP §8 잔여 carve P2) | claude (backend) |
+| 5 | 본 sprint 신규 3 docs 의 사내 실 적용 — IdP 팀 검토 + Security sign-off + HRDB 팀 동반 | 사내 운영자 + claude (docs 갱신 동반) |
+
+
 
 ## 2026-05-22 본 세션 (sprint `claude/work_260522-adr-0020-subcarve-f-login`)
 
