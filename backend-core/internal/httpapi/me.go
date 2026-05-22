@@ -73,8 +73,11 @@ func (h Handler) getMe(c *gin.Context) {
 		Source:  actor.Source,
 	}
 
-	// RM-ONBOARD-01 — DB row 가 있으면 onboarding state + 프로필 hydrate.
-	if h.cfg.OnboardingGateEnabled && h.cfg.OrganizationStore != nil && actor.Login != "" && actor.Login != "system" {
+	// RM-ONBOARD-01 — onboarding_required 계산은 gate flag 와 분리한다.
+	// gate flag 는 "차단(onboardingGate middleware)" on/off 만 제어하고,
+	// /api/v1/me 응답의 onboarding state 는 항상 hydrate 되어야 frontend
+	// (auth callback/AuthGuard)가 온보딩 진입을 정확히 결정할 수 있다.
+	if h.cfg.OrganizationStore != nil && actor.Login != "" && actor.Login != "system" {
 		user, err := h.cfg.OrganizationStore.GetUser(c.Request.Context(), actor.Login)
 		switch {
 		case err == nil:
