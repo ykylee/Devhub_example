@@ -114,8 +114,11 @@ services:
       - --import-realm
     environment:
       # Admin bootstrap (1차 setup 후 별도 admin user 발급 + 본 env 제거 권장)
+      # Keycloak 25 호환: KC_BOOTSTRAP_* + legacy KEYCLOAK_ADMIN* 동시 주입.
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME:?set KC_BOOTSTRAP_ADMIN_USERNAME}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD:?set KC_BOOTSTRAP_ADMIN_PASSWORD}
+      KEYCLOAK_ADMIN: ${KC_BOOTSTRAP_ADMIN_USERNAME:?set KC_BOOTSTRAP_ADMIN_USERNAME}
+      KEYCLOAK_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD:?set KC_BOOTSTRAP_ADMIN_PASSWORD}
       # Management interface 활성화 (healthcheck 의 /health/ready 응답 필요).
       KC_HEALTH_ENABLED: "true"
       # DB (사내 PostgreSQL 사용)
