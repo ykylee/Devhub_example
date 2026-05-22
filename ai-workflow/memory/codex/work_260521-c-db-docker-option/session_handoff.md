@@ -52,6 +52,17 @@
 - ADR-0022 draft 발행 — §3.1 retreat 사유 placeholder, 사용자 finalize 후 Accepted 승격.
 - `latest` tag 미사용 정책 재확인 (4 risk — 재현 불가 / silent upgrade / rollback 소실 / Keycloak 호환 risk).
 
+## 2026-05-22 Python 3.12 pin 세션 (`7626a8c`)
+
+- backend-ai base image 를 `python:3.13-slim` → `python:3.12-slim` 으로 pin.
+- 변경 위치 4건:
+  - `backend-ai/Dockerfile:1` — base image tag
+  - `docs/tech_stack.md:46` — "v3.11+ 권장 (최소 v3.10)" → "기준 v3.12 + host ABI 권장 명시"
+  - `docs/setup/environment-setup.md:22` — prerequisite Python 3.11+ → 3.12
+  - `scripts/build-artifacts.sh:33` — `build_backend_ai` 함수에 host/container 마이너 일치 ABI 주의 주석
+- **host build 패키징 ABI 주의**: `pip install --target .build/site-packages` 가 host `python3` 를 사용 → 컨테이너의 3.12 와 메이저/마이너 mismatch 시 `grpcio` 등 compiled wheel 의 `*.so` ABI 충돌 (ImportError / segfault). 배포 머신의 host python 도 3.12 이어야 함.
+- 사내 환경 host python 점검 명령: `python3 --version` 출력이 `Python 3.12.x` 인지 확인. 아니면 pyenv 또는 별도 venv 로 3.12 잡고 PATH 정합.
+
 ## 다음 세션 첫 작업
 
 1. **사용자 사내 환경 redeploy + :13000 smoke test** — preflight 가 nginx conf 자동 sync + Keycloak 25.0 pull. 아래 명령 참조.

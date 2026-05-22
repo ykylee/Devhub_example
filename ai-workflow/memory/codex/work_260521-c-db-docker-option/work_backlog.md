@@ -26,6 +26,7 @@
 | BUILD-ARTIFACT-14 | nginx conf ↔ template auto-sync | done | 2026-05-22 `3ae46cf` — `scripts/nginx-conf-sync.sh` (envsubst render, `--check`/`--fix`) + `deploy-preflight.sh` 가 `[0/3]` 단계에서 `--fix` 자동 실행 + `infra/nginx/devhub.deploy.conf` `.gitignore` 추가 + stale 버전 git rm |
 | BUILD-ARTIFACT-15 | Keycloak image 25.0 pin | done | 2026-05-22 `42b18b1` — compose / CI / dev-up.sh 3 위치 (active code only). docs 의 historical 26.0 언급은 immutable 보존 |
 | BUILD-ARTIFACT-16 | ADR-0022 draft 발행 | done | 2026-05-22 `docs/adr/0022-keycloak-version-pin-25-0.md` draft (§3.1 retreat 사유 placeholder — 사용자 finalize 후 Accepted 승격) |
+| BUILD-ARTIFACT-17 | Python image 3.12 pin | done | 2026-05-22 `7626a8c` — backend-ai/Dockerfile 3.13 → 3.12 + tech_stack.md / environment-setup.md prerequisite 3.12 + build-artifacts.sh ABI 주의 주석. host `python3` 도 3.12 권장 (site-packages ABI 호환) |
 
 ## 잔여 작업
 
