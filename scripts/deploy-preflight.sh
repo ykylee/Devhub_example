@@ -125,6 +125,21 @@ if [[ ",${COMPOSE_PROFILES:-}," == *",local-idp,"* ]]; then
     echo "       current: $keycloak_hostname" >&2
     exit 1
   fi
+
+  # local-idp 토큰의 iss 는 외부 접근 URL 기준이어야 하며, backend verifier issuer
+  # 와 일치해야 한다. 내부 DNS(keycloak:8080) 를 issuer 로 사용하면 token issuer
+  # mismatch 로 /api/v1/me 401 이 반복될 수 있다.
+  expected_public_issuer="${DEVHUB_PUBLIC_BASE_URL%/}/devhub/auth/keycloak/realms/devhub"
+  if [[ "$DEVHUB_OIDC_ISSUER_URL" != "$expected_public_issuer" ]]; then
+    echo "ERROR: DEVHUB_OIDC_ISSUER_URL must equal ${expected_public_issuer} when local-idp profile is enabled" >&2
+    echo "       current: $DEVHUB_OIDC_ISSUER_URL" >&2
+    exit 1
+  fi
+
+  if [[ -z "${DEVHUB_OIDC_JWKS_URL:-}" ]]; then
+    echo "WARN: DEVHUB_OIDC_JWKS_URL is empty under local-idp profile." >&2
+    echo "      Consider setting a backend-reachable JWKS URL (e.g. host.docker.internal) to avoid localhost resolution issues." >&2
+  fi
 fi
 
 if [ -n "${DEVHUB_OIDC_JWKS_URL:-}" ]; then
@@ -161,21 +176,25 @@ else
 fi
 
 if [ -n "${DEVHUB_OIDC_JWKS_URL:-}" ]; then
-  jwks_host=$(echo "$DEVHUB_OIDC_JWKS_URL" | sed -e 's|^[^/]*//||' -e 's|/.*$||')
-  if [ "$jwks_host" = "keycloak:8080" ]; then
-    # 로컬 개발/테스트 환경의 도커 가상 호스트인 경우, 호스트에서는 localhost의 Nginx 포트(13000)를 통해 우회 검증
-    local_jwks_url=$(echo "$DEVHUB_OIDC_JWKS_URL" | sed "s|keycloak:8080|127.0.0.1:${NGINX_HTTP_PORT:-13000}|")
-    echo "  Detected local docker network hostname 'keycloak:8080'. Probing loopback fallback URL: $local_jwks_url"
-    if curl -fsS "$local_jwks_url" >/dev/null; then
-      echo "  JWKS reachability check OK (via local loopback fallback)"
-    else
-      echo "  WARNING: Local loopback JWKS reachability check failed, but continuing for local dev mode."
-    fi
+  if [ "${SKIP_OIDC_JWKS_REACH:-0}" = "1" ]; then
+    echo "  SKIP_OIDC_JWKS_REACH=1 — JWKS reachability 검증 skip"
   else
-    # 실서버 Production Split OIDC 환경: 엄격하게 검증하여 런타임 토큰 밸리데이션 실패를 사전 차단
-    echo "  Probing JWKS reachability: $DEVHUB_OIDC_JWKS_URL"
-    curl -fsS "$DEVHUB_OIDC_JWKS_URL" >/dev/null
-    echo "  JWKS reachability check OK"
+    jwks_host=$(echo "$DEVHUB_OIDC_JWKS_URL" | sed -e 's|^[^/]*//||' -e 's|/.*$||')
+    if [ "$jwks_host" = "keycloak:8080" ]; then
+      # 로컬 개발/테스트 환경의 도커 가상 호스트인 경우, 호스트에서는 localhost의 Nginx 포트(13000)를 통해 우회 검증
+      local_jwks_url=$(echo "$DEVHUB_OIDC_JWKS_URL" | sed "s|keycloak:8080|127.0.0.1:${NGINX_HTTP_PORT:-13000}|")
+      echo "  Detected local docker network hostname 'keycloak:8080'. Probing loopback fallback URL: $local_jwks_url"
+      if curl -fsS "$local_jwks_url" >/dev/null; then
+        echo "  JWKS reachability check OK (via local loopback fallback)"
+      else
+        echo "  WARNING: Local loopback JWKS reachability check failed, but continuing for local dev mode."
+      fi
+    else
+      # 실서버 Production Split OIDC 환경: 엄격하게 검증하여 런타임 토큰 밸리데이션 실패를 사전 차단
+      echo "  Probing JWKS reachability: $DEVHUB_OIDC_JWKS_URL"
+      curl -fsS "$DEVHUB_OIDC_JWKS_URL" >/dev/null
+      echo "  JWKS reachability check OK"
+    fi
   fi
 fi
 
