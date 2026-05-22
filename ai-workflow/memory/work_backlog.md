@@ -3,8 +3,8 @@
 - 문서 목적: main 브랜치 기준 상위 백로그 인덱스. 세부 sprint backlog 는 브랜치별 메모리 디렉터리 참조.
 - 범위: 마일스톤 상태, 최근 머지, 잔여/후속 작업
 - 대상 독자: 프로젝트 리드, 후속 에이전트, 트랙 담당자
-- 상태: M1·M2·M3·M5·M6 done + **M7 Onboarding 도메인 closing (2026-05-22)**. Onboarding Phase 1~4 + Carve A/B/C/D + flag flip **5/5 완결**. **Feature flag `DEVHUB_ONBOARDING_GATE_ENABLED` default ON** (#290), `lazy_auto_create.go` 폐기. **codex hotfix #3** (#291) — AuthGuard whitelist→blocklist + e2e seed 회귀 흡수. main HEAD `b7cc8a0`. **v1.0 release gate (D-24, 2026-06-15): 잔여 1건** (#214 P1-3 Keycloak group staging-prod 사내 운영자). **다음 directive**: 1순위 = staging 1주 monitoring (사내) + #214 사내 운영자 1회 / 2순위 = ADR-0020 Phase 3 (실 구현) 8 carve 진입 / 3순위 = backlog hygiene sweep 후속 (P2-3/P2-7 정합 완료 후 잔여 carve out 표 재확인).
-- 최종 수정일: 2026-05-22 (sprint claude/work_260521-codex-hotfix-onboarding-pr288 머지 후 housekeeping)
+- 상태: M1·M2·M3·M5·M6 done + **M7 Onboarding 도메인 + 운영 SOP closing (2026-05-22)**. Onboarding Phase 1~4 + Carve A/B/C/D + flag flip + 운영 SOP **6/6 완결**. **Feature flag `DEVHUB_ONBOARDING_GATE_ENABLED` default ON** (#290), `lazy_auto_create.go` 폐기. **Onboarding 운영 SOP** ([`docs/setup/onboarding_operations.md`](../../docs/setup/onboarding_operations.md), 본 sprint `claude/work_260522-onboarding-ops-sop`) — staging 1주 monitoring 신호 5종 + SQL 7개 + rollback runbook 4 step + incident response 4 단계 + DoD 8 항목 + 잔여 carve 7건. main HEAD `1239f3c` (post PR #292, 본 sprint 머지 전). **v1.0 release gate (D-24, 2026-06-15): 잔여 1건** (#214 P1-3 Keycloak group staging-prod 사내 운영자). **다음 directive**: 1순위 = SOP 따른 staging 1주 monitoring 시작 (사내 운영자, DoD 8 항목) + #214 사내 운영자 1회 / 2순위 = ADR-0020 Phase 3 (실 구현) 8 carve 진입 / 3순위 = Prometheus metric backend 도입 (SOP §8 잔여 carve P2) / 4순위 = backlog hygiene sweep 후속.
+- 최종 수정일: 2026-05-22 (sprint `claude/work_260522-onboarding-ops-sop` 머지 후)
 - 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [세션 인계](./session_handoff.md), [상태 스냅샷](./state.json), [M1 PR 리뷰 actions](./M1-PR-review-actions.md)
 
 ## 1. 마일스톤 진행 상황
@@ -82,6 +82,8 @@
 
 | 일자 | 변경 |
 | --- | --- |
+| 2026-05-22 | sprint `claude/work_260522-onboarding-ops-sop` — **Onboarding 운영 SOP 신규** ([`docs/setup/onboarding_operations.md`](../../docs/setup/onboarding_operations.md)). §1 책임 분리 + §2 state machine + §3 feature flag 운영 + §4 monitoring 신호 5종 + SQL 7개 + §5 rollback runbook 4 step + drill + §6 incident response 4 단계 + 패턴 5종 + escalation 3 level + §7 DoD 8 항목 + §8 잔여 carve 7건. cross-link 4 위치 — ADR-0021 메타 헤더 + §6.4 신규 + `onboarding_impl_plan.md` §7 #6 verification cell + `release_v1_roadmap.md` §1.3 #7 + `keycloak_operations.md` §10. 추적성 영향 N/A (docs-only, 신규 ID 발급 없음). |
+| 2026-05-22 | PR #292 (sprint `claude/work_260522-housekeeping-post-291`) — main flat memory housekeeping post PR #291. state.json head `73f3b30` → `b7cc8a0` + handoff/work_backlog 헤더 갱신. main HEAD `1239f3c`. |
 | 2026-05-07 | PR #12 통합 sprint 종료 (BLK/SEC/HYG 트래커 등록) |
 | 2026-05-08 | PR #13~#19 머지. 통합 로드맵 채택 + M0 sprint 종료. flat memory 갱신. |
 | 2026-05-08 | M1 sprint 진입. `claude/m1-sprint-plan` 브랜치 + backlog 초안. 진입 PR 5건 분할 결정. |

@@ -1,12 +1,41 @@
-# Session Handoff — main (2026-05-22 Onboarding Carve B/C/D + flag flip + codex hotfix #3)
+# Session Handoff — main (2026-05-22 Onboarding 운영 SOP 신규)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
-- 범위: 직전 EOD (#281, `73f3b30`) 이후 8 PR 흡수 — main flat memory housekeeping (#283) + backlog hygiene 3건 (#285/#286/#287) + Onboarding Carve B+C frontend (#288 ⚡) + Carve D backend UT + TC catalog (#289) + flag default ON flip + lazy_auto_create.go 폐기 (#290) + **codex hotfix #3 — AuthGuard whitelist → blocklist + e2e seed onboarding 회귀 흡수** (#291). Onboarding 도메인 Phase 1~4 + Carve A/B/C/D + flag flip 5/5 **closing**.
+- 범위: 직전 PR #292 (`b7cc8a0` → `1239f3c`, main flat memory housekeeping post PR #291) 후 본 sprint `claude/work_260522-onboarding-ops-sop` 가 1순위 directive (staging 1주 monitoring) 의 운영 자산 갭 검토 후 **Onboarding 운영 SOP 신규** + cross-link 4 위치. 신규 자산: `docs/setup/onboarding_operations.md` (§1 책임 분리 + §2 state machine + §3 feature flag 운영 + §4 monitoring 신호 5종 + SQL 7개 + §5 rollback runbook 4 step + drill + §6 incident response 4 단계 + 패턴 5종 + escalation 3 level + §7 DoD 8 항목 + §8 잔여 carve 7건). Onboarding 도메인 Phase 1~4 + Carve A/B/C/D + flag flip + 운영 SOP 6/6 **closing**.
 - 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
-- 상태: M1/M2/M3/M5/M6 done + **M7 Onboarding closing**. Feature flag `DEVHUB_ONBOARDING_GATE_ENABLED` **default ON** (#290), `lazy_auto_create.go` 전체 삭제, ADR-0020 sub-carve B deprecated, ADR-0021 §3.3 sole policy. Rollback path 보존 (`DEVHUB_ONBOARDING_GATE_ENABLED=0`). 사용자 인계 — staging 1주 monitoring.
-- 최종 수정일: 2026-05-22 (sprint claude/work_260521-codex-hotfix-onboarding-pr288 머지 + 본 housekeeping)
-- 관련 문서: [v1.0 릴리즈 로드맵](../../docs/planning/release_v1_roadmap.md), [Onboarding IMPL plan](../../docs/planning/onboarding_impl_plan.md), [ADR-0021](../../docs/adr/0021-onboarding-self-service-unit-selection.md), [account/user redesign Phase 3](../../docs/planning/account_user_management_redesign.md), [traceability/report](../../docs/traceability/report.md).
-- 브랜치: `main` (HEAD `b7cc8a0` — PR #291 codex hotfix #3 머지 후).
+- 상태: M1/M2/M3/M5/M6 done + **M7 Onboarding 운영 SOP closing**. Feature flag `DEVHUB_ONBOARDING_GATE_ENABLED` default ON (#290), `lazy_auto_create.go` 폐기, ADR-0021 §3.3 sole policy. Rollback path = `=0` (운영 SOP §5 가 source-of-truth). 사내 운영자 인계 — staging 1주 monitoring 시작 (DoD 8 항목 §7).
+- 최종 수정일: 2026-05-22 (sprint `claude/work_260522-onboarding-ops-sop` 머지 후)
+- 관련 문서: [v1.0 릴리즈 로드맵](../../docs/planning/release_v1_roadmap.md), [Onboarding IMPL plan](../../docs/planning/onboarding_impl_plan.md), [Onboarding 운영 SOP](../../docs/setup/onboarding_operations.md) (본 sprint 신규), [ADR-0021](../../docs/adr/0021-onboarding-self-service-unit-selection.md), [account/user redesign Phase 3](../../docs/planning/account_user_management_redesign.md), [traceability/report](../../docs/traceability/report.md).
+- 브랜치: `main` (HEAD `1239f3c` post PR #292 → 본 sprint 머지 후 `<TBD>`).
+
+## 2026-05-22 본 세션 (sprint `claude/work_260522-onboarding-ops-sop`)
+
+| Stage | 내용 |
+| --- | --- |
+| 1 — 1순위 검토 | staging 1주 monitoring 의 운영 자산 갭 5건 발견 — (1) `keycloak_operations.md` onboarding 항목 0건 + ADR-0021 monitoring/rollback keyword 0건, (2) Prometheus metric backend 미도입, (3) Incident response runbook 미정의, (4) Funnel/회귀 신호 정의 누락, (5) UX edge case 안내 누락. 사용자에게 3 sprint 후보 (A 운영 SOP / B Prometheus metric / C ADR-0021 §6 보강) 제시 → A 진입. |
+| 2 — Spec 확정 | audit 3종 (`account.onboarding_completed/review_confirmed/unit_changed`) + 응답 코드 4 endpoint + migration 000033 CHECK 제약 (bi-implication) + 3-tier state machine + feature flag 동작 (`envBoolDefault` opt-out). |
+| 3 — SOP 작성 + cross-link | `docs/setup/onboarding_operations.md` 신규 (+340 LoC 추산) + ADR-0021 메타 헤더 / §6.4 신규 / `onboarding_impl_plan.md` §7 #6 / `release_v1_roadmap.md` §1.3 #7 / `keycloak_operations.md` §10 (4 cross-link) 갱신. |
+| 4 — 추적성 + memory | 추적성 영향 N/A (docs-only, 신규 ID 발급 없음). main flat memory 3종 (state.json head/status, handoff prepend, work_backlog 헤더+변경 이력 row) 갱신. |
+
+**변경 통계** (예상): 5 파일 / +400 / -10 LoC.
+- `docs/setup/onboarding_operations.md` — 신규
+- `docs/adr/0021-onboarding-self-service-unit-selection.md` — 메타 헤더 + §6.4 신규
+- `docs/planning/onboarding_impl_plan.md` — §7 #6 verification cell 갱신
+- `docs/planning/release_v1_roadmap.md` — §1.3 #7 cross-link 추가
+- `docs/setup/keycloak_operations.md` — §10 잔여 carve out 표에 row 1건 추가
+
+**SOP §7 DoD 8 항목 (운영자가 1주 후 채워야 할 acceptance)**:
+1. 7일간 rollback 0회 / 2. submit 성공률 ≥95% / 3. pending_review 검토 latency 기록 / 4. CHECK 위반 0건 / 5. audit 3종 정합 / 6. rollback drill 1회 / 7. token-only actor baseline 기록 / 8. 종합 보고서.
+
+**SOP §8 잔여 carve 7건**:
+- Prometheus metric backend 도입 (P2) — `internal/httpapi/onboarding_*.go` + `me_onboarding.go` + `users_admin_review.go` 에 Counter/Histogram, [ADR-0019 §5.3 (9)](../../docs/adr/0019-keycloak-only-idp.md) Phase 2 PR-C 패턴 재사용.
+- Grafana dashboard JSON (P3) / Alertmanager rule YAML (P3) / pending_review admin SLA 정책 (P2) / pending_review aging alert (P3) / limited 사용자 reminder 알림 (P3) / Multi-region monitoring (v1.1+)
+
+## 2026-05-22 직전 housekeeping (PR #292, sprint `claude/work_260522-housekeeping-post-291`)
+
+직전 EOD (#281, `73f3b30`) 이후 8 PR (#283~#291) 미반영 → minimal entry prepend 로 인계 정합 회복. state.json head `73f3b30` → `b7cc8a0` + handoff/work_backlog 헤더 갱신. main HEAD `1239f3c`.
+
+
 
 ## 2026-05-22 본 세션 (PR #291 codex hotfix #3)
 
