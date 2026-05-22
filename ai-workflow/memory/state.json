@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-05-22 main HEAD `1239f3c` (PR #292 main flat memory housekeeping post PR #291). 직전 PR #292 (`73f3b30` → `b7cc8a0` → `1239f3c`) 후 본 sprint `claude/work_260522-onboarding-ops-sop` 가 1순위 directive (staging 1주 monitoring) 의 운영 자산 갭 검토 후 **Onboarding 운영 SOP 신규 작성** + cross-link 4 위치 (ADR-0021 §6.4 신규 + 메타 헤더 / `onboarding_impl_plan.md` §7 #6 / `keycloak_operations.md` §10 / `release_v1_roadmap.md` §1.3 #7). 신규 자산: `docs/setup/onboarding_operations.md` (§1 책임 분리 + §2 state machine + §3 feature flag 운영 + §4 monitoring 신호 5종 + SQL 7개 + §5 rollback runbook 4 step + drill + §6 incident response 4 단계 + 패턴 5종 + escalation 3 level + §7 DoD 8 항목 + §8 잔여 carve 7건). **Onboarding 도메인 Phase 1~4 + Carve A/B/C/D + flag flip + 운영 SOP 6/6 closing**. v1.0 release gate (D-24) 잔여 1건 (#214 P1-3 Keycloak group staging-prod). 다음 directive: 1순위 SOP 따른 staging 1주 monitoring 시작 (사내 운영자) + ADR-0020 Phase 3 (실 구현) 8 carve + Prometheus metric backend 도입 (SOP §8 잔여 carve).",
-  "updated_at": "2026-05-22T01:00:00Z",
-  "head_commit": "1239f3c",
-  "head_summary": "docs(memory): main flat memory housekeeping post PR #291 (sprint claude/work_260522-housekeeping-post-291) (#292)",
+  "status": "2026-05-22 main HEAD `d5e15f6` (PR #293 Onboarding 운영 SOP 신규). 후속 sprint `claude/work_260522-adr-0020-phase3-closing-housekeeping` 가 **ADR-0020 Phase 3 closing status 명문화** — 직전 memory directive 의 misleading 'ADR-0020 Phase 3 8 carve 진입' 표현 정정. **8 sub-carve 중 6 closed** (A #205 / B-backend #239 / B-frontend #246 / C #241 / D #242 / E #244) + **1 잔여 active P3** (F `/login` 정리, frontend) + **1 사내 동반 P2** (SPI JAR). 핵심 결정 (옵션 A 책임 경계 / `rbac_subject_roles` 제거 / service account 권한 축소) 모두 적용 완료. ADR-0020 §4.1.1 + redesign §6.1.1 신규. v1.0 release gate (D-24) 잔여 1건 (#214 P1-3 Keycloak group staging-prod). 다음 directive (사용자 지정): A = sub-carve F `/login` page 정리 (frontend, worker_division override 명시) / B = 사내 동반 carve docs 초안 3건 (Keycloak admin SOP 승격 / JWKS rotation cache flush / HRDB ETL unit pre-stage). 그 외 1순위 SOP 따른 staging 1주 monitoring (사내 운영자) 진행 + Prometheus metric backend 도입 (SOP §8 잔여 carve P2).",
+  "updated_at": "2026-05-22T02:00:00Z",
+  "head_commit": "d5e15f6",
+  "head_summary": "docs(setup): Onboarding 운영 SOP 신규 (staging 1주 monitoring + rollback + incident response) (#293)",
   "milestones": {
     "M0": {
       "status": "done",
