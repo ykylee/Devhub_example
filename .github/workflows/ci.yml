@@ -332,10 +332,18 @@ jobs:
       - name: Start Keycloak (container)
         run: |
           set -euo pipefail
+          # Keycloak 25.0 호환: KC_BOOTSTRAP_ADMIN_* (26+ 표준) + legacy
+          # KEYCLOAK_ADMIN/KEYCLOAK_ADMIN_PASSWORD (25.x 표준) 동시 주입.
+          # docker-compose.deploy.yml:117-121 의 양쪽 env 패턴과 정합.
+          # ADR-0022 의 26.0 → 25.0 retreat 후속 — 25.0 컨테이너가 legacy env
+          # 만 admin user bootstrap 인식하므로 KC_BOOTSTRAP_* 만으로는 admin
+          # 미생성 → 이후 admin-cli token 401 → realm setup step fail.
           docker run -d --name devhub-keycloak \
             -p 8180:8080 \
             -e KC_BOOTSTRAP_ADMIN_USERNAME=admin \
             -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin \
+            -e KEYCLOAK_ADMIN=admin \
+            -e KEYCLOAK_ADMIN_PASSWORD=admin \
             -e KC_HTTP_RELATIVE_PATH=/devhub/auth/keycloak \
             quay.io/keycloak/keycloak:25.0 start-dev --http-enabled=true --hostname-strict=false > /tmp/keycloak-container-id
 
