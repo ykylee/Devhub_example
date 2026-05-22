@@ -217,7 +217,11 @@ build_env_file() {
     DEVHUB_KEYCLOAK_ADMIN_URL="${DEVHUB_KEYCLOAK_ADMIN_URL:-$internal_keycloak_base}"
     # backend-core runs in container network. Explicit JWKS avoids resolving
     # localhost to the container itself in local-idp deploys.
-    DEVHUB_OIDC_JWKS_URL="${DEVHUB_OIDC_JWKS_URL:-http://host.docker.internal:${PUBLIC_ACCESS_PORT}/devhub/auth/keycloak/realms/devhub/protocol/openid-connect/certs}"
+    local docker_host_base="http://host.docker.internal"
+    if [ -n "${PUBLIC_ACCESS_PORT:-}" ]; then
+      docker_host_base="${docker_host_base}:${PUBLIC_ACCESS_PORT}"
+    fi
+    DEVHUB_OIDC_JWKS_URL="${DEVHUB_OIDC_JWKS_URL:-$docker_host_base/devhub/auth/keycloak/realms/devhub/protocol/openid-connect/certs}"
   else
     DEVHUB_OIDC_ISSUER_URL="${DEVHUB_OIDC_ISSUER_URL:-$public_base/devhub/auth/keycloak/realms/devhub}"
     DEVHUB_KEYCLOAK_ADMIN_URL="${DEVHUB_KEYCLOAK_ADMIN_URL:-$public_base/devhub/auth/keycloak}"
