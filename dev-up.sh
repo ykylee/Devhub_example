@@ -115,7 +115,7 @@ else
     echo "  docker run -d -p 8180:8080 \\"
     echo "    -e KC_BOOTSTRAP_ADMIN_USERNAME=admin -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin \\"
     echo "    -e KC_HTTP_RELATIVE_PATH=/devhub/auth/keycloak \\"
-    echo "    quay.io/keycloak/keycloak:26.0 start-dev --http-enabled=true --hostname-strict=false"
+    echo "    quay.io/keycloak/keycloak:25.0 start-dev --http-enabled=true --hostname-strict=false"
 fi
 
 # 3. backend-core
