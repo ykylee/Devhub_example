@@ -3,9 +3,9 @@
   "project": "DevHub Example",
   "branch": "gemini/admin-settings-ui-restructuring",
   "status": "done",
-  "updated_at": "2026-05-22T06:50:00Z",
-  "head_commit": "16f1871",
-  "head_summary": "Successfully completed admin settings UI restructuring with Collapsible Sidebar, Tailscale 13000 port deployment, TypeScript type-checking, and Playwright E2E verification",
+  "updated_at": "2026-05-22T06:51:00Z",
+  "head_commit": "f9c16e4",
+  "head_summary": "Successfully completed admin settings UI restructuring with Collapsible Sidebar, Tailscale 13000 port deployment, TypeScript type-checking, and Playwright E2E verification. Also removed the redundant Keycloak Account Management banner from the users page.",
   "milestones": {
     "M-v1.0": {
       "status": "done",
