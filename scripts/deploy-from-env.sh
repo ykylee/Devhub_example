@@ -60,6 +60,10 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 #   DEVHUB_KEYCLOAK_ADMIN_REALM     default: devhub
 #   DEVHUB_KEYCLOAK_ADMIN_CLIENT_ID default: devhub-backend
 #   DEVHUB_AUTH_DEV_FALLBACK        default: 0
+#   DEVHUB_ONBOARDING_GATE_ENABLED  default: 1 (운영 안전). 내부 Keycloak 테스트 시
+#                                    `0` 으로 두면 backend onboarding gate 해제 →
+#                                    Keycloak 계정 자유 사용 가능 (frontend 는 첫
+#                                    진입 시 /onboarding → Skip 1회 클릭 필요).
 #   BACKEND_API_URL                 default: http://backend-core:8080
 #   BACKEND_AI_URL                  default: http://backend-ai:8000
 #   DEVHUB_TRUSTED_PROXIES          default: 172.16.0.0/12
@@ -149,6 +153,7 @@ build_env_file() {
     emit_env_line BACKEND_API_URL "${BACKEND_API_URL:-http://backend-core:8080}"
     emit_env_line BACKEND_AI_URL "${BACKEND_AI_URL:-http://backend-ai:8000}"
     emit_env_line DEVHUB_AUTH_DEV_FALLBACK "${DEVHUB_AUTH_DEV_FALLBACK:-0}"
+    emit_env_line DEVHUB_ONBOARDING_GATE_ENABLED "${DEVHUB_ONBOARDING_GATE_ENABLED:-1}"
     emit_env_line DEVHUB_TRUSTED_PROXIES "${DEVHUB_TRUSTED_PROXIES:-172.16.0.0/12}"
     printf "\n"
     emit_env_line DEVHUB_IDP_PROVIDER "${DEVHUB_IDP_PROVIDER:-keycloak}"

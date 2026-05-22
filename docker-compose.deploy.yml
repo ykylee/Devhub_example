@@ -175,6 +175,12 @@ services:
       DB_URL: ${DB_URL:?set DB_URL}
       BACKEND_AI_URL: ${BACKEND_AI_URL:-http://backend-ai:8000}
       DEVHUB_AUTH_DEV_FALLBACK: ${DEVHUB_AUTH_DEV_FALLBACK:-0}
+      # RM-ONBOARD-01 (ADR-0021 §3.3) — default true (운영 안전). 내부 Keycloak
+      # 테스트 시점에 admin pre-seed 없이 Keycloak 계정을 자유롭게 사용하려면
+      # `DEVHUB_ONBOARDING_GATE_ENABLED=0` 으로 backend gate 해제. frontend
+      # AuthGuard 는 첫 진입 시 /onboarding 으로 redirect 하지만, 사용자가 'Skip'
+      # 한 번 클릭하면 localStorage 에 저장되어 이후 자유 진입 가능.
+      DEVHUB_ONBOARDING_GATE_ENABLED: ${DEVHUB_ONBOARDING_GATE_ENABLED:-1}
       # Keycloak 단일 IdP (ADR-0019 §4.2 환경설정 계약)
       DEVHUB_IDP_PROVIDER: ${DEVHUB_IDP_PROVIDER:-keycloak}
       DEVHUB_OIDC_ISSUER_URL: ${DEVHUB_OIDC_ISSUER_URL:?set DEVHUB_OIDC_ISSUER_URL}
