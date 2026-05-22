@@ -152,9 +152,15 @@ build_env_file() {
     exit 1
   fi
 
-  DEVHUB_OIDC_ISSUER_URL="${DEVHUB_OIDC_ISSUER_URL:-$public_base/devhub/auth/keycloak/realms/devhub}"
-  DEVHUB_KEYCLOAK_ADMIN_URL="${DEVHUB_KEYCLOAK_ADMIN_URL:-$public_base/devhub/auth/keycloak}"
-  OIDC_ISSUER_URL="${OIDC_ISSUER_URL:-$DEVHUB_OIDC_ISSUER_URL}"
+  local internal_keycloak_base="${INTERNAL_KEYCLOAK_BASE_URL:-http://keycloak:8080/devhub/auth/keycloak}"
+  if [[ ",${COMPOSE_PROFILES:-}," == *",local-idp,"* ]]; then
+    DEVHUB_OIDC_ISSUER_URL="${DEVHUB_OIDC_ISSUER_URL:-$internal_keycloak_base/realms/devhub}"
+    DEVHUB_KEYCLOAK_ADMIN_URL="${DEVHUB_KEYCLOAK_ADMIN_URL:-$internal_keycloak_base}"
+  else
+    DEVHUB_OIDC_ISSUER_URL="${DEVHUB_OIDC_ISSUER_URL:-$public_base/devhub/auth/keycloak/realms/devhub}"
+    DEVHUB_KEYCLOAK_ADMIN_URL="${DEVHUB_KEYCLOAK_ADMIN_URL:-$public_base/devhub/auth/keycloak}"
+  fi
+  OIDC_ISSUER_URL="${OIDC_ISSUER_URL:-$public_base/devhub/auth/keycloak/realms/devhub}"
   OIDC_REDIRECT_URI="${OIDC_REDIRECT_URI:-$public_base$base_path_norm/auth/callback}"
   NEXT_PUBLIC_OIDC_ISSUER_URL="${NEXT_PUBLIC_OIDC_ISSUER_URL:-$OIDC_ISSUER_URL}"
   NEXT_PUBLIC_OIDC_REDIRECT_URI="${NEXT_PUBLIC_OIDC_REDIRECT_URI:-$OIDC_REDIRECT_URI}"

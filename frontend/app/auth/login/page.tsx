@@ -1,20 +1,26 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, ShieldCheck } from "lucide-react";
 import { authService } from "@/lib/services/auth.service";
 
 export default function LoginPage() {
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const redirectStartedRef = useRef(false);
 
   const handleLogin = useCallback(async () => {
+    if (redirectStartedRef.current) {
+      return;
+    }
+    redirectStartedRef.current = true;
     setTimeout(() => setIsRedirecting(true), 0);
     try {
       const url = await authService.getAuthorizeURL();
       window.location.assign(url);
     } catch (error) {
       console.error("[LoginPage] Failed to start OIDC flow:", error);
+      redirectStartedRef.current = false;
       setTimeout(() => setIsRedirecting(false), 0);
     }
   }, []);
