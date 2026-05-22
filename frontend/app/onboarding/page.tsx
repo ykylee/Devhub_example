@@ -43,7 +43,7 @@ export default function OnboardingPage() {
       } catch (err) {
         if (cancelled) return;
         if (err instanceof ApiError && err.status === 401) {
-          router.replace("/auth/login");
+          router.replace("/login?error=session_expired");
           return;
         }
         setError(err instanceof Error ? err.message : "사용자 정보를 가져올 수 없습니다.");

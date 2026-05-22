@@ -1,12 +1,45 @@
-# Session Handoff — main (2026-05-22 ADR-0020 Phase 3 closing housekeeping)
+# Session Handoff — main (2026-05-22 ADR-0020 sub-carve F resolved)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
-- 범위: 직전 PR #293 (`1239f3c` → `d5e15f6`, Onboarding 운영 SOP 신규) 후 본 sprint `claude/work_260522-adr-0020-phase3-closing-housekeeping` 가 **ADR-0020 Phase 3 closing status 명문화** + main flat memory directive 의 misleading "8 carve 진입" 표현 정정. 8 sub-carve 중 6 closed + 1 잔여 active (F `/login` P3) + 1 사내 동반 (SPI JAR P2). ADR-0020 §4.1.1 + redesign §6.1.1 + §7.2 신규.
+- 범위: 직전 PR #294 (`d5e15f6` → `39acb62`, ADR-0020 Phase 3 closing housekeeping) 후 본 sprint `claude/work_260522-adr-0020-subcarve-f-login` 가 **sub-carve F resolved** — `/login` canonical page swap + `?error=` query 처리 5 케이스 + `/auth/login` stub 보존 + AuthGuard 401 fallback redirect target 정합 + 호출처 8 위치 sync + vitest 회귀 가드 신규 8건.
 - 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
-- 상태: M1/M2/M3/M5/M6 done + **M7 Onboarding 운영 SOP closing (PR #293)** + **ADR-0020 Phase 3 6/8 closing 명문화 (본 sprint)**. ADR-0020 핵심 결정 (옵션 A 책임 경계 / `rbac_subject_roles` 제거 / service account 권한 축소) 모두 적용 완료. 잔여 active: sub-carve F (frontend `/login` P3) + SPI JAR (사내 P2) + §6.3 사내 동반 carve 3건.
-- 최종 수정일: 2026-05-22 (sprint `claude/work_260522-adr-0020-phase3-closing-housekeeping` 머지 후)
+- 상태: M1/M2/M3/M5/M6 done + **M7 Onboarding 운영 SOP closing (PR #293)** + **ADR-0020 Phase 3 7/8 closing (PR #294 + 본 sprint)**. ADR-0020 핵심 결정 + frontend UX 정리 모두 적용 완료. 잔여: SPI JAR (사내 P2) + §6.3 사내 동반 carve 3건.
+- 최종 수정일: 2026-05-22 (sprint `claude/work_260522-adr-0020-subcarve-f-login` 머지 후)
 - 관련 문서: [v1.0 릴리즈 로드맵](../../docs/planning/release_v1_roadmap.md), [Onboarding IMPL plan](../../docs/planning/onboarding_impl_plan.md), [Onboarding 운영 SOP](../../docs/setup/onboarding_operations.md), [ADR-0020](../../docs/adr/0020-account-user-management-boundary.md), [ADR-0021](../../docs/adr/0021-onboarding-self-service-unit-selection.md), [account/user redesign Phase 3](../../docs/planning/account_user_management_redesign.md), [traceability/report](../../docs/traceability/report.md).
-- 브랜치: `main` (HEAD `d5e15f6` post PR #293 → 본 sprint 머지 후 `<TBD>`).
+- 브랜치: `main` (HEAD `39acb62` post PR #294 → 본 sprint 머지 후 `<TBD>`).
+
+## 2026-05-22 본 세션 (sprint `claude/work_260522-adr-0020-subcarve-f-login`)
+
+| Phase | 내용 |
+| --- | --- |
+| 1 — `/login` swap + `/auth/login` 제거 | `/auth/login` 의 96 LoC 본문 → `/login/page.tsx` + Suspense + `?error=` query 처리 (`resolveErrorMessage` helper export). error 진입 시 자동 OIDC redirect 차단. **`/auth/login` 디렉토리 자체 제거** (사용자 결정 옵션 B, stub 미유지). |
+| 2 — 호출처 일괄 | AuthGuard.tsx 2 (`/login?error=session_expired` + `?error=login_failed`) + onboarding 1 + auth/callback 1 (error_description propagate) + auth/error 1 Link + auth/signup 1 Link + role-routing.test 1 assertion. |
+| 3 — 회귀 가드 | `app/login/page.test.tsx` 신규 — `resolveErrorMessage` 6 unit (null/description-우선/3 mapping/fallback). AuthGuard.test.tsx 에 401 fallback 2 회귀 가드 추가 (`/login?error=session_expired` + `?error=login_failed`). ApiError mock 의 constructor signature 3-arg (status, payload, message) 정합. |
+| 4 — docs closing + infra 일괄 정합 (옵션 B) | ADR-0020 §4.1.1 표 F → done + §7 변경 이력 row. redesign §6.1 표 + §6.1.1 표 + §7.2 closed 7/8 + §8 변경 이력 row. **infra 일괄 정합** — realm.prod.json `post.logout.redirect.uris` + nginx template + setup-keycloak.sh `POST_LOGOUT_URIS` + 5 docs 의 `/auth/login` allowlist URI `/login` 으로 정정. **사내 운영자 1회 작업** — Keycloak admin console allowlist 갱신 (realm.prod.json 재 import 또는 setup-keycloak.sh 재실행). |
+| 검증 | TS `npx tsc --noEmit` 그린. vitest 8 file / 40 test 그린. lint 의 18 problems 는 모두 pre-existing (본 변경 파일 0건, `feedback_ci_baseline_check` 패턴). |
+
+**변경 통계** (추산): 19 파일 / +220 / -200 LoC.
+- `frontend/app/login/page.tsx` — 14 → 145 LoC (canonical entry)
+- `frontend/app/auth/login/page.tsx` — **삭제** (사용자 결정 옵션 B)
+- `infra/idp/keycloak-realm.prod.json` + `infra/nginx/devhub.deploy.conf.template` + `scripts/setup-keycloak.sh` — allowlist URI `/auth/login` → `/login`
+- `docs/setup/{docker-packaging-deployment-guide,environment-setup,keycloak_operations,single_port_deployment,e2e-test-guide}.md` — `/auth/login` 언급 정합 (8 위치)
+- `frontend/app/auth/callback/page.tsx` — error fallback button onClick (12 LoC 추가)
+- `frontend/app/auth/error/page.tsx` — Link href 1 (`/auth/login` → `/login`)
+- `frontend/app/auth/signup/page.tsx` — Link href 1
+- `frontend/components/layout/AuthGuard.tsx` — 401/error fallback redirect 2
+- `frontend/components/layout/AuthGuard.test.tsx` — ApiError mock 3-arg + 2 회귀 가드 신규
+- `frontend/app/onboarding/page.tsx` — 401 fallback redirect 1
+- `frontend/lib/auth/role-routing.test.ts` — `/login` assertion 추가
+- `frontend/app/login/page.test.tsx` — 신규 (resolveErrorMessage 6 unit)
+- `docs/adr/0020-*.md` + `docs/planning/account_user_management_redesign.md` — sub-carve F done 표기 + §7 변경 이력 row
+
+## 다음 directive (사용자 지정 순서)
+
+1. **B** — 사내 동반 carve docs 초안 3건 — (i) Keycloak admin 운영 SOP 승격 (ADR-0020 §3.2 표 → 사내 정책 문서), (ii) JWKS rotation 직후 backend cache flush SOP, (iii) HRDB ETL unit pre-stage 가이드. 사내 실 적용은 별도지만 docs 초안은 claude 영역.
+2. **1순위 (병행)** — Onboarding 운영 SOP 따른 staging 1주 monitoring 시작 (사내 운영자 영역).
+3. **v1.0 release gate (D-24)** 잔여 1건 (#214 P1-3 Keycloak group staging-prod, 사내 운영자).
+
+
 
 ## 2026-05-22 본 세션 (sprint `claude/work_260522-adr-0020-phase3-closing-housekeeping`)
 

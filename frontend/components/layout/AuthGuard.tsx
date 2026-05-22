@@ -78,11 +78,11 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         clearActor();
         setIsAuthorized(false);
         if (err instanceof ApiError && err.status === 401) {
-          router.replace("/auth/login");
+          router.replace("/login?error=session_expired");
           return;
         }
         console.error("[AuthGuard] whoAmI failed", err);
-        router.replace("/auth/login");
+        router.replace("/login?error=login_failed");
       }
     })();
     return () => {

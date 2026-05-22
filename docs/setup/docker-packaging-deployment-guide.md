@@ -354,7 +354,7 @@ ENV BACKEND_API_URL=$BACKEND_API_URL
     "https://devhub.example.com"
   ],
   "attributes": {
-    "post.logout.redirect.uris": "https://devhub.example.com/devhub/##https://devhub.example.com/devhub/auth/login"
+    "post.logout.redirect.uris": "https://devhub.example.com/devhub/##https://devhub.example.com/devhub/login"
   }
 }
 ```
@@ -367,7 +367,7 @@ ENV BACKEND_API_URL=$BACKEND_API_URL
    - `+` 제거 → `https://<운영도메인>` 명시
 3. **Logout Settings** → **Valid Post Logout Redirect URIs**:
    - wildcard 패턴 (`https://*/devhub/*##http://*/devhub/*`) 제거
-   - `https://<운영도메인>/devhub/##https://<운영도메인>/devhub/auth/login` 등 명시
+   - `https://<운영도메인>/devhub/##https://<운영도메인>/devhub/login` 등 명시
 4. **Save** + 운영 검증:
    - 브라우저로 `https://<운영도메인>/devhub` 진입 → OIDC login → callback → logout 전체 흐름 정상 종료 확인
    - Keycloak admin event log 에 `INVALID_REDIRECT_URI` error 없음

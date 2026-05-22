@@ -79,7 +79,7 @@ npm run dev
 
 #### Auth env (Keycloak OIDC)
 
-frontend 의 `/auth/login` 화면이 Keycloak OIDC redirect 흐름으로 진입하므로 다음 env 를 설정한다 (default 는 로컬 PoC 용; 실 운영 값은 `keycloak_operations.md` 참조).
+frontend 의 `/login` 화면이 Keycloak OIDC redirect 흐름으로 진입하므로 다음 env 를 설정한다 (default 는 로컬 PoC 용; 실 운영 값은 `keycloak_operations.md` 참조).
 
 | 변수 | default | 용도 |
 | --- | --- | --- |
