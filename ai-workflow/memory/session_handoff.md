@@ -1,12 +1,37 @@
-# Session Handoff — main (2026-05-22 Onboarding 운영 SOP 신규)
+# Session Handoff — main (2026-05-22 ADR-0020 Phase 3 closing housekeeping)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
-- 범위: 직전 PR #292 (`b7cc8a0` → `1239f3c`, main flat memory housekeeping post PR #291) 후 본 sprint `claude/work_260522-onboarding-ops-sop` 가 1순위 directive (staging 1주 monitoring) 의 운영 자산 갭 검토 후 **Onboarding 운영 SOP 신규** + cross-link 4 위치. 신규 자산: `docs/setup/onboarding_operations.md` (§1 책임 분리 + §2 state machine + §3 feature flag 운영 + §4 monitoring 신호 5종 + SQL 7개 + §5 rollback runbook 4 step + drill + §6 incident response 4 단계 + 패턴 5종 + escalation 3 level + §7 DoD 8 항목 + §8 잔여 carve 7건). Onboarding 도메인 Phase 1~4 + Carve A/B/C/D + flag flip + 운영 SOP 6/6 **closing**.
+- 범위: 직전 PR #293 (`1239f3c` → `d5e15f6`, Onboarding 운영 SOP 신규) 후 본 sprint `claude/work_260522-adr-0020-phase3-closing-housekeeping` 가 **ADR-0020 Phase 3 closing status 명문화** + main flat memory directive 의 misleading "8 carve 진입" 표현 정정. 8 sub-carve 중 6 closed + 1 잔여 active (F `/login` P3) + 1 사내 동반 (SPI JAR P2). ADR-0020 §4.1.1 + redesign §6.1.1 + §7.2 신규.
 - 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
-- 상태: M1/M2/M3/M5/M6 done + **M7 Onboarding 운영 SOP closing**. Feature flag `DEVHUB_ONBOARDING_GATE_ENABLED` default ON (#290), `lazy_auto_create.go` 폐기, ADR-0021 §3.3 sole policy. Rollback path = `=0` (운영 SOP §5 가 source-of-truth). 사내 운영자 인계 — staging 1주 monitoring 시작 (DoD 8 항목 §7).
-- 최종 수정일: 2026-05-22 (sprint `claude/work_260522-onboarding-ops-sop` 머지 후)
-- 관련 문서: [v1.0 릴리즈 로드맵](../../docs/planning/release_v1_roadmap.md), [Onboarding IMPL plan](../../docs/planning/onboarding_impl_plan.md), [Onboarding 운영 SOP](../../docs/setup/onboarding_operations.md) (본 sprint 신규), [ADR-0021](../../docs/adr/0021-onboarding-self-service-unit-selection.md), [account/user redesign Phase 3](../../docs/planning/account_user_management_redesign.md), [traceability/report](../../docs/traceability/report.md).
-- 브랜치: `main` (HEAD `1239f3c` post PR #292 → 본 sprint 머지 후 `<TBD>`).
+- 상태: M1/M2/M3/M5/M6 done + **M7 Onboarding 운영 SOP closing (PR #293)** + **ADR-0020 Phase 3 6/8 closing 명문화 (본 sprint)**. ADR-0020 핵심 결정 (옵션 A 책임 경계 / `rbac_subject_roles` 제거 / service account 권한 축소) 모두 적용 완료. 잔여 active: sub-carve F (frontend `/login` P3) + SPI JAR (사내 P2) + §6.3 사내 동반 carve 3건.
+- 최종 수정일: 2026-05-22 (sprint `claude/work_260522-adr-0020-phase3-closing-housekeeping` 머지 후)
+- 관련 문서: [v1.0 릴리즈 로드맵](../../docs/planning/release_v1_roadmap.md), [Onboarding IMPL plan](../../docs/planning/onboarding_impl_plan.md), [Onboarding 운영 SOP](../../docs/setup/onboarding_operations.md), [ADR-0020](../../docs/adr/0020-account-user-management-boundary.md), [ADR-0021](../../docs/adr/0021-onboarding-self-service-unit-selection.md), [account/user redesign Phase 3](../../docs/planning/account_user_management_redesign.md), [traceability/report](../../docs/traceability/report.md).
+- 브랜치: `main` (HEAD `d5e15f6` post PR #293 → 본 sprint 머지 후 `<TBD>`).
+
+## 2026-05-22 본 세션 (sprint `claude/work_260522-adr-0020-phase3-closing-housekeeping`)
+
+| Stage | 내용 |
+| --- | --- |
+| 1 — Phase 3 sub-carve 상태 정밀 확인 | git log `--grep "#205\|#239\|#241\|#242\|#244\|#246\|#290"` 로 6 sub-carve 모두 closed 확인. ADR-0020 §4.1 + redesign §6.1 표 본문 + 메모리 directive 의 "8 carve 진입" 표현이 misleading 발견. 잔여 active = F (frontend `/login` P3) + SPI JAR (사내 P2) + §6.3 사내 동반 3건. |
+| 2 — ADR-0020 §4.1.1 신규 | sub-carve 8 closing 표 (PR/SHA/sprint label) + 핵심 결정 적용 완료 명시 + 잔여 F/SPI active 분리 + 사내 동반 carve 3건 cross-link. |
+| 3 — redesign §6.1.1 + §7.2 갱신 | §6.1.1 closing status sub-section 신규 (8 carve 중 closed/잔여/사내 동반 3 group 분리) + §7.2 carve list 의 closed 6건 PR/SHA 표기 + 잔여 active 2건 별도 그룹. |
+| 4 — memory directive 정정 + 다음 directive | state.json status 갱신 + handoff prepend + work_backlog 헤더 + 변경 이력. 사용자 지정 다음 진입 순서: C (본 sprint) → A (sub-carve F) → B (사내 동반 docs 초안). |
+
+**변경 통계**: 5 파일 / +60 / -10 LoC (추산).
+- `docs/adr/0020-account-user-management-boundary.md` — §4.1.1 신규 + §7 변경 이력 row
+- `docs/planning/account_user_management_redesign.md` — §6.1.1 신규 + §7.2 carve list 갱신 + §8 변경 이력 row
+- `ai-workflow/memory/state.json` — head/status/updated_at
+- `ai-workflow/memory/session_handoff.md` — 본 prepend
+- `ai-workflow/memory/work_backlog.md` — 헤더 + 변경 이력 row
+
+## 다음 directive (사용자 지정 순서)
+
+1. **A** — sub-carve F `/login` page 정리 (frontend `app/login/page.tsx` + `auth/login` + `auth/callback` + `auth/error`). worker_division 상 Gemini 영역. 사용자 override 명시 ("C 먼저 진행하고 다음 A와 B") — `feedback_worker_division_override` 패턴.
+2. **B** — 사내 동반 carve docs 초안 3건 — (i) Keycloak admin 운영 SOP 승격 (ADR-0020 §3.2 표 → 사내 정책 문서), (ii) JWKS rotation 직후 backend cache flush SOP, (iii) HRDB ETL unit pre-stage 가이드. 사내 실 적용은 별도지만 docs 초안은 claude 영역.
+3. **1순위 (병행)** — Onboarding 운영 SOP 따른 staging 1주 monitoring 시작 (사내 운영자 영역).
+4. **v1.0 release gate (D-24)** 잔여 1건 (#214 P1-3 Keycloak group staging-prod, 사내 운영자).
+
+
 
 ## 2026-05-22 본 세션 (sprint `claude/work_260522-onboarding-ops-sop`)
 
