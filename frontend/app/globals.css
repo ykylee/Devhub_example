@@ -34,28 +34,28 @@
 
 @layer base {
   :root {
-    --background: #f8fafc;
-    --foreground: #0f172a;
-    --card: rgba(255, 255, 255, 0.7);
+    --background: #f6f8fc;
+    --foreground: #0a1020;
+    --card: rgba(255, 255, 255, 0.96);
     --card-foreground: #0f172a;
     --popover: #ffffff;
     --popover-foreground: #0f172a;
     --primary: #2563eb;
     --primary-foreground: #ffffff;
-    --secondary: #f1f5f9;
+    --secondary: #e2e8f0;
     --secondary-foreground: #0f172a;
-    --muted: #f1f5f9;
-    --muted-foreground: #64748b;
-    --accent: #0ea5e9;
+    --muted: #e2e8f0;
+    --muted-foreground: #334155;
+    --accent: #0369a1;
     --accent-foreground: #ffffff;
     --destructive: #ef4444;
     --destructive-foreground: #ffffff;
     --border: #e2e8f0;
     --input: #ffffff;
     --ring: #3b82f6;
-    --success: #10b981;
+    --success: #15803d;
     --success-foreground: #ffffff;
-    --warning: #f59e0b;
+    --warning: #b45309;
     --warning-foreground: #ffffff;
     --info: #3b82f6;
     --info-foreground: #ffffff;
@@ -107,10 +107,10 @@
   body {
     @apply bg-background text-foreground antialiased selection:bg-primary/20;
     font-feature-settings: "rlig" 1, "calt" 1;
-    background-image: 
-      radial-gradient(circle at 50% -20%, #e0f2fe 0%, transparent 50%),
-      radial-gradient(circle at 0% 100%, #f0f9ff 0%, transparent 40%),
-      radial-gradient(circle at 100% 100%, #e0e7ff 0%, transparent 40%);
+    background-image:
+      radial-gradient(circle at 50% -20%, #f1f5ff 0%, transparent 46%),
+      radial-gradient(circle at 0% 100%, #f8fbff 0%, transparent 34%),
+      radial-gradient(circle at 100% 100%, #eef2ff 0%, transparent 34%);
     background-attachment: fixed;
     transition: background-color 0.3s ease, color 0.3s ease;
   }
@@ -125,11 +125,11 @@
 
 @layer components {
   .glass {
-    @apply bg-background/70 backdrop-blur-xl border border-border shadow-[0_8px_32px_0_rgba(0,0,0,0.18)];
+    @apply bg-background/92 backdrop-blur-xl border border-border shadow-[0_8px_24px_0_rgba(15,23,42,0.12)];
   }
   
   .glass-card {
-    @apply bg-background/70 backdrop-blur-xl border border-border shadow-[0_8px_32px_0_rgba(0,0,0,0.14)] rounded-2xl transition-all duration-300 hover:bg-background/80 hover:border-border;
+    @apply bg-background/94 backdrop-blur-xl border border-border shadow-[0_8px_24px_0_rgba(15,23,42,0.1)] rounded-2xl transition-all duration-300 hover:bg-background hover:border-border;
   }
   
   .text-gradient {

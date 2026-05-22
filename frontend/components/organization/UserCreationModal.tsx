@@ -154,7 +154,7 @@ export function UserCreationModal({ onClose, onCreated, roles }: UserCreationMod
               <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">User ID / System ID</label>
               <div className="relative group flex gap-2">
                 <div className="relative flex-1">
-                  <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-foreground/20 group-focus-within:text-primary transition-colors" />
+                  <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/35 dark:text-primary-foreground/20 group-focus-within:text-primary transition-colors" />
                   <input
                     required
                     value={formData.user_id}
@@ -191,7 +191,7 @@ export function UserCreationModal({ onClose, onCreated, roles }: UserCreationMod
           <div className="space-y-2">
             <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Email Address</label>
             <div className="relative group">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-foreground/20 group-focus-within:text-primary transition-colors" />
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/35 dark:text-primary-foreground/20 group-focus-within:text-primary transition-colors" />
               <input
                 required
                 type="email"
@@ -207,7 +207,7 @@ export function UserCreationModal({ onClose, onCreated, roles }: UserCreationMod
             <div className="space-y-2">
               <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Initial Role</label>
               <div className="relative group">
-                <Shield className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-foreground/20 group-focus-within:text-primary transition-colors" />
+                <Shield className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/35 dark:text-primary-foreground/20 group-focus-within:text-primary transition-colors" />
                 <select
                   value={formData.role}
                   onChange={e => setFormData({ ...formData, role: e.target.value })}

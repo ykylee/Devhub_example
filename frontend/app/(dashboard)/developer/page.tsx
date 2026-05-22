@@ -172,7 +172,7 @@ export default function DeveloperDashboard() {
                       <div>
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-[10px] font-black text-primary uppercase tracking-widest">{task.id}</span>
-                          <span className="text-[10px] text-primary-foreground/30">•</span>
+                          <span className="text-[10px] text-foreground/45 dark:text-primary-foreground/30">•</span>
                           <span className="text-[10px] font-bold text-muted-foreground uppercase">{task.repo}</span>
                         </div>
                         <h3 className="text-lg font-bold text-foreground dark:text-primary-foreground group-hover:text-primary transition-colors">

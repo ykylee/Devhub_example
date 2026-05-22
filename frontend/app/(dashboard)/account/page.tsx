@@ -65,7 +65,7 @@ export default function AccountPage() {
                 <Mail className="w-3.5 h-3.5" />
                 <span className="font-medium">{actor?.login}@example.com</span>
               </div>
-              <div className="flex items-center gap-3 text-[10px] text-primary-foreground/40 justify-center uppercase tracking-widest font-black">
+              <div className="flex items-center gap-3 text-[10px] text-foreground/55 dark:text-primary-foreground/40 justify-center uppercase tracking-widest font-black">
                 <Shield className="w-3 h-3" />
                 <span>Subject: {actor?.subject?.slice(0, 8) || "N/A"}...</span>
               </div>
@@ -76,11 +76,11 @@ export default function AccountPage() {
             <h3 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] px-2">Session Info</h3>
             <div className="space-y-3">
               <div className="flex items-center justify-between px-2">
-                <span className="text-[10px] font-bold text-primary-foreground/50 uppercase tracking-widest">Source</span>
+                <span className="text-[10px] font-bold text-foreground/60 dark:text-primary-foreground/50 uppercase tracking-widest">Source</span>
                 <span className="text-[10px] font-mono text-primary font-bold uppercase">{actor?.source || "Local"}</span>
               </div>
               <div className="flex items-center justify-between px-2">
-                <span className="text-[10px] font-bold text-primary-foreground/50 uppercase tracking-widest">MFA Status</span>
+                <span className="text-[10px] font-bold text-foreground/60 dark:text-primary-foreground/50 uppercase tracking-widest">MFA Status</span>
                 <span className="text-[10px] font-bold text-success uppercase">Disabled</span>
               </div>
             </div>

@@ -216,7 +216,7 @@ export function PermissionEditor({
                 animate={{ opacity: 1 }}
                 className="glass rounded-3xl p-10 border-dashed border-border text-center h-full flex flex-col items-center justify-center"
               >
-                <ShieldAlert className="w-16 h-16 text-primary-foreground/10 mb-4" />
+                <ShieldAlert className="w-16 h-16 text-foreground/20 dark:text-primary-foreground/10 mb-4" />
                 <h4 className="text-xl font-black text-muted-foreground mb-2">Select a Role</h4>
                 <p className="text-sm text-muted-foreground max-w-sm">
                   Choose a role from the left panel to inspect or edit its permission matrix.

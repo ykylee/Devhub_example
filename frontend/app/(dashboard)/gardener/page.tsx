@@ -80,7 +80,7 @@ export default function GardenerPage() {
             transition={{ delay: 0.2 }}
             className="glass rounded-2xl p-6 border-border/60"
           >
-            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-foreground/50 dark:text-primary-foreground/50 mb-4">How it works</h3>
+            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-foreground/65 dark:text-primary-foreground/50 mb-4">How it works</h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
               AI Gardener analyzes real-time telemetry from Gitea, Go Core, and Infrastructure nodes to identify bottlenecks and security risks before they impact users.
             </p>

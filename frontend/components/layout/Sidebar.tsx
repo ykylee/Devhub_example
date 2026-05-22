@@ -17,22 +17,22 @@ interface MenuItem {
 }
  
 const baseMenu: MenuItem[] = [
-  { href: "/developer", icon: LayoutDashboard, label: "Work Status", color: "text-info" },
-  { href: "/manager", icon: Users, label: "Quality Status", color: "text-success" },
-  { href: "/applications", icon: Zap, label: "Applications", color: "text-purple-400" },
-  { href: "/repositories", icon: Server, label: "Repositories", color: "text-cyan-400" },
-  { href: "/projects", icon: Settings, label: "Projects", color: "text-pink-400" },
+  { href: "/developer", icon: LayoutDashboard, label: "Work Status", color: "text-blue-700 dark:text-blue-300" },
+  { href: "/manager", icon: Users, label: "Quality Status", color: "text-emerald-700 dark:text-emerald-300" },
+  { href: "/applications", icon: Zap, label: "Applications", color: "text-violet-700 dark:text-violet-300" },
+  { href: "/repositories", icon: Server, label: "Repositories", color: "text-cyan-700 dark:text-cyan-300" },
+  { href: "/projects", icon: Settings, label: "Projects", color: "text-rose-700 dark:text-rose-300" },
 ];
  
 const systemMenu: MenuItem[] = [
-  { href: "/admin", icon: Server, label: "Sys Admin Dashboard", color: "text-accent" },
+  { href: "/admin", icon: Server, label: "Sys Admin Dashboard", color: "text-sky-700 dark:text-sky-300" },
 ];
  
 const systemBottomMenu: MenuItem = {
   href: "/admin/settings",
   icon: Settings,
   label: "Sys Admin Settings",
-  color: "text-accent",
+  color: "text-sky-700 dark:text-sky-300",
 };
  
 export function Sidebar({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
@@ -74,7 +74,7 @@ export function Sidebar({ className, ...props }: React.HTMLAttributes<HTMLDivEle
         isSidebarOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full lg:translate-x-0",
         className
       )} {...props}>
-        <div className="p-6 flex flex-col h-full overflow-y-auto">
+        <div className={cn("p-6 flex flex-col h-full overflow-y-auto", collapsed && "lg:px-3")}>
           <div className={cn("flex items-center justify-between mb-10 px-2", collapsed && "lg:justify-center lg:px-0")}>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-xl shadow-lg flex items-center justify-center ring-2 ring-border/70 shrink-0">
@@ -87,7 +87,7 @@ export function Sidebar({ className, ...props }: React.HTMLAttributes<HTMLDivEle
             </div>
             <button 
               onClick={() => setSidebarOpen(false)}
-              className="p-2 rounded-xl hover:bg-muted/30 text-muted-foreground lg:hidden"
+            className="p-2 rounded-xl hover:bg-muted/40 text-foreground/70 lg:hidden"
               aria-label="Close sidebar"
             >
               <X className="w-5 h-5" />
@@ -109,7 +109,7 @@ export function Sidebar({ className, ...props }: React.HTMLAttributes<HTMLDivEle
                 {collapsed ? (
                   <div className="border-t border-border/30 my-4" />
                 ) : (
-                  <p className="px-4 pt-4 text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] mb-2 opacity-50 flex items-center gap-2">
+                  <p className="px-4 pt-4 text-[10px] font-bold text-foreground/60 dark:text-muted-foreground uppercase tracking-[0.2em] mb-2 opacity-80 dark:opacity-50 flex items-center gap-2">
                     <ShieldCheck className="w-3 h-3 text-accent" aria-hidden="true" />
                     System (Admin only)
                   </p>
@@ -125,10 +125,16 @@ export function Sidebar({ className, ...props }: React.HTMLAttributes<HTMLDivEle
                 {renderMenuItem(systemBottomMenu, pathname, collapsed, () => setSidebarOpen(false))}
               </div>
             )}
-            <Link href="/account" onClick={() => setSidebarOpen(false)} aria-label="Account Settings" title={collapsed ? "Account" : undefined}>
+            <Link
+              href="/account"
+              onClick={() => setSidebarOpen(false)}
+              aria-label="Account Settings"
+              title={collapsed ? "Account" : undefined}
+              className={cn(collapsed && "lg:flex lg:justify-center")}
+            >
               <div className={cn(
-                "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground dark:hover:text-primary-foreground hover:bg-muted/30 transition-all",
-                collapsed && "lg:justify-center lg:px-0"
+                "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground/75 dark:text-muted-foreground hover:text-foreground dark:hover:text-primary-foreground hover:bg-muted/40 transition-all",
+                collapsed && "lg:w-12 lg:h-12 lg:mx-auto lg:justify-center lg:gap-0 lg:px-0 lg:py-0"
               )}>
                 <Settings className="h-5 w-5 shrink-0" aria-hidden="true" />
                 <span className={cn(
@@ -156,7 +162,7 @@ export function Sidebar({ className, ...props }: React.HTMLAttributes<HTMLDivEle
             <div className="hidden lg:flex justify-end pt-4">
               <button
                 onClick={() => setSidebarCollapsed(!collapsed)}
-                className="w-8 h-8 rounded-full border border-border bg-background/50 hover:bg-muted/50 backdrop-blur-md flex items-center justify-center text-muted-foreground hover:text-foreground shadow-sm transition-all focus:outline-none"
+                className="w-8 h-8 rounded-full border border-border bg-background/70 hover:bg-muted/50 backdrop-blur-md flex items-center justify-center text-foreground/70 hover:text-foreground shadow-sm transition-all focus:outline-none"
                 aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
                 title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
               >
@@ -181,22 +187,32 @@ function renderMenuItem(item: MenuItem, pathname: string, collapsed: boolean, on
       : pathname === item.href || pathname.startsWith(`${item.href}/`);
  
   return (
-    <Link key={item.href} href={item.href} onClick={onClick} aria-label={item.label} title={collapsed ? item.label : undefined}>
+    <Link
+      key={item.href}
+      href={item.href}
+      onClick={onClick}
+      aria-label={item.label}
+      title={collapsed ? item.label : undefined}
+      className={cn(collapsed && "lg:flex lg:justify-center")}
+    >
       <motion.div
         whileHover={collapsed ? {} : { x: 4 }}
         whileTap={{ scale: 0.98 }}
         className={cn(
           "relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all group overflow-hidden",
           isActive
-            ? "text-primary dark:text-primary-foreground bg-primary/10 dark:bg-muted/40 border border-primary/20 dark:border-border"
-            : "text-muted-foreground hover:text-foreground dark:hover:text-primary-foreground hover:bg-muted/30",
-          collapsed && "lg:justify-center lg:px-0"
+            ? "text-primary dark:text-primary-foreground bg-primary/12 dark:bg-muted/40 border border-primary/25 dark:border-border"
+            : "text-foreground/75 dark:text-muted-foreground hover:text-foreground dark:hover:text-primary-foreground hover:bg-muted/40",
+          collapsed && "lg:w-12 lg:h-12 lg:mx-auto lg:justify-center lg:gap-0 lg:px-0 lg:py-0"
         )}
       >
         {isActive && (
           <motion.div
             layoutId="active-pill"
-            className="absolute inset-0 bg-gradient-to-r from-primary/10 to-accent/10 dark:from-primary/20 dark:to-accent/20 opacity-50"
+            className={cn(
+              "absolute inset-0 bg-gradient-to-r from-primary/10 to-accent/10 dark:from-primary/20 dark:to-accent/20 opacity-50",
+              collapsed && "rounded-xl"
+            )}
             transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
           />
         )}

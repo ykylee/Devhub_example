@@ -92,7 +92,7 @@ export function OrgUnitGrid({ nodes, unitMembers, onManage }: OrgUnitGridProps) 
                     ))}
                     {currentMemberCount === 0 && (
                       <div className="w-6 h-6 rounded-full border-2 border-background bg-muted/30 flex items-center justify-center">
-                        <Users className="w-3 h-3 text-primary-foreground/20" />
+                        <Users className="w-3 h-3 text-foreground/35 dark:text-primary-foreground/20" />
                       </div>
                     )}
                   </div>

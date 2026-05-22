@@ -117,7 +117,7 @@ export function RepositoryLinkModal({ applicationId, onClose, onLinked }: Reposi
             <div className="space-y-2">
               <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Repository Full Name</label>
               <div className="relative group">
-                <GitBranch className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-foreground/20 group-focus-within:text-pink-400 transition-colors" />
+                <GitBranch className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/35 dark:text-primary-foreground/20 group-focus-within:text-pink-400 transition-colors" />
                 <input
                   required
                   value={formData.repo_full_name}

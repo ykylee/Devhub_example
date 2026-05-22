@@ -340,7 +340,7 @@ export default function AdminTopologyV2Page() {
           {isLoading && (
             <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-background/50 backdrop-blur-sm">
               <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4" />
-              <p className="text-foreground/50 dark:text-primary-foreground/50 text-xs font-bold uppercase tracking-[0.2em] animate-pulse">
+              <p className="text-foreground/65 dark:text-primary-foreground/50 text-xs font-bold uppercase tracking-[0.2em] animate-pulse">
                 Loading Topology v2...
               </p>
             </div>

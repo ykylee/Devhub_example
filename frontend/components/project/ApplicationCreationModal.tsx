@@ -106,7 +106,7 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
             <div className="space-y-2">
               <label htmlFor="appKey" className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Application Key</label>
               <div className="relative group">
-                <Info className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-foreground/20 group-focus-within:text-purple-400 transition-colors" />
+                <Info className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/35 dark:text-primary-foreground/20 group-focus-within:text-purple-400 transition-colors" />
                 <input
                   id="appKey"
                   required
@@ -155,7 +155,7 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
             <div className="space-y-2">
               <label htmlFor="appLeader" className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Application Leader</label>
               <div className="relative group">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-foreground/20 group-focus-within:text-purple-400 transition-colors" />
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/35 dark:text-primary-foreground/20 group-focus-within:text-purple-400 transition-colors" />
                 <input
                   id="appLeader"
                   required
@@ -169,7 +169,7 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
             <div className="space-y-2">
               <label htmlFor="appDept" className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Development Department</label>
               <div className="relative group">
-                <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-foreground/20 group-focus-within:text-purple-400 transition-colors" />
+                <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/35 dark:text-primary-foreground/20 group-focus-within:text-purple-400 transition-colors" />
                 <input
                   id="appDept"
                   required
@@ -186,7 +186,7 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
             <div className="space-y-2">
               <label htmlFor="appOwner" className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Owner User (Legacy)</label>
               <div className="relative group">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-foreground/20 group-focus-within:text-purple-400 transition-colors" />
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/35 dark:text-primary-foreground/20 group-focus-within:text-purple-400 transition-colors" />
                 <input
                   id="appOwner"
                   required

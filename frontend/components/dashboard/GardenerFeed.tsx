@@ -123,7 +123,7 @@ export function GardenerFeed() {
                     </p>
                     
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-mono text-primary-foreground/30 uppercase">
+                      <span className="text-[10px] font-mono text-foreground/55 dark:text-primary-foreground/30 uppercase">
                         {new Date(suggestion.created_at).toLocaleTimeString()}
                       </span>
                       

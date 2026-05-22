@@ -9,6 +9,9 @@
 - 최종 수정일: 2026-05-20
 - 관련 문서: [개발 환경 구성 가이드](./environment-setup.md), [테스트 서버 배포 가이드](./test-server-deployment.md), [ADR-0003](../adr/0003-no-docker-policy-ci-scope.md)
 
+배포 실행 전 반드시 확인:
+- [배포 Preflight 체크리스트 (실수 방지 SOP)](./deploy_preflight_checklist.md)
+
 ## 1. 현재 저장소 기준 Docker 자산
 
 현재 저장소에는 다음 Docker 자산이 존재한다.
@@ -211,6 +214,10 @@ docker compose -f docker-compose.deploy.yml up -d
 issuer/JWKS 분리 권장:
 - `DEVHUB_OIDC_ISSUER_URL`: 브라우저/토큰 claim 과 일치하는 public issuer
 - `DEVHUB_OIDC_JWKS_URL`: backend 가 실제로 접근 가능한 internal JWKS URL (필요 시)
+
+주의 (재발 방지):
+- backend 컨테이너 env 에 `DEVHUB_OIDC_JWKS_URL=http://localhost:...` 를 넣지 않는다.
+- compose 내부 Keycloak 사용 시 `http://keycloak:8080/.../certs` 를 기본값으로 사용한다.
 
 ### 8.1.2 DB 모드 선택
 
