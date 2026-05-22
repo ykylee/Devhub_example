@@ -1,0 +1,26 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "gemini/admin-settings-ui-restructuring",
+  "status": "planned",
+  "updated_at": "2026-05-22T14:44:00Z",
+  "head_commit": "6ea9b89",
+  "head_summary": "Initial state for admin settings UI restructuring task",
+  "milestones": {
+    "M-v1.0": {
+      "status": "in_progress",
+      "started_at": "2026-05-22",
+      "notes": "Admin Settings UI Restructuring (세로형 사이드바 레이아웃 전환 및 메뉴 3그룹화)"
+    }
+  },
+  "components": {
+    "frontend": {
+      "phase": "Planned: Refactoring admin/settings/layout.tsx to support responsive sidebar settings layout.",
+      "build_check": "PENDING"
+    }
+  },
+  "session_pointers": {
+    "session_handoff_path": "ai-workflow/memory/gemini/admin-settings-ui-restructuring/session_handoff.md",
+    "work_backlog_path": "ai-workflow/memory/gemini/admin-settings-ui-restructuring/work_backlog.md"
+  }
+}
