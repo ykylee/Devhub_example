@@ -41,8 +41,10 @@ interface AppState {
   setIsLoggingOut: (active: boolean) => void;
   isSidebarOpen: boolean;
   setSidebarOpen: (active: boolean) => void;
+  isSidebarCollapsed: boolean;
+  setSidebarCollapsed: (active: boolean) => void;
 }
-
+ 
 export const useStore = create<AppState>()(
   subscribeWithSelector(
     persist(
@@ -76,6 +78,8 @@ export const useStore = create<AppState>()(
         setIsLoggingOut: (active) => set({ isLoggingOut: active }),
         isSidebarOpen: false,
         setSidebarOpen: (active) => set({ isSidebarOpen: active }),
+        isSidebarCollapsed: false,
+        setSidebarCollapsed: (active) => set({ isSidebarCollapsed: active }),
       }),
       {
         name: "devhub-storage",
