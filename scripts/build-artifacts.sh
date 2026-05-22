@@ -30,6 +30,9 @@ build_backend_core() {
 
 build_backend_ai() {
   echo "[host build] backend-ai"
+  # host python3 와 backend-ai/Dockerfile (python:3.12-slim) 의 메이저/마이너가
+  # 일치해야 한다. mismatch 시 grpcio 등 컴파일 확장 모듈의 ABI 가 컨테이너에서
+  # import 실패하거나 segfault 한다.
   mkdir -p "$ROOT_DIR/backend-ai/.build/site-packages"
   (
     cd "$ROOT_DIR/backend-ai"

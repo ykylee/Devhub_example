@@ -19,7 +19,7 @@
 | 항목 | 권장 버전 | 비고 |
 | --- | --- | --- |
 | Go | 1.22+ | backend-core |
-| Python | 3.11+ | backend-ai |
+| Python | 3.12 | backend-ai (host `python3` 도 3.12 권장 — ABI 호환) |
 | Node.js | 20 LTS | frontend (Next.js 15) |
 | PostgreSQL | 15 | DB |
 | `migrate` CLI | v4.19.1 | `make migrate-tools` 로 설치 |

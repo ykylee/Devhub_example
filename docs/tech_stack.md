@@ -43,7 +43,7 @@ DevHub은 Gitea 연동, AI 분석, 실시간 대시보드 제공을 위해 다�
 
 ### 2.1 사전 요구 사항 (Prerequisites)
 - **Go**: 기준 v1.25.9 (`backend-core/go.mod`). 로컬 `go` 도 같은 버전을 권장.
-- **Python**: v3.11+ 권장 (최소 v3.10). `make setup` 과 `make proto` 는 로컬 `python3` 를 그대로 사용한다.
+- **Python**: 기준 v3.12 (`backend-ai/Dockerfile`). host build (`scripts/build-artifacts.sh`) 가 `pip install --target` 으로 site-packages 를 만들어 컨테이너에 복사하므로, **host 의 `python3` 도 v3.12 권장** (메이저/마이너 mismatch 시 컴파일 확장 모듈의 ABI 충돌 가능). `make setup` 과 `make proto` 는 로컬 `python3` 를 그대로 사용한다.
 - **Node.js**: v20 LTS+ (Next.js 16 빌드 요구). 로컬 `npm install` 과 `npm run` 계열 명령은 로컬 Node.js 를 사용한다.
 - **PostgreSQL**: v15 (호스트 native 또는 시스템 서비스로 기동).
 - **protoc** (gRPC 컴파일러)
