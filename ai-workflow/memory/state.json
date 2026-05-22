@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-05-22 main HEAD `6ea9b89` (PR #296 외부 codex OIDC PKCE + Keycloak 25.0 pin + claude P0 fix). 후속 sprint `claude/work_260522-internal-coordinated-carve-docs` 가 **§7.3 사내 동반 carve 3건 docs 초안 resolved**. (1) `docs/governance/keycloak_admin_responsibility.md` 신규 — ADR-0020 §3.2 + ADR-0021 §3.1 표 사내 정책 문서 승격 (책임 매트릭스 5 sub-section + escalation 4 level + 명시 금지 5건). (2) `docs/setup/jwks_rotation_cache_flush.md` 신규 — revoked key 위협 대응 backend 강제 재기동 4 환경별 + cache flush endpoint carve P3. (3) `docs/setup/hrdb_unit_pre_stage.md` 신규 — 3 옵션 (A Keycloak user attribute / B DevHub hrdb.persons / C self-service only) + ADR-0021 §6.2 cross-check 결정 옵션 3. **ADR-0020 §6.3 + redesign §7.3 3 carve 모두 docs 초안 mark**. 사내 실 적용 (IdP 팀 / HRDB 팀 / Security sign-off) 은 별도. **본 세션 누적 5 PR (#293/#294/#295/#296/본 sprint) 완결** — Onboarding 운영 SOP + ADR-0020 Phase 3 closing + sub-carve F + 외부 codex 흡수 + 사내 동반 carve docs 초안. v1.0 release gate (D-24) 잔여 1건 (#214 P1-3 Keycloak group staging-prod). 다음 directive: 1순위 SOP 따른 staging 1주 monitoring (사내) + PR #296 follow-up carve 6건 (localhost:13000 magic / python3 사전조건 / sync idempotent / KEYCLOAK_REALM_IMPORT_PATH fallback / generated 파일 git 추적 / ADR-0022 §3.1 retreat 사유 finalize) + Prometheus metric backend (Onboarding SOP §8 잔여 carve P2).",
-  "updated_at": "2026-05-22T04:00:00Z",
-  "head_commit": "6ea9b89",
-  "head_summary": "fix: OIDC CSRF/state race + local Keycloak sslRequired none (#296)",
+  "status": "2026-05-22 main HEAD `cbf4bf6` (gemini/admin-settings-ui-restructuring 피처 브랜치 완벽 통합 및 PR #298 병합 충돌 해소 완료). 관리자 설정 UI의 세로형 사이드바 3대 카테고리 그룹화, 프리미엄 Collapsible Sidebar 접기/토글 기능 및 localStorage 상태 영속화를 도입하고, PR #298의 SKIP_OIDC_JWKS_REACH=1 및 keycloak:8080 루프백 치환 Safety Gate를 완벽 공존 머지하여 E2E 테스트(2 passed)를 완수했습니다.",
+  "updated_at": "2026-05-22T07:17:00Z",
+  "head_commit": "cbf4bf6",
+  "head_summary": "merge(frontend,deploy): merge branch 'gemini/admin-settings-ui-restructuring' into main",
   "milestones": {
     "M0": {
       "status": "done",
