@@ -9,6 +9,7 @@
 #   KC_BOOTSTRAP_ADMIN_USERNAME Keycloak admin user (기본 admin)
 #   KC_BOOTSTRAP_ADMIN_PASSWORD Keycloak admin password (기본 admin — 운영은 vault 권장)
 #   DEVHUB_REALM                DevHub realm name (기본 devhub)
+#   DEVHUB_KEYCLOAK_SSL_REQUIRED realm sslRequired 값 (기본 none; local-idp 권장)
 #   DEVHUB_FRONTEND_ORIGIN      devhub-frontend client 의 redirect_uri / webOrigin origin (필수).
 #                                 - 로컬 모드: http://localhost:3000
 #                                 - 외부 모드: https://devhub.example.com
@@ -26,6 +27,7 @@ ADMIN_USER="${KC_BOOTSTRAP_ADMIN_USERNAME:-admin}"
 ADMIN_PASS="${KC_BOOTSTRAP_ADMIN_PASSWORD:-admin}"
 REALM="${DEVHUB_REALM:-devhub}"
 FRONTEND_ORIGIN="${DEVHUB_FRONTEND_ORIGIN:-}"
+KEYCLOAK_SSL_REQUIRED="${DEVHUB_KEYCLOAK_SSL_REQUIRED:-none}"
 # NOTE:
 # - If DEVHUB_FRONTEND_BASEPATH is unset, default to /devhub.
 # - If explicitly set to empty, honor empty (native root path mode).
@@ -81,14 +83,30 @@ if [ "$http_code" = "404" ]; then
   curl -fsS -X POST "$BASE_URL/admin/realms" \
     -H "Authorization: Bearer ${admin_token}" \
     -H "Content-Type: application/json" \
-    -d "{\"realm\":\"$REALM\",\"enabled\":true,\"sslRequired\":\"none\"}"
+    -d "{\"realm\":\"$REALM\",\"enabled\":true,\"sslRequired\":\"${KEYCLOAK_SSL_REQUIRED}\"}"
 else
-  echo "Realm '$REALM' already exists. Updating sslRequired to none..."
+  echo "Realm '$REALM' already exists. Updating sslRequired to ${KEYCLOAK_SSL_REQUIRED}..."
+  realm_payload=$(
+    curl -fsS -H "Authorization: Bearer ${admin_token}" \
+      "$BASE_URL/admin/realms/$REALM" \
+      | KEYCLOAK_SSL_REQUIRED="$KEYCLOAK_SSL_REQUIRED" python3 -c 'import json,sys,os; o=json.load(sys.stdin); o["sslRequired"]=os.environ["KEYCLOAK_SSL_REQUIRED"]; print(json.dumps(o))'
+  )
   curl -fsS -X PUT "$BASE_URL/admin/realms/$REALM" \
     -H "Authorization: Bearer ${admin_token}" \
     -H "Content-Type: application/json" \
-    -d "{\"sslRequired\":\"none\"}"
+    -d "$realm_payload"
 fi
+
+echo "Updating realm 'master' sslRequired to ${KEYCLOAK_SSL_REQUIRED}..."
+master_payload=$(
+  curl -fsS -H "Authorization: Bearer ${admin_token}" \
+    "$BASE_URL/admin/realms/master" \
+    | KEYCLOAK_SSL_REQUIRED="$KEYCLOAK_SSL_REQUIRED" python3 -c 'import json,sys,os; o=json.load(sys.stdin); o["sslRequired"]=os.environ["KEYCLOAK_SSL_REQUIRED"]; print(json.dumps(o))'
+)
+curl -fsS -X PUT "$BASE_URL/admin/realms/master" \
+  -H "Authorization: Bearer ${admin_token}" \
+  -H "Content-Type: application/json" \
+  -d "$master_payload" >/dev/null
 
 echo "Creating roles..."
 for role in developer manager pmo_manager system_admin; do

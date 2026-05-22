@@ -144,9 +144,11 @@ build_env_file() {
     DB_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DB_HOST}:${DB_PORT}/${POSTGRES_DB}?sslmode=${DB_SSLMODE}"
     KEYCLOAK_HOSTNAME="${KEYCLOAK_HOSTNAME:-$public_base/devhub/auth/keycloak}"
     KEYCLOAK_HOSTNAME="$(normalize_keycloak_hostname "$KEYCLOAK_HOSTNAME")"
+    DEVHUB_KEYCLOAK_SSL_REQUIRED="${DEVHUB_KEYCLOAK_SSL_REQUIRED:-none}"
   elif [ "$DB_MODE" = "external" ]; then
     : "${DB_URL:?set DB_URL when DB_MODE=external}"
     COMPOSE_PROFILES="${COMPOSE_PROFILES:-}"
+    DEVHUB_KEYCLOAK_SSL_REQUIRED="${DEVHUB_KEYCLOAK_SSL_REQUIRED:-external}"
   else
     echo "ERROR: invalid DB_MODE=$DB_MODE (use: external|docker)" >&2
     exit 1
@@ -189,6 +191,7 @@ build_env_file() {
     emit_env_line KC_DB_USERNAME "${KC_DB_USERNAME:-user}"
     emit_env_line KC_DB_PASSWORD "${KC_DB_PASSWORD:-pass}"
     emit_env_line KC_DB_SCHEMA "${KC_DB_SCHEMA:-keycloak}"
+    emit_env_line DEVHUB_KEYCLOAK_SSL_REQUIRED "${DEVHUB_KEYCLOAK_SSL_REQUIRED:-none}"
     printf "\n"
     emit_env_line DB_URL "$DB_URL"
     emit_env_line POSTGRES_USER "$POSTGRES_USER"
