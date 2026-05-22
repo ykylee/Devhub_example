@@ -9,6 +9,7 @@ import { OrgTree } from "@/components/organization/OrgTree";
 import { MemberManagementModal } from "@/components/organization/MemberManagementModal";
 import { UnitManagementModal } from "@/components/organization/UnitManagementModal";
 import { identityService, OrgNode, OrgMember, OrgUnit, CreateUnitPayload, UpdateUnitPayload } from "@/lib/services/identity.service";
+import { ApiError } from "@/lib/services/api-client";
 
 export default function AdminSettingsOrganizationPage() {
   const [view, setView] = useState<"list" | "grid" | "chart">("list");
@@ -69,7 +70,19 @@ export default function AdminSettingsOrganizationPage() {
       setError(null);
     } catch (err) {
       console.error("Failed to load organization data:", err);
-      setError("Failed to connect to the organization service. Please try again later.");
+      if (err instanceof ApiError) {
+        if (err.status === 401) {
+          setError("세션이 만료되었습니다. 다시 로그인해주세요.");
+        } else if (err.status === 403) {
+          setError("이 화면에 접근할 권한이 없습니다.");
+        } else if (err.status === 503) {
+          setError("조직 서비스가 현재 사용할 수 없습니다. 잠시 후 다시 시도해주세요.");
+        } else {
+          setError(`조직 데이터를 불러오지 못했습니다. (HTTP ${err.status})`);
+        }
+      } else {
+        setError("Failed to connect to the organization service. Please try again later.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -183,7 +196,7 @@ export default function AdminSettingsOrganizationPage() {
           </div>
         ) : error ? (
           <div className="glass border-destructive/20 bg-destructive/5 rounded-3xl p-12 text-center">
-            <p className="text-destructive font-bold mb-2">Service Unavailable</p>
+            <p className="text-destructive font-bold mb-2">Organization Access Error</p>
             <p className="text-xs text-muted-foreground mb-6">{error}</p>
             <button
               onClick={() => void loadData()}

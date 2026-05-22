@@ -9,6 +9,7 @@ interface Props {
   value: string;
   onChange: (unitId: string, label?: string) => void;
   disabled?: boolean;
+  allowTree?: boolean;
   "data-testid"?: string;
 }
 
@@ -83,7 +84,7 @@ function TreeBranch({
   );
 }
 
-export function OrganizationPicker({ value, onChange, disabled, "data-testid": testId }: Props) {
+export function OrganizationPicker({ value, onChange, disabled, allowTree = true, "data-testid": testId }: Props) {
   const [mode, setMode] = useState<"search" | "tree">("search");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<OrgSearchResult[]>([]);
@@ -171,17 +172,19 @@ export function OrganizationPicker({ value, onChange, disabled, "data-testid": t
         >
           검색
         </button>
-        <button
-          type="button"
-          onClick={() => setMode("tree")}
-          disabled={disabled}
-          className={`px-3 py-1.5 rounded font-bold uppercase tracking-wider ${
-            mode === "tree" ? "bg-primary text-primary-foreground" : "bg-card hover:bg-card/70"
-          }`}
-          data-testid="org-picker-mode-tree"
-        >
-          트리
-        </button>
+        {allowTree && (
+          <button
+            type="button"
+            onClick={() => setMode("tree")}
+            disabled={disabled}
+            className={`px-3 py-1.5 rounded font-bold uppercase tracking-wider ${
+              mode === "tree" ? "bg-primary text-primary-foreground" : "bg-card hover:bg-card/70"
+            }`}
+            data-testid="org-picker-mode-tree"
+          >
+            트리
+          </button>
+        )}
       </div>
 
       {picked && (
@@ -243,7 +246,7 @@ export function OrganizationPicker({ value, onChange, disabled, "data-testid": t
         </div>
       )}
 
-      {mode === "tree" && (
+      {allowTree && mode === "tree" && (
         <div className="bg-card/50 border border-border rounded max-h-72 overflow-y-auto py-1" data-testid="org-picker-tree">
           {treeError && <p className="text-xs text-red-500 px-3 py-2" role="alert">{treeError}</p>}
           {!treeError && tree.length === 0 && <p className="text-xs text-muted-foreground px-3 py-2">조직도 로드 중…</p>}

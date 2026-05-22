@@ -121,6 +121,7 @@ export function OnboardingForm({ initialDisplayName = "", initialUnitId = "", em
           value={unitId}
           onChange={(id) => setUnitId(id)}
           disabled={submitting}
+          allowTree={false}
           data-testid="onboarding-unit-picker"
         />
       </div>

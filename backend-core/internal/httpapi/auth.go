@@ -74,6 +74,15 @@ func (h Handler) authenticateActor(c *gin.Context) {
 
 	header := strings.TrimSpace(c.GetHeader("Authorization"))
 	if header == "" {
+		// Browser WebSocket API cannot set arbitrary headers like Authorization.
+		// Allow Bearer token via query string only for realtime websocket route.
+		if c.FullPath() == "/api/v1/realtime/ws" {
+			if raw := strings.TrimSpace(c.Query("access_token")); raw != "" {
+				header = "Bearer " + raw
+			}
+		}
+	}
+	if header == "" {
 		if h.cfg.AuthDevFallback {
 			c.Header("X-Devhub-Auth", "dev_fallback_no_header")
 			c.Set(ctxKeySourceType, domain.AuditSourceSystem)
