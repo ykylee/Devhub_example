@@ -30,7 +30,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 : "${DOCKER_COMPOSE_FILE:=$ROOT_DIR/docker-compose.deploy.yml}"
 : "${NEXT_PUBLIC_BASE_PATH:=devhub}"
 : "${KEYCLOAK_UPSTREAM:=keycloak:8080}"
-: "${KEYCLOAK_ADMIN_ALLOW_CIDR:=127.0.0.1}"
+: "${KEYCLOAK_ADMIN_ALLOW_CIDR:=127.0.0.1/32}"
 : "${NGINX_HTTP_PORT:=3000}"
 
 # Simple one-shot deploy helper.
@@ -68,7 +68,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 #   BACKEND_AI_URL                  default: http://backend-ai:8000
 #   DEVHUB_TRUSTED_PROXIES          default: 172.16.0.0/12
 #   KEYCLOAK_UPSTREAM               default: keycloak:8080
-#   KEYCLOAK_ADMIN_ALLOW_CIDR       default: 127.0.0.1
+#   KEYCLOAK_ADMIN_ALLOW_CIDR       default: 127.0.0.1/32
 #   DB_MODE                         external|docker (docker will bring up db/db-init via compose profile)
 #   POSTGRES_USER/PASSWORD/DB       default: user/pass/devhub
 #   DB_HOST/DB_PORT/DB_SSLMODE      default: db/5432/disable
@@ -80,6 +80,25 @@ require() {
     echo "ERROR: required env var is empty: $var_name" >&2
     exit 1
   fi
+}
+
+validate_cidr() {
+  local cidr="$1"
+  if ! [[ "$cidr" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}/([0-9]|[12][0-9]|3[0-2])$ ]]; then
+    return 1
+  fi
+
+  local ip="${cidr%/*}"
+  local octet
+  IFS='.' read -r -a octets <<< "$ip"
+  if [ "${#octets[@]}" -ne 4 ]; then
+    return 1
+  fi
+  for octet in "${octets[@]}"; do
+    if [ "$octet" -lt 0 ] || [ "$octet" -gt 255 ]; then
+      return 1
+    fi
+  done
 }
 
 emit_env_line() {
@@ -105,7 +124,7 @@ build_env_file() {
   if [ "$DB_MODE" = "docker" ]; then
     COMPOSE_PROFILES="local-db,local-idp"
     DB_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DB_HOST}:${DB_PORT}/${POSTGRES_DB}?sslmode=${DB_SSLMODE}"
-    KEYCLOAK_HOSTNAME="${KEYCLOAK_HOSTNAME:-$public_base}"
+    KEYCLOAK_HOSTNAME="${KEYCLOAK_HOSTNAME:-$public_base/devhub/auth/keycloak}"
   elif [ "$DB_MODE" = "external" ]; then
     : "${DB_URL:?set DB_URL when DB_MODE=external}"
     COMPOSE_PROFILES="${COMPOSE_PROFILES:-}"
@@ -137,7 +156,7 @@ build_env_file() {
     emit_env_line NEXT_PUBLIC_APP_ORIGIN "$public_base"
     printf "\n"
     emit_env_line KEYCLOAK_UPSTREAM "${KEYCLOAK_UPSTREAM:-keycloak:8080}"
-    emit_env_line KEYCLOAK_ADMIN_ALLOW_CIDR "${KEYCLOAK_ADMIN_ALLOW_CIDR:-127.0.0.1}"
+    emit_env_line KEYCLOAK_ADMIN_ALLOW_CIDR "${KEYCLOAK_ADMIN_ALLOW_CIDR:-127.0.0.1/32}"
     emit_env_line KEYCLOAK_HOSTNAME "${KEYCLOAK_HOSTNAME:-localhost}"
     emit_env_line KC_BOOTSTRAP_ADMIN_USERNAME "${KC_BOOTSTRAP_ADMIN_USERNAME:-admin}"
     emit_env_line KC_BOOTSTRAP_ADMIN_PASSWORD "${KC_BOOTSTRAP_ADMIN_PASSWORD:-admin}"
@@ -213,6 +232,10 @@ main() {
   fi
   if [ "$DB_MODE" = "external" ]; then
     require DB_URL
+  fi
+  if ! validate_cidr "${KEYCLOAK_ADMIN_ALLOW_CIDR:-}"; then
+    echo "ERROR: KEYCLOAK_ADMIN_ALLOW_CIDR must be CIDR form (e.g. 127.0.0.1/32, 10.0.0.0/8)" >&2
+    exit 1
   fi
 
   build_env_file

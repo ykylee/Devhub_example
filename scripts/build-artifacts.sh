@@ -34,10 +34,28 @@ build_backend_ai() {
   # 일치해야 한다. mismatch 시 grpcio 등 컴파일 확장 모듈의 ABI 가 컨테이너에서
   # import 실패하거나 segfault 한다.
   mkdir -p "$ROOT_DIR/backend-ai/.build/site-packages"
-  (
-    cd "$ROOT_DIR/backend-ai"
-    python3 -m pip install --disable-pip-version-check --no-cache-dir --target .build/site-packages -r requirements.txt
-  )
+  if command -v python3.12 >/dev/null 2>&1; then
+    (
+      cd "$ROOT_DIR/backend-ai"
+      python3.12 -m pip install --upgrade --disable-pip-version-check --no-cache-dir --target .build/site-packages -r requirements.txt
+    )
+    return
+  fi
+
+  if python3 -c 'import sys; raise SystemExit(0 if sys.version_info[:2] == (3, 12) else 1)' 2>/dev/null; then
+    (
+      cd "$ROOT_DIR/backend-ai"
+      python3 -m pip install --upgrade --disable-pip-version-check --no-cache-dir --target .build/site-packages -r requirements.txt
+    )
+    return
+  fi
+
+  echo "WARN: host python is not 3.12; fallback to dockerized python:3.12-slim for backend-ai deps"
+  docker run --rm \
+    -v "$ROOT_DIR/backend-ai":/work \
+    -w /work \
+    python:3.12-slim \
+    bash -lc "python -m pip install --upgrade --disable-pip-version-check --no-cache-dir --target .build/site-packages -r requirements.txt"
 }
 
 build_frontend() {

@@ -14,7 +14,7 @@ set -euo pipefail
 #
 # Placeholder defaults (override via env when running standalone):
 #   KEYCLOAK_UPSTREAM=keycloak:8080
-#   KEYCLOAK_ADMIN_ALLOW_CIDR=127.0.0.1
+#   KEYCLOAK_ADMIN_ALLOW_CIDR=127.0.0.1/32
 #
 # deploy-preflight.sh invokes this with --fix so deploy never proceeds with a
 # stale rendered conf vs the template source.
@@ -36,7 +36,7 @@ if ! command -v envsubst >/dev/null 2>&1; then
 fi
 
 : "${KEYCLOAK_UPSTREAM:=keycloak:8080}"
-: "${KEYCLOAK_ADMIN_ALLOW_CIDR:=127.0.0.1}"
+: "${KEYCLOAK_ADMIN_ALLOW_CIDR:=127.0.0.1/32}"
 
 if command -v sha256sum >/dev/null 2>&1; then
   template_sha="$(sha256sum "$TEMPLATE" | awk '{print $1}')"

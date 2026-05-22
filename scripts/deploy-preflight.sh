@@ -52,6 +52,25 @@ for v in "${required_vars[@]}"; do
   fi
 done
 
+validate_cidr() {
+  local cidr="$1"
+  if ! [[ "$cidr" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}/([0-9]|[12][0-9]|3[0-2])$ ]]; then
+    return 1
+  fi
+
+  local ip="${cidr%/*}"
+  local octet
+  IFS='.' read -r -a octets <<< "$ip"
+  if [ "${#octets[@]}" -ne 4 ]; then
+    return 1
+  fi
+  for octet in "${octets[@]}"; do
+    if [ "$octet" -lt 0 ] || [ "$octet" -gt 255 ]; then
+      return 1
+    fi
+  done
+}
+
 if [ "${DEVHUB_AUTH_DEV_FALLBACK:-0}" != "0" ]; then
   echo "ERROR: DEVHUB_AUTH_DEV_FALLBACK must be 0 in deploy profile" >&2
   exit 1
@@ -82,6 +101,11 @@ if [[ "$OIDC_REDIRECT_URI" != "$expected_redirect_uri" ]]; then
 fi
 if [[ "$NEXT_PUBLIC_OIDC_REDIRECT_URI" != "$expected_redirect_uri" ]]; then
   echo "ERROR: NEXT_PUBLIC_OIDC_REDIRECT_URI must equal ${expected_redirect_uri}" >&2
+  exit 1
+fi
+
+if ! validate_cidr "${KEYCLOAK_ADMIN_ALLOW_CIDR:-127.0.0.1/32}"; then
+  echo "ERROR: KEYCLOAK_ADMIN_ALLOW_CIDR must be CIDR form (e.g. 127.0.0.1/32, 10.0.0.0/8)" >&2
   exit 1
 fi
 
