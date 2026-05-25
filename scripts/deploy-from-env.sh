@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# =========================
+# Prerequisites (host tools)
+# =========================
+# - python3 (3.8+, json 표준 라이브러리만 사용) — generate_local_realm_import() heredoc 및 setup-keycloak.sh 호출 chain.
+# - curl                                          — Keycloak Admin REST + readiness wait (setup-keycloak.sh).
+# - docker + docker compose (v2 plugin)           — runtime image build + scripts/deploy-up.sh.
+# - bash 4+                                       — array / heredoc / [[ syntax.
+# 검증: `python3 --version && curl --version && docker compose version`.
+# 자세한 fail-mode + 우회 절차: docs/setup/docker-packaging-deployment-guide.md §1.1.
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # =========================

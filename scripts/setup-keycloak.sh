@@ -19,6 +19,22 @@
 # 단일 포트 컨셉 가드 (ADR-0018, ADR-0019):
 #   - redirectUris / webOrigins 에 wildcard "*" 또는 임의 host 허용을 자동 적용하지 않는다.
 #   - DEVHUB_FRONTEND_ORIGIN 이 비어있으면 fail-fast.
+#
+# Prerequisites (host tools):
+#   - python3 (3.8+, json 표준 라이브러리만 사용) — admin token / role JSON / client id / mapper 존재 체크 다수 위치.
+#   - curl                                        — Keycloak Admin REST + master realm openid-configuration readiness wait.
+#   - bash 4+                                     — [[ / array / heredoc.
+#   상세: docs/setup/docker-packaging-deployment-guide.md §1.1.
+#
+# Idempotent 보장 (deploy-from-env.sh:sync_keycloak_redirects() 가 매 deploy 마다 호출):
+#   - realm (devhub + master)        : 존재 시 PUT, 미존재 시 POST. sslRequired 만 upsert.
+#   - realm roles (4종)              : 404 check 후 미존재만 POST.
+#   - client 'devhub-frontend'       : clientId 조회 후 미존재 POST, 존재 시 redirectUris/webOrigins/PKCE attr PUT (full upsert).
+#   - audience mapper                : 이름 매치 후 미존재만 POST.
+#   - service account role mappings  : POST. Keycloak Admin API 자체가 already-mapped role 을 silent skip → idempotent.
+#   - client 'devhub-backend' + 'devhub-e2e-seeder' : clientId 조회 후 미존재 POST, secret rotation 없음.
+#   - user 'test'                    : username 조회 후 미존재 POST + reset-password + role mapping.
+# → 동일 input 으로 N회 호출해도 같은 final state. duplicate redirect URI 누적 risk 없음.
 
 set -euo pipefail
 

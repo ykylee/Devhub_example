@@ -51,6 +51,21 @@
 
 ADR-0019 + ADR-0020 + ADR-0021 + 기타 docs/planning 문서의 historical "26.0" 언급은 **immutable 보존** (결정 시점의 snapshot).
 
+### 3.4 외부 ingress 포트 13000 정합
+
+§2.3 의 retreat 식별 시점에서 짧게 언급된 **외부 ingress port 13000** 은 DevHub 사내 운영 환경의 단일 포트 reverse proxy 진입점이다. 본 sub-section 은 13000 의 코드 매핑을 명시하여 magic number 화를 방지한다.
+
+| 위치 | 용도 |
+| --- | --- |
+| `infra/idp/keycloak-realm.dev.json:58-77` | `devhub-frontend` client 의 `redirectUris` / `webOrigins` / `post.logout.redirect.uris` 8 위치에 `http://localhost:13000` 등록 — 사내 ingress 시뮬레이션 |
+| `scripts/deploy-from-env.sh:14` | `PUBLIC_ACCESS_PORT:=13000` default — 사내 deploy 시 외부 client access endpoint 의 port |
+| `scripts/deploy-from-env.sh:34` | `NGINX_HTTP_PORT:=3000` default — VM 내부 nginx ingress port (13000 은 host:VM port mapping 의 host 측) |
+| ADR-0022 §2.3 | "외부 100.90.113.29:13000 → 호스트 → VM → docker 단일 포트 ingress" 한 줄 reference |
+
+**13000 의 의미**: DevHub 사내 운영 환경에서 외부 client (사내 PC) 가 `http://100.90.113.29:13000` 으로 진입 → 호스트 머신의 13000 port 가 VM 의 nginx (3000 port) 로 forward → nginx 가 frontend (`/devhub/*`) / backend (`/devhub/api/*`) / Keycloak (`/devhub/auth/keycloak/*`) 으로 reverse proxy. 단일 포트 컨셉 (ADR-0018) 정합.
+
+**사내 환경 외 (다른 운영 환경 / staging / 외부 reference)**: `PUBLIC_ACCESS_HOST` + `PUBLIC_ACCESS_PORT` env 만 변경하면 다른 host:port 로 재배치 가능. realm.dev.json 의 13000 entry 는 사내 dev/smoke 외 환경에서는 무해 (해당 origin 으로 접속 자체가 안 됨).
+
 ## 4. 결과
 
 ### 4.1 긍정
@@ -88,3 +103,4 @@ ADR-0019 + ADR-0020 + ADR-0021 + 기타 docs/planning 문서의 historical "26.0
 | 일자 | 변경 | sprint |
 | --- | --- | --- |
 | 2026-05-22 | 1차 draft 발행. §3.1 retreat 사유 placeholder + active code 3 위치 정합 commit (`42b18b1`). | `codex/work_260521-c-db-docker-option` |
+| 2026-05-26 | §3.4 외부 ingress 포트 13000 정합 sub-section 신규 — magic number 방지 + code 매핑 표 (realm.dev.json / deploy-from-env.sh / ADR §2.3 reference). PR #296 follow-up P1-신규-1 흡수. | `claude/work_260526-pr296-followup-p1-docs` |

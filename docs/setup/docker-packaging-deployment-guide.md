@@ -6,7 +6,7 @@
 - 범위: 이미지 태깅 규칙, 빌드/푸시 절차, compose 사용 범위, 운영 권장안
 - 대상 독자: 개발자, 릴리즈 담당자, 운영자
 - 상태: draft
-- 최종 수정일: 2026-05-20
+- 최종 수정일: 2026-05-26 (§1.1 host 사전조건 신규)
 - 관련 문서: [개발 환경 구성 가이드](./environment-setup.md), [테스트 서버 배포 가이드](./test-server-deployment.md), [ADR-0003](../adr/0003-no-docker-policy-ci-scope.md)
 
 ## 1. 현재 저장소 기준 Docker 자산
@@ -20,6 +20,20 @@
 - `docker-compose.local.yml`
 
 compose는 서비스 간 연결/개발 실행에 유용하지만, 배포 산출물의 재현성과 추적성은 이미지 중심으로 관리하는 편이 안정적이다.
+
+### 1.1 host 사전조건
+
+`scripts/deploy-from-env.sh` + `scripts/setup-keycloak.sh` + `scripts/build-artifacts.sh` 가 deploy host 에 의존하는 도구는 다음과 같다. **미설치 시 silent fail (script 중간 단계에서 깨짐)** 가능하므로 deploy 진입 전 확인한다.
+
+| 도구 | 용도 | 검증 명령 |
+| --- | --- | --- |
+| `python3` | `deploy-from-env.sh:generate_local_realm_import()` (heredoc, realm.dev.json → generated realm import) + `setup-keycloak.sh` (admin token 파싱 / role JSON 추출 / mapper 존재 체크 등 다수 위치) | `python3 --version` (3.8+ 권장, json 모듈 표준 라이브러리만 사용) |
+| `curl` | `setup-keycloak.sh` 의 Keycloak Admin REST API 호출 + readiness wait | `curl --version` |
+| `docker` + `docker compose` (v2 plugin) | runtime image build + `scripts/deploy-up.sh` 의 compose 호출 | `docker --version` + `docker compose version` |
+| `bash` 4+ | `scripts/*.sh` 의 array/heredoc/`[[` syntax | `bash --version` |
+| `jq` (선택) | runtime-config endpoint 응답 확인 등 docs 예시에서 사용. script 자체는 의존 X. | `jq --version` |
+
+**python3 미설치 host 에서 deploy 진입 시 증상**: `deploy-from-env.sh` 의 `build_env_file()` 단계에서 `generate_local_realm_import()` 가 `python3: command not found` 로 fail → `KEYCLOAK_REALM_IMPORT_PATH` 비어있음 → `docker-compose up` 시 `keycloak-realm.dev.json` mount fallback (정상 fallback) 하지만 사내 ingress port (13000) entry 가 dev.json 에 이미 포함되어 있어 무해. 즉 python3 의존은 **사내 generated realm path 정합용** 이며 dev.json 직접 mount 시 우회 가능. 단 권고는 python3 설치.
 
 ## 2. 결론 (권장 운영안)
 

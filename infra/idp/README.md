@@ -4,10 +4,11 @@
 - 범위: 로컬 테스트 모드 (compose `local-idp` profile) 와 외부 Keycloak 모드의 분기, realm import 파일 사용 SOP.
 - 대상 독자: DevHub 개발자, 운영자, 신규 합류자.
 - 상태: active
-- 최종 수정일: 2026-05-20
+- 최종 수정일: 2026-05-26 (ADR-0022 §3.4 cross-link)
 - 관련 문서:
   - [ADR-0019 — Keycloak 단일화](../../docs/adr/0019-keycloak-only-idp.md)
   - [ADR-0018 — 단일 외부 포트 역프록시 정책](../../docs/adr/0018-single-port-reverse-proxy-policy.md)
+  - [ADR-0022 — Keycloak 25.0 pin + §3.4 외부 ingress 포트 13000 정합](../../docs/adr/0022-keycloak-version-pin-25-0.md)
   - [docs/setup/keycloak_operations.md](../../docs/setup/keycloak_operations.md)
   - [docs/setup/single_port_deployment.md](../../docs/setup/single_port_deployment.md)
   - [_archive_hydra_kratos/](./_archive_hydra_kratos/) — ADR-0001 시기 Hydra/Kratos 자산 (archive)
@@ -16,7 +17,7 @@
 
 | 파일 | 용도 | 모드 |
 | --- | --- | --- |
-| `keycloak-realm.dev.json` | 로컬 테스트 / CI / smoke 용 realm import. `displayName: "DevHub Local Testing"`. localhost wildcard 포함. | 로컬 모드 only |
+| `keycloak-realm.dev.json` | 로컬 테스트 / CI / smoke 용 realm import. `displayName: "DevHub Local Testing"`. localhost wildcard (`:3000` native + `:8080` 단일포트 시뮬 + `:13000` 사내 ingress reference, [ADR-0022 §3.4](../../docs/adr/0022-keycloak-version-pin-25-0.md#34-외부-ingress-포트-13000-정합)) 포함. | 로컬 모드 only |
 | `keycloak-realm.prod.json` | 외부 Keycloak 운영팀 reference 템플릿. 실제 운영 hostname 만 redirect_uri 허용. | 외부 모드 template |
 | `identity.schema.json` | Kratos 시기 identity schema (legacy). Keycloak 으로 전환 후 직접 사용되지 않으나 user 속성 mapping 참고용으로 보존. | reference |
 | `sql/003_seed_test_admin.sql` | smoke test 용 `test` 계정 시드 (`users` 테이블, DevHub schema). Idempotent. | dev / smoke |
