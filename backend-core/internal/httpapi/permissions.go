@@ -134,6 +134,9 @@ var routePermissionTable = map[routeKey]routePolicy{
 	// rbac matrix 의 organization:edit 정합 (user/organization management).
 	{http.MethodPost, "/api/v1/admin/users/:user_id/review"}:                {Resource: domain.ResourceOrganization, Action: domain.ActionEdit},
 	{http.MethodGet, "/api/v1/realtime/ws"}:                                 {Bypass: true},
+	// ADR-0024 §3.2 ticket pattern — authenticateActor 가 Bearer 검증 후 발급.
+	// RBAC bypass (인증된 actor 면 누구나 short-lived ticket 발급 권한).
+	{http.MethodPost, "/api/v1/realtime/ticket"}:                            {Bypass: true},
 	{http.MethodPost, "/api/v1/integrations/gitea/webhooks"}:                {Bypass: true},
 	{http.MethodPost, "/api/v1/integration/providers/:provider_id/webhook"}: {Bypass: true},
 	{http.MethodPost, "/api/v1/infra/services/snapshot"}:                    {Bypass: true},

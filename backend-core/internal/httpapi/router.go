@@ -150,6 +150,9 @@ type RouterConfig struct {
 	HRDB                       HRDBClient
 	SnapshotProvider           SnapshotProvider
 	RealtimeHub                *RealtimeHub
+	// RealtimeTickets — ADR-0024 §3.2 ticket pattern. nil 이면 ticket endpoint
+	// 가 503 unavailable + WS auth 는 access_token query fallback 사용.
+	RealtimeTickets *RealtimeTicketStore
 	// AuthDevFallback toggles dev-only authentication fallbacks: empty Authorization passes through authenticateActor and requireMinRole. Actor identity always resolves to "system" without a verifier. Default false: production-safe.
 	AuthDevFallback bool
 	// OnboardingGateEnabled — RM-ONBOARD-01 (ADR-0021 §3.3, ARCH-ONBOARD-03).
@@ -331,6 +334,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.PATCH("/dev-request-tokens/:token_id", handler.updateDevRequestIntakeTokenIPs)
 
 	v1.GET("/hr/lookup", handler.hrLookup)
+	v1.POST("/realtime/ticket", handler.issueRealtimeTicket)
 	if cfg.RealtimeHub != nil {
 		v1.GET("/realtime/ws", handler.handleRealtimeWebSocket)
 	}

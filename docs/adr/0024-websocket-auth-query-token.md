@@ -92,12 +92,15 @@ query string token 의 일반적 risk + 완화:
 | 일자 | 변경 | sprint/PR |
 | --- | --- | --- |
 | 2026-05-26 | 본 ADR 신규 발급 (사용자 보고 + PR #335 client-side hotfix 명문화) | sprint `claude/work_260526-organization-followups`, PR pending |
+| 2026-05-26 | **§6 carve 1, 3 closed + carve 2 sample 작성** — 사용자 명시 override ("영역 무시") 로 ticket pattern + refresh-then-reconnect 본 sprint 추가 흡수. backend `realtime_ticket.go` 신규 (in-memory store + 60s TTL + single-use) + `POST /api/v1/realtime/ticket` endpoint + `auth.go` 의 `?ticket=` query 인식. frontend `realtime.service.ts:buildURL` async + ticket fetch + 401 시 refresh-then-retry. carve 2 sample 은 `infra/nginx/README.md §6` 에 http block log_format 권장 안 (사내 nginx 운영자 영역). access_token query 는 backward-compat fallback 유지 (deprecated, removal 차기 sprint). | 본 sprint |
 
 ## 6. 잔여 carve
 
-| ID | 항목 | 영역 | 우선순위 |
-| --- | --- | --- | --- |
-| 1 | ticket pattern 마이그레이션 (`POST /api/v1/realtime/ticket` + short-lived TTL + single-use) | claude (backend + frontend) | P2 |
-| 2 | nginx access_log 의 `access_token=` redact 설정 | 사내 nginx 운영자 | P2 |
-| 3 | WS handshake 401 시 frontend refresh-then-reconnect 패턴 (현재는 무한 401 cycle, backend close code 명시 필요) | claude | P3 |
-| 4 | WS subprotocol negotiation 으로 Bearer 전달 비교 PoC | claude (architecture 검토) | P3 |
+| ID | 항목 | 영역 | 우선순위 | 상태 |
+| --- | --- | --- | --- | --- |
+| 1 | ticket pattern 마이그레이션 (`POST /api/v1/realtime/ticket` + short-lived TTL + single-use) | claude (backend + frontend) | P2 | ✅ resolved (본 sprint) |
+| 2 | nginx access_log 의 `access_token=` / `ticket=` redact 설정 | 사내 nginx 운영자 | P2 | sample 작성 ([`infra/nginx/README.md §6`](../../infra/nginx/README.md#6-websocket-auth-query-token-redact-adr-0024-43-6-carve-2)), 적용 사내 |
+| 3 | WS handshake 401 시 frontend refresh-then-reconnect 패턴 | claude | P3 | ✅ resolved (본 sprint, ticket fetch 의 401 → `authService.refreshTokens()` → ticket retry 1회) |
+| 4 | WS subprotocol negotiation 으로 Bearer 전달 비교 PoC | claude (architecture 검토) | P3 | open |
+| 5 | access_token query backward-compat fallback 제거 (모든 client 가 ticket 사용 확인 후) | claude (backend + frontend) | P3 | open (carve 1 의 자연 후속) |
+| 6 | multi-instance backend 환경에서 in-memory ticket store 가 sticky 미사용 시 깨짐 → Redis/PG 백킹 store | claude (backend) | P2 | open (현재 single-instance 가정) |

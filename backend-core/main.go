@@ -154,6 +154,7 @@ func main() {
 			BackendAIURL: cfg.BackendAIURL,
 		},
 		RealtimeHub:           realtimeHub,
+		RealtimeTickets:       httpapi.NewRealtimeTicketStore(),
 		AuthDevFallback:       cfg.AuthDevFallback,
 		OnboardingGateEnabled: cfg.OnboardingGateEnabled,
 		ProjectModel:          cfg.ProjectModel,
