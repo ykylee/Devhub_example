@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/devhub/backend-core/internal/domain"
 	"github.com/devhub/backend-core/internal/store"
@@ -27,10 +28,18 @@ type onboardingSubmitRequest struct {
 }
 
 func (h Handler) submitOnboarding(c *gin.Context) {
+	start := time.Now()
+	defer func() {
+		observeOnboardingSubmitDuration(time.Since(start).Seconds())
+	}()
+
 	if !h.requireOnboardingFlag(c) {
+		// requireOnboardingFlag 가 503 응답 시 status 보고
+		observeOnboardingSubmit("unavailable")
 		return
 	}
 	if h.cfg.OrganizationStore == nil {
+		observeOnboardingSubmit("unavailable")
 		c.JSON(http.StatusServiceUnavailable, gin.H{
 			"status": "unavailable",
 			"error":  "organization store is not configured",
@@ -41,6 +50,7 @@ func (h Handler) submitOnboarding(c *gin.Context) {
 	actor := requestActor(c)
 	login := strings.TrimSpace(actor.Login)
 	if login == "" || login == "system" {
+		observeOnboardingSubmit("unauthenticated")
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 			"status": "unauthenticated",
 			"error":  "no authenticated user in request context",
@@ -50,6 +60,7 @@ func (h Handler) submitOnboarding(c *gin.Context) {
 
 	var req onboardingSubmitRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		observeOnboardingSubmit("rejected")
 		c.JSON(http.StatusUnprocessableEntity, gin.H{
 			"status": "rejected",
 			"code":   "invalid_payload",
@@ -60,6 +71,7 @@ func (h Handler) submitOnboarding(c *gin.Context) {
 	req.DisplayName = strings.TrimSpace(req.DisplayName)
 	req.PrimaryUnitID = strings.TrimSpace(req.PrimaryUnitID)
 	if req.DisplayName == "" || len(req.DisplayName) > 100 {
+		observeOnboardingSubmit("rejected")
 		c.JSON(http.StatusUnprocessableEntity, gin.H{
 			"status": "rejected",
 			"code":   "invalid_payload",
@@ -68,6 +80,7 @@ func (h Handler) submitOnboarding(c *gin.Context) {
 		return
 	}
 	if req.PrimaryUnitID == "" {
+		observeOnboardingSubmit("rejected")
 		c.JSON(http.StatusUnprocessableEntity, gin.H{
 			"status": "rejected",
 			"code":   "invalid_payload",
@@ -113,18 +126,21 @@ func (h Handler) submitOnboarding(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, store.ErrConflict):
+			observeOnboardingSubmit("conflict")
 			c.JSON(http.StatusConflict, gin.H{
 				"status": "conflict",
 				"code":   "onboarding_already_completed",
 				"error":  err.Error(),
 			})
 		case errors.Is(err, store.ErrNotFound):
+			observeOnboardingSubmit("not_found")
 			c.JSON(http.StatusNotFound, gin.H{
 				"status": "not_found",
 				"code":   "unit_not_found",
 				"error":  err.Error(),
 			})
 		default:
+			observeOnboardingSubmit("server_error")
 			writeServerError(c, err, "onboarding.submit")
 		}
 		return
@@ -141,5 +157,6 @@ func (h Handler) submitOnboarding(c *gin.Context) {
 		"data":   appUserFromDomain(user),
 	}
 	addAuditMeta(response, auditLog)
+	observeOnboardingSubmit("ok")
 	c.JSON(http.StatusCreated, response)
 }
