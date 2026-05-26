@@ -115,7 +115,13 @@ build_backend_core() {
   (
     cd "$ROOT_DIR/backend-core"
     mkdir -p bin
-    CGO_ENABLED=0 go build -o bin/main .
+    # GOOS=linux is required because the binary is always packaged into a
+    # Linux Docker image (alpine). Without explicit GOOS, macOS hosts
+    # produce a darwin/arm64 (Mach-O) binary that causes "exec format
+    # error" in the container. GOARCH is intentionally left default
+    # (matches the Docker host architecture via the Go toolchain
+    # default).
+    GOOS=linux CGO_ENABLED=0 go build -o bin/main .
   )
 }
 
