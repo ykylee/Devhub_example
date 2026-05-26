@@ -1,13 +1,18 @@
-# ADR-0022: Keycloak 운영 image 버전 pin (25.0)
+# ADR-0022: Keycloak 운영 image 버전 pin (25.0) — superseded by ADR-0023
+
+> ⚠ **2026-05-26 supersession**: 본 ADR 은 [ADR-0023 (Keycloak 26.0 forward pin)](./0023-keycloak-version-pin-26-0.md) 으로 **fully superseded** 되었다. 사내 운영 환경 26.x 재확인 사용 가능 결과에 따라 25.0 retreat 결정 자체가 reversal. 본문은 결정 시점 (2026-05-22) snapshot 으로 **immutable 보존** — `feedback_adr_supersession_pattern` 정합. active code 25.0 → 26.0 정정은 ADR-0023 §3.3 참조.
 
 ## 1. 상태
-- **상태**: Draft
+- **상태**: superseded by [ADR-0023](./0023-keycloak-version-pin-26-0.md) (2026-05-26)
 - **작성일**: 2026-05-22
-- **수정일**: 2026-05-22
-- **결정 근거 sprint**: `codex/work_260521-c-db-docker-option`
+- **수정일**: 2026-05-26 (supersession 메타 헤더 + §0 banner only — 본문 immutable)
+- **결정 근거 sprint**: `codex/work_260521-c-db-docker-option` (작성), `claude/work_260526-adr-0023-keycloak-26-forward` (supersession)
+- **Superseded by**: [ADR-0023 — Keycloak 26.0 forward pin](./0023-keycloak-version-pin-26-0.md)
 - **관련 문서**: [ADR-0019 Keycloak 단일화](./0019-keycloak-only-idp.md), [`docker-compose.deploy.yml`](../../docker-compose.deploy.yml), [`docs/setup/keycloak_operations.md`](../setup/keycloak_operations.md)
 
-> **Draft 사유**: 본 ADR 은 26.0 → 25.0 retreat 의 결정 시점을 ADR 형식으로 명문화한다. **§3.1 retreat 사유** 항목이 placeholder 상태이며, 사용자가 사내 정합 사유 (호환성/안정성/사내 표준 등) 를 확정한 뒤 `Accepted` 로 승격한다.
+> **historical Draft 사유** (2026-05-22 작성 시점): 본 ADR 은 26.0 → 25.0 retreat 의 결정 시점을 ADR 형식으로 명문화한다. **§3.1 retreat 사유** 항목이 placeholder 상태이며, 사용자가 사내 정합 사유 (호환성/안정성/사내 표준 등) 를 확정한 뒤 `Accepted` 로 승격한다.
+>
+> ⚠ 2026-05-26 supersession: 사내 재확인 결과 26.x 사용 가능 확정으로 retreat 자체 무효화. §3.1 placeholder 는 finalize 되지 못한 채 ADR-0023 으로 supersession.
 
 ## 2. 컨텍스트
 
@@ -26,6 +31,8 @@
 - ADR-0019 의 핵심 결정 (Keycloak 단일 IdP) 은 reverse 하지 않음. **버전 pin 만 변경**.
 
 ## 3. 결정
+
+> ⚠ **2026-05-26 supersession**: 본 §3 결정 ("Keycloak 운영 image 를 25.0 으로 변경") 은 [ADR-0023 §3](./0023-keycloak-version-pin-26-0.md#3-결정) 으로 reversal. 26.0 forward pin 환원. 본문 immutable 보존.
 
 **Keycloak 운영 image 를 `quay.io/keycloak/keycloak:25.0` (마이너 pin) 으로 변경**한다.
 
@@ -106,3 +113,4 @@ ADR-0019 + ADR-0020 + ADR-0021 + 기타 docs/planning 문서의 historical "26.0
 | --- | --- | --- |
 | 2026-05-22 | 1차 draft 발행. §3.1 retreat 사유 placeholder + active code 3 위치 정합 commit (`42b18b1`). | `codex/work_260521-c-db-docker-option` |
 | 2026-05-26 | §3.4 외부 ingress 포트 13000 정합 sub-section 신규 — magic number 방지 + code 매핑 표 (realm.dev.json / deploy-from-env.sh / ADR §2.3 reference). PR #296 follow-up P1-신규-1 흡수. | `claude/work_260526-pr296-followup-p1-docs` |
+| 2026-05-26 | **Superseded by ADR-0023** — 사내 재확인 결과 26.x 사용 가능 확정으로 25.0 retreat 결정 reversal. 메타 헤더 + §0 + §3 inline supersession banner 추가, 본문 immutable 보존. active code 25.0 → 26.0 정정은 ADR-0023 §3.3 처리. §3.4 (port 13000 정합) 은 version pin 무관으로 ADR-0023 §3.4 에서 forward 보존. | `claude/work_260526-adr-0023-keycloak-26-forward` |
