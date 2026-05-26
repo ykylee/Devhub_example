@@ -1,6 +1,11 @@
 import { test, expect, appPath, waitForSignInForm, submitSignInForm, deleteKeycloakUserByEmail } from "./fixtures";
 
-const KC_BASE_URL = (process.env.DEVHUB_KEYCLOAK_ADMIN_URL ?? "http://localhost:8180/devhub/auth/keycloak").replace(/\/+$/, "");
+const KC_BASE_URL = (
+  process.env.DEVHUB_E2E_KEYCLOAK_ADMIN_URL
+  ?? process.env.DEVHUB_KEYCLOAK_ADMIN_URL
+  ?? process.env.KEYCLOAK_URL
+  ?? "http://localhost:8180/devhub/auth/keycloak"
+).replace(/\/+$/, "");
 const KC_REALM = (process.env.DEVHUB_KEYCLOAK_ADMIN_REALM ?? "devhub").trim();
 const KC_ADMIN_CLIENT_ID = (process.env.DEVHUB_KEYCLOAK_ADMIN_CLIENT_ID ?? "devhub-e2e-seeder").trim();
 const KC_ADMIN_CLIENT_SECRET = (process.env.DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET ?? "secret-change-me-backend").trim();
