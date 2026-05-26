@@ -2,10 +2,11 @@
 
 ## 1. 현재 상태
 - **브랜치**: `gemini/gitea-integration-enhancement`
+- **PR**: https://github.com/ykylee/Devhub_example/pull/341
 - **목표**: 
   - 외부 홈랩 Gitea(`https://homelab.ddn777.synology.me/gitea`) 연계 기능 고도화
   - `yklee` / `yklee12!` 인증 정보 및 발급된 API 토큰을 기반으로 SCM 동기화 및 Webhook 수신 검증
-- **현 단계**: SCM 동기화 및 Gitea 연동 설정(인증토큰) API 연동 고도화 완료, 무결성 유닛 테스트 통과 (`in_progress`)
+- **현 단계**: SCM 동기화 및 Gitea 연동 설정(인증토큰) API 연동 고도화 완료 및 PR 생성 완료 (`in_progress`)
 
 ## 2. 작업 계획
 - [x] 홈랩 Gitea API와 DevHub 백엔드 SCM 동기화 로직 연계 분석 및 워커 구현
