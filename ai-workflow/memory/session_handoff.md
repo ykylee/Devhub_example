@@ -1,3 +1,67 @@
+# Session Handoff — main (2026-05-26 PR #320 Onboarding pending_review Gauge + housekeeping, SOP §8 P3 closed)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
+- 범위: PR #319 (직전 housekeeping `c201987`) 이후 PR #320 (`9d24771`) 흡수. PR #312 (codex) claude review post.
+- 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
+- 상태: PR #320 머지로 Onboarding SOP §8 carve 모두 closed (P2 #313 + P3 #320). pending_review Gauge cron worker + sample PromQL/Alertmanager. main HEAD `9d24771`. **PR #312 open** (codex/work_260526-a-project-management-enhancement, claude review post 완료, 머지 결정 사용자 영역).
+- 최종 수정일: 2026-05-26 (sprint `claude/work_260526-housekeeping-post-320`)
+- 관련 문서: [onboarding_pending_gauge.go](../../backend-core/internal/httpapi/onboarding_pending_gauge.go), [onboarding_operations.md §4.4](../../docs/setup/onboarding_operations.md), [PR #312 claude review](https://github.com/ykylee/Devhub_example/pull/312#issuecomment-4539604381), [issue #214](https://github.com/ykylee/Devhub_example/issues/214).
+- 브랜치: `main` (HEAD `9d24771` post PR #320 → 본 housekeeping sprint 머지 후 `<TBD>`).
+
+## 2026-05-26 본 housekeeping sprint (`claude/work_260526-housekeeping-post-320`)
+
+직전 housekeeping (PR #319, `c201987`) 이후 1 PR (#320) 흡수 + PR #312 codex review post 활동.
+
+### 흡수 대상
+
+| sha | PR | author | core |
+| --- | --- | --- | --- |
+| `9d24771` | **#320** | claude | **Onboarding pending_review count Gauge** — `internal/httpapi/onboarding_pending_gauge.go` 신규 cron worker (75 LoC, audit/keycloak_event_puller.go 패턴 정합) + `OnboardingPendingReviewCounter` interface + `PostgresStore.CountPendingReview()` + main.go interface assertion goroutine + 4 unit test. docs §4.4 metric 표 row 5 (Gauge) + §4.4.1 sample PromQL 6 + §4.4.2 sample Alertmanager rule 4 alert + §8 carve P3 ✅ resolved. 6 파일 / +358 / -2 LoC. CI 7 PASS. |
+
+### PR #312 (open, codex 영역) claude review
+
+| 항목 | 결과 |
+| --- | --- |
+| PR | https://github.com/ykylee/Devhub_example/pull/312 |
+| 변경 | 40 파일 / hybrid project model + migration 000034 + JWKS Linux 호환 + e2e seed |
+| codex review | automated review 통과 (inline 0 = 👍) |
+| **claude review** | P0 0 / P1 0 / P2 2 / P3 1 — migration 안전 (projects.repository_id NOT NULL 확정), JWKS Linux 호환 정공법, e2e seed 정합, main.go 영역 충돌 없음, **본 conversation 7 PR cross-validation 모두 충돌 없음** 확정. mergeable UNKNOWN 잠시 후 CLEAN 재확인 권장. |
+| 머지 결정 | **사용자 영역** (코덱스 영역 + 40 파일 + project model v2 의미적 review 동반 권장) |
+
+### 본 conversation 최종 결산 (19 PR + 1 issue closed + 1 open codex PR)
+
+| 영역 | 결과 |
+| --- | --- |
+| PR #296 follow-up | 6/6 모두 처리 |
+| issue #214 codex 영역 | 흡수 완료 (#306) |
+| ADR governance | ADR-0023 신규 + ADR-0022 supersession (#308) |
+| build/deploy script cleanup | host 의존성 + dockerized fallback + §1.2/§13 (#310) |
+| Onboarding monitoring | SQL + Prometheus 5 metric (#313 4 + #320 Gauge 1) |
+| Go toolchain | 1.22 → 1.25 (#314) |
+| Dockerfile FROM ARG | 사내 mirror override (#316) |
+| issue #302 closed | SETUP_KEYCLOAK_QUIET (#318) |
+| Onboarding pending Gauge | §8 P3 carve closed (#320) |
+| memory housekeeping | 8회 누적 |
+| **carve out 잔여** | **0** |
+| PR #312 codex 영역 | claude review post (머지 결정 사용자 영역) |
+
+### 다음 directive (3 순위, claude 영역 잔여 없음)
+
+| 순위 | 항목 | 영역 |
+| --- | --- | --- |
+| 1 | **Onboarding SOP staging 1주 monitoring** (SQL + Prometheus 5 metric 활용 가능) | 사내 운영자 (DevHub SRE) |
+| 2 | **사내 Keycloak 26.0 image pull + redeploy smoke** (ADR-0023 §5 후속) | 사내 운영자 (Infra) |
+| 3 | **issue #214 사내 1회 작업** + verify script | 사용자/사내 운영자 + verify-keycloak-groups.sh (자동) |
+| 사용자 | **PR #312 머지 결정** | 사용자 (codex 영역 + 40 파일 + project model v2) |
+
+**claude 영역 잔여 directive 없음**. 모든 SOP carve closed + issue 처리 완료. 본 conversation 의 claude 작업 사실상 마무리 단계.
+
+## 2026-05-26 직전 housekeeping (PR #319, `c201987`)
+
+PR #318 (SETUP_KEYCLOAK_QUIET) + issue #302 closed 흡수 minimal entry prepend.
+
+
+
 # Session Handoff — main (2026-05-26 PR #318 issue #302 SETUP_KEYCLOAK_QUIET + housekeeping, issue #302 closed)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
