@@ -3,7 +3,7 @@
   "realm": "devhub",
   "enabled": true,
   "displayName": "DevHub Local Testing (dev-only — DO NOT import into production)",
-  "eventsListeners": [ "jboss-logging" ],
+  "eventsListeners": [ "jboss-logging", "devhub-event-listener" ],
   "sslRequired": "none",
   "registrationAllowed": false,
   "roles": {
