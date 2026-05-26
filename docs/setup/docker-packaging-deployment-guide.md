@@ -26,21 +26,53 @@ compose는 서비스 간 연결/개발 실행에 유용하지만, 배포 산출�
 
 ### 1.1 host 사전조건
 
-`scripts/deploy-from-env.sh` + `scripts/setup-keycloak.sh` + `scripts/build-artifacts.sh` 가 deploy host 에 의존하는 도구는 다음과 같다. **미설치 시 silent fail (script 중간 단계에서 깨짐)** 가능하므로 deploy 진입 전 확인한다.
+`scripts/deploy-from-env.sh` + `scripts/setup-keycloak.sh` + `scripts/build-artifacts.sh` 가 deploy host 에 의존하는 도구는 다음과 같다. **미설치 / 잘못된 버전 시 silent fail (script 중간 단계에서 깨짐)** 가능하므로 진입 전 확인한다. `build-artifacts.sh` 는 시작 시점에 `verify_prerequisites()` 가 자동 검증 + 친절한 에러 메시지 (2026-05-26 PR `claude/work_260526-build-deploy-script-cleanup`).
 
-| 도구 | 용도 | 검증 명령 |
-| --- | --- | --- |
-| `python3` | `deploy-from-env.sh:generate_local_realm_import()` (heredoc, realm.dev.json → generated realm import) + `setup-keycloak.sh` (admin token 파싱 / role JSON 추출 / mapper 존재 체크 등 다수 위치) | `python3 --version` (3.8+ 권장, json 모듈 표준 라이브러리만 사용) |
-| `curl` | `setup-keycloak.sh` 의 Keycloak Admin REST API 호출 + readiness wait | `curl --version` |
-| `docker` + `docker compose` (v2 plugin) | runtime image build + `scripts/deploy-up.sh` 의 compose 호출 | `docker --version` + `docker compose version` |
-| `bash` 4+ | `scripts/*.sh` 의 array/heredoc/`[[` syntax | `bash --version` |
-| `jq` (선택) | runtime-config endpoint 응답 확인 등 docs 예시에서 사용. script 자체는 의존 X. | `jq --version` |
+| 도구 | 용도 | 검증 명령 | 사용 script |
+| --- | --- | --- | --- |
+| `go 1.22+` | backend-core Go 정적 binary 빌드 (`CGO_ENABLED=0`) | `go version` | build-artifacts.sh |
+| **`python3.12` 정확히** | backend-ai deps install (`requirements.txt` → `.build/site-packages`). **다른 minor ver 사용 시 C extension (grpcio / pydantic-core) ABI mismatch — `backend-ai/Dockerfile` 의 `python:3.12-slim` runtime 에서 import 실패 / segfault risk**. | `python3.12 --version` 또는 `python3 --version` (3.12.x) | build-artifacts.sh |
+| `python3` (3.8+) | `deploy-from-env.sh:generate_local_realm_import()` heredoc + `setup-keycloak.sh` JSON 파싱 (표준 라이브러리만, 정확한 minor 무관) | `python3 --version` (3.8+) | deploy-from-env.sh + setup-keycloak.sh + verify-keycloak-groups.sh |
+| `node 20+` + `npm` | frontend Next.js standalone 빌드 (`npm ci && npm run build`) | `node --version` (20+) + `npm --version` | build-artifacts.sh |
+| `curl` | Keycloak Admin REST + readiness wait | `curl --version` | setup-keycloak.sh + verify-keycloak-groups.sh |
+| `docker` + `docker compose` (v2 plugin) | runtime image build + compose up | `docker --version` + `docker compose version` | deploy-from-env.sh + deploy-up.sh |
+| `bash` 4+ | array / heredoc / `[[` syntax | `bash --version` | 전체 scripts/*.sh |
+| `jq` (선택) | runtime-config endpoint 응답 확인 등 docs 예시. script 자체는 의존 X. | `jq --version` | (docs only) |
+
+**python3.12 정확히 강제 이유**: backend-ai 의 Python deps (grpcio / pydantic-core 등) 가 C extension 포함. host 에서 install 된 wheel 의 ABI 가 container runtime (`python:3.12-slim`) 의 minor ver 과 일치해야 한다. minor mismatch → container 안 `import grpc` / `import pydantic_core` 단계에서 `ImportError: dynamic module does not define module export function` 또는 segfault.
+
+**proxy 환경 (사내) 가이드**:
+- host build 단계 (go / npm / pip) — host 의 `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY` env 가 자연 전파 (child process inherit).
+- docker build 단계 — base image pull 만 외부 접근. `~/.docker/config.json` 또는 `/etc/docker/daemon.json` 의 docker daemon proxy 설정 필요.
+- 본 repo 의 Dockerfile 3개는 모두 **COPY-only** (multi-stage build 아님) — container 안에서 외부 접근 없음 → docker container 안 proxy 전파 필요 없음.
+
+**python3.12 미설치 host 에서 build-artifacts.sh 진입 시 증상**: `verify_prerequisites()` 가 즉시 `ERROR: 필수 host 도구 ... 누락: python3.12` + 설치 안내 (`pyenv install 3.12` / `apt install python3.12` / `brew install python@3.12`) + exit 1. **silent fail 없음, 친절한 에러**. 직전 dockerized fallback (PR #296 시점, `docker run python:3.12-slim pip install`) 은 사내 docker container 안 PyPI proxy 전파 안 됨 → 항상 host build 만 (2026-05-26 정정).
 
 **python3 미설치 host 에서 deploy 진입 시 증상**: `deploy-from-env.sh:2` 의 `set -euo pipefail` + `:202` 의 `KEYCLOAK_REALM_IMPORT_PATH="$(generate_local_realm_import ...)"` 가 `python3: command not found` 로 fail 시 함수 안에서 **script 전체 즉시 종료** (`emit_env_line` 단계까지 도달 못 함). 자동 fallback 아님.
 
 **수동 우회 절차** (python3 설치 불가 host): deploy 진입 전 `KEYCLOAK_REALM_IMPORT_PATH=$ROOT/infra/idp/keycloak-realm.dev.json` env 를 사전 export → `build_env_file()` 의 emit gate (`COMPOSE_PROFILES` 가 `local-idp` 포함 시만 emit) 가 사전 export 값을 그대로 사용. 단 이 경로는 `generate_local_realm_import()` 의 dynamic redirect URI 주입 (PUBLIC_ACCESS_HOST 기준 callback URL append) 효과를 잃으므로 사내 ingress (`localhost:13000` 외 host) 사용 시 redirect URI 가 dev.json 의 hardcoded entries 로 제한된다. 권고는 python3 설치.
 
-### 1.2 generated realm import 산출 경로
+### 1.2 build / image / deploy 3 단계 분리
+
+본 repo 의 sequence:
+
+| 단계 | script | 산출물 | 외부 network |
+| --- | --- | --- | --- |
+| **1. host build** | `scripts/build-artifacts.sh` | `backend-core/bin/main` / `backend-ai/.build/site-packages/` / `frontend/.next/standalone/`+`static/` | go module proxy + npm registry + PyPI (host proxy env 자동 전파) |
+| **2. docker image** | `docker build -f <service>/Dockerfile -t <prefix>/<service>:<tag> <service>` | docker daemon 의 image (`devhub/backend-core:tag` 등) | **base image pull 만** (`alpine:3.21` / `python:3.12-slim` / `node:20-alpine` — docker daemon proxy 필요). Dockerfile 내부 `COPY` 만, 외부 접근 없음. |
+| **3. deploy** | `scripts/deploy-from-env.sh ACTION=deploy` 또는 `scripts/deploy-up.sh` | running containers | image pull (remote registry 사용 시) + Keycloak realm import + redirect sync |
+
+**재사용 패턴**:
+- build-only: `ACTION=build ./scripts/deploy-from-env.sh` — host artifacts + docker image 만 (deploy 안 함)
+- deploy-only: `ACTION=deploy ./scripts/deploy-from-env.sh` — image 이미 빌드됨 (local registry 또는 remote) → compose up
+- 전체: `ACTION=all ./scripts/deploy-from-env.sh` (default) — build + deploy
+
+**proxy / network 의존성 요약**:
+- 단계 1 (host build): host 의 proxy env 만 set 하면 자연 동작. docker 미사용.
+- 단계 2 (docker image): docker daemon proxy 만 설정 (`/etc/docker/daemon.json` 또는 `~/.docker/config.json`). Dockerfile container 안 proxy 불필요 (COPY-only).
+- 단계 3 (deploy): docker daemon proxy + Keycloak admin REST 호출 (host curl proxy 자동 전파).
+
+### 1.3 generated realm import 산출 경로
 
 `scripts/deploy-from-env.sh:generate_local_realm_import()` 가 만드는 동적 realm import 파일 (`$ROOT_DIR/.build/devhub-keycloak-realm.generated.json`) 은 repo 안 `.build/` 하위에 떨어진다 (`.gitignore` 추적 외). 직전 default 였던 `/tmp/devhub-keycloak-realm.generated.json` 은 일부 호스트 (tmpfs `/tmp`, Docker Desktop의 file mount 제한) 에서 container 재시작 시 사라지는 risk 가 있어 repo 안 안정 path 로 이전했다.
 
@@ -425,3 +457,22 @@ host build 는 `scripts/build-artifacts.sh` 가 담당하고, Dockerfile 은 결
 - Keycloak realm 의 `bruteForceProtected: true` 활성 (admin console → Realm settings → Security defenses → Brute Force Detection).
 
 자세한 Keycloak 운영 SOP 는 [keycloak_operations.md](./keycloak_operations.md) 참조.
+
+## 13. Build / deploy troubleshooting matrix
+
+다른 환경 / 신규 운영자 진입 시 자주 만나는 fail 시나리오 + 진단 + 해결.
+
+| # | 시나리오 | 증상 | 원인 | 해결 |
+| --- | --- | --- | --- | --- |
+| 1 | `build-artifacts.sh` 의 `go: command not found` | host 의 go 미설치 | go 1.22+ 미설치 | `https://go.dev/dl/` 에서 설치 또는 `apt install golang-go` |
+| 2 | `python3.12: command not found` 또는 `python3 --version` 3.12 외 | backend-ai build verify_prerequisites fail | host 의 python 3.12 정확히 없음 | `pyenv install 3.12` / `apt install python3.12` / `brew install python@3.12` (§1.1 참조) |
+| 3 | `npm ci` fail with `code ENOTFOUND registry.npmjs.org` | npm registry 접근 차단 | host proxy 미설정 또는 사내 npm mirror 미설정 | host `npm config set proxy http://proxy.internal:8080` + `npm config set https-proxy ...` 또는 사내 mirror `npm config set registry https://npm.internal.example.com` |
+| 4 | `go build` fail with `dial tcp ... timeout` | go module proxy 접근 차단 | host `GOPROXY` 미설정 | host `export GOPROXY=https://proxy.golang.org,direct` (외부) 또는 사내 mirror `export GOPROXY=https://goproxy.internal.example.com,direct` |
+| 5 | `pip install` fail with `Could not find a version that satisfies the requirement ...` | PyPI 접근 차단 | host pip proxy 미설정 | host `pip config set global.proxy http://proxy.internal:8080` 또는 사내 mirror `pip config set global.index-url https://pypi.internal.example.com/simple` |
+| 6 | `docker build` fail with `failed to fetch image: ... timeout` | base image pull 차단 | docker daemon proxy 미설정 (`/etc/docker/daemon.json` 또는 `~/.docker/config.json`) | `~/.docker/config.json` 에 `{"proxies": {"default": {"httpProxy": "http://proxy.internal:8080", "httpsProxy": "...", "noProxy": "localhost,127.0.0.1"}}}` 설정. systemd 환경은 `/etc/systemd/system/docker.service.d/http-proxy.conf` 추가 + `systemctl daemon-reload && systemctl restart docker` |
+| 7 | container 안 `ImportError: dynamic module does not define module export function` (backend-ai) | python C extension ABI mismatch | host python minor ≠ container python:3.12-slim | host 를 python3.12 정확히 install (§1.1 강제 사유) |
+| 8 | `docker compose up` fail with `pull access denied` | private registry 인증 미설정 | docker login 누락 | `docker login <registry>` 또는 `~/.docker/config.json` 의 `auths` 설정 |
+| 9 | Keycloak realm import 후 `INVALID_REDIRECT_URI` | realm 의 redirectUris 와 deploy 환경의 OIDC_REDIRECT_URI 불일치 | realm.dev.json 의 hardcoded URI vs 사내 ingress URI 차이 | (a) `scripts/deploy-from-env.sh` 의 `sync_keycloak_redirects()` 자동 동기화 활성 (`AUTO_CONFIGURE_KEYCLOAK_REDIRECTS=1`, default) 또는 (b) realm.dev.json 수동 갱신 |
+| 10 | `setup-keycloak.sh` admin token 발급 fail (401) | Keycloak 26+ vs 25.x admin bootstrap env mismatch | 26.x 는 `KC_BOOTSTRAP_ADMIN_*` 표준, 25.x 는 `KEYCLOAK_ADMIN/KEYCLOAK_ADMIN_PASSWORD` legacy | 양쪽 env 동시 주입 (`docker-compose.deploy.yml:117-121` 패턴, `memory feedback_keycloak_25_26_admin_env` 정합) |
+
+**proxy 일반 패턴**: 사내 환경에서 host build (단계 1) 는 호스트 env 의 proxy 가 자연 전파되어 동작. docker image build (단계 2) 는 docker daemon proxy 만 필요 (Dockerfile container 안 proxy 불필요 — COPY-only). 단계별 proxy 의존성 표는 [§1.2 build / image / deploy 3 단계 분리](#12-build--image--deploy-3-단계-분리) 의 "proxy / network 의존성 요약" 참조.
