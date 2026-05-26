@@ -87,6 +87,26 @@ export interface ProjectRepositoryLink {
   linked_at: string;
 }
 
+export interface ProjectActivityItem {
+  id: string;
+  user: string;
+  action: string;
+  target: string;
+  occurred_at: string;
+}
+
+export type ProjectTaskStatus = "todo" | "in_progress" | "review" | "done";
+
+export interface ProjectTaskItem {
+  id: string;
+  title: string;
+  priority: "low" | "medium" | "high" | "critical";
+  status: ProjectTaskStatus;
+  due_date?: string;
+  comment_count?: number;
+  attachment_count?: number;
+}
+
 export interface ProjectMember {
   project_id: string;
   user_id: string;

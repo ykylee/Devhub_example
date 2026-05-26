@@ -13,7 +13,7 @@ import {
   ArrowRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Badge } from "@/components/ui/Badge";
 import { useStore } from "@/lib/store";
@@ -32,7 +32,10 @@ import {
   Tooltip, 
   ResponsiveContainer 
 } from "recharts";
-import { mockVelocityData } from "@/lib/mockData";
+import { legacyMockManagerDecisions, legacyMockManagerLoad, legacyMockManagerVelocity } from "@/lib/archive/mock-ui-legacy";
+import { ENABLE_LEGACY_MOCK_UI } from "@/lib/config/mock-ui";
+import { dashboardService, ManagerDecisionItem, ManagerTeamLoadItem, ManagerVelocityPoint } from "@/lib/services/dashboard.service";
+import { toUserErrorMessage } from "@/lib/services/error-message";
 
 type RiskCreatedEvent = Risk;
 type CommandStatusEvent = {
@@ -45,26 +48,63 @@ export default function ManagerDashboard() {
   const [risks, setRisks] = useState<Risk[]>([]);
   const [selectedRisk, setSelectedRisk] = useState<Risk | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [metricsError, setMetricsError] = useState<string | null>(null);
+  const [opsError, setOpsError] = useState<string | null>(null);
+  const [velocity, setVelocity] = useState<ManagerVelocityPoint[]>([]);
+  const [teamLoad, setTeamLoad] = useState<ManagerTeamLoadItem[]>([]);
+  const [decisions, setDecisions] = useState<ManagerDecisionItem[]>([]);
   const { addToast } = useStore();
 
-  useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      try {
-        const [metricsData, risksData] = await Promise.all([
-          infraService.getMetrics("Manager"),
-          riskService.getCriticalRisks()
-        ]);
-        setStats(metricsData);
-        setRisks(risksData);
-      } catch (error) {
-        console.error("Failed to load dashboard data:", error);
-      } finally {
-        setIsLoading(false);
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [metricsData, risksData] = await Promise.all([
+        infraService.getMetrics("Manager"),
+        riskService.getCriticalRisks()
+      ]);
+      const [velocityResult, teamLoadResult, decisionsResult] = await Promise.allSettled([
+        dashboardService.getManagerVelocity(),
+        dashboardService.getManagerTeamLoad(),
+        dashboardService.getManagerDecisions(),
+      ]);
+      const velocityData = velocityResult.status === "fulfilled" ? velocityResult.value : [];
+      const teamLoadData = teamLoadResult.status === "fulfilled" ? teamLoadResult.value : [];
+      const decisionsData = decisionsResult.status === "fulfilled" ? decisionsResult.value : [];
+      const widgetErrors: string[] = [];
+      if (velocityResult.status === "rejected") {
+        console.warn("[ManagerDashboard] velocity fetch failed:", velocityResult.reason);
+        widgetErrors.push("Quality & Security Velocity");
       }
-    };
+      if (teamLoadResult.status === "rejected") {
+        console.warn("[ManagerDashboard] team load fetch failed:", teamLoadResult.reason);
+        widgetErrors.push("Talent Load Balancing");
+      }
+      if (decisionsResult.status === "rejected") {
+        console.warn("[ManagerDashboard] decisions fetch failed:", decisionsResult.reason);
+        widgetErrors.push("Decision Audit");
+      }
+      setStats(metricsData);
+      setRisks(risksData);
+      setVelocity(velocityData);
+      setTeamLoad(teamLoadData);
+      setDecisions(decisionsData);
+      setMetricsError(null);
+      setOpsError(widgetErrors.length > 0 ? `일부 위젯 데이터를 불러오지 못했습니다: ${widgetErrors.join(", ")}` : null);
+    } catch (error) {
+      console.error("Failed to load dashboard data:", error);
+      setStats([]);
+      setMetricsError(toUserErrorMessage(error, "메트릭을 불러오지 못했습니다."));
+      addToast("Manager 대시보드 데이터를 불러오지 못했습니다.", "error");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [addToast]);
 
-    loadData();
+  useEffect(() => {
+    // set-state-in-effect lint rule 회피: kickoff 을 macrotask 로 defer.
+    const kickoff = setTimeout(() => {
+      void loadData();
+    }, 0);
 
     // Subscribe to real-time risk updates
     const unsubscribeRisk = realtimeService.subscribe<RiskCreatedEvent>('risk.critical.created', (event) => {
@@ -83,11 +123,19 @@ export default function ManagerDashboard() {
 
     const interval = setInterval(loadData, 30000);
     return () => {
+      clearTimeout(kickoff);
       clearInterval(interval);
       unsubscribeRisk();
       unsubscribeCommand();
     };
-  }, [addToast]);
+  }, [addToast, loadData]);
+
+  const statusToLoadColor = (status: string): string => {
+    const s = status.toLowerCase();
+    if (s === "overloaded" || s === "critical") return "bg-destructive";
+    if (s === "optimal" || s === "healthy") return "bg-success";
+    return "bg-muted-foreground";
+  };
 
   const handleMitigation = async (plan: { action: string }) => {
     if (!selectedRisk || !selectedRisk.id) return;
@@ -142,32 +190,46 @@ export default function ManagerDashboard() {
           <MyPendingDevRequestsWidget />
 
           {/* KPI Overview */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {stats.map((stat, i) => (
-              <motion.div 
-                key={i}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.1 }}
-                className="glass-card p-6 group"
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className={cn("p-2 rounded-xl bg-muted/30 border border-border", stat.color)}>
-                    {stat.label.includes("SLA") && <CheckCircle2 className="w-5 h-5" />}
-                    {stat.label.includes("Vulnerabilities") && <ShieldCheck className="w-5 h-5" />}
-                    {stat.label.includes("Coverage") && <BarChart3 className="w-5 h-5" />}
-                    {stat.label.includes("Security") && <Target className="w-5 h-5" />}
-                    {!["SLA", "Vulnerabilities", "Coverage", "Security"].some(k => stat.label.includes(k)) && <Target className="w-5 h-5" />}
+          {metricsError ? (
+            <div className="glass-card p-6 flex items-center justify-between gap-4">
+              <p className="text-sm text-muted-foreground">{metricsError}</p>
+              <button onClick={loadData} className="px-4 py-2 rounded-xl bg-primary/10 border border-primary/20 text-xs font-black uppercase tracking-widest text-primary hover:bg-primary/20 transition-all">
+                Retry
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {stats.map((stat, i) => (
+                <motion.div 
+                  key={i}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: i * 0.1 }}
+                  className="glass-card p-6 group"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <div className={cn("p-2 rounded-xl bg-muted/30 border border-border", stat.color)}>
+                      {stat.label.includes("SLA") && <CheckCircle2 className="w-5 h-5" />}
+                      {stat.label.includes("Vulnerabilities") && <ShieldCheck className="w-5 h-5" />}
+                      {stat.label.includes("Coverage") && <BarChart3 className="w-5 h-5" />}
+                      {stat.label.includes("Security") && <Target className="w-5 h-5" />}
+                      {!["SLA", "Vulnerabilities", "Coverage", "Security"].some(k => stat.label.includes(k)) && <Target className="w-5 h-5" />}
+                    </div>
+                    <span className="text-[10px] font-black text-success bg-success/10 px-2 py-1 rounded-lg">
+                      {stat.trend}
+                    </span>
                   </div>
-                  <span className="text-[10px] font-black text-success bg-success/10 px-2 py-1 rounded-lg">
-                    {stat.trend}
-                  </span>
-                </div>
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{stat.label}</p>
-                <h3 className="text-2xl md:text-3xl font-black text-foreground dark:text-primary-foreground mt-1">{stat.value}</h3>
-              </motion.div>
-            ))}
-          </div>
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{stat.label}</p>
+                  <h3 className="text-2xl md:text-3xl font-black text-foreground dark:text-primary-foreground mt-1">{stat.value}</h3>
+                </motion.div>
+              ))}
+            </div>
+          )}
+          {opsError && (
+            <div className="glass-card p-4 text-xs text-muted-foreground">
+              {opsError}
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Risk Management Section */}
@@ -220,7 +282,6 @@ export default function ManagerDashboard() {
                 </div>
               </section>
 
-          {/* Activity Analytics - Real Chart */}
           <section className="glass-card p-8 min-h-[350px] relative group overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 opacity-30" />
             <div className="flex items-center justify-between mb-8 relative z-10">
@@ -241,8 +302,11 @@ export default function ManagerDashboard() {
             </div>
 
             <div className="h-64 w-full relative z-10">
+              {velocity.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-sm text-muted-foreground">시계열 데이터가 없습니다.</div>
+              ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={mockVelocityData}>
+                <AreaChart data={velocity}>
                   <defs>
                     <linearGradient id="colorVel" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3}/>
@@ -294,6 +358,7 @@ export default function ManagerDashboard() {
                   />
                 </AreaChart>
               </ResponsiveContainer>
+              )}
             </div>
           </section>
         </div>
@@ -307,14 +372,11 @@ export default function ManagerDashboard() {
             </h3>
             
             <div className="space-y-6">
-              {[
-                { name: "YK Lee", load: 85, status: "Critical", color: "bg-destructive" },
-                { name: "Alex K.", load: 45, status: "Optimal", color: "bg-success" },
-                { name: "Sam J.", load: 92, status: "Overloaded", color: "bg-destructive" },
-                { name: "Jordan M.", load: 60, status: "Optimal", color: "bg-success" }
-              ].map((member, i) => (
+              {teamLoad.length === 0 ? (
+                <p className="text-sm text-muted-foreground">팀 부하 데이터가 없습니다.</p>
+              ) : teamLoad.map((member, i) => (
                 <motion.div 
-                  key={i} 
+                  key={`${member.name}-${i}`} 
                   whileHover={{ x: 5 }}
                   className="space-y-3 cursor-pointer group/member"
                 >
@@ -331,7 +393,7 @@ export default function ManagerDashboard() {
                     <motion.div 
                       initial={{ width: 0 }}
                       animate={{ width: `${member.load}%` }}
-                      className={cn("h-full rounded-full transition-all duration-1000", member.color)}
+                      className={cn("h-full rounded-full transition-all duration-1000", statusToLoadColor(member.status))}
                     />
                   </div>
                 </motion.div>
@@ -349,21 +411,26 @@ export default function ManagerDashboard() {
               <CheckCircle2 className="w-4 h-4 text-accent" /> Decision Audit
             </h3>
             <div className="space-y-6">
-              {[
-                { title: "Branch Protection Policy", date: "2 days ago", type: "Security" },
-                { title: "gRPC IDL Specification", date: "4 days ago", type: "Architecture" }
-              ].map((log, i) => (
+              {decisions.length === 0 ? (
+                <p className="text-sm text-muted-foreground">결정 이력이 없습니다.</p>
+              ) : decisions.map((log, i) => (
                 <div key={i} className="flex gap-4">
                   <div className="w-1 h-8 rounded-full bg-muted/40 mt-1" />
                   <div>
                     <p className="text-xs font-bold text-foreground dark:text-primary-foreground">{log.title}</p>
-                    <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-widest">{log.type} • {log.date}</p>
+                    <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-widest">{log.type} • {new Date(log.occurred_at).toLocaleDateString()}</p>
                   </div>
                 </div>
               ))}
-            </div>
-          </section>
-          </div>
+              </div>
+            </section>
+          {ENABLE_LEGACY_MOCK_UI && process.env.NODE_ENV === "development" && (
+            <section className="glass-card p-4">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Legacy Mock Preview</p>
+              <div className="text-xs text-muted-foreground">Legacy dataset: velocity {legacyMockManagerVelocity.length}, load {legacyMockManagerLoad.length}, decisions {legacyMockManagerDecisions.length}</div>
+            </section>
+          )}
+        </div>
         </div>
       </>
       )}

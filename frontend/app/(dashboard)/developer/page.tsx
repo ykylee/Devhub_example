@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   CheckCircle2,
@@ -17,7 +17,7 @@ import {
   Info
 } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { mockBuildLogs } from "@/lib/mockData";
+import { legacyMockBuildLogs } from "@/lib/archive/mock-ui-legacy";
 import { Modal } from "@/components/ui/Modal";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
@@ -26,25 +26,61 @@ import { Metric } from "@/lib/services/types";
 import { useEffect } from "react";
 import { MyPendingDevRequestsWidget } from "@/components/dev-request/MyPendingDevRequestsWidget";
 import { DashboardHeader } from "@/components/ui/DashboardHeader";
+import { ENABLE_LEGACY_MOCK_UI } from "@/lib/config/mock-ui";
+import { dashboardService, DeveloperBuildItem, DeveloperStreamItem } from "@/lib/services/dashboard.service";
+import { toUserErrorMessage } from "@/lib/services/error-message";
 
 export default function DeveloperDashboard() {
   const { isDeepFocus, setDeepFocus, addToast } = useStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [stats, setStats] = useState<Metric[]>([]);
+  const [metricsError, setMetricsError] = useState<string | null>(null);
+  const [streamItems, setStreamItems] = useState<DeveloperStreamItem[]>([]);
+  const [buildItems, setBuildItems] = useState<DeveloperBuildItem[]>([]);
+  const [opsError, setOpsError] = useState<string | null>(null);
+
+  const loadData = useCallback(async () => {
+    try {
+      const metricsData = await infraService.getMetrics("Developer");
+      const [streamResult, buildResult] = await Promise.allSettled([
+        dashboardService.getDeveloperStream(),
+        dashboardService.getDeveloperBuilds(),
+      ]);
+      const streamData = streamResult.status === "fulfilled" ? streamResult.value : [];
+      const buildData = buildResult.status === "fulfilled" ? buildResult.value : [];
+      setStats(metricsData);
+      setStreamItems(streamData);
+      setBuildItems(buildData);
+      setMetricsError(null);
+      const widgetErrors: string[] = [];
+      if (streamResult.status === "rejected") {
+        console.warn("[DeveloperDashboard] stream fetch failed:", streamResult.reason);
+        widgetErrors.push("Active Stream");
+      }
+      if (buildResult.status === "rejected") {
+        console.warn("[DeveloperDashboard] build fetch failed:", buildResult.reason);
+        widgetErrors.push("Deployment Pipeline");
+      }
+      setOpsError(widgetErrors.length > 0 ? `일부 위젯 데이터를 불러오지 못했습니다: ${widgetErrors.join(", ")}` : null);
+    } catch (error) {
+      console.error("Failed to load metrics:", error);
+      setStats([]);
+      setMetricsError(toUserErrorMessage(error, "메트릭을 불러오지 못했습니다."));
+      addToast("Developer 대시보드 데이터를 불러오지 못했습니다.", "error");
+    }
+  }, [addToast]);
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const metricsData = await infraService.getMetrics("Developer");
-        setStats(metricsData);
-      } catch (error) {
-        console.error("Failed to load metrics:", error);
-      }
-    };
-    loadData();
+    // set-state-in-effect lint rule 회피: kickoff 을 macrotask 로 defer.
+    const kickoff = setTimeout(() => {
+      void loadData();
+    }, 0);
     const interval = setInterval(loadData, 10000);
-    return () => clearInterval(interval);
-  }, []);
+    return () => {
+      clearTimeout(kickoff);
+      clearInterval(interval);
+    };
+  }, [loadData]);
 
   const toggleFocus = () => {
     const nextState = !isDeepFocus;
@@ -94,31 +130,93 @@ export default function DeveloperDashboard() {
       <MyPendingDevRequestsWidget />
 
       {/* Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {stats.map((stat, i) => (
-          <motion.div 
-            key={i}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
-            className="glass-card p-6 flex flex-col justify-between"
-          >
-            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">{stat.label}</p>
-            <div className="flex items-center justify-between">
-              <h3 className="text-xl md:text-2xl font-black text-foreground dark:text-primary-foreground">{stat.value}</h3>
-              <span className={cn("text-[10px] font-black uppercase tracking-tighter", stat.color)}>
-                {stat.trend}
-              </span>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+      {metricsError ? (
+        <div className="glass-card p-6 flex items-center justify-between gap-4">
+          <p className="text-sm text-muted-foreground">{metricsError}</p>
+          <button onClick={loadData} className="px-4 py-2 rounded-xl bg-primary/10 border border-primary/20 text-xs font-black uppercase tracking-widest text-primary hover:bg-primary/20 transition-all">
+            Retry
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {stats.map((stat, i) => (
+            <motion.div 
+              key={i}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.1 }}
+              className="glass-card p-6 flex flex-col justify-between"
+            >
+              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">{stat.label}</p>
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl md:text-2xl font-black text-foreground dark:text-primary-foreground">{stat.value}</h3>
+                <span className={cn("text-[10px] font-black uppercase tracking-tighter", stat.color)}>
+                  {stat.trend}
+                </span>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Content Area */}
         <div className="lg:col-span-2 space-y-8">
+          <section className="space-y-4">
+            <div className="flex items-center justify-between px-2">
+              <h2 className="text-xl font-bold text-foreground dark:text-primary-foreground flex items-center gap-2">
+                <Terminal className="w-5 h-5 text-primary" /> Active Stream
+              </h2>
+            </div>
+            {streamItems.length === 0 ? (
+              <div className="glass-card p-6 text-sm text-muted-foreground">표시할 진행 작업이 없습니다.</div>
+            ) : (
+              <div className="grid gap-4">
+                {streamItems.map((task) => (
+                  <div key={task.id} className="glass-card p-6">
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-[10px] font-black text-primary uppercase tracking-widest">{task.id} • {task.repo}</p>
+                        <h3 className="text-lg font-bold text-foreground dark:text-primary-foreground mt-1">{task.title}</h3>
+                      </div>
+                      <Badge variant="glass">{task.status}</Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="space-y-4">
+            <h2 className="text-xl font-bold text-foreground dark:text-primary-foreground flex items-center gap-2 px-2">
+              <PlayCircle className="w-5 h-5 text-accent" /> Deployment Pipeline
+            </h2>
+            {buildItems.length === 0 ? (
+              <div className="glass-card p-6 text-sm text-muted-foreground">표시할 빌드 이력이 없습니다.</div>
+            ) : (
+              <div className="glass-card divide-y divide-border/60">
+                {buildItems.map((build) => (
+                  <div key={build.id} className="p-5 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className={cn(
+                        "w-10 h-10 rounded-xl flex items-center justify-center border",
+                        build.status.toLowerCase().includes("pass") ? "bg-success/10 border-success/20" : "bg-destructive/10 border-destructive/20"
+                      )}>
+                        {build.status.toLowerCase().includes("pass") ? <CheckCircle2 className="w-5 h-5 text-success" /> : <AlertTriangle className="w-5 h-5 text-destructive" />}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-foreground dark:text-primary-foreground">{build.title}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{build.status} • {build.duration || "-"} • <span className="font-mono">{build.commit_sha || "-"}</span></p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
           
-          {/* Work Stream */}
+          {/* Work Stream (legacy mock UI) */}
+          {ENABLE_LEGACY_MOCK_UI && (
           <section className="space-y-4">
             <div className="flex items-center justify-between px-2">
               <h2 className="text-xl font-bold text-foreground dark:text-primary-foreground flex items-center gap-2">
@@ -208,14 +306,22 @@ export default function DeveloperDashboard() {
               ))}
             </div>
           </section>
+          )}
 
-          {/* Infrastructure Health / Builds */}
+          {opsError && (
+            <div className="glass-card p-4 text-xs text-muted-foreground">
+              {opsError}
+            </div>
+          )}
+
+          {/* Infrastructure Health / Builds (legacy mock UI) */}
+          {ENABLE_LEGACY_MOCK_UI && (
           <section className="space-y-4">
             <h2 className="text-xl font-bold text-foreground dark:text-primary-foreground flex items-center gap-2 px-2">
               <PlayCircle className="w-5 h-5 text-accent" /> Deployment Pipeline
             </h2>
             <div className="glass-card divide-y divide-border/60">
-              {mockBuildLogs.map((build) => (
+              {legacyMockBuildLogs.map((build) => (
                 <div key={build.id} className="p-5 flex items-center justify-between hover:bg-muted/20 transition-colors">
                   <div className="flex items-center gap-4">
                     <div className={cn(
@@ -243,9 +349,11 @@ export default function DeveloperDashboard() {
               ))}
             </div>
           </section>
+          )}
         </div>
 
         {/* Sidebar Widgets */}
+        {ENABLE_LEGACY_MOCK_UI && (
         <div className="space-y-8">
           {/* AI Gardener Widget */}
           <motion.div 
@@ -310,6 +418,7 @@ export default function DeveloperDashboard() {
             </div>
           </div>
         </div>
+        )}
       </div>
 
       <AnimatePresence>
