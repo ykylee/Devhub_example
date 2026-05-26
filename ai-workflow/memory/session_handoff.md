@@ -1,3 +1,62 @@
+# Session Handoff — main (2026-05-26 PR #312 codex project-management v2 머지 + final housekeeping — 본 conversation 종결)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
+- 범위: PR #321 (직전 housekeeping `e8edb0b`) 이후 PR #312 codex 머지 (`e60d4eb`) 흡수. **본 conversation 최종 종결**.
+- 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
+- 상태: PR #312 머지로 codex project-management v2 hybrid model 적용 완료. main HEAD `e60d4eb`. **claude 작업 영역 모두 종결** — SOP §8 carve 모두 closed + PR #296 follow-up 6/6 + issue #302 closed + issue #214 codex 영역 흡수 + Onboarding 5 metric + ADR-0023 + Go 1.25 + Dockerfile FROM ARG + setup-keycloak quiet + pending_review Gauge + project-management v2.
+- 최종 수정일: 2026-05-26 (sprint `claude/work_260526-housekeeping-final-post-312`)
+- 관련 문서: [PR #312](https://github.com/ykylee/Devhub_example/pull/312), [PR #312 claude review](https://github.com/ykylee/Devhub_example/pull/312#issuecomment-4539604381), [migration 000034](../../backend-core/migrations/000034_project_repositories.up.sql), [issue #214](https://github.com/ykylee/Devhub_example/issues/214).
+- 브랜치: `main` (HEAD `e60d4eb` post PR #312 → 본 final housekeeping sprint 머지 후 `<TBD>`).
+
+## 2026-05-26 본 final housekeeping sprint (`claude/work_260526-housekeeping-final-post-312`)
+
+직전 housekeeping (PR #321, `e8edb0b`) 이후 1 PR (#312, `e60d4eb`) 흡수 — **본 conversation 최종 종결**.
+
+### 흡수 대상
+
+| sha | PR | author | core |
+| --- | --- | --- | --- |
+| `e60d4eb` | **#312** | codex (사용자 머지) | **project-management v2 hybrid model** — migration 000034 (project_repositories N:M) + DEVHUB_PROJECT_MODEL env (hybrid/legacy/v2) + JWKS Linux 호환 (`http://nginx/...`) + e2e seed (repositories fixture + global-setup rename `seedDevhubData`) + 40 파일. final title: \"feat(project-management): add app-project-repo v2 model and stabilize deploy/e2e\". codex automated review 통과 + claude review (P0 0 / P1 0 / P2 2 / P3 1, [comment 4539604381](https://github.com/ykylee/Devhub_example/pull/312#issuecomment-4539604381)) + 사용자 결정 squash merge. |
+
+### 본 conversation 최종 결산 (21 머지 PR + 1 issue closed + 9 housekeeping, main HEAD `e60d4eb` → `<TBD>`)
+
+| 영역 | 결과 |
+| --- | --- |
+| **PR #296 follow-up** | 6/6 모두 처리 (PR #301 / #304 / #308) |
+| **issue #214 codex 영역** | 흡수 완료 (#306 verify-keycloak-groups.sh + §4.4 SOP) |
+| **ADR governance** | ADR-0023 신규 + ADR-0022 supersession (#308) |
+| **build/deploy script cleanup** | host 의존성 사전 검증 + dockerized fallback 제거 + §1.2/§13 troubleshooting 10 (#310) |
+| **Onboarding monitoring** | SQL + Prometheus 5 metric (Counter 3 + Histogram 1 + Gauge 1, #313 + #320) |
+| **Go toolchain** | 1.22 → 1.25 명시 정합 (#314) |
+| **Dockerfile FROM ARG** | 사내 mirror registry override (#316) |
+| **issue #302 closed** | SETUP_KEYCLOAK_QUIET (#318) |
+| **Onboarding SOP §8 carve** | 모두 closed (P2 #313 + P3 #320) |
+| **project-management v2 (codex)** | hybrid model + migration 000034 + JWKS Linux 호환 + e2e seed (#312) |
+| **memory housekeeping** | 9회 누적 (#303 / #305 / #307 / #309 / #311 / #315 / #317 / #319 / #321) + 본 final |
+| **carve out 잔여** | **0** |
+
+### 잔여 directive (사내 운영자 영역만)
+
+| 순위 | 항목 | 영역 |
+| --- | --- | --- |
+| 1 | **Onboarding SOP staging 1주 monitoring** (SQL + Prometheus 5 metric 활용) | 사내 운영자 (DevHub SRE) |
+| 2 | **사내 Keycloak 26.0 image pull + redeploy smoke** (ADR-0023 §5 후속) | 사내 운영자 (Infra) |
+| 3 | **issue #214 사내 1회 작업** + `verify-keycloak-groups.sh` PASS 확인 | 사용자/사내 운영자 + 자동 |
+| 4 | **PR #312 후속** — DEVHUB_PROJECT_MODEL=v2 staging 적용 + e2e 검증 + legacy → hybrid → v2 migration plan | 사용자/codex |
+
+**claude 영역 잔여 directive 없음**. 본 conversation 의 모든 claude 작업 종결.
+
+### v1.0 release gate (D-20, 2026-06-15)
+
+- 잔여 차단 1건: #214 P1-3 Keycloak group staging-prod (사내 운영자)
+- claude 영역 자산 모두 준비 완료 — verify-keycloak-groups.sh PASS 후 close 가능
+
+## 2026-05-26 직전 housekeeping (PR #321, `e8edb0b`)
+
+PR #320 Onboarding pending_review Gauge 흡수 + SOP §8 carve 모두 closed + PR #312 claude review 기록.
+
+
+
 # Session Handoff — main (2026-05-26 PR #320 Onboarding pending_review Gauge + housekeeping, SOP §8 P3 closed)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
