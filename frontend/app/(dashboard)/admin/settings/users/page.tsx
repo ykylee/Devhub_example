@@ -13,6 +13,7 @@ import { PendingReviewPanel } from "@/components/admin/users/PendingReviewPanel"
 export default function AdminSettingsUsersPage() {
   const [members, setMembers] = useState<OrgMember[]>([]);
   const [unitLeaderIds, setUnitLeaderIds] = useState<string[]>([]);
+  const [unitNames, setUnitNames] = useState<Record<string, string>>({});
   const [roles, setRoles] = useState<Role[]>(defaultRoles);
   const [isLoading, setIsLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -56,6 +57,11 @@ export default function AdminSettingsUsersPage() {
           .map((n) => n.data.leader_id)
           .filter((v): v is string => Boolean(v));
         setUnitLeaderIds(Array.from(new Set(leaders)));
+        const unitNameMap: Record<string, string> = {};
+        for (const n of hierarchy.nodes) {
+          if (n.data.label) unitNameMap[n.id] = n.data.label;
+        }
+        setUnitNames(unitNameMap);
       } catch (error) {
         console.error("[admin/settings/users] load failed:", error);
       } finally {
@@ -125,10 +131,17 @@ export default function AdminSettingsUsersPage() {
         <MemberTable
           members={filteredMembers}
           unitLeaderIds={unitLeaderIds}
+          unitNames={unitNames}
           roles={roles}
           onUpdateMemberRole={handleUpdateRole}
           onMemberCreated={(newMember) => {
             setMembers((prev) => [newMember, ...prev]);
+          }}
+          onMemberUpdated={(updated) => {
+            setMembers((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+          }}
+          onMemberDeleted={(userId) => {
+            setMembers((prev) => prev.filter((m) => m.id !== userId));
           }}
         />
       )}
