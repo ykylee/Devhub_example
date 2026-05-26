@@ -51,6 +51,12 @@ backend-core/bin/
 # backend-ai host build artifacts
 backend-ai/.build/
 
+# repo-root build outputs (deploy-from-env.sh generated realm import,
+# generate_local_realm_import() 의 $ROOT_DIR/.build/devhub-keycloak-realm.generated.json
+# 등). 직전 /tmp/* 는 tmpfs / Docker Desktop mount 제한 호스트에서 container 재시작
+# 시 사라지는 risk 있어 repo 안 안정 path 로 이전.
+/.build/
+
 # === DEV ENVIRONMENT (machine-specific, mostly untracked) ===
 # 컨테이너 런타임 산출물, 로컬 오버라이드, 비밀값은 추적하지 않는다.
 # Dockerfile 은 배포/빌드 계약의 일부이므로 git 에 포함한다.

@@ -43,7 +43,10 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 : "${KEYCLOAK_ADMIN_ALLOW_CIDR:=127.0.0.1/32}"
 : "${NGINX_HTTP_PORT:=3000}"
 : "${AUTO_CONFIGURE_KEYCLOAK_REDIRECTS:=1}"
-: "${GENERATED_KEYCLOAK_REALM_IMPORT:=/tmp/devhub-keycloak-realm.generated.json}"
+# repo 안 안정 path (.gitignore 추적 외). 직전 /tmp/* 는 일부 호스트 (tmpfs / Docker
+# Desktop 의 file mount 제한) 에서 container 재시작 시 사라지는 risk 가 있어 .build/
+# 로 이전. .build/ 디렉토리는 generate_local_realm_import() 가 mkdir -p 로 자동 생성.
+: "${GENERATED_KEYCLOAK_REALM_IMPORT:=$ROOT_DIR/.build/devhub-keycloak-realm.generated.json}"
 
 # Simple one-shot deploy helper.
 # Required env:
@@ -86,7 +89,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 #   DB_HOST/DB_PORT/DB_SSLMODE      default: db/5432/disable
 #   NGINX_HTTP_PORT                 default: 3000 (VM ingress port)
 #   AUTO_CONFIGURE_KEYCLOAK_REDIRECTS default: 1 (local-idp deploy 후 redirect/webOrigin 자동 동기화)
-#   GENERATED_KEYCLOAK_REALM_IMPORT default: /tmp/devhub-keycloak-realm.generated.json
+#   GENERATED_KEYCLOAK_REALM_IMPORT default: $ROOT_DIR/.build/devhub-keycloak-realm.generated.json (repo 안 안정 path, .gitignore 추적 외)
 
 require() {
   local var_name="$1"
@@ -144,10 +147,12 @@ generate_local_realm_import() {
   local public_base="$1"
   local base_path_norm="$2"
   local source_realm="${KEYCLOAK_REALM_IMPORT_TEMPLATE:-$ROOT_DIR/infra/idp/keycloak-realm.dev.json}"
-  local output_realm="${GENERATED_KEYCLOAK_REALM_IMPORT:-/tmp/devhub-keycloak-realm.generated.json}"
+  local output_realm="${GENERATED_KEYCLOAK_REALM_IMPORT:-$ROOT_DIR/.build/devhub-keycloak-realm.generated.json}"
   local redirect_uri="${public_base}${base_path_norm}/auth/callback"
   local post_logout_a="${public_base}${base_path_norm}/*"
   local post_logout_b="${public_base}${base_path_norm}/"
+
+  mkdir -p "$(dirname "$output_realm")"
 
   python3 - "$source_realm" "$output_realm" "$public_base" "$redirect_uri" "$post_logout_a" "$post_logout_b" <<'PY'
 import json
@@ -266,7 +271,14 @@ build_env_file() {
     emit_env_line KC_DB_PASSWORD "${KC_DB_PASSWORD:-pass}"
     emit_env_line KC_DB_SCHEMA "${KC_DB_SCHEMA:-keycloak}"
     emit_env_line DEVHUB_KEYCLOAK_SSL_REQUIRED "${DEVHUB_KEYCLOAK_SSL_REQUIRED:-none}"
-    emit_env_line KEYCLOAK_REALM_IMPORT_PATH "${KEYCLOAK_REALM_IMPORT_PATH:-$ROOT_DIR/infra/idp/keycloak-realm.dev.json}"
+    # KEYCLOAK_REALM_IMPORT_PATH 는 docker-compose 의 keycloak service (profiles:
+    # ["local-idp"]) volume mount 가 참조하므로 local-idp profile 일 때만 emit.
+    # external mode (사내 운영 Keycloak) 에서는 keycloak container 자체가 미가동
+    # → mount noop. env 파일에 dev.json fallback 이 emit 되면 운영자가 dev.json
+    # 가 prod 에 적용된다고 오독할 risk 가 있어 분기.
+    if [[ ",${COMPOSE_PROFILES:-}," == *",local-idp,"* ]]; then
+      emit_env_line KEYCLOAK_REALM_IMPORT_PATH "${KEYCLOAK_REALM_IMPORT_PATH:-$ROOT_DIR/infra/idp/keycloak-realm.dev.json}"
+    fi
     printf "\n"
     emit_env_line DB_URL "$DB_URL"
     emit_env_line POSTGRES_USER "$POSTGRES_USER"
