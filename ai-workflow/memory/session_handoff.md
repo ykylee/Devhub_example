@@ -1,3 +1,63 @@
+# Session Handoff — main (2026-05-26 PR #318 issue #302 SETUP_KEYCLOAK_QUIET + housekeeping, issue #302 closed)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
+- 범위: PR #317 (직전 housekeeping `98ea72f`) 이후 PR #318 (`3cae1b9`) 흡수 + issue #302 closed.
+- 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
+- 상태: PR #318 머지로 SETUP_KEYCLOAK_QUIET flag 도입 + issue #302 closed. 본 conversation 의 carve out 1건 종결. main HEAD `3cae1b9`.
+- 최종 수정일: 2026-05-26 (sprint `claude/work_260526-housekeeping-post-318`)
+- 관련 문서: [setup-keycloak.sh](../../scripts/setup-keycloak.sh), [keycloak_operations.md §8.7](../../docs/setup/keycloak_operations.md), [issue #214](https://github.com/ykylee/Devhub_example/issues/214), [~~issue #302~~](https://github.com/ykylee/Devhub_example/issues/302) (closed).
+- 브랜치: `main` (HEAD `3cae1b9` post PR #318 → 본 housekeeping sprint 머지 후 `<TBD>`).
+
+## 2026-05-26 본 housekeeping sprint (`claude/work_260526-housekeeping-post-318`)
+
+직전 housekeeping (PR #317, `98ea72f`) 이후 1 PR (#318) 흡수 + issue #302 closed.
+
+### 흡수 대상
+
+| sha | PR | author | core |
+| --- | --- | --- | --- |
+| `3cae1b9` | **#318** | claude | **issue #302 SETUP_KEYCLOAK_QUIET flag** — setup-keycloak.sh 마지막 SUMMARY echo if/else 분기 (quiet 시 secret 3 line skip + 안내 line) + deploy-from-env.sh:sync_keycloak_redirects() 자동 `SETUP_KEYCLOAK_QUIET=1` inject + docs §8.7 신규 (4 시나리오 표). backward compat 보장 (default 0 unset). 3 파일 / +41 / -3 LoC. **issue #302 closed**. |
+
+### issue #302 acceptance confirm (자동 close)
+
+- ✅ scripts/setup-keycloak.sh 에 SETUP_KEYCLOAK_QUIET env 도입 (default off — 기존 동작 호환)
+- ✅ scripts/deploy-from-env.sh:sync_keycloak_redirects() 가 SETUP_KEYCLOAK_QUIET=1 자동 inject
+- ✅ docs/setup/keycloak_operations.md §8.7 신규 — 4 시나리오 표 + fail-mode 우회 안내
+- ✅ traceability 영향 N/A (script behavior 정합, 의미 변경 없음)
+- ✅ CI 검증: backward compat 동작 (default unset → 기존 stdout secret 3 line 출력 → CI E2E parse 정상 동작)
+
+### 본 conversation 최종 결산 (18 PR, 1 issue closed)
+
+| 영역 | 결과 |
+| --- | --- |
+| **PR #296 follow-up** | 6/6 모두 처리 (#301 + #304 + #308 ADR-0023) |
+| **issue #214 codex 영역** | 흡수 완료 (#306 verify-keycloak-groups.sh + §4.4 SOP) |
+| **ADR governance** | ADR-0023 신규 + ADR-0022 supersession (#308) |
+| **build/deploy script cleanup** | #310 (host 의존성 사전 검증 + dockerized fallback 제거 + §1.2/§13) |
+| **Onboarding monitoring** | SQL + Prometheus metric 4종 2 채널 (#313) |
+| **Go toolchain** | 1.22 → 1.25 명시 정합 (#314) |
+| **Dockerfile FROM ARG** | 사내 mirror registry override (#316) |
+| **issue #302 closed** | SETUP_KEYCLOAK_QUIET flag (#318) |
+| **memory housekeeping** | 8회 누적 (#303 / #305 / #307 / #309 / #311 / #315 / #317 / 본) |
+| **carve out 잔여** | 없음 (issue #302 closed) |
+
+### 다음 directive (4 순위, claude 영역 최소화)
+
+| 순위 | 항목 | 영역 |
+| --- | --- | --- |
+| 1 | **Onboarding SOP staging 1주 monitoring** (SQL + Prometheus 2 채널) | 사내 운영자 (DevHub SRE) |
+| 2 | **사내 Keycloak 26.0 image pull + redeploy smoke** (ADR-0023 §5 후속) | 사내 운영자 (Infra) |
+| 3 | **issue #214 사내 1회 작업** + verify script | 사용자/사내 운영자 + verify-keycloak-groups.sh (자동) |
+| 4 | **pending_review count Gauge / Grafana dashboard JSON / Alertmanager rule** (P3 carve) | 사내 운영자 + claude (Gauge 결정 후 P2 carve 가능) |
+
+claude 영역 = 4번만 (P3 carve 의 pending_review Gauge — 사내 운영자가 Grafana dashboard 결정 후 진입). 1/2/3번은 모두 사내 운영자 영역. 본 conversation 의 claude 작업 누계 완료.
+
+## 2026-05-26 직전 housekeeping (PR #317, `98ea72f`)
+
+PR #316 (Dockerfile FROM ARG) 흡수 minimal entry prepend.
+
+
+
 # Session Handoff — main (2026-05-26 PR #316 Dockerfile FROM ARG + housekeeping)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
