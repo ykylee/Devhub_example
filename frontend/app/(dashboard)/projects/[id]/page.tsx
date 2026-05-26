@@ -19,8 +19,11 @@ import {
 import { useRouter, useParams } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
 import { projectService } from "@/lib/services/project.service";
-import type { Project, ProjectRepositoryLink } from "@/lib/services/project.types";
+import type { Project, ProjectActivityItem, ProjectRepositoryLink, ProjectTaskItem } from "@/lib/services/project.types";
 import { identityService, OrgMember } from "@/lib/services/identity.service";
+import { ENABLE_LEGACY_MOCK_UI } from "@/lib/config/mock-ui";
+import { legacyMockProjectActivity, legacyMockProjectTasks } from "@/lib/archive/mock-ui-legacy";
+import { toUserErrorMessage } from "@/lib/services/error-message";
 import { 
   Tooltip, 
   ResponsiveContainer,
@@ -45,6 +48,8 @@ export default function ProjectDetailPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [projectRepositories, setProjectRepositories] = useState<ProjectRepositoryLink[]>([]);
   const [users, setUsers] = useState<OrgMember[]>([]);
+  const [activities, setActivities] = useState<ProjectActivityItem[]>([]);
+  const [tasks, setTasks] = useState<ProjectTaskItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,10 +62,16 @@ export default function ProjectDetailPage() {
         ]);
         setProject(projectData);
         setUsers(usersData);
-        const links = await projectService.getProjectRepositories(id).catch(() => []);
+        const [links, activityData, taskData] = await Promise.all([
+          projectService.getProjectRepositories(id).catch(() => []),
+          projectService.getProjectActivity(id).catch(() => []),
+          projectService.getProjectTasks(id).catch(() => []),
+        ]);
         setProjectRepositories(links);
+        setActivities(activityData);
+        setTasks(taskData);
       } catch (err) {
-        setError("Failed to load project details.");
+        setError(toUserErrorMessage(err, "Failed to load project details."));
         console.error(err);
       } finally {
         setLoading(false);
@@ -245,6 +256,27 @@ export default function ProjectDetailPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <section className="glass-card p-8">
+              <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground mb-6">Recent Activity</h3>
+              <div className="space-y-6">
+                {activities.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">활동 이력이 없습니다.</p>
+                ) : activities.map((act) => (
+                  <div key={act.id} className="flex gap-4">
+                    <div className="w-8 h-8 rounded-full bg-muted/30 border border-border flex-shrink-0" />
+                    <div>
+                      <p className="text-xs font-bold text-foreground dark:text-primary-foreground">
+                        {act.user} <span className="font-normal text-muted-foreground">{act.action}</span> {act.target}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-widest">{new Date(act.occurred_at).toLocaleString()}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {ENABLE_LEGACY_MOCK_UI && (
+            <>
+            <section className="glass-card p-8">
               <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground mb-6">Task Distribution</h3>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
@@ -279,11 +311,7 @@ export default function ProjectDetailPage() {
             <section className="glass-card p-8">
               <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground mb-6">Recent Activity</h3>
               <div className="space-y-6">
-                {[
-                  { user: "YK Lee", action: "Completed task", target: "API Authentication", time: "2h ago" },
-                  { user: "Alex K.", action: "Commented on", target: "UI Redesign", time: "4h ago" },
-                  { user: "Sam J.", action: "Added attachment", target: "Workflow Specs", time: "Yesterday" },
-                ].map((act, i) => (
+                {legacyMockProjectActivity.map((act, i) => (
                   <div key={i} className="flex gap-4">
                     <div className="w-8 h-8 rounded-full bg-muted/30 border border-border flex-shrink-0" />
                     <div>
@@ -296,19 +324,49 @@ export default function ProjectDetailPage() {
                 ))}
               </div>
             </section>
+            </>
+            )}
           </div>
 
+          <section className="glass-card">
+            <div className="p-8 border-b border-border/50 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-foreground dark:text-primary-foreground">Active Tasks</h3>
+            </div>
+            <div className="divide-y divide-border/50">
+              {tasks.length === 0 ? (
+                <div className="p-6 text-sm text-muted-foreground">진행 중인 작업이 없습니다.</div>
+              ) : tasks.map((task) => (
+                <div key={task.id} className="p-6 flex items-center justify-between hover:bg-muted/5 transition-colors cursor-pointer group">
+                  <div className="flex items-center gap-4">
+                    <div className="w-2 h-2 rounded-full bg-primary" />
+                    <div>
+                      <h4 className="text-sm font-bold text-foreground dark:text-primary-foreground group-hover:text-primary transition-colors">{task.title}</h4>
+                      <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Due {task.due_date || "TBD"} • Priority {task.priority}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <MessageSquare className="w-4 h-4" />
+                      <span className="text-[10px] font-bold">{task.comment_count || 0}</span>
+                      <Paperclip className="w-4 h-4 ml-2" />
+                      <span className="text-[10px] font-bold">{task.attachment_count || 0}</span>
+                    </div>
+                    <Badge variant="glass">{task.status}</Badge>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {ENABLE_LEGACY_MOCK_UI && (
           <section className="glass-card">
             <div className="p-8 border-b border-border/50 flex items-center justify-between">
               <h3 className="text-lg font-bold text-foreground dark:text-primary-foreground">Active Tasks</h3>
               <button className="text-[10px] font-black uppercase text-primary hover:underline">View All</button>
             </div>
             <div className="divide-y divide-border/50">
-              {[
-                { title: "Implement RBAC Persistence", priority: "High", status: "In Progress", due: "May 20" },
-                { title: "Dashboard Responsive Audit", priority: "Medium", status: "Review", due: "May 18" },
-                { title: "Legacy Cleanup", priority: "Low", status: "To Do", due: "May 25" },
-              ].map((task, i) => (
+              {legacyMockProjectTasks.map((task, i) => (
                 <div key={i} className="p-6 flex items-center justify-between hover:bg-muted/5 transition-colors cursor-pointer group">
                   <div className="flex items-center gap-4">
                     <div className="w-2 h-2 rounded-full bg-primary" />
@@ -331,6 +389,7 @@ export default function ProjectDetailPage() {
               ))}
             </div>
           </section>
+          )}
         </div>
 
         <div className="space-y-8">

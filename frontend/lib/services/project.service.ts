@@ -1,5 +1,13 @@
 import { ApiError, apiClient } from "./api-client";
-import { Application, ApplicationRepository, Project, ProjectRepositoryLink, SCMProvider } from "./project.types";
+import {
+  Application,
+  ApplicationRepository,
+  Project,
+  ProjectActivityItem,
+  ProjectRepositoryLink,
+  ProjectTaskItem,
+  SCMProvider,
+} from "./project.types";
 
 type ApplicationQuery = { status?: string; include_archived?: boolean; q?: string };
 type ProjectQuery = { status?: string; include_archived?: boolean };
@@ -16,6 +24,26 @@ function withQuery(path: string, params?: Record<string, string | number | boole
 }
 
 class ProjectService {
+  private asList<T>(value: unknown): T[] {
+    if (Array.isArray(value)) return value as T[];
+    if (value && typeof value === "object" && "data" in (value as Record<string, unknown>)) {
+      const inner = (value as { data?: unknown }).data;
+      return Array.isArray(inner) ? (inner as T[]) : [];
+    }
+    return [];
+  }
+
+  private normalizePriority(value: unknown): ProjectTaskItem["priority"] {
+    const v = String(value ?? "medium").toLowerCase();
+    if (v === "low" || v === "medium" || v === "high" || v === "critical") return v;
+    return "medium";
+  }
+
+  private normalizeStatus(value: unknown): ProjectTaskItem["status"] {
+    const v = String(value ?? "todo").toLowerCase();
+    if (v === "todo" || v === "in_progress" || v === "review" || v === "done") return v;
+    return "todo";
+  }
   async getSCMProviders(): Promise<SCMProvider[]> {
     const resp = await apiClient<{ data: SCMProvider[] }>("GET", "/api/v1/scm/providers");
     return resp.data;
@@ -125,6 +153,31 @@ class ProjectService {
   async getProjectRepositories(projectId: string): Promise<ProjectRepositoryLink[]> {
     const resp = await apiClient<{ data: ProjectRepositoryLink[] }>("GET", `/api/v1/projects/${projectId}/repositories`);
     return resp.data;
+  }
+
+  async getProjectActivity(projectId: string): Promise<ProjectActivityItem[]> {
+    const resp = await apiClient<unknown>("GET", `/api/v1/projects/${projectId}/activity`);
+    return this.asList<Record<string, unknown>>(resp).map((item, idx) => ({
+      id: String(item.id ?? item.activity_id ?? `activity-${idx}`),
+      user: String(item.user ?? item.actor ?? item.user_name ?? "-"),
+      action: String(item.action ?? "updated"),
+      target: String(item.target ?? item.target_name ?? "-"),
+      occurred_at: String(item.occurred_at ?? item.created_at ?? new Date().toISOString()),
+    }));
+  }
+
+  async getProjectTasks(projectId: string, statuses: string[] = ["todo", "in_progress", "review"]): Promise<ProjectTaskItem[]> {
+    const path = withQuery(`/api/v1/projects/${projectId}/tasks`, { status: statuses.join(",") });
+    const resp = await apiClient<unknown>("GET", path);
+    return this.asList<Record<string, unknown>>(resp).map((item, idx) => ({
+      id: String(item.id ?? item.task_id ?? `task-${idx}`),
+      title: String(item.title ?? item.name ?? "Untitled Task"),
+      priority: this.normalizePriority(item.priority),
+      status: this.normalizeStatus(item.status),
+      due_date: typeof item.due_date === "string" ? item.due_date : undefined,
+      comment_count: typeof item.comment_count === "number" ? item.comment_count : undefined,
+      attachment_count: typeof item.attachment_count === "number" ? item.attachment_count : undefined,
+    }));
   }
 
   async linkProjectRepository(projectId: string, repositoryId: number, role: "primary" | "linked" | "shared" = "linked"): Promise<ProjectRepositoryLink> {

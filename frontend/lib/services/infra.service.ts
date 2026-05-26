@@ -1,5 +1,4 @@
 import { ApiMetric, ApiResponse, Metric, ServiceActionCommand, ServiceEdge, ServiceNode } from "./types";
-import { getMockMetrics } from "../mockData";
 import { type UserRole } from "../store";
 import { formatBytes } from "../utils";
 import { apiClient } from "./api-client";
@@ -18,20 +17,14 @@ class InfraService {
     return InfraService.instance;
   }
   async getMetrics(role: UserRole): Promise<Metric[]> {
-    try {
-      const roleQuery = encodeURIComponent(role.toLowerCase().replace(' ', '_'));
-      const result = await apiClient<ApiResponse<ApiMetric[]>>("GET", `${this.baseUrl}/api/v1/dashboard/metrics?role=${roleQuery}`);
-      
-      return result.data!.map((m) => ({
-        label: m.label,
-        value: m.value,
-        trend: m.trend,
-        color: m.trend_direction === 'up' ? 'text-emerald-500' : 'text-rose-500'
-      }));
-    } catch (error) {
-      console.error('[InfraService] getMetrics error:', error);
-      return getMockMetrics(role);
-    }
+    const roleQuery = encodeURIComponent(role.toLowerCase().replace(' ', '_'));
+    const result = await apiClient<ApiResponse<ApiMetric[]>>("GET", `${this.baseUrl}/api/v1/dashboard/metrics?role=${roleQuery}`);
+    return result.data!.map((m) => ({
+      label: m.label,
+      value: m.value,
+      trend: m.trend,
+      color: m.trend_direction === 'up' ? 'text-emerald-500' : 'text-rose-500'
+    }));
   }
   async getNodes(): Promise<ServiceNode[]> {
     try {

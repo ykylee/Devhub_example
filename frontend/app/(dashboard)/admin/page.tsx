@@ -19,12 +19,13 @@ import '@xyflow/react/dist/style.css';
 import { infraService } from "@/lib/services/infra.service";
 import { realtimeService } from "@/lib/services/realtime.service";
 import type { ServiceEdge, Metric } from "@/lib/services/types";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useStore } from "@/lib/store";
 import { Modal } from "@/components/ui/Modal";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
+import { toUserErrorMessage } from "@/lib/services/error-message";
 
 type ServiceNode = Node<{ label: string; status: string; cpu: string; memory: string; source?: string }>;
 type InfraNodeUpdate = {
@@ -43,15 +44,15 @@ export default function AdminDashboard() {
   const [selectedNode, setSelectedNode] = useState<ServiceNode | null>(null);
   const [stats, setStats] = useState<Metric[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [metricsError, setMetricsError] = useState<string | null>(null);
   const { addToast } = useStore();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [topology, metrics] = await Promise.all([
-          infraService.getTopology(),
-          infraService.getMetrics("System Admin")
-        ]);
+  const fetchData = useCallback(async () => {
+    try {
+      const [topology, metrics] = await Promise.all([
+        infraService.getTopology(),
+        infraService.getMetrics("System Admin")
+      ]);
 
         const mappedNodes = topology.nodes.map((n, i) => ({
           id: n.id,
@@ -85,17 +86,24 @@ export default function AdminDashboard() {
           }
         }));
 
-        setNodes(mappedNodes);
-        setEdges(mappedEdges);
-        setStats(metrics);
-      } catch (error) {
-        console.error("Failed to fetch topology:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+      setNodes(mappedNodes);
+      setEdges(mappedEdges);
+      setStats(metrics);
+      setMetricsError(null);
+    } catch (error) {
+      console.error("Failed to fetch topology:", error);
+      setStats([]);
+      setMetricsError(toUserErrorMessage(error, "메트릭을 불러오지 못했습니다."));
+      addToast("Admin 대시보드 데이터를 불러오지 못했습니다.", "error");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [addToast, setEdges, setNodes]);
 
-    fetchData();
+  useEffect(() => {
+    const kickoff = setTimeout(() => {
+      void fetchData();
+    }, 0);
 
     // Subscribe to real-time infra updates
     const unsubs: (() => void)[] = [];
@@ -135,10 +143,11 @@ export default function AdminDashboard() {
 
     const interval = setInterval(fetchData, 30000); // Reduce polling frequency
     return () => {
+      clearTimeout(kickoff);
       clearInterval(interval);
       unsubs.forEach(unsub => unsub());
     };
-  }, [setNodes, setEdges, addToast]);
+  }, [addToast, fetchData, setNodes]);
 
 
   const onConnect = (params: Connection) => setEdges((eds) => addEdge(params, eds));
@@ -196,25 +205,34 @@ export default function AdminDashboard() {
       </div>
 
       {/* Real-time Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {stats.map((stat, i) => (
-          <motion.div 
-            key={i}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: i * 0.1 }}
-            className="glass-card p-6 flex items-center gap-5"
-          >
-            <div className={cn("p-3 rounded-2xl bg-muted/30 border border-border", stat.color)}>
-              <Activity className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">{stat.label}</p>
-              <h3 className="text-2xl font-black text-foreground dark:text-primary-foreground mt-1">{stat.value}</h3>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+      {metricsError ? (
+        <div className="glass-card p-6 flex items-center justify-between gap-4">
+          <p className="text-sm text-muted-foreground">{metricsError}</p>
+          <button onClick={fetchData} className="px-4 py-2 rounded-xl bg-primary/10 border border-primary/20 text-xs font-black uppercase tracking-widest text-primary hover:bg-primary/20 transition-all">
+            Retry
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {stats.map((stat, i) => (
+            <motion.div 
+              key={i}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: i * 0.1 }}
+              className="glass-card p-6 flex items-center gap-5"
+            >
+              <div className={cn("p-3 rounded-2xl bg-muted/30 border border-border", stat.color)}>
+                <Activity className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">{stat.label}</p>
+                <h3 className="text-2xl font-black text-foreground dark:text-primary-foreground mt-1">{stat.value}</h3>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
 
       {/* Main Visualization Container */}
       <section className="flex-1 min-h-[600px] glass rounded-3xl border border-border overflow-hidden relative shadow-2xl">
