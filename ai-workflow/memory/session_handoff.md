@@ -1,3 +1,51 @@
+# Session Handoff — main (2026-05-26 PR #332 frontend lint cleanup + housekeeping)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
+- 범위: PR #331 (codex review hotfix + gemini dashboard housekeeping `b4d9efe`) 이후 1 PR 흡수.
+- 상태: main HEAD `5540a11`. **본 conversation 최종 결산** 1 머지 PR (#332) + 1 housekeeping (post-332, 본).
+- 최종 수정일: 2026-05-26 (sprint `claude/work_260526-housekeeping-post-332`)
+
+## 2026-05-26 본 housekeeping sprint
+
+직전 PR #331 (`b4d9efe`) 이후 1 PR (#332) 흡수.
+
+### 흡수 대상
+
+| sha | PR | author | core |
+| --- | --- | --- | --- |
+| `5540a11` | **#332** | claude | **frontend lint cleanup** — 29 problems → 0. 12 파일 / +61 / -54 LoC. set-state-in-effect 6건 (useSyncExternalStore Sidebar SSR mount flag + onClick callback ComboBox open trigger + inline disable+WHY 4) + no-explicit-any 7건 (Repository/Project/DevRequest/ApiServiceEdgeV2 + ApplicationRepository|Repository union narrow 는 `'repo_provider' in r` discriminator) + no-unused-vars 11건 (MemberTable Copy/Check/copied/handleCopy dead + Header clearNotifications / users currentUserRole / topology WSEvent / CreateBindingModal projects 등 제거) + exhaustive-deps 5건 (disable directive 위치를 deps array 위로 정정) + Unused eslint-disable directive 2건 (위 정정으로 해소). 검증: lint 0 / vitest 8 file 41 test / npm run build PASS (Next.js 16.2.6 Turbopack). CI 8 job 모두 PASS. |
+
+### 본 conversation 최종 결산
+
+| 영역 | 결과 |
+| --- | --- |
+| 머지 PR | **1** (#332) |
+| housekeeping | **1회** (post-332, 본 진입 직전) |
+| issue closed | 0 |
+| carve out 잔여 | 0 |
+| 신규 학습 (feedback memory) | 1건 (ESLint disable directive position) |
+
+### 다음 directive (4 순위, 모두 사내/사용자 영역)
+
+| 순위 | 항목 | 영역 |
+| --- | --- | --- |
+| 1 | Onboarding SOP staging 1주 monitoring | 사내 SRE |
+| 2 | 사내 nginx 재기동 + OIDC redirect_uri 검증 (PR #325 후속) | 사내 Infra |
+| 3 | 사내 Keycloak 26.0 redeploy smoke (ADR-0023 §5) | 사내 Infra |
+| 4 | issue #214 사내 1회 작업 | 사용자/자동 |
+
+**claude 영역 잔여 directive 없음**.
+
+### 학습 (feedback memory 1건 신규)
+
+- **ESLint disable directive position** — `eslint-disable-next-line react-hooks/exhaustive-deps` 는 useEffect body 시작 라인 위가 아니라 **deps array 직전 라인**에 두어야 적용. body 위에 두면 (a) 해당 라인 룰만 검사 + (b) deps line 의 exhaustive-deps 룰은 별도 보고 + (c) body 위의 disable 은 "Unused" 로 잡힘. 본 PR #332 가 5건 정정 (integrations/page 1 + topology-v2/page 1 + integration-bindings/page 1 신규 + 추가 2 위치). 신규 [`feedback_eslint_disable_position.md`](../../../../C:/Users/sem/.claude/projects/D--yklee-repos-Devhub-example/memory/feedback_eslint_disable_position.md).
+
+## 2026-05-26 직전 housekeeping (PR #331, `b4d9efe`)
+
+직전 PR #328 (`55666a1`) 이후 3 PR 흡수 (post #330 codex review hotfix + #327 gemini dashboard).
+
+---
+
 # Session Handoff — main (2026-05-26 PR #330 codex review hotfix + PR #327 gemini dashboard + housekeeping)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
