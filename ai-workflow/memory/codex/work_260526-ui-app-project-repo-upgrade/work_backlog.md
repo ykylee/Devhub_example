@@ -8,7 +8,7 @@
 - 상세 정보 카드 mock 텍스트 실데이터화 후보 정리
 2. docker `/devhub` E2E 확장
 - local-idp compose 스택 재기동 절차 정리
-- applications/projects detail 부정 시나리오 후보 검토
+- PR 본문 검증 범위 최신화
 
 ## Done
 
@@ -21,6 +21,7 @@
 7. `repositories-ui.spec.ts` 추가 + 통과
 8. `repositories-ui-negative.spec.ts` 추가 + 통과
 9. `repositories-detail-negative.spec.ts` 추가 + 통과
+10. `applications-projects-detail-negative.spec.ts` 추가 + 통과
 
 ## Validation
 
@@ -31,3 +32,4 @@
 5. `cd frontend && PLAYWRIGHT_BASE_URL=http://localhost:13000 PLAYWRIGHT_BASE_PATH=/devhub ... npm run e2e -- tests/e2e/repositories-ui.spec.ts` (pass)
 6. `cd frontend && PLAYWRIGHT_BASE_URL=http://localhost:13000 PLAYWRIGHT_BASE_PATH=/devhub ... npm run e2e -- tests/e2e/repositories-ui-negative.spec.ts` (pass)
 7. `cd frontend && PLAYWRIGHT_BASE_URL=http://localhost:13000 PLAYWRIGHT_BASE_PATH=/devhub ... npm run e2e -- tests/e2e/repositories-detail-negative.spec.ts` (pass)
+8. `cd frontend && PLAYWRIGHT_BASE_URL=http://localhost:13000 PLAYWRIGHT_BASE_PATH=/devhub ... npm run e2e -- tests/e2e/applications-projects-detail-negative.spec.ts` (pass)

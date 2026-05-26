@@ -58,6 +58,13 @@
   - retry 클릭 시 실제 재요청 발생
 - `/devhub` 도커 환경에서 통과
 
+9. Application / Project detail negative E2E 추가
+- `frontend/tests/e2e/applications-projects-detail-negative.spec.ts` 신규
+- 검증 범위:
+  - application rollup API 500 시 상세 페이지 에러 메시지 + retry 버튼 노출
+  - project activity 일부 실패 시 경고 배너 노출 + 상세 본문 지속 렌더링
+- `/devhub` 도커 환경에서 통과
+
 6. 도커 E2E 환경 이슈/해결 메모
 - macOS host 산출물 그대로 복사 시 linux container 와 ABI 불일치
 - 해결:
@@ -69,4 +76,4 @@
 ## 다음 작업
 
 1. 남은 상세 페이지 mock 성격 지표(legacy block) 정리/축소
-2. 필요 시 applications/projects detail 부정 시나리오 E2E 확장
+2. PR 본문 검증 범위 최신화 및 review-ready 전환 판단
