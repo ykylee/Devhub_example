@@ -1,4 +1,5 @@
 import { test, expect, SEEDED, loginAs, appPath } from "./fixtures";
+const METRICS_ERROR_TEXT = "서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
 
 async function stubMetrics500(page: import("@playwright/test").Page, roleQuery: string) {
   await page.route(/\/api\/v1\/dashboard\/metrics\?role=.*/, async (route) => {
@@ -21,11 +22,11 @@ test.describe("Dashboard retry/empty-state", () => {
     await stubMetrics500(page, "developer");
 
     await page.goto(appPath("/developer"));
-    await expect(page.getByText(/서버 오류가 발생했습니다|불러오지 못했습니다/)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(METRICS_ERROR_TEXT, { exact: true })).toBeVisible({ timeout: 15_000 });
     const retry = page.getByRole("button", { name: /retry/i }).first();
     await expect(retry).toBeVisible();
     await retry.click();
-    await expect(page.getByText(/서버 오류가 발생했습니다|불러오지 못했습니다/)).toBeVisible();
+    await expect(page.getByText(METRICS_ERROR_TEXT, { exact: true })).toBeVisible();
   });
 
   test("manager dashboard shows retry on metrics failure", async ({ page }) => {
@@ -33,11 +34,11 @@ test.describe("Dashboard retry/empty-state", () => {
     await stubMetrics500(page, "manager");
 
     await page.goto(appPath("/manager"));
-    await expect(page.getByText(/서버 오류가 발생했습니다|불러오지 못했습니다/)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(METRICS_ERROR_TEXT, { exact: true })).toBeVisible({ timeout: 15_000 });
     const retry = page.getByRole("button", { name: /retry/i }).first();
     await expect(retry).toBeVisible();
     await retry.click();
-    await expect(page.getByText(/서버 오류가 발생했습니다|불러오지 못했습니다/)).toBeVisible();
+    await expect(page.getByText(METRICS_ERROR_TEXT, { exact: true })).toBeVisible();
   });
 
   test("admin dashboard shows retry on metrics failure", async ({ page }) => {
@@ -45,10 +46,10 @@ test.describe("Dashboard retry/empty-state", () => {
     await stubMetrics500(page, "system_admin");
 
     await page.goto(appPath("/admin"));
-    await expect(page.getByText(/서버 오류가 발생했습니다|불러오지 못했습니다/)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(METRICS_ERROR_TEXT, { exact: true })).toBeVisible({ timeout: 15_000 });
     const retry = page.getByRole("button", { name: /retry/i }).first();
     await expect(retry).toBeVisible();
     await retry.click();
-    await expect(page.getByText(/서버 오류가 발생했습니다|불러오지 못했습니다/)).toBeVisible();
+    await expect(page.getByText(METRICS_ERROR_TEXT, { exact: true })).toBeVisible();
   });
 });
