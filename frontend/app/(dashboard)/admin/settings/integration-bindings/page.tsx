@@ -49,7 +49,12 @@ export default function AdminSettingsIntegrationBindingsPage() {
   };
 
   useEffect(() => {
+    // Initial fetch on filter/page change. load() 는 외부 handlers (handleCreated,
+    // handleDeleted) 도 호출하므로 함수 자체는 보존. setState-in-effect 룰의
+    // cascading render 우려는 async boundary 라 해당 없음.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scopeFilter, offset]);
 
   const providersByID = useMemo(() => {
@@ -87,7 +92,7 @@ export default function AdminSettingsIntegrationBindingsPage() {
       } else {
         load();
       }
-    } catch (err) {
+    } catch {
       toast("Binding 삭제에 실패했습니다.", "error");
     } finally {
       setDeletingBinding(null);

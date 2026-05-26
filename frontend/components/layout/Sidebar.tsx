@@ -7,8 +7,8 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/lib/store";
 import { isSystemAdmin } from "@/lib/auth/role-routing";
-import { useState, useEffect } from "react";
- 
+import { useSyncExternalStore } from "react";
+
 interface MenuItem {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -38,12 +38,15 @@ const systemBottomMenu: MenuItem = {
 export function Sidebar({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   const pathname = usePathname();
   const { actor, isSidebarOpen, setSidebarOpen, isSidebarCollapsed, setSidebarCollapsed } = useStore();
-  const [mounted, setMounted] = useState(false);
- 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
- 
+  // SSR hydration: useSyncExternalStore 로 server (false) → client (true) 전환을
+  // setState in effect 패턴 없이 처리. React 19 / Next 16 set-state-in-effect 룰
+  // 정공법.
+  const mounted = useSyncExternalStore(
+    subscribeNoop,
+    () => true,
+    () => false,
+  );
+
   const collapsed = mounted ? isSidebarCollapsed : false;
   const showSystem = isSystemAdmin(actor?.role);
  
@@ -180,6 +183,10 @@ export function Sidebar({ className, ...props }: React.HTMLAttributes<HTMLDivEle
   );
 }
  
+function subscribeNoop() {
+  return () => {};
+}
+
 function renderMenuItem(item: MenuItem, pathname: string, collapsed: boolean, onClick?: () => void) {
   const isActive =
     item.href === "/admin"

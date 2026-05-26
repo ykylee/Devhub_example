@@ -62,11 +62,14 @@ export default function AdminSettingsLayout({ children }: { children: React.Reac
   const [isOpen, setIsOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // Hydrate sidebar collapse preference from localStorage
+  // SSR-safe localStorage hydration: server 에서는 default(false) 로 render,
+  // client mount 이후 저장된 값으로 sync. setState-in-effect 룰의 cascading
+  // render 우려는 mount-only effect 라 해당 없음.
   useEffect(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("admin-settings-sidebar-collapsed");
       if (saved !== null) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsCollapsed(saved === "true");
       }
     }

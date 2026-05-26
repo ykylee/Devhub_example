@@ -21,6 +21,7 @@ import { infraService } from "@/lib/services/infra.service";
 import type {
   ApiInfraNodeV2,
   ApiInfraServiceV2,
+  ApiServiceEdgeV2,
   InfraTopologyV2Meta,
 } from "@/lib/services/infra.service";
 import { Badge } from "@/components/ui/Badge";
@@ -28,7 +29,6 @@ import { Modal } from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { realtimeService } from "@/lib/services/realtime.service";
-import type { WSEvent } from "@/lib/services/types";
 
 // Infra topology v2 (HomeLab snapshot 기반) — sprint claude/work_260518-n.
 // P2-5: React Flow group sub-node + WebSocket 실시간 (sprint gemini/work_260520-e).
@@ -83,7 +83,7 @@ function safeFormat(iso: string | null | undefined): string {
 export default function AdminTopologyV2Page() {
   const [rawNodes, setRawNodes] = useState<ApiInfraNodeV2[]>([]);
   // codex P2 (PR #252 review) — rawEdges 보존으로 isGrouped toggle 시 refetch 없이 re-layout.
-  const [rawEdges, setRawEdges] = useState<any[]>([]);
+  const [rawEdges, setRawEdges] = useState<ApiServiceEdgeV2[]>([]);
   const [services, setServices] = useState<ApiInfraServiceV2[]>([]);
   const [meta, setMeta] = useState<InfraTopologyV2Meta | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -93,7 +93,7 @@ export default function AdminTopologyV2Page() {
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [isGrouped, setIsGrouped] = useState(true);
 
-  const buildGraph = useCallback((nodeList: ApiInfraNodeV2[], edgeList: any[], grouped: boolean) => {
+  const buildGraph = useCallback((nodeList: ApiInfraNodeV2[], edgeList: ApiServiceEdgeV2[], grouped: boolean) => {
     const flowNodes: Node<NodeV2Data>[] = [];
     
     if (grouped) {
@@ -177,8 +177,7 @@ export default function AdminTopologyV2Page() {
 
   // Initial load — 진입 시 1회 fetch. isGrouped toggle 시 re-layout 만 (별도 effect 처리).
   // codex P2 (PR #252 review): isGrouped dep 으로 인한 매 toggle 시 getTopologyV2()
-  // refetch 회피.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // refetch 회피. buildGraph 와 isGrouped 의 fresh 값은 두 번째 effect 가 처리.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -200,6 +199,7 @@ export default function AdminTopologyV2Page() {
       }
     })();
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // isGrouped toggle 시 re-layout 만 (refetch 없음).

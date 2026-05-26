@@ -26,7 +26,6 @@ export default function AdminSettingsIntegrationsPage() {
   // spam. 첫 mount 만 실행하는 게 의도이므로 dep 을 비우고 ESLint 를 명시적으로
   // suppress. toast 의 stale closure 는 빈 페이지의 1회 호출에서만 사용되므로
   // 실 영향 없음.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -46,6 +45,7 @@ export default function AdminSettingsIntegrationsPage() {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSaved = (saved: IntegrationProvider) => {
