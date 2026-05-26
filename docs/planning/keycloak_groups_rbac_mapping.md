@@ -143,6 +143,7 @@ Phase 2 진입 시 옵션 C 로 확장 시:
 ### 6.2 Phase 2 — staging 적용 (별도 sprint)
 
 - staging Keycloak realm 에 group 4개 + composite role 설정 (위 §3.2 SOP)
+- 적용 직후 자동 검증 — [`scripts/verify-keycloak-groups.sh`](../../scripts/verify-keycloak-groups.sh) 1회 실행 (read-only, idempotent). 4 항목 PASS 시 acceptance 충족, 1건 이상 FAIL 시 §3.2 SOP 단계 재진행. 상세 SOP: [keycloak_operations.md §4.4](../setup/keycloak_operations.md#44-group-setup-검증-자동화-scriptsverify-keycloak-groupssh).
 - 1주 사용 후 token decode 검수 (`realm_access.roles` 에 정상 포함 확인)
 - DevHub backend 변경 없으므로 PR 불필요
 
@@ -150,6 +151,7 @@ Phase 2 진입 시 옵션 C 로 확장 시:
 
 - 사내 보안팀 동의 후 prod 적용
 - 기존 user 의 role mapping → group 가입으로 migration (운영팀 일괄 작업)
+- 적용 직후 자동 검증 — [`scripts/verify-keycloak-groups.sh`](../../scripts/verify-keycloak-groups.sh) prod 환경 변수로 1회 실행
 - 1주 모니터링
 
 ### 6.4 Phase 4 (선택, carve) — 옵션 C 확장
