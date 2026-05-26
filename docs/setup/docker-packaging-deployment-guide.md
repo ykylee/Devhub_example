@@ -6,7 +6,7 @@
 - 범위: 이미지 태깅 규칙, 빌드/푸시 절차, compose 사용 범위, 운영 권장안
 - 대상 독자: 개발자, 릴리즈 담당자, 운영자
 - 상태: draft
-- 최종 수정일: 2026-05-20
+- 최종 수정일: 2026-05-26 (§1.1 host 사전조건 신규)
 - 관련 문서: [개발 환경 구성 가이드](./environment-setup.md), [테스트 서버 배포 가이드](./test-server-deployment.md), [ADR-0003](../adr/0003-no-docker-policy-ci-scope.md)
 
 배포 실행 전 반드시 확인:
@@ -23,6 +23,22 @@
 - `docker-compose.local.yml`
 
 compose는 서비스 간 연결/개발 실행에 유용하지만, 배포 산출물의 재현성과 추적성은 이미지 중심으로 관리하는 편이 안정적이다.
+
+### 1.1 host 사전조건
+
+`scripts/deploy-from-env.sh` + `scripts/setup-keycloak.sh` + `scripts/build-artifacts.sh` 가 deploy host 에 의존하는 도구는 다음과 같다. **미설치 시 silent fail (script 중간 단계에서 깨짐)** 가능하므로 deploy 진입 전 확인한다.
+
+| 도구 | 용도 | 검증 명령 |
+| --- | --- | --- |
+| `python3` | `deploy-from-env.sh:generate_local_realm_import()` (heredoc, realm.dev.json → generated realm import) + `setup-keycloak.sh` (admin token 파싱 / role JSON 추출 / mapper 존재 체크 등 다수 위치) | `python3 --version` (3.8+ 권장, json 모듈 표준 라이브러리만 사용) |
+| `curl` | `setup-keycloak.sh` 의 Keycloak Admin REST API 호출 + readiness wait | `curl --version` |
+| `docker` + `docker compose` (v2 plugin) | runtime image build + `scripts/deploy-up.sh` 의 compose 호출 | `docker --version` + `docker compose version` |
+| `bash` 4+ | `scripts/*.sh` 의 array/heredoc/`[[` syntax | `bash --version` |
+| `jq` (선택) | runtime-config endpoint 응답 확인 등 docs 예시에서 사용. script 자체는 의존 X. | `jq --version` |
+
+**python3 미설치 host 에서 deploy 진입 시 증상**: `deploy-from-env.sh:2` 의 `set -euo pipefail` + `:202` 의 `KEYCLOAK_REALM_IMPORT_PATH="$(generate_local_realm_import ...)"` 가 `python3: command not found` 로 fail 시 함수 안에서 **script 전체 즉시 종료** (`emit_env_line` 단계까지 도달 못 함). 자동 fallback 아님.
+
+**수동 우회 절차** (python3 설치 불가 host): deploy 진입 전 `KEYCLOAK_REALM_IMPORT_PATH=$ROOT/infra/idp/keycloak-realm.dev.json` env 를 사전 export → `build_env_file()` 의 `KEYCLOAK_REALM_IMPORT_PATH="${KEYCLOAK_REALM_IMPORT_PATH:-...}"` ([line 250](../../scripts/deploy-from-env.sh#L250)) 가 사전 export 값을 그대로 사용. 단 이 경로는 `generate_local_realm_import()` 의 dynamic redirect URI 주입 (PUBLIC_ACCESS_HOST 기준 callback URL append) 효과를 잃으므로 사내 ingress (`localhost:13000` 외 host) 사용 시 redirect URI 가 dev.json 의 hardcoded entries 로 제한된다. 권고는 python3 설치.
 
 ## 2. 결론 (권장 운영안)
 
