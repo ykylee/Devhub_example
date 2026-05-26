@@ -284,4 +284,121 @@ test.describe("DREQ E2E", () => {
       }, tokenId);
     }
   });
+  test("TC-DREQ-PROMOTE-PROJ-01 — Intake to Promote to Project lifecycle", async ({ page, request }) => {
+    let plainToken: string | undefined;
+    const clientLabel = `proj_e2e_client_${Date.now()}`;
+    const testSuffix = Date.now().toString().slice(-6);
+    const requestTitle = `E2E Project Request ${testSuffix}`;
+    const externalRef = `PRJ-REQ-${testSuffix}`;
+
+    await test.step("1. Issue intake token", async () => {
+      await loginAs(page, SEEDED.systemAdmin);
+      await page.goto(appPath("/admin/settings/dev-request-tokens"));
+      await page.getByRole("button", { name: /issue token/i }).click();
+      await page.getByRole("dialog").waitFor();
+      await page.getByLabel(/client label/i).fill(clientLabel);
+      await page.getByLabel(/source system/i).fill("e2e_sys");
+      // CI runner 는 IPv6 loopback (::1) 으로 intake 를 칠 수 있어 IPv4/IPv6 모두 허용
+      // (TC-DREQ-ADMIN-TOKEN-01 동일 패턴). IPv4 만 입력 시 auth_intake_ip_denied 401.
+      const allowedIpInputs = page.getByPlaceholder(/10\.0\.0\.0/i);
+      await allowedIpInputs.first().fill("0.0.0.0/0");
+      await page.getByRole("button", { name: /add ip\s*\/\s*cidr/i }).click();
+      await allowedIpInputs.nth(1).fill("::1");
+      await page.getByRole("dialog").getByRole("button", { name: /issue token/i }).click();
+      const tokenModal = page.getByRole("dialog");
+      await tokenModal.getByRole("button", { name: /show token/i }).click();
+      plainToken = (await tokenModal.locator("code").first().textContent())?.trim();
+      await page.getByRole("button", { name: /저장 완료 — 닫기/i }).click();
+    });
+
+    await test.step("2. External POST DREQ with Bearer", async () => {
+      const intakeResponse = await request.post("/api/v1/dev-requests", {
+        headers: { Authorization: `Bearer ${plainToken}` },
+        data: {
+          title: requestTitle,
+          details: "Please provision a new project from this request.",
+          requester: "e2e_tester",
+          assignee_user_id: SEEDED.developer.user_id,
+          external_ref: externalRef,
+        },
+      });
+      if (!intakeResponse.ok()) {
+        const errBody = await intakeResponse.text();
+        throw new Error(
+          `intake failed: status=${intakeResponse.status()} body=${errBody}`
+        );
+      }
+      expect(intakeResponse.ok()).toBeTruthy();
+    });
+
+    await test.step("3. Click Bell Notification and Open Detail Modal", async () => {
+      await page.goto(appPath("/projects"));
+      const bellBtn = page.getByRole("button", { name: /notifications/i });
+      await expect(bellBtn).toBeVisible();
+      await bellBtn.click();
+
+      const dreqItem = page.getByText(requestTitle).first();
+      await expect(dreqItem).toBeVisible();
+      await dreqItem.click();
+
+      const detailModal = page.getByRole("dialog");
+      await expect(detailModal).toBeVisible();
+      await expect(detailModal.getByText(requestTitle)).toBeVisible();
+    });
+
+    await test.step("4. Promote to Project and verify Prefilled Form", async () => {
+      const detailModal = page.getByRole("dialog");
+      const promoteBtn = detailModal.getByRole("button", { name: /promote to project/i });
+      await expect(promoteBtn).toBeVisible();
+      await promoteBtn.click();
+      
+      await expect(detailModal.getByRole("heading", { name: /dev request/i })).toBeHidden({ timeout: 10_000 });
+
+      const createModal = page.getByRole("dialog");
+      await expect(createModal).toBeVisible();
+      await expect(createModal.getByRole("heading", { name: /create project/i })).toBeVisible();
+      
+      await expect(createModal.getByPlaceholder("E.G. API-V1")).toHaveValue(externalRef);
+      await expect(createModal.getByPlaceholder("e.g. Backend Refactoring")).toHaveValue(requestTitle);
+      await expect(createModal.getByPlaceholder("Scope and deliverables...")).toHaveValue("Please provision a new project from this request.");
+    });
+
+    await test.step("5. Create Project and verify representation", async () => {
+      const createModal = page.getByRole("dialog");
+      const selectRepo = createModal.locator("select").first();
+      await selectRepo.selectOption({ index: 1 });
+      await createModal.getByPlaceholder("User ID...").fill("charlie");
+      await createModal.getByRole("button", { name: /create project/i }).click();
+
+      await expect(createModal).toBeHidden({ timeout: 10_000 });
+      await page.reload();
+      await expect(page.getByRole("heading", { name: requestTitle })).toBeVisible({ timeout: 15_000 });
+    });
+
+    await test.step("6. Cleanup token (best-effort)", async () => {
+      // clientLabel 이 timestamp suffix 라 unique — cleanup 실패해도 다음 test run
+      // 과 충돌 없음. step 5 의 page.reload() 후 sessionStorage access_token state
+      // 가 OIDC session propagation 지연으로 일시 stale 가능성 있어 best-effort
+      // (`feedback_e2e_oidc_flaky` 정합).
+      try {
+        await page.goto(appPath("/admin/settings/dev-request-tokens"));
+        const stillActive = page.getByRole("row").filter({ hasText: clientLabel });
+        const tokenId = (await stillActive.getAttribute("data-token-id").catch(() => null)) ?? "";
+        if (tokenId) {
+          await page.evaluate(async ({ id, basePath }) => {
+            const accessToken = sessionStorage.getItem("devhub_access_token");
+            await fetch(`${basePath}/api/v1/dev-request-tokens/${id}`, {
+              method: "DELETE",
+              headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+              credentials: "include",
+            });
+          }, { id: tokenId, basePath: appPath("") });
+        }
+      } catch (err) {
+        // best-effort cleanup — non-fatal. test 의 핵심 검증 (intake → promote
+        // → project create) 은 step 1~5 에서 완료됨.
+        console.warn(`[TC-DREQ-PROMOTE-PROJ-01] cleanup token failed (non-fatal):`, err);
+      }
+    });
+  });
 });

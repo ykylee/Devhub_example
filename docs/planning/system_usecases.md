@@ -130,6 +130,8 @@
 | `UC-DREQ-08` | 의뢰 닫기(close) | registered/rejected 만 closed 로 전이, 기타는 거부 | REQ-FR-DREQ-008 |
 | `UC-DREQ-09` | 전체 의뢰 관리 (system_admin) | 모든 의뢰 조회 + 필터 + 액션 (reassign/close) | REQ-FR-DREQ-004,007,008 |
 | `UC-DREQ-10` | 의뢰 상태 머신 가드 | invalid 전이 거절 + dev_request.* audit emit | REQ-FR-DREQ-003 / REQ-NFR-DREQ-003 |
+| `UC-DREQ-11` | 실시간 의뢰 알림 및 배지 수신 | `realtimeService`를 통해 `dev_request.created` 실시간 이벤트를 수신하여 Header Bell의 알림 배지 및 드롭다운 카운트가 즉시 반영됨 | REQ-FR-DREQ-012 |
+| `UC-DREQ-12` | 의뢰 Promote 및 프로젝트 자동 프리필 연계 | DREQ 상세 모달에서 Promote 클릭 시 `ProjectCreationModal`이 팝업되고 의뢰 메타데이터(Key, Name, Description)가 프리필됨 | REQ-FR-DREQ-013 |
 
 ### 2.12 External Integration (ALM/SCM/CI-CD/문서/홈랩)
 

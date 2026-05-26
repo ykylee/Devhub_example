@@ -730,10 +730,10 @@ historical 본문 (이전 spec) 은 §11 변경 이력 row 참조.
 | method/path | 용도 | audit action |
 | --- | --- | --- |
 | `GET /api/v1/users` | 사용자 목록 조회 (query: `unit_id`, `role`, `status`, `q`) | (조회, audit 미작성) |
-| `POST /api/v1/users` | DevHub user master data 생성 (identity 발급은 §10.2 `POST /api/v1/accounts` 가 담당) | `user.created` |
+| `POST /api/v1/users` | DevHub user master data 생성 (identity lifecycle 은 외부 IdP 운영 경로 담당) | `user.created` |
 | `GET /api/v1/users/{user_id}` | 개별 사용자 조회 | (조회, audit 미작성) |
 | `PATCH /api/v1/users/{user_id}` | user 정보 수정 (display_name, role, status, idp_subject 등) | `user.updated` |
-| `DELETE /api/v1/users/{user_id}` | DevHub user soft-delete (identity 는 별도 §10.2 가 담당) | `user.deleted` |
+| `DELETE /api/v1/users/{user_id}` | DevHub user soft-delete (identity lifecycle 은 외부 IdP 운영 경로 담당) | `user.deleted` |
 
 #### 권한
 
@@ -958,9 +958,9 @@ Go Core `/api/v1/*` 라우터는 `Authorization: Bearer <token>`을 받으면 co
 | --- | --- | --- |
 | `GET /api/v1/me` | OIDC subject 기준 DevHub user profile/role/org context 조회 | 없음 |
 | `POST /api/v1/account/password` | **본인 비밀번호 변경** (OIDC 인증 하 self-service) | `account.password_self_change` |
-| `POST /api/v1/accounts` | 시스템 관리자 계정 발급 | `account.created` |
-| `PUT /api/v1/accounts/{user_id}/password` | 시스템 관리자 강제 비밀번호 재설정 | `account.password_reset` |
-| `DELETE /api/v1/accounts/{user_id}` | 시스템 관리자 계정 회수/비활성화 | `account.disabled` |
+| ~~`POST /api/v1/accounts`~~ | ~~시스템 관리자 계정 발급~~ (**폐기**) | ~~`account.created`~~ |
+| ~~`PUT /api/v1/accounts/{user_id}/password`~~ | ~~시스템 관리자 강제 비밀번호 재설정~~ (**폐기**) | ~~`account.password_reset`~~ |
+| ~~`DELETE /api/v1/accounts/{user_id}`~~ | ~~시스템 관리자 계정 회수/비활성화~~ (**폐기**) | ~~`account.disabled`~~ |
 
 `/api/v1/auth/login`, `/api/v1/auth/logout`, `/api/v1/auth/token`, `/api/v1/auth/signup`, `/api/v1/auth/consent` 는 제거된 legacy endpoint다.
 

@@ -55,7 +55,7 @@
     - [x] Gitea 서버 및 Runner 상태 모니터링.
     - [x] Runner 재시작/설정 등 제한된 인프라 제어.
     - [x] Gitea 계정, 조직, 권한 연동 관리.
-    - [x] Keycloak 연계 계정 발급/회수 및 비밀번호 정책 관리 — `2.5 사용자 계정 관리` 참조.
+    - [x] Keycloak 연계 계정/세션 운영 상태 가시성 및 사용자 메타데이터 연동 관리 — `2.5 사용자 계정 관리` 참조.
     - [x] 백업 상태와 시스템 알림 임계치 확인.
     - [x] 시스템 관리 작업에 대한 Audit Log 조회.
 
@@ -69,18 +69,20 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
 - **용어 분리:**
     - **사용자(User):** 조직에 소속된 사람. 표시명, 이메일, 직책, 소속 조직 단위(Org Unit), 역할(Role)로 구성.
     - **계정(Account):** 사용자가 DevHub에 로그인하기 위한 인증 자격. credential 원천은 IdP(Keycloak)이며 DevHub는 사용자/권한 메타데이터를 관리.
-- **주요 기능 (확정):**
+- **주요 기능 (확정) — DevHub 정책/데이터 관점:**
     - [x] **1:1 매핑 강제:** 사용자 1명은 정확히 0개 또는 1개의 계정을 가질 수 있다. 계정은 반드시 1명의 사용자에 귀속된다. 동일 사용자에 복수 계정을 만들 수 없으며, 1개의 계정이 복수 사용자를 대표할 수 없다.
-    - [x] **계정 생성·회수 권한:** 시스템 관리자만 사용자에게 계정을 발급하거나 회수할 수 있다. 회수된 계정으로는 즉시 로그인할 수 없으며, 활성 세션은 무효화된다.
-    - [x] **로그인 ID 정책:** 로그인 ID는 시스템 전역에서 unique 하다. 형식 정책(허용 문자, 길이)은 별도 정책 표로 관리한다. 사용자 식별자(`user_id`)와는 별도이며, 로그인 ID 변경이 사용자 식별자를 바꾸지 않는다.
-    - [x] **비밀번호 정책:** 비밀번호는 평문으로 저장하지 않는다. 단방향 해시(예: bcrypt cost ≥ 12 또는 argon2id) 만 저장한다. 본인은 현재 비밀번호 확인 후 비밀번호를 변경할 수 있고, 시스템 관리자는 임시 비밀번호로 강제 재설정할 수 있다. 강제 재설정된 계정은 다음 로그인 시 비밀번호 변경을 요구한다.
-    - [x] **계정 상태(Account Status):** `active`, `disabled`, `locked`, `password_reset_required` 의 4종 상태를 가진다. `locked`는 정책상 자동 잠금(예: 연속 실패) 또는 수동 잠금이며, `disabled`는 시스템 관리자 회수에 해당한다.
-    - [x] **감사 로그 대상:** 계정 생성, 계정 비활성화, 비밀번호 변경(본인/관리자), 잠금 해제, 로그인 성공/실패는 Audit Log 기록 대상이다. 비밀번호 자체나 해시는 Audit Log에 기록하지 않는다.
+    - [x] **로그인 ID 정책:** 로그인 ID는 시스템 전역에서 unique 하다. 형식 정책(허용 문자, 길이)은 IdP 정책 표로 관리한다. 사용자 식별자(`user_id`)와는 별도이며, 로그인 ID 변경이 사용자 식별자를 바꾸지 않는다.
+    - [x] **비밀번호 정책:** 비밀번호는 평문으로 저장하지 않는다. 단방향 해시(예: bcrypt cost ≥ 12 또는 argon2id)만 저장한다. 사용자 self-service 비밀번호 변경은 허용하며, 관리자 강제 재설정 정책은 IdP 운영 정책을 따른다.
+    - [x] **계정 상태(Account Status):** `active`, `disabled`, `locked`, `password_reset_required` 의 4종 상태를 가진다. `locked`는 정책상 자동 잠금(예: 연속 실패) 또는 수동 잠금이며, `disabled`는 계정 회수 상태다.
+    - [x] **감사 로그 대상:** 비밀번호 변경(본인), 로그인 성공/실패, 계정 상태 전이(회수/잠금/해제)는 Audit Log 기록 대상이다. 비밀번호 자체나 해시는 Audit Log에 기록하지 않는다.
+- **운영 책임 분리 (확정):**
+    - [x] **외부 IdP 책임:** 계정 발급/회수, 관리자 강제 비밀번호 재설정, 세션 강제 만료는 Keycloak Admin Console 또는 HRDB ETL 경로에서 수행한다.
+    - [x] **DevHub 책임:** 사용자 프로필/권한 메타데이터(`users`, `org_units`) 관리와 감사 추적을 담당한다.
 - **주요 기능 (후보):**
     - [ ] 비밀번호 만료 정책(주기 강제 변경) — 운영 단계에서 정책 결정.
     - [ ] 다단계 인증(MFA/2FA) — 초기 단계는 미도입 (단계 5.3과 동일 기준).
     - [ ] Gitea SSO 연동으로 자체 계정 발급 없이 통합 인증 — `architecture.md` 6.2 RBAC 단계화에서 후속 phase로 관리.
-- **데이터 주권 메모:** 사용자 자신은 자신의 계정 정보(로그인 ID, 비밀번호)를 변경할 수 있으나, 계정 발급/회수와 강제 재설정은 시스템 관리자 권한이다.
+- **데이터 주권 메모:** 사용자 자신은 자신의 계정 정보(로그인 ID, 비밀번호)를 변경할 수 있다. 계정 발급/회수와 강제 재설정은 DevHub API가 아니라 외부 IdP 운영 절차를 따른다.
 
 ## 3. 공통 기능 및 시스템 요구사항
 - **역할 확장성:** 새로운 역할이 추가되더라도 역할별 기본 진입 우선순위를 설정해 UX를 간접 제공하고, 메뉴/기능은 권한 기반으로 확장할 수 있어야 함.
@@ -115,7 +117,7 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
 | 보고 스냅샷 | DevHub | 생성 후 직접 수정 불가, 새 스냅샷으로 대체 | 관리자/승인된 리더 | 정책 기간 별도 정의 필요 | 보고 생성/변경 시 관리자 알림 |
 | 기술 태깅/Kudos | DevHub | 시스템 추천 + 사용자 확인/관리자 승인 | PL/GL 이상 등 정책 기준 | 계정 활성 중 유지, 삭제 후 1개월 | 긍정 피드백 중심, 강제 알림 최소화 |
 | 시스템 관리 로그 | DevHub/Gitea | 시스템 자동 기록, 직접 수정 불가 | 시스템 관리자 | 운영 로그 1개월 이상 검토 필요 | 보안/운영 이벤트는 즉시 알림 |
-| 사용자 계정/자격 | DevHub | 본인은 자기 비밀번호 변경, 계정 발급/회수/강제 재설정은 시스템 관리자 | 본인(자기 자신), 시스템 관리자(전체) | 계정 활성 중 유지, 회수 후 90일 보존 후 삭제 | 비밀번호 변경/잠금/회수 시 본인 + 시스템 관리자 알림 |
+| 사용자 계정/자격 | Keycloak + DevHub | 본인은 자기 비밀번호 변경, 계정 발급/회수/강제 재설정은 IdP 운영 절차, DevHub는 사용자 메타데이터/감사 추적 관리 | 본인(자기 자신), 시스템 관리자(전체) | 계정 활성 중 유지, 회수 후 90일 보존 후 삭제 | 비밀번호 변경/잠금/회수 시 본인 + 시스템 관리자 알림 |
 
 ## 5. 핵심 기획 아젠다 (Discussion Topics)
 
@@ -205,7 +207,7 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
 - **용어 정책 (확정):**
     - **Application:** 제품 수명 주기와 함께 가는 최상위 총괄 단위.
     - **Repository:** Application 하위 실행 단위 (1 Application : N Repository).
-    - **Project:** Repository 하위 기간성 운영 단위 (1 Repository : N Project, 연간/반기/분기 등 정책 기반 갱신 가능).
+    - **Project:** Repository 하위 기간성 운영 단위. Project는 1개 이상의 Repository와 연결될 수 있으며(`Project ↔ Repository` N:M), 연결된 Repository 중 1개를 primary로 지정한다.
     - **Execution Artifact:** Repository 내부의 Issue / Milestone / Project Board / Wiki(또는 Docs).
 
 #### 5.4.1 기능 요구사항 (REQ-FR)
@@ -260,9 +262,10 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
     - 기본 `weight_policy`는 `equal`(동일 가중)이다.
     - 선택 `weight_policy`는 `repo_role`(primary/sub/shared 가중), `custom`(관리자 정의)를 지원할 수 있어야 한다.
     - `custom` 정책은 가중치 합이 1.0(±허용오차)이어야 하며, 음수 가중치는 허용하지 않는다.
-- **REQ-FR-PROJ-001 (MVP, 확정):** 시스템 관리자는 Repository 하위 Project를 생성/수정/보관(archive)할 수 있어야 한다.
+- **REQ-FR-PROJ-001 (MVP, 확정):** 시스템 관리자는 Application 범위에서 Project를 생성/수정/보관(archive)할 수 있어야 한다.
     - 필수 필드: `key`, `name`, `owner`, `start_date`, `due_date`, `visibility`, `status`.
     - `status` 최소 상태: `planning`, `active`, `on_hold`, `closed`, `archived`.
+    - 생성 시 `repository_ids` (1개 이상)와 `primary_repository_id`를 함께 지정해야 하며, `primary_repository_id`는 `repository_ids`에 포함되어야 한다.
 - **REQ-FR-PROJ-002 (MVP, 확정):** 일반 사용자는 자신이 멤버인 Project 및 공개 Project를 조회할 수 있어야 한다.
     - `archived` Project는 기본 숨김이며, 명시적 토글로 노출한다.
 - **REQ-FR-PROJ-003 (MVP, 확정):** 시스템 관리자는 Project별 멤버/책임자(owner)를 관리할 수 있어야 한다.
@@ -270,7 +273,7 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
     - 모든 하위 마일스톤은 상위 마일스톤에 `child -> parent` 매핑 가능해야 한다.
 - **REQ-FR-PROJ-005 (MVP, 확정):** Jira 연동은 하이브리드 정책을 지원해야 한다.
     - 실행 이슈 Source of Truth는 Repository Jira.
-    - Project는 Repository 하위 기간성 운영 단위로 관리한다.
+    - Project는 Repository 하위 기간성 운영 단위로 관리하며, 다중 Repository 연결 시에도 실행 이슈 Source of Truth는 연결된 Repository들의 Jira 정책을 따른다.
     - Project Jira에 작업성 Story/Task 직접 생성은 정책 위반으로 취급.
 - **REQ-FR-PROJ-006 (MVP, 확정):** Confluence(또는 문서 체계)는 상/하위 분리 정책을 지원해야 한다.
     - Project 문서: 방향성/의사결정/분기 계획.
@@ -332,6 +335,9 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
 - **REQ-FR-DREQ-009 (후속):** Application/Project 의 `origin_dreq_id` 역참조 컬럼 도입 여부는 별도 ADR 에서 결정. 도입 시 nullable FK 로 추가하여 의뢰 없이 직접 생성된 entity 와 공존한다.
 - **REQ-FR-DREQ-010 (후속):** 외부 시스템에 의뢰 상태 변경을 callback (webhook) 으로 알리는 기능은 MVP 안정화 후 결정한다.
 - **REQ-FR-DREQ-011 (후속):** 의뢰 첨부파일, 댓글, 멘션, 알림, SLA/escalation, AI 자동 분류는 본 도메인의 1차 범위 밖이다.
+- **REQ-FR-DREQ-012 (MVP, 확정):** 담당자는 네비게이션 헤더의 실시간 알림 배지와 카운트를 통해 인입된 대기 상태(pending/in_review)의 의뢰 정보를 파악할 수 있어야 한다.
+- **REQ-FR-DREQ-013 (MVP, 확정):** 사용자가 헤더 알림에서 개별 의뢰를 클릭하면 의뢰 상세 모달이 열려야 하며, Promote 시 프로젝트 생성 모달이 팝업되고 의뢰의 정보(Key, Name, Description)가 자동으로 프리필되어 연계 생성될 수 있어야 한다.
+
 
 #### 5.5.2 비기능 / 운영 요구사항 (REQ-NFR-DREQ)
 

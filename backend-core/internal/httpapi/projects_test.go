@@ -27,6 +27,20 @@ func TestCreateProject_Happy(t *testing.T) {
 	}
 }
 
+func TestCreateApplicationProject_Happy(t *testing.T) {
+	appStore := newMemoryApplicationStore()
+	router := newApplicationsRouter(appStore)
+
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/applications/app-1/projects",
+		`{"repository_ids":[42],"key":"sprint-q4","name":"Q4 Sprint","owner_user_id":"u1","visibility":"internal","status":"planning"}`)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"application_id":"app-1"`)) {
+		t.Errorf("response should include application_id: %s", rec.Body.String())
+	}
+}
+
 // 2) POST /repositories/:repository_id/projects — invalid status → 400.
 func TestCreateProject_InvalidStatus(t *testing.T) {
 	router := newApplicationsRouter(newMemoryApplicationStore())

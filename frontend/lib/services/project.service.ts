@@ -1,4 +1,4 @@
-import { apiClient } from "./api-client";
+import { ApiError, apiClient } from "./api-client";
 import { Application, ApplicationRepository, Project, ProjectRepositoryLink, SCMProvider } from "./project.types";
 
 type ApplicationQuery = { status?: string; include_archived?: boolean; q?: string };
@@ -100,12 +100,26 @@ class ProjectService {
     return resp.data;
   }
 
+  // Hybrid project creation. v2 endpoint primary, legacy createProject fallback
+  // on 404/405 (when DEVHUB_PROJECT_MODEL=legacy or backend route disabled).
   async createApplicationProject(
     applicationId: string,
     data: Partial<Project> & { repository_ids?: number[] },
   ): Promise<Project> {
-    const resp = await apiClient<{ data: Project }>("POST", `/api/v1/applications/${applicationId}/projects`, data);
-    return resp.data;
+    try {
+      const resp = await apiClient<{ data: Project }>("POST", `/api/v1/applications/${applicationId}/projects`, data);
+      return resp.data;
+    } catch (err) {
+      if (err instanceof ApiError && (err.status === 404 || err.status === 405)) {
+        const repoID =
+          (data.repository_ids && data.repository_ids[0]) ||
+          (data as Partial<Project> & { repository_id?: number }).repository_id;
+        if (repoID) {
+          return this.createProject(repoID, { ...data, application_id: applicationId });
+        }
+      }
+      throw err;
+    }
   }
 
   async getProjectRepositories(projectId: string): Promise<ProjectRepositoryLink[]> {
