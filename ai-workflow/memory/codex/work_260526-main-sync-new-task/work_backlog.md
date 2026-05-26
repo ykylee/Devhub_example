@@ -18,3 +18,10 @@
 | OPS-UI-06 | E2E retry/empty-state 시나리오 | planned | 다음 세션 |
 | OPS-UI-07 | 응답 스키마 최종 정합 | in_progress | 백엔드 샘플 기반 타입 고정 필요 |
 | OPS-UI-08 | PR/추적성 최종 동기화 | in_progress | PR 생성 및 리뷰 진행 |
+| RM-OPS-UI-BACKEND-01 | `/api/v1/dashboard/developer/stream` 구현 | planned | owner: gemini/backend |
+| RM-OPS-UI-BACKEND-02 | `/api/v1/dashboard/developer/builds` 구현 | planned | owner: gemini/backend |
+| RM-OPS-UI-BACKEND-03 | `/api/v1/dashboard/manager/velocity` 구현 | planned | owner: gemini/backend |
+| RM-OPS-UI-BACKEND-04 | `/api/v1/dashboard/manager/team-load` 구현 | planned | owner: gemini/backend |
+| RM-OPS-UI-BACKEND-05 | `/api/v1/dashboard/manager/decisions` 구현 | planned | owner: gemini/backend |
+| RM-OPS-UI-BACKEND-06 | `/api/v1/projects/{id}/activity` 구현 | planned | owner: gemini/backend |
+| RM-OPS-UI-BACKEND-07 | `/api/v1/projects/{id}/tasks` 구현 | planned | owner: gemini/backend |

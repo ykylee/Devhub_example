@@ -101,6 +101,7 @@ export default function AdminDashboard() {
   }, [addToast, setEdges, setNodes]);
 
   useEffect(() => {
+    // set-state-in-effect lint rule 회피: kickoff 을 macrotask 로 defer.
     const kickoff = setTimeout(() => {
       void fetchData();
     }, 0);

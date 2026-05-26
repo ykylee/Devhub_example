@@ -52,6 +52,7 @@ export default function ProjectDetailPage() {
   const [tasks, setTasks] = useState<ProjectTaskItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [opsError, setOpsError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -62,14 +63,31 @@ export default function ProjectDetailPage() {
         ]);
         setProject(projectData);
         setUsers(usersData);
-        const [links, activityData, taskData] = await Promise.all([
-          projectService.getProjectRepositories(id).catch(() => []),
-          projectService.getProjectActivity(id).catch(() => []),
-          projectService.getProjectTasks(id).catch(() => []),
+        const [linksResult, activityResult, taskResult] = await Promise.allSettled([
+          projectService.getProjectRepositories(id),
+          projectService.getProjectActivity(id),
+          projectService.getProjectTasks(id),
         ]);
+        const links = linksResult.status === "fulfilled" ? linksResult.value : [];
+        const activityData = activityResult.status === "fulfilled" ? activityResult.value : [];
+        const taskData = taskResult.status === "fulfilled" ? taskResult.value : [];
+        const widgetErrors: string[] = [];
+        if (linksResult.status === "rejected") {
+          console.warn("[ProjectDetailPage] repositories fetch failed:", linksResult.reason);
+          widgetErrors.push("Linked Repositories");
+        }
+        if (activityResult.status === "rejected") {
+          console.warn("[ProjectDetailPage] activity fetch failed:", activityResult.reason);
+          widgetErrors.push("Recent Activity");
+        }
+        if (taskResult.status === "rejected") {
+          console.warn("[ProjectDetailPage] tasks fetch failed:", taskResult.reason);
+          widgetErrors.push("Active Tasks");
+        }
         setProjectRepositories(links);
         setActivities(activityData);
         setTasks(taskData);
+        setOpsError(widgetErrors.length > 0 ? `일부 프로젝트 데이터를 불러오지 못했습니다: ${widgetErrors.join(", ")}` : null);
       } catch (err) {
         setError(toUserErrorMessage(err, "Failed to load project details."));
         console.error(err);
@@ -219,6 +237,11 @@ export default function ProjectDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3 space-y-8">
+          {opsError && (
+            <div className="glass-card p-4 text-xs text-muted-foreground">
+              {opsError}
+            </div>
+          )}
           {/* Progress Banner */}
           <div className="glass-card p-8 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:bg-primary/10 transition-colors" />

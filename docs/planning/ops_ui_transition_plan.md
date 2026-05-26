@@ -22,15 +22,14 @@
 - 운영 전환 가능 항목은 화면 구조를 유지하고 API 데이터 주입 준비 상태로 유지
 
 ## 3) 백엔드 연동 준비 체크리스트
-- Dashboard
-  - `GET /api/v1/dashboard/developer/stream` (active work stream)
-  - `GET /api/v1/dashboard/developer/builds` (pipeline/build log)
-  - `GET /api/v1/dashboard/manager/velocity` (quality/security 시계열)
-  - `GET /api/v1/dashboard/manager/team-load` (인력 부하)
-  - `GET /api/v1/dashboard/manager/decisions` (의사결정 이력)
-- Project Detail
-  - `GET /api/v1/projects/{id}/activity`
-  - `GET /api/v1/projects/{id}/tasks?status=open,in_progress,review`
+- Dashboard / Project Detail endpoint 상태 (2026-05-26)
+  - `GET /api/v1/dashboard/developer/stream` — 미구현 (backend grep 0건), owner: gemini/backend
+  - `GET /api/v1/dashboard/developer/builds` — 미구현 (backend grep 0건), owner: gemini/backend
+  - `GET /api/v1/dashboard/manager/velocity` — 미구현 (backend grep 0건), owner: gemini/backend
+  - `GET /api/v1/dashboard/manager/team-load` — 미구현 (backend grep 0건), owner: gemini/backend
+  - `GET /api/v1/dashboard/manager/decisions` — 미구현 (backend grep 0건), owner: gemini/backend
+  - `GET /api/v1/projects/{id}/activity` — 미구현 (backend grep 0건), owner: gemini/backend
+  - `GET /api/v1/projects/{id}/tasks?status=open,in_progress,review` — 미구현 (backend grep 0건), owner: gemini/backend
 
 ## 4) 운영 전환 원칙
 - API 실패 시에도 임의 mock 데이터 자동 표출 금지

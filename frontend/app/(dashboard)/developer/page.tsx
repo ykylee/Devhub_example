@@ -41,16 +41,27 @@ export default function DeveloperDashboard() {
 
   const loadData = useCallback(async () => {
     try {
-      const [metricsData, streamData, buildData] = await Promise.all([
-        infraService.getMetrics("Developer"),
-        dashboardService.getDeveloperStream().catch(() => []),
-        dashboardService.getDeveloperBuilds().catch(() => []),
+      const metricsData = await infraService.getMetrics("Developer");
+      const [streamResult, buildResult] = await Promise.allSettled([
+        dashboardService.getDeveloperStream(),
+        dashboardService.getDeveloperBuilds(),
       ]);
+      const streamData = streamResult.status === "fulfilled" ? streamResult.value : [];
+      const buildData = buildResult.status === "fulfilled" ? buildResult.value : [];
       setStats(metricsData);
       setStreamItems(streamData);
       setBuildItems(buildData);
       setMetricsError(null);
-      setOpsError(null);
+      const widgetErrors: string[] = [];
+      if (streamResult.status === "rejected") {
+        console.warn("[DeveloperDashboard] stream fetch failed:", streamResult.reason);
+        widgetErrors.push("Active Stream");
+      }
+      if (buildResult.status === "rejected") {
+        console.warn("[DeveloperDashboard] build fetch failed:", buildResult.reason);
+        widgetErrors.push("Deployment Pipeline");
+      }
+      setOpsError(widgetErrors.length > 0 ? `일부 위젯 데이터를 불러오지 못했습니다: ${widgetErrors.join(", ")}` : null);
     } catch (error) {
       console.error("Failed to load metrics:", error);
       setStats([]);
@@ -60,6 +71,7 @@ export default function DeveloperDashboard() {
   }, [addToast]);
 
   useEffect(() => {
+    // set-state-in-effect lint rule 회피: kickoff 을 macrotask 로 defer.
     const kickoff = setTimeout(() => {
       void loadData();
     }, 0);

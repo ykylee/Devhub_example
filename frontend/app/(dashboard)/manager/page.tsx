@@ -49,6 +49,7 @@ export default function ManagerDashboard() {
   const [selectedRisk, setSelectedRisk] = useState<Risk | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [metricsError, setMetricsError] = useState<string | null>(null);
+  const [opsError, setOpsError] = useState<string | null>(null);
   const [velocity, setVelocity] = useState<ManagerVelocityPoint[]>([]);
   const [teamLoad, setTeamLoad] = useState<ManagerTeamLoadItem[]>([]);
   const [decisions, setDecisions] = useState<ManagerDecisionItem[]>([]);
@@ -61,17 +62,34 @@ export default function ManagerDashboard() {
         infraService.getMetrics("Manager"),
         riskService.getCriticalRisks()
       ]);
-      const [velocityData, teamLoadData, decisionsData] = await Promise.all([
-        dashboardService.getManagerVelocity().catch(() => []),
-        dashboardService.getManagerTeamLoad().catch(() => []),
-        dashboardService.getManagerDecisions().catch(() => []),
+      const [velocityResult, teamLoadResult, decisionsResult] = await Promise.allSettled([
+        dashboardService.getManagerVelocity(),
+        dashboardService.getManagerTeamLoad(),
+        dashboardService.getManagerDecisions(),
       ]);
+      const velocityData = velocityResult.status === "fulfilled" ? velocityResult.value : [];
+      const teamLoadData = teamLoadResult.status === "fulfilled" ? teamLoadResult.value : [];
+      const decisionsData = decisionsResult.status === "fulfilled" ? decisionsResult.value : [];
+      const widgetErrors: string[] = [];
+      if (velocityResult.status === "rejected") {
+        console.warn("[ManagerDashboard] velocity fetch failed:", velocityResult.reason);
+        widgetErrors.push("Quality & Security Velocity");
+      }
+      if (teamLoadResult.status === "rejected") {
+        console.warn("[ManagerDashboard] team load fetch failed:", teamLoadResult.reason);
+        widgetErrors.push("Talent Load Balancing");
+      }
+      if (decisionsResult.status === "rejected") {
+        console.warn("[ManagerDashboard] decisions fetch failed:", decisionsResult.reason);
+        widgetErrors.push("Decision Audit");
+      }
       setStats(metricsData);
       setRisks(risksData);
       setVelocity(velocityData);
       setTeamLoad(teamLoadData);
       setDecisions(decisionsData);
       setMetricsError(null);
+      setOpsError(widgetErrors.length > 0 ? `일부 위젯 데이터를 불러오지 못했습니다: ${widgetErrors.join(", ")}` : null);
     } catch (error) {
       console.error("Failed to load dashboard data:", error);
       setStats([]);
@@ -83,6 +101,7 @@ export default function ManagerDashboard() {
   }, [addToast]);
 
   useEffect(() => {
+    // set-state-in-effect lint rule 회피: kickoff 을 macrotask 로 defer.
     const kickoff = setTimeout(() => {
       void loadData();
     }, 0);
@@ -110,6 +129,13 @@ export default function ManagerDashboard() {
       unsubscribeCommand();
     };
   }, [addToast, loadData]);
+
+  const statusToLoadColor = (status: string): string => {
+    const s = status.toLowerCase();
+    if (s === "overloaded" || s === "critical") return "bg-destructive";
+    if (s === "optimal" || s === "healthy") return "bg-success";
+    return "bg-muted-foreground";
+  };
 
   const handleMitigation = async (plan: { action: string }) => {
     if (!selectedRisk || !selectedRisk.id) return;
@@ -197,6 +223,11 @@ export default function ManagerDashboard() {
                   <h3 className="text-2xl md:text-3xl font-black text-foreground dark:text-primary-foreground mt-1">{stat.value}</h3>
                 </motion.div>
               ))}
+            </div>
+          )}
+          {opsError && (
+            <div className="glass-card p-4 text-xs text-muted-foreground">
+              {opsError}
             </div>
           )}
 
@@ -362,7 +393,7 @@ export default function ManagerDashboard() {
                     <motion.div 
                       initial={{ width: 0 }}
                       animate={{ width: `${member.load}%` }}
-                      className={cn("h-full rounded-full transition-all duration-1000", member.color)}
+                      className={cn("h-full rounded-full transition-all duration-1000", statusToLoadColor(member.status))}
                     />
                   </div>
                 </motion.div>
@@ -393,7 +424,7 @@ export default function ManagerDashboard() {
               ))}
               </div>
             </section>
-          {ENABLE_LEGACY_MOCK_UI && (
+          {ENABLE_LEGACY_MOCK_UI && process.env.NODE_ENV === "development" && (
             <section className="glass-card p-4">
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Legacy Mock Preview</p>
               <div className="text-xs text-muted-foreground">Legacy dataset: velocity {legacyMockManagerVelocity.length}, load {legacyMockManagerLoad.length}, decisions {legacyMockManagerDecisions.length}</div>
