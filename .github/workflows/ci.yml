@@ -340,6 +340,9 @@ jobs:
           # 미생성 → 이후 admin-cli token 401 → realm setup step fail.
           docker run -d --name devhub-keycloak \
             -p 8180:8080 \
+            --add-host=host.docker.internal:host-gateway \
+            -e DEVHUB_BACKEND_SPI_WEBHOOK_URL=http://host.docker.internal:8080/api/v1/internal/keycloak-events \
+            -e DEVHUB_KEYCLOAK_SPI_WEBHOOK_SECRET=test-spi-webhook-token-12345 \
             -e KC_BOOTSTRAP_ADMIN_USERNAME=admin \
             -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin \
             -e KEYCLOAK_ADMIN=admin \

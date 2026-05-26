@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Users, Shield, Settings, UserPlus, Trash2, Search, Filter } from "lucide-react";
+import { Users, Shield, Settings, UserPlus, Trash2, Search, Filter, Edit3 } from "lucide-react";
 import { OrgNode, OrgMember } from "@/lib/services/identity.service";
-import { ActionMenu } from "@/components/ui/ActionMenu";
 
 interface OrgUnitTableProps {
   nodes: OrgNode[];
@@ -106,24 +105,24 @@ export function OrgUnitTable({ nodes, members, unitLeaders, unitMembers, onManag
                         <UserPlus className="w-3.5 h-3.5" />
                         <span className="text-[9px] font-black uppercase">Members</span>
                       </button>
-                      <ActionMenu
-                        title="Unit Actions"
-                        items={[
-                          {
-                            key: "edit",
-                            label: "Edit Unit",
-                            onClick: () => onEdit(node.id),
-                            icon: <Settings className="w-3.5 h-3.5 text-accent" />,
-                          },
-                          {
-                            key: "delete",
-                            label: "Delete Unit",
-                            onClick: () => onDelete(node.id),
-                            icon: <Trash2 className="w-3.5 h-3.5" />,
-                            tone: "danger",
-                          },
-                        ]}
-                      />
+                      <button
+                        type="button"
+                        onClick={() => onEdit(node.id)}
+                        className="p-1.5 rounded-lg bg-muted/30 hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
+                        title="Edit Unit"
+                        aria-label={`Edit ${node.data.label}`}
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onDelete(node.id)}
+                        className="p-1.5 rounded-lg bg-destructive/10 hover:bg-destructive/20 text-destructive transition-colors"
+                        title="Delete Unit"
+                        aria-label={`Delete ${node.data.label}`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </td>
                 </tr>
