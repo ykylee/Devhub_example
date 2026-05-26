@@ -1,6 +1,8 @@
 import { WSEvent, WSEventHandler } from "./types";
 import { useStore } from "@/lib/store";
 import { tokenStore } from "@/lib/auth/token-store";
+import { apiClient, ApiError } from "./api-client";
+import { authService } from "./auth.service";
 
 import { WS_BASE_URL as WS_BASE } from "../config/endpoints";
 // codex P1 (PR #252 review): `infra.service.updated` 는 backend
@@ -57,9 +59,30 @@ export class RealtimeService {
     );
   }
 
-  private connect() {
+  private async fetchTicket(): Promise<string | null> {
+    // ADR-0024 §3.2 ticket pattern. 401 시 refresh-then-retry 1회 (carve 4).
     try {
-      const url = this.buildURL();
+      const resp = await apiClient<{ ticket: string }>("POST", "/api/v1/realtime/ticket");
+      return resp.ticket;
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) {
+        try {
+          await authService.refreshTokens();
+          const retry = await apiClient<{ ticket: string }>("POST", "/api/v1/realtime/ticket");
+          return retry.ticket;
+        } catch (refreshErr) {
+          console.warn('[RealtimeService] Ticket refresh-then-retry failed:', refreshErr);
+          return null;
+        }
+      }
+      console.warn('[RealtimeService] Ticket fetch failed (will fall back to access_token query):', e);
+      return null;
+    }
+  }
+
+  private async connect() {
+    try {
+      const url = await this.buildURL();
       if (this.socket && this.socket.readyState === WebSocket.OPEN && this.currentUrl === url) return;
 
       if (this.socket) {
@@ -126,7 +149,7 @@ export class RealtimeService {
     this.connect();
   }
 
-  private buildURL() {
+  private async buildURL(): Promise<string> {
     const { actor, role } = useStore.getState();
     const separator = WS_BASE.includes('?') ? '&' : '?';
     const types = encodeURIComponent(DEFAULT_EVENT_TYPES.join(','));
@@ -140,11 +163,18 @@ export class RealtimeService {
     };
     const roleParam = role ? (roleMap[role] || role.toLowerCase()) : 'guest';
 
-    // 브라우저 WebSocket API 는 Authorization header set 불가. backend auth.go 가
-    // `/api/v1/realtime/ws` 에 한해 `?access_token=` query 로 Bearer 받음
-    // (auth.go:79-83). 토큰 누락 시 401 → reconnect 무한 loop.
-    const accessToken = tokenStore.getAccessToken();
-    const tokenParam = accessToken ? `&access_token=${encodeURIComponent(accessToken)}` : '';
+    // ADR-0024: prefer ticket (single-use + 60s TTL). access_token query 는
+    // backward-compat fallback (deprecated, removal 차기 sprint). browser WS
+    // API 의 Authorization header 제약 우회. PR #335 가 access_token 첨부 1차
+    // hotfix → 본 PR 이 ticket pattern 으로 정공법 확장.
+    let tokenParam = '';
+    const ticket = await this.fetchTicket();
+    if (ticket) {
+      tokenParam = `&ticket=${encodeURIComponent(ticket)}`;
+    } else {
+      const accessToken = tokenStore.getAccessToken();
+      if (accessToken) tokenParam = `&access_token=${encodeURIComponent(accessToken)}`;
+    }
 
     return `${WS_BASE}${separator}types=${types}&actor=${actorParam}&role=${roleParam}${tokenParam}`;
   }

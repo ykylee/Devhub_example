@@ -73,13 +73,30 @@ func (h Handler) authenticateActor(c *gin.Context) {
 	}
 
 	header := strings.TrimSpace(c.GetHeader("Authorization"))
-	if header == "" {
-		// Browser WebSocket API cannot set arbitrary headers like Authorization.
-		// Allow Bearer token via query string only for realtime websocket route.
-		if c.FullPath() == "/api/v1/realtime/ws" {
-			if raw := strings.TrimSpace(c.Query("access_token")); raw != "" {
-				header = "Bearer " + raw
+	if header == "" && c.FullPath() == "/api/v1/realtime/ws" {
+		// Browser WebSocket API cannot set arbitrary headers like Authorization
+		// (ADR-0024). 1) ticket pattern (preferred, single-use + 60s TTL) →
+		// 2) access_token query (backward-compat, deprecated).
+		if h.cfg.RealtimeTickets != nil {
+			if raw := strings.TrimSpace(c.Query("ticket")); raw != "" {
+				if entry, ok := h.cfg.RealtimeTickets.consume(raw); ok {
+					c.Set("devhub_actor_login", entry.actorLogin)
+					if entry.actorRole != "" {
+						c.Set("devhub_actor_role", entry.actorRole)
+					}
+					c.Set(ctxKeySourceType, entry.sourceType)
+					c.Next()
+					return
+				}
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+					"status": "unauthenticated",
+					"error":  "realtime ticket invalid or expired",
+				})
+				return
 			}
+		}
+		if raw := strings.TrimSpace(c.Query("access_token")); raw != "" {
+			header = "Bearer " + raw
 		}
 	}
 	if header == "" {

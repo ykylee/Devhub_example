@@ -86,3 +86,56 @@ grep -n "return 30" infra/nginx/*.conf*
 ```
 
 자세한 정합성 리뷰: [docs/reports/2026-05-20-network-docker-single-port-review.md](../../docs/reports/2026-05-20-network-docker-single-port-review.md).
+
+## 6. WebSocket auth query token redact (ADR-0024 §4.3, §6 carve 2)
+
+[ADR-0024](../../docs/adr/0024-websocket-auth-query-token.md) 가 `/devhub/api/v1/realtime/ws` 의 인증 토큰을 query string (`?ticket=` 우선, `?access_token=` deprecated fallback) 으로 전달. nginx access_log 의 기본 format ($request) 가 query string 포함하므로 토큰이 로그에 leak.
+
+ticket 은 single-use + 60s TTL 이라 capture 후 재사용 risk 낮지만 (deprecated) access_token query 는 만료 전까지 valid 한 Bearer 와 동등. **access_log 의 query string redact 필수**.
+
+### 6.1 권장 nginx http block patch (사내 nginx 운영자)
+
+`nginx.conf` 의 http block 또는 별도 conf 에 추가:
+
+```nginx
+http {
+    # ADR-0024: WebSocket auth token (ticket/access_token query) redact.
+    map $arg_access_token $sanitized_access_token {
+        default "REDACTED";
+        ""      "";
+    }
+    map $arg_ticket $sanitized_ticket {
+        default "REDACTED";
+        ""      "";
+    }
+    # $request 대신 method + uri (query string 제외) 만 기록.
+    log_format devhub_safe '$remote_addr - $remote_user [$time_local] '
+                           '"$request_method $uri" $status $body_bytes_sent '
+                           '"$http_referer" "$http_user_agent" '
+                           'ticket=$sanitized_ticket access_token=$sanitized_access_token';
+
+    access_log /var/log/nginx/access.log devhub_safe;
+    # ... 기존 server block 들
+}
+```
+
+### 6.2 server block 대안 (http block 수정 불가 시)
+
+특정 location 만 access_log off:
+
+```nginx
+location = /devhub/api/v1/realtime/ws {
+    access_log off;  # 토큰 leak 차단 (단, 정상 트래픽 분석 불가)
+    # ... 기존 proxy_pass / Upgrade header 등
+}
+location = /devhub/api/v1/realtime/ticket {
+    access_log off;
+    # ... 기존 proxy_pass
+}
+```
+
+후자는 토큰 leak 차단 완전하나 운영 가시성 손실. **§6.1 정공법 권장**.
+
+### 6.3 사내 동반 작업
+
+본 redact 는 사내 nginx 운영자 영역 (nginx.conf 의 http block 변경 + 재기동). ADR-0024 §6 carve 2 의 권장 안. 적용 시점은 사내 SLA + log retention 정책에 따라 결정.

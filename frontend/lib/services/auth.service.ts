@@ -100,6 +100,34 @@ class AuthService {
     return tokens;
   }
 
+  /**
+   * Exchanges the stored refresh_token for a new access_token (and rotated
+   * refresh_token if Keycloak issues one). ADR-0024 §6 carve 3 — used by
+   * realtime service on WS handshake 401 to recover without forcing logout.
+   * Throws on no refresh_token / network / 4xx from token endpoint.
+   */
+  public async refreshTokens(): Promise<TokenResponse> {
+    const refreshToken = tokenStore.getRefreshToken();
+    if (!refreshToken) throw new Error("no refresh_token available");
+    const discovery = await this.getDiscovery();
+    const response = await fetch(discovery.token_endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "refresh_token",
+        refresh_token: refreshToken,
+        client_id: OIDC_CLIENT_ID,
+      }).toString(),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({} as Record<string, string>));
+      throw new Error(err.error || `Token refresh failed (HTTP ${response.status})`);
+    }
+    const tokens = await response.json() as TokenResponse;
+    tokenStore.save(tokens);
+    return tokens;
+  }
+
   public async logout(): Promise<void> {
     const idToken = tokenStore.getIdToken();
     const runtimeConfig = await this.getRuntimeOIDCConfig();
