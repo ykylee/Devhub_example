@@ -365,12 +365,16 @@ sync_keycloak_redirects() {
   fi
 
   echo "[post-deploy] sync Keycloak redirect/webOrigin with ${public_base}${base_path} (via ${local_keycloak_url})"
+  # SETUP_KEYCLOAK_QUIET=1 (issue #302) — sync_keycloak_redirects() 가 매 deploy
+  # 마다 호출되므로 console log 의 client secret 평문 누적 회피. 1회 setup 의
+  # secret 추출은 setup-keycloak.sh 직접 호출 시 unset 으로 활성화.
   KEYCLOAK_URL="$local_keycloak_url" \
     DEVHUB_FRONTEND_ORIGIN="$public_base" \
     DEVHUB_FRONTEND_BASEPATH="$base_path" \
     DEVHUB_KEYCLOAK_SSL_REQUIRED="${DEVHUB_KEYCLOAK_SSL_REQUIRED:-none}" \
     KC_BOOTSTRAP_ADMIN_USERNAME="${KC_BOOTSTRAP_ADMIN_USERNAME:-admin}" \
     KC_BOOTSTRAP_ADMIN_PASSWORD="${KC_BOOTSTRAP_ADMIN_PASSWORD:-admin}" \
+    SETUP_KEYCLOAK_QUIET=1 \
     "$ROOT_DIR/scripts/setup-keycloak.sh"
 }
 

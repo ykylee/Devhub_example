@@ -651,6 +651,21 @@ SELECT cursor_key, last_event_at, last_event_hash, updated_at FROM event_cursors
 - **(carve)** dashboard JSON 정식 등록 — 본 SOP 의 PromQL 예시를 Grafana dashboard JSON 으로 ImportExport 화 + git 추적. 환경 별 자산이라 git 추적 외 (사내 Grafana repo).
 - **(carve)** alertmanager rule YAML 정식 등록 — 본 SOP §8.6.5 의 3종 알람 (cursor_lag_high / cursor_lag_critical / pull_error_rate) 을 Prometheus `alerting_rules.yml` 정식 자산으로 등록 + 사내 alertmanager routing. 환경 별 자산이라 git 추적 외 (사내 monitoring repo).
 
+### 8.7 setup-keycloak.sh `SETUP_KEYCLOAK_QUIET` 운영 (issue #302 정합)
+
+`scripts/setup-keycloak.sh` 의 마지막 SUMMARY 가 `DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET` + `DEVHUB_E2E_KEYCLOAK_ADMIN_CLIENT_SECRET` 을 stdout 으로 출력한다. [`scripts/deploy-from-env.sh:sync_keycloak_redirects()`](../../scripts/deploy-from-env.sh) 가 매 deploy 마다 본 script 를 호출하므로 console log / CI artifact 에 secret 평문 누적 risk → `SETUP_KEYCLOAK_QUIET=1` env 로 출력 skip.
+
+| 호출 시나리오 | quiet 권장 | 운영 절차 |
+| --- | --- | --- |
+| **최초 1회 setup** (vault 등록 전) | unset (0) | `SETUP_KEYCLOAK_QUIET= ./scripts/setup-keycloak.sh` 직접 실행 → stdout 의 3 line 을 vault / `.env` 에 등록. |
+| **deploy-from-env.sh `sync_keycloak_redirects()`** | auto **1** | `deploy-from-env.sh` 가 자동 inject (`SETUP_KEYCLOAK_QUIET=1 ... setup-keycloak.sh`). 운영자 별도 조치 불필요. |
+| **secret rotation 필요 시** | unset (0) | rotation 후 `setup-keycloak.sh` 직접 실행 → 새 secret stdout 출력 → vault 갱신. |
+| **CI E2E** (ci.yml step "Configure Keycloak realm + clients for E2E") | unset (0) | E2E 가 stdout 의 secret 을 parse 해서 후속 step 에 전달. quiet 적용 시 CI 깨짐 — 직접 setup 호출은 unset 유지. |
+
+**fail-mode**:
+- quiet 모드 시 setup-keycloak.sh 가 `(SETUP_KEYCLOAK_QUIET=1 — client secret stdout 출력 skip. ...)` 안내 line 출력 → 운영자가 "secret 추출 안 되는 이유" 인지 가능.
+- 1회 setup 시 quiet 모드 운영자 실수로 secret 추출 누락 → admin console 의 `devhub-backend` client → Credentials 탭에서 직접 확인 (Keycloak admin REST API 또는 admin console UI).
+
 ## 9. 보안 점검
 
 ### 9.1 잠재 위협 + mitigation

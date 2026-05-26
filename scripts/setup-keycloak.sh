@@ -15,6 +15,11 @@
 #                                 - 외부 모드: https://devhub.example.com
 #                                 - 단일 포트 reverse-proxy 정합: https://devhub.example.com (basePath /devhub)
 #   DEVHUB_FRONTEND_BASEPATH    Next.js basePath (기본 /devhub). 빈 값이면 native dev 모드.
+#   SETUP_KEYCLOAK_QUIET        secret echo 억제 (기본 0). 1 시 마지막 SUMMARY 의
+#                                client secret 출력 line 3건을 skip. issue #302 정합 —
+#                                sync_keycloak_redirects() 같이 매 deploy 마다 호출되는
+#                                flow 에서 console log secret 누적 회피 (1회 setup 시는
+#                                unset 유지 → secret 출력으로 운영자가 vault 등록).
 #
 # 단일 포트 컨셉 가드 (ADR-0018, ADR-0019):
 #   - redirectUris / webOrigins 에 wildcard "*" 또는 임의 host 허용을 자동 적용하지 않는다.
@@ -48,6 +53,7 @@ KEYCLOAK_SSL_REQUIRED="${DEVHUB_KEYCLOAK_SSL_REQUIRED:-none}"
 # - If DEVHUB_FRONTEND_BASEPATH is unset, default to /devhub.
 # - If explicitly set to empty, honor empty (native root path mode).
 FRONTEND_BASEPATH="${DEVHUB_FRONTEND_BASEPATH-/devhub}"
+QUIET_MODE="${SETUP_KEYCLOAK_QUIET:-0}"
 
 if [ -z "$FRONTEND_ORIGIN" ]; then
   echo "ERROR: DEVHUB_FRONTEND_ORIGIN 미설정. 단일 포트 컨셉 (ADR-0018) 정합을 위해 redirect_uri origin 을 명시해야 한다." >&2
@@ -343,7 +349,20 @@ echo "Configuration complete."
 echo "--------------------------------------------------"
 # DEVHUB_OIDC_CLIENT_SECRET 는 배포 정책에 따라 별도 관리한다.
 # (devhub-frontend client 가 publicClient=true 인 기본 구성에서는 필수 아님)
-echo "DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET=$backend_secret"
-echo "DEVHUB_E2E_KEYCLOAK_ADMIN_CLIENT_ID=devhub-e2e-seeder"
-echo "DEVHUB_E2E_KEYCLOAK_ADMIN_CLIENT_SECRET=$e2e_secret"
+#
+# Secret echo 정책 (issue #302):
+#   - 기본 (SETUP_KEYCLOAK_QUIET=0): 아래 3 line 출력 — 운영자가 1회 setup 시
+#     stdout 에서 secret 을 받아 vault / .env 에 등록한다.
+#   - quiet (SETUP_KEYCLOAK_QUIET=1): 출력 skip — sync_keycloak_redirects()
+#     같은 매 deploy 호출 flow 에서 console log secret 누적 risk 회피.
+#     이미 1회 setup 으로 secret 가 vault 에 등록된 후의 idempotent sync 호출
+#     은 secret 재출력 불필요.
+if [ "$QUIET_MODE" = "1" ]; then
+  echo "(SETUP_KEYCLOAK_QUIET=1 — client secret stdout 출력 skip. 최초 setup 시"
+  echo " unset 후 재실행으로 secret 추출. docs/setup/keycloak_operations.md §8.7.)"
+else
+  echo "DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET=$backend_secret"
+  echo "DEVHUB_E2E_KEYCLOAK_ADMIN_CLIENT_ID=devhub-e2e-seeder"
+  echo "DEVHUB_E2E_KEYCLOAK_ADMIN_CLIENT_SECRET=$e2e_secret"
+fi
 echo "--------------------------------------------------"
