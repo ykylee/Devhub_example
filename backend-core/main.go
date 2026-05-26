@@ -347,6 +347,19 @@ func main() {
 		}
 	}
 
+	// Onboarding pending_review count Gauge cron refresh (SOP §8 P3 carve).
+	// audit puller 패턴 정합 — single goroutine + ctx cancel. organizationStore 가
+	// PostgresStore 인 경우 CountPendingReview 메서드 자동 구현 (interface 어설션).
+	if counter, ok := organizationStore.(httpapi.OnboardingPendingReviewCounter); ok {
+		go func() {
+			err := httpapi.RunOnboardingPendingReviewGauge(ctx, counter, httpapi.OnboardingPendingGaugeOptions{})
+			if err != nil && err != context.Canceled {
+				log.Printf("onboarding pending_review gauge stopped: %v", err)
+			}
+		}()
+		log.Printf("onboarding pending_review gauge enabled (interval=60s)")
+	}
+
 	if err := router.Run(":" + cfg.Port); err != nil {
 		log.Fatalf("run server: %v", err)
 	}
