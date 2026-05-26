@@ -1,3 +1,71 @@
+# Session Handoff — main (2026-05-26 PR #308 ADR-0023 신규 Keycloak 26.0 reversal + housekeeping)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
+- 범위: PR #307 (직전 housekeeping `39f7305`) 이후 PR #308 (`f13da20`) 흡수.
+- 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
+- 상태: PR #308 머지로 **ADR-0023 신규 발행** (Keycloak 26.0 forward pin) + ADR-0022 supersession + active code 3 위치 정정. CI 8 job 모두 PASS 로 26.0 image 자동 검증. PR #296 follow-up 6/6 모두 처리. main HEAD `f13da20`.
+- 최종 수정일: 2026-05-26 (sprint `claude/work_260526-housekeeping-post-308`)
+- 관련 문서: [ADR-0023 Keycloak 26.0 forward pin](../../docs/adr/0023-keycloak-version-pin-26-0.md), [ADR-0022 superseded](../../docs/adr/0022-keycloak-version-pin-25-0.md), [issue #214](https://github.com/ykylee/Devhub_example/issues/214), [issue #302](https://github.com/ykylee/Devhub_example/issues/302).
+- 브랜치: `main` (HEAD `f13da20` post PR #308 → 본 housekeeping sprint 머지 후 `<TBD>`).
+
+## 2026-05-26 본 housekeeping sprint (`claude/work_260526-housekeeping-post-308`)
+
+직전 housekeeping (PR #307, `39f7305`) 이후 1 PR (#308) 흡수.
+
+### 흡수 대상
+
+| sha | PR | author | core |
+| --- | --- | --- | --- |
+| `f13da20` | **#308** | claude | **ADR-0023 신규 발행** (Keycloak 26.0 forward pin) — ADR-0022 25.0 retreat reversal. `feedback_adr_supersession_pattern` 정공법 (본문 immutable + 새 ADR 발행). 5+1 파일 / +134 / -13 LoC + Stage 3 보강 (OS-specific path cross-link 제거 P1-1). **CI 8 job 전체 PASS** — E2E shard 1/2 (3m31s) + 2/2 (4m1s) 26.0 image 로 PASS → 사내 재확인 결과 자동 검증. ADR-0022 supersession 표기 6 위치 (제목 + §0 + §1 상태 + §1 historical Draft banner + §3 inline + §6 변경 이력 row). active code 3 위치 정정 (docker-compose / CI / dev-up.sh). |
+
+### ADR governance 변경 요약
+
+| ADR | 이전 상태 | 본 sprint 후 |
+| --- | --- | --- |
+| ADR-0019 (Keycloak 단일화) | Accepted | 영향 없음 — version pin 만 정정 |
+| ADR-0022 (25.0 retreat) | Draft | **superseded by ADR-0023** — 본문 immutable, 메타/§0/§3 banner |
+| ADR-0023 (26.0 forward) | (없음) | **신규 Accepted** — ADR-0022 reversal, ADR-0019 본래 자산으로 forward |
+
+### PR #296 follow-up 6/6 최종 상태
+
+| # | 항목 | 상태 | sprint |
+| --- | --- | --- | --- |
+| 1 | localhost:13000 magic | ✅ closed | PR #301 |
+| 2 | python3 host 사전조건 | ✅ closed | PR #301 |
+| 3 | sync_keycloak_redirects idempotent | ✅ closed | PR #301 |
+| 4 | KEYCLOAK_REALM_IMPORT_PATH external fallback | ✅ closed | PR #304 |
+| 5 | generated realm `/tmp/` path | ✅ closed | PR #304 |
+| 6 | ADR-0022 §3.1 retreat 사유 finalize | ✅ closed (reversal 경로) | PR #308 (ADR-0023 발행으로 종결) |
+
+**모든 PR #296 follow-up carve 완료**. ADR-0022 §3.1 placeholder finalize 가 사내 재확인 결과 reversal 로 진화 — Draft → superseded.
+
+### 다음 directive (우선순위)
+
+| 순위 | 항목 | 영역 |
+| --- | --- | --- |
+| 1 | **Onboarding SOP staging 1주 monitoring** — flag default ON 후 회귀 발견 시 rollback | 사내 운영자 (DevHub SRE) |
+| 2 | **사내 Keycloak 26.0 image pull + redeploy smoke** (ADR-0023 §5 후속) — staging 환경 26.0 image 재배치 + smoke test | 사내 운영자 (Infra) |
+| 3 | **issue #214 사내 1회 작업** — Keycloak admin console group + composite role 적용 → `scripts/verify-keycloak-groups.sh` PASS 확인 → 1주 staging → prod 반복 | 사용자/사내 운영자 + verify script (자동) |
+| 4 | **Prometheus metric backend** (Onboarding SOP §8 잔여 carve P2) — `me_onboarding.go` + `users_admin_review.go` Counter/Histogram | claude (backend) |
+| 5 | **issue #302 진입** — `setup-keycloak.sh` client secret console quiet flag | claude (선택, P2) |
+
+### ADR-0023 §5 후속 작업 7 항목 (사내 운영자 영역)
+
+본 PR 머지 후 사내 운영자가 진행:
+1. Keycloak 26.0 image pull + redeploy smoke (staging)
+2. 26.0 의 realm import 정합 검증 (`infra/idp/keycloak-realm.dev.json` + `prod.json`)
+3. `--proxy-headers=xforwarded` 동작 검증 (26.x)
+4. `scripts/verify-keycloak-groups.sh` 재실행 (issue #214 acceptance 26.x 정합 재확인)
+5. 1주 staging 사용
+6. prod 적용 + 재검증
+7. 26.0 patch 정기 bump carve out (보안 패치 follow 절차)
+
+## 2026-05-26 직전 housekeeping (PR #307, `39f7305`)
+
+PR #306 (issue #214 verify-keycloak-groups.sh) 흡수 minimal entry prepend.
+
+
+
 # Session Handoff — main (2026-05-26 PR #306 issue #214 verify-keycloak-groups.sh + housekeeping)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
