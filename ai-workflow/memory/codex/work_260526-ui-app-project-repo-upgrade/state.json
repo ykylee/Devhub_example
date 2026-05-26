@@ -15,7 +15,7 @@
   "validation": {
     "frontend_lint": "pass",
     "frontend_build": "pass",
-    "frontend_e2e": "pass (docker /devhub stack: admin-applications, admin-projects, project-model-modes, repositories-ui)"
+    "frontend_e2e": "pass (docker /devhub stack: admin-applications, admin-projects, project-model-modes, repositories-ui, repositories-ui-negative)"
   },
   "changed_files": [
     "docs/planning/ui_app_project_repo_upgrade_plan.md",
@@ -29,6 +29,7 @@
     "frontend/components/project/ProjectTable.tsx",
     "frontend/components/project/RepositoryTable.tsx",
     "frontend/app/(dashboard)/admin/settings/applications/page.tsx",
-    "frontend/tests/e2e/repositories-ui.spec.ts"
+    "frontend/tests/e2e/repositories-ui.spec.ts",
+    "frontend/tests/e2e/repositories-ui-negative.spec.ts"
   ]
 }
