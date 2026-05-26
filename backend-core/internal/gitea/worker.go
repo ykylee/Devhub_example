@@ -91,6 +91,8 @@ func (w *SyncWorker) syncAll(ctx context.Context) error {
 		return fmt.Errorf("failed to list user repos: %w", err)
 	}
 
+	var syncErrors []string
+
 	for _, repo := range repos {
 		// Sync local repositories table first.
 		err = w.Store.UpsertRepository(ctx, domain.Repository{
@@ -104,6 +106,7 @@ func (w *SyncWorker) syncAll(ctx context.Context) error {
 		})
 		if err != nil {
 			log.Printf("[Gitea Sync Worker] Failed to upsert repo metadata for %s: %v", repo.FullName, err)
+			syncErrors = append(syncErrors, fmt.Sprintf("repo metadata upsert %s: %v", repo.FullName, err))
 			continue
 		}
 
@@ -113,8 +116,13 @@ func (w *SyncWorker) syncAll(ctx context.Context) error {
 			err = syncer.SyncRepository(ctx, client, parts[0], parts[1])
 			if err != nil {
 				log.Printf("[Gitea Sync Worker] Failed to sync repo details for %s: %v", repo.FullName, err)
+				syncErrors = append(syncErrors, fmt.Sprintf("repo sync %s: %v", repo.FullName, err))
 			}
 		}
+	}
+
+	if len(syncErrors) > 0 {
+		return fmt.Errorf("Gitea sync completed with errors: %s", strings.Join(syncErrors, "; "))
 	}
 
 	return nil

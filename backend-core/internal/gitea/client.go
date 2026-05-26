@@ -81,57 +81,105 @@ type GiteaBranch struct {
 	SHA string `json:"sha"`
 }
 
-// ListUserRepos retrieves the authenticated user's repositories.
+// ListUserRepos retrieves the authenticated user's repositories using pagination.
 func (c *Client) ListUserRepos(ctx context.Context) ([]GiteaRepository, error) {
-	req, err := c.newRequest(ctx, http.MethodGet, "/api/v1/user/repos", nil)
-	if err != nil {
-		return nil, err
-	}
+	var allRepos []GiteaRepository
+	page := 1
+	limit := 50
+	for {
+		req, err := c.newRequest(ctx, http.MethodGet, "/api/v1/user/repos", nil)
+		if err != nil {
+			return nil, err
+		}
 
-	var repos []GiteaRepository
-	if err := c.do(req, &repos); err != nil {
-		return nil, err
+		q := req.URL.Query()
+		q.Set("page", fmt.Sprintf("%d", page))
+		q.Set("limit", fmt.Sprintf("%d", limit))
+		req.URL.RawQuery = q.Encode()
+
+		var repos []GiteaRepository
+		if err := c.do(req, &repos); err != nil {
+			return nil, err
+		}
+		if len(repos) == 0 {
+			break
+		}
+		allRepos = append(allRepos, repos...)
+		if len(repos) < limit {
+			break
+		}
+		page++
 	}
-	return repos, nil
+	return allRepos, nil
 }
 
-// ListIssues retrieves issues for a specific repository.
+// ListIssues retrieves issues for a specific repository using pagination.
 func (c *Client) ListIssues(ctx context.Context, owner, repo string, state string) ([]GiteaIssue, error) {
 	path := fmt.Sprintf("/api/v1/repos/%s/%s/issues", url.PathEscape(owner), url.PathEscape(repo))
-	req, err := c.newRequest(ctx, http.MethodGet, path, nil)
-	if err != nil {
-		return nil, err
-	}
+	var allIssues []GiteaIssue
+	page := 1
+	limit := 50
+	for {
+		req, err := c.newRequest(ctx, http.MethodGet, path, nil)
+		if err != nil {
+			return nil, err
+		}
 
-	q := req.URL.Query()
-	q.Set("state", state)
-	q.Set("type", "issues")
-	req.URL.RawQuery = q.Encode()
+		q := req.URL.Query()
+		q.Set("state", state)
+		q.Set("type", "issues")
+		q.Set("page", fmt.Sprintf("%d", page))
+		q.Set("limit", fmt.Sprintf("%d", limit))
+		req.URL.RawQuery = q.Encode()
 
-	var issues []GiteaIssue
-	if err := c.do(req, &issues); err != nil {
-		return nil, err
+		var issues []GiteaIssue
+		if err := c.do(req, &issues); err != nil {
+			return nil, err
+		}
+		if len(issues) == 0 {
+			break
+		}
+		allIssues = append(allIssues, issues...)
+		if len(issues) < limit {
+			break
+		}
+		page++
 	}
-	return issues, nil
+	return allIssues, nil
 }
 
-// ListPullRequests retrieves pull requests for a specific repository.
+// ListPullRequests retrieves pull requests for a specific repository using pagination.
 func (c *Client) ListPullRequests(ctx context.Context, owner, repo string, state string) ([]GiteaPullRequest, error) {
 	path := fmt.Sprintf("/api/v1/repos/%s/%s/pulls", url.PathEscape(owner), url.PathEscape(repo))
-	req, err := c.newRequest(ctx, http.MethodGet, path, nil)
-	if err != nil {
-		return nil, err
-	}
+	var allPulls []GiteaPullRequest
+	page := 1
+	limit := 50
+	for {
+		req, err := c.newRequest(ctx, http.MethodGet, path, nil)
+		if err != nil {
+			return nil, err
+		}
 
-	q := req.URL.Query()
-	q.Set("state", state)
-	req.URL.RawQuery = q.Encode()
+		q := req.URL.Query()
+		q.Set("state", state)
+		q.Set("page", fmt.Sprintf("%d", page))
+		q.Set("limit", fmt.Sprintf("%d", limit))
+		req.URL.RawQuery = q.Encode()
 
-	var pulls []GiteaPullRequest
-	if err := c.do(req, &pulls); err != nil {
-		return nil, err
+		var pulls []GiteaPullRequest
+		if err := c.do(req, &pulls); err != nil {
+			return nil, err
+		}
+		if len(pulls) == 0 {
+			break
+		}
+		allPulls = append(allPulls, pulls...)
+		if len(pulls) < limit {
+			break
+		}
+		page++
 	}
-	return pulls, nil
+	return allPulls, nil
 }
 
 func (c *Client) newRequest(ctx context.Context, method, path string, body any) (*http.Request, error) {
