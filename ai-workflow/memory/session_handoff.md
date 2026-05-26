@@ -1,3 +1,52 @@
+# Session Handoff — main (2026-05-26 PR #306 issue #214 verify-keycloak-groups.sh + housekeeping)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
+- 범위: PR #305 (직전 housekeeping `2b51cb9`) 이후 PR #306 (`de47e2b`) 흡수.
+- 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
+- 상태: PR #306 머지로 issue #214 acceptance 검증 자산 신규 (verify script + §4.4 SOP). 사내 1회 admin console 작업만 잔여. main HEAD `de47e2b`.
+- 최종 수정일: 2026-05-26 (sprint `claude/work_260526-housekeeping-post-306`)
+- 관련 문서: [verify-keycloak-groups.sh](../../scripts/verify-keycloak-groups.sh), [keycloak_operations.md §4.4](../../docs/setup/keycloak_operations.md#44-group-setup-검증-자동화-scriptsverify-keycloak-groupssh), [keycloak_groups_rbac_mapping.md §6.2/§6.3](../../docs/planning/keycloak_groups_rbac_mapping.md), [issue #214](https://github.com/ykylee/Devhub_example/issues/214), [issue #302](https://github.com/ykylee/Devhub_example/issues/302).
+- 브랜치: `main` (HEAD `de47e2b` post PR #306 → 본 housekeeping sprint 머지 후 `<TBD>`).
+
+## 2026-05-26 본 housekeeping sprint (`claude/work_260526-housekeeping-post-306`)
+
+직전 housekeeping (PR #305, `2b51cb9`) 이후 1 PR (#306) 흡수.
+
+### 흡수 대상
+
+| sha | PR | author | core |
+| --- | --- | --- | --- |
+| `de47e2b` | **#306** | claude (worker/codex override) | issue #214 P1-3 — `scripts/verify-keycloak-groups.sh` 신규 (192 LoC, executable 100755, read-only GET, idempotent) + `docs/setup/keycloak_operations.md §4.4` 검증 SOP (60 LoC) + `docs/planning/keycloak_groups_rbac_mapping.md §6.2/§6.3` cross-link 추가. acceptance 4 항목 자동 검증 (realm 존재 / group 4종 / composite 1:1 매핑 / Default Groups 비어있음). self-review 4단계 (P0 0 / P1 0 / P2 1 — TLS self-signed fail-mode 별도 carve) + post-merge audit comment 재시도 (TLS handshake timeout 1회). |
+
+### worker/codex 영역 사용자 override audit
+
+issue #214 worker label `codex + user`. 사용자 명시 override 로 claude 가 codex 영역 (운영 SOP + 검증 자동화) 흡수, 사용자/사내 운영자 영역 (Keycloak admin console 1회 작업) 은 인계 명시. `feedback_worker_division_override` 패턴 audit trail — PR #306 body + commit msg + self-review comment 3 위치.
+
+### issue #214 close 의존성
+
+본 PR 머지 후 close 절차:
+1. **사내 운영자**: staging Keycloak admin console 에서 group 4 + composite role 적용 (§4.3 SOP)
+2. **자동 검증**: `./scripts/verify-keycloak-groups.sh` 1회 실행 → 4 PASS 확인
+3. **1주 staging**: token decode 검수 (`realm_access.roles` 정상 포함)
+4. **prod 적용**: §6.3 SOP + verify script 재실행
+5. **사내 운영자 close** (acceptance 충족)
+
+### 다음 directive (우선순위)
+
+| 순위 | 항목 | 영역 |
+| --- | --- | --- |
+| 1 | **Onboarding SOP staging 1주 monitoring** — flag default ON 후 회귀 발견 시 rollback. SOP §7 DoD 8 항목 채움. | 사내 운영자 (DevHub SRE) |
+| 2 | **issue #214 사내 1회 작업** — Keycloak admin console group + composite role 적용 → verify script PASS → 1주 staging → prod 반복 | 사용자/사내 운영자 + verify script (자동) |
+| 3 | **Prometheus metric backend** (Onboarding SOP §8 잔여 carve P2) — `me_onboarding.go` + `users_admin_review.go` Counter/Histogram | claude (backend) |
+| 4 | **ADR-0022 §3.1 retreat 사유 finalize** (Draft → Accepted 승격) | 사용자 |
+| 5 | **issue #302 진입** — setup-keycloak.sh client secret console quiet flag | claude (선택, P2) |
+
+## 2026-05-26 직전 housekeeping (PR #305, `2b51cb9`)
+
+PR #304 (PR-B P2 bash) 흡수 minimal entry prepend.
+
+
+
 # Session Handoff — main (2026-05-26 PR #304 PR-B P2 bash + housekeeping)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
