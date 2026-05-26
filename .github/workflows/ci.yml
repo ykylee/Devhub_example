@@ -345,7 +345,7 @@ jobs:
             -e KEYCLOAK_ADMIN=admin \
             -e KEYCLOAK_ADMIN_PASSWORD=admin \
             -e KC_HTTP_RELATIVE_PATH=/devhub/auth/keycloak \
-            quay.io/keycloak/keycloak:25.0 start-dev --http-enabled=true --hostname-strict=false > /tmp/keycloak-container-id
+            quay.io/keycloak/keycloak:26.0 start-dev --http-enabled=true --hostname-strict=false > /tmp/keycloak-container-id
 
       - name: Configure Keycloak realm + clients for E2E
         run: |

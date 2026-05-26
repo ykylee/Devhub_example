@@ -112,13 +112,13 @@ if is_port_listening 8180; then
     echo "  Keycloak detected on port 8180."
 else
     echo -e "${YELLOW}Warning: Keycloak not detected on port 8180. 인증이 동작하지 않을 수 있습니다.${NC}"
-    echo "  # Keycloak 25.0 admin bootstrap: KC_BOOTSTRAP_ADMIN_* (26+ 표준)"
-    echo "  # + legacy KEYCLOAK_ADMIN/KEYCLOAK_ADMIN_PASSWORD (25.x 표준) 동시 주입."
+    echo "  # Keycloak 26.0 admin bootstrap: KC_BOOTSTRAP_ADMIN_* (26+ 표준)"
+    echo "  # + legacy KEYCLOAK_ADMIN/KEYCLOAK_ADMIN_PASSWORD 동시 주입 (보수적 안전망)."
     echo "  docker run -d -p 8180:8080 \\"
     echo "    -e KC_BOOTSTRAP_ADMIN_USERNAME=admin -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin \\"
     echo "    -e KEYCLOAK_ADMIN=admin -e KEYCLOAK_ADMIN_PASSWORD=admin \\"
     echo "    -e KC_HTTP_RELATIVE_PATH=/devhub/auth/keycloak \\"
-    echo "    quay.io/keycloak/keycloak:25.0 start-dev --http-enabled=true --hostname-strict=false"
+    echo "    quay.io/keycloak/keycloak:26.0 start-dev --http-enabled=true --hostname-strict=false"
 fi
 
 # 3. backend-core

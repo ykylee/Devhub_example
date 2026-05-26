@@ -102,8 +102,8 @@ services:
   keycloak:
     profiles: ["local-idp"]
     # Keycloak 단일 IdP (ADR-0019). 사내 환경에서는 별도 운영 Keycloak instance 사용 권장 — 본 service 는 1차 reference.
-    # version 25.0 (사내 결정 동반 — sprint -h failover §4 Phase 2 HA 진입 시 LTS 재평가).
-    image: quay.io/keycloak/keycloak:25.0
+    # version 26.0 (ADR-0023, 2026-05-26 — ADR-0022 25.0 retreat reversal, 사내 재확인 26.x 사용 가능 확정).
+    image: quay.io/keycloak/keycloak:26.0
     restart: unless-stopped
     command:
       - start
