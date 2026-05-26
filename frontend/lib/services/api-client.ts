@@ -27,18 +27,36 @@ function isJsonObject(value: unknown): value is JsonObject {
 // is injected at container runtime.
 const OIDC_CLIENT_ID = process.env.NEXT_PUBLIC_OIDC_CLIENT_ID ?? "devhub-frontend";
 
+// Cached token endpoint URL. undefined = not yet resolved, null = resolution
+// failed, string = usable URL. Cache avoids a runtime-config fetch on every
+// 401 when OIDC_ISSUER_URL is not baked at build time (Docker deployments).
+let cachedTokenEndpoint: string | null | undefined;
+
 async function resolveTokenEndpoint(): Promise<string | null> {
+  if (cachedTokenEndpoint !== undefined) return cachedTokenEndpoint;
+
   const issuer = OIDC_ISSUER_URL;
-  if (issuer) return `${issuer}/protocol/openid-connect/token`;
+  if (issuer) {
+    cachedTokenEndpoint = `${issuer}/protocol/openid-connect/token`;
+    return cachedTokenEndpoint;
+  }
 
   try {
     const resp = await fetch(`${API_BASE_URL}/api/runtime-config`, { cache: "no-store" });
-    if (!resp.ok) return null;
+    if (!resp.ok) {
+      cachedTokenEndpoint = null;
+      return null;
+    }
     const body = (await resp.json()) as { oidc_issuer_url?: string };
     const url = body.oidc_issuer_url?.trim();
-    if (!url) return null;
-    return `${url}/protocol/openid-connect/token`;
+    if (!url) {
+      cachedTokenEndpoint = null;
+      return null;
+    }
+    cachedTokenEndpoint = `${url}/protocol/openid-connect/token`;
+    return cachedTokenEndpoint;
   } catch {
+    cachedTokenEndpoint = null;
     return null;
   }
 }
@@ -46,10 +64,24 @@ async function resolveTokenEndpoint(): Promise<string | null> {
 // ADR-0024 §6 carve 3 extension: exchange the stored refresh_token for a new
 // access_token. Used by apiClient's 401 interceptor to transparently recover
 // without forcing the user to re-authenticate.
+// Guard against parallel refresh storms — if N requests all get 401 at the
+// same time, only one refresh call hits the IdP; the rest join the in-flight
+// promise and return the same result.
+let inflightRefresh: Promise<boolean> | null = null;
+
 async function attemptTokenRefresh(): Promise<boolean> {
   const refreshToken = tokenStore.getRefreshToken();
   if (!refreshToken) return false;
 
+  if (inflightRefresh) return inflightRefresh;
+
+  inflightRefresh = doRefresh(refreshToken);
+  const result = await inflightRefresh;
+  inflightRefresh = null;
+  return result;
+}
+
+async function doRefresh(refreshToken: string): Promise<boolean> {
   const tokenEndpoint = await resolveTokenEndpoint();
   if (!tokenEndpoint) return false;
 
@@ -64,13 +96,15 @@ async function attemptTokenRefresh(): Promise<boolean> {
       }).toString(),
     });
     if (!response.ok) {
+      console.warn("[apiClient] token refresh failed (HTTP %d); clearing session", response.status);
       tokenStore.clear();
       return false;
     }
     const tokens = (await response.json()) as TokenResponse;
     tokenStore.save(tokens);
     return true;
-  } catch {
+  } catch (err) {
+    console.warn("[apiClient] token refresh network error", err);
     return false;
   }
 }
