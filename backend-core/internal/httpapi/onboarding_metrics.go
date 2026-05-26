@@ -53,7 +53,7 @@ func initOnboardingMetrics() {
 		onboardingSubmitTotal = prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "devhub_onboarding_submit_total",
-				Help: "POST /api/v1/me/onboarding 호출 결과 카운터. status ∈ {ok, rejected, conflict, not_found, server_error, unavailable, unauthenticated}. ADR-0021 / Onboarding SOP §8.",
+				Help: "POST /api/v1/me/onboarding 호출 결과 카운터. status ∈ {ok, rejected, conflict, not_found, server_error, unavailable, unauthenticated, feature_disabled}. ADR-0021 / Onboarding SOP §8.",
 			},
 			[]string{"status"},
 		)
@@ -67,7 +67,7 @@ func initOnboardingMetrics() {
 		onboardingReviewConfirmTotal = prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "devhub_onboarding_review_confirm_total",
-				Help: "POST /api/v1/admin/users/:user_id/review 호출 결과 카운터. status ∈ {ok, rejected, conflict, not_found, server_error, unavailable, bad_request}. ADR-0021 / Onboarding SOP §8.",
+				Help: "POST /api/v1/admin/users/:user_id/review 호출 결과 카운터. status ∈ {ok, rejected, conflict, not_found, server_error, unavailable, bad_request, feature_disabled}. ADR-0021 / Onboarding SOP §8.",
 			},
 			[]string{"status"},
 		)
