@@ -38,7 +38,19 @@ compose는 서비스 간 연결/개발 실행에 유용하지만, 배포 산출�
 
 **python3 미설치 host 에서 deploy 진입 시 증상**: `deploy-from-env.sh:2` 의 `set -euo pipefail` + `:202` 의 `KEYCLOAK_REALM_IMPORT_PATH="$(generate_local_realm_import ...)"` 가 `python3: command not found` 로 fail 시 함수 안에서 **script 전체 즉시 종료** (`emit_env_line` 단계까지 도달 못 함). 자동 fallback 아님.
 
-**수동 우회 절차** (python3 설치 불가 host): deploy 진입 전 `KEYCLOAK_REALM_IMPORT_PATH=$ROOT/infra/idp/keycloak-realm.dev.json` env 를 사전 export → `build_env_file()` 의 `KEYCLOAK_REALM_IMPORT_PATH="${KEYCLOAK_REALM_IMPORT_PATH:-...}"` ([line 250](../../scripts/deploy-from-env.sh#L250)) 가 사전 export 값을 그대로 사용. 단 이 경로는 `generate_local_realm_import()` 의 dynamic redirect URI 주입 (PUBLIC_ACCESS_HOST 기준 callback URL append) 효과를 잃으므로 사내 ingress (`localhost:13000` 외 host) 사용 시 redirect URI 가 dev.json 의 hardcoded entries 로 제한된다. 권고는 python3 설치.
+**수동 우회 절차** (python3 설치 불가 host): deploy 진입 전 `KEYCLOAK_REALM_IMPORT_PATH=$ROOT/infra/idp/keycloak-realm.dev.json` env 를 사전 export → `build_env_file()` 의 emit gate (`COMPOSE_PROFILES` 가 `local-idp` 포함 시만 emit) 가 사전 export 값을 그대로 사용. 단 이 경로는 `generate_local_realm_import()` 의 dynamic redirect URI 주입 (PUBLIC_ACCESS_HOST 기준 callback URL append) 효과를 잃으므로 사내 ingress (`localhost:13000` 외 host) 사용 시 redirect URI 가 dev.json 의 hardcoded entries 로 제한된다. 권고는 python3 설치.
+
+### 1.2 generated realm import 산출 경로
+
+`scripts/deploy-from-env.sh:generate_local_realm_import()` 가 만드는 동적 realm import 파일 (`$ROOT_DIR/.build/devhub-keycloak-realm.generated.json`) 은 repo 안 `.build/` 하위에 떨어진다 (`.gitignore` 추적 외). 직전 default 였던 `/tmp/devhub-keycloak-realm.generated.json` 은 일부 호스트 (tmpfs `/tmp`, Docker Desktop의 file mount 제한) 에서 container 재시작 시 사라지는 risk 가 있어 repo 안 안정 path 로 이전했다.
+
+| 항목 | 값 |
+| --- | --- |
+| Default | `$ROOT_DIR/.build/devhub-keycloak-realm.generated.json` |
+| Override | env `GENERATED_KEYCLOAK_REALM_IMPORT=/path/to/file.json` 사전 export |
+| 자동 생성 | `mkdir -p $(dirname $output)` 가 함수 안에서 처리 — `.build/` 가 없어도 deploy 진입 시 자동 생성 |
+| Mount 진입 | docker-compose 의 keycloak service 가 `KEYCLOAK_REALM_IMPORT_PATH` 값을 `/opt/keycloak/data/import/realm.json:ro` 로 mount (local-idp profile only) |
+| git 추적 | `.gitignore` `/.build/` 로 제외 |
 
 ## 2. 결론 (권장 운영안)
 
