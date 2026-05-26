@@ -325,15 +325,41 @@ ORDER BY user_id ASC, unit_id ASC`
 	return result, nil
 }
 
-// GetHierarchy returns the full org-unit hierarchy along with derived counts
-// (direct members and total members in the descendant subtree).
+// GetHierarchy returns the full org-unit hierarchy along with derived counts.
+// 사용자 보고 2026-05-26 (PR #335 frontend 보강 + 본 backend 정합):
+// 한 user 가 multiple unit 에 속할 때 canonical unit 한 곳만 카운트.
+// canonical = leader 직책 우선 + 동일 role 내에서 가장 상위 (depth 최소) unit.
+// direct_count + total_count 모두 canonical 기반 dedupe. ADR-0024 와 정합.
 func (s *PostgresStore) GetHierarchy(ctx context.Context) (domain.Hierarchy, error) {
 	const unitsQuery = `
-WITH RECURSIVE descendants AS (
+WITH RECURSIVE
+descendants AS (
 	SELECT unit_id, unit_id AS root_id FROM org_units
 	UNION ALL
 	SELECT o.unit_id, d.root_id
 	FROM org_units o JOIN descendants d ON o.parent_unit_id = d.unit_id
+),
+depths AS (
+	SELECT unit_id, 1 AS depth FROM org_units WHERE parent_unit_id IS NULL OR parent_unit_id = ''
+	UNION ALL
+	SELECT o.unit_id, d.depth + 1
+	FROM org_units o JOIN depths d ON o.parent_unit_id = d.unit_id
+),
+ranked_appointments AS (
+	SELECT
+		a.user_id,
+		a.unit_id,
+		ROW_NUMBER() OVER (
+			PARTITION BY a.user_id
+			ORDER BY
+				CASE WHEN a.appointment_role = 'leader' THEN 0 ELSE 1 END,
+				d.depth ASC,
+				a.unit_id ASC
+		) AS rn
+	FROM unit_appointments a JOIN depths d ON a.unit_id = d.unit_id
+),
+canonical AS (
+	SELECT user_id, unit_id FROM ranked_appointments WHERE rn = 1
 )
 SELECT
 	o.id,
@@ -346,9 +372,9 @@ SELECT
 	o.position_y,
 	o.created_at,
 	o.updated_at,
-	(SELECT COUNT(*) FROM unit_appointments a WHERE a.unit_id = o.unit_id) AS direct_count,
-	(SELECT COUNT(DISTINCT a.user_id)
-	   FROM descendants d JOIN unit_appointments a ON a.unit_id = d.unit_id
+	(SELECT COUNT(*) FROM canonical c WHERE c.unit_id = o.unit_id) AS direct_count,
+	(SELECT COUNT(DISTINCT c.user_id)
+	   FROM descendants d JOIN canonical c ON c.unit_id = d.unit_id
 	   WHERE d.root_id = o.unit_id) AS total_count
 FROM org_units o
 ORDER BY o.unit_id ASC`

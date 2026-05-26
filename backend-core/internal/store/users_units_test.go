@@ -104,17 +104,37 @@ func TestPostgresStoreListUsersAndHierarchy(t *testing.T) {
 	if orgRoot.UnitType != domain.UnitTypeCompany {
 		t.Fatalf("expected org-root unit_type=company, got %q", orgRoot.UnitType)
 	}
-	if orgRoot.TotalCount < 3 {
-		t.Fatalf("expected org-root total_count >= 3 (3 seeded users), got %d", orgRoot.TotalCount)
+	// user-aware dedupe (ADR-0024, sprint 2026-05-26):
+	// u1 의 canonical unit = org-root (leader 가장 상위) — dept-eng leader 직책도
+	// 가지지만 depth 가 더 깊으므로 제외. u2 canonical = dept-prod, u3 canonical
+	// = team-infra. org-root subtree 의 unique canonical user = {u1, u2, u3}.
+	if orgRoot.DirectCount != 1 {
+		t.Fatalf("expected org-root direct_count = 1 (u1 canonical), got %d", orgRoot.DirectCount)
+	}
+	if orgRoot.TotalCount != 3 {
+		t.Fatalf("expected org-root total_count = 3 (u1+u2+u3 dedupe), got %d", orgRoot.TotalCount)
 	}
 
-	// dept-eng has u1 directly assigned plus descendants (team-infra has u3).
+	// dept-eng: u1 의 leader appointment 가 있지만 canonical 은 org-root.
+	// 따라서 direct = 0. team-infra (descendant) 의 u3 만 total 에 들어옴.
 	deptEng := unitsByID["dept-eng"]
-	if deptEng.DirectCount < 1 {
-		t.Fatalf("expected dept-eng direct_count >= 1, got %d", deptEng.DirectCount)
+	if deptEng.DirectCount != 0 {
+		t.Fatalf("expected dept-eng direct_count = 0 (u1 canonical=org-root, dedupe), got %d", deptEng.DirectCount)
 	}
-	if deptEng.TotalCount < 2 {
-		t.Fatalf("expected dept-eng total_count >= 2 (u1 + u3 in team-infra), got %d", deptEng.TotalCount)
+	if deptEng.TotalCount != 1 {
+		t.Fatalf("expected dept-eng total_count = 1 (u3 in team-infra only), got %d", deptEng.TotalCount)
+	}
+
+	// dept-prod: u2 canonical = dept-prod (유일 leader appointment).
+	deptProd := unitsByID["dept-prod"]
+	if deptProd.DirectCount != 1 {
+		t.Fatalf("expected dept-prod direct_count = 1 (u2 canonical), got %d", deptProd.DirectCount)
+	}
+
+	// team-infra: u3 canonical = team-infra.
+	teamInfra := unitsByID["team-infra"]
+	if teamInfra.DirectCount != 1 {
+		t.Fatalf("expected team-infra direct_count = 1 (u3 canonical), got %d", teamInfra.DirectCount)
 	}
 }
 
