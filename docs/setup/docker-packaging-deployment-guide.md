@@ -6,11 +6,12 @@
 - 범위: 이미지 태깅 규칙, 빌드/푸시 절차, compose 사용 범위, 운영 권장안
 - 대상 독자: 개발자, 릴리즈 담당자, 운영자
 - 상태: draft
-- 최종 수정일: 2026-05-26 (§1.1 host 사전조건 신규)
-- 관련 문서: [개발 환경 구성 가이드](./environment-setup.md), [테스트 서버 배포 가이드](./test-server-deployment.md), [ADR-0003](../adr/0003-no-docker-policy-ci-scope.md)
+- 최종 수정일: 2026-05-26 (§1.1 host 사전조건 + §1.2 sequence + §5.1 사내 mirror + §13 troubleshooting + 사내 네트워크 제약 cross-link)
+- 관련 문서: [개발 환경 구성 가이드](./environment-setup.md), [테스트 서버 배포 가이드](./test-server-deployment.md), [**사내 네트워크 제약 운영 가이드**](./internal_network_constraints.md) (host build / 외부 port forward / db+Keycloak 분기 3 제약 통합), [ADR-0003](../adr/0003-no-docker-policy-ci-scope.md), [ADR-0022 §3.4 port 13000](../adr/0022-keycloak-version-pin-25-0.md#34-외부-ingress-포트-13000-정합), [ADR-0023 Keycloak 26.0](../adr/0023-keycloak-version-pin-26-0.md), [deploy.env.example](./deploy.env.example) (내부/외부 분기 example)
 
 배포 실행 전 반드시 확인:
 - [배포 Preflight 체크리스트 (실수 방지 SOP)](./deploy_preflight_checklist.md)
+- [사내 네트워크 제약 운영 가이드](./internal_network_constraints.md) — host build / 외부 13000→3000 forward / db+Keycloak 내부·외부 분기 3 제약 통합
 
 ## 1. 현재 저장소 기준 Docker 자산
 
