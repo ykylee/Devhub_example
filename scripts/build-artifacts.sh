@@ -6,7 +6,10 @@
 # 접근 불가 (host proxy 가 container 안으로 전파 안 됨) 시나리오 회피.
 #
 # Prerequisites (host tools, 사전 검증):
-#   - go 1.22+              backend-core 빌드 (CGO_ENABLED=0 정적 binary)
+#   - go 1.25+              backend-core 빌드 (CGO_ENABLED=0 정적 binary).
+#                          backend-core/go.mod 가 `go 1.25.9` 명시 — host go 1.25
+#                          정확히 (또는 그 이상) 권장. 사내 proxy 환경은 GOTOOLCHAIN
+#                          자동 bump 차단 가능 → host 1.25 사전 설치.
 #   - python3.12 (정확히)   backend-ai 빌드 (backend-ai/Dockerfile 의 python:3.12-slim
 #                          과 ABI 정합 강제 — 다른 minor ver 시 grpcio 등 C extension
 #                          import 실패 / segfault risk)
@@ -61,7 +64,7 @@ verify_prerequisites() {
 
   if ! command -v go >/dev/null 2>&1; then
     missing+=("go")
-    detail+="\n  - go 미설치. https://go.dev/dl/ 에서 1.22+ 설치"
+    detail+="\n  - go 미설치. https://go.dev/dl/ 에서 1.25+ 설치 (backend-core/go.mod = 1.25.9)"
   fi
 
   if ! command -v node >/dev/null 2>&1; then

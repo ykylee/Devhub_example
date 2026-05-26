@@ -30,7 +30,7 @@ compose는 서비스 간 연결/개발 실행에 유용하지만, 배포 산출�
 
 | 도구 | 용도 | 검증 명령 | 사용 script |
 | --- | --- | --- | --- |
-| `go 1.22+` | backend-core Go 정적 binary 빌드 (`CGO_ENABLED=0`) | `go version` | build-artifacts.sh |
+| `go 1.25+` | backend-core Go 정적 binary 빌드 (`CGO_ENABLED=0`). `backend-core/go.mod` 가 `go 1.25.9` 명시 — host go 가 더 낮은 ver 이면 `GOTOOLCHAIN=auto` 가 자동 bump 하나 명시 일치 권장. | `go version` (1.25+) | build-artifacts.sh |
 | **`python3.12` 정확히** | backend-ai deps install (`requirements.txt` → `.build/site-packages`). **다른 minor ver 사용 시 C extension (grpcio / pydantic-core) ABI mismatch — `backend-ai/Dockerfile` 의 `python:3.12-slim` runtime 에서 import 실패 / segfault risk**. | `python3.12 --version` 또는 `python3 --version` (3.12.x) | build-artifacts.sh |
 | `python3` (3.8+) | `deploy-from-env.sh:generate_local_realm_import()` heredoc + `setup-keycloak.sh` JSON 파싱 (표준 라이브러리만, 정확한 minor 무관) | `python3 --version` (3.8+) | deploy-from-env.sh + setup-keycloak.sh + verify-keycloak-groups.sh |
 | `node 20+` + `npm` | frontend Next.js standalone 빌드 (`npm ci && npm run build`) | `node --version` (20+) + `npm --version` | build-artifacts.sh |
@@ -464,7 +464,7 @@ host build 는 `scripts/build-artifacts.sh` 가 담당하고, Dockerfile 은 결
 
 | # | 시나리오 | 증상 | 원인 | 해결 |
 | --- | --- | --- | --- | --- |
-| 1 | `build-artifacts.sh` 의 `go: command not found` | host 의 go 미설치 | go 1.22+ 미설치 | `https://go.dev/dl/` 에서 설치 또는 `apt install golang-go` |
+| 1 | `build-artifacts.sh` 의 `go: command not found` 또는 `requires go >= 1.25` | host 의 go 미설치 또는 ver 부족 | go 1.25+ 미설치 (`backend-core/go.mod` 가 `go 1.25.9` 명시) | `https://go.dev/dl/` 에서 1.25+ 설치. `GOTOOLCHAIN=auto` env 시 자동 bump 동작하나 사내 proxy 환경에서 toolchain download 차단 가능 — host 1.25 사전 설치 권장. |
 | 2 | `python3.12: command not found` 또는 `python3 --version` 3.12 외 | backend-ai build verify_prerequisites fail | host 의 python 3.12 정확히 없음 | `pyenv install 3.12` / `apt install python3.12` / `brew install python@3.12` (§1.1 참조) |
 | 3 | `npm ci` fail with `code ENOTFOUND registry.npmjs.org` | npm registry 접근 차단 | host proxy 미설정 또는 사내 npm mirror 미설정 | host `npm config set proxy http://proxy.internal:8080` + `npm config set https-proxy ...` 또는 사내 mirror `npm config set registry https://npm.internal.example.com` |
 | 4 | `go build` fail with `dial tcp ... timeout` | go module proxy 접근 차단 | host `GOPROXY` 미설정 | host `export GOPROXY=https://proxy.golang.org,direct` (외부) 또는 사내 mirror `export GOPROXY=https://goproxy.internal.example.com,direct` |
