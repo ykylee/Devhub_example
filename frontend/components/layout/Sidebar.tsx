@@ -17,16 +17,12 @@ interface MenuItem {
 }
  
 const baseMenu: MenuItem[] = [
-  { href: "/developer", icon: LayoutDashboard, label: "Work Status", color: "text-blue-700 dark:text-blue-300" },
-  { href: "/manager", icon: Users, label: "Quality Status", color: "text-emerald-700 dark:text-emerald-300" },
   { href: "/applications", icon: Zap, label: "Applications", color: "text-violet-700 dark:text-violet-300" },
   { href: "/repositories", icon: Server, label: "Repositories", color: "text-cyan-700 dark:text-cyan-300" },
   { href: "/projects", icon: Settings, label: "Projects", color: "text-rose-700 dark:text-rose-300" },
 ];
  
-const systemMenu: MenuItem[] = [
-  { href: "/admin", icon: Server, label: "Sys Admin Dashboard", color: "text-sky-700 dark:text-sky-300" },
-];
+const systemMenu: MenuItem[] = [];
  
 const systemBottomMenu: MenuItem = {
   href: "/admin/settings",

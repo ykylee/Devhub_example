@@ -1,5 +1,6 @@
 "use client";
 
+import { redirect } from "next/navigation";
 import { useCallback, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -31,6 +32,7 @@ import { dashboardService, DeveloperBuildItem, DeveloperStreamItem } from "@/lib
 import { toUserErrorMessage } from "@/lib/services/error-message";
 
 export default function DeveloperDashboard() {
+  redirect("/projects");
   const { isDeepFocus, setDeepFocus, addToast } = useStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [stats, setStats] = useState<Metric[]>([]);

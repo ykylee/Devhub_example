@@ -1,0 +1,16 @@
+# Stage 1: Build Custom Keycloak Event Listener SPI
+FROM maven:3.9-eclipse-temurin-21 AS spi-builder
+WORKDIR /app
+COPY infra/idp/keycloak-event-listener-spi/pom.xml .
+COPY infra/idp/keycloak-event-listener-spi/src ./src
+RUN mvn clean package -DskipTests
+
+# Stage 2: Final Keycloak Image
+FROM quay.io/keycloak/keycloak:26.0
+WORKDIR /opt/keycloak
+
+# Copy Custom SPI jar into Keycloak providers directory
+COPY --from=spi-builder /app/target/devhub-keycloak-event-listener.jar /opt/keycloak/providers/
+
+# Enable the custom SPI listener automatically at runtime by building Keycloak config
+RUN /opt/keycloak/bin/kc.sh build
