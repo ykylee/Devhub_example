@@ -6,7 +6,7 @@
 - **수정일**: 2026-05-26
 - **결정 근거 sprint**: `claude/work_260526-adr-0023-keycloak-26-forward`
 - **Supersedes**: [ADR-0022 (Keycloak 25.0 pin)](./0022-keycloak-version-pin-25-0.md)
-- **관련 문서**: [ADR-0019 Keycloak 단일화](./0019-keycloak-only-idp.md), [`docker-compose.deploy.yml`](../../docker-compose.deploy.yml), [`docs/setup/keycloak_operations.md`](../setup/keycloak_operations.md), [`memory feedback_adr_supersession_pattern`](../../C:/Users/sem/.claude/projects/D--yklee-repos-Devhub-example/memory/feedback_adr_supersession_pattern.md)
+- **관련 문서**: [ADR-0019 Keycloak 단일화](./0019-keycloak-only-idp.md), [`docker-compose.deploy.yml`](../../docker-compose.deploy.yml), [`docs/setup/keycloak_operations.md`](../setup/keycloak_operations.md). ADR governance 패턴: `feedback_adr_supersession_pattern` (claude memory, immutable history 원칙).
 
 ## 2. 컨텍스트
 
@@ -25,7 +25,7 @@
 
 ### 2.3 reversal 절차의 ADR governance
 
-[`memory feedback_adr_supersession_pattern`](../../C:/Users/sem/.claude/projects/D--yklee-repos-Devhub-example/memory/feedback_adr_supersession_pattern.md) 정공법:
+`feedback_adr_supersession_pattern` (claude memory) 정공법:
 
 - ADR-0022 본문 partial 수정 금지 (immutable history 원칙)
 - 본 ADR-0023 신규 발행으로 결정 reversal 명문화
