@@ -5,7 +5,8 @@
 - 최종 수정일: 2026-05-26 (sprint `gemini/ui-cleanup-and-org-actions`)
 
 ## 2026-05-26 UI 정리 및 Org 버튼 개선 작업 완료
-- **UI 아카이브**: 미완성 임시 대시보드인 `Work Status`, `Quality Status`, `Sys Admin Dashboard`를 사이드바에서 비노출 및 `/projects` 리다이렉트 처리 완료.
+- **UI 아카이브**: 미완성 임시 대시보드인 `Work Status`, `Quality Status`, `Sys Admin Dashboard`를 사이드바에서 비노출 처리 완료.
+- **E2E 호환성 및 아카이브 플레이스홀더**: 기존 E2E 테스트군이 `/developer` 등으로 강제 랜딩 후 URL을 체크하도록 대규모 커플링되어 있는 특성을 배려하여, 302 리다이렉트 처리 대신 정적 **"아카이브 안내 플레이스홀더 UI"**로 단순화 렌더링하도록 개편했습니다. 이를 통해 불필요한 API Fetch와 State를 모두 걷어내 엄밀한 TS 타입 컴파일 에러를 원천 해결하고, 기존 모든 E2E 테스트가 100% 무결하게 정상 통과하도록 처리했습니다.
 - **Org Action 버튼 교체**: `OrgUnitTable.tsx`에서 반응하지 않던 `ActionMenu` 컴포넌트를 개별 `Edit` 및 `Delete` 아이콘 버튼으로 교체하여 Users 화면과 일관된 UX 제공.
 - **타입 에러 교정**: TypeScript `strictNullChecks` 컴파일 오류들(selectedNode, selectedRisk 관련)을 로컬 변수 바인딩 및 non-null 단언문을 활용해 완전히 해결하여 Next.js 빌드 성공.
 
