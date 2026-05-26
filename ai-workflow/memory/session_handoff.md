@@ -1,3 +1,78 @@
+# Session Handoff — main (2026-05-26 PR #323 codex DREQ 알림 연계 + 4 PR 흡수 housekeeping — 본 conversation 재종결)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
+- 범위: 직전 PR #322 (final housekeeping `835eebc`) 이후 4 PR 흡수 — PR #312 (`e60d4eb`, codex project-management v2) + PR #324 (`ee17937`, 사내 네트워크 docs) + PR #325 (`27b08e2`, nginx X-Forwarded-Host fix) + PR #323 (`7289d2e`, codex DREQ 후속).
+- 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
+- 상태: main HEAD `7289d2e`. 본 conversation 최종 결산 24 머지 PR + 10 housekeeping + 1 issue closed. claude 영역 잔여 0.
+- 최종 수정일: 2026-05-26 (sprint `claude/work_260526-housekeeping-post-325`)
+- 관련 문서: [internal_network_constraints.md](../../docs/setup/internal_network_constraints.md), [devhub.deploy.conf.template](../../infra/nginx/devhub.deploy.conf.template), [PR #323](https://github.com/ykylee/Devhub_example/pull/323), [PR #325](https://github.com/ykylee/Devhub_example/pull/325).
+
+## 2026-05-26 본 housekeeping sprint (`claude/work_260526-housekeeping-post-325`)
+
+직전 final housekeeping (PR #322, `835eebc`) 이후 4 PR 흡수.
+
+### 흡수 대상 (4)
+
+| sha | PR | author | core |
+| --- | --- | --- | --- |
+| `e60d4eb` | #312 | codex (사용자 머지) | project-management v2 hybrid model + migration 000034 + JWKS Linux 호환 + e2e seed (40 파일). claude review (P0/P1 0, P2 2, P3 1) 후 사용자 squash merge. |
+| `ee17937` | #324 | claude | 사내 네트워크 제약 통합 docs (`internal_network_constraints.md` 신규) + deploy.env.example 분기 보강 (내부/외부 모드) + DEVHUB_PROJECT_MODEL + proxy env. 5 파일 / +256 / -12. Stage 3 보강 (port 13000/3000 가변성 강조). |
+| `27b08e2` | #325 | claude | **nginx X-Forwarded-Host fix** — `infra/nginx/devhub.deploy.conf.template` 6 location block 모두 `X-Forwarded-Host $http_host` (4 신규 + 2 `$host`→`$http_host` 정정). 사용자 보고 critical issue (사내 :13000 → 호스트 → VM :3000 → docker :3000 port forward 환경에서 OIDC redirect_uri 가 :80 으로 잘못 생성) 해소. |
+| `7289d2e` | #323 | codex (claude rebase + 4 amend) | hybrid project creation + DREQ 알림 연계 + E2E. **claude 처리**: base outdated + CI 미 trigger + 7 conflict → rebase + 4 amend (frontend type fix / dev-requests.spec.ts main pattern restore / IPv6 `::1` IP allowlist 추가 / cleanup token best-effort try-catch) → CI 8 job PASS + 사용자 squash merge. |
+
+### nginx X-Forwarded-Host fix root cause
+
+`frontend/app/api/runtime-config/route.ts:28` 의 `request.nextUrl.origin` fallback 이 nginx X-Forwarded-Host 헤더 누락 시 internal listen port (:3000) 또는 :80 default 인식. 6 location block 중 4 (runtime-config / _next / devhub/api / devhub/) 가 누락, Keycloak 2 (admin / public) 는 `$host` (port 누락) 만. `$http_host` (client Host 헤더 host:port 그대로) 채택. `nginx-conf-sync.sh --fix` 자동 재실행.
+
+후속 사내 검증 (운영자):
+- `docker compose -f docker-compose.deploy.yml up -d nginx` 재기동
+- 외부 :13000 진입 → `/devhub/login` → redirect_uri = `http://<host>:13000/devhub/auth/callback` 정상 확인
+
+### PR #323 claude rebase + 4 amend 흐름 (worker_division_override 패턴)
+
+| Stage | 처리 |
+| --- | --- |
+| rebase | main 위 cherry-pick, 7 conflict 해결 (HEAD/PR #323 통합) |
+| amend 1 | frontend type error fix (`numericRepositories` 변환 활용) |
+| amend 2 | dev-requests.spec.ts main 의 raw `/api/v1/...` 패턴 restore + PROMOTE-PROJ-01 append (assignee_user_id developer 정정) |
+| amend 3 | PROMOTE-PROJ-01 token issue IPv6 `::1` 추가 (CI runner IPv6 loopback 거부 회피) |
+| amend 4 | step 6 cleanup token best-effort try-catch wrap (`feedback_e2e_oidc_flaky` 정합) |
+
+### 본 conversation 최종 결산 (24 머지 PR + 10 housekeeping + 1 issue closed)
+
+| 영역 | 결과 |
+| --- | --- |
+| PR #296 follow-up | 6/6 |
+| issue #214 codex | 흡수 (verify-keycloak-groups.sh) |
+| ADR governance | ADR-0023 신규 + ADR-0022 supersession |
+| build/deploy script cleanup | host 사전 검증 + dockerized fallback 제거 + §1.2/§13 |
+| Onboarding monitoring | SQL + Prometheus 5 metric |
+| Go toolchain | 1.22 → 1.25 |
+| Dockerfile FROM ARG | 사내 mirror override |
+| issue #302 closed | SETUP_KEYCLOAK_QUIET |
+| Onboarding SOP §8 carve | 모두 closed |
+| project-management v2 | PR #312 (codex 머지) + PR #323 (DREQ 후속, claude rebase) |
+| 사내 네트워크 docs | PR #324 (internal_network_constraints) |
+| nginx X-Forwarded-Host fix | PR #325 (critical regress 해소) |
+| carve out 잔여 | **0** |
+
+### 다음 directive (4 순위, 모두 사내/사용자 영역)
+
+| 순위 | 항목 | 영역 |
+| --- | --- | --- |
+| 1 | Onboarding SOP staging 1주 monitoring | 사내 SRE |
+| 2 | 사내 nginx 재기동 + OIDC redirect_uri 검증 (PR #325 후속) | 사내 Infra |
+| 3 | 사내 Keycloak 26.0 image pull + redeploy smoke (ADR-0023 §5) | 사내 Infra |
+| 4 | issue #214 사내 1회 작업 + verify-keycloak-groups.sh PASS | 사용자/자동 |
+
+**claude 영역 잔여 directive 없음**. 본 conversation 최종 종결.
+
+## 2026-05-26 직전 final housekeeping (PR #322, `835eebc`)
+
+PR #312 codex 머지 흡수 후 "본 conversation 종결" 명문화 — 이후 사용자 critical issue (nginx 80 redirect / PR #323 codex 후속) 들어와 재진입 + 본 housekeeping 으로 재종결.
+
+
+
 # Session Handoff — main (2026-05-26 PR #312 codex project-management v2 머지 + final housekeeping — 본 conversation 종결)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
