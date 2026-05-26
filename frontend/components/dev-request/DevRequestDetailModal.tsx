@@ -13,6 +13,7 @@ interface DevRequestDetailModalProps {
   isSystemAdmin: boolean;
   onClose: () => void;
   onChanged: (updated: DevRequest) => void;
+  onPromote?: (req: DevRequest) => void;
 }
 
 type Mode = "view" | "register" | "reject" | "reassign";
@@ -22,6 +23,7 @@ export function DevRequestDetailModal({
   isSystemAdmin,
   onClose,
   onChanged,
+  onPromote,
 }: DevRequestDetailModalProps) {
   const [mode, setMode] = useState<Mode>("view");
   const [submitting, setSubmitting] = useState(false);
@@ -179,6 +181,16 @@ export function DevRequestDetailModal({
             <div className="flex flex-wrap gap-3 pt-4 border-t border-border/60">
               {canRegister && (
                 <>
+                  <ActionButton
+                    icon={<FolderKanban className="w-4 h-4" />}
+                    label="Promote to Project"
+                    onClick={() => {
+                      if (onPromote) {
+                        onPromote(request);
+                      }
+                    }}
+                    color="emerald"
+                  />
                   <ActionButton
                     icon={<Box className="w-4 h-4" />}
                     label="Register as Application"
@@ -344,13 +356,14 @@ function ActionButton({
   icon: React.ReactNode;
   label: string;
   onClick: () => void;
-  color: "purple" | "indigo" | "rose" | "amber";
+  color: "purple" | "indigo" | "rose" | "amber" | "emerald";
 }) {
   const palette = {
     purple: "bg-purple-500/10 border-purple-500/30 text-purple-400 hover:bg-purple-500/20",
     indigo: "bg-indigo-500/10 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/20",
     rose: "bg-destructive/10 border-destructive/30 text-destructive hover:bg-destructive/20",
     amber: "bg-warning/10 border-warning/30 text-warning hover:bg-warning/20",
+    emerald: "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20",
   }[color];
   return (
     <button

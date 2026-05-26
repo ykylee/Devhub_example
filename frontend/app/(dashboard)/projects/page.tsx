@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useState, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   Briefcase, 
   Calendar, 
@@ -20,32 +20,37 @@ import { Badge } from "@/components/ui/Badge";
 import { FilterBar } from "@/components/ui/FilterBar";
 import { projectService } from "@/lib/services/project.service";
 import type { Project } from "@/lib/services/project.types";
+import { repositoryService } from "@/lib/services/repository.service";
+import { ProjectCreationModal } from "@/components/project/ProjectCreationModal";
+import { useToast } from "@/components/ui/Toast";
 
 export default function ProjectsStatusPage() {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [repositories, setRepositories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const { toast } = useToast();
+
+  const refresh = useCallback(async () => {
+    try {
+      const repos = await repositoryService.listRepositories();
+      setRepositories(repos);
+      const allProjects = await projectService.listAllProjects(repos.map(r => r.id));
+      setProjects(allProjects);
+    } catch (err) {
+      setError("Failed to load projects data.");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const apps = await projectService.getApplications({ include_archived: true });
-        const nested = await Promise.all(
-          apps.map((app) => projectService.getApplicationProjectsV2(app.id).catch(() => [])),
-        );
-        const allProjects = nested.flat();
-        setProjects(allProjects);
-      } catch (err) {
-        setError("Failed to load projects data.");
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadData();
-  }, []);
+    void refresh();
+  }, [refresh]);
 
   const filteredProjects = projects.filter((project) => {
     const matchesSearch = project.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -75,7 +80,10 @@ export default function ProjectsStatusPage() {
         titleGradient="Milestones (과제 현황)"
         subtitle="Tracking development projects, milestones, and delivery timelines."
         actions={
-          <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-opacity">
+          <button 
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-opacity"
+          >
             <Plus className="w-4 h-4" /> New Project
           </button>
         }
@@ -191,6 +199,19 @@ export default function ProjectsStatusPage() {
           </div>
         )}
       </div>
+ 
+      <AnimatePresence>
+        {showCreateModal && (
+          <ProjectCreationModal
+            repositories={repositories}
+            onClose={() => setShowCreateModal(false)}
+            onCreated={(newProj) => {
+              toast(`Project ${newProj.name} created successfully`, "success");
+              void refresh();
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

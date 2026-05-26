@@ -153,6 +153,10 @@ func (h *Handler) createProject(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": err.Error()})
 		return
 	}
+	h.createProjectWithRepoID(c, storeI, repoID, req)
+}
+
+func (h *Handler) createProjectWithRepoID(c *gin.Context, storeI ApplicationStore, repoID int64, req createProjectRequest) {
 	if strings.TrimSpace(req.Key) == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "key is required"})
 		return

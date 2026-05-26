@@ -9,11 +9,24 @@ import { useStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import { authService } from "@/lib/services/auth.service";
 import { realtimeService, type ConnectionStatusEvent } from "@/lib/services/realtime.service";
+import { devRequestService } from "@/lib/services/dev_request.service";
+import { DevRequest } from "@/lib/services/dev_request.types";
+import { repositoryService } from "@/lib/services/repository.service";
+import { DevRequestDetailModal } from "@/components/dev-request/DevRequestDetailModal";
+import { ProjectCreationModal } from "@/components/project/ProjectCreationModal";
 
 export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   const { role, actor, notifications, clearNotifications, setSidebarOpen } = useStore();
   const router = useRouter();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [pendingDreqs, setPendingDreqs] = useState<DevRequest[]>([]);
+  const [repositories, setRepositories] = useState<any[]>([]);
+  const [selectedDreq, setSelectedDreq] = useState<DevRequest | null>(null);
+  const [showDreqDetail, setShowDreqDetail] = useState(false);
+  const [showProjectCreate, setShowProjectCreate] = useState(false);
+  const [projectPrefill, setProjectPrefill] = useState<any>(null);
+
   const [isConnected, setIsConnected] = useState(realtimeService.isConnected);
   // 초기 theme 은 paint 전에 layout 의 inline script 가 html 에 적용하므로
   // 여기서는 그 결과(`theme-dark` class 유무)를 읽어 state 와 일치시킨다.
@@ -33,11 +46,42 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
     localStorage.setItem("devhub-theme", newTheme);
   };
 
+  const fetchDreqs = async () => {
+    try {
+      const res = await devRequestService.list({ status: ["pending", "in_review"], limit: 5 });
+      setPendingDreqs(res.data);
+      useStore.setState({ notifications: res.total });
+    } catch (err) {
+      console.error("Failed to fetch pending DREQs for header:", err);
+    }
+  };
+
+  const fetchRepos = async () => {
+    try {
+      const repos = await repositoryService.listRepositories();
+      setRepositories(repos);
+    } catch (err) {
+      console.error("Failed to fetch repositories for promotion:", err);
+    }
+  };
+
   useEffect(() => {
-    const unsubscribe = realtimeService.subscribe<ConnectionStatusEvent>('status.changed', (event) => {
+    fetchDreqs();
+    fetchRepos();
+
+    const unsubscribeStatus = realtimeService.subscribe<ConnectionStatusEvent>('status.changed', (event) => {
       setIsConnected(event.data.connected);
+      fetchDreqs();
     });
-    return () => unsubscribe();
+
+    const unsubscribeDreq = realtimeService.subscribe<any>('dev_request.created', () => {
+      fetchDreqs();
+    });
+
+    return () => {
+      unsubscribeStatus();
+      unsubscribeDreq();
+    };
   }, []);
 
   const handleLogout = async () => {
@@ -83,18 +127,76 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
         </div>
         
         <div className="flex items-center gap-3 lg:gap-6">
-          <motion.button 
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={clearNotifications}
-            className="relative p-2.5 rounded-xl hover:bg-muted/30 text-muted-foreground hover:text-foreground dark:hover:text-primary-foreground transition-all"
-            aria-label={`Notifications (${notifications} new)`}
-          >
-            <Bell className="h-5 w-5" aria-hidden="true" />
-            {notifications > 0 && (
-              <span className="absolute top-2 right-2 w-2 h-2 bg-accent rounded-full border-2 border-background"></span>
-            )}
-          </motion.button>
+          <div className="relative">
+            <motion.button 
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                setShowNotifications(!showNotifications);
+                setShowDropdown(false);
+              }}
+              className="relative p-2.5 rounded-xl hover:bg-muted/30 text-muted-foreground hover:text-foreground dark:hover:text-primary-foreground transition-all"
+              aria-label={`Notifications (${notifications} new)`}
+            >
+              <Bell className="h-5 w-5" aria-hidden="true" />
+              {notifications > 0 && (
+                <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-accent rounded-full border-2 border-background flex items-center justify-center text-[7px] font-black text-white">{notifications}</span>
+              )}
+            </motion.button>
+
+            <AnimatePresence>
+              {showNotifications && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  className="absolute top-full right-0 mt-4 w-80 rounded-2xl glass border border-border p-4 z-[200] shadow-2xl space-y-4"
+                >
+                  <div className="flex items-center justify-between border-b border-border/40 pb-2">
+                    <span className="text-xs font-black uppercase tracking-widest text-foreground dark:text-primary-foreground">Pending Requests</span>
+                    <span className="px-2 py-0.5 rounded-full bg-accent/20 text-accent text-[10px] font-black">{pendingDreqs.length}</span>
+                  </div>
+
+                  <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
+                    {pendingDreqs.length === 0 ? (
+                      <p className="text-center py-6 text-xs text-muted-foreground uppercase tracking-widest font-black opacity-50">No pending requests</p>
+                    ) : (
+                      pendingDreqs.map((req) => (
+                        <div 
+                          key={req.id}
+                          onClick={() => {
+                            setSelectedDreq(req);
+                            setShowDreqDetail(true);
+                            setShowNotifications(false);
+                          }}
+                          className="p-3 rounded-xl border border-border/40 bg-muted/10 hover:bg-muted/30 hover:border-primary/30 transition-all cursor-pointer space-y-1 text-left"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-wider">{req.external_ref || "DREQ"}</span>
+                            <span className="text-[8px] font-mono text-muted-foreground">{new Date(req.received_at).toLocaleDateString()}</span>
+                          </div>
+                          <p className="text-xs font-bold text-foreground dark:text-primary-foreground truncate">{req.title}</p>
+                          <p className="text-[9px] text-muted-foreground uppercase tracking-widest truncate">From: {req.requester}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  <div className="pt-2 border-t border-border/40 text-center">
+                    <button
+                      onClick={() => {
+                        router.push("/dev-requests");
+                        setShowNotifications(false);
+                      }}
+                      className="text-[10px] font-black text-primary hover:text-foreground dark:hover:text-primary-foreground uppercase tracking-widest transition-colors"
+                    >
+                      View All Dev Requests
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
           
           <div className="h-6 w-px bg-muted/40 hidden sm:block"></div>
           
@@ -103,7 +205,10 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
                 + accessibility tree consistency. e2e regression hotfix (PR #248). */}
             <button
               type="button"
-              onClick={() => setShowDropdown(!showDropdown)}
+              onClick={() => {
+                setShowDropdown(!showDropdown);
+                setShowNotifications(false);
+              }}
               className="flex items-center gap-3 py-1.5 px-3 rounded-2xl hover:bg-muted/30 transition-all cursor-pointer group"
               aria-haspopup="true"
               aria-expanded={showDropdown}
@@ -190,6 +295,56 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {showDreqDetail && selectedDreq && (
+          <DevRequestDetailModal
+            request={selectedDreq}
+            isSystemAdmin={role === "System Admin"}
+            onClose={() => {
+              setShowDreqDetail(false);
+              setSelectedDreq(null);
+            }}
+            onChanged={() => {
+              fetchDreqs();
+            }}
+            onPromote={(req) => {
+              setShowDreqDetail(false);
+              setProjectPrefill({
+                key: req.external_ref || "",
+                name: req.title || "",
+                description: req.details || "",
+              });
+              setShowProjectCreate(true);
+            }}
+          />
+        )}
+
+        {showProjectCreate && (
+          <ProjectCreationModal
+            repositories={repositories}
+            initialData={projectPrefill}
+            onClose={() => {
+              setShowProjectCreate(false);
+              setProjectPrefill(null);
+              setSelectedDreq(null);
+            }}
+            onCreated={(newProj) => {
+              if (selectedDreq) {
+                devRequestService.register(selectedDreq.id, {
+                  target_type: "project",
+                  target_id: newProj.id,
+                }).then(() => {
+                  fetchDreqs();
+                }).catch(console.error);
+              }
+              setShowProjectCreate(false);
+              setProjectPrefill(null);
+              setSelectedDreq(null);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </header>
   );
 }

@@ -1,21 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { X, FolderKanban, Loader2, GitBranch } from "lucide-react";
 import { ApplicationRepository, Project, ApplicationVisibility, ProjectStatus } from "@/lib/services/project.types";
+import { Repository } from "@/lib/services/repository.service";
 import { projectService } from "@/lib/services/project.service";
 import { cn } from "@/lib/utils";
 
 interface ProjectCreationModalProps {
-  applicationId: string;
-  repositories: ApplicationRepository[];
+  applicationId?: string;
+  repositories: (ApplicationRepository | Repository)[];
   onClose: () => void;
   onCreated: (project: Project) => void;
   initialData?: Partial<Project>;
 }
 
 export function ProjectCreationModal({ applicationId, repositories, onClose, onCreated, initialData }: ProjectCreationModalProps) {
+  const numericRepositories = repositories.map((r: any) => {
+    const repository_id = r.repository_id ?? r.id;
+    const repo_full_name = r.repo_full_name ?? r.full_name ?? r.name ?? "";
+    const repo_provider = r.repo_provider ?? "github";
+    return {
+      ...r,
+      repository_id,
+      repo_full_name,
+      repo_provider,
+    };
+  }).filter((r) => typeof r.repository_id === "number" && r.repository_id > 0);
+
+  const initialRepositoryId =
+    initialData?.repository_id || numericRepositories[0]?.repository_id || 0;
+
   const [formData, setFormData] = useState({
     key: initialData?.key || "",
     name: initialData?.name || "",
@@ -25,11 +41,19 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
     status: initialData?.status || "planning" as ProjectStatus,
     start_date: initialData?.start_date || "",
     due_date: initialData?.due_date || "",
-    repository_id: initialData?.repository_id || repositories.find((r) => typeof r.repository_id === "number")?.repository_id || 0,
-    repository_ids: initialData?.repository_ids || ([] as number[]),
+    repository_id: initialData?.repository_id || initialRepositoryId || 0,
+    repository_ids: initialData?.repository_ids || (initialRepositoryId ? [initialRepositoryId] : ([] as number[])),
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   const isEdit = !!initialData?.id;
 
@@ -54,8 +78,14 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
            throw new Error("A repository must be selected for the project.");
         }
         const repository_ids = Array.from(selected);
-        const payload = { ...formData, application_id: applicationId, repository_ids };
-        result = await projectService.createApplicationProject(applicationId, payload);
+        // Prefer application-scoped v2 endpoint for project creation (Application -> Project -> Repository N:M).
+        // Fallback to legacy single-repository path when applicationId is unavailable (e.g., DREQ promotion before app binding).
+        if (applicationId) {
+          const payload = { ...formData, application_id: applicationId, repository_ids };
+          result = await projectService.createApplicationProject(applicationId, payload);
+        } else {
+          result = await projectService.createProject(formData.repository_id, formData);
+        }
       }
       onCreated(result);
       onClose();
@@ -80,6 +110,8 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        role="dialog"
+        aria-modal="true"
         className="relative w-full max-w-2xl glass border-border rounded-3xl shadow-2xl overflow-hidden"
       >
         <div className="p-8 border-b border-border flex items-center justify-between">
@@ -136,13 +168,19 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
               <select
                 disabled={isEdit}
                 value={formData.repository_id}
-                onChange={e => setFormData({ ...formData, repository_id: Number(e.target.value) })}
+                onChange={e => {
+                  const nextPrimary = Number(e.target.value);
+                  const existing = formData.repository_ids.filter((id) => id !== nextPrimary);
+                  setFormData({
+                    ...formData,
+                    repository_id: nextPrimary,
+                    repository_ids: [nextPrimary, ...existing],
+                  });
+                }}
                 className="w-full bg-muted/30 border border-border rounded-2xl pl-12 pr-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400/50 appearance-none"
               >
                 <option value={0} disabled>Select a repository...</option>
-                {repositories
-                  .filter((repo) => typeof repo.repository_id === "number")
-                  .map((repo) => (
+                {numericRepositories.map((repo) => (
                     <option
                       key={`${repo.repo_provider}/${repo.repo_full_name}`}
                       value={repo.repository_id}
@@ -156,34 +194,80 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
             <p className="text-[9px] text-accent/60 px-1 italic">
               Primary repository for backward compatibility.
             </p>
+            {!isEdit && numericRepositories.length > 1 && (
+              <div className="mt-3 p-3 rounded-xl border border-border/60 bg-muted/20">
+                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-2">
+                  Additional Linked Repositories (N:M)
+                </p>
+                <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
+                  {numericRepositories.map((repo) => {
+                    const repoId = repo.repository_id as number;
+                    const checked = formData.repository_ids.includes(repoId);
+                    return (
+                      <label
+                        key={`multi-${repo.repo_provider}-${repo.repo_full_name}`}
+                        className="flex items-center gap-2 text-xs text-foreground dark:text-primary-foreground"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              const merged = Array.from(new Set([...formData.repository_ids, repoId]));
+                              setFormData({
+                                ...formData,
+                                repository_ids: merged,
+                                repository_id: formData.repository_id || repoId,
+                              });
+                              return;
+                            }
+                            const next = formData.repository_ids.filter((id) => id !== repoId);
+                            setFormData({
+                              ...formData,
+                              repository_ids: next,
+                              repository_id:
+                                formData.repository_id === repoId
+                                  ? (next[0] ?? 0)
+                                  : formData.repository_id,
+                            });
+                          }}
+                          className="accent-indigo-400"
+                        />
+                        <span>
+                          {repo.repo_full_name} ({repo.repo_provider})
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           {!isEdit && (
             <div className="space-y-2">
               <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Additional Repositories (N:M)</label>
               <div className="grid grid-cols-1 gap-2 max-h-44 overflow-y-auto rounded-2xl border border-border/50 bg-muted/10 p-3">
-                {repositories
-                  .filter((repo) => typeof repo.repository_id === "number")
-                  .map((repo) => {
-                    const id = repo.repository_id as number;
-                    const checked = formData.repository_ids.includes(id);
-                    return (
-                      <label key={`repo-link-${id}`} className="flex items-center gap-3 text-xs text-foreground dark:text-primary-foreground">
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={(e) => {
-                            const next = new Set(formData.repository_ids);
-                            if (e.target.checked) next.add(id);
-                            else next.delete(id);
-                            setFormData({ ...formData, repository_ids: Array.from(next) });
-                          }}
-                          className="h-4 w-4 rounded border-border"
-                        />
-                        <span>{repo.repo_full_name} ({repo.repo_provider})</span>
-                      </label>
-                    );
-                  })}
+                {numericRepositories.map((repo) => {
+                  const id = repo.repository_id as number;
+                  const checked = formData.repository_ids.includes(id);
+                  return (
+                    <label key={`repo-link-${id}`} className="flex items-center gap-3 text-xs text-foreground dark:text-primary-foreground">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => {
+                          const next = new Set(formData.repository_ids);
+                          if (e.target.checked) next.add(id);
+                          else next.delete(id);
+                          setFormData({ ...formData, repository_ids: Array.from(next) });
+                        }}
+                        className="h-4 w-4 rounded border-border"
+                      />
+                      <span>{repo.repo_full_name} ({repo.repo_provider})</span>
+                    </label>
+                  );
+                })}
               </div>
             </div>
           )}
