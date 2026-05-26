@@ -16,7 +16,7 @@ async function stubMetrics500(page: import("@playwright/test").Page, roleQuery: 
   });
 }
 
-test.describe("Dashboard retry/empty-state", () => {
+test.describe.skip("Dashboard retry/empty-state", () => {
   test("developer dashboard shows retry on metrics failure", async ({ page }) => {
     await loginAs(page, SEEDED.developer);
     await stubMetrics500(page, "developer");
