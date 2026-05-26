@@ -1,3 +1,57 @@
+# Session Handoff — main (2026-05-26 PR #316 Dockerfile FROM ARG + housekeeping)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
+- 범위: PR #315 (직전 housekeeping `0deb2ee`) 이후 PR #316 (`7f243dd`) 흡수.
+- 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
+- 상태: PR #316 머지로 Dockerfile 3개 FROM ARG 도입 — 사내 mirror registry base image override 가능. main HEAD `7f243dd`.
+- 최종 수정일: 2026-05-26 (sprint `claude/work_260526-housekeeping-post-316`)
+- 관련 문서: [docker-packaging-deployment-guide.md §5.1 + §13](../../docs/setup/docker-packaging-deployment-guide.md), [backend-core/Dockerfile](../../backend-core/Dockerfile), [backend-ai/Dockerfile](../../backend-ai/Dockerfile), [frontend/Dockerfile](../../frontend/Dockerfile), [issue #214](https://github.com/ykylee/Devhub_example/issues/214), [issue #302](https://github.com/ykylee/Devhub_example/issues/302).
+- 브랜치: `main` (HEAD `7f243dd` post PR #316 → 본 housekeeping sprint 머지 후 `<TBD>`).
+
+## 2026-05-26 본 housekeeping sprint (`claude/work_260526-housekeeping-post-316`)
+
+직전 housekeeping (PR #315, `0deb2ee`) 이후 1 PR (#316) 흡수.
+
+### 흡수 대상
+
+| sha | PR | author | core |
+| --- | --- | --- | --- |
+| `7f243dd` | **#316** | claude | **Dockerfile FROM ARG 도입** — 3 Dockerfile (`backend-core` / `backend-ai` / `frontend`) 의 FROM 에 ARG 추가 (`BACKEND_CORE_BASE=alpine:3.21` / `BACKEND_AI_BASE=python:3.12-slim` / `FRONTEND_BASE=node:20-alpine`). 사내 mirror registry tag 로 override 가능 (`--build-arg`). default 기존 hardcoded image tag 와 동일 → backward compat. docs §5.1 신규 (3 ARG 표 + 호출 예시 + 선행 sync + 버전 정합) + §13 row 6 보강 (proxy + mirror ARG 2 옵션) + build-artifacts.sh 완료 안내. 5 파일 / +63 / -5 LoC. CI 8 job 전체 PASS (backward compat 자동 검증). |
+
+### PR #310 self-review P2-2 → resolved
+
+직전 PR #310 의 P2-2 carve (Dockerfile FROM ARG) 본 PR #316 머지로 종결.
+
+### 다음 directive (우선순위 5 순위, 축소)
+
+| 순위 | 항목 | 영역 |
+| --- | --- | --- |
+| 1 | **Onboarding SOP staging 1주 monitoring** (SQL + Prometheus 2 채널) | 사내 운영자 (DevHub SRE) |
+| 2 | **사내 Keycloak 26.0 image pull + redeploy smoke** (ADR-0023 §5 후속) | 사내 운영자 (Infra) |
+| 3 | **issue #214 사내 1회 작업** + verify script | 사용자/사내 운영자 + verify-keycloak-groups.sh (자동) |
+| 4 | **issue #302 진입** — setup-keycloak.sh client secret console quiet flag | claude (선택, P2) |
+| 5 | **pending_review count Gauge / Grafana dashboard JSON / Alertmanager rule** (P3 carve) | 사내 운영자 + claude (Gauge 결정 후 carve 가능) |
+
+### 본 conversation 누계 (16 PR + 1 issue, main HEAD `7f243dd`)
+
+| 영역 | 누계 결과 |
+| --- | --- |
+| PR #296 follow-up | 6/6 모두 처리 |
+| issue #214 codex 영역 | 흡수 완료 |
+| ADR governance | ADR-0023 신규 + ADR-0022 supersession |
+| build/deploy script cleanup | host 의존성 사전 검증 + dockerized fallback 제거 + §1.2/§13 |
+| Onboarding monitoring | SQL (§4.3) + Prometheus metric 4종 (§4.4) 2 채널 |
+| Go toolchain | 1.22 → 1.25 명시 정합 |
+| Dockerfile FROM ARG | 사내 mirror registry override 가능 (본 PR) |
+| memory housekeeping | 6회 누적 |
+| carve out | issue #302 (P2-3) |
+
+## 2026-05-26 직전 housekeeping (PR #315, `0deb2ee`)
+
+PR #313 (Onboarding Prometheus metric) + PR #314 (Go 1.25 정합) 흡수 minimal entry prepend.
+
+
+
 # Session Handoff — main (2026-05-26 PR #313 Onboarding Prometheus + PR #314 Go 1.25 + housekeeping)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
