@@ -1,3 +1,58 @@
+# Session Handoff — main (2026-05-26 PR #330 codex review hotfix + PR #327 gemini dashboard + housekeeping)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
+- 범위: PR #328 (Jira 주간 보고 `55666a1`) 이후 3 PR 흡수.
+- 상태: main HEAD `f891945`. **본 conversation 최종 결산** 29 머지 PR + 12 housekeeping + 1 issue closed.
+- 최종 수정일: 2026-05-26 (sprint `claude/work_260526-housekeeping-post-330`)
+
+## 2026-05-26 본 housekeeping sprint
+
+직전 PR #328 (`55666a1`) 이후 3 PR 흡수.
+
+### 흡수 대상
+
+| sha | PR | author | core |
+| --- | --- | --- | --- |
+| `6063f5e` | #329 | claude | housekeeping #12 post #328 (Jira 주간 보고 발행 흡수) |
+| `48e931f` | **#330** | claude | **codex review hotfix** — P1 1 fix (applications/page Promise.all 분리) + P2 5 fix (ADR-0023 admin env / onboarding metric `feature_disabled` / verify-keycloak-groups nested / memory housekeeping mismatch) + stale 6 식별 + admin-users-search.spec.ts revert (codex suggestion incorrect). 10 파일 / +52 / -29. CI 8 PASS. |
+| `f891945` | **#327** | gemini | 대시보드 콘텐츠 영역 확장 (`max-w-6xl` → `max-w-[1400px]`). 1 파일 / +2 / -2. codex review 없음. CI 5 PASS + 3 SKIPPED. |
+
+### codex review hotfix (PR #330) 결산
+
+본 conversation 머지 PR 12건의 codex automated review 분석 — `feedback_codex_review_cycle` 패턴 적용:
+
+| 분류 | 갯수 | 처리 |
+| --- | --- | --- |
+| P1 | 3건 | 1 fix (#312 applications Promise.all) + 2 stale (이미 해소) |
+| P2 | 9건 | 5 fix (#308 §3.5 env + #313 metric label ×2 + #306 nested + #329 memory mismatch ×2) + 3 stale + 1 revert (admin-users-search appPath 시도 후 fail → main 패턴 복원) |
+
+### 본 conversation 최종 결산 update
+
+| 영역 | 결과 |
+| --- | --- |
+| 머지 PR | **29** |
+| housekeeping | **12회** |
+| issue closed | #302 |
+| codex review hotfix | P1 1 + P2 5 |
+| carve out 잔여 | 0 |
+
+### 다음 directive (4 순위, 모두 사내/사용자 영역)
+
+| 순위 | 항목 | 영역 |
+| --- | --- | --- |
+| 1 | Onboarding SOP staging 1주 monitoring | 사내 SRE |
+| 2 | 사내 nginx 재기동 + OIDC redirect_uri 검증 (PR #325 후속) | 사내 Infra |
+| 3 | 사내 Keycloak 26.0 redeploy smoke (ADR-0023 §5) | 사내 Infra |
+| 4 | issue #214 사내 1회 작업 | 사용자/자동 |
+
+**claude 영역 잔여 directive 없음**.
+
+## 2026-05-26 직전 housekeeping (PR #329, `6063f5e`)
+
+PR #328 Jira 주간 보고 신규 발행 흡수.
+
+
+
 # Session Handoff — main (2026-05-26 PR #328 Jira 주간 보고 + housekeeping)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
