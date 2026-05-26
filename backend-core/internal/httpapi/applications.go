@@ -3,6 +3,7 @@ package httpapi
 import (
 	"errors"
 	"net/http"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -73,11 +74,16 @@ func applicationRepositoryResponse(link domain.ApplicationRepository) gin.H {
 }
 
 func scmProviderResponse(p domain.SCMProvider) gin.H {
+	hasCredentials := false
+	if p.ProviderKey == "gitea" {
+		hasCredentials = os.Getenv("GITEA_URL") != "" && os.Getenv("GITEA_TOKEN") != ""
+	}
 	return gin.H{
 		"provider_key":    p.ProviderKey,
 		"display_name":    p.DisplayName,
 		"enabled":         p.Enabled,
 		"adapter_version": p.AdapterVersion,
+		"has_credentials": hasCredentials,
 		"created_at":      p.CreatedAt.UTC().Format(time.RFC3339),
 		"updated_at":      p.UpdatedAt.UTC().Format(time.RFC3339),
 	}
