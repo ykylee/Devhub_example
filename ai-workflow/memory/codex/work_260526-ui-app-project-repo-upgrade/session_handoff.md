@@ -35,6 +35,14 @@
   - `tests/e2e/admin-projects.spec.ts`
   - `tests/e2e/project-model-modes.spec.ts`
 
+6. Repository UI E2E 추가
+- `frontend/tests/e2e/repositories-ui.spec.ts` 신규
+- 검증 범위:
+  - 목록 진입 + fixture repository 노출
+  - 저장소명/owner 검색 필터링
+  - 상세 진입 + 핵심 활동 카드 노출
+- `/devhub` 도커 환경에서 통과
+
 6. 도커 E2E 환경 이슈/해결 메모
 - macOS host 산출물 그대로 복사 시 linux container 와 ABI 불일치
 - 해결:
@@ -46,4 +54,4 @@
 ## 다음 작업
 
 1. 남은 상세 페이지 mock 성격 지표(legacy block) 정리/축소
-2. docker `/devhub` E2E 범위를 repositories/detail 시나리오까지 확장
+2. 필요한 경우 repository error/empty state 부정 시나리오 E2E 확장
