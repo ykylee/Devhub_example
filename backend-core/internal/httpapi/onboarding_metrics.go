@@ -32,6 +32,11 @@ var (
 	onboardingSubmitTotal         *prometheus.CounterVec
 	onboardingSubmitDurationSec   prometheus.Histogram
 	onboardingReviewConfirmTotal  *prometheus.CounterVec
+
+	// pending_review count Gauge — cron refresh 패턴 (RunOnboardingPendingReviewGauge).
+	// 직전 P3 carve (SOP §8 잔여) 진입. 매 호출 마다 SELECT COUNT 호출은 부담이라 별도
+	// goroutine 의 interval ticker 가 update.
+	onboardingPendingReviewCount prometheus.Gauge
 )
 
 // initOnboardingMetrics 는 4 metric 을 한 번만 등록. Observe* helpers 가 lazy
@@ -66,10 +71,17 @@ func initOnboardingMetrics() {
 			},
 			[]string{"status"},
 		)
+		onboardingPendingReviewCount = prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Name: "devhub_onboarding_pending_review_count",
+				Help: "현재 pending_review 상태의 user 수. cron refresh (RunOnboardingPendingReviewGauge, default interval 60s) 로 update. Onboarding SOP §4.4 / §8.",
+			},
+		)
 		registerOnboardingCollector(onboardingGateBlockedTotal)
 		registerOnboardingCollector(onboardingSubmitTotal)
 		registerOnboardingCollector(onboardingSubmitDurationSec)
 		registerOnboardingCollector(onboardingReviewConfirmTotal)
+		registerOnboardingCollector(onboardingPendingReviewCount)
 	})
 }
 
@@ -103,4 +115,12 @@ func observeOnboardingSubmitDuration(seconds float64) {
 func observeOnboardingReviewConfirm(status string) {
 	initOnboardingMetrics()
 	onboardingReviewConfirmTotal.WithLabelValues(status).Inc()
+}
+
+// setOnboardingPendingReviewCount — cron refresh worker 가 SELECT COUNT 결과로
+// Gauge 를 덮어쓰기. RunOnboardingPendingReviewGauge 에서만 호출 (handler 호출 X
+// — 매 호출 SELECT 부담 회피).
+func setOnboardingPendingReviewCount(count int) {
+	initOnboardingMetrics()
+	onboardingPendingReviewCount.Set(float64(count))
 }

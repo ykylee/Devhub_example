@@ -858,6 +858,26 @@ WHERE user_id = $1
 	return s.GetUser(ctx, userID)
 }
 
+// CountPendingReview — pending_review 상태의 user 수 (Onboarding SOP §4.4
+// Prometheus Gauge 의 cron refresh 호출처). httpapi.RunOnboardingPendingReviewGauge
+// 가 본 메서드를 interval 마다 호출 → devhub_onboarding_pending_review_count Gauge
+// update. read-only SELECT COUNT — index 가 없으면 full scan 이라 row 100K+ 에서
+// 부담 가능, 그러나 review_status partial index 는 별도 carve (현재 user 테이블
+// 사이즈 < 10K 수준이라 무시 가능). 운영 중 row scale 증가 시 partial index 추가
+// (`CREATE INDEX users_pending_review_idx ON users(review_status) WHERE review_status='pending_review'`).
+func (s *PostgresStore) CountPendingReview(ctx context.Context) (int, error) {
+	var count int
+	err := s.pool.QueryRow(ctx, `
+SELECT COUNT(*) FROM users
+ WHERE onboarding_completed_at IS NOT NULL
+   AND review_status = 'pending_review'`,
+	).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count pending_review: %w", err)
+	}
+	return count, nil
+}
+
 // SetIdPSubject caches the IdP identity_id on the DevHub users row so
 // subsequent identity lookups can skip the IdP user-list scan. Migration
 // 000009 added the column (as kratos_identity_id); 000030 renamed it to
