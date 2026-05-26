@@ -19,7 +19,9 @@ import (
 
 func (h Handler) confirmUserReview(c *gin.Context) {
 	if !h.requireOnboardingFlag(c) {
-		observeOnboardingReviewConfirm("unavailable")
+		// codex review (#313 P2-2) — feature flag disabled 는 404 (onboarding_feature_disabled),
+		// `feature_disabled` label 로 명시 분리 (vs OrganizationStore nil 시점의 "unavailable").
+		observeOnboardingReviewConfirm("feature_disabled")
 		return
 	}
 	if h.cfg.OrganizationStore == nil {

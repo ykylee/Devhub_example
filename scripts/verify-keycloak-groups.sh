@@ -98,18 +98,32 @@ fi
 # === 검증 2 + 3: group 4종 존재 + composite role 정합 ===
 echo "==> [2/4] Group existence (4 groups)"
 echo "==> [3/4] Composite realm role mapping (1:1)"
-groups_json=$(curl -fsS -H "Authorization: Bearer ${admin_token}" \
-  "$BASE_URL/admin/realms/$REALM/groups")
-
+# codex review (#306 P2) — `GET /groups` 가 top-level 만 반환. nested
+# hierarchy 환경 (e.g., `/devhub/developers`) 에서 group_id 못 찾음 →
+# search query (`?search=<name>&exact=true`) + recursive subGroups
+# fallback. Keycloak Admin REST 의 search 는 모든 level 매칭.
 for entry in "${EXPECTED_GROUPS[@]}"; do
   group_name="${entry%%:*}"
   expected_role="${entry##*:}"
 
-  group_id=$(printf "%s" "$groups_json" | python3 -c "
+  # search query 로 모든 level 검색 (exact match).
+  search_result=$(curl -fsS -H "Authorization: Bearer ${admin_token}" \
+    "$BASE_URL/admin/realms/$REALM/groups?search=$(printf '%s' "$group_name" | sed 's/ /%20/g')&exact=true")
+
+  group_id=$(printf "%s" "$search_result" | python3 -c "
 import json,sys
-groups = json.load(sys.stdin)
-gid = next((g['id'] for g in groups if g.get('name') == '$group_name'), '')
-print(gid)
+
+def find_group(groups, target):
+    for g in groups:
+        if g.get('name') == target:
+            return g.get('id', '')
+        # recursive subGroups (Keycloak nested hierarchy).
+        nested = find_group(g.get('subGroups', []) or [], target)
+        if nested:
+            return nested
+    return ''
+
+print(find_group(json.load(sys.stdin), '$group_name'))
 ")
 
   if [ -z "$group_id" ]; then

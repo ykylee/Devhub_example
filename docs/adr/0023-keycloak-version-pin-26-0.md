@@ -69,7 +69,7 @@ ADR-0022 §3.4 의 "외부 ingress 포트 13000 정합" 결정은 **version pin 
 
 ### 3.5 Keycloak admin bootstrap env 호환성
 
-ADR-0022 의 `feedback_keycloak_25_26_admin_env` 패턴 — `KEYCLOAK_ADMIN_USERNAME/PASSWORD` (legacy) + `KC_BOOTSTRAP_ADMIN_USERNAME/PASSWORD` (26+ 표준) 동시 주입 — 은 **본 ADR-0023 에서도 유지**한다. 26.x 가 표준 `KC_BOOTSTRAP_*` 우선이나 legacy 도 동작 — 양쪽 주입은 보수적 안전망 + version 변경 silent fail 회피.
+ADR-0022 의 `feedback_keycloak_25_26_admin_env` 패턴 — `KEYCLOAK_ADMIN` + `KEYCLOAK_ADMIN_PASSWORD` (legacy 25.x) + `KC_BOOTSTRAP_ADMIN_USERNAME` + `KC_BOOTSTRAP_ADMIN_PASSWORD` (26+ 표준) 동시 주입 — 은 **본 ADR-0023 에서도 유지**한다. 26.x 가 표준 `KC_BOOTSTRAP_*` 우선이나 legacy 도 동작 — 양쪽 주입은 보수적 안전망 + version 변경 silent fail 회피.
 
 `docker-compose.deploy.yml:117-121` + `.github/workflows/ci.yml` 의 양쪽 env 주입 패턴 그대로 보존.
 

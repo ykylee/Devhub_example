@@ -34,8 +34,10 @@ func (h Handler) submitOnboarding(c *gin.Context) {
 	}()
 
 	if !h.requireOnboardingFlag(c) {
-		// requireOnboardingFlag 가 503 응답 시 status 보고
-		observeOnboardingSubmit("unavailable")
+		// requireOnboardingFlag 가 404 (onboarding_feature_disabled) 응답.
+		// codex review (#313 P2-1) — "unavailable" 은 OrganizationStore nil 시점용,
+		// flag disabled 는 명시 분리. `feature_disabled` label.
+		observeOnboardingSubmit("feature_disabled")
 		return
 	}
 	if h.cfg.OrganizationStore == nil {

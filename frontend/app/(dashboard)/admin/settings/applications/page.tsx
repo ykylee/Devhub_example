@@ -96,17 +96,22 @@ export default function AdminSettingsApplicationsPage() {
 
   const loadAppChildren = useCallback(async (app: Application) => {
     setSelectedApp(app);
-    try {
-      const [repos, projects] = await Promise.all([
-        projectService.getApplicationRepositories(app.id),
-        projectService.getApplicationProjectsV2(app.id),
-      ]);
-      setAppRepos(repos);
-      setAppProjects(projects);
-    } catch (error) {
-      console.error("[admin/settings/applications] child load failed:", error);
-      toast("Failed to load repositories/projects for selected application", "error");
-    }
+    // codex review (#312 P1-2) — Promise.all 통합 시 v2 projects fail (legacy
+    // mode 410 등) 이 repositories load 도 같이 reject. 두 호출 독립 처리:
+    // repositories 는 legacy/v2 무관, projects v2 fail 시 빈 array fallback.
+    const reposPromise = projectService.getApplicationRepositories(app.id).catch((err) => {
+      console.error("[admin/settings/applications] repositories load failed:", err);
+      toast("Failed to load repositories for selected application", "error");
+      return [] as ApplicationRepository[];
+    });
+    const projectsPromise = projectService.getApplicationProjectsV2(app.id).catch((err) => {
+      // DEVHUB_PROJECT_MODEL=legacy 시 v2 route 410 gone. 빈 array fallback.
+      console.warn("[admin/settings/applications] v2 projects load skipped (likely legacy mode):", err);
+      return [] as Project[];
+    });
+    const [repos, projects] = await Promise.all([reposPromise, projectsPromise]);
+    setAppRepos(repos);
+    setAppProjects(projects);
   }, [toast]);
 
   const handleDisconnectRepo = useCallback(async (repo: ApplicationRepository) => {

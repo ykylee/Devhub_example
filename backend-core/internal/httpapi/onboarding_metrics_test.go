@@ -31,7 +31,7 @@ func TestObserveOnboardingGateBlocked_IncrementsCounter(t *testing.T) {
 // TestObserveOnboardingSubmit_AllStatuses — 7 status label 각각 increment 분리 검증.
 func TestObserveOnboardingSubmit_AllStatuses(t *testing.T) {
 	initOnboardingMetrics()
-	statuses := []string{"ok", "rejected", "conflict", "not_found", "server_error", "unavailable", "unauthenticated"}
+	statuses := []string{"ok", "rejected", "conflict", "not_found", "server_error", "unavailable", "unauthenticated", "feature_disabled"}
 	before := make(map[string]float64, len(statuses))
 	for _, s := range statuses {
 		before[s] = counterVecValueOnboarding(t, onboardingSubmitTotal, []string{s})
@@ -61,7 +61,7 @@ func TestObserveOnboardingSubmitDuration_RecordsHistogram(t *testing.T) {
 // TestObserveOnboardingReviewConfirm_AllStatuses — confirm handler 7 status 분리 검증.
 func TestObserveOnboardingReviewConfirm_AllStatuses(t *testing.T) {
 	initOnboardingMetrics()
-	statuses := []string{"ok", "rejected", "conflict", "not_found", "server_error", "unavailable", "bad_request"}
+	statuses := []string{"ok", "rejected", "conflict", "not_found", "server_error", "unavailable", "bad_request", "feature_disabled"}
 	before := make(map[string]float64, len(statuses))
 	for _, s := range statuses {
 		before[s] = counterVecValueOnboarding(t, onboardingReviewConfirmTotal, []string{s})
