@@ -499,3 +499,42 @@ func (s *PostgresStore) DeleteIntegrationBinding(ctx context.Context, bindingID 
 	}
 	return nil
 }
+
+func (s *PostgresStore) AcquireNextQueuedSyncJob(ctx context.Context) (string, string, error) {
+	const query = `
+UPDATE integration_sync_jobs
+SET status = 'running'
+WHERE job_id = (
+	SELECT job_id
+	FROM integration_sync_jobs
+	WHERE status = 'queued'
+	ORDER BY created_at ASC
+	LIMIT 1
+	FOR UPDATE SKIP LOCKED
+)
+RETURNING job_id::text, provider_id::text`
+	var jobID, providerID string
+	err := s.pool.QueryRow(ctx, query).Scan(&jobID, &providerID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", "", ErrNotFound
+	}
+	if err != nil {
+		return "", "", fmt.Errorf("acquire next queued sync job: %w", err)
+	}
+	return jobID, providerID, nil
+}
+
+func (s *PostgresStore) UpdateIntegrationSyncJobStatus(ctx context.Context, jobID string, status string) error {
+	const query = `
+UPDATE integration_sync_jobs
+SET status = $1
+WHERE job_id = $2::uuid`
+	tag, err := s.pool.Exec(ctx, query, status, jobID)
+	if err != nil {
+		return fmt.Errorf("update integration sync job status: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}

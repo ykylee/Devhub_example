@@ -12,6 +12,7 @@ import (
 	"github.com/devhub/backend-core/internal/config"
 	"github.com/devhub/backend-core/internal/devrequest"
 	"github.com/devhub/backend-core/internal/domain"
+	"github.com/devhub/backend-core/internal/gitea"
 	"github.com/devhub/backend-core/internal/hrdb"
 	"github.com/devhub/backend-core/internal/httpapi"
 	"github.com/devhub/backend-core/internal/integrations/adapters"
@@ -40,9 +41,11 @@ func main() {
 	var liveWorker *commandworker.LiveWorker
 	var homeLabAdapterStore adapters.InfraSnapshotStore
 	var eventCursorStore store.EventCursorStore
+	var pgStore *store.PostgresStore
 
 	if cfg.DBURL != "" {
-		pgStore, err := store.NewPostgresStore(ctx, cfg.DBURL)
+		var err error
+		pgStore, err = store.NewPostgresStore(ctx, cfg.DBURL)
 		if err != nil {
 			log.Fatalf("connect postgres: %v", err)
 		}
@@ -360,6 +363,17 @@ func main() {
 			}
 		}()
 		log.Printf("onboarding pending_review gauge enabled (interval=60s)")
+	}
+
+	// Gitea background sync worker
+	if cfg.GiteaURL != "" && cfg.GiteaToken != "" && pgStore != nil {
+		giteaWorker := gitea.NewSyncWorker(pgStore, cfg.GiteaURL, cfg.GiteaToken)
+		go func() {
+			if err := giteaWorker.Run(ctx, 30*time.Second); err != nil && err != context.Canceled {
+				log.Printf("gitea sync worker stopped: %v", err)
+			}
+		}()
+		log.Printf("gitea sync worker enabled (url=%s interval=30s)", cfg.GiteaURL)
 	}
 
 	if err := router.Run(":" + cfg.Port); err != nil {
