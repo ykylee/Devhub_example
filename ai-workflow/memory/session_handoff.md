@@ -1,3 +1,63 @@
+# Session Handoff — main (2026-05-26 PR #301 PR #296 follow-up P1 docs + 외부 4건 흡수 housekeeping)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
+- 범위: 직전 EOD (PR #297, `c9455c6`) 이후 외부 4 PR (#298 / #299 / #300 / `d7650cb` direct commit) + 본인 1 PR (#301) + issue #302 등록을 minimal entry prepend.
+- 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
+- 상태: PR #301 (PR #296 follow-up P1 docs) 머지 완료. main HEAD `356fcd0`. Onboarding SOP staging 1주 monitoring 진행 중 (사내). v1.0 release gate (D-20, 2026-06-15) 잔여 1건 (#214 P1-3 group staging-prod).
+- 최종 수정일: 2026-05-26 (sprint `claude/work_260526-housekeeping-post-301`)
+- 관련 문서: [v1.0 릴리즈 로드맵](../../docs/planning/release_v1_roadmap.md), [Onboarding 운영 SOP](../../docs/setup/onboarding_operations.md), [ADR-0022 §3.4 port 13000 정합](../../docs/adr/0022-keycloak-version-pin-25-0.md#34-외부-ingress-포트-13000-정합), [issue #302](https://github.com/ykylee/Devhub_example/issues/302).
+- 브랜치: `main` (HEAD `356fcd0` post PR #301 → 본 housekeeping sprint 머지 후 `<TBD>`).
+
+## 2026-05-26 본 housekeeping sprint (`claude/work_260526-housekeeping-post-301`)
+
+직전 EOD (`c9455c6`, PR #297) 이후 main flat memory 갱신 누락분 흡수. minimal entry prepend 패턴 (`memory project_2026_05_22_session_six_pr_burst` 참조).
+
+### 흡수 대상
+
+| sha | PR | author | core |
+| --- | --- | --- | --- |
+| `f494b70` | #298 | 외부 | Fix Keycloak onboarding login flow + OIDC deploy guardrails — `/api/v1/me` `onboarding_required` gate-toggle 무관 계산 + e2e first-login spec + local-idp public issuer align (6 파일) |
+| `cbf4bf6` | #299 | Gemini | feat(frontend) premium collapsible global sidebar Zustand persistence + admin/settings/* 3대 카테고리 그룹화 (11 파일) |
+| `cd66976` | #300 | 외부 | onboarding org selection + websocket `access_token` query auth (`/api/v1/realtime/ws`) + admin org settings 401/403 mapping (5 파일) |
+| `d7650cb` | direct | 이영균 | light-mode readability (Sidebar/OrgUnitGrid/PermissionEditor/Modal 7 컴포넌트 contrast) + deploy preflight runbook 신규 (17 파일, `docs/setup/deploy_preflight_checklist.md` + `docs/frontend/ui_readability_color_pattern.md` 신규) |
+| `356fcd0` | **#301** | claude | **본 sprint** — PR #296 follow-up P1 docs. ADR-0022 §3.4 port 13000 정합 + docker-packaging-deployment-guide.md §1.1 host 사전조건 + setup-keycloak.sh idempotent NOTE. 5 파일 / +60 / -3 LoC + Stage 3 보강 (+6 / -2). self-review 4단계 (P0 0 / P1 2 / P2 3). |
+
+### 본 sprint #301 self-review 결과 (Stage 1~4 완주)
+
+| Stage | 결과 |
+| --- | --- |
+| 1 — diff 재정독 | commit 전 검토 — P0 0, base 정합 OK. |
+| 2 — gh pr comment | P1 2 (13000 카운트 8→6 / fail-mode 자동 fallback 표현) + P2 3 (host:VM forward 외부 의존성 / 추적성 영향 N/A 적정성 / client secret console 노출 → carve). |
+| 3 — 보강 commit `62a12d4` | P1-1 / P1-2 / P2-1 정정 (+6 / -2 LoC). |
+| 4 — squash merge `356fcd0` | CI 4 SUCCESS + 4 SKIPPED (docs-only paths-filter 정합). mergeStateStatus=CLEAN. |
+
+### Issue #302 등록 (P2-3 carve)
+
+`setup-keycloak.sh:330-332` 의 client secret console 평문 노출 (pre-existing) — `sync_keycloak_redirects()` 매 deploy 호출 시 console log 에 secret 누적 risk. priority/p2 + worker/claude + domain/infra + type/refactor. 3 옵션 (A `SETUP_KEYCLOAK_QUIET` flag 권고 / B file redirect / C echo 제거) + acceptance 5 + dependencies.
+
+### 다음 directive (우선순위)
+
+| 순위 | 항목 | 영역 |
+| --- | --- | --- |
+| 1 | **PR-B (P2 bash)** — PR #296 follow-up #4 `KEYCLOAK_REALM_IMPORT_PATH` external mode fallback (DB_MODE 분기) + #5 generated realm `/tmp/` path 안정화 | claude (bash + docs) |
+| 2 | **Onboarding SOP staging 1주 monitoring** — flag default ON 후 회귀 발견 시 `DEVHUB_ONBOARDING_GATE_ENABLED=0` rollback | 사내 운영자 (DevHub SRE) |
+| 3 | **v1.0 release gate (D-20, 2026-06-15)** 잔여 1건 #214 P1-3 Keycloak group staging-prod | 사내 운영자 (Infra) |
+| 4 | **Prometheus metric backend** (Onboarding SOP §8 잔여 carve P2) — `me_onboarding.go` + `users_admin_review.go` Counter/Histogram, ADR-0019 §5.3 (9) Phase 2 PR-C 패턴 재사용 | claude (backend) |
+| 5 | **ADR-0022 §3.1 retreat 사유 finalize** (Draft → Accepted 승격) | 사용자 |
+| 6 | **issue #302 진입** (client secret console 옵션 A quiet flag) | claude (선택, P2) |
+
+## 2026-05-26 본 sprint (PR #301 PR #296 follow-up P1 docs)
+
+이미 위 표에 핵심 요약. 변경 위치 + 정정 내역:
+
+- `docs/adr/0022-keycloak-version-pin-25-0.md` — §3.4 외부 ingress 포트 13000 정합 sub-section 신규 (host:VM forward 외부 의존성 명시 보강) + §6 변경 이력 row.
+- `docs/setup/docker-packaging-deployment-guide.md` — §1.1 host 사전조건 신규 (python3 / curl / docker compose v2 / bash 4+ 표 + 검증 명령 + python3 미설치 시 fail-mode `set -euo pipefail` 종료 명시 + 수동 우회 절차 `KEYCLOAK_REALM_IMPORT_PATH` 사전 export).
+- `infra/idp/README.md` — dev.json 의 wildcard 3 port (3000 native / 8080 단일포트 시뮬 / 13000 사내 ingress reference) 의미 표 보강 + ADR-0022 §3.4 cross-link.
+- `scripts/deploy-from-env.sh` — 헤더 Prerequisites 섹션 신규.
+- `scripts/setup-keycloak.sh` — 헤더 Prerequisites + Idempotent 보장 8 항목 명시 (realm PUT upsert / role 404-check / client GET-then-PUT / mapper 존재 체크 / role-mapping silent skip / user 존재 체크).
+
+## 2026-05-22 직전 EOD 시점 (PR #297, `c9455c6`)
+
 # Session Handoff — main (2026-05-22 ADR-0020 §6.3 사내 동반 carve docs 초안 resolved)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
