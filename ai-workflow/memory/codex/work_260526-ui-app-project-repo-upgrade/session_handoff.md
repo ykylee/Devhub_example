@@ -65,6 +65,11 @@
   - project activity 일부 실패 시 경고 배너 노출 + 상세 본문 지속 렌더링
 - `/devhub` 도커 환경에서 통과
 
+10. 남은 E2E 정비 문서화
+- `docs/planning/ui_e2e_followup_after_merge.md` 신규
+- 머지 전 필수 항목과 머지 후 follow-up 항목을 분리 정리
+- 현재 남은 범위는 머지 블로커가 아니라 커버리지 확장 성격으로 명시
+
 6. 도커 E2E 환경 이슈/해결 메모
 - macOS host 산출물 그대로 복사 시 linux container 와 ABI 불일치
 - 해결:
@@ -76,4 +81,4 @@
 ## 다음 작업
 
 1. 남은 상세 페이지 mock 성격 지표(legacy block) 정리/축소
-2. PR 본문 검증 범위 최신화 및 review-ready 전환 판단
+2. CI 통과 확인 후 PR review-ready / merge 판단

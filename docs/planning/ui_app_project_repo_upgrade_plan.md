@@ -5,6 +5,7 @@
 - 대상 독자: Frontend, Backend, QA, 운영 담당자
 - 상태: in_progress
 - 최종 수정일: 2026-05-26
+- 후속 E2E 정리: `docs/planning/ui_e2e_followup_after_merge.md`
 
 ## 1. 목표
 
@@ -49,7 +50,8 @@
   - 2.2 완료: 테이블 액션 no-op 제거 및 실제 플로우 연결
   - 2.3 진행: 목록+상세 화면에 공통 `PageState`(loading/error/retry/empty) 적용 및 오류 문구 표준화
   - `/devhub` docker E2E 환경 구성: `localhost:13000/devhub` + local-idp + host postgres
-  - 검증: `frontend lint/build` 통과, 선택 E2E(`admin-applications`, `admin-projects`, `project-model-modes`) 통과
+  - 검증: `frontend lint/build` 통과, 선택 E2E(`admin-applications`, `admin-projects`, `project-model-modes`, `repositories-ui`, `repositories-ui-negative`, `repositories-detail-negative`, `applications-projects-detail-negative`) 통과
+  - 남은 E2E 후속 범위는 `ui_e2e_followup_after_merge.md` 로 분리 정리
 
 ## 5. 현재 작업 범위
 
