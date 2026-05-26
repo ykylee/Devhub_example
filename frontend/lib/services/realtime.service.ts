@@ -1,5 +1,6 @@
 import { WSEvent, WSEventHandler } from "./types";
 import { useStore } from "@/lib/store";
+import { tokenStore } from "@/lib/auth/token-store";
 
 import { WS_BASE_URL as WS_BASE } from "../config/endpoints";
 // codex P1 (PR #252 review): `infra.service.updated` 는 backend
@@ -129,9 +130,9 @@ export class RealtimeService {
     const { actor, role } = useStore.getState();
     const separator = WS_BASE.includes('?') ? '&' : '?';
     const types = encodeURIComponent(DEFAULT_EVENT_TYPES.join(','));
-    
+
     const actorParam = actor?.login || 'guest';
-    
+
     const roleMap: Record<string, string> = {
       "System Admin": "system_admin",
       "Manager": "manager",
@@ -139,7 +140,13 @@ export class RealtimeService {
     };
     const roleParam = role ? (roleMap[role] || role.toLowerCase()) : 'guest';
 
-    return `${WS_BASE}${separator}types=${types}&actor=${actorParam}&role=${roleParam}`;
+    // 브라우저 WebSocket API 는 Authorization header set 불가. backend auth.go 가
+    // `/api/v1/realtime/ws` 에 한해 `?access_token=` query 로 Bearer 받음
+    // (auth.go:79-83). 토큰 누락 시 401 → reconnect 무한 loop.
+    const accessToken = tokenStore.getAccessToken();
+    const tokenParam = accessToken ? `&access_token=${encodeURIComponent(accessToken)}` : '';
+
+    return `${WS_BASE}${separator}types=${types}&actor=${actorParam}&role=${roleParam}${tokenParam}`;
   }
 
   private handleReconnect() {

@@ -18,7 +18,7 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { identityService, OrgNode as OrgNodeModel, OrgUnit } from '@/lib/services/identity.service';
+import { identityService, OrgMember, OrgNode as OrgNodeModel, OrgUnit } from '@/lib/services/identity.service';
 import { Plus, Save, ZoomIn, Building2, LayoutTemplate } from 'lucide-react';
 import { useStore } from '@/lib/store';
 import { OrgNode } from './OrgNode';
@@ -79,28 +79,85 @@ function OrgTreeContent() {
   const [maxDepth, setMaxDepth] = useState(4);
   const [selectedRoot, setSelectedRoot] = useState<string>('all');
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  const [users, setUsers] = useState<OrgMember[]>([]);
+
+  // Mount-only user fetch — OrgNode 의 leader 선택 ComboBox 및 이름 표시용.
+  useEffect(() => {
+    identityService.getUsers()
+      .then(setUsers)
+      .catch((err) => console.error("[OrgTree] Failed to fetch users for leader picker:", err));
+  }, []);
   
   const addToast = useStore(state => state.addToast);
   const { fitView } = useReactFlow();
 
-  const recalculateMemberCounts = useCallback((nodes: Node[], edges: Edge[]) => {
+  // user-aware recalc: 한 user 가 여러 unit 에 속할 때 canonical unit (리더 직책이
+  // 있으면 그 중 가장 상위, 없으면 member 중 가장 상위) 하나에만 count. dedupe set
+  // 으로 direct_count + total_count 재계산. 사용자 보고 2026-05-26: "중복 빼고 합산,
+  // 중복 리더는 가장 상위 조직에만".
+  const recalculateMemberCounts = useCallback((nodes: Node[], edges: Edge[], userList: OrgMember[]) => {
     const nodeMap = new Map(nodes.map(n => [n.id, { ...n, data: { ...n.data } }]));
-    
-    const calculateTotal = (id: string): number => {
-      const node = nodeMap.get(id);
-      if (!node) return 0;
-      
-      const childEdges = edges.filter(e => e.source === id);
-      const childrenTotal = childEdges.reduce((sum, edge) => sum + calculateTotal(edge.target), 0);
-      
-      const nodeData = node.data as OrgTreeNodeData;
-      const total = (nodeData.direct_count || 0) + childrenTotal;
-      node.data = { ...node.data, total_count: total };
-      return total;
-    };
 
-    const roots = nodes.filter(n => !edges.some(e => e.target === n.id));
-    roots.forEach(r => calculateTotal(r.id));
+    // 1. unit depth (root = 1)
+    const depthMap = new Map<string, number>();
+    const rootIds = nodes.filter(n => !edges.some(e => e.target === n.id)).map(n => n.id);
+    const assignDepth = (id: string, depth: number) => {
+      if (depthMap.has(id)) return;
+      depthMap.set(id, depth);
+      edges.filter(e => e.source === id).forEach(e => assignDepth(e.target, depth + 1));
+    };
+    rootIds.forEach(id => assignDepth(id, 1));
+
+    // 2. user → canonical unit
+    const userToUnit = new Map<string, string>();
+    for (const user of userList) {
+      const appts = user.appointments ?? [];
+      const leaderAppts = appts.filter(a => a.role === 'leader' && nodeMap.has(a.dept_id));
+      const memberAppts = appts.filter(a => a.role === 'member' && nodeMap.has(a.dept_id));
+      const candidates = leaderAppts.length > 0 ? leaderAppts : memberAppts;
+
+      let pickedUnit: string | null = null;
+      let bestDepth = Infinity;
+      for (const appt of candidates) {
+        const d = depthMap.get(appt.dept_id) ?? Infinity;
+        if (d < bestDepth) {
+          bestDepth = d;
+          pickedUnit = appt.dept_id;
+        }
+      }
+      // fallback: primary_dept_id if no appointment matches
+      if (!pickedUnit && user.primary_dept_id && nodeMap.has(user.primary_dept_id)) {
+        pickedUnit = user.primary_dept_id;
+      }
+      if (pickedUnit) userToUnit.set(user.id, pickedUnit);
+    }
+
+    // 3. direct user set per unit
+    const directUsers = new Map<string, Set<string>>();
+    for (const [userId, unitId] of userToUnit) {
+      if (!directUsers.has(unitId)) directUsers.set(unitId, new Set());
+      directUsers.get(unitId)!.add(userId);
+    }
+
+    // 4. recursive total (union of self + descendants, dedupe by set)
+    const totalCache = new Map<string, Set<string>>();
+    const calculateTotal = (id: string): Set<string> => {
+      const cached = totalCache.get(id);
+      if (cached) return cached;
+      const direct = directUsers.get(id) ?? new Set<string>();
+      const acc = new Set(direct);
+      const childEdges = edges.filter(e => e.source === id);
+      for (const edge of childEdges) {
+        for (const u of calculateTotal(edge.target)) acc.add(u);
+      }
+      totalCache.set(id, acc);
+      const node = nodeMap.get(id);
+      if (node) {
+        node.data = { ...node.data, direct_count: direct.size, total_count: acc.size };
+      }
+      return acc;
+    };
+    rootIds.forEach(id => calculateTotal(id));
 
     return Array.from(nodeMap.values());
   }, []);
@@ -162,7 +219,8 @@ function OrgTreeContent() {
           ...n.data,
           isExpanded: expandedNodes.has(n.id),
           hasChildren: allEdges.some(e => e.source === n.id),
-          onToggleExpand
+          onToggleExpand,
+          users,
         }
       }));
 
@@ -170,7 +228,7 @@ function OrgTreeContent() {
 
     setNodes(finalNodes);
     setEdges(finalEdges);
-  }, [allNodes, allEdges, maxDepth, selectedRoot, expandedNodes, setNodes, setEdges, onToggleExpand]);
+  }, [allNodes, allEdges, maxDepth, selectedRoot, expandedNodes, setNodes, setEdges, onToggleExpand, users]);
 
   const onUpdateNode = useCallback(async (id: string, newData: Partial<{ label: string; type: string; leader_id: string; isInitialEditing: boolean }>) => {
     try {
@@ -185,12 +243,12 @@ function OrgTreeContent() {
 
       // 2. Update local state
       setAllNodes((nds) => {
-        const updatedNodes = nds.map((node) => 
+        const updatedNodes = nds.map((node) =>
           node.id === id ? { ...node, data: { ...node.data, ...newData } } : node
         );
-        return recalculateMemberCounts(updatedNodes, allEdges);
+        return recalculateMemberCounts(updatedNodes, allEdges, users);
       });
-      
+
       if (!newData.isInitialEditing) {
         addToast("Organization unit updated", "success");
       }
@@ -198,7 +256,7 @@ function OrgTreeContent() {
       console.error("[OrgTree] Failed to update unit:", error);
       addToast("Failed to update organization unit", "error");
     }
-  }, [allEdges, addToast, recalculateMemberCounts]);
+  }, [allEdges, addToast, recalculateMemberCounts, users]);
 
 
   const onDeleteNode = useCallback(async (id: string) => {
@@ -212,10 +270,10 @@ function OrgTreeContent() {
       setAllNodes((nds) => {
         const filteredNodes = nds.filter((node) => node.id !== id);
         const filteredEdges = allEdges.filter((edge) => edge.source !== id && edge.target !== id);
-        return recalculateMemberCounts(filteredNodes, filteredEdges);
+        return recalculateMemberCounts(filteredNodes, filteredEdges, users);
       });
       setAllEdges((eds) => eds.filter((edge) => edge.source !== id && edge.target !== id));
-      
+
       setExpandedNodes(prev => {
         const next = new Set(prev);
         next.delete(id);
@@ -227,7 +285,7 @@ function OrgTreeContent() {
       console.error("[OrgTree] Failed to delete unit:", error);
       addToast("Failed to remove organizational unit", "error");
     }
-  }, [allEdges, addToast, recalculateMemberCounts]);
+  }, [allEdges, addToast, recalculateMemberCounts, users]);
 
   const nodesRef = useRef(allNodes);
   const addChildRef = useRef<(parentId: string) => void>(() => {});
@@ -285,16 +343,16 @@ function OrgTreeContent() {
       setAllNodes((nds) => {
         const newNodes = nds.concat(newNode);
         const newEdges = allEdges.concat(newEdge);
-        return recalculateMemberCounts(newNodes, newEdges);
+        return recalculateMemberCounts(newNodes, newEdges, users);
       });
       setAllEdges((eds) => eds.concat(newEdge));
-      
-      window.requestAnimationFrame(() => fitView({ duration: 800 }));
+
+      window.requestAnimationFrame(() => fitView({ duration: 800, maxZoom: 1.0, padding: 0.2 }));
     } catch (error) {
       console.error("[OrgTree] Failed to create child unit:", error);
       addToast("Failed to create new organizational unit", "error");
     }
-  }, [allEdges, addToast, onDeleteNode, onUpdateNode, onToggleExpand, fitView, recalculateMemberCounts]);
+  }, [allEdges, addToast, onDeleteNode, onUpdateNode, onToggleExpand, fitView, recalculateMemberCounts, users]);
 
   useEffect(() => {
     addChildRef.current = onAddChild;
@@ -330,7 +388,7 @@ function OrgTreeContent() {
           processedEdges
         );
 
-        const calculatedNodes = recalculateMemberCounts(layoutedNodes, layoutedEdges);
+        const calculatedNodes = recalculateMemberCounts(layoutedNodes, layoutedEdges, users);
         setAllNodes(calculatedNodes);
         setAllEdges(layoutedEdges);
         // Default to expanded tree so the chart matches the list view density.
@@ -360,7 +418,7 @@ function OrgTreeContent() {
           enhancedNodes,
           enhancedEdges
         );
-        const calculatedNodes = recalculateMemberCounts(layoutedNodes, layoutedEdges);
+        const calculatedNodes = recalculateMemberCounts(layoutedNodes, layoutedEdges, users);
         setAllNodes(calculatedNodes);
         setAllEdges(layoutedEdges);
         setExpandedNodes(new Set(calculatedNodes.map((n) => n.id)));
@@ -370,13 +428,19 @@ function OrgTreeContent() {
     };
     fetchData();
     return () => { isMounted = false; };
-  }, [onAddChild, onDeleteNode, onUpdateNode, onToggleExpand, recalculateMemberCounts]);
+    // Mount-only: deps 에 onAddChild/onDeleteNode/onUpdateNode 를 넣으면 사용자가
+    // 노드 추가/삭제 시 allEdges 변경 → 이 callbacks 새 reference → effect re-fire
+    // → server refetch → 사용자 진행 중인 local state overwrite (사용자 보고 2026-05-26
+    // "갑자기 옛 조직도가 번쩍 표시되는" 회귀 root cause). 첫 mount 만 fetch 하고
+    // 이후 변경은 onAddChild/onDeleteNode/onUpdateNode 가 직접 local + server persist.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const onLayout = useCallback(() => {
     const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(allNodes, allEdges);
     setAllNodes([...layoutedNodes]);
     setAllEdges([...layoutedEdges]);
-    window.requestAnimationFrame(() => fitView({ duration: 800 }));
+    window.requestAnimationFrame(() => fitView({ duration: 800, maxZoom: 1.0, padding: 0.2 }));
     addToast("Hierarchy layout optimized", "info");
   }, [allNodes, allEdges, fitView, addToast]);
 
@@ -410,32 +474,46 @@ function OrgTreeContent() {
     [onNodesChange],
   );
 
-  const addRootNode = () => {
-    const id = `node-${Date.now()}`;
-    const newNode: Node = {
-      id,
-      type: 'org',
-      data: { 
-        label: 'New Division', 
-        type: 'division',
-        allowedTypes: ['division', 'team', 'group', 'part'],
-        isInitialEditing: true,
-        direct_count: 0,
-        total_count: 0,
-        onAddChild,
-        onDelete: onDeleteNode,
-        onUpdate: onUpdateNode,
-        onToggleExpand
-      },
-      position: { x: 400, y: 0 },
-    };
-    setAllNodes((nds) => nds.concat(newNode));
-    setExpandedNodes((prev) => {
-      const next = new Set(prev);
-      next.add(id);
-      return next;
-    });
-    addToast("New root-level division added", "success");
+  const addRootNode = async () => {
+    try {
+      addToast("Adding new division...", "info");
+      const newUnit = await identityService.createUnit({
+        unit_id: `unit-${Date.now()}`,
+        parent_unit_id: "", // root
+        unit_type: "division",
+        label: "New Division",
+        position_x: 400,
+        position_y: 0,
+      });
+
+      const newNode: Node = {
+        id: newUnit.unit_id,
+        type: 'org',
+        data: {
+          label: newUnit.label,
+          type: newUnit.unit_type,
+          allowedTypes: ['division', 'team', 'group', 'part'],
+          isInitialEditing: true,
+          direct_count: 0,
+          total_count: 0,
+          onAddChild: (id: string) => addChildRef.current(id),
+          onDelete: onDeleteNode,
+          onUpdate: onUpdateNode,
+          onToggleExpand
+        },
+        position: { x: newUnit.position_x, y: newUnit.position_y },
+      };
+      setAllNodes((nds) => nds.concat(newNode));
+      setExpandedNodes((prev) => {
+        const next = new Set(prev);
+        next.add(newUnit.unit_id);
+        return next;
+      });
+      addToast("New root-level division added", "success");
+    } catch (error) {
+      console.error("[OrgTree] Failed to create root division:", error);
+      addToast("Failed to create new division", "error");
+    }
   };
 
   if (isLoading) return (
@@ -461,6 +539,7 @@ function OrgTreeContent() {
         onConnect={onConnect}
         defaultEdgeOptions={defaultEdgeOptions}
         fitView
+        fitViewOptions={{ maxZoom: 1.0, padding: 0.2 }}
       >
         <Background variant={BackgroundVariant.Lines} gap={40} size={1} color="rgba(255,255,255,0.03)" />
         <Controls className="glass border-border rounded-xl overflow-hidden" />

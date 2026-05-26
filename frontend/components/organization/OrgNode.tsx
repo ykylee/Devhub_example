@@ -5,6 +5,8 @@ import { Handle, Position, Node, NodeProps } from '@xyflow/react';
 import { Plus, Minus, Edit3, Crown, Check, X, Building2, Users, Layers, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import { ComboBox } from '@/components/ui/ComboBox';
+import type { OrgMember } from '@/lib/services/identity.service';
 
 type OrgNodeData = {
   [key: string]: unknown;
@@ -15,6 +17,7 @@ type OrgNodeData = {
   total_count?: number;
   allowedTypes?: string[];
   isInitialEditing?: boolean;
+  users?: OrgMember[];
   onAddChild?: (id: string) => void;
   onDelete?: (id: string) => void;
   onUpdate?: (id: string, data: Partial<OrgNodeData>) => void;
@@ -127,14 +130,20 @@ export const OrgNode = memo(({ id, data, selected }: NodeProps<Node<OrgNodeData>
                   </div>
                 </div>
                 <div>
-                  <span className="text-[10px] font-black text-accent uppercase tracking-widest">Leader ID</span>
-                  <input 
-                    value={editedLeader}
-                    onChange={(e) => setEditedLeader(e.target.value)}
-                    placeholder="Enter Leader ID (e.g. u1)"
-                    className="bg-muted/40 border border-border rounded-lg px-2 py-1.5 text-xs font-bold text-foreground focus:outline-none focus:border-accent/50 w-full mt-1"
-                    onClick={(e) => e.stopPropagation()}
-                  />
+                  <span className="text-[10px] font-black text-accent uppercase tracking-widest">Leader</span>
+                  <div onClick={(e) => e.stopPropagation()} className="mt-1">
+                    <ComboBox
+                      options={(data.users || []).map((u) => ({
+                        label: u.name,
+                        value: u.id,
+                        description: u.email,
+                      }))}
+                      value={editedLeader}
+                      onChange={setEditedLeader}
+                      placeholder="Search by name or email..."
+                      emptyText="No user found"
+                    />
+                  </div>
                 </div>
               </div>
             )}
@@ -145,12 +154,15 @@ export const OrgNode = memo(({ id, data, selected }: NodeProps<Node<OrgNodeData>
         {!isEditing && (
           <div className="flex flex-col gap-2 mt-2">
             <div className="flex items-center justify-between border-t border-border/60 pt-2">
-               {data.leader_id ? (
-                <div className="flex items-center gap-1.5 text-[9px] font-black text-accent bg-accent/10 px-2 py-1 rounded-full border border-accent/20">
-                  <Crown className="w-2.5 h-2.5" />
-                  {data.leader_id}
-                </div>
-              ) : (
+               {data.leader_id ? (() => {
+                const leader = (data.users || []).find((u) => u.id === data.leader_id);
+                return (
+                  <div className="flex items-center gap-1.5 text-[9px] font-black text-accent bg-accent/10 px-2 py-1 rounded-full border border-accent/20" title={data.leader_id}>
+                    <Crown className="w-2.5 h-2.5" />
+                    {leader ? leader.name : data.leader_id}
+                  </div>
+                );
+              })() : (
                 <div className="text-[9px] font-black text-muted-foreground italic">No Leader</div>
               )}
               <div className="flex items-center gap-3">
