@@ -51,6 +51,13 @@
   - 빈 목록 응답 시 empty state 노출
 - `/devhub` 도커 환경에서 통과
 
+8. Repository detail negative E2E 추가
+- `frontend/tests/e2e/repositories-detail-negative.spec.ts` 신규
+- 검증 범위:
+  - activity API 500 시 상세 페이지 에러 메시지 + retry 버튼 노출
+  - retry 클릭 시 실제 재요청 발생
+- `/devhub` 도커 환경에서 통과
+
 6. 도커 E2E 환경 이슈/해결 메모
 - macOS host 산출물 그대로 복사 시 linux container 와 ABI 불일치
 - 해결:
@@ -62,4 +69,4 @@
 ## 다음 작업
 
 1. 남은 상세 페이지 mock 성격 지표(legacy block) 정리/축소
-2. 필요 시 detail 단의 activity API 실패 부정 시나리오 E2E 확장
+2. 필요 시 applications/projects detail 부정 시나리오 E2E 확장
