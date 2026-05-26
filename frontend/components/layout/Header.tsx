@@ -11,21 +11,22 @@ import { authService } from "@/lib/services/auth.service";
 import { realtimeService, type ConnectionStatusEvent } from "@/lib/services/realtime.service";
 import { devRequestService } from "@/lib/services/dev_request.service";
 import { DevRequest } from "@/lib/services/dev_request.types";
-import { repositoryService } from "@/lib/services/repository.service";
+import { repositoryService, type Repository } from "@/lib/services/repository.service";
+import type { Project } from "@/lib/services/project.types";
 import { DevRequestDetailModal } from "@/components/dev-request/DevRequestDetailModal";
 import { ProjectCreationModal } from "@/components/project/ProjectCreationModal";
 
 export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  const { role, actor, notifications, clearNotifications, setSidebarOpen } = useStore();
+  const { role, actor, notifications, setSidebarOpen } = useStore();
   const router = useRouter();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [pendingDreqs, setPendingDreqs] = useState<DevRequest[]>([]);
-  const [repositories, setRepositories] = useState<any[]>([]);
+  const [repositories, setRepositories] = useState<Repository[]>([]);
   const [selectedDreq, setSelectedDreq] = useState<DevRequest | null>(null);
   const [showDreqDetail, setShowDreqDetail] = useState(false);
   const [showProjectCreate, setShowProjectCreate] = useState(false);
-  const [projectPrefill, setProjectPrefill] = useState<any>(null);
+  const [projectPrefill, setProjectPrefill] = useState<Partial<Project> | null>(null);
 
   const [isConnected, setIsConnected] = useState(realtimeService.isConnected);
   // 초기 theme 은 paint 전에 layout 의 inline script 가 html 에 적용하므로
@@ -66,6 +67,9 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
   };
 
   useEffect(() => {
+    // Mount-only: 초기 dreq/repo 페치 + WS subscribe. set-state-in-effect 룰의
+    // cascading render 우려는 async fetch boundary + WS callback 이라 해당 없음.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchDreqs();
     fetchRepos();
 
@@ -74,7 +78,7 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
       fetchDreqs();
     });
 
-    const unsubscribeDreq = realtimeService.subscribe<any>('dev_request.created', () => {
+    const unsubscribeDreq = realtimeService.subscribe<DevRequest>('dev_request.created', () => {
       fetchDreqs();
     });
 
@@ -323,7 +327,7 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
         {showProjectCreate && (
           <ProjectCreationModal
             repositories={repositories}
-            initialData={projectPrefill}
+            initialData={projectPrefill ?? undefined}
             onClose={() => {
               setShowProjectCreate(false);
               setProjectPrefill(null);

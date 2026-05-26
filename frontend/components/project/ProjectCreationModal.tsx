@@ -17,10 +17,14 @@ interface ProjectCreationModalProps {
 }
 
 export function ProjectCreationModal({ applicationId, repositories, onClose, onCreated, initialData }: ProjectCreationModalProps) {
-  const numericRepositories = repositories.map((r: any) => {
-    const repository_id = r.repository_id ?? r.id;
-    const repo_full_name = r.repo_full_name ?? r.full_name ?? r.name ?? "";
-    const repo_provider = r.repo_provider ?? "github";
+  const numericRepositories = repositories.map((r) => {
+    // ApplicationRepository.repository_id 가 optional 이라 `"repository_id" in r`
+    // 로는 narrow 불가. ApplicationRepository required field `repo_provider` 로
+    // discriminate (Repository 에는 없음).
+    const isAppRepo = "repo_provider" in r;
+    const repository_id = isAppRepo ? r.repository_id : r.id;
+    const repo_full_name = isAppRepo ? r.repo_full_name : (r.full_name ?? r.name ?? "");
+    const repo_provider = isAppRepo ? r.repo_provider : "github";
     return {
       ...r,
       repository_id,

@@ -20,13 +20,13 @@ import { Badge } from "@/components/ui/Badge";
 import { FilterBar } from "@/components/ui/FilterBar";
 import { projectService } from "@/lib/services/project.service";
 import type { Project } from "@/lib/services/project.types";
-import { repositoryService } from "@/lib/services/repository.service";
+import { repositoryService, type Repository } from "@/lib/services/repository.service";
 import { ProjectCreationModal } from "@/components/project/ProjectCreationModal";
 import { useToast } from "@/components/ui/Toast";
 
 export default function ProjectsStatusPage() {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [repositories, setRepositories] = useState<any[]>([]);
+  const [repositories, setRepositories] = useState<Repository[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -49,6 +49,9 @@ export default function ProjectsStatusPage() {
   }, []);
 
   useEffect(() => {
+    // Initial fetch on mount. refresh 는 useCallback([]) 이라 stable, 1회만 실행.
+    // setState-in-effect 룰은 async fetch boundary 라 cascading render 우려 없음.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void refresh();
   }, [refresh]);
 

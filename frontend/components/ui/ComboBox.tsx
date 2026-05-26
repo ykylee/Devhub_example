@@ -54,16 +54,15 @@ export function ComboBox({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    if (open) setSearch("");
-  }, [open]);
-
   return (
     <div className={cn("relative", className)} ref={containerRef}>
       <button
         type="button"
         disabled={disabled}
-        onClick={() => setOpen(!open)}
+        onClick={() => {
+          if (!open) setSearch("");
+          setOpen(!open);
+        }}
         className={cn(
           "flex items-center justify-between w-full px-4 py-3 rounded-xl glass border border-border/50 text-sm font-medium transition-all text-left",
           open && "border-primary/50 ring-2 ring-primary/20",

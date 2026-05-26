@@ -8,11 +8,9 @@ import { defaultRoles, Role } from "@/lib/services/rbac.types";
 import { rbacService } from "@/lib/services/rbac.service";
 import { FilterBar } from "@/components/ui/FilterBar";
 import { useToast } from "@/components/ui/Toast";
-import { useStore } from "@/lib/store";
 import { PendingReviewPanel } from "@/components/admin/users/PendingReviewPanel";
 
 export default function AdminSettingsUsersPage() {
-  const { role: currentUserRole } = useStore();
   const [members, setMembers] = useState<OrgMember[]>([]);
   const [unitLeaderIds, setUnitLeaderIds] = useState<string[]>([]);
   const [roles, setRoles] = useState<Role[]>(defaultRoles);

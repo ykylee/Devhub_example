@@ -2,7 +2,7 @@
 
 import { OrgMember } from "@/lib/services/identity.service";
 import { motion, AnimatePresence } from "framer-motion";
-import { UserPlus, Mail, Shield, ArrowRightLeft, Crown, Bot, Copy, Check } from "lucide-react";
+import { UserPlus, Mail, Shield, ArrowRightLeft, Crown, Bot } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -22,13 +22,6 @@ export function MemberTable({ members, unitLeaderIds = [], roles, onUpdateMember
   const { toast } = useToast();
   const unitLeaderIdSet = new Set(unitLeaderIds);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [copied, setCopied] = useState<string | null>(null);
-
-  const handleCopy = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(label);
-    setTimeout(() => setCopied(null), 2000);
-  };
 
   return (
     <div className="space-y-6">

@@ -31,29 +31,21 @@ export function CreateBindingModal({ providers, onClose, onCreated }: CreateBind
   const [policy, setPolicy] = useState<IntegrationPolicy>("execution_system");
 
   const [apps, setApps] = useState<{ id: string; key: string; name: string }[]>([]);
-  const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
-  const [isLoadingResources, setIsLoadingResources] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
-      setIsLoadingResources(true);
       try {
         const [appsResp] = await Promise.all([
           projectService.getApplications({ include_archived: false }),
         ]);
         setApps(appsResp.map(a => ({ id: a.id, key: a.key, name: a.name })));
-        
-        // Projects are harder to fetch all at once without pagination or bulk API
-        // For now, if scope is project, we might need a project search API.
-        // projectService has listAllProjects but needs repository IDs.
-        // Assuming we have a way to list projects or just use apps for now if it's most common.
+        // scope_type=project 분기는 별도 search API 가 없어 현재 application
+        // 만 사전 로드. (DREQ promote 흐름의 기본 scope 가 application)
       } catch (err) {
         console.error("Failed to load resources for ComboBox:", err);
-      } finally {
-        setIsLoadingResources(false);
       }
     })();
   }, []);
@@ -62,7 +54,6 @@ export function CreateBindingModal({ providers, onClose, onCreated }: CreateBind
     if (scopeType === "application") {
       return apps.map(a => ({ label: `${a.key} - ${a.name}`, value: a.key, description: a.name }));
     }
-    // Dummy projects for now or implement projectService.getProjects if available
     return [];
   }, [scopeType, apps]);
 
