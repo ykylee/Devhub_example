@@ -1,4 +1,4 @@
-import { test, expect, loginAs, SEEDED } from "./fixtures";
+import { test, expect, loginAs, SEEDED, appPath } from "./fixtures";
 
 // infra-topology.spec — TC-INFRA-RENDER-01 (sprint claude/work_260513-j, C2 1차).
 // Scope: 정적 렌더 surface 검증만 — \"system_admin 으로 /admin 진입 시 infra
@@ -10,7 +10,7 @@ test.describe("/admin — infra topology render (TC-INFRA-RENDER-01)", () => {
   test("system_admin reaches /admin and the topology view mounts", async ({ page }) => {
     await loginAs(page, SEEDED.systemAdmin);
 
-    await page.goto("/admin");
+    await page.goto(appPath("/admin"));
     await expect(page).toHaveURL(/\/admin/);
 
     // Heading from admin/page.tsx — public marker that the topology view

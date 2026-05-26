@@ -4,11 +4,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/devhub/backend-core/internal/domain"
 	"github.com/jackc/pgx/v5"
 )
+
+func nullableUUIDArg(v string) any {
+	if strings.TrimSpace(v) == "" {
+		return nil
+	}
+	return v
+}
 
 // ApplicationListOptions parameterizes ListApplications.
 type ApplicationListOptions struct {
@@ -26,9 +34,10 @@ type ApplicationRepositoryLinkKey struct {
 	RepoFullName  string
 }
 
-// ProjectListOptions parameterizes ListProjects (within a Repository scope).
+// ProjectListOptions parameterizes ListProjects.
 type ProjectListOptions struct {
 	RepositoryID    int64
+	ApplicationID   string
 	Status          string
 	IncludeArchived bool
 	Limit           int
@@ -580,25 +589,27 @@ func (s *PostgresStore) ListProjects(ctx context.Context, opts ProjectListOption
 
 	const countQuery = `
 SELECT COUNT(*) FROM projects
-WHERE repository_id = $1
-  AND ($2 = '' OR status = $2)
-  AND ($3 OR status <> 'archived')`
+WHERE ($1::bigint = 0 OR repository_id = $1)
+  AND ($2::uuid IS NULL OR application_id = $2::uuid)
+  AND ($3 = '' OR status = $3)
+  AND ($4 OR status <> 'archived')`
 
 	var total int
-	if err := s.pool.QueryRow(ctx, countQuery, opts.RepositoryID, opts.Status, opts.IncludeArchived).Scan(&total); err != nil {
+	if err := s.pool.QueryRow(ctx, countQuery, opts.RepositoryID, nullableUUIDArg(opts.ApplicationID), opts.Status, opts.IncludeArchived).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count projects: %w", err)
 	}
 
 	query := `
 SELECT` + projectsSelectColumns + `
 FROM projects
-WHERE repository_id = $3
-  AND ($4 = '' OR status = $4)
-  AND ($5 OR status <> 'archived')
+WHERE ($3::bigint = 0 OR repository_id = $3)
+  AND ($4::uuid IS NULL OR application_id = $4::uuid)
+  AND ($5 = '' OR status = $5)
+  AND ($6 OR status <> 'archived')
 ORDER BY key ASC
 LIMIT $1 OFFSET $2`
 
-	rows, err := s.pool.Query(ctx, query, limit, offset, opts.RepositoryID, opts.Status, opts.IncludeArchived)
+	rows, err := s.pool.Query(ctx, query, limit, offset, opts.RepositoryID, nullableUUIDArg(opts.ApplicationID), opts.Status, opts.IncludeArchived)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list projects: %w", err)
 	}
@@ -663,6 +674,59 @@ func (s *PostgresStore) CreateProject(ctx context.Context, project domain.Projec
 	return created, nil
 }
 
+func (s *PostgresStore) CreateProjectWithRepositories(ctx context.Context, project domain.Project, repositoryIDs []int64) (domain.Project, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return domain.Project{}, fmt.Errorf("begin create project tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	row := tx.QueryRow(ctx, projectsInsertQuery,
+		project.ApplicationID, project.RepositoryID, project.Key, project.Name,
+		project.Description, project.Status, project.Visibility,
+		project.OwnerUserID, project.StartDate, project.DueDate,
+	)
+	created, err := scanProject(row)
+	if isUniqueViolation(err) || isForeignKeyViolation(err) {
+		return domain.Project{}, ErrConflict
+	}
+	if err != nil {
+		return domain.Project{}, fmt.Errorf("create project (tx): %w", err)
+	}
+
+	if len(repositoryIDs) == 0 {
+		repositoryIDs = []int64{project.RepositoryID}
+	}
+	seen := map[int64]struct{}{}
+	for _, rid := range repositoryIDs {
+		if rid <= 0 {
+			continue
+		}
+		if _, ok := seen[rid]; ok {
+			continue
+		}
+		seen[rid] = struct{}{}
+		role := "linked"
+		if rid == project.RepositoryID {
+			role = "primary"
+		}
+		const insertLink = `
+INSERT INTO project_repositories (project_id, repository_id, role)
+VALUES ($1::uuid, $2, $3)`
+		if _, err := tx.Exec(ctx, insertLink, created.ID, rid, role); err != nil {
+			if isUniqueViolation(err) || isForeignKeyViolation(err) || isCheckViolation(err, "") {
+				return domain.Project{}, ErrConflict
+			}
+			return domain.Project{}, fmt.Errorf("create project repository link (tx): %w", err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return domain.Project{}, fmt.Errorf("commit create project tx: %w", err)
+	}
+	return created, nil
+}
+
 func (s *PostgresStore) UpdateProject(ctx context.Context, project domain.Project) (domain.Project, error) {
 	const updateQuery = `
 UPDATE projects SET
@@ -711,4 +775,60 @@ RETURNING` + projectsSelectColumns
 	}
 	_ = archivedReason
 	return archived, nil
+}
+
+func (s *PostgresStore) ListProjectRepositories(ctx context.Context, projectID string) ([]domain.ProjectRepository, error) {
+	const query = `
+SELECT project_id::text, repository_id, role, linked_at
+FROM project_repositories
+WHERE project_id = $1::uuid
+ORDER BY repository_id ASC`
+
+	rows, err := s.pool.Query(ctx, query, projectID)
+	if err != nil {
+		return nil, fmt.Errorf("list project repositories: %w", err)
+	}
+	defer rows.Close()
+
+	links := make([]domain.ProjectRepository, 0)
+	for rows.Next() {
+		var link domain.ProjectRepository
+		if err := rows.Scan(&link.ProjectID, &link.RepositoryID, &link.Role, &link.LinkedAt); err != nil {
+			return nil, fmt.Errorf("scan project repository: %w", err)
+		}
+		links = append(links, link)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate project repositories: %w", err)
+	}
+	return links, nil
+}
+
+func (s *PostgresStore) CreateProjectRepository(ctx context.Context, link domain.ProjectRepository) (domain.ProjectRepository, error) {
+	const query = `
+INSERT INTO project_repositories (project_id, repository_id, role)
+VALUES ($1::uuid, $2, $3)
+RETURNING project_id::text, repository_id, role, linked_at`
+
+	row := s.pool.QueryRow(ctx, query, link.ProjectID, link.RepositoryID, link.Role)
+	var created domain.ProjectRepository
+	if err := row.Scan(&created.ProjectID, &created.RepositoryID, &created.Role, &created.LinkedAt); err != nil {
+		if isUniqueViolation(err) || isForeignKeyViolation(err) || isCheckViolation(err, "") {
+			return domain.ProjectRepository{}, ErrConflict
+		}
+		return domain.ProjectRepository{}, fmt.Errorf("create project repository: %w", err)
+	}
+	return created, nil
+}
+
+func (s *PostgresStore) DeleteProjectRepository(ctx context.Context, projectID string, repositoryID int64) error {
+	const query = `DELETE FROM project_repositories WHERE project_id = $1::uuid AND repository_id = $2`
+	cmd, err := s.pool.Exec(ctx, query, projectID, repositoryID)
+	if err != nil {
+		return fmt.Errorf("delete project repository: %w", err)
+	}
+	if cmd.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
 }

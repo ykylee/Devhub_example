@@ -24,6 +24,7 @@ type memoryApplicationStore struct {
 	links                map[string][]domain.ApplicationRepository
 	providers            map[string]domain.SCMProvider
 	projects             map[string]domain.Project
+	projectRepositories  map[string][]domain.ProjectRepository
 	activeLinkCounts     map[string]int
 	integrations         map[string]domain.ProjectIntegration
 	integrationProviders map[string]domain.IntegrationProvider
@@ -50,6 +51,7 @@ func newMemoryApplicationStore() *memoryApplicationStore {
 			"forgejo":   {ProviderKey: "forgejo", DisplayName: "Forgejo", Enabled: false, AdapterVersion: "0.0.1"},
 		},
 		projects:             make(map[string]domain.Project),
+		projectRepositories:  make(map[string][]domain.ProjectRepository),
 		activeLinkCounts:     make(map[string]int),
 		integrations:         make(map[string]domain.ProjectIntegration),
 		integrationProviders: make(map[string]domain.IntegrationProvider),
@@ -241,7 +243,10 @@ func (s *memoryApplicationStore) ListProjects(_ context.Context, opts store.Proj
 	defer s.mu.Unlock()
 	out := make([]domain.Project, 0)
 	for _, p := range s.projects {
-		if p.RepositoryID != opts.RepositoryID {
+		if opts.RepositoryID != 0 && p.RepositoryID != opts.RepositoryID {
+			continue
+		}
+		if opts.ApplicationID != "" && p.ApplicationID != opts.ApplicationID {
 			continue
 		}
 		if opts.Status != "" && string(p.Status) != opts.Status {
@@ -278,7 +283,74 @@ func (s *memoryApplicationStore) CreateProject(_ context.Context, p domain.Proje
 	p.CreatedAt = time.Now().UTC()
 	p.UpdatedAt = p.CreatedAt
 	s.projects[p.ID] = p
+	if p.RepositoryID != 0 {
+		s.projectRepositories[p.ID] = append(s.projectRepositories[p.ID], domain.ProjectRepository{
+			ProjectID:    p.ID,
+			RepositoryID: p.RepositoryID,
+			Role:         "primary",
+			LinkedAt:     p.CreatedAt,
+		})
+	}
 	return p, nil
+}
+
+func (s *memoryApplicationStore) ListProjectRepositories(_ context.Context, projectID string) ([]domain.ProjectRepository, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]domain.ProjectRepository(nil), s.projectRepositories[projectID]...), nil
+}
+
+func (s *memoryApplicationStore) CreateProjectRepository(_ context.Context, link domain.ProjectRepository) (domain.ProjectRepository, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.projects[link.ProjectID]; !ok {
+		return domain.ProjectRepository{}, store.ErrConflict
+	}
+	for _, existing := range s.projectRepositories[link.ProjectID] {
+		if existing.RepositoryID == link.RepositoryID {
+			return domain.ProjectRepository{}, store.ErrConflict
+		}
+	}
+	if link.Role == "" {
+		link.Role = "linked"
+	}
+	link.LinkedAt = time.Now().UTC()
+	s.projectRepositories[link.ProjectID] = append(s.projectRepositories[link.ProjectID], link)
+	return link, nil
+}
+
+func (s *memoryApplicationStore) DeleteProjectRepository(_ context.Context, projectID string, repositoryID int64) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	links := s.projectRepositories[projectID]
+	for i, existing := range links {
+		if existing.RepositoryID == repositoryID {
+			s.projectRepositories[projectID] = append(links[:i], links[i+1:]...)
+			return nil
+		}
+	}
+	return store.ErrNotFound
+}
+
+func (s *memoryApplicationStore) CreateProjectWithRepositories(_ context.Context, p domain.Project, repositoryIDs []int64) (domain.Project, error) {
+	created, err := s.CreateProject(context.Background(), p)
+	if err != nil {
+		return domain.Project{}, err
+	}
+	for _, rid := range repositoryIDs {
+		if rid <= 0 || rid == created.RepositoryID {
+			continue
+		}
+		_, linkErr := s.CreateProjectRepository(context.Background(), domain.ProjectRepository{
+			ProjectID:    created.ID,
+			RepositoryID: rid,
+			Role:         "linked",
+		})
+		if linkErr != nil && !errors.Is(linkErr, store.ErrConflict) {
+			return domain.Project{}, linkErr
+		}
+	}
+	return created, nil
 }
 
 func (s *memoryApplicationStore) UpdateProject(_ context.Context, p domain.Project) (domain.Project, error) {

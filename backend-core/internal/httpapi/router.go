@@ -77,6 +77,10 @@ type ApplicationStore interface {
 	CreateProject(context.Context, domain.Project) (domain.Project, error)
 	UpdateProject(context.Context, domain.Project) (domain.Project, error)
 	ArchiveProject(context.Context, string, string) (domain.Project, error)
+	ListProjectRepositories(context.Context, string) ([]domain.ProjectRepository, error)
+	CreateProjectRepository(context.Context, domain.ProjectRepository) (domain.ProjectRepository, error)
+	DeleteProjectRepository(context.Context, string, int64) error
+	CreateProjectWithRepositories(context.Context, domain.Project, []int64) (domain.Project, error)
 
 	// Repository 운영 지표 (API-51..54, sprint claude/work_260514-c)
 	ListRepositoryActivity(context.Context, int64, store.RepositoryActivityOptions) (domain.RepositoryActivity, error)
@@ -127,15 +131,15 @@ type RouterConfig struct {
 	InfraAgentToken       string
 	HomeLabProviderKey    string
 	HomeLabDegradedRaw    string
-	EventStore          WebhookEventStore
-	EventProcessor      WebhookEventProcessor
-	HealthStore         HealthStore
-	DomainStore         DomainStore
-	CommandStore        CommandStore
-	AuditStore          AuditStore
-	BearerTokenVerifier BearerTokenVerifier
-	OrganizationStore   OrganizationStore
-	ApplicationStore    ApplicationStore
+	EventStore            WebhookEventStore
+	EventProcessor        WebhookEventProcessor
+	HealthStore           HealthStore
+	DomainStore           DomainStore
+	CommandStore          CommandStore
+	AuditStore            AuditStore
+	BearerTokenVerifier   BearerTokenVerifier
+	OrganizationStore     OrganizationStore
+	ApplicationStore      ApplicationStore
 	// DevRequestStore + DevRequestIntakeTokenStore — DREQ 도메인 (ADR-0012, sprint claude/work_260515-i).
 	DevRequestStore            DevRequestStore
 	DevRequestIntakeTokenStore IntakeTokenStore
@@ -158,6 +162,8 @@ type RouterConfig struct {
 	// - false (rollback): onboardingGate no-op (모든 endpoint 통과). token-only
 	//   actor 처리는 여전히 활성. 운영 사고 시 빠른 mitigation 경로.
 	OnboardingGateEnabled bool
+	// ProjectModel toggles project-management route mode: legacy|hybrid|v2.
+	ProjectModel string
 }
 
 func NewRouter(cfg RouterConfig) *gin.Engine {
@@ -277,9 +283,14 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	// API-55..56 Project CRUD (sprint claude/work_260514-c)
 	v1.GET("/repositories/:repository_id/projects", handler.listProjects)
 	v1.POST("/repositories/:repository_id/projects", handler.createProject)
+	v1.GET("/applications/:application_id/projects", handler.listApplicationProjects)
+	v1.POST("/applications/:application_id/projects", handler.createApplicationProject)
 	v1.GET("/projects/:project_id", handler.getProject)
 	v1.PATCH("/projects/:project_id", handler.updateProject)
 	v1.DELETE("/projects/:project_id", handler.archiveProject)
+	v1.GET("/projects/:project_id/repositories", handler.listProjectRepositories)
+	v1.POST("/projects/:project_id/repositories", handler.createProjectRepository)
+	v1.DELETE("/projects/:project_id/repositories/:repository_id", handler.deleteProjectRepository)
 	// API-57 Application 롤업 (sprint claude/work_260514-c)
 	v1.GET("/applications/:application_id/rollup", handler.applicationRollup)
 	// API-58 Integration CRUD (sprint claude/work_260514-c)

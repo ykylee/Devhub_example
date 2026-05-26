@@ -1271,7 +1271,7 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 
 ## 13. Application/Repository/Project 관리 API (혼합 — scaffolded + planned)
 
-본 섹션은 `Application > Repository > Project` 관리 기능의 API 계약. `API-41 ~ API-50` 은 sprint `claude/work_260514-a` 에서 **scaffolded** (gin 라우트 + RBAC matrix + handler stub) 단계까지 도달. store body 와 응답 body 는 후속 sprint 의 carve out. `API-51 ~ API-58` 은 **planned** (route 미등록, 본 §13.4~§13.7 의 endpoint 설명만 유지).
+본 섹션은 프로젝트 관리 도메인의 API 계약이다. historical 모델은 `Application > Repository > Project` 였고, 현재는 `Application > Project > Repository(N:M)` 로 전환 중이다. `DEVHUB_PROJECT_MODEL=legacy|hybrid|v2` 토글을 사용하며 기본은 `hybrid`.
 
 ### 13.0 §13 API ID 인덱스
 
@@ -1291,8 +1291,10 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 | `API-52` | `GET /api/v1/repositories/{repository_id}/pull-requests` | §13.4 | activated |
 | `API-53` | `GET /api/v1/repositories/{repository_id}/build-runs` | §13.4 | activated |
 | `API-54` | `GET /api/v1/repositories/{repository_id}/quality-snapshots` | §13.4 | activated |
-| `API-55` | `GET /api/v1/repositories/{repository_id}/projects` + `POST` | §13.5 | activated |
+| `API-55` | `GET /api/v1/repositories/{repository_id}/projects` + `POST` | §13.5 | activated (legacy/hybrid) |
 | `API-56` | `GET /api/v1/projects/{project_id}` + `PATCH` + `DELETE` | §13.5 | activated |
+| `API-56A` | `GET /api/v1/applications/{application_id}/projects` + `POST` | §13.5 | activated (v2/hybrid) |
+| `API-56B` | `GET/POST/DELETE /api/v1/projects/{project_id}/repositories` | §13.5 | activated (v2/hybrid) |
 | `API-57` | `GET /api/v1/applications/{application_id}/rollup` | §13.6 | activated (concept §13.4 normalize 실 구현 + critical 가드 흡수) |
 | `API-58` | `GET /api/v1/integrations` + CRUD | §13.7 | activated (scope polymorphism application/project) |
 
@@ -1534,7 +1536,9 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 
 - 설명: 정적분석/품질 점수/게이트 결과 조회.
 
-### 13.5 Repository 하위 Project
+### 13.5 Project + Repository 연결
+
+운영 모델은 `Application > Project > Repository(N:M)` 을 기본으로 한다. legacy 경로(`/repositories/{repository_id}/projects`)는 호환을 위해 유지되며 `DEVHUB_PROJECT_MODEL=v2` 에서는 `410 gone` 으로 비활성화된다.
 
 #### `GET /api/v1/repositories/{repository_id}/projects` (`API-55 (planned)`)
 
@@ -1556,6 +1560,30 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
   - `status` (required)
 - 제약:
   - `UNIQUE (repository_id, key)`
+
+#### `GET /api/v1/applications/{application_id}/projects` (`API-56A`)
+
+- 설명: Application 하위 Project 목록 조회 (v2 경로).
+
+#### `POST /api/v1/applications/{application_id}/projects` (`API-56A`)
+
+- 설명: Application 하위 Project 생성 (v2 경로).
+- 요청 body:
+  - `repository_id` (required): legacy primary repository
+  - `repository_ids` (optional): N:M 연결할 repository 목록
+- 동작: 단일 트랜잭션으로 `projects` row + `project_repositories` link rows 생성.
+
+#### `GET /api/v1/projects/{project_id}/repositories` (`API-56B`)
+
+- 설명: Project 와 연결된 repository 링크 조회.
+
+#### `POST /api/v1/projects/{project_id}/repositories` (`API-56B`)
+
+- 설명: Project-repository 링크 추가.
+
+#### `DELETE /api/v1/projects/{project_id}/repositories/{repository_id}` (`API-56B`)
+
+- 설명: Project-repository 링크 제거.
 
 #### `GET /api/v1/projects/{project_id}` (`API-56 (planned)`)
 

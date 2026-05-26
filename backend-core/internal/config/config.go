@@ -29,6 +29,11 @@ type Config struct {
 	// (token-only actor still applied — lazy_auto_create.go 는 삭제됨, rollback
 	// 은 onboardingGate middleware 비활성화만 의미). 운영 사고 시 빠른 mitigation.
 	OnboardingGateEnabled bool
+	// ProjectModel controls project-management route mode.
+	// - legacy: repository-centric routes only
+	// - hybrid: legacy + v2 routes both enabled (default)
+	// - v2: application/project-centric routes only
+	ProjectModel string
 	// ServiceActionExecutorMode enables the live service action worker only for supported explicit modes such as "simulation".
 	ServiceActionExecutorMode string
 	// ServiceActionAllowedServices is a comma-separated allowlist checked by the simulation service action executor.
@@ -126,6 +131,7 @@ func Load() Config {
 		IdPProvider:                    normalizeIDPProvider(os.Getenv("DEVHUB_IDP_PROVIDER")),
 		AuthDevFallback:                envBool("DEVHUB_AUTH_DEV_FALLBACK"),
 		OnboardingGateEnabled:          envBoolDefault("DEVHUB_ONBOARDING_GATE_ENABLED", true),
+		ProjectModel:                   normalizeProjectModel(os.Getenv("DEVHUB_PROJECT_MODEL")),
 		ServiceActionExecutorMode:      strings.TrimSpace(os.Getenv("SERVICE_ACTION_EXECUTOR_MODE")),
 		ServiceActionAllowedServices:   strings.TrimSpace(os.Getenv("SERVICE_ACTION_ALLOWED_SERVICES")),
 		ServiceActionAllowedActions:    strings.TrimSpace(os.Getenv("SERVICE_ACTION_ALLOWED_ACTIONS")),
@@ -225,4 +231,14 @@ func normalizeIDPProvider(raw string) string {
 func envInt64(key string) int64 {
 	n, _ := strconv.ParseInt(strings.TrimSpace(os.Getenv(key)), 10, 64)
 	return n
+}
+
+func normalizeProjectModel(raw string) string {
+	v := strings.ToLower(strings.TrimSpace(raw))
+	switch v {
+	case "legacy", "v2", "hybrid":
+		return v
+	default:
+		return "hybrid"
+	}
 }

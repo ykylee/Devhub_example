@@ -1,4 +1,4 @@
-import { test, expect, loginAs, SEEDED } from "./fixtures";
+import { test, expect, loginAs, SEEDED, appPath } from "./fixtures";
 
 /**
  * admin-users-crud.spec.ts
@@ -9,7 +9,7 @@ import { test, expect, loginAs, SEEDED } from "./fixtures";
 test.describe("/admin/settings/users — CRUD UI smoke", () => {
   test.beforeEach(async ({ page }) => {
     await loginAs(page, SEEDED.systemAdmin);
-    await page.goto("/admin/settings/users");
+    await page.goto(appPath("/admin/settings/users"));
     
     // Wait for the page to stabilize
     await page.waitForLoadState("networkidle");

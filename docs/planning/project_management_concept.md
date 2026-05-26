@@ -161,7 +161,7 @@ application_repositories
 projects
   id                 UUID PK
   application_id     UUID FK applications.id
-  repository_id      BIGINT FK repositories.id
+  repository_id      BIGINT FK repositories.id   -- legacy primary repository (compat)
   key                TEXT NOT NULL
   name               TEXT NOT NULL
   status             TEXT NOT NULL
@@ -169,6 +169,13 @@ projects
   start_date         DATE NULL
   due_date           DATE NULL
   UNIQUE (repository_id, key)
+
+project_repositories
+  project_id         UUID FK projects.id
+  repository_id      BIGINT FK repositories.id
+  role               TEXT NOT NULL   -- primary | linked | shared
+  linked_at          TIMESTAMPTZ NOT NULL
+  PRIMARY KEY (project_id, repository_id)
 
 pr_activities
   id                 BIGSERIAL PK
@@ -246,7 +253,7 @@ project_integrations
 | --- | --- | --- |
 | Req sprint | `docs/requirements.md` 확장 (`Project/하위 repo/Jira 정책`) + REQ-FR 발급 | 본 컨셉 머지 직후 |
 | Usecase sprint | 행위자 × usecase 매트릭스, Jira/Confluence 운영 규칙 상세 | Req sprint 머지 직후 |
-| Design sprint (backend) | `/api/v1/applications/*`, `/api/v1/repositories/:repo_id/projects/*` 계약 + 마이그레이션 초안 | Usecase sprint 머지 직후 |
+| Design sprint (backend) | `/api/v1/applications/*`, `/api/v1/applications/:app_id/projects/*`, `/api/v1/projects/:project_id/repositories/*` 계약 + 마이그레이션 초안 | Usecase sprint 머지 직후 |
 | Design sprint (frontend) | `/admin/settings/applications` IA/화면 흐름 | backend design 과 병행 |
 | Implementation sprint | IMPL-application-*, UT-application-*, TC-application-* | design 머지 후 |
 

@@ -20,7 +20,6 @@ import { Badge } from "@/components/ui/Badge";
 import { FilterBar } from "@/components/ui/FilterBar";
 import { projectService } from "@/lib/services/project.service";
 import type { Project } from "@/lib/services/project.types";
-import { repositoryService } from "@/lib/services/repository.service";
 
 export default function ProjectsStatusPage() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -32,8 +31,11 @@ export default function ProjectsStatusPage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const repos = await repositoryService.listRepositories();
-        const allProjects = await projectService.listAllProjects(repos.map(r => r.id));
+        const apps = await projectService.getApplications({ include_archived: true });
+        const nested = await Promise.all(
+          apps.map((app) => projectService.getApplicationProjectsV2(app.id).catch(() => [])),
+        );
+        const allProjects = nested.flat();
         setProjects(allProjects);
       } catch (err) {
         setError("Failed to load projects data.");

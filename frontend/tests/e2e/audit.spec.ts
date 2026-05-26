@@ -1,4 +1,4 @@
-import { test, expect, loginAs, SEEDED } from "./fixtures";
+import { test, expect, loginAs, SEEDED, appPath } from "./fixtures";
 
 // audit.spec — /admin/settings/audit smoke. Pins:
 //   1) the page is reachable by a system_admin actor (AuthGuard + sub-tab),
@@ -10,7 +10,7 @@ test.describe("/admin/settings/audit", () => {
   test("system_admin can open the audit tab and see log entries", async ({ page }) => {
     await loginAs(page, SEEDED.systemAdmin);
 
-    await page.goto("/admin/settings/audit");
+    await page.goto(appPath("/admin/settings/audit"));
     await expect(page).toHaveURL(/\/admin\/settings\/audit/);
 
     // Filter card heading + first action column come from page.tsx.

@@ -124,26 +124,26 @@ type routeKey struct {
 // instead of silent.
 var routePermissionTable = map[routeKey]routePolicy{
 	// Bypass — section 12.8.1 (auth-only, no matrix lookup)
-	{http.MethodGet, "/api/v1/me"}:                                                {Bypass: true},
+	{http.MethodGet, "/api/v1/me"}: {Bypass: true},
 	// RM-ONBOARD-01 (ADR-0021 §3.5, §16.3..16.5). onboardingGate middleware
 	// 가 미완료 사용자의 본 endpoint 외 endpoint 호출 시 403 처리.
-	{http.MethodPatch, "/api/v1/me"}:                                              {Bypass: true},
-	{http.MethodPost, "/api/v1/me/onboarding"}:                                    {Bypass: true},
-	{http.MethodGet, "/api/v1/organizations/search"}:                              {Bypass: true},
+	{http.MethodPatch, "/api/v1/me"}:                 {Bypass: true},
+	{http.MethodPost, "/api/v1/me/onboarding"}:       {Bypass: true},
+	{http.MethodGet, "/api/v1/organizations/search"}: {Bypass: true},
 	// RM-ONBOARD-01 (API-86) — admin 의 review confirm. system_admin 일임 —
 	// rbac matrix 의 organization:edit 정합 (user/organization management).
-	{http.MethodPost, "/api/v1/admin/users/:user_id/review"}:                      {Resource: domain.ResourceOrganization, Action: domain.ActionEdit},
-	{http.MethodGet, "/api/v1/realtime/ws"}:                                       {Bypass: true},
-	{http.MethodPost, "/api/v1/integrations/gitea/webhooks"}:                      {Bypass: true},
-	{http.MethodPost, "/api/v1/integration/providers/:provider_id/webhook"}:       {Bypass: true},
-	{http.MethodPost, "/api/v1/infra/services/snapshot"}:                          {Bypass: true},
+	{http.MethodPost, "/api/v1/admin/users/:user_id/review"}:                {Resource: domain.ResourceOrganization, Action: domain.ActionEdit},
+	{http.MethodGet, "/api/v1/realtime/ws"}:                                 {Bypass: true},
+	{http.MethodPost, "/api/v1/integrations/gitea/webhooks"}:                {Bypass: true},
+	{http.MethodPost, "/api/v1/integration/providers/:provider_id/webhook"}: {Bypass: true},
+	{http.MethodPost, "/api/v1/infra/services/snapshot"}:                    {Bypass: true},
 	// Keycloak Event Listener SPI webhook (PR #203). Bypass — registered outside
 	// the v1 group (router.go) so authenticateActor + enforceRoutePermission do
 	// not run; secret verification via X-Webhook-Secret header is fail-closed in
 	// receiveKeycloakEventWebhook (sprint -d Stage 3 codex P1 hotfix). Entry
 	// kept here so TestRoutePermissionTable_CoversAllProtectedV1Routes recognizes
 	// this path as authorized.
-	{http.MethodPost, "/api/v1/internal/keycloak-events"}:                         {Bypass: true},
+	{http.MethodPost, "/api/v1/internal/keycloak-events"}: {Bypass: true},
 
 	// infrastructure
 	{http.MethodGet, "/api/v1/dashboard/metrics"}:             {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
@@ -231,11 +231,16 @@ var routePermissionTable = map[routeKey]routePolicy{
 	{http.MethodGet, "/api/v1/repositories/:repository_id/quality-snapshots"}: {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionView},
 
 	// Project CRUD (API-55..56, sprint claude/work_260514-c).
-	{http.MethodGet, "/api/v1/repositories/:repository_id/projects"}:  {Resource: domain.ResourceProjects, Action: domain.ActionView},
-	{http.MethodPost, "/api/v1/repositories/:repository_id/projects"}: {Resource: domain.ResourceProjects, Action: domain.ActionCreate},
-	{http.MethodGet, "/api/v1/projects/:project_id"}:                  {Resource: domain.ResourceProjects, Action: domain.ActionView},
-	{http.MethodPatch, "/api/v1/projects/:project_id"}:                {Resource: domain.ResourceProjects, Action: domain.ActionEdit},
-	{http.MethodDelete, "/api/v1/projects/:project_id"}:               {Resource: domain.ResourceProjects, Action: domain.ActionDelete},
+	{http.MethodGet, "/api/v1/repositories/:repository_id/projects"}:                {Resource: domain.ResourceProjects, Action: domain.ActionView},
+	{http.MethodPost, "/api/v1/repositories/:repository_id/projects"}:               {Resource: domain.ResourceProjects, Action: domain.ActionCreate},
+	{http.MethodGet, "/api/v1/applications/:application_id/projects"}:               {Resource: domain.ResourceProjects, Action: domain.ActionView},
+	{http.MethodPost, "/api/v1/applications/:application_id/projects"}:              {Resource: domain.ResourceProjects, Action: domain.ActionCreate},
+	{http.MethodGet, "/api/v1/projects/:project_id"}:                                {Resource: domain.ResourceProjects, Action: domain.ActionView},
+	{http.MethodPatch, "/api/v1/projects/:project_id"}:                              {Resource: domain.ResourceProjects, Action: domain.ActionEdit},
+	{http.MethodDelete, "/api/v1/projects/:project_id"}:                             {Resource: domain.ResourceProjects, Action: domain.ActionDelete},
+	{http.MethodGet, "/api/v1/projects/:project_id/repositories"}:                   {Resource: domain.ResourceProjects, Action: domain.ActionView},
+	{http.MethodPost, "/api/v1/projects/:project_id/repositories"}:                  {Resource: domain.ResourceProjects, Action: domain.ActionEdit},
+	{http.MethodDelete, "/api/v1/projects/:project_id/repositories/:repository_id"}: {Resource: domain.ResourceProjects, Action: domain.ActionDelete},
 
 	// Application 롤업 (API-57, sprint claude/work_260514-c) — applications:view 매핑.
 	{http.MethodGet, "/api/v1/applications/:application_id/rollup"}: {Resource: domain.ResourceApplications, Action: domain.ActionView},
@@ -254,8 +259,8 @@ var routePermissionTable = map[routeKey]routePolicy{
 	{http.MethodGet, "/api/v1/integration/bindings"}:                     {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
 	{http.MethodPost, "/api/v1/integration/bindings"}:                    {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
 	// PR #251 P2-4 sub-carve — Bindings UI 강화. API-81 PATCH + API-82 DELETE.
-	{http.MethodPatch, "/api/v1/integration/bindings/:binding_id"}:       {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
-	{http.MethodDelete, "/api/v1/integration/bindings/:binding_id"}:      {Resource: domain.ResourceInfrastructure, Action: domain.ActionDelete},
+	{http.MethodPatch, "/api/v1/integration/bindings/:binding_id"}:  {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
+	{http.MethodDelete, "/api/v1/integration/bindings/:binding_id"}: {Resource: domain.ResourceInfrastructure, Action: domain.ActionDelete},
 
 	// Dev Request (DREQ) API-59..65 (sprint claude/work_260515-i, ADR-0012).
 	// POST /api/v1/dev-requests 는 별도 intake group 으로 등록되어 v1 의

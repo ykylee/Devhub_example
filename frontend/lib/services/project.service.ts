@@ -1,5 +1,5 @@
 import { apiClient } from "./api-client";
-import { Application, ApplicationRepository, Project, SCMProvider } from "./project.types";
+import { Application, ApplicationRepository, Project, ProjectRepositoryLink, SCMProvider } from "./project.types";
 
 type ApplicationQuery = { status?: string; include_archived?: boolean; q?: string };
 type ProjectQuery = { status?: string; include_archived?: boolean };
@@ -92,6 +92,37 @@ class ProjectService {
   async createProject(repositoryId: number, data: Partial<Project>): Promise<Project> {
     const resp = await apiClient<{ data: Project }>("POST", `/api/v1/repositories/${repositoryId}/projects`, data);
     return resp.data;
+  }
+
+  async getApplicationProjectsV2(applicationId: string, params?: ProjectQuery): Promise<Project[]> {
+    const path = withQuery(`/api/v1/applications/${applicationId}/projects`, params);
+    const resp = await apiClient<{ data: Project[] }>("GET", path);
+    return resp.data;
+  }
+
+  async createApplicationProject(
+    applicationId: string,
+    data: Partial<Project> & { repository_ids?: number[] },
+  ): Promise<Project> {
+    const resp = await apiClient<{ data: Project }>("POST", `/api/v1/applications/${applicationId}/projects`, data);
+    return resp.data;
+  }
+
+  async getProjectRepositories(projectId: string): Promise<ProjectRepositoryLink[]> {
+    const resp = await apiClient<{ data: ProjectRepositoryLink[] }>("GET", `/api/v1/projects/${projectId}/repositories`);
+    return resp.data;
+  }
+
+  async linkProjectRepository(projectId: string, repositoryId: number, role: "primary" | "linked" | "shared" = "linked"): Promise<ProjectRepositoryLink> {
+    const resp = await apiClient<{ data: ProjectRepositoryLink }>("POST", `/api/v1/projects/${projectId}/repositories`, {
+      repository_id: repositoryId,
+      role,
+    });
+    return resp.data;
+  }
+
+  async unlinkProjectRepository(projectId: string, repositoryId: number): Promise<void> {
+    await apiClient("DELETE", `/api/v1/projects/${projectId}/repositories/${repositoryId}`);
   }
 
   async getProject(id: string): Promise<Project> {

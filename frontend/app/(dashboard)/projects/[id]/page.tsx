@@ -19,7 +19,7 @@ import {
 import { useRouter, useParams } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
 import { projectService } from "@/lib/services/project.service";
-import type { Project } from "@/lib/services/project.types";
+import type { Project, ProjectRepositoryLink } from "@/lib/services/project.types";
 import { identityService, OrgMember } from "@/lib/services/identity.service";
 import { 
   Tooltip, 
@@ -43,6 +43,7 @@ export default function ProjectDetailPage() {
   const router = useRouter();
   
   const [project, setProject] = useState<Project | null>(null);
+  const [projectRepositories, setProjectRepositories] = useState<ProjectRepositoryLink[]>([]);
   const [users, setUsers] = useState<OrgMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,6 +57,8 @@ export default function ProjectDetailPage() {
         ]);
         setProject(projectData);
         setUsers(usersData);
+        const links = await projectService.getProjectRepositories(id).catch(() => []);
+        setProjectRepositories(links);
       } catch (err) {
         setError("Failed to load project details.");
         console.error(err);
@@ -331,6 +334,25 @@ export default function ProjectDetailPage() {
         </div>
 
         <div className="space-y-8">
+          <section className="glass-card p-8">
+            <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground mb-6">Linked Repositories (N:M)</h3>
+            {projectRepositories.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No linked repositories.</p>
+            ) : (
+              <div className="space-y-3">
+                {projectRepositories.map((link) => (
+                  <div key={`${link.project_id}-${link.repository_id}`} className="flex items-center justify-between rounded-xl border border-border/50 bg-muted/10 px-4 py-3">
+                    <div>
+                      <p className="text-xs font-bold text-foreground dark:text-primary-foreground">Repository ID: {link.repository_id}</p>
+                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Role: {link.role}</p>
+                    </div>
+                    <Badge variant={link.role === "primary" ? "primary" : "glass"}>{link.role}</Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
           <section className="glass-card p-8">
             <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground mb-6 flex items-center gap-2">
               <Users className="w-4 h-4 text-primary" /> Team Members

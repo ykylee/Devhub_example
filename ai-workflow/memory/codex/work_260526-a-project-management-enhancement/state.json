@@ -1,0 +1,23 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "codex/work_260526-a-project-management-enhancement",
+  "status": "in_progress",
+  "updated_at": "2026-05-26T03:30:00Z",
+  "head_commit": "working_tree",
+  "head_summary": "project model v2/hybrid 구현 + deploy/JWKS 안정화 + e2e strict(basePath) 정비",
+  "current_focus": [
+    "프로젝트 모델(Application -> Project -> Repository N:M) 전환 구현 마무리",
+    "deploy/e2e deterministic 실행 프로필 확정 및 strict 검증"
+  ],
+  "next_actions": [
+    "변경 파일 커밋 정리",
+    "PR 본문(변경점/검증결과/리스크) 작성",
+    "traceability 영향 섹션 동기화 확인"
+  ],
+  "risks": [
+    "환경별 RBAC/화면 노출 편차가 남아 있어 일부 e2e는 skip 가드 의존",
+    "basePath 누락 패턴 재발 시 admin e2e 회귀 가능"
+  ],
+  "handoff_note": "strict 모드 기준 admin 핵심 23개 e2e 통과(2026-05-26 UTC) 및 deploy JWKS 경로 안정화 완료"
+}
