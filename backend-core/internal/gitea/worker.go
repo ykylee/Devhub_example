@@ -13,6 +13,8 @@ import (
 // SyncJobStore defines store interactions for managing background SCM sync jobs.
 type SyncJobStore interface {
 	SyncStore
+	AcquireNextQueuedSyncJob(ctx context.Context) (jobID string, providerID string, err error)
+	UpdateIntegrationSyncJobStatus(ctx context.Context, jobID string, status string) error
 }
 
 // SyncWorker periodically checks for IntegrationSyncJob requests and handles syncing.
@@ -56,11 +58,30 @@ func (w *SyncWorker) Run(ctx context.Context, interval time.Duration) error {
 
 // ProcessOnce runs a single round of synchronizing repositories.
 func (w *SyncWorker) ProcessOnce(ctx context.Context) error {
-	// Homelab Gitea is active, let's read the credentials/bindings to sync.
 	if strings.TrimSpace(w.GiteaURL) == "" || strings.TrimSpace(w.GiteaToken) == "" {
 		return nil
 	}
 
+	// 1. Check if there is a queued integration sync job first.
+	jobID, _, err := w.Store.AcquireNextQueuedSyncJob(ctx)
+	if err == nil && jobID != "" {
+		log.Printf("[Gitea Sync Worker] Acquired queued job %s. Starting sync...", jobID)
+		syncErr := w.syncAll(ctx)
+		if syncErr != nil {
+			log.Printf("[Gitea Sync Worker] Job %s failed: %v", jobID, syncErr)
+			_ = w.Store.UpdateIntegrationSyncJobStatus(ctx, jobID, "failed")
+			return syncErr
+		}
+		log.Printf("[Gitea Sync Worker] Job %s succeeded", jobID)
+		_ = w.Store.UpdateIntegrationSyncJobStatus(ctx, jobID, "succeeded")
+		return nil
+	}
+
+	// 2. Regular periodic sync if no queued jobs are found.
+	return w.syncAll(ctx)
+}
+
+func (w *SyncWorker) syncAll(ctx context.Context) error {
 	client := NewClient(w.GiteaURL, w.GiteaToken)
 	syncer := NewSyncer(w.Store)
 

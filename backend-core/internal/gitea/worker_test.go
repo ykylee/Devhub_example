@@ -58,6 +58,14 @@ func (m *mockSyncJobStore) ListIntegrationBindings(ctx context.Context, opts any
 	}, 1, nil
 }
 
+func (m *mockSyncJobStore) AcquireNextQueuedSyncJob(ctx context.Context) (string, string, error) {
+	return "", "", nil
+}
+
+func (m *mockSyncJobStore) UpdateIntegrationSyncJobStatus(ctx context.Context, jobID string, status string) error {
+	return nil
+}
+
 func TestSyncWorker_ProcessOnce(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
