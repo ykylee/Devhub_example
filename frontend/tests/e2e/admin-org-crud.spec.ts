@@ -1,4 +1,4 @@
-import { test, expect, loginAs, SEEDED } from "./fixtures";
+import { test, expect, loginAs, SEEDED, appPath } from "./fixtures";
 
 /**
  * admin-org-crud.spec.ts
@@ -9,7 +9,7 @@ import { test, expect, loginAs, SEEDED } from "./fixtures";
 test.describe("/admin/settings/organization — Org Management CRUD", () => {
   test.beforeEach(async ({ page }) => {
     await loginAs(page, SEEDED.systemAdmin);
-    await page.goto("/admin/settings/organization");
+    await page.goto(appPath("/admin/settings/organization"));
     
     // Wait for the page to stabilize
     await page.waitForLoadState("networkidle");

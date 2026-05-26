@@ -66,6 +66,7 @@ export interface Project {
   id: string;
   application_id?: string;
   repository_id: number;
+  repository_ids?: number[];
   key: string;
   name: string;
   description: string;
@@ -77,6 +78,13 @@ export interface Project {
   archived_at?: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface ProjectRepositoryLink {
+  project_id: string;
+  repository_id: number;
+  role: "primary" | "linked" | "shared";
+  linked_at: string;
 }
 
 export interface ProjectMember {

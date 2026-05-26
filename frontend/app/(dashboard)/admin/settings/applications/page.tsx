@@ -4,9 +4,13 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus } from "lucide-react";
 import { projectService } from "@/lib/services/project.service";
-import { Application } from "@/lib/services/project.types";
+import { Application, ApplicationRepository, Project } from "@/lib/services/project.types";
 import { ApplicationTable } from "@/components/project/ApplicationTable";
 import { ApplicationCreationModal } from "@/components/project/ApplicationCreationModal";
+import { RepositoryTable } from "@/components/project/RepositoryTable";
+import { ProjectTable } from "@/components/project/ProjectTable";
+import { RepositoryLinkModal } from "@/components/project/RepositoryLinkModal";
+import { ProjectCreationModal } from "@/components/project/ProjectCreationModal";
 import { FilterBar } from "@/components/ui/FilterBar";
 import { useToast } from "@/components/ui/Toast";
 
@@ -26,6 +30,11 @@ export default function AdminSettingsApplicationsPage() {
   const [activeStatus, setActiveStatus] = useState("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingApp, setEditingApp] = useState<Application | null>(null);
+  const [selectedApp, setSelectedApp] = useState<Application | null>(null);
+  const [appRepos, setAppRepos] = useState<ApplicationRepository[]>([]);
+  const [appProjects, setAppProjects] = useState<Project[]>([]);
+  const [showRepoLinkModal, setShowRepoLinkModal] = useState(false);
+  const [showProjectModal, setShowProjectModal] = useState(false);
   const { toast } = useToast();
 
   const filteredApplications = useMemo(() => {
@@ -85,6 +94,32 @@ export default function AdminSettingsApplicationsPage() {
     }
   };
 
+  const loadAppChildren = useCallback(async (app: Application) => {
+    setSelectedApp(app);
+    try {
+      const [repos, projects] = await Promise.all([
+        projectService.getApplicationRepositories(app.id),
+        projectService.getApplicationProjectsV2(app.id),
+      ]);
+      setAppRepos(repos);
+      setAppProjects(projects);
+    } catch (error) {
+      console.error("[admin/settings/applications] child load failed:", error);
+      toast("Failed to load repositories/projects for selected application", "error");
+    }
+  }, [toast]);
+
+  const handleDisconnectRepo = useCallback(async (repo: ApplicationRepository) => {
+    if (!selectedApp) return;
+    try {
+      await projectService.disconnectRepository(selectedApp.id, repo.repo_provider, repo.repo_full_name);
+      toast(`Disconnected ${repo.repo_full_name}`, "success");
+      await loadAppChildren(selectedApp);
+    } catch {
+      toast("Failed to disconnect repository", "error");
+    }
+  }, [selectedApp, toast, loadAppChildren]);
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -122,9 +157,43 @@ export default function AdminSettingsApplicationsPage() {
           onEdit={handleEdit}
           onArchive={handleArchive}
           onViewRepositories={(app) => {
-            toast(`Viewing repositories for ${app.key} (Coming soon)`, "info");
+            void loadAppChildren(app);
           }}
         />
+      )}
+
+      {selectedApp && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground">
+              Application Scope: {selectedApp.key}
+            </h3>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowRepoLinkModal(true)}
+                className="px-4 py-2 rounded-xl border border-border bg-muted/20 text-foreground dark:text-primary-foreground text-[10px] font-black uppercase tracking-widest hover:bg-muted/40"
+              >
+                Link Repository
+              </button>
+              <button
+                onClick={() => setShowProjectModal(true)}
+                className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-widest hover:opacity-90"
+              >
+                New Project
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Repositories</h4>
+            <RepositoryTable repositories={appRepos} onDisconnect={handleDisconnectRepo} />
+          </div>
+
+          <div className="space-y-4">
+            <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Projects</h4>
+            <ProjectTable projects={appProjects} />
+          </div>
+        </div>
       )}
 
       <AnimatePresence>
@@ -135,6 +204,27 @@ export default function AdminSettingsApplicationsPage() {
             onCreated={(newApp) => {
               toast(`Application ${newApp.name} ${editingApp ? 'updated' : 'created'}`, "success");
               refresh();
+            }}
+          />
+        )}
+        {showRepoLinkModal && selectedApp && (
+          <RepositoryLinkModal
+            applicationId={selectedApp.id}
+            onClose={() => setShowRepoLinkModal(false)}
+            onLinked={() => {
+              setShowRepoLinkModal(false);
+              void loadAppChildren(selectedApp);
+            }}
+          />
+        )}
+        {showProjectModal && selectedApp && (
+          <ProjectCreationModal
+            applicationId={selectedApp.id}
+            repositories={appRepos}
+            onClose={() => setShowProjectModal(false)}
+            onCreated={() => {
+              setShowProjectModal(false);
+              void loadAppChildren(selectedApp);
             }}
           />
         )}

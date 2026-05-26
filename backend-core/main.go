@@ -156,6 +156,7 @@ func main() {
 		RealtimeHub:           realtimeHub,
 		AuthDevFallback:       cfg.AuthDevFallback,
 		OnboardingGateEnabled: cfg.OnboardingGateEnabled,
+		ProjectModel:          cfg.ProjectModel,
 	})
 
 	if worker != nil {
@@ -489,4 +490,3 @@ func buildHomeLabHealthPolicy(providerKey, degradedRaw string) adapters.HomeLabH
 		ProviderKey:      key,
 	}
 }
-

@@ -1,5 +1,5 @@
 import { test } from "@playwright/test";
-import { SEEDED, loginAs } from "./fixtures";
+import { SEEDED, loginAs, appPath } from "./fixtures";
 
 // screenshots.spec.ts — UI 가시화 자산 (sprint -h, issue #211, P0-3).
 //
@@ -65,7 +65,7 @@ test.describe("UI screenshot capture (P0-3, design review source)", () => {
     test.setTimeout(180_000);
     await loginAs(page, SEEDED.systemAdmin);
     for (const { path, name } of ADMIN_PAGES) {
-      await page.goto(path);
+      await page.goto(appPath(path));
       await page.waitForLoadState("networkidle", { timeout: NETWORK_IDLE_TIMEOUT_MS }).catch(() => undefined);
       await page.waitForTimeout(SETTLE_MS);
       await page.screenshot({ path: `${CAPTURE_DIR}/${name}.png`, fullPage: true });
@@ -73,7 +73,7 @@ test.describe("UI screenshot capture (P0-3, design review source)", () => {
   });
 
   test("login page — unauthenticated capture", async ({ page }) => {
-    await page.goto("/login");
+    await page.goto(appPath("/login"));
     await page.waitForLoadState("networkidle", { timeout: NETWORK_IDLE_TIMEOUT_MS }).catch(() => undefined);
     await page.waitForTimeout(SETTLE_MS);
     await page.screenshot({ path: `${CAPTURE_DIR}/00-login.png`, fullPage: true });
@@ -84,7 +84,7 @@ test.describe("UI screenshot capture (P0-3, design review source)", () => {
     test.setTimeout(120_000);
     await loginAs(page, SEEDED.developer);
     for (const { path, name } of USER_PAGES) {
-      await page.goto(path);
+      await page.goto(appPath(path));
       await page.waitForLoadState("networkidle", { timeout: NETWORK_IDLE_TIMEOUT_MS }).catch(() => undefined);
       await page.waitForTimeout(SETTLE_MS);
       await page.screenshot({ path: `${CAPTURE_DIR}/${name}.png`, fullPage: true });
@@ -94,7 +94,7 @@ test.describe("UI screenshot capture (P0-3, design review source)", () => {
   test("manager dashboard (manager) — 1 capture", async ({ page }) => {
     // loginAs + 1 페이지 캡처 ~ 15-20s, default 30s 안전 마진. 명시는 안 함.
     await loginAs(page, SEEDED.manager);
-    await page.goto("/manager");
+    await page.goto(appPath("/manager"));
     await page.waitForLoadState("networkidle", { timeout: NETWORK_IDLE_TIMEOUT_MS }).catch(() => undefined);
     await page.waitForTimeout(SETTLE_MS);
     await page.screenshot({ path: `${CAPTURE_DIR}/19-manager-dashboard.png`, fullPage: true });

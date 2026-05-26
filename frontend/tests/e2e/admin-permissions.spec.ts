@@ -1,4 +1,4 @@
-import { test, expect, loginAs, SEEDED } from "./fixtures";
+import { test, expect, loginAs, SEEDED, appPath } from "./fixtures";
 
 /**
  * admin-permissions.spec.ts
@@ -9,7 +9,7 @@ import { test, expect, loginAs, SEEDED } from "./fixtures";
 test.describe("/admin/settings/permissions — PermissionEditor smoke", () => {
   test("TC-PERMISSIONS-SMOKE-01 — 진입 + role 선택 + matrix 노출", async ({ page }) => {
     await loginAs(page, SEEDED.systemAdmin);
-    await page.goto("/admin/settings/permissions");
+    await page.goto(appPath("/admin/settings/permissions"));
 
     const devCard = page.getByRole("heading", { name: /^developer$/i });
     await expect(devCard).toBeVisible({ timeout: 15_000 });
@@ -43,7 +43,7 @@ test.describe("/admin/settings/permissions — PermissionEditor smoke", () => {
 
   test("TC-PERMISSIONS-EDIT-01 — Custom role 생성 + 권한 편집 + 저장", async ({ page }) => {
     await loginAs(page, SEEDED.systemAdmin);
-    await page.goto("/admin/settings/permissions");
+    await page.goto(appPath("/admin/settings/permissions"));
 
     // 1. Create Role
     await page.getByRole("button", { name: /create role/i }).click();

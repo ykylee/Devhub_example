@@ -230,13 +230,10 @@ build_env_file() {
     # while backend admin API uses the internal service DNS.
     DEVHUB_OIDC_ISSUER_URL="${DEVHUB_OIDC_ISSUER_URL:-$public_base/devhub/auth/keycloak/realms/devhub}"
     DEVHUB_KEYCLOAK_ADMIN_URL="${DEVHUB_KEYCLOAK_ADMIN_URL:-$internal_keycloak_base}"
-    # backend-core runs in container network. Explicit JWKS avoids resolving
-    # localhost to the container itself in local-idp deploys.
-    local docker_host_base="http://host.docker.internal"
-    if [ -n "${PUBLIC_ACCESS_PORT:-}" ]; then
-      docker_host_base="${docker_host_base}:${PUBLIC_ACCESS_PORT}"
-    fi
-    DEVHUB_OIDC_JWKS_URL="${DEVHUB_OIDC_JWKS_URL:-$docker_host_base/devhub/auth/keycloak/realms/devhub/protocol/openid-connect/certs}"
+    # backend-core runs in container network. Prefer container DNS route for JWKS
+    # to avoid Linux host.docker.internal resolution failures.
+    local internal_jwks_url="http://nginx/devhub/auth/keycloak/realms/devhub/protocol/openid-connect/certs"
+    DEVHUB_OIDC_JWKS_URL="${DEVHUB_OIDC_JWKS_URL:-$internal_jwks_url}"
   else
     DEVHUB_OIDC_ISSUER_URL="${DEVHUB_OIDC_ISSUER_URL:-$public_base/devhub/auth/keycloak/realms/devhub}"
     DEVHUB_KEYCLOAK_ADMIN_URL="${DEVHUB_KEYCLOAK_ADMIN_URL:-$public_base/devhub/auth/keycloak}"

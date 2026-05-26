@@ -162,7 +162,7 @@ function sqlEscape(value: string): string {
   return value.replace(/'/g, "''");
 }
 
-function seedDevhubUsers(idMap: Record<string, string>): void {
+function seedDevhubData(idMap: Record<string, string>): void {
   if (!DSN) {
     throw new Error("DSN env var is required for global-setup (DevHub users seed)");
   }
@@ -187,6 +187,20 @@ ON CONFLICT (user_id) DO UPDATE SET
     status = EXCLUDED.status,
     onboarding_completed_at = EXCLUDED.onboarding_completed_at,
     review_status = EXCLUDED.review_status;
+
+-- Ensure repository fixtures exist for project-management e2e scenarios.
+INSERT INTO repositories (gitea_repository_id, full_name, owner_login, name, clone_url, html_url, default_branch, private)
+VALUES
+    (100001, 'devhub/e2e-repo-a', 'devhub', 'e2e-repo-a', 'https://example.invalid/devhub/e2e-repo-a.git', 'https://example.invalid/devhub/e2e-repo-a', 'main', false),
+    (100002, 'devhub/e2e-repo-b', 'devhub', 'e2e-repo-b', 'https://example.invalid/devhub/e2e-repo-b.git', 'https://example.invalid/devhub/e2e-repo-b', 'main', false)
+ON CONFLICT (full_name) DO UPDATE SET
+    owner_login = EXCLUDED.owner_login,
+    name = EXCLUDED.name,
+    clone_url = EXCLUDED.clone_url,
+    html_url = EXCLUDED.html_url,
+    default_branch = EXCLUDED.default_branch,
+    private = EXCLUDED.private,
+    updated_at = NOW();
 `;
 
   // Unique file name — parallel e2e shard 간 collision 회피 (process.pid + timestamp).
@@ -204,7 +218,7 @@ ON CONFLICT (user_id) DO UPDATE SET
     if (result.status !== 0) {
       throw new Error(`idp-apply-schemas exited with status ${result.status}`);
     }
-    console.log("[e2e seed] DevHub users row seeded with idp_subject sync");
+    console.log("[e2e seed] DevHub users + repositories fixture seeded");
   } finally {
     // Always clean up temp SQL even on error.
     try { fs.unlinkSync(tempSqlPath); } catch { /* ignore */ }
@@ -217,5 +231,5 @@ export default async function globalSetup(): Promise<void> {
     return;
   }
   const idMap = await seedKeycloakUsers();
-  seedDevhubUsers(idMap);
+  seedDevhubData(idMap);
 }

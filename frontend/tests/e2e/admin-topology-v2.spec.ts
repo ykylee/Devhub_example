@@ -1,4 +1,4 @@
-import { test, expect, SEEDED, loginAs } from "./fixtures";
+import { test, expect, SEEDED, loginAs, appPath } from "./fixtures";
 
 // Infra topology v2 admin frontend (sprint claude/work_260518-n).
 // TC 카탈로그는 docs/tests/test_cases_m4_integration.md §3.
@@ -21,7 +21,7 @@ test.describe("Infra topology v2 admin UI", () => {
       { timeout: 20_000 },
     );
 
-    await page.goto("/admin/topology-v2");
+    await page.goto(appPath("/admin/topology-v2"));
 
     // Header — v2 view 의 marker.
     await expect(page.getByRole("heading", { name: /topology.*v2/i })).toBeVisible({ timeout: 15_000 });
@@ -52,7 +52,7 @@ test.describe("Infra topology v2 admin UI", () => {
 
   test("TC-INT-FRONTEND-TOPOLOGY-V2-NAV-01 — /admin 페이지의 v2 nav link → /admin/topology-v2", async ({ page }) => {
     await loginAs(page, SEEDED.systemAdmin);
-    await page.goto("/admin");
+    await page.goto(appPath("/admin"));
     // /admin/page.tsx 헤더의 "Topology v2" Link (ArrowRight icon).
     const v2Link = page.getByRole("link", { name: /topology v2/i });
     await expect(v2Link).toBeVisible({ timeout: 15_000 });
@@ -63,7 +63,7 @@ test.describe("Infra topology v2 admin UI", () => {
 
   test("TC-INT-FRONTEND-TOPOLOGY-V2-RBAC-01 — non-system_admin 접근 시 default landing redirect", async ({ page }) => {
     await loginAs(page, SEEDED.developer);
-    await page.goto("/admin/topology-v2");
+    await page.goto(appPath("/admin/topology-v2"));
     // AuthGuard + role-routing 가 default landing 으로 redirect (developer → /developer).
     await page.waitForURL(/\/developer(\/|$)/, { timeout: 15_000 });
     await expect(page.getByRole("heading", { name: /topology.*v2/i })).toHaveCount(0);

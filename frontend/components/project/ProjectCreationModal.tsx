@@ -26,6 +26,7 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
     start_date: initialData?.start_date || "",
     due_date: initialData?.due_date || "",
     repository_id: initialData?.repository_id || repositories.find((r) => typeof r.repository_id === "number")?.repository_id || 0,
+    repository_ids: initialData?.repository_ids || ([] as number[]),
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,13 +47,15 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
         delete patchPayload.key;
         result = await projectService.updateProject(initialData.id, patchPayload);
       } else {
-        // We need repository_id to create a project.
-        if (!formData.repository_id) {
+        const selected = new Set<number>();
+        if (formData.repository_id) selected.add(formData.repository_id);
+        for (const id of formData.repository_ids) selected.add(id);
+        if (selected.size === 0) {
            throw new Error("A repository must be selected for the project.");
         }
-        // Inject application_id if present
-        const payload = { ...formData, application_id: applicationId };
-        result = await projectService.createProject(formData.repository_id, payload);
+        const repository_ids = Array.from(selected);
+        const payload = { ...formData, application_id: applicationId, repository_ids };
+        result = await projectService.createApplicationProject(applicationId, payload);
       }
       onCreated(result);
       onClose();
@@ -151,9 +154,39 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
               </select>
             </div>
             <p className="text-[9px] text-accent/60 px-1 italic">
-              Note: only repositories with numeric `repository_id` can create projects.
+              Primary repository for backward compatibility.
             </p>
           </div>
+
+          {!isEdit && (
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Additional Repositories (N:M)</label>
+              <div className="grid grid-cols-1 gap-2 max-h-44 overflow-y-auto rounded-2xl border border-border/50 bg-muted/10 p-3">
+                {repositories
+                  .filter((repo) => typeof repo.repository_id === "number")
+                  .map((repo) => {
+                    const id = repo.repository_id as number;
+                    const checked = formData.repository_ids.includes(id);
+                    return (
+                      <label key={`repo-link-${id}`} className="flex items-center gap-3 text-xs text-foreground dark:text-primary-foreground">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => {
+                            const next = new Set(formData.repository_ids);
+                            if (e.target.checked) next.add(id);
+                            else next.delete(id);
+                            setFormData({ ...formData, repository_ids: Array.from(next) });
+                          }}
+                          className="h-4 w-4 rounded border-border"
+                        />
+                        <span>{repo.repo_full_name} ({repo.repo_provider})</span>
+                      </label>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Description</label>

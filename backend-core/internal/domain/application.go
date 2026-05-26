@@ -149,7 +149,7 @@ type ApplicationRepository struct {
 type Project struct {
 	ID            string // UUID
 	ApplicationID string // UUID, may be empty for repo-only projects
-	RepositoryID  int64  // FK repositories.id (existing BIGSERIAL)
+	RepositoryID  int64  // legacy primary repository FK (hybrid mode)
 	Key           string // unique within Repository (UNIQUE (repository_id, key))
 	Name          string
 	Description   string
@@ -161,6 +161,14 @@ type Project struct {
 	ArchivedAt    *time.Time
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
+}
+
+// ProjectRepository links one Project to one Repository (N:M).
+type ProjectRepository struct {
+	ProjectID    string
+	RepositoryID int64
+	Role         string
+	LinkedAt     time.Time
 }
 
 // ProjectMember is one membership row.

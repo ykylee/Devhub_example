@@ -1,4 +1,4 @@
-import { test, expect, SEEDED, loginAs } from "./fixtures";
+import { test, expect, SEEDED, loginAs, appPath } from "./fixtures";
 
 // DREQ E2E — TC 카탈로그는 docs/tests/test_cases_m5_dreq.md 참조.
 // 본 spec 은 카탈로그의 E2E 영역 (TC-DREQ-ADMIN-TOKEN-01 / INTAKE-AUTH-01 /
@@ -16,7 +16,7 @@ test.describe("DREQ E2E", () => {
 
     await test.step("TC-DREQ-ADMIN-TOKEN-01 — issue intake token (plain 1회 노출)", async () => {
       await loginAs(page, SEEDED.systemAdmin);
-      await page.goto("/admin/settings/dev-request-tokens");
+      await page.goto(appPath("/admin/settings/dev-request-tokens"));
       await expect(page.getByRole("heading", { name: /intake tokens/i })).toBeVisible();
 
       await page.getByRole("button", { name: /issue token/i }).click();
@@ -76,7 +76,7 @@ test.describe("DREQ E2E", () => {
       try {
         await loginAs(devPage, SEEDED.developer);
 
-        await devPage.goto("/developer");
+        await devPage.goto(appPath("/developer"));
         await expect(
           devPage.getByRole("heading", { name: /my dev requests|내 대기 의뢰/i })
         ).toBeVisible();
@@ -99,7 +99,7 @@ test.describe("DREQ E2E", () => {
     });
 
     await test.step("TC-DREQ-PROMOTE-TX-01 — system_admin registers as application", async () => {
-      await page.goto("/admin/settings/dev-requests");
+      await page.goto(appPath("/admin/settings/dev-requests"));
       const adminRow = page.locator("tr").filter({ hasText: requestTitle }).first();
       await expect(adminRow).toBeVisible();
       await adminRow.click();
@@ -114,7 +114,7 @@ test.describe("DREQ E2E", () => {
     });
 
     await test.step("TC-DREQ-ADMIN-TOKEN-REVOKE-01 — revoke via DestructiveConfirmModal", async () => {
-      await page.goto("/admin/settings/dev-request-tokens");
+      await page.goto(appPath("/admin/settings/dev-request-tokens"));
       const row = page.getByRole("row").filter({ hasText: clientLabel });
       await expect(row).toBeVisible();
       await row.getByRole("button", { name: /revoke/i }).click();
@@ -167,7 +167,7 @@ test.describe("DREQ E2E", () => {
     // admin endpoint 는 OIDC system_admin session 이 필요하므로 page.request 사용
     // (fixture-level `request` 는 storage state 를 공유하지 않음).
     await loginAs(page, SEEDED.systemAdmin);
-    await page.goto("/admin/settings/dev-request-tokens");
+    await page.goto(appPath("/admin/settings/dev-request-tokens"));
 
     const clientLabel = `patch_e2e_${Date.now()}`;
 
@@ -240,7 +240,7 @@ test.describe("DREQ E2E", () => {
     // confirm 흐름만 검증 — 사용자가 Cancel 을 누른 경우 토큰이 active 로
     // 보존되는지는 별도 가드. ADR-0014 의 plain-1회 modal 흐름과 동일 fixture.
     await loginAs(page, SEEDED.systemAdmin);
-    await page.goto("/admin/settings/dev-request-tokens");
+    await page.goto(appPath("/admin/settings/dev-request-tokens"));
 
     const clientLabel = `cancel_e2e_${Date.now()}`;
 

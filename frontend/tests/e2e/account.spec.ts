@@ -1,4 +1,4 @@
-import { test, expect, loginAs, SEEDED } from "./fixtures";
+import { test, expect, loginAs, SEEDED, appPath } from "./fixtures";
 
 // account.spec — F2 내 계정 / Keycloak Account Console redirect.
 //
@@ -11,7 +11,7 @@ import { test, expect, loginAs, SEEDED } from "./fixtures";
 test.describe("/account — profile + Keycloak console", () => {
   test("TC-ACC-PROFILE-01 — Profile Info 에 alice 의 login/email/role 만 노출", async ({ page }) => {
     await loginAs(page, SEEDED.developer);
-    await page.goto("/account");
+    await page.goto(appPath("/account"));
 
     await expect(page.getByText(SEEDED.developer.user_id, { exact: true }).first()).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText(`${SEEDED.developer.user_id}@example.com`)).toBeVisible();
@@ -23,7 +23,7 @@ test.describe("/account — profile + Keycloak console", () => {
 
   test("TC-ACC-KEYCLOAK-CONSOLE-01 — Open Keycloak Console 버튼이 외부 issuer/account/ 로 향한다", async ({ page }) => {
     await loginAs(page, SEEDED.developer);
-    await page.goto("/account");
+    await page.goto(appPath("/account"));
 
     const consoleLink = page.getByRole("link", { name: /open keycloak console/i });
     await expect(consoleLink).toBeVisible({ timeout: 10_000 });

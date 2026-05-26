@@ -12,6 +12,26 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func (h *Handler) projectModel() string {
+	mode := strings.ToLower(strings.TrimSpace(h.cfg.ProjectModel))
+	switch mode {
+	case "legacy", "v2", "hybrid":
+		return mode
+	default:
+		return "hybrid"
+	}
+}
+
+func (h *Handler) allowLegacyProjectRoutes() bool {
+	mode := h.projectModel()
+	return mode == "legacy" || mode == "hybrid"
+}
+
+func (h *Handler) allowV2ProjectRoutes() bool {
+	mode := h.projectModel()
+	return mode == "v2" || mode == "hybrid"
+}
+
 // Project CRUD endpoint (API-55..56, sprint claude/work_260514-c).
 // Repository 하위 기간성 운영 단위. concept §13 + REQ-FR-PROJ-001..010.
 
@@ -36,6 +56,10 @@ func projectResponse(p domain.Project) gin.H {
 
 // GET /api/v1/repositories/:repository_id/projects
 func (h *Handler) listProjects(c *gin.Context) {
+	if !h.allowLegacyProjectRoutes() {
+		c.JSON(http.StatusGone, gin.H{"status": "gone", "error": "legacy repository-centric project routes are disabled", "code": "project_model_legacy_disabled"})
+		return
+	}
 	storeI, ok := h.applicationStoreOrUnavailable(c)
 	if !ok {
 		return
@@ -87,19 +111,34 @@ func (h *Handler) listProjects(c *gin.Context) {
 }
 
 type createProjectRequest struct {
-	ApplicationID string `json:"application_id"`
-	Key           string `json:"key"`
-	Name          string `json:"name"`
-	Description   string `json:"description"`
-	OwnerUserID   string `json:"owner_user_id"`
-	StartDate     string `json:"start_date"`
-	DueDate       string `json:"due_date"`
-	Visibility    string `json:"visibility"`
-	Status        string `json:"status"`
+	ApplicationID string  `json:"application_id"`
+	RepositoryID  int64   `json:"repository_id"`
+	RepositoryIDs []int64 `json:"repository_ids"`
+	Key           string  `json:"key"`
+	Name          string  `json:"name"`
+	Description   string  `json:"description"`
+	OwnerUserID   string  `json:"owner_user_id"`
+	StartDate     string  `json:"start_date"`
+	DueDate       string  `json:"due_date"`
+	Visibility    string  `json:"visibility"`
+	Status        string  `json:"status"`
+}
+
+func projectRepositoryResponse(link domain.ProjectRepository) gin.H {
+	return gin.H{
+		"project_id":    link.ProjectID,
+		"repository_id": link.RepositoryID,
+		"role":          link.Role,
+		"linked_at":     link.LinkedAt.UTC().Format(time.RFC3339),
+	}
 }
 
 // POST /api/v1/repositories/:repository_id/projects
 func (h *Handler) createProject(c *gin.Context) {
+	if !h.allowLegacyProjectRoutes() {
+		c.JSON(http.StatusGone, gin.H{"status": "gone", "error": "legacy repository-centric project routes are disabled", "code": "project_model_legacy_disabled"})
+		return
+	}
 	storeI, ok := h.applicationStoreOrUnavailable(c)
 	if !ok {
 		return
@@ -178,6 +217,233 @@ func (h *Handler) createProject(c *gin.Context) {
 		"status": "ok",
 		"data":   projectResponse(created),
 	})
+}
+
+// GET /api/v1/applications/:application_id/projects
+func (h *Handler) listApplicationProjects(c *gin.Context) {
+	if !h.allowV2ProjectRoutes() {
+		c.JSON(http.StatusGone, gin.H{"status": "gone", "error": "v2 application-centric project routes are disabled", "code": "project_model_v2_disabled"})
+		return
+	}
+	storeI, ok := h.applicationStoreOrUnavailable(c)
+	if !ok {
+		return
+	}
+	appID := strings.TrimSpace(c.Param("application_id"))
+	if appID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "application_id is required"})
+		return
+	}
+
+	opts := store.ProjectListOptions{
+		ApplicationID:   appID,
+		Status:          c.Query("status"),
+		IncludeArchived: c.Query("include_archived") == "true",
+	}
+	if opts.Status != "" && !validApplicationStatuses[opts.Status] {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "status must be one of planning/active/on_hold/closed/archived"})
+		return
+	}
+
+	projects, total, err := storeI.ListProjects(c.Request.Context(), opts)
+	if err != nil {
+		writeServerError(c, err, "projects.list_by_application")
+		return
+	}
+	resp := make([]gin.H, 0, len(projects))
+	for _, p := range projects {
+		resp = append(resp, projectResponse(p))
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "ok", "data": resp, "meta": gin.H{"total": total}})
+}
+
+// POST /api/v1/applications/:application_id/projects
+func (h *Handler) createApplicationProject(c *gin.Context) {
+	if !h.allowV2ProjectRoutes() {
+		c.JSON(http.StatusGone, gin.H{"status": "gone", "error": "v2 application-centric project routes are disabled", "code": "project_model_v2_disabled"})
+		return
+	}
+	storeI, ok := h.applicationStoreOrUnavailable(c)
+	if !ok {
+		return
+	}
+	appID := strings.TrimSpace(c.Param("application_id"))
+	if appID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "application_id is required"})
+		return
+	}
+
+	var req createProjectRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": err.Error()})
+		return
+	}
+
+	primaryRepoID := int64(0)
+	if req.RepositoryID != 0 {
+		primaryRepoID = req.RepositoryID
+	} else if len(req.RepositoryIDs) > 0 {
+		primaryRepoID = req.RepositoryIDs[0]
+	}
+	if primaryRepoID == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "repository_id or repository_ids[0] is required"})
+		return
+	}
+
+	if strings.TrimSpace(req.Key) == "" || strings.TrimSpace(req.Name) == "" || strings.TrimSpace(req.OwnerUserID) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "key, name, owner_user_id are required"})
+		return
+	}
+	if !validApplicationVisibilities[req.Visibility] || !validApplicationStatuses[req.Status] {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "visibility/status is invalid"})
+		return
+	}
+
+	startDate, err := parseDate(req.StartDate)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "start_date must be YYYY-MM-DD"})
+		return
+	}
+	dueDate, err := parseDate(req.DueDate)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "due_date must be YYYY-MM-DD"})
+		return
+	}
+
+	repoSet := map[int64]struct{}{primaryRepoID: {}}
+	for _, id := range req.RepositoryIDs {
+		if id > 0 {
+			repoSet[id] = struct{}{}
+		}
+	}
+	repoIDs := make([]int64, 0, len(repoSet))
+	for id := range repoSet {
+		repoIDs = append(repoIDs, id)
+	}
+
+	created, err := storeI.CreateProjectWithRepositories(c.Request.Context(), domain.Project{
+		ApplicationID: appID,
+		RepositoryID:  primaryRepoID,
+		Key:           req.Key,
+		Name:          req.Name,
+		Description:   req.Description,
+		Status:        domain.ApplicationStatus(req.Status),
+		Visibility:    domain.ApplicationVisibility(req.Visibility),
+		OwnerUserID:   req.OwnerUserID,
+		StartDate:     startDate,
+		DueDate:       dueDate,
+	}, repoIDs)
+	if errors.Is(err, store.ErrConflict) {
+		c.JSON(http.StatusConflict, gin.H{"status": "conflict", "error": "project key already exists or referenced application/repository not found", "code": "project_key_conflict"})
+		return
+	}
+	if err != nil {
+		writeServerError(c, err, "projects.create_by_application")
+		return
+	}
+
+	h.recordAuditBestEffort(c, "project.created", "project", created.ID, map[string]any{
+		"key":            created.Key,
+		"repository_id":  created.RepositoryID,
+		"application_id": appID,
+		"status":         string(created.Status),
+	})
+
+	c.JSON(http.StatusCreated, gin.H{"status": "ok", "data": projectResponse(created)})
+}
+
+type createProjectRepositoryRequest struct {
+	RepositoryID int64  `json:"repository_id"`
+	Role         string `json:"role"`
+}
+
+// GET /api/v1/projects/:project_id/repositories
+func (h *Handler) listProjectRepositories(c *gin.Context) {
+	if !h.allowV2ProjectRoutes() {
+		c.JSON(http.StatusGone, gin.H{"status": "gone", "error": "v2 project repository routes are disabled", "code": "project_model_v2_disabled"})
+		return
+	}
+	storeI, ok := h.applicationStoreOrUnavailable(c)
+	if !ok {
+		return
+	}
+	projectID := c.Param("project_id")
+	links, err := storeI.ListProjectRepositories(c.Request.Context(), projectID)
+	if err != nil {
+		writeServerError(c, err, "projects.list_repositories")
+		return
+	}
+	resp := make([]gin.H, 0, len(links))
+	for _, link := range links {
+		resp = append(resp, projectRepositoryResponse(link))
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "ok", "data": resp})
+}
+
+// POST /api/v1/projects/:project_id/repositories
+func (h *Handler) createProjectRepository(c *gin.Context) {
+	if !h.allowV2ProjectRoutes() {
+		c.JSON(http.StatusGone, gin.H{"status": "gone", "error": "v2 project repository routes are disabled", "code": "project_model_v2_disabled"})
+		return
+	}
+	storeI, ok := h.applicationStoreOrUnavailable(c)
+	if !ok {
+		return
+	}
+	projectID := c.Param("project_id")
+	var req createProjectRepositoryRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": err.Error()})
+		return
+	}
+	if req.RepositoryID == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "repository_id is required"})
+		return
+	}
+	if req.Role == "" {
+		req.Role = "linked"
+	}
+	created, err := storeI.CreateProjectRepository(c.Request.Context(), domain.ProjectRepository{
+		ProjectID:    projectID,
+		RepositoryID: req.RepositoryID,
+		Role:         req.Role,
+	})
+	if errors.Is(err, store.ErrConflict) {
+		c.JSON(http.StatusConflict, gin.H{"status": "conflict", "error": "project repository link conflict", "code": "project_repository_link_conflict"})
+		return
+	}
+	if err != nil {
+		writeServerError(c, err, "projects.create_repository")
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"status": "ok", "data": projectRepositoryResponse(created)})
+}
+
+// DELETE /api/v1/projects/:project_id/repositories/:repository_id
+func (h *Handler) deleteProjectRepository(c *gin.Context) {
+	if !h.allowV2ProjectRoutes() {
+		c.JSON(http.StatusGone, gin.H{"status": "gone", "error": "v2 project repository routes are disabled", "code": "project_model_v2_disabled"})
+		return
+	}
+	storeI, ok := h.applicationStoreOrUnavailable(c)
+	if !ok {
+		return
+	}
+	projectID := c.Param("project_id")
+	repositoryID, err := strconv.ParseInt(c.Param("repository_id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "repository_id must be an integer"})
+		return
+	}
+	if err := storeI.DeleteProjectRepository(c.Request.Context(), projectID, repositoryID); err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "project repository link not found"})
+			return
+		}
+		writeServerError(c, err, "projects.delete_repository")
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
 
 // GET /api/v1/projects/:project_id

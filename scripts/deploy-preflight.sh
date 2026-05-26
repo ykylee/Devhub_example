@@ -179,11 +179,23 @@ if [ -n "${DEVHUB_OIDC_JWKS_URL:-}" ]; then
   if [ "${SKIP_OIDC_JWKS_REACH:-0}" = "1" ]; then
     echo "  SKIP_OIDC_JWKS_REACH=1 — JWKS reachability 검증 skip"
   else
+    if [[ "$DEVHUB_OIDC_JWKS_URL" == *"host.docker.internal"* ]]; then
+      echo "  WARN: DEVHUB_OIDC_JWKS_URL uses host.docker.internal. Linux Docker 환경에서 DNS 해석 실패 가능성이 큽니다."
+      echo "        권장: DEVHUB_OIDC_JWKS_URL=http://nginx/devhub/auth/keycloak/realms/devhub/protocol/openid-connect/certs"
+    fi
     jwks_host=$(echo "$DEVHUB_OIDC_JWKS_URL" | sed -e 's|^[^/]*//||' -e 's|/.*$||')
     if [ "$jwks_host" = "keycloak:8080" ]; then
       # 로컬 개발/테스트 환경의 도커 가상 호스트인 경우, 호스트에서는 localhost의 Nginx 포트(13000)를 통해 우회 검증
       local_jwks_url=$(echo "$DEVHUB_OIDC_JWKS_URL" | sed "s|keycloak:8080|127.0.0.1:${NGINX_HTTP_PORT:-13000}|")
       echo "  Detected local docker network hostname 'keycloak:8080'. Probing loopback fallback URL: $local_jwks_url"
+      if curl -fsS "$local_jwks_url" >/dev/null; then
+        echo "  JWKS reachability check OK (via local loopback fallback)"
+      else
+      echo "  WARNING: Local loopback JWKS reachability check failed, but continuing for local dev mode."
+      fi
+    elif [ "$jwks_host" = "nginx" ]; then
+      local_jwks_url=$(echo "$DEVHUB_OIDC_JWKS_URL" | sed "s|nginx|127.0.0.1:${NGINX_HTTP_PORT:-13000}|")
+      echo "  Detected local docker network hostname 'nginx'. Probing loopback fallback URL: $local_jwks_url"
       if curl -fsS "$local_jwks_url" >/dev/null; then
         echo "  JWKS reachability check OK (via local loopback fallback)"
       else
