@@ -1,5 +1,6 @@
 "use client";
 
+import { redirect } from "next/navigation";
 import { Activity, ArrowRight, Settings, Shield, Globe, Zap, Terminal } from "lucide-react";
 import Link from "next/link";
 import { 
@@ -39,6 +40,7 @@ const initialNodes: ServiceNode[] = [];
 const initialEdges: Edge[] = [];
 
 export default function AdminDashboard() {
+  redirect("/projects");
   const [nodes, setNodes, onNodesChange] = useNodesState<ServiceNode>(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selectedNode, setSelectedNode] = useState<ServiceNode | null>(null);
@@ -158,14 +160,15 @@ export default function AdminDashboard() {
   };
 
   const handleAction = async (action: string) => {
-    if (!selectedNode) return;
+    const node = selectedNode;
+    if (!node) return;
     try {
-      await infraService.controlService(selectedNode.id, action);
-      addToast(`${selectedNode.data.label} : ${action} command queued.`, "info");
+      await infraService.controlService(node.id, action);
+      addToast(`${node.data.label} : ${action} command queued.`, "info");
       setSelectedNode(null);
     } catch (error) {
       console.error("Failed to create service action:", error);
-      addToast(`${selectedNode.data.label} : ${action} command failed.`, "error");
+      addToast(`${node.data.label} : ${action} command failed.`, "error");
     }
   };
 
@@ -289,7 +292,6 @@ export default function AdminDashboard() {
           </ReactFlow>
         </div>
 
-        {/* Node Detail Modal */}
         <Modal
           isOpen={!!selectedNode}
           onClose={() => setSelectedNode(null)}
@@ -301,23 +303,23 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="text-2xl font-black text-foreground dark:text-primary-foreground uppercase tracking-tighter">
-                    {selectedNode.data.label}
+                    {selectedNode!.data?.label}
                   </h4>
-                  <p className="text-xs text-muted-foreground font-mono mt-1">ID: {selectedNode.id} • Cluster-Asia-01</p>
+                  <p className="text-xs text-muted-foreground font-mono mt-1">ID: {selectedNode!.id} • Cluster-Asia-01</p>
                 </div>
-                <Badge variant={selectedNode.data.status === 'stable' ? 'success' : selectedNode.data.status === 'warning' ? 'warning' : 'danger'} dot>
-                  {selectedNode.data.status === 'stable' ? 'Operational' : selectedNode.data.status === 'warning' ? 'Degraded' : 'Down'}
+                <Badge variant={selectedNode!.data?.status === 'stable' ? 'success' : selectedNode!.data?.status === 'warning' ? 'warning' : 'danger'} dot>
+                  {selectedNode!.data?.status === 'stable' ? 'Operational' : selectedNode!.data?.status === 'warning' ? 'Degraded' : 'Down'}
                 </Badge>
               </div>
-
+ 
               <div className="grid grid-cols-2 gap-4">
                 <div className="glass-card p-4">
                   <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">CPU Usage</p>
-                  <p className="text-xl font-bold text-foreground dark:text-primary-foreground">{selectedNode.data.cpu}</p>
+                  <p className="text-xl font-bold text-foreground dark:text-primary-foreground">{selectedNode!.data?.cpu}</p>
                 </div>
                 <div className="glass-card p-4">
                   <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Memory</p>
-                  <p className="text-xl font-bold text-foreground dark:text-primary-foreground">{selectedNode.data.memory}</p>
+                  <p className="text-xl font-bold text-foreground dark:text-primary-foreground">{selectedNode!.data?.memory}</p>
                 </div>
               </div>
 

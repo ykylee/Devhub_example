@@ -1,5 +1,6 @@
 "use client";
 
+import { redirect } from "next/navigation";
 import { motion } from "framer-motion";
 import { 
   AlertTriangle, 
@@ -44,6 +45,7 @@ type CommandStatusEvent = {
 };
 
 export default function ManagerDashboard() {
+  redirect("/projects");
   const [stats, setStats] = useState<Metric[]>([]);
   const [risks, setRisks] = useState<Risk[]>([]);
   const [selectedRisk, setSelectedRisk] = useState<Risk | null>(null);
@@ -138,11 +140,12 @@ export default function ManagerDashboard() {
   };
 
   const handleMitigation = async (plan: { action: string }) => {
-    if (!selectedRisk || !selectedRisk.id) return;
+    const risk = selectedRisk;
+    if (!risk || !risk.id) return;
     
     try {
       addToast(`Initializing ${plan.action} sequence...`, "info");
-      const result = await riskService.applyMitigation(selectedRisk.id, plan.action);
+      const result = await riskService.applyMitigation(risk.id, plan.action);
       
       addToast(
         `Action Accepted. Command ID: ${result.command_id.substring(0, 8)}... (Status: ${result.status})`, 
@@ -446,11 +449,11 @@ export default function ManagerDashboard() {
           <div className="space-y-8">
             <div className="p-6 rounded-2xl bg-destructive/5 border border-destructive/20">
               <div className="flex items-center gap-3 mb-4">
-                <Badge variant="danger">{selectedRisk.impact} Impact</Badge>
-                <h4 className="text-xl font-bold text-foreground dark:text-primary-foreground">{selectedRisk.title}</h4>
+                <Badge variant="danger">{selectedRisk!.impact} Impact</Badge>
+                <h4 className="text-xl font-bold text-foreground dark:text-primary-foreground">{selectedRisk!.title}</h4>
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                {selectedRisk.reason}
+                {selectedRisk!.reason}
               </p>
             </div>
 
