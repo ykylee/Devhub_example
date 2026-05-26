@@ -112,6 +112,66 @@ client_secret 은 사내 vault 보관. 정기 rotation SOP 는 §6 JWKS rotation
 
 **carve**: SCIM bridge / LDAP federation 자동 group sync + 옵션 C (groups claim mapper + multi-role) 확장 — design 문서 §8 잔여 carve.
 
+### 4.4 group setup 검증 자동화 ([`scripts/verify-keycloak-groups.sh`](../../scripts/verify-keycloak-groups.sh))
+
+§4.3 SOP 적용 후 자동 검증 — 사내 운영자가 staging / prod Keycloak admin console 에서 group 4종 + composite role 적용 직후 1회 실행. **read-only (write 없음, idempotent)** — N회 호출해도 안전.
+
+| 검증 항목 | 대상 endpoint | acceptance |
+| --- | --- | --- |
+| 1. realm 존재 | `GET /admin/realms/$REALM` | HTTP 200 |
+| 2. group 4종 존재 | `GET /admin/realms/$REALM/groups` | `devhub-developers` / `devhub-managers` / `devhub-pmo-managers` / `devhub-system-admins` 모두 발견 |
+| 3. composite realm role 1:1 매핑 | `GET /admin/realms/$REALM/groups/{id}/role-mappings/realm` | 각 group 의 realm role mappings = expected role 정확히 1개 (extra / missing 모두 fail) |
+| 4. Default Groups 비어 있음 | `GET /admin/realms/$REALM/default-groups` | 빈 array (codex review #9 정정 정합) |
+
+**실행 예시** (staging):
+
+```bash
+KEYCLOAK_URL=https://kc.staging.internal/auth \
+KC_BOOTSTRAP_ADMIN_USERNAME=admin \
+KC_BOOTSTRAP_ADMIN_PASSWORD='<vault-managed>' \
+DEVHUB_REALM=devhub \
+  ./scripts/verify-keycloak-groups.sh
+```
+
+**출력 예시 (모두 OK)**:
+
+```
+==> Verifying Keycloak groups setup
+    Realm: devhub
+    BaseURL: https://kc.staging.internal/auth
+==> Obtaining admin token...
+==> [1/4] Realm existence
+  [PASS] realm 'devhub' exists
+==> [2/4] Group existence (4 groups)
+==> [3/4] Composite realm role mapping (1:1)
+  [PASS] group 'devhub-developers' exists (id ...)
+  [PASS] group 'devhub-developers' → composite role 'developer' (1:1)
+  ... (4 groups)
+==> [4/4] Default Groups empty
+  [PASS] Default Groups empty (codex review #9 정합)
+==> Summary
+    PASS: 9
+    FAIL: 0
+==> ✅ All checks passed — Keycloak groups setup acceptance OK
+```
+
+**exit code**:
+- `0` — 4 항목 모두 OK → [issue #214](https://github.com/ykylee/Devhub_example/issues/214) acceptance 충족 근거
+- `1` — 1건 이상 FAIL → FAIL detail stderr 출력 + summary 표
+
+**FAIL 케이스**:
+- group 누락 — Keycloak admin console 에서 §4.3 SOP step 1 재진행
+- composite role missing — §4.3 SOP step 2 (Role Mappings 탭) 누락
+- composite role extra — group 에 추가 role mapping 됨 (의도하지 않은 권한 부여, 즉시 정리 필요)
+- Default Groups not empty — codex review #9 위반, 명시 group 가입 SOP 위배
+
+**사용 시점**:
+- §6.2 Phase 2 (staging) 적용 직후
+- §6.3 Phase 3 (prod) 적용 직후
+- group / role 변경 후 회귀 검증 시 매번
+
+**Prerequisites**: python3 3.8+ / curl / bash 4+ — [docker-packaging-deployment-guide.md §1.1](./docker-packaging-deployment-guide.md#11-host-사전조건) 참조.
+
 ## 5. user attribute mapper (token claim 매핑)
 
 ### 5.1 표준 claim (Keycloak 기본 제공)
