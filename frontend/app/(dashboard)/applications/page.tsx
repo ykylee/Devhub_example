@@ -9,13 +9,13 @@ import {
   Globe, 
   ShieldCheck, 
   Zap,
-  ExternalLink,
-  Loader2
+  ExternalLink
 } from "lucide-react";
 import Link from "next/link";
 import { DashboardHeader } from "@/components/ui/DashboardHeader";
 import { Badge } from "@/components/ui/Badge";
 import { FilterBar } from "@/components/ui/FilterBar";
+import { PageEmpty, PageError, PageLoading } from "@/components/ui/PageState";
 import { applicationService, Application, ApplicationRollup } from "@/lib/services/application.service";
 
 interface ApplicationWithRollup extends Application {
@@ -29,30 +29,36 @@ export default function ApplicationsStatusPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
+  const loadData = async () => {
+    try {
+      setError(null);
+      setLoading(true);
+      const fetchedApps = await applicationService.listApplications();
+      const appsWithRollups = await Promise.all(
+        fetchedApps.map(async (app) => {
+          try {
+            const rollup = await applicationService.getApplicationRollup(app.id);
+            return { ...app, rollup };
+          } catch (err) {
+            console.error(`Failed to fetch rollup for ${app.id}:`, err);
+            return app;
+          }
+        })
+      );
+      setApps(appsWithRollups);
+    } catch (err) {
+      setError("Failed to load applications data.");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const fetchedApps = await applicationService.listApplications();
-        const appsWithRollups = await Promise.all(
-          fetchedApps.map(async (app) => {
-            try {
-              const rollup = await applicationService.getApplicationRollup(app.id);
-              return { ...app, rollup };
-            } catch (err) {
-              console.error(`Failed to fetch rollup for ${app.id}:`, err);
-              return app;
-            }
-          })
-        );
-        setApps(appsWithRollups);
-      } catch (err) {
-        setError("Failed to load applications data.");
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadData();
+    const timer = setTimeout(() => {
+      void loadData();
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const filteredApps = apps.filter((app) => {
@@ -69,11 +75,7 @@ export default function ApplicationsStatusPage() {
   const totalCritical = apps.reduce((acc, app) => acc + (app.rollup?.critical_warning_count || 0), 0);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <Loader2 className="w-10 h-10 text-primary animate-spin" />
-      </div>
-    );
+    return <PageLoading label="Loading applications..." />;
   }
 
   return (
@@ -84,11 +86,7 @@ export default function ApplicationsStatusPage() {
         subtitle="Real-time monitoring of all production and staging application services."
       />
 
-      {error && (
-        <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-sm">
-          {error}
-        </div>
-      )}
+      {error && <PageError message={error} onRetry={() => void loadData()} />}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
@@ -179,9 +177,7 @@ export default function ApplicationsStatusPage() {
           </motion.div>
         ))}
         {filteredApps.length === 0 && !loading && (
-          <div className="text-center py-20 glass-card">
-            <p className="text-muted-foreground font-black uppercase tracking-widest text-xs opacity-50">No applications matching your filters</p>
-          </div>
+          <PageEmpty message="No applications matching your filters" />
         )}
       </div>
     </div>

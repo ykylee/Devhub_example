@@ -12,12 +12,12 @@ import {
   Plus,
   Target,
   Users,
-  Loader2
 } from "lucide-react";
 import Link from "next/link";
 import { DashboardHeader } from "@/components/ui/DashboardHeader";
 import { Badge } from "@/components/ui/Badge";
 import { FilterBar } from "@/components/ui/FilterBar";
+import { PageEmpty, PageError, PageLoading } from "@/components/ui/PageState";
 import { projectService } from "@/lib/services/project.service";
 import type { Project } from "@/lib/services/project.types";
 import { repositoryService, type Repository } from "@/lib/services/repository.service";
@@ -36,6 +36,8 @@ export default function ProjectsStatusPage() {
 
   const refresh = useCallback(async () => {
     try {
+      setError(null);
+      setLoading(true);
       const repos = await repositoryService.listRepositories();
       setRepositories(repos);
       const allProjects = await projectService.listAllProjects(repos.map(r => r.id));
@@ -69,11 +71,7 @@ export default function ProjectsStatusPage() {
   const closedProjects = projects.filter(p => p.status === "closed" || p.status === "archived").length;
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <Loader2 className="w-10 h-10 text-primary animate-spin" />
-      </div>
-    );
+    return <PageLoading label="Loading projects..." />;
   }
 
   return (
@@ -92,11 +90,7 @@ export default function ProjectsStatusPage() {
         }
       />
 
-      {error && (
-        <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-sm">
-          {error}
-        </div>
-      )}
+      {error && <PageError message={error} onRetry={() => void refresh()} />}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
@@ -197,9 +191,7 @@ export default function ProjectsStatusPage() {
           </motion.div>
         ))}
         {filteredProjects.length === 0 && !loading && (
-          <div className="text-center py-20 glass-card">
-            <p className="text-muted-foreground font-black uppercase tracking-widest text-xs opacity-50">No projects matching your filters</p>
-          </div>
+          <PageEmpty message="No projects matching your filters" />
         )}
       </div>
  
