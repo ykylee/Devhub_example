@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { projectService } from "@/lib/services/project.service";
 import { Application, ApplicationRepository, Project } from "@/lib/services/project.types";
 import { ApplicationTable } from "@/components/project/ApplicationTable";
@@ -24,6 +25,7 @@ const STATUS_OPTIONS = [
 ];
 
 export default function AdminSettingsApplicationsPage() {
+  const router = useRouter();
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -35,6 +37,7 @@ export default function AdminSettingsApplicationsPage() {
   const [appProjects, setAppProjects] = useState<Project[]>([]);
   const [showRepoLinkModal, setShowRepoLinkModal] = useState(false);
   const [showProjectModal, setShowProjectModal] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
   const { toast } = useToast();
 
   const filteredApplications = useMemo(() => {
@@ -181,7 +184,10 @@ export default function AdminSettingsApplicationsPage() {
                 Link Repository
               </button>
               <button
-                onClick={() => setShowProjectModal(true)}
+                onClick={() => {
+                  setEditingProject(null);
+                  setShowProjectModal(true);
+                }}
                 className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-widest hover:opacity-90"
               >
                 New Project
@@ -191,12 +197,38 @@ export default function AdminSettingsApplicationsPage() {
 
           <div className="space-y-4">
             <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Repositories</h4>
-            <RepositoryTable repositories={appRepos} onDisconnect={handleDisconnectRepo} />
+            <RepositoryTable
+              repositories={appRepos}
+              onDisconnect={handleDisconnectRepo}
+              onViewRepository={(repo) => {
+                if (typeof repo.repository_id !== "number" || repo.repository_id <= 0) {
+                  toast("Repository detail is unavailable for this link.", "warning");
+                  return;
+                }
+                router.push(`/repositories/${repo.repository_id}`);
+              }}
+              onViewRepositoryMetrics={(repo) => {
+                if (typeof repo.repository_id !== "number" || repo.repository_id <= 0) {
+                  toast("Repository metrics are unavailable for this link.", "warning");
+                  return;
+                }
+                router.push(`/repositories/${repo.repository_id}`);
+              }}
+            />
           </div>
 
           <div className="space-y-4">
             <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Projects</h4>
-            <ProjectTable projects={appProjects} />
+            <ProjectTable
+              projects={appProjects}
+              onViewDetails={(project) => {
+                router.push(`/projects/${project.id}`);
+              }}
+              onEditProject={(project) => {
+                setEditingProject(project);
+                setShowProjectModal(true);
+              }}
+            />
           </div>
         </div>
       )}
@@ -226,9 +258,15 @@ export default function AdminSettingsApplicationsPage() {
           <ProjectCreationModal
             applicationId={selectedApp.id}
             repositories={appRepos}
-            onClose={() => setShowProjectModal(false)}
-            onCreated={() => {
+            initialData={editingProject ?? undefined}
+            onClose={() => {
               setShowProjectModal(false);
+              setEditingProject(null);
+            }}
+            onCreated={(project) => {
+              toast(`Project ${project.name} ${editingProject ? "updated" : "created"}`, "success");
+              setShowProjectModal(false);
+              setEditingProject(null);
               void loadAppChildren(selectedApp);
             }}
           />

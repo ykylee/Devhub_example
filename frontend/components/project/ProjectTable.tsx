@@ -11,11 +11,13 @@ import { ActionMenu } from "@/components/ui/ActionMenu";
 interface ProjectTableProps {
   projects: Project[];
   onViewDetails?: (project: Project) => void;
+  onEditProject?: (project: Project) => void;
 }
 
 export function ProjectTable({ 
   projects, 
-  onViewDetails 
+  onViewDetails,
+  onEditProject,
 }: ProjectTableProps) {
   return (
     <div className="glass border-border rounded-3xl overflow-hidden">
@@ -92,12 +94,12 @@ export function ProjectTable({
                           icon: <ChevronRight className="w-4 h-4" />,
                           onClick: () => onViewDetails?.(project),
                         },
-                        {
+                        ...(onEditProject ? [{
                           key: "edit-project",
                           label: "Edit Project",
                           icon: <FolderKanban className="w-4 h-4" />,
-                          onClick: () => {}
-                        }
+                          onClick: () => onEditProject?.(project)
+                        }] : [])
                       ]}
                     />
                   </td>

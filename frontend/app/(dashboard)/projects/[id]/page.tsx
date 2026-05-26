@@ -1,16 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { 
   ArrowLeft, 
-  Briefcase, 
   Calendar, 
   Clock, 
   Plus,
   Target,
   Users,
-  Loader2,
   ChevronRight,
   MessageSquare,
   Paperclip,
@@ -24,6 +22,7 @@ import { identityService, OrgMember } from "@/lib/services/identity.service";
 import { ENABLE_LEGACY_MOCK_UI } from "@/lib/config/mock-ui";
 import { legacyMockProjectActivity, legacyMockProjectTasks } from "@/lib/archive/mock-ui-legacy";
 import { toUserErrorMessage } from "@/lib/services/error-message";
+import { PageError, PageLoading } from "@/components/ui/PageState";
 import { 
   Tooltip, 
   ResponsiveContainer,
@@ -54,67 +53,66 @@ export default function ProjectDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [opsError, setOpsError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [projectData, usersData] = await Promise.all([
-          projectService.getProject(id),
-          identityService.getUsers()
-        ]);
-        setProject(projectData);
-        setUsers(usersData);
-        const [linksResult, activityResult, taskResult] = await Promise.allSettled([
-          projectService.getProjectRepositories(id),
-          projectService.getProjectActivity(id),
-          projectService.getProjectTasks(id),
-        ]);
-        const links = linksResult.status === "fulfilled" ? linksResult.value : [];
-        const activityData = activityResult.status === "fulfilled" ? activityResult.value : [];
-        const taskData = taskResult.status === "fulfilled" ? taskResult.value : [];
-        const widgetErrors: string[] = [];
-        if (linksResult.status === "rejected") {
-          console.warn("[ProjectDetailPage] repositories fetch failed:", linksResult.reason);
-          widgetErrors.push("Linked Repositories");
-        }
-        if (activityResult.status === "rejected") {
-          console.warn("[ProjectDetailPage] activity fetch failed:", activityResult.reason);
-          widgetErrors.push("Recent Activity");
-        }
-        if (taskResult.status === "rejected") {
-          console.warn("[ProjectDetailPage] tasks fetch failed:", taskResult.reason);
-          widgetErrors.push("Active Tasks");
-        }
-        setProjectRepositories(links);
-        setActivities(activityData);
-        setTasks(taskData);
-        setOpsError(widgetErrors.length > 0 ? `일부 프로젝트 데이터를 불러오지 못했습니다: ${widgetErrors.join(", ")}` : null);
-      } catch (err) {
-        setError(toUserErrorMessage(err, "Failed to load project details."));
-        console.error(err);
-      } finally {
-        setLoading(false);
+  const loadData = useCallback(async () => {
+    try {
+      setError(null);
+      setLoading(true);
+      const [projectData, usersData] = await Promise.all([
+        projectService.getProject(id),
+        identityService.getUsers()
+      ]);
+      setProject(projectData);
+      setUsers(usersData);
+      const [linksResult, activityResult, taskResult] = await Promise.allSettled([
+        projectService.getProjectRepositories(id),
+        projectService.getProjectActivity(id),
+        projectService.getProjectTasks(id),
+      ]);
+      const links = linksResult.status === "fulfilled" ? linksResult.value : [];
+      const activityData = activityResult.status === "fulfilled" ? activityResult.value : [];
+      const taskData = taskResult.status === "fulfilled" ? taskResult.value : [];
+      const widgetErrors: string[] = [];
+      if (linksResult.status === "rejected") {
+        console.warn("[ProjectDetailPage] repositories fetch failed:", linksResult.reason);
+        widgetErrors.push("Linked Repositories");
       }
-    };
-    loadData();
+      if (activityResult.status === "rejected") {
+        console.warn("[ProjectDetailPage] activity fetch failed:", activityResult.reason);
+        widgetErrors.push("Recent Activity");
+      }
+      if (taskResult.status === "rejected") {
+        console.warn("[ProjectDetailPage] tasks fetch failed:", taskResult.reason);
+        widgetErrors.push("Active Tasks");
+      }
+      setProjectRepositories(links);
+      setActivities(activityData);
+      setTasks(taskData);
+      setOpsError(widgetErrors.length > 0 ? `일부 프로젝트 데이터를 불러오지 못했습니다: ${widgetErrors.join(", ")}` : null);
+    } catch (err) {
+      setError(toUserErrorMessage(err, "Failed to load project details."));
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void loadData();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [loadData]);
+
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
-        <Loader2 className="w-10 h-10 text-primary animate-spin" />
-        <p className="text-muted-foreground animate-pulse font-black uppercase tracking-widest text-[10px]">Assembling Project Roadmap...</p>
-      </div>
-    );
+    return <PageLoading label="Loading project details..." />;
   }
 
   if (error || !project) {
     return (
-      <div className="text-center py-20 space-y-6">
-        <div className="glass-card p-10 max-w-md mx-auto">
-          <Briefcase className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-20" />
-          <h2 className="text-xl font-bold text-foreground dark:text-primary-foreground mb-2">Project Not Found</h2>
-          <p className="text-muted-foreground text-sm mb-6">{error || "The requested project roadmap could not be located."}</p>
-          <button 
+      <div className="space-y-6">
+        <PageError message={error || "The requested project roadmap could not be located."} onRetry={() => void loadData()} />
+        <div>
+          <button
             onClick={() => router.back()}
             className="px-6 py-2 rounded-xl bg-primary text-primary-foreground font-bold text-sm"
           >
@@ -125,7 +123,20 @@ export default function ProjectDetailPage() {
     );
   }
 
-  const completionRate = project.status === "closed" ? 100 : (project.status === "active" ? 65 : 10);
+  const completionRate = (() => {
+    if (project.status === "closed") return 100;
+    if (tasks.length > 0) {
+      const doneCount = tasks.filter((t) => t.status === "done").length;
+      return Math.round((doneCount / tasks.length) * 100);
+    }
+    return project.status === "active" ? 60 : 10;
+  })();
+  const tasksDone = tasks.filter((t) => t.status === "done").length;
+  const totalTasks = tasks.length;
+  const velocityPerWeek = activities.length > 0 ? Math.max(1, Math.round((activities.length / 2) * 10) / 10) : 0;
+  const dueDateLabel = project.due_date
+    ? new Date(project.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+    : "TBD";
 
   // Find project owner
   const owner = users.find(u => u.id === project.owner_user_id);
@@ -262,16 +273,16 @@ export default function ProjectDetailPage() {
                 <div>
                   <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Velocity</p>
                   <p className="text-lg font-bold text-foreground dark:text-primary-foreground flex items-center gap-1">
-                    <TrendingUp className="w-4 h-4 text-success" /> 14.2 <span className="text-[10px] text-muted-foreground">pts/wk</span>
+                    <TrendingUp className="w-4 h-4 text-success" /> {velocityPerWeek.toFixed(1)} <span className="text-[10px] text-muted-foreground">events/wk</span>
                   </p>
                 </div>
                 <div>
                   <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Tasks Done</p>
-                  <p className="text-lg font-bold text-foreground dark:text-primary-foreground">25 / 50</p>
+                  <p className="text-lg font-bold text-foreground dark:text-primary-foreground">{tasksDone} / {totalTasks}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Days Remaining</p>
-                  <p className="text-lg font-bold text-foreground dark:text-primary-foreground">12</p>
+                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Due Date</p>
+                  <p className="text-lg font-bold text-foreground dark:text-primary-foreground">{dueDateLabel}</p>
                 </div>
               </div>
             </div>

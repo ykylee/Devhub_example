@@ -11,12 +11,16 @@ import { ActionMenu } from "@/components/ui/ActionMenu";
 interface RepositoryTableProps {
   repositories: ApplicationRepository[];
   onDisconnect?: (repo: ApplicationRepository) => void;
+  onViewRepository?: (repo: ApplicationRepository) => void;
+  onViewRepositoryMetrics?: (repo: ApplicationRepository) => void;
   showApplicationColumn?: boolean;
 }
 
 export function RepositoryTable({ 
   repositories, 
   onDisconnect,
+  onViewRepository,
+  onViewRepositoryMetrics,
   showApplicationColumn = false 
 }: RepositoryTableProps) {
   return (
@@ -53,11 +57,17 @@ export function RepositoryTable({
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <Link href={`/repositories/${repo.repo_provider}/${repo.repo_full_name}`}>
-                            <span className="text-xs font-black text-foreground dark:text-primary-foreground tracking-tight hover:text-pink-400 transition-colors cursor-pointer">
+                          {typeof repo.repository_id === "number" && repo.repository_id > 0 ? (
+                            <Link href={`/repositories/${repo.repository_id}`}>
+                              <span className="text-xs font-black text-foreground dark:text-primary-foreground tracking-tight hover:text-pink-400 transition-colors cursor-pointer">
+                                {repo.repo_full_name}
+                              </span>
+                            </Link>
+                          ) : (
+                            <span className="text-xs font-black text-foreground dark:text-primary-foreground tracking-tight">
                               {repo.repo_full_name}
                             </span>
-                          </Link>
+                          )}
                         </div>
                         <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-widest opacity-60">
                           {repo.repo_provider}
@@ -88,18 +98,18 @@ export function RepositoryTable({
                     <ActionMenu
                       title={`${repo.repo_full_name} Actions`}
                       items={[
-                        {
+                        ...(onViewRepository ? [{
                           key: "view-prs",
-                          label: "View PRs",
+                          label: "View Repository",
                           icon: <GitBranch className="w-4 h-4" />,
-                          onClick: () => {},
-                        },
-                        {
+                          onClick: () => onViewRepository(repo),
+                        }] : []),
+                        ...(onViewRepositoryMetrics ? [{
                           key: "view-metrics",
                           label: "View Metrics",
                           icon: <Activity className="w-4 h-4" />,
-                          onClick: () => {}
-                        },
+                          onClick: () => onViewRepositoryMetrics(repo)
+                        }] : []),
                         ...(onDisconnect ? [{
                           key: "disconnect",
                           label: "Disconnect",

@@ -9,13 +9,13 @@ import {
   ExternalLink,
   Code2,
   Users,
-  Activity,
-  Loader2
+  Activity
 } from "lucide-react";
 import Link from "next/link";
 import { DashboardHeader } from "@/components/ui/DashboardHeader";
 import { Badge } from "@/components/ui/Badge";
 import { FilterBar } from "@/components/ui/FilterBar";
+import { PageEmpty, PageError, PageLoading } from "@/components/ui/PageState";
 import { repositoryService, Repository, RepositoryActivity } from "@/lib/services/repository.service";
 
 interface RepositoryWithActivity extends Repository {
@@ -29,30 +29,36 @@ export default function RepositoriesStatusPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [visibilityFilter, setVisibilityFilter] = useState("all");
 
+  const loadData = async () => {
+    try {
+      setError(null);
+      setLoading(true);
+      const fetchedRepos = await repositoryService.listRepositories();
+      const reposWithActivity = await Promise.all(
+        fetchedRepos.map(async (repo) => {
+          try {
+            const activity = await repositoryService.getRepositoryActivity(repo.id);
+            return { ...repo, activity };
+          } catch (err) {
+            console.error(`Failed to fetch activity for ${repo.id}:`, err);
+            return repo;
+          }
+        })
+      );
+      setRepos(reposWithActivity);
+    } catch (err) {
+      setError("Failed to load repositories data.");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const fetchedRepos = await repositoryService.listRepositories();
-        const reposWithActivity = await Promise.all(
-          fetchedRepos.map(async (repo) => {
-            try {
-              const activity = await repositoryService.getRepositoryActivity(repo.id);
-              return { ...repo, activity };
-            } catch (err) {
-              console.error(`Failed to fetch activity for ${repo.id}:`, err);
-              return repo;
-            }
-          })
-        );
-        setRepos(reposWithActivity);
-      } catch (err) {
-        setError("Failed to load repositories data.");
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadData();
+    const timer = setTimeout(() => {
+      void loadData();
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const filteredRepos = repos.filter((repo) => {
@@ -71,11 +77,7 @@ export default function RepositoriesStatusPage() {
     : "0";
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <Loader2 className="w-10 h-10 text-primary animate-spin" />
-      </div>
-    );
+    return <PageLoading label="Loading repositories..." />;
   }
 
   return (
@@ -86,11 +88,7 @@ export default function RepositoriesStatusPage() {
         subtitle="Operational status and activity metrics across all integrated SCM repositories."
       />
 
-      {error && (
-        <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-sm">
-          {error}
-        </div>
-      )}
+      {error && <PageError message={error} onRetry={() => void loadData()} />}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
@@ -192,9 +190,7 @@ export default function RepositoriesStatusPage() {
           </motion.div>
         ))}
         {filteredRepos.length === 0 && !loading && (
-          <div className="text-center py-20 glass-card">
-            <p className="text-muted-foreground font-black uppercase tracking-widest text-xs opacity-50">No repositories matching your filters</p>
-          </div>
+          <PageEmpty message="No repositories matching your filters" />
         )}
       </div>
     </div>

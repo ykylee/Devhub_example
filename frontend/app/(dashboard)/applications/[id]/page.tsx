@@ -1,17 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { 
   Activity, 
   ArrowLeft, 
-  Box, 
-  Globe, 
+  Globe,
   ShieldCheck, 
   Zap,
   Clock,
   ExternalLink,
-  Loader2,
   RefreshCcw,
   Settings,
   GitBranch,
@@ -21,86 +19,67 @@ import { useRouter, useParams } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 import { applicationService, Application, ApplicationRollup } from "@/lib/services/application.service";
+import { projectService } from "@/lib/services/project.service";
+import { ApplicationRepository } from "@/lib/services/project.types";
+import { toUserErrorMessage } from "@/lib/services/error-message";
+import { PageError, PageLoading } from "@/components/ui/PageState";
 import { 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
   ResponsiveContainer,
   BarChart,
-  Bar
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip
 } from "recharts";
-
-// Mock historical data for charts
-const mockHistoryData = [
-  { name: "Day 1", build: 85, quality: 78 },
-  { name: "Day 2", build: 88, quality: 80 },
-  { name: "Day 3", build: 92, quality: 82 },
-  { name: "Day 4", build: 80, quality: 75 },
-  { name: "Day 5", build: 95, quality: 85 },
-  { name: "Day 6", build: 98, quality: 88 },
-  { name: "Day 7", build: 96, quality: 90 },
-];
-
-type ApplicationRepositorySummary = {
-  repo_provider: string;
-  repo_full_name: string;
-  role: string;
-  sync_status: string;
-};
-
-type ApplicationWithRepositories = Application & {
-  repositories?: ApplicationRepositorySummary[];
-};
 
 export default function ApplicationDetailPage() {
   const params = useParams();
   const id = params.id as string;
   const router = useRouter();
   
-  const [app, setApp] = useState<ApplicationWithRepositories | null>(null);
+  const [app, setApp] = useState<Application | null>(null);
   const [rollup, setRollup] = useState<ApplicationRollup | null>(null);
+  const [repositories, setRepositories] = useState<ApplicationRepository[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [appData, rollupData] = await Promise.all([
-          applicationService.getApplication(id),
-          applicationService.getApplicationRollup(id)
-        ]);
-        setApp(appData);
-        setRollup(rollupData);
-      } catch (err) {
-        setError("Failed to load application details.");
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadData();
+  const loadData = useCallback(async () => {
+    try {
+      setError(null);
+      setLoading(true);
+      const [appData, rollupData, reposData] = await Promise.all([
+        applicationService.getApplication(id),
+        applicationService.getApplicationRollup(id),
+        projectService.getApplicationRepositories(id),
+      ]);
+      setApp(appData);
+      setRollup(rollupData);
+      setRepositories(reposData);
+    } catch (err) {
+      setError(toUserErrorMessage(err, "Failed to load application details."));
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void loadData();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [loadData]);
+
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
-        <Loader2 className="w-10 h-10 text-primary animate-spin" />
-        <p className="text-muted-foreground animate-pulse font-black uppercase tracking-widest text-[10px]">Synchronizing Domain Data...</p>
-      </div>
-    );
+    return <PageLoading label="Loading application details..." />;
   }
 
   if (error || !app) {
     return (
-      <div className="text-center py-20 space-y-6">
-        <div className="glass-card p-10 max-w-md mx-auto">
-          <Box className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-20" />
-          <h2 className="text-xl font-bold text-foreground dark:text-primary-foreground mb-2">Resource Not Found</h2>
-          <p className="text-muted-foreground text-sm mb-6">{error || "The requested application could not be located."}</p>
-          <button 
+      <div className="space-y-6">
+        <PageError message={error || "The requested application could not be located."} onRetry={() => void loadData()} />
+        <div>
+          <button
             onClick={() => router.back()}
             className="px-6 py-2 rounded-xl bg-primary text-primary-foreground font-bold text-sm"
           >
@@ -110,6 +89,20 @@ export default function ApplicationDetailPage() {
       </div>
     );
   }
+
+  const buildSuccessPct = ((rollup?.build_success_rate || 0) * 100).toFixed(1);
+  const qualityScore = rollup?.quality_score?.toFixed(1) || "N/A";
+  const criticalWarnings = rollup?.critical_warning_count || 0;
+  const gateFailures = rollup?.quality_gate_failed_count || 0;
+  const healthTitle =
+    criticalWarnings > 0 || gateFailures > 0
+      ? "Needs Attention"
+      : "Optimal Health";
+  const healthDescription =
+    criticalWarnings > 0 || gateFailures > 0
+      ? `Critical warnings ${criticalWarnings}, gate failures ${gateFailures}.`
+      : "No critical roadblocks detected in current build cycle.";
+  const qualityTrend = rollup?.quality_score !== undefined ? `${qualityScore}` : "N/A";
 
   return (
     <div className="space-y-10 pb-20">
@@ -141,10 +134,10 @@ export default function ApplicationDetailPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: "Build Success", value: `${((rollup?.build_success_rate || 0) * 100).toFixed(1)}%`, icon: Activity, color: "text-success", trend: "+2.4%" },
-          { label: "Quality Score", value: rollup?.quality_score?.toFixed(1) || "N/A", icon: ShieldCheck, color: "text-info", trend: "+0.1" },
-          { label: "Critical Warnings", value: rollup?.critical_warning_count.toString() || "0", icon: Zap, color: (rollup?.critical_warning_count || 0) > 0 ? "text-destructive" : "text-success", trend: "Stable" },
-          { label: "Gate Failures", value: rollup?.quality_gate_failed_count.toString() || "0", icon: Globe, color: "text-purple-500", trend: "0" },
+          { label: "Build Success", value: `${buildSuccessPct}%`, icon: Activity, color: "text-success", trend: "Current" },
+          { label: "Quality Score", value: qualityScore, icon: ShieldCheck, color: "text-info", trend: qualityTrend },
+          { label: "Critical Warnings", value: String(criticalWarnings), icon: Zap, color: criticalWarnings > 0 ? "text-destructive" : "text-success", trend: criticalWarnings > 0 ? "Open" : "None" },
+          { label: "Gate Failures", value: String(gateFailures), icon: Globe, color: "text-purple-500", trend: gateFailures > 0 ? "Open" : "None" },
         ].map((stat, i) => (
           <motion.div 
             key={stat.label}
@@ -174,71 +167,15 @@ export default function ApplicationDetailPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <section className="lg:col-span-2 glass-card p-8">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h3 className="text-lg font-bold text-foreground dark:text-primary-foreground">Historical Performance</h3>
-              <p className="text-xs text-muted-foreground">Build success and quality score trends over the last 7 days</p>
-            </div>
-          </div>
-          <div className="h-80 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={mockHistoryData}>
-                <defs>
-                  <linearGradient id="colorBuild" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" opacity={0.3} />
-                <XAxis 
-                  dataKey="name" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: 'var(--muted-foreground)', fontSize: 10, fontWeight: 700 }}
-                  dy={10}
-                />
-                <YAxis hide />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'var(--card)', 
-                    borderRadius: '16px', 
-                    border: '1px solid var(--border)',
-                    boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
-                    backdropFilter: 'blur(10px)',
-                  }}
-                  itemStyle={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase' }}
-                  labelStyle={{ fontSize: '12px', fontWeight: 800, color: 'var(--foreground)' }}
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="build" 
-                  stroke="var(--primary)" 
-                  strokeWidth={3}
-                  fillOpacity={1} 
-                  fill="url(#colorBuild)" 
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="quality" 
-                  stroke="#8b5cf6" 
-                  strokeWidth={3}
-                  fill="transparent"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </section>
-
-        <section className="glass-card p-8 flex flex-col">
+        <section className="lg:col-span-3 glass-card p-8 flex flex-col">
           <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground mb-6 flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-primary" /> Quality Analysis
           </h3>
           <div className="space-y-6 flex-1">
             <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
               <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-1">Status</p>
-              <h4 className="text-lg font-bold text-foreground dark:text-primary-foreground">Optimal Health</h4>
-              <p className="text-xs text-muted-foreground mt-1">No critical roadblocks detected in current build cycle.</p>
+              <h4 className="text-lg font-bold text-foreground dark:text-primary-foreground">{healthTitle}</h4>
+              <p className="text-xs text-muted-foreground mt-1">{healthDescription}</p>
             </div>
             
             <div className="space-y-4">
@@ -247,7 +184,8 @@ export default function ApplicationDetailPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={Object.entries(rollup?.pull_request_distribution || {}).map(([name, value]) => ({ name, value }))}>
                     <Bar dataKey="value" fill="var(--primary)" radius={[4, 4, 0, 0]} />
-                    <XAxis dataKey="name" hide />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 10, fontWeight: 700 }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 10, fontWeight: 700 }} />
                     <Tooltip 
                       cursor={{fill: 'transparent'}}
                       contentStyle={{ backgroundColor: 'var(--card)', borderRadius: '12px', border: '1px solid var(--border)' }}
@@ -267,7 +205,7 @@ export default function ApplicationDetailPage() {
           </h3>
         </div>
         <div className="divide-y divide-border/50">
-          {app.repositories?.map((repo, i: number) => (
+          {repositories.map((repo, i: number) => (
             <div key={i} className="p-6 flex items-center justify-between hover:bg-muted/5 transition-colors group">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-xl bg-muted/30 border border-border flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -279,14 +217,24 @@ export default function ApplicationDetailPage() {
                 </div>
               </div>
               <div className="flex items-center gap-6">
-                <Badge variant={repo.sync_status === "synced" ? "success" : "warning"}>{repo.sync_status}</Badge>
+                <Badge
+                  variant={
+                    repo.sync_status === "active"
+                      ? "success"
+                      : repo.sync_status === "degraded"
+                        ? "warning"
+                        : "secondary"
+                  }
+                >
+                  {repo.sync_status}
+                </Badge>
                 <button className="p-2 rounded-lg hover:bg-muted/30 text-muted-foreground hover:text-primary transition-all">
                   <ExternalLink className="w-4 h-4" />
                 </button>
               </div>
             </div>
           ))}
-          {(!app || !app.repositories || app.repositories.length === 0) && (
+          {repositories.length === 0 && (
             <div className="p-20 text-center text-muted-foreground text-sm">
               No repositories linked to this application.
             </div>
