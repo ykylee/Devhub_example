@@ -1,3 +1,16 @@
+# Session Handoff — gemini/ui-cleanup-and-org-actions (2026-05-26 UI 아카이브 및 버튼 UI 개선 완료)
+
+- 브랜치: `gemini/ui-cleanup-and-org-actions`
+- 최종 상태: 구현 및 빌드 검증 완료 (`done`), [PR #340](https://github.com/ykylee/Devhub_example/pull/340) 생성 완료
+- 최종 수정일: 2026-05-26 (sprint `gemini/ui-cleanup-and-org-actions`)
+
+## 2026-05-26 UI 정리 및 Org 버튼 개선 작업 완료
+- **UI 아카이브**: 미완성 임시 대시보드인 `Work Status`, `Quality Status`, `Sys Admin Dashboard`를 사이드바에서 비노출 및 `/projects` 리다이렉트 처리 완료.
+- **Org Action 버튼 교체**: `OrgUnitTable.tsx`에서 반응하지 않던 `ActionMenu` 컴포넌트를 개별 `Edit` 및 `Delete` 아이콘 버튼으로 교체하여 Users 화면과 일관된 UX 제공.
+- **타입 에러 교정**: TypeScript `strictNullChecks` 컴파일 오류들(selectedNode, selectedRisk 관련)을 로컬 변수 바인딩 및 non-null 단언문을 활용해 완전히 해결하여 Next.js 빌드 성공.
+
+---
+
 # Session Handoff — main (2026-05-26 PR #332 frontend lint cleanup + housekeeping)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
