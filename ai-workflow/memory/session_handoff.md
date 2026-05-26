@@ -1,3 +1,52 @@
+# Session Handoff — main (2026-05-26 PR #304 PR-B P2 bash + housekeeping)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
+- 범위: PR #303 (직전 housekeeping `0abebb7`) 이후 PR #304 (`b70d505`) 흡수.
+- 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
+- 상태: PR #304 머지로 PR #296 follow-up **5/6 closed** (잔여 1건 = ADR-0022 §3.1 retreat 사유 사용자 영역). main HEAD `b70d505`. Onboarding SOP staging monitoring 시점 진입 가능.
+- 최종 수정일: 2026-05-26 (sprint `claude/work_260526-housekeeping-post-304`)
+- 관련 문서: [v1.0 릴리즈 로드맵](../../docs/planning/release_v1_roadmap.md), [Onboarding 운영 SOP](../../docs/setup/onboarding_operations.md), [ADR-0022](../../docs/adr/0022-keycloak-version-pin-25-0.md), [issue #302](https://github.com/ykylee/Devhub_example/issues/302).
+- 브랜치: `main` (HEAD `b70d505` post PR #304 → 본 housekeeping sprint 머지 후 `<TBD>`).
+
+## 2026-05-26 본 housekeeping sprint (`claude/work_260526-housekeeping-post-304`)
+
+직전 housekeeping (PR #303, `0abebb7`) 이후 1 PR (#304) 흡수. minimal entry prepend.
+
+### 흡수 대상
+
+| sha | PR | author | core |
+| --- | --- | --- | --- |
+| `b70d505` | **#304** | claude | PR-B P2 bash — `deploy-from-env.sh` 의 `KEYCLOAK_REALM_IMPORT_PATH` emit 을 `local-idp` profile gate 안으로 이동 (#4) + `GENERATED_KEYCLOAK_REALM_IMPORT` default `/tmp/*` → `$ROOT_DIR/.build/*` + `mkdir -p` + `.gitignore` `/.build/` + docs §1.2 신규 (#5). 3 파일 / +35 / -5 LoC. self-review 4단계 (P0 0 / P1 0 / P2 1 scope 외) + bash gate 진리표 5분기 + grep 정합. |
+
+### PR #296 follow-up 6건 최종 상태
+
+| # | 항목 | 상태 | sprint |
+| --- | --- | --- | --- |
+| 1 | localhost:13000 magic | ✅ closed | PR #301 |
+| 2 | python3 host 사전조건 | ✅ closed | PR #301 |
+| 3 | sync_keycloak_redirects idempotent NOTE | ✅ closed | PR #301 |
+| 4 | KEYCLOAK_REALM_IMPORT_PATH external fallback | ✅ closed | PR #304 |
+| 5 | generated realm `/tmp/` path 안정화 | ✅ closed | PR #304 |
+| 6 | ADR-0022 §3.1 retreat 사유 finalize | ⏳ 사용자 영역 | (사용자 결정 후 별도 PR) |
+
+추가 carve out: **issue #302** (P2-3 client secret console 평문 노출).
+
+### 다음 directive (우선순위 갱신)
+
+| 순위 | 항목 | 영역 |
+| --- | --- | --- |
+| 1 | **Onboarding SOP staging 1주 monitoring** — flag default ON 후 회귀 발견 시 `DEVHUB_ONBOARDING_GATE_ENABLED=0` rollback. SOP §7 DoD 8 항목 채움. | 사내 운영자 (DevHub SRE) |
+| 2 | **v1.0 release gate (D-20, 2026-06-15)** 잔여 1건 #214 P1-3 Keycloak group staging-prod | 사내 운영자 (Infra) |
+| 3 | **Prometheus metric backend** (Onboarding SOP §8 잔여 carve P2) — `me_onboarding.go` + `users_admin_review.go` Counter/Histogram, ADR-0019 §5.3 (9) Phase 2 PR-C 패턴 재사용 | claude (backend) |
+| 4 | **ADR-0022 §3.1 retreat 사유 finalize** (Draft → Accepted 승격) — §3.3 영향 범위 표에 `scripts/deploy-from-env.sh` + `.gitignore` + docs §1.2 추가 row 도 동반 정합 | 사용자 |
+| 5 | **issue #302 진입** — `setup-keycloak.sh` client secret console quiet flag (옵션 A 권고) | claude (선택, P2) |
+
+## 2026-05-26 직전 housekeeping (PR #303, `0abebb7`)
+
+PR #303 이 직전 EOD (`c9455c6`, PR #297) 이후 외부 4 PR (#298 / #299 / #300 / `d7650cb` direct) + PR #301 흡수 minimal entry prepend.
+
+
+
 # Session Handoff — main (2026-05-26 PR #301 PR #296 follow-up P1 docs + 외부 4건 흡수 housekeeping)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
