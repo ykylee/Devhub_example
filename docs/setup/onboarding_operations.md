@@ -215,9 +215,25 @@ grep 'DB miss = token-only actor' /var/log/devhub/backend.log \
 
 신규 사용자 등록 시점 외에 token-only actor 가 발생하면 Keycloak ↔ DevHub idp_subject 동기화 지연 가능성 — [keycloak_operations.md §8.6](./keycloak_operations.md#86-keycloak-event-listener-audit_logs-통합-운영-sop) event listener cursor lag 점검.
 
-### 4.4 Prometheus / Grafana — 본 1주 monitoring scope 외
+### 4.4 Prometheus metric backend (2026-05-26 sprint `claude/work_260526-onboarding-prometheus-metric` 적용)
 
-Onboarding 도메인 backend 에는 현재 prometheus Counter/Histogram 가 없다 (`internal/httpapi/onboarding_*.go` + `me*.go` + `users_admin_review.go` 어디에도). 따라서 본 1주 monitoring 은 **§4.3 SQL + backend log grep 기반**. Prometheus metric 도입 (gate 403 spike Counter / submit p95 Histogram / pending_review Gauge 등) 은 별도 carve — §8 참조.
+Onboarding 도메인 backend 에 Prometheus Counter/Histogram 4 종 도입 완료. SQL (§4.3) + Prometheus dashboard 둘 다 사용 가능. metric 정의는 [`backend-core/internal/httpapi/onboarding_metrics.go`](../../backend-core/internal/httpapi/onboarding_metrics.go) 참조.
+
+| metric | type | label | 측정 시점 |
+| --- | --- | --- | --- |
+| `devhub_onboarding_gate_blocked_total` | Counter | `reason` (`onboarding_required`) | `onboardingGate` middleware 403 차단 직전 |
+| `devhub_onboarding_submit_total` | Counter | `status` (`ok` / `rejected` / `conflict` / `not_found` / `server_error` / `unavailable` / `unauthenticated`) | `submitOnboarding` handler 의 7 분기 각각 |
+| `devhub_onboarding_submit_duration_seconds` | Histogram | (없음) | `submitOnboarding` 전체 처리 시간 (`defer` 측정) — bucket 10ms ~ 10.24s |
+| `devhub_onboarding_review_confirm_total` | Counter | `status` (`ok` / `rejected` / `conflict` / `not_found` / `server_error` / `unavailable` / `bad_request`) | `confirmUserReview` handler 의 7 분기 각각 |
+
+**dashboard 매핑 (§4.2 signal 5종 ↔ metric)**:
+- **S1 gate 403 spike** — `rate(devhub_onboarding_gate_blocked_total[5m])` 가 baseline 대비 3× 초과 시 alert
+- **S2 submit p95 / 성공률** — `histogram_quantile(0.95, rate(devhub_onboarding_submit_duration_seconds_bucket[5m]))` + `rate(devhub_onboarding_submit_total{status="ok"}[5m]) / sum(rate(devhub_onboarding_submit_total[5m]))`
+- **S3 admin review latency** — submit 시점 vs confirm 시점 차이는 DB query (§4.3 SQL #5) 로 측정 (metric 도입은 별도 carve)
+- **S4 CHECK constraint violation** — `devhub_onboarding_submit_total{status="server_error"}` + backend log grep (server_error 분기 = DB constraint 또는 internal)
+- **S5 token-only actor baseline** — submit Counter 의 `actor.subject` 라벨 없음 (cardinality 회피) → SQL #1 그대로 사용
+
+backend log + SQL + metric 3 가지 채널 cross-validation 권장 (단일 채널 실패 시 fallback).
 
 ## 5. Rollback runbook
 
@@ -326,7 +342,8 @@ DoD #1~#7 모두 통과 시 staging → prod promote 검토. 단 1개 실패해�
 
 | 항목 | 우선순위 | 비고 |
 | --- | --- | --- |
-| Prometheus metric backend 도입 — gate 403 Counter / submit Histogram / pending_review Gauge | P2 | 본 monitoring 신호 5종을 SQL → metric 으로 정식 자산화. `internal/httpapi/onboarding_*.go` + `me_onboarding.go` + `users_admin_review.go` 에 `promauto.NewCounterVec` 등 추가. [ADR-0019 §5.3 (9)](../adr/0019-keycloak-only-idp.md#53-잔여-carve-out) Phase 2 PR-C 의 keycloak event metric 패턴 재사용. |
+| ~~Prometheus metric backend 도입 — gate 403 Counter / submit Histogram / pending_review Gauge~~ | ~~P2~~ ✅ resolved (2026-05-26, sprint `claude/work_260526-onboarding-prometheus-metric`) | 4 metric 도입 (`devhub_onboarding_gate_blocked_total{reason}` Counter / `devhub_onboarding_submit_total{status}` Counter / `devhub_onboarding_submit_duration_seconds` Histogram / `devhub_onboarding_review_confirm_total{status}` Counter). `backend-core/internal/httpapi/onboarding_metrics.go` 신규 + `audit/metrics.go` 패턴 정합 ([ADR-0019 §5.3 (9)](../adr/0019-keycloak-only-idp.md#53-잔여-carve-out) Phase 2 PR-C). pending_review Gauge 는 별도 carve (DB SELECT COUNT 부담 + cron refresh 패턴 결정 후). |
+| `pending_review` count Gauge (별도 carve) | P3 | submit Counter 의 `status="ok"` 누적 + admin confirm Counter 의 `status="ok"` 차감으로 derived metric 표현 가능 — 별도 Gauge 도입 시 DB SELECT COUNT 부담. cron refresh 패턴 결정 후. |
 | Grafana dashboard JSON | P3 | metric 도입 후 — `docs/setup/grafana/` 패턴. 환경 별 자산이라 git 추적 외. |
 | Alertmanager rule YAML | P3 | metric 도입 후 — S1~S5 임계의 정식 자산화. 환경 별 자산이라 git 추적 외. |
 | `pending_review` admin 검토 SLA 정책 | P2 | 사내 정책 결정 — 24h / 48h / 72h. 정책 결정 후 §4.2 S3 임계 구체화. |
@@ -339,3 +356,4 @@ DoD #1~#7 모두 통과 시 staging → prod promote 검토. 단 1개 실패해�
 | 일자 | 변경 | sprint |
 | --- | --- | --- |
 | 2026-05-22 | 1차 draft — §1 책임 분리 + §2 state machine 운영 관점 + §3 feature flag 운영 + §4 1주 monitoring 신호 5종 + SQL 7개 + §5 rollback runbook 4 step + drill + §6 incident response 4 단계 + 패턴 5종 + escalation 3 level + §7 DoD 8 항목 + §8 잔여 carve 7. [ADR-0021](../adr/0021-onboarding-self-service-unit-selection.md) + [Onboarding IMPL plan §7 #6](../planning/onboarding_impl_plan.md) 의 운영 측면 source-of-truth. | `claude/work_260522-onboarding-ops-sop` |
+| 2026-05-26 | §4.4 Prometheus metric backend 적용 (4 metric: gate_blocked Counter / submit Counter + Histogram / review_confirm Counter). §8 carve P2 resolved + pending_review Gauge 는 별도 carve P3 로 분리. metric 정의 [`backend-core/internal/httpapi/onboarding_metrics.go`](../../backend-core/internal/httpapi/onboarding_metrics.go). dashboard 매핑 표 (S1~S5 ↔ metric). | `claude/work_260526-onboarding-prometheus-metric` |

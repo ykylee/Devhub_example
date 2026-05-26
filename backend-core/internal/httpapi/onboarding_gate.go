@@ -50,6 +50,7 @@ func (h Handler) onboardingGate(c *gin.Context) {
 	}
 
 	logRequest(c, "[onboardingGate] blocking incomplete actor on %s", c.FullPath())
+	observeOnboardingGateBlocked("onboarding_required")
 	c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
 		"status": "forbidden",
 		"code":   "onboarding_required",
