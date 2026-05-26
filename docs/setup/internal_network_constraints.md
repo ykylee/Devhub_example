@@ -35,21 +35,30 @@
 
 `build-artifacts.sh` 의 `verify_prerequisites()` 가 missing 도구 발견 시 친절한 에러 + 설치 안내 + `exit 1`. silent fail 없음. 자세한 troubleshooting: [docker-packaging-deployment-guide.md §13](./docker-packaging-deployment-guide.md#13-build--deploy-troubleshooting-matrix) (10 시나리오).
 
-## 2. 제약 2 — 외부 ingress port forward (외부 13000 → 내부 3000 → 도커)
+## 2. 제약 2 — 외부 ingress port forward (외부 진입 port → 내부 nginx port → 도커)
 
 ### 2.1 제약
 
-사내 외부 client (사내 PC) 는 **호스트 머신의 13000 port** 로 접근. 호스트의 13000 → VM 내부의 nginx **3000 port** 로 forward. VM 내부 nginx 는 docker network 의 `frontend` / `backend-core` / `keycloak` 으로 reverse proxy.
+사내 외부 client (사내 PC) 는 **호스트 머신의 외부 진입 port** 로 접근. 호스트의 외부 port → VM 내부의 nginx **bind port** 로 forward. VM 내부 nginx 는 docker network 의 `frontend` / `backend-core` / `keycloak` 으로 reverse proxy.
 
 ```
 [사내 PC]
-    ↓ http://<host-ip>:13000/devhub/...
-[호스트 머신 :13000]                          ← 사내 인프라 설정 (SSH tunnel / NAT / iptables)
+    ↓ http://<host-ip>:<PUBLIC_ACCESS_PORT>/devhub/...
+[호스트 머신 :<PUBLIC_ACCESS_PORT>]           ← 사내 인프라 설정 (SSH tunnel / NAT / iptables)
     ↓ port forward
-[VM 내부 nginx :3000]                         ← compose NGINX_HTTP_PORT=3000
+[VM 내부 nginx :<NGINX_HTTP_PORT>]            ← compose NGINX_HTTP_PORT (host bind)
     ↓ reverse proxy
 [docker network: frontend:3000 / backend-core:8080 / keycloak:8080]
 ```
+
+**두 port 는 모두 env 로 가변** — 사내 환경별 ingress 정책에 맞춰 자유 재배치:
+
+| env | 의미 | default | 가변 사례 |
+| --- | --- | --- | --- |
+| `PUBLIC_ACCESS_PORT` | 호스트 머신의 외부 진입 port | `13000` (사내 dev VM 1차 reference) | `80` / `443` / `9000` 등 사내 ingress 정책별 |
+| `NGINX_HTTP_PORT` | VM 내부 nginx 의 host bind port (docker container 의 80 을 VM host 의 이 port 로 publish) | `3000` | `80` (단일 포트 reverse proxy 정공법) / `8080` 등 |
+
+**default 13000 / 3000 은 ADR-0022 §3.4 의 사내 dev VM 시나리오 의 reference 값** — 다른 사내 환경 / staging / prod 에서 override 가 일반적. realm.dev.json 의 `localhost:13000` hardcoded entry 는 사내 dev VM 의 임시 시뮬레이션 자산 (dev fallback) — staging / prod 의 redirect URI 는 `sync_keycloak_redirects()` 가 `PUBLIC_ACCESS_*` env 기반으로 동적 생성하므로 무관.
 
 ### 2.2 적용 자산
 
@@ -71,9 +80,19 @@
 
 → 본 가이드의 scope 외. 사내 인프라 운영팀이 별도 매뉴얼로 관리.
 
-### 2.4 다른 host:port 재배치
+### 2.4 다른 host:port 재배치 (가변 사례)
 
-`PUBLIC_ACCESS_HOST` + `PUBLIC_ACCESS_PORT` env 만 변경하면 다른 host:port 로 재배치 가능. realm.dev.json 의 13000 entry 는 사내 dev/smoke 외 환경에서는 무해 (해당 origin 으로 접속 자체가 안 됨).
+`PUBLIC_ACCESS_HOST` + `PUBLIC_ACCESS_PORT` + `NGINX_HTTP_PORT` env 만 변경하면 다른 host:port 로 자유 재배치.
+
+| 시나리오 | PUBLIC_ACCESS_HOST | PUBLIC_ACCESS_PORT | NGINX_HTTP_PORT | host:VM forward |
+| --- | --- | --- | --- | --- |
+| 사내 dev VM (default) | `100.90.113.29` | `13000` | `3000` | SSH tunnel / NAT 등 사내 인프라 |
+| 사내 다른 dev VM | `10.x.x.x` | `8080` 또는 자유 | `3000` | 동일 |
+| staging (단일 포트 reverse proxy) | `devhub-stage.example.com` | `443` (https) | `80` | nginx 자체가 host port 80 bind, 외부 reverse proxy 가 443→80 |
+| prod (단일 포트 reverse proxy) | `devhub.example.com` | `443` (https) | `80` | 동일 |
+| 개발자 노트북 (compose 직접 노출) | `localhost` | `8080` | `8080` | host:VM 동일 머신, port forward 불필요 |
+
+realm.dev.json 의 `localhost:13000` hardcoded entry 는 사내 dev VM 의 dev fallback — staging / prod 환경의 realm 은 `sync_keycloak_redirects()` 가 `PUBLIC_ACCESS_*` env 기반으로 redirect URI 동적 생성 (`http://<host>:<port>/devhub/auth/callback`). 즉 13000 / 3000 은 **사내 dev VM 외 환경에서는 영향 없음**.
 
 ## 3. 제약 3 — db + Keycloak 내부/외부 분기
 
