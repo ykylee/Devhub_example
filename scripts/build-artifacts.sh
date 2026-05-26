@@ -159,10 +159,16 @@ main() {
   echo "  - $ROOT_DIR/frontend/.next/standalone/"
   echo "  - $ROOT_DIR/frontend/.next/static/"
   echo ""
-  echo "Next: docker build (Dockerfile 은 COPY-only, base image pull 외 network 의존 없음)"
+  echo "Next: docker build (Dockerfile 은 COPY-only + ARG base image, base image pull 외 network 의존 없음)"
   echo "      docker build -f backend-core/Dockerfile -t devhub/backend-core:\$IMAGE_TAG backend-core"
   echo "      docker build -f backend-ai/Dockerfile   -t devhub/backend-ai:\$IMAGE_TAG   backend-ai"
   echo "      docker build -f frontend/Dockerfile     -t devhub/frontend:\$IMAGE_TAG     frontend"
+  echo ""
+  echo "사내 mirror registry 사용 시 (base image pull 차단 우회):"
+  echo "      docker build --build-arg BACKEND_CORE_BASE=internal-registry.example.com/alpine:3.21 ..."
+  echo "      docker build --build-arg BACKEND_AI_BASE=internal-registry.example.com/python:3.12-slim ..."
+  echo "      docker build --build-arg FRONTEND_BASE=internal-registry.example.com/node:20-alpine ..."
+  echo "      자세한 절차: docs/setup/docker-packaging-deployment-guide.md §5.1"
 }
 
 main "$@"
