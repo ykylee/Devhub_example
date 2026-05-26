@@ -1,3 +1,62 @@
+# Session Handoff — main (2026-05-26 PR #313 Onboarding Prometheus + PR #314 Go 1.25 + housekeeping)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
+- 범위: PR #311 (직전 housekeeping `5bd7e7a`) 이후 PR #313 (`38ff8a7`) + PR #314 (`34586b4`) 흡수.
+- 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
+- 상태: PR #313 머지로 Onboarding domain Prometheus metric 4종 자산화 완료 (SOP §8 carve P2 resolved). PR #314 머지로 go.mod 의 1.25.9 와 CI setup-go 명시 일치. main HEAD `34586b4`.
+- 최종 수정일: 2026-05-26 (sprint `claude/work_260526-housekeeping-post-314`)
+- 관련 문서: [onboarding_metrics.go](../../backend-core/internal/httpapi/onboarding_metrics.go), [onboarding_operations.md §4.4 + §8](../../docs/setup/onboarding_operations.md), [docker-packaging-deployment-guide.md §1.1 + §13](../../docs/setup/docker-packaging-deployment-guide.md), [issue #214](https://github.com/ykylee/Devhub_example/issues/214), [issue #302](https://github.com/ykylee/Devhub_example/issues/302).
+- 브랜치: `main` (HEAD `34586b4` post PR #314 → 본 housekeeping sprint 머지 후 `<TBD>`).
+
+## 2026-05-26 본 housekeeping sprint (`claude/work_260526-housekeeping-post-314`)
+
+직전 housekeeping (PR #311, `5bd7e7a`) 이후 2 PR (#313 + #314) 흡수.
+
+### 흡수 대상
+
+| sha | PR | author | core |
+| --- | --- | --- | --- |
+| `38ff8a7` | **#313** | claude | **Onboarding Prometheus metric backend** — `internal/httpapi/onboarding_metrics.go` 신규 (107 LoC, audit/metrics.go 패턴) + 4 metric (gate_blocked Counter / submit Counter + Histogram / review_confirm Counter) + 3 handler observe 호출 + 5 unit test + SOP §4.4 dashboard 매핑 (S1~S5) + §8 carve P2 ✅ resolved + §9 변경 이력. 6 파일 / +263 / -3 LoC. CI 7 job 모두 PASS. cardinality bounded. |
+| `34586b4` | **#314** | claude | **Go 1.22 → 1.25 명시 정합** — backend-core/go.mod `go 1.25.9` 와 CI setup-go (`1.22` → `1.25` 3 위치) + docs §1.1/§13 + scripts/build-artifacts.sh 헤더+verify_prerequisites() 에러메시지. 사내 proxy 환경 GOTOOLCHAIN=auto toolchain download 차단 risk 회피. 3 파일 / +10 / -7 LoC. CI 8 job 모두 PASS (go 1.25 toolchain 자동 검증). |
+
+### Prometheus metric 4종 (PR #313)
+
+| metric | type | label cardinality |
+| --- | --- | --- |
+| `devhub_onboarding_gate_blocked_total` | Counter | reason × 1 (`onboarding_required`) |
+| `devhub_onboarding_submit_total` | Counter | status × 7 (ok / rejected / conflict / not_found / server_error / unavailable / unauthenticated) |
+| `devhub_onboarding_submit_duration_seconds` | Histogram | (없음, ExponentialBuckets 10ms~10.24s) |
+| `devhub_onboarding_review_confirm_total` | Counter | status × 7 (ok / rejected / conflict / not_found / server_error / unavailable / bad_request) |
+
+unbounded label (actor.subject / unit_id) 사용 안 함 — cardinality 폭증 회피.
+
+### Onboarding SOP §4.4 dashboard 매핑
+
+- **S1 gate 403 spike** — `rate(devhub_onboarding_gate_blocked_total[5m])` 가 baseline 대비 3× 초과 시 alert
+- **S2 submit p95 / 성공률** — `histogram_quantile(0.95, ...)` + `submit{status=ok} / sum(submit)`
+- **S3 admin review latency** — SQL §4.3 #5 그대로 (별도 metric carve)
+- **S4 CHECK constraint violation** — `submit_total{status=server_error}` + backend log grep
+- **S5 token-only actor baseline** — SQL #1 그대로 (cardinality 회피)
+
+backend log + SQL + Prometheus metric 3 채널 cross-validation 권장.
+
+### 다음 directive (우선순위 갱신)
+
+| 순위 | 항목 | 영역 |
+| --- | --- | --- |
+| 1 | **Onboarding SOP staging 1주 monitoring** — flag default ON 후 회귀 발견 시 rollback. **SQL + Prometheus metric 2 채널 활용 가능**. SOP §7 DoD 8 항목. | 사내 운영자 (DevHub SRE) |
+| 2 | **사내 Keycloak 26.0 image pull + redeploy smoke** (ADR-0023 §5 후속) | 사내 운영자 (Infra) |
+| 3 | **issue #214 사내 1회 작업** + verify script | 사용자/사내 운영자 + verify-keycloak-groups.sh (자동) |
+| 4 | **issue #302 진입** — setup-keycloak.sh client secret console quiet flag | claude (선택, P2) |
+| 5 | **Dockerfile FROM ARG 도입** (사내 mirror 환경 carve) | claude (선택, P2) |
+| 6 | **pending_review count Gauge / Grafana dashboard JSON / Alertmanager rule** (P3 carve, 사내 운영자 영역) | 사내 운영자 + claude (Gauge 결정 후 P2 carve 가능) |
+
+## 2026-05-26 직전 housekeeping (PR #311, `5bd7e7a`)
+
+PR #310 (build/deploy script cleanup) 흡수 minimal entry prepend.
+
+
+
 # Session Handoff — main (2026-05-26 PR #310 build/deploy script cleanup + housekeeping)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
