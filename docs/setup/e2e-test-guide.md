@@ -49,9 +49,11 @@ Playwright `globalSetup` (`frontend/tests/e2e/global-setup.ts`) 이 매 `npm run
 | 변수 | 의미 | 기본값 |
 | --- | --- | --- |
 | `DEVHUB_KEYCLOAK_ADMIN_URL` | Keycloak admin base URL (seed API 호출) | `http://localhost:8180/devhub/auth/keycloak` |
+| `DEVHUB_E2E_KEYCLOAK_ADMIN_URL` | E2E 전용 Keycloak admin base URL override (설정 시 `DEVHUB_KEYCLOAK_ADMIN_URL` 우선) | (미설정) |
 | `DEVHUB_KEYCLOAK_ADMIN_REALM` | realm 명 | `devhub` |
 | `DEVHUB_KEYCLOAK_ADMIN_CLIENT_ID` | e2e seed 전용 service account client id | `devhub-e2e-seeder` |
 | `DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET` | service account client secret | (필수) |
+| `DEVHUB_E2E_OIDC_CLIENT_ID` | E2E 강제 OIDC 시작 시 사용할 `client_id` override | `devhub-frontend` |
 | `DSN` | DevHub users 행을 INSERT 할 PostgreSQL DSN. `idp-apply-schemas` 헬퍼가 사용 | (필수) |
 | `DEVHUB_E2E_SKIP_SEED` | `1` 이면 시드 단계를 건너뜀 (CI matrix 가 별도 stage 에서 시드할 때) | (미설정) |
 

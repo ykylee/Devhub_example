@@ -42,6 +42,19 @@ export const SEEDED: Record<"developer" | "manager" | "systemAdmin", SeededUser>
 };
 
 const E2E_BASE_PATH = (process.env.PLAYWRIGHT_BASE_PATH ?? "").trim().replace(/\/+$/, "");
+const KC_BASE_URL = (
+  process.env.DEVHUB_E2E_KEYCLOAK_ADMIN_URL
+  ?? process.env.DEVHUB_KEYCLOAK_ADMIN_URL
+  ?? process.env.KEYCLOAK_URL
+  ?? "http://localhost:8180/devhub/auth/keycloak"
+).replace(/\/+$/, "");
+const KC_REALM = (process.env.DEVHUB_KEYCLOAK_ADMIN_REALM ?? "devhub").trim();
+const OIDC_CLIENT_ID = (
+  process.env.DEVHUB_E2E_OIDC_CLIENT_ID
+  ?? process.env.NEXT_PUBLIC_OIDC_CLIENT_ID
+  ?? process.env.DEVHUB_OIDC_CLIENT_ID
+  ?? "devhub-frontend"
+).trim();
 
 export function appPath(path: string): string {
   const normalized = path.startsWith("/") ? path : `/${path}`;
@@ -59,10 +72,11 @@ async function firstVisibleLocator(page: Page, selectors: string[]): Promise<imp
 }
 
 async function forceStartOIDCFlow(page: Page): Promise<void> {
-  const keycloakAdminURL = (process.env.DEVHUB_KEYCLOAK_ADMIN_URL ?? "http://localhost:8180/devhub/auth/keycloak").replace(/\/+$/, "");
-  const keycloakRealm = (process.env.DEVHUB_KEYCLOAK_ADMIN_REALM ?? "devhub").trim();
+  const keycloakAdminURL = KC_BASE_URL;
+  const keycloakRealm = KC_REALM;
+  const oidcClientID = OIDC_CLIENT_ID;
   const runtimeConfigPath = appPath("/api/runtime-config");
-  await page.evaluate(async ({ keycloakAdminURL, keycloakRealm, runtimeConfigPath }) => {
+  await page.evaluate(async ({ keycloakAdminURL, keycloakRealm, runtimeConfigPath, oidcClientID }) => {
     const authURL = `${keycloakAdminURL}/realms/${encodeURIComponent(keycloakRealm)}/protocol/openid-connect/auth`;
     let redirectURI = `${window.location.origin}/auth/callback`;
     try {
@@ -93,7 +107,7 @@ async function forceStartOIDCFlow(page: Page): Promise<void> {
     sessionStorage.setItem("oidc_verifier", verifier);
 
     const url = new URL(authURL);
-    url.searchParams.set("client_id", "devhub-frontend");
+    url.searchParams.set("client_id", oidcClientID);
     url.searchParams.set("response_type", "code");
     url.searchParams.set("redirect_uri", redirectURI);
     url.searchParams.set("scope", "openid offline_access email profile");
@@ -101,7 +115,7 @@ async function forceStartOIDCFlow(page: Page): Promise<void> {
     url.searchParams.set("code_challenge", challenge);
     url.searchParams.set("code_challenge_method", "S256");
     window.location.assign(url.toString());
-  }, { keycloakAdminURL, keycloakRealm, runtimeConfigPath });
+  }, { keycloakAdminURL, keycloakRealm, runtimeConfigPath, oidcClientID });
 }
 
 export async function waitForSignInForm(page: Page): Promise<void> {
@@ -218,8 +232,6 @@ export async function expectActorIs(page: Page, user: SeededUser) {
   await expect(page.getByText(user.user_id, { exact: false }).first()).toBeVisible({ timeout: 10_000 });
 }
 
-const KC_BASE_URL = (process.env.DEVHUB_KEYCLOAK_ADMIN_URL ?? "http://localhost:8180/devhub/auth/keycloak").replace(/\/+$/, "");
-const KC_REALM = (process.env.DEVHUB_KEYCLOAK_ADMIN_REALM ?? "devhub").trim();
 const KC_ADMIN_CLIENT_ID = (process.env.DEVHUB_KEYCLOAK_ADMIN_CLIENT_ID ?? "devhub-backend").trim();
 const KC_ADMIN_CLIENT_SECRET = (process.env.DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET ?? "secret-change-me-backend").trim();
 
