@@ -169,6 +169,41 @@ docker push devhub/backend-ai:${GIT_SHA}
 docker push devhub/frontend:${GIT_SHA}
 ```
 
+### 5.1 사내 mirror registry 사용 (base image pull 차단 우회)
+
+Dockerfile 3개 모두 `ARG <SERVICE>_BASE` 로 base image override 가능. 사내 mirror registry (harbor / nexus / artifactory) 를 활용해 외부 Docker Hub / quay.io 접근 없이 build:
+
+| 서비스 | Dockerfile 의 ARG | default | 사내 mirror override 예시 |
+| --- | --- | --- | --- |
+| backend-core | `BACKEND_CORE_BASE` | `alpine:3.21` | `--build-arg BACKEND_CORE_BASE=internal-registry.example.com/alpine:3.21` |
+| backend-ai | `BACKEND_AI_BASE` | `python:3.12-slim` | `--build-arg BACKEND_AI_BASE=internal-registry.example.com/python:3.12-slim` |
+| frontend | `FRONTEND_BASE` | `node:20-alpine` | `--build-arg FRONTEND_BASE=internal-registry.example.com/node:20-alpine` |
+
+**호출 예시 (사내 mirror 환경)**:
+
+```sh
+docker build \
+  --build-arg BACKEND_CORE_BASE=internal-registry.example.com/alpine:3.21 \
+  -f backend-core/Dockerfile -t devhub/backend-core:${GIT_SHA} backend-core
+
+docker build \
+  --build-arg BACKEND_AI_BASE=internal-registry.example.com/python:3.12-slim \
+  -f backend-ai/Dockerfile -t devhub/backend-ai:${GIT_SHA} backend-ai
+
+docker build \
+  --build-arg FRONTEND_BASE=internal-registry.example.com/node:20-alpine \
+  -f frontend/Dockerfile -t devhub/frontend:${GIT_SHA} frontend
+```
+
+**선행 사내 mirror sync** (운영자):
+- 사내 mirror 의 `alpine:3.21` + `python:3.12-slim` + `node:20-alpine` (+ `quay.io/keycloak/keycloak:26.0` for local-idp) tag 사전 sync 필요
+- sync 절차는 사내 registry 운영 문서 별도
+
+**버전 정합 주의**:
+- backend-ai 의 `python:3.12-slim` minor (3.12) 는 host build (`build-artifacts.sh` 의 python3.12 install) 와 ABI 정합 — 변경 시 `backend-ai/.build/site-packages` 도 같은 minor 로 재빌드 필요 ([§1.1](#11-host-사전조건) 참조)
+- node major (20) 는 host build (`npm ci && npm run build`) 의 환경 정합 — 변경 시 host node 도 동일 major 정렬
+- alpine 3.21 은 Go 정적 binary (`CGO_ENABLED=0`) runtime 만 — major upgrade 안전 (다른 distro slim 으로도 교체 가능, 단 runtime CMD 호환 확인)
+
 ## 6. compose 배포 시 운영 규칙
 
 배포용 compose는 build가 아니라 image 참조를 사용한다.
@@ -469,7 +504,7 @@ host build 는 `scripts/build-artifacts.sh` 가 담당하고, Dockerfile 은 결
 | 3 | `npm ci` fail with `code ENOTFOUND registry.npmjs.org` | npm registry 접근 차단 | host proxy 미설정 또는 사내 npm mirror 미설정 | host `npm config set proxy http://proxy.internal:8080` + `npm config set https-proxy ...` 또는 사내 mirror `npm config set registry https://npm.internal.example.com` |
 | 4 | `go build` fail with `dial tcp ... timeout` | go module proxy 접근 차단 | host `GOPROXY` 미설정 | host `export GOPROXY=https://proxy.golang.org,direct` (외부) 또는 사내 mirror `export GOPROXY=https://goproxy.internal.example.com,direct` |
 | 5 | `pip install` fail with `Could not find a version that satisfies the requirement ...` | PyPI 접근 차단 | host pip proxy 미설정 | host `pip config set global.proxy http://proxy.internal:8080` 또는 사내 mirror `pip config set global.index-url https://pypi.internal.example.com/simple` |
-| 6 | `docker build` fail with `failed to fetch image: ... timeout` | base image pull 차단 | docker daemon proxy 미설정 (`/etc/docker/daemon.json` 또는 `~/.docker/config.json`) | `~/.docker/config.json` 에 `{"proxies": {"default": {"httpProxy": "http://proxy.internal:8080", "httpsProxy": "...", "noProxy": "localhost,127.0.0.1"}}}` 설정. systemd 환경은 `/etc/systemd/system/docker.service.d/http-proxy.conf` 추가 + `systemctl daemon-reload && systemctl restart docker` |
+| 6 | `docker build` fail with `failed to fetch image: ... timeout` | base image pull 차단 | docker daemon proxy 미설정 (`/etc/docker/daemon.json` 또는 `~/.docker/config.json`) | **(a) docker daemon proxy 설정** — `~/.docker/config.json` 에 `{"proxies": {"default": {"httpProxy": "http://proxy.internal:8080", "httpsProxy": "...", "noProxy": "localhost,127.0.0.1"}}}`. systemd 환경은 `/etc/systemd/system/docker.service.d/http-proxy.conf` 추가 + `systemctl daemon-reload && systemctl restart docker`. **(b) 사내 mirror registry 사용** — Dockerfile 의 ARG override (§5.1) — `--build-arg <SERVICE>_BASE=internal-registry.example.com/<image>:<tag>`. proxy 없이 사내 registry 만으로 build 가능. |
 | 7 | container 안 `ImportError: dynamic module does not define module export function` (backend-ai) | python C extension ABI mismatch | host python minor ≠ container python:3.12-slim | host 를 python3.12 정확히 install (§1.1 강제 사유) |
 | 8 | `docker compose up` fail with `pull access denied` | private registry 인증 미설정 | docker login 누락 | `docker login <registry>` 또는 `~/.docker/config.json` 의 `auths` 설정 |
 | 9 | Keycloak realm import 후 `INVALID_REDIRECT_URI` | realm 의 redirectUris 와 deploy 환경의 OIDC_REDIRECT_URI 불일치 | realm.dev.json 의 hardcoded URI vs 사내 ingress URI 차이 | (a) `scripts/deploy-from-env.sh` 의 `sync_keycloak_redirects()` 자동 동기화 활성 (`AUTO_CONFIGURE_KEYCLOAK_REDIRECTS=1`, default) 또는 (b) realm.dev.json 수동 갱신 |
