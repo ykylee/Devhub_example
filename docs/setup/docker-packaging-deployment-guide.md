@@ -33,7 +33,9 @@ compose는 서비스 간 연결/개발 실행에 유용하지만, 배포 산출�
 | `bash` 4+ | `scripts/*.sh` 의 array/heredoc/`[[` syntax | `bash --version` |
 | `jq` (선택) | runtime-config endpoint 응답 확인 등 docs 예시에서 사용. script 자체는 의존 X. | `jq --version` |
 
-**python3 미설치 host 에서 deploy 진입 시 증상**: `deploy-from-env.sh` 의 `build_env_file()` 단계에서 `generate_local_realm_import()` 가 `python3: command not found` 로 fail → `KEYCLOAK_REALM_IMPORT_PATH` 비어있음 → `docker-compose up` 시 `keycloak-realm.dev.json` mount fallback (정상 fallback) 하지만 사내 ingress port (13000) entry 가 dev.json 에 이미 포함되어 있어 무해. 즉 python3 의존은 **사내 generated realm path 정합용** 이며 dev.json 직접 mount 시 우회 가능. 단 권고는 python3 설치.
+**python3 미설치 host 에서 deploy 진입 시 증상**: `deploy-from-env.sh:2` 의 `set -euo pipefail` + `:202` 의 `KEYCLOAK_REALM_IMPORT_PATH="$(generate_local_realm_import ...)"` 가 `python3: command not found` 로 fail 시 함수 안에서 **script 전체 즉시 종료** (`emit_env_line` 단계까지 도달 못 함). 자동 fallback 아님.
+
+**수동 우회 절차** (python3 설치 불가 host): deploy 진입 전 `KEYCLOAK_REALM_IMPORT_PATH=$ROOT/infra/idp/keycloak-realm.dev.json` env 를 사전 export → `build_env_file()` 의 `KEYCLOAK_REALM_IMPORT_PATH="${KEYCLOAK_REALM_IMPORT_PATH:-...}"` ([line 250](../../scripts/deploy-from-env.sh#L250)) 가 사전 export 값을 그대로 사용. 단 이 경로는 `generate_local_realm_import()` 의 dynamic redirect URI 주입 (PUBLIC_ACCESS_HOST 기준 callback URL append) 효과를 잃으므로 사내 ingress (`localhost:13000` 외 host) 사용 시 redirect URI 가 dev.json 의 hardcoded entries 로 제한된다. 권고는 python3 설치.
 
 ## 2. 결론 (권장 운영안)
 

@@ -57,12 +57,14 @@ ADR-0019 + ADR-0020 + ADR-0021 + 기타 docs/planning 문서의 historical "26.0
 
 | 위치 | 용도 |
 | --- | --- |
-| `infra/idp/keycloak-realm.dev.json:58-77` | `devhub-frontend` client 의 `redirectUris` / `webOrigins` / `post.logout.redirect.uris` 8 위치에 `http://localhost:13000` 등록 — 사내 ingress 시뮬레이션 |
+| `infra/idp/keycloak-realm.dev.json` | `devhub-frontend` client 에 `http://localhost:13000` 6 위치 등록 — 사내 ingress 시뮬레이션 (세부 분해: `redirectUris` 3 entries L64-66 / `webOrigins` 1 entry L73 / `post.logout.redirect.uris` 2 entries L77 `##` 구분 string 안) |
 | `scripts/deploy-from-env.sh:14` | `PUBLIC_ACCESS_PORT:=13000` default — 사내 deploy 시 외부 client access endpoint 의 port |
 | `scripts/deploy-from-env.sh:34` | `NGINX_HTTP_PORT:=3000` default — VM 내부 nginx ingress port (13000 은 host:VM port mapping 의 host 측) |
 | ADR-0022 §2.3 | "외부 100.90.113.29:13000 → 호스트 → VM → docker 단일 포트 ingress" 한 줄 reference |
 
 **13000 의 의미**: DevHub 사내 운영 환경에서 외부 client (사내 PC) 가 `http://100.90.113.29:13000` 으로 진입 → 호스트 머신의 13000 port 가 VM 의 nginx (3000 port) 로 forward → nginx 가 frontend (`/devhub/*`) / backend (`/devhub/api/*`) / Keycloak (`/devhub/auth/keycloak/*`) 으로 reverse proxy. 단일 포트 컨셉 (ADR-0018) 정합.
+
+> **호스트:VM port forward 의 외부 의존성**: `docker-compose.deploy.yml` 의 nginx service 는 `NGINX_HTTP_PORT` 의 host bind 만 처리한다. 호스트의 13000 ↔ VM 내부 3000 의 forward 는 **사내 인프라 측 (SSH tunnel / NAT / 호스트 측 port mapping) 별도 설정** 에 의존한다. compose 자체는 13000 → 3000 자동 forward 를 처리하지 않는다.
 
 **사내 환경 외 (다른 운영 환경 / staging / 외부 reference)**: `PUBLIC_ACCESS_HOST` + `PUBLIC_ACCESS_PORT` env 만 변경하면 다른 host:port 로 재배치 가능. realm.dev.json 의 13000 entry 는 사내 dev/smoke 외 환경에서는 무해 (해당 origin 으로 접속 자체가 안 됨).
 
