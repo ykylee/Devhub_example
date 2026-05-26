@@ -1,3 +1,61 @@
+# Session Handoff — main (2026-05-26 PR #310 build/deploy script cleanup + housekeeping)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
+- 범위: PR #309 (직전 housekeeping `c7bc6e2`) 이후 PR #310 (`e1a4d81`) 흡수.
+- 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
+- 상태: PR #310 머지로 build/deploy script host 의존성 사전 검증 강화 + dockerized python fallback 제거 + docs §1.1/§1.2/§13 신규/보강. main HEAD `e1a4d81`.
+- 최종 수정일: 2026-05-26 (sprint `claude/work_260526-housekeeping-post-310`)
+- 관련 문서: [build-artifacts.sh](../../scripts/build-artifacts.sh), [docker-packaging-deployment-guide.md §1.1 + §1.2 + §13](../../docs/setup/docker-packaging-deployment-guide.md), [ADR-0023](../../docs/adr/0023-keycloak-version-pin-26-0.md), [issue #214](https://github.com/ykylee/Devhub_example/issues/214), [issue #302](https://github.com/ykylee/Devhub_example/issues/302).
+- 브랜치: `main` (HEAD `e1a4d81` post PR #310 → 본 housekeeping sprint 머지 후 `<TBD>`).
+
+## 2026-05-26 본 housekeeping sprint (`claude/work_260526-housekeeping-post-310`)
+
+직전 housekeeping (PR #309, `c7bc6e2`) 이후 1 PR (#310) 흡수.
+
+### 흡수 대상
+
+| sha | PR | author | core |
+| --- | --- | --- | --- |
+| `e1a4d81` | **#310** | claude | **build/deploy script cleanup** — `scripts/build-artifacts.sh` 헤더 Prerequisites + `verify_prerequisites()` 시작 시점 host 의존성 검증 (go 1.22+ / node 20+ / npm / python3.12 정확히) + **dockerized python fallback 제거** (직전 PR #296 line 53-58 의 `docker run python:3.12-slim pip install`, 사내 PyPI proxy 전파 안 됨). `docs/setup/docker-packaging-deployment-guide.md` §1.1 표 전면 갱신 (7 row + 사용 script column + python3.12 강제 사유 + proxy 가이드) + §1.2 신규 build/image/deploy 3 단계 sequence 분리 + §13 신규 troubleshooting matrix 10 시나리오. self-review 4단계 (P0 0 / P1 0 / P2 2 scope 외). 2 파일 / +169 / -37 LoC. |
+
+### 핵심 변경 의미
+
+**사내 docker container 안 proxy 전파 차단 시나리오 회피**:
+- Dockerfile 3개는 이미 COPY-only (multi-stage 없음). 단 build-artifacts.sh 의 dockerized python fallback 이 사내 환경 PyPI proxy 전파 안 됨 → silent fail.
+- 해결: host python3.12 정확히 강제 (ABI 정합 필수) + verify_prerequisites() 친절한 에러 + dockerized fallback 자체 제거.
+
+**build / image / deploy sequence 명확화** (§1.2):
+- 단계 1 host build: go / npm / pip — host proxy 자동 전파
+- 단계 2 docker image: base image pull 만 — docker daemon proxy 필요
+- 단계 3 deploy: image pull + Keycloak admin REST — host curl proxy
+- 재사용 패턴: build-only / deploy-only / 전체 3 mode
+
+### §13 troubleshooting matrix 10 시나리오
+
+go missing / python3.12 ver mismatch / npm registry 차단 / GoProxy 차단 / PyPI 차단 / docker daemon proxy 미설정 / python C extension ABI mismatch / private registry auth / Keycloak realm INVALID_REDIRECT_URI / Keycloak 26 vs 25 admin bootstrap env mismatch.
+
+### 다음 directive (우선순위)
+
+| 순위 | 항목 | 영역 |
+| --- | --- | --- |
+| 1 | **Onboarding SOP staging 1주 monitoring** — flag default ON 후 회귀 발견 시 rollback | 사내 운영자 (DevHub SRE) |
+| 2 | **사내 Keycloak 26.0 image pull + redeploy smoke** (ADR-0023 §5 후속) | 사내 운영자 (Infra) |
+| 3 | **issue #214 사내 1회 작업** + verify script | 사용자/사내 운영자 + verify-keycloak-groups.sh (자동) |
+| 4 | **Prometheus metric backend** (Onboarding SOP §8 잔여 carve P2) | claude (backend) |
+| 5 | **issue #302 진입** — setup-keycloak.sh client secret console quiet flag | claude (선택, P2) |
+| 6 | **Dockerfile FROM ARG 도입** (사내 mirror 환경) — PR #310 P2-2 carve | claude (선택, P2) |
+
+### P2 carve 잔여 (PR #310 self-review)
+
+- **P2-1 minor**: `ai-workflow/memory/session_handoff.md:136/158` 의 "docs §1.2 신규" 가 §1.3 으로 renumber 됐으므로 stale. 본 housekeeping 본문 갱신은 주요 갱신 prepend 형식이라 historical reference 는 그대로 보존 (memory 의 시점 snapshot).
+- **P2-2 minor**: Dockerfile 3개에 `ARG XXX_BASE=image:tag` 도입 — 사내 mirror tag override 가능. 별도 carve (사내 mirror 환경 명확화 시).
+
+## 2026-05-26 직전 housekeeping (PR #309, `c7bc6e2`)
+
+PR #308 (ADR-0023 Keycloak 26.0 reversal) 흡수 minimal entry prepend.
+
+
+
 # Session Handoff — main (2026-05-26 PR #308 ADR-0023 신규 Keycloak 26.0 reversal + housekeeping)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점을 인계한다.
