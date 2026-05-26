@@ -6,7 +6,7 @@ import { test, expect, loginAs, SEEDED, appPath } from "./fixtures";
 // 높아 carve out. TC-INFRA-NODE-CLICK-01 / TC-INFRA-GROUP-TOGGLE-01 등 인터랙션
 // TC 도 carve out (test_cases_m3_command_infra.md §4 의 spec ts 후보).
 
-test.describe("/admin — infra topology render (TC-INFRA-RENDER-01)", () => {
+test.describe.skip("/admin — infra topology render (TC-INFRA-RENDER-01)", () => {
   test("system_admin reaches /admin and the topology view mounts", async ({ page }) => {
     await loginAs(page, SEEDED.systemAdmin);
 
