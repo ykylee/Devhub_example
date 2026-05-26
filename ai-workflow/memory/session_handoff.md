@@ -1,3 +1,49 @@
+# Session Handoff — main (2026-05-26 PR #328 Jira 주간 보고 + housekeeping)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
+- 범위: PR #326 (직전 housekeeping `03db2e0`) 이후 PR #328 (`55666a1`) 흡수.
+- 대상 독자: 후속 에이전트, 프로젝트 리드, 다음 세션 진입자.
+- 상태: main HEAD `55666a1`. **본 conversation 최종 결산** 26 머지 PR + 11 housekeeping + 1 issue closed.
+- 최종 수정일: 2026-05-26 (sprint `claude/work_260526-housekeeping-post-328`)
+- 관련 문서: [jira_status_2026_05_26.md](../../docs/reports/jira_status_2026_05_26.md) (Jira 주간 보고 신규), [jira_status_2026_05_18.md](../../docs/reports/jira_status_2026_05_18.md) (직전 immutable).
+
+## 2026-05-26 본 housekeeping sprint (`claude/work_260526-housekeeping-post-328`)
+
+직전 housekeeping (PR #326, `03db2e0`) 이후 1 PR (#328) 흡수.
+
+### 흡수 대상
+
+| sha | PR | author | core |
+| --- | --- | --- | --- |
+| `55666a1` | **#328** | claude | Jira 주간 보고 2026-05-26 신규 발행 — 직전 jira_status_2026_05_18.md immutable 보존 + 8일 누적 정리 (167 PR + ADR 6 신규 + Onboarding 도메인 closing + Project model v2 + nginx critical fix). 1 파일 / +500 LoC. 12 항목 + 부록 4. 통계: ADR 17→23 / API 80→86+ / TC 63→74+ / PR 159→326. |
+
+### 본 conversation 최종 결산 update
+
+| 영역 | 결과 |
+| --- | --- |
+| 머지 PR | **26** (PR #301~#326 + #328) |
+| housekeeping | **11회** (#303 / #305 / #307 / #309 / #311 / #315 / #317 / #319 / #321 / #322 / #326 / 본) — 12회 |
+| issue closed | #302 (P2-3 client secret) |
+| Jira 주간 보고 | jira_status_2026_05_26.md 신규 발행 |
+| carve out 잔여 | 0 |
+
+### 다음 directive (4 순위, 모두 사내/사용자 영역)
+
+| 순위 | 항목 | 영역 |
+| --- | --- | --- |
+| 1 | Onboarding SOP staging 1주 monitoring | 사내 SRE |
+| 2 | 사내 nginx 재기동 + OIDC redirect_uri 검증 (PR #325 후속) | 사내 Infra |
+| 3 | 사내 Keycloak 26.0 redeploy smoke (ADR-0023 §5) | 사내 Infra |
+| 4 | issue #214 사내 1회 작업 + verify-keycloak-groups.sh PASS | 사용자/자동 |
+
+**claude 영역 잔여 directive 없음**. 본 conversation 모든 작업 완전 종결.
+
+## 2026-05-26 직전 housekeeping (PR #326, `03db2e0`)
+
+PR #312/#324/#325/#323 4 PR 흡수 + 본 conversation 재종결 명문화.
+
+
+
 # Session Handoff — main (2026-05-26 PR #323 codex DREQ 알림 연계 + 4 PR 흡수 housekeeping — 본 conversation 재종결)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
