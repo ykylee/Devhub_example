@@ -1,0 +1,27 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "codex/repository-create-dialog-refactor",
+  "status": "in_progress",
+  "updated_at": "2026-05-27T15:25:00Z",
+  "focus": "Admin Catalog 생성 UX 정비 + Create Project 동작 안정화 + 레거시 WebSocket 콘솔 노이즈 제거",
+  "current_scope": [
+    "New Repository prompt 생성 플로우를 모달 기반으로 전환",
+    "ProjectCreationModal 기본 리더 초기값/비활성 사유 UX 보완",
+    "ComboBox Enter 선택/ESC 닫기 지원",
+    "AuthGuard의 websocket.service 중복 연결 제거",
+    "PR #376 생성 및 검증 결과 정리"
+  ],
+  "validation": {
+    "frontend_lint": "pass (warnings only)",
+    "frontend_build": "pass"
+  },
+  "changed_files": [
+    "frontend/app/(dashboard)/admin/catalog/page.tsx",
+    "frontend/components/project/RepositoryCreationModal.tsx",
+    "frontend/components/project/ProjectCreationModal.tsx",
+    "frontend/components/ui/ComboBox.tsx",
+    "frontend/components/layout/AuthGuard.tsx",
+    "test-results/.last-run.json"
+  ]
+}
