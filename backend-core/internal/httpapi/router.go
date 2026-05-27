@@ -151,8 +151,10 @@ type RouterConfig struct {
 	SnapshotProvider           SnapshotProvider
 	RealtimeHub                *RealtimeHub
 	// RealtimeTickets — ADR-0024 §3.2 ticket pattern. nil 이면 ticket endpoint
-	// 가 503 unavailable + WS auth 는 access_token query fallback 사용.
-	RealtimeTickets *RealtimeTicketStore
+	// 가 503 unavailable + WS auth 는 access_token query fallback 사용. in-memory
+	// (RealtimeTicketStore, single-instance) 또는 PG 백킹 (DBRealtimeTicketStore,
+	// multi-instance — ADR-0024 §6 carve 6) 구현 주입.
+	RealtimeTickets realtimeTicketStore
 	// AuthDevFallback toggles dev-only authentication fallbacks: empty Authorization passes through authenticateActor and requireMinRole. Actor identity always resolves to "system" without a verifier. Default false: production-safe.
 	AuthDevFallback bool
 	// OnboardingGateEnabled — RM-ONBOARD-01 (ADR-0021 §3.3, ARCH-ONBOARD-03).

@@ -79,7 +79,7 @@ func (h Handler) authenticateActor(c *gin.Context) {
 		// 2) access_token query (backward-compat, deprecated).
 		if h.cfg.RealtimeTickets != nil {
 			if raw := strings.TrimSpace(c.Query("ticket")); raw != "" {
-				if entry, ok := h.cfg.RealtimeTickets.consume(raw); ok {
+				if entry, ok := h.cfg.RealtimeTickets.consume(c.Request.Context(), raw); ok {
 					c.Set("devhub_actor_login", entry.actorLogin)
 					if entry.actorRole != "" {
 						c.Set("devhub_actor_role", entry.actorRole)
