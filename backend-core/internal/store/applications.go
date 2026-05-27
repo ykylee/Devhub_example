@@ -534,7 +534,7 @@ RETURNING` + scmProvidersSelectColumns
 const projectsSelectColumns = `
 	id::text,
 	COALESCE(application_id::text, ''),
-	repository_id,
+	COALESCE(repository_id, 0),
 	key,
 	name,
 	COALESCE(description, ''),
@@ -650,7 +650,7 @@ INSERT INTO projects (
 	application_id, repository_id, key, name, description, status, visibility,
 	owner_user_id, start_date, due_date
 ) VALUES (
-	NULLIF($1, '')::uuid, $2, $3, $4, NULLIF($5, ''), $6, $7,
+	NULLIF($1, '')::uuid, NULLIF($2::bigint, 0), $3, $4, NULLIF($5, ''), $6, $7,
 	NULLIF($8, ''), $9, $10
 )
 RETURNING` + projectsSelectColumns
@@ -694,7 +694,7 @@ func (s *PostgresStore) CreateProjectWithRepositories(ctx context.Context, proje
 		return domain.Project{}, fmt.Errorf("create project (tx): %w", err)
 	}
 
-	if len(repositoryIDs) == 0 {
+	if len(repositoryIDs) == 0 && project.RepositoryID > 0 {
 		repositoryIDs = []int64{project.RepositoryID}
 	}
 	seen := map[int64]struct{}{}
@@ -725,6 +725,54 @@ VALUES ($1::uuid, $2, $3)`
 		return domain.Project{}, fmt.Errorf("commit create project tx: %w", err)
 	}
 	return created, nil
+}
+
+func (s *PostgresStore) CreateRepositoryForProject(ctx context.Context, key, slug, scmProvider string) (int64, error) {
+	fullName := strings.TrimSpace(slug)
+	name := strings.TrimSpace(key)
+	if name == "" {
+		name = fullName
+	}
+	const query = `
+INSERT INTO repositories (
+	full_name,
+	name,
+	owner_login,
+	clone_url,
+	html_url,
+	default_branch,
+	private,
+	updated_at
+) VALUES (
+	$1,
+	$2,
+	NULLIF(split_part($1, '/', 1), ''),
+	NULLIF($3, ''),
+	NULLIF($4, ''),
+	'main',
+	false,
+	NOW()
+)
+ON CONFLICT (full_name) DO UPDATE SET
+	name = EXCLUDED.name,
+	updated_at = NOW()
+RETURNING id`
+
+	cloneURL := ""
+	htmlURL := ""
+	if strings.TrimSpace(scmProvider) != "" {
+		cloneURL = "scm+" + strings.TrimSpace(scmProvider) + "://" + fullName + ".git"
+		htmlURL = "scm+" + strings.TrimSpace(scmProvider) + "://" + fullName
+	}
+
+	var id int64
+	if err := s.pool.QueryRow(ctx, query, fullName, name, cloneURL, htmlURL).Scan(&id); err != nil {
+		if isUniqueViolation(err) || isForeignKeyViolation(err) || isCheckViolation(err, "") {
+			return 0, ErrConflict
+		}
+		return 0, fmt.Errorf("create repository for project: %w", err)
+	}
+	return id, nil
 }
 
 func (s *PostgresStore) UpdateProject(ctx context.Context, project domain.Project) (domain.Project, error) {

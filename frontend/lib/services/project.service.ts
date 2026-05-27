@@ -4,6 +4,7 @@ import {
   ApplicationRepository,
   Project,
   ProjectActivityItem,
+  ProjectRepositoryCreatePayload,
   ProjectRepositoryLink,
   ProjectTaskItem,
   SCMProvider,
@@ -122,6 +123,11 @@ class ProjectService {
     return resp.data;
   }
 
+  async createProjectStandalone(data: Partial<Project> & { repository_ids?: number[]; repository_create_payload?: ProjectRepositoryCreatePayload }): Promise<Project> {
+    const resp = await apiClient<{ data: Project }>("POST", "/api/v1/projects", data);
+    return resp.data;
+  }
+
   async getApplicationProjectsV2(applicationId: string, params?: ProjectQuery): Promise<Project[]> {
     const path = withQuery(`/api/v1/applications/${applicationId}/projects`, params);
     const resp = await apiClient<{ data: Project[] }>("GET", path);
@@ -132,7 +138,7 @@ class ProjectService {
   // on 404/405 (when DEVHUB_PROJECT_MODEL=legacy or backend route disabled).
   async createApplicationProject(
     applicationId: string,
-    data: Partial<Project> & { repository_ids?: number[] },
+    data: Partial<Project> & { repository_ids?: number[]; repository_create_payload?: ProjectRepositoryCreatePayload },
   ): Promise<Project> {
     try {
       const resp = await apiClient<{ data: Project }>("POST", `/api/v1/applications/${applicationId}/projects`, data);

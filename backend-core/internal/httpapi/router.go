@@ -81,6 +81,7 @@ type ApplicationStore interface {
 	CreateProjectRepository(context.Context, domain.ProjectRepository) (domain.ProjectRepository, error)
 	DeleteProjectRepository(context.Context, string, int64) error
 	CreateProjectWithRepositories(context.Context, domain.Project, []int64) (domain.Project, error)
+	CreateRepositoryForProject(context.Context, string, string, string) (int64, error)
 
 	// Repository 운영 지표 (API-51..54, sprint claude/work_260514-c)
 	ListRepositoryActivity(context.Context, int64, store.RepositoryActivityOptions) (domain.RepositoryActivity, error)
@@ -288,6 +289,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	// API-55..56 Project CRUD (sprint claude/work_260514-c)
 	v1.GET("/repositories/:repository_id/projects", handler.listProjects)
 	v1.POST("/repositories/:repository_id/projects", handler.createProject)
+	v1.POST("/projects", handler.createProjectStandalone)
 	v1.GET("/applications/:application_id/projects", handler.listApplicationProjects)
 	v1.POST("/applications/:application_id/projects", handler.createApplicationProject)
 	v1.GET("/projects/:project_id", handler.getProject)

@@ -236,6 +236,7 @@ var routePermissionTable = map[routeKey]routePolicy{
 	// Project CRUD (API-55..56, sprint claude/work_260514-c).
 	{http.MethodGet, "/api/v1/repositories/:repository_id/projects"}:                {Resource: domain.ResourceProjects, Action: domain.ActionView},
 	{http.MethodPost, "/api/v1/repositories/:repository_id/projects"}:               {Resource: domain.ResourceProjects, Action: domain.ActionCreate},
+	{http.MethodPost, "/api/v1/projects"}:                                            {Resource: domain.ResourceProjects, Action: domain.ActionCreate},
 	{http.MethodGet, "/api/v1/applications/:application_id/projects"}:               {Resource: domain.ResourceProjects, Action: domain.ActionView},
 	{http.MethodPost, "/api/v1/applications/:application_id/projects"}:              {Resource: domain.ResourceProjects, Action: domain.ActionCreate},
 	{http.MethodGet, "/api/v1/projects/:project_id"}:                                {Resource: domain.ResourceProjects, Action: domain.ActionView},

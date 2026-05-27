@@ -7,6 +7,8 @@ import {
   Calendar, 
   Clock, 
   Plus,
+  Link2,
+  X,
   Target,
   Users,
   ChevronRight,
@@ -20,6 +22,7 @@ import { Badge } from "@/components/ui/Badge";
 import { projectService } from "@/lib/services/project.service";
 import type { Project, ProjectActivityItem, ProjectRepositoryLink, ProjectTaskItem } from "@/lib/services/project.types";
 import { identityService, OrgMember } from "@/lib/services/identity.service";
+import { repositoryService, Repository } from "@/lib/services/repository.service";
 import { ENABLE_LEGACY_MOCK_UI } from "@/lib/config/mock-ui";
 import { legacyMockProjectActivity, legacyMockProjectTasks } from "@/lib/archive/mock-ui-legacy";
 import { toUserErrorMessage } from "@/lib/services/error-message";
@@ -50,6 +53,9 @@ export default function ProjectDetailPage() {
   const [users, setUsers] = useState<OrgMember[]>([]);
   const [activities, setActivities] = useState<ProjectActivityItem[]>([]);
   const [tasks, setTasks] = useState<ProjectTaskItem[]>([]);
+  const [allRepositories, setAllRepositories] = useState<Repository[]>([]);
+  const [showRepoPicker, setShowRepoPicker] = useState(false);
+  const [linkingRepoIds, setLinkingRepoIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [opsError, setOpsError] = useState<string | null>(null);
@@ -60,8 +66,9 @@ export default function ProjectDetailPage() {
       setLoading(true);
       const [projectData, usersData] = await Promise.all([
         projectService.getProject(id),
-        identityService.getUsers()
+        identityService.getUsers(),
       ]);
+      repositoryService.listRepositories().then(setAllRepositories).catch(() => setAllRepositories([]));
       setProject(projectData);
       setUsers(usersData);
       const [linksResult, activityResult, taskResult] = await Promise.allSettled([
@@ -198,6 +205,10 @@ export default function ProjectDetailPage() {
   }
   
   const milestones: MilestoneUI[] = [];
+
+  const linkedRepoIds = new Set(projectRepositories.map((r) => r.repository_id));
+  const linkedRepos = allRepositories.filter((r) => linkedRepoIds.has(r.id));
+  const candidateRepos = allRepositories.filter((r) => !linkedRepoIds.has(r.id));
   
   if (project.start_date) {
     milestones.push({
@@ -227,6 +238,20 @@ export default function ProjectDetailPage() {
     });
   }
 
+  async function linkSelectedRepositories() {
+    if (linkingRepoIds.length === 0) return;
+    try {
+      await Promise.all(
+        linkingRepoIds.map((repoId) => projectService.linkProjectRepository(project.id, repoId, "linked")),
+      );
+      setShowRepoPicker(false);
+      setLinkingRepoIds([]);
+      await loadData();
+    } catch (err) {
+      setOpsError(toUserErrorMessage(err, "저장소 연결에 실패했습니다."));
+    }
+  }
+
   return (
     <div className="space-y-10 pb-20">
       <div className="flex items-center gap-4">
@@ -254,6 +279,37 @@ export default function ProjectDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3 space-y-8">
+          <section className="glass-card p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground">Connected Repositories</h3>
+              <button
+                onClick={() => {
+                  setLinkingRepoIds([]);
+                  setShowRepoPicker(true);
+                }}
+                className="h-8 w-8 rounded-full bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 transition-colors flex items-center justify-center"
+                title="Link repositories"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {linkedRepos.length === 0 ? (
+                <p className="text-xs text-muted-foreground">연결된 저장소가 없습니다.</p>
+              ) : (
+                linkedRepos.map((repo) => (
+                  <span
+                    key={repo.id}
+                    className="px-3 py-1.5 rounded-full border border-border bg-muted/20 text-xs font-bold text-foreground flex items-center gap-2"
+                  >
+                    <Link2 className="w-3 h-3 text-muted-foreground" />
+                    {repo.full_name}
+                  </span>
+                ))
+              )}
+            </div>
+          </section>
+
           {opsError && (
             <div className="glass-card p-4 text-xs text-muted-foreground">
               {opsError}
@@ -498,6 +554,57 @@ export default function ProjectDetailPage() {
           </section>
         </div>
       </div>
+
+      {showRepoPicker && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center p-6">
+          <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={() => setShowRepoPicker(false)} />
+          <div className="relative w-full max-w-xl glass border-border rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-sm font-black uppercase tracking-widest text-foreground">Link Repositories</h4>
+              <button onClick={() => setShowRepoPicker(false)} className="p-1.5 rounded-lg hover:bg-muted/30">
+                <X className="w-4 h-4 text-muted-foreground" />
+              </button>
+            </div>
+            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+              {candidateRepos.length === 0 ? (
+                <p className="text-xs text-muted-foreground">추가로 연결 가능한 저장소가 없습니다.</p>
+              ) : (
+                candidateRepos.map((repo) => (
+                  <label key={repo.id} className="flex items-center gap-3 rounded-xl border border-border/50 bg-muted/10 px-3 py-2">
+                    <input
+                      type="checkbox"
+                      checked={linkingRepoIds.includes(repo.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setLinkingRepoIds((prev) => Array.from(new Set([...prev, repo.id])));
+                        } else {
+                          setLinkingRepoIds((prev) => prev.filter((id) => id !== repo.id));
+                        }
+                      }}
+                    />
+                    <span className="text-xs font-bold text-foreground">{repo.full_name}</span>
+                  </label>
+                ))
+              )}
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                onClick={() => setShowRepoPicker(false)}
+                className="px-4 py-2 rounded-xl border border-border text-xs font-bold text-foreground"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => void linkSelectedRepositories()}
+                disabled={linkingRepoIds.length === 0}
+                className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-black disabled:opacity-50"
+              >
+                Connect ({linkingRepoIds.length})
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
