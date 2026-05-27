@@ -26,9 +26,7 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
     // 로는 narrow 불가. ApplicationRepository required field `repo_provider` 로
     // discriminate (Repository 에는 없음).
     const isAppRepo = "repo_provider" in r;
-    // ?? 0 으로 number 보장 — ApplicationRepository.repository_id 가 optional 이라
-    // number|undefined 로 추론되던 것 정정 (아래 filter 가 0 이하 제거하므로 안전).
-    const repository_id = (isAppRepo ? r.repository_id : r.id) ?? 0;
+    const repository_id = isAppRepo ? r.repository_id : r.id;
     const repo_full_name = isAppRepo ? r.repo_full_name : (r.full_name ?? r.name ?? "");
     const repo_provider = isAppRepo ? r.repo_provider : "github";
     return {
@@ -266,16 +264,22 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
                     >
                       <option value={0}>Select repository</option>
                       {numericRepositories
-                        .filter((repo) => !repositoryLinks.includes(repo.repository_id) || repo.repository_id === repoID)
-                        .map((repo) => (
+                        .filter((repo) => {
+                          const repositoryID = repo.repository_id ?? 0;
+                          return !repositoryLinks.includes(repositoryID) || repositoryID === repoID;
+                        })
+                        .map((repo) => {
+                          const repositoryID = repo.repository_id ?? 0;
+                          return (
                         <option
                           key={`${idx}-${repo.repo_provider}/${repo.repo_full_name}`}
-                          value={repo.repository_id}
+                          value={repositoryID}
                           className="bg-slate-900"
                         >
                           {repo.repo_full_name} ({repo.repo_provider})
                         </option>
-                        ))}
+                          );
+                        })}
                     </select>
                   </div>
                   {!isEdit && (

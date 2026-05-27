@@ -10,7 +10,7 @@ import { toUserErrorMessage } from "@/lib/services/error-message";
 import { applicationService, Application as AdminApplication } from "@/lib/services/application.service";
 import { repositoryService, Repository } from "@/lib/services/repository.service";
 import { projectService } from "@/lib/services/project.service";
-import { Project, Application as ProjectApplication } from "@/lib/services/project.types";
+import { ApplicationStatus, ApplicationVisibility, Project } from "@/lib/services/project.types";
 import { ApplicationCreationModal } from "@/components/project/ApplicationCreationModal";
 import { ProjectCreationModal } from "@/components/project/ProjectCreationModal";
 import { useToast } from "@/components/ui/Toast";
@@ -170,6 +170,25 @@ export default function AdminCatalogPage() {
       toast(toUserErrorMessage(err, "Project 삭제에 실패했습니다."), "error");
     }
   };
+
+  const editingApplicationInitialData = editingApplication
+    ? {
+        id: editingApplication.id,
+        key: editingApplication.key,
+        name: editingApplication.name,
+        description: editingApplication.description,
+        owner_user_id: editingApplication.owner_user_id,
+        leader_user_id: editingApplication.leader_user_id,
+        development_unit_id: editingApplication.development_unit_id,
+        status: editingApplication.status as ApplicationStatus,
+        visibility: editingApplication.visibility as ApplicationVisibility,
+        start_date: editingApplication.start_date ?? undefined,
+        due_date: editingApplication.due_date ?? undefined,
+        archived_at: editingApplication.archived_at ?? undefined,
+        created_at: editingApplication.created_at,
+        updated_at: editingApplication.updated_at,
+      }
+    : undefined;
 
   if (loading) return <PageLoading label="Admin Catalog 로딩 중..." />;
 
@@ -458,7 +477,7 @@ export default function AdminCatalogPage() {
       <AnimatePresence>
         {showApplicationModal && (
           <ApplicationCreationModal
-            initialData={editingApplication ? (editingApplication as unknown as Partial<ProjectApplication>) : undefined}
+            initialData={editingApplicationInitialData}
             onClose={() => {
               setShowApplicationModal(false);
               setEditingApplication(null);
