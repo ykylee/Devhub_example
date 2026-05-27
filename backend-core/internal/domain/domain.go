@@ -16,7 +16,17 @@ type Repository struct {
 	DefaultBranch string
 	Private       bool
 	UpdatedAt     time.Time
+	// 소유권 분리 (migration 000042). SCM mirror 필드(위)와 구분되는 메타.
+	Source      string // "scm" | "system" (빈 값 = legacy, scm 으로 취급)
+	ProviderID  string // 연동된 integration_providers(scm) FK, 빈 값 가능
+	Description string // 시스템 소유 — SCM sync 가 덮어쓰지 않음
 }
+
+// Repository.Source 값.
+const (
+	RepositorySourceSCM    = "scm"
+	RepositorySourceSystem = "system"
+)
 
 type User struct {
 	GiteaID     int64
@@ -358,9 +368,9 @@ type AppUser struct {
 	// ReviewStatus — RM-ONBOARD-01. "pending_review" (제출 직후) 또는 "reviewed"
 	// (system_admin transition 후). 빈 문자열 = NULL = onboarding 미제출.
 	// `pending_review` 사용자는 시스템에서 무소속 취급 (ARCH-ONBOARD-02).
-	ReviewStatus  string
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	ReviewStatus string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }
 
 // ReviewStatus 값 enum (ADR-0021 §3.2 / ARCH-ONBOARD-02).

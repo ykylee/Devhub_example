@@ -173,8 +173,9 @@ func TestTestIntegrationConnection_InvalidURL(t *testing.T) {
 func TestSyncIntegrationProvider_Happy(t *testing.T) {
 	router := newApplicationsRouter(newMemoryApplicationStore())
 	// SCM provider — sync 가능한 유일한 provider_type (Gitea 워커 대상).
+	// capability gate: sync 는 pull/sync capability 필요 (기능 gate 전환).
 	seed := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
-		`{"provider_key":"gitea-main","provider_type":"scm","display_name":"Gitea","auth_mode":"token","credentials_ref":"secret://gitea"}`)
+		`{"provider_key":"gitea-main","provider_type":"scm","display_name":"Gitea","auth_mode":"token","credentials_ref":"secret://gitea","capabilities":["pull"]}`)
 	if seed.Code != http.StatusCreated {
 		t.Fatalf("seed failed: %s", seed.Body.String())
 	}

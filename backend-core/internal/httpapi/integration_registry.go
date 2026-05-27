@@ -492,6 +492,16 @@ func (h *Handler) syncIntegrationProvider(c *gin.Context) {
 		})
 		return
 	}
+	// capability gate (기능 gate 로 전환) — mirror sync 는 pull/sync 권한을 선언한
+	// provider 만. 둘 다 없으면 422.
+	if !providerHasCapability(provider, "pull", "sync") {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"status": "rejected",
+			"error":  "provider does not have the 'pull' or 'sync' capability enabled",
+			"code":   "integration_capability_not_enabled",
+		})
+		return
+	}
 	jobID, err := storeI.CreateIntegrationSyncJob(c.Request.Context(), providerID, actorLogin(c))
 	if errors.Is(err, store.ErrNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "provider not found", "code": "integration_provider_not_found"})

@@ -84,7 +84,7 @@ func (w *SyncWorker) ProcessOnce(ctx context.Context) error {
 			return nil
 		}
 		log.Printf("[Gitea Sync Worker] Acquired queued job %s (provider %s, auth=%s). Starting sync...", jobID, providerID, auth.Mode)
-		if syncErr := w.syncAllWith(ctx, client); syncErr != nil {
+		if syncErr := w.syncAllWith(ctx, client, providerID); syncErr != nil {
 			log.Printf("[Gitea Sync Worker] Job %s failed: %v", jobID, syncErr)
 			_ = w.Store.UpdateIntegrationSyncJobStatus(ctx, jobID, "failed")
 			return syncErr
@@ -99,7 +99,7 @@ func (w *SyncWorker) ProcessOnce(ctx context.Context) error {
 	if strings.TrimSpace(w.GiteaURL) == "" || strings.TrimSpace(w.GiteaToken) == "" {
 		return nil
 	}
-	return w.syncAllWith(ctx, NewClient(w.GiteaURL, w.GiteaToken))
+	return w.syncAllWith(ctx, NewClient(w.GiteaURL, w.GiteaToken), "")
 }
 
 // resolveSyncConfig — providerID 가 명시되면 그 provider 의 base_url + auth_mode 별
@@ -125,7 +125,7 @@ func (w *SyncWorker) resolveSyncConfig(ctx context.Context, providerID string) (
 	return prov.BaseURL, prov.ResolveOutboundAuth()
 }
 
-func (w *SyncWorker) syncAllWith(ctx context.Context, client *Client) error {
+func (w *SyncWorker) syncAllWith(ctx context.Context, client *Client, providerID string) error {
 	syncer := NewSyncer(w.Store)
 
 	// Fetch all Gitea user repositories first to build local cache mapping.
@@ -146,6 +146,8 @@ func (w *SyncWorker) syncAllWith(ctx context.Context, client *Client) error {
 			HTMLURL:       repo.HTMLURL,
 			DefaultBranch: repo.DefaultBranch,
 			Private:       repo.Private,
+			Source:        domain.RepositorySourceSCM,
+			ProviderID:    providerID,
 		})
 		if err != nil {
 			log.Printf("[Gitea Sync Worker] Failed to upsert repo metadata for %s: %v", repo.FullName, err)
