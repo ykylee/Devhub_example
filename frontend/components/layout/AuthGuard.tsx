@@ -33,6 +33,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         if (cancelled) return;
         setActor({
           login: resolved.login,
+          user_id: resolved.user_id,
           subject: resolved.subject,
           role: resolved.role,
           source: resolved.source,

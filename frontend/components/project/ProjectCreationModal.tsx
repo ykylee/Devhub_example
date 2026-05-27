@@ -29,7 +29,11 @@ interface ProjectCreationModalProps {
 
 export function ProjectCreationModal({ applicationId, repositories, onClose, onCreated, initialData }: ProjectCreationModalProps) {
   const actor = useStore((s) => s.actor);
-  const actorLogin = actor?.login ?? "";
+  // 기본 owner/leader = 현재 사용자의 canonical user_id. leaderOptions 가 user_id 로
+  // 키잉되고 (identity.service.ts: `id: u.user_id`), login 은 user_id 와 다를 수 있어
+  // (backend `/me` 가 login·user_id 를 별도 반환) 기본값으로 login 을 쓰면 ComboBox 매칭
+  // 실패 + 잘못된 owner 저장. user_id 우선, 미해석 시 login fallback.
+  const actorDefaultOwnerId = actor?.user_id || actor?.login || "";
 
   const [applications, setApplications] = useState<Application[]>([]);
   const [scmProviders, setScmProviders] = useState<SCMProvider[]>([]);
@@ -57,7 +61,7 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
     key: initialData?.key || "",
     name: initialData?.name || "",
     description: initialData?.description || "",
-    owner_user_id: initialData?.owner_user_id || actorLogin || "",
+    owner_user_id: initialData?.owner_user_id || actorDefaultOwnerId || "",
     visibility: (initialData?.visibility || "internal") as ApplicationVisibility,
     status: (initialData?.status || "planning") as ProjectStatus,
     start_date: initialData?.start_date || "",
@@ -77,7 +81,7 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
         : [],
   );
   const [projectMembers, setProjectMembers] = useState<ProjectMemberDraft[]>([
-    { user_id: initialData?.owner_user_id || actorLogin || "", project_role: "leader" },
+    { user_id: initialData?.owner_user_id || actorDefaultOwnerId || "", project_role: "leader" },
   ]);
   const [createRepository, setCreateRepository] = useState(false);
   const [repositoryCreate, setRepositoryCreate] = useState({
