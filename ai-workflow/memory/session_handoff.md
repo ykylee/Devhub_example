@@ -1,3 +1,39 @@
+# Session Handoff — main (2026-05-27 post-#369 — app dashboard Active Applications + #368 open)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
+- 범위: 직전 #367 housekeeping (post-#366) 이후 1 PR (#369) 머지 + 1 PR (#368) open.
+- 상태: main HEAD `295cb20` (PR #369).
+- 최종 수정일: 2026-05-27
+
+## 2026-05-27 (post-#369) 결산
+
+사용자 질문 ("application dashboard 의 Active Regions 의미?") → mock 잔재 확인 → 실지표 교체.
+
+### 머지 PR (1)
+
+| sha | PR | core |
+| --- | --- | --- |
+| `295cb20` | **#369** (claude) | application dashboard **'Active Regions'(="Global" 하드코딩 mock) → 'Active Applications'**(status==="active" 실집계). region 은 application 도메인에 없는 개념 (infra topology node 속성일 뿐). unused Globe import 제거. 4 카드 모두 실데이터화 완료. |
+
+### Open PR (1) — 다음 세션 결정
+
+| PR | core |
+| --- | --- |
+| **#368** (codex `codex/work_260527-project-dialog-ui-2`) | 'draft repository publish flow + admin catalog fixes'. #361/#365 와 같은 브랜치 계열. **claude 미리뷰** — 본 세션 SCM repo 작업(Phase A~C)과 연관 가능 → 다음 세션 리뷰 후 머지 결정. |
+
+### 다음 directive
+
+| 영역 | 항목 |
+| --- | --- |
+| **claude** | 1) **#368 리뷰** (draft repository publish flow). 2) #366/#363 codex 재리뷰 확인. 3) inbound webhook 정규화 깊이. 4) #6 평문 secret envelope 암호화. 5) Phase C 후속 (project flow ↔ SCM create 연계). |
+| 사내/사용자 | Onboarding SOP staging monitoring / nginx OIDC / Keycloak 26.0 smoke / issue #214 / Keycloak SPI realm events wire. |
+
+### 검증
+
+#369 tsc+eslint+build ✓. 본 housekeeping 후 Open PR 1 (#368, codex 미리뷰 대상).
+
+---
+
 # Session Handoff — main (2026-05-27 post-#366 — SCM repo Phase C + #363 P2 hotfix + #365 build-fix)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
