@@ -1,14 +1,23 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { X, FolderKanban, GitBranch, Plus, Trash2, Users, Loader2 } from "lucide-react";
-import { ApplicationRepository, Project, ApplicationVisibility, ProjectStatus, Application, SCMProvider, ProjectMemberRole } from "@/lib/services/project.types";
+import {
+  ApplicationRepository,
+  Project,
+  ApplicationVisibility,
+  ProjectStatus,
+  Application,
+  SCMProvider,
+  ProjectMemberRole,
+} from "@/lib/services/project.types";
 import { Repository } from "@/lib/services/repository.service";
 import { projectService } from "@/lib/services/project.service";
 import { identityService } from "@/lib/services/identity.service";
 import { ComboBox } from "@/components/ui/ComboBox";
 import { cn } from "@/lib/utils";
+import { useStore } from "@/lib/store";
 
 interface ProjectCreationModalProps {
   applicationId?: string;
@@ -19,36 +28,38 @@ interface ProjectCreationModalProps {
 }
 
 export function ProjectCreationModal({ applicationId, repositories, onClose, onCreated, initialData }: ProjectCreationModalProps) {
+  const actor = useStore((s) => s.actor);
+  const actorLogin = actor?.login ?? "";
+
   const [applications, setApplications] = useState<Application[]>([]);
   const [scmProviders, setScmProviders] = useState<SCMProvider[]>([]);
   type MemberRole = "leader" | "developer" | "reviewer" | "tester";
   type ProjectMemberDraft = { user_id: string; project_role: MemberRole };
-  const numericRepositories = repositories.map((r) => {
-    // ApplicationRepository.repository_id 가 optional 이라 `"repository_id" in r`
-    // 로는 narrow 불가. ApplicationRepository required field `repo_provider` 로
-    // discriminate (Repository 에는 없음).
-    const isAppRepo = "repo_provider" in r;
-    const repository_id = isAppRepo ? r.repository_id : r.id;
-    const repo_full_name = isAppRepo ? r.repo_full_name : (r.full_name ?? r.name ?? "");
-    const repo_provider = isAppRepo ? r.repo_provider : "github";
-    return {
-      ...r,
-      repository_id,
-      repo_full_name,
-      repo_provider,
-    };
-  }).filter((r) => typeof r.repository_id === "number" && r.repository_id > 0);
 
-  const initialRepositoryId =
-    initialData?.repository_id || numericRepositories[0]?.repository_id || 0;
+  const numericRepositories = repositories
+    .map((r) => {
+      const isAppRepo = "repo_provider" in r;
+      const repository_id = isAppRepo ? r.repository_id : r.id;
+      const repo_full_name = isAppRepo ? r.repo_full_name : (r.full_name ?? r.name ?? "");
+      const repo_provider = isAppRepo ? r.repo_provider : "github";
+      return {
+        ...r,
+        repository_id,
+        repo_full_name,
+        repo_provider,
+      };
+    })
+    .filter((r) => typeof r.repository_id === "number" && r.repository_id > 0);
+
+  const initialRepositoryId = initialData?.repository_id || numericRepositories[0]?.repository_id || 0;
 
   const [formData, setFormData] = useState({
     key: initialData?.key || "",
     name: initialData?.name || "",
     description: initialData?.description || "",
-    owner_user_id: initialData?.owner_user_id || "",
-    visibility: initialData?.visibility || "internal" as ApplicationVisibility,
-    status: initialData?.status || "planning" as ProjectStatus,
+    owner_user_id: initialData?.owner_user_id || actorLogin || "",
+    visibility: (initialData?.visibility || "internal") as ApplicationVisibility,
+    status: (initialData?.status || "planning") as ProjectStatus,
     start_date: initialData?.start_date || "",
     due_date: initialData?.due_date || "",
     repository_id: initialData?.repository_id || initialRepositoryId || 0,
@@ -61,10 +72,12 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
   const [repositoryLinks, setRepositoryLinks] = useState<number[]>(
     initialData?.repository_ids?.length
       ? initialData.repository_ids.filter((id): id is number => typeof id === "number" && id > 0)
-      : (initialRepositoryId ? [initialRepositoryId] : []),
+      : initialRepositoryId
+        ? [initialRepositoryId]
+        : [],
   );
   const [projectMembers, setProjectMembers] = useState<ProjectMemberDraft[]>([
-    { user_id: initialData?.owner_user_id || "", project_role: "leader" },
+    { user_id: initialData?.owner_user_id || actorLogin || "", project_role: "leader" },
   ]);
   const [createRepository, setCreateRepository] = useState(false);
   const [repositoryCreate, setRepositoryCreate] = useState({
@@ -83,25 +96,32 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
 
   useEffect(() => {
     projectService.getApplications().then(setApplications).catch(() => setApplications([]));
-    projectService.getSCMProviders().then((providers) => {
-      setScmProviders(providers);
-      const enabled = providers.find((p) => p.enabled);
-      if (enabled) {
-        setRepositoryCreate((prev) => ({ ...prev, scm_provider: enabled.provider_key }));
-      }
-    }).catch(() => setScmProviders([]));
-    identityService.getUsers().then((users) => {
-      setLeaderOptions(
-        users.map((u) => ({
-          label: u.name || u.id,
-          value: u.id,
-          description: u.email,
-        })),
-      );
-    }).catch(() => setLeaderOptions([]));
+    projectService
+      .getSCMProviders()
+      .then((providers) => {
+        setScmProviders(providers);
+        const enabled = providers.find((p) => p.enabled);
+        if (enabled) {
+          setRepositoryCreate((prev) => ({ ...prev, scm_provider: enabled.provider_key }));
+        }
+      })
+      .catch(() => setScmProviders([]));
+    identityService
+      .getUsers()
+      .then((users) => {
+        setLeaderOptions(
+          users.map((u) => ({
+            label: u.name || u.id,
+            value: u.id,
+            description: u.email,
+          })),
+        );
+      })
+      .catch(() => setLeaderOptions([]));
   }, []);
 
   const isEdit = !!initialData?.id;
+
   const normalizedMembers = projectMembers.filter((m) => m.user_id.trim());
   const hasLeadMember = normalizedMembers.some((m) => m.project_role === "leader");
   const selectedRepositoryIDs = Array.from(new Set(repositoryLinks.filter((id) => id > 0)));
@@ -118,9 +138,7 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
 
     try {
       let result: Project;
-      if (isEdit && initialData.id) {
-        // PATCH 시 `key` 는 백엔드(updateProject)에서 project_key_immutable 로 reject 되므로
-        // payload 에서 제외한다. (codex PR #114 review P1, Application 과 동일 정합)
+      if (isEdit && initialData?.id) {
         const patchPayload: Partial<typeof formData> = { ...formData };
         delete patchPayload.key;
         result = await projectService.updateProject(initialData.id, patchPayload);
@@ -129,13 +147,11 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
         const selectedApplicationId = formData.application_id || applicationId || "";
         const project_members: Array<{ user_id: string; project_role: ProjectMemberRole }> = normalizedMembers.map((m) => ({
           user_id: m.user_id.trim(),
-          // Backend currently accepts lead/contributor/observer.
-          // UI role taxonomy is Leader/Developer/Reviewer/Tester.
           project_role: m.project_role === "leader" ? "lead" : "contributor",
         }));
 
         if (selectedApplicationId) {
-          const payload = {
+          result = await projectService.createApplicationProject(selectedApplicationId, {
             ...formData,
             owner_user_id: leader,
             application_id: selectedApplicationId,
@@ -143,8 +159,7 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
             repository_id: selectedRepositoryIDs[0] || 0,
             project_members,
             repository_create_payload: createRepository ? repositoryCreate : undefined,
-          };
-          result = await projectService.createApplicationProject(selectedApplicationId, payload);
+          });
         } else {
           result = await projectService.createProjectStandalone({
             ...formData,
@@ -175,7 +190,7 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
         onClick={onClose}
         className="absolute inset-0 bg-background/80 backdrop-blur-sm"
       />
-      
+
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -211,11 +226,11 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
                 required
                 disabled={isEdit}
                 value={formData.key}
-                onChange={e => setFormData({ ...formData, key: e.target.value.toUpperCase() })}
+                onChange={(e) => setFormData({ ...formData, key: e.target.value.toUpperCase() })}
                 placeholder="E.G. API-V1"
                 className={cn(
                   "w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm font-mono text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400/50 uppercase",
-                  isEdit && "opacity-50 cursor-not-allowed"
+                  isEdit && "opacity-50 cursor-not-allowed",
                 )}
               />
             </div>
@@ -224,7 +239,7 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
               <input
                 required
                 value={formData.name}
-                onChange={e => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="e.g. Backend Refactoring"
                 className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400/50"
               />
@@ -288,13 +303,9 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
                         .map((repo) => {
                           const repositoryID = repo.repository_id ?? 0;
                           return (
-                        <option
-                          key={`${idx}-${repo.repo_provider}/${repo.repo_full_name}`}
-                          value={repositoryID}
-                          className="bg-slate-900"
-                        >
-                          {repo.repo_full_name} ({repo.repo_provider})
-                        </option>
+                            <option key={`${idx}-${repo.repo_provider}/${repo.repo_full_name}`} value={repositoryID} className="bg-slate-900">
+                              {repo.repo_full_name} ({repo.repo_provider})
+                            </option>
                           );
                         })}
                     </select>
@@ -348,11 +359,13 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
                     onChange={(e) => setRepositoryCreate({ ...repositoryCreate, scm_provider: e.target.value })}
                     className="w-full bg-muted/30 border border-border rounded-xl px-3 py-2 text-xs text-foreground dark:text-primary-foreground"
                   >
-                    {scmProviders.filter((p) => p.enabled).map((p) => (
-                      <option key={p.provider_key} value={p.provider_key}>
-                        {p.display_name} ({p.provider_key})
-                      </option>
-                    ))}
+                    {scmProviders
+                      .filter((p) => p.enabled)
+                      .map((p) => (
+                        <option key={p.provider_key} value={p.provider_key}>
+                          {p.display_name} ({p.provider_key})
+                        </option>
+                      ))}
                   </select>
                 </div>
               )}
@@ -363,7 +376,7 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
             <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Description</label>
             <textarea
               value={formData.description}
-              onChange={e => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Scope and deliverables..."
               rows={3}
               className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400/50 resize-none"
@@ -382,11 +395,8 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
                     setProjectMembers((prev) => {
                       const next = [...prev];
                       const leadIndex = next.findIndex((m) => m.project_role === "leader");
-                      if (leadIndex >= 0) {
-                        next[leadIndex] = { ...next[leadIndex], user_id: nextLeader };
-                      } else {
-                        next.unshift({ user_id: nextLeader, project_role: "leader" });
-                      }
+                      if (leadIndex >= 0) next[leadIndex] = { ...next[leadIndex], user_id: nextLeader };
+                      else next.unshift({ user_id: nextLeader, project_role: "leader" });
                       return next;
                     });
                   }}
@@ -398,17 +408,14 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
                 <input
                   required
                   value={formData.owner_user_id}
-                  onChange={e => {
+                  onChange={(e) => {
                     const nextLeader = e.target.value;
                     setFormData({ ...formData, owner_user_id: nextLeader });
                     setProjectMembers((prev) => {
                       const next = [...prev];
                       const leadIndex = next.findIndex((m) => m.project_role === "leader");
-                      if (leadIndex >= 0) {
-                        next[leadIndex] = { ...next[leadIndex], user_id: nextLeader };
-                      } else {
-                        next.unshift({ user_id: nextLeader, project_role: "leader" });
-                      }
+                      if (leadIndex >= 0) next[leadIndex] = { ...next[leadIndex], user_id: nextLeader };
+                      else next.unshift({ user_id: nextLeader, project_role: "leader" });
                       return next;
                     });
                   }}
@@ -421,7 +428,7 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
               <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Status</label>
               <select
                 value={formData.status}
-                onChange={e => setFormData({ ...formData, status: e.target.value as ProjectStatus })}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as ProjectStatus })}
                 className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400/50 appearance-none"
               >
                 <option value="planning" className="bg-slate-900">Planning</option>
@@ -436,11 +443,11 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
                 <Users className="w-3.5 h-3.5" /> Project Members
               </p>
-                <button
-                  type="button"
-                  onClick={() => setProjectMembers((prev) => [...prev, { user_id: "", project_role: "developer" }])}
-                  className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[10px] font-black uppercase tracking-widest hover:bg-muted/30"
-                >
+              <button
+                type="button"
+                onClick={() => setProjectMembers((prev) => [...prev, { user_id: "", project_role: "developer" }])}
+                className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[10px] font-black uppercase tracking-widest hover:bg-muted/30"
+              >
                 <Plus className="w-3 h-3" /> Add
               </button>
             </div>
@@ -486,7 +493,10 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
                       const role = e.target.value as MemberRole;
                       let next = [...projectMembers];
                       if (role === "leader") {
-                        next = next.map((m, i) => ({ ...m, project_role: i === idx ? "leader" : (m.project_role === "leader" ? "developer" : m.project_role) }));
+                        next = next.map((m, i) => ({
+                          ...m,
+                          project_role: i === idx ? "leader" : m.project_role === "leader" ? "developer" : m.project_role,
+                        }));
                       } else {
                         next[idx] = { ...next[idx], project_role: role };
                       }
@@ -529,7 +539,7 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
             <div className="space-y-2">
               <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Visibility</label>
               <div className="grid grid-cols-3 gap-2">
-                {(['public', 'internal', 'restricted'] as ApplicationVisibility[]).map((v) => (
+                {(["public", "internal", "restricted"] as ApplicationVisibility[]).map((v) => (
                   <button
                     key={v}
                     type="button"
@@ -538,7 +548,7 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
                       "py-2.5 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all flex flex-col items-center gap-1",
                       formData.visibility === v
                         ? "bg-indigo-500/10 border-indigo-500/40 text-indigo-400 shadow-lg shadow-indigo-500/5"
-                        : "bg-muted/20 border-border/60 text-muted-foreground hover:bg-muted/40"
+                        : "bg-muted/20 border-border/60 text-muted-foreground hover:bg-muted/40",
                     )}
                   >
                     {v}
@@ -547,28 +557,30 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
               </div>
             </div>
             <div className="space-y-2">
-               <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Period (Optional)</label>
-               <div className="flex items-center gap-2">
-                  <input
-                    type="date"
-                    value={formData.start_date}
-                    onChange={e => setFormData({ ...formData, start_date: e.target.value })}
-                    className="w-full bg-muted/20 border border-border/40 rounded-xl px-3 py-2 text-xs text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400/50"
-                  />
-                  <span className="text-muted-foreground/40">→</span>
-                  <input
-                    type="date"
-                    value={formData.due_date}
-                    onChange={e => setFormData({ ...formData, due_date: e.target.value })}
-                    className="w-full bg-muted/20 border border-border/40 rounded-xl px-3 py-2 text-xs text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400/50"
-                  />
-               </div>
+              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Period (Optional)</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={formData.start_date}
+                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                  className="w-full bg-muted/20 border border-border/40 rounded-xl px-3 py-2 text-xs text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400/50"
+                />
+                <span className="text-muted-foreground/40">→</span>
+                <input
+                  type="date"
+                  value={formData.due_date}
+                  onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                  className="w-full bg-muted/20 border border-border/40 rounded-xl px-3 py-2 text-xs text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400/50"
+                />
+              </div>
             </div>
           </div>
 
-          {error && (
-            <div className="p-4 bg-accent/10 border border-accent/20 rounded-2xl text-[11px] text-accent font-medium">
-              {error}
+          {error && <div className="p-4 bg-accent/10 border border-accent/20 rounded-2xl text-[11px] text-accent font-medium">{error}</div>}
+
+          {!hasLeadMember && (
+            <div className="p-3 bg-warning/10 border border-warning/20 rounded-2xl text-[11px] text-warning font-medium">
+              Project Leader를 선택해야 Create Project 버튼이 활성화됩니다.
             </div>
           )}
 
@@ -585,7 +597,7 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
               disabled={submitting || !hasLeadMember || !isCreateRepositoryPayloadValid}
               className="flex-1 bg-primary text-primary-foreground font-black py-4 px-8 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl disabled:opacity-50 uppercase tracking-widest text-[10px] flex items-center justify-center gap-2"
             >
-              {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <>{isEdit ? 'Save Changes' : 'Create Project'}</>}
+              {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <>{isEdit ? "Save Changes" : "Create Project"}</>}
             </button>
           </div>
         </form>
