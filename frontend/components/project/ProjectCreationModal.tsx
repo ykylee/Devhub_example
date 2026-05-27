@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { X, FolderKanban, Loader2, GitBranch } from "lucide-react";
-import { ApplicationRepository, Project, ApplicationVisibility, ProjectStatus } from "@/lib/services/project.types";
+import { ApplicationRepository, Project, ApplicationVisibility, ProjectStatus, Application, SCMProvider } from "@/lib/services/project.types";
 import { Repository } from "@/lib/services/repository.service";
 import { projectService } from "@/lib/services/project.service";
 import { cn } from "@/lib/utils";
@@ -17,6 +17,8 @@ interface ProjectCreationModalProps {
 }
 
 export function ProjectCreationModal({ applicationId, repositories, onClose, onCreated, initialData }: ProjectCreationModalProps) {
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [scmProviders, setScmProviders] = useState<SCMProvider[]>([]);
   const numericRepositories = repositories.map((r) => {
     // ApplicationRepository.repository_id 가 optional 이라 `"repository_id" in r`
     // 로는 narrow 불가. ApplicationRepository required field `repo_provider` 로
@@ -47,9 +49,16 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
     due_date: initialData?.due_date || "",
     repository_id: initialData?.repository_id || initialRepositoryId || 0,
     repository_ids: initialData?.repository_ids || (initialRepositoryId ? [initialRepositoryId] : ([] as number[])),
+    application_id: initialData?.application_id || applicationId || "",
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [createRepository, setCreateRepository] = useState(false);
+  const [repositoryCreate, setRepositoryCreate] = useState({
+    key: "",
+    slug: "",
+    scm_provider: "",
+  });
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -58,6 +67,17 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
+
+  useEffect(() => {
+    projectService.getApplications().then(setApplications).catch(() => setApplications([]));
+    projectService.getSCMProviders().then((providers) => {
+      setScmProviders(providers);
+      const enabled = providers.find((p) => p.enabled);
+      if (enabled) {
+        setRepositoryCreate((prev) => ({ ...prev, scm_provider: enabled.provider_key }));
+      }
+    }).catch(() => setScmProviders([]));
+  }, []);
 
   const isEdit = !!initialData?.id;
 
@@ -78,17 +98,25 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
         const selected = new Set<number>();
         if (formData.repository_id) selected.add(formData.repository_id);
         for (const id of formData.repository_ids) selected.add(id);
-        if (selected.size === 0) {
-           throw new Error("A repository must be selected for the project.");
-        }
         const repository_ids = Array.from(selected);
-        // Prefer application-scoped v2 endpoint for project creation (Application -> Project -> Repository N:M).
-        // Fallback to legacy single-repository path when applicationId is unavailable (e.g., DREQ promotion before app binding).
-        if (applicationId) {
-          const payload = { ...formData, application_id: applicationId, repository_ids };
-          result = await projectService.createApplicationProject(applicationId, payload);
+        const selectedApplicationId = formData.application_id || applicationId || "";
+
+        if (selectedApplicationId) {
+          const payload = {
+            ...formData,
+            application_id: selectedApplicationId,
+            repository_ids,
+            repository_create_payload: createRepository ? repositoryCreate : undefined,
+          };
+          result = await projectService.createApplicationProject(selectedApplicationId, payload);
         } else {
-          result = await projectService.createProject(formData.repository_id, formData);
+          result = await projectService.createProjectStandalone({
+            ...formData,
+            repository_ids,
+            repository_id: repository_ids[0] || 0,
+            application_id: "",
+            repository_create_payload: createRepository ? repositoryCreate : undefined,
+          });
         }
       }
       onCreated(result);
@@ -128,7 +156,7 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
                 {isEdit ? "Edit" : "Create"} <span className="text-indigo-400">Project</span>
               </h2>
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                Operational unit under a repository
+                Independent unit; repository/application are optional
               </p>
             </div>
           </div>
@@ -166,6 +194,23 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
           </div>
 
           <div className="space-y-2">
+            <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Application (Optional)</label>
+            <select
+              disabled={isEdit}
+              value={formData.application_id}
+              onChange={(e) => setFormData({ ...formData, application_id: e.target.value })}
+              className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400/50 appearance-none"
+            >
+              <option value="">No application (independent)</option>
+              {applications.map((app) => (
+                <option key={app.id} value={app.id}>
+                  {app.name} ({app.key})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-2">
             <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Target Repository</label>
             <div className="relative group">
               <GitBranch className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/40" />
@@ -183,7 +228,7 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
                 }}
                 className="w-full bg-muted/30 border border-border rounded-2xl pl-12 pr-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400/50 appearance-none"
               >
-                <option value={0} disabled>Select a repository...</option>
+                <option value={0}>No repository (connect later)</option>
                 {numericRepositories.map((repo) => (
                     <option
                       key={`${repo.repo_provider}/${repo.repo_full_name}`}
@@ -195,9 +240,7 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
                   ))}
               </select>
             </div>
-            <p className="text-[9px] text-accent/60 px-1 italic">
-              Primary repository for backward compatibility.
-            </p>
+            <p className="text-[9px] text-accent/60 px-1 italic">선택 시 primary repository로 저장됩니다. 없어도 생성 가능합니다.</p>
             {!isEdit && numericRepositories.length > 1 && (
               <div className="mt-3 p-3 rounded-xl border border-border/60 bg-muted/20">
                 <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-2">
@@ -247,6 +290,50 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
               </div>
             )}
           </div>
+
+          {!isEdit && (
+            <div className="space-y-3 rounded-2xl border border-border/60 bg-muted/10 p-4">
+              <label className="flex items-center gap-2 text-xs text-foreground dark:text-primary-foreground">
+                <input
+                  type="checkbox"
+                  checked={createRepository}
+                  onChange={(e) => setCreateRepository(e.target.checked)}
+                  className="h-4 w-4 rounded border-border"
+                />
+                <span>Create and link repository on project creation</span>
+              </label>
+              {createRepository && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <input
+                    required
+                    value={repositoryCreate.key}
+                    onChange={(e) => setRepositoryCreate({ ...repositoryCreate, key: e.target.value.toUpperCase() })}
+                    placeholder="Repo Key"
+                    className="w-full bg-muted/30 border border-border rounded-xl px-3 py-2 text-xs text-foreground dark:text-primary-foreground"
+                  />
+                  <input
+                    required
+                    value={repositoryCreate.slug}
+                    onChange={(e) => setRepositoryCreate({ ...repositoryCreate, slug: e.target.value })}
+                    placeholder="org/repo-slug"
+                    className="w-full bg-muted/30 border border-border rounded-xl px-3 py-2 text-xs text-foreground dark:text-primary-foreground"
+                  />
+                  <select
+                    required
+                    value={repositoryCreate.scm_provider}
+                    onChange={(e) => setRepositoryCreate({ ...repositoryCreate, scm_provider: e.target.value })}
+                    className="w-full bg-muted/30 border border-border rounded-xl px-3 py-2 text-xs text-foreground dark:text-primary-foreground"
+                  >
+                    {scmProviders.filter((p) => p.enabled).map((p) => (
+                      <option key={p.provider_key} value={p.provider_key}>
+                        {p.display_name} ({p.provider_key})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
 
           {!isEdit && (
             <div className="space-y-2">

@@ -31,6 +31,8 @@ type memoryApplicationStore struct {
 	integrationBindings  map[string]domain.IntegrationBinding
 	criticalCounts       map[string]int // override for CountApplicationCriticalWarnings tests
 	infraSnapshot        memoryInfraSnapshot
+	repositoryIDs        map[string]int64
+	nextRepositoryID     int64
 }
 
 type memoryInfraSnapshot struct {
@@ -57,6 +59,8 @@ func newMemoryApplicationStore() *memoryApplicationStore {
 		integrationProviders: make(map[string]domain.IntegrationProvider),
 		integrationBindings:  make(map[string]domain.IntegrationBinding),
 		criticalCounts:       make(map[string]int),
+		repositoryIDs:        make(map[string]int64),
+		nextRepositoryID:     1000,
 	}
 }
 
@@ -351,6 +355,23 @@ func (s *memoryApplicationStore) CreateProjectWithRepositories(_ context.Context
 		}
 	}
 	return created, nil
+}
+
+func (s *memoryApplicationStore) CreateRepositoryForProject(_ context.Context, key, slug, scmProvider string) (int64, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	_ = key
+	_ = scmProvider
+	fullName := strings.TrimSpace(slug)
+	if fullName == "" {
+		return 0, store.ErrConflict
+	}
+	if id, ok := s.repositoryIDs[fullName]; ok {
+		return id, nil
+	}
+	s.nextRepositoryID++
+	s.repositoryIDs[fullName] = s.nextRepositoryID
+	return s.nextRepositoryID, nil
 }
 
 func (s *memoryApplicationStore) UpdateProject(_ context.Context, p domain.Project) (domain.Project, error) {
