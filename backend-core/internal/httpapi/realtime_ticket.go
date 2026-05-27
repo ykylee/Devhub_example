@@ -29,7 +29,12 @@ type realtimeTicket struct {
 // ADR-0024 §6 carve 6) 는 PG 백킹 (DBRealtimeTicketStore) 구현이 주입된다.
 type realtimeTicketStore interface {
 	issue(ctx context.Context, actorLogin, actorRole string, sourceType domain.AuditSourceType) (string, error)
-	consume(ctx context.Context, ticket string) (*realtimeTicket, bool)
+	// consume returns (entry, true, nil) on hit, (nil, false, nil) on a genuine
+	// miss (unknown/expired/already-used), and (nil, false, err) on a store
+	// fault. Callers MUST distinguish err != nil (infra outage — 5xx) from a
+	// miss (401), so a valid ticket is not rejected as unauthenticated during a
+	// transient DB failure (codex review PR #344).
+	consume(ctx context.Context, ticket string) (*realtimeTicket, bool, error)
 }
 
 func newRealtimeTicket() (string, error) {
@@ -71,20 +76,20 @@ func (s *RealtimeTicketStore) issue(_ context.Context, actorLogin, actorRole str
 
 // consume returns the ticket entry and removes it (single-use).
 // Expired entries are also removed but reported as miss.
-func (s *RealtimeTicketStore) consume(_ context.Context, ticket string) (*realtimeTicket, bool) {
+func (s *RealtimeTicketStore) consume(_ context.Context, ticket string) (*realtimeTicket, bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	now := time.Now()
 	s.sweepLocked(now)
 	entry, ok := s.tickets[ticket]
 	if !ok {
-		return nil, false
+		return nil, false, nil
 	}
 	delete(s.tickets, ticket)
 	if entry.expiresAt.Before(now) {
-		return nil, false
+		return nil, false, nil
 	}
-	return entry, true
+	return entry, true, nil
 }
 
 // realtimeTicketDB — PG 백킹 ticket store 가 의존하는 store 메서드.
@@ -136,17 +141,22 @@ func (s *DBRealtimeTicketStore) issue(ctx context.Context, actorLogin, actorRole
 	return ticket, nil
 }
 
-func (s *DBRealtimeTicketStore) consume(ctx context.Context, ticket string) (*realtimeTicket, bool) {
+func (s *DBRealtimeTicketStore) consume(ctx context.Context, ticket string) (*realtimeTicket, bool, error) {
 	row, ok, err := s.db.ConsumeRealtimeTicket(ctx, ticket)
-	if err != nil || !ok {
-		return nil, false
+	if err != nil {
+		// store fault — surface so the caller can return 5xx instead of
+		// conflating an infra outage with an invalid ticket (401).
+		return nil, false, err
+	}
+	if !ok {
+		return nil, false, nil
 	}
 	return &realtimeTicket{
 		actorLogin: row.ActorLogin,
 		actorRole:  row.ActorRole,
 		sourceType: domain.AuditSourceType(row.SourceType),
 		expiresAt:  row.ExpiresAt,
-	}, true
+	}, true, nil
 }
 
 // sweepLocked removes expired entries. Caller holds s.mu.

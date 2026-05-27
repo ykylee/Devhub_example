@@ -3,6 +3,8 @@ package httpapi
 import (
 	"context"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -24,7 +26,10 @@ func TestRealtimeTicketStore_InMemory_IssueConsumeSingleUse(t *testing.T) {
 		t.Fatal("expected non-empty ticket")
 	}
 
-	entry, ok := s.consume(ctx, ticket)
+	entry, ok, err := s.consume(ctx, ticket)
+	if err != nil {
+		t.Fatalf("consume err: %v", err)
+	}
 	if !ok {
 		t.Fatal("first consume should succeed")
 	}
@@ -33,7 +38,7 @@ func TestRealtimeTicketStore_InMemory_IssueConsumeSingleUse(t *testing.T) {
 	}
 
 	// single-use: 두 번째 consume 은 miss.
-	if _, ok := s.consume(ctx, ticket); ok {
+	if _, ok, _ := s.consume(ctx, ticket); ok {
 		t.Fatal("second consume should miss (single-use)")
 	}
 }
@@ -42,8 +47,8 @@ func TestRealtimeTicketStore_InMemory_UnknownAndExpired(t *testing.T) {
 	s := NewRealtimeTicketStore()
 	ctx := context.Background()
 
-	if _, ok := s.consume(ctx, "does-not-exist"); ok {
-		t.Fatal("unknown ticket should miss")
+	if _, ok, err := s.consume(ctx, "does-not-exist"); ok || err != nil {
+		t.Fatalf("unknown ticket should miss with no error, got ok=%v err=%v", ok, err)
 	}
 
 	// 만료 ticket 은 miss (직접 expiresAt 과거로 주입).
@@ -53,7 +58,7 @@ func TestRealtimeTicketStore_InMemory_UnknownAndExpired(t *testing.T) {
 		expiresAt:  time.Now().Add(-time.Second),
 	}
 	s.mu.Unlock()
-	if _, ok := s.consume(ctx, "expired"); ok {
+	if _, ok, _ := s.consume(ctx, "expired"); ok {
 		t.Fatal("expired ticket should miss")
 	}
 }
@@ -137,7 +142,10 @@ func TestDBRealtimeTicketStore_IssueConsumeSingleUse(t *testing.T) {
 		t.Fatalf("expected 1 opportunistic cleanup, got %d", fake.deleteCalls)
 	}
 
-	entry, ok := s.consume(ctx, ticket)
+	entry, ok, err := s.consume(ctx, ticket)
+	if err != nil {
+		t.Fatalf("consume err: %v", err)
+	}
 	if !ok {
 		t.Fatal("first consume should succeed")
 	}
@@ -145,18 +153,24 @@ func TestDBRealtimeTicketStore_IssueConsumeSingleUse(t *testing.T) {
 		t.Fatalf("unexpected entry: %+v", entry)
 	}
 
-	if _, ok := s.consume(ctx, ticket); ok {
+	if _, ok, _ := s.consume(ctx, ticket); ok {
 		t.Fatal("second consume should miss (single-use)")
 	}
 }
 
-func TestDBRealtimeTicketStore_ConsumeErrorIsMiss(t *testing.T) {
+// codex review PR #344 — store fault 를 miss (401) 로 collapse 하지 않고 error 를
+// 전파해야 auth flow 가 503 으로 구분 가능.
+func TestDBRealtimeTicketStore_ConsumeErrorIsPropagated(t *testing.T) {
 	fake := newFakeRealtimeTicketDB()
 	fake.consumeErr = errors.New("db down")
 	s := NewDBRealtimeTicketStore(fake)
 
-	if _, ok := s.consume(context.Background(), "anything"); ok {
-		t.Fatal("consume error should report miss, not panic/honor")
+	entry, ok, err := s.consume(context.Background(), "anything")
+	if err == nil {
+		t.Fatal("store fault should be propagated as error (not silent miss)")
+	}
+	if ok || entry != nil {
+		t.Fatalf("store fault must not honor a ticket, got ok=%v entry=%v", ok, entry)
 	}
 }
 
@@ -167,5 +181,47 @@ func TestDBRealtimeTicketStore_IssuePropagatesInsertError(t *testing.T) {
 
 	if _, err := s.issue(context.Background(), "dave", "developer", domain.AuditSourceOIDC); err == nil {
 		t.Fatal("expected issue to propagate insert error")
+	}
+}
+
+// faultyTicketStore — consume 가 항상 store fault 를 반환.
+type faultyTicketStore struct{}
+
+func (faultyTicketStore) issue(_ context.Context, _, _ string, _ domain.AuditSourceType) (string, error) {
+	return "", nil
+}
+func (faultyTicketStore) consume(_ context.Context, _ string) (*realtimeTicket, bool, error) {
+	return nil, false, errors.New("postgres connection lost")
+}
+
+// codex review PR #344 — auth flow 가 ticket store fault (5xx) 와 invalid ticket
+// (401) 를 구분해야 한다. store fault 시 valid ticket 이 401 로 거부되거나 infra
+// 신호가 사라지면 안 됨.
+func TestRealtimeWS_TicketStoreFault_Returns503(t *testing.T) {
+	router := NewRouter(RouterConfig{
+		RealtimeHub:     NewRealtimeHub(),
+		RealtimeTickets: faultyTicketStore{},
+	})
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/realtime/ws?ticket=maybe-valid", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("ticket store fault should return 503, got %d", rec.Code)
+	}
+}
+
+// 진짜 miss (unknown/expired) 는 401 — store fault 와 구분.
+func TestRealtimeWS_TicketMiss_Returns401(t *testing.T) {
+	router := NewRouter(RouterConfig{
+		RealtimeHub:     NewRealtimeHub(),
+		RealtimeTickets: NewRealtimeTicketStore(), // 비어 있음 → consume miss
+	})
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/realtime/ws?ticket=unknown", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("unknown ticket should return 401, got %d", rec.Code)
 	}
 }
