@@ -44,6 +44,7 @@ func scanIntegrationProvider(row pgx.Row) (domain.IntegrationProvider, error) {
 		&p.CreatedAt,
 		&p.UpdatedAt,
 		&p.BaseURL,
+		&p.APIToken,
 	); err != nil {
 		return domain.IntegrationProvider{}, err
 	}
@@ -108,7 +109,8 @@ SELECT
 	COALESCE(last_error_code, ''),
 	created_at,
 	updated_at,
-	COALESCE(base_url, '')
+	COALESCE(base_url, ''),
+	COALESCE(api_token, '')
 FROM integration_providers
 WHERE ($3 = '' OR provider_type = $3)
   AND ($4::boolean IS NULL OR enabled = $4::boolean)
@@ -150,7 +152,8 @@ SELECT
 	COALESCE(last_error_code, ''),
 	created_at,
 	updated_at,
-	COALESCE(base_url, '')
+	COALESCE(base_url, ''),
+	COALESCE(api_token, '')
 FROM integration_providers
 WHERE provider_id = $1::uuid`
 	p, err := scanIntegrationProvider(s.pool.QueryRow(ctx, query, providerID))
@@ -179,7 +182,8 @@ SELECT
 	COALESCE(last_error_code, ''),
 	created_at,
 	updated_at,
-	COALESCE(base_url, '')
+	COALESCE(base_url, ''),
+	COALESCE(api_token, '')
 FROM integration_providers
 WHERE provider_key = $1`
 	p, err := scanIntegrationProvider(s.pool.QueryRow(ctx, query, providerKey))
@@ -200,9 +204,9 @@ func (s *PostgresStore) CreateIntegrationProvider(ctx context.Context, p domain.
 	const query = `
 INSERT INTO integration_providers (
 	provider_key, provider_type, display_name, enabled, auth_mode,
-	credentials_ref, capabilities, sync_status, base_url
+	credentials_ref, capabilities, sync_status, base_url, api_token
 ) VALUES (
-	$1, $2, $3, $4, $5, $6, $7::jsonb, $8, NULLIF($9, '')
+	$1, $2, $3, $4, $5, $6, $7::jsonb, $8, NULLIF($9, ''), NULLIF($10, '')
 )
 RETURNING
 	provider_id::text,
@@ -218,7 +222,8 @@ RETURNING
 	COALESCE(last_error_code, ''),
 	created_at,
 	updated_at,
-	COALESCE(base_url, '')`
+	COALESCE(base_url, ''),
+	COALESCE(api_token, '')`
 	created, err := scanIntegrationProvider(s.pool.QueryRow(
 		ctx,
 		query,
@@ -231,6 +236,7 @@ RETURNING
 		string(caps),
 		p.SyncStatus,
 		p.BaseURL,
+		p.APIToken,
 	))
 	if isUniqueViolation(err) {
 		return domain.IntegrationProvider{}, ErrConflict
@@ -256,6 +262,7 @@ SET display_name = $2,
 	last_sync_at = $7,
 	last_error_code = NULLIF($8, ''),
 	base_url = NULLIF($9, ''),
+	api_token = NULLIF($10, ''),
 	updated_at = NOW()
 WHERE provider_id = $1::uuid
 RETURNING
@@ -272,7 +279,8 @@ RETURNING
 	COALESCE(last_error_code, ''),
 	created_at,
 	updated_at,
-	COALESCE(base_url, '')`
+	COALESCE(base_url, ''),
+	COALESCE(api_token, '')`
 	updated, err := scanIntegrationProvider(s.pool.QueryRow(
 		ctx,
 		query,
@@ -285,6 +293,7 @@ RETURNING
 		p.LastSyncAt,
 		p.LastErrorCode,
 		p.BaseURL,
+		p.APIToken,
 	))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return domain.IntegrationProvider{}, ErrNotFound

@@ -238,6 +238,7 @@ type IntegrationProvider struct {
 	LastSyncAt     *time.Time
 	LastErrorCode  string
 	BaseURL        string
+	APIToken       string
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 }

@@ -72,6 +72,23 @@ func TestCreateIntegrationProvider_WithBaseURL(t *testing.T) {
 	}
 }
 
+// Gitea 연동 #3 — api_token 은 write-only: 저장되지만 응답엔 raw 미노출 (api_token_set 만).
+func TestCreateIntegrationProvider_APITokenWriteOnly(t *testing.T) {
+	router := newApplicationsRouter(newMemoryApplicationStore())
+	const secretToken = "gitea-pat-supersecret-xyz"
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
+		`{"provider_key":"gitea-tok","provider_type":"scm","display_name":"Gitea","auth_mode":"token","credentials_ref":"provider_sdk:gitea:wh","api_token":"`+secretToken+`"}`)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"api_token_set":true`)) {
+		t.Errorf("response should report api_token_set true: %s", rec.Body.String())
+	}
+	if bytes.Contains(rec.Body.Bytes(), []byte(secretToken)) {
+		t.Errorf("raw api_token must NOT be exposed in response: %s", rec.Body.String())
+	}
+}
+
 // base_url 은 http(s) scheme 만 허용.
 func TestCreateIntegrationProvider_InvalidBaseURL(t *testing.T) {
 	router := newApplicationsRouter(newMemoryApplicationStore())
