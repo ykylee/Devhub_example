@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { AnimatePresence } from "framer-motion";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Box, FolderGit2, FolderKanban } from "lucide-react";
 import Link from "next/link";
@@ -10,6 +11,9 @@ import { applicationService, Application as AdminApplication } from "@/lib/servi
 import { repositoryService, Repository } from "@/lib/services/repository.service";
 import { projectService } from "@/lib/services/project.service";
 import { Project } from "@/lib/services/project.types";
+import { ApplicationCreationModal } from "@/components/project/ApplicationCreationModal";
+import { ProjectCreationModal } from "@/components/project/ProjectCreationModal";
+import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
 
 type CatalogTab = "applications" | "repositories" | "projects";
@@ -32,6 +36,12 @@ export default function AdminCatalogPage() {
   const [applications, setApplications] = useState<AdminApplication[]>([]);
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [showApplicationModal, setShowApplicationModal] = useState(false);
+  const [showProjectModal, setShowProjectModal] = useState(false);
+  const [editingApplication, setEditingApplication] = useState<AdminApplication | null>(null);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [projectSeed, setProjectSeed] = useState<Partial<Project> | null>(null);
+  const { toast } = useToast();
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -139,6 +149,28 @@ export default function AdminCatalogPage() {
     router.replace(`/admin/catalog?${params.toString()}`);
   };
 
+  const handleArchiveApplication = async (app: AdminApplication) => {
+    if (!confirm(`Archive application ${app.name}?`)) return;
+    try {
+      await projectService.archiveApplication(app.id);
+      toast(`Application ${app.name} archived`, "success");
+      await loadAll();
+    } catch (err) {
+      toast(toUserErrorMessage(err, "Application 삭제에 실패했습니다."), "error");
+    }
+  };
+
+  const handleArchiveProject = async (project: Project) => {
+    if (!confirm(`Archive project ${project.name}?`)) return;
+    try {
+      await projectService.archiveProject(project.id);
+      toast(`Project ${project.name} archived`, "success");
+      await loadAll();
+    } catch (err) {
+      toast(toUserErrorMessage(err, "Project 삭제에 실패했습니다."), "error");
+    }
+  };
+
   if (loading) return <PageLoading label="Admin Catalog 로딩 중..." />;
 
   return (
@@ -152,12 +184,37 @@ export default function AdminCatalogPage() {
             system_admin 전용 통합 자산 관리
           </p>
         </div>
-        <button
-          onClick={() => void loadAll()}
-          className="rounded-xl border border-border px-3 py-2 text-xs font-bold uppercase tracking-widest hover:bg-muted/30"
-        >
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => void loadAll()}
+            className="rounded-xl border border-border px-3 py-2 text-xs font-bold uppercase tracking-widest hover:bg-muted/30"
+          >
+            Refresh
+          </button>
+          {activeTab === "applications" && (
+            <button
+              onClick={() => {
+                setEditingApplication(null);
+                setShowApplicationModal(true);
+              }}
+              className="rounded-xl bg-primary px-3 py-2 text-xs font-bold uppercase tracking-widest text-primary-foreground hover:opacity-90"
+            >
+              New Application
+            </button>
+          )}
+          {(activeTab === "projects" || activeTab === "repositories") && (
+            <button
+              onClick={() => {
+                setEditingProject(null);
+                setProjectSeed(null);
+                setShowProjectModal(true);
+              }}
+              className="rounded-xl bg-primary px-3 py-2 text-xs font-bold uppercase tracking-widest text-primary-foreground hover:opacity-90"
+            >
+              New Project
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="glass-card p-4 space-y-4">
@@ -240,6 +297,21 @@ export default function AdminCatalogPage() {
                         >
                           Projects
                         </button>
+                        <button
+                          onClick={() => {
+                            setEditingApplication(a);
+                            setShowApplicationModal(true);
+                          }}
+                          className="rounded-lg border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-widest hover:bg-muted/30"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => void handleArchiveApplication(a)}
+                          className="rounded-lg border border-destructive/40 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-destructive hover:bg-destructive/10"
+                        >
+                          Delete
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -290,6 +362,31 @@ export default function AdminCatalogPage() {
                         >
                           Projects
                         </button>
+                        <button
+                          onClick={() => {
+                            setEditingProject(null);
+                            setProjectSeed({
+                              repository_id: r.id,
+                              repository_ids: [r.id],
+                            });
+                            setShowProjectModal(true);
+                          }}
+                          className="rounded-lg border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-widest hover:bg-muted/30"
+                        >
+                          Add Project
+                        </button>
+                        <button
+                          onClick={() => toast("Repository 수정은 연결된 SCM에서 관리됩니다.", "warning")}
+                          className="rounded-lg border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-widest hover:bg-muted/30"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => toast("Repository 삭제는 연결된 SCM에서 관리됩니다.", "warning")}
+                          className="rounded-lg border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-widest hover:bg-muted/30"
+                        >
+                          Delete
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -334,6 +431,22 @@ export default function AdminCatalogPage() {
                       >
                         Detail
                       </Link>
+                      <button
+                        onClick={() => {
+                          setEditingProject(p);
+                          setProjectSeed(null);
+                          setShowProjectModal(true);
+                        }}
+                        className="ml-2 rounded-lg border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-widest hover:bg-muted/30"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => void handleArchiveProject(p)}
+                        className="ml-2 rounded-lg border border-destructive/40 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-destructive hover:bg-destructive/10"
+                      >
+                        Delete
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -342,6 +455,41 @@ export default function AdminCatalogPage() {
           </div>
         )
       )}
+      <AnimatePresence>
+        {showApplicationModal && (
+          <ApplicationCreationModal
+            initialData={editingApplication ?? undefined}
+            onClose={() => {
+              setShowApplicationModal(false);
+              setEditingApplication(null);
+            }}
+            onCreated={(app) => {
+              toast(`Application ${app.name} ${editingApplication ? "updated" : "created"}`, "success");
+              setShowApplicationModal(false);
+              setEditingApplication(null);
+              void loadAll();
+            }}
+          />
+        )}
+        {showProjectModal && (
+          <ProjectCreationModal
+            repositories={repositories}
+            initialData={(editingProject ?? projectSeed ?? undefined) as Partial<Project> | undefined}
+            onClose={() => {
+              setShowProjectModal(false);
+              setEditingProject(null);
+              setProjectSeed(null);
+            }}
+            onCreated={(project) => {
+              toast(`Project ${project.name} ${editingProject ? "updated" : "created"}`, "success");
+              setShowProjectModal(false);
+              setEditingProject(null);
+              setProjectSeed(null);
+              void loadAll();
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
