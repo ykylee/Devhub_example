@@ -40,10 +40,13 @@ export default function AdminCatalogPage() {
       const apps = await applicationService.listApplications();
       const repos = await repositoryService.listRepositories();
 
-      const nestedProjects = await Promise.all(
+      const appScopedProjects = await Promise.all(
         apps.map((app) => projectService.getApplicationProjectsV2(app.id).catch(() => [])),
       );
-      const allProjects = nestedProjects.flat();
+      const repoScopedProjects = await Promise.all(
+        repos.map((repo) => projectService.getRepositoryProjects(repo.id).catch(() => [])),
+      );
+      const allProjects = [...appScopedProjects.flat(), ...repoScopedProjects.flat()];
       const dedupProjects = Array.from(new Map(allProjects.map((p) => [p.id, p])).values());
 
       setApplications(apps);
@@ -81,8 +84,11 @@ export default function AdminCatalogPage() {
   const filteredProjects = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return projects;
+    const numericQuery = Number(q);
+    const hasNumericQuery = Number.isFinite(numericQuery) && q !== "";
     return projects.filter((p) =>
-      [p.key, p.name, p.owner_user_id, p.status, p.application_id ?? ""].some((v) => String(v).toLowerCase().includes(q)),
+      [p.key, p.name, p.owner_user_id, p.status, p.application_id ?? ""].some((v) => String(v).toLowerCase().includes(q)) ||
+      (hasNumericQuery && p.repository_id === numericQuery),
     );
   }, [projects, query]);
 
