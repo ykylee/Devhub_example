@@ -264,16 +264,22 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
                     >
                       <option value={0}>Select repository</option>
                       {numericRepositories
-                        .filter((repo) => !repositoryLinks.includes(repo.repository_id) || repo.repository_id === repoID)
-                        .map((repo) => (
+                        .filter((repo) => {
+                          const repositoryID = repo.repository_id ?? 0;
+                          return !repositoryLinks.includes(repositoryID) || repositoryID === repoID;
+                        })
+                        .map((repo) => {
+                          const repositoryID = repo.repository_id ?? 0;
+                          return (
                         <option
                           key={`${idx}-${repo.repo_provider}/${repo.repo_full_name}`}
-                          value={repo.repository_id}
+                          value={repositoryID}
                           className="bg-slate-900"
                         >
                           {repo.repo_full_name} ({repo.repo_provider})
                         </option>
-                        ))}
+                          );
+                        })}
                     </select>
                   </div>
                   {!isEdit && (
