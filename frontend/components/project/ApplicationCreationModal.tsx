@@ -90,8 +90,10 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
       if (isEdit && initialData.id) {
         // PATCH 시 `key` 는 백엔드(updateApplication)에서 immutable 로 reject 되므로
         // payload 에서 제외한다. (codex PR #114 review P1)
-        const patchPayload: Partial<typeof formData> = { ...formData };
+        const patchPayload: Partial<typeof formData> & { owner_user_id?: string } = { ...formData };
         delete patchPayload.key;
+        // owner-self row authorization 드리프트 방지: leader 변경 시 owner 동기화.
+        patchPayload.owner_user_id = formData.leader_user_id;
         result = await projectService.updateApplication(initialData.id, patchPayload);
       } else {
         const normalizedKey = formData.key.trim().toUpperCase();

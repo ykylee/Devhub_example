@@ -38,8 +38,8 @@
 - Application 등록 폼 안내 문구를 백엔드 규칙과 동일하게 수정
 
 2. 중복 체크 UX 보강
-- 서버 409 중복 체크는 유지
-- 프론트 제출 전(클라이언트) 동일 key 존재 여부를 사전 확인하여 즉시 오류 표출
+- 서버 409 중복 체크를 단일 source-of-truth 로 사용
+- 프론트는 사전 목록 비교를 하지 않고, 생성 API 의 409 응답 시 중복 메시지를 노출
 
 3. Leader/Department 검색형 입력
 - `ComboBox` 적용
@@ -49,6 +49,7 @@
 4. Legacy Owner 제거
 - 폼 UI에서 Owner 입력 제거
 - 생성 payload의 `owner_user_id`는 `leader_user_id`를 기본값으로 동기화하여 기존 API 요구사항과 호환
+- 수정(PATCH)에서도 `owner_user_id`를 `leader_user_id`와 동기화하여 row ownership drift 방지
 
 5. Operating status 스타일 수정
 - option 강제 다크 배경 클래스 제거
@@ -58,7 +59,10 @@
 
 - `backend-core/internal/httpapi/applications.go`
 - `backend-core/internal/httpapi/applications_test.go`
+- `backend-core/migrations/000035_relax_applications_key_format.{up,down}.sql`
 - `frontend/components/project/ApplicationCreationModal.tsx`
+- `frontend/app/(dashboard)/admin/settings/organization/page.tsx`
+- `frontend/components/organization/MemberTable.tsx`
 
 ## 4) 검증 계획
 
