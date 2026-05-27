@@ -59,7 +59,7 @@
 
 - `backend-core/internal/httpapi/applications.go`
 - `backend-core/internal/httpapi/applications_test.go`
-- `backend-core/migrations/000035_relax_applications_key_format.{up,down}.sql`
+- `backend-core/migrations/000036_relax_applications_key_format.{up,down}.sql`
 - `frontend/components/project/ApplicationCreationModal.tsx`
 - `frontend/app/(dashboard)/admin/settings/organization/page.tsx`
 - `frontend/components/organization/MemberTable.tsx`
