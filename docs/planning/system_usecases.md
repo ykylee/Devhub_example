@@ -20,6 +20,7 @@
 | Audit | `backend-core/internal/httpapi/audit.go`, `internal/store/audit_logs.go` |
 | Realtime | `backend-core/internal/httpapi/realtime.go`, `snapshot.go` |
 | Application/Project (신규) | `docs/requirements.md` §5.4 기준 (설계/구현 예정) |
+| Application 개발 대시보드 | `docs/requirements.md` §5.8 기준 (설계/구현 예정) |
 
 ## 2. Usecase (모듈별)
 
@@ -167,6 +168,18 @@
 | `UC-ONBOARD-09` | Backend gating 403 차단 | 미완료 사용자가 allowlist 외 endpoint 호출 시 403 + `code=onboarding_required` 반환 | REQ-FR-ONBOARD-009 |
 | `UC-ONBOARD-10` | Skip → 한정 접근 모드 | "나중에 하기" 액션 → user row 미생성 + 공통 메뉴 + `/devhub/onboarding` + `GET /me` 만 접근 | REQ-FR-ONBOARD-011, REQ-FR-ONBOARD-006 |
 | `UC-ONBOARD-11` | Skip 후 dismissible banner | session-scoped skip flag set + 모든 페이지 상단에 banner 노출 (자동 redirect 없음) | REQ-FR-ONBOARD-010 |
+
+### 2.14 Application 개발 대시보드 (APPDASH)
+
+| UC ID | Usecase | 성공 조건 | 관련 REQ |
+| --- | --- | --- | --- |
+| `UC-APPDASH-01` | 실시간 타겟 브랜치 빌드 실패 상태 조회 및 딥링크 이동 | 대시보드 최상단 카드에 실패 상태인 모든 빌드가 리포지토리 슬러그, 빌드 번호, 실패 시간, 에러 요약 스니펫과 함께 노출되고, 딥링크 클릭 시 해당 빌드 로그 페이지로 성공적 이동 | REQ-FR-APPDASH-001 |
+| `UC-APPDASH-02` | 다차원 코드 품질 점수 및 정적분석 미해결 이슈 조회 | 5점 만점으로 정규화된 가중 품질 스코어와 심각도별(Blocker/Critical/Major) 미해결 정적분석 이슈 건수가 표시되고, 코딩 룰 상세 내역은 저장소 상세 대시보드로 격리 조회됨 | REQ-FR-APPDASH-002 |
+| `UC-APPDASH-03` | 하위 프로젝트 진척도 시각화 및 지능형 리스크 감지 | 스토리포인트(SP) 가중치 또는 개수제 방식으로 계산된 하위 프로젝트 진척율(%)이 최상단 주요 영역에 표시되고, 일정 대비 작업 비율 분석을 통해 지연 리스크 경고 배지(`Healthy 🟢`, `Warning 🟡`, `At Risk 🔴`)가 자동 제공됨 | REQ-FR-APPDASH-003 |
+| `UC-APPDASH-04` | 연결된 개발 의뢰(DREQ) 목록 조회 및 프로젝트 승격 | 어플리케이션에 매핑된 모든 DREQ 리스트와 상태 조회가 가능하며, Promote 클릭 시 DREQ 메타데이터(Key, Name, Description)를 자동 상속/프리필하는 프로젝트 생성 모달이 팝업되고 단일 트랜잭션으로 연계 생성됨 | REQ-FR-APPDASH-004 |
+| `UC-APPDASH-05` | CI/CD 빌드 안정성 및 품질 시계열 트렌드 조회 | 7일 및 30일 간의 평균 빌드 소요 시간 변화 추이와 빌드 성공률 추이 시계열 차트가 정상 렌더링되어 조회됨 | REQ-FR-APPDASH-005 |
+| `UC-APPDASH-06` | 리포지토리 가중치 배분 및 정책 갱신 | 롤업 집계에 사용되는 리포지토리별 가중치 정책을 도넛 차트로 확인하고 변경 적용 설정을 제공함 | REQ-FR-APPDASH-006 |
+| `UC-APPDASH-07` | 연동 장애 시 우아한 성능 저하(Graceful Degradation) 작동 | 특정 저장소/CI 연동 장애가 발생해도 전체 대시보드가 깨지지 않고 가용한 데이터만 롤업해 표시하며 장애 난 저장소에 대해 `data_gap` 또는 경고 표시 노출 | REQ-NFR-APPDASH-003 |
 
 ## 3. 설계/구현 반영 규칙
 

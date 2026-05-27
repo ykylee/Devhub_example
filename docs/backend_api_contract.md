@@ -1297,6 +1297,7 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 | `API-56B` | `GET/POST/DELETE /api/v1/projects/{project_id}/repositories` | §13.5 | activated (v2/hybrid) |
 | `API-57` | `GET /api/v1/applications/{application_id}/rollup` | §13.6 | activated (concept §13.4 normalize 실 구현 + critical 가드 흡수) |
 | `API-58` | `GET /api/v1/integrations` + CRUD | §13.7 | activated (scope polymorphism application/project) |
+| `API-87` | `GET /api/v1/applications/{application_id}/dashboard` | §13.9 | planned (sprint gemini/application-dashboard-concept) |
 
 **activated 단계 정의 (sprint claude/work_260514-b)**: gin v1 group route + RBAC matrix + handler body + store body + 요청 validation + 상태 전이 가드 + audit emit. RBAC 매트릭스에서 system_admin 만 4 신규 resource (`applications` / `application_repositories` / `projects` / `scm_providers`) 의 모든 axis true (migration 000018, ADR-0011 §4.1).
 
@@ -1715,6 +1716,142 @@ webhook_signature_invalid
 invalid_weight_policy
 project_key_conflict
 integration_policy_violation
+```
+
+### 13.9 Application 개발 대시보드 API
+
+#### `GET /api/v1/applications/{application_id}/dashboard` (`API-87`)
+
+- **설명**: Application 상세 대시보드용 실시간 빌드 상태, 다차원 품질 메트릭, 하위 프로젝트 진척율 및 지연 리스크 배지, 매핑된 DREQ 목록, SCM 및 빌드 시계열 트렌드 데이터를 일괄 병렬 집계하여 반환합니다.
+- **인증**: OIDC + RBAC `applications:view`.
+- **에러**:
+  - `404 application_not_found`: 존재하지 않는 Application ID
+  - `403 Forbidden`: 권한 부족 또는 onboarding_required 미결 완료 상태
+
+요청 예시:
+`GET /api/v1/applications/1a2b3c4d-1111-2222-3333-444455556666/dashboard`
+
+응답 예시:
+
+```json
+{
+  "status": "ok",
+  "data": {
+    "application_id": "1a2b3c4d-1111-2222-3333-444455556666",
+    "key": "PLATFORM26",
+    "name": "Platform 2026 Dev",
+    "status": "active",
+    "visibility": "internal",
+    "leader": "홍길동",
+    "development_unit": "플랫폼개발팀",
+    "updated_at": "2026-05-27T14:30:00Z",
+    "metrics_overview": {
+      "target_branch_build_status": "broken",
+      "avg_build_duration_seconds": 272,
+      "quality_score": 4.2,
+      "critical_warning_count": 0
+    },
+    "build_failures": [
+      {
+        "repo_provider": "gitea",
+        "repo_slug": "org/core",
+        "branch": "main",
+        "build_number": 128,
+        "failed_at": "2026-05-27T14:27:00Z",
+        "error_snippet": "Exit code 1 on test task",
+        "log_url": "/api/v1/ci-runs/128/logs"
+      },
+      {
+        "repo_provider": "gitea",
+        "repo_slug": "org/api",
+        "branch": "release",
+        "build_number": 95,
+        "failed_at": "2026-05-27T14:20:00Z",
+        "error_snippet": "Lint validation failed",
+        "log_url": "/api/v1/ci-runs/95/logs"
+      }
+    ],
+    "quality_metrics": {
+      "normalized_score": 4.2,
+      "unresolved_issues": {
+        "blocker": 2,
+        "critical": 0,
+        "major": 5
+      },
+      "comment": "코딩룰/세부 린터 위반 내역은 개별 레포지토리 대시보드에서 상세 제공"
+    },
+    "projects_progress": [
+      {
+        "project_id": "proj-v1.0",
+        "key": "V1RELEASE",
+        "name": "v1.0 Release",
+        "progress_percent": 70,
+        "status": "active",
+        "due_date": "2026-06-15",
+        "d_day": 19,
+        "risk_level": "Warning",
+        "risk_badge_color": "#FFC107"
+      },
+      {
+        "project_id": "proj-q2-ref",
+        "key": "Q2REFACTOR",
+        "name": "Q2 Refactoring",
+        "progress_percent": 20,
+        "status": "active",
+        "due_date": "2026-06-30",
+        "d_day": 34,
+        "risk_level": "Healthy",
+        "risk_badge_color": "#4CAF50"
+      }
+    ],
+    "linked_dev_requests": [
+      {
+        "dreq_id": "dreq-102",
+        "title": "신규 API 개발",
+        "status": "pending",
+        "assignee_display_name": "홍길동",
+        "created_at": "2026-05-25T09:00:00Z"
+      },
+      {
+        "dreq_id": "dreq-105",
+        "title": "UI 컴포넌트 수정",
+        "status": "in_review",
+        "assignee_display_name": "이영균",
+        "created_at": "2026-05-26T10:00:00Z"
+      }
+    ],
+    "history_trend": [
+      {
+        "date": "2026-05-21",
+        "avg_duration_seconds": 290,
+        "build_success_rate": 0.96,
+        "quality_score": 4.1
+      },
+      {
+        "date": "2026-05-27",
+        "avg_duration_seconds": 272,
+        "build_success_rate": 0.94,
+        "quality_score": 4.2
+      }
+    ]
+  },
+  "meta": {
+    "weight_policy": "repo_role",
+    "applied_weights": {
+      "org/core": 0.6,
+      "org/api": 0.3,
+      "org/shared-lib": 0.1
+    },
+    "fallbacks": [],
+    "data_gaps": [
+      {
+        "repo_slug": "org/shared-lib",
+        "provider": "gitea",
+        "reason": "provider_unreachable"
+      }
+    ]
+  }
+}
 ```
 
 ## 14. 개발 의뢰 (Dev Request, DREQ) API
