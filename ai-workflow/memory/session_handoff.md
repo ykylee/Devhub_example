@@ -1,3 +1,47 @@
+# Session Handoff — main (2026-05-27 post-#345 — #344 + #345 머지 + #346 review + housekeeping)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
+- 범위: 직전 #343 housekeeping (main HEAD `3e61843`) 이후 본 conversation 의 2 머지 PR (#344 + #345) + codex PR #346 review + 본 housekeeping.
+- 상태: main HEAD `0df5ff0` (PR #345). 본 sprint (`claude/work_260527-housekeeping-post-345`).
+- 최종 수정일: 2026-05-27
+
+## 2026-05-27 본 conversation 결산
+
+진입 시 directive (ADR-0024 §6 후속 carve + Gitea worker traceability) 중 사용자가 **A (Gitea 추적성) → B (ADR-0024 §6.6)** 선택 → #344. 이후 codex 자동 리뷰 확인 + 이전 PR 감사 → #345 hotfix. codex PR #346 review.
+
+### 머지 PR (2)
+
+| sha | PR | core |
+| --- | --- | --- |
+| `06a5f77` | **#344** | (A) **Gitea SCM sync worker (#341) 추적성 정합** — IMPL-gitea-03 (client.go REST pull) / 04 (syncer.go 정규화 upsert) / 05 (worker.go SyncWorker + `integration_sync_jobs` 큐 + main.go wire) + UT-gitea-02..04 발급 + `report.md` §2.4 IMPL-gitea-XX 서브표 신규 (기존 gitea-01..02 webhook push 와 분리, git: signature.go=`b1b6849` vs sync worker=`473c4ec`) + §3 'Gitea SCM 동기화 워커 (pull)' row RM-M4-06 1차 구현 매핑. (B) **ADR-0024 §6 carve 6 multi-instance ticket store** — migration 000035 `realtime_tickets` + store `ConsumeRealtimeTicket` `DELETE...WHERE expires_at>NOW() RETURNING` (인스턴스 간 single-use 원자) + `DBRealtimeTicketStore` + `realtimeTicketStore` interface + `NewRealtimeTicketStoreFor(*store.PostgresStore)` selector (DB 연결 PG / 미연결 in-memory fallback) + IMPL-realtime-02. **codex P1 보강** — `consume` 에 error 추가, store fault → auth.go 503 (not 401) + 라우터 회귀 가드 2. |
+| `0df5ff0` | **#345** | **codex review hotfix** (이전 머지 PR 감사). **#341 P1** = `AcquireNextQueuedSyncJob` 에 `provider_type='scm'` JOIN 게이트 (Gitea 워커가 비-SCM job 을 false-complete 하던 것 차단, `FOR UPDATE OF j SKIP LOCKED`) + store integration 회귀 test. **codex #345 P2 보강** = `syncIntegrationProvider` 가 비-SCM 시 queue 전 422 `integration_sync_unsupported_provider_type` fast-fail (zombie queued 방지, worker+endpoint defense-in-depth). **#342 P1** = `projects/[id]` completionRate 가 `getProjectTasks` 기본필터(done 제외)로 항상 0% → 전체 status fetch + activeTasks client filter. **#342 P2** = due_date/start_date `parseISO` (UTC day-shift 제거 3곳). |
+
+### codex PR #346 review (open, `codex/work_260527-a-next-task`)
+
+application/modal UX hotfix 7 파일 (+192/-62). claude **request-changes** ([comment](https://github.com/ykylee/Devhub_example/pull/346#issuecomment-4550418406)):
+- 🔴 **P1 (blocker, codex + migration grep 검증)** — key 핸들러 정규식 `{1,10}` 완화했으나 `migration 000013` CHECK `(key ~ '^[A-Za-z0-9]{10}$')` 미완화 + 후속 ALTER 없음 → `key=DEVHUB` (6자) prod CHECK violation 500 (in-memory handler test 만 통과, CI green 이지만 prod 깨짐). **migration 000036 ALTER 필요**.
+- 🟠 P2 (codex) — create 만 `owner_user_id=leader_user_id`, edit 는 owner 미동기화 → `enforceRowOwnership` 권한 drift.
+- 🟡 P3×3 — doc/impl 중복체크 불일치 / MemberTable·organization `orgChartVersion` scope creep / ComboBox fallback swap race.
+
+### 이전 PR codex 감사 결과 (stale vs live 구분)
+
+- **live (수정)**: #341 P1 provider_id (→ #345 scm-gate) / #342 P1 completionRate + P2 due_date (→ #345)
+- **stale**: #341 pagination·syncAll error 전파 (머지본 이미 구현 — codex 가 중간 commit review) / #334 developer catch·manager color (#340 재구성 / 타입에 color 없음+build green) / #333 stale HEAD (#343 해소)
+- **사내 영역 인계**: #340 Keycloak SPI realm events 미등록 + `DEVHUB_BACKEND_SPI_WEBHOOK_URL` 미wire (codex P1×2 — 사내 infra deploy) / #333 C: 경로 링크 (workflow memory 전반 패턴, 저우선)
+
+### 다음 directive
+
+| 영역 | 항목 |
+| --- | --- |
+| **claude** | #346 P1 migration 000036 보강 (작성자/사용자 결정) / ADR-0024 §6.4 subprotocol PoC P3 + §6.5 access_token query backward-compat 제거 P3 (모든 client ticket 전환 확인 후) |
+| 사내/사용자 | Onboarding SOP staging 1주 monitoring / nginx 재기동 + OIDC redirect_uri 검증 / Keycloak 26.0 redeploy smoke (ADR-0023 §5) / issue #214 / Keycloak SPI realm events 등록 + webhook env wire (#340 codex P1×2) |
+
+### 검증
+
+#344 CI 8 job green (codex P1 보강 후 재실행 포함) + #345 CI 8 job green. 양 PR squash merge + delete-branch. 본 housekeeping 후 Open PR = #346 (codex, request-changes).
+
+---
+
 # Session Handoff — main (2026-05-27 main 동기화 + #334~#342 9 PR flat 메모리 흡수 housekeeping)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
