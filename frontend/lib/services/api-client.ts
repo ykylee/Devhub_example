@@ -130,18 +130,22 @@ export async function apiClient<T>(method: string, path: string, body?: unknown)
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 
-  // ADR-0024 §6 carve 3 extension: 401 + we had a token → attempt refresh + retry once.
-  // Without this, an expired access_token causes an immediate redirect to /login?error=session_expired
-  // even when a valid refresh_token is available in sessionStorage.
-  if (response.status === 401 && token) {
+  // ADR-0024 §6 carve 3 extension:
+  // - 기존: access token 이 실린 요청에서만 refresh-then-retry.
+  // - 보강: hard refresh 직후처럼 access token header 가 비어도 refresh token 이
+  //   남아 있으면 1회 복구 시도.
+  if (response.status === 401 && (token || tokenStore.getRefreshToken())) {
     const refreshed = await attemptTokenRefresh();
     if (refreshed) {
-      headers["Authorization"] = `Bearer ${tokenStore.getAccessToken()}`;
-      response = await fetch(resolvedUrl, {
-        method,
-        headers,
-        body: body !== undefined ? JSON.stringify(body) : undefined,
-      });
+      const refreshedAccessToken = tokenStore.getAccessToken();
+      if (refreshedAccessToken) {
+        headers["Authorization"] = `Bearer ${refreshedAccessToken}`;
+        response = await fetch(resolvedUrl, {
+          method,
+          headers,
+          body: body !== undefined ? JSON.stringify(body) : undefined,
+        });
+      }
     }
   }
 
