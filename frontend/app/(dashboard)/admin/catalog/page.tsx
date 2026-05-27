@@ -166,6 +166,7 @@ export default function AdminCatalogPage() {
             <button
               key={tab.key}
               onClick={() => setTab(tab.key)}
+              data-testid={`catalog-tab-${tab.key}`}
               className={cn(
                 "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-black uppercase tracking-widest",
                 activeTab === tab.key
@@ -227,11 +228,13 @@ export default function AdminCatalogPage() {
                       <div className="flex items-center gap-2">
                         <Link
                           href={`/applications/${a.id}`}
+                          data-testid={`catalog-app-detail-${a.id}`}
                           className="rounded-lg border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-widest hover:bg-muted/30"
                         >
                           Detail
                         </Link>
                         <button
+                          data-testid={`catalog-app-projects-${a.id}`}
                           onClick={() => openProjectTabByApplication(a.id)}
                           className="rounded-lg border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-widest hover:bg-muted/30"
                         >
@@ -275,11 +278,13 @@ export default function AdminCatalogPage() {
                       <div className="flex items-center gap-2">
                         <Link
                           href={`/repositories/${r.id}`}
+                          data-testid={`catalog-repo-detail-${r.id}`}
                           className="rounded-lg border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-widest hover:bg-muted/30"
                         >
                           Detail
                         </Link>
                         <button
+                          data-testid={`catalog-repo-projects-${r.id}`}
                           onClick={() => openProjectTabByRepository(r.id)}
                           className="rounded-lg border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-widest hover:bg-muted/30"
                         >
@@ -324,6 +329,7 @@ export default function AdminCatalogPage() {
                     <td className="px-4 py-3">
                       <Link
                         href={`/projects/${p.id}`}
+                        data-testid={`catalog-project-detail-${p.id}`}
                         className="rounded-lg border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-widest hover:bg-muted/30"
                       >
                         Detail
