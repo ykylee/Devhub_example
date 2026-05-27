@@ -54,10 +54,11 @@ export interface GetApplicationResult {
 class ApplicationService {
   private baseUrl = API_BASE_URL;
 
-  async listApplications(options: { status?: string; q?: string } = {}): Promise<Application[]> {
+  async listApplications(options: { status?: string; q?: string; include_archived?: boolean } = {}): Promise<Application[]> {
     const params = new URLSearchParams();
     if (options.status) params.append("status", options.status);
     if (options.q) params.append("q", options.q);
+    if (options.include_archived !== undefined) params.append("include_archived", String(options.include_archived));
 
     const query = params.toString();
     const url = `${this.baseUrl}/api/v1/applications${query ? `?${query}` : ""}`;

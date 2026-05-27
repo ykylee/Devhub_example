@@ -3,9 +3,11 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { X, FolderKanban, GitBranch, Plus, Trash2, Users, Loader2 } from "lucide-react";
-import { ApplicationRepository, Project, ApplicationVisibility, ProjectStatus, Application, SCMProvider } from "@/lib/services/project.types";
+import { ApplicationRepository, Project, ApplicationVisibility, ProjectStatus, Application, SCMProvider, ProjectMemberRole } from "@/lib/services/project.types";
 import { Repository } from "@/lib/services/repository.service";
 import { projectService } from "@/lib/services/project.service";
+import { identityService } from "@/lib/services/identity.service";
+import { ComboBox } from "@/components/ui/ComboBox";
 import { cn } from "@/lib/utils";
 
 interface ProjectCreationModalProps {
@@ -19,7 +21,7 @@ interface ProjectCreationModalProps {
 export function ProjectCreationModal({ applicationId, repositories, onClose, onCreated, initialData }: ProjectCreationModalProps) {
   const [applications, setApplications] = useState<Application[]>([]);
   const [scmProviders, setScmProviders] = useState<SCMProvider[]>([]);
-  type MemberRole = "lead" | "contributor" | "observer";
+  type MemberRole = "leader" | "developer" | "reviewer" | "tester";
   type ProjectMemberDraft = { user_id: string; project_role: MemberRole };
   const numericRepositories = repositories.map((r) => {
     // ApplicationRepository.repository_id 가 optional 이라 `"repository_id" in r`
@@ -55,13 +57,14 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [leaderOptions, setLeaderOptions] = useState<Array<{ label: string; value: string; description?: string }>>([]);
   const [repositoryLinks, setRepositoryLinks] = useState<number[]>(
     initialData?.repository_ids?.length
       ? initialData.repository_ids.filter((id): id is number => typeof id === "number" && id > 0)
       : (initialRepositoryId ? [initialRepositoryId] : []),
   );
   const [projectMembers, setProjectMembers] = useState<ProjectMemberDraft[]>([
-    { user_id: initialData?.owner_user_id || "", project_role: "lead" },
+    { user_id: initialData?.owner_user_id || "", project_role: "leader" },
   ]);
   const [createRepository, setCreateRepository] = useState(false);
   const [repositoryCreate, setRepositoryCreate] = useState({
@@ -87,11 +90,20 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
         setRepositoryCreate((prev) => ({ ...prev, scm_provider: enabled.provider_key }));
       }
     }).catch(() => setScmProviders([]));
+    identityService.getUsers().then((users) => {
+      setLeaderOptions(
+        users.map((u) => ({
+          label: u.name || u.id,
+          value: u.id,
+          description: u.email,
+        })),
+      );
+    }).catch(() => setLeaderOptions([]));
   }, []);
 
   const isEdit = !!initialData?.id;
   const normalizedMembers = projectMembers.filter((m) => m.user_id.trim());
-  const hasLeadMember = normalizedMembers.some((m) => m.project_role === "lead");
+  const hasLeadMember = normalizedMembers.some((m) => m.project_role === "leader");
   const selectedRepositoryIDs = Array.from(new Set(repositoryLinks.filter((id) => id > 0)));
   const isCreateRepositoryPayloadValid =
     !createRepository ||
@@ -113,9 +125,14 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
         delete patchPayload.key;
         result = await projectService.updateProject(initialData.id, patchPayload);
       } else {
-        const leader = normalizedMembers.find((m) => m.project_role === "lead")?.user_id.trim() || formData.owner_user_id.trim();
+        const leader = normalizedMembers.find((m) => m.project_role === "leader")?.user_id.trim() || formData.owner_user_id.trim();
         const selectedApplicationId = formData.application_id || applicationId || "";
-        const project_members = normalizedMembers;
+        const project_members: Array<{ user_id: string; project_role: ProjectMemberRole }> = normalizedMembers.map((m) => ({
+          user_id: m.user_id.trim(),
+          // Backend currently accepts lead/contributor/observer.
+          // UI role taxonomy is Leader/Developer/Reviewer/Tester.
+          project_role: m.project_role === "leader" ? "lead" : "contributor",
+        }));
 
         if (selectedApplicationId) {
           const payload = {
@@ -356,26 +373,49 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Project Leader</label>
-              <input
-                required
-                value={formData.owner_user_id}
-                onChange={e => {
-                  const nextLeader = e.target.value;
-                  setFormData({ ...formData, owner_user_id: nextLeader });
-                  setProjectMembers((prev) => {
-                    const next = [...prev];
-                    const leadIndex = next.findIndex((m) => m.project_role === "lead");
-                    if (leadIndex >= 0) {
-                      next[leadIndex] = { ...next[leadIndex], user_id: nextLeader };
-                    } else {
-                      next.unshift({ user_id: nextLeader, project_role: "lead" });
-                    }
-                    return next;
-                  });
-                }}
-                placeholder="User ID..."
-                className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400/50"
-              />
+              {leaderOptions.length > 0 ? (
+                <ComboBox
+                  options={leaderOptions}
+                  value={formData.owner_user_id}
+                  onChange={(nextLeader) => {
+                    setFormData({ ...formData, owner_user_id: nextLeader });
+                    setProjectMembers((prev) => {
+                      const next = [...prev];
+                      const leadIndex = next.findIndex((m) => m.project_role === "leader");
+                      if (leadIndex >= 0) {
+                        next[leadIndex] = { ...next[leadIndex], user_id: nextLeader };
+                      } else {
+                        next.unshift({ user_id: nextLeader, project_role: "leader" });
+                      }
+                      return next;
+                    });
+                  }}
+                  placeholder="Search leader by name/email/user_id"
+                  emptyText="No matching users."
+                  className="w-full"
+                />
+              ) : (
+                <input
+                  required
+                  value={formData.owner_user_id}
+                  onChange={e => {
+                    const nextLeader = e.target.value;
+                    setFormData({ ...formData, owner_user_id: nextLeader });
+                    setProjectMembers((prev) => {
+                      const next = [...prev];
+                      const leadIndex = next.findIndex((m) => m.project_role === "leader");
+                      if (leadIndex >= 0) {
+                        next[leadIndex] = { ...next[leadIndex], user_id: nextLeader };
+                      } else {
+                        next.unshift({ user_id: nextLeader, project_role: "leader" });
+                      }
+                      return next;
+                    });
+                  }}
+                  placeholder="User ID..."
+                  className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400/50"
+                />
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Status</label>
@@ -396,50 +436,71 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
                 <Users className="w-3.5 h-3.5" /> Project Members
               </p>
-              <button
-                type="button"
-                onClick={() => setProjectMembers((prev) => [...prev, { user_id: "", project_role: "contributor" }])}
-                className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[10px] font-black uppercase tracking-widest hover:bg-muted/30"
-              >
+                <button
+                  type="button"
+                  onClick={() => setProjectMembers((prev) => [...prev, { user_id: "", project_role: "developer" }])}
+                  className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[10px] font-black uppercase tracking-widest hover:bg-muted/30"
+                >
                 <Plus className="w-3 h-3" /> Add
               </button>
             </div>
             <div className="space-y-2">
               {projectMembers.map((member, idx) => (
                 <div key={`member-row-${idx}`} className="grid grid-cols-12 gap-2 items-center">
-                  <input
-                    value={member.user_id}
-                    onChange={(e) => {
-                      const next = [...projectMembers];
-                      next[idx] = { ...next[idx], user_id: e.target.value };
-                      setProjectMembers(next);
-                      if (next[idx].project_role === "lead") {
-                        setFormData((prev) => ({ ...prev, owner_user_id: e.target.value }));
-                      }
-                    }}
-                    placeholder="user id"
-                    className="col-span-7 bg-muted/30 border border-border rounded-xl px-3 py-2 text-xs text-foreground dark:text-primary-foreground"
-                  />
+                  <div className="col-span-7">
+                    {leaderOptions.length > 0 ? (
+                      <ComboBox
+                        options={leaderOptions}
+                        value={member.user_id}
+                        onChange={(value) => {
+                          const next = [...projectMembers];
+                          next[idx] = { ...next[idx], user_id: value };
+                          setProjectMembers(next);
+                          if (next[idx].project_role === "leader") {
+                            setFormData((prev) => ({ ...prev, owner_user_id: value }));
+                          }
+                        }}
+                        placeholder="Search member by name/email/user_id"
+                        emptyText="No matching users."
+                        className="w-full"
+                      />
+                    ) : (
+                      <input
+                        value={member.user_id}
+                        onChange={(e) => {
+                          const next = [...projectMembers];
+                          next[idx] = { ...next[idx], user_id: e.target.value };
+                          setProjectMembers(next);
+                          if (next[idx].project_role === "leader") {
+                            setFormData((prev) => ({ ...prev, owner_user_id: e.target.value }));
+                          }
+                        }}
+                        placeholder="user id"
+                        className="w-full bg-muted/30 border border-border rounded-xl px-3 py-2 text-xs text-foreground dark:text-primary-foreground"
+                      />
+                    )}
+                  </div>
                   <select
                     value={member.project_role}
                     onChange={(e) => {
                       const role = e.target.value as MemberRole;
                       let next = [...projectMembers];
-                      if (role === "lead") {
-                        next = next.map((m, i) => ({ ...m, project_role: i === idx ? "lead" : (m.project_role === "lead" ? "contributor" : m.project_role) }));
+                      if (role === "leader") {
+                        next = next.map((m, i) => ({ ...m, project_role: i === idx ? "leader" : (m.project_role === "leader" ? "developer" : m.project_role) }));
                       } else {
                         next[idx] = { ...next[idx], project_role: role };
                       }
                       setProjectMembers(next);
-                      if (role === "lead") {
+                      if (role === "leader") {
                         setFormData((prev) => ({ ...prev, owner_user_id: next[idx].user_id }));
                       }
                     }}
                     className="col-span-4 bg-muted/30 border border-border rounded-xl px-2 py-2 text-xs text-foreground dark:text-primary-foreground"
                   >
-                    <option value="lead">lead</option>
-                    <option value="contributor">contributor</option>
-                    <option value="observer">observer</option>
+                    <option value="leader">Leader</option>
+                    <option value="developer">Developer</option>
+                    <option value="reviewer">Reviewer</option>
+                    <option value="tester">Tester</option>
                   </select>
                   <button
                     type="button"
@@ -447,8 +508,8 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
                       if (projectMembers.length === 1) return;
                       const target = projectMembers[idx];
                       let next = projectMembers.filter((_, i) => i !== idx);
-                      if (target.project_role === "lead") {
-                        next = next.map((m, i) => ({ ...m, project_role: i === 0 ? "lead" : m.project_role }));
+                      if (target.project_role === "leader") {
+                        next = next.map((m, i) => ({ ...m, project_role: i === 0 ? "leader" : m.project_role }));
                         setFormData((prev) => ({ ...prev, owner_user_id: next[0]?.user_id ?? "" }));
                       }
                       setProjectMembers(next);

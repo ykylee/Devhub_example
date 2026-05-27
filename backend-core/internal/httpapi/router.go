@@ -235,6 +235,8 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.POST("/infra/services/snapshot", handler.ingestInfraServicesSnapshot)
 	v1.GET("/infra/topology/v2", handler.infraTopologyV2)
 	v1.GET("/repositories", handler.repositories)
+	v1.POST("/repositories", handler.createRepositoryDraft)
+	v1.POST("/repositories/:repository_id/publish", handler.requestRepositoryPublish)
 	v1.GET("/issues", handler.issues)
 	v1.GET("/pull-requests", handler.pullRequests)
 	v1.GET("/ci-runs", handler.ciRuns)

@@ -177,10 +177,14 @@ INSERT INTO repositories (
 	source,
 	provider_id,
 	description,
+	repository_status,
+	scm_provider,
+	published_at,
+	publish_requested_at,
 	updated_at
 ) VALUES (
 	NULLIF($1, 0), $2, NULLIF($3, ''), $4, NULLIF($5, ''), NULLIF($6, ''), NULLIF($7, ''), $8,
-	COALESCE(NULLIF($9, ''), 'scm'), NULLIF($10, '')::uuid, NULLIF($11, ''), NOW()
+	COALESCE(NULLIF($9, ''), 'scm'), NULLIF($10, '')::uuid, NULLIF($11, ''), 'active', NULLIF($12, ''), NOW(), NULL, NOW()
 )
 ON CONFLICT (full_name) DO UPDATE SET
 	gitea_repository_id = COALESCE(EXCLUDED.gitea_repository_id, repositories.gitea_repository_id),
@@ -192,6 +196,10 @@ ON CONFLICT (full_name) DO UPDATE SET
 	private = EXCLUDED.private,
 	source = COALESCE(repositories.source, EXCLUDED.source),
 	provider_id = COALESCE(repositories.provider_id, EXCLUDED.provider_id),
+	repository_status = 'active',
+	published_at = COALESCE(repositories.published_at, NOW()),
+	scm_provider = COALESCE(repositories.scm_provider, EXCLUDED.scm_provider),
+	publish_requested_at = NULL,
 	updated_at = NOW()`
 
 	_, err := s.pool.Exec(
@@ -208,6 +216,7 @@ ON CONFLICT (full_name) DO UPDATE SET
 		repository.Source,
 		repository.ProviderID,
 		repository.Description,
+		repository.SCMProvider,
 	)
 	return err
 }
@@ -1336,6 +1345,10 @@ SELECT
 	COALESCE(html_url, ''),
 	COALESCE(default_branch, ''),
 	private,
+	COALESCE(repository_status, 'active'),
+	COALESCE(scm_provider, ''),
+	publish_requested_at,
+	published_at,
 	updated_at,
 	COALESCE(source, 'scm'),
 	COALESCE(provider_id::text, ''),
@@ -1363,6 +1376,10 @@ LIMIT $1 OFFSET $2`
 			&repository.HTMLURL,
 			&repository.DefaultBranch,
 			&repository.Private,
+			&repository.Status,
+			&repository.SCMProvider,
+			&repository.PublishRequestedAt,
+			&repository.PublishedAt,
 			&repository.UpdatedAt,
 			&repository.Source,
 			&repository.ProviderID,

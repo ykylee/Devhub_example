@@ -16,10 +16,45 @@ import { DashboardHeader } from "@/components/ui/DashboardHeader";
 import { Badge } from "@/components/ui/Badge";
 import { FilterBar } from "@/components/ui/FilterBar";
 import { PageEmpty, PageError, PageLoading } from "@/components/ui/PageState";
-import { repositoryService, Repository, RepositoryActivity } from "@/lib/services/repository.service";
+import { repositoryService, Repository, RepositoryActivity, RepositoryBuildRun } from "@/lib/services/repository.service";
 
 interface RepositoryWithActivity extends Repository {
   activity?: RepositoryActivity;
+  latestBuild?: RepositoryBuildRun;
+  unresolvedFailedBranches?: string[];
+  buildHealth?: "success" | "failed" | "unknown";
+}
+
+function evaluateBuildHealth(runs: RepositoryBuildRun[]): { buildHealth: "success" | "failed" | "unknown"; unresolvedFailedBranches: string[] } {
+  const terminalByBranch = new Map<string, "success" | "failed" | "unknown">();
+  for (const run of runs) {
+    const branch = run.branch?.trim() || "(unknown)";
+    if (terminalByBranch.has(branch)) continue;
+    if (run.status === "success") {
+      terminalByBranch.set(branch, "success");
+      continue;
+    }
+    if (run.status === "failed") {
+      terminalByBranch.set(branch, "failed");
+      continue;
+    }
+    if (run.status === "cancelled" || run.status === "skipped" || run.status === "unknown") {
+      terminalByBranch.set(branch, "unknown");
+    }
+  }
+
+  const unresolvedFailedBranches = [...terminalByBranch.entries()]
+    .filter(([, status]) => status === "failed")
+    .map(([branch]) => branch);
+
+  if (unresolvedFailedBranches.length > 0) {
+    return { buildHealth: "failed", unresolvedFailedBranches };
+  }
+  const hasSuccess = [...terminalByBranch.values()].some((status) => status === "success");
+  if (hasSuccess) {
+    return { buildHealth: "success", unresolvedFailedBranches: [] };
+  }
+  return { buildHealth: "unknown", unresolvedFailedBranches: [] };
 }
 
 export default function RepositoriesStatusPage() {
@@ -37,8 +72,12 @@ export default function RepositoriesStatusPage() {
       const reposWithActivity = await Promise.all(
         fetchedRepos.map(async (repo) => {
           try {
-            const activity = await repositoryService.getRepositoryActivity(repo.id);
-            return { ...repo, activity };
+            const [activity, recentRuns] = await Promise.all([
+              repositoryService.getRepositoryActivity(repo.id),
+              repositoryService.getRepositoryBuildRuns(repo.id, { limit: 50 }),
+            ]);
+            const { buildHealth, unresolvedFailedBranches } = evaluateBuildHealth(recentRuns);
+            return { ...repo, activity, latestBuild: recentRuns[0], buildHealth, unresolvedFailedBranches };
           } catch (err) {
             console.error(`Failed to fetch activity for ${repo.id}:`, err);
             return repo;
@@ -72,9 +111,9 @@ export default function RepositoriesStatusPage() {
   const totalRepos = repos.length;
   const activePRs = repos.reduce((acc, repo) => acc + (repo.activity?.pr_event_count || 0), 0);
   const totalContributors = new Set(repos.flatMap(repo => repo.activity?.active_contributors || [])).size;
-  const avgBuildSuccess = repos.length > 0
-    ? (repos.reduce((acc, repo) => acc + (repo.activity?.build_success_rate || 0), 0) / repos.length * 100).toFixed(1)
-    : "0";
+  const latestBuildSuccessCount = repos.filter((repo) => repo.buildHealth === "success").length;
+  const latestBuildFailureCount = repos.filter((repo) => repo.buildHealth === "failed").length;
+  const latestBuildUnknownCount = repos.filter((repo) => repo.buildHealth !== "success" && repo.buildHealth !== "failed").length;
 
   if (loading) {
     return <PageLoading label="Loading repositories..." />;
@@ -95,7 +134,7 @@ export default function RepositoriesStatusPage() {
           { label: "Total Repositories", value: totalRepos.toString(), icon: Globe, color: "text-foreground" },
           { label: "Active PRs (30d)", value: activePRs.toString(), icon: GitPullRequest, color: "text-info" },
           { label: "Total Contributors", value: totalContributors.toString(), icon: Users, color: "text-purple-500" },
-          { label: "Build Success Rate", value: `${avgBuildSuccess}%`, icon: Activity, color: "text-success" },
+          { label: "Latest Build Success", value: latestBuildSuccessCount.toString(), icon: Activity, color: "text-success" },
         ].map((stat, i) => (
           <motion.div 
             key={stat.label}
@@ -163,10 +202,21 @@ export default function RepositoriesStatusPage() {
                 <p className="text-lg font-black text-foreground dark:text-primary-foreground">{repo.activity?.pr_event_count || 0}</p>
               </div>
               <div>
-                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Build Success</p>
-                <p className="text-sm font-mono font-bold text-success">
-                  {repo.activity ? `${(repo.activity.build_success_rate * 100).toFixed(1)}%` : "N/A"}
+                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Latest Build</p>
+                <p className={`text-sm font-mono font-bold ${
+                  repo.buildHealth === "success"
+                    ? "text-success"
+                    : repo.buildHealth === "failed"
+                      ? "text-destructive"
+                      : "text-muted-foreground"
+                }`}>
+                  {repo.buildHealth === "success" ? "Success" : repo.buildHealth === "failed" ? "Failed" : "N/A"}
                 </p>
+                {repo.buildHealth === "failed" && (repo.unresolvedFailedBranches?.length ?? 0) > 0 && (
+                  <p className="text-[10px] text-destructive/80">
+                    unresolved: {repo.unresolvedFailedBranches?.join(", ")}
+                  </p>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <Link 
@@ -193,6 +243,9 @@ export default function RepositoriesStatusPage() {
           <PageEmpty message="No repositories matching your filters" />
         )}
       </div>
+      <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+        Latest Build Summary: Success {latestBuildSuccessCount} / Failed {latestBuildFailureCount} / Unknown {latestBuildUnknownCount}
+      </p>
     </div>
   );
 }

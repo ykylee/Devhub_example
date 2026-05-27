@@ -682,6 +682,161 @@ type RepositoryCreatePayload struct {
 	SCMProvider string
 }
 
+func (s *PostgresStore) CreateRepositoryDraft(ctx context.Context, key, slug, scmProvider string) (domain.Repository, error) {
+	fullName := strings.TrimSpace(slug)
+	name := strings.TrimSpace(key)
+	if fullName == "" || name == "" {
+		return domain.Repository{}, ErrConflict
+	}
+
+	const query = `
+INSERT INTO repositories (
+	full_name, name, owner_login, clone_url, html_url, default_branch, private,
+	repository_status, scm_provider, publish_requested_at, published_at, updated_at
+) VALUES (
+	$1, $2, NULLIF(split_part($1, '/', 1), ''), '', '', 'main', false,
+	'draft', NULLIF($3, ''), NULL, NULL, NOW()
+)
+RETURNING
+	id,
+	COALESCE(gitea_repository_id, 0),
+	full_name,
+	COALESCE(owner_login, ''),
+	name,
+	COALESCE(clone_url, ''),
+	COALESCE(html_url, ''),
+	COALESCE(default_branch, ''),
+	private,
+	COALESCE(repository_status, 'draft'),
+	COALESCE(scm_provider, ''),
+	publish_requested_at,
+	published_at,
+	updated_at`
+
+	var repo domain.Repository
+	if err := s.pool.QueryRow(ctx, query, fullName, name, strings.TrimSpace(scmProvider)).Scan(
+		&repo.ID,
+		&repo.GiteaID,
+		&repo.FullName,
+		&repo.OwnerLogin,
+		&repo.Name,
+		&repo.CloneURL,
+		&repo.HTMLURL,
+		&repo.DefaultBranch,
+		&repo.Private,
+		&repo.Status,
+		&repo.SCMProvider,
+		&repo.PublishRequestedAt,
+		&repo.PublishedAt,
+		&repo.UpdatedAt,
+	); err != nil {
+		if isUniqueViolation(err) {
+			return domain.Repository{}, ErrConflict
+		}
+		return domain.Repository{}, fmt.Errorf("create repository draft: %w", err)
+	}
+	return repo, nil
+}
+
+func (s *PostgresStore) MarkRepositoryDraftPublishRequested(ctx context.Context, repositoryID int64) (domain.Repository, error) {
+	const query = `
+UPDATE repositories
+SET
+	publish_requested_at = NOW(),
+	updated_at = NOW()
+WHERE id = $1
+  AND repository_status = 'draft'
+RETURNING
+	id,
+	COALESCE(gitea_repository_id, 0),
+	full_name,
+	COALESCE(owner_login, ''),
+	name,
+	COALESCE(clone_url, ''),
+	COALESCE(html_url, ''),
+	COALESCE(default_branch, ''),
+	private,
+	COALESCE(repository_status, 'draft'),
+	COALESCE(scm_provider, ''),
+	publish_requested_at,
+	published_at,
+	updated_at`
+	var repo domain.Repository
+	if err := s.pool.QueryRow(ctx, query, repositoryID).Scan(
+		&repo.ID,
+		&repo.GiteaID,
+		&repo.FullName,
+		&repo.OwnerLogin,
+		&repo.Name,
+		&repo.CloneURL,
+		&repo.HTMLURL,
+		&repo.DefaultBranch,
+		&repo.Private,
+		&repo.Status,
+		&repo.SCMProvider,
+		&repo.PublishRequestedAt,
+		&repo.PublishedAt,
+		&repo.UpdatedAt,
+	); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.Repository{}, ErrNotFound
+		}
+		return domain.Repository{}, fmt.Errorf("mark repository publish requested: %w", err)
+	}
+	return repo, nil
+}
+
+func (s *PostgresStore) GetRepositoryByID(ctx context.Context, repositoryID int64) (domain.Repository, error) {
+	const query = `
+SELECT
+	id,
+	COALESCE(gitea_repository_id, 0),
+	full_name,
+	COALESCE(owner_login, ''),
+	name,
+	COALESCE(clone_url, ''),
+	COALESCE(html_url, ''),
+	COALESCE(default_branch, ''),
+	private,
+	COALESCE(repository_status, 'active'),
+	COALESCE(scm_provider, ''),
+	publish_requested_at,
+	published_at,
+	updated_at,
+	COALESCE(source, 'scm'),
+	COALESCE(provider_id::text, ''),
+	COALESCE(description, '')
+FROM repositories
+WHERE id = $1`
+
+	var repo domain.Repository
+	if err := s.pool.QueryRow(ctx, query, repositoryID).Scan(
+		&repo.ID,
+		&repo.GiteaID,
+		&repo.FullName,
+		&repo.OwnerLogin,
+		&repo.Name,
+		&repo.CloneURL,
+		&repo.HTMLURL,
+		&repo.DefaultBranch,
+		&repo.Private,
+		&repo.Status,
+		&repo.SCMProvider,
+		&repo.PublishRequestedAt,
+		&repo.PublishedAt,
+		&repo.UpdatedAt,
+		&repo.Source,
+		&repo.ProviderID,
+		&repo.Description,
+	); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.Repository{}, ErrNotFound
+		}
+		return domain.Repository{}, fmt.Errorf("get repository by id: %w", err)
+	}
+	return repo, nil
+}
+
 // CreateProjectWithRepositoryPayload creates the project — optionally creating and
 // linking a companion repository — in ONE transaction (codex #349 P2 atomicity).
 // repoPayload 가 주어지면 repository upsert + project insert + project_repositories

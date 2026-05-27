@@ -1,24 +1,46 @@
 package httpapi
 
 import (
+	"context"
+	"errors"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/devhub/backend-core/internal/domain"
+	"github.com/devhub/backend-core/internal/gitea"
+	"github.com/devhub/backend-core/internal/store"
 	"github.com/gin-gonic/gin"
 )
 
 type repositoryResponse struct {
-	ID            int64     `json:"id"`
-	GiteaID       int64     `json:"gitea_repository_id,omitempty"`
-	FullName      string    `json:"full_name"`
-	OwnerLogin    string    `json:"owner_login,omitempty"`
-	Name          string    `json:"name"`
-	CloneURL      string    `json:"clone_url,omitempty"`
-	HTMLURL       string    `json:"html_url,omitempty"`
-	DefaultBranch string    `json:"default_branch,omitempty"`
-	Private       bool      `json:"private"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	ID                 int64      `json:"id"`
+	GiteaID            int64      `json:"gitea_repository_id,omitempty"`
+	FullName           string     `json:"full_name"`
+	OwnerLogin         string     `json:"owner_login,omitempty"`
+	Name               string     `json:"name"`
+	CloneURL           string     `json:"clone_url,omitempty"`
+	HTMLURL            string     `json:"html_url,omitempty"`
+	DefaultBranch      string     `json:"default_branch,omitempty"`
+	Private            bool       `json:"private"`
+	Status             string     `json:"status"`
+	SCMProvider        string     `json:"scm_provider,omitempty"`
+	PublishRequestedAt *time.Time `json:"publish_requested_at,omitempty"`
+	PublishedAt        *time.Time `json:"published_at,omitempty"`
+	UpdatedAt          time.Time  `json:"updated_at"`
+}
+
+type repositoryDraftStore interface {
+	CreateRepositoryDraft(ctx context.Context, key, slug, scmProvider string) (domain.Repository, error)
+	MarkRepositoryDraftPublishRequested(ctx context.Context, repositoryID int64) (domain.Repository, error)
+	GetRepositoryByID(ctx context.Context, repositoryID int64) (domain.Repository, error)
+}
+
+type createRepositoryDraftRequest struct {
+	Key         string `json:"key"`
+	Slug        string `json:"slug"`
+	SCMProvider string `json:"scm_provider"`
 }
 
 type issueResponse struct {
@@ -67,6 +89,25 @@ func riskFromDomain(risk domain.Risk) riskResponse {
 	}
 }
 
+func repositoryFromDomain(repository domain.Repository) repositoryResponse {
+	return repositoryResponse{
+		ID:                 repository.ID,
+		GiteaID:            repository.GiteaID,
+		FullName:           repository.FullName,
+		OwnerLogin:         repository.OwnerLogin,
+		Name:               repository.Name,
+		CloneURL:           repository.CloneURL,
+		HTMLURL:            repository.HTMLURL,
+		DefaultBranch:      repository.DefaultBranch,
+		Private:            repository.Private,
+		Status:             repository.Status,
+		SCMProvider:        repository.SCMProvider,
+		PublishRequestedAt: repository.PublishRequestedAt,
+		PublishedAt:        repository.PublishedAt,
+		UpdatedAt:          repository.UpdatedAt,
+	}
+}
+
 func (h Handler) repositories(c *gin.Context) {
 	if h.cfg.DomainStore == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
@@ -88,20 +129,135 @@ func (h Handler) repositories(c *gin.Context) {
 
 	data := make([]repositoryResponse, 0, len(repositories))
 	for _, repository := range repositories {
-		data = append(data, repositoryResponse{
-			ID:            repository.ID,
-			GiteaID:       repository.GiteaID,
-			FullName:      repository.FullName,
-			OwnerLogin:    repository.OwnerLogin,
-			Name:          repository.Name,
-			CloneURL:      repository.CloneURL,
-			HTMLURL:       repository.HTMLURL,
-			DefaultBranch: repository.DefaultBranch,
-			Private:       repository.Private,
-			UpdatedAt:     repository.UpdatedAt,
-		})
+		data = append(data, repositoryFromDomain(repository))
 	}
 	c.JSON(http.StatusOK, listEnvelope(data, opts))
+}
+
+func (h Handler) createRepositoryDraft(c *gin.Context) {
+	storeI, ok := h.cfg.DomainStore.(repositoryDraftStore)
+	if !ok {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "repository draft store is not configured"})
+		return
+	}
+	var req createRepositoryDraftRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": err.Error()})
+		return
+	}
+	if strings.TrimSpace(req.Key) == "" || strings.TrimSpace(req.Slug) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "key and slug are required"})
+		return
+	}
+	created, err := storeI.CreateRepositoryDraft(c.Request.Context(), req.Key, req.Slug, req.SCMProvider)
+	if err != nil {
+		if err == store.ErrConflict {
+			c.JSON(http.StatusConflict, gin.H{"status": "conflict", "error": "repository key or slug already exists"})
+			return
+		}
+		writeServerError(c, err, "repositories.create_draft")
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"status": "ok", "data": repositoryFromDomain(created)})
+}
+
+func (h Handler) requestRepositoryPublish(c *gin.Context) {
+	storeI, ok := h.cfg.DomainStore.(repositoryDraftStore)
+	if !ok {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "repository draft store is not configured"})
+		return
+	}
+	repositoryID, err := strconv.ParseInt(c.Param("repository_id"), 10, 64)
+	if err != nil || repositoryID <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "repository_id must be a positive integer"})
+		return
+	}
+	repo, err := storeI.GetRepositoryByID(c.Request.Context(), repositoryID)
+	if err != nil {
+		if err == store.ErrNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "draft repository not found"})
+			return
+		}
+		writeServerError(c, err, "repositories.get")
+		return
+	}
+	if repo.Status != "draft" {
+		c.JSON(http.StatusConflict, gin.H{"status": "conflict", "error": "only draft repository can be published"})
+		return
+	}
+	if strings.TrimSpace(repo.SCMProvider) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "scm_provider is required for draft publish"})
+		return
+	}
+	if h.cfg.ApplicationStore == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "application store is not configured"})
+		return
+	}
+	provider, err := h.cfg.ApplicationStore.GetIntegrationProviderByKey(c.Request.Context(), strings.TrimSpace(repo.SCMProvider))
+	if errors.Is(err, store.ErrNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "integration provider not found", "code": "integration_provider_not_found"})
+		return
+	}
+	if err != nil {
+		writeServerError(c, err, "repositories.publish.provider_lookup")
+		return
+	}
+	if provider.ProviderType != domain.IntegrationProviderTypeSCM {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"status": "rejected", "error": "provider is not SCM type", "code": "integration_sync_unsupported_provider_type"})
+		return
+	}
+	if !providerHasCapability(provider, "push") {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"status": "rejected", "error": "provider does not have push capability", "code": "integration_capability_not_enabled"})
+		return
+	}
+	if !isGiteaCompatibleProvider(provider) {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"status": "rejected", "error": "provider is not gitea-compatible", "code": "integration_provider_not_gitea_compatible"})
+		return
+	}
+	client, ok := h.scmProviderClient(c, provider)
+	if !ok {
+		return
+	}
+	owner := scmRepoOwnerLogin(repo.FullName)
+	repoName := strings.TrimSpace(repo.Name)
+	if slash := strings.LastIndex(repo.FullName, "/"); slash >= 0 && slash+1 < len(repo.FullName) {
+		repoName = strings.TrimSpace(repo.FullName[slash+1:])
+	}
+	created, err := client.CreateRepo(c.Request.Context(), owner, gitea.CreateRepoOptions{
+		Name:          repoName,
+		Description:   strings.TrimSpace(repo.Description),
+		Private:       repo.Private,
+		DefaultBranch: "main",
+		AutoInit:      true,
+	})
+	if err != nil {
+		_, _ = storeI.MarkRepositoryDraftPublishRequested(c.Request.Context(), repositoryID)
+		c.JSON(http.StatusBadGateway, gin.H{"status": "rejected", "error": "failed to create SCM repository: " + err.Error(), "code": "integration_scm_create_failed"})
+		return
+	}
+	if err := h.cfg.ApplicationStore.UpsertRepository(c.Request.Context(), domain.Repository{
+		GiteaID:       created.ID,
+		FullName:      created.FullName,
+		OwnerLogin:    scmRepoOwnerLogin(created.FullName),
+		Name:          created.Name,
+		CloneURL:      created.CloneURL,
+		HTMLURL:       created.HTMLURL,
+		DefaultBranch: created.DefaultBranch,
+		Private:       created.Private,
+		Source:        domain.RepositorySourceSystem,
+		ProviderID:    provider.ID,
+		Description:   strings.TrimSpace(repo.Description),
+		SCMProvider:   strings.TrimSpace(repo.SCMProvider),
+	}); err != nil {
+		writeServerError(c, err, "repositories.publish.persist")
+		return
+	}
+	published, err := storeI.GetRepositoryByID(c.Request.Context(), repositoryID)
+	if err != nil {
+		writeServerError(c, err, "repositories.publish.reload")
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "ok", "data": repositoryFromDomain(published)})
 }
 
 func (h Handler) issues(c *gin.Context) {
