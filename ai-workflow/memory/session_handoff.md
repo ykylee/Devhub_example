@@ -1,3 +1,43 @@
+# Session Handoff — main (2026-05-27 post-#359 — 외부연동 webhook/auth_mode + admin catalog + codex P1 hotfix)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
+- 범위: 직전 #356 housekeeping (post-#355) 이후 3 PR (#357/#358/#359) 머지.
+- 상태: main HEAD `472a24f` (PR #359).
+- 최종 수정일: 2026-05-27
+
+## 2026-05-27 (post-#359) 결산
+
+직전 housekeeping 후 사용자 지시로 (1) Gitea webhook 헤더 정정 + (2) auth_mode UI 불일치 full 모델 작업. 사용자 "ci 상관없이 머지" 로 #357/#358 머지 → codex 가 #358 P1 발견 → "codex 반영" 지시로 #359 hotfix.
+
+### 머지 PR (3)
+
+| sha | PR | core |
+| --- | --- | --- |
+| `be15288` | **#358** (claude) | **webhook 헤더 alias + auth_mode 별 outbound 자격증명 (full)**. (A) 범용 ingest(API-73)가 `X-Integration-*` 만 읽던 버그 → `X-Gitea-*`/`X-Gogs-*` fallback(`firstHeader`). (B) auth_mode inert → **migration 000041** `{auth_username,auth_client_id,auth_token_url,auth_secret}` + domain `OutboundAuth`/`ResolveOutboundAuth()` + handler 4 필드(`auth_secret` write-only) + gitea `AuthHeader`/`AuthorizationHeader`(token/basic/app_password/oauth2/agent)/`NewClientForAuth` + ProviderModal auth_mode 별 동적 입력(`SecretField`). |
+| `cf796b9` | **#357** (codex) | **system admin catalog UI** — `/admin/catalog` + Sidebar systemMenu(Boxes) + e2e + doc. codex P2×2 (repo-scoped project 누락/repo-ID 드릴다운) 작성자 머지 전 반영 완료 확인. |
+| `472a24f` | **#359** (claude) | **codex #358 P1 hotfix** — `resolveSyncConfig` 가 명시 provider 미설정 자격증명 시 worker env `GITEA_TOKEN` 으로 provider host 에 송신하던 유출 정정 (명시 provider = 그 provider 자격증명만, env 혼용 제거). 회귀 가드 `NoEnvTokenLeakForExplicitProvider`. |
+
+### codex 리뷰 현황
+
+| PR | 결과 |
+| --- | --- |
+| #357 | ✅ codex P2×2 작성자 머지 전 반영 (merged code 확인: `getRepositoryProjects` 병합 + `repository_id` 매칭) |
+| #358 | 🔴 codex **P1 (env token 유출)** → **#359 로 hotfix 완료** |
+| #355 | ⚠️ codex usage limit 으로 여전히 리뷰 0건 — limit reset 후 재리뷰 watch |
+
+### 다음 directive
+
+| 영역 | 항목 |
+| --- | --- |
+| **claude** | 1) **#355/#358 codex 재리뷰 확인** (limit reset). 2) Gitea 고정메뉴 Phase 2b (known vendor 시 generic provider_type/auth_mode select 숨김). 3) inbound webhook 정규화 깊이. 4) #6 `credentials_ref`/`api_token`/`auth_secret` 평문 저장 보안 (envelope 암호화). |
+| 사내/사용자 | Onboarding SOP staging monitoring / nginx OIDC / Keycloak 26.0 smoke / issue #214 / Keycloak SPI realm events wire. |
+
+### 검증
+
+#358 백엔드 build+vet+`go test ./...` + 프론트 tsc+eslint+vitest 17+build ✓. #359 build+vet+gitea/httpapi ✓. 모두 사용자 지시로 머지 (CI 무관). 본 housekeeping 후 Open PR 0. migration prefix 39/40/41 순차 (충돌 없음).
+
+---
+
 # Session Handoff — main (2026-05-27 post-#355 — #354 #349-hotfix + #355 Gitea full 머지 + housekeeping)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
