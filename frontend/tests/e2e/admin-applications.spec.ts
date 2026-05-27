@@ -52,15 +52,25 @@ test.describe("/admin/settings/applications — CRUD UI smoke", () => {
     await dialog.getByPlaceholder("E.G. PLATFORM26").fill(appKey);
     await dialog.getByPlaceholder("e.g. DevHub Platform 2026").fill(appName);
     await dialog.getByPlaceholder("Strategic goals, KPI, and scope summary...").fill("e2e search coverage");
-    await dialog.getByPlaceholder("e.g. charlie").first().fill(leader);
-    await dialog.getByPlaceholder("e.g. dept-eng").fill(devUnit);
-    await dialog.getByPlaceholder("e.g. charlie").nth(1).fill(leader);
+
+    // Application Leader ComboBox
+    const leaderField = dialog.locator("label", { hasText: "Application Leader" }).locator("..");
+    await leaderField.getByRole("button").click();
+    await dialog.getByPlaceholder("Search...").fill(leader);
+    await dialog.getByRole("option").filter({ hasText: new RegExp(leader, "i") }).first().click();
+
+    // Development Department ComboBox
+    const deptField = dialog.locator("label", { hasText: "Development Department" }).locator("..");
+    await deptField.getByRole("button").click();
+    await dialog.getByPlaceholder("Search...").fill(devUnit);
+    await dialog.getByRole("option").filter({ hasText: new RegExp(devUnit, "i") }).first().click();
+
     await dialog.getByRole("button", { name: /create application/i }).click();
 
     await expect(dialog).toBeHidden({ timeout: 10_000 });
     await expect(page.getByRole("row").filter({ hasText: appName })).toBeVisible({ timeout: 15_000 });
 
-    const searchInput = page.getByPlaceholder("Search by name, key, or owner...");
+    const searchInput = page.getByPlaceholder("Search by name, key, or description...");
     await searchInput.fill(leader);
     await expect(page.getByRole("row").filter({ hasText: appName })).toBeVisible({ timeout: 15_000 });
 
