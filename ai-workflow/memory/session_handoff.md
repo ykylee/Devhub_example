@@ -1,3 +1,43 @@
+# Session Handoff — main (2026-05-27 post-#371 — #368 draft publish flow + 전수점검 hotfix)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
+- 범위: 직전 #370 housekeeping (post-#369) 이후 2 PR (#368/#371) 머지.
+- 상태: main HEAD `f5cb7a6` (PR #371).
+- 최종 수정일: 2026-05-27
+
+## 2026-05-27 (post-#371) 결산
+
+사용자 "오늘 올라온 PR 전수 점검 + 미반영 코멘트/충돌 수정" 지시. #368(codex, 작업 중 머지됨) 점검 → 2 실문제 발견·수정.
+
+### 머지 PR (2)
+
+| sha | PR | core |
+| --- | --- | --- |
+| `e28bc56` | **#368** (codex) | **draft repository publish flow** — migration 000043 `repositories.{repository_status(draft\|active),scm_provider,publish_requested_at,published_at}` + `POST /repositories`(draft) + `POST /repositories/:id/publish` + domain.Repository 확장 + admin catalog/projects/repositories/ProjectCreationModal UI. |
+| `f5cb7a6` | **#371** (claude) | **전수 점검 hotfix**: (1) migration 000042 충돌 정정 (codex #368 P1 미반영) — #368 projects migration → 000044 재번호. (2) disabled provider 거부 (codex #366 P2 미반영) — scm-repositories gate 409 + 가드. |
+
+### 점검 결과 (전수)
+
+- **충돌 발견·수정**: migration 000042 ×2 (#363 vs #368) → #371 로 000044 재번호.
+- **미반영 codex 코멘트 수정**: #368 P1(migration dup) + #366 P2(disabled provider).
+- **충돌 없음 확인**: #368 router(`POST /repositories`,`/publish`)/store ↔ Phase A~C (route 비중복, ListRepositories SELECT 17/scan 17 병합 정합).
+- **이미 반영 확인**: #358 P1→#359 / #363 P2×2→#366.
+- **#355** = codex usage limit (미리뷰, watch).
+- **soft note**: #368 `scm_provider` ↔ #363 `provider_id` 의미 중복 (후속 정리 후보).
+
+### 다음 directive
+
+| 영역 | 항목 |
+| --- | --- |
+| **claude** | 1) #368 `repository_status/scm_provider` ↔ #363 `source/provider_id` 중복 정리 검토. 2) #366/#363 codex 재리뷰 확인. 3) inbound webhook 정규화 깊이. 4) #6 평문 secret envelope 암호화. 5) Phase C 후속 (project flow ↔ SCM create 연계). |
+| 사내/사용자 | Onboarding SOP staging monitoring / nginx OIDC / Keycloak 26.0 smoke / issue #214 / Keycloak SPI realm events wire. |
+
+### 검증
+
+#371 backend build+vet+test ./...(13 pkg) + frontend tsc+eslint+vitest 55+build green. migration prefix 중복 0 (재확인). Open PR 0.
+
+---
+
 # Session Handoff — main (2026-05-27 post-#369 — app dashboard Active Applications + #368 open)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
