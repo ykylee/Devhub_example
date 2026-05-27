@@ -5,8 +5,8 @@
 - 대상 독자: Backend / 프론트엔드 / DevOps 개발자, AI agent, 아키텍처 검토자.
 - 상태: accepted
 - 작성일: 2026-04-29
-- 최종 수정일: 2026-05-21 (Onboarding 도메인 §9 신규, ARCH-ONBOARD-01..06)
-- 관련 문서: [요구사항 정의서](./requirements.md), [백엔드 API 계약](./backend_api_contract.md), [ADR-0019 Keycloak 단일화 (현재 IdP 결정)](./adr/0019-keycloak-only-idp.md), [ADR-0001 IdP (Hydra+Kratos, superseded)](./adr/0001-idp-selection.md), [ADR-0002 RBAC](./adr/0002-rbac-policy-edit-api.md), [ADR-0003 No-Docker CI scope](./adr/0003-no-docker-policy-ci-scope.md), [추적성 매트릭스](./traceability/report.md), [프로젝트 프로파일](../ai-workflow/memory/PROJECT_PROFILE.md).
+- 최종 수정일: 2026-05-27 (Repository 소유권·연동·lifecycle 도메인 §10 신규 ARCH-REPO-01..07 + §8.7 Gitea sync/auth_mode ARCH-INT-07 + §6.5 Keycloak pin/SPI/WS ticket 보강)
+- 관련 문서: [요구사항 정의서](./requirements.md), [백엔드 API 계약](./backend_api_contract.md), [ADR-0019 Keycloak 단일화 (현재 IdP 결정)](./adr/0019-keycloak-only-idp.md), [ADR-0001 IdP (Hydra+Kratos, superseded)](./adr/0001-idp-selection.md), [ADR-0002 RBAC](./adr/0002-rbac-policy-edit-api.md), [ADR-0003 No-Docker CI scope](./adr/0003-no-docker-policy-ci-scope.md), [ADR-0022 Keycloak 25.0 pin](./adr/0022-keycloak-version-pin-25-0.md), [ADR-0023 Keycloak 26.0 pin](./adr/0023-keycloak-version-pin-26-0.md), [ADR-0024 WebSocket 인증 ticket 패턴](./adr/0024-websocket-auth-query-token.md), [추적성 매트릭스](./traceability/report.md), [코드베이스 스냅샷 2026-05-27](./analysis/2026-05-27-codebase-snapshot/README.md), [프로젝트 프로파일](../ai-workflow/memory/PROJECT_PROFILE.md).
 
 ## 1. 개요
 본 문서는 DevHub의 시스템 구성, 서비스 간 통신 방식, 데이터 흐름 및 UI/UX 시각화 전략을 상세히 정의합니다.
@@ -51,6 +51,8 @@ graph TD
     end
 ```
 
+> **정정 (2026-05-27, 코드 스냅샷 main `cf19c94`)**: 위 다이어그램의 `current: scaffold`/`planned` 라벨은 2026-04-29 초기 상태 기준이며 현행 코드와 괴리가 있다. 실제로는 **Go Core 가 v1.0 scope 기준 기능 완성** 상태이고, Gitea 연동은 webhook(서버→DevHub push) + REST pull sync 워커(DevHub→Gitea, §8.7) **양방향 가동**, WebSocket 실시간(ticket 인증, §3.2/§6.5), PostgreSQL 영속(45 마이그레이션) 모두 구현돼 있다. 미구현 구간은 **Go Core ↔ Python AI gRPC(여전히 스켈레톤, `backend-ai` 는 `/health` 만)** 와 Gitea Runner 제어 콘솔뿐이다. 다이어그램 자체는 초기 의도 보존을 위해 immutable 유지하고, 실 상태는 [코드베이스 스냅샷 §1](./analysis/2026-05-27-codebase-snapshot/01_codebase_state_analysis.md)을 source-of-truth 로 본다.
+
 ## 3. 서비스 간 통신 (Internal Communication)
 
 ### 3.1 Go Core ↔ Python AI (gRPC)
@@ -70,6 +72,8 @@ graph TD
 - **실시간 통신:** **WebSocket**을 기본 계약으로 사용합니다.
     - **용도:** Gitea Actions 빌드 상태 실시간 업데이트, 긴급 리스크 알림, 실시간 이슈 액티비티 피드.
     - **SSE 처리:** SSE는 초기 구현 범위에 포함하지 않습니다. 프록시/운영 환경 제약으로 WebSocket 유지가 어렵다고 확인될 때 별도 fallback으로 재검토합니다.
+
+> **보강 (2026-05-27, [ADR-0024](./adr/0024-websocket-auth-query-token.md))**: WebSocket 인증은 브라우저 `WebSocket` API 가 커스텀 헤더를 못 보내는 제약 때문에 **ticket 패턴**으로 구현됐다. 인증된 actor 가 `POST /api/v1/realtime/ticket` 로 단일-사용(single-use, 60s TTL) ticket 을 발급받고, `GET /api/v1/realtime/ws?ticket=...` 로 업그레이드 시 ticket 을 소비한다. ticket store 는 in-memory(single-instance) 또는 PostgreSQL `realtime_tickets`(`DELETE ... RETURNING` 으로 multi-instance 원자 소비, migration 000035)다. 초기에 검토된 `?access_token=` query 직접 전달 방식은 access token 노출 위험 때문에 **ticket-only 컷오버(ADR-0024 §6 carve 5)로 제거**됐다. WS subscribe 후 각 event type 은 RBAC matrix 로 재검사한다(§6.5). 자세한 보안 경계는 §6.5 참조.
 
 ## 4. 데이터 전략 (Data Strategy)
 
@@ -194,6 +198,31 @@ Audit Log는 최소한 `actor_id`, `actor_role`, `action`, `target_type`, `targe
 | `auth.login.failed` | `account` 또는 `login_id` | login_id가 존재하지 않아도 시도는 기록 |
 
 비밀번호 평문, 해시, 임시 비밀번호는 어떤 audit 필드에도 기록하지 않습니다.
+
+### 6.5 Keycloak 버전 pin · SPI event listener · WS ticket 인증 (보강, 2026-05-27)
+
+> 본 절은 §6.1~§6.4 의 보안 baseline 위에, 2026-05-21 이후 코드에 반영된 인증 운영 사실을 추가 명문화한다. 기존 §6.2.3 OIDC 흐름·§6.4 Audit 최소 필드는 변경 없이 유지된다.
+
+#### 6.5.1 Keycloak 버전 pin
+
+- DevHub 는 IdP 를 Keycloak 단일화([ADR-0019](./adr/0019-keycloak-only-idp.md))하면서 운영 환경의 Keycloak 컨테이너 버전을 명시 pin 한다: [ADR-0022](./adr/0022-keycloak-version-pin-25-0.md)(25.0) → [ADR-0023](./adr/0023-keycloak-version-pin-26-0.md)(26.0).
+- 버전 변경 시 admin bootstrap env 가 silent fail 하지 않도록, 26+ 표준(`KC_BOOTSTRAP_ADMIN_USERNAME/PASSWORD`)과 25.x legacy(`KEYCLOAK_ADMIN/KEYCLOAK_ADMIN_PASSWORD`)를 양쪽 동시 주입하는 것을 운영 기준으로 한다(E2E Keycloak realm bootstrap 정합).
+- JWKS 검증기(`internal/auth`)는 issuer/audience(ClientID) validation + RS256/384/512 만 허용하며, key rotation 직후 kid mismatch 시 1회 forced refetch + retry, Keycloak unreachable 시 `stale-while-error` fallback(default 24h cutoff)으로 DevHub uptime 을 보장한다. stale 사용 중에는 revoked key 보호가 제한적으로 깨질 수 있어 rotation 직후 운영 SOP(강제 재시작 / cache flush)는 별도 carve 다.
+
+#### 6.5.2 Keycloak event → audit_logs 동기화 (SPI + polling)
+
+Keycloak 에서 발생한 사용자/관리자 이벤트(로그인, group/role 변경, 계정 enable/disable, USER:DELETE 등)는 두 경로로 DevHub `audit_logs` + `users` 동기화에 반영된다.
+
+- **Push (SPI)**: Keycloak event listener SPI(Java, `infra/idp/keycloak-event-listener-spi/`)가 이벤트를 `POST /api/v1/internal/keycloak-events` 로 전송한다. 이 endpoint 는 일반 OIDC 가 아닌 `X-Webhook-Secret` 상수 비교(fail-closed)로만 인증하며 v1 그룹 미들웨어(인증/RBAC) 밖에 등록된다([ADR-0020](./adr/0020-account-user-management-boundary.md) §5.6 push 경로).
+- **Poll (cron)**: `internal/audit` 의 Keycloak event 폴러가 Admin REST(`/admin/realms/{realm}/events` + `/admin-events`)를 기본 30s 주기로 polling 해 cursor(`event_cursors`, migration 000031) 이후 이벤트를 audit 으로 emit + `users` profile/membership/status sync(ADR-0020 sub-carve C)한다.
+- **dedup**: push 와 poll 이 동시 존재할 수 있으므로(SPI push 단일화는 미전환 부채), distinguishing 7-tuple SHA-256 을 `audit_logs.source_event_id`(`source_type=keycloak_event`, partial UNIQUE migration 000032)에 기록해 at-least-once 중복을 흡수한다.
+- audit source_type 카탈로그: `oidc | webhook | keycloak_event | system`(legacy `kratos` enum 은 historical row decode 용으로만 보존, ADR-0001 superseded).
+
+#### 6.5.3 WebSocket ticket 인증 경계 (ADR-0024)
+
+- §3.2 의 ticket 발급/소비 흐름을 인증 경계 관점에서 정리하면: `POST /api/v1/realtime/ticket`(인증 actor 면 RBAC bypass 발급) → `GET /api/v1/realtime/ws?ticket=...`(ticket single-use consume). consume 시 store fault 는 401 이 아니라 503 으로 응답해 정상 사용자 오거부를 회피한다.
+- WS subscribe 이후 각 event type 별로 RBAC matrix(`PermissionCache.Allows(role, resource, action)`)를 재검사해 권한 없는 event 구독을 거부한다.
+- 알려진 표면: `CheckOrigin` 이 현재 모든 origin 을 허용(ticket 인증으로 보호되나 CSWSH 표면 잔존) — origin 검증 강화는 후속 hardening carve.
 
 ## 7. 개발 의뢰 (Dev Request, DREQ) 도메인
 
@@ -406,6 +435,14 @@ infra_services
   observed_at          timestamptz NOT NULL
 ```
 
+> **정정/보강 (2026-05-27)**: 위 `integration_providers` 초안에는 outbound 연동에 필요한 자격증명 컬럼이 빠져 있다. 현행 스키마는 다음 컬럼이 추가됐다(상세 모델은 §8.7):
+> - `base_url text NULL` (migration 000038) — provider API 엔드포인트. `auth_token_url` 과 함께 `http(s)+host` 검증.
+> - `api_token text NULL` (migration 000040) — outbound PAT. **write-only** — 응답에는 raw 미노출, `api_token_set` bool 만.
+> - `auth_username / auth_client_id / auth_token_url / auth_secret` (migration 000041) — `auth_mode` 별 구조화 자격증명. `auth_secret` 도 write-only(`auth_secret_set` bool).
+> - `credentials_ref text` — inbound webhook 서명 검증용 시크릿. **현재 GET 응답에 평문 노출되는 알려진 보안 gap**(#6 평문 secret 저장 carve, envelope 암호화 미적용).
+>
+> `auth_mode` 값은 본 §8.3 표대로 `token | basic | oauth2 | app_password | agent` 5종이며, mode 별 Authorization 헤더 산출(`OutboundAuth`/`ResolveOutboundAuth`)은 §8.7 참조. `integration_sync_jobs` 큐 테이블(migration 000028)도 본 초안에는 누락 — §8.7 에서 정의한다.
+
 - `capabilities` 는 provider type 별 최소 표준 키를 포함한다.
   - `alm`: `issue.read`, `epic.read`, `issue.link`
   - `scm`: `repo.read`, `pr.read`, `branch.read`, `webhook.ingest`
@@ -452,6 +489,43 @@ infra_services
 - `degraded` 전이 임계값은 설정 가능(configurable)해야 한다.
   - 기본 예시: `failure_threshold=3`, `window=5m`, `cooldown=10m`
   - 홈랩/사내망 환경 특성에 맞춰 provider별 override 를 허용한다.
+
+### 8.7 Gitea SCM pull sync 워커 · sync job 큐 · auth_mode/OutboundAuth · webhook 헤더 alias (ARCH-INT-07)
+
+> 본 절은 §8.1~§8.6 의 provider-중립 연동 원칙을, 2026-05-21 이후 코드에 구현된 **Gitea(및 Forgejo/Gogs 호환) SCM 연동의 구체 아키텍처**로 보강한다. 기존 ARCH-INT-01..06 은 변경 없이 유지된다.
+
+#### 8.7.1 SCM pull sync 워커 + sync job 큐
+
+- **데이터 모델(보강)**: `integration_sync_jobs`(migration 000028) — provider 단위 sync 작업 큐. status(`queued | running | succeeded | failed`).
+- **큐 소비**: store 의 `AcquireNextQueuedSyncJob` 가 `provider_type='scm'` gate + `FOR UPDATE ... SKIP LOCKED` 로 단건 acquire 한다. 비-SCM job 은 store 레이어에서 차단되어 워커에 도달하지 않는다. multi-instance 에서 같은 job 을 두 워커가 잡지 않도록 SKIP LOCKED 가 직렬화한다.
+- **백그라운드 워커**: `internal/gitea` 의 SCM sync 워커가 `main.go` 의 30s 주기 goroutine 으로 기동(`pgStore != nil` 일 때 항상). `ProcessOnce` 순서:
+  1. queued sync job 을 우선 acquire.
+  2. `resolveSyncConfig` 로 provider 의 `base_url` + `auth_mode` 별 자격을 해석. base_url 없거나 자격 미설정(또는 `agent` mode) → job `failed`.
+  3. `ListUserRepos` → repo 마다 `UpsertRepository`(`source=scm`, `provider_id` 기록) + repo 단위 deep sync(issues open/closed + PRs open/closed upsert).
+  4. 큐가 비면 env(`GITEA_URL`/`GITEA_TOKEN`) 기반 legacy 주기 sync(둘 다 있을 때만).
+- **보안 핵심 — env fallback 금지**: 명시 provider 를 해석할 때 worker-global env 토큰으로 **fallback 하지 않는다**(provider 고유 host 에 잘못된 계정 토큰이 유출되는 것을 차단). env fallback 은 provider 미명시(legacy) 경로에만 허용된다.
+- **운영 가시성 부채**: 본 워커는 현재 Prometheus metric 이 없어 진행/실패가 로그로만 노출되고, 30s 주기는 env override 불가(하드코딩)다 — 후속 hardening 후보.
+
+#### 8.7.2 auth_mode 모델 + OutboundAuth/ResolveOutboundAuth
+
+- `IntegrationProvider.auth_mode` 5종에 대해, provider receiver `ResolveOutboundAuth()` 가 active mode 별 자격증명 컬럼을 `OutboundAuth` 구조로 해석한다.
+
+| auth_mode | 사용 컬럼 | 산출 Authorization 헤더 |
+| --- | --- | --- |
+| `token` / unset | `api_token` | `token <pat>` |
+| `basic` | `auth_username` + `auth_secret` | `Basic base64(user:secret)` |
+| `app_password` | `auth_username` + `auth_secret` | `Basic base64(user:secret)` |
+| `oauth2` | `auth_client_id` + `auth_token_url` + `auth_secret` | client-credentials grant 교환 후 `Bearer <token>` |
+| `agent` | (직접 API sync 불가) | — (skip) |
+
+- 자격 누락 시 `ok=false` 로 skip(워커는 job `failed` 처리), oauth2 토큰 교환 실패는 error 로 전파한다.
+- `api_token`/`auth_secret` 은 API 레이어에서 write-only(`*_set` bool)로 가려지지만 store/도메인 레이어는 raw 평문을 그대로 보관한다(at-rest 암호화 부재, #6 carve).
+
+#### 8.7.3 webhook 헤더 alias (inbound ingest)
+
+- 범용 ingest endpoint `POST /api/v1/integration/providers/:id/webhook`(API-73)는 서명 헤더를 `X-Integration-Signature` → `X-Gitea-Signature` → `X-Gogs-Signature` 순으로 fallback 수용한다(Gitea 가 `X-Gitea-Signature` 를 보내는데 초기 코드가 `X-Integration-Signature` 만 보던 헤더 불일치를 정정).
+- 서명 검증은 provider 의 `credentials_ref` 전략별(`hmac_sha256:<secret>` / `provider_sdk:<vendor>:<secret>` / shared token)로 수행하고, 통과 시 dedupe `SaveWebhookEvent` + sync state best-effort 갱신.
+- 별도 전용 Gitea webhook 핸들러 `POST /api/v1/integrations/gitea/webhooks`(API-02)는 `X-Gitea-Signature`/`X-Gogs-Signature` 만 수용한다(`X-Integration-*` 미수용) — 두 경로의 헤더 수용 범위가 달라 일관성 부채로 남아 있다.
 
 ## 9. 사용자 초기 등록 (Onboarding) 도메인
 
@@ -616,3 +690,92 @@ users  (기존 컬럼 + 신규 2개)
 - **Skip 자체는 audit emit 안 함** — state 변경 없음 (REQ-FR-ONBOARD-011 정합). 매 로그인 시 onboarding 화면 강제 진입이 사실상의 reminder 역할.
 - 기존 `account.lazy_provisioned` event (ADR-0020 sub-carve B PR #239) 는 lazy auto-create 폐기와 함께 **deprecated** — 신규 row 는 모두 `account.onboarding_completed` 로 기록. 기존 emit 이력은 audit_logs 에 보존 (immutable).
 - ADR-0019 §5.3 (9) Keycloak admin event listener 와의 관계: Keycloak group/role 변경은 `audit/user_sync.go` (sub-carve C PR #241) 가 별도 audit emit. 본 도메인의 `account.unit_changed` 는 **DevHub 내 self-service / admin transition** 만 발급.
+
+## 10. Repository 소유권·연동·lifecycle 아키텍처
+
+DevHub `repositories` 는 (a) 외부 SCM(Gitea 등)에서 webhook/pull 로 미러된 row 와 (b) DevHub 운영자가 시스템 내에서 직접 생성·관리하는 row 가 같은 테이블에 공존한다. 본 섹션은 이 두 출처를 구분하는 소유권 모델, 양방향(import/create) 연동, draft→publish lifecycle, 그리고 SCM provider 참조의 canonical 단일화를 정의한다. 도입 PR: #363(소유권 분리 + import) / #366(create) / #368(draft→publish) / #371(충돌 정정) / #373(provider_id 단일화). 관련 마이그레이션: 000042 / 000043 / 000044 / 000045.
+
+### 10.1 소유권 분리 모델 (ARCH-REPO-01)
+
+`domain.Repository` 는 SCM mirror 필드와 시스템 메타를 분리한다.
+
+```text
+repositories  (소유권/연동 관련 컬럼만 발췌)
+  source            text      -- 'scm' | 'system' (빈값 = legacy 'scm' 취급)
+  provider_id       uuid  FK  -- integration_providers(provider_id) (scm type), canonical SCM 참조
+  provider_key      text      -- (read-only, LEFT JOIN integration_providers 로 derive — 표시용)
+  description       text      -- system-owned 메타 (SCM sync 가 절대 덮어쓰지 않음)
+  repository_status text      -- 'draft' | 'active' (CHECK repositories_status_check)
+  publish_requested_at, published_at  timestamptz NULL
+```
+
+- `source='scm'`: 외부 SCM 이 원천(SoT). webhook/pull sync 가 mirror.
+- `source='system'`: DevHub 가 원천. draft 생성 또는 outbound create(§10.4)로 발생.
+- `provider_id` 가 SCM provider 참조의 **단일 출처(FK)**, `provider_key` 는 사람이 읽기 위한 derived 값일 뿐 저장 식별자가 아니다(§10.7).
+
+### 10.2 SCM mirror vs system-owned 필드 보존 (ARCH-REPO-02)
+
+`UpsertRepository` 의 `ON CONFLICT (full_name) DO UPDATE` 는 sync 가 외부 값으로 덮어써도 되는 **SCM mirror 필드만** `EXCLUDED` 로 갱신하고, system-owned 필드는 보존한다.
+
+- 덮어쓰는 SCM mirror: `owner_login / name / clone_url / html_url / default_branch / private / gitea_repository_id`.
+- 보존(기존 우선): `source = COALESCE(기존, EXCLUDED)`, `provider_id = COALESCE(기존, EXCLUDED)`.
+- 보존(SET 절에서 아예 제외): `description` — system-owned 메타라 sync 가 절대 갱신하지 않음.
+- INSERT 분기는 `source = COALESCE(NULLIF($n,''),'scm')`, `repository_status='active'`, `published_at=NOW()` 로 채운다.
+
+이 규약 덕분에 운영자가 SCM-mirror row 에 부여한 분류/설명 메타가 다음 sync 에 의해 유실되지 않는다. in-memory fake 도 동일 미러 보존을 흉내내 production parity 를 맞춘다.
+
+### 10.3 inbound import (ARCH-REPO-03)
+
+운영자가 등록된 SCM provider 의 원격 저장소를 DevHub 로 끌어오는 경로.
+
+- `GET /api/v1/integration/providers/:provider_id/scm-repositories` (API-88) — provider 의 원격 repo 목록 + DevHub 내 import 여부(`imported` 플래그, `ListRepositoriesByProvider`).
+- `POST /api/v1/integration/providers/:provider_id/import-repositories` (API-89) — 선택 repo 를 SCM 에서 **재조회한 값**으로 `UpsertRepository`(`source='scm'`). request body 의 stale 값이 아니라 provider 에 직접 조회한 결과를 신뢰한다.
+- 권한: `infrastructure:edit`. capability gate: `pull`(§10.6).
+
+### 10.4 outbound create (ARCH-REPO-04)
+
+DevHub 에서 신규 저장소를 외부 SCM 에 생성하는 경로(시스템→SCM).
+
+- `POST /api/v1/integration/providers/:provider_id/create-repository` (API-90) — `gitea.Client.CreateRepo`(owner 비면 `POST /user/repos`, 있으면 `POST /orgs/{owner}/repos`)로 원격 생성 후 DevHub row 를 `source='system'` 으로 기록.
+- 권한: `infrastructure:edit`. capability gate: `push`(§10.6) + provider 가 gitea-compatible vendor 여야 함(`isGiteaCompatibleProvider` — 비-gitea vendor 거부).
+- §10.3 + §10.4 로 SCM ↔ 시스템 repository **양방향(import + create) 연동**이 완성된다.
+
+### 10.5 draft→publish 상태머신 (ARCH-REPO-05)
+
+system-owned repository 는 외부 SCM 에 즉시 만들지 않고 DevHub 내 draft 로 먼저 등록한 뒤 publish 시점에 SCM 에 생성할 수 있다.
+
+```
+  POST /api/v1/repositories
+  (createRepositoryDraft)
+        │  source='system', repository_status='draft'
+        │  provider_key → provider_id FK 해석 (migration 000045)
+        ▼
+  ┌──────────────┐    POST /api/v1/repositories/:id/publish    ┌──────────────┐
+  │   draft      │ ─── (requestRepositoryPublish, draft only) ─▶│   active     │
+  │              │     provider SCM/push/gitea-compat 검사       │              │
+  └──────────────┘     → gitea.CreateRepo → UpsertRepository     └──────────────┘
+
+  (SCM webhook/pull sync 로 인입되는 row 는 draft 를 거치지 않고 repository_status='active' 직행)
+```
+
+- `createRepositoryDraft`(API: `POST /repositories`, RBAC `application_repositories:create`): `source='system'`, `repository_status='draft'` row INSERT. provider_key 를 provider_id FK 로 해석.
+- `requestRepositoryPublish`(API: `POST /repositories/:id/publish`, RBAC `application_repositories:edit`): `repository_status='draft'` 인 row 만 대상. provider 의 SCM type + push capability + gitea-compat 검사 후 `gitea.CreateRepo` → `UpsertRepository`. SCM 생성 실패 시 `MarkRepositoryDraftPublishRequested`(publish_requested_at set) 후 502(BadGateway) 반환하는 부분 실패 경로가 있다.
+- **검증 공백(부채)**: draft→publish 핸들러·store 메서드(`CreateRepositoryDraft`/`MarkRepositoryDraftPublishRequested`)는 #368(codex)이 **무테스트로 머지**했고 #373 이 그 위를 수정 — 단위/통합 테스트 보강이 후속 directive 다.
+
+### 10.6 capability gate (ARCH-REPO-06)
+
+SCM 연동 endpoint(import/create/sync)는 공통 게이트 `scmProviderForCapability` 를 통과해야 한다.
+
+- 게이트 검사: provider **exists** + **enabled**(disabled provider 는 409 거부, #371 정정) + `provider_type='scm'` + 요청 capability 보유 + gitea-compat.
+- capability ↔ 기능 매핑: `import` = `pull`, `sync` = `pull | sync`, `create` = `push`.
+- 이로써 provider 가 선언한 capability 범위 밖의 동작이 차단된다(예: pull-only provider 에 create 거부).
+
+### 10.7 provider_id 단일화 (ARCH-REPO-07)
+
+도입 과정에서 SCM provider 참조가 두 컬럼으로 중복됐다 — #368 의 `scm_provider`(provider_key TEXT, migration 000043 ADD) 와 #363 의 `provider_id`(FK UUID, migration 000042). 동일 SCM 참조를 의미 중복하던 것을 #373(migration 000045)이 정리했다.
+
+- **canonical = `provider_id`(FK)**. `scm_provider` 컬럼은 provider_key→provider_id backfill 후 DROP.
+- 표시용 `provider_key` 는 저장하지 않고 `GetRepositoryByID`/`ListRepositories` 가 `LEFT JOIN integration_providers` 로 derive.
+- 패턴: **중복 식별 컬럼은 FK 를 canonical 로 두고 readable key 는 join 으로 derive**(SCM-owned vs system-owned 보존 규약 §10.2 와 인접 원칙).
+- 부수 메모: project-companion 흐름의 `RepositoryCreatePayload.SCMProvider` 는 placeholder 로 별개라 유지된다(draft→publish 의 provider_id 해석과 의미가 겹치는 경미한 부채).
+- 운영 주의: `scm_provider` 는 000043 ADD → 000045 DROP 으로 2 마이그레이션만 존재한 short-lived 컬럼이다. 000045 의 down 은 컬럼 재추가 + provider_id→provider_key best-effort backfill(매칭 실패 시 NULL)로 비대칭이므로 rollback 시 사전 점검이 필요하다.
