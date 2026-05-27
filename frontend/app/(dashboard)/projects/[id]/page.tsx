@@ -239,10 +239,11 @@ export default function ProjectDetailPage() {
   }
 
   async function linkSelectedRepositories() {
-    if (linkingRepoIds.length === 0) return;
+    if (!project || linkingRepoIds.length === 0) return;
+    const projectID = project.id;
     try {
       await Promise.all(
-        linkingRepoIds.map((repoId) => projectService.linkProjectRepository(project.id, repoId, "linked")),
+        linkingRepoIds.map((repoId) => projectService.linkProjectRepository(projectID, repoId, "linked")),
       );
       setShowRepoPicker(false);
       setLinkingRepoIds([]);
