@@ -500,17 +500,25 @@ func (s *PostgresStore) DeleteIntegrationBinding(ctx context.Context, bindingID 
 	return nil
 }
 
+// AcquireNextQueuedSyncJob claims the oldest queued sync job whose provider is
+// an SCM-type provider (codex review PR #341 P1). The Gitea sync worker is the
+// only consumer, and it can only sync SCM providers; without the provider_type
+// gate it would otherwise dequeue and mark succeeded/failed jobs for non-SCM
+// providers (alm/Jira, ci_cd, doc, infra) without ever running their sync,
+// stealing work from the correct worker and emitting false-positive completion.
+// FOR UPDATE OF j SKIP LOCKED locks only the job row (not the joined provider).
 func (s *PostgresStore) AcquireNextQueuedSyncJob(ctx context.Context) (string, string, error) {
 	const query = `
 UPDATE integration_sync_jobs
 SET status = 'running'
 WHERE job_id = (
-	SELECT job_id
-	FROM integration_sync_jobs
-	WHERE status = 'queued'
-	ORDER BY created_at ASC
+	SELECT j.job_id
+	FROM integration_sync_jobs j
+	JOIN integration_providers p ON p.provider_id = j.provider_id
+	WHERE j.status = 'queued' AND p.provider_type = 'scm'
+	ORDER BY j.created_at ASC
 	LIMIT 1
-	FOR UPDATE SKIP LOCKED
+	FOR UPDATE OF j SKIP LOCKED
 )
 RETURNING job_id::text, provider_id::text`
 	var jobID, providerID string
