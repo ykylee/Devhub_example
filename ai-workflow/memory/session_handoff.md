@@ -1,3 +1,41 @@
+# Session Handoff — main (2026-05-27 post-#355 — #354 #349-hotfix + #355 Gitea full 머지 + housekeeping)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
+- 범위: 직전 #353 housekeeping (post-#352, head `112c81b`) 이후 2 PR (#354/#355) 머지.
+- 상태: main HEAD `435d267` (PR #355).
+- 최종 수정일: 2026-05-27
+
+## 2026-05-27 (post-#355) 결산
+
+직전 housekeeping 후 본 conversation 에서 외부 연동 고도화 작업 진행 + #349 codex P2×2 hotfix. 사용자가 #354 먼저 머지 → #355 E2E green 시 자동 머지 지시.
+
+### 머지 PR (2)
+
+| sha | PR | core |
+| --- | --- | --- |
+| `4329cf2` | **#354** (claude) | **#349 codex P2×2 hotfix**. (a) **atomicity** = repo+project 단일 트랜잭션 — `CreateProjectWithRepositories` → `CreateProjectWithRepositoryPayload(ctx, project, repoIDs, *RepositoryCreatePayload)` (repo insert + project insert + N:M link 단일 tx), `createRepositoryTx` tx-aware 신규, `CreateRepositoryForProject` 제거. (b) **NULL-uniqueness** = migration 000039 `CREATE UNIQUE INDEX projects_standalone_key_uniq ON projects (key) WHERE repository_id IS NULL` + **preflight dedup** (`WITH ranked ... key||'-dup-'||id WHERE rn>1` — codex P2 기존 중복 환경 CREATE INDEX 실패 방지). codex review COMMENTED (migration dup) = preflight 로 이미 대응 + 응답 코멘트. |
+| `435d267` | **#355** (claude) | **Gitea 연동 full**. (1) provider **api_token 슬롯** (migration 000040 `ADD COLUMN api_token TEXT` + domain `APIToken` + store COALESCE/NULLIF + handler **write-only** `api_token_set` bool 노출, raw 비노출). (2) **등록 다이얼로그** ProviderModal — capability pull\|sync 시 API Token 필드. (3) **sync worker per-provider** — `resolveSyncConfig` (provider base_url+api_token 우선, env fallback) + `syncAllWith` + main.go `pgStore != nil` 시 워커 기동 (env 없이 큐 job 동작). worker_test.go `TestSyncWorker_ProcessOnce_PerProviderConfig`. |
+
+### codex 감사
+
+| PR | 결과 |
+| --- | --- |
+| #354 | ✅ codex COMMENTED 1건 (migration 000039 dup handling) → preflight dedup 로 이미 대응 + 응답 코멘트 |
+| #355 | ⚠️ **codex review 없음 — usage limit 도달** ("You have reached your Codex usage limits"). limit reset 후 재리뷰 watch 필요 |
+
+### 다음 directive
+
+| 영역 | 항목 |
+| --- | --- |
+| **claude** | 1) **#355 codex 재리뷰 확인** (limit reset 후 P1/P2 흡수). 2) **Gitea webhook 헤더 불일치 정정** — Gitea 송신 `X-Gitea-Signature` ↔ ingest 판독 `X-Integration-Signature` (#355 PR body deferred 명시). 3) 고정 메뉴 Phase 2b (known vendor 시 generic provider_type/auth_mode select 숨김). 4) #6 `credentials_ref`/`api_token` 평문 저장 보안 (envelope 암호화). |
+| 사내/사용자 | Onboarding SOP staging monitoring / nginx OIDC redirect_uri / Keycloak 26.0 redeploy smoke / issue #214 / Keycloak SPI realm events + webhook env wire. |
+
+### 검증
+
+#354 CI 8 job green → squash merge (`4329cf2`). #355 CI 8 job green (E2E 양 shard 포함) → 사용자 자동머지 지시 → squash merge (`435d267`). 본 housekeeping 후 Open PR 0. migration prefix 39/40 순차 (충돌 없음 — #354=000039, #355=000040).
+
+---
+
 # Session Handoff — main (2026-05-27 post-#352 — #349/#351/#352 머지 + codex 감사 + housekeeping)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
