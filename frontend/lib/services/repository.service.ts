@@ -11,7 +11,10 @@ export interface Repository {
   default_branch: string;
   private: boolean;
   status: "draft" | "active";
-  scm_provider?: string;
+  // 연동 SCM provider — provider_id(FK) 단일 출처 (migration 000045, 구 scm_provider 통합).
+  // provider_key 는 백엔드 join derive (표시용 read-only).
+  provider_id?: string;
+  provider_key?: string;
   publish_requested_at?: string | null;
   published_at?: string | null;
   updated_at: string;
@@ -71,7 +74,7 @@ class RepositoryService {
     return repos.find(r => r.id === repositoryId);
   }
 
-  async createRepositoryDraft(input: { key: string; slug: string; scm_provider?: string }): Promise<Repository> {
+  async createRepositoryDraft(input: { key: string; slug: string; provider_key?: string }): Promise<Repository> {
     const url = `${this.baseUrl}/api/v1/repositories`;
     const body = await apiClient<{ status: string; data: Repository }>("POST", url, input);
     return body.data;

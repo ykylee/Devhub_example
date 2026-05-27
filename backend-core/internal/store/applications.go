@@ -682,7 +682,10 @@ type RepositoryCreatePayload struct {
 	SCMProvider string
 }
 
-func (s *PostgresStore) CreateRepositoryDraft(ctx context.Context, key, slug, scmProvider string) (domain.Repository, error) {
+// CreateRepositoryDraft 는 draft repository 를 생성한다. providerID 는 연동 대상
+// integration_providers FK (handler 가 provider_key → provider_id 로 해석해 전달,
+// migration 000045 — 구 scm_provider key 컬럼 통합). system 이 생성하므로 source='system'.
+func (s *PostgresStore) CreateRepositoryDraft(ctx context.Context, key, slug, providerID string) (domain.Repository, error) {
 	fullName := strings.TrimSpace(slug)
 	name := strings.TrimSpace(key)
 	if fullName == "" || name == "" {
@@ -692,10 +695,10 @@ func (s *PostgresStore) CreateRepositoryDraft(ctx context.Context, key, slug, sc
 	const query = `
 INSERT INTO repositories (
 	full_name, name, owner_login, clone_url, html_url, default_branch, private,
-	repository_status, scm_provider, publish_requested_at, published_at, updated_at
+	repository_status, source, provider_id, publish_requested_at, published_at, updated_at
 ) VALUES (
 	$1, $2, NULLIF(split_part($1, '/', 1), ''), '', '', 'main', false,
-	'draft', NULLIF($3, ''), NULL, NULL, NOW()
+	'draft', 'system', NULLIF($3, '')::uuid, NULL, NULL, NOW()
 )
 RETURNING
 	id,
@@ -708,13 +711,13 @@ RETURNING
 	COALESCE(default_branch, ''),
 	private,
 	COALESCE(repository_status, 'draft'),
-	COALESCE(scm_provider, ''),
+	COALESCE(provider_id::text, ''),
 	publish_requested_at,
 	published_at,
 	updated_at`
 
 	var repo domain.Repository
-	if err := s.pool.QueryRow(ctx, query, fullName, name, strings.TrimSpace(scmProvider)).Scan(
+	if err := s.pool.QueryRow(ctx, query, fullName, name, strings.TrimSpace(providerID)).Scan(
 		&repo.ID,
 		&repo.GiteaID,
 		&repo.FullName,
@@ -725,7 +728,7 @@ RETURNING
 		&repo.DefaultBranch,
 		&repo.Private,
 		&repo.Status,
-		&repo.SCMProvider,
+		&repo.ProviderID,
 		&repo.PublishRequestedAt,
 		&repo.PublishedAt,
 		&repo.UpdatedAt,
@@ -757,7 +760,7 @@ RETURNING
 	COALESCE(default_branch, ''),
 	private,
 	COALESCE(repository_status, 'draft'),
-	COALESCE(scm_provider, ''),
+	COALESCE(provider_id::text, ''),
 	publish_requested_at,
 	published_at,
 	updated_at`
@@ -773,7 +776,7 @@ RETURNING
 		&repo.DefaultBranch,
 		&repo.Private,
 		&repo.Status,
-		&repo.SCMProvider,
+		&repo.ProviderID,
 		&repo.PublishRequestedAt,
 		&repo.PublishedAt,
 		&repo.UpdatedAt,
@@ -789,25 +792,26 @@ RETURNING
 func (s *PostgresStore) GetRepositoryByID(ctx context.Context, repositoryID int64) (domain.Repository, error) {
 	const query = `
 SELECT
-	id,
-	COALESCE(gitea_repository_id, 0),
-	full_name,
-	COALESCE(owner_login, ''),
-	name,
-	COALESCE(clone_url, ''),
-	COALESCE(html_url, ''),
-	COALESCE(default_branch, ''),
-	private,
-	COALESCE(repository_status, 'active'),
-	COALESCE(scm_provider, ''),
+	r.id,
+	COALESCE(r.gitea_repository_id, 0),
+	r.full_name,
+	COALESCE(r.owner_login, ''),
+	r.name,
+	COALESCE(r.clone_url, ''),
+	COALESCE(r.html_url, ''),
+	COALESCE(r.default_branch, ''),
+	r.private,
+	COALESCE(r.repository_status, 'active'),
 	publish_requested_at,
 	published_at,
-	updated_at,
-	COALESCE(source, 'scm'),
-	COALESCE(provider_id::text, ''),
-	COALESCE(description, '')
-FROM repositories
-WHERE id = $1`
+	r.updated_at,
+	COALESCE(r.source, 'scm'),
+	COALESCE(r.provider_id::text, ''),
+	COALESCE(p.provider_key, ''),
+	COALESCE(r.description, '')
+FROM repositories r
+LEFT JOIN integration_providers p ON p.provider_id = r.provider_id
+WHERE r.id = $1`
 
 	var repo domain.Repository
 	if err := s.pool.QueryRow(ctx, query, repositoryID).Scan(
@@ -821,12 +825,12 @@ WHERE id = $1`
 		&repo.DefaultBranch,
 		&repo.Private,
 		&repo.Status,
-		&repo.SCMProvider,
 		&repo.PublishRequestedAt,
 		&repo.PublishedAt,
 		&repo.UpdatedAt,
 		&repo.Source,
 		&repo.ProviderID,
+		&repo.ProviderKey,
 		&repo.Description,
 	); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

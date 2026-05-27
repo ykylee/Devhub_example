@@ -16,13 +16,13 @@ type Repository struct {
 	DefaultBranch      string
 	Private            bool
 	Status             string
-	SCMProvider        string
 	PublishRequestedAt *time.Time
 	PublishedAt        *time.Time
 	UpdatedAt          time.Time
 	// 소유권 분리 (migration 000042). SCM mirror 필드(위)와 구분되는 메타.
 	Source      string // "scm" | "system" (빈 값 = legacy, scm 으로 취급)
-	ProviderID  string // 연동된 integration_providers(scm) FK, 빈 값 가능
+	ProviderID  string // 연동된 integration_providers(scm) FK, 빈 값 가능 (단일 출처, migration 000045 — 구 scm_provider 통합)
+	ProviderKey string // derived — provider_id 의 integration_providers.provider_key (join, read-only 표시용)
 	Description string // 시스템 소유 — SCM sync 가 덮어쓰지 않음
 }
 

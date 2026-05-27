@@ -178,13 +178,12 @@ INSERT INTO repositories (
 	provider_id,
 	description,
 	repository_status,
-	scm_provider,
 	published_at,
 	publish_requested_at,
 	updated_at
 ) VALUES (
 	NULLIF($1, 0), $2, NULLIF($3, ''), $4, NULLIF($5, ''), NULLIF($6, ''), NULLIF($7, ''), $8,
-	COALESCE(NULLIF($9, ''), 'scm'), NULLIF($10, '')::uuid, NULLIF($11, ''), 'active', NULLIF($12, ''), NOW(), NULL, NOW()
+	COALESCE(NULLIF($9, ''), 'scm'), NULLIF($10, '')::uuid, NULLIF($11, ''), 'active', NOW(), NULL, NOW()
 )
 ON CONFLICT (full_name) DO UPDATE SET
 	gitea_repository_id = COALESCE(EXCLUDED.gitea_repository_id, repositories.gitea_repository_id),
@@ -198,7 +197,6 @@ ON CONFLICT (full_name) DO UPDATE SET
 	provider_id = COALESCE(repositories.provider_id, EXCLUDED.provider_id),
 	repository_status = 'active',
 	published_at = COALESCE(repositories.published_at, NOW()),
-	scm_provider = COALESCE(repositories.scm_provider, EXCLUDED.scm_provider),
 	publish_requested_at = NULL,
 	updated_at = NOW()`
 
@@ -216,7 +214,6 @@ ON CONFLICT (full_name) DO UPDATE SET
 		repository.Source,
 		repository.ProviderID,
 		repository.Description,
-		repository.SCMProvider,
 	)
 	return err
 }
@@ -1336,25 +1333,26 @@ func (s *PostgresStore) ListRepositories(ctx context.Context, opts domain.ListOp
 	limit, offset := boundedList(opts)
 	const query = `
 SELECT
-	id,
-	COALESCE(gitea_repository_id, 0),
-	full_name,
-	COALESCE(owner_login, ''),
-	name,
-	COALESCE(clone_url, ''),
-	COALESCE(html_url, ''),
-	COALESCE(default_branch, ''),
-	private,
-	COALESCE(repository_status, 'active'),
-	COALESCE(scm_provider, ''),
+	r.id,
+	COALESCE(r.gitea_repository_id, 0),
+	r.full_name,
+	COALESCE(r.owner_login, ''),
+	r.name,
+	COALESCE(r.clone_url, ''),
+	COALESCE(r.html_url, ''),
+	COALESCE(r.default_branch, ''),
+	r.private,
+	COALESCE(r.repository_status, 'active'),
 	publish_requested_at,
 	published_at,
-	updated_at,
-	COALESCE(source, 'scm'),
-	COALESCE(provider_id::text, ''),
-	COALESCE(description, '')
-FROM repositories
-ORDER BY updated_at DESC, id DESC
+	r.updated_at,
+	COALESCE(r.source, 'scm'),
+	COALESCE(r.provider_id::text, ''),
+	COALESCE(p.provider_key, ''),
+	COALESCE(r.description, '')
+FROM repositories r
+LEFT JOIN integration_providers p ON p.provider_id = r.provider_id
+ORDER BY r.updated_at DESC, r.id DESC
 LIMIT $1 OFFSET $2`
 
 	rows, err := s.pool.Query(ctx, query, limit, offset)
@@ -1377,12 +1375,12 @@ LIMIT $1 OFFSET $2`
 			&repository.DefaultBranch,
 			&repository.Private,
 			&repository.Status,
-			&repository.SCMProvider,
 			&repository.PublishRequestedAt,
 			&repository.PublishedAt,
 			&repository.UpdatedAt,
 			&repository.Source,
 			&repository.ProviderID,
+			&repository.ProviderKey,
 			&repository.Description,
 		); err != nil {
 			return nil, err
