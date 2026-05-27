@@ -365,11 +365,8 @@ test.describe("DREQ E2E", () => {
 
     await test.step("5. Create Project and verify representation", async () => {
       const createModal = page.getByRole("dialog");
-      const selectRepo = createModal
-        .locator("select")
-        .filter({ has: createModal.getByRole("option", { name: /no repository \(connect later\)/i }) })
-        .first();
-      await selectRepo.selectOption({ index: 1 });
+      // Repository selection is optional; keep default value to avoid
+      // environment-dependent failures when no linked repositories exist.
       await createModal.getByPlaceholder("User ID...").fill("charlie");
       await createModal.getByRole("button", { name: /create project/i }).click();
 
