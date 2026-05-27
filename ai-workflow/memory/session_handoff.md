@@ -1,3 +1,46 @@
+# Session Handoff — main (2026-05-27 main 동기화 + #334~#342 9 PR flat 메모리 흡수 housekeeping)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
+- 범위: 직전 #333 housekeeping (#332 까지 반영) 이후 #334~#342 9 PR 흡수 + 로컬 main 동기화.
+- 상태: main HEAD `8b25a12` (PR #342). 본 sprint (`claude/work_260527-housekeeping-post-342`).
+- 최종 수정일: 2026-05-27
+
+## 2026-05-27 본 housekeeping sprint
+
+세션 진입 시 로컬 main 이 origin/main 보다 14 commits 뒤처짐 (0 ahead) → **clean fast-forward** (`550b10c`→`8b25a12`, 0 충돌). 현재 브랜치 `claude/work_260526-frontend-cleanup-after-336` 의 유일 커밋 `bd2e5d0` 이 PR #338 (`aa8709d`) 와 patch-id 동일 = **이미 머지된 redundant 브랜치** 확인 (정리 후보).
+
+### 흡수 대상 (#334~#342, 9 PR — 전부 2026-05-26 머지, ykylee/codex/gemini/sisyphus)
+
+| sha | PR | author | core |
+| --- | --- | --- | --- |
+| `84faa7f` | #334 | codex | **운영 UI 전환 1차** — mock 대시보드 기본 비노출 + 아카이브 분리 (`docs/archive/mock_ui_archive_2026-05-26` + `frontend/lib/archive/mock-ui-legacy.ts`) + Developer/Manager/Project 상세 운영 API 기반 렌더링 + dashboard metrics mock fallback 제거 + empty-state/retry + 에러 메시지 표준화 유틸 (`lib/services/error-message.ts`) + `ops_ui_transition_plan.md`. |
+| `daa03fa` | #335 | 사용자 보고 | realtime WS auth fix — `realtime.service.ts buildURL` 에 `tokenStore` access_token 첨부 (query token 미첨부로 무한 401 cycle 회귀 해소) + organization diagram 8 issue. |
+| `550b10c` | #336 | claude | PR #335 후속 — GetHierarchy **user-aware dedupe SQL** (CTE depths/ranked_appointments/canonical, direct_count/total_count canonical 기준 + leader 최상위) + **ADR-0024 신규** (WebSocket `?access_token=` query 인증 패턴, 브라우저 WS Authorization header 불가 제약) + §6 carve 실구현 (§6.1 ticket 패턴 `POST /api/v1/realtime/ticket` + 60s TTL single-use store + `?ticket=` 인식 + access_token fallback / §6.3 WS 401 refresh-then-reconnect). |
+| `0847d87` | #337 | codex | e2e keycloak/oidc 포트 가변화. |
+| `aa8709d` | #338 | claude | **OrgTree client-side dedupe 제거** (#336 backend 정합 후 redundant — `recalculateMemberCounts` user-aware 로직 제거). #335+#336 양쪽 머지 후 진입한 의존 carve. (= redundant 브랜치 `bd2e5d0`) |
+| `63bf49c` | #339 | sisyphus | build-artifacts.sh **GOOS=linux cross-compile fix** (macOS darwin/arm64 → alpine exec format error 회피) + **apiClient 401 token refresh interceptor** (sessionStorage refresh_token → Keycloak token endpoint 교환 후 원본 요청 1회 재시도, ADR-0024 §6 carve 3 정합). |
+| `3edd547` | #340 | gemini | UI cleanup (Work/Quality/Sys Admin mock 대시보드 사이드바 비노출 + 아카이브 placeholder) + Org unit list action 버튼 (ActionMenu → Edit/Delete) + e2e 호환 (infra-topology `.skip` + dev-requests 위젯 복원). |
+| `473c4ec` | #341 | gemini | **Gitea SCM 동기화 워커 신규** — `backend-core/internal/gitea/` (client/syncer/worker + test 4) + main.go `GITEA_URL`/`GITEA_TOKEN` 제공 시 30s 주기 goroutine + `integration_sync_jobs` 큐 (`AcquireNextQueuedSyncJob` SKIP LOCKED + `UpdateIntegrationSyncJobStatus`) + `scmProviderResponse.has_credentials`. |
+| `8b25a12` | #342 | codex | **application/project/repository UI harden** — `PageState` 공통 컴포넌트 (loading/error/empty/retry) + 상세 mock 지표 제거 실데이터 렌더링 + Table no-op 액션 제거 실 플로우 연결 + admin settings applications 액션 + **negative-path E2E 4 spec**. |
+
+### 추가 유입 자산
+
+- **Keycloak event listener SPI (Java)** — `infra/idp/keycloak-event-listener-spi/` (pom.xml + Provider/Factory + META-INF service) + `infra/idp/Dockerfile.keycloak` + CI `DEVHUB_BACKEND_SPI_WEBHOOK_URL` wire. ADR-0020 SPI push 전환의 사내 동반 자산.
+- gemini/codex **브랜치별 메모리** ff merge 유입 (`work_260526-ui-app-project-repo-upgrade` / `gitea-integration-enhancement` / `keycloak-test-e2e-push-audit` / `ui-cleanup-and-org-actions`).
+
+### 다음 directive
+
+| 영역 | 항목 |
+| --- | --- |
+| **claude** | ADR-0024 후속 carve (§6.5 access_token query backward-compat 제거 P3 / §6.6 multi-instance ticket store Redis·PG 백킹 P2 / §6.4 subprotocol PoC P3 / §6.2 nginx redact 사내 적용) + Gitea worker traceability 정합 (IMPL-GITEA-01 / UT-GITEA-01 → report.md row) |
+| 사내/사용자 | 1순위 Onboarding SOP staging 1주 monitoring / 2순위 nginx 재기동 + OIDC redirect_uri 검증 / 3순위 Keycloak 26.0 redeploy smoke (ADR-0023 §5) / 4순위 issue #214 사내 1회 + Keycloak event listener SPI JAR 빌드·배포 |
+
+### 검증
+
+clean fast-forward (0 충돌). 흡수 9 PR 모두 머지 시 CI 통과 + 사용자 squash merge. Open PR 0.
+
+---
+
 # Session Handoff — gemini/ui-cleanup-and-org-actions (2026-05-26 UI 아카이브 및 E2E 테스트 안정성 확보 완료)
 
 - 브랜치: `gemini/ui-cleanup-and-org-actions`
