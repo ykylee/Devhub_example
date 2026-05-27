@@ -1,9 +1,11 @@
 package gitea
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -186,14 +188,53 @@ func (c *Client) ListPullRequests(ctx context.Context, owner, repo string, state
 	return allPulls, nil
 }
 
+// CreateRepoOptions is the repository creation payload (Gitea POST body).
+type CreateRepoOptions struct {
+	Name          string `json:"name"`
+	Description   string `json:"description,omitempty"`
+	Private       bool   `json:"private"`
+	DefaultBranch string `json:"default_branch,omitempty"`
+	AutoInit      bool   `json:"auto_init,omitempty"`
+}
+
+// CreateRepo creates a repository in Gitea. owner 가 비면 인증 사용자 계정
+// (POST /user/repos), 있으면 org (POST /orgs/{owner}/repos) 아래에 생성한다.
+// 이미 존재하면 Gitea 가 409 를 반환하며 do() 가 status error 로 전파한다.
+func (c *Client) CreateRepo(ctx context.Context, owner string, opts CreateRepoOptions) (GiteaRepository, error) {
+	path := "/api/v1/user/repos"
+	if o := strings.TrimSpace(owner); o != "" {
+		path = fmt.Sprintf("/api/v1/orgs/%s/repos", url.PathEscape(o))
+	}
+	req, err := c.newRequest(ctx, http.MethodPost, path, opts)
+	if err != nil {
+		return GiteaRepository{}, err
+	}
+	var created GiteaRepository
+	if err := c.do(req, &created); err != nil {
+		return GiteaRepository{}, err
+	}
+	return created, nil
+}
+
 func (c *Client) newRequest(ctx context.Context, method, path string, body any) (*http.Request, error) {
 	u := c.BaseURL + path
-	req, err := http.NewRequestWithContext(ctx, method, u, nil)
+	var reader io.Reader
+	if body != nil {
+		encoded, err := json.Marshal(body)
+		if err != nil {
+			return nil, err
+		}
+		reader = bytes.NewReader(encoded)
+	}
+	req, err := http.NewRequestWithContext(ctx, method, u, reader)
 	if err != nil {
 		return nil, err
 	}
 
 	req.Header.Set("Accept", "application/json")
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
 	if c.AuthHeader != "" {
 		req.Header.Set("Authorization", c.AuthHeader)
 	} else if c.Token != "" {

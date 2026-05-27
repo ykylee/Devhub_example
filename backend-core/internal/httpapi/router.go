@@ -316,6 +316,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.POST("/integration/providers/:provider_id/sync", handler.syncIntegrationProvider)
 	v1.GET("/integration/providers/:provider_id/scm-repositories", handler.listSCMRepositories)
 	v1.POST("/integration/providers/:provider_id/import-repositories", handler.importSCMRepositories)
+	v1.POST("/integration/providers/:provider_id/create-repository", handler.createSCMRepository)
 	v1.POST("/integration/providers/:provider_id/webhook", handler.ingestIntegrationProviderWebhook)
 	v1.POST("/integration/test-connection", handler.testIntegrationConnection)
 	v1.GET("/integration/bindings", handler.listIntegrationBindings)

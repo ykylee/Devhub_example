@@ -28,9 +28,9 @@ func providerHasCapability(p domain.IntegrationProvider, caps ...string) bool {
 
 // scmProviderForPull resolves the :provider_id provider and enforces the gates
 // shared by SCM repository read operations: provider exists, provider_type=scm,
-// and the `pull` capability is enabled. Writes the error response and returns
+// and the required capability is enabled. Writes the error response and returns
 // ok=false on failure.
-func (h *Handler) scmProviderForPull(c *gin.Context, storeI ApplicationStore) (domain.IntegrationProvider, bool) {
+func (h *Handler) scmProviderForCapability(c *gin.Context, storeI ApplicationStore, capability string) (domain.IntegrationProvider, bool) {
 	providerID := c.Param("provider_id")
 	provider, err := storeI.GetIntegrationProviderByID(c.Request.Context(), providerID)
 	if errors.Is(err, store.ErrNotFound) {
@@ -44,20 +44,33 @@ func (h *Handler) scmProviderForPull(c *gin.Context, storeI ApplicationStore) (d
 	if provider.ProviderType != domain.IntegrationProviderTypeSCM {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{
 			"status": "rejected",
-			"error":  "repository import is only supported for SCM-type providers",
+			"error":  "repository operations are only supported for SCM-type providers",
 			"code":   "integration_sync_unsupported_provider_type",
 		})
 		return domain.IntegrationProvider{}, false
 	}
-	if !providerHasCapability(provider, "pull") {
+	if !providerHasCapability(provider, capability) {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{
 			"status": "rejected",
-			"error":  "provider does not have the 'pull' capability enabled",
+			"error":  "provider does not have the '" + capability + "' capability enabled",
 			"code":   "integration_capability_not_enabled",
 		})
 		return domain.IntegrationProvider{}, false
 	}
+	if !isGiteaCompatibleProvider(provider) {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"status": "rejected",
+			"error":  "repository sync currently supports Gitea-compatible providers (gitea/forgejo/gogs) only",
+			"code":   "integration_provider_not_gitea_compatible",
+		})
+		return domain.IntegrationProvider{}, false
+	}
 	return provider, true
+}
+
+// scmProviderForPull — inbound 조회/import gate (pull capability).
+func (h *Handler) scmProviderForPull(c *gin.Context, storeI ApplicationStore) (domain.IntegrationProvider, bool) {
+	return h.scmProviderForCapability(c, storeI, "pull")
 }
 
 // scmProviderClient builds an authenticated Gitea client from the provider's
@@ -78,6 +91,28 @@ func (h *Handler) scmProviderClient(c *gin.Context, provider domain.IntegrationP
 		return nil, false
 	}
 	return client, true
+}
+
+// giteaCompatibleVendors — Gitea REST API 와 호환되는 vendor (현재 구현된 유일한 SCM
+// 어댑터). import/create 는 이 client 를 쓰므로 다른 vendor(github/gitlab/bitbucket)는
+// 거부한다 (codex #363 P2).
+var giteaCompatibleVendors = map[string]bool{"gitea": true, "forgejo": true, "gogs": true}
+
+// isGiteaCompatibleProvider — credentials_ref 의 provider_sdk vendor 가 명시돼 있고
+// gitea-family 가 아니면 false. vendor 미명시(hmac_sha256/shared_token, 예: Custom)면
+// 사용자가 Gitea-호환 base_url 을 지정했다고 보고 허용(true).
+func isGiteaCompatibleProvider(p domain.IntegrationProvider) bool {
+	const prefix = "provider_sdk:"
+	ref := strings.TrimSpace(p.CredentialsRef)
+	if !strings.HasPrefix(ref, prefix) {
+		return true
+	}
+	parts := strings.SplitN(strings.TrimPrefix(ref, prefix), ":", 2)
+	vendor := normalizeProviderSDKKey(parts[0])
+	if vendor == "" {
+		return true
+	}
+	return giteaCompatibleVendors[vendor]
 }
 
 func scmRepoOwnerLogin(fullName string) string {
@@ -212,5 +247,83 @@ func (h *Handler) importSCMRepositories(c *gin.Context) {
 		"imported":     len(imported),
 		"repositories": imported,
 		"not_found":    notFound,
+	})
+}
+
+type createSCMRepositoryRequest struct {
+	Name        string `json:"name"`
+	Owner       string `json:"owner"` // optional org; 빈 값이면 인증 사용자 계정
+	Description string `json:"description"`
+	Private     bool   `json:"private"`
+	AutoInit    bool   `json:"auto_init"`
+}
+
+// API-90 — POST /api/v1/integration/providers/:provider_id/create-repository (Phase C)
+// 시스템에서 선택 SCM(provider)에 실제 저장소를 생성하고 시스템 repositories 로 미러한다
+// (source=system, provider_id 세팅 — 시스템이 생성을 주도했으므로 system-owned).
+// push capability + Gitea-compatible provider 필요.
+func (h *Handler) createSCMRepository(c *gin.Context) {
+	storeI, ok := h.applicationStoreOrUnavailable(c)
+	if !ok {
+		return
+	}
+	var req createSCMRepositoryRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": err.Error()})
+		return
+	}
+	if strings.TrimSpace(req.Name) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "name is required", "code": "integration_repo_name_required"})
+		return
+	}
+	provider, ok := h.scmProviderForCapability(c, storeI, "push")
+	if !ok {
+		return
+	}
+	client, ok := h.scmProviderClient(c, provider)
+	if !ok {
+		return
+	}
+	created, err := client.CreateRepo(c.Request.Context(), strings.TrimSpace(req.Owner), gitea.CreateRepoOptions{
+		Name:        strings.TrimSpace(req.Name),
+		Description: strings.TrimSpace(req.Description),
+		Private:     req.Private,
+		AutoInit:    req.AutoInit,
+	})
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"status": "rejected", "error": "failed to create SCM repository: " + err.Error(), "code": "integration_scm_create_failed"})
+		return
+	}
+	if err := storeI.UpsertRepository(c.Request.Context(), domain.Repository{
+		GiteaID:       created.ID,
+		FullName:      created.FullName,
+		OwnerLogin:    scmRepoOwnerLogin(created.FullName),
+		Name:          created.Name,
+		CloneURL:      created.CloneURL,
+		HTMLURL:       created.HTMLURL,
+		DefaultBranch: created.DefaultBranch,
+		Private:       created.Private,
+		Source:        domain.RepositorySourceSystem,
+		ProviderID:    provider.ID,
+		Description:   strings.TrimSpace(req.Description),
+	}); err != nil {
+		writeServerError(c, err, "integration.scm.repositories.create.persist")
+		return
+	}
+	h.recordAuditBestEffort(c, "integration.provider.repository_created", "integration_provider", provider.ID, map[string]any{
+		"provider_key": provider.ProviderKey,
+		"full_name":    created.FullName,
+	})
+	c.JSON(http.StatusCreated, gin.H{
+		"status": "created",
+		"repository": gin.H{
+			"full_name":      created.FullName,
+			"name":           created.Name,
+			"clone_url":      created.CloneURL,
+			"html_url":       created.HTMLURL,
+			"default_branch": created.DefaultBranch,
+			"private":        created.Private,
+			"source":         domain.RepositorySourceSystem,
+		},
 	})
 }

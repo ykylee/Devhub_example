@@ -765,11 +765,13 @@ func createRepositoryTx(ctx context.Context, tx pgx.Tx, key, slug, scmProvider s
 	if name == "" {
 		name = fullName
 	}
+	// source='system' — 시스템에서 생성한 repository (SCM mirror 가 아님). 소유권 분리
+	// (migration 000042) — codex #363 P2. 빈 Source 를 scm 으로 기본 취급하던 것 정정.
 	const query = `
 INSERT INTO repositories (
-	full_name, name, owner_login, clone_url, html_url, default_branch, private, updated_at
+	full_name, name, owner_login, clone_url, html_url, default_branch, private, source, updated_at
 ) VALUES (
-	$1, $2, NULLIF(split_part($1, '/', 1), ''), NULLIF($3, ''), NULLIF($4, ''), 'main', false, NOW()
+	$1, $2, NULLIF(split_part($1, '/', 1), ''), NULLIF($3, ''), NULLIF($4, ''), 'main', false, 'system', NOW()
 )
 ON CONFLICT (full_name) DO UPDATE SET
 	name = EXCLUDED.name,

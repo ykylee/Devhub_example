@@ -262,6 +262,7 @@ var routePermissionTable = map[routeKey]routePolicy{
 	{http.MethodPost, "/api/v1/integration/providers/:provider_id/sync"}:                {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
 	{http.MethodGet, "/api/v1/integration/providers/:provider_id/scm-repositories"}:     {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
 	{http.MethodPost, "/api/v1/integration/providers/:provider_id/import-repositories"}: {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
+	{http.MethodPost, "/api/v1/integration/providers/:provider_id/create-repository"}:   {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
 	{http.MethodPost, "/api/v1/integration/test-connection"}:                            {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
 	{http.MethodGet, "/api/v1/integration/bindings"}:                                    {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
 	{http.MethodPost, "/api/v1/integration/bindings"}:                                   {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},

@@ -75,6 +75,19 @@ class IntegrationService {
     );
   }
 
+  /** API-90 (Phase C) — 선택 SCM provider 에 실제 저장소를 생성하고 시스템으로 미러
+   *  (source=system). push capability + Gitea-compatible provider 필요. */
+  async createScmRepository(
+    providerID: string,
+    input: { name: string; owner?: string; description?: string; private?: boolean; auto_init?: boolean },
+  ): Promise<{ status: string; repository: ScmRepository & { source: string } }> {
+    return await apiClient<{ status: string; repository: ScmRepository & { source: string } }>(
+      "POST",
+      `/api/v1/integration/providers/${providerID}/create-repository`,
+      input,
+    );
+  }
+
   /** API-80 — Provider 삭제 (sprint claude/work_260518-j). FK guard:
    *  active binding 존재 시 backend 가 409 `integration_provider_has_bindings`
    *  반환 — caller 는 ApiError.payload.code 로 분기 처리. */

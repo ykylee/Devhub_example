@@ -10,7 +10,7 @@ import { toUserErrorMessage } from "@/lib/services/error-message";
 import { applicationService, Application as AdminApplication } from "@/lib/services/application.service";
 import { repositoryService, Repository } from "@/lib/services/repository.service";
 import { projectService } from "@/lib/services/project.service";
-import { Project } from "@/lib/services/project.types";
+import { Project, Application as ProjectApplication } from "@/lib/services/project.types";
 import { ApplicationCreationModal } from "@/components/project/ApplicationCreationModal";
 import { ProjectCreationModal } from "@/components/project/ProjectCreationModal";
 import { useToast } from "@/components/ui/Toast";
@@ -458,7 +458,7 @@ export default function AdminCatalogPage() {
       <AnimatePresence>
         {showApplicationModal && (
           <ApplicationCreationModal
-            initialData={editingApplication ?? undefined}
+            initialData={editingApplication ? (editingApplication as unknown as Partial<ProjectApplication>) : undefined}
             onClose={() => {
               setShowApplicationModal(false);
               setEditingApplication(null);

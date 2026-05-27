@@ -1984,8 +1984,11 @@ intake_token_collision                         # sprint o (ADR-0014): hashed_tok
 | API-87 | `POST /api/v1/integration/test-connection` | Provider endpoint reachability 테스트 (등록 UX 고도화 #5) |
 | API-88 | `GET /api/v1/integration/providers/{provider_id}/scm-repositories` | SCM provider 원격 repository 목록 조회 (import 대상) |
 | API-89 | `POST /api/v1/integration/providers/{provider_id}/import-repositories` | 선택 repository 를 시스템으로 import/연동 |
+| API-90 | `POST /api/v1/integration/providers/{provider_id}/create-repository` | 선택 SCM 에 실제 저장소 생성 + 시스템 미러 (Phase C) |
 
-> **capability 기능 gate** (sprint `claude/work_260527-scm-repo-sync`): provider `capabilities` 는 표시 라벨이 아니라 기능 gate 다. `pull` = SCM 으로부터 repository 조회/import(API-88/89) 허용, `sync` = mirror sync(API-72) 허용(`pull` 도 허용), `webhook` = inbound webhook 수신, `push` = outbound 생성(Phase C 예정). gate 미충족 시 422 `integration_capability_not_enabled`.
+> **capability 기능 gate** (sprint `claude/work_260527-scm-repo-sync` / `-phase-c`): provider `capabilities` 는 표시 라벨이 아니라 기능 gate 다. `pull` = SCM 으로부터 repository 조회/import(API-88/89) 허용, `sync` = mirror sync(API-72) 허용(`pull` 도 허용), `webhook` = inbound webhook 수신, `push` = outbound 저장소 생성(API-90) 허용. gate 미충족 시 422 `integration_capability_not_enabled`.
+>
+> import/create 는 현재 **Gitea REST client** 만 구현돼 있어 Gitea-compatible provider(gitea/forgejo/gogs, credentials_ref `provider_sdk:<vendor>` 기준)로 제한된다. 다른 vendor(github/gitlab/bitbucket)는 422 `integration_provider_not_gitea_compatible`.
 
 ### 15.2 Provider Catalog
 
@@ -2078,6 +2081,15 @@ intake_token_collision                         # sprint o (ADR-0014): hashed_tok
 - **capability gate**: `pull` 필요.
 - **응답 — 200**: `{status:"ok", imported:N, repositories:[{full_name, name}], not_found:["..."]}`. (선택했으나 원격에 없는 full_name 은 `not_found`.)
 - **에러**: 400 `integration_import_no_selection`(빈 목록), 그 외 API-88 과 동일.
+
+#### API-90 `POST /api/v1/integration/providers/{provider_id}/create-repository`
+
+- **인증**: OIDC + RBAC `infrastructure:edit` (system_admin only).
+- **요청**: `{name(필수), owner(optional org — 비우면 인증 계정), description, private(bool), auto_init(bool)}`.
+- **설명**: 시스템에서 선택 SCM(provider)에 **실제 저장소를 생성**하고 (Gitea `POST /user/repos` 또는 `/orgs/{owner}/repos`) 시스템 `repositories` 로 미러한다. 생성된 row 는 **`source=system`** (시스템이 생성을 주도) + `provider_id` 세팅 + SCM 응답값으로 mirror 필드 채움. 이후 sync 가 mirror 필드를 갱신해도 source/description 는 보존.
+- **capability gate**: `push` 필요 + Gitea-compatible provider.
+- **응답 — 201**: `{status:"created", repository:{full_name, name, clone_url, html_url, default_branch, private, source:"system"}}`.
+- **에러**: 400 `integration_repo_name_required`, 422 `integration_capability_not_enabled`(push 없음) / `integration_provider_not_gitea_compatible` / `integration_base_url_missing` / `integration_outbound_credentials_missing`, 502 `integration_scm_create_failed`(SCM 생성 실패 — 예: 이미 존재 409).
 
 #### API-80 `DELETE /api/v1/integration/providers/{provider_id}`
 
