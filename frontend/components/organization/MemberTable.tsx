@@ -77,18 +77,18 @@ export function MemberTable({ members, unitLeaderIds = [], unitNames = {}, roles
         )}
       </AnimatePresence>
 
-      <div className="overflow-x-auto overflow-y-visible">
-        <table className="w-full text-left border-separate border-spacing-y-3">
+      <div className="glass border-border rounded-3xl overflow-hidden">
+        <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-4">
-              <th className="px-6 py-2">User</th>
-              <th className="px-6 py-2">Role</th>
-              <th className="px-6 py-2">Department</th>
-              <th className="px-6 py-2">Status</th>
-              <th className="px-6 py-2 text-right">Actions</th>
+            <tr className="border-b border-border bg-muted/30">
+              <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">User</th>
+              <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Role</th>
+              <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Department</th>
+              <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Status</th>
+              <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground text-right">Actions</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-border/60">
             {members.map((member, index) => {
               const isLeader = member.appointments.some(a => a.role === 'leader') || unitLeaderIdSet.has(member.id);
               const isDualLeader = member.appointments.filter(a => a.role === 'leader').length > 1;
@@ -105,9 +105,9 @@ export function MemberTable({ members, unitLeaderIds = [], unitNames = {}, roles
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="glass group hover:bg-muted/30 transition-all duration-300 rounded-2xl"
+                  className="group hover:bg-muted/20 transition-colors"
                 >
-                  <td className="px-6 py-4 rounded-l-2xl">
+                  <td className="px-6 py-5">
                     <div className="flex items-center gap-3">
                       <div className="relative">
                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border border-border">
@@ -137,7 +137,7 @@ export function MemberTable({ members, unitLeaderIds = [], unitNames = {}, roles
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-5">
                     <div className="flex items-center gap-2">
                       <Shield className={cn("w-3 h-3", 
                         member.role === 'System Admin' ? "text-accent" : 
@@ -154,7 +154,7 @@ export function MemberTable({ members, unitLeaderIds = [], unitNames = {}, roles
                       </select>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-5">
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-foreground/90">{displayDept}</span>
@@ -169,12 +169,12 @@ export function MemberTable({ members, unitLeaderIds = [], unitNames = {}, roles
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-5">
                     <Badge variant={member.status === 'active' ? 'success' : member.status === 'pending' ? 'warning' : 'danger'} dot>
                       {member.status}
                     </Badge>
                   </td>
-                  <td className="px-6 py-4 text-right rounded-r-2xl">
+                  <td className="px-6 py-5 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button
                         type="button"
