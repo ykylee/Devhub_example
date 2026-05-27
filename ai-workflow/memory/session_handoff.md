@@ -1,3 +1,40 @@
+# Session Handoff — main (2026-05-27 post-#366 — SCM repo Phase C + #363 P2 hotfix + #365 build-fix)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
+- 범위: 직전 #364 housekeeping (post-#363) 이후 2 PR (#365/#366) 머지.
+- 상태: main HEAD `f515649` (PR #366).
+- 최종 수정일: 2026-05-27
+
+## 2026-05-27 (post-#366) 결산
+
+사용자 "codex 재리뷰 확인하고 이어서 Phase C" → #363 codex P2×2 확인 + Phase C 구현. 그 사이 codex 가 #365 로 #361 build-break 를 독립 수정 → #366 충돌 → #365 로 deferral 후 머지.
+
+### 머지 PR (2)
+
+| sha | PR | core |
+| --- | --- | --- |
+| `f515649` | **#366** (claude) | **Phase C (시스템→SCM 저장소 생성) + #363 codex P2×2 hotfix**. (C) gitea `CreateRepo`(user/org scope) + **API-90** `create-repository` (push capability + gitea-compat gate → `UpsertRepository(source=system)` → 201) + `CreateScmRepositoryModal` + ProviderTable 'New Repo'. (P2#2) `createRepositoryTx` `source='system'`. (P2#1) `isGiteaCompatibleProvider` — 비-gitea vendor(github/gitlab/bitbucket) import/create 거부. → **SCM↔시스템 repository 양방향(import+create) 완성**. |
+| `922c9f7` (merge `3108073`) | **#365** (codex) | #361 build-break fix — admin/catalog `Application` status 타입 + ProjectCreationModal `repository_id ?? 0`. main `npm run build` 깨진 것 복구. |
+
+### codex 리뷰 / 충돌 처리
+
+- **#363 P2×2** (Gitea-compat gate + system-owned) → #366 에서 반영 완료.
+- **#361 build-break**: codex 재리뷰 확인 중 tsc 로 발견 (main build 깨짐). codex 가 #365 로 독립 수정 + claude 도 #366 에서 수정 → **#365 먼저 머지 → #366 rebase 충돌 → #365 버전으로 deferral** (catalog --theirs / ProjectCreationModal main take / 내 중복 fix 제거). 교훈: 동일 이슈를 concurrent 수정 시 먼저 머지된 쪽으로 통일.
+- **#355** 여전히 usage limit (미리뷰).
+
+### 다음 directive
+
+| 영역 | 항목 |
+| --- | --- |
+| **claude** | 1) **#366/#363 codex 재리뷰 확인** (Phase C create-repository SSRF/권한). 2) inbound webhook 이벤트 정규화 깊이 (multi-provider sync 일반화). 3) #6 평문 secret(credentials_ref/api_token/auth_secret) envelope 암호화. 4) Phase C 후속 — project 생성 flow 와 SCM create 연계 (현재 provider-scoped 독립 endpoint). |
+| 사내/사용자 | Onboarding SOP staging monitoring / nginx OIDC / Keycloak 26.0 smoke / issue #214 / Keycloak SPI realm events wire. |
+
+### 검증
+
+#366 backend go build+vet+test ./... + frontend tsc(0)+eslint(0)+vitest 55+build ✓ (병합 후 재검증 포함). migration prefix 39~42 순차. 본 housekeeping 후 Open PR 0.
+
+---
+
 # Session Handoff — main (2026-05-27 post-#363 — SCM repo 연동 A+B + 고정메뉴 Phase 2b + admin catalog)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
