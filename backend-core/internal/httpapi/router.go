@@ -80,8 +80,7 @@ type ApplicationStore interface {
 	ListProjectRepositories(context.Context, string) ([]domain.ProjectRepository, error)
 	CreateProjectRepository(context.Context, domain.ProjectRepository) (domain.ProjectRepository, error)
 	DeleteProjectRepository(context.Context, string, int64) error
-	CreateProjectWithRepositories(context.Context, domain.Project, []int64) (domain.Project, error)
-	CreateRepositoryForProject(context.Context, string, string, string) (int64, error)
+	CreateProjectWithRepositoryPayload(context.Context, domain.Project, []int64, *store.RepositoryCreatePayload) (domain.Project, error)
 
 	// Repository 운영 지표 (API-51..54, sprint claude/work_260514-c)
 	ListRepositoryActivity(context.Context, int64, store.RepositoryActivityOptions) (domain.RepositoryActivity, error)

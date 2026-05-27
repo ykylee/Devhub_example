@@ -674,12 +674,39 @@ func (s *PostgresStore) CreateProject(ctx context.Context, project domain.Projec
 	return created, nil
 }
 
-func (s *PostgresStore) CreateProjectWithRepositories(ctx context.Context, project domain.Project, repositoryIDs []int64) (domain.Project, error) {
+// RepositoryCreatePayload — project 생성 시 동반 생성할 repository 입력. project tx
+// 안에서 함께 생성하기 위해 store 로 전달 (codex #349 P2 atomicity).
+type RepositoryCreatePayload struct {
+	Key         string
+	Slug        string
+	SCMProvider string
+}
+
+// CreateProjectWithRepositoryPayload creates the project — optionally creating and
+// linking a companion repository — in ONE transaction (codex #349 P2 atomicity).
+// repoPayload 가 주어지면 repository upsert + project insert + project_repositories
+// link 가 모두 같은 tx 에서 일어나므로, project insert 실패(예: 중복 key) 시 repository
+// 생성도 rollback 되어 "create and link" 가 원자적이다 (고아 repository 없음).
+func (s *PostgresStore) CreateProjectWithRepositoryPayload(ctx context.Context, project domain.Project, repositoryIDs []int64, repoPayload *RepositoryCreatePayload) (domain.Project, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return domain.Project{}, fmt.Errorf("begin create project tx: %w", err)
 	}
 	defer tx.Rollback(ctx)
+
+	if repoPayload != nil {
+		repoID, repoErr := createRepositoryTx(ctx, tx, repoPayload.Key, repoPayload.Slug, repoPayload.SCMProvider)
+		if isUniqueViolation(repoErr) || isForeignKeyViolation(repoErr) || isCheckViolation(repoErr, "") {
+			return domain.Project{}, ErrConflict
+		}
+		if repoErr != nil {
+			return domain.Project{}, fmt.Errorf("create companion repository (tx): %w", repoErr)
+		}
+		if project.RepositoryID == 0 {
+			project.RepositoryID = repoID
+		}
+		repositoryIDs = append(repositoryIDs, repoID)
+	}
 
 	row := tx.QueryRow(ctx, projectsInsertQuery,
 		project.ApplicationID, project.RepositoryID, project.Key, project.Name,
@@ -727,7 +754,12 @@ VALUES ($1::uuid, $2, $3)`
 	return created, nil
 }
 
-func (s *PostgresStore) CreateRepositoryForProject(ctx context.Context, key, slug, scmProvider string) (int64, error) {
+// createRepositoryTx upserts a companion repository within the given transaction
+// (codex #349 P2 atomicity — 이전 CreateRepositoryForProject 를 tx-aware 로 전환).
+// full_name(slug) 충돌 시 upsert. raw error 를 반환 — caller 가 violation 분류 +
+// rollback 처리. clone_url/html_url 은 scm+<provider>:// placeholder (실제 SCM
+// 프로비저닝은 범위 밖, 내부 repositories row 만 생성).
+func createRepositoryTx(ctx context.Context, tx pgx.Tx, key, slug, scmProvider string) (int64, error) {
 	fullName := strings.TrimSpace(slug)
 	name := strings.TrimSpace(key)
 	if name == "" {
@@ -735,23 +767,9 @@ func (s *PostgresStore) CreateRepositoryForProject(ctx context.Context, key, slu
 	}
 	const query = `
 INSERT INTO repositories (
-	full_name,
-	name,
-	owner_login,
-	clone_url,
-	html_url,
-	default_branch,
-	private,
-	updated_at
+	full_name, name, owner_login, clone_url, html_url, default_branch, private, updated_at
 ) VALUES (
-	$1,
-	$2,
-	NULLIF(split_part($1, '/', 1), ''),
-	NULLIF($3, ''),
-	NULLIF($4, ''),
-	'main',
-	false,
-	NOW()
+	$1, $2, NULLIF(split_part($1, '/', 1), ''), NULLIF($3, ''), NULLIF($4, ''), 'main', false, NOW()
 )
 ON CONFLICT (full_name) DO UPDATE SET
 	name = EXCLUDED.name,
@@ -766,13 +784,8 @@ RETURNING id`
 	}
 
 	var id int64
-	if err := s.pool.QueryRow(ctx, query, fullName, name, cloneURL, htmlURL).Scan(&id); err != nil {
-		if isUniqueViolation(err) || isForeignKeyViolation(err) || isCheckViolation(err, "") {
-			return 0, ErrConflict
-		}
-		return 0, fmt.Errorf("create repository for project: %w", err)
-	}
-	return id, nil
+	err := tx.QueryRow(ctx, query, fullName, name, cloneURL, htmlURL).Scan(&id)
+	return id, err
 }
 
 func (s *PostgresStore) UpdateProject(ctx context.Context, project domain.Project) (domain.Project, error) {
