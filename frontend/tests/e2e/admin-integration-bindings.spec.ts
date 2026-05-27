@@ -41,8 +41,10 @@ test.describe("External Integration bindings admin UI", () => {
       await seedModal.getByLabel(/^type/i).selectOption("scm");
       await seedModal.getByLabel(/auth mode/i).selectOption("token");
       await seedModal.getByLabel(/display name/i).fill(providerDisplay);
-      await seedModal.getByLabel(/credentials ref/i).fill("hmac_sha256:e2e-bind-secret");
-      await seedModal.getByLabel(/capabilities/i).fill("webhook");
+      // 가이드 자격증명 (등록 UX 고도화) — strategy + secret 분리 입력.
+      await seedModal.getByLabel(/signature strategy/i).selectOption("hmac_sha256");
+      await seedModal.getByLabel(/^secret/i).fill("e2e-bind-secret");
+      await seedModal.getByLabel("webhook", { exact: true }).check();
       await seedModal.getByRole("button", { name: /^register$/i }).click();
       await expect(page.getByRole("dialog")).toBeHidden({ timeout: 10_000 });
 
