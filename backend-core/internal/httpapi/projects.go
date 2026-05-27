@@ -278,6 +278,7 @@ func (h *Handler) createProjectStandalone(c *gin.Context) {
 	} else if len(req.RepositoryIDs) > 0 {
 		primaryRepoID = req.RepositoryIDs[0]
 	}
+	var repoPayload *store.RepositoryCreatePayload
 	if req.RepositoryCreatePayload != nil {
 		repoKey := strings.TrimSpace(req.RepositoryCreatePayload.Key)
 		repoSlug := strings.TrimSpace(req.RepositoryCreatePayload.Slug)
@@ -286,19 +287,7 @@ func (h *Handler) createProjectStandalone(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "repository_create_payload.key/slug/scm_provider are required"})
 			return
 		}
-		createdRepoID, repoErr := storeI.CreateRepositoryForProject(c.Request.Context(), repoKey, repoSlug, scmProvider)
-		if errors.Is(repoErr, store.ErrConflict) {
-			c.JSON(http.StatusConflict, gin.H{"status": "conflict", "error": "repository create conflict", "code": "repository_create_conflict"})
-			return
-		}
-		if repoErr != nil {
-			writeServerError(c, repoErr, "projects.create_repository_payload")
-			return
-		}
-		if primaryRepoID == 0 {
-			primaryRepoID = createdRepoID
-		}
-		req.RepositoryIDs = append(req.RepositoryIDs, createdRepoID)
+		repoPayload = &store.RepositoryCreatePayload{Key: repoKey, Slug: repoSlug, SCMProvider: scmProvider}
 	}
 
 	repoSet := map[int64]struct{}{}
@@ -315,7 +304,8 @@ func (h *Handler) createProjectStandalone(c *gin.Context) {
 		repoIDs = append(repoIDs, id)
 	}
 
-	created, err := storeI.CreateProjectWithRepositories(c.Request.Context(), domain.Project{
+	// repo 동반 생성(repoPayload)은 project 생성과 단일 tx — project 실패 시 repo rollback (codex #349 P2).
+	created, err := storeI.CreateProjectWithRepositoryPayload(c.Request.Context(), domain.Project{
 		ApplicationID: strings.TrimSpace(req.ApplicationID),
 		RepositoryID:  primaryRepoID,
 		Key:           req.Key,
@@ -326,7 +316,7 @@ func (h *Handler) createProjectStandalone(c *gin.Context) {
 		OwnerUserID:   req.OwnerUserID,
 		StartDate:     startDate,
 		DueDate:       dueDate,
-	}, repoIDs)
+	}, repoIDs, repoPayload)
 	if errors.Is(err, store.ErrConflict) {
 		c.JSON(http.StatusConflict, gin.H{"status": "conflict", "error": "project key already exists or referenced application/repository not found", "code": "project_key_conflict"})
 		return
@@ -412,6 +402,7 @@ func (h *Handler) createApplicationProject(c *gin.Context) {
 	} else if len(req.RepositoryIDs) > 0 {
 		primaryRepoID = req.RepositoryIDs[0]
 	}
+	var repoPayload *store.RepositoryCreatePayload
 	if req.RepositoryCreatePayload != nil {
 		repoKey := strings.TrimSpace(req.RepositoryCreatePayload.Key)
 		repoSlug := strings.TrimSpace(req.RepositoryCreatePayload.Slug)
@@ -420,19 +411,7 @@ func (h *Handler) createApplicationProject(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "repository_create_payload.key/slug/scm_provider are required"})
 			return
 		}
-		createdRepoID, repoErr := storeI.CreateRepositoryForProject(c.Request.Context(), repoKey, repoSlug, scmProvider)
-		if errors.Is(repoErr, store.ErrConflict) {
-			c.JSON(http.StatusConflict, gin.H{"status": "conflict", "error": "repository create conflict", "code": "repository_create_conflict"})
-			return
-		}
-		if repoErr != nil {
-			writeServerError(c, repoErr, "projects.create_repository_payload")
-			return
-		}
-		if primaryRepoID == 0 {
-			primaryRepoID = createdRepoID
-		}
-		req.RepositoryIDs = append(req.RepositoryIDs, createdRepoID)
+		repoPayload = &store.RepositoryCreatePayload{Key: repoKey, Slug: repoSlug, SCMProvider: scmProvider}
 	}
 
 	if strings.TrimSpace(req.Key) == "" || strings.TrimSpace(req.Name) == "" || strings.TrimSpace(req.OwnerUserID) == "" {
@@ -469,7 +448,8 @@ func (h *Handler) createApplicationProject(c *gin.Context) {
 		repoIDs = append(repoIDs, id)
 	}
 
-	created, err := storeI.CreateProjectWithRepositories(c.Request.Context(), domain.Project{
+	// repo 동반 생성(repoPayload)은 project 생성과 단일 tx — project 실패 시 repo rollback (codex #349 P2).
+	created, err := storeI.CreateProjectWithRepositoryPayload(c.Request.Context(), domain.Project{
 		ApplicationID: appID,
 		RepositoryID:  primaryRepoID,
 		Key:           req.Key,
@@ -480,7 +460,7 @@ func (h *Handler) createApplicationProject(c *gin.Context) {
 		OwnerUserID:   req.OwnerUserID,
 		StartDate:     startDate,
 		DueDate:       dueDate,
-	}, repoIDs)
+	}, repoIDs, repoPayload)
 	if errors.Is(err, store.ErrConflict) {
 		c.JSON(http.StatusConflict, gin.H{"status": "conflict", "error": "project key already exists or referenced application/repository not found", "code": "project_key_conflict"})
 		return

@@ -336,7 +336,27 @@ func (s *memoryApplicationStore) DeleteProjectRepository(_ context.Context, proj
 	return store.ErrNotFound
 }
 
-func (s *memoryApplicationStore) CreateProjectWithRepositories(_ context.Context, p domain.Project, repositoryIDs []int64) (domain.Project, error) {
+func (s *memoryApplicationStore) CreateProjectWithRepositoryPayload(_ context.Context, p domain.Project, repositoryIDs []int64, repoPayload *store.RepositoryCreatePayload) (domain.Project, error) {
+	// repoPayload 동반 생성 — production 의 단일 tx atomicity 를 흉내 (codex #349 P2):
+	// repo id 확보 후 project + links 생성. CreateProject 실패 시 (중복 key) 에러 반환.
+	if repoPayload != nil {
+		fullName := strings.TrimSpace(repoPayload.Slug)
+		if fullName == "" {
+			return domain.Project{}, store.ErrConflict
+		}
+		s.mu.Lock()
+		repoID, ok := s.repositoryIDs[fullName]
+		if !ok {
+			s.nextRepositoryID++
+			repoID = s.nextRepositoryID
+			s.repositoryIDs[fullName] = repoID
+		}
+		s.mu.Unlock()
+		if p.RepositoryID == 0 {
+			p.RepositoryID = repoID
+		}
+		repositoryIDs = append(repositoryIDs, repoID)
+	}
 	created, err := s.CreateProject(context.Background(), p)
 	if err != nil {
 		return domain.Project{}, err
@@ -355,23 +375,6 @@ func (s *memoryApplicationStore) CreateProjectWithRepositories(_ context.Context
 		}
 	}
 	return created, nil
-}
-
-func (s *memoryApplicationStore) CreateRepositoryForProject(_ context.Context, key, slug, scmProvider string) (int64, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	_ = key
-	_ = scmProvider
-	fullName := strings.TrimSpace(slug)
-	if fullName == "" {
-		return 0, store.ErrConflict
-	}
-	if id, ok := s.repositoryIDs[fullName]; ok {
-		return id, nil
-	}
-	s.nextRepositoryID++
-	s.repositoryIDs[fullName] = s.nextRepositoryID
-	return s.nextRepositoryID, nil
 }
 
 func (s *memoryApplicationStore) UpdateProject(_ context.Context, p domain.Project) (domain.Project, error) {
