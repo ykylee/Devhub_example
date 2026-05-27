@@ -41,6 +41,8 @@ export default function AdminCatalogPage() {
   const [editingApplication, setEditingApplication] = useState<AdminApplication | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [projectSeed, setProjectSeed] = useState<Partial<Project> | null>(null);
+  const [creatingRepository, setCreatingRepository] = useState(false);
+  const [publishingRepositoryID, setPublishingRepositoryID] = useState<number | null>(null);
   const { toast } = useToast();
 
   const loadAll = useCallback(async () => {
@@ -87,7 +89,7 @@ export default function AdminCatalogPage() {
     const q = query.trim().toLowerCase();
     if (!q) return repositories;
     return repositories.filter((r) =>
-      [r.full_name, r.owner_login, r.name].some((v) => (v ?? "").toLowerCase().includes(q)),
+      [r.full_name, r.owner_login, r.name, r.status, r.scm_provider ?? ""].some((v) => (v ?? "").toLowerCase().includes(q)),
     );
   }, [repositories, query]);
 
@@ -111,6 +113,9 @@ export default function AdminCatalogPage() {
   const setTab = (tab: CatalogTab) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("tab", tab);
+    // 탭 이동 시 이전 탭 검색어(q)로 인해 "데이터 없음"으로 보이는 혼선을 줄인다.
+    params.delete("q");
+    setQuery("");
     router.replace(`/admin/catalog?${params.toString()}`);
   };
 
@@ -131,6 +136,11 @@ export default function AdminCatalogPage() {
     }
     return counts;
   }, [projects]);
+
+  const applicationNameByID = useMemo(
+    () => new Map(applications.map((app) => [app.id, app.name])),
+    [applications],
+  );
 
   const openProjectTabByApplication = (applicationID: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -168,6 +178,43 @@ export default function AdminCatalogPage() {
       await loadAll();
     } catch (err) {
       toast(toUserErrorMessage(err, "Project 삭제에 실패했습니다."), "error");
+    }
+  };
+
+  const handleCreateRepositoryDraft = async () => {
+    const key = prompt("Repository key를 입력하세요 (예: DEVHUB-API)");
+    if (!key || !key.trim()) return;
+    const slug = prompt("Repository slug(full_name)를 입력하세요 (예: devhub/devhub-api)");
+    if (!slug || !slug.trim()) return;
+    const scmProvider = prompt("SCM provider key를 입력하세요 (선택, 예: gitea)", "") ?? "";
+    setCreatingRepository(true);
+    try {
+      await repositoryService.createRepositoryDraft({
+        key: key.trim(),
+        slug: slug.trim(),
+        scm_provider: scmProvider.trim() || undefined,
+      });
+      toast(`Repository draft ${slug.trim()} 생성 완료`, "success");
+      await loadAll();
+    } catch (err) {
+      toast(toUserErrorMessage(err, "Repository draft 생성에 실패했습니다."), "error");
+    } finally {
+      setCreatingRepository(false);
+    }
+  };
+
+  const handleRequestPublish = async (repo: Repository) => {
+    if (repo.status !== "draft") return;
+    if (!confirm(`${repo.full_name} draft를 외부 SCM 연동 대상으로 전송할까요?`)) return;
+    setPublishingRepositoryID(repo.id);
+    try {
+      await repositoryService.requestRepositoryPublish(repo.id);
+      toast(`Publish 요청이 접수되었습니다: ${repo.full_name}`, "success");
+      await loadAll();
+    } catch (err) {
+      toast(toUserErrorMessage(err, "Repository publish 요청에 실패했습니다."), "error");
+    } finally {
+      setPublishingRepositoryID(null);
     }
   };
 
@@ -221,7 +268,7 @@ export default function AdminCatalogPage() {
               New Application
             </button>
           )}
-          {(activeTab === "projects" || activeTab === "repositories") && (
+          {activeTab === "projects" && (
             <button
               onClick={() => {
                 setEditingProject(null);
@@ -231,6 +278,15 @@ export default function AdminCatalogPage() {
               className="rounded-xl bg-primary px-3 py-2 text-xs font-bold uppercase tracking-widest text-primary-foreground hover:opacity-90"
             >
               New Project
+            </button>
+          )}
+          {activeTab === "repositories" && (
+            <button
+              onClick={() => void handleCreateRepositoryDraft()}
+              disabled={creatingRepository}
+              className="rounded-xl bg-primary px-3 py-2 text-xs font-bold uppercase tracking-widest text-primary-foreground hover:opacity-90"
+            >
+              New Repository
             </button>
           )}
         </div>
@@ -263,11 +319,13 @@ export default function AdminCatalogPage() {
             const next = e.target.value;
             setQuery(next);
             const params = new URLSearchParams(searchParams.toString());
+            // 검색어 변경 시 현재 탭을 항상 유지 (탭이 applications로 튀는 현상 방지)
+            params.set("tab", activeTab);
             if (next.trim()) params.set("q", next.trim());
             else params.delete("q");
             router.replace(`/admin/catalog?${params.toString()}`);
           }}
-          placeholder="key/name/owner/status 검색"
+          placeholder="key/name/leader/status 검색"
           className="w-full rounded-xl border border-border bg-muted/20 px-3 py-2 text-sm text-foreground"
         />
       </div>
@@ -285,7 +343,7 @@ export default function AdminCatalogPage() {
                   <th className="px-4 py-3 text-left">Key</th>
                   <th className="px-4 py-3 text-left">Name</th>
                   <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-left">Owner</th>
+                  <th className="px-4 py-3 text-left">Leader</th>
                   <th className="px-4 py-3 text-left">Projects</th>
                   <th className="px-4 py-3 text-left">Updated</th>
                   <th className="px-4 py-3 text-left">Actions</th>
@@ -350,7 +408,9 @@ export default function AdminCatalogPage() {
               <thead className="bg-muted/30 text-xs uppercase tracking-widest text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3 text-left">Name</th>
-                  <th className="px-4 py-3 text-left">Owner</th>
+                  <th className="px-4 py-3 text-left">Leader</th>
+                  <th className="px-4 py-3 text-left">Status</th>
+                  <th className="px-4 py-3 text-left">SCM</th>
                   <th className="px-4 py-3 text-left">Private</th>
                   <th className="px-4 py-3 text-left">Projects</th>
                   <th className="px-4 py-3 text-left">Updated</th>
@@ -362,6 +422,8 @@ export default function AdminCatalogPage() {
                   <tr key={r.id} className="border-t border-border/40">
                     <td className="px-4 py-3 font-mono">{r.full_name}</td>
                     <td className="px-4 py-3">{r.owner_login || "-"}</td>
+                    <td className="px-4 py-3">{r.status}</td>
+                    <td className="px-4 py-3">{r.scm_provider || "-"}</td>
                     <td className="px-4 py-3">{r.private ? "yes" : "no"}</td>
                     <td className="px-4 py-3">{repoProjectCount.get(r.id) ?? 0}</td>
                     <td className="px-4 py-3">{new Date(r.updated_at).toLocaleString()}</td>
@@ -395,10 +457,11 @@ export default function AdminCatalogPage() {
                           Add Project
                         </button>
                         <button
-                          onClick={() => toast("Repository 수정은 연결된 SCM에서 관리됩니다.", "warning")}
+                          onClick={() => void handleRequestPublish(r)}
+                          disabled={r.status !== "draft" || publishingRepositoryID === r.id}
                           className="rounded-lg border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-widest hover:bg-muted/30"
                         >
-                          Edit
+                          Publish
                         </button>
                         <button
                           onClick={() => toast("Repository 삭제는 연결된 SCM에서 관리됩니다.", "warning")}
@@ -428,7 +491,7 @@ export default function AdminCatalogPage() {
                   <th className="px-4 py-3 text-left">Name</th>
                   <th className="px-4 py-3 text-left">Application</th>
                   <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-left">Owner</th>
+                  <th className="px-4 py-3 text-left">Leader</th>
                   <th className="px-4 py-3 text-left">Updated</th>
                   <th className="px-4 py-3 text-left">Actions</th>
                 </tr>
@@ -438,7 +501,7 @@ export default function AdminCatalogPage() {
                   <tr key={p.id} className="border-t border-border/40">
                     <td className="px-4 py-3 font-mono">{p.key}</td>
                     <td className="px-4 py-3">{p.name}</td>
-                    <td className="px-4 py-3 font-mono">{p.application_id || "-"}</td>
+                    <td className="px-4 py-3">{(p.application_id && applicationNameByID.get(p.application_id)) || "-"}</td>
                     <td className="px-4 py-3">{p.status}</td>
                     <td className="px-4 py-3">{p.owner_user_id || "-"}</td>
                     <td className="px-4 py-3">{new Date(p.updated_at).toLocaleString()}</td>

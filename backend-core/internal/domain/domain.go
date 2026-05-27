@@ -6,16 +6,20 @@ import (
 )
 
 type Repository struct {
-	ID            int64
-	GiteaID       int64
-	FullName      string
-	OwnerLogin    string
-	Name          string
-	CloneURL      string
-	HTMLURL       string
-	DefaultBranch string
-	Private       bool
-	UpdatedAt     time.Time
+	ID                 int64
+	GiteaID            int64
+	FullName           string
+	OwnerLogin         string
+	Name               string
+	CloneURL           string
+	HTMLURL            string
+	DefaultBranch      string
+	Private            bool
+	Status             string
+	SCMProvider        string
+	PublishRequestedAt *time.Time
+	PublishedAt        *time.Time
+	UpdatedAt          time.Time
 	// 소유권 분리 (migration 000042). SCM mirror 필드(위)와 구분되는 메타.
 	Source      string // "scm" | "system" (빈 값 = legacy, scm 으로 취급)
 	ProviderID  string // 연동된 integration_providers(scm) FK, 빈 값 가능

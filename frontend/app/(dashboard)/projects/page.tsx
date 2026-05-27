@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { 
+import {
   Briefcase, 
   Calendar, 
   CheckCircle2, 
@@ -73,14 +73,6 @@ export default function ProjectsStatusPage() {
         titlePrefix="Project"
         titleGradient="Milestones (과제 현황)"
         subtitle="Tracking development projects, milestones, and delivery timelines."
-        actions={(
-          <Link
-            href="/admin/catalog?tab=projects"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-opacity"
-          >
-            Manage In Admin Catalog
-          </Link>
-        )}
       />
 
       {error && <PageError message={error} onRetry={() => void refresh()} />}
