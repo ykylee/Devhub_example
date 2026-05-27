@@ -19,6 +19,7 @@ export default function AdminSettingsOrganizationPage() {
   const [unitLeaders, setUnitLeaders] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [orgChartVersion, setOrgChartVersion] = useState(0);
 
   const [managingUnitId, setManagingUnitId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -100,6 +101,7 @@ export default function AdminSettingsOrganizationPage() {
     try {
       await identityService.createUnit(data);
       setIsCreating(false);
+      setOrgChartVersion((v) => v + 1);
       void loadData();
     } catch (err) {
       console.error("Failed to create unit:", err);
@@ -112,6 +114,7 @@ export default function AdminSettingsOrganizationPage() {
     try {
       await identityService.updateUnit(editingUnitId, data);
       setEditingUnitId(null);
+      setOrgChartVersion((v) => v + 1);
       void loadData();
     } catch (err) {
       console.error("Failed to update unit:", err);
@@ -122,6 +125,7 @@ export default function AdminSettingsOrganizationPage() {
     if (confirm("Are you sure you want to delete this unit? This cannot be undone.")) {
       try {
         await identityService.deleteUnit(unitId);
+        setOrgChartVersion((v) => v + 1);
         void loadData();
       } catch (err) {
         console.error("Failed to delete unit:", err);
@@ -137,6 +141,7 @@ export default function AdminSettingsOrganizationPage() {
         await identityService.updateUnit(unitId, { leader_user_id: leaderId });
       }
       setManagingUnitId(null);
+      setOrgChartVersion((v) => v + 1);
       void loadData();
     } catch {
       setSaveError("Failed to save member changes.");
@@ -228,7 +233,7 @@ export default function AdminSettingsOrganizationPage() {
               {view === "grid" && (
                 <OrgUnitGrid nodes={orgNodes} unitMembers={unitMembers} onManage={(id) => setManagingUnitId(id)} />
               )}
-              {view === "chart" && <OrgTree />}
+              {view === "chart" && <OrgTree key={`org-tree-${orgChartVersion}`} />}
             </motion.div>
           </AnimatePresence>
         )}
