@@ -2071,7 +2071,7 @@ intake_token_collision                         # sprint o (ADR-0014): hashed_tok
 - **설명**: SCM provider(`provider_type=scm`)의 base_url + outbound 자격증명으로 원격 repository 목록을 조회한다. 각 항목에 시스템 import 여부(`imported`)를 표시 (provider_id 로 연동된 시스템 repository 존재 여부).
 - **capability gate**: `pull` 필요.
 - **응답 — 200**: `{status:"ok", data:[{full_name, name, clone_url, html_url, default_branch, private, imported}], meta:{total}}`.
-- **에러**: 404 `integration_provider_not_found`, 422 `integration_sync_unsupported_provider_type`(비-SCM) / `integration_capability_not_enabled`(pull 없음) / `integration_base_url_missing` / `integration_outbound_credentials_missing`, 502 `integration_scm_unreachable`/`integration_scm_auth_failed`.
+- **에러**: 404 `integration_provider_not_found`, 409 `integration_provider_disabled`(비활성), 422 `integration_sync_unsupported_provider_type`(비-SCM) / `integration_capability_not_enabled`(pull 없음) / `integration_provider_not_gitea_compatible` / `integration_base_url_missing` / `integration_outbound_credentials_missing`, 502 `integration_scm_unreachable`/`integration_scm_auth_failed`.
 
 #### API-89 `POST /api/v1/integration/providers/{provider_id}/import-repositories`
 
@@ -2089,7 +2089,7 @@ intake_token_collision                         # sprint o (ADR-0014): hashed_tok
 - **설명**: 시스템에서 선택 SCM(provider)에 **실제 저장소를 생성**하고 (Gitea `POST /user/repos` 또는 `/orgs/{owner}/repos`) 시스템 `repositories` 로 미러한다. 생성된 row 는 **`source=system`** (시스템이 생성을 주도) + `provider_id` 세팅 + SCM 응답값으로 mirror 필드 채움. 이후 sync 가 mirror 필드를 갱신해도 source/description 는 보존.
 - **capability gate**: `push` 필요 + Gitea-compatible provider.
 - **응답 — 201**: `{status:"created", repository:{full_name, name, clone_url, html_url, default_branch, private, source:"system"}}`.
-- **에러**: 400 `integration_repo_name_required`, 422 `integration_capability_not_enabled`(push 없음) / `integration_provider_not_gitea_compatible` / `integration_base_url_missing` / `integration_outbound_credentials_missing`, 502 `integration_scm_create_failed`(SCM 생성 실패 — 예: 이미 존재 409).
+- **에러**: 400 `integration_repo_name_required`, 409 `integration_provider_disabled`(비활성), 422 `integration_capability_not_enabled`(push 없음) / `integration_provider_not_gitea_compatible` / `integration_base_url_missing` / `integration_outbound_credentials_missing`, 502 `integration_scm_create_failed`(SCM 생성 실패 — 예: 이미 존재 409).
 
 #### API-80 `DELETE /api/v1/integration/providers/{provider_id}`
 
