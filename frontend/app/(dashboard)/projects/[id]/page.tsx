@@ -15,6 +15,7 @@ import {
   TrendingUp
 } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
+import { parseISO } from "date-fns";
 import { Badge } from "@/components/ui/Badge";
 import { projectService } from "@/lib/services/project.service";
 import type { Project, ProjectActivityItem, ProjectRepositoryLink, ProjectTaskItem } from "@/lib/services/project.types";
@@ -66,7 +67,10 @@ export default function ProjectDetailPage() {
       const [linksResult, activityResult, taskResult] = await Promise.allSettled([
         projectService.getProjectRepositories(id),
         projectService.getProjectActivity(id),
-        projectService.getProjectTasks(id),
+        // 모든 status 를 가져와 completion 지표를 정확히 계산 (codex review PR #342
+        // P1). 기본 필터는 done 을 제외하므로 completionRate/tasksDone 이 항상 0 이
+        // 됨. "Active Tasks" 위젯은 아래에서 done 제외로 client-side 필터한다.
+        projectService.getProjectTasks(id, ["todo", "in_progress", "review", "done"]),
       ]);
       const links = linksResult.status === "fulfilled" ? linksResult.value : [];
       const activityData = activityResult.status === "fulfilled" ? activityResult.value : [];
@@ -133,9 +137,11 @@ export default function ProjectDetailPage() {
   })();
   const tasksDone = tasks.filter((t) => t.status === "done").length;
   const totalTasks = tasks.length;
+  // "Active Tasks" 위젯은 진행 중 작업만 (completion 계산용으로 fetch 한 done 제외).
+  const activeTasks = tasks.filter((t) => t.status !== "done");
   const velocityPerWeek = activities.length > 0 ? Math.max(1, Math.round((activities.length / 2) * 10) / 10) : 0;
   const dueDateLabel = project.due_date
-    ? new Date(project.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+    ? parseISO(project.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })
     : "TBD";
 
   // Find project owner
@@ -196,7 +202,7 @@ export default function ProjectDetailPage() {
   if (project.start_date) {
     milestones.push({
       title: `${project.name} Kickoff`,
-      date: new Date(project.start_date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      date: parseISO(project.start_date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
       status: "Completed"
     });
   } else {
@@ -210,7 +216,7 @@ export default function ProjectDetailPage() {
   if (project.due_date) {
     milestones.push({
       title: `${project.name} Target Delivery`,
-      date: new Date(project.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      date: parseISO(project.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
       status: "Pending"
     });
   } else {
@@ -367,9 +373,9 @@ export default function ProjectDetailPage() {
               <h3 className="text-lg font-bold text-foreground dark:text-primary-foreground">Active Tasks</h3>
             </div>
             <div className="divide-y divide-border/50">
-              {tasks.length === 0 ? (
+              {activeTasks.length === 0 ? (
                 <div className="p-6 text-sm text-muted-foreground">진행 중인 작업이 없습니다.</div>
-              ) : tasks.map((task) => (
+              ) : activeTasks.map((task) => (
                 <div key={task.id} className="p-6 flex items-center justify-between hover:bg-muted/5 transition-colors cursor-pointer group">
                   <div className="flex items-center gap-4">
                     <div className="w-2 h-2 rounded-full bg-primary" />

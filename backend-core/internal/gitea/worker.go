@@ -63,9 +63,12 @@ func (w *SyncWorker) ProcessOnce(ctx context.Context) error {
 	}
 
 	// 1. Check if there is a queued integration sync job first.
-	jobID, _, err := w.Store.AcquireNextQueuedSyncJob(ctx)
+	// AcquireNextQueuedSyncJob is provider_type='scm' gated (codex review PR #341
+	// P1): only SCM-provider jobs reach this worker, so non-Gitea providers
+	// (Jira/alm, ci_cd, ...) are not falsely marked succeeded here.
+	jobID, providerID, err := w.Store.AcquireNextQueuedSyncJob(ctx)
 	if err == nil && jobID != "" {
-		log.Printf("[Gitea Sync Worker] Acquired queued job %s. Starting sync...", jobID)
+		log.Printf("[Gitea Sync Worker] Acquired queued job %s (provider %s). Starting sync...", jobID, providerID)
 		syncErr := w.syncAll(ctx)
 		if syncErr != nil {
 			log.Printf("[Gitea Sync Worker] Job %s failed: %v", jobID, syncErr)
