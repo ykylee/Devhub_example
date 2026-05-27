@@ -1,0 +1,335 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { Box, FolderGit2, FolderKanban } from "lucide-react";
+import Link from "next/link";
+import { PageEmpty, PageError, PageLoading } from "@/components/ui/PageState";
+import { toUserErrorMessage } from "@/lib/services/error-message";
+import { applicationService, Application as AdminApplication } from "@/lib/services/application.service";
+import { repositoryService, Repository } from "@/lib/services/repository.service";
+import { projectService } from "@/lib/services/project.service";
+import { Project } from "@/lib/services/project.types";
+import { cn } from "@/lib/utils";
+
+type CatalogTab = "applications" | "repositories" | "projects";
+
+function parseTab(raw: string | null): CatalogTab {
+  if (raw === "applications" || raw === "repositories" || raw === "projects") return raw;
+  return "applications";
+}
+
+export default function AdminCatalogPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const activeTab = parseTab(searchParams.get("tab"));
+  const initialQuery = searchParams.get("q") ?? "";
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState(initialQuery);
+
+  const [applications, setApplications] = useState<AdminApplication[]>([]);
+  const [repositories, setRepositories] = useState<Repository[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+
+  const loadAll = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const apps = await applicationService.listApplications();
+      const repos = await repositoryService.listRepositories();
+
+      const nestedProjects = await Promise.all(
+        apps.map((app) => projectService.getApplicationProjectsV2(app.id).catch(() => [])),
+      );
+      const allProjects = nestedProjects.flat();
+      const dedupProjects = Array.from(new Map(allProjects.map((p) => [p.id, p])).values());
+
+      setApplications(apps);
+      setRepositories(repos);
+      setProjects(dedupProjects);
+    } catch (err) {
+      setError(toUserErrorMessage(err, "Admin Catalog 데이터를 불러오지 못했습니다."));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Initial load on mount. This effect intentionally kicks off async fetch.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadAll();
+  }, [loadAll]);
+
+  const filteredApplications = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return applications;
+    return applications.filter((a) =>
+      [a.key, a.name, a.owner_user_id, a.status].some((v) => (v ?? "").toLowerCase().includes(q)),
+    );
+  }, [applications, query]);
+
+  const filteredRepositories = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return repositories;
+    return repositories.filter((r) =>
+      [r.full_name, r.owner_login, r.name].some((v) => (v ?? "").toLowerCase().includes(q)),
+    );
+  }, [repositories, query]);
+
+  const filteredProjects = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return projects;
+    return projects.filter((p) =>
+      [p.key, p.name, p.owner_user_id, p.status, p.application_id ?? ""].some((v) => String(v).toLowerCase().includes(q)),
+    );
+  }, [projects, query]);
+
+  const tabs: Array<{ key: CatalogTab; label: string; icon: React.ComponentType<{ className?: string }>; count: number }> = [
+    { key: "applications", label: "Applications", icon: Box, count: filteredApplications.length },
+    { key: "repositories", label: "Repositories", icon: FolderGit2, count: filteredRepositories.length },
+    { key: "projects", label: "Projects", icon: FolderKanban, count: filteredProjects.length },
+  ];
+
+  const setTab = (tab: CatalogTab) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", tab);
+    router.replace(`/admin/catalog?${params.toString()}`);
+  };
+
+  const appProjectCount = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const p of projects) {
+      if (!p.application_id) continue;
+      counts.set(p.application_id, (counts.get(p.application_id) ?? 0) + 1);
+    }
+    return counts;
+  }, [projects]);
+
+  const repoProjectCount = useMemo(() => {
+    const counts = new Map<number, number>();
+    for (const p of projects) {
+      if (!p.repository_id) continue;
+      counts.set(p.repository_id, (counts.get(p.repository_id) ?? 0) + 1);
+    }
+    return counts;
+  }, [projects]);
+
+  const openProjectTabByApplication = (applicationID: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", "projects");
+    params.set("q", applicationID);
+    setQuery(applicationID);
+    router.replace(`/admin/catalog?${params.toString()}`);
+  };
+
+  const openProjectTabByRepository = (repositoryID: number) => {
+    const q = String(repositoryID);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", "projects");
+    params.set("q", q);
+    setQuery(q);
+    router.replace(`/admin/catalog?${params.toString()}`);
+  };
+
+  if (loading) return <PageLoading label="Admin Catalog 로딩 중..." />;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black uppercase tracking-tight text-foreground dark:text-primary-foreground">
+            Admin Catalog
+          </h1>
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+            system_admin 전용 통합 자산 관리
+          </p>
+        </div>
+        <button
+          onClick={() => void loadAll()}
+          className="rounded-xl border border-border px-3 py-2 text-xs font-bold uppercase tracking-widest hover:bg-muted/30"
+        >
+          Refresh
+        </button>
+      </div>
+
+      <div className="glass-card p-4 space-y-4">
+        <div className="flex flex-wrap gap-2">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setTab(tab.key)}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-black uppercase tracking-widest",
+                activeTab === tab.key
+                  ? "border-primary/40 bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground hover:bg-muted/30",
+              )}
+            >
+              <tab.icon className="w-4 h-4" />
+              <span>{tab.label}</span>
+              <span className="rounded-md bg-muted/50 px-1.5 py-0.5 text-[10px]">{tab.count}</span>
+            </button>
+          ))}
+        </div>
+
+        <input
+          value={query}
+          onChange={(e) => {
+            const next = e.target.value;
+            setQuery(next);
+            const params = new URLSearchParams(searchParams.toString());
+            if (next.trim()) params.set("q", next.trim());
+            else params.delete("q");
+            router.replace(`/admin/catalog?${params.toString()}`);
+          }}
+          placeholder="key/name/owner/status 검색"
+          className="w-full rounded-xl border border-border bg-muted/20 px-3 py-2 text-sm text-foreground"
+        />
+      </div>
+
+      {error && <PageError message={error} onRetry={() => void loadAll()} />}
+
+      {!error && activeTab === "applications" && (
+        filteredApplications.length === 0 ? (
+          <PageEmpty message="조회된 Application 이 없습니다." />
+        ) : (
+          <div className="glass-card overflow-hidden border border-border/60">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/30 text-xs uppercase tracking-widest text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-3 text-left">Key</th>
+                  <th className="px-4 py-3 text-left">Name</th>
+                  <th className="px-4 py-3 text-left">Status</th>
+                  <th className="px-4 py-3 text-left">Owner</th>
+                  <th className="px-4 py-3 text-left">Projects</th>
+                  <th className="px-4 py-3 text-left">Updated</th>
+                  <th className="px-4 py-3 text-left">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredApplications.map((a) => (
+                  <tr key={a.id} className="border-t border-border/40">
+                    <td className="px-4 py-3 font-mono">{a.key}</td>
+                    <td className="px-4 py-3">{a.name}</td>
+                    <td className="px-4 py-3">{a.status}</td>
+                    <td className="px-4 py-3">{a.owner_user_id || "-"}</td>
+                    <td className="px-4 py-3">{appProjectCount.get(a.id) ?? 0}</td>
+                    <td className="px-4 py-3">{new Date(a.updated_at).toLocaleString()}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <Link
+                          href={`/applications/${a.id}`}
+                          className="rounded-lg border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-widest hover:bg-muted/30"
+                        >
+                          Detail
+                        </Link>
+                        <button
+                          onClick={() => openProjectTabByApplication(a.id)}
+                          className="rounded-lg border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-widest hover:bg-muted/30"
+                        >
+                          Projects
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      )}
+
+      {!error && activeTab === "repositories" && (
+        filteredRepositories.length === 0 ? (
+          <PageEmpty message="조회된 Repository 가 없습니다." />
+        ) : (
+          <div className="glass-card overflow-hidden border border-border/60">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/30 text-xs uppercase tracking-widest text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-3 text-left">Name</th>
+                  <th className="px-4 py-3 text-left">Owner</th>
+                  <th className="px-4 py-3 text-left">Private</th>
+                  <th className="px-4 py-3 text-left">Projects</th>
+                  <th className="px-4 py-3 text-left">Updated</th>
+                  <th className="px-4 py-3 text-left">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredRepositories.map((r) => (
+                  <tr key={r.id} className="border-t border-border/40">
+                    <td className="px-4 py-3 font-mono">{r.full_name}</td>
+                    <td className="px-4 py-3">{r.owner_login || "-"}</td>
+                    <td className="px-4 py-3">{r.private ? "yes" : "no"}</td>
+                    <td className="px-4 py-3">{repoProjectCount.get(r.id) ?? 0}</td>
+                    <td className="px-4 py-3">{new Date(r.updated_at).toLocaleString()}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <Link
+                          href={`/repositories/${r.id}`}
+                          className="rounded-lg border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-widest hover:bg-muted/30"
+                        >
+                          Detail
+                        </Link>
+                        <button
+                          onClick={() => openProjectTabByRepository(r.id)}
+                          className="rounded-lg border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-widest hover:bg-muted/30"
+                        >
+                          Projects
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      )}
+
+      {!error && activeTab === "projects" && (
+        filteredProjects.length === 0 ? (
+          <PageEmpty message="조회된 Project 가 없습니다." />
+        ) : (
+          <div className="glass-card overflow-hidden border border-border/60">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/30 text-xs uppercase tracking-widest text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-3 text-left">Key</th>
+                  <th className="px-4 py-3 text-left">Name</th>
+                  <th className="px-4 py-3 text-left">Application</th>
+                  <th className="px-4 py-3 text-left">Status</th>
+                  <th className="px-4 py-3 text-left">Owner</th>
+                  <th className="px-4 py-3 text-left">Updated</th>
+                  <th className="px-4 py-3 text-left">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredProjects.map((p) => (
+                  <tr key={p.id} className="border-t border-border/40">
+                    <td className="px-4 py-3 font-mono">{p.key}</td>
+                    <td className="px-4 py-3">{p.name}</td>
+                    <td className="px-4 py-3 font-mono">{p.application_id || "-"}</td>
+                    <td className="px-4 py-3">{p.status}</td>
+                    <td className="px-4 py-3">{p.owner_user_id || "-"}</td>
+                    <td className="px-4 py-3">{new Date(p.updated_at).toLocaleString()}</td>
+                    <td className="px-4 py-3">
+                      <Link
+                        href={`/projects/${p.id}`}
+                        className="rounded-lg border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-widest hover:bg-muted/30"
+                      >
+                        Detail
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      )}
+    </div>
+  );
+}
