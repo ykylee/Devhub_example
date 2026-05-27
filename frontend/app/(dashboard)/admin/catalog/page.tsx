@@ -89,7 +89,7 @@ export default function AdminCatalogPage() {
     const q = query.trim().toLowerCase();
     if (!q) return repositories;
     return repositories.filter((r) =>
-      [r.full_name, r.owner_login, r.name, r.status, r.scm_provider ?? ""].some((v) => (v ?? "").toLowerCase().includes(q)),
+      [r.full_name, r.owner_login, r.name, r.status, r.provider_key ?? ""].some((v) => (v ?? "").toLowerCase().includes(q)),
     );
   }, [repositories, query]);
 
@@ -186,13 +186,13 @@ export default function AdminCatalogPage() {
     if (!key || !key.trim()) return;
     const slug = prompt("Repository slug(full_name)를 입력하세요 (예: devhub/devhub-api)");
     if (!slug || !slug.trim()) return;
-    const scmProvider = prompt("SCM provider key를 입력하세요 (선택, 예: gitea)", "") ?? "";
+    const providerKey = prompt("SCM provider key를 입력하세요 (선택, 등록된 provider, 예: gitea-main)", "") ?? "";
     setCreatingRepository(true);
     try {
       await repositoryService.createRepositoryDraft({
         key: key.trim(),
         slug: slug.trim(),
-        scm_provider: scmProvider.trim() || undefined,
+        provider_key: providerKey.trim() || undefined,
       });
       toast(`Repository draft ${slug.trim()} 생성 완료`, "success");
       await loadAll();
@@ -423,7 +423,7 @@ export default function AdminCatalogPage() {
                     <td className="px-4 py-3 font-mono">{r.full_name}</td>
                     <td className="px-4 py-3">{r.owner_login || "-"}</td>
                     <td className="px-4 py-3">{r.status}</td>
-                    <td className="px-4 py-3">{r.scm_provider || "-"}</td>
+                    <td className="px-4 py-3">{r.provider_key || "-"}</td>
                     <td className="px-4 py-3">{r.private ? "yes" : "no"}</td>
                     <td className="px-4 py-3">{repoProjectCount.get(r.id) ?? 0}</td>
                     <td className="px-4 py-3">{new Date(r.updated_at).toLocaleString()}</td>

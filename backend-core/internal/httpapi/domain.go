@@ -25,22 +25,25 @@ type repositoryResponse struct {
 	DefaultBranch      string     `json:"default_branch,omitempty"`
 	Private            bool       `json:"private"`
 	Status             string     `json:"status"`
-	SCMProvider        string     `json:"scm_provider,omitempty"`
+	ProviderID         string     `json:"provider_id,omitempty"`
+	ProviderKey        string     `json:"provider_key,omitempty"`
 	PublishRequestedAt *time.Time `json:"publish_requested_at,omitempty"`
 	PublishedAt        *time.Time `json:"published_at,omitempty"`
 	UpdatedAt          time.Time  `json:"updated_at"`
 }
 
 type repositoryDraftStore interface {
-	CreateRepositoryDraft(ctx context.Context, key, slug, scmProvider string) (domain.Repository, error)
+	CreateRepositoryDraft(ctx context.Context, key, slug, providerID string) (domain.Repository, error)
 	MarkRepositoryDraftPublishRequested(ctx context.Context, repositoryID int64) (domain.Repository, error)
 	GetRepositoryByID(ctx context.Context, repositoryID int64) (domain.Repository, error)
 }
 
 type createRepositoryDraftRequest struct {
-	Key         string `json:"key"`
-	Slug        string `json:"slug"`
-	SCMProvider string `json:"scm_provider"`
+	Key  string `json:"key"`
+	Slug string `json:"slug"`
+	// provider_key 입력 — 핸들러가 integration_providers FK(provider_id)로 해석해 저장
+	// (migration 000045 — 구 scm_provider 통합). 빈 값이면 provider 미지정 draft.
+	ProviderKey string `json:"provider_key"`
 }
 
 type issueResponse struct {
@@ -101,7 +104,8 @@ func repositoryFromDomain(repository domain.Repository) repositoryResponse {
 		DefaultBranch:      repository.DefaultBranch,
 		Private:            repository.Private,
 		Status:             repository.Status,
-		SCMProvider:        repository.SCMProvider,
+		ProviderID:         repository.ProviderID,
+		ProviderKey:        repository.ProviderKey,
 		PublishRequestedAt: repository.PublishRequestedAt,
 		PublishedAt:        repository.PublishedAt,
 		UpdatedAt:          repository.UpdatedAt,
@@ -149,7 +153,30 @@ func (h Handler) createRepositoryDraft(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "key and slug are required"})
 		return
 	}
-	created, err := storeI.CreateRepositoryDraft(c.Request.Context(), req.Key, req.Slug, req.SCMProvider)
+	// provider_key 가 주어지면 등록된 SCM provider 로 해석해 provider_id(FK)로 저장한다
+	// (migration 000045 — 구 scm_provider 통합). 빈 값이면 provider 미지정 draft.
+	providerID := ""
+	if pk := strings.TrimSpace(req.ProviderKey); pk != "" {
+		if h.cfg.ApplicationStore == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "application store is not configured"})
+			return
+		}
+		provider, err := h.cfg.ApplicationStore.GetIntegrationProviderByKey(c.Request.Context(), pk)
+		if errors.Is(err, store.ErrNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "integration provider not found", "code": "integration_provider_not_found"})
+			return
+		}
+		if err != nil {
+			writeServerError(c, err, "repositories.create_draft.provider_lookup")
+			return
+		}
+		if provider.ProviderType != domain.IntegrationProviderTypeSCM {
+			c.JSON(http.StatusUnprocessableEntity, gin.H{"status": "rejected", "error": "provider is not SCM type", "code": "integration_sync_unsupported_provider_type"})
+			return
+		}
+		providerID = provider.ID
+	}
+	created, err := storeI.CreateRepositoryDraft(c.Request.Context(), req.Key, req.Slug, providerID)
 	if err != nil {
 		if err == store.ErrConflict {
 			c.JSON(http.StatusConflict, gin.H{"status": "conflict", "error": "repository key or slug already exists"})
@@ -185,15 +212,15 @@ func (h Handler) requestRepositoryPublish(c *gin.Context) {
 		c.JSON(http.StatusConflict, gin.H{"status": "conflict", "error": "only draft repository can be published"})
 		return
 	}
-	if strings.TrimSpace(repo.SCMProvider) == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "scm_provider is required for draft publish"})
+	if strings.TrimSpace(repo.ProviderID) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "provider_id is required for draft publish", "code": "integration_provider_required"})
 		return
 	}
 	if h.cfg.ApplicationStore == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "application store is not configured"})
 		return
 	}
-	provider, err := h.cfg.ApplicationStore.GetIntegrationProviderByKey(c.Request.Context(), strings.TrimSpace(repo.SCMProvider))
+	provider, err := h.cfg.ApplicationStore.GetIntegrationProviderByID(c.Request.Context(), strings.TrimSpace(repo.ProviderID))
 	if errors.Is(err, store.ErrNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "integration provider not found", "code": "integration_provider_not_found"})
 		return
@@ -247,7 +274,6 @@ func (h Handler) requestRepositoryPublish(c *gin.Context) {
 		Source:        domain.RepositorySourceSystem,
 		ProviderID:    provider.ID,
 		Description:   strings.TrimSpace(repo.Description),
-		SCMProvider:   strings.TrimSpace(repo.SCMProvider),
 	}); err != nil {
 		writeServerError(c, err, "repositories.publish.persist")
 		return
