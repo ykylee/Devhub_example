@@ -114,3 +114,83 @@ func TestImportSCMRepositories_UnknownRepoReportedNotFound(t *testing.T) {
 		t.Errorf("expected not_found list with unknown repo: %s", rec.Body.String())
 	}
 }
+
+// codex #363 P2 — credentials_ref 의 provider_sdk vendor 가 비-gitea(github)면 거부.
+func TestListSCMRepositories_RejectsNonGiteaVendor(t *testing.T) {
+	srv := fakeGiteaServer(t)
+	router := newApplicationsRouter(newMemoryApplicationStore())
+	// provider_sdk:github → Gitea-incompatible.
+	body := `{"provider_key":"github-main","provider_type":"scm","display_name":"GitHub","auth_mode":"token","credentials_ref":"provider_sdk:github:wh","capabilities":["pull"],"base_url":"` + srv.URL + `"}`
+	if rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers", body); rec.Code != http.StatusCreated {
+		t.Fatalf("seed failed: %s", rec.Body.String())
+	}
+	rec := doJSON(t, router, http.MethodGet, "/api/v1/integration/providers/prov-github-main/scm-repositories", "")
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte("integration_provider_not_gitea_compatible")) {
+		t.Errorf("expected gitea-compat gate error: %s", rec.Body.String())
+	}
+}
+
+// fakeGiteaServerWithCreate 는 POST /api/v1/user/repos 에 생성 repo 를 응답한다.
+func fakeGiteaServerWithCreate(t *testing.T) *httptest.Server {
+	t.Helper()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == http.MethodPost && r.URL.Path == "/api/v1/user/repos" {
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"id":99,"name":"created-repo","full_name":"alice/created-repo","clone_url":"http://gitea/alice/created-repo.git","html_url":"http://gitea/alice/created-repo","default_branch":"main","private":false}`))
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	t.Cleanup(srv.Close)
+	return srv
+}
+
+func TestCreateSCMRepository_Happy(t *testing.T) {
+	srv := fakeGiteaServerWithCreate(t)
+	router := newApplicationsRouter(newMemoryApplicationStore())
+	id := seedSCMProvider(t, router, "gitea-push", `["pull","push"]`, srv.URL)
+
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers/"+id+"/create-repository",
+		`{"name":"created-repo","private":false,"auto_init":true}`)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"full_name":"alice/created-repo"`)) ||
+		!bytes.Contains(rec.Body.Bytes(), []byte(`"source":"system"`)) {
+		t.Errorf("expected created system repo: %s", rec.Body.String())
+	}
+}
+
+func TestCreateSCMRepository_RequiresPushCapability(t *testing.T) {
+	srv := fakeGiteaServerWithCreate(t)
+	router := newApplicationsRouter(newMemoryApplicationStore())
+	// pull 만 — push 없음.
+	id := seedSCMProvider(t, router, "gitea-nopush", `["pull"]`, srv.URL)
+
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers/"+id+"/create-repository",
+		`{"name":"x"}`)
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte("integration_capability_not_enabled")) {
+		t.Errorf("expected push capability gate: %s", rec.Body.String())
+	}
+}
+
+func TestCreateSCMRepository_NameRequired(t *testing.T) {
+	srv := fakeGiteaServerWithCreate(t)
+	router := newApplicationsRouter(newMemoryApplicationStore())
+	id := seedSCMProvider(t, router, "gitea-noname", `["pull","push"]`, srv.URL)
+
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers/"+id+"/create-repository", `{"name":"  "}`)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte("integration_repo_name_required")) {
+		t.Errorf("expected name-required error: %s", rec.Body.String())
+	}
+}
