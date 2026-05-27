@@ -56,13 +56,13 @@ test.describe("/admin/settings/applications — CRUD UI smoke", () => {
     // Application Leader ComboBox
     const leaderField = dialog.locator("label", { hasText: "Application Leader" }).locator("..");
     await leaderField.getByRole("button").click();
-    await dialog.getByPlaceholder("Search...").fill(leader);
+    await leaderField.getByPlaceholder("Search...").fill(leader);
     await dialog.getByRole("option").filter({ hasText: new RegExp(leader, "i") }).first().click();
 
     // Development Department ComboBox
     const deptField = dialog.locator("label", { hasText: "Development Department" }).locator("..");
     await deptField.getByRole("button").click();
-    await dialog.getByPlaceholder("Search...").fill(devUnit);
+    await deptField.getByPlaceholder("Search...").fill(devUnit);
     await dialog.getByRole("option").filter({ hasText: new RegExp(devUnit, "i") }).first().click();
 
     await dialog.getByRole("button", { name: /create application/i }).click();
