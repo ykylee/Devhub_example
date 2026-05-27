@@ -42,7 +42,10 @@ test.describe("/projects — Project CRUD UI", () => {
     await dialog.getByPlaceholder("e.g. Backend Refactoring").fill(projName);
     
     // Select primary repository
-    const selectRepo = dialog.locator("select").first();
+    const selectRepo = dialog
+      .locator("select")
+      .filter({ has: dialog.getByRole("option", { name: /no repository \(connect later\)/i }) })
+      .first();
     await selectRepo.selectOption({ index: 1 }); // Select first available option
     
     await dialog.getByPlaceholder("Scope and deliverables...").fill("E2E Test project deliverables.");
