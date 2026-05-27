@@ -1,3 +1,32 @@
+# Session Handoff — main (2026-05-27 post-#373 — repositories provider_id 단일화)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
+- 범위: 직전 #372 housekeeping (post-#371) 이후 1 PR (#373) 머지.
+- 상태: main HEAD `99d6edc` (PR #373).
+- 최종 수정일: 2026-05-27
+
+## 2026-05-27 (post-#373) 결산
+
+사용자 지시 "scm_provider ↔ provider_id 중복 정리" → provider_id(FK) 단일화.
+
+| sha | PR | core |
+| --- | --- | --- |
+| `99d6edc` | **#373** (claude) | repositories `scm_provider`(#368 key) ↔ `provider_id`(#363 FK) 중복 → **provider_id(FK) 단일화**. migration 000045(backfill+DROP) + domain `SCMProvider` 제거·`ProviderKey`(derived) + store(CreateRepositoryDraft provider_id+source=system / Get·List `LEFT JOIN` provider_key / UpsertRepository scm_provider 제거) + handler(draft-create provider_key→provider_id / publish provider_id) + frontend. project-companion `RepositoryCreatePayload.SCMProvider`는 별개라 유지. |
+
+### 다음 directive (claude)
+
+1. #366/#363 codex 재리뷰 확인 (#355 usage limit).
+2. inbound webhook 정규화 깊이 / #6 평문 secret envelope 암호화 / Phase C 후속 (project flow ↔ SCM create).
+3. **repository draft→publish flow 테스트/E2E 보강** (#368 handler 무테스트 머지분).
+
+사내/사용자: Onboarding SOP staging monitoring / nginx OIDC / Keycloak 26.0 smoke / issue #214 / Keycloak SPI realm events wire.
+
+### 검증
+
+#373 go build+vet+test ./...(13 pkg) + tsc+eslint+vitest 55+build green. prefix 중복 0. Open PR 0.
+
+---
+
 # Session Handoff — main (2026-05-27 post-#371 — #368 draft publish flow + 전수점검 hotfix)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
