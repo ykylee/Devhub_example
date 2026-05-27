@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { X, FolderKanban, Loader2, GitBranch } from "lucide-react";
+import { X, FolderKanban, GitBranch, Plus, Trash2, Users, Loader2 } from "lucide-react";
 import { ApplicationRepository, Project, ApplicationVisibility, ProjectStatus, Application, SCMProvider } from "@/lib/services/project.types";
 import { Repository } from "@/lib/services/repository.service";
 import { projectService } from "@/lib/services/project.service";
@@ -19,6 +19,8 @@ interface ProjectCreationModalProps {
 export function ProjectCreationModal({ applicationId, repositories, onClose, onCreated, initialData }: ProjectCreationModalProps) {
   const [applications, setApplications] = useState<Application[]>([]);
   const [scmProviders, setScmProviders] = useState<SCMProvider[]>([]);
+  type MemberRole = "lead" | "contributor" | "observer";
+  type ProjectMemberDraft = { user_id: string; project_role: MemberRole };
   const numericRepositories = repositories.map((r) => {
     // ApplicationRepository.repository_id 가 optional 이라 `"repository_id" in r`
     // 로는 narrow 불가. ApplicationRepository required field `repo_provider` 로
@@ -53,6 +55,14 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [repositoryLinks, setRepositoryLinks] = useState<number[]>(
+    initialData?.repository_ids?.length
+      ? initialData.repository_ids.filter((id): id is number => typeof id === "number" && id > 0)
+      : (initialRepositoryId ? [initialRepositoryId] : []),
+  );
+  const [projectMembers, setProjectMembers] = useState<ProjectMemberDraft[]>([
+    { user_id: initialData?.owner_user_id || "", project_role: "lead" },
+  ]);
   const [createRepository, setCreateRepository] = useState(false);
   const [repositoryCreate, setRepositoryCreate] = useState({
     key: "",
@@ -80,6 +90,14 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
   }, []);
 
   const isEdit = !!initialData?.id;
+  const normalizedMembers = projectMembers.filter((m) => m.user_id.trim());
+  const hasLeadMember = normalizedMembers.some((m) => m.project_role === "lead");
+  const selectedRepositoryIDs = Array.from(new Set(repositoryLinks.filter((id) => id > 0)));
+  const isCreateRepositoryPayloadValid =
+    !createRepository ||
+    (repositoryCreate.key.trim().length > 0 &&
+      repositoryCreate.slug.trim().length > 0 &&
+      repositoryCreate.scm_provider.trim().length > 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,26 +113,29 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
         delete patchPayload.key;
         result = await projectService.updateProject(initialData.id, patchPayload);
       } else {
-        const selected = new Set<number>();
-        if (formData.repository_id) selected.add(formData.repository_id);
-        for (const id of formData.repository_ids) selected.add(id);
-        const repository_ids = Array.from(selected);
+        const leader = normalizedMembers.find((m) => m.project_role === "lead")?.user_id.trim() || formData.owner_user_id.trim();
         const selectedApplicationId = formData.application_id || applicationId || "";
+        const project_members = normalizedMembers;
 
         if (selectedApplicationId) {
           const payload = {
             ...formData,
+            owner_user_id: leader,
             application_id: selectedApplicationId,
-            repository_ids,
+            repository_ids: selectedRepositoryIDs,
+            repository_id: selectedRepositoryIDs[0] || 0,
+            project_members,
             repository_create_payload: createRepository ? repositoryCreate : undefined,
           };
           result = await projectService.createApplicationProject(selectedApplicationId, payload);
         } else {
           result = await projectService.createProjectStandalone({
             ...formData,
-            repository_ids,
-            repository_id: repository_ids[0] || 0,
+            owner_user_id: leader,
+            repository_ids: selectedRepositoryIDs,
+            repository_id: selectedRepositoryIDs[0] || 0,
             application_id: "",
+            project_members,
             repository_create_payload: createRepository ? repositoryCreate : undefined,
           });
         }
@@ -210,85 +231,65 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
             </select>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Target Repository</label>
-            <div className="relative group">
-              <GitBranch className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/40" />
-              <select
-                disabled={isEdit}
-                value={formData.repository_id}
-                onChange={e => {
-                  const nextPrimary = Number(e.target.value);
-                  const existing = formData.repository_ids.filter((id) => id !== nextPrimary);
-                  setFormData({
-                    ...formData,
-                    repository_id: nextPrimary,
-                    repository_ids: [nextPrimary, ...existing],
-                  });
-                }}
-                className="w-full bg-muted/30 border border-border rounded-2xl pl-12 pr-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400/50 appearance-none"
-              >
-                <option value={0}>No repository (connect later)</option>
-                {numericRepositories.map((repo) => (
-                    <option
-                      key={`${repo.repo_provider}/${repo.repo_full_name}`}
-                      value={repo.repository_id}
-                      className="bg-slate-900"
-                    >
-                      {repo.repo_full_name} ({repo.repo_provider})
-                    </option>
-                  ))}
-              </select>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Repositories</label>
+              {!isEdit && (
+                <button
+                  type="button"
+                  onClick={() => setRepositoryLinks((prev) => [...prev, 0])}
+                  className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[10px] font-black uppercase tracking-widest hover:bg-muted/30"
+                >
+                  <Plus className="w-3 h-3" /> Add
+                </button>
+              )}
             </div>
-            <p className="text-[9px] text-accent/60 px-1 italic">선택 시 primary repository로 저장됩니다. 없어도 생성 가능합니다.</p>
-            {!isEdit && numericRepositories.length > 1 && (
-              <div className="mt-3 p-3 rounded-xl border border-border/60 bg-muted/20">
-                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-2">
-                  Additional Linked Repositories (N:M)
-                </p>
-                <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
-                  {numericRepositories.map((repo) => {
-                    const repoId = repo.repository_id as number;
-                    const checked = formData.repository_ids.includes(repoId);
-                    return (
-                      <label
-                        key={`multi-${repo.repo_provider}-${repo.repo_full_name}`}
-                        className="flex items-center gap-2 text-xs text-foreground dark:text-primary-foreground"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              const merged = Array.from(new Set([...formData.repository_ids, repoId]));
-                              setFormData({
-                                ...formData,
-                                repository_ids: merged,
-                                repository_id: formData.repository_id || repoId,
-                              });
-                              return;
-                            }
-                            const next = formData.repository_ids.filter((id) => id !== repoId);
-                            setFormData({
-                              ...formData,
-                              repository_ids: next,
-                              repository_id:
-                                formData.repository_id === repoId
-                                  ? (next[0] ?? 0)
-                                  : formData.repository_id,
-                            });
-                          }}
-                          className="accent-indigo-400"
-                        />
-                        <span>
-                          {repo.repo_full_name} ({repo.repo_provider})
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
+            {repositoryLinks.length === 0 && (
+              <p className="text-[11px] text-muted-foreground">No repository selected. You can create the project first and connect later.</p>
             )}
+            <div className="space-y-2">
+              {repositoryLinks.map((repoID, idx) => (
+                <div key={`repo-link-row-${idx}`} className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <GitBranch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/40" />
+                    <select
+                      disabled={isEdit}
+                      value={repoID}
+                      onChange={(e) => {
+                        const next = [...repositoryLinks];
+                        next[idx] = Number(e.target.value);
+                        setRepositoryLinks(next);
+                      }}
+                      className="w-full bg-muted/30 border border-border rounded-xl pl-10 pr-3 py-2 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400/50 appearance-none"
+                    >
+                      <option value={0}>Select repository</option>
+                      {numericRepositories
+                        .filter((repo) => !repositoryLinks.includes(repo.repository_id) || repo.repository_id === repoID)
+                        .map((repo) => (
+                        <option
+                          key={`${idx}-${repo.repo_provider}/${repo.repo_full_name}`}
+                          value={repo.repository_id}
+                          className="bg-slate-900"
+                        >
+                          {repo.repo_full_name} ({repo.repo_provider})
+                        </option>
+                        ))}
+                    </select>
+                  </div>
+                  {!isEdit && (
+                    <button
+                      type="button"
+                      onClick={() => setRepositoryLinks((prev) => prev.filter((_, i) => i !== idx))}
+                      className="h-9 w-9 rounded-lg border border-border text-muted-foreground hover:text-destructive hover:border-destructive/40 flex items-center justify-center"
+                      aria-label="Remove repository"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            <p className="text-[9px] text-accent/60 px-1 italic">첫 번째 repository가 primary로 저장됩니다.</p>
           </div>
 
           {!isEdit && (
@@ -335,34 +336,6 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
             </div>
           )}
 
-          {!isEdit && (
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Additional Repositories (N:M)</label>
-              <div className="grid grid-cols-1 gap-2 max-h-44 overflow-y-auto rounded-2xl border border-border/50 bg-muted/10 p-3">
-                {numericRepositories.map((repo) => {
-                  const id = repo.repository_id as number;
-                  const checked = formData.repository_ids.includes(id);
-                  return (
-                    <label key={`repo-link-${id}`} className="flex items-center gap-3 text-xs text-foreground dark:text-primary-foreground">
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={(e) => {
-                          const next = new Set(formData.repository_ids);
-                          if (e.target.checked) next.add(id);
-                          else next.delete(id);
-                          setFormData({ ...formData, repository_ids: Array.from(next) });
-                        }}
-                        className="h-4 w-4 rounded border-border"
-                      />
-                      <span>{repo.repo_full_name} ({repo.repo_provider})</span>
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
           <div className="space-y-2">
             <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Description</label>
             <textarea
@@ -376,11 +349,24 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Owner</label>
+              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Project Leader</label>
               <input
                 required
                 value={formData.owner_user_id}
-                onChange={e => setFormData({ ...formData, owner_user_id: e.target.value })}
+                onChange={e => {
+                  const nextLeader = e.target.value;
+                  setFormData({ ...formData, owner_user_id: nextLeader });
+                  setProjectMembers((prev) => {
+                    const next = [...prev];
+                    const leadIndex = next.findIndex((m) => m.project_role === "lead");
+                    if (leadIndex >= 0) {
+                      next[leadIndex] = { ...next[leadIndex], user_id: nextLeader };
+                    } else {
+                      next.unshift({ user_id: nextLeader, project_role: "lead" });
+                    }
+                    return next;
+                  });
+                }}
                 placeholder="User ID..."
                 className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400/50"
               />
@@ -396,6 +382,79 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
                 <option value="active" className="bg-slate-900">Active</option>
                 <option value="on_hold" className="bg-slate-900">On Hold</option>
               </select>
+            </div>
+          </div>
+
+          <div className="space-y-3 rounded-2xl border border-border/60 bg-muted/10 p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                <Users className="w-3.5 h-3.5" /> Project Members
+              </p>
+              <button
+                type="button"
+                onClick={() => setProjectMembers((prev) => [...prev, { user_id: "", project_role: "contributor" }])}
+                className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[10px] font-black uppercase tracking-widest hover:bg-muted/30"
+              >
+                <Plus className="w-3 h-3" /> Add
+              </button>
+            </div>
+            <div className="space-y-2">
+              {projectMembers.map((member, idx) => (
+                <div key={`member-row-${idx}`} className="grid grid-cols-12 gap-2 items-center">
+                  <input
+                    value={member.user_id}
+                    onChange={(e) => {
+                      const next = [...projectMembers];
+                      next[idx] = { ...next[idx], user_id: e.target.value };
+                      setProjectMembers(next);
+                      if (next[idx].project_role === "lead") {
+                        setFormData((prev) => ({ ...prev, owner_user_id: e.target.value }));
+                      }
+                    }}
+                    placeholder="user id"
+                    className="col-span-7 bg-muted/30 border border-border rounded-xl px-3 py-2 text-xs text-foreground dark:text-primary-foreground"
+                  />
+                  <select
+                    value={member.project_role}
+                    onChange={(e) => {
+                      const role = e.target.value as MemberRole;
+                      let next = [...projectMembers];
+                      if (role === "lead") {
+                        next = next.map((m, i) => ({ ...m, project_role: i === idx ? "lead" : (m.project_role === "lead" ? "contributor" : m.project_role) }));
+                      } else {
+                        next[idx] = { ...next[idx], project_role: role };
+                      }
+                      setProjectMembers(next);
+                      if (role === "lead") {
+                        setFormData((prev) => ({ ...prev, owner_user_id: next[idx].user_id }));
+                      }
+                    }}
+                    className="col-span-4 bg-muted/30 border border-border rounded-xl px-2 py-2 text-xs text-foreground dark:text-primary-foreground"
+                  >
+                    <option value="lead">lead</option>
+                    <option value="contributor">contributor</option>
+                    <option value="observer">observer</option>
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (projectMembers.length === 1) return;
+                      const target = projectMembers[idx];
+                      let next = projectMembers.filter((_, i) => i !== idx);
+                      if (target.project_role === "lead") {
+                        next = next.map((m, i) => ({ ...m, project_role: i === 0 ? "lead" : m.project_role }));
+                        setFormData((prev) => ({ ...prev, owner_user_id: next[0]?.user_id ?? "" }));
+                      }
+                      setProjectMembers(next);
+                    }}
+                    disabled={projectMembers.length === 1}
+                    className="col-span-1 h-8 w-8 rounded-lg border border-border text-muted-foreground hover:text-destructive hover:border-destructive/40 flex items-center justify-center"
+                    aria-label="Remove member"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -456,7 +515,7 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
             </button>
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || !hasLeadMember || !isCreateRepositoryPayloadValid}
               className="flex-1 bg-primary text-primary-foreground font-black py-4 px-8 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl disabled:opacity-50 uppercase tracking-widest text-[10px] flex items-center justify-center gap-2"
             >
               {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <>{isEdit ? 'Save Changes' : 'Create Project'}</>}
