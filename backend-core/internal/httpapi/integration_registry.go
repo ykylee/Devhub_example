@@ -40,6 +40,12 @@ func integrationProviderResponse(p domain.IntegrationProvider) gin.H {
 		"last_error_code": emptyAsNil(p.LastErrorCode),
 		"base_url":        emptyAsNil(p.BaseURL),
 		"api_token_set":   p.APIToken != "", // write-only — raw token 미노출 (보안)
+		// 구조화 outbound auth 자격증명 (auth_mode 별). 비밀 외 필드는 노출,
+		// auth_secret 는 write-only (set 여부 bool 만).
+		"auth_username":   emptyAsNil(p.AuthUsername),
+		"auth_client_id":  emptyAsNil(p.AuthClientID),
+		"auth_token_url":  emptyAsNil(p.AuthTokenURL),
+		"auth_secret_set": p.AuthSecret != "",
 		"created_at":      p.CreatedAt.UTC().Format(time.RFC3339),
 		"updated_at":      p.UpdatedAt.UTC().Format(time.RFC3339),
 	}
@@ -221,6 +227,12 @@ type createIntegrationProviderRequest struct {
 	Capabilities   []string `json:"capabilities"`
 	BaseURL        string   `json:"base_url"`
 	APIToken       string   `json:"api_token"`
+	// 구조화 outbound auth 자격증명 (auth_mode 별). 모두 optional — sync/pull
+	// capability 를 쓰는 provider 만 필요하므로 frontend 가 mode 별로 가이드한다.
+	AuthUsername string `json:"auth_username"`
+	AuthClientID string `json:"auth_client_id"`
+	AuthTokenURL string `json:"auth_token_url"`
+	AuthSecret   string `json:"auth_secret"`
 }
 
 // validBaseURL — base_url 은 optional (webhook 전용 provider 는 미사용). 제공 시
@@ -273,6 +285,10 @@ func (h *Handler) createIntegrationProvider(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "base_url must be an http(s) URL", "code": "invalid_base_url"})
 		return
 	}
+	if !validBaseURL(req.AuthTokenURL) {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "auth_token_url must be an http(s) URL", "code": "invalid_auth_token_url"})
+		return
+	}
 	created, err := storeI.CreateIntegrationProvider(c.Request.Context(), domain.IntegrationProvider{
 		ProviderKey:    req.ProviderKey,
 		ProviderType:   domain.IntegrationProviderType(req.ProviderType),
@@ -284,6 +300,10 @@ func (h *Handler) createIntegrationProvider(c *gin.Context) {
 		SyncStatus:     "requested",
 		BaseURL:        strings.TrimSpace(req.BaseURL),
 		APIToken:       strings.TrimSpace(req.APIToken),
+		AuthUsername:   strings.TrimSpace(req.AuthUsername),
+		AuthClientID:   strings.TrimSpace(req.AuthClientID),
+		AuthTokenURL:   strings.TrimSpace(req.AuthTokenURL),
+		AuthSecret:     strings.TrimSpace(req.AuthSecret),
 	})
 	if errors.Is(err, store.ErrConflict) {
 		c.JSON(http.StatusConflict, gin.H{"status": "conflict", "error": "provider already exists", "code": "integration_provider_conflict"})
@@ -307,6 +327,11 @@ type updateIntegrationProviderRequest struct {
 	Capabilities   []string `json:"capabilities"`
 	BaseURL        *string  `json:"base_url"`
 	APIToken       *string  `json:"api_token"`
+	// 구조화 outbound auth 자격증명. nil = 유지 (write-only secret 는 blank=keep).
+	AuthUsername *string `json:"auth_username"`
+	AuthClientID *string `json:"auth_client_id"`
+	AuthTokenURL *string `json:"auth_token_url"`
+	AuthSecret   *string `json:"auth_secret"`
 }
 
 // API-71
@@ -360,6 +385,22 @@ func (h *Handler) updateIntegrationProvider(c *gin.Context) {
 	}
 	if req.APIToken != nil {
 		updated.APIToken = strings.TrimSpace(*req.APIToken)
+	}
+	if req.AuthUsername != nil {
+		updated.AuthUsername = strings.TrimSpace(*req.AuthUsername)
+	}
+	if req.AuthClientID != nil {
+		updated.AuthClientID = strings.TrimSpace(*req.AuthClientID)
+	}
+	if req.AuthTokenURL != nil {
+		if !validBaseURL(*req.AuthTokenURL) {
+			c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "auth_token_url must be an http(s) URL", "code": "invalid_auth_token_url"})
+			return
+		}
+		updated.AuthTokenURL = strings.TrimSpace(*req.AuthTokenURL)
+	}
+	if req.AuthSecret != nil {
+		updated.AuthSecret = strings.TrimSpace(*req.AuthSecret)
 	}
 	result, err := storeI.UpdateIntegrationProvider(c.Request.Context(), updated)
 	if errors.Is(err, store.ErrNotFound) {
@@ -542,7 +583,10 @@ func (h *Handler) ingestIntegrationProviderWebhook(c *gin.Context) {
 		c.JSON(http.StatusConflict, gin.H{"status": "rejected", "error": "provider is disabled", "code": "integration_provider_disabled"})
 		return
 	}
-	signature := strings.TrimSpace(c.GetHeader("X-Integration-Signature"))
+	// Accept DevHub-native header (X-Integration-*) plus provider-native aliases.
+	// Gitea/Forgejo send X-Gitea-Signature, Gogs sends X-Gogs-Signature; the
+	// signature value itself is provider-agnostic HMAC verified below.
+	signature := strings.TrimSpace(firstHeader(c, "X-Integration-Signature", "X-Gitea-Signature", "X-Gogs-Signature"))
 	payload, err := c.GetRawData()
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "cannot read payload"})
@@ -557,8 +601,8 @@ func (h *Handler) ingestIntegrationProviderWebhook(c *gin.Context) {
 		})
 		return
 	}
-	deliveryID := strings.TrimSpace(c.GetHeader("X-Integration-Delivery"))
-	eventType := strings.TrimSpace(c.GetHeader("X-Integration-Event"))
+	deliveryID := strings.TrimSpace(firstHeader(c, "X-Integration-Delivery", "X-Gitea-Delivery", "X-Gogs-Delivery"))
+	eventType := strings.TrimSpace(firstHeader(c, "X-Integration-Event", "X-Gitea-Event", "X-Gogs-Event"))
 	if eventType == "" {
 		eventType = "unknown"
 	}

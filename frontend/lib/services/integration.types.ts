@@ -25,6 +25,12 @@ export interface IntegrationProvider {
   base_url: string | null;
   /** api_token 은 write-only — 응답엔 raw 미노출, 설정 여부만. */
   api_token_set: boolean;
+  // 구조화 outbound auth 자격증명 (auth_mode 별). 비밀 외 필드는 노출,
+  // auth_secret 은 write-only (auth_secret_set bool 만).
+  auth_username: string | null;
+  auth_client_id: string | null;
+  auth_token_url: string | null;
+  auth_secret_set: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -38,6 +44,11 @@ export interface CreateIntegrationProviderInput {
   capabilities?: string[];
   base_url?: string;
   api_token?: string;
+  // auth_mode 별 outbound 자격증명. auth_secret 은 write-only.
+  auth_username?: string;
+  auth_client_id?: string;
+  auth_token_url?: string;
+  auth_secret?: string;
 }
 
 export interface UpdateIntegrationProviderInput {
@@ -47,6 +58,10 @@ export interface UpdateIntegrationProviderInput {
   capabilities?: string[];
   base_url?: string;
   api_token?: string;
+  auth_username?: string;
+  auth_client_id?: string;
+  auth_token_url?: string;
+  auth_secret?: string;
 }
 
 export interface ListIntegrationProvidersOptions {

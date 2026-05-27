@@ -1994,9 +1994,15 @@ intake_token_collision                         # sprint o (ADR-0014): hashed_tok
 
 - **인증**: OIDC + RBAC `infrastructure:edit` (system_admin only).
 - **요청**: `provider_key`, `provider_type`, `display_name`, `auth_mode`, `credentials_ref`(inbound webhook 서명 시크릿), `capabilities`, `base_url`(optional, http(s) URL — outbound sync 대상 endpoint, migration 000038), `api_token`(optional — outbound sync(REST pull) 인증용 PAT, **write-only**, migration 000040), `scope`.
-- **응답 — 201**: 생성된 provider (`base_url` 포함; `api_token` 은 raw 미노출, `api_token_set`(bool) 만 — 보안).
-- **에러**: 409 `integration_provider_conflict`, 400 `invalid_provider_type`, 400 `invalid_base_url`.
-- **참고**: `credentials_ref`(inbound webhook)와 `api_token`(outbound sync)은 별개 시크릿. Phase 3 (sync worker per-provider) 이후 등록 provider 의 `base_url`+`api_token` 이 Gitea sync 에 사용됨 (env fallback).
+- **outbound auth 자격증명 (auth_mode 별, migration 000041, 모두 optional)**: `auth_mode` 에 따라 외부 시스템 sync/pull 시 사용하는 자격증명.
+  - `token` → `api_token` (PAT). `Authorization: token <pat>`.
+  - `basic` / `app_password` → `auth_username` + `auth_secret`. HTTP Basic.
+  - `oauth2` → `auth_client_id` + `auth_token_url`(http(s) URL) + `auth_secret`(client_secret). client-credentials grant 후 `Authorization: Bearer`.
+  - `agent` → `auth_username`(agent 식별자). 별도 agent 가 인증 (서버 직접 sync 미사용).
+  - `auth_secret` 은 **write-only** (api_token 과 동일). 비밀 외 필드(`auth_username`/`auth_client_id`/`auth_token_url`)는 응답 노출.
+- **응답 — 201**: 생성된 provider (`base_url`/`auth_username`/`auth_client_id`/`auth_token_url` 포함; `api_token`·`auth_secret` 은 raw 미노출, `api_token_set`/`auth_secret_set`(bool) 만 — 보안).
+- **에러**: 409 `integration_provider_conflict`, 400 `invalid_provider_type`, 400 `invalid_base_url`, 400 `invalid_auth_token_url`.
+- **참고**: `credentials_ref`(inbound webhook)와 outbound auth 자격증명(`api_token`/`auth_*`)은 별개 시크릿. Phase 3 (sync worker per-provider) 이후 등록 provider 의 `base_url` + auth_mode 별 자격증명이 Gitea sync 에 사용됨 (env fallback, token mode).
 
 요청 예시:
 
@@ -2040,8 +2046,9 @@ intake_token_collision                         # sprint o (ADR-0014): hashed_tok
 #### API-71 `PATCH /api/v1/integration/providers/{provider_id}`
 
 - **인증**: OIDC + RBAC `infrastructure:edit` (system_admin only).
-- **요청**: `enabled`, `display_name`, `capabilities`, `credentials_ref` 일부 수정.
+- **요청**: `enabled`, `display_name`, `capabilities`, `credentials_ref`, `base_url`, `api_token`, `auth_username`, `auth_client_id`, `auth_token_url`, `auth_secret` 일부 수정 (전송된 키만 patch). `auth_mode` 는 등록 시 고정 — 변경 불가. write-only secret(`api_token`/`auth_secret`)은 blank/미전송 시 기존 값 유지.
 - **응답 — 200**: 수정된 provider.
+- **에러**: 400 `invalid_base_url`, 400 `invalid_auth_token_url`.
 
 #### API-72 `POST /api/v1/integration/providers/{provider_id}/sync`
 
@@ -2086,6 +2093,7 @@ intake_token_collision                         # sprint o (ADR-0014): hashed_tok
   - `X-Integration-Delivery`: 외부 전송 고유 ID (없으면 payload hash로 보조 dedupe)
   - `X-Integration-Event`: 이벤트 타입
   - `X-Integration-Signature`: provider 정책 기반 서명값
+- **provider-native 헤더 alias**: 외부 시스템은 DevHub-native `X-Integration-*` 를 보내지 않으므로, 각 항목은 provider 고유 헤더로 fallback 한다. 현재 수용: Gitea/Forgejo `X-Gitea-Signature`/`X-Gitea-Event`/`X-Gitea-Delivery`, Gogs `X-Gogs-Signature`/`X-Gogs-Event`/`X-Gogs-Delivery`. 우선순위는 `X-Integration-*` → `X-Gitea-*` → `X-Gogs-*`. 서명 값 자체는 provider 무관 HMAC-SHA256 으로 검증한다(`hmac_sha256:` / `provider_sdk:` 전략).
 
 #### API-74 `GET /api/v1/integration/bindings`
 
