@@ -89,6 +89,40 @@ func TestCreateIntegrationProvider_APITokenWriteOnly(t *testing.T) {
 	}
 }
 
+// auth_mode 별 구조화 자격증명: 비밀 외 필드(auth_username/client_id/token_url)는
+// 응답에 노출, auth_secret 은 write-only (auth_secret_set bool 만).
+func TestCreateIntegrationProvider_BasicAuthCredentials(t *testing.T) {
+	router := newApplicationsRouter(newMemoryApplicationStore())
+	const secret = "basic-password-supersecret"
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
+		`{"provider_key":"gitea-basic","provider_type":"scm","display_name":"Gitea","auth_mode":"basic","credentials_ref":"hmac_sha256:wh","auth_username":"alice","auth_secret":"`+secret+`"}`)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"auth_username":"alice"`)) {
+		t.Errorf("response should echo auth_username: %s", rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"auth_secret_set":true`)) {
+		t.Errorf("response should report auth_secret_set true: %s", rec.Body.String())
+	}
+	if bytes.Contains(rec.Body.Bytes(), []byte(secret)) {
+		t.Errorf("raw auth_secret must NOT be exposed in response: %s", rec.Body.String())
+	}
+}
+
+// oauth2 token_url 은 http(s) URL 만 허용.
+func TestCreateIntegrationProvider_InvalidAuthTokenURL(t *testing.T) {
+	router := newApplicationsRouter(newMemoryApplicationStore())
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
+		`{"provider_key":"oauth-bad","provider_type":"scm","display_name":"X","auth_mode":"oauth2","credentials_ref":"hmac_sha256:s","auth_client_id":"cid","auth_token_url":"not-a-url","auth_secret":"cs"}`)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte("invalid_auth_token_url")) {
+		t.Errorf("expected invalid_auth_token_url code: %s", rec.Body.String())
+	}
+}
+
 // base_url 은 http(s) scheme 만 허용.
 func TestCreateIntegrationProvider_InvalidBaseURL(t *testing.T) {
 	router := newApplicationsRouter(newMemoryApplicationStore())
@@ -522,6 +556,49 @@ func TestIntegrationProviderWebhook_Happy(t *testing.T) {
 	rec := httptestDo(t, router, req)
 	if rec.Code != http.StatusAccepted {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+// Gitea/Forgejo/Gogs send X-Gitea-Signature (not the DevHub-native
+// X-Integration-Signature). The generic per-provider ingest endpoint must
+// accept those provider-native header aliases for signature/event/delivery.
+func TestIntegrationProviderWebhook_GiteaNativeHeaders(t *testing.T) {
+	eventStore := &dedupeEventStore{seen: map[string]bool{}}
+	router := NewRouter(RouterConfig{
+		ApplicationStore: newMemoryApplicationStore(),
+		AuthDevFallback:  true,
+		EventStore:       eventStore,
+	})
+	seed := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
+		`{"provider_key":"gitea-main","provider_type":"scm","display_name":"Gitea","auth_mode":"token","credentials_ref":"hmac_sha256:test-secret"}`)
+	if seed.Code != http.StatusCreated {
+		t.Fatalf("seed failed: %s", seed.Body.String())
+	}
+	body := []byte(`{"repository":{"full_name":"owner/repo"}}`)
+	mac := hmac.New(sha256.New, []byte("test-secret"))
+	mac.Write(body)
+	signature := hex.EncodeToString(mac.Sum(nil))
+
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/integration/providers/gitea-main/webhook", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	// Gitea-native headers only — no X-Integration-* present.
+	req.Header.Set("X-Gitea-Signature", signature)
+	req.Header.Set("X-Gitea-Event", "push")
+	req.Header.Set("X-Gitea-Delivery", "gitea-delivery-001")
+	rec := httptestDo(t, router, req)
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+
+	// Same delivery id must dedupe (event_type carried from X-Gitea-Event).
+	req2, _ := http.NewRequest(http.MethodPost, "/api/v1/integration/providers/gitea-main/webhook", bytes.NewReader(body))
+	req2.Header.Set("Content-Type", "application/json")
+	req2.Header.Set("X-Gitea-Signature", signature)
+	req2.Header.Set("X-Gitea-Event", "push")
+	req2.Header.Set("X-Gitea-Delivery", "gitea-delivery-001")
+	rec2 := httptestDo(t, router, req2)
+	if rec2.Code != http.StatusConflict {
+		t.Fatalf("dedupe status=%d body=%s", rec2.Code, rec2.Body.String())
 	}
 }
 

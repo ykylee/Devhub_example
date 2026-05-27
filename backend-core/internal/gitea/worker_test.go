@@ -2,6 +2,7 @@ package gitea_test
 
 import (
 	"context"
+	"encoding/base64"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -22,6 +23,11 @@ type mockSyncJobStore struct {
 	providerBaseURL   string
 	providerAPIToken  string
 	statuses          []string
+
+	// auth_mode 별 outbound 자격증명 (기본 zero → token mode, APIToken 사용).
+	providerAuthMode     domain.IntegrationAuthMode
+	providerAuthUsername string
+	providerAuthSecret   string
 }
 
 func (m *mockSyncJobStore) UpsertRepository(ctx context.Context, repository domain.Repository) error {
@@ -51,6 +57,9 @@ func (m *mockSyncJobStore) GetIntegrationProviderByID(ctx context.Context, id st
 		CredentialsRef: "test-token",
 		BaseURL:        m.providerBaseURL,
 		APIToken:       m.providerAPIToken,
+		AuthMode:       m.providerAuthMode,
+		AuthUsername:   m.providerAuthUsername,
+		AuthSecret:     m.providerAuthSecret,
 		Enabled:        true,
 	}, nil
 }
@@ -133,6 +142,47 @@ func TestSyncWorker_ProcessOnce_PerProviderConfig(t *testing.T) {
 	}
 	if len(store.repos) != 1 {
 		t.Fatalf("provider config 로 sync 되어야 함, got %d repos", len(store.repos))
+	}
+	if len(store.statuses) != 1 || store.statuses[0] != "succeeded" {
+		t.Fatalf("job 이 succeeded 로 마킹되어야 함, got %v", store.statuses)
+	}
+}
+
+// Phase: auth_mode=basic provider 는 outbound 호출에 HTTP Basic 헤더를 사용한다.
+func TestSyncWorker_ProcessOnce_BasicAuthOutbound(t *testing.T) {
+	var gotAuth string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/v1/user/repos" {
+			gotAuth = r.Header.Get("Authorization")
+		}
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api/v1/user/repos":
+			w.Write([]byte(`[{"id": 1, "name": "test-repo", "full_name": "owner/test-repo", "html_url": "http://gitea/test-repo", "clone_url": "http://gitea/test-repo.git", "default_branch": "main", "private": false}]`))
+		case "/api/v1/repos/owner/test-repo/issues", "/api/v1/repos/owner/test-repo/pulls":
+			w.Write([]byte(`[]`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	store := &mockSyncJobStore{
+		acquireJobID:         "job-1",
+		acquireProviderID:    "prov-1",
+		providerBaseURL:      server.URL,
+		providerAuthMode:     domain.IntegrationAuthModeBasic,
+		providerAuthUsername: "alice",
+		providerAuthSecret:   "s3cret",
+	}
+	worker := gitea.NewSyncWorker(store, "", "")
+
+	if err := worker.ProcessOnce(context.Background()); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	want := "Basic " + base64.StdEncoding.EncodeToString([]byte("alice:s3cret"))
+	if gotAuth != want {
+		t.Fatalf("outbound Authorization=%q want=%q", gotAuth, want)
 	}
 	if len(store.statuses) != 1 || store.statuses[0] != "succeeded" {
 		t.Fatalf("job 이 succeeded 로 마킹되어야 함, got %v", store.statuses)

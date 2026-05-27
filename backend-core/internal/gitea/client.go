@@ -12,8 +12,12 @@ import (
 
 // Client handles HTTP API interactions with Gitea.
 type Client struct {
-	BaseURL    string
-	Token      string
+	BaseURL string
+	Token   string // legacy: Gitea PAT (token scheme). Used when AuthHeader is empty.
+	// AuthHeader, when set, is the full Authorization header value applied to
+	// every request (e.g. "Basic <b64>", "Bearer <token>"). Takes precedence
+	// over Token so the client can carry any outbound auth mode.
+	AuthHeader string
 	HTTPClient *http.Client
 }
 
@@ -63,16 +67,16 @@ type GiteaUser struct {
 
 // GiteaPullRequest represents Gitea pull request payload.
 type GiteaPullRequest struct {
-	ID        int64        `json:"id"`
-	Number    int64        `json:"number"`
-	Title     string       `json:"title"`
-	State     string       `json:"state"`
-	HTMLURL   string       `json:"html_url"`
-	MergedAt  *time.Time   `json:"merged_at"`
-	ClosedAt  *time.Time   `json:"closed_at"`
-	User      *GiteaUser   `json:"user"`
-	Head      *GiteaBranch `json:"head"`
-	Base      *GiteaBranch `json:"base"`
+	ID       int64        `json:"id"`
+	Number   int64        `json:"number"`
+	Title    string       `json:"title"`
+	State    string       `json:"state"`
+	HTMLURL  string       `json:"html_url"`
+	MergedAt *time.Time   `json:"merged_at"`
+	ClosedAt *time.Time   `json:"closed_at"`
+	User     *GiteaUser   `json:"user"`
+	Head     *GiteaBranch `json:"head"`
+	Base     *GiteaBranch `json:"base"`
 }
 
 // GiteaBranch represents a Gitea branch/ref payload in PRs.
@@ -190,7 +194,9 @@ func (c *Client) newRequest(ctx context.Context, method, path string, body any) 
 	}
 
 	req.Header.Set("Accept", "application/json")
-	if c.Token != "" {
+	if c.AuthHeader != "" {
+		req.Header.Set("Authorization", c.AuthHeader)
+	} else if c.Token != "" {
 		req.Header.Set("Authorization", "token "+c.Token)
 	}
 	return req, nil

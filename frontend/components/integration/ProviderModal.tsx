@@ -8,6 +8,7 @@ import type {
   IntegrationProvider,
   IntegrationProviderType,
   IntegrationAuthMode,
+  CreateIntegrationProviderInput,
 } from "@/lib/services/integration.types";
 import {
   VENDOR_PRESETS,
@@ -35,6 +36,56 @@ const signatureStrategyOptions: { value: WebhookSignatureStrategy; label: string
   { value: "shared_token", label: "Shared token (plain compare)" },
 ];
 
+const inputCls =
+  "w-full px-4 py-3 rounded-xl bg-muted/30 border border-border text-foreground dark:text-primary-foreground text-sm focus:outline-none focus:border-accent";
+const labelCls = "block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2";
+
+/** 마스킹 토글이 달린 secret 입력 필드. write-only 자격증명 입력에 공통 사용. */
+function SecretField({
+  id,
+  label,
+  value,
+  onChange,
+  show,
+  onToggle,
+  placeholder,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  show: boolean;
+  onToggle: () => void;
+  placeholder: string;
+}) {
+  return (
+    <div>
+      <label htmlFor={id} className={labelCls}>
+        {label}
+      </label>
+      <div className="relative">
+        <input
+          id={id}
+          type={show ? "text" : "password"}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className={`${inputCls} font-mono pr-12`}
+          autoComplete="off"
+        />
+        <button
+          type="button"
+          onClick={onToggle}
+          className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
+          aria-label={show ? "Hide secret" : "Show secret"}
+        >
+          {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function ProviderModal({ initial, onClose, onSaved }: ProviderModalProps) {
   const isEdit = Boolean(initial);
   const parsedInitial = useMemo(
@@ -52,6 +103,13 @@ export function ProviderModal({ initial, onClose, onSaved }: ProviderModalProps)
   // initial.api_token_set 로 표시.
   const [apiToken, setApiToken] = useState("");
   const [showApiToken, setShowApiToken] = useState(false);
+  // auth_mode 별 구조화 outbound 자격증명. 비밀 외 필드는 기존 값 prefill,
+  // authSecret 은 write-only (blank=keep).
+  const [authUsername, setAuthUsername] = useState(initial?.auth_username ?? "");
+  const [authClientId, setAuthClientId] = useState(initial?.auth_client_id ?? "");
+  const [authTokenUrl, setAuthTokenUrl] = useState(initial?.auth_token_url ?? "");
+  const [authSecret, setAuthSecret] = useState("");
+  const [showAuthSecret, setShowAuthSecret] = useState(false);
   const [enabled, setEnabled] = useState(initial?.enabled ?? true);
 
   // 가이드 자격증명 입력 (#1) — strategy + vendor + secret 를 분리 입력받아 조합.
@@ -112,6 +170,28 @@ export function ProviderModal({ initial, onClose, onSaved }: ProviderModalProps)
     );
   };
 
+  // auth_mode 에 맞는 outbound 자격증명 payload 만 구성. 비밀 외 필드는 trim 그대로
+  // (blank → 클리어), secret(api_token/auth_secret)은 blank=keep (omit).
+  const outboundAuthPayload = (): Partial<CreateIntegrationProviderInput> => {
+    switch (authMode) {
+      case "token":
+        return { api_token: apiToken.trim() || undefined };
+      case "basic":
+      case "app_password":
+        return { auth_username: authUsername.trim(), auth_secret: authSecret.trim() || undefined };
+      case "oauth2":
+        return {
+          auth_client_id: authClientId.trim(),
+          auth_token_url: authTokenUrl.trim(),
+          auth_secret: authSecret.trim() || undefined,
+        };
+      case "agent":
+        return { auth_username: authUsername.trim() };
+      default:
+        return {};
+    }
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -129,7 +209,7 @@ export function ProviderModal({ initial, onClose, onSaved }: ProviderModalProps)
           credentials_ref: nextCredentials,
           capabilities,
           base_url: baseUrl.trim(),
-          api_token: apiToken.trim() || undefined, // blank=keep (write-only)
+          ...outboundAuthPayload(), // auth_mode 별 outbound 자격증명 (secret blank=keep)
         });
       } else {
         if (!providerKey.trim()) {
@@ -152,7 +232,7 @@ export function ProviderModal({ initial, onClose, onSaved }: ProviderModalProps)
           credentials_ref: composeCredentialsRef(sigStrategy, sdkVendor, secret),
           capabilities,
           base_url: baseUrl.trim() || undefined,
-          api_token: apiToken.trim() || undefined,
+          ...outboundAuthPayload(), // auth_mode 별 outbound 자격증명
         });
       }
       onSaved(saved);
@@ -164,10 +244,6 @@ export function ProviderModal({ initial, onClose, onSaved }: ProviderModalProps)
       setSubmitting(false);
     }
   };
-
-  const inputCls =
-    "w-full px-4 py-3 rounded-xl bg-muted/30 border border-border text-foreground dark:text-primary-foreground text-sm focus:outline-none focus:border-accent";
-  const labelCls = "block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2";
 
   return (
     <div
@@ -322,37 +398,110 @@ export function ProviderModal({ initial, onClose, onSaved }: ProviderModalProps)
             )}
           </div>
 
-          {/* outbound sync API token (#3 token slot) — pull/sync capability 시만 노출.
-              Gitea PAT 등 repo/issue/PR pull 인증용. webhook secret(아래)과 별개. */}
-          {(capabilities.includes("pull") || capabilities.includes("sync")) && (
-            <div>
-              <label htmlFor="api_token" className={labelCls}>
-                API Token {isEdit && initial?.api_token_set ? "(set — blank=keep)" : ""}
-              </label>
-              <div className="relative">
-                <input
-                  id="api_token"
-                  type={showApiToken ? "text" : "password"}
-                  value={apiToken}
-                  onChange={(e) => setApiToken(e.target.value)}
-                  placeholder={isEdit && initial?.api_token_set ? "•••••• (set, leave blank to keep)" : "Personal Access Token (outbound sync 인증)"}
-                  className={`${inputCls} font-mono pr-12`}
-                  autoComplete="off"
+          {/* Outbound Auth — auth_mode 에 맞춰 자격증명 입력 필드가 바뀐다. repo/issue/PR
+              sync·pull 인증용 (inbound webhook secret 과 별개). auth_mode 는 등록 시
+              결정되며 edit 에서 변경 불가. */}
+          <div className="space-y-3 rounded-2xl border border-border/60 bg-muted/10 p-4">
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+              Outbound Auth · {authMode}
+            </p>
+
+            {authMode === "token" && (
+              <SecretField
+                id="api_token"
+                label={`API Token${isEdit && initial?.api_token_set ? " (set — blank=keep)" : ""}`}
+                value={apiToken}
+                onChange={setApiToken}
+                show={showApiToken}
+                onToggle={() => setShowApiToken((v) => !v)}
+                placeholder={isEdit && initial?.api_token_set ? "•••••• (set, leave blank to keep)" : "Personal Access Token (outbound sync 인증)"}
+              />
+            )}
+
+            {(authMode === "basic" || authMode === "app_password") && (
+              <>
+                <div>
+                  <label htmlFor="auth_username" className={labelCls}>Username *</label>
+                  <input
+                    id="auth_username"
+                    type="text"
+                    value={authUsername}
+                    onChange={(e) => setAuthUsername(e.target.value)}
+                    placeholder="service-account"
+                    className={`${inputCls} font-mono`}
+                  />
+                </div>
+                <SecretField
+                  id="auth_secret"
+                  label={`${authMode === "app_password" ? "App Password" : "Password"}${isEdit && initial?.auth_secret_set ? " (set — blank=keep)" : ""}`}
+                  value={authSecret}
+                  onChange={setAuthSecret}
+                  show={showAuthSecret}
+                  onToggle={() => setShowAuthSecret((v) => !v)}
+                  placeholder={isEdit && initial?.auth_secret_set ? "•••••• (set, leave blank to keep)" : authMode === "app_password" ? "application password" : "account password"}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowApiToken((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
-                  aria-label={showApiToken ? "Hide token" : "Show token"}
-                >
-                  {showApiToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+              </>
+            )}
+
+            {authMode === "oauth2" && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="auth_client_id" className={labelCls}>Client ID *</label>
+                    <input
+                      id="auth_client_id"
+                      type="text"
+                      value={authClientId}
+                      onChange={(e) => setAuthClientId(e.target.value)}
+                      placeholder="oauth2 client_id"
+                      className={`${inputCls} font-mono`}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="auth_token_url" className={labelCls}>Token URL *</label>
+                    <input
+                      id="auth_token_url"
+                      type="url"
+                      value={authTokenUrl}
+                      onChange={(e) => setAuthTokenUrl(e.target.value)}
+                      placeholder="https://idp.example.com/oauth/token"
+                      className={`${inputCls} font-mono`}
+                    />
+                  </div>
+                </div>
+                <SecretField
+                  id="auth_secret"
+                  label={`Client Secret${isEdit && initial?.auth_secret_set ? " (set — blank=keep)" : ""}`}
+                  value={authSecret}
+                  onChange={setAuthSecret}
+                  show={showAuthSecret}
+                  onToggle={() => setShowAuthSecret((v) => !v)}
+                  placeholder={isEdit && initial?.auth_secret_set ? "•••••• (set, leave blank to keep)" : "oauth2 client_secret (client-credentials grant)"}
+                />
+              </>
+            )}
+
+            {authMode === "agent" && (
+              <div>
+                <label htmlFor="auth_username" className={labelCls}>Agent Identifier</label>
+                <input
+                  id="auth_username"
+                  type="text"
+                  value={authUsername}
+                  onChange={(e) => setAuthUsername(e.target.value)}
+                  placeholder="agent id"
+                  className={`${inputCls} font-mono`}
+                />
+                <p className="text-[10px] text-muted-foreground mt-1.5">
+                  agent 모드는 별도 agent 프로세스가 외부 시스템 인증을 수행합니다. 서버 직접 sync 에는 사용되지 않습니다.
+                </p>
               </div>
-              <p className="text-[10px] text-muted-foreground mt-1.5">
-                repo/issue/PR pull 인증용 (예: Gitea Personal Access Token). 아래 webhook secret 과 별개.
-              </p>
-            </div>
-          )}
+            )}
+
+            <p className="text-[10px] text-muted-foreground">
+              외부 시스템 sync/pull 인증용. webhook 전용 provider 면 비워둘 수 있습니다. 아래 webhook secret 과 별개.
+            </p>
+          </div>
 
           {/* 가이드 자격증명 (#1) — strategy + secret 분리 입력 → credentials_ref 자동 조합 */}
           <div className="space-y-3 rounded-2xl border border-border/60 bg-muted/10 p-4">
