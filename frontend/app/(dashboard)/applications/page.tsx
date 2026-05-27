@@ -3,11 +3,10 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { 
-  Activity, 
-  Box, 
-  Cpu, 
-  Globe, 
-  ShieldCheck, 
+  Activity,
+  Box,
+  Cpu,
+  ShieldCheck,
   Zap,
   ExternalLink
 } from "lucide-react";
@@ -73,6 +72,7 @@ export default function ApplicationsStatusPage() {
     ? (apps.reduce((acc, app) => acc + (app.rollup?.build_success_rate || 0), 0) / apps.length * 100).toFixed(1)
     : "0";
   const totalCritical = apps.reduce((acc, app) => acc + (app.rollup?.critical_warning_count || 0), 0);
+  const activeApps = apps.filter((app) => app.status === "active").length;
 
   if (loading) {
     return <PageLoading label="Loading applications..." />;
@@ -93,7 +93,7 @@ export default function ApplicationsStatusPage() {
           { label: "Total Applications", value: totalApps.toString(), icon: Box, color: "text-info" },
           { label: "Avg. Build Success", value: `${avgSuccessRate}%`, icon: Activity, color: "text-success" },
           { label: "Critical Warnings", value: totalCritical.toString(), icon: ShieldCheck, color: totalCritical > 0 ? "text-destructive" : "text-success" },
-          { label: "Active Regions", value: "Global", icon: Globe, color: "text-purple-500" },
+          { label: "Active Applications", value: activeApps.toString(), icon: Zap, color: "text-purple-500" },
         ].map((stat, i) => (
           <motion.div 
             key={stat.label}
