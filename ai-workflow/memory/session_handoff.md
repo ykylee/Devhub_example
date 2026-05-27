@@ -1,3 +1,44 @@
+# Session Handoff — main (2026-05-27 post-#363 — SCM repo 연동 A+B + 고정메뉴 Phase 2b + admin catalog)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
+- 범위: 직전 #360 housekeeping (post-#359) 이후 3 PR (#361/#362/#363) 머지.
+- 상태: main HEAD `da6e8c1` (PR #362).
+- 최종 수정일: 2026-05-27
+
+## 2026-05-27 (post-#363) 결산
+
+사용자 요청 2건 — (1) 외부 연동 다이얼로그 고정메뉴 Phase 2b, (2) SCM↔시스템 repository 연동 (양방향 중 A+B) + sync capability 재검토. 사용자 "다 머지하자" 로 #361/#362/#363 일괄 머지.
+
+### 머지 PR (3)
+
+| sha | PR | core |
+| --- | --- | --- |
+| `fb58240` | **#363** (claude) | **SCM↔시스템 repository 연동 (A+B)** + capability 기능 gate. (A) 소유권 분리 — migration 000042 `repositories.{source,provider_id,description}` + `UpsertRepository` ON CONFLICT SCM mirror 만 갱신·system-owned 보존 + `ListRepositoriesByProvider`. (B) inbound import — API-88(목록)/API-89(import, SCM 재조회 값) + `ImportRepositoriesModal` + ProviderTable Import 액션. gate — import=pull / sync=pull\|sync. **Phase C(outbound 생성) deferred**. |
+| `da6e8c1` | **#362** (claude) | 고정메뉴 Phase 2b — known vendor 시 generic provider_type/auth_mode/signature select 를 read-only 요약으로 숨김 (`isKnownVendor`). |
+| `fa25797` | **#361** (codex) | Admin Catalog 중심 project 생성 동선 + catalog CRUD (frontend 4 파일). **merge-commit** (squash 아님, content `fea5d32`). codex inline 없음. |
+
+### codex 리뷰 현황
+
+| PR | 결과 |
+| --- | --- |
+| #363 | ⏳ 머지 후 codex 재리뷰 watch (신규 SCM import endpoint SSRF/권한 — #358 처럼 사후 P1 가능) |
+| #362 | 검증 후 머지 (codex 리뷰 전) |
+| #361 | codex inline 없음 (frontend, 작성자=codex) |
+| #355/#358 | #355 usage limit 미리뷰 / #358 P1 은 #359 로 해소 — 둘 다 재리뷰 watch |
+
+### 다음 directive
+
+| 영역 | 항목 |
+| --- | --- |
+| **claude** | 1) **#363/#358/#355 codex 재리뷰 확인**. 2) **Phase C** — 시스템 repository 생성 시 선택 SCM 에 실제 저장소 생성 (gitea `CreateRepo` + `push` capability gate). 3) inbound webhook 정규화 깊이. 4) #6 평문 secret(credentials_ref/api_token/auth_secret) envelope 암호화. |
+| 사내/사용자 | Onboarding SOP staging monitoring / nginx OIDC / Keycloak 26.0 smoke / issue #214 / Keycloak SPI realm events wire. |
+
+### 검증
+
+#363 go build+vet+test ./... + tsc+eslint+vitest 55 + build ✓ (migration 000042 unique). #362 tsc+eslint+build ✓. 모두 사용자 지시로 머지. 본 housekeeping 후 Open PR 0. migration prefix 39~42 순차.
+
+---
+
 # Session Handoff — main (2026-05-27 post-#359 — 외부연동 webhook/auth_mode + admin catalog + codex P1 hotfix)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
