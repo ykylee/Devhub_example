@@ -312,6 +312,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.DELETE("/integration/providers/:provider_id", handler.deleteIntegrationProvider)
 	v1.POST("/integration/providers/:provider_id/sync", handler.syncIntegrationProvider)
 	v1.POST("/integration/providers/:provider_id/webhook", handler.ingestIntegrationProviderWebhook)
+	v1.POST("/integration/test-connection", handler.testIntegrationConnection)
 	v1.GET("/integration/bindings", handler.listIntegrationBindings)
 	v1.POST("/integration/bindings", handler.createIntegrationBinding)
 	v1.PATCH("/integration/bindings/:binding_id", handler.updateIntegrationBinding)

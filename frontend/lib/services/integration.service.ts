@@ -6,6 +6,7 @@ import type {
   IntegrationProvider,
   ListIntegrationBindingsOptions,
   ListIntegrationProvidersOptions,
+  TestConnectionResult,
   UpdateIntegrationProviderInput,
 } from "./integration.types";
 
@@ -44,6 +45,12 @@ class IntegrationService {
       "POST",
       `/api/v1/integration/providers/${providerID}/sync`,
     );
+  }
+
+  /** 등록 UX 고도화 #5 — base_url reachability 검증 (등록 전/후). backend GET +
+   *  5s timeout. reachable=false 여도 200 (테스트는 수행됨 — error 필드 참조). */
+  async testConnection(baseUrl: string): Promise<TestConnectionResult> {
+    return await apiClient<TestConnectionResult>("POST", "/api/v1/integration/test-connection", { base_url: baseUrl });
   }
 
   /** API-80 — Provider 삭제 (sprint claude/work_260518-j). FK guard:

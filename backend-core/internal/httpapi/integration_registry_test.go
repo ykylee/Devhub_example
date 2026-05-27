@@ -59,6 +59,66 @@ func TestListIntegrationProviders_FilterEnabled(t *testing.T) {
 	}
 }
 
+// 등록 UX 고도화 #2 — base_url (endpoint) round-trip.
+func TestCreateIntegrationProvider_WithBaseURL(t *testing.T) {
+	router := newApplicationsRouter(newMemoryApplicationStore())
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
+		`{"provider_key":"gitea-url","provider_type":"scm","display_name":"Gitea","auth_mode":"token","credentials_ref":"provider_sdk:gitea:s","base_url":"https://gitea.example.com"}`)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"base_url":"https://gitea.example.com"`)) {
+		t.Errorf("response should echo base_url: %s", rec.Body.String())
+	}
+}
+
+// base_url 은 http(s) scheme 만 허용.
+func TestCreateIntegrationProvider_InvalidBaseURL(t *testing.T) {
+	router := newApplicationsRouter(newMemoryApplicationStore())
+	// codex PR #352 P2 — 비-http(s) + scheme-only(host 누락) 모두 거부.
+	for _, bad := range []string{"ftp://nope", "https://"} {
+		rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
+			`{"provider_key":"bad-url","provider_type":"scm","display_name":"X","auth_mode":"token","credentials_ref":"hmac_sha256:s","base_url":"`+bad+`"}`)
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("base_url %q should be 400, got %d body=%s", bad, rec.Code, rec.Body.String())
+		}
+		if !bytes.Contains(rec.Body.Bytes(), []byte("invalid_base_url")) {
+			t.Errorf("base_url %q: expected invalid_base_url code: %s", bad, rec.Body.String())
+		}
+	}
+}
+
+// 등록 UX 고도화 #5 — test-connection reachability.
+func TestTestIntegrationConnection_Reachable(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+	router := newApplicationsRouter(newMemoryApplicationStore())
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/test-connection",
+		`{"base_url":"`+srv.URL+`"}`)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"reachable":true`)) {
+		t.Errorf("expected reachable true: %s", rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"status_code":200`)) {
+		t.Errorf("expected status_code 200: %s", rec.Body.String())
+	}
+}
+
+func TestTestIntegrationConnection_InvalidURL(t *testing.T) {
+	router := newApplicationsRouter(newMemoryApplicationStore())
+	// codex PR #352 P2 — scheme-only (host 누락) 도 거부.
+	for _, body := range []string{`{"base_url":""}`, `{"base_url":"ftp://nope"}`, `{"base_url":"https://"}`} {
+		rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/test-connection", body)
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("body %s: expected 400, got %d body=%s", body, rec.Code, rec.Body.String())
+		}
+	}
+}
+
 func TestSyncIntegrationProvider_Happy(t *testing.T) {
 	router := newApplicationsRouter(newMemoryApplicationStore())
 	// SCM provider — sync 가능한 유일한 provider_type (Gitea 워커 대상).

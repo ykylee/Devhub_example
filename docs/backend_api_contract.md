@@ -1981,6 +1981,7 @@ intake_token_collision                         # sprint o (ADR-0014): hashed_tok
 | API-77 | `POST /api/v1/infra/services/snapshot` | 홈랩 서비스 상태 스냅샷 수집 ingest |
 | API-78 | `GET /api/v1/infra/topology/v2` | 노드+서비스+의존성 통합 토폴로지 조회 |
 | API-80 | `DELETE /api/v1/integration/providers/{provider_id}` | Provider 삭제 (FK guard, sprint `claude/work_260518-j`) |
+| API-87 | `POST /api/v1/integration/test-connection` | Provider endpoint reachability 테스트 (등록 UX 고도화 #5) |
 
 ### 15.2 Provider Catalog
 
@@ -1992,9 +1993,9 @@ intake_token_collision                         # sprint o (ADR-0014): hashed_tok
 #### API-70 `POST /api/v1/integration/providers`
 
 - **인증**: OIDC + RBAC `infrastructure:edit` (system_admin only).
-- **요청**: `provider_key`, `provider_type`, `display_name`, `auth_mode`, `credentials_ref`, `capabilities`, `scope`.
-- **응답 — 201**: 생성된 provider.
-- **에러**: 409 `integration_provider_conflict`, 400 `invalid_provider_type`.
+- **요청**: `provider_key`, `provider_type`, `display_name`, `auth_mode`, `credentials_ref`, `capabilities`, `base_url`(optional, http(s) URL — outbound sync 대상 endpoint, migration 000038), `scope`.
+- **응답 — 201**: 생성된 provider (`base_url` 포함, 미설정 시 null).
+- **에러**: 409 `integration_provider_conflict`, 400 `invalid_provider_type`, 400 `invalid_base_url`.
 
 요청 예시:
 
@@ -2057,6 +2058,18 @@ intake_token_collision                         # sprint o (ADR-0014): hashed_tok
   - 409 `{status:"conflict", code:"integration_provider_has_bindings"}` — 활성 binding 존재. 운영자가 binding 삭제 후 재시도.
 - **audit**: `integration.provider.deleted` + payload `{provider_key, provider_type, display_name}`.
 - **운영 메모**: cascade binding 정리는 별도 ADR 후보 (1차 정책은 명시 차단).
+
+#### API-87 `POST /api/v1/integration/test-connection`
+
+- **인증**: OIDC + RBAC `infrastructure:edit` (system_admin only).
+- **설명**: provider 등록 전/후 외부 시스템 endpoint reachability 검증 (등록 UX 고도화 #5). 저장된 provider 가 아니라 body 의 `base_url` 을 직접 GET (pre-save 가능). reachability 만 확인하며 자격증명 검증은 후속.
+- **요청**: `{ "base_url": "https://gitea.example.com" }` (http(s) 필수).
+- **동작**: GET + 5s timeout + redirect 미추적. 응답 본문은 미반환 (status_code / latency 만).
+- **응답**:
+  - 200 `{status:"ok", reachable:true, status_code, latency_ms}` — 도달.
+  - 200 `{status:"ok", reachable:false, latency_ms, error}` — 미도달 (테스트 자체는 수행됨).
+  - 400 `{status:"rejected", code:"invalid_base_url"}` — base_url 누락 또는 비-http(s).
+- **보안**: SSRF — 합법적 대상이 사내 internal endpoint (Gitea/Jenkins 등) 이므로 internal IP 차단 안 함. admin 신뢰 경계 + 짧은 timeout + 본문 미반환으로 표면 최소화.
 
 ### 15.3 Ingest / Binding
 

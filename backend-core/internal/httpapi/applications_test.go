@@ -621,6 +621,7 @@ func (s *memoryApplicationStore) UpdateIntegrationProvider(_ context.Context, p 
 	current.SyncStatus = p.SyncStatus
 	current.LastSyncAt = p.LastSyncAt
 	current.LastErrorCode = p.LastErrorCode
+	current.BaseURL = p.BaseURL
 	current.UpdatedAt = time.Now().UTC()
 	s.integrationProviders[p.ID] = current
 	return current, nil
