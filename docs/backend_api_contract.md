@@ -1993,9 +1993,10 @@ intake_token_collision                         # sprint o (ADR-0014): hashed_tok
 #### API-70 `POST /api/v1/integration/providers`
 
 - **인증**: OIDC + RBAC `infrastructure:edit` (system_admin only).
-- **요청**: `provider_key`, `provider_type`, `display_name`, `auth_mode`, `credentials_ref`, `capabilities`, `base_url`(optional, http(s) URL — outbound sync 대상 endpoint, migration 000038), `scope`.
-- **응답 — 201**: 생성된 provider (`base_url` 포함, 미설정 시 null).
+- **요청**: `provider_key`, `provider_type`, `display_name`, `auth_mode`, `credentials_ref`(inbound webhook 서명 시크릿), `capabilities`, `base_url`(optional, http(s) URL — outbound sync 대상 endpoint, migration 000038), `api_token`(optional — outbound sync(REST pull) 인증용 PAT, **write-only**, migration 000040), `scope`.
+- **응답 — 201**: 생성된 provider (`base_url` 포함; `api_token` 은 raw 미노출, `api_token_set`(bool) 만 — 보안).
 - **에러**: 409 `integration_provider_conflict`, 400 `invalid_provider_type`, 400 `invalid_base_url`.
+- **참고**: `credentials_ref`(inbound webhook)와 `api_token`(outbound sync)은 별개 시크릿. Phase 3 (sync worker per-provider) 이후 등록 provider 의 `base_url`+`api_token` 이 Gitea sync 에 사용됨 (env fallback).
 
 요청 예시:
 

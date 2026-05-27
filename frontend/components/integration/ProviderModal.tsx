@@ -48,6 +48,10 @@ export function ProviderModal({ initial, onClose, onSaved }: ProviderModalProps)
   const [displayName, setDisplayName] = useState(initial?.display_name ?? "");
   const [authMode, setAuthMode] = useState<IntegrationAuthMode>(initial?.auth_mode ?? "token");
   const [baseUrl, setBaseUrl] = useState(initial?.base_url ?? "");
+  // api_token 은 write-only — edit 모드에서도 빈 값으로 시작 (blank=keep). 설정 여부는
+  // initial.api_token_set 로 표시.
+  const [apiToken, setApiToken] = useState("");
+  const [showApiToken, setShowApiToken] = useState(false);
   const [enabled, setEnabled] = useState(initial?.enabled ?? true);
 
   // 가이드 자격증명 입력 (#1) — strategy + vendor + secret 를 분리 입력받아 조합.
@@ -125,6 +129,7 @@ export function ProviderModal({ initial, onClose, onSaved }: ProviderModalProps)
           credentials_ref: nextCredentials,
           capabilities,
           base_url: baseUrl.trim(),
+          api_token: apiToken.trim() || undefined, // blank=keep (write-only)
         });
       } else {
         if (!providerKey.trim()) {
@@ -147,6 +152,7 @@ export function ProviderModal({ initial, onClose, onSaved }: ProviderModalProps)
           credentials_ref: composeCredentialsRef(sigStrategy, sdkVendor, secret),
           capabilities,
           base_url: baseUrl.trim() || undefined,
+          api_token: apiToken.trim() || undefined,
         });
       }
       onSaved(saved);
@@ -315,6 +321,38 @@ export function ProviderModal({ initial, onClose, onSaved }: ProviderModalProps)
               </p>
             )}
           </div>
+
+          {/* outbound sync API token (#3 token slot) — pull/sync capability 시만 노출.
+              Gitea PAT 등 repo/issue/PR pull 인증용. webhook secret(아래)과 별개. */}
+          {(capabilities.includes("pull") || capabilities.includes("sync")) && (
+            <div>
+              <label htmlFor="api_token" className={labelCls}>
+                API Token {isEdit && initial?.api_token_set ? "(set — blank=keep)" : ""}
+              </label>
+              <div className="relative">
+                <input
+                  id="api_token"
+                  type={showApiToken ? "text" : "password"}
+                  value={apiToken}
+                  onChange={(e) => setApiToken(e.target.value)}
+                  placeholder={isEdit && initial?.api_token_set ? "•••••• (set, leave blank to keep)" : "Personal Access Token (outbound sync 인증)"}
+                  className={`${inputCls} font-mono pr-12`}
+                  autoComplete="off"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowApiToken((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
+                  aria-label={showApiToken ? "Hide token" : "Show token"}
+                >
+                  {showApiToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1.5">
+                repo/issue/PR pull 인증용 (예: Gitea Personal Access Token). 아래 webhook secret 과 별개.
+              </p>
+            </div>
+          )}
 
           {/* 가이드 자격증명 (#1) — strategy + secret 분리 입력 → credentials_ref 자동 조합 */}
           <div className="space-y-3 rounded-2xl border border-border/60 bg-muted/10 p-4">

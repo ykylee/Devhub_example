@@ -39,6 +39,7 @@ func integrationProviderResponse(p domain.IntegrationProvider) gin.H {
 		"last_sync_at":    nullableRFC3339(p.LastSyncAt),
 		"last_error_code": emptyAsNil(p.LastErrorCode),
 		"base_url":        emptyAsNil(p.BaseURL),
+		"api_token_set":   p.APIToken != "", // write-only — raw token 미노출 (보안)
 		"created_at":      p.CreatedAt.UTC().Format(time.RFC3339),
 		"updated_at":      p.UpdatedAt.UTC().Format(time.RFC3339),
 	}
@@ -219,6 +220,7 @@ type createIntegrationProviderRequest struct {
 	CredentialsRef string   `json:"credentials_ref"`
 	Capabilities   []string `json:"capabilities"`
 	BaseURL        string   `json:"base_url"`
+	APIToken       string   `json:"api_token"`
 }
 
 // validBaseURL — base_url 은 optional (webhook 전용 provider 는 미사용). 제공 시
@@ -281,6 +283,7 @@ func (h *Handler) createIntegrationProvider(c *gin.Context) {
 		Capabilities:   req.Capabilities,
 		SyncStatus:     "requested",
 		BaseURL:        strings.TrimSpace(req.BaseURL),
+		APIToken:       strings.TrimSpace(req.APIToken),
 	})
 	if errors.Is(err, store.ErrConflict) {
 		c.JSON(http.StatusConflict, gin.H{"status": "conflict", "error": "provider already exists", "code": "integration_provider_conflict"})
@@ -303,6 +306,7 @@ type updateIntegrationProviderRequest struct {
 	CredentialsRef *string  `json:"credentials_ref"`
 	Capabilities   []string `json:"capabilities"`
 	BaseURL        *string  `json:"base_url"`
+	APIToken       *string  `json:"api_token"`
 }
 
 // API-71
@@ -353,6 +357,9 @@ func (h *Handler) updateIntegrationProvider(c *gin.Context) {
 			return
 		}
 		updated.BaseURL = strings.TrimSpace(*req.BaseURL)
+	}
+	if req.APIToken != nil {
+		updated.APIToken = strings.TrimSpace(*req.APIToken)
 	}
 	result, err := storeI.UpdateIntegrationProvider(c.Request.Context(), updated)
 	if errors.Is(err, store.ErrNotFound) {

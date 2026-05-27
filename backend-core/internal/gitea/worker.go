@@ -15,6 +15,9 @@ type SyncJobStore interface {
 	SyncStore
 	AcquireNextQueuedSyncJob(ctx context.Context) (jobID string, providerID string, err error)
 	UpdateIntegrationSyncJobStatus(ctx context.Context, jobID string, status string) error
+	// GetIntegrationProviderByID — Phase 3: queued job 의 provider 별 base_url +
+	// api_token 을 조회해 env 대신 사용 (per-provider sync 연결).
+	GetIntegrationProviderByID(ctx context.Context, providerID string) (domain.IntegrationProvider, error)
 }
 
 // SyncWorker periodically checks for IntegrationSyncJob requests and handles syncing.
@@ -58,19 +61,19 @@ func (w *SyncWorker) Run(ctx context.Context, interval time.Duration) error {
 
 // ProcessOnce runs a single round of synchronizing repositories.
 func (w *SyncWorker) ProcessOnce(ctx context.Context) error {
-	if strings.TrimSpace(w.GiteaURL) == "" || strings.TrimSpace(w.GiteaToken) == "" {
-		return nil
-	}
-
-	// 1. Check if there is a queued integration sync job first.
-	// AcquireNextQueuedSyncJob is provider_type='scm' gated (codex review PR #341
-	// P1): only SCM-provider jobs reach this worker, so non-Gitea providers
-	// (Jira/alm, ci_cd, ...) are not falsely marked succeeded here.
+	// 1. queued sync job 우선. AcquireNextQueuedSyncJob 은 provider_type='scm'
+	// gated (codex #341 P1) — 비-SCM job 은 도달하지 않음.
 	jobID, providerID, err := w.Store.AcquireNextQueuedSyncJob(ctx)
 	if err == nil && jobID != "" {
+		// Phase 3: 등록된 provider 의 base_url + api_token 우선, 없으면 env fallback.
+		baseURL, token := w.resolveSyncConfig(ctx, providerID)
+		if strings.TrimSpace(baseURL) == "" || strings.TrimSpace(token) == "" {
+			log.Printf("[Gitea Sync Worker] Job %s (provider %s) skipped: base_url/api_token 미설정 (provider·env 모두)", jobID, providerID)
+			_ = w.Store.UpdateIntegrationSyncJobStatus(ctx, jobID, "failed")
+			return nil
+		}
 		log.Printf("[Gitea Sync Worker] Acquired queued job %s (provider %s). Starting sync...", jobID, providerID)
-		syncErr := w.syncAll(ctx)
-		if syncErr != nil {
+		if syncErr := w.syncAllWith(ctx, baseURL, token); syncErr != nil {
 			log.Printf("[Gitea Sync Worker] Job %s failed: %v", jobID, syncErr)
 			_ = w.Store.UpdateIntegrationSyncJobStatus(ctx, jobID, "failed")
 			return syncErr
@@ -80,12 +83,37 @@ func (w *SyncWorker) ProcessOnce(ctx context.Context) error {
 		return nil
 	}
 
-	// 2. Regular periodic sync if no queued jobs are found.
-	return w.syncAll(ctx)
+	// 2. 큐가 비면 env(GITEA_URL/GITEA_TOKEN) 기반 주기 sync (backward compat).
+	// env 미설정이면 no-op (queued job 만 per-provider 로 처리).
+	if strings.TrimSpace(w.GiteaURL) == "" || strings.TrimSpace(w.GiteaToken) == "" {
+		return nil
+	}
+	return w.syncAllWith(ctx, w.GiteaURL, w.GiteaToken)
 }
 
-func (w *SyncWorker) syncAll(ctx context.Context) error {
-	client := NewClient(w.GiteaURL, w.GiteaToken)
+// resolveSyncConfig — providerID 의 base_url + api_token 을 우선 사용하고, 비어 있으면
+// worker 의 env 값으로 fallback (Phase 3). provider lookup 실패 시에도 env fallback.
+func (w *SyncWorker) resolveSyncConfig(ctx context.Context, providerID string) (string, string) {
+	baseURL, token := w.GiteaURL, w.GiteaToken
+	if strings.TrimSpace(providerID) == "" {
+		return baseURL, token
+	}
+	prov, err := w.Store.GetIntegrationProviderByID(ctx, providerID)
+	if err != nil {
+		log.Printf("[Gitea Sync Worker] provider %s lookup 실패, env fallback: %v", providerID, err)
+		return baseURL, token
+	}
+	if strings.TrimSpace(prov.BaseURL) != "" {
+		baseURL = prov.BaseURL
+	}
+	if strings.TrimSpace(prov.APIToken) != "" {
+		token = prov.APIToken
+	}
+	return baseURL, token
+}
+
+func (w *SyncWorker) syncAllWith(ctx context.Context, baseURL, token string) error {
+	client := NewClient(baseURL, token)
 	syncer := NewSyncer(w.Store)
 
 	// Fetch all Gitea user repositories first to build local cache mapping.
