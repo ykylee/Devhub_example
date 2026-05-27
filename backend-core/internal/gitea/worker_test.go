@@ -148,6 +148,38 @@ func TestSyncWorker_ProcessOnce_PerProviderConfig(t *testing.T) {
 	}
 }
 
+// codex #358 P1 회귀 가드: 명시 provider 의 자격증명이 미설정(agent/미완성)이면
+// worker 전역 env token 을 provider host 로 보내지 않고 job 을 failed 처리해야 한다
+// (잘못된 계정 인증 / 토큰 유출 방지).
+func TestSyncWorker_ProcessOnce_NoEnvTokenLeakForExplicitProvider(t *testing.T) {
+	var hits int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits++
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`[]`))
+	}))
+	defer server.Close()
+
+	// 명시 provider(base_url=server)는 agent mode = 자격증명 미설정. env token 은 별도 host 용.
+	store := &mockSyncJobStore{
+		acquireJobID:      "job-1",
+		acquireProviderID: "prov-1",
+		providerBaseURL:   server.URL,
+		providerAuthMode:  domain.IntegrationAuthModeAgent,
+	}
+	worker := gitea.NewSyncWorker(store, "https://env-gitea.internal", "env-secret-token")
+
+	if err := worker.ProcessOnce(context.Background()); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if hits != 0 {
+		t.Fatalf("provider host 로 요청이 가면 안 됨 (env token 유출 위험), got %d hits", hits)
+	}
+	if len(store.statuses) != 1 || store.statuses[0] != "failed" {
+		t.Fatalf("자격증명 미설정 job 은 failed 여야 함, got %v", store.statuses)
+	}
+}
+
 // Phase: auth_mode=basic provider 는 outbound 호출에 HTTP Basic 헤더를 사용한다.
 func TestSyncWorker_ProcessOnce_BasicAuthOutbound(t *testing.T) {
 	var gotAuth string

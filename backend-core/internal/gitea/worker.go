@@ -102,43 +102,27 @@ func (w *SyncWorker) ProcessOnce(ctx context.Context) error {
 	return w.syncAllWith(ctx, NewClient(w.GiteaURL, w.GiteaToken))
 }
 
-// resolveSyncConfig — providerID 의 base_url + auth_mode 별 outbound 자격증명을 우선
-// 사용하고, 비어 있으면 worker 의 env 값(token mode)으로 fallback (Phase 3).
-// provider lookup 실패 시에도 env fallback.
+// resolveSyncConfig — providerID 가 명시되면 그 provider 의 base_url + auth_mode 별
+// outbound 자격증명만 사용한다. providerID 가 비었거나 lookup 실패 시에만 worker 의
+// env 값(token mode)으로 fallback (legacy 주기 sync).
+//
+// 중요 (codex #358 P1): 명시 provider 가 해석되면 env token 으로 **fallback 하지 않는다**.
+// provider 고유 host(base_url)에 worker 전역 GITEA_TOKEN 을 보내면 잘못된 계정으로
+// 인증하거나 다른 외부 host 로 공유 토큰이 유출될 수 있다. 자격증명이 불완전하거나
+// (agent / 미완성 basic·oauth2) base_url 이 비면 ProcessOnce 가 job 을 실패 처리한다
+// (NewClientForAuth 가 nil 반환).
 func (w *SyncWorker) resolveSyncConfig(ctx context.Context, providerID string) (string, domain.OutboundAuth) {
-	baseURL := w.GiteaURL
-	auth := domain.OutboundAuth{Mode: domain.IntegrationAuthModeToken, Token: w.GiteaToken}
+	envAuth := domain.OutboundAuth{Mode: domain.IntegrationAuthModeToken, Token: w.GiteaToken}
 	if strings.TrimSpace(providerID) == "" {
-		return baseURL, auth
+		return w.GiteaURL, envAuth
 	}
 	prov, err := w.Store.GetIntegrationProviderByID(ctx, providerID)
 	if err != nil {
 		log.Printf("[Gitea Sync Worker] provider %s lookup 실패, env fallback: %v", providerID, err)
-		return baseURL, auth
+		return w.GiteaURL, envAuth
 	}
-	if strings.TrimSpace(prov.BaseURL) != "" {
-		baseURL = prov.BaseURL
-	}
-	// provider 가 자체 자격증명을 가지면 그것을 쓰고, 없으면 env token fallback 유지.
-	if pa := prov.ResolveOutboundAuth(); outboundAuthConfigured(pa) {
-		auth = pa
-	}
-	return baseURL, auth
-}
-
-// outboundAuthConfigured reports whether the resolved auth carries usable
-// credentials for its mode (used to decide provider-config vs env fallback).
-func outboundAuthConfigured(a domain.OutboundAuth) bool {
-	switch a.Mode {
-	case domain.IntegrationAuthModeBasic, domain.IntegrationAuthModeAppPassword:
-		return strings.TrimSpace(a.Username) != "" && strings.TrimSpace(a.Secret) != ""
-	case domain.IntegrationAuthModeOAuth2:
-		return strings.TrimSpace(a.ClientID) != "" && strings.TrimSpace(a.TokenURL) != "" && strings.TrimSpace(a.Secret) != ""
-	case domain.IntegrationAuthModeAgent:
-		return false
-	default: // token
-		return strings.TrimSpace(a.Token) != ""
-	}
+	// 명시 provider — 그 provider 의 base_url + 자체 자격증명만. env 혼용 금지.
+	return prov.BaseURL, prov.ResolveOutboundAuth()
 }
 
 func (w *SyncWorker) syncAllWith(ctx context.Context, client *Client) error {
