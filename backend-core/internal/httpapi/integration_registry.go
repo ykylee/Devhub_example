@@ -356,6 +356,18 @@ func (h *Handler) syncIntegrationProvider(c *gin.Context) {
 		c.JSON(http.StatusConflict, gin.H{"status": "rejected", "error": "provider is disabled", "code": "integration_provider_disabled"})
 		return
 	}
+	// 현재 sync worker 는 SCM (Gitea) 한 종류뿐이다 (AcquireNextQueuedSyncJob 가
+	// provider_type='scm' 게이트). 비-SCM provider 의 sync job 을 queue 하면 소비할
+	// worker 가 없어 영구히 queued 로 남으므로, queue 전에 fast-fail 한다
+	// (codex review PR #345 P2). 다른 provider_type 의 sync worker 추가 시 확장.
+	if provider.ProviderType != domain.IntegrationProviderTypeSCM {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"status": "rejected",
+			"error":  "sync is only supported for SCM-type providers",
+			"code":   "integration_sync_unsupported_provider_type",
+		})
+		return
+	}
 	jobID, err := storeI.CreateIntegrationSyncJob(c.Request.Context(), providerID, actorLogin(c))
 	if errors.Is(err, store.ErrNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "provider not found", "code": "integration_provider_not_found"})

@@ -61,17 +61,36 @@ func TestListIntegrationProviders_FilterEnabled(t *testing.T) {
 
 func TestSyncIntegrationProvider_Happy(t *testing.T) {
 	router := newApplicationsRouter(newMemoryApplicationStore())
+	// SCM provider — sync 가능한 유일한 provider_type (Gitea 워커 대상).
+	seed := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
+		`{"provider_key":"gitea-main","provider_type":"scm","display_name":"Gitea","auth_mode":"token","credentials_ref":"secret://gitea"}`)
+	if seed.Code != http.StatusCreated {
+		t.Fatalf("seed failed: %s", seed.Body.String())
+	}
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers/prov-gitea-main/sync", "{}")
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"job_id":"job-prov-gitea-main"`)) {
+		t.Errorf("expected job_id: %s", rec.Body.String())
+	}
+}
+
+// codex review PR #345 P2 — 비-SCM provider 의 sync 는 queue 전에 fast-fail.
+// (소비할 worker 가 없어 영구 queued 로 남는 zombie job 방지.)
+func TestSyncIntegrationProvider_RejectsNonSCM(t *testing.T) {
+	router := newApplicationsRouter(newMemoryApplicationStore())
 	seed := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
 		`{"provider_key":"jira-main","provider_type":"alm","display_name":"Jira","auth_mode":"oauth2","credentials_ref":"secret://jira"}`)
 	if seed.Code != http.StatusCreated {
 		t.Fatalf("seed failed: %s", seed.Body.String())
 	}
 	rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers/prov-jira-main/sync", "{}")
-	if rec.Code != http.StatusAccepted {
-		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("non-SCM sync should be rejected with 422, got status=%d body=%s", rec.Code, rec.Body.String())
 	}
-	if !bytes.Contains(rec.Body.Bytes(), []byte(`"job_id":"job-prov-jira-main"`)) {
-		t.Errorf("expected job_id: %s", rec.Body.String())
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`integration_sync_unsupported_provider_type`)) {
+		t.Errorf("expected unsupported_provider_type code: %s", rec.Body.String())
 	}
 }
 
