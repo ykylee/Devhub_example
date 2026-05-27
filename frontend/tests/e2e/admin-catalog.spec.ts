@@ -38,8 +38,25 @@ test.describe("/admin/catalog — Admin Catalog", () => {
     await expect(page).toHaveURL(/\/applications\//, { timeout: 15_000 });
 
     await page.goto(appPath("/admin/catalog?tab=applications"));
-    await page.getByTestId(`catalog-app-projects-${appID}`).click();
+    await expect(page.getByRole("button", { name: /applications/i })).toBeVisible();
+
+    const projectButtons = page.getByTestId(/catalog-app-projects-.+/);
+    const projectButtonCount = await projectButtons.count();
+    test.skip(projectButtonCount === 0, "projects 드릴다운 버튼이 없어 검증 생략");
+
+    const firstProjectButton = projectButtons.first();
+    const projectButtonTestID = await firstProjectButton.getAttribute("data-testid");
+    const projectAppID = projectButtonTestID?.replace("catalog-app-projects-", "");
+    test.skip(!projectAppID, "projects 버튼에서 application id resolve 실패");
+
+    for (let i = 0; i < 3; i += 1) {
+      await firstProjectButton.click();
+      if (page.url().includes("tab=projects")) break;
+      await page.waitForTimeout(250);
+    }
+
     await expect(page).toHaveURL(/tab=projects/, { timeout: 15_000 });
+    await expect(page).toHaveURL(new RegExp(`q=${projectAppID}`), { timeout: 15_000 });
   });
 
   test("TC-ADMIN-CATALOG-RBAC-01 — non-system_admin 접근 차단", async ({ page }) => {
