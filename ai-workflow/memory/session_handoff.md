@@ -1,3 +1,41 @@
+# Session Handoff — main (2026-05-27 post-#348 — #346 + #348 머지 + ADR-0024 §6 종결 + housekeeping)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
+- 범위: 직전 #347 housekeeping (main HEAD `e7fd668`, #344/#345 반영) 이후 #346 + #348 머지.
+- 상태: main HEAD `58444e7` (PR #348). 본 sprint (`claude/work_260527-housekeeping-post-348`).
+- 최종 수정일: 2026-05-27
+
+## 2026-05-27 (post-#348) 결산
+
+#347 housekeeping 후 사용자가 §6.4/§6.5 ticket-only 컷오버 선택 → #348. 그 사이 codex 작성자가 내 #346 review 의 P1+P2 반영 후 #346 머지.
+
+### 머지 PR (2)
+
+| sha | PR | core |
+| --- | --- | --- |
+| `53f596e` | **#346** | codex application/modal UX hotfix. **claude review (request-changes) 의 P1+P2 작성자 반영 후 머지**: 🔴 P1 = **migration 000036 `relax_applications_key_format`** 신규 (`ALTER ... DROP CONSTRAINT applications_key_format` + `ADD CHECK (key ~ '^[A-Za-z0-9]{1,10}$')`) → handler {1,10} 완화와 DB CHECK 정합 (key=DEVHUB prod 동작 복구). 🟠 P2 = edit path 도 `patchPayload.owner_user_id = formData.leader_user_id` 동기화 (`enforceRowOwnership` drift 해소). + Leader/Dept ComboBox + Owner legacy 제거 + due_date parseISO 등 UX. migration prefix 34/35/36 순차. |
+| `58444e7` | **#348** | **ADR-0024 ticket-only 컷오버 (§6 carve 4+5)**. §6.5 = backend `auth.go` 의 WS `?access_token=` → Bearer 승격 블록 제거 (ticket-only) + frontend `realtime.service.ts:buildURL` access_token fallback 제거 + `tokenStore` import 제거. 회귀 가드 `TestRealtimeWS_AccessTokenQuery_NoLongerHonored` (token 수락 verifier 붙어도 access_token 무시 → 401). §6.4 = `docs/planning/ws_subprotocol_vs_ticket_poc.md` 신규 (subprotocol 미채택 비교 — 장기 JWT log leak 잔존 + revocation/replay 내성 없음). ADR-0024 §6 carve 4/5 resolved + §3.2/§4.2 본문 + change-log. CI 8 job green (E2E 양 shard WS ticket 경로 실동작 확인). |
+
+### ADR-0024 §6 carve 종결 상태
+
+| carve | 상태 |
+| --- | --- |
+| 1 ticket pattern / 3 401 refresh-then-reconnect / 4 subprotocol PoC / 5 access_token 제거 / 6 multi-instance PG | ✅ **모두 resolved** |
+| 2 nginx redact (`ticket=` 대상) | 사내 nginx 운영자 영역 (잔여) |
+
+### 다음 directive
+
+| 영역 | 항목 |
+| --- | --- |
+| **claude** | ADR-0024 carve 잔여 없음. 후속 후보 = M4 RM-M4-XX (RBAC cache LISTEN/NOTIFY #233 / WebSocket replay+리소스 필터 #229 / System Admin 대시보드 #232 / Gitea Hourly Pull worker 정밀화 #231) 또는 사용자 지정 |
+| 사내/사용자 | Onboarding SOP staging 1주 monitoring / nginx 재기동 + OIDC redirect_uri 검증 / Keycloak 26.0 redeploy smoke (ADR-0023 §5) / issue #214 / Keycloak SPI realm events 등록 + `DEVHUB_BACKEND_SPI_WEBHOOK_URL` wire (#340 codex P1×2) |
+
+### 검증
+
+#346 + #348 CI 8 job green. 양 PR squash merge + delete-branch. #346 P1+P2 = 내 review 반영 확인. 본 housekeeping 후 Open PR 0.
+
+---
+
 # Session Handoff — main (2026-05-27 post-#345 — #344 + #345 머지 + #346 review + housekeeping)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
