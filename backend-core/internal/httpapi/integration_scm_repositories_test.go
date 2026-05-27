@@ -181,6 +181,28 @@ func TestCreateSCMRepository_RequiresPushCapability(t *testing.T) {
 	}
 }
 
+// codex #366 P2 — 비활성 provider 는 scm-repositories 작업(list/import/create) 거부.
+func TestSCMRepositories_RejectsDisabledProvider(t *testing.T) {
+	srv := fakeGiteaServerWithCreate(t)
+	router := newApplicationsRouter(newMemoryApplicationStore())
+	id := seedSCMProvider(t, router, "gitea-disabled", `["pull","push"]`, srv.URL)
+	patch := doJSON(t, router, http.MethodPatch, "/api/v1/integration/providers/"+id, `{"enabled":false}`)
+	if patch.Code != http.StatusOK {
+		t.Fatalf("disable failed: %s", patch.Body.String())
+	}
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers/"+id+"/create-repository", `{"name":"x"}`)
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("create status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte("integration_provider_disabled")) {
+		t.Errorf("expected disabled rejection: %s", rec.Body.String())
+	}
+	list := doJSON(t, router, http.MethodGet, "/api/v1/integration/providers/"+id+"/scm-repositories", "")
+	if list.Code != http.StatusConflict {
+		t.Errorf("list should also reject disabled: status=%d", list.Code)
+	}
+}
+
 func TestCreateSCMRepository_NameRequired(t *testing.T) {
 	srv := fakeGiteaServerWithCreate(t)
 	router := newApplicationsRouter(newMemoryApplicationStore())

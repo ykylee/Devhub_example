@@ -41,6 +41,15 @@ func (h *Handler) scmProviderForCapability(c *gin.Context, storeI ApplicationSto
 		writeServerError(c, err, "integration.scm.provider.lookup")
 		return domain.IntegrationProvider{}, false
 	}
+	// 비활성 provider 는 거부 (codex #366 P2) — sync/webhook 핸들러와 동일 정책.
+	if !provider.Enabled {
+		c.JSON(http.StatusConflict, gin.H{
+			"status": "rejected",
+			"error":  "provider is disabled",
+			"code":   "integration_provider_disabled",
+		})
+		return domain.IntegrationProvider{}, false
+	}
 	if provider.ProviderType != domain.IntegrationProviderTypeSCM {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{
 			"status": "rejected",

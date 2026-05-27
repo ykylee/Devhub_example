@@ -1,4 +1,6 @@
--- 000042: archived project row 는 key 재사용 가능하도록 unique 범위를 active row 로 제한.
+-- 000044: archived project row 는 key 재사용 가능하도록 unique 범위를 active row 로 제한.
+-- (원래 000042 로 작성됐으나 #363 의 000042_repositories_source_provider 와 prefix 충돌 →
+--  000044 로 재번호. projects 전용이라 repositories migration 과 순서 무관.)
 -- 배경: 현재 Delete는 hard delete가 아니라 archive(status='archived', archived_at=NOW())이며,
 -- 기존 UNIQUE(repository_id, key) + standalone partial unique(repository_id IS NULL on key)
 -- 는 archived row도 충돌 대상으로 포함한다.
