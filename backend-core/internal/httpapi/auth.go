@@ -76,8 +76,9 @@ func (h Handler) authenticateActor(c *gin.Context) {
 	header := strings.TrimSpace(c.GetHeader("Authorization"))
 	if header == "" && c.FullPath() == "/api/v1/realtime/ws" {
 		// Browser WebSocket API cannot set arbitrary headers like Authorization
-		// (ADR-0024). 1) ticket pattern (preferred, single-use + 60s TTL) →
-		// 2) access_token query (backward-compat, deprecated).
+		// (ADR-0024). Ticket pattern only (single-use + 60s TTL) — the legacy
+		// `?access_token=` query fallback was removed in the ticket-only cutover
+		// (ADR-0024 §6 carve 5). No ticket / invalid ticket → 401.
 		if h.cfg.RealtimeTickets != nil {
 			if raw := strings.TrimSpace(c.Query("ticket")); raw != "" {
 				entry, ok, err := h.cfg.RealtimeTickets.consume(c.Request.Context(), raw)
@@ -107,9 +108,6 @@ func (h Handler) authenticateActor(c *gin.Context) {
 				})
 				return
 			}
-		}
-		if raw := strings.TrimSpace(c.Query("access_token")); raw != "" {
-			header = "Bearer " + raw
 		}
 	}
 	if header == "" {
