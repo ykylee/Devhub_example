@@ -75,13 +75,16 @@ func TestCreateIntegrationProvider_WithBaseURL(t *testing.T) {
 // base_url 은 http(s) scheme 만 허용.
 func TestCreateIntegrationProvider_InvalidBaseURL(t *testing.T) {
 	router := newApplicationsRouter(newMemoryApplicationStore())
-	rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
-		`{"provider_key":"bad-url","provider_type":"scm","display_name":"X","auth_mode":"token","credentials_ref":"hmac_sha256:s","base_url":"ftp://nope"}`)
-	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("invalid base_url should be 400, got %d body=%s", rec.Code, rec.Body.String())
-	}
-	if !bytes.Contains(rec.Body.Bytes(), []byte("invalid_base_url")) {
-		t.Errorf("expected invalid_base_url code: %s", rec.Body.String())
+	// codex PR #352 P2 — 비-http(s) + scheme-only(host 누락) 모두 거부.
+	for _, bad := range []string{"ftp://nope", "https://"} {
+		rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
+			`{"provider_key":"bad-url","provider_type":"scm","display_name":"X","auth_mode":"token","credentials_ref":"hmac_sha256:s","base_url":"`+bad+`"}`)
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("base_url %q should be 400, got %d body=%s", bad, rec.Code, rec.Body.String())
+		}
+		if !bytes.Contains(rec.Body.Bytes(), []byte("invalid_base_url")) {
+			t.Errorf("base_url %q: expected invalid_base_url code: %s", bad, rec.Body.String())
+		}
 	}
 }
 
@@ -107,7 +110,8 @@ func TestTestIntegrationConnection_Reachable(t *testing.T) {
 
 func TestTestIntegrationConnection_InvalidURL(t *testing.T) {
 	router := newApplicationsRouter(newMemoryApplicationStore())
-	for _, body := range []string{`{"base_url":""}`, `{"base_url":"ftp://nope"}`} {
+	// codex PR #352 P2 — scheme-only (host 누락) 도 거부.
+	for _, body := range []string{`{"base_url":""}`, `{"base_url":"ftp://nope"}`, `{"base_url":"https://"}`} {
 		rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/test-connection", body)
 		if rec.Code != http.StatusBadRequest {
 			t.Fatalf("body %s: expected 400, got %d body=%s", body, rec.Code, rec.Body.String())

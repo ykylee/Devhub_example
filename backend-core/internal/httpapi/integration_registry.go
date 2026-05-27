@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -221,13 +222,18 @@ type createIntegrationProviderRequest struct {
 }
 
 // validBaseURL — base_url 은 optional (webhook 전용 provider 는 미사용). 제공 시
-// http(s) scheme 만 허용 (등록 UX 고도화 #2).
+// http(s) scheme + non-empty host 를 가진 absolute URL 만 허용 (등록 UX 고도화 #2).
+// codex review PR #352 P2: scheme-only ("https://") 같은 host 누락 값 거부.
 func validBaseURL(raw string) bool {
 	v := strings.TrimSpace(raw)
 	if v == "" {
 		return true
 	}
-	return strings.HasPrefix(v, "http://") || strings.HasPrefix(v, "https://")
+	u, err := url.Parse(v)
+	if err != nil {
+		return false
+	}
+	return (u.Scheme == "http" || u.Scheme == "https") && u.Host != ""
 }
 
 // API-70
