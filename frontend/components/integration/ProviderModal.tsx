@@ -245,6 +245,11 @@ export function ProviderModal({ initial, onClose, onSaved }: ProviderModalProps)
     }
   };
 
+  // 고정메뉴 Phase 2b — known vendor(템플릿) 등록 시 vendor 가 결정하는 generic
+  // select(type/auth/signature)는 숨기고 read-only 요약으로 대체. Custom 또는 edit
+  // 모드에서는 기존 editable select 유지.
+  const isKnownVendor = !isEdit && vendorPresetId !== "custom";
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
@@ -301,7 +306,7 @@ export function ProviderModal({ initial, onClose, onSaved }: ProviderModalProps)
                   ))}
                 </select>
                 <p className="text-[10px] text-muted-foreground mt-1.5">
-                  vendor 선택 시 type / auth / signature / capabilities 가 자동 설정됩니다. Custom 은 수동 입력.
+                  vendor 선택 시 type / auth / signature 가 자동 설정·고정되고 해당 항목은 숨겨집니다. 직접 지정하려면 Custom 선택.
                 </p>
               </div>
 
@@ -323,36 +328,51 @@ export function ProviderModal({ initial, onClose, onSaved }: ProviderModalProps)
             </>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="provider_type" className={labelCls}>Type *</label>
-              <select
-                id="provider_type"
-                value={providerType}
-                onChange={(e) => setProviderType(e.target.value as IntegrationProviderType)}
-                disabled={isEdit}
-                className={`${inputCls} disabled:opacity-60`}
-              >
-                {providerTypeOptions.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
+          {isKnownVendor ? (
+            // known vendor — type/auth 는 템플릿이 고정. read-only 요약만 표시.
+            <div className="rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
+              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">
+                Template Defaults · {getVendorPreset(vendorPresetId).label}
+              </p>
+              <p className="text-xs font-mono text-foreground dark:text-primary-foreground">
+                type=<span className="font-black">{providerType}</span> · auth=<span className="font-black">{authMode}</span>
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                vendor 템플릿이 자동 설정. 직접 지정하려면 Vendor Template 을 Custom 으로 변경.
+              </p>
             </div>
-            <div>
-              <label htmlFor="auth_mode" className={labelCls}>Auth Mode *</label>
-              <select
-                id="auth_mode"
-                value={authMode}
-                onChange={(e) => setAuthMode(e.target.value as IntegrationAuthMode)}
-                disabled={isEdit}
-                className={`${inputCls} disabled:opacity-60`}
-              >
-                {authModeOptions.map((m) => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
+          ) : (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="provider_type" className={labelCls}>Type *</label>
+                <select
+                  id="provider_type"
+                  value={providerType}
+                  onChange={(e) => setProviderType(e.target.value as IntegrationProviderType)}
+                  disabled={isEdit}
+                  className={`${inputCls} disabled:opacity-60`}
+                >
+                  {providerTypeOptions.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="auth_mode" className={labelCls}>Auth Mode *</label>
+                <select
+                  id="auth_mode"
+                  value={authMode}
+                  onChange={(e) => setAuthMode(e.target.value as IntegrationAuthMode)}
+                  disabled={isEdit}
+                  className={`${inputCls} disabled:opacity-60`}
+                >
+                  {authModeOptions.map((m) => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-          </div>
+          )}
 
           <div>
             <label htmlFor="display_name" className={labelCls}>Display Name *</label>
@@ -506,36 +526,44 @@ export function ProviderModal({ initial, onClose, onSaved }: ProviderModalProps)
           {/* 가이드 자격증명 (#1) — strategy + secret 분리 입력 → credentials_ref 자동 조합 */}
           <div className="space-y-3 rounded-2xl border border-border/60 bg-muted/10 p-4">
             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Webhook Credentials</p>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="sig_strategy" className={labelCls}>Signature Strategy *</label>
-                <select
-                  id="sig_strategy"
-                  value={sigStrategy}
-                  onChange={(e) => setSigStrategy(e.target.value as WebhookSignatureStrategy)}
-                  className={inputCls}
-                >
-                  {signatureStrategyOptions.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
-              </div>
-              {sigStrategy === "provider_sdk" && (
+            {isKnownVendor ? (
+              // known vendor — signature strategy/vendor 는 템플릿이 고정. read-only 표시.
+              <p className="text-xs font-mono text-foreground dark:text-primary-foreground">
+                signature=<span className="font-black">{sigStrategy}</span>
+                {sigStrategy === "provider_sdk" ? <> · vendor=<span className="font-black">{sdkVendor}</span></> : null}
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="sdk_vendor" className={labelCls}>SDK Vendor *</label>
+                  <label htmlFor="sig_strategy" className={labelCls}>Signature Strategy *</label>
                   <select
-                    id="sdk_vendor"
-                    value={sdkVendor}
-                    onChange={(e) => setSdkVendor(e.target.value as SdkVendor)}
+                    id="sig_strategy"
+                    value={sigStrategy}
+                    onChange={(e) => setSigStrategy(e.target.value as WebhookSignatureStrategy)}
                     className={inputCls}
                   >
-                    {SDK_VENDORS.map((v) => (
-                      <option key={v} value={v}>{v}</option>
+                    {signatureStrategyOptions.map((o) => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
                     ))}
                   </select>
                 </div>
-              )}
-            </div>
+                {sigStrategy === "provider_sdk" && (
+                  <div>
+                    <label htmlFor="sdk_vendor" className={labelCls}>SDK Vendor *</label>
+                    <select
+                      id="sdk_vendor"
+                      value={sdkVendor}
+                      onChange={(e) => setSdkVendor(e.target.value as SdkVendor)}
+                      className={inputCls}
+                    >
+                      {SDK_VENDORS.map((v) => (
+                        <option key={v} value={v}>{v}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            )}
             <div>
               <label htmlFor="secret" className={labelCls}>
                 Secret {isEdit ? "(blank = keep current)" : "*"}
