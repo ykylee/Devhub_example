@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { X, Box, Info, User, Globe, Eye, Lock, Loader2, Calendar, Building2 } from "lucide-react";
+import { X, Box, Info, Globe, Eye, Lock, Loader2, Calendar } from "lucide-react";
 import { Application, ApplicationStatus, ApplicationVisibility } from "@/lib/services/project.types";
 import { projectService } from "@/lib/services/project.service";
+import { identityService } from "@/lib/services/identity.service";
+import { ComboBox } from "@/components/ui/ComboBox";
 import { cn } from "@/lib/utils";
 
 interface ApplicationCreationModalProps {
@@ -18,7 +20,6 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
     key: initialData?.key || "",
     name: initialData?.name || "",
     description: initialData?.description || "",
-    owner_user_id: initialData?.owner_user_id || "",
     leader_user_id: initialData?.leader_user_id || "",
     development_unit_id: initialData?.development_unit_id || "",
     visibility: initialData?.visibility || "internal" as ApplicationVisibility,
@@ -28,6 +29,8 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [leaderOptions, setLeaderOptions] = useState<Array<{ label: string; value: string; description?: string }>>([]);
+  const [unitOptions, setUnitOptions] = useState<Array<{ label: string; value: string; description?: string }>>([]);
 
   const isEdit = !!initialData?.id;
 
@@ -39,6 +42,38 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const [users, hierarchy] = await Promise.all([identityService.getUsers(), identityService.getOrgHierarchy()]);
+        if (!alive) return;
+        setLeaderOptions(
+          users.map((u) => ({
+            label: u.name || u.id,
+            value: u.id,
+            description: u.email,
+          })),
+        );
+        setUnitOptions(
+          hierarchy.nodes.map((n) => ({
+            label: n.data.label,
+            value: n.id,
+            description: n.data.type,
+          })),
+        );
+      } catch {
+        if (!alive) return;
+        // Fallback: keep manual IDs when lookup API is unavailable.
+        setLeaderOptions([]);
+        setUnitOptions([]);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -46,6 +81,12 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
 
     try {
       let result: Application;
+      if (!formData.leader_user_id.trim()) {
+        throw new Error("Application leader is required.");
+      }
+      if (!formData.development_unit_id.trim()) {
+        throw new Error("Development department is required.");
+      }
       if (isEdit && initialData.id) {
         // PATCH 시 `key` 는 백엔드(updateApplication)에서 immutable 로 reject 되므로
         // payload 에서 제외한다. (codex PR #114 review P1)
@@ -53,12 +94,26 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
         delete patchPayload.key;
         result = await projectService.updateApplication(initialData.id, patchPayload);
       } else {
-        result = await projectService.createApplication(formData);
+        const normalizedKey = formData.key.trim().toUpperCase();
+        result = await projectService.createApplication({
+          ...formData,
+          key: normalizedKey,
+          owner_user_id: formData.leader_user_id,
+        });
       }
       onCreated(result);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save application");
+      if (
+        typeof err === "object" &&
+        err !== null &&
+        "status" in err &&
+        (err as { status?: number }).status === 409
+      ) {
+        setError("Application key already exists.");
+      } else {
+        setError(err instanceof Error ? err.message : "Failed to save application");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -122,9 +177,7 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
                   )}
                 />
               </div>
-              {!isEdit && (
-                <p className="text-[9px] text-muted-foreground px-1 italic">Immutable 10-char alphanumeric ID.</p>
-              )}
+              {!isEdit && <p className="text-[9px] text-muted-foreground px-1 italic">Immutable 1-10 char alphanumeric ID.</p>}
             </div>
             <div className="space-y-2">
               <label htmlFor="appName" className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Display Name</label>
@@ -153,50 +206,50 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label htmlFor="appLeader" className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Application Leader</label>
-              <div className="relative group">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/35 dark:text-primary-foreground/20 group-focus-within:text-purple-400 transition-colors" />
+              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Application Leader</label>
+              {leaderOptions.length > 0 ? (
+                <ComboBox
+                  options={leaderOptions}
+                  value={formData.leader_user_id}
+                  onChange={(value) => setFormData({ ...formData, leader_user_id: value })}
+                  placeholder="Search leader by name/email/user_id"
+                  emptyText="No matching leaders."
+                  className="w-full"
+                />
+              ) : (
                 <input
-                  id="appLeader"
                   required
                   value={formData.leader_user_id}
-                  onChange={e => setFormData({ ...formData, leader_user_id: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, leader_user_id: e.target.value })}
                   placeholder="e.g. charlie"
-                  className="w-full bg-muted/30 border border-border rounded-2xl pl-12 pr-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-purple-400/50"
+                  className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-purple-400/50"
                 />
-              </div>
+              )}
             </div>
             <div className="space-y-2">
-              <label htmlFor="appDept" className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Development Department</label>
-              <div className="relative group">
-                <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/35 dark:text-primary-foreground/20 group-focus-within:text-purple-400 transition-colors" />
+              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Development Department</label>
+              {unitOptions.length > 0 ? (
+                <ComboBox
+                  options={unitOptions}
+                  value={formData.development_unit_id}
+                  onChange={(value) => setFormData({ ...formData, development_unit_id: value })}
+                  placeholder="Search department/unit by name or id"
+                  emptyText="No matching departments."
+                  className="w-full"
+                />
+              ) : (
                 <input
-                  id="appDept"
                   required
                   value={formData.development_unit_id}
-                  onChange={e => setFormData({ ...formData, development_unit_id: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, development_unit_id: e.target.value })}
                   placeholder="e.g. dept-eng"
-                  className="w-full bg-muted/30 border border-border rounded-2xl pl-12 pr-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-purple-400/50"
+                  className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-purple-400/50"
                 />
-              </div>
+              )}
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label htmlFor="appOwner" className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Owner User (Legacy)</label>
-              <div className="relative group">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/35 dark:text-primary-foreground/20 group-focus-within:text-purple-400 transition-colors" />
-                <input
-                  id="appOwner"
-                  required
-                  value={formData.owner_user_id}
-                  onChange={e => setFormData({ ...formData, owner_user_id: e.target.value })}
-                  placeholder="e.g. charlie"
-                  className="w-full bg-muted/30 border border-border rounded-2xl pl-12 pr-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-purple-400/50"
-                />
-              </div>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
             <div className="space-y-2">
               <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Visibility</label>
               <div className="grid grid-cols-3 gap-2">
@@ -230,11 +283,11 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
                 onChange={e => setFormData({ ...formData, status: e.target.value as ApplicationStatus })}
                 className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-purple-400/50 appearance-none"
               >
-                <option value="planning" className="bg-slate-900">Planning</option>
-                <option value="active" className="bg-slate-900">Active</option>
-                <option value="on_hold" className="bg-slate-900">On Hold</option>
-                <option value="closed" className="bg-slate-900">Closed</option>
-                <option value="archived" className="bg-slate-900">Archived</option>
+                <option value="planning">Planning</option>
+                <option value="active">Active</option>
+                <option value="on_hold">On Hold</option>
+                <option value="closed">Closed</option>
+                <option value="archived">Archived</option>
               </select>
             </div>
             <div className="space-y-2">

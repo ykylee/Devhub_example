@@ -778,11 +778,11 @@ func TestCreateApplication_Happy(t *testing.T) {
 	router := newApplicationsRouter(appStore)
 
 	rec := doJSON(t, router, http.MethodPost, "/api/v1/applications",
-		`{"key":"A1B2C3D4E5","name":"Devhub Platform","owner_user_id":"u1","leader_user_id":"u1","development_unit_id":"dept-eng","visibility":"internal","status":"planning"}`)
+		`{"key":"DEVHUB","name":"Devhub Platform","owner_user_id":"u1","leader_user_id":"u1","development_unit_id":"dept-eng","visibility":"internal","status":"planning"}`)
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
 	}
-	if !bytes.Contains(rec.Body.Bytes(), []byte(`"key":"A1B2C3D4E5"`)) {
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"key":"DEVHUB"`)) {
 		t.Errorf("response should echo key: %s", rec.Body.String())
 	}
 }
