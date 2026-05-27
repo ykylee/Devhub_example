@@ -1,6 +1,6 @@
 "use client";
 
-import { Plug, Settings, RefreshCw, Trash2 } from "lucide-react";
+import { Plug, Settings, RefreshCw, Trash2, FolderDown } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/Badge";
@@ -11,8 +11,15 @@ interface ProviderTableProps {
   onEdit: (provider: IntegrationProvider) => void;
   onSync: (provider: IntegrationProvider) => void;
   onDelete: (provider: IntegrationProvider) => void;
+  /** SCM repository import (API-88/89). scm + pull capability provider 에서만 노출. */
+  onImport?: (provider: IntegrationProvider) => void;
   syncingProviderID: string | null;
   deletingProviderID: string | null;
+}
+
+// SCM repository import 가능 여부 — provider_type=scm + pull capability.
+function canImportRepositories(p: IntegrationProvider): boolean {
+  return p.provider_type === "scm" && p.capabilities.includes("pull");
 }
 
 function safeFormat(iso: string | null | undefined): string {
@@ -45,7 +52,7 @@ function syncStatusBadge(s: string): { variant: BadgeVariant; label: string } {
   return { variant: "secondary", label: s || "—" };
 }
 
-export function ProviderTable({ items, onEdit, onSync, onDelete, syncingProviderID, deletingProviderID }: ProviderTableProps) {
+export function ProviderTable({ items, onEdit, onSync, onDelete, onImport, syncingProviderID, deletingProviderID }: ProviderTableProps) {
   if (items.length === 0) {
     return (
       <div className="glass border-border rounded-3xl py-20 flex flex-col items-center justify-center gap-3">
@@ -139,6 +146,17 @@ export function ProviderTable({ items, onEdit, onSync, onDelete, syncingProvider
                           <RefreshCw className={"w-3 h-3 " + (isSyncing ? "animate-spin" : "")} />
                           {isSyncing ? "Syncing" : "Sync"}
                         </button>
+                        {onImport && canImportRepositories(p) && (
+                          <button
+                            type="button"
+                            onClick={() => onImport(p)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-muted/50 hover:bg-muted text-[10px] font-bold uppercase tracking-widest text-foreground dark:text-primary-foreground transition-colors"
+                            aria-label={`Import repositories from ${p.display_name}`}
+                          >
+                            <FolderDown className="w-3 h-3" />
+                            Import
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => onEdit(p)}

@@ -1982,6 +1982,10 @@ intake_token_collision                         # sprint o (ADR-0014): hashed_tok
 | API-78 | `GET /api/v1/infra/topology/v2` | 노드+서비스+의존성 통합 토폴로지 조회 |
 | API-80 | `DELETE /api/v1/integration/providers/{provider_id}` | Provider 삭제 (FK guard, sprint `claude/work_260518-j`) |
 | API-87 | `POST /api/v1/integration/test-connection` | Provider endpoint reachability 테스트 (등록 UX 고도화 #5) |
+| API-88 | `GET /api/v1/integration/providers/{provider_id}/scm-repositories` | SCM provider 원격 repository 목록 조회 (import 대상) |
+| API-89 | `POST /api/v1/integration/providers/{provider_id}/import-repositories` | 선택 repository 를 시스템으로 import/연동 |
+
+> **capability 기능 gate** (sprint `claude/work_260527-scm-repo-sync`): provider `capabilities` 는 표시 라벨이 아니라 기능 gate 다. `pull` = SCM 으로부터 repository 조회/import(API-88/89) 허용, `sync` = mirror sync(API-72) 허용(`pull` 도 허용), `webhook` = inbound webhook 수신, `push` = outbound 생성(Phase C 예정). gate 미충족 시 422 `integration_capability_not_enabled`.
 
 ### 15.2 Provider Catalog
 
@@ -2054,7 +2058,26 @@ intake_token_collision                         # sprint o (ADR-0014): hashed_tok
 
 - **인증**: OIDC + RBAC `infrastructure:edit` (system_admin only).
 - **설명**: provider 단위 수동 reconciliation job enqueue.
+- **capability gate**: provider 가 `pull` 또는 `sync` capability 를 선언해야 한다. 미충족 시 422 `integration_capability_not_enabled`.
 - **응답 — 202**: `{status:"accepted", job_id:"..."}`.
+- **에러**: 422 `integration_sync_unsupported_provider_type` (비-SCM), 422 `integration_capability_not_enabled`.
+
+#### API-88 `GET /api/v1/integration/providers/{provider_id}/scm-repositories`
+
+- **인증**: OIDC + RBAC `infrastructure:view` (system_admin only).
+- **설명**: SCM provider(`provider_type=scm`)의 base_url + outbound 자격증명으로 원격 repository 목록을 조회한다. 각 항목에 시스템 import 여부(`imported`)를 표시 (provider_id 로 연동된 시스템 repository 존재 여부).
+- **capability gate**: `pull` 필요.
+- **응답 — 200**: `{status:"ok", data:[{full_name, name, clone_url, html_url, default_branch, private, imported}], meta:{total}}`.
+- **에러**: 404 `integration_provider_not_found`, 422 `integration_sync_unsupported_provider_type`(비-SCM) / `integration_capability_not_enabled`(pull 없음) / `integration_base_url_missing` / `integration_outbound_credentials_missing`, 502 `integration_scm_unreachable`/`integration_scm_auth_failed`.
+
+#### API-89 `POST /api/v1/integration/providers/{provider_id}/import-repositories`
+
+- **인증**: OIDC + RBAC `infrastructure:edit` (system_admin only).
+- **요청**: `{full_names: ["owner/repo", ...]}` (import 할 원격 repository full_name 목록).
+- **설명**: 선택한 원격 repository 를 시스템 `repositories` 로 import/연동한다. **신뢰 가능한 SCM 데이터를 쓰기 위해 요청 payload 가 아니라 SCM 에서 다시 조회한 값**으로 upsert 한다. import 된 repository 는 `source=scm`, `provider_id` 세팅, SCM mirror 필드(clone_url/default_branch/private 등)는 이후 sync 가 갱신하고 시스템 소유 메타(`description`)는 보존된다 (소유권 분리, migration 000042).
+- **capability gate**: `pull` 필요.
+- **응답 — 200**: `{status:"ok", imported:N, repositories:[{full_name, name}], not_found:["..."]}`. (선택했으나 원격에 없는 full_name 은 `not_found`.)
+- **에러**: 400 `integration_import_no_selection`(빈 목록), 그 외 API-88 과 동일.
 
 #### API-80 `DELETE /api/v1/integration/providers/{provider_id}`
 

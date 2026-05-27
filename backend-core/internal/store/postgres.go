@@ -161,6 +161,9 @@ LIMIT $1 OFFSET $2`
 }
 
 func (s *PostgresStore) UpsertRepository(ctx context.Context, repository domain.Repository) error {
+	// ON CONFLICT 은 SCM mirror 필드만 갱신한다. system-owned(description)은 보존하고,
+	// source/provider_id 는 기존 값 우선(COALESCE) — sync 가 시스템 소유 메타를 덮어쓰지
+	// 않도록 한다 (소유권 분리, migration 000042).
 	const query = `
 INSERT INTO repositories (
 	gitea_repository_id,
@@ -171,8 +174,14 @@ INSERT INTO repositories (
 	html_url,
 	default_branch,
 	private,
+	source,
+	provider_id,
+	description,
 	updated_at
-) VALUES (NULLIF($1, 0), $2, NULLIF($3, ''), $4, NULLIF($5, ''), NULLIF($6, ''), NULLIF($7, ''), $8, NOW())
+) VALUES (
+	NULLIF($1, 0), $2, NULLIF($3, ''), $4, NULLIF($5, ''), NULLIF($6, ''), NULLIF($7, ''), $8,
+	COALESCE(NULLIF($9, ''), 'scm'), NULLIF($10, '')::uuid, NULLIF($11, ''), NOW()
+)
 ON CONFLICT (full_name) DO UPDATE SET
 	gitea_repository_id = COALESCE(EXCLUDED.gitea_repository_id, repositories.gitea_repository_id),
 	owner_login = EXCLUDED.owner_login,
@@ -181,6 +190,8 @@ ON CONFLICT (full_name) DO UPDATE SET
 	html_url = EXCLUDED.html_url,
 	default_branch = EXCLUDED.default_branch,
 	private = EXCLUDED.private,
+	source = COALESCE(repositories.source, EXCLUDED.source),
+	provider_id = COALESCE(repositories.provider_id, EXCLUDED.provider_id),
 	updated_at = NOW()`
 
 	_, err := s.pool.Exec(
@@ -194,6 +205,9 @@ ON CONFLICT (full_name) DO UPDATE SET
 		repository.HTMLURL,
 		repository.DefaultBranch,
 		repository.Private,
+		repository.Source,
+		repository.ProviderID,
+		repository.Description,
 	)
 	return err
 }
@@ -1322,7 +1336,10 @@ SELECT
 	COALESCE(html_url, ''),
 	COALESCE(default_branch, ''),
 	private,
-	updated_at
+	updated_at,
+	COALESCE(source, 'scm'),
+	COALESCE(provider_id::text, ''),
+	COALESCE(description, '')
 FROM repositories
 ORDER BY updated_at DESC, id DESC
 LIMIT $1 OFFSET $2`
@@ -1347,6 +1364,65 @@ LIMIT $1 OFFSET $2`
 			&repository.DefaultBranch,
 			&repository.Private,
 			&repository.UpdatedAt,
+			&repository.Source,
+			&repository.ProviderID,
+			&repository.Description,
+		); err != nil {
+			return nil, err
+		}
+		repositories = append(repositories, repository)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return repositories, nil
+}
+
+// ListRepositoriesByProvider returns repositories linked to a given integration
+// provider (provider_id). Used to mark already-imported SCM repositories.
+func (s *PostgresStore) ListRepositoriesByProvider(ctx context.Context, providerID string) ([]domain.Repository, error) {
+	const query = `
+SELECT
+	id,
+	COALESCE(gitea_repository_id, 0),
+	full_name,
+	COALESCE(owner_login, ''),
+	name,
+	COALESCE(clone_url, ''),
+	COALESCE(html_url, ''),
+	COALESCE(default_branch, ''),
+	private,
+	updated_at,
+	COALESCE(source, 'scm'),
+	COALESCE(provider_id::text, ''),
+	COALESCE(description, '')
+FROM repositories
+WHERE provider_id = $1::uuid
+ORDER BY full_name`
+
+	rows, err := s.pool.Query(ctx, query, providerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	repositories := make([]domain.Repository, 0)
+	for rows.Next() {
+		var repository domain.Repository
+		if err := rows.Scan(
+			&repository.ID,
+			&repository.GiteaID,
+			&repository.FullName,
+			&repository.OwnerLogin,
+			&repository.Name,
+			&repository.CloneURL,
+			&repository.HTMLURL,
+			&repository.DefaultBranch,
+			&repository.Private,
+			&repository.UpdatedAt,
+			&repository.Source,
+			&repository.ProviderID,
+			&repository.Description,
 		); err != nil {
 			return nil, err
 		}

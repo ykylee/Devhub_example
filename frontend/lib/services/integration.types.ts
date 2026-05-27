@@ -70,6 +70,25 @@ export interface ListIntegrationProvidersOptions {
   limit?: number;
 }
 
+// SCM repository import (API-88/89, sprint scm-repo-sync).
+// SCM 으로부터 조회한 원격 repository 1건. imported 는 시스템에 이미 연동(import)됐는지.
+export interface ScmRepository {
+  full_name: string;
+  name: string;
+  clone_url: string;
+  html_url: string;
+  default_branch: string;
+  private: boolean;
+  imported: boolean;
+}
+
+export interface ImportScmRepositoriesResult {
+  status: string;
+  imported: number;
+  repositories: { full_name: string; name: string }[];
+  not_found: string[];
+}
+
 // 등록 UX 고도화 #5 — test-connection 응답.
 export interface TestConnectionResult {
   status: string;

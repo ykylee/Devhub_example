@@ -32,6 +32,7 @@ type memoryApplicationStore struct {
 	criticalCounts       map[string]int // override for CountApplicationCriticalWarnings tests
 	infraSnapshot        memoryInfraSnapshot
 	repositoryIDs        map[string]int64
+	repositories         map[string]domain.Repository // full_name → repo (UpsertRepository/ListByProvider)
 	nextRepositoryID     int64
 }
 
@@ -60,6 +61,7 @@ func newMemoryApplicationStore() *memoryApplicationStore {
 		integrationBindings:  make(map[string]domain.IntegrationBinding),
 		criticalCounts:       make(map[string]int),
 		repositoryIDs:        make(map[string]int64),
+		repositories:         make(map[string]domain.Repository),
 		nextRepositoryID:     1000,
 	}
 }
@@ -633,6 +635,57 @@ func (s *memoryApplicationStore) UpdateIntegrationProvider(_ context.Context, p 
 	current.UpdatedAt = time.Now().UTC()
 	s.integrationProviders[p.ID] = current
 	return current, nil
+}
+
+func (s *memoryApplicationStore) UpsertRepository(_ context.Context, repo domain.Repository) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.repositories == nil {
+		s.repositories = make(map[string]domain.Repository)
+	}
+	if existing, ok := s.repositories[repo.FullName]; ok {
+		// SCM mirror 필드만 갱신, system-owned(description) 보존 + source/provider_id
+		// 기존 값 우선 (production PostgresStore.UpsertRepository ON CONFLICT 미러).
+		existing.GiteaID = repo.GiteaID
+		existing.OwnerLogin = repo.OwnerLogin
+		existing.Name = repo.Name
+		existing.CloneURL = repo.CloneURL
+		existing.HTMLURL = repo.HTMLURL
+		existing.DefaultBranch = repo.DefaultBranch
+		existing.Private = repo.Private
+		if existing.Source == "" {
+			existing.Source = repo.Source
+		}
+		if existing.ProviderID == "" {
+			existing.ProviderID = repo.ProviderID
+		}
+		existing.UpdatedAt = time.Now().UTC()
+		s.repositories[repo.FullName] = existing
+		return nil
+	}
+	if repo.ID == 0 {
+		s.nextRepositoryID++
+		repo.ID = s.nextRepositoryID
+	}
+	if repo.Source == "" {
+		repo.Source = domain.RepositorySourceSCM
+	}
+	repo.UpdatedAt = time.Now().UTC()
+	s.repositories[repo.FullName] = repo
+	s.repositoryIDs[repo.FullName] = repo.ID
+	return nil
+}
+
+func (s *memoryApplicationStore) ListRepositoriesByProvider(_ context.Context, providerID string) ([]domain.Repository, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]domain.Repository, 0)
+	for _, r := range s.repositories {
+		if r.ProviderID == providerID {
+			out = append(out, r)
+		}
+	}
+	return out, nil
 }
 
 func (s *memoryApplicationStore) DeleteIntegrationProvider(_ context.Context, providerID string) error {

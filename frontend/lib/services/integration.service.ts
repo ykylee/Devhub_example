@@ -2,10 +2,12 @@ import { apiClient } from "./api-client";
 import type {
   CreateIntegrationBindingInput,
   CreateIntegrationProviderInput,
+  ImportScmRepositoriesResult,
   IntegrationBinding,
   IntegrationProvider,
   ListIntegrationBindingsOptions,
   ListIntegrationProvidersOptions,
+  ScmRepository,
   TestConnectionResult,
   UpdateIntegrationProviderInput,
 } from "./integration.types";
@@ -51,6 +53,26 @@ class IntegrationService {
    *  5s timeout. reachable=false 여도 200 (테스트는 수행됨 — error 필드 참조). */
   async testConnection(baseUrl: string): Promise<TestConnectionResult> {
     return await apiClient<TestConnectionResult>("POST", "/api/v1/integration/test-connection", { base_url: baseUrl });
+  }
+
+  /** API-88 — provider(SCM)으로부터 원격 repository 목록 조회. provider_type=scm +
+   *  pull capability 필요. 각 항목의 imported 로 시스템 연동 여부 표시. */
+  async listScmRepositories(providerID: string): Promise<ScmRepository[]> {
+    const resp = await apiClient<{ data: ScmRepository[] }>(
+      "GET",
+      `/api/v1/integration/providers/${providerID}/scm-repositories`,
+    );
+    return resp.data;
+  }
+
+  /** API-89 — 선택한 원격 repository 들을 시스템 repositories 로 import/연동
+   *  (source=scm, provider_id 세팅). SCM mirror 필드는 SCM 에서 재조회한 값으로 채움. */
+  async importScmRepositories(providerID: string, fullNames: string[]): Promise<ImportScmRepositoriesResult> {
+    return await apiClient<ImportScmRepositoriesResult>(
+      "POST",
+      `/api/v1/integration/providers/${providerID}/import-repositories`,
+      { full_names: fullNames },
+    );
   }
 
   /** API-80 — Provider 삭제 (sprint claude/work_260518-j). FK guard:

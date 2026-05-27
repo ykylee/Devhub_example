@@ -82,6 +82,10 @@ type ApplicationStore interface {
 	DeleteProjectRepository(context.Context, string, int64) error
 	CreateProjectWithRepositoryPayload(context.Context, domain.Project, []int64, *store.RepositoryCreatePayload) (domain.Project, error)
 
+	// SCM repository import (API-88/89, sprint claude/work_260527-scm-repo-sync)
+	UpsertRepository(context.Context, domain.Repository) error
+	ListRepositoriesByProvider(context.Context, string) ([]domain.Repository, error)
+
 	// Repository 운영 지표 (API-51..54, sprint claude/work_260514-c)
 	ListRepositoryActivity(context.Context, int64, store.RepositoryActivityOptions) (domain.RepositoryActivity, error)
 	ListRepositoryPullRequests(context.Context, int64, store.PRActivityListOptions) ([]domain.PRActivity, int, error)
@@ -310,6 +314,8 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.PATCH("/integration/providers/:provider_id", handler.updateIntegrationProvider)
 	v1.DELETE("/integration/providers/:provider_id", handler.deleteIntegrationProvider)
 	v1.POST("/integration/providers/:provider_id/sync", handler.syncIntegrationProvider)
+	v1.GET("/integration/providers/:provider_id/scm-repositories", handler.listSCMRepositories)
+	v1.POST("/integration/providers/:provider_id/import-repositories", handler.importSCMRepositories)
 	v1.POST("/integration/providers/:provider_id/webhook", handler.ingestIntegrationProviderWebhook)
 	v1.POST("/integration/test-connection", handler.testIntegrationConnection)
 	v1.GET("/integration/bindings", handler.listIntegrationBindings)
