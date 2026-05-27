@@ -49,14 +49,14 @@ export default function AdminCatalogPage() {
     setLoading(true);
     setError(null);
     try {
-      const apps = await applicationService.listApplications();
+      const apps = await applicationService.listApplications({ include_archived: true });
       const repos = await repositoryService.listRepositories();
 
       const appScopedProjects = await Promise.all(
-        apps.map((app) => projectService.getApplicationProjectsV2(app.id).catch(() => [])),
+        apps.map((app) => projectService.getApplicationProjectsV2(app.id, { include_archived: true }).catch(() => [])),
       );
       const repoScopedProjects = await Promise.all(
-        repos.map((repo) => projectService.getRepositoryProjects(repo.id).catch(() => [])),
+        repos.map((repo) => projectService.getRepositoryProjects(repo.id, { include_archived: true }).catch(() => [])),
       );
       const allProjects = [...appScopedProjects.flat(), ...repoScopedProjects.flat()];
       const dedupProjects = Array.from(new Map(allProjects.map((p) => [p.id, p])).values());
