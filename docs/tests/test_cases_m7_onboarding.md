@@ -22,7 +22,7 @@
 
 1. **단위 테스트 (UT)** — store / handler / middleware 단위. Carve A 가 `backend-core/internal/httpapi/onboarding_test.go` (13 UT) + Carve D 가 `onboarding_carve_d_test.go` (8 UT) 로 cover. memoryOrganizationStore 가 production *store.PostgresStore 의 FK constraint mirror.
 2. **통합 테스트 (IT)** — DB + handler 조합. INSERT / UPDATE branch 의 단일 트랜잭션 정합 + bi-implication CHECK constraint (migration 000033) — `internal/store/users_units_test.go` 가 source-of-truth.
-3. **E2E 테스트 (TC-ONBOARD-*)** — 본 카탈로그. UI flow + Keycloak 토큰 round-trip + 3-branch gating 운영 시나리오. **본 카탈로그의 TC 는 `frontend/tests/e2e/onboarding.spec.ts` (후속 carve)** 가 source-of-truth.
+3. **E2E 테스트 (TC-ONBOARD-*)** — 본 카탈로그. UI flow + Keycloak 토큰 round-trip + 3-branch gating 운영 시나리오. **본 카탈로그의 TC 는 `frontend/tests/e2e/onboarding-first-login.spec.ts` (후속 carve)** 가 source-of-truth.
 
 ## 3. 우선 테스트 케이스 (P0 / P1)
 
@@ -30,25 +30,25 @@
 
 | TC ID | 우선순위 | 계층 | 시나리오 | 기대 결과 | spec ts 위치 |
 | --- | --- | --- | --- | --- | --- |
-| `TC-ONBOARD-SUBMIT-01` | P0 | E2E | 신규 token-only actor 로그인 → `/devhub/onboarding` 자동 redirect → display_name 입력 + 조직 검색 (typeahead) → 선택 → 제출 | 201 + users row INSERT + onboarding_completed_at=NOW() + review_status=`pending_review` + audit `account.onboarding_completed` | `onboarding.spec.ts` step 1 |
-| `TC-ONBOARD-REVIEW-01` | P0 | E2E | system_admin 이 `/admin/settings/users` 진입 → "검토 대기" panel 에 신규 사용자 노출 → `확정` 버튼 클릭 → ConfirmReviewModal → 확정 | 200 + review_status=`reviewed` + reviewed_at=NOW() + audit `account.review_confirmed` | `onboarding.spec.ts` step 2 |
-| `TC-ONBOARD-SUBMITTED-ACCESS-01` | P0 | E2E | 제출 직후 (review 대기 중) 일반 페이지 (dashboard) 진입 | 정상 진입 (`onboarding_required: false`) + 일부 제한 안내 없음 | `onboarding.spec.ts` step 3 |
-| `TC-ONBOARD-PATCH-UNIT-01` | P0 | E2E | reviewed 사용자가 `/account` 진입 → 조직 변경 → 저장 | 200 + review_status 자동 `pending_review` 재진입 + 사용자에게 "재검토 필요" 안내 | `onboarding.spec.ts` step 4 |
+| `TC-ONBOARD-SUBMIT-01` | P0 | E2E | 신규 token-only actor 로그인 → `/devhub/onboarding` 자동 redirect → display_name 입력 + 조직 검색 (typeahead) → 선택 → 제출 | 201 + users row INSERT + onboarding_completed_at=NOW() + review_status=`pending_review` + audit `account.onboarding_completed` | `onboarding-first-login.spec.ts` step 1 |
+| `TC-ONBOARD-REVIEW-01` | P0 | E2E | system_admin 이 `/admin/settings/users` 진입 → "검토 대기" panel 에 신규 사용자 노출 → `확정` 버튼 클릭 → ConfirmReviewModal → 확정 | 200 + review_status=`reviewed` + reviewed_at=NOW() + audit `account.review_confirmed` | `onboarding-first-login.spec.ts` step 2 |
+| `TC-ONBOARD-SUBMITTED-ACCESS-01` | P0 | E2E | 제출 직후 (review 대기 중) 일반 페이지 (dashboard) 진입 | 정상 진입 (`onboarding_required: false`) + 일부 제한 안내 없음 | `onboarding-first-login.spec.ts` step 3 |
+| `TC-ONBOARD-PATCH-UNIT-01` | P0 | E2E | reviewed 사용자가 `/account` 진입 → 조직 변경 → 저장 | 200 + review_status 자동 `pending_review` 재진입 + 사용자에게 "재검토 필요" 안내 | `onboarding-first-login.spec.ts` step 4 |
 
 ### 3.2 Skip-and-resume (§5.9)
 
 | TC ID | 우선순위 | 계층 | 시나리오 | 기대 결과 | spec ts 위치 |
 | --- | --- | --- | --- | --- | --- |
-| `TC-ONBOARD-SKIP-01` | P0 | E2E | onboarding 화면에서 `나중에 하기` 클릭 | sessionStorage `devhub.onboarding.skipped=1` set + default landing redirect + 모든 페이지 상단에 dismissible banner 노출 | `onboarding.spec.ts` step 5 |
-| `TC-ONBOARD-SKIP-PROTECTED-01` | P0 | E2E | skip 단계 사용자가 `/account` 진입 시도 | `/onboarding` hard redirect (REQ-FR-ONBOARD-010 분기 3) | `onboarding.spec.ts` step 6 |
-| `TC-ONBOARD-SKIP-RESUME-01` | P1 | E2E | skip 후 banner 의 `지금 등록` 버튼 클릭 → onboarding 화면 → 제출 | 정상 제출 + banner 사라짐 | `onboarding.spec.ts` step 7 |
+| `TC-ONBOARD-SKIP-01` | P0 | E2E | onboarding 화면에서 `나중에 하기` 클릭 | sessionStorage `devhub.onboarding.skipped=1` set + default landing redirect + 모든 페이지 상단에 dismissible banner 노출 | `onboarding-first-login.spec.ts` step 5 |
+| `TC-ONBOARD-SKIP-PROTECTED-01` | P0 | E2E | skip 단계 사용자가 `/account` 진입 시도 | `/onboarding` hard redirect (REQ-FR-ONBOARD-010 분기 3) | `onboarding-first-login.spec.ts` step 6 |
+| `TC-ONBOARD-SKIP-RESUME-01` | P1 | E2E | skip 후 banner 의 `지금 등록` 버튼 클릭 → onboarding 화면 → 제출 | 정상 제출 + banner 사라짐 | `onboarding-first-login.spec.ts` step 7 |
 | `TC-ONBOARD-SKIP-AUDIT-01` | P1 | UT | skip 자체는 audit event 미발생 (REQ-FR-ONBOARD-011) | audit_logs query 결과 0 row | UT 단위 (E2E 검증 불필요) |
 
 ### 3.3 Admin pre-seed (API-33 확장)
 
 | TC ID | 우선순위 | 계층 | 시나리오 | 기대 결과 | spec ts 위치 |
 | --- | --- | --- | --- | --- | --- |
-| `TC-ONBOARD-PRESEED-01` | P0 | E2E | admin 이 `POST /api/v1/users` 로 사전등록 (primary_unit_id 입력) → 사용자가 첫 로그인 | onboarding 화면에 display_name + primary_unit_id 채워진 상태 노출 (`fromAdmin=true` banner) | `onboarding.spec.ts` step 8 |
+| `TC-ONBOARD-PRESEED-01` | P0 | E2E | admin 이 `POST /api/v1/users` 로 사전등록 (primary_unit_id 입력) → 사용자가 첫 로그인 | onboarding 화면에 display_name + primary_unit_id 채워진 상태 노출 (`fromAdmin=true` banner) | `onboarding-first-login.spec.ts` step 8 |
 | `TC-ONBOARD-PRESEED-SUBMIT-01` | P0 | E2E | 사전등록된 사용자가 onboarding 제출 | row UPDATE (INSERT 아님) + onboarding_completed_at NOW + review_status=`pending_review` | `onboarding_carve_d_test.go::TestSubmitOnboarding_PreSeededUpdate` (UT cover) |
 
 ### 3.4 Negative path (제출)
@@ -85,9 +85,9 @@
 
 | TC ID | 우선순위 | 계층 | 시나리오 | 기대 결과 | spec ts 위치 |
 | --- | --- | --- | --- | --- | --- |
-| `TC-ONBOARD-FE-GATE-01` | P0 | E2E | 첫 진입 (sessionStorage skip flag 없음) + 미완료 사용자 | `/devhub/onboarding` 으로 즉시 redirect | `onboarding.spec.ts` step 9 |
-| `TC-ONBOARD-FE-GATE-02` | P0 | E2E | skip 액션 후 일반 dashboard 페이지 진입 | 정상 진입 + 상단 dismissible banner | `onboarding.spec.ts` step 10 |
-| `TC-ONBOARD-FE-GATE-03` | P0 | E2E | skip 단계 사용자가 backend 의 보호 endpoint 호출 시도 (예: `/api/v1/dev-requests`) | 403 응답 + frontend 가 `/devhub/onboarding` 으로 hard redirect | `onboarding.spec.ts` step 11 |
+| `TC-ONBOARD-FE-GATE-01` | P0 | E2E | 첫 진입 (sessionStorage skip flag 없음) + 미완료 사용자 | `/devhub/onboarding` 으로 즉시 redirect | `onboarding-first-login.spec.ts` step 9 |
+| `TC-ONBOARD-FE-GATE-02` | P0 | E2E | skip 액션 후 일반 dashboard 페이지 진입 | 정상 진입 + 상단 dismissible banner | `onboarding-first-login.spec.ts` step 10 |
+| `TC-ONBOARD-FE-GATE-03` | P0 | E2E | skip 단계 사용자가 backend 의 보호 endpoint 호출 시도 (예: `/api/v1/dev-requests`) | 403 응답 + frontend 가 `/devhub/onboarding` 으로 hard redirect | `onboarding-first-login.spec.ts` step 11 |
 
 ## 4. 우선순위 등급 정의
 
@@ -108,4 +108,4 @@
 
 ## 6. 변경 이력
 
-- **2026-05-21** (sprint `claude/issue-275-onboarding-tests`): 본 카탈로그 신규. Carve A 의 13 UT + Carve D 의 8 UT 추가로 backend UT 21건 cover (3.1 Happy path, 3.3 admin pre-seed, 3.4~3.6 negative + gate). frontend e2e (3.1 Happy + 3.2 Skip + 3.7 FE gate) 는 후속 carve 의 `frontend/tests/e2e/onboarding.spec.ts` 가 source-of-truth.
+- **2026-05-21** (sprint `claude/issue-275-onboarding-tests`): 본 카탈로그 신규. Carve A 의 13 UT + Carve D 의 8 UT 추가로 backend UT 21건 cover (3.1 Happy path, 3.3 admin pre-seed, 3.4~3.6 negative + gate). frontend e2e (3.1 Happy + 3.2 Skip + 3.7 FE gate) 는 후속 carve 의 `frontend/tests/e2e/onboarding-first-login.spec.ts` 가 source-of-truth.

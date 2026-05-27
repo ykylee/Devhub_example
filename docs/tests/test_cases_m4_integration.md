@@ -3,7 +3,7 @@
 - 문서 목적: 외부 시스템 연동(Integration) 도메인의 테스트 범위와 우선순위 TC를 정의해 구현 단계의 품질 기준선을 제공한다.
 - 범위: Provider/Biding/Ingest/HomeLab API 및 동기화 파이프라인의 단위/통합/E2E 테스트 초안.
 - 대상 독자: Backend/Frontend 개발자, QA, 운영 담당자, AI 에이전트.
-- 상태: draft
+- 상태: accepted
 - 최종 수정일: 2026-05-16
 - 관련 문서: [requirements.md](../requirements.md), [planning/system_usecases.md](../planning/system_usecases.md), [architecture.md](../architecture.md), [backend_api_contract.md](../backend_api_contract.md), [e2e_testing_strategy.md](./e2e_testing_strategy.md)
 

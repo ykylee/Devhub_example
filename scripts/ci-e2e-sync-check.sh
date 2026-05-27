@@ -16,7 +16,6 @@ required_workflow_tokens=(
   "DEVHUB_KEYCLOAK_ADMIN_CLIENT_ID"
   "DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET"
   "NEXT_PUBLIC_OIDC_ISSUER_URL"
-  "DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET is required for e2e global setup"
 )
 
 required_e2e_tokens=(

@@ -19,7 +19,7 @@ async function stubMetrics500(page: import("@playwright/test").Page, roleQuery: 
   return { getCount: () => metricsRequestCount };
 }
 
-test.describe.skip("Dashboard retry/empty-state", () => {
+test.describe("Dashboard retry/empty-state", () => {
   test("developer dashboard shows retry on metrics failure", async ({ page }) => {
     await loginAs(page, SEEDED.developer);
     const metrics = await stubMetrics500(page, "developer");
@@ -46,16 +46,4 @@ test.describe.skip("Dashboard retry/empty-state", () => {
     expect(metrics.getCount()).toBeGreaterThanOrEqual(2);
   });
 
-  test("admin dashboard shows retry on metrics failure", async ({ page }) => {
-    await loginAs(page, SEEDED.systemAdmin);
-    const metrics = await stubMetrics500(page, "system_admin");
-
-    await page.goto(appPath("/admin"));
-    await expect(page.getByText(METRICS_ERROR_TEXT, { exact: true })).toBeVisible({ timeout: 15_000 });
-    const retry = page.getByRole("button", { name: /retry/i }).first();
-    await expect(retry).toBeVisible();
-    await retry.click();
-    await expect(page.getByText(METRICS_ERROR_TEXT, { exact: true })).toBeVisible();
-    expect(metrics.getCount()).toBeGreaterThanOrEqual(2);
-  });
 });

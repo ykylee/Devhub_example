@@ -168,7 +168,7 @@ jobs:
       - name: Apply migrations
         # PR #110 codex P1 — /usr/local/bin 는 GitHub-hosted Linux runner 에서 보통
         # 일반 user 가 쓰기 가능한 환경이지만, sudo + 명시적 GOBIN env 로 권한
-        # 의존을 제거. ci-setup.sh 의 동일 패턴 (line 79) 과 정합.
+        # 의존을 제거. backend-integration job 의 동일 패턴과 정합.
         run: |
           set -euo pipefail
           sudo GOBIN=/usr/local/bin go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.19.1
@@ -255,7 +255,7 @@ jobs:
         # the CI postgres matches prod (PG 15) and the no-docker policy holds
         # at the CI layer. trust auth on localhost is CI-only (loopback never
         # leaves the runner). `runner` matches the user the rest of the job
-        # uses in DB_URL strings (set in ci-setup.sh + Start Backend env).
+        # uses in DB_URL strings (set in Start Backend env).
         run: |
           set -euo pipefail
           # ubuntu-24.04 runners ship with a preinstalled PostgreSQL 14

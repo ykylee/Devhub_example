@@ -1,0 +1,32 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "deepseek/e2e_ci_cleanup",
+  "status": "in_progress",
+  "updated_at": "2026-05-26T18:00:00Z",
+  "focus": "E2E 테스트 + CI 구성 정리 (skip 테스트 해소, 문서 정합, 버그픽스)",
+  "current_scope": [
+    "ci-e2e-sync-check.sh 중복 문장형 항목 제거",
+    "infra-topology.spec.ts 삭제 (/admin 아카이브로 무효)",
+    "dashboard-retry-empty-state.spec.ts describe.skip 해제 + admin test 제거",
+    "test_cases_m7_onboarding.md spec 파일명 onboarding.spec.ts → onboarding-first-login.spec.ts (12개 참조)",
+    "global-setup.ts / onboarding-first-login.spec.ts 기본 client ID devhub-backend로 통일",
+    "ci.yml stale ci-setup.sh 참조 정정 (2건)",
+    "test_cases_m4_integration.md 상태 draft→accepted",
+    "e2e_testing_strategy.md ci-setup.sh→ci.yml inline step 참조 정정"
+  ],
+  "validation": {
+    "git_diff_stat": "10 files changed, 20 insertions(+), 55 deletions(-)"
+  },
+  "changed_files": [
+    "scripts/ci-e2e-sync-check.sh",
+    "frontend/tests/e2e/infra-topology.spec.ts",
+    "frontend/tests/e2e/dashboard-retry-empty-state.spec.ts",
+    "frontend/tests/e2e/global-setup.ts",
+    "frontend/tests/e2e/onboarding-first-login.spec.ts",
+    ".github/workflows/ci.yml",
+    "docs/tests/test_cases_m4_integration.md",
+    "docs/tests/test_cases_m7_onboarding.md",
+    "docs/tests/e2e_testing_strategy.md"
+  ]
+}
