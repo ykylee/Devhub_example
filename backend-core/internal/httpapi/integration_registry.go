@@ -37,6 +37,7 @@ func integrationProviderResponse(p domain.IntegrationProvider) gin.H {
 		"sync_status":     p.SyncStatus,
 		"last_sync_at":    nullableRFC3339(p.LastSyncAt),
 		"last_error_code": emptyAsNil(p.LastErrorCode),
+		"base_url":        emptyAsNil(p.BaseURL),
 		"created_at":      p.CreatedAt.UTC().Format(time.RFC3339),
 		"updated_at":      p.UpdatedAt.UTC().Format(time.RFC3339),
 	}
@@ -216,6 +217,17 @@ type createIntegrationProviderRequest struct {
 	AuthMode       string   `json:"auth_mode"`
 	CredentialsRef string   `json:"credentials_ref"`
 	Capabilities   []string `json:"capabilities"`
+	BaseURL        string   `json:"base_url"`
+}
+
+// validBaseURL — base_url 은 optional (webhook 전용 provider 는 미사용). 제공 시
+// http(s) scheme 만 허용 (등록 UX 고도화 #2).
+func validBaseURL(raw string) bool {
+	v := strings.TrimSpace(raw)
+	if v == "" {
+		return true
+	}
+	return strings.HasPrefix(v, "http://") || strings.HasPrefix(v, "https://")
 }
 
 // API-70
@@ -249,6 +261,10 @@ func (h *Handler) createIntegrationProvider(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "credentials_ref is required"})
 		return
 	}
+	if !validBaseURL(req.BaseURL) {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "base_url must be an http(s) URL", "code": "invalid_base_url"})
+		return
+	}
 	created, err := storeI.CreateIntegrationProvider(c.Request.Context(), domain.IntegrationProvider{
 		ProviderKey:    req.ProviderKey,
 		ProviderType:   domain.IntegrationProviderType(req.ProviderType),
@@ -258,6 +274,7 @@ func (h *Handler) createIntegrationProvider(c *gin.Context) {
 		CredentialsRef: req.CredentialsRef,
 		Capabilities:   req.Capabilities,
 		SyncStatus:     "requested",
+		BaseURL:        strings.TrimSpace(req.BaseURL),
 	})
 	if errors.Is(err, store.ErrConflict) {
 		c.JSON(http.StatusConflict, gin.H{"status": "conflict", "error": "provider already exists", "code": "integration_provider_conflict"})
@@ -279,6 +296,7 @@ type updateIntegrationProviderRequest struct {
 	DisplayName    *string  `json:"display_name"`
 	CredentialsRef *string  `json:"credentials_ref"`
 	Capabilities   []string `json:"capabilities"`
+	BaseURL        *string  `json:"base_url"`
 }
 
 // API-71
@@ -322,6 +340,13 @@ func (h *Handler) updateIntegrationProvider(c *gin.Context) {
 	}
 	if req.Capabilities != nil {
 		updated.Capabilities = req.Capabilities
+	}
+	if req.BaseURL != nil {
+		if !validBaseURL(*req.BaseURL) {
+			c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "base_url must be an http(s) URL", "code": "invalid_base_url"})
+			return
+		}
+		updated.BaseURL = strings.TrimSpace(*req.BaseURL)
 	}
 	result, err := storeI.UpdateIntegrationProvider(c.Request.Context(), updated)
 	if errors.Is(err, store.ErrNotFound) {

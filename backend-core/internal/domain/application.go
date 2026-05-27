@@ -237,6 +237,7 @@ type IntegrationProvider struct {
 	SyncStatus     string
 	LastSyncAt     *time.Time
 	LastErrorCode  string
+	BaseURL        string
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 }

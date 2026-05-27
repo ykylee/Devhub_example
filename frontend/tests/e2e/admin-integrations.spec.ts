@@ -49,6 +49,7 @@ test.describe("External Integration admin UI", () => {
       await modal.getByLabel(/^type/i).selectOption("scm");
       await modal.getByLabel(/auth mode/i).selectOption("token");
       await modal.getByLabel(/display name/i).fill(displayName);
+      await modal.getByLabel(/base url/i).fill("https://gitea.example.com");
       // 가이드 자격증명 (ADR 외부 연동 등록 UX 고도화) — strategy + secret 분리 입력 →
       // credentials_ref = hmac_sha256:e2e-test-secret 로 자동 조합.
       await modal.getByLabel(/signature strategy/i).selectOption("hmac_sha256");

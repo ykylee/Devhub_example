@@ -22,6 +22,7 @@ export interface IntegrationProvider {
   sync_status: string;
   last_sync_at: string | null;
   last_error_code: string | null;
+  base_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -33,6 +34,7 @@ export interface CreateIntegrationProviderInput {
   auth_mode: IntegrationAuthMode;
   credentials_ref: string;
   capabilities?: string[];
+  base_url?: string;
 }
 
 export interface UpdateIntegrationProviderInput {
@@ -40,6 +42,7 @@ export interface UpdateIntegrationProviderInput {
   display_name?: string;
   credentials_ref?: string;
   capabilities?: string[];
+  base_url?: string;
 }
 
 export interface ListIntegrationProvidersOptions {

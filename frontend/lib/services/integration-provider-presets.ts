@@ -33,6 +33,7 @@ export interface VendorPreset {
   sdkVendor?: SdkVendor;
   capabilities: string[];
   providerKeyHint: string;
+  baseUrlHint?: string;
 }
 
 export const VENDOR_PRESETS: VendorPreset[] = [
@@ -54,6 +55,7 @@ export const VENDOR_PRESETS: VendorPreset[] = [
     sdkVendor: "gitea",
     capabilities: ["webhook", "pull"],
     providerKeyHint: "gitea_main",
+    baseUrlHint: "https://gitea.example.com",
   },
   {
     id: "github",
@@ -64,6 +66,7 @@ export const VENDOR_PRESETS: VendorPreset[] = [
     sdkVendor: "github",
     capabilities: ["webhook", "pull"],
     providerKeyHint: "github_org",
+    baseUrlHint: "https://api.github.com",
   },
   {
     id: "gitlab",
@@ -94,6 +97,7 @@ export const VENDOR_PRESETS: VendorPreset[] = [
     sdkVendor: "jira",
     capabilities: ["webhook"],
     providerKeyHint: "jira_cloud",
+    baseUrlHint: "https://your-org.atlassian.net",
   },
   {
     id: "jenkins",
@@ -104,6 +108,7 @@ export const VENDOR_PRESETS: VendorPreset[] = [
     sdkVendor: "jenkins",
     capabilities: ["webhook"],
     providerKeyHint: "jenkins_prod",
+    baseUrlHint: "https://jenkins.example.com",
   },
   {
     id: "bamboo",

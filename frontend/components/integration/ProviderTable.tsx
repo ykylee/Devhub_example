@@ -101,6 +101,11 @@ export function ProviderTable({ items, onEdit, onSync, onDelete, syncingProvider
                           <p className="text-[10px] text-muted-foreground mt-1 truncate max-w-[280px] opacity-60">
                             {p.provider_key}
                           </p>
+                          {p.base_url && (
+                            <p className="text-[10px] text-accent/70 mt-0.5 truncate max-w-[280px] font-mono">
+                              {p.base_url}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </td>

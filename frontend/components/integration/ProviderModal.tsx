@@ -47,6 +47,7 @@ export function ProviderModal({ initial, onClose, onSaved }: ProviderModalProps)
   const [providerType, setProviderType] = useState<IntegrationProviderType>(initial?.provider_type ?? "scm");
   const [displayName, setDisplayName] = useState(initial?.display_name ?? "");
   const [authMode, setAuthMode] = useState<IntegrationAuthMode>(initial?.auth_mode ?? "token");
+  const [baseUrl, setBaseUrl] = useState(initial?.base_url ?? "");
   const [enabled, setEnabled] = useState(initial?.enabled ?? true);
 
   // 가이드 자격증명 입력 (#1) — strategy + vendor + secret 를 분리 입력받아 조합.
@@ -101,6 +102,7 @@ export function ProviderModal({ initial, onClose, onSaved }: ProviderModalProps)
           display_name: displayName.trim() || undefined,
           credentials_ref: nextCredentials,
           capabilities,
+          base_url: baseUrl.trim(),
         });
       } else {
         if (!providerKey.trim()) {
@@ -122,6 +124,7 @@ export function ProviderModal({ initial, onClose, onSaved }: ProviderModalProps)
           auth_mode: authMode,
           credentials_ref: composeCredentialsRef(sigStrategy, sdkVendor, secret),
           capabilities,
+          base_url: baseUrl.trim() || undefined,
         });
       }
       onSaved(saved);
@@ -257,6 +260,22 @@ export function ProviderModal({ initial, onClose, onSaved }: ProviderModalProps)
               placeholder="Gitea Main / Jenkins Production"
               className={inputCls}
             />
+          </div>
+
+          {/* endpoint/base URL (#2) — outbound sync 대상 외부 시스템 주소 (optional) */}
+          <div>
+            <label htmlFor="base_url" className={labelCls}>Base URL</label>
+            <input
+              id="base_url"
+              type="url"
+              value={baseUrl}
+              onChange={(e) => setBaseUrl(e.target.value)}
+              placeholder={getVendorPreset(vendorPresetId).baseUrlHint ?? "https://external-system.example.com"}
+              className={`${inputCls} font-mono`}
+            />
+            <p className="text-[10px] text-muted-foreground mt-1.5">
+              외부 시스템 endpoint (sync 대상). webhook 전용이면 비워둘 수 있습니다.
+            </p>
           </div>
 
           {/* 가이드 자격증명 (#1) — strategy + secret 분리 입력 → credentials_ref 자동 조합 */}

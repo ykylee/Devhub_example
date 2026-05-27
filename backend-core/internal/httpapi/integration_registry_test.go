@@ -59,6 +59,32 @@ func TestListIntegrationProviders_FilterEnabled(t *testing.T) {
 	}
 }
 
+// 등록 UX 고도화 #2 — base_url (endpoint) round-trip.
+func TestCreateIntegrationProvider_WithBaseURL(t *testing.T) {
+	router := newApplicationsRouter(newMemoryApplicationStore())
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
+		`{"provider_key":"gitea-url","provider_type":"scm","display_name":"Gitea","auth_mode":"token","credentials_ref":"provider_sdk:gitea:s","base_url":"https://gitea.example.com"}`)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"base_url":"https://gitea.example.com"`)) {
+		t.Errorf("response should echo base_url: %s", rec.Body.String())
+	}
+}
+
+// base_url 은 http(s) scheme 만 허용.
+func TestCreateIntegrationProvider_InvalidBaseURL(t *testing.T) {
+	router := newApplicationsRouter(newMemoryApplicationStore())
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
+		`{"provider_key":"bad-url","provider_type":"scm","display_name":"X","auth_mode":"token","credentials_ref":"hmac_sha256:s","base_url":"ftp://nope"}`)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("invalid base_url should be 400, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte("invalid_base_url")) {
+		t.Errorf("expected invalid_base_url code: %s", rec.Body.String())
+	}
+}
+
 func TestSyncIntegrationProvider_Happy(t *testing.T) {
 	router := newApplicationsRouter(newMemoryApplicationStore())
 	// SCM provider — sync 가능한 유일한 provider_type (Gitea 워커 대상).
