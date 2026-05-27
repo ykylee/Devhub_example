@@ -225,3 +225,21 @@ func TestRealtimeWS_TicketMiss_Returns401(t *testing.T) {
 		t.Fatalf("unknown ticket should return 401, got %d", rec.Code)
 	}
 }
+
+// ADR-0024 §6 carve 5 (ticket-only 컷오버) — 레거시 `?access_token=` query 는 더
+// 이상 honor 되지 않는다. token 을 무조건 수락하는 verifier 가 붙어 있어도 WS
+// 경로의 access_token query 는 무시되어 401 이어야 한다 (회귀 가드).
+func TestRealtimeWS_AccessTokenQuery_NoLongerHonored(t *testing.T) {
+	router := NewRouter(RouterConfig{
+		RealtimeHub:         NewRealtimeHub(),
+		RealtimeTickets:     NewRealtimeTicketStore(),
+		BearerTokenVerifier: &fakeBearerTokenVerifier{actor: AuthenticatedActor{Login: "x", Role: "developer"}},
+	})
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/realtime/ws?access_token=would-be-valid", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("access_token query must no longer be honored (ticket-only), expected 401, got %d", rec.Code)
+	}
+}
