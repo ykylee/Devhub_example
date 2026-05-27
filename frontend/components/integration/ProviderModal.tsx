@@ -68,6 +68,28 @@ export function ProviderModal({ initial, onClose, onSaved }: ProviderModalProps)
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // 연결 테스트 (#5)
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  const handleTestConnection = async () => {
+    if (!baseUrl.trim()) return;
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const r = await integrationService.testConnection(baseUrl.trim());
+      setTestResult(
+        r.reachable
+          ? { ok: true, msg: `Reachable (HTTP ${r.status_code ?? "?"}, ${r.latency_ms ?? "?"}ms)` }
+          : { ok: false, msg: `Unreachable: ${r.error ?? "no response"}` },
+      );
+    } catch (err) {
+      setTestResult({ ok: false, msg: err instanceof Error ? err.message : "test failed" });
+    } finally {
+      setTesting(false);
+    }
+  };
+
   // vendor 템플릿 (#3) — 선택 시 type/auth/strategy/vendor/capabilities 자동 채움.
   const applyVendorPreset = (id: string) => {
     setVendorPresetId(id);
@@ -262,20 +284,36 @@ export function ProviderModal({ initial, onClose, onSaved }: ProviderModalProps)
             />
           </div>
 
-          {/* endpoint/base URL (#2) — outbound sync 대상 외부 시스템 주소 (optional) */}
+          {/* endpoint/base URL (#2) + 연결 테스트 (#5) */}
           <div>
             <label htmlFor="base_url" className={labelCls}>Base URL</label>
-            <input
-              id="base_url"
-              type="url"
-              value={baseUrl}
-              onChange={(e) => setBaseUrl(e.target.value)}
-              placeholder={getVendorPreset(vendorPresetId).baseUrlHint ?? "https://external-system.example.com"}
-              className={`${inputCls} font-mono`}
-            />
-            <p className="text-[10px] text-muted-foreground mt-1.5">
-              외부 시스템 endpoint (sync 대상). webhook 전용이면 비워둘 수 있습니다.
-            </p>
+            <div className="flex gap-2">
+              <input
+                id="base_url"
+                type="url"
+                value={baseUrl}
+                onChange={(e) => { setBaseUrl(e.target.value); setTestResult(null); }}
+                placeholder={getVendorPreset(vendorPresetId).baseUrlHint ?? "https://external-system.example.com"}
+                className={`${inputCls} font-mono`}
+              />
+              <button
+                type="button"
+                onClick={() => void handleTestConnection()}
+                disabled={!baseUrl.trim() || testing}
+                className="shrink-0 px-4 py-3 rounded-xl border border-accent/40 bg-accent/10 text-accent font-black uppercase tracking-widest text-[10px] hover:bg-accent/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {testing ? "Testing…" : "Test"}
+              </button>
+            </div>
+            {testResult ? (
+              <p className={`text-[10px] mt-1.5 font-bold ${testResult.ok ? "text-emerald-500" : "text-destructive"}`}>
+                {testResult.ok ? "✓ " : "✗ "}{testResult.msg}
+              </p>
+            ) : (
+              <p className="text-[10px] text-muted-foreground mt-1.5">
+                외부 시스템 endpoint (sync 대상). webhook 전용이면 비워둘 수 있습니다.
+              </p>
+            )}
           </div>
 
           {/* 가이드 자격증명 (#1) — strategy + secret 분리 입력 → credentials_ref 자동 조합 */}

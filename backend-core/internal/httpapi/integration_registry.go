@@ -361,6 +361,51 @@ func (h *Handler) updateIntegrationProvider(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "ok", "data": integrationProviderResponse(result)})
 }
 
+type testConnectionRequest struct {
+	BaseURL string `json:"base_url"`
+}
+
+// POST /api/v1/integration/test-connection — 등록 UX 고도화 #5.
+// 등록 전/후 외부 시스템 endpoint reachability 검증. system_admin gated
+// (ResourceInfrastructure/Edit). reachability 만 확인 (자격증명 검증은 후속) —
+// GET + 5s timeout + redirect 미추적.
+//
+// SSRF: 합법적 sync 대상이 사내 internal endpoint (Gitea/Jenkins 등) 이므로
+// internal IP 차단은 하지 않는다. admin 신뢰 경계 + 짧은 timeout + 응답 본문
+// 미반환 (status_code/latency 만) 으로 노출 표면을 최소화한다.
+func (h *Handler) testIntegrationConnection(c *gin.Context) {
+	var req testConnectionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": err.Error()})
+		return
+	}
+	target := strings.TrimSpace(req.BaseURL)
+	if target == "" || !validBaseURL(target) {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "base_url must be a non-empty http(s) URL", "code": "invalid_base_url"})
+		return
+	}
+	httpReq, err := http.NewRequestWithContext(c.Request.Context(), http.MethodGet, target, nil)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "invalid base_url", "code": "invalid_base_url"})
+		return
+	}
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+		CheckRedirect: func(*http.Request, []*http.Request) error {
+			return http.ErrUseLastResponse // redirect 미추적 (SSRF chain 회피)
+		},
+	}
+	start := time.Now()
+	resp, err := client.Do(httpReq)
+	latencyMs := time.Since(start).Milliseconds()
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"status": "ok", "reachable": false, "latency_ms": latencyMs, "error": err.Error()})
+		return
+	}
+	defer resp.Body.Close()
+	c.JSON(http.StatusOK, gin.H{"status": "ok", "reachable": true, "status_code": resp.StatusCode, "latency_ms": latencyMs})
+}
+
 // API-72
 func (h *Handler) syncIntegrationProvider(c *gin.Context) {
 	storeI, ok := h.applicationStoreOrUnavailable(c)

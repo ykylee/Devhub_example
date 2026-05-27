@@ -85,6 +85,36 @@ func TestCreateIntegrationProvider_InvalidBaseURL(t *testing.T) {
 	}
 }
 
+// 등록 UX 고도화 #5 — test-connection reachability.
+func TestTestIntegrationConnection_Reachable(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+	router := newApplicationsRouter(newMemoryApplicationStore())
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/test-connection",
+		`{"base_url":"`+srv.URL+`"}`)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"reachable":true`)) {
+		t.Errorf("expected reachable true: %s", rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"status_code":200`)) {
+		t.Errorf("expected status_code 200: %s", rec.Body.String())
+	}
+}
+
+func TestTestIntegrationConnection_InvalidURL(t *testing.T) {
+	router := newApplicationsRouter(newMemoryApplicationStore())
+	for _, body := range []string{`{"base_url":""}`, `{"base_url":"ftp://nope"}`} {
+		rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/test-connection", body)
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("body %s: expected 400, got %d body=%s", body, rec.Code, rec.Body.String())
+		}
+	}
+}
+
 func TestSyncIntegrationProvider_Happy(t *testing.T) {
 	router := newApplicationsRouter(newMemoryApplicationStore())
 	// SCM provider — sync 가능한 유일한 provider_type (Gitea 워커 대상).
