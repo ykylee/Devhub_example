@@ -23,6 +23,8 @@ export interface IntegrationProvider {
   last_sync_at: string | null;
   last_error_code: string | null;
   base_url: string | null;
+  /** api_token 은 write-only — 응답엔 raw 미노출, 설정 여부만. */
+  api_token_set: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -35,6 +37,7 @@ export interface CreateIntegrationProviderInput {
   credentials_ref: string;
   capabilities?: string[];
   base_url?: string;
+  api_token?: string;
 }
 
 export interface UpdateIntegrationProviderInput {
@@ -43,6 +46,7 @@ export interface UpdateIntegrationProviderInput {
   credentials_ref?: string;
   capabilities?: string[];
   base_url?: string;
+  api_token?: string;
 }
 
 export interface ListIntegrationProvidersOptions {
