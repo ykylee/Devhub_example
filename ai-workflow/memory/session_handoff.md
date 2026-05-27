@@ -1,3 +1,43 @@
+# Session Handoff — main (2026-05-27 post-#352 — #349/#351/#352 머지 + codex 감사 + housekeeping)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
+- 범위: 직전 #350 housekeeping (head `58444e7`) 이후 3 PR (#349/#351/#352) 머지 흡수 + codex 감사.
+- 상태: main HEAD `b3dc87e` (PR #352). 본 sprint (`claude/work_260527-housekeeping-post-352`).
+- 최종 수정일: 2026-05-27
+
+## 2026-05-27 (post-#352) 결산
+
+직전 housekeeping 후 외부 연동 등록 UX 고도화 (#352, 본 conversation 작업) + codex 영역 2 PR (#349/#351) 머지. 사용자 지시로 housekeeping + codex 감사 수행.
+
+### 머지 PR (3)
+
+| sha | PR | core |
+| --- | --- | --- |
+| `72dc9f5` | **#349** (codex) | **project standalone 생성 flow** — application/repository optional + `repository_create_payload` 동반 생성 + N:M 연결 UX + migration 000037 (`projects.repository_id` nullable). claude review P1(빌드 실패) 수정 후 머지. **codex P2×2 LIVE 미반영** (아래 감사). |
+| `dacca2c` | **#351** (codex) | `fix(auth): retry refresh on 401 even without initial access token` — frontend `api-client.ts` 단일 파일. codex inline 없음 (clean). |
+| `b3dc87e` | **#352** (claude) | **외부 연동 등록 UX 고도화 (#1~#5)** — vendor 템플릿 7종 + 가이드 자격증명(strategy+secret 분리) + capability 체크박스 + base_url endpoint (migration 000038, API-70/71) + 연결 테스트 (API-87) + codex P2(base_url host 검증) 보강. `integration-provider-presets.ts` + vitest 14 + handler test 8. |
+
+### codex 감사 결과 (본 sprint)
+
+| PR | 결과 |
+| --- | --- |
+| #351 | ✅ clean (codex inline 없음) |
+| #352 | ✅ codex P2 (base_url scheme-only) 보강 완료 (`4406b99`) |
+| **#349** | ⚠️ **codex P2×2 미처리 (hotfix 후보)** — (a) **atomicity**: `CreateRepositoryForProject` 가 `CreateProjectWithRepositories` tx **밖** 별도 호출 → project 실패 시 repo 고아. (b) **NULL-uniqueness**: migration 000037 `DROP NOT NULL` 만 + partial unique index 없음 → standalone(repository_id NULL) project key 중복 가능 (handler 는 invariant 취급). migration 000013 의 `UNIQUE(repository_id,key)` 가 NULL distinct 로 무력화. |
+
+### 다음 directive
+
+| 영역 | 항목 |
+| --- | --- |
+| **claude** | 1) **#349 codex P2×2 hotfix** — migration 000039 `CREATE UNIQUE INDEX ... ON projects (key) WHERE repository_id IS NULL` + repo+project 단일 tx (store `CreateProjectWithRepositoryPayload` 류). 2) 외부 연동 backend 깊이 (webhook 이벤트 정규화 / multi-provider sync 일반화 / realtime topology WS). 3) #6 `credentials_ref` 평문 저장 보안. |
+| 사내/사용자 | Onboarding SOP staging monitoring / nginx OIDC redirect_uri / Keycloak 26.0 redeploy smoke / issue #214 / Keycloak SPI realm events + webhook env wire (#340). |
+
+### 검증
+
+#349/#351/#352 모두 머지 (CI green). #352 본 conversation 작업 (5 커밋 + codex P2 보강). 본 housekeeping 후 Open PR 0.
+
+---
+
 # Session Handoff — main (2026-05-27 post-#348 — #346 + #348 머지 + ADR-0024 §6 종결 + housekeeping)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
