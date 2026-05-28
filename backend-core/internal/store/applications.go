@@ -719,13 +719,17 @@ func (s *PostgresStore) GetProject(ctx context.Context, projectID string) (domai
 // projectsInsertQuery is the canonical INSERT used by CreateProject and by the DREQ
 // promote transaction (dev_requests_promote.go). Sharing it keeps the (repository_id,
 // key) UNIQUE constraint and NULLIF semantics identical across entry points.
+//
+// codex P2 정합 (#399) — status='archived' 로 직접 생성 시 archived_at 자동 채움.
+// `projects_archived_consistency` CHECK 위반 회피 (applications 패턴과 대칭).
 const projectsInsertQuery = `
 INSERT INTO projects (
 	application_id, repository_id, key, name, description, status, visibility,
-	owner_user_id, start_date, due_date
+	owner_user_id, start_date, due_date, archived_at
 ) VALUES (
 	NULLIF($1, '')::uuid, NULLIF($2::bigint, 0), $3, $4, NULLIF($5, ''), $6, $7,
-	NULLIF($8, ''), $9, $10
+	NULLIF($8, ''), $9, $10,
+	CASE WHEN $6 = 'archived' THEN NOW() ELSE NULL END
 )
 RETURNING` + projectsSelectColumns
 
