@@ -46,6 +46,16 @@ func (h *Handler) repositoryActivity(c *gin.Context) {
 		writeServerError(c, err, "repository.activity")
 		return
 	}
+	// 마지막 빌드 상태 + 시각 — REQ-FR-APPDASH-001 (단순 % 보다 broken/red 즉시 표기).
+	// 빈 status 는 "unknown" 정규화. 시각은 RFC3339 또는 nil.
+	lastBuildStatus := activity.LastBuildStatus
+	if lastBuildStatus == "" {
+		lastBuildStatus = "unknown"
+	}
+	var lastBuildAt any
+	if activity.LastBuildAt != nil {
+		lastBuildAt = activity.LastBuildAt.UTC().Format(time.RFC3339)
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"status": "ok",
 		"data": gin.H{
@@ -56,6 +66,8 @@ func (h *Handler) repositoryActivity(c *gin.Context) {
 			"active_contributors": activity.ActiveContributors,
 			"build_run_count":     activity.BuildRunCount,
 			"build_success_rate":  activity.BuildSuccessRate,
+			"last_build_status":   lastBuildStatus,
+			"last_build_at":       lastBuildAt,
 		},
 	})
 }

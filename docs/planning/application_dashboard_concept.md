@@ -13,7 +13,8 @@
 
 ### 1.1 `ApplicationRollup` 데이터 구조
 백엔드(`internal/domain/application.go` 및 `internal/store/repository_ops.go`)에서 이미 계산 및 집계를 완료하여 제공하는 실제 데이터 항목들입니다.
-* **`build_success_rate`**: 연결된 리포지토리들의 가중치 평균 빌드 성공률 (0.0 ~ 1.0)
+* **`build_success_rate`**: 연결된 리포지토리들의 가중치 평균 빌드 성공률 (0.0 ~ 1.0) — **시계열 추세 차트(REQ-FR-APPDASH-005)** 의 y축 지표로 유지. 단, 카드/리스트 표시는 아래 `target_branch_build_status` 로 대체 (REQ-FR-APPDASH-001).
+* **`target_branch_build_status`**: 연결된 리포지토리들의 **마지막 빌드 결과 종합** derive 값 (`healthy` / `broken` / `unknown`). 각 repo 의 `LastBuildStatus` 가 `failed|cancelled` 이면 `broken` 우선, 모두 `success|skipped` 면 `healthy`, 그 외 `unknown`. 카드/리스트의 "빌드 상태" 표기 source.
 * **`build_avg_duration_seconds`**: 가중치 평균 빌드 소요 시간
 * **`quality_score`**: 가중치 평균 코드 품질 점수
 * **`quality_gate_failed_count`**: 품질 게이트 통과 실패 횟수

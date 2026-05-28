@@ -28,6 +28,7 @@ import { projectService } from "@/lib/services/project.service";
 import { ApplicationRepository } from "@/lib/services/project.types";
 import { toUserErrorMessage } from "@/lib/services/error-message";
 import { lifecycleStatusBadgeVariant } from "@/lib/utils/lifecycle-status";
+import { applicationBuildStatusView } from "@/lib/utils/last-build";
 import { PageError, PageLoading } from "@/components/ui/PageState";
 import { apiClient } from "@/lib/services/api-client";
 import {
@@ -161,11 +162,13 @@ export default function ApplicationDetailPage() {
     );
   }
 
-  const buildSuccessPct = ((dashboard.history_trend?.[1]?.build_success_rate || 0.94) * 100).toFixed(1);
   const qualityScore = dashboard.metrics_overview.quality_score.toFixed(1);
   const criticalWarnings = dashboard.metrics_overview.critical_warning_count;
   const gateFailures = dashboard.quality_metrics.unresolved_issues.blocker;
   const buildStatus = dashboard.metrics_overview.target_branch_build_status;
+  // REQ-FR-APPDASH-001 — 단순 % 보다 broken/red 상태 즉시 표기. buildStatus 는
+  // backend dashboard 응답의 target_branch_build_status ("healthy"|"broken"|"unknown").
+  const lastBuildView = applicationBuildStatusView(buildStatus);
 
   return (
     <div className="space-y-8 pb-20 px-4 md:px-8">
@@ -206,7 +209,7 @@ export default function ApplicationDetailPage() {
       {/* Overview stats layout */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: "Build Success", value: `${buildSuccessPct}%`, icon: Activity, color: "text-emerald-500", trend: "Stability", bg: "bg-emerald-500/10" },
+          { label: "Last Build", value: lastBuildView.label, icon: Activity, color: lastBuildView.tone === "negative" ? "text-rose-500" : lastBuildView.tone === "positive" ? "text-emerald-500" : "text-muted-foreground", trend: "Latest run", bg: lastBuildView.tone === "negative" ? "bg-rose-500/10" : "bg-emerald-500/10" },
           { label: "Quality Score", value: `${qualityScore} / 5.0`, icon: ShieldCheck, color: "text-blue-500", trend: "Standard A+", bg: "bg-blue-500/10" },
           { label: "Critical Warnings", value: String(criticalWarnings), icon: Zap, color: criticalWarnings > 0 ? "text-amber-500" : "text-emerald-500", trend: "Governance", bg: "bg-amber-500/10" },
           { label: "Gate Failures", value: String(gateFailures), icon: Globe, color: gateFailures > 0 ? "text-rose-500" : "text-emerald-500", trend: "Quality Gate", bg: "bg-rose-500/10" },

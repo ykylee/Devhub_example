@@ -25,6 +25,10 @@ export interface ApplicationRollup {
   quality_score: number;
   quality_gate_failed_count: number;
   critical_warning_count: number;
+  // REQ-FR-APPDASH-001 — 단순 % 보다 broken/red 상태 즉시 표기.
+  // backend `domain.ApplicationRollup.TargetBranchBuildStatus` derive: 연결된 repository 들의
+  // 마지막 빌드 결과 종합. healthy | broken | unknown.
+  target_branch_build_status: "healthy" | "broken" | "unknown";
 }
 
 export interface ListApplicationsResult {
