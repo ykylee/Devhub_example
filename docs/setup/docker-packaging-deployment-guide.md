@@ -415,22 +415,31 @@ bundle 에 넣는다.
 > **중요 — `NEXT_PUBLIC_BASE_PATH` 누락 시 증상 (PR #398 close 사례)**
 >
 > 본 변수는 **`next build` 시점에 client bundle 에 inline** 되며 dev/start 명령에
-> 전달해서는 효과 없다. Dockerfile build ARG 로 `NEXT_PUBLIC_BASE_PATH=devhub` 를
-> 전달하지 않으면 frontend client 의 `api-client.ts` 가 root relative `/api/v1/...`
-> 호출 → nginx 의 `/devhub/api/` location 에 도달하지 못해 404.
+> 전달해서는 효과 없다. 미설정 시 frontend client 의 `api-client.ts` 가 root
+> relative `/api/v1/...` 호출 → nginx 의 `/devhub/api/` location 에 도달하지 못해
+> 404. 우회 (nginx root `/api/` proxy 추가) 는 ADR-0018 격리 위반 + 운영 collision
+> risk 이므로 절대 금지.
 >
-> 우회 대신 (nginx root `/api/` proxy 추가는 ADR-0018 격리 위반 + 운영 collision risk)
-> Dockerfile 의 build ARG 에 BASE_PATH 일관 주입이 정공법:
+> **정공법** — 본 repo 의 deploy 흐름은 **host build pattern** 이다. `next build`
+> 는 `scripts/build-artifacts.sh` 가 host 에서 실행하고, `frontend/Dockerfile` 은
+> `.next/standalone` + `.next/static` 을 **COPY-only** 한다 (재build 없음). 즉
+> **Dockerfile build ARG 로는 영향 없음** — `build-artifacts.sh` 실행 시점에 env 가
+> 설정되어 있어야 한다.
 >
-> ```dockerfile
-> ARG NEXT_PUBLIC_BASE_PATH
-> ENV NEXT_PUBLIC_BASE_PATH=$NEXT_PUBLIC_BASE_PATH
-> RUN npm run build
+> 정상 흐름:
+> ```bash
+> # .env.deploy 에 NEXT_PUBLIC_BASE_PATH=devhub 명시 (deploy.env.example 참고)
+> ENV_FILE=./.env.deploy ./scripts/build-artifacts.sh
+> # build-artifacts.sh 가 ENV_FILE 을 `set -a; source; set +a` 로 export →
+> # next build 시점에 NEXT_PUBLIC_BASE_PATH 자동 inline.
+> docker build -f frontend/Dockerfile -t devhub/frontend:${GIT_SHA} frontend
 > ```
 >
-> docker compose / `build-artifacts.sh` 가 `.env.deploy` 의 `NEXT_PUBLIC_BASE_PATH`
-> 값을 `--build-arg NEXT_PUBLIC_BASE_PATH=$NEXT_PUBLIC_BASE_PATH` 로 전달하도록
-> 확인. Playwright E2E 도 같은 build 산출물 사용 시 자연 정합.
+> `scripts/build-artifacts.sh` 는 이미 `: "${NEXT_PUBLIC_BASE_PATH:=devhub}"`
+> default 를 적용하지만, `.env.deploy` 가 명시값을 갖고 있어야 production 정합.
+> ENV_FILE 미사용 또는 `NEXT_PUBLIC_BASE_PATH=` 빈 값으로 build 한 산출물은 이미
+> root path 로 inline 된 채 Dockerfile 이 COPY 한다 — 그 이미지는 nginx 격리
+> 환경에서 동작 안 함.
 
 Dockerfile 핵심 형태:
 
