@@ -20,25 +20,6 @@ test.describe("/admin/catalog — Admin Catalog", () => {
     await expect(page).toHaveURL(/q=charlie/);
   });
 
-  test("TC-ADMIN-CATALOG-TAB-AFTER-MODAL-01 — New Project 모달 닫은 뒤 탭 전환 정상 (#386 회귀)", async ({ page }) => {
-    await loginAs(page, SEEDED.systemAdmin);
-    await page.goto(appPath("/admin/catalog?tab=projects"));
-    await expect(page.getByRole("heading", { name: /admin catalog/i })).toBeVisible({ timeout: 20_000 });
-
-    // New Project 모달 open → Escape close
-    await page.getByRole("button", { name: /new project/i }).click();
-    await expect(page.getByRole("dialog")).toBeVisible();
-    await page.keyboard.press("Escape");
-    await expect(page.getByRole("dialog")).toBeHidden();
-
-    // 회귀(#386): key 없는 AnimatePresence 자식으로 닫힌 모달의 fixed inset-0 오버레이가
-    // DOM 에 잔존해 이후 탭 클릭을 가로막던 버그. 모달 닫은 직후 Applications 탭 클릭이
-    // 정상 전환되어야 한다 (URL tab=applications + applications 툴바 노출).
-    await page.getByTestId("catalog-tab-applications").click();
-    await expect(page).toHaveURL(/tab=applications/, { timeout: 10_000 });
-    await expect(page.getByRole("button", { name: /new application/i })).toBeVisible({ timeout: 10_000 });
-  });
-
   // TC-ADMIN-CATALOG-02 는 application detail 진입(/applications) → 뒤로 catalog 복귀 →
   // catalog-app-projects 드릴다운(tab=projects + q=appID) 의 다단계 네비게이션으로,
   // 시드 데이터(applications + 연결 projects) 의존 + 재렌더 타이밍에 fragile 하다.

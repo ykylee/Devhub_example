@@ -318,7 +318,6 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
       <AnimatePresence>
         {showDreqDetail && selectedDreq && (
           <DevRequestDetailModal
-            key="header-dreq-detail-modal"
             request={selectedDreq}
             isSystemAdmin={role === "System Admin"}
             onClose={() => {
@@ -342,7 +341,6 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
 
         {showProjectCreate && (
           <ProjectCreationModal
-            key="header-project-create-modal"
             repositories={repositories}
             initialData={projectPrefill ?? undefined}
             onClose={() => {
