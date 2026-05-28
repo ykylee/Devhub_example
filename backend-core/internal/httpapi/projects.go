@@ -622,14 +622,6 @@ func (h *Handler) updateProject(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": err.Error()})
 		return
 	}
-	if req.Key != nil {
-		c.JSON(http.StatusUnprocessableEntity, gin.H{
-			"status": "rejected",
-			"error":  "project key is immutable",
-			"code":   "project_key_immutable",
-		})
-		return
-	}
 	current, err := storeI.GetProject(c.Request.Context(), id)
 	if errors.Is(err, store.ErrNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "project not found"})
@@ -637,6 +629,14 @@ func (h *Handler) updateProject(c *gin.Context) {
 	}
 	if err != nil {
 		writeServerError(c, err, "projects.update.lookup")
+		return
+	}
+	if req.Key != nil && *req.Key != current.Key {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"status": "rejected",
+			"error":  "project key is immutable",
+			"code":   "project_key_immutable",
+		})
 		return
 	}
 

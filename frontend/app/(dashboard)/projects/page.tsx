@@ -34,7 +34,7 @@ export default function ProjectsStatusPage() {
       setError(null);
       setLoading(true);
       const repos = await repositoryService.listRepositories();
-      const allProjects = await projectService.listAllProjects(repos.map(r => r.id), { include_archived: true });
+      const allProjects = await projectService.listAllProjects(repos.map(r => r.id), { include_archived: statusFilter === "archived" });
       setProjects(allProjects);
     } catch (err) {
       setError("Failed to load projects data.");
@@ -42,12 +42,9 @@ export default function ProjectsStatusPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [statusFilter]);
 
   useEffect(() => {
-    // Initial fetch on mount. refresh 는 useCallback([]) 이라 stable, 1회만 실행.
-    // setState-in-effect 룰은 async fetch boundary 라 cascading render 우려 없음.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void refresh();
   }, [refresh]);
 
