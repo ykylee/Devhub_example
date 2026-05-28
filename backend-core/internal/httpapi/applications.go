@@ -24,7 +24,7 @@ import (
 // 권한은 enforceRoutePermission middleware 가 사전 거부. handler 까지 도달하면 ADR-0011
 // §4.1 의 system_admin 자격 통과 상태.
 
-var applicationKeyPattern = regexp.MustCompile(`^[A-Za-z0-9]{10}$`)
+var applicationKeyPattern = regexp.MustCompile(`^[A-Za-z0-9]{1,10}$`)
 
 func (h *Handler) applicationStoreOrUnavailable(c *gin.Context) (ApplicationStore, bool) {
 	if h.cfg.ApplicationStore == nil {
@@ -303,7 +303,7 @@ func (h *Handler) createApplication(c *gin.Context) {
 	if !applicationKeyPattern.MatchString(req.Key) {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{
 			"status": "rejected",
-			"error":  "key must match ^[A-Za-z0-9]{10}$",
+			"error":  "key must match ^[A-Za-z0-9]{1,10}$",
 			"code":   "invalid_application_key",
 		})
 		return

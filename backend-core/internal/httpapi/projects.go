@@ -36,10 +36,14 @@ func (h *Handler) allowV2ProjectRoutes() bool {
 // Repository 하위 기간성 운영 단위. concept §13 + REQ-FR-PROJ-001..010.
 
 func projectResponse(p domain.Project) gin.H {
+	repositoryID := any(nil)
+	if p.RepositoryID > 0 {
+		repositoryID = p.RepositoryID
+	}
 	return gin.H{
 		"id":             p.ID,
 		"application_id": p.ApplicationID,
-		"repository_id":  p.RepositoryID,
+		"repository_id":  repositoryID,
 		"key":            p.Key,
 		"name":           p.Name,
 		"description":    p.Description,
@@ -114,6 +118,7 @@ type createProjectRequest struct {
 	ApplicationID string  `json:"application_id"`
 	RepositoryID  int64   `json:"repository_id"`
 	RepositoryIDs []int64 `json:"repository_ids"`
+	RepositoryCreatePayload *createRepositoryPayload `json:"repository_create_payload"`
 	Key           string  `json:"key"`
 	Name          string  `json:"name"`
 	Description   string  `json:"description"`
@@ -122,6 +127,12 @@ type createProjectRequest struct {
 	DueDate       string  `json:"due_date"`
 	Visibility    string  `json:"visibility"`
 	Status        string  `json:"status"`
+}
+
+type createRepositoryPayload struct {
+	Key         string `json:"key"`
+	Slug        string `json:"slug"`
+	SCMProvider string `json:"scm_provider"`
 }
 
 func projectRepositoryResponse(link domain.ProjectRepository) gin.H {
@@ -223,6 +234,108 @@ func (h *Handler) createProjectWithRepoID(c *gin.Context, storeI ApplicationStor
 	})
 }
 
+// POST /api/v1/projects
+// Independent project create (application/repository optional).
+func (h *Handler) createProjectStandalone(c *gin.Context) {
+	if !h.allowV2ProjectRoutes() {
+		c.JSON(http.StatusGone, gin.H{"status": "gone", "error": "v2 project routes are disabled", "code": "project_model_v2_disabled"})
+		return
+	}
+	storeI, ok := h.applicationStoreOrUnavailable(c)
+	if !ok {
+		return
+	}
+
+	var req createProjectRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": err.Error()})
+		return
+	}
+
+	if strings.TrimSpace(req.Key) == "" || strings.TrimSpace(req.Name) == "" || strings.TrimSpace(req.OwnerUserID) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "key, name, owner_user_id are required"})
+		return
+	}
+	if !validApplicationVisibilities[req.Visibility] || !validApplicationStatuses[req.Status] {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "visibility/status is invalid"})
+		return
+	}
+
+	startDate, err := parseDate(req.StartDate)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "start_date must be YYYY-MM-DD"})
+		return
+	}
+	dueDate, err := parseDate(req.DueDate)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "due_date must be YYYY-MM-DD"})
+		return
+	}
+
+	primaryRepoID := int64(0)
+	if req.RepositoryID > 0 {
+		primaryRepoID = req.RepositoryID
+	} else if len(req.RepositoryIDs) > 0 {
+		primaryRepoID = req.RepositoryIDs[0]
+	}
+	var repoPayload *store.RepositoryCreatePayload
+	if req.RepositoryCreatePayload != nil {
+		repoKey := strings.TrimSpace(req.RepositoryCreatePayload.Key)
+		repoSlug := strings.TrimSpace(req.RepositoryCreatePayload.Slug)
+		scmProvider := strings.TrimSpace(req.RepositoryCreatePayload.SCMProvider)
+		if repoKey == "" || repoSlug == "" || scmProvider == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "repository_create_payload.key/slug/scm_provider are required"})
+			return
+		}
+		repoPayload = &store.RepositoryCreatePayload{Key: repoKey, Slug: repoSlug, SCMProvider: scmProvider}
+	}
+
+	repoSet := map[int64]struct{}{}
+	if primaryRepoID > 0 {
+		repoSet[primaryRepoID] = struct{}{}
+	}
+	for _, id := range req.RepositoryIDs {
+		if id > 0 {
+			repoSet[id] = struct{}{}
+		}
+	}
+	repoIDs := make([]int64, 0, len(repoSet))
+	for id := range repoSet {
+		repoIDs = append(repoIDs, id)
+	}
+
+	// repo 동반 생성(repoPayload)은 project 생성과 단일 tx — project 실패 시 repo rollback (codex #349 P2).
+	created, err := storeI.CreateProjectWithRepositoryPayload(c.Request.Context(), domain.Project{
+		ApplicationID: strings.TrimSpace(req.ApplicationID),
+		RepositoryID:  primaryRepoID,
+		Key:           req.Key,
+		Name:          req.Name,
+		Description:   req.Description,
+		Status:        domain.ApplicationStatus(req.Status),
+		Visibility:    domain.ApplicationVisibility(req.Visibility),
+		OwnerUserID:   req.OwnerUserID,
+		StartDate:     startDate,
+		DueDate:       dueDate,
+	}, repoIDs, repoPayload)
+	if errors.Is(err, store.ErrConflict) {
+		c.JSON(http.StatusConflict, gin.H{"status": "conflict", "error": "project key already exists or referenced application/repository not found", "code": "project_key_conflict"})
+		return
+	}
+	if err != nil {
+		writeServerError(c, err, "projects.create_standalone")
+		return
+	}
+
+	h.recordAuditBestEffort(c, "project.created", "project", created.ID, map[string]any{
+		"key":            created.Key,
+		"repository_id":  created.RepositoryID,
+		"application_id": created.ApplicationID,
+		"status":         string(created.Status),
+	})
+
+	c.JSON(http.StatusCreated, gin.H{"status": "ok", "data": projectResponse(created)})
+}
+
 // GET /api/v1/applications/:application_id/projects
 func (h *Handler) listApplicationProjects(c *gin.Context) {
 	if !h.allowV2ProjectRoutes() {
@@ -284,14 +397,21 @@ func (h *Handler) createApplicationProject(c *gin.Context) {
 	}
 
 	primaryRepoID := int64(0)
-	if req.RepositoryID != 0 {
+	if req.RepositoryID > 0 {
 		primaryRepoID = req.RepositoryID
 	} else if len(req.RepositoryIDs) > 0 {
 		primaryRepoID = req.RepositoryIDs[0]
 	}
-	if primaryRepoID == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "repository_id or repository_ids[0] is required"})
-		return
+	var repoPayload *store.RepositoryCreatePayload
+	if req.RepositoryCreatePayload != nil {
+		repoKey := strings.TrimSpace(req.RepositoryCreatePayload.Key)
+		repoSlug := strings.TrimSpace(req.RepositoryCreatePayload.Slug)
+		scmProvider := strings.TrimSpace(req.RepositoryCreatePayload.SCMProvider)
+		if repoKey == "" || repoSlug == "" || scmProvider == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "repository_create_payload.key/slug/scm_provider are required"})
+			return
+		}
+		repoPayload = &store.RepositoryCreatePayload{Key: repoKey, Slug: repoSlug, SCMProvider: scmProvider}
 	}
 
 	if strings.TrimSpace(req.Key) == "" || strings.TrimSpace(req.Name) == "" || strings.TrimSpace(req.OwnerUserID) == "" {
@@ -314,7 +434,10 @@ func (h *Handler) createApplicationProject(c *gin.Context) {
 		return
 	}
 
-	repoSet := map[int64]struct{}{primaryRepoID: {}}
+	repoSet := map[int64]struct{}{}
+	if primaryRepoID > 0 {
+		repoSet[primaryRepoID] = struct{}{}
+	}
 	for _, id := range req.RepositoryIDs {
 		if id > 0 {
 			repoSet[id] = struct{}{}
@@ -325,7 +448,8 @@ func (h *Handler) createApplicationProject(c *gin.Context) {
 		repoIDs = append(repoIDs, id)
 	}
 
-	created, err := storeI.CreateProjectWithRepositories(c.Request.Context(), domain.Project{
+	// repo 동반 생성(repoPayload)은 project 생성과 단일 tx — project 실패 시 repo rollback (codex #349 P2).
+	created, err := storeI.CreateProjectWithRepositoryPayload(c.Request.Context(), domain.Project{
 		ApplicationID: appID,
 		RepositoryID:  primaryRepoID,
 		Key:           req.Key,
@@ -336,7 +460,7 @@ func (h *Handler) createApplicationProject(c *gin.Context) {
 		OwnerUserID:   req.OwnerUserID,
 		StartDate:     startDate,
 		DueDate:       dueDate,
-	}, repoIDs)
+	}, repoIDs, repoPayload)
 	if errors.Is(err, store.ErrConflict) {
 		c.JSON(http.StatusConflict, gin.H{"status": "conflict", "error": "project key already exists or referenced application/repository not found", "code": "project_key_conflict"})
 		return

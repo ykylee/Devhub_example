@@ -43,6 +43,12 @@ func scanIntegrationProvider(row pgx.Row) (domain.IntegrationProvider, error) {
 		&p.LastErrorCode,
 		&p.CreatedAt,
 		&p.UpdatedAt,
+		&p.BaseURL,
+		&p.APIToken,
+		&p.AuthUsername,
+		&p.AuthClientID,
+		&p.AuthTokenURL,
+		&p.AuthSecret,
 	); err != nil {
 		return domain.IntegrationProvider{}, err
 	}
@@ -106,7 +112,13 @@ SELECT
 	last_sync_at,
 	COALESCE(last_error_code, ''),
 	created_at,
-	updated_at
+	updated_at,
+	COALESCE(base_url, ''),
+	COALESCE(api_token, ''),
+	COALESCE(auth_username, ''),
+	COALESCE(auth_client_id, ''),
+	COALESCE(auth_token_url, ''),
+	COALESCE(auth_secret, '')
 FROM integration_providers
 WHERE ($3 = '' OR provider_type = $3)
   AND ($4::boolean IS NULL OR enabled = $4::boolean)
@@ -147,7 +159,13 @@ SELECT
 	last_sync_at,
 	COALESCE(last_error_code, ''),
 	created_at,
-	updated_at
+	updated_at,
+	COALESCE(base_url, ''),
+	COALESCE(api_token, ''),
+	COALESCE(auth_username, ''),
+	COALESCE(auth_client_id, ''),
+	COALESCE(auth_token_url, ''),
+	COALESCE(auth_secret, '')
 FROM integration_providers
 WHERE provider_id = $1::uuid`
 	p, err := scanIntegrationProvider(s.pool.QueryRow(ctx, query, providerID))
@@ -175,7 +193,13 @@ SELECT
 	last_sync_at,
 	COALESCE(last_error_code, ''),
 	created_at,
-	updated_at
+	updated_at,
+	COALESCE(base_url, ''),
+	COALESCE(api_token, ''),
+	COALESCE(auth_username, ''),
+	COALESCE(auth_client_id, ''),
+	COALESCE(auth_token_url, ''),
+	COALESCE(auth_secret, '')
 FROM integration_providers
 WHERE provider_key = $1`
 	p, err := scanIntegrationProvider(s.pool.QueryRow(ctx, query, providerKey))
@@ -196,9 +220,11 @@ func (s *PostgresStore) CreateIntegrationProvider(ctx context.Context, p domain.
 	const query = `
 INSERT INTO integration_providers (
 	provider_key, provider_type, display_name, enabled, auth_mode,
-	credentials_ref, capabilities, sync_status
+	credentials_ref, capabilities, sync_status, base_url, api_token,
+	auth_username, auth_client_id, auth_token_url, auth_secret
 ) VALUES (
-	$1, $2, $3, $4, $5, $6, $7::jsonb, $8
+	$1, $2, $3, $4, $5, $6, $7::jsonb, $8, NULLIF($9, ''), NULLIF($10, ''),
+	NULLIF($11, ''), NULLIF($12, ''), NULLIF($13, ''), NULLIF($14, '')
 )
 RETURNING
 	provider_id::text,
@@ -213,7 +239,13 @@ RETURNING
 	last_sync_at,
 	COALESCE(last_error_code, ''),
 	created_at,
-	updated_at`
+	updated_at,
+	COALESCE(base_url, ''),
+	COALESCE(api_token, ''),
+	COALESCE(auth_username, ''),
+	COALESCE(auth_client_id, ''),
+	COALESCE(auth_token_url, ''),
+	COALESCE(auth_secret, '')`
 	created, err := scanIntegrationProvider(s.pool.QueryRow(
 		ctx,
 		query,
@@ -225,6 +257,12 @@ RETURNING
 		p.CredentialsRef,
 		string(caps),
 		p.SyncStatus,
+		p.BaseURL,
+		p.APIToken,
+		p.AuthUsername,
+		p.AuthClientID,
+		p.AuthTokenURL,
+		p.AuthSecret,
 	))
 	if isUniqueViolation(err) {
 		return domain.IntegrationProvider{}, ErrConflict
@@ -249,6 +287,12 @@ SET display_name = $2,
 	sync_status = $6,
 	last_sync_at = $7,
 	last_error_code = NULLIF($8, ''),
+	base_url = NULLIF($9, ''),
+	api_token = NULLIF($10, ''),
+	auth_username = NULLIF($11, ''),
+	auth_client_id = NULLIF($12, ''),
+	auth_token_url = NULLIF($13, ''),
+	auth_secret = NULLIF($14, ''),
 	updated_at = NOW()
 WHERE provider_id = $1::uuid
 RETURNING
@@ -264,7 +308,13 @@ RETURNING
 	last_sync_at,
 	COALESCE(last_error_code, ''),
 	created_at,
-	updated_at`
+	updated_at,
+	COALESCE(base_url, ''),
+	COALESCE(api_token, ''),
+	COALESCE(auth_username, ''),
+	COALESCE(auth_client_id, ''),
+	COALESCE(auth_token_url, ''),
+	COALESCE(auth_secret, '')`
 	updated, err := scanIntegrationProvider(s.pool.QueryRow(
 		ctx,
 		query,
@@ -276,6 +326,12 @@ RETURNING
 		p.SyncStatus,
 		p.LastSyncAt,
 		p.LastErrorCode,
+		p.BaseURL,
+		p.APIToken,
+		p.AuthUsername,
+		p.AuthClientID,
+		p.AuthTokenURL,
+		p.AuthSecret,
 	))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return domain.IntegrationProvider{}, ErrNotFound
@@ -500,17 +556,25 @@ func (s *PostgresStore) DeleteIntegrationBinding(ctx context.Context, bindingID 
 	return nil
 }
 
+// AcquireNextQueuedSyncJob claims the oldest queued sync job whose provider is
+// an SCM-type provider (codex review PR #341 P1). The Gitea sync worker is the
+// only consumer, and it can only sync SCM providers; without the provider_type
+// gate it would otherwise dequeue and mark succeeded/failed jobs for non-SCM
+// providers (alm/Jira, ci_cd, doc, infra) without ever running their sync,
+// stealing work from the correct worker and emitting false-positive completion.
+// FOR UPDATE OF j SKIP LOCKED locks only the job row (not the joined provider).
 func (s *PostgresStore) AcquireNextQueuedSyncJob(ctx context.Context) (string, string, error) {
 	const query = `
 UPDATE integration_sync_jobs
 SET status = 'running'
 WHERE job_id = (
-	SELECT job_id
-	FROM integration_sync_jobs
-	WHERE status = 'queued'
-	ORDER BY created_at ASC
+	SELECT j.job_id
+	FROM integration_sync_jobs j
+	JOIN integration_providers p ON p.provider_id = j.provider_id
+	WHERE j.status = 'queued' AND p.provider_type = 'scm'
+	ORDER BY j.created_at ASC
 	LIMIT 1
-	FOR UPDATE SKIP LOCKED
+	FOR UPDATE OF j SKIP LOCKED
 )
 RETURNING job_id::text, provider_id::text`
 	var jobID, providerID string

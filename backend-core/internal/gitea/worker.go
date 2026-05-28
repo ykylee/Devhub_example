@@ -15,6 +15,9 @@ type SyncJobStore interface {
 	SyncStore
 	AcquireNextQueuedSyncJob(ctx context.Context) (jobID string, providerID string, err error)
 	UpdateIntegrationSyncJobStatus(ctx context.Context, jobID string, status string) error
+	// GetIntegrationProviderByID — Phase 3: queued job 의 provider 별 base_url +
+	// api_token 을 조회해 env 대신 사용 (per-provider sync 연결).
+	GetIntegrationProviderByID(ctx context.Context, providerID string) (domain.IntegrationProvider, error)
 }
 
 // SyncWorker periodically checks for IntegrationSyncJob requests and handles syncing.
@@ -58,16 +61,30 @@ func (w *SyncWorker) Run(ctx context.Context, interval time.Duration) error {
 
 // ProcessOnce runs a single round of synchronizing repositories.
 func (w *SyncWorker) ProcessOnce(ctx context.Context) error {
-	if strings.TrimSpace(w.GiteaURL) == "" || strings.TrimSpace(w.GiteaToken) == "" {
-		return nil
-	}
-
-	// 1. Check if there is a queued integration sync job first.
-	jobID, _, err := w.Store.AcquireNextQueuedSyncJob(ctx)
+	// 1. queued sync job 우선. AcquireNextQueuedSyncJob 은 provider_type='scm'
+	// gated (codex #341 P1) — 비-SCM job 은 도달하지 않음.
+	jobID, providerID, err := w.Store.AcquireNextQueuedSyncJob(ctx)
 	if err == nil && jobID != "" {
-		log.Printf("[Gitea Sync Worker] Acquired queued job %s. Starting sync...", jobID)
-		syncErr := w.syncAll(ctx)
-		if syncErr != nil {
+		// Phase 3: 등록된 provider 의 base_url + auth_mode 별 자격증명 우선, 없으면 env fallback.
+		baseURL, auth := w.resolveSyncConfig(ctx, providerID)
+		if strings.TrimSpace(baseURL) == "" {
+			log.Printf("[Gitea Sync Worker] Job %s (provider %s) skipped: base_url 미설정 (provider·env 모두)", jobID, providerID)
+			_ = w.Store.UpdateIntegrationSyncJobStatus(ctx, jobID, "failed")
+			return nil
+		}
+		client, err := NewClientForAuth(ctx, baseURL, auth)
+		if err != nil {
+			log.Printf("[Gitea Sync Worker] Job %s (provider %s) auth 실패 (%s mode): %v", jobID, providerID, auth.Mode, err)
+			_ = w.Store.UpdateIntegrationSyncJobStatus(ctx, jobID, "failed")
+			return err
+		}
+		if client == nil {
+			log.Printf("[Gitea Sync Worker] Job %s (provider %s) skipped: %s 자격증명 미설정", jobID, providerID, auth.Mode)
+			_ = w.Store.UpdateIntegrationSyncJobStatus(ctx, jobID, "failed")
+			return nil
+		}
+		log.Printf("[Gitea Sync Worker] Acquired queued job %s (provider %s, auth=%s). Starting sync...", jobID, providerID, auth.Mode)
+		if syncErr := w.syncAllWith(ctx, client, providerID); syncErr != nil {
 			log.Printf("[Gitea Sync Worker] Job %s failed: %v", jobID, syncErr)
 			_ = w.Store.UpdateIntegrationSyncJobStatus(ctx, jobID, "failed")
 			return syncErr
@@ -77,12 +94,38 @@ func (w *SyncWorker) ProcessOnce(ctx context.Context) error {
 		return nil
 	}
 
-	// 2. Regular periodic sync if no queued jobs are found.
-	return w.syncAll(ctx)
+	// 2. 큐가 비면 env(GITEA_URL/GITEA_TOKEN) 기반 주기 sync (backward compat, token mode).
+	// env 미설정이면 no-op (queued job 만 per-provider 로 처리).
+	if strings.TrimSpace(w.GiteaURL) == "" || strings.TrimSpace(w.GiteaToken) == "" {
+		return nil
+	}
+	return w.syncAllWith(ctx, NewClient(w.GiteaURL, w.GiteaToken), "")
 }
 
-func (w *SyncWorker) syncAll(ctx context.Context) error {
-	client := NewClient(w.GiteaURL, w.GiteaToken)
+// resolveSyncConfig — providerID 가 명시되면 그 provider 의 base_url + auth_mode 별
+// outbound 자격증명만 사용한다. providerID 가 비었거나 lookup 실패 시에만 worker 의
+// env 값(token mode)으로 fallback (legacy 주기 sync).
+//
+// 중요 (codex #358 P1): 명시 provider 가 해석되면 env token 으로 **fallback 하지 않는다**.
+// provider 고유 host(base_url)에 worker 전역 GITEA_TOKEN 을 보내면 잘못된 계정으로
+// 인증하거나 다른 외부 host 로 공유 토큰이 유출될 수 있다. 자격증명이 불완전하거나
+// (agent / 미완성 basic·oauth2) base_url 이 비면 ProcessOnce 가 job 을 실패 처리한다
+// (NewClientForAuth 가 nil 반환).
+func (w *SyncWorker) resolveSyncConfig(ctx context.Context, providerID string) (string, domain.OutboundAuth) {
+	envAuth := domain.OutboundAuth{Mode: domain.IntegrationAuthModeToken, Token: w.GiteaToken}
+	if strings.TrimSpace(providerID) == "" {
+		return w.GiteaURL, envAuth
+	}
+	prov, err := w.Store.GetIntegrationProviderByID(ctx, providerID)
+	if err != nil {
+		log.Printf("[Gitea Sync Worker] provider %s lookup 실패, env fallback: %v", providerID, err)
+		return w.GiteaURL, envAuth
+	}
+	// 명시 provider — 그 provider 의 base_url + 자체 자격증명만. env 혼용 금지.
+	return prov.BaseURL, prov.ResolveOutboundAuth()
+}
+
+func (w *SyncWorker) syncAllWith(ctx context.Context, client *Client, providerID string) error {
 	syncer := NewSyncer(w.Store)
 
 	// Fetch all Gitea user repositories first to build local cache mapping.
@@ -103,6 +146,8 @@ func (w *SyncWorker) syncAll(ctx context.Context) error {
 			HTMLURL:       repo.HTMLURL,
 			DefaultBranch: repo.DefaultBranch,
 			Private:       repo.Private,
+			Source:        domain.RepositorySourceSCM,
+			ProviderID:    providerID,
 		})
 		if err != nil {
 			log.Printf("[Gitea Sync Worker] Failed to upsert repo metadata for %s: %v", repo.FullName, err)

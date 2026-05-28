@@ -59,7 +59,138 @@ func TestListIntegrationProviders_FilterEnabled(t *testing.T) {
 	}
 }
 
+// 등록 UX 고도화 #2 — base_url (endpoint) round-trip.
+func TestCreateIntegrationProvider_WithBaseURL(t *testing.T) {
+	router := newApplicationsRouter(newMemoryApplicationStore())
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
+		`{"provider_key":"gitea-url","provider_type":"scm","display_name":"Gitea","auth_mode":"token","credentials_ref":"provider_sdk:gitea:s","base_url":"https://gitea.example.com"}`)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"base_url":"https://gitea.example.com"`)) {
+		t.Errorf("response should echo base_url: %s", rec.Body.String())
+	}
+}
+
+// Gitea 연동 #3 — api_token 은 write-only: 저장되지만 응답엔 raw 미노출 (api_token_set 만).
+func TestCreateIntegrationProvider_APITokenWriteOnly(t *testing.T) {
+	router := newApplicationsRouter(newMemoryApplicationStore())
+	const secretToken = "gitea-pat-supersecret-xyz"
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
+		`{"provider_key":"gitea-tok","provider_type":"scm","display_name":"Gitea","auth_mode":"token","credentials_ref":"provider_sdk:gitea:wh","api_token":"`+secretToken+`"}`)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"api_token_set":true`)) {
+		t.Errorf("response should report api_token_set true: %s", rec.Body.String())
+	}
+	if bytes.Contains(rec.Body.Bytes(), []byte(secretToken)) {
+		t.Errorf("raw api_token must NOT be exposed in response: %s", rec.Body.String())
+	}
+}
+
+// auth_mode 별 구조화 자격증명: 비밀 외 필드(auth_username/client_id/token_url)는
+// 응답에 노출, auth_secret 은 write-only (auth_secret_set bool 만).
+func TestCreateIntegrationProvider_BasicAuthCredentials(t *testing.T) {
+	router := newApplicationsRouter(newMemoryApplicationStore())
+	const secret = "basic-password-supersecret"
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
+		`{"provider_key":"gitea-basic","provider_type":"scm","display_name":"Gitea","auth_mode":"basic","credentials_ref":"hmac_sha256:wh","auth_username":"alice","auth_secret":"`+secret+`"}`)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"auth_username":"alice"`)) {
+		t.Errorf("response should echo auth_username: %s", rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"auth_secret_set":true`)) {
+		t.Errorf("response should report auth_secret_set true: %s", rec.Body.String())
+	}
+	if bytes.Contains(rec.Body.Bytes(), []byte(secret)) {
+		t.Errorf("raw auth_secret must NOT be exposed in response: %s", rec.Body.String())
+	}
+}
+
+// oauth2 token_url 은 http(s) URL 만 허용.
+func TestCreateIntegrationProvider_InvalidAuthTokenURL(t *testing.T) {
+	router := newApplicationsRouter(newMemoryApplicationStore())
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
+		`{"provider_key":"oauth-bad","provider_type":"scm","display_name":"X","auth_mode":"oauth2","credentials_ref":"hmac_sha256:s","auth_client_id":"cid","auth_token_url":"not-a-url","auth_secret":"cs"}`)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte("invalid_auth_token_url")) {
+		t.Errorf("expected invalid_auth_token_url code: %s", rec.Body.String())
+	}
+}
+
+// base_url 은 http(s) scheme 만 허용.
+func TestCreateIntegrationProvider_InvalidBaseURL(t *testing.T) {
+	router := newApplicationsRouter(newMemoryApplicationStore())
+	// codex PR #352 P2 — 비-http(s) + scheme-only(host 누락) 모두 거부.
+	for _, bad := range []string{"ftp://nope", "https://"} {
+		rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
+			`{"provider_key":"bad-url","provider_type":"scm","display_name":"X","auth_mode":"token","credentials_ref":"hmac_sha256:s","base_url":"`+bad+`"}`)
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("base_url %q should be 400, got %d body=%s", bad, rec.Code, rec.Body.String())
+		}
+		if !bytes.Contains(rec.Body.Bytes(), []byte("invalid_base_url")) {
+			t.Errorf("base_url %q: expected invalid_base_url code: %s", bad, rec.Body.String())
+		}
+	}
+}
+
+// 등록 UX 고도화 #5 — test-connection reachability.
+func TestTestIntegrationConnection_Reachable(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+	router := newApplicationsRouter(newMemoryApplicationStore())
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/test-connection",
+		`{"base_url":"`+srv.URL+`"}`)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"reachable":true`)) {
+		t.Errorf("expected reachable true: %s", rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"status_code":200`)) {
+		t.Errorf("expected status_code 200: %s", rec.Body.String())
+	}
+}
+
+func TestTestIntegrationConnection_InvalidURL(t *testing.T) {
+	router := newApplicationsRouter(newMemoryApplicationStore())
+	// codex PR #352 P2 — scheme-only (host 누락) 도 거부.
+	for _, body := range []string{`{"base_url":""}`, `{"base_url":"ftp://nope"}`, `{"base_url":"https://"}`} {
+		rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/test-connection", body)
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("body %s: expected 400, got %d body=%s", body, rec.Code, rec.Body.String())
+		}
+	}
+}
+
 func TestSyncIntegrationProvider_Happy(t *testing.T) {
+	router := newApplicationsRouter(newMemoryApplicationStore())
+	// SCM provider — sync 가능한 유일한 provider_type (Gitea 워커 대상).
+	// capability gate: sync 는 pull/sync capability 필요 (기능 gate 전환).
+	seed := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
+		`{"provider_key":"gitea-main","provider_type":"scm","display_name":"Gitea","auth_mode":"token","credentials_ref":"secret://gitea","capabilities":["pull"]}`)
+	if seed.Code != http.StatusCreated {
+		t.Fatalf("seed failed: %s", seed.Body.String())
+	}
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers/prov-gitea-main/sync", "{}")
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"job_id":"job-prov-gitea-main"`)) {
+		t.Errorf("expected job_id: %s", rec.Body.String())
+	}
+}
+
+// codex review PR #345 P2 — 비-SCM provider 의 sync 는 queue 전에 fast-fail.
+// (소비할 worker 가 없어 영구 queued 로 남는 zombie job 방지.)
+func TestSyncIntegrationProvider_RejectsNonSCM(t *testing.T) {
 	router := newApplicationsRouter(newMemoryApplicationStore())
 	seed := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
 		`{"provider_key":"jira-main","provider_type":"alm","display_name":"Jira","auth_mode":"oauth2","credentials_ref":"secret://jira"}`)
@@ -67,11 +198,11 @@ func TestSyncIntegrationProvider_Happy(t *testing.T) {
 		t.Fatalf("seed failed: %s", seed.Body.String())
 	}
 	rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers/prov-jira-main/sync", "{}")
-	if rec.Code != http.StatusAccepted {
-		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("non-SCM sync should be rejected with 422, got status=%d body=%s", rec.Code, rec.Body.String())
 	}
-	if !bytes.Contains(rec.Body.Bytes(), []byte(`"job_id":"job-prov-jira-main"`)) {
-		t.Errorf("expected job_id: %s", rec.Body.String())
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`integration_sync_unsupported_provider_type`)) {
+		t.Errorf("expected unsupported_provider_type code: %s", rec.Body.String())
 	}
 }
 
@@ -426,6 +557,49 @@ func TestIntegrationProviderWebhook_Happy(t *testing.T) {
 	rec := httptestDo(t, router, req)
 	if rec.Code != http.StatusAccepted {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+// Gitea/Forgejo/Gogs send X-Gitea-Signature (not the DevHub-native
+// X-Integration-Signature). The generic per-provider ingest endpoint must
+// accept those provider-native header aliases for signature/event/delivery.
+func TestIntegrationProviderWebhook_GiteaNativeHeaders(t *testing.T) {
+	eventStore := &dedupeEventStore{seen: map[string]bool{}}
+	router := NewRouter(RouterConfig{
+		ApplicationStore: newMemoryApplicationStore(),
+		AuthDevFallback:  true,
+		EventStore:       eventStore,
+	})
+	seed := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
+		`{"provider_key":"gitea-main","provider_type":"scm","display_name":"Gitea","auth_mode":"token","credentials_ref":"hmac_sha256:test-secret"}`)
+	if seed.Code != http.StatusCreated {
+		t.Fatalf("seed failed: %s", seed.Body.String())
+	}
+	body := []byte(`{"repository":{"full_name":"owner/repo"}}`)
+	mac := hmac.New(sha256.New, []byte("test-secret"))
+	mac.Write(body)
+	signature := hex.EncodeToString(mac.Sum(nil))
+
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/integration/providers/gitea-main/webhook", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	// Gitea-native headers only — no X-Integration-* present.
+	req.Header.Set("X-Gitea-Signature", signature)
+	req.Header.Set("X-Gitea-Event", "push")
+	req.Header.Set("X-Gitea-Delivery", "gitea-delivery-001")
+	rec := httptestDo(t, router, req)
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+
+	// Same delivery id must dedupe (event_type carried from X-Gitea-Event).
+	req2, _ := http.NewRequest(http.MethodPost, "/api/v1/integration/providers/gitea-main/webhook", bytes.NewReader(body))
+	req2.Header.Set("Content-Type", "application/json")
+	req2.Header.Set("X-Gitea-Signature", signature)
+	req2.Header.Set("X-Gitea-Event", "push")
+	req2.Header.Set("X-Gitea-Delivery", "gitea-delivery-001")
+	rec2 := httptestDo(t, router, req2)
+	if rec2.Code != http.StatusConflict {
+		t.Fatalf("dedupe status=%d body=%s", rec2.Code, rec2.Body.String())
 	}
 }
 

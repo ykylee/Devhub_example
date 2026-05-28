@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -37,6 +38,14 @@ func integrationProviderResponse(p domain.IntegrationProvider) gin.H {
 		"sync_status":     p.SyncStatus,
 		"last_sync_at":    nullableRFC3339(p.LastSyncAt),
 		"last_error_code": emptyAsNil(p.LastErrorCode),
+		"base_url":        emptyAsNil(p.BaseURL),
+		"api_token_set":   p.APIToken != "", // write-only — raw token 미노출 (보안)
+		// 구조화 outbound auth 자격증명 (auth_mode 별). 비밀 외 필드는 노출,
+		// auth_secret 는 write-only (set 여부 bool 만).
+		"auth_username":   emptyAsNil(p.AuthUsername),
+		"auth_client_id":  emptyAsNil(p.AuthClientID),
+		"auth_token_url":  emptyAsNil(p.AuthTokenURL),
+		"auth_secret_set": p.AuthSecret != "",
 		"created_at":      p.CreatedAt.UTC().Format(time.RFC3339),
 		"updated_at":      p.UpdatedAt.UTC().Format(time.RFC3339),
 	}
@@ -216,6 +225,29 @@ type createIntegrationProviderRequest struct {
 	AuthMode       string   `json:"auth_mode"`
 	CredentialsRef string   `json:"credentials_ref"`
 	Capabilities   []string `json:"capabilities"`
+	BaseURL        string   `json:"base_url"`
+	APIToken       string   `json:"api_token"`
+	// 구조화 outbound auth 자격증명 (auth_mode 별). 모두 optional — sync/pull
+	// capability 를 쓰는 provider 만 필요하므로 frontend 가 mode 별로 가이드한다.
+	AuthUsername string `json:"auth_username"`
+	AuthClientID string `json:"auth_client_id"`
+	AuthTokenURL string `json:"auth_token_url"`
+	AuthSecret   string `json:"auth_secret"`
+}
+
+// validBaseURL — base_url 은 optional (webhook 전용 provider 는 미사용). 제공 시
+// http(s) scheme + non-empty host 를 가진 absolute URL 만 허용 (등록 UX 고도화 #2).
+// codex review PR #352 P2: scheme-only ("https://") 같은 host 누락 값 거부.
+func validBaseURL(raw string) bool {
+	v := strings.TrimSpace(raw)
+	if v == "" {
+		return true
+	}
+	u, err := url.Parse(v)
+	if err != nil {
+		return false
+	}
+	return (u.Scheme == "http" || u.Scheme == "https") && u.Host != ""
 }
 
 // API-70
@@ -249,6 +281,14 @@ func (h *Handler) createIntegrationProvider(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "credentials_ref is required"})
 		return
 	}
+	if !validBaseURL(req.BaseURL) {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "base_url must be an http(s) URL", "code": "invalid_base_url"})
+		return
+	}
+	if !validBaseURL(req.AuthTokenURL) {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "auth_token_url must be an http(s) URL", "code": "invalid_auth_token_url"})
+		return
+	}
 	created, err := storeI.CreateIntegrationProvider(c.Request.Context(), domain.IntegrationProvider{
 		ProviderKey:    req.ProviderKey,
 		ProviderType:   domain.IntegrationProviderType(req.ProviderType),
@@ -258,6 +298,12 @@ func (h *Handler) createIntegrationProvider(c *gin.Context) {
 		CredentialsRef: req.CredentialsRef,
 		Capabilities:   req.Capabilities,
 		SyncStatus:     "requested",
+		BaseURL:        strings.TrimSpace(req.BaseURL),
+		APIToken:       strings.TrimSpace(req.APIToken),
+		AuthUsername:   strings.TrimSpace(req.AuthUsername),
+		AuthClientID:   strings.TrimSpace(req.AuthClientID),
+		AuthTokenURL:   strings.TrimSpace(req.AuthTokenURL),
+		AuthSecret:     strings.TrimSpace(req.AuthSecret),
 	})
 	if errors.Is(err, store.ErrConflict) {
 		c.JSON(http.StatusConflict, gin.H{"status": "conflict", "error": "provider already exists", "code": "integration_provider_conflict"})
@@ -279,6 +325,13 @@ type updateIntegrationProviderRequest struct {
 	DisplayName    *string  `json:"display_name"`
 	CredentialsRef *string  `json:"credentials_ref"`
 	Capabilities   []string `json:"capabilities"`
+	BaseURL        *string  `json:"base_url"`
+	APIToken       *string  `json:"api_token"`
+	// 구조화 outbound auth 자격증명. nil = 유지 (write-only secret 는 blank=keep).
+	AuthUsername *string `json:"auth_username"`
+	AuthClientID *string `json:"auth_client_id"`
+	AuthTokenURL *string `json:"auth_token_url"`
+	AuthSecret   *string `json:"auth_secret"`
 }
 
 // API-71
@@ -323,6 +376,32 @@ func (h *Handler) updateIntegrationProvider(c *gin.Context) {
 	if req.Capabilities != nil {
 		updated.Capabilities = req.Capabilities
 	}
+	if req.BaseURL != nil {
+		if !validBaseURL(*req.BaseURL) {
+			c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "base_url must be an http(s) URL", "code": "invalid_base_url"})
+			return
+		}
+		updated.BaseURL = strings.TrimSpace(*req.BaseURL)
+	}
+	if req.APIToken != nil {
+		updated.APIToken = strings.TrimSpace(*req.APIToken)
+	}
+	if req.AuthUsername != nil {
+		updated.AuthUsername = strings.TrimSpace(*req.AuthUsername)
+	}
+	if req.AuthClientID != nil {
+		updated.AuthClientID = strings.TrimSpace(*req.AuthClientID)
+	}
+	if req.AuthTokenURL != nil {
+		if !validBaseURL(*req.AuthTokenURL) {
+			c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "auth_token_url must be an http(s) URL", "code": "invalid_auth_token_url"})
+			return
+		}
+		updated.AuthTokenURL = strings.TrimSpace(*req.AuthTokenURL)
+	}
+	if req.AuthSecret != nil {
+		updated.AuthSecret = strings.TrimSpace(*req.AuthSecret)
+	}
 	result, err := storeI.UpdateIntegrationProvider(c.Request.Context(), updated)
 	if errors.Is(err, store.ErrNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "provider not found", "code": "integration_provider_not_found"})
@@ -334,6 +413,51 @@ func (h *Handler) updateIntegrationProvider(c *gin.Context) {
 	}
 	h.recordAuditBestEffort(c, "integration.provider.updated", "integration_provider", result.ID, nil)
 	c.JSON(http.StatusOK, gin.H{"status": "ok", "data": integrationProviderResponse(result)})
+}
+
+type testConnectionRequest struct {
+	BaseURL string `json:"base_url"`
+}
+
+// POST /api/v1/integration/test-connection — 등록 UX 고도화 #5.
+// 등록 전/후 외부 시스템 endpoint reachability 검증. system_admin gated
+// (ResourceInfrastructure/Edit). reachability 만 확인 (자격증명 검증은 후속) —
+// GET + 5s timeout + redirect 미추적.
+//
+// SSRF: 합법적 sync 대상이 사내 internal endpoint (Gitea/Jenkins 등) 이므로
+// internal IP 차단은 하지 않는다. admin 신뢰 경계 + 짧은 timeout + 응답 본문
+// 미반환 (status_code/latency 만) 으로 노출 표면을 최소화한다.
+func (h *Handler) testIntegrationConnection(c *gin.Context) {
+	var req testConnectionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": err.Error()})
+		return
+	}
+	target := strings.TrimSpace(req.BaseURL)
+	if target == "" || !validBaseURL(target) {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "base_url must be a non-empty http(s) URL", "code": "invalid_base_url"})
+		return
+	}
+	httpReq, err := http.NewRequestWithContext(c.Request.Context(), http.MethodGet, target, nil)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "invalid base_url", "code": "invalid_base_url"})
+		return
+	}
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+		CheckRedirect: func(*http.Request, []*http.Request) error {
+			return http.ErrUseLastResponse // redirect 미추적 (SSRF chain 회피)
+		},
+	}
+	start := time.Now()
+	resp, err := client.Do(httpReq)
+	latencyMs := time.Since(start).Milliseconds()
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"status": "ok", "reachable": false, "latency_ms": latencyMs, "error": err.Error()})
+		return
+	}
+	defer resp.Body.Close()
+	c.JSON(http.StatusOK, gin.H{"status": "ok", "reachable": true, "status_code": resp.StatusCode, "latency_ms": latencyMs})
 }
 
 // API-72
@@ -354,6 +478,28 @@ func (h *Handler) syncIntegrationProvider(c *gin.Context) {
 	}
 	if !provider.Enabled {
 		c.JSON(http.StatusConflict, gin.H{"status": "rejected", "error": "provider is disabled", "code": "integration_provider_disabled"})
+		return
+	}
+	// 현재 sync worker 는 SCM (Gitea) 한 종류뿐이다 (AcquireNextQueuedSyncJob 가
+	// provider_type='scm' 게이트). 비-SCM provider 의 sync job 을 queue 하면 소비할
+	// worker 가 없어 영구히 queued 로 남으므로, queue 전에 fast-fail 한다
+	// (codex review PR #345 P2). 다른 provider_type 의 sync worker 추가 시 확장.
+	if provider.ProviderType != domain.IntegrationProviderTypeSCM {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"status": "rejected",
+			"error":  "sync is only supported for SCM-type providers",
+			"code":   "integration_sync_unsupported_provider_type",
+		})
+		return
+	}
+	// capability gate (기능 gate 로 전환) — mirror sync 는 pull/sync 권한을 선언한
+	// provider 만. 둘 다 없으면 422.
+	if !providerHasCapability(provider, "pull", "sync") {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"status": "rejected",
+			"error":  "provider does not have the 'pull' or 'sync' capability enabled",
+			"code":   "integration_capability_not_enabled",
+		})
 		return
 	}
 	jobID, err := storeI.CreateIntegrationSyncJob(c.Request.Context(), providerID, actorLogin(c))
@@ -447,7 +593,10 @@ func (h *Handler) ingestIntegrationProviderWebhook(c *gin.Context) {
 		c.JSON(http.StatusConflict, gin.H{"status": "rejected", "error": "provider is disabled", "code": "integration_provider_disabled"})
 		return
 	}
-	signature := strings.TrimSpace(c.GetHeader("X-Integration-Signature"))
+	// Accept DevHub-native header (X-Integration-*) plus provider-native aliases.
+	// Gitea/Forgejo send X-Gitea-Signature, Gogs sends X-Gogs-Signature; the
+	// signature value itself is provider-agnostic HMAC verified below.
+	signature := strings.TrimSpace(firstHeader(c, "X-Integration-Signature", "X-Gitea-Signature", "X-Gogs-Signature"))
 	payload, err := c.GetRawData()
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "cannot read payload"})
@@ -462,8 +611,8 @@ func (h *Handler) ingestIntegrationProviderWebhook(c *gin.Context) {
 		})
 		return
 	}
-	deliveryID := strings.TrimSpace(c.GetHeader("X-Integration-Delivery"))
-	eventType := strings.TrimSpace(c.GetHeader("X-Integration-Event"))
+	deliveryID := strings.TrimSpace(firstHeader(c, "X-Integration-Delivery", "X-Gitea-Delivery", "X-Gogs-Delivery"))
+	eventType := strings.TrimSpace(firstHeader(c, "X-Integration-Event", "X-Gitea-Event", "X-Gogs-Event"))
 	if eventType == "" {
 		eventType = "unknown"
 	}

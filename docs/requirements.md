@@ -502,11 +502,11 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
 - Onboarding 완료 후의 `review_status` reversal 정책 (예: 재교육/재인증 필요 시 admin 이 `reviewed` → `pending_review` 강제 되돌리기) — 운영 정책 결정 후 후속 carve.
 - MFA / 2FA — ADR-0019 §5.3 sub-carve 와 분리 (§2.5 사용자 계정 관리의 MFA 비도입 기준과 동일).
 
-### 5.8 Application 개발 대시보드 도메인 (Application Development Dashboard)
+### 5.9 Application 개발 대시보드 도메인 (Application Development Dashboard)
 
 본 절은 컨셉 문서([`docs/planning/application_dashboard_concept.md`](./planning/application_dashboard_concept.md))에 정의된 DevHub 핵심 단위인 Application 상세 대시보드의 기능 요구사항을 발급한다.
 
-#### 5.8.1 기능 요구사항 (REQ-FR-APPDASH)
+#### 5.9.1 기능 요구사항 (REQ-FR-APPDASH)
 
 - **REQ-FR-APPDASH-001 (MVP, 확정):** 실시간 타겟 브랜치 빌드 상태(Target Branch Build Status)를 최상단 메트릭 카드를 통해 노출해야 한다.
     - **실시간 실패 빌드 런 표시**: 단순 빌드 성공률(%)보다 실시간 broken/red 상태 빌드 현황을 즉시 표기한다.
@@ -526,13 +526,13 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
     - 7일 및 30일 간의 평균 빌드 소요 시간 변화 추이와 빌드 성공률 추이를 제공해야 한다.
 - **REQ-FR-APPDASH-006 (MVP, 확정):** 가중치 배분 비주얼라이저(Weight Policy Visualizer)를 통해 리포지토리 역할(`primary`/`sub`/`shared`)에 따라 계산 롤업에 적용된 가중치를 도넛 차트로 노출하고 가중치 수정 설정을 제공해야 한다.
 
-#### 5.8.2 비기능 / 운영 요구사항 (REQ-NFR-APPDASH)
+#### 5.9.2 비기능 / 운영 요구사항 (REQ-NFR-APPDASH)
 
 - **REQ-NFR-APPDASH-001 (MVP):** UI 레이아웃은 모던 글래스모피즘(Glassmorphism) 스타일을 적용하고, 라이트/다크 모드에 최적화된 curated HSL 색상 팔레트 시스템을 사용해 시인성을 극대화해야 한다.
 - **REQ-NFR-APPDASH-002 (MVP):** 대시보드 로딩 성능 보장을 위해 캐싱 및 비동기 병렬 aggregation을 적용하여 첫 진입 시 p95 로딩 속도 1.5초 이하를 달성해야 한다.
 - **REQ-NFR-APPDASH-003 (MVP):** 연동 장애로 인한 우아한 성능 저하(Graceful Degradation)를 보장해야 한다. 특정 저장소/CI 연동 장애 시 전체 화면이 깨지지 않고, 장애 대상 리포지토리에 대해 `data_gap` 또는 경고 표시를 하며 가용한 데이터만 롤업 집계해 표시해야 한다.
 
-#### 5.8.3 범위 경계 (Out of Scope)
+#### 5.9.3 범위 경계 (Out of Scope)
 
 - 실시간 리포지토리 빌드 실패 시 외부 메신저 알림(Slack 등) 자동 전송 기능 (v2 범위).
 - AI 기반 빌드 실패 원인 자동 분석 및 코드 패치 제안 (v2 범위).

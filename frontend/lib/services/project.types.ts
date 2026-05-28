@@ -65,7 +65,7 @@ export interface ApplicationRepository {
 export interface Project {
   id: string;
   application_id?: string;
-  repository_id: number;
+  repository_id?: number;
   repository_ids?: number[];
   key: string;
   name: string;
@@ -73,11 +73,21 @@ export interface Project {
   status: ProjectStatus;
   visibility: ApplicationVisibility;
   owner_user_id: string;
+  project_members?: Array<{
+    user_id: string;
+    project_role: ProjectMemberRole;
+  }>;
   start_date?: string;
   due_date?: string;
   archived_at?: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface ProjectRepositoryCreatePayload {
+  key: string;
+  slug: string;
+  scm_provider: string;
 }
 
 export interface ProjectRepositoryLink {

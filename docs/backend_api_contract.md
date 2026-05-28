@@ -1297,7 +1297,7 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 | `API-56B` | `GET/POST/DELETE /api/v1/projects/{project_id}/repositories` | §13.5 | activated (v2/hybrid) |
 | `API-57` | `GET /api/v1/applications/{application_id}/rollup` | §13.6 | activated (concept §13.4 normalize 실 구현 + critical 가드 흡수) |
 | `API-58` | `GET /api/v1/integrations` + CRUD | §13.7 | activated (scope polymorphism application/project) |
-| `API-87` | `GET /api/v1/applications/{application_id}/dashboard` | §13.9 | planned (sprint gemini/application-dashboard-concept) |
+| `API-93` | `GET /api/v1/applications/{application_id}/dashboard` | §13.10 | planned (sprint gemini/application-dashboard-concept) |
 
 **activated 단계 정의 (sprint claude/work_260514-b)**: gin v1 group route + RBAC matrix + handler body + store body + 요청 validation + 상태 전이 가드 + audit emit. RBAC 매트릭스에서 system_admin 만 4 신규 resource (`applications` / `application_repositories` / `projects` / `scm_providers`) 의 모든 axis true (migration 000018, ADR-0011 §4.1).
 
@@ -1718,9 +1718,9 @@ project_key_conflict
 integration_policy_violation
 ```
 
-### 13.9 Application 개발 대시보드 API
+### 13.10 Application 개발 대시보드 API
 
-#### `GET /api/v1/applications/{application_id}/dashboard` (`API-87`)
+#### `GET /api/v1/applications/{application_id}/dashboard` (`API-93`)
 
 - **설명**: Application 상세 대시보드용 실시간 빌드 상태, 다차원 품질 메트릭, 하위 프로젝트 진척율 및 지연 리스크 배지, 매핑된 DREQ 목록, SCM 및 빌드 시계열 트렌드 데이터를 일괄 병렬 집계하여 반환합니다.
 - **인증**: OIDC + RBAC `applications:view`.
@@ -2118,6 +2118,14 @@ intake_token_collision                         # sprint o (ADR-0014): hashed_tok
 | API-77 | `POST /api/v1/infra/services/snapshot` | 홈랩 서비스 상태 스냅샷 수집 ingest |
 | API-78 | `GET /api/v1/infra/topology/v2` | 노드+서비스+의존성 통합 토폴로지 조회 |
 | API-80 | `DELETE /api/v1/integration/providers/{provider_id}` | Provider 삭제 (FK guard, sprint `claude/work_260518-j`) |
+| API-87 | `POST /api/v1/integration/test-connection` | Provider endpoint reachability 테스트 (등록 UX 고도화 #5) |
+| API-88 | `GET /api/v1/integration/providers/{provider_id}/scm-repositories` | SCM provider 원격 repository 목록 조회 (import 대상) |
+| API-89 | `POST /api/v1/integration/providers/{provider_id}/import-repositories` | 선택 repository 를 시스템으로 import/연동 |
+| API-90 | `POST /api/v1/integration/providers/{provider_id}/create-repository` | 선택 SCM 에 실제 저장소 생성 + 시스템 미러 (Phase C) |
+
+> **capability 기능 gate** (sprint `claude/work_260527-scm-repo-sync` / `-phase-c`): provider `capabilities` 는 표시 라벨이 아니라 기능 gate 다. `pull` = SCM 으로부터 repository 조회/import(API-88/89) 허용, `sync` = mirror sync(API-72) 허용(`pull` 도 허용), `webhook` = inbound webhook 수신, `push` = outbound 저장소 생성(API-90) 허용. gate 미충족 시 422 `integration_capability_not_enabled`.
+>
+> import/create 는 현재 **Gitea REST client** 만 구현돼 있어 Gitea-compatible provider(gitea/forgejo/gogs, credentials_ref `provider_sdk:<vendor>` 기준)로 제한된다. 다른 vendor(github/gitlab/bitbucket)는 422 `integration_provider_not_gitea_compatible`.
 
 ### 15.2 Provider Catalog
 
@@ -2129,9 +2137,16 @@ intake_token_collision                         # sprint o (ADR-0014): hashed_tok
 #### API-70 `POST /api/v1/integration/providers`
 
 - **인증**: OIDC + RBAC `infrastructure:edit` (system_admin only).
-- **요청**: `provider_key`, `provider_type`, `display_name`, `auth_mode`, `credentials_ref`, `capabilities`, `scope`.
-- **응답 — 201**: 생성된 provider.
-- **에러**: 409 `integration_provider_conflict`, 400 `invalid_provider_type`.
+- **요청**: `provider_key`, `provider_type`, `display_name`, `auth_mode`, `credentials_ref`(inbound webhook 서명 시크릿), `capabilities`, `base_url`(optional, http(s) URL — outbound sync 대상 endpoint, migration 000038), `api_token`(optional — outbound sync(REST pull) 인증용 PAT, **write-only**, migration 000040), `scope`.
+- **outbound auth 자격증명 (auth_mode 별, migration 000041, 모두 optional)**: `auth_mode` 에 따라 외부 시스템 sync/pull 시 사용하는 자격증명.
+  - `token` → `api_token` (PAT). `Authorization: token <pat>`.
+  - `basic` / `app_password` → `auth_username` + `auth_secret`. HTTP Basic.
+  - `oauth2` → `auth_client_id` + `auth_token_url`(http(s) URL) + `auth_secret`(client_secret). client-credentials grant 후 `Authorization: Bearer`.
+  - `agent` → `auth_username`(agent 식별자). 별도 agent 가 인증 (서버 직접 sync 미사용).
+  - `auth_secret` 은 **write-only** (api_token 과 동일). 비밀 외 필드(`auth_username`/`auth_client_id`/`auth_token_url`)는 응답 노출.
+- **응답 — 201**: 생성된 provider (`base_url`/`auth_username`/`auth_client_id`/`auth_token_url` 포함; `api_token`·`auth_secret` 은 raw 미노출, `api_token_set`/`auth_secret_set`(bool) 만 — 보안).
+- **에러**: 409 `integration_provider_conflict`, 400 `invalid_provider_type`, 400 `invalid_base_url`, 400 `invalid_auth_token_url`.
+- **참고**: `credentials_ref`(inbound webhook)와 outbound auth 자격증명(`api_token`/`auth_*`)은 별개 시크릿. Phase 3 (sync worker per-provider) 이후 등록 provider 의 `base_url` + auth_mode 별 자격증명이 Gitea sync 에 사용됨 (env fallback, token mode).
 
 요청 예시:
 
@@ -2175,14 +2190,43 @@ intake_token_collision                         # sprint o (ADR-0014): hashed_tok
 #### API-71 `PATCH /api/v1/integration/providers/{provider_id}`
 
 - **인증**: OIDC + RBAC `infrastructure:edit` (system_admin only).
-- **요청**: `enabled`, `display_name`, `capabilities`, `credentials_ref` 일부 수정.
+- **요청**: `enabled`, `display_name`, `capabilities`, `credentials_ref`, `base_url`, `api_token`, `auth_username`, `auth_client_id`, `auth_token_url`, `auth_secret` 일부 수정 (전송된 키만 patch). `auth_mode` 는 등록 시 고정 — 변경 불가. write-only secret(`api_token`/`auth_secret`)은 blank/미전송 시 기존 값 유지.
 - **응답 — 200**: 수정된 provider.
+- **에러**: 400 `invalid_base_url`, 400 `invalid_auth_token_url`.
 
 #### API-72 `POST /api/v1/integration/providers/{provider_id}/sync`
 
 - **인증**: OIDC + RBAC `infrastructure:edit` (system_admin only).
 - **설명**: provider 단위 수동 reconciliation job enqueue.
+- **capability gate**: provider 가 `pull` 또는 `sync` capability 를 선언해야 한다. 미충족 시 422 `integration_capability_not_enabled`.
 - **응답 — 202**: `{status:"accepted", job_id:"..."}`.
+- **에러**: 422 `integration_sync_unsupported_provider_type` (비-SCM), 422 `integration_capability_not_enabled`.
+
+#### API-88 `GET /api/v1/integration/providers/{provider_id}/scm-repositories`
+
+- **인증**: OIDC + RBAC `infrastructure:view` (system_admin only).
+- **설명**: SCM provider(`provider_type=scm`)의 base_url + outbound 자격증명으로 원격 repository 목록을 조회한다. 각 항목에 시스템 import 여부(`imported`)를 표시 (provider_id 로 연동된 시스템 repository 존재 여부).
+- **capability gate**: `pull` 필요.
+- **응답 — 200**: `{status:"ok", data:[{full_name, name, clone_url, html_url, default_branch, private, imported}], meta:{total}}`.
+- **에러**: 404 `integration_provider_not_found`, 409 `integration_provider_disabled`(비활성), 422 `integration_sync_unsupported_provider_type`(비-SCM) / `integration_capability_not_enabled`(pull 없음) / `integration_provider_not_gitea_compatible` / `integration_base_url_missing` / `integration_outbound_credentials_missing`, 502 `integration_scm_unreachable`/`integration_scm_auth_failed`.
+
+#### API-89 `POST /api/v1/integration/providers/{provider_id}/import-repositories`
+
+- **인증**: OIDC + RBAC `infrastructure:edit` (system_admin only).
+- **요청**: `{full_names: ["owner/repo", ...]}` (import 할 원격 repository full_name 목록).
+- **설명**: 선택한 원격 repository 를 시스템 `repositories` 로 import/연동한다. **신뢰 가능한 SCM 데이터를 쓰기 위해 요청 payload 가 아니라 SCM 에서 다시 조회한 값**으로 upsert 한다. import 된 repository 는 `source=scm`, `provider_id` 세팅, SCM mirror 필드(clone_url/default_branch/private 등)는 이후 sync 가 갱신하고 시스템 소유 메타(`description`)는 보존된다 (소유권 분리, migration 000042).
+- **capability gate**: `pull` 필요.
+- **응답 — 200**: `{status:"ok", imported:N, repositories:[{full_name, name}], not_found:["..."]}`. (선택했으나 원격에 없는 full_name 은 `not_found`.)
+- **에러**: 400 `integration_import_no_selection`(빈 목록), 그 외 API-88 과 동일.
+
+#### API-90 `POST /api/v1/integration/providers/{provider_id}/create-repository`
+
+- **인증**: OIDC + RBAC `infrastructure:edit` (system_admin only).
+- **요청**: `{name(필수), owner(optional org — 비우면 인증 계정), description, private(bool), auto_init(bool)}`.
+- **설명**: 시스템에서 선택 SCM(provider)에 **실제 저장소를 생성**하고 (Gitea `POST /user/repos` 또는 `/orgs/{owner}/repos`) 시스템 `repositories` 로 미러한다. 생성된 row 는 **`source=system`** (시스템이 생성을 주도) + `provider_id` 세팅 + SCM 응답값으로 mirror 필드 채움. 이후 sync 가 mirror 필드를 갱신해도 source/description 는 보존.
+- **capability gate**: `push` 필요 + Gitea-compatible provider.
+- **응답 — 201**: `{status:"created", repository:{full_name, name, clone_url, html_url, default_branch, private, source:"system"}}`.
+- **에러**: 400 `integration_repo_name_required`, 409 `integration_provider_disabled`(비활성), 422 `integration_capability_not_enabled`(push 없음) / `integration_provider_not_gitea_compatible` / `integration_base_url_missing` / `integration_outbound_credentials_missing`, 502 `integration_scm_create_failed`(SCM 생성 실패 — 예: 이미 존재 409).
 
 #### API-80 `DELETE /api/v1/integration/providers/{provider_id}`
 
@@ -2194,6 +2238,18 @@ intake_token_collision                         # sprint o (ADR-0014): hashed_tok
   - 409 `{status:"conflict", code:"integration_provider_has_bindings"}` — 활성 binding 존재. 운영자가 binding 삭제 후 재시도.
 - **audit**: `integration.provider.deleted` + payload `{provider_key, provider_type, display_name}`.
 - **운영 메모**: cascade binding 정리는 별도 ADR 후보 (1차 정책은 명시 차단).
+
+#### API-87 `POST /api/v1/integration/test-connection`
+
+- **인증**: OIDC + RBAC `infrastructure:edit` (system_admin only).
+- **설명**: provider 등록 전/후 외부 시스템 endpoint reachability 검증 (등록 UX 고도화 #5). 저장된 provider 가 아니라 body 의 `base_url` 을 직접 GET (pre-save 가능). reachability 만 확인하며 자격증명 검증은 후속.
+- **요청**: `{ "base_url": "https://gitea.example.com" }` (http(s) 필수).
+- **동작**: GET + 5s timeout + redirect 미추적. 응답 본문은 미반환 (status_code / latency 만).
+- **응답**:
+  - 200 `{status:"ok", reachable:true, status_code, latency_ms}` — 도달.
+  - 200 `{status:"ok", reachable:false, latency_ms, error}` — 미도달 (테스트 자체는 수행됨).
+  - 400 `{status:"rejected", code:"invalid_base_url"}` — base_url 누락 또는 비-http(s).
+- **보안**: SSRF — 합법적 대상이 사내 internal endpoint (Gitea/Jenkins 등) 이므로 internal IP 차단 안 함. admin 신뢰 경계 + 짧은 timeout + 본문 미반환으로 표면 최소화.
 
 ### 15.3 Ingest / Binding
 
@@ -2209,6 +2265,7 @@ intake_token_collision                         # sprint o (ADR-0014): hashed_tok
   - `X-Integration-Delivery`: 외부 전송 고유 ID (없으면 payload hash로 보조 dedupe)
   - `X-Integration-Event`: 이벤트 타입
   - `X-Integration-Signature`: provider 정책 기반 서명값
+- **provider-native 헤더 alias**: 외부 시스템은 DevHub-native `X-Integration-*` 를 보내지 않으므로, 각 항목은 provider 고유 헤더로 fallback 한다. 현재 수용: Gitea/Forgejo `X-Gitea-Signature`/`X-Gitea-Event`/`X-Gitea-Delivery`, Gogs `X-Gogs-Signature`/`X-Gogs-Event`/`X-Gogs-Delivery`. 우선순위는 `X-Integration-*` → `X-Gitea-*` → `X-Gogs-*`. 서명 값 자체는 provider 무관 HMAC-SHA256 으로 검증한다(`hmac_sha256:` / `provider_sdk:` 전략).
 
 #### API-74 `GET /api/v1/integration/bindings`
 

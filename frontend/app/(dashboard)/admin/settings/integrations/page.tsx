@@ -7,6 +7,8 @@ import { integrationService } from "@/lib/services/integration.service";
 import type { IntegrationProvider } from "@/lib/services/integration.types";
 import { ProviderTable } from "@/components/integration/ProviderTable";
 import { ProviderModal } from "@/components/integration/ProviderModal";
+import { ImportRepositoriesModal } from "@/components/integration/ImportRepositoriesModal";
+import { CreateScmRepositoryModal } from "@/components/integration/CreateScmRepositoryModal";
 import { useToast } from "@/components/ui/Toast";
 import { DestructiveConfirmModal } from "@/components/ui/DestructiveConfirmModal";
 import { ApiError } from "@/lib/services/api-client";
@@ -19,6 +21,8 @@ export default function AdminSettingsIntegrationsPage() {
   const [syncingProviderID, setSyncingProviderID] = useState<string | null>(null);
   const [deletingProviderID, setDeletingProviderID] = useState<string | null>(null);
   const [providerToDelete, setProviderToDelete] = useState<IntegrationProvider | null>(null);
+  const [importProvider, setImportProvider] = useState<IntegrationProvider | null>(null);
+  const [createRepoProvider, setCreateRepoProvider] = useState<IntegrationProvider | null>(null);
   const { toast } = useToast();
 
   // codex hotfix #6 P1 #1 (PR #148): `useToast()` 가 매 render 마다 새 toast
@@ -155,8 +159,30 @@ export default function AdminSettingsIntegrationsPage() {
           onEdit={setEditingProvider}
           onSync={handleSync}
           onDelete={handleDeleteRequest}
+          onImport={setImportProvider}
+          onCreateRepo={setCreateRepoProvider}
           syncingProviderID={syncingProviderID}
           deletingProviderID={deletingProviderID}
+        />
+      )}
+
+      {importProvider && (
+        <ImportRepositoriesModal
+          provider={importProvider}
+          onClose={() => setImportProvider(null)}
+          onImported={(count) =>
+            toast(`${count} repositories imported from ${importProvider.display_name}`, "success")
+          }
+        />
+      )}
+
+      {createRepoProvider && (
+        <CreateScmRepositoryModal
+          provider={createRepoProvider}
+          onClose={() => setCreateRepoProvider(null)}
+          onCreated={(fullName) =>
+            toast(`Repository ${fullName} created in ${createRepoProvider.display_name}`, "success")
+          }
         />
       )}
 

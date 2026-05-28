@@ -237,8 +237,48 @@ type IntegrationProvider struct {
 	SyncStatus     string
 	LastSyncAt     *time.Time
 	LastErrorCode  string
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	BaseURL        string
+	APIToken       string
+	// Structured outbound auth credentials (auth_mode-driven). Non-secret
+	// fields are returnable; AuthSecret is write-only at the API layer.
+	AuthUsername string // basic/app_password username, or agent identifier
+	AuthClientID string // oauth2 client_id
+	AuthTokenURL string // oauth2 token endpoint (client-credentials grant)
+	AuthSecret   string // basic/app_password password, or oauth2 client_secret
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+}
+
+// OutboundAuth resolves the credential values this provider uses to authenticate
+// outbound calls to the external system, keyed by AuthMode.
+type OutboundAuth struct {
+	Mode     IntegrationAuthMode
+	Token    string // token mode
+	Username string // basic/app_password (or agent identifier)
+	Secret   string // basic/app_password password OR oauth2 client_secret
+	ClientID string // oauth2
+	TokenURL string // oauth2
+}
+
+// ResolveOutboundAuth maps the provider's stored credential columns to an
+// OutboundAuth for the active AuthMode.
+func (p IntegrationProvider) ResolveOutboundAuth() OutboundAuth {
+	a := OutboundAuth{Mode: p.AuthMode}
+	switch p.AuthMode {
+	case IntegrationAuthModeBasic, IntegrationAuthModeAppPassword:
+		a.Username = p.AuthUsername
+		a.Secret = p.AuthSecret
+	case IntegrationAuthModeOAuth2:
+		a.ClientID = p.AuthClientID
+		a.TokenURL = p.AuthTokenURL
+		a.Secret = p.AuthSecret
+	case IntegrationAuthModeAgent:
+		a.Username = p.AuthUsername
+	default: // token, or unset (legacy) — Gitea PAT in api_token
+		a.Mode = IntegrationAuthModeToken
+		a.Token = p.APIToken
+	}
+	return a
 }
 
 // IntegrationBinding is one row in integration_bindings.

@@ -1,0 +1,84 @@
+# Session Handoff — codex/work_260526-ui-app-project-repo-upgrade
+
+- 목적: Application/Project/Repository UI를 운영 수준으로 고도화
+- 상태: in_progress
+- 최종 수정일: 2026-05-26
+
+## 금일 진행
+
+1. 계획 문서 신규 작성
+- `docs/planning/ui_app_project_repo_upgrade_plan.md`
+
+2. 1차 완료 (상세 mock 제거)
+- Application 상세: mock history 제거, 실제 rollup/repository 기반 렌더링
+- Repository 상세: mock timeline/security 제거, 실제 activity window 기반 렌더링
+
+3. 2차 진행 (관리 액션 완결)
+- ProjectTable: Edit 액션 콜백 연결, 콜백 미존재 시 액션 미노출
+- RepositoryTable: View/Metric 액션 콜백 연결
+- Admin settings applications: project edit modal/상세 이동/저장소 상세 이동 연결
+
+4. 2.3 착수 (운영 UX 표준화)
+- `frontend/components/ui/PageState.tsx` 신규
+- applications/projects/repositories 목록 페이지에 loading/error/retry/empty 공통 적용
+- applications/[id], projects/[id], repositories/[id] 상세 페이지에 loading/error/retry 공통 적용
+- 상세 화면 오류 메시지 `toUserErrorMessage` 표준화 적용
+- 상세 카드의 정적 텍스트 일부를 실데이터 기반으로 전환
+- lint/build 검증 통과
+
+5. `/devhub` 도커 E2E 환경 구성 완료
+- `localhost:13000/devhub` 기준 compose stack 기동
+- 구성: `frontend/backend-core/backend-ai/nginx/keycloak` docker + host postgres (`localhost:5432`)
+- Keycloak realm/client redirect 동기화 완료
+- 선택 E2E 통과:
+  - `tests/e2e/admin-applications.spec.ts`
+  - `tests/e2e/admin-projects.spec.ts`
+  - `tests/e2e/project-model-modes.spec.ts`
+
+6. Repository UI E2E 추가
+- `frontend/tests/e2e/repositories-ui.spec.ts` 신규
+- 검증 범위:
+  - 목록 진입 + fixture repository 노출
+  - 저장소명/owner 검색 필터링
+  - 상세 진입 + 핵심 활동 카드 노출
+- `/devhub` 도커 환경에서 통과
+
+7. Repository negative E2E 추가
+- `frontend/tests/e2e/repositories-ui-negative.spec.ts` 신규
+- 검증 범위:
+  - 목록 조회 500 시 에러 메시지 + retry 버튼 노출
+  - retry 클릭 시 실제 재요청 발생
+  - 빈 목록 응답 시 empty state 노출
+- `/devhub` 도커 환경에서 통과
+
+8. Repository detail negative E2E 추가
+- `frontend/tests/e2e/repositories-detail-negative.spec.ts` 신규
+- 검증 범위:
+  - activity API 500 시 상세 페이지 에러 메시지 + retry 버튼 노출
+  - retry 클릭 시 실제 재요청 발생
+- `/devhub` 도커 환경에서 통과
+
+9. Application / Project detail negative E2E 추가
+- `frontend/tests/e2e/applications-projects-detail-negative.spec.ts` 신규
+- 검증 범위:
+  - application rollup API 500 시 상세 페이지 에러 메시지 + retry 버튼 노출
+  - project activity 일부 실패 시 경고 배너 노출 + 상세 본문 지속 렌더링
+- `/devhub` 도커 환경에서 통과
+
+10. 남은 E2E 정비 문서화
+- `docs/planning/ui_e2e_followup_after_merge.md` 신규
+- 머지 전 필수 항목과 머지 후 follow-up 항목을 분리 정리
+- 현재 남은 범위는 머지 블로커가 아니라 커버리지 확장 성격으로 명시
+
+6. 도커 E2E 환경 이슈/해결 메모
+- macOS host 산출물 그대로 복사 시 linux container 와 ABI 불일치
+- 해결:
+  - `backend-core`: `GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build`
+  - `backend-ai`: `python:3.12-slim` container 내부에서 `.build/site-packages` 재생성
+- `setup-keycloak.sh` 는 macOS 기본 환경에 `timeout` 이 없어 `/tmp/codex-bin/timeout` wrapper 로 실행
+- nginx admin path 는 로컬 E2E 목적상 `KEYCLOAK_ADMIN_ALLOW_CIDR=0.0.0.0/0` 로 완화
+
+## 다음 작업
+
+1. 남은 상세 페이지 mock 성격 지표(legacy block) 정리/축소
+2. CI 통과 확인 후 PR review-ready / merge 판단

@@ -42,8 +42,8 @@ test.describe("/projects — Project CRUD UI", () => {
     await dialog.getByPlaceholder("e.g. Backend Refactoring").fill(projName);
     
     // Select primary repository
-    const selectRepo = dialog.locator("select").first();
-    await selectRepo.selectOption({ index: 1 }); // Select first available option
+    // Repository is optional in the new flow. CI seed data may not always have
+    // additional repository options, so keep the default "No repository".
     
     await dialog.getByPlaceholder("Scope and deliverables...").fill("E2E Test project deliverables.");
     await dialog.getByPlaceholder("User ID...").fill(owner);

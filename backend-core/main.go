@@ -157,7 +157,7 @@ func main() {
 			BackendAIURL: cfg.BackendAIURL,
 		},
 		RealtimeHub:           realtimeHub,
-		RealtimeTickets:       httpapi.NewRealtimeTicketStore(),
+		RealtimeTickets:       httpapi.NewRealtimeTicketStoreFor(pgStore),
 		AuthDevFallback:       cfg.AuthDevFallback,
 		OnboardingGateEnabled: cfg.OnboardingGateEnabled,
 		ProjectModel:          cfg.ProjectModel,
@@ -365,15 +365,18 @@ func main() {
 		log.Printf("onboarding pending_review gauge enabled (interval=60s)")
 	}
 
-	// Gitea background sync worker
-	if cfg.GiteaURL != "" && cfg.GiteaToken != "" && pgStore != nil {
+	// Gitea background sync worker. Phase 3: pgStore 가 있으면 항상 기동해 queued
+	// sync job 을 provider 별 base_url+api_token 으로 처리 (env GITEA_URL/TOKEN 은
+	// 큐 빈 주기 sync 의 fallback). env 미설정이어도 UI 로 등록한 Gitea provider 의
+	// sync job 은 동작.
+	if pgStore != nil {
 		giteaWorker := gitea.NewSyncWorker(pgStore, cfg.GiteaURL, cfg.GiteaToken)
 		go func() {
 			if err := giteaWorker.Run(ctx, 30*time.Second); err != nil && err != context.Canceled {
 				log.Printf("gitea sync worker stopped: %v", err)
 			}
 		}()
-		log.Printf("gitea sync worker enabled (url=%s interval=30s)", cfg.GiteaURL)
+		log.Printf("gitea sync worker enabled (env url=%q, per-provider sync, interval=30s)", cfg.GiteaURL)
 	}
 
 	if err := router.Run(":" + cfg.Port); err != nil {

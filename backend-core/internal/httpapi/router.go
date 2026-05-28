@@ -80,7 +80,11 @@ type ApplicationStore interface {
 	ListProjectRepositories(context.Context, string) ([]domain.ProjectRepository, error)
 	CreateProjectRepository(context.Context, domain.ProjectRepository) (domain.ProjectRepository, error)
 	DeleteProjectRepository(context.Context, string, int64) error
-	CreateProjectWithRepositories(context.Context, domain.Project, []int64) (domain.Project, error)
+	CreateProjectWithRepositoryPayload(context.Context, domain.Project, []int64, *store.RepositoryCreatePayload) (domain.Project, error)
+
+	// SCM repository import (API-88/89, sprint claude/work_260527-scm-repo-sync)
+	UpsertRepository(context.Context, domain.Repository) error
+	ListRepositoriesByProvider(context.Context, string) ([]domain.Repository, error)
 
 	// Repository 운영 지표 (API-51..54, sprint claude/work_260514-c)
 	ListRepositoryActivity(context.Context, int64, store.RepositoryActivityOptions) (domain.RepositoryActivity, error)
@@ -151,8 +155,10 @@ type RouterConfig struct {
 	SnapshotProvider           SnapshotProvider
 	RealtimeHub                *RealtimeHub
 	// RealtimeTickets — ADR-0024 §3.2 ticket pattern. nil 이면 ticket endpoint
-	// 가 503 unavailable + WS auth 는 access_token query fallback 사용.
-	RealtimeTickets *RealtimeTicketStore
+	// 가 503 unavailable + WS auth 는 access_token query fallback 사용. in-memory
+	// (RealtimeTicketStore, single-instance) 또는 PG 백킹 (DBRealtimeTicketStore,
+	// multi-instance — ADR-0024 §6 carve 6) 구현 주입.
+	RealtimeTickets realtimeTicketStore
 	// AuthDevFallback toggles dev-only authentication fallbacks: empty Authorization passes through authenticateActor and requireMinRole. Actor identity always resolves to "system" without a verifier. Default false: production-safe.
 	AuthDevFallback bool
 	// OnboardingGateEnabled — RM-ONBOARD-01 (ADR-0021 §3.3, ARCH-ONBOARD-03).
@@ -229,6 +235,8 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.POST("/infra/services/snapshot", handler.ingestInfraServicesSnapshot)
 	v1.GET("/infra/topology/v2", handler.infraTopologyV2)
 	v1.GET("/repositories", handler.repositories)
+	v1.POST("/repositories", handler.createRepositoryDraft)
+	v1.POST("/repositories/:repository_id/publish", handler.requestRepositoryPublish)
 	v1.GET("/issues", handler.issues)
 	v1.GET("/pull-requests", handler.pullRequests)
 	v1.GET("/ci-runs", handler.ciRuns)
@@ -286,6 +294,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	// API-55..56 Project CRUD (sprint claude/work_260514-c)
 	v1.GET("/repositories/:repository_id/projects", handler.listProjects)
 	v1.POST("/repositories/:repository_id/projects", handler.createProject)
+	v1.POST("/projects", handler.createProjectStandalone)
 	v1.GET("/applications/:application_id/projects", handler.listApplicationProjects)
 	v1.POST("/applications/:application_id/projects", handler.createApplicationProject)
 	v1.GET("/projects/:project_id", handler.getProject)
@@ -307,7 +316,11 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.PATCH("/integration/providers/:provider_id", handler.updateIntegrationProvider)
 	v1.DELETE("/integration/providers/:provider_id", handler.deleteIntegrationProvider)
 	v1.POST("/integration/providers/:provider_id/sync", handler.syncIntegrationProvider)
+	v1.GET("/integration/providers/:provider_id/scm-repositories", handler.listSCMRepositories)
+	v1.POST("/integration/providers/:provider_id/import-repositories", handler.importSCMRepositories)
+	v1.POST("/integration/providers/:provider_id/create-repository", handler.createSCMRepository)
 	v1.POST("/integration/providers/:provider_id/webhook", handler.ingestIntegrationProviderWebhook)
+	v1.POST("/integration/test-connection", handler.testIntegrationConnection)
 	v1.GET("/integration/bindings", handler.listIntegrationBindings)
 	v1.POST("/integration/bindings", handler.createIntegrationBinding)
 	v1.PATCH("/integration/bindings/:binding_id", handler.updateIntegrationBinding)

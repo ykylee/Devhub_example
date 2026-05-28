@@ -534,7 +534,7 @@ RETURNING` + scmProvidersSelectColumns
 const projectsSelectColumns = `
 	id::text,
 	COALESCE(application_id::text, ''),
-	repository_id,
+	COALESCE(repository_id, 0),
 	key,
 	name,
 	COALESCE(description, ''),
@@ -650,7 +650,7 @@ INSERT INTO projects (
 	application_id, repository_id, key, name, description, status, visibility,
 	owner_user_id, start_date, due_date
 ) VALUES (
-	NULLIF($1, '')::uuid, $2, $3, $4, NULLIF($5, ''), $6, $7,
+	NULLIF($1, '')::uuid, NULLIF($2::bigint, 0), $3, $4, NULLIF($5, ''), $6, $7,
 	NULLIF($8, ''), $9, $10
 )
 RETURNING` + projectsSelectColumns
@@ -674,12 +674,198 @@ func (s *PostgresStore) CreateProject(ctx context.Context, project domain.Projec
 	return created, nil
 }
 
-func (s *PostgresStore) CreateProjectWithRepositories(ctx context.Context, project domain.Project, repositoryIDs []int64) (domain.Project, error) {
+// RepositoryCreatePayload — project 생성 시 동반 생성할 repository 입력. project tx
+// 안에서 함께 생성하기 위해 store 로 전달 (codex #349 P2 atomicity).
+type RepositoryCreatePayload struct {
+	Key         string
+	Slug        string
+	SCMProvider string
+}
+
+// CreateRepositoryDraft 는 draft repository 를 생성한다. providerID 는 연동 대상
+// integration_providers FK (handler 가 provider_key → provider_id 로 해석해 전달,
+// migration 000045 — 구 scm_provider key 컬럼 통합). system 이 생성하므로 source='system'.
+func (s *PostgresStore) CreateRepositoryDraft(ctx context.Context, key, slug, providerID string) (domain.Repository, error) {
+	fullName := strings.TrimSpace(slug)
+	name := strings.TrimSpace(key)
+	if fullName == "" || name == "" {
+		return domain.Repository{}, ErrConflict
+	}
+
+	const query = `
+INSERT INTO repositories (
+	full_name, name, owner_login, clone_url, html_url, default_branch, private,
+	repository_status, source, provider_id, publish_requested_at, published_at, updated_at
+) VALUES (
+	$1, $2, NULLIF(split_part($1, '/', 1), ''), '', '', 'main', false,
+	'draft', 'system', NULLIF($3, '')::uuid, NULL, NULL, NOW()
+)
+RETURNING
+	id,
+	COALESCE(gitea_repository_id, 0),
+	full_name,
+	COALESCE(owner_login, ''),
+	name,
+	COALESCE(clone_url, ''),
+	COALESCE(html_url, ''),
+	COALESCE(default_branch, ''),
+	private,
+	COALESCE(repository_status, 'draft'),
+	COALESCE(provider_id::text, ''),
+	publish_requested_at,
+	published_at,
+	updated_at`
+
+	var repo domain.Repository
+	if err := s.pool.QueryRow(ctx, query, fullName, name, strings.TrimSpace(providerID)).Scan(
+		&repo.ID,
+		&repo.GiteaID,
+		&repo.FullName,
+		&repo.OwnerLogin,
+		&repo.Name,
+		&repo.CloneURL,
+		&repo.HTMLURL,
+		&repo.DefaultBranch,
+		&repo.Private,
+		&repo.Status,
+		&repo.ProviderID,
+		&repo.PublishRequestedAt,
+		&repo.PublishedAt,
+		&repo.UpdatedAt,
+	); err != nil {
+		if isUniqueViolation(err) {
+			return domain.Repository{}, ErrConflict
+		}
+		return domain.Repository{}, fmt.Errorf("create repository draft: %w", err)
+	}
+	return repo, nil
+}
+
+func (s *PostgresStore) MarkRepositoryDraftPublishRequested(ctx context.Context, repositoryID int64) (domain.Repository, error) {
+	const query = `
+UPDATE repositories
+SET
+	publish_requested_at = NOW(),
+	updated_at = NOW()
+WHERE id = $1
+  AND repository_status = 'draft'
+RETURNING
+	id,
+	COALESCE(gitea_repository_id, 0),
+	full_name,
+	COALESCE(owner_login, ''),
+	name,
+	COALESCE(clone_url, ''),
+	COALESCE(html_url, ''),
+	COALESCE(default_branch, ''),
+	private,
+	COALESCE(repository_status, 'draft'),
+	COALESCE(provider_id::text, ''),
+	publish_requested_at,
+	published_at,
+	updated_at`
+	var repo domain.Repository
+	if err := s.pool.QueryRow(ctx, query, repositoryID).Scan(
+		&repo.ID,
+		&repo.GiteaID,
+		&repo.FullName,
+		&repo.OwnerLogin,
+		&repo.Name,
+		&repo.CloneURL,
+		&repo.HTMLURL,
+		&repo.DefaultBranch,
+		&repo.Private,
+		&repo.Status,
+		&repo.ProviderID,
+		&repo.PublishRequestedAt,
+		&repo.PublishedAt,
+		&repo.UpdatedAt,
+	); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.Repository{}, ErrNotFound
+		}
+		return domain.Repository{}, fmt.Errorf("mark repository publish requested: %w", err)
+	}
+	return repo, nil
+}
+
+func (s *PostgresStore) GetRepositoryByID(ctx context.Context, repositoryID int64) (domain.Repository, error) {
+	const query = `
+SELECT
+	r.id,
+	COALESCE(r.gitea_repository_id, 0),
+	r.full_name,
+	COALESCE(r.owner_login, ''),
+	r.name,
+	COALESCE(r.clone_url, ''),
+	COALESCE(r.html_url, ''),
+	COALESCE(r.default_branch, ''),
+	r.private,
+	COALESCE(r.repository_status, 'active'),
+	publish_requested_at,
+	published_at,
+	r.updated_at,
+	COALESCE(r.source, 'scm'),
+	COALESCE(r.provider_id::text, ''),
+	COALESCE(p.provider_key, ''),
+	COALESCE(r.description, '')
+FROM repositories r
+LEFT JOIN integration_providers p ON p.provider_id = r.provider_id
+WHERE r.id = $1`
+
+	var repo domain.Repository
+	if err := s.pool.QueryRow(ctx, query, repositoryID).Scan(
+		&repo.ID,
+		&repo.GiteaID,
+		&repo.FullName,
+		&repo.OwnerLogin,
+		&repo.Name,
+		&repo.CloneURL,
+		&repo.HTMLURL,
+		&repo.DefaultBranch,
+		&repo.Private,
+		&repo.Status,
+		&repo.PublishRequestedAt,
+		&repo.PublishedAt,
+		&repo.UpdatedAt,
+		&repo.Source,
+		&repo.ProviderID,
+		&repo.ProviderKey,
+		&repo.Description,
+	); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.Repository{}, ErrNotFound
+		}
+		return domain.Repository{}, fmt.Errorf("get repository by id: %w", err)
+	}
+	return repo, nil
+}
+
+// CreateProjectWithRepositoryPayload creates the project — optionally creating and
+// linking a companion repository — in ONE transaction (codex #349 P2 atomicity).
+// repoPayload 가 주어지면 repository upsert + project insert + project_repositories
+// link 가 모두 같은 tx 에서 일어나므로, project insert 실패(예: 중복 key) 시 repository
+// 생성도 rollback 되어 "create and link" 가 원자적이다 (고아 repository 없음).
+func (s *PostgresStore) CreateProjectWithRepositoryPayload(ctx context.Context, project domain.Project, repositoryIDs []int64, repoPayload *RepositoryCreatePayload) (domain.Project, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return domain.Project{}, fmt.Errorf("begin create project tx: %w", err)
 	}
 	defer tx.Rollback(ctx)
+
+	if repoPayload != nil {
+		repoID, repoErr := createRepositoryTx(ctx, tx, repoPayload.Key, repoPayload.Slug, repoPayload.SCMProvider)
+		if isUniqueViolation(repoErr) || isForeignKeyViolation(repoErr) || isCheckViolation(repoErr, "") {
+			return domain.Project{}, ErrConflict
+		}
+		if repoErr != nil {
+			return domain.Project{}, fmt.Errorf("create companion repository (tx): %w", repoErr)
+		}
+		if project.RepositoryID == 0 {
+			project.RepositoryID = repoID
+		}
+		repositoryIDs = append(repositoryIDs, repoID)
+	}
 
 	row := tx.QueryRow(ctx, projectsInsertQuery,
 		project.ApplicationID, project.RepositoryID, project.Key, project.Name,
@@ -694,7 +880,7 @@ func (s *PostgresStore) CreateProjectWithRepositories(ctx context.Context, proje
 		return domain.Project{}, fmt.Errorf("create project (tx): %w", err)
 	}
 
-	if len(repositoryIDs) == 0 {
+	if len(repositoryIDs) == 0 && project.RepositoryID > 0 {
 		repositoryIDs = []int64{project.RepositoryID}
 	}
 	seen := map[int64]struct{}{}
@@ -725,6 +911,42 @@ VALUES ($1::uuid, $2, $3)`
 		return domain.Project{}, fmt.Errorf("commit create project tx: %w", err)
 	}
 	return created, nil
+}
+
+// createRepositoryTx upserts a companion repository within the given transaction
+// (codex #349 P2 atomicity — 이전 CreateRepositoryForProject 를 tx-aware 로 전환).
+// full_name(slug) 충돌 시 upsert. raw error 를 반환 — caller 가 violation 분류 +
+// rollback 처리. clone_url/html_url 은 scm+<provider>:// placeholder (실제 SCM
+// 프로비저닝은 범위 밖, 내부 repositories row 만 생성).
+func createRepositoryTx(ctx context.Context, tx pgx.Tx, key, slug, scmProvider string) (int64, error) {
+	fullName := strings.TrimSpace(slug)
+	name := strings.TrimSpace(key)
+	if name == "" {
+		name = fullName
+	}
+	// source='system' — 시스템에서 생성한 repository (SCM mirror 가 아님). 소유권 분리
+	// (migration 000042) — codex #363 P2. 빈 Source 를 scm 으로 기본 취급하던 것 정정.
+	const query = `
+INSERT INTO repositories (
+	full_name, name, owner_login, clone_url, html_url, default_branch, private, source, updated_at
+) VALUES (
+	$1, $2, NULLIF(split_part($1, '/', 1), ''), NULLIF($3, ''), NULLIF($4, ''), 'main', false, 'system', NOW()
+)
+ON CONFLICT (full_name) DO UPDATE SET
+	name = EXCLUDED.name,
+	updated_at = NOW()
+RETURNING id`
+
+	cloneURL := ""
+	htmlURL := ""
+	if strings.TrimSpace(scmProvider) != "" {
+		cloneURL = "scm+" + strings.TrimSpace(scmProvider) + "://" + fullName + ".git"
+		htmlURL = "scm+" + strings.TrimSpace(scmProvider) + "://" + fullName
+	}
+
+	var id int64
+	err := tx.QueryRow(ctx, query, fullName, name, cloneURL, htmlURL).Scan(&id)
+	return id, err
 }
 
 func (s *PostgresStore) UpdateProject(ctx context.Context, project domain.Project) (domain.Project, error) {

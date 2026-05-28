@@ -20,7 +20,7 @@
 | Audit | `backend-core/internal/httpapi/audit.go`, `internal/store/audit_logs.go` |
 | Realtime | `backend-core/internal/httpapi/realtime.go`, `snapshot.go` |
 | Application/Project (신규) | `docs/requirements.md` §5.4 기준 (설계/구현 예정) |
-| Application 개발 대시보드 | `docs/requirements.md` §5.8 기준 (설계/구현 예정) |
+| Application 개발 대시보드 | `docs/requirements.md` §5.9 기준 (설계/구현 예정) |
 
 ## 2. Usecase (모듈별)
 
@@ -169,7 +169,7 @@
 | `UC-ONBOARD-10` | Skip → 한정 접근 모드 | "나중에 하기" 액션 → user row 미생성 + 공통 메뉴 + `/devhub/onboarding` + `GET /me` 만 접근 | REQ-FR-ONBOARD-011, REQ-FR-ONBOARD-006 |
 | `UC-ONBOARD-11` | Skip 후 dismissible banner | session-scoped skip flag set + 모든 페이지 상단에 banner 노출 (자동 redirect 없음) | REQ-FR-ONBOARD-010 |
 
-### 2.14 Application 개발 대시보드 (APPDASH)
+### 2.15 Application 개발 대시보드 (APPDASH)
 
 | UC ID | Usecase | 성공 조건 | 관련 REQ |
 | --- | --- | --- | --- |

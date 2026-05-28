@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"errors"
+	"log"
 	"net/http"
 	"strings"
 
@@ -75,11 +76,24 @@ func (h Handler) authenticateActor(c *gin.Context) {
 	header := strings.TrimSpace(c.GetHeader("Authorization"))
 	if header == "" && c.FullPath() == "/api/v1/realtime/ws" {
 		// Browser WebSocket API cannot set arbitrary headers like Authorization
-		// (ADR-0024). 1) ticket pattern (preferred, single-use + 60s TTL) →
-		// 2) access_token query (backward-compat, deprecated).
+		// (ADR-0024). Ticket pattern only (single-use + 60s TTL) — the legacy
+		// `?access_token=` query fallback was removed in the ticket-only cutover
+		// (ADR-0024 §6 carve 5). No ticket / invalid ticket → 401.
 		if h.cfg.RealtimeTickets != nil {
 			if raw := strings.TrimSpace(c.Query("ticket")); raw != "" {
-				if entry, ok := h.cfg.RealtimeTickets.consume(raw); ok {
+				entry, ok, err := h.cfg.RealtimeTickets.consume(c.Request.Context(), raw)
+				if err != nil {
+					// Store fault (e.g. transient Postgres outage): the ticket may
+					// be valid — do NOT collapse into 401, which would reject a
+					// legitimate user and hide the infra signal. 503 instead.
+					log.Printf("[realtime] ticket consume store error: %v", err)
+					c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{
+						"status": "unavailable",
+						"error":  "realtime ticket store error",
+					})
+					return
+				}
+				if ok {
 					c.Set("devhub_actor_login", entry.actorLogin)
 					if entry.actorRole != "" {
 						c.Set("devhub_actor_role", entry.actorRole)
@@ -94,9 +108,6 @@ func (h Handler) authenticateActor(c *gin.Context) {
 				})
 				return
 			}
-		}
-		if raw := strings.TrimSpace(c.Query("access_token")); raw != "" {
-			header = "Bearer " + raw
 		}
 	}
 	if header == "" {

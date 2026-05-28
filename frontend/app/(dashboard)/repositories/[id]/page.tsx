@@ -1,46 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { 
   Activity, 
   ArrowLeft, 
   GitBranch, 
-  GitCommit, 
   GitPullRequest, 
   Globe, 
-  ShieldCheck, 
   Users,
   ExternalLink,
-  Loader2,
   Lock,
   Unlock,
-  AlertCircle
+  ShieldCheck
 } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 import { repositoryService, Repository, RepositoryActivity } from "@/lib/services/repository.service";
-import { 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-} from "recharts";
-
-// Mock historical activity
-const mockActivityData = [
-  { name: "Mon", commits: 12, prs: 2 },
-  { name: "Tue", commits: 18, prs: 5 },
-  { name: "Wed", commits: 15, prs: 3 },
-  { name: "Thu", commits: 25, prs: 8 },
-  { name: "Fri", commits: 22, prs: 4 },
-  { name: "Sat", commits: 5, prs: 1 },
-  { name: "Sun", commits: 3, prs: 0 },
-];
+import { toUserErrorMessage } from "@/lib/services/error-message";
+import { PageError, PageLoading } from "@/components/ui/PageState";
 
 export default function RepositoryDetailPage() {
   const params = useParams();
@@ -53,43 +32,42 @@ export default function RepositoryDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [repoData, activityData] = await Promise.all([
-          repositoryService.getRepository(id),
-          repositoryService.getRepositoryActivity(id)
-        ]);
-        if (!repoData) throw new Error("Repository not found.");
-        setRepo(repoData);
-        setActivity(activityData);
-      } catch (err) {
-        setError("Failed to load repository details.");
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadData();
+  const loadData = useCallback(async () => {
+    try {
+      setError(null);
+      setLoading(true);
+      const [repoData, activityData] = await Promise.all([
+        repositoryService.getRepository(id),
+        repositoryService.getRepositoryActivity(id)
+      ]);
+      if (!repoData) throw new Error("Repository not found.");
+      setRepo(repoData);
+      setActivity(activityData);
+    } catch (err) {
+      setError(toUserErrorMessage(err, "Failed to load repository details."));
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void loadData();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [loadData]);
+
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
-        <Loader2 className="w-10 h-10 text-primary animate-spin" />
-        <p className="text-muted-foreground animate-pulse font-black uppercase tracking-widest text-[10px]">Mapping Source Intelligence...</p>
-      </div>
-    );
+    return <PageLoading label="Loading repository details..." />;
   }
 
   if (error || !repo) {
     return (
-      <div className="text-center py-20 space-y-6">
-        <div className="glass-card p-10 max-w-md mx-auto">
-          <Globe className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-20" />
-          <h2 className="text-xl font-bold text-foreground dark:text-primary-foreground mb-2">Repository Not Found</h2>
-          <p className="text-muted-foreground text-sm mb-6">{error || "The requested source repository could not be located."}</p>
-          <button 
+      <div className="space-y-6">
+        <PageError message={error || "The requested source repository could not be located."} onRetry={() => void loadData()} />
+        <div>
+          <button
             onClick={() => router.back()}
             className="px-6 py-2 rounded-xl bg-primary text-primary-foreground font-bold text-sm"
           >
@@ -99,6 +77,11 @@ export default function RepositoryDetailPage() {
       </div>
     );
   }
+
+  const prEvents = activity?.pr_event_count ?? 0;
+  const buildRuns = activity?.build_run_count ?? 0;
+  const contributors = activity?.active_contributors.length ?? 0;
+  const buildSuccessPct = ((activity?.build_success_rate || 0) * 100).toFixed(1);
 
   return (
     <div className="space-y-10 pb-20">
@@ -135,10 +118,10 @@ export default function RepositoryDetailPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: "Commit Activity", value: "142", icon: GitCommit, color: "text-foreground", trend: "+12%" },
-          { label: "Active PRs", value: activity?.pr_event_count.toString() || "0", icon: GitPullRequest, color: "text-info", trend: "+2" },
-          { label: "Build Success", value: `${((activity?.build_success_rate || 0) * 100).toFixed(1)}%`, icon: Activity, color: "text-success", trend: "Stable" },
-          { label: "Contributors", value: activity?.active_contributors.length.toString() || "0", icon: Users, color: "text-purple-500", trend: "Top 1%" },
+          { label: "PR Events", value: String(prEvents), icon: GitPullRequest, color: "text-info", trend: "Current" },
+          { label: "Build Runs", value: String(buildRuns), icon: Activity, color: "text-foreground", trend: "Current" },
+          { label: "Build Success", value: `${buildSuccessPct}%`, icon: ShieldCheck, color: "text-success", trend: "Current" },
+          { label: "Contributors", value: String(contributors), icon: Users, color: "text-purple-500", trend: "Current" },
         ].map((stat, i) => (
           <motion.div 
             key={stat.label}
@@ -171,47 +154,31 @@ export default function RepositoryDetailPage() {
         <section className="lg:col-span-2 glass-card p-8">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h3 className="text-lg font-bold text-foreground dark:text-primary-foreground">Activity Timeline</h3>
-              <p className="text-xs text-muted-foreground">Detailed view of commits and PR events over the past week</p>
+              <h3 className="text-lg font-bold text-foreground dark:text-primary-foreground">Activity Window</h3>
+              <p className="text-xs text-muted-foreground">Current backend-provided activity summary for this repository.</p>
             </div>
           </div>
-          <div className="h-80 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={mockActivityData}>
-                <defs>
-                  <linearGradient id="colorCommits" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" opacity={0.3} />
-                <XAxis 
-                  dataKey="name" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: 'var(--muted-foreground)', fontSize: 10, fontWeight: 700 }}
-                />
-                <YAxis hide />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: 'var(--card)', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="commits" 
-                  stroke="var(--primary)" 
-                  strokeWidth={3}
-                  fillOpacity={1} 
-                  fill="url(#colorCommits)" 
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="prs" 
-                  stroke="#3b82f6" 
-                  strokeWidth={2}
-                  fill="transparent"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="rounded-2xl border border-border/60 bg-muted/10 p-5">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">From</p>
+              <p className="text-sm font-bold text-foreground dark:text-primary-foreground">
+                {activity?.window_from ? new Date(activity.window_from).toLocaleString() : "-"}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-border/60 bg-muted/10 p-5">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">To</p>
+              <p className="text-sm font-bold text-foreground dark:text-primary-foreground">
+                {activity?.window_to ? new Date(activity.window_to).toLocaleString() : "-"}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-border/60 bg-muted/10 p-5">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">PR Events</p>
+              <p className="text-xl font-black text-foreground dark:text-primary-foreground">{activity?.pr_event_count ?? 0}</p>
+            </div>
+            <div className="rounded-2xl border border-border/60 bg-muted/10 p-5">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Build Runs</p>
+              <p className="text-xl font-black text-foreground dark:text-primary-foreground">{activity?.build_run_count ?? 0}</p>
+            </div>
           </div>
         </section>
 
@@ -221,35 +188,20 @@ export default function RepositoryDetailPage() {
               <Users className="w-4 h-4 text-primary" /> Top Contributors
             </h3>
             <div className="space-y-6">
-              {(activity?.active_contributors || ["YK Lee", "Alex K.", "Sam J."]).map((user, i) => (
+              {(activity?.active_contributors || []).map((user, i) => (
                 <div key={i} className="flex items-center justify-between group cursor-pointer">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-muted/40 border border-border group-hover:border-primary/50 transition-all" />
                     <span className="text-sm font-bold text-foreground dark:text-primary-foreground group-hover:text-primary transition-colors">{user}</span>
                   </div>
                   <Badge variant="glass" className="opacity-50 group-hover:opacity-100 transition-opacity">
-                    {10 + i * 7} Commits
+                    Active
                   </Badge>
                 </div>
               ))}
-            </div>
-          </section>
-
-          <section className="glass-card p-8 border-destructive/10">
-            <h3 className="text-sm font-black uppercase tracking-widest text-destructive/50 mb-6 flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-destructive" /> Security Status
-            </h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 rounded-xl bg-destructive/5 border border-destructive/20">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-destructive" />
-                  <span className="text-xs font-bold text-destructive">2 Critical Vulnerabilities</span>
-                </div>
-                <button className="text-[10px] font-black uppercase text-destructive hover:underline">Fix</button>
-              </div>
-              <p className="text-[10px] text-muted-foreground leading-relaxed">
-                Automated scan detected dependency vulnerabilities in `package.json`. Immediate patching recommended.
-              </p>
+              {(!activity?.active_contributors || activity.active_contributors.length === 0) && (
+                <p className="text-sm text-muted-foreground">No active contributors in current window.</p>
+              )}
             </div>
           </section>
         </div>

@@ -1,3 +1,429 @@
+# Session Handoff — main (2026-05-27 post-#373 — repositories provider_id 단일화)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
+- 범위: 직전 #372 housekeeping (post-#371) 이후 1 PR (#373) 머지.
+- 상태: main HEAD `99d6edc` (PR #373).
+- 최종 수정일: 2026-05-27
+
+## 2026-05-27 (post-#373) 결산
+
+사용자 지시 "scm_provider ↔ provider_id 중복 정리" → provider_id(FK) 단일화.
+
+| sha | PR | core |
+| --- | --- | --- |
+| `99d6edc` | **#373** (claude) | repositories `scm_provider`(#368 key) ↔ `provider_id`(#363 FK) 중복 → **provider_id(FK) 단일화**. migration 000045(backfill+DROP) + domain `SCMProvider` 제거·`ProviderKey`(derived) + store(CreateRepositoryDraft provider_id+source=system / Get·List `LEFT JOIN` provider_key / UpsertRepository scm_provider 제거) + handler(draft-create provider_key→provider_id / publish provider_id) + frontend. project-companion `RepositoryCreatePayload.SCMProvider`는 별개라 유지. |
+
+### 다음 directive (claude)
+
+1. #366/#363 codex 재리뷰 확인 (#355 usage limit).
+2. inbound webhook 정규화 깊이 / #6 평문 secret envelope 암호화 / Phase C 후속 (project flow ↔ SCM create).
+3. **repository draft→publish flow 테스트/E2E 보강** (#368 handler 무테스트 머지분).
+
+사내/사용자: Onboarding SOP staging monitoring / nginx OIDC / Keycloak 26.0 smoke / issue #214 / Keycloak SPI realm events wire.
+
+### 검증
+
+#373 go build+vet+test ./...(13 pkg) + tsc+eslint+vitest 55+build green. prefix 중복 0. Open PR 0.
+
+---
+
+# Session Handoff — main (2026-05-27 post-#371 — #368 draft publish flow + 전수점검 hotfix)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
+- 범위: 직전 #370 housekeeping (post-#369) 이후 2 PR (#368/#371) 머지.
+- 상태: main HEAD `f5cb7a6` (PR #371).
+- 최종 수정일: 2026-05-27
+
+## 2026-05-27 (post-#371) 결산
+
+사용자 "오늘 올라온 PR 전수 점검 + 미반영 코멘트/충돌 수정" 지시. #368(codex, 작업 중 머지됨) 점검 → 2 실문제 발견·수정.
+
+### 머지 PR (2)
+
+| sha | PR | core |
+| --- | --- | --- |
+| `e28bc56` | **#368** (codex) | **draft repository publish flow** — migration 000043 `repositories.{repository_status(draft\|active),scm_provider,publish_requested_at,published_at}` + `POST /repositories`(draft) + `POST /repositories/:id/publish` + domain.Repository 확장 + admin catalog/projects/repositories/ProjectCreationModal UI. |
+| `f5cb7a6` | **#371** (claude) | **전수 점검 hotfix**: (1) migration 000042 충돌 정정 (codex #368 P1 미반영) — #368 projects migration → 000044 재번호. (2) disabled provider 거부 (codex #366 P2 미반영) — scm-repositories gate 409 + 가드. |
+
+### 점검 결과 (전수)
+
+- **충돌 발견·수정**: migration 000042 ×2 (#363 vs #368) → #371 로 000044 재번호.
+- **미반영 codex 코멘트 수정**: #368 P1(migration dup) + #366 P2(disabled provider).
+- **충돌 없음 확인**: #368 router(`POST /repositories`,`/publish`)/store ↔ Phase A~C (route 비중복, ListRepositories SELECT 17/scan 17 병합 정합).
+- **이미 반영 확인**: #358 P1→#359 / #363 P2×2→#366.
+- **#355** = codex usage limit (미리뷰, watch).
+- **soft note**: #368 `scm_provider` ↔ #363 `provider_id` 의미 중복 (후속 정리 후보).
+
+### 다음 directive
+
+| 영역 | 항목 |
+| --- | --- |
+| **claude** | 1) #368 `repository_status/scm_provider` ↔ #363 `source/provider_id` 중복 정리 검토. 2) #366/#363 codex 재리뷰 확인. 3) inbound webhook 정규화 깊이. 4) #6 평문 secret envelope 암호화. 5) Phase C 후속 (project flow ↔ SCM create 연계). |
+| 사내/사용자 | Onboarding SOP staging monitoring / nginx OIDC / Keycloak 26.0 smoke / issue #214 / Keycloak SPI realm events wire. |
+
+### 검증
+
+#371 backend build+vet+test ./...(13 pkg) + frontend tsc+eslint+vitest 55+build green. migration prefix 중복 0 (재확인). Open PR 0.
+
+---
+
+# Session Handoff — main (2026-05-27 post-#369 — app dashboard Active Applications + #368 open)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
+- 범위: 직전 #367 housekeeping (post-#366) 이후 1 PR (#369) 머지 + 1 PR (#368) open.
+- 상태: main HEAD `295cb20` (PR #369).
+- 최종 수정일: 2026-05-27
+
+## 2026-05-27 (post-#369) 결산
+
+사용자 질문 ("application dashboard 의 Active Regions 의미?") → mock 잔재 확인 → 실지표 교체.
+
+### 머지 PR (1)
+
+| sha | PR | core |
+| --- | --- | --- |
+| `295cb20` | **#369** (claude) | application dashboard **'Active Regions'(="Global" 하드코딩 mock) → 'Active Applications'**(status==="active" 실집계). region 은 application 도메인에 없는 개념 (infra topology node 속성일 뿐). unused Globe import 제거. 4 카드 모두 실데이터화 완료. |
+
+### Open PR (1) — 다음 세션 결정
+
+| PR | core |
+| --- | --- |
+| **#368** (codex `codex/work_260527-project-dialog-ui-2`) | 'draft repository publish flow + admin catalog fixes'. #361/#365 와 같은 브랜치 계열. **claude 미리뷰** — 본 세션 SCM repo 작업(Phase A~C)과 연관 가능 → 다음 세션 리뷰 후 머지 결정. |
+
+### 다음 directive
+
+| 영역 | 항목 |
+| --- | --- |
+| **claude** | 1) **#368 리뷰** (draft repository publish flow). 2) #366/#363 codex 재리뷰 확인. 3) inbound webhook 정규화 깊이. 4) #6 평문 secret envelope 암호화. 5) Phase C 후속 (project flow ↔ SCM create 연계). |
+| 사내/사용자 | Onboarding SOP staging monitoring / nginx OIDC / Keycloak 26.0 smoke / issue #214 / Keycloak SPI realm events wire. |
+
+### 검증
+
+#369 tsc+eslint+build ✓. 본 housekeeping 후 Open PR 1 (#368, codex 미리뷰 대상).
+
+---
+
+# Session Handoff — main (2026-05-27 post-#366 — SCM repo Phase C + #363 P2 hotfix + #365 build-fix)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
+- 범위: 직전 #364 housekeeping (post-#363) 이후 2 PR (#365/#366) 머지.
+- 상태: main HEAD `f515649` (PR #366).
+- 최종 수정일: 2026-05-27
+
+## 2026-05-27 (post-#366) 결산
+
+사용자 "codex 재리뷰 확인하고 이어서 Phase C" → #363 codex P2×2 확인 + Phase C 구현. 그 사이 codex 가 #365 로 #361 build-break 를 독립 수정 → #366 충돌 → #365 로 deferral 후 머지.
+
+### 머지 PR (2)
+
+| sha | PR | core |
+| --- | --- | --- |
+| `f515649` | **#366** (claude) | **Phase C (시스템→SCM 저장소 생성) + #363 codex P2×2 hotfix**. (C) gitea `CreateRepo`(user/org scope) + **API-90** `create-repository` (push capability + gitea-compat gate → `UpsertRepository(source=system)` → 201) + `CreateScmRepositoryModal` + ProviderTable 'New Repo'. (P2#2) `createRepositoryTx` `source='system'`. (P2#1) `isGiteaCompatibleProvider` — 비-gitea vendor(github/gitlab/bitbucket) import/create 거부. → **SCM↔시스템 repository 양방향(import+create) 완성**. |
+| `922c9f7` (merge `3108073`) | **#365** (codex) | #361 build-break fix — admin/catalog `Application` status 타입 + ProjectCreationModal `repository_id ?? 0`. main `npm run build` 깨진 것 복구. |
+
+### codex 리뷰 / 충돌 처리
+
+- **#363 P2×2** (Gitea-compat gate + system-owned) → #366 에서 반영 완료.
+- **#361 build-break**: codex 재리뷰 확인 중 tsc 로 발견 (main build 깨짐). codex 가 #365 로 독립 수정 + claude 도 #366 에서 수정 → **#365 먼저 머지 → #366 rebase 충돌 → #365 버전으로 deferral** (catalog --theirs / ProjectCreationModal main take / 내 중복 fix 제거). 교훈: 동일 이슈를 concurrent 수정 시 먼저 머지된 쪽으로 통일.
+- **#355** 여전히 usage limit (미리뷰).
+
+### 다음 directive
+
+| 영역 | 항목 |
+| --- | --- |
+| **claude** | 1) **#366/#363 codex 재리뷰 확인** (Phase C create-repository SSRF/권한). 2) inbound webhook 이벤트 정규화 깊이 (multi-provider sync 일반화). 3) #6 평문 secret(credentials_ref/api_token/auth_secret) envelope 암호화. 4) Phase C 후속 — project 생성 flow 와 SCM create 연계 (현재 provider-scoped 독립 endpoint). |
+| 사내/사용자 | Onboarding SOP staging monitoring / nginx OIDC / Keycloak 26.0 smoke / issue #214 / Keycloak SPI realm events wire. |
+
+### 검증
+
+#366 backend go build+vet+test ./... + frontend tsc(0)+eslint(0)+vitest 55+build ✓ (병합 후 재검증 포함). migration prefix 39~42 순차. 본 housekeeping 후 Open PR 0.
+
+---
+
+# Session Handoff — main (2026-05-27 post-#363 — SCM repo 연동 A+B + 고정메뉴 Phase 2b + admin catalog)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
+- 범위: 직전 #360 housekeeping (post-#359) 이후 3 PR (#361/#362/#363) 머지.
+- 상태: main HEAD `da6e8c1` (PR #362).
+- 최종 수정일: 2026-05-27
+
+## 2026-05-27 (post-#363) 결산
+
+사용자 요청 2건 — (1) 외부 연동 다이얼로그 고정메뉴 Phase 2b, (2) SCM↔시스템 repository 연동 (양방향 중 A+B) + sync capability 재검토. 사용자 "다 머지하자" 로 #361/#362/#363 일괄 머지.
+
+### 머지 PR (3)
+
+| sha | PR | core |
+| --- | --- | --- |
+| `fb58240` | **#363** (claude) | **SCM↔시스템 repository 연동 (A+B)** + capability 기능 gate. (A) 소유권 분리 — migration 000042 `repositories.{source,provider_id,description}` + `UpsertRepository` ON CONFLICT SCM mirror 만 갱신·system-owned 보존 + `ListRepositoriesByProvider`. (B) inbound import — API-88(목록)/API-89(import, SCM 재조회 값) + `ImportRepositoriesModal` + ProviderTable Import 액션. gate — import=pull / sync=pull\|sync. **Phase C(outbound 생성) deferred**. |
+| `da6e8c1` | **#362** (claude) | 고정메뉴 Phase 2b — known vendor 시 generic provider_type/auth_mode/signature select 를 read-only 요약으로 숨김 (`isKnownVendor`). |
+| `fa25797` | **#361** (codex) | Admin Catalog 중심 project 생성 동선 + catalog CRUD (frontend 4 파일). **merge-commit** (squash 아님, content `fea5d32`). codex inline 없음. |
+
+### codex 리뷰 현황
+
+| PR | 결과 |
+| --- | --- |
+| #363 | ⏳ 머지 후 codex 재리뷰 watch (신규 SCM import endpoint SSRF/권한 — #358 처럼 사후 P1 가능) |
+| #362 | 검증 후 머지 (codex 리뷰 전) |
+| #361 | codex inline 없음 (frontend, 작성자=codex) |
+| #355/#358 | #355 usage limit 미리뷰 / #358 P1 은 #359 로 해소 — 둘 다 재리뷰 watch |
+
+### 다음 directive
+
+| 영역 | 항목 |
+| --- | --- |
+| **claude** | 1) **#363/#358/#355 codex 재리뷰 확인**. 2) **Phase C** — 시스템 repository 생성 시 선택 SCM 에 실제 저장소 생성 (gitea `CreateRepo` + `push` capability gate). 3) inbound webhook 정규화 깊이. 4) #6 평문 secret(credentials_ref/api_token/auth_secret) envelope 암호화. |
+| 사내/사용자 | Onboarding SOP staging monitoring / nginx OIDC / Keycloak 26.0 smoke / issue #214 / Keycloak SPI realm events wire. |
+
+### 검증
+
+#363 go build+vet+test ./... + tsc+eslint+vitest 55 + build ✓ (migration 000042 unique). #362 tsc+eslint+build ✓. 모두 사용자 지시로 머지. 본 housekeeping 후 Open PR 0. migration prefix 39~42 순차.
+
+---
+
+# Session Handoff — main (2026-05-27 post-#359 — 외부연동 webhook/auth_mode + admin catalog + codex P1 hotfix)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
+- 범위: 직전 #356 housekeeping (post-#355) 이후 3 PR (#357/#358/#359) 머지.
+- 상태: main HEAD `472a24f` (PR #359).
+- 최종 수정일: 2026-05-27
+
+## 2026-05-27 (post-#359) 결산
+
+직전 housekeeping 후 사용자 지시로 (1) Gitea webhook 헤더 정정 + (2) auth_mode UI 불일치 full 모델 작업. 사용자 "ci 상관없이 머지" 로 #357/#358 머지 → codex 가 #358 P1 발견 → "codex 반영" 지시로 #359 hotfix.
+
+### 머지 PR (3)
+
+| sha | PR | core |
+| --- | --- | --- |
+| `be15288` | **#358** (claude) | **webhook 헤더 alias + auth_mode 별 outbound 자격증명 (full)**. (A) 범용 ingest(API-73)가 `X-Integration-*` 만 읽던 버그 → `X-Gitea-*`/`X-Gogs-*` fallback(`firstHeader`). (B) auth_mode inert → **migration 000041** `{auth_username,auth_client_id,auth_token_url,auth_secret}` + domain `OutboundAuth`/`ResolveOutboundAuth()` + handler 4 필드(`auth_secret` write-only) + gitea `AuthHeader`/`AuthorizationHeader`(token/basic/app_password/oauth2/agent)/`NewClientForAuth` + ProviderModal auth_mode 별 동적 입력(`SecretField`). |
+| `cf796b9` | **#357** (codex) | **system admin catalog UI** — `/admin/catalog` + Sidebar systemMenu(Boxes) + e2e + doc. codex P2×2 (repo-scoped project 누락/repo-ID 드릴다운) 작성자 머지 전 반영 완료 확인. |
+| `472a24f` | **#359** (claude) | **codex #358 P1 hotfix** — `resolveSyncConfig` 가 명시 provider 미설정 자격증명 시 worker env `GITEA_TOKEN` 으로 provider host 에 송신하던 유출 정정 (명시 provider = 그 provider 자격증명만, env 혼용 제거). 회귀 가드 `NoEnvTokenLeakForExplicitProvider`. |
+
+### codex 리뷰 현황
+
+| PR | 결과 |
+| --- | --- |
+| #357 | ✅ codex P2×2 작성자 머지 전 반영 (merged code 확인: `getRepositoryProjects` 병합 + `repository_id` 매칭) |
+| #358 | 🔴 codex **P1 (env token 유출)** → **#359 로 hotfix 완료** |
+| #355 | ⚠️ codex usage limit 으로 여전히 리뷰 0건 — limit reset 후 재리뷰 watch |
+
+### 다음 directive
+
+| 영역 | 항목 |
+| --- | --- |
+| **claude** | 1) **#355/#358 codex 재리뷰 확인** (limit reset). 2) Gitea 고정메뉴 Phase 2b (known vendor 시 generic provider_type/auth_mode select 숨김). 3) inbound webhook 정규화 깊이. 4) #6 `credentials_ref`/`api_token`/`auth_secret` 평문 저장 보안 (envelope 암호화). |
+| 사내/사용자 | Onboarding SOP staging monitoring / nginx OIDC / Keycloak 26.0 smoke / issue #214 / Keycloak SPI realm events wire. |
+
+### 검증
+
+#358 백엔드 build+vet+`go test ./...` + 프론트 tsc+eslint+vitest 17+build ✓. #359 build+vet+gitea/httpapi ✓. 모두 사용자 지시로 머지 (CI 무관). 본 housekeeping 후 Open PR 0. migration prefix 39/40/41 순차 (충돌 없음).
+
+---
+
+# Session Handoff — main (2026-05-27 post-#355 — #354 #349-hotfix + #355 Gitea full 머지 + housekeeping)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
+- 범위: 직전 #353 housekeeping (post-#352, head `112c81b`) 이후 2 PR (#354/#355) 머지.
+- 상태: main HEAD `435d267` (PR #355).
+- 최종 수정일: 2026-05-27
+
+## 2026-05-27 (post-#355) 결산
+
+직전 housekeeping 후 본 conversation 에서 외부 연동 고도화 작업 진행 + #349 codex P2×2 hotfix. 사용자가 #354 먼저 머지 → #355 E2E green 시 자동 머지 지시.
+
+### 머지 PR (2)
+
+| sha | PR | core |
+| --- | --- | --- |
+| `4329cf2` | **#354** (claude) | **#349 codex P2×2 hotfix**. (a) **atomicity** = repo+project 단일 트랜잭션 — `CreateProjectWithRepositories` → `CreateProjectWithRepositoryPayload(ctx, project, repoIDs, *RepositoryCreatePayload)` (repo insert + project insert + N:M link 단일 tx), `createRepositoryTx` tx-aware 신규, `CreateRepositoryForProject` 제거. (b) **NULL-uniqueness** = migration 000039 `CREATE UNIQUE INDEX projects_standalone_key_uniq ON projects (key) WHERE repository_id IS NULL` + **preflight dedup** (`WITH ranked ... key||'-dup-'||id WHERE rn>1` — codex P2 기존 중복 환경 CREATE INDEX 실패 방지). codex review COMMENTED (migration dup) = preflight 로 이미 대응 + 응답 코멘트. |
+| `435d267` | **#355** (claude) | **Gitea 연동 full**. (1) provider **api_token 슬롯** (migration 000040 `ADD COLUMN api_token TEXT` + domain `APIToken` + store COALESCE/NULLIF + handler **write-only** `api_token_set` bool 노출, raw 비노출). (2) **등록 다이얼로그** ProviderModal — capability pull\|sync 시 API Token 필드. (3) **sync worker per-provider** — `resolveSyncConfig` (provider base_url+api_token 우선, env fallback) + `syncAllWith` + main.go `pgStore != nil` 시 워커 기동 (env 없이 큐 job 동작). worker_test.go `TestSyncWorker_ProcessOnce_PerProviderConfig`. |
+
+### codex 감사
+
+| PR | 결과 |
+| --- | --- |
+| #354 | ✅ codex COMMENTED 1건 (migration 000039 dup handling) → preflight dedup 로 이미 대응 + 응답 코멘트 |
+| #355 | ⚠️ **codex review 없음 — usage limit 도달** ("You have reached your Codex usage limits"). limit reset 후 재리뷰 watch 필요 |
+
+### 다음 directive
+
+| 영역 | 항목 |
+| --- | --- |
+| **claude** | 1) **#355 codex 재리뷰 확인** (limit reset 후 P1/P2 흡수). 2) **Gitea webhook 헤더 불일치 정정** — Gitea 송신 `X-Gitea-Signature` ↔ ingest 판독 `X-Integration-Signature` (#355 PR body deferred 명시). 3) 고정 메뉴 Phase 2b (known vendor 시 generic provider_type/auth_mode select 숨김). 4) #6 `credentials_ref`/`api_token` 평문 저장 보안 (envelope 암호화). |
+| 사내/사용자 | Onboarding SOP staging monitoring / nginx OIDC redirect_uri / Keycloak 26.0 redeploy smoke / issue #214 / Keycloak SPI realm events + webhook env wire. |
+
+### 검증
+
+#354 CI 8 job green → squash merge (`4329cf2`). #355 CI 8 job green (E2E 양 shard 포함) → 사용자 자동머지 지시 → squash merge (`435d267`). 본 housekeeping 후 Open PR 0. migration prefix 39/40 순차 (충돌 없음 — #354=000039, #355=000040).
+
+---
+
+# Session Handoff — main (2026-05-27 post-#352 — #349/#351/#352 머지 + codex 감사 + housekeeping)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
+- 범위: 직전 #350 housekeeping (head `58444e7`) 이후 3 PR (#349/#351/#352) 머지 흡수 + codex 감사.
+- 상태: main HEAD `b3dc87e` (PR #352). 본 sprint (`claude/work_260527-housekeeping-post-352`).
+- 최종 수정일: 2026-05-27
+
+## 2026-05-27 (post-#352) 결산
+
+직전 housekeeping 후 외부 연동 등록 UX 고도화 (#352, 본 conversation 작업) + codex 영역 2 PR (#349/#351) 머지. 사용자 지시로 housekeeping + codex 감사 수행.
+
+### 머지 PR (3)
+
+| sha | PR | core |
+| --- | --- | --- |
+| `72dc9f5` | **#349** (codex) | **project standalone 생성 flow** — application/repository optional + `repository_create_payload` 동반 생성 + N:M 연결 UX + migration 000037 (`projects.repository_id` nullable). claude review P1(빌드 실패) 수정 후 머지. **codex P2×2 LIVE 미반영** (아래 감사). |
+| `dacca2c` | **#351** (codex) | `fix(auth): retry refresh on 401 even without initial access token` — frontend `api-client.ts` 단일 파일. codex inline 없음 (clean). |
+| `b3dc87e` | **#352** (claude) | **외부 연동 등록 UX 고도화 (#1~#5)** — vendor 템플릿 7종 + 가이드 자격증명(strategy+secret 분리) + capability 체크박스 + base_url endpoint (migration 000038, API-70/71) + 연결 테스트 (API-87) + codex P2(base_url host 검증) 보강. `integration-provider-presets.ts` + vitest 14 + handler test 8. |
+
+### codex 감사 결과 (본 sprint)
+
+| PR | 결과 |
+| --- | --- |
+| #351 | ✅ clean (codex inline 없음) |
+| #352 | ✅ codex P2 (base_url scheme-only) 보강 완료 (`4406b99`) |
+| **#349** | ⚠️ **codex P2×2 미처리 (hotfix 후보)** — (a) **atomicity**: `CreateRepositoryForProject` 가 `CreateProjectWithRepositories` tx **밖** 별도 호출 → project 실패 시 repo 고아. (b) **NULL-uniqueness**: migration 000037 `DROP NOT NULL` 만 + partial unique index 없음 → standalone(repository_id NULL) project key 중복 가능 (handler 는 invariant 취급). migration 000013 의 `UNIQUE(repository_id,key)` 가 NULL distinct 로 무력화. |
+
+### 다음 directive
+
+| 영역 | 항목 |
+| --- | --- |
+| **claude** | 1) **#349 codex P2×2 hotfix** — migration 000039 `CREATE UNIQUE INDEX ... ON projects (key) WHERE repository_id IS NULL` + repo+project 단일 tx (store `CreateProjectWithRepositoryPayload` 류). 2) 외부 연동 backend 깊이 (webhook 이벤트 정규화 / multi-provider sync 일반화 / realtime topology WS). 3) #6 `credentials_ref` 평문 저장 보안. |
+| 사내/사용자 | Onboarding SOP staging monitoring / nginx OIDC redirect_uri / Keycloak 26.0 redeploy smoke / issue #214 / Keycloak SPI realm events + webhook env wire (#340). |
+
+### 검증
+
+#349/#351/#352 모두 머지 (CI green). #352 본 conversation 작업 (5 커밋 + codex P2 보강). 본 housekeeping 후 Open PR 0.
+
+---
+
+# Session Handoff — main (2026-05-27 post-#348 — #346 + #348 머지 + ADR-0024 §6 종결 + housekeeping)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
+- 범위: 직전 #347 housekeeping (main HEAD `e7fd668`, #344/#345 반영) 이후 #346 + #348 머지.
+- 상태: main HEAD `58444e7` (PR #348). 본 sprint (`claude/work_260527-housekeeping-post-348`).
+- 최종 수정일: 2026-05-27
+
+## 2026-05-27 (post-#348) 결산
+
+#347 housekeeping 후 사용자가 §6.4/§6.5 ticket-only 컷오버 선택 → #348. 그 사이 codex 작성자가 내 #346 review 의 P1+P2 반영 후 #346 머지.
+
+### 머지 PR (2)
+
+| sha | PR | core |
+| --- | --- | --- |
+| `53f596e` | **#346** | codex application/modal UX hotfix. **claude review (request-changes) 의 P1+P2 작성자 반영 후 머지**: 🔴 P1 = **migration 000036 `relax_applications_key_format`** 신규 (`ALTER ... DROP CONSTRAINT applications_key_format` + `ADD CHECK (key ~ '^[A-Za-z0-9]{1,10}$')`) → handler {1,10} 완화와 DB CHECK 정합 (key=DEVHUB prod 동작 복구). 🟠 P2 = edit path 도 `patchPayload.owner_user_id = formData.leader_user_id` 동기화 (`enforceRowOwnership` drift 해소). + Leader/Dept ComboBox + Owner legacy 제거 + due_date parseISO 등 UX. migration prefix 34/35/36 순차. |
+| `58444e7` | **#348** | **ADR-0024 ticket-only 컷오버 (§6 carve 4+5)**. §6.5 = backend `auth.go` 의 WS `?access_token=` → Bearer 승격 블록 제거 (ticket-only) + frontend `realtime.service.ts:buildURL` access_token fallback 제거 + `tokenStore` import 제거. 회귀 가드 `TestRealtimeWS_AccessTokenQuery_NoLongerHonored` (token 수락 verifier 붙어도 access_token 무시 → 401). §6.4 = `docs/planning/ws_subprotocol_vs_ticket_poc.md` 신규 (subprotocol 미채택 비교 — 장기 JWT log leak 잔존 + revocation/replay 내성 없음). ADR-0024 §6 carve 4/5 resolved + §3.2/§4.2 본문 + change-log. CI 8 job green (E2E 양 shard WS ticket 경로 실동작 확인). |
+
+### ADR-0024 §6 carve 종결 상태
+
+| carve | 상태 |
+| --- | --- |
+| 1 ticket pattern / 3 401 refresh-then-reconnect / 4 subprotocol PoC / 5 access_token 제거 / 6 multi-instance PG | ✅ **모두 resolved** |
+| 2 nginx redact (`ticket=` 대상) | 사내 nginx 운영자 영역 (잔여) |
+
+### 다음 directive
+
+| 영역 | 항목 |
+| --- | --- |
+| **claude** | ADR-0024 carve 잔여 없음. 후속 후보 = M4 RM-M4-XX (RBAC cache LISTEN/NOTIFY #233 / WebSocket replay+리소스 필터 #229 / System Admin 대시보드 #232 / Gitea Hourly Pull worker 정밀화 #231) 또는 사용자 지정 |
+| 사내/사용자 | Onboarding SOP staging 1주 monitoring / nginx 재기동 + OIDC redirect_uri 검증 / Keycloak 26.0 redeploy smoke (ADR-0023 §5) / issue #214 / Keycloak SPI realm events 등록 + `DEVHUB_BACKEND_SPI_WEBHOOK_URL` wire (#340 codex P1×2) |
+
+### 검증
+
+#346 + #348 CI 8 job green. 양 PR squash merge + delete-branch. #346 P1+P2 = 내 review 반영 확인. 본 housekeeping 후 Open PR 0.
+
+---
+
+# Session Handoff — main (2026-05-27 post-#345 — #344 + #345 머지 + #346 review + housekeeping)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
+- 범위: 직전 #343 housekeeping (main HEAD `3e61843`) 이후 본 conversation 의 2 머지 PR (#344 + #345) + codex PR #346 review + 본 housekeeping.
+- 상태: main HEAD `0df5ff0` (PR #345). 본 sprint (`claude/work_260527-housekeeping-post-345`).
+- 최종 수정일: 2026-05-27
+
+## 2026-05-27 본 conversation 결산
+
+진입 시 directive (ADR-0024 §6 후속 carve + Gitea worker traceability) 중 사용자가 **A (Gitea 추적성) → B (ADR-0024 §6.6)** 선택 → #344. 이후 codex 자동 리뷰 확인 + 이전 PR 감사 → #345 hotfix. codex PR #346 review.
+
+### 머지 PR (2)
+
+| sha | PR | core |
+| --- | --- | --- |
+| `06a5f77` | **#344** | (A) **Gitea SCM sync worker (#341) 추적성 정합** — IMPL-gitea-03 (client.go REST pull) / 04 (syncer.go 정규화 upsert) / 05 (worker.go SyncWorker + `integration_sync_jobs` 큐 + main.go wire) + UT-gitea-02..04 발급 + `report.md` §2.4 IMPL-gitea-XX 서브표 신규 (기존 gitea-01..02 webhook push 와 분리, git: signature.go=`b1b6849` vs sync worker=`473c4ec`) + §3 'Gitea SCM 동기화 워커 (pull)' row RM-M4-06 1차 구현 매핑. (B) **ADR-0024 §6 carve 6 multi-instance ticket store** — migration 000035 `realtime_tickets` + store `ConsumeRealtimeTicket` `DELETE...WHERE expires_at>NOW() RETURNING` (인스턴스 간 single-use 원자) + `DBRealtimeTicketStore` + `realtimeTicketStore` interface + `NewRealtimeTicketStoreFor(*store.PostgresStore)` selector (DB 연결 PG / 미연결 in-memory fallback) + IMPL-realtime-02. **codex P1 보강** — `consume` 에 error 추가, store fault → auth.go 503 (not 401) + 라우터 회귀 가드 2. |
+| `0df5ff0` | **#345** | **codex review hotfix** (이전 머지 PR 감사). **#341 P1** = `AcquireNextQueuedSyncJob` 에 `provider_type='scm'` JOIN 게이트 (Gitea 워커가 비-SCM job 을 false-complete 하던 것 차단, `FOR UPDATE OF j SKIP LOCKED`) + store integration 회귀 test. **codex #345 P2 보강** = `syncIntegrationProvider` 가 비-SCM 시 queue 전 422 `integration_sync_unsupported_provider_type` fast-fail (zombie queued 방지, worker+endpoint defense-in-depth). **#342 P1** = `projects/[id]` completionRate 가 `getProjectTasks` 기본필터(done 제외)로 항상 0% → 전체 status fetch + activeTasks client filter. **#342 P2** = due_date/start_date `parseISO` (UTC day-shift 제거 3곳). |
+
+### codex PR #346 review (open, `codex/work_260527-a-next-task`)
+
+application/modal UX hotfix 7 파일 (+192/-62). claude **request-changes** ([comment](https://github.com/ykylee/Devhub_example/pull/346#issuecomment-4550418406)):
+- 🔴 **P1 (blocker, codex + migration grep 검증)** — key 핸들러 정규식 `{1,10}` 완화했으나 `migration 000013` CHECK `(key ~ '^[A-Za-z0-9]{10}$')` 미완화 + 후속 ALTER 없음 → `key=DEVHUB` (6자) prod CHECK violation 500 (in-memory handler test 만 통과, CI green 이지만 prod 깨짐). **migration 000036 ALTER 필요**.
+- 🟠 P2 (codex) — create 만 `owner_user_id=leader_user_id`, edit 는 owner 미동기화 → `enforceRowOwnership` 권한 drift.
+- 🟡 P3×3 — doc/impl 중복체크 불일치 / MemberTable·organization `orgChartVersion` scope creep / ComboBox fallback swap race.
+
+### 이전 PR codex 감사 결과 (stale vs live 구분)
+
+- **live (수정)**: #341 P1 provider_id (→ #345 scm-gate) / #342 P1 completionRate + P2 due_date (→ #345)
+- **stale**: #341 pagination·syncAll error 전파 (머지본 이미 구현 — codex 가 중간 commit review) / #334 developer catch·manager color (#340 재구성 / 타입에 color 없음+build green) / #333 stale HEAD (#343 해소)
+- **사내 영역 인계**: #340 Keycloak SPI realm events 미등록 + `DEVHUB_BACKEND_SPI_WEBHOOK_URL` 미wire (codex P1×2 — 사내 infra deploy) / #333 C: 경로 링크 (workflow memory 전반 패턴, 저우선)
+
+### 다음 directive
+
+| 영역 | 항목 |
+| --- | --- |
+| **claude** | #346 P1 migration 000036 보강 (작성자/사용자 결정) / ADR-0024 §6.4 subprotocol PoC P3 + §6.5 access_token query backward-compat 제거 P3 (모든 client ticket 전환 확인 후) |
+| 사내/사용자 | Onboarding SOP staging 1주 monitoring / nginx 재기동 + OIDC redirect_uri 검증 / Keycloak 26.0 redeploy smoke (ADR-0023 §5) / issue #214 / Keycloak SPI realm events 등록 + webhook env wire (#340 codex P1×2) |
+
+### 검증
+
+#344 CI 8 job green (codex P1 보강 후 재실행 포함) + #345 CI 8 job green. 양 PR squash merge + delete-branch. 본 housekeeping 후 Open PR = #346 (codex, request-changes).
+
+---
+
+# Session Handoff — main (2026-05-27 main 동기화 + #334~#342 9 PR flat 메모리 흡수 housekeeping)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
+- 범위: 직전 #333 housekeeping (#332 까지 반영) 이후 #334~#342 9 PR 흡수 + 로컬 main 동기화.
+- 상태: main HEAD `8b25a12` (PR #342). 본 sprint (`claude/work_260527-housekeeping-post-342`).
+- 최종 수정일: 2026-05-27
+
+## 2026-05-27 본 housekeeping sprint
+
+세션 진입 시 로컬 main 이 origin/main 보다 14 commits 뒤처짐 (0 ahead) → **clean fast-forward** (`550b10c`→`8b25a12`, 0 충돌). 현재 브랜치 `claude/work_260526-frontend-cleanup-after-336` 의 유일 커밋 `bd2e5d0` 이 PR #338 (`aa8709d`) 와 patch-id 동일 = **이미 머지된 redundant 브랜치** 확인 (정리 후보).
+
+### 흡수 대상 (#334~#342, 9 PR — 전부 2026-05-26 머지, ykylee/codex/gemini/sisyphus)
+
+| sha | PR | author | core |
+| --- | --- | --- | --- |
+| `84faa7f` | #334 | codex | **운영 UI 전환 1차** — mock 대시보드 기본 비노출 + 아카이브 분리 (`docs/archive/mock_ui_archive_2026-05-26` + `frontend/lib/archive/mock-ui-legacy.ts`) + Developer/Manager/Project 상세 운영 API 기반 렌더링 + dashboard metrics mock fallback 제거 + empty-state/retry + 에러 메시지 표준화 유틸 (`lib/services/error-message.ts`) + `ops_ui_transition_plan.md`. |
+| `daa03fa` | #335 | 사용자 보고 | realtime WS auth fix — `realtime.service.ts buildURL` 에 `tokenStore` access_token 첨부 (query token 미첨부로 무한 401 cycle 회귀 해소) + organization diagram 8 issue. |
+| `550b10c` | #336 | claude | PR #335 후속 — GetHierarchy **user-aware dedupe SQL** (CTE depths/ranked_appointments/canonical, direct_count/total_count canonical 기준 + leader 최상위) + **ADR-0024 신규** (WebSocket `?access_token=` query 인증 패턴, 브라우저 WS Authorization header 불가 제약) + §6 carve 실구현 (§6.1 ticket 패턴 `POST /api/v1/realtime/ticket` + 60s TTL single-use store + `?ticket=` 인식 + access_token fallback / §6.3 WS 401 refresh-then-reconnect). |
+| `0847d87` | #337 | codex | e2e keycloak/oidc 포트 가변화. |
+| `aa8709d` | #338 | claude | **OrgTree client-side dedupe 제거** (#336 backend 정합 후 redundant — `recalculateMemberCounts` user-aware 로직 제거). #335+#336 양쪽 머지 후 진입한 의존 carve. (= redundant 브랜치 `bd2e5d0`) |
+| `63bf49c` | #339 | sisyphus | build-artifacts.sh **GOOS=linux cross-compile fix** (macOS darwin/arm64 → alpine exec format error 회피) + **apiClient 401 token refresh interceptor** (sessionStorage refresh_token → Keycloak token endpoint 교환 후 원본 요청 1회 재시도, ADR-0024 §6 carve 3 정합). |
+| `3edd547` | #340 | gemini | UI cleanup (Work/Quality/Sys Admin mock 대시보드 사이드바 비노출 + 아카이브 placeholder) + Org unit list action 버튼 (ActionMenu → Edit/Delete) + e2e 호환 (infra-topology `.skip` + dev-requests 위젯 복원). |
+| `473c4ec` | #341 | gemini | **Gitea SCM 동기화 워커 신규** — `backend-core/internal/gitea/` (client/syncer/worker + test 4) + main.go `GITEA_URL`/`GITEA_TOKEN` 제공 시 30s 주기 goroutine + `integration_sync_jobs` 큐 (`AcquireNextQueuedSyncJob` SKIP LOCKED + `UpdateIntegrationSyncJobStatus`) + `scmProviderResponse.has_credentials`. |
+| `8b25a12` | #342 | codex | **application/project/repository UI harden** — `PageState` 공통 컴포넌트 (loading/error/empty/retry) + 상세 mock 지표 제거 실데이터 렌더링 + Table no-op 액션 제거 실 플로우 연결 + admin settings applications 액션 + **negative-path E2E 4 spec**. |
+
+### 추가 유입 자산
+
+- **Keycloak event listener SPI (Java)** — `infra/idp/keycloak-event-listener-spi/` (pom.xml + Provider/Factory + META-INF service) + `infra/idp/Dockerfile.keycloak` + CI `DEVHUB_BACKEND_SPI_WEBHOOK_URL` wire. ADR-0020 SPI push 전환의 사내 동반 자산.
+- gemini/codex **브랜치별 메모리** ff merge 유입 (`work_260526-ui-app-project-repo-upgrade` / `gitea-integration-enhancement` / `keycloak-test-e2e-push-audit` / `ui-cleanup-and-org-actions`).
+
+### 다음 directive
+
+| 영역 | 항목 |
+| --- | --- |
+| **claude** | ADR-0024 후속 carve (§6.5 access_token query backward-compat 제거 P3 / §6.6 multi-instance ticket store Redis·PG 백킹 P2 / §6.4 subprotocol PoC P3 / §6.2 nginx redact 사내 적용) + Gitea worker traceability 정합 (IMPL-GITEA-01 / UT-GITEA-01 → report.md row) |
+| 사내/사용자 | 1순위 Onboarding SOP staging 1주 monitoring / 2순위 nginx 재기동 + OIDC redirect_uri 검증 / 3순위 Keycloak 26.0 redeploy smoke (ADR-0023 §5) / 4순위 issue #214 사내 1회 + Keycloak event listener SPI JAR 빌드·배포 |
+
+### 검증
+
+clean fast-forward (0 충돌). 흡수 9 PR 모두 머지 시 CI 통과 + 사용자 squash merge. Open PR 0.
+
+---
+
 # Session Handoff — gemini/ui-cleanup-and-org-actions (2026-05-26 UI 아카이브 및 E2E 테스트 안정성 확보 완료)
 
 - 브랜치: `gemini/ui-cleanup-and-org-actions`
