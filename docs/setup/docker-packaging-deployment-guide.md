@@ -412,6 +412,26 @@ OIDC 관련 URL(`OIDC_ISSUER_URL`, `OIDC_REDIRECT_URI`, `NEXT_PUBLIC_OIDC_ISSUER
 런타임 env + `/api/runtime-config` 경로를 우선 사용하고, host build 는 fallback 값만
 bundle 에 넣는다.
 
+> **중요 — `NEXT_PUBLIC_BASE_PATH` 누락 시 증상 (PR #398 close 사례)**
+>
+> 본 변수는 **`next build` 시점에 client bundle 에 inline** 되며 dev/start 명령에
+> 전달해서는 효과 없다. Dockerfile build ARG 로 `NEXT_PUBLIC_BASE_PATH=devhub` 를
+> 전달하지 않으면 frontend client 의 `api-client.ts` 가 root relative `/api/v1/...`
+> 호출 → nginx 의 `/devhub/api/` location 에 도달하지 못해 404.
+>
+> 우회 대신 (nginx root `/api/` proxy 추가는 ADR-0018 격리 위반 + 운영 collision risk)
+> Dockerfile 의 build ARG 에 BASE_PATH 일관 주입이 정공법:
+>
+> ```dockerfile
+> ARG NEXT_PUBLIC_BASE_PATH
+> ENV NEXT_PUBLIC_BASE_PATH=$NEXT_PUBLIC_BASE_PATH
+> RUN npm run build
+> ```
+>
+> docker compose / `build-artifacts.sh` 가 `.env.deploy` 의 `NEXT_PUBLIC_BASE_PATH`
+> 값을 `--build-arg NEXT_PUBLIC_BASE_PATH=$NEXT_PUBLIC_BASE_PATH` 로 전달하도록
+> 확인. Playwright E2E 도 같은 build 산출물 사용 시 자연 정합.
+
 Dockerfile 핵심 형태:
 
 ```dockerfile

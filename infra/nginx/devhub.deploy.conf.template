@@ -55,6 +55,13 @@ server {
         return 302 /devhub/auth/logout$is_args$args;
     }
 
+    # ANTI-PATTERN — DO NOT ADD `location /api/ { proxy_pass backend; }` (PR #398 close 사례).
+    # ADR-0018 sub-path 격리 정책상 DevHub backend traffic 은 canonical `/devhub/api/`
+    # 만 노출한다. shared hostname 의 다른 서비스가 root `/api/*` 를 쓸 수 있어 collision
+    # 위험. frontend client 가 `/api/v1/...` 를 root 로 호출하면 root cause 는 build 시점
+    # 의 `NEXT_PUBLIC_BASE_PATH=devhub` 누락 — nginx 우회가 아니라 그 build env 정합이 정공법.
+    # 자세한 가이드: `docs/setup/docker-packaging-deployment-guide.md` (BASE_PATH 섹션).
+
     # Frontend runtime config route (Next.js app/api/runtime-config).
     location = /devhub/api/runtime-config {
         proxy_pass $frontend_upstream;
