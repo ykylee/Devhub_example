@@ -1,5 +1,7 @@
 import { tokenStore } from "@/lib/auth/token-store";
-import { API_BASE_URL, OIDC_ISSUER_URL } from "@/lib/config/endpoints";
+import { triggerSessionExpired } from "@/lib/auth/session-death";
+import { refreshAccessToken } from "@/lib/auth/refresh";
+import { API_BASE_URL } from "@/lib/config/endpoints";
 
 export class ApiError extends Error {
   constructor(public status: number, public payload: unknown, message: string) {
@@ -9,105 +11,16 @@ export class ApiError extends Error {
 }
 
 type JsonObject = Record<string, unknown>;
-interface TokenResponse {
-  access_token: string;
-  refresh_token?: string;
-  id_token?: string;
-  expires_in: number;
-  token_type: string;
-}
 
 function isJsonObject(value: unknown): value is JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-// ADR-0024 §6 carve 3 extension: resolve the OIDC token endpoint.
-// Prefers the build-time NEXT_PUBLIC_OIDC_ISSUER_URL; falls back to the
-// server-side /api/runtime-config for Docker deployments where OIDC issuer
-// is injected at container runtime.
-const OIDC_CLIENT_ID = process.env.NEXT_PUBLIC_OIDC_CLIENT_ID ?? "devhub-frontend";
-
-// Cached token endpoint URL. undefined = not yet resolved, null = resolution
-// failed, string = usable URL. Cache avoids a runtime-config fetch on every
-// 401 when OIDC_ISSUER_URL is not baked at build time (Docker deployments).
-let cachedTokenEndpoint: string | null | undefined;
-
-async function resolveTokenEndpoint(): Promise<string | null> {
-  if (cachedTokenEndpoint !== undefined) return cachedTokenEndpoint;
-
-  const issuer = OIDC_ISSUER_URL;
-  if (issuer) {
-    cachedTokenEndpoint = `${issuer}/protocol/openid-connect/token`;
-    return cachedTokenEndpoint;
-  }
-
-  try {
-    const resp = await fetch(`${API_BASE_URL}/api/runtime-config`, { cache: "no-store" });
-    if (!resp.ok) {
-      cachedTokenEndpoint = null;
-      return null;
-    }
-    const body = (await resp.json()) as { oidc_issuer_url?: string };
-    const url = body.oidc_issuer_url?.trim();
-    if (!url) {
-      cachedTokenEndpoint = null;
-      return null;
-    }
-    cachedTokenEndpoint = `${url}/protocol/openid-connect/token`;
-    return cachedTokenEndpoint;
-  } catch {
-    cachedTokenEndpoint = null;
-    return null;
-  }
-}
-
-// ADR-0024 §6 carve 3 extension: exchange the stored refresh_token for a new
-// access_token. Used by apiClient's 401 interceptor to transparently recover
-// without forcing the user to re-authenticate.
-// Guard against parallel refresh storms — if N requests all get 401 at the
-// same time, only one refresh call hits the IdP; the rest join the in-flight
-// promise and return the same result.
-let inflightRefresh: Promise<boolean> | null = null;
-
-async function attemptTokenRefresh(): Promise<boolean> {
-  const refreshToken = tokenStore.getRefreshToken();
-  if (!refreshToken) return false;
-
-  if (inflightRefresh) return inflightRefresh;
-
-  inflightRefresh = doRefresh(refreshToken);
-  const result = await inflightRefresh;
-  inflightRefresh = null;
-  return result;
-}
-
-async function doRefresh(refreshToken: string): Promise<boolean> {
-  const tokenEndpoint = await resolveTokenEndpoint();
-  if (!tokenEndpoint) return false;
-
-  try {
-    const response = await fetch(tokenEndpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        grant_type: "refresh_token",
-        refresh_token: refreshToken,
-        client_id: OIDC_CLIENT_ID,
-      }).toString(),
-    });
-    if (!response.ok) {
-      console.warn("[apiClient] token refresh failed (HTTP %d); clearing session", response.status);
-      tokenStore.clear();
-      return false;
-    }
-    const tokens = (await response.json()) as TokenResponse;
-    tokenStore.save(tokens);
-    return true;
-  } catch (err) {
-    console.warn("[apiClient] token refresh network error", err);
-    return false;
-  }
-}
+// ADR-0024 §6 carve 3 extension:
+// access token 갱신은 `lib/auth/refresh.ts` 의 `refreshAccessToken()` 단일 진입점을
+// 통해 처리한다 (proactive scheduler / realtime fetchTicket 과 같은 single-flight
+// mutex 공유 — #388 codex P1 정합). 결과 enum 으로 transient / auth_failed 를 구분해
+// 세션 사망 결정도 명확히 한다 (#388 codex P2).
 
 export async function apiClient<T>(method: string, path: string, body?: unknown): Promise<T> {
   const headers: Record<string, string> = {};
@@ -130,13 +43,11 @@ export async function apiClient<T>(method: string, path: string, body?: unknown)
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 
-  // ADR-0024 §6 carve 3 extension:
-  // - 기존: access token 이 실린 요청에서만 refresh-then-retry.
-  // - 보강: hard refresh 직후처럼 access token header 가 비어도 refresh token 이
-  //   남아 있으면 1회 복구 시도.
+  // 401 핸들링: 인증 시도가 있었던(token 또는 refresh token 보유) 경우에만 refresh 시도.
+  // (anon endpoint 호출의 401 은 회복 대상 아님.)
   if (response.status === 401 && (token || tokenStore.getRefreshToken())) {
-    const refreshed = await attemptTokenRefresh();
-    if (refreshed) {
+    const outcome = await refreshAccessToken();
+    if (outcome.kind === "ok") {
       const refreshedAccessToken = tokenStore.getAccessToken();
       if (refreshedAccessToken) {
         headers["Authorization"] = `Bearer ${refreshedAccessToken}`;
@@ -146,7 +57,14 @@ export async function apiClient<T>(method: string, path: string, body?: unknown)
           body: body !== undefined ? JSON.stringify(body) : undefined,
         });
       }
+    } else if (outcome.kind === "auth_failed") {
+      // refresh_token 거부 / 부재 — 세션 사망. /login 으로 hard nav (idempotent).
+      // 본 호출은 그대로 401 throw — 진행 중인 caller 는 일시적으로 ApiError 받으나
+      // location.assign 이 비동기로 화면을 전환하므로 무해.
+      triggerSessionExpired();
     }
+    // transient_failed: 세션을 죽이지 않음. 401 그대로 propagate → caller 가 결정
+    // (다음 호출 시점에 다시 refresh 시도되어 자연 회복 가능).
   }
 
   let parsed: unknown = null;
@@ -160,8 +78,8 @@ export async function apiClient<T>(method: string, path: string, body?: unknown)
   }
 
   if (!response.ok) {
-    const errMessage = isJsonObject(parsed) && typeof parsed.error === "string" 
-      ? parsed.error 
+    const errMessage = isJsonObject(parsed) && typeof parsed.error === "string"
+      ? parsed.error
       : `HTTP ${response.status}`;
     throw new ApiError(response.status, parsed, errMessage);
   }
