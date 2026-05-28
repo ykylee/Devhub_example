@@ -409,6 +409,261 @@ func (h *Handler) getApplication(c *gin.Context) {
 	})
 }
 
+func (h *Handler) applicationDashboard(c *gin.Context) {
+	storeI, ok := h.applicationStoreOrUnavailable(c)
+	if !ok {
+		return
+	}
+	id := c.Param("application_id")
+	app, err := storeI.GetApplication(c.Request.Context(), id)
+	if errors.Is(err, store.ErrNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "application not found"})
+		return
+	}
+	if err != nil {
+		writeServerError(c, err, "applications.dashboard.get")
+		return
+	}
+
+	// data_gaps 는 응답의 부분 데이터 표지 — ARCH-APPDASH-05 Graceful Degradation 의
+	// 실 구현 (codex 3b 후속). 외부 데이터 미가용 / 미구현 / sync 비활성 등 모든 누락 사유를
+	// 명시 token 으로 누적해 UI 가 분기 표시할 수 있게 한다.
+	dataGaps := make([]string, 0)
+
+	// 1. Rollup metrics — 외부 데이터 미존재 시 0 값으로 fallback (ComputeApplicationRollup 자체가
+	//    빈 윈도우면 zero-value 반환).
+	rollupOpts := domain.ApplicationRollupOptions{
+		Policy:     domain.WeightPolicyEqual,
+		WindowFrom: time.Now().UTC().AddDate(0, 0, -30),
+		WindowTo:   time.Now().UTC(),
+	}
+	rollup, err := storeI.ComputeApplicationRollup(c.Request.Context(), id, rollupOpts)
+	if err != nil {
+		writeServerError(c, err, "applications.dashboard.rollup")
+		return
+	}
+
+	// 2. Linked Application↔Repository links.
+	links, err := storeI.ListApplicationRepositories(c.Request.Context(), id)
+	if err != nil {
+		writeServerError(c, err, "applications.dashboard.list_repositories")
+		return
+	}
+
+	// 3. Application 의 Projects (milestones).
+	projOpts := store.ProjectListOptions{
+		ApplicationID:   id,
+		IncludeArchived: false,
+	}
+	projects, _, err := storeI.ListProjects(c.Request.Context(), projOpts)
+	if err != nil {
+		writeServerError(c, err, "applications.dashboard.list_projects")
+		return
+	}
+	// project id set — DREQ 의 project 로 등록된 항목도 본 application 매핑으로 포함.
+	projectIDSet := make(map[string]struct{}, len(projects))
+	for _, p := range projects {
+		projectIDSet[p.ID] = struct{}{}
+	}
+
+	// 4. Linked DREQs — 정확한 등록 매칭만 사용 (이전 substring(title/details, app.Key)
+	//    휴리스틱은 false positive 와 project 등록 누락이 있어 제거, codex 3c).
+	//    DREQ store 미설정 시 503 으로 응답 가로채지 말고 graceful 빈 목록 + data_gap 기록.
+	var dreqs []domain.DevRequest
+	if h.cfg.DevRequestStore != nil {
+		dreqOpts := store.DevRequestListOptions{
+			Statuses: []domain.DevRequestStatus{
+				domain.DevRequestStatusPending,
+				domain.DevRequestStatusInReview,
+			},
+		}
+		allDreqs, _, drErr := h.cfg.DevRequestStore.ListDevRequests(c.Request.Context(), dreqOpts)
+		if drErr != nil {
+			dataGaps = append(dataGaps, "linked_dev_requests:store_error")
+		} else {
+			for _, dr := range allDreqs {
+				if dr.RegisteredTargetType == domain.DevRequestTargetApplication && dr.RegisteredTargetID == app.ID {
+					dreqs = append(dreqs, dr)
+					continue
+				}
+				if dr.RegisteredTargetType == domain.DevRequestTargetProject {
+					if _, in := projectIDSet[dr.RegisteredTargetID]; in {
+						dreqs = append(dreqs, dr)
+					}
+				}
+			}
+		}
+	} else {
+		dataGaps = append(dataGaps, "linked_dev_requests:store_unavailable")
+	}
+
+	// 5. 실패 빌드 런 — `ApplicationRepository` 도메인엔 직접 RepositoryID FK 가 없으므로
+	//    (composite PK = ApplicationID + RepoProvider + RepoFullName) 외부 repo id 는
+	//    `ListRepositoriesByProvider` 로 해석해야 한다. 이전 구현은 **link 마다** 공급자 전체
+	//    repo 를 다시 가져와 클라이언트 매칭(N×M)했지만, 본 PR 은 **provider 별 1회 fetch +
+	//    {full_name → id} 맵 캐싱** 으로 M (unique providers) + L (links) 으로 축소 (codex 3d
+	//    정정). sync 가 active 아닌 link 는 data_gap (ARCH-APPDASH-05).
+	repoIDByProvider := make(map[string]map[string]int64)
+	resolveRepoID := func(provider, fullName string) (int64, error) {
+		byName, cached := repoIDByProvider[provider]
+		if !cached {
+			repos, listErr := storeI.ListRepositoriesByProvider(c.Request.Context(), provider)
+			if listErr != nil {
+				repoIDByProvider[provider] = nil // 음성 캐시 — 다음 link 가 같은 provider 일 때 재요청 회피.
+				return 0, listErr
+			}
+			byName = make(map[string]int64, len(repos))
+			for _, r := range repos {
+				byName[r.FullName] = r.ID
+			}
+			repoIDByProvider[provider] = byName
+		}
+		return byName[fullName], nil
+	}
+
+	var buildFailures []gin.H
+	for _, link := range links {
+		if link.SyncStatus != domain.SyncStatusActive {
+			dataGaps = append(dataGaps, "build_runs:"+link.RepoFullName+":sync_"+string(link.SyncStatus))
+			continue
+		}
+		repoID, resolveErr := resolveRepoID(link.RepoProvider, link.RepoFullName)
+		if resolveErr != nil {
+			dataGaps = append(dataGaps, "build_runs:"+link.RepoFullName+":provider_lookup_error")
+			continue
+		}
+		if repoID == 0 {
+			dataGaps = append(dataGaps, "build_runs:"+link.RepoFullName+":repo_not_found")
+			continue
+		}
+		buildOpts := store.BuildRunListOptions{Status: "failed", Limit: 5}
+		failedRuns, _, brErr := storeI.ListRepositoryBuildRuns(c.Request.Context(), repoID, buildOpts)
+		if brErr != nil {
+			dataGaps = append(dataGaps, "build_runs:"+link.RepoFullName+":fetch_error")
+			continue
+		}
+		for _, fr := range failedRuns {
+			failedAt := ""
+			if fr.FinishedAt != nil {
+				failedAt = fr.FinishedAt.UTC().Format(time.RFC3339)
+			}
+			buildFailures = append(buildFailures, gin.H{
+				"repo_provider": link.RepoProvider,
+				"repo_slug":     link.RepoFullName,
+				"branch":        fr.Branch,
+				"build_number":  fr.ID,
+				"failed_at":     failedAt,
+				"error_snippet": "", // BuildRun 도메인엔 에러 요약 필드 없음 — UI 는 log_url 로 이동.
+				"log_url":       "/api/v1/ci-runs/" + strconv.FormatInt(fr.ID, 10) + "/logs",
+			})
+		}
+	}
+
+	// 6. Format Response.
+	metricsOverview := gin.H{
+		"target_branch_build_status": "healthy",
+		"avg_build_duration_seconds": rollup.BuildAvgDurationSeconds,
+		"quality_score":              rollup.QualityScore,
+		"critical_warning_count":     rollup.CriticalWarningCount,
+	}
+	if len(buildFailures) > 0 {
+		metricsOverview["target_branch_build_status"] = "broken"
+	}
+
+	qualityMetrics := gin.H{
+		"normalized_score": rollup.QualityScore,
+		"unresolved_issues": gin.H{
+			"blocker":  rollup.QualityGateFailedCount,
+			"critical": 0,
+			"major":    rollup.CriticalWarningCount,
+		},
+		"comment": "코딩룰/세부 린터 위반 내역은 개별 레포지토리 대시보드에서 상세 제공",
+	}
+
+	projectsProgress := make([]gin.H, 0, len(projects))
+	for _, p := range projects {
+		dDay := 0
+		riskLevel := "Healthy"
+		riskBadgeColor := "#4CAF50"
+		if p.DueDate != nil {
+			duration := time.Until(*p.DueDate)
+			dDay = int(duration.Hours() / 24)
+			if dDay <= 7 {
+				riskLevel = "At Risk"
+				riskBadgeColor = "#F44336"
+			} else if dDay <= 14 {
+				riskLevel = "Warning"
+				riskBadgeColor = "#FFC107"
+			}
+		}
+
+		projectsProgress = append(projectsProgress, gin.H{
+			"project_id":       p.ID,
+			"key":              p.Key,
+			"name":             p.Name,
+			"progress_percent": 0, // story-point 기반 진척율 계산은 미구현 — data_gap 으로 표기 후 carve.
+			"status":           string(p.Status),
+			"due_date":         formatDatePtr(p.DueDate),
+			"d_day":            dDay,
+			"risk_level":       riskLevel,
+			"risk_badge_color": riskBadgeColor,
+		})
+	}
+	if len(projects) > 0 {
+		dataGaps = append(dataGaps, "projects_progress:story_points_not_implemented")
+	}
+
+	linkedDevRequests := make([]gin.H, 0, len(dreqs))
+	for _, dr := range dreqs {
+		linkedDevRequests = append(linkedDevRequests, gin.H{
+			"dreq_id":               dr.ID,
+			"title":                 dr.Title,
+			"status":                string(dr.Status),
+			"assignee_display_name": dr.AssigneeUserID, // user_id 직접 노출 — name resolver 는 후속 carve.
+			"created_at":            dr.CreatedAt.UTC().Format(time.RFC3339),
+		})
+	}
+
+	// 시계열 트렌드는 build_runs/quality_snapshots 의 일자별 집계 store 메서드 부재로
+	// 본 PR 에서는 빈 배열로 응답 (이전 구현은 현재 rollup 값에 임의 delta(-0.05/-0.1)
+	// 더한 합성 데이터였음 — 실데이터 아니라 noise 라 제거).
+	historyTrend := []gin.H{}
+	dataGaps = append(dataGaps, "history_trend:not_implemented")
+
+	appliedWeights := make(map[string]float64)
+	if len(links) > 0 {
+		for _, link := range links {
+			appliedWeights[link.RepoFullName] = 1.0 / float64(len(links))
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "ok",
+		"data": gin.H{
+			"application_id":      app.ID,
+			"key":                 app.Key,
+			"name":                app.Name,
+			"status":              string(app.Status),
+			"visibility":          string(app.Visibility),
+			"leader":              app.LeaderUserID,      // user_id 직접 — name resolver 후속 carve.
+			"development_unit":    app.DevelopmentUnitID, // unit_id 직접 — label resolver 후속 carve.
+			"updated_at":          app.UpdatedAt.UTC().Format(time.RFC3339),
+			"metrics_overview":    metricsOverview,
+			"build_failures":      buildFailures,
+			"quality_metrics":     qualityMetrics,
+			"projects_progress":   projectsProgress,
+			"linked_dev_requests": linkedDevRequests,
+			"history_trend":       historyTrend,
+		},
+		"meta": gin.H{
+			"weight_policy":   "equal",
+			"applied_weights": appliedWeights,
+			"fallbacks":       []string{},
+			"data_gaps":       dataGaps,
+		},
+	})
+}
+
 type updateApplicationRequest struct {
 	Key               *string `json:"key"` // 거부용
 	Name              *string `json:"name"`

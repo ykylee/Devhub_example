@@ -51,6 +51,71 @@ export interface GetApplicationResult {
   };
 }
 
+export interface ApplicationDashboard {
+  application_id: string;
+  key: string;
+  name: string;
+  status: string;
+  visibility: string;
+  leader: string;
+  development_unit: string;
+  updated_at: string;
+  metrics_overview: {
+    target_branch_build_status: string;
+    avg_build_duration_seconds: number;
+    quality_score: number;
+    critical_warning_count: number;
+  };
+  build_failures: Array<{
+    repo_provider: string;
+    repo_slug: string;
+    branch: string;
+    build_number: number;
+    failed_at: string;
+    error_snippet: string;
+    log_url: string;
+  }>;
+  quality_metrics: {
+    normalized_score: number;
+    unresolved_issues: {
+      blocker: number;
+      critical: number;
+      major: number;
+    };
+    comment: string;
+  };
+  projects_progress: Array<{
+    project_id: string;
+    key: string;
+    name: string;
+    progress_percent: number;
+    status: string;
+    due_date: string | null;
+    d_day: number;
+    risk_level: string;
+    risk_badge_color: string;
+  }>;
+  linked_dev_requests: Array<{
+    dreq_id: string;
+    title: string;
+    status: string;
+    assignee_display_name: string;
+    created_at: string;
+  }>;
+  history_trend: Array<{
+    date: string;
+    avg_duration_seconds: number;
+    build_success_rate: number;
+    quality_score: number;
+  }>;
+}
+
+export interface DashboardResult {
+  status: string;
+  data: ApplicationDashboard;
+  meta?: Record<string, unknown>;
+}
+
 class ApplicationService {
   private baseUrl = API_BASE_URL;
 
@@ -76,6 +141,12 @@ class ApplicationService {
   async getApplicationRollup(applicationId: string): Promise<ApplicationRollup> {
     const url = `${this.baseUrl}/api/v1/applications/${applicationId}/rollup`;
     const body = await apiClient<RollupResult>("GET", url);
+    return body.data;
+  }
+
+  async getApplicationDashboard(applicationId: string): Promise<ApplicationDashboard> {
+    const url = `${this.baseUrl}/api/v1/applications/${applicationId}/dashboard`;
+    const body = await apiClient<DashboardResult>("GET", url);
     return body.data;
   }
 }

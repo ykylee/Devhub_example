@@ -306,6 +306,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.DELETE("/projects/:project_id/repositories/:repository_id", handler.deleteProjectRepository)
 	// API-57 Application 롤업 (sprint claude/work_260514-c)
 	v1.GET("/applications/:application_id/rollup", handler.applicationRollup)
+	v1.GET("/applications/:application_id/dashboard", handler.applicationDashboard)
 	// API-58 Integration CRUD (sprint claude/work_260514-c)
 	v1.GET("/integrations", handler.listIntegrations)
 	v1.POST("/integrations", handler.createIntegration)

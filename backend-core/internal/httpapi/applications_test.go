@@ -1354,3 +1354,32 @@ func TestDeleteApplicationRepository_MultipleLeadingSlashes(t *testing.T) {
 		t.Fatalf("unexpected status=%d body=%s", rec.Code, rec.Body.String())
 	}
 }
+
+// 26) GET /applications/:id/dashboard — happy (API-93).
+func TestApplicationDashboard_Happy(t *testing.T) {
+	appStore := newMemoryApplicationStore()
+	app, _ := appStore.CreateApplication(context.Background(), domain.Application{
+		Key: "PLAT26", Name: "Platform 2026", Status: domain.ApplicationStatusActive,
+		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+	})
+	_, _ = appStore.CreateApplicationRepository(context.Background(), domain.ApplicationRepository{
+		ApplicationID: app.ID, RepoProvider: "gitea", RepoFullName: "team/repo",
+		Role: domain.ApplicationRepositoryRolePrimary, SyncStatus: domain.SyncStatusActive,
+	})
+	router := newApplicationsRouter(appStore)
+
+	rec := doJSON(t, router, http.MethodGet, "/api/v1/applications/"+app.ID+"/dashboard", "")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, `"key":"PLAT26"`) {
+		t.Errorf("response should include key: %s", body)
+	}
+	if !strings.Contains(body, `"metrics_overview"`) {
+		t.Errorf("response should include metrics_overview: %s", body)
+	}
+	if !strings.Contains(body, `"quality_metrics"`) {
+		t.Errorf("response should include quality_metrics: %s", body)
+	}
+}
