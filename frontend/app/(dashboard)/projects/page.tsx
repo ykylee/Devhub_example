@@ -34,7 +34,7 @@ export default function ProjectsStatusPage() {
       setError(null);
       setLoading(true);
       const repos = await repositoryService.listRepositories();
-      const allProjects = await projectService.listAllProjects(repos.map(r => r.id));
+      const allProjects = await projectService.listAllProjects(repos.map(r => r.id), { include_archived: true });
       setProjects(allProjects);
     } catch (err) {
       setError("Failed to load projects data.");
@@ -61,7 +61,7 @@ export default function ProjectsStatusPage() {
 
     try {
       setError(null);
-      await projectService.archiveProject(projectId);
+      await projectService.archiveProject(projectId, isArchived);
       await refresh();
     } catch (err) {
       setError(isArchived ? "Failed to delete project." : "Failed to archive project.");
