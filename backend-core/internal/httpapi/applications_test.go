@@ -156,13 +156,93 @@ func (s *memoryApplicationStore) ArchiveApplication(_ context.Context, id, _ str
 func (s *memoryApplicationStore) CountActiveApplicationRepositories(_ context.Context, applicationID string) (int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.activeLinkCounts[applicationID], nil
+	// Count active direct links
+	activeRepos := make(map[string]bool)
+	for _, l := range s.links[applicationID] {
+		if l.SyncStatus == domain.SyncStatusActive {
+			key := l.RepoProvider + "/" + l.RepoFullName
+			activeRepos[key] = true
+		}
+	}
+	// Count active indirect links via projects
+	for _, p := range s.projects {
+		if p.ApplicationID == applicationID {
+			for _, pr := range s.projectRepositories[p.ID] {
+				var provider, fullName string
+				for _, r := range s.repositories {
+					if r.ID == pr.RepositoryID {
+						provider = r.ProviderKey
+						fullName = r.FullName
+						break
+					}
+				}
+				if provider == "" && fullName == "" && pr.RepositoryID == p.RepositoryID {
+					// Fallback using project key
+					provider = "bitbucket" // Default provider key in memory
+					fullName = p.Key
+				}
+				if provider != "" && fullName != "" {
+					activeRepos[provider+"/"+fullName] = true
+				}
+			}
+		}
+	}
+	return len(activeRepos), nil
 }
 
 func (s *memoryApplicationStore) ListApplicationRepositories(_ context.Context, applicationID string) ([]domain.ApplicationRepository, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return append([]domain.ApplicationRepository(nil), s.links[applicationID]...), nil
+	direct := s.links[applicationID]
+	seen := make(map[string]bool)
+	out := make([]domain.ApplicationRepository, 0, len(direct))
+	for _, l := range direct {
+		key := l.RepoProvider + "/" + l.RepoFullName
+		seen[key] = true
+		out = append(out, l)
+	}
+
+	// Add indirect links via projects
+	for _, p := range s.projects {
+		if p.ApplicationID == applicationID {
+			for _, pr := range s.projectRepositories[p.ID] {
+				var provider, fullName string
+				for _, r := range s.repositories {
+					if r.ID == pr.RepositoryID {
+						provider = r.ProviderKey
+						fullName = r.FullName
+						break
+					}
+				}
+				if provider == "" && fullName == "" && pr.RepositoryID == p.RepositoryID {
+					provider = "bitbucket" // Default in memory store
+					fullName = p.Key
+				}
+				if provider != "" && fullName != "" {
+					key := provider + "/" + fullName
+					if !seen[key] {
+						seen[key] = true
+						role := domain.ApplicationRepositoryRoleSub
+						if pr.Role == "primary" {
+							role = domain.ApplicationRepositoryRolePrimary
+						} else if pr.Role == "shared" {
+							role = domain.ApplicationRepositoryRoleShared
+						}
+						// Create a mock domain.ApplicationRepository
+						out = append(out, domain.ApplicationRepository{
+							ApplicationID: applicationID,
+							RepoProvider:  provider,
+							RepoFullName:  fullName,
+							Role:          role,
+							SyncStatus:    domain.SyncStatusActive,
+							LinkedAt:      pr.LinkedAt,
+						})
+					}
+				}
+			}
+		}
+	}
+	return out, nil
 }
 
 func (s *memoryApplicationStore) CreateApplicationRepository(_ context.Context, link domain.ApplicationRepository) (domain.ApplicationRepository, error) {

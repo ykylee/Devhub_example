@@ -145,7 +145,26 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
       if (isEdit && initialData?.id) {
         const patchPayload: Partial<typeof formData> = { ...formData };
         delete patchPayload.key;
+        patchPayload.repository_ids = selectedRepositoryIDs;
+        patchPayload.repository_id = selectedRepositoryIDs[0] || 0;
         result = await projectService.updateProject(initialData.id, patchPayload);
+
+        // N:M project-repositories sync during edit mode
+        const existingLinks = await projectService.getProjectRepositories(initialData.id);
+        const existingIDs = existingLinks.map((l) => l.repository_id);
+        
+        // Find links to remove
+        const toRemove = existingIDs.filter((id) => !selectedRepositoryIDs.includes(id));
+        // Find links to add
+        const toAdd = selectedRepositoryIDs.filter((id) => !existingIDs.includes(id));
+
+        await Promise.all([
+          ...toRemove.map((id) => projectService.unlinkProjectRepository(initialData.id!, id)),
+          ...toAdd.map((id) => {
+            const role = selectedRepositoryIDs.indexOf(id) === 0 ? "primary" : "linked";
+            return projectService.linkProjectRepository(initialData.id!, id, role);
+          })
+        ]);
       } else {
         const leader = normalizedMembers.find((m) => m.project_role === "leader")?.user_id.trim() || formData.owner_user_id.trim();
         const selectedApplicationId = formData.application_id || applicationId || "";
@@ -253,7 +272,6 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
           <div className="space-y-2">
             <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Application (Optional)</label>
             <select
-              disabled={isEdit}
               value={formData.application_id}
               onChange={(e) => setFormData({ ...formData, application_id: e.target.value })}
               className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400/50 appearance-none"
@@ -270,15 +288,13 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Repositories</label>
-              {!isEdit && (
-                <button
-                  type="button"
-                  onClick={() => setRepositoryLinks((prev) => [...prev, 0])}
-                  className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[10px] font-black uppercase tracking-widest hover:bg-muted/30"
-                >
-                  <Plus className="w-3 h-3" /> Add
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => setRepositoryLinks((prev) => [...prev, 0])}
+                className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[10px] font-black uppercase tracking-widest hover:bg-muted/30"
+              >
+                <Plus className="w-3 h-3" /> Add
+              </button>
             </div>
             {repositoryLinks.length === 0 && (
               <p className="text-[11px] text-muted-foreground">No repository selected. You can create the project first and connect later.</p>
@@ -289,7 +305,6 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
                   <div className="relative flex-1">
                     <GitBranch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/40" />
                     <select
-                      disabled={isEdit}
                       value={repoID}
                       onChange={(e) => {
                         const next = [...repositoryLinks];
@@ -314,16 +329,14 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
                         })}
                     </select>
                   </div>
-                  {!isEdit && (
-                    <button
-                      type="button"
-                      onClick={() => setRepositoryLinks((prev) => prev.filter((_, i) => i !== idx))}
-                      className="h-9 w-9 rounded-lg border border-border text-muted-foreground hover:text-destructive hover:border-destructive/40 flex items-center justify-center"
-                      aria-label="Remove repository"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setRepositoryLinks((prev) => prev.filter((_, i) => i !== idx))}
+                    className="h-9 w-9 rounded-lg border border-border text-muted-foreground hover:text-destructive hover:border-destructive/40 flex items-center justify-center"
+                    aria-label="Remove repository"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               ))}
             </div>

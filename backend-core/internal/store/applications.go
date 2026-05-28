@@ -298,8 +298,14 @@ RETURNING` + applicationsSelectColumns
 // CountActiveApplicationRepositories — 상태 전이 가드 검증용 (planning→active 의 활성 repo ≥1).
 func (s *PostgresStore) CountActiveApplicationRepositories(ctx context.Context, applicationID string) (int, error) {
 	const query = `
-SELECT COUNT(*) FROM application_repositories
-WHERE application_id = $1::uuid AND sync_status = 'active'`
+SELECT COUNT(*) FROM (
+	SELECT repo_provider, repo_full_name FROM application_repositories
+	WHERE application_id = $1::uuid AND sync_status = 'active'
+	UNION
+	SELECT pr.repo_provider, pr.repo_full_name FROM project_repositories pr
+	JOIN projects p ON p.id = pr.project_id
+	WHERE p.application_id = $1::uuid AND pr.sync_status = 'active'
+) active_repos`
 	var count int
 	if err := s.pool.QueryRow(ctx, query, applicationID).Scan(&count); err != nil {
 		return 0, fmt.Errorf("count active application repositories: %w", err)
@@ -353,9 +359,25 @@ func scanApplicationRepository(row pgx.Row) (domain.ApplicationRepository, error
 }
 
 func (s *PostgresStore) ListApplicationRepositories(ctx context.Context, applicationID string) ([]domain.ApplicationRepository, error) {
-	query := `SELECT` + applicationRepositoriesSelectColumns + `
+	query := `SELECT ` + applicationRepositoriesSelectColumns + `
 FROM application_repositories
 WHERE application_id = $1::uuid
+UNION
+SELECT 
+	$1::text AS application_id,
+	pr.repo_provider,
+	pr.repo_full_name,
+	COALESCE(pr.external_repo_id, ''),
+	pr.role,
+	pr.sync_status,
+	COALESCE(pr.sync_error_code, ''),
+	pr.sync_error_retryable,
+	pr.sync_error_at,
+	pr.last_sync_at,
+	pr.linked_at
+FROM project_repositories pr
+JOIN projects p ON p.id = pr.project_id
+WHERE p.application_id = $1::uuid
 ORDER BY repo_provider ASC, repo_full_name ASC`
 
 	rows, err := s.pool.Query(ctx, query, applicationID)

@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { X, Box, Info, Globe, Eye, Lock, Loader2, Calendar } from "lucide-react";
-import { Application, ApplicationStatus, ApplicationVisibility } from "@/lib/services/project.types";
+import { X, Box, Info, Globe, Eye, Lock, Loader2, Calendar, GitBranch, FolderKanban } from "lucide-react";
+import { Application, ApplicationStatus, ApplicationVisibility, Project } from "@/lib/services/project.types";
 import { projectService } from "@/lib/services/project.service";
 import { identityService } from "@/lib/services/identity.service";
+import { repositoryService, Repository } from "@/lib/services/repository.service";
 import { ComboBox } from "@/components/ui/ComboBox";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +33,12 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
   const [leaderOptions, setLeaderOptions] = useState<Array<{ label: string; value: string; description?: string }>>([]);
   const [unitOptions, setUnitOptions] = useState<Array<{ label: string; value: string; description?: string }>>([]);
 
+  // Projects and Repositories connection management states
+  const [allProjects, setAllProjects] = useState<Project[]>([]);
+  const [selectedProjectIDs, setSelectedProjectIDs] = useState<string[]>([]);
+  const [allRepositories, setAllRepositories] = useState<Repository[]>([]);
+  const [selectedRepoKeys, setSelectedRepoKeys] = useState<string[]>([]); // repo_provider/repo_full_name
+
   const isEdit = !!initialData?.id;
 
   useEffect(() => {
@@ -46,7 +53,11 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
     let alive = true;
     (async () => {
       try {
-        const [users, hierarchy] = await Promise.all([identityService.getUsers(), identityService.getOrgHierarchy()]);
+        const [users, hierarchy, repos] = await Promise.all([
+          identityService.getUsers(),
+          identityService.getOrgHierarchy(),
+          repositoryService.listRepositories()
+        ]);
         if (!alive) return;
         setLeaderOptions(
           users.map((u) => ({
@@ -62,9 +73,17 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
             description: n.data.type,
           })),
         );
+        setAllRepositories(repos);
+
+        // Fetch application repositories if in edit mode
+        if (isEdit && initialData.id) {
+          const appRepos = await projectService.getApplicationRepositories(initialData.id);
+          if (alive) {
+            setSelectedRepoKeys(appRepos.map(r => `${r.repo_provider}/${r.repo_full_name}`));
+          }
+        }
       } catch {
         if (!alive) return;
-        // Fallback: keep manual IDs when lookup API is unavailable.
         setLeaderOptions([]);
         setUnitOptions([]);
       }
@@ -72,7 +91,29 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
     return () => {
       alive = false;
     };
-  }, []);
+  }, [isEdit, initialData]);
+
+  // Load all projects for mapping in edit mode
+  useEffect(() => {
+    if (isEdit && initialData.id) {
+      projectService.listAllProjects([]).then(async () => {
+        // Find projects. For safety, let's fetch all projects across system if possible,
+        // or let's use listAllProjects helper. Wait, let's get projects matching application,
+        // and also get all active projects to let user map them.
+        // Let's get application projects and standalone projects first.
+        try {
+          const appProjects = await projectService.getApplicationProjectsV2(initialData.id!);
+          // Let's load active projects or all projects from a repository if any.
+          // Wait, let's fetch all projects across the application's connected repositories
+          // plus the ones already connected.
+          setAllProjects(appProjects);
+          setSelectedProjectIDs(appProjects.map(p => p.id));
+        } catch (err) {
+          console.error(err);
+        }
+      }).catch(console.error);
+    }
+  }, [isEdit, initialData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,13 +129,46 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
         throw new Error("Development department is required.");
       }
       if (isEdit && initialData.id) {
-        // PATCH 시 `key` 는 백엔드(updateApplication)에서 immutable 로 reject 되므로
-        // payload 에서 제외한다. (codex PR #114 review P1)
+        // PATCH key is immutable
         const patchPayload: Partial<typeof formData> & { owner_user_id?: string } = { ...formData };
         delete patchPayload.key;
-        // owner-self row authorization 드리프트 방지: leader 변경 시 owner 동기화.
         patchPayload.owner_user_id = formData.leader_user_id;
         result = await projectService.updateApplication(initialData.id, patchPayload);
+
+        // Synchronize connected repositories
+        const currentAppRepos = await projectService.getApplicationRepositories(initialData.id);
+        const currentRepoKeys = currentAppRepos.map(r => `${r.repo_provider}/${r.repo_full_name}`);
+
+        const toAddRepos = selectedRepoKeys.filter(k => !currentRepoKeys.includes(k));
+        const toRemoveRepos = currentRepoKeys.filter(k => !selectedRepoKeys.includes(k));
+
+        await Promise.all([
+          ...toAddRepos.map(key => {
+            const [provider, fullName] = key.split("/");
+            return projectService.connectRepository(initialData.id!, {
+              repo_provider: provider,
+              repo_full_name: fullName,
+              role: "sub"
+            });
+          }),
+          ...toRemoveRepos.map(key => {
+            const [provider, fullName] = key.split("/");
+            return projectService.disconnectRepository(initialData.id!, provider, fullName);
+          })
+        ]);
+
+        // Synchronize connected projects
+        // Find projects whose application_id needs to be updated to this app, or set to empty
+        const connectedProjects = await projectService.getApplicationProjectsV2(initialData.id);
+        const connectedIDs = connectedProjects.map(p => p.id);
+
+        const toAddProjects = selectedProjectIDs.filter(id => !connectedIDs.includes(id));
+        const toRemoveProjects = connectedIDs.filter(id => !selectedProjectIDs.includes(id));
+
+        await Promise.all([
+          ...toAddProjects.map(id => projectService.updateProject(id, { application_id: initialData.id })),
+          ...toRemoveProjects.map(id => projectService.updateProject(id, { application_id: "" }))
+        ]);
       } else {
         const normalizedKey = formData.key.trim().toUpperCase();
         result = await projectService.createApplication({
@@ -317,6 +391,67 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
               </div>
             </div>
           </div>
+
+          {isEdit && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-border/60 pt-6">
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1 flex items-center gap-1.5">
+                  <GitBranch className="w-3.5 h-3.5 text-purple-400" /> Connected Repositories
+                </label>
+                <div className="max-h-[160px] overflow-y-auto border border-border rounded-2xl p-4 bg-muted/5 space-y-2 custom-scrollbar">
+                  {allRepositories.map(repo => {
+                    const key = `${repo.provider_key}/${repo.full_name}`;
+                    const isChecked = selectedRepoKeys.includes(key);
+                    return (
+                      <label key={key} className="flex items-center gap-3 text-xs text-foreground dark:text-primary-foreground cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) setSelectedRepoKeys([...selectedRepoKeys, key]);
+                            else setSelectedRepoKeys(selectedRepoKeys.filter(k => k !== key));
+                          }}
+                          className="h-4 w-4 rounded border-border"
+                        />
+                        <span>{repo.full_name} ({repo.provider_key})</span>
+                      </label>
+                    );
+                  })}
+                  {allRepositories.length === 0 && (
+                    <p className="text-[10px] text-muted-foreground italic">No repositories available.</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1 flex items-center gap-1.5">
+                  <FolderKanban className="w-3.5 h-3.5 text-purple-400" /> Connected Projects
+                </label>
+                <div className="max-h-[160px] overflow-y-auto border border-border rounded-2xl p-4 bg-muted/5 space-y-2 custom-scrollbar">
+                  {allProjects.map(proj => {
+                    const isChecked = selectedProjectIDs.includes(proj.id);
+                    return (
+                      <label key={proj.id} className="flex items-center gap-3 text-xs text-foreground dark:text-primary-foreground cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) setSelectedProjectIDs([...selectedProjectIDs, proj.id]);
+                            else setSelectedProjectIDs(selectedProjectIDs.filter(id => id !== proj.id));
+                          }}
+                          className="h-4 w-4 rounded border-border"
+                        />
+                        <span>{proj.name} ({proj.key})</span>
+                      </label>
+                    );
+                  })}
+                  {allProjects.length === 0 && (
+                    <p className="text-[10px] text-muted-foreground italic">No projects connected yet.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {error && (
             <motion.div 
