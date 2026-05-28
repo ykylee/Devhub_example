@@ -141,9 +141,17 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
         const toAddRepos = selectedRepoKeys.filter(k => !currentRepoKeys.includes(k));
         const toRemoveRepos = currentRepoKeys.filter(k => !selectedRepoKeys.includes(k));
 
+        // codex P2 정합 (#395) — repo full_name 이 `owner/repo` 형태 ("/" 다수 포함)
+        // 일 때 `key.split("/")` destructure 가 두 번째 segment 만 fullName 으로 받아
+        // 나머지를 drop 했음 (e.g. `github/acme/web` → provider="github", fullName="acme",
+        // "web" 손실). 첫 `/` 위치 기준으로 정확히 둘로 split.
+        const splitRepoKey = (key: string): [string, string] => {
+          const i = key.indexOf("/");
+          return i < 0 ? [key, ""] : [key.slice(0, i), key.slice(i + 1)];
+        };
         await Promise.all([
           ...toAddRepos.map(key => {
-            const [provider, fullName] = key.split("/");
+            const [provider, fullName] = splitRepoKey(key);
             return projectService.connectRepository(initialData.id!, {
               repo_provider: provider,
               repo_full_name: fullName,
@@ -151,7 +159,7 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
             });
           }),
           ...toRemoveRepos.map(key => {
-            const [provider, fullName] = key.split("/");
+            const [provider, fullName] = splitRepoKey(key);
             return projectService.disconnectRepository(initialData.id!, provider, fullName);
           })
         ]);
