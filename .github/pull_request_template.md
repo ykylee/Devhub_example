@@ -1,8 +1,23 @@
 <!--
 PR template — DevHub Example.
 - 본문은 한국어가 default. 필요 시 영어 혼용.
+- "카테고리·모듈" 은 `docs/governance/code-taxonomy.md` §1~2 의 명칭 사용.
 - "추적성 영향" 섹션은 docs/traceability/sync-checklist.md §3.7 형식에 맞춰 채움.
+- PR title prefix 도 카테고리 사용 권장 — 예: `feat(application-lifecycle): ...`.
 -->
+
+## 카테고리 · 모듈
+
+<!--
+docs/governance/code-taxonomy.md §1~2 참조. 영향 카테고리/모듈 명시.
+다중 카테고리는 줄바꿈 또는 콤마.
+예:
+  - `application-lifecycle` / store/applications, httpapi/applications
+  - `auth-session` / lib/auth/refresh-scheduler
+-->
+
+- 카테고리:
+- 모듈:
 
 ## 요약
 
