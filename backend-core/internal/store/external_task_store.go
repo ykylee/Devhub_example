@@ -2,7 +2,6 @@ package store
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -26,7 +25,8 @@ type ExternalTaskListOptions struct {
 
 func scanExternalTaskItem(row pgx.Row) (domain.ExternalTaskItem, error) {
 	var t domain.ExternalTaskItem
-	var labelsJSON []byte
+	// codex P1 (#390) — migration 000046 의 labels 컬럼은 TEXT[] 이므로
+	// pgx 가 []string 으로 직접 디코드한다. jsonb 처리 잔재 제거.
 	var rawPayloadJSON []byte
 	if err := row.Scan(
 		&t.ID,
@@ -40,7 +40,7 @@ func scanExternalTaskItem(row pgx.Row) (domain.ExternalTaskItem, error) {
 		&t.Assignee,
 		&t.Reporter,
 		&t.URL,
-		&labelsJSON,
+		&t.Labels,
 		&rawPayloadJSON,
 		&t.WebhookSeq,
 		&t.FetchedAt,
@@ -49,11 +49,6 @@ func scanExternalTaskItem(row pgx.Row) (domain.ExternalTaskItem, error) {
 		&t.UpdatedAt,
 	); err != nil {
 		return domain.ExternalTaskItem{}, fmt.Errorf("scan external task item: %w", err)
-	}
-	if len(labelsJSON) > 0 {
-		if err := json.Unmarshal(labelsJSON, &t.Labels); err != nil {
-			return domain.ExternalTaskItem{}, fmt.Errorf("unmarshal labels: %w", err)
-		}
 	}
 	if len(rawPayloadJSON) > 0 {
 		t.RawPayload = rawPayloadJSON
@@ -83,11 +78,24 @@ func NewPostgresExternalTaskStore(pool *pgxpool.Pool) *PostgresExternalTaskStore
 	return &PostgresExternalTaskStore{pool: pool}
 }
 
+// NewPostgresExternalTaskStoreFor produces a task store sharing the supplied
+// PostgresStore's pool. codex P1 (#390) — main.go wiring 경로 (private pool 우회).
+// pg 가 nil 이면 nil 반환 — caller (RouterConfig) 가 그대로 두면 handler 의
+// `externalTaskStoreOrUnavailable` 가 503 응답을 처리.
+func NewPostgresExternalTaskStoreFor(pg *PostgresStore) *PostgresExternalTaskStore {
+	if pg == nil {
+		return nil
+	}
+	return &PostgresExternalTaskStore{pool: pg.pool}
+}
+
 // UpsertExternalTaskItem inserts or updates a task item by (provider_id, external_id).
 func (s *PostgresExternalTaskStore) UpsertExternalTaskItem(ctx context.Context, t domain.ExternalTaskItem) (domain.ExternalTaskItem, error) {
-	labelsJSON, err := json.Marshal(t.Labels)
-	if err != nil {
-		return domain.ExternalTaskItem{}, fmt.Errorf("marshal labels: %w", err)
+	// codex P1 (#390) — labels 는 TEXT[] 이므로 []string 으로 직접 전달.
+	// raw_payload 만 jsonb 캐스트 유지.
+	labels := t.Labels
+	if labels == nil {
+		labels = []string{}
 	}
 
 	const query = `
@@ -97,7 +105,7 @@ INSERT INTO external_task_items (
     fetched_at, deleted_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6,
-    NULLIF($7, ''), NULLIF($8, ''), NULLIF($9, ''), NULLIF($10, ''), $11::jsonb, $12::jsonb, $13,
+    NULLIF($7, ''), NULLIF($8, ''), NULLIF($9, ''), NULLIF($10, ''), $11, $12::jsonb, $13,
     $14, $15
 )
 ON CONFLICT (provider_id, external_id) DO UPDATE SET
@@ -123,7 +131,7 @@ RETURNING
 	return scanExternalTaskItem(s.pool.QueryRow(ctx, query,
 		t.ProviderID, t.ExternalID, t.Title, t.Description, t.RawStatus, t.NormalizedStatus,
 		t.Priority, t.Assignee, t.Reporter, t.URL,
-		labelsJSON, t.RawPayload, t.WebhookSeq,
+		labels, t.RawPayload, t.WebhookSeq,
 		t.FetchedAt, t.DeletedAt,
 	))
 }
@@ -172,12 +180,10 @@ func (s *PostgresExternalTaskStore) ListExternalTaskItems(ctx context.Context, o
 		arg++
 	}
 	if len(opts.Labels) > 0 {
-		labelsJSON, err := json.Marshal(opts.Labels)
-		if err != nil {
-			return nil, 0, fmt.Errorf("marshal filter labels: %w", err)
-		}
-		where += fmt.Sprintf(" AND labels ?| $%d::jsonb", arg)
-		args = append(args, string(labelsJSON))
+		// codex P1 (#390) — labels 는 TEXT[]. && (overlap) 연산자로 "어떤
+		// label 이든 매치" OR 필터를 구현. 기존 jsonb `?|` 는 컬럼 type 불일치.
+		where += fmt.Sprintf(" AND labels && $%d::text[]", arg)
+		args = append(args, opts.Labels)
 		arg++
 	}
 	if !opts.IncludeDeleted {

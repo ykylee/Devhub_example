@@ -340,7 +340,10 @@ RETURNING
 	COALESCE(auth_username, ''),
 	COALESCE(auth_client_id, ''),
 	COALESCE(auth_token_url, ''),
-	COALESCE(auth_secret, '')`
+	COALESCE(auth_secret, ''),
+	COALESCE(webhook_secret, ''),
+	COALESCE(pull_interval_seconds, 1800),
+	last_pulled_at`
 	updated, err := scanIntegrationProvider(s.pool.QueryRow(
 		ctx,
 		query,

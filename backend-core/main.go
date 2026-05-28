@@ -158,6 +158,9 @@ func main() {
 		},
 		RealtimeHub:           realtimeHub,
 		RealtimeTickets:       httpapi.NewRealtimeTicketStoreFor(pgStore),
+		// codex P1 (#390) — task item ingestion 의 PostgresExternalTaskStore wire.
+		// pgStore 는 위 cfg.DBURL gate 에서 fatal 처리되므로 여기서는 non-nil 보장.
+		ExternalTaskStore:     store.NewPostgresExternalTaskStoreFor(pgStore),
 		AuthDevFallback:       cfg.AuthDevFallback,
 		OnboardingGateEnabled: cfg.OnboardingGateEnabled,
 		ProjectModel:          cfg.ProjectModel,
