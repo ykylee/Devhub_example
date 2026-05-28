@@ -31,6 +31,9 @@ type memoryApplicationStore struct {
 	integrationBindings  map[string]domain.IntegrationBinding
 	criticalCounts       map[string]int // override for CountApplicationCriticalWarnings tests
 	infraSnapshot        memoryInfraSnapshot
+	repositoryIDs        map[string]int64
+	repositories         map[string]domain.Repository // full_name → repo (UpsertRepository/ListByProvider)
+	nextRepositoryID     int64
 }
 
 type memoryInfraSnapshot struct {
@@ -57,6 +60,9 @@ func newMemoryApplicationStore() *memoryApplicationStore {
 		integrationProviders: make(map[string]domain.IntegrationProvider),
 		integrationBindings:  make(map[string]domain.IntegrationBinding),
 		criticalCounts:       make(map[string]int),
+		repositoryIDs:        make(map[string]int64),
+		repositories:         make(map[string]domain.Repository),
+		nextRepositoryID:     1000,
 	}
 }
 
@@ -332,7 +338,27 @@ func (s *memoryApplicationStore) DeleteProjectRepository(_ context.Context, proj
 	return store.ErrNotFound
 }
 
-func (s *memoryApplicationStore) CreateProjectWithRepositories(_ context.Context, p domain.Project, repositoryIDs []int64) (domain.Project, error) {
+func (s *memoryApplicationStore) CreateProjectWithRepositoryPayload(_ context.Context, p domain.Project, repositoryIDs []int64, repoPayload *store.RepositoryCreatePayload) (domain.Project, error) {
+	// repoPayload 동반 생성 — production 의 단일 tx atomicity 를 흉내 (codex #349 P2):
+	// repo id 확보 후 project + links 생성. CreateProject 실패 시 (중복 key) 에러 반환.
+	if repoPayload != nil {
+		fullName := strings.TrimSpace(repoPayload.Slug)
+		if fullName == "" {
+			return domain.Project{}, store.ErrConflict
+		}
+		s.mu.Lock()
+		repoID, ok := s.repositoryIDs[fullName]
+		if !ok {
+			s.nextRepositoryID++
+			repoID = s.nextRepositoryID
+			s.repositoryIDs[fullName] = repoID
+		}
+		s.mu.Unlock()
+		if p.RepositoryID == 0 {
+			p.RepositoryID = repoID
+		}
+		repositoryIDs = append(repositoryIDs, repoID)
+	}
 	created, err := s.CreateProject(context.Background(), p)
 	if err != nil {
 		return domain.Project{}, err
@@ -600,9 +626,66 @@ func (s *memoryApplicationStore) UpdateIntegrationProvider(_ context.Context, p 
 	current.SyncStatus = p.SyncStatus
 	current.LastSyncAt = p.LastSyncAt
 	current.LastErrorCode = p.LastErrorCode
+	current.BaseURL = p.BaseURL
+	current.APIToken = p.APIToken
+	current.AuthUsername = p.AuthUsername
+	current.AuthClientID = p.AuthClientID
+	current.AuthTokenURL = p.AuthTokenURL
+	current.AuthSecret = p.AuthSecret
 	current.UpdatedAt = time.Now().UTC()
 	s.integrationProviders[p.ID] = current
 	return current, nil
+}
+
+func (s *memoryApplicationStore) UpsertRepository(_ context.Context, repo domain.Repository) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.repositories == nil {
+		s.repositories = make(map[string]domain.Repository)
+	}
+	if existing, ok := s.repositories[repo.FullName]; ok {
+		// SCM mirror 필드만 갱신, system-owned(description) 보존 + source/provider_id
+		// 기존 값 우선 (production PostgresStore.UpsertRepository ON CONFLICT 미러).
+		existing.GiteaID = repo.GiteaID
+		existing.OwnerLogin = repo.OwnerLogin
+		existing.Name = repo.Name
+		existing.CloneURL = repo.CloneURL
+		existing.HTMLURL = repo.HTMLURL
+		existing.DefaultBranch = repo.DefaultBranch
+		existing.Private = repo.Private
+		if existing.Source == "" {
+			existing.Source = repo.Source
+		}
+		if existing.ProviderID == "" {
+			existing.ProviderID = repo.ProviderID
+		}
+		existing.UpdatedAt = time.Now().UTC()
+		s.repositories[repo.FullName] = existing
+		return nil
+	}
+	if repo.ID == 0 {
+		s.nextRepositoryID++
+		repo.ID = s.nextRepositoryID
+	}
+	if repo.Source == "" {
+		repo.Source = domain.RepositorySourceSCM
+	}
+	repo.UpdatedAt = time.Now().UTC()
+	s.repositories[repo.FullName] = repo
+	s.repositoryIDs[repo.FullName] = repo.ID
+	return nil
+}
+
+func (s *memoryApplicationStore) ListRepositoriesByProvider(_ context.Context, providerID string) ([]domain.Repository, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]domain.Repository, 0)
+	for _, r := range s.repositories {
+		if r.ProviderID == providerID {
+			out = append(out, r)
+		}
+	}
+	return out, nil
 }
 
 func (s *memoryApplicationStore) DeleteIntegrationProvider(_ context.Context, providerID string) error {
@@ -778,11 +861,11 @@ func TestCreateApplication_Happy(t *testing.T) {
 	router := newApplicationsRouter(appStore)
 
 	rec := doJSON(t, router, http.MethodPost, "/api/v1/applications",
-		`{"key":"A1B2C3D4E5","name":"Devhub Platform","owner_user_id":"u1","leader_user_id":"u1","development_unit_id":"dept-eng","visibility":"internal","status":"planning"}`)
+		`{"key":"DEVHUB","name":"Devhub Platform","owner_user_id":"u1","leader_user_id":"u1","development_unit_id":"dept-eng","visibility":"internal","status":"planning"}`)
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
 	}
-	if !bytes.Contains(rec.Body.Bytes(), []byte(`"key":"A1B2C3D4E5"`)) {
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"key":"DEVHUB"`)) {
 		t.Errorf("response should echo key: %s", rec.Body.String())
 	}
 }

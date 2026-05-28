@@ -57,6 +57,8 @@ backend `auth.go:79-83` + frontend `realtime.service.ts:buildURL` 의 query stri
 
 본 ADR 의 §6 carve 1번 항목.
 
+> **2026-05-27 갱신**: ticket 패턴 채택 완료 (carve 1) + **ticket-only 컷오버** (carve 5) 로 `?access_token=` query 인식을 backend/frontend 양쪽에서 제거. 이제 WS 인증은 ticket 단일이다. subprotocol 대안은 비교 분석 후 미채택 (carve 4, [`ws_subprotocol_vs_ticket_poc.md`](../planning/ws_subprotocol_vs_ticket_poc.md)). 아래 §3.1/§4.2 의 query string 관련 기술은 historical context.
+
 ### 3.3 reject 한 대안
 
 | 대안 | reject 사유 |
@@ -77,7 +79,7 @@ query string token 의 일반적 risk + 완화:
 
 | risk | 완화 |
 | --- | --- |
-| URL 이 access log / proxy log 에 leak | nginx access_log 의 query string redact (`if ($args ~* "access_token=([^&]+)") { ... }`) — 사내 nginx 동반 carve |
+| URL 이 access log / proxy log 에 leak | **2026-05-27 ticket-only 컷오버 (carve 5) 로 `?access_token=` 제거 → 장기 JWT leak 위협 해소.** 잔존하는 `?ticket=` 은 single-use + 60s TTL 이라 leak 영향 minimal. nginx redact 는 `ticket=` 대상으로 축소 (carve 2, 사내). |
 | browser history 에 leak | WebSocket URL 은 history 에 안 들어감 (a tag/location.href 가 아님) — 해당 없음 |
 | referrer leak | WebSocket 은 Referer header 안 보냄 — 해당 없음 |
 | URL 가시성 (어깨너머 보기) | 일반 페이지 가시성과 동일. risk minimal |
@@ -93,6 +95,8 @@ query string token 의 일반적 risk + 완화:
 | --- | --- | --- |
 | 2026-05-26 | 본 ADR 신규 발급 (사용자 보고 + PR #335 client-side hotfix 명문화) | sprint `claude/work_260526-organization-followups`, PR pending |
 | 2026-05-26 | **§6 carve 1, 3 closed + carve 2 sample 작성** — 사용자 명시 override ("영역 무시") 로 ticket pattern + refresh-then-reconnect 본 sprint 추가 흡수. backend `realtime_ticket.go` 신규 (in-memory store + 60s TTL + single-use) + `POST /api/v1/realtime/ticket` endpoint + `auth.go` 의 `?ticket=` query 인식. frontend `realtime.service.ts:buildURL` async + ticket fetch + 401 시 refresh-then-retry. carve 2 sample 은 `infra/nginx/README.md §6` 에 http block log_format 권장 안 (사내 nginx 운영자 영역). access_token query 는 backward-compat fallback 유지 (deprecated, removal 차기 sprint). | 본 sprint |
+| 2026-05-27 | **§6 carve 4, 5 resolved — ticket-only 컷오버 + subprotocol PoC**. carve 4: subprotocol negotiation 비교 분석 doc ([`ws_subprotocol_vs_ticket_poc.md`](../planning/ws_subprotocol_vs_ticket_poc.md)) — 미채택 (장기 JWT log leak 위협 잔존 + revocation/replay 내성 없음 + 구현 분량 ↑, ADR §3.3 reject 사유 정합). carve 5: **ticket-only 컷오버** — frontend `realtime.service.ts:buildURL` 의 `else { access_token }` fallback 제거 (ticket null 시 token 미첨부 → 401 → reconnect 재시도) + `tokenStore` import 제거 + backend `auth.go` 의 `?access_token=` query → Bearer 승격 블록 제거. 이제 WS 인증은 ticket 단일. 회귀 가드 `TestRealtimeWS_AccessTokenQuery_NoLongerHonored` (token 무조건 수락 verifier 붙어도 access_token query 무시 → 401). §1/§3.1/§4.2/§6.2 본문에 ticket-only 결과 반영. 검증: go build+vet+httpapi test + frontend tsc+eslint PASS. | sprint `claude/work_260527-adr0024-ws-carve-6465`, PR pending |
+| 2026-05-27 | **§6 carve 6 resolved (multi-instance PG 백킹 ticket store)** — 스택에 Redis 미사용 (pgx 단일) → PG 백킹 채택. migration `000035_create_realtime_tickets` (ticket PK + actor_login/role + source_type + expires_at + created_at + expires_at idx) + `internal/store/realtime_tickets.go` (`InsertRealtimeTicket` / `ConsumeRealtimeTicket` `DELETE ... WHERE expires_at > NOW() RETURNING` 으로 인스턴스 간 single-use 원자 보장 / `DeleteExpiredRealtimeTickets` opportunistic 회수) + `realtime_ticket.go` 의 `realtimeTicketStore` interface 추출 + `DBRealtimeTicketStore` (PG) + `NewRealtimeTicketStoreFor(*store.PostgresStore)` selector (DB 연결 시 PG, 미연결 시 in-memory fallback — typed-nil pitfall 회피 concrete nil check). `issue`/`consume` 에 `context.Context` 전달 (auth.go + realtime_ticket.go call site). main.go wire. 테스트: httpapi 단위 7건 (in-memory single-use/expired/unknown + DB fake issue·consume·error + selector nil) + store integration 3건 (DEVHUB_TEST_DB_URL gate — single-use / 만료 미consume + reap / **동시 8 goroutine consume 정확히 1회** race). go build + vet + httpapi/store test PASS. | sprint `claude/work_260527-adr0024-ticket-store`, PR pending |
 
 ## 6. 잔여 carve
 
@@ -101,6 +105,6 @@ query string token 의 일반적 risk + 완화:
 | 1 | ticket pattern 마이그레이션 (`POST /api/v1/realtime/ticket` + short-lived TTL + single-use) | claude (backend + frontend) | P2 | ✅ resolved (본 sprint) |
 | 2 | nginx access_log 의 `access_token=` / `ticket=` redact 설정 | 사내 nginx 운영자 | P2 | sample 작성 ([`infra/nginx/README.md §6`](../../infra/nginx/README.md#6-websocket-auth-query-token-redact-adr-0024-43-6-carve-2)), 적용 사내 |
 | 3 | WS handshake 401 시 frontend refresh-then-reconnect 패턴 | claude | P3 | ✅ resolved (본 sprint, ticket fetch 의 401 → `authService.refreshTokens()` → ticket retry 1회) |
-| 4 | WS subprotocol negotiation 으로 Bearer 전달 비교 PoC | claude (architecture 검토) | P3 | open |
-| 5 | access_token query backward-compat fallback 제거 (모든 client 가 ticket 사용 확인 후) | claude (backend + frontend) | P3 | open (carve 1 의 자연 후속) |
-| 6 | multi-instance backend 환경에서 in-memory ticket store 가 sticky 미사용 시 깨짐 → Redis/PG 백킹 store | claude (backend) | P2 | open (현재 single-instance 가정) |
+| 4 | WS subprotocol negotiation 으로 Bearer 전달 비교 PoC | claude (architecture 검토) | P3 | ✅ resolved (비교 분석 [`docs/planning/ws_subprotocol_vs_ticket_poc.md`](../planning/ws_subprotocol_vs_ticket_poc.md) — subprotocol 미채택: 장기 JWT log leak 위협이 query string 과 동일하게 잔존 + revocation/replay 내성 없음 + 서버 구현 분량 증가. ticket 단일화 결론) |
+| 5 | access_token query backward-compat fallback 제거 (모든 client 가 ticket 사용 확인 후) | claude (backend + frontend) | P3 | ✅ resolved (ticket-only 컷오버 — frontend `realtime.service.ts:buildURL` 의 access_token fallback 제거 + backend `auth.go` 의 `?access_token=` query 인식 제거. 유일 WS client 가 ticket 사용 확인 후. 회귀 가드 `TestRealtimeWS_AccessTokenQuery_NoLongerHonored` (verifier 수락 token 이어도 401)) |
+| 6 | multi-instance backend 환경에서 in-memory ticket store 가 sticky 미사용 시 깨짐 → Redis/PG 백킹 store | claude (backend) | P2 | ✅ resolved (PG 백킹 — migration 000035 `realtime_tickets` + `DBRealtimeTicketStore`. 스택에 Redis 미사용 → pgx 정합 + `DELETE ... RETURNING` 으로 인스턴스 간 single-use 원자 보장. DB 미연결 배포는 in-memory fallback) |

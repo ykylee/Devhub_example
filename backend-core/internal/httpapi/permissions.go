@@ -132,8 +132,8 @@ var routePermissionTable = map[routeKey]routePolicy{
 	{http.MethodGet, "/api/v1/organizations/search"}: {Bypass: true},
 	// RM-ONBOARD-01 (API-86) — admin 의 review confirm. system_admin 일임 —
 	// rbac matrix 의 organization:edit 정합 (user/organization management).
-	{http.MethodPost, "/api/v1/admin/users/:user_id/review"}:                {Resource: domain.ResourceOrganization, Action: domain.ActionEdit},
-	{http.MethodGet, "/api/v1/realtime/ws"}:                                 {Bypass: true},
+	{http.MethodPost, "/api/v1/admin/users/:user_id/review"}: {Resource: domain.ResourceOrganization, Action: domain.ActionEdit},
+	{http.MethodGet, "/api/v1/realtime/ws"}:                  {Bypass: true},
 	// ADR-0024 §3.2 ticket pattern — authenticateActor 가 Bearer 검증 후 발급.
 	// RBAC bypass (인증된 actor 면 누구나 short-lived ticket 발급 권한).
 	{http.MethodPost, "/api/v1/realtime/ticket"}:                            {Bypass: true},
@@ -162,11 +162,13 @@ var routePermissionTable = map[routeKey]routePolicy{
 	{http.MethodPost, "/api/v1/commands/:command_id/reject"}:  {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
 
 	// pipelines
-	{http.MethodGet, "/api/v1/repositories"}:            {Resource: domain.ResourcePipelines, Action: domain.ActionView},
-	{http.MethodGet, "/api/v1/issues"}:                  {Resource: domain.ResourcePipelines, Action: domain.ActionView},
-	{http.MethodGet, "/api/v1/pull-requests"}:           {Resource: domain.ResourcePipelines, Action: domain.ActionView},
-	{http.MethodGet, "/api/v1/ci-runs"}:                 {Resource: domain.ResourcePipelines, Action: domain.ActionView},
-	{http.MethodGet, "/api/v1/ci-runs/:ci_run_id/logs"}: {Resource: domain.ResourcePipelines, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/repositories"}:                         {Resource: domain.ResourcePipelines, Action: domain.ActionView},
+	{http.MethodPost, "/api/v1/repositories"}:                        {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionCreate},
+	{http.MethodPost, "/api/v1/repositories/:repository_id/publish"}: {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionEdit},
+	{http.MethodGet, "/api/v1/issues"}:                               {Resource: domain.ResourcePipelines, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/pull-requests"}:                        {Resource: domain.ResourcePipelines, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/ci-runs"}:                              {Resource: domain.ResourcePipelines, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/ci-runs/:ci_run_id/logs"}:              {Resource: domain.ResourcePipelines, Action: domain.ActionView},
 
 	// security
 	{http.MethodGet, "/api/v1/risks"}:                       {Resource: domain.ResourceSecurity, Action: domain.ActionView},
@@ -236,6 +238,7 @@ var routePermissionTable = map[routeKey]routePolicy{
 	// Project CRUD (API-55..56, sprint claude/work_260514-c).
 	{http.MethodGet, "/api/v1/repositories/:repository_id/projects"}:                {Resource: domain.ResourceProjects, Action: domain.ActionView},
 	{http.MethodPost, "/api/v1/repositories/:repository_id/projects"}:               {Resource: domain.ResourceProjects, Action: domain.ActionCreate},
+	{http.MethodPost, "/api/v1/projects"}:                                           {Resource: domain.ResourceProjects, Action: domain.ActionCreate},
 	{http.MethodGet, "/api/v1/applications/:application_id/projects"}:               {Resource: domain.ResourceProjects, Action: domain.ActionView},
 	{http.MethodPost, "/api/v1/applications/:application_id/projects"}:              {Resource: domain.ResourceProjects, Action: domain.ActionCreate},
 	{http.MethodGet, "/api/v1/projects/:project_id"}:                                {Resource: domain.ResourceProjects, Action: domain.ActionView},
@@ -250,17 +253,21 @@ var routePermissionTable = map[routeKey]routePolicy{
 
 	// Integration CRUD (API-58, sprint claude/work_260514-c) — applications:edit cross-cut
 	// (관리 행위라 admin 일임).
-	{http.MethodGet, "/api/v1/integrations"}:                             {Resource: domain.ResourceApplications, Action: domain.ActionView},
-	{http.MethodPost, "/api/v1/integrations"}:                            {Resource: domain.ResourceApplications, Action: domain.ActionEdit},
-	{http.MethodPatch, "/api/v1/integrations/:integration_id"}:           {Resource: domain.ResourceApplications, Action: domain.ActionEdit},
-	{http.MethodDelete, "/api/v1/integrations/:integration_id"}:          {Resource: domain.ResourceApplications, Action: domain.ActionEdit},
-	{http.MethodGet, "/api/v1/integration/providers"}:                    {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
-	{http.MethodPost, "/api/v1/integration/providers"}:                   {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
-	{http.MethodPatch, "/api/v1/integration/providers/:provider_id"}:     {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
-	{http.MethodDelete, "/api/v1/integration/providers/:provider_id"}:    {Resource: domain.ResourceInfrastructure, Action: domain.ActionDelete},
-	{http.MethodPost, "/api/v1/integration/providers/:provider_id/sync"}: {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
-	{http.MethodGet, "/api/v1/integration/bindings"}:                     {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
-	{http.MethodPost, "/api/v1/integration/bindings"}:                    {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
+	{http.MethodGet, "/api/v1/integrations"}:                                            {Resource: domain.ResourceApplications, Action: domain.ActionView},
+	{http.MethodPost, "/api/v1/integrations"}:                                           {Resource: domain.ResourceApplications, Action: domain.ActionEdit},
+	{http.MethodPatch, "/api/v1/integrations/:integration_id"}:                          {Resource: domain.ResourceApplications, Action: domain.ActionEdit},
+	{http.MethodDelete, "/api/v1/integrations/:integration_id"}:                         {Resource: domain.ResourceApplications, Action: domain.ActionEdit},
+	{http.MethodGet, "/api/v1/integration/providers"}:                                   {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
+	{http.MethodPost, "/api/v1/integration/providers"}:                                  {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
+	{http.MethodPatch, "/api/v1/integration/providers/:provider_id"}:                    {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
+	{http.MethodDelete, "/api/v1/integration/providers/:provider_id"}:                   {Resource: domain.ResourceInfrastructure, Action: domain.ActionDelete},
+	{http.MethodPost, "/api/v1/integration/providers/:provider_id/sync"}:                {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
+	{http.MethodGet, "/api/v1/integration/providers/:provider_id/scm-repositories"}:     {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
+	{http.MethodPost, "/api/v1/integration/providers/:provider_id/import-repositories"}: {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
+	{http.MethodPost, "/api/v1/integration/providers/:provider_id/create-repository"}:   {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
+	{http.MethodPost, "/api/v1/integration/test-connection"}:                            {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
+	{http.MethodGet, "/api/v1/integration/bindings"}:                                    {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
+	{http.MethodPost, "/api/v1/integration/bindings"}:                                   {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
 	// PR #251 P2-4 sub-carve — Bindings UI 강화. API-81 PATCH + API-82 DELETE.
 	{http.MethodPatch, "/api/v1/integration/bindings/:binding_id"}:  {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
 	{http.MethodDelete, "/api/v1/integration/bindings/:binding_id"}: {Resource: domain.ResourceInfrastructure, Action: domain.ActionDelete},

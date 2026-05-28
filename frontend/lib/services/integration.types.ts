@@ -22,6 +22,15 @@ export interface IntegrationProvider {
   sync_status: string;
   last_sync_at: string | null;
   last_error_code: string | null;
+  base_url: string | null;
+  /** api_token 은 write-only — 응답엔 raw 미노출, 설정 여부만. */
+  api_token_set: boolean;
+  // 구조화 outbound auth 자격증명 (auth_mode 별). 비밀 외 필드는 노출,
+  // auth_secret 은 write-only (auth_secret_set bool 만).
+  auth_username: string | null;
+  auth_client_id: string | null;
+  auth_token_url: string | null;
+  auth_secret_set: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -33,6 +42,13 @@ export interface CreateIntegrationProviderInput {
   auth_mode: IntegrationAuthMode;
   credentials_ref: string;
   capabilities?: string[];
+  base_url?: string;
+  api_token?: string;
+  // auth_mode 별 outbound 자격증명. auth_secret 은 write-only.
+  auth_username?: string;
+  auth_client_id?: string;
+  auth_token_url?: string;
+  auth_secret?: string;
 }
 
 export interface UpdateIntegrationProviderInput {
@@ -40,12 +56,46 @@ export interface UpdateIntegrationProviderInput {
   display_name?: string;
   credentials_ref?: string;
   capabilities?: string[];
+  base_url?: string;
+  api_token?: string;
+  auth_username?: string;
+  auth_client_id?: string;
+  auth_token_url?: string;
+  auth_secret?: string;
 }
 
 export interface ListIntegrationProvidersOptions {
   provider_type?: IntegrationProviderType;
   enabled?: boolean;
   limit?: number;
+}
+
+// SCM repository import (API-88/89, sprint scm-repo-sync).
+// SCM 으로부터 조회한 원격 repository 1건. imported 는 시스템에 이미 연동(import)됐는지.
+export interface ScmRepository {
+  full_name: string;
+  name: string;
+  clone_url: string;
+  html_url: string;
+  default_branch: string;
+  private: boolean;
+  imported: boolean;
+}
+
+export interface ImportScmRepositoriesResult {
+  status: string;
+  imported: number;
+  repositories: { full_name: string; name: string }[];
+  not_found: string[];
+}
+
+// 등록 UX 고도화 #5 — test-connection 응답.
+export interface TestConnectionResult {
+  status: string;
+  reachable: boolean;
+  status_code?: number;
+  latency_ms?: number;
+  error?: string;
 }
 
 // Bindings — sprint claude/work_260518-m.

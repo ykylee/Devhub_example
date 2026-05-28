@@ -1,6 +1,5 @@
 import { WSEvent, WSEventHandler } from "./types";
 import { useStore } from "@/lib/store";
-import { tokenStore } from "@/lib/auth/token-store";
 import { apiClient, ApiError } from "./api-client";
 import { authService } from "./auth.service";
 
@@ -75,7 +74,7 @@ export class RealtimeService {
           return null;
         }
       }
-      console.warn('[RealtimeService] Ticket fetch failed (will fall back to access_token query):', e);
+      console.warn('[RealtimeService] Ticket fetch failed (ticket-only; will reconnect/retry):', e);
       return null;
     }
   }
@@ -163,17 +162,15 @@ export class RealtimeService {
     };
     const roleParam = role ? (roleMap[role] || role.toLowerCase()) : 'guest';
 
-    // ADR-0024: prefer ticket (single-use + 60s TTL). access_token query 는
-    // backward-compat fallback (deprecated, removal 차기 sprint). browser WS
-    // API 의 Authorization header 제약 우회. PR #335 가 access_token 첨부 1차
-    // hotfix → 본 PR 이 ticket pattern 으로 정공법 확장.
+    // ADR-0024 §6 carve 5 (ticket-only 컷오버): ticket (single-use + 60s TTL) 만
+    // 사용. 레거시 `?access_token=` query fallback 은 제거 — browser WS API 의
+    // Authorization header 제약 우회는 ticket pattern 으로 일원화 (URL/log token
+    // 노출 위협 제거). ticket fetch 실패 시 token 미첨부 → backend 401 →
+    // handleReconnect 가 재시도 (ticket 재발급 + 401 refresh-then-retry).
     let tokenParam = '';
     const ticket = await this.fetchTicket();
     if (ticket) {
       tokenParam = `&ticket=${encodeURIComponent(ticket)}`;
-    } else {
-      const accessToken = tokenStore.getAccessToken();
-      if (accessToken) tokenParam = `&access_token=${encodeURIComponent(accessToken)}`;
     }
 
     return `${WS_BASE}${separator}types=${types}&actor=${actorParam}&role=${roleParam}${tokenParam}`;

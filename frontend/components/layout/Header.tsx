@@ -82,9 +82,24 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
       fetchDreqs();
     });
 
+    // 레거시 websocketService(AuthGuard) 제거에 따른 알림 핸들러 이관 — ticket WS
+    // (realtimeService) 로 일원화. `DEFAULT_EVENT_TYPES` 에 두 이벤트가 이미 포함되어
+    // 백엔드 push 를 그대로 수신한다 (realtime.service.ts:14-15). store action 은
+    // callback 시점 getState() 로 읽어 effect 의존성/재구독을 피한다.
+    const unsubscribeNotification = realtimeService.subscribe<{ message?: string }>('notification.created', (event) => {
+      useStore.getState().incrementNotifications();
+      useStore.getState().addToast(event.data?.message || "New Notification", "info");
+    });
+
+    const unsubscribeRisk = realtimeService.subscribe<{ message?: string }>('risk.critical.created', (event) => {
+      useStore.getState().addToast(`CRITICAL: ${event.data?.message || "Risk Detected"}`, "error");
+    });
+
     return () => {
       unsubscribeStatus();
       unsubscribeDreq();
+      unsubscribeNotification();
+      unsubscribeRisk();
     };
   }, []);
 

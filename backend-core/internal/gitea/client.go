@@ -1,9 +1,11 @@
 package gitea
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -12,8 +14,12 @@ import (
 
 // Client handles HTTP API interactions with Gitea.
 type Client struct {
-	BaseURL    string
-	Token      string
+	BaseURL string
+	Token   string // legacy: Gitea PAT (token scheme). Used when AuthHeader is empty.
+	// AuthHeader, when set, is the full Authorization header value applied to
+	// every request (e.g. "Basic <b64>", "Bearer <token>"). Takes precedence
+	// over Token so the client can carry any outbound auth mode.
+	AuthHeader string
 	HTTPClient *http.Client
 }
 
@@ -63,16 +69,16 @@ type GiteaUser struct {
 
 // GiteaPullRequest represents Gitea pull request payload.
 type GiteaPullRequest struct {
-	ID        int64        `json:"id"`
-	Number    int64        `json:"number"`
-	Title     string       `json:"title"`
-	State     string       `json:"state"`
-	HTMLURL   string       `json:"html_url"`
-	MergedAt  *time.Time   `json:"merged_at"`
-	ClosedAt  *time.Time   `json:"closed_at"`
-	User      *GiteaUser   `json:"user"`
-	Head      *GiteaBranch `json:"head"`
-	Base      *GiteaBranch `json:"base"`
+	ID       int64        `json:"id"`
+	Number   int64        `json:"number"`
+	Title    string       `json:"title"`
+	State    string       `json:"state"`
+	HTMLURL  string       `json:"html_url"`
+	MergedAt *time.Time   `json:"merged_at"`
+	ClosedAt *time.Time   `json:"closed_at"`
+	User     *GiteaUser   `json:"user"`
+	Head     *GiteaBranch `json:"head"`
+	Base     *GiteaBranch `json:"base"`
 }
 
 // GiteaBranch represents a Gitea branch/ref payload in PRs.
@@ -182,15 +188,56 @@ func (c *Client) ListPullRequests(ctx context.Context, owner, repo string, state
 	return allPulls, nil
 }
 
+// CreateRepoOptions is the repository creation payload (Gitea POST body).
+type CreateRepoOptions struct {
+	Name          string `json:"name"`
+	Description   string `json:"description,omitempty"`
+	Private       bool   `json:"private"`
+	DefaultBranch string `json:"default_branch,omitempty"`
+	AutoInit      bool   `json:"auto_init,omitempty"`
+}
+
+// CreateRepo creates a repository in Gitea. owner 가 비면 인증 사용자 계정
+// (POST /user/repos), 있으면 org (POST /orgs/{owner}/repos) 아래에 생성한다.
+// 이미 존재하면 Gitea 가 409 를 반환하며 do() 가 status error 로 전파한다.
+func (c *Client) CreateRepo(ctx context.Context, owner string, opts CreateRepoOptions) (GiteaRepository, error) {
+	path := "/api/v1/user/repos"
+	if o := strings.TrimSpace(owner); o != "" {
+		path = fmt.Sprintf("/api/v1/orgs/%s/repos", url.PathEscape(o))
+	}
+	req, err := c.newRequest(ctx, http.MethodPost, path, opts)
+	if err != nil {
+		return GiteaRepository{}, err
+	}
+	var created GiteaRepository
+	if err := c.do(req, &created); err != nil {
+		return GiteaRepository{}, err
+	}
+	return created, nil
+}
+
 func (c *Client) newRequest(ctx context.Context, method, path string, body any) (*http.Request, error) {
 	u := c.BaseURL + path
-	req, err := http.NewRequestWithContext(ctx, method, u, nil)
+	var reader io.Reader
+	if body != nil {
+		encoded, err := json.Marshal(body)
+		if err != nil {
+			return nil, err
+		}
+		reader = bytes.NewReader(encoded)
+	}
+	req, err := http.NewRequestWithContext(ctx, method, u, reader)
 	if err != nil {
 		return nil, err
 	}
 
 	req.Header.Set("Accept", "application/json")
-	if c.Token != "" {
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	if c.AuthHeader != "" {
+		req.Header.Set("Authorization", c.AuthHeader)
+	} else if c.Token != "" {
 		req.Header.Set("Authorization", "token "+c.Token)
 	}
 	return req, nil
