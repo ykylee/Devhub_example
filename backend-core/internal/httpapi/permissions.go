@@ -249,7 +249,8 @@ var routePermissionTable = map[routeKey]routePolicy{
 	{http.MethodDelete, "/api/v1/projects/:project_id/repositories/:repository_id"}: {Resource: domain.ResourceProjects, Action: domain.ActionDelete},
 
 	// Application 롤업 (API-57, sprint claude/work_260514-c) — applications:view 매핑.
-	{http.MethodGet, "/api/v1/applications/:application_id/rollup"}: {Resource: domain.ResourceApplications, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/applications/:application_id/rollup"}:    {Resource: domain.ResourceApplications, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/applications/:application_id/dashboard"}: {Resource: domain.ResourceApplications, Action: domain.ActionView},
 
 	// Integration CRUD (API-58, sprint claude/work_260514-c) — applications:edit cross-cut
 	// (관리 행위라 admin 일임).
