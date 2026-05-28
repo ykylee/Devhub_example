@@ -173,3 +173,14 @@
 ::-webkit-scrollbar-thumb:hover {
   background: var(--primary);
 }
+
+/* select option 글로벌 테마 대응 (배경-글자색 대비 가독성 확보) */
+select option {
+  background-color: var(--card) !important;
+  color: var(--foreground) !important;
+}
+
+.theme-dark select option {
+  background-color: #1e1b4b !important;
+  color: #fafafa !important;
+}

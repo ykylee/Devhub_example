@@ -34,7 +34,7 @@ export default function ProjectsStatusPage() {
       setError(null);
       setLoading(true);
       const repos = await repositoryService.listRepositories();
-      const allProjects = await projectService.listAllProjects(repos.map(r => r.id), { include_archived: true });
+      const allProjects = await projectService.listAllProjects(repos.map(r => r.id), { include_archived: statusFilter === "archived" });
       setProjects(allProjects);
     } catch (err) {
       setError("Failed to load projects data.");
@@ -42,17 +42,15 @@ export default function ProjectsStatusPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [statusFilter]);
 
   useEffect(() => {
-    // Initial fetch on mount. refresh 는 useCallback([]) 이라 stable, 1회만 실행.
-    // setState-in-effect 룰은 async fetch boundary 라 cascading render 우려 없음.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void refresh();
   }, [refresh]);
 
   const handleDelete = useCallback(async (projectId: string, currentStatus: string) => {
-    const isArchived = currentStatus === "archived";
+    const isArchived = currentStatus?.trim().toLowerCase() === "archived";
     const confirmMsg = isArchived
       ? "Are you sure you want to permanently delete this project? This action cannot be undone."
       : "Are you sure you want to archive this project?";
