@@ -17,6 +17,7 @@ import { FilterBar } from "@/components/ui/FilterBar";
 import { PageEmpty, PageError, PageLoading } from "@/components/ui/PageState";
 import { applicationService, Application, ApplicationRollup } from "@/lib/services/application.service";
 import { lifecycleStatusBadgeVariant } from "@/lib/utils/lifecycle-status";
+import { applicationBuildStatusView } from "@/lib/utils/last-build";
 
 interface ApplicationWithRollup extends Application {
   rollup?: ApplicationRollup;
@@ -69,9 +70,9 @@ export default function ApplicationsStatusPage() {
   });
 
   const totalApps = apps.length;
-  const avgSuccessRate = apps.length > 0 
-    ? (apps.reduce((acc, app) => acc + (app.rollup?.build_success_rate || 0), 0) / apps.length * 100).toFixed(1)
-    : "0";
+  // REQ-FR-APPDASH-001 — 단순 % 보다 broken 카운트로 표시.
+  const brokenApps = apps.filter((app) => app.rollup?.target_branch_build_status === "broken").length;
+  const healthyApps = apps.filter((app) => app.rollup?.target_branch_build_status === "healthy").length;
   const totalCritical = apps.reduce((acc, app) => acc + (app.rollup?.critical_warning_count || 0), 0);
   const activeApps = apps.filter((app) => app.status === "active").length;
 
@@ -92,9 +93,9 @@ export default function ApplicationsStatusPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
           { label: "Total Applications", value: totalApps.toString(), icon: Box, color: "text-info" },
-          { label: "Avg. Build Success", value: `${avgSuccessRate}%`, icon: Activity, color: "text-success" },
-          { label: "Critical Warnings", value: totalCritical.toString(), icon: ShieldCheck, color: totalCritical > 0 ? "text-destructive" : "text-success" },
-          { label: "Active Applications", value: activeApps.toString(), icon: Zap, color: "text-purple-500" },
+          { label: "Broken Builds", value: brokenApps.toString(), icon: Activity, color: brokenApps > 0 ? "text-destructive" : "text-success" },
+          { label: "Healthy Builds", value: healthyApps.toString(), icon: ShieldCheck, color: "text-success" },
+          { label: "Critical Warnings", value: totalCritical.toString(), icon: Zap, color: totalCritical > 0 ? "text-destructive" : "text-success" },
         ].map((stat, i) => (
           <motion.div 
             key={stat.label}
@@ -149,7 +150,7 @@ export default function ApplicationsStatusPage() {
                   <Badge variant={lifecycleStatusBadgeVariant(app.status)} dot>{app.status}</Badge>
                 </div>
                 <div className="flex items-center gap-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                  <span className="flex items-center gap-1"><Cpu className="w-3 h-3" /> Build: {((app.rollup?.build_success_rate || 0) * 100).toFixed(1)}%</span>
+                  <span className="flex items-center gap-1"><Cpu className="w-3 h-3" /> Build: {applicationBuildStatusView(app.rollup?.target_branch_build_status).label}</span>
                   <span>•</span>
                   <span className="flex items-center gap-1"><ShieldCheck className="w-3 h-3" /> Quality: {app.rollup?.quality_score?.toFixed(1) || "N/A"}</span>
                   <span>•</span>
@@ -160,9 +161,9 @@ export default function ApplicationsStatusPage() {
 
             <div className="flex items-center gap-12 text-right">
               <div>
-                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Build Success</p>
+                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Last Build</p>
                 <p className="text-lg font-black text-foreground dark:text-primary-foreground">
-                  {app.rollup ? `${(app.rollup.build_success_rate * 100).toFixed(1)}%` : "N/A"}
+                  {app.rollup ? applicationBuildStatusView(app.rollup.target_branch_build_status).label : "N/A"}
                 </p>
               </div>
               <div>

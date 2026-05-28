@@ -72,6 +72,12 @@ func (h *Handler) applicationRollup(c *gin.Context) {
 		return
 	}
 
+	// "마지막 빌드 상태" derive 값 — REQ-FR-APPDASH-001 (단순 % 보다 broken/red 즉시 표기).
+	// 빈 문자열은 "unknown" 으로 정규화하여 frontend 가 항상 valid 한 enum 값을 받도록.
+	targetBranchBuildStatus := rollup.TargetBranchBuildStatus
+	if targetBranchBuildStatus == "" {
+		targetBranchBuildStatus = "unknown"
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"status": "ok",
 		"data": gin.H{
@@ -81,6 +87,7 @@ func (h *Handler) applicationRollup(c *gin.Context) {
 			"quality_score":              rollup.QualityScore,
 			"quality_gate_failed_count":  rollup.QualityGateFailedCount,
 			"critical_warning_count":     rollup.CriticalWarningCount,
+			"target_branch_build_status": targetBranchBuildStatus,
 		},
 		"meta": gin.H{
 			"period": gin.H{

@@ -18,6 +18,7 @@ import { useRouter, useParams } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 import { repositoryService, Repository, RepositoryActivity } from "@/lib/services/repository.service";
+import { repositoryLastBuildView } from "@/lib/utils/last-build";
 import { toUserErrorMessage } from "@/lib/services/error-message";
 import { PageError, PageLoading } from "@/components/ui/PageState";
 
@@ -81,7 +82,9 @@ export default function RepositoryDetailPage() {
   const prEvents = activity?.pr_event_count ?? 0;
   const buildRuns = activity?.build_run_count ?? 0;
   const contributors = activity?.active_contributors.length ?? 0;
-  const buildSuccessPct = ((activity?.build_success_rate || 0) * 100).toFixed(1);
+  // REQ-FR-APPDASH-001 — 단순 % 보다 broken/red 상태 즉시 표기.
+  // activity.last_build_status 는 build_runs 의 가장 최근 1건 (window 무관).
+  const lastBuildView = repositoryLastBuildView(activity?.last_build_status);
 
   return (
     <div className="space-y-10 pb-20">
@@ -120,7 +123,7 @@ export default function RepositoryDetailPage() {
         {[
           { label: "PR Events", value: String(prEvents), icon: GitPullRequest, color: "text-info", trend: "Current" },
           { label: "Build Runs", value: String(buildRuns), icon: Activity, color: "text-foreground", trend: "Current" },
-          { label: "Build Success", value: `${buildSuccessPct}%`, icon: ShieldCheck, color: "text-success", trend: "Current" },
+          { label: "Last Build", value: lastBuildView.label, icon: ShieldCheck, color: lastBuildView.tone === "negative" ? "text-destructive" : lastBuildView.tone === "positive" ? "text-success" : "text-muted-foreground", trend: "Latest run" },
           { label: "Contributors", value: String(contributors), icon: Users, color: "text-purple-500", trend: "Current" },
         ].map((stat, i) => (
           <motion.div 

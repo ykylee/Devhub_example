@@ -1526,6 +1526,10 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 #### `GET /api/v1/repositories/{repository_id}/activity` (`API-51 (planned)`)
 
 - 설명: commit/contributor/작업 추이 조회.
+- 응답 data 필드:
+  - `pr_event_count`, `active_contributors`, `build_run_count`, `build_success_rate` (window 내 가중평균)
+  - `last_build_status`: build_runs 의 가장 **최근 1건** status (window 무관) — `queued|running|success|failed|cancelled|skipped|unknown`. 없으면 `unknown` (REQ-FR-APPDASH-001 — 단순 % 보다 broken/red 상태 즉시 표기).
+  - `last_build_at`: 최근 빌드 `started_at` (RFC3339) 또는 `null`.
 
 #### `GET /api/v1/repositories/{repository_id}/pull-requests` (`API-52 (planned)`)
 
@@ -1614,7 +1618,8 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
   - `weight_policy` (optional, default `equal`): `equal|repo_role|custom`
 - 최소 집계 항목:
   - PR 상태 분포/open 지속시간
-  - 빌드 성공률/평균 소요시간
+  - 빌드 성공률/평균 소요시간 (시계열 추세 차트 source; 카드/리스트는 `target_branch_build_status` 사용 — REQ-FR-APPDASH-001)
+  - `target_branch_build_status`: 연결된 repo 의 **마지막 빌드 결과** 종합 derive (`healthy`/`broken`/`unknown`)
   - 품질 점수 평균/게이트 실패 건수
 - `meta` 필드(필수):
   - `period`: 집계 기간
@@ -1644,6 +1649,7 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
       "closed": 11
     },
     "build_success_rate": 0.94,
+    "target_branch_build_status": "broken",
     "build_avg_duration_seconds": 412,
     "quality_score": 83.4,
     "quality_gate_failed_count": 2

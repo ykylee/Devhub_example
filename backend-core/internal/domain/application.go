@@ -382,7 +382,13 @@ type RepositoryActivity struct {
 	PREventCount       int      // pr_activities 의 event 수
 	ActiveContributors []string // PR 이벤트의 distinct actor_login
 	BuildRunCount      int
-	BuildSuccessRate   float64 // 0.0~1.0
+	BuildSuccessRate   float64 // 0.0~1.0 (window 내 가중평균 — rollup/추세용)
+	// LastBuildStatus 는 본 repository 의 가장 최근 build_run.status (window 무관) —
+	// UI 카드는 단순 % 보다 "마지막 빌드가 broken 인지" 가 정책상 더 중요한 표시 (REQ-FR-APPDASH-001).
+	// build_runs 가 없으면 "unknown". 값 범위: build_runs_status_check 와 동일
+	// (queued/running/success/failed/cancelled/skipped/unknown).
+	LastBuildStatus string
+	LastBuildAt     *time.Time // 마지막 빌드 started_at — UI 의 timestamp 표기
 }
 
 // --- Application 롤업 (REQ-FR-APP-012 / REQ-NFR-PROJ-006, concept §13.4) ---
@@ -442,11 +448,18 @@ type RollupDataGap struct {
 
 // ApplicationRollup is the aggregated rollup payload (api §13.6 응답 data).
 type ApplicationRollup struct {
-	PullRequestDistribution map[string]int        `json:"pull_request_distribution"`  // opened/merged/closed/...
-	BuildSuccessRate        float64               `json:"build_success_rate"`         // weighted average 0.0~1.0
-	BuildAvgDurationSeconds int                   `json:"build_avg_duration_seconds"` // weighted average
-	QualityScore            float64               `json:"quality_score"`              // weighted average
-	QualityGateFailedCount  int                   `json:"quality_gate_failed_count"`
-	CriticalWarningCount    int                   `json:"critical_warning_count"` // active→closed 가드 의존
-	Meta                    ApplicationRollupMeta `json:"-"`                      // 별도 meta 필드로 serialize
+	PullRequestDistribution map[string]int `json:"pull_request_distribution"`  // opened/merged/closed/...
+	BuildSuccessRate        float64        `json:"build_success_rate"`         // weighted average 0.0~1.0 (시계열/추세용)
+	BuildAvgDurationSeconds int            `json:"build_avg_duration_seconds"` // weighted average
+	QualityScore            float64        `json:"quality_score"`              // weighted average
+	QualityGateFailedCount  int            `json:"quality_gate_failed_count"`
+	CriticalWarningCount    int            `json:"critical_warning_count"` // active→closed 가드 의존
+	// TargetBranchBuildStatus 는 application 단의 "마지막 빌드 상태" derive 값 — REQ-FR-APPDASH-001
+	// 결정 ("단순 빌드 성공률(%)보다 broken/red 상태 즉시 표기"). 연결된 repository 들의 LastBuildStatus
+	// 를 종합:
+	//   - 어떤 repo 의 last build 가 "failed"|"cancelled" → "broken"
+	//   - 모두 "success"|"skipped" 인 경우 → "healthy"
+	//   - 그 외 (running/queued/unknown/데이터 없음) → "unknown"
+	TargetBranchBuildStatus string                `json:"target_branch_build_status"`
+	Meta                    ApplicationRollupMeta `json:"-"` // 별도 meta 필드로 serialize
 }

@@ -28,6 +28,10 @@ export interface RepositoryActivity {
   active_contributors: string[];
   build_run_count: number;
   build_success_rate: number;
+  // REQ-FR-APPDASH-001 — 단순 % 보다 broken/red 상태 즉시 표기.
+  // backend `domain.RepositoryActivity.LastBuildStatus` — window 무관, build_runs 최신 1건.
+  last_build_status: "queued" | "running" | "success" | "failed" | "cancelled" | "skipped" | "unknown";
+  last_build_at: string | null;
 }
 
 export interface RepositoryBuildRun {

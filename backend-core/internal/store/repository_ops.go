@@ -83,6 +83,29 @@ WHERE repository_id = $1 AND started_at >= $2 AND started_at < $3`
 	if successRate != nil {
 		activity.BuildSuccessRate = *successRate
 	}
+
+	// 마지막 빌드 상태 + 시각 (REQ-FR-APPDASH-001 — 단순 % 보다 broken/red 즉시 표기).
+	// window 무관하게 build_runs 의 가장 최근 1건. 없으면 LastBuildStatus="" 유지 → handler
+	// 가 "unknown" 으로 노출.
+	const lastBuildQuery = `
+SELECT status, started_at
+FROM build_runs
+WHERE repository_id = $1
+ORDER BY started_at DESC
+LIMIT 1`
+	var lbStatus string
+	var lbStartedAt time.Time
+	switch err := s.pool.QueryRow(ctx, lastBuildQuery, repositoryID).Scan(&lbStatus, &lbStartedAt); {
+	case err == nil:
+		activity.LastBuildStatus = lbStatus
+		t := lbStartedAt
+		activity.LastBuildAt = &t
+	case errors.Is(err, pgx.ErrNoRows):
+		// build_runs 무 → unknown 처리는 handler 측에서.
+	default:
+		return domain.RepositoryActivity{}, fmt.Errorf("last build run: %w", err)
+	}
+
 	return activity, nil
 }
 
@@ -437,6 +460,16 @@ WHERE ar.application_id = $1::uuid`
 	var weightedBuildSuccessRate, weightedQualityScore float64
 	var weightedBuildDuration float64
 	var gateFailedCount int
+	// targetBranchBuildStatus 도출 — REQ-FR-APPDASH-001 (단순 % 보다 broken/red 즉시 표기).
+	//   - 어떤 contributing repo 의 last build = failed|cancelled → "broken"
+	//   - 모두 success|skipped → "healthy"
+	//   - 그 외 (running/queued/unknown/데이터 없음) 한 건이라도 + broken 없음 → "unknown"
+	//   - contributing 전체 비어있음 → "unknown"
+	var (
+		sawBroken bool
+		sawHealthy bool
+		sawIndeterminate bool
+	)
 	for _, l := range contributing {
 		if l.RepoID == nil {
 			continue
@@ -508,12 +541,44 @@ FROM latest`
 			weightedQualityScore += *avgScore * weight
 		}
 		gateFailedCount += failedGates // weight 무관 합산
+
+		// last build status — window 무관, 본 repo 의 가장 최근 build_run 1건.
+		const lastBuildQuery = `
+SELECT status FROM build_runs
+WHERE repository_id = $1
+ORDER BY started_at DESC
+LIMIT 1`
+		var lbStatus string
+		switch err := s.pool.QueryRow(ctx, lastBuildQuery, repoID).Scan(&lbStatus); {
+		case err == nil:
+			switch lbStatus {
+			case "failed", "cancelled":
+				sawBroken = true
+			case "success", "skipped":
+				sawHealthy = true
+			default:
+				sawIndeterminate = true
+			}
+		case errors.Is(err, pgx.ErrNoRows):
+			sawIndeterminate = true
+		default:
+			return domain.ApplicationRollup{}, fmt.Errorf("rollup last build: %w", err)
+		}
 	}
 
 	// 4) critical warning count — 1차 정의: gateFailedCount + buildFailureRate>0.5 인 repo 수
 	criticalCount := gateFailedCount
 	if weightedBuildSuccessRate < 0.5 && len(contributing) > 0 {
 		criticalCount++
+	}
+
+	// 5) target branch build status derive — broken 우선 (안전 측 표기).
+	targetBranchBuildStatus := "unknown"
+	switch {
+	case sawBroken:
+		targetBranchBuildStatus = "broken"
+	case sawHealthy && !sawIndeterminate:
+		targetBranchBuildStatus = "healthy"
 	}
 
 	rollup := domain.ApplicationRollup{
@@ -523,6 +588,7 @@ FROM latest`
 		QualityScore:            weightedQualityScore,
 		QualityGateFailedCount:  gateFailedCount,
 		CriticalWarningCount:    criticalCount,
+		TargetBranchBuildStatus: targetBranchBuildStatus,
 		Meta: domain.ApplicationRollupMeta{
 			Period:         domain.RollupPeriod{From: opts.WindowFrom, To: opts.WindowTo},
 			Filters:        map[string]any{},
