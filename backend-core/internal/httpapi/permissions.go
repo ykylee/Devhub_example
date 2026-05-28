@@ -290,6 +290,13 @@ var routePermissionTable = map[routeKey]routePolicy{
 	{http.MethodGet, "/api/v1/dev-request-tokens"}:              {Resource: domain.ResourceDevRequestIntakeTokens, Action: domain.ActionView},
 	{http.MethodDelete, "/api/v1/dev-request-tokens/:token_id"}: {Resource: domain.ResourceDevRequestIntakeTokens, Action: domain.ActionDelete},
 	{http.MethodPatch, "/api/v1/dev-request-tokens/:token_id"}:  {Resource: domain.ResourceDevRequestIntakeTokens, Action: domain.ActionEdit},
+
+	// Task Item Ingestion (sprint deepseek/work_260528-a-task-item-ingestion, API-94..96).
+	// Webhook 수신 — Bypass (webhook_secret 인증, authenticateActor + RBAC 불필요).
+	{http.MethodPost, "/api/v1/integration/providers/:provider_id/tasks/webhook"}: {Bypass: true},
+	// Task item 조회 — infrastructure:view (provider 관리자 권한).
+	{http.MethodGet, "/api/v1/external-tasks"}:                    {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/external-tasks/:task_id"}:           {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
 }
 
 // lookupRoutePolicy is exported for tests to assert the table contents without
