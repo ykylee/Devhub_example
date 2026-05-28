@@ -326,6 +326,9 @@ SELECT COUNT(*) FROM (
 
 // --- Application-Repository link ---
 
+// applicationRepositoriesSelectColumns — UNION-호환 컬럼 셋. `link_source` 는
+// #395/#396 후속 carve P2-#3: direct (application_repositories) vs via_project
+// (project_repositories 경유) 구분.
 const applicationRepositoriesSelectColumns = `
 	application_id::text,
 	repo_provider,
@@ -337,7 +340,8 @@ const applicationRepositoriesSelectColumns = `
 	sync_error_retryable,
 	sync_error_at,
 	last_sync_at,
-	linked_at`
+	linked_at,
+	'direct'::text AS link_source`
 
 func scanApplicationRepository(row pgx.Row) (domain.ApplicationRepository, error) {
 	var (
@@ -359,6 +363,7 @@ func scanApplicationRepository(row pgx.Row) (domain.ApplicationRepository, error
 		&syncErrAt,
 		&lastSyncAt,
 		&link.LinkedAt,
+		&link.LinkSource,
 	); err != nil {
 		return domain.ApplicationRepository{}, err
 	}
@@ -402,12 +407,14 @@ SELECT
 	NULL::boolean                               AS sync_error_retryable,
 	NULL::timestamptz                           AS sync_error_at,
 	pr.linked_at                                AS last_sync_at,
-	pr.linked_at                                AS linked_at
+	pr.linked_at                                AS linked_at,
+	'via_project'::text                         AS link_source
 FROM project_repositories pr
 JOIN projects p              ON p.id = pr.project_id
 JOIN repositories r          ON r.id = pr.repository_id
 JOIN integration_providers ip ON ip.provider_id = r.provider_id
 WHERE p.application_id = $1::uuid
+-- (link_source 가 같은 row 만 dedup. direct ↔ via_project 충돌 시 둘 다 응답 — UI 가 표기.)
 ORDER BY repo_provider ASC, repo_full_name ASC`
 
 	rows, err := s.pool.Query(ctx, query, applicationID)
@@ -1001,9 +1008,14 @@ RETURNING id`
 	return id, err
 }
 
+// UpdateProject — application_id 포함 갱신 (#395/#396 후속 carve).
+// application_id 빈 string → NULL (해제), non-empty → 해당 application 으로 이전.
+// migration 000015 의 projects.application_id 는 nullable (ON DELETE SET NULL) 이므로
+// SET NULL 또는 UUID 모두 허용.
 func (s *PostgresStore) UpdateProject(ctx context.Context, project domain.Project) (domain.Project, error) {
 	const updateQuery = `
 UPDATE projects SET
+	application_id = NULLIF($9, '')::uuid,
 	name = $2,
 	description = NULLIF($3, ''),
 	status = $4,
@@ -1018,7 +1030,7 @@ RETURNING` + projectsSelectColumns
 
 	row := s.pool.QueryRow(ctx, updateQuery,
 		project.ID, project.Name, project.Description, project.Status, project.Visibility,
-		project.OwnerUserID, project.StartDate, project.DueDate,
+		project.OwnerUserID, project.StartDate, project.DueDate, project.ApplicationID,
 	)
 	updated, err := scanProject(row)
 	if errors.Is(err, pgx.ErrNoRows) {

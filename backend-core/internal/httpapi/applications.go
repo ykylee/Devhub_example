@@ -70,6 +70,18 @@ func applicationRepositoryResponse(link domain.ApplicationRepository) gin.H {
 		"sync_error_at":        formatTimePtr(link.SyncErrorAt),
 		"last_sync_at":         formatTimePtr(link.LastSyncAt),
 		"linked_at":            link.LinkedAt.UTC().Format(time.RFC3339),
+		"link_source":          linkSourceOrDefault(link.LinkSource),
+	}
+}
+
+// linkSourceOrDefault — direct/via_project 외 (legacy row 빈 string 등) 는 "direct"
+// fallback. #395/#396 후속 carve P2-#3.
+func linkSourceOrDefault(s string) string {
+	switch s {
+	case "direct", "via_project":
+		return s
+	default:
+		return "direct"
 	}
 }
 

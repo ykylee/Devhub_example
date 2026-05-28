@@ -33,8 +33,12 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
   const [leaderOptions, setLeaderOptions] = useState<Array<{ label: string; value: string; description?: string }>>([]);
   const [unitOptions, setUnitOptions] = useState<Array<{ label: string; value: string; description?: string }>>([]);
 
-  // Projects (read-only listing, P1-#3 정정) + Repositories (edit-capable) states.
+  // Projects + Repositories connection management states.
+  // 후속 carve (post-#395/#396) — backend updateProject 가 `application_id` nullable
+  // PATCH 를 지원하면서 양쪽 모두 편집 가능. allProjects = 본 application 에 이미 연결된
+  // 것 + standalone (application_id IS NULL). selectedProjectIDs 는 체크된 set.
   const [allProjects, setAllProjects] = useState<Project[]>([]);
+  const [selectedProjectIDs, setSelectedProjectIDs] = useState<string[]>([]);
   const [allRepositories, setAllRepositories] = useState<Repository[]>([]);
   const [selectedRepoKeys, setSelectedRepoKeys] = useState<string[]>([]); // repo_provider/repo_full_name
 
@@ -92,23 +96,41 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
     };
   }, [isEdit, initialData]);
 
-  // edit 모드일 때 본 application 에 이미 연결된 프로젝트 표시 (read-only listing).
-  // P1-#3 정정 — application_id PATCH 가 backend `updateProjectRequest` 에 필드
-  // 자체가 없어 silent ignore 였음. 연결/해제는 Project edit modal 에서만 가능
-  // (후속 carve: backend updateProject 에 application_id nullable PATCH 지원).
+  // edit 모드 — 본 application 에 이미 연결된 + standalone (application_id IS NULL)
+  // 프로젝트를 합쳐 표시. backend updateProject 의 `application_id` nullable PATCH
+  // 가 지원되므로 (post-#395/#396 carve) 체크박스로 연결/해제 가능.
   useEffect(() => {
     if (!isEdit || !initialData.id) {
       return;
     }
     let alive = true;
-    projectService.getApplicationProjectsV2(initialData.id)
-      .then((appProjects) => {
+    (async () => {
+      try {
+        const [appProjects, allActive] = await Promise.all([
+          projectService.getApplicationProjectsV2(initialData.id!),
+          projectService.listAllProjects([]),
+        ]);
         if (!alive) return;
-        setAllProjects(appProjects);
-      })
-      .catch((err) => {
+        const connectedIDs = new Set(appProjects.map((p) => p.id));
+        // 본 application 에 연결된 것 + 다른 곳에 묶이지 않은 standalone (application_id 빈 string).
+        const candidates = allActive.filter(
+          (p) => connectedIDs.has(p.id) || !p.application_id,
+        );
+        // dedup by id (allActive 가 이미 본 application 의 connected 일 수 있어 합집합 보장).
+        const seen = new Set<string>();
+        const merged: Project[] = [];
+        for (const p of [...appProjects, ...candidates]) {
+          if (!seen.has(p.id)) {
+            seen.add(p.id);
+            merged.push(p);
+          }
+        }
+        setAllProjects(merged);
+        setSelectedProjectIDs(appProjects.map((p) => p.id));
+      } catch (err) {
         if (alive) console.error(err);
-      });
+      }
+    })();
     return () => {
       alive = false;
     };
@@ -164,12 +186,22 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
           })
         ]);
 
-        // P1-#3/#4 정정 — backend `updateProjectRequest` 에 `application_id` 필드가
-        // 존재하지 않아 PATCH 가 silent ignore 였음. 본 modal 의 "Connected Projects"
-        // 섹션은 read-only 표시. 연결/해제는 Project edit modal 의 application select
-        // 통해서만 동작 (단, 그 쪽도 backend 미지원이라 동일 carve 대기).
-        // 후속 carve: backend updateProject 에 application_id nullable PATCH 지원
-        // 추가 + RBAC/audit/ownership 변경 정책 정합.
+        // Connected Projects 동기화 — backend updateProject 가 `application_id` nullable
+        // PATCH 를 지원하므로 (post-#395/#396 carve) toAdd/toRemove 를 PATCH 로 반영.
+        // toAdd: 빈/다른 application_id 였던 project → 본 application 으로 이전
+        // toRemove: 본 application 에서 해제 → application_id = "" (NULL)
+        const connectedProjects = await projectService.getApplicationProjectsV2(initialData.id);
+        const connectedIDs = connectedProjects.map((p) => p.id);
+        const toAddProjects = selectedProjectIDs.filter((pid) => !connectedIDs.includes(pid));
+        const toRemoveProjects = connectedIDs.filter((pid) => !selectedProjectIDs.includes(pid));
+        await Promise.all([
+          ...toAddProjects.map((pid) =>
+            projectService.updateProject(pid, { application_id: initialData.id }),
+          ),
+          ...toRemoveProjects.map((pid) =>
+            projectService.updateProject(pid, { application_id: "" }),
+          ),
+        ]);
       } else {
         const normalizedKey = formData.key.trim().toUpperCase();
         result = await projectService.createApplication({
@@ -426,21 +458,32 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
 
               <div className="space-y-3">
                 <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1 flex items-center gap-1.5">
-                  <FolderKanban className="w-3.5 h-3.5 text-purple-400" /> Connected Projects (read-only)
+                  <FolderKanban className="w-3.5 h-3.5 text-purple-400" /> Connected Projects
                 </label>
                 <div className="max-h-[160px] overflow-y-auto border border-border rounded-2xl p-4 bg-muted/5 space-y-2 custom-scrollbar">
-                  {allProjects.map((proj) => (
-                    <div key={proj.id} className="flex items-center gap-3 text-xs text-foreground dark:text-primary-foreground select-none opacity-90">
-                      <span className="w-2 h-2 rounded-full bg-purple-400/70" />
-                      <span>{proj.name} ({proj.key})</span>
-                    </div>
-                  ))}
+                  {allProjects.map((proj) => {
+                    const isChecked = selectedProjectIDs.includes(proj.id);
+                    return (
+                      <label key={proj.id} className="flex items-center gap-3 text-xs text-foreground dark:text-primary-foreground cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) setSelectedProjectIDs([...selectedProjectIDs, proj.id]);
+                            else setSelectedProjectIDs(selectedProjectIDs.filter((id) => id !== proj.id));
+                          }}
+                          className="h-4 w-4 rounded border-border"
+                        />
+                        <span>{proj.name} ({proj.key})</span>
+                      </label>
+                    );
+                  })}
                   {allProjects.length === 0 && (
-                    <p className="text-[10px] text-muted-foreground italic">No projects connected yet.</p>
+                    <p className="text-[10px] text-muted-foreground italic">No projects available to connect.</p>
                   )}
                 </div>
                 <p className="text-[10px] text-muted-foreground italic px-1">
-                  Project linking is managed in the Project edit modal — `application_id` PATCH is not yet supported on this endpoint.
+                  Standalone (unattached) and already-connected projects only — projects under other applications must be moved via their own edit modal.
                 </p>
               </div>
             </div>

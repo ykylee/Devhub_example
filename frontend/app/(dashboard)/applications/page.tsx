@@ -74,7 +74,8 @@ export default function ApplicationsStatusPage() {
   const brokenApps = apps.filter((app) => app.rollup?.target_branch_build_status === "broken").length;
   const healthyApps = apps.filter((app) => app.rollup?.target_branch_build_status === "healthy").length;
   const totalCritical = apps.reduce((acc, app) => acc + (app.rollup?.critical_warning_count || 0), 0);
-  const activeApps = apps.filter((app) => app.status === "active").length;
+  // (`activeApps` 카드는 PR #396 에서 빠짐 — Broken/Healthy 카운트가 lifecycle status 보다
+  // 운영 시점 결정에 더 즉각적 정보라 4-card 구성에서 우선 노출.)
 
   if (loading) {
     return <PageLoading label="Loading applications..." />;
