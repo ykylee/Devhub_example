@@ -518,6 +518,7 @@ export default function AdminCatalogPage() {
       <AnimatePresence>
         {showApplicationModal && (
           <ApplicationCreationModal
+            key="catalog-application-modal"
             initialData={editingApplicationInitialData}
             onClose={() => {
               setShowApplicationModal(false);
@@ -533,6 +534,7 @@ export default function AdminCatalogPage() {
         )}
         {showProjectModal && (
           <ProjectCreationModal
+            key="catalog-project-modal"
             repositories={repositories}
             initialData={(editingProject ?? projectSeed ?? undefined) as Partial<Project> | undefined}
             onClose={() => {
@@ -551,6 +553,7 @@ export default function AdminCatalogPage() {
         )}
         {showRepositoryModal && (
           <RepositoryCreationModal
+            key="catalog-repository-modal"
             onClose={() => setShowRepositoryModal(false)}
             onCreated={(repository) => {
               toast(`Repository draft ${repository.full_name} created`, "success");
