@@ -22,6 +22,7 @@
 | Application/Project | `backend-core/internal/httpapi/applications.go`, `projects.go`, `repository_ops.go`, `application_rollup.go` |
 | Repository SCM 연동/Lifecycle | `backend-core/internal/httpapi/integration_scm_repositories.go`, `domain.go`(draft/publish), `backend-core/internal/gitea`(CreateRepo) |
 | External Integration | `backend-core/internal/httpapi/integration_registry.go`, `integrations.go`, `infra_integrations.go`, `backend-core/internal/gitea`(pull sync) |
+| Application 개발 대시보드 | `docs/requirements.md` §5.9 기준 (설계/구현 예정) |
 
 ## 2. Usecase (모듈별)
 
@@ -187,6 +188,18 @@
 | `UC-REPO-05` | draft → publish 요청 | draft 상태에서만 허용. provider SCM/push/gitea-compat 검사 통과 후 `gitea.CreateRepo` → `UpsertRepository` 로 발행한다. SCM 생성 실패 시 publish_requested 마킹 + BadGateway 부분실패 경로 | REQ-FR-APP-002, REQ-FR-INT-012 |
 | `UC-REPO-06` | 저장소 소유권 구분 (scm vs system) | `source`/`provider_id` 로 SCM-mirror 와 system-owned 를 구분하고, sync upsert 가 system-owned(description 등) 값을 덮어쓰지 않도록 보존한다 (in-memory fake 도 동일 parity) | REQ-FR-APP-004, REQ-FR-APP-009 |
 | `UC-REPO-07` | capability 기반 기능 gate | import=pull, sync=pull\|sync, create=push + gitea-compat 로 provider capability 에 따라 기능을 제한하고, 미충족/disabled provider 는 409 로 거부한다 | REQ-FR-APP-009, REQ-FR-INT-002 |
+
+### 2.15 Application 개발 대시보드 (APPDASH)
+
+| UC ID | Usecase | 성공 조건 | 관련 REQ |
+| --- | --- | --- | --- |
+| `UC-APPDASH-01` | 실시간 타겟 브랜치 빌드 실패 상태 조회 및 딥링크 이동 | 대시보드 최상단 카드에 실패 상태인 모든 빌드가 리포지토리 슬러그, 빌드 번호, 실패 시간, 에러 요약 스니펫과 함께 노출되고, 딥링크 클릭 시 해당 빌드 로그 페이지로 성공적 이동 | REQ-FR-APPDASH-001 |
+| `UC-APPDASH-02` | 다차원 코드 품질 점수 및 정적분석 미해결 이슈 조회 | 5점 만점으로 정규화된 가중 품질 스코어와 심각도별(Blocker/Critical/Major) 미해결 정적분석 이슈 건수가 표시되고, 코딩 룰 상세 내역은 저장소 상세 대시보드로 격리 조회됨 | REQ-FR-APPDASH-002 |
+| `UC-APPDASH-03` | 하위 프로젝트 진척도 시각화 및 지능형 리스크 감지 | 스토리포인트(SP) 가중치 또는 개수제 방식으로 계산된 하위 프로젝트 진척율(%)이 최상단 주요 영역에 표시되고, 일정 대비 작업 비율 분석을 통해 지연 리스크 경고 배지(`Healthy 🟢`, `Warning 🟡`, `At Risk 🔴`)가 자동 제공됨 | REQ-FR-APPDASH-003 |
+| `UC-APPDASH-04` | 연결된 개발 의뢰(DREQ) 목록 조회 및 프로젝트 승격 | 어플리케이션에 매핑된 모든 DREQ 리스트와 상태 조회가 가능하며, Promote 클릭 시 DREQ 메타데이터(Key, Name, Description)를 자동 상속/프리필하는 프로젝트 생성 모달이 팝업되고 단일 트랜잭션으로 연계 생성됨 | REQ-FR-APPDASH-004 |
+| `UC-APPDASH-05` | CI/CD 빌드 안정성 및 품질 시계열 트렌드 조회 | 7일 및 30일 간의 평균 빌드 소요 시간 변화 추이와 빌드 성공률 추이 시계열 차트가 정상 렌더링되어 조회됨 | REQ-FR-APPDASH-005 |
+| `UC-APPDASH-06` | 리포지토리 가중치 배분 및 정책 갱신 | 롤업 집계에 사용되는 리포지토리별 가중치 정책을 도넛 차트로 확인하고 변경 적용 설정을 제공함 | REQ-FR-APPDASH-006 |
+| `UC-APPDASH-07` | 연동 장애 시 우아한 성능 저하(Graceful Degradation) 작동 | 특정 저장소/CI 연동 장애가 발생해도 전체 대시보드가 깨지지 않고 가용한 데이터만 롤업해 표시하며 장애 난 저장소에 대해 `data_gap` 또는 경고 표시 노출 | REQ-NFR-APPDASH-003 |
 
 ## 3. 설계/구현 반영 규칙
 

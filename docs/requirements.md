@@ -556,6 +556,42 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
 - 신규 Application 등록 시 Gitea 저장소 자동 생성/브랜치 보호/멤버 초대 자동 오케스트레이션(§5.3-7 / §5.4.5 후속).
 - 평문 secret(`credentials_ref`/`api_token`/`auth_secret`) 의 envelope 암호화 — §5.6 REQ-NFR-INT-009 의 #6 carve 로 추적.
 
+### 5.9 Application 개발 대시보드 도메인 (Application Development Dashboard)
+
+본 절은 컨셉 문서([`docs/planning/application_dashboard_concept.md`](./planning/application_dashboard_concept.md))에 정의된 DevHub 핵심 단위인 Application 상세 대시보드의 기능 요구사항을 발급한다.
+
+#### 5.9.1 기능 요구사항 (REQ-FR-APPDASH)
+
+- **REQ-FR-APPDASH-001 (MVP, 확정):** 실시간 타겟 브랜치 빌드 상태(Target Branch Build Status)를 최상단 메트릭 카드를 통해 노출해야 한다.
+    - **실시간 실패 빌드 런 표시**: 단순 빌드 성공률(%)보다 실시간 broken/red 상태 빌드 현황을 즉시 표기한다.
+    - **리포지토리 슬러그 연계**: 연결된 어떤 리포지토리의 어떤 브랜치에서 실패했는지 `org/repo-slug` 형식으로 표시해야 한다.
+    - **빌드 실패 진단 정보 및 로그 연동**: 실패 건에 대해 빌드 번호, 실패 경과 시간, 에러 요약 스니펫을 노출하고 해당 빌드 로그로 즉시 이동하는 **[로그 진입 딥링크]** 액션을 제공해야 한다. (모두 정상일 시 `Healthy 🟢` 표시)
+- **REQ-FR-APPDASH-002 (MVP, 확정):** 다차원 코드 품질 지표 및 정적 분석 이슈(Quality & Issues) 카드를 노출해야 한다.
+    - **5점 만점 normalized 품질 스코어**: 리포지토리별 SonarQube 품질 데이터를 5.0 만점 스케일로 정규화 및 가중 평균하여 노출한다.
+    - **심각도별 미해결 정적분석 이슈 노출**: Blocker, Critical, Major 등 심각도 등급에 따라 미해결된 정적분석 이슈 건수를 집계하여 표시해야 한다.
+    - **코딩 룰 검사의 역할 분리**: 세부 코딩 룰 및 가독성 린트 지표 등은 상위 대시보드에서 배제하고, 개별 리포지토리 상세 대시보드로 역할을 격리 분리해야 한다.
+- **REQ-FR-APPDASH-003 (MVP, 확정):** 하위 프로젝트 진척도 및 로드맵 관리(Linked Projects Progress & Roadmap) 섹션을 대시보드 최상단 주요 영역에 배치 노출해야 한다.
+    - **진척 산정 공식**: 단순 완료 태스크 개수 비례 방식과 **스토리 포인트(SP) 가중치 비례 방식**을 선택하여 실질적 진척율(%)을 계산/표시해야 한다.
+    - **지능형 리스크 감지 배지**: 남은 작업 대비 잔여 기간 비율을 산출하여 지연 위험도를 계산하고 D-Day와 함께 위험 알림 라벨(`Healthy 🟢`, `Warning 🟡`, `At Risk 🔴`)을 자동 제공해야 한다.
+- **REQ-FR-APPDASH-004 (MVP, 확정):** 연결된 모든 개발 의뢰 관리(All Linked Dev Requests - DREQ Overview) 및 프로젝트 승격 워크플로우를 제공해야 한다.
+    - **DREQ 조회 및 필터**: 어플리케이션에 매핑된 모든 개발 의뢰 리스트와 상태(대기 중, 검토 중, 승격 완료 등)를 전용 탭에서 필터링 조회 가능해야 한다.
+    - **원클릭 프로젝트 승격 연계**: 대기 중인 DREQ 우측의 **[프로젝트 승격 🚀]** 버튼 클릭 시, DREQ의 메타데이터(Key, Name, Description)를 자동 상속/프리필하는 프로젝트 생성 모달을 팝업하고 단일 트랜잭션으로 연계 생성해야 한다.
+- **REQ-FR-APPDASH-005 (MVP, 확정):** SCM 및 CI/CD 빌드 안정성 시계열 트렌드 차트(Area Chart)를 제공해야 한다.
+    - 7일 및 30일 간의 평균 빌드 소요 시간 변화 추이와 빌드 성공률 추이를 제공해야 한다.
+- **REQ-FR-APPDASH-006 (MVP, 확정):** 가중치 배분 비주얼라이저(Weight Policy Visualizer)를 통해 리포지토리 역할(`primary`/`sub`/`shared`)에 따라 계산 롤업에 적용된 가중치를 도넛 차트로 노출하고 가중치 수정 설정을 제공해야 한다.
+
+#### 5.9.2 비기능 / 운영 요구사항 (REQ-NFR-APPDASH)
+
+- **REQ-NFR-APPDASH-001 (MVP):** UI 레이아웃은 모던 글래스모피즘(Glassmorphism) 스타일을 적용하고, 라이트/다크 모드에 최적화된 curated HSL 색상 팔레트 시스템을 사용해 시인성을 극대화해야 한다.
+- **REQ-NFR-APPDASH-002 (MVP):** 대시보드 로딩 성능 보장을 위해 캐싱 및 비동기 병렬 aggregation을 적용하여 첫 진입 시 p95 로딩 속도 1.5초 이하를 달성해야 한다.
+- **REQ-NFR-APPDASH-003 (MVP):** 연동 장애로 인한 우아한 성능 저하(Graceful Degradation)를 보장해야 한다. 특정 저장소/CI 연동 장애 시 전체 화면이 깨지지 않고, 장애 대상 리포지토리에 대해 `data_gap` 또는 경고 표시를 하며 가용한 데이터만 롤업 집계해 표시해야 한다.
+
+#### 5.9.3 범위 경계 (Out of Scope)
+
+- 실시간 리포지토리 빌드 실패 시 외부 메신저 알림(Slack 등) 자동 전송 기능 (v2 범위).
+- AI 기반 빌드 실패 원인 자동 분석 및 코드 패치 제안 (v2 범위).
+- 다차원 코드 품질 스코어 산식의 동적 튜닝 UI (어플리케이션 설정 모달에서 weight matrix 직접 입력 기능은 1차 제외).
+
 ## 6. 기술 스택 결정 사항 (Technology Stack Decisions)
 
 기술 스택 상세 계약, 버전, 설치/검증 명령은 **[tech_stack.md](./tech_stack.md)**를 기준으로 관리합니다. 본 요구사항 문서에서는 제품 요구사항과 직접 연결되는 기술 결정 요약만 유지합니다.
