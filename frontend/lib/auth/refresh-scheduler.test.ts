@@ -89,6 +89,43 @@ describe("refresh-scheduler", () => {
     expect(tokenStore.getAccessToken()).toBe("a");
   });
 
+  // P0 회귀 가드 (router-idle-timeout-analysis 2026-05-28) — transient_failed 후
+  // reschedule() 누락이 root cause 였음. 본 test 는 transient 후에도 다음 만료
+  // 시점에 performer 가 다시 호출됨을 검증.
+  it("transient_failed → reschedule() 호출 → 다음 만료 직전 재시도", async () => {
+    let callCount = 0;
+    const performer = vi.fn<() => Promise<RefreshOutcome>>().mockImplementation(async () => {
+      callCount += 1;
+      // 첫 호출은 transient, 두 번째 호출은 ok (회복 시뮬레이션).
+      return callCount === 1
+        ? { kind: "transient_failed" as const, reason: "network_error" }
+        : { kind: "ok" as const };
+    });
+    initRefreshScheduler(performer);
+
+    // expires_in=120s 토큰 → REFRESH_BUFFER 60s 전 (즉 60s 후) 에 첫 호출.
+    tokenStore.save({
+      access_token: "a",
+      refresh_token: "r",
+      expires_in: 120,
+      token_type: "Bearer",
+    });
+    // 첫 타이머 발화 (60s 후 + tick 여유).
+    await vi.advanceTimersByTimeAsync(60_500);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(performer).toHaveBeenCalledTimes(1);
+
+    // P0 fix 적용 전엔 다음 타이머 미설정 → 추가 시간 진행해도 performer 가 다시
+    // 호출 안 됨. fix 적용 후엔 reschedule() 호출되어 다음 타이머 (남은 만료까지)
+    // 설정 → 추가 진행 시 두 번째 호출 발생.
+    await vi.advanceTimersByTimeAsync(60_500);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(performer.mock.calls.length).toBeGreaterThanOrEqual(2);
+    expect(assignMock).not.toHaveBeenCalled();
+  });
+
   it("performer 가 throw 하면 transient 로 분류 (세션 사망 안 함)", async () => {
     const performer = vi.fn<() => Promise<RefreshOutcome>>()
       .mockRejectedValue(new Error("unexpected throw"));

@@ -88,7 +88,17 @@ async function runRefresh(): Promise<void> {
     console.warn("[refresh-scheduler] proactive refresh auth_failed:", outcome.reason);
     triggerSessionExpired();
   } else if (outcome.kind === "transient_failed") {
-    console.warn("[refresh-scheduler] proactive refresh transient_failed:", outcome.reason, "— will retry on next 401 or expiry");
+    // P0 fix (router-idle-timeout-analysis 2026-05-28) — transient 시 reschedule 누락이
+    // root cause 였음. ok 분기는 `tokenStore.save → subscribeExpiryChange → reschedule`
+    // 자동 호출되나 transient 분기는 tokenStore 변동 없어 후속 타이머 미설정 → 다음
+    // expiry 직전 재시도 기회 자체 사라짐. 결과: 600s idle 후 `fetchServerResponse`
+    // 가 만료된 token 으로 401 → `navigateToUnknownRoute` `.catch(() => state)` silent
+    // drop (Next.js 16.2.6 router 내부). reschedule() 즉시 호출 — 현재 token 의 남은
+    // 만료 시간 기준 재계산해 다음 타이머에서 재시도. transient 연속 실패해도 만료
+    // 직전까지 retry (의도된 동작). 분석 SoT: `docs/analysis/2026-05-28-router-idle-
+    // timeout-analysis.md` Fix 6.1.
+    console.warn("[refresh-scheduler] proactive refresh transient_failed:", outcome.reason, "— rescheduling for retry");
+    reschedule();
   }
   // ok: tokenStore.save 가 자동으로 subscribeExpiryChange → reschedule 호출. 별도 처리 없음.
 }
