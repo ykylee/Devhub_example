@@ -1417,26 +1417,12 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 - 설명: Application 메타/상태 수정.
 - 허용 필드: `name`, `description`, `owner_user_id`, `start_date`, `due_date`, `visibility`, `status` (+ 전이별 보조 필드 `hold_reason`/`resume_reason`/`archived_reason`).
 - 금지 필드: `key` (immutable — 요청 body 에 포함 시 `422 application_key_immutable`).
-- 상태 전이 규칙:
-  - `planning -> active|on_hold|archived`
-  - `active -> on_hold|closed|archived`
-  - `on_hold -> active|closed|archived`
-  - `closed -> archived`
-  - `archived -> *` 기본 비허용 (`422 invalid_status_transition`)
-- 전이 가드:
-  - `planning -> active`: `active` 상태 Repository 연결 1개 이상 필요
-  - `active -> on_hold`: `hold_reason` 필수
-  - `on_hold -> active`: `resume_reason` 필수
-  - `active -> closed`: 롤업 `critical` 0건 필요
-  - `* -> archived`: `archived_reason` 필수
-- 가드 실패 에러:
-  - `422 application_activation_precondition_failed`
-  - `422 application_close_precondition_failed`
-  - `422 invalid_status_transition_payload`
-  - `422 application_key_immutable`
-- 가드 표 SoT: [`project_management_concept.md` §13.2.1](../planning/project_management_concept.md) (권한/가드/실패 코드 매트릭스).
-- **active → closed 가드 — `claude/work_260514-c` 에서 흡수 완료**: concept §13.2.1 의 "active → closed: 롤업 `critical` 0건" 가드를 본 sprint 가 활성화. `CountApplicationCriticalWarnings` store 메서드 (1차 정의: gate_passed=false 합산 + build success rate <50% 시 +1) 를 handler updateApplication 의 active→closed 분기에서 호출, count > 0 면 `422 application_close_precondition_failed` (응답에 `critical_warning_count` 포함). 가드 임계치 외부화는 후속 (concept §13.2.1 운영 메모).
-- **"활성 Repository" 정의**: concept §13.3 의 lifecycle 표에서 명시 — `sync_status='active'` 만 활성. `degraded` 는 1차 정책에서 활성 제외.
+- 상태 전이 정책 (2026-05-28 자유화):
+  - **모든 전이 허용** — 5종 (planning/active/on_hold/closed/archived) 끼리 어떤 방향이든 가능 (archived → planning 같은 "unarchive" 포함).
+  - 이전엔 forward-only matrix + reason 필수 + planning→active 의 active repo ≥1 + active→closed 의 critical 0건 가드가 있었으나, 운영 유연성 우선으로 모두 제거.
+  - `hold_reason` / `resume_reason` / `archived_reason` 필드는 **audit details 기록용 optional** 메타. 비어 있어도 200.
+  - `key` 만 immutable 유지 (`422 application_key_immutable`).
+- 변경 history: 자유화 sprint `claude/work_260528-archived-hard-delete` (2026-05-28). 자유화 이전 가드 (active repo ≥1, critical 0건 등) 는 운영자 권한/감사 기반으로 제어.
 
 요청 예시:
 
@@ -1449,9 +1435,12 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 
 #### `DELETE /api/v1/applications/{application_id}` (`API-47 (planned)`)
 
-- 설명: **archive 전용 (soft-delete)** — hard delete 가 아님.
-- 동작: `status=archived`, `archived_at` 기록. 연결 Repository/Project 는 유지되며 `include_archived=true` 토글로만 노출.
-- hard delete (영구 삭제) 는 별도 endpoint 로 후속 sprint 에서 정의 — concept §10 미해결 항목 "영구 삭제 정책" 참조.
+- 설명: archive (soft-delete) **+ archived 상태에서 `?hard=true` 시 영구 삭제** (sprint `claude/work_260528-archived-hard-delete` 활성화).
+- 동작:
+  - `?hard=true` + `status=archived` → hard-delete (`DELETE FROM applications`, FK cascade: application_repositories 자동 삭제, projects.application_id 는 ON DELETE SET NULL 로 보존). audit `application.deleted`.
+  - `?hard=true` + `status≠archived` → **400 `application_not_archived`** (archive 후 다시 호출 요구).
+  - 그 외 → archive (`status=archived`, `archived_at` 기록). audit `application.archived`. `include_archived=true` 토글로만 list 노출.
+- Project 측 동일 패턴: `DELETE /api/v1/projects/{project_id}?hard=true` (이미 활성화됨).
 
 ### 13.3 Application-Repository 연결
 

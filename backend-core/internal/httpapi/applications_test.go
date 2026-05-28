@@ -153,6 +153,18 @@ func (s *memoryApplicationStore) ArchiveApplication(_ context.Context, id, _ str
 	return app, nil
 }
 
+// DeleteApplication — production *PostgresStore.DeleteApplication mirror (hard-delete).
+func (s *memoryApplicationStore) DeleteApplication(_ context.Context, id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.apps[id]; !ok {
+		return store.ErrNotFound
+	}
+	delete(s.apps, id)
+	delete(s.links, id)
+	return nil
+}
+
 // CountActiveApplicationRepositories — production *PostgresStore 의 UNION 쿼리 mirror.
 // 직접 link (sync_status='active') + project 경유 간접 link (link 존재 = active 간주).
 // 간접 link 에서 repositories miss (테스트 setup 누락) 면 skip — production 의
@@ -1006,7 +1018,10 @@ func TestUpdateApplication_ImmutableKey(t *testing.T) {
 }
 
 // 5) PATCH /applications/:id — planning → active 의 활성 repo 0건 → 422.
-func TestUpdateApplication_ActivationPreconditionFailed(t *testing.T) {
+// status 전이 정책 자유화 (2026-05-28) — planning→active 의 active repo ≥1 가드 제거.
+// 0 repo 인 application 도 active 로 자유 전이 가능. 기존 테스트는 가드 검증이었으므로
+// 자유화 후 expected behavior 로 갱신.
+func TestUpdateApplication_ActivationWithoutLinkedRepos(t *testing.T) {
 	appStore := newMemoryApplicationStore()
 	app, _ := appStore.CreateApplication(context.Background(), domain.Application{
 		Key: "A1B2C3D4E5", Name: "X", Status: domain.ApplicationStatusPlanning,
@@ -1016,11 +1031,11 @@ func TestUpdateApplication_ActivationPreconditionFailed(t *testing.T) {
 
 	rec := doJSON(t, router, http.MethodPatch, "/api/v1/applications/"+app.ID,
 		`{"status":"active"}`)
-	if rec.Code != http.StatusUnprocessableEntity {
-		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s (자유화 후 200 기대)", rec.Code, rec.Body.String())
 	}
-	if !bytes.Contains(rec.Body.Bytes(), []byte(`"code":"application_activation_precondition_failed"`)) {
-		t.Errorf("expected activation precondition failure: %s", rec.Body.String())
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"status":"active"`)) {
+		t.Errorf("expected status=active: %s", rec.Body.String())
 	}
 }
 
@@ -1047,8 +1062,10 @@ func TestUpdateApplication_ActivationSuccess(t *testing.T) {
 	}
 }
 
-// 7) PATCH /applications/:id — closed → planning 같은 invalid transition → 422.
-func TestUpdateApplication_InvalidStatusTransition(t *testing.T) {
+// status 전이 정책 자유화 (2026-05-28) — 이전엔 closed→planning 같은 backward 전이가
+// 422 거부였으나 이제 모든 전이 허용. 기존 테스트는 가드 검증이었으므로 자유화 후
+// expected behavior 로 갱신.
+func TestUpdateApplication_AnyStatusTransitionAllowed(t *testing.T) {
 	appStore := newMemoryApplicationStore()
 	app, _ := appStore.CreateApplication(context.Background(), domain.Application{
 		Key: "A1B2C3D4E5", Name: "X", Status: domain.ApplicationStatusClosed,
@@ -1056,18 +1073,20 @@ func TestUpdateApplication_InvalidStatusTransition(t *testing.T) {
 	})
 	router := newApplicationsRouter(appStore)
 
+	// closed → planning 도 자유화 후 200.
 	rec := doJSON(t, router, http.MethodPatch, "/api/v1/applications/"+app.ID,
 		`{"status":"planning"}`)
-	if rec.Code != http.StatusUnprocessableEntity {
-		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s (자유화 후 200 기대)", rec.Code, rec.Body.String())
 	}
-	if !bytes.Contains(rec.Body.Bytes(), []byte(`"code":"invalid_status_transition"`)) {
-		t.Errorf("expected invalid_status_transition: %s", rec.Body.String())
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"status":"planning"`)) {
+		t.Errorf("expected status=planning: %s", rec.Body.String())
 	}
 }
 
-// 8) PATCH /applications/:id — active → on_hold 의 hold_reason 누락 → 422.
-func TestUpdateApplication_HoldReasonRequired(t *testing.T) {
+// status 전이 정책 자유화 (2026-05-28) — active→on_hold 의 hold_reason 필수 가드 제거.
+// reason 없이도 전이 가능 (audit 기록은 reason 있을 때만 details 에 포함).
+func TestUpdateApplication_HoldWithoutReason(t *testing.T) {
 	appStore := newMemoryApplicationStore()
 	app, _ := appStore.CreateApplication(context.Background(), domain.Application{
 		Key: "A1B2C3D4E5", Name: "X", Status: domain.ApplicationStatusActive,
@@ -1077,11 +1096,11 @@ func TestUpdateApplication_HoldReasonRequired(t *testing.T) {
 
 	rec := doJSON(t, router, http.MethodPatch, "/api/v1/applications/"+app.ID,
 		`{"status":"on_hold"}`)
-	if rec.Code != http.StatusUnprocessableEntity {
-		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s (자유화 후 200 기대)", rec.Code, rec.Body.String())
 	}
-	if !bytes.Contains(rec.Body.Bytes(), []byte(`"code":"invalid_status_transition_payload"`)) {
-		t.Errorf("expected invalid_status_transition_payload: %s", rec.Body.String())
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"status":"on_hold"`)) {
+		t.Errorf("expected status=on_hold: %s", rec.Body.String())
 	}
 }
 

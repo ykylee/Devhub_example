@@ -59,6 +59,7 @@ type ApplicationStore interface {
 	CreateApplication(context.Context, domain.Application) (domain.Application, error)
 	UpdateApplication(context.Context, domain.Application) (domain.Application, error)
 	ArchiveApplication(context.Context, string, string) (domain.Application, error)
+	DeleteApplication(context.Context, string) error
 	CountActiveApplicationRepositories(context.Context, string) (int, error)
 
 	// Application-Repository link

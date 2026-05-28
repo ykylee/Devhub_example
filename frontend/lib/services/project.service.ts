@@ -74,8 +74,12 @@ class ProjectService {
     return resp.data;
   }
 
-  async archiveApplication(id: string): Promise<void> {
-    await apiClient("DELETE", `/api/v1/applications/${id}`);
+  // archiveApplication — DELETE /api/v1/applications/:id.
+  //   hard=false (default): archive (soft-delete, status='archived')
+  //   hard=true : archived 상태 application 만 hard-delete (그 외엔 backend 400 거부)
+  async archiveApplication(id: string, hard?: boolean): Promise<void> {
+    const path = hard ? `/api/v1/applications/${id}?hard=true` : `/api/v1/applications/${id}`;
+    await apiClient("DELETE", path);
   }
 
   async getApplicationRepositories(applicationId: string): Promise<ApplicationRepository[]> {
