@@ -24,14 +24,14 @@ test.describe("/admin/catalog?tab=projects — Project CRUD UI (생성은 catalo
     await expect(dialog).toBeHidden();
   });
 
-  test("TC-PROJ-UI-03 — Project Leader 미선택 시 Create Project 버튼 비활성 (제출 차단)", async ({ page }) => {
+  test("TC-PROJ-UI-03 — 필수값(key/name) 미입력 시 제출 차단 (dialog 유지)", async ({ page }) => {
     await page.getByRole("button", { name: /new project/i }).click();
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
 
-    // 신규 모달은 필수값 미입력(특히 Project Leader 미선택) 시 Create Project 버튼을
-    // disabled 로 막아 제출을 차단한다 (구 브라우저 required 검증 대체).
-    await expect(dialog.getByRole("button", { name: /create project/i })).toBeDisabled();
+    // Project Leader 는 현재 사용자(actorDefaultOwnerId)로 prefill 되어 Create 버튼은 활성이지만,
+    // key/name 은 required + 빈 값이라 브라우저 검증으로 submit 이 차단되어 dialog 가 유지된다.
+    await dialog.getByRole("button", { name: /create project/i }).click();
     await expect(dialog).toBeVisible();
   });
 
