@@ -296,10 +296,27 @@ RETURNING` + applicationsSelectColumns
 }
 
 // CountActiveApplicationRepositories — 상태 전이 가드 검증용 (planning→active 의 활성 repo ≥1).
+// 직접 link (application_repositories.sync_status='active') + 프로젝트 경유 간접 link
+// (project_repositories 는 sync 상태 컬럼이 없으므로 link 존재 = 항상 active 로 간주).
+// migration 000034 의 project_repositories 컬럼은 (project_id, repository_id BIGINT, role,
+// linked_at) 만 존재 → repositories 테이블 JOIN 으로 repo_provider/full_name 매핑.
 func (s *PostgresStore) CountActiveApplicationRepositories(ctx context.Context, applicationID string) (int, error) {
+	// `repositories` 자체엔 `provider_key` 컬럼이 없고 SCM 출처 식별은 `provider_id`
+	// (integration_providers FK) 로만 표현. provider_id 가 NULL 인 legacy/system-owned
+	// repo 는 application 의 SCM repo 카운트 대상에서 제외 — application 활성 가드는
+	// SCM 연동된 repo 가 있어야 의미가 있으므로.
 	const query = `
-SELECT COUNT(*) FROM application_repositories
-WHERE application_id = $1::uuid AND sync_status = 'active'`
+SELECT COUNT(*) FROM (
+	SELECT repo_provider, repo_full_name FROM application_repositories
+	WHERE application_id = $1::uuid AND sync_status = 'active'
+	UNION
+	SELECT ip.provider_key AS repo_provider, r.full_name AS repo_full_name
+	FROM project_repositories pr
+	JOIN projects p              ON p.id  = pr.project_id
+	JOIN repositories r          ON r.id  = pr.repository_id
+	JOIN integration_providers ip ON ip.provider_id = r.provider_id
+	WHERE p.application_id = $1::uuid
+) active_repos`
 	var count int
 	if err := s.pool.QueryRow(ctx, query, applicationID).Scan(&count); err != nil {
 		return 0, fmt.Errorf("count active application repositories: %w", err)
@@ -352,10 +369,45 @@ func scanApplicationRepository(row pgx.Row) (domain.ApplicationRepository, error
 	return link, nil
 }
 
+// ListApplicationRepositories — 직접 link + 프로젝트 경유 간접 link 의 UNION.
+// migration 000034 의 project_repositories 는 (project_id, repository_id, role, linked_at)
+// 만 보유. repositories 자체엔 provider_key 컬럼이 없으므로 integration_providers JOIN
+// 으로 provider_key derive. 간접 link 의 sync 메타는 의미상 직접 link 와 다르므로
+// default 값으로 정규화:
+//   - role          : 'primary'/'shared' 보존, 'linked' → 'sub' (CHECK 제약 충돌 회피)
+//   - sync_status   : 'active' (link 존재 = 운영 중)
+//   - sync_error_*  : 빈/NULL (간접 link 는 sync 실패 개념 자체가 없음)
+//   - last_sync_at  : pr.linked_at (semantic placeholder)
+//   - linked_at     : pr.linked_at
+// 중복(직접+간접 동시) row 는 UNION 이 (application_id, repo_provider, repo_full_name)
+// tuple 기준으로 자연 dedup. provider_id NULL 인 legacy/system-owned repo 는 간접 link
+// 측에서 누락 — application 의 SCM 연동된 repo 가 의미 있는 매핑이므로.
 func (s *PostgresStore) ListApplicationRepositories(ctx context.Context, applicationID string) ([]domain.ApplicationRepository, error) {
-	query := `SELECT` + applicationRepositoriesSelectColumns + `
+	query := `SELECT ` + applicationRepositoriesSelectColumns + `
 FROM application_repositories
 WHERE application_id = $1::uuid
+UNION
+SELECT
+	$1::text                                    AS application_id,
+	ip.provider_key                             AS repo_provider,
+	r.full_name                                 AS repo_full_name,
+	COALESCE(r.gitea_repository_id::text, '')   AS external_repo_id,
+	CASE pr.role
+	  WHEN 'primary' THEN 'primary'
+	  WHEN 'shared'  THEN 'shared'
+	  ELSE 'sub'
+	END                                         AS role,
+	'active'::text                              AS sync_status,
+	''::text                                    AS sync_error_code,
+	NULL::boolean                               AS sync_error_retryable,
+	NULL::timestamptz                           AS sync_error_at,
+	pr.linked_at                                AS last_sync_at,
+	pr.linked_at                                AS linked_at
+FROM project_repositories pr
+JOIN projects p              ON p.id = pr.project_id
+JOIN repositories r          ON r.id = pr.repository_id
+JOIN integration_providers ip ON ip.provider_id = r.provider_id
+WHERE p.application_id = $1::uuid
 ORDER BY repo_provider ASC, repo_full_name ASC`
 
 	rows, err := s.pool.Query(ctx, query, applicationID)

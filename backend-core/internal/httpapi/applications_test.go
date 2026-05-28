@@ -153,16 +153,89 @@ func (s *memoryApplicationStore) ArchiveApplication(_ context.Context, id, _ str
 	return app, nil
 }
 
+// CountActiveApplicationRepositories — production *PostgresStore 의 UNION 쿼리 mirror.
+// 직접 link (sync_status='active') + project 경유 간접 link (link 존재 = active 간주).
+// 간접 link 에서 repositories miss (테스트 setup 누락) 면 skip — production 의
+// `JOIN repositories r` strict 동작과 동일 (FK 매칭 실패 row 누락). hardcoded
+// fallback ("bitbucket"+project.Key) 은 production 동작과 무관해 fake parity 깨므로 제거.
 func (s *memoryApplicationStore) CountActiveApplicationRepositories(_ context.Context, applicationID string) (int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.activeLinkCounts[applicationID], nil
+	activeRepos := make(map[string]bool)
+	for _, l := range s.links[applicationID] {
+		if l.SyncStatus == domain.SyncStatusActive {
+			activeRepos[l.RepoProvider+"/"+l.RepoFullName] = true
+		}
+	}
+	for _, p := range s.projects {
+		if p.ApplicationID != applicationID {
+			continue
+		}
+		for _, pr := range s.projectRepositories[p.ID] {
+			provider, fullName := s.lookupRepoForFake(pr.RepositoryID)
+			if provider == "" || fullName == "" {
+				continue // repositories miss → production JOIN 매칭 실패 mirror
+			}
+			activeRepos[provider+"/"+fullName] = true
+		}
+	}
+	return len(activeRepos), nil
+}
+
+// lookupRepoForFake — fake store 의 repository ID → (provider, full_name) lookup helper.
+// production `JOIN repositories` 와 동일하게 매칭 실패면 빈 string 반환 (caller 가 skip).
+func (s *memoryApplicationStore) lookupRepoForFake(repoID int64) (string, string) {
+	for _, r := range s.repositories {
+		if r.ID == repoID {
+			return r.ProviderKey, r.FullName
+		}
+	}
+	return "", ""
 }
 
 func (s *memoryApplicationStore) ListApplicationRepositories(_ context.Context, applicationID string) ([]domain.ApplicationRepository, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return append([]domain.ApplicationRepository(nil), s.links[applicationID]...), nil
+	direct := s.links[applicationID]
+	seen := make(map[string]bool)
+	out := make([]domain.ApplicationRepository, 0, len(direct))
+	for _, l := range direct {
+		seen[l.RepoProvider+"/"+l.RepoFullName] = true
+		out = append(out, l)
+	}
+	// project 경유 간접 link — production JOIN repositories strict 와 동일 동작.
+	for _, p := range s.projects {
+		if p.ApplicationID != applicationID {
+			continue
+		}
+		for _, pr := range s.projectRepositories[p.ID] {
+			provider, fullName := s.lookupRepoForFake(pr.RepositoryID)
+			if provider == "" || fullName == "" {
+				continue
+			}
+			key := provider + "/" + fullName
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
+			role := domain.ApplicationRepositoryRoleSub
+			switch pr.Role {
+			case "primary":
+				role = domain.ApplicationRepositoryRolePrimary
+			case "shared":
+				role = domain.ApplicationRepositoryRoleShared
+			}
+			out = append(out, domain.ApplicationRepository{
+				ApplicationID: applicationID,
+				RepoProvider:  provider,
+				RepoFullName:  fullName,
+				Role:          role,
+				SyncStatus:    domain.SyncStatusActive,
+				LinkedAt:      pr.LinkedAt,
+			})
+		}
+	}
+	return out, nil
 }
 
 func (s *memoryApplicationStore) CreateApplicationRepository(_ context.Context, link domain.ApplicationRepository) (domain.ApplicationRepository, error) {

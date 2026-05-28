@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { X, Box, Info, Globe, Eye, Lock, Loader2, Calendar } from "lucide-react";
-import { Application, ApplicationStatus, ApplicationVisibility } from "@/lib/services/project.types";
+import { X, Box, Info, Globe, Eye, Lock, Loader2, Calendar, GitBranch, FolderKanban } from "lucide-react";
+import { Application, ApplicationStatus, ApplicationVisibility, Project } from "@/lib/services/project.types";
 import { projectService } from "@/lib/services/project.service";
 import { identityService } from "@/lib/services/identity.service";
+import { repositoryService, Repository } from "@/lib/services/repository.service";
 import { ComboBox } from "@/components/ui/ComboBox";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +33,11 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
   const [leaderOptions, setLeaderOptions] = useState<Array<{ label: string; value: string; description?: string }>>([]);
   const [unitOptions, setUnitOptions] = useState<Array<{ label: string; value: string; description?: string }>>([]);
 
+  // Projects (read-only listing, P1-#3 정정) + Repositories (edit-capable) states.
+  const [allProjects, setAllProjects] = useState<Project[]>([]);
+  const [allRepositories, setAllRepositories] = useState<Repository[]>([]);
+  const [selectedRepoKeys, setSelectedRepoKeys] = useState<string[]>([]); // repo_provider/repo_full_name
+
   const isEdit = !!initialData?.id;
 
   useEffect(() => {
@@ -46,7 +52,11 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
     let alive = true;
     (async () => {
       try {
-        const [users, hierarchy] = await Promise.all([identityService.getUsers(), identityService.getOrgHierarchy()]);
+        const [users, hierarchy, repos] = await Promise.all([
+          identityService.getUsers(),
+          identityService.getOrgHierarchy(),
+          repositoryService.listRepositories()
+        ]);
         if (!alive) return;
         setLeaderOptions(
           users.map((u) => ({
@@ -62,9 +72,17 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
             description: n.data.type,
           })),
         );
+        setAllRepositories(repos);
+
+        // Fetch application repositories if in edit mode
+        if (isEdit && initialData.id) {
+          const appRepos = await projectService.getApplicationRepositories(initialData.id);
+          if (alive) {
+            setSelectedRepoKeys(appRepos.map(r => `${r.repo_provider}/${r.repo_full_name}`));
+          }
+        }
       } catch {
         if (!alive) return;
-        // Fallback: keep manual IDs when lookup API is unavailable.
         setLeaderOptions([]);
         setUnitOptions([]);
       }
@@ -72,7 +90,29 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
     return () => {
       alive = false;
     };
-  }, []);
+  }, [isEdit, initialData]);
+
+  // edit 모드일 때 본 application 에 이미 연결된 프로젝트 표시 (read-only listing).
+  // P1-#3 정정 — application_id PATCH 가 backend `updateProjectRequest` 에 필드
+  // 자체가 없어 silent ignore 였음. 연결/해제는 Project edit modal 에서만 가능
+  // (후속 carve: backend updateProject 에 application_id nullable PATCH 지원).
+  useEffect(() => {
+    if (!isEdit || !initialData.id) {
+      return;
+    }
+    let alive = true;
+    projectService.getApplicationProjectsV2(initialData.id)
+      .then((appProjects) => {
+        if (!alive) return;
+        setAllProjects(appProjects);
+      })
+      .catch((err) => {
+        if (alive) console.error(err);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [isEdit, initialData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,13 +128,48 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
         throw new Error("Development department is required.");
       }
       if (isEdit && initialData.id) {
-        // PATCH 시 `key` 는 백엔드(updateApplication)에서 immutable 로 reject 되므로
-        // payload 에서 제외한다. (codex PR #114 review P1)
+        // PATCH key is immutable
         const patchPayload: Partial<typeof formData> & { owner_user_id?: string } = { ...formData };
         delete patchPayload.key;
-        // owner-self row authorization 드리프트 방지: leader 변경 시 owner 동기화.
         patchPayload.owner_user_id = formData.leader_user_id;
         result = await projectService.updateApplication(initialData.id, patchPayload);
+
+        // Synchronize connected repositories
+        const currentAppRepos = await projectService.getApplicationRepositories(initialData.id);
+        const currentRepoKeys = currentAppRepos.map(r => `${r.repo_provider}/${r.repo_full_name}`);
+
+        const toAddRepos = selectedRepoKeys.filter(k => !currentRepoKeys.includes(k));
+        const toRemoveRepos = currentRepoKeys.filter(k => !selectedRepoKeys.includes(k));
+
+        // codex P2 정합 (#395) — repo full_name 이 `owner/repo` 형태 ("/" 다수 포함)
+        // 일 때 `key.split("/")` destructure 가 두 번째 segment 만 fullName 으로 받아
+        // 나머지를 drop 했음 (e.g. `github/acme/web` → provider="github", fullName="acme",
+        // "web" 손실). 첫 `/` 위치 기준으로 정확히 둘로 split.
+        const splitRepoKey = (key: string): [string, string] => {
+          const i = key.indexOf("/");
+          return i < 0 ? [key, ""] : [key.slice(0, i), key.slice(i + 1)];
+        };
+        await Promise.all([
+          ...toAddRepos.map(key => {
+            const [provider, fullName] = splitRepoKey(key);
+            return projectService.connectRepository(initialData.id!, {
+              repo_provider: provider,
+              repo_full_name: fullName,
+              role: "sub"
+            });
+          }),
+          ...toRemoveRepos.map(key => {
+            const [provider, fullName] = splitRepoKey(key);
+            return projectService.disconnectRepository(initialData.id!, provider, fullName);
+          })
+        ]);
+
+        // P1-#3/#4 정정 — backend `updateProjectRequest` 에 `application_id` 필드가
+        // 존재하지 않아 PATCH 가 silent ignore 였음. 본 modal 의 "Connected Projects"
+        // 섹션은 read-only 표시. 연결/해제는 Project edit modal 의 application select
+        // 통해서만 동작 (단, 그 쪽도 backend 미지원이라 동일 carve 대기).
+        // 후속 carve: backend updateProject 에 application_id nullable PATCH 지원
+        // 추가 + RBAC/audit/ownership 변경 정책 정합.
       } else {
         const normalizedKey = formData.key.trim().toUpperCase();
         result = await projectService.createApplication({
@@ -317,6 +392,59 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
               </div>
             </div>
           </div>
+
+          {isEdit && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-border/60 pt-6">
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1 flex items-center gap-1.5">
+                  <GitBranch className="w-3.5 h-3.5 text-purple-400" /> Connected Repositories
+                </label>
+                <div className="max-h-[160px] overflow-y-auto border border-border rounded-2xl p-4 bg-muted/5 space-y-2 custom-scrollbar">
+                  {allRepositories.map(repo => {
+                    const key = `${repo.provider_key}/${repo.full_name}`;
+                    const isChecked = selectedRepoKeys.includes(key);
+                    return (
+                      <label key={key} className="flex items-center gap-3 text-xs text-foreground dark:text-primary-foreground cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) setSelectedRepoKeys([...selectedRepoKeys, key]);
+                            else setSelectedRepoKeys(selectedRepoKeys.filter(k => k !== key));
+                          }}
+                          className="h-4 w-4 rounded border-border"
+                        />
+                        <span>{repo.full_name} ({repo.provider_key})</span>
+                      </label>
+                    );
+                  })}
+                  {allRepositories.length === 0 && (
+                    <p className="text-[10px] text-muted-foreground italic">No repositories available.</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1 flex items-center gap-1.5">
+                  <FolderKanban className="w-3.5 h-3.5 text-purple-400" /> Connected Projects (read-only)
+                </label>
+                <div className="max-h-[160px] overflow-y-auto border border-border rounded-2xl p-4 bg-muted/5 space-y-2 custom-scrollbar">
+                  {allProjects.map((proj) => (
+                    <div key={proj.id} className="flex items-center gap-3 text-xs text-foreground dark:text-primary-foreground select-none opacity-90">
+                      <span className="w-2 h-2 rounded-full bg-purple-400/70" />
+                      <span>{proj.name} ({proj.key})</span>
+                    </div>
+                  ))}
+                  {allProjects.length === 0 && (
+                    <p className="text-[10px] text-muted-foreground italic">No projects connected yet.</p>
+                  )}
+                </div>
+                <p className="text-[10px] text-muted-foreground italic px-1">
+                  Project linking is managed in the Project edit modal — `application_id` PATCH is not yet supported on this endpoint.
+                </p>
+              </div>
+            </div>
+          )}
 
           {error && (
             <motion.div 
