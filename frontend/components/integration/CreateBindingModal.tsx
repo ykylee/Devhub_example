@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { integrationService } from "@/lib/services/integration.service";
 import { projectService } from "@/lib/services/project.service";
 import { ApiError } from "@/lib/services/api-client";
-import { ComboBox } from "@/components/ui/ComboBox";
+import { ComboBox } from "@/shared/ui-foundation/components/ComboBox";
 import type {
   IntegrationBinding,
   IntegrationPolicy,

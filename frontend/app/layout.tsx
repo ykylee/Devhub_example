@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { ToastContainer } from "@/components/ui/Toast";
-import { LogoutOverlay } from "@/components/ui/LogoutOverlay";
+import { ToastContainer } from "@/shared/ui-foundation/components/Toast";
+import { LogoutOverlay } from "@/shared/ui-foundation/components/LogoutOverlay";
 
 export const metadata: Metadata = {
   title: "DevHub - Team Integrated Development Hub",

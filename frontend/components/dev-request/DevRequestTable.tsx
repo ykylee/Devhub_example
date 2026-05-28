@@ -4,7 +4,7 @@ import { Inbox, Clock, User, ExternalLink } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { DevRequest, DevRequestStatus } from "@/lib/services/dev_request.types";
-import { Badge } from "@/components/ui/Badge";
+import { Badge } from "@/shared/ui-foundation/components/Badge";
 
 interface DevRequestTableProps {
   items: DevRequest[];

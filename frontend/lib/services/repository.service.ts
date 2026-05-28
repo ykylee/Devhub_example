@@ -1,5 +1,5 @@
 import { apiClient } from "./api-client";
-import { API_BASE_URL } from "../config/endpoints";
+import { API_BASE_URL } from "@/shared/config/endpoints";
 
 export interface Repository {
   id: number;

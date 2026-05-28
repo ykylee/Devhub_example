@@ -3,9 +3,9 @@
 import React, { memo, useState } from 'react';
 import { Handle, Position, Node, NodeProps } from '@xyflow/react';
 import { Plus, Minus, Edit3, Crown, Check, X, Building2, Users, Layers, Shield } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/shared/utils';
 import { motion } from 'framer-motion';
-import { ComboBox } from '@/components/ui/ComboBox';
+import { ComboBox } from '@/shared/ui-foundation/components/ComboBox';
 import type { OrgMember } from '@/lib/services/identity.service';
 
 type OrgNodeData = {

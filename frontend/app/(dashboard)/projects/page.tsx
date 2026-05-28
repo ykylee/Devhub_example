@@ -14,10 +14,10 @@ import {
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
-import { DashboardHeader } from "@/components/ui/DashboardHeader";
-import { Badge } from "@/components/ui/Badge";
-import { FilterBar } from "@/components/ui/FilterBar";
-import { PageEmpty, PageError, PageLoading } from "@/components/ui/PageState";
+import { DashboardHeader } from "@/shared/ui-foundation/components/DashboardHeader";
+import { Badge } from "@/shared/ui-foundation/components/Badge";
+import { FilterBar } from "@/shared/ui-foundation/components/FilterBar";
+import { PageEmpty, PageError, PageLoading } from "@/shared/ui-foundation/components/PageState";
 import { projectService } from "@/lib/services/project.service";
 import type { Project } from "@/lib/services/project.types";
 import { repositoryService } from "@/lib/services/repository.service";

@@ -12,8 +12,8 @@ import { RepositoryTable } from "@/components/project/RepositoryTable";
 import { ProjectTable } from "@/components/project/ProjectTable";
 import { RepositoryLinkModal } from "@/components/project/RepositoryLinkModal";
 import { ProjectCreationModal } from "@/components/project/ProjectCreationModal";
-import { FilterBar } from "@/components/ui/FilterBar";
-import { useToast } from "@/components/ui/Toast";
+import { FilterBar } from "@/shared/ui-foundation/components/FilterBar";
+import { useToast } from "@/shared/ui-foundation/components/Toast";
 
 const STATUS_OPTIONS = [
   { label: "All Status", value: "all" },

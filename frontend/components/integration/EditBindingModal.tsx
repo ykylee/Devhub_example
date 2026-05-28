@@ -3,7 +3,7 @@
 import { useState, FormEvent } from "react";
 import { Link2, X, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/utils";
 import { integrationService } from "@/lib/services/integration.service";
 import { ApiError } from "@/lib/services/api-client";
 import type {

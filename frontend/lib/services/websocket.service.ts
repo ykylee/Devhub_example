@@ -3,7 +3,7 @@
  * Handles real-time connection and event Pub/Sub for the frontend.
  */
 
-import { API_BASE_URL, WS_BASE_URL } from "../config/endpoints";
+import { API_BASE_URL, WS_BASE_URL } from "@/shared/config/endpoints";
 import { tokenStore } from "@/lib/auth/token-store";
 
 export interface WsMessage<T = unknown> {

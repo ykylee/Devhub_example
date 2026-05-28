@@ -35,7 +35,7 @@ class AuditService {
     if (filters.offset !== undefined) params.set("offset", filters.offset.toString());
 
     const queryString = params.toString();
-    const path = `/api/v1/audit-logs${queryString ? `?${queryString}` : ""}`;
+    const path = `/api/v1/audit/logs${queryString ? `?${queryString}` : ""}`;
     const result = await apiClient<ApiResponse<AuditLogEntry[]>>("GET", path);
     return {
       entries: result.data ?? [],

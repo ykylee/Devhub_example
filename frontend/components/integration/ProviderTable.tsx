@@ -3,7 +3,7 @@
 import { Plug, Settings, RefreshCw, Trash2, FolderDown, FolderPlus } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
-import { Badge } from "@/components/ui/Badge";
+import { Badge } from "@/shared/ui-foundation/components/Badge";
 import type { IntegrationProvider } from "@/lib/services/integration.types";
 
 interface ProviderTableProps {

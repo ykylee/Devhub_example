@@ -18,16 +18,16 @@ import {
 } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { parseISO } from "date-fns";
-import { Badge } from "@/components/ui/Badge";
+import { Badge } from "@/shared/ui-foundation/components/Badge";
 import { projectService } from "@/lib/services/project.service";
 import type { Project, ProjectActivityItem, ProjectRepositoryLink, ProjectTaskItem } from "@/lib/services/project.types";
 import { identityService, OrgMember } from "@/lib/services/identity.service";
 import { repositoryService, Repository } from "@/lib/services/repository.service";
-import { ENABLE_LEGACY_MOCK_UI } from "@/lib/config/mock-ui";
+import { ENABLE_LEGACY_MOCK_UI } from "@/shared/config/mock-ui";
 import { legacyMockProjectActivity, legacyMockProjectTasks } from "@/lib/archive/mock-ui-legacy";
 import { toUserErrorMessage } from "@/lib/services/error-message";
-import { lifecycleStatusBadgeVariant } from "@/lib/utils/lifecycle-status";
-import { PageError, PageLoading } from "@/components/ui/PageState";
+import { lifecycleStatusBadgeVariant } from "@/shared/utils/lifecycle-status";
+import { PageError, PageLoading } from "@/shared/ui-foundation/components/PageState";
 import { 
   Tooltip, 
   ResponsiveContainer,

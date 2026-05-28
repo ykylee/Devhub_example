@@ -1,6 +1,6 @@
 import { Role, RbacPolicyMeta } from "./rbac.types";
 import { apiClient, ApiError } from "./api-client";
-import { API_BASE_URL } from "../config/endpoints";
+import { API_BASE_URL } from "@/shared/config/endpoints";
 
 interface ListPoliciesEnvelope {
   status: string;

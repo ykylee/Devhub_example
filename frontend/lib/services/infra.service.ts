@@ -1,8 +1,8 @@
 import { ApiMetric, ApiResponse, Metric, ServiceActionCommand, ServiceEdge, ServiceNode } from "./types";
 import { type UserRole } from "../store";
-import { formatBytes } from "../utils";
+import { formatBytes } from "@/shared/utils";
 import { apiClient } from "./api-client";
-import { API_BASE_URL } from "../config/endpoints";
+import { API_BASE_URL } from "@/shared/config/endpoints";
 
 class InfraService {
   private static instance: InfraService;

@@ -58,7 +58,7 @@ export class OnboardingService {
   async confirmUserReview(userId: string): Promise<ReviewConfirmResult> {
     const result = await apiClient<ApiResponse<ReviewConfirmResult>>(
       "POST",
-      `/api/v1/admin/users/${encodeURIComponent(userId)}/review`,
+      `/api/v1/users/${encodeURIComponent(userId)}/review`,
       {},
     );
     if (!result.data) throw new ApiError(500, result, "missing review payload");

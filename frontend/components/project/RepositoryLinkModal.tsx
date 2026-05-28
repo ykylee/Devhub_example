@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { X, GitBranch, Loader2, Link } from "lucide-react";
 import { ApplicationRepository, ApplicationRepositoryRole, SCMProvider } from "@/lib/services/project.types";
 import { projectService } from "@/lib/services/project.service";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/utils";
 
 interface RepositoryLinkModalProps {
   applicationId: string;

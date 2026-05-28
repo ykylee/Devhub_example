@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { X, UserPlus, Mail, Shield, Building2, Loader2, Search, Bot, User, Key, Info } from "lucide-react";
 import { identityService, OrgMember } from "@/lib/services/identity.service";
 import { Role } from "@/lib/services/rbac.types";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/utils";
 
 interface UserCreationModalProps {
   onClose: () => void;

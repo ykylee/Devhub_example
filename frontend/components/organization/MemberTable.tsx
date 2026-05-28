@@ -3,13 +3,13 @@
 import { identityService, OrgMember } from "@/lib/services/identity.service";
 import { motion, AnimatePresence } from "framer-motion";
 import { UserPlus, Mail, Shield, ArrowRightLeft, Crown, Bot, Edit3, Trash2 } from "lucide-react";
-import { Badge } from "@/components/ui/Badge";
-import { cn } from "@/lib/utils";
+import { Badge } from "@/shared/ui-foundation/components/Badge";
+import { cn } from "@/shared/utils";
 import { useState } from "react";
-import { useToast } from "@/components/ui/Toast";
+import { useToast } from "@/shared/ui-foundation/components/Toast";
 import { UserCreationModal } from "./UserCreationModal";
 import { UserEditModal } from "./UserEditModal";
-import { DestructiveConfirmModal } from "@/components/ui/DestructiveConfirmModal";
+import { DestructiveConfirmModal } from "@/shared/ui-foundation/components/DestructiveConfirmModal";
 import { Role } from "@/lib/services/rbac.types";
 
 interface MemberTableProps {

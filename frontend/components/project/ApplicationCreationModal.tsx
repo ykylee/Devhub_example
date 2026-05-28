@@ -7,8 +7,8 @@ import { Application, ApplicationStatus, ApplicationVisibility, Project } from "
 import { projectService } from "@/lib/services/project.service";
 import { identityService } from "@/lib/services/identity.service";
 import { repositoryService, Repository } from "@/lib/services/repository.service";
-import { ComboBox } from "@/components/ui/ComboBox";
-import { cn } from "@/lib/utils";
+import { ComboBox } from "@/shared/ui-foundation/components/ComboBox";
+import { cn } from "@/shared/utils";
 
 interface ApplicationCreationModalProps {
   onClose: () => void;

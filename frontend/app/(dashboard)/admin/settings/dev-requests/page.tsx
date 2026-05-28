@@ -7,10 +7,10 @@ import { devRequestService } from "@/lib/services/dev_request.service";
 import { DevRequest, DevRequestStatus } from "@/lib/services/dev_request.types";
 import { DevRequestTable } from "@/components/dev-request/DevRequestTable";
 import { DevRequestDetailModal } from "@/components/dev-request/DevRequestDetailModal";
-import { useToast } from "@/components/ui/Toast";
+import { useToast } from "@/shared/ui-foundation/components/Toast";
 import { useStore } from "@/lib/store";
 import { isSystemAdmin } from "@/lib/auth/role-routing";
-import { FilterBar } from "@/components/ui/FilterBar";
+import { FilterBar } from "@/shared/ui-foundation/components/FilterBar";
 
 const STATUS_OPTIONS = [
   { label: "All Requests", value: "all" },

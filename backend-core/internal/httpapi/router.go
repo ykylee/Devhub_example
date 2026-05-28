@@ -7,12 +7,28 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/devhub/backend-core/internal/domain"
 	"github.com/devhub/backend-core/internal/store"
+	rbacview "github.com/devhub/backend-core/internal/domain/rbac-permissions/view"
+	realtimeview "github.com/devhub/backend-core/internal/domain/realtime/view"
+	auditview "github.com/devhub/backend-core/internal/domain/audit-ops/view"
+	authview "github.com/devhub/backend-core/internal/domain/auth-session/view"
+	onboardview "github.com/devhub/backend-core/internal/domain/onboarding/view"
+	orgview "github.com/devhub/backend-core/internal/domain/organization-management/view"
+	appview "github.com/devhub/backend-core/internal/domain/application-lifecycle/view"
+	devreqview "github.com/devhub/backend-core/internal/domain/dev-request/view"
+	integview "github.com/devhub/backend-core/internal/domain/integration-registry/view"
+	repoview "github.com/devhub/backend-core/internal/domain/repository-integration/view"
+	gitea "github.com/devhub/backend-core/internal/infrastructure/gitea"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
+
+type AuthenticatedActor = authview.AuthenticatedActor
+type BearerTokenVerifier = authview.BearerTokenVerifier
+type OrganizationStore = orgview.OrganizationStore
 
 type WebhookEventStore interface {
 	SaveWebhookEvent(context.Context, store.WebhookEvent) (int64, error)
@@ -127,6 +143,33 @@ type IdentityAdmin interface {
 	FindIdentityByUserID(ctx context.Context, userID string) (string, error)
 }
 
+type DevRequestStore interface {
+	CreateDevRequest(ctx context.Context, dr domain.DevRequest) (domain.DevRequest, error)
+	GetDevRequest(ctx context.Context, id string) (domain.DevRequest, error)
+	GetDevRequestByExternalRef(ctx context.Context, system, ref string) (domain.DevRequest, error)
+	ListDevRequests(ctx context.Context, opts store.DevRequestListOptions) ([]domain.DevRequest, int, error)
+	TransitionDevRequestStatus(ctx context.Context, id string, status domain.DevRequestStatus, reason string) (domain.DevRequest, error)
+	ReassignDevRequest(ctx context.Context, id string, assignee string) (domain.DevRequest, error)
+	MarkDevRequestRegistered(ctx context.Context, id string, targetType domain.DevRequestTargetType, targetID string) (domain.DevRequest, error)
+	RegisterDevRequestWithNewApplication(ctx context.Context, id string, app domain.Application, repo *domain.ApplicationRepository) (domain.DevRequest, domain.Application, error)
+	RegisterDevRequestWithNewProject(ctx context.Context, id string, proj domain.Project) (domain.DevRequest, domain.Project, error)
+}
+
+type IntakeTokenStore = devreqview.IntakeTokenStore
+
+type RBACStore = rbacview.RBACStore
+
+type ExternalTaskStore interface {
+	UpsertExternalTaskItem(ctx context.Context, t domain.ExternalTaskItem) (domain.ExternalTaskItem, error)
+	SoftDeleteExternalTaskItem(ctx context.Context, providerID, externalID string) error
+	ListExternalTaskItems(ctx context.Context, opts store.ExternalTaskListOptions) ([]domain.ExternalTaskItem, int, error)
+	GetExternalTaskItemByID(ctx context.Context, id string) (domain.ExternalTaskItem, error)
+	NextWebhookSeq(ctx context.Context) (int64, error)
+	DetectWebhookSeqGaps(ctx context.Context, providerID string) (int64, error)
+	UpdateProviderLastPulledAt(ctx context.Context, providerID string, pulledAt time.Time) error
+	ListTaskTrackers(ctx context.Context) ([]domain.IntegrationProvider, error)
+}
+
 type HRDBClient interface {
 	Lookup(ctx context.Context, systemID, employeeID, name string) (string, string, string, error) // simplified for now: returns email, userID, dept
 }
@@ -150,29 +193,18 @@ type RouterConfig struct {
 	DevRequestStore            DevRequestStore
 	DevRequestIntakeTokenStore IntakeTokenStore
 	RBACStore                  RBACStore
-	PermissionCache            *PermissionCache
+	PermissionCache            *rbacview.PermissionCache
 	ExternalTaskStore          ExternalTaskStore
 	IdentityAdmin              IdentityAdmin
 	IdPProvider                string
 	HRDB                       HRDBClient
 	SnapshotProvider           SnapshotProvider
-	RealtimeHub                *RealtimeHub
-	// RealtimeTickets — ADR-0024 §3.2 ticket pattern. nil 이면 ticket endpoint
-	// 가 503 unavailable + WS auth 는 access_token query fallback 사용. in-memory
-	// (RealtimeTicketStore, single-instance) 또는 PG 백킹 (DBRealtimeTicketStore,
-	// multi-instance — ADR-0024 §6 carve 6) 구현 주입.
-	RealtimeTickets realtimeTicketStore
+	RealtimeHub                *realtimeview.RealtimeHub
+	// RealtimeTickets — ADR-0024 §3.2 ticket pattern.
+	RealtimeTickets realtimeview.RealtimeTicketStore
 	// AuthDevFallback toggles dev-only authentication fallbacks: empty Authorization passes through authenticateActor and requireMinRole. Actor identity always resolves to "system" without a verifier. Default false: production-safe.
 	AuthDevFallback bool
 	// OnboardingGateEnabled — RM-ONBOARD-01 (ADR-0021 §3.3, ARCH-ONBOARD-03).
-	// Feature flag (env `DEVHUB_ONBOARDING_GATE_ENABLED`) default **true** since
-	// the 2026-05-21 lazy 폐기 sprint (issue #284). authenticateActor 의
-	// token-only actor 처리는 항상 활성 — 본 flag 는 onboardingGate middleware
-	// 의 차단 동작에만 영향.
-	// - true (default): onboardingGate 가 미완료 사용자의 allowlist 외 endpoint
-	//   호출 시 403 onboarding_required 차단.
-	// - false (rollback): onboardingGate no-op (모든 endpoint 통과). token-only
-	//   actor 처리는 여전히 활성. 운영 사고 시 빠른 mitigation 경로.
 	OnboardingGateEnabled bool
 	// ProjectModel toggles project-management route mode: legacy|hybrid|v2.
 	ProjectModel string
@@ -181,34 +213,78 @@ type RouterConfig struct {
 func NewRouter(cfg RouterConfig) *gin.Engine {
 	router := gin.Default()
 
-	// SetTrustedProxies(nil) makes gin.Context.ClientIP() return the raw
-	// RemoteAddr without honouring X-Forwarded-For / X-Real-IP. PR-D
-	// (audit_logs.source_ip) relies on ClientIP being attribution-grade —
-	// trusting client-supplied forwarding headers would let any external
-	// caller forge the audit row's IP. Operators that legitimately sit
-	// behind a reverse proxy opt in via DEVHUB_TRUSTED_PROXIES (PR-D
-	// follow-up, work_260512-i):
-	//   - empty / "none"  → SetTrustedProxies(nil) (default, attribution-grade)
-	//   - "*"             → trust everything (testing only, audit forgery risk)
-	//   - "10.0.0.0/8,192.168.1.5" → trust the listed CIDRs/IPs
-	//
-	// gin's parseTrustedProxies stops at the first invalid entry and returns
-	// a partial trust set + the parse error (work_260512-j). Silent partial
-	// trust silently diverges from operator intent (e.g. a typo'd CIDR drops
-	// every later entry), so we fall back to attribution-grade default + log
-	// when the env contains an invalid token. Listed entries earlier than the
-	// invalid one would already be partially applied; resetting back to nil
-	// ensures a uniform behaviour rather than an unpredictable mix.
 	if err := router.SetTrustedProxies(trustedProxiesFromEnv()); err != nil {
 		log.Printf("[trusted-proxies] DEVHUB_TRUSTED_PROXIES contains an invalid entry (%v); falling back to attribution-grade default (SetTrustedProxies(nil))", err)
 		_ = router.SetTrustedProxies(nil)
 	}
 
 	if cfg.PermissionCache == nil {
-		cfg.PermissionCache = NewPermissionCache(cfg.RBACStore)
+		cfg.PermissionCache = rbacview.NewPermissionCache(cfg.RBACStore)
 	}
 
-	handler := Handler{cfg: cfg}
+	handler := Handler{
+		cfg: cfg,
+		auth: authview.NewAuthHandler(authview.AuthConfig{
+			AuthDevFallback:       cfg.AuthDevFallback,
+			RealtimeTickets:       cfg.RealtimeTickets,
+			BearerTokenVerifier:   cfg.BearerTokenVerifier,
+			OrganizationStore:     cfg.OrganizationStore,
+			IdentityAdmin:         cfg.IdentityAdmin,
+			AuditStore:            cfg.AuditStore,
+			OnboardingGateEnabled: cfg.OnboardingGateEnabled,
+		}),
+		audit: auditview.NewAuditHandler(auditview.AuditConfig{
+			AuditStore:            cfg.AuditStore,
+			KeycloakWebhookSecret: cfg.KeycloakWebhookSecret,
+		}),
+		rbac: rbacview.NewRBACHandler(rbacview.RBACConfig{
+			RBACStore:       cfg.RBACStore,
+			PermissionCache: cfg.PermissionCache,
+			AuthDevFallback: cfg.AuthDevFallback,
+			AuditStore:      cfg.AuditStore,
+		}),
+		org: orgview.NewOrganizationHandler(orgview.OrganizationConfig{
+			OrganizationStore:     cfg.OrganizationStore,
+			HRDB:                  cfg.HRDB,
+			AuditStore:            cfg.AuditStore,
+			OnboardingGateEnabled: cfg.OnboardingGateEnabled,
+		}),
+		app: appview.NewApplicationHandler(appview.ApplicationConfig{
+			ApplicationStore: cfg.ApplicationStore,
+			DevRequestStore:  cfg.DevRequestStore,
+			ProjectModel:     cfg.ProjectModel,
+			AuditStore:       cfg.AuditStore,
+		}),
+		devreq: devreqview.NewDevRequestHandler(devreqview.DevRequestConfig{
+			DevRequestStore:            cfg.DevRequestStore,
+			DevRequestIntakeTokenStore: cfg.DevRequestIntakeTokenStore,
+			ApplicationStore:           cfg.ApplicationStore,
+			AuditStore:                 cfg.AuditStore,
+		}),
+		integ: integview.NewIntegrationHandler(integview.IntegrationConfig{
+			ApplicationStore:  cfg.ApplicationStore,
+			EventStore:        cfg.EventStore,
+			EventProcessor:    cfg.EventProcessor,
+			ExternalTaskStore: cfg.ExternalTaskStore,
+			AuditStore:        cfg.AuditStore,
+		}),
+		realtime: realtimeview.NewRealtimeHandler(realtimeview.RealtimeConfig{
+			RealtimeHub:     cfg.RealtimeHub,
+			RealtimeTickets: cfg.RealtimeTickets,
+			PermissionCache: cfg.PermissionCache,
+			AuditStore:      cfg.AuditStore,
+			AuthDevFallback: cfg.AuthDevFallback,
+		}),
+		repo: repoview.NewRepositoryIntegrationHandler(repoview.RepositoryIntegrationConfig{
+			ApplicationStore: cfg.ApplicationStore,
+			AuditStore:       cfg.AuditStore,
+		}),
+		onboard: onboardview.NewOnboardingHandler(onboardview.OnboardingConfig{
+			OrganizationStore:     cfg.OrganizationStore,
+			OnboardingGateEnabled: cfg.OnboardingGateEnabled,
+			AuditStore:            cfg.AuditStore,
+		}),
+	}
 	router.GET("/health", handler.health)
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
@@ -396,7 +472,17 @@ func trustedProxiesFromEnv() []string {
 }
 
 type Handler struct {
-	cfg RouterConfig
+	cfg         RouterConfig
+	auth        *authview.AuthHandler
+	audit       *auditview.AuditHandler
+	rbac        *rbacview.RBACHandler
+	org         *orgview.OrganizationHandler
+	app         *appview.ApplicationHandler
+	devreq      *devreqview.DevRequestHandler
+	integ       *integview.IntegrationHandler
+	realtime    *realtimeview.RealtimeHandler
+	repo        *repoview.RepositoryIntegrationHandler
+	onboard     *onboardview.OnboardingHandler
 }
 
 func (h Handler) snapshotProvider() SnapshotProvider {
@@ -434,4 +520,384 @@ func statusFromStoreError(err error) (int, string) {
 		return http.StatusOK, "duplicate"
 	}
 	return http.StatusInternalServerError, "failed"
+}
+
+func providerHasCapability(p domain.IntegrationProvider, caps ...string) bool {
+	hasCap := map[string]bool{}
+	for _, c := range p.Capabilities {
+		hasCap[c] = true
+	}
+	for _, req := range caps {
+		if !hasCap[req] {
+			return false
+		}
+	}
+	return true
+}
+
+func (h Handler) scmProviderClient(c *gin.Context, provider domain.IntegrationProvider) (*gitea.Client, bool) {
+	if strings.TrimSpace(provider.BaseURL) == "" {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"status": "rejected", "error": "provider base_url is not set", "code": "integration_base_url_missing"})
+		return nil, false
+	}
+	client, err := gitea.NewClientForAuth(c.Request.Context(), provider.BaseURL, provider.ResolveOutboundAuth())
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"status": "rejected", "error": "SCM authentication failed: " + err.Error(), "code": "integration_scm_auth_failed"})
+		return nil, false
+	}
+	if client == nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"status": "rejected", "error": "provider outbound credentials are not configured", "code": "integration_outbound_credentials_missing"})
+		return nil, false
+	}
+	return client, true
+}
+
+var giteaCompatibleVendors = map[string]bool{"gitea": true, "forgejo": true, "gogs": true}
+
+func isGiteaCompatibleProvider(p domain.IntegrationProvider) bool {
+	const prefix = "provider_sdk:"
+	ref := strings.TrimSpace(p.CredentialsRef)
+	if !strings.HasPrefix(ref, prefix) {
+		return true
+	}
+	parts := strings.SplitN(strings.TrimPrefix(ref, prefix), ":", 2)
+	vendor := normalizeProviderSDKKey(parts[0])
+	if vendor == "" {
+		return true
+	}
+	return giteaCompatibleVendors[vendor]
+}
+
+func scmRepoOwnerLogin(fullName string) string {
+	if i := strings.Index(fullName, "/"); i > 0 {
+		return fullName[:i]
+	}
+	return ""
+}
+
+func normalizeProviderSDKKey(v string) string {
+	return strings.ToLower(strings.TrimSpace(v))
+}
+
+func (h Handler) applicationStoreOrUnavailable(c *gin.Context) (ApplicationStore, bool) {
+	if h.cfg.ApplicationStore == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "application store is not configured"})
+		return nil, false
+	}
+	return h.cfg.ApplicationStore, true
+}
+
+func formatDatePtr(t *time.Time) any {
+	if t == nil {
+		return nil
+	}
+	return t.UTC().Format("2006-01-02")
+}
+
+func formatTimePtr(t *time.Time) any {
+	if t == nil {
+		return nil
+	}
+	return t.UTC().Format(time.RFC3339)
+}
+
+func (h Handler) recordAuditBestEffort(c *gin.Context, action, targetType, targetID string, payload map[string]any) domain.AuditLog {
+	return h.audit.RecordAuditBestEffort(c, action, targetType, targetID, payload)
+}
+
+func (h Handler) requireOnboardingFlag(c *gin.Context) bool {
+	return h.onboard.RequireOnboardingFlag(c)
+}
+
+func addAuditMeta(resp gin.H, log domain.AuditLog) {
+	if log.AuditID != "" {
+		resp["audit_log_id"] = log.AuditID
+	}
+}
+
+// ==========================================
+// Domain View Delegation Wrapper Methods
+// ==========================================
+
+// Auth-Session
+func (h Handler) authenticateActor(c *gin.Context) {
+	h.auth.AuthenticateActor(c)
+}
+func (h Handler) getMe(c *gin.Context) {
+	h.auth.GetMe(c)
+}
+func (h Handler) patchMe(c *gin.Context) {
+	h.auth.PatchMe(c)
+}
+
+// Onboarding
+func (h Handler) onboardingGate(c *gin.Context) {
+	h.onboard.OnboardingGate(c)
+}
+func (h Handler) submitOnboarding(c *gin.Context) {
+	h.onboard.SubmitOnboarding(c)
+}
+
+// Organization Management
+func (h Handler) searchOrganizations(c *gin.Context) {
+	h.org.SearchOrganizations(c)
+}
+
+func (h Handler) listUsers(c *gin.Context) {
+	h.org.ListUsers(c)
+}
+func (h Handler) createUser(c *gin.Context) {
+	h.org.CreateUser(c)
+}
+func (h Handler) getUser(c *gin.Context) {
+	h.org.GetUser(c)
+}
+func (h Handler) updateUser(c *gin.Context) {
+	h.org.UpdateUser(c)
+}
+func (h Handler) deleteUser(c *gin.Context) {
+	h.org.DeleteUser(c)
+}
+func (h Handler) getHierarchy(c *gin.Context) {
+	h.org.GetHierarchy(c)
+}
+func (h Handler) updateHierarchy(c *gin.Context) {
+	h.org.UpdateHierarchy(c)
+}
+func (h Handler) createOrgUnit(c *gin.Context) {
+	h.org.CreateOrgUnit(c)
+}
+func (h Handler) getOrgUnit(c *gin.Context) {
+	h.org.GetOrgUnit(c)
+}
+func (h Handler) updateOrgUnit(c *gin.Context) {
+	h.org.UpdateOrgUnit(c)
+}
+func (h Handler) deleteOrgUnit(c *gin.Context) {
+	h.org.DeleteOrgUnit(c)
+}
+func (h Handler) listUnitMembers(c *gin.Context) {
+	h.org.ListUnitMembers(c)
+}
+func (h Handler) replaceUnitMembers(c *gin.Context) {
+	h.org.ReplaceUnitMembers(c)
+}
+func (h Handler) hrLookup(c *gin.Context) {
+	h.org.HrLookup(c)
+}
+
+// RBAC Permissions
+func (h Handler) enforceRoutePermission(c *gin.Context) {
+	h.rbac.EnforceRoutePermission(c)
+}
+func (h Handler) getRBACPolicyLegacyGone(c *gin.Context) {
+	h.rbac.GetRBACPolicyLegacyGone(c)
+}
+func (h Handler) listRBACPolicies(c *gin.Context) {
+	h.rbac.ListRBACPolicies(c)
+}
+func (h Handler) createRBACPolicy(c *gin.Context) {
+	h.rbac.CreateRBACPolicy(c)
+}
+func (h Handler) updateRBACPolicies(c *gin.Context) {
+	h.rbac.UpdateRBACPolicies(c)
+}
+func (h Handler) deleteRBACPolicy(c *gin.Context) {
+	h.rbac.DeleteRBACPolicy(c)
+}
+
+// Audit Ops
+func (h Handler) receiveKeycloakEventWebhook(c *gin.Context) {
+	h.audit.ReceiveKeycloakEventWebhook(c)
+}
+func (h Handler) listAuditLogs(c *gin.Context) {
+	h.audit.ListAuditLogs(c)
+}
+
+// Application Lifecycle
+func (h Handler) listSCMProviders(c *gin.Context) {
+	h.app.ListSCMProviders(c)
+}
+func (h Handler) updateSCMProvider(c *gin.Context) {
+	h.app.UpdateSCMProvider(c)
+}
+func (h Handler) listApplications(c *gin.Context) {
+	h.app.ListApplications(c)
+}
+func (h Handler) createApplication(c *gin.Context) {
+	h.app.CreateApplication(c)
+}
+func (h Handler) getApplication(c *gin.Context) {
+	h.app.GetApplication(c)
+}
+func (h Handler) updateApplication(c *gin.Context) {
+	h.app.UpdateApplication(c)
+}
+func (h Handler) archiveApplication(c *gin.Context) {
+	h.app.ArchiveApplication(c)
+}
+func (h Handler) listApplicationRepositories(c *gin.Context) {
+	h.app.ListApplicationRepositories(c)
+}
+func (h Handler) createApplicationRepository(c *gin.Context) {
+	h.app.CreateApplicationRepository(c)
+}
+func (h Handler) deleteApplicationRepository(c *gin.Context) {
+	h.app.DeleteApplicationRepository(c)
+}
+
+func (h Handler) listProjects(c *gin.Context) {
+	h.app.ListProjects(c)
+}
+func (h Handler) createProject(c *gin.Context) {
+	h.app.CreateProject(c)
+}
+func (h Handler) createProjectStandalone(c *gin.Context) {
+	h.app.CreateProjectStandalone(c)
+}
+func (h Handler) listStandaloneProjects(c *gin.Context) {
+	h.app.ListStandaloneProjects(c)
+}
+func (h Handler) listApplicationProjects(c *gin.Context) {
+	h.app.ListApplicationProjects(c)
+}
+func (h Handler) createApplicationProject(c *gin.Context) {
+	h.app.CreateApplicationProject(c)
+}
+func (h Handler) getProject(c *gin.Context) {
+	h.app.GetProject(c)
+}
+func (h Handler) updateProject(c *gin.Context) {
+	h.app.UpdateProject(c)
+}
+func (h Handler) archiveProject(c *gin.Context) {
+	h.app.ArchiveProject(c)
+}
+func (h Handler) listProjectRepositories(c *gin.Context) {
+	h.app.ListProjectRepositories(c)
+}
+func (h Handler) createProjectRepository(c *gin.Context) {
+	h.app.CreateProjectRepository(c)
+}
+func (h Handler) deleteProjectRepository(c *gin.Context) {
+	h.app.DeleteProjectRepository(c)
+}
+func (h Handler) applicationRollup(c *gin.Context) {
+	h.app.ApplicationRollup(c)
+}
+func (h Handler) applicationDashboard(c *gin.Context) {
+	h.app.ApplicationDashboard(c)
+}
+func (h Handler) listIntegrations(c *gin.Context) {
+	h.integ.ListIntegrations(c)
+}
+func (h Handler) createIntegration(c *gin.Context) {
+	h.integ.CreateIntegration(c)
+}
+func (h Handler) updateIntegration(c *gin.Context) {
+	h.integ.UpdateIntegration(c)
+}
+func (h Handler) deleteIntegration(c *gin.Context) {
+	h.integ.DeleteIntegration(c)
+}
+
+// DevRequest
+func (h Handler) requireIntakeToken(c *gin.Context) {
+	h.devreq.RequireIntakeToken(c)
+}
+func (h Handler) intakeDevRequest(c *gin.Context) {
+	h.devreq.IntakeDevRequest(c)
+}
+func (h Handler) listDevRequests(c *gin.Context) {
+	h.devreq.ListDevRequests(c)
+}
+func (h Handler) getDevRequest(c *gin.Context) {
+	h.devreq.GetDevRequest(c)
+}
+func (h Handler) registerDevRequest(c *gin.Context) {
+	h.devreq.RegisterDevRequest(c)
+}
+func (h Handler) rejectDevRequest(c *gin.Context) {
+	h.devreq.RejectDevRequest(c)
+}
+func (h Handler) patchDevRequest(c *gin.Context) {
+	h.devreq.PatchDevRequest(c)
+}
+func (h Handler) closeDevRequest(c *gin.Context) {
+	h.devreq.CloseDevRequest(c)
+}
+func (h Handler) createDevRequestIntakeToken(c *gin.Context) {
+	h.devreq.CreateDevRequestIntakeToken(c)
+}
+func (h Handler) listDevRequestIntakeTokens(c *gin.Context) {
+	h.devreq.ListDevRequestIntakeTokens(c)
+}
+func (h Handler) revokeDevRequestIntakeToken(c *gin.Context) {
+	h.devreq.RevokeDevRequestIntakeToken(c)
+}
+func (h Handler) updateDevRequestIntakeTokenIPs(c *gin.Context) {
+	h.devreq.UpdateDevRequestIntakeTokenIPs(c)
+}
+
+// Integration Providers & Tasks
+func (h Handler) listIntegrationProviders(c *gin.Context) {
+	h.integ.ListIntegrationProviders(c)
+}
+func (h Handler) createIntegrationProvider(c *gin.Context) {
+	h.integ.CreateIntegrationProvider(c)
+}
+func (h Handler) updateIntegrationProvider(c *gin.Context) {
+	h.integ.UpdateIntegrationProvider(c)
+}
+func (h Handler) deleteIntegrationProvider(c *gin.Context) {
+	h.integ.DeleteIntegrationProvider(c)
+}
+func (h Handler) syncIntegrationProvider(c *gin.Context) {
+	h.integ.SyncIntegrationProvider(c)
+}
+func (h Handler) receiveExternalTaskWebhook(c *gin.Context) {
+	h.integ.ReceiveExternalTaskWebhook(c)
+}
+func (h Handler) listExternalTaskItems(c *gin.Context) {
+	h.integ.ListExternalTaskItems(c)
+}
+func (h Handler) getExternalTaskItem(c *gin.Context) {
+	h.integ.GetExternalTaskItem(c)
+}
+
+// SCM Repositories
+func (h Handler) listSCMRepositories(c *gin.Context) {
+	h.repo.ListSCMRepositories(c)
+}
+func (h Handler) importSCMRepositories(c *gin.Context) {
+	h.repo.ImportSCMRepositories(c)
+}
+func (h Handler) createSCMRepository(c *gin.Context) {
+	h.repo.CreateSCMRepository(c)
+}
+func (h Handler) ingestIntegrationProviderWebhook(c *gin.Context) {
+	h.integ.IngestIntegrationProviderWebhook(c)
+}
+func (h Handler) testIntegrationConnection(c *gin.Context) {
+	h.integ.TestIntegrationConnection(c)
+}
+func (h Handler) listIntegrationBindings(c *gin.Context) {
+	h.integ.ListIntegrationBindings(c)
+}
+func (h Handler) createIntegrationBinding(c *gin.Context) {
+	h.integ.CreateIntegrationBinding(c)
+}
+func (h Handler) updateIntegrationBinding(c *gin.Context) {
+	h.integ.UpdateIntegrationBinding(c)
+}
+func (h Handler) deleteIntegrationBinding(c *gin.Context) {
+	h.integ.DeleteIntegrationBinding(c)
+}
+
+// Realtime
+func (h Handler) issueRealtimeTicket(c *gin.Context) {
+	h.realtime.IssueRealtimeTicket(c)
+}
+func (h Handler) handleRealtimeWebSocket(c *gin.Context) {
+	h.realtime.HandleRealtimeWebSocket(c)
 }

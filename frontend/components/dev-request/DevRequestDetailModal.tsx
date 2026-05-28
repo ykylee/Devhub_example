@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { X, Inbox, ArrowRight, FolderKanban, Box, Loader2, UserCog } from "lucide-react";
 import { DevRequest, DevRequestTargetType } from "@/lib/services/dev_request.types";
 import { devRequestService } from "@/lib/services/dev_request.service";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/utils";
 
 interface DevRequestDetailModalProps {
   request: DevRequest;

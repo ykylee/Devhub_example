@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { gardenerService, Suggestion } from "@/lib/services/gardener.service";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, ArrowRight, CheckCircle2, ShieldAlert, TrendingUp, Zap } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/utils";
 import { useStore } from "@/lib/store";
 
 export function GardenerFeed() {

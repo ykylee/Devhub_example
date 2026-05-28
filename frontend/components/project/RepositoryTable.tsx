@@ -5,8 +5,8 @@ import { GitBranch, Activity, Unlink } from "lucide-react";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { ApplicationRepository, ApplicationRepositorySyncStatus, SyncErrorCode } from "@/lib/services/project.types";
-import { Badge } from "@/components/ui/Badge";
-import { ActionMenu } from "@/components/ui/ActionMenu";
+import { Badge } from "@/shared/ui-foundation/components/Badge";
+import { ActionMenu } from "@/shared/ui-foundation/components/ActionMenu";
 
 interface RepositoryTableProps {
   repositories: ApplicationRepository[];

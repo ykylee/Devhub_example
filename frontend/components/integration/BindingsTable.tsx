@@ -3,8 +3,8 @@
 import { Link2, Edit2, Trash2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
-import { Badge } from "@/components/ui/Badge";
-import { ActionMenu } from "@/components/ui/ActionMenu";
+import { Badge } from "@/shared/ui-foundation/components/Badge";
+import { ActionMenu } from "@/shared/ui-foundation/components/ActionMenu";
 import type { IntegrationBinding, IntegrationProvider } from "@/lib/services/integration.types";
 
 interface BindingsTableProps {

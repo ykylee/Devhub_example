@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/utils";
 
 export type ActionType = "view" | "create" | "edit" | "delete";
 // Resource list mirrors backend domain.AllResources() (9개). 신규 4종은 sprint

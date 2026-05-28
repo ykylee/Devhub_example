@@ -24,9 +24,9 @@ import type {
   ApiServiceEdgeV2,
   InfraTopologyV2Meta,
 } from "@/lib/services/infra.service";
-import { Badge } from "@/components/ui/Badge";
-import { Modal } from "@/components/ui/Modal";
-import { cn } from "@/lib/utils";
+import { Badge } from "@/shared/ui-foundation/components/Badge";
+import { Modal } from "@/shared/ui-foundation/components/Modal";
+import { cn } from "@/shared/utils";
 import Link from "next/link";
 import { realtimeService } from "@/lib/services/realtime.service";
 

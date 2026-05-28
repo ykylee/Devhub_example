@@ -1,7 +1,7 @@
 import { tokenStore } from "@/lib/auth/token-store";
 import { triggerSessionExpired } from "@/lib/auth/session-death";
 import { refreshAccessToken } from "@/lib/auth/refresh";
-import { API_BASE_URL } from "@/lib/config/endpoints";
+import { API_BASE_URL } from "@/shared/config/endpoints";
 
 export class ApiError extends Error {
   constructor(public status: number, public payload: unknown, message: string) {

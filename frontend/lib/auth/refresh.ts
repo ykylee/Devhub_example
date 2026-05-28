@@ -1,7 +1,7 @@
 "use client";
 
 import { tokenStore } from "@/lib/auth/token-store";
-import { API_BASE_URL, OIDC_ISSUER_URL } from "@/lib/config/endpoints";
+import { API_BASE_URL, OIDC_ISSUER_URL } from "@/shared/config/endpoints";
 
 // access token 갱신의 **단일 진입점**.
 // - apiClient (reactive 401 path) / refresh-scheduler (proactive timer) /

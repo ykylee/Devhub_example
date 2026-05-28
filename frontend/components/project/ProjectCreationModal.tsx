@@ -15,8 +15,8 @@ import {
 import { Repository } from "@/lib/services/repository.service";
 import { projectService } from "@/lib/services/project.service";
 import { identityService } from "@/lib/services/identity.service";
-import { ComboBox } from "@/components/ui/ComboBox";
-import { cn } from "@/lib/utils";
+import { ComboBox } from "@/shared/ui-foundation/components/ComboBox";
+import { cn } from "@/shared/utils";
 import { useStore } from "@/lib/store";
 
 interface ProjectCreationModalProps {

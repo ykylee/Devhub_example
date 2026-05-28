@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { X, Users, Search, ChevronRight, ChevronLeft, Check, Crown } from "lucide-react";
 import { OrgMember } from "@/lib/services/identity.service";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/utils";
 
 interface MemberManagementModalProps {
   unitId: string;

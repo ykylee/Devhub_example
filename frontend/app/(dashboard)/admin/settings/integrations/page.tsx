@@ -9,8 +9,8 @@ import { ProviderTable } from "@/components/integration/ProviderTable";
 import { ProviderModal } from "@/components/integration/ProviderModal";
 import { ImportRepositoriesModal } from "@/components/integration/ImportRepositoriesModal";
 import { CreateScmRepositoryModal } from "@/components/integration/CreateScmRepositoryModal";
-import { useToast } from "@/components/ui/Toast";
-import { DestructiveConfirmModal } from "@/components/ui/DestructiveConfirmModal";
+import { useToast } from "@/shared/ui-foundation/components/Toast";
+import { DestructiveConfirmModal } from "@/shared/ui-foundation/components/DestructiveConfirmModal";
 import { ApiError } from "@/lib/services/api-client";
 
 export default function AdminSettingsIntegrationsPage() {

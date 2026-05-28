@@ -5,7 +5,7 @@ import { identityService } from "./identity.service";
 import { tokenStore } from "@/lib/auth/token-store";
 import { consumeVerifier, createPkceState } from "@/lib/auth/pkce";
 
-import { BASE_PATH, OIDC_AUTH_URL, OIDC_ISSUER_URL, OIDC_REDIRECT_URI as OIDC_REDIRECT_URI_DEFAULT } from "../config/endpoints";
+import { BASE_PATH, OIDC_AUTH_URL, OIDC_ISSUER_URL, OIDC_REDIRECT_URI as OIDC_REDIRECT_URI_DEFAULT } from "@/shared/config/endpoints";
 
 const OIDC_CLIENT_ID = process.env.NEXT_PUBLIC_OIDC_CLIENT_ID ?? "devhub-frontend";
 // sprint -s (PR #187) — basePath 포함 정합 (sprint -j codex review #9 #4 backend 확장 carve #3).

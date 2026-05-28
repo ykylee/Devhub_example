@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 
-import { BACKEND_API_URL_SERVER } from "./lib/config/endpoints";
+import { BACKEND_API_URL_SERVER } from "@/shared/config/endpoints";
 
 // `output: "standalone"` 은 host build 후 runtime-only Docker image 를 만들 때 사용한다.
 // native dev 와는 분리되므로, 배포 패키징 스크립트가 host build 단계에서만 켠다.

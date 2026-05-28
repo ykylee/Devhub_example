@@ -8,8 +8,8 @@ import type { DevRequestIntakeToken } from "@/lib/services/dev_request_token.typ
 import { IntakeTokenTable } from "@/components/dev-request/IntakeTokenTable";
 import { IssueIntakeTokenModal } from "@/components/dev-request/IssueIntakeTokenModal";
 import { EditIntakeTokenModal } from "@/components/dev-request/EditIntakeTokenModal";
-import { useToast } from "@/components/ui/Toast";
-import { DestructiveConfirmModal } from "@/components/ui/DestructiveConfirmModal";
+import { useToast } from "@/shared/ui-foundation/components/Toast";
+import { DestructiveConfirmModal } from "@/shared/ui-foundation/components/DestructiveConfirmModal";
 
 export default function AdminSettingsDevRequestTokensPage() {
   const [tokens, setTokens] = useState<DevRequestIntakeToken[]>([]);

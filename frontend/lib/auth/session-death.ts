@@ -1,7 +1,7 @@
 "use client";
 
 import { tokenStore } from "@/lib/auth/token-store";
-import { BASE_PATH } from "@/lib/config/endpoints";
+import { BASE_PATH } from "@/shared/config/endpoints";
 
 // 세션 사망 처리의 단일 진입점.
 // - apiClient.doRefresh 실패 (refresh token 만료/거부) → 호출

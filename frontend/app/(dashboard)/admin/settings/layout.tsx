@@ -18,7 +18,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/utils";
 import { useStore } from "@/lib/store";
 import { defaultLandingFor, isSystemAdmin } from "@/lib/auth/role-routing";
 

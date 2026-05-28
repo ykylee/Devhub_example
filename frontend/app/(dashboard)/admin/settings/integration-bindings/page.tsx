@@ -8,8 +8,8 @@ import type { IntegrationBinding, IntegrationProvider, IntegrationScopeType } fr
 import { BindingsTable } from "@/components/integration/BindingsTable";
 import { CreateBindingModal } from "@/components/integration/CreateBindingModal";
 import { EditBindingModal } from "@/components/integration/EditBindingModal";
-import { DestructiveConfirmModal } from "@/components/ui/DestructiveConfirmModal";
-import { useToast } from "@/components/ui/Toast";
+import { DestructiveConfirmModal } from "@/shared/ui-foundation/components/DestructiveConfirmModal";
+import { useToast } from "@/shared/ui-foundation/components/Toast";
 
 export default function AdminSettingsIntegrationBindingsPage() {
   const [bindings, setBindings] = useState<IntegrationBinding[]>([]);
