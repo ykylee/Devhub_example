@@ -18,6 +18,10 @@ export interface Repository {
   publish_requested_at?: string | null;
   published_at?: string | null;
   updated_at: string;
+  // linked classification (Task B, 2026-05-28) — UI 가 linked vs unlinked 분기 표기.
+  // 합산 = 0 이면 외부 SCM mirror 만 존재 (orphan), > 0 이면 시스템 application/project 연결.
+  linked_applications_count: number;
+  linked_projects_count: number;
 }
 
 export interface RepositoryActivity {

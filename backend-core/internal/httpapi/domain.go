@@ -30,6 +30,10 @@ type repositoryResponse struct {
 	PublishRequestedAt *time.Time `json:"publish_requested_at,omitempty"`
 	PublishedAt        *time.Time `json:"published_at,omitempty"`
 	UpdatedAt          time.Time  `json:"updated_at"`
+	// linked classification (Task B, 2026-05-28) — UI 가 linked vs unlinked 표기.
+	// 합산 = 0 이면 외부 mirror 만 존재 (orphan), > 0 이면 시스템 application/project 연결.
+	LinkedApplicationsCount int `json:"linked_applications_count"`
+	LinkedProjectsCount     int `json:"linked_projects_count"`
 }
 
 type repositoryDraftStore interface {
@@ -94,21 +98,23 @@ func riskFromDomain(risk domain.Risk) riskResponse {
 
 func repositoryFromDomain(repository domain.Repository) repositoryResponse {
 	return repositoryResponse{
-		ID:                 repository.ID,
-		GiteaID:            repository.GiteaID,
-		FullName:           repository.FullName,
-		OwnerLogin:         repository.OwnerLogin,
-		Name:               repository.Name,
-		CloneURL:           repository.CloneURL,
-		HTMLURL:            repository.HTMLURL,
-		DefaultBranch:      repository.DefaultBranch,
-		Private:            repository.Private,
-		Status:             repository.Status,
-		ProviderID:         repository.ProviderID,
-		ProviderKey:        repository.ProviderKey,
-		PublishRequestedAt: repository.PublishRequestedAt,
-		PublishedAt:        repository.PublishedAt,
-		UpdatedAt:          repository.UpdatedAt,
+		ID:                      repository.ID,
+		GiteaID:                 repository.GiteaID,
+		FullName:                repository.FullName,
+		OwnerLogin:              repository.OwnerLogin,
+		Name:                    repository.Name,
+		CloneURL:                repository.CloneURL,
+		HTMLURL:                 repository.HTMLURL,
+		DefaultBranch:           repository.DefaultBranch,
+		Private:                 repository.Private,
+		Status:                  repository.Status,
+		ProviderID:              repository.ProviderID,
+		ProviderKey:             repository.ProviderKey,
+		PublishRequestedAt:      repository.PublishRequestedAt,
+		PublishedAt:             repository.PublishedAt,
+		UpdatedAt:               repository.UpdatedAt,
+		LinkedApplicationsCount: repository.LinkedApplicationsCount,
+		LinkedProjectsCount:     repository.LinkedProjectsCount,
 	}
 }
 

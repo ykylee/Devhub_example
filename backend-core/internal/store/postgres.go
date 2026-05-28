@@ -1329,6 +1329,13 @@ LIMIT 1`
 	return id, nil
 }
 
+// ListRepositories — 외부 SCM mirror 와 시스템 소유 repository 통합 list.
+// linked classification (Task B, 2026-05-28): application/project 매핑 카운트
+// subquery 로 derive — UI 가 linked(>0) vs unlinked(=0) 분기 표기.
+//
+// application_repositories 는 (repo_provider, repo_full_name) composite PK 라 repositories
+// 와는 (provider_key, full_name) 으로 lookup. project_repositories 는 repositories.id
+// FK 라 직접 매칭.
 func (s *PostgresStore) ListRepositories(ctx context.Context, opts domain.ListOptions) ([]domain.Repository, error) {
 	limit, offset := boundedList(opts)
 	const query = `
@@ -1349,7 +1356,14 @@ SELECT
 	COALESCE(r.source, 'scm'),
 	COALESCE(r.provider_id::text, ''),
 	COALESCE(p.provider_key, ''),
-	COALESCE(r.description, '')
+	COALESCE(r.description, ''),
+	COALESCE((SELECT COUNT(*)
+	          FROM application_repositories ar
+	          WHERE ar.repo_provider = p.provider_key
+	            AND ar.repo_full_name = r.full_name), 0)::int AS linked_applications_count,
+	COALESCE((SELECT COUNT(*)
+	          FROM project_repositories pr
+	          WHERE pr.repository_id = r.id), 0)::int AS linked_projects_count
 FROM repositories r
 LEFT JOIN integration_providers p ON p.provider_id = r.provider_id
 ORDER BY r.updated_at DESC, r.id DESC
@@ -1382,6 +1396,8 @@ LIMIT $1 OFFSET $2`
 			&repository.ProviderID,
 			&repository.ProviderKey,
 			&repository.Description,
+			&repository.LinkedApplicationsCount,
+			&repository.LinkedProjectsCount,
 		); err != nil {
 			return nil, err
 		}

@@ -24,6 +24,13 @@ type Repository struct {
 	ProviderID  string // 연동된 integration_providers(scm) FK, 빈 값 가능 (단일 출처, migration 000045 — 구 scm_provider 통합)
 	ProviderKey string // derived — provider_id 의 integration_providers.provider_key (join, read-only 표시용)
 	Description string // 시스템 소유 — SCM sync 가 덮어쓰지 않음
+	// 시스템 application/project 매핑 현황 — Repository list/detail UI 에서 linked vs
+	// unlinked 분류 (외부 SCM 에서 import 한 repo 가 시스템에 연결됐는지 분기 표기 source).
+	// LinkedApplicationsCount = application_repositories 직접 link 수.
+	// LinkedProjectsCount = project_repositories 매핑 수.
+	// 합산 = 0 이면 "unlinked" (orphan, 외부 mirror 만 존재), > 0 이면 "linked".
+	LinkedApplicationsCount int
+	LinkedProjectsCount     int
 }
 
 // Repository.Source 값.
