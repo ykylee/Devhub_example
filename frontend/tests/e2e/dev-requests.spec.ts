@@ -367,7 +367,9 @@ test.describe("DREQ E2E", () => {
       const createModal = page.getByRole("dialog");
       // Repository selection is optional; keep default value to avoid
       // environment-dependent failures when no linked repositories exist.
-      await createModal.getByPlaceholder("User ID...").fill("charlie");
+      // Project Leader 는 현재 사용자(actorDefaultOwnerId)로 prefill 되어 별도 선택 불필요
+      // (owner 필드가 ComboBox 든 plain input 이든 기본값이 채워져 hasLeadMember=true →
+      // Create 버튼 활성). key/name/description 은 DREQ promote 가 prefill (step 4 확인).
       await createModal.getByRole("button", { name: /create project/i }).click();
 
       await expect(createModal).toBeHidden({ timeout: 10_000 });
