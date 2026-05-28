@@ -2,8 +2,8 @@
 
 import { AuthenticatedActor, useStore } from "@/lib/store";
 import { identityService } from "@/domain/organization-management/service/identity.service";
-import { tokenStore } from "@/lib/auth/token-store";
-import { consumeVerifier, createPkceState } from "@/lib/auth/pkce";
+import { tokenStore } from "@/domain/auth-session/service/token-store";
+import { consumeVerifier, createPkceState } from "@/domain/auth-session/service/pkce";
 
 import { BASE_PATH, OIDC_AUTH_URL, OIDC_ISSUER_URL, OIDC_REDIRECT_URI as OIDC_REDIRECT_URI_DEFAULT } from "@/shared/config/endpoints";
 

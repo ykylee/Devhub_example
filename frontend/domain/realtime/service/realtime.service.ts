@@ -1,7 +1,7 @@
 import { WSEvent, WSEventHandler } from "@/lib/services/types";
 import { useStore } from "@/lib/store";
 import { apiClient, ApiError } from "@/lib/services/api-client";
-import { tokenStore } from "@/lib/auth/token-store";
+import { tokenStore } from "@/domain/auth-session/service/token-store";
 
 import { WS_BASE_URL as WS_BASE } from "@/shared/config/endpoints";
 // codex P1 (PR #252 review): `infra.service.updated` 는 backend

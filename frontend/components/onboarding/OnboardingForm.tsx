@@ -8,7 +8,7 @@ import { useStore } from "@/lib/store";
 import { OrganizationPicker } from "./OrganizationPicker";
 import { ApiError } from "@/lib/services/api-client";
 import { markOnboardingSkipped } from "@/lib/storage/onboardingSkip";
-import { defaultLandingFor } from "@/lib/auth/role-routing";
+import { defaultLandingFor } from "@/domain/auth-session/service/role-routing";
 
 interface Props {
   initialDisplayName?: string;

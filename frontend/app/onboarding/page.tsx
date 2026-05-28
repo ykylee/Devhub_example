@@ -8,7 +8,7 @@ import { identityService, type ResolvedActor } from "@/domain/organization-manag
 import { ApiError } from "@/lib/services/api-client";
 import { useStore } from "@/lib/store";
 import { OnboardingForm } from "@/components/onboarding/OnboardingForm";
-import { defaultLandingFor } from "@/lib/auth/role-routing";
+import { defaultLandingFor } from "@/domain/auth-session/service/role-routing";
 
 export default function OnboardingPage() {
   const router = useRouter();

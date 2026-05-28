@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { tokenStore } from "./token-store";
-import { triggerSessionExpired, _resetSessionExpiredGuard } from "@/domain/auth-session/service/session-death";
+import { triggerSessionExpired, _resetSessionExpiredGuard } from "./session-death";
 
 describe("session-death.triggerSessionExpired", () => {
   let assignMock: ReturnType<typeof vi.fn>;

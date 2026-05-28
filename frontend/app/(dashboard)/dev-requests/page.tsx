@@ -8,7 +8,7 @@ import { DevRequestTable } from "@/domain/dev-request/view/DevRequestTable";
 import { DevRequestDetailModal } from "@/domain/dev-request/view/DevRequestDetailModal";
 import { useToast } from "@/shared/ui-foundation/components/Toast";
 import { useStore } from "@/lib/store";
-import { isSystemAdmin } from "@/lib/auth/role-routing";
+import { isSystemAdmin } from "@/domain/auth-session/service/role-routing";
 import { DashboardHeader } from "@/shared/ui-foundation/components/DashboardHeader";
 import { FilterBar } from "@/shared/ui-foundation/components/FilterBar";
 

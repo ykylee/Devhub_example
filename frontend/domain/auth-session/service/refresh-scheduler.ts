@@ -1,6 +1,6 @@
 "use client";
 
-import { tokenStore } from "@/lib/auth/token-store";
+import { tokenStore } from "@/domain/auth-session/service/token-store";
 import { triggerSessionExpired } from "@/domain/auth-session/service/session-death";
 import type { RefreshOutcome } from "@/domain/auth-session/service/refresh";
 

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { tokenStore } from "./token-store";
-import { refreshAccessToken, _resetRefreshCoordinator } from "@/domain/auth-session/service/refresh";
+import { refreshAccessToken, _resetRefreshCoordinator } from "./refresh";
 
 // 테스트 헬퍼: resolveTokenEndpoint 가 OIDC_ISSUER_URL 미설정 시 `/api/runtime-config`
 // 를 fetch 하므로, URL 패턴별로 적절한 응답을 반환하는 mock 을 구성한다.

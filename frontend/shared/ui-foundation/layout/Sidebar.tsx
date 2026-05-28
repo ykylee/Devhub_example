@@ -6,7 +6,7 @@ import { LayoutDashboard, Users, Server, Settings, Zap, ShieldCheck, X, ChevronL
 import { cn } from "@/shared/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/lib/store";
-import { isSystemAdmin } from "@/lib/auth/role-routing";
+import { isSystemAdmin } from "@/domain/auth-session/service/role-routing";
 import { useSyncExternalStore } from "react";
 
 interface MenuItem {

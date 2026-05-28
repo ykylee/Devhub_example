@@ -1,6 +1,6 @@
 "use client";
 
-import { tokenStore } from "@/lib/auth/token-store";
+import { tokenStore } from "@/domain/auth-session/service/token-store";
 import { BASE_PATH } from "@/shared/config/endpoints";
 
 // 세션 사망 처리의 단일 진입점.

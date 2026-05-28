@@ -1,6 +1,6 @@
 "use client";
 
-import { tokenStore } from "@/lib/auth/token-store";
+import { tokenStore } from "@/domain/auth-session/service/token-store";
 import { API_BASE_URL, OIDC_ISSUER_URL } from "@/shared/config/endpoints";
 
 // access token 갱신의 **단일 진입점**.

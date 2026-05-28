@@ -1,4 +1,4 @@
-import type { IntegrationProviderType, IntegrationAuthMode } from "./integration.types";
+import type { IntegrationProviderType, IntegrationAuthMode } from "@/lib/services/integration.types";
 
 // ADR-0024 외부 연동 등록 UX 고도화 — vendor 템플릿 + 가이드 자격증명 입력.
 // credentials_ref 의 내부 인코딩(hmac_sha256:/provider_sdk:vendor:)을 사용자가 직접
@@ -25,7 +25,7 @@ export type SdkVendor = (typeof SDK_VENDORS)[number];
 export const KNOWN_CAPABILITIES = ["webhook", "pull", "push", "snapshot", "sync"] as const;
 
 export interface VendorPreset {
-  id: string; // "custom" 또는 SdkVendor
+  id: string;
   label: string;
   providerType: IntegrationProviderType;
   authMode: IntegrationAuthMode;
@@ -126,8 +126,6 @@ export function getVendorPreset(id: string): VendorPreset {
   return VENDOR_PRESETS.find((p) => p.id === id) ?? VENDOR_PRESETS[0];
 }
 
-// strategy + (vendor) + secret → credentials_ref 문자열 조합.
-// 백엔드 형식: hmac_sha256:<secret> / provider_sdk:<vendor>:<secret> / <token>(평문).
 export function composeCredentialsRef(
   strategy: WebhookSignatureStrategy,
   sdkVendor: SdkVendor | undefined,
@@ -151,8 +149,6 @@ export interface ParsedCredentials {
   hasSecret: boolean;
 }
 
-// 기존 credentials_ref 를 edit 모드 표시용으로 역파싱 (secret 자체는 노출하지 않고
-// 존재 여부 hasSecret 만 반환 — 보안).
 export function parseCredentialsRef(ref: string): ParsedCredentials {
   const v = (ref ?? "").trim();
   if (v.startsWith("hmac_sha256:")) {

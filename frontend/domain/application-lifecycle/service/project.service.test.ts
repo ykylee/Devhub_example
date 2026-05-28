@@ -6,7 +6,7 @@ describe("projectService", () => {
   beforeEach(() => {
     vi.resetModules();
     apiClientMock.mockReset();
-    vi.doMock("./api-client", () => ({
+    vi.doMock("@/lib/services/api-client", () => ({
       apiClient: apiClientMock,
     }));
   });

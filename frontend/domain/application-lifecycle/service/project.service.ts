@@ -1,4 +1,4 @@
-import { ApiError, apiClient } from "./api-client";
+import { ApiError, apiClient } from "@/lib/services/api-client";
 import {
   Application,
   ApplicationRepository,
@@ -8,7 +8,7 @@ import {
   ProjectRepositoryLink,
   ProjectTaskItem,
   SCMProvider,
-} from "./project.types";
+} from "@/lib/services/project.types";
 
 type ApplicationQuery = { status?: string; include_archived?: boolean; q?: string };
 type ProjectQuery = { status?: string; include_archived?: boolean };
@@ -45,6 +45,7 @@ class ProjectService {
     if (v === "todo" || v === "in_progress" || v === "review" || v === "done") return v;
     return "todo";
   }
+
   async getSCMProviders(): Promise<SCMProvider[]> {
     const resp = await apiClient<{ data: SCMProvider[] }>("GET", "/api/v1/scm/providers");
     return resp.data;
@@ -74,9 +75,6 @@ class ProjectService {
     return resp.data;
   }
 
-  // archiveApplication — DELETE /api/v1/applications/:id.
-  //   hard=false (default): archive (soft-delete, status='archived')
-  //   hard=true : archived 상태 application 만 hard-delete (그 외엔 backend 400 거부)
   async archiveApplication(id: string, hard?: boolean): Promise<void> {
     const path = hard ? `/api/v1/applications/${id}?hard=true` : `/api/v1/applications/${id}`;
     await apiClient("DELETE", path);
@@ -138,17 +136,12 @@ class ProjectService {
     return resp.data;
   }
 
-  // listStandaloneProjects — application_id IS NULL projects (codex P2 #397 hotfix).
-  // ApplicationCreationModal 의 "Connected Projects" picker 가 standalone + connected
-  // projects 합쳐 표시할 수 있도록 backend GET /api/v1/projects/standalone 호출.
   async listStandaloneProjects(params?: ProjectQuery): Promise<Project[]> {
     const path = withQuery(`/api/v1/projects/standalone`, params);
     const resp = await apiClient<{ data: Project[] }>("GET", path);
     return resp.data;
   }
 
-  // Hybrid project creation. v2 endpoint primary, legacy createProject fallback
-  // on 404/405 (when DEVHUB_PROJECT_MODEL=legacy or backend route disabled).
   async createApplicationProject(
     applicationId: string,
     data: Partial<Project> & { repository_ids?: number[]; repository_create_payload?: ProjectRepositoryCreatePayload },
@@ -226,7 +219,6 @@ class ProjectService {
     await apiClient("DELETE", path);
   }
 
-  // Helper to fetch all projects across all repositories
   async listAllProjects(repositoryIds: number[], params?: ProjectQuery): Promise<Project[]> {
     const allProjects: Project[] = [];
     for (const repoId of repositoryIds) {

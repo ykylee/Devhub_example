@@ -1,4 +1,4 @@
-import { tokenStore } from "@/lib/auth/token-store";
+import { tokenStore } from "@/domain/auth-session/service/token-store";
 import { triggerSessionExpired } from "@/domain/auth-session/service/session-death";
 import { refreshAccessToken } from "@/domain/auth-session/service/refresh";
 import { API_BASE_URL } from "@/shared/config/endpoints";

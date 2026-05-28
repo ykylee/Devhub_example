@@ -4,7 +4,7 @@
  */
 
 import { API_BASE_URL, WS_BASE_URL } from "@/shared/config/endpoints";
-import { tokenStore } from "@/lib/auth/token-store";
+import { tokenStore } from "@/domain/auth-session/service/token-store";
 
 export interface WsMessage<T = unknown> {
   schema_version: string;
