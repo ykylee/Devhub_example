@@ -405,6 +405,16 @@ func (s *memoryApplicationStore) ArchiveProject(_ context.Context, id, _ string)
 	return p, nil
 }
 
+func (s *memoryApplicationStore) DeleteProject(_ context.Context, id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.projects[id]; !ok {
+		return store.ErrNotFound
+	}
+	delete(s.projects, id)
+	return nil
+}
+
 // --- Repository 운영 지표 (sprint claude/work_260514-c) ---
 // 메모리 store 는 SQL 집계를 흉내내지 않으므로 모두 zero-value 반환.
 
@@ -1342,5 +1352,34 @@ func TestDeleteApplicationRepository_MultipleLeadingSlashes(t *testing.T) {
 		// slash 처리 차이) 가 나올 수 있다. 핵심은 500/400 같은 예상치 못한 응답이
 		// 아닌 정상 routing 이 동작한다는 것.
 		t.Fatalf("unexpected status=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+// 26) GET /applications/:id/dashboard — happy (API-93).
+func TestApplicationDashboard_Happy(t *testing.T) {
+	appStore := newMemoryApplicationStore()
+	app, _ := appStore.CreateApplication(context.Background(), domain.Application{
+		Key: "PLAT26", Name: "Platform 2026", Status: domain.ApplicationStatusActive,
+		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+	})
+	_, _ = appStore.CreateApplicationRepository(context.Background(), domain.ApplicationRepository{
+		ApplicationID: app.ID, RepoProvider: "gitea", RepoFullName: "team/repo",
+		Role: domain.ApplicationRepositoryRolePrimary, SyncStatus: domain.SyncStatusActive,
+	})
+	router := newApplicationsRouter(appStore)
+
+	rec := doJSON(t, router, http.MethodGet, "/api/v1/applications/"+app.ID+"/dashboard", "")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, `"key":"PLAT26"`) {
+		t.Errorf("response should include key: %s", body)
+	}
+	if !strings.Contains(body, `"metrics_overview"`) {
+		t.Errorf("response should include metrics_overview: %s", body)
+	}
+	if !strings.Contains(body, `"quality_metrics"`) {
+		t.Errorf("response should include quality_metrics: %s", body)
 	}
 }

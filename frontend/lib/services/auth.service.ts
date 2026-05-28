@@ -144,10 +144,12 @@ class AuthService {
     try {
       const url = new URL(endSessionEndpoint);
       url.searchParams.set("client_id", OIDC_CLIENT_ID);
-      // sprint -s (PR #187) basePath 포함 정합 — ADR-0018 basePath /devhub 환경에서
-      // logout 후 사용자가 DevHub 진입점 (/devhub/) 으로 redirect. sprint -j codex review #9 #4
-      // 의 basePath 미포함 표기는 sprint -s 에서 backend 확장 carve 로 정합.
-      url.searchParams.set("post_logout_redirect_uri", `${window.location.origin}${BASE_PATH}/`);
+      // post_logout_redirect 는 `/login` (BASE_PATH 포함). 이전엔 `/` 였는데, `/` 가
+      // 대시보드 루트(보호 경로)라 AuthGuard whoAmI 가 401 을 받아 `/login?error=
+      // session_expired` 로 다시 보내 "깨끗한 로그아웃" 대신 에러 화면이 표시되던
+      // UX 버그(#387 ④) 정정. /login 직접 도착으로 clean logout 경로 확립.
+      // (Keycloak Valid post-logout redirect URI 에 /devhub/login 등록 필요.)
+      url.searchParams.set("post_logout_redirect_uri", `${window.location.origin}${BASE_PATH}/login`);
       if (idToken) {
         url.searchParams.set("id_token_hint", idToken);
       }
@@ -155,7 +157,7 @@ class AuthService {
       return;
     } catch (error) {
       console.warn("[AuthService] logout redirect build failed", error);
-      window.location.assign("/");
+      window.location.assign(`${BASE_PATH}/login`);
     }
   }
 

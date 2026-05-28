@@ -622,14 +622,6 @@ func (h *Handler) updateProject(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": err.Error()})
 		return
 	}
-	if req.Key != nil {
-		c.JSON(http.StatusUnprocessableEntity, gin.H{
-			"status": "rejected",
-			"error":  "project key is immutable",
-			"code":   "project_key_immutable",
-		})
-		return
-	}
 	current, err := storeI.GetProject(c.Request.Context(), id)
 	if errors.Is(err, store.ErrNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "project not found"})
@@ -639,9 +631,21 @@ func (h *Handler) updateProject(c *gin.Context) {
 		writeServerError(c, err, "projects.update.lookup")
 		return
 	}
-
 	// ADR-0011 §4.2 row-level 위양 (Application 과 동일 패턴).
+	// codex P2 정합 (#393): enforceRowOwnership 을 immutable-key 검증보다 먼저
+	// 실행. 이전 순서는 비-소유자/PMO 미보유 호출자가 (a) mismatched key 로 PATCH
+	// 시 422, (b) 정확한 key 로 PATCH 시 403 이 와서 row-level 가드를 우회 + key
+	// 추측 oracle 을 제공했음. 인증/인가 검증을 항상 선행해 미인가 쓰기 시도엔
+	// row-write denial 만 일관 노출하도록 정정.
 	if !h.enforceRowOwnership(c, current.OwnerUserID, string(domain.AppRolePMOManager)) {
+		return
+	}
+	if req.Key != nil && *req.Key != current.Key {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"status": "rejected",
+			"error":  "project key is immutable",
+			"code":   "project_key_immutable",
+		})
 		return
 	}
 
@@ -776,6 +780,28 @@ func (h *Handler) archiveProject(c *gin.Context) {
 		return
 	}
 	if !h.enforceRowOwnership(c, current.OwnerUserID, string(domain.AppRolePMOManager)) {
+		return
+	}
+
+	isHard := c.Query("hard") == "true"
+
+	if isHard {
+		if current.Status != "archived" {
+			c.JSON(http.StatusBadRequest, gin.H{"status": "bad_request", "error": "project must be archived before hard deletion"})
+			return
+		}
+		if err := storeI.DeleteProject(c.Request.Context(), id); err != nil {
+			if errors.Is(err, store.ErrNotFound) {
+				c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "project not found"})
+				return
+			}
+			writeServerError(c, err, "projects.delete")
+			return
+		}
+		h.recordAuditBestEffort(c, "project.deleted", "project", id, nil)
+		c.JSON(http.StatusOK, gin.H{
+			"status": "deleted",
+		})
 		return
 	}
 

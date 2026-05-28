@@ -1,7 +1,7 @@
 import { WSEvent, WSEventHandler } from "./types";
 import { useStore } from "@/lib/store";
 import { apiClient, ApiError } from "./api-client";
-import { authService } from "./auth.service";
+import { tokenStore } from "@/lib/auth/token-store";
 
 import { WS_BASE_URL as WS_BASE } from "../config/endpoints";
 // codex P1 (PR #252 review): `infra.service.updated` 는 backend
@@ -24,6 +24,21 @@ export class RealtimeService {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectInterval = 3000;
+  // STABLE_OPEN_MS 이상 연결이 유지된 뒤에만 reconnectAttempts 를 0 으로 리셋한다.
+  // (인증 실패로 즉시 1006-close 되는 연결이 onopen→close 를 반복하며 max-5 cap 을
+  //  우회해 영구 재연결 루프에 빠지던 #387 ③ 버그 차단.)
+  // 30초 → 5분 (#388 hotfix): 일부 환경에서 30초 이상 연결 유지 후 idle drop 되는
+  // 패턴이 있어 attempts 가 매 cycle 리셋되어 사용자엔 "주기적 connect↔disconnect
+  // 반복" 으로 관측됐음. 5분으로 늘리고, 동시에 heartbeat 로 idle drop 자체를 예방.
+  private stableOpenMs = 5 * 60_000;
+  private stableOpenTimer: ReturnType<typeof setTimeout> | null = null;
+  // Heartbeat (#388 hotfix): nginx/proxy/CDN idle timeout (보통 60s) 으로 WS 가
+  // 끊기는 것을 방지하기 위해 클라이언트가 25초마다 작은 ping 메시지를 흘려보낸다.
+  // backend (`HandleWebSocket` 의 `conn.ReadMessage()`) 가 메시지를 읽고 폐기하므로
+  // 서버 측 추가 처리 불필요. WebSocket 표준 ping/pong 프레임은 브라우저 API 에서
+  // 직접 보낼 수 없어 데이터 메시지(text) 로 대체.
+  private heartbeatIntervalMs = 25_000;
+  private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private currentUrl: string | null = null;
   public isConnected = false;
 
@@ -59,27 +74,32 @@ export class RealtimeService {
   }
 
   private async fetchTicket(): Promise<string | null> {
-    // ADR-0024 §3.2 ticket pattern. 401 시 refresh-then-retry 1회 (carve 4).
+    // ADR-0024 §3.2 ticket pattern. 401 시 refresh-then-retry 는 apiClient 가
+    // 내부에서 `refreshAccessToken()` (단일 single-flight mutex, #388 codex P1)
+    // 으로 처리한다. 본 함수는 결과만 받음 — 이중 refresh 시도(레거시 authService.
+    // refreshTokens 직접 호출) 를 제거해 Keycloak `Refresh Token Max Reuse=0`
+    // 환경에서 동시 invalid_grant 가 터지던 race 차단.
     try {
       const resp = await apiClient<{ ticket: string }>("POST", "/api/v1/realtime/ticket");
       return resp.ticket;
     } catch (e) {
-      if (e instanceof ApiError && e.status === 401) {
-        try {
-          await authService.refreshTokens();
-          const retry = await apiClient<{ ticket: string }>("POST", "/api/v1/realtime/ticket");
-          return retry.ticket;
-        } catch (refreshErr) {
-          console.warn('[RealtimeService] Ticket refresh-then-retry failed:', refreshErr);
-          return null;
-        }
+      if (e instanceof ApiError) {
+        console.warn('[RealtimeService] Ticket fetch failed (status %d); WS will retry on next reconnect.', e.status);
+      } else {
+        console.warn('[RealtimeService] Ticket fetch network error:', e);
       }
-      console.warn('[RealtimeService] Ticket fetch failed (ticket-only; will reconnect/retry):', e);
       return null;
     }
   }
 
   private async connect() {
+    // Auth-dead 가드: access token 이 없으면 연결 시도 자체를 건너뜀. 서버가
+    // 즉시 1006-close 하여 재연결 루프에 빠지는 것을 차단 (#387 ③). 로그인 후
+    // store identity 변경이 발생하면 reconnect() 가 다시 진입.
+    if (typeof window !== 'undefined' && tokenStore.getAccessToken() === null) {
+      console.log('[RealtimeService] No access token; skipping connect (will retry on login).');
+      return;
+    }
     try {
       const url = await this.buildURL();
       if (this.socket && this.socket.readyState === WebSocket.OPEN && this.currentUrl === url) return;
@@ -95,9 +115,18 @@ export class RealtimeService {
       this.socket.onopen = () => {
         console.log('[RealtimeService] Connected.');
         this.isConnected = true;
-        this.reconnectAttempts = 0;
-        this.dispatch({ 
-          type: 'status.changed', 
+        // 즉시 reconnectAttempts=0 리셋 금지 — STABLE_OPEN_MS 이상 유지된 뒤에만 리셋.
+        // 인증 실패로 onopen→1006 close 가 반복되는 경우 attempts 가 누적되어 max-5
+        // cap 이 동작 (#387 ③).
+        if (this.stableOpenTimer) clearTimeout(this.stableOpenTimer);
+        this.stableOpenTimer = setTimeout(() => {
+          this.reconnectAttempts = 0;
+          this.stableOpenTimer = null;
+        }, this.stableOpenMs);
+        // Heartbeat 시작 — idle timeout (nginx/proxy 기본 60s) 으로 인한 drop 예방.
+        this.startHeartbeat();
+        this.dispatch({
+          type: 'status.changed',
           data: { connected: true },
           schema_version: '1',
           event_id: 'internal',
@@ -117,14 +146,21 @@ export class RealtimeService {
       this.socket.onclose = (event) => {
         console.log(`[RealtimeService] Disconnected. Code: ${event.code}`);
         this.isConnected = false;
-        this.dispatch({ 
-          type: 'status.changed', 
+        // stable-open 도달 전에 close 되면 타이머 취소 — attempts 누적 유지.
+        if (this.stableOpenTimer) {
+          clearTimeout(this.stableOpenTimer);
+          this.stableOpenTimer = null;
+        }
+        // Heartbeat 정지 — 연결이 죽었으므로 더 보낼 필요 없음.
+        this.stopHeartbeat();
+        this.dispatch({
+          type: 'status.changed',
           data: { connected: false },
           schema_version: '1',
           event_id: 'internal',
           occurred_at: new Date().toISOString()
         } as WSEvent);
-        
+
         // Only reconnect if it wasn't a clean close for identity change
         if (event.code !== 1000) {
           this.handleReconnect();
@@ -176,14 +212,47 @@ export class RealtimeService {
     return `${WS_BASE}${separator}types=${types}&actor=${actorParam}&role=${roleParam}${tokenParam}`;
   }
 
-  private handleReconnect() {
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++;
-      console.log(`[RealtimeService] Reconnecting in ${this.reconnectInterval}ms... (Attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-      setTimeout(() => this.connect(), this.reconnectInterval);
-    } else {
-      console.error('[RealtimeService] Max reconnect attempts reached.');
+  // Heartbeat 제어 — onopen 에서 startHeartbeat, onclose 에서 stopHeartbeat.
+  // 25초 (heartbeatIntervalMs) 마다 작은 ping 메시지를 보내 nginx/proxy/CDN 의
+  // idle timeout (보통 60s) 에 걸려 연결이 끊기는 것을 예방. backend `ReadMessage()`
+  // 는 메시지를 읽고 폐기하므로 서버 측 추가 처리 불필요.
+  private startHeartbeat() {
+    this.stopHeartbeat();
+    this.heartbeatTimer = setInterval(() => {
+      if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+        try {
+          this.socket.send(JSON.stringify({ type: 'ping', ts: Date.now() }));
+        } catch (err) {
+          console.warn('[RealtimeService] heartbeat send failed', err);
+        }
+      }
+    }, this.heartbeatIntervalMs);
+  }
+
+  private stopHeartbeat() {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
     }
+  }
+
+  private handleReconnect() {
+    // Auth-dead 가드: 세션이 죽었으면 재연결 시도 자체를 중단. 재로그인 시
+    // store identity 변경으로 reconnect() 가 재진입.
+    if (typeof window !== 'undefined' && tokenStore.getAccessToken() === null) {
+      console.log('[RealtimeService] No access token; halting reconnect (will resume on login).');
+      return;
+    }
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      console.error('[RealtimeService] Max reconnect attempts reached.');
+      return;
+    }
+    this.reconnectAttempts++;
+    // Exponential backoff: base * 2^(attempts-1), cap 60s (3s → 6s → 12s → 24s → 48s).
+    // 백엔드/네트워크 hammering 방지.
+    const delay = Math.min(60_000, this.reconnectInterval * Math.pow(2, this.reconnectAttempts - 1));
+    console.log(`[RealtimeService] Reconnecting in ${delay}ms... (Attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+    setTimeout(() => this.connect(), delay);
   }
 
   private dispatch(event: WSEvent) {

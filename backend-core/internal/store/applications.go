@@ -1054,3 +1054,15 @@ func (s *PostgresStore) DeleteProjectRepository(ctx context.Context, projectID s
 	}
 	return nil
 }
+
+func (s *PostgresStore) DeleteProject(ctx context.Context, projectID string) error {
+	const query = `DELETE FROM projects WHERE id = $1::uuid`
+	cmd, err := s.pool.Exec(ctx, query, projectID)
+	if err != nil {
+		return fmt.Errorf("delete project: %w", err)
+	}
+	if cmd.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}

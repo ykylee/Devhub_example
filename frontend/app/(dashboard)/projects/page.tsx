@@ -11,6 +11,7 @@ import {
   MoreHorizontal,
   Target,
   Users,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { DashboardHeader } from "@/components/ui/DashboardHeader";
@@ -33,7 +34,7 @@ export default function ProjectsStatusPage() {
       setError(null);
       setLoading(true);
       const repos = await repositoryService.listRepositories();
-      const allProjects = await projectService.listAllProjects(repos.map(r => r.id));
+      const allProjects = await projectService.listAllProjects(repos.map(r => r.id), { include_archived: statusFilter === "archived" });
       setProjects(allProjects);
     } catch (err) {
       setError("Failed to load projects data.");
@@ -41,13 +42,29 @@ export default function ProjectsStatusPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [statusFilter]);
 
   useEffect(() => {
-    // Initial fetch on mount. refresh 는 useCallback([]) 이라 stable, 1회만 실행.
-    // setState-in-effect 룰은 async fetch boundary 라 cascading render 우려 없음.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void refresh();
+  }, [refresh]);
+
+  const handleDelete = useCallback(async (projectId: string, currentStatus: string) => {
+    const isArchived = currentStatus?.trim().toLowerCase() === "archived";
+    const confirmMsg = isArchived
+      ? "Are you sure you want to permanently delete this project? This action cannot be undone."
+      : "Are you sure you want to archive this project?";
+    
+    if (!confirm(confirmMsg)) return;
+
+    try {
+      setError(null);
+      await projectService.archiveProject(projectId, isArchived);
+      await refresh();
+    } catch (err) {
+      setError(isArchived ? "Failed to delete project." : "Failed to archive project.");
+      console.error(err);
+    }
   }, [refresh]);
 
   const filteredProjects = projects.filter((project) => {
@@ -161,6 +178,13 @@ export default function ProjectsStatusPage() {
                   />
                 </div>
                 <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => void handleDelete(project.id, project.status)}
+                    className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                    title={project.status === "archived" ? "Permanently Delete" : "Archive Project"}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                   <button className="p-2 rounded-lg hover:bg-muted/30 transition-colors">
                     <MoreHorizontal className="w-5 h-5 text-muted-foreground" />
                   </button>

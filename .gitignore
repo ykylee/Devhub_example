@@ -86,3 +86,5 @@ infra/nginx/devhub.deploy.conf
 *.swp
 Thumbs.db
 docs/LOCAL_MACHINE_ENV.md
+# Antigravity CLI 세션 아티팩트 (UUID.json) — 에디터 부산물, 커밋 금지.
+.antigravitycli/

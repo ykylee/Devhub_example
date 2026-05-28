@@ -61,4 +61,53 @@ describe("tokenStore", () => {
     expect(tokenStore.getRefreshToken()).toBe("refresh-from-storage");
     expect(tokenStore.getIdToken()).toBe("id-from-storage");
   });
+
+  it("save computes expires_at from expires_in (ms epoch, persisted)", () => {
+    const before = Date.now();
+    tokenStore.save({
+      access_token: "a",
+      expires_in: 300, // 5분
+      token_type: "Bearer",
+    });
+    const exp = tokenStore.getExpiresAt();
+    expect(exp).not.toBeNull();
+    // expires_at ≈ now + 300_000 ms
+    expect(exp!).toBeGreaterThanOrEqual(before + 299_000);
+    expect(exp!).toBeLessThanOrEqual(Date.now() + 301_000);
+    expect(Number(sessionStorage.getItem("devhub_access_token_expires_at"))).toBe(exp);
+  });
+
+  it("save with expires_in=0 leaves expires_at null", () => {
+    tokenStore.save({
+      access_token: "a",
+      expires_in: 0,
+      token_type: "Bearer",
+    });
+    expect(tokenStore.getExpiresAt()).toBeNull();
+    expect(sessionStorage.getItem("devhub_access_token_expires_at")).toBeNull();
+  });
+
+  it("clear wipes expires_at + storage", () => {
+    tokenStore.save({ access_token: "a", expires_in: 300, token_type: "Bearer" });
+    expect(tokenStore.getExpiresAt()).not.toBeNull();
+    tokenStore.clear();
+    expect(tokenStore.getExpiresAt()).toBeNull();
+    expect(sessionStorage.getItem("devhub_access_token_expires_at")).toBeNull();
+  });
+
+  it("subscribeExpiryChange fires on save and clear; unsubscribe stops it", () => {
+    const events: Array<number | null> = [];
+    const unsub = tokenStore.subscribeExpiryChange((exp) => events.push(exp));
+
+    tokenStore.save({ access_token: "a", expires_in: 600, token_type: "Bearer" });
+    tokenStore.clear();
+
+    expect(events).toHaveLength(2);
+    expect(events[0]).not.toBeNull(); // save → expires_at 값
+    expect(events[1]).toBeNull();     // clear → null
+
+    unsub();
+    tokenStore.save({ access_token: "b", expires_in: 600, token_type: "Bearer" });
+    expect(events).toHaveLength(2); // unsubscribe 후 호출 안 됨
+  });
 });
