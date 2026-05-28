@@ -435,9 +435,9 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
                 onChange={(e) => setFormData({ ...formData, status: e.target.value as ProjectStatus })}
                 className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-indigo-400/50 appearance-none"
               >
-                <option value="planning" className="bg-slate-900">Planning</option>
-                <option value="active" className="bg-slate-900">Active</option>
-                <option value="on_hold" className="bg-slate-900">On Hold</option>
+                <option value="planning">Planning</option>
+                <option value="active">Active</option>
+                <option value="on_hold">On Hold</option>
               </select>
             </div>
           </div>
