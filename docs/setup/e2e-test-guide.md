@@ -157,6 +157,7 @@ PLAYWRIGHT_BASE_URL=http://10.0.0.5:3000 npm run e2e
 | `/account` 관련 시나리오 실패 | Keycloak Account Console/redirect 설정 불일치 | `NEXT_PUBLIC_OIDC_REDIRECT_URI`, issuer, Keycloak client redirect URI 정합 확인 |
 | `Sign Out` 후에도 `/login` 이 silent re-auth | IdP session 종료 안 됨. id_token_hint 누락 가능성 | tokenStore 의 `id_token` 저장 여부와 end-session endpoint 호출 URL 확인 |
 | 사용자 환경 Chromium 다운로드 실패 | 사내 SSL inspection / 외부 미러 차단 | `PLAYWRIGHT_BROWSERS_PATH` 또는 사내 미러 사용. `npx playwright install --dry-run` 으로 다운로드 URL 확인 |
+| **Docker deploy 환경 E2E**에서 `/api/v1/*` 호출이 nginx 404 | frontend bundle 의 `NEXT_PUBLIC_BASE_PATH` 누락 — client 가 root relative `/api/v1/...` 호출 → nginx 의 `/devhub/api/` location 에 도달 못함 | `ENV_FILE=./.env.deploy ./scripts/build-artifacts.sh` 실행 시점에 `NEXT_PUBLIC_BASE_PATH=devhub` 가 export 되어야 한다 (host build pattern — Dockerfile 은 산출물 COPY-only 라 build ARG 추가는 무의미). 자세한 흐름은 `docs/setup/docker-packaging-deployment-guide.md` §11.2 박스 참조. nginx 에 root `/api/` proxy 추가는 ADR-0018 위반 — 절대 금지 (PR #398 close 사례). |
 
 ## 7. 향후 확장 (PR-T4 범위)
 
