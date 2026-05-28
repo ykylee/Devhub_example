@@ -405,6 +405,16 @@ func (s *memoryApplicationStore) ArchiveProject(_ context.Context, id, _ string)
 	return p, nil
 }
 
+func (s *memoryApplicationStore) DeleteProject(_ context.Context, id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.projects[id]; !ok {
+		return store.ErrNotFound
+	}
+	delete(s.projects, id)
+	return nil
+}
+
 // --- Repository 운영 지표 (sprint claude/work_260514-c) ---
 // 메모리 store 는 SQL 집계를 흉내내지 않으므로 모두 zero-value 반환.
 
