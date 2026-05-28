@@ -367,7 +367,16 @@ test.describe("DREQ E2E", () => {
       const createModal = page.getByRole("dialog");
       // Repository selection is optional; keep default value to avoid
       // environment-dependent failures when no linked repositories exist.
-      await createModal.getByPlaceholder("User ID...").fill("charlie");
+      // Project Leader: leaderOptions(=listUsers) 존재 시 ComboBox(검색+option), 없으면
+      // plain "User ID..." input. 두 변형 모두 처리 (modal leader ComboBox drift, #379).
+      const leaderInput = createModal.getByPlaceholder("User ID...");
+      if (await leaderInput.count()) {
+        await leaderInput.fill("charlie");
+      } else {
+        await createModal.getByRole("button", { name: /search leader by name\/email\/user_id/i }).click();
+        await createModal.getByPlaceholder("Search...").fill("charlie");
+        await createModal.getByRole("option").first().click();
+      }
       await createModal.getByRole("button", { name: /create project/i }).click();
 
       await expect(createModal).toBeHidden({ timeout: 10_000 });
