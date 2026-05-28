@@ -1,0 +1,16 @@
+{
+  "branch": "feat/admin-catalog-app-project-repo-management",
+  "status": "done",
+  "last_updated": "2026-05-28T05:24:00Z",
+  "completed_tasks": [
+    "ListApplicationRepositories UNION query optimization in applications.go",
+    "CountActiveApplicationRepositories UNION query optimization in applications.go",
+    "memoryApplicationStore UNION logic parity inside applications_test.go",
+    "Unlock application_id & repository select in ProjectCreationModal.tsx on edit mode",
+    "Add projects & repositories checkbox linkage panels in ApplicationCreationModal.tsx during edit mode",
+    "Automated Go testing (go test ./...) pass",
+    "Linter check (npm run lint) pass"
+  ],
+  "pending_tasks": [],
+  "pull_request": "https://github.com/ykylee/Devhub_example/pull/395"
+}
