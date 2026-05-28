@@ -1,3 +1,37 @@
+# Session Handoff — pr-406 (2026-05-28 post-architecture-restructure)
+
+- 문서 목적: pr-406 브랜치 기준의 아키텍처 재정비 고도화 세션 상태와 인계 사항.
+- 범위: PR #406의 기존 카테고리/모듈 분류 체계 위에 [Domain - Shared - Infrastructure] 3대 레이어 및 도메인 내부 4대 계층(View-Service-Repository-Schema) 고도화 개편.
+- 상태: pr-406 브랜치 작업 완료.
+- 최종 수정일: 2026-05-28
+
+## 2026-05-28 (post-architecture-restructure) 결산
+
+사용자 지시 "분류는 도메인 -> 모듈 -> 컴포넌트로 세분화. service, repository, schema, view 계층 구성. 공통 기능은 shared, 외부 연동은 infrastructure에 둘 것. 코드 구성 뿐 아니라 설계문서의 내용도 이 구성에 맞도록 재구성." → 아키텍처 3대 레이어 및 4대 계층 전면 고도화 단행.
+
+### 변경 내역
+
+*   **`docs/governance/code-taxonomy.md`**:
+    기존 12+4 평면 카테고리를 `Domain`, `Shared`, `Infrastructure` 3대 레이어로 수직 계층화하고, 각 Domain 내부를 `view, service, repository, schema` 4대 계층으로 컴포넌트 수준까지 세분화하여 SoT를 재구축했습니다.
+    또한, **PR #406의 Codex 인라인 리뷰 피드백(ProviderModal 오너십 정정)을 전면 수용**하여 `components/integration/ProviderModal` 리팩토링 항목 및 컴포넌트 소유권을 기존 `auth-session`에서 `integration-registry` 도메인 하위로 이관 및 교정했습니다.
+*   **`docs/architecture.md`**:
+    §2 시스템 컴포넌트 구조를 Domain-Shared-Infrastructure 3계층 종속성 기반의 Mermaid 다이어그램으로 완벽히 리팩토링하고, **아키텍처 호출 규칙(Calling Constraints)** 3대 규칙(상향 호출 금지, 교차 도메인 DB 직접 참조 금지, Shared의 독립성)을 신설하여 설계 가이드라인을 명문화했습니다.
+*   **`docs/traceability/report.md`**:
+    sprint `gemini/work_260528-architecture-restructure` (governance) 작업 로그를 수록했습니다.
+
+### 다음 지침 (Codex / Gemini)
+
+1.  **P0 기술 부채 리팩토링 실행**:
+    `code-taxonomy.md` §3에 식별된 P0 수준 거대 파일(applications.go, users_units.go 등 1,000 LoC 이상)을 도메인 하위 4대 계층(`repository`, `view` 등)으로 순차적으로 쪼개어 패키지 구조를 분할하는 실 코딩 작업을 후속 스프린트로 연계해 진행해야 합니다.
+2.  **PR Title Lint 도입**:
+    새로 고도화된 `[레이어/도메인-계층]` Prefix 규칙(예: `feat(domain/auth-session-service): ...`)의 강제를 위한 CI 정적 검사기 구축.
+
+### 검증 결과
+*   Go Core Backend build: `go build ./...` -> **PASS**
+*   Frontend Next.js build: `npm run build` -> **PASS** (31/31 static pages successfully generated)
+
+---
+
 # Session Handoff — main (2026-05-28 post-#389 — project delete/archive 처리)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.

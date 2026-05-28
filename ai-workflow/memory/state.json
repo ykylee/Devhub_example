@@ -1,9 +1,9 @@
 {
   "schema_version": "1",
   "project": "DevHub Example",
-  "branch": "main",
-  "status": "2026-05-28 (post-#389) main HEAD `e90ce75`. 본 housekeeping — #373 이후 1 PR (#389) 머지. **#389 (`e90ce75`, gemini) — 프로젝트 아카이빙/삭제 분기 로직 구현**: 1) 아카이브 상태가 아닐 때는 soft-delete (status = 'archived' 이동), 2) 이미 아카이브 상태인 경우 hard-delete (DB 완전 삭제). 백엔드 `DeleteProject` 추가/PostgresStore 구현, `archiveProject` 핸들러 분기 수정, 프론트엔드 프로젝트 목록 각 카드에 `Trash2` 아이콘 삭제 버튼 및 컴펌 팝업 연동. 검증: go build+vet+test ./...(13 pkg) + tsc+eslint+vitest 55+build green. prefix 중복 0. **다음 directive (claude)**: 1) inbound webhook 정규화 깊이 (multi-provider sync 일반화) / 2) #6 평문 secret(credentials_ref/api_token/auth_secret) envelope 암호화 / 3) Phase C 후속 (project flow ↔ SCM create 연계) / 4) repository draft→publish flow E2E·테스트 보강 (#368 무테스트 머지분) / 5) #366/#363 codex 재리뷰 확인. **사내/사용자**: Onboarding SOP staging monitoring / nginx OIDC / Keycloak 26.0 smoke / issue #214 / Keycloak SPI realm events wire.",
-  "updated_at": "2026-05-28T04:02:00Z",
+  "branch": "pr-406",
+  "status": "2026-05-28 (post-architecture-restructure) pr-406. [Domain - Shared - Infrastructure] 3대 레이어 및 도메인 내부 4대 계층(View-Service-Repository-Schema) 고도화 아키텍처 개편안 수립 및 docs/governance/code-taxonomy.md, docs/architecture.md 전면 리팩토링 반영 완료. PR #406의 Codex 인라인 리뷰 피드백 수렴 완료(ProviderModal 오너십 정정). 다음 directive (Codex / Gemini): 1) P0 기술 부채 리팩토링 실행 (code-taxonomy.md §3의 applications.go, users_units.go 분할) / 2) PR Title Lint CI 도입.",
+  "updated_at": "2026-05-28T12:22:00Z",
   "head_commit": "e90ce75",
   "head_summary": "fix(auth): 세션 만료 좀비 상태 정정 — proactive refresh + session-death + WS hardening + clean logout (#387) (#388)",
   "milestones": {
@@ -40,7 +40,7 @@
     "M-v1.0": {
       "status": "in_progress",
       "started_at": "2026-05-20",
-      "notes": "v1.0 Release 로드맵 진입. P0/P1 우선순위 과제 수행 중. 2026-05-21: P0-1, P0-2, P0-3, P1-1, P1-2, P1-5, P2-1, P2-4, P2-5, P1-bug 모두 완료 및 main 머지 완료. v1.0 release gate Gemini 분담 항목이 전부 완료되었습니다."
+      "notes": "v1.0 Release 로드맵 진입. P0/P1 우선순위 과제 수행 중. 2026-05-21: P0-1, P0-2, P0-3, P1-1, P1-2, P1-5, P2-1, P2-4, P2-5, P1-bug 모두 완료 및 main 머지 완료. v1.0 release gate Gemini 분담 항목이 전부 완료되었습니다. 2026-05-28: PR #406 피드백을 수용하여 코드베이스 3대 레이어(Domain, Shared, Infrastructure) 및 도메인 내부 4대 계층(view, service, repository, schema) 세분화 설계 고도화 반영. ProviderModal 오너십 정정 및 추적성 리포트 갱신 완료."
     }
   },
   "components": {
