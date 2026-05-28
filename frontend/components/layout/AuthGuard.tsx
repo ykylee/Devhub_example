@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { Loader2 } from "lucide-react";
-import { websocketService, WsMessage } from "@/lib/services/websocket.service";
 import { identityService } from "@/lib/services/identity.service";
 import { ApiError } from "@/lib/services/api-client";
 import { defaultLandingFor, isSystemAdmin, pathRequiresSystemAdmin } from "@/lib/auth/role-routing";
@@ -20,17 +19,10 @@ function pathBlockedInLimitedMode(path: string): boolean {
   return LIMITED_MODE_BLOCKED_PREFIXES.some((p) => path.startsWith(p));
 }
 
-type NotificationPayload = { message?: string };
-
-function messageOf(msg: WsMessage): string | undefined {
-  const data = msg.data as NotificationPayload | undefined;
-  return data?.message;
-}
-
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { actor, setActor, clearActor, addToast, incrementNotifications } = useStore();
+  const { actor, setActor, clearActor } = useStore();
   const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
@@ -41,6 +33,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         if (cancelled) return;
         setActor({
           login: resolved.login,
+          user_id: resolved.user_id,
           subject: resolved.subject,
           role: resolved.role,
           source: resolved.source,
@@ -89,30 +82,6 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       cancelled = true;
     };
   }, [pathname, router, setActor, clearActor]);
-
-  useEffect(() => {
-    if (!isAuthorized) return;
-
-    websocketService.connect();
-
-    const handleNotification = (msg: WsMessage) => {
-      incrementNotifications();
-      addToast(messageOf(msg) || "New Notification", "info");
-    };
-
-    const handleCriticalRisk = (msg: WsMessage) => {
-      addToast(`CRITICAL: ${messageOf(msg) || "Risk Detected"}`, "error");
-    };
-
-    websocketService.subscribe("notification.created", handleNotification);
-    websocketService.subscribe("risk.critical.created", handleCriticalRisk);
-
-    return () => {
-      websocketService.unsubscribe("notification.created", handleNotification);
-      websocketService.unsubscribe("risk.critical.created", handleCriticalRisk);
-      websocketService.disconnect();
-    };
-  }, [isAuthorized, incrementNotifications, addToast]);
 
   if (!isAuthorized || !actor) {
     return (

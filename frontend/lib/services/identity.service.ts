@@ -175,6 +175,7 @@ export interface MeResponse {
 
 export interface ResolvedActor {
   login: string;
+  user_id?: string;
   subject?: string;
   role: OrgMember["role"];
   source?: string;
@@ -242,6 +243,7 @@ export class IdentityService {
     }
     return {
       login: result.data.login,
+      user_id: result.data.user_id,
       subject: result.data.subject,
       role: ROLE_BACKEND_TO_UI[result.data.role ?? ""] ?? "Developer",
       source: result.data.actor_source,

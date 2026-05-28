@@ -73,6 +73,12 @@ infra/nginx/certs/
 # nginx official image's envsubst entrypoint)
 infra/nginx/devhub.deploy.conf
 
+# === TEST ARTIFACTS ===
+# Playwright 산출물 — frontend/.gitignore 는 frontend 하위만 커버. repo 루트에서
+# `playwright test` 실행 시 생기는 산출물(.last-run.json 등) 재발 방지.
+/test-results/
+/playwright-report/
+
 # === EDITOR / OS NOISE ===
 .DS_Store
 **/.DS_Store

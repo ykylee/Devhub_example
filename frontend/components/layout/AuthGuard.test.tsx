@@ -22,15 +22,6 @@ vi.mock("@/lib/store", () => ({
   useStore: () => storeState,
 }));
 
-vi.mock("@/lib/services/websocket.service", () => ({
-  websocketService: {
-    connect: vi.fn(),
-    disconnect: vi.fn(),
-    subscribe: vi.fn(),
-    unsubscribe: vi.fn(),
-  },
-}));
-
 const whoAmIMock = vi.fn();
 vi.mock("@/lib/services/identity.service", () => ({
   identityService: {
