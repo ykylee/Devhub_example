@@ -32,7 +32,8 @@ test.describe("/repositories — repository list/detail UI", () => {
     await expect(page.getByText("devhub/e2e-repo-a", { exact: false })).toBeVisible();
     await expect(page.getByText("PR Events", { exact: false }).first()).toBeVisible();
     await expect(page.getByText("Build Runs", { exact: false }).first()).toBeVisible();
-    await expect(page.getByText("Build Success", { exact: false }).first()).toBeVisible();
+    // PR #396 (REQ-FR-APPDASH-001) — "Build Success: %" → "Last Build: status".
+    await expect(page.getByText("Last Build", { exact: false }).first()).toBeVisible();
     await expect(page.getByText("Contributors", { exact: false }).first()).toBeVisible();
     await expect(page.getByRole("link", { name: /view on scm/i })).toBeVisible();
   });
