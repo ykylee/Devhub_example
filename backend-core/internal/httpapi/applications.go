@@ -560,14 +560,20 @@ func (h *Handler) applicationDashboard(c *gin.Context) {
 	}
 
 	// 6. Format Response.
+	// codex P2 정합 (#396) — target_branch_build_status 의 source 를 rollup.TargetBranchBuildStatus
+	// (각 repo 의 build_runs 최신 1건 종합 derive) 로 통일. 이전 `len(buildFailures) > 0`
+	// 휴리스틱은 dashboard 자체의 별도 broken 판단이라 application_rollup endpoint 와
+	// 결과가 일치하지 않을 수 있었음 (build_failures 는 별도 store 호출 결과, rollup 은
+	// last build status 종합 derive). 빈 문자열은 "unknown" 정규화.
+	targetBranchBuildStatus := rollup.TargetBranchBuildStatus
+	if targetBranchBuildStatus == "" {
+		targetBranchBuildStatus = "unknown"
+	}
 	metricsOverview := gin.H{
-		"target_branch_build_status": "healthy",
+		"target_branch_build_status": targetBranchBuildStatus,
 		"avg_build_duration_seconds": rollup.BuildAvgDurationSeconds,
 		"quality_score":              rollup.QualityScore,
 		"critical_warning_count":     rollup.CriticalWarningCount,
-	}
-	if len(buildFailures) > 0 {
-		metricsOverview["target_branch_build_status"] = "broken"
 	}
 
 	qualityMetrics := gin.H{
