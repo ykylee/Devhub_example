@@ -889,10 +889,12 @@ SELECT
 	COALESCE(r.provider_id::text, ''),
 	COALESCE(p.provider_key, ''),
 	COALESCE(r.description, ''),
+	-- codex P2 정합 (#401) — ListRepositories 의 subquery 정정과 동일 패턴.
+	-- application_repositories.repo_provider (scm_providers FK) 와 integration_providers.
+	-- provider_key 가 일치한다는 보장이 없어 full_name only 매칭으로 단순화.
 	COALESCE((SELECT COUNT(*)
 	          FROM application_repositories ar
-	          WHERE ar.repo_provider = p.provider_key
-	            AND ar.repo_full_name = r.full_name), 0)::int AS linked_applications_count,
+	          WHERE ar.repo_full_name = r.full_name), 0)::int AS linked_applications_count,
 	COALESCE((SELECT COUNT(*)
 	          FROM project_repositories pr
 	          WHERE pr.repository_id = r.id), 0)::int AS linked_projects_count
