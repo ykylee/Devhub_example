@@ -2,42 +2,37 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Activity, 
-  ArrowLeft, 
+import {
+  Activity,
+  ArrowLeft,
   Globe,
-  ShieldCheck, 
+  ShieldCheck,
   Zap,
   Clock,
-  ExternalLink,
   RefreshCcw,
   Settings,
   GitBranch,
-  Code2,
   AlertTriangle,
   Play,
   Briefcase,
   Layers,
-  ChevronRight,
   Sparkles,
   Rocket
 } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
+import { useStore } from "@/lib/store";
 import { applicationService, ApplicationDashboard } from "@/lib/services/application.service";
 import { projectService } from "@/lib/services/project.service";
 import { ApplicationRepository } from "@/lib/services/project.types";
 import { toUserErrorMessage } from "@/lib/services/error-message";
 import { PageError, PageLoading } from "@/components/ui/PageState";
 import { apiClient } from "@/lib/services/api-client";
-import { API_BASE_URL } from "@/lib/config/endpoints";
-import { 
+import {
   ResponsiveContainer,
   AreaChart,
   Area,
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   Tooltip
@@ -47,7 +42,8 @@ export default function ApplicationDetailPage() {
   const params = useParams();
   const id = params.id as string;
   const router = useRouter();
-  
+  const actor = useStore((s) => s.actor);
+
   const [dashboard, setDashboard] = useState<ApplicationDashboard | null>(null);
   const [repositories, setRepositories] = useState<ApplicationRepository[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,12 +86,33 @@ export default function ApplicationDetailPage() {
     setSelectedDreq({ dreq_id, title });
     setProjectName(title);
     setProjectKey("PROJ-" + dreq_id.slice(-4).toUpperCase());
+    // Leader 입력을 현재 사용자(actor)의 user_id 로 prefill (수정 가능) — 사용자가 매번
+    // 타이핑할 필요 없이 본인 promote 시 즉시 진행 가능 (codex 3a 후속).
+    setProjectLeader(actor?.user_id || actor?.login || "");
     setIsPromoteOpen(true);
   };
 
   const handlePromoteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedDreq) return;
+
+    // 검증 1: 본 application 에 연결된 repository 가 있어야 promote 가능.
+    // backend `registerDevRequestWithNewProject` 가 `project_payload.repository_id` 필수 검증.
+    const primaryRepo = repositories.find((r) => r.role === "primary") ?? repositories[0];
+    const repositoryID = primaryRepo?.repository_id;
+    if (!repositoryID) {
+      alert("Cannot promote: this application has no linked repository. Please link a repository first.");
+      return;
+    }
+
+    // 검증 2: 폼의 Leader User ID 입력값을 owner_user_id 로 사용. 빈 값이면 현재
+    // 사용자(actor)로 fallback (handlePromoteClick 에서 prefill 한 값과 동일).
+    const ownerUserID = projectLeader.trim() || actor?.user_id || actor?.login;
+    if (!ownerUserID) {
+      alert("Cannot promote: leader user id is empty and current user identity is missing.");
+      return;
+    }
+
     try {
       setPromoting(true);
       // Promote DREQ API integration
@@ -103,9 +120,10 @@ export default function ApplicationDetailPage() {
         target_type: "project",
         project_payload: {
           application_id: id,
+          repository_id: repositoryID, // backend 필수 (codex P2 정정).
           key: projectKey,
           name: projectName,
-          owner_user_id: "u1", // Default current user admin
+          owner_user_id: ownerUserID, // 하드코딩 "u1" → 현재 사용자(codex 3a 정정).
           visibility: "internal",
           status: "active",
           start_date: new Date().toISOString().split("T")[0],
@@ -116,7 +134,7 @@ export default function ApplicationDetailPage() {
       void loadData();
     } catch (err) {
       console.error(err);
-      alert("Promotion failed: " + toUserErrorMessage(err));
+      alert("Promotion failed: " + toUserErrorMessage(err, "Promotion failed."));
     } finally {
       setPromoting(false);
     }
@@ -229,7 +247,7 @@ export default function ApplicationDetailPage() {
                 <GitBranch className={cn("w-5 h-5", buildStatus === "broken" ? "text-rose-500 animate-pulse" : "text-emerald-500")} /> 
                 Target Branch Build Status
               </h3>
-              <Badge variant={buildStatus === "broken" ? "destructive" : "success"}>
+              <Badge variant={buildStatus === "broken" ? "danger" : "success"}>
                 {buildStatus === "broken" ? "Broken" : "Healthy"}
               </Badge>
             </div>
@@ -318,7 +336,10 @@ export default function ApplicationDetailPage() {
                       </h4>
                       <p className="text-[10px] text-muted-foreground mt-0.5">Due: {project.due_date ? new Date(project.due_date).toLocaleDateString() : "N/A"}</p>
                     </div>
-                    <Badge className="text-xs" style={{ backgroundColor: project.risk_badge_color, color: "#fff" }}>
+                    <Badge
+                      className="text-xs"
+                      variant={project.risk_level === "At Risk" ? "danger" : project.risk_level === "Warning" ? "warning" : "success"}
+                    >
                       {project.risk_level} (D-{project.d_day})
                     </Badge>
                   </div>
@@ -390,7 +411,7 @@ export default function ApplicationDetailPage() {
                     <p className="text-[10px] text-muted-foreground mt-0.5 font-mono">{dreq.dreq_id}</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Badge variant={dreq.status === "pending" ? "warning" : "info"}>{dreq.status}</Badge>
+                    <Badge variant={dreq.status === "pending" ? "warning" : "primary"}>{dreq.status}</Badge>
                     {(dreq.status === "pending" || dreq.status === "in_review") && (
                       <button 
                         onClick={() => handlePromoteClick(dreq.dreq_id, dreq.title)}
