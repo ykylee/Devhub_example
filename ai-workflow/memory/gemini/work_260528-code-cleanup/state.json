@@ -1,15 +1,24 @@
 {
   "branch": "gemini/work_260528-code-cleanup",
   "status": "done",
-  "stage": "All Stages Completed Successfully",
-  "last_updated": "2026-05-28T23:01:00+09:00",
+  "stage": "All Stages Completed + Integration-Registry Unit Tests Added",
+  "last_updated": "2026-05-28T23:35:00+09:00",
   "completed_tasks": [
     "Stage 1: Shared & Infrastructure Refactoring (Go / Next.js)",
     "Stage 2: Go Backend Modular Router & Handler Grouping & Type Matching",
     "Stage 3: Next.js Frontend Domain Migration & Imports Refactoring",
     "Stage 4: docs/ Restructure to Domain/Shared/Infrastructure Layers",
-    "Final integration build and remote git push to gemini/work_260528-code-cleanup"
+    "Final integration build and remote git push",
+    "integration-registry: frontend service 계층 단위테스트 10개 (infra.service.test.ts)",
+    "integration-registry: frontend view 컴포넌트 테스트 16개 (ProviderTable 11 + BindingsTable 5)",
+    "vitest.config.ts: domain/shared include 패턴 추가",
+    "React 19 act 호환성 패치: postinstall.js + happy-dom 전환",
+    "test-setup.ts: framer-motion jsdom mock (테스트 파일별 vi.mock)"
   ],
   "active_issues": [],
-  "next_steps": []
+  "next_steps": [
+    "남은 도메인 단위테스트 추가 (갭 분석 기준)",
+    "PR Title Lint CI 도입",
+    "P0 기술 부채 리팩토링 (applications.go, users_units.go 분할)"
+  ]
 }

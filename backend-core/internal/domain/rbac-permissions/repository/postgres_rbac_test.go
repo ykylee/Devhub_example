@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/devhub/backend-core/internal/domain"
+	"github.com/devhub/backend-core/internal/domain/rbac-permissions/repository"
 	"github.com/devhub/backend-core/internal/store"
 )
 
@@ -29,8 +30,9 @@ func newTestRBACStore(t *testing.T) (*store.PostgresStore, context.Context) {
 
 func TestRBAC_ListRoles_SeedsThreeSystemRoles(t *testing.T) {
 	s, ctx := newTestRBACStore(t)
+	repo := repository.NewRBACRepository(s)
 
-	roles, err := s.ListRBACRoles(ctx)
+	roles, err := repo.ListRBACRoles(ctx)
 	if err != nil {
 		t.Fatalf("list roles: %v", err)
 	}
@@ -49,7 +51,7 @@ func TestRBAC_ListRoles_SeedsThreeSystemRoles(t *testing.T) {
 	}
 
 	for _, want := range domain.SystemRoles() {
-		got, err := s.GetRBACRole(ctx, want.ID)
+		got, err := repo.GetRBACRole(ctx, want.ID)
 		if err != nil {
 			t.Fatalf("get role %s: %v", want.ID, err)
 		}
@@ -66,7 +68,8 @@ func TestRBAC_ListRoles_SeedsThreeSystemRoles(t *testing.T) {
 
 func TestRBAC_GetRole_NotFound(t *testing.T) {
 	s, ctx := newTestRBACStore(t)
-	_, err := s.GetRBACRole(ctx, "custom-does-not-exist")
+	repo := repository.NewRBACRepository(s)
+	_, err := repo.GetRBACRole(ctx, "custom-does-not-exist")
 	if !errors.Is(err, store.ErrNotFound) {
 		t.Errorf("err = %v, want ErrNotFound", err)
 	}
@@ -74,10 +77,11 @@ func TestRBAC_GetRole_NotFound(t *testing.T) {
 
 func TestRBAC_CreateUpdateDeleteCustomRole(t *testing.T) {
 	s, ctx := newTestRBACStore(t)
+	repo := repository.NewRBACRepository(s)
 	id := fmt.Sprintf("custom-test-%d", time.Now().UnixNano())
-	t.Cleanup(func() { _ = s.DeleteRBACRole(context.Background(), id) })
+	t.Cleanup(func() { _ = repo.DeleteRBACRole(context.Background(), id) })
 
-	created, err := s.CreateRBACRole(ctx, domain.RBACRole{
+	created, err := repo.CreateRBACRole(ctx, domain.RBACRole{
 		ID:          id,
 		Name:        "Test Role",
 		Description: "PR-G3 integration test",
@@ -99,7 +103,7 @@ func TestRBAC_CreateUpdateDeleteCustomRole(t *testing.T) {
 		}
 	}
 
-	updated, err := s.UpdateRBACRolePermissions(ctx, id, domain.PermissionMatrix{
+	updated, err := repo.UpdateRBACRolePermissions(ctx, id, domain.PermissionMatrix{
 		domain.ResourceInfrastructure: {View: true, Edit: true},
 		domain.ResourcePipelines:      {View: true},
 		domain.ResourceOrganization:   {View: true},
@@ -116,7 +120,7 @@ func TestRBAC_CreateUpdateDeleteCustomRole(t *testing.T) {
 		t.Errorf("audit invariant not enforced after update: %+v", updated.Permissions[domain.ResourceAudit])
 	}
 
-	updated2, err := s.UpdateRBACRoleMetadata(ctx, id, "Renamed", "Description after rename")
+	updated2, err := repo.UpdateRBACRoleMetadata(ctx, id, "Renamed", "Description after rename")
 	if err != nil {
 		t.Fatalf("update metadata: %v", err)
 	}
@@ -124,34 +128,36 @@ func TestRBAC_CreateUpdateDeleteCustomRole(t *testing.T) {
 		t.Errorf("metadata update not applied: %+v", updated2)
 	}
 
-	if err := s.DeleteRBACRole(ctx, id); err != nil {
+	if err := repo.DeleteRBACRole(ctx, id); err != nil {
 		t.Fatalf("delete role: %v", err)
 	}
-	if _, err := s.GetRBACRole(ctx, id); !errors.Is(err, store.ErrNotFound) {
+	if _, err := repo.GetRBACRole(ctx, id); !errors.Is(err, store.ErrNotFound) {
 		t.Errorf("post-delete get err = %v, want ErrNotFound", err)
 	}
 }
 
 func TestRBAC_SystemRoleImmutable(t *testing.T) {
 	s, ctx := newTestRBACStore(t)
+	repo := repository.NewRBACRepository(s)
 
-	if err := s.DeleteRBACRole(ctx, "manager"); !errors.Is(err, store.ErrSystemRoleImmutable) {
+	if err := repo.DeleteRBACRole(ctx, "manager"); !errors.Is(err, store.ErrSystemRoleImmutable) {
 		t.Errorf("delete system role err = %v, want ErrSystemRoleImmutable", err)
 	}
 
-	if _, err := s.UpdateRBACRoleMetadata(ctx, "developer", "Hacked", "should not change"); !errors.Is(err, store.ErrSystemRoleImmutable) {
+	if _, err := repo.UpdateRBACRoleMetadata(ctx, "developer", "Hacked", "should not change"); !errors.Is(err, store.ErrSystemRoleImmutable) {
 		t.Errorf("rename system role err = %v, want ErrSystemRoleImmutable", err)
 	}
 
-	if _, err := s.CreateRBACRole(ctx, domain.RBACRole{ID: "system_admin", Name: "x"}); !errors.Is(err, store.ErrConflict) {
+	if _, err := repo.CreateRBACRole(ctx, domain.RBACRole{ID: "system_admin", Name: "x"}); !errors.Is(err, store.ErrConflict) {
 		t.Errorf("create with system id err = %v, want ErrConflict", err)
 	}
 }
 
 func TestRBAC_AuditInvariantOnCreate(t *testing.T) {
 	s, ctx := newTestRBACStore(t)
+	repo := repository.NewRBACRepository(s)
 	id := fmt.Sprintf("custom-audit-%d", time.Now().UnixNano())
-	t.Cleanup(func() { _ = s.DeleteRBACRole(context.Background(), id) })
+	t.Cleanup(func() { _ = repo.DeleteRBACRole(context.Background(), id) })
 
 	role := domain.RBACRole{
 		ID:   id,
@@ -160,7 +166,7 @@ func TestRBAC_AuditInvariantOnCreate(t *testing.T) {
 			domain.ResourceAudit: {View: true, Create: true, Edit: true, Delete: true},
 		},
 	}
-	created, err := s.CreateRBACRole(ctx, role)
+	created, err := repo.CreateRBACRole(ctx, role)
 	if err != nil {
 		t.Fatalf("create with audit write should succeed (helper strips it): %v", err)
 	}
@@ -175,15 +181,16 @@ func TestRBAC_AuditInvariantOnCreate(t *testing.T) {
 // creation time (users.role FK to rbac_policies.role_id, migration 000006).
 func TestRBAC_DeleteCustomRoleInUse(t *testing.T) {
 	s, ctx := newTestRBACStore(t)
+	repo := repository.NewRBACRepository(s)
 	roleID := fmt.Sprintf("custom-inuse-%d", time.Now().UnixNano())
 	userID := fmt.Sprintf("u-rbac-test-%d", time.Now().UnixNano())
 	t.Cleanup(func() {
 		bg := context.Background()
 		_ = s.DeleteUser(bg, userID)
-		_ = s.DeleteRBACRole(bg, roleID)
+		_ = repo.DeleteRBACRole(bg, roleID)
 	})
 
-	if _, err := s.CreateRBACRole(ctx, domain.RBACRole{
+	if _, err := repo.CreateRBACRole(ctx, domain.RBACRole{
 		ID:          roleID,
 		Name:        "In-use role",
 		Description: "for delete-in-use test",
@@ -203,7 +210,7 @@ func TestRBAC_DeleteCustomRoleInUse(t *testing.T) {
 		t.Fatalf("create user: %v", err)
 	}
 
-	if err := s.DeleteRBACRole(ctx, roleID); !errors.Is(err, store.ErrRoleInUse) {
+	if err := repo.DeleteRBACRole(ctx, roleID); !errors.Is(err, store.ErrRoleInUse) {
 		t.Errorf("delete in-use role err = %v, want ErrRoleInUse", err)
 	}
 }

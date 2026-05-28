@@ -11,21 +11,24 @@ import path from "path";
 export default defineConfig({
   plugins: [react()],
   test: {
-    environment: "jsdom",
+    environment: "happy-dom",
     globals: true,
     setupFiles: ["./lib/test-setup.ts"],
-    include: ["lib/**/*.test.ts", "lib/**/*.test.tsx", "components/**/*.test.tsx"],
+    include: ["lib/**/*.test.ts", "lib/**/*.test.tsx", "components/**/*.test.tsx", "domain/**/*.test.ts", "domain/**/*.test.tsx", "shared/**/*.test.ts", "shared/**/*.test.tsx"],
     exclude: ["node_modules", ".next", "playwright-report", "tests/e2e"],
     coverage: {
       provider: "v8",
       reporter: ["text", "html"],
-      include: ["lib/**/*.ts", "components/**/*.tsx"],
+      include: ["lib/**/*.ts", "components/**/*.tsx", "domain/**/*.ts", "domain/**/*.tsx", "shared/**/*.ts", "shared/**/*.tsx"],
       exclude: ["**/*.test.ts", "**/*.test.tsx", "**/test-setup.ts"],
     },
   },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "."),
+      // React 19 removes act from react-dom/test-utils. Redirect to our mock
+      // so @testing-library/react's act-compat.js gets the real act from react.
+      "react-dom/test-utils": path.resolve(__dirname, "lib/__mocks__/react-dom-test-utils.ts"),
     },
   },
 });
