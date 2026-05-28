@@ -13,6 +13,7 @@ import { projectService } from "@/lib/services/project.service";
 import { ApplicationStatus, ApplicationVisibility, Project } from "@/lib/services/project.types";
 import { ApplicationCreationModal } from "@/components/project/ApplicationCreationModal";
 import { ProjectCreationModal } from "@/components/project/ProjectCreationModal";
+import { RepositoryCreationModal } from "@/components/project/RepositoryCreationModal";
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
 
@@ -38,10 +39,10 @@ export default function AdminCatalogPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [showApplicationModal, setShowApplicationModal] = useState(false);
   const [showProjectModal, setShowProjectModal] = useState(false);
+  const [showRepositoryModal, setShowRepositoryModal] = useState(false);
   const [editingApplication, setEditingApplication] = useState<AdminApplication | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [projectSeed, setProjectSeed] = useState<Partial<Project> | null>(null);
-  const [creatingRepository, setCreatingRepository] = useState(false);
   const [publishingRepositoryID, setPublishingRepositoryID] = useState<number | null>(null);
   const { toast } = useToast();
 
@@ -181,28 +182,6 @@ export default function AdminCatalogPage() {
     }
   };
 
-  const handleCreateRepositoryDraft = async () => {
-    const key = prompt("Repository key를 입력하세요 (예: DEVHUB-API)");
-    if (!key || !key.trim()) return;
-    const slug = prompt("Repository slug(full_name)를 입력하세요 (예: devhub/devhub-api)");
-    if (!slug || !slug.trim()) return;
-    const providerKey = prompt("SCM provider key를 입력하세요 (선택, 등록된 provider, 예: gitea-main)", "") ?? "";
-    setCreatingRepository(true);
-    try {
-      await repositoryService.createRepositoryDraft({
-        key: key.trim(),
-        slug: slug.trim(),
-        provider_key: providerKey.trim() || undefined,
-      });
-      toast(`Repository draft ${slug.trim()} 생성 완료`, "success");
-      await loadAll();
-    } catch (err) {
-      toast(toUserErrorMessage(err, "Repository draft 생성에 실패했습니다."), "error");
-    } finally {
-      setCreatingRepository(false);
-    }
-  };
-
   const handleRequestPublish = async (repo: Repository) => {
     if (repo.status !== "draft") return;
     if (!confirm(`${repo.full_name} draft를 외부 SCM 연동 대상으로 전송할까요?`)) return;
@@ -282,8 +261,7 @@ export default function AdminCatalogPage() {
           )}
           {activeTab === "repositories" && (
             <button
-              onClick={() => void handleCreateRepositoryDraft()}
-              disabled={creatingRepository}
+              onClick={() => setShowRepositoryModal(true)}
               className="rounded-xl bg-primary px-3 py-2 text-xs font-bold uppercase tracking-widest text-primary-foreground hover:opacity-90"
             >
               New Repository
@@ -567,6 +545,16 @@ export default function AdminCatalogPage() {
               setShowProjectModal(false);
               setEditingProject(null);
               setProjectSeed(null);
+              void loadAll();
+            }}
+          />
+        )}
+        {showRepositoryModal && (
+          <RepositoryCreationModal
+            onClose={() => setShowRepositoryModal(false)}
+            onCreated={(repository) => {
+              toast(`Repository draft ${repository.full_name} created`, "success");
+              setShowRepositoryModal(false);
               void loadAll();
             }}
           />

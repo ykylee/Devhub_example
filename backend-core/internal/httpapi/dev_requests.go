@@ -496,7 +496,7 @@ func (h *Handler) registerDevRequestWithNewApplication(c *gin.Context, storeI De
 	if !applicationKeyPattern.MatchString(p.Key) {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{
 			"status": "rejected",
-			"error":  "application_payload.key must match ^[A-Za-z0-9]{10}$",
+			"error":  "application_payload.key must match ^[A-Za-z0-9]{1,10}$",
 			"code":   "invalid_application_key",
 		})
 		return

@@ -12,6 +12,7 @@ interface Toast {
 
 export interface AuthenticatedActor {
   login: string;
+  user_id?: string;
   subject?: string;
   role: UserRole;
   source?: string;

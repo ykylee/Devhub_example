@@ -44,6 +44,12 @@ export function ComboBox({
     );
   }, [options, search]);
 
+  const selectFirstMatch = () => {
+    if (filteredOptions.length === 0) return;
+    onChange(filteredOptions[0].value);
+    setOpen(false);
+  };
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -93,6 +99,16 @@ export function ComboBox({
                 placeholder="Search..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    selectFirstMatch();
+                  }
+                  if (e.key === "Escape") {
+                    e.preventDefault();
+                    setOpen(false);
+                  }
+                }}
                 className="w-full bg-transparent border-none outline-none py-2 text-sm text-foreground placeholder:text-muted-foreground"
               />
               {search && (

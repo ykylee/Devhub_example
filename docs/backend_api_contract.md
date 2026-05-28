@@ -5,7 +5,7 @@
 - 대상 독자: Backend / 프론트엔드 개발자, AI agent, 외부 API consumer, QA.
 - 상태: accepted
 - 기준일: 2026-05-04
-- 최종 수정일: 2026-05-21 (Onboarding API §16 신규, API-83..86 + API-32/API-33 확장)
+- 최종 수정일: 2026-05-27 (§13.9 Repository Draft→Publish 신규 API-91/92, §15.2 API-70 outbound 자격증명 서술 정합; 직전 2026-05-21 Onboarding API §16 신규, API-83..86 + API-32/API-33 확장)
 - 관련 문서: [아키텍처](./architecture.md), [기술 스택](./tech_stack.md), [프론트 연동 요구사항](./backend/frontend_integration_requirements.md), [백엔드 요구사항 리뷰](./backend/requirements_review.md), [ADR-0002 RBAC](./adr/0002-rbac-policy-edit-api.md), [백엔드 로드맵](../ai-workflow/memory/backend_development_roadmap.md), [추적성 매트릭스](./traceability/report.md).
 
 ## 1. 공통 응답 원칙
@@ -1297,6 +1297,8 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 | `API-56B` | `GET/POST/DELETE /api/v1/projects/{project_id}/repositories` | §13.5 | activated (v2/hybrid) |
 | `API-57` | `GET /api/v1/applications/{application_id}/rollup` | §13.6 | activated (concept §13.4 normalize 실 구현 + critical 가드 흡수) |
 | `API-58` | `GET /api/v1/integrations` + CRUD | §13.7 | activated (scope polymorphism application/project) |
+| `API-91` | `POST /api/v1/repositories` (createRepositoryDraft) | §13.9 | activated (#368 draft lifecycle + #373 provider_id 단일화) |
+| `API-92` | `POST /api/v1/repositories/{repository_id}/publish` (requestRepositoryPublish) | §13.9 | activated (#368 + #373) |
 | `API-93` | `GET /api/v1/applications/{application_id}/dashboard` | §13.10 | planned (sprint gemini/application-dashboard-concept) |
 
 **activated 단계 정의 (sprint claude/work_260514-b)**: gin v1 group route + RBAC matrix + handler body + store body + 요청 validation + 상태 전이 가드 + audit emit. RBAC 매트릭스에서 system_admin 만 4 신규 resource (`applications` / `application_repositories` / `projects` / `scm_providers`) 의 모든 axis true (migration 000018, ADR-0011 §4.1).
@@ -1697,6 +1699,61 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 
 > **Jira 정책 cross-cut 메모 (`REQ-FR-PROJ-005` 후속)**: REQ-FR-PROJ-005 는 "Repository Jira 가 실행 SoT" 라는 하이브리드 정책을 명시한다. 그러나 `repo_provider` 가 `bitbucket|gitea|forgejo` 인 경우의 Jira 매핑 (= 비-Jira SCM 의 실행 이슈를 어떻게 Jira project 와 묶는가) 은 본 sprint 에서 결정되지 않음. concept §10 미해결 항목으로 이관, Integration sprint 에서 결정.
 
+### 13.9 Repository Draft → Publish (`API-91` / `API-92`)
+
+시스템 내에서 repository 를 먼저 **draft** 로 등록한 뒤, 등록된 SCM provider 에 실제 저장소를 생성하며 **published** 로 전환하는 2단계 lifecycle. #368(draft→publish lifecycle, repository_status/publish_* 컬럼 migration 000043) 도입 + #373(provider 참조를 `provider_id` FK 로 단일화, migration 000045). API-90(`create-repository`, §15.2)이 "provider 컨텍스트에서 즉시 생성+미러" 인 데 반해, 본 흐름은 "draft 로 먼저 잡아두고 별도 단계에서 publish" 하는 시스템 주도 등록 경로다.
+
+- 쓰기 권한: `POST /repositories` = `application_repositories:create`, `POST /repositories/{repository_id}/publish` = `application_repositories:edit` (기본 `system_admin`).
+- `repository_status`(응답 `status`): `draft` → `published`. draft 상태에서만 publish 가능.
+- `provider_key` ↔ `provider_id`: 입력은 사람이 읽는 `provider_key`(예 `gitea-main`)를 받고, 핸들러가 `integration_providers` 의 FK(`provider_id` UUID)로 해석해 저장한다(migration 000045 — 구 `scm_provider` TEXT 통합). 조회/목록 응답은 `LEFT JOIN integration_providers` 로 `provider_key` 를 표시용 derive 한다.
+
+#### `POST /api/v1/repositories` (`API-91`)
+
+- 설명: repository **draft** 생성. SCM 에는 아직 아무것도 만들지 않는다 (메타데이터 등록만).
+- 요청 body 필드:
+  - `key` (required): repository 식별 key.
+  - `slug` (required): repository slug.
+  - `provider_key` (optional): 등록된 SCM provider 의 key. 주어지면 SCM type provider 로 해석해 `provider_id` FK 로 저장. 빈 값이면 provider 미지정 draft (publish 전 별도 지정 필요).
+- 응답 (`201 Created`): `{ "status": "ok", "data": { /* repositoryResponse */ } }`.
+- 응답 schema (`repositoryResponse`):
+  - `id`, `gitea_repository_id?`, `full_name`, `owner_login?`, `name`, `clone_url?`, `html_url?`, `default_branch?`, `private`, `status`(`draft|published`), `provider_id?`, `provider_key?`(derive), `publish_requested_at?`, `published_at?`, `updated_at`.
+- 에러:
+  - `400` — body parse 실패, `key`/`slug` 누락.
+  - `404 integration_provider_not_found` — `provider_key` 가 등록 provider 와 매칭 안 됨.
+  - `422 integration_sync_unsupported_provider_type` — `provider_key` 가 SCM type 이 아님.
+  - `409 conflict` — `key` 또는 `slug` 중복.
+  - `503` — `DomainStore` 가 draft store(`CreateRepositoryDraft`/`MarkRepositoryDraftPublishRequested`/`GetRepositoryByID`) 미충족 또는 application store 미설정.
+
+요청 예시:
+
+```json
+{
+  "key": "devhub-core",
+  "slug": "devhub-core",
+  "provider_key": "gitea-main"
+}
+```
+
+#### `POST /api/v1/repositories/{repository_id}/publish` (`API-92`)
+
+- 설명: draft repository 를 등록된 SCM provider 에 **실제 생성**하고 시스템 미러를 갱신하며 **published** 로 전환한다.
+- path param: `repository_id` (positive integer).
+- 요청 body: 없음.
+- 동작: draft 검증 → provider lookup → SCM type + `push` capability + Gitea-compatible 검사 → `gitea.CreateRepo`(owner=full_name 의 org, name, description, `private`, `default_branch=main`, `auto_init=true`) → 성공 시 `UpsertRepository`(`source=system`, `provider_id` 세팅, SCM 응답값으로 mirror) + reload.
+- capability gate: `push` 필요 + Gitea-compatible provider(gitea/forgejo/gogs).
+- 응답 (`200 OK`): `{ "status": "ok", "data": { /* repositoryResponse (published) */ } }`.
+- 에러:
+  - `400` — `repository_id` 가 positive int 아님.
+  - `400 integration_provider_required` — draft 에 `provider_id` 미지정.
+  - `404 not_found` — draft repository 미존재.
+  - `409 conflict` — draft 상태가 아님 (이미 published 등 — draft 만 publish 가능).
+  - `404 integration_provider_not_found` — provider_id 가 가리키는 provider 미존재.
+  - `422 integration_sync_unsupported_provider_type` / `integration_capability_not_enabled`(push 없음) / `integration_provider_not_gitea_compatible` / `integration_base_url_missing` / `integration_outbound_credentials_missing`.
+  - `502 integration_scm_create_failed` — SCM 저장소 생성 실패. **이 경로에서는 `publish_requested_at` 만 기록하고(draft 보존) BadGateway 반환** — 부분 실패 후 재시도 가능.
+  - `502 integration_scm_auth_failed` — outbound 자격증명으로 SCM 인증 실패.
+
+> **구현 메모**: `createRepositoryDraft`/`requestRepositoryPublish`(`backend-core/internal/httpapi/domain.go`)는 #368 에서 무테스트로 머지된 후 #373 이 그 위를 수정했다. publish 의 부분 실패 경로(SCM 생성 실패 → `MarkRepositoryDraftPublishRequested` 만 호출) 검증 공백이 알려진 부채다 — 후속 테스트 보강 carve 후보.
+
 ### 13.8 공통 에러 코드 (초안)
 
 ```text
@@ -1716,6 +1773,15 @@ webhook_signature_invalid
 invalid_weight_policy
 project_key_conflict
 integration_policy_violation
+integration_provider_required
+integration_provider_not_found
+integration_sync_unsupported_provider_type
+integration_capability_not_enabled
+integration_provider_not_gitea_compatible
+integration_base_url_missing
+integration_outbound_credentials_missing
+integration_scm_create_failed
+integration_scm_auth_failed
 ```
 
 ### 13.10 Application 개발 대시보드 API
@@ -2137,7 +2203,8 @@ intake_token_collision                         # sprint o (ADR-0014): hashed_tok
 #### API-70 `POST /api/v1/integration/providers`
 
 - **인증**: OIDC + RBAC `infrastructure:edit` (system_admin only).
-- **요청**: `provider_key`, `provider_type`, `display_name`, `auth_mode`, `credentials_ref`(inbound webhook 서명 시크릿), `capabilities`, `base_url`(optional, http(s) URL — outbound sync 대상 endpoint, migration 000038), `api_token`(optional — outbound sync(REST pull) 인증용 PAT, **write-only**, migration 000040), `scope`.
+- **요청**: `provider_key`, `provider_type`, `display_name`, `auth_mode`, `credentials_ref`(inbound webhook 서명 시크릿), `capabilities`, `base_url`(optional, http(s) URL — outbound sync 대상 endpoint, migration 000038), `api_token`(optional — outbound sync(REST pull) 인증용 PAT, **write-only**, migration 000040).
+- **`scope` 보강 (2026-05-27)**: provider 는 scope 비종속 **catalog** 이라 현재 `createIntegrationProviderRequest`(`integration_registry.go`)에는 `scope` 필드가 **없다** — 아래 요청 줄/예시의 `scope` 는 초안(API-69..78 임시 발급) 잔재이며 전송돼도 무시된다. scope(application/project) 연결은 binding(API-75 `POST /integration/bindings`) 소관이다.
 - **outbound auth 자격증명 (auth_mode 별, migration 000041, 모두 optional)**: `auth_mode` 에 따라 외부 시스템 sync/pull 시 사용하는 자격증명.
   - `token` → `api_token` (PAT). `Authorization: token <pat>`.
   - `basic` / `app_password` → `auth_username` + `auth_secret`. HTTP Basic.
@@ -2146,7 +2213,8 @@ intake_token_collision                         # sprint o (ADR-0014): hashed_tok
   - `auth_secret` 은 **write-only** (api_token 과 동일). 비밀 외 필드(`auth_username`/`auth_client_id`/`auth_token_url`)는 응답 노출.
 - **응답 — 201**: 생성된 provider (`base_url`/`auth_username`/`auth_client_id`/`auth_token_url` 포함; `api_token`·`auth_secret` 은 raw 미노출, `api_token_set`/`auth_secret_set`(bool) 만 — 보안).
 - **에러**: 409 `integration_provider_conflict`, 400 `invalid_provider_type`, 400 `invalid_base_url`, 400 `invalid_auth_token_url`.
-- **참고**: `credentials_ref`(inbound webhook)와 outbound auth 자격증명(`api_token`/`auth_*`)은 별개 시크릿. Phase 3 (sync worker per-provider) 이후 등록 provider 의 `base_url` + auth_mode 별 자격증명이 Gitea sync 에 사용됨 (env fallback, token mode).
+- **참고**: `credentials_ref`(inbound webhook)와 outbound auth 자격증명(`api_token`/`auth_*`)은 별개 시크릿. Phase 3 (sync worker per-provider) 이후 등록 provider 의 `base_url` + auth_mode 별 자격증명이 Gitea sync / SCM repo 연동(API-88/89/90, §13.9 publish)에 사용된다.
+  - **env fallback 금지 (codex #358 P1 / #359)**: 명시 provider 를 대상으로 한 outbound 호출(`scmProviderClient` → `provider.ResolveOutboundAuth()`)은 worker-global env 토큰(`GITEA_TOKEN` 등)으로 **fallback 하지 않는다** — 잘못된 계정/토큰 유출 방지. 등록된 자격증명이 미설정이면 `422 integration_outbound_credentials_missing` 로 거부한다. env fallback 은 provider 미명시(legacy) sync worker 경로에서만 유효하다.
 
 요청 예시:
 

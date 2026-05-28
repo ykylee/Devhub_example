@@ -1,16 +1,18 @@
 # 백엔드 개발 로드맵
 
 > ⚠ **먼저 [통합 개발 로드맵](../../docs/development_roadmap.md)을 확인하세요.** 본 문서는 그 통합 로드맵의 Backend 트랙 세부입니다. 마일스톤(M0~M4) / 우선순위(P0~P3) / 트랙 간 의존은 통합 로드맵의 §3·§4.1 이 source-of-truth.
+>
+> ⚠ **v1.0/v1.1 신규 작업의 source-of-truth = [`docs/planning/release_v1_roadmap.md`](../../docs/planning/release_v1_roadmap.md).** 본 문서는 backend phase 이력 + 잔여 추적용이며, 우선순위·마일스톤·잔여 carve 의 최신 기준은 release_v1_roadmap 이다. 현행 코드베이스 전수 분석은 [2026-05-27 codebase snapshot](../../docs/analysis/2026-05-27-codebase-snapshot/04_backend_summary.md) 참조.
 
 - 문서 목적: DevHub 백엔드 구현 범위, 순서, 진척 상태를 추적한다.
 - 범위: backend-core phase 로드맵, 완료 범위, 다음 작업 큐, 차단 항목
 - 대상 독자: 백엔드 개발자, 프론트엔드 연동 담당자, AI agent
 - 기준일: 2026-05-07
 - 상태: in_progress
-- 최종 수정일: 2026-05-12 (M2 1차 완성 sprint 진입 반영 — Phase 13 + P0 M2 갱신)
-- 관련 문서: [`docs/development_roadmap.md`](../../docs/development_roadmap.md) (통합), `docs/requirements.md`, `docs/architecture.md`, `docs/tech_stack.md`, `docs/backend_api_contract.md`, `docs/backend/frontend_integration_requirements.md`, `docs/backend/requirements_review.md`, [`docs/adr/0019-keycloak-only-idp.md`](../../docs/adr/0019-keycloak-only-idp.md) (current IdP), [`docs/adr/0001-idp-selection.md`](../../docs/adr/0001-idp-selection.md) (Hydra+Kratos, superseded), `ai-workflow/memory/codex/service-action-command/session_handoff.md`
+- 최종 수정일: 2026-05-27 (Keycloak 단일 IdP 전환(ADR-0019) 반영 + 현행 도메인 완성 정정 — 2026-05-27 codebase snapshot 기준. Hydra/Kratos·accounts 서술 historical 처리, Phase 7/13 done, Phase 8 잔여(RM-M4) 정밀화)
+- 관련 문서: [`docs/development_roadmap.md`](../../docs/development_roadmap.md) (통합), [`docs/planning/release_v1_roadmap.md`](../../docs/planning/release_v1_roadmap.md) (v1.0/v1.1 source-of-truth), [`docs/analysis/2026-05-27-codebase-snapshot/04_backend_summary.md`](../../docs/analysis/2026-05-27-codebase-snapshot/04_backend_summary.md) (현행 backend 전수 분석), `docs/requirements.md`, `docs/architecture.md`, `docs/tech_stack.md`, `docs/backend_api_contract.md`, [`docs/adr/0019-keycloak-only-idp.md`](../../docs/adr/0019-keycloak-only-idp.md) (current IdP), [`docs/adr/0001-idp-selection.md`](../../docs/adr/0001-idp-selection.md) (Hydra+Kratos, **superseded** by ADR-0019), [`docs/adr/0024-websocket-auth-query-token.md`](../../docs/adr/0024-websocket-auth-query-token.md) (WS ticket 인증)
 - 현재 브랜치: `main`
-- 현재 기준선: `origin/main` 반영 완료. Phase 12 (조직/사용자), Phase 13 (IdP PoC), M1 (RBAC Core) 머지 완료.
+- 현재 기준선: main `cf19c94`. **Keycloak 단일 IdP 전환 완료(ADR-0019 — Hydra/Kratos 전면 제거).** Application·Repository·Project / DREQ / External Integration / Onboarding / Gitea SCM sync worker / Repository draft→publish + SCM 양방향 도메인 모두 1차 완성.
 
 ## 1. 개발 원칙
 
@@ -20,8 +22,8 @@
 - 프론트엔드 UI 표시명과 API wire format은 분리한다. 역할 값은 API에서 `developer`, `manager`, `system_admin`을 기본으로 한다.
 - 역할별 UX 제공은 프론트의 기본 진입 우선순위로 간접 제공하며, 백엔드는 role wire format과 권한 검사 일관성을 보장한다.
 - 명령성 액션은 boolean 결과가 아니라 `command_id`와 command status lifecycle로 관리하고 audit log를 남긴다.
-- 운영 actor는 최종적으로 `X-Devhub-Actor` header가 아니라 Hydra/Kratos 기반 세션 또는 JWT claim에서 도출한다.
-- 조직/사용자 도메인의 master data는 DevHub `users`/`org_units`가 담당하고, credential/session master는 Kratos가 담당한다.
+- 운영 actor는 `X-Devhub-Actor` header(폐기)가 아니라 **Keycloak OIDC 토큰의 JWT claim**에서 도출한다(JWKS 검증 + stale-while-error fallback, `internal/auth/keycloak_verifier.go`). ADR-0004/0006 으로 `X-Devhub-Actor` inbound 는 명시 거부.
+- 조직/사용자 도메인의 master data는 DevHub `users`/`org_units`가 담당하고, **credential/session master는 Keycloak(단일 IdP, ADR-0019)**가 담당한다. (이전 Hydra/Kratos 전제는 ADR-0019 로 폐기 — historical.)
 - 검증하지 않은 단계는 `done`으로 전환하지 않는다.
 - 세션 상태 문서는 브랜치별 memory 경로(`ai-workflow/memory/<agent>/<branch>/`)를 source of truth로 사용한다.
 
@@ -35,13 +37,13 @@
 | Phase 4 | done | 프론트 연동 계약 안정화 1차 | role wire format, REST snapshot/WebSocket envelope, integration requirements, 역할별 기본 진입 우선순위 지원 계약 | API 계약 문서화 및 smoke/lint 통과 |
 | Phase 5 | done | 프론트 snapshot API 1차 | metrics, infra topology, ci-runs/logs, risk 조회 API, runtime snapshot provider | handler 테스트 및 fallback 동작 확인 |
 | Phase 6 | done | 도메인 정규화 1차 | repository/user/issue/pull_request/ci_run/risk 기초 테이블 및 normalize processor | fixture 및 store 테스트 |
-| Phase 7 | in_progress | command/audit 기반 액션 API | service action, risk mitigation, command status, idempotency, audit log | approval/executor boundary, audit 조회 API, actor 검증 |
-| Phase 8 | in_progress | WebSocket 실시간 채널 | `/api/v1/realtime/ws`, `command.status.updated` publish, `types` subscription/RBAC filter | replay, infra/ci/risk event publish, resource scope filter |
+| Phase 7 | done | command/audit 기반 액션 API | service action(dry-run + live executor + approval/reject), risk mitigation, command status, idempotency, audit log(Keycloak event polling → `audit_logs` + user sync) | ✅ `commandworker/*`·`serviceaction/*`(mock/compose/k8s) + `internal/audit/*`. actor = Keycloak JWT claim |
+| Phase 8 | 부분 (ticket auth + command publish done, infra/ci/risk publish + replay 잔여) | WebSocket 실시간 채널 | `/api/v1/realtime/ws` + **ticket 인증(ADR-0024)** + `command.status.updated` publish + `types` subscription/RBAC filter | **잔여: RM-M4-01** infra/ci/risk event publish + **RM-M4-02** replay/resource scope filter |
 | Phase 9 | planned | Python AI gRPC 연결 | Go gRPC client, Python `AnalysisService`, build log summary/risk detection | gRPC 통합 테스트 |
 | Phase 10 | planned | Hourly Pull Reconciliation | Gitea REST client, 누락 이벤트 보정 worker | dry-run 및 idempotency 테스트 |
 | Phase 11 | planned | 시스템 관리자 기능 고도화 | Runner/server adapter, config 조회, allowlist/seed admin | 권한/audit/health adapter 테스트 |
 | Phase 12 | done | 조직/사용자 관리 API | `users`, `org_units`, appointments, hierarchy, unit members CRUD | handler/store 테스트 및 프론트 연동 |
-| Phase 13 | in_progress (1차 완성 sprint 진행 중) | Ory Hydra/Kratos IdP 도입 | OIDC code flow + PKCE end-to-end, `/api/v1/auth/{login,logout,token,signup,consent}`, `/api/v1/accounts/*` 발급/잠금/재설정/회수, `BearerTokenVerifier` (Hydra introspection), `SetTrustedProxies(nil)` audit 정합. | Kratos self-service webhook → `audit_logs` 통합 (`claude/login_usermanagement_finish` PR-M2-AUDIT). Hydra JWKS verifier 는 별도 보안 sprint 로 분리. |
+| Phase 13 | done (Keycloak 단일 IdP 전환, ADR-0019) | IdP 도입 — **Keycloak OIDC 단일 IdP** (이전 Hydra/Kratos PoC 는 historical, 전면 제거) | Keycloak OIDC code flow + PKCE, JWKS 검증 + stale-while-error fallback(`internal/auth/keycloak_verifier.go`), Keycloak event polling → `audit_logs` + user sync(`internal/audit/*`), `SetTrustedProxies(nil)`. WS 는 ticket 인증(ADR-0024). | ✅ done. ~~자체 `/api/v1/auth/*` proxy + `/api/v1/accounts/*` admin + Hydra introspection/JWKS verifier~~ 는 **모두 폐기**(historical) — credential/session 은 Keycloak 이 master. |
 
 ## 3. 현재 완료 범위
 
@@ -58,63 +60,87 @@
 - Phase 12 조직/사용자 CRUD API를 구현했다: users CRUD, org unit CRUD, hierarchy, unit members replace/list.
 - `GET /api/v1/audit-logs`를 추가했고 조직/사용자 CRUD와 멤버 교체에 audit log 생성을 연결했다.
 - `X-Devhub-Actor` 사용 시 deprecation 응답 헤더를 추가해 Phase 13 token actor 전환 경로를 노출했다.
-- `docs/backend_api_contract.md` §11을 Hydra/Kratos 기준으로 재작성하고 Go Core Bearer token verifier 경계를 추가했다.
+- ~~`docs/backend_api_contract.md` §11을 Hydra/Kratos 기준으로 재작성~~ → **Keycloak 단일 IdP(ADR-0019) 로 정정됨**. Go Core 의 토큰 검증은 Keycloak JWKS verifier(`internal/auth`)다.
 - `GET /api/v1/rbac/policy`를 추가하고 프론트 Permissions 화면이 backend policy를 조회하도록 준비했다.
 - RBAC policy version table과 `PUT /api/v1/rbac/policy`를 추가해 전체 matrix 교체와 audit log 기록 경계를 만들었다.
 - `PUT /api/v1/rbac/policy`에 `system_config: admin` RBAC enforcement를 적용했다.
 - `GET /api/v1/me`를 추가해 인증 actor를 DevHub `users`와 매핑하고 effective permissions를 반환한다.
 - service action, risk mitigation, audit 조회, 조직/사용자 쓰기 API에 RBAC enforcement를 적용했다.
-- Phase 13 Ory Hydra/Kratos PoC scaffold가 main에 반영됐다: `infra/idp/`, schema/config/client 등록 관련 파일.
-- 브랜치별 memory 구조를 적용해 현재 브랜치 상태 문서는 `ai-workflow/memory/codex/service-action-command/` 아래에서 관리한다.
+- ~~Phase 13 Ory Hydra/Kratos PoC scaffold가 main에 반영됐다~~ → **Keycloak 단일 IdP 전환(ADR-0019) 으로 Hydra/Kratos 자산 전면 제거됨**(historical). 현재 IdP 인프라는 Keycloak realm/client + event listener SPI(`infra/idp/keycloak-event-listener-spi/`).
+- 브랜치별 memory 구조를 적용해 현재 브랜치 상태 문서는 `ai-workflow/memory/<agent>/<branch>/` 아래에서 관리한다.
+
+### 3.1 2026-05-12 이후 신규 완성 도메인 (ADR-0019 Keycloak 전환 이후, main `cf19c94` 기준)
+
+> 상세 패키지/마이그레이션 근거는 [04_backend_summary.md](../../docs/analysis/2026-05-27-codebase-snapshot/04_backend_summary.md) §1·§3·§5 참조.
+
+- **인증 — Keycloak 단일 IdP(ADR-0019)**: 자체 Hydra/Kratos 흐름 + `/api/v1/auth/*` proxy + `/api/v1/accounts/*` admin 전면 폐기. JWKS 검증(`internal/auth/keycloak_verifier.go`, TTL 5분 + stale-while-error fallback). audit 는 Keycloak event polling(`internal/audit/*`, event_cursors dedup + Prometheus).
+- **Application / Repository / Project**: CRUD + 상태전이 + rollup + RBAC row-scoping(ADR-0011). `applications.go`·`projects.go`·`repository_ops.go`·`application_rollup.go`.
+- **Repository draft→publish lifecycle (#368, migration 000043)**: draft 생성 + publish 요청(`repository_ops.go`). ⚠ **무테스트 머지** — UT/통합테스트 보강 잔여(N-2).
+- **SCM↔시스템 repository 양방향 (#363/#366/#373)**: 소유권 분리(source=scm|system, migration 000042) + import(API-89) + create(API-90, gitea CreateRepo) + capability gate + provider_id 단일화(000045). `integration_scm_repositories.go` + UpsertRepository ON CONFLICT(mirror 만 갱신).
+- **DREQ (Dev Request)**: intake auth(API token + IP allowlist, ADR-0012) + promote-tx(단일 트랜잭션) + intake token admin(ADR-0014) + 만료 token revoke cron(`internal/devrequest/`).
+- **External Integration**: provider/binding registry + auth_mode full 모델(token/basic/app_password/oauth2/agent, migration 000041 OutboundAuth) + base_url(000038) + api_token write-only(000040) + 연결 테스트(API-87) + 범용 webhook ingest(X-Gitea/X-Gogs alias) + HomeLab pull adapter(`internal/integrations/adapters/*`).
+- **Onboarding (ADR-0021)**: gate middleware + submit/search/admin review(API-83..86) + onboarding 상태머신(migration 000033). lazy_auto_create 폐기.
+- **Gitea SCM 동기화 워커 (#341)**: REST pull(repos/issues/PRs) 정규화 upsert + `integration_sync_jobs` 큐(SKIP LOCKED) + per-provider sync config(`internal/gitea/{client,syncer,worker}.go`).
+- **Realtime WS ticket 인증(ADR-0024, #344/#348)**: `POST /api/v1/realtime/ticket` → `?ticket=` single-use 60s(PG/in-memory store). `?access_token=` query 전면 제거(ticket-only cutover).
 
 ## 4. 재검토 결과
 
 ### 방향성 충돌 없음
 
 - Phase 12 조직/사용자 관리와 현재 command/realtime 작업은 충돌하지 않는다. 둘 다 `backend-core` 라우터와 Postgres store에 공존 가능하다.
-- Phase 13 IdP 도입은 현재 command actor 처리 방식과 직접 연결된다. 기존 `X-Devhub-Actor`는 개발용 임시 경계로 유지하고, production 경계는 JWT/session claim 기반으로 전환해야 한다.
-- service action command의 dry-run 자동 성공 전이는 “실제 executor 도입 전 안전한 시뮬레이션”으로 유지 가능하다.
+- Phase 13 IdP 는 **Keycloak 단일 IdP(ADR-0019)**로 종결됐다. `X-Devhub-Actor` 는 inbound 명시 거부(ADR-0006), production actor 경계는 Keycloak OIDC JWT claim 이다.
+- service action command의 dry-run 자동 성공 전이는 “실제 executor 도입 전 안전한 시뮬레이션”으로 유지하되, live executor(mock/compose/k8s 모드)도 구현됐다.
 
-### 조정이 필요한 전제
+### 조정이 필요한 전제 (2026-05-27 갱신)
 
-- WebSocket은 endpoint, command event, `types` subscription/RBAC filter 1차까지 구현됐다. Phase 8은 done이 아니라 “command event와 역할 필터 1차 완료, replay와 resource scope filter 미완료” 상태다.
-- Command/Audit는 command 생성, 상태 전이, audit 조회, approval boundary 1차까지 구현됐다. 실제 executor adapter는 아직 없으므로 Phase 7은 계속 in_progress다.
-- Phase 13 계정/인증 계약은 자체 accounts table 전제를 폐기하고 Hydra/Kratos 기준으로 재작성했다. 실제 JWKS/introspection verifier와 admin identity wrapper 구현은 남아 있다.
-- Docker 기반 실행 전제와 Phase 13 native binary 운영 전제가 문서마다 섞여 있다. 로컬 검증 명령은 당분간 Go/NPM/native PostgreSQL 중심으로 유지하고, Docker Compose는 호환 폴백으로 낮춘다.
+- WebSocket: ticket 인증(ADR-0024) + command publish + `types` subscription/RBAC filter 까지 done. **잔여는 infra/ci/risk event publish(RM-M4-01) + replay/resource scope filter(RM-M4-02)** 뿐 — Phase 8 부분.
+- Command/Audit: command 생성·상태 전이·approval/reject·live executor + audit(Keycloak event polling) 까지 done → Phase 7 done.
+- ~~Phase 13 계정/인증 계약은 Hydra/Kratos 기준 + JWKS/introspection verifier·admin identity wrapper 잔여~~ → **폐기**(historical). Keycloak 단일 IdP 전환으로 JWKS verifier 만 사용하고 자체 accounts/auth proxy 는 제거됨. admin identity wrapper 불필요.
+- 로컬 검증 명령은 Go/NPM/native PostgreSQL 중심(no-docker default, ADR-0003). Docker Compose 자산은 환경별 git 추적 외부.
 
 ## 5. 기능 단위별 우선순위 계획 (Functional Priorities)
 
-### [P0] M2: 인증 및 사용자 기반 (Auth & User Base)
+> ⚠ **2026-05-27 갱신**: 본 §5 는 2026-05-12 시점의 M2~M4 계획을 담고 있었으나 ADR-0019 Keycloak 전환 + 도메인 다수 완성으로 대부분 종결됐다. 우선순위·잔여 carve 의 **최신 source-of-truth 는 [`docs/planning/release_v1_roadmap.md`](../../docs/planning/release_v1_roadmap.md)** 다. 아래는 backend 트랙의 완성/잔여 요약으로 정정한다.
 
-M2 핵심 골격(M1 RBAC + Phase 13 OIDC 흐름)은 done. 다음 sprint 에서 잔여 정합 항목을 닫는다.
+### [P0] M2: 인증 및 사용자 기반 — ✅ 종결 (Keycloak 단일 IdP 전환)
 
-- **OIDC introspection verifier**: ✅ done — `internal/auth/HydraIntrospectionVerifier` (admin `/admin/oauth2/introspect`).
-- **`X-Request-ID` middleware + audit enrichment**: ✅ done — `source_ip`/`request_id`/`source_type` (PR #57·#80·#82).
-- **Accounts admin endpoints**: ✅ done — `POST/PUT/PATCH/DELETE /api/v1/accounts` (PR #54).
-- **사용자 상태 동기화 (Kratos webhook → `audit_logs`)**: **🟡 1차 완성 sprint 진입 대기** — `claude/login_usermanagement_finish` PR-M2-AUDIT. 최소 `settings/password/after`. 인증: shared secret 권장.
-- **Hydra JWKS verifier 실구현**: **deferred → 별도 보안 sprint**. 현 introspection 안정 동작 확인됨.
-- **Identity Admin Wrapper 추가 5종**: 단계적 — 현재는 accounts 4 endpoint 로 충분. 추가 요구는 M3 Sign Up 도입 시 검토.
+M2 인증 기반은 **Keycloak 단일 IdP(ADR-0019)로 종결**됐다. 이전 Hydra/Kratos/accounts 항목은 historical.
 
-### [P1] M3: 사용자 및 조직 관리 (User & Org Management)
-- **User CRUD & RBAC Refinement**: 사용자 CRUD API 안정화 및 역할(Role) 할당 유효성 검증 강화.
-- **Sign Up Service**: 인사 DB 연동 기반의 가입 승인 로직 구현.
-    - `POST /api/v1/auth/signup`: 인사 DB 조회 후 Kratos identity 생성 및 DevHub `users` 매핑.
-- **Org Hierarchy Edit**: 부서 위치(X, Y) 및 상하 관계 영속화 API 고도화.
+- **Keycloak OIDC + JWKS verifier**: ✅ done — `internal/auth/keycloak_verifier.go`(TTL 5분 + stale-while-error fallback). ~~Hydra introspection verifier~~ 폐기.
+- **`X-Request-ID` middleware + audit enrichment**: ✅ done — `source_ip`/`request_id`/`source_type`.
+- ~~**Accounts admin endpoints** (`POST/PUT/PATCH/DELETE /api/v1/accounts`)~~: **폐기**(historical) — 계정 lifecycle 은 Keycloak + Onboarding admin review(API-86)로 대체.
+- ~~**Kratos self-service webhook → `audit_logs`** (PR-M2-AUDIT)~~: **폐기**(historical) — audit 는 Keycloak event polling(`internal/audit/*`)으로 대체 완성.
+- ~~**Hydra JWKS verifier / Identity Admin Wrapper**~~: **폐기**(historical) — Keycloak JWKS verifier 단일화.
 
-### [P2] M4: 실시간 대시보드 및 AI (Realtime & AI)
-- **WebSocket 확장**: `infra.node.updated`, `ci.run.updated`, `risk.updated` 이벤트 publish 및 리플레이 전략 구현.
-- **gRPC 서비스 연결**: Python `AnalysisService`와 Go Core 간 gRPC 통신 구현.
+### [P1] M3: 사용자 및 조직 관리 — ✅ 완성
 
-### [P3] M4: 과제 추적 및 시스템 관리 (Task & Admin)
-- **Gitea Reconciliation**: Gitea REST API를 통한 Hourly Pull worker 구현 및 데이터 누락 보정.
-- **Task 정규화**: Pull Request/Commit 기반 과제 데이터 추적 및 영속화 테이블 도입.
-- **System Admin**: 전역 설정 관리 API 및 시스템 리소스 모니터링 기능 확장.
+- **User/Org CRUD + RBAC**: ✅ done — users CRUD + org unit 계층/임명 + single-leader invariant(SQL) + RBAC 4-boolean matrix + row-scoping(ADR-0011). `organization.go`·`users_units.go`·`permissions.go`.
+- ~~**Sign Up Service** (`POST /api/v1/auth/signup` + Kratos identity)~~: **cancelled** — 외부 IdP 시나리오(IdP 팀/HRDB ETL 책임). Onboarding self-service(ADR-0021)로 대체.
+- **Onboarding**: ✅ done — gate + submit/search/admin review(API-83..86) + 상태머신.
+
+### [P2] M4: 실시간 대시보드 및 AI — 🟡 부분 (잔여 = RM-M4)
+
+- **WebSocket**: ticket 인증(ADR-0024) + command publish done. **잔여: `infra.node.updated`/`ci.run.updated`/`risk.updated` publish(RM-M4-01) + replay/resource scope filter(RM-M4-02)**.
+- **gRPC AnalysisService**: 🔴 미구현 — `backend-ai/main.py` 스켈레톤(`/health` 만). **v2 범위**(AI Gardener/로그 분석/Weekly report).
+
+### [P3] M4: 외부 연동·SCM·시스템 관리 — ✅ 대부분 완성
+
+- **External Integration**: ✅ done — provider/binding registry + auth_mode full 모델 + base_url + api_token(write-only) + 연결 테스트 + 범용 webhook ingest + HomeLab pull.
+- **Gitea SCM 동기화**: ✅ done — REST pull sync worker + `integration_sync_jobs` 큐(SKIP LOCKED). **잔여: RM-M4-06 Hourly Pull 정밀화(reconciliation 스케줄, issue #231)**.
+- **Repository draft→publish + SCM 양방향**: ✅ done(#368/#363/#366/#373). **잔여: #368 무테스트 보강(N-2)**.
+- **System Admin 운영 가시성**: 🟡 잔여 — sync job 큐/provider health 운영 대시보드(RM-M4-07, BE 데이터는 있으나 운영 view 없음).
+
+### [보안 부채] (release_v1 §3.3 / snapshot 04 §6)
+
+- **평문 secret envelope 암호화(#6)**: 🟡 미해소 — `credentials_ref`/`api_token`/`auth_secret` 평문 저장. 신규 secret 은 write-only 응답 패턴(`<field>_set` bool)이나 저장 자체는 평문. DEK/KMS 암호화 + 키 관리 ADR 잔여.
+- **마이그레이션 prefix uniqueness CI guard**: 🟡 — 000042 동시 발급 충돌 이력(CI bypass 통과). `uniq -d` gate 강화 필요(N-5).
+- **Keycloak SPI realm events push 전환(P3-5)**: polling 30s → <1s, SPI JAR 빌드·배포(사내 동반).
 
 ---
 
 ## 6. 다음 작업 큐 (Next Tasks Queue)
-- [x] API 계약 §11 Hydra/Kratos 재작성
-- [x] Bearer token 검증 middleware 설계 및 최소 구현
+- [x] ~~API 계약 §11 Hydra/Kratos 재작성~~ (당시 done — 이후 Keycloak 단일 IdP(ADR-0019)로 재정정됨)
+- [x] Bearer token 검증 middleware 설계 및 최소 구현 (현행 = Keycloak JWKS verifier)
 - [x] RBAC policy 조회 API 및 프론트 Permissions 연동 준비
 - [x] RBAC policy persistence/edit API와 audit 경계
 - [x] RBAC policy edit enforcement (`system_config: admin`)
@@ -128,19 +154,32 @@ M2 핵심 골격(M1 RBAC + Phase 13 OIDC 흐름)은 done. 다음 sprint 에서 �
 - [x] service action approval/reject API 및 audit boundary
 - [x] approved live service action query 및 executor adapter boundary
 - [x] simulation service action executor 및 명시적 main 주입 설정
-- [x] Hydra introspection verifier (admin endpoint) 구현 — PR-LOGIN-1 / Phase 13 PoC 반영
-- [x] Bearer token middleware + audit `source_ip`/`request_id` enrichment — PR #57·#80·#82
-- [x] Accounts admin endpoints 4종 (issue/reset/disable/delete) — PR #54
-- [ ] **PR-M2-AUDIT**: Kratos self-service webhook → `audit_logs` (claude/login_usermanagement_finish)
-- [ ] Hydra JWKS verifier 실구현 — 별도 보안 sprint 로 분리 (M2 1차 완성 후)
-- [ ] WebSocket resource scope filtering 설계 및 구현 (M4)
-- [ ] Python AI gRPC client 연동 (internal/analysis) (M4)
-- [ ] Gitea REST Pull worker 및 Hourly Reconciliation (M4)
+- [x] ~~Hydra introspection verifier (admin endpoint)~~ → **Keycloak JWKS verifier 로 대체**(ADR-0019, `internal/auth/keycloak_verifier.go`)
+- [x] Bearer token middleware + audit `source_ip`/`request_id` enrichment
+- [x] ~~Accounts admin endpoints 4종~~ → **폐기**(historical) — Keycloak + Onboarding admin review(API-86)로 대체
+- [x] ~~PR-M2-AUDIT (Kratos self-service webhook → `audit_logs`)~~ → **폐기**(historical) — Keycloak event polling(`internal/audit/*`)으로 audit 완성
+- [x] Application/Repository/Project CRUD + 상태전이 + rollup + row-scoping
+- [x] DREQ intake auth + promote-tx + token admin + 만료 cron
+- [x] External Integration provider/binding + auth_mode full + base_url + api_token + 연결 테스트 + 범용 webhook ingest + HomeLab pull
+- [x] Onboarding gate + submit/search/admin review(API-83..86)
+- [x] Gitea SCM pull sync worker + `integration_sync_jobs` 큐
+- [x] Repository draft→publish(#368) + SCM 양방향 import/create(API-89/90) + provider_id 단일화(#373)
+- [x] Realtime WS ticket 인증(ADR-0024, `?access_token=` 제거)
+- [ ] **N-2**: repository draft→publish(#368) UT/통합테스트 보강 (무테스트 머지분)
+- [ ] **N-3**: SCM import/create + draft/publish happy-path E2E
+- [ ] **RM-M4-01**: WebSocket infra/ci/risk event publish
+- [ ] **RM-M4-02**: WebSocket replay + resource scope filter
+- [ ] **#6**: 평문 secret envelope 암호화 (credentials_ref/api_token/auth_secret DEK + 키 관리 ADR)
+- [ ] **N-5**: 마이그레이션 prefix uniqueness CI guard 강화
+- [ ] **RM-M4-06**: Gitea Hourly Pull 정밀화 (reconciliation 스케줄, issue #231)
+- [ ] **RM-M4-07**: System Admin 운영 대시보드용 sync job 큐/provider health 노출
+- [ ] **v2**: Python AI gRPC AnalysisService (backend-ai 스켈레톤 → 실구현)
 
 ## 7. Blocked 항목
 
 - 현재 백엔드 코드 진행을 막는 hard blocker는 없다.
-- Phase 13 실제 round-trip 검증은 Hydra/Kratos native binary, PostgreSQL schema, frontend auth route 준비가 필요하다.
+- ~~Phase 13 round-trip 검증은 Hydra/Kratos native binary 준비 필요~~ → **해소**(historical). Keycloak OIDC E2E 는 CI shard 1/2 에서 실 연동(Keycloak realm/client 설정) 검증된다.
+- **Keycloak group staging-prod 적용(P1-3, issue #214)** + **SPI realm events push 전환(P3-5)** 은 사내 Keycloak admin/배포 동반 항목으로 backend 코드 외부 의존이다.
 - 외부 네트워크/사내 SSL inspection 환경에서는 Go module, npm package, font 다운로드가 막힐 수 있으므로 mirror 또는 사내 CA 설정을 사용한다.
 
 ## 8. 진척 관리 방식
