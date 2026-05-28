@@ -26,6 +26,7 @@ import { repositoryService, Repository } from "@/lib/services/repository.service
 import { ENABLE_LEGACY_MOCK_UI } from "@/lib/config/mock-ui";
 import { legacyMockProjectActivity, legacyMockProjectTasks } from "@/lib/archive/mock-ui-legacy";
 import { toUserErrorMessage } from "@/lib/services/error-message";
+import { lifecycleStatusBadgeVariant } from "@/lib/utils/lifecycle-status";
 import { PageError, PageLoading } from "@/components/ui/PageState";
 import { 
   Tooltip, 
@@ -265,7 +266,7 @@ export default function ProjectDetailPage() {
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-1">
             <h1 className="text-3xl font-black text-foreground dark:text-primary-foreground tracking-tight">{project.name}</h1>
-            <Badge variant={project.status === "active" ? "success" : "warning"} dot>{project.status}</Badge>
+            <Badge variant={lifecycleStatusBadgeVariant(project.status)} dot>{project.status}</Badge>
           </div>
           <p className="text-muted-foreground text-sm flex items-center gap-2">
             <Target className="w-4 h-4" /> {project.key} • <Calendar className="w-4 h-4 ml-2" /> Due: {project.due_date || "TBD"}

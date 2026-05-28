@@ -27,6 +27,7 @@ import { applicationService, ApplicationDashboard } from "@/lib/services/applica
 import { projectService } from "@/lib/services/project.service";
 import { ApplicationRepository } from "@/lib/services/project.types";
 import { toUserErrorMessage } from "@/lib/services/error-message";
+import { lifecycleStatusBadgeVariant } from "@/lib/utils/lifecycle-status";
 import { PageError, PageLoading } from "@/components/ui/PageState";
 import { apiClient } from "@/lib/services/api-client";
 import {
@@ -182,7 +183,7 @@ export default function ApplicationDetailPage() {
           <div>
             <div className="flex flex-wrap items-center gap-3 mb-1">
               <h1 className="text-3xl font-black text-foreground tracking-tight">{dashboard.name}</h1>
-              <Badge variant={dashboard.status === "active" ? "success" : "warning"} dot>{dashboard.status}</Badge>
+              <Badge variant={lifecycleStatusBadgeVariant(dashboard.status)} dot>{dashboard.status}</Badge>
               <Badge variant="secondary" className="bg-white/5 backdrop-blur-md border border-white/10">{dashboard.visibility}</Badge>
             </div>
             <p className="text-muted-foreground text-sm flex flex-wrap items-center gap-x-2 gap-y-1">
