@@ -134,6 +134,42 @@ func TestArchiveProject_Happy(t *testing.T) {
 	}
 }
 
+func TestProjectDeleteLifecycle(t *testing.T) {
+	appStore := newMemoryApplicationStore()
+	p, _ := appStore.CreateProject(context.Background(), domain.Project{
+		Key: "k1", Name: "X", RepositoryID: 42, Status: domain.ApplicationStatusActive,
+		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+	})
+	router := newApplicationsRouter(appStore)
+
+	// 1) Active 상태에서 ?hard=true 로 삭제 시도 -> 400 Bad Request
+	rec1 := doJSON(t, router, http.MethodDelete, "/api/v1/projects/"+p.ID+"?hard=true", "")
+	if rec1.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for hard deletion of non-archived project, got=%d body=%s", rec1.Code, rec1.Body.String())
+	}
+
+	// 2) 일반 soft-delete (archive) -> 200 OK & status=archived
+	rec2 := doJSON(t, router, http.MethodDelete, "/api/v1/projects/"+p.ID, `{"archived_reason":"sprint ended"}`)
+	if rec2.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec2.Code, rec2.Body.String())
+	}
+
+	// 3) Archived 상태에서 ?hard=true 로 영구 삭제 -> 200 OK & status=deleted
+	rec3 := doJSON(t, router, http.MethodDelete, "/api/v1/projects/"+p.ID+"?hard=true", "")
+	if rec3.Code != http.StatusOK {
+		t.Fatalf("expected 200 for hard deletion of archived project, got=%d body=%s", rec3.Code, rec3.Body.String())
+	}
+	if !strings.Contains(rec3.Body.String(), `"status":"deleted"`) {
+		t.Errorf("expected status=deleted: %s", rec3.Body.String())
+	}
+
+	// 4) 삭제 후 조회 시 -> 404 NotFound
+	rec4 := doJSON(t, router, http.MethodGet, "/api/v1/projects/"+p.ID, "")
+	if rec4.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 after deletion, got=%d", rec4.Code)
+	}
+}
+
 // 7) GET /projects/:id — not_found → 404.
 func TestGetProject_NotFound(t *testing.T) {
 	router := newApplicationsRouter(newMemoryApplicationStore())

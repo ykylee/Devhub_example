@@ -779,6 +779,28 @@ func (h *Handler) archiveProject(c *gin.Context) {
 		return
 	}
 
+	isHard := c.Query("hard") == "true"
+
+	if isHard {
+		if current.Status != "archived" {
+			c.JSON(http.StatusBadRequest, gin.H{"status": "bad_request", "error": "project must be archived before hard deletion"})
+			return
+		}
+		if err := storeI.DeleteProject(c.Request.Context(), id); err != nil {
+			if errors.Is(err, store.ErrNotFound) {
+				c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "project not found"})
+				return
+			}
+			writeServerError(c, err, "projects.delete")
+			return
+		}
+		h.recordAuditBestEffort(c, "project.deleted", "project", id, nil)
+		c.JSON(http.StatusOK, gin.H{
+			"status": "deleted",
+		})
+		return
+	}
+
 	archived, err := storeI.ArchiveProject(c.Request.Context(), id, req.ArchivedReason)
 	if errors.Is(err, store.ErrNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "project not found"})

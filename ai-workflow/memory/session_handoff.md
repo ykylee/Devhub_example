@@ -1,3 +1,32 @@
+# Session Handoff — main (2026-05-28 post-#389 — project delete/archive 처리)
+
+- 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.
+- 범위: 직전 #373 housekeeping 이후 1 PR (#389) 머지.
+- 상태: main HEAD `e90ce75` (PR #389).
+- 최종 수정일: 2026-05-28
+
+## 2026-05-28 (post-#389) 결산
+
+사용자 지시 "project list에서 project를 delete 버튼으로 삭제하면 1. archived로 이동, 2. archived인 경우 db까지 완전히 삭제되도록 해줘." → Soft & Hard Delete 분기 구현.
+
+| sha | PR | core |
+| --- | --- | --- |
+| `e90ce75` | **#389** (gemini) | **프로젝트 삭제/아카이빙 분기 로직**. 백엔드: `DeleteProject` 추가 (router.go, PostgresStore, memoryApplicationStore), `archiveProject` 핸들러 분기 수정 (Status == 'archived' 이면 DeleteProject로 하드 딜리트 / 아니면 ArchiveProject로 soft 아카이빙). 프론트엔드: `projects/page.tsx` 카드 액션 바 영역 `Trash2` 삭제 버튼 추가 + 상태별(soft / hard) confirm 팝업 경고 노출 및 `handleDelete` callback refresh 구현. |
+
+### 다음 directive (claude)
+
+1. inbound webhook 정규화 깊이 / #6 평문 secret envelope 암호화 / Phase C 후속 (project flow ↔ SCM create).
+2. **repository draft→publish flow 테스트/E2E 보강** (#368 handler 무테스트 머지분).
+3. #366/#363 codex 재리뷰 확인 (#355 usage limit).
+
+사내/사용자: Onboarding SOP staging monitoring / nginx OIDC / Keycloak 26.0 smoke / issue #214 / Keycloak SPI realm events wire.
+
+### 검증
+
+#389 go build+vet+test ./...(13 pkg) + tsc+eslint+vitest 55+build green. prefix 중복 0. Open PR 0.
+
+---
+
 # Session Handoff — main (2026-05-27 post-#373 — repositories provider_id 단일화)
 
 - 문서 목적: main 브랜치 기준 세션 상태와 다음 작업 진입점.

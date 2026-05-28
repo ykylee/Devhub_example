@@ -77,6 +77,7 @@ type ApplicationStore interface {
 	CreateProject(context.Context, domain.Project) (domain.Project, error)
 	UpdateProject(context.Context, domain.Project) (domain.Project, error)
 	ArchiveProject(context.Context, string, string) (domain.Project, error)
+	DeleteProject(context.Context, string) error
 	ListProjectRepositories(context.Context, string) ([]domain.ProjectRepository, error)
 	CreateProjectRepository(context.Context, domain.ProjectRepository) (domain.ProjectRepository, error)
 	DeleteProjectRepository(context.Context, string, int64) error
