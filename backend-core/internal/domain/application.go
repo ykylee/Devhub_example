@@ -198,11 +198,12 @@ type ProjectIntegration struct {
 type IntegrationProviderType string
 
 const (
-	IntegrationProviderTypeALM   IntegrationProviderType = "alm"
-	IntegrationProviderTypeSCM   IntegrationProviderType = "scm"
-	IntegrationProviderTypeCICD  IntegrationProviderType = "ci_cd"
-	IntegrationProviderTypeDoc   IntegrationProviderType = "doc"
-	IntegrationProviderTypeInfra IntegrationProviderType = "infra"
+	IntegrationProviderTypeALM         IntegrationProviderType = "alm"
+	IntegrationProviderTypeSCM         IntegrationProviderType = "scm"
+	IntegrationProviderTypeCICD        IntegrationProviderType = "ci_cd"
+	IntegrationProviderTypeDoc         IntegrationProviderType = "doc"
+	IntegrationProviderTypeInfra       IntegrationProviderType = "infra"
+	IntegrationProviderTypeTaskTracker IntegrationProviderType = "task_tracker"
 )
 
 // IntegrationAuthMode is the credentials mode for a provider.
@@ -245,8 +246,35 @@ type IntegrationProvider struct {
 	AuthClientID string // oauth2 client_id
 	AuthTokenURL string // oauth2 token endpoint (client-credentials grant)
 	AuthSecret   string // basic/app_password password, or oauth2 client_secret
+	// Task Item Ingestion 필드 (migration 000046, provider_type='task_tracker' 시 유효)
+	WebhookSecret          string
+	PullIntervalSeconds    int
+	LastPulledAt           *time.Time
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
+}
+
+// ExternalTaskItem is one row in external_task_items.
+// Mirrors an external ALM/SCM/Issue Tracker task/issue/ticket.
+type ExternalTaskItem struct {
+	ID               string
+	ProviderID       string
+	ExternalID       string
+	Title            string
+	Description      string
+	RawStatus        string
+	NormalizedStatus string
+	Priority         string
+	Assignee         string
+	Reporter         string
+	URL              string
+	Labels           []string
+	RawPayload       []byte
+	WebhookSeq       *int64
+	FetchedAt        time.Time
+	DeletedAt        *time.Time
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
 }
 
 // OutboundAuth resolves the credential values this provider uses to authenticate

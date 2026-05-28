@@ -4,7 +4,7 @@
 - 범위: backend-core 주요 모듈(auth/account/org/rbac/gitea ingest/command/audit/realtime/store) + Application/Project 도메인 + Repository SCM 연동/Lifecycle + External Integration.
 - 대상 독자: 프로젝트 리드, 시스템 관리자, Backend/Frontend 설계 담당, 추적성 리뷰어.
 - 상태: draft
-- 최종 수정일: 2026-05-27 (§2.14 Repository SCM 연동+Lifecycle UC-REPO 신규 + §2.12 INT 에 auth_mode/test-connection/Gitea pull sync/webhook alias UC-INT-15..18 추가)
+- 최종 수정일: 2026-05-28 (§2.16 Task Item Ingestion UC-TASK-01..06 신규)
 - 관련 문서: [요구사항](../requirements.md), [아키텍처](../architecture.md), [API 계약](../backend_api_contract.md), [ERD 카탈로그](./system_erd.md), [통합 로드맵](../development_roadmap.md)
 
 ## 1. 모듈 기준
@@ -201,9 +201,30 @@
 | `UC-APPDASH-06` | 리포지토리 가중치 배분 및 정책 갱신 | 롤업 집계에 사용되는 리포지토리별 가중치 정책을 도넛 차트로 확인하고 변경 적용 설정을 제공함 | REQ-FR-APPDASH-006 |
 | `UC-APPDASH-07` | 연동 장애 시 우아한 성능 저하(Graceful Degradation) 작동 | 특정 저장소/CI 연동 장애가 발생해도 전체 대시보드가 깨지지 않고 가용한 데이터만 롤업해 표시하며 장애 난 저장소에 대해 `data_gap` 또는 경고 표시 노출 | REQ-NFR-APPDASH-003 |
 
+### 2.16 Task Item Ingestion (외부 시스템 작업 항목 수집)
+
+> 외부 ALM/SCM/Issue Tracker 시스템(Jira, GitHub Issues, GitLab, Linear)의 작업 항목을 Webhook(실시간) + Pull(주기 동기화) 혼합 방식으로 수집한다. 기존 `integration_providers` / `integration_bindings` 인프라를 확장하며, adapter 가 Webhook/Pull 공통 정규화 경로를 책임진다. ([컨셉 문서](./task_item_ingestion_concept.md), [요구사항 §5.10](../requirements.md#510-외부-시스템-작업-항목-수집-task-item-ingestion))
+
+| UC ID | Usecase | 성공 조건 | 관련 REQ |
+| --- | --- | --- | --- |
+| `UC-TASK-01` | Task Tracker Provider 등록/관리 | system_admin 이 `provider_type = "task_tracker"` + `capabilities: ["task_item"]` 로 Provider 를 등록/수정/삭제할 수 있다. 등록 시 `base_url`, `api_token`(Pull 용), `webhook_secret`(Webhook 용) 을 설정할 수 있다. | REQ-FR-TASK-001, REQ-FR-TASK-002 |
+| `UC-TASK-02` | Webhook 기반 실시간 Task 수신 | 외부 시스템이 `POST /api/v1/integration/providers/:provider_id/tasks/webhook` 로 task 이벤트(created/updated/deleted)를 전송하면, `X-Webhook-Secret` 검증 후 `external_task_items` 테이블에 upsert 또는 soft-delete 하고 `202 Accepted` 를 반환한다. 수신마다 `webhook_seq` 가 발급되고 `raw_payload` 가 보존된다. adapter 가 외부 포맷을 공통 포맷으로 정규화한다. | REQ-FR-TASK-003, REQ-FR-TASK-004, REQ-FR-TASK-005, REQ-FR-TASK-006 |
+| `UC-TASK-03` | Pull 기반 주기 Task 동기화 | `TaskItemPuller` 인터페이스를 구현한 adapter 가 Provider 설정의 `pull_interval_seconds`(기본 1800s) 간격으로 외부 시스템 API 를 호출해 task 목록을 수집한다. 증분 조회(`last_pulled_at` 기준)를 기본으로 하며 페이지네이션을 지원한다. 초기 실행 시 전수 수집을 수행한다. | REQ-FR-TASK-007, REQ-FR-TASK-008 |
+| `UC-TASK-04` | Webhook 유실 탐지 및 복구 | Pull loop 가 수집된 `webhook_seq` 의 gap 을 탐지하여 유실된 webhook 이벤트를 발견한다. gap 발견 시 보강(recovery) pull 을 트리거하고 audit log 에 기록한다. | REQ-FR-TASK-009 |
+| `UC-TASK-05` | Task Item 목록/상세 조회 | `GET /api/v1/external-tasks` 로 provider_id, raw_status, normalized_status, assignee, labels 필터를 적용해 task item 목록을 조회할 수 있다. 단건 조회도 가능하다. | REQ-FR-TASK-010 |
+| `UC-TASK-06` | Binding 기반 Scope 접근 제어 | `integration_bindings` 를 통해 Application/Project 에 연결된 task item 만 조회된다. Provider 직접 조회는 system_admin 전용이다. | REQ-FR-TASK-010, NFR-TASK-001 |
+
 ## 3. 설계/구현 반영 규칙
 
 1. 신규/변경 API는 최소 1개 UC를 참조해야 한다.
 2. 신규 마이그레이션은 대응 UC와 연결되어야 한다.
 3. 추적성 매트릭스는 REQ→UC→ARCH/API→IMPL→UT/TC 순으로 유지한다.
 4. 갱신 메모(2026-05-27): API-87(test-connection)/88(scm-repositories list)/89(import-repositories)/90(create-repository) 및 repository draft→publish(`POST /repositories`, `/repositories/:id/publish`) 는 위 §2.12 UC-INT-15..18 / §2.14 UC-REPO-01..07 에 매핑한다. repository draft→publish(#368) 는 무테스트로 머지되었으므로 대응 UT/TC 보강이 후속 carve 대상이다(02_sdlc_chain_status.md G4 참조). 신규 REQ-FR 는 발급하지 않고 REQ-FR-APP-002/004/009 + REQ-FR-INT-004/012 를 재사용한다.
+
+---
+
+## 변경 이력
+
+| 일자 | 변경 |
+| --- | --- |
+| 2026-05-28 | §2.16 Task Item Ingestion 신규 (UC-TASK-01..06). Sprint `deepseek/work_260528-a-task-item-ingestion`. |

@@ -18,7 +18,7 @@ import (
 )
 
 var validIntegrationProviderTypes = map[string]bool{
-	"alm": true, "scm": true, "ci_cd": true, "doc": true, "infra": true,
+	"alm": true, "scm": true, "ci_cd": true, "doc": true, "infra": true, "task_tracker": true,
 }
 
 var validIntegrationAuthModes = map[string]bool{
@@ -45,9 +45,12 @@ func integrationProviderResponse(p domain.IntegrationProvider) gin.H {
 		"auth_username":   emptyAsNil(p.AuthUsername),
 		"auth_client_id":  emptyAsNil(p.AuthClientID),
 		"auth_token_url":  emptyAsNil(p.AuthTokenURL),
-		"auth_secret_set": p.AuthSecret != "",
-		"created_at":      p.CreatedAt.UTC().Format(time.RFC3339),
-		"updated_at":      p.UpdatedAt.UTC().Format(time.RFC3339),
+		"auth_secret_set":         p.AuthSecret != "",
+		"webhook_secret_set":      p.WebhookSecret != "",
+		"pull_interval_seconds":   p.PullIntervalSeconds,
+		"last_pulled_at":          nullableRFC3339(p.LastPulledAt),
+		"created_at":              p.CreatedAt.UTC().Format(time.RFC3339),
+		"updated_at":              p.UpdatedAt.UTC().Format(time.RFC3339),
 	}
 }
 
@@ -181,7 +184,7 @@ func (h *Handler) listIntegrationProviders(c *gin.Context) {
 		ProviderType: domain.IntegrationProviderType(c.Query("provider_type")),
 	}
 	if string(opts.ProviderType) != "" && !validIntegrationProviderTypes[string(opts.ProviderType)] {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "provider_type must be alm|scm|ci_cd|doc|infra"})
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "provider_type must be alm|scm|ci_cd|doc|infra|task_tracker"})
 		return
 	}
 	enabled, ok := parseOptionalBool(c.Query("enabled"))
@@ -233,6 +236,9 @@ type createIntegrationProviderRequest struct {
 	AuthClientID string `json:"auth_client_id"`
 	AuthTokenURL string `json:"auth_token_url"`
 	AuthSecret   string `json:"auth_secret"`
+	// Task Tracker 전용 필드 (provider_type='task_tracker' 시 유효)
+	WebhookSecret       string `json:"webhook_secret"`
+	PullIntervalSeconds int    `json:"pull_interval_seconds"`
 }
 
 // validBaseURL — base_url 은 optional (webhook 전용 provider 는 미사용). 제공 시
@@ -289,6 +295,10 @@ func (h *Handler) createIntegrationProvider(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "auth_token_url must be an http(s) URL", "code": "invalid_auth_token_url"})
 		return
 	}
+	pi := req.PullIntervalSeconds
+	if pi <= 0 {
+		pi = 1800
+	}
 	created, err := storeI.CreateIntegrationProvider(c.Request.Context(), domain.IntegrationProvider{
 		ProviderKey:    req.ProviderKey,
 		ProviderType:   domain.IntegrationProviderType(req.ProviderType),
@@ -304,6 +314,8 @@ func (h *Handler) createIntegrationProvider(c *gin.Context) {
 		AuthClientID:   strings.TrimSpace(req.AuthClientID),
 		AuthTokenURL:   strings.TrimSpace(req.AuthTokenURL),
 		AuthSecret:     strings.TrimSpace(req.AuthSecret),
+		WebhookSecret:  strings.TrimSpace(req.WebhookSecret),
+		PullIntervalSeconds: pi,
 	})
 	if errors.Is(err, store.ErrConflict) {
 		c.JSON(http.StatusConflict, gin.H{"status": "conflict", "error": "provider already exists", "code": "integration_provider_conflict"})
@@ -332,6 +344,9 @@ type updateIntegrationProviderRequest struct {
 	AuthClientID *string `json:"auth_client_id"`
 	AuthTokenURL *string `json:"auth_token_url"`
 	AuthSecret   *string `json:"auth_secret"`
+	// Task Tracker 전용 필드 (provider_type='task_tracker' 시 유효)
+	WebhookSecret       *string `json:"webhook_secret"`
+	PullIntervalSeconds *int    `json:"pull_interval_seconds"`
 }
 
 // API-71
@@ -401,6 +416,12 @@ func (h *Handler) updateIntegrationProvider(c *gin.Context) {
 	}
 	if req.AuthSecret != nil {
 		updated.AuthSecret = strings.TrimSpace(*req.AuthSecret)
+	}
+	if req.WebhookSecret != nil {
+		updated.WebhookSecret = strings.TrimSpace(*req.WebhookSecret)
+	}
+	if req.PullIntervalSeconds != nil {
+		updated.PullIntervalSeconds = *req.PullIntervalSeconds
 	}
 	result, err := storeI.UpdateIntegrationProvider(c.Request.Context(), updated)
 	if errors.Is(err, store.ErrNotFound) {
@@ -664,7 +685,7 @@ func (h *Handler) listIntegrationBindings(c *gin.Context) {
 		return
 	}
 	if string(opts.ProviderType) != "" && !validIntegrationProviderTypes[string(opts.ProviderType)] {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "provider_type must be alm|scm|ci_cd|doc|infra"})
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "provider_type must be alm|scm|ci_cd|doc|infra|task_tracker"})
 		return
 	}
 	enabled, ok := parseOptionalBool(c.Query("enabled"))

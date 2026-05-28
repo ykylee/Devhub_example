@@ -150,6 +150,7 @@ type RouterConfig struct {
 	DevRequestIntakeTokenStore IntakeTokenStore
 	RBACStore                  RBACStore
 	PermissionCache            *PermissionCache
+	ExternalTaskStore          ExternalTaskStore
 	IdentityAdmin              IdentityAdmin
 	IdPProvider                string
 	HRDB                       HRDBClient
@@ -327,6 +328,11 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.POST("/integration/bindings", handler.createIntegrationBinding)
 	v1.PATCH("/integration/bindings/:binding_id", handler.updateIntegrationBinding)
 	v1.DELETE("/integration/bindings/:binding_id", handler.deleteIntegrationBinding)
+
+	// Task Item Ingestion (API-94..96) — sprint deepseek/work_260528-a-task-item-ingestion.
+	v1.POST("/integration/providers/:provider_id/tasks/webhook", handler.receiveExternalTaskWebhook)
+	v1.GET("/external-tasks", handler.listExternalTaskItems)
+	v1.GET("/external-tasks/:task_id", handler.getExternalTaskItem)
 
 	// DREQ 도메인 API-59..65 (sprint claude/work_260515-i, ADR-0012).
 	// 외부 수신 POST 는 별도 intake group 에서 requireIntakeToken 미들웨어를 사용.

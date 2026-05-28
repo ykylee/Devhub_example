@@ -49,6 +49,9 @@ func scanIntegrationProvider(row pgx.Row) (domain.IntegrationProvider, error) {
 		&p.AuthClientID,
 		&p.AuthTokenURL,
 		&p.AuthSecret,
+		&p.WebhookSecret,
+		&p.PullIntervalSeconds,
+		&p.LastPulledAt,
 	); err != nil {
 		return domain.IntegrationProvider{}, err
 	}
@@ -118,7 +121,10 @@ SELECT
 	COALESCE(auth_username, ''),
 	COALESCE(auth_client_id, ''),
 	COALESCE(auth_token_url, ''),
-	COALESCE(auth_secret, '')
+	COALESCE(auth_secret, ''),
+	COALESCE(webhook_secret, ''),
+	COALESCE(pull_interval_seconds, 1800),
+	last_pulled_at
 FROM integration_providers
 WHERE ($3 = '' OR provider_type = $3)
   AND ($4::boolean IS NULL OR enabled = $4::boolean)
@@ -165,7 +171,10 @@ SELECT
 	COALESCE(auth_username, ''),
 	COALESCE(auth_client_id, ''),
 	COALESCE(auth_token_url, ''),
-	COALESCE(auth_secret, '')
+	COALESCE(auth_secret, ''),
+	COALESCE(webhook_secret, ''),
+	COALESCE(pull_interval_seconds, 1800),
+	last_pulled_at
 FROM integration_providers
 WHERE provider_id = $1::uuid`
 	p, err := scanIntegrationProvider(s.pool.QueryRow(ctx, query, providerID))
@@ -199,7 +208,10 @@ SELECT
 	COALESCE(auth_username, ''),
 	COALESCE(auth_client_id, ''),
 	COALESCE(auth_token_url, ''),
-	COALESCE(auth_secret, '')
+	COALESCE(auth_secret, ''),
+	COALESCE(webhook_secret, ''),
+	COALESCE(pull_interval_seconds, 1800),
+	last_pulled_at
 FROM integration_providers
 WHERE provider_key = $1`
 	p, err := scanIntegrationProvider(s.pool.QueryRow(ctx, query, providerKey))
@@ -217,14 +229,19 @@ func (s *PostgresStore) CreateIntegrationProvider(ctx context.Context, p domain.
 	if err != nil {
 		return domain.IntegrationProvider{}, fmt.Errorf("marshal capabilities: %w", err)
 	}
+	if p.PullIntervalSeconds <= 0 {
+		p.PullIntervalSeconds = 1800
+	}
 	const query = `
 INSERT INTO integration_providers (
 	provider_key, provider_type, display_name, enabled, auth_mode,
 	credentials_ref, capabilities, sync_status, base_url, api_token,
-	auth_username, auth_client_id, auth_token_url, auth_secret
+	auth_username, auth_client_id, auth_token_url, auth_secret,
+	webhook_secret, pull_interval_seconds, last_pulled_at
 ) VALUES (
 	$1, $2, $3, $4, $5, $6, $7::jsonb, $8, NULLIF($9, ''), NULLIF($10, ''),
-	NULLIF($11, ''), NULLIF($12, ''), NULLIF($13, ''), NULLIF($14, '')
+	NULLIF($11, ''), NULLIF($12, ''), NULLIF($13, ''), NULLIF($14, ''),
+	NULLIF($15, ''), $16, $17
 )
 RETURNING
 	provider_id::text,
@@ -245,7 +262,10 @@ RETURNING
 	COALESCE(auth_username, ''),
 	COALESCE(auth_client_id, ''),
 	COALESCE(auth_token_url, ''),
-	COALESCE(auth_secret, '')`
+	COALESCE(auth_secret, ''),
+	COALESCE(webhook_secret, ''),
+	COALESCE(pull_interval_seconds, 1800),
+	last_pulled_at`
 	created, err := scanIntegrationProvider(s.pool.QueryRow(
 		ctx,
 		query,
@@ -263,6 +283,9 @@ RETURNING
 		p.AuthClientID,
 		p.AuthTokenURL,
 		p.AuthSecret,
+		p.WebhookSecret,
+		p.PullIntervalSeconds,
+		p.LastPulledAt,
 	))
 	if isUniqueViolation(err) {
 		return domain.IntegrationProvider{}, ErrConflict
@@ -293,6 +316,9 @@ SET display_name = $2,
 	auth_client_id = NULLIF($12, ''),
 	auth_token_url = NULLIF($13, ''),
 	auth_secret = NULLIF($14, ''),
+	webhook_secret = NULLIF($15, ''),
+	pull_interval_seconds = $16,
+	last_pulled_at = $17,
 	updated_at = NOW()
 WHERE provider_id = $1::uuid
 RETURNING
@@ -314,7 +340,10 @@ RETURNING
 	COALESCE(auth_username, ''),
 	COALESCE(auth_client_id, ''),
 	COALESCE(auth_token_url, ''),
-	COALESCE(auth_secret, '')`
+	COALESCE(auth_secret, ''),
+	COALESCE(webhook_secret, ''),
+	COALESCE(pull_interval_seconds, 1800),
+	last_pulled_at`
 	updated, err := scanIntegrationProvider(s.pool.QueryRow(
 		ctx,
 		query,
@@ -332,6 +361,9 @@ RETURNING
 		p.AuthClientID,
 		p.AuthTokenURL,
 		p.AuthSecret,
+		p.WebhookSecret,
+		p.PullIntervalSeconds,
+		p.LastPulledAt,
 	))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return domain.IntegrationProvider{}, ErrNotFound

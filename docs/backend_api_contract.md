@@ -5,7 +5,7 @@
 - 대상 독자: Backend / 프론트엔드 개발자, AI agent, 외부 API consumer, QA.
 - 상태: accepted
 - 기준일: 2026-05-04
-- 최종 수정일: 2026-05-27 (§13.9 Repository Draft→Publish 신규 API-91/92, §15.2 API-70 outbound 자격증명 서술 정합; 직전 2026-05-21 Onboarding API §16 신규, API-83..86 + API-32/API-33 확장)
+- 최종 수정일: 2026-05-28 (§17 Task Item Ingestion 신규 API-94..96 + §17.1 Integration Provider 확장 task_tracker/webhook_secret/pull_interval_seconds)
 - 관련 문서: [아키텍처](./architecture.md), [기술 스택](./tech_stack.md), [프론트 연동 요구사항](./backend/frontend_integration_requirements.md), [백엔드 요구사항 리뷰](./backend/requirements_review.md), [ADR-0002 RBAC](./adr/0002-rbac-policy-edit-api.md), [백엔드 로드맵](../ai-workflow/memory/backend_development_roadmap.md), [추적성 매트릭스](./traceability/report.md).
 
 ## 1. 공통 응답 원칙
@@ -2678,3 +2678,190 @@ onboarding_not_completed     # 422, review 대상 아님
 ```
 
 기존 공통 에러 (`invalid_payload` / `invalid_query_params` / `user_id_conflict` 등) 는 §1 의 공통 에러 코드 카탈로그 재사용.
+
+## 17. Task Item Ingestion (외부 시스템 작업 항목 수집)
+
+> 외부 ALM/SCM/Issue Tracker 시스템(Jira, GitHub Issues, GitLab, Linear)의 작업 항목을 Webhook(실시간) + Pull(주기 동기화) 혼합 방식으로 수집한다. 기존 `integration_providers`/`integration_bindings` 인프라를 확장한다. 아키텍처: [`docs/architecture.md §12`](./architecture.md), 컨셉: [`docs/planning/task_item_ingestion_concept.md`](./planning/task_item_ingestion_concept.md).
+
+**API ID 범위**: API-94 ~ API-96
+
+### 17.1 Integration Provider 확장 (task_tracker type)
+
+기존 API-70/API-71(POST/PATCH `/api/v1/integration/providers`) 에 `provider_type = "task_tracker"` 지원을 추가한다. 아래 필드는 task_tracker type 일 때만 유효하다.
+
+| 필드 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- |
+| `provider_type` | string | yes | `"task_tracker"` |
+| `capabilities` | string[] | yes | `["task_item"]` 포함 |
+| `webhook_secret` | string | no | Webhook 서명 검증용 secret. **write-only** — 응답 시 `webhook_secret_set: bool` 만 반환. api_token 과 동일 패턴. |
+| `pull_interval_seconds` | int | no | Pull loop 주기 (기본 1800). |
+
+**API-70 요청 예시** (task_tracker provider 생성):
+
+```json
+{
+  "provider_key": "jira-dev",
+  "provider_type": "task_tracker",
+  "name": "Jira (Dev Team)",
+  "capabilities": ["task_item"],
+  "base_url": "https://jira.example.com",
+  "api_token": "jt-xxxxxxxx",
+  "webhook_secret": "whsec_yyyyyyyy",
+  "pull_interval_seconds": 900
+}
+```
+
+**API-70 응답** (webhook_secret write-only):
+
+```json
+{
+  "status": "ok",
+  "data": {
+    "id": "uuid-...",
+    "provider_key": "jira-dev",
+    "provider_type": "task_tracker",
+    "capabilities": ["task_item"],
+    "base_url": "https://jira.example.com",
+    "api_token_set": true,
+    "webhook_secret_set": true,
+    "pull_interval_seconds": 900
+  }
+}
+```
+
+**API-69** (list) / **API-80** (delete) 는 provider_type 무관 동일하게 동작한다.
+
+### 17.2 외부 Task Webhook 수신  *(API-94)*
+
+- **endpoint**: `POST /api/v1/integration/providers/:provider_id/tasks/webhook`
+- **인증**: Provider `webhook_secret` 과 `X-Webhook-Secret` 헤더 대조. Provider 가 `provider_type = "task_tracker"` 가 아니면 404.
+- **멱등성**: `(provider_id, external_id)` UNIQUE 기준 upsert. 동일 external_id 의 중복 webhook 은 202 + 무시.
+- **응답**: `202 Accepted` (즉시 반환. 처리 실패 시 audit + error log 는 비동기).
+
+**요청 — 공통 포맷** (adapter 정규화 이후):
+
+```json
+{
+  "event": "created",
+  "external_id": "PRJ-123",
+  "title": "Fix login timeout",
+  "raw_status": "Open",
+  "priority": "High",
+  "assignee": "user@example.com",
+  "reporter": "dev@example.com",
+  "url": "https://jira.example.com/browse/PRJ-123",
+  "labels": ["bug", "auth"],
+  "description": "Users report login timeout after 30 seconds of inactivity."
+}
+```
+
+| 필드 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- |
+| `event` | string | yes | `"created"` / `"updated"` / `"deleted"` |
+| `external_id` | string | yes | 외부 시스템의 ticket/issue key |
+| `title` | string | yes | 작업 제목 (200자 이내) |
+| `raw_status` | string | yes | 외부 시스템 원본 status |
+| `normalized_status` | string | no | DevHub 공통 enum (adapter 가 매핑 시) |
+| `priority` | string | no | 우선순위 |
+| `assignee` | string | no | 담당자 식별자 |
+| `reporter` | string | no | 보고자 식별자 |
+| `url` | string | no | 원본 링크 |
+| `labels` | string[] | no | 태그 목록 |
+| `description` | string | no | 상세 내용 (markdown) |
+
+**응답 — 202**:
+
+```json
+{
+  "status": "accepted",
+  "data": {
+    "webhook_seq": 1042,
+    "external_id": "PRJ-123",
+    "event": "created",
+    "provider_id": "uuid-..."
+  }
+}
+```
+
+**에러**:
+
+| code | HTTP | 설명 |
+| --- | --- | --- |
+| `provider_not_found` | 404 | provider_id 없음 |
+| `provider_type_mismatch` | 404 | provider_type ≠ task_tracker |
+| `webhook_secret_mismatch` | 401 | X-Webhook-Secret 불일치 |
+| `invalid_webhook_payload` | 422 | event/external_id/title 누락 또는 형식 위반 |
+
+**Audit**: `external_task.received` (created) / `external_task.updated` (updated) / `external_task.deleted` (deleted — soft-delete).
+
+### 17.3 Task Item 목록 조회  *(API-95)*
+
+- **endpoint**: `GET /api/v1/external-tasks`
+- **인증**: OIDC + RBAC + scope binding (ARCH-TASK-06).
+
+**Query parameters**:
+
+| param | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- |
+| `provider_id` | UUID | no | 특정 Provider 의 task 만 조회 |
+| `raw_status` | string | no | 원본 status 필터 (예: "Open") |
+| `normalized_status` | string | no | 공통 enum 필터 (예: "open") |
+| `assignee` | string | no | 담당자 식별자 필터 |
+| `labels` | string (comma-sep) | no | 레이블 OR 필터 (하나라도 포함) |
+| `include_deleted` | boolean | no | true 시 soft-deleted 포함 (기본 false) |
+| `page` | int | no | 페이지 번호 (기본 1) |
+| `per_page` | int | no | 페이지 크기 (기본 20, 최대 100) |
+
+**응답 — 200**:
+
+```json
+{
+  "status": "ok",
+  "data": [
+    {
+      "id": "uuid-...",
+      "provider_id": "uuid-...",
+      "external_id": "PRJ-123",
+      "title": "Fix login timeout",
+      "raw_status": "Open",
+      "normalized_status": "open",
+      "priority": "High",
+      "assignee": "user@example.com",
+      "reporter": "dev@example.com",
+      "url": "https://jira.example.com/browse/PRJ-123",
+      "labels": ["bug", "auth"],
+      "fetched_at": "2026-05-28T10:00:00Z",
+      "webhook_seq": 1042
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "per_page": 20,
+    "total": 42
+  }
+}
+```
+
+### 17.4 Task Item 단건 조회  *(API-96)*
+
+- **endpoint**: `GET /api/v1/external-tasks/:task_id`
+- **인증**: OIDC + RBAC + scope binding.
+
+**응답 — 200**: 위 §17.3 단일 item shape + `raw_payload` (JSONB) 포함.
+
+**에러**:
+
+| code | HTTP | 설명 |
+| --- | --- | --- |
+| `external_task_not_found` | 404 | task_id 없음 |
+| `external_task_forbidden` | 403 | scope 밖 접근 |
+
+### 17.5 공통 에러 코드 (Task Item 신규)
+
+```
+webhook_secret_mismatch      # 401, X-Webhook-Secret 불일치
+provider_type_mismatch       # 404, provider_type ≠ task_tracker
+invalid_webhook_payload      # 422, webhook 필수 필드 누락
+external_task_not_found      # 404, task_id 미존재
+external_task_forbidden      # 403, scope 밖 접근
+```

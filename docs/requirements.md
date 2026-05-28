@@ -592,6 +592,60 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
 - AI 기반 빌드 실패 원인 자동 분석 및 코드 패치 제안 (v2 범위).
 - 다차원 코드 품질 스코어 산식의 동적 튜닝 UI (어플리케이션 설정 모달에서 weight matrix 직접 입력 기능은 1차 제외).
 
+---
+
+### 5.10 외부 시스템 작업 항목 수집 (Task Item Ingestion)
+
+외부 ALM/SCM/Issue Tracker 시스템(Jira, GitHub Issues, GitLab, Linear 등)의 작업 항목(task/issue/ticket)을 DevHub 에서 수집해 통합 조회/추적하는 도메인.
+
+**핵심 설계 결정** ([컨셉 문서](./planning/task_item_ingestion_concept.md) §9):
+- Webhook 인증: Provider 별도 `webhook_secret` 필드 사용 (api_token 과 분리)
+- Task status: `raw_status`(원본 string) + `normalized_status`(공통 enum, 초기 NULL 허용) 병행 저장
+- Webhook payload 정규화: 시스템별 adapter 가 담당 (Webhook/Pull 공통 경로)
+- Webhook 유실 탐지: monotonic sequence(seq) 발급 + Pull 이 gap 탐지 → 보강 sync
+- Pull adapter: 범용 REST adapter 우선 구현 (interface 검증 후 시스템별 adapter 확장)
+
+**요구사항 ID 범위**: REQ-FR-TASK-001..010 / REQ-NFR-TASK-001..004
+
+#### 5.10.1 기능 요구사항 (REQ-FR-TASK)
+
+**Provider 관리** (기존 `integration_providers` 확장)
+
+- **REQ-FR-TASK-001 (P0, 확정):** 외부 시스템을 `integration_providers` 에 `provider_type = "task_tracker"`로 등록할 수 있어야 한다. 등록 시 `base_url`, `api_token`(Pull 용), `webhook_secret`(Webhook 용) 을 설정할 수 있어야 한다.
+- **REQ-FR-TASK-002 (P0, 확정):** Provider 의 `capabilities` 에 `task_item` 플래그를 추가해 해당 Provider 가 Task Item 수집을 지원함을 명시할 수 있어야 한다.
+
+**Webhook 수신** (실시간)
+
+- **REQ-FR-TASK-003 (P0, 확정):** 외부 시스템이 `POST /api/v1/integration/providers/:provider_id/tasks/webhook` 으로 작업 항목 이벤트를 전송할 수 있어야 한다. Webhook payload 는 `event`(created/updated/deleted), `external_id`, `title`, `raw_status`, `priority`, `assignee`, `reporter`, `url`, `labels`, `description` 을 포함한 공통 포맷을 사용한다.
+- **REQ-FR-TASK-004 (P0, 확정):** Webhook 수신 시 `X-Webhook-Secret` 헤더 값을 Provider 의 `webhook_secret` 과 대조하여 인증해야 한다. secret 불일치 시 `401 Unauthorized`를 반환한다.
+- **REQ-FR-TASK-005 (P0, 확정):** Webhook 수신 성공 시 `external_task_items` 테이블에 upsert(created/updated) 또는 soft-delete(deleted)를 수행하고 `202 Accepted`를 즉시 반환해야 한다. webhook 수신마다 monotonic sequence 번호(`webhook_seq`)를 발급해야 한다.
+- **REQ-FR-TASK-006 (P0, 확정):** Webhook 수신 시 원본 payload 전체를 `raw_payload JSONB` 에 보존해야 한다. adapter 가 외부 시스템별 포맷을 공통 포맷으로 정규화하며, 동일한 정규화 경로를 Pull 에서도 재사용해야 한다.
+
+**Pull 동기화** (주기적)
+
+- **REQ-FR-TASK-007 (P1, 확정):** `TaskItemPuller` 인터페이스를 정의하고, Provider 설정의 `pull_interval_seconds`(기본 1800s) 간격으로 외부 시스템 API 를 호출해 작업 항목을 수집하는 Pull loop 를 구현해야 한다.
+- **REQ-FR-TASK-008 (P1, 확정):** Pull 동기화는 `last_pulled_at` timestamp 기준 증분 조회를 기본으로 하며, 첫 실행 시 전수 수집(초기 전체 동기화)을 수행해야 한다. 페이지네이션을 지원해야 한다.
+- **REQ-FR-TASK-009 (P1, 확정):** Pull loop 는 webhook_seq gap 을 탐지하여 유실된 webhook 이력을 발견할 수 있어야 한다. gap 발견 시 보강(recovery) pull 을 트리거해야 한다.
+
+**조회 API**
+
+- **REQ-FR-TASK-010 (P0, 확정):** `GET /api/v1/external-tasks` 로 수집된 task item 목록을 조회할 수 있어야 한다. `provider_id`, `raw_status`, `normalized_status`, `assignee`, `labels` 필터를 지원해야 하며, `integration_bindings` 를 통한 scope 기반 접근 제어를 적용해야 한다.
+
+#### 5.10.2 비기능 / 운영 요구사항 (REQ-NFR-TASK)
+
+- **REQ-NFR-TASK-001 (P0):** 모든 Webhook 수신(성공/실패) 및 Pull 동기화(시작/완료/실패) 이벤트는 audit log 로 기록되어야 한다.
+- **REQ-NFR-TASK-002 (P0):** 특정 Provider 의 Webhook/Pull 장애가 다른 Provider 의 수집이나 전체 API 에 영향을 주지 않도록 Provider 단위 장애 격리가 보장되어야 한다.
+- **REQ-NFR-TASK-003 (P1):** Pull 동기화 성능 메트릭(Prometheus: `task_item_pull_duration_seconds`, `task_item_pull_total`, `task_item_pull_errors_total`)이 노출되어야 한다.
+- **REQ-NFR-TASK-004 (P1):** Webhook secret 은 `integration_providers` 테이블에 저장될 때 write-only(읽기 응답에서 마스킹 또는 미포함) 처리되어야 한다.
+
+#### 5.10.3 범위 경계 (Out of Scope)
+
+- DevHub → 외부 시스템 write-back (상태 변경, assign 변경 등). 원천 불변 원칙에 따라 v2 범위.
+- 실시간 WebSocket 푸시 (task updated event). 초기엔 polling/refresh 로 충분.
+- 외부 시스템 식별자 → DevHub user_id 자동 매핑. 후속 도메인.
+- Task item 간 dependency / linkage (epic-link, block-by 등). MVP 이후.
+- AI 기반 task 분류/추천. v2 범위.
+
 ## 6. 기술 스택 결정 사항 (Technology Stack Decisions)
 
 기술 스택 상세 계약, 버전, 설치/검증 명령은 **[tech_stack.md](./tech_stack.md)**를 기준으로 관리합니다. 본 요구사항 문서에서는 제품 요구사항과 직접 연결되는 기술 결정 요약만 유지합니다.
@@ -617,3 +671,4 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
 | 일자 | 변경 |
 | --- | --- |
 | 2026-05-27 | 코드베이스 스냅샷(main `cf19c94`) 정합: §5.8(SCM↔시스템 Repository 연동 + Repository Lifecycle, REQ-FR-REPO-001..005 / REQ-NFR-REPO-001..003) 신규, §5.6 INT 보강(REQ-FR-INT-013..015 auth_mode full/base_url+연결테스트/webhook 헤더 alias + REQ-NFR-INT-009 write-only secret), §2.5 Keycloak 단일 IdP self-service 흐름 historical inline 정정. 기존 prose/ID 삭제·재배열 없음(추가 + inline 정정만). 근거: `docs/analysis/2026-05-27-codebase-snapshot/`. |
+| 2026-05-28 | §5.10 (Task Item Ingestion, REQ-FR-TASK-001..010 / REQ-NFR-TASK-001..004) 신규 — 외부 시스템(ALM/SCM/Issue Tracker) 작업 항목 Webhook+Pull 혼합 수집 도메인. [컨셉 문서](./planning/task_item_ingestion_concept.md) §9 결정사항 반영 (webhook_secret 분리 / raw+normalized status 병행 / adapter 정규화 / SEQ gap 탐지 / 범용 REST adapter 우선). Sprint `deepseek/work_260528-a-task-item-ingestion`. |
