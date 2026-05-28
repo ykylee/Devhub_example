@@ -36,8 +36,12 @@ type ApplicationRepositoryLinkKey struct {
 
 // ProjectListOptions parameterizes ListProjects.
 type ProjectListOptions struct {
-	RepositoryID    int64
-	ApplicationID   string
+	RepositoryID  int64
+	ApplicationID string
+	// StandaloneOnly 가 true 면 `application_id IS NULL` projects 만 반환 (ApplicationID
+	// 와 상호 배타 — 둘 다 set 이면 StandaloneOnly 가 우선). codex P2 (#397 hotfix) —
+	// frontend ApplicationCreationModal 의 standalone project picker source.
+	StandaloneOnly  bool
 	Status          string
 	IncludeArchived bool
 	Limit           int
@@ -661,15 +665,18 @@ func (s *PostgresStore) ListProjects(ctx context.Context, opts ProjectListOption
 		offset = 0
 	}
 
+	// codex P2 (#397 hotfix) — StandaloneOnly 가 true 면 application_id IS NULL projects 만.
+	// 다른 filter ($N::uuid 분기) 와 일관 위해 $7 boolean param 으로 추가.
 	const countQuery = `
 SELECT COUNT(*) FROM projects
 WHERE ($1::bigint = 0 OR repository_id = $1)
   AND ($2::uuid IS NULL OR application_id = $2::uuid)
   AND ($3 = '' OR status = $3)
-  AND ($4 OR status <> 'archived')`
+  AND ($4 OR status <> 'archived')
+  AND ($5 = false OR application_id IS NULL)`
 
 	var total int
-	if err := s.pool.QueryRow(ctx, countQuery, opts.RepositoryID, nullableUUIDArg(opts.ApplicationID), opts.Status, opts.IncludeArchived).Scan(&total); err != nil {
+	if err := s.pool.QueryRow(ctx, countQuery, opts.RepositoryID, nullableUUIDArg(opts.ApplicationID), opts.Status, opts.IncludeArchived, opts.StandaloneOnly).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count projects: %w", err)
 	}
 
@@ -680,10 +687,11 @@ WHERE ($3::bigint = 0 OR repository_id = $3)
   AND ($4::uuid IS NULL OR application_id = $4::uuid)
   AND ($5 = '' OR status = $5)
   AND ($6 OR status <> 'archived')
+  AND ($7 = false OR application_id IS NULL)
 ORDER BY key ASC
 LIMIT $1 OFFSET $2`
 
-	rows, err := s.pool.Query(ctx, query, limit, offset, opts.RepositoryID, nullableUUIDArg(opts.ApplicationID), opts.Status, opts.IncludeArchived)
+	rows, err := s.pool.Query(ctx, query, limit, offset, opts.RepositoryID, nullableUUIDArg(opts.ApplicationID), opts.Status, opts.IncludeArchived, opts.StandaloneOnly)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list projects: %w", err)
 	}

@@ -3,6 +3,7 @@ package httpapi
 import (
 	"errors"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -11,6 +12,11 @@ import (
 	"github.com/devhub/backend-core/internal/store"
 	"github.com/gin-gonic/gin"
 )
+
+// uuidPattern — codex P2 (#397 hotfix) — UUID format pre-check 용. malformed UUID
+// 가 store 의 `WHERE id = $1::uuid` cast 까지 도달하면 Postgres invalid UUID error
+// 가 500 으로 노출. handler 에서 422 `application_id_invalid` 로 매핑하기 위해 미리 검증.
+var uuidPattern = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
 
 func (h *Handler) projectModel() string {
 	mode := strings.ToLower(strings.TrimSpace(h.cfg.ProjectModel))
@@ -374,6 +380,35 @@ func (h *Handler) listApplicationProjects(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "ok", "data": resp, "meta": gin.H{"total": total}})
 }
 
+// GET /api/v1/projects/standalone — application_id IS NULL projects.
+// codex P2 (#397 hotfix) — ApplicationCreationModal 의 "Connected Projects" picker 가
+// connected + standalone projects 합쳐 표시할 수 있도록 별도 endpoint.
+func (h *Handler) listStandaloneProjects(c *gin.Context) {
+	storeI, ok := h.applicationStoreOrUnavailable(c)
+	if !ok {
+		return
+	}
+	opts := store.ProjectListOptions{
+		StandaloneOnly:  true,
+		Status:          c.Query("status"),
+		IncludeArchived: c.Query("include_archived") == "true",
+	}
+	if opts.Status != "" && !validApplicationStatuses[opts.Status] {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "status must be one of planning/active/on_hold/closed/archived"})
+		return
+	}
+	projects, total, err := storeI.ListProjects(c.Request.Context(), opts)
+	if err != nil {
+		writeServerError(c, err, "projects.list_standalone")
+		return
+	}
+	resp := make([]gin.H, 0, len(projects))
+	for _, p := range projects {
+		resp = append(resp, projectResponse(p))
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "ok", "data": resp, "meta": gin.H{"total": total}})
+}
+
 // POST /api/v1/applications/:application_id/projects
 func (h *Handler) createApplicationProject(c *gin.Context) {
 	if !h.allowV2ProjectRoutes() {
@@ -672,6 +707,16 @@ func (h *Handler) updateProject(c *gin.Context) {
 		// "" = 해제 (NULL), non-empty = 해당 application 으로 이전 (존재 검증 + audit).
 		newAppID := strings.TrimSpace(*req.ApplicationID)
 		if newAppID != "" && newAppID != current.ApplicationID {
+			// codex P2 (#397 hotfix) — malformed UUID 가 GetApplication 의 `$1::uuid` cast
+			// 까지 도달하면 Postgres error → 500. handler 에서 422 로 미리 차단.
+			if !uuidPattern.MatchString(newAppID) {
+				c.JSON(http.StatusUnprocessableEntity, gin.H{
+					"status": "rejected",
+					"error":  "application_id must be a valid UUID",
+					"code":   "application_id_invalid",
+				})
+				return
+			}
 			if _, err := storeI.GetApplication(c.Request.Context(), newAppID); errors.Is(err, store.ErrNotFound) {
 				c.JSON(http.StatusUnprocessableEntity, gin.H{
 					"status": "rejected",

@@ -298,6 +298,8 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.GET("/repositories/:repository_id/projects", handler.listProjects)
 	v1.POST("/repositories/:repository_id/projects", handler.createProject)
 	v1.POST("/projects", handler.createProjectStandalone)
+	// /projects/standalone 은 /projects/:project_id 보다 먼저 정의해야 gin 이 ID 로 안 잡음.
+	v1.GET("/projects/standalone", handler.listStandaloneProjects)
 	v1.GET("/applications/:application_id/projects", handler.listApplicationProjects)
 	v1.POST("/applications/:application_id/projects", handler.createApplicationProject)
 	v1.GET("/projects/:project_id", handler.getProject)

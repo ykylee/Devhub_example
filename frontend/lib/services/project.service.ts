@@ -138,6 +138,15 @@ class ProjectService {
     return resp.data;
   }
 
+  // listStandaloneProjects — application_id IS NULL projects (codex P2 #397 hotfix).
+  // ApplicationCreationModal 의 "Connected Projects" picker 가 standalone + connected
+  // projects 합쳐 표시할 수 있도록 backend GET /api/v1/projects/standalone 호출.
+  async listStandaloneProjects(params?: ProjectQuery): Promise<Project[]> {
+    const path = withQuery(`/api/v1/projects/standalone`, params);
+    const resp = await apiClient<{ data: Project[] }>("GET", path);
+    return resp.data;
+  }
+
   // Hybrid project creation. v2 endpoint primary, legacy createProject fallback
   // on 404/405 (when DEVHUB_PROJECT_MODEL=legacy or backend route disabled).
   async createApplicationProject(

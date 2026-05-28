@@ -106,20 +106,18 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
     let alive = true;
     (async () => {
       try {
-        const [appProjects, allActive] = await Promise.all([
+        // codex P2 (#397 hotfix) — 기존 `listAllProjects([])` 는 빈 repository ID list
+        // 라 빈 array 반환 → standalone candidates 가 0 이었음. 신규 `/projects/standalone`
+        // endpoint (StandaloneOnly=true, application_id IS NULL) 로 정공법 fetch.
+        const [appProjects, standaloneProjects] = await Promise.all([
           projectService.getApplicationProjectsV2(initialData.id!),
-          projectService.listAllProjects([]),
+          projectService.listStandaloneProjects(),
         ]);
         if (!alive) return;
-        const connectedIDs = new Set(appProjects.map((p) => p.id));
-        // 본 application 에 연결된 것 + 다른 곳에 묶이지 않은 standalone (application_id 빈 string).
-        const candidates = allActive.filter(
-          (p) => connectedIDs.has(p.id) || !p.application_id,
-        );
-        // dedup by id (allActive 가 이미 본 application 의 connected 일 수 있어 합집합 보장).
+        // appProjects (이미 연결) + standaloneProjects (연결 가능) 합쳐 dedup.
         const seen = new Set<string>();
         const merged: Project[] = [];
-        for (const p of [...appProjects, ...candidates]) {
+        for (const p of [...appProjects, ...standaloneProjects]) {
           if (!seen.has(p.id)) {
             seen.add(p.id);
             merged.push(p);
