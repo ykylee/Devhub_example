@@ -11,47 +11,63 @@
 ## 1. 개요
 본 문서는 DevHub의 시스템 구성, 서비스 간 통신 방식, 데이터 흐름 및 UI/UX 시각화 전략을 상세히 정의합니다.
 
-## 2. 시스템 컴포넌트 구조
+## 2. 시스템 컴포넌트 구조 (3대 레이어 아키텍처)
 
-상태 표기 기준:
-- `current`: 현재 스캐폴딩 또는 health endpoint 수준으로 존재하는 구성
-- `planned`: 아키텍처 계약은 확정되었지만 아직 구현 전인 구성
-- `external`: DevHub 외부 시스템 또는 연동 대상
+본 프로젝트는 비즈니스 핵심 가치와 외부 기술적 종속성을 분리하기 위해 **3대 최상위 레이어** (Domain, Shared, Infrastructure) 및 도메인 내부 **4대 계층** (View, Service, Repository, Schema) 구조를 따릅니다.
+
+### 2.1 레이어별 컴포넌트 구조도
 
 ```mermaid
 graph TD
-    subgraph "Frontend Layer"
-        NextJS[Next.js App / React 19<br/>current: scaffold]
+    subgraph "1. Domain Layer (Pure Business)"
+        auth[auth-session]
+        audit[audit-ops]
+        rbac[rbac-permissions]
+        org[organization-management]
+        onboard[onboarding]
+        app[application-lifecycle]
+        repo[repository-integration]
+        dreq[dev-request]
+        registry[integration-registry]
+        realtime[realtime]
     end
 
-    subgraph "Backend Layer (Core)"
-        GoCore[Go Core Service / Gin<br/>current: /health]
-        GoCore -- "planned: Auth/Business Logic" --> NextJS
-        GoCore -- "planned: WebSocket" --> NextJS
+    subgraph "2. Shared Layer (Common Foundation)"
+        config[config]
+        logger[logger]
+        utils[utils]
+        uif[ui-foundation]
     end
 
-    subgraph "Backend Layer (AI/Analysis)"
-        PyAI[Python AI Module / FastAPI<br/>current: /health]
-        GoCore -. "planned: gRPC (ProtoBuf)" .-> PyAI
-        GoCore -- "planned: Analysis Request/Context" --> PyAI
-        PyAI -- "planned: Analysis Result" --> GoCore
+    subgraph "3. Infrastructure Layer (Concrete Tech)"
+        keycloak[keycloak-idp]
+        gitea[gitea-scm]
+        hrdb[hrdb adapter]
+        worker[commandworker / serviceaction]
+        mig[database-migration]
+        deploy[deployment-automation]
     end
 
-    subgraph "Data Layer"
-        PG[(PostgreSQL<br/>current: compose service)]
-        GoCore -- "planned: SQL/JSONB" --> PG
-    end
-
-    subgraph "External Integration"
-        Gitea[Gitea Server<br/>external]
-        Gitea -- "planned: Webhook Events" --> GoCore
-        GoCore -- "planned: REST API / Actions Control" --> Gitea
-        GiteaRunner[Gitea Runner<br/>external]
-        GoCore -- "planned: Health/Config" --> GiteaRunner
-    end
+    %% 의존 관계 및 호출 규격
+    DomainLayer[Domain Layer] --> SharedLayer[Shared Layer]
+    InfrastructureLayer[Infrastructure Layer] --> SharedLayer[Shared Layer]
+    DomainLayer -.->|Interface Abstraction| InfrastructureLayer[Infrastructure Layer]
+    InfrastructureLayer -->|Implementation| DomainLayer
 ```
 
-> **정정 (2026-05-27, 코드 스냅샷 main `cf19c94`)**: 위 다이어그램의 `current: scaffold`/`planned` 라벨은 2026-04-29 초기 상태 기준이며 현행 코드와 괴리가 있다. 실제로는 **Go Core 가 v1.0 scope 기준 기능 완성** 상태이고, Gitea 연동은 webhook(서버→DevHub push) + REST pull sync 워커(DevHub→Gitea, §8.7) **양방향 가동**, WebSocket 실시간(ticket 인증, §3.2/§6.5), PostgreSQL 영속(45 마이그레이션) 모두 구현돼 있다. 미구현 구간은 **Go Core ↔ Python AI gRPC(여전히 스켈레톤, `backend-ai` 는 `/health` 만)** 와 Gitea Runner 제어 콘솔뿐이다. 다이어그램 자체는 초기 의도 보존을 위해 immutable 유지하고, 실 상태는 [코드베이스 스냅샷 §1](./analysis/2026-05-27-codebase-snapshot/01_codebase_state_analysis.md)을 source-of-truth 로 본다.
+### 2.2 아키텍처 호출 규칙 (Calling Constraints)
+
+시스템의 유연한 변경과 결합도 완화를 위해 다음 세 가지 호출 규칙을 엄격하게 적용합니다.
+
+1. **상향 호출 금지 (No Upward Calls)**
+   * `Infrastructure` 레이어는 `Domain` 레이어의 구체 비즈니스 서비스나 엔티티를 직접 소유하거나 지배하지 않습니다.
+   * `Domain`은 외부 연동 대상에 대해 추상화된 어댑터 인터페이스(예: `SCMAdapter`, `HRDBAdapter`)만 노출하며, `Infrastructure`는 이 인터페이스의 기술 구현체로만 작동하여 상향 결합도를 제거합니다.
+2. **교차 도메인 DB 직접 조인 및 수정 금지 (No Cross-Domain DB Direct Access)**
+   * 각 비즈니스 `Domain`은 자신의 `Repository` 계층을 통해서만 영속 스토리지에 접근합니다.
+   * 타 도메인의 소유 테이블(예: `dev-request` 도메인이 `rbac_policies` 테이블을 직접 조작)에 대한 직접 쿼리나 조인을 금지하며, 도메인 간 협업이 필요한 경우 상위 `Service` 수준의 인터페이스 호출이나 `realtime` 도메인의 실시간 이벤트를 구독하여 소통합니다.
+3. **Shared의 독립성 (Independence of Shared)**
+   * `Shared` 레이어의 컴포넌트(설정, 로그, 공통 UI)는 비즈니스 도메인의 특정 상태나 의미론(Semantics)에 의존하지 않고, 항상 중립적이고 재사용 가능한 유틸리티 성격을 유지해야 합니다.
+
 
 ## 3. 서비스 간 통신 (Internal Communication)
 

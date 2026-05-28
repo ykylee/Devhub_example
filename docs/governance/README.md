@@ -14,6 +14,7 @@ DevHub 의 거버넌스는 다음 두 축으로 운영된다:
 | --- | --- | --- |
 | **문서 관리** | [`docs/governance/`](./) | 문서의 작성 양식·lifecycle·변경 기록·ID 노출 표준. |
 | **추적성 관리** | [`docs/traceability/`](../traceability/) | SDLC 단계 (요구사항/설계/로드맵/구현/UT/E2E) 사이 항목 식별과 매핑. |
+| **코드 분류** | [`code-taxonomy.md`](./code-taxonomy.md) | 코드베이스 12 카테고리 + 4 횡단 카테고리 + 모듈 SoT + 작업 prefix 컨벤션 + 리팩토링 후보 P0~P3. |
 
 두 축은 서로 참조한다:
 
