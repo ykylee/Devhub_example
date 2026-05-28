@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { tokenStore } from "./token-store";
 import { initRefreshScheduler, _resetRefreshScheduler } from "./refresh-scheduler";
-import { _resetSessionExpiredGuard } from "./session-death";
-import type { RefreshOutcome } from "./refresh";
+import { _resetSessionExpiredGuard } from "@/domain/auth-session/service/session-death";
+import type { RefreshOutcome } from "@/domain/auth-session/service/refresh";
 
 describe("refresh-scheduler", () => {
   let assignMock: ReturnType<typeof vi.fn>;

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, Clock, UserCheck } from "lucide-react";
-import type { OrgMember } from "@/lib/services/identity.service";
+import type { OrgMember } from "@/domain/organization-management/service/identity.service";
 import { ConfirmReviewModal } from "./ConfirmReviewModal";
 
 interface Props {

@@ -1,6 +1,6 @@
 "use client";
 
-import type { TokenResponse } from "@/lib/services/auth.service";
+import type { TokenResponse } from "@/domain/auth-session/service/auth.service";
 
 const ACCESS_TOKEN_KEY = "devhub_access_token";
 const REFRESH_TOKEN_KEY = "devhub_refresh_token";

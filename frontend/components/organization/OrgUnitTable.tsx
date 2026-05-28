@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Users, Shield, Settings, UserPlus, Trash2, Search, Filter, Edit3 } from "lucide-react";
-import { OrgNode, OrgMember } from "@/lib/services/identity.service";
+import { OrgNode, OrgMember } from "@/domain/organization-management/service/identity.service";
 
 interface OrgUnitTableProps {
   nodes: OrgNode[];

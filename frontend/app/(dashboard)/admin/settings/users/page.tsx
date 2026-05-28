@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { identityService, OrgMember } from "@/lib/services/identity.service";
-import { MemberTable } from "@/components/organization/MemberTable";
+import { identityService, OrgMember } from "@/domain/organization-management/service/identity.service";
+import { MemberTable } from "@/domain/organization-management/view/MemberTable";
 import { defaultRoles, Role } from "@/lib/services/rbac.types";
-import { rbacService } from "@/lib/services/rbac.service";
+import { rbacService } from "@/domain/rbac-permissions/service/rbac.service";
 import { FilterBar } from "@/shared/ui-foundation/components/FilterBar";
 import { useToast } from "@/shared/ui-foundation/components/Toast";
 import { PendingReviewPanel } from "@/components/admin/users/PendingReviewPanel";

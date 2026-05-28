@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Search, ChevronRight, Building2, X } from "lucide-react";
-import { onboardingService, type OrgSearchResult } from "@/lib/services/onboarding.service";
-import { identityService, type OrgNode, type OrgEdge } from "@/lib/services/identity.service";
+import { onboardingService, type OrgSearchResult } from "@/domain/onboarding/service/onboarding.service";
+import { identityService, type OrgNode, type OrgEdge } from "@/domain/organization-management/service/identity.service";
 
 interface Props {
   value: string;

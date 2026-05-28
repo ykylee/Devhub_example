@@ -23,7 +23,7 @@ vi.mock("@/lib/store", () => ({
 }));
 
 const whoAmIMock = vi.fn();
-vi.mock("@/lib/services/identity.service", () => ({
+vi.mock("@/domain/organization-management/service/identity.service", () => ({
   identityService: {
     whoAmI: () => whoAmIMock(),
   },

@@ -4,11 +4,11 @@ import { useState, useEffect, useCallback } from "react";
 import { Plus, LayoutGrid, List, Network } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { OrgUnitTable } from "@/components/organization/OrgUnitTable";
-import { OrgUnitGrid } from "@/components/organization/OrgUnitGrid";
+import { OrgUnitGrid } from "@/domain/organization-management/view/OrgUnitGrid";
 import { OrgTree } from "@/components/organization/OrgTree";
-import { MemberManagementModal } from "@/components/organization/MemberManagementModal";
+import { MemberManagementModal } from "@/domain/organization-management/view/MemberManagementModal";
 import { UnitManagementModal } from "@/components/organization/UnitManagementModal";
-import { identityService, OrgNode, OrgMember, OrgUnit, CreateUnitPayload, UpdateUnitPayload } from "@/lib/services/identity.service";
+import { identityService, OrgNode, OrgMember, OrgUnit, CreateUnitPayload, UpdateUnitPayload } from "@/domain/organization-management/service/identity.service";
 import { ApiError } from "@/lib/services/api-client";
 
 export default function AdminSettingsOrganizationPage() {

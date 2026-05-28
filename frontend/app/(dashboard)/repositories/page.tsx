@@ -16,7 +16,7 @@ import { DashboardHeader } from "@/shared/ui-foundation/components/DashboardHead
 import { Badge } from "@/shared/ui-foundation/components/Badge";
 import { FilterBar } from "@/shared/ui-foundation/components/FilterBar";
 import { PageEmpty, PageError, PageLoading } from "@/shared/ui-foundation/components/PageState";
-import { repositoryService, Repository, RepositoryActivity, RepositoryBuildRun } from "@/lib/services/repository.service";
+import { repositoryService, Repository, RepositoryActivity, RepositoryBuildRun } from "@/domain/repository-integration/service/repository.service";
 
 interface RepositoryWithActivity extends Repository {
   activity?: RepositoryActivity;

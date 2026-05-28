@@ -1,4 +1,4 @@
-import { ApiResponse, Risk, ServiceActionCommand } from "./types";
+import { ApiResponse, Risk, ServiceActionCommand } from "@/lib/services/types";
 
 const API_BASE = "";
 

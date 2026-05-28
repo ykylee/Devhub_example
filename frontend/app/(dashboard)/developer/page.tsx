@@ -2,7 +2,7 @@
 
 import { FolderGit2 } from "lucide-react";
 import Link from "next/link";
-import { MyPendingDevRequestsWidget } from "@/components/dev-request/MyPendingDevRequestsWidget";
+import { MyPendingDevRequestsWidget } from "@/domain/dev-request/view/MyPendingDevRequestsWidget";
 
 export default function DeveloperDashboard() {
   return (

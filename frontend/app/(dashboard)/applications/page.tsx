@@ -15,7 +15,7 @@ import { DashboardHeader } from "@/shared/ui-foundation/components/DashboardHead
 import { Badge } from "@/shared/ui-foundation/components/Badge";
 import { FilterBar } from "@/shared/ui-foundation/components/FilterBar";
 import { PageEmpty, PageError, PageLoading } from "@/shared/ui-foundation/components/PageState";
-import { applicationService, Application, ApplicationRollup } from "@/lib/services/application.service";
+import { applicationService, Application, ApplicationRollup } from "@/domain/application-lifecycle/service/application.service";
 import { lifecycleStatusBadgeVariant } from "@/shared/utils/lifecycle-status";
 import { applicationBuildStatusView } from "@/shared/utils/last-build";
 

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { X, Edit3, Mail, Shield, Loader2 } from "lucide-react";
-import { identityService, OrgMember } from "@/lib/services/identity.service";
+import { identityService, OrgMember } from "@/domain/organization-management/service/identity.service";
 import { Role } from "@/lib/services/rbac.types";
 
 interface UserEditModalProps {

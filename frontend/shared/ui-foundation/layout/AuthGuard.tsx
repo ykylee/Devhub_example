@@ -4,11 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { Loader2 } from "lucide-react";
-import { identityService } from "@/lib/services/identity.service";
+import { identityService } from "@/domain/organization-management/service/identity.service";
 import { ApiError } from "@/lib/services/api-client";
 import { defaultLandingFor, isSystemAdmin, pathRequiresSystemAdmin } from "@/lib/auth/role-routing";
 import { initRefreshScheduler } from "@/lib/auth/refresh-scheduler";
-import { refreshAccessToken } from "@/lib/auth/refresh";
+import { refreshAccessToken } from "@/domain/auth-session/service/refresh";
 import { isOnboardingSkipped } from "@/lib/storage/onboardingSkip";
 
 // limited-mode (skip 단계) 사용자가 client-side 에서 차단되는 경로.

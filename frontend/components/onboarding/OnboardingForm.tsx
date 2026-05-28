@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
-import { onboardingService } from "@/lib/services/onboarding.service";
+import { onboardingService } from "@/domain/onboarding/service/onboarding.service";
 import { useStore } from "@/lib/store";
 import { OrganizationPicker } from "./OrganizationPicker";
 import { ApiError } from "@/lib/services/api-client";

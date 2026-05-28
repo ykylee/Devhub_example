@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { X, Building2, Check, AlertCircle } from "lucide-react";
-import { OrgUnit, CreateUnitPayload, UpdateUnitPayload, OrgNode, OrgMember } from "@/lib/services/identity.service";
+import { OrgUnit, CreateUnitPayload, UpdateUnitPayload, OrgNode, OrgMember } from "@/domain/organization-management/service/identity.service";
 
 interface UnitManagementModalProps {
   mode: "create" | "edit";

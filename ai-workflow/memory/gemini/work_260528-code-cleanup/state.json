@@ -1,20 +1,19 @@
 {
   "branch": "gemini/work_260528-code-cleanup",
   "status": "in_progress",
-  "stage": "Stage 2 Completed, Stage 3 Planned",
-  "last_updated": "2026-05-28T22:55:00+09:00",
+  "stage": "Stage 2 & 3 Completed, Stage 4 Planned",
+  "last_updated": "2026-05-28T23:00:00+09:00",
   "completed_tasks": [
     "Modular Repository refactoring for 10 domains",
     "Declarative Grouping implementation in router.go",
     "Automatic delegation through PostgresStore & IntegrationRepository embedding",
     "main.go modular orchestration & package references resolution",
-    "Frontend audit logs API endpoint mapping update",
-    "Frontend onboarding review confirm API endpoint mapping update",
-    "Next.js frontend production build success validation"
+    "Frontend API service & UI component domain migration to domain/ folders",
+    "Frontend global import paths refactoring using absolute path aliases",
+    "Next.js frontend typescript compilation and production build validation"
   ],
   "active_issues": [],
   "next_steps": [
-    "Stage 3: Next.js Frontend Domain별 격리 및 컴포넌트 이관 (Thin Shell 라우터화) 진입",
     "Stage 4: docs/ 설계/거버넌스 문서 대칭 이관 및 재구성",
     "최종 통합 검증 및 원격 PR 반영"
   ]

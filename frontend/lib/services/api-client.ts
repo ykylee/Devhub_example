@@ -1,6 +1,6 @@
 import { tokenStore } from "@/lib/auth/token-store";
-import { triggerSessionExpired } from "@/lib/auth/session-death";
-import { refreshAccessToken } from "@/lib/auth/refresh";
+import { triggerSessionExpired } from "@/domain/auth-session/service/session-death";
+import { refreshAccessToken } from "@/domain/auth-session/service/refresh";
 import { API_BASE_URL } from "@/shared/config/endpoints";
 
 export class ApiError extends Error {

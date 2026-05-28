@@ -7,14 +7,14 @@ import { motion, AnimatePresence } from "framer-motion";
 
 import { useStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
-import { authService } from "@/lib/services/auth.service";
-import { realtimeService, type ConnectionStatusEvent } from "@/lib/services/realtime.service";
-import { devRequestService } from "@/lib/services/dev_request.service";
-import { DevRequest } from "@/lib/services/dev_request.types";
-import { repositoryService, type Repository } from "@/lib/services/repository.service";
+import { authService } from "@/domain/auth-session/service/auth.service";
+import { realtimeService, type ConnectionStatusEvent } from "@/domain/realtime/service/realtime.service";
+import { devRequestService } from "@/domain/dev-request/service/dev_request.service";
+import { DevRequest } from "@/domain/dev-request/schema/dev_request.types";
+import { repositoryService, type Repository } from "@/domain/repository-integration/service/repository.service";
 import type { Project } from "@/lib/services/project.types";
-import { DevRequestDetailModal } from "@/components/dev-request/DevRequestDetailModal";
-import { ProjectCreationModal } from "@/components/project/ProjectCreationModal";
+import { DevRequestDetailModal } from "@/domain/dev-request/view/DevRequestDetailModal";
+import { ProjectCreationModal } from "@/domain/application-lifecycle/view/ProjectCreationModal";
 
 export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   const { role, actor, notifications, setSidebarOpen } = useStore();

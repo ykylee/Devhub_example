@@ -1,4 +1,4 @@
-import { PermissionState } from "@/components/organization/PermissionMatrix";
+import { PermissionState } from "@/domain/rbac-permissions/view/PermissionMatrix";
 
 // Role mirrors the backend GET /api/v1/rbac/policies wire shape from
 // docs/backend_api_contract.md section 12.2. The id strings are aligned with

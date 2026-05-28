@@ -17,18 +17,18 @@ import "@xyflow/react/dist/style.css";
 import { motion } from "framer-motion";
 import { Activity, AlertTriangle, ArrowLeft, Globe, Server, Layers, Zap } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import { infraService } from "@/lib/services/infra.service";
+import { infraService } from "@/domain/integration-registry/service/infra.service";
 import type {
   ApiInfraNodeV2,
   ApiInfraServiceV2,
   ApiServiceEdgeV2,
   InfraTopologyV2Meta,
-} from "@/lib/services/infra.service";
+} from "@/domain/integration-registry/service/infra.service";
 import { Badge } from "@/shared/ui-foundation/components/Badge";
 import { Modal } from "@/shared/ui-foundation/components/Modal";
 import { cn } from "@/shared/utils";
 import Link from "next/link";
-import { realtimeService } from "@/lib/services/realtime.service";
+import { realtimeService } from "@/domain/realtime/service/realtime.service";
 
 // Infra topology v2 (HomeLab snapshot 기반) — sprint claude/work_260518-n.
 // P2-5: React Flow group sub-node + WebSocket 실시간 (sprint gemini/work_260520-e).

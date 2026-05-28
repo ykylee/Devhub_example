@@ -1,8 +1,8 @@
 "use client";
 
 import { tokenStore } from "@/lib/auth/token-store";
-import { triggerSessionExpired } from "@/lib/auth/session-death";
-import type { RefreshOutcome } from "@/lib/auth/refresh";
+import { triggerSessionExpired } from "@/domain/auth-session/service/session-death";
+import type { RefreshOutcome } from "@/domain/auth-session/service/refresh";
 
 // proactive token refresh — access token 만료 ~60s 전에 자동 갱신 시도.
 // 만료 자체를 사전 예방 (reactive 401 → refresh 패턴의 사각지대 해소).

@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, FileText, RefreshCw, Search, XCircle, Filter } from "lucide-react";
-import { auditService } from "@/lib/services/audit.service";
-import type { AuditLogEntry, AuditLogFilters } from "@/lib/services/audit.types";
+import { auditService } from "@/domain/audit-ops/service/audit.service";
+import type { AuditLogEntry, AuditLogFilters } from "@/domain/audit-ops/schema/audit.types";
 import { cn } from "@/shared/utils";
 
 const PAGE_SIZE = 50;

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Loader2, UserPlus } from "lucide-react";
-import { identityService, type ResolvedActor } from "@/lib/services/identity.service";
+import { identityService, type ResolvedActor } from "@/domain/organization-management/service/identity.service";
 import { ApiError } from "@/lib/services/api-client";
 import { useStore } from "@/lib/store";
 import { OnboardingForm } from "@/components/onboarding/OnboardingForm";

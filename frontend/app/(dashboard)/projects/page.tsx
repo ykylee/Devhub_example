@@ -20,7 +20,7 @@ import { FilterBar } from "@/shared/ui-foundation/components/FilterBar";
 import { PageEmpty, PageError, PageLoading } from "@/shared/ui-foundation/components/PageState";
 import { projectService } from "@/lib/services/project.service";
 import type { Project } from "@/lib/services/project.types";
-import { repositoryService } from "@/lib/services/repository.service";
+import { repositoryService } from "@/domain/repository-integration/service/repository.service";
 
 export default function ProjectsStatusPage() {
   const [projects, setProjects] = useState<Project[]>([]);
