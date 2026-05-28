@@ -1,7 +1,6 @@
 import { WSEvent, WSEventHandler } from "./types";
 import { useStore } from "@/lib/store";
 import { apiClient, ApiError } from "./api-client";
-import { authService } from "./auth.service";
 import { tokenStore } from "@/lib/auth/token-store";
 
 import { WS_BASE_URL as WS_BASE } from "../config/endpoints";
@@ -65,22 +64,20 @@ export class RealtimeService {
   }
 
   private async fetchTicket(): Promise<string | null> {
-    // ADR-0024 §3.2 ticket pattern. 401 시 refresh-then-retry 1회 (carve 4).
+    // ADR-0024 §3.2 ticket pattern. 401 시 refresh-then-retry 는 apiClient 가
+    // 내부에서 `refreshAccessToken()` (단일 single-flight mutex, #388 codex P1)
+    // 으로 처리한다. 본 함수는 결과만 받음 — 이중 refresh 시도(레거시 authService.
+    // refreshTokens 직접 호출) 를 제거해 Keycloak `Refresh Token Max Reuse=0`
+    // 환경에서 동시 invalid_grant 가 터지던 race 차단.
     try {
       const resp = await apiClient<{ ticket: string }>("POST", "/api/v1/realtime/ticket");
       return resp.ticket;
     } catch (e) {
-      if (e instanceof ApiError && e.status === 401) {
-        try {
-          await authService.refreshTokens();
-          const retry = await apiClient<{ ticket: string }>("POST", "/api/v1/realtime/ticket");
-          return retry.ticket;
-        } catch (refreshErr) {
-          console.warn('[RealtimeService] Ticket refresh-then-retry failed:', refreshErr);
-          return null;
-        }
+      if (e instanceof ApiError) {
+        console.warn('[RealtimeService] Ticket fetch failed (status %d); WS will retry on next reconnect.', e.status);
+      } else {
+        console.warn('[RealtimeService] Ticket fetch network error:', e);
       }
-      console.warn('[RealtimeService] Ticket fetch failed (ticket-only; will reconnect/retry):', e);
       return null;
     }
   }

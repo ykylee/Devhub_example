@@ -5,10 +5,10 @@ import { useRouter, usePathname } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { Loader2 } from "lucide-react";
 import { identityService } from "@/lib/services/identity.service";
-import { authService } from "@/lib/services/auth.service";
 import { ApiError } from "@/lib/services/api-client";
 import { defaultLandingFor, isSystemAdmin, pathRequiresSystemAdmin } from "@/lib/auth/role-routing";
 import { initRefreshScheduler } from "@/lib/auth/refresh-scheduler";
+import { refreshAccessToken } from "@/lib/auth/refresh";
 import { isOnboardingSkipped } from "@/lib/storage/onboardingSkip";
 
 // limited-mode (skip 단계) 사용자가 client-side 에서 차단되는 경로.
@@ -27,13 +27,12 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { actor, setActor, clearActor } = useStore();
   const [isAuthorized, setIsAuthorized] = useState(false);
 
-  // Mount-only: proactive token refresh scheduler 초기화. tokenStore.expires_at
-  // 변경(로그인/갱신/clear) 마다 자동 재스케줄링. refreshFn 실패 시 스케줄러 내부에서
-  // triggerSessionExpired 호출 → /login 으로 hard nav.
+  // Mount-only: proactive token refresh scheduler 초기화. refreshAccessToken 는
+  // apiClient(reactive 401)·realtime.fetchTicket 와 single-flight mutex 를 공유하고
+  // (#388 codex P1), RefreshOutcome 으로 transient vs auth_failed 를 구분해 반환한다
+  // (#388 codex P2). tokenStore.expires_at 변경마다 스케줄러가 재계산.
   useEffect(() => {
-    initRefreshScheduler(async () => {
-      await authService.refreshTokens();
-    });
+    initRefreshScheduler(() => refreshAccessToken());
   }, []);
 
   useEffect(() => {
