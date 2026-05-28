@@ -33,9 +33,8 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
   const [leaderOptions, setLeaderOptions] = useState<Array<{ label: string; value: string; description?: string }>>([]);
   const [unitOptions, setUnitOptions] = useState<Array<{ label: string; value: string; description?: string }>>([]);
 
-  // Projects and Repositories connection management states
+  // Projects (read-only listing, P1-#3 정정) + Repositories (edit-capable) states.
   const [allProjects, setAllProjects] = useState<Project[]>([]);
-  const [selectedProjectIDs, setSelectedProjectIDs] = useState<string[]>([]);
   const [allRepositories, setAllRepositories] = useState<Repository[]>([]);
   const [selectedRepoKeys, setSelectedRepoKeys] = useState<string[]>([]); // repo_provider/repo_full_name
 
@@ -93,26 +92,26 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
     };
   }, [isEdit, initialData]);
 
-  // Load all projects for mapping in edit mode
+  // edit 모드일 때 본 application 에 이미 연결된 프로젝트 표시 (read-only listing).
+  // P1-#3 정정 — application_id PATCH 가 backend `updateProjectRequest` 에 필드
+  // 자체가 없어 silent ignore 였음. 연결/해제는 Project edit modal 에서만 가능
+  // (후속 carve: backend updateProject 에 application_id nullable PATCH 지원).
   useEffect(() => {
-    if (isEdit && initialData.id) {
-      projectService.listAllProjects([]).then(async () => {
-        // Find projects. For safety, let's fetch all projects across system if possible,
-        // or let's use listAllProjects helper. Wait, let's get projects matching application,
-        // and also get all active projects to let user map them.
-        // Let's get application projects and standalone projects first.
-        try {
-          const appProjects = await projectService.getApplicationProjectsV2(initialData.id!);
-          // Let's load active projects or all projects from a repository if any.
-          // Wait, let's fetch all projects across the application's connected repositories
-          // plus the ones already connected.
-          setAllProjects(appProjects);
-          setSelectedProjectIDs(appProjects.map(p => p.id));
-        } catch (err) {
-          console.error(err);
-        }
-      }).catch(console.error);
+    if (!isEdit || !initialData.id) {
+      return;
     }
+    let alive = true;
+    projectService.getApplicationProjectsV2(initialData.id)
+      .then((appProjects) => {
+        if (!alive) return;
+        setAllProjects(appProjects);
+      })
+      .catch((err) => {
+        if (alive) console.error(err);
+      });
+    return () => {
+      alive = false;
+    };
   }, [isEdit, initialData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -157,18 +156,12 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
           })
         ]);
 
-        // Synchronize connected projects
-        // Find projects whose application_id needs to be updated to this app, or set to empty
-        const connectedProjects = await projectService.getApplicationProjectsV2(initialData.id);
-        const connectedIDs = connectedProjects.map(p => p.id);
-
-        const toAddProjects = selectedProjectIDs.filter(id => !connectedIDs.includes(id));
-        const toRemoveProjects = connectedIDs.filter(id => !selectedProjectIDs.includes(id));
-
-        await Promise.all([
-          ...toAddProjects.map(id => projectService.updateProject(id, { application_id: initialData.id })),
-          ...toRemoveProjects.map(id => projectService.updateProject(id, { application_id: "" }))
-        ]);
+        // P1-#3/#4 정정 — backend `updateProjectRequest` 에 `application_id` 필드가
+        // 존재하지 않아 PATCH 가 silent ignore 였음. 본 modal 의 "Connected Projects"
+        // 섹션은 read-only 표시. 연결/해제는 Project edit modal 의 application select
+        // 통해서만 동작 (단, 그 쪽도 backend 미지원이라 동일 carve 대기).
+        // 후속 carve: backend updateProject 에 application_id nullable PATCH 지원
+        // 추가 + RBAC/audit/ownership 변경 정책 정합.
       } else {
         const normalizedKey = formData.key.trim().toUpperCase();
         result = await projectService.createApplication({
@@ -425,30 +418,22 @@ export function ApplicationCreationModal({ onClose, onCreated, initialData }: Ap
 
               <div className="space-y-3">
                 <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1 flex items-center gap-1.5">
-                  <FolderKanban className="w-3.5 h-3.5 text-purple-400" /> Connected Projects
+                  <FolderKanban className="w-3.5 h-3.5 text-purple-400" /> Connected Projects (read-only)
                 </label>
                 <div className="max-h-[160px] overflow-y-auto border border-border rounded-2xl p-4 bg-muted/5 space-y-2 custom-scrollbar">
-                  {allProjects.map(proj => {
-                    const isChecked = selectedProjectIDs.includes(proj.id);
-                    return (
-                      <label key={proj.id} className="flex items-center gap-3 text-xs text-foreground dark:text-primary-foreground cursor-pointer select-none">
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={(e) => {
-                            if (e.target.checked) setSelectedProjectIDs([...selectedProjectIDs, proj.id]);
-                            else setSelectedProjectIDs(selectedProjectIDs.filter(id => id !== proj.id));
-                          }}
-                          className="h-4 w-4 rounded border-border"
-                        />
-                        <span>{proj.name} ({proj.key})</span>
-                      </label>
-                    );
-                  })}
+                  {allProjects.map((proj) => (
+                    <div key={proj.id} className="flex items-center gap-3 text-xs text-foreground dark:text-primary-foreground select-none opacity-90">
+                      <span className="w-2 h-2 rounded-full bg-purple-400/70" />
+                      <span>{proj.name} ({proj.key})</span>
+                    </div>
+                  ))}
                   {allProjects.length === 0 && (
                     <p className="text-[10px] text-muted-foreground italic">No projects connected yet.</p>
                   )}
                 </div>
+                <p className="text-[10px] text-muted-foreground italic px-1">
+                  Project linking is managed in the Project edit modal — `application_id` PATCH is not yet supported on this endpoint.
+                </p>
               </div>
             </div>
           )}

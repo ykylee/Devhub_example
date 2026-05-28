@@ -145,8 +145,17 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
       if (isEdit && initialData?.id) {
         const patchPayload: Partial<typeof formData> = { ...formData };
         delete patchPayload.key;
-        patchPayload.repository_ids = selectedRepositoryIDs;
-        patchPayload.repository_id = selectedRepositoryIDs[0] || 0;
+        // P1-#5 정정 — repository_id=0 fallback 은 backend createProjectRequest.RepositoryID
+        // (int64 FK to repositories.id) 가 0 을 받으면 FK violation 또는 silent ignore.
+        // 선택된 repo 가 있을 때만 명시 set, 빈 배열이면 두 필드 모두 미전송 (Partial 의도
+        // 살림 — backend updateProjectRequest 가 미포함 필드는 갱신 skip).
+        if (selectedRepositoryIDs.length > 0) {
+          patchPayload.repository_ids = selectedRepositoryIDs;
+          patchPayload.repository_id = selectedRepositoryIDs[0];
+        } else {
+          delete patchPayload.repository_ids;
+          delete patchPayload.repository_id;
+        }
         result = await projectService.updateProject(initialData.id, patchPayload);
 
         // N:M project-repositories sync during edit mode
