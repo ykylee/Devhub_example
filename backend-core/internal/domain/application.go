@@ -143,6 +143,10 @@ type ApplicationRepository struct {
 	SyncErrorAt        *time.Time
 	LastSyncAt         *time.Time
 	LinkedAt           time.Time
+	// LinkSource — "direct" (application_repositories 직접 link) | "via_project"
+	// (프로젝트 경유 간접 link). #395/#396 후속 carve P2-#3 — UI/디버깅/감사용.
+	// 두 source 가 같은 (repo_provider, repo_full_name) 으로 충돌 시 direct 우선.
+	LinkSource string
 }
 
 // Project is a time-bounded operational unit hosted under a Repository.

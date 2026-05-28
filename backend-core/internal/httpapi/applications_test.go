@@ -232,6 +232,7 @@ func (s *memoryApplicationStore) ListApplicationRepositories(_ context.Context, 
 				Role:          role,
 				SyncStatus:    domain.SyncStatusActive,
 				LinkedAt:      pr.LinkedAt,
+				LinkSource:    "via_project",
 			})
 		}
 	}

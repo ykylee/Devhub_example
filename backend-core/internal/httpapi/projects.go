@@ -601,6 +601,10 @@ type updateProjectRequest struct {
 	Name           *string `json:"name"`
 	Description    *string `json:"description"`
 	OwnerUserID    *string `json:"owner_user_id"`
+	// ApplicationID — application 이전 / 해제. nil = 변경 안 함, "" = 해제 (NULL),
+	// non-empty = 해당 application 으로 이전 (존재 검증 후). #395/#396 후속 carve.
+	// migration 000015 의 projects.application_id 는 nullable (ON DELETE SET NULL).
+	ApplicationID  *string `json:"application_id"`
 	StartDate      *string `json:"start_date"`
 	DueDate        *string `json:"due_date"`
 	Visibility     *string `json:"visibility"`
@@ -662,6 +666,25 @@ func (h *Handler) updateProject(c *gin.Context) {
 	}
 	if req.OwnerUserID != nil {
 		updated.OwnerUserID = *req.OwnerUserID
+	}
+	if req.ApplicationID != nil {
+		// application 이전/해제 — #395/#396 후속 carve. ApplicationID nil = 변경 안 함,
+		// "" = 해제 (NULL), non-empty = 해당 application 으로 이전 (존재 검증 + audit).
+		newAppID := strings.TrimSpace(*req.ApplicationID)
+		if newAppID != "" && newAppID != current.ApplicationID {
+			if _, err := storeI.GetApplication(c.Request.Context(), newAppID); errors.Is(err, store.ErrNotFound) {
+				c.JSON(http.StatusUnprocessableEntity, gin.H{
+					"status": "rejected",
+					"error":  "application_id does not exist",
+					"code":   "application_id_invalid",
+				})
+				return
+			} else if err != nil {
+				writeServerError(c, err, "projects.update.application_lookup")
+				return
+			}
+		}
+		updated.ApplicationID = newAppID
 	}
 	if req.Visibility != nil {
 		if !validApplicationVisibilities[*req.Visibility] {
@@ -747,6 +770,11 @@ func (h *Handler) updateProject(c *gin.Context) {
 	}
 	if req.ArchivedReason != "" {
 		payload["archived_reason"] = req.ArchivedReason
+	}
+	if current.ApplicationID != result.ApplicationID {
+		// application 이전/해제 audit. from/to 빈 string 은 NULL 의미 (해제/연결 안 함).
+		payload["application_id_from"] = current.ApplicationID
+		payload["application_id_to"] = result.ApplicationID
 	}
 	h.recordAuditBestEffort(c, "project.updated", "project", id, payload)
 	c.JSON(http.StatusOK, gin.H{

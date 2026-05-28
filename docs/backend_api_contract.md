@@ -1457,7 +1457,11 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 
 #### `GET /api/v1/applications/{application_id}/repositories` (`API-48 (planned)`)
 
-- 설명: Application에 연결된 Repository 조회.
+- 설명: Application에 연결된 Repository 조회. 직접 link + 프로젝트 경유 간접 link 의 UNION (#395 활성화, #395/#396 후속 carve).
+- 응답 data 의 각 link 객체에 `link_source` 필드 (`direct` | `via_project`) — UI/디버깅/감사용:
+  - `direct`: `application_repositories` 의 직접 link (SCM webhook sync metadata 보유)
+  - `via_project`: 본 application 의 하위 project 경유 간접 link — sync 메타는 의미적 default (`sync_status=active`, `sync_error_*` 빈/NULL, `last_sync_at=pr.linked_at`)
+  - 같은 (repo_provider, repo_full_name) 이 direct + via_project 양쪽 source 로 잡히면 두 row 모두 응답 (UI 가 구분 표기).
 
 #### `POST /api/v1/applications/{application_id}/repositories` (`API-49 (planned)`)
 
@@ -1604,6 +1608,13 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 #### `PATCH /api/v1/projects/{project_id}` (`API-56 (planned)`)
 
 - 설명: Project 메타/상태 수정.
+- 요청 body 필드 (모두 optional, nil = 변경 안 함):
+  - `name`, `description`, `owner_user_id`, `visibility`, `status`, `start_date`, `due_date`
+  - `application_id` — application 이전/해제 (#395/#396 후속 carve):
+    - `""` (빈 string) → 해제 (NULL, ON DELETE SET NULL 의도 일치)
+    - non-empty UUID → 해당 application 으로 이전 (존재하지 않으면 422 `application_id_invalid`)
+  - `hold_reason` / `resume_reason` / `archived_reason` — status 전이 필수 payload
+- audit: `project.updated` event 의 details 에 `application_id_from` / `application_id_to` 기록 (변경된 경우).
 
 #### `DELETE /api/v1/projects/{project_id}` (`API-56 (planned)`)
 
