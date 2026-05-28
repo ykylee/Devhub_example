@@ -1,10 +1,10 @@
 # DevHub 시스템 Usecase 카탈로그
 
 - 문서 목적: 코드베이스 전체 모듈 기준으로 Usecase를 정의하고, 요구사항(REQ)과 설계(ARCH/API) 사이의 중간 추적 단위를 제공한다.
-- 범위: backend-core 주요 모듈(auth/account/org/rbac/gitea ingest/command/audit/realtime/store) + 신규 Project 도메인.
+- 범위: backend-core 주요 모듈(auth/account/org/rbac/gitea ingest/command/audit/realtime/store) + Application/Project 도메인 + Repository SCM 연동/Lifecycle + External Integration.
 - 대상 독자: 프로젝트 리드, 시스템 관리자, Backend/Frontend 설계 담당, 추적성 리뷰어.
 - 상태: draft
-- 최종 수정일: 2026-05-21 (Onboarding 도메인 UC-ONBOARD 초안 추가, §2.13)
+- 최종 수정일: 2026-05-27 (§2.14 Repository SCM 연동+Lifecycle UC-REPO 신규 + §2.12 INT 에 auth_mode/test-connection/Gitea pull sync/webhook alias UC-INT-15..18 추가)
 - 관련 문서: [요구사항](../requirements.md), [아키텍처](../architecture.md), [API 계약](../backend_api_contract.md), [ERD 카탈로그](./system_erd.md), [통합 로드맵](../development_roadmap.md)
 
 ## 1. 모듈 기준
@@ -19,7 +19,9 @@
 | Command | `backend-core/internal/httpapi/commands.go`, `internal/commandworker`, `internal/serviceaction` |
 | Audit | `backend-core/internal/httpapi/audit.go`, `internal/store/audit_logs.go` |
 | Realtime | `backend-core/internal/httpapi/realtime.go`, `snapshot.go` |
-| Application/Project (신규) | `docs/requirements.md` §5.4 기준 (설계/구현 예정) |
+| Application/Project | `backend-core/internal/httpapi/applications.go`, `projects.go`, `repository_ops.go`, `application_rollup.go` |
+| Repository SCM 연동/Lifecycle | `backend-core/internal/httpapi/integration_scm_repositories.go`, `domain.go`(draft/publish), `backend-core/internal/gitea`(CreateRepo) |
+| External Integration | `backend-core/internal/httpapi/integration_registry.go`, `integrations.go`, `infra_integrations.go`, `backend-core/internal/gitea`(pull sync) |
 
 ## 2. Usecase (모듈별)
 
@@ -151,6 +153,10 @@
 | `UC-INT-12` | 연동 운영 감사 추적 | 연동 생성/변경/실패/복구 이벤트가 audit로 추적 가능하다 | REQ-NFR-INT-002 |
 | `UC-INT-13` | Provider 장애 격리 처리 | 특정 provider 장애가 전체 수집 파이프라인 중단으로 확산되지 않는다 | REQ-NFR-INT-004 |
 | `UC-INT-14` | 연동 데이터 조회 품질 보장 | 페이지네이션/필터/최신스냅샷-이력이 일관된 계약으로 제공된다 | REQ-NFR-INT-005,006 |
+| `UC-INT-15` | provider auth_mode 별 자격증명 등록 | auth_mode(token/basic/oauth2/app_password/agent)별 입력을 받아 `api_token`/`auth_secret` 을 write-only(응답엔 `*_set` bool)로 저장하고, outbound 요청 시 `ResolveOutboundAuth` 로 헤더를 구성한다 (API-69..71, migration 000040/000041) | REQ-FR-INT-001 |
+| `UC-INT-16` | provider 연결 테스트(test-connection) | base_url 대상으로 GET(5s timeout) 을 보내 reachability 를 확인한다. 사내 internal endpoint 가 합법 대상이라 SSRF 차단을 수용하고 응답 본문은 반환하지 않는다 (API-87) | REQ-FR-INT-001,002 |
+| `UC-INT-17` | Gitea pull 동기화 (per-provider) | provider 별 자격증명을 우선 사용(env fallback 금지)해 주기/큐(`integration_sync_jobs`, SKIP LOCKED)로 SCM 데이터를 pull 한다. SCM type + pull\|sync capability + enabled 일 때만 수행, disabled 면 409 | REQ-FR-INT-003,004 |
+| `UC-INT-18` | webhook 수신 헤더 alias 정규화 | 범용 ingest 가 `X-Integration-*`→`X-Gitea-*`→`X-Gogs-*` 순으로 서명/이벤트 헤더를 fallback 해석해 vendor 별 헤더 불일치를 흡수한다 (API-73) | REQ-FR-INT-003 |
 
 ### 2.13 Onboarding (Keycloak 인증 통과 사용자의 self-service 초기 등록)
 
@@ -168,8 +174,23 @@
 | `UC-ONBOARD-10` | Skip → 한정 접근 모드 | "나중에 하기" 액션 → user row 미생성 + 공통 메뉴 + `/devhub/onboarding` + `GET /me` 만 접근 | REQ-FR-ONBOARD-011, REQ-FR-ONBOARD-006 |
 | `UC-ONBOARD-11` | Skip 후 dismissible banner | session-scoped skip flag set + 모든 페이지 상단에 banner 노출 (자동 redirect 없음) | REQ-FR-ONBOARD-010 |
 
+### 2.14 Repository SCM 연동 + Lifecycle (원격 SCM ↔ 시스템 저장소 양방향 + draft→publish)
+
+> §2.5 Gitea 가 webhook 수집(push)을, §2.9 Application 이 Application-Repository 링크/운영지표 조회를 다루는 것과 별개로, 본 섹션은 2026-05-27 도입된 (a) 원격 SCM repo 의 inbound import, (b) 시스템→SCM outbound 생성, (c) repository draft→publish lifecycle, (d) scm-owned vs system-owned 소유권 구분을 담는다. (#363/#366/#368/#373)
+
+| UC ID | Usecase | 성공 조건 | 관련 REQ |
+| --- | --- | --- | --- |
+| `UC-REPO-01` | 원격 SCM repo 목록 조회 | provider(SCM type + pull capability + enabled) 의 원격 저장소 목록을 조회하고 이미 import 된 항목에 `imported` 플래그를 표시한다 (API-88) | REQ-FR-APP-004, REQ-FR-INT-004 |
+| `UC-REPO-02` | 선택 import (inbound) | 선택한 원격 repo 를 SCM 재조회 값으로 upsert 한다. source=scm 으로 표시하고 ON CONFLICT 시 SCM mirror 필드만 갱신하며 system-owned 필드는 보존한다 (API-89) | REQ-FR-APP-002,004 |
+| `UC-REPO-03` | 시스템→SCM 저장소 생성 (outbound) | push capability + gitea-compat provider 에 대해 `gitea.CreateRepo` 로 원격 저장소를 생성하고 source=system 으로 등록한다 (API-90) | REQ-FR-APP-002, REQ-FR-INT-012 |
+| `UC-REPO-04` | repository draft 생성 | provider_key 를 provider_id(FK, migration 000045) 로 해석해 publish 전 draft 상태 repository row 를 생성한다 (`POST /repositories`) | REQ-FR-APP-002,004 |
+| `UC-REPO-05` | draft → publish 요청 | draft 상태에서만 허용. provider SCM/push/gitea-compat 검사 통과 후 `gitea.CreateRepo` → `UpsertRepository` 로 발행한다. SCM 생성 실패 시 publish_requested 마킹 + BadGateway 부분실패 경로 | REQ-FR-APP-002, REQ-FR-INT-012 |
+| `UC-REPO-06` | 저장소 소유권 구분 (scm vs system) | `source`/`provider_id` 로 SCM-mirror 와 system-owned 를 구분하고, sync upsert 가 system-owned(description 등) 값을 덮어쓰지 않도록 보존한다 (in-memory fake 도 동일 parity) | REQ-FR-APP-004, REQ-FR-APP-009 |
+| `UC-REPO-07` | capability 기반 기능 gate | import=pull, sync=pull\|sync, create=push + gitea-compat 로 provider capability 에 따라 기능을 제한하고, 미충족/disabled provider 는 409 로 거부한다 | REQ-FR-APP-009, REQ-FR-INT-002 |
+
 ## 3. 설계/구현 반영 규칙
 
 1. 신규/변경 API는 최소 1개 UC를 참조해야 한다.
 2. 신규 마이그레이션은 대응 UC와 연결되어야 한다.
 3. 추적성 매트릭스는 REQ→UC→ARCH/API→IMPL→UT/TC 순으로 유지한다.
+4. 갱신 메모(2026-05-27): API-87(test-connection)/88(scm-repositories list)/89(import-repositories)/90(create-repository) 및 repository draft→publish(`POST /repositories`, `/repositories/:id/publish`) 는 위 §2.12 UC-INT-15..18 / §2.14 UC-REPO-01..07 에 매핑한다. repository draft→publish(#368) 는 무테스트로 머지되었으므로 대응 UT/TC 보강이 후속 carve 대상이다(02_sdlc_chain_status.md G4 참조). 신규 REQ-FR 는 발급하지 않고 REQ-FR-APP-002/004/009 + REQ-FR-INT-004/012 를 재사용한다.

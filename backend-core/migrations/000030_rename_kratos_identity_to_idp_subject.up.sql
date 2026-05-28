@@ -1,4 +1,4 @@
--- 000021: Rename users.kratos_identity_id -> users.idp_subject for
+-- 000030: Rename users.kratos_identity_id -> users.idp_subject for
 -- provider-agnostic identity mapping (Keycloak-only transition).
 
 DO $$

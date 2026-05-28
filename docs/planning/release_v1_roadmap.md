@@ -4,7 +4,7 @@
 - 범위: 1차 릴리즈에 포함될 기능 scope, 제외 기능, 잔여 carve 우선순위, 신규 마일스톤(M-v1.0, M-v1.1, M-v2), GitHub project + milestone 등록 plan, UI 검증 방식.
 - 대상 독자: 프로젝트 리드, 모든 워커 (Claude, Codex, Gemini), 후속 작업자.
 - 상태: draft
-- 최종 수정일: 2026-05-21 (Onboarding 도메인 §2.3 신규 + P2-8..11 IMPL carve 4건 + P2-12 lazy_auto_create deletion issue #284 + ADR-0021 reservation 정정 + backlog hygiene sweep — P2-3 stale closing 정합 (issue #219) + P2-7 cancelled (issue #223))
+- 최종 수정일: 2026-05-27 (**코드베이스 스냅샷 정합** — Onboarding IMPL carve A/B/C/D 전부 완료 (P2-8..12 ✅, PR #278/#288/#289/#290/#291) + lazy_auto_create 폐기 + v1.1 영역 작업 일부 v1.0 전 선행 (Gitea SCM sync·SCM↔시스템 양방향·auth_mode full·repository draft/publish·admin catalog) + 향후 방향 §3.5 N/X/E 백로그 추가. 분석 근거 [docs/analysis/2026-05-27-codebase-snapshot](../analysis/2026-05-27-codebase-snapshot/README.md))
 - 결정 근거 sprint: `claude/work_260520-f-roadmap` (본 문서)
 - 관련 문서: [통합 개발 로드맵](../development_roadmap.md) (M0~M6 historical), [requirements](../requirements.md), [architecture](../architecture.md), [ADR-0019 Keycloak](../adr/0019-keycloak-only-idp.md), [ADR-0020 계정/사용자 책임 경계](../adr/0020-account-user-management-boundary.md), [traceability matrix](../traceability/report.md), [account_user_management_redesign Phase 1/2/3](./account_user_management_redesign.md), [keycloak_operations](../setup/keycloak_operations.md).
 
@@ -88,10 +88,11 @@
 | Usecase + Architecture + API contract | — (spec) | — | ✅ done (PR #267 — UC-ONBOARD-01..11 + ARCH-ONBOARD-01..06 + API-83..86 + API-32/33 확장) |
 | ADR-0021 (책임 경계 확장 + lazy auto-create supersession) | — (ADR) | — | ✅ done (PR #269, ADR-0020 partial supersession 5 위치) |
 | IMPL carve plan + RM-ONBOARD-01..04 | [`docs/planning/onboarding_impl_plan.md`](./onboarding_impl_plan.md) | — | 본 sprint done |
-| RM-ONBOARD-01 IMPL-backend (handler + middleware + migration + lazy 폐기) | `internal/httpapi/{onboarding_gate,me_onboarding,organizations_search,users_admin_review}.go` 신규 | — | ⏳ M-v1.1 |
-| RM-ONBOARD-02 IMPL-frontend (page + picker + banner + gating) | — | `app/onboarding/page.tsx` + `components/onboarding/*` + `(dashboard)/layout.tsx` 확장 + `account/page.tsx` 확장 | ⏳ M-v1.1 |
-| RM-ONBOARD-03 IMPL-admin (Confirm Review + pending_review filter) | — | `app/admin/settings/users/page.tsx` 확장 + `ConfirmReviewModal.tsx` 신규 | ⏳ M-v1.1 |
-| RM-ONBOARD-04 IMPL-tests (UT + E2E mega lifecycle) | `internal/httpapi/onboarding{,_gate}_test.go` | `tests/e2e/onboarding.spec.ts` + 6 test seed | ⏳ M-v1.1 |
+| RM-ONBOARD-01 IMPL-backend (handler + middleware + migration) | `internal/httpapi/{onboarding_gate,me_onboarding,organizations_search,users_admin_review,onboarding_roles,onboarding_feature_flag}.go` | — | ✅ done (Carve A, PR #278) |
+| RM-ONBOARD-02 IMPL-frontend (page + picker + banner + gating) | — | `app/onboarding/page.tsx` + `components/onboarding/*` + `(dashboard)/layout.tsx` + `account/page.tsx` | ✅ done (Carve B/C, PR #288) |
+| RM-ONBOARD-03 IMPL-admin (Confirm Review + pending_review filter) | — | `app/admin/settings/users/page.tsx` + `components/admin/users/ConfirmReviewModal.tsx`·`PendingReviewPanel.tsx` | ✅ done (Carve B/C, PR #288) |
+| RM-ONBOARD-04 IMPL-tests (UT + E2E) | `internal/httpapi/onboarding_test.go` | `tests/e2e/onboarding-first-login.spec.ts` + 6 test seed | ✅ done (Carve D, PR #289 + flag ON #290 + hotfix #291) |
+| lazy_auto_create 폐기 (ADR-0021 §3.3 정공법) | `lazy_auto_create.go`·`onboarding_feature_flag.go` 삭제 + flag default ON | — | ✅ done (PR #290, issue #284 closed) |
 
 ### 2.4 External Integration
 
@@ -135,11 +136,11 @@
 | **P2-5** | React Flow group sub-node + WebSocket 실시간 (`infra.node.updated` / `infra.service.updated`) | development_roadmap §6 잔여 | **Gemini (frontend done ✅)** | topology v2 강화. WebSocket 실시간 연동 및 Environment 그룹화 완료. |
 | **P2-6** | Keycloak SPI provider JAR (PR #203 codex P2) | PR #203 codex review | **Codex (infra) + 사용자 (Java 빌드 환경)** | `infra/idp/devhub-event-listener/` Maven 또는 Gradle 빌드 + compose volume mount + 운영 SOP |
 | ~~**P2-7**~~ | ~~신규 user 의 unit 초기 배치 자동화 — HRDB ETL pre-stage 가 unit 정보 동반~~ | ADR-0020 §5.5.2 | — | **cancelled (2026-05-21, issue [#223](https://github.com/ykylee/Devhub_example/issues/223) closed not-planned)** — 외부 Keycloak 시나리오 (`hrdb_etl_sync.sh` 이미 DEPRECATED, PR #257) + ADR-0021 §3.1 self-service onboarding 이 unit 매핑 cover. 두 정합 결정으로 본 carve 무효화. |
-| **P2-8** | **RM-ONBOARD-01** IMPL-backend — `users` migration (`onboarding_completed_at` + `review_status` + CHECK) + `onboardingGate` middleware + 5 handler (API-83/84/85/86 + API-32/33 확장) + lazy_auto_create.go 폐기 + audit event const 3종 | ADR-0021 §6.1, [onboarding_impl_plan.md](./onboarding_impl_plan.md) §2.1 | **Claude (backend)** | feature flag default OFF — Carve A 단독 머지 후 main 안정성. Carve B/C 진입 dependency |
-| **P2-9** | **RM-ONBOARD-02** IMPL-frontend — `/onboarding` page + OrganizationPicker (typeahead + tree) + skip flag sessionStorage + dismissible banner + `(dashboard)/layout.tsx` 3-branch gating + `/account` self-service unit edit | ADR-0021 §6.1, [onboarding_impl_plan.md](./onboarding_impl_plan.md) §2.2 | **Gemini (frontend+UX)** | Carve A 머지 후 진입. Carve C 와 병행 가능 |
-| **P2-10** | **RM-ONBOARD-03** IMPL-admin — `/admin/settings/users` 의 "Confirm Review" 액션 + pending_review filter + `ConfirmReviewModal.tsx` | ADR-0021 §6.1, [onboarding_impl_plan.md](./onboarding_impl_plan.md) §2.3 | **Gemini (frontend)** | Carve A 머지 후 진입. Carve B 와 병행 가능 |
-| **P2-11** | **RM-ONBOARD-04** IMPL-tests — UT-onboarding-* (backend handler + middleware) + TC-ONBOARD-* 11건 (E2E mega lifecycle, REQ-NFR-ONBOARD-008 의 6 test seed) + `docs/tests/test_cases_m7_onboarding.md` | ADR-0021 §6.1, [onboarding_impl_plan.md](./onboarding_impl_plan.md) §2.4 | **Claude (UT) + Gemini (E2E)** | Carve A + B + C 모두 머지 후 |
-| **P2-12** | **lazy_auto_create.go deletion** — ADR-0021 §3.3 정공법 완성. `lazy_auto_create.go` + `onboarding_feature_flag.go` 2 파일 삭제 + `authenticateActor` flag 분기 제거 + `account.lazy_provisioned`/`user.role_default_assigned` audit emit 중단 + UT 정리 + ADR-0020 §4.1 sub-carve B inline banner 갱신 | ADR-0021 §3.3, [issue #284](https://github.com/ykylee/Devhub_example/issues/284) | **Claude (backend)** | Carve D acceptance + feature flag default ON flip + 1주 staging monitoring 후 진입 |
+| **P2-8** | **RM-ONBOARD-01** IMPL-backend — `users` migration (`onboarding_completed_at` + `review_status` + CHECK) + `onboardingGate` middleware + 5 handler (API-83/84/85/86 + API-32/33 확장) + lazy_auto_create.go 폐기 + audit event const 3종 | ADR-0021 §6.1, [onboarding_impl_plan.md](./onboarding_impl_plan.md) §2.1 | **Claude (backend)** | ✅ **resolved** (Carve A, PR #278). feature flag default OFF → Carve D 에서 ON flip. |
+| **P2-9** | **RM-ONBOARD-02** IMPL-frontend — `/onboarding` page + OrganizationPicker (typeahead + tree) + skip flag sessionStorage + dismissible banner + `(dashboard)/layout.tsx` 3-branch gating + `/account` self-service unit edit | ADR-0021 §6.1, [onboarding_impl_plan.md](./onboarding_impl_plan.md) §2.2 | **Gemini→Claude (override)** | ✅ **resolved** (Carve B, PR #288). |
+| **P2-10** | **RM-ONBOARD-03** IMPL-admin — `/admin/settings/users` 의 "Confirm Review" 액션 + pending_review filter + `ConfirmReviewModal.tsx` | ADR-0021 §6.1, [onboarding_impl_plan.md](./onboarding_impl_plan.md) §2.3 | **Gemini→Claude (override)** | ✅ **resolved** (Carve C, PR #288). |
+| **P2-11** | **RM-ONBOARD-04** IMPL-tests — UT-onboarding-* (backend handler + middleware) + TC-ONBOARD-* 11건 (E2E mega lifecycle, REQ-NFR-ONBOARD-008 의 6 test seed) + `docs/tests/test_cases_m7_onboarding.md` | ADR-0021 §6.1, [onboarding_impl_plan.md](./onboarding_impl_plan.md) §2.4 | **Claude (UT) + Gemini (E2E)** | ✅ **resolved** (Carve D, PR #289 + codex hotfix #291). |
+| **P2-12** | **lazy_auto_create.go deletion** — ADR-0021 §3.3 정공법 완성. `lazy_auto_create.go` + `onboarding_feature_flag.go` 2 파일 삭제 + `authenticateActor` flag 분기 제거 + `account.lazy_provisioned`/`user.role_default_assigned` audit emit 중단 + UT 정리 + ADR-0020 §4.1 sub-carve B inline banner 갱신 | ADR-0021 §3.3, [issue #284](https://github.com/ykylee/Devhub_example/issues/284) | **Claude (backend)** | ✅ **resolved** (PR #290 — flag default ON flip + `lazy_auto_create.go`/`onboarding_feature_flag.go` 삭제, issue #284 closed). 사내 staging 1주 monitoring 잔여. |
 
 ### 3.4 P3 — v2 후순위
 
@@ -158,6 +159,38 @@
 | **P3-11** | RM-M4-09 외부 SSO (Gitea / AD federation) | development_roadmap M4 | **Codex (infra)** | Keycloak identity broker |
 | ~~**P3-12**~~ | ~~Sign Up (셀프 가입) — 인사 DB 연동~~ | **cancelled (2026-05-20)** — DevHub Keycloak admin 권한 없음, IdP 팀 책임. issue #235 closed | — | — |
 | **P3-13** | MFA / 2FA | M4 + ADR-0019 §5.3 (5) | (제외) | 사내 정책 — Keycloak Account Console 위임 |
+
+### 3.5 신규 도출 백로그 (2026-05-27 코드베이스 스냅샷 §06)
+
+> v1.1 영역 작업(Gitea SCM sync·SCM↔시스템 양방향·auth_mode full·repository draft/publish·admin catalog)이 **v1.0 전에 backend 주도로 선행**됐다. 그 결과 코드는 앞서고 테스트·운영 가시성·문서가 뒤처진 상태 → 다음 사이클은 "굳히기(harden)" 우선. 상세 분석은 [코드베이스 스냅샷 §06 향후 방향](../analysis/2026-05-27-codebase-snapshot/06_future_direction.md).
+
+#### NOW — v1.0 마감 + 품질 굳히기
+
+| ID | 아이템 | 영역 | 워커 |
+| --- | --- | --- | --- |
+| **N-1** | 문서 drift 정합 (추적성/로드맵/스펙 — 본 PR) | 문서 | Claude ✅(본 PR) |
+| **N-2** | repository draft→publish UT/통합테스트 보강 (#368 무테스트) | BE | Claude |
+| **N-3** | SCM import/create + draft/publish happy-path E2E | FE+BE | Gemini+Claude |
+| **N-4** | 프론트 service/component 단위테스트 보강 (vitest 10→확대) | FE | Gemini |
+| **N-5** | 마이그레이션 prefix uniqueness CI guard 강화 (000042 충돌 재발 방지, branch protection required check) | CI | Codex |
+| **N-6** | v1.0 staging 1주 운영 검증 (외부 사용자 ≥5 로그인 + Onboarding SOP DoD 8) | 사내 | 사용자 |
+
+#### NEXT — v1.1 운영화 + 외부 연동 깊이 정착
+
+| ID | 아이템 | 영역 |
+| --- | --- | --- |
+| **X-1** | System Admin 운영 대시보드 (RM-M4-07 — Gitea sync job 큐/상태 + provider health) | FE+BE |
+| **X-2** | inbound webhook 정규화 깊이 (multi-provider sync 일반화) | BE |
+| **X-3** | 평문 secret envelope 암호화 (#6 — credentials_ref/api_token/auth_secret DEK + 키관리 ADR) | BE/보안 |
+| **X-4** | Phase D — project 생성 flow ↔ SCM create 연계 | FE+BE |
+| **X-5** | Gitea Hourly Pull 정밀화 (RM-M4-06 잔여, issue #231) | BE |
+| **X-6** | Keycloak group staging-prod 적용 (P1-3, issue #214) | 사내 |
+| **X-7** | ADR-0016 §6 alert 임계 확정 (P2-2) | Codex |
+| **X-8** | Keycloak SPI realm events push 전환 (P2-6/P3-5) | BE/사내 |
+
+#### LATER — v2 확장 (§3.4 P3 + 신규)
+
+E-1 Realtime event publish(RM-M4-01) · E-2 WS replay/필터(RM-M4-02) · E-3 AI Gardener gRPC(RM-M4-04/05) · E-4 Weekly report worker · E-5 PermissionCache LISTEN/NOTIFY(RM-M4-08) · E-6 외부 SSO federation(RM-M4-09) · E-7 HomeLab dedicated worker + dedup(ADR-0015 §6) · E-8 Keycloak HA Phase 2.
 
 ## 4. 마일스톤 재정의
 
@@ -186,11 +219,11 @@
 | P2-5 React Flow group + WebSocket 실시간 | P2 | Gemini+Claude |
 | P2-6 Keycloak SPI provider JAR | P2 | Codex+사용자 |
 | ~~P2-7 HRDB ETL unit pre-stage~~ | **cancelled (2026-05-21, issue #223)** | — |
-| **P2-8 RM-ONBOARD-01 IMPL-backend** (handler + middleware + migration + lazy 폐기) | P2 | Claude |
-| **P2-9 RM-ONBOARD-02 IMPL-frontend** (page + picker + banner + gating + /account edit) | P2 | Gemini |
-| **P2-10 RM-ONBOARD-03 IMPL-admin** (Confirm Review + filter) | P2 | Gemini |
-| **P2-11 RM-ONBOARD-04 IMPL-tests** (UT + E2E mega lifecycle) | P2 | Claude+Gemini |
-| **P2-12 lazy_auto_create.go deletion** ([#284](https://github.com/ykylee/Devhub_example/issues/284)) | P2 | Claude |
+| ~~P2-8 RM-ONBOARD-01 IMPL-backend~~ | **✅ resolved** (PR #278) | Claude |
+| ~~P2-9 RM-ONBOARD-02 IMPL-frontend~~ | **✅ resolved** (PR #288) | Claude (override) |
+| ~~P2-10 RM-ONBOARD-03 IMPL-admin~~ | **✅ resolved** (PR #288) | Claude (override) |
+| ~~P2-11 RM-ONBOARD-04 IMPL-tests~~ | **✅ resolved** (PR #289 + #291) | Claude+Gemini |
+| ~~P2-12 lazy_auto_create.go deletion~~ ([#284](https://github.com/ykylee/Devhub_example/issues/284)) | **✅ resolved** (PR #290, issue closed) | Claude |
 | P3-1 sub-carve F `/login` 정리 | P3 | Gemini |
 | ~~P3-12 Sign Up 셀프 가입~~ | **cancelled (2026-05-20)** | — |
 
@@ -327,5 +360,6 @@ test.describe("UI screenshot capture", () => {
 
 | 일자 | 변경 | sprint |
 | --- | --- | --- |
+| 2026-05-27 | **코드베이스 스냅샷 정합** — Onboarding IMPL carve A/B/C/D 전부 ✅ resolved (§2.3 + §3.3 P2-8..12 + §4.2, PR #278/#288/#289/#290/#291, lazy_auto_create 폐기 issue #284 closed) + v1.1 영역 작업 v1.0 전 선행 명시(Gitea SCM sync·SCM↔시스템 양방향·auth_mode full·repository draft/publish·admin catalog) + §3.5 신규 도출 백로그(N-1..6 / X-1..8 / E-1..8, 코드베이스 스냅샷 §06 연계) 추가. 헤더 날짜 2026-05-21→2026-05-27. | `claude/work_260527-codebase-review-roadmap-refresh` |
 | 2026-05-20 | 1차 작성 — v1.0 scope 정의 (3 domain) + 잔여 carve 통합 인벤토리 (P0/P1/P2/P3, 30+ item) + 마일스톤 재정의 (M-v1.0 / M-v1.1 / M-v2) + 워커 분업 매트릭스 (Claude=backend / Codex=infra+CI / Gemini=frontend+UX) + GitHub project + milestone plan + UI Playwright screenshot mode | `claude/work_260520-f-roadmap` |
 | 2026-05-20 | **P3-12 Sign Up 영구 취소** — 사용자 결정. DevHub 가 Keycloak admin 권한이 없는 외부 IdP 운영 시나리오 (ADR-0020 결정 A 정합). user 생성은 IdP 팀 admin console 또는 HRDB ETL push 책임. §1.2 제외 기능 표 분류 'v1.1 carve' → 'permanently cancelled' + §3.4 P3-12 strikethrough + §5.2 워커 분담 표 strikethrough + §4.2 v1.1 milestone 본문 정정 + issue #235 closed | `claude/work_260520-i-cancel-signup` |

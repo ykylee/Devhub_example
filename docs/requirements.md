@@ -5,8 +5,8 @@
 - 대상 독자: 프로젝트 리드, Backend / 프론트엔드 개발자, AI agent, QA, UX 검토자.
 - 상태: accepted
 - 작성일: 2026-04-28
-- 최종 수정일: 2026-05-21 (사용자 초기 등록 onboarding 도메인 요구사항 초안 추가, §5.7)
-- 관련 문서: [통합 개발 로드맵](./development_roadmap.md), [아키텍처](./architecture.md), [기술 스택](./tech_stack.md), [백엔드 API 계약](./backend_api_contract.md), [추적성 매트릭스](./traceability/report.md), [거버넌스 — 문서 표준](./governance/document-standards.md).
+- 최종 수정일: 2026-05-27 (§5.8 SCM↔시스템 Repository 연동 + Repository Lifecycle 신규, §5.6 INT auth_mode/base_url/연결테스트 보강, §2.5 Keycloak 단일 IdP inline 정정 — 코드베이스 스냅샷 정합)
+- 관련 문서: [통합 개발 로드맵](./development_roadmap.md), [아키텍처](./architecture.md), [기술 스택](./tech_stack.md), [백엔드 API 계약](./backend_api_contract.md), [추적성 매트릭스](./traceability/report.md), [거버넌스 — 문서 표준](./governance/document-standards.md), [코드베이스 스냅샷 (2026-05-27)](./analysis/2026-05-27-codebase-snapshot/README.md), [requirements 정합 분석](./analysis/2026-05-27-codebase-snapshot/docs-review/requirements_analysis.md).
 
 ## 1. 개요
 본 문서는 팀 통합 개발 허브(DevHub)의 역할별 상세 기능과 데이터 구조를 정의하기 위해 작성되었습니다.
@@ -64,6 +64,11 @@
 DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다. 인증은 Keycloak 기반 OIDC 표준 흐름을 1차 수단으로 사용한다.
 
 > **구현 방식 (2026-05-07 [ADR-0001](./adr/0001-idp-selection.md) → 2026-05-19 [ADR-0019](./adr/0019-keycloak-only-idp.md) supersede)**: 본 절의 정책 invariant(1:1 매핑, 비밀번호 평문 미보관, 자동 lock, audit log 대상) 는 그대로 유지하되, 구현은 **자체 `accounts` 테이블이 아닌 Keycloak (단일 IdP)** 가 책임진다. 신규 요구 — DevHub 의 계정 서비스를 다른 앱에도 OIDC IdP 로 제공 — 를 충족하기 위한 결정이다. ADR-0001 (Hydra+Kratos) 의 원본 결정은 PR #167 (2026-05-18) 로 Keycloak 단일화 전환됐고 ADR-0019 가 사후 명문화. 정책 변경 없음.
+
+> **갱신(2026-05-27) — 자체 계정/비밀번호 흐름 = historical**: Keycloak 단일 IdP 전환([ADR-0019](./adr/0019-keycloak-only-idp.md) / [ADR-0020](./adr/0020-account-user-management-boundary.md) / [ADR-0021](./adr/0021-onboarding-self-service-unit-selection.md)) 이 코드까지 완결되면서, 본 절의 **자체 credential store 시절 표현**(아래 "비밀번호 정책"의 해시 저장, "로그인 ID 정책"의 형식 강제, "계정 상태(Account Status)" 4종 직접 관리, "데이터 주권 메모"의 비밀번호 self-service 변경)은 **historical** 로 보존만 한다 — 코드에서는 폐기됐다. 현행:
+> - DevHub 는 비밀번호/credential 을 일절 저장·검증하지 않는다. 자체 password form 은 폐기됐고(`/api/v1/account/password` dead path 제거, ADR-0019 sprint -ad), 사용자의 비밀번호 변경은 **Keycloak Account Console 로 redirect** 한다.
+> - 로그인 ID/비밀번호 형식·해시·잠금(`active`/`disabled`/`locked`/`password_reset_required`)·강제 재설정·세션 만료는 **Keycloak** 이 단일 책임진다 (`users.idp_subject` 만 DevHub 에 보관, `kratos_identity_id` → `idp_subject` rename, migration 000030).
+> - DevHub `users` row 는 프로필/권한 메타데이터 + onboarding/검토 상태(§5.7)만 관리하며, 사용자 관리 책임 경계는 [ADR-0020](./adr/0020-account-user-management-boundary.md) 가 확정한다. 정책 invariant(1:1 매핑, 평문 미보관, audit 대상)는 위 2026-05-19 배너대로 그대로 유지된다.
 
 - **핵심 니즈:** 식별 가능한 사람 단위 권한 관리, 분실/유출 시 빠른 회수, 감사 가능한 비밀번호 변경 기록.
 - **용어 분리:**
@@ -385,6 +390,17 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
 - **REQ-FR-INT-011 (MVP):** 일반 사용자는 권한 범위 내에서 통합 운영 현황을 조회할 수 있어야 한다.
     - `system_admin`은 전체, 일반 역할은 프로젝트/소유 범위 기반 조회.
 - **REQ-FR-INT-012 (후속):** DevHub 에서 외부 시스템으로의 양방향 상태 변경(write-back)은 별도 승인 정책(ADR) 후 도입한다.
+- **REQ-FR-INT-013 (MVP, 추가 2026-05-27 — 등록 UX 고도화):** Provider 등록은 `auth_mode` 별 outbound 자격증명 full 모델을 지원해야 한다 (REQ-FR-INT-001 의 `auth_mode` 속성 구체화, [API-70](./backend_api_contract.md), migration 000040/000041).
+    - 지원 `auth_mode`: `token`, `basic`, `oauth2`, `app_password`, `agent` (등록 시 고정, PATCH 로 변경 불가).
+    - mode 별 자격증명: `token`→`api_token`(PAT); `basic`/`app_password`→`auth_username`+`auth_secret`; `oauth2`→`auth_client_id`+`auth_token_url`+`auth_secret`(client_secret); `agent`→`auth_username`(서버 직접 sync 미사용).
+    - 자격증명 시크릿(`api_token`/`auth_secret`)은 **write-only** — 응답에 raw 미노출, `api_token_set`/`auth_secret_set` (bool) 만 노출. 비밀이 아닌 필드(`auth_username`/`auth_client_id`/`auth_token_url`)는 응답 노출.
+    - inbound webhook 서명 시크릿(`credentials_ref`)과 outbound auth 자격증명은 별개 시크릿으로 분리 관리한다.
+    - 미리 정의된 vendor preset(gitea/forgejo/gogs/github/gitlab/bitbucket/jenkins 등) 을 통해 `provider_type`/`capabilities`/권장 `auth_mode` 를 가이드 입력할 수 있어야 한다.
+- **REQ-FR-INT-014 (MVP, 추가 2026-05-27):** Provider 는 outbound sync/pull 대상 endpoint 인 `base_url`(http(s) URL) 을 보유할 수 있어야 하며(migration 000038), 등록 전/후 endpoint **연결 테스트**(reachability) 를 제공해야 한다([API-87](./backend_api_contract.md) `POST /integration/test-connection`).
+    - 연결 테스트는 저장 전(pre-save) body 의 `base_url` 로 직접 GET (5s timeout, redirect 미추적, 응답 본문 미반환). 결과는 reachable/status_code/latency 만 반환.
+    - 사내 internal endpoint(Gitea/Jenkins 등)가 합법 대상이므로 internal IP 차단을 하지 않는다 — admin(`infrastructure:edit`) 신뢰 경계 + timeout + 응답 본문 미반환으로 SSRF 표면을 최소화한다 (의도적 수용, 운영 신뢰 경계 명시).
+- **REQ-FR-INT-015 (MVP, 추가 2026-05-27):** 범용 webhook ingest([API-73](./backend_api_contract.md)) 는 vendor 별 서명/이벤트 헤더 이름 차이를 흡수하기 위해 헤더 alias fallback 을 지원해야 한다.
+    - 우선순위: `X-Integration-*` → `X-Gitea-*` → `X-Gogs-*` (Gitea/Gogs 헤더 불일치 정정). 정규화 후 dedupe 및 sync state 갱신은 기존 정책(REQ-NFR-INT-003)을 따른다.
 
 #### 5.6.2 비기능 / 운영 요구사항 (REQ-NFR-INT)
 
@@ -396,8 +412,9 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
 - **REQ-NFR-INT-006 (MVP):** 홈랩 상태 데이터는 최신 스냅샷과 변경 이력을 구분해 제공해야 한다.
 - **REQ-NFR-INT-007 (후속):** Provider 별 Rate Limit 초과 대응(백오프/재시도/서킷 브레이커)은 운영 정책으로 표준화한다.
 - **REQ-NFR-INT-008 (후속):** 대규모 연동 환경에서의 성능 목표(p95 응답시간, 수집 지연 SLA)는 운영 계측 후 확정한다.
-
-#### 5.6.3 범위 경계 (Out of Scope)
+- **REQ-NFR-INT-009 (MVP, 추가 2026-05-27 — secret 노출 경계):** outbound auth 자격증명(`api_token`/`auth_secret`)은 write-only 로 raw 응답 노출을 금지하고 `*_set` (bool) 만 노출해야 한다 (REQ-FR-INT-013 정합).
+    - 입력 정규화: create 는 `TrimSpace`, update 는 blank/미전송 시 기존 값 유지(nil-skip), DB 저장은 `NULLIF($n,'')`.
+    - **알려진 미해소 gap**: inbound webhook 시크릿 `credentials_ref` 는 현재 raw 그대로 응답에 노출되며, 저장도 평문 컬럼(`credentials_ref`/`api_token`/`auth_secret`)이다 — REQ-NFR-INT-001(평문 저장 금지)의 미충족 잔여. envelope 암호화/외부 Secret Store 참조 전환은 별도 보안 carve(#6 평문 secret)로 추적한다.
 
 - 외부 시스템 본문 데이터의 실시간 양방향 동기화(write-back 강제 적용).
 - 복잡한 승인 워크플로우(다단계 승인, 릴리즈 체인 오케스트레이션).
@@ -502,6 +519,43 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
 - Onboarding 완료 후의 `review_status` reversal 정책 (예: 재교육/재인증 필요 시 admin 이 `reviewed` → `pending_review` 강제 되돌리기) — 운영 정책 결정 후 후속 carve.
 - MFA / 2FA — ADR-0019 §5.3 sub-carve 와 분리 (§2.5 사용자 계정 관리의 MFA 비도입 기준과 동일).
 
+### 5.8 SCM↔시스템 Repository 연동 + Repository Lifecycle 도메인
+
+본 절(신규 2026-05-27)은 SCM(Gitea 등 외부 형상관리)과 DevHub 시스템 `repositories` 사이의 **소유권 분리 + 양방향 연동(import/create) + draft→publish 생애주기** 요구사항을 발급한다. §5.4 의 `Application > Repository > Project` 계층 및 §5.6 의 외부 연동(Integration Provider)을 전제로 하며, 코드는 PR #363(소유권 분리 + import) / #366(outbound create) / #368(draft→publish) / #373(provider_id 단일화) 으로 1차 완성됐다. 근거: [코드베이스 스냅샷](./analysis/2026-05-27-codebase-snapshot/README.md), [API 계약 §15](./backend_api_contract.md) (API-88/89/90), migration 000042/000043/000045.
+
+> **참고**: `repositories` 의 SCM mirror(commit/PR/build/quality 등 운영지표) 수집 자체는 §5.4(REQ-FR-APP-004..009) 및 §5.6(REQ-FR-INT-004) 에서 이미 다뤘다. 본 절은 그 위에 **"누가 repository row 를 소유하는가(SCM-owned vs system-owned) + 시스템↔SCM 양방향 생성/연동 + 게시 생애주기"** 만 추가 정의한다 (기존 ID 와 중복 발급하지 않음).
+
+#### 5.8.1 기능 요구사항 (REQ-FR-REPO)
+
+- **REQ-FR-REPO-001 (MVP, 확정):** 시스템 `repositories` 는 소유권 출처(`source`)를 가져야 한다.
+    - 값: `scm`(외부 SCM 에서 import/sync 된 mirror) | `system`(DevHub 가 생성을 주도). 빈값/legacy 는 `scm` 로 취급한다.
+    - 각 repository 는 어떤 SCM provider 에 귀속되는지 `provider_id`(외부 연동 Provider FK, §5.6) 로 단일 식별해야 한다. 표시용 provider key 는 join 으로 derive 한다 (식별 컬럼은 FK 를 canonical 로, readable key 는 파생 — migration 000045 단일화).
+    - `description` 등 **system-owned 메타데이터**는 SCM 동기화가 덮어쓰지 않고 보존되어야 한다 (소유권 분리, migration 000042).
+- **REQ-FR-REPO-002 (MVP, 확정):** 시스템 관리자는 외부 SCM provider 의 원격 repository 목록을 조회([API-88](./backend_api_contract.md))하고 선택 항목을 시스템으로 **import**([API-89](./backend_api_contract.md))할 수 있어야 한다 (inbound).
+    - import 는 요청 payload 가 아니라 **SCM 에서 다시 조회한 신뢰 가능한 값**으로 upsert 하며, import 된 row 는 `source=scm` + `provider_id` 가 세팅된다.
+    - 목록 응답은 각 원격 repository 의 시스템 import 여부(`imported`)를 표시해야 한다.
+- **REQ-FR-REPO-003 (MVP, 확정):** 시스템 관리자는 외부 SCM 에 **실제 저장소를 생성**([API-90](./backend_api_contract.md))하고 시스템으로 미러할 수 있어야 한다 (outbound, Phase C).
+    - 생성된 row 는 `source=system`(시스템이 생성을 주도) + `provider_id` 세팅 + SCM 응답값으로 mirror 필드를 채운다. 이후 sync 가 mirror 필드를 갱신해도 `source`/`description` 는 보존된다.
+- **REQ-FR-REPO-004 (MVP, 확정):** 시스템 주도 repository 는 **draft → active 게시 생애주기**를 가져야 한다 (`repository_status`, migration 000043).
+    - `POST /api/v1/repositories` 로 `draft`(source=system) 상태 row 를 생성하고, `POST /api/v1/repositories/{repository_id}/publish` 로 게시를 요청하면 외부 SCM 에 실제 저장소를 생성한 뒤 `active` 로 전이한다. `publish_requested_at`/`published_at` 시점을 기록한다.
+    - SCM 에서 import/sync 된 repository(REQ-FR-REPO-002)는 `active` 상태로 직행한다 (draft 단계 없음).
+    - publish 요청 가능 상태는 `draft` 뿐이다. (위 endpoint 들은 본 절 기준 [API 계약](./backend_api_contract.md) 의 명시 API ID 미발급 — 후속 contract 발급 대상.)
+- **REQ-FR-REPO-005 (MVP, 확정):** import/create/sync 동작은 provider 의 `capabilities` 를 **기능 gate** 로 사용해야 한다.
+    - `pull` = 원격 조회/import(API-88/89) 허용, `sync` = mirror sync(API-72) 허용(`pull` 포함), `push` = outbound 저장소 생성(API-90) 허용. gate 미충족 시 `422 integration_capability_not_enabled` 로 거절한다.
+
+#### 5.8.2 비기능 / 운영 요구사항 (REQ-NFR-REPO)
+
+- **REQ-NFR-REPO-001 (MVP):** SCM sync upsert 는 **멱등**해야 하며 ON CONFLICT 시 SCM mirror 필드(clone_url/default_branch/private 등)만 갱신하고 system-owned 필드(`source`/`description`)는 보존해야 한다. in-memory fake(테스트) 도 production store 와 동일하게 보존 미러를 구현한다(parity).
+- **REQ-NFR-REPO-002 (MVP):** outbound create/publish 는 현재 **Gitea REST client** 만 구현돼 있어 Gitea-compatible provider(gitea/forgejo/gogs)로 제한된다. 비-호환 vendor(github/gitlab/bitbucket)는 `422 integration_provider_not_gitea_compatible` 로 거절해야 한다. 비활성(`disabled`) provider 대상 연동은 `409` 로 거절한다. (provider 추상화 확장 시 다른 vendor 어댑터 추가로 확장 — REQ-FR-APP-009 정합.)
+- **REQ-NFR-REPO-003 (MVP):** 소유권 전이/import/create/publish 는 audit 가능해야 한다. publish 흐름은 외부 SCM 생성 실패 시 부분 실패 경로(생성 실패 + draft 보존)를 가지므로, 본 lifecycle 의 자동화 테스트(UT/E2E) 보강이 후속 과제로 추적되어야 한다 (현재 draft→publish 핸들러는 무테스트로 머지 — [SDLC 체인 점검 G4](./analysis/2026-05-27-codebase-snapshot/02_sdlc_chain_status.md)).
+
+#### 5.8.3 범위 경계 (Out of Scope)
+
+- DevHub → SCM 의 양방향 상태 동기화(이슈/PR write-back) — §5.6 REQ-FR-INT-012 와 동일하게 별도 승인 정책 후.
+- Gitea 외 vendor(github/gitlab/bitbucket)에 대한 outbound create/publish 어댑터.
+- 신규 Application 등록 시 Gitea 저장소 자동 생성/브랜치 보호/멤버 초대 자동 오케스트레이션(§5.3-7 / §5.4.5 후속).
+- 평문 secret(`credentials_ref`/`api_token`/`auth_secret`) 의 envelope 암호화 — §5.6 REQ-NFR-INT-009 의 #6 carve 로 추적.
+
 ## 6. 기술 스택 결정 사항 (Technology Stack Decisions)
 
 기술 스택 상세 계약, 버전, 설치/검증 명령은 **[tech_stack.md](./tech_stack.md)**를 기준으로 관리합니다. 본 요구사항 문서에서는 제품 요구사항과 직접 연결되는 기술 결정 요약만 유지합니다.
@@ -521,3 +575,9 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
 - **시각화:** React Flow를 이용한 인터랙티브 인프라 구성도.
 
 ---
+
+## 변경 이력 (요약)
+
+| 일자 | 변경 |
+| --- | --- |
+| 2026-05-27 | 코드베이스 스냅샷(main `cf19c94`) 정합: §5.8(SCM↔시스템 Repository 연동 + Repository Lifecycle, REQ-FR-REPO-001..005 / REQ-NFR-REPO-001..003) 신규, §5.6 INT 보강(REQ-FR-INT-013..015 auth_mode full/base_url+연결테스트/webhook 헤더 alias + REQ-NFR-INT-009 write-only secret), §2.5 Keycloak 단일 IdP self-service 흐름 historical inline 정정. 기존 prose/ID 삭제·재배열 없음(추가 + inline 정정만). 근거: `docs/analysis/2026-05-27-codebase-snapshot/`. |

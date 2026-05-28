@@ -216,8 +216,8 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.Use(handler.requireRequestID)
 	v1.Use(handler.authenticateActor)
 	// RM-ONBOARD-01 (ADR-0021 §3.3) — onboardingGate middleware.
-	// Feature flag default OFF (no-op) — Carve A 단독 머지 후 main 안정성.
-	// Flag ON 시 미완료 사용자의 allowlist 외 endpoint 호출 시 403.
+	// Feature flag default ON (PR #290, lazy_auto_create 폐기 후) — 미완료 사용자가
+	// allowlist 외 endpoint 호출 시 403. DEVHUB_ONBOARDING_GATE_ENABLED=0 으로 rollback(no-op).
 	v1.Use(handler.onboardingGate)
 	v1.Use(handler.enforceRoutePermission)
 	v1.GET("/me", handler.getMe)
@@ -272,8 +272,8 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.DELETE("/organization/units/:unit_id", handler.deleteOrgUnit)
 	v1.GET("/organization/units/:unit_id/members", handler.listUnitMembers)
 	v1.PUT("/organization/units/:unit_id/members", handler.replaceUnitMembers)
-	// Application/Repository/Project 관리 API (API-41..50, sprint claude/work_260514-a).
-	// Handler bodies are 501 stubs; store body 는 후속 sprint carve out.
+	// Application/Repository/Project 관리 API (API-41..58, sprint claude/work_260514-a~b).
+	// Handler/store body 구현 완료 (activated) — draft/publish (API-91/92) + SCM 양방향 (API-88..90) 포함.
 	v1.GET("/scm/providers", handler.listSCMProviders)
 	v1.PATCH("/scm/providers/:provider_key", handler.updateSCMProvider)
 	v1.GET("/applications", handler.listApplications)
