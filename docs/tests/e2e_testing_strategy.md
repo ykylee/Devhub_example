@@ -44,7 +44,7 @@
 
 ### 3.2 CI/CD 파이프라인 (GitHub Actions)
 - 모든 Pull Request는 `ci.yml` 워크플로우를 통과해야 한다.
-- CI 환경에서는 `scripts/ci-setup.sh`를 통해 독립된 IdP 및 DB 환경을 구축한 후 테스트를 수행한다.
+- CI 환경에서는 `.github/workflows/ci.yml`의 e2e job에 정의된 inline step을 통해 독립된 IdP 및 DB 환경을 구축한 후 테스트를 수행한다.
 - 테스트 실패 시 Playwright Trace 및 Screenshot Artifact를 확인하여 원인을 파악한다.
 
 ### 3.3 시드 데이터 관리
