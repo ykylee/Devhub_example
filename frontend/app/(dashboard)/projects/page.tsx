@@ -49,7 +49,7 @@ export default function ProjectsStatusPage() {
   }, [refresh]);
 
   const handleDelete = useCallback(async (projectId: string, currentStatus: string) => {
-    const isArchived = currentStatus === "archived";
+    const isArchived = currentStatus?.trim().toLowerCase() === "archived";
     const confirmMsg = isArchived
       ? "Are you sure you want to permanently delete this project? This action cannot be undone."
       : "Are you sure you want to archive this project?";
