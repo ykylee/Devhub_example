@@ -1,4 +1,5 @@
 import { tokenStore } from "@/lib/auth/token-store";
+import { triggerSessionExpired } from "@/lib/auth/session-death";
 import { API_BASE_URL, OIDC_ISSUER_URL } from "@/lib/config/endpoints";
 
 export class ApiError extends Error {
@@ -71,7 +72,12 @@ let inflightRefresh: Promise<boolean> | null = null;
 
 async function attemptTokenRefresh(): Promise<boolean> {
   const refreshToken = tokenStore.getRefreshToken();
-  if (!refreshToken) return false;
+  if (!refreshToken) {
+    // 호출 측이 인증을 시도했고 401 인데 refresh token 도 없다 = 회복 수단 부재.
+    // 좀비 상태 방지를 위해 세션 종료(/login 으로 hard nav).
+    triggerSessionExpired();
+    return false;
+  }
 
   if (inflightRefresh) return inflightRefresh;
 
@@ -96,14 +102,17 @@ async function doRefresh(refreshToken: string): Promise<boolean> {
       }).toString(),
     });
     if (!response.ok) {
-      console.warn("[apiClient] token refresh failed (HTTP %d); clearing session", response.status);
-      tokenStore.clear();
+      console.warn("[apiClient] token refresh failed (HTTP %d); session_expired", response.status);
+      // triggerSessionExpired 내부에서 tokenStore.clear + /login 리다이렉트.
+      triggerSessionExpired();
       return false;
     }
     const tokens = (await response.json()) as TokenResponse;
     tokenStore.save(tokens);
     return true;
   } catch (err) {
+    // 네트워크 오류는 transient (DNS / 일시 단절 등) — 세션 사망으로 단정하지 않는다.
+    // 호출 측이 401 throw 하면 다음 호출에서 다시 refresh 시도.
     console.warn("[apiClient] token refresh network error", err);
     return false;
   }

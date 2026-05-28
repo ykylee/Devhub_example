@@ -2,6 +2,7 @@ import { WSEvent, WSEventHandler } from "./types";
 import { useStore } from "@/lib/store";
 import { apiClient, ApiError } from "./api-client";
 import { authService } from "./auth.service";
+import { tokenStore } from "@/lib/auth/token-store";
 
 import { WS_BASE_URL as WS_BASE } from "../config/endpoints";
 // codex P1 (PR #252 review): `infra.service.updated` 는 backend
@@ -24,6 +25,11 @@ export class RealtimeService {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectInterval = 3000;
+  // STABLE_OPEN_MS 이상 연결이 유지된 뒤에만 reconnectAttempts 를 0 으로 리셋한다.
+  // (인증 실패로 즉시 1006-close 되는 연결이 onopen→close 를 반복하며 max-5 cap 을
+  //  우회해 영구 재연결 루프에 빠지던 #387 ③ 버그 차단.)
+  private stableOpenMs = 30_000;
+  private stableOpenTimer: ReturnType<typeof setTimeout> | null = null;
   private currentUrl: string | null = null;
   public isConnected = false;
 
@@ -80,6 +86,13 @@ export class RealtimeService {
   }
 
   private async connect() {
+    // Auth-dead 가드: access token 이 없으면 연결 시도 자체를 건너뜀. 서버가
+    // 즉시 1006-close 하여 재연결 루프에 빠지는 것을 차단 (#387 ③). 로그인 후
+    // store identity 변경이 발생하면 reconnect() 가 다시 진입.
+    if (typeof window !== 'undefined' && tokenStore.getAccessToken() === null) {
+      console.log('[RealtimeService] No access token; skipping connect (will retry on login).');
+      return;
+    }
     try {
       const url = await this.buildURL();
       if (this.socket && this.socket.readyState === WebSocket.OPEN && this.currentUrl === url) return;
@@ -95,9 +108,16 @@ export class RealtimeService {
       this.socket.onopen = () => {
         console.log('[RealtimeService] Connected.');
         this.isConnected = true;
-        this.reconnectAttempts = 0;
-        this.dispatch({ 
-          type: 'status.changed', 
+        // 즉시 reconnectAttempts=0 리셋 금지 — STABLE_OPEN_MS 이상 유지된 뒤에만 리셋.
+        // 인증 실패로 onopen→1006 close 가 반복되는 경우 attempts 가 누적되어 max-5
+        // cap 이 동작 (#387 ③).
+        if (this.stableOpenTimer) clearTimeout(this.stableOpenTimer);
+        this.stableOpenTimer = setTimeout(() => {
+          this.reconnectAttempts = 0;
+          this.stableOpenTimer = null;
+        }, this.stableOpenMs);
+        this.dispatch({
+          type: 'status.changed',
           data: { connected: true },
           schema_version: '1',
           event_id: 'internal',
@@ -117,14 +137,19 @@ export class RealtimeService {
       this.socket.onclose = (event) => {
         console.log(`[RealtimeService] Disconnected. Code: ${event.code}`);
         this.isConnected = false;
-        this.dispatch({ 
-          type: 'status.changed', 
+        // stable-open 도달 전에 close 되면 타이머 취소 — attempts 누적 유지.
+        if (this.stableOpenTimer) {
+          clearTimeout(this.stableOpenTimer);
+          this.stableOpenTimer = null;
+        }
+        this.dispatch({
+          type: 'status.changed',
           data: { connected: false },
           schema_version: '1',
           event_id: 'internal',
           occurred_at: new Date().toISOString()
         } as WSEvent);
-        
+
         // Only reconnect if it wasn't a clean close for identity change
         if (event.code !== 1000) {
           this.handleReconnect();
@@ -177,13 +202,22 @@ export class RealtimeService {
   }
 
   private handleReconnect() {
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++;
-      console.log(`[RealtimeService] Reconnecting in ${this.reconnectInterval}ms... (Attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-      setTimeout(() => this.connect(), this.reconnectInterval);
-    } else {
-      console.error('[RealtimeService] Max reconnect attempts reached.');
+    // Auth-dead 가드: 세션이 죽었으면 재연결 시도 자체를 중단. 재로그인 시
+    // store identity 변경으로 reconnect() 가 재진입.
+    if (typeof window !== 'undefined' && tokenStore.getAccessToken() === null) {
+      console.log('[RealtimeService] No access token; halting reconnect (will resume on login).');
+      return;
     }
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      console.error('[RealtimeService] Max reconnect attempts reached.');
+      return;
+    }
+    this.reconnectAttempts++;
+    // Exponential backoff: base * 2^(attempts-1), cap 60s (3s → 6s → 12s → 24s → 48s).
+    // 백엔드/네트워크 hammering 방지.
+    const delay = Math.min(60_000, this.reconnectInterval * Math.pow(2, this.reconnectAttempts - 1));
+    console.log(`[RealtimeService] Reconnecting in ${delay}ms... (Attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+    setTimeout(() => this.connect(), delay);
   }
 
   private dispatch(event: WSEvent) {
