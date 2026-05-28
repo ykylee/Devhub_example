@@ -160,25 +160,47 @@ export default function AdminCatalogPage() {
     router.replace(`/admin/catalog?${params.toString()}`);
   };
 
+  // archived 상태 → hard-delete (permanent), 그 외 → archive (soft-delete).
+  // backend 가 `?hard=true` + archived 가드 처리, frontend 는 상태 기반 분기.
   const handleArchiveApplication = async (app: AdminApplication) => {
-    if (!confirm(`Archive application ${app.name}?`)) return;
+    const isHard = app.status === "archived";
+    const msg = isHard
+      ? `Permanently delete archived application "${app.name}"? This cannot be undone.`
+      : `Archive application "${app.name}"?`;
+    if (!confirm(msg)) return;
     try {
-      await projectService.archiveApplication(app.id);
-      toast(`Application ${app.name} archived`, "success");
+      await projectService.archiveApplication(app.id, isHard);
+      toast(`Application ${app.name} ${isHard ? "permanently deleted" : "archived"}`, "success");
       await loadAll();
     } catch (err) {
-      toast(toUserErrorMessage(err, "Application 삭제에 실패했습니다."), "error");
+      toast(
+        toUserErrorMessage(
+          err,
+          isHard ? "Application 영구 삭제에 실패했습니다." : "Application 삭제에 실패했습니다.",
+        ),
+        "error",
+      );
     }
   };
 
   const handleArchiveProject = async (project: Project) => {
-    if (!confirm(`Archive project ${project.name}?`)) return;
+    const isHard = project.status === "archived";
+    const msg = isHard
+      ? `Permanently delete archived project "${project.name}"? This cannot be undone.`
+      : `Archive project "${project.name}"?`;
+    if (!confirm(msg)) return;
     try {
-      await projectService.archiveProject(project.id);
-      toast(`Project ${project.name} archived`, "success");
+      await projectService.archiveProject(project.id, isHard);
+      toast(`Project ${project.name} ${isHard ? "permanently deleted" : "archived"}`, "success");
       await loadAll();
     } catch (err) {
-      toast(toUserErrorMessage(err, "Project 삭제에 실패했습니다."), "error");
+      toast(
+        toUserErrorMessage(
+          err,
+          isHard ? "Project 영구 삭제에 실패했습니다." : "Project 삭제에 실패했습니다.",
+        ),
+        "error",
+      );
     }
   };
 

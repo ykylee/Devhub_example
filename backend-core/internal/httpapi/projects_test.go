@@ -101,8 +101,10 @@ func TestUpdateProject_ImmutableKey(t *testing.T) {
 	}
 }
 
-// 5) PATCH /projects/:id — invalid status transition (archived → planning) → 422.
-func TestUpdateProject_InvalidStatusTransition(t *testing.T) {
+// status 전이 정책 자유화 (2026-05-28) — closed→planning, archived→planning 같은
+// backward 전이도 운영자 임의로 가능. 이전 테스트는 거부 검증이었으므로 자유화 후
+// expected behavior 로 갱신.
+func TestUpdateProject_AnyStatusTransitionAllowed(t *testing.T) {
 	appStore := newMemoryApplicationStore()
 	p, _ := appStore.CreateProject(context.Background(), domain.Project{
 		Key: "k1", Name: "X", RepositoryID: 42, Status: domain.ApplicationStatusClosed,
@@ -111,8 +113,8 @@ func TestUpdateProject_InvalidStatusTransition(t *testing.T) {
 	router := newApplicationsRouter(appStore)
 	rec := doJSON(t, router, http.MethodPatch, "/api/v1/projects/"+p.ID,
 		`{"status":"planning"}`)
-	if rec.Code != http.StatusUnprocessableEntity {
-		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s (자유화 후 200 기대)", rec.Code, rec.Body.String())
 	}
 }
 

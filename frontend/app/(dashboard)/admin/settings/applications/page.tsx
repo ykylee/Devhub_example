@@ -86,14 +86,19 @@ export default function AdminSettingsApplicationsPage() {
     setShowCreateModal(true);
   };
 
+  // archived 상태 → hard-delete (permanent), 그 외 → archive (soft-delete).
   const handleArchive = async (app: Application) => {
-    if (!confirm(`Are you sure you want to archive ${app.name}?`)) return;
+    const isHard = app.status === "archived";
+    const msg = isHard
+      ? `Permanently delete archived application "${app.name}"? This cannot be undone.`
+      : `Are you sure you want to archive ${app.name}?`;
+    if (!confirm(msg)) return;
     try {
-      await projectService.archiveApplication(app.id);
-      toast(`Application ${app.name} archived`, "success");
+      await projectService.archiveApplication(app.id, isHard);
+      toast(`Application ${app.name} ${isHard ? "permanently deleted" : "archived"}`, "success");
       refresh();
     } catch {
-      toast("Failed to archive application", "error");
+      toast(isHard ? "Failed to delete application" : "Failed to archive application", "error");
     }
   };
 

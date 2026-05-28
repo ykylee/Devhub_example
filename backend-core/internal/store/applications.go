@@ -295,6 +295,21 @@ RETURNING` + applicationsSelectColumns
 	return archived, nil
 }
 
+// DeleteApplication — hard-delete. archived 가드는 handler 책임. cascade:
+// application_repositories ON DELETE CASCADE / projects.application_id ON DELETE SET NULL
+// (migration 000013/000014/000015). handler 가 archived 상태 검증 후에만 호출.
+func (s *PostgresStore) DeleteApplication(ctx context.Context, applicationID string) error {
+	const query = `DELETE FROM applications WHERE id = $1::uuid`
+	cmd, err := s.pool.Exec(ctx, query, applicationID)
+	if err != nil {
+		return fmt.Errorf("delete application: %w", err)
+	}
+	if cmd.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 // CountActiveApplicationRepositories — 상태 전이 가드 검증용 (planning→active 의 활성 repo ≥1).
 // 직접 link (application_repositories.sync_status='active') + 프로젝트 경유 간접 link
 // (project_repositories 는 sync 상태 컬럼이 없으므로 link 존재 = 항상 active 로 간주).

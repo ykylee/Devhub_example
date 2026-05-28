@@ -139,12 +139,16 @@ var (
 	validApplicationRepoRoles = map[string]bool{
 		"primary": true, "sub": true, "shared": true,
 	}
+	// status 전이 정책 자유화 (2026-05-28) — 운영자가 임의로 어느 상태든 이동
+	// 가능. 5종 (planning/active/on_hold/closed/archived) 끼리의 모든 전이를 허용.
+	// archived 도 unarchive (다른 상태로 복원) 가능. 이전엔 matrix 가 archived 의
+	// 모든 outbound 전이를 거부했음 (api §13.2).
 	allowedStatusTransitions = map[string]map[string]bool{
-		"planning": {"active": true, "on_hold": true, "archived": true},
-		"active":   {"on_hold": true, "closed": true, "archived": true},
-		"on_hold":  {"active": true, "closed": true, "archived": true},
-		"closed":   {"archived": true},
-		"archived": {}, // 모든 outbound 전이 거부 (api §13.2)
+		"planning": {"planning": true, "active": true, "on_hold": true, "closed": true, "archived": true},
+		"active":   {"planning": true, "active": true, "on_hold": true, "closed": true, "archived": true},
+		"on_hold":  {"planning": true, "active": true, "on_hold": true, "closed": true, "archived": true},
+		"closed":   {"planning": true, "active": true, "on_hold": true, "closed": true, "archived": true},
+		"archived": {"planning": true, "active": true, "on_hold": true, "closed": true, "archived": true},
 	}
 )
 
@@ -805,69 +809,10 @@ func (h *Handler) updateApplication(c *gin.Context) {
 				})
 				return
 			}
-			// 전이 가드 (concept §13.2.1, 1차).
-			switch {
-			case curStatus == "planning" && newStatus == "active":
-				cnt, err := storeI.CountActiveApplicationRepositories(c.Request.Context(), id)
-				if err != nil {
-					writeServerError(c, err, "applications.update.count_active_repos")
-					return
-				}
-				if cnt < 1 {
-					c.JSON(http.StatusUnprocessableEntity, gin.H{
-						"status": "rejected",
-						"error":  "planning→active requires at least one active repository link",
-						"code":   "application_activation_precondition_failed",
-					})
-					return
-				}
-			case curStatus == "active" && newStatus == "on_hold":
-				if strings.TrimSpace(req.HoldReason) == "" {
-					c.JSON(http.StatusUnprocessableEntity, gin.H{
-						"status": "rejected",
-						"error":  "active→on_hold requires hold_reason",
-						"code":   "invalid_status_transition_payload",
-					})
-					return
-				}
-			case curStatus == "on_hold" && newStatus == "active":
-				if strings.TrimSpace(req.ResumeReason) == "" {
-					c.JSON(http.StatusUnprocessableEntity, gin.H{
-						"status": "rejected",
-						"error":  "on_hold→active requires resume_reason",
-						"code":   "invalid_status_transition_payload",
-					})
-					return
-				}
-			case newStatus == "archived":
-				if strings.TrimSpace(req.ArchivedReason) == "" {
-					c.JSON(http.StatusUnprocessableEntity, gin.H{
-						"status": "rejected",
-						"error":  "transition to archived requires archived_reason",
-						"code":   "invalid_status_transition_payload",
-					})
-					return
-				}
-			case curStatus == "active" && newStatus == "closed":
-				// concept §13.2.1 의 "active → closed: 롤업 critical 0건" 가드 (sprint
-				// claude/work_260514-c 가 흡수). 롤업 store 의 critical_warning_count
-				// 가 1 이상이면 close 거부 — 운영자가 critical 데이터 손실을 모르고
-				// closing 하는 사고 방지.
-				count, err := storeI.CountApplicationCriticalWarnings(c.Request.Context(), id)
-				if err != nil {
-					writeServerError(c, err, "applications.update.critical_warnings")
-					return
-				}
-				if count > 0 {
-					c.JSON(http.StatusUnprocessableEntity, gin.H{
-						"status":                 "rejected",
-						"error":                  "active→closed requires critical warning count = 0",
-						"code":                   "application_close_precondition_failed",
-						"critical_warning_count": count,
-					})
-					return
-				}
-			}
+			// status 전이 정책 자유화 (2026-05-28) — 모든 전이 가드 (planning→active
+			// 의 active repo ≥1, active→closed 의 critical 0건, active→on_hold 의
+			// hold_reason 등) 제거. 운영자가 임의로 어느 전이든 가능. reason 필드는
+			// audit 기록용 optional 메타로만 유지.
 		}
 		updated.Status = domain.ApplicationStatus(newStatus)
 	}
@@ -909,6 +854,8 @@ type archiveApplicationRequest struct {
 	ArchivedReason string `json:"archived_reason"`
 }
 
+// archiveApplication — DELETE /api/v1/applications/:id. `?hard=true` 면 archived 상태에서만
+// hard-delete (project handler 와 동일 패턴), 그 외엔 archive (soft-delete).
 func (h *Handler) archiveApplication(c *gin.Context) {
 	storeI, ok := h.applicationStoreOrUnavailable(c)
 	if !ok {
@@ -932,6 +879,29 @@ func (h *Handler) archiveApplication(c *gin.Context) {
 		return
 	}
 	if !h.enforceRowOwnership(c, current.OwnerUserID, string(domain.AppRolePMOManager)) {
+		return
+	}
+
+	isHard := c.Query("hard") == "true"
+	if isHard {
+		if string(current.Status) != "archived" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status": "bad_request",
+				"error":  "application must be archived before hard deletion",
+				"code":   "application_not_archived",
+			})
+			return
+		}
+		if err := storeI.DeleteApplication(c.Request.Context(), id); err != nil {
+			if errors.Is(err, store.ErrNotFound) {
+				c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "application not found"})
+				return
+			}
+			writeServerError(c, err, "applications.delete")
+			return
+		}
+		h.recordAuditBestEffort(c, "application.deleted", "application", id, nil)
+		c.JSON(http.StatusOK, gin.H{"status": "deleted"})
 		return
 	}
 

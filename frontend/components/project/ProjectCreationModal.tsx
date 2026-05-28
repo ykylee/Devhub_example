@@ -460,6 +460,8 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
                 <option value="planning">Planning</option>
                 <option value="active">Active</option>
                 <option value="on_hold">On Hold</option>
+                <option value="closed">Closed</option>
+                <option value="archived">Archived</option>
               </select>
             </div>
           </div>

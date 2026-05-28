@@ -728,23 +728,9 @@ func (h *Handler) updateProject(c *gin.Context) {
 				})
 				return
 			}
-			switch {
-			case curStatus == "active" && newStatus == "on_hold":
-				if strings.TrimSpace(req.HoldReason) == "" {
-					c.JSON(http.StatusUnprocessableEntity, gin.H{"status": "rejected", "error": "active→on_hold requires hold_reason", "code": "invalid_status_transition_payload"})
-					return
-				}
-			case curStatus == "on_hold" && newStatus == "active":
-				if strings.TrimSpace(req.ResumeReason) == "" {
-					c.JSON(http.StatusUnprocessableEntity, gin.H{"status": "rejected", "error": "on_hold→active requires resume_reason", "code": "invalid_status_transition_payload"})
-					return
-				}
-			case newStatus == "archived":
-				if strings.TrimSpace(req.ArchivedReason) == "" {
-					c.JSON(http.StatusUnprocessableEntity, gin.H{"status": "rejected", "error": "transition to archived requires archived_reason", "code": "invalid_status_transition_payload"})
-					return
-				}
-			}
+			// status 전이 정책 자유화 (2026-05-28) — reason 필수 가드 제거.
+			// hold_reason / resume_reason / archived_reason 는 audit 기록용 optional
+			// 메타로만 유지. 운영자가 임의로 어느 전이든 가능.
 		}
 		updated.Status = domain.ApplicationStatus(newStatus)
 	}
