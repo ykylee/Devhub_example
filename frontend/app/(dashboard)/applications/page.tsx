@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/Badge";
 import { FilterBar } from "@/components/ui/FilterBar";
 import { PageEmpty, PageError, PageLoading } from "@/components/ui/PageState";
 import { applicationService, Application, ApplicationRollup } from "@/lib/services/application.service";
+import { lifecycleStatusBadgeVariant } from "@/lib/utils/lifecycle-status";
 
 interface ApplicationWithRollup extends Application {
   rollup?: ApplicationRollup;
@@ -145,7 +146,7 @@ export default function ApplicationsStatusPage() {
                   <Link href={`/applications/${app.id}`} className="hover:underline decoration-primary underline-offset-4 decoration-2">
                     <h3 className="text-lg font-bold text-foreground dark:text-primary-foreground">{app.name}</h3>
                   </Link>
-                  <Badge variant={app.status === "active" ? "success" : "warning"} dot>{app.status}</Badge>
+                  <Badge variant={lifecycleStatusBadgeVariant(app.status)} dot>{app.status}</Badge>
                 </div>
                 <div className="flex items-center gap-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                   <span className="flex items-center gap-1"><Cpu className="w-3 h-3" /> Build: {((app.rollup?.build_success_rate || 0) * 100).toFixed(1)}%</span>
