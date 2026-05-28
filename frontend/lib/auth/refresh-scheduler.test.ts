@@ -89,6 +89,47 @@ describe("refresh-scheduler", () => {
     expect(tokenStore.getAccessToken()).toBe("a");
   });
 
+  // P0 회귀 가드 (router-idle-timeout-analysis 2026-05-28 + codex P2 #405 backoff).
+  // transient_failed 후 후속 타이머 누락이 root cause 였고, 단순 reschedule() 호출은
+  // tight 1초 retry loop 부작용 (codex P2) → 지수 backoff (5s/10s/20s/40s/60s/...) 로
+  // 정정. 본 test 는 backoff 타이머가 설정되어 재시도되고 1초 단위 loop 가 아님을 검증.
+  it("transient_failed → backoff retry (5s 후 재시도, tight 1초 loop 아님)", async () => {
+    let callCount = 0;
+    const performer = vi.fn<() => Promise<RefreshOutcome>>().mockImplementation(async () => {
+      callCount += 1;
+      // 첫 호출 transient, 두 번째 호출 ok (회복).
+      return callCount === 1
+        ? { kind: "transient_failed" as const, reason: "network_error" }
+        : { kind: "ok" as const };
+    });
+    initRefreshScheduler(performer);
+
+    // expires_in=120s → REFRESH_BUFFER 60s 전 (60s 후) 첫 호출.
+    tokenStore.save({
+      access_token: "a",
+      refresh_token: "r",
+      expires_in: 120,
+      token_type: "Bearer",
+    });
+    await vi.advanceTimersByTimeAsync(60_500);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(performer).toHaveBeenCalledTimes(1);
+
+    // codex P2 (#405) 정합 — 1.5s 후엔 아직 호출 안 됨 (backoff base = 5s).
+    await vi.advanceTimersByTimeAsync(1_500);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(performer).toHaveBeenCalledTimes(1);
+
+    // 추가 4s 진행 → 누적 5.5s, backoff 5s 경과 → 두 번째 호출.
+    await vi.advanceTimersByTimeAsync(4_000);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(performer).toHaveBeenCalledTimes(2);
+    expect(assignMock).not.toHaveBeenCalled();
+  });
+
   it("performer 가 throw 하면 transient 로 분류 (세션 사망 안 함)", async () => {
     const performer = vi.fn<() => Promise<RefreshOutcome>>()
       .mockRejectedValue(new Error("unexpected throw"));
