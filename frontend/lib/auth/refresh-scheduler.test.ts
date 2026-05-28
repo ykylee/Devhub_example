@@ -89,40 +89,44 @@ describe("refresh-scheduler", () => {
     expect(tokenStore.getAccessToken()).toBe("a");
   });
 
-  // P0 회귀 가드 (router-idle-timeout-analysis 2026-05-28) — transient_failed 후
-  // reschedule() 누락이 root cause 였음. 본 test 는 transient 후에도 다음 만료
-  // 시점에 performer 가 다시 호출됨을 검증.
-  it("transient_failed → reschedule() 호출 → 다음 만료 직전 재시도", async () => {
+  // P0 회귀 가드 (router-idle-timeout-analysis 2026-05-28 + codex P2 #405 backoff).
+  // transient_failed 후 후속 타이머 누락이 root cause 였고, 단순 reschedule() 호출은
+  // tight 1초 retry loop 부작용 (codex P2) → 지수 backoff (5s/10s/20s/40s/60s/...) 로
+  // 정정. 본 test 는 backoff 타이머가 설정되어 재시도되고 1초 단위 loop 가 아님을 검증.
+  it("transient_failed → backoff retry (5s 후 재시도, tight 1초 loop 아님)", async () => {
     let callCount = 0;
     const performer = vi.fn<() => Promise<RefreshOutcome>>().mockImplementation(async () => {
       callCount += 1;
-      // 첫 호출은 transient, 두 번째 호출은 ok (회복 시뮬레이션).
+      // 첫 호출 transient, 두 번째 호출 ok (회복).
       return callCount === 1
         ? { kind: "transient_failed" as const, reason: "network_error" }
         : { kind: "ok" as const };
     });
     initRefreshScheduler(performer);
 
-    // expires_in=120s 토큰 → REFRESH_BUFFER 60s 전 (즉 60s 후) 에 첫 호출.
+    // expires_in=120s → REFRESH_BUFFER 60s 전 (60s 후) 첫 호출.
     tokenStore.save({
       access_token: "a",
       refresh_token: "r",
       expires_in: 120,
       token_type: "Bearer",
     });
-    // 첫 타이머 발화 (60s 후 + tick 여유).
     await vi.advanceTimersByTimeAsync(60_500);
     await Promise.resolve();
     await Promise.resolve();
     expect(performer).toHaveBeenCalledTimes(1);
 
-    // P0 fix 적용 전엔 다음 타이머 미설정 → 추가 시간 진행해도 performer 가 다시
-    // 호출 안 됨. fix 적용 후엔 reschedule() 호출되어 다음 타이머 (남은 만료까지)
-    // 설정 → 추가 진행 시 두 번째 호출 발생.
-    await vi.advanceTimersByTimeAsync(60_500);
+    // codex P2 (#405) 정합 — 1.5s 후엔 아직 호출 안 됨 (backoff base = 5s).
+    await vi.advanceTimersByTimeAsync(1_500);
     await Promise.resolve();
     await Promise.resolve();
-    expect(performer.mock.calls.length).toBeGreaterThanOrEqual(2);
+    expect(performer).toHaveBeenCalledTimes(1);
+
+    // 추가 4s 진행 → 누적 5.5s, backoff 5s 경과 → 두 번째 호출.
+    await vi.advanceTimersByTimeAsync(4_000);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(performer).toHaveBeenCalledTimes(2);
     expect(assignMock).not.toHaveBeenCalled();
   });
 
