@@ -875,6 +875,8 @@ RETURNING
 	return repo, nil
 }
 
+// GetRepositoryByID — detail page 용. ListRepositories 와 동일하게 linked count
+// subquery 포함 (Task B, 2026-05-28).
 func (s *PostgresStore) GetRepositoryByID(ctx context.Context, repositoryID int64) (domain.Repository, error) {
 	const query = `
 SELECT
@@ -894,7 +896,16 @@ SELECT
 	COALESCE(r.source, 'scm'),
 	COALESCE(r.provider_id::text, ''),
 	COALESCE(p.provider_key, ''),
-	COALESCE(r.description, '')
+	COALESCE(r.description, ''),
+	-- codex P2 정합 (#401) — ListRepositories 의 subquery 정정과 동일 패턴.
+	-- application_repositories.repo_provider (scm_providers FK) 와 integration_providers.
+	-- provider_key 가 일치한다는 보장이 없어 full_name only 매칭으로 단순화.
+	COALESCE((SELECT COUNT(*)
+	          FROM application_repositories ar
+	          WHERE ar.repo_full_name = r.full_name), 0)::int AS linked_applications_count,
+	COALESCE((SELECT COUNT(*)
+	          FROM project_repositories pr
+	          WHERE pr.repository_id = r.id), 0)::int AS linked_projects_count
 FROM repositories r
 LEFT JOIN integration_providers p ON p.provider_id = r.provider_id
 WHERE r.id = $1`
@@ -918,6 +929,8 @@ WHERE r.id = $1`
 		&repo.ProviderID,
 		&repo.ProviderKey,
 		&repo.Description,
+		&repo.LinkedApplicationsCount,
+		&repo.LinkedProjectsCount,
 	); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.Repository{}, ErrNotFound

@@ -312,7 +312,15 @@ runtime provider는 `DB_URL`, `GITEA_URL`, `BACKEND_AI_URL` 설정을 기준으�
 - `html_url`
 - `default_branch`
 - `private`
+- `status` — `active` / `draft`
+- `provider_id`, `provider_key` — 연동 SCM provider (FK + derived key)
+- `publish_requested_at`, `published_at` — draft → publish lifecycle (#368)
 - `updated_at`
+- **linked classification (Task B, 2026-05-28)**:
+  - `linked_applications_count` — `application_repositories` 의 직접 link 수
+  - `linked_projects_count` — `project_repositories` 의 매핑 수
+  - 합산 = 0 이면 "unlinked" (외부 SCM mirror 만 존재, orphan), > 0 이면 "linked" (시스템 application/project 와 연결됨)
+  - `GET /api/v1/repositories/{id}` (`API-53` 의 detail) 응답에도 동일 필드 포함
 
 ### `GET /api/v1/issues` (API-09)
 

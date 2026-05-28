@@ -63,6 +63,9 @@ export default function RepositoriesStatusPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [visibilityFilter, setVisibilityFilter] = useState("all");
+  // link classification filter (Task B, 2026-05-28). all/linked/unlinked.
+  // linked = application/project 매핑 1개 이상, unlinked = 외부 SCM mirror 만.
+  const [linkFilter, setLinkFilter] = useState<"all" | "linked" | "unlinked">("all");
 
   const loadData = async () => {
     try {
@@ -100,17 +103,29 @@ export default function RepositoriesStatusPage() {
     return () => clearTimeout(timer);
   }, []);
 
+  // linked count derive — application_repositories + project_repositories 매핑 합산.
+  // 외부 SCM 에서 import 한 repo 가 시스템에 연결되었는지 분류 (Task B).
+  const isLinked = (repo: RepositoryWithActivity) =>
+    (repo.linked_applications_count ?? 0) + (repo.linked_projects_count ?? 0) > 0;
+
   const filteredRepos = repos.filter((repo) => {
-    const matchesSearch = repo.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    const matchesSearch = repo.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          repo.owner_login.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesVisibility = visibilityFilter === "all" || 
+    const matchesVisibility = visibilityFilter === "all" ||
                              (visibilityFilter === "private" ? repo.private : !repo.private);
-    return matchesSearch && matchesVisibility;
+    const matchesLink = linkFilter === "all"
+      ? true
+      : linkFilter === "linked"
+        ? isLinked(repo)
+        : !isLinked(repo);
+    return matchesSearch && matchesVisibility && matchesLink;
   });
 
   const totalRepos = repos.length;
-  const activePRs = repos.reduce((acc, repo) => acc + (repo.activity?.pr_event_count || 0), 0);
-  const totalContributors = new Set(repos.flatMap(repo => repo.activity?.active_contributors || [])).size;
+  const linkedRepoCount = repos.filter(isLinked).length;
+  const unlinkedRepoCount = totalRepos - linkedRepoCount;
+  // (activePRs/totalContributors stat 카드는 Task B 의 Linked/Unlinked 카드로 대체.
+  //  값은 row 의 contributors 표시로만 유지.)
   const latestBuildSuccessCount = repos.filter((repo) => repo.buildHealth === "success").length;
   const latestBuildFailureCount = repos.filter((repo) => repo.buildHealth === "failed").length;
   const latestBuildUnknownCount = repos.filter((repo) => repo.buildHealth !== "success" && repo.buildHealth !== "failed").length;
@@ -132,8 +147,8 @@ export default function RepositoriesStatusPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
           { label: "Total Repositories", value: totalRepos.toString(), icon: Globe, color: "text-foreground" },
-          { label: "Active PRs (30d)", value: activePRs.toString(), icon: GitPullRequest, color: "text-info" },
-          { label: "Total Contributors", value: totalContributors.toString(), icon: Users, color: "text-purple-500" },
+          { label: "Linked (App/Project)", value: linkedRepoCount.toString(), icon: GitPullRequest, color: "text-success" },
+          { label: "Unlinked", value: unlinkedRepoCount.toString(), icon: Users, color: unlinkedRepoCount > 0 ? "text-warning" : "text-muted-foreground" },
           { label: "Latest Build Success", value: latestBuildSuccessCount.toString(), icon: Activity, color: "text-success" },
         ].map((stat, i) => (
           <motion.div 
@@ -166,6 +181,28 @@ export default function RepositoriesStatusPage() {
         placeholder="Search repositories by name or owner..."
       />
 
+      {/* link classification filter (Task B) — application/project 매핑 분류. */}
+      <div className="flex items-center gap-2">
+        {([
+          { value: "all", label: `All (${totalRepos})` },
+          { value: "linked", label: `Linked (${linkedRepoCount})` },
+          { value: "unlinked", label: `Unlinked (${unlinkedRepoCount})` },
+        ] as const).map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => setLinkFilter(opt.value)}
+            className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl border transition-all ${
+              linkFilter === opt.value
+                ? "bg-primary/15 border-primary/40 text-foreground"
+                : "bg-muted/10 border-border text-muted-foreground hover:bg-muted/20"
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
       <div className="grid gap-6">
         {filteredRepos.map((repo, i) => (
           <motion.div
@@ -185,6 +222,13 @@ export default function RepositoriesStatusPage() {
                     <h3 className="text-lg font-bold text-foreground dark:text-primary-foreground">{repo.name}</h3>
                   </Link>
                   <Badge variant={repo.private ? "secondary" : "glass"}>{repo.private ? "Private" : "Public"}</Badge>
+                  {isLinked(repo) ? (
+                    <Badge variant="success" dot>
+                      Linked ({(repo.linked_applications_count ?? 0) + (repo.linked_projects_count ?? 0)})
+                    </Badge>
+                  ) : (
+                    <Badge variant="warning" dot>Unlinked</Badge>
+                  )}
                 </div>
                 <div className="flex items-center gap-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                   <span className="flex items-center gap-1"><GitBranch className="w-3 h-3" /> {repo.default_branch}</span>
