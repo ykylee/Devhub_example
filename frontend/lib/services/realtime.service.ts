@@ -27,8 +27,18 @@ export class RealtimeService {
   // STABLE_OPEN_MS 이상 연결이 유지된 뒤에만 reconnectAttempts 를 0 으로 리셋한다.
   // (인증 실패로 즉시 1006-close 되는 연결이 onopen→close 를 반복하며 max-5 cap 을
   //  우회해 영구 재연결 루프에 빠지던 #387 ③ 버그 차단.)
-  private stableOpenMs = 30_000;
+  // 30초 → 5분 (#388 hotfix): 일부 환경에서 30초 이상 연결 유지 후 idle drop 되는
+  // 패턴이 있어 attempts 가 매 cycle 리셋되어 사용자엔 "주기적 connect↔disconnect
+  // 반복" 으로 관측됐음. 5분으로 늘리고, 동시에 heartbeat 로 idle drop 자체를 예방.
+  private stableOpenMs = 5 * 60_000;
   private stableOpenTimer: ReturnType<typeof setTimeout> | null = null;
+  // Heartbeat (#388 hotfix): nginx/proxy/CDN idle timeout (보통 60s) 으로 WS 가
+  // 끊기는 것을 방지하기 위해 클라이언트가 25초마다 작은 ping 메시지를 흘려보낸다.
+  // backend (`HandleWebSocket` 의 `conn.ReadMessage()`) 가 메시지를 읽고 폐기하므로
+  // 서버 측 추가 처리 불필요. WebSocket 표준 ping/pong 프레임은 브라우저 API 에서
+  // 직접 보낼 수 없어 데이터 메시지(text) 로 대체.
+  private heartbeatIntervalMs = 25_000;
+  private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private currentUrl: string | null = null;
   public isConnected = false;
 
@@ -113,6 +123,8 @@ export class RealtimeService {
           this.reconnectAttempts = 0;
           this.stableOpenTimer = null;
         }, this.stableOpenMs);
+        // Heartbeat 시작 — idle timeout (nginx/proxy 기본 60s) 으로 인한 drop 예방.
+        this.startHeartbeat();
         this.dispatch({
           type: 'status.changed',
           data: { connected: true },
@@ -139,6 +151,8 @@ export class RealtimeService {
           clearTimeout(this.stableOpenTimer);
           this.stableOpenTimer = null;
         }
+        // Heartbeat 정지 — 연결이 죽었으므로 더 보낼 필요 없음.
+        this.stopHeartbeat();
         this.dispatch({
           type: 'status.changed',
           data: { connected: false },
@@ -196,6 +210,30 @@ export class RealtimeService {
     }
 
     return `${WS_BASE}${separator}types=${types}&actor=${actorParam}&role=${roleParam}${tokenParam}`;
+  }
+
+  // Heartbeat 제어 — onopen 에서 startHeartbeat, onclose 에서 stopHeartbeat.
+  // 25초 (heartbeatIntervalMs) 마다 작은 ping 메시지를 보내 nginx/proxy/CDN 의
+  // idle timeout (보통 60s) 에 걸려 연결이 끊기는 것을 예방. backend `ReadMessage()`
+  // 는 메시지를 읽고 폐기하므로 서버 측 추가 처리 불필요.
+  private startHeartbeat() {
+    this.stopHeartbeat();
+    this.heartbeatTimer = setInterval(() => {
+      if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+        try {
+          this.socket.send(JSON.stringify({ type: 'ping', ts: Date.now() }));
+        } catch (err) {
+          console.warn('[RealtimeService] heartbeat send failed', err);
+        }
+      }
+    }, this.heartbeatIntervalMs);
+  }
+
+  private stopHeartbeat() {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+    }
   }
 
   private handleReconnect() {

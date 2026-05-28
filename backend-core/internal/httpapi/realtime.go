@@ -75,16 +75,48 @@ func (handler Handler) handleRealtimeWebSocket(c *gin.Context) {
 	handler.cfg.RealtimeHub.HandleWebSocket(c, eventTypes)
 }
 
+// serverHeartbeatInterval — 서버측 WebSocket ping 주기. nginx/proxy/CDN 의 idle
+// timeout (보통 60s) 보다 짧게 두 방향(client↔upstream) 모두 트래픽을 유지한다.
+// (#392 codex P1 정합 — client-only heartbeat 는 upstream→client 방향의 nginx
+//  proxy_read_timeout 을 갱신하지 못하므로 서버측에서 ping 프레임을 추가 발행.)
+const serverHeartbeatInterval = 25 * time.Second
+
+// serverHeartbeatWriteTimeout — ping frame 의 쓰기 deadline.
+const serverHeartbeatWriteTimeout = 10 * time.Second
+
 func (h *RealtimeHub) HandleWebSocket(c *gin.Context, eventTypes []string) {
 	conn, err := websocketUpgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		return
 	}
-	h.add(conn, eventTypes)
+	client := h.add(conn, eventTypes)
 	defer h.remove(conn)
+
+	// 서버측 heartbeat — WebSocket ping 프레임을 주기적으로 발행. 브라우저가
+	// 자동으로 pong 응답하므로 양방향에 트래픽이 흘러 nginx 등 중간 프록시의
+	// idle timeout 을 갱신한다. client.writePing() 은 writeMu 로 직렬화되어
+	// Publish 의 writeJSON 과 동시 접근해도 안전.
+	heartbeatDone := make(chan struct{})
+	go func() {
+		ticker := time.NewTicker(serverHeartbeatInterval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-heartbeatDone:
+				return
+			case <-ticker.C:
+				if err := client.writePing(); err != nil {
+					// 쓰기 실패 = 연결 단절 신호. read 루프가 자체적으로 종료하므로
+					// 여기선 단순 return — heartbeatDone close 는 메인 루프가 담당.
+					return
+				}
+			}
+		}
+	}()
 
 	for {
 		if _, _, err := conn.ReadMessage(); err != nil {
+			close(heartbeatDone)
 			return
 		}
 	}
@@ -127,13 +159,15 @@ func (h *RealtimeHub) ClientCount() int {
 	return len(h.clients)
 }
 
-func (h *RealtimeHub) add(conn *websocket.Conn, eventTypes []string) {
+func (h *RealtimeHub) add(conn *websocket.Conn, eventTypes []string) *realtimeClient {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	h.clients[conn] = &realtimeClient{
+	client := &realtimeClient{
 		conn:         conn,
 		subscription: realtimeSubscription{types: realtimeTypeSet(eventTypes)},
 	}
+	h.clients[conn] = client
+	return client
 }
 
 func (h *RealtimeHub) remove(conn *websocket.Conn) {
@@ -168,6 +202,20 @@ func (c *realtimeClient) writeJSON(event realtimeEvent) error {
 	c.writeMu.Lock()
 	defer c.writeMu.Unlock()
 	return c.conn.WriteJSON(event)
+}
+
+// writePing — WebSocket ping 프레임을 발행. writeJSON 과 동일한 writeMu 로
+// 직렬화 (Gorilla websocket Conn 의 동시 write 미지원 정합). 브라우저가 자동으로
+// pong 으로 응답하므로 양방향 트래픽이 흘러 중간 프록시(nginx 등) 의 idle
+// timeout (보통 60s) 을 갱신한다.
+func (c *realtimeClient) writePing() error {
+	c.writeMu.Lock()
+	defer c.writeMu.Unlock()
+	return c.conn.WriteControl(
+		websocket.PingMessage,
+		[]byte{},
+		time.Now().Add(serverHeartbeatWriteTimeout),
+	)
 }
 
 var websocketUpgrader = websocket.Upgrader{
