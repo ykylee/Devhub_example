@@ -209,3 +209,52 @@ func TestIntakeTokenCron_NoRevokesNoAudit(t *testing.T) {
 		t.Errorf("no revokes → auditCalls=%d want 0", auditCalls)
 	}
 }
+
+func TestIntakeTokenCron_TickerLoop(t *testing.T) {
+	store := &fakeCronStore{}
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+	defer cancel()
+
+	opts := IntakeTokenCronOptions{
+		Interval:              2 * time.Millisecond,
+		ExpiringSoonThreshold: 24 * time.Hour,
+		StaleThreshold:        30 * 24 * time.Hour,
+		Now:                   time.Now,
+	}
+
+	errChan := make(chan error, 1)
+	go func() {
+		errChan <- RunIntakeTokenCron(ctx, store, opts)
+	}()
+
+	err := <-errChan
+	if err != nil && !errors.Is(err, context.DeadlineExceeded) && !errors.Is(err, context.Canceled) {
+		t.Errorf("expected deadline exceeded or canceled error, got %v", err)
+	}
+
+	store.mu.Lock()
+	calls := store.revokeCalls
+	store.mu.Unlock()
+
+	if calls < 2 {
+		t.Errorf("expected multiple ticks, got %d", calls)
+	}
+}
+
+func TestIntakeTokenCron_DefaultOptions(t *testing.T) {
+	store := &fakeCronStore{}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // 즉시 cancel
+
+	opts := IntakeTokenCronOptions{
+		Interval:              0, // default Interval 테스트
+		ExpiringSoonThreshold: 0,
+		StaleThreshold:        0,
+		Now:                   nil, // default time.Now 테스트
+	}
+
+	err := RunIntakeTokenCron(ctx, store, opts)
+	if err != nil && !errors.Is(err, context.Canceled) {
+		t.Errorf("expected canceled error, got %v", err)
+	}
+}

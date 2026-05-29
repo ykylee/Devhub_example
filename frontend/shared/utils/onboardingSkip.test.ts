@@ -71,4 +71,40 @@ describe("onboardingSkip", () => {
       expect(isOnboardingSkipped()).toBe(false);
     });
   });
+
+  describe("SSR environment fallback", () => {
+    it("gracefully falls back when window is undefined", () => {
+      vi.stubGlobal("window", undefined);
+      
+      expect(isOnboardingSkipped()).toBe(false);
+      expect(() => markOnboardingSkipped()).not.toThrow();
+      expect(() => clearOnboardingSkip()).not.toThrow();
+      
+      vi.unstubAllGlobals();
+    });
+  });
+
+  describe("sessionStorage error boundaries", () => {
+    it("swallows errors thrown by sessionStorage operations", () => {
+      const originalStorage = window.sessionStorage;
+      
+      // Override sessionStorage property to force runtime throws in get/set/remove operations
+      Object.defineProperty(window, "sessionStorage", {
+        get() {
+          throw new Error("forced sandboxed error");
+        },
+        configurable: true,
+      });
+
+      expect(isOnboardingSkipped()).toBe(false);
+      expect(() => markOnboardingSkipped()).not.toThrow();
+      expect(() => clearOnboardingSkip()).not.toThrow();
+
+      // Restore original sessionStorage
+      Object.defineProperty(window, "sessionStorage", {
+        value: originalStorage,
+        configurable: true,
+      });
+    });
+  });
 });
