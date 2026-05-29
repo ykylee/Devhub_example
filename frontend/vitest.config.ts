@@ -20,7 +20,7 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "html"],
       include: ["lib/**/*.ts", "components/**/*.tsx", "domain/**/*.ts", "domain/**/*.tsx", "shared/**/*.ts", "shared/**/*.tsx"],
-      exclude: ["**/*.test.ts", "**/*.test.tsx", "**/test-setup.ts"],
+      exclude: ["**/*.test.ts", "**/*.test.tsx", "**/test-setup.ts", "lib/__mocks__/**", "lib/archive/**"],
     },
   },
   resolve: {
