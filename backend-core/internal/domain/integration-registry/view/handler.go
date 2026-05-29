@@ -15,7 +15,12 @@ type AuditStore interface {
 }
 
 
-type ApplicationStore interface {
+// IntegrationStore — integration-registry 도메인의 persistence 컨트랙트.
+// issue #421/#422 (sprint claude/work_260529-n) — 기존 `ApplicationStore`
+// 명칭이 application-lifecycle 의 같은 이름 interface 와 겹쳐 cross-domain
+// coupling 을 유발했음. 본 sprint 에서 `IntegrationStore` 로 분리해 도메인
+// ownership 을 명시한다.
+type IntegrationStore interface {
 	ListIntegrations(ctx context.Context, opts store.IntegrationListOptions) ([]domain.ProjectIntegration, int, error)
 	GetIntegration(ctx context.Context, id string) (domain.ProjectIntegration, error)
 	CreateIntegration(ctx context.Context, p domain.ProjectIntegration) (domain.ProjectIntegration, error)
@@ -45,7 +50,7 @@ type WebhookEventProcessor interface {
 }
 
 type IntegrationConfig struct {
-	ApplicationStore  ApplicationStore
+	IntegrationStore  IntegrationStore
 	EventStore        WebhookEventStore
 	EventProcessor    WebhookEventProcessor
 	ExternalTaskStore ExternalTaskStore
@@ -85,12 +90,15 @@ func (h *IntegrationHandler) recordAuditBestEffort(c *gin.Context, action, targe
 	return logRow
 }
 
-func (h *IntegrationHandler) ApplicationStoreOrUnavailable(c *gin.Context) (ApplicationStore, bool) {
-	if h.cfg.ApplicationStore == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "application store is not configured"})
+// IntegrationStoreOrUnavailable — handler 별 nil-store guard. ApplicationStore
+// 호환 명칭 (`ApplicationStoreOrUnavailable`) 은 issue #421/#422 (sprint
+// claude/work_260529-n) 에서 cross-domain coupling 정정 차원으로 제거.
+func (h *IntegrationHandler) IntegrationStoreOrUnavailable(c *gin.Context) (IntegrationStore, bool) {
+	if h.cfg.IntegrationStore == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "integration store is not configured"})
 		return nil, false
 	}
-	return h.cfg.ApplicationStore, true
+	return h.cfg.IntegrationStore, true
 }
 
 func actorLogin(c *gin.Context) string {

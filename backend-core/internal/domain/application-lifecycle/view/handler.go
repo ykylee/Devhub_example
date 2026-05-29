@@ -18,6 +18,12 @@ type DevRequestStore interface {
 	ListDevRequests(ctx context.Context, opts store.DevRequestListOptions) ([]domain.DevRequest, int, error)
 }
 
+// ApplicationStore — application-lifecycle 도메인 persistence 컨트랙트.
+// issue #422 (sprint claude/work_260529-n) — 기존 interface 가 integration
+// CRUD 13 메서드를 포함해 cross-domain bloat 상태였음. 본 sprint 에서 integration
+// 메서드를 integration-registry/view 의 `IntegrationStore` 로 이관 후 본 interface
+// 는 Application / Application-Repository / SCM Provider / Project / Repository
+// 운영 지표 / Application 롤업 + SCM repository import 에만 한정.
 type ApplicationStore interface {
 	// Applications
 	ListApplications(context.Context, store.ApplicationListOptions) ([]domain.Application, int, error)
@@ -64,26 +70,6 @@ type ApplicationStore interface {
 	// Application 롤업
 	ComputeApplicationRollup(context.Context, string, domain.ApplicationRollupOptions) (domain.ApplicationRollup, error)
 	CountApplicationCriticalWarnings(context.Context, string) (int, error)
-
-	// Integration CRUD
-	ListIntegrations(context.Context, store.IntegrationListOptions) ([]domain.ProjectIntegration, int, error)
-	GetIntegration(context.Context, string) (domain.ProjectIntegration, error)
-	CreateIntegration(context.Context, domain.ProjectIntegration) (domain.ProjectIntegration, error)
-	UpdateIntegration(context.Context, domain.ProjectIntegration) (domain.ProjectIntegration, error)
-	DeleteIntegration(context.Context, string) error
-	// Integration registry/binding
-	ListIntegrationProviders(context.Context, store.IntegrationProviderListOptions) ([]domain.IntegrationProvider, int, error)
-	GetIntegrationProviderByID(context.Context, string) (domain.IntegrationProvider, error)
-	GetIntegrationProviderByKey(context.Context, string) (domain.IntegrationProvider, error)
-	CreateIntegrationProvider(context.Context, domain.IntegrationProvider) (domain.IntegrationProvider, error)
-	UpdateIntegrationProvider(context.Context, domain.IntegrationProvider) (domain.IntegrationProvider, error)
-	DeleteIntegrationProvider(context.Context, string) error
-	CreateIntegrationSyncJob(context.Context, string, string) (string, error)
-	ListIntegrationBindings(context.Context, store.IntegrationBindingListOptions) ([]domain.IntegrationBinding, int, error)
-	GetIntegrationBindingByID(context.Context, string) (domain.IntegrationBinding, error)
-	CreateIntegrationBinding(context.Context, domain.IntegrationBinding) (domain.IntegrationBinding, error)
-	UpdateIntegrationBinding(context.Context, domain.IntegrationBinding) (domain.IntegrationBinding, error)
-	DeleteIntegrationBinding(context.Context, string) error
 }
 
 type ApplicationConfig struct {

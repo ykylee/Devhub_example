@@ -72,7 +72,7 @@ func (h *IntegrationHandler) ReceiveExternalTaskWebhook(c *gin.Context) {
 		return
 	}
 
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+	storeI, ok := h.IntegrationStoreOrUnavailable(c)
 	if !ok {
 		return
 	}

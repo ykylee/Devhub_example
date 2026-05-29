@@ -126,7 +126,7 @@ func verifyIntegrationWebhookSignature(provider domain.IntegrationProvider, body
 }
 
 func (h *IntegrationHandler) updateProviderSyncStateBestEffort(c *gin.Context, provider domain.IntegrationProvider, status, errorCode string) {
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+	storeI, ok := h.IntegrationStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
@@ -178,7 +178,7 @@ func normalizeProviderSDKKey(v string) string {
 
 // API-69
 func (h *IntegrationHandler) ListIntegrationProviders(c *gin.Context) {
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+	storeI, ok := h.IntegrationStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
@@ -260,7 +260,7 @@ func validBaseURL(raw string) bool {
 
 // API-70
 func (h *IntegrationHandler) CreateIntegrationProvider(c *gin.Context) {
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+	storeI, ok := h.IntegrationStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
@@ -353,7 +353,7 @@ type updateIntegrationProviderRequest struct {
 
 // API-71
 func (h *IntegrationHandler) UpdateIntegrationProvider(c *gin.Context) {
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+	storeI, ok := h.IntegrationStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
@@ -485,7 +485,7 @@ func (h *IntegrationHandler) TestIntegrationConnection(c *gin.Context) {
 
 // API-72
 func (h *IntegrationHandler) SyncIntegrationProvider(c *gin.Context) {
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+	storeI, ok := h.IntegrationStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
@@ -544,7 +544,7 @@ func (h *IntegrationHandler) SyncIntegrationProvider(c *gin.Context) {
 // integration_sync_jobs 는 schema 의 ON DELETE CASCADE 로 자동 정리.
 // sprint claude/work_260518-j.
 func (h *IntegrationHandler) DeleteIntegrationProvider(c *gin.Context) {
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+	storeI, ok := h.IntegrationStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
@@ -598,7 +598,7 @@ func (h *IntegrationHandler) DeleteIntegrationProvider(c *gin.Context) {
 
 // API-73 minimal ingest (phase-1): provider existence + dedupe + accepted envelope.
 func (h *IntegrationHandler) IngestIntegrationProviderWebhook(c *gin.Context) {
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+	storeI, ok := h.IntegrationStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
@@ -673,7 +673,7 @@ func (h *IntegrationHandler) IngestIntegrationProviderWebhook(c *gin.Context) {
 
 // API-74
 func (h *IntegrationHandler) ListIntegrationBindings(c *gin.Context) {
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+	storeI, ok := h.IntegrationStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
@@ -734,7 +734,7 @@ type createIntegrationBindingRequest struct {
 
 // API-75
 func (h *IntegrationHandler) CreateIntegrationBinding(c *gin.Context) {
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+	storeI, ok := h.IntegrationStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
@@ -783,7 +783,7 @@ type updateIntegrationBindingRequest struct {
 }
 
 func (h *IntegrationHandler) UpdateIntegrationBinding(c *gin.Context) {
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+	storeI, ok := h.IntegrationStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
@@ -841,7 +841,7 @@ func (h *IntegrationHandler) UpdateIntegrationBinding(c *gin.Context) {
 }
 
 func (h *IntegrationHandler) DeleteIntegrationBinding(c *gin.Context) {
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+	storeI, ok := h.IntegrationStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
