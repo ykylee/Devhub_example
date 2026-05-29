@@ -164,11 +164,15 @@ func (h Handler) createRepositoryDraft(c *gin.Context) {
 	// (migration 000045 — 구 scm_provider 통합). 빈 값이면 provider 미지정 draft.
 	providerID := ""
 	if pk := strings.TrimSpace(req.ProviderKey); pk != "" {
-		if h.cfg.ApplicationStore == nil {
-			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "application store is not configured"})
+		// issue #421/#422 (sprint claude/work_260529-n) — integration CRUD 는
+		// IntegrationStore 로 이관. 명시 미설정 시 ApplicationStore type-assertion
+		// fallback 으로 legacy 호환 유지.
+		integStore := resolveIntegrationStore(h.cfg)
+		if integStore == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "integration store is not configured"})
 			return
 		}
-		provider, err := h.cfg.ApplicationStore.GetIntegrationProviderByKey(c.Request.Context(), pk)
+		provider, err := integStore.GetIntegrationProviderByKey(c.Request.Context(), pk)
 		if errors.Is(err, store.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "integration provider not found", "code": "integration_provider_not_found"})
 			return
@@ -223,11 +227,14 @@ func (h Handler) requestRepositoryPublish(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "provider_id is required for draft publish", "code": "integration_provider_required"})
 		return
 	}
-	if h.cfg.ApplicationStore == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "application store is not configured"})
+	// issue #421/#422 (sprint claude/work_260529-n) — integration CRUD 는
+	// IntegrationStore 로 이관.
+	integStore := resolveIntegrationStore(h.cfg)
+	if integStore == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "integration store is not configured"})
 		return
 	}
-	provider, err := h.cfg.ApplicationStore.GetIntegrationProviderByID(c.Request.Context(), strings.TrimSpace(repo.ProviderID))
+	provider, err := integStore.GetIntegrationProviderByID(c.Request.Context(), strings.TrimSpace(repo.ProviderID))
 	if errors.Is(err, store.ErrNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "integration provider not found", "code": "integration_provider_not_found"})
 		return

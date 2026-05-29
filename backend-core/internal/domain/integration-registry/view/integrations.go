@@ -45,7 +45,7 @@ func integrationResponse(i domain.ProjectIntegration) gin.H {
 
 // GET /api/v1/integrations
 func (h *IntegrationHandler) ListIntegrations(c *gin.Context) {
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+	storeI, ok := h.IntegrationStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
@@ -107,7 +107,7 @@ type createIntegrationRequest struct {
 
 // POST /api/v1/integrations
 func (h *IntegrationHandler) CreateIntegration(c *gin.Context) {
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+	storeI, ok := h.IntegrationStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
@@ -196,7 +196,7 @@ type updateIntegrationRequest struct {
 
 // PATCH /api/v1/integrations/:integration_id
 func (h *IntegrationHandler) UpdateIntegration(c *gin.Context) {
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+	storeI, ok := h.IntegrationStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
@@ -265,7 +265,7 @@ func (h *IntegrationHandler) UpdateIntegration(c *gin.Context) {
 
 // DELETE /api/v1/integrations/:integration_id
 func (h *IntegrationHandler) DeleteIntegration(c *gin.Context) {
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+	storeI, ok := h.IntegrationStoreOrUnavailable(c)
 	if !ok {
 		return
 	}

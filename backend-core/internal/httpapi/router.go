@@ -77,76 +77,18 @@ type AuditStore interface {
 	ListAuditLogs(context.Context, store.ListAuditLogsOptions) ([]domain.AuditLog, error)
 }
 
-// ApplicationStore is the persistence contract for the Application / Repository / Project
-// 도메인 (API-41..50). Implemented by *store.PostgresStore. Sprint claude/work_260514-b
-// (Application Design 2차) 가 stub → body 로 교체.
-type ApplicationStore interface {
-	// Applications
-	ListApplications(context.Context, store.ApplicationListOptions) ([]domain.Application, int, error)
-	GetApplication(context.Context, string) (domain.Application, error)
-	GetApplicationByKey(context.Context, string) (domain.Application, error)
-	CreateApplication(context.Context, domain.Application) (domain.Application, error)
-	UpdateApplication(context.Context, domain.Application) (domain.Application, error)
-	ArchiveApplication(context.Context, string, string) (domain.Application, error)
-	DeleteApplication(context.Context, string) error
-	CountActiveApplicationRepositories(context.Context, string) (int, error)
+// ApplicationStore — application-lifecycle 도메인 persistence 컨트랙트
+// (API-41..57). Implemented by *store.PostgresStore. Sprint claude/work_260514-b
+// (Application Design 2차) 가 stub → body 로 교체. issue #421/#422 (sprint
+// claude/work_260529-n) 에서 integration CRUD 13 메서드를 `IntegrationStore`
+// 로 분리해 cross-domain bloat 정정. ApplicationStore = app-lifecycle alias,
+// IntegrationStore = integration-registry alias.
+type ApplicationStore = appview.ApplicationStore
 
-	// Application-Repository link
-	ListApplicationRepositories(context.Context, string) ([]domain.ApplicationRepository, error)
-	CreateApplicationRepository(context.Context, domain.ApplicationRepository) (domain.ApplicationRepository, error)
-	DeleteApplicationRepository(context.Context, store.ApplicationRepositoryLinkKey) error
-	UpdateApplicationRepositorySync(context.Context, store.ApplicationRepositoryLinkKey, domain.ApplicationRepositorySyncStatus, domain.SyncErrorCode) error
-
-	// SCM Provider catalog
-	ListSCMProviders(context.Context) ([]domain.SCMProvider, error)
-	UpdateSCMProvider(context.Context, domain.SCMProvider) (domain.SCMProvider, error)
-
-	// Projects
-	ListProjects(context.Context, store.ProjectListOptions) ([]domain.Project, int, error)
-	GetProject(context.Context, string) (domain.Project, error)
-	CreateProject(context.Context, domain.Project) (domain.Project, error)
-	UpdateProject(context.Context, domain.Project) (domain.Project, error)
-	ArchiveProject(context.Context, string, string) (domain.Project, error)
-	DeleteProject(context.Context, string) error
-	ListProjectRepositories(context.Context, string) ([]domain.ProjectRepository, error)
-	CreateProjectRepository(context.Context, domain.ProjectRepository) (domain.ProjectRepository, error)
-	DeleteProjectRepository(context.Context, string, int64) error
-	CreateProjectWithRepositoryPayload(context.Context, domain.Project, []int64, *store.RepositoryCreatePayload) (domain.Project, error)
-
-	// SCM repository import (API-88/89, sprint claude/work_260527-scm-repo-sync)
-	UpsertRepository(context.Context, domain.Repository) error
-	ListRepositoriesByProvider(context.Context, string) ([]domain.Repository, error)
-
-	// Repository 운영 지표 (API-51..54, sprint claude/work_260514-c)
-	ListRepositoryActivity(context.Context, int64, store.RepositoryActivityOptions) (domain.RepositoryActivity, error)
-	ListRepositoryPullRequests(context.Context, int64, store.PRActivityListOptions) ([]domain.PRActivity, int, error)
-	ListRepositoryBuildRuns(context.Context, int64, store.BuildRunListOptions) ([]domain.BuildRun, int, error)
-	ListRepositoryQualitySnapshots(context.Context, int64, store.QualitySnapshotListOptions) ([]domain.QualitySnapshot, int, error)
-
-	// Application 롤업 (API-57)
-	ComputeApplicationRollup(context.Context, string, domain.ApplicationRollupOptions) (domain.ApplicationRollup, error)
-	CountApplicationCriticalWarnings(context.Context, string) (int, error)
-
-	// Integration CRUD (API-58)
-	ListIntegrations(context.Context, store.IntegrationListOptions) ([]domain.ProjectIntegration, int, error)
-	GetIntegration(context.Context, string) (domain.ProjectIntegration, error)
-	CreateIntegration(context.Context, domain.ProjectIntegration) (domain.ProjectIntegration, error)
-	UpdateIntegration(context.Context, domain.ProjectIntegration) (domain.ProjectIntegration, error)
-	DeleteIntegration(context.Context, string) error
-	// Integration registry/binding (API-69..75)
-	ListIntegrationProviders(context.Context, store.IntegrationProviderListOptions) ([]domain.IntegrationProvider, int, error)
-	GetIntegrationProviderByID(context.Context, string) (domain.IntegrationProvider, error)
-	GetIntegrationProviderByKey(context.Context, string) (domain.IntegrationProvider, error)
-	CreateIntegrationProvider(context.Context, domain.IntegrationProvider) (domain.IntegrationProvider, error)
-	UpdateIntegrationProvider(context.Context, domain.IntegrationProvider) (domain.IntegrationProvider, error)
-	DeleteIntegrationProvider(context.Context, string) error
-	CreateIntegrationSyncJob(context.Context, string, string) (string, error)
-	ListIntegrationBindings(context.Context, store.IntegrationBindingListOptions) ([]domain.IntegrationBinding, int, error)
-	GetIntegrationBindingByID(context.Context, string) (domain.IntegrationBinding, error)
-	CreateIntegrationBinding(context.Context, domain.IntegrationBinding) (domain.IntegrationBinding, error)
-	UpdateIntegrationBinding(context.Context, domain.IntegrationBinding) (domain.IntegrationBinding, error)
-	DeleteIntegrationBinding(context.Context, string) error
-}
+// IntegrationStore — integration-registry 도메인 persistence 컨트랙트
+// (API-58, API-69..75). issue #421/#422 (sprint claude/work_260529-n) 에서
+// 기존 ApplicationStore 의 integration CRUD 13 메서드를 본 interface 로 이관.
+type IntegrationStore = integview.IntegrationStore
 
 // IdentityAdmin — ADR-0020 sub-carve E (sprint -n) — Keycloak admin = 별도
 // 운영팀 (PoLP). write methods 제거 (CreateIdentity / UpdateIdentityPassword /
@@ -202,6 +144,11 @@ type RouterConfig struct {
 	BearerTokenVerifier   BearerTokenVerifier
 	OrganizationStore     OrganizationStore
 	ApplicationStore      ApplicationStore
+	// IntegrationStore — integration-registry 도메인 (API-58, API-69..75). issue
+	// #421/#422 (sprint claude/work_260529-n) 에서 ApplicationStore 와 분리. nil
+	// 이면 기존 fallback (ApplicationStore 가 IntegrationStore 도 구현하는 경우)
+	// 으로 동작 — main.go 가 동일 *PostgresStore 를 양쪽에 주입하던 legacy 호환.
+	IntegrationStore IntegrationStore
 	// DevRequestStore + DevRequestIntakeTokenStore — DREQ 도메인 (ADR-0012, sprint claude/work_260515-i).
 	DevRequestStore            DevRequestStore
 	DevRequestIntakeTokenStore IntakeTokenStore
@@ -221,6 +168,57 @@ type RouterConfig struct {
 	OnboardingGateEnabled bool
 	// ProjectModel toggles project-management route mode: legacy|hybrid|v2.
 	ProjectModel string
+}
+
+// resolveIntegrationStore — issue #421/#422 (sprint claude/work_260529-n) 의
+// fallback. RouterConfig.IntegrationStore 가 명시되지 않으면 ApplicationStore
+// 가 IntegrationStore 도 구현하는지 type-assertion 으로 확인 후 사용. 양쪽 모두
+// 미설정/미충족 이면 nil 반환 → IntegrationHandler 가 503 unavailable 응답.
+func resolveIntegrationStore(cfg RouterConfig) IntegrationStore {
+	if cfg.IntegrationStore != nil {
+		return cfg.IntegrationStore
+	}
+	if cfg.ApplicationStore == nil {
+		return nil
+	}
+	if is, ok := any(cfg.ApplicationStore).(IntegrationStore); ok {
+		return is
+	}
+	return nil
+}
+
+// repoIntegrationStoreAdapter — repository-integration/view 의 store interface
+// (ApplicationStore 명) 는 GetIntegrationProviderByID + ListRepositoriesByProvider
+// + UpsertRepository 3 메서드만 요구한다. issue #421/#422 (sprint
+// claude/work_260529-n) 분리 후 application-lifecycle 의 ApplicationStore 가
+// integration 메서드를 잃었으므로, 두 store 를 합쳐 repository-integration
+// ApplicationStore 컨트랙트를 만족하는 어댑터를 제공한다.
+type repoIntegrationStoreAdapter struct {
+	appStore   ApplicationStore
+	integStore IntegrationStore
+}
+
+func (a repoIntegrationStoreAdapter) GetIntegrationProviderByID(ctx context.Context, id string) (domain.IntegrationProvider, error) {
+	return a.integStore.GetIntegrationProviderByID(ctx, id)
+}
+
+func (a repoIntegrationStoreAdapter) ListRepositoriesByProvider(ctx context.Context, providerID string) ([]domain.Repository, error) {
+	return a.appStore.ListRepositoriesByProvider(ctx, providerID)
+}
+
+func (a repoIntegrationStoreAdapter) UpsertRepository(ctx context.Context, r domain.Repository) error {
+	return a.appStore.UpsertRepository(ctx, r)
+}
+
+// resolveRepoIntegrationStore — repository-integration/view 에 주입할 어댑터를
+// 구성. ApplicationStore 또는 IntegrationStore 가 nil 이면 nil 반환 →
+// RepositoryIntegrationHandler 가 503 응답.
+func resolveRepoIntegrationStore(cfg RouterConfig) repoview.ApplicationStore {
+	integStore := resolveIntegrationStore(cfg)
+	if cfg.ApplicationStore == nil || integStore == nil {
+		return nil
+	}
+	return repoIntegrationStoreAdapter{appStore: cfg.ApplicationStore, integStore: integStore}
 }
 
 func NewRouter(cfg RouterConfig) *gin.Engine {
@@ -275,7 +273,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 			AuditStore:                 cfg.AuditStore,
 		}),
 		integ: integview.NewIntegrationHandler(integview.IntegrationConfig{
-			ApplicationStore:  cfg.ApplicationStore,
+			IntegrationStore:  resolveIntegrationStore(cfg),
 			EventStore:        cfg.EventStore,
 			EventProcessor:    cfg.EventProcessor,
 			ExternalTaskStore: cfg.ExternalTaskStore,
@@ -289,7 +287,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 			AuthDevFallback: cfg.AuthDevFallback,
 		}),
 		repo: repoview.NewRepositoryIntegrationHandler(repoview.RepositoryIntegrationConfig{
-			ApplicationStore: cfg.ApplicationStore,
+			ApplicationStore: resolveRepoIntegrationStore(cfg),
 			AuditStore:       cfg.AuditStore,
 		}),
 		onboard: onboardview.NewOnboardingHandler(onboardview.OnboardingConfig{
@@ -699,7 +697,7 @@ func (h Handler) ensure() Handler {
 	}
 	if h.integ == nil {
 		h.integ = integview.NewIntegrationHandler(integview.IntegrationConfig{
-			ApplicationStore:  h.cfg.ApplicationStore,
+			IntegrationStore:  resolveIntegrationStore(h.cfg),
 			EventStore:        h.cfg.EventStore,
 			EventProcessor:    h.cfg.EventProcessor,
 			ExternalTaskStore: h.cfg.ExternalTaskStore,
@@ -717,7 +715,7 @@ func (h Handler) ensure() Handler {
 	}
 	if h.repo == nil {
 		h.repo = repoview.NewRepositoryIntegrationHandler(repoview.RepositoryIntegrationConfig{
-			ApplicationStore: h.cfg.ApplicationStore,
+			ApplicationStore: resolveRepoIntegrationStore(h.cfg),
 			AuditStore:       h.cfg.AuditStore,
 		})
 	}
