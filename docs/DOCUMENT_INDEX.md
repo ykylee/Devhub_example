@@ -33,7 +33,7 @@
 *요구사항 분석 및 상위 수준의 로드맵을 다룹니다.*
 
 - **[통합 개발 로드맵 (Integrated Development Roadmap)](./development_roadmap.md)**: 백엔드/프론트엔드/인증/운영 트랙을 마일스톤(M0~M4)과 우선순위(P0~P3) 체계로 묶은 1차 진입점. 모든 트랙이 작업 시작 전 가장 먼저 확인.
-- **[Backend Development Roadmap](../ai-workflow/memory/backend_development_roadmap.md)**: 백엔드 트랙 세부 (Phase 1~13).
+- **[Backend Development Roadmap](../docs/backend_development_roadmap.md)**: 백엔드 트랙 세부 (Phase 1~13).
 - **[Frontend Development Roadmap](./frontend_development_roadmap.md)**: 프론트엔드 트랙 세부 (Phase 1~7, 역할별 기본 진입 우선순위 UX 기준 포함).
 - **[Planning 디렉터리 진입점](./planning/README.md)**: 마일스톤·트랙·PR/보안 트래커 인덱스. backlog 위치 정책과 향후 추가 예정 자료(sprint plan, release plan 등) 안내.
 - **[Application/Repository/Project 운영 컨셉](./domain/application-lifecycle/project_concept.md)**: 운영 계층 기준 용어(Application > Repository > Project) 및 정책 요약.

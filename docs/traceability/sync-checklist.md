@@ -50,7 +50,7 @@
 
 ### 3.3 로드맵 갱신
 
-1. `docs/development_roadmap.md` / `docs/frontend_development_roadmap.md` / `ai-workflow/memory/backend_development_roadmap.md` 의 마일스톤 표에 `RM-MX-YY` 명기.
+1. `docs/development_roadmap.md` / `docs/frontend_development_roadmap.md` / `docs/backend_development_roadmap.md` 의 마일스톤 표에 `RM-MX-YY` 명기.
 2. 매트릭스의 영향 row 의 ROADMAP 열 갱신.
 
 ### 3.4 구현

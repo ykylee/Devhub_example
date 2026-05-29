@@ -1,6 +1,6 @@
 # Sprint Plan — claude/work_260513-k (M3/M4 drift 정합)
 
-- 문서 목적: M3/M4 마일스톤 정의의 3 source (`docs/development_roadmap.md`, `docs/traceability/report.md`, `ai-workflow/memory/backend_development_roadmap.md` + `state.json`) 사이 drift 를 해소한다.
+- 문서 목적: M3/M4 마일스톤 정의의 3 source (`docs/development_roadmap.md`, `docs/traceability/report.md`, `docs/backend_development_roadmap.md` + `state.json`) 사이 drift 를 해소한다.
 - 진입 base: main HEAD `f551e6a` (PR #96 직후).
 - 최종 수정일: 2026-05-13
 - 상태: in_progress
@@ -67,7 +67,7 @@
 | 3 | 매트릭스 §3 의 도메인 행 RM-M3 → RM-M4 갱신 (명령 / 실시간 / 인프라 / AI) | docs/traceability/report.md §3 |
 | 4 | state.json `m4_entry_candidates` 정합 + `m3_entry_candidates` 분리 (Sign Up + 인사 DB) | ai-workflow/memory/state.json |
 | 5 | session_handoff.md / work_backlog.md M3/M4 표기 정합 | ai-workflow/memory/*.md |
-| 6 | backend_development_roadmap.md §5 의 phase ↔ M3/M4 매핑 명확화 (Phase 8/9/10 ↔ M4) | ai-workflow/memory/backend_development_roadmap.md |
+| 6 | backend_development_roadmap.md §5 의 phase ↔ M3/M4 매핑 명확화 (Phase 8/9/10 ↔ M4) | docs/backend_development_roadmap.md |
 | 7 | 매트릭스 §6 변경 이력 + main flat sync (PR #96 흡수) | docs/traceability/report.md §6 |
 | 8 | PR + 2-pass + merge | |
 

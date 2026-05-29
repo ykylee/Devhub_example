@@ -55,7 +55,7 @@
 - [추적성 매트릭스](../../traceability/report.md) — ADR-0022/0023 인덱스 보강 + API-87..90 + migration 000034..000045 + repository draft/publish·SCM 통합 도메인 행 추가 + 헤더/범위/날짜 갱신.
 - [통합 개발 로드맵](../../development_roadmap.md) — M5/M6/M7 closing 사실 정합 + 변경 이력 보강.
 - [v1.0 릴리즈 로드맵](../../planning/release_v1_roadmap.md) — Onboarding 전 carve 완료 + 2026-05-26/27 신규 작업(Gitea·SCM 양방향·project v2·auth_mode) 반영 + 향후 carve 재정렬.
-- [프론트엔드 세부 로드맵](../../frontend_development_roadmap.md) / [백엔드 세부 로드맵](../../../ai-workflow/memory/backend_development_roadmap.md) — stale 상태(Hydra/Kratos·`/api/v1/accounts/*`) 정정 + Phase 현황 갱신.
+- [프론트엔드 세부 로드맵](../../frontend_development_roadmap.md) / [백엔드 세부 로드맵](../../../docs/backend_development_roadmap.md) — stale 상태(Hydra/Kratos·`/api/v1/accounts/*`) 정정 + Phase 현황 갱신.
 
 ## 핵심 요약 지표 (2026-05-27)
 

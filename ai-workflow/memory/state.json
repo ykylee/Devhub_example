@@ -68,7 +68,7 @@
     "work_backlog_path": "ai-workflow/memory/work_backlog.md",
     "integrated_roadmap": "docs/development_roadmap.md",
     "frontend_roadmap": "docs/frontend_development_roadmap.md",
-    "backend_roadmap": "ai-workflow/memory/backend_development_roadmap.md",
+    "backend_roadmap": "docs/backend_development_roadmap.md",
     "deploy_guide": "docs/setup/test-server-deployment.md",
     "adr_idp": "docs/adr/0001-idp-selection.md",
     "adr_rbac": "docs/adr/0002-rbac-policy-edit-api.md",

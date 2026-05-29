@@ -6,13 +6,16 @@
 - 범위: 머지된 PR #12 이후 시점부터 다음 단계 작업의 마일스톤·우선순위·의존 관계. 트랙별 *세부* 작업은 각 트랙의 세부 로드맵에서 관리.
 - 대상 독자: 프로젝트 리드, 백엔드/프론트엔드 개발자, 운영 담당자, 후속 작업자
 - 상태: draft
-- 최종 수정일: 2026-05-27 (M5 DREQ / M6 External Integration / M7 Onboarding **모두 closing** — M7 Onboarding 풀스택 완료 PR #278/#288/#289/#290/#291 + M6 깊이 확장 Gitea SCM sync·SCM↔시스템 양방향·auth_mode full·repository draft/publish + 코드베이스 스냅샷 정합 [docs/analysis/2026-05-27-codebase-snapshot](./analysis/2026-05-27-codebase-snapshot/README.md))
+- 최종 수정일: 2026-05-29 (SDLC 재정비 sprint #408~#416 — code-taxonomy SoT 의 10 core 도메인 + Shared + Infrastructure 4 계층 구조 반영. §4 트랙별 매핑을 **도메인별 트랙** 으로 재구성. M2~M7 historical 결과는 그대로 보존.)
 - 관련 문서:
-  - 백엔드 세부 로드맵: [`ai-workflow/memory/backend_development_roadmap.md`](../ai-workflow/memory/backend_development_roadmap.md)
+  - 백엔드 세부 로드맵: [`docs/backend_development_roadmap.md`](../docs/backend_development_roadmap.md)
   - 프론트엔드 세부 로드맵: [`./frontend_development_roadmap.md`](./frontend_development_roadmap.md)
-  - 요구사항: [`./requirements.md`](./requirements.md)
-  - 시스템 설계: [`./architecture.md`](./architecture.md)
-  - API 계약: [`./backend_api_contract.md`](./backend_api_contract.md)
+  - 요구사항 (master index): [`./requirements.md`](./requirements.md), 도메인별 SoT: [`./domain/`](./domain/README.md)
+  - 시스템 설계 (master index): [`./architecture.md`](./architecture.md)
+  - API 계약 (master index): [`./backend_api_contract.md`](./backend_api_contract.md), 공통 규약: [`./api/conventions.md`](./api/conventions.md)
+  - 거버넌스 — code taxonomy SoT: [`./governance/code-taxonomy.md`](./governance/code-taxonomy.md), 문서 표준: [`./governance/document-standards.md`](./governance/document-standards.md)
+  - 추적성 매트릭스: [`./traceability/report.md`](./traceability/report.md)
+  - Shared / Infrastructure 진입점: [`./shared/README.md`](./shared/README.md), [`./infrastructure/README.md`](./infrastructure/README.md)
   - 인증 ADR: [`./adr/0019-keycloak-only-idp.md`](./adr/0019-keycloak-only-idp.md) (현재 결정), [`./adr/0001-idp-selection.md`](./adr/0001-idp-selection.md) (Hydra+Kratos, superseded)
   - 보안 리뷰: [`../ai-workflow/memory/codebase-security-review-2026-05-08.md`](../ai-workflow/memory/codebase-security-review-2026-05-08.md)
 
@@ -42,7 +45,7 @@
 
 | 트랙 | 책임 영역 | 세부 로드맵 |
 | --- | --- | --- |
-| **B / Backend** | Go Core API, store, normalize, command worker, realtime hub | [`ai-workflow/memory/backend_development_roadmap.md`](../ai-workflow/memory/backend_development_roadmap.md) |
+| **B / Backend** | Go Core API, store, normalize, command worker, realtime hub | [`docs/backend_development_roadmap.md`](../docs/backend_development_roadmap.md) |
 | **F / Frontend** | Next.js (역할별 기본 진입 우선순위 대시보드, 조직, 인증 UI, 실시간 통합, RBAC UI) | [`./frontend_development_roadmap.md`](./frontend_development_roadmap.md) |
 | **A / Auth & IdP** | Keycloak (단일 IdP), 토큰 검증, 권한 가드. ADR-0019 (현재) / ADR-0001 (Hydra+Kratos, superseded) | [`./adr/0019-keycloak-only-idp.md`](./adr/0019-keycloak-only-idp.md) (current), [`./adr/0001-idp-selection.md`](./adr/0001-idp-selection.md) (superseded) |
 | **X / Cross / Contract** | API 계약, 메시지 envelope, role wire format, 데이터 모델 | [`./backend_api_contract.md`](./backend_api_contract.md) |
@@ -186,41 +189,82 @@ TC 인벤토리: **TC-ONBOARD-* active** (`onboarding-first-login.spec.ts`).
 
 ---
 
-## 4. 트랙별 세부 작업 매핑
+## 4. 트랙별 세부 작업 매핑 — 도메인별 (code-taxonomy SoT 정합)
 
-### 4.1 Backend (B)
-| 기능 단위 | 작업 | 마일스톤 | 우선순위 |
-| :--- | :--- | :--- | :--- |
-| **Auth** | OIDC Token Exchange 및 세션 관리 | M2 | P0 |
-| **Realtime** | WebSocket Replay 및 리소스 필터링 | M3 | P1 |
-| **Task** | Gitea REST 연동 및 데이터 정규화 | M4 | P3 |
-| **Admin** | Gitea Runner 상태 어댑터 구현 | M4 | P3 |
+> **2026-05-29 재구성**: 이전 (4.1/4.2) Backend·Frontend 평면 트랙은 폐기. [`docs/governance/code-taxonomy.md`](./governance/code-taxonomy.md) 의 **3대 레이어 (Domain / Shared / Infrastructure)** + **도메인 내부 4대 계층 (view/service/repository/schema)** 을 따른 도메인별 트랙으로 재정렬. 각 도메인 row 의 RM ID 는 [`./traceability/report.md`](./traceability/report.md) §2.3 (Roadmap 트랙) 에 대응.
 
-### 4.2 Frontend (F)
-| 기능 단위 | 작업 | 마일스톤 | 우선순위 |
-| :--- | :--- | :--- | :--- |
-| **Auth** | `/auth/callback` 및 API 헤더 토큰 주입 | M2 | P0 |
-| **Dashboard** | 실시간 로그 스트리밍 UI 구현 | M3 | P1 |
-| **Task** | 과제 추적 대시보드 및 상세 페이지 | M4 | P3 |
-| **Admin** | 시스템 관리자 설정 및 Runner 모니터링 UI | M4 | P3 |
+### 4.1 Domain — 10 core 도메인 (비즈니스 핵심)
 
----
+| # | 도메인 | 진입점 | 핵심 작업 (완성/잔여) | 마일스톤 | 상태 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | `auth-session` | [`./domain/auth-session/`](./domain/auth-session/README.md) | Keycloak OIDC PKCE + JWKS verifier + stale-while-error fallback (ADR-0019, ADR-0020) + 토큰 refresh + AuthGuard | M2 + M4 | done |
+| 2 | `audit-ops` | [`./domain/audit-ops/`](./domain/audit-ops/README.md) | `audit_logs` + request_id + source enrichment + Keycloak event polling (ADR-0020 sub-carve E, PR #189~#193) | M1 + M4 | done |
+| 3 | `rbac-permissions` | [`./domain/rbac-permissions/`](./domain/rbac-permissions/README.md) | per-resource 4-boolean matrix + `requirePermission` + PermissionCache LISTEN/NOTIFY (ADR-0002, ADR-0007, ADR-0011 row-scoping) | M1 | done |
+| 4 | `organization-management` | [`./domain/organization-management/`](./domain/organization-management/README.md) | users/org_units CRUD + single-leader invariant + appointments + HRDB lookup (ADR-0008/0009/0010) | M2 + M3 | done |
+| 5 | `onboarding` | [`./domain/onboarding/`](./domain/onboarding/README.md) | gate middleware + submit/search/admin review (API-83..86) + 상태머신 (ADR-0021) + lazy_auto_create 폐기 | M7 | done |
+| 6 | `application-lifecycle` | [`./domain/application-lifecycle/`](./domain/application-lifecycle/README.md) | Application/Project CRUD + 상태머신 + rollup + RBAC row-scoping (ADR-0011, ADR-0014) | M3 + M-v1.0 | done. 잔여 carve: ApplicationRepository decouple / ApplicationStore slim |
+| 7 | `repository-integration` | [`./domain/repository-integration/`](./domain/repository-integration/README.md) | Repository CRUD + draft→publish lifecycle (#368) + SCM 양방향 import/create (API-89/90, #363/#366/#373) + provider_id 단일화 | M6 | done. 잔여: #368 무테스트 보강 (N-2) |
+| 8 | `dev-request` | [`./domain/dev-request/`](./domain/dev-request/README.md) | intake auth (ADR-0012) + promote-tx + token admin (ADR-0014) + 만료 cron (ADR-0017) + RBAC row-scoping (ADR-0013) | M5 | done. 잔여: 외부 callback (webhook 송신, v1.1) |
+| 9 | `integration-registry` | [`./domain/integration-registry/`](./domain/integration-registry/README.md) | provider/binding registry + auth_mode full (token/basic/app_password/oauth2/agent) + base_url + write-only api_token + 연결테스트 (API-87) + Gitea sync worker + HomeLab pull (ADR-0015) + Task ingestion (REQ-FR-TASK) | M6 | done. 잔여: webhook header alias 강화 / Task ingestion 구현 |
+| 10 | `realtime` | [`./domain/realtime/`](./domain/realtime/README.md) | WebSocket Hub + ticket 인증 (ADR-0024, #344/#348) + command.status.updated publish | M4 (부분) | 부분. 잔여: **RM-M4-01** infra/ci/risk event publish + **RM-M4-02** replay + resource scope filter |
 
-## 5. 변경 이력
-| 일자 | 변경 내용 | 비고 |
-| :--- | :--- | :--- |
-| 2026-05-08 | 시스템 기능 단위(Functional Units) 중심으로 로드맵 구조 재편 | gemini/redesign 세션 |
-·§5.3-5 |
-| OS 서비스 wrapper 운영 진입 시점 결정 | M4 | P3 | ADR-0001 §8-7 (historical); ADR-0019 §5.3 carve out (Keycloak realm 운영 SOP) 와 함께 재평가 |
+### 4.2 Shared — 공통 기반
+
+| 모듈 | 코드 | 진입점 | 작업 | 상태 |
+| --- | --- | --- | --- | --- |
+| `config` | `backend-core/internal/shared/config/` + `frontend/shared/config/` | [`./shared/`](./shared/README.md) | 전역 환경 설정 로더 + endpoints | done |
+| `logger` | (system 표준) | [`./shared/`](./shared/README.md) | 로그 수집 어댑터 | done |
+| `utils` | `backend-core/internal/shared/httphelp/` + `frontend/shared/utils*` | [`./shared/`](./shared/README.md) | 공통 유틸리티 helper | done |
+| `ui-foundation` | `frontend/shared/ui-foundation/{components,layout}/` | [`./shared/`](./shared/README.md) | Modal/Badge/Toast/PageState/FilterBar/ComboBox/DestructiveConfirmModal + Header/Sidebar/AuthGuard | done (PR #248 polish 1차) |
+| `integrationcaps` | `backend-core/internal/shared/integrationcaps/` (PR #409) | [`./shared/`](./shared/README.md) | provider capability gate OR semantics 공용 helper (3 카피 통합 + 11 unit test) | done (2026-05-29) |
+
+### 4.3 Infrastructure — 외부 기술 구현체
+
+| 모듈 | 코드 | 진입점 | 작업 | 마일스톤 | 상태 |
+| --- | --- | --- | --- | --- | --- |
+| `keycloak-idp` | `internal/auth/keycloak_verifier.go`, `infra/idp/keycloak-event-listener-spi/`, `infra/idp/sql/` | [`./infrastructure/`](./infrastructure/README.md) | JWKS + admin client + event listener SPI (ADR-0019, ADR-0020, ADR-0022, ADR-0023) | M4 | done |
+| `gitea-scm` | `internal/infrastructure/gitea/`, `internal/normalize/gitea/` | [`./infrastructure/`](./infrastructure/README.md) | API 클라이언트 + 백그라운드 sync worker (#341) + webhook signature 검증 + JSON 정규화 | M4 | done. 잔여: **RM-M4-06** Hourly Pull 정밀화 (issue #231) |
+| `hrdb` | `internal/infrastructure/hrdb/{postgres,mock}.go` | [`./infrastructure/`](./infrastructure/README.md) | 실 PG / mock 어댑터 (ADR-0008/0010) | M3 | done |
+| `commandworker` | `internal/infrastructure/commandworker/{worker,live_worker}.go`, `serviceaction/executor.go` | [`./infrastructure/`](./infrastructure/README.md) | 명령어 폴링/실행 에이전트 + sandbox (mock/compose/k8s) | M1 + M4 | done |
+| `infra-topology` | `internal/realtime/`, `frontend/app/admin/topology-v2/` | [`./infrastructure/`](./infrastructure/README.md) | React Flow + nodes/services/edges + degraded providers banner (PR #155) | M6 | done. 잔여: React Flow group sub-node + WebSocket 실시간 갱신 |
+| `database-migration` | `backend-core/migrations/000001~000046_*.sql` | [`./infrastructure/`](./infrastructure/README.md) | golang-migrate SQL 마이그레이션 | continuous | done. 잔여: **N-5** prefix uniqueness CI guard 강화 (000042 동시 발급 충돌 이력) |
+| `deployment-automation` | `scripts/`, `infra/nginx/`, `docker-compose.{deploy,}.yml` | [`./infrastructure/`](./infrastructure/README.md) | 배포 전처리 + Nginx 역프록시 + compose 구성 (ADR-0018 single-port) | M4 | done |
+
+### 4.4 Cross-cutting (X)
+
+| 작업 | 마일스톤 | 상태 |
+| --- | --- | --- |
+| API 계약 envelope/enum 통일 | M1 | done (`docs/api/conventions.md`) |
+| 추적성 매트릭스 (REQ → UC → ARCH → API → RM → IMPL → UT → TC) | continuous | done (19 row, PR #414) |
+| 거버넌스 — code-taxonomy SoT + document-standards | M-v1.0 | done (PR #406/#415) |
+| 4 계층 view 카운트 보강 (단위테스트) | M-v1.0 | 부분. rbac/repo/dreq/intreg/org 도메인 90%+ (PR #412). 잔여: app-lifecycle 큰 modal coverage 70% (carve) |
+
+### 4.5 보안 부채 (Cross-cutting)
+
+| 작업 | 마일스톤 | 우선순위 | 출처 |
+| --- | --- | --- | --- |
+| `credentials_ref` / `api_token` / `auth_secret` 평문 저장 → DEK + KMS 봉투 암호화 (#6) | M-v1.1 | P1 | release_v1 §3.3 |
+| Keycloak group staging → prod 적용 (#214) | M-v1.0 (사내 운영자) | P1 | release_v1 §3.2 |
+| Keycloak SPI realm events push 전환 (polling 30s → <1s) | M-v1.1 | P3 | ADR-0020 |
 
 ### 4.6 AI (v2)
 
 | 작업 | 마일스톤 | 우선순위 | 출처 |
 | --- | --- | --- | --- |
-| Python AI gRPC 서버 1차 | v2 | P3 | backend_roadmap §2 Phase 9 |
+| Python AI gRPC 서버 1차 (AnalysisService 실 구현) | v2 | P3 | backend_roadmap §2 Phase 9 |
 | AI Gardener suggestion 모델 + Go Core 연동 | v2 | P3 | backend_roadmap §5 P3 |
 | Weekly report 생성 worker | v2 | P3 | frontend_integration §3.4 |
 | AI 알림 중재 (집중 시간 보호) 모델 | v2 | P3 | requirements §4-3·§5.3-2 |
+
+### 4.7 후속 carve out (별도 sprint, 2026-05-29 SDLC 재정비 sprint 결과)
+
+| 항목 | 우선순위 | 사유 |
+| --- | --- | --- |
+| CI e2e + backend-integration job 복원 (`&& false` 제거) | P1 | refactor 정리 stabilize 후 |
+| view 컴포넌트 큰 modal coverage 70% (app-lifecycle) | P1 | ApplicationCreationModal (57%) + ProjectCreationModal (39%) edit-mode + member CRUD |
+| ApplicationRepository cross-domain decouple | P2 | `*IntegrationRepository` embed 제거 (review agent P1) |
+| ApplicationStore interface slim | P2 | 13+ integration 메서드 → integration-registry 도메인 이관 |
+| §2 인덱스 도메인 분류 정합 | P2 | `traceability/report.md` §2 의 cross-cutting row → 새 도메인 row 정합 (Phase 4 scope 외) |
 
 ---
 
@@ -276,6 +320,7 @@ TC 인벤토리: **TC-ONBOARD-* active** (`onboarding-first-login.spec.ts`).
 | 2026-05-18 | **Design 검토 2건 staged** — single port reverse proxy (ADR-0018 후보, sprint -u PR #162) + Keycloak SSO federation (ADR-0019 후보, sprint -v PR #163). RM-M4-09 구체화. 결정 후 Phase 2 staging 진입. | post-EOD #2 |
 | 2026-05-27 | **M5/M6/M7 모두 closing 정합 (코드베이스 스냅샷)** — M7 Onboarding 풀스택 완료(Carve A/B/C/D PR #278/#288/#289/#290/#291 + lazy_auto_create 폐기) + M5 DREQ closing 확정(PATCH expires_at #137 + notification 연계 #323) + M6 External Integration 깊이 확장(Gitea SCM sync #341 / 등록 UX #352 / auth_mode full #358 / api_token #355 / SCM 양방향 #363/#366/#373 / repository draft·publish #368 / admin catalog #357/#361). §3 의 M5/M7 ⏳ → ✅ 정정 + M6 깊이 확장 note. 분석 근거 = [코드베이스 스냅샷](./analysis/2026-05-27-codebase-snapshot/README.md). | sprint `claude/work_260527-codebase-review-roadmap-refresh` |
 | 2026-05-21 | **M7 Onboarding 도메인 1차 (Concept + Requirements + Design + ADR + IMPL plan closing)** — concept §5.9 skip-and-resume (PR #265) + REQ-FR-ONBOARD-001..012 / REQ-NFR-ONBOARD-001..008 (PR #266) + UC-ONBOARD-01..11 + ARCH-ONBOARD-01..06 + API-83..86 + API-32/33 확장 (PR #267) + ADR-0021 (PR #269, ADR-0020 partial supersession 5 위치) + codex hotfix PR #270 + IMPL carve plan (본 sprint, RM-ONBOARD-01..04). IMPL carve 4건 (backend / frontend / admin UI / tests) 은 M-v1.1 진입 (별도 sprint). | sprint `claude/onboarding-impl-carve-plan-2026-05-21` |
+| 2026-05-29 | **SDLC 재정비 sprint (8 PR #408~#416)** — code-taxonomy SoT (10 core 도메인 + Shared + Infrastructure 4 계층) 정합 + §4 트랙 매핑을 도메인별로 재구성. (1) `integrationcaps` 통합 (PR #409, 3 카피 → 공용 helper + 11 unit test) (2) SDLC Phase 1~5: 도메인 디렉터리 골격 (PR #410) → planning/tests 도메인별 이관 (PR #411) → REQ/ARCH/API split (PR #413, 34 신규 + 3 master index 전환) → traceability §3 매트릭스 10 도메인 SoT 재구성 (PR #414, 19 row) → document-standards §4 위치 가이드 갱신 (PR #415) (3) view 컴포넌트 단위테스트 +210 (PR #412, rbac/repo/dreq/intreg/org 90%+ — app-lifecycle 모달 carve). 후속 carve 5건 (§4.7). main HEAD `273d9d4` (housekeeping #416 후 갱신). | sprint `claude/work_260529-k` |
 
 ---
 
