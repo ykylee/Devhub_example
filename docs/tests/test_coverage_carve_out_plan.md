@@ -97,9 +97,18 @@
 - `internal/shared/httphelp` 0% — test 자체 없음 (PR #407 신규). 실제 exported API: `ParseBoundedInt` + `WriteServerError` (errors.go) + `GenerateRequestID` + `ValidateCallerRequestID` + `RequireRequestID` + `RequestIDFrom` + `RequestIDFromContext` + `SourceTypeFrom` + `ClientIPFrom` + `LogRequest` (request_context.go).
 - `internal/domain/<도메인>/service` 일부 — auth-session/service / audit-ops/service / organization-management/repository 등은 production code 자체가 thin (interface 정의 + thin pass-through) 이라 실 test 작성 후보 한정.
 
-#### `-coverpkg=./...` 재측정 권장
+#### `-coverpkg=./...` 재측정 (B-2 완료, sprint `claude/work_260529-t`)
 
-현 `-cover` 결과는 패키지별 self-coverage. cross-package test 호출 cover 가 누락 — 정확한 cover 는 `go test ./... -coverpkg=./... -coverprofile=cover.out` 로 측정.
+`go test ./... -count=1 -short -coverpkg=./... -coverprofile=/tmp/cover.out`:
+- **Backend total = 43.0%** (cross-package call cover 포함)
+- 패키지별 self-coverage 와 -coverpkg 결과 차이: -coverpkg 는 각 패키지 코드를 어디서든 호출됐는지 기준 — 도메인 view 패키지가 httpapi test 에서 호출되면 cover 측정.
+- 도메인 source level 분포 (`go tool cover -func` sample): `domain/dev_request.go::IsActive` 100% / `IsValidDevRequestTransition` 75% / `domain/rbac.go::ValidateRoleID` 100% / `EnforceAuditInvariant` 100% / `Allows` 77.8% / `DefaultPermissionMatrix` 100% / `domain/primary_unit.go::ResolvePrimaryUnit` 100% / `domain/application.go::ResolveOutboundAuth` 72.7% / `IsRetryableSyncError` 66.7% / `domain/domain.go::IsTerminal` 100% / `CanTransitionTo` 100%.
+
+상세 패키지별 분석 (도메인 view per-package 도달률) 은 후속 carve out.
+
+#### B-1 완료 — `internal/shared/httphelp` test 신규
+
+sprint `claude/work_260529-t` 진행: `errors_test.go` (4 test) + `request_context_test.go` (10 test) = 14 test 신규, **coverage 98.6%** (잔존 1.4% 는 `GenerateRequestID` 의 `rand.Read` 실패 분기 — 실행 불가).
 
 ## 2. 잔여 carve out 후보
 
