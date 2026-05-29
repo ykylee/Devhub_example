@@ -4,8 +4,8 @@
 - 범위: M0–M7 + v1.0 (M5 DREQ / M6 External Integration / M7 Onboarding 모두 closing). ADR 은 별도 §4 인덱스 (0001..0024).
 - 대상 독자: 모든 contributor, 후속 리뷰어, 외부 감사.
 - 상태: accepted
-- 최종 수정일: 2026-05-29 (Phase 4 §3 매트릭스 10 도메인 SoT 재구성 — code-taxonomy `docs/governance/code-taxonomy.md` 의 10 core 도메인 + Shared + Infrastructure + Cross-cutting 그룹화 + Phase 3 신규 임시 ID REQ-RBAC/AUDIT/ORG + ARCH-RBAC/AUDIT/ORG 흡수 + file path link 갱신)
-- 결정 근거 sprint: `claude/work_260513-c` (초판), `claude/work_260527-codebase-review-roadmap-refresh` (2026-05-27 스냅샷 정합).
+- 최종 수정일: 2026-05-29 (Phase 4 후속 — §2 단계별 인덱스 10 도메인 SoT 정합. §3 매트릭스 19 row 그룹화와 §2.1 REQ / §2.1.5 UC / §2.2 ARCH/API / §2.3 RM / §2.4 IMPL / §2.5 UT / §2.6 TC row 1:1 또는 N:1 매핑 + 도메인 sub-document path 명시. 이전 갱신: Phase 4 §3 매트릭스 10 도메인 SoT 재구성 — code-taxonomy `docs/governance/code-taxonomy.md` 의 10 core 도메인 + Shared + Infrastructure + Cross-cutting 그룹화 + Phase 3 신규 임시 ID REQ-RBAC/AUDIT/ORG + ARCH-RBAC/AUDIT/ORG 흡수 + file path link 갱신)
+- 결정 근거 sprint: `claude/work_260513-c` (초판), `claude/work_260527-codebase-review-roadmap-refresh` (2026-05-27 스냅샷 정합), `claude/work_260529-h` (Phase 4 §3 매트릭스 재구성), `claude/work_260529-o` (Phase 4 후속 §2 단계별 인덱스 정합).
 - 관련 문서: [`README.md`](./README.md), [`conventions.md`](./conventions.md), [`sync-checklist.md`](./sync-checklist.md), [`../governance/document-standards.md`](../governance/document-standards.md), [코드베이스 분석 스냅샷](../analysis/2026-05-27-codebase-snapshot/README.md).
 
 ## 1. 사용법
@@ -17,29 +17,34 @@
 
 ## 2. 단계별 인덱스 (요약)
 
+> **Phase 4 정합 (2026-05-29, sprint `claude/work_260529-o`)** — 본 §2 단계별 인덱스의 row 그룹화는 §3 매트릭스의 **10 core 도메인 + Shared + Infrastructure + Cross-cutting** SoT 와 정렬한다. 각 row 는 §3 의 어느 도메인 행에 매핑되는지 명시 + 도메인 sub-document path 를 source-of-truth 로 link. 기존 cross-cutting 분류 (인증 / 회원가입 / 계정 관리 분리 row 등) 는 §3 통합 도메인 (예: auth-session) 으로 묶어 표기.
+
 ### 2.1 Requirements (REQ)
 
-- **Functional**: REQ-FR-01 ~ REQ-FR-105 (총 105 항목, `docs/requirements.md` §2–§5 + `docs/backend/requirements.md` §1–§5 + `docs/backend_requirements_org_hierarchy.md` §1–§3 + `docs/frontend_integration_requirements.md` §2–§3 분포).
-- **Non-functional**: REQ-NFR-01 ~ REQ-NFR-26 (총 26 항목, 보안/성능/배포 정책 + 운영 hygiene + API 표준).
-- **Application/Project 요구사항 확장**: `REQ-FR-APP-001..012`, `REQ-FR-PROJ-000..010`, `REQ-NFR-PROJ-001..006` (`docs/requirements.md` §5.4).
-- **Dev Request (DREQ) 도메인 신규**: `REQ-FR-DREQ-001..011`, `REQ-NFR-DREQ-001..006` (`docs/requirements.md` §5.5, sprint `claude/work_260515-f`, **컨셉/요구사항 단계 — 구현은 carve out**).
-- **External Integration 도메인 신규**: `REQ-FR-INT-001..012`, `REQ-NFR-INT-001..008` (`docs/requirements.md` §5.6, sprint `codex/memory-next-step-20260515`).
-- **Onboarding 도메인 신규**: `REQ-FR-ONBOARD-001..012`, `REQ-NFR-ONBOARD-001..008` (`docs/requirements.md` §5.7, sprint `claude/onboarding-requirements-2026-05-21`, **요구사항 단계 — concept `docs/domain/onboarding/concept.md` 의 결정을 acceptance criteria 로 변환**).
-- **SCM↔시스템 Repository 연동 + Lifecycle 신규**: `REQ-FR-REPO-001..005`, `REQ-NFR-REPO-001..003` (`docs/requirements.md` §5.8, 2026-05-27 코드베이스 스냅샷 정합 — 소유권 분리 / 원격 import / outbound create / draft→publish / capability gate). **Integration auth_mode 확장**: `REQ-FR-INT-013..015` + `REQ-NFR-INT-009` (§5.6 — auth_mode full 모델 / base_url + 연결테스트 / webhook 헤더 alias / write-only secret 경계).
-- **Application 개발 대시보드 도메인 신규**: `REQ-FR-APPDASH-001..006`, `REQ-NFR-APPDASH-001..003` (`docs/requirements.md` §5.9, sprint `gemini/application-dashboard-concept`, **요구사항 단계**).
-- **Task Item Ingestion 도메인 신규**: `REQ-FR-TASK-001..010`, `REQ-NFR-TASK-001..004` (`docs/requirements.md` §5.10, sprint `deepseek/work_260528-a-task-item-ingestion`, **요구사항 단계**).
+- **Functional**: REQ-FR-01 ~ REQ-FR-105 (총 105 항목, `docs/requirements.md` §2–§5 + `docs/backend/requirements.md` §1–§5 + `docs/backend_requirements_org_hierarchy.md` §1–§3 + `docs/frontend_integration_requirements.md` §2–§3 분포). **§3 매트릭스 도메인 매핑**: FR-15..26, 61..67 = auth-session ([`docs/domain/auth-session/requirements.md`](../domain/auth-session/requirements.md)) / FR-27, 86 = rbac-permissions ([`docs/domain/rbac-permissions/requirements.md`](../domain/rbac-permissions/requirements.md)) / FR-18, 26, 102 = audit-ops ([`docs/domain/audit-ops/requirements.md`](../domain/audit-ops/requirements.md)) / FR-68..80 = organization-management ([`docs/domain/organization-management/requirements.md`](../domain/organization-management/requirements.md)) / FR-1..11, 28..36, 81, 85, 88, 89, 96 = application-lifecycle ([`docs/domain/application-lifecycle/requirements.md`](../domain/application-lifecycle/requirements.md)) / FR-49..55 = repository-integration ([`docs/domain/repository-integration/requirements.md`](../domain/repository-integration/requirements.md)) / FR-56, 57, 60, 82, 83, 104, 105 = realtime ([`docs/domain/realtime/requirements.md`](../domain/realtime/requirements.md)) / FR-58, 59, 84, 95, 100, 101 = realtime cross-cut (명령 lifecycle publish) / FR-12, 13, 97, 98, 99 = Infrastructure (infra-topology) / FR-37..48, 90..94 = Cross-cutting (M4 planned).
+- **Non-functional**: REQ-NFR-01 ~ REQ-NFR-26 (총 26 항목, 보안/성능/배포 정책 + 운영 hygiene + API 표준). **§3 도메인 매핑**: NFR-3, 4, 5, 7, 17..20 = auth-session / NFR-26 = rbac-permissions / NFR-4 = audit-ops / NFR-21 = organization-management / NFR-11, 22, 23 = realtime / NFR-12, 16 = Infrastructure (infra-topology) / NFR-1 = Infrastructure (deployment-automation, no-docker).
+- **Application/Project 요구사항 확장 (§3 application-lifecycle row)**: `REQ-FR-APP-001..012`, `REQ-FR-PROJ-000..010`, `REQ-NFR-PROJ-001..006` (`docs/requirements.md` §5.4 → [`docs/domain/application-lifecycle/requirements.md`](../domain/application-lifecycle/requirements.md)).
+- **Dev Request (DREQ) 도메인 신규 (§3 dev-request row)**: `REQ-FR-DREQ-001..013`, `REQ-NFR-DREQ-001..006` (`docs/requirements.md` §5.5 → [`docs/domain/dev-request/requirements.md`](../domain/dev-request/requirements.md), sprint `claude/work_260515-f`, **컨셉/요구사항 단계 — 구현은 carve out**).
+- **External Integration 도메인 신규 (§3 integration-registry row)**: `REQ-FR-INT-001..015`, `REQ-NFR-INT-001..009` (`docs/requirements.md` §5.6 → [`docs/domain/integration-registry/requirements.md`](../domain/integration-registry/requirements.md), sprint `codex/memory-next-step-20260515`).
+- **Onboarding 도메인 신규 (§3 onboarding row)**: `REQ-FR-ONBOARD-001..012`, `REQ-NFR-ONBOARD-001..008` (`docs/requirements.md` §5.7 → [`docs/domain/onboarding/requirements.md`](../domain/onboarding/requirements.md), sprint `claude/onboarding-requirements-2026-05-21`, **요구사항 단계 — concept `docs/domain/onboarding/concept.md` 의 결정을 acceptance criteria 로 변환**).
+- **SCM↔시스템 Repository 연동 + Lifecycle 신규 (§3 repository-integration row)**: `REQ-FR-REPO-001..005`, `REQ-NFR-REPO-001..003` (`docs/requirements.md` §5.8 → [`docs/domain/repository-integration/requirements.md`](../domain/repository-integration/requirements.md), 2026-05-27 코드베이스 스냅샷 정합 — 소유권 분리 / 원격 import / outbound create / draft→publish / capability gate).
+- **Application 개발 대시보드 도메인 (§3 application-lifecycle row 흡수)**: `REQ-FR-APPDASH-001..006`, `REQ-NFR-APPDASH-001..003` (`docs/requirements.md` §5.9 → [`docs/domain/application-lifecycle/requirements.md`](../domain/application-lifecycle/requirements.md), sprint `gemini/application-dashboard-concept`, **요구사항 단계**).
+- **Task Item Ingestion 도메인 (§3 integration-registry row 흡수)**: `REQ-FR-TASK-001..010`, `REQ-NFR-TASK-001..004` (`docs/requirements.md` §5.10 → [`docs/domain/integration-registry/task_requirements.md`](../domain/integration-registry/task_requirements.md), sprint `deepseek/work_260528-a-task-item-ingestion`, **요구사항 단계**).
+- **Phase 3 신규 임시 ID (Phase 4 §3 매트릭스 흡수)**: `REQ-RBAC-001..009` (§3 rbac-permissions row, [`docs/domain/rbac-permissions/requirements.md`](../domain/rbac-permissions/requirements.md)) + `REQ-AUDIT-001..007` (§3 audit-ops row, [`docs/domain/audit-ops/requirements.md`](../domain/audit-ops/requirements.md)) + `REQ-ORG-001..007` (§3 organization-management row, [`docs/domain/organization-management/requirements.md`](../domain/organization-management/requirements.md) — 기존 REQ-FR-68..80 과 정합).
 
 ### 2.1.5 Usecase (UC)
 
-- `UC-AUTH-01..03`, `UC-ACCOUNT-01..03`, `UC-ORG-01..04`, `UC-RBAC-01..03`, `UC-GITEA-01..03`, `UC-CMD-01..03`, `UC-AUD-01..02`, `UC-RT-01..02`, `UC-APP-01..10`, `UC-PROJ-01..10`, `UC-DREQ-01..10`, `UC-INT-01..18`, `UC-ONBOARD-01..11`, `UC-REPO-01..07`, `UC-APPDASH-01..07`, `UC-TASK-01..06` (`docs/planning/system_usecases.md`; §2.12 INT 에 `UC-INT-15..18` auth_mode/연결테스트/Gitea sync/webhook alias + §2.14 `UC-REPO-01..07` SCM 연동·draft/publish + §2.15 `UC-APPDASH-01..07` Application 대시보드 + §2.16 `UC-TASK-01..06` Task Item Ingestion, 2026-05-28 정합).
-- 정책: 신규 도메인은 `REQ → UC → ARCH/API` 순서를 기본 체인으로 사용한다. 기존 도메인은 점진 전환.
+- `UC-AUTH-01..03`, `UC-ACCOUNT-01..03`, `UC-ORG-01..04`, `UC-RBAC-01..03`, `UC-GITEA-01..03`, `UC-CMD-01..03`, `UC-AUD-01..02`, `UC-RT-01..02`, `UC-APP-01..10`, `UC-PROJ-01..10`, `UC-DREQ-01..12`, `UC-INT-01..18`, `UC-ONBOARD-01..11`, `UC-REPO-01..07`, `UC-APPDASH-01..07`, `UC-TASK-01..06` (`docs/planning/system_usecases.md`; §2.12 INT 에 `UC-INT-15..18` auth_mode/연결테스트/Gitea sync/webhook alias + §2.14 `UC-REPO-01..07` SCM 연동·draft/publish + §2.15 `UC-APPDASH-01..07` Application 대시보드 + §2.16 `UC-TASK-01..06` Task Item Ingestion, 2026-05-28 정합).
+- **§3 매트릭스 도메인 매핑**: `UC-AUTH-01..03` + `UC-ACCOUNT-01..03` = **auth-session** / `UC-RBAC-01..03` = **rbac-permissions** / `UC-AUD-01..02` = **audit-ops** / `UC-ORG-01..04` = **organization-management** / `UC-APP-01..10` + `UC-PROJ-01..10` + `UC-APPDASH-01..07` + `UC-GITEA-03` (Application/Project ↔ SCM cross-cut) + `UC-RT-01` (대시보드 realtime cross-cut) = **application-lifecycle** / `UC-GITEA-01..03` + `UC-REPO-01..07` = **repository-integration** / `UC-DREQ-01..12` = **dev-request** / `UC-INT-01..18` + `UC-TASK-01..06` = **integration-registry** / `UC-RT-01..02` + `UC-CMD-01..03` (명령 lifecycle realtime publish cross-cut) = **realtime** / `UC-ONBOARD-01..11` = **onboarding**.
+- 정책: 신규 도메인은 `REQ → UC → ARCH/API` 순서를 기본 체인으로 사용한다. 기존 도메인은 점진 전환. **Phase 4 정합 후 도메인 sub-document SoT** = [`docs/domain/<domain>/{requirements,architecture,api,test_cases}.md`](../domain/) (Phase 3 이관 결과).
 
 ### 2.2 Design (ARCH / API)
 
-- **Architecture**: ARCH-01 ~ ARCH-17 + `ARCH-DREQ-01..06` + `ARCH-INT-01..07` + `ARCH-ONBOARD-01..06` + `ARCH-REPO-01..07` + `ARCH-APPDASH-01..06` + `ARCH-TASK-01..06` (`ARCH-INT-07` = Gitea pull sync 워커 + auth_mode/OutboundAuth, §8.7; `ARCH-REPO-01..07` = Repository 소유권·연동·lifecycle, `docs/architecture.md §10`; `ARCH-APPDASH-01..06` = Application 개발 대시보드, `docs/architecture.md §11`; `ARCH-TASK-01..06` = Task Item Ingestion, `docs/architecture.md §12`, sprint `deepseek/work_260528-a-task-item-ingestion`). `docs/architecture.md` + `docs/org_chart_ux_spec.md` + `docs/organizational_hierarchy_spec.md` 분포.
-- **API contract**: API-01 ~ API-96 (INT draft 포함 + DREQ token PATCH allowed_ips & expires_at + Onboarding §16 + **API-87 test-connection / API-88..90 SCM repositories list·import·create (§15.3) / API-91 `POST /repositories` draft / API-92 `POST /repositories/:id/publish` (§13.9) / API-93 `GET /applications/:id/dashboard` (§13.10, APPDASH planned) / API-94..96 Task Item Ingestion (§17)**, 2026-05-28 정합). 기존 composite/결손 정책은 유지. **API-69..78, 80..82** 은 외부 시스템 연동 도메인 (§15) 으로 activated. **API-79** 는 DREQ intake token IP & Expiry mutation (§14.10, ADR-0017). **API-83..86** 은 Onboarding 도메인 (§16, sprint `claude/onboarding-arch-2026-05-21`, spec staged). **API-32** (`GET /me`) / **API-33** (`POST /users`) 는 §16 에서 응답 shape / 동작 명시 확장.
+- **Architecture**: ARCH-01 ~ ARCH-17 + `ARCH-DREQ-01..06` + `ARCH-INT-01..07` + `ARCH-ONBOARD-01..06` + `ARCH-REPO-01..07` + `ARCH-APPDASH-01..06` + `ARCH-TASK-01..06` + **Phase 3 신규 임시 ID** `ARCH-RBAC-01..06` ([`docs/domain/rbac-permissions/architecture.md`](../domain/rbac-permissions/architecture.md)) + `ARCH-AUDIT-01..04` ([`docs/domain/audit-ops/architecture.md`](../domain/audit-ops/architecture.md)) + `ARCH-ORG-01..05` ([`docs/domain/organization-management/architecture.md`](../domain/organization-management/architecture.md)). (`ARCH-INT-07` = Gitea pull sync 워커 + auth_mode/OutboundAuth, §8.7; `ARCH-REPO-01..07` = Repository 소유권·연동·lifecycle; `ARCH-APPDASH-01..06` = Application 개발 대시보드; `ARCH-TASK-01..06` = Task Item Ingestion, sprint `deepseek/work_260528-a-task-item-ingestion`).
+- **§3 매트릭스 도메인 매핑**: ARCH-11, 12, 14 = **auth-session** ([`docs/domain/auth-session/architecture.md`](../domain/auth-session/architecture.md)) / ARCH-13 + ARCH-RBAC-01..06 = **rbac-permissions** / ARCH-14 + ARCH-AUDIT-01..04 = **audit-ops** / ARCH-15, 16, 17 + ARCH-ORG-01..05 = **organization-management** / ARCH-10 + ARCH-APPDASH-01..06 = **application-lifecycle** ([`docs/domain/application-lifecycle/architecture.md`](../domain/application-lifecycle/architecture.md)) / ARCH-06, 07, 08 + ARCH-REPO-01..07 = **repository-integration** ([`docs/domain/repository-integration/architecture.md`](../domain/repository-integration/architecture.md)) / ARCH-DREQ-01..06 = **dev-request** ([`docs/domain/dev-request/architecture.md`](../domain/dev-request/architecture.md)) / ARCH-INT-01..07 + ARCH-TASK-01..06 = **integration-registry** ([`docs/domain/integration-registry/architecture.md`](../domain/integration-registry/architecture.md) + [`task_architecture.md`](../domain/integration-registry/task_architecture.md)) / ARCH-05 = **realtime** ([`docs/domain/realtime/architecture.md`](../domain/realtime/architecture.md)) / ARCH-ONBOARD-01..06 = **onboarding** ([`docs/domain/onboarding/architecture.md`](../domain/onboarding/architecture.md)) / ARCH-04, 09 = Infrastructure (infra-topology cross-cut). 분포: 도메인 sub-document SoT 는 [`docs/domain/<domain>/architecture.md`](../domain/) (Phase 3 이관 결과), 보조 `docs/org_chart_ux_spec.md` + `docs/organizational_hierarchy_spec.md` 는 organization-management cross-cut.
+- **API contract**: API-01 ~ API-96 (INT draft 포함 + DREQ token PATCH allowed_ips & expires_at + Onboarding §16 + **API-87 test-connection / API-88..90 SCM repositories list·import·create (§15.3) / API-91 `POST /repositories` draft / API-92 `POST /repositories/:id/publish` (§13.9) / API-93 `GET /applications/:id/dashboard` (§13.10, APPDASH) / API-94..96 Task Item Ingestion (§17)**, 2026-05-28 정합). 기존 composite/결손 정책은 유지. **API-69..78, 80..82** 은 외부 시스템 연동 도메인 (§15) 으로 activated. **API-79** 는 DREQ intake token IP & Expiry mutation (§14.10, ADR-0017). **API-83..86** 은 Onboarding 도메인 (§16, sprint `claude/onboarding-arch-2026-05-21`). **API-32** (`GET /me`) / **API-33** (`POST /users`) 는 §16 에서 응답 shape / 동작 명시 확장. **§3 매트릭스 도메인 매핑**: API-01, 05 (대시보드), 32 (me), 36 = application-lifecycle + auth-session cross-cut / API-02, 04, 08..13 = repository-integration (webhook + pipelines) / API-14, 15..17, 36, 37 = realtime / API-18, 39 = audit-ops / API-19, 23, 25 (폐기), 32, 33, 35 = auth-session / API-26..29, 38..40 (API-30/31 폐기) = rbac-permissions / API-33, 34 = organization-management / API-41..58 = application-lifecycle (Application/Repository/Project) / API-59..68, 79 = dev-request / API-69..78, 80..82, 87, 94..96 = integration-registry / API-88..92 = repository-integration (SCM 양방향 + draft/publish) / API-93 = application-lifecycle (APPDASH) / API-83..86 = onboarding. API sub-document SoT = [`docs/domain/<domain>/api.md`](../domain/).
 
-#### DREQ API §14 — endpoint 매핑 (spec staged sprint `claude/work_260515-f`, **activated sprint `claude/work_260515-i`**)
+#### DREQ API §14 — endpoint 매핑 (spec staged sprint `claude/work_260515-f`, **activated sprint `claude/work_260515-i`**, §3 dev-request row → [`docs/domain/dev-request/api.md`](../domain/dev-request/api.md))
 
 | API ID | 본문 위치 | 항목 | 상태 |
 | --- | --- | --- | --- |
@@ -55,7 +60,7 @@
 | `API-68` | §14.10 | `DELETE /api/v1/dev-request-tokens/:token_id` (intake token revoke, idempotent) | **activated (sprint `o` PR #130)** — `revoked_at = COALESCE(revoked_at, NOW())`. |
 | `API-79` | §14.10 | `PATCH /api/v1/dev-request-tokens/:token_id` (intake token IP & Expiry mutation — allowed_ips & expires_at 갱신) | **activated (PR #137, sprint gemini/work_260521-c-219-patch-token)** — 운영 IP allowlist 및 만료일 동적 변경 endpoint (만료 토큰의 연장/재활성화 허용하는 옵션 B 반영). |
 
-#### Integration API §15 — endpoint 매핑 (sprint `codex/next-step-20260516`, API-69..75 baseline activated)
+#### Integration API §15 — endpoint 매핑 (sprint `codex/next-step-20260516`, API-69..75 baseline activated, §3 integration-registry row → [`docs/domain/integration-registry/api.md`](../domain/integration-registry/api.md); API-88..90 SCM 양방향은 §3 repository-integration row 와 cross-cut)
 
 | API ID | 본문 위치 | 항목 | 상태 |
 | --- | --- | --- | --- |
@@ -79,7 +84,7 @@
 
 > **Repository draft→publish lifecycle** (PR #368, codex; spec `backend_api_contract.md §13.9`): **API-91** `POST /api/v1/repositories` (createRepositoryDraft) + **API-92** `POST /api/v1/repositories/:id/publish` (requestRepositoryPublish). ARCH-REPO-05 (`architecture.md §10`). migration 000043 `repositories.{repository_status(draft|active),publish_requested_at,published_at}`. provider 참조는 #373 (migration 000045) 로 `provider_id`(FK) 단일화 — handler 가 입력 `provider_key`→provider_id 해석. **handler 무테스트 머지 — UT/TC 보강 carve** (분석 §G4, [N-2/N-3](../analysis/2026-05-27-codebase-snapshot/06_future_direction.md)).
 
-#### Application/Repository API §13 — endpoint 매핑 (sprint `claude/work_260514-a`, scaffolded 단계)
+#### Application/Repository API §13 — endpoint 매핑 (sprint `claude/work_260514-a`, §3 application-lifecycle row [API-41..47, 55..58] → [`docs/domain/application-lifecycle/api.md`](../domain/application-lifecycle/api.md) + §3 repository-integration row [API-48..54] → [`docs/domain/repository-integration/api.md`](../domain/repository-integration/api.md))
 
 | API ID | 본문 위치 | 항목 | 상태 |
 | --- | --- | --- | --- |
@@ -104,7 +109,7 @@
 
 > **scaffolded 단계 정의**: gin 라우트 등록 + RBAC matrix 통합 + 핸들러 stub (501 응답). store body / 요청 검증 / 응답 body 는 후속 sprint 에서 채움. RBAC 거부 (developer/manager 의 4 신규 resource 는 모든 axis false — migration 000018 + ADR-0011 §4.1) 가 stub 호출 전에 enforce 되므로 system_admin 만 stub 까지 도달.
 
-#### RBAC API §12 — endpoint 매핑 (sprint `claude/work_260513-f`, 본문 ID 노출 1차 도메인)
+#### RBAC API §12 — endpoint 매핑 (sprint `claude/work_260513-f`, 본문 ID 노출 1차 도메인, §3 rbac-permissions row → [`docs/domain/rbac-permissions/api.md`](../domain/rbac-permissions/api.md))
 
 | API ID | 본문 위치 | 항목 |
 | --- | --- | --- |
@@ -122,7 +127,7 @@
 >
 > **표 가독성 정책**: 정밀 매핑 (endpoint 별 본문 위치, IMPL 별 책임) 은 본 §2 서브 표가 source-of-truth. §3 종합 매트릭스의 도메인 행은 ID 범위 (`API-26–31`) + 서브 표 참조 노트만 두어 표 시인성을 유지한다.
 
-#### Auth API §11 — endpoint 매핑 (sprint `claude/work_260513-g`, 본문 ID 노출 2차 도메인)
+#### Auth API §11 — endpoint 매핑 (sprint `claude/work_260513-g`, 본문 ID 노출 2차 도메인, §3 auth-session row → [`docs/domain/auth-session/api.md`](../domain/auth-session/api.md))
 
 | API ID | 본문 위치 | 항목 |
 | --- | --- | --- |
@@ -132,7 +137,7 @@
 
 > `/api/v1/auth/*` 는 Keycloak 전환 이후 제거된 legacy endpoint다. §11.2 OIDC 표준 endpoint(외부, DevHub 재정의 0) 는 본 매핑 표에서 제외 — `conventions.md` §5.2 정책.
 
-#### Infra / Dashboard API §6 — endpoint 매핑 (sprint `claude/work_260513-i`)
+#### Infra / Dashboard API §6 — endpoint 매핑 (sprint `claude/work_260513-i`, §3 application-lifecycle row [API-05 대시보드 metrics] + Infrastructure infra-topology row [API-06, 07] + repository-integration row [API-02, 04])
 
 | API ID | 본문 위치 | 항목 |
 | --- | --- | --- |
@@ -143,7 +148,7 @@
 | `API-06` | §6.234 | `GET /api/v1/infra/nodes` |
 | `API-07` | §6.240, §6.245 | `GET /api/v1/infra/edges` + `GET /api/v1/infra/topology` (composite) |
 
-#### Pipelines API §7 — endpoint 매핑 (sprint `claude/work_260513-i`)
+#### Pipelines API §7 — endpoint 매핑 (sprint `claude/work_260513-i`, §3 repository-integration row → [`docs/domain/repository-integration/api.md`](../domain/repository-integration/api.md))
 
 | API ID | 본문 위치 | 항목 |
 | --- | --- | --- |
@@ -154,7 +159,7 @@
 | `API-12` | §7 | `GET /api/v1/ci-runs/:ci_run_id/logs` |
 | `API-13` | §7 | `GET /api/v1/risks` + `GET /api/v1/risks/critical` (composite) |
 
-#### Realtime / Command / Audit API §8, §9 — endpoint 매핑 (sprint `claude/work_260513-i`)
+#### Realtime / Command / Audit API §8, §9 — endpoint 매핑 (sprint `claude/work_260513-i`, §3 realtime row [API-14..17, 36, 37] → [`docs/domain/realtime/api.md`](../domain/realtime/api.md) + §3 audit-ops row [API-18] → [`docs/domain/audit-ops/api.md`](../domain/audit-ops/api.md))
 
 | API ID | 본문 위치 | 항목 |
 | --- | --- | --- |
@@ -166,7 +171,7 @@
 | `API-36` | §8 envelope | `command.status.updated` WebSocket event envelope |
 | `API-37` | §11.6 | command lifecycle audit 매핑 (`auth.role_denied`, command-target audit action) |
 
-#### Account / Organization / Me API §10.1 — endpoint 매핑 (sprint `claude/work_260513-i`)
+#### Account / Organization / Me API §10.1 — endpoint 매핑 (sprint `claude/work_260513-i`, §3 auth-session row [API-25 폐기, API-32 me] + §3 organization-management row [API-33, 34] → [`docs/domain/organization-management/api.md`](../domain/organization-management/api.md))
 
 | API ID | 본문 위치 | 항목 |
 | --- | --- | --- |
@@ -179,11 +184,12 @@
 
 ### 2.3 Roadmap (RM)
 
-- **M0**: RM-M0-01 (1 항목, `X-Devhub-Actor` deprecation).
-- **M1**: RM-M1-01 ~ RM-M1-04 (4 항목, RBAC track + API 계약 §11 재작성).
-- **M2**: RM-M2-01 ~ RM-M2-16 (16 항목, 인증/계정/조직/UX/audit + CI). 1차 완성 sprint (PR #85) 가 이전에 M3 으로 분류됐던 사용자/조직 관리 대부분을 흡수.
-- **M3**: 사용자 및 조직 관리 — 대부분 M2 1차 완성에서 흡수, 잔여 정의는 §2.3.1 표 참조.
-- **M4**: 실시간 + 과제 추적 + 시스템 관리. AI Gardener는 v2 범위. 정의는 §2.3.2 표 참조.
+- **M0**: RM-M0-01 (1 항목, `X-Devhub-Actor` deprecation — §3 auth-session).
+- **M1**: RM-M1-01 ~ RM-M1-04 (4 항목, RBAC track + API 계약 §11 재작성 — §3 rbac-permissions + auth-session).
+- **M2**: RM-M2-01 ~ RM-M2-16 (16 항목, 인증/계정/조직/UX/audit + CI). 1차 완성 sprint (PR #85) 가 이전에 M3 으로 분류됐던 사용자/조직 관리 대부분을 흡수. **§3 매핑**: M2-01..06, 09 = auth-session / M2-07, 08 = organization-management / M2-11 = rbac-permissions / M2-15 = audit-ops / M2-16 = Infrastructure (deployment-automation, CI).
+- **M3**: 사용자 및 조직 관리 — 대부분 M2 1차 완성에서 흡수, 잔여 정의는 §2.3.1 표 참조 (§3 auth-session / organization-management cross-cut + Infrastructure hrdb).
+- **M4**: 실시간 + 과제 추적 + 시스템 관리. AI Gardener는 v2 범위. 정의는 §2.3.2 표 참조 (§3 realtime / repository-integration / rbac-permissions / Infrastructure keycloak-idp / gitea-scm cross-cut).
+- **M5..M7**: M5 = dev-request (DREQ 도메인 1차 완성, ADR-0012/0013/0014/0017) / M6 = integration-registry (External Integration 1차 완성, ADR-0015/0016) / M7 = onboarding (RM-ONBOARD-01..04 풀스택 closing, ADR-0021).
 
 > **drift 정합 (2026-05-13, sprint `claude/work_260513-k`)**: 본 §2.3 + `docs/development_roadmap.md` §3 가 M3/M4 정의의 single source-of-truth. 매트릭스 §3 의 도메인 행 인용 + state.json + backend_roadmap §5 모두 이 정의 기준으로 정합화. 본 sprint 이전에는 매트릭스가 RM-M3 = "Sign Up + WebSocket + AI" 로 정의해 development_roadmap.md M4 항목을 cross-cut 한 drift 상태였다.
 
@@ -215,9 +221,10 @@
 
 ### 2.4 Implementation (IMPL)
 
-- **Backend (`backend-core`)**: IMPL-auth-01..03, rbac-01..04, audit-01..02, account-01..04, org-01..04, command-01..05, serviceaction-01, domain-01..03, dashboard-01, infra-01, store-01..03, gitea-01..05, config-01, hrdb-01, realtime-01, me-01, health-01, idp-schema-01 (축약 반영; 상세는 각 서브 표 기준).
+- **Backend (`backend-core`)**: IMPL-auth-01..03, rbac-01..04, audit-01..02, account-01..05 (account-01..04 strikethrough — ADR-0020 sub-carve B 폐기, account-05 신규 = lazy auto-create sprint -i, 이후 Carve D 에서 삭제), org-01..04, command-01..05, serviceaction-01, domain-01..03, dashboard-01, infra-01, store-01..03, gitea-01..05, config-01, hrdb-01..02, realtime-01..02, me-01, health-01, idp-schema-01 (축약 반영; 상세는 각 서브 표 기준).
+- **§3 매트릭스 도메인 매핑**: IMPL-auth-01..03 + IMPL-account-01..05 + IMPL-me-01 = **auth-session** ([`docs/domain/auth-session/`](../domain/auth-session/)) / IMPL-rbac-01..04 = **rbac-permissions** ([`docs/domain/rbac-permissions/`](../domain/rbac-permissions/)) / IMPL-audit-01..02 = **audit-ops** ([`docs/domain/audit-ops/`](../domain/audit-ops/)) / IMPL-org-01..04 = **organization-management** ([`docs/domain/organization-management/`](../domain/organization-management/)) / IMPL-application-XX + IMPL-project-XX + IMPL-dashboard-01 + IMPL-frontend-dashboard-01 + IMPL-onboarding-XX (Carve A) = **application-lifecycle** ([`docs/domain/application-lifecycle/`](../domain/application-lifecycle/)) — Onboarding row 는 [`docs/domain/onboarding/`](../domain/onboarding/) sub-document 참조 / IMPL-gitea-01..02 (webhook ingestion foundation) + IMPL-repository-XX (SCM 양방향 + draft/publish) = **repository-integration** ([`docs/domain/repository-integration/`](../domain/repository-integration/)) / IMPL-dreq-XX = **dev-request** ([`docs/domain/dev-request/`](../domain/dev-request/)) / IMPL-int-XX (domain/store/handler/webhook/router-rbac/migration/adapter) = **integration-registry** ([`docs/domain/integration-registry/`](../domain/integration-registry/)) / IMPL-realtime-01..02 + IMPL-command-01..05 + IMPL-serviceaction-01 = **realtime** ([`docs/domain/realtime/`](../domain/realtime/)) / IMPL-gitea-03..05 (SCM pull sync worker) = **Infrastructure (gitea-scm)** ([`docs/infrastructure/`](../infrastructure/) — domain layer 는 repository-integration cross-cut) / IMPL-hrdb-01..02 = **Infrastructure (hrdb)** / IMPL-infra-01 + IMPL-int-adapter-01 (HomeLab) = **Infrastructure (infra-topology)** / IMPL-keycloak-* (verifier / admin-client / event-puller / SPI) = **Infrastructure (keycloak-idp)** ([`docs/infrastructure/keycloak-idp/`](../infrastructure/keycloak-idp/)).
 
-#### IMPL-rbac-XX 정의 (sprint `claude/work_260513-f`)
+#### IMPL-rbac-XX 정의 (sprint `claude/work_260513-f`, §3 rbac-permissions row)
 
 | IMPL ID | 코드 위치 | 책임 |
 | --- | --- | --- |
@@ -226,7 +233,7 @@
 | `IMPL-rbac-03` | `backend-core/internal/httpapi/permissions.go` (`routePermissionTable` + `enforceRoutePermission`) | API-38 라우트 매핑 source-of-truth + 미들웨어 enforcement + API-39 deny-by-default |
 | `IMPL-rbac-04` | `backend-core/internal/httpapi/permissions.go` (`PermissionCache`) | API-40 in-memory matrix cache + Invalidate |
 
-#### IMPL-auth-XX 정의 (sprint `claude/work_260513-g`)
+#### IMPL-auth-XX 정의 (sprint `claude/work_260513-g`, §3 auth-session row)
 
 | IMPL ID | 코드 위치 | 책임 |
 | --- | --- | --- |
@@ -236,7 +243,7 @@
 
 > API-35 `POST /api/v1/account/password` 의 IMPL 은 account 도메인 (`internal/httpapi/account_password.go`). 매트릭스 §3 의 인증 행 + 계정 관리 행 양쪽에 ID 가 노출되는 cross-cut.
 
-#### IMPL-account-XX 정의 (sprint `claude/work_260513-i`)
+#### IMPL-account-XX 정의 (sprint `claude/work_260513-i`, §3 auth-session row)
 
 | IMPL ID | 코드 위치 | 책임 |
 | --- | --- | --- |
@@ -246,7 +253,7 @@
 | ~~`IMPL-account-04`~~ | ~~`internal/httpapi/account_password.go`~~ | ~~API-35 self-service~~ — sprint -ad 에서 이미 폐기 (Keycloak Account Console redirect). |
 | `IMPL-account-05` (신규) | `internal/httpapi/lazy_auto_create.go` (`lazyAutoCreateUser`) + `internal/httpapi/auth.go::authenticateActor` 의 lazy 분기 | ADR-0020 sub-carve B — 신규 user 첫 진입 시 `users` row 자동 생성 + audit `account.lazy_provisioned` + role default fallback (`user.role_default_assigned`). sprint -i (PR TBD). |
 
-#### IMPL-org-XX 정의 (sprint `claude/work_260513-i`)
+#### IMPL-org-XX 정의 (sprint `claude/work_260513-i`, §3 organization-management row)
 
 | IMPL ID | 코드 위치 | 책임 |
 | --- | --- | --- |
@@ -255,7 +262,7 @@
 | `IMPL-org-03` | `internal/httpapi/organization.go` (members handlers: `listUnitMembers`, `replaceUnitMembers`) | API-34 unit members endpoint |
 | `IMPL-org-04` | `internal/store/users_units.go` + organization store impl | persistence layer (users / org_units / unit_appointments). 2026-05-14 PR #112: `CreateOrgUnit` / `UpdateOrgUnit` 가 `unit_appointments` 의 leader appointment 를 자동 동기화 (demote-then-promote in tx, `SELECT ... FOR UPDATE` 직렬화, partial unique index `unit_single_leader_idx` 로 single-leader invariant SQL 강제). |
 
-#### IMPL-command-XX 정의 (sprint `claude/work_260513-i`)
+#### IMPL-command-XX 정의 (sprint `claude/work_260513-i`, §3 realtime row + Infrastructure commandworker)
 
 | IMPL ID | 코드 위치 | 책임 |
 | --- | --- | --- |
@@ -265,7 +272,7 @@
 | `IMPL-command-04` | `internal/commandworker/*` | command worker (dry-run / live executor, `command.status.updated` publisher) |
 | `IMPL-command-05` | `internal/serviceaction/*` | service-action 도메인 로직 (executor adapter 후보) |
 
-#### IMPL-audit-XX 정의 (sprint `claude/work_260513-i`)
+#### IMPL-audit-XX 정의 (sprint `claude/work_260513-i`, §3 audit-ops row)
 
 > auth 의 IMPL-auth-01..07 과 별도. audit 는 독립 모듈.
 
@@ -274,7 +281,7 @@
 | `IMPL-audit-01` | `internal/httpapi/audit.go` (`listAuditLogs`, `recordAudit`, `recordAuditBestEffort`) | API-18 `GET /api/v1/audit-logs` handler + 다른 도메인의 audit emit helper |
 | `IMPL-audit-02` | `internal/store/audit_logs.go` | audit_logs persistence + source_type/request_id/source_ip 컬럼 (M1 PR-D 의 actor enrichment) |
 
-#### IMPL-infra-XX / dashboard 정의 (sprint `claude/work_260513-i`)
+#### IMPL-infra-XX / dashboard / realtime / me 정의 (sprint `claude/work_260513-i`, §3 application-lifecycle (dashboard/me) + realtime + Infrastructure infra-topology)
 
 | IMPL ID | 코드 위치 | 책임 |
 | --- | --- | --- |
@@ -284,7 +291,7 @@
 | `IMPL-realtime-02` | `internal/httpapi/realtime_ticket.go` (`realtimeTicketStore` interface + in-memory `RealtimeTicketStore` + PG `DBRealtimeTicketStore` + `NewRealtimeTicketStoreFor` selector) + `internal/store/realtime_tickets.go` + migration `000035_create_realtime_tickets` | ADR-0024 §3.2 ticket pattern (`POST /api/v1/realtime/ticket` 발급 + `auth.go` `?ticket=` consume). single-use 60s TTL. multi-instance 는 PG 백킹 (§6 carve 6, `DELETE ... RETURNING` 원자 single-use), DB 미연결은 in-memory fallback. (PR #336 in-memory 1차 + 본 sprint PG 백킹) |
 | `IMPL-me-01` | `internal/httpapi/me.go` (`getMe`) | API-32 `GET /api/v1/me` handler |
 
-#### IMPL-hrdb-XX 정의 (sprint `claude/work_260513-l`)
+#### IMPL-hrdb-XX 정의 (sprint `claude/work_260513-l`, §3 Infrastructure hrdb row)
 
 | IMPL ID | 코드 위치 | 책임 |
 | --- | --- | --- |
@@ -293,7 +300,7 @@
 
 > `internal/httpapi/hr_lookup.go::hrLookup` (`GET /api/v1/hr/lookup`) 은 signup endpoint 외에 직접 HR DB 조회를 제공하는 helper endpoint (IMPL-auth 또는 IMPL-hrdb cross-cut). 매트릭스 §2.2 의 본문 ID 노출은 후속 sprint 후보.
 
-#### IMPL-application-XX 정의 (sprint `claude/work_260514-a`, scaffolded 단계)
+#### IMPL-application-XX 정의 (sprint `claude/work_260514-a`, §3 application-lifecycle row)
 
 | IMPL ID | 코드 위치 | 책임 |
 | --- | --- | --- |
@@ -306,7 +313,7 @@
 
 > store body 는 미작성 (`ErrNotImplemented`). handler 는 stub (501). 응답 body schema / 요청 validation / status transition guard 는 후속 sprint 의 carve out (state.json `carve_out` 참조).
 
-#### IMPL-int-XX 정의 (sprint `codex/next-step-20260516`, API-69..75 baseline)
+#### IMPL-int-XX 정의 (sprint `codex/next-step-20260516`, API-69..75 baseline, §3 integration-registry row)
 
 | IMPL ID | 코드 위치 | 책임 |
 | --- | --- | --- |
@@ -321,7 +328,7 @@
 | `IMPL-int-migration-02` | `backend-core/migrations/000029_infra_service_snapshots_*.sql` | `infra_service_snapshots` 스키마 + 최신 snapshot 조회 인덱스 생성. |
 | `IMPL-int-adapter-01` | `backend-core/internal/integrations/adapters/{contract.go,homelab.go,homelab_file_puller.go}` | HomeLab adapter 고도화 1차 (`InfraSnapshotStore`, `HomeLabPuller`, `HomeLabAdapter.{NormalizeSnapshot,IngestSnapshot,PullAndIngest,LoadLatestSnapshot}`, health policy override, File puller). |
 
-#### IMPL-gitea-XX 정의 (sprint `claude/work_260527-gitea-traceability`)
+#### IMPL-gitea-XX 정의 (sprint `claude/work_260527-gitea-traceability`, §3 repository-integration (gitea-01..02 webhook) + Infrastructure gitea-scm (gitea-03..05 pull worker))
 
 > `gitea-01..02` 은 기존 webhook ingestion foundation (2026-05-02 `b1b6849` "feat: add Gitea webhook ingestion foundation") — `internal/gitea/signature.go` 의 HMAC `VerifySignature` + `PayloadHash` + webhook handler/normalize (`UT-gitea-01` = `signature_test.go::TestVerifySignature`). 본 표는 PR #341 (2026-05-26) 의 신규 SCM **pull** sync worker (`gitea-03..05`) 를 정의한다 — webhook **push** 와 별개 concern (RM-M4-06 1차 구현).
 
@@ -338,15 +345,24 @@
 
 ### 2.5 Unit tests (UT)
 
-- **Backend Go**: UT-httpapi-01..26 (`UT-httpapi-25`: integration registry handler, `UT-httpapi-26`: infra integration handler), rbac-01..03, domain-01..02, auth-01, gitea-01..04 (`gitea-01`: webhook HMAC `signature_test.go`; `gitea-02..04`: SCM sync worker `client_test`/`syncer_test`/`worker_test`, PR #341), normalize-01, store-01..03, commandworker-01..02, serviceaction-01, config-01, main-01.
-- **Frontend Vitest**: UT-frontend-utils-01, frontend-auth-01..04, frontend-services-01..02 (7 파일).
+- **Backend Go**: UT-httpapi-01..26 (`UT-httpapi-25`: integration registry handler, `UT-httpapi-26`: infra integration handler), rbac-01..03, domain-01..02, auth-01, gitea-01..04 (`gitea-01`: webhook HMAC `signature_test.go`; `gitea-02..04`: SCM sync worker `client_test`/`syncer_test`/`worker_test`, PR #341), normalize-01, store-01..03, commandworker-01..02, serviceaction-01, config-01, main-01, onboarding 12건 (`internal/httpapi/onboarding_test.go`), keycloak 4건 + sub-carve D 4건 (`UT-auth-StaleWhileError_KeycloakUnreachable` 등), realtime_ticket (in-memory + DB fake).
+- **Frontend Vitest**: UT-frontend-utils-01 (lib/utils — lifecycle-status 6, last-build 13, integration-provider-presets 14 vitest), frontend-auth-01..04 (Header/Sidebar/AuthGuard regression), frontend-services-01..02 (login/session) + recovery sprint 신규 (audit/onboarding/dev_request/auth/realtime service 신규 + 9 file 보강, PR #407), AuthGuard whitelist→blocklist 4 회귀 가드 (PR #291), `IntakeTokenTable` / `IssueIntakeTokenModal-01..02` (DREQ admin).
+- **§3 매트릭스 도메인 매핑**: `UT-httpapi-01..07` + `UT-auth-01` + frontend-auth-01..04 + onboarding 12 = **auth-session** + **onboarding** / `UT-rbac-01..03` + `UT-domain-01` = **rbac-permissions** / `UT-httpapi-19, 24` = **audit-ops** / `UT-httpapi-07` + `UT-store-01` = **organization-management** / `UT-httpapi-08, 11, 22` + application/project/rollup/integration handler 46 + frontend lib/utils vitest = **application-lifecycle** / `UT-httpapi-10, 14` + `UT-gitea-01` (HMAC) + `UT-normalize-01` + `UT-store-03` + repository handler 3 + gitea-compat gate 1 = **repository-integration** / `UT-httpapi-DREQ-*` (15 + 5 promote + 8 intake + 4 intake_auth + 1 clientIP + 1 token-expiry + 1 allowed-ips-mutation) + DREQ frontend vitest = **dev-request** / `UT-httpapi-25, 26` + `UT-int-adapter-01` + gitea `auth_test` (7) + handler `BasicAuthCredentials` 등 + frontend `integration-provider-presets` vitest 14 = **integration-registry** / `UT-httpapi-13` + realtime_ticket + `UT-commandworker-01..02` + `UT-serviceaction-01` + `UT-domain-02` + `UT-httpapi-09` = **realtime** / `UT-gitea-02..04` (SCM sync worker) + `TestSyncWorker_ProcessOnce_NoEnvTokenLeakForExplicitProvider` = **Infrastructure (gitea-scm)** / `UT-auth-{StaleWhileError, StaleExpired, FreshCache, StaleFallback}-01` + `UT-keycloak-*` + audit metric 회귀 3종 = **Infrastructure (keycloak-idp)** / `UT-httpapi-12` + `UT-int-adapter-01` (HomeLab) = **Infrastructure (infra-topology)**.
 
 ### 2.6 E2E TC
 
-- **M2 (32 TC)**: TC-USR-01..06, TC-USR-CRUD-01..03, TC-ACC-01..03, TC-ACC-PROFILE-01, TC-NAV-01..03 + TC-NAV-SIM-01, TC-AUD-01..02, TC-AUTH-NEG-01, TC-AUTH-NOAUTH-01, TC-AUTH-SIGNOUT-REDIR-01, TC-USER-SWITCH-01, TC-RBAC-SUB-01, TC-RBAC-MGR-01, TC-SIGNUP-01..04, TC-PERMISSIONS-SMOKE-01, TC-FILTERBAR-USERS-01, TC-FILTERBAR-APPS-01, TC-FILTERBAR-DREQ-01, TC-AUDIT-PREMIUM-01 (`docs/domain/auth-session/test_cases.md`).
-- **M3 (9 TC)**: TC-ORG-LIST-01..02, TC-ORG-UNIT-01..03, TC-ORG-MEM-01..02, TC-ORG-CHART-01..02 (`docs/domain/organization-management/test_cases.md`).
-- **M4 Integration baseline (10 TC)**: TC-INT-PROVIDER-01..02, TC-INT-INGEST-01..02, TC-INT-BINDING-01..02, TC-INT-HOMELAB-01..03, TC-INT-RESILIENCE-01 (`docs/domain/integration-registry/test_cases.md`, IT 중심 PASS + E2E 시나리오 후속).
-- **추가** (spec 파일 안에만 정의되어 TC 카탈로그 외): `auth.spec.ts` 의 TC-AUTH-01..06 등 — 향후 TC 카탈로그로 흡수 권장.
+- **§3 auth-session row (32 TC)**: TC-USR-01..06, TC-USR-CRUD-01..03, TC-ACC-01..03, TC-ACC-PROFILE-01, TC-NAV-01..03 + TC-NAV-SIM-01, TC-AUTH-NEG-01, TC-AUTH-NOAUTH-01, TC-AUTH-SIGNOUT-REDIR-01, TC-USER-SWITCH-01, TC-SIGNUP-01..04, TC-PERMISSIONS-SMOKE-01, TC-FILTERBAR-USERS-01 ([`docs/domain/auth-session/test_cases.md`](../domain/auth-session/test_cases.md)).
+- **§3 audit-ops row**: TC-AUD-01..02, TC-AUDIT-PREMIUM-01 ([`docs/domain/audit-ops/test_cases.md`](../domain/audit-ops/test_cases.md)).
+- **§3 rbac-permissions row**: TC-RBAC-SUB-01, TC-RBAC-MGR-01 ([`docs/domain/rbac-permissions/test_cases.md`](../domain/rbac-permissions/test_cases.md)).
+- **§3 organization-management row (9 TC)**: TC-ORG-LIST-01..02, TC-ORG-UNIT-01..03, TC-ORG-MEM-01..02, TC-ORG-CHART-01..02 ([`docs/domain/organization-management/test_cases.md`](../domain/organization-management/test_cases.md)).
+- **§3 application-lifecycle row**: TC-FILTERBAR-APPS-01 (Application/Project E2E 본격 carve out — APPDASH 미진입 TC-APPDASH-XX 후보) ([`docs/domain/application-lifecycle/test_cases.md`](../domain/application-lifecycle/test_cases.md)).
+- **§3 repository-integration row**: `repositories-ui.spec.ts` + `repositories-ui-negative` + `repositories-detail-negative` + `admin-catalog.spec.ts` (negative). import/create/publish happy-path E2E carve [N-3] ([`docs/domain/repository-integration/test_cases.md`](../domain/repository-integration/test_cases.md)).
+- **§3 dev-request row**: TC-DREQ-{ADMIN-TOKEN-01, INTAKE-AUTH-01, WIDGET-FLOW-01, PROMOTE-TX-01, ADMIN-TOKEN-REVOKE-01, INTAKE-AUTH-NEG-01..03} + TC-DREQ-ADMIN-TOKEN-PATCH-01 + TC-DREQ-NOTI-01..03 + TC-FILTERBAR-DREQ-01 + E2E `dev-requests.spec.ts` ([`docs/domain/dev-request/test_cases.md`](../domain/dev-request/test_cases.md)).
+- **§3 integration-registry row (M4 baseline 10 TC + mega lifecycle)**: TC-INT-PROVIDER-01..02, TC-INT-INGEST-01..02, TC-INT-BINDING-01..02, TC-INT-HOMELAB-01..03, TC-INT-RESILIENCE-01 (IT 중심 PASS + E2E 시나리오 후속) + TC-INT-FRONTEND-{LIST,CREATE,EDIT,SYNC,RBAC,DELETE}-01 mega lifecycle + TC-INT-FRONTEND-DELETE-NEG-01 + TC-INT-FRONTEND-BIND-LIST/CREATE/RBAC + TC-INT-FRONTEND-TOPOLOGY-V2-NAV/RBAC-01 ([`docs/domain/integration-registry/test_cases.md`](../domain/integration-registry/test_cases.md)). TC-TASK-XX 미진입 (Task Item Ingestion 후속).
+- **§3 onboarding row**: TC-ONBOARD-* mega lifecycle (`frontend/tests/e2e/onboarding-first-login.spec.ts`, Carve D PR #289) ([`docs/domain/onboarding/test_cases.md`](../domain/onboarding/test_cases.md)).
+- **§3 realtime row**: (E2E 미커버 — gap §5.1, TC-CMD-* / TC-WS-* 카탈로그 후속).
+- **§3 Infrastructure (infra-topology)**: `admin-topology-v2.spec.ts` (TC-INT-HOMELAB-03 `/admin/topology-v2`) — legacy `/admin` 토폴로지 archived.
+- **추가** (spec 파일 안에만 정의되어 TC 카탈로그 외): `auth.spec.ts` 의 TC-AUTH-01..06 등 — 향후 TC 카탈로그로 흡수 권장 (closed 2026-05-13 sprint `claude/work_260513-d`, `test_cases.md` 흡수 확인).
 
 ## 3. 종합 매트릭스 (도메인 그룹 단위)
 
@@ -468,6 +484,7 @@
 
 | 일자 | 변경 |
 | --- | --- |
+| 2026-05-29 | sprint `claude/work_260529-o` (SDLC 문서 재정비 Phase 4 후속 — §2 단계별 인덱스 10 도메인 SoT 정합, [issue #423](https://github.com/ykylee/Devhub_example/issues/423) closes) — §3 매트릭스 19 row 그룹화 (10 core 도메인 + Shared + Infrastructure + Cross-cutting) 와 §2.1 (REQ) / §2.1.5 (UC) / §2.2 (ARCH/API) / §2.3 (RM) / §2.4 (IMPL) / §2.5 (UT) / §2.6 (TC) 의 row 그룹화를 1:1 또는 N:1 정합. **변경 영역**: §2 도입 메타 노트 추가 (Phase 4 정합 정책) + §2.1 REQ row 들에 §3 도메인 매핑 line 추가 + Phase 3 신규 임시 ID (REQ-RBAC-001..009 / REQ-AUDIT-001..007 / REQ-ORG-001..007) 흡수 row 추가 + §2.1.5 UC 의 도메인 매핑 line + §2.2 Architecture 의 §3 매핑 line + Phase 3 신규 ARCH-RBAC/AUDIT/ORG 흡수 + §2.2 API contract 의 §3 매핑 line + §2.2 sub-table 7개 헤더에 §3 매핑 + sub-document path 명시 (DREQ §14 / Integration §15 / Application/Repository §13 / RBAC §12 / Auth §11 / Infra/Dashboard §6 / Pipelines §7 / Realtime/Command/Audit §8,§9 / Account/Org/Me §10.1) + §2.3 RM 의 §3 매핑 line + M5..M7 도메인 매핑 추가 + §2.4 IMPL 도입 라인의 §3 매핑 + 8개 sub-table 헤더에 §3 매핑 (rbac / auth / account / org / command / audit / infra / hrdb / application / int / gitea) + §2.5 UT 의 도메인 분류 + §2.6 TC 의 도메인별 그룹 재구성. **보존**: 기존 모든 REQ/UC/ARCH/API/RM/IMPL/UT/TC ID 보존 + sprint reference + PR # + commit 매핑 + status note 모두 보존. 정보 손실 0 — 정합화 + 그룹 재배치 + 도메인 sub-document path 명시만. 추적성 영향 — 신규 ID 없음 (재구성 + sub-document link 갱신, docs-only). | sprint `claude/work_260529-o`, PR pending |
 | 2026-05-29 EOD | sprint `claude/work_260529-{b..j}` 묶음 — cleanup-recovery (PR #407) 후속 carve out + SDLC 문서 도메인-모듈 재정비 sprint 8 PR (#408~#415) 머지 종합. **PR #408** (`68c2d15` housekeeping) + **PR #409** (`6eefda9` `refactor(backend/shared-integrationcaps)` providerHasCapability 3 카피 → `internal/shared/integrationcaps` 단일 helper, OR semantics 보존, 11 unit test) + **PR #410** (`33594ed` SDLC Phase 1 — 13 신규 README 골격, `docs/domain/<도메인>/` × 10 + `docs/shared/README.md` + `docs/infrastructure/README.md` + `docs/domain/README.md` index) + **PR #411** (`7d3d20d` SDLC Phase 2 — 25 file rename + cross-reference 일괄 91 file 갱신) + **PR #412** (`0b5907a` view carve — 25 frontend view 단위테스트 +210 신규 test, rbac/repo/dreq/intreg/org 90%+ / app-lifecycle 큰 modal 51~57% 미달 carve) + **PR #413** (`7d390f7` SDLC Phase 3 XL — 34 신규 sub-document (REQ/ARCH/API × 10 도메인 + Task 도메인 3 + `docs/api/conventions.md`) + master 3 file index 전환 (`requirements.md` 674→120 / `architecture.md` 1071→210 / `backend_api_contract.md` 2881→370) + Phase 3 신규 임시 ID REQ-RBAC/AUDIT/ORG + ARCH-RBAC/AUDIT/ORG) + **PR #414** (`c00b104` Phase 4 — 본 §6 직후 row) + **PR #415** (`273d9d4` Phase 5 — `docs/governance/document-standards.md` §4 위치 가이드 갱신). 후속 carve out (다음 sprint): CI e2e+integration 복원 / view 큰 modal 70% / ApplicationRepository decouple / ApplicationStore slim / §2 인덱스 정합. 추적성 영향 — Phase 3 신규 임시 ID 가 Phase 4 매트릭스에 흡수됨. | sprint 8 PR (#408~#415) 머지 완료 |
 | 2026-05-29 | sprint `claude/work_260529-h` (SDLC 문서 재정비 Phase 4 — §3 매트릭스 10 도메인 SoT 재구성) — code-taxonomy SoT ([`docs/governance/code-taxonomy.md`](../governance/code-taxonomy.md)) 의 **10 core 도메인 + Shared + Infrastructure + Cross-cutting** 그룹화로 §3 매트릭스 전면 재구성. 기존 21 row (cross-cutting 그룹 위주 — 인증/회원가입/계정 관리/RBAC/조직 계층/감사/명령 lifecycle/실시간/인프라 토폴로지/Webhook+gitea push/Gitea pull 워커/대시보드+me/CI 거버넌스/Application+Project/DREQ/External Integration/SCM Repository 연동/Onboarding/APPDASH/M4 planned) → 19 row (10 core + 1 Shared + 7 Infrastructure + 1 Cross-cutting) 통합. **주요 통합 매핑**: (a) auth-session = 인증 + 회원가입 + 계정 관리 3 row 통합. (b) application-lifecycle = Application/Project + APPDASH + 대시보드/메트릭/me 3 row 통합. (c) repository-integration = Webhook+gitea push + SCM Repository 양방향 연동 2 row 통합 (Gitea SCM 동기화 워커 pull 은 Infrastructure gitea-scm 으로 분리). (d) integration-registry = External Integration + Task Item Ingestion 통합. (e) realtime = 실시간 WebSocket + 명령 lifecycle realtime publish 통합. (f) Infrastructure 신규 7 row (keycloak-idp / gitea-scm / hrdb / commandworker / infra-topology / database-migration / deployment-automation) — 기존 CI/거버넌스 + 인프라 토폴로지 + Gitea pull worker + hrdb 매핑 재배치. (g) Shared 신규 row (PR #406+ code-taxonomy code-level 적용 + PR #409 integrationcaps 분리). **Phase 3 신규 임시 ID 흡수**: REQ-RBAC-001..009 (rbac-permissions row), REQ-AUDIT-001..007 (audit-ops row), REQ-ORG-001..007 (organization-management row, 기존 REQ-FR-68..80 와 정합), ARCH-RBAC-01..06 (rbac-permissions row), ARCH-AUDIT-01..04 (audit-ops row), ARCH-ORG-01..05 (organization-management row). **file path link 갱신**: `docs/architecture.md §X` → `docs/domain/<domain>/architecture.md`, 도메인 sub-document SoT 는 `docs/domain/<domain>/{requirements,architecture,api,test_cases}.md` 단계별로 명시. 메타 주석 §3 도입부에 Phase 4 재구성 일자 + 그룹화 정책 + ID 흡수 명시. 정보 손실 0 — 기존 row 의 모든 REQ/UC/ARCH/API/RM/IMPL/UT/TC ID + sprint reference + PR # + commit 매핑 + status note 모두 새 row 에 보존. 추적성 영향 — 신규 ID 없음 (재구성 + 신규 임시 ID 흡수 + link 갱신, docs-only). | sprint `claude/work_260529-h`, PR pending |
 | 2026-05-29 | sprint `gemini/work_260528-code-cleanup` (recovery 통합, PR #407) — **PR #406 의 code-taxonomy SoT 를 backend-core + frontend 에 실 적용한 Gemini cleanup sprint 의 후속 recovery 정리**. 5 commit 통합: (1) `chore(infra/deployment-automation)` e2e + backend-integration job 임시 비활성화 (`if: ... && false`) (2) `refactor(backend/test-recovery)` view cross-package test → httpapi/ 이관, EventCursor import, Repository wrapper, in-memory NewRealtimeTicketStore 복원, router.go shim, `providerHasCapability` AND→OR 회귀 정정 (3) `fix(frontend/cleanup-recovery)` P0 ghost import 10 (project.service + integration-provider-presets) + framer-motion mock children type drift + components/{ui,layout} 14 dead file 정리 (4) `test(frontend/cleanup-recovery)` service test +369 (audit/onboarding/dev_request/auth/realtime 신규 + 9 file 보강 + rbac type drift 6건 정정) (5) `docs(memory)` branch memory 갱신. 검증: backend 21 패키지 / frontend 29 file 431 test 모두 PASS, coverage 21.21% → 28.03%. 추적성 영향 — 신규 ID 없음 (코드 구조 이관 + 단위테스트 보강 + CI 임시 조정). | sprint `gemini/work_260528-code-cleanup`, PR #407 머지 `4a1942e` |
