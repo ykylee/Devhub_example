@@ -217,3 +217,81 @@ describe("AuthGuard 401/error fallback (ADR-0020 sub-carve F)", () => {
     expect(storeState.clearActor).toHaveBeenCalled();
   });
 });
+
+// 회귀 가드: AuthGuard.tsx line 74-76 의 system-admin path gate.
+// `pathRequiresSystemAdmin(pathname) && !isSystemAdmin(resolved.role)` → router.replace
+// (defaultLandingFor). 본 분기 미커버 회귀 시 권한 없는 사용자가 /admin 또는
+// /organization route 접근 가능 — security regression. role-routing.ts 의
+// defaultLandingFor 매핑 (Developer → /developer, Manager → /manager) 도 동시 검증.
+describe("AuthGuard system-admin path gating", () => {
+  beforeEach(() => {
+    routerReplace.mockClear();
+    storeState.actor = null;
+    storeState.setActor.mockClear();
+    whoAmIMock.mockReset();
+    skipFlag.value = false;
+  });
+
+  it("Developer 가 /admin 진입 시 /developer 로 redirect 된다 (TC-AUTH-ADMIN-GATE-01)", async () => {
+    pathnameRef.current = "/admin";
+    whoAmIMock.mockResolvedValue(buildResolvedActor({ role: "Developer" }));
+
+    render(
+      <AuthGuard>
+        <div data-testid="protected">admin secret</div>
+      </AuthGuard>
+    );
+
+    await waitFor(() => {
+      expect(routerReplace).toHaveBeenCalledWith("/developer");
+    });
+    // protected child 가 노출되어선 안 됨.
+    expect(screen.queryByTestId("protected")).toBeNull();
+  });
+
+  it("Manager 가 /admin/settings/organization 진입 시 /manager 로 redirect 된다", async () => {
+    pathnameRef.current = "/admin/settings/organization";
+    whoAmIMock.mockResolvedValue(buildResolvedActor({ role: "Manager" }));
+
+    render(
+      <AuthGuard>
+        <div data-testid="protected">admin secret</div>
+      </AuthGuard>
+    );
+
+    await waitFor(() => {
+      expect(routerReplace).toHaveBeenCalledWith("/manager");
+    });
+  });
+
+  it("Developer 가 /organization 진입 시 /developer 로 redirect 된다 (legacy path)", async () => {
+    pathnameRef.current = "/organization";
+    whoAmIMock.mockResolvedValue(buildResolvedActor({ role: "Developer" }));
+
+    render(
+      <AuthGuard>
+        <div data-testid="protected">admin secret</div>
+      </AuthGuard>
+    );
+
+    await waitFor(() => {
+      expect(routerReplace).toHaveBeenCalledWith("/developer");
+    });
+  });
+
+  it("System Admin 은 /admin 진입 시 통과한다 (gate 양성 false 분기)", async () => {
+    pathnameRef.current = "/admin";
+    whoAmIMock.mockResolvedValue(buildResolvedActor({ role: "System Admin" }));
+
+    render(
+      <AuthGuard>
+        <div data-testid="protected">admin content</div>
+      </AuthGuard>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("protected")).toBeInTheDocument();
+    });
+    expect(routerReplace).not.toHaveBeenCalled();
+  });
+});
