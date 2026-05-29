@@ -4,17 +4,19 @@ import userEvent from "@testing-library/user-event";
 
 vi.mock("framer-motion", () => {
   const React = require("react");
+  type AnyProps = { children?: unknown; [k: string]: unknown };
   const motion = new Proxy(
     {},
     {
       get: (_target, tag) =>
-        ({ children, ...props }) =>
-          React.createElement(tag, props, children),
+        ({ children, ...props }: AnyProps) =>
+          React.createElement(tag as string, props, children),
     },
   );
   return {
     motion,
-    AnimatePresence: ({ children }) => React.createElement(React.Fragment, null, children),
+    AnimatePresence: ({ children }: AnyProps) =>
+      React.createElement(React.Fragment, null, children),
   };
 });
 

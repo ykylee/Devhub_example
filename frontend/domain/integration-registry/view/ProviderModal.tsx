@@ -19,7 +19,7 @@ import {
   parseCredentialsRef,
   type WebhookSignatureStrategy,
   type SdkVendor,
-} from "@/lib/services/integration-provider-presets";
+} from "@/domain/integration-registry/service/integration-provider-presets";
 
 interface ProviderModalProps {
   /** edit 모드 시 기존 provider, create 모드 시 undefined */

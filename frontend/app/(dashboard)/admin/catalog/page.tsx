@@ -9,7 +9,7 @@ import { PageEmpty, PageError, PageLoading } from "@/shared/ui-foundation/compon
 import { toUserErrorMessage } from "@/lib/services/error-message";
 import { applicationService, Application as AdminApplication } from "@/domain/application-lifecycle/service/application.service";
 import { repositoryService, Repository } from "@/domain/repository-integration/service/repository.service";
-import { projectService } from "@/lib/services/project.service";
+import { projectService } from "@/domain/application-lifecycle/service/project.service";
 import { ApplicationStatus, ApplicationVisibility, Project } from "@/lib/services/project.types";
 import { ApplicationCreationModal } from "@/domain/application-lifecycle/view/ApplicationCreationModal";
 import { ProjectCreationModal } from "@/domain/application-lifecycle/view/ProjectCreationModal";

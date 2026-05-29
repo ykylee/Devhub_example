@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { X, Box, Info, Globe, Eye, Lock, Loader2, Calendar, GitBranch, FolderKanban } from "lucide-react";
 import { Application, ApplicationStatus, ApplicationVisibility, Project } from "@/lib/services/project.types";
-import { projectService } from "@/lib/services/project.service";
+import { projectService } from "@/domain/application-lifecycle/service/project.service";
 import { identityService } from "@/domain/organization-management/service/identity.service";
 import { repositoryService, Repository } from "@/domain/repository-integration/service/repository.service";
 import { ComboBox } from "@/shared/ui-foundation/components/ComboBox";

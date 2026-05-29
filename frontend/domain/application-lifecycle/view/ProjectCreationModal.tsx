@@ -13,7 +13,7 @@ import {
   ProjectMemberRole,
 } from "@/lib/services/project.types";
 import { Repository } from "@/domain/repository-integration/service/repository.service";
-import { projectService } from "@/lib/services/project.service";
+import { projectService } from "@/domain/application-lifecycle/service/project.service";
 import { identityService } from "@/domain/organization-management/service/identity.service";
 import { ComboBox } from "@/shared/ui-foundation/components/ComboBox";
 import { cn } from "@/shared/utils";

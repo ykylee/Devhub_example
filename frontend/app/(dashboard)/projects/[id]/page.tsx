@@ -19,7 +19,7 @@ import {
 import { useRouter, useParams } from "next/navigation";
 import { parseISO } from "date-fns";
 import { Badge } from "@/shared/ui-foundation/components/Badge";
-import { projectService } from "@/lib/services/project.service";
+import { projectService } from "@/domain/application-lifecycle/service/project.service";
 import type { Project, ProjectActivityItem, ProjectRepositoryLink, ProjectTaskItem } from "@/lib/services/project.types";
 import { identityService, OrgMember } from "@/domain/organization-management/service/identity.service";
 import { repositoryService, Repository } from "@/domain/repository-integration/service/repository.service";

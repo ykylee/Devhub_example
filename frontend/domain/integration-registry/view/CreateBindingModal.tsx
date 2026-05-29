@@ -4,7 +4,7 @@ import { useState, FormEvent, useEffect, useMemo } from "react";
 import { Link2, X } from "lucide-react";
 import { motion } from "framer-motion";
 import { integrationService } from "@/lib/services/integration.service";
-import { projectService } from "@/lib/services/project.service";
+import { projectService } from "@/domain/application-lifecycle/service/project.service";
 import { ApiError } from "@/lib/services/api-client";
 import { ComboBox } from "@/shared/ui-foundation/components/ComboBox";
 import type {
