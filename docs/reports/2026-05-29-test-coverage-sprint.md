@@ -4,18 +4,21 @@
 - 범위: backend-core 의 `internal/store` / `internal/domain/application-lifecycle/*` / `internal/domain/rbac-permissions/*` + frontend 의 `components/dashboard,organization` / `lib/config` / `vitest.config.ts` + `docs/tests/test_coverage_carve_out_plan.md`
 - 대상 독자: 저장소 관리자, codex 외부 리뷰어, 후속 carve out 진행자
 - 상태: published
-- 최종 수정일: 2026-05-29
+- 최종 수정일: 2026-05-29 (PR #444 + #445 + 운영 UI 전환 마무리 반영)
 - 관련 문서: `docs/tests/test_coverage_carve_out_plan.md`, `docs/governance/code-taxonomy.md`, `docs/adr/0019-keycloak-only.md`, `docs/adr/0020-keycloak-event-listener-spi.md`
 
 ## 1. 요약
 
-- 단일 세션 **8 PR main 머지** (#435 → #442). main HEAD `d150dfc` (2026-05-29 KST).
+- 단일 세션 **11 PR main 머지** (#435 → #445). main HEAD `eda9132` (2026-05-29 KST).
 - backend 실 DB 기준 `-coverpkg=./...` total **43.0% → 54.4%** (+11.4%p).
 - `internal/domain/application-lifecycle/view` self-coverage **7.0% → 90.2%** (+83.2%p).
-- frontend overall **Lines 74.39% → 81.8%** (+7.41%p).
+- `internal/domain/audit-ops/service` integration test **0건 → 10건** (TestIntegration_*, wire 정합성 catch-net).
+- frontend overall **Lines 74.39% → 81.89%** (+7.50%p).
+- `AuthGuard.tsx` self-cover **87.8% → 92.68%** (Lines 100%, security 회귀 가드).
 - **silent production bug 1건 해소** (RBAC handler 의 422 매핑 회귀, `errors.Is` sentinel duplicate 가 silent fail).
+- **운영 UI 전환 영구 마무리** (`ENABLE_LEGACY_MOCK_UI` flag + `lib/archive/mock-ui-legacy.ts` + page.tsx 2 dead branch 제거, 141 LoC 삭제).
 - **test infrastructure 강화**: cross-package fixture race 차단 (PostgreSQL advisory lock), silent err 무시 패턴 정정, vitest coverage exclude 정정.
-- **신규 test 362건** (backend 174 + frontend 188), 신규 LoC ~6300 (production code 변경 0).
+- **신규 test 376건** (backend 184 + frontend 192), 신규 LoC ~7000 (production code 변경 6 line + dead branch 141 line 삭제).
 
 ## 2. 머지된 PR 목록 (시계열)
 
@@ -29,6 +32,9 @@
 | 6 | [#440](https://github.com/ykylee/Devhub_example/pull/440) | backend / view test | application-lifecycle view 보강 — self-coverage **7.0% → 90.2%** (178 신규 test) | `3f1b2b9` |
 | 7 | [#441](https://github.com/ykylee/Devhub_example/pull/441) | frontend / config | F-1 잔여 — dead code 제거 + vitest coverage exclude (Lines 74.4% → 75.1%) | `50f7481` |
 | 8 | [#442](https://github.com/ykylee/Devhub_example/pull/442) | frontend / 도메인 component | D 옵션 — 0% 도메인 component 보강 (Lines 75.1% → 81.8%) | `d150dfc` |
+| 9 | [#443](https://github.com/ykylee/Devhub_example/pull/443) | docs | 본 결과 보고서 신규 (`docs/reports/2026-05-29-test-coverage-sprint.md`) | `fcdc02c` |
+| 10 | [#444](https://github.com/ykylee/Devhub_example/pull/444) | backend / audit-ops-service | `user_sync.go` 3 hot path 실 DB integration test 신규 10건 (wire 정합성 catch-net) | `08692ef` |
+| 11 | [#445](https://github.com/ykylee/Devhub_example/pull/445) | frontend / 운영 UI + AuthGuard | **운영 UI 전환 영구 마무리** (dead branch + flag + archive 제거, 141 LoC 삭제) + AuthGuard system-admin gate 4 신규 test (87.8% → 92.68%) | `eda9132` |
 
 ## 3. Coverage 변화
 
@@ -54,10 +60,19 @@
 
 | metric | before | after | delta |
 |---|---|---|---|
-| **Lines** | 74.39% | **81.8%** | +7.41%p |
-| Statements | 72.49% | 80.34% | +7.85%p |
-| Branches | 72.75% | 76.03% | +3.28%p |
+| **Lines** | 74.39% | **81.89%** | +7.50%p |
+| Statements | 72.49% | 80.42% | +7.93%p |
+| Branches | 72.75% | 76.11% | +3.36%p |
 | Functions | 68.68% | 77.25% | +8.57%p |
+
+frontend per-component 보강:
+
+| component | before | after |
+|---|---|---|
+| `shared/ui-foundation/layout/AuthGuard.tsx` | 87.8% | **92.68%** (Lines 100%) |
+| `components/dashboard/GardenerFeed.tsx` | 0% | 96.96% |
+| `components/organization/OrgTree.tsx` | 0% | 75.27% |
+| `components/organization/OrgUnitTable.tsx` | 0% | (정상 cover, v8 표 truncate) |
 
 도메인 component 추가 cover:
 
@@ -124,29 +139,35 @@
 |---|---|---|
 | backend B-3 9 도메인 view shim (`internal/domain/*/view/handler_test.go`) | 142 | ~3170 |
 | backend application-lifecycle view endpoint (`applications_handler_test.go` + `projects_handler_test.go` + `fake_store_test.go`) | 178 | +2862 |
+| backend audit-ops/service user_sync integration (`user_sync_integration_test.go`) | 10 | +346 |
 | frontend domain component (`GardenerFeed`, `OrgTree`, `OrgUnitTable`) | 42 | +825 |
-| **합계** | **362** | **~6857** |
+| frontend AuthGuard system-admin gate (`AuthGuard.test.tsx`) | 4 | +78 |
+| **합계** | **376** | **~7281** |
 
-### 6.2 Production code 변경
+### 6.2 Production code 변경 + dead code 제거
 
 | PR | 변경 |
 |---|---|
-| #438 | `internal/store/options.go` 1 line (message 일치) + `internal/domain/rbac-permissions/repository/postgres_rbac.go` 5 line (sentinel wrap 정정), 합 6 line |
-| 다른 7 PR | 0 line |
+| #438 | `internal/store/options.go` 1 line (message 일치) + `internal/domain/rbac-permissions/repository/postgres_rbac.go` 5 line (sentinel wrap 정정), 합 **+6 line** |
+| #445 | `app/(dashboard)/projects/[id]/page.tsx` 2 dead branch + 5 import + mockTaskData 제거 (**-100 line**), `lib/archive/mock-ui-legacy.ts` 제거 (**-39 line**), `shared/config/mock-ui.ts` 제거 (**-1 line**), vitest.config.ts exclude 정리 (1 line) |
+| #441 | `frontend/lib/config/` 2 dead file 제거 (**-81 line**), `vitest.config.ts` exclude 추가 (1 line) |
+| 다른 8 PR | test 신규만 (production 0 line) |
 
 ## 7. 잔여 Carve Out 후보
 
-본 sprint 의 종결조건 충족 후 미진입 영역:
+본 sprint 의 종결조건 충족 후 미진입 영역 (~~취소선~~ = 본 sprint 안에서 해소):
 
-| 후보 | 영역 | 추정 효과 |
+| 후보 | 영역 | 상태 |
 |---|---|---|
-| **ApplicationDashboard 50% 잔여** | backend application-lifecycle view | self-cover 90.2% → 95%+, `build_runs` / `quality_snapshots` fixture seeding 보강 |
-| **OrgTree 75.27% 잔여** | frontend organization component | Focus Selection / onConnect / handleNodesChange position 동기화 분기 |
-| **internal/store 20.2% 잔여** | backend store integration test | 27 메서드 `ApplicationStore` 의 미커버 method |
-| **audit-ops/service integration test 신규** | backend domain | `TestIntegration_*` 매치 0건, 신규 carve |
-| **운영 UI 전환 마무리** | frontend | `ENABLE_LEGACY_MOCK_UI` flag + `lib/archive/` 자체 제거 (정책 결정 필요) |
-| **ui-foundation 미세 분기 보강** | frontend shared | Sidebar 83% → 90%+, AuthGuard 87% → 95%+ |
+| **ApplicationDashboard 50% 잔여** | backend application-lifecycle view | 미진입 (build_runs/quality_snapshots fixture seeding 보강 필요) |
+| **OrgTree 75.27% 잔여** | frontend organization component | 미진입 (Focus Selection / onConnect / handleNodesChange position 동기화 분기) |
+| **internal/store 20.2% 잔여** | backend store integration test | 미진입 (27 메서드 `ApplicationStore` 의 미커버 method, B-5 part 2) |
+| ~~audit-ops/service integration test 신규~~ | backend domain | ✅ **#444 — 10 신규 test 추가** (wire 정합성 catch-net, silent bug 발견 0건) |
+| ~~운영 UI 전환 마무리~~ | frontend | ✅ **#445 — `ENABLE_LEGACY_MOCK_UI` flag + `lib/archive/` 영구 제거** (141 LoC 삭제) |
+| ~~AuthGuard 75-76 (security 회귀 가드)~~ | frontend ui-foundation | ✅ **#445 — 4 신규 test 추가** (87.8% → 92.68%, Lines 100%) |
+| ui-foundation 미세 분기 (Sidebar 126-131, ActionMenu/FilterBar/Header) | frontend shared | 낮은 우선순위 잔여 |
 | **`integrations_integration_test.go:145` uuid empty FAIL** | backend store integration | 본 sprint 의 silent err 정정 (#437) + fixture race lock (#439) 으로 회귀 검출 가능, 다만 fail 자체는 잔존 가능성 (root cause 별도 조사) |
+| Modal.test.tsx pre-existing `tsc` error | frontend test type | 본 sprint 외 baseline 상태, 별도 조사 후보 |
 
 ## 8. 학습 / 회고
 
@@ -167,4 +188,5 @@
 
 ## 10. 변경 이력
 
-- 2026-05-29: 초안 작성 (8 PR 머지 완결 직후).
+- 2026-05-29: 초안 작성 (8 PR 머지 완결 직후, PR #443).
+- 2026-05-29 (post-#445): #444 (audit-ops integration test) + #445 (운영 UI 전환 마무리 + AuthGuard 보강) 반영 — 11 PR 누계 + frontend Lines 81.89% + AuthGuard 92.68% + 잔여 carve §7 갱신.
