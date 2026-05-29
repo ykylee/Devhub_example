@@ -11,16 +11,6 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// ErrSystemRoleImmutable is returned when a caller tries to delete or rename
-// one of the seeded system roles. Permissions on system roles can still change
-// via UpdateRBACRolePermissions.
-var ErrSystemRoleImmutable = errors.New("system role is immutable")
-
-// ErrRoleInUse is returned when DeleteRBACRole is called while at least one
-// user still has the role assigned. The handler maps this to 422 role_in_use
-// per docs/backend_api_contract.md section 12.5.
-var ErrRoleInUse = errors.New("role is still assigned to subjects")
-
 // ErrAuditInvariantViolation is returned when a permission matrix tries to
 // grant create/edit/delete on the audit resource (section 12.0.4).
 var ErrAuditInvariantViolation = errors.New("audit resource cannot grant create/edit/delete")
@@ -150,7 +140,7 @@ RETURNING role_id, name, description, is_system, permissions::text, created_at, 
 // roles are rejected with ErrSystemRoleImmutable.
 func (r *RBACRepository) UpdateRBACRoleMetadata(ctx context.Context, roleID, name, description string) (domain.RBACRole, error) {
 	if domain.IsSystemRole(roleID) {
-		return domain.RBACRole{}, fmt.Errorf("update role %s metadata: %w", roleID, ErrSystemRoleImmutable)
+		return domain.RBACRole{}, fmt.Errorf("update role %s metadata: %w", roleID, store.ErrSystemRoleImmutable)
 	}
 
 	const query = `
@@ -189,7 +179,7 @@ func (r *RBACRepository) DeleteRBACRole(ctx context.Context, roleID string) erro
 		return fmt.Errorf("lookup role %s: %w", roleID, err)
 	}
 	if isSystem {
-		return fmt.Errorf("delete role %s: %w", roleID, ErrSystemRoleImmutable)
+		return fmt.Errorf("delete role %s: %w", roleID, store.ErrSystemRoleImmutable)
 	}
 
 	var usageCount int
@@ -197,12 +187,12 @@ func (r *RBACRepository) DeleteRBACRole(ctx context.Context, roleID string) erro
 		return fmt.Errorf("count role %s usage: %w", roleID, err)
 	}
 	if usageCount > 0 {
-		return fmt.Errorf("delete role %s (%d assigned): %w", roleID, usageCount, ErrRoleInUse)
+		return fmt.Errorf("delete role %s (%d assigned): %w", roleID, usageCount, store.ErrRoleInUse)
 	}
 
 	if _, err := tx.Exec(ctx, `DELETE FROM rbac_policies WHERE role_id = $1`, roleID); err != nil {
 		if store.IsForeignKeyViolation(err) {
-			return fmt.Errorf("delete role %s (assigned during delete): %w", roleID, ErrRoleInUse)
+			return fmt.Errorf("delete role %s (assigned during delete): %w", roleID, store.ErrRoleInUse)
 		}
 		return fmt.Errorf("delete role %s: %w", roleID, err)
 	}
