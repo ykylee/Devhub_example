@@ -7,6 +7,12 @@ import (
 	"strings"
 )
 
+// ResolveIdPSubject — resolveIdPSubject 의 cross-package test 접근용 export wrapper.
+// 동작/규약 동일.
+func (h *AuthHandler) ResolveIdPSubject(ctx context.Context, userID string) (string, error) {
+	return h.resolveIdPSubject(ctx, userID)
+}
+
 // resolveIdPSubject returns the IdP identity_id for a DevHub user.
 //
 // Fast path: read users.idp_subject from the OrganizationStore. When that

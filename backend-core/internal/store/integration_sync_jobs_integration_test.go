@@ -1,12 +1,16 @@
 package store_test
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
+	intgregrep "github.com/devhub/backend-core/internal/domain/integration-registry/repository"
 	"github.com/devhub/backend-core/internal/store"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // integration_sync_jobs scm-gate integration test (codex review PR #341 P1).
@@ -15,8 +19,34 @@ import (
 // AcquireNextQueuedSyncJob 이 provider_type='scm' 작업만 claim 하고 비-SCM
 // (alm/Jira 등) 작업은 건드리지 않음을 검증 — Gitea 워커의 false-completion 회귀 가드.
 
+// setupSyncJobsTest — store_test 자체 setup. application-lifecycle/repository_test
+// 의 setupApplicationsTest 는 cross-package 호출 불가 (unexported test helper) 이므로
+// 본 패키지용 helper 를 분리. IntegrationRepository wrapper 를 반환해 AcquireNextQueuedSyncJob
+// 같은 method 를 호출.
+func setupSyncJobsTest(t *testing.T) (*intgregrep.IntegrationRepository, *pgxpool.Pool, context.Context, func()) {
+	t.Helper()
+	dbURL := os.Getenv("DEVHUB_TEST_DB_URL")
+	if dbURL == "" {
+		t.Skip("DEVHUB_TEST_DB_URL is not set")
+	}
+	ctx := context.Background()
+	pgStore, err := store.NewPostgresStore(ctx, dbURL)
+	if err != nil {
+		t.Fatalf("connect postgres store: %v", err)
+	}
+	pool, err := pgxpool.New(ctx, dbURL)
+	if err != nil {
+		pgStore.Close()
+		t.Fatalf("connect raw pool: %v", err)
+	}
+	return intgregrep.NewIntegrationRepository(pgStore), pool, ctx, func() {
+		pool.Close()
+		pgStore.Close()
+	}
+}
+
 func TestIntegration_AcquireNextQueuedSyncJob_OnlyClaimsSCM(t *testing.T) {
-	pgStore, pool, ctx, teardown := setupApplicationsTest(t)
+	pgStore, pool, ctx, teardown := setupSyncJobsTest(t)
 	defer teardown()
 
 	suffix := time.Now().UnixNano()

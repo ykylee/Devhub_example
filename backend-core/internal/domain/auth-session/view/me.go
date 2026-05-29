@@ -16,6 +16,9 @@ import (
 // onboarding_required + onboarding_completed_at + review_status 3 신규 필드.
 // token-only actor (DB row 미존재) 의 경우 display_name/email/role 은 token
 // claim 에서 추출 + primary_unit_id 등은 빈 값 + onboarding_required=true.
+// MeResponse — meResponse cross-package test 접근용 export alias.
+type MeResponse = meResponse
+
 type meResponse struct {
 	Login                 string     `json:"login"`
 	UserID                string     `json:"user_id,omitempty"`

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/devhub/backend-core/internal/domain"
+	apprep "github.com/devhub/backend-core/internal/domain/application-lifecycle/repository"
 	"github.com/devhub/backend-core/internal/store"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -77,7 +78,7 @@ func TestIntegration_FixtureCleanupSanity(t *testing.T) {
 	}
 }
 
-func setupApplicationsTest(t *testing.T) (*store.PostgresStore, *pgxpool.Pool, context.Context, func()) {
+func setupApplicationsTest(t *testing.T) (*apprep.ApplicationRepository, *pgxpool.Pool, context.Context, func()) {
 	t.Helper()
 	dbURL := os.Getenv("DEVHUB_TEST_DB_URL")
 	if dbURL == "" {
@@ -94,7 +95,8 @@ func setupApplicationsTest(t *testing.T) (*store.PostgresStore, *pgxpool.Pool, c
 		t.Fatalf("connect raw pool: %v", err)
 	}
 	applicationsFixture(t, ctx, pool)
-	return pgStore, pool, ctx, func() {
+	repo := apprep.NewApplicationRepository(pgStore)
+	return repo, pool, ctx, func() {
 		pool.Close()
 		pgStore.Close()
 	}

@@ -1,7 +1,6 @@
-package view
+package httpapi
 
 import (
-	"github.com/devhub/backend-core/internal/shared/httphelp"
 	"bytes"
 	"context"
 	"errors"

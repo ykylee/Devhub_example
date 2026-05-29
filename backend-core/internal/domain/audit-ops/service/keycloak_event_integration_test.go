@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/devhub/backend-core/internal/store"
+	auditrep "github.com/devhub/backend-core/internal/domain/audit-ops/repository"
 )
 
 // TestEndToEnd_HTTPAPIAdapter_ToAuditEmitter — sprint -v PR-C integration test.
@@ -65,11 +65,11 @@ func TestEndToEnd_HTTPAPIAdapter_ToAuditEmitter(t *testing.T) {
 
 	cursorStore := newFakeCursorStore()
 	// 사전 cursor 셋업 — t0 (스타트업 직후 first-run init 시뮬레이션)
-	_ = cursorStore.UpsertEventCursor(context.Background(), store.EventCursor{
+	_ = cursorStore.UpsertEventCursor(context.Background(), auditrep.EventCursor{
 		CursorKey:   userEventsCursor,
 		LastEventAt: t0,
 	})
-	_ = cursorStore.UpsertEventCursor(context.Background(), store.EventCursor{
+	_ = cursorStore.UpsertEventCursor(context.Background(), auditrep.EventCursor{
 		CursorKey:   adminEventsCursor,
 		LastEventAt: t0,
 	})

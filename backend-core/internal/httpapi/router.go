@@ -30,6 +30,19 @@ type AuthenticatedActor = authview.AuthenticatedActor
 type BearerTokenVerifier = authview.BearerTokenVerifier
 type OrganizationStore = orgview.OrganizationStore
 
+// ErrInvalidBearerToken — auth-session/view 의 동명 var 를 httpapi 패키지에서
+// 호환 노출 (테스트 + 외부 호출자 정합). Go 의 var 는 직접 type-alias 불가하므로
+// re-binding 으로 노출.
+var ErrInvalidBearerToken = authview.ErrInvalidBearerToken
+
+// PermissionCache / NewPermissionCache — rbac-permissions/view 호환 노출. 기존
+// httpapi 테스트가 직접 호출하므로 alias + thin wrapper 유지.
+type PermissionCache = rbacview.PermissionCache
+
+func NewPermissionCache(store RBACStore) *PermissionCache {
+	return rbacview.NewPermissionCache(store)
+}
+
 type WebhookEventStore interface {
 	SaveWebhookEvent(context.Context, store.WebhookEvent) (int64, error)
 	ListWebhookEvents(context.Context, store.ListWebhookEventsOptions) ([]store.WebhookEvent, error)
@@ -485,6 +498,25 @@ type Handler struct {
 	onboard     *onboardview.OnboardingHandler
 }
 
+// resolveIdPSubject — test compatibility shim. Handler 직접 cfg 로 AuthHandler
+// 인스턴스 만들어 view 패키지의 동명 로직을 위임. production 코드의 router.go
+// 가 NewAuthHandler 로 만든 h.auth 와 동일 cfg fan-out (OrganizationStore +
+// IdentityAdmin 만 사용) 이므로 test 호출 결과 동일.
+func (h Handler) resolveIdPSubject(ctx context.Context, userID string) (string, error) {
+	auth := authview.NewAuthHandler(authview.AuthConfig{
+		OrganizationStore: h.cfg.OrganizationStore,
+		IdentityAdmin:     h.cfg.IdentityAdmin,
+	})
+	return auth.ResolveIdPSubject(ctx, userID)
+}
+
+// enforceRowOwnership — test compatibility shim. RBACHandler 가 갖고 있는 동명
+// helper 로 위임. test 가 Handler{cfg: RouterConfig{...}} 형태로 직접 호출.
+func (h Handler) enforceRowOwnership(c *gin.Context, ownerUserID string, allowedRoles ...string) bool {
+	rh := rbacview.NewRBACHandler(rbacview.RBACConfig{AuditStore: h.cfg.AuditStore})
+	return rh.EnforceRowOwnership(c, ownerUserID, allowedRoles...)
+}
+
 func (h Handler) snapshotProvider() SnapshotProvider {
 	if h.cfg.SnapshotProvider != nil {
 		return h.cfg.SnapshotProvider
@@ -522,17 +554,18 @@ func statusFromStoreError(err error) (int, string) {
 	return http.StatusInternalServerError, "failed"
 }
 
+// providerHasCapability reports whether the provider declares any of the given
+// capabilities (OR semantics — same as the repository-integration view helper
+// and the main-HEAD baseline before the gemini code-cleanup split).
 func providerHasCapability(p domain.IntegrationProvider, caps ...string) bool {
-	hasCap := map[string]bool{}
-	for _, c := range p.Capabilities {
-		hasCap[c] = true
-	}
-	for _, req := range caps {
-		if !hasCap[req] {
-			return false
+	for _, have := range p.Capabilities {
+		for _, want := range caps {
+			if have == want {
+				return true
+			}
 		}
 	}
-	return true
+	return false
 }
 
 func (h Handler) scmProviderClient(c *gin.Context, provider domain.IntegrationProvider) (*gitea.Client, bool) {
@@ -619,285 +652,465 @@ func addAuditMeta(resp gin.H, log domain.AuditLog) {
 // Domain View Delegation Wrapper Methods
 // ==========================================
 
+// ensure — test 가 Handler{cfg: RouterConfig{...}} 우회 경로로 sub-handler 들이
+// 모두 nil 인 상태에서 method 를 호출했을 때, cfg 로부터 즉석에서 sub-handler 들을
+// build 해 nil deref 회피. production path 는 NewRouter 가 모두 init → 본 함수의
+// nil 분기 미진입 (build cost = 0). value receiver 라 build 결과는 caller frame
+// 한정.
+func (h Handler) ensure() Handler {
+	if h.auth == nil {
+		h.auth = authview.NewAuthHandler(authview.AuthConfig{
+			AuthDevFallback:       h.cfg.AuthDevFallback,
+			RealtimeTickets:       h.cfg.RealtimeTickets,
+			BearerTokenVerifier:   h.cfg.BearerTokenVerifier,
+			OrganizationStore:     h.cfg.OrganizationStore,
+			IdentityAdmin:         h.cfg.IdentityAdmin,
+			AuditStore:            h.cfg.AuditStore,
+			OnboardingGateEnabled: h.cfg.OnboardingGateEnabled,
+		})
+	}
+	if h.audit == nil {
+		h.audit = auditview.NewAuditHandler(auditview.AuditConfig{
+			AuditStore:            h.cfg.AuditStore,
+			KeycloakWebhookSecret: h.cfg.KeycloakWebhookSecret,
+		})
+	}
+	if h.rbac == nil {
+		pc := h.cfg.PermissionCache
+		if pc == nil {
+			pc = rbacview.NewPermissionCache(h.cfg.RBACStore)
+		}
+		h.rbac = rbacview.NewRBACHandler(rbacview.RBACConfig{
+			RBACStore:       h.cfg.RBACStore,
+			PermissionCache: pc,
+			AuthDevFallback: h.cfg.AuthDevFallback,
+			AuditStore:      h.cfg.AuditStore,
+		})
+	}
+	if h.org == nil {
+		h.org = orgview.NewOrganizationHandler(orgview.OrganizationConfig{
+			OrganizationStore:     h.cfg.OrganizationStore,
+			HRDB:                  h.cfg.HRDB,
+			AuditStore:            h.cfg.AuditStore,
+			OnboardingGateEnabled: h.cfg.OnboardingGateEnabled,
+		})
+	}
+	if h.app == nil {
+		h.app = appview.NewApplicationHandler(appview.ApplicationConfig{
+			ApplicationStore: h.cfg.ApplicationStore,
+			DevRequestStore:  h.cfg.DevRequestStore,
+			ProjectModel:     h.cfg.ProjectModel,
+			AuditStore:       h.cfg.AuditStore,
+		})
+	}
+	if h.devreq == nil {
+		h.devreq = devreqview.NewDevRequestHandler(devreqview.DevRequestConfig{
+			DevRequestStore:            h.cfg.DevRequestStore,
+			DevRequestIntakeTokenStore: h.cfg.DevRequestIntakeTokenStore,
+			ApplicationStore:           h.cfg.ApplicationStore,
+			AuditStore:                 h.cfg.AuditStore,
+		})
+	}
+	if h.integ == nil {
+		h.integ = integview.NewIntegrationHandler(integview.IntegrationConfig{
+			ApplicationStore:  h.cfg.ApplicationStore,
+			EventStore:        h.cfg.EventStore,
+			EventProcessor:    h.cfg.EventProcessor,
+			ExternalTaskStore: h.cfg.ExternalTaskStore,
+			AuditStore:        h.cfg.AuditStore,
+		})
+	}
+	if h.realtime == nil {
+		h.realtime = realtimeview.NewRealtimeHandler(realtimeview.RealtimeConfig{
+			RealtimeHub:     h.cfg.RealtimeHub,
+			RealtimeTickets: h.cfg.RealtimeTickets,
+			PermissionCache: h.cfg.PermissionCache,
+			AuditStore:      h.cfg.AuditStore,
+			AuthDevFallback: h.cfg.AuthDevFallback,
+		})
+	}
+	if h.repo == nil {
+		h.repo = repoview.NewRepositoryIntegrationHandler(repoview.RepositoryIntegrationConfig{
+			ApplicationStore: h.cfg.ApplicationStore,
+			AuditStore:       h.cfg.AuditStore,
+		})
+	}
+	if h.onboard == nil {
+		h.onboard = onboardview.NewOnboardingHandler(onboardview.OnboardingConfig{
+			OrganizationStore:     h.cfg.OrganizationStore,
+			OnboardingGateEnabled: h.cfg.OnboardingGateEnabled,
+			AuditStore:            h.cfg.AuditStore,
+		})
+	}
+	return h
+}
+
 // Auth-Session
 func (h Handler) authenticateActor(c *gin.Context) {
+	h = h.ensure()
 	h.auth.AuthenticateActor(c)
 }
 func (h Handler) getMe(c *gin.Context) {
+	h = h.ensure()
 	h.auth.GetMe(c)
 }
 func (h Handler) patchMe(c *gin.Context) {
+	h = h.ensure()
 	h.auth.PatchMe(c)
 }
 
 // Onboarding
 func (h Handler) onboardingGate(c *gin.Context) {
+	h = h.ensure()
 	h.onboard.OnboardingGate(c)
 }
 func (h Handler) submitOnboarding(c *gin.Context) {
+	h = h.ensure()
 	h.onboard.SubmitOnboarding(c)
 }
 
 // Organization Management
 func (h Handler) searchOrganizations(c *gin.Context) {
+	h = h.ensure()
 	h.org.SearchOrganizations(c)
 }
 
 func (h Handler) listUsers(c *gin.Context) {
+	h = h.ensure()
 	h.org.ListUsers(c)
 }
 func (h Handler) createUser(c *gin.Context) {
+	h = h.ensure()
 	h.org.CreateUser(c)
 }
 func (h Handler) getUser(c *gin.Context) {
+	h = h.ensure()
 	h.org.GetUser(c)
 }
 func (h Handler) updateUser(c *gin.Context) {
+	h = h.ensure()
 	h.org.UpdateUser(c)
 }
 func (h Handler) deleteUser(c *gin.Context) {
+	h = h.ensure()
 	h.org.DeleteUser(c)
 }
 func (h Handler) getHierarchy(c *gin.Context) {
+	h = h.ensure()
 	h.org.GetHierarchy(c)
 }
 func (h Handler) updateHierarchy(c *gin.Context) {
+	h = h.ensure()
 	h.org.UpdateHierarchy(c)
 }
 func (h Handler) createOrgUnit(c *gin.Context) {
+	h = h.ensure()
 	h.org.CreateOrgUnit(c)
 }
 func (h Handler) getOrgUnit(c *gin.Context) {
+	h = h.ensure()
 	h.org.GetOrgUnit(c)
 }
 func (h Handler) updateOrgUnit(c *gin.Context) {
+	h = h.ensure()
 	h.org.UpdateOrgUnit(c)
 }
 func (h Handler) deleteOrgUnit(c *gin.Context) {
+	h = h.ensure()
 	h.org.DeleteOrgUnit(c)
 }
 func (h Handler) listUnitMembers(c *gin.Context) {
+	h = h.ensure()
 	h.org.ListUnitMembers(c)
 }
 func (h Handler) replaceUnitMembers(c *gin.Context) {
+	h = h.ensure()
 	h.org.ReplaceUnitMembers(c)
 }
 func (h Handler) hrLookup(c *gin.Context) {
+	h = h.ensure()
 	h.org.HrLookup(c)
 }
 
 // RBAC Permissions
 func (h Handler) enforceRoutePermission(c *gin.Context) {
+	h = h.ensure()
 	h.rbac.EnforceRoutePermission(c)
 }
 func (h Handler) getRBACPolicyLegacyGone(c *gin.Context) {
+	h = h.ensure()
 	h.rbac.GetRBACPolicyLegacyGone(c)
 }
 func (h Handler) listRBACPolicies(c *gin.Context) {
+	h = h.ensure()
 	h.rbac.ListRBACPolicies(c)
 }
 func (h Handler) createRBACPolicy(c *gin.Context) {
+	h = h.ensure()
 	h.rbac.CreateRBACPolicy(c)
 }
 func (h Handler) updateRBACPolicies(c *gin.Context) {
+	h = h.ensure()
 	h.rbac.UpdateRBACPolicies(c)
 }
 func (h Handler) deleteRBACPolicy(c *gin.Context) {
+	h = h.ensure()
 	h.rbac.DeleteRBACPolicy(c)
 }
 
 // Audit Ops
 func (h Handler) receiveKeycloakEventWebhook(c *gin.Context) {
+	h = h.ensure()
 	h.audit.ReceiveKeycloakEventWebhook(c)
 }
 func (h Handler) listAuditLogs(c *gin.Context) {
+	h = h.ensure()
 	h.audit.ListAuditLogs(c)
 }
 
 // Application Lifecycle
 func (h Handler) listSCMProviders(c *gin.Context) {
+	h = h.ensure()
 	h.app.ListSCMProviders(c)
 }
 func (h Handler) updateSCMProvider(c *gin.Context) {
+	h = h.ensure()
 	h.app.UpdateSCMProvider(c)
 }
 func (h Handler) listApplications(c *gin.Context) {
+	h = h.ensure()
 	h.app.ListApplications(c)
 }
 func (h Handler) createApplication(c *gin.Context) {
+	h = h.ensure()
 	h.app.CreateApplication(c)
 }
 func (h Handler) getApplication(c *gin.Context) {
+	h = h.ensure()
 	h.app.GetApplication(c)
 }
 func (h Handler) updateApplication(c *gin.Context) {
+	h = h.ensure()
 	h.app.UpdateApplication(c)
 }
 func (h Handler) archiveApplication(c *gin.Context) {
+	h = h.ensure()
 	h.app.ArchiveApplication(c)
 }
 func (h Handler) listApplicationRepositories(c *gin.Context) {
+	h = h.ensure()
 	h.app.ListApplicationRepositories(c)
 }
 func (h Handler) createApplicationRepository(c *gin.Context) {
+	h = h.ensure()
 	h.app.CreateApplicationRepository(c)
 }
 func (h Handler) deleteApplicationRepository(c *gin.Context) {
+	h = h.ensure()
 	h.app.DeleteApplicationRepository(c)
 }
 
 func (h Handler) listProjects(c *gin.Context) {
+	h = h.ensure()
 	h.app.ListProjects(c)
 }
 func (h Handler) createProject(c *gin.Context) {
+	h = h.ensure()
 	h.app.CreateProject(c)
 }
 func (h Handler) createProjectStandalone(c *gin.Context) {
+	h = h.ensure()
 	h.app.CreateProjectStandalone(c)
 }
 func (h Handler) listStandaloneProjects(c *gin.Context) {
+	h = h.ensure()
 	h.app.ListStandaloneProjects(c)
 }
 func (h Handler) listApplicationProjects(c *gin.Context) {
+	h = h.ensure()
 	h.app.ListApplicationProjects(c)
 }
 func (h Handler) createApplicationProject(c *gin.Context) {
+	h = h.ensure()
 	h.app.CreateApplicationProject(c)
 }
 func (h Handler) getProject(c *gin.Context) {
+	h = h.ensure()
 	h.app.GetProject(c)
 }
 func (h Handler) updateProject(c *gin.Context) {
+	h = h.ensure()
 	h.app.UpdateProject(c)
 }
 func (h Handler) archiveProject(c *gin.Context) {
+	h = h.ensure()
 	h.app.ArchiveProject(c)
 }
 func (h Handler) listProjectRepositories(c *gin.Context) {
+	h = h.ensure()
 	h.app.ListProjectRepositories(c)
 }
 func (h Handler) createProjectRepository(c *gin.Context) {
+	h = h.ensure()
 	h.app.CreateProjectRepository(c)
 }
 func (h Handler) deleteProjectRepository(c *gin.Context) {
+	h = h.ensure()
 	h.app.DeleteProjectRepository(c)
 }
 func (h Handler) applicationRollup(c *gin.Context) {
+	h = h.ensure()
 	h.app.ApplicationRollup(c)
 }
 func (h Handler) applicationDashboard(c *gin.Context) {
+	h = h.ensure()
 	h.app.ApplicationDashboard(c)
 }
 func (h Handler) listIntegrations(c *gin.Context) {
+	h = h.ensure()
 	h.integ.ListIntegrations(c)
 }
 func (h Handler) createIntegration(c *gin.Context) {
+	h = h.ensure()
 	h.integ.CreateIntegration(c)
 }
 func (h Handler) updateIntegration(c *gin.Context) {
+	h = h.ensure()
 	h.integ.UpdateIntegration(c)
 }
 func (h Handler) deleteIntegration(c *gin.Context) {
+	h = h.ensure()
 	h.integ.DeleteIntegration(c)
 }
 
 // DevRequest
 func (h Handler) requireIntakeToken(c *gin.Context) {
+	h = h.ensure()
 	h.devreq.RequireIntakeToken(c)
 }
 func (h Handler) intakeDevRequest(c *gin.Context) {
+	h = h.ensure()
 	h.devreq.IntakeDevRequest(c)
 }
 func (h Handler) listDevRequests(c *gin.Context) {
+	h = h.ensure()
 	h.devreq.ListDevRequests(c)
 }
 func (h Handler) getDevRequest(c *gin.Context) {
+	h = h.ensure()
 	h.devreq.GetDevRequest(c)
 }
 func (h Handler) registerDevRequest(c *gin.Context) {
+	h = h.ensure()
 	h.devreq.RegisterDevRequest(c)
 }
 func (h Handler) rejectDevRequest(c *gin.Context) {
+	h = h.ensure()
 	h.devreq.RejectDevRequest(c)
 }
 func (h Handler) patchDevRequest(c *gin.Context) {
+	h = h.ensure()
 	h.devreq.PatchDevRequest(c)
 }
 func (h Handler) closeDevRequest(c *gin.Context) {
+	h = h.ensure()
 	h.devreq.CloseDevRequest(c)
 }
 func (h Handler) createDevRequestIntakeToken(c *gin.Context) {
+	h = h.ensure()
 	h.devreq.CreateDevRequestIntakeToken(c)
 }
 func (h Handler) listDevRequestIntakeTokens(c *gin.Context) {
+	h = h.ensure()
 	h.devreq.ListDevRequestIntakeTokens(c)
 }
 func (h Handler) revokeDevRequestIntakeToken(c *gin.Context) {
+	h = h.ensure()
 	h.devreq.RevokeDevRequestIntakeToken(c)
 }
 func (h Handler) updateDevRequestIntakeTokenIPs(c *gin.Context) {
+	h = h.ensure()
 	h.devreq.UpdateDevRequestIntakeTokenIPs(c)
 }
 
 // Integration Providers & Tasks
 func (h Handler) listIntegrationProviders(c *gin.Context) {
+	h = h.ensure()
 	h.integ.ListIntegrationProviders(c)
 }
 func (h Handler) createIntegrationProvider(c *gin.Context) {
+	h = h.ensure()
 	h.integ.CreateIntegrationProvider(c)
 }
 func (h Handler) updateIntegrationProvider(c *gin.Context) {
+	h = h.ensure()
 	h.integ.UpdateIntegrationProvider(c)
 }
 func (h Handler) deleteIntegrationProvider(c *gin.Context) {
+	h = h.ensure()
 	h.integ.DeleteIntegrationProvider(c)
 }
 func (h Handler) syncIntegrationProvider(c *gin.Context) {
+	h = h.ensure()
 	h.integ.SyncIntegrationProvider(c)
 }
 func (h Handler) receiveExternalTaskWebhook(c *gin.Context) {
+	h = h.ensure()
 	h.integ.ReceiveExternalTaskWebhook(c)
 }
 func (h Handler) listExternalTaskItems(c *gin.Context) {
+	h = h.ensure()
 	h.integ.ListExternalTaskItems(c)
 }
 func (h Handler) getExternalTaskItem(c *gin.Context) {
+	h = h.ensure()
 	h.integ.GetExternalTaskItem(c)
 }
 
 // SCM Repositories
 func (h Handler) listSCMRepositories(c *gin.Context) {
+	h = h.ensure()
 	h.repo.ListSCMRepositories(c)
 }
 func (h Handler) importSCMRepositories(c *gin.Context) {
+	h = h.ensure()
 	h.repo.ImportSCMRepositories(c)
 }
 func (h Handler) createSCMRepository(c *gin.Context) {
+	h = h.ensure()
 	h.repo.CreateSCMRepository(c)
 }
 func (h Handler) ingestIntegrationProviderWebhook(c *gin.Context) {
+	h = h.ensure()
 	h.integ.IngestIntegrationProviderWebhook(c)
 }
 func (h Handler) testIntegrationConnection(c *gin.Context) {
+	h = h.ensure()
 	h.integ.TestIntegrationConnection(c)
 }
 func (h Handler) listIntegrationBindings(c *gin.Context) {
+	h = h.ensure()
 	h.integ.ListIntegrationBindings(c)
 }
 func (h Handler) createIntegrationBinding(c *gin.Context) {
+	h = h.ensure()
 	h.integ.CreateIntegrationBinding(c)
 }
 func (h Handler) updateIntegrationBinding(c *gin.Context) {
+	h = h.ensure()
 	h.integ.UpdateIntegrationBinding(c)
 }
 func (h Handler) deleteIntegrationBinding(c *gin.Context) {
+	h = h.ensure()
 	h.integ.DeleteIntegrationBinding(c)
 }
 
 // Realtime
 func (h Handler) issueRealtimeTicket(c *gin.Context) {
+	h = h.ensure()
 	h.realtime.IssueRealtimeTicket(c)
 }
 func (h Handler) handleRealtimeWebSocket(c *gin.Context) {
+	h = h.ensure()
 	h.realtime.HandleRealtimeWebSocket(c)
 }

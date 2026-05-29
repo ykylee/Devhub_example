@@ -29,6 +29,9 @@ const (
 	rbacAuditActionUpdated = "rbac.policy.updated"
 )
 
+// RBACRoleWire — rbacRoleWire 의 cross-package test 접근용 export alias.
+type RBACRoleWire = rbacRoleWire
+
 type rbacRoleWire struct {
 	ID          string                  `json:"id"`
 	Name        string                  `json:"name"`

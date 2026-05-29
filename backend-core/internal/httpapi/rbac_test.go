@@ -12,8 +12,12 @@ import (
 	"time"
 
 	"github.com/devhub/backend-core/internal/domain"
+	rbacview "github.com/devhub/backend-core/internal/domain/rbac-permissions/view"
 	"github.com/devhub/backend-core/internal/store"
 )
+
+// rbacRoleWire — rbac-permissions/view cross-package test 접근용 type alias.
+type rbacRoleWire = rbacview.RBACRoleWire
 
 // fakeRBACStore is an in-memory RBACStore for handler tests. It mimics the
 // invariants of the real postgres store closely enough for endpoint behavior

@@ -10,9 +10,14 @@ import (
 	"testing"
 
 	"github.com/devhub/backend-core/internal/domain"
+	auditview "github.com/devhub/backend-core/internal/domain/audit-ops/view"
 	"github.com/devhub/backend-core/internal/store"
 	"github.com/gin-gonic/gin"
 )
+
+// keycloakWebhookRequest — auditview 의 cross-package test 접근용 alias.
+// (re-exported via auditview.KeycloakWebhookRequest 가 type alias 이므로 같은 타입.)
+type keycloakWebhookRequest = auditview.KeycloakWebhookRequest
 
 type mockAuditStore struct {
 	logs      []domain.AuditLog

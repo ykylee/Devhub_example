@@ -6,7 +6,12 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	authview "github.com/devhub/backend-core/internal/domain/auth-session/view"
 )
+
+// meResponse — auth-session/view cross-package test 접근용 type alias.
+type meResponse = authview.MeResponse
 
 func TestGetMeReturnsAuthenticatedActor(t *testing.T) {
 	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{

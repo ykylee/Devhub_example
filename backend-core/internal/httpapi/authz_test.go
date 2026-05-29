@@ -10,6 +10,26 @@ import (
 	"github.com/devhub/backend-core/internal/domain"
 )
 
+// roleMeetsMin / roleRank — rbac-permissions/view 의 동명 private 함수와 동일한
+// 의미. test cross-package 호출이 불가하므로 httpapi/_test 안에서 fully-local
+// copy. production 영향 0 (테스트 파일 한정).
+func roleMeetsMin(actor string, min domain.AppRole) bool {
+	return roleRank(actor) >= roleRank(string(min))
+}
+
+func roleRank(role string) int {
+	switch role {
+	case string(domain.AppRoleSystemAdmin):
+		return 30
+	case string(domain.AppRoleManager):
+		return 20
+	case string(domain.AppRoleDeveloper):
+		return 10
+	default:
+		return 0
+	}
+}
+
 func TestRoleMeetsMin(t *testing.T) {
 	cases := []struct {
 		actor string

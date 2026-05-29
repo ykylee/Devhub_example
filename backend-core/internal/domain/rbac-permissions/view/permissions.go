@@ -309,6 +309,16 @@ func lookupRoutePolicy(method, path string) (routePolicy, bool) {
 	return policy, ok
 }
 
+// RoutePolicy / LookupRoutePolicy — cross-package test 접근용 export shim.
+// docs/governance/code-taxonomy.md 의 도메인 분리 이후 httpapi/_test 가 routePermissionTable
+// 정합을 검증해야 하므로 export 표면을 최소 노출. production code 가 이 alias 를
+// 직접 참조하지 않도록 유지.
+type RoutePolicy = routePolicy
+
+func LookupRoutePolicy(method, path string) (RoutePolicy, bool) {
+	return lookupRoutePolicy(method, path)
+}
+
 // enforceRowOwnership는 ADR-0011 §4.2 의 row-level 위양 진입점. caller 가
 // ownerUserID 의 row 에 대해 쓰기 권한을 가지는지를 다음 규칙으로 결정한다:
 //
@@ -334,6 +344,12 @@ func lookupRoutePolicy(method, path string) (routePolicy, bool) {
 // resource/action 은 enforceRoutePermission 이 이미 통과시킨 route 의 매핑에서
 // 추출 — 미매핑 route 라면 ""로 채운다 (audit consumer 가 N/A 로 해석).
 //
+// EnforceRowOwnership — enforceRowOwnership 의 cross-package test 접근용 export
+// wrapper. 동작/규약 동일.
+func (h *RBACHandler) EnforceRowOwnership(c *gin.Context, ownerUserID string, allowedRoles ...string) bool {
+	return h.enforceRowOwnership(c, ownerUserID, allowedRoles...)
+}
+
 // ownerUserID 가 "" 이면 owner-self 규칙은 비활성화 (system_admin / allowedRoles
 // 만 통과). 잘못된 데이터(미설정 owner) 가 우연히 익명에게 허용되는 일을 방지.
 func (h *RBACHandler) enforceRowOwnership(c *gin.Context, ownerUserID string, allowedRoles ...string) bool {

@@ -1,4 +1,4 @@
-package httpapi
+package view
 
 import (
 	"testing"
@@ -20,8 +20,8 @@ func TestInitOnboardingMetrics_Idempotent(t *testing.T) {
 func TestObserveOnboardingGateBlocked_IncrementsCounter(t *testing.T) {
 	initOnboardingMetrics()
 	before := counterVecValueOnboarding(t, onboardingGateBlockedTotal, []string{"onboarding_required"})
-	observeOnboardingGateBlocked("onboarding_required")
-	observeOnboardingGateBlocked("onboarding_required")
+	ObserveOnboardingGateBlocked("onboarding_required")
+	ObserveOnboardingGateBlocked("onboarding_required")
 	after := counterVecValueOnboarding(t, onboardingGateBlockedTotal, []string{"onboarding_required"})
 	if delta := after - before; delta != 2 {
 		t.Fatalf("gate_blocked delta = %v; want 2", delta)
@@ -35,7 +35,7 @@ func TestObserveOnboardingSubmit_AllStatuses(t *testing.T) {
 	before := make(map[string]float64, len(statuses))
 	for _, s := range statuses {
 		before[s] = counterVecValueOnboarding(t, onboardingSubmitTotal, []string{s})
-		observeOnboardingSubmit(s)
+		ObserveOnboardingSubmit(s)
 	}
 	for _, s := range statuses {
 		after := counterVecValueOnboarding(t, onboardingSubmitTotal, []string{s})
@@ -49,9 +49,9 @@ func TestObserveOnboardingSubmit_AllStatuses(t *testing.T) {
 func TestObserveOnboardingSubmitDuration_RecordsHistogram(t *testing.T) {
 	initOnboardingMetrics()
 	before := histogramSampleCount(t, onboardingSubmitDurationSec)
-	observeOnboardingSubmitDuration(0.05)  // 50ms
-	observeOnboardingSubmitDuration(0.5)   // 500ms
-	observeOnboardingSubmitDuration(2.0)   // 2s
+	ObserveOnboardingSubmitDuration(0.05)  // 50ms
+	ObserveOnboardingSubmitDuration(0.5)   // 500ms
+	ObserveOnboardingSubmitDuration(2.0)   // 2s
 	after := histogramSampleCount(t, onboardingSubmitDurationSec)
 	if delta := after - before; delta != 3 {
 		t.Fatalf("histogram sample count delta = %v; want 3", delta)
@@ -65,7 +65,7 @@ func TestObserveOnboardingReviewConfirm_AllStatuses(t *testing.T) {
 	before := make(map[string]float64, len(statuses))
 	for _, s := range statuses {
 		before[s] = counterVecValueOnboarding(t, onboardingReviewConfirmTotal, []string{s})
-		observeOnboardingReviewConfirm(s)
+		ObserveOnboardingReviewConfirm(s)
 	}
 	for _, s := range statuses {
 		after := counterVecValueOnboarding(t, onboardingReviewConfirmTotal, []string{s})

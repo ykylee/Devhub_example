@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/devhub/backend-core/internal/store"
+	auditrep "github.com/devhub/backend-core/internal/domain/audit-ops/repository"
 )
 
 // fakeKeycloakEventLister — ListUserEvents / ListAdminEvents 의 in-memory mock.
@@ -29,29 +29,29 @@ func (f *fakeKeycloakEventLister) ListAdminEvents(_ context.Context, _ time.Time
 	return f.adminEvents, nil
 }
 
-// fakeCursorStore — store.EventCursorStore 의 in-memory mock.
+// fakeCursorStore — auditrep.EventCursorStore 의 in-memory mock.
 // GetEventCursor 가 row 없을 때 "not found" 포함 error 를 반환해야 loadCursor 가
 // initialization branch 로 분기. isNotFound (puller.go) 가 string match 사용.
 type fakeCursorStore struct {
 	mu      sync.Mutex
-	cursors map[string]store.EventCursor
+	cursors map[string]auditrep.EventCursor
 }
 
 func newFakeCursorStore() *fakeCursorStore {
-	return &fakeCursorStore{cursors: make(map[string]store.EventCursor)}
+	return &fakeCursorStore{cursors: make(map[string]auditrep.EventCursor)}
 }
 
-func (s *fakeCursorStore) GetEventCursor(_ context.Context, cursorKey string) (store.EventCursor, error) {
+func (s *fakeCursorStore) GetEventCursor(_ context.Context, cursorKey string) (auditrep.EventCursor, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	c, ok := s.cursors[cursorKey]
 	if !ok {
-		return store.EventCursor{}, fmt.Errorf("cursor %s not found", cursorKey)
+		return auditrep.EventCursor{}, fmt.Errorf("cursor %s not found", cursorKey)
 	}
 	return c, nil
 }
 
-func (s *fakeCursorStore) UpsertEventCursor(_ context.Context, cursor store.EventCursor) error {
+func (s *fakeCursorStore) UpsertEventCursor(_ context.Context, cursor auditrep.EventCursor) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.cursors[cursor.CursorKey] = cursor
@@ -143,7 +143,7 @@ func TestPullUserEvents_SkipsConfiguredEventTypes(t *testing.T) {
 		},
 	}
 	cursors := newFakeCursorStore()
-	_ = cursors.UpsertEventCursor(context.Background(), store.EventCursor{
+	_ = cursors.UpsertEventCursor(context.Background(), auditrep.EventCursor{
 		CursorKey:   userEventsCursor,
 		LastEventAt: now,
 	})
@@ -181,7 +181,7 @@ func TestPullUserEvents_AdvancesCursor(t *testing.T) {
 		},
 	}
 	cursors := newFakeCursorStore()
-	_ = cursors.UpsertEventCursor(context.Background(), store.EventCursor{
+	_ = cursors.UpsertEventCursor(context.Background(), auditrep.EventCursor{
 		CursorKey:   userEventsCursor,
 		LastEventAt: start,
 	})
@@ -209,7 +209,7 @@ func TestPullUserEvents_NoEvents_DoesNotUpsertCursor(t *testing.T) {
 	start := time.Date(2026, 5, 19, 12, 0, 0, 0, time.UTC)
 	lister := &fakeKeycloakEventLister{userEvents: nil}
 	cursors := newFakeCursorStore()
-	_ = cursors.UpsertEventCursor(context.Background(), store.EventCursor{
+	_ = cursors.UpsertEventCursor(context.Background(), auditrep.EventCursor{
 		CursorKey:   userEventsCursor,
 		LastEventAt: start,
 	})
@@ -245,7 +245,7 @@ func TestPullUserEvents_FiltersAlreadyProcessed(t *testing.T) {
 		},
 	}
 	cursors := newFakeCursorStore()
-	_ = cursors.UpsertEventCursor(context.Background(), store.EventCursor{
+	_ = cursors.UpsertEventCursor(context.Background(), auditrep.EventCursor{
 		CursorKey:     userEventsCursor,
 		LastEventAt:   cursor,
 		LastEventHash: processedHash,
@@ -277,7 +277,7 @@ func TestPullUserEvents_BoundarySameHash_Skipped(t *testing.T) {
 
 	lister := &fakeKeycloakEventLister{userEvents: []KeycloakUserEvent{boundary}}
 	cursors := newFakeCursorStore()
-	_ = cursors.UpsertEventCursor(context.Background(), store.EventCursor{
+	_ = cursors.UpsertEventCursor(context.Background(), auditrep.EventCursor{
 		CursorKey:     userEventsCursor,
 		LastEventAt:   cursor,
 		LastEventHash: h,
@@ -310,7 +310,7 @@ func TestPullAdminEvents_AdvancesCursor(t *testing.T) {
 		},
 	}
 	cursors := newFakeCursorStore()
-	_ = cursors.UpsertEventCursor(context.Background(), store.EventCursor{
+	_ = cursors.UpsertEventCursor(context.Background(), auditrep.EventCursor{
 		CursorKey:   adminEventsCursor,
 		LastEventAt: start,
 	})
@@ -363,10 +363,10 @@ func TestLoadCursor_PropagatesNonNotFoundError(t *testing.T) {
 
 type cursorStoreErr struct{ err error }
 
-func (s *cursorStoreErr) GetEventCursor(_ context.Context, _ string) (store.EventCursor, error) {
-	return store.EventCursor{}, s.err
+func (s *cursorStoreErr) GetEventCursor(_ context.Context, _ string) (auditrep.EventCursor, error) {
+	return auditrep.EventCursor{}, s.err
 }
-func (s *cursorStoreErr) UpsertEventCursor(_ context.Context, _ store.EventCursor) error {
+func (s *cursorStoreErr) UpsertEventCursor(_ context.Context, _ auditrep.EventCursor) error {
 	return s.err
 }
 
@@ -402,7 +402,7 @@ func TestPullUserEvents_SkipOnlyPage_AdvancesCursor(t *testing.T) {
 		},
 	}
 	cursors := newFakeCursorStore()
-	_ = cursors.UpsertEventCursor(context.Background(), store.EventCursor{
+	_ = cursors.UpsertEventCursor(context.Background(), auditrep.EventCursor{
 		CursorKey:   userEventsCursor,
 		LastEventAt: start,
 	})
@@ -505,7 +505,7 @@ func TestPullUserEvents_SameMsSkipAndEmit_PrefersEmittableHash(t *testing.T) {
 		userEvents: []KeycloakUserEvent{skipEv, emitEv},
 	}
 	cursors := newFakeCursorStore()
-	_ = cursors.UpsertEventCursor(context.Background(), store.EventCursor{
+	_ = cursors.UpsertEventCursor(context.Background(), auditrep.EventCursor{
 		CursorKey:   userEventsCursor,
 		LastEventAt: start,
 	})
@@ -550,7 +550,7 @@ func TestPullUserEvents_SameMsSkipAndEmit_NextTickDedup(t *testing.T) {
 	// cursor 가 이미 emit-able event hash 로 set 된 상태 — Tick 1 simulation.
 	emitHash := hashUserEvent(emitEv)
 	cursors := newFakeCursorStore()
-	_ = cursors.UpsertEventCursor(context.Background(), store.EventCursor{
+	_ = cursors.UpsertEventCursor(context.Background(), auditrep.EventCursor{
 		CursorKey:     userEventsCursor,
 		LastEventAt:   boundary,
 		LastEventHash: emitHash,
@@ -649,7 +649,7 @@ func TestPullAdminEvents_InvokesUserSyncCallback(t *testing.T) {
 	lister := &fakeKeycloakEventLister{adminEvents: events}
 	cursors := newFakeCursorStore()
 	// cursor pre-seed — events 가 cursor.LastEventAt 이전이면 모두 skip 됨.
-	_ = cursors.UpsertEventCursor(context.Background(), store.EventCursor{
+	_ = cursors.UpsertEventCursor(context.Background(), auditrep.EventCursor{
 		CursorKey:   adminEventsCursor,
 		LastEventAt: start,
 	})
@@ -694,7 +694,7 @@ func TestPullAdminEvents_NilUserSync_BackwardCompatible(t *testing.T) {
 	lister := &fakeKeycloakEventLister{adminEvents: events}
 	cursors := newFakeCursorStore()
 	// cursor pre-seed — events 가 cursor.LastEventAt 이전이면 모두 skip 됨.
-	_ = cursors.UpsertEventCursor(context.Background(), store.EventCursor{
+	_ = cursors.UpsertEventCursor(context.Background(), auditrep.EventCursor{
 		CursorKey:   adminEventsCursor,
 		LastEventAt: start.Add(-1 * time.Second),
 	})

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/devhub/backend-core/internal/domain"
+	devreqrep "github.com/devhub/backend-core/internal/domain/dev-request/repository"
 	"github.com/devhub/backend-core/internal/store"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -45,6 +46,7 @@ func TestIntegration_UpdateDevRequestIntakeTokenIPs_Atomicity(t *testing.T) {
 		t.Fatalf("connect cleanup pool: %v", err)
 	}
 	defer pool.Close()
+	dreq := devreqrep.NewDevRequestRepository(pgStore)
 
 	suffix := fmt.Sprintf("%d", time.Now().UnixNano())
 	createdTokens := make([]string, 0, 4)
@@ -66,7 +68,7 @@ func TestIntegration_UpdateDevRequestIntakeTokenIPs_Atomicity(t *testing.T) {
 			SourceSystem: "atomicity-test",
 			CreatedBy:    seedUserID,
 		}
-		out, err := pgStore.CreateDevRequestIntakeToken(ctx, tok)
+		out, err := dreq.CreateDevRequestIntakeToken(ctx, tok)
 		if err != nil {
 			t.Fatalf("create intake token (%s): %v", label, err)
 		}
@@ -76,7 +78,7 @@ func TestIntegration_UpdateDevRequestIntakeTokenIPs_Atomicity(t *testing.T) {
 
 	t.Run("Happy_UpdatesAllowedIPs", func(t *testing.T) {
 		tok := create("happy-"+suffix, "hash-happy-"+suffix)
-		updated, err := pgStore.UpdateDevRequestIntakeTokenIPs(ctx, tok.TokenID, []string{"192.0.2.0/24", "203.0.113.5"})
+		updated, err := dreq.UpdateDevRequestIntakeTokenIPs(ctx, tok.TokenID, []string{"192.0.2.0/24", "203.0.113.5"})
 		if err != nil {
 			t.Fatalf("update: %v", err)
 		}
@@ -91,7 +93,7 @@ func TestIntegration_UpdateDevRequestIntakeTokenIPs_Atomicity(t *testing.T) {
 	t.Run("NotFound_GhostTokenID", func(t *testing.T) {
 		// 존재하지 않는 UUID — 무작위 timestamp 기반 (real UUID 형식).
 		ghostID := "00000000-0000-0000-0000-" + fmt.Sprintf("%012d", time.Now().UnixNano()%1_000_000_000_000)
-		_, err := pgStore.UpdateDevRequestIntakeTokenIPs(ctx, ghostID, []string{"192.0.2.0/24"})
+		_, err := dreq.UpdateDevRequestIntakeTokenIPs(ctx, ghostID, []string{"192.0.2.0/24"})
 		if !errors.Is(err, store.ErrNotFound) {
 			t.Fatalf("err=%v want ErrNotFound", err)
 		}
@@ -99,10 +101,10 @@ func TestIntegration_UpdateDevRequestIntakeTokenIPs_Atomicity(t *testing.T) {
 
 	t.Run("Revoked_ReturnsConflictAndPreservesIPs", func(t *testing.T) {
 		tok := create("revoked-"+suffix, "hash-revoked-"+suffix)
-		if _, err := pgStore.RevokeDevRequestIntakeToken(ctx, tok.TokenID); err != nil {
+		if _, err := dreq.RevokeDevRequestIntakeToken(ctx, tok.TokenID); err != nil {
 			t.Fatalf("revoke: %v", err)
 		}
-		_, err := pgStore.UpdateDevRequestIntakeTokenIPs(ctx, tok.TokenID, []string{"192.0.2.0/24"})
+		_, err := dreq.UpdateDevRequestIntakeTokenIPs(ctx, tok.TokenID, []string{"192.0.2.0/24"})
 		if !errors.Is(err, store.ErrConflict) {
 			t.Fatalf("err=%v want ErrConflict", err)
 		}
@@ -132,7 +134,7 @@ func TestIntegration_UpdateDevRequestIntakeTokenIPs_Atomicity(t *testing.T) {
 		}
 
 		alreadyRev := create("alreadyrev-"+suffix, "hash-alreadyrev-"+suffix)
-		if _, err := pgStore.RevokeDevRequestIntakeToken(ctx, alreadyRev.TokenID); err != nil {
+		if _, err := dreq.RevokeDevRequestIntakeToken(ctx, alreadyRev.TokenID); err != nil {
 			t.Fatalf("seed revoke: %v", err)
 		}
 		if _, err := pool.Exec(ctx, "UPDATE dev_request_intake_tokens SET expires_at = $1::timestamptz WHERE token_id = $2::uuid", base, alreadyRev.TokenID); err != nil {
@@ -146,7 +148,7 @@ func TestIntegration_UpdateDevRequestIntakeTokenIPs_Atomicity(t *testing.T) {
 		}
 
 		nowCut := time.Now().UTC()
-		revoked, err := pgStore.HardRevokeExpiredIntakeTokens(ctx, nowCut)
+		revoked, err := dreq.HardRevokeExpiredIntakeTokens(ctx, nowCut)
 		if err != nil {
 			t.Fatalf("HardRevokeExpired: %v", err)
 		}
@@ -194,7 +196,7 @@ func TestIntegration_UpdateDevRequestIntakeTokenIPs_Atomicity(t *testing.T) {
 		}
 
 		// baseline count (이전 sub-test 의 잔여 row 가 있을 수 있으므로 delta 검증).
-		baseline, err := pgStore.CountExpiringSoonIntakeTokens(ctx, thresholdT)
+		baseline, err := dreq.CountExpiringSoonIntakeTokens(ctx, thresholdT)
 		if err != nil {
 			t.Fatalf("count expiring (baseline): %v", err)
 		}
@@ -214,7 +216,7 @@ func TestIntegration_UpdateDevRequestIntakeTokenIPs_Atomicity(t *testing.T) {
 		fresh := create("fresh-"+suffix, "hash-fresh-"+suffix)
 		_ = fresh
 
-		count, err := pgStore.CountStaleIntakeTokens(ctx, before)
+		count, err := dreq.CountStaleIntakeTokens(ctx, before)
 		if err != nil {
 			t.Fatalf("count stale: %v", err)
 		}
@@ -241,11 +243,11 @@ func TestIntegration_UpdateDevRequestIntakeTokenIPs_Atomicity(t *testing.T) {
 		wg.Add(2)
 		go func() {
 			defer wg.Done()
-			updResult, updErr = pgStore.UpdateDevRequestIntakeTokenIPs(ctx, tok.TokenID, []string{"192.0.2.0/24"})
+			updResult, updErr = dreq.UpdateDevRequestIntakeTokenIPs(ctx, tok.TokenID, []string{"192.0.2.0/24"})
 		}()
 		go func() {
 			defer wg.Done()
-			_, revErr = pgStore.RevokeDevRequestIntakeToken(ctx, tok.TokenID)
+			_, revErr = dreq.RevokeDevRequestIntakeToken(ctx, tok.TokenID)
 		}()
 		wg.Wait()
 
@@ -299,6 +301,7 @@ func TestIntegration_UpdateDevRequestIntakeToken(t *testing.T) {
 		t.Fatalf("connect cleanup pool: %v", err)
 	}
 	defer pool.Close()
+	dreq := devreqrep.NewDevRequestRepository(pgStore)
 
 	suffix := fmt.Sprintf("mut-%d", time.Now().UnixNano())
 	createdTokens := make([]string, 0, 5)
@@ -319,7 +322,7 @@ func TestIntegration_UpdateDevRequestIntakeToken(t *testing.T) {
 			CreatedBy:    seedUserID,
 			ExpiresAt:    expiresAt,
 		}
-		out, err := pgStore.CreateDevRequestIntakeToken(ctx, tok)
+		out, err := dreq.CreateDevRequestIntakeToken(ctx, tok)
 		if err != nil {
 			t.Fatalf("create intake token (%s): %v", label, err)
 		}
@@ -331,7 +334,7 @@ func TestIntegration_UpdateDevRequestIntakeToken(t *testing.T) {
 		expiry := time.Now().UTC().Add(24 * time.Hour).Truncate(time.Microsecond)
 		tok := create("ip-only-"+suffix, "hash-ip-only-"+suffix, &expiry)
 
-		updated, err := pgStore.UpdateDevRequestIntakeToken(ctx, tok.TokenID, []string{"192.168.1.1"}, nil, true, false)
+		updated, err := dreq.UpdateDevRequestIntakeToken(ctx, tok.TokenID, []string{"192.168.1.1"}, nil, true, false)
 		if err != nil {
 			t.Fatalf("update failed: %v", err)
 		}
@@ -348,7 +351,7 @@ func TestIntegration_UpdateDevRequestIntakeToken(t *testing.T) {
 		tok := create("exp-only-"+suffix, "hash-exp-only-"+suffix, nil)
 		newExpiry := time.Now().UTC().Add(48 * time.Hour).Truncate(time.Microsecond)
 
-		updated, err := pgStore.UpdateDevRequestIntakeToken(ctx, tok.TokenID, nil, &newExpiry, false, true)
+		updated, err := dreq.UpdateDevRequestIntakeToken(ctx, tok.TokenID, nil, &newExpiry, false, true)
 		if err != nil {
 			t.Fatalf("update failed: %v", err)
 		}
@@ -365,7 +368,7 @@ func TestIntegration_UpdateDevRequestIntakeToken(t *testing.T) {
 		tok := create("both-"+suffix, "hash-both-"+suffix, nil)
 		newExpiry := time.Now().UTC().Add(2 * time.Hour).Truncate(time.Microsecond)
 
-		updated, err := pgStore.UpdateDevRequestIntakeToken(ctx, tok.TokenID, []string{"172.16.0.0/12"}, &newExpiry, true, true)
+		updated, err := dreq.UpdateDevRequestIntakeToken(ctx, tok.TokenID, []string{"172.16.0.0/12"}, &newExpiry, true, true)
 		if err != nil {
 			t.Fatalf("update failed: %v", err)
 		}
@@ -382,7 +385,7 @@ func TestIntegration_UpdateDevRequestIntakeToken(t *testing.T) {
 		expiry := time.Now().UTC().Add(12 * time.Hour)
 		tok := create("inf-"+suffix, "hash-inf-"+suffix, &expiry)
 
-		updated, err := pgStore.UpdateDevRequestIntakeToken(ctx, tok.TokenID, nil, nil, false, true)
+		updated, err := dreq.UpdateDevRequestIntakeToken(ctx, tok.TokenID, nil, nil, false, true)
 		if err != nil {
 			t.Fatalf("update failed: %v", err)
 		}
@@ -394,11 +397,11 @@ func TestIntegration_UpdateDevRequestIntakeToken(t *testing.T) {
 
 	t.Run("ConflictOnRevokedToken", func(t *testing.T) {
 		tok := create("conf-"+suffix, "hash-conf-"+suffix, nil)
-		if _, err := pgStore.RevokeDevRequestIntakeToken(ctx, tok.TokenID); err != nil {
+		if _, err := dreq.RevokeDevRequestIntakeToken(ctx, tok.TokenID); err != nil {
 			t.Fatalf("revoke failed: %v", err)
 		}
 
-		_, err := pgStore.UpdateDevRequestIntakeToken(ctx, tok.TokenID, []string{"1.1.1.1"}, nil, true, false)
+		_, err := dreq.UpdateDevRequestIntakeToken(ctx, tok.TokenID, []string{"1.1.1.1"}, nil, true, false)
 		if !errors.Is(err, store.ErrConflict) {
 			t.Errorf("expected ErrConflict, got %v", err)
 		}
@@ -409,7 +412,7 @@ func TestIntegration_UpdateDevRequestIntakeToken(t *testing.T) {
 		tok := create("expired-extend-"+suffix, "hash-expired-extend-"+suffix, &pastExpiry)
 
 		newExpiry := time.Now().UTC().Add(4 * time.Hour).Truncate(time.Microsecond)
-		updated, err := pgStore.UpdateDevRequestIntakeToken(ctx, tok.TokenID, nil, &newExpiry, false, true)
+		updated, err := dreq.UpdateDevRequestIntakeToken(ctx, tok.TokenID, nil, &newExpiry, false, true)
 		if err != nil {
 			t.Fatalf("update failed: %v", err)
 		}

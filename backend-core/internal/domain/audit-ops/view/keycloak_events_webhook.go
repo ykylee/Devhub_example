@@ -12,6 +12,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// KeycloakWebhookRequest — keycloakWebhookRequest 의 cross-package test 접근용
+// export alias. production handler 는 unexported 형태를 사용하나 routing-level
+// test 가 동일 payload 를 marshal 하기 위해 alias 노출.
+type KeycloakWebhookRequest = keycloakWebhookRequest
+
 type keycloakWebhookRequest struct {
 	ID            string            `json:"id"`
 	Time          int64             `json:"time"`
