@@ -110,6 +110,21 @@
 
 sprint `claude/work_260529-t` 진행: `errors_test.go` (4 test) + `request_context_test.go` (10 test) = 14 test 신규, **coverage 98.6%** (잔존 1.4% 는 `GenerateRequestID` 의 `rand.Read` 실패 분기 — 실행 불가).
 
+#### B-5 (부분) 완료 — store integration test 실 DB 실행 (sprint `claude/work_260529-aa`)
+
+`DEVHUB_TEST_DB_URL=postgres://postgres:postgres@localhost:5432/devhub_test` + 46 migration 적용 후 실 PostgreSQL 18 환경에서 integration test 실행:
+
+| 패키지 | -short cover | 실 DB cover |
+|---|---|---|
+| `internal/store` | 0% (env skip) | **20.2%** |
+| `internal/domain/application-lifecycle/repository` | 0% | **43.6%** |
+| `internal/domain/dev-request/repository` | 0% | **24.1%** |
+| Backend total (`-coverpkg=./...`) | 43.0% | **54.4%** (+11.4%p) |
+
+CI `backend-integration` job 복원 시 동일 상승 예상. 잔존:
+- `integrations_integration_test.go:145` FAIL (uuid input "" → SQLSTATE 22P02) — 별도 hotfix 후보, 본 PR scope 외.
+- `internal/domain/audit-ops/service` integration test 없음 (TestIntegration_* 매치 0건).
+
 ## 2. 잔여 carve out 후보
 
 ### 2.1 P1 — 즉시 진행 가능
