@@ -28,8 +28,8 @@ DREQ 6단계 상태 머신 + intake token 만료 처리 + promote 트랜잭션�
 | REQ | `./requirements.md` | planned (Phase 3) |
 | ARCH | `./architecture.md` | planned (Phase 3) |
 | API | `./api.md` | planned (Phase 3) |
-| TC | `./test_cases.md` | planned (Phase 2 — `docs/tests/test_cases_m5_dreq.md`) |
-| Concept | `./concept.md` | planned (Phase 2 — `docs/planning/development_request_concept.md`) |
+| TC | `./test_cases.md` | planned (Phase 2 — `docs/domain/dev-request/test_cases.md`) |
+| Concept | `./concept.md` | planned (Phase 2 — `docs/domain/dev-request/concept.md`) |
 
 ## 4. 관련 ADR
 

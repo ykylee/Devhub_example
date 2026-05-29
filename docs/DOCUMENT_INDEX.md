@@ -36,13 +36,13 @@
 - **[Backend Development Roadmap](../ai-workflow/memory/backend_development_roadmap.md)**: 백엔드 트랙 세부 (Phase 1~13).
 - **[Frontend Development Roadmap](./frontend_development_roadmap.md)**: 프론트엔드 트랙 세부 (Phase 1~7, 역할별 기본 진입 우선순위 UX 기준 포함).
 - **[Planning 디렉터리 진입점](./planning/README.md)**: 마일스톤·트랙·PR/보안 트래커 인덱스. backlog 위치 정책과 향후 추가 예정 자료(sprint plan, release plan 등) 안내.
-- **[Application/Repository/Project 운영 컨셉](./planning/project_management_concept.md)**: 운영 계층 기준 용어(Application > Repository > Project) 및 정책 요약.
+- **[Application/Repository/Project 운영 컨셉](./domain/application-lifecycle/project_concept.md)**: 운영 계층 기준 용어(Application > Repository > Project) 및 정책 요약.
 
 ## 4. 테스트 및 검증 (Test & Verification)
 *프로젝트의 품질 보증을 위한 테스트 케이스 및 가이드를 다룹니다.*
 
-- **[M2 인증 및 사용자 관리 테스트 케이스](./tests/test_cases_m2_auth.md)**: 로그인/로그아웃, 사용자 관리, 권한 matrix 검증 TC.
-- **[M3 조직 관리 테스트 케이스](./tests/test_cases_m3_organization.md)**: 조직 단위 CRUD, 계층 구조 및 멤버 관리 검증 TC.
+- **[M2 인증 및 사용자 관리 테스트 케이스](./domain/auth-session/test_cases.md)**: 로그인/로그아웃, 사용자 관리, 권한 matrix 검증 TC.
+- **[M3 조직 관리 테스트 케이스](./domain/organization-management/test_cases.md)**: 조직 단위 CRUD, 계층 구조 및 멤버 관리 검증 TC.
 - **[E2E 테스트 전략 및 지침](./tests/e2e_testing_strategy.md)**: 지속 가능한 E2E 테스트 방법론 및 자동화 가이드.
 - **[E2E 테스트 실행 가이드](./setup/e2e-test-guide.md)**: Playwright 기반 E2E 테스트 환경 구성 및 실행 방법.
 

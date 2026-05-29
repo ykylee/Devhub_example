@@ -11,7 +11,7 @@
     - [ENVIRONMENT_NOTES.md — 이 저장소가 가정하는 사내 corp 환경 특수 제약](./ENVIRONMENT_NOTES.md)
     - [backend_development_roadmap.md P1](../../ai-workflow/memory/backend_development_roadmap.md)
 
-> ⚠ **Deprecated (2026-05-19)**: 본 가이드의 Hydra/Kratos 가동 절차는 historical reference 로 보존된다. 현재 IdP 는 Keycloak 단일화 (ADR-0019). Keycloak 환경 구성은 docs/planning/keycloak_only_refactor_execution_plan.md §6 (Keycloak 서버 구성) + docs/setup/test-server-deployment.md 참조.
+> ⚠ **Deprecated (2026-05-19)**: 본 가이드의 Hydra/Kratos 가동 절차는 historical reference 로 보존된다. 현재 IdP 는 Keycloak 단일화 (ADR-0019). Keycloak 환경 구성은 docs/infrastructure/keycloak-idp/refactor_execution_plan.md §6 (Keycloak 서버 구성) + docs/setup/test-server-deployment.md 참조.
 
 > ℹ️ 본 가이드는 보통의 개발 환경(외부 인터넷 접근, Scoop/brew 등 표준 패키지 매니저 사용 가능)을 가정한다. 사내 SSL inspection·GoProxy 미러 제약이 있는 환경에 대한 우회 절차는 [ENVIRONMENT_NOTES.md](./ENVIRONMENT_NOTES.md) 를 별도로 본다.
 

@@ -5,7 +5,7 @@
 - 대상 독자: 후속 sprint 진입자, 리뷰어.
 - 상태: in_progress (컨셉 문서 머지 직전)
 - 최종 수정일: 2026-05-13
-- 관련 문서: [컨셉 문서](../../../../docs/planning/project_management_concept.md), [통합 로드맵](../../../../docs/development_roadmap.md), [`work_backlog.md`](./work_backlog.md).
+- 관련 문서: [컨셉 문서](../../../../docs/domain/application-lifecycle/project_concept.md), [통합 로드맵](../../../../docs/development_roadmap.md), [`work_backlog.md`](./work_backlog.md).
 - 브랜치: `claude/work_260513-p` (base `main` @ `118899b`).
 
 ## 1. 본 sprint 작업 목표
@@ -21,7 +21,7 @@
 
 ## 2. 산출물
 
-- [`docs/planning/project_management_concept.md`](../../../../docs/planning/project_management_concept.md) — 컨셉 1차.
+- [`docs/domain/application-lifecycle/project_concept.md`](../../../../docs/domain/application-lifecycle/project_concept.md) — 컨셉 1차.
 - [`docs/planning/README.md`](../../../../docs/planning/README.md) — 인덱스 1줄 추가.
 - [`docs/development_roadmap.md`](../../../../docs/development_roadmap.md) §5 백로그 — "Project 도메인 — concept staged" 1행.
 

@@ -261,7 +261,7 @@ erDiagram
 ```
 
 > **합성 키 메모**:
-> - `APPLICATION_REPOSITORIES.PK = (application_id, repo_provider, repo_full_name)` — 동일 `repo_full_name` 이 서로 다른 provider 에 존재할 수 있으므로 provider 를 PK 에 포함. `docs/planning/project_management_concept.md` §7 / §13.3 와 일치.
+> - `APPLICATION_REPOSITORIES.PK = (application_id, repo_provider, repo_full_name)` — 동일 `repo_full_name` 이 서로 다른 provider 에 존재할 수 있으므로 provider 를 PK 에 포함. `docs/domain/application-lifecycle/project_concept.md` §7 / §13.3 와 일치.
 > - `PROJECT_MEMBERS.PK = (project_id, user_id)` — 동일 사용자의 중복 멤버십 차단.
 > - `PROJECT_INTEGRATIONS` 는 단일 `id` PK + (`scope`, `project_id` 또는 `application_id`, `integration_type`, `external_key`) 조합에 unique 인덱스(설계 단계 확정).
 

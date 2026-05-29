@@ -7,7 +7,7 @@
 
 ## 핵심 메모
 - 외부 시스템 연동 도메인 문서화 초안은 아래 축으로 연결 완료:
-  - Concept: `docs/planning/external_system_integration_concept.md`
+  - Concept: `docs/domain/integration-registry/external_system_concept.md`
   - Requirements: `docs/requirements.md` §5.6
   - Usecases: `docs/planning/system_usecases.md` §2.12
   - Architecture/API: `docs/architecture.md` §8, `docs/backend_api_contract.md` §15
@@ -17,8 +17,8 @@
   - HomeLab 인프라(서버 상태/애플리케이션 설치 현황)
 - 현재는 문서/추적성 정리가 완료되었고, 구현 코드는 아직 착수하지 않음.
 - 구현 준비 상태:
-  - `docs/planning/external_integration_capability_matrix.md` 추가
-  - `docs/tests/test_cases_m4_integration.md` 추가
+  - `docs/domain/integration-registry/capability_matrix.md` 추가
+  - `docs/domain/integration-registry/test_cases.md` 추가
   - `docs/traceability/report.md` 에 TC-INT 및 `IMPL-int-XX` planned 분해 반영
 
 ## 검증 스냅샷

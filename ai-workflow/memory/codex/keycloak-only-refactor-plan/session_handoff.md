@@ -5,7 +5,7 @@
 - 대상 독자: 후속 에이전트, 리뷰어, 프로젝트 리드
 - 상태: in_progress
 - 최종 수정일: 2026-05-18
-- 관련 문서: `docs/planning/keycloak_only_refactor_execution_plan.md`
+- 관련 문서: `docs/infrastructure/keycloak-idp/refactor_execution_plan.md`
 
 ## 이번 세션까지 누적 요약
 

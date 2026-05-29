@@ -7,7 +7,7 @@
 - 작성일: 2026-05-18
 - 결정일: 2026-05-17 (실 초안), 2026-05-18 사후 명문화 (sprint `claude/work_260518-c`)
 - 결정 근거 sprint: `codex/next-step-20260516` (PR #139, sha `e2a76fb`).
-- 관련 문서: [ADR-0015 HomeLab pull strategy](./0015-homelab-adapter-pull-strategy.md), [`docs/planning/prometheus_homelab_alerts.md`](../planning/prometheus_homelab_alerts.md) (1차 초안 — 본 ADR 이 source-of-truth 로 승격), [추적성 매트릭스 §3 External Integration 행 + §4 ADR](../traceability/report.md).
+- 관련 문서: [ADR-0015 HomeLab pull strategy](./0015-homelab-adapter-pull-strategy.md), [`docs/domain/integration-registry/prometheus_homelab_alerts.md`](../domain/integration-registry/prometheus_homelab_alerts.md) (1차 초안 — 본 ADR 이 source-of-truth 로 승격), [추적성 매트릭스 §3 External Integration 행 + §4 ADR](../traceability/report.md).
 
 ## 1. 컨텍스트
 
@@ -65,7 +65,7 @@ ADR-0015 가 명시한 5 핵심 메트릭은 backend-core `/metrics` 엔드포�
 | `DevhubHomeLabPullNoRecentSuccess` | `(time() - devhub_homelab_last_success_unixtime) > 900` | 5m | critical | 최근 15분 내 pull 성공 기록 없음 |
 | `DevhubHomeLabDegradedProvidersDetected` | `devhub_homelab_degraded_providers > 0` | 10m | warning | snapshot 내 degraded provider 가 10분 이상 유지 |
 
-규칙 raw YAML 은 [`docs/planning/prometheus_homelab_alerts.md`](../planning/prometheus_homelab_alerts.md) §2 (planning doc) 또는 본 ADR §6 의 carve out 항목 참조.
+규칙 raw YAML 은 [`docs/domain/integration-registry/prometheus_homelab_alerts.md`](../domain/integration-registry/prometheus_homelab_alerts.md) §2 (planning doc) 또는 본 ADR §6 의 carve out 항목 참조.
 
 ### 4.2 환경별 임계값
 
@@ -98,7 +98,7 @@ label `environment: stage|prod` 로 Alertmanager 라우팅 분리.
 
 본 ADR 은 운영 정책 결정이므로 코드 변경 없음. backend 측 구현은 [ADR-0015](./0015-homelab-adapter-pull-strategy.md) 의 §5 가 다룸.
 
-- Alertmanager 규칙 YAML — `docs/planning/prometheus_homelab_alerts.md` §2~§2.2 의 stage/prod baseline 이 본 ADR 의 결정과 정합. **운영 자산 setup 가이드는 [`docs/setup/prometheus_alertmanager_setup.md`](../setup/prometheus_alertmanager_setup.md) — 외부 git 이관 layout + raw YAML reference + Alertmanager 라우팅 + 운영 SOP** (sprint `claude/work_260518-s`, §6 carve (1) resolved).
+- Alertmanager 규칙 YAML — `docs/domain/integration-registry/prometheus_homelab_alerts.md` §2~§2.2 의 stage/prod baseline 이 본 ADR 의 결정과 정합. **운영 자산 setup 가이드는 [`docs/setup/prometheus_alertmanager_setup.md`](../setup/prometheus_alertmanager_setup.md) — 외부 git 이관 layout + raw YAML reference + Alertmanager 라우팅 + 운영 SOP** (sprint `claude/work_260518-s`, §6 carve (1) resolved).
 - Dashboard JSON 모델 — **[`docs/setup/grafana/homelab_dashboard.json`](../setup/grafana/homelab_dashboard.json) 신규** (sprint `claude/work_260518-s`, §6 carve (2) resolved). Grafana schemaVersion 38 + 5 panel + Prometheus datasource + environment template variable. 운영팀이 Grafana 에 import 후 ops 저장소의 사본으로 deploy.
 
 ## 6. 후속 작업
@@ -113,7 +113,7 @@ label `environment: stage|prod` 로 Alertmanager 라우팅 분리.
 
 | 일자 | 변경 | 메모 |
 | --- | --- | --- |
-| 2026-05-17 | 1차 초안 (`docs/planning/prometheus_homelab_alerts.md`) — 3 alert + stage/prod 임계값 분리. | PR #139 활성화 시점 |
+| 2026-05-17 | 1차 초안 (`docs/domain/integration-registry/prometheus_homelab_alerts.md`) — 3 alert + stage/prod 임계값 분리. | PR #139 활성화 시점 |
 | 2026-05-18 | accepted — ADR 형식으로 사후 명문화. baseline = production 임계, stage 1주 관찰 후 prod 확정. multi-instance aggregation = `max by(provider)`. latency p95 alert 는 carve out. | sprint `claude/work_260518-c` |
 | 2026-05-18 | §6 carve out (1)+(2) **resolved** — (1) Alertmanager 운영 자산 setup 가이드 `docs/setup/prometheus_alertmanager_setup.md` 신규 (외부 git 이관 layout + raw YAML reference + 라우팅 예시 + 운영 SOP). (2) Grafana dashboard JSON 모델 `docs/setup/grafana/homelab_dashboard.json` 신규 (5 panel + Prometheus datasource + environment template variable). §5 결과에 두 신규 자산 link 추가. (3)/(4)/(5) carve out 유지 — baseline 1주 관찰 / push 경로 metric / stage→prod 확정 모두 사전 조건 부재. | sprint `claude/work_260518-s` (PR #160) |
 | 2026-05-18 | codex hotfix #8 P1 #2 + P2 #6 — `docs/setup/prometheus_alertmanager_setup.md` §4 prod/stage rule expr 에 `{environment="prod\|stage"}` matcher 명시 (P1: 단일 Prometheus 가 stage+prod scrape 시 cross-env contamination 회피 — 이전 expr 은 metric 양쪽 평가 후 label 만 rewrite → 잘못된 receiver routing) + `DevhubHomeLabPullNoRecentSuccess` 와 `DegradedProvidersDetected` 의 expr 를 `max by(provider)` aggregation 으로 (P2: multi-instance 시 instance 별 series 가 single-instance staleness 로도 알림하는 회귀 회피 — §6.4 의 운영 지침 정합). §8 DREQ rule 도 동일 패턴 (`environment` matcher + `max`/`sum` aggregation). | sprint `claude/work_260518-w` (본 PR) |

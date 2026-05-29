@@ -5,7 +5,7 @@
 - 대상 독자: Backend/Frontend 개발자, QA, AI 에이전트, 운영자.
 - 상태: draft
 - 최종 수정일: 2026-05-18
-- 관련 문서: [`requirements.md`](../requirements.md) §5.5, [`planning/development_request_concept.md`](../planning/development_request_concept.md), [`planning/system_usecases.md`](../planning/system_usecases.md), [`architecture.md`](../architecture.md) §7, [`backend_api_contract.md`](../backend_api_contract.md) §14, [`e2e_testing_strategy.md`](./e2e_testing_strategy.md), [`docs/adr/0012-dreq-external-intake-auth.md`](../adr/0012-dreq-external-intake-auth.md), [`docs/adr/0013-dreq-rbac-row-scoping.md`](../adr/0013-dreq-rbac-row-scoping.md), [`docs/adr/0014-dreq-intake-token-admin.md`](../adr/0014-dreq-intake-token-admin.md), [`docs/adr/0017-dreq-intake-token-operational-hardening.md`](../adr/0017-dreq-intake-token-operational-hardening.md).
+- 관련 문서: [`requirements.md`](../requirements.md) §5.5, [`domain/dev-request/concept.md`](../domain/dev-request/concept.md), [`planning/system_usecases.md`](../planning/system_usecases.md), [`architecture.md`](../architecture.md) §7, [`backend_api_contract.md`](../backend_api_contract.md) §14, [`e2e_testing_strategy.md`](./e2e_testing_strategy.md), [`docs/adr/0012-dreq-external-intake-auth.md`](../adr/0012-dreq-external-intake-auth.md), [`docs/adr/0013-dreq-rbac-row-scoping.md`](../adr/0013-dreq-rbac-row-scoping.md), [`docs/adr/0014-dreq-intake-token-admin.md`](../adr/0014-dreq-intake-token-admin.md), [`docs/adr/0017-dreq-intake-token-operational-hardening.md`](../adr/0017-dreq-intake-token-operational-hardening.md).
 
 ## 1. 기능 맵 (REQ/UC 기준)
 

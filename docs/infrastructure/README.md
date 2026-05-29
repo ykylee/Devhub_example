@@ -24,7 +24,7 @@
 | README 진입점 | 본 파일 | active |
 | Setup / Operations | `docs/setup/` (mixed — keycloak_operations.md, test-server-deployment.md, environment-setup.md 등) | active (Phase 2 일부 이관 후보) |
 | Concept / Design | `docs/planning/` (keycloak_*, single_port_reverse_proxy.md, prometheus_homelab_alerts.md 등) | Phase 2 이관 예정 → `docs/infrastructure/<영역>/` |
-| TC | `docs/tests/test_cases_m3_command_infra.md` | Phase 2 rename 후보 → `docs/infrastructure/commandworker/test_cases.md` |
+| TC | `docs/infrastructure/commandworker/test_cases.md` | Phase 2 rename 후보 → `docs/infrastructure/commandworker/test_cases.md` |
 
 ## 3. 호출 규칙 ([architecture.md §2.2](../architecture.md))
 

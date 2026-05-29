@@ -29,7 +29,7 @@ PermissionCache 메모리 캐시 + DB-backed RBAC 정책 + Row-scoping (ADR-0011
 | ARCH | `./architecture.md` | planned (Phase 3) |
 | API | `./api.md` | planned (Phase 3) |
 | TC | `./test_cases.md` | planned (Phase 2 이관) |
-| Design | `./keycloak_groups_mapping.md` | planned (Phase 2 — `docs/planning/keycloak_groups_rbac_mapping.md`) |
+| Design | `./keycloak_groups_mapping.md` | planned (Phase 2 — `docs/domain/rbac-permissions/keycloak_groups_mapping.md`) |
 
 ## 4. 관련 ADR
 

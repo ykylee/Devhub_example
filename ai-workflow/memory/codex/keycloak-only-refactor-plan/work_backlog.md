@@ -10,7 +10,7 @@
 
 | ID | 작업 | 상태 | 비고 |
 | --- | --- | --- | --- |
-| KC-PLAN-01 | Keycloak 단일화 실행 계획 문서화 | done | `docs/planning/keycloak_only_refactor_execution_plan.md` |
+| KC-PLAN-01 | Keycloak 단일화 실행 계획 문서화 | done | `docs/infrastructure/keycloak-idp/refactor_execution_plan.md` |
 | KC-BOOT-01 | 브랜치 memory 초기화(state/handoff/backlog) | done | 본 브랜치 디렉터리 생성 완료 |
 | KC-PR-A | config/provider 스켈레톤 구현 | done | 완료 커밋: `b8eb2ba` |
 | KC-PR-B | Keycloak JWT/JWKS verifier 전환 | done | verifier tests + main wiring |

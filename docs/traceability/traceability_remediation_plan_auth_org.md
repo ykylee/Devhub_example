@@ -5,7 +5,7 @@
 - 대상 독자: Backend/Frontend 담당, QA, 추적성 리뷰어.
 - 상태: draft
 - 최종 수정일: 2026-05-20
-- 관련 문서: [추적성 매트릭스](./report.md), [동기화 체크리스트](./sync-checklist.md), [API 계약](../backend_api_contract.md), [M2 인증 TC](../tests/test_cases_m2_auth.md), [M3 조직 TC](../tests/test_cases_m3_organization.md)
+- 관련 문서: [추적성 매트릭스](./report.md), [동기화 체크리스트](./sync-checklist.md), [API 계약](../backend_api_contract.md), [M2 인증 TC](../domain/auth-session/test_cases.md), [M3 조직 TC](../domain/organization-management/test_cases.md)
 
 ## 1. 미흡 항목 요약
 
@@ -37,7 +37,7 @@
   3. `system_usecases.md`의 `UC-AUTH-*`와 신규 TC 직접 매핑.
 - 산출물:
   - `docs/backend_api_contract.md` 갱신
-  - `docs/tests/test_cases_m2_auth.md` 갱신
+  - `docs/domain/auth-session/test_cases.md` 갱신
   - `frontend/tests/e2e/auth.spec.ts` 또는 신규 spec
 - 완료 조건:
   - `report.md` 인증 행 USECASE/API/TC 열이 신규 TC를 포함
@@ -51,7 +51,7 @@
   2. 미구현 유지 시 카탈로그를 planned로 격하하고 사유 명시.
   3. spec 파일과 TC 카탈로그 자동 대조 스크립트(간단 grep) 도입 검토.
 - 산출물:
-  - `docs/tests/test_cases_m3_organization.md` 정합화
+  - `docs/domain/organization-management/test_cases.md` 정합화
   - `frontend/tests/e2e/admin-org-crud.spec.ts` 또는 분리 spec 보강
 - 완료 조건:
   - 카탈로그 TC 100%가 spec에서 검색 가능하거나 planned 명시
@@ -65,7 +65,7 @@
   2. `REAUTH_REQUIRED` 시나리오를 요구사항/TC로 승격.
   3. 보안 설정 변경 시 ADR 또는 운영 가이드 링크 추가.
 - 산출물:
-  - `docs/tests/test_cases_m2_auth.md` 후속 항목 상태 갱신
+  - `docs/domain/auth-session/test_cases.md` 후속 항목 상태 갱신
   - 필요 시 ADR/설정 문서 업데이트
 - 완료 조건:
   - 후속 항목이 `open`에서 `planned(with owner/date)` 또는 `closed`로 전환

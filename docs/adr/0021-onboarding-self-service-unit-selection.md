@@ -6,7 +6,7 @@
 - **수정일**: 2026-05-21
 - **결정 근거 sprint**: `claude/keycloak-user-onboarding-concept` (PR #260, 컨셉 1차) + `claude/keycloak-onboarding-concept-2026-05-21` (PR #265, §5.9 skip-and-resume) + `claude/onboarding-requirements-2026-05-21` (PR #266, REQ §5.7) + `claude/onboarding-arch-2026-05-21` (PR #267, ARCH §9 + API §16) + `claude/onboarding-adr-2026-05-21` (본 ADR 발급)
 - **partial supersedes**: [ADR-0020 외부 Keycloak 가정 하의 계정/사용자 관리 책임 경계 (2026-05-20)](./0020-account-user-management-boundary.md) — §3.2 의 "신규 user 의 unit 초기 배치" row 의 lazy-auto-create-후 정책 + §4.1 sub-carve B 의 lazy auto-create 실 구현 결정 + §4.2 의 lazy auto-create 관련 보안 영향 + §6.1 후속 ADR 후보 row + §6.2 carve out 의 동일 항목 (5 위치, 상세는 §4.1). ADR-0020 의 **핵심 결정** (옵션 A 책임 경계 — Keycloak account vs DevHub user 분리) 은 reverse 하지 않고 **자연 확장**.
-- **관련 문서**: [`docs/planning/keycloak_user_onboarding_concept.md`](../planning/keycloak_user_onboarding_concept.md), [`docs/requirements.md §5.7`](../requirements.md), [`docs/architecture.md §9`](../architecture.md), [`docs/backend_api_contract.md §16`](../backend_api_contract.md), [`docs/planning/system_usecases.md §2.13`](../planning/system_usecases.md), [`docs/setup/onboarding_operations.md`](../setup/onboarding_operations.md) (운영 SOP — staging 1주 monitoring + rollback + incident response), [ADR-0019 Keycloak 단일화](./0019-keycloak-only-idp.md), [ADR-0020 계정/사용자 책임 경계](./0020-account-user-management-boundary.md)
+- **관련 문서**: [`docs/domain/onboarding/concept.md`](../domain/onboarding/concept.md), [`docs/requirements.md §5.7`](../requirements.md), [`docs/architecture.md §9`](../architecture.md), [`docs/backend_api_contract.md §16`](../backend_api_contract.md), [`docs/planning/system_usecases.md §2.13`](../planning/system_usecases.md), [`docs/setup/onboarding_operations.md`](../setup/onboarding_operations.md) (운영 SOP — staging 1주 monitoring + rollback + incident response), [ADR-0019 Keycloak 단일화](./0019-keycloak-only-idp.md), [ADR-0020 계정/사용자 책임 경계](./0020-account-user-management-boundary.md)
 
 ## 2. 컨텍스트
 
@@ -17,7 +17,7 @@
 - `authenticateActor` 가 Keycloak token 검증 후 `GetUser` miss 시 자동으로 `users` row 를 생성 (`primary_unit_id=NULL`)
 - 사용자가 인지 없이 시스템 진입 가능 — 첫 API call 차단 없음
 
-이 흐름은 ADR-0020 의 "운영 거버넌스 명확화" + "service account 권한 최소화" 결정과 정합했으나, **사용자 UX 측면의 3개 gap** 이 후속 검토에서 발견됐다 ([`docs/planning/keycloak_user_onboarding_concept.md` §2.2](../planning/keycloak_user_onboarding_concept.md)):
+이 흐름은 ADR-0020 의 "운영 거버넌스 명확화" + "service account 권한 최소화" 결정과 정합했으나, **사용자 UX 측면의 3개 gap** 이 후속 검토에서 발견됐다 ([`docs/domain/onboarding/concept.md` §2.2](../domain/onboarding/concept.md)):
 
 1. **소속 미배정 상태가 사용자 인지 없이 무기한 잔존** — UI 의 user list 에 "소속 없음" 으로만 표기. lazy-created user 가 자신의 소속을 시스템에 알릴 self-service 경로 부재.
 2. **`display_name` 정확성 의존** — Keycloak `name` claim 비어있으면 login (user_id) fallback. 사용자가 자신의 표시명을 명시적으로 확인/수정한 적 없음.
@@ -192,14 +192,14 @@ ADR-0020 의 **핵심 결정** (옵션 A — Keycloak account vs DevHub user 책
 
 ### 6.1 IMPL carve
 
-본 ADR 의 결정을 실 구현하는 sprint 분담 — 상세 plan 은 [`docs/planning/onboarding_impl_plan.md`](../planning/onboarding_impl_plan.md) (2026-05-21 sprint `claude/onboarding-impl-carve-plan-2026-05-21` 신규).
+본 ADR 의 결정을 실 구현하는 sprint 분담 — 상세 plan 은 [`docs/domain/onboarding/impl_plan.md`](../domain/onboarding/impl_plan.md) (2026-05-21 sprint `claude/onboarding-impl-carve-plan-2026-05-21` 신규).
 
 | Carve | RM ID | 영역 | Worker | Milestone | 진입 조건 |
 | --- | --- | --- | --- | --- | --- |
 | **IMPL-onboarding-backend** | RM-ONBOARD-01 | migration + onboardingGate middleware + 5 endpoint handler (API-83/84/85/86 + API-32/33 확장) + audit event const + lazy_auto_create 폐기. Feature flag default OFF. | Claude | M-v1.1 | 없음 (단독 진입 가능) |
 | **IMPL-onboarding-frontend** | RM-ONBOARD-02 | `/onboarding` page + OrganizationPicker (typeahead + tree) + skip flag sessionStorage + banner + `(dashboard)/layout` 3-branch gating + `/account` unit edit | Gemini | M-v1.1 | Carve A 머지 후 |
 | **IMPL-onboarding-admin** | RM-ONBOARD-03 | `/admin/settings/users` 의 "Confirm Review" 액션 + pending_review user list filter + `ConfirmReviewModal` | Gemini | M-v1.1 | Carve A 머지 후. Carve B 와 병행 가능 |
-| **IMPL-onboarding-tests** | RM-ONBOARD-04 | UT-onboarding-* (handler 단위) + TC-ONBOARD-* (E2E mega lifecycle, concept §8 #12 의 6 시드 활용) + `docs/tests/test_cases_m7_onboarding.md` | Claude (UT) + Gemini (E2E) | M-v1.1 | Carve A + B + C 모두 머지 후 |
+| **IMPL-onboarding-tests** | RM-ONBOARD-04 | UT-onboarding-* (handler 단위) + TC-ONBOARD-* (E2E mega lifecycle, concept §8 #12 의 6 시드 활용) + `docs/domain/onboarding/test_cases.md` | Claude (UT) + Gemini (E2E) | M-v1.1 | Carve A + B + C 모두 머지 후 |
 
 GitHub issue 등록: P2-8 ~ P2-11 (4건, `release_v1_roadmap.md` §3.3 매트릭스 참조).
 
@@ -225,5 +225,5 @@ GitHub issue 등록: P2-8 ~ P2-11 (4건, `release_v1_roadmap.md` §3.3 매트릭
 | --- | --- | --- |
 | 2026-05-21 | 본 ADR 발급. ADR-0020 의 lazy auto-create 결정 (§3.2 / §4.1 sub-carve B / §4.2 / §6.1 / §6.2, 5 위치) partial supersession + self-service unit selection 책임 경계 확장. 3 tier 접근 상태머신 + skip-and-resume + role 권한 상승 차단 정합. 컨셉 (PR #260 + #265) + 요구사항 (PR #266) + 설계 (PR #267) 의 누적 결정 명문화. | `claude/onboarding-adr-2026-05-21` |
 | 2026-05-21 | codex review hotfix (PR #270) — ADR-0020 메타 헤더 3 line (상태 / partial superseded by / supersession 안내 box) 의 supersession scope "4 위치" → "5 위치" + §6.1 explicit 정합. 본 ADR 본문은 변경 없음. | `claude/onboarding-codex-hotfix-2026-05-21` |
-| 2026-05-21 | §6.1 IMPL carve 표 확장 — RM-ONBOARD-01..04 + worker / milestone / 진입 조건 column 추가 + [`onboarding_impl_plan.md`](../planning/onboarding_impl_plan.md) cross-link. GitHub issue 매핑 (P2-8..11). | `claude/onboarding-impl-carve-plan-2026-05-21` |
+| 2026-05-21 | §6.1 IMPL carve 표 확장 — RM-ONBOARD-01..04 + worker / milestone / 진입 조건 column 추가 + [`onboarding_impl_plan.md`](../domain/onboarding/impl_plan.md) cross-link. GitHub issue 매핑 (P2-8..11). | `claude/onboarding-impl-carve-plan-2026-05-21` |
 | 2026-05-21 | **RM-ONBOARD-01 IMPL-backend (Carve A) resolved** (PR #278, issue #272). migration 000033 + domain model 확장 + store (`SubmitOnboarding`/`ConfirmUserReview`/`SearchOrgUnits` 신규 + 4 SELECT 갱신) + authenticateActor 의 feature flag conditional (default OFF lazy 유지) + onboardingGate middleware + 5 handler (API-83/84/85/86 + API-32 확장) + permissions.go + main.go env wire + UT 12건. Feature flag `DEVHUB_ONBOARDING_GATE_ENABLED` default false — 단독 머지 후 main 안정성 보장. handler-level flag guard 로 신규 endpoint 가 flag false 시 404 (self-review P1 #1). lazy_auto_create.go 는 본 PR 에서 deletion 안 함 — Carve D default ON flip 이후 별도 hotfix. `isValidLazyRole` 은 `onboarding_roles.go` 로 분리 (P1 #2 cross-file dependency). | `claude/issue-272-onboarding-backend` |

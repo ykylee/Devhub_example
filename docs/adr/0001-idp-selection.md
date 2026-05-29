@@ -214,7 +214,7 @@ sequenceDiagram
 
 ## 9. 구현 계획 (개략)
 
-> **[2026-05-19 supersession]**: 본 §9 의 7 step Hydra/Kratos PoC + Kratos webhook + Kratos admin API wrapper 구현 계획은 PR #167 (2026-05-18, codex/keycloak-only-refactor-plan) 의 [KC-PR-A..F](../planning/keycloak_only_refactor_execution_plan.md#7-단계별-구현-계획-pr-분할--모두-pr-167-로-머지됨) 6단계 머지로 reversal. 현재 구현은 Keycloak verifier + Keycloak Admin Client + migration 000021 (idp_subject) + frontend OIDC discovery. 본 절 본문은 historical context. 실제 구현 step 은 [ADR-0019 §4.1](./0019-keycloak-only-idp.md#41-코드-변경-pr-167-머지-사실) 참조.
+> **[2026-05-19 supersession]**: 본 §9 의 7 step Hydra/Kratos PoC + Kratos webhook + Kratos admin API wrapper 구현 계획은 PR #167 (2026-05-18, codex/keycloak-only-refactor-plan) 의 [KC-PR-A..F](../infrastructure/keycloak-idp/refactor_execution_plan.md#7-단계별-구현-계획-pr-분할--모두-pr-167-로-머지됨) 6단계 머지로 reversal. 현재 구현은 Keycloak verifier + Keycloak Admin Client + migration 000021 (idp_subject) + frontend OIDC discovery. 본 절 본문은 historical context. 실제 구현 step 은 [ADR-0019 §4.1](./0019-keycloak-only-idp.md#41-코드-변경-pr-167-머지-사실) 참조.
 
 세부 task 분해는 후속 backlog 항목으로 관리한다. Phase 13 1차 implementation 단계의 상위 흐름:
 

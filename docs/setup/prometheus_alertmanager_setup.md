@@ -5,7 +5,7 @@
 - 대상 독자: 운영자 (SRE), On-call.
 - 상태: draft
 - 최종 수정일: 2026-05-20
-- 관련 문서: [ADR-0015 HomeLab pull](../adr/0015-homelab-adapter-pull-strategy.md), [ADR-0016 alerts policy](../adr/0016-prometheus-alerts-policy.md), [HomeLab agent token rotation SOP](./homelab_agent_token_rotation.md), [`docs/planning/prometheus_homelab_alerts.md`](../planning/prometheus_homelab_alerts.md) (planning 1차 초안).
+- 관련 문서: [ADR-0015 HomeLab pull](../adr/0015-homelab-adapter-pull-strategy.md), [ADR-0016 alerts policy](../adr/0016-prometheus-alerts-policy.md), [HomeLab agent token rotation SOP](./homelab_agent_token_rotation.md), [`docs/domain/integration-registry/prometheus_homelab_alerts.md`](../domain/integration-registry/prometheus_homelab_alerts.md) (planning 1차 초안).
 
 ## 1. 배경 + 책임 분리
 

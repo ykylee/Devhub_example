@@ -71,4 +71,4 @@
   3. 알림 규칙(Alertmanager): pull 실패 연속, degraded provider 수 증가, last_success staleness.
 - 상태:
   - 1, 2번 완료.
-  - 3번은 `docs/planning/prometheus_homelab_alerts.md` 초안에 정리.
+  - 3번은 `docs/domain/integration-registry/prometheus_homelab_alerts.md` 초안에 정리.

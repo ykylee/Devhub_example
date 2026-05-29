@@ -7,7 +7,7 @@
 
 ## 이번 세션 결과
 
-- `docs/planning/keycloak_user_onboarding_concept.md` 컨셉 결정사항 다수 확정.
+- `docs/domain/onboarding/concept.md` 컨셉 결정사항 다수 확정.
 - open question 항목 중 5.2/5.3/5.4/5.5/5.6/8/9/10/11/12를 결정 상태로 전환.
 
 ## 핵심 결정 요약

@@ -84,7 +84,7 @@
 | PR | sha | sprint / issue | 핵심 |
 | --- | --- | --- | --- |
 | #243 | `2a1c627` | sprint -m housekeeping #6 | sprint -k (PR #241) + sprint -l (PR #242) 흡수 |
-| #244 | `6810384` | sprint -n-214-service-account-min-role **(issue #217 P2-1 done)** | ADR-0020 sub-carve E 옵션 A 정공법 — 5 commit: organization.go password 분기 제거 + main.go seedLocalAdmin + KeycloakAdminClient write methods 4건 + IdentityAdmin interface 정리 + docs/planning/keycloak_service_account_min_role.md 신규 |
+| #244 | `6810384` | sprint -n-214-service-account-min-role **(issue #217 P2-1 done)** | ADR-0020 sub-carve E 옵션 A 정공법 — 5 commit: organization.go password 분기 제거 + main.go seedLocalAdmin + KeycloakAdminClient write methods 4건 + IdentityAdmin interface 정리 + docs/infrastructure/keycloak-idp/service_account_min_role.md 신규 |
 | #245 | `6656c2a` | codex/issue-238-single-port-nginx-v2 → claude/work_260520-o-238-augment **(issue #238 P0-4 done)** | 단일 포트 reverse proxy (ADR-0018) — codex 1차 3 commit + Claude 인계 보강 6 commit (healthcheck + TLS SOP + dev local mode + 404→302 + Dockerfile build args + Keycloak wildcard SOP) |
 | #246 | `b1e34bd` | gemini/work_260520-a-209-accounts-cleanup **(issue #209 P0-1 frontend done)** | ADR-0020 sub-carve B-frontend — account.service.ts 폐기 + MemberTable admin actions 제거 + AdminSettingsUsersPage Keycloak Console link + Claude hotfix (broken merge marker + null 가드 + 빈 td) |
 | #249 | `7e8388d` | gemini/work_260520-c-216-kratos-keycloak-e2e **(issue #216 P1-5 done)** | P1-5 e2e Kratos→Keycloak 실 코드 전환 — legacy SQL/scripts 5 file 삭제 + setup-keycloak.sh 신규 + dev-up.sh Keycloak 전환 + global-setup.ts 동적 idp_subject sync + Claude hotfix (38MB binary + manage-users → view-events + SQL injection 방어) |
@@ -247,8 +247,8 @@ ADR-0020 §4.1 sub-carve B 본격 진입. 권장 작업 단위:
 | Sprint | PR | sha | 핵심 |
 | --- | --- | --- | --- |
 | `claude/work_260519-ad` | #198 | `bcca86a` | **Kratos 잔재 residual cleanup (ADR-0019 정공법)** — 직전 handoff 시점 PR TBD 였음. 본 housekeeping 으로 finalize. 상세는 아래 sprint -ad 표 row 참조. |
-| `claude/work_260520-a` | #199 | `b0bcced` | **계정/사용자 관리 리팩토링 Phase 1 — 현황 파악 매트릭스** (`docs/planning/account_user_management_redesign.md` 신규, 235 lines). §1 책임 분리 매트릭스 13 row + §1.1 source-of-truth 이중화 issue 3건 + §2 backend 17 endpoint 매트릭스 + §2.1 IdentityAdmin 5 메서드 → Keycloak Admin REST 매핑 + §3 frontend 4 page + §4 DB schema + §4.5 Phase 2 입력 옵션 A~D. 핵심 발견 5건: role 이중 source-of-truth / status 이중 source / POST `/accounts` vs POST `/users` 중복 / dead frontend code (unlockAccount, deleteAccount) / `PUT /rbac/subjects/:id/roles` UI 미구현. |
-| `claude/work_260520-b` | #200 | `95d6909` | **계정/사용자 관리 리팩토링 Phase 2 — 책임 분리 design + 명시 결정 6건 확정** (`docs/planning/account_user_management_redesign.md` §5 신규 10 sub-section, 270+/16- LoC). 결정 6건: A 전면 폐기 / B `/login` minimal entry 유지 / C event listener 확장 + lazy hot path / D `rbac_subject_roles` 완전 제거 / E read-only mode self-reverse / F JWKS stale-while-error expiry case 확장. §5.1 결정 표 + §5.2 lazy auto-create + §5.3 event listener 매핑 표 (USER:CREATE/UPDATE/DELETE/GROUP_MEMBERSHIP/RESET_PASSWORD/DISABLE_CREDENTIALS) + §5.4 frontend cleanup + §5.5 service account 권한 축소 SOP + §5.6 JWKS expiry case + §5.7 `/login` 정리 + §5.8 `rbac_subject_roles` 폐기 + §5.9 Phase 1 매트릭스 오류 정정 (테이블 자체 없음) + §5.10 ADR-0020 후보 outline. |
+| `claude/work_260520-a` | #199 | `b0bcced` | **계정/사용자 관리 리팩토링 Phase 1 — 현황 파악 매트릭스** (`docs/domain/auth-session/account_redesign.md` 신규, 235 lines). §1 책임 분리 매트릭스 13 row + §1.1 source-of-truth 이중화 issue 3건 + §2 backend 17 endpoint 매트릭스 + §2.1 IdentityAdmin 5 메서드 → Keycloak Admin REST 매핑 + §3 frontend 4 page + §4 DB schema + §4.5 Phase 2 입력 옵션 A~D. 핵심 발견 5건: role 이중 source-of-truth / status 이중 source / POST `/accounts` vs POST `/users` 중복 / dead frontend code (unlockAccount, deleteAccount) / `PUT /rbac/subjects/:id/roles` UI 미구현. |
+| `claude/work_260520-b` | #200 | `95d6909` | **계정/사용자 관리 리팩토링 Phase 2 — 책임 분리 design + 명시 결정 6건 확정** (`docs/domain/auth-session/account_redesign.md` §5 신규 10 sub-section, 270+/16- LoC). 결정 6건: A 전면 폐기 / B `/login` minimal entry 유지 / C event listener 확장 + lazy hot path / D `rbac_subject_roles` 완전 제거 / E read-only mode self-reverse / F JWKS stale-while-error expiry case 확장. §5.1 결정 표 + §5.2 lazy auto-create + §5.3 event listener 매핑 표 (USER:CREATE/UPDATE/DELETE/GROUP_MEMBERSHIP/RESET_PASSWORD/DISABLE_CREDENTIALS) + §5.4 frontend cleanup + §5.5 service account 권한 축소 SOP + §5.6 JWKS expiry case + §5.7 `/login` 정리 + §5.8 `rbac_subject_roles` 폐기 + §5.9 Phase 1 매트릭스 오류 정정 (테이블 자체 없음) + §5.10 ADR-0020 후보 outline. |
 | `codex/keycloak-only-refactor-plan` (post-#200) | #201 | `cff97d4` | **e2e 로그인/로그아웃/signup/audit 시나리오 안정화** — 외부 codex 작성. main PR #200 conflict 해소 (`bae9990`) + e2e/auth Keycloak login + runtime OIDC defaults (`08fab34`) + Phase 2 design duplicate (`09fefb3`). 변경 영역: frontend e2e (audit/auth/signout/signup) spec + `lib/services/auth.service.ts` + `global-setup.ts` + `fixtures.ts` + `api/runtime-config/route.ts`. frontend e2e 전체 47 passed. PR body: 작업 중 로컬 DB 에 000030 rename migration 적용해 users.idp_subject 정합. |
 | `ci-fix` | #202 | `abc8cc9` | **Keycloak E2E CI pipeline 정합 + sync guard 신규 (큰 PR)** — 외부 본인 7 commit: `a66f67d` (e2e pipeline Keycloak 정합 + `scripts/ci-e2e-sync-check.sh` 51 lines 신규) + `9b288e5` (runner 호환) + `348d149` (Keycloak service-account admin role 부여) + `0c69f9c` + `257ae70` (audience mapper for e2e tokens) + `af743bc` (signout user-switch flow timeout relax) + `e285326` (signout 후 session clear 대기). 변경 영역: `.github/workflows/ci.yml` 210 lines 갱신 + `scripts/ci-e2e-sync-check.sh` 신규 + frontend e2e fixtures/global-setup. **잔존 검증**: 본 PR 이 잔여 carve "e2e Kratos → Keycloak 실 코드 전환" 의 CI 단 부분 해소 — sprint -m design (`e2e_keycloak_migration.md`) 정합 cross-check 권장. |
 | `claude/work_260520-c` | #204 | `12bb557` | **main flat memory housekeeping #3** — 위 5 PR (#198~#202) 일괄 흡수. state.json (head_commit abc8cc9 + merged_prs_2026_05_19 에 PR #197/#198 finalize + merged_prs_2026_05_20 신규 4 PR + account_user_management_redesign_2026_05_20 객체 신규 + external_pr_2026_05_20_ci_e2e_keycloak 객체 신규) + session_handoff (본 표 + 다음 directive 갱신) + work_backlog (header + 변경 이력 5 row) + auto-memory project_2026_05_20_post_198_housekeeping.md. sprint -ad / -a / -b branch state.json finalize 3개. |
@@ -321,9 +321,9 @@ Phase 1 (PR #199) 현황 파악 + Phase 2 (PR #200) design 완료 — 실 구현
 | `-c` | #171 | `23602f5` | **ADR-0019 §5.3 (1)+(2)+(3) SOP — Keycloak operations SOP 단일 통합 문서** (`docs/setup/keycloak_operations.md`, 11 section): realm/client/role + JWKS rotation + employee_id custom claim |
 | `-d` | #172 | `d11917b` | **ADR-0019 §5.3 (4) SSO logout chain (RP-initiated) SOP** (keycloak_operations.md §8.5): frontend `auth.service.ts:100-126` 인용 + admin console SOP + chain order + 보안 4 위협 |
 | `-e` | #173 | `6245bda` | **ADR-0019 §5.3 (9) audit event listener design** (`docs/planning/keycloak_event_audit_integration.md`): 옵션 3종 + 권장 B admin event polling + audit_logs action 매핑 25 row + 구현 PR-A..E + ADR-0020 후보 |
-| `-f` | #174 | `947bd2f` | **ADR-0019 §5.3 (8) groups → RBAC role 자동 매핑 design** (`docs/planning/keycloak_groups_rbac_mapping.md`): 옵션 4종 + 권장 B group composite + **backend 변경 없음** + keycloak_operations §4.3/§8.1 갱신 |
-| `-g` | #175 | `aa0c029` | **ADR-0019 §5.3 (7) off-boarding 즉시성 design + ADR-0008 §6 통합** (`docs/planning/keycloak_offboarding_immediacy.md`): 옵션 6종 + Phase 1 HR ETL push + Phase 2 LDAP federation + keycloak_operations §8.2 보강 |
-| `-h` | #176 | `455556b` | **ADR-0019 §5.3 (6) Keycloak failover design — §5.3 design 완결 milestone** (`docs/planning/keycloak_failover.md`): 옵션 6종 + Phase 1 graceful degradation + Phase 2 HA active-active + 옵션 E backup IdP 명시 제외 (ADR-0019 충돌) |
+| `-f` | #174 | `947bd2f` | **ADR-0019 §5.3 (8) groups → RBAC role 자동 매핑 design** (`docs/domain/rbac-permissions/keycloak_groups_mapping.md`): 옵션 4종 + 권장 B group composite + **backend 변경 없음** + keycloak_operations §4.3/§8.1 갱신 |
+| `-g` | #175 | `aa0c029` | **ADR-0019 §5.3 (7) off-boarding 즉시성 design + ADR-0008 §6 통합** (`docs/infrastructure/keycloak-idp/offboarding_immediacy.md`): 옵션 6종 + Phase 1 HR ETL push + Phase 2 LDAP federation + keycloak_operations §8.2 보강 |
+| `-h` | #176 | `455556b` | **ADR-0019 §5.3 (6) Keycloak failover design — §5.3 design 완결 milestone** (`docs/infrastructure/keycloak-idp/failover.md`): 옵션 6종 + Phase 1 graceful degradation + Phase 2 HA active-active + 옵션 E backup IdP 명시 제외 (ADR-0019 충돌) |
 | `-i` | (본) | TBD | main flat memory housekeeping — sprint -c~-h 6 PR 누적 흡수 + ADR-0019 §5.3 design 완결 milestone 명문화 + auto-memory entry + sprint -c~-h state finalize 6개 |
 
 ## ADR-0019 §5.3 design 완결 milestone (MFA 제외, 7/7 = 100%)
@@ -370,8 +370,8 @@ Phase 1 (PR #199) 현황 파악 + Phase 2 (PR #200) design 완료 — 실 구현
 | `-r` | #159 | `79c0ec3` | **Jira 보고서 self-review hotfix** — P1 3건 (ARCH 23→29 / TC 12 / M1 RBAC PR 범위) + P2 4건 (Mermaid Jira 호환 caveat / sprint code 안내 / PR #158 명시) |
 | `-s` | #160 | `31cdad6` | **ADR-0016 §6 (1)+(2) resolved** — `docs/setup/prometheus_alertmanager_setup.md` (외부 git layout + stage/prod raw YAML + 라우팅 + 운영 SOP) + `docs/setup/grafana/homelab_dashboard.json` (5 panel + environment template) |
 | `-t` | #161 | `8802a5b` | **ADR-0017 §6 (a)+(c)+(d) resolved** — `internal/devrequest/{metrics,intake_token_cron}.go` 신규 + `HardRevokeExpiredIntakeTokens` + `Count{ExpiringSoon,Stale}IntakeTokens` + audit `dev_request_intake_token.auto_revoked` + counter `devhub_intake_token_auto_revoked_total` + 5 cron unit test + 3 store integration sub-test |
-| `-u` | #162 | `338c430` | **단일 포트 reverse proxy design 검토** — `docs/planning/single_port_reverse_proxy.md` (16 section, nginx 권장, /devhub prefix, ADR-0018 후보) |
-| `-v` | #163 | `cdd73b0` | **Keycloak SSO federation design 검토** — `docs/planning/keycloak_sso_federation.md` (16 section, Kratos federation 권장, HRDB employee_id strict link, ADR-0019 후보, RM-M4-09 구체화) |
+| `-u` | #162 | `338c430` | **단일 포트 reverse proxy design 검토** — `docs/infrastructure/deployment-automation/single_port_reverse_proxy.md` (16 section, nginx 권장, /devhub prefix, ADR-0018 후보) |
+| `-v` | #163 | `cdd73b0` | **Keycloak SSO federation design 검토** — `docs/infrastructure/keycloak-idp/sso_federation.md` (16 section, Kratos federation 권장, HRDB employee_id strict link, ADR-0019 후보, RM-M4-09 구체화) |
 | `-w` | #164 | `4dd02ad` | **codex review hotfix #8** — P1 3건 (HTTP puller ErrUnexpectedEOF retry / PromQL env scoping / Hydra admin URL) + P2 6건 (scopeFilter / react-flow assertion / file puller trailing JSON / ADR-0006+0012 link / NoRecentSuccess aggregation) |
 | `reverse-proxy` | #166 | `694e694` | **단일 외부 포트 역프록시(Nginx) 구성 및 basePath 구현** — Same-Origin CORS 무력화 + basePath /devhub 런타임 dynamic endpoints resolution + Codex P1 피드백 반영 완료 |
 | `keycloak-only` | #167 | `dff487d` | **Keycloak OIDC 단일화 및 코드/문서/테스트 가이드 최종 정합화** — Kratos/Hydra 전면 제거 + OIDC Discovery 도입 + In-Memory JWKS 캐싱 및 client roles(resource_access) 매핑 완결 |
@@ -426,7 +426,7 @@ ADR §7 의 변경 이력 row 에 sprint code 뒤 PR 번호 추가 (`sprint X (P
 
 ### 1순위 — 계정/사용자 관리 리팩토링 Phase 3 (실 구현) 진입
 
-PR #199/#200 의 design 자산 (`docs/planning/account_user_management_redesign.md`) 따라 8건 carve 실 구현. 권장 순서:
+PR #199/#200 의 design 자산 (`docs/domain/auth-session/account_redesign.md`) 따라 8건 carve 실 구현. 권장 순서:
 
 1. **backend code 제거 + lazy auto-create** — accounts_admin handler 4 + KeycloakAdminClient manage-users 호출처 4 모두 제거 + `authenticateActor` lazy backfill (결정 A + 결정 D 의 `rbac_subject_roles` 폐기 자연 통합). 결정 C 의 event listener 확장 전에 우선 진입 가능.
 2. **frontend cleanup** — `account.service.ts` 폐기 + `MemberTable.tsx` 정리 + `/admin/settings/users` UI 정리 (backend 제거 후 dead UI 정리).
@@ -671,9 +671,9 @@ ADR §4.3 환경 변수 표는 두 컬럼:
 
 | 단계 | PR | 결과 |
 | --- | --- | --- |
-| Concept staged | #135 (codex/memory-next-step-20260515) | `docs/planning/external_system_integration_concept.md` + `external_integration_capability_matrix.md` + REQ-FR-INT + REQ-NFR-INT + UC-INT + ARCH-INT + API-69..78 + traceability §3 row + IMPL-int planned 분해 + TC-INT |
+| Concept staged | #135 (codex/memory-next-step-20260515) | `docs/domain/integration-registry/external_system_concept.md` + `external_integration_capability_matrix.md` + REQ-FR-INT + REQ-NFR-INT + UC-INT + ARCH-INT + API-69..78 + traceability §3 row + IMPL-int planned 분해 + TC-INT |
 | Backend 1차 | #139 (codex/next-step-20260516) | `internal/integrations/adapters/{contract,homelab,homelab_file_puller,homelab_http_puller,homelab_pull_loop,metrics}.go` + `internal/store/integration_registry.go` + `infra_snapshots.go` + `httpapi/integration_registry.go` + `infra_integrations.go` + API-73..78 활성화 + Prometheus `/metrics` + migration 000028 (integration_registry) + 000029 (infra_service_snapshots) |
-| Supporting docs | (PR #139 부수) | `docs/planning/homelab_adapter_pull_strategy.md` + `prometheus_homelab_alerts.md` + `docs/tests/test_cases_m4_integration.md` + `reports/report_20260516_m4_integration.md` |
+| Supporting docs | (PR #139 부수) | `docs/domain/integration-registry/homelab_pull_strategy.md` + `prometheus_homelab_alerts.md` + `docs/domain/integration-registry/test_cases.md` + `reports/report_20260516_m4_integration.md` |
 
 ### D. Frontend 대시보드 리브랜딩 + 현황 페이지 신설 (PR #138)
 
@@ -757,7 +757,7 @@ P2 carve out 6/6 모두 해소 + DREQ E2E 부분 흡수 + External Integration 1
 | --- | --- | --- |
 | 1 | **traceability 동기화** | 외부 에이전트 PR #133~#140 의 ID 매핑(REQ-FR-INT / ARCH-INT / API-69..78 / IMPL-int / TC-INT / TC-DREQ-*) 이 `docs/traceability/report.md` §3 매트릭스 행에 반영됐는지 검수. PR #135 본문에 staged 가 있지만 후속 PR (#139) backend 활성화 후 status 갱신 필요. PR template 의 추적성 영향 섹션 누락 가능성. |
 | 2 | **DREQ-E2E 잔여** | intake auth Playwright spec — admin token issue → bearer header → POST 외부 의뢰 → assignee dashboard widget 노출 → promote (신규 application/project 단일 tx) → revoke. TC-DREQ-* 정식 발급. `dev-requests.spec.ts` (PR #136) 가 widget→list→detail flow 만 커버, intake 경로 미커버 추정. |
-| 3 | **External Integration design/impl carve out** | (a) Frontend 진입점 (system_admin 페이지 또는 admin/settings 통합), (b) API-69..72 (verifier strategy 외 endpoint) wire 검증 grep, (c) ADR 발급 (HomeLab adapter pull strategy + Prometheus alerts 정책 — `docs/planning/homelab_adapter_pull_strategy.md` + `prometheus_homelab_alerts.md` 의 결정 사항 ADR 화 후보). |
+| 3 | **External Integration design/impl carve out** | (a) Frontend 진입점 (system_admin 페이지 또는 admin/settings 통합), (b) API-69..72 (verifier strategy 외 endpoint) wire 검증 grep, (c) ADR 발급 (HomeLab adapter pull strategy + Prometheus alerts 정책 — `docs/domain/integration-registry/homelab_pull_strategy.md` + `prometheus_homelab_alerts.md` 의 결정 사항 ADR 화 후보). |
 | 4 | **ADR-0014 §6 본문 검수** | PR #137 이 expires_at + allowed_ips PATCH 를 활성화했지만 ADR-0014 §6 의 carve out 항목이 "구현됨" 으로 갱신됐는지 외부 에이전트가 처리했는지 미확인. |
 | 5 | **기존 m3/m4 carve out + Application 도메인 frontend** | 이전 session_handoff §3 후보 (M4 RM-M4-XX, Application 도메인 frontend UI, critical_warning_count 임계치 외부화 등) — 우선순위 낮음, 신규 작업 1~3 처리 후 재평가 권장. |
 
@@ -789,7 +789,7 @@ P2 carve out 6/6 모두 해소 + DREQ E2E 부분 흡수 + External Integration 1
 4. ADR-0011 §4.2 `enforceRowOwnership` + audit `auth.row_denied` + pmo_manager seed migration 000021
 
 ### 2. DREQ 도메인 4 결정 (sprint f~k)
-- **컨셉** (sprint f, PR #121) — `docs/planning/development_request_concept.md` + REQ-FR-DREQ-001..011 + UC-DREQ-01..10 + ARCH-DREQ-01..06 + API-59..65 spec
+- **컨셉** (sprint f, PR #121) — `docs/domain/dev-request/concept.md` + REQ-FR-DREQ-001..011 + UC-DREQ-01..10 + ARCH-DREQ-01..06 + API-59..65 spec
 - **AuthADR** (sprint g, PR #122) — ADR-0012 옵션 A (API 토큰 + IP allowlist) + `dev_request_intake_tokens` 테이블 스펙
 - **Backend** (sprint i, PR #124) — 7 endpoint activated + `requireIntakeToken` middleware + 19 신규 unit test + migration 000022/023/024
 - **Frontend** (sprint j, PR #125) — `/admin/settings/dev-requests` (system_admin 전체관리) + `/dev-requests` (일반 사용자, codex #125 hotfix) + DevRequestTable / DevRequestDetailModal / MyPendingDevRequestsWidget + developer/manager dashboard 통합
@@ -964,7 +964,7 @@ e86f38f PR #87 — ci: FU-CI-2/3/4 (playwright scope, GHA cache, frontend readin
 - **PR #92** — B 묶음 RBAC 1차. `backend_api_contract.md` §12.2~§12.10 의 9 헤더에 `(API-26..31, 38..40)` 본문 ID 노출. 매트릭스 §2.2 RBAC API + §2.4 IMPL-rbac-01..04 책임 정의 (handler / store / enforcement / cache) 서브 표 도입. §5.2 RBAC IMPL 정밀 매핑 항목 closed. Pass 1 review 보강으로 §3 RBAC 행을 ID 범위 + §2 서브 표 참조 패턴으로 정리 ("표 가독성 정책" 명문화).
 - **PR #93** — B1 auth 도메인 2차. `backend_api_contract.md` §11.3 `(API-19)` + §11.5 표에 API ID 컬럼 (`API-20..24, 35`) + §11.5.1 `(API-35)` 본문 ID 노출. 매트릭스 §2.2 Auth API + §2.4 IMPL-auth-01..07 책임 정의 (verifier / actor / 5 endpoint handler) 서브 표 도입. §3 인증/회원가입/계정 관리 행 정리 (cross-cut API-23 / API-35 명시).
 - **PR #101** — 2026-05-13 세션 종료 housekeeping sync 1차. main flat memory 의 PR #100 흡수 + 다음 세션 진입 후보 명문화 (RM-M4-01..09 + M3 carve out 6 항목).
-- **PR #102** — Project 도메인 컨셉 1차. `docs/planning/project_management_concept.md` 신규 (10 절: 도메인 정의 / 행위자 × usecase / MVP scope / 데이터 모델 초안 / 다른 도메인 연계 / UI 컨셉 / 미해결 항목 / 후속 4 sprint hook). 일반 사용자 = 조회 중심, 시스템 관리자 = 등록·관리 전용 분리. RBAC row-scoping (ADR-0011 후보) 는 Design sprint 보류. `docs/planning/README.md §5.1` 도메인 컨셉 인덱스 신설 + `docs/development_roadmap.md §5` 백로그 1행 추가. 추적성 ID 미발급 (컨셉 단계).
+- **PR #102** — Project 도메인 컨셉 1차. `docs/domain/application-lifecycle/project_concept.md` 신규 (10 절: 도메인 정의 / 행위자 × usecase / MVP scope / 데이터 모델 초안 / 다른 도메인 연계 / UI 컨셉 / 미해결 항목 / 후속 4 sprint hook). 일반 사용자 = 조회 중심, 시스템 관리자 = 등록·관리 전용 분리. RBAC row-scoping (ADR-0011 후보) 는 Design sprint 보류. `docs/planning/README.md §5.1` 도메인 컨셉 인덱스 신설 + `docs/development_roadmap.md §5` 백로그 1행 추가. 추적성 ID 미발급 (컨셉 단계).
 
 ## 1. 세션 종료 — 다음 세션 진입 후보
 
@@ -986,7 +986,7 @@ e86f38f PR #87 — ci: FU-CI-2/3/4 (playwright scope, GHA cache, frontend readin
 
 ### 1.1.b Project 도메인 후속 진입 후보 (PR #102 컨셉 1차 머지 후, 본 세션 신규)
 
-본 세션에서 [`docs/planning/project_management_concept.md`](../../docs/planning/project_management_concept.md) 컨셉 1차 머지 완료. 후속은 컨셉 §9 의 4 sprint hook 을 따른다.
+본 세션에서 [`docs/domain/application-lifecycle/project_concept.md`](../../docs/domain/application-lifecycle/project_concept.md) 컨셉 1차 머지 완료. 후속은 컨셉 §9 의 4 sprint hook 을 따른다.
 
 | 후속 sprint | 산출물 | 진입 조건 |
 | --- | --- | --- |

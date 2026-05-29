@@ -17,7 +17,7 @@
 - 관련 문서:
   - [ADR-0018 단일 외부 포트 역프록시 정책](../adr/0018-single-port-reverse-proxy-policy.md)
   - [ADR-0019 Keycloak 단일 IdP](../adr/0019-keycloak-only-idp.md)
-  - [docs/planning/single_port_reverse_proxy.md](../planning/single_port_reverse_proxy.md)
+  - [docs/infrastructure/deployment-automation/single_port_reverse_proxy.md](../infrastructure/deployment-automation/single_port_reverse_proxy.md)
   - [docs/setup/single_port_deployment.md](../setup/single_port_deployment.md)
   - [docs/setup/keycloak_operations.md](../setup/keycloak_operations.md)
 

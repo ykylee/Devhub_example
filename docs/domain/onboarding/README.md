@@ -30,9 +30,9 @@
 | REQ | `./requirements.md` | planned (Phase 3) |
 | ARCH | `./architecture.md` | planned (Phase 3) |
 | API | `./api.md` | planned (Phase 3) |
-| TC | `./test_cases.md` | planned (Phase 2 — `docs/tests/test_cases_m7_onboarding.md`) |
-| Concept | `./concept.md` | planned (Phase 2 — `docs/planning/keycloak_user_onboarding_concept.md`) |
-| Plan | `./impl_plan.md` | planned (Phase 2 — `docs/planning/onboarding_impl_plan.md`) |
+| TC | `./test_cases.md` | planned (Phase 2 — `docs/domain/onboarding/test_cases.md`) |
+| Concept | `./concept.md` | planned (Phase 2 — `docs/domain/onboarding/concept.md`) |
+| Plan | `./impl_plan.md` | planned (Phase 2 — `docs/domain/onboarding/impl_plan.md`) |
 
 ## 4. 관련 ADR
 
