@@ -3,8 +3,8 @@
 - 문서 목적: main 브랜치 기준 상위 백로그 인덱스. 세부 sprint backlog 는 브랜치별 메모리 디렉터리 참조.
 - 범위: 마일스톤 상태, 최근 머지, 잔여/후속 작업
 - 대상 독자: 프로젝트 리드, 후속 에이전트, 트랙 담당자
-- 상태: **2026-05-28 (post-architecture-restructure) update — pr-406.** PR #406에 [Domain - Shared - Infrastructure] 3대 레이어 및 도메인 내부 4대 계층(View-Service-Repository-Schema) 고도화 아키텍처 개편안 반영 완료. **다음 directive (Codex / Gemini)**: 1) P0 기술 부채 리팩토링 실행 (code-taxonomy.md §3의 applications.go, users_units.go 등 1,000 LoC 이상 거대 파일 분할) / 2) PR Title Lint CI 도입.
-- 최종 수정일: 2026-05-28 (post-architecture-restructure housekeeping)
+- 상태: **2026-05-29 (post-PR-407) update — main HEAD `4a1942e`.** PR #406 (code-taxonomy SoT) 후 PR #407 (cleanup-recovery 통합 sprint) 머지로 3대 레이어 + 4대 계층 구조가 backend-core + frontend 에 실 적용 완료. backend 21 패키지 / frontend 29 file 431 test 모두 PASS. CI 의 e2e + backend-integration job 은 refactor 정리 끝날 때까지 임시 비활성화. **다음 directive**: (P1) providerHasCapability 3 카피 통합 / view 컴포넌트 24개 100% coverage / CI e2e+integration 복원 / (P2) ApplicationRepository cross-domain decouple / ApplicationStore interface slim / (P3) shared/utils coverage 0% 조사 + PR Title Lint CI.
+- 최종 수정일: 2026-05-29 (PR #407 cleanup-recovery 머지 후 housekeeping)
 - 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [세션 인계](./session_handoff.md), [상태 스냅샷](./state.json), [M1 PR 리뷰 actions](./M1-PR-review-actions.md)
 
 ## 1. 마일스톤 진행 상황

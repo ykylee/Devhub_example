@@ -1,11 +1,11 @@
 {
   "schema_version": "1",
   "project": "DevHub Example",
-  "branch": "pr-406",
-  "status": "2026-05-28 (post-architecture-restructure) pr-406. [Domain - Shared - Infrastructure] 3대 레이어 및 도메인 내부 4대 계층(View-Service-Repository-Schema) 고도화 아키텍처 개편안 수립 및 docs/governance/code-taxonomy.md, docs/architecture.md 전면 리팩토링 반영 완료. PR #406의 Codex 인라인 리뷰 피드백 수렴 완료(ProviderModal 오너십 정정). 다음 directive (Codex / Gemini): 1) P0 기술 부채 리팩토링 실행 (code-taxonomy.md §3의 applications.go, users_units.go 분할) / 2) PR Title Lint CI 도입.",
-  "updated_at": "2026-05-28T12:22:00Z",
-  "head_commit": "e90ce75",
-  "head_summary": "fix(auth): 세션 만료 좀비 상태 정정 — proactive refresh + session-death + WS hardening + clean logout (#387) (#388)",
+  "branch": "main",
+  "status": "2026-05-29 main. PR #406 (code-taxonomy SoT 도입) 후 PR #407 (cleanup-recovery 통합 sprint) 머지로 3대 레이어 + 4대 계층 디렉터리 구조가 backend-core + frontend 에 실 적용 완료. backend 21 패키지 / frontend 29 file 431 test 모두 PASS. CI 의 e2e + backend-integration job 은 refactor 정리 끝날 때까지 `if: ... && false` 로 임시 비활성화. 후속 carve out: (1) providerHasCapability 3 카피 통합 / (2) view 컴포넌트 24개 100% coverage / (3) CI e2e+integration 복원 / (4) ApplicationRepository cross-domain decouple / (5) ApplicationStore interface slim.",
+  "updated_at": "2026-05-29T02:15:00Z",
+  "head_commit": "4a1942e",
+  "head_summary": "refactor(backend+frontend/cleanup-recovery): code-taxonomy 적용 후속 정리 (#407)",
   "milestones": {
     "M0": {
       "status": "done",
