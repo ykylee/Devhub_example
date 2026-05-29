@@ -43,7 +43,7 @@ vi.mock("@/shared/api/api-client", () => ({
 }));
 
 const skipFlag = { value: false };
-vi.mock("@/lib/storage/onboardingSkip", () => ({
+vi.mock("@/shared/utils/onboardingSkip", () => ({
   isOnboardingSkipped: () => skipFlag.value,
   markOnboardingSkipped: vi.fn(),
   clearOnboardingSkip: vi.fn(),
