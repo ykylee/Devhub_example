@@ -20,16 +20,16 @@ import {
   Rocket
 } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
-import { Badge } from "@/components/ui/Badge";
-import { cn } from "@/lib/utils";
+import { Badge } from "@/shared/ui-foundation/components/Badge";
+import { cn } from "@/shared/utils";
 import { useStore } from "@/lib/store";
-import { applicationService, ApplicationDashboard } from "@/lib/services/application.service";
-import { projectService } from "@/lib/services/project.service";
+import { applicationService, ApplicationDashboard } from "@/domain/application-lifecycle/service/application.service";
+import { projectService } from "@/domain/application-lifecycle/service/project.service";
 import { ApplicationRepository } from "@/lib/services/project.types";
 import { toUserErrorMessage } from "@/lib/services/error-message";
-import { lifecycleStatusBadgeVariant } from "@/lib/utils/lifecycle-status";
-import { applicationBuildStatusView } from "@/lib/utils/last-build";
-import { PageError, PageLoading } from "@/components/ui/PageState";
+import { lifecycleStatusBadgeVariant } from "@/shared/utils/lifecycle-status";
+import { applicationBuildStatusView } from "@/shared/utils/last-build";
+import { PageError, PageLoading } from "@/shared/ui-foundation/components/PageState";
 import { apiClient } from "@/lib/services/api-client";
 import {
   ResponsiveContainer,

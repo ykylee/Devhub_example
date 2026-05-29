@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/devhub/backend-core/internal/domain"
+	auditrep "github.com/devhub/backend-core/internal/domain/audit-ops/repository"
 	"github.com/devhub/backend-core/internal/store"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -37,6 +38,7 @@ func TestIntegration_AuditLogs_SourceEventID_DedupesViaUniqueIndex(t *testing.T)
 		t.Fatalf("connect raw pool: %v", err)
 	}
 	defer pool.Close()
+	aud := auditrep.NewAuditRepository(pgStore)
 
 	// 고유 source_event_id — 다른 테스트 row 와의 collision 회피.
 	sourceEventID := fmt.Sprintf("test-dedup-%d", time.Now().UnixNano())
@@ -53,7 +55,7 @@ func TestIntegration_AuditLogs_SourceEventID_DedupesViaUniqueIndex(t *testing.T)
 		SourceEventID: sourceEventID,
 		Payload:       map[string]any{"keycloak_event_type": "LOGIN", "ip_address": "10.0.0.1"},
 	}
-	inserted, err := pgStore.CreateAuditLog(ctx, first)
+	inserted, err := aud.CreateAuditLog(ctx, first)
 	if err != nil {
 		t.Fatalf("first CreateAuditLog: %v", err)
 	}
@@ -71,7 +73,7 @@ func TestIntegration_AuditLogs_SourceEventID_DedupesViaUniqueIndex(t *testing.T)
 		SourceEventID: sourceEventID,
 		Payload:       map[string]any{"keycloak_event_type": "LOGIN", "duplicate": true},
 	}
-	deduped, err := pgStore.CreateAuditLog(ctx, second)
+	deduped, err := aud.CreateAuditLog(ctx, second)
 	if err != nil {
 		t.Fatalf("second CreateAuditLog (dedup): %v", err)
 	}
@@ -117,6 +119,7 @@ func TestIntegration_AuditLogs_EmptySourceType_NotDeduped(t *testing.T) {
 		t.Fatalf("connect raw pool: %v", err)
 	}
 	defer pool.Close()
+	aud := auditrep.NewAuditRepository(pgStore)
 
 	sourceEventID := fmt.Sprintf("test-empty-type-%d", time.Now().UnixNano())
 	defer func() {
@@ -125,7 +128,7 @@ func TestIntegration_AuditLogs_EmptySourceType_NotDeduped(t *testing.T) {
 
 	// 빈 SourceType + 동일 SourceEventID 로 2회 INSERT — partial WHERE 가
 	// source_type IS NOT NULL 가드로 unique 제약 미적용 → 2 row 모두 정상 INSERT.
-	row1, err := pgStore.CreateAuditLog(ctx, domain.AuditLog{
+	row1, err := aud.CreateAuditLog(ctx, domain.AuditLog{
 		ActorLogin:    "a",
 		Action:        "x.y",
 		SourceEventID: sourceEventID,
@@ -134,7 +137,7 @@ func TestIntegration_AuditLogs_EmptySourceType_NotDeduped(t *testing.T) {
 	if err != nil {
 		t.Fatalf("first INSERT empty SourceType: %v", err)
 	}
-	row2, err := pgStore.CreateAuditLog(ctx, domain.AuditLog{
+	row2, err := aud.CreateAuditLog(ctx, domain.AuditLog{
 		ActorLogin:    "b",
 		Action:        "x.y",
 		SourceEventID: sourceEventID,
@@ -175,6 +178,7 @@ func TestIntegration_AuditLogs_EmptySourceEventID_AllowsMultipleRows(t *testing.
 		t.Fatalf("connect raw pool: %v", err)
 	}
 	defer pool.Close()
+	aud := auditrep.NewAuditRepository(pgStore)
 
 	tag := fmt.Sprintf("test-empty-source-%d", time.Now().UnixNano())
 	defer func() {
@@ -183,7 +187,7 @@ func TestIntegration_AuditLogs_EmptySourceEventID_AllowsMultipleRows(t *testing.
 
 	// 빈 SourceEventID 로 같은 action 2번 INSERT — 둘 다 성공해야 함 (partial WHERE 가
 	// NULL row 를 unique 제약에서 제외).
-	row1, err := pgStore.CreateAuditLog(ctx, domain.AuditLog{
+	row1, err := aud.CreateAuditLog(ctx, domain.AuditLog{
 		ActorLogin: "alice",
 		Action:     tag,
 		SourceType: domain.AuditSourceSystem,
@@ -191,7 +195,7 @@ func TestIntegration_AuditLogs_EmptySourceEventID_AllowsMultipleRows(t *testing.
 	if err != nil {
 		t.Fatalf("first INSERT empty source_event_id: %v", err)
 	}
-	row2, err := pgStore.CreateAuditLog(ctx, domain.AuditLog{
+	row2, err := aud.CreateAuditLog(ctx, domain.AuditLog{
 		ActorLogin: "bob",
 		Action:     tag,
 		SourceType: domain.AuditSourceSystem,

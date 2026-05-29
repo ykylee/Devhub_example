@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { User, Mail, Shield, Key, ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useStore } from "@/lib/store";
-import { authService } from "@/lib/services/auth.service";
+import { authService } from "@/domain/auth-session/service/auth.service";
 import { ProfileSelfEdit } from "@/components/account/ProfileSelfEdit";
 
 // ADR-0019 / sprint claude/work_260519-ad: self-service password change is

@@ -6,18 +6,26 @@ import (
 	"strings"
 	"time"
 
-	"github.com/devhub/backend-core/internal/audit"
-	"github.com/devhub/backend-core/internal/auth"
-	"github.com/devhub/backend-core/internal/commandworker"
-	"github.com/devhub/backend-core/internal/config"
-	"github.com/devhub/backend-core/internal/devrequest"
+	auditsvc "github.com/devhub/backend-core/internal/domain/audit-ops/service"
+	auditrep "github.com/devhub/backend-core/internal/domain/audit-ops/repository"
+	authsvc "github.com/devhub/backend-core/internal/domain/auth-session/service"
+	devreqsvc "github.com/devhub/backend-core/internal/domain/dev-request/service"
+	devreqrep "github.com/devhub/backend-core/internal/domain/dev-request/repository"
+	orgrep "github.com/devhub/backend-core/internal/domain/organization-management/repository"
+	apprep "github.com/devhub/backend-core/internal/domain/application-lifecycle/repository"
+	rbacrep "github.com/devhub/backend-core/internal/domain/rbac-permissions/repository"
+	realtimeview "github.com/devhub/backend-core/internal/domain/realtime/view"
+	intgregrep "github.com/devhub/backend-core/internal/domain/integration-registry/repository"
+	onboardview "github.com/devhub/backend-core/internal/domain/onboarding/view"
 	"github.com/devhub/backend-core/internal/domain"
-	"github.com/devhub/backend-core/internal/gitea"
-	"github.com/devhub/backend-core/internal/hrdb"
 	"github.com/devhub/backend-core/internal/httpapi"
+	"github.com/devhub/backend-core/internal/shared/config"
+	"github.com/devhub/backend-core/internal/infrastructure/commandworker"
+	"github.com/devhub/backend-core/internal/infrastructure/gitea"
+	"github.com/devhub/backend-core/internal/infrastructure/hrdb"
+	"github.com/devhub/backend-core/internal/infrastructure/serviceaction"
 	"github.com/devhub/backend-core/internal/integrations/adapters"
 	"github.com/devhub/backend-core/internal/normalize"
-	"github.com/devhub/backend-core/internal/serviceaction"
 	"github.com/devhub/backend-core/internal/store"
 )
 
@@ -36,11 +44,11 @@ func main() {
 	var devRequestStore httpapi.DevRequestStore
 	var devRequestIntakeTokenStore httpapi.IntakeTokenStore
 	var rbacStore httpapi.RBACStore
-	realtimeHub := httpapi.NewRealtimeHub()
+	realtimeHub := realtimeview.NewRealtimeHub()
 	var worker *commandworker.Worker
 	var liveWorker *commandworker.LiveWorker
 	var homeLabAdapterStore adapters.InfraSnapshotStore
-	var eventCursorStore store.EventCursorStore
+	var eventCursorStore auditrep.EventCursorStore
 	var pgStore *store.PostgresStore
 
 	if cfg.DBURL != "" {
@@ -55,14 +63,15 @@ func main() {
 		healthStore = pgStore
 		domainStore = pgStore
 		commandStore = pgStore
-		auditStore = pgStore
-		organizationStore = pgStore
-		applicationStore = pgStore
-		devRequestStore = pgStore
-		devRequestIntakeTokenStore = pgStore
-		rbacStore = pgStore
+		auditStore = auditrep.NewAuditRepository(pgStore)
+		organizationStore = orgrep.NewOrganizationRepository(pgStore)
+		applicationStore = apprep.NewApplicationRepository(pgStore)
+		devRequestRepository := devreqrep.NewDevRequestRepository(pgStore)
+		devRequestStore = devRequestRepository
+		devRequestIntakeTokenStore = devRequestRepository
+		rbacStore = rbacrep.NewRBACRepository(pgStore)
 		homeLabAdapterStore = pgStore
-		eventCursorStore = pgStore
+		eventCursorStore = auditrep.NewAuditRepository(pgStore)
 
 		worker = &commandworker.Worker{Store: pgStore, Publisher: realtimeHub}
 		if cfg.ServiceActionExecutorMode != "" {
@@ -82,7 +91,7 @@ func main() {
 	}
 
 	var verifier httpapi.BearerTokenVerifier
-	jwksVerifier := &auth.KeycloakJWKSVerifier{
+	jwksVerifier := &authsvc.KeycloakJWKSVerifier{
 		IssuerURL: cfg.OIDCIssuerURL,
 		JWKSURL:   cfg.OIDCJWKSURL,
 		ClientID:  cfg.OIDCClientID,
@@ -157,10 +166,10 @@ func main() {
 			BackendAIURL: cfg.BackendAIURL,
 		},
 		RealtimeHub:           realtimeHub,
-		RealtimeTickets:       httpapi.NewRealtimeTicketStoreFor(pgStore),
+		RealtimeTickets:       realtimeview.NewRealtimeTicketStoreFor(pgStore),
 		// codex P1 (#390) — task item ingestion 의 PostgresExternalTaskStore wire.
 		// pgStore 는 위 cfg.DBURL gate 에서 fatal 처리되므로 여기서는 non-nil 보장.
-		ExternalTaskStore:     store.NewPostgresExternalTaskStoreFor(pgStore),
+		ExternalTaskStore:     intgregrep.NewPostgresExternalTaskStoreFor(pgStore),
 		AuthDevFallback:       cfg.AuthDevFallback,
 		OnboardingGateEnabled: cfg.OnboardingGateEnabled,
 		ProjectModel:          cfg.ProjectModel,
@@ -248,7 +257,7 @@ func main() {
 	// store 와 audit emitter 가 모두 준비된 경우만 활성화 — config gate 가 false 거나
 	// store 가 nil 이면 skip (no-op).
 	if cfg.DREQTokenCronEnabled && devRequestIntakeTokenStore != nil {
-		if cronStore, ok := devRequestIntakeTokenStore.(devrequest.IntakeTokenStore); ok {
+		if cronStore, ok := devRequestIntakeTokenStore.(devreqsvc.IntakeTokenStore); ok {
 			interval := 10 * time.Minute
 			if strings.TrimSpace(cfg.DREQTokenCronInterval) != "" {
 				if parsed, err := time.ParseDuration(cfg.DREQTokenCronInterval); err == nil && parsed > 0 {
@@ -271,18 +280,19 @@ func main() {
 				}
 			}
 			emitter := buildIntakeTokenAuditEmitter(auditStore)
-			opts := devrequest.IntakeTokenCronOptions{
+			opts := devreqsvc.IntakeTokenCronOptions{
 				Interval:              interval,
 				ExpiringSoonThreshold: expiringThreshold,
 				StaleThreshold:        staleThreshold,
 				AuditEmitter:          emitter,
 			}
 			go func() {
-				err := devrequest.RunIntakeTokenCron(ctx, cronStore, opts)
+				err := devreqsvc.RunIntakeTokenCron(ctx, cronStore, opts)
 				if err != nil && err != context.Canceled {
 					log.Printf("dreq intake token cron stopped: %v", err)
 				}
 			}()
+
 			log.Printf("dreq intake token cron enabled (interval=%s expiring=%s stale=%s)", interval, expiringThreshold, staleThreshold)
 		}
 	}
@@ -308,45 +318,45 @@ func main() {
 			if maxEvents <= 0 {
 				maxEvents = 500
 			}
-			lister := audit.NewHTTPAPIEventListerAdapter(&keycloakAdminEventLister{kc: kc})
+			lister := auditsvc.NewHTTPAPIEventListerAdapter(&keycloakAdminEventLister{kc: kc})
 			emitter := buildKeycloakEventAuditEmitter(auditStore)
 			// ADR-0020 sub-carve C (sprint -k, issue #212) — user_sync dispatcher
 			// callback. admin event 처리 시 DevHub `users` 컬럼 자동 sync.
 			// orgStore nil 인 경우 sync 생략 (이전 sprint -u~-y 동작 동등).
-			var userSync audit.UserSyncCallback
+			var userSync auditsvc.UserSyncCallback
 			if organizationStore != nil {
-				userSync = func(syncCtx context.Context, action audit.SyncUserAction, identityID, _ string) {
+				userSync = func(syncCtx context.Context, action auditsvc.SyncUserAction, identityID, _ string) {
 					start := time.Now()
 					var err error
 					switch action {
-					case audit.SyncActionProfile:
-						err = audit.SyncUserProfile(syncCtx, kc, organizationStore, identityID)
-					case audit.SyncActionMembership:
-						err = audit.SyncUserMembership(syncCtx, kc, organizationStore, identityID)
-					case audit.SyncActionStatus:
+					case auditsvc.SyncActionProfile:
+						err = auditsvc.SyncUserProfile(syncCtx, kc, organizationStore, identityID)
+					case auditsvc.SyncActionMembership:
+						err = auditsvc.SyncUserMembership(syncCtx, kc, organizationStore, identityID)
+					case auditsvc.SyncActionStatus:
 						// USER:DELETE — Keycloak user 가 이미 gone. caller 가 username hint
 						// 없이 호출하므로 GetUserDetails 가 404. MarkUserDeactivated 는
 						// userID 가 빈 문자열이면 noop 반환. 이 경로는 PR #212 후속의
 						// audit_logs.actor_login 캐시 lookup 으로 보강 예정 (carve out).
-						err = audit.MarkUserDeactivated(syncCtx, organizationStore, identityID)
+						err = auditsvc.MarkUserDeactivated(syncCtx, organizationStore, identityID)
 					}
 					if err != nil {
 						log.Printf("user_sync %s identity=%s failed: %v", action, identityID, err)
-						audit.ObserveUserSyncError(action)
+						auditsvc.ObserveUserSyncError(action)
 						return
 					}
-					audit.ObserveUserSync(action)
-					audit.ObserveUserSyncLag(time.Since(start).Seconds())
+					auditsvc.ObserveUserSync(action)
+					auditsvc.ObserveUserSyncLag(time.Since(start).Seconds())
 				}
 			}
-			opts := audit.KeycloakEventPullerOptions{
+			opts := auditsvc.KeycloakEventPullerOptions{
 				Interval:     interval,
 				MaxEvents:    maxEvents,
 				AuditEmitter: emitter,
 				UserSync:     userSync,
 			}
 			go func() {
-				err := audit.RunKeycloakEventPuller(ctx, lister, eventCursorStore, opts)
+				err := auditsvc.RunKeycloakEventPuller(ctx, lister, eventCursorStore, opts)
 				if err != nil && err != context.Canceled {
 					log.Printf("keycloak event listener stopped: %v", err)
 				}
@@ -358,9 +368,9 @@ func main() {
 	// Onboarding pending_review count Gauge cron refresh (SOP §8 P3 carve).
 	// audit puller 패턴 정합 — single goroutine + ctx cancel. organizationStore 가
 	// PostgresStore 인 경우 CountPendingReview 메서드 자동 구현 (interface 어설션).
-	if counter, ok := organizationStore.(httpapi.OnboardingPendingReviewCounter); ok {
+	if counter, ok := organizationStore.(onboardview.OnboardingPendingReviewCounter); ok {
 		go func() {
-			err := httpapi.RunOnboardingPendingReviewGauge(ctx, counter, httpapi.OnboardingPendingGaugeOptions{})
+			err := onboardview.RunOnboardingPendingReviewGauge(ctx, counter, onboardview.OnboardingPendingGaugeOptions{})
 			if err != nil && err != context.Canceled {
 				log.Printf("onboarding pending_review gauge stopped: %v", err)
 			}
@@ -373,7 +383,7 @@ func main() {
 	// 큐 빈 주기 sync 의 fallback). env 미설정이어도 UI 로 등록한 Gitea provider 의
 	// sync job 은 동작.
 	if pgStore != nil {
-		giteaWorker := gitea.NewSyncWorker(pgStore, cfg.GiteaURL, cfg.GiteaToken)
+		giteaWorker := gitea.NewSyncWorker(intgregrep.NewIntegrationRepository(pgStore), cfg.GiteaURL, cfg.GiteaToken)
 		go func() {
 			if err := giteaWorker.Run(ctx, 30*time.Second); err != nil && err != context.Canceled {
 				log.Printf("gitea sync worker stopped: %v", err)
@@ -394,14 +404,14 @@ type keycloakAdminEventLister struct {
 	kc *httpapi.KeycloakAdminClient
 }
 
-func (a *keycloakAdminEventLister) ListUserEvents(ctx context.Context, dateFrom time.Time, max int) ([]audit.HTTPAPIUserEvent, error) {
+func (a *keycloakAdminEventLister) ListUserEvents(ctx context.Context, dateFrom time.Time, max int) ([]auditsvc.HTTPAPIUserEvent, error) {
 	src, err := a.kc.ListUserEvents(ctx, dateFrom, max)
 	if err != nil {
 		return nil, err
 	}
-	out := make([]audit.HTTPAPIUserEvent, len(src))
+	out := make([]auditsvc.HTTPAPIUserEvent, len(src))
 	for i, ev := range src {
-		out[i] = audit.HTTPAPIUserEvent{
+		out[i] = auditsvc.HTTPAPIUserEvent{
 			Time:     ev.Time,
 			Type:     ev.Type,
 			RealmID:  ev.RealmID,
@@ -415,14 +425,14 @@ func (a *keycloakAdminEventLister) ListUserEvents(ctx context.Context, dateFrom 
 	return out, nil
 }
 
-func (a *keycloakAdminEventLister) ListAdminEvents(ctx context.Context, dateFrom time.Time, max int) ([]audit.HTTPAPIAdminEvent, error) {
+func (a *keycloakAdminEventLister) ListAdminEvents(ctx context.Context, dateFrom time.Time, max int) ([]auditsvc.HTTPAPIAdminEvent, error) {
 	src, err := a.kc.ListAdminEvents(ctx, dateFrom, max)
 	if err != nil {
 		return nil, err
 	}
-	out := make([]audit.HTTPAPIAdminEvent, len(src))
+	out := make([]auditsvc.HTTPAPIAdminEvent, len(src))
 	for i, ev := range src {
-		flat := audit.HTTPAPIAdminEvent{
+		flat := auditsvc.HTTPAPIAdminEvent{
 			Time:          ev.Time,
 			RealmID:       ev.RealmID,
 			OperationType: ev.OperationType,
@@ -445,7 +455,7 @@ func (a *keycloakAdminEventLister) ListAdminEvents(ctx context.Context, dateFrom
 // buildIntakeTokenAuditEmitter 패턴 정합. sourceEventID 는 puller 의 SHA256 dedup
 // hash — store layer 의 partial UNIQUE INDEX (migration 000032) 가 backend crash +
 // cursor revert 같은 edge 에서도 중복 INSERT 차단.
-func buildKeycloakEventAuditEmitter(auditStore httpapi.AuditStore) audit.AuditEmitter {
+func buildKeycloakEventAuditEmitter(auditStore httpapi.AuditStore) auditsvc.AuditEmitter {
 	if auditStore == nil {
 		return nil
 	}
@@ -472,7 +482,7 @@ func buildKeycloakEventAuditEmitter(auditStore httpapi.AuditStore) audit.AuditEm
 
 // buildIntakeTokenAuditEmitter — DREQ intake token cron 의 best-effort audit emit
 // 콜백. auditStore 가 nil 이면 nil 반환 (cron 이 audit 생략). sprint -t.
-func buildIntakeTokenAuditEmitter(auditStore httpapi.AuditStore) devrequest.AuditEmitter {
+func buildIntakeTokenAuditEmitter(auditStore httpapi.AuditStore) devreqsvc.AuditEmitter {
 	if auditStore == nil {
 		return nil
 	}

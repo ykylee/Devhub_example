@@ -1,6 +1,6 @@
-import { Header } from "@/components/layout/Header";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { AuthGuard } from "@/components/layout/AuthGuard";
+import { Header } from "@/shared/ui-foundation/layout/Header";
+import { Sidebar } from "@/shared/ui-foundation/layout/Sidebar";
+import { AuthGuard } from "@/shared/ui-foundation/layout/AuthGuard";
 import { OnboardingBanner } from "@/components/onboarding/OnboardingBanner";
 
 export default function DashboardLayout({

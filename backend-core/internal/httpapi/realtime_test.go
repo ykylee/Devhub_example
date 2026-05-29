@@ -9,13 +9,14 @@ import (
 	"time"
 
 	"github.com/devhub/backend-core/internal/domain"
+	realtimeview "github.com/devhub/backend-core/internal/domain/realtime/view"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 )
 
 func TestRealtimeHubPublishesCommandStatus(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	hub := NewRealtimeHub()
+	hub := realtimeview.NewRealtimeHub()
 	server := httptest.NewServer(testRouter(RouterConfig{RealtimeHub: hub}))
 	defer server.Close()
 
@@ -65,7 +66,7 @@ func TestRealtimeHubPublishesCommandStatus(t *testing.T) {
 
 func TestRealtimeHubFiltersBySubscribedTypes(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	hub := NewRealtimeHub()
+	hub := realtimeview.NewRealtimeHub()
 	server := httptest.NewServer(testRouter(RouterConfig{RealtimeHub: hub}))
 	defer server.Close()
 
@@ -99,7 +100,7 @@ func TestRealtimeHubFiltersBySubscribedTypes(t *testing.T) {
 
 func TestRealtimeWebSocketRequiresTypesWhenRBACEnabled(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	hub := NewRealtimeHub()
+	hub := realtimeview.NewRealtimeHub()
 	server := httptest.NewServer(NewRouter(RouterConfig{
 		RealtimeHub: hub,
 		BearerTokenVerifier: &fakeBearerTokenVerifier{actor: AuthenticatedActor{
@@ -123,7 +124,7 @@ func TestRealtimeWebSocketRequiresTypesWhenRBACEnabled(t *testing.T) {
 
 func TestRealtimeWebSocketChecksRBACPermission(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	hub := NewRealtimeHub()
+	hub := realtimeview.NewRealtimeHub()
 	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
 		Login: "restricted-user",
 		Role:  "custom-no-view",
@@ -156,7 +157,7 @@ func TestRealtimeWebSocketChecksRBACPermission(t *testing.T) {
 
 func TestRealtimeWebSocketRejectsRoleFallbackWithOrganizationStore(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	hub := NewRealtimeHub()
+	hub := realtimeview.NewRealtimeHub()
 	server := httptest.NewServer(NewRouter(RouterConfig{
 		RealtimeHub:       hub,
 		OrganizationStore: newMemoryOrganizationStore(),
@@ -185,7 +186,7 @@ func TestRealtimeRouteIsAbsentWithoutHub(t *testing.T) {
 	}
 }
 
-func waitForRealtimeClient(t *testing.T, hub *RealtimeHub) {
+func waitForRealtimeClient(t *testing.T, hub *realtimeview.RealtimeHub) {
 	t.Helper()
 	deadline := time.Now().Add(time.Second)
 	for time.Now().Before(deadline) {

@@ -3,7 +3,7 @@
 import { GardenerFeed } from "@/components/dashboard/GardenerFeed";
 import { motion } from "framer-motion";
 import { Brain, ShieldCheck, Zap } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/utils";
 import { useStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";

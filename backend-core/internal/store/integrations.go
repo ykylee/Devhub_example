@@ -124,10 +124,10 @@ RETURNING` + integrationsSelectColumns
 		string(integration.Policy),
 	)
 	created, err := scanIntegration(row)
-	if isUniqueViolation(err) {
+	if IsUniqueViolation(err) {
 		return domain.ProjectIntegration{}, ErrConflict
 	}
-	if isForeignKeyViolation(err) {
+	if IsForeignKeyViolation(err) {
 		return domain.ProjectIntegration{}, ErrConflict
 	}
 	if err != nil {
@@ -155,7 +155,7 @@ RETURNING` + integrationsSelectColumns
 	// PR #107 codex review P2 — UpdateIntegration 의 external_key 변경이 partial
 	// UNIQUE 인덱스 (application_id/project_id + integration_type + external_key) 를
 	// 위반할 수 있으므로 ErrConflict 매핑. createIntegration 의 대칭.
-	if isUniqueViolation(err) {
+	if IsUniqueViolation(err) {
 		return domain.ProjectIntegration{}, ErrConflict
 	}
 	if err != nil {

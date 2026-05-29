@@ -2,10 +2,10 @@
 
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { authService } from "@/lib/services/auth.service";
+import { authService } from "@/domain/auth-session/service/auth.service";
 import { Loader2, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
-import { defaultLandingFor } from "@/lib/auth/role-routing";
+import { defaultLandingFor } from "@/domain/auth-session/service/role-routing";
 
 function CallbackInner() {
   const router = useRouter();

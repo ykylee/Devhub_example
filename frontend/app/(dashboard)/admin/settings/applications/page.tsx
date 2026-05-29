@@ -4,16 +4,16 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { projectService } from "@/lib/services/project.service";
+import { projectService } from "@/domain/application-lifecycle/service/project.service";
 import { Application, ApplicationRepository, Project } from "@/lib/services/project.types";
-import { ApplicationTable } from "@/components/project/ApplicationTable";
-import { ApplicationCreationModal } from "@/components/project/ApplicationCreationModal";
-import { RepositoryTable } from "@/components/project/RepositoryTable";
-import { ProjectTable } from "@/components/project/ProjectTable";
-import { RepositoryLinkModal } from "@/components/project/RepositoryLinkModal";
-import { ProjectCreationModal } from "@/components/project/ProjectCreationModal";
-import { FilterBar } from "@/components/ui/FilterBar";
-import { useToast } from "@/components/ui/Toast";
+import { ApplicationTable } from "@/domain/application-lifecycle/view/ApplicationTable";
+import { ApplicationCreationModal } from "@/domain/application-lifecycle/view/ApplicationCreationModal";
+import { RepositoryTable } from "@/domain/repository-integration/view/RepositoryTable";
+import { ProjectTable } from "@/domain/application-lifecycle/view/ProjectTable";
+import { RepositoryLinkModal } from "@/domain/repository-integration/view/RepositoryLinkModal";
+import { ProjectCreationModal } from "@/domain/application-lifecycle/view/ProjectCreationModal";
+import { FilterBar } from "@/shared/ui-foundation/components/FilterBar";
+import { useToast } from "@/shared/ui-foundation/components/Toast";
 
 const STATUS_OPTIONS = [
   { label: "All Status", value: "all" },

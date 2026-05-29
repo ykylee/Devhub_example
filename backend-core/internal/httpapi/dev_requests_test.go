@@ -3,18 +3,58 @@ package httpapi
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/devhub/backend-core/internal/domain"
+	rbacview "github.com/devhub/backend-core/internal/domain/rbac-permissions/view"
 	"github.com/devhub/backend-core/internal/store"
 	"github.com/gin-gonic/gin"
 )
+
+// hashIntakeToken — dev-request/view 의 동명 private 함수와 동일한 의미. test
+// cross-package 접근 불가하므로 fully-local copy. production 영향 0.
+func hashIntakeToken(plain string) string {
+	sum := sha256.Sum256([]byte(plain))
+	return hex.EncodeToString(sum[:])
+}
+
+// clientIPAllowed — dev-request/view 의 동명 private 함수와 동일한 의미. test
+// cross-package 접근 불가하므로 fully-local copy. production 영향 0.
+func clientIPAllowed(callerIP string, cidrs []string) bool {
+	if len(cidrs) == 0 {
+		return false
+	}
+	parsed := net.ParseIP(callerIP)
+	if parsed == nil {
+		return false
+	}
+	for _, c := range cidrs {
+		if !strings.Contains(c, "/") {
+			if parsed.Equal(net.ParseIP(c)) {
+				return true
+			}
+			continue
+		}
+		_, network, err := net.ParseCIDR(c)
+		if err != nil {
+			continue
+		}
+		if network.Contains(parsed) {
+			return true
+		}
+	}
+	return false
+}
 
 // --- memoryDevRequestStore — in-memory test store (DREQ-Backend, sprint claude/work_260515-i) ---
 
@@ -274,7 +314,7 @@ func newDevRequestsRouter(s DevRequestStore) http.Handler {
 }
 
 func TestIntakeDevRequest_RouteRegistered(t *testing.T) {
-	policy, ok := lookupRoutePolicy(http.MethodPost, "/api/v1/dev-requests")
+	policy, ok := rbacview.LookupRoutePolicy(http.MethodPost, "/api/v1/dev-requests")
 	if !ok {
 		t.Fatal("POST /api/v1/dev-requests must exist in routePermissionTable")
 	}
@@ -1420,7 +1460,7 @@ func TestIntakeTokenAdmin_RoutePoliciesSystemAdminOnly(t *testing.T) {
 		{http.MethodGet, "/api/v1/dev-request-tokens", domain.ActionView},
 		{http.MethodDelete, "/api/v1/dev-request-tokens/:token_id", domain.ActionDelete},
 	} {
-		policy, ok := lookupRoutePolicy(tc.method, tc.path)
+		policy, ok := rbacview.LookupRoutePolicy(tc.method, tc.path)
 		if !ok {
 			t.Errorf("%s %s must exist in routePermissionTable", tc.method, tc.path)
 			continue

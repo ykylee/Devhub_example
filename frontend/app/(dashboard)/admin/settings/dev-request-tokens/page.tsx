@@ -5,11 +5,11 @@ import { motion } from "framer-motion";
 import { Key, Plus } from "lucide-react";
 import { devRequestTokenService } from "@/lib/services/dev_request_token.service";
 import type { DevRequestIntakeToken } from "@/lib/services/dev_request_token.types";
-import { IntakeTokenTable } from "@/components/dev-request/IntakeTokenTable";
+import { IntakeTokenTable } from "@/domain/dev-request/view/IntakeTokenTable";
 import { IssueIntakeTokenModal } from "@/components/dev-request/IssueIntakeTokenModal";
 import { EditIntakeTokenModal } from "@/components/dev-request/EditIntakeTokenModal";
-import { useToast } from "@/components/ui/Toast";
-import { DestructiveConfirmModal } from "@/components/ui/DestructiveConfirmModal";
+import { useToast } from "@/shared/ui-foundation/components/Toast";
+import { DestructiveConfirmModal } from "@/shared/ui-foundation/components/DestructiveConfirmModal";
 
 export default function AdminSettingsDevRequestTokensPage() {
   const [tokens, setTokens] = useState<DevRequestIntakeToken[]>([]);

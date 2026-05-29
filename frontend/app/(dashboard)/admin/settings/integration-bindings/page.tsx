@@ -5,11 +5,11 @@ import { motion } from "framer-motion";
 import { Link2, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { integrationService } from "@/lib/services/integration.service";
 import type { IntegrationBinding, IntegrationProvider, IntegrationScopeType } from "@/lib/services/integration.types";
-import { BindingsTable } from "@/components/integration/BindingsTable";
-import { CreateBindingModal } from "@/components/integration/CreateBindingModal";
-import { EditBindingModal } from "@/components/integration/EditBindingModal";
-import { DestructiveConfirmModal } from "@/components/ui/DestructiveConfirmModal";
-import { useToast } from "@/components/ui/Toast";
+import { BindingsTable } from "@/domain/integration-registry/view/BindingsTable";
+import { CreateBindingModal } from "@/domain/integration-registry/view/CreateBindingModal";
+import { EditBindingModal } from "@/domain/integration-registry/view/EditBindingModal";
+import { DestructiveConfirmModal } from "@/shared/ui-foundation/components/DestructiveConfirmModal";
+import { useToast } from "@/shared/ui-foundation/components/Toast";
 
 export default function AdminSettingsIntegrationBindingsPage() {
   const [bindings, setBindings] = useState<IntegrationBinding[]>([]);

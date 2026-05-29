@@ -18,10 +18,10 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { identityService, OrgMember, OrgNode as OrgNodeModel, OrgUnit } from '@/lib/services/identity.service';
+import { identityService, OrgMember, OrgNode as OrgNodeModel, OrgUnit } from '@/domain/organization-management/service/identity.service';
 import { Plus, Save, ZoomIn, Building2, LayoutTemplate } from 'lucide-react';
 import { useStore } from '@/lib/store';
-import { OrgNode } from './OrgNode';
+import { OrgNode } from '@/domain/organization-management/view/OrgNode';
 import dagre from 'dagre';
 
 const nodeTypes = {

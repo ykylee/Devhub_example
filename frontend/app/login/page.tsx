@@ -4,7 +4,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { AlertCircle, ArrowRight, ShieldCheck } from "lucide-react";
-import { authService } from "@/lib/services/auth.service";
+import { authService } from "@/domain/auth-session/service/auth.service";
 
 // ADR-0020 §4.1.1 sub-carve F (decision B, option B 채택) — `/login` is the
 // single canonical entry page. The legacy `/auth/login` route was removed

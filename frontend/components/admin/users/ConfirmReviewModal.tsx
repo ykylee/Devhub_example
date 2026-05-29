@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { Loader2, AlertCircle, CheckCircle2, X } from "lucide-react";
-import { onboardingService } from "@/lib/services/onboarding.service";
-import type { OrgMember } from "@/lib/services/identity.service";
+import { onboardingService } from "@/domain/onboarding/service/onboarding.service";
+import type { OrgMember } from "@/domain/organization-management/service/identity.service";
 import { ApiError } from "@/lib/services/api-client";
 
 interface Props {

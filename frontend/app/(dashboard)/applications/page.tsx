@@ -11,13 +11,13 @@ import {
   ExternalLink
 } from "lucide-react";
 import Link from "next/link";
-import { DashboardHeader } from "@/components/ui/DashboardHeader";
-import { Badge } from "@/components/ui/Badge";
-import { FilterBar } from "@/components/ui/FilterBar";
-import { PageEmpty, PageError, PageLoading } from "@/components/ui/PageState";
-import { applicationService, Application, ApplicationRollup } from "@/lib/services/application.service";
-import { lifecycleStatusBadgeVariant } from "@/lib/utils/lifecycle-status";
-import { applicationBuildStatusView } from "@/lib/utils/last-build";
+import { DashboardHeader } from "@/shared/ui-foundation/components/DashboardHeader";
+import { Badge } from "@/shared/ui-foundation/components/Badge";
+import { FilterBar } from "@/shared/ui-foundation/components/FilterBar";
+import { PageEmpty, PageError, PageLoading } from "@/shared/ui-foundation/components/PageState";
+import { applicationService, Application, ApplicationRollup } from "@/domain/application-lifecycle/service/application.service";
+import { lifecycleStatusBadgeVariant } from "@/shared/utils/lifecycle-status";
+import { applicationBuildStatusView } from "@/shared/utils/last-build";
 
 interface ApplicationWithRollup extends Application {
   rollup?: ApplicationRollup;

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { X, FolderGit2, Link2, KeyRound, Loader2 } from "lucide-react";
-import { repositoryService, Repository } from "@/lib/services/repository.service";
+import { repositoryService, Repository } from "@/domain/repository-integration/service/repository.service";
 
 interface RepositoryCreationModalProps {
   onClose: () => void;

@@ -1,0 +1,504 @@
+import { apiClient, ApiError } from "@/lib/services/api-client";
+import type { ApiResponse } from "@/lib/services/wire";
+
+export interface OrgMember {
+  id: string;
+  name: string;
+  email: string;
+  type?: "human" | "system";
+  primary_dept_id: string;
+  current_dept_id: string;
+  is_seconded: boolean;
+  role: "Developer" | "Manager" | "System Admin";
+  status: "active" | "pending" | "deactivated";
+  appointments: {
+    dept_id: string;
+    role: 'leader' | 'member';
+  }[];
+  joined_at: string;
+  onboarding_completed_at?: string | null;
+  review_status?: "pending_review" | "reviewed" | null;
+}
+
+export interface OrgNode {
+  id: string;
+  type?: 'division' | 'team' | 'group' | 'part' | 'company' | 'input';
+  data: {
+    label: string;
+    type: string;
+    leader_id?: string;
+    direct_count?: number;
+    total_count?: number;
+  };
+  position: { x: number; y: number };
+}
+
+export interface OrgEdge {
+  id: string;
+  source: string;
+  target: string;
+  animated?: boolean;
+}
+
+
+// ApiResponse<T> imported from ./wire (PR-B2). The ad-hoc shape here used to
+// be {data?, error?}; the wire type adds `status`/`code`/`meta` so callers
+// can read the envelope status when needed. data is still optional for the
+// success path that returns no payload (DELETE).
+
+interface BackendAppointment {
+  unit_id: string;
+  appointment_role: 'leader' | 'member';
+}
+
+interface BackendUser {
+  user_id: string;
+  display_name: string;
+  email: string;
+  role: string;
+  status: OrgMember["status"];
+  primary_unit_id?: string;
+  current_unit_id?: string;
+  is_seconded?: boolean;
+  appointments?: BackendAppointment[];
+  joined_at?: string;
+  onboarding_completed_at?: string | null;
+  review_status?: string | null;
+}
+
+interface BackendUnit {
+  unit_id: string;
+  parent_unit_id?: string;
+  unit_type: OrgUnit["unit_type"];
+  label: string;
+  leader_user_id?: string;
+  position_x?: number;
+  position_y?: number;
+  direct_count?: number;
+  total_count?: number;
+}
+
+interface BackendEdge {
+  source_unit_id: string;
+  target_unit_id: string;
+}
+
+const DEPT_PRIORITY = {
+  'division': 4,
+  'team': 3,
+  'group': 2,
+  'part': 1,
+  'company': 5
+};
+
+export const ROLE_BACKEND_TO_UI: Record<string, OrgMember["role"]> = {
+  developer: "Developer",
+  manager: "Manager",
+  system_admin: "System Admin",
+};
+
+export const ROLE_UI_TO_BACKEND: Record<OrgMember["role"], string> = {
+  Developer: "developer",
+  Manager: "manager",
+  "System Admin": "system_admin",
+};
+
+export interface CreateUserPayload {
+  user_id: string;
+  email: string;
+  display_name: string;
+  role: OrgMember["role"];
+  status: OrgMember["status"];
+  type: "human" | "system";
+  primary_dept_id?: string;
+  current_dept_id?: string;
+  is_seconded?: boolean;
+  joined_at?: string;
+}
+
+export interface UpdateUserPayload {
+  email?: string;
+  display_name?: string;
+  role?: OrgMember["role"];
+  status?: OrgMember["status"];
+  primary_dept_id?: string;
+  current_dept_id?: string;
+  is_seconded?: boolean;
+  joined_at?: string;
+}
+
+export interface OrgUnit {
+  unit_id: string;
+  parent_unit_id: string;
+  unit_type: "company" | "division" | "team" | "group" | "part";
+  label: string;
+  leader_user_id: string;
+  position_x: number;
+  position_y: number;
+  direct_count?: number;
+  total_count?: number;
+}
+
+export interface CreateUnitPayload {
+  unit_id: string;
+  parent_unit_id?: string;
+  unit_type: OrgUnit["unit_type"];
+  label: string;
+  leader_user_id?: string;
+  position_x?: number;
+  position_y?: number;
+}
+
+export interface UpdateUnitPayload {
+  parent_unit_id?: string;
+  unit_type?: OrgUnit["unit_type"];
+  label?: string;
+  leader_user_id?: string;
+  position_x?: number;
+  position_y?: number;
+}
+
+export interface MeResponse {
+  login: string;
+  subject?: string;
+  role?: string;
+  actor_source?: string;
+  user_id?: string;
+  email?: string;
+  display_name?: string;
+  primary_unit_id?: string | null;
+  current_unit_id?: string | null;
+  onboarding_required?: boolean;
+  onboarding_completed_at?: string | null;
+  review_status?: string | null;
+}
+
+export interface ResolvedActor {
+  login: string;
+  user_id?: string;
+  subject?: string;
+  role: OrgMember["role"];
+  source?: string;
+  display_name?: string;
+  email?: string;
+  primary_unit_id?: string | null;
+  onboarding_required: boolean;
+  onboarding_completed_at?: string | null;
+  review_status?: "pending_review" | "reviewed" | null;
+}
+
+
+
+function mapBackendUnit(u: BackendUnit): OrgUnit {
+  return {
+    unit_id: u.unit_id,
+    parent_unit_id: u.parent_unit_id ?? "",
+    unit_type: u.unit_type,
+    label: u.label,
+    leader_user_id: u.leader_user_id ?? "",
+    position_x: u.position_x ?? 0,
+    position_y: u.position_y ?? 0,
+    direct_count: u.direct_count,
+    total_count: u.total_count,
+  };
+}
+
+function mapBackendUser(u: BackendUser): OrgMember {
+  return {
+    id: u.user_id,
+    name: u.display_name,
+    email: u.email,
+    role: ROLE_BACKEND_TO_UI[u.role] ?? "Developer",
+    status: u.status,
+    primary_dept_id: u.primary_unit_id ?? "",
+    current_dept_id: u.current_unit_id ?? "",
+    is_seconded: !!u.is_seconded,
+    appointments: (u.appointments ?? []).map((a) => ({
+      dept_id: a.unit_id,
+      role: a.appointment_role,
+    })),
+    joined_at: typeof u.joined_at === "string" ? u.joined_at.slice(0, 10) : (u.joined_at ?? ""),
+    onboarding_completed_at: u.onboarding_completed_at ?? null,
+    review_status: (u.review_status as OrgMember["review_status"]) ?? null,
+  };
+}
+
+export class IdentityService {
+  private static instance: IdentityService;
+
+  private constructor() {}
+
+  public static getInstance(): IdentityService {
+    if (!IdentityService.instance) {
+      IdentityService.instance = new IdentityService();
+    }
+    return IdentityService.instance;
+  }
+
+  // whoAmI calls /api/v1/me to resolve the current authenticated actor. Throws IdentityServiceError(401) when the request is unauthenticated; the caller (typically AuthGuard) is responsible for redirecting to /login.
+  async whoAmI(): Promise<ResolvedActor> {
+    const result = await apiClient<ApiResponse<MeResponse>>("GET", `/api/v1/me`);
+    if (!result.data) {
+      throw new ApiError(500, result, "missing me payload");
+    }
+    return {
+      login: result.data.login,
+      user_id: result.data.user_id,
+      subject: result.data.subject,
+      role: ROLE_BACKEND_TO_UI[result.data.role ?? ""] ?? "Developer",
+      source: result.data.actor_source,
+      display_name: result.data.display_name,
+      email: result.data.email,
+      primary_unit_id: result.data.primary_unit_id ?? null,
+      onboarding_required: result.data.onboarding_required ?? false,
+      onboarding_completed_at: result.data.onboarding_completed_at ?? null,
+      review_status: (result.data.review_status as ResolvedActor["review_status"]) ?? null,
+    };
+  }
+
+  async getUsers(): Promise<OrgMember[]> {
+    const result = await apiClient<ApiResponse<BackendUser[]>>("GET", "/api/v1/users");
+    return (result.data ?? []).map(mapBackendUser);
+  }
+
+  async updateOrgHierarchy(nodes: OrgNode[], edges: { source: string; target: string }[]): Promise<void> {
+    await apiClient("PUT", "/api/v1/organization/hierarchy", { nodes, edges });
+  }
+
+  async lookupHR(systemId: string): Promise<{ email: string; user_id: string; department: string }> {
+    // Backend wraps the response under {status, data} (PR-B1, work_26_05_11-b
+    // sprint). Reaching into result.data keeps UserCreationModal's HR autofill
+    // working — earlier callers parsed the flat object directly.
+    const result = await apiClient<ApiResponse<{ email: string; user_id: string; department: string }>>(
+      "GET",
+      `/api/v1/hr/lookup?system_id=${encodeURIComponent(systemId)}`,
+    );
+    if (!result.data) throw new ApiError(500, result, "missing hr lookup payload");
+    return result.data;
+  }
+
+  async getOrgHierarchy(): Promise<{ nodes: OrgNode[]; edges: OrgEdge[] }> {
+    const result = await apiClient<ApiResponse<{ units?: BackendUnit[]; edges?: BackendEdge[] }>>(
+      "GET",
+      "/api/v1/organization/hierarchy",
+    );
+    const units = result.data?.units ?? [];
+    const edges = result.data?.edges ?? [];
+    const nodes = units.map((u) => ({
+      id: u.unit_id,
+      ...(u.unit_id === 'org-root' ? { type: 'input' as const } : {}),
+      data: {
+        label: u.label,
+        type: u.unit_type,
+        leader_id: u.leader_user_id || undefined,
+        direct_count: u.direct_count,
+        total_count: u.total_count,
+      },
+      position: { x: u.position_x ?? 0, y: u.position_y ?? 0 },
+    }));
+    const mappedEdges = edges.map((e) => ({
+      id: `e-${e.source_unit_id}-${e.target_unit_id}`,
+      source: e.source_unit_id,
+      target: e.target_unit_id,
+      animated: e.source_unit_id === 'org-root',
+    }));
+    return { nodes, edges: mappedEdges };
+  }
+
+  async getUnitMembers(unitId: string): Promise<OrgMember[]> {
+    const result = await apiClient<ApiResponse<BackendUser[]>>(
+      "GET",
+      `/api/v1/organization/units/${encodeURIComponent(unitId)}/members`,
+    );
+    return (result.data ?? []).map(mapBackendUser);
+  }
+async createUser(payload: CreateUserPayload): Promise<OrgMember> {
+  const body = {
+    user_id: payload.user_id,
+    email: payload.email,
+    display_name: payload.display_name,
+    role: ROLE_UI_TO_BACKEND[payload.role],
+    status: payload.status,
+    primary_unit_id: payload.primary_dept_id ?? "",
+    current_unit_id: payload.current_dept_id ?? "",
+    is_seconded: !!payload.is_seconded,
+    joined_at: payload.joined_at ?? "",
+  };
+
+    const result = await apiClient<ApiResponse<BackendUser>>("POST", `/api/v1/users`, body);
+    if (!result.data) throw new ApiError(500, result, "missing user payload");
+    return mapBackendUser(result.data);
+  }
+
+  async updateUser(userId: string, payload: UpdateUserPayload): Promise<OrgMember> {
+    const body: Record<string, unknown> = {};
+    if (payload.email !== undefined) body.email = payload.email;
+    if (payload.display_name !== undefined) body.display_name = payload.display_name;
+    if (payload.role !== undefined) body.role = ROLE_UI_TO_BACKEND[payload.role];
+    if (payload.status !== undefined) body.status = payload.status;
+    if (payload.primary_dept_id !== undefined) body.primary_unit_id = payload.primary_dept_id;
+    if (payload.current_dept_id !== undefined) body.current_unit_id = payload.current_dept_id;
+    if (payload.is_seconded !== undefined) body.is_seconded = payload.is_seconded;
+    if (payload.joined_at !== undefined) body.joined_at = payload.joined_at;
+    const result = await apiClient<ApiResponse<BackendUser>>(
+      "PATCH",
+      `/api/v1/users/${encodeURIComponent(userId)}`,
+      body,
+    );
+    if (!result.data) throw new ApiError(500, result, "missing user payload");
+    return mapBackendUser(result.data);
+  }
+
+  async deleteUser(userId: string): Promise<void> {
+    await apiClient<ApiResponse<unknown>>("DELETE", `/api/v1/users/${encodeURIComponent(userId)}`);
+  }
+
+  async getUnit(unitId: string): Promise<OrgUnit> {
+    const result = await apiClient<ApiResponse<BackendUnit>>("GET", `/api/v1/organization/units/${encodeURIComponent(unitId)}`);
+    if (!result.data) throw new ApiError(500, result, "missing unit payload");
+    return mapBackendUnit(result.data);
+  }
+
+  async createUnit(payload: CreateUnitPayload): Promise<OrgUnit> {
+    const body = {
+      unit_id: payload.unit_id,
+      parent_unit_id: payload.parent_unit_id ?? "",
+      unit_type: payload.unit_type,
+      label: payload.label,
+      leader_user_id: payload.leader_user_id ?? "",
+      position_x: payload.position_x ?? 0,
+      position_y: payload.position_y ?? 0,
+    };
+    const result = await apiClient<ApiResponse<BackendUnit>>("POST", `/api/v1/organization/units`, body);
+    if (!result.data) throw new ApiError(500, result, "missing unit payload");
+    return mapBackendUnit(result.data);
+  }
+
+  async updateUnit(unitId: string, payload: UpdateUnitPayload): Promise<OrgUnit> {
+    const body: Record<string, unknown> = {};
+    if (payload.parent_unit_id !== undefined) body.parent_unit_id = payload.parent_unit_id;
+    if (payload.unit_type !== undefined) body.unit_type = payload.unit_type;
+    if (payload.label !== undefined) body.label = payload.label;
+    if (payload.leader_user_id !== undefined) body.leader_user_id = payload.leader_user_id;
+    if (payload.position_x !== undefined) body.position_x = payload.position_x;
+    if (payload.position_y !== undefined) body.position_y = payload.position_y;
+    const result = await apiClient<ApiResponse<BackendUnit>>(
+      "PATCH",
+      `/api/v1/organization/units/${encodeURIComponent(unitId)}`,
+      body,
+    );
+    if (!result.data) throw new ApiError(500, result, "missing unit payload");
+    return mapBackendUnit(result.data);
+  }
+
+  async deleteUnit(unitId: string): Promise<void> {
+    await apiClient<ApiResponse<unknown>>("DELETE", `/api/v1/organization/units/${encodeURIComponent(unitId)}`);
+  }
+
+  async replaceUnitMembers(unitId: string, userIds: string[]): Promise<OrgMember[]> {
+    const result = await apiClient<ApiResponse<BackendUser[]>>(
+      "PUT",
+      `/api/v1/organization/units/${encodeURIComponent(unitId)}/members`,
+      { user_ids: userIds },
+    );
+    return (result.data ?? []).map(mapBackendUser);
+  }
+
+  calculatePrimaryDept(member: OrgMember, nodes: OrgNode[]): string {
+    if (member.appointments.length <= 1) {
+      return member.current_dept_id;
+    }
+
+    // 1. Get leader appointments
+    const leadDepts = member.appointments
+      .filter(a => a.role === 'leader')
+      .map(a => nodes.find(n => n.id === a.dept_id))
+      .filter(n => !!n) as OrgNode[];
+
+    if (leadDepts.length === 0) return member.current_dept_id;
+
+    // 2. Sort by priority (Division > Team > Group > Part)
+    leadDepts.sort((a, b) => {
+      const prioA = DEPT_PRIORITY[a.data.type as keyof typeof DEPT_PRIORITY] || 0;
+      const prioB = DEPT_PRIORITY[b.data.type as keyof typeof DEPT_PRIORITY] || 0;
+      if (prioA !== prioB) return prioB - prioA;
+
+      // 3. If same priority, count children (simulated for now)
+      return 0;
+    });
+
+    return leadDepts[0].id;
+  }
+
+  private mockUsers(): OrgMember[] {
+    return [
+      {
+        id: "u1",
+        name: "YK Lee",
+        email: "yklee@example.com",
+        role: "System Admin",
+        status: "active",
+        primary_dept_id: "dept-eng",
+        current_dept_id: "dept-eng",
+        is_seconded: false,
+        appointments: [
+          { dept_id: "org-root", role: "leader" },
+          { dept_id: "dept-eng", role: "leader" }
+        ],
+        joined_at: "2026-01-15"
+      },
+      {
+        id: "u2",
+        name: "Alex Kim",
+        email: "alex@example.com",
+        role: "Manager",
+        status: "active",
+        primary_dept_id: "dept-prod",
+        current_dept_id: "team-ux",
+        is_seconded: true,
+        appointments: [
+          { dept_id: "dept-prod", role: "leader" }
+        ],
+        joined_at: "2026-02-01"
+      },
+      {
+        id: "u3",
+        name: "Sam Jones",
+        email: "sam@example.com",
+        role: "Developer",
+        status: "active",
+        primary_dept_id: "team-infra",
+        current_dept_id: "team-infra",
+        is_seconded: false,
+        appointments: [
+          { dept_id: "team-infra", role: "member" }
+        ],
+        joined_at: "2026-05-01"
+      }
+    ];
+  }
+
+  public mockHierarchy() {
+    return {
+      nodes: [
+        { id: 'org-root', type: 'input' as const, data: { label: 'DevHub Global', type: 'division', leader_id: 'u1', direct_count: 5, total_count: 150 }, position: { x: 400, y: 0 } },
+        { id: 'dept-eng', data: { label: 'Engineering', type: 'division', leader_id: 'u1', direct_count: 10, total_count: 85 }, position: { x: 200, y: 150 } },
+        { id: 'dept-prod', data: { label: 'Product', type: 'division', leader_id: 'u2', direct_count: 8, total_count: 65 }, position: { x: 600, y: 150 } },
+        { id: 'team-infra', data: { label: 'Infrastructure', type: 'team', leader_id: 'u1', direct_count: 12, total_count: 24 }, position: { x: 50, y: 300 } },
+        { id: 'team-frontend', data: { label: 'Frontend', type: 'team', leader_id: 'u3', direct_count: 15, total_count: 15 }, position: { x: 350, y: 300 } },
+        { id: 'team-ux', data: { label: 'UX Strategy', type: 'team', leader_id: 'u2', direct_count: 6, total_count: 6 }, position: { x: 600, y: 300 } },
+        { id: 'part-security', data: { label: 'Security Part', type: 'part', direct_count: 4, total_count: 4 }, position: { x: 50, y: 450 } },
+      ],
+      edges: [
+        { id: 'e-root-eng', source: 'org-root', target: 'dept-eng', animated: true },
+        { id: 'e-root-prod', source: 'org-root', target: 'dept-prod', animated: true },
+        { id: 'e-eng-infra', source: 'dept-eng', target: 'team-infra' },
+        { id: 'e-eng-front', source: 'dept-eng', target: 'team-frontend' },
+        { id: 'e-prod-ux', source: 'dept-prod', target: 'team-ux' },
+        { id: 'e-infra-sec', source: 'team-infra', target: 'part-security' },
+      ]
+    };
+  }
+}
+
+export const identityService = IdentityService.getInstance();

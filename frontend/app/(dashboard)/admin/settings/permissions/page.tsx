@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PermissionEditor } from "@/components/organization/PermissionEditor";
+import { PermissionEditor } from "@/domain/rbac-permissions/view/PermissionEditor";
 import { defaultRoles, Role } from "@/lib/services/rbac.types";
-import { rbacService, RbacError } from "@/lib/services/rbac.service";
+import { rbacService, RbacError } from "@/domain/rbac-permissions/service/rbac.service";
 
 export default function AdminSettingsPermissionsPage() {
   // M1-FIX-D: lazy initializer + deep clone so PermissionMatrix toggles

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/devhub/backend-core/internal/domain"
+	rbacview "github.com/devhub/backend-core/internal/domain/rbac-permissions/view"
 	"github.com/gin-gonic/gin"
 )
 
@@ -91,7 +92,7 @@ func TestRoutePermissionTable_CoversAllProtectedV1Routes(t *testing.T) {
 		if !startsWith(route.Path, "/api/v1/") {
 			continue
 		}
-		if _, ok := lookupRoutePolicy(route.Method, route.Path); !ok {
+		if _, ok := rbacview.LookupRoutePolicy(route.Method, route.Path); !ok {
 			t.Errorf("route %s is registered but has no entry in routePermissionTable", key)
 		}
 	}

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/devhub/backend-core/internal/domain"
+	apprep "github.com/devhub/backend-core/internal/domain/application-lifecycle/repository"
 	"github.com/devhub/backend-core/internal/store"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -119,7 +120,7 @@ func TestIntegration_ListRepositoryQualitySnapshots(t *testing.T) {
 // --- rollup compute ---
 
 // seedAppWith2ActiveLinks 는 testRepoID1/2 를 active 상태로 application 에 연결.
-func seedAppWith2ActiveLinks(t *testing.T, ctx context.Context, pgStore *store.PostgresStore, key string) domain.Application {
+func seedAppWith2ActiveLinks(t *testing.T, ctx context.Context, pgStore *apprep.ApplicationRepository, key string) domain.Application {
 	t.Helper()
 	app, err := pgStore.CreateApplication(ctx, domain.Application{
 		Key: key, Name: "X", Status: domain.ApplicationStatusActive,

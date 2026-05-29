@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
-import { authService } from "@/lib/services/auth.service";
+import { authService } from "@/domain/auth-session/service/auth.service";
 
 export default function AuthLogoutPage() {
   useEffect(() => {

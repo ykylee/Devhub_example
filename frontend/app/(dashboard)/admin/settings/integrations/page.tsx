@@ -5,12 +5,12 @@ import { motion } from "framer-motion";
 import { Plug, Plus } from "lucide-react";
 import { integrationService } from "@/lib/services/integration.service";
 import type { IntegrationProvider } from "@/lib/services/integration.types";
-import { ProviderTable } from "@/components/integration/ProviderTable";
-import { ProviderModal } from "@/components/integration/ProviderModal";
+import { ProviderTable } from "@/domain/integration-registry/view/ProviderTable";
+import { ProviderModal } from "@/domain/integration-registry/view/ProviderModal";
 import { ImportRepositoriesModal } from "@/components/integration/ImportRepositoriesModal";
 import { CreateScmRepositoryModal } from "@/components/integration/CreateScmRepositoryModal";
-import { useToast } from "@/components/ui/Toast";
-import { DestructiveConfirmModal } from "@/components/ui/DestructiveConfirmModal";
+import { useToast } from "@/shared/ui-foundation/components/Toast";
+import { DestructiveConfirmModal } from "@/shared/ui-foundation/components/DestructiveConfirmModal";
 import { ApiError } from "@/lib/services/api-client";
 
 export default function AdminSettingsIntegrationsPage() {

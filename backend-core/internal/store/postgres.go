@@ -10,6 +10,7 @@ import (
 
 	"github.com/devhub/backend-core/internal/domain"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -45,6 +46,10 @@ func NewPostgresStore(ctx context.Context, dbURL string) (*PostgresStore, error)
 		return nil, err
 	}
 	return &PostgresStore{pool: pool}, nil
+}
+
+func (s *PostgresStore) Pool() *pgxpool.Pool {
+	return s.pool
 }
 
 func (s *PostgresStore) Close() {
@@ -1868,6 +1873,41 @@ func decodeJSONMap(payload []byte, target *map[string]any) error {
 	return nil
 }
 
+func RandomPrefixedID(prefix string) (string, error) {
+	return randomPrefixedID(prefix)
+}
+
+func IsUniqueViolation(err error) bool {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		return pgErr.Code == "23505"
+	}
+	return false
+}
+
+func IsForeignKeyViolation(err error) bool {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		return pgErr.Code == "23503"
+	}
+	return false
+}
+
+func IsCheckViolation(err error, name string) bool {
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) {
+		return false
+	}
+	if pgErr.Code != "23514" {
+		return false
+	}
+	if name == "" {
+		return true
+	}
+	return pgErr.ConstraintName == name
+}
+
+
 func randomPrefixedID(prefix string) (string, error) {
 	var bytes [12]byte
 	if _, err := rand.Read(bytes[:]); err != nil {
@@ -1875,3 +1915,4 @@ func randomPrefixedID(prefix string) (string, error) {
 	}
 	return prefix + "_" + hex.EncodeToString(bytes[:]), nil
 }
+

@@ -5,17 +5,17 @@ import { AnimatePresence } from "framer-motion";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Box, FolderGit2, FolderKanban } from "lucide-react";
 import Link from "next/link";
-import { PageEmpty, PageError, PageLoading } from "@/components/ui/PageState";
+import { PageEmpty, PageError, PageLoading } from "@/shared/ui-foundation/components/PageState";
 import { toUserErrorMessage } from "@/lib/services/error-message";
-import { applicationService, Application as AdminApplication } from "@/lib/services/application.service";
-import { repositoryService, Repository } from "@/lib/services/repository.service";
-import { projectService } from "@/lib/services/project.service";
+import { applicationService, Application as AdminApplication } from "@/domain/application-lifecycle/service/application.service";
+import { repositoryService, Repository } from "@/domain/repository-integration/service/repository.service";
+import { projectService } from "@/domain/application-lifecycle/service/project.service";
 import { ApplicationStatus, ApplicationVisibility, Project } from "@/lib/services/project.types";
-import { ApplicationCreationModal } from "@/components/project/ApplicationCreationModal";
-import { ProjectCreationModal } from "@/components/project/ProjectCreationModal";
+import { ApplicationCreationModal } from "@/domain/application-lifecycle/view/ApplicationCreationModal";
+import { ProjectCreationModal } from "@/domain/application-lifecycle/view/ProjectCreationModal";
 import { RepositoryCreationModal } from "@/components/project/RepositoryCreationModal";
-import { useToast } from "@/components/ui/Toast";
-import { cn } from "@/lib/utils";
+import { useToast } from "@/shared/ui-foundation/components/Toast";
+import { cn } from "@/shared/utils";
 
 type CatalogTab = "applications" | "repositories" | "projects";
 

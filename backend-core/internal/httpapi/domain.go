@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/devhub/backend-core/internal/domain"
-	"github.com/devhub/backend-core/internal/gitea"
+	"github.com/devhub/backend-core/internal/infrastructure/gitea"
 	"github.com/devhub/backend-core/internal/store"
 	"github.com/gin-gonic/gin"
 )

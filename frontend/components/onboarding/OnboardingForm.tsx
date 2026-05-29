@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
-import { onboardingService } from "@/lib/services/onboarding.service";
+import { onboardingService } from "@/domain/onboarding/service/onboarding.service";
 import { useStore } from "@/lib/store";
 import { OrganizationPicker } from "./OrganizationPicker";
 import { ApiError } from "@/lib/services/api-client";
 import { markOnboardingSkipped } from "@/lib/storage/onboardingSkip";
-import { defaultLandingFor } from "@/lib/auth/role-routing";
+import { defaultLandingFor } from "@/domain/auth-session/service/role-routing";
 
 interface Props {
   initialDisplayName?: string;

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	onboardview "github.com/devhub/backend-core/internal/domain/onboarding/view"
 	"github.com/devhub/backend-core/internal/store"
 	"github.com/gin-gonic/gin"
 )
@@ -21,11 +22,11 @@ func (h Handler) confirmUserReview(c *gin.Context) {
 	if !h.requireOnboardingFlag(c) {
 		// codex review (#313 P2-2) — feature flag disabled 는 404 (onboarding_feature_disabled),
 		// `feature_disabled` label 로 명시 분리 (vs OrganizationStore nil 시점의 "unavailable").
-		observeOnboardingReviewConfirm("feature_disabled")
+		onboardview.ObserveOnboardingReviewConfirm("feature_disabled")
 		return
 	}
 	if h.cfg.OrganizationStore == nil {
-		observeOnboardingReviewConfirm("unavailable")
+		onboardview.ObserveOnboardingReviewConfirm("unavailable")
 		c.JSON(http.StatusServiceUnavailable, gin.H{
 			"status": "unavailable",
 			"error":  "organization store is not configured",
@@ -35,7 +36,7 @@ func (h Handler) confirmUserReview(c *gin.Context) {
 
 	userID := strings.TrimSpace(c.Param("user_id"))
 	if userID == "" {
-		observeOnboardingReviewConfirm("bad_request")
+		onboardview.ObserveOnboardingReviewConfirm("bad_request")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status": "rejected",
 			"error":  "user_id is required",
@@ -61,7 +62,7 @@ func (h Handler) confirmUserReview(c *gin.Context) {
 			},
 		}
 		addAuditMeta(response, auditLog)
-		observeOnboardingReviewConfirm("ok")
+		onboardview.ObserveOnboardingReviewConfirm("ok")
 		c.JSON(http.StatusOK, response)
 		return
 	}
@@ -69,14 +70,14 @@ func (h Handler) confirmUserReview(c *gin.Context) {
 	// store.ConfirmUserReview 가 ErrNotFound 반환 (affected=0) — 정확한 분기를
 	// 위해 GetUser 로 재확인.
 	if !errors.Is(err, store.ErrNotFound) {
-		observeOnboardingReviewConfirm("server_error")
+		onboardview.ObserveOnboardingReviewConfirm("server_error")
 		writeServerError(c, err, "onboarding.confirm_review")
 		return
 	}
 	current, getErr := h.cfg.OrganizationStore.GetUser(c.Request.Context(), userID)
 	if getErr != nil {
 		if errors.Is(getErr, store.ErrNotFound) {
-			observeOnboardingReviewConfirm("not_found")
+			onboardview.ObserveOnboardingReviewConfirm("not_found")
 			c.JSON(http.StatusNotFound, gin.H{
 				"status": "not_found",
 				"code":   "user_not_found",
@@ -84,27 +85,27 @@ func (h Handler) confirmUserReview(c *gin.Context) {
 			})
 			return
 		}
-		observeOnboardingReviewConfirm("server_error")
+		onboardview.ObserveOnboardingReviewConfirm("server_error")
 		writeServerError(c, getErr, "onboarding.confirm_review.lookup")
 		return
 	}
 	switch {
 	case current.OnboardingCompletedAt == nil:
-		observeOnboardingReviewConfirm("rejected")
+		onboardview.ObserveOnboardingReviewConfirm("rejected")
 		c.JSON(http.StatusUnprocessableEntity, gin.H{
 			"status": "rejected",
 			"code":   "onboarding_not_completed",
 			"error":  "user has not submitted onboarding yet",
 		})
 	case current.ReviewStatus == "reviewed":
-		observeOnboardingReviewConfirm("conflict")
+		onboardview.ObserveOnboardingReviewConfirm("conflict")
 		c.JSON(http.StatusConflict, gin.H{
 			"status": "conflict",
 			"code":   "review_already_confirmed",
 			"error":  "user is already reviewed",
 		})
 	default:
-		observeOnboardingReviewConfirm("server_error")
+		onboardview.ObserveOnboardingReviewConfirm("server_error")
 		writeServerError(c, err, "onboarding.confirm_review.unknown")
 	}
 }

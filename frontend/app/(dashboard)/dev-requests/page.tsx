@@ -2,15 +2,15 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { devRequestService } from "@/lib/services/dev_request.service";
-import { DevRequest, DevRequestStatus } from "@/lib/services/dev_request.types";
-import { DevRequestTable } from "@/components/dev-request/DevRequestTable";
-import { DevRequestDetailModal } from "@/components/dev-request/DevRequestDetailModal";
-import { useToast } from "@/components/ui/Toast";
+import { devRequestService } from "@/domain/dev-request/service/dev_request.service";
+import { DevRequest, DevRequestStatus } from "@/domain/dev-request/schema/dev_request.types";
+import { DevRequestTable } from "@/domain/dev-request/view/DevRequestTable";
+import { DevRequestDetailModal } from "@/domain/dev-request/view/DevRequestDetailModal";
+import { useToast } from "@/shared/ui-foundation/components/Toast";
 import { useStore } from "@/lib/store";
-import { isSystemAdmin } from "@/lib/auth/role-routing";
-import { DashboardHeader } from "@/components/ui/DashboardHeader";
-import { FilterBar } from "@/components/ui/FilterBar";
+import { isSystemAdmin } from "@/domain/auth-session/service/role-routing";
+import { DashboardHeader } from "@/shared/ui-foundation/components/DashboardHeader";
+import { FilterBar } from "@/shared/ui-foundation/components/FilterBar";
 
 const STATUS_OPTIONS: { label: string; value: DevRequestStatus | "all" }[] = [
   { label: "All Requests", value: "all" },
