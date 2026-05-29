@@ -23,7 +23,7 @@
 | `docs/requirements.md`, `docs/backend/requirements.md`, `docs/backend_requirements_org_hierarchy.md`, `docs/frontend_integration_requirements.md` | Requirements |
 | `docs/architecture.md`, `docs/backend_api_contract.md`, `docs/org_chart_ux_spec.md`, `docs/organizational_hierarchy_spec.md` | Design (spec) |
 | `docs/adr/000X-*.md` | Architecture Decision Record |
-| `docs/development_roadmap.md`, `docs/frontend_development_roadmap.md`, `ai-workflow/memory/backend_development_roadmap.md` | Roadmap |
+| `docs/development_roadmap.md`, `docs/frontend_development_roadmap.md`, `docs/backend_development_roadmap.md` | Roadmap |
 | `docs/tests/e2e_testing_strategy.md`, `docs/tests/test_cases_*.md` | Test strategy / TC |
 | `docs/tests/reports/*.md` | Test report (timestamped) |
 | `docs/setup/*.md` | Setup / operations guide |

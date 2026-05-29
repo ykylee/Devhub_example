@@ -1,20 +1,60 @@
 # Frontend Development Roadmap (Phase 2+)
 
-> ⚠ **먼저 [통합 개발 로드맵](./development_roadmap.md)을 확인하세요.** 본 문서는 그 통합 로드맵의 Frontend 트랙 세부입니다. 마일스톤(M0~M4) / 우선순위(P0~P3) / 트랙 간 의존은 통합 로드맵의 §3·§4.2 가 source-of-truth.
+> ⚠ **먼저 [통합 개발 로드맵](./development_roadmap.md)을 확인하세요.** 본 문서는 그 통합 로드맵의 Frontend 트랙 세부입니다. 마일스톤(M0~M4) / 우선순위(P0~P3) / 트랙 간 의존은 통합 로드맵의 §3·§4 가 source-of-truth.
 >
-> ⚠ **v1.0/v1.1 신규 작업의 source-of-truth = [`docs/planning/release_v1_roadmap.md`](./planning/release_v1_roadmap.md).** 본 문서는 frontend phase 이력 + 잔여 추적용이며, 우선순위·마일스톤의 최신 기준은 release_v1_roadmap 이다. 현행 코드베이스 전수 분석은 [2026-05-27 codebase snapshot](./analysis/2026-05-27-codebase-snapshot/03_frontend_summary.md) 참조.
+> ⚠ **v1.0/v1.1 신규 작업의 source-of-truth = [`docs/planning/release_v1_roadmap.md`](./planning/release_v1_roadmap.md).** 본 문서는 frontend phase 이력 + 잔여 추적용이며, 우선순위·마일스톤의 최신 기준은 release_v1_roadmap 이다.
+>
+> ⚠ **2026-05-29 정합 (SDLC 재정비 sprint #408~#416)**: 본 문서는 frontend 트랙 phase 이력을 보존하되, frontend 의 도메인 구조는 [`docs/governance/code-taxonomy.md`](./governance/code-taxonomy.md) §2.1 의 **`frontend/domain/<도메인>/{view,service,schema}` 4 계층** 을 따른다. 도메인별 SoT 는 [`./domain/<도메인>/README.md`](./domain/README.md) 참조. 현행 코드베이스 전수 분석은 [2026-05-27 codebase snapshot](./analysis/2026-05-27-codebase-snapshot/03_frontend_summary.md) 참조.
 
 - 문서 목적: 백엔드 API 연동 및 프론트엔드 기능 고도화 로드맵을 정의한다.
-- 범위: 프론트엔드 트랙의 phase별 작업 계획, 상태, 연동 의존성.
+- 범위: 프론트엔드 트랙의 phase별 작업 계획, 상태, 연동 의존성, `frontend/domain/<도메인>/` 4 계층 매핑.
 - 대상 독자: 프론트엔드 개발자, QA, 프로젝트 리드, 후속 작업자.
 - 기준일: 2026-05-04
-- 최종 수정일: 2026-05-27 (Keycloak 단일 IdP 전환(ADR-0019) 반영 + 현행 도메인 완성 정정 — 2026-05-27 codebase snapshot 기준. §6 자체 계정 인증 서술을 Keycloak Account Console 위임으로 정정, Phase 4/7 현황 정밀화)
+- 최종 수정일: 2026-05-29 (SDLC 재정비 sprint #408~#416 — frontend domain 4 계층 매핑 + view 단위테스트 +210 (PR #412, rbac/repo/dreq/intreg/org 90%+, app-lifecycle 모달 carve) + Shared `ui-foundation` 진입점 명시)
 - 상태: draft
-- 관련 문서: [`./development_roadmap.md`](./development_roadmap.md) (통합), [`./planning/release_v1_roadmap.md`](./planning/release_v1_roadmap.md) (v1.0/v1.1 source-of-truth), [`./analysis/2026-05-27-codebase-snapshot/03_frontend_summary.md`](./analysis/2026-05-27-codebase-snapshot/03_frontend_summary.md) (현행 frontend 전수 분석), `docs/backend_api_contract.md`, `ai-workflow/memory/backend_development_roadmap.md`, [`./adr/0019-keycloak-only-idp.md`](./adr/0019-keycloak-only-idp.md) (Keycloak 단일 IdP)
+- 관련 문서: [`./development_roadmap.md`](./development_roadmap.md) (통합), [`./planning/release_v1_roadmap.md`](./planning/release_v1_roadmap.md) (v1.0/v1.1 source-of-truth), [`./governance/code-taxonomy.md`](./governance/code-taxonomy.md) (SoT — 10 도메인 + 4 계층), [`./domain/`](./domain/README.md) (도메인 SDLC 진입점), [`./shared/`](./shared/README.md) (Shared 진입점 — ui-foundation 포함), [`./analysis/2026-05-27-codebase-snapshot/03_frontend_summary.md`](./analysis/2026-05-27-codebase-snapshot/03_frontend_summary.md) (현행 frontend 전수 분석), `docs/backend_api_contract.md`, `docs/backend_development_roadmap.md`, [`./adr/0019-keycloak-only-idp.md`](./adr/0019-keycloak-only-idp.md) (Keycloak 단일 IdP)
 
 ## 1. 개요
 
 프론트엔드 Phase 1에서 구축된 UI와 서비스 레이어 구조를 바탕으로, Phase 2 이후에는 백엔드 API와의 실시간 데이터 연동, 조직/계정 관리, 관리자 액션을 순차적으로 프로덕션 수준으로 끌어올린다. AI 어드바이저/AI 가드너는 v2에서 다룬다. 역할별 UX는 전용 화면 완전 분리보다 역할별 기본 진입 우선순위로 간접 제공한다.
+
+### 1.1 도메인 4 계층 매핑 (2026-05-29 SDLC 재정비 정합)
+
+frontend 코드는 [`docs/governance/code-taxonomy.md`](./governance/code-taxonomy.md) 의 **10 core 도메인 × 4 계층 (view / service / schema)** 구조를 따른다. 도메인별 진입점은 [`./domain/<도메인>/README.md`](./domain/README.md) 의 §2 표 참조.
+
+| 도메인 | view 위치 | service 위치 | schema 위치 |
+| --- | --- | --- | --- |
+| `auth-session` | `frontend/app/login`, `frontend/app/auth/{callback,logout}`, `frontend/components/layout/AuthGuard.tsx` | `frontend/lib/auth/{refresh-scheduler,session-death}.ts`, `frontend/lib/services/auth.service.ts` | OIDC/PKCE Claims |
+| `rbac-permissions` | `frontend/app/admin/settings/permissions`, `frontend/components/organization/PermissionEditor.tsx` | `frontend/lib/services/rbac.service.ts` | role/resource matrix |
+| `organization-management` | `frontend/app/admin/settings/{organization,users}`, `frontend/components/organization/OrgTree.tsx` | `frontend/lib/services/identity.service.ts` | users/org_units DTO |
+| `onboarding` | `frontend/app/onboarding/`, `OnboardingForm/Banner/OrganizationPicker` | `frontend/lib/services/onboarding.service.ts` | onboarding payload |
+| `application-lifecycle` | `frontend/app/{applications,projects}/`, `frontend/domain/application-lifecycle/view/{ApplicationCreationModal,ApplicationTable,ProjectCreationModal,ProjectTable}.tsx` | `frontend/domain/application-lifecycle/service/{application,project}.service.ts` | (frontend 내장) |
+| `repository-integration` | `frontend/app/repositories/`, `RepositoryLinkModal`, `CreateScmRepositoryModal` | `frontend/lib/services/repository.service.ts` | repository DTO |
+| `dev-request` | `frontend/app/dev-requests/`, `DevRequestDetailModal` | `frontend/lib/services/dev_request.service.ts` | DREQ DTO |
+| `integration-registry` | `frontend/app/admin/settings/{integrations,integration-bindings}`, **`ProviderModal.tsx`** (소유권 = integration-registry), `BindingsTable`, `IntegrationProviderPresets` | `frontend/lib/services/integration.service.ts` | provider/binding DTO + preset 7종 |
+| `realtime` | (component-level subscriber) | `frontend/lib/services/websocket.service.ts` | WS frame |
+| `audit-ops` | `frontend/app/admin/settings/audit/` | `frontend/lib/services/audit.service.ts` | audit_log DTO |
+
+### 1.2 Shared 레이어 — `frontend/shared/ui-foundation/`
+
+도메인 비결합 공통 UI 는 [`./shared/`](./shared/README.md) 진입점 참조. 주요 컴포넌트:
+
+- `components/ui/*`: `Modal`, `Badge`, `Toast`, `PageState`, `FilterBar`, `ComboBox`, `DestructiveConfirmModal`
+- `components/layout/*`: `Header.tsx`, `Sidebar.tsx`, `AuthGuard.tsx`
+- `frontend/shared/{config,utils,utils/lifecycle-status,utils/last-build}.ts`
+
+### 1.3 view 단위테스트 보강 결과 (PR #412, 2026-05-29)
+
+SDLC 재정비 sprint 의 일환으로 view 컴포넌트 24개 단위테스트 +210 개 신규. domain 별 coverage:
+
+| 도메인 | 카운트 / coverage | 비고 |
+| --- | --- | --- |
+| `rbac-permissions` | 90%+ | done |
+| `repository-integration` | 90%+ | done |
+| `dev-request` | 90%+ | done |
+| `integration-registry` | 90%+ | done |
+| `organization-management` | 90%+ | done |
+| `application-lifecycle` | 미달 (carve) | `ApplicationCreationModal` 57% / `ProjectCreationModal` 39% — 후속 sprint (§7.0 P1) |
 
 ## 2. Phase 로드맵
 
@@ -106,15 +146,24 @@ DevHub ~~자체 사용자 계정(Account) 1:1 컨셉~~(historical)에 따른 초
 
 > ⚠ **2026-05-27 정정**: 아래 7.1 의 M2 sprint(`claude/login_usermanagement_finish`)는 종결됐다(historical). 백엔드 짝 PR-M2-AUDIT(Kratos webhook)도 Keycloak 전환으로 폐기됨. 현행 잔여는 **7.0** 가 source-of-truth.
 
-### 7.0 현행 잔여 큐 (2026-05-27, main `cf19c94`)
+### 7.0 현행 잔여 큐 (2026-05-29, main `273d9d4`)
 
-- [ ] **단위테스트 보강 (1순위, B1)** — service 18개 중 vitest 커버 2개뿐(`project.service`, `integration-provider-presets`). integration·repository·dashboard service + 신규 모달(Import/CreateScmRepository 등) 단위테스트 최소 6종 추가.
+- [x] **view 컴포넌트 단위테스트 보강** — PR #412 가 view 24개 +210 test (rbac/repo/dreq/intreg/org 도메인 90%+) 추가. (잔여는 app-lifecycle 큰 modal — 아래)
+- [ ] **view 큰 modal coverage 70% (1순위, M-v1.0 carve)** — `ApplicationCreationModal` (57%) + `ProjectCreationModal` (39%) edit-mode + member CRUD 시퀀스 보강.
+- [ ] **service 단위테스트 보강 (P2)** — service 18개 중 vitest 커버 2개뿐(`project.service`, `integration-provider-presets`). integration·repository·dashboard service + 신규 모달(Import/CreateScmRepository 등) 단위테스트 최소 6종 추가.
 - [ ] **command status WebSocket UI (Phase 4 잔여)** — `RealtimeService` 구독 → command toast/status 연결.
 - [ ] **최신 backend 기능 happy-path E2E (B2)** — repository draft→publish, SCM import/create(현재 negative-path 위주).
+- [ ] **CI e2e job 복원** — 2026-05-29 SDLC 재정비 sprint 중 `&& false` gate 적용. refactor stabilize 후 제거.
 - [ ] **AI Gardener suggestion UI (v2)** — backend-ai gRPC AnalysisService 실구현 의존.
 - [ ] **System Admin 운영 가시성 (RM-M4-07)** — Gitea sync job 큐/provider health view(backend 데이터는 있으나 운영 화면 없음).
 
 세부 잔여·우선순위는 [05_fe_be_balance.md](./analysis/2026-05-27-codebase-snapshot/05_fe_be_balance.md) §4 + [06_future_direction.md](./analysis/2026-05-27-codebase-snapshot/06_future_direction.md) §3 참조.
+
+### 7.0.1 변경 이력
+
+| 일자 | 변경 | 메모 |
+| --- | --- | --- |
+| 2026-05-29 | SDLC 재정비 sprint #408~#416 정합 — §1.1 도메인 4 계층 매핑 + §1.2 Shared `ui-foundation` 진입점 + §1.3 view 단위테스트 보강 결과 (PR #412, rbac/repo/dreq/intreg/org 90%+ — app-lifecycle 모달 carve). 7.0 잔여 큐 갱신 (view 큰 modal 70% 1순위 + CI e2e 복원). | sprint `claude/work_260529-k` |
 
 ### 7.1 ~~M2 1차 완성 sprint~~ (historical — 종결)
 

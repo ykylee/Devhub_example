@@ -6,7 +6,7 @@
 - 상태: accepted
 - 기준일: 2026-05-02
 - 최종 수정일: 2026-05-20
-- 관련 문서: [백엔드 요구사항](./requirements.md), [백엔드 요구사항 리뷰](./requirements_review.md), [백엔드 API 계약](../backend_api_contract.md), [ADR-0019 Keycloak 단일화 (현재 IdP)](../adr/0019-keycloak-only-idp.md), [ADR-0001 IdP (Hydra+Kratos, superseded)](../adr/0001-idp-selection.md), [백엔드 로드맵](../../ai-workflow/memory/backend_development_roadmap.md).
+- 관련 문서: [백엔드 요구사항](./requirements.md), [백엔드 요구사항 리뷰](./requirements_review.md), [백엔드 API 계약](../backend_api_contract.md), [ADR-0019 Keycloak 단일화 (현재 IdP)](../adr/0019-keycloak-only-idp.md), [ADR-0001 IdP (Hydra+Kratos, superseded)](../adr/0001-idp-selection.md), [백엔드 로드맵](../../docs/backend_development_roadmap.md).
 - 확인 범위 (분석 시점): `frontend/app/(dashboard)/*`, `frontend/lib/services/*`, `frontend/lib/mockData.ts`, `frontend/lib/store.ts`, `frontend/components/layout/*`
 
 ## 1. 현재 프론트엔드 구현 요약

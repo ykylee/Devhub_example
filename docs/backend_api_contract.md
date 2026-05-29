@@ -6,7 +6,7 @@
 - 상태: accepted
 - 기준일: 2026-05-04
 - 최종 수정일: 2026-05-29 (Phase 3 split — 도메인별 본문 §11~§17 sub-document 로 이관, 본 문서는 master index 로 전환)
-- 관련 문서: [공통 규약 (envelope/enum)](./api/conventions.md), [아키텍처 (master index)](./architecture.md), [기술 스택](./tech_stack.md), [프론트 연동 요구사항](./backend/frontend_integration_requirements.md), [백엔드 요구사항 리뷰](./backend/requirements_review.md), [ADR-0002 RBAC](./adr/0002-rbac-policy-edit-api.md), [백엔드 로드맵](../ai-workflow/memory/backend_development_roadmap.md), [추적성 매트릭스](./traceability/report.md).
+- 관련 문서: [공통 규약 (envelope/enum)](./api/conventions.md), [아키텍처 (master index)](./architecture.md), [기술 스택](./tech_stack.md), [프론트 연동 요구사항](./backend/frontend_integration_requirements.md), [백엔드 요구사항 리뷰](./backend/requirements_review.md), [ADR-0002 RBAC](./adr/0002-rbac-policy-edit-api.md), [백엔드 로드맵](../docs/backend_development_roadmap.md), [추적성 매트릭스](./traceability/report.md).
 
 ## 1. 공통 응답 원칙
 

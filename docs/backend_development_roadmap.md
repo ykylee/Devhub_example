@@ -1,18 +1,20 @@
 # 백엔드 개발 로드맵
 
-> ⚠ **먼저 [통합 개발 로드맵](../../docs/development_roadmap.md)을 확인하세요.** 본 문서는 그 통합 로드맵의 Backend 트랙 세부입니다. 마일스톤(M0~M4) / 우선순위(P0~P3) / 트랙 간 의존은 통합 로드맵의 §3·§4.1 이 source-of-truth.
+> ⚠ **먼저 [통합 개발 로드맵](../../docs/development_roadmap.md)을 확인하세요.** 본 문서는 그 통합 로드맵의 Backend 트랙 세부입니다. 마일스톤(M0~M4) / 우선순위(P0~P3) / 트랙 간 의존은 통합 로드맵의 §3·§4 가 source-of-truth.
 >
-> ⚠ **v1.0/v1.1 신규 작업의 source-of-truth = [`docs/planning/release_v1_roadmap.md`](../../docs/planning/release_v1_roadmap.md).** 본 문서는 backend phase 이력 + 잔여 추적용이며, 우선순위·마일스톤·잔여 carve 의 최신 기준은 release_v1_roadmap 이다. 현행 코드베이스 전수 분석은 [2026-05-27 codebase snapshot](../../docs/analysis/2026-05-27-codebase-snapshot/04_backend_summary.md) 참조.
+> ⚠ **v1.0/v1.1 신규 작업의 source-of-truth = [`docs/planning/release_v1_roadmap.md`](../../docs/planning/release_v1_roadmap.md).** 본 문서는 backend phase 이력 + 잔여 추적용이며, 우선순위·마일스톤·잔여 carve 의 최신 기준은 release_v1_roadmap 이다.
+>
+> ⚠ **2026-05-29 정합 (SDLC 재정비 sprint #408~#416)**: backend 코드는 [`docs/governance/code-taxonomy.md`](../../docs/governance/code-taxonomy.md) §2.1 의 **`backend-core/internal/domain/<도메인>/{view,service,repository,schema}` 4 계층** 으로 재정렬됨. PR #409 가 `providerHasCapability` 3 카피 → `internal/shared/integrationcaps/` 통합 (11 unit test). 현행 코드베이스 전수 분석은 [2026-05-27 codebase snapshot](../../docs/analysis/2026-05-27-codebase-snapshot/04_backend_summary.md) 참조.
 
 - 문서 목적: DevHub 백엔드 구현 범위, 순서, 진척 상태를 추적한다.
-- 범위: backend-core phase 로드맵, 완료 범위, 다음 작업 큐, 차단 항목
+- 범위: backend-core phase 로드맵, 완료 범위, 다음 작업 큐, 차단 항목, `backend-core/internal/domain/<도메인>/` 4 계층 매핑.
 - 대상 독자: 백엔드 개발자, 프론트엔드 연동 담당자, AI agent
 - 기준일: 2026-05-07
 - 상태: in_progress
-- 최종 수정일: 2026-05-27 (Keycloak 단일 IdP 전환(ADR-0019) 반영 + 현행 도메인 완성 정정 — 2026-05-27 codebase snapshot 기준. Hydra/Kratos·accounts 서술 historical 처리, Phase 7/13 done, Phase 8 잔여(RM-M4) 정밀화)
-- 관련 문서: [`docs/development_roadmap.md`](../../docs/development_roadmap.md) (통합), [`docs/planning/release_v1_roadmap.md`](../../docs/planning/release_v1_roadmap.md) (v1.0/v1.1 source-of-truth), [`docs/analysis/2026-05-27-codebase-snapshot/04_backend_summary.md`](../../docs/analysis/2026-05-27-codebase-snapshot/04_backend_summary.md) (현행 backend 전수 분석), `docs/requirements.md`, `docs/architecture.md`, `docs/tech_stack.md`, `docs/backend_api_contract.md`, [`docs/adr/0019-keycloak-only-idp.md`](../../docs/adr/0019-keycloak-only-idp.md) (current IdP), [`docs/adr/0001-idp-selection.md`](../../docs/adr/0001-idp-selection.md) (Hydra+Kratos, **superseded** by ADR-0019), [`docs/adr/0024-websocket-auth-query-token.md`](../../docs/adr/0024-websocket-auth-query-token.md) (WS ticket 인증)
+- 최종 수정일: 2026-05-29 (SDLC 재정비 sprint #408~#416 — backend domain 4 계층 매핑 + Shared `integrationcaps` 도입 (PR #409) + Infrastructure 진입점 명시 + 후속 carve out (ApplicationRepository decouple / ApplicationStore slim))
+- 관련 문서: [`docs/development_roadmap.md`](../../docs/development_roadmap.md) (통합), [`docs/planning/release_v1_roadmap.md`](../../docs/planning/release_v1_roadmap.md) (v1.0/v1.1 source-of-truth), [`docs/governance/code-taxonomy.md`](../../docs/governance/code-taxonomy.md) (SoT — 10 도메인 + 4 계층), [`docs/domain/`](../../docs/domain/README.md) (도메인 SDLC 진입점), [`docs/shared/`](../../docs/shared/README.md) (Shared 진입점 — integrationcaps 포함), [`docs/infrastructure/`](../../docs/infrastructure/README.md) (Infrastructure 진입점), [`docs/analysis/2026-05-27-codebase-snapshot/04_backend_summary.md`](../../docs/analysis/2026-05-27-codebase-snapshot/04_backend_summary.md) (현행 backend 전수 분석), `docs/requirements.md`, `docs/architecture.md`, `docs/tech_stack.md`, `docs/backend_api_contract.md`, [`docs/adr/0019-keycloak-only-idp.md`](../../docs/adr/0019-keycloak-only-idp.md) (current IdP), [`docs/adr/0001-idp-selection.md`](../../docs/adr/0001-idp-selection.md) (Hydra+Kratos, **superseded** by ADR-0019), [`docs/adr/0024-websocket-auth-query-token.md`](../../docs/adr/0024-websocket-auth-query-token.md) (WS ticket 인증)
 - 현재 브랜치: `main`
-- 현재 기준선: main `cf19c94`. **Keycloak 단일 IdP 전환 완료(ADR-0019 — Hydra/Kratos 전면 제거).** Application·Repository·Project / DREQ / External Integration / Onboarding / Gitea SCM sync worker / Repository draft→publish + SCM 양방향 도메인 모두 1차 완성.
+- 현재 기준선: main `273d9d4` (PR #415 머지 후, sprint `claude/work_260529-k` 진입 기준). **Keycloak 단일 IdP 전환 완료(ADR-0019 — Hydra/Kratos 전면 제거).** Application·Repository·Project / DREQ / External Integration / Onboarding / Gitea SCM sync worker / Repository draft→publish + SCM 양방향 도메인 모두 1차 완성.
 
 ## 1. 개발 원칙
 
@@ -26,6 +28,46 @@
 - 조직/사용자 도메인의 master data는 DevHub `users`/`org_units`가 담당하고, **credential/session master는 Keycloak(단일 IdP, ADR-0019)**가 담당한다. (이전 Hydra/Kratos 전제는 ADR-0019 로 폐기 — historical.)
 - 검증하지 않은 단계는 `done`으로 전환하지 않는다.
 - 세션 상태 문서는 브랜치별 memory 경로(`ai-workflow/memory/<agent>/<branch>/`)를 source of truth로 사용한다.
+
+## 1.1 도메인 4 계층 매핑 (2026-05-29 SDLC 재정비 정합)
+
+backend 코드는 [`docs/governance/code-taxonomy.md`](../../docs/governance/code-taxonomy.md) §2.1 의 **10 core 도메인 × 4 계층** 구조 (`backend-core/internal/domain/<도메인>/{view,service,repository,schema}`) 를 따른다. 각 도메인 SDLC 진입점은 [`docs/domain/<도메인>/README.md`](../../docs/domain/README.md) 참조.
+
+| 도메인 | view | service | repository | schema |
+| --- | --- | --- | --- | --- |
+| `auth-session` | `internal/httpapi/{auth,me,identity_resolver}.go` | `internal/auth/keycloak_verifier.go` | (없음 — Keycloak 소유) | `domain/user.go` (idp_subject 캐시) |
+| `audit-ops` | `internal/httpapi/{audit,keycloak_events_webhook}.go` | `internal/audit/{keycloak_event_puller,user_sync}.go` | `internal/store/audit_logs.go` + `event_cursors` | `domain/audit.go` (000003, 000031) |
+| `rbac-permissions` | `internal/httpapi/{permissions,rbac,authz}.go` | `internal/httpapi/permissions.go` (PermissionCache) | `internal/store/postgres_rbac.go` | `domain/rbac.go` (000005, 000018, 000021, 000024, 000026) |
+| `organization-management` | `internal/httpapi/{organization,organizations_search,hr_lookup}.go` | (조직 유효성 + 임명 규칙) | `internal/store/users_units.go` | `domain/{user,primary_unit}.go` (000004, 000019, 000011) |
+| `onboarding` | `internal/httpapi/me_onboarding.go` + `onboardingGate` middleware | (게이트 통과 규칙) | (organization-management 공유) | onboarding payload (000033) |
+| `application-lifecycle` | `internal/httpapi/{applications,projects,application_rollup}.go` | (상태머신 + rollup) | `internal/store/{applications,repository_ops}.go` | `domain/application.go` (000013, 000015, 000017) |
+| `repository-integration` | `internal/httpapi/{integration_scm_repositories,domain}.go` | (SCM ↔ DevHub 맵핑 검증) | `internal/store/applications.go` (Get/Upsert/ListRepositories) | repositories (000002, 000042, 000043, 000045) |
+| `dev-request` | `internal/httpapi/{dev_requests,dev_request_intake_auth,dev_request_intake_tokens_admin}.go` | (상태머신 + promote-tx + 만료 cron) | `internal/store/{dev_requests,dev_request_intake_tokens}.go` | dev_requests (000022), dev_request_intake_tokens (000023, 000027) |
+| `integration-registry` | `internal/httpapi/{integration_registry,integrations,external_task_handler}.go` | (preset 매핑 + sync 큐 + Task ingestion) | `internal/store/{integration_registry,external_task_store}.go` | integration_providers (000028, 000038, 000040, 000041) / integration_bindings (000040) / external_task_items (000046) |
+| `realtime` | `internal/httpapi/{realtime,realtime_ticket}.go` | (브로드캐스트 필터 + ticket TTL) | `internal/store/realtime_tickets.go` | realtime_tickets (000035) |
+
+## 1.2 Shared 레이어 (`backend-core/internal/shared/`)
+
+도메인 비결합 공통 모듈. 자세한 진입점은 [`docs/shared/README.md`](../../docs/shared/README.md).
+
+| 모듈 | 코드 | 주 책임 |
+| --- | --- | --- |
+| `config` | `internal/shared/config/` | 전역 환경 설정 로더 (`DEVHUB_*` env) |
+| `httphelp` | `internal/shared/httphelp/` | 공통 utility helper (에러 응답, 요청 파싱) |
+| `integrationcaps` | `internal/shared/integrationcaps/` (PR #409, 2026-05-29) | `providerHasCapability` OR semantics 공용 helper — 3 카피 → 단일 구현 + 11 unit test |
+
+## 1.3 Infrastructure 레이어 (`backend-core/internal/infrastructure/`)
+
+외부 기술 어댑터. 자세한 진입점은 [`docs/infrastructure/README.md`](../../docs/infrastructure/README.md).
+
+| 모듈 | 코드 | 주 책임 | ADR |
+| --- | --- | --- | --- |
+| `keycloak-idp` | `internal/auth/keycloak_verifier.go`, `infra/idp/keycloak-event-listener-spi/`, `infra/idp/sql/` | Keycloak JWKS + admin client + event listener SPI | 0019, 0020, 0022, 0023 |
+| `gitea-scm` | `internal/infrastructure/gitea/`, `internal/normalize/gitea/` | Gitea REST 클라이언트 + sync worker (#341) + webhook signature + JSON 정규화 | 0003 |
+| `hrdb` | `internal/infrastructure/hrdb/{postgres,mock}.go` | 인사망 어댑터 (실 PG / mock) | 0008, 0010 |
+| `commandworker` | `internal/infrastructure/commandworker/{worker,live_worker}.go`, `serviceaction/executor.go` | 명령어 폴링/실행 + sandbox (mock/compose/k8s) | — |
+| `database-migration` | `backend-core/migrations/000001~000046_*.sql` | golang-migrate SQL | — |
+| `deployment-automation` | `scripts/`, `infra/nginx/`, `docker-compose.{deploy,}.yml` | 배포 전처리 + Nginx 역프록시 + compose | 0018 |
 
 ## 2. Phase 로드맵
 
@@ -174,6 +216,16 @@ M2 인증 기반은 **Keycloak 단일 IdP(ADR-0019)로 종결**됐다. 이전 Hy
 - [ ] **RM-M4-06**: Gitea Hourly Pull 정밀화 (reconciliation 스케줄, issue #231)
 - [ ] **RM-M4-07**: System Admin 운영 대시보드용 sync job 큐/provider health 노출
 - [ ] **v2**: Python AI gRPC AnalysisService (backend-ai 스켈레톤 → 실구현)
+- [ ] **carve (P2, 2026-05-29 SDLC 재정비)**: `ApplicationRepository` cross-domain decouple — `*IntegrationRepository` embed 제거 (review agent P1)
+- [ ] **carve (P2, 2026-05-29 SDLC 재정비)**: `ApplicationStore` interface slim — 13+ integration 메서드 → integration-registry 도메인 이관
+- [ ] **carve (P1, 2026-05-29 SDLC 재정비)**: CI `backend-integration` job 복원 (refactor stabilize 후 `&& false` gate 제거)
+- [ ] **P0 carve (code-taxonomy §3 P0-2/P0-3/P0-4)**: `store/applications` (LoC 1172) + `httpapi/applications` (LoC 1066) + `httpapi/organization` (LoC 1019) + `store/users_units` (LoC 1263) 도메인 4 계층 하위로 file split
+
+## 6.1 변경 이력
+
+| 일자 | 변경 | 메모 |
+| --- | --- | --- |
+| 2026-05-29 | SDLC 재정비 sprint #408~#416 정합 — §1.1 도메인 4 계층 매핑 + §1.2 Shared (`integrationcaps` 신규 PR #409) + §1.3 Infrastructure 진입점 명시 + §6 carve out 4건 추가 (ApplicationRepository decouple / ApplicationStore slim / CI 복원 / P0 file split). main HEAD `273d9d4`. | sprint `claude/work_260529-k` |
 
 ## 7. Blocked 항목
 

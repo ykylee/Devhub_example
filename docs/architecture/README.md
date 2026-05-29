@@ -55,7 +55,7 @@ DevHub 의 아키텍처 자료는 다음 4 영역에 분산되어 있다.
 | --- | --- |
 | **A — Auth & IdP** | [ADR-0019](../adr/0019-keycloak-only-idp.md) (현재 결정, Keycloak 단일화) / [ADR-0001](../adr/0001-idp-selection.md) (Hydra+Kratos, superseded). 향후 ADR (Gitea SSO via Keycloak federation 등) 후속. 본문 [`../architecture.md`](../architecture.md) §6 RBAC 단계화. |
 | **X — Cross / Contract** | API envelope / role wire / command lifecycle 표준은 [`../backend_api_contract.md`](../backend_api_contract.md). WebSocket envelope, AccountStatus invariant, 데이터 보존 정책 등은 [`../architecture.md`](../architecture.md) §4·§6. |
-| **B — Backend** | [`../architecture.md`](../architecture.md) §2 컴포넌트, §3 통신, §4 데이터. 백엔드 트랙 세부는 [`../../ai-workflow/memory/backend_development_roadmap.md`](../../ai-workflow/memory/backend_development_roadmap.md). |
+| **B — Backend** | [`../architecture.md`](../architecture.md) §2 컴포넌트, §3 통신, §4 데이터. 백엔드 트랙 세부는 [`../../docs/backend_development_roadmap.md`](../../docs/backend_development_roadmap.md). |
 | **F — Frontend** | [`../architecture.md`](../architecture.md) §5 UI/UX. 프론트엔드 트랙 세부는 [`../frontend_development_roadmap.md`](../frontend_development_roadmap.md). |
 | **AI** | [`../architecture.md`](../architecture.md) §2-Backend AI / §3 gRPC. 1차 PoC 는 통합 로드맵 M3 에 진입. |
 | **O — Operations** | [`../setup/environment-setup.md`](../setup/environment-setup.md) (docker / native 분기). 컨테이너 자산은 git 추적 외부. |

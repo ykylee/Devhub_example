@@ -125,7 +125,7 @@ DevHub 의 **로그인 / 로그아웃 / 사용자 관리** 트랙을 운영 환�
 - **파일**:
   - `docs/development_roadmap.md` (§3 M2 + §7 변경 이력)
   - `docs/frontend_development_roadmap.md` (§2 Phase 6/6.1 상태 + §7 다음 작업 큐)
-  - `ai-workflow/memory/backend_development_roadmap.md` (§5 P0 M2 + §6 작업 큐)
+  - `docs/backend_development_roadmap.md` (§5 P0 M2 + §6 작업 큐)
   - 본 sprint_plan 자체
 - **DoD**: `pytest ai-workflow/tests/check_docs.py` PASS
 

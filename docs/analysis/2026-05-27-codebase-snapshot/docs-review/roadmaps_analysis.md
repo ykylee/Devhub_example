@@ -1,7 +1,7 @@
 # 세부 개발 로드맵 2개 stale 점검 + 갱신 계획 (2026-05-27 스냅샷)
 
 - 문서 목적: 백엔드/프론트엔드 **세부** 개발 로드맵 2개의 stale 항목을 `파일:줄` 근거로 식별하고, main `cf19c94` 현행 상태 기준 갱신 계획을 제시한다.
-- 범위: `ai-workflow/memory/backend_development_roadmap.md`(최종수정 2026-05-12, **매우 stale**), `docs/frontend_development_roadmap.md`(최종수정 2026-05-20, stale). 코드 수정 없음 — 두 로드맵 + 본 분석 문서만.
+- 범위: `docs/backend_development_roadmap.md`(최종수정 2026-05-12, **매우 stale**), `docs/frontend_development_roadmap.md`(최종수정 2026-05-20, stale). 코드 수정 없음 — 두 로드맵 + 본 분석 문서만.
 - 대상 독자: 로드맵 갱신 작업자, 추적성 동기화 검토자, 리뷰어.
 - 상태: snapshot (2026-05-27, main `cf19c94` / 마지막 기능 커밋 `99d6edc`)
 - 근거 자료: `../01_codebase_state_analysis.md`, `../03_frontend_summary.md`, `../04_backend_summary.md`, `../05_fe_be_balance.md`, `../06_future_direction.md`, `../code/backend/*`, `../code/frontend/*`.
