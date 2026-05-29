@@ -76,20 +76,24 @@ ADR 은 `결정일` 필수, 다른 문서는 `최종 수정일` 만.
 
 ### 4.1 Requirements
 
-- 본문 구조: 도메인/모듈 단위 섹션 (예: 2.1 개발자, 2.2 관리자, ...).
+- **위치** (sprint `claude/work_260529-{d..h}` Phase 1~4 적용 후): 도메인별 SoT 는 `docs/domain/<도메인>/requirements.md` (10 core 도메인) + cross-cutting master 는 `docs/requirements.md` (요구사항 index — §1-3 메타/원칙 + §5 도메인 link 표 + §6-7 cross-cutting).
 - 각 요구사항은 1 문장 또는 짧은 문단. 본문에 backtick 으로 추적 ID 명기: `### 2.5.7 SSO 통합 (REQ-FR-23)`.
+- ID prefix 는 도메인별 — `REQ-FR-AUTH-*`, `REQ-FR-DREQ-*`, `REQ-FR-ONBOARD-*` 등.
 - 정량 기준 (성능, 가용성, 보안 threshold) 은 별도 NFR 섹션 또는 `REQ-NFR-*` 로 분리.
 - 변경 이력 표는 선택. git log 위임 가능.
 
 ### 4.2 Design / Spec
 
+- **위치**: 도메인별 SoT 는 `docs/domain/<도메인>/architecture.md` (10 core 도메인). cross-cutting 아키텍처는 `docs/architecture.md` (master — §1-6 3대 레이어 / 호출 규칙 / 통신 / 데이터 / UI / 보안 + §7 도메인 link 표).
+- API 계약은 도메인별 `docs/domain/<도메인>/api.md` + cross-cutting envelope/enum 은 `docs/api/conventions.md`. master `docs/backend_api_contract.md` 는 index.
 - 컴포넌트 다이어그램, 데이터 흐름, API endpoint 표.
 - 큰 결정 (트레이드오프 있는 선택) 은 inline 으로 적지 말고 별도 ADR 로 분기.
 - API 계약은 endpoint 별 요청/응답 schema + envelope 규칙 + 상태 코드.
-- 본문에 `(ARCH-XX)` / `(API-XX)` 명기.
+- 본문에 `(ARCH-XX)` / `(API-XX)` 명기. 도메인 sub-document 안에서는 ID prefix 가 도메인별 — `ARCH-DREQ-*`, `ARCH-ONBOARD-*` 등.
 
 ### 4.3 ADR
 
+- **위치**: `docs/adr/` (도메인 무관, 결정 단위 — ID 가 도메인 prefix 없이 시퀀스).
 - 표준 양식: §1 컨텍스트 → §2 결정 동인 → §3 검토한 옵션 → §4 결정 → §5 결과 (Consequences) → §6 미해결 항목 → §7 변경 이력.
 - ID 는 `ADR-{4자리}` (예: `ADR-0001`).
 - 결정 후에는 본문 수정 금지. 보충은 새 ADR 으로.
@@ -97,16 +101,17 @@ ADR 은 `결정일` 필수, 다른 문서는 `최종 수정일` 만.
 
 ### 4.4 Roadmap
 
+- **위치**: master `docs/development_roadmap.md` (마일스톤 통합) + cross-cutting `docs/frontend_development_roadmap.md`. 도메인 단위 sub-roadmap 은 옵션 — 필요 시 `docs/domain/<도메인>/roadmap.md` (현재는 master 위주).
 - 마일스톤 단위 표 (`| ID | 항목명 | 출처 PR | 상태 |`).
 - 상태: `planned | in_progress | done | discarded`.
-- 항목별로 `RM-M{0..N}-YY` 명기.
+- 항목별로 `RM-M{0..N}-YY` 또는 `RM-<DOMAIN>-XX` (예: `RM-ONBOARD-01..04`) 명기.
 - 머지된 PR 은 PR 번호 + merge_commit hash 기록 (git 위임 가능).
 
 ### 4.5 Test strategy / TC
 
-- 전략 (`e2e_testing_strategy.md`): 시드 정책, 환경 가정, retry 정책.
-- TC 카탈로그 (`test_cases_*.md`): TC 별 (목적, 사전조건, 단계, DoD).
-- TC ID 는 `TC-<feature>-XX` 표준.
+- **위치**: 도메인별 TC 카탈로그는 `docs/domain/<도메인>/test_cases.md` (5 도메인: auth-session / organization-management / integration-registry / dev-request / onboarding) + cross-cutting infrastructure TC 는 `docs/infrastructure/commandworker/test_cases.md`. 전략 문서는 `docs/tests/e2e_testing_strategy.md` (cross-cutting).
+- TC 카탈로그: TC 별 (목적, 사전조건, 단계, DoD).
+- TC ID 는 `TC-<도메인 또는 feature>-XX` 표준 — 도메인 sub-document 의 ID prefix 는 도메인별 (`TC-DREQ-*`, `TC-ONBOARD-*`, `TC-INT-FRONTEND-*` 등).
 
 ### 4.6 Test report (`docs/tests/reports/`)
 
@@ -170,3 +175,4 @@ ID 노출은 권장. 누락 시 매트릭스 (`docs/traceability/report.md`) 만
 | 일자 | 변경 |
 | --- | --- |
 | 2026-05-13 | 1차 작성 (sprint `claude/work_260513-c`). 본 표준 + 추적성 체계 (`docs/traceability/`) 동시 도입. |
+| 2026-05-29 | sprint `claude/work_260529-i` (Phase 5/5) — §4.1~4.5 단계별 문서 유형의 권장 위치를 SDLC 도메인 디렉터리 구조 (Phase 1~4 결과) 에 맞춰 갱신. REQ/ARCH/API/TC 위치를 `docs/domain/<도메인>/` sub-document + master index 패턴으로 명시. 단계별 ID prefix 의 도메인 변형 (REQ-FR-AUTH-* / ARCH-DREQ-* / TC-ONBOARD-* 등) 안내 추가. |
