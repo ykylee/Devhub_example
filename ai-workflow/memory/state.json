@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-05-29 main. PR #406 (code-taxonomy SoT 도입) 후 PR #407 (cleanup-recovery 통합 sprint) 머지로 3대 레이어 + 4대 계층 디렉터리 구조가 backend-core + frontend 에 실 적용 완료. backend 21 패키지 / frontend 29 file 431 test 모두 PASS. CI 의 e2e + backend-integration job 은 refactor 정리 끝날 때까지 `if: ... && false` 로 임시 비활성화. 후속 carve out: (1) providerHasCapability 3 카피 통합 / (2) view 컴포넌트 24개 100% coverage / (3) CI e2e+integration 복원 / (4) ApplicationRepository cross-domain decouple / (5) ApplicationStore interface slim.",
-  "updated_at": "2026-05-29T02:15:00Z",
-  "head_commit": "4a1942e",
-  "head_summary": "refactor(backend+frontend/cleanup-recovery): code-taxonomy 적용 후속 정리 (#407)",
+  "status": "2026-05-29 main. cleanup-recovery (PR #407) 후속 carve out + SDLC 문서 재정비 7 PR 머지 완료. (1) PR #409 providerHasCapability 3 카피 → internal/shared/integrationcaps 통합 (2) PR #410~#415 SDLC 5 Phase: 도메인 디렉터리 골격 → planning/tests 이관 → REQ/ARCH/API split → traceability matrix 재구성 → document-standards §4 갱신 (3) PR #412 view 컴포넌트 24개 단위테스트 +210 (rbac/repo/dreq/intreg/org 도메인 90%+ / app-lifecycle modal 미달은 별도 carve). main HEAD `273d9d4`. 후속 carve out: ApplicationRepository decouple / ApplicationStore slim / CI e2e+integration 복원 / 큰 modal coverage 70% / §2 인덱스 도메인 분류 정합.",
+  "updated_at": "2026-05-29T03:30:00Z",
+  "head_commit": "273d9d4",
+  "head_summary": "docs(governance-docs): document-standards.md §4 단계별 문서 위치 가이드 갱신 (Phase 5/5) (#415)",
   "milestones": {
     "M0": {
       "status": "done",
