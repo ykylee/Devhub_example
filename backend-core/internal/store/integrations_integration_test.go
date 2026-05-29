@@ -14,10 +14,13 @@ import (
 func TestIntegration_Project_UniqueRepositoryKey(t *testing.T) {
 	pgStore, _, ctx, teardown := setupApplicationsTest(t)
 	defer teardown()
-	app, _ := pgStore.CreateApplication(ctx, domain.Application{
+	app, err := pgStore.CreateApplication(ctx, domain.Application{
 		Key: testAppKey1, Name: "X", Status: domain.ApplicationStatusActive,
 		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
 	})
+	if err != nil {
+		t.Fatalf("seed application: %v", err)
+	}
 	first, err := pgStore.CreateProject(ctx, domain.Project{
 		ApplicationID: app.ID, RepositoryID: testRepoID1,
 		Key: "sprint-q3", Name: "Q3", Status: domain.ApplicationStatusPlanning,
@@ -75,10 +78,13 @@ func TestIntegration_ArchiveProject(t *testing.T) {
 func TestIntegration_CreateIntegration_ApplicationScope(t *testing.T) {
 	pgStore, _, ctx, teardown := setupApplicationsTest(t)
 	defer teardown()
-	app, _ := pgStore.CreateApplication(ctx, domain.Application{
+	app, err := pgStore.CreateApplication(ctx, domain.Application{
 		Key: testAppKey1, Name: "X", Status: domain.ApplicationStatusActive,
 		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
 	})
+	if err != nil {
+		t.Fatalf("seed application: %v", err)
+	}
 	created, err := pgStore.CreateIntegration(ctx, domain.ProjectIntegration{
 		Scope: domain.IntegrationScopeApplication, ApplicationID: app.ID,
 		IntegrationType: domain.IntegrationTypeJira,
@@ -102,24 +108,33 @@ func TestIntegration_CreateIntegration_ApplicationScope(t *testing.T) {
 func TestIntegration_UpdateIntegration_UniqueConflict_P2(t *testing.T) {
 	pgStore, _, ctx, teardown := setupApplicationsTest(t)
 	defer teardown()
-	app, _ := pgStore.CreateApplication(ctx, domain.Application{
+	app, err := pgStore.CreateApplication(ctx, domain.Application{
 		Key: testAppKey1, Name: "X", Status: domain.ApplicationStatusActive,
 		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
 	})
+	if err != nil {
+		t.Fatalf("seed application: %v", err)
+	}
 	// 2 integration: same (scope, application, type), 다른 external_key
-	first, _ := pgStore.CreateIntegration(ctx, domain.ProjectIntegration{
+	first, err := pgStore.CreateIntegration(ctx, domain.ProjectIntegration{
 		Scope: domain.IntegrationScopeApplication, ApplicationID: app.ID,
 		IntegrationType: domain.IntegrationTypeJira,
 		ExternalKey:     "PROJ-A", URL: "https://a", Policy: domain.IntegrationPolicySummaryOnly,
 	})
-	second, _ := pgStore.CreateIntegration(ctx, domain.ProjectIntegration{
+	if err != nil {
+		t.Fatalf("seed first integration: %v", err)
+	}
+	second, err := pgStore.CreateIntegration(ctx, domain.ProjectIntegration{
 		Scope: domain.IntegrationScopeApplication, ApplicationID: app.ID,
 		IntegrationType: domain.IntegrationTypeJira,
 		ExternalKey:     "PROJ-B", URL: "https://b", Policy: domain.IntegrationPolicySummaryOnly,
 	})
+	if err != nil {
+		t.Fatalf("seed second integration: %v", err)
+	}
 	// second.external_key 를 first.external_key 로 변경 → unique 위반
 	second.ExternalKey = "PROJ-A"
-	_, err := pgStore.UpdateIntegration(ctx, second)
+	_, err = pgStore.UpdateIntegration(ctx, second)
 	if !errors.Is(err, store.ErrConflict) {
 		t.Errorf("PR #108 P2 회귀: expected ErrConflict on duplicate external_key, got %v", err)
 	}
@@ -132,15 +147,21 @@ func TestIntegration_UpdateIntegration_UniqueConflict_P2(t *testing.T) {
 func TestIntegration_DeleteIntegration(t *testing.T) {
 	pgStore, _, ctx, teardown := setupApplicationsTest(t)
 	defer teardown()
-	app, _ := pgStore.CreateApplication(ctx, domain.Application{
+	app, err := pgStore.CreateApplication(ctx, domain.Application{
 		Key: testAppKey1, Name: "X", Status: domain.ApplicationStatusActive,
 		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
 	})
-	created, _ := pgStore.CreateIntegration(ctx, domain.ProjectIntegration{
+	if err != nil {
+		t.Fatalf("seed application: %v", err)
+	}
+	created, err := pgStore.CreateIntegration(ctx, domain.ProjectIntegration{
 		Scope: domain.IntegrationScopeApplication, ApplicationID: app.ID,
 		IntegrationType: domain.IntegrationTypeConfluence,
 		ExternalKey:     "WIKI-A", URL: "https://x", Policy: domain.IntegrationPolicySummaryOnly,
 	})
+	if err != nil {
+		t.Fatalf("seed integration: %v", err)
+	}
 	if err := pgStore.DeleteIntegration(ctx, created.ID); err != nil {
 		t.Fatalf("delete: %v", err)
 	}
@@ -153,15 +174,21 @@ func TestIntegration_DeleteIntegration(t *testing.T) {
 func TestIntegration_ListIntegrations_ScopeFilter(t *testing.T) {
 	pgStore, _, ctx, teardown := setupApplicationsTest(t)
 	defer teardown()
-	app, _ := pgStore.CreateApplication(ctx, domain.Application{
+	app, err := pgStore.CreateApplication(ctx, domain.Application{
 		Key: testAppKey1, Name: "X", Status: domain.ApplicationStatusActive,
 		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
 	})
-	project, _ := pgStore.CreateProject(ctx, domain.Project{
+	if err != nil {
+		t.Fatalf("seed application: %v", err)
+	}
+	project, err := pgStore.CreateProject(ctx, domain.Project{
 		ApplicationID: app.ID, RepositoryID: testRepoID1, Key: "p1", Name: "P",
 		Status: domain.ApplicationStatusActive, Visibility: domain.ApplicationVisibilityInternal,
 		OwnerUserID: "u1",
 	})
+	if err != nil {
+		t.Fatalf("seed project: %v", err)
+	}
 	// application scope 1
 	if _, err := pgStore.CreateIntegration(ctx, domain.ProjectIntegration{
 		Scope: domain.IntegrationScopeApplication, ApplicationID: app.ID,
