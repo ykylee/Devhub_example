@@ -1,58 +1,49 @@
-# Session Handoff — main (2026-05-29 EOD, post-SDLC-restructure)
+# Session Handoff — main (2026-05-29 EOD, post-envelope-encryption-sprint)
 
-- 문서 목적: 2026-05-29 세션의 후속 carve out + SDLC 문서 재정비 sprint 7 PR 머지 후 main 상태와 인계 사항.
-- 범위: PR #407 (cleanup-recovery) 머지 후 동일 세션에서 8 신규 PR (#408~#415) 머지로 carve out P1 처리 + SDLC 문서 도메인-모듈 재정비 완료.
-- 상태: 모든 sprint PR 머지, main HEAD `273d9d4`.
+- 문서 목적: X-3 평문 secret envelope 암호화(비밀 데이터 대칭 키 봉투 암호화 및 키 관리 정책 도입) sprint 완수 후 main 상태와 인계 사항.
+- 범위: KEK(마스터 키) 기반 AES-GCM-256 봉투 암호화 코어 패키지(`internal/crypt`) 구현 + 영속성 레이어(`integration_registry.go`) 최소 침습 입출력 투명 암복호화 필터 이식 + `envelope_test.go` 6개 단독 유닛 테스트 검증 + 마스터 키 유무에 따른 백엔드 전체 회귀 테스트 100% 무결 통과.
+- 상태: 모든 E2E, 유닛 테스트, 봉투 암복호화 및 레거시 평문 자동 fallback 기어 100% 무결 통과, main HEAD 정상 정합.
 - 최종 수정일: 2026-05-29 EOD
 
-## 1. 본 세션 7 신규 PR (이전 #408 housekeeping 포함 = 8건)
+## 1. 최근 완결된 핵심 스프린트 (NOW-6: X-3 봉투 암호화 이식)
 
-| PR | Commit | 내용 |
-|---|---|---|
-| #408 | `68c2d15` | docs(memory) — main flat housekeeping (cleanup-recovery 결산) |
-| #409 | `6eefda9` | refactor(backend/shared-integrationcaps) — providerHasCapability 3 카피 통합 + 11 unit test |
-| #410 | `33594ed` | docs(governance-docs) — SDLC Phase 1: 도메인 디렉터리 골격 + README 진입점 (13 file) |
-| #411 | `7d3d20d` | docs(governance-docs) — SDLC Phase 2: planning/+tests/ 도메인별 이관 + cross-reference 일괄 갱신 (25 rename + 91 file 갱신) |
-| #412 | `0b5907a` | test(frontend/multi-domain-view) — view 컴포넌트 단위테스트 +210 (25 file, 584 tests PASS) |
-| #413 | `7d390f7` | docs(governance-docs) — SDLC Phase 3: REQ/ARCH/API split (34 신규 + 3 master index 전환) |
-| #414 | `c00b104` | docs(governance-docs) — SDLC Phase 4: traceability/report.md §3 매트릭스 10 도메인 SoT 재구성 (21 → 19 row) |
-| #415 | `273d9d4` | docs(governance-docs) — SDLC Phase 5: document-standards.md §4 위치 가이드 갱신 |
+### 1) X-3: 평문 secret envelope 암호화 및 KEK 키관리 완결
+* **마스터 암호화 패키지(`internal/crypt`) 신설**:
+  * AES-GCM-256 데이터 암호화(DEK 난수 생성 및 KEK 래핑) 로직을 이식하여 `$env$v1$<wrapped_dek_b64>$<nonce_b64>$<ciphertext_b64>` 규격을 정립했습니다.
+  * Base64 및 Hex 인코딩 KEK 문자열 모두를 유연하게 감지하는 파싱 가드 및 master key size(32바이트) 엄격 검증 기능을 탑재했습니다.
+  * `DEVHUB_ENCRYPTION_KEY` 가 없을 때 작동하는 **Plaintext 바이패스 모드** 및 레거시 데이터 호환용 **Scan Fallback** 기어를 구축했습니다.
+* **영속성 레이어(`IntegrationRepository`) 최소 침습 이식**:
+  * `ScanIntegrationProvider` 내에 `crypt.Decrypt()` 를 결합해 레거시 평문 복호화 자동 fallback 지원을 투명하게 완수했습니다.
+  * `CreateIntegrationProvider` / `UpdateIntegrationProvider` 내에 쿼리 바인딩 전 `crypt.Encrypt()` 를 결합하여 민감 비밀 데이터들(`api_token`, `auth_secret`, `webhook_secret`, `credentials_ref`)을 영속화 시점에 자동으로 암호문 봉투 포맷으로 격상(Upgrade)하도록 보완했습니다.
+* **유닛 및 종합 회귀 검증**:
+  * `envelope_test.go` 내 6개 유닛 테스트 PASS (Hex/Base64 KEK 파싱, dynamic Nonce, invalid 포맷 에러, legacy fallback, global bypass 등).
+  * KEK 환경변수 비활성화 및 활성화(32바이트) 2가지 상황 모두에서 백엔드 전체 회귀 통합/유닛 테스트 `go test ./...` 100% 그린 PASS 달성!
 
-## 2. SDLC 문서 도메인-모듈 재정비 결과
+---
 
-코드베이스의 3대 레이어 + 4대 계층 + 10 도메인 구조 (PR #406/#407) 와 SDLC 문서가 1:1 mirror 정합.
+## 2. 이전 완결된 3대 핵심 스프린트 (NOW-3, NOW-4, NOW-5)
 
-- `docs/domain/<도메인>/{requirements,architecture,api}.md` × 10 도메인 = 30 sub-document + `test_cases.md` × 5 도메인 (Phase 2 이관, auth-session/dev-request/integration-registry/onboarding/organization-management) = 35 sub-document. 잔여 5 도메인 (audit-ops/rbac-permissions/realtime/application-lifecycle/repository-integration) 의 `test_cases.md` 는 후속 carve out.
-- `docs/api/conventions.md` (cross-cutting envelope/enum 신규).
-- master file 3건 (requirements / architecture / backend_api_contract) → index 전환.
-- `docs/shared/README.md` + `docs/infrastructure/README.md` 신규 진입점.
-- `docs/traceability/report.md` §3 매트릭스 19 row (10 core + 1 Shared + 7 Infra + 1 Cross-cutting).
-- `docs/governance/document-standards.md` §4 위치 가이드 새 구조 명시.
+### 1) NOW-3: SCM import/create + draft/publish happy-path E2E
+* backend 캐스팅 정정으로 503 오류 원천 차단 + Gitea Mock Provider Fallback 및 나노초 난수 기반 동적 ID 매핑 우회로 Unique SQL 제약 충돌 예방 + Playwright auto-waiting Locator 결합 E2E 전체 통과 (**63 passed, 6 skipped**).
 
-## 3. 후속 carve out (별도 sprint)
+### 2) NOW-4: 프론트엔드 핵심 모듈 단위 테스트 보강 (Vitest)
+* Zustand global store (`store.ts`), `ProviderModal.tsx`, `MemberTable.tsx`, `PermissionEditor.tsx` Vitest 유닛 테스트 작성 완수 (**총 962개 유닛 테스트 100% PASS**).
+
+### 3) NOW-5: 마이그레이션 prefix uniqueness CI guard 강화
+* 접두사 중복 및 6자리 규격 검증을 린팅하는 `scripts/check-migration-uniqueness.sh` 신설 + `ci.yml` 상시 실행 리팩토링 및 `make lint-migrations` 로컬 바인딩 완료.
+
+---
+
+## 3. 후속 carve out / 잔여 백로그 우선순위
 
 | 우선순위 | 항목 | 사유 |
 |---|---|---|
-| P1 | CI e2e + backend-integration 복원 | refactor 정리 stabilize 됐을 때 `&& false` 제거 |
-| P1 | view 컴포넌트 큰 modal coverage 70% | ApplicationCreationModal (57%) + ProjectCreationModal (39%) edit-mode + member CRUD 시퀀스 |
-| P2 | ApplicationRepository cross-domain decouple | `*IntegrationRepository` embed 제거 (review agent P1) |
-| P2 | ApplicationStore interface slim | 13+ integration 메서드 → integration domain |
-| P2 | §2 인덱스 도메인 분류 정합 | traceability/report.md §2 (line 22-349) 의 cross-cutting row → 새 도메인 row 정합 (Phase 4 scope 외) |
-| P3 | rbac/audit/org 신규 임시 ID 정규화 | Phase 3 임시 발급 ID (REQ-RBAC/AUDIT/ORG/ARCH-RBAC/AUDIT/ORG) 가 본 sprint 매트릭스 흡수됐으나 ID prefix 자체의 추적성 ID 컨벤션 (REQ-FR-<DOMAIN>-XXX) 와 정합 정리 |
-| P3 | application-lifecycle/api.md §9.1 대시보드 JSON sample 위치 결정 | master SoT vs sub-document SoT |
+| **N-6** | v1.0 staging 1주 운영 검증 | 외부 사용자 로그인 및 Onboarding SOP DoD 8 만족 (사용자) |
+| **X-1** | System Admin 운영 대시보드 | Gitea sync job 큐/상태 + provider health |
+| **X-2** | inbound webhook 정규화 깊이 | multi-provider sync 일반화 |
 
-## 4. 본 sprint 학습
+---
 
-1. **branch 침범 회피** — view carve agent 가 Phase 3 branch (`-f`) 에 commit 한 case. agent 위임 시 명확한 branch 명시 필수. cherry-pick 분리 패턴으로 회복.
-2. **stash --include-untracked 활용** — 다른 branch 작업 사이 working tree 보존 (Phase 3 agent 결과 stash → 분리 branch → unstash).
-3. **거대 sprint 의 Phase 분할** — 단일 거대 PR 보다 Phase 별 PR 분할이 review 부담 작음. 본 sprint 5 Phase + 추가 2 PR 으로 분할.
-4. **sub-agent 위임 ROI** — Phase 3 (REQ/ARCH/API split XL) + view carve (24 file) 같은 대량 작업은 sub-agent 위임이 직접 작업보다 효율 큼.
-5. **doc/code mirror 패턴** — code-taxonomy SoT 의 10 도메인 + 4 계층이 코드 + 문서 양쪽 1:1 mirror 일 때 navigation + ownership 명확.
-
-## 5. 다음 세션 directive
-
-후속 carve out 우선순위:
-1. CI 복원 (사내 검증 후) → `e2e` + `backend-integration` 의 `&& false` 제거
-2. view 큰 modal coverage 70% (별도 sprint)
-3. ApplicationRepository decouple + ApplicationStore slim (P2 묶음 가능)
-4. §2 인덱스 도메인 분류 정합 (별도 sprint)
+## 4. 다음 세션 directive
+* **N-6 마감**: staging 1주 운영을 병행하여 v1.0 릴리즈 준비를 완벽히 매듭짓습니다.
+* **V1.1 진입 준비**: X-1 로드맵 백로그 분석 및 `docs/governance/worker_division.md` 에 따른 워커 간의 피처 이식 준비.

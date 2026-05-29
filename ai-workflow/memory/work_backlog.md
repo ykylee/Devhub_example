@@ -3,9 +3,9 @@
 - 문서 목적: main 브랜치 기준 상위 백로그 인덱스. 세부 sprint backlog 는 브랜치별 메모리 디렉터리 참조.
 - 범위: 마일스톤 상태, 최근 머지, 잔여/후속 작업
 - 대상 독자: 프로젝트 리드, 후속 에이전트, 트랙 담당자
-- 상태: **2026-05-29 EOD update — main HEAD `273d9d4`.** cleanup-recovery (PR #407) 후속 carve out 처리 + SDLC 문서 재정비 sprint 7 신규 PR (#408~#415) 머지 완료. (1) PR #409 providerHasCapability 통합 ✅ (2) PR #412 view 컴포넌트 +210 test ✅ (rbac/repo/dreq/intreg/org 90%+, app-lifecycle modal 미달은 carve) (3) PR #410~#415 SDLC 5 Phase (도메인 골격 → planning/tests 이관 → REQ/ARCH/API split → traceability matrix 재구성 → document-standards 갱신). **다음 directive**: (P1) CI e2e+integration 복원 (사내) / view 큰 modal 70% (별도 sprint) / (P2) ApplicationRepository decouple / ApplicationStore slim / §2 인덱스 도메인 정합 / (P3) rbac/audit/org 신규 임시 ID 정규화 / application-lifecycle/api.md §9.1 sample 위치 결정.
-- 최종 수정일: 2026-05-29 EOD (SDLC 재정비 5 Phase + view carve + integrationcaps 머지 후 housekeeping)
-- 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [세션 인계](./session_handoff.md), [상태 스냅샷](./state.json), [M1 PR 리뷰 actions](./M1-PR-review-actions.md)
+- 상태: **2026-05-29 EOD update — main HEAD `273d9d4` + X-3 envelope encryption.** NOW-3 (E2E), NOW-4 (Vitest), NOW-5 (Migration CI guard) 완료 및 신규 P1 과제인 **X-3 평문 secret envelope 암호화 (ADR-0025 수립 및 AES-GCM-256 최소 침습 필터 이식)** 완결. 6개 유닛 테스트 및 KEK 주입 2형(Hex/Base64) 통합 회귀 테스트 100% PASS. **다음 directive**: (P1) v1.0 staging 1주 운영 검증 (N-6) / (P2) System Admin 운영 대시보드 (X-1) / (P3) inbound webhook 정규화 깊이 (X-2).
+- 최종 수정일: 2026-05-29 EOD (X-3 Envelope Encryption 이식 완결)
+- 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [세션 인계](./session_handoff.md), [상태 스냅샷](./state.json), [M1 PR 리뷰 actions](./M1-PR-review-actions.md), [ADR-0025](../../docs/adr/0025-envelope-encryption-key-management.md)
 
 ## 1. 마일스톤 진행 상황
 

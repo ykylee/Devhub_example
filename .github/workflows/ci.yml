@@ -56,38 +56,12 @@ jobs:
         uses: raven-actions/actionlint@v2
 
   migration-prefix-lint:
-    # sprint -l (PR #180) 의 carve out — golang-migrate 의 동일 version prefix 충돌 회피.
-    # docs/setup/migration_000021_conflict_resolution.md §6 의 CI lint carve 구현.
-    # PR #167 KC-PR-E 가 기존 000021 과 충돌 추가했던 사례 회귀 차단.
     name: Migration Prefix Uniqueness
     runs-on: ubuntu-latest
-    needs: [changed-paths]
-    if: needs.changed-paths.outputs.backend == 'true' || needs.changed-paths.outputs.workflow == 'true'
     steps:
       - uses: actions/checkout@v4
       - name: Check migration prefixes are unique
-        run: |
-          set -euo pipefail
-          # backend-core/migrations/{version}_{name}.{up,down}.sql 패턴.
-          # 동일 version (= filename 첫 underscore 까지의 숫자) 다중 file = golang-migrate ambiguous.
-          # up.sql 기준으로 prefix 추출 → 중복 검사.
-          duplicates=$(
-            find backend-core/migrations -maxdepth 1 -type f -name '*.up.sql' -print \
-              | awk -F'/' '{print $NF}' \
-              | awk -F'_' '{print $1}' \
-              | sort \
-              | uniq -d
-          )
-          if [ -n "$duplicates" ]; then
-            echo "::error::Migration prefix collision detected:"
-            echo "$duplicates" | while read -r prefix; do
-              echo "  prefix '${prefix}' is used by:"
-              find backend-core/migrations -maxdepth 1 -type f -name "${prefix}_*.up.sql" -print | sed 's/^/    /'
-            done
-            echo "::error::See docs/setup/migration_000021_conflict_resolution.md for resolution SOP."
-            exit 1
-          fi
-          echo "All migration prefixes are unique."
+        run: bash ./scripts/check-migration-uniqueness.sh
 
   backend-unit:
     name: Backend Unit Tests
@@ -122,7 +96,7 @@ jobs:
     # sprint gemini/work_260528-code-cleanup — 3대 레이어 / 4대 계층 디렉터리 이관
     # 중 integration test 컴파일 회귀 다수 발생. 리팩토링 정리가 끝날 때까지
     # integration job 일시 비활성화. 복원 시 본 `&& false` 만 제거하면 됨.
-    if: (needs.changed-paths.outputs.backend == 'true' || needs.changed-paths.outputs.workflow == 'true') && false
+    if: (needs.changed-paths.outputs.backend == 'true' || needs.changed-paths.outputs.workflow == 'true')
     # PR #109 의 23 integration test (DEVHUB_TEST_DB_URL gate) 를 native PG 15
     # 환경에서 실 실행 — backend-unit job 은 skip 만 하므로 회귀 가드가 무효였음.
     # PR #110 (sprint claude/work_260514-f) 신설.
@@ -234,7 +208,7 @@ jobs:
     # sprint gemini/work_260528-code-cleanup — 대규모 import path/디렉터리 이관으로
     # E2E 회귀 위험 큼. 리팩토링 정리가 끝날 때까지 e2e job 일시 비활성화.
     # 복원 시 본 `&& false` 만 제거하면 됨.
-    if: (needs.changed-paths.outputs.e2e == 'true' || needs.changed-paths.outputs.workflow == 'true') && false
+    if: (needs.changed-paths.outputs.e2e == 'true' || needs.changed-paths.outputs.workflow == 'true')
     strategy:
       fail-fast: false
       matrix:

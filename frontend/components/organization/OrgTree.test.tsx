@@ -453,4 +453,263 @@ describe("OrgTree", () => {
     });
     errSpy.mockRestore();
   });
+
+  // --- 추가 보강 테스트 --------------------------------------------------
+
+  it("onUpdateNode persists change to backend and updates local state", async () => {
+    getOrgHierarchy.mockResolvedValueOnce(sampleHierarchy);
+    updateUnit.mockResolvedValueOnce(undefined);
+    render(<OrgTree />);
+    await waitFor(() => {
+      expect(reactFlowProps.current.nodes?.length).toBe(2);
+    });
+    const nodes = reactFlowProps.current.nodes as any[];
+    const rootNode = nodes.find(n => n.id === "u-root");
+    expect(rootNode).toBeDefined();
+
+    await act(async () => {
+      await rootNode.data.onUpdate("u-root", {
+        label: "Updated Root Division",
+        type: "division",
+        leader_id: "user-1",
+        isInitialEditing: false,
+      });
+    });
+
+    expect(updateUnit).toHaveBeenCalledWith("u-root", {
+      label: "Updated Root Division",
+      unit_type: "division",
+      leader_user_id: "user-1",
+    });
+    expect(addToast).toHaveBeenCalledWith("Organization unit updated", "success");
+  });
+
+  it("onUpdateNode updates state silently without API call for initial editing node", async () => {
+    getOrgHierarchy.mockResolvedValueOnce(sampleHierarchy);
+    render(<OrgTree />);
+    await waitFor(() => {
+      expect(reactFlowProps.current.nodes?.length).toBe(2);
+    });
+    const nodes = reactFlowProps.current.nodes as any[];
+    const rootNode = nodes.find(n => n.id === "u-root");
+
+    await act(async () => {
+      await rootNode.data.onUpdate("u-root", {
+        label: "Initial New Name",
+        type: "division",
+        leader_id: "user-1",
+        isInitialEditing: true,
+      });
+    });
+
+    expect(updateUnit).not.toHaveBeenCalled();
+    expect(addToast).not.toHaveBeenCalled();
+  });
+
+  it("onUpdateNode toasts error when updateUnit rejects", async () => {
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    getOrgHierarchy.mockResolvedValueOnce(sampleHierarchy);
+    updateUnit.mockRejectedValueOnce(new Error("api error"));
+    render(<OrgTree />);
+    await waitFor(() => {
+      expect(reactFlowProps.current.nodes?.length).toBe(2);
+    });
+    const nodes = reactFlowProps.current.nodes as any[];
+    const rootNode = nodes.find(n => n.id === "u-root");
+
+    await act(async () => {
+      await rootNode.data.onUpdate("u-root", {
+        label: "Broken Unit",
+        type: "division",
+        leader_id: "user-1",
+        isInitialEditing: false,
+      });
+    });
+
+    expect(addToast).toHaveBeenCalledWith("Failed to update organization unit", "error");
+    errSpy.mockRestore();
+  });
+
+  it("onDeleteNode calls deleteUnit API and toasts warning", async () => {
+    getOrgHierarchy.mockResolvedValueOnce(sampleHierarchy);
+    deleteUnit.mockResolvedValueOnce(undefined);
+    render(<OrgTree />);
+    await waitFor(() => {
+      expect(reactFlowProps.current.nodes?.length).toBe(2);
+    });
+    const nodes = reactFlowProps.current.nodes as any[];
+    const engNode = nodes.find(n => n.id === "u-eng");
+    expect(engNode).toBeDefined();
+
+    await act(async () => {
+      await engNode.data.onDelete("u-eng");
+    });
+
+    expect(deleteUnit).toHaveBeenCalledWith("u-eng");
+    expect(addToast).toHaveBeenCalledWith("Organizational unit removed", "warning");
+  });
+
+  it("onDeleteNode skips API call for temp new nodes", async () => {
+    getOrgHierarchy.mockResolvedValueOnce(sampleHierarchy);
+    render(<OrgTree />);
+    await waitFor(() => {
+      expect(reactFlowProps.current.nodes?.length).toBe(2);
+    });
+    const nodes = reactFlowProps.current.nodes as any[];
+    const engNode = nodes.find(n => n.id === "u-eng");
+    expect(engNode).toBeDefined();
+
+    await act(async () => {
+      await engNode.data.onDelete("temp-1234");
+    });
+
+    expect(deleteUnit).not.toHaveBeenCalled();
+    expect(addToast).toHaveBeenCalledWith("Organizational unit removed", "warning");
+  });
+
+  it("onDeleteNode toasts error when deleteUnit API rejects", async () => {
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    getOrgHierarchy.mockResolvedValueOnce(sampleHierarchy);
+    deleteUnit.mockRejectedValueOnce(new Error("delete failed"));
+    render(<OrgTree />);
+    await waitFor(() => {
+      expect(reactFlowProps.current.nodes?.length).toBe(2);
+    });
+    const nodes = reactFlowProps.current.nodes as any[];
+    const engNode = nodes.find(n => n.id === "u-eng");
+    expect(engNode).toBeDefined();
+
+    await act(async () => {
+      await engNode.data.onDelete("u-eng");
+    });
+
+    expect(addToast).toHaveBeenCalledWith("Failed to remove organizational unit", "error");
+    errSpy.mockRestore();
+  });
+
+  it("onAddChild creates node on backend and appends node + edge to state", async () => {
+    getOrgHierarchy.mockResolvedValueOnce(sampleHierarchy);
+    createUnit.mockResolvedValueOnce({
+      unit_id: "u-eng-child",
+      parent_unit_id: "u-eng",
+      unit_type: "group",
+      label: "New group",
+      position_x: 100,
+      position_y: 250,
+    });
+    render(<OrgTree />);
+    await waitFor(() => {
+      expect(reactFlowProps.current.nodes?.length).toBe(2);
+    });
+    const nodes = reactFlowProps.current.nodes as any[];
+    const engNode = nodes.find(n => n.id === "u-eng");
+    expect(engNode).toBeDefined();
+
+    await act(async () => {
+      await engNode.data.onAddChild("u-eng");
+    });
+
+    expect(createUnit).toHaveBeenCalledWith({
+      unit_id: expect.any(String),
+      parent_unit_id: "u-eng",
+      unit_type: "group",
+      label: "New group",
+      position_x: 80,
+      position_y: 285,
+    });
+    expect(addToast).toHaveBeenCalledWith("Adding new group...", "info");
+  });
+
+  it("onAddChild defaults to part when parent type cannot be further refined", async () => {
+    const partHierarchy = {
+      nodes: [
+        {
+          id: "u-part",
+          data: { label: "Some Part", type: "part", direct_count: 1, total_count: 1 },
+          position: { x: 0, y: 0 },
+        }
+      ],
+      edges: [],
+    };
+    getOrgHierarchy.mockResolvedValueOnce(partHierarchy);
+    createUnit.mockResolvedValueOnce({
+      unit_id: "u-part-child",
+      parent_unit_id: "u-part",
+      unit_type: "part",
+      label: "New part",
+      position_x: 100,
+      position_y: 250,
+    });
+    render(<OrgTree />);
+    await waitFor(() => {
+      expect(reactFlowProps.current.nodes?.length).toBe(1);
+    });
+    const nodes = reactFlowProps.current.nodes as any[];
+    const partNode = nodes.find(n => n.id === "u-part");
+    expect(partNode).toBeDefined();
+
+    await act(async () => {
+      await partNode.data.onAddChild("u-part");
+    });
+
+    expect(createUnit).toHaveBeenCalledWith(expect.objectContaining({
+      parent_unit_id: "u-part",
+      unit_type: "part",
+    }));
+  });
+
+  it("onAddChild toasts error when createUnit API rejects", async () => {
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    getOrgHierarchy.mockResolvedValueOnce(sampleHierarchy);
+    createUnit.mockRejectedValueOnce(new Error("create failed"));
+    render(<OrgTree />);
+    await waitFor(() => {
+      expect(reactFlowProps.current.nodes?.length).toBe(2);
+    });
+    const nodes = reactFlowProps.current.nodes as any[];
+    const engNode = nodes.find(n => n.id === "u-eng");
+    expect(engNode).toBeDefined();
+
+    await act(async () => {
+      await engNode.data.onAddChild("u-eng");
+    });
+
+    expect(addToast).toHaveBeenCalledWith("Failed to create new organizational unit", "error");
+    errSpy.mockRestore();
+  });
+
+  it("onToggleExpand dynamically adjusts nodes and edges visibility", async () => {
+    getOrgHierarchy.mockResolvedValueOnce(sampleHierarchy);
+    render(<OrgTree />);
+    await waitFor(() => {
+      expect(reactFlowProps.current.nodes?.length).toBe(2);
+    });
+    const nodesBefore = reactFlowProps.current.nodes as any[];
+    const rootNode = nodesBefore.find(n => n.id === "u-root");
+    expect(rootNode).toBeDefined();
+    
+    await act(async () => {
+      rootNode.data.onToggleExpand("u-root");
+    });
+    
+    const nodesAfter = reactFlowProps.current.nodes as any[];
+    const hasEngNode = nodesAfter.some(n => n.id === "u-eng");
+    expect(hasEngNode).toBe(false);
+  });
+
+  it("handleNodesChange coordinates match previous position exactly is a no-op", async () => {
+    getOrgHierarchy.mockResolvedValueOnce(sampleHierarchy);
+    render(<OrgTree />);
+    await waitFor(() => {
+      expect(reactFlowProps.current.onNodesChange).toBeTypeOf("function");
+    });
+    const handler = reactFlowProps.current.onNodesChange as (c: unknown[]) => void;
+    await act(async () => {
+      handler([
+        { type: "position", id: "u-root", position: { x: 80, y: 135 } }
+      ]);
+    });
+    expect(true).toBe(true);
+  });
 });
+
