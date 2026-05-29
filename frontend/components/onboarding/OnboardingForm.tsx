@@ -7,7 +7,7 @@ import { onboardingService } from "@/domain/onboarding/service/onboarding.servic
 import { useStore } from "@/lib/store";
 import { OrganizationPicker } from "./OrganizationPicker";
 import { ApiError } from "@/shared/api/api-client";
-import { markOnboardingSkipped } from "@/lib/storage/onboardingSkip";
+import { markOnboardingSkipped } from "@/shared/utils/onboardingSkip";
 import { defaultLandingFor } from "@/domain/auth-session/service/role-routing";
 
 interface Props {

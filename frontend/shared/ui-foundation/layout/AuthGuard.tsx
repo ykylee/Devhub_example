@@ -9,7 +9,7 @@ import { ApiError } from "@/shared/api/api-client";
 import { defaultLandingFor, isSystemAdmin, pathRequiresSystemAdmin } from "@/domain/auth-session/service/role-routing";
 import { initRefreshScheduler } from "@/domain/auth-session/service/refresh-scheduler";
 import { refreshAccessToken } from "@/domain/auth-session/service/refresh";
-import { isOnboardingSkipped } from "@/lib/storage/onboardingSkip";
+import { isOnboardingSkipped } from "@/shared/utils/onboardingSkip";
 
 // limited-mode (skip 단계) 사용자가 client-side 에서 차단되는 경로.
 // TC-ONBOARD-SKIP-PROTECTED-01 (P0) 가 `/account` 진입 시 hard redirect 를 요구한다 —
