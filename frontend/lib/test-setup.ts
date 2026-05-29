@@ -9,6 +9,28 @@ import "@testing-library/jest-dom/vitest";
 import { afterEach, vi } from "vitest";
 import { cleanup } from "@testing-library/react";
 
+class LocalStorageMock {
+  private store: { [key: string]: string } = {};
+
+  clear() {
+    this.store = {};
+  }
+
+  getItem(key: string): string | null {
+    return this.store[key] || null;
+  }
+
+  setItem(key: string, value: string) {
+    this.store[key] = String(value);
+  }
+
+  removeItem(key: string) {
+    delete this.store[key];
+  }
+}
+
+global.localStorage = new LocalStorageMock() as any;
+
 afterEach(() => {
   cleanup();
 });

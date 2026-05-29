@@ -1,0 +1,28 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-05-29T23:12:00Z",
+  "source_of_truth": {
+    "project_profile_path": "docs/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/gemini/work_260529-b-unit-test-coverage/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/gemini/work_260529-b-unit-test-coverage/work_backlog.md"
+  },
+  "project": {
+    "project_name": "DevHub Example"
+  },
+  "session": {
+    "current_focus": "Unit Test Coverage and Mock Improvements",
+    "in_progress_items": [],
+    "blocked_items": [],
+    "recent_done_items": [
+      "Fix frontend Vitest localStorage TypeErrors by injecting mock in test-setup.ts",
+      "Achieve 100% frontend Vitest PASS status (930 passed, 0 failed)",
+      "Create new backend dev-request/service metrics_test.go unit test",
+      "Raise backend dev-request/service pkg coverage to 90.6% of statements"
+    ]
+  },
+  "next_documents": [
+    "AGENTS.md",
+    "GEMINI.md",
+    "ai-workflow/memory/gemini/work_260529-b-unit-test-coverage/session_handoff.md"
+  ]
+}
