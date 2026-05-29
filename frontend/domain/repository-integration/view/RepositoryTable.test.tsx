@@ -28,7 +28,7 @@ vi.mock("next/link", () => ({
 }));
 
 import { RepositoryTable } from "./RepositoryTable";
-import type { ApplicationRepository } from "@/lib/services/project.types";
+import type { ApplicationRepository } from "@/domain/application-lifecycle/schema/project.types";
 
 const repos: ApplicationRepository[] = [
   {

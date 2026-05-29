@@ -1,4 +1,4 @@
-import type { IntegrationProviderType, IntegrationAuthMode } from "@/lib/services/integration.types";
+import type { IntegrationProviderType, IntegrationAuthMode } from "@/domain/integration-registry/schema/integration.types";
 
 // ADR-0024 외부 연동 등록 UX 고도화 — vendor 템플릿 + 가이드 자격증명 입력.
 // credentials_ref 의 내부 인코딩(hmac_sha256:/provider_sdk:vendor:)을 사용자가 직접

@@ -1,4 +1,4 @@
-import { apiClient } from "@/lib/services/api-client";
+import { apiClient } from "@/shared/api/api-client";
 import { DevRequest, DevRequestRegisterPayload, DevRequestStatus } from "@/domain/dev-request/schema/dev_request.types";
 
 type DevRequestQuery = {

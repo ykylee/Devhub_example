@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { projectService } from "@/domain/application-lifecycle/service/project.service";
-import { Application, ApplicationRepository, Project } from "@/lib/services/project.types";
+import { Application, ApplicationRepository, Project } from "@/domain/application-lifecycle/schema/project.types";
 import { ApplicationTable } from "@/domain/application-lifecycle/view/ApplicationTable";
 import { ApplicationCreationModal } from "@/domain/application-lifecycle/view/ApplicationCreationModal";
 import { RepositoryTable } from "@/domain/repository-integration/view/RepositoryTable";

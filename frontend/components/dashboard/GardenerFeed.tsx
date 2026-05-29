@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { gardenerService, Suggestion } from "@/lib/services/gardener.service";
+import { gardenerService, Suggestion } from "@/domain/application-lifecycle/service/gardener.service";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, ArrowRight, CheckCircle2, ShieldAlert, TrendingUp, Zap } from "lucide-react";
 import { cn } from "@/shared/utils";

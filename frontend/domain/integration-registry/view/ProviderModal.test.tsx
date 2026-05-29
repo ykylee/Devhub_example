@@ -23,7 +23,7 @@ vi.mock("framer-motion", () => {
 const createProvider = vi.fn();
 const updateProvider = vi.fn();
 const testConnection = vi.fn();
-vi.mock("@/lib/services/integration.service", () => ({
+vi.mock("@/domain/integration-registry/service/integration.service", () => ({
   integrationService: {
     createProvider: (...args: unknown[]) => createProvider(...args),
     updateProvider: (...args: unknown[]) => updateProvider(...args),
@@ -32,7 +32,7 @@ vi.mock("@/lib/services/integration.service", () => ({
 }));
 
 import { ProviderModal } from "./ProviderModal";
-import type { IntegrationProvider } from "@/lib/services/integration.types";
+import type { IntegrationProvider } from "@/domain/integration-registry/schema/integration.types";
 
 const existing: IntegrationProvider = {
   provider_id: "p1",

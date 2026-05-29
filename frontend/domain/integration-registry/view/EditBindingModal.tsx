@@ -4,13 +4,13 @@ import { useState, FormEvent } from "react";
 import { Link2, X, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/shared/utils";
-import { integrationService } from "@/lib/services/integration.service";
-import { ApiError } from "@/lib/services/api-client";
+import { integrationService } from "@/domain/integration-registry/service/integration.service";
+import { ApiError } from "@/shared/api/api-client";
 import type {
   IntegrationBinding,
   IntegrationPolicy,
   IntegrationProvider,
-} from "@/lib/services/integration.types";
+} from "@/domain/integration-registry/schema/integration.types";
 
 interface EditBindingModalProps {
   binding: IntegrationBinding;

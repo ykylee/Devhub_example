@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { X, Key, Loader2, Plus, Trash2, Check, AlertTriangle } from "lucide-react";
-import { devRequestTokenService } from "@/lib/services/dev_request_token.service";
-import type { DevRequestIntakeToken } from "@/lib/services/dev_request_token.types";
+import { devRequestTokenService } from "@/domain/dev-request/service/dev_request_token.service";
+import type { DevRequestIntakeToken } from "@/domain/dev-request/schema/dev_request_token.types";
 
 interface EditIntakeTokenModalProps {
   token: DevRequestIntakeToken;

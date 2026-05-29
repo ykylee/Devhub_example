@@ -1,5 +1,5 @@
-import { Role, RbacPolicyMeta } from "@/lib/services/rbac.types";
-import { apiClient, ApiError } from "@/lib/services/api-client";
+import { Role, RbacPolicyMeta } from "@/domain/rbac-permissions/schema/rbac.types";
+import { apiClient, ApiError } from "@/shared/api/api-client";
 import { API_BASE_URL } from "@/shared/config/endpoints";
 
 interface ListPoliciesEnvelope {

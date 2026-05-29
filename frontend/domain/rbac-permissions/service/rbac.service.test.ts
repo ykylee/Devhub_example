@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PermissionState } from "@/domain/rbac-permissions/view/PermissionMatrix";
-import type { Role, RbacPolicyMeta } from "@/lib/services/rbac.types";
+import type { Role, RbacPolicyMeta } from "@/domain/rbac-permissions/schema/rbac.types";
 
 describe("RbacService", () => {
   const apiClientMock = vi.fn();
@@ -35,7 +35,7 @@ describe("RbacService", () => {
   beforeEach(() => {
     vi.resetModules();
     apiClientMock.mockReset();
-    vi.doMock("@/lib/services/api-client", () => ({
+    vi.doMock("@/shared/api/api-client", () => ({
       apiClient: apiClientMock,
       ApiError: MockApiError,
     }));

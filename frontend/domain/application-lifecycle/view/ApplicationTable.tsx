@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
-import { Application, ApplicationStatus, ApplicationVisibility } from "@/lib/services/project.types";
+import { Application, ApplicationStatus, ApplicationVisibility } from "@/domain/application-lifecycle/schema/project.types";
 import { Badge } from "@/shared/ui-foundation/components/Badge";
 import { ActionMenu } from "@/shared/ui-foundation/components/ActionMenu";
 

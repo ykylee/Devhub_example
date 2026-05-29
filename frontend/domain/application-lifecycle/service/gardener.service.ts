@@ -13,7 +13,7 @@ export interface Suggestion {
   created_at: string;
 }
 
-import { apiClient } from "./api-client";
+import { apiClient } from "@/shared/api/api-client";
 
 
 export class GardenerService {

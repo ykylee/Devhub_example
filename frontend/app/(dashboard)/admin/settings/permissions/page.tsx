@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { PermissionEditor } from "@/domain/rbac-permissions/view/PermissionEditor";
-import { defaultRoles, Role } from "@/lib/services/rbac.types";
+import { defaultRoles, Role } from "@/domain/rbac-permissions/schema/rbac.types";
 import { rbacService, RbacError } from "@/domain/rbac-permissions/service/rbac.service";
 
 export default function AdminSettingsPermissionsPage() {

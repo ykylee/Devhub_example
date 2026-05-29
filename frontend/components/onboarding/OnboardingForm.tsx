@@ -6,7 +6,7 @@ import { Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { onboardingService } from "@/domain/onboarding/service/onboarding.service";
 import { useStore } from "@/lib/store";
 import { OrganizationPicker } from "./OrganizationPicker";
-import { ApiError } from "@/lib/services/api-client";
+import { ApiError } from "@/shared/api/api-client";
 import { markOnboardingSkipped } from "@/lib/storage/onboardingSkip";
 import { defaultLandingFor } from "@/domain/auth-session/service/role-routing";
 

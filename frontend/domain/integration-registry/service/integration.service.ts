@@ -1,4 +1,4 @@
-import { apiClient } from "./api-client";
+import { apiClient } from "@/shared/api/api-client";
 import type {
   CreateIntegrationBindingInput,
   CreateIntegrationProviderInput,
@@ -10,7 +10,7 @@ import type {
   ScmRepository,
   TestConnectionResult,
   UpdateIntegrationProviderInput,
-} from "./integration.types";
+} from "@/domain/integration-registry/schema/integration.types";
 
 class IntegrationService {
   async listProviders(opts: ListIntegrationProvidersOptions = {}): Promise<{ data: IntegrationProvider[]; total: number }> {

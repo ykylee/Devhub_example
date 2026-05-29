@@ -25,12 +25,12 @@ import { cn } from "@/shared/utils";
 import { useStore } from "@/lib/store";
 import { applicationService, ApplicationDashboard } from "@/domain/application-lifecycle/service/application.service";
 import { projectService } from "@/domain/application-lifecycle/service/project.service";
-import { ApplicationRepository } from "@/lib/services/project.types";
-import { toUserErrorMessage } from "@/lib/services/error-message";
+import { ApplicationRepository } from "@/domain/application-lifecycle/schema/project.types";
+import { toUserErrorMessage } from "@/shared/utils/error-message";
 import { lifecycleStatusBadgeVariant } from "@/shared/utils/lifecycle-status";
 import { applicationBuildStatusView } from "@/shared/utils/last-build";
 import { PageError, PageLoading } from "@/shared/ui-foundation/components/PageState";
-import { apiClient } from "@/lib/services/api-client";
+import { apiClient } from "@/shared/api/api-client";
 import {
   ResponsiveContainer,
   AreaChart,

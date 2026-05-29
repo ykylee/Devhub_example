@@ -1,4 +1,4 @@
-import { ApiError } from "./api-client";
+import { ApiError } from "@/shared/api/api-client";
 
 export function toUserErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof ApiError) {

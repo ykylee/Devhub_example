@@ -20,12 +20,12 @@ import { useRouter, useParams } from "next/navigation";
 import { parseISO } from "date-fns";
 import { Badge } from "@/shared/ui-foundation/components/Badge";
 import { projectService } from "@/domain/application-lifecycle/service/project.service";
-import type { Project, ProjectActivityItem, ProjectRepositoryLink, ProjectTaskItem } from "@/lib/services/project.types";
+import type { Project, ProjectActivityItem, ProjectRepositoryLink, ProjectTaskItem } from "@/domain/application-lifecycle/schema/project.types";
 import { identityService, OrgMember } from "@/domain/organization-management/service/identity.service";
 import { repositoryService, Repository } from "@/domain/repository-integration/service/repository.service";
 import { ENABLE_LEGACY_MOCK_UI } from "@/shared/config/mock-ui";
 import { legacyMockProjectActivity, legacyMockProjectTasks } from "@/lib/archive/mock-ui-legacy";
-import { toUserErrorMessage } from "@/lib/services/error-message";
+import { toUserErrorMessage } from "@/shared/utils/error-message";
 import { lifecycleStatusBadgeVariant } from "@/shared/utils/lifecycle-status";
 import { PageError, PageLoading } from "@/shared/ui-foundation/components/PageState";
 import { 

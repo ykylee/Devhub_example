@@ -22,7 +22,7 @@ vi.mock("framer-motion", () => {
 
 import { BindingsTable } from "./BindingsTable";
 
-import type { IntegrationBinding, IntegrationProvider } from "@/lib/services/integration.types";
+import type { IntegrationBinding, IntegrationProvider } from "@/domain/integration-registry/schema/integration.types";
 
 const mockProviders: Record<string, IntegrationProvider> = {
   "prov-1": {

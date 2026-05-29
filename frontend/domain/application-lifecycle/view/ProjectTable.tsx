@@ -4,7 +4,7 @@ import Link from "next/link";
 import { FolderKanban, Clock, User, ChevronRight } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
-import { Project, ProjectStatus } from "@/lib/services/project.types";
+import { Project, ProjectStatus } from "@/domain/application-lifecycle/schema/project.types";
 import { Badge } from "@/shared/ui-foundation/components/Badge";
 import { ActionMenu } from "@/shared/ui-foundation/components/ActionMenu";
 

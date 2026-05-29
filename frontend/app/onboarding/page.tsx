@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Loader2, UserPlus } from "lucide-react";
 import { identityService, type ResolvedActor } from "@/domain/organization-management/service/identity.service";
-import { ApiError } from "@/lib/services/api-client";
+import { ApiError } from "@/shared/api/api-client";
 import { useStore } from "@/lib/store";
 import { OnboardingForm } from "@/components/onboarding/OnboardingForm";
 import { defaultLandingFor } from "@/domain/auth-session/service/role-routing";

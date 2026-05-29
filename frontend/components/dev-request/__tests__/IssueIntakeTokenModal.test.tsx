@@ -2,10 +2,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { IssueIntakeTokenModal } from "../IssueIntakeTokenModal";
-import { devRequestTokenService } from "@/lib/services/dev_request_token.service";
-import type { IssuedDevRequestIntakeToken } from "@/lib/services/dev_request_token.types";
+import { devRequestTokenService } from "@/domain/dev-request/service/dev_request_token.service";
+import type { IssuedDevRequestIntakeToken } from "@/domain/dev-request/schema/dev_request_token.types";
 
-vi.mock("@/lib/services/dev_request_token.service", () => ({
+vi.mock("@/domain/dev-request/service/dev_request_token.service", () => ({
   devRequestTokenService: {
     issue: vi.fn(),
   },

@@ -4,7 +4,7 @@ import { Plug, Settings, RefreshCw, Trash2, FolderDown, FolderPlus } from "lucid
 import { format, parseISO } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/shared/ui-foundation/components/Badge";
-import type { IntegrationProvider } from "@/lib/services/integration.types";
+import type { IntegrationProvider } from "@/domain/integration-registry/schema/integration.types";
 
 interface ProviderTableProps {
   items: IntegrationProvider[];

@@ -20,7 +20,7 @@ vi.mock("framer-motion", () => {
 });
 
 const createBinding = vi.fn();
-vi.mock("@/lib/services/integration.service", () => ({
+vi.mock("@/domain/integration-registry/service/integration.service", () => ({
   integrationService: {
     createBinding: (...args: unknown[]) => createBinding(...args),
   },
@@ -33,9 +33,9 @@ vi.mock("@/domain/application-lifecycle/service/project.service", () => ({
   },
 }));
 
-import { ApiError } from "@/lib/services/api-client";
+import { ApiError } from "@/shared/api/api-client";
 import { CreateBindingModal } from "./CreateBindingModal";
-import type { IntegrationBinding, IntegrationProvider } from "@/lib/services/integration.types";
+import type { IntegrationBinding, IntegrationProvider } from "@/domain/integration-registry/schema/integration.types";
 
 const providers: IntegrationProvider[] = [
   {

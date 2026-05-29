@@ -1,11 +1,11 @@
-import { apiClient } from "./api-client";
+import { apiClient } from "@/shared/api/api-client";
 import type {
   DevRequestIntakeToken,
   IssueDevRequestIntakeTokenInput,
   IssuedDevRequestIntakeToken,
   UpdateDevRequestIntakeTokenIPsInput,
   UpdateDevRequestIntakeTokenInput,
-} from "./dev_request_token.types";
+} from "@/domain/dev-request/schema/dev_request_token.types";
 
 class DevRequestTokenService {
   async list(): Promise<{ data: DevRequestIntakeToken[]; total: number }> {

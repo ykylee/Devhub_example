@@ -57,7 +57,7 @@ vi.mock("./UserCreationModal", () => ({
 
 import { MemberTable } from "./MemberTable";
 import type { OrgMember } from "@/domain/organization-management/service/identity.service";
-import type { Role } from "@/lib/services/rbac.types";
+import type { Role } from "@/domain/rbac-permissions/schema/rbac.types";
 
 const roles: Role[] = [
   { id: 1, name: "Developer", description: "" },

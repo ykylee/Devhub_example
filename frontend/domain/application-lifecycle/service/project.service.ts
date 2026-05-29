@@ -1,4 +1,4 @@
-import { ApiError, apiClient } from "@/lib/services/api-client";
+import { ApiError, apiClient } from "@/shared/api/api-client";
 import {
   Application,
   ApplicationRepository,
@@ -8,7 +8,7 @@ import {
   ProjectRepositoryLink,
   ProjectTaskItem,
   SCMProvider,
-} from "@/lib/services/project.types";
+} from "@/domain/application-lifecycle/schema/project.types";
 
 type ApplicationQuery = { status?: string; include_archived?: boolean; q?: string };
 type ProjectQuery = { status?: string; include_archived?: boolean };

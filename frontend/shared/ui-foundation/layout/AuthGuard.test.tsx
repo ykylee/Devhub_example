@@ -29,7 +29,7 @@ vi.mock("@/domain/organization-management/service/identity.service", () => ({
   },
 }));
 
-vi.mock("@/lib/services/api-client", () => ({
+vi.mock("@/shared/api/api-client", () => ({
   // 실 ApiError 의 3-arg constructor (status, payload, message) 정합.
   ApiError: class extends Error {
     status: number;
@@ -187,7 +187,7 @@ describe("AuthGuard 401/error fallback (ADR-0020 sub-carve F)", () => {
   it("401 ApiError 시 /login?error=session_expired 로 redirect 한다", async () => {
     // Reproduce ApiError shape from the same mock factory the production
     // module imports; constructing it directly would bypass the vi.mock.
-    const { ApiError } = await import("@/lib/services/api-client");
+    const { ApiError } = await import("@/shared/api/api-client");
     whoAmIMock.mockRejectedValue(new ApiError(401, null, "unauthenticated"));
 
     render(

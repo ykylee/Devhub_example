@@ -11,7 +11,7 @@ import {
   Application,
   SCMProvider,
   ProjectMemberRole,
-} from "@/lib/services/project.types";
+} from "@/domain/application-lifecycle/schema/project.types";
 import { Repository } from "@/domain/repository-integration/service/repository.service";
 import { projectService } from "@/domain/application-lifecycle/service/project.service";
 import { identityService } from "@/domain/organization-management/service/identity.service";

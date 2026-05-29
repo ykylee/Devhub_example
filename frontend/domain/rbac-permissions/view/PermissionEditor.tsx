@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ShieldCheck, Lock, Plus, Trash2, ShieldAlert, Eye, Pencil, Crown, Shield, Save } from "lucide-react";
 import { cn } from "@/shared/utils";
 import { PermissionMatrix, PermissionState } from "./PermissionMatrix";
-import { Role, AUDIT_LOCKED_ACTIONS } from "@/lib/services/rbac.types";
+import { Role, AUDIT_LOCKED_ACTIONS } from "@/domain/rbac-permissions/schema/rbac.types";
 
 interface PermissionEditorProps {
   roles: Role[];

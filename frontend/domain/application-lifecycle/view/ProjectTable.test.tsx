@@ -27,7 +27,7 @@ vi.mock("next/link", () => ({
 }));
 
 import { ProjectTable } from "./ProjectTable";
-import type { Project } from "@/lib/services/project.types";
+import type { Project } from "@/domain/application-lifecycle/schema/project.types";
 
 function makeProject(overrides: Partial<Project> = {}): Project {
   return {

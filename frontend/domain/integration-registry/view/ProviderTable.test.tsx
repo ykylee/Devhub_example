@@ -22,7 +22,7 @@ vi.mock("framer-motion", () => {
 
 import { ProviderTable } from "./ProviderTable";
 
-import type { IntegrationProvider } from "@/lib/services/integration.types";
+import type { IntegrationProvider } from "@/domain/integration-registry/schema/integration.types";
 
 const mockProviders: IntegrationProvider[] = [
   {

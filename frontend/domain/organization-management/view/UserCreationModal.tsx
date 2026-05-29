@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { X, UserPlus, Mail, Shield, Building2, Loader2, Search, Bot, User, Key, Info } from "lucide-react";
 import { identityService, OrgMember } from "@/domain/organization-management/service/identity.service";
-import { Role } from "@/lib/services/rbac.types";
+import { Role } from "@/domain/rbac-permissions/schema/rbac.types";
 import { cn } from "@/shared/utils";
 
 interface UserCreationModalProps {

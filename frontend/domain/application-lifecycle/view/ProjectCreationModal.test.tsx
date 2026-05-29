@@ -55,7 +55,7 @@ vi.mock("@/domain/organization-management/service/identity.service", () => ({
 }));
 
 import { ProjectCreationModal } from "./ProjectCreationModal";
-import type { Project } from "@/lib/services/project.types";
+import type { Project } from "@/domain/application-lifecycle/schema/project.types";
 
 beforeEach(() => {
   getApplications.mockReset();

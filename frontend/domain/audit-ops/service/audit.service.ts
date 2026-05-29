@@ -1,7 +1,7 @@
 "use client";
 
-import { apiClient } from "@/lib/services/api-client";
-import type { ApiResponse } from "@/lib/services/wire";
+import { apiClient } from "@/shared/api/api-client";
+import type { ApiResponse } from "@/shared/api/wire";
 import type { AuditLogEntry, AuditLogFilters, AuditLogListMeta } from "@/domain/audit-ops/schema/audit.types";
 
 export interface AuditLogListResult {

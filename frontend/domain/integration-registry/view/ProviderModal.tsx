@@ -3,13 +3,13 @@
 import { useState, useMemo, FormEvent } from "react";
 import { Plug, X, Eye, EyeOff } from "lucide-react";
 import { motion } from "framer-motion";
-import { integrationService } from "@/lib/services/integration.service";
+import { integrationService } from "@/domain/integration-registry/service/integration.service";
 import type {
   IntegrationProvider,
   IntegrationProviderType,
   IntegrationAuthMode,
   CreateIntegrationProviderInput,
-} from "@/lib/services/integration.types";
+} from "@/domain/integration-registry/schema/integration.types";
 import {
   VENDOR_PRESETS,
   getVendorPreset,
