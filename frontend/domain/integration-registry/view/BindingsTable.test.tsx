@@ -178,5 +178,55 @@ describe("BindingsTable", () => {
       // Falls back to provider_id when not found in providersByID
       expect(screen.getByText("unknown-prov")).toBeInTheDocument();
     });
+
+    it("renders raw created_at when value cannot be parsed (safeFormat catch)", () => {
+      const malformed: IntegrationBinding[] = [
+        {
+          binding_id: "b4",
+          scope_type: "application",
+          scope_id: "app-xyz",
+          provider_id: "prov-1",
+          external_key: "k",
+          policy: "summary_only",
+          enabled: true,
+          created_at: "not-a-date",
+          updated_at: "not-a-date",
+        },
+      ];
+      render(
+        <BindingsTable
+          items={malformed}
+          providersByID={mockProviders}
+          onEdit={vi.fn()}
+          onDelete={vi.fn()}
+        />,
+      );
+      expect(screen.getByText("not-a-date")).toBeInTheDocument();
+    });
+
+    it("renders dash when created_at is missing (safeFormat null branch)", () => {
+      const noDate: IntegrationBinding[] = [
+        {
+          binding_id: "b5",
+          scope_type: "project",
+          scope_id: "proj-x",
+          provider_id: "prov-1",
+          external_key: "k2",
+          policy: "summary_only",
+          enabled: true,
+          created_at: "",
+          updated_at: "",
+        },
+      ];
+      render(
+        <BindingsTable
+          items={noDate}
+          providersByID={mockProviders}
+          onEdit={vi.fn()}
+          onDelete={vi.fn()}
+        />,
+      );
+      expect(screen.getByText("—")).toBeInTheDocument();
+    });
   });
 });

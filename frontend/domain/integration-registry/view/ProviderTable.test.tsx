@@ -188,5 +188,67 @@ describe("ProviderTable", () => {
 
       expect(screen.queryByRole("button", { name: /Import/i })).not.toBeInTheDocument();
     });
+
+    it("renders sync status fallback when status is unknown", () => {
+      const fallback: IntegrationProvider = {
+        ...mockProviders[0],
+        provider_id: "p3",
+        provider_key: "weird-prov",
+        display_name: "Weird Provider",
+        sync_status: "some_custom_state",
+        last_error_code: null,
+      };
+      render(<ProviderTable {...baseProps} items={[fallback]} />);
+      // Fallback renders the raw status as the badge label
+      expect(screen.getByText("some_custom_state")).toBeInTheDocument();
+    });
+
+    it("renders dash when last_sync_at is null (safeFormat null branch)", () => {
+      // jenkins-prod has last_sync_at: null
+      render(<ProviderTable {...baseProps} items={[mockProviders[1]]} />);
+      expect(screen.getByText("—")).toBeInTheDocument();
+    });
+
+    it("renders provider_type variants (alm/doc/infra) without crash", () => {
+      const variants: IntegrationProvider[] = (["alm", "doc", "infra"] as const).map(
+        (t, idx) => ({
+          ...mockProviders[0],
+          provider_id: `pv-${idx}`,
+          provider_key: `pv-${idx}`,
+          provider_type: t,
+          display_name: `Variant ${t}`,
+          capabilities: [],
+          sync_status: "ok",
+        }),
+      );
+      render(<ProviderTable {...baseProps} items={variants} />);
+      expect(screen.getByText("alm")).toBeInTheDocument();
+      expect(screen.getByText("doc")).toBeInTheDocument();
+      expect(screen.getByText("infra")).toBeInTheDocument();
+    });
+
+    it("does not disable Sync button for rows other than syncing one", () => {
+      render(<ProviderTable {...baseProps} items={mockProviders} syncingProviderID="p1" />);
+      // Sync button for p2 should not be disabled
+      const syncP2 = screen.getByRole("button", { name: /Sync Jenkins Production/i });
+      expect(syncP2).not.toBeDisabled();
+    });
+
+    it("does not disable Delete button for rows other than deleting one", () => {
+      render(<ProviderTable {...baseProps} items={mockProviders} deletingProviderID="p1" />);
+      // Delete button for p2 should not be disabled
+      const deleteP2 = screen.getByRole("button", { name: /Delete Jenkins Production/i });
+      expect(deleteP2).not.toBeDisabled();
+    });
+
+    it("renders sync requested + degraded badges", () => {
+      const others: IntegrationProvider[] = [
+        { ...mockProviders[0], provider_id: "pr1", provider_key: "k1", sync_status: "requested" },
+        { ...mockProviders[0], provider_id: "pr2", provider_key: "k2", sync_status: "degraded" },
+      ];
+      render(<ProviderTable {...baseProps} items={others} />);
+      expect(screen.getByText("Pending")).toBeInTheDocument();
+      expect(screen.getByText("Degraded")).toBeInTheDocument();
+    });
   });
 });
