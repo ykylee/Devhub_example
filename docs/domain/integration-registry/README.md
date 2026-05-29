@@ -25,9 +25,12 @@
 
 | 단계 | 위치 | 상태 |
 |---|---|---|
-| REQ | `./requirements.md` | planned (Phase 3) |
-| ARCH | `./architecture.md` | planned (Phase 3) |
-| API | `./api.md` | planned (Phase 3) |
+| REQ | [`./requirements.md`](./requirements.md) | active (Phase 3 split, 2026-05-29) |
+| REQ (Task Ingestion) | [`./task_requirements.md`](./task_requirements.md) | active (Phase 3) |
+| ARCH | [`./architecture.md`](./architecture.md) | active (Phase 3) |
+| ARCH (Task Ingestion) | [`./task_architecture.md`](./task_architecture.md) | active (Phase 3) |
+| API | [`./api.md`](./api.md) | active (Phase 3) |
+| API (Task Ingestion) | [`./task_api.md`](./task_api.md) | active (Phase 3) |
 | TC | `./test_cases.md` | planned (Phase 2 — `docs/domain/integration-registry/test_cases.md`) |
 | Concept | `./external_system_integration_concept.md` | planned (Phase 2 — `docs/planning/`) |
 | Spec | `./external_integration_capability_matrix.md` | planned (Phase 2 — `docs/planning/`) |

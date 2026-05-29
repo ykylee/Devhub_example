@@ -25,9 +25,9 @@
 
 | 단계 | 위치 | 상태 |
 |---|---|---|
-| REQ | `./requirements.md` | planned (Phase 3, 기존 `backend_requirements_org_hierarchy.md` 통합) |
-| ARCH | `./architecture.md` | planned (Phase 3) |
-| API | `./api.md` | planned (Phase 3) |
+| REQ | [`./requirements.md`](./requirements.md) | active (Phase 3 split, 2026-05-29 — 기존 `backend_requirements_org_hierarchy.md` 진입점 통합) |
+| ARCH | [`./architecture.md`](./architecture.md) | active (Phase 3) |
+| API | [`./api.md`](./api.md) | active (Phase 3) |
 | TC | `./test_cases.md` | planned (Phase 2 — `docs/domain/organization-management/test_cases.md`) |
 | Spec | `./org_chart_ux_spec.md` (기존) | active |
 | Spec | `./organizational_hierarchy_spec.md` (기존) | active |

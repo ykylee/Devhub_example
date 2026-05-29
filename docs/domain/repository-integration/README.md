@@ -25,9 +25,9 @@
 
 | 단계 | 위치 | 상태 |
 |---|---|---|
-| REQ | `./requirements.md` | planned (Phase 3) |
-| ARCH | `./architecture.md` | planned (Phase 3) |
-| API | `./api.md` | planned (Phase 3) |
+| REQ | [`./requirements.md`](./requirements.md) | active (Phase 3 split, 2026-05-29) |
+| ARCH | [`./architecture.md`](./architecture.md) | active (Phase 3) |
+| API | [`./api.md`](./api.md) | active (Phase 3) |
 | TC | `./test_cases.md` | planned (Phase 2) |
 
 ## 4. 관련 ADR
