@@ -9,7 +9,7 @@ import (
 
 var ErrAuditInvariantViolation = errors.New("audit resource cannot grant create/edit/delete")
 var ErrSystemRoleImmutable = errors.New("system role is immutable")
-var ErrRoleInUse = errors.New("role is in use")
+var ErrRoleInUse = errors.New("role is still assigned to subjects")
 
 
 
