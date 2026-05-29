@@ -343,7 +343,7 @@ Manager dashboard의 critical risk 목록을 조회한다.
 
 ## 8. Realtime WebSocket envelope (cross-cutting)
 
-WebSocket envelope (`schema_version`, `type`, `event_id`, `occurred_at`, `data`) 와 초기 event type 카탈로그 본문은 [realtime 도메인 api §2](./domain/realtime/api.md) (API-14) + [§3](./domain/realtime/api.md) (API-37 ticket) 으로 이관됐다.
+WebSocket envelope (`schema_version`, `type`, `event_id`, `occurred_at`, `data`) 와 초기 event type 카탈로그 본문은 [realtime 도메인 api §2](./domain/realtime/api.md) (API-14) + [§3](./domain/realtime/api.md) (API-97 ticket) 으로 이관됐다.
 
 ## 9. Command/Audit 계약 초안
 
@@ -406,7 +406,7 @@ command의 현재 상태, actor, target, 요청 사유, dry-run 여부, approval
 | repository-integration | [`./domain/repository-integration/api.md`](./domain/repository-integration/api.md) | API-51..54, API-91, API-92 |
 | dev-request | [`./domain/dev-request/api.md`](./domain/dev-request/api.md) | API-59..68, API-79 |
 | integration-registry | [`./domain/integration-registry/api.md`](./domain/integration-registry/api.md) + [`task_api.md`](./domain/integration-registry/task_api.md) | API-69..78, API-80, API-87..90, API-94..96 |
-| realtime | [`./domain/realtime/api.md`](./domain/realtime/api.md) | API-14, API-37 |
+| realtime | [`./domain/realtime/api.md`](./domain/realtime/api.md) | API-14, API-97 |
 
 ## 12. 변경 이력 (요약)
 
