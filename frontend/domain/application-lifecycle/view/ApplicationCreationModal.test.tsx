@@ -305,4 +305,464 @@ describe("ApplicationCreationModal", () => {
       ).toBeInTheDocument();
     });
   });
+
+  it("falls back to empty option arrays when identity service rejects", async () => {
+    getUsers.mockReset();
+    getOrgHierarchy.mockReset();
+    getUsers.mockRejectedValueOnce(new Error("boom"));
+    getOrgHierarchy.mockResolvedValue({ nodes: [], edges: [] });
+    render(<ApplicationCreationModal onClose={vi.fn()} onCreated={vi.fn()} />);
+    // catch branch sets leader/unit options to empty arrays → plain inputs visible
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText("e.g. charlie")).toBeInTheDocument();
+    });
+    expect(screen.getByPlaceholderText("e.g. dept-eng")).toBeInTheDocument();
+  });
+
+  it("shows error when development department is empty on submit", async () => {
+    getUsers.mockReset();
+    getUsers.mockResolvedValue([]);
+    getOrgHierarchy.mockReset();
+    getOrgHierarchy.mockResolvedValue({ nodes: [], edges: [] });
+    const { container } = render(
+      <ApplicationCreationModal onClose={vi.fn()} onCreated={vi.fn()} />,
+    );
+    await waitFor(() => {
+      expect(getUsers).toHaveBeenCalled();
+    });
+    fireEvent.change(screen.getByLabelText("Application Key"), {
+      target: { value: "APP1" },
+    });
+    fireEvent.change(screen.getByLabelText("Display Name"), {
+      target: { value: "Test App" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("e.g. charlie"), {
+      target: { value: "alice" },
+    });
+    // dept left empty
+    const form = container.querySelector("form");
+    if (!form) throw new Error("form not found");
+    fireEvent.submit(form);
+    await waitFor(() => {
+      expect(screen.getByText(/Development department is required/)).toBeInTheDocument();
+    });
+  });
+
+  it("shows generic error message when create rejects with non-409", async () => {
+    getUsers.mockReset();
+    getUsers.mockResolvedValue([]);
+    getOrgHierarchy.mockReset();
+    getOrgHierarchy.mockResolvedValue({ nodes: [], edges: [] });
+    createApplication.mockRejectedValueOnce(new Error("backend down"));
+    const { container } = render(
+      <ApplicationCreationModal onClose={vi.fn()} onCreated={vi.fn()} />,
+    );
+    await waitFor(() => {
+      expect(getUsers).toHaveBeenCalled();
+    });
+    fireEvent.change(screen.getByLabelText("Application Key"), {
+      target: { value: "APPX" },
+    });
+    fireEvent.change(screen.getByLabelText("Display Name"), {
+      target: { value: "App X" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("e.g. charlie"), {
+      target: { value: "alice" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("e.g. dept-eng"), {
+      target: { value: "u-1" },
+    });
+    const form = container.querySelector("form");
+    if (!form) throw new Error("form not found");
+    fireEvent.submit(form);
+    await waitFor(() => {
+      expect(screen.getByText("backend down")).toBeInTheDocument();
+    });
+  });
+
+  it("shows fallback error message when create rejects with non-Error value", async () => {
+    getUsers.mockReset();
+    getUsers.mockResolvedValue([]);
+    getOrgHierarchy.mockReset();
+    getOrgHierarchy.mockResolvedValue({ nodes: [], edges: [] });
+    createApplication.mockRejectedValueOnce("boom-string");
+    const { container } = render(
+      <ApplicationCreationModal onClose={vi.fn()} onCreated={vi.fn()} />,
+    );
+    await waitFor(() => {
+      expect(getUsers).toHaveBeenCalled();
+    });
+    fireEvent.change(screen.getByLabelText("Application Key"), {
+      target: { value: "APPX" },
+    });
+    fireEvent.change(screen.getByLabelText("Display Name"), {
+      target: { value: "App X" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("e.g. charlie"), {
+      target: { value: "alice" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("e.g. dept-eng"), {
+      target: { value: "u-1" },
+    });
+    const form = container.querySelector("form");
+    if (!form) throw new Error("form not found");
+    fireEvent.submit(form);
+    await waitFor(() => {
+      expect(screen.getByText("Failed to save application")).toBeInTheDocument();
+    });
+  });
+
+  it("loads connected + standalone projects in edit mode and merges (dedup)", async () => {
+    getApplicationProjectsV2.mockResolvedValueOnce([
+      {
+        id: "p-1",
+        key: "P1",
+        name: "Project 1",
+        description: "",
+        status: "active",
+        visibility: "internal",
+        owner_user_id: "alice",
+        application_id: "app-1",
+        created_at: "",
+        updated_at: "",
+      },
+    ]);
+    listStandaloneProjects.mockResolvedValueOnce([
+      {
+        id: "p-1", // duplicate — should be deduped
+        key: "P1",
+        name: "Project 1",
+        description: "",
+        status: "active",
+        visibility: "internal",
+        owner_user_id: "alice",
+        application_id: "",
+        created_at: "",
+        updated_at: "",
+      },
+      {
+        id: "p-2",
+        key: "P2",
+        name: "Project Two",
+        description: "",
+        status: "planning",
+        visibility: "internal",
+        owner_user_id: "bob",
+        application_id: "",
+        created_at: "",
+        updated_at: "",
+      },
+    ]);
+    render(
+      <ApplicationCreationModal
+        onClose={vi.fn()}
+        onCreated={vi.fn()}
+        initialData={{ id: "app-1", key: "APP1", name: "App 1" }}
+      />,
+    );
+    await waitFor(() => {
+      expect(getApplicationProjectsV2).toHaveBeenCalledWith("app-1");
+    });
+    await waitFor(() => {
+      expect(screen.getByText(/Project 1 \(P1\)/)).toBeInTheDocument();
+    });
+    expect(screen.getByText(/Project Two \(P2\)/)).toBeInTheDocument();
+    // already-connected p-1 → checkbox pre-checked
+    const checkboxes = screen
+      .getAllByRole("checkbox")
+      .filter((c) => (c as HTMLInputElement).type === "checkbox");
+    const p1Checkbox = checkboxes.find((c) => {
+      const label = c.closest("label");
+      return label?.textContent?.includes("Project 1");
+    }) as HTMLInputElement | undefined;
+    expect(p1Checkbox?.checked).toBe(true);
+  });
+
+  it("shows 'No projects available to connect' message in edit when both lists empty", async () => {
+    getApplicationProjectsV2.mockResolvedValueOnce([]);
+    listStandaloneProjects.mockResolvedValueOnce([]);
+    render(
+      <ApplicationCreationModal
+        onClose={vi.fn()}
+        onCreated={vi.fn()}
+        initialData={{ id: "app-1", key: "APP1", name: "App 1" }}
+      />,
+    );
+    await waitFor(() => {
+      expect(getApplicationProjectsV2).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByText("No projects available to connect."),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("submits update with repo + project add/remove sync in edit mode", async () => {
+    const updated: Application = {
+      id: "app-1",
+      key: "APP1",
+      name: "App 1 Updated",
+      description: "",
+      status: "active",
+      visibility: "internal",
+      owner_user_id: "alice",
+      leader_user_id: "alice",
+      development_unit_id: "u-1",
+      created_at: "",
+      updated_at: "",
+    };
+    // mount-time fetches
+    listRepositories.mockResolvedValueOnce([
+      { id: 10, full_name: "org/keep", provider_key: "github", owner_login: "org", name: "keep", clone_url: "", html_url: "", default_branch: "main", private: false, status: "active", updated_at: "", linked_applications_count: 1, linked_projects_count: 0 },
+      { id: 11, full_name: "org/add", provider_key: "github", owner_login: "org", name: "add", clone_url: "", html_url: "", default_branch: "main", private: false, status: "active", updated_at: "", linked_applications_count: 0, linked_projects_count: 0 },
+    ]);
+    getApplicationRepositories.mockResolvedValueOnce([
+      { application_id: "app-1", repository_id: 10, repo_provider: "github", repo_full_name: "org/keep", role: "primary", sync_status: "active", linked_at: "" },
+      { application_id: "app-1", repository_id: 12, repo_provider: "github", repo_full_name: "org/remove", role: "sub", sync_status: "active", linked_at: "" },
+    ]);
+    getApplicationProjectsV2.mockResolvedValueOnce([
+      // connected; we'll remove this one
+      { id: "p-remove", key: "RM", name: "Removed", description: "", status: "active", visibility: "internal", owner_user_id: "alice", application_id: "app-1", created_at: "", updated_at: "" },
+    ]);
+    listStandaloneProjects.mockResolvedValueOnce([
+      // candidate to be added
+      { id: "p-add", key: "AD", name: "ToAdd", description: "", status: "planning", visibility: "internal", owner_user_id: "bob", application_id: "", created_at: "", updated_at: "" },
+    ]);
+
+    // submit-time re-fetches (current state)
+    getApplicationRepositories.mockResolvedValueOnce([
+      { application_id: "app-1", repository_id: 10, repo_provider: "github", repo_full_name: "org/keep", role: "primary", sync_status: "active", linked_at: "" },
+      { application_id: "app-1", repository_id: 12, repo_provider: "github", repo_full_name: "org/remove", role: "sub", sync_status: "active", linked_at: "" },
+    ]);
+    getApplicationProjectsV2.mockResolvedValueOnce([
+      { id: "p-remove", key: "RM", name: "Removed", description: "", status: "active", visibility: "internal", owner_user_id: "alice", application_id: "app-1", created_at: "", updated_at: "" },
+    ]);
+
+    updateApplication.mockResolvedValueOnce(updated);
+    connectRepository.mockResolvedValue(undefined);
+    disconnectRepository.mockResolvedValue(undefined);
+    updateProject.mockResolvedValue(undefined);
+
+    const onCreated = vi.fn();
+    const onClose = vi.fn();
+    const { container } = render(
+      <ApplicationCreationModal
+        onClose={onClose}
+        onCreated={onCreated}
+        initialData={{
+          id: "app-1",
+          key: "APP1",
+          name: "App 1",
+          leader_user_id: "alice",
+          development_unit_id: "u-1",
+        }}
+      />,
+    );
+
+    // Wait for initial loads.
+    await waitFor(() => {
+      expect(screen.getByText(/org\/keep \(github\)/)).toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(screen.getByText(/ToAdd \(AD\)/)).toBeInTheDocument();
+    });
+
+    // Toggle repo: add org/add. The remove path is exercised because
+    // org/remove was pre-selected via getApplicationRepositories but is NOT
+    // present in listRepositories — so on submit, selectedRepoKeys still
+    // contains it (no UI row to uncheck) and the diff between current
+    // (re-fetched) and selected leaves it intact. So we add org/add and
+    // also explicitly disconnect org/remove by removing its key from
+    // selectedRepoKeys via direct toggling of listed repos only:
+    //   selected initially = ["github/org/keep", "github/org/remove"]
+    //   listed rows        = ["github/org/keep", "github/org/add"]
+    // After clicking "org/add" → selected adds "github/org/add".
+    // To exercise the disconnect path, also uncheck "org/keep"
+    // (currently checked because pre-fetched) — that triggers
+    // disconnectRepository for "github/org/keep" instead of "github/org/remove".
+    const addRepoLabel = screen.getByText(/org\/add \(github\)/).closest("label");
+    if (!addRepoLabel) throw new Error("add repo label not found");
+    const addRepoCheckbox = addRepoLabel.querySelector("input[type='checkbox']") as HTMLInputElement;
+    fireEvent.click(addRepoCheckbox);
+    const keepRepoLabel = screen.getByText(/org\/keep \(github\)/).closest("label");
+    if (!keepRepoLabel) throw new Error("keep repo label not found");
+    const keepRepoCheckbox = keepRepoLabel.querySelector("input[type='checkbox']") as HTMLInputElement;
+    fireEvent.click(keepRepoCheckbox);
+
+    // Toggle project: add p-add, remove p-remove
+    const addProjLabel = screen.getByText(/ToAdd \(AD\)/).closest("label");
+    if (!addProjLabel) throw new Error("add proj label not found");
+    const addProjCheckbox = addProjLabel.querySelector("input[type='checkbox']") as HTMLInputElement;
+    fireEvent.click(addProjCheckbox);
+    const removeProjLabel = screen.getByText(/Removed \(RM\)/).closest("label");
+    if (!removeProjLabel) throw new Error("remove proj label not found");
+    const removeProjCheckbox = removeProjLabel.querySelector("input[type='checkbox']") as HTMLInputElement;
+    fireEvent.click(removeProjCheckbox);
+
+    const form = container.querySelector("form");
+    if (!form) throw new Error("form not found");
+    fireEvent.submit(form);
+
+    await waitFor(() => {
+      expect(updateApplication).toHaveBeenCalledWith(
+        "app-1",
+        expect.objectContaining({ owner_user_id: "alice" }),
+      );
+    });
+    // connect org/add and disconnect org/keep (org/keep was checked → unchecked)
+    await waitFor(() => {
+      expect(connectRepository).toHaveBeenCalledWith(
+        "app-1",
+        expect.objectContaining({ repo_provider: "github", repo_full_name: "org/add", role: "sub" }),
+      );
+    });
+    expect(disconnectRepository).toHaveBeenCalledWith("app-1", "github", "org/keep");
+    // project add → updateProject(p-add, { application_id: "app-1" })
+    expect(updateProject).toHaveBeenCalledWith("p-add", { application_id: "app-1" });
+    // project remove → updateProject(p-remove, { application_id: "" })
+    expect(updateProject).toHaveBeenCalledWith("p-remove", { application_id: "" });
+    expect(onCreated).toHaveBeenCalledWith(updated);
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("submits update without repo/project changes when nothing toggled", async () => {
+    const updated: Application = {
+      id: "app-1",
+      key: "APP1",
+      name: "App 1",
+      description: "",
+      status: "active",
+      visibility: "internal",
+      owner_user_id: "alice",
+      leader_user_id: "alice",
+      development_unit_id: "u-1",
+      created_at: "",
+      updated_at: "",
+    };
+    listRepositories.mockResolvedValue([]);
+    getApplicationRepositories.mockResolvedValue([]);
+    getApplicationProjectsV2.mockResolvedValue([]);
+    listStandaloneProjects.mockResolvedValue([]);
+    updateApplication.mockResolvedValueOnce(updated);
+
+    const onCreated = vi.fn();
+    const onClose = vi.fn();
+    const { container } = render(
+      <ApplicationCreationModal
+        onClose={onClose}
+        onCreated={onCreated}
+        initialData={{
+          id: "app-1",
+          key: "APP1",
+          name: "App 1",
+          leader_user_id: "alice",
+          development_unit_id: "u-1",
+        }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(getApplicationProjectsV2).toHaveBeenCalled();
+    });
+
+    const form = container.querySelector("form");
+    if (!form) throw new Error("form not found");
+    fireEvent.submit(form);
+
+    await waitFor(() => {
+      expect(updateApplication).toHaveBeenCalled();
+    });
+    expect(connectRepository).not.toHaveBeenCalled();
+    expect(disconnectRepository).not.toHaveBeenCalled();
+    expect(updateProject).not.toHaveBeenCalled();
+    expect(onCreated).toHaveBeenCalledWith(updated);
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("changes status select option and includes it in submit payload", async () => {
+    getUsers.mockReset();
+    getUsers.mockResolvedValue([]);
+    getOrgHierarchy.mockReset();
+    getOrgHierarchy.mockResolvedValue({ nodes: [], edges: [] });
+    const created: Application = {
+      id: "n",
+      key: "APPX",
+      name: "App X",
+      description: "",
+      status: "active",
+      visibility: "internal",
+      owner_user_id: "alice",
+      leader_user_id: "alice",
+      development_unit_id: "u-1",
+      created_at: "",
+      updated_at: "",
+    };
+    createApplication.mockResolvedValueOnce(created);
+
+    const { container } = render(
+      <ApplicationCreationModal onClose={vi.fn()} onCreated={vi.fn()} />,
+    );
+    await waitFor(() => {
+      expect(getUsers).toHaveBeenCalled();
+    });
+    const statusSelect = screen.getByDisplayValue("Planning") as HTMLSelectElement;
+    fireEvent.change(statusSelect, { target: { value: "active" } });
+    fireEvent.change(screen.getByLabelText("Application Key"), {
+      target: { value: "appx" }, // lowercase → key normalized to upper by createApplication branch
+    });
+    fireEvent.change(screen.getByLabelText("Display Name"), {
+      target: { value: "App X" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("e.g. charlie"), {
+      target: { value: "alice" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("e.g. dept-eng"), {
+      target: { value: "u-1" },
+    });
+    const form = container.querySelector("form");
+    if (!form) throw new Error("form not found");
+    fireEvent.submit(form);
+
+    await waitFor(() => {
+      expect(createApplication).toHaveBeenCalled();
+    });
+    const callArg = createApplication.mock.calls[0][0];
+    expect(callArg.status).toBe("active");
+    // input onChange uppercases as user types (auto), but normalized again in submit
+    expect(callArg.key).toBe("APPX");
+  });
+
+  it("renders 'Save Changes' label in edit mode submit button", async () => {
+    render(
+      <ApplicationCreationModal
+        onClose={vi.fn()}
+        onCreated={vi.fn()}
+        initialData={{ id: "app-1", key: "APP1", name: "App 1" }}
+      />,
+    );
+    await waitFor(() => {
+      expect(getUsers).toHaveBeenCalled();
+    });
+    expect(
+      screen.getByRole("button", { name: /Save Changes/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("logs error when edit-mode project fetch rejects", async () => {
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    getApplicationProjectsV2.mockRejectedValueOnce(new Error("api down"));
+    listStandaloneProjects.mockRejectedValueOnce(new Error("api down"));
+    render(
+      <ApplicationCreationModal
+        onClose={vi.fn()}
+        onCreated={vi.fn()}
+        initialData={{ id: "app-1", key: "APP1", name: "App 1" }}
+      />,
+    );
+    await waitFor(() => {
+      expect(consoleSpy).toHaveBeenCalled();
+    });
+    consoleSpy.mockRestore();
+  });
 });
