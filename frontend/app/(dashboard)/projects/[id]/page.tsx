@@ -23,26 +23,9 @@ import { projectService } from "@/domain/application-lifecycle/service/project.s
 import type { Project, ProjectActivityItem, ProjectRepositoryLink, ProjectTaskItem } from "@/domain/application-lifecycle/schema/project.types";
 import { identityService, OrgMember } from "@/domain/organization-management/service/identity.service";
 import { repositoryService, Repository } from "@/domain/repository-integration/service/repository.service";
-import { ENABLE_LEGACY_MOCK_UI } from "@/shared/config/mock-ui";
-import { legacyMockProjectActivity, legacyMockProjectTasks } from "@/lib/archive/mock-ui-legacy";
 import { toUserErrorMessage } from "@/shared/utils/error-message";
 import { lifecycleStatusBadgeVariant } from "@/shared/utils/lifecycle-status";
 import { PageError, PageLoading } from "@/shared/ui-foundation/components/PageState";
-import { 
-  Tooltip, 
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell
-} from "recharts";
-
-// Mock task distribution
-const mockTaskData = [
-  { name: "To Do", value: 12, color: "#94a3b8" },
-  { name: "In Progress", value: 8, color: "#3b82f6" },
-  { name: "Review", value: 5, color: "#8b5cf6" },
-  { name: "Done", value: 25, color: "#10b981" },
-];
 
 export default function ProjectDetailPage() {
   const params = useParams();
@@ -372,58 +355,6 @@ export default function ProjectDetailPage() {
               </div>
             </section>
 
-            {ENABLE_LEGACY_MOCK_UI && (
-            <>
-            <section className="glass-card p-8">
-              <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground mb-6">Task Distribution</h3>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={mockTaskData}
-                      innerRadius={60}
-                      outerRadius={80}
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
-                      {mockTaskData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: 'var(--card)', borderRadius: '12px', border: '1px solid var(--border)' }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                {mockTaskData.map(item => (
-                  <div key={item.name} className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase">{item.name}: {item.value}</span>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <section className="glass-card p-8">
-              <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground mb-6">Recent Activity</h3>
-              <div className="space-y-6">
-                {legacyMockProjectActivity.map((act, i) => (
-                  <div key={i} className="flex gap-4">
-                    <div className="w-8 h-8 rounded-full bg-muted/30 border border-border flex-shrink-0" />
-                    <div>
-                      <p className="text-xs font-bold text-foreground dark:text-primary-foreground">
-                        {act.user} <span className="font-normal text-muted-foreground">{act.action}</span> {act.target}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-widest">{act.time}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-            </>
-            )}
           </div>
 
           <section className="glass-card">
@@ -457,37 +388,6 @@ export default function ProjectDetailPage() {
             </div>
           </section>
 
-          {ENABLE_LEGACY_MOCK_UI && (
-          <section className="glass-card">
-            <div className="p-8 border-b border-border/50 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-foreground dark:text-primary-foreground">Active Tasks</h3>
-              <button className="text-[10px] font-black uppercase text-primary hover:underline">View All</button>
-            </div>
-            <div className="divide-y divide-border/50">
-              {legacyMockProjectTasks.map((task, i) => (
-                <div key={i} className="p-6 flex items-center justify-between hover:bg-muted/5 transition-colors cursor-pointer group">
-                  <div className="flex items-center gap-4">
-                    <div className="w-2 h-2 rounded-full bg-primary" />
-                    <div>
-                      <h4 className="text-sm font-bold text-foreground dark:text-primary-foreground group-hover:text-primary transition-colors">{task.title}</h4>
-                      <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Due {task.due} • Priority {task.priority}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <MessageSquare className="w-4 h-4" />
-                      <span className="text-[10px] font-bold">2</span>
-                      <Paperclip className="w-4 h-4 ml-2" />
-                      <span className="text-[10px] font-bold">1</span>
-                    </div>
-                    <Badge variant="glass">{task.status}</Badge>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-          )}
         </div>
 
         <div className="space-y-8">
