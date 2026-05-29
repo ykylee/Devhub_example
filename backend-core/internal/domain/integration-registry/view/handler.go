@@ -93,20 +93,6 @@ func (h *IntegrationHandler) ApplicationStoreOrUnavailable(c *gin.Context) (Appl
 	return h.cfg.ApplicationStore, true
 }
 
-// providerHasCapability reports whether the provider declares any of the given
-// capabilities (OR semantics — same as the repository-integration view helper
-// and the main-HEAD baseline before the gemini code-cleanup split).
-func providerHasCapability(p domain.IntegrationProvider, caps ...string) bool {
-	for _, have := range p.Capabilities {
-		for _, want := range caps {
-			if have == want {
-				return true
-			}
-		}
-	}
-	return false
-}
-
 func actorLogin(c *gin.Context) string {
 	val, _ := c.Get("devhub_actor_login")
 	s, _ := val.(string)

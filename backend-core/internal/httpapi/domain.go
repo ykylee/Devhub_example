@@ -10,6 +10,7 @@ import (
 
 	"github.com/devhub/backend-core/internal/domain"
 	"github.com/devhub/backend-core/internal/infrastructure/gitea"
+	"github.com/devhub/backend-core/internal/shared/integrationcaps"
 	"github.com/devhub/backend-core/internal/store"
 	"github.com/gin-gonic/gin"
 )
@@ -239,7 +240,7 @@ func (h Handler) requestRepositoryPublish(c *gin.Context) {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"status": "rejected", "error": "provider is not SCM type", "code": "integration_sync_unsupported_provider_type"})
 		return
 	}
-	if !providerHasCapability(provider, "push") {
+	if !integrationcaps.ProviderHasCapability(provider, "push") {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"status": "rejected", "error": "provider does not have push capability", "code": "integration_capability_not_enabled"})
 		return
 	}

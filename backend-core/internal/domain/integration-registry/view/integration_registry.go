@@ -14,6 +14,7 @@ import (
 
 	"github.com/devhub/backend-core/internal/domain"
 	"github.com/devhub/backend-core/internal/infrastructure/gitea"
+	"github.com/devhub/backend-core/internal/shared/integrationcaps"
 	"github.com/devhub/backend-core/internal/store"
 	"github.com/gin-gonic/gin"
 )
@@ -516,7 +517,7 @@ func (h *IntegrationHandler) SyncIntegrationProvider(c *gin.Context) {
 	}
 	// capability gate (기능 gate 로 전환) — mirror sync 는 pull/sync 권한을 선언한
 	// provider 만. 둘 다 없으면 422.
-	if !providerHasCapability(provider, "pull", "sync") {
+	if !integrationcaps.ProviderHasCapability(provider, "pull", "sync") {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{
 			"status": "rejected",
 			"error":  "provider does not have the 'pull' or 'sync' capability enabled",

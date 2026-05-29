@@ -8,24 +8,10 @@ import (
 
 	"github.com/devhub/backend-core/internal/domain"
 	"github.com/devhub/backend-core/internal/infrastructure/gitea"
+	"github.com/devhub/backend-core/internal/shared/integrationcaps"
 	"github.com/devhub/backend-core/internal/store"
 	"github.com/gin-gonic/gin"
 )
-
-// providerHasCapability reports whether the provider declares any of the given
-// capabilities. capabilities 는 기능 gate 로 사용된다 (sprint scm-repo-sync):
-// pull = SCM 으로부터 repo 조회/import/mirror 허용, sync = 주기 mirror 허용,
-// push = outbound 생성 허용(Phase C), webhook = inbound webhook 수신.
-func providerHasCapability(p domain.IntegrationProvider, caps ...string) bool {
-	for _, have := range p.Capabilities {
-		for _, want := range caps {
-			if have == want {
-				return true
-			}
-		}
-	}
-	return false
-}
 
 // scmProviderForPull resolves the :provider_id provider and enforces the gates
 // shared by SCM repository read operations: provider exists, provider_type=scm,
@@ -59,7 +45,7 @@ func (h *RepositoryIntegrationHandler) scmProviderForCapability(c *gin.Context, 
 		})
 		return domain.IntegrationProvider{}, false
 	}
-	if !providerHasCapability(provider, capability) {
+	if !integrationcaps.ProviderHasCapability(provider, capability) {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{
 			"status": "rejected",
 			"error":  "provider does not have the '" + capability + "' capability enabled",

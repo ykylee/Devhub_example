@@ -554,20 +554,6 @@ func statusFromStoreError(err error) (int, string) {
 	return http.StatusInternalServerError, "failed"
 }
 
-// providerHasCapability reports whether the provider declares any of the given
-// capabilities (OR semantics — same as the repository-integration view helper
-// and the main-HEAD baseline before the gemini code-cleanup split).
-func providerHasCapability(p domain.IntegrationProvider, caps ...string) bool {
-	for _, have := range p.Capabilities {
-		for _, want := range caps {
-			if have == want {
-				return true
-			}
-		}
-	}
-	return false
-}
-
 func (h Handler) scmProviderClient(c *gin.Context, provider domain.IntegrationProvider) (*gitea.Client, bool) {
 	if strings.TrimSpace(provider.BaseURL) == "" {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"status": "rejected", "error": "provider base_url is not set", "code": "integration_base_url_missing"})
