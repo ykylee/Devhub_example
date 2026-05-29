@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Link2, Plus, ChevronLeft, ChevronRight } from "lucide-react";
-import { integrationService } from "@/lib/services/integration.service";
-import type { IntegrationBinding, IntegrationProvider, IntegrationScopeType } from "@/lib/services/integration.types";
+import { integrationService } from "@/domain/integration-registry/service/integration.service";
+import type { IntegrationBinding, IntegrationProvider, IntegrationScopeType } from "@/domain/integration-registry/schema/integration.types";
 import { BindingsTable } from "@/domain/integration-registry/view/BindingsTable";
 import { CreateBindingModal } from "@/domain/integration-registry/view/CreateBindingModal";
 import { EditBindingModal } from "@/domain/integration-registry/view/EditBindingModal";

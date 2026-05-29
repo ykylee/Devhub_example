@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { FolderDown, X, Lock, Globe, Check } from "lucide-react";
 import { motion } from "framer-motion";
-import { integrationService } from "@/lib/services/integration.service";
-import type { IntegrationProvider, ScmRepository } from "@/lib/services/integration.types";
+import { integrationService } from "@/domain/integration-registry/service/integration.service";
+import type { IntegrationProvider, ScmRepository } from "@/domain/integration-registry/schema/integration.types";
 
 interface ImportRepositoriesModalProps {
   provider: IntegrationProvider;

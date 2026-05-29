@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { Loader2 } from "lucide-react";
 import { identityService } from "@/domain/organization-management/service/identity.service";
-import { ApiError } from "@/lib/services/api-client";
+import { ApiError } from "@/shared/api/api-client";
 import { defaultLandingFor, isSystemAdmin, pathRequiresSystemAdmin } from "@/domain/auth-session/service/role-routing";
 import { initRefreshScheduler } from "@/domain/auth-session/service/refresh-scheduler";
 import { refreshAccessToken } from "@/domain/auth-session/service/refresh";

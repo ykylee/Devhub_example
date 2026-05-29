@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Loader2, Save, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { onboardingService } from "@/domain/onboarding/service/onboarding.service";
-import { ApiError } from "@/lib/services/api-client";
+import { ApiError } from "@/shared/api/api-client";
 import { OrganizationPicker } from "@/components/onboarding/OrganizationPicker";
 
 export function ProfileSelfEdit() {

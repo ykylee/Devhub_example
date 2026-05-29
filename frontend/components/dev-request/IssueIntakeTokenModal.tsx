@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { X, Key, Loader2, Plus, Trash2, Copy, AlertTriangle, Check, Eye, EyeOff } from "lucide-react";
-import { devRequestTokenService } from "@/lib/services/dev_request_token.service";
+import { devRequestTokenService } from "@/domain/dev-request/service/dev_request_token.service";
 import type {
   DevRequestIntakeToken,
   IssuedDevRequestIntakeToken,
-} from "@/lib/services/dev_request_token.types";
+} from "@/domain/dev-request/schema/dev_request_token.types";
 
 interface IssueIntakeTokenModalProps {
   onClose: () => void;

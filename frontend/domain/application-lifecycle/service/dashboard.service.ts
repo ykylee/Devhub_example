@@ -1,4 +1,4 @@
-import { apiClient } from "./api-client";
+import { apiClient } from "@/shared/api/api-client";
 
 export interface DeveloperStreamItem {
   id: string;

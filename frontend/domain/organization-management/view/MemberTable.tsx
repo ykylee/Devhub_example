@@ -10,7 +10,7 @@ import { useToast } from "@/shared/ui-foundation/components/Toast";
 import { UserCreationModal } from "./UserCreationModal";
 import { UserEditModal } from "@/components/organization/UserEditModal";
 import { DestructiveConfirmModal } from "@/shared/ui-foundation/components/DestructiveConfirmModal";
-import { Role } from "@/lib/services/rbac.types";
+import { Role } from "@/domain/rbac-permissions/schema/rbac.types";
 
 interface MemberTableProps {
   members: OrgMember[];

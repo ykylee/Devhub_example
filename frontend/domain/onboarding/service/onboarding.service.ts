@@ -1,5 +1,5 @@
-import { apiClient, ApiError } from "@/lib/services/api-client";
-import type { ApiResponse } from "@/lib/services/wire";
+import { apiClient, ApiError } from "@/shared/api/api-client";
+import type { ApiResponse } from "@/shared/api/wire";
 import type { MeResponse } from "@/domain/organization-management/service/identity.service";
 
 export interface OrgSearchResult {

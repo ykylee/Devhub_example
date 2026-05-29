@@ -1,7 +1,7 @@
-import { ApiMetric, ApiResponse, Metric, ServiceActionCommand, ServiceEdge, ServiceNode } from "@/lib/services/types";
+import { ApiMetric, ApiResponse, Metric, ServiceActionCommand, ServiceEdge, ServiceNode } from "@/shared/api/types";
 import { type UserRole } from "@/lib/store";
 import { formatBytes } from "@/shared/utils";
-import { apiClient } from "@/lib/services/api-client";
+import { apiClient } from "@/shared/api/api-client";
 import { API_BASE_URL } from "@/shared/config/endpoints";
 
 class InfraService {

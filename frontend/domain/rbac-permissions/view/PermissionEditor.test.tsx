@@ -21,7 +21,7 @@ vi.mock("framer-motion", () => {
 });
 
 import { PermissionEditor } from "./PermissionEditor";
-import type { Role } from "@/lib/services/rbac.types";
+import type { Role } from "@/domain/rbac-permissions/schema/rbac.types";
 
 const systemRole: Role = {
   id: "system_admin",

@@ -9,7 +9,7 @@ import { OrgTree } from "@/components/organization/OrgTree";
 import { MemberManagementModal } from "@/domain/organization-management/view/MemberManagementModal";
 import { UnitManagementModal } from "@/components/organization/UnitManagementModal";
 import { identityService, OrgNode, OrgMember, OrgUnit, CreateUnitPayload, UpdateUnitPayload } from "@/domain/organization-management/service/identity.service";
-import { ApiError } from "@/lib/services/api-client";
+import { ApiError } from "@/shared/api/api-client";
 
 export default function AdminSettingsOrganizationPage() {
   const [view, setView] = useState<"list" | "grid" | "chart">("list");

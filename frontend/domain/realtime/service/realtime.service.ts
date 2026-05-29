@@ -1,6 +1,6 @@
-import { WSEvent, WSEventHandler } from "@/lib/services/types";
+import { WSEvent, WSEventHandler } from "@/shared/api/types";
 import { useStore } from "@/lib/store";
-import { apiClient, ApiError } from "@/lib/services/api-client";
+import { apiClient, ApiError } from "@/shared/api/api-client";
 import { tokenStore } from "@/domain/auth-session/service/token-store";
 
 import { WS_BASE_URL as WS_BASE } from "@/shared/config/endpoints";

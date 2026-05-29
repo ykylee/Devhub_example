@@ -19,7 +19,7 @@ import { Badge } from "@/shared/ui-foundation/components/Badge";
 import { cn } from "@/shared/utils";
 import { repositoryService, Repository, RepositoryActivity } from "@/domain/repository-integration/service/repository.service";
 import { repositoryLastBuildView } from "@/shared/utils/last-build";
-import { toUserErrorMessage } from "@/lib/services/error-message";
+import { toUserErrorMessage } from "@/shared/utils/error-message";
 import { PageError, PageLoading } from "@/shared/ui-foundation/components/PageState";
 
 export default function RepositoryDetailPage() {

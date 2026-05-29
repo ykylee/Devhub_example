@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { X, GitBranch, Loader2, Link } from "lucide-react";
-import { ApplicationRepository, ApplicationRepositoryRole, SCMProvider } from "@/lib/services/project.types";
+import { ApplicationRepository, ApplicationRepositoryRole, SCMProvider } from "@/domain/application-lifecycle/schema/project.types";
 import { projectService } from "@/domain/application-lifecycle/service/project.service";
 import { cn } from "@/shared/utils";
 

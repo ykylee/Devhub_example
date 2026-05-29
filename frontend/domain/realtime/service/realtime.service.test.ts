@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { WSEvent } from "@/lib/services/types";
+import type { WSEvent } from "@/shared/api/types";
 
 // realtime.service.ts 는 module-load 시 RealtimeService.getInstance() 호출
 // → init() → connect() → buildURL() → fetchTicket() (apiClient 호출) → new WebSocket(url)
@@ -106,7 +106,7 @@ describe("RealtimeService", () => {
     vi.spyOn(console, "error").mockImplementation(() => undefined);
 
     vi.doMock("@/domain/auth-session/service/token-store", () => ({ tokenStore: tokenStoreMock }));
-    vi.doMock("@/lib/services/api-client", () => ({
+    vi.doMock("@/shared/api/api-client", () => ({
       apiClient: apiClientMock,
       ApiError: MockApiError,
     }));

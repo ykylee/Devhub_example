@@ -7,7 +7,7 @@ describe("InfraService", () => {
     vi.resetModules();
     apiClientMock.mockReset();
     vi.spyOn(console, "error").mockImplementation(() => {});
-    vi.doMock("@/lib/services/api-client", () => ({
+    vi.doMock("@/shared/api/api-client", () => ({
       apiClient: apiClientMock,
     }));
   });

@@ -3,16 +3,16 @@
 import { useState, FormEvent, useEffect, useMemo } from "react";
 import { Link2, X } from "lucide-react";
 import { motion } from "framer-motion";
-import { integrationService } from "@/lib/services/integration.service";
+import { integrationService } from "@/domain/integration-registry/service/integration.service";
 import { projectService } from "@/domain/application-lifecycle/service/project.service";
-import { ApiError } from "@/lib/services/api-client";
+import { ApiError } from "@/shared/api/api-client";
 import { ComboBox } from "@/shared/ui-foundation/components/ComboBox";
 import type {
   IntegrationBinding,
   IntegrationPolicy,
   IntegrationProvider,
   IntegrationScopeType,
-} from "@/lib/services/integration.types";
+} from "@/domain/integration-registry/schema/integration.types";
 
 interface CreateBindingModalProps {
   providers: IntegrationProvider[];

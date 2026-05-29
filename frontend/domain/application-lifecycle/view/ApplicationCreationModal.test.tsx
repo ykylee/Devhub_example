@@ -57,7 +57,7 @@ vi.mock("@/domain/repository-integration/service/repository.service", () => ({
 }));
 
 import { ApplicationCreationModal } from "./ApplicationCreationModal";
-import type { Application } from "@/lib/services/project.types";
+import type { Application } from "@/domain/application-lifecycle/schema/project.types";
 
 beforeEach(() => {
   createApplication.mockReset();

@@ -20,7 +20,7 @@ vi.mock("framer-motion", () => {
 });
 
 import { ApplicationTable } from "./ApplicationTable";
-import type { Application } from "@/lib/services/project.types";
+import type { Application } from "@/domain/application-lifecycle/schema/project.types";
 
 function makeApp(overrides: Partial<Application> = {}): Application {
   return {

@@ -19,7 +19,7 @@ describe("IdentityService", () => {
   beforeEach(() => {
     vi.resetModules();
     apiClientMock.mockReset();
-    vi.doMock("@/lib/services/api-client", () => ({
+    vi.doMock("@/shared/api/api-client", () => ({
       apiClient: apiClientMock,
       ApiError: MockApiError,
     }));

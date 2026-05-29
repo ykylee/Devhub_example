@@ -5,7 +5,7 @@ import { format, parseISO } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/shared/ui-foundation/components/Badge";
 import { ActionMenu } from "@/shared/ui-foundation/components/ActionMenu";
-import type { IntegrationBinding, IntegrationProvider } from "@/lib/services/integration.types";
+import type { IntegrationBinding, IntegrationProvider } from "@/domain/integration-registry/schema/integration.types";
 
 interface BindingsTableProps {
   items: IntegrationBinding[];

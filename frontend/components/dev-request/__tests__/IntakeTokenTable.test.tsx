@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { IntakeTokenTable } from "@/domain/dev-request/view/IntakeTokenTable";
-import type { DevRequestIntakeToken } from "@/lib/services/dev_request_token.types";
+import type { DevRequestIntakeToken } from "@/domain/dev-request/schema/dev_request_token.types";
 
 describe("IntakeTokenTable", () => {
   const mockTokens: DevRequestIntakeToken[] = [

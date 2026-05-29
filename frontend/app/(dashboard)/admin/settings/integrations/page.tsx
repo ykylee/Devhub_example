@@ -3,15 +3,15 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Plug, Plus } from "lucide-react";
-import { integrationService } from "@/lib/services/integration.service";
-import type { IntegrationProvider } from "@/lib/services/integration.types";
+import { integrationService } from "@/domain/integration-registry/service/integration.service";
+import type { IntegrationProvider } from "@/domain/integration-registry/schema/integration.types";
 import { ProviderTable } from "@/domain/integration-registry/view/ProviderTable";
 import { ProviderModal } from "@/domain/integration-registry/view/ProviderModal";
 import { ImportRepositoriesModal } from "@/components/integration/ImportRepositoriesModal";
 import { CreateScmRepositoryModal } from "@/components/integration/CreateScmRepositoryModal";
 import { useToast } from "@/shared/ui-foundation/components/Toast";
 import { DestructiveConfirmModal } from "@/shared/ui-foundation/components/DestructiveConfirmModal";
-import { ApiError } from "@/lib/services/api-client";
+import { ApiError } from "@/shared/api/api-client";
 
 export default function AdminSettingsIntegrationsPage() {
   const [providers, setProviders] = useState<IntegrationProvider[]>([]);

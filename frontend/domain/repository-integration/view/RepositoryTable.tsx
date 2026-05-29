@@ -4,7 +4,7 @@ import Link from "next/link";
 import { GitBranch, Activity, Unlink } from "lucide-react";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
-import { ApplicationRepository, ApplicationRepositorySyncStatus, SyncErrorCode } from "@/lib/services/project.types";
+import { ApplicationRepository, ApplicationRepositorySyncStatus, SyncErrorCode } from "@/domain/application-lifecycle/schema/project.types";
 import { Badge } from "@/shared/ui-foundation/components/Badge";
 import { ActionMenu } from "@/shared/ui-foundation/components/ActionMenu";
 
