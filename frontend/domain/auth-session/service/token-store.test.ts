@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { tokenStore } from "./token-store";
 
 describe("tokenStore", () => {
@@ -109,5 +109,44 @@ describe("tokenStore", () => {
     unsub();
     tokenStore.save({ access_token: "b", expires_in: 600, token_type: "Bearer" });
     expect(events).toHaveLength(2); // unsubscribe 후 호출 안 됨
+  });
+
+  it("save with non-finite expires_in (NaN) leaves expires_at null and removes storage key", () => {
+    // covers the Number.isFinite guard branch (false path).
+    tokenStore.save({
+      access_token: "a",
+      expires_in: Number.NaN,
+      token_type: "Bearer",
+    });
+    expect(tokenStore.getExpiresAt()).toBeNull();
+    expect(sessionStorage.getItem("devhub_access_token_expires_at")).toBeNull();
+  });
+
+  it("save with negative expires_in falls through to null (defensive)", () => {
+    tokenStore.save({
+      access_token: "a",
+      expires_in: -1,
+      token_type: "Bearer",
+    });
+    expect(tokenStore.getExpiresAt()).toBeNull();
+  });
+
+  it("listener throw is caught and warn-logged; other listeners still notified", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const ok: Array<number | null> = [];
+    const unsubBad = tokenStore.subscribeExpiryChange(() => {
+      throw new Error("listener boom");
+    });
+    const unsubGood = tokenStore.subscribeExpiryChange((exp) => ok.push(exp));
+
+    tokenStore.save({ access_token: "a", expires_in: 60, token_type: "Bearer" });
+
+    // bad listener throw 가 catch 되어 good listener 도 호출되어야 한다.
+    expect(ok.length).toBeGreaterThanOrEqual(1);
+    expect(warnSpy).toHaveBeenCalled();
+
+    unsubBad();
+    unsubGood();
+    warnSpy.mockRestore();
   });
 });

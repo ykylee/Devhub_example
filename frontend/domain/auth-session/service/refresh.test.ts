@@ -159,4 +159,67 @@ describe("refresh.refreshAccessToken (single-flight + outcome classification)", 
     await refreshAccessToken();
     expect(tokenEndpointCalls).toBe(2);
   });
+
+  it("runtime-config fetch !ok → no_token_endpoint (transient_failed)", async () => {
+    seedRefreshToken();
+    global.fetch = vi.fn().mockImplementation(async (url: string | URL) => {
+      const s = String(url);
+      if (s.includes("/api/runtime-config")) return new Response("", { status: 503 });
+      throw new Error("token endpoint should not be called");
+    }) as unknown as typeof fetch;
+
+    const outcome = await refreshAccessToken();
+    expect(outcome).toEqual({ kind: "transient_failed", reason: "no_token_endpoint" });
+  });
+
+  it("runtime-config returns empty oidc_issuer_url → no_token_endpoint", async () => {
+    seedRefreshToken();
+    global.fetch = vi.fn().mockImplementation(async (url: string | URL) => {
+      const s = String(url);
+      if (s.includes("/api/runtime-config")) {
+        return new Response(JSON.stringify({ oidc_issuer_url: "   " }), { status: 200 });
+      }
+      throw new Error("token endpoint should not be called");
+    }) as unknown as typeof fetch;
+
+    const outcome = await refreshAccessToken();
+    expect(outcome).toEqual({ kind: "transient_failed", reason: "no_token_endpoint" });
+  });
+
+  it("runtime-config returns no oidc_issuer_url field → no_token_endpoint", async () => {
+    seedRefreshToken();
+    global.fetch = vi.fn().mockImplementation(async (url: string | URL) => {
+      const s = String(url);
+      if (s.includes("/api/runtime-config")) {
+        return new Response(JSON.stringify({}), { status: 200 });
+      }
+      throw new Error("token endpoint should not be called");
+    }) as unknown as typeof fetch;
+
+    const outcome = await refreshAccessToken();
+    expect(outcome).toEqual({ kind: "transient_failed", reason: "no_token_endpoint" });
+  });
+
+  it("runtime-config fetch throws → no_token_endpoint (catch branch)", async () => {
+    seedRefreshToken();
+    global.fetch = vi.fn().mockImplementation(async (url: string | URL) => {
+      const s = String(url);
+      if (s.includes("/api/runtime-config")) throw new TypeError("network down");
+      throw new Error("token endpoint should not be called");
+    }) as unknown as typeof fetch;
+
+    const outcome = await refreshAccessToken();
+    expect(outcome).toEqual({ kind: "transient_failed", reason: "no_token_endpoint" });
+  });
+
+  it("response.json parse error after 200 → transient_failed parse_error", async () => {
+    seedRefreshToken();
+    setupFetchMock(async () => new Response("not-json {", { status: 200, headers: { "Content-Type": "application/json" } }));
+
+    const outcome = await refreshAccessToken();
+    expect(outcome.kind).toBe("transient_failed");
+    if (outcome.kind === "transient_failed") {
+      expect(outcome.reason).toBe("parse_error");
+    }
+  });
 });

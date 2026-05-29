@@ -196,4 +196,35 @@ describe("refresh-scheduler", () => {
     await vi.advanceTimersByTimeAsync(2000);
     expect(true).toBe(true);
   });
+
+  // initRefreshScheduler 의 idempotent 재호출 — 기존 unsubscribe + 기존 timer 모두 정리.
+  // 첫 init 의 unsubscribe 가 호출되고 첫 timer 가 cleared 되어 동일 토큰 변동에도 첫
+  // performer 는 호출되지 않아야 한다.
+  it("re-init replaces previous unsubscribe + cancels previous timer", async () => {
+    const first = vi.fn<() => Promise<RefreshOutcome>>().mockResolvedValue({ kind: "ok" });
+    const second = vi.fn<() => Promise<RefreshOutcome>>().mockResolvedValue({ kind: "ok" });
+
+    initRefreshScheduler(first);
+    tokenStore.save({ access_token: "a", refresh_token: "r", expires_in: 2, token_type: "Bearer" });
+
+    // Re-init 직후엔 첫 timer 가 clear 되고 첫 unsubscribe 도 해제되어야.
+    initRefreshScheduler(second);
+
+    // 두 번째 init 가 reschedule 했으므로 second 가 만료 직전에 호출, first 는 호출 안 됨.
+    await vi.advanceTimersByTimeAsync(1500);
+    expect(first).not.toHaveBeenCalled();
+    expect(second).toHaveBeenCalledTimes(1);
+  });
+
+  // _resetRefreshScheduler — timer 가 존재하는 상태에서 clearTimeout 분기 cover.
+  it("_resetRefreshScheduler cancels active timer", async () => {
+    const performer = vi.fn<() => Promise<RefreshOutcome>>().mockResolvedValue({ kind: "ok" });
+    initRefreshScheduler(performer);
+    tokenStore.save({ access_token: "a", refresh_token: "r", expires_in: 60, token_type: "Bearer" });
+
+    // 타이머 활성 상태에서 reset 호출 → clearTimeout 분기.
+    _resetRefreshScheduler();
+    await vi.advanceTimersByTimeAsync(120_000);
+    expect(performer).not.toHaveBeenCalled();
+  });
 });

@@ -57,6 +57,80 @@ describe("createPkceState + consumeVerifier", () => {
   });
 });
 
+describe("randomState fallback (crypto.randomUUID absent)", () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+  });
+
+  it("falls back to manual UUID assembly when crypto.randomUUID is undefined", async () => {
+    const originalRandomUUID = crypto.randomUUID;
+    // Reflect-defineProperty so we can revert; some envs forbid plain delete.
+    Object.defineProperty(crypto, "randomUUID", { value: undefined, configurable: true, writable: true });
+    try {
+      const { state } = await createPkceState();
+      // RFC 4122 v4 shape: 8-4-4-4-12, lowercase hex.
+      expect(state).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    } finally {
+      Object.defineProperty(crypto, "randomUUID", { value: originalRandomUUID, configurable: true, writable: true });
+    }
+  });
+});
+
+describe("challengeFromVerifier — sha256Fallback path", () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+  });
+
+  it("uses sha256Fallback when crypto.subtle.digest is unavailable", async () => {
+    const originalSubtle = crypto.subtle;
+    // happy-dom 의 crypto.subtle 를 일시 제거 — challengeFromVerifier 의 fallback 분기 트리거.
+    Object.defineProperty(crypto, "subtle", { value: undefined, configurable: true, writable: true });
+    try {
+      const rfcVerifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
+      const rfcChallenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
+      const got = await challengeFromVerifier(rfcVerifier);
+      expect(got).toBe(rfcChallenge);
+    } finally {
+      Object.defineProperty(crypto, "subtle", { value: originalSubtle, configurable: true, writable: true });
+    }
+  });
+});
+
+describe("consumeVerifier — legacy fallback paths", () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+  });
+
+  it("legacy: when only oidc_state/oidc_verifier exist (no pkce map), valid match returns verifier", () => {
+    sessionStorage.setItem("oidc_state", "legacy-state");
+    sessionStorage.setItem("oidc_verifier", "legacy-verifier");
+    const v = consumeVerifier("legacy-state");
+    expect(v).toBe("legacy-verifier");
+    expect(sessionStorage.getItem("oidc_state")).toBeNull();
+    expect(sessionStorage.getItem("oidc_verifier")).toBeNull();
+  });
+
+  it("legacy: CSRF mismatch when saved state differs", () => {
+    sessionStorage.setItem("oidc_state", "saved");
+    sessionStorage.setItem("oidc_verifier", "v");
+    expect(() => consumeVerifier("bogus")).toThrow(/CSRF/);
+  });
+
+  it("legacy: missing verifier even with matching state", () => {
+    sessionStorage.setItem("oidc_state", "matching");
+    // no oidc_verifier
+    expect(() => consumeVerifier("matching")).toThrow(/Missing code verifier/);
+  });
+
+  it("pkce_map: consuming the only entry removes the map key entirely", async () => {
+    const { state } = await createPkceState();
+    expect(sessionStorage.getItem("oidc_pkce_map")).toBeTruthy();
+    consumeVerifier(state);
+    // Single-entry map → after consume → map key removed entirely.
+    expect(sessionStorage.getItem("oidc_pkce_map")).toBeNull();
+  });
+});
+
 describe("challengeFromVerifier — PKCE spec conformance", () => {
   // RFC 7636 Appendix B
   const rfcVerifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";

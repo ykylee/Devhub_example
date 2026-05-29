@@ -68,4 +68,19 @@ describe("session-death.triggerSessionExpired", () => {
     triggerSessionExpired("refresh_failed");
     expect(String(assignMock.mock.calls[0][0])).toContain("error=refresh_failed");
   });
+
+  it("logs warn but still redirects when tokenStore.clear throws", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const clearSpy = vi.spyOn(tokenStore, "clear").mockImplementation(() => {
+      throw new Error("storage blocked");
+    });
+
+    triggerSessionExpired();
+
+    expect(warnSpy).toHaveBeenCalled();
+    // tokenStore.clear 실패해도 redirect 는 여전히 호출되어야 (clean nav 보장).
+    expect(assignMock).toHaveBeenCalledTimes(1);
+    clearSpy.mockRestore();
+    warnSpy.mockRestore();
+  });
 });
