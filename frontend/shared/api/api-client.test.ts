@@ -116,15 +116,7 @@ describe("apiClient", () => {
       expect(result).toEqual({ raw: "plain-text-payload" });
     });
 
-    it("does NOT prepend API_BASE_URL for non /api/* paths", async () => {
-      vi.resetModules();
-      vi.doMock("@/shared/config/endpoints", () => ({ API_BASE_URL: "https://api.example.com" }));
-      vi.doMock("@/domain/auth-session/service/token-store", () => ({
-        tokenStore: { getAccessToken, getRefreshToken },
-      }));
-      vi.doMock("@/domain/auth-session/service/session-death", () => ({ triggerSessionExpired }));
-      vi.doMock("@/domain/auth-session/service/refresh", () => ({ refreshAccessToken }));
-
+    it("uses path as-is for non /api/* absolute URLs (when API_BASE_URL is empty)", async () => {
       fetchMock.mockResolvedValue({
         ok: true,
         status: 200,
@@ -134,28 +126,10 @@ describe("apiClient", () => {
       const { apiClient } = await import("./api-client");
       await apiClient("GET", "https://other.example/health");
 
+      // API_BASE_URL is "" in this suite, so absolute URLs are passed through
+      // unchanged. The prepend branch is tested in api-client.basurl.test.ts
+      // (file-isolated to keep the `@/shared/config/endpoints` mock pinned).
       expect(fetchMock.mock.calls[0][0]).toBe("https://other.example/health");
-    });
-
-    it("prepends API_BASE_URL for relative /api/* paths", async () => {
-      vi.resetModules();
-      vi.doMock("@/shared/config/endpoints", () => ({ API_BASE_URL: "https://api.example.com" }));
-      vi.doMock("@/domain/auth-session/service/token-store", () => ({
-        tokenStore: { getAccessToken, getRefreshToken },
-      }));
-      vi.doMock("@/domain/auth-session/service/session-death", () => ({ triggerSessionExpired }));
-      vi.doMock("@/domain/auth-session/service/refresh", () => ({ refreshAccessToken }));
-
-      fetchMock.mockResolvedValue({
-        ok: true,
-        status: 200,
-        text: async () => "{}",
-      });
-
-      const { apiClient } = await import("./api-client");
-      await apiClient("GET", "/api/v1/x");
-
-      expect(fetchMock.mock.calls[0][0]).toBe("https://api.example.com/api/v1/x");
     });
   });
 
@@ -173,10 +147,10 @@ describe("apiClient", () => {
       try {
         await apiClient("POST", "/api/v1/x", {});
       } catch (e) {
-        const err = e as InstanceType<typeof ApiError>;
-        expect(err.status).toBe(422);
-        expect(err.message).toBe("invalid_payload");
-        expect(err.payload).toEqual({ status: "rejected", error: "invalid_payload" });
+        if (!(e instanceof ApiError)) throw e;
+        expect(e.status).toBe(422);
+        expect(e.message).toBe("invalid_payload");
+        expect(e.payload).toEqual({ status: "rejected", error: "invalid_payload" });
       }
     });
 
@@ -193,10 +167,9 @@ describe("apiClient", () => {
         await apiClient("GET", "/api/v1/x");
         throw new Error("should not reach");
       } catch (e) {
-        const err = e as InstanceType<typeof ApiError>;
-        expect(err).toBeInstanceOf(ApiError);
-        expect(err.status).toBe(500);
-        expect(err.message).toBe("HTTP 500");
+        if (!(e instanceof ApiError)) throw e;
+        expect(e.status).toBe(500);
+        expect(e.message).toBe("HTTP 500");
       }
     });
   });
@@ -285,6 +258,31 @@ describe("apiClient", () => {
       expect(refreshAccessToken).toHaveBeenCalledTimes(1);
       expect(triggerSessionExpired).not.toHaveBeenCalled();
       expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("does NOT retry the request when refresh kind='ok' but no fresh access token is available", async () => {
+      // Edge case: refreshAccessToken resolves 'ok' but tokenStore returns null
+      // afterwards (e.g. the refresh was applied but tokenStore was cleared
+      // by a concurrent session-death event). The original 401 is surfaced
+      // and no second fetch is issued.
+      getAccessToken
+        .mockReturnValueOnce("expired-token") // initial
+        .mockReturnValue(null); // after refresh
+      getRefreshToken.mockReturnValue("rt-1");
+      refreshAccessToken.mockResolvedValue({ kind: "ok" });
+
+      fetchMock.mockResolvedValue({
+        ok: false,
+        status: 401,
+        text: async () => '{"error":"expired"}',
+      });
+
+      const { apiClient } = await import("./api-client");
+
+      await expect(apiClient("GET", "/api/v1/me")).rejects.toThrow("expired");
+      expect(refreshAccessToken).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(triggerSessionExpired).not.toHaveBeenCalled();
     });
 
     it("attempts refresh when only a refresh token is present (access token cleared earlier)", async () => {
