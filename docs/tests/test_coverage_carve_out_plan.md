@@ -89,12 +89,12 @@
 
 #### 0% 영역 — 측정 한계 vs 실제 미커버
 
-**측정 한계** (`-short` skip + 패키지 외 test 위치):
-- `internal/store` 0% — `*_integration_test.go` 가 `-short` 로 skip. 실제는 PR #109/#110 의 23 integration test (PG 15 native) 가 cover. CI 의 `backend-integration` job 으로 검증 (현재 임시 disable, #419).
+**측정 한계** (env 미설정 skip + 패키지 외 test 위치):
+- `internal/store` 0% — `*_integration_test.go` 가 `DEVHUB_TEST_DB_URL` env 미설정 시 `t.Skip` (testing.Short 와 무관). 실제는 PR #109/#110 의 23 integration test (PG 15 native) 가 cover. CI 의 `backend-integration` job (env 주입 + PG 5432 native) 으로 검증 (현재 임시 disable, #419).
 - `internal/domain/<도메인>/{view,repository}` 대부분 0% — 도메인 view test 가 `internal/httpapi/` 에 위치 (Phase 3 의 view cross-package import 회피 결과 sprint -f). 실 cover 는 `httpapi` 63.5% 에 포함.
 
 **실제 미커버**:
-- `internal/shared/httphelp` 0% — test 자체 없음 (PR #407 신규, helper 함수 RequestActor / RequestIDFrom / ClientIPFrom 등).
+- `internal/shared/httphelp` 0% — test 자체 없음 (PR #407 신규). 실제 exported API: `ParseBoundedInt` + `WriteServerError` (errors.go) + `GenerateRequestID` + `ValidateCallerRequestID` + `RequireRequestID` + `RequestIDFrom` + `RequestIDFromContext` + `SourceTypeFrom` + `ClientIPFrom` + `LogRequest` (request_context.go).
 - `internal/domain/<도메인>/service` 일부 — auth-session/service / audit-ops/service / organization-management/repository 등은 production code 자체가 thin (interface 정의 + thin pass-through) 이라 실 test 작성 후보 한정.
 
 #### `-coverpkg=./...` 재측정 권장
@@ -114,7 +114,7 @@
 
 #### B-1. backend `internal/shared/httphelp` test 신규
 
-- **scope**: `errors.go` (DomainError + ErrorResponse helpers) + `request_context.go` (RequestActor / RequestIDFrom / ClientIPFrom).
+- **scope**: `errors.go` (`ParseBoundedInt`, `WriteServerError`) + `request_context.go` (`GenerateRequestID`, `ValidateCallerRequestID`, `RequireRequestID`, `RequestIDFrom`, `RequestIDFromContext`, `SourceTypeFrom`, `ClientIPFrom`, `LogRequest`).
 - **이유**: Shared 레이어 helper 가 모든 handler 에서 호출. 회귀 risk + 100% 달성 용이 (작은 file).
 - **예상 작업**: 1 test file, ~15 test, ~150 LoC.
 - **기대**: 0% → **100%**.
