@@ -1,10 +1,10 @@
 # 백엔드 개발 로드맵
 
-> ⚠ **먼저 [통합 개발 로드맵](../../docs/development_roadmap.md)을 확인하세요.** 본 문서는 그 통합 로드맵의 Backend 트랙 세부입니다. 마일스톤(M0~M4) / 우선순위(P0~P3) / 트랙 간 의존은 통합 로드맵의 §3·§4 가 source-of-truth.
+> ⚠ **먼저 [통합 개발 로드맵](./development_roadmap.md)을 확인하세요.** 본 문서는 그 통합 로드맵의 Backend 트랙 세부입니다. 마일스톤(M0~M4) / 우선순위(P0~P3) / 트랙 간 의존은 통합 로드맵의 §3·§4 가 source-of-truth.
 >
-> ⚠ **v1.0/v1.1 신규 작업의 source-of-truth = [`docs/planning/release_v1_roadmap.md`](../../docs/planning/release_v1_roadmap.md).** 본 문서는 backend phase 이력 + 잔여 추적용이며, 우선순위·마일스톤·잔여 carve 의 최신 기준은 release_v1_roadmap 이다.
+> ⚠ **v1.0/v1.1 신규 작업의 source-of-truth = [`docs/planning/release_v1_roadmap.md`](./planning/release_v1_roadmap.md).** 본 문서는 backend phase 이력 + 잔여 추적용이며, 우선순위·마일스톤·잔여 carve 의 최신 기준은 release_v1_roadmap 이다.
 >
-> ⚠ **2026-05-29 정합 (SDLC 재정비 sprint #408~#416)**: backend 코드는 [`docs/governance/code-taxonomy.md`](../../docs/governance/code-taxonomy.md) §2.1 의 **`backend-core/internal/domain/<도메인>/{view,service,repository,schema}` 4 계층** 으로 재정렬됨. PR #409 가 `providerHasCapability` 3 카피 → `internal/shared/integrationcaps/` 통합 (11 unit test). 현행 코드베이스 전수 분석은 [2026-05-27 codebase snapshot](../../docs/analysis/2026-05-27-codebase-snapshot/04_backend_summary.md) 참조.
+> ⚠ **2026-05-29 정합 (SDLC 재정비 sprint #408~#416)**: backend 코드는 [`docs/governance/code-taxonomy.md`](./governance/code-taxonomy.md) §2.1 의 **`backend-core/internal/domain/<도메인>/{view,service,repository,schema}` 4 계층** 으로 재정렬됨. PR #409 가 `providerHasCapability` 3 카피 → `internal/shared/integrationcaps/` 통합 (11 unit test). 현행 코드베이스 전수 분석은 [2026-05-27 codebase snapshot](./analysis/2026-05-27-codebase-snapshot/04_backend_summary.md) 참조.
 
 - 문서 목적: DevHub 백엔드 구현 범위, 순서, 진척 상태를 추적한다.
 - 범위: backend-core phase 로드맵, 완료 범위, 다음 작업 큐, 차단 항목, `backend-core/internal/domain/<도메인>/` 4 계층 매핑.
@@ -12,7 +12,7 @@
 - 기준일: 2026-05-07
 - 상태: in_progress
 - 최종 수정일: 2026-05-29 (SDLC 재정비 sprint #408~#416 — backend domain 4 계층 매핑 + Shared `integrationcaps` 도입 (PR #409) + Infrastructure 진입점 명시 + 후속 carve out (ApplicationRepository decouple / ApplicationStore slim))
-- 관련 문서: [`docs/development_roadmap.md`](../../docs/development_roadmap.md) (통합), [`docs/planning/release_v1_roadmap.md`](../../docs/planning/release_v1_roadmap.md) (v1.0/v1.1 source-of-truth), [`docs/governance/code-taxonomy.md`](../../docs/governance/code-taxonomy.md) (SoT — 10 도메인 + 4 계층), [`docs/domain/`](../../docs/domain/README.md) (도메인 SDLC 진입점), [`docs/shared/`](../../docs/shared/README.md) (Shared 진입점 — integrationcaps 포함), [`docs/infrastructure/`](../../docs/infrastructure/README.md) (Infrastructure 진입점), [`docs/analysis/2026-05-27-codebase-snapshot/04_backend_summary.md`](../../docs/analysis/2026-05-27-codebase-snapshot/04_backend_summary.md) (현행 backend 전수 분석), `docs/requirements.md`, `docs/architecture.md`, `docs/tech_stack.md`, `docs/backend_api_contract.md`, [`docs/adr/0019-keycloak-only-idp.md`](../../docs/adr/0019-keycloak-only-idp.md) (current IdP), [`docs/adr/0001-idp-selection.md`](../../docs/adr/0001-idp-selection.md) (Hydra+Kratos, **superseded** by ADR-0019), [`docs/adr/0024-websocket-auth-query-token.md`](../../docs/adr/0024-websocket-auth-query-token.md) (WS ticket 인증)
+- 관련 문서: [`docs/development_roadmap.md`](./development_roadmap.md) (통합), [`docs/planning/release_v1_roadmap.md`](./planning/release_v1_roadmap.md) (v1.0/v1.1 source-of-truth), [`docs/governance/code-taxonomy.md`](./governance/code-taxonomy.md) (SoT — 10 도메인 + 4 계층), [`docs/domain/`](./domain/README.md) (도메인 SDLC 진입점), [`docs/shared/`](./shared/README.md) (Shared 진입점 — integrationcaps 포함), [`docs/infrastructure/`](./infrastructure/README.md) (Infrastructure 진입점), [`docs/analysis/2026-05-27-codebase-snapshot/04_backend_summary.md`](./analysis/2026-05-27-codebase-snapshot/04_backend_summary.md) (현행 backend 전수 분석), `docs/requirements.md`, `docs/architecture.md`, `docs/tech_stack.md`, `docs/backend_api_contract.md`, [`docs/adr/0019-keycloak-only-idp.md`](./adr/0019-keycloak-only-idp.md) (current IdP), [`docs/adr/0001-idp-selection.md`](./adr/0001-idp-selection.md) (Hydra+Kratos, **superseded** by ADR-0019), [`docs/adr/0024-websocket-auth-query-token.md`](./adr/0024-websocket-auth-query-token.md) (WS ticket 인증)
 - 현재 브랜치: `main`
 - 현재 기준선: main `273d9d4` (PR #415 머지 후, sprint `claude/work_260529-k` 진입 기준). **Keycloak 단일 IdP 전환 완료(ADR-0019 — Hydra/Kratos 전면 제거).** Application·Repository·Project / DREQ / External Integration / Onboarding / Gitea SCM sync worker / Repository draft→publish + SCM 양방향 도메인 모두 1차 완성.
 
@@ -31,7 +31,7 @@
 
 ## 1.1 도메인 4 계층 매핑 (2026-05-29 SDLC 재정비 정합)
 
-backend 코드는 [`docs/governance/code-taxonomy.md`](../../docs/governance/code-taxonomy.md) §2.1 의 **10 core 도메인 × 4 계층** 구조 (`backend-core/internal/domain/<도메인>/{view,service,repository,schema}`) 를 따른다. 각 도메인 SDLC 진입점은 [`docs/domain/<도메인>/README.md`](../../docs/domain/README.md) 참조.
+backend 코드는 [`docs/governance/code-taxonomy.md`](./governance/code-taxonomy.md) §2.1 의 **10 core 도메인 × 4 계층** 구조 (`backend-core/internal/domain/<도메인>/{view,service,repository,schema}`) 를 따른다. 각 도메인 SDLC 진입점은 [`docs/domain/<도메인>/README.md`](./domain/README.md) 참조.
 
 | 도메인 | view | service | repository | schema |
 | --- | --- | --- | --- | --- |
@@ -48,7 +48,7 @@ backend 코드는 [`docs/governance/code-taxonomy.md`](../../docs/governance/cod
 
 ## 1.2 Shared 레이어 (`backend-core/internal/shared/`)
 
-도메인 비결합 공통 모듈. 자세한 진입점은 [`docs/shared/README.md`](../../docs/shared/README.md).
+도메인 비결합 공통 모듈. 자세한 진입점은 [`docs/shared/README.md`](./shared/README.md).
 
 | 모듈 | 코드 | 주 책임 |
 | --- | --- | --- |
@@ -58,7 +58,7 @@ backend 코드는 [`docs/governance/code-taxonomy.md`](../../docs/governance/cod
 
 ## 1.3 Infrastructure 레이어 (`backend-core/internal/infrastructure/`)
 
-외부 기술 어댑터. 자세한 진입점은 [`docs/infrastructure/README.md`](../../docs/infrastructure/README.md).
+외부 기술 어댑터. 자세한 진입점은 [`docs/infrastructure/README.md`](./infrastructure/README.md).
 
 | 모듈 | 코드 | 주 책임 | ADR |
 | --- | --- | --- | --- |
@@ -113,7 +113,7 @@ backend 코드는 [`docs/governance/code-taxonomy.md`](../../docs/governance/cod
 
 ### 3.1 2026-05-12 이후 신규 완성 도메인 (ADR-0019 Keycloak 전환 이후, main `cf19c94` 기준)
 
-> 상세 패키지/마이그레이션 근거는 [04_backend_summary.md](../../docs/analysis/2026-05-27-codebase-snapshot/04_backend_summary.md) §1·§3·§5 참조.
+> 상세 패키지/마이그레이션 근거는 [04_backend_summary.md](./analysis/2026-05-27-codebase-snapshot/04_backend_summary.md) §1·§3·§5 참조.
 
 - **인증 — Keycloak 단일 IdP(ADR-0019)**: 자체 Hydra/Kratos 흐름 + `/api/v1/auth/*` proxy + `/api/v1/accounts/*` admin 전면 폐기. JWKS 검증(`internal/auth/keycloak_verifier.go`, TTL 5분 + stale-while-error fallback). audit 는 Keycloak event polling(`internal/audit/*`, event_cursors dedup + Prometheus).
 - **Application / Repository / Project**: CRUD + 상태전이 + rollup + RBAC row-scoping(ADR-0011). `applications.go`·`projects.go`·`repository_ops.go`·`application_rollup.go`.
@@ -142,7 +142,7 @@ backend 코드는 [`docs/governance/code-taxonomy.md`](../../docs/governance/cod
 
 ## 5. 기능 단위별 우선순위 계획 (Functional Priorities)
 
-> ⚠ **2026-05-27 갱신**: 본 §5 는 2026-05-12 시점의 M2~M4 계획을 담고 있었으나 ADR-0019 Keycloak 전환 + 도메인 다수 완성으로 대부분 종결됐다. 우선순위·잔여 carve 의 **최신 source-of-truth 는 [`docs/planning/release_v1_roadmap.md`](../../docs/planning/release_v1_roadmap.md)** 다. 아래는 backend 트랙의 완성/잔여 요약으로 정정한다.
+> ⚠ **2026-05-27 갱신**: 본 §5 는 2026-05-12 시점의 M2~M4 계획을 담고 있었으나 ADR-0019 Keycloak 전환 + 도메인 다수 완성으로 대부분 종결됐다. 우선순위·잔여 carve 의 **최신 source-of-truth 는 [`docs/planning/release_v1_roadmap.md`](./planning/release_v1_roadmap.md)** 다. 아래는 backend 트랙의 완성/잔여 요약으로 정정한다.
 
 ### [P0] M2: 인증 및 사용자 기반 — ✅ 종결 (Keycloak 단일 IdP 전환)
 

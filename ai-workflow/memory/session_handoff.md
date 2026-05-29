@@ -22,7 +22,7 @@
 
 코드베이스의 3대 레이어 + 4대 계층 + 10 도메인 구조 (PR #406/#407) 와 SDLC 문서가 1:1 mirror 정합.
 
-- `docs/domain/<도메인>/{requirements,architecture,api,test_cases}.md` × 10 도메인 = 40 sub-document.
+- `docs/domain/<도메인>/{requirements,architecture,api}.md` × 10 도메인 = 30 sub-document + `test_cases.md` × 5 도메인 (Phase 2 이관, auth-session/dev-request/integration-registry/onboarding/organization-management) = 35 sub-document. 잔여 5 도메인 (audit-ops/rbac-permissions/realtime/application-lifecycle/repository-integration) 의 `test_cases.md` 는 후속 carve out.
 - `docs/api/conventions.md` (cross-cutting envelope/enum 신규).
 - master file 3건 (requirements / architecture / backend_api_contract) → index 전환.
 - `docs/shared/README.md` + `docs/infrastructure/README.md` 신규 진입점.

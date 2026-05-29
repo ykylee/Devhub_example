@@ -12,13 +12,13 @@
 | ID | endpoint | 비고 |
 | --- | --- | --- |
 | API-14 | `GET /api/v1/realtime/ws` | WebSocket upgrade |
-| API-37 | `POST /api/v1/realtime/ticket` | ticket 발급 (ADR-0024 §6.6) |
+| API-97 | `POST /api/v1/realtime/ticket` | ticket 발급 (ADR-0024 §6.6) |
 
 ## 2. `GET /api/v1/realtime/ws` (API-14)
 
 REST snapshot 조회 이후 변경 이벤트를 수신하는 WebSocket endpoint다. 브라우저 프론트엔드는 gRPC stream에 직접 연결하지 않는다.
 
-RBAC enabled 환경에서는 `types` query로 필요한 event type을 명시한다. `actor`/`role` query 는 `DEVHUB_AUTH_DEV_FALLBACK=true`인 개발 환경에서만 허용한다. 운영 환경에서는 ticket(API-37) 기반 actor context를 사용한다 ([ADR-0024](../../adr/0024-websocket-auth-query-token.md) — `?access_token=` query fallback 은 ticket-only 컷오버 후 제거됐고 `X-Devhub-Actor` fallback 헤더는 [ADR-0004](../../adr/0004-x-devhub-actor-removal.md) 로 폐기됐다).
+RBAC enabled 환경에서는 `types` query로 필요한 event type을 명시한다. `actor`/`role` query 는 `DEVHUB_AUTH_DEV_FALLBACK=true`인 개발 환경에서만 허용한다. 운영 환경에서는 ticket(API-97) 기반 actor context를 사용한다 ([ADR-0024](../../adr/0024-websocket-auth-query-token.md) — `?access_token=` query fallback 은 ticket-only 컷오버 후 제거됐고 `X-Devhub-Actor` fallback 헤더는 [ADR-0004](../../adr/0004-x-devhub-actor-removal.md) 로 폐기됐다).
 
 ### 메시지 envelope
 
@@ -55,7 +55,7 @@ notification.created
 
 - 2026-05-06 기준 `/api/v1/realtime/ws` endpoint와 in-process WebSocket hub가 구현되어 있다.
 - 현재 publish 대상은 dry-run command worker가 발생시키는 `command.status.updated`다.
-- 인증, 구독 필터, 마지막 event replay는 ticket 인증 (API-37) 도입과 함께 ADR-0024 §6 carve 들에서 다뤄졌다.
+- 인증, 구독 필터, 마지막 event replay는 ticket 인증 (API-97) 도입과 함께 ADR-0024 §6 carve 들에서 다뤄졌다.
 
 ### `command.status.updated` data 예시
 
@@ -76,7 +76,7 @@ notification.created
 }
 ```
 
-## 3. `POST /api/v1/realtime/ticket` (API-37)
+## 3. `POST /api/v1/realtime/ticket` (API-97)
 
 ADR-0024 §6.6 — 인증 actor 가 단일-사용(single-use, 60s TTL) WebSocket ticket 을 발급받는다. 발급된 ticket 은 `GET /api/v1/realtime/ws?ticket=...` 의 query 로 1회 소비된다.
 
@@ -97,4 +97,4 @@ ADR-0024 §6.6 — 인증 actor 가 단일-사용(single-use, 60s TTL) WebSocket
 
 | 일자 | 변경 |
 | --- | --- |
-| 2026-05-29 | Phase 3 split — master `docs/backend_api_contract.md` §8 (Realtime WebSocket 계약) 을 도메인 sub-document 로 이관. ID(API-14/API-37) 보존, 신규 발급 없음. ADR-0024 §6.6 의 ticket 발급 endpoint 본문 통합. |
+| 2026-05-29 | Phase 3 split — master `docs/backend_api_contract.md` §8 (Realtime WebSocket 계약) 을 도메인 sub-document 로 이관. ID(API-14/API-97) 보존, 신규 발급 없음. ADR-0024 §6.6 의 ticket 발급 endpoint 본문 통합. |
