@@ -1,15 +1,16 @@
-# DevHub 요구사항 정의서 (Draft)
+# DevHub 요구사항 정의서 (Master Index)
 
-- 문서 목적: 팀 통합 개발 허브 (DevHub) 의 역할별 상세 기능 (Developer / Manager / System Admin) 과 데이터 구조, 비기능 요구사항을 정의한다.
-- 범위: §2 역할별 기능 / §3 역할 확장성 / §4 데이터 보존 정책 / §5 비기능 + 운영 / §6 기술 스택 / §7 UX. 백엔드 측 상세는 `docs/backend/requirements.md`, 프론트 연동은 `docs/backend/frontend_integration_requirements.md`.
-- 대상 독자: 프로젝트 리드, Backend / 프론트엔드 개발자, AI agent, QA, UX 검토자.
+- 문서 목적: 팀 통합 개발 허브 (DevHub) 의 역할별 상세 기능 (Developer / Manager / System Admin) 과 공통 운영 원칙·기술 결정·도메인별 요구사항 진입점을 제공한다.
+- 범위: §1 개요 / §2 역할별 요구사항 / §3 공통 시스템 요구사항 / §4 공통 운영 원칙 + 데이터 운영 기준 / §5 도메인별 요구사항 link 표 / §6 기술 스택 결정 / §7 상세 시스템 아키텍처 진입.
+- 대상 독자: 프로젝트 리드, Backend / 프론트엔드 / DevOps 개발자, AI agent, QA, UX 검토자.
 - 상태: accepted
 - 작성일: 2026-04-28
-- 최종 수정일: 2026-05-27 (§5.8 SCM↔시스템 Repository 연동 + Repository Lifecycle 신규, §5.6 INT auth_mode/base_url/연결테스트 보강, §2.5 Keycloak 단일 IdP inline 정정 — 코드베이스 스냅샷 정합)
-- 관련 문서: [통합 개발 로드맵](./development_roadmap.md), [아키텍처](./architecture.md), [기술 스택](./tech_stack.md), [백엔드 API 계약](./backend_api_contract.md), [추적성 매트릭스](./traceability/report.md), [거버넌스 — 문서 표준](./governance/document-standards.md), [코드베이스 스냅샷 (2026-05-27)](./analysis/2026-05-27-codebase-snapshot/README.md), [requirements 정합 분석](./analysis/2026-05-27-codebase-snapshot/docs-review/requirements_analysis.md).
+- 최종 수정일: 2026-05-29 (Phase 3 split — §5 도메인별 요구사항이 sub-document 로 이관, 본 문서는 master index 로 전환)
+- 관련 문서: [통합 개발 로드맵](./development_roadmap.md), [아키텍처 (master index)](./architecture.md), [기술 스택](./tech_stack.md), [백엔드 API 계약 (master index)](./backend_api_contract.md), [추적성 매트릭스](./traceability/report.md), [거버넌스 — 문서 표준](./governance/document-standards.md), [코드베이스 스냅샷 (2026-05-27)](./analysis/2026-05-27-codebase-snapshot/README.md).
 
 ## 1. 개요
-본 문서는 팀 통합 개발 허브(DevHub)의 역할별 상세 기능과 데이터 구조를 정의하기 위해 작성되었습니다.
+
+본 문서는 팀 통합 개발 허브(DevHub)의 역할별 상세 기능과 데이터 구조 + 공통 정책을 정의한다. 도메인별 상세 요구사항은 [`docs/domain/<도메인>/requirements.md`](./domain/) 에 sub-document 로 분산되어 있으며, 본 문서는 그 진입점 + cross-cutting 정책을 유지한다.
 
 ### 1.1 요구사항 범위 구분
 
@@ -55,39 +56,13 @@
     - [x] Gitea 서버 및 Runner 상태 모니터링.
     - [x] Runner 재시작/설정 등 제한된 인프라 제어.
     - [x] Gitea 계정, 조직, 권한 연동 관리.
-    - [x] Keycloak 연계 계정/세션 운영 상태 가시성 및 사용자 메타데이터 연동 관리 — `2.5 사용자 계정 관리` 참조.
+    - [x] Keycloak 연계 계정/세션 운영 상태 가시성 및 사용자 메타데이터 연동 관리 — [auth-session 도메인](./domain/auth-session/requirements.md) 참조.
     - [x] 백업 상태와 시스템 알림 임계치 확인.
     - [x] 시스템 관리 작업에 대한 Audit Log 조회.
 
 ### 2.5 사용자 계정 관리 (User Account Management)
 
-DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다. 인증은 Keycloak 기반 OIDC 표준 흐름을 1차 수단으로 사용한다.
-
-> **구현 방식 (2026-05-07 [ADR-0001](./adr/0001-idp-selection.md) → 2026-05-19 [ADR-0019](./adr/0019-keycloak-only-idp.md) supersede)**: 본 절의 정책 invariant(1:1 매핑, 비밀번호 평문 미보관, 자동 lock, audit log 대상) 는 그대로 유지하되, 구현은 **자체 `accounts` 테이블이 아닌 Keycloak (단일 IdP)** 가 책임진다. 신규 요구 — DevHub 의 계정 서비스를 다른 앱에도 OIDC IdP 로 제공 — 를 충족하기 위한 결정이다. ADR-0001 (Hydra+Kratos) 의 원본 결정은 PR #167 (2026-05-18) 로 Keycloak 단일화 전환됐고 ADR-0019 가 사후 명문화. 정책 변경 없음.
-
-> **갱신(2026-05-27) — 자체 계정/비밀번호 흐름 = historical**: Keycloak 단일 IdP 전환([ADR-0019](./adr/0019-keycloak-only-idp.md) / [ADR-0020](./adr/0020-account-user-management-boundary.md) / [ADR-0021](./adr/0021-onboarding-self-service-unit-selection.md)) 이 코드까지 완결되면서, 본 절의 **자체 credential store 시절 표현**(아래 "비밀번호 정책"의 해시 저장, "로그인 ID 정책"의 형식 강제, "계정 상태(Account Status)" 4종 직접 관리, "데이터 주권 메모"의 비밀번호 self-service 변경)은 **historical** 로 보존만 한다 — 코드에서는 폐기됐다. 현행:
-> - DevHub 는 비밀번호/credential 을 일절 저장·검증하지 않는다. 자체 password form 은 폐기됐고(`/api/v1/account/password` dead path 제거, ADR-0019 sprint -ad), 사용자의 비밀번호 변경은 **Keycloak Account Console 로 redirect** 한다.
-> - 로그인 ID/비밀번호 형식·해시·잠금(`active`/`disabled`/`locked`/`password_reset_required`)·강제 재설정·세션 만료는 **Keycloak** 이 단일 책임진다 (`users.idp_subject` 만 DevHub 에 보관, `kratos_identity_id` → `idp_subject` rename, migration 000030).
-> - DevHub `users` row 는 프로필/권한 메타데이터 + onboarding/검토 상태(§5.7)만 관리하며, 사용자 관리 책임 경계는 [ADR-0020](./adr/0020-account-user-management-boundary.md) 가 확정한다. 정책 invariant(1:1 매핑, 평문 미보관, audit 대상)는 위 2026-05-19 배너대로 그대로 유지된다.
-
-- **핵심 니즈:** 식별 가능한 사람 단위 권한 관리, 분실/유출 시 빠른 회수, 감사 가능한 비밀번호 변경 기록.
-- **용어 분리:**
-    - **사용자(User):** 조직에 소속된 사람. 표시명, 이메일, 직책, 소속 조직 단위(Org Unit), 역할(Role)로 구성.
-    - **계정(Account):** 사용자가 DevHub에 로그인하기 위한 인증 자격. credential 원천은 IdP(Keycloak)이며 DevHub는 사용자/권한 메타데이터를 관리.
-- **주요 기능 (확정) — DevHub 정책/데이터 관점:**
-    - [x] **1:1 매핑 강제:** 사용자 1명은 정확히 0개 또는 1개의 계정을 가질 수 있다. 계정은 반드시 1명의 사용자에 귀속된다. 동일 사용자에 복수 계정을 만들 수 없으며, 1개의 계정이 복수 사용자를 대표할 수 없다.
-    - [x] **로그인 ID 정책:** 로그인 ID는 시스템 전역에서 unique 하다. 형식 정책(허용 문자, 길이)은 IdP 정책 표로 관리한다. 사용자 식별자(`user_id`)와는 별도이며, 로그인 ID 변경이 사용자 식별자를 바꾸지 않는다.
-    - [x] **비밀번호 정책:** 비밀번호는 평문으로 저장하지 않는다. 단방향 해시(예: bcrypt cost ≥ 12 또는 argon2id)만 저장한다. 사용자 self-service 비밀번호 변경은 허용하며, 관리자 강제 재설정 정책은 IdP 운영 정책을 따른다.
-    - [x] **계정 상태(Account Status):** `active`, `disabled`, `locked`, `password_reset_required` 의 4종 상태를 가진다. `locked`는 정책상 자동 잠금(예: 연속 실패) 또는 수동 잠금이며, `disabled`는 계정 회수 상태다.
-    - [x] **감사 로그 대상:** 비밀번호 변경(본인), 로그인 성공/실패, 계정 상태 전이(회수/잠금/해제)는 Audit Log 기록 대상이다. 비밀번호 자체나 해시는 Audit Log에 기록하지 않는다.
-- **운영 책임 분리 (확정):**
-    - [x] **외부 IdP 책임:** 계정 발급/회수, 관리자 강제 비밀번호 재설정, 세션 강제 만료는 Keycloak Admin Console 또는 HRDB ETL 경로에서 수행한다.
-    - [x] **DevHub 책임:** 사용자 프로필/권한 메타데이터(`users`, `org_units`) 관리와 감사 추적을 담당한다.
-- **주요 기능 (후보):**
-    - [ ] 비밀번호 만료 정책(주기 강제 변경) — 운영 단계에서 정책 결정.
-    - [ ] 다단계 인증(MFA/2FA) — 초기 단계는 미도입 (단계 5.3과 동일 기준).
-    - [ ] Gitea SSO 연동으로 자체 계정 발급 없이 통합 인증 — `architecture.md` 6.2 RBAC 단계화에서 후속 phase로 관리.
-- **데이터 주권 메모:** 사용자 자신은 자신의 계정 정보(로그인 ID, 비밀번호)를 변경할 수 있다. 계정 발급/회수와 강제 재설정은 DevHub API가 아니라 외부 IdP 운영 절차를 따른다.
+본 절의 상세 정책 (User/Account 분리, Keycloak 단일 IdP, 운영 책임 분리)은 **[auth-session 도메인 requirements](./domain/auth-session/requirements.md)** 로 이관됐다. 본 master 의 §4.1 데이터 운영 기준 표는 cross-cutting 으로 아래에 유지된다.
 
 ## 3. 공통 기능 및 시스템 요구사항
 - **역할 확장성:** 새로운 역할이 추가되더라도 역할별 기본 진입 우선순위를 설정해 UX를 간접 제공하고, 메뉴/기능은 권한 기반으로 확장할 수 있어야 함.
@@ -97,9 +72,9 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
 
 두 역할군(개발자, 관리자) 간의 뷰 공존과 데이터 신뢰를 위해 다음 원칙을 준수합니다.
 
-1. **데이터 주권과 정합성의 조화:** 
+1. **데이터 주권과 정합성의 조화:**
     - 공식 업무 로그(PR, 이슈, 빌드 등)는 데이터 무결성을 유지하며 관리자 KPI의 기반이 됨.
-    - 개인적 회고, 업무 설명, 개인 로드맵 영역에서는 개발자에게 완전한 수정/삭제 권한을 부여함. 
+    - 개인적 회고, 업무 설명, 개인 로드맵 영역에서는 개발자에게 완전한 수정/삭제 권한을 부여함.
     - 보고용 데이터는 특정 시점의 **스냅샷(Snapshot)**을 기반으로 운영하여 데이터 변경으로 인한 혼선을 방지함.
 2. **기술 태깅 기반의 전문가 맵:**
     - '스텔스 전문가'라는 용어 대신 **'기술 태깅(Tech Tagging)'** 개념을 사용함.
@@ -124,527 +99,27 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
 | 시스템 관리 로그 | DevHub/Gitea | 시스템 자동 기록, 직접 수정 불가 | 시스템 관리자 | 운영 로그 1개월 이상 검토 필요 | 보안/운영 이벤트는 즉시 알림 |
 | 사용자 계정/자격 | Keycloak + DevHub | 본인은 자기 비밀번호 변경, 계정 발급/회수/강제 재설정은 IdP 운영 절차, DevHub는 사용자 메타데이터/감사 추적 관리 | 본인(자기 자신), 시스템 관리자(전체) | 계정 활성 중 유지, 회수 후 90일 보존 후 삭제 | 비밀번호 변경/잠금/회수 시 본인 + 시스템 관리자 알림 |
 
-## 5. 핵심 기획 아젠다 (Discussion Topics)
-
-각 항목별로 심도 있는 논의를 거쳐 확정된 내용을 기록합니다.
-
-### 5.1 [Agenda 1] 개발자용 '도움이 되는 정보'의 우선순위 및 세부 항목
-- **논의 배경:** 개발자가 정보 탐색에 소비하는 시간을 줄이고 개발에만 몰입할 수 있는 환경 구축.
-- **결정 사항:**
-    1. **[최우선] 실시간 개발/운영 현황 (Dynamic):** 배포 버전, CI/CD 상태, 실시간 에러 로그 요약 등 상시 확인 정보 우선 배치.
-    2. **개인화된 로드맵 및 현황 (Personalized):** '나의 마일스톤', '나의 잔여 작업량' 시각화.
-    3. **기술 태깅 기반 전문가 맵 및 Kudos:** 데이터 가시성은 **파트장급(PL) 이상**으로 제한. 동료 간 피드백(Kudos) 가중치는 **그룹리더(GL) 이상**만 조회. 전문가 데이터를 기반으로 리뷰어 등을 **소극적으로 추천**하는 기능 포함.
-    4. **내부 기반 상태 및 부재 관리:** DevHub 내 수동 상태 관리. 협업 타이밍 판단을 위한 최소 정보 공유 (업무 연혁과 분리 운영).
-    5. **위키 중심 AI 가드너 (Passive AI, v2 예정):** 
-        - 데이터 수집 범위를 **위키 문서**로 제한하여 정보의 정제성 확보.
-        - UI 구석에 체크박스와 코멘트 형태로 **소극적인 공유 제안**을 수행하여 개발자 피로도 최소화.
-        - 가드너(사람)는 AI 분석 결과를 최종 승인/분류하는 역할 수행.
-    6. **민감 자산의 선택적 공유:** 트러블슈팅, 의사결정 히스토리 등은 **개인/과제별로 공유 여부를 선택(Opt-in)** 가능하도록 설계.
-    7. **자율적 개인 업무 연혁:** 
-        - 업무 이력을 연대기 형식으로 정리하되, **개발자에게 완전한 수정/삭제 권한** 부여.
-        - 데이터 무결성보다 자기 어필 및 커리어 기록으로서의 사용자 경험에 집중.
-    8. **원클릭 권한 신청 시스템:** 저장소 및 프로젝트별 조회 권한 등을 DevHub 내에서 간편하게 신청하고 승인받는 셀프 서비스 체계 구축.
-    9. **팀 빌딩 이스터에그 (Gamification):** 팀 컨벤션 퀴즈나 숨겨진 업적 시스템을 이스터에그 형식으로 도입하여 재미와 팀 결속력 강화.
-- **핵심 원칙:** "효율적인 업무 지원(권한, 정보)과 위트 있는 상호작용(이스터에그, Kudos)을 결합하여, 개발자가 자발적으로 머무르고 싶어 하는 팀의 광장을 구축함."
-
-### 5.2 [Agenda 2] 관리자용 '현황 파악'의 시각화 범위와 깊이
-- **논의 배경:** 단순 상태 조회를 넘어 실질적인 리스크 관리와 의사결정에 도움이 되는 데이터 정의.
-- **결정 사항:**
-    1. **계층형 가시성 및 조직 경계 정책:**
-        - **초기:** 조직 간 데이터 경계를 두는 **Strict Boundary** 적용.
-        - **향후:** 협업 체계 안착 시 조직 간 비교 및 콜라보레이션이 가능하도록 설계.
-    2. **보고 자동화 및 KPI 관리:**
-        - **주간 보고서 자동 생성** 및 선택적 외부 발송.
-        - 조직별 목표 KPI 설정 및 리더 관심도에 따른 **카테고리 우선순위 조절**.
-    3. **AI 협업 리소스 시뮬레이션 (What-if):**
-        - 리소스 조정에 따른 일정 변화를 AI 에이전트와 의견 교환하며 검토 (참고용 수치 제공).
-    4. **리스크 관리 및 공식 전파:**
-        - 관리자가 식별한 리스크를 **조직/과제별 공지사항**으로 즉시 전파하여 가시성 확보.
-    5. **의사결정 및 협의 거버넌스:**
-        - 주요 계획 변경 및 리더 간 리소스/우선순위 충돌 발생 시 **공식 협의 및 의사결정 로그**를 남겨 추적성 확보.
-    6. **복합 의존성 관리:**
-        - 내부 과제 간 의존성은 자동 시각화, **외부 부서(인프라, 보안 등)와의 접점은 수동 등록** 및 일정 영향도 관리.
-    7. **알림 계층화 (Notification Grading):**
-        - 중요도에 따라 **단순 공유(Info)**와 **즉각 조치 필요(Action Required)** 단계로 알림을 차등화하여 피로도 감소.
-    8. **구조화된 개인화 UI:** 표준 레이아웃 기반 위에서 우선순위 및 즐겨찾기 조정 지원.
-    9. **데이터 무결성 피드백:** 소스 간 불일치 시 시스템 워닝 및 멘션 기반 피드백 루프 가동.
-- **제외/후순위:** 워룸(War-room) 모드는 현재 조직 성격상 불필요하므로 검토 대상에서 제외.
-- **핵심 원칙:** "데이터 시각화를 넘어 리더 간의 협의를 돕고, 조직 내외의 복잡한 의존성을 관리하여 의사결정의 투명성과 속도를 높임."
-
-
-
-
-### 5.3 [Agenda 3] 데이터 원천(Source) 및 연동 전략
-- **논의 배경:** Gitea를 중심으로 한 데이터 통합 및 자동화 수준, 예외 처리 정책 구체화.
-- **결정 사항:**
-    1. **데이터 기반 리스크 판단 (관리자 뷰):**
-        - **판단 기준:** 이슈 아이템의 생존 시간(Duration)이 **7일**을 초과하거나, 관련 Commit/PR 액티비티 추이가 급감하는 경우를 리스크로 자동 식별.
-        - **시각화 (v2):** AI 가드너가 위 지표를 분석하여 관리자 대시보드에 '주의/위험' 신호로 표시.
-    2. **집중 시간 보호 및 알림 제어 (개발자 뷰):**
-        - **기능:** 알림 On/Off 스위치, 특정 시간대 자동 차단(Schedule) 기능 제공.
-        - **예외:** 'Emergency' 태그가 붙은 긴급 이슈는 집중 시간 설정과 무관하게 전달 가능하도록 설계.
-    3. **데이터 상충 및 동기화 전략 (하이브리드):**
-        - **상충 해결:** Gitea 상태와 DevHub 기록이 불일치할 경우 우선 개발자에게 알림. 불일치가 일정 시간 지속되면 **PL(Part Leader) 뷰**에 해당 항목을 노출하되, PL은 **조회(Read-only)**만 가능하도록 하여 데이터 주권을 보호함.
-        - **동기화 방식:** Gitea의 **모든 Webhook 이벤트**를 수집하여 실시간 반영하는 것을 기본으로 하며, **시간 단위(Hourly)**로 전체 상태를 체크하여 누락된 데이터를 Pull 하는 하이브리드 방식 채택.
-    4. **CI/CD 및 인프라 연동:**
-        - **Gitea Actions:** Gitea Actions를 이용한 CI/CD 파이프라인 상태를 실시간 연동함. 
-        - **상세 지표:** 단순히 성공/실패 여부뿐만 아니라 **테스트 커버리지, 소스코드 품질 현황(Static Analysis), 빌드 로그 요약**을 추출하여 각 역할군 뷰에 제공함.
-    5. **데이터 수집 및 보존 정책 (Retention):**
-        - **이벤트 우선순위:** 모든 Webhook 이벤트를 수집하되, **이슈(Issue) 및 PR 액티비티**를 최우선 순위로 처리하여 실시간 가시성을 확보함.
-        - **로그 데이터:** DevHub 내의 일반 운영 로그는 **1개월** 동안 보존함.
-        - **개인화 데이터 (Kudos 등):** 해당 계정이 활성 상태인 동안 지속적으로 유지함. 계정 삭제 시 즉시 **아카이브** 처리하며, 아카이브 후 **1개월**이 지나면 영구 삭제함.
-    6. **인프라 및 시스템 관리 (System Administrator):**
-        - **권한 격리:** 인프라 모니터링, Runner 제어, 시스템 설정 등 핵심 관리 기능은 **시스템 관리자(System Admin) 역할에만 배타적으로 부여**함.
-        - **인프라 제어:** 알림 임계치 설정, Runner 직접 제어(재시작/설정), 백업 상태 실시간 확인 기능을 제공함.
-        - **계정 및 조직 관리:** Gitea와 연동된 계정, 사용자 권한, 조직 구성을 통합 관리하며, 향후 **Gitea와 SSO(Single Sign-On) 연동**을 통해 통합 인증 체계를 구축함 (초기 단계에서 2FA는 미도입).
-    7. **Application/Repository/Project 관리 (System Admin):**
-        - **Application/Repository 생애주기 자동화:** 신규 Application 등록 이후 Repository 실행 환경을 다음 순서로 자동화함.
-            1. Gitea 내 신규 저장소 자동 생성.
-            2. 기본 브랜치 보호 정책(Branch Protection) 자동 적용.
-            3. 저장소 멤버 자동 초대 및 권한 설정.
-        - **Project 운영 갱신:** Repository 하위 기간성 Project 생성/보관 정책과 연동하여 운영 주기(연간/반기/분기) 갱신을 지원함.
-        - **연결 매핑 관리:** Application-Repository, Repository-Project 연결 상태를 관리하며, 추가 자동화 시나리오는 운영 단계에서 지속 고도화함.
-    8. **내부 전용 데이터 관리 (Internal Only):**
-        - 팀 문화, Kudos(동료 칭찬), 이스터에그 등 Gitea에 기록하기 부적절하거나 팀 내 폐쇄성이 필요한 정보는 **DevHub 자체 DB**에만 보관.
-
-### 5.4 [Agenda 4] Project 운영 모델 고도화 (Requirements Phase)
-- **논의 배경:** 제품 수명 단위의 상위 관리와 연간 운영 단위의 행정 갱신을 함께 지원해야 한다. 이를 위해 `Application > Repository > Project > GitHub 실행 단위` 계층을 요구사항으로 확정한다.
-- **용어 정책 (확정):**
-    - **Application:** 제품 수명 주기와 함께 가는 최상위 총괄 단위.
-    - **Repository:** Application 하위 실행 단위 (1 Application : N Repository).
-    - **Project:** Repository 하위 기간성 운영 단위. Project는 1개 이상의 Repository와 연결될 수 있으며(`Project ↔ Repository` N:M), 연결된 Repository 중 1개를 primary로 지정한다.
-    - **Execution Artifact:** Repository 내부의 Issue / Milestone / Project Board / Wiki(또는 Docs).
-
-#### 5.4.1 기능 요구사항 (REQ-FR)
-
-- **REQ-FR-PROJ-000 (MVP, 확정):** `Application > Repository > Project` 관리 쓰기 권한은 기본적으로 `system_admin`에 한정해야 한다.
-    - 대상 기능: Application 생성/수정/보관, Repository 연결/해제, Project 생성/수정/보관, Project 멤버/owner 관리, Integration 정책 변경, 마일스톤 매핑 관리.
-    - 예외 역할: `pmo_manager`는 후보 role로 정의할 수 있으나 정책 확정 전까지 `disabled` 상태로 유지한다.
-    - `pmo_manager` 활성화 전 요청은 `403 role_not_enabled`로 거절한다.
-- **REQ-FR-APP-001 (MVP, 확정):** 시스템 관리자는 Application을 생성/수정/보관(archive)할 수 있어야 한다.
-    - 필수 필드: `key`, `name`, `owner`, `start_date`, `due_date`, `visibility`, `status`.
-    - `status` 최소 상태: `planning`, `active`, `on_hold`, `closed`, `archived`.
-- **REQ-FR-APP-002 (MVP, 확정):** 하나의 Application은 0개 이상의 Repository를 연결할 수 있어야 한다.
-    - 연결 단위 필드: `repo_provider`, `repo_full_name`, `role(primary|sub|shared)`.
-    - 동일 Application 내 서로 다른 provider Repository를 동시에 연결할 수 있어야 한다 (예: bitbucket + gitea 병행).
-- **REQ-FR-APP-003 (MVP, 확정):** `Application.key`는 시스템 전역 고유값(unique)이어야 하며 관리 식별자로 사용해야 한다.
-    - 표시명(`name`) 변경과 무관하게 `key`는 안정 식별자로 유지한다.
-    - **변경 불가(immutable):** 발급 후 `key`는 변경할 수 없다. rename 이 필요하면 신규 Application 생성 + 기존 Application archive 절차로만 수행한다 (PATCH 응답 422 `application_key_immutable`).
-    - 현재 입력 정책: 영문숫자 조합 10자 (`^[A-Za-z0-9]{10}$`).
-    - 데이터베이스 컬럼은 정책 변경 여지를 위해 더 긴 길이(예: VARCHAR(32) 이상)를 허용하고, 실제 길이 제한은 애플리케이션 검증 정책으로 강제한다.
-- **REQ-FR-APP-004 (MVP, 확정):** Repository는 외부 형상관리 도구와 연결되는 구조여야 하며, DevHub는 운영/분석용 관리 데이터를 보유해야 한다.
-    - 외부 SoT: 코드/PR/빌드 원본.
-    - DevHub 보유: 연결 메타데이터, 동기화 상태, 운영 스냅샷.
-    - 지원 정책: 특정 SCM 단일 종속이 아니라 provider 추상화(`repo_provider`)를 사용하며, `bitbucket`, `gitea`, `forgejo` 등 복수 provider를 동등하게 지원/확장할 수 있어야 한다.
-- **REQ-FR-APP-005 (MVP, 확정):** Repository 작업현황을 수집/조회할 수 있어야 한다.
-    - 최소 지표: commit 활동량, active contributor 수, 작업 추이.
-- **REQ-FR-APP-006 (MVP, 확정):** PR/PR Activity 정보를 수집/조회할 수 있어야 한다.
-    - 최소 정보: PR 상태(open/draft/merged/closed), 생성/리뷰/코멘트/머지 이벤트 타임라인.
-- **REQ-FR-APP-007 (MVP, 확정):** 빌드 정보를 수집/조회할 수 있어야 한다.
-    - 최소 정보: run status, duration, branch/commit, 시작/종료 시각.
-- **REQ-FR-APP-008 (MVP, 확정):** 소스코드 품질 지표(정적분석/스코어링)를 수집/조회할 수 있어야 한다.
-    - 최소 정보: tool, quality score, gate pass/fail, metric 상세(coverage, bug/vuln, duplication 등).
-- **REQ-FR-APP-009 (MVP, 확정):** 형상관리 도구 연동은 provider별 어댑터 구조를 따라야 한다.
-    - 공통 도메인 계약(Repository/PR/Build/Quality 이벤트/스냅샷)과 provider 전용 구현을 분리한다.
-    - 신규 provider 추가 시 기존 도메인 API/화면 계약을 깨지 않고 어댑터 추가만으로 확장 가능해야 한다.
-    - provider별 인증/웹훅 검증/속도제한/에러 포맷 차이는 어댑터 내부에서 흡수한다.
-- **REQ-FR-APP-010 (MVP, 확정):** Application 상태 전이는 정의된 상태 머신 규칙을 따라야 한다.
-    - 상태 집합: `planning`, `active`, `on_hold`, `closed`, `archived`.
-    - `archived`는 기본적으로 종료 상태이며 일반 상태 전이로 복구하지 않는다.
-    - 상태 전이 권한: 기본적으로 `system_admin`만 허용한다 (`pmo_manager` 활성 전 `403 role_not_enabled`).
-    - 전이 검증 가드:
-      - `planning -> active`: 연결된 활성 Repository 1개 이상 필요.
-      - `active -> closed`: `severity=critical` 롤업 경고 0건 + 연결 Repository 1개 이상 필요.
-      - `on_hold -> active`: `due_date` 만료 시 재개 사유(`resume_reason`) 기록 필요.
-      - `* -> archived`: soft-delete 처리, `archived_reason` 기록 필요.
-- **REQ-FR-APP-011 (MVP, 확정):** Application-Repository 연결은 라이프사이클 상태를 가져야 한다.
-    - 최소 상태: `requested`, `verifying`, `active`, `degraded`, `disconnected`.
-    - 연결 검증 실패/일시 장애 시 `sync_error_code`를 기록해야 한다.
-    - `sync_error_code`는 표준 코드 사전을 사용해야 하며(`provider_unreachable`, `auth_invalid`, `permission_denied`, `rate_limited`, `webhook_signature_invalid`, `payload_schema_mismatch`, `resource_not_found`, `internal_adapter_error`), 임의 문자열 사용을 금지한다.
-    - `sync_error_code`에는 재시도 가능 여부(`retryable`)와 최근 발생 시각이 함께 관리되어야 한다.
-- **REQ-FR-APP-012 (MVP, 확정):** Application 롤업은 누락/장애 데이터를 숨기지 않고 `data_gap` 또는 경고 상태로 표시해야 한다.
-    - 최소 롤업 대상: PR 분포, 빌드 성공률/평균 시간, 품질 점수, gate 실패 건수.
-    - 기본 `weight_policy`는 `equal`(동일 가중)이다.
-    - 선택 `weight_policy`는 `repo_role`(primary/sub/shared 가중), `custom`(관리자 정의)를 지원할 수 있어야 한다.
-    - `custom` 정책은 가중치 합이 1.0(±허용오차)이어야 하며, 음수 가중치는 허용하지 않는다.
-- **REQ-FR-PROJ-001 (MVP, 확정):** 시스템 관리자는 Application 범위에서 Project를 생성/수정/보관(archive)할 수 있어야 한다.
-    - 필수 필드: `key`, `name`, `owner`, `start_date`, `due_date`, `visibility`, `status`.
-    - `status` 최소 상태: `planning`, `active`, `on_hold`, `closed`, `archived`.
-    - 생성 시 `repository_ids` (1개 이상)와 `primary_repository_id`를 함께 지정해야 하며, `primary_repository_id`는 `repository_ids`에 포함되어야 한다.
-- **REQ-FR-PROJ-002 (MVP, 확정):** 일반 사용자는 자신이 멤버인 Project 및 공개 Project를 조회할 수 있어야 한다.
-    - `archived` Project는 기본 숨김이며, 명시적 토글로 노출한다.
-- **REQ-FR-PROJ-003 (MVP, 확정):** 시스템 관리자는 Project별 멤버/책임자(owner)를 관리할 수 있어야 한다.
-- **REQ-FR-PROJ-004 (MVP, 확정):** 상위(Application) 로드맵/마일스톤과 하위(Repository) 로드맵/마일스톤을 연결(매핑)할 수 있어야 한다.
-    - 모든 하위 마일스톤은 상위 마일스톤에 `child -> parent` 매핑 가능해야 한다.
-- **REQ-FR-PROJ-005 (MVP, 확정):** Jira 연동은 하이브리드 정책을 지원해야 한다.
-    - 실행 이슈 Source of Truth는 Repository Jira.
-    - Project는 Repository 하위 기간성 운영 단위로 관리하며, 다중 Repository 연결 시에도 실행 이슈 Source of Truth는 연결된 Repository들의 Jira 정책을 따른다.
-    - Project Jira에 작업성 Story/Task 직접 생성은 정책 위반으로 취급.
-- **REQ-FR-PROJ-006 (MVP, 확정):** Confluence(또는 문서 체계)는 상/하위 분리 정책을 지원해야 한다.
-    - Project 문서: 방향성/의사결정/분기 계획.
-    - Repository 문서: 설계/RFC/runbook/회고.
-- **REQ-FR-PROJ-007 (MVP, 확정):** 스프린트는 Repository 단위로 운영되어야 하며, Application 레벨은 주간/월간 cadence로 상태를 롤업해야 한다.
-    - 권장 cadence: 주간 Program Sync, 월간 KPI/리스크 리뷰.
-- **REQ-FR-PROJ-008 (후속):** Project 영구 삭제는 `archive 후 N일 보존 + 관리자 재확인` 정책을 따라야 한다.
-- **REQ-FR-PROJ-009 (활성화, 2026-05-15 sprint `claude/work_260515-c`):** Owner 위양(RBAC row-level)은 ADR-0011 §4.2 의 `enforceRowOwnership(c, ownerUserID, allowedRoles...)` helper 로 활성화한다. allow 규칙: (1) `system_admin`, (2) `allowedRoles` 화이트리스트, (3) `actor.login == ownerUserID`. deny 시 `auth.row_denied` audit + 403 + `code=auth_row_denied`. handler 단위 호출은 별도 sprint (pmo_manager seed 결정 후).
-- **REQ-FR-PROJ-010 (후속):** `pmo_manager` 역할 활성화 시 권한 범위는 정책 확정 후 단계적으로 허용한다.
-    - 기본 후보 범위: `project.manage`, `project.member.manage`, `milestone.mapping.manage`.
-    - 제한 후보 범위: `application.manage`(수정만), `application.repo.link`(초기 비허용 권장).
-    - 금지 범위: 시스템 설정, 계정/조직/RBAC 정책 변경.
-
-#### 5.4.2 비기능/운영 요구사항 (REQ-NFR)
-
-- **REQ-NFR-PROJ-001 (MVP):** Project/Repository 매핑 정보는 감사(audit) 가능해야 하며 생성/수정/해제 이력을 기록해야 한다.
-- **REQ-NFR-PROJ-002 (MVP):** 상위 롤업 지표는 매핑 누락 항목을 조용히 제외하지 않고 경고 상태로 표시해야 한다.
-- **REQ-NFR-PROJ-003 (후속):** Project 대시보드 응답시간 목표(예: p95 2초 이내)와 페이지네이션 한계는 설계 단계에서 별도 계약한다.
-- **REQ-NFR-PROJ-004 (MVP):** 외부 형상관리/CI/품질 도구 연동 데이터는 idempotency key 기반 중복 방지 및 재동기화(reconciliation) 정책을 가져야 한다.
-- **REQ-NFR-PROJ-005 (MVP):** 어댑터 장애는 provider 단위로 격리되어야 하며, 특정 provider 장애가 전체 수집 파이프라인 중단으로 전파되지 않아야 한다.
-- **REQ-NFR-PROJ-006 (MVP):** Application 롤업 계산은 동일 요청 조건에서 재현 가능해야 하며, 집계 기준(기간/필터/가중치)을 메타데이터로 함께 제공해야 한다.
-    - `weight_policy`와 실사용 가중치 맵(`applied_weights`)을 응답 메타에 포함해야 한다.
-    - 가중치 누락 repository는 기본값 fallback(`equal`) 적용 여부를 메타에 명시해야 한다.
-
-#### 5.4.3 Usecase 산출물 (확정)
-
-- 본 아젠다의 설계 진입 직전 Usecase 산출물은 [`docs/planning/system_usecases.md`](./planning/system_usecases.md) 를 source-of-truth 로 사용한다.
-- 해당 문서의 `UC-*` 는 REQ와 ARCH/API 사이의 중간 추적 단계다.
-
-#### 5.4.4 ERD 산출물 (확정)
-
-- 데이터 모델 기준 문서는 [`docs/planning/system_erd.md`](./planning/system_erd.md) 를 사용한다.
-- 설계/구현 단계의 신규 엔티티·관계는 ERD 문서와 동기화해야 한다.
-
-#### 5.4.5 범위 경계 (Out of Scope)
-
-- 신규 Project 생성 시 Gitea 저장소 자동 생성/브랜치 보호/멤버 초대 자동화는 별도 sprint에서 진행한다 (`§5.3-7` 후속).
-- WebSocket 기반 실시간 위험 탐지는 M4 범위에서 다루고, AI 제안 자동화는 v2 범위에서 다룬다.
-- MFA 기반 위험 작업 다단계 확인은 운영 진입 직전 정책으로 별도 확정한다.
-
-### 5.5 개발 의뢰 (Dev Request, DREQ) 도메인
-
-본 절은 컨셉 문서([`docs/domain/dev-request/concept.md`](./domain/dev-request/concept.md), sprint `claude/work_260515-f`)에 정의된 외부 시스템 개발 의뢰 수신 → 담당자 검토 → application/project 등록(promote) 흐름의 요구사항을 발급한다.
-
-#### 5.5.1 기능 요구사항 (REQ-FR-DREQ)
-
-- **REQ-FR-DREQ-001 (MVP):** 외부 시스템은 인증된 API 호출로 개발 의뢰를 등록할 수 있어야 한다.
-    - **Client 가 보내는 필수 필드**: `title` (≤200자), `requester` (외부 시스템상의 의뢰자 식별자), `assignee_user_id` (DevHub `users.user_id` FK).
-    - **선택 필드**: `details` (markdown), `external_ref` (외부 시스템 ticket id 등).
-    - **Server 가 자동 채우는 필드** (body 의 self-claim 무시 — ADR-0012 §4.1.2 spoofing 방지): `source_system` — 인증된 intake token 의 매핑 값에서 자동 추출.
-    - `(source_system, external_ref)` 조합은 UNIQUE — 동일 외부 ticket 의 재수신은 409 또는 idempotent OK 응답.
-- **REQ-FR-DREQ-002 (MVP):** DevHub 는 수신 직후 의뢰의 검증(필수 필드 / assignee_user_id 존재)을 수행하고, 성공 시 `pending` 상태로 저장한다. 검증 실패 시 `rejected` 상태 + `rejected_reason="invalid_intake"` 로 저장한다 (audit 보존 목적, 절대 drop 하지 않는다).
-- **REQ-FR-DREQ-003 (MVP):** 의뢰의 상태 머신은 `received → pending → in_review → registered | rejected | closed` 로 한정되며, 모든 전이는 `dev_request.*` audit action 으로 기록되어야 한다. (받음/등록됨/거절됨/재오픈됨/닫힘)
-- **REQ-FR-DREQ-004 (MVP):** 담당자는 자신의 `assignee_user_id` 와 일치하는 의뢰 목록을 dashboard 에서 조회할 수 있어야 한다. system_admin 은 모든 의뢰를 조회할 수 있어야 한다.
-- **REQ-FR-DREQ-005 (MVP):** 담당자는 의뢰를 application 또는 project 로 등록(promote)할 수 있어야 한다. 등록 시 단일 트랜잭션으로 (a) 신규 application/project 생성, (b) DREQ.status → `registered`, (c) DREQ.registered_target_type / registered_target_id 갱신, (d) audit `dev_request.registered` 가 모두 이루어져야 한다. 부분 실패 시 모두 롤백한다.
-- **REQ-FR-DREQ-006 (MVP):** 담당자 또는 system_admin 은 의뢰를 reject 할 수 있어야 하며, `rejected_reason` (텍스트) 은 필수다.
-- **REQ-FR-DREQ-007 (MVP):** system_admin 은 의뢰의 `assignee_user_id` 를 변경(reassign)할 수 있어야 한다. 변경 이력은 `dev_request.reassigned` audit 으로 기록한다.
-- **REQ-FR-DREQ-008 (MVP):** `registered` 또는 `rejected` 상태의 의뢰는 system_admin 이 `closed` 로 전이할 수 있어야 한다. `pending`/`in_review` 상태의 의뢰는 직접 `closed` 로 갈 수 없다 (먼저 reject 후 close).
-- **REQ-FR-DREQ-009 (후속):** Application/Project 의 `origin_dreq_id` 역참조 컬럼 도입 여부는 별도 ADR 에서 결정. 도입 시 nullable FK 로 추가하여 의뢰 없이 직접 생성된 entity 와 공존한다.
-- **REQ-FR-DREQ-010 (후속):** 외부 시스템에 의뢰 상태 변경을 callback (webhook) 으로 알리는 기능은 MVP 안정화 후 결정한다.
-- **REQ-FR-DREQ-011 (후속):** 의뢰 첨부파일, 댓글, 멘션, 알림, SLA/escalation, AI 자동 분류는 본 도메인의 1차 범위 밖이다.
-- **REQ-FR-DREQ-012 (MVP, 확정):** 담당자는 네비게이션 헤더의 실시간 알림 배지와 카운트를 통해 인입된 대기 상태(pending/in_review)의 의뢰 정보를 파악할 수 있어야 한다.
-- **REQ-FR-DREQ-013 (MVP, 확정):** 사용자가 헤더 알림에서 개별 의뢰를 클릭하면 의뢰 상세 모달이 열려야 하며, Promote 시 프로젝트 생성 모달이 팝업되고 의뢰의 정보(Key, Name, Description)가 자동으로 프리필되어 연계 생성될 수 있어야 한다.
-
-
-#### 5.5.2 비기능 / 운영 요구사항 (REQ-NFR-DREQ)
-
-- **REQ-NFR-DREQ-001 (MVP, 확정 — [ADR-0012](./adr/0012-dreq-external-intake-auth.md), sprint `claude/work_260515-g`):** 외부 수신 endpoint 의 인증은 **옵션 A — API 토큰 + IP allowlist** 를 사용한다. token 은 `Authorization: Bearer <token>` 헤더로 전달하며, 외부 시스템별로 별도 발급 + DB 에 hashed 저장 + IP allowlist (CIDR) 로 2차 방어. 운영 정책: 12개월 회전 / 즉시 revoke 가능 / `last_used_at` 모니터링. 옵션 B (HMAC) 와 C (OAuth client_credentials) 는 후속 단계 마이그레이션 경로 (ADR-0012 §3.2).
-- **REQ-NFR-DREQ-002 (MVP):** 외부 수신 요청은 idempotency 를 갖는다 — `(source_system, external_ref)` 동일한 재호출은 동일 의뢰 id 로 동일 응답을 반환한다 (혹은 명시적 409 + 기존 id 반환).
-- **REQ-NFR-DREQ-003 (MVP):** 모든 상태 전이는 audit_logs 에 기록된다. payload 는 의뢰 id / 전이 from-to / actor / 변경 사유를 포함한다.
-- **REQ-NFR-DREQ-004 (MVP):** `details` 필드는 markdown 렌더링 시 XSS 방어를 위해 sanitize 되어야 한다 (frontend 책임). backend 는 raw 저장.
-- **REQ-NFR-DREQ-005 (MVP):** DREQ 목록 응답은 페이지네이션(limit/offset 또는 cursor)을 지원하고 기본 limit 50, 최대 100 으로 제한한다.
-- **REQ-NFR-DREQ-006 (후속):** 외부 수신 endpoint 의 RPS 한계 / rate limiting 정책은 운영 진입 직전 결정한다.
-
-#### 5.5.3 범위 경계 (Out of Scope)
-
-- AI 자동 분류 / 자동 application 매핑 추천.
-- 외부 시스템 callback (webhook 송신).
-- 의뢰자(requester) 의 DevHub 직접 로그인 + 자기 의뢰 추적 UI.
-- 의뢰 첨부 / 댓글 / 멘션 / 알림 / SLA / 자동 escalation.
-- repository 단독 등록 (application 또는 project 만 선택).
-
-### 5.6 외부 시스템 연동 도메인 (Integration)
-
-본 절은 컨셉 문서([`docs/domain/integration-registry/external_system_concept.md`](./domain/integration-registry/external_system_concept.md), 2026-05-15)에 정의된 ALM/SCM/CI-CD/문서/홈랩 인프라 통합 운영 모델의 요구사항 초안이다.
-
-#### 5.6.1 기능 요구사항 (REQ-FR-INT)
-
-- **REQ-FR-INT-001 (MVP):** 시스템 관리자는 외부 연동 대상을 Provider 단위로 등록/수정/비활성화할 수 있어야 한다.
-    - 최소 속성: `provider_key`, `provider_type` (alm|scm|ci_cd|doc|infra), `display_name`, `enabled`, `auth_mode`, `scope`.
-- **REQ-FR-INT-002 (MVP):** DevHub 는 Provider Catalog 를 제공해야 하며, 각 provider 의 `capabilities` 를 조회할 수 있어야 한다.
-    - 예: `issues.read`, `repo.read`, `pr.read`, `build.read`, `doc.meta.read`, `infra.node.read`.
-- **REQ-FR-INT-003 (MVP):** 연동 데이터 수집은 `webhook ingest` 와 `scheduled pull` 을 모두 지원해야 한다.
-    - Provider 별로 ingest/pull 사용 여부를 설정할 수 있어야 한다.
-- **REQ-FR-INT-004 (MVP):** SCM provider (`bitbucket`, `gitea`, `forgejo` 등)는 공통 Repository/PR/Activity 모델로 정규화되어야 한다.
-    - Provider 특화 필드는 확장 payload 로 보존한다.
-- **REQ-FR-INT-005 (MVP):** CI/CD provider (`bamboo`, `jenkins`) 데이터는 공통 BuildRun 모델로 정규화되어야 한다.
-    - 최소 필드: `external_run_id`, `status`, `branch`, `commit_sha`, `started_at`, `finished_at`, `duration_seconds`.
-- **REQ-FR-INT-006 (MVP):** ALM/문서 연동은 최소 링크형 통합을 지원해야 한다.
-    - Jira: project/issue key 매핑, Confluence: space/page 링크 및 메타데이터 조회.
-- **REQ-FR-INT-007 (MVP):** Integration 은 Application 또는 Project scope 에 연결될 수 있어야 한다.
-    - scope 별 연결 정책(`application|project`)을 명시적으로 저장해야 한다.
-- **REQ-FR-INT-008 (MVP):** 홈랩 인프라 관리를 위해 Node/Service 인벤토리를 등록/조회할 수 있어야 한다.
-    - Node 최소 필드: `node_id`, `hostname`, `ip`, `environment`, `owner`.
-    - Service 최소 필드: `service_id`, `node_id`, `name`, `version`, `port`, `health_status`.
-- **REQ-FR-INT-009 (MVP):** 홈랩 상태 수집 결과를 토폴로지 형태(`nodes`, `edges`, `services`)로 조회할 수 있어야 한다.
-- **REQ-FR-INT-010 (MVP):** Provider 및 홈랩 수집 상태는 `sync_status` 로 관리되어야 한다.
-    - 최소 상태: `requested`, `verifying`, `active`, `degraded`, `disconnected`.
-- **REQ-FR-INT-011 (MVP):** 일반 사용자는 권한 범위 내에서 통합 운영 현황을 조회할 수 있어야 한다.
-    - `system_admin`은 전체, 일반 역할은 프로젝트/소유 범위 기반 조회.
-- **REQ-FR-INT-012 (후속):** DevHub 에서 외부 시스템으로의 양방향 상태 변경(write-back)은 별도 승인 정책(ADR) 후 도입한다.
-- **REQ-FR-INT-013 (MVP, 추가 2026-05-27 — 등록 UX 고도화):** Provider 등록은 `auth_mode` 별 outbound 자격증명 full 모델을 지원해야 한다 (REQ-FR-INT-001 의 `auth_mode` 속성 구체화, [API-70](./backend_api_contract.md), migration 000040/000041).
-    - 지원 `auth_mode`: `token`, `basic`, `oauth2`, `app_password`, `agent` (등록 시 고정, PATCH 로 변경 불가).
-    - mode 별 자격증명: `token`→`api_token`(PAT); `basic`/`app_password`→`auth_username`+`auth_secret`; `oauth2`→`auth_client_id`+`auth_token_url`+`auth_secret`(client_secret); `agent`→`auth_username`(서버 직접 sync 미사용).
-    - 자격증명 시크릿(`api_token`/`auth_secret`)은 **write-only** — 응답에 raw 미노출, `api_token_set`/`auth_secret_set` (bool) 만 노출. 비밀이 아닌 필드(`auth_username`/`auth_client_id`/`auth_token_url`)는 응답 노출.
-    - inbound webhook 서명 시크릿(`credentials_ref`)과 outbound auth 자격증명은 별개 시크릿으로 분리 관리한다.
-    - 미리 정의된 vendor preset(gitea/forgejo/gogs/github/gitlab/bitbucket/jenkins 등) 을 통해 `provider_type`/`capabilities`/권장 `auth_mode` 를 가이드 입력할 수 있어야 한다.
-- **REQ-FR-INT-014 (MVP, 추가 2026-05-27):** Provider 는 outbound sync/pull 대상 endpoint 인 `base_url`(http(s) URL) 을 보유할 수 있어야 하며(migration 000038), 등록 전/후 endpoint **연결 테스트**(reachability) 를 제공해야 한다([API-87](./backend_api_contract.md) `POST /integration/test-connection`).
-    - 연결 테스트는 저장 전(pre-save) body 의 `base_url` 로 직접 GET (5s timeout, redirect 미추적, 응답 본문 미반환). 결과는 reachable/status_code/latency 만 반환.
-    - 사내 internal endpoint(Gitea/Jenkins 등)가 합법 대상이므로 internal IP 차단을 하지 않는다 — admin(`infrastructure:edit`) 신뢰 경계 + timeout + 응답 본문 미반환으로 SSRF 표면을 최소화한다 (의도적 수용, 운영 신뢰 경계 명시).
-- **REQ-FR-INT-015 (MVP, 추가 2026-05-27):** 범용 webhook ingest([API-73](./backend_api_contract.md)) 는 vendor 별 서명/이벤트 헤더 이름 차이를 흡수하기 위해 헤더 alias fallback 을 지원해야 한다.
-    - 우선순위: `X-Integration-*` → `X-Gitea-*` → `X-Gogs-*` (Gitea/Gogs 헤더 불일치 정정). 정규화 후 dedupe 및 sync state 갱신은 기존 정책(REQ-NFR-INT-003)을 따른다.
-
-#### 5.6.2 비기능 / 운영 요구사항 (REQ-NFR-INT)
-
-- **REQ-NFR-INT-001 (MVP):** 외부 연동 인증정보는 평문 저장을 금지하고, 암호화 저장 또는 외부 Secret Store 참조를 사용해야 한다.
-- **REQ-NFR-INT-002 (MVP):** 모든 연동 생성/변경/비활성화/실패/복구 이벤트는 audit_logs 에 기록되어야 한다.
-- **REQ-NFR-INT-003 (MVP):** 수집 파이프라인은 idempotency key 기반 중복 방지를 지원해야 한다.
-- **REQ-NFR-INT-004 (MVP):** 특정 provider 장애가 전체 연동 파이프라인 중단으로 전파되지 않도록 provider 단위 격리를 보장해야 한다.
-- **REQ-NFR-INT-005 (MVP):** 연동 조회 API 는 페이지네이션과 필터(Provider, Scope, Status, Time Range)를 지원해야 한다.
-- **REQ-NFR-INT-006 (MVP):** 홈랩 상태 데이터는 최신 스냅샷과 변경 이력을 구분해 제공해야 한다.
-- **REQ-NFR-INT-007 (후속):** Provider 별 Rate Limit 초과 대응(백오프/재시도/서킷 브레이커)은 운영 정책으로 표준화한다.
-- **REQ-NFR-INT-008 (후속):** 대규모 연동 환경에서의 성능 목표(p95 응답시간, 수집 지연 SLA)는 운영 계측 후 확정한다.
-- **REQ-NFR-INT-009 (MVP, 추가 2026-05-27 — secret 노출 경계):** outbound auth 자격증명(`api_token`/`auth_secret`)은 write-only 로 raw 응답 노출을 금지하고 `*_set` (bool) 만 노출해야 한다 (REQ-FR-INT-013 정합).
-    - 입력 정규화: create 는 `TrimSpace`, update 는 blank/미전송 시 기존 값 유지(nil-skip), DB 저장은 `NULLIF($n,'')`.
-    - **알려진 미해소 gap**: inbound webhook 시크릿 `credentials_ref` 는 현재 raw 그대로 응답에 노출되며, 저장도 평문 컬럼(`credentials_ref`/`api_token`/`auth_secret`)이다 — REQ-NFR-INT-001(평문 저장 금지)의 미충족 잔여. envelope 암호화/외부 Secret Store 참조 전환은 별도 보안 carve(#6 평문 secret)로 추적한다.
-
-- 외부 시스템 본문 데이터의 실시간 양방향 동기화(write-back 강제 적용).
-- 복잡한 승인 워크플로우(다단계 승인, 릴리즈 체인 오케스트레이션).
-- 멀티 테넌트 완전 분리 모델.
-- AI 기반 자동 최적화/자동 복구.
-
-### 5.7 사용자 초기 등록 (Onboarding) 도메인
-
-본 절은 컨셉 문서([`docs/domain/onboarding/concept.md`](./domain/onboarding/concept.md), sprint `claude/keycloak-onboarding-concept-2026-05-21`, PR #260 + PR #265)에 정의된 Keycloak 인증 통과 + DevHub 프로필 미완료 사용자의 self-service 초기 등록 흐름의 요구사항을 발급한다. 본 도메인은 ADR-0020 (계정/사용자 관리 책임 경계) 의 직접 후속 — DevHub 가 책임지는 "사용자 프로필" 영역에 self-service unit selection 경로를 추가한다.
-
-#### 5.7.1 기능 요구사항 (REQ-FR-ONBOARD)
-
-- **REQ-FR-ONBOARD-001 (MVP):** Keycloak 인증 통과 + DevHub 프로필 미완료 사용자가 보호 리소스에 접근할 때 onboarding 경로로 유도되어야 한다.
-    - "미완료" 정의: `users` row 미존재 (DB 미등록) OR `onboarding_completed_at IS NULL` (DB 등록-미완료).
-    - 미완료 판단의 source-of-truth 는 backend `/api/v1/me` 응답의 `onboarding_required: true` 플래그.
-- **REQ-FR-ONBOARD-002 (MVP):** Onboarding 입력 항목은 `display_name`, `primary_unit_id` 두 필드로 제한한다.
-    - role 입력/선택 불가 — role 은 Keycloak token claim (`realm_access.roles`) 매핑 또는 시스템 기본값(`developer`) 으로만 결정. "소속 선택 = 권한 상승" 경로 차단.
-    - 부가 항목 (사진/아바타, 닉네임, 입사일, 연락처) 본 도메인 1차 범위 제외.
-- **REQ-FR-ONBOARD-003 (MVP):** Onboarding 제출은 단일 트랜잭션으로 (a) `users` row 신규 INSERT (또는 사전 등록된 row UPDATE), (b) `onboarding_completed_at = NOW()` 설정, (c) `review_status = 'pending_review'` 설정, (d) `account.onboarding_completed` audit event 기록 — 4 단계가 모두 이루어져야 한다. 부분 실패 시 모두 롤백한다.
-- **REQ-FR-ONBOARD-004 (MVP):** 소속(unit) 선택 UX 는 검색(typeahead) + 트리(계층 선택기) 하이브리드를 제공한다.
-    - 검색: 최소 2글자 입력 시 동작, 최대 20개 결과, 표시 포맷은 조직명만 사용.
-    - 검색 endpoint: `GET /api/v1/organizations/search?q=...&limit=20` 신규 (**API-84**, [§16.4](./backend_api_contract.md) 에서 spec staged).
-    - 트리: 기존 `GET /api/v1/organization/hierarchy` 응답 재사용.
-    - 권한 가드 없음 — 모든 사용자에게 모든 organization 후보가 노출된다.
-- **REQ-FR-ONBOARD-005 (MVP):** 검토 상태 머신은 `pending_review → reviewed` 로 한정한다.
-    - 제출 직후 자동 `pending_review`. 관리자가 검토 후 `reviewed` 로 수동 전이.
-    - `pending_review` 사용자는 시스템에서 **무소속**으로 취급한다.
-- **REQ-FR-ONBOARD-006 (MVP):** 미완료 사용자 접근 단계는 **3단계**로 운영한다.
-    - `limited` (skip 상태, DB row 미존재): 공통 메뉴 + `/devhub/onboarding` 페이지 + `GET /api/v1/me` 만 접근.
-    - `pending_review` (DB row 존재 + `onboarding_completed_at IS NOT NULL` + `review_status='pending_review'`): 공통 메뉴 + 할당된 과제/저장소/어플리케이션 접근.
-    - `reviewed` (DB row 존재 + `review_status='reviewed'`): 정상 접근.
-- **REQ-FR-ONBOARD-007 (MVP):** Onboarding 완료 후 사용자는 `/account` 페이지에서 자신의 `primary_unit_id` 를 self-service 로 변경할 수 있어야 한다.
-    - 변경 시 `review_status` 가 `pending_review` 로 되돌려져야 한다.
-    - 관리자가 재검토하여 다시 `reviewed` 로 확정해야 한다.
-    - `pending_review` 재진입 기간에는 REQ-FR-ONBOARD-006 의 `pending_review` 단계 접근 정책이 적용된다.
-- **REQ-FR-ONBOARD-008 (MVP):** 관리자는 사용자 사전 등록 endpoint 를 사용해 `users` row 를 사전 생성할 수 있어야 한다.
-    - 사전 등록 시 입력 허용 필드: `display_name`, `primary_unit_id` (onboarding payload 와 동일 범위).
-    - **role 은 사전 등록 payload 에 포함되지 않는다** — onboarding 과 동일하게 Keycloak token claim (`realm_access.roles`) 매핑 또는 시스템 기본값 (`developer`) 으로만 결정 (REQ-FR-ONBOARD-002 정합). 관리자도 사전 등록 시 role 임의 설정 불가.
-    - 사전 등록 시 `onboarding_completed_at` 은 설정하지 않는다 (`NULL` 유지).
-    - 사전 등록된 사용자도 첫 로그인 시 onboarding 화면에서 정보를 확인/수정한 후 제출해야 완료 처리된다.
-    - 추가 필드 확장 (예: status, joined_at 의 관리자 override) 가능성은 IMPL carve 에서 결정.
-- **REQ-FR-ONBOARD-009 (MVP):** Backend 는 미완료 사용자에 대해 allowlist 외 모든 endpoint 를 `403 Forbidden` + body `{ "code": "onboarding_required", ... }` 로 차단해야 한다.
-    - allowlist (backend endpoint 만 — frontend 정적/공통 페이지는 backend 호출 없이 렌더되므로 본 정책과 무관):
-        - Onboarding 제출 API (예: `POST /api/v1/me/onboarding`).
-        - Organizations search API (예: `GET /api/v1/organizations/search`).
-        - `GET /api/v1/me`.
-        - 정적/공통 페이지가 호출하는 최소 backend endpoint (예: 정적 metadata, health check 등 인증 자체와 분리된 endpoint). 최종 allowlist 구성은 [ARCH §9.3](./architecture.md) 에서 확정 — `GET /api/v1/me` + `POST /api/v1/me/onboarding` + `GET /api/v1/organizations/search` + `GET /api/v1/organization/hierarchy` (트리 picker) + `/health`.
-    - 기존 lazy auto-create 폐기 — `authenticateActor` 는 DB row miss 를 정상 상태 (token-only actor) 로 취급한다.
-- **REQ-FR-ONBOARD-010 (MVP):** Frontend 는 `/api/v1/me` 의 `onboarding_required: true` 응답에 대해 **3분기** 로 동작해야 한다.
-    - 첫 진입 (session 내 skip 액션 미실행): `/devhub/onboarding` 으로 즉시 redirect.
-    - skip 액션 이후 (session-scoped skip flag set): 자동 redirect 없음 + 모든 페이지 상단에 dismissible banner 노출.
-    - 보호 리소스 진입 시도 (backend `403 onboarding_required` 반환): skip 여부 무관 hard redirect.
-- **REQ-FR-ONBOARD-011 (MVP):** Onboarding 화면은 "나중에 하기" (skip) 액션을 제공해야 한다.
-    - skip 시 `users` row 를 생성하지 않는다.
-    - skip 횟수/시간 제한 없음 — 매 로그인 시 onboarding 강제 진입이 사실상의 reminder 로 동작한다.
-    - skip 자체는 audit event 를 발생시키지 않는다.
-- **REQ-FR-ONBOARD-012 (후속):** Onboarding 완료 후 `/account` 에서 변경 가능한 추가 프로필 필드 (사진/아바타, 닉네임, 연락처 등) 는 본 도메인 1차 범위 밖이다. 후속 carve 에서 결정.
-
-#### 5.7.2 비기능 / 운영 요구사항 (REQ-NFR-ONBOARD)
-
-- **REQ-NFR-ONBOARD-001 (MVP):** UI 언어는 한국어 고정 (영문 UI 본 범위 제외).
-    - 이름 표기는 단일 `display_name` 필드 자유 입력 (한글/영문/혼용 허용), 별도 영문명 필드 없음.
-    - 확장성: API/DB/프론트 모델은 추후 영문 프로필 필드 (예: `display_name_en`) 가 nullable 로 추가 가능한 구조를 유지한다.
-- **REQ-NFR-ONBOARD-002 (MVP):** 접근성 (a11y) 최소 기준.
-    - 모든 입력 필드에 label 연결.
-    - 키보드만으로 검색/선택/제출 가능.
-    - 에러는 색상만으로 전달하지 않고 텍스트 메시지 병행.
-    - 포커스 순서/가시성 보장.
-    - organization picker 는 `combobox` role 및 ARIA 속성 (`aria-expanded`, `aria-controls`, `aria-activedescendant`) 준수.
-- **REQ-NFR-ONBOARD-003 (MVP):** 제출/검증 UX.
-    - 필수값 누락 시 필드별 인라인 에러 표시.
-    - 제출 성공/실패 상태는 `aria-live` 영역으로 전달한다.
-- **REQ-NFR-ONBOARD-004 (MVP):** 모바일 반응형은 본 범위에서 제외 (데스크탑 우선).
-- **REQ-NFR-ONBOARD-005 (MVP):** 단일 포트 정합 (ADR-0018 + [`docs/reports/2026-05-20-network-docker-single-port-review.md`](./reports/2026-05-20-network-docker-single-port-review.md)).
-    - Onboarding 흐름에서 다른 host:port 로의 redirect 발생 금지 — same-origin 내부 path-relative redirect 만 허용한다.
-    - Backend 의 `c.Redirect` / `Location:` 헤더 직접 작성 = 0 hit 가드 유지.
-- **REQ-NFR-ONBOARD-006 (MVP):** 마이그레이션 — `users` 테이블에 다음 컬럼을 신규 추가한다.
-    - `onboarding_completed_at TIMESTAMP NULL` — 완료 시점 마킹 (`NULL` = 미완료).
-    - `review_status` (열거형 또는 텍스트 + CHECK 제약, 값: `pending_review`, `reviewed`) — 관리자 검토 단계.
-    - 컬럼 명/타입은 [ARCH §9.5](./architecture.md) 에서 확정: `onboarding_completed_at timestamptz NULLABLE` + `review_status text NULLABLE` + bi-implication CHECK 제약 (`completed_at NULL ↔ review_status NULL`).
-- **REQ-NFR-ONBOARD-007 (MVP):** Audit 정책.
-    - Onboarding 완료 시점에 `account.onboarding_completed` event 를 audit_logs 에 기록한다 ([ARCH §9.6](./architecture.md) 에서 이름 확정).
-    - Skip 자체는 audit event 미발생 (state 변경 없음).
-    - 사용자 self-service 소속 변경은 `account.unit_changed` event 로 기록한다 ([ARCH §9.6](./architecture.md) 에서 이름 확정). 추가로 관리자 검토 transition 은 `account.review_confirmed` event 로 기록한다.
-- **REQ-NFR-ONBOARD-008 (MVP):** 테스트 데이터 / 시드 세트는 단일 초기화/재적재 스크립트로 관리한다.
-    - 계정 네이밍: `test_` prefix 고정.
-    - 필수 시드:
-        - `test_self_new_user`: DB 미등록 상태에서 첫 로그인 시 onboarding 진입 검증.
-        - `test_admin_seeded_incomplete`: 관리자 사전등록 + `onboarding_completed_at=NULL` 상태 검증.
-        - `test_completed_pending_review`: 완료 + `pending_review` 상태, 무소속 제한 접근 검증.
-        - `test_completed_reviewed`: 완료 + `reviewed` 상태, 정상 접근 검증.
-        - `test_reviewed_then_unit_change`: `reviewed` 사용자의 소속 self-service 변경 시 `pending_review` 재진입 검증.
-        - `org_fixture_bulk`: organization 25개 이상 (2글자 검색 + 최대 20개 제한 + 조직명-only 표시 검증용).
-
-#### 5.7.3 범위 경계 (Out of Scope)
-
-- 사용자가 관리자에게 직접 문의/escalation 을 보내는 UI (concept §5.4 옵션 C 변형은 1차 범위 밖).
-- Onboarding 완료 후의 추가 프로필 필드 (사진/아바타, 닉네임, 입사일, 연락처, 부서장 확인 등).
-- 영문 UI / 다국어 지원 (REQ-NFR-ONBOARD-001 의 확장 nullable 필드 정의만 본 범위).
-- 모바일 반응형 디자인.
-- HRDB 자동 cross-check 또는 Keycloak group → unit 자동 매핑 (concept §5.4 옵션 C/D — 사전 carve 의존).
-- Onboarding 완료 후의 `review_status` reversal 정책 (예: 재교육/재인증 필요 시 admin 이 `reviewed` → `pending_review` 강제 되돌리기) — 운영 정책 결정 후 후속 carve.
-- MFA / 2FA — ADR-0019 §5.3 sub-carve 와 분리 (§2.5 사용자 계정 관리의 MFA 비도입 기준과 동일).
-
-### 5.8 SCM↔시스템 Repository 연동 + Repository Lifecycle 도메인
-
-본 절(신규 2026-05-27)은 SCM(Gitea 등 외부 형상관리)과 DevHub 시스템 `repositories` 사이의 **소유권 분리 + 양방향 연동(import/create) + draft→publish 생애주기** 요구사항을 발급한다. §5.4 의 `Application > Repository > Project` 계층 및 §5.6 의 외부 연동(Integration Provider)을 전제로 하며, 코드는 PR #363(소유권 분리 + import) / #366(outbound create) / #368(draft→publish) / #373(provider_id 단일화) 으로 1차 완성됐다. 근거: [코드베이스 스냅샷](./analysis/2026-05-27-codebase-snapshot/README.md), [API 계약 §15](./backend_api_contract.md) (API-88/89/90), migration 000042/000043/000045.
-
-> **참고**: `repositories` 의 SCM mirror(commit/PR/build/quality 등 운영지표) 수집 자체는 §5.4(REQ-FR-APP-004..009) 및 §5.6(REQ-FR-INT-004) 에서 이미 다뤘다. 본 절은 그 위에 **"누가 repository row 를 소유하는가(SCM-owned vs system-owned) + 시스템↔SCM 양방향 생성/연동 + 게시 생애주기"** 만 추가 정의한다 (기존 ID 와 중복 발급하지 않음).
-
-#### 5.8.1 기능 요구사항 (REQ-FR-REPO)
-
-- **REQ-FR-REPO-001 (MVP, 확정):** 시스템 `repositories` 는 소유권 출처(`source`)를 가져야 한다.
-    - 값: `scm`(외부 SCM 에서 import/sync 된 mirror) | `system`(DevHub 가 생성을 주도). 빈값/legacy 는 `scm` 로 취급한다.
-    - 각 repository 는 어떤 SCM provider 에 귀속되는지 `provider_id`(외부 연동 Provider FK, §5.6) 로 단일 식별해야 한다. 표시용 provider key 는 join 으로 derive 한다 (식별 컬럼은 FK 를 canonical 로, readable key 는 파생 — migration 000045 단일화).
-    - `description` 등 **system-owned 메타데이터**는 SCM 동기화가 덮어쓰지 않고 보존되어야 한다 (소유권 분리, migration 000042).
-- **REQ-FR-REPO-002 (MVP, 확정):** 시스템 관리자는 외부 SCM provider 의 원격 repository 목록을 조회([API-88](./backend_api_contract.md))하고 선택 항목을 시스템으로 **import**([API-89](./backend_api_contract.md))할 수 있어야 한다 (inbound).
-    - import 는 요청 payload 가 아니라 **SCM 에서 다시 조회한 신뢰 가능한 값**으로 upsert 하며, import 된 row 는 `source=scm` + `provider_id` 가 세팅된다.
-    - 목록 응답은 각 원격 repository 의 시스템 import 여부(`imported`)를 표시해야 한다.
-- **REQ-FR-REPO-003 (MVP, 확정):** 시스템 관리자는 외부 SCM 에 **실제 저장소를 생성**([API-90](./backend_api_contract.md))하고 시스템으로 미러할 수 있어야 한다 (outbound, Phase C).
-    - 생성된 row 는 `source=system`(시스템이 생성을 주도) + `provider_id` 세팅 + SCM 응답값으로 mirror 필드를 채운다. 이후 sync 가 mirror 필드를 갱신해도 `source`/`description` 는 보존된다.
-- **REQ-FR-REPO-004 (MVP, 확정):** 시스템 주도 repository 는 **draft → active 게시 생애주기**를 가져야 한다 (`repository_status`, migration 000043).
-    - `POST /api/v1/repositories` 로 `draft`(source=system) 상태 row 를 생성하고, `POST /api/v1/repositories/{repository_id}/publish` 로 게시를 요청하면 외부 SCM 에 실제 저장소를 생성한 뒤 `active` 로 전이한다. `publish_requested_at`/`published_at` 시점을 기록한다.
-    - SCM 에서 import/sync 된 repository(REQ-FR-REPO-002)는 `active` 상태로 직행한다 (draft 단계 없음).
-    - publish 요청 가능 상태는 `draft` 뿐이다. (위 endpoint 들은 본 절 기준 [API 계약](./backend_api_contract.md) 의 명시 API ID 미발급 — 후속 contract 발급 대상.)
-- **REQ-FR-REPO-005 (MVP, 확정):** import/create/sync 동작은 provider 의 `capabilities` 를 **기능 gate** 로 사용해야 한다.
-    - `pull` = 원격 조회/import(API-88/89) 허용, `sync` = mirror sync(API-72) 허용(`pull` 포함), `push` = outbound 저장소 생성(API-90) 허용. gate 미충족 시 `422 integration_capability_not_enabled` 로 거절한다.
-
-#### 5.8.2 비기능 / 운영 요구사항 (REQ-NFR-REPO)
-
-- **REQ-NFR-REPO-001 (MVP):** SCM sync upsert 는 **멱등**해야 하며 ON CONFLICT 시 SCM mirror 필드(clone_url/default_branch/private 등)만 갱신하고 system-owned 필드(`source`/`description`)는 보존해야 한다. in-memory fake(테스트) 도 production store 와 동일하게 보존 미러를 구현한다(parity).
-- **REQ-NFR-REPO-002 (MVP):** outbound create/publish 는 현재 **Gitea REST client** 만 구현돼 있어 Gitea-compatible provider(gitea/forgejo/gogs)로 제한된다. 비-호환 vendor(github/gitlab/bitbucket)는 `422 integration_provider_not_gitea_compatible` 로 거절해야 한다. 비활성(`disabled`) provider 대상 연동은 `409` 로 거절한다. (provider 추상화 확장 시 다른 vendor 어댑터 추가로 확장 — REQ-FR-APP-009 정합.)
-- **REQ-NFR-REPO-003 (MVP):** 소유권 전이/import/create/publish 는 audit 가능해야 한다. publish 흐름은 외부 SCM 생성 실패 시 부분 실패 경로(생성 실패 + draft 보존)를 가지므로, 본 lifecycle 의 자동화 테스트(UT/E2E) 보강이 후속 과제로 추적되어야 한다 (현재 draft→publish 핸들러는 무테스트로 머지 — [SDLC 체인 점검 G4](./analysis/2026-05-27-codebase-snapshot/02_sdlc_chain_status.md)).
-
-#### 5.8.3 범위 경계 (Out of Scope)
-
-- DevHub → SCM 의 양방향 상태 동기화(이슈/PR write-back) — §5.6 REQ-FR-INT-012 와 동일하게 별도 승인 정책 후.
-- Gitea 외 vendor(github/gitlab/bitbucket)에 대한 outbound create/publish 어댑터.
-- 신규 Application 등록 시 Gitea 저장소 자동 생성/브랜치 보호/멤버 초대 자동 오케스트레이션(§5.3-7 / §5.4.5 후속).
-- 평문 secret(`credentials_ref`/`api_token`/`auth_secret`) 의 envelope 암호화 — §5.6 REQ-NFR-INT-009 의 #6 carve 로 추적.
-
-### 5.9 Application 개발 대시보드 도메인 (Application Development Dashboard)
-
-본 절은 컨셉 문서([`docs/domain/application-lifecycle/dashboard_concept.md`](./domain/application-lifecycle/dashboard_concept.md))에 정의된 DevHub 핵심 단위인 Application 상세 대시보드의 기능 요구사항을 발급한다.
-
-#### 5.9.1 기능 요구사항 (REQ-FR-APPDASH)
-
-- **REQ-FR-APPDASH-001 (MVP, 확정):** 실시간 타겟 브랜치 빌드 상태(Target Branch Build Status)를 최상단 메트릭 카드를 통해 노출해야 한다.
-    - **실시간 실패 빌드 런 표시**: 단순 빌드 성공률(%)보다 실시간 broken/red 상태 빌드 현황을 즉시 표기한다.
-    - **리포지토리 슬러그 연계**: 연결된 어떤 리포지토리의 어떤 브랜치에서 실패했는지 `org/repo-slug` 형식으로 표시해야 한다.
-    - **빌드 실패 진단 정보 및 로그 연동**: 실패 건에 대해 빌드 번호, 실패 경과 시간, 에러 요약 스니펫을 노출하고 해당 빌드 로그로 즉시 이동하는 **[로그 진입 딥링크]** 액션을 제공해야 한다. (모두 정상일 시 `Healthy 🟢` 표시)
-- **REQ-FR-APPDASH-002 (MVP, 확정):** 다차원 코드 품질 지표 및 정적 분석 이슈(Quality & Issues) 카드를 노출해야 한다.
-    - **5점 만점 normalized 품질 스코어**: 리포지토리별 SonarQube 품질 데이터를 5.0 만점 스케일로 정규화 및 가중 평균하여 노출한다.
-    - **심각도별 미해결 정적분석 이슈 노출**: Blocker, Critical, Major 등 심각도 등급에 따라 미해결된 정적분석 이슈 건수를 집계하여 표시해야 한다.
-    - **코딩 룰 검사의 역할 분리**: 세부 코딩 룰 및 가독성 린트 지표 등은 상위 대시보드에서 배제하고, 개별 리포지토리 상세 대시보드로 역할을 격리 분리해야 한다.
-- **REQ-FR-APPDASH-003 (MVP, 확정):** 하위 프로젝트 진척도 및 로드맵 관리(Linked Projects Progress & Roadmap) 섹션을 대시보드 최상단 주요 영역에 배치 노출해야 한다.
-    - **진척 산정 공식**: 단순 완료 태스크 개수 비례 방식과 **스토리 포인트(SP) 가중치 비례 방식**을 선택하여 실질적 진척율(%)을 계산/표시해야 한다.
-    - **지능형 리스크 감지 배지**: 남은 작업 대비 잔여 기간 비율을 산출하여 지연 위험도를 계산하고 D-Day와 함께 위험 알림 라벨(`Healthy 🟢`, `Warning 🟡`, `At Risk 🔴`)을 자동 제공해야 한다.
-- **REQ-FR-APPDASH-004 (MVP, 확정):** 연결된 모든 개발 의뢰 관리(All Linked Dev Requests - DREQ Overview) 및 프로젝트 승격 워크플로우를 제공해야 한다.
-    - **DREQ 조회 및 필터**: 어플리케이션에 매핑된 모든 개발 의뢰 리스트와 상태(대기 중, 검토 중, 승격 완료 등)를 전용 탭에서 필터링 조회 가능해야 한다.
-    - **원클릭 프로젝트 승격 연계**: 대기 중인 DREQ 우측의 **[프로젝트 승격 🚀]** 버튼 클릭 시, DREQ의 메타데이터(Key, Name, Description)를 자동 상속/프리필하는 프로젝트 생성 모달을 팝업하고 단일 트랜잭션으로 연계 생성해야 한다.
-- **REQ-FR-APPDASH-005 (MVP, 확정):** SCM 및 CI/CD 빌드 안정성 시계열 트렌드 차트(Area Chart)를 제공해야 한다.
-    - 7일 및 30일 간의 평균 빌드 소요 시간 변화 추이와 빌드 성공률 추이를 제공해야 한다.
-- **REQ-FR-APPDASH-006 (MVP, 확정):** 가중치 배분 비주얼라이저(Weight Policy Visualizer)를 통해 리포지토리 역할(`primary`/`sub`/`shared`)에 따라 계산 롤업에 적용된 가중치를 도넛 차트로 노출하고 가중치 수정 설정을 제공해야 한다.
-
-#### 5.9.2 비기능 / 운영 요구사항 (REQ-NFR-APPDASH)
-
-- **REQ-NFR-APPDASH-001 (MVP):** UI 레이아웃은 모던 글래스모피즘(Glassmorphism) 스타일을 적용하고, 라이트/다크 모드에 최적화된 curated HSL 색상 팔레트 시스템을 사용해 시인성을 극대화해야 한다.
-- **REQ-NFR-APPDASH-002 (MVP):** 대시보드 로딩 성능 보장을 위해 캐싱 및 비동기 병렬 aggregation을 적용하여 첫 진입 시 p95 로딩 속도 1.5초 이하를 달성해야 한다.
-- **REQ-NFR-APPDASH-003 (MVP):** 연동 장애로 인한 우아한 성능 저하(Graceful Degradation)를 보장해야 한다. 특정 저장소/CI 연동 장애 시 전체 화면이 깨지지 않고, 장애 대상 리포지토리에 대해 `data_gap` 또는 경고 표시를 하며 가용한 데이터만 롤업 집계해 표시해야 한다.
-
-#### 5.9.3 범위 경계 (Out of Scope)
-
-- 실시간 리포지토리 빌드 실패 시 외부 메신저 알림(Slack 등) 자동 전송 기능 (v2 범위).
-- AI 기반 빌드 실패 원인 자동 분석 및 코드 패치 제안 (v2 범위).
-- 다차원 코드 품질 스코어 산식의 동적 튜닝 UI (어플리케이션 설정 모달에서 weight matrix 직접 입력 기능은 1차 제외).
-
----
-
-### 5.10 외부 시스템 작업 항목 수집 (Task Item Ingestion)
-
-외부 ALM/SCM/Issue Tracker 시스템(Jira, GitHub Issues, GitLab, Linear 등)의 작업 항목(task/issue/ticket)을 DevHub 에서 수집해 통합 조회/추적하는 도메인.
-
-**핵심 설계 결정** ([컨셉 문서](./domain/integration-registry/task_ingestion_concept.md) §9):
-- Webhook 인증: Provider 별도 `webhook_secret` 필드 사용 (api_token 과 분리)
-- Task status: `raw_status`(원본 string) + `normalized_status`(공통 enum, 초기 NULL 허용) 병행 저장
-- Webhook payload 정규화: 시스템별 adapter 가 담당 (Webhook/Pull 공통 경로)
-- Webhook 유실 탐지: monotonic sequence(seq) 발급 + Pull 이 gap 탐지 → 보강 sync
-- Pull adapter: 범용 REST adapter 우선 구현 (interface 검증 후 시스템별 adapter 확장)
-
-**요구사항 ID 범위**: REQ-FR-TASK-001..010 / REQ-NFR-TASK-001..004
-
-#### 5.10.1 기능 요구사항 (REQ-FR-TASK)
-
-**Provider 관리** (기존 `integration_providers` 확장)
-
-- **REQ-FR-TASK-001 (P0, 확정):** 외부 시스템을 `integration_providers` 에 `provider_type = "task_tracker"`로 등록할 수 있어야 한다. 등록 시 `base_url`, `api_token`(Pull 용), `webhook_secret`(Webhook 용) 을 설정할 수 있어야 한다.
-- **REQ-FR-TASK-002 (P0, 확정):** Provider 의 `capabilities` 에 `task_item` 플래그를 추가해 해당 Provider 가 Task Item 수집을 지원함을 명시할 수 있어야 한다.
-
-**Webhook 수신** (실시간)
-
-- **REQ-FR-TASK-003 (P0, 확정):** 외부 시스템이 `POST /api/v1/integration/providers/:provider_id/tasks/webhook` 으로 작업 항목 이벤트를 전송할 수 있어야 한다. Webhook payload 는 `event`(created/updated/deleted), `external_id`, `title`, `raw_status`, `priority`, `assignee`, `reporter`, `url`, `labels`, `description` 을 포함한 공통 포맷을 사용한다.
-- **REQ-FR-TASK-004 (P0, 확정):** Webhook 수신 시 `X-Webhook-Secret` 헤더 값을 Provider 의 `webhook_secret` 과 대조하여 인증해야 한다. secret 불일치 시 `401 Unauthorized`를 반환한다.
-- **REQ-FR-TASK-005 (P0, 확정):** Webhook 수신 성공 시 `external_task_items` 테이블에 upsert(created/updated) 또는 soft-delete(deleted)를 수행하고 `202 Accepted`를 즉시 반환해야 한다. webhook 수신마다 monotonic sequence 번호(`webhook_seq`)를 발급해야 한다.
-- **REQ-FR-TASK-006 (P0, 확정):** Webhook 수신 시 원본 payload 전체를 `raw_payload JSONB` 에 보존해야 한다. adapter 가 외부 시스템별 포맷을 공통 포맷으로 정규화하며, 동일한 정규화 경로를 Pull 에서도 재사용해야 한다.
-
-**Pull 동기화** (주기적)
-
-- **REQ-FR-TASK-007 (P1, 확정):** `TaskItemPuller` 인터페이스를 정의하고, Provider 설정의 `pull_interval_seconds`(기본 1800s) 간격으로 외부 시스템 API 를 호출해 작업 항목을 수집하는 Pull loop 를 구현해야 한다.
-- **REQ-FR-TASK-008 (P1, 확정):** Pull 동기화는 `last_pulled_at` timestamp 기준 증분 조회를 기본으로 하며, 첫 실행 시 전수 수집(초기 전체 동기화)을 수행해야 한다. 페이지네이션을 지원해야 한다.
-- **REQ-FR-TASK-009 (P1, 확정):** Pull loop 는 webhook_seq gap 을 탐지하여 유실된 webhook 이력을 발견할 수 있어야 한다. gap 발견 시 보강(recovery) pull 을 트리거해야 한다.
-
-**조회 API**
-
-- **REQ-FR-TASK-010 (P0, 확정):** `GET /api/v1/external-tasks` 로 수집된 task item 목록을 조회할 수 있어야 한다. `provider_id`, `raw_status`, `normalized_status`, `assignee`, `labels` 필터를 지원해야 하며, `integration_bindings` 를 통한 scope 기반 접근 제어를 적용해야 한다.
-
-#### 5.10.2 비기능 / 운영 요구사항 (REQ-NFR-TASK)
-
-- **REQ-NFR-TASK-001 (P0):** 모든 Webhook 수신(성공/실패) 및 Pull 동기화(시작/완료/실패) 이벤트는 audit log 로 기록되어야 한다.
-- **REQ-NFR-TASK-002 (P0):** 특정 Provider 의 Webhook/Pull 장애가 다른 Provider 의 수집이나 전체 API 에 영향을 주지 않도록 Provider 단위 장애 격리가 보장되어야 한다.
-- **REQ-NFR-TASK-003 (P1):** Pull 동기화 성능 메트릭(Prometheus: `task_item_pull_duration_seconds`, `task_item_pull_total`, `task_item_pull_errors_total`)이 노출되어야 한다.
-- **REQ-NFR-TASK-004 (P1):** Webhook secret 은 `integration_providers` 테이블에 저장될 때 write-only(읽기 응답에서 마스킹 또는 미포함) 처리되어야 한다.
-
-#### 5.10.3 범위 경계 (Out of Scope)
-
-- DevHub → 외부 시스템 write-back (상태 변경, assign 변경 등). 원천 불변 원칙에 따라 v2 범위.
-- 실시간 WebSocket 푸시 (task updated event). 초기엔 polling/refresh 로 충분.
-- 외부 시스템 식별자 → DevHub user_id 자동 매핑. 후속 도메인.
-- Task item 간 dependency / linkage (epic-link, block-by 등). MVP 이후.
-- AI 기반 task 분류/추천. v2 범위.
+## 5. 도메인별 요구사항 (sub-document link 표)
+
+본 절은 도메인별 sub-document 의 진입점이다. ID 본문 (REQ-FR-*/REQ-NFR-*) 은 각 sub-document 가 source-of-truth.
+
+| 도메인 | 요구사항 | 비고 |
+| --- | --- | --- |
+| auth-session | [`./domain/auth-session/requirements.md`](./domain/auth-session/requirements.md) | User ↔ Account 분리, Keycloak 단일 IdP, historical 비밀번호 정책 |
+| audit-ops | [`./domain/audit-ops/requirements.md`](./domain/audit-ops/requirements.md) | Audit log emit, Keycloak event sync, Prometheus metric |
+| rbac-permissions | [`./domain/rbac-permissions/requirements.md`](./domain/rbac-permissions/requirements.md) | Role + Resource + Action matrix, row-scoping |
+| organization-management | [`./domain/organization-management/requirements.md`](./domain/organization-management/requirements.md) | Users + org_units + appointments, HRDB lookup |
+| onboarding | [`./domain/onboarding/requirements.md`](./domain/onboarding/requirements.md) | REQ-FR-ONBOARD-001..012, REQ-NFR-ONBOARD-001..008 |
+| application-lifecycle | [`./domain/application-lifecycle/requirements.md`](./domain/application-lifecycle/requirements.md) | REQ-FR-APP-001..012, REQ-FR-PROJ-000..010, REQ-FR-APPDASH-001..006, REQ-NFR-PROJ/APPDASH |
+| repository-integration | [`./domain/repository-integration/requirements.md`](./domain/repository-integration/requirements.md) | REQ-FR-REPO-001..005, REQ-NFR-REPO-001..003 |
+| dev-request | [`./domain/dev-request/requirements.md`](./domain/dev-request/requirements.md) | REQ-FR-DREQ-001..013, REQ-NFR-DREQ-001..006 |
+| integration-registry | [`./domain/integration-registry/requirements.md`](./domain/integration-registry/requirements.md) + [`task_requirements.md`](./domain/integration-registry/task_requirements.md) | REQ-FR-INT-001..015, REQ-NFR-INT-001..009, REQ-FR-TASK-001..010, REQ-NFR-TASK-001..004 |
+| realtime | [`./domain/realtime/requirements.md`](./domain/realtime/requirements.md) | WebSocket ticket 인증, event RBAC 재검사 |
+
+> 추가 source — 기존 file 들은 유지 (역사 보존 + detailed body):
+> - `docs/backend/requirements.md` — backend-specific 상세 REQ
+> - `docs/backend_requirements_org_hierarchy.md` — organization 도메인 detail (organization-management 도메인 README 가 진입)
+> - `docs/frontend_integration_requirements.md` — frontend 연동 REQ
 
 ## 6. 기술 스택 결정 사항 (Technology Stack Decisions)
 
@@ -657,11 +132,11 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
 
 ## 7. 상세 시스템 아키텍처 설계 (Detailed System Architecture)
 
-상세한 시스템 아키텍처 설계 내용은 별도 문서인 **[architecture.md](./architecture.md)**에서 관리하며, 구체적인 기술 스택 및 환경 설정 가이드는 **[tech_stack.md](./tech_stack.md)**를 참조합니다.
+상세한 시스템 아키텍처 설계 내용은 별도 문서인 **[architecture.md](./architecture.md)** (master index) 에서 관리하며, 구체적인 기술 스택 및 환경 설정 가이드는 **[tech_stack.md](./tech_stack.md)**를 참조합니다.
 
 ### 주요 아키텍처 결정 사항:
 - **내부 통신:** Go Core ↔ Python AI 간 gRPC 도입.
-- **실시간성:** WebSocket을 통한 프론트엔드 실시간 상태 전송. SSE는 초기 구현 범위에서 제외하고 운영 환경 제약 발생 시 fallback으로 재검토.
+- **실시간성:** WebSocket을 통한 프론트엔드 실시간 상태 전송 (ticket 패턴, ADR-0024). SSE는 초기 구현 범위에서 제외하고 운영 환경 제약 발생 시 fallback으로 재검토.
 - **시각화:** React Flow를 이용한 인터랙티브 인프라 구성도.
 
 ---
@@ -670,5 +145,6 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
 
 | 일자 | 변경 |
 | --- | --- |
-| 2026-05-27 | 코드베이스 스냅샷(main `cf19c94`) 정합: §5.8(SCM↔시스템 Repository 연동 + Repository Lifecycle, REQ-FR-REPO-001..005 / REQ-NFR-REPO-001..003) 신규, §5.6 INT 보강(REQ-FR-INT-013..015 auth_mode full/base_url+연결테스트/webhook 헤더 alias + REQ-NFR-INT-009 write-only secret), §2.5 Keycloak 단일 IdP self-service 흐름 historical inline 정정. 기존 prose/ID 삭제·재배열 없음(추가 + inline 정정만). 근거: `docs/analysis/2026-05-27-codebase-snapshot/`. |
-| 2026-05-28 | §5.10 (Task Item Ingestion, REQ-FR-TASK-001..010 / REQ-NFR-TASK-001..004) 신규 — 외부 시스템(ALM/SCM/Issue Tracker) 작업 항목 Webhook+Pull 혼합 수집 도메인. [컨셉 문서](./domain/integration-registry/task_ingestion_concept.md) §9 결정사항 반영 (webhook_secret 분리 / raw+normalized status 병행 / adapter 정규화 / SEQ gap 탐지 / 범용 REST adapter 우선). Sprint `deepseek/work_260528-a-task-item-ingestion`. |
+| 2026-05-29 | **Phase 3 split** — 도메인별 본문(§5.4~§5.10)을 10 도메인 sub-document 의 `requirements.md` 로 이관. 본 master 는 §1-4 (cross-cutting) + §5 link 표 + §6-7 (cross-cutting) 로 축소. ID 보존(REQ-FR-APP-001..012, REQ-FR-PROJ-000..010, REQ-FR-DREQ-001..013, REQ-FR-INT-001..015, REQ-FR-ONBOARD-001..012, REQ-FR-REPO-001..005, REQ-FR-APPDASH-001..006, REQ-FR-TASK-001..010, REQ-NFR-* 전체), 신규 발급/삭제 없음. §2.5 사용자 계정 관리 본문은 auth-session 도메인으로 이관. |
+| 2026-05-28 | (split 이전) §5.10 (Task Item Ingestion) 신규 — integration-registry/task_requirements.md 로 이관됨. |
+| 2026-05-27 | (split 이전) §5.8 (SCM↔시스템 Repository) 신규 — repository-integration/requirements.md 로 이관됨. §5.6 INT 보강 — integration-registry/requirements.md 로 이관. |
