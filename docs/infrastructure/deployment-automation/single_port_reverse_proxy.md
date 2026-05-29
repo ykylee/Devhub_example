@@ -427,7 +427,7 @@ selfservice:
 
 ### Phase 1 (본 sprint) — design 문서만
 
-- ✅ 본 문서 (`docs/planning/single_port_reverse_proxy.md`)
+- ✅ 본 문서 (`docs/infrastructure/deployment-automation/single_port_reverse_proxy.md`)
 - 결정 안 됨 — 후보 nginx 권장 + 영향 분석만
 
 ### Phase 2 — staging 검증 (별도 sprint)

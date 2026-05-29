@@ -27,8 +27,8 @@
 | ARCH | `./architecture.md` | planned (Phase 3) |
 | API | `./api.md` | planned (Phase 3) |
 | TC | `./test_cases.md` | planned (Phase 2) |
-| Concept | `./project_concept.md` | planned (Phase 2 — `docs/planning/project_management_concept.md`) |
-| Concept | `./dashboard_concept.md` | planned (Phase 2 — `docs/planning/application_dashboard_concept.md`) |
+| Concept | `./project_concept.md` | planned (Phase 2 — `docs/domain/application-lifecycle/project_concept.md`) |
+| Concept | `./dashboard_concept.md` | planned (Phase 2 — `docs/domain/application-lifecycle/dashboard_concept.md`) |
 
 ## 4. 관련 ADR
 

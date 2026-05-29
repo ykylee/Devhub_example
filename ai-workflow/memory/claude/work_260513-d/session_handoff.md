@@ -32,7 +32,7 @@
 | --- | --- |
 | backend-ai placeholder | 추적 항목 미부여 — M3-04 진입 시 IMPL-ai-XX 발급. 본 sprint 는 매트릭스에 placeholder 행 표기만. |
 | frontend 컴포넌트 Vitest 부재 | Header, Sidebar, AuthGuard 등 — 후속 sprint 후보, 우선순위 P2. |
-| auth.spec.ts TC-AUTH-01..06 카탈로그 미흡수 | 본 sprint 에서 `docs/tests/test_cases_m2_auth.md` 에 TC-AUTH-01..06 행 추가 — 본문 spec 과 일치하는 TC 명세 등재. |
+| auth.spec.ts TC-AUTH-01..06 카탈로그 미흡수 | 본 sprint 에서 `docs/domain/auth-session/test_cases.md` 에 TC-AUTH-01..06 행 추가 — 본문 spec 과 일치하는 TC 명세 등재. |
 | RBAC API §12 IMPL 매핑 정밀화 | report.md §2.4 / §3 의 IMPL-rbac-* 가 일부 endpoint 만 cover. 정밀 매핑 보강 (endpoint 별 IMPL ID 명시). |
 
 ### 2-4. 갭 분석 §5.3 문서↔코드 불일치

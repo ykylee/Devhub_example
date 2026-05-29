@@ -6,7 +6,7 @@
 - 상태: draft (1차)
 - 최종 수정일: 2026-05-22
 - 결정 근거 sprint: `claude/work_260522-internal-coordinated-carve-docs`
-- 관련 문서: [Keycloak 운영 SOP §6](./keycloak_operations.md#6-jwks-rotation-운영-sop), [ADR-0019 §5.3](../adr/0019-keycloak-only-idp.md), [ADR-0020 §6.3](../adr/0020-account-user-management-boundary.md), [account/user redesign §5.6.3](../planning/account_user_management_redesign.md), [keycloak_admin_responsibility](../governance/keycloak_admin_responsibility.md).
+- 관련 문서: [Keycloak 운영 SOP §6](./keycloak_operations.md#6-jwks-rotation-운영-sop), [ADR-0019 §5.3](../adr/0019-keycloak-only-idp.md), [ADR-0020 §6.3](../adr/0020-account-user-management-boundary.md), [account/user redesign §5.6.3](../domain/auth-session/account_redesign.md), [keycloak_admin_responsibility](../governance/keycloak_admin_responsibility.md).
 
 ## 1. 배경
 

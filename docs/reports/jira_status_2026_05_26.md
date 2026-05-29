@@ -375,7 +375,7 @@ gantt
 
 | 영역 | 결과 |
 | --- | --- |
-| concept | `docs/planning/keycloak_user_onboarding_concept.md` 신규 (PR #265) |
+| concept | `docs/domain/onboarding/concept.md` 신규 (PR #265) |
 | REQ | REQ-FR-ONBOARD-001..020 + REQ-NFR-ONBOARD-001..006 (PR #266) |
 | ARCH | UC-ONBOARD + ARCH §9 + API §16 (PR #267) |
 | ADR | ADR-0021 (PR #269) + codex hotfix #1 (P1 §16.3 INSERT/UPDATE, P2 §6.1 scope) |

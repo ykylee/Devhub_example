@@ -6,7 +6,7 @@
 - 상태: draft
 - 최종 수정일: 2026-05-15
 - 결정 근거 sprint: `claude/work_260515-f`
-- 관련 문서: [`docs/requirements.md §5.X DREQ`](../requirements.md), [`docs/planning/system_usecases.md` UC-DREQ-*](./system_usecases.md), [`docs/architecture.md` ARCH-DREQ §](../architecture.md), [`docs/backend_api_contract.md` API-DREQ §](../backend_api_contract.md), [`docs/planning/project_management_concept.md`](./project_management_concept.md), [`docs/traceability/report.md` §3 DREQ 도메인 row](../traceability/report.md).
+- 관련 문서: [`docs/requirements.md §5.X DREQ`](../requirements.md), [`docs/planning/system_usecases.md` UC-DREQ-*](./system_usecases.md), [`docs/architecture.md` ARCH-DREQ §](../architecture.md), [`docs/backend_api_contract.md` API-DREQ §](../backend_api_contract.md), [`docs/domain/application-lifecycle/project_concept.md`](./project_management_concept.md), [`docs/traceability/report.md` §3 DREQ 도메인 row](../traceability/report.md).
 
 ## 1. 컨셉 정리 배경
 

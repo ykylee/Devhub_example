@@ -1336,7 +1336,7 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 - DB 컬럼 길이는 정책 변경 대비 여유 길이로 유지하고, 길이/패턴 제한은 애플리케이션 검증에서 강제한다.
 - provider 라우팅은 `repo_provider`를 기준으로 동작하며, backend는 내부 `SCM Adapter Registry`에서 provider별 어댑터를 선택한다.
 - 미등록 provider 요청은 `422 unsupported_repo_provider`로 거절한다.
-- **상태 전이 가드 표 SoT (Single Source of Truth)**: `docs/planning/project_management_concept.md` §13.2.1 — 권한/검증/실패 코드 매트릭스. 본 §13.2 PATCH 의 규칙은 그 요약이다.
+- **상태 전이 가드 표 SoT (Single Source of Truth)**: `docs/domain/application-lifecycle/project_concept.md` §13.2.1 — 권한/검증/실패 코드 매트릭스. 본 §13.2 PATCH 의 규칙은 그 요약이다.
 - **visibility 별 데이터 공개 범위 (초안)**:
   - `public`: 메타(key/name/owner) + 진행 요약 (집계만). 멤버 목록/원본 지표는 비공개.
   - `internal`: 조직 내 사용자에게 메타 + 멤버 목록 + 롤업 요약. 원본 PR/Build 본문은 RBAC 별도.
@@ -1936,7 +1936,7 @@ integration_scm_auth_failed
 
 ## 14. 개발 의뢰 (Dev Request, DREQ) API
 
-외부 시스템에서 들어오는 개발 의뢰 (Dev Request, DREQ) 의 수신/조회/등록(promote)/거절/재할당/닫기 API. 컨셉: [`docs/planning/development_request_concept.md`](./planning/development_request_concept.md). 요구사항: [§5.5 (REQ-FR-DREQ-001..011, REQ-NFR-DREQ-001..006)](./requirements.md). Usecase: [`UC-DREQ-01..10`](./planning/system_usecases.md). 아키텍처: [`docs/architecture.md §7`](./architecture.md) (ARCH-DREQ-01..06).
+외부 시스템에서 들어오는 개발 의뢰 (Dev Request, DREQ) 의 수신/조회/등록(promote)/거절/재할당/닫기 API. 컨셉: [`docs/domain/dev-request/concept.md`](./domain/dev-request/concept.md). 요구사항: [§5.5 (REQ-FR-DREQ-001..011, REQ-NFR-DREQ-001..006)](./requirements.md). Usecase: [`UC-DREQ-01..10`](./planning/system_usecases.md). 아키텍처: [`docs/architecture.md §7`](./architecture.md) (ARCH-DREQ-01..06).
 
 본 §의 모든 endpoint 는 sprint `claude/work_260515-f` 에서 *spec only* (planned). backend 구현은 carve out — DREQ-AuthADR 머지 후 DREQ-Backend sprint 에서 활성화.
 
@@ -2181,7 +2181,7 @@ intake_token_collision                         # sprint o (ADR-0014): hashed_tok
 
 ## 15. 외부 시스템 연동 (Integration) API 초안
 
-본 섹션은 [`docs/planning/external_system_integration_concept.md`](./planning/external_system_integration_concept.md) 및 [`docs/requirements.md §5.6`](./requirements.md) 의 1차 API 계약 초안이다. ID는 임시 발급(`API-69..78`)이며 상세 응답 스키마는 설계 sprint 에서 확정한다.
+본 섹션은 [`docs/domain/integration-registry/external_system_concept.md`](./domain/integration-registry/external_system_concept.md) 및 [`docs/requirements.md §5.6`](./requirements.md) 의 1차 API 계약 초안이다. ID는 임시 발급(`API-69..78`)이며 상세 응답 스키마는 설계 sprint 에서 확정한다.
 
 ### 15.1 API ID 인덱스 (draft)
 
@@ -2456,7 +2456,7 @@ infra_agent_unauthorized
 
 ## 16. 사용자 초기 등록 (Onboarding) API
 
-Keycloak 인증 통과 + DevHub 프로필 미완료 사용자의 self-service 초기 등록 흐름의 endpoint spec. 컨셉: [`docs/planning/keycloak_user_onboarding_concept.md`](./planning/keycloak_user_onboarding_concept.md). 요구사항: [§5.7 (REQ-FR-ONBOARD-001..012, REQ-NFR-ONBOARD-001..008)](./requirements.md). Usecase: [`UC-ONBOARD-01..11`](./planning/system_usecases.md). 아키텍처: [`docs/architecture.md §9`](./architecture.md) (ARCH-ONBOARD-01..06).
+Keycloak 인증 통과 + DevHub 프로필 미완료 사용자의 self-service 초기 등록 흐름의 endpoint spec. 컨셉: [`docs/domain/onboarding/concept.md`](./domain/onboarding/concept.md). 요구사항: [§5.7 (REQ-FR-ONBOARD-001..012, REQ-NFR-ONBOARD-001..008)](./requirements.md). Usecase: [`UC-ONBOARD-01..11`](./planning/system_usecases.md). 아키텍처: [`docs/architecture.md §9`](./architecture.md) (ARCH-ONBOARD-01..06).
 
 본 §의 모든 endpoint 는 sprint `claude/onboarding-arch-2026-05-21` 에서 *spec only* (planned). backend 구현은 carve out — `IMPL-onboarding-*` sprint 에서 활성화.
 
@@ -2695,7 +2695,7 @@ onboarding_not_completed     # 422, review 대상 아님
 
 ## 17. Task Item Ingestion (외부 시스템 작업 항목 수집)
 
-> 외부 ALM/SCM/Issue Tracker 시스템(Jira, GitHub Issues, GitLab, Linear)의 작업 항목을 Webhook(실시간) + Pull(주기 동기화) 혼합 방식으로 수집한다. 기존 `integration_providers`/`integration_bindings` 인프라를 확장한다. 아키텍처: [`docs/architecture.md §12`](./architecture.md), 컨셉: [`docs/planning/task_item_ingestion_concept.md`](./planning/task_item_ingestion_concept.md).
+> 외부 ALM/SCM/Issue Tracker 시스템(Jira, GitHub Issues, GitLab, Linear)의 작업 항목을 Webhook(실시간) + Pull(주기 동기화) 혼합 방식으로 수집한다. 기존 `integration_providers`/`integration_bindings` 인프라를 확장한다. 아키텍처: [`docs/architecture.md §12`](./architecture.md), 컨셉: [`docs/domain/integration-registry/task_ingestion_concept.md`](./domain/integration-registry/task_ingestion_concept.md).
 
 **API ID 범위**: API-94 ~ API-96
 

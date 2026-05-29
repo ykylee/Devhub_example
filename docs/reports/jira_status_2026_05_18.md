@@ -239,7 +239,7 @@ production `/admin/settings/users` 진입 후:
 
 #### 4.2.2 DREQ Domain
 
-- **Concept + Design**: `docs/planning/development_request_concept.md` + REQ-FR-DREQ-001..011 + UC-DREQ-01..10 + ARCH-DREQ-01..06 + API-59..68 + API-79 (PATCH allowed_ips).
+- **Concept + Design**: `docs/domain/dev-request/concept.md` + REQ-FR-DREQ-001..011 + UC-DREQ-01..10 + ARCH-DREQ-01..06 + API-59..68 + API-79 (PATCH allowed_ips).
 - **AuthADR**: ADR-0012 (옵션 A: API 토큰 + IP allowlist).
 - **Backend 1차** (PR #124): 7 endpoint + intake auth middleware + 3 migration + 19 unit test.
 - **Frontend 1차** (PR #125): DevRequestTable + DevRequestDetailModal + MyPendingDevRequestsWidget + `/admin/settings/dev-requests` + `/dev-requests` (일반 사용자).

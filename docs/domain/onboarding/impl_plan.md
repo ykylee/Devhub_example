@@ -161,7 +161,7 @@
 | `backend-core/internal/httpapi/auth_test.go` | 확장 | token-only actor (DB miss = 정상) 회귀 |
 | `frontend/tests/e2e/onboarding.spec.ts` | 신규 | TC-ONBOARD-FIRST-ENTRY/SKIP/SUBMIT/PENDING-REVIEW/REVIEWED/UNIT-CHANGE/ADMIN-PRE-SEED/ORG-SEARCH/A11Y/BACKEND-403/FRONTEND-BANNER 11건 |
 | `frontend/tests/e2e/seeds/onboarding.ts` | 신규 | 6 test seed (REQ-NFR-ONBOARD-008 정합 — test_self_new_user 등) + org_fixture_bulk |
-| `docs/tests/test_cases_m7_onboarding.md` | 신규 | TC 카탈로그 (DREQ §M5 / INT §M6 패턴) |
+| `docs/domain/onboarding/test_cases.md` | 신규 | TC 카탈로그 (DREQ §M5 / INT §M6 패턴) |
 
 **예상 LoC**: backend test +400 / frontend test +700 + docs +200
 

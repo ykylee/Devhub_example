@@ -321,7 +321,7 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
 
 ### 5.5 개발 의뢰 (Dev Request, DREQ) 도메인
 
-본 절은 컨셉 문서([`docs/planning/development_request_concept.md`](./planning/development_request_concept.md), sprint `claude/work_260515-f`)에 정의된 외부 시스템 개발 의뢰 수신 → 담당자 검토 → application/project 등록(promote) 흐름의 요구사항을 발급한다.
+본 절은 컨셉 문서([`docs/domain/dev-request/concept.md`](./domain/dev-request/concept.md), sprint `claude/work_260515-f`)에 정의된 외부 시스템 개발 의뢰 수신 → 담당자 검토 → application/project 등록(promote) 흐름의 요구사항을 발급한다.
 
 #### 5.5.1 기능 요구사항 (REQ-FR-DREQ)
 
@@ -363,7 +363,7 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
 
 ### 5.6 외부 시스템 연동 도메인 (Integration)
 
-본 절은 컨셉 문서([`docs/planning/external_system_integration_concept.md`](./planning/external_system_integration_concept.md), 2026-05-15)에 정의된 ALM/SCM/CI-CD/문서/홈랩 인프라 통합 운영 모델의 요구사항 초안이다.
+본 절은 컨셉 문서([`docs/domain/integration-registry/external_system_concept.md`](./domain/integration-registry/external_system_concept.md), 2026-05-15)에 정의된 ALM/SCM/CI-CD/문서/홈랩 인프라 통합 운영 모델의 요구사항 초안이다.
 
 #### 5.6.1 기능 요구사항 (REQ-FR-INT)
 
@@ -423,7 +423,7 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
 
 ### 5.7 사용자 초기 등록 (Onboarding) 도메인
 
-본 절은 컨셉 문서([`docs/planning/keycloak_user_onboarding_concept.md`](./planning/keycloak_user_onboarding_concept.md), sprint `claude/keycloak-onboarding-concept-2026-05-21`, PR #260 + PR #265)에 정의된 Keycloak 인증 통과 + DevHub 프로필 미완료 사용자의 self-service 초기 등록 흐름의 요구사항을 발급한다. 본 도메인은 ADR-0020 (계정/사용자 관리 책임 경계) 의 직접 후속 — DevHub 가 책임지는 "사용자 프로필" 영역에 self-service unit selection 경로를 추가한다.
+본 절은 컨셉 문서([`docs/domain/onboarding/concept.md`](./domain/onboarding/concept.md), sprint `claude/keycloak-onboarding-concept-2026-05-21`, PR #260 + PR #265)에 정의된 Keycloak 인증 통과 + DevHub 프로필 미완료 사용자의 self-service 초기 등록 흐름의 요구사항을 발급한다. 본 도메인은 ADR-0020 (계정/사용자 관리 책임 경계) 의 직접 후속 — DevHub 가 책임지는 "사용자 프로필" 영역에 self-service unit selection 경로를 추가한다.
 
 #### 5.7.1 기능 요구사항 (REQ-FR-ONBOARD)
 
@@ -558,7 +558,7 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
 
 ### 5.9 Application 개발 대시보드 도메인 (Application Development Dashboard)
 
-본 절은 컨셉 문서([`docs/planning/application_dashboard_concept.md`](./planning/application_dashboard_concept.md))에 정의된 DevHub 핵심 단위인 Application 상세 대시보드의 기능 요구사항을 발급한다.
+본 절은 컨셉 문서([`docs/domain/application-lifecycle/dashboard_concept.md`](./domain/application-lifecycle/dashboard_concept.md))에 정의된 DevHub 핵심 단위인 Application 상세 대시보드의 기능 요구사항을 발급한다.
 
 #### 5.9.1 기능 요구사항 (REQ-FR-APPDASH)
 
@@ -598,7 +598,7 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
 
 외부 ALM/SCM/Issue Tracker 시스템(Jira, GitHub Issues, GitLab, Linear 등)의 작업 항목(task/issue/ticket)을 DevHub 에서 수집해 통합 조회/추적하는 도메인.
 
-**핵심 설계 결정** ([컨셉 문서](./planning/task_item_ingestion_concept.md) §9):
+**핵심 설계 결정** ([컨셉 문서](./domain/integration-registry/task_ingestion_concept.md) §9):
 - Webhook 인증: Provider 별도 `webhook_secret` 필드 사용 (api_token 과 분리)
 - Task status: `raw_status`(원본 string) + `normalized_status`(공통 enum, 초기 NULL 허용) 병행 저장
 - Webhook payload 정규화: 시스템별 adapter 가 담당 (Webhook/Pull 공통 경로)
@@ -671,4 +671,4 @@ DevHub 사용자(person)와 인증 자격(credential)을 분리해 관리한다.
 | 일자 | 변경 |
 | --- | --- |
 | 2026-05-27 | 코드베이스 스냅샷(main `cf19c94`) 정합: §5.8(SCM↔시스템 Repository 연동 + Repository Lifecycle, REQ-FR-REPO-001..005 / REQ-NFR-REPO-001..003) 신규, §5.6 INT 보강(REQ-FR-INT-013..015 auth_mode full/base_url+연결테스트/webhook 헤더 alias + REQ-NFR-INT-009 write-only secret), §2.5 Keycloak 단일 IdP self-service 흐름 historical inline 정정. 기존 prose/ID 삭제·재배열 없음(추가 + inline 정정만). 근거: `docs/analysis/2026-05-27-codebase-snapshot/`. |
-| 2026-05-28 | §5.10 (Task Item Ingestion, REQ-FR-TASK-001..010 / REQ-NFR-TASK-001..004) 신규 — 외부 시스템(ALM/SCM/Issue Tracker) 작업 항목 Webhook+Pull 혼합 수집 도메인. [컨셉 문서](./planning/task_item_ingestion_concept.md) §9 결정사항 반영 (webhook_secret 분리 / raw+normalized status 병행 / adapter 정규화 / SEQ gap 탐지 / 범용 REST adapter 우선). Sprint `deepseek/work_260528-a-task-item-ingestion`. |
+| 2026-05-28 | §5.10 (Task Item Ingestion, REQ-FR-TASK-001..010 / REQ-NFR-TASK-001..004) 신규 — 외부 시스템(ALM/SCM/Issue Tracker) 작업 항목 Webhook+Pull 혼합 수집 도메인. [컨셉 문서](./domain/integration-registry/task_ingestion_concept.md) §9 결정사항 반영 (webhook_secret 분리 / raw+normalized status 병행 / adapter 정규화 / SEQ gap 탐지 / 범용 REST adapter 우선). Sprint `deepseek/work_260528-a-task-item-ingestion`. |

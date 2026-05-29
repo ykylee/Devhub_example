@@ -169,10 +169,10 @@
 
 | 도메인 | 카탈로그 위치 |
 | --- | --- |
-| Auth (M2) | `docs/tests/test_cases_m2_auth.md` |
-| Command / Infra (M3) | `docs/tests/test_cases_m3_command_infra.md` |
-| Integration (M4) | `docs/tests/test_cases_m4_integration.md` |
-| DREQ (M5) | `docs/tests/test_cases_m5_dreq.md` (13 TC) |
+| Auth (M2) | `docs/domain/auth-session/test_cases.md` |
+| Command / Infra (M3) | `docs/infrastructure/commandworker/test_cases.md` |
+| Integration (M4) | `docs/domain/integration-registry/test_cases.md` |
+| DREQ (M5) | `docs/domain/dev-request/test_cases.md` (13 TC) |
 
 ---
 

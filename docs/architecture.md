@@ -242,7 +242,7 @@ Keycloak 에서 발생한 사용자/관리자 이벤트(로그인, group/role �
 
 ## 7. 개발 의뢰 (Dev Request, DREQ) 도메인
 
-외부 시스템에서 들어오는 개발 의뢰를 수신 → 담당자 검토 → application/project 등록(promote) 까지 처리하는 도메인. 컨셉 문서: [`docs/planning/development_request_concept.md`](./planning/development_request_concept.md). 요구사항: [`docs/requirements.md §5.5`](./requirements.md). Usecase: [`UC-DREQ-01..10`](./planning/system_usecases.md).
+외부 시스템에서 들어오는 개발 의뢰를 수신 → 담당자 검토 → application/project 등록(promote) 까지 처리하는 도메인. 컨셉 문서: [`docs/domain/dev-request/concept.md`](./domain/dev-request/concept.md). 요구사항: [`docs/requirements.md §5.5`](./requirements.md). Usecase: [`UC-DREQ-01..10`](./planning/system_usecases.md).
 
 ### 7.1 컴포넌트 (ARCH-DREQ-01)
 
@@ -275,7 +275,7 @@ Keycloak 에서 발생한 사용자/관리자 이벤트(로그인, group/role �
 
 ### 7.2 상태 머신 (ARCH-DREQ-02)
 
-[컨셉 §2.3](./planning/development_request_concept.md) 의 6-상태 머신 (`received → pending → in_review → registered | rejected | closed`). 모든 전이는 `dev_request.*` audit action 으로 기록.
+[컨셉 §2.3](./domain/dev-request/concept.md) 의 6-상태 머신 (`received → pending → in_review → registered | rejected | closed`). 모든 전이는 `dev_request.*` audit action 으로 기록.
 
 ### 7.3 외부 수신 인증 경계 (ARCH-DREQ-03)
 
@@ -361,7 +361,7 @@ plain token 은 발급 직후 1회만 admin 에게 노출하고 어디에도 저
 
 ## 8. 외부 시스템 연동 (Integration) 도메인
 
-컨셉 문서: [`docs/planning/external_system_integration_concept.md`](./planning/external_system_integration_concept.md), 요구사항: [`docs/requirements.md §5.6`](./requirements.md), Usecase: [`UC-INT-01..14`](./planning/system_usecases.md).
+컨셉 문서: [`docs/domain/integration-registry/external_system_concept.md`](./domain/integration-registry/external_system_concept.md), 요구사항: [`docs/requirements.md §5.6`](./requirements.md), Usecase: [`UC-INT-01..14`](./planning/system_usecases.md).
 
 ### 8.1 컴포넌트 경계 (ARCH-INT-01)
 
@@ -545,7 +545,7 @@ infra_services
 
 ## 9. 사용자 초기 등록 (Onboarding) 도메인
 
-Keycloak 인증 통과 + DevHub 프로필 미완료 사용자의 self-service 초기 등록 흐름을 처리하는 도메인. 컨셉 문서: [`docs/planning/keycloak_user_onboarding_concept.md`](./planning/keycloak_user_onboarding_concept.md). 요구사항: [`docs/requirements.md §5.7`](./requirements.md). Usecase: [`UC-ONBOARD-01..11`](./planning/system_usecases.md).
+Keycloak 인증 통과 + DevHub 프로필 미완료 사용자의 self-service 초기 등록 흐름을 처리하는 도메인. 컨셉 문서: [`docs/domain/onboarding/concept.md`](./domain/onboarding/concept.md). 요구사항: [`docs/requirements.md §5.7`](./requirements.md). Usecase: [`UC-ONBOARD-01..11`](./planning/system_usecases.md).
 
 ### 9.1 컴포넌트 (ARCH-ONBOARD-01)
 
@@ -798,7 +798,7 @@ SCM 연동 endpoint(import/create/sync)는 공통 게이트 `scmProviderForCapab
 
 ## 11. Application 개발 대시보드 (APPDASH) 도메인
 
-Application 상세 대시보드에서 제공해야 할 다차원 롤업 정보, 실시간 헬스 메트릭 및 요구사항-개발-배포 연계 추적을 처리하는 도메인. 컨셉 문서: [`docs/planning/application_dashboard_concept.md`](./planning/application_dashboard_concept.md). 요구사항: [`docs/requirements.md §5.9`](./requirements.md). Usecase: [`UC-APPDASH-01..07` (`system_usecases.md §2.15`)](./planning/system_usecases.md).
+Application 상세 대시보드에서 제공해야 할 다차원 롤업 정보, 실시간 헬스 메트릭 및 요구사항-개발-배포 연계 추적을 처리하는 도메인. 컨셉 문서: [`docs/domain/application-lifecycle/dashboard_concept.md`](./domain/application-lifecycle/dashboard_concept.md). 요구사항: [`docs/requirements.md §5.9`](./requirements.md). Usecase: [`UC-APPDASH-01..07` (`system_usecases.md §2.15`)](./planning/system_usecases.md).
 
 ### 11.1 아키텍처 구조도 (ARCH-APPDASH-01)
 
@@ -893,7 +893,7 @@ sequenceDiagram
 
 ## 12. Task Item Ingestion (외부 시스템 작업 항목 수집)
 
-외부 ALM/SCM/Issue Tracker 시스템의 작업 항목(task/issue/ticket)을 Webhook(실시간) + Pull(주기 동기화) 혼합 방식으로 수집하는 도메인. 컨셉 문서: [`docs/planning/task_item_ingestion_concept.md`](./planning/task_item_ingestion_concept.md). 요구사항: [`docs/requirements.md §5.10`](./requirements.md). Usecase: [`UC-TASK-01..06` (`system_usecases.md §2.16`)](./planning/system_usecases.md).
+외부 ALM/SCM/Issue Tracker 시스템의 작업 항목(task/issue/ticket)을 Webhook(실시간) + Pull(주기 동기화) 혼합 방식으로 수집하는 도메인. 컨셉 문서: [`docs/domain/integration-registry/task_ingestion_concept.md`](./domain/integration-registry/task_ingestion_concept.md). 요구사항: [`docs/requirements.md §5.10`](./requirements.md). Usecase: [`UC-TASK-01..06` (`system_usecases.md §2.16`)](./planning/system_usecases.md).
 
 ### 12.1 외부 Task Tracker 연동 모델 (ARCH-TASK-01)
 

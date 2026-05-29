@@ -6,7 +6,7 @@
 - 상태: draft (1차)
 - 최종 수정일: 2026-05-19
 - 결정 근거 sprint: `claude/work_260519-c`
-- 관련 문서: [ADR-0019 Keycloak 단일화](../adr/0019-keycloak-only-idp.md), [ADR-0001 IdP (Hydra+Kratos, superseded)](../adr/0001-idp-selection.md), [keycloak_only_refactor_execution_plan §6](../planning/keycloak_only_refactor_execution_plan.md#6-keycloak-서버-구성-계획), [ADR-0008 HRDB production adapter](../adr/0008-hrdb-production-adapter.md), [test-server-deployment](./test-server-deployment.md), [environment-setup](./environment-setup.md).
+- 관련 문서: [ADR-0019 Keycloak 단일화](../adr/0019-keycloak-only-idp.md), [ADR-0001 IdP (Hydra+Kratos, superseded)](../adr/0001-idp-selection.md), [keycloak_only_refactor_execution_plan §6](../infrastructure/keycloak-idp/refactor_execution_plan.md#6-keycloak-서버-구성-계획), [ADR-0008 HRDB production adapter](../adr/0008-hrdb-production-adapter.md), [test-server-deployment](./test-server-deployment.md), [environment-setup](./environment-setup.md).
 
 ## 1. 배경 + 책임 분리
 
@@ -92,7 +92,7 @@ client_secret 은 사내 vault 보관. 정기 rotation SOP 는 §6 JWKS rotation
 
 ### 4.3 group (composite realm role 1:1 매핑)
 
-[docs/planning/keycloak_groups_rbac_mapping.md](../planning/keycloak_groups_rbac_mapping.md) 결정 — 옵션 B 채택. group 4개 ↔ realm role 4개 1:1 composite 매핑.
+[docs/domain/rbac-permissions/keycloak_groups_mapping.md](../domain/rbac-permissions/keycloak_groups_mapping.md) 결정 — 옵션 B 채택. group 4개 ↔ realm role 4개 1:1 composite 매핑.
 
 | Keycloak Group | Composite Realm Role | DevHub `users.role` |
 | --- | --- | --- |
@@ -104,7 +104,7 @@ client_secret 은 사내 vault 보관. 정기 rotation SOP 는 §6 JWKS rotation
 **Keycloak admin 설정 SOP** (1회):
 1. Realm `devhub` → Groups → Create Group 4회 (위 표 group name)
 2. 각 Group → Role Mappings 탭 → realm role 1개 assign (group ↔ role 매핑)
-3. **Default Groups 미설정 권장** (codex review #9, [keycloak_groups_rbac_mapping §3.2](../planning/keycloak_groups_rbac_mapping.md) 결정) — Default Group 적용 시 신규 manager/pmo/admin 도 자동 `devhub-developers` 가입 → token multi-role → `extractKeycloakRole` order-dependency 위험. 명시 group 1개 가입 강제 (§8.1 step 3).
+3. **Default Groups 미설정 권장** (codex review #9, [keycloak_groups_rbac_mapping §3.2](../domain/rbac-permissions/keycloak_groups_mapping.md) 결정) — Default Group 적용 시 신규 manager/pmo/admin 도 자동 `devhub-developers` 가입 → token multi-role → `extractKeycloakRole` order-dependency 위험. 명시 group 1개 가입 강제 (§8.1 step 3).
 
 **backend 동작**: 변경 없음. group composite role 은 Keycloak 이 token 발급 시 `realm_access.roles` 에 자동 포함 → [keycloak_verifier.go:260-285](../../backend-core/internal/auth/keycloak_verifier.go) 의 추출 그대로 동작.
 
@@ -279,7 +279,7 @@ DEVHUB_REALM=devhub \
 
 ## 7. local embedded vs external 모드 분기
 
-[`keycloak_only_refactor_execution_plan §6`](../planning/keycloak_only_refactor_execution_plan.md#6-keycloak-서버-구성-계획) 가 정의한 2 모드.
+[`keycloak_only_refactor_execution_plan §6`](../infrastructure/keycloak-idp/refactor_execution_plan.md#6-keycloak-서버-구성-계획) 가 정의한 2 모드.
 
 ### 7.1 local embedded 모드
 
@@ -327,7 +327,7 @@ DEVHUB_REALM=devhub \
 
 ### 8.2 user 회수 (off-boarding)
 
-자세한 즉시성 design 은 [docs/planning/keycloak_offboarding_immediacy.md](../planning/keycloak_offboarding_immediacy.md) — HR ETL ↔ Keycloak ↔ DevHub propagation chain. 본 SOP 는 Phase 1 (옵션 C HR ETL push) 운영 절차.
+자세한 즉시성 design 은 [docs/infrastructure/keycloak-idp/offboarding_immediacy.md](../infrastructure/keycloak-idp/offboarding_immediacy.md) — HR ETL ↔ Keycloak ↔ DevHub propagation chain. 본 SOP 는 Phase 1 (옵션 C HR ETL push) 운영 절차.
 
 #### 수동 즉시 회수 (긴급, Keycloak admin 직접)
 
@@ -343,13 +343,13 @@ DEVHUB_REALM=devhub \
 | 단계 | 위치 | 액션 |
 | --- | --- | --- |
 | 1. HR 시스템 | 사내 HR system | 퇴사 / 비활성화 처리 |
-| 2. HR ETL cron 실행 | 사내 운영 cron (**hourly**, [Phase 1 design §3.1](../planning/keycloak_offboarding_immediacy.md)) | `scripts/hrdb_etl_sync.sh` 실행 — (a) DevHub `hrdb` schema UPSERT + (b) Keycloak Admin API user disable + (c) force logout |
+| 2. HR ETL cron 실행 | 사내 운영 cron (**hourly**, [Phase 1 design §3.1](../infrastructure/keycloak-idp/offboarding_immediacy.md)) | `scripts/hrdb_etl_sync.sh` 실행 — (a) DevHub `hrdb` schema UPSERT + (b) Keycloak Admin API user disable + (c) force logout |
 | 3. access_token TTL 만료 | (자동) | 권장 5분 TTL 후 새 token 발급 차단 → 실 권한 회수 |
 | 4. **worst case latency** | — | ETL 주기 (1h) + token TTL (5분) ≈ **1시간** |
 
 #### Phase 2 carve — LDAP/AD federation 도입 시
 
-사내 LDAP/AD 운영 중이면 Keycloak User Federation 으로 worst case ≤ 15분 ([offboarding §4](../planning/keycloak_offboarding_immediacy.md) Phase 2).
+사내 LDAP/AD 운영 중이면 Keycloak User Federation 으로 worst case ≤ 15분 ([offboarding §4](../infrastructure/keycloak-idp/offboarding_immediacy.md) Phase 2).
 
 ### 8.3 client_secret rotation
 
@@ -362,7 +362,7 @@ DEVHUB_REALM=devhub \
 
 ### 8.4 장애 대응
 
-자세한 failover design 은 [docs/planning/keycloak_failover.md](../planning/keycloak_failover.md). 본 SOP 는 Phase 1 (graceful degradation) 운영 절차.
+자세한 failover design 은 [docs/infrastructure/keycloak-idp/failover.md](../infrastructure/keycloak-idp/failover.md). 본 SOP 는 Phase 1 (graceful degradation) 운영 절차.
 
 #### 기본 시나리오
 
@@ -370,14 +370,14 @@ DEVHUB_REALM=devhub \
 | --- | --- | --- |
 | Keycloak 자체 down (5분 미만) | best case 사용자 무영향 (JWKS cache + access_token 모두 fresh 시점 시작). **worst case 401 가능** (codex review #9 — cache 만료 + token 만료 시점 겹침) — 5분 미만이라도 alert 트리거 + 모니터링 | Keycloak 복구 후 자동 정상화 |
 | Keycloak 자체 down (5-10분) | 사용자 공지 (status page) + Keycloak 복구 진행 알림 | 점진 logout 발생 — 복구 후 재로그인 안내 |
-| Keycloak 자체 down (10분 이상) | Page on-call SRE + 사용자 영향 분석 | 사후 review + failover Phase 2 HA 도입 평가 ([keycloak_failover §4](../planning/keycloak_failover.md)) |
+| Keycloak 자체 down (10분 이상) | Page on-call SRE + 사용자 영향 분석 | 사후 review + failover Phase 2 HA 도입 평가 ([keycloak_failover §4](../infrastructure/keycloak-idp/failover.md)) |
 | JWKS endpoint 응답 timeout | backend cache TTL 동안 유효 (5분, [keycloak_verifier.go:37](../../backend-core/internal/auth/keycloak_verifier.go) `defaultJWKSTTL`) | cache TTL 초과 시 모든 인증 실패 — Keycloak 복구 우선 |
 | `kid` mismatch (서명 검증 실패) | backend log 의 JWKS refetch 시도 확인 | 강제 cache invalidate (backend 재시작) 또는 Keycloak key rotation 검증 |
 | token 유출 의심 | §6.5 비상 rotation 절차 진행 | audit_logs + Keycloak event log 분석 |
 
 #### Phase 2 carve — Keycloak HA 도입 시
 
-사내 인프라 결정 시 [keycloak_failover §4](../planning/keycloak_failover.md) 의 옵션 B (active-active cluster) 또는 옵션 C (active-passive) 로 RTO ≈ 0초 / 분 단위 단축. DevHub 측 변경 없음.
+사내 인프라 결정 시 [keycloak_failover §4](../infrastructure/keycloak-idp/failover.md) 의 옵션 B (active-active cluster) 또는 옵션 C (active-passive) 로 RTO ≈ 0초 / 분 단위 단축. DevHub 측 변경 없음.
 
 #### 권장 모니터링 metric (carve, [keycloak_event_audit_integration §5.3](../planning/keycloak_event_audit_integration.md) PR-C 와 정합)
 

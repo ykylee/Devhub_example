@@ -7,7 +7,7 @@
 - 작성일: 2026-05-18
 - 결정일: 2026-05-16 (실 결정), 2026-05-18 사후 명문화 (sprint `claude/work_260518-c`)
 - 결정 근거 sprint: `codex/next-step-20260516` (PR #139, sha `e2a76fb`) — External Integration backend 1차 활성화.
-- 관련 문서: [`docs/planning/homelab_adapter_pull_strategy.md`](../planning/homelab_adapter_pull_strategy.md) (1차 결정 초안 — 본 ADR 이 source-of-truth 로 승격), [`docs/planning/external_system_integration_concept.md`](../planning/external_system_integration_concept.md), [ADR-0016 Prometheus alerts policy](./0016-prometheus-alerts-policy.md), [추적성 매트릭스 §3 External Integration 행 + §4 ADR](../traceability/report.md).
+- 관련 문서: [`docs/domain/integration-registry/homelab_pull_strategy.md`](../domain/integration-registry/homelab_pull_strategy.md) (1차 결정 초안 — 본 ADR 이 source-of-truth 로 승격), [`docs/domain/integration-registry/external_system_concept.md`](../domain/integration-registry/external_system_concept.md), [ADR-0016 Prometheus alerts policy](./0016-prometheus-alerts-policy.md), [추적성 매트릭스 §3 External Integration 행 + §4 ADR](../traceability/report.md).
 
 ## 1. 컨텍스트
 
@@ -122,7 +122,7 @@ backend-core/main.go::main()
 - `backend-core/internal/store/infra_snapshots.go` + migration 000029 — snapshot 영속화.
 - `backend-core/main.go` — env 기반 pull loop wire.
 - unit test — `*_test.go` (file_puller / http_puller / adapter normalize / pull loop).
-- IT 자동화 — `docs/tests/test_cases_m4_integration.md` + `reports/report_20260516_m4_integration.md`.
+- IT 자동화 — `docs/domain/integration-registry/test_cases.md` + `reports/report_20260516_m4_integration.md`.
 
 ## 6. 후속 작업
 
@@ -135,7 +135,7 @@ backend-core/main.go::main()
 
 | 일자 | 변경 | 메모 |
 | --- | --- | --- |
-| 2026-05-16 | 1차 결정 (`docs/planning/homelab_adapter_pull_strategy.md` §2.1) — lightweight goroutine + feature flag. | PR #139 활성화 |
+| 2026-05-16 | 1차 결정 (`docs/domain/integration-registry/homelab_pull_strategy.md` §2.1) — lightweight goroutine + feature flag. | PR #139 활성화 |
 | 2026-05-18 | accepted — ADR 형식으로 사후 명문화. source mode = file + HTTP mutually exclusive, 실행 컨테이너 = lightweight goroutine + feature flag, retry = exponential backoff env-controlled. 메트릭 5종 명시 (알림 규칙은 ADR-0016 분기). | sprint `claude/work_260518-c` (PR #143) |
 | 2026-05-18 | codex hotfix #5 P2 — §4.3 환경 변수 표를 "코드 default" / "권장 운영값" 두 컬럼으로 분리. PR #143 머지 직후 codex 외부 리뷰가 "ADR 의 default(60s/3/2s) 가 main.go 의 실제 default(30s/0/1s) 와 drift" 를 지적 → 운영자가 ADR 을 source-of-truth 로 보고 알림 임계 설계 시 오탐 가능성. 코드 default 는 보수적, 권장 운영값은 [ADR-0016](./0016-prometheus-alerts-policy.md) 알림 임계가 가정하는 값으로 명시. | sprint `claude/work_260518-e` |
 | 2026-05-18 | §6 carve out (1) + (2) **resolved** — (1) size limit + streaming decode: `HomeLabFilePuller.MaxBytes` + `HomeLabHTTPPuller.MaxBytes` 필드 추가 + `os.Stat` / Content-Length 사전 검사 + `io.LimitReader` + `json.NewDecoder` streaming. 회귀 unit test 5건. `Config.HomeLabPullMaxBytes` (env `DEVHUB_HOMELAB_PULL_MAX_BYTES`) wire. §4.3 env 표에 MAX_BYTES row 추가. (2) agent token rotation SOP: `docs/setup/homelab_agent_token_rotation.md` 신규. dedicated worker binary 와 push/pull dedup 은 carve out 유지 (M4 진입 시 재평가). | sprint `claude/work_260518-p` (PR #157) |

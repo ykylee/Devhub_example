@@ -7,7 +7,7 @@
 - 작성일: 2026-05-15
 - 결정일: 2026-05-15 (sprint `claude/work_260515-g`)
 - 결정 근거 sprint: `claude/work_260515-g` — DREQ-AuthADR
-- 관련 문서: [`docs/planning/development_request_concept.md` §7](../planning/development_request_concept.md), [`docs/requirements.md` REQ-NFR-DREQ-001](../requirements.md), [`docs/architecture.md` ARCH-DREQ-03](../architecture.md), [`docs/backend_api_contract.md` §14.1](../backend_api_contract.md), [ADR-0001 IdP 선정](./0001-idp-selection.md), [ADR-0011 RBAC row-scoping](./0011-rbac-row-scoping.md).
+- 관련 문서: [`docs/domain/dev-request/concept.md` §7](../domain/dev-request/concept.md), [`docs/requirements.md` REQ-NFR-DREQ-001](../requirements.md), [`docs/architecture.md` ARCH-DREQ-03](../architecture.md), [`docs/backend_api_contract.md` §14.1](../backend_api_contract.md), [ADR-0001 IdP 선정](./0001-idp-selection.md), [ADR-0011 RBAC row-scoping](./0011-rbac-row-scoping.md).
 
 ## 1. 컨텍스트
 

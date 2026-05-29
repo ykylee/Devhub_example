@@ -28,10 +28,10 @@
 | REQ | `./requirements.md` | planned (Phase 3) |
 | ARCH | `./architecture.md` | planned (Phase 3) |
 | API | `./api.md` | planned (Phase 3) |
-| TC | `./test_cases.md` | planned (Phase 2 — `docs/tests/test_cases_m4_integration.md`) |
+| TC | `./test_cases.md` | planned (Phase 2 — `docs/domain/integration-registry/test_cases.md`) |
 | Concept | `./external_system_integration_concept.md` | planned (Phase 2 — `docs/planning/`) |
 | Spec | `./external_integration_capability_matrix.md` | planned (Phase 2 — `docs/planning/`) |
-| Concept | `./task_ingestion_concept.md` | planned (Phase 2 — `docs/planning/task_item_ingestion_concept.md`) |
+| Concept | `./task_ingestion_concept.md` | planned (Phase 2 — `docs/domain/integration-registry/task_ingestion_concept.md`) |
 
 ## 4. 관련 ADR
 

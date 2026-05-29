@@ -304,7 +304,7 @@ Keycloak admin console:
 ## 13. 단계별 진입
 
 ### Phase 1 (본 sprint) — design 문서만
-- ✅ 본 문서 (`docs/planning/keycloak_sso_federation.md`)
+- ✅ 본 문서 (`docs/infrastructure/keycloak-idp/sso_federation.md`)
 
 ### Phase 2 — staging 검증 (별도 sprint)
 - ADR-0019 승격 — Keycloak federation 결정 + HRDB mapping 정책 (M2 employee_id) 명문화

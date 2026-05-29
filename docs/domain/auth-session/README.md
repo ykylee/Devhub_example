@@ -31,8 +31,8 @@
 | REQ | `./requirements.md` | planned (Phase 3 split) |
 | ARCH | `./architecture.md` | planned (Phase 3) |
 | API | `./api.md` | planned (Phase 3) |
-| TC | `./test_cases.md` | planned (Phase 2 이관 — `docs/tests/test_cases_m2_auth.md`) |
-| Concept | `./account_redesign.md` | planned (Phase 2 — `docs/planning/account_user_management_redesign.md`) |
+| TC | `./test_cases.md` | planned (Phase 2 이관 — `docs/domain/auth-session/test_cases.md`) |
+| Concept | `./account_redesign.md` | planned (Phase 2 — `docs/domain/auth-session/account_redesign.md`) |
 
 ## 4. 관련 ADR
 

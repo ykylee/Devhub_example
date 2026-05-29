@@ -130,7 +130,7 @@
 
 > **M5 DREQ closing 확정 (2026-05-27)**: intake auth + promote-tx + token admin(발급/revoke/PATCH/cron) + RBAC row-scoping + frontend(목록/상세/위젯/token admin) + notification 연계 + TC-DREQ-* 모두 완료. 잔여 = 외부 callback(webhook 송신) v1.1 carve.
 
-문서 hub: [`docs/planning/development_request_concept.md`](./planning/development_request_concept.md), 추적성 [`docs/traceability/report.md §2/§3 DREQ`](./traceability/report.md).
+문서 hub: [`docs/domain/dev-request/concept.md`](./domain/dev-request/concept.md), 추적성 [`docs/traceability/report.md §2/§3 DREQ`](./traceability/report.md).
 
 ### M6: External Integration — 1차 종합 closing (2026-05-15 ~ 18)
 
@@ -154,7 +154,7 @@
 API 인벤토리: **API-69..78 + API-80** 모두 activated (API-79 는 DREQ allowed_ips PATCH).
 TC 인벤토리: **TC-INT-FRONTEND-* 12건** (LIST/CREATE/EDIT/SYNC/RBAC/DELETE/DELETE-NEG + BIND-{LIST,CREATE,RBAC} + TOPOLOGY-V2-{NAV,RBAC}) + **TC-INT-HOMELAB-03** active.
 
-문서 hub: [`docs/planning/external_system_integration_concept.md`](./planning/external_system_integration_concept.md), [`docs/setup/homelab_agent_token_rotation.md`](./setup/homelab_agent_token_rotation.md), [`docs/setup/prometheus_alertmanager_setup.md`](./setup/prometheus_alertmanager_setup.md), 추적성 [`docs/traceability/report.md §3 External Integration`](./traceability/report.md).
+문서 hub: [`docs/domain/integration-registry/external_system_concept.md`](./domain/integration-registry/external_system_concept.md), [`docs/setup/homelab_agent_token_rotation.md`](./setup/homelab_agent_token_rotation.md), [`docs/setup/prometheus_alertmanager_setup.md`](./setup/prometheus_alertmanager_setup.md), 추적성 [`docs/traceability/report.md §3 External Integration`](./traceability/report.md).
 
 > **M6 깊이 확장 (2026-05-26~27)**: 1차 종합 closing 이후 외부 연동 깊이가 대폭 확장됐다 — **Gitea SCM 동기화 워커**(pull, `internal/gitea/`, `integration_sync_jobs` 큐, RM-M4-06 1차, PR #341) + **provider 등록 UX 고도화**(vendor 템플릿 7종 + 가이드 자격증명 + base_url + 연결 테스트 API-87, PR #352) + **auth_mode full 모델**(token/basic/app_password/oauth2/agent + write-only auth_secret, migration 000041, PR #358) + **api_token write-only 슬롯**(000040, PR #355) + **webhook 헤더 alias**(X-Gitea/X-Gogs fallback) + **SCM↔시스템 repository 양방향 연동**(소유권 분리 000042 + import API-89 + create API-90 gitea + provider_id 단일화 000045, PR #363/#366/#373) + **repository draft→publish lifecycle**(000043, API-91/92, PR #368) + **admin catalog UI**(PR #357/#361). 향후 방향은 [v1.0 릴리즈 로드맵](./planning/release_v1_roadmap.md) §3 + [코드베이스 스냅샷 §06 향후 방향](./analysis/2026-05-27-codebase-snapshot/06_future_direction.md) 참조.
 
@@ -166,7 +166,7 @@ Keycloak 인증 통과 + DevHub 프로필 미완료 사용자의 self-service �
 - ✅ **A (Requirements)**: REQ-FR-ONBOARD-001..012 + REQ-NFR-ONBOARD-001..008 (`docs/requirements.md §5.7`) — sprint `claude/onboarding-requirements-2026-05-21` (PR #266).
 - ✅ **A (Design)**: UC-ONBOARD-01..11 (`system_usecases.md §2.13`) + ARCH-ONBOARD-01..06 (`architecture.md §9`) + API-83..86 + API-32/33 확장 (`backend_api_contract.md §16`) — sprint `claude/onboarding-arch-2026-05-21` (PR #267).
 - ✅ **A (ADR)**: [ADR-0021 Onboarding self-service unit selection + lazy auto-create supersession](./adr/0021-onboarding-self-service-unit-selection.md) — sprint `claude/onboarding-adr-2026-05-21` (PR #269). ADR-0020 partial supersession (5 위치).
-- ✅ **A (Plan)**: IMPL carve 4건 분할 plan ([`docs/planning/onboarding_impl_plan.md`](./planning/onboarding_impl_plan.md)) + RM-ONBOARD-01..04 발급 — 본 sprint `claude/onboarding-impl-carve-plan-2026-05-21`.
+- ✅ **A (Plan)**: IMPL carve 4건 분할 plan ([`docs/domain/onboarding/impl_plan.md`](./domain/onboarding/impl_plan.md)) + RM-ONBOARD-01..04 발급 — 본 sprint `claude/onboarding-impl-carve-plan-2026-05-21`.
 - ✅ **B (Backend)**: RM-ONBOARD-01 — migration 000033 + `onboardingGate` middleware + 5 handler (API-83/84/85/86 + API-32/33 확장) + audit event const. **Carve A 완료 (PR #278)**. lazy_auto_create.go 폐기는 Carve D 후 #290.
 - ✅ **F (Frontend)**: RM-ONBOARD-02 — `/onboarding` page + OrganizationPicker + skip flag + dismissible banner + `(dashboard)/layout` 3-branch gating + `/account` self-service unit edit. **Carve B/C 완료 (PR #288)**.
 - ✅ **F (Admin UI)**: RM-ONBOARD-03 — `/admin/settings/users` 의 "Confirm Review" 액션 + `ConfirmReviewModal` + pending_review filter. **Carve B/C 완료 (PR #288)**.
@@ -177,12 +177,12 @@ TC 인벤토리: **TC-ONBOARD-* active** (`onboarding-first-login.spec.ts`).
 
 > **M7 Onboarding 풀스택 closing 확정 (2026-05-27)**: Carve A(backend) → B/C(frontend+admin) → D(tests) 전부 머지 + feature flag default ON + lazy_auto_create 폐기(ADR-0021 §3.3 정공법). 사내 잔여 = staging 1주 monitoring (운영 검증).
 
-문서 hub: [`docs/planning/keycloak_user_onboarding_concept.md`](./planning/keycloak_user_onboarding_concept.md), [`docs/planning/onboarding_impl_plan.md`](./planning/onboarding_impl_plan.md), [ADR-0021](./adr/0021-onboarding-self-service-unit-selection.md), 추적성 [`docs/traceability/report.md §3 Onboarding`](./traceability/report.md).
+문서 hub: [`docs/domain/onboarding/concept.md`](./domain/onboarding/concept.md), [`docs/domain/onboarding/impl_plan.md`](./domain/onboarding/impl_plan.md), [ADR-0021](./adr/0021-onboarding-self-service-unit-selection.md), 추적성 [`docs/traceability/report.md §3 Onboarding`](./traceability/report.md).
 
 ### Design 검토 (Phase 1 planning, 결정 후 ADR 승격 예정)
 
-- 📋 **[`docs/planning/single_port_reverse_proxy.md`](./planning/single_port_reverse_proxy.md)** — 외부 단일 포트 reverse proxy (nginx + `/devhub` prefix + backend/Hydra/Kratos sub-path 매핑). sprint `claude/work_260518-u` (PR #162). 결정 후 **ADR-0018** 승격 + Phase 2 staging.
-- 📋 **[`docs/planning/keycloak_sso_federation.md`](./planning/keycloak_sso_federation.md)** — Keycloak 을 Kratos upstream OIDC provider 로 federation. sprint `claude/work_260518-v` (PR #163). HRDB user mapping = employee_id strict link. RM-M4-09 구체화. 결정 후 **ADR-0019** 승격 + Phase 2 staging.
+- 📋 **[`docs/infrastructure/deployment-automation/single_port_reverse_proxy.md`](./infrastructure/deployment-automation/single_port_reverse_proxy.md)** — 외부 단일 포트 reverse proxy (nginx + `/devhub` prefix + backend/Hydra/Kratos sub-path 매핑). sprint `claude/work_260518-u` (PR #162). 결정 후 **ADR-0018** 승격 + Phase 2 staging.
+- 📋 **[`docs/infrastructure/keycloak-idp/sso_federation.md`](./infrastructure/keycloak-idp/sso_federation.md)** — Keycloak 을 Kratos upstream OIDC provider 로 federation. sprint `claude/work_260518-v` (PR #163). HRDB user mapping = employee_id strict link. RM-M4-09 구체화. 결정 후 **ADR-0019** 승격 + Phase 2 staging.
 
 ---
 
@@ -238,7 +238,7 @@ TC 인벤토리: **TC-ONBOARD-* active** (`onboarding-first-login.spec.ts`).
 | 기술 태깅 Kudos 가시성 | RBAC matrix와의 매핑 | requirements §5.1-3 |
 | 외부 부서 의존성 수동 등록 | UI / 모델 | requirements §5.2-6 |
 | `architecture/README.md`, `planning/README.md` TBD 스텁 | 본 통합 로드맵 채택 후 산출물로 채움 | 양자 |
-| **Application/Project 도메인 (총괄 + 기간성 운영)** — 시스템 관리자 등록·관리 vs 일반 사용자 조회 분리 | REQ-FR 발급 완료 + 모듈별 Usecase/ERD 분리 카탈로그 완료. 다음: ARCH/API/마이그레이션 설계 진입 | [`planning/project_management_concept.md`](./planning/project_management_concept.md), [`planning/system_usecases.md`](./planning/system_usecases.md), [`planning/system_erd.md`](./planning/system_erd.md) (2026-05-13) |
+| **Application/Project 도메인 (총괄 + 기간성 운영)** — 시스템 관리자 등록·관리 vs 일반 사용자 조회 분리 | REQ-FR 발급 완료 + 모듈별 Usecase/ERD 분리 카탈로그 완료. 다음: ARCH/API/마이그레이션 설계 진입 | [`domain/application-lifecycle/project_concept.md`](./domain/application-lifecycle/project_concept.md), [`planning/system_usecases.md`](./planning/system_usecases.md), [`planning/system_erd.md`](./planning/system_erd.md) (2026-05-13) |
 
 ---
 

@@ -28,7 +28,7 @@
 | REQ | `./requirements.md` | planned (Phase 3, 기존 `backend_requirements_org_hierarchy.md` 통합) |
 | ARCH | `./architecture.md` | planned (Phase 3) |
 | API | `./api.md` | planned (Phase 3) |
-| TC | `./test_cases.md` | planned (Phase 2 — `docs/tests/test_cases_m3_organization.md`) |
+| TC | `./test_cases.md` | planned (Phase 2 — `docs/domain/organization-management/test_cases.md`) |
 | Spec | `./org_chart_ux_spec.md` (기존) | active |
 | Spec | `./organizational_hierarchy_spec.md` (기존) | active |
 | Spec | `./backend_requirements_org_hierarchy.md` (기존) | active |

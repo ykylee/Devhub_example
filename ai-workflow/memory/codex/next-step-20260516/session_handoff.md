@@ -51,10 +51,10 @@
     - `DEVHUB_HOMELAB_PULL_HTTP_RETRY_BACKOFF`
     - 5xx 재시도 후 성공/재시도 소진 테스트 추가
 - Prometheus 운영 초안 문서:
-  - `docs/planning/prometheus_homelab_alerts.md` (alert rule/dashboard draft)
+  - `docs/domain/integration-registry/prometheus_homelab_alerts.md` (alert rule/dashboard draft)
   - stage/prod 임계값 프로파일 + 튜닝 체크리스트 반영
 - Integration 테스트 문서/실행 보고서 반영:
-  - `docs/tests/test_cases_m4_integration.md` 실행 스냅샷 업데이트
+  - `docs/domain/integration-registry/test_cases.md` 실행 스냅샷 업데이트
   - `docs/tests/reports/report_20260516_m4_integration.md` 추가
 - role/resilience 테스트 보강:
   - binding 생성 권한 거부(403) 회귀 가드 추가
@@ -66,7 +66,7 @@
   - HomeLab adapter baseline/후속 범위 (`docs/architecture.md §8.5`) 명시
   - RM/IMPL/UT ID 확장 점검 결과 반영 (RM-INT deferred 유지, IMPL/UT 확장 반영)
   - `infra_integrations` handler에 HomeLab adapter normalize/ingest/load 단계 연결
-  - HomeLab pull source 도입 전략 문서 추가 (`docs/planning/homelab_adapter_pull_strategy.md`)
+  - HomeLab pull source 도입 전략 문서 추가 (`docs/domain/integration-registry/homelab_pull_strategy.md`)
 
 ## 검증 스냅샷
 - `cd backend-core && go test ./internal/httpapi -run 'IntegrationProviderWebhook|CreateIntegrationProvider|ListIntegrationProviders|CreateIntegrationBinding|RoutePermissionTable_CoversAllProtectedV1Routes'` 통과

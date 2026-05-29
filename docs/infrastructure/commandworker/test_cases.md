@@ -79,7 +79,7 @@
 
 본 문서는 카탈로그 (테스트 설계) 1차. 실제 `frontend/tests/e2e/command-lifecycle.spec.ts` 작성은 후속 sprint 의 별도 PR (현재 미작성). 매트릭스 §5.1 의 P2 항목은 본 카탈로그 등재 시점에서 "카탈로그 closed, spec ts open" 으로 정합.
 
-> **2026-05-27 정합 (sprint `deepseek/e2e_ci_cleanup`)**: `infra-topology.spec.ts` (`.skip` 상태, 레거시 `/admin` 토폴로지 surface 대상) 는 해당 화면이 아카이브되어 삭제됨. TC-INFRA-RENDER-01 / -NODE-CLICK-01 / -GROUP-TOGGLE-01 (legacy `/admin`) 은 obsolete 이며, 실 토폴로지 검증은 `admin-topology-v2.spec.ts` (TC-INT-HOMELAB-03, `/admin/topology-v2`) 가 대체한다 (`docs/tests/test_cases_m4_integration.md` §3 참조).
+> **2026-05-27 정합 (sprint `deepseek/e2e_ci_cleanup`)**: `infra-topology.spec.ts` (`.skip` 상태, 레거시 `/admin` 토폴로지 surface 대상) 는 해당 화면이 아카이브되어 삭제됨. TC-INFRA-RENDER-01 / -NODE-CLICK-01 / -GROUP-TOGGLE-01 (legacy `/admin`) 은 obsolete 이며, 실 토폴로지 검증은 `admin-topology-v2.spec.ts` (TC-INT-HOMELAB-03, `/admin/topology-v2`) 가 대체한다 (`docs/domain/integration-registry/test_cases.md` §3 참조).
 
 ## 5. 변경 이력
 

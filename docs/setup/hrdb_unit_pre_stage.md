@@ -6,7 +6,7 @@
 - 상태: draft (1차)
 - 최종 수정일: 2026-05-22
 - 결정 근거 sprint: `claude/work_260522-internal-coordinated-carve-docs`
-- 관련 문서: [ADR-0008 HRDB production adapter](../adr/0008-hrdb-production-adapter.md), [ADR-0020 §3.2 + §6.3](../adr/0020-account-user-management-boundary.md), [ADR-0021 Onboarding §3 + §6.2](../adr/0021-onboarding-self-service-unit-selection.md), [Keycloak 운영 SOP §5.2](./keycloak_operations.md#52-custom-claim--employee_id-hrdb-sync-핵심), [keycloak_admin_responsibility](../governance/keycloak_admin_responsibility.md), [keycloak_offboarding_immediacy](../planning/keycloak_offboarding_immediacy.md).
+- 관련 문서: [ADR-0008 HRDB production adapter](../adr/0008-hrdb-production-adapter.md), [ADR-0020 §3.2 + §6.3](../adr/0020-account-user-management-boundary.md), [ADR-0021 Onboarding §3 + §6.2](../adr/0021-onboarding-self-service-unit-selection.md), [Keycloak 운영 SOP §5.2](./keycloak_operations.md#52-custom-claim--employee_id-hrdb-sync-핵심), [keycloak_admin_responsibility](../governance/keycloak_admin_responsibility.md), [keycloak_offboarding_immediacy](../infrastructure/keycloak-idp/offboarding_immediacy.md).
 
 ## 1. 배경
 
@@ -42,7 +42,7 @@
 **장점**:
 - 단일 source-of-truth (Keycloak)
 - DevHub PG 안에 HRDB 사본 보관 불필요 — schema 격리 (ADR-0020 §3.2 정합)
-- Off-boarding sync 자연 통합 ([keycloak_offboarding_immediacy.md](../planning/keycloak_offboarding_immediacy.md) Phase 1 옵션 C)
+- Off-boarding sync 자연 통합 ([keycloak_offboarding_immediacy.md](../infrastructure/keycloak-idp/offboarding_immediacy.md) Phase 1 옵션 C)
 
 **단점**:
 - Keycloak user attribute 의 schema 변경이 사내 정책 결정 동반 (custom mapper 추가)
@@ -93,7 +93,7 @@ ADR-0021 onboarding 흐름의 자체 동작 — 사용자가 `OrganizationPicker
 | 1 | HRDB 의 사용자 (`employee_id`, `unit_id`, `department_name`) 일자별 diff 추출 |
 | 2 | Keycloak Admin REST 의 `PUT /admin/realms/devhub/users/:id` 호출 — user attribute 갱신 |
 | 3 | 신규 사용자 시 `POST /admin/realms/devhub/users` 로 생성 + attribute set |
-| 4 | 퇴사자 시 `PUT .../users/:id` 의 `enabled=false` ([keycloak_offboarding_immediacy.md](../planning/keycloak_offboarding_immediacy.md) Phase 1) |
+| 4 | 퇴사자 시 `PUT .../users/:id` 의 `enabled=false` ([keycloak_offboarding_immediacy.md](../infrastructure/keycloak-idp/offboarding_immediacy.md) Phase 1) |
 | 5 | ETL 실패 시 사내 alerting (재시도 + 에스컬레이션) |
 
 **Keycloak user attribute key 명명**:
@@ -227,7 +227,7 @@ ADR-0008 §4.1 의 `PostgresClient` 구현체 신규. `HRDBClient` interface 의
 | 옵션 B `internal/hrdb/postgres.go` 구현 | P3 | ADR-0008 §4.1 의 carve |
 | ADR-0021 §6.2 의 onboarding cross-check 실 구현 | P3 | 옵션 A 또는 B 인프라 동반 |
 | HRDB ETL audit trail 표준 | P3 | 사내 HRDB 팀 정책 |
-| Off-boarding 즉시성 Phase 2 (LDAP federation) | P3 | [keycloak_offboarding_immediacy.md](../planning/keycloak_offboarding_immediacy.md) Phase 2 결정 후 |
+| Off-boarding 즉시성 Phase 2 (LDAP federation) | P3 | [keycloak_offboarding_immediacy.md](../infrastructure/keycloak-idp/offboarding_immediacy.md) Phase 2 결정 후 |
 
 ## 7. 변경 이력
 

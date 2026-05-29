@@ -6,7 +6,7 @@
 - 상태: draft (1차)
 - 최종 수정일: 2026-05-22
 - 결정 근거 sprint: `claude/work_260522-onboarding-ops-sop`
-- 관련 문서: [ADR-0021](../adr/0021-onboarding-self-service-unit-selection.md), [Onboarding IMPL plan §7 #6](../planning/onboarding_impl_plan.md), [Keycloak 운영 SOP](./keycloak_operations.md), [release_v1_roadmap §1.3 #7](../planning/release_v1_roadmap.md).
+- 관련 문서: [ADR-0021](../adr/0021-onboarding-self-service-unit-selection.md), [Onboarding IMPL plan §7 #6](../domain/onboarding/impl_plan.md), [Keycloak 운영 SOP](./keycloak_operations.md), [release_v1_roadmap §1.3 #7](../planning/release_v1_roadmap.md).
 
 ## 1. 배경 + 책임 분리
 
@@ -395,7 +395,7 @@ groups:
 
 ## 7. 1주 종료 후 acceptance — DoD
 
-[`docs/planning/onboarding_impl_plan.md §7 #6`](../planning/onboarding_impl_plan.md) 의 *"운영 환경 (staging) 1주 monitoring — 403 spike / sessionStorage flag race 등 회귀 없음"* 항목의 구체화.
+[`docs/domain/onboarding/impl_plan.md §7 #6`](../domain/onboarding/impl_plan.md) 의 *"운영 환경 (staging) 1주 monitoring — 403 spike / sessionStorage flag race 등 회귀 없음"* 항목의 구체화.
 
 | # | 항목 | Verification |
 | --- | --- | --- |
@@ -429,6 +429,6 @@ DoD #1~#7 모두 통과 시 staging → prod promote 검토. 단 1개 실패해�
 
 | 일자 | 변경 | sprint |
 | --- | --- | --- |
-| 2026-05-22 | 1차 draft — §1 책임 분리 + §2 state machine 운영 관점 + §3 feature flag 운영 + §4 1주 monitoring 신호 5종 + SQL 7개 + §5 rollback runbook 4 step + drill + §6 incident response 4 단계 + 패턴 5종 + escalation 3 level + §7 DoD 8 항목 + §8 잔여 carve 7. [ADR-0021](../adr/0021-onboarding-self-service-unit-selection.md) + [Onboarding IMPL plan §7 #6](../planning/onboarding_impl_plan.md) 의 운영 측면 source-of-truth. | `claude/work_260522-onboarding-ops-sop` |
+| 2026-05-22 | 1차 draft — §1 책임 분리 + §2 state machine 운영 관점 + §3 feature flag 운영 + §4 1주 monitoring 신호 5종 + SQL 7개 + §5 rollback runbook 4 step + drill + §6 incident response 4 단계 + 패턴 5종 + escalation 3 level + §7 DoD 8 항목 + §8 잔여 carve 7. [ADR-0021](../adr/0021-onboarding-self-service-unit-selection.md) + [Onboarding IMPL plan §7 #6](../domain/onboarding/impl_plan.md) 의 운영 측면 source-of-truth. | `claude/work_260522-onboarding-ops-sop` |
 | 2026-05-26 | §4.4 Prometheus metric backend 적용 (4 metric: gate_blocked Counter / submit Counter + Histogram / review_confirm Counter). §8 carve P2 resolved + pending_review Gauge 는 별도 carve P3 로 분리. metric 정의 [`backend-core/internal/httpapi/onboarding_metrics.go`](../../backend-core/internal/httpapi/onboarding_metrics.go). dashboard 매핑 표 (S1~S5 ↔ metric). | `claude/work_260526-onboarding-prometheus-metric` |
 | 2026-05-26 | §4.4 metric 표 5번째 row 추가 (`devhub_onboarding_pending_review_count` Gauge) + §4.4.1 sample PromQL 6 개 + §4.4.2 sample Alertmanager rule 4 alert + §8 pending_review Gauge P3 carve ✅ resolved. cron refresh worker (`RunOnboardingPendingReviewGauge`, default 60s) + `PostgresStore.CountPendingReview` 신규. main.go wire 시 interface assertion. | `claude/work_260526-onboarding-pending-gauge` |

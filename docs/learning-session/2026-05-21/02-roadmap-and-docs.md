@@ -65,7 +65,7 @@ M4 (planned)             M5 (2026-05-15 ~ 18)    M6 (2026-05-15 ~ 18)    M7 (202
 - **ADR-0013** RBAC row-scoping (`dev_requests:view`/`edit` + assignee = 본인)
 - **ADR-0014** intake token admin (plain 1회 노출 + SHA-256 hashed 저장)
 - **ADR-0017** 운영 hardening (atomicity + cron revoke + Prometheus metric + PATCH allowed_ips)
-- **TC-DREQ-* 13건** + `docs/tests/test_cases_m5_dreq.md`
+- **TC-DREQ-* 13건** + `docs/domain/dev-request/test_cases.md`
 
 ### M6 — External Integration 1차 종합 closing (2026-05-15 ~ 18)
 - Provider Catalog + 4 endpoint CRUD + Binding CRUD + sync + topology v2
@@ -158,15 +158,15 @@ M4 (planned)             M5 (2026-05-15 ~ 18)    M6 (2026-05-15 ~ 18)    M7 (202
 
 ### Concept/Design Phase 1 문서 (planning/)
 
-- `docs/planning/keycloak_user_onboarding_concept.md` — Onboarding 컨셉 (§5.1~§5.9 + §8 #1~12 결정)
-- `docs/planning/onboarding_impl_plan.md` — IMPL Carve A~D plan + RM-ONBOARD-01..04
-- `docs/planning/development_request_concept.md` — DREQ 컨셉
-- `docs/planning/external_system_integration_concept.md` — Integration 컨셉
-- `docs/planning/account_user_management_redesign.md` — ADR-0020 Phase 1/2 매트릭스 + 명시 결정 6건
-- `docs/planning/keycloak_only_refactor_execution_plan.md` — ADR-0019 실행 계획 (PR #167 ~ KC-PR-A..F)
-- `docs/planning/keycloak_failover.md` — Keycloak HA design (Phase 1 graceful / Phase 2 active-active)
-- `docs/planning/keycloak_offboarding_immediacy.md` — off-boarding 즉시성 design
-- `docs/planning/keycloak_groups_rbac_mapping.md` — Keycloak groups → DevHub role 매핑
+- `docs/domain/onboarding/concept.md` — Onboarding 컨셉 (§5.1~§5.9 + §8 #1~12 결정)
+- `docs/domain/onboarding/impl_plan.md` — IMPL Carve A~D plan + RM-ONBOARD-01..04
+- `docs/domain/dev-request/concept.md` — DREQ 컨셉
+- `docs/domain/integration-registry/external_system_concept.md` — Integration 컨셉
+- `docs/domain/auth-session/account_redesign.md` — ADR-0020 Phase 1/2 매트릭스 + 명시 결정 6건
+- `docs/infrastructure/keycloak-idp/refactor_execution_plan.md` — ADR-0019 실행 계획 (PR #167 ~ KC-PR-A..F)
+- `docs/infrastructure/keycloak-idp/failover.md` — Keycloak HA design (Phase 1 graceful / Phase 2 active-active)
+- `docs/infrastructure/keycloak-idp/offboarding_immediacy.md` — off-boarding 즉시성 design
+- `docs/domain/rbac-permissions/keycloak_groups_mapping.md` — Keycloak groups → DevHub role 매핑
 
 ### ADR 인덱스 (21건)
 

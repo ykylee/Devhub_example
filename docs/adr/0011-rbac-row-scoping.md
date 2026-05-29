@@ -7,11 +7,11 @@
 - 작성일: 2026-05-14
 - 결정일: 2026-05-14 (sprint `claude/work_260514-a`)
 - 결정 근거 sprint: `claude/work_260514-a` — Application Design 1차 + ADR-0011 평가/결정 (mixed sprint).
-- 관련 문서: [`docs/planning/project_management_concept.md`](../planning/project_management_concept.md) §5.3, §10, [`docs/requirements.md`](../requirements.md) §5.4.1 (REQ-FR-PROJ-000, REQ-FR-PROJ-009, REQ-FR-PROJ-010), [ADR-0002](./0002-rbac-policy-edit-api.md), [ADR-0007](./0007-rbac-cache-multi-instance.md), [추적성 매트릭스 §2.2 RBAC API + §3 Application/Project 행](../traceability/report.md).
+- 관련 문서: [`docs/domain/application-lifecycle/project_concept.md`](../domain/application-lifecycle/project_concept.md) §5.3, §10, [`docs/requirements.md`](../requirements.md) §5.4.1 (REQ-FR-PROJ-000, REQ-FR-PROJ-009, REQ-FR-PROJ-010), [ADR-0002](./0002-rbac-policy-edit-api.md), [ADR-0007](./0007-rbac-cache-multi-instance.md), [추적성 매트릭스 §2.2 RBAC API + §3 Application/Project 행](../traceability/report.md).
 
 ## 1. 컨텍스트
 
-`docs/planning/project_management_concept.md` §5.3 는 Owner 권한 위양을 3단계로 정의한다:
+`docs/domain/application-lifecycle/project_concept.md` §5.3 는 Owner 권한 위양을 3단계로 정의한다:
 
 - **1차 (MVP)**: 모든 쓰기 작업은 `system_admin` 단일 주체.
 - **2차**: `owner` 에게 제한된 메타/멤버 수정 위양.

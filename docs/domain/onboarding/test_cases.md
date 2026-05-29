@@ -5,7 +5,7 @@
 - 대상 독자: Backend / Frontend 개발자, QA, AI 에이전트, 운영자.
 - 상태: draft
 - 최종 수정일: 2026-05-21
-- 관련 문서: [`requirements.md`](../requirements.md) §5.7, [`planning/keycloak_user_onboarding_concept.md`](../planning/keycloak_user_onboarding_concept.md), [`planning/system_usecases.md`](../planning/system_usecases.md) §2.13, [`architecture.md`](../architecture.md) §9, [`backend_api_contract.md`](../backend_api_contract.md) §16, [`docs/adr/0021-onboarding-self-service-unit-selection.md`](../adr/0021-onboarding-self-service-unit-selection.md), [`planning/onboarding_impl_plan.md`](../planning/onboarding_impl_plan.md).
+- 관련 문서: [`requirements.md`](../requirements.md) §5.7, [`domain/onboarding/concept.md`](../domain/onboarding/concept.md), [`planning/system_usecases.md`](../planning/system_usecases.md) §2.13, [`architecture.md`](../architecture.md) §9, [`backend_api_contract.md`](../backend_api_contract.md) §16, [`docs/adr/0021-onboarding-self-service-unit-selection.md`](../adr/0021-onboarding-self-service-unit-selection.md), [`domain/onboarding/impl_plan.md`](../domain/onboarding/impl_plan.md).
 
 ## 1. 기능 맵 (REQ / UC 기준)
 

@@ -22,7 +22,7 @@
 
 ## 산출물 8개
 
-1. `docs/planning/development_request_concept.md` (신규)
+1. `docs/domain/dev-request/concept.md` (신규)
 2. `docs/requirements.md` § 신규 (REQ-FR-DREQ-* + REQ-NFR-DREQ)
 3. `docs/planning/system_usecases.md` (UC-DREQ-*)
 4. `docs/architecture.md` § 신규 (ARCH-DREQ)

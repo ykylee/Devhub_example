@@ -7,7 +7,7 @@
 - 작성일: 2026-05-15
 - 결정일: 2026-05-15 (sprint `claude/work_260515-m`)
 - 결정 근거 sprint: `claude/work_260515-m` — DREQ-RBAC-ADR + DREQ-Promote-Tx 1번째 carve out.
-- 관련 문서: [ADR-0011 Application/Project Owner 위양](./0011-rbac-row-scoping.md) §4.2, [ADR-0012 DREQ 외부 수신 인증](./0012-dreq-external-intake-auth.md), [`docs/planning/development_request_concept.md`](../planning/development_request_concept.md) §6, [`docs/requirements.md`](../requirements.md) §5.5 (REQ-FR-DREQ-002, REQ-FR-DREQ-007, REQ-FR-DREQ-008), [추적성 매트릭스 §3 Dev Request 행](../traceability/report.md).
+- 관련 문서: [ADR-0011 Application/Project Owner 위양](./0011-rbac-row-scoping.md) §4.2, [ADR-0012 DREQ 외부 수신 인증](./0012-dreq-external-intake-auth.md), [`docs/domain/dev-request/concept.md`](../domain/dev-request/concept.md) §6, [`docs/requirements.md`](../requirements.md) §5.5 (REQ-FR-DREQ-002, REQ-FR-DREQ-007, REQ-FR-DREQ-008), [추적성 매트릭스 §3 Dev Request 행](../traceability/report.md).
 
 ## 1. 컨텍스트
 
