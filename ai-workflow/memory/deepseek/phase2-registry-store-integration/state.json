@@ -1,11 +1,12 @@
 {
   "branch": "deepseek/phase2-registry-store-integration",
-  "status": "in_progress",
-  "phase": "Phase 2 — registry store + org-management store 통합 테스트 추가",
+  "status": "complete",
+  "phase": "Phase 2 — repository-integration + org-management + realtime ticket DB store 완료",
   "coverage": {
-    "repository-integration/store_methods": "UpsertRepository, ListRepositoriesByProvider: integration test 추가",
-    "org-management/store_methods": "CreateUser, UpdateUser, DeleteUser, DeleteOrgUnit, SetIdPSubject: integration test 추가"
+    "repository-integration/store": "UpsertRepository, ListRepositoriesByProvider: integration test 추가",
+    "org-management/store": "CreateUser, UpdateUser, DeleteUser, DeleteOrgUnit, SetIdPSubject: integration test 추가",
+    "realtime/view/DBRealtimeTicketStore": "Issue/Consume + expired ticket: integration test 추가"
   },
   "last_update": "2026-05-30",
-  "notes": "Phase 2 P0 2/3 완료. realtime ticket DB store (P1) 남음."
+  "notes": "Phase 2 P0/P1 완료. auth-session store (P2) 잔여."
 }
