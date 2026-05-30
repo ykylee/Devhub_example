@@ -2,6 +2,14 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { tokenStore } from "./token-store";
 import { refreshAccessToken, _resetRefreshCoordinator } from "./refresh";
 
+// OIDC_ISSUER_URL 모듈 레벨 상수를 빈 값으로 mock -> resolveTokenEndpoint 가
+// 항상 /api/runtime-config 를 fetch 하도록 강제. (NEXT_PUBLIC_* env var 는 Next.js
+// 빌드 시 인라인되므로 vi.stubEnv 로 격리 불가.)
+vi.mock("@/shared/config/endpoints", () => ({
+  OIDC_ISSUER_URL: "",
+  API_BASE_URL: "",
+}));
+
 // 테스트 헬퍼: resolveTokenEndpoint 가 OIDC_ISSUER_URL 미설정 시 `/api/runtime-config`
 // 를 fetch 하므로, URL 패턴별로 적절한 응답을 반환하는 mock 을 구성한다.
 // (`tokenEndpointFetch` 가 token endpoint 호출에 대해 무엇을 반환할지 시나리오별 지정.)

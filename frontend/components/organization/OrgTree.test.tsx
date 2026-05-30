@@ -692,9 +692,12 @@ describe("OrgTree", () => {
       rootNode.data.onToggleExpand("u-root");
     });
     
-    const nodesAfter = reactFlowProps.current.nodes as any[];
-    const hasEngNode = nodesAfter.some(n => n.id === "u-eng");
-    expect(hasEngNode).toBe(false);
+    // act() 는 expandedNodes state 는 flush 하지만, filter effect(setNodes) 는
+    // 별도 effect cycle 이므로 waitFor 로 재렌더링을 기다려야 한다.
+    await waitFor(() => {
+      const nodesAfter = reactFlowProps.current.nodes as any[];
+      expect(nodesAfter.some(n => n.id === "u-eng")).toBe(false);
+    });
   });
 
   it("handleNodesChange coordinates match previous position exactly is a no-op", async () => {
