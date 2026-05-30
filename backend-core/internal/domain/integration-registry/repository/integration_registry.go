@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/devhub/backend-core/internal/crypt"
 	"github.com/devhub/backend-core/internal/domain"
 	"github.com/devhub/backend-core/internal/store"
 	"github.com/jackc/pgx/v5"
@@ -51,6 +52,25 @@ func ScanIntegrationProvider(row pgx.Row) (domain.IntegrationProvider, error) {
 			return domain.IntegrationProvider{}, fmt.Errorf("decode capabilities: %w", err)
 		}
 	}
+
+	var err error
+	p.CredentialsRef, err = crypt.Decrypt(p.CredentialsRef)
+	if err != nil {
+		return domain.IntegrationProvider{}, fmt.Errorf("decrypt credentials_ref: %w", err)
+	}
+	p.APIToken, err = crypt.Decrypt(p.APIToken)
+	if err != nil {
+		return domain.IntegrationProvider{}, fmt.Errorf("decrypt api_token: %w", err)
+	}
+	p.AuthSecret, err = crypt.Decrypt(p.AuthSecret)
+	if err != nil {
+		return domain.IntegrationProvider{}, fmt.Errorf("decrypt auth_secret: %w", err)
+	}
+	p.WebhookSecret, err = crypt.Decrypt(p.WebhookSecret)
+	if err != nil {
+		return domain.IntegrationProvider{}, fmt.Errorf("decrypt webhook_secret: %w", err)
+	}
+
 	return p, nil
 }
 
@@ -223,6 +243,24 @@ func (r *IntegrationRepository) CreateIntegrationProvider(ctx context.Context, p
 	if p.PullIntervalSeconds <= 0 {
 		p.PullIntervalSeconds = 1800
 	}
+
+	encCredentialsRef, err := crypt.Encrypt(p.CredentialsRef)
+	if err != nil {
+		return domain.IntegrationProvider{}, fmt.Errorf("encrypt credentials_ref: %w", err)
+	}
+	encAPIToken, err := crypt.Encrypt(p.APIToken)
+	if err != nil {
+		return domain.IntegrationProvider{}, fmt.Errorf("encrypt api_token: %w", err)
+	}
+	encAuthSecret, err := crypt.Encrypt(p.AuthSecret)
+	if err != nil {
+		return domain.IntegrationProvider{}, fmt.Errorf("encrypt auth_secret: %w", err)
+	}
+	encWebhookSecret, err := crypt.Encrypt(p.WebhookSecret)
+	if err != nil {
+		return domain.IntegrationProvider{}, fmt.Errorf("encrypt webhook_secret: %w", err)
+	}
+
 	const query = `
 INSERT INTO integration_providers (
 	provider_key, provider_type, display_name, enabled, auth_mode,
@@ -265,16 +303,16 @@ RETURNING
 		p.DisplayName,
 		p.Enabled,
 		string(p.AuthMode),
-		p.CredentialsRef,
+		encCredentialsRef,
 		string(caps),
 		p.SyncStatus,
 		p.BaseURL,
-		p.APIToken,
+		encAPIToken,
 		p.AuthUsername,
 		p.AuthClientID,
 		p.AuthTokenURL,
-		p.AuthSecret,
-		p.WebhookSecret,
+		encAuthSecret,
+		encWebhookSecret,
 		p.PullIntervalSeconds,
 		p.LastPulledAt,
 	))
@@ -292,6 +330,24 @@ func (r *IntegrationRepository) UpdateIntegrationProvider(ctx context.Context, p
 	if err != nil {
 		return domain.IntegrationProvider{}, fmt.Errorf("marshal capabilities: %w", err)
 	}
+
+	encCredentialsRef, err := crypt.Encrypt(p.CredentialsRef)
+	if err != nil {
+		return domain.IntegrationProvider{}, fmt.Errorf("encrypt credentials_ref: %w", err)
+	}
+	encAPIToken, err := crypt.Encrypt(p.APIToken)
+	if err != nil {
+		return domain.IntegrationProvider{}, fmt.Errorf("encrypt api_token: %w", err)
+	}
+	encAuthSecret, err := crypt.Encrypt(p.AuthSecret)
+	if err != nil {
+		return domain.IntegrationProvider{}, fmt.Errorf("encrypt auth_secret: %w", err)
+	}
+	encWebhookSecret, err := crypt.Encrypt(p.WebhookSecret)
+	if err != nil {
+		return domain.IntegrationProvider{}, fmt.Errorf("encrypt webhook_secret: %w", err)
+	}
+
 	const query = `
 UPDATE integration_providers
 SET display_name = $2,
@@ -341,18 +397,18 @@ RETURNING
 		p.ID,
 		p.DisplayName,
 		p.Enabled,
-		p.CredentialsRef,
+		encCredentialsRef,
 		string(caps),
 		p.SyncStatus,
 		p.LastSyncAt,
 		p.LastErrorCode,
 		p.BaseURL,
-		p.APIToken,
+		encAPIToken,
 		p.AuthUsername,
 		p.AuthClientID,
 		p.AuthTokenURL,
-		p.AuthSecret,
-		p.WebhookSecret,
+		encAuthSecret,
+		encWebhookSecret,
 		p.PullIntervalSeconds,
 		p.LastPulledAt,
 	))

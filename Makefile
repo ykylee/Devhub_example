@@ -1,7 +1,7 @@
 MIGRATIONS_DIR ?= backend-core/migrations
 MIGRATE_DB_URL ?= postgres://user:pass@localhost:5432/devhub?sslmode=disable
 
-.PHONY: init proto-tools proto setup migrate-tools migrate-create migrate-up migrate-down migrate-version build run test test-race test-coverage test-frontend e2e
+.PHONY: init proto-tools proto setup migrate-tools migrate-create migrate-up migrate-down migrate-version build run test test-race test-coverage test-frontend e2e lint-migrations
 
 init: setup proto-tools migrate-tools proto
 
@@ -68,3 +68,6 @@ test-frontend:
 
 e2e:
 	cd frontend && npm run e2e
+
+lint-migrations:
+	@bash ./scripts/check-migration-uniqueness.sh

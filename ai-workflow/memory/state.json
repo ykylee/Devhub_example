@@ -2,8 +2,8 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-05-29 main. cleanup-recovery (PR #407) 후속 carve out + SDLC 문서 재정비 7 PR 머지 완료. (1) PR #409 providerHasCapability 3 카피 → internal/shared/integrationcaps 통합 (2) PR #410~#415 SDLC 5 Phase: 도메인 디렉터리 골격 → planning/tests 이관 → REQ/ARCH/API split → traceability matrix 재구성 → document-standards §4 갱신 (3) PR #412 view 컴포넌트 24개 단위테스트 +210 (rbac/repo/dreq/intreg/org 도메인 90%+ / app-lifecycle modal 미달은 별도 carve). main HEAD `273d9d4`. 후속 carve out: ApplicationRepository decouple / ApplicationStore slim / CI e2e+integration 복원 / 큰 modal coverage 70% / §2 인덱스 도메인 분류 정합.",
-  "updated_at": "2026-05-29T03:30:00Z",
+  "status": "2026-05-29 main. (1) NOW-3 (N-3) SCM Draft/Publish E2E 통합 테스트 완결 (Gitea Mock/GiteaID Unique Hardening, Playwright E2E 레이스 해결 및 69 TC 회귀 통과). (2) NOW-4 (N-4) 프론트엔드 핵심 4대 모듈(store.ts 100%, ProviderModal 91.4%, MemberTable 93.3%, PermissionEditor 94.5%) 단위 테스트 집중 보강 완료 및 총 72개 파일 962개 Vitest 100% 무결 통과 완수.",
+  "updated_at": "2026-05-29T23:00:00Z",
   "head_commit": "273d9d4",
   "head_summary": "docs(governance-docs): document-standards.md §4 단계별 문서 위치 가이드 갱신 (Phase 5/5) (#415)",
   "milestones": {
@@ -45,7 +45,7 @@
   },
   "components": {
     "frontend": {
-      "phase": "Phase 7 in progress. sub-carve B cleanup (PR #246) 머지 — account.service.ts 삭제 및 admin actions 제거. UI polish 1차 (PR #248) 가 성공적으로 머지 완료되어 semantic theme, responsive sidebar, a11y 가 전체 UI에 완벽히 적용되었습니다. e2e 테스트 100% 성공을 확보했습니다. Bindings UI (PR #251) 및 Topology V2 (PR #252) 고도화. /login 페이지 정리 및 password 필드 제거 (PR #253).",
+      "phase": "v1.0 마감 및 굳히기(Hardening) 수행 중. NOW-3 (N-3) SCM Draft/Publish E2E 통합 테스트 완결 (69개 시나리오 100% PASS) 및 NOW-4 (N-4) 프론트엔드 핵심 4대 모듈(store.ts, ProviderModal, MemberTable, PermissionEditor) 단위 테스트 90% 이상 상향 완료로 프론트엔드 총 962개 Vitest 유닛 테스트 100% PASS 성공.",
       "auth": "Keycloak OIDC code flow with PKCE end-to-end (ADR-0019, 2026-05-19). tokenStore persists access/refresh/id; apiClient auto Authorization. AuthGuard 401 -> /login + system route gate. Header Sign Out drives Keycloak end_session_endpoint via id_token_hint. **e2e Kratos legacy 제거 및 dynamic idp_subject sync 도입 (PR #249 머지).**",
       "build_check": "PASS — Next.js 16.2.4, 18 static pages.",
       "rbac": "PermissionEditor at /admin/settings/permissions wired to /api/v1/rbac/policies. defaultLandingFor + isSystemAdmin + pathRequiresSystemAdmin in lib/auth/role-routing.ts."
