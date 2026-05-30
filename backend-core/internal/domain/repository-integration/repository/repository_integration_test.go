@@ -152,7 +152,7 @@ func TestIntegration_Repository_UpsertAndList(t *testing.T) {
 	})
 
 	t.Run("ListRepositoriesByProvider_EmptyForUnknownProvider", func(t *testing.T) {
-		ghostUUID := "00000000-0000-0000-0000-000000000000"
+		ghostUUID := "ffffffff-ffff-ffff-ffff-ffffffffffff"
 		repos, err := integRepo.ListRepositoriesByProvider(ctx, ghostUUID)
 		if err != nil {
 			t.Fatalf("ListRepositoriesByProvider for ghost provider: %v", err)
