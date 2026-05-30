@@ -2,15 +2,18 @@ package view
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/devhub/backend-core/internal/domain"
 	"github.com/devhub/backend-core/internal/shared/httphelp"
 	"github.com/devhub/backend-core/internal/store"
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 )
 
 // ---------------------------------------------------------------------------
@@ -396,3 +399,247 @@ func TestIssueRealtimeTicket_SuccessDefaultSource(t *testing.T) {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// WebSocket integration tests — httptest.Server + gorilla/websocket.Dial
+// ---------------------------------------------------------------------------
+
+// wsTestHarness sets up a Gin router + httptest.Server with DevFallback
+// enabled to bypass auth checks for the WS endpoint.
+func wsTestHarness(t *testing.T, handler *RealtimeHandler) (*httptest.Server, string) {
+	t.Helper()
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.GET("/ws", func(c *gin.Context) {
+		c.Set("devhub_auth_dev_fallback", true)
+		handler.HandleRealtimeWebSocket(c)
+	})
+	ts := httptest.NewServer(r)
+	t.Cleanup(ts.Close)
+	wsURL := "ws" + strings.TrimPrefix(ts.URL, "http") + "/ws"
+	return ts, wsURL
+}
+
+func TestRealtimeHub_WebSocket_PublishSubscribe(t *testing.T) {
+	hub := NewRealtimeHub()
+	h := NewRealtimeHandler(RealtimeConfig{RealtimeHub: hub})
+	_, wsURL := wsTestHarness(t, h)
+
+	dialer := &websocket.Dialer{}
+	conn, _, err := dialer.Dial(wsURL+"?types=command.status.updated", nil)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	t.Cleanup(func() { conn.Close() })
+
+	// give the goroutine time to register the client
+	time.Sleep(50 * time.Millisecond)
+
+	hub.Publish("command.status.updated", map[string]any{"key": "val"})
+
+	_ = conn.SetReadDeadline(time.Now().Add(3 * time.Second))
+	_, msg, err := conn.ReadMessage()
+	if err != nil {
+		t.Fatalf("read message: %v", err)
+	}
+
+	var ev struct {
+		Type    string         `json:"type"`
+		EventID string         `json:"event_id"`
+		Data    map[string]any `json:"data"`
+	}
+	if err := json.Unmarshal(msg, &ev); err != nil {
+		t.Fatalf("unmarshal: %v\nbody: %s", err, string(msg))
+	}
+	if ev.Type != "command.status.updated" {
+		t.Fatalf("event type = %q", ev.Type)
+	}
+	if ev.Data["key"] != "val" {
+		t.Fatalf("data = %v", ev.Data)
+	}
+	if !strings.HasPrefix(ev.EventID, "evt_") {
+		t.Fatalf("event_id = %q", ev.EventID)
+	}
+}
+
+func TestRealtimeHub_WebSocket_SubscriptionFilter(t *testing.T) {
+	hub := NewRealtimeHub()
+	h := NewRealtimeHandler(RealtimeConfig{RealtimeHub: hub})
+	_, wsURL := wsTestHarness(t, h)
+
+	// subscribe only to "events.a"
+	dialer := &websocket.Dialer{}
+	conn, _, err := dialer.Dial(wsURL+"?types=events.a", nil)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	t.Cleanup(func() { conn.Close() })
+	time.Sleep(50 * time.Millisecond)
+
+	// publish a non-matching event — should be filtered by subscription
+	hub.Publish("events.b", map[string]any{"nope": true})
+	time.Sleep(100 * time.Millisecond)
+
+	// publish a matching event
+	hub.Publish("events.a", map[string]any{"match": true})
+
+	_ = conn.SetReadDeadline(time.Now().Add(3 * time.Second))
+	_, msg, err := conn.ReadMessage()
+	if err != nil {
+		t.Fatalf("should receive events.a: %v", err)
+	}
+	var ev struct {
+		Type string         `json:"type"`
+		Data map[string]any `json:"data"`
+	}
+	if err := json.Unmarshal(msg, &ev); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if ev.Type != "events.a" {
+		t.Fatalf("expected type 'events.a', got %q — subscription filter leaked events.b", ev.Type)
+	}
+	if ev.Data["match"] != true {
+		t.Fatalf("data = %v", ev.Data)
+	}
+}
+
+func TestRealtimeHub_WebSocket_MultipleClients(t *testing.T) {
+	hub := NewRealtimeHub()
+	h := NewRealtimeHandler(RealtimeConfig{RealtimeHub: hub})
+	_, wsURL := wsTestHarness(t, h)
+
+	dialer := &websocket.Dialer{}
+	conn1, _, err := dialer.Dial(wsURL+"?types=test.event", nil)
+	if err != nil {
+		t.Fatalf("dial conn1: %v", err)
+	}
+	t.Cleanup(func() { conn1.Close() })
+
+	conn2, _, err := dialer.Dial(wsURL+"?types=test.event", nil)
+	if err != nil {
+		t.Fatalf("dial conn2: %v", err)
+	}
+	t.Cleanup(func() { conn2.Close() })
+	time.Sleep(80 * time.Millisecond)
+
+	if hub.ClientCount() != 2 {
+		t.Fatalf("expected 2 clients, got %d", hub.ClientCount())
+	}
+
+	hub.Publish("test.event", map[string]any{"broadcast": true})
+
+	// both clients should receive the event
+	for i, conn := range []*websocket.Conn{conn1, conn2} {
+		_ = conn.SetReadDeadline(time.Now().Add(3 * time.Second))
+		_, msg, err := conn.ReadMessage()
+		if err != nil {
+			t.Fatalf("client %d read: %v", i+1, err)
+		}
+		var ev struct {
+			Type string         `json:"type"`
+			Data map[string]any `json:"data"`
+		}
+		if err := json.Unmarshal(msg, &ev); err != nil {
+			t.Fatalf("client %d unmarshal: %v", i+1, err)
+		}
+		if ev.Type != "test.event" {
+			t.Fatalf("client %d type = %q", i+1, ev.Type)
+		}
+	}
+}
+
+func TestRealtimeHub_WebSocket_ClientDisconnect(t *testing.T) {
+	hub := NewRealtimeHub()
+	h := NewRealtimeHandler(RealtimeConfig{RealtimeHub: hub})
+	_, wsURL := wsTestHarness(t, h)
+
+	dialer := &websocket.Dialer{}
+	conn, _, err := dialer.Dial(wsURL+"?types=test.event", nil)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	time.Sleep(50 * time.Millisecond)
+
+	if hub.ClientCount() != 1 {
+		t.Fatalf("expected 1 client after connect, got %d", hub.ClientCount())
+	}
+
+	// disconnect the client — this causes handleWebSocket read loop to exit
+	// and defer h.remove(conn) to fire.
+	conn.Close()
+	time.Sleep(100 * time.Millisecond)
+
+	if hub.ClientCount() != 0 {
+		t.Fatalf("expected 0 clients after disconnect, got %d", hub.ClientCount())
+	}
+}
+
+func TestRealtimeHub_WebSocket_PublishToSubscribeAll(t *testing.T) {
+	// When no types query param is provided with DevFallback,
+	// subscription allows all events.
+	hub := NewRealtimeHub()
+	h := NewRealtimeHandler(RealtimeConfig{RealtimeHub: hub})
+	_, wsURL := wsTestHarness(t, h)
+
+	dialer := &websocket.Dialer{}
+	conn, _, err := dialer.Dial(wsURL, nil) // no ?types=
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	t.Cleanup(func() { conn.Close() })
+	time.Sleep(50 * time.Millisecond)
+
+	hub.Publish("any.event.type", map[string]any{"catchall": true})
+
+	_ = conn.SetReadDeadline(time.Now().Add(3 * time.Second))
+	_, msg, err := conn.ReadMessage()
+	if err != nil {
+		t.Fatalf("read: %v", err)
+	}
+	var ev struct {
+		Type string         `json:"type"`
+		Data map[string]any `json:"data"`
+	}
+	if err := json.Unmarshal(msg, &ev); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if ev.Type != "any.event.type" {
+		t.Fatalf("type = %q", ev.Type)
+	}
+}
+
+func TestRealtimeHub_WebSocket_PublishClientWriteFail(t *testing.T) {
+	// When Publish encounters a client whose write fails (e.g. disconnected),
+	// it should call removeClient to clean up the stale entry.
+	hub := NewRealtimeHub()
+	h := NewRealtimeHandler(RealtimeConfig{RealtimeHub: hub})
+	_, wsURL := wsTestHarness(t, h)
+
+	conn, _, err := (&websocket.Dialer{}).Dial(wsURL+"?types=test.event", nil)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	time.Sleep(50 * time.Millisecond)
+	if hub.ClientCount() != 1 {
+		t.Fatalf("expected 1 client, got %d", hub.ClientCount())
+	}
+
+	// close the client connection, then publish immediately — there's a race
+	// between HandleWebSocket's deferred h.remove(conn) and our Publish().
+	// If Publish wins, writeJSON fails and removeClient cleans up.
+	conn.Close()
+	// publish without delay to hit the window before HandleWebSocket cleanup
+	hub.Publish("test.event", map[string]any{"after": "disconnect"})
+
+	// in either case (removeClient or normal remove), the client should be gone
+	deadline := time.Now().Add(500 * time.Millisecond)
+	for time.Now().Before(deadline) {
+		if hub.ClientCount() == 0 {
+			return // success
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	t.Fatalf("client not removed after 500ms — count = %d", hub.ClientCount())
+}
+
+
