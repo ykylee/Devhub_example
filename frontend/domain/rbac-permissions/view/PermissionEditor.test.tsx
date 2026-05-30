@@ -213,4 +213,66 @@ describe("PermissionEditor", () => {
     render(<PermissionEditor roles={[systemRole]} setRoles={setRoles} />);
     expect(screen.getByText(/1 Resources Configured/i)).toBeInTheDocument();
   });
+
+  it("onDelete 가 주입되지 않았을 때 setRoles 를 백업으로 사용하여 custom 역할을 정상 필터링(삭제)해야 합니다", async () => {
+    const user = userEvent.setup();
+    const setRoles = vi.fn();
+    render(<PermissionEditor roles={[customRole]} setRoles={setRoles} />);
+
+    const trashBtns = screen.getAllByRole("button");
+    const trashCandidates = trashBtns.filter(
+      (b) => !b.textContent?.includes("Create Role"),
+    );
+    await user.click(trashCandidates[0]);
+
+    expect(setRoles).toHaveBeenCalledTimes(1);
+    const newRoles = setRoles.mock.calls[0][0] as Role[];
+    expect(newRoles).toHaveLength(0);
+  });
+
+  it("선택된 역할을 삭제했을 때 selectedRoleId가 null로 셋팅되어 매트릭스가 화면에서 즉시 배제되어야 합니다", async () => {
+    const user = userEvent.setup();
+    const setRoles = vi.fn();
+    const { rerender } = render(<PermissionEditor roles={[customRole]} setRoles={setRoles} />);
+
+    // 역할 선택
+    await user.click(screen.getByText("Custom Role"));
+    expect(screen.getByText(/Custom Role Matrix/i)).toBeInTheDocument();
+
+    // 역할 삭제 클릭
+    const trashBtns = screen.getAllByRole("button");
+    const trashCandidates = trashBtns.filter(
+      (b) => !b.textContent?.includes("Create Role"),
+    );
+    await user.click(trashCandidates[0]);
+
+    // Rerender 빈 배열
+    rerender(<PermissionEditor roles={[]} setRoles={setRoles} />);
+
+    expect(screen.getByText("Select a Role")).toBeInTheDocument();
+    expect(screen.queryByText(/Custom Role Matrix/i)).not.toBeInTheDocument();
+  });
+
+  it("역할 Matrix 내의 체크박스 상태를 변경했을 때 handleUpdatePermissions 가 구동되어 갱신된 permissions 정보를 setRoles 로 올려보내야 합니다", async () => {
+    const user = userEvent.setup();
+    const setRoles = vi.fn();
+    const { container } = render(<PermissionEditor roles={[customRole]} setRoles={setRoles} />);
+
+    // 역할 선택
+    await user.click(screen.getByText("Custom Role"));
+    expect(screen.getByText(/Custom Role Matrix/i)).toBeInTheDocument();
+
+    // tbody 내의 toggle button 클릭 트리거
+    const toggles = container.querySelector("tbody")?.querySelectorAll("button");
+    expect(toggles).toBeDefined();
+    expect(toggles!.length).toBeGreaterThan(0);
+    
+    // 첫 번째 토글 버튼 클릭
+    await user.click(toggles![0]);
+
+    // setRoles 가 새로운 permission state 객체를 동반하여 호출됨을 단언
+    expect(setRoles).toHaveBeenCalledTimes(1);
+    const updatedRoles = setRoles.mock.calls[0][0] as Role[];
+    expect(updatedRoles[0].permissions).toBeDefined();
+  });
 });

@@ -206,6 +206,27 @@ ON CONFLICT (full_name) DO UPDATE SET
     default_branch = EXCLUDED.default_branch,
     private = EXCLUDED.private,
     updated_at = NOW();
+
+-- Ensure integration provider 'gitea' exists for publish e2e scenario.
+INSERT INTO integration_providers (
+    provider_id, provider_key, provider_type, display_name, enabled, auth_mode,
+    credentials_ref, capabilities, sync_status, base_url, api_token,
+    auth_username, auth_client_id, auth_token_url, auth_secret,
+    webhook_secret, pull_interval_seconds
+) VALUES (
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'gitea', 'scm', 'Local Gitea', true, 'token',
+    'credentials_ref_gitea', '["push"]'::jsonb, 'active', 'http://localhost:3000', 'gitea-token',
+    null, null, null, null,
+    null, 1800
+)
+ON CONFLICT (provider_key) DO UPDATE SET
+    provider_type = EXCLUDED.provider_type,
+    display_name = EXCLUDED.display_name,
+    enabled = EXCLUDED.enabled,
+    auth_mode = EXCLUDED.auth_mode,
+    base_url = EXCLUDED.base_url,
+    api_token = EXCLUDED.api_token,
+    updated_at = NOW();
 `;
 
   // Unique file name — parallel e2e shard 간 collision 회피 (process.pid + timestamp).

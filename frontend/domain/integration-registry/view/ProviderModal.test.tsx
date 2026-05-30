@@ -316,4 +316,165 @@ describe("ProviderModal", () => {
     await user.click(screen.getByRole("button", { name: /Cancel/i }));
     expect(onClose).toHaveBeenCalled();
   });
+
+  it("edit 모드에서 새로운 secret 입력 시 credentials_ref 가 정상 조합되어 updateProvider 로 전송되어야 합니다", async () => {
+    const user = userEvent.setup();
+    const onSaved = vi.fn();
+    const updated: IntegrationProvider = { ...existing, display_name: "Gitea New Credentials" };
+    updateProvider.mockResolvedValueOnce(updated);
+
+    render(<ProviderModal initial={existing} onClose={vi.fn()} onSaved={onSaved} />);
+    
+    // Webhook secret 입력
+    const secretInput = document.getElementById("secret") as HTMLInputElement;
+    fireEvent.change(secretInput, { target: { value: "new-webhook-secret" } });
+
+    await user.click(screen.getByRole("button", { name: /^Save$/ }));
+    await waitFor(() => {
+      expect(updateProvider).toHaveBeenCalledWith("p1", expect.objectContaining({
+        credentials_ref: "hmac_sha256:new-webhook-secret",
+      }));
+    });
+    expect(onSaved).toHaveBeenCalledWith(updated);
+  });
+
+  it("auth_mode 가 app_password 일 때 outbound auth payload 가 정상적으로 구성되어 제출되어야 합니다", async () => {
+    const user = userEvent.setup();
+    const onSaved = vi.fn();
+    const saved: IntegrationProvider = { ...existing, auth_mode: "app_password" };
+    createProvider.mockResolvedValueOnce(saved);
+
+    render(<ProviderModal onClose={vi.fn()} onSaved={onSaved} />);
+    
+    // 1. Custom 템플릿 유지 상태에서 Auth Mode 를 app_password 로 변경
+    const authModeSelect = screen.getByLabelText(/Auth Mode/) as HTMLSelectElement;
+    fireEvent.change(authModeSelect, { target: { value: "app_password" } });
+
+    // 2. 필수 필드 채우기
+    fireEvent.change(screen.getByLabelText(/Provider Key/), { target: { value: "app-pass-key" } });
+    fireEvent.change(screen.getByLabelText(/Display Name/), { target: { value: "App Password Prov" } });
+    fireEvent.change(screen.getByLabelText(/Secret \*/), { target: { value: "signing-secret" } });
+
+    // 3. app_password 전용 필드 채우기
+    fireEvent.change(screen.getByLabelText(/Username/), { target: { value: "app-user" } });
+    const appSecretInput = document.getElementById("auth_secret") as HTMLInputElement;
+    fireEvent.change(appSecretInput, { target: { value: "my-app-password" } });
+
+    await user.click(screen.getByRole("button", { name: /Register/ }));
+    
+    await waitFor(() => {
+      expect(createProvider).toHaveBeenCalledWith(expect.objectContaining({
+        auth_mode: "app_password",
+        auth_username: "app-user",
+        auth_secret: "my-app-password",
+      }));
+    });
+  });
+
+  it("auth_mode 가 oauth2 일 때 outbound auth payload 가 정상적으로 구성되어 제출되어야 합니다", async () => {
+    const user = userEvent.setup();
+    const onSaved = vi.fn();
+    const saved: IntegrationProvider = { ...existing, auth_mode: "oauth2" };
+    createProvider.mockResolvedValueOnce(saved);
+
+    render(<ProviderModal onClose={vi.fn()} onSaved={onSaved} />);
+    
+    const authModeSelect = screen.getByLabelText(/Auth Mode/) as HTMLSelectElement;
+    fireEvent.change(authModeSelect, { target: { value: "oauth2" } });
+
+    fireEvent.change(screen.getByLabelText(/Provider Key/), { target: { value: "oauth-key" } });
+    fireEvent.change(screen.getByLabelText(/Display Name/), { target: { value: "OAuth Prov" } });
+    fireEvent.change(screen.getByLabelText(/Secret \*/), { target: { value: "signing-secret" } });
+
+    // oauth2 필드 채우기
+    fireEvent.change(screen.getByLabelText(/Client ID/), { target: { value: "cid-123" } });
+    fireEvent.change(screen.getByLabelText(/Token URL/), { target: { value: "https://auth.com/token" } });
+    const clientSecretInput = document.getElementById("auth_secret") as HTMLInputElement;
+    fireEvent.change(clientSecretInput, { target: { value: "csec-999" } });
+
+    await user.click(screen.getByRole("button", { name: /Register/ }));
+    
+    await waitFor(() => {
+      expect(createProvider).toHaveBeenCalledWith(expect.objectContaining({
+        auth_mode: "oauth2",
+        auth_client_id: "cid-123",
+        auth_token_url: "https://auth.com/token",
+        auth_secret: "csec-999",
+      }));
+    });
+  });
+
+  it("auth_mode 가 agent 일 때 outbound auth payload 가 정상적으로 구성되어 제출되어야 합니다", async () => {
+    const user = userEvent.setup();
+    const onSaved = vi.fn();
+    const saved: IntegrationProvider = { ...existing, auth_mode: "agent" };
+    createProvider.mockResolvedValueOnce(saved);
+
+    render(<ProviderModal onClose={vi.fn()} onSaved={onSaved} />);
+    
+    const authModeSelect = screen.getByLabelText(/Auth Mode/) as HTMLSelectElement;
+    fireEvent.change(authModeSelect, { target: { value: "agent" } });
+
+    fireEvent.change(screen.getByLabelText(/Provider Key/), { target: { value: "agent-key" } });
+    fireEvent.change(screen.getByLabelText(/Display Name/), { target: { value: "Agent Prov" } });
+    fireEvent.change(screen.getByLabelText(/Secret \*/), { target: { value: "signing-secret" } });
+
+    // agent 필드 채우기
+    fireEvent.change(screen.getByLabelText(/Agent Identifier/), { target: { value: "agent-id-42" } });
+
+    await user.click(screen.getByRole("button", { name: /Register/ }));
+    
+    await waitFor(() => {
+      expect(createProvider).toHaveBeenCalledWith(expect.objectContaining({
+        auth_mode: "agent",
+        auth_username: "agent-id-42",
+      }));
+    });
+  });
+
+  it("Signature Strategy 가 provider_sdk 일 때 sdk_vendor 정보가 credentials_ref 에 조합되어 전송되어야 합니다", async () => {
+    const user = userEvent.setup();
+    const onSaved = vi.fn();
+    const saved: IntegrationProvider = { ...existing };
+    createProvider.mockResolvedValueOnce(saved);
+
+    render(<ProviderModal onClose={vi.fn()} onSaved={onSaved} />);
+
+    fireEvent.change(screen.getByLabelText(/Provider Key/), { target: { value: "sdk-key" } });
+    fireEvent.change(screen.getByLabelText(/Display Name/), { target: { value: "SDK Prov" } });
+    
+    // Strategy -> provider_sdk
+    const strategySelect = screen.getByLabelText(/Signature Strategy/) as HTMLSelectElement;
+    fireEvent.change(strategySelect, { target: { value: "provider_sdk" } });
+
+    // Vendor -> bitbucket
+    const vendorSelect = screen.getByLabelText(/SDK Vendor/) as HTMLSelectElement;
+    fireEvent.change(vendorSelect, { target: { value: "bitbucket" } });
+
+    fireEvent.change(screen.getByLabelText(/Secret \*/), { target: { value: "sdksecret" } });
+
+    await user.click(screen.getByRole("button", { name: /Register/ }));
+
+    await waitFor(() => {
+      expect(createProvider).toHaveBeenCalledWith(expect.objectContaining({
+        credentials_ref: "provider_sdk:bitbucket:sdksecret",
+      }));
+    });
+  });
+
+  it("handleSubmit 실패 시 에러 객체가 Error 가 아닌 경우에도 기본 에러 메시지가 정상 노출되어야 합니다", async () => {
+    const user = userEvent.setup();
+    // Error 가 아닌 스트링 형태의 reject
+    createProvider.mockRejectedValueOnce("server crashed");
+    
+    render(<ProviderModal onClose={vi.fn()} onSaved={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText(/Provider Key/), { target: { value: "prov-err" } });
+    fireEvent.change(screen.getByLabelText(/Display Name/), { target: { value: "Err Name" } });
+    fireEvent.change(screen.getByLabelText(/Secret \*/), { target: { value: "pwd" } });
+
+    await user.click(screen.getByRole("button", { name: /Register/ }));
+    await waitFor(() => {
+      expect(screen.getByText("저장에 실패했습니다.")).toBeInTheDocument();
+    });
+  });
 });

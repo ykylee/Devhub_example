@@ -38,19 +38,34 @@ vi.mock("@/shared/ui-foundation/components/Toast", () => ({
   useToast: () => ({ toast: toastFn }),
 }));
 
-// UserEditModal — simple noise mock
+// UserEditModal — dynamic mock
 vi.mock("@/components/organization/UserEditModal", () => ({
-  UserEditModal: () => null,
+  UserEditModal: ({ initial, onClose, onUpdated }: { initial: any; onClose: () => void; onUpdated: (u: any) => void }) => {
+    const React = require("react");
+    return React.createElement(
+      "div",
+      { "data-testid": "user-edit-modal" },
+      React.createElement("button", { onClick: onClose, type: "button" }, "mock-edit-close"),
+      React.createElement("button", { 
+        onClick: () => onUpdated({ ...initial, name: "Alice Renamed" }), 
+        type: "button" 
+      }, "mock-edit-submit")
+    );
+  },
 }));
 
-// UserCreationModal — noise mock (we are not testing the inner modal)
+// UserCreationModal — mock with callbacks
 vi.mock("./UserCreationModal", () => ({
-  UserCreationModal: ({ onClose }: { onClose: () => void }) => {
+  UserCreationModal: ({ onClose, onCreated }: { onClose: () => void; onCreated: (u: any) => void }) => {
     const React = require("react");
     return React.createElement(
       "div",
       { "data-testid": "user-creation-modal" },
       React.createElement("button", { onClick: onClose, type: "button" }, "mock-close"),
+      React.createElement("button", { 
+        onClick: () => onCreated({ id: "new-user-id", name: "New User", email: "new@example.com", appointments: [], role: "Developer" }),
+        type: "button"
+      }, "mock-create")
     );
   },
 }));
@@ -262,5 +277,62 @@ describe("MemberTable", () => {
     expect(screen.getAllByText("Engineering").length).toBeGreaterThan(0);
     // d2 has no mapping → falls back to "d2" id for Bob
     expect(screen.getByText("d2")).toBeInTheDocument();
+  });
+
+  it("UserEditModal 을 띄우고 회원 수정을 완료했을 때 onMemberUpdated 및 Toast 가 실행되어야 합니다", async () => {
+    const onMemberUpdated = vi.fn();
+    render(
+      <MemberTable
+        members={members}
+        roles={roles}
+        unitNames={{ d1: "Engineering" }}
+        onUpdateMemberRole={vi.fn()}
+        onMemberUpdated={onMemberUpdated}
+      />,
+    );
+
+    // 1. Edit 버튼 클릭
+    fireEvent.click(screen.getByLabelText("Edit Alice"));
+    expect(screen.getByTestId("user-edit-modal")).toBeInTheDocument();
+
+    // 2. 모달 내의 submit 버튼 클릭 시뮬레이션
+    fireEvent.click(screen.getByRole("button", { name: /mock-edit-submit/ }));
+
+    await waitFor(() => {
+      expect(onMemberUpdated).toHaveBeenCalledWith(expect.objectContaining({
+        id: "u1",
+        name: "Alice Renamed",
+      }));
+    });
+    expect(toastFn).toHaveBeenCalledWith("Member 'Alice Renamed' updated", "success");
+    // 모달이 닫히는지 확인 (onClose 트리거)
+    fireEvent.click(screen.getByRole("button", { name: /mock-edit-close/ }));
+    expect(screen.queryByTestId("user-edit-modal")).not.toBeInTheDocument();
+  });
+
+  it("UserCreationModal 에서 회원 생성이 성공했을 때 onMemberCreated 와 Toast 가 발생해야 합니다", async () => {
+    const onMemberCreated = vi.fn();
+    render(
+      <MemberTable
+        members={members}
+        roles={roles}
+        unitNames={{ d1: "Engineering" }}
+        onUpdateMemberRole={vi.fn()}
+        onMemberCreated={onMemberCreated}
+      />,
+    );
+
+    // 1. Invite 버튼 클릭
+    fireEvent.click(screen.getByRole("button", { name: /Invite Member/i }));
+    expect(screen.getByTestId("user-creation-modal")).toBeInTheDocument();
+
+    // 2. 모달 내의 create 버튼 클릭 시뮬레이션
+    fireEvent.click(screen.getByRole("button", { name: /mock-create/ }));
+
+    expect(onMemberCreated).toHaveBeenCalledWith(expect.objectContaining({
+      id: "new-user-id",
+      name: "New User",
+    }));
+    expect(toastFn).toHaveBeenCalledWith("Member created successfully", "success");
   });
 });
