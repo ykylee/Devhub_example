@@ -1,15 +1,19 @@
 {
   "branch": "gemini/work_260530-test-remediation",
   "status": "in_progress",
-  "phase": "Phase 1-4",
+  "phase": "Phase 1 완료 (7/7 packages ≥ 90%)",
   "coverage": {
-    "backend_total": "58.1%",
-    "frontend_total": "94.8%",
-    "current_package": {
+    "backend_total": "65% (목표 90% Phase 1 view 레이어)",
+    "view_layer_packages": {
       "auth-session/view": "90.1%",
       "integration-registry/view": "90.0%",
-      "dev-request/view": "93.7%"
+      "dev-request/view": "93.7%",
+      "repository-integration/view": "94.2%",
+      "rbac-permissions/view": "94.9%",
+      "organization-management/view": "98.9%",
+      "realtime/view": "91.7%"
     }
   },
-  "last_update": "2026-05-30"
+  "last_update": "2026-05-30",
+  "notes": "Phase 1 완료. Gemini mid-session token exhaustion → Codex 마무리. Phase 2 (store/DB integration) 대기."
 }
