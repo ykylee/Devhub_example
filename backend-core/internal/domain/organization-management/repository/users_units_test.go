@@ -2,6 +2,7 @@ package repository_test
 
 import (
 	"context"
+	"errors"
 	"os"
 	"sort"
 	"testing"
@@ -504,5 +505,226 @@ func TestPostgresStore_UpdateOrgUnit_LeaderClear(t *testing.T) {
 	}
 	if leaderCol != nil {
 		t.Fatalf("expected org_units.leader_user_id NULL after clear, got %q", *leaderCol)
+	}
+}
+
+func TestPostgresStore_CreateUser_CRUD(t *testing.T) {
+	dbURL := os.Getenv("DEVHUB_TEST_DB_URL")
+	if dbURL == "" {
+		t.Skip("DEVHUB_TEST_DB_URL is not set")
+	}
+	ctx := context.Background()
+	pgStore, err := store.NewPostgresStore(ctx, dbURL)
+	if err != nil {
+		t.Fatalf("connect postgres store: %v", err)
+	}
+	defer pgStore.Close()
+	repo := repository.NewOrganizationRepository(pgStore)
+
+	pool, err := pgxpool.New(ctx, dbURL)
+	if err != nil {
+		t.Fatalf("connect cleanup pool: %v", err)
+	}
+	defer pool.Close()
+
+	userID := "test-create-" + t.Name()
+	email := userID + "@test.dev"
+	idpSubject := "idp-" + userID
+
+	defer func() {
+		_, _ = pool.Exec(ctx, `DELETE FROM users WHERE user_id = $1`, userID)
+	}()
+
+	created, err := repo.CreateUser(ctx, domain.CreateUserInput{
+		UserID:        userID,
+		Email:         email,
+		DisplayName:   "Test Create User",
+		Role:          domain.AppRoleDeveloper,
+		Status:        domain.UserStatusActive,
+		PrimaryUnitID: "team-infra",
+	})
+	if err != nil {
+		t.Fatalf("CreateUser failed: %v", err)
+	}
+	if created.UserID != userID || created.Email != email {
+		t.Fatalf("unexpected created user: %+v", created)
+	}
+	if created.Role != domain.AppRoleDeveloper {
+		t.Fatalf("expected role=developer, got %q", created.Role)
+	}
+
+	// Verify via GetUser
+	loaded, err := repo.GetUser(ctx, userID)
+	if err != nil {
+		t.Fatalf("GetUser after create: %v", err)
+	}
+	if loaded.DisplayName != "Test Create User" {
+		t.Fatalf("expected display_name=%q, got %q", "Test Create User", loaded.DisplayName)
+	}
+
+	// SetIdPSubject + GetUserByIdPSubject
+	if err := repo.SetIdPSubject(ctx, userID, idpSubject); err != nil {
+		t.Fatalf("SetIdPSubject: %v", err)
+	}
+	byIdP, err := repo.GetUserByIdPSubject(ctx, idpSubject)
+	if err != nil {
+		t.Fatalf("GetUserByIdPSubject: %v", err)
+	}
+	if byIdP.UserID != userID {
+		t.Fatalf("expected user %s by idp subject, got %s", userID, byIdP.UserID)
+	}
+}
+
+func TestPostgresStore_UpdateUser_Fields(t *testing.T) {
+	dbURL := os.Getenv("DEVHUB_TEST_DB_URL")
+	if dbURL == "" {
+		t.Skip("DEVHUB_TEST_DB_URL is not set")
+	}
+	ctx := context.Background()
+	pgStore, err := store.NewPostgresStore(ctx, dbURL)
+	if err != nil {
+		t.Fatalf("connect postgres store: %v", err)
+	}
+	defer pgStore.Close()
+	repo := repository.NewOrganizationRepository(pgStore)
+
+	pool, err := pgxpool.New(ctx, dbURL)
+	if err != nil {
+		t.Fatalf("connect cleanup pool: %v", err)
+	}
+	defer pool.Close()
+
+	userID := "test-update-" + t.Name()
+	defer func() {
+		_, _ = pool.Exec(ctx, `DELETE FROM users WHERE user_id = $1`, userID)
+	}()
+
+	// Seed a user
+	if _, err := repo.CreateUser(ctx, domain.CreateUserInput{
+		UserID:        userID,
+		Email:         userID + "@test.dev",
+		DisplayName:   "Original Name",
+		Role:          domain.AppRoleDeveloper,
+		Status:        domain.UserStatusActive,
+		PrimaryUnitID: "team-infra",
+	}); err != nil {
+		t.Fatalf("seed user: %v", err)
+	}
+
+	// Update display_name and role
+	newName := "Updated Name"
+	newRole := domain.AppRoleManager
+	updated, err := repo.UpdateUser(ctx, userID, domain.UpdateUserInput{
+		DisplayName: &newName,
+		Role:        &newRole,
+	})
+	if err != nil {
+		t.Fatalf("UpdateUser: %v", err)
+	}
+	if updated.DisplayName != newName || updated.Role != newRole {
+		t.Fatalf("expected name=%q role=%q, got name=%q role=%q",
+			newName, newRole, updated.DisplayName, updated.Role)
+	}
+}
+
+func TestPostgresStore_DeleteUser_RemovesRow(t *testing.T) {
+	dbURL := os.Getenv("DEVHUB_TEST_DB_URL")
+	if dbURL == "" {
+		t.Skip("DEVHUB_TEST_DB_URL is not set")
+	}
+	ctx := context.Background()
+	pgStore, err := store.NewPostgresStore(ctx, dbURL)
+	if err != nil {
+		t.Fatalf("connect postgres store: %v", err)
+	}
+	defer pgStore.Close()
+	repo := repository.NewOrganizationRepository(pgStore)
+
+	pool, err := pgxpool.New(ctx, dbURL)
+	if err != nil {
+		t.Fatalf("connect cleanup pool: %v", err)
+	}
+	defer pool.Close()
+
+	userID := "test-delete-" + t.Name()
+	defer func() {
+		_, _ = pool.Exec(ctx, `DELETE FROM users WHERE user_id = $1`, userID)
+	}()
+
+	if _, err := repo.CreateUser(ctx, domain.CreateUserInput{
+		UserID:        userID,
+		Email:         userID + "@test.dev",
+		DisplayName:   "To Delete",
+		Role:          domain.AppRoleDeveloper,
+		Status:        domain.UserStatusActive,
+		PrimaryUnitID: "team-infra",
+	}); err != nil {
+		t.Fatalf("seed user: %v", err)
+	}
+
+	if err := repo.DeleteUser(ctx, userID); err != nil {
+		t.Fatalf("DeleteUser: %v", err)
+	}
+
+	// Verify ErrNotFound after delete
+	if _, err := repo.GetUser(ctx, userID); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("expected ErrNotFound after delete, got %v", err)
+	}
+
+	// Delete non-existent user should return ErrNotFound
+	if err := repo.DeleteUser(ctx, "ghost-"+userID); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("expected ErrNotFound for ghost user, got %v", err)
+	}
+}
+
+func TestPostgresStore_DeleteOrgUnit_RemovesRow(t *testing.T) {
+	dbURL := os.Getenv("DEVHUB_TEST_DB_URL")
+	if dbURL == "" {
+		t.Skip("DEVHUB_TEST_DB_URL is not set")
+	}
+	ctx := context.Background()
+	pgStore, err := store.NewPostgresStore(ctx, dbURL)
+	if err != nil {
+		t.Fatalf("connect postgres store: %v", err)
+	}
+	defer pgStore.Close()
+	repo := repository.NewOrganizationRepository(pgStore)
+
+	pool, err := pgxpool.New(ctx, dbURL)
+	if err != nil {
+		t.Fatalf("connect cleanup pool: %v", err)
+	}
+	defer pool.Close()
+
+	unitID := "test-delete-unit-" + t.Name()
+	defer func() {
+		_, _ = pool.Exec(ctx, `DELETE FROM org_units WHERE unit_id = $1`, unitID)
+	}()
+
+	created, err := repo.CreateOrgUnit(ctx, domain.CreateOrgUnitInput{
+		UnitID:       unitID,
+		ParentUnitID: "team-infra",
+		UnitType:     domain.UnitTypePart,
+		Label:        "Test Delete OrgUnit",
+	})
+	if err != nil {
+		t.Fatalf("CreateOrgUnit: %v", err)
+	}
+	if created.UnitID != unitID {
+		t.Fatalf("expected unit_id=%q, got %q", unitID, created.UnitID)
+	}
+
+	if err := repo.DeleteOrgUnit(ctx, unitID); err != nil {
+		t.Fatalf("DeleteOrgUnit: %v", err)
+	}
+
+	// Verify ErrNotFound after delete
+	if _, err := repo.GetOrgUnit(ctx, unitID); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("expected ErrNotFound after delete, got %v", err)
+	}
+
+	// Delete non-existent unit should return ErrNotFound
+	if err := repo.DeleteOrgUnit(ctx, "ghost-"+unitID); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("expected ErrNotFound for ghost unit, got %v", err)
 	}
 }

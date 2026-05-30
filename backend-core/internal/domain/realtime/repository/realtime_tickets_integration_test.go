@@ -8,7 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/devhub/backend-core/internal/domain"
 	"github.com/devhub/backend-core/internal/domain/realtime/repository"
+	rtview "github.com/devhub/backend-core/internal/domain/realtime/view"
 	"github.com/devhub/backend-core/internal/store"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -165,5 +167,75 @@ func TestIntegration_RealtimeTickets_ConcurrentConsumeHonoredOnce(t *testing.T) 
 
 	if successes != 1 {
 		t.Fatalf("ticket must be honored exactly once under concurrency, got %d", successes)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// DBRealtimeTicketStore integration tests — view-layer adapter wrapping
+// store methods with side-effect (DeleteExpiredRealtimeTickets on Issue).
+// ---------------------------------------------------------------------------
+
+func TestIntegration_DBRealtimeTicketStore_IssueConsume(t *testing.T) {
+	pgStore, pool, ctx := newTicketTestStore(t)
+	store2 := rtview.NewDBRealtimeTicketStore(pgStore)
+
+	issued, err := store2.Issue(ctx, "alice", "developer", domain.AuditSourceOIDC)
+	if err != nil {
+		t.Fatalf("Issue: %v", err)
+	}
+	if issued == "" {
+		t.Fatal("expected non-empty ticket")
+	}
+	defer func() {
+		_, _ = pool.Exec(ctx, `DELETE FROM realtime_tickets WHERE ticket = $1`, issued)
+	}()
+
+	// Consume the issued ticket
+	row, ok, err := store2.Consume(ctx, issued)
+	if err != nil {
+		t.Fatalf("Consume: %v", err)
+	}
+	if !ok {
+		t.Fatal("first consume should succeed")
+	}
+	if row.ActorLogin != "alice" || row.ActorRole != "developer" || row.SourceType != string(domain.AuditSourceOIDC) {
+		t.Fatalf("unexpected ticket row: %+v", row)
+	}
+
+	// Second consume must miss (single-use)
+	_, ok, err = store2.Consume(ctx, issued)
+	if err != nil {
+		t.Fatalf("second Consume err: %v", err)
+	}
+	if ok {
+		t.Fatal("second consume should miss (single-use)")
+	}
+}
+
+func TestIntegration_DBRealtimeTicketStore_ExpiredTicketNotConsumed(t *testing.T) {
+	pgStore, pool, ctx := newTicketTestStore(t)
+	store2 := rtview.NewDBRealtimeTicketStore(pgStore)
+
+	// Manually insert an expired ticket via raw pool to test Consume expiry
+	ticket := fmt.Sprintf("test-db-exp-%d", time.Now().UnixNano())
+	defer func() {
+		_, _ = pool.Exec(ctx, `DELETE FROM realtime_tickets WHERE ticket = $1`, ticket)
+	}()
+
+	_, err := pool.Exec(ctx, `
+		INSERT INTO realtime_tickets (ticket, actor_login, actor_role, source_type, expires_at)
+		VALUES ($1, 'bob', 'manager', 'oidc', NOW() - INTERVAL '1 second')
+	`, ticket)
+	if err != nil {
+		t.Fatalf("seed expired ticket: %v", err)
+	}
+
+	// Consume must miss for expired ticket
+	_, ok, err := store2.Consume(ctx, ticket)
+	if err != nil {
+		t.Fatalf("Consume expired: %v", err)
+	}
+	if ok {
+		t.Fatal("expired ticket should not be consumed")
 	}
 }

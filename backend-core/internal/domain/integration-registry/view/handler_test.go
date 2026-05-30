@@ -2748,3 +2748,44 @@ func TestExternalTasks_Handlers(t *testing.T) {
 }
 
 
+
+// ---------------------------------------------------------------------------
+// validBaseURL edge cases (pure function, integration_registry.go)
+// ---------------------------------------------------------------------------
+
+func TestValidBaseURL_SchemeOnly(t *testing.T) {
+	if validBaseURL("https://") {
+		t.Fatal("expected false for scheme-only URL (no host)")
+	}
+	if validBaseURL("http://") {
+		t.Fatal("expected false for http://")
+	}
+}
+
+func TestValidBaseURL_Invalid(t *testing.T) {
+	if validBaseURL("://invalid") {
+		t.Fatal("expected false for malformed URL")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// ExternalTaskStoreOrUnavailable — store available path
+// ---------------------------------------------------------------------------
+
+func TestExternalTaskStoreOrUnavailable_StoreAvailable(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := NewIntegrationHandler(IntegrationConfig{
+		ExternalTaskStore: &fakeExternalTaskStore{},
+	})
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	c.Request = httptest.NewRequest("GET", "/", nil)
+
+	storeI, ok := h.ExternalTaskStoreOrUnavailable(c)
+	if !ok {
+		t.Fatal("expected ok=true when store is configured")
+	}
+	if storeI == nil {
+		t.Fatal("expected non-nil store")
+	}
+}

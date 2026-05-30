@@ -2525,3 +2525,93 @@ func TestIntakeTokenAdmin(t *testing.T) {
 		}
 	})
 }
+
+// ---------------------------------------------------------------------------
+// validateAllowedIPs tests (pure function, dev_request_intake_tokens_admin.go)
+// ---------------------------------------------------------------------------
+
+func TestValidateAllowedIPs_ValidSingleIP(t *testing.T) {
+	got, errMsg := validateAllowedIPs([]string{"192.168.1.1"})
+	if errMsg != "" {
+		t.Fatalf("unexpected error: %s", errMsg)
+	}
+	if len(got) != 1 || got[0] != "192.168.1.1" {
+		t.Fatalf("expected [192.168.1.1], got %v", got)
+	}
+}
+
+func TestValidateAllowedIPs_ValidCIDR(t *testing.T) {
+	got, errMsg := validateAllowedIPs([]string{"10.0.0.0/8"})
+	if errMsg != "" {
+		t.Fatalf("unexpected error: %s", errMsg)
+	}
+	if len(got) != 1 || got[0] != "10.0.0.0/8" {
+		t.Fatalf("expected [10.0.0.0/8], got %v", got)
+	}
+}
+
+func TestValidateAllowedIPs_InvalidIP(t *testing.T) {
+	_, errMsg := validateAllowedIPs([]string{"not-an-ip"})
+	if errMsg == "" || !strings.Contains(errMsg, "not a valid IP") {
+		t.Fatalf("expected IP validation error, got %q", errMsg)
+	}
+}
+
+func TestValidateAllowedIPs_InvalidCIDR(t *testing.T) {
+	_, errMsg := validateAllowedIPs([]string{"10.0.0.0/33"})
+	if errMsg == "" || !strings.Contains(errMsg, "not a valid CIDR") {
+		t.Fatalf("expected CIDR validation error, got %q", errMsg)
+	}
+}
+
+func TestValidateAllowedIPs_DedupPreservesOrder(t *testing.T) {
+	got, errMsg := validateAllowedIPs([]string{"10.0.0.1", "10.0.0.2", "10.0.0.1", "10.0.0.3"})
+	if errMsg != "" {
+		t.Fatalf("unexpected error: %s", errMsg)
+	}
+	if len(got) != 3 || got[0] != "10.0.0.1" || got[1] != "10.0.0.2" || got[2] != "10.0.0.3" {
+		t.Fatalf("expected deduped order-preserved list, got %v", got)
+	}
+}
+
+func TestValidateAllowedIPs_RejectsEmpty(t *testing.T) {
+	_, errMsg := validateAllowedIPs(nil)
+	if errMsg == "" || !strings.Contains(errMsg, "at least one") {
+		t.Fatalf("expected 'at least one' error, got %q", errMsg)
+	}
+	_, errMsg = validateAllowedIPs([]string{})
+	if errMsg == "" || !strings.Contains(errMsg, "at least one") {
+		t.Fatalf("expected 'at least one' error for empty list, got %q", errMsg)
+	}
+}
+
+func TestValidateAllowedIPs_SkipsEmptyEntries(t *testing.T) {
+	got, errMsg := validateAllowedIPs([]string{"10.0.0.1", "", "  ", "10.0.0.2"})
+	if errMsg != "" {
+		t.Fatalf("unexpected error: %s", errMsg)
+	}
+	if len(got) != 2 {
+		t.Fatalf("expected 2 entries (empty skipped), got %v", got)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// RevokeDevRequestIntakeToken edge — empty token_id
+// ---------------------------------------------------------------------------
+
+func TestRevokeDevRequestIntakeToken_EmptyTokenID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := NewDevRequestHandler(DevRequestConfig{
+		DevRequestIntakeTokenStore: &fakeIntakeTokenStore{},
+	})
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	c.Request = httptest.NewRequest("DELETE", "/tokens/", nil)
+	// Manually set the param as empty to exercise the validation branch
+	c.Params = gin.Params{{Key: "token_id", Value: ""}}
+
+	h.RevokeDevRequestIntakeToken(c)
+	if rec.Code != 400 {
+		t.Fatalf("expected 400 for empty token_id, got %d: %s", rec.Code, rec.Body.String())
+	}
+}

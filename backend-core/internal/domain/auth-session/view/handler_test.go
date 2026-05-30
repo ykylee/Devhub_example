@@ -931,3 +931,140 @@ func TestPatchMe_SuccessAndErrorPaths(t *testing.T) {
 }
 
 
+
+// ---------------------------------------------------------------------------
+// ResolveIdPSubject tests — identity_resolver.go (0% → 100%)
+// ---------------------------------------------------------------------------
+
+type fakeIdentityAdmin struct {
+	identityID string
+	err        error
+}
+
+func (f *fakeIdentityAdmin) FindIdentityByUserID(_ context.Context, _ string) (string, error) {
+	return f.identityID, f.err
+}
+
+func TestResolveIdPSubject_EmptyUserID(t *testing.T) {
+	h := NewAuthHandler(AuthConfig{})
+	_, err := h.ResolveIdPSubject(context.Background(), "")
+	if err == nil || !strings.Contains(err.Error(), "user_id is required") {
+		t.Fatalf("expected 'user_id is required' error, got %v", err)
+	}
+	_, err = h.ResolveIdPSubject(context.Background(), "  ")
+	if err == nil || !strings.Contains(err.Error(), "user_id is required") {
+		t.Fatalf("expected 'user_id is required' error for whitespace, got %v", err)
+	}
+}
+
+func TestResolveIdPSubject_FastPathFromStore(t *testing.T) {
+	orgStore := &fakeOrganizationStore{
+		user: domain.AppUser{
+			UserID:     "alice",
+			IdPSubject: "keycloak-uuid-abc",
+		},
+	}
+	h := NewAuthHandler(AuthConfig{OrganizationStore: orgStore})
+
+	id, err := h.ResolveIdPSubject(context.Background(), "alice")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if id != "keycloak-uuid-abc" {
+		t.Fatalf("expected 'keycloak-uuid-abc', got %q", id)
+	}
+}
+
+func TestResolveIdPSubject_FastPathGetUserError(t *testing.T) {
+	orgStore := &fakeOrganizationStore{
+		getUserErr: errors.New("db down"),
+	}
+	h := NewAuthHandler(AuthConfig{OrganizationStore: orgStore})
+
+	// When GetUser fails and no IdentityAdmin is configured
+	_, err := h.ResolveIdPSubject(context.Background(), "alice")
+	if !errors.Is(err, httphelp.ErrIdentityNotFound) {
+		t.Fatalf("expected ErrIdentityNotFound, got %v", err)
+	}
+}
+
+func TestResolveIdPSubject_FallbackWithIdentityAdmin(t *testing.T) {
+	orgStore := &fakeOrganizationStore{
+		user: domain.AppUser{
+			UserID:     "bob",
+			IdPSubject: "", // empty — triggers fallback
+		},
+	}
+	idAdmin := &fakeIdentityAdmin{identityID: "keycloak-uuid-bob"}
+	h := NewAuthHandler(AuthConfig{
+		OrganizationStore: orgStore,
+		IdentityAdmin:     idAdmin,
+	})
+
+	id, err := h.ResolveIdPSubject(context.Background(), "bob")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if id != "keycloak-uuid-bob" {
+		t.Fatalf("expected 'keycloak-uuid-bob', got %q", id)
+	}
+	// Verify backfill: SetIdPSubject was called
+	if orgStore.subjects["bob"] != "keycloak-uuid-bob" {
+		t.Fatalf("expected backfill, subjects=%v", orgStore.subjects)
+	}
+}
+
+func TestResolveIdPSubject_FallbackIdentityAdminError(t *testing.T) {
+	orgStore := &fakeOrganizationStore{
+		user: domain.AppUser{
+			UserID:     "carol",
+			IdPSubject: "",
+		},
+	}
+	idAdmin := &fakeIdentityAdmin{err: errors.New("idp unavailable")}
+	h := NewAuthHandler(AuthConfig{
+		OrganizationStore: orgStore,
+		IdentityAdmin:     idAdmin,
+	})
+
+	_, err := h.ResolveIdPSubject(context.Background(), "carol")
+	if err == nil || !strings.Contains(err.Error(), "idp unavailable") {
+		t.Fatalf("expected IdentityAdmin error, got %v", err)
+	}
+}
+
+func TestResolveIdPSubject_BackfillErrorDoesNotHideIdentity(t *testing.T) {
+	orgStore := &fakeOrganizationStore{
+		user: domain.AppUser{
+			UserID:     "dave",
+			IdPSubject: "",
+		},
+		setSubErr: errors.New("backfill failed"),
+	}
+	idAdmin := &fakeIdentityAdmin{identityID: "keycloak-uuid-dave"}
+	h := NewAuthHandler(AuthConfig{
+		OrganizationStore: orgStore,
+		IdentityAdmin:     idAdmin,
+	})
+
+	id, err := h.ResolveIdPSubject(context.Background(), "dave")
+	if err != nil {
+		t.Fatalf("expected identity to be returned despite backfill error, got %v", err)
+	}
+	if id != "keycloak-uuid-dave" {
+		t.Fatalf("expected 'keycloak-uuid-dave', got %q", id)
+	}
+}
+
+func TestResolveIdPSubject_NilIdentityAdmin(t *testing.T) {
+	orgStore := &fakeOrganizationStore{
+		getUserErr: errors.New("not found"),
+	}
+	// IdentityAdmin is nil — should return ErrIdentityNotFound
+	h := NewAuthHandler(AuthConfig{OrganizationStore: orgStore})
+
+	_, err := h.ResolveIdPSubject(context.Background(), "eve")
+	if !errors.Is(err, httphelp.ErrIdentityNotFound) {
+		t.Fatalf("expected ErrIdentityNotFound, got %v", err)
+	}
+}
