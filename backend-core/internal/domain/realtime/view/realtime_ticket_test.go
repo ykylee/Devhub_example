@@ -185,3 +185,13 @@ func TestDBRealtimeTicketStore_IssuePropagatesInsertError(t *testing.T) {
 		t.Fatal("expected issue to propagate insert error")
 	}
 }
+
+func TestNewRealtimeTicketStoreFor_NonNilReturnsDBStore(t *testing.T) {
+	// NewRealtimeTicketStoreFor with a dummy *store.PostgresStore{} should
+	// return a *DBRealtimeTicketStore wrapping it.
+	pg := &store.PostgresStore{}
+	got := NewRealtimeTicketStoreFor(pg)
+	if _, ok := got.(*DBRealtimeTicketStore); !ok {
+		t.Fatalf("expected *DBRealtimeTicketStore, got %T", got)
+	}
+}

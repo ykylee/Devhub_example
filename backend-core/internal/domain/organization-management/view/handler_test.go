@@ -434,3 +434,801 @@ func TestOrgUnitUpdateAuditPayload_NilFieldsOmitted(t *testing.T) {
 		t.Fatalf("expected empty, got %+v", got)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// fakeOrgStore — full OrganizationStore implementation for handler tests
+// ---------------------------------------------------------------------------
+
+type fakeOrgStore struct {
+	listUsersResult        []domain.AppUser
+	listUsersTotal         int
+	listUsersErr           error
+	getUserResult          domain.AppUser
+	getUserErr             error
+	createUserResult       domain.AppUser
+	createUserErr          error
+	updateUserResult       domain.AppUser
+	updateUserErr          error
+	deleteUserErr          error
+	setIdPSubjectErr       error
+	getUserByIdPResult     domain.AppUser
+	getUserByIdPErr        error
+	getHierarchyResult     domain.Hierarchy
+	getHierarchyErr        error
+	updateHierarchyErr     error
+	getOrgUnitResult       domain.OrgUnit
+	getOrgUnitErr          error
+	createOrgUnitResult    domain.OrgUnit
+	createOrgUnitErr       error
+	updateOrgUnitResult    domain.OrgUnit
+	updateOrgUnitErr       error
+	deleteOrgUnitErr       error
+	listUnitMembersResult  []domain.AppUser
+	listUnitMembersErr     error
+	replaceUnitMembersErr  error
+	submitOnboardingResult domain.AppUser
+	submitOnboardingErr    error
+	confirmReviewResult    domain.AppUser
+	confirmReviewErr       error
+	searchOrgUnitsResult   []domain.OrgUnit
+	searchOrgUnitsErr      error
+}
+
+func (f *fakeOrgStore) ListUsers(_ context.Context, _ domain.UserListOptions) ([]domain.AppUser, int, error) {
+	return f.listUsersResult, f.listUsersTotal, f.listUsersErr
+}
+func (f *fakeOrgStore) GetUser(_ context.Context, _ string) (domain.AppUser, error) {
+	return f.getUserResult, f.getUserErr
+}
+func (f *fakeOrgStore) CreateUser(_ context.Context, in domain.CreateUserInput) (domain.AppUser, error) {
+	if f.createUserErr != nil {
+		return domain.AppUser{}, f.createUserErr
+	}
+	r := f.createUserResult
+	if r.UserID == "" {
+		r.UserID = in.UserID
+	}
+	return r, nil
+}
+func (f *fakeOrgStore) UpdateUser(_ context.Context, _ string, _ domain.UpdateUserInput) (domain.AppUser, error) {
+	return f.updateUserResult, f.updateUserErr
+}
+func (f *fakeOrgStore) DeleteUser(_ context.Context, _ string) error {
+	return f.deleteUserErr
+}
+func (f *fakeOrgStore) SetIdPSubject(_ context.Context, _, _ string) error {
+	return f.setIdPSubjectErr
+}
+func (f *fakeOrgStore) GetUserByIdPSubject(_ context.Context, _ string) (domain.AppUser, error) {
+	return f.getUserByIdPResult, f.getUserByIdPErr
+}
+func (f *fakeOrgStore) GetHierarchy(_ context.Context) (domain.Hierarchy, error) {
+	return f.getHierarchyResult, f.getHierarchyErr
+}
+func (f *fakeOrgStore) UpdateHierarchy(_ context.Context, _ domain.Hierarchy) error {
+	return f.updateHierarchyErr
+}
+func (f *fakeOrgStore) GetOrgUnit(_ context.Context, _ string) (domain.OrgUnit, error) {
+	return f.getOrgUnitResult, f.getOrgUnitErr
+}
+func (f *fakeOrgStore) CreateOrgUnit(_ context.Context, in domain.CreateOrgUnitInput) (domain.OrgUnit, error) {
+	if f.createOrgUnitErr != nil {
+		return domain.OrgUnit{}, f.createOrgUnitErr
+	}
+	r := f.createOrgUnitResult
+	if r.UnitID == "" {
+		r.UnitID = in.UnitID
+	}
+	return r, nil
+}
+func (f *fakeOrgStore) UpdateOrgUnit(_ context.Context, _ string, _ domain.UpdateOrgUnitInput) (domain.OrgUnit, error) {
+	return f.updateOrgUnitResult, f.updateOrgUnitErr
+}
+func (f *fakeOrgStore) DeleteOrgUnit(_ context.Context, _ string) error {
+	return f.deleteOrgUnitErr
+}
+func (f *fakeOrgStore) ListUnitMembers(_ context.Context, _ string) ([]domain.AppUser, error) {
+	return f.listUnitMembersResult, f.listUnitMembersErr
+}
+func (f *fakeOrgStore) ReplaceUnitMembers(_ context.Context, _ string, _ []string) error {
+	return f.replaceUnitMembersErr
+}
+func (f *fakeOrgStore) SubmitOnboarding(_ context.Context, _ domain.OnboardingSubmitInput) (domain.AppUser, error) {
+	return f.submitOnboardingResult, f.submitOnboardingErr
+}
+func (f *fakeOrgStore) ConfirmUserReview(_ context.Context, _ string) (domain.AppUser, error) {
+	return f.confirmReviewResult, f.confirmReviewErr
+}
+func (f *fakeOrgStore) SearchOrgUnits(_ context.Context, _ string, _ int) ([]domain.OrgUnit, error) {
+	return f.searchOrgUnitsResult, f.searchOrgUnitsErr
+}
+
+// fakeHRDBErr — HRDB mock that always errors
+type fakeHRDBErr struct{ err error }
+
+func (f *fakeHRDBErr) Lookup(_ context.Context, _, _, _ string) (string, string, string, error) {
+	return "", "", "", f.err
+}
+
+// ---------------------------------------------------------------------------
+// ListUsers handler tests
+// ---------------------------------------------------------------------------
+
+func TestListUsers_NilStore(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := NewOrganizationHandler(OrganizationConfig{})
+	r := gin.New()
+	r.GET("/users", h.ListUsers)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/users", nil)
+	r.ServeHTTP(rec, req)
+	if rec.Code != 503 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestListUsers_InvalidLimit(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := NewOrganizationHandler(OrganizationConfig{OrganizationStore: &fakeOrgStore{}})
+	r := gin.New()
+	r.GET("/users", h.ListUsers)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/users?limit=abc", nil)
+	r.ServeHTTP(rec, req)
+	if rec.Code != 400 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestListUsers_InvalidOffset(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := NewOrganizationHandler(OrganizationConfig{OrganizationStore: &fakeOrgStore{}})
+	r := gin.New()
+	r.GET("/users", h.ListUsers)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/users?offset=-1", nil)
+	r.ServeHTTP(rec, req)
+	if rec.Code != 400 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestListUsers_StoreError(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	s := &fakeOrgStore{listUsersErr: errors.New("db down")}
+	h := NewOrganizationHandler(OrganizationConfig{OrganizationStore: s})
+	r := gin.New()
+	r.GET("/users", h.ListUsers)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/users", nil)
+	r.ServeHTTP(rec, req)
+	if rec.Code != 500 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestListUsers_SuccessWithFilters(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	s := &fakeOrgStore{
+		listUsersResult: []domain.AppUser{{UserID: "u-1", Email: "a@b.com", DisplayName: "A", Role: domain.AppRoleDeveloper}},
+		listUsersTotal:  1,
+	}
+	h := NewOrganizationHandler(OrganizationConfig{OrganizationStore: s})
+	r := gin.New()
+	r.GET("/users", h.ListUsers)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/users?role=developer&status=active&primary_unit_id=team-a", nil)
+	r.ServeHTTP(rec, req)
+	if rec.Code != 200 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "u-1") {
+		t.Fatalf("body = %q", body)
+	}
+	if !strings.Contains(body, `"role"`) {
+		t.Fatalf("meta role missing: %q", body)
+	}
+}
+
+func TestListUsers_SuccessEmpty(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	s := &fakeOrgStore{listUsersResult: []domain.AppUser{}, listUsersTotal: 0}
+	h := NewOrganizationHandler(OrganizationConfig{OrganizationStore: s})
+	r := gin.New()
+	r.GET("/users", h.ListUsers)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/users", nil)
+	r.ServeHTTP(rec, req)
+	if rec.Code != 200 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// GetUser handler tests
+// ---------------------------------------------------------------------------
+
+func TestGetUser_NilStore(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := NewOrganizationHandler(OrganizationConfig{})
+	r := gin.New()
+	r.GET("/users/:user_id", h.GetUser)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/users/u-1", nil)
+	r.ServeHTTP(rec, req)
+	if rec.Code != 503 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestGetUser_EmptyUserID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := NewOrganizationHandler(OrganizationConfig{OrganizationStore: &fakeOrgStore{}})
+	r := gin.New()
+	r.GET("/users/:user_id", h.GetUser)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/users/%20", nil)
+	r.ServeHTTP(rec, req)
+	if rec.Code != 400 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestGetUser_NotFound(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	s := &fakeOrgStore{getUserErr: store.ErrNotFound}
+	h := NewOrganizationHandler(OrganizationConfig{OrganizationStore: s})
+	r := gin.New()
+	r.GET("/users/:user_id", h.GetUser)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/users/u-999", nil)
+	r.ServeHTTP(rec, req)
+	if rec.Code != 404 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestGetUser_StoreError(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	s := &fakeOrgStore{getUserErr: errors.New("db down")}
+	h := NewOrganizationHandler(OrganizationConfig{OrganizationStore: s})
+	r := gin.New()
+	r.GET("/users/:user_id", h.GetUser)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/users/u-1", nil)
+	r.ServeHTTP(rec, req)
+	if rec.Code != 500 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestGetUser_Success(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	s := &fakeOrgStore{getUserResult: domain.AppUser{UserID: "u-1", Email: "a@b.com", DisplayName: "A", Role: domain.AppRoleDeveloper}}
+	h := NewOrganizationHandler(OrganizationConfig{OrganizationStore: s})
+	r := gin.New()
+	r.GET("/users/:user_id", h.GetUser)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/users/u-1", nil)
+	r.ServeHTTP(rec, req)
+	if rec.Code != 200 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "u-1") {
+		t.Fatalf("body = %q", rec.Body.String())
+	}
+}
+
+// ---------------------------------------------------------------------------
+// CreateUser handler tests
+// ---------------------------------------------------------------------------
+
+func TestCreateUser_NilStore(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := NewOrganizationHandler(OrganizationConfig{})
+	r := gin.New()
+	r.POST("/users", h.CreateUser)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("POST", "/users", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(rec, req)
+	if rec.Code != 503 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestCreateUser_InvalidJSON(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := NewOrganizationHandler(OrganizationConfig{OrganizationStore: &fakeOrgStore{}})
+	r := gin.New()
+	r.POST("/users", h.CreateUser)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("POST", "/users", strings.NewReader(`not json`))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(rec, req)
+	if rec.Code != 400 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestCreateUser_MissingRequired(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := NewOrganizationHandler(OrganizationConfig{OrganizationStore: &fakeOrgStore{}})
+	r := gin.New()
+	r.POST("/users", h.CreateUser)
+
+	body := `{"user_id":"","email":"","display_name":"","role":"developer","status":"active"}`
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("POST", "/users", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(rec, req)
+	if rec.Code != 400 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestCreateUser_InvalidRole(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := NewOrganizationHandler(OrganizationConfig{OrganizationStore: &fakeOrgStore{}})
+	r := gin.New()
+	r.POST("/users", h.CreateUser)
+
+	body := `{"user_id":"u-1","email":"a@b.com","display_name":"A","role":"bogus","status":"active"}`
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("POST", "/users", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(rec, req)
+	if rec.Code != 400 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestCreateUser_InvalidStatus(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := NewOrganizationHandler(OrganizationConfig{OrganizationStore: &fakeOrgStore{}})
+	r := gin.New()
+	r.POST("/users", h.CreateUser)
+
+	body := `{"user_id":"u-1","email":"a@b.com","display_name":"A","role":"developer","status":"bogus"}`
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("POST", "/users", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(rec, req)
+	if rec.Code != 400 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestCreateUser_InvalidType(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := NewOrganizationHandler(OrganizationConfig{OrganizationStore: &fakeOrgStore{}})
+	r := gin.New()
+	r.POST("/users", h.CreateUser)
+
+	body := `{"user_id":"u-1","email":"a@b.com","display_name":"A","role":"developer","status":"active","type":"robot"}`
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("POST", "/users", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(rec, req)
+	if rec.Code != 400 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestCreateUser_InvalidJoinedAt(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := NewOrganizationHandler(OrganizationConfig{OrganizationStore: &fakeOrgStore{}})
+	r := gin.New()
+	r.POST("/users", h.CreateUser)
+
+	body := `{"user_id":"u-1","email":"a@b.com","display_name":"A","role":"developer","status":"active","joined_at":"not-a-date"}`
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("POST", "/users", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(rec, req)
+	if rec.Code != 400 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestCreateUser_StoreConflict(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	s := &fakeOrgStore{createUserErr: store.ErrConflict}
+	h := NewOrganizationHandler(OrganizationConfig{OrganizationStore: s})
+	r := gin.New()
+	r.POST("/users", h.CreateUser)
+
+	body := `{"user_id":"u-1","email":"a@b.com","display_name":"A","role":"developer","status":"active"}`
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("POST", "/users", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(rec, req)
+	if rec.Code != 409 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestCreateUser_StoreError(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	s := &fakeOrgStore{createUserErr: errors.New("db down")}
+	h := NewOrganizationHandler(OrganizationConfig{OrganizationStore: s})
+	r := gin.New()
+	r.POST("/users", h.CreateUser)
+
+	body := `{"user_id":"u-1","email":"a@b.com","display_name":"A","role":"developer","status":"active"}`
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("POST", "/users", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(rec, req)
+	if rec.Code != 500 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestCreateUser_SuccessDefaultType(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	s := &fakeOrgStore{
+		createUserResult: domain.AppUser{UserID: "u-1", Email: "a@b.com", DisplayName: "A", Role: domain.AppRoleDeveloper, Status: domain.UserStatusActive},
+	}
+	h := NewOrganizationHandler(OrganizationConfig{OrganizationStore: s, AuditStore: &fakeOrgAuditStore{}})
+	r := gin.New()
+	r.POST("/users", h.CreateUser)
+
+	body := `{"user_id":"u-1","email":"a@b.com","display_name":"A","role":"developer","status":"active"}`
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("POST", "/users", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(rec, req)
+	if rec.Code != 201 {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "created") {
+		t.Fatalf("body = %q", rec.Body.String())
+	}
+}
+
+// ---------------------------------------------------------------------------
+// UpdateUser handler tests
+// ---------------------------------------------------------------------------
+
+func TestUpdateUser_NilStore(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := NewOrganizationHandler(OrganizationConfig{})
+	r := gin.New()
+	r.PATCH("/users/:user_id", h.UpdateUser)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("PATCH", "/users/u-1", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(rec, req)
+	if rec.Code != 503 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestUpdateUser_EmptyUserID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := NewOrganizationHandler(OrganizationConfig{OrganizationStore: &fakeOrgStore{}})
+	r := gin.New()
+	r.PATCH("/users/:user_id", h.UpdateUser)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("PATCH", "/users/%20", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(rec, req)
+	if rec.Code != 400 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestUpdateUser_InvalidJSON(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := NewOrganizationHandler(OrganizationConfig{OrganizationStore: &fakeOrgStore{}})
+	r := gin.New()
+	r.PATCH("/users/:user_id", h.UpdateUser)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("PATCH", "/users/u-1", strings.NewReader(`not json`))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(rec, req)
+	if rec.Code != 400 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestUpdateUser_EmptyEmail(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := NewOrganizationHandler(OrganizationConfig{OrganizationStore: &fakeOrgStore{}})
+	r := gin.New()
+	r.PATCH("/users/:user_id", h.UpdateUser)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("PATCH", "/users/u-1", strings.NewReader(`{"email":""}`))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(rec, req)
+	if rec.Code != 400 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestUpdateUser_EmptyDisplayName(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := NewOrganizationHandler(OrganizationConfig{OrganizationStore: &fakeOrgStore{}})
+	r := gin.New()
+	r.PATCH("/users/:user_id", h.UpdateUser)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("PATCH", "/users/u-1", strings.NewReader(`{"display_name":"  "}`))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(rec, req)
+	if rec.Code != 400 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestUpdateUser_InvalidRole(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := NewOrganizationHandler(OrganizationConfig{OrganizationStore: &fakeOrgStore{}})
+	r := gin.New()
+	r.PATCH("/users/:user_id", h.UpdateUser)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("PATCH", "/users/u-1", strings.NewReader(`{"role":"bogus"}`))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(rec, req)
+	if rec.Code != 400 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestUpdateUser_InvalidStatus(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := NewOrganizationHandler(OrganizationConfig{OrganizationStore: &fakeOrgStore{}})
+	r := gin.New()
+	r.PATCH("/users/:user_id", h.UpdateUser)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("PATCH", "/users/u-1", strings.NewReader(`{"status":"bogus"}`))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(rec, req)
+	if rec.Code != 400 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestUpdateUser_InvalidJoinedAt(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := NewOrganizationHandler(OrganizationConfig{OrganizationStore: &fakeOrgStore{}})
+	r := gin.New()
+	r.PATCH("/users/:user_id", h.UpdateUser)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("PATCH", "/users/u-1", strings.NewReader(`{"joined_at":"nope"}`))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(rec, req)
+	if rec.Code != 400 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestUpdateUser_StoreNotFound(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	s := &fakeOrgStore{updateUserErr: store.ErrNotFound}
+	h := NewOrganizationHandler(OrganizationConfig{OrganizationStore: s})
+	r := gin.New()
+	r.PATCH("/users/:user_id", h.UpdateUser)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("PATCH", "/users/u-1", strings.NewReader(`{"email":"new@b.com"}`))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(rec, req)
+	if rec.Code != 404 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestUpdateUser_StoreError(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	s := &fakeOrgStore{updateUserErr: errors.New("db down")}
+	h := NewOrganizationHandler(OrganizationConfig{OrganizationStore: s})
+	r := gin.New()
+	r.PATCH("/users/:user_id", h.UpdateUser)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("PATCH", "/users/u-1", strings.NewReader(`{"email":"new@b.com"}`))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(rec, req)
+	if rec.Code != 500 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestUpdateUser_SuccessPartial(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	s := &fakeOrgStore{
+		updateUserResult: domain.AppUser{UserID: "u-1", Email: "new@b.com", DisplayName: "A", Role: domain.AppRoleDeveloper},
+	}
+	h := NewOrganizationHandler(OrganizationConfig{OrganizationStore: s, AuditStore: &fakeOrgAuditStore{}})
+	r := gin.New()
+	r.PATCH("/users/:user_id", h.UpdateUser)
+
+	body := `{"email":"new@b.com","primary_unit_id":"team-b","current_unit_id":"team-c","is_seconded":true,"joined_at":"2026-01-01"}`
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("PATCH", "/users/u-1", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(rec, req)
+	if rec.Code != 200 {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+}
+
+// ---------------------------------------------------------------------------
+// DeleteUser handler tests
+// ---------------------------------------------------------------------------
+
+func TestDeleteUser_NilStore(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := NewOrganizationHandler(OrganizationConfig{})
+	r := gin.New()
+	r.DELETE("/users/:user_id", h.DeleteUser)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("DELETE", "/users/u-1", nil)
+	r.ServeHTTP(rec, req)
+	if rec.Code != 503 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestDeleteUser_EmptyUserID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := NewOrganizationHandler(OrganizationConfig{OrganizationStore: &fakeOrgStore{}})
+	r := gin.New()
+	r.DELETE("/users/:user_id", h.DeleteUser)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("DELETE", "/users/%20", nil)
+	r.ServeHTTP(rec, req)
+	if rec.Code != 400 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestDeleteUser_NotFound(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	s := &fakeOrgStore{deleteUserErr: store.ErrNotFound}
+	h := NewOrganizationHandler(OrganizationConfig{OrganizationStore: s})
+	r := gin.New()
+	r.DELETE("/users/:user_id", h.DeleteUser)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("DELETE", "/users/u-999", nil)
+	r.ServeHTTP(rec, req)
+	if rec.Code != 404 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestDeleteUser_StoreError(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	s := &fakeOrgStore{deleteUserErr: errors.New("db down")}
+	h := NewOrganizationHandler(OrganizationConfig{OrganizationStore: s})
+	r := gin.New()
+	r.DELETE("/users/:user_id", h.DeleteUser)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("DELETE", "/users/u-1", nil)
+	r.ServeHTTP(rec, req)
+	if rec.Code != 500 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestDeleteUser_Success(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	s := &fakeOrgStore{}
+	h := NewOrganizationHandler(OrganizationConfig{OrganizationStore: s, AuditStore: &fakeOrgAuditStore{}})
+	r := gin.New()
+	r.DELETE("/users/:user_id", h.DeleteUser)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("DELETE", "/users/u-1", nil)
+	r.ServeHTTP(rec, req)
+	if rec.Code != 200 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "deleted") {
+		t.Fatalf("body = %q", rec.Body.String())
+	}
+}
+
+// ---------------------------------------------------------------------------
+// HrLookup handler tests
+// ---------------------------------------------------------------------------
+
+func TestHrLookup_MissingParams(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := NewOrganizationHandler(OrganizationConfig{HRDB: &fakeHRDB{}})
+	r := gin.New()
+	r.GET("/hr-lookup", h.HrLookup)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/hr-lookup", nil)
+	r.ServeHTTP(rec, req)
+	if rec.Code != 400 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestHrLookup_NilHRDB(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := NewOrganizationHandler(OrganizationConfig{})
+	r := gin.New()
+	r.GET("/hr-lookup", h.HrLookup)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/hr-lookup?system_id=s1", nil)
+	r.ServeHTTP(rec, req)
+	if rec.Code != 503 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestHrLookup_LookupError(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := NewOrganizationHandler(OrganizationConfig{HRDB: &fakeHRDBErr{err: errors.New("not found")}})
+	r := gin.New()
+	r.GET("/hr-lookup", h.HrLookup)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/hr-lookup?system_id=s1", nil)
+	r.ServeHTTP(rec, req)
+	if rec.Code != 404 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestHrLookup_Success(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := NewOrganizationHandler(OrganizationConfig{HRDB: &fakeHRDB{}})
+	r := gin.New()
+	r.GET("/hr-lookup", h.HrLookup)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/hr-lookup?system_id=s1&employee_id=e1&name=Alice", nil)
+	r.ServeHTTP(rec, req)
+	if rec.Code != 200 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "Alice") {
+		t.Fatalf("body = %q", rec.Body.String())
+	}
+}
+
+func TestHrLookup_SuccessWithEmployeeIDOnly(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := NewOrganizationHandler(OrganizationConfig{HRDB: &fakeHRDB{}})
+	r := gin.New()
+	r.GET("/hr-lookup", h.HrLookup)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/hr-lookup?employee_id=e1", nil)
+	r.ServeHTTP(rec, req)
+	if rec.Code != 200 {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
