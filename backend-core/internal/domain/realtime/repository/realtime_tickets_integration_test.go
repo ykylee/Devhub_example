@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/devhub/backend-core/internal/domain/realtime/repository"
 	"github.com/devhub/backend-core/internal/store"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -43,13 +44,14 @@ func newTicketTestStore(t *testing.T) (*store.PostgresStore, *pgxpool.Pool, cont
 // 성공 + 두 번째 consume miss (single-use, DELETE 로 row 제거).
 func TestIntegration_RealtimeTickets_InsertConsumeSingleUse(t *testing.T) {
 	pgStore, pool, ctx := newTicketTestStore(t)
+	repo := repository.NewRealtimeRepository(pgStore)
 
 	ticket := fmt.Sprintf("test-su-%d", time.Now().UnixNano())
 	defer func() {
 		_, _ = pool.Exec(ctx, `DELETE FROM realtime_tickets WHERE ticket = $1`, ticket)
 	}()
 
-	if err := pgStore.InsertRealtimeTicket(ctx, store.RealtimeTicket{
+	if err := repo.InsertRealtimeTicket(ctx, repository.RealtimeTicket{
 		Ticket:     ticket,
 		ActorLogin: "alice",
 		ActorRole:  "developer",
@@ -59,7 +61,7 @@ func TestIntegration_RealtimeTickets_InsertConsumeSingleUse(t *testing.T) {
 		t.Fatalf("insert: %v", err)
 	}
 
-	row, ok, err := pgStore.ConsumeRealtimeTicket(ctx, ticket)
+	row, ok, err := repo.ConsumeRealtimeTicket(ctx, ticket)
 	if err != nil {
 		t.Fatalf("consume: %v", err)
 	}
@@ -70,7 +72,7 @@ func TestIntegration_RealtimeTickets_InsertConsumeSingleUse(t *testing.T) {
 		t.Fatalf("unexpected row: %+v", row)
 	}
 
-	_, ok, err = pgStore.ConsumeRealtimeTicket(ctx, ticket)
+	_, ok, err = repo.ConsumeRealtimeTicket(ctx, ticket)
 	if err != nil {
 		t.Fatalf("second consume err: %v", err)
 	}
@@ -82,13 +84,14 @@ func TestIntegration_RealtimeTickets_InsertConsumeSingleUse(t *testing.T) {
 // TestIntegration_RealtimeTickets_ExpiredNotConsumed — 만료 ticket 은 consume miss.
 func TestIntegration_RealtimeTickets_ExpiredNotConsumed(t *testing.T) {
 	pgStore, pool, ctx := newTicketTestStore(t)
+	repo := repository.NewRealtimeRepository(pgStore)
 
 	ticket := fmt.Sprintf("test-exp-%d", time.Now().UnixNano())
 	defer func() {
 		_, _ = pool.Exec(ctx, `DELETE FROM realtime_tickets WHERE ticket = $1`, ticket)
 	}()
 
-	if err := pgStore.InsertRealtimeTicket(ctx, store.RealtimeTicket{
+	if err := repo.InsertRealtimeTicket(ctx, repository.RealtimeTicket{
 		Ticket:     ticket,
 		ActorLogin: "bob",
 		SourceType: "oidc",
@@ -97,7 +100,7 @@ func TestIntegration_RealtimeTickets_ExpiredNotConsumed(t *testing.T) {
 		t.Fatalf("insert: %v", err)
 	}
 
-	_, ok, err := pgStore.ConsumeRealtimeTicket(ctx, ticket)
+	_, ok, err := repo.ConsumeRealtimeTicket(ctx, ticket)
 	if err != nil {
 		t.Fatalf("consume: %v", err)
 	}
@@ -106,7 +109,7 @@ func TestIntegration_RealtimeTickets_ExpiredNotConsumed(t *testing.T) {
 	}
 
 	// DeleteExpiredRealtimeTickets 가 만료 row 회수.
-	if _, err := pgStore.DeleteExpiredRealtimeTickets(ctx); err != nil {
+	if _, err := repo.DeleteExpiredRealtimeTickets(ctx); err != nil {
 		t.Fatalf("delete expired: %v", err)
 	}
 	var cnt int
@@ -123,13 +126,14 @@ func TestIntegration_RealtimeTickets_ExpiredNotConsumed(t *testing.T) {
 // multi-instance horizontal scale 의 single-use invariant 핵심 검증.
 func TestIntegration_RealtimeTickets_ConcurrentConsumeHonoredOnce(t *testing.T) {
 	pgStore, pool, ctx := newTicketTestStore(t)
+	repo := repository.NewRealtimeRepository(pgStore)
 
 	ticket := fmt.Sprintf("test-race-%d", time.Now().UnixNano())
 	defer func() {
 		_, _ = pool.Exec(ctx, `DELETE FROM realtime_tickets WHERE ticket = $1`, ticket)
 	}()
 
-	if err := pgStore.InsertRealtimeTicket(ctx, store.RealtimeTicket{
+	if err := repo.InsertRealtimeTicket(ctx, repository.RealtimeTicket{
 		Ticket:     ticket,
 		ActorLogin: "carol",
 		SourceType: "oidc",
@@ -146,7 +150,7 @@ func TestIntegration_RealtimeTickets_ConcurrentConsumeHonoredOnce(t *testing.T) 
 	for i := 0; i < n; i++ {
 		go func() {
 			defer wg.Done()
-			_, ok, err := pgStore.ConsumeRealtimeTicket(ctx, ticket)
+			_, ok, err := repo.ConsumeRealtimeTicket(ctx, ticket)
 			if err != nil {
 				return
 			}

@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-05-29T23:17:00Z",
+  "generated_at": "2026-05-30T12:16:00Z",
   "source_of_truth": {
     "project_profile_path": "docs/PROJECT_PROFILE.md",
     "session_handoff_path": "ai-workflow/memory/gemini/work_260529-b-unit-test-coverage/session_handoff.md",
@@ -17,7 +17,10 @@
       "Achieve 100% statements coverage in backend dev-request/service pkg",
       "Achieve 100% statements/branches/functions coverage in frontend onboardingSkip.ts",
       "Fix frontend Vitest localStorage TypeErrors with mock in test-setup.ts",
-      "Achieve 100% Vitest unit tests execution PASS (930 passed)"
+      "Achieve 100% Vitest unit tests execution PASS (940 passed)",
+      "Port backend users_units and realtime_tickets tests to use domain repositories",
+      "Add new DB integration tests for audit-ops, integration-registry, and dev-request repositories",
+      "Diagnose and resolve two critical PostgresExternalTaskStore database integration bugs"
     ]
   },
   "next_documents": [

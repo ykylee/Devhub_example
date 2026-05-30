@@ -261,7 +261,7 @@ FROM all_seqs
 WHERE seq NOT IN (SELECT seq FROM present_seqs)
 `
 	var gapCount int64
-	if err := s.pool.QueryRow(ctx, query, providerID, providerID).Scan(&gapCount); err != nil {
+	if err := s.pool.QueryRow(ctx, query, providerID).Scan(&gapCount); err != nil {
 		return 0, fmt.Errorf("detect webhook seq gaps: %w", err)
 	}
 	return gapCount, nil
@@ -287,7 +287,7 @@ SELECT provider_id::text, provider_key, provider_type, display_name, enabled, au
        COALESCE(auth_username, ''), COALESCE(auth_client_id, ''), COALESCE(auth_token_url, ''), COALESCE(auth_secret, ''),
        COALESCE(webhook_secret, ''), COALESCE(pull_interval_seconds, 1800), last_pulled_at
 FROM integration_providers
-WHERE provider_type = 'task_tracker' AND enabled = true
+WHERE provider_type = 'alm' AND enabled = true
 `
 	rows, err := s.pool.Query(ctx, query)
 	if err != nil {

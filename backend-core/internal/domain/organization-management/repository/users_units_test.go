@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/devhub/backend-core/internal/domain"
+	"github.com/devhub/backend-core/internal/domain/organization-management/repository"
 	"github.com/devhub/backend-core/internal/store"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -23,8 +24,9 @@ func TestPostgresStoreListUsersAndHierarchy(t *testing.T) {
 		t.Fatalf("connect postgres store: %v", err)
 	}
 	defer pgStore.Close()
+	repo := repository.NewOrganizationRepository(pgStore)
 
-	users, total, err := pgStore.ListUsers(ctx, domain.UserListOptions{Limit: 50})
+	users, total, err := repo.ListUsers(ctx, domain.UserListOptions{Limit: 50})
 	if err != nil {
 		t.Fatalf("list users: %v", err)
 	}
@@ -61,7 +63,7 @@ func TestPostgresStoreListUsersAndHierarchy(t *testing.T) {
 		}
 	}
 
-	loaded, err := pgStore.GetUser(ctx, "u1")
+	loaded, err := repo.GetUser(ctx, "u1")
 	if err != nil {
 		t.Fatalf("get user u1: %v", err)
 	}
@@ -81,7 +83,7 @@ func TestPostgresStoreListUsersAndHierarchy(t *testing.T) {
 		t.Fatalf("expected u1 to be leader of org-root, appointments=%+v", loaded.Appointments)
 	}
 
-	hierarchy, err := pgStore.GetHierarchy(ctx)
+	hierarchy, err := repo.GetHierarchy(ctx)
 	if err != nil {
 		t.Fatalf("get hierarchy: %v", err)
 	}
@@ -150,6 +152,7 @@ func TestPostgresStoreReplaceUnitMembers(t *testing.T) {
 		t.Fatalf("connect postgres store: %v", err)
 	}
 	defer pgStore.Close()
+	repo := repository.NewOrganizationRepository(pgStore)
 
 	pool, err := pgxpool.New(ctx, dbURL)
 	if err != nil {
@@ -170,11 +173,11 @@ func TestPostgresStoreReplaceUnitMembers(t *testing.T) {
 		}
 	}()
 
-	if err := pgStore.ReplaceUnitMembers(ctx, unitID, []string{"u3"}); err != nil {
+	if err := repo.ReplaceUnitMembers(ctx, unitID, []string{"u3"}); err != nil {
 		t.Fatalf("replace unit members: %v", err)
 	}
 
-	members, err := pgStore.ListUnitMembers(ctx, unitID)
+	members, err := repo.ListUnitMembers(ctx, unitID)
 	if err != nil {
 		t.Fatalf("list unit members: %v", err)
 	}
@@ -201,16 +204,16 @@ func TestPostgresStoreReplaceUnitMembers(t *testing.T) {
 
 	// Replace with empty list — u3 should disappear from member rows but any
 	// leader appointments preserved.
-	if err := pgStore.ReplaceUnitMembers(ctx, unitID, nil); err != nil {
+	if err := repo.ReplaceUnitMembers(ctx, unitID, nil); err != nil {
 		t.Fatalf("replace unit members with empty list: %v", err)
 	}
-	membersAfter, err := pgStore.ListUnitMembers(ctx, unitID)
+	membersAfter, err := repo.ListUnitMembers(ctx, unitID)
 	if err != nil {
 		t.Fatalf("list unit members after empty replace: %v", err)
 	}
 	for _, member := range membersAfter {
 		// Any remaining row must come from a leader appointment.
-		appointments, err := pgStore.GetUserAppointments(ctx, member.UserID)
+		appointments, err := repo.GetUserAppointments(ctx, member.UserID)
 		if err != nil {
 			t.Fatalf("get appointments for %s: %v", member.UserID, err)
 		}
@@ -301,6 +304,7 @@ func TestPostgresStore_CreateOrgUnit_LeaderSync(t *testing.T) {
 		t.Fatalf("connect postgres store: %v", err)
 	}
 	defer pgStore.Close()
+	repo := repository.NewOrganizationRepository(pgStore)
 
 	pool, err := pgxpool.New(ctx, dbURL)
 	if err != nil {
@@ -315,7 +319,7 @@ func TestPostgresStore_CreateOrgUnit_LeaderSync(t *testing.T) {
 		}
 	}()
 
-	created, err := pgStore.CreateOrgUnit(ctx, domain.CreateOrgUnitInput{
+	created, err := repo.CreateOrgUnit(ctx, domain.CreateOrgUnitInput{
 		UnitID:       unitID,
 		ParentUnitID: "team-infra",
 		UnitType:     domain.UnitTypePart,
@@ -367,6 +371,7 @@ func TestPostgresStore_UpdateOrgUnit_LeaderPromoteDemote(t *testing.T) {
 		t.Fatalf("connect postgres store: %v", err)
 	}
 	defer pgStore.Close()
+	repo := repository.NewOrganizationRepository(pgStore)
 
 	pool, err := pgxpool.New(ctx, dbURL)
 	if err != nil {
@@ -393,7 +398,7 @@ func TestPostgresStore_UpdateOrgUnit_LeaderPromoteDemote(t *testing.T) {
 	}()
 
 	newLeader := "u3"
-	updated, err := pgStore.UpdateOrgUnit(ctx, unitID, domain.UpdateOrgUnitInput{
+	updated, err := repo.UpdateOrgUnit(ctx, unitID, domain.UpdateOrgUnitInput{
 		LeaderUserID: &newLeader,
 	})
 	if err != nil {
@@ -446,6 +451,7 @@ func TestPostgresStore_UpdateOrgUnit_LeaderClear(t *testing.T) {
 		t.Fatalf("connect postgres store: %v", err)
 	}
 	defer pgStore.Close()
+	repo := repository.NewOrganizationRepository(pgStore)
 
 	pool, err := pgxpool.New(ctx, dbURL)
 	if err != nil {
@@ -472,7 +478,7 @@ func TestPostgresStore_UpdateOrgUnit_LeaderClear(t *testing.T) {
 	}()
 
 	cleared := ""
-	updated, err := pgStore.UpdateOrgUnit(ctx, unitID, domain.UpdateOrgUnitInput{
+	updated, err := repo.UpdateOrgUnit(ctx, unitID, domain.UpdateOrgUnitInput{
 		LeaderUserID: &cleared,
 	})
 	if err != nil {
