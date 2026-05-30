@@ -12,6 +12,7 @@ import (
 
 	"github.com/devhub/backend-core/internal/domain"
 	"github.com/devhub/backend-core/internal/shared/httphelp"
+	"github.com/devhub/backend-core/internal/store"
 	"github.com/gin-gonic/gin"
 )
 
@@ -519,3 +520,395 @@ func TestIntegrationResponse_FieldMapping(t *testing.T) {
 		t.Fatalf("external_key: %v", resp["external_key"])
 	}
 }
+
+// --- fakeIntegrationStore for Handler tests -------------------------
+
+type fakeIntegrationStore struct {
+	IntegrationStore // Embed to automatically satisfy all interface methods
+
+	integrations map[string]domain.ProjectIntegration
+	errList      error
+	errGet       error
+	errCreate    error
+	errUpdate    error
+	errDelete    error
+}
+
+func (s *fakeIntegrationStore) ListIntegrations(_ context.Context, _ store.IntegrationListOptions) ([]domain.ProjectIntegration, int, error) {
+	if s.errList != nil {
+		return nil, 0, s.errList
+	}
+	out := []domain.ProjectIntegration{}
+	for _, v := range s.integrations {
+		out = append(out, v)
+	}
+	return out, len(out), nil
+}
+
+func (s *fakeIntegrationStore) GetIntegration(_ context.Context, id string) (domain.ProjectIntegration, error) {
+	if s.errGet != nil {
+		return domain.ProjectIntegration{}, s.errGet
+	}
+	if v, ok := s.integrations[id]; ok {
+		return v, nil
+	}
+	return domain.ProjectIntegration{}, store.ErrNotFound
+}
+
+func (s *fakeIntegrationStore) CreateIntegration(_ context.Context, p domain.ProjectIntegration) (domain.ProjectIntegration, error) {
+	if s.errCreate != nil {
+		return domain.ProjectIntegration{}, s.errCreate
+	}
+	if p.ID == "" {
+		p.ID = "int-" + p.ExternalKey
+	}
+	p.CreatedAt = time.Now()
+	p.UpdatedAt = p.CreatedAt
+	if s.integrations == nil {
+		s.integrations = make(map[string]domain.ProjectIntegration)
+	}
+	s.integrations[p.ID] = p
+	return p, nil
+}
+
+func (s *fakeIntegrationStore) UpdateIntegration(_ context.Context, p domain.ProjectIntegration) (domain.ProjectIntegration, error) {
+	if s.errUpdate != nil {
+		return domain.ProjectIntegration{}, s.errUpdate
+	}
+	if _, ok := s.integrations[p.ID]; !ok {
+		return domain.ProjectIntegration{}, store.ErrNotFound
+	}
+	p.UpdatedAt = time.Now()
+	s.integrations[p.ID] = p
+	return p, nil
+}
+
+func (s *fakeIntegrationStore) DeleteIntegration(_ context.Context, id string) error {
+	if s.errDelete != nil {
+		return s.errDelete
+	}
+	if _, ok := s.integrations[id]; !ok {
+		return store.ErrNotFound
+	}
+	delete(s.integrations, id)
+	return nil
+}
+
+// --- Integration Handler CRUD Tests ----------------------------------
+
+func TestListIntegrations_SuccessAndError(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	t.Run("scope validation failure", func(t *testing.T) {
+		h := NewIntegrationHandler(IntegrationConfig{IntegrationStore: &fakeIntegrationStore{}})
+		rec := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(rec)
+		c.Request = httptest.NewRequest("GET", "/integrations?scope=invalid", nil)
+
+		h.ListIntegrations(c)
+
+		if rec.Code != 400 {
+			t.Fatalf("expected 400, got %d", rec.Code)
+		}
+	})
+
+	t.Run("integration_type validation failure", func(t *testing.T) {
+		h := NewIntegrationHandler(IntegrationConfig{IntegrationStore: &fakeIntegrationStore{}})
+		rec := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(rec)
+		c.Request = httptest.NewRequest("GET", "/integrations?integration_type=invalid", nil)
+
+		h.ListIntegrations(c)
+
+		if rec.Code != 400 {
+			t.Fatalf("expected 400, got %d", rec.Code)
+		}
+	})
+
+	t.Run("limit/offset validation failure", func(t *testing.T) {
+		h := NewIntegrationHandler(IntegrationConfig{IntegrationStore: &fakeIntegrationStore{}})
+
+		rec := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(rec)
+		c.Request = httptest.NewRequest("GET", "/integrations?limit=200", nil)
+		h.ListIntegrations(c)
+		if rec.Code != 400 {
+			t.Fatalf("expected 400 limit, got %d", rec.Code)
+		}
+
+		rec2 := httptest.NewRecorder()
+		c2, _ := gin.CreateTestContext(rec2)
+		c2.Request = httptest.NewRequest("GET", "/integrations?offset=-5", nil)
+		h.ListIntegrations(c2)
+		if rec2.Code != 400 {
+			t.Fatalf("expected 400 offset, got %d", rec2.Code)
+		}
+	})
+
+	t.Run("store general error returns 500", func(t *testing.T) {
+		storeVal := &fakeIntegrationStore{errList: errors.New("db lost")}
+		h := NewIntegrationHandler(IntegrationConfig{IntegrationStore: storeVal})
+		rec := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(rec)
+		c.Request = httptest.NewRequest("GET", "/integrations", nil)
+
+		h.ListIntegrations(c)
+
+		if rec.Code != 500 {
+			t.Fatalf("expected 500, got %d", rec.Code)
+		}
+	})
+
+	t.Run("success returns 200 with data", func(t *testing.T) {
+		storeVal := &fakeIntegrationStore{
+			integrations: map[string]domain.ProjectIntegration{
+				"int-1": {
+					ID:              "int-1",
+					Scope:           "application",
+					ApplicationID:   "app-1",
+					IntegrationType: "jira",
+					ExternalKey:     "JIRA-1",
+					URL:             "https://example.com",
+					Policy:          "summary_only",
+				},
+			},
+		}
+		h := NewIntegrationHandler(IntegrationConfig{IntegrationStore: storeVal})
+		rec := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(rec)
+		c.Request = httptest.NewRequest("GET", "/integrations", nil)
+
+		h.ListIntegrations(c)
+
+		if rec.Code != 200 {
+			t.Fatalf("expected 200, got %d", rec.Code)
+		}
+		if !strings.Contains(rec.Body.String(), "JIRA-1") {
+			t.Fatalf("body = %q", rec.Body.String())
+		}
+	})
+}
+
+func TestCreateIntegration_SuccessAndError(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	t.Run("invalid json payload aborts 400", func(t *testing.T) {
+		h := NewIntegrationHandler(IntegrationConfig{IntegrationStore: &fakeIntegrationStore{}})
+		rec := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(rec)
+		c.Request = httptest.NewRequest("POST", "/integrations", strings.NewReader("{bad-json"))
+
+		h.CreateIntegration(c)
+
+		if rec.Code != 400 {
+			t.Fatalf("expected 400, got %d", rec.Code)
+		}
+	})
+
+	t.Run("invalid scope type aborts 400", func(t *testing.T) {
+		h := NewIntegrationHandler(IntegrationConfig{IntegrationStore: &fakeIntegrationStore{}})
+		rec := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(rec)
+		c.Request = httptest.NewRequest("POST", "/integrations", strings.NewReader(`{"scope":"invalid"}`))
+
+		h.CreateIntegration(c)
+
+		if rec.Code != 400 {
+			t.Fatalf("expected 400, got %d", rec.Code)
+		}
+	})
+
+	t.Run("missing scope application target aborts 422", func(t *testing.T) {
+		h := NewIntegrationHandler(IntegrationConfig{IntegrationStore: &fakeIntegrationStore{}})
+		rec := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(rec)
+		c.Request = httptest.NewRequest("POST", "/integrations", strings.NewReader(`{
+			"scope":"application",
+			"integration_type":"jira",
+			"policy":"summary_only",
+			"external_key":"J-1",
+			"url":"https://example.com"
+		}`))
+
+		h.CreateIntegration(c)
+
+		if rec.Code != 422 {
+			t.Fatalf("expected 422, got %d", rec.Code)
+		}
+	})
+
+	t.Run("store ErrConflict aborts 409", func(t *testing.T) {
+		storeVal := &fakeIntegrationStore{errCreate: store.ErrConflict}
+		h := NewIntegrationHandler(IntegrationConfig{IntegrationStore: storeVal})
+		rec := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(rec)
+		c.Request = httptest.NewRequest("POST", "/integrations", strings.NewReader(`{
+			"scope":"application",
+			"application_id":"app-1",
+			"integration_type":"jira",
+			"policy":"summary_only",
+			"external_key":"J-1",
+			"url":"https://example.com"
+		}`))
+
+		h.CreateIntegration(c)
+
+		if rec.Code != 409 {
+			t.Fatalf("expected 409, got %d", rec.Code)
+		}
+	})
+
+	t.Run("successful creation project scope records audit", func(t *testing.T) {
+		storeVal := &fakeIntegrationStore{}
+		audit := &fakeIntegrationAuditStore{}
+		h := NewIntegrationHandler(IntegrationConfig{
+			IntegrationStore: storeVal,
+			AuditStore:       audit,
+		})
+		rec := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(rec)
+		c.Request = httptest.NewRequest("POST", "/integrations", strings.NewReader(`{
+			"scope":"project",
+			"project_id":"proj-1",
+			"integration_type":"jira",
+			"policy":"summary_only",
+			"external_key":"J-1",
+			"url":"https://example.com"
+		}`))
+
+		h.CreateIntegration(c)
+
+		if rec.Code != 201 {
+			t.Fatalf("expected 201, got %d. Body: %s", rec.Code, rec.Body.String())
+		}
+		if len(audit.created) != 1 {
+			t.Fatalf("expected 1 audit log, got %d", len(audit.created))
+		}
+		c0 := audit.created[0]
+		if c0.Action != "integration.created" || c0.TargetID != "int-J-1" {
+			t.Fatalf("wrong audit mapping: %+v", c0)
+		}
+	})
+}
+
+func TestUpdateIntegration_SuccessAndError(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	t.Run("store ErrNotFound on lookup aborts 404", func(t *testing.T) {
+		storeVal := &fakeIntegrationStore{errGet: store.ErrNotFound}
+		h := NewIntegrationHandler(IntegrationConfig{IntegrationStore: storeVal})
+		rec := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(rec)
+		c.Params = []gin.Param{{Key: "integration_id", Value: "int-1"}}
+		c.Request = httptest.NewRequest("PATCH", "/integrations/int-1", strings.NewReader(`{"url":"https://new.com"}`))
+
+		h.UpdateIntegration(c)
+
+		if rec.Code != 404 {
+			t.Fatalf("expected 404, got %d", rec.Code)
+		}
+	})
+
+	t.Run("store general error on lookup aborts 500", func(t *testing.T) {
+		storeVal := &fakeIntegrationStore{errGet: errors.New("db lost")}
+		h := NewIntegrationHandler(IntegrationConfig{IntegrationStore: storeVal})
+		rec := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(rec)
+		c.Params = []gin.Param{{Key: "integration_id", Value: "int-1"}}
+		c.Request = httptest.NewRequest("PATCH", "/integrations/int-1", strings.NewReader(`{"url":"https://new.com"}`))
+
+		h.UpdateIntegration(c)
+
+		if rec.Code != 500 {
+			t.Fatalf("expected 500, got %d", rec.Code)
+		}
+	})
+
+	t.Run("successful update triggers audit", func(t *testing.T) {
+		storeVal := &fakeIntegrationStore{
+			integrations: map[string]domain.ProjectIntegration{
+				"int-1": {
+					ID:              "int-1",
+					Scope:           "application",
+					ApplicationID:   "app-1",
+					IntegrationType: "jira",
+					ExternalKey:     "J-1",
+					URL:             "https://old.com",
+					Policy:          "summary_only",
+				},
+			},
+		}
+		audit := &fakeIntegrationAuditStore{}
+		h := NewIntegrationHandler(IntegrationConfig{
+			IntegrationStore: storeVal,
+			AuditStore:       audit,
+		})
+		rec := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(rec)
+		c.Params = []gin.Param{{Key: "integration_id", Value: "int-1"}}
+		c.Request = httptest.NewRequest("PATCH", "/integrations/int-1", strings.NewReader(`{"url":"https://new.com","policy":"execution_system"}`))
+
+		h.UpdateIntegration(c)
+
+		if rec.Code != 200 {
+			t.Fatalf("expected 200, got %d. Body: %s", rec.Code, rec.Body.String())
+		}
+		if len(audit.created) != 1 {
+			t.Fatalf("expected 1 audit log, got %d", len(audit.created))
+		}
+		c0 := audit.created[0]
+		if c0.Action != "integration.updated" || c0.TargetID != "int-1" {
+			t.Fatalf("wrong audit mapping: %+v", c0)
+		}
+	})
+}
+
+func TestDeleteIntegration_SuccessAndError(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	t.Run("store ErrNotFound aborts 404", func(t *testing.T) {
+		storeVal := &fakeIntegrationStore{errDelete: store.ErrNotFound}
+		h := NewIntegrationHandler(IntegrationConfig{IntegrationStore: storeVal})
+		rec := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(rec)
+		c.Params = []gin.Param{{Key: "integration_id", Value: "int-1"}}
+		c.Request = httptest.NewRequest("DELETE", "/integrations/int-1", nil)
+
+		h.DeleteIntegration(c)
+
+		if rec.Code != 404 {
+			t.Fatalf("expected 404, got %d", rec.Code)
+		}
+	})
+
+	t.Run("successful deletion records audit", func(t *testing.T) {
+		storeVal := &fakeIntegrationStore{
+			integrations: map[string]domain.ProjectIntegration{
+				"int-1": {ID: "int-1"},
+			},
+		}
+		audit := &fakeIntegrationAuditStore{}
+		h := NewIntegrationHandler(IntegrationConfig{
+			IntegrationStore: storeVal,
+			AuditStore:       audit,
+		})
+		rec := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(rec)
+		c.Params = []gin.Param{{Key: "integration_id", Value: "int-1"}}
+		c.Request = httptest.NewRequest("DELETE", "/integrations/int-1", nil)
+
+		h.DeleteIntegration(c)
+
+		if rec.Code != 200 {
+			t.Fatalf("expected 200, got %d", rec.Code)
+		}
+		if len(audit.created) != 1 {
+			t.Fatalf("expected 1 audit log, got %d", len(audit.created))
+		}
+		c0 := audit.created[0]
+		if c0.Action != "integration.deleted" || c0.TargetID != "int-1" {
+			t.Fatalf("wrong audit mapping: %+v", c0)
+		}
+	})
+}
+
