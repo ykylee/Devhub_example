@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/devhub/backend-core/internal/domain"
 	apprep "github.com/devhub/backend-core/internal/domain/application-lifecycle/repository"
@@ -420,3 +421,251 @@ func TestIntegration_UpdateSCMProvider_AdapterVersionPreserved(t *testing.T) {
 		t.Errorf("display_name not updated: %q", updated.DisplayName)
 	}
 }
+
+// --- Extra Comprehensive Coverage Test Cases ---
+
+func TestIntegration_Applications_ExtraCRUD(t *testing.T) {
+	pgStore, _, ctx, teardown := setupApplicationsTest(t)
+	defer teardown()
+
+	ghostUUID := "00000000-0000-0000-0000-000000000000"
+
+	// 1. GetApplication not found
+	if _, err := pgStore.GetApplication(ctx, ghostUUID); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("expected ErrNotFound for ghost UUID, got %v", err)
+	}
+
+	// 2. GetApplicationByKey not found
+	if _, err := pgStore.GetApplicationByKey(ctx, "GHOSTKEY"); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("expected ErrNotFound for GHOSTKEY, got %v", err)
+	}
+
+	// 3. UpdateApplication not found
+	appGhost := domain.Application{ID: ghostUUID, Key: "GHOST", Name: "Ghost"}
+	if _, err := pgStore.UpdateApplication(ctx, appGhost); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("expected ErrNotFound for UpdateApplication ghost, got %v", err)
+	}
+
+	// 4. ArchiveApplication not found
+	if _, err := pgStore.ArchiveApplication(ctx, ghostUUID, "reason"); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("expected ErrNotFound for ArchiveApplication ghost, got %v", err)
+	}
+
+	// 5. DeleteApplication not found
+	if err := pgStore.DeleteApplication(ctx, ghostUUID); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("expected ErrNotFound for DeleteApplication ghost, got %v", err)
+	}
+
+	// 6. DeleteApplicationRepository not found
+	keyGhost := store.ApplicationRepositoryLinkKey{ApplicationID: ghostUUID, RepoProvider: "gitea", RepoFullName: "ghost/repo"}
+	if err := pgStore.DeleteApplicationRepository(ctx, keyGhost); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("expected ErrNotFound for DeleteApplicationRepository, got %v", err)
+	}
+
+	// 7. UpdateSCMProvider not found
+	pGhost := domain.SCMProvider{ProviderKey: "ghostprovider", DisplayName: "Ghost"}
+	if _, err := pgStore.UpdateSCMProvider(ctx, pGhost); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("expected ErrNotFound for UpdateSCMProvider, got %v", err)
+	}
+
+	// 8. UpdateApplicationRepositorySync not found
+	if err := pgStore.UpdateApplicationRepositorySync(ctx, keyGhost, domain.SyncStatusActive, ""); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("expected ErrNotFound for UpdateApplicationRepositorySync, got %v", err)
+	}
+
+	// 9. ListApplications options coverage
+	opts := store.ApplicationListOptions{
+		Status:          "planning",
+		IncludeArchived: true,
+		Query:           "non-existent-query-string",
+	}
+	apps, total, err := pgStore.ListApplications(ctx, opts)
+	if err != nil {
+		t.Fatalf("ListApplications: %v", err)
+	}
+	if len(apps) != 0 || total != 0 {
+		t.Errorf("expected 0 results, got len=%d total=%d", len(apps), total)
+	}
+}
+
+func TestIntegration_Projects_ExtraCRUD(t *testing.T) {
+	pgStore, pool, ctx, teardown := setupApplicationsTest(t)
+	defer teardown()
+
+	ghostUUID := "00000000-0000-0000-0000-000000000000"
+
+	// 1. GetProject not found
+	if _, err := pgStore.GetProject(ctx, ghostUUID); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("expected ErrNotFound for GetProject ghost, got %v", err)
+	}
+
+	// 2. CreateProject and Duplicate check
+	pKey := fmt.Sprintf("PRJ-%d", time.Now().UnixNano())
+	defer func() { _, _ = pool.Exec(ctx, `DELETE FROM projects WHERE key = $1`, pKey) }()
+
+	p := domain.Project{
+		Key:         pKey,
+		Name:        "Test Project",
+		Status:      domain.ApplicationStatusActive,
+		Visibility:  domain.ApplicationVisibilityInternal,
+		OwnerUserID: "u1",
+	}
+	created, err := pgStore.CreateProject(ctx, p)
+	if err != nil {
+		t.Fatalf("CreateProject failed: %v", err)
+	}
+	if created.Key != pKey {
+		t.Errorf("expected project key %s, got %s", pKey, created.Key)
+	}
+
+	// Duplicate key conflict check
+	_, err = pgStore.CreateProject(ctx, p)
+	if !errors.Is(err, store.ErrConflict) {
+		t.Errorf("expected ErrConflict for duplicate project key, got %v", err)
+	}
+
+	// 3. UpdateProject
+	created.Name = "Test Project Updated"
+	updated, err := pgStore.UpdateProject(ctx, created)
+	if err != nil {
+		t.Fatalf("UpdateProject failed: %v", err)
+	}
+	if updated.Name != "Test Project Updated" {
+		t.Errorf("expected name updated, got %s", updated.Name)
+	}
+
+	// Update ghost project
+	pGhost := domain.Project{ID: ghostUUID, Key: "GHOST", Name: "Ghost"}
+	if _, err := pgStore.UpdateProject(ctx, pGhost); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("expected ErrNotFound for UpdateProject ghost, got %v", err)
+	}
+
+	// 4. ListProjects filter coverage
+	opts := store.ProjectListOptions{
+		Status:         "active",
+		StandaloneOnly: true,
+	}
+	_, _, err = pgStore.ListProjects(ctx, opts)
+	if err != nil {
+		t.Errorf("ListProjects error: %v", err)
+	}
+
+	// 5. Project Repository Links CRUD
+	link := domain.ProjectRepository{
+		ProjectID:    created.ID,
+		RepositoryID: testRepoID1,
+		Role:         "linked",
+	}
+	createdLink, err := pgStore.CreateProjectRepository(ctx, link)
+	if err != nil {
+		t.Fatalf("CreateProjectRepository failed: %v", err)
+	}
+	if createdLink.ProjectID != created.ID || createdLink.RepositoryID != testRepoID1 {
+		t.Errorf("unexpected created link details: %+v", createdLink)
+	}
+
+	// Duplicate link conflict check
+	_, err = pgStore.CreateProjectRepository(ctx, link)
+	if !errors.Is(err, store.ErrConflict) {
+		t.Errorf("expected ErrConflict for duplicate project repository link, got %v", err)
+	}
+
+	// List
+	links, err := pgStore.ListProjectRepositories(ctx, created.ID)
+	if err != nil {
+		t.Fatalf("ListProjectRepositories: %v", err)
+	}
+	if len(links) != 1 || links[0].RepositoryID != testRepoID1 {
+		t.Errorf("expected 1 project repository link, got %+v", links)
+	}
+
+	// Delete Project Repository Link
+	if err := pgStore.DeleteProjectRepository(ctx, created.ID, testRepoID1); err != nil {
+		t.Fatalf("DeleteProjectRepository failed: %v", err)
+	}
+	// Delete non-existent link
+	if err := pgStore.DeleteProjectRepository(ctx, created.ID, 99999); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("expected ErrNotFound for non-existent link deletion, got %v", err)
+	}
+
+	// 6. ArchiveProject and DeleteProject
+	archived, err := pgStore.ArchiveProject(ctx, created.ID, "some reason")
+	if err != nil {
+		t.Fatalf("ArchiveProject failed: %v", err)
+	}
+	if archived.Status != domain.ApplicationStatusArchived {
+		t.Errorf("expected status archived, got %s", archived.Status)
+	}
+
+	// Archive ghost
+	if _, err := pgStore.ArchiveProject(ctx, ghostUUID, "reason"); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("expected ErrNotFound for ArchiveProject ghost, got %v", err)
+	}
+
+	// Delete Project
+	if err := pgStore.DeleteProject(ctx, created.ID); err != nil {
+		t.Fatalf("DeleteProject failed: %v", err)
+	}
+	// Delete ghost
+	if err := pgStore.DeleteProject(ctx, ghostUUID); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("expected ErrNotFound for DeleteProject ghost, got %v", err)
+	}
+}
+
+func TestIntegration_RepositoryDrafts_ExtraCRUD(t *testing.T) {
+	pgStore, pool, ctx, teardown := setupApplicationsTest(t)
+	defer teardown()
+
+	slug := fmt.Sprintf("drafts/repo-%d", time.Now().UnixNano())
+	key := fmt.Sprintf("draft-%d", time.Now().UnixNano())
+	defer func() { _, _ = pool.Exec(ctx, `DELETE FROM repositories WHERE full_name = $1`, slug) }()
+
+	// 1. Create Repository Draft
+	draft, err := pgStore.CreateRepositoryDraft(ctx, key, slug, "")
+	if err != nil {
+		t.Fatalf("CreateRepositoryDraft failed: %v", err)
+	}
+	if draft.FullName != slug || draft.Status != "draft" {
+		t.Errorf("unexpected draft details: %+v", draft)
+	}
+
+	// Duplicate slug conflict check
+	_, err = pgStore.CreateRepositoryDraft(ctx, key, slug, "")
+	if !errors.Is(err, store.ErrConflict) {
+		t.Errorf("expected ErrConflict for duplicate slug, got %v", err)
+	}
+
+	// Create with empty inputs
+	if _, err := pgStore.CreateRepositoryDraft(ctx, "", slug, ""); !errors.Is(err, store.ErrConflict) {
+		t.Errorf("expected ErrConflict for empty key, got %v", err)
+	}
+
+	// 2. MarkRepositoryDraftPublishRequested
+	updated, err := pgStore.MarkRepositoryDraftPublishRequested(ctx, draft.ID)
+	if err != nil {
+		t.Fatalf("MarkRepositoryDraftPublishRequested failed: %v", err)
+	}
+	if updated.PublishRequestedAt == nil {
+		t.Errorf("expected PublishRequestedAt to be set")
+	}
+
+	// Mark ghost publish requested
+	if _, err := pgStore.MarkRepositoryDraftPublishRequested(ctx, 999999); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("expected ErrNotFound for ghost publish requested, got %v", err)
+	}
+
+	// 3. GetRepositoryByID
+	loaded, err := pgStore.GetRepositoryByID(ctx, draft.ID)
+	if err != nil {
+		t.Fatalf("GetRepositoryByID failed: %v", err)
+	}
+	if loaded.ID != draft.ID || loaded.FullName != slug {
+		t.Errorf("loaded repo details mismatch: %+v", loaded)
+	}
+
+	// Get ghost by ID
+	if _, err := pgStore.GetRepositoryByID(ctx, 999999); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("expected ErrNotFound for ghost repository id, got %v", err)
+	}
+}
+
