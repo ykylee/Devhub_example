@@ -1,0 +1,10 @@
+{
+  "branch": "deepseek/phase2-registry-store-integration",
+  "status": "in_progress",
+  "phase": "Phase 2 — registry store integration (진행 중)",
+  "coverage": {
+    "repository-integration/store_methods": "UpsertRepository: integration test 추가, ListRepositoriesByProvider: integration test 추가"
+  },
+  "last_update": "2026-05-30",
+  "notes": "Phase 2 시작. repository 레이어 생성 + 통합테스트 1차 완료."
+}
