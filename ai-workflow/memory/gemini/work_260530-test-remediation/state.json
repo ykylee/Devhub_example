@@ -1,0 +1,15 @@
+{
+  "branch": "gemini/work_260530-test-remediation",
+  "status": "in_progress",
+  "phase": "Phase 1-4",
+  "coverage": {
+    "backend_total": "58.1%",
+    "frontend_total": "94.8%",
+    "current_package": {
+      "auth-session/view": "90.1%",
+      "integration-registry/view": "90.0%",
+      "dev-request/view": "93.7%"
+    }
+  },
+  "last_update": "2026-05-30"
+}
