@@ -793,3 +793,19 @@ func TestRepositoryIntegration_API(t *testing.T) {
 		}
 	})
 }
+
+// ---------------------------------------------------------------------------
+// scmRepoOwnerLogin edge — no slash in fullName
+// ---------------------------------------------------------------------------
+
+func TestScmRepoOwnerLogin_NoSlash(t *testing.T) {
+	if got := scmRepoOwnerLogin("user-without-slash"); got != "" {
+		t.Fatalf("expected empty for no-slash name, got %q", got)
+	}
+}
+
+func TestScmRepoOwnerLogin_WithSlash(t *testing.T) {
+	if got := scmRepoOwnerLogin("owner/repo"); got != "owner" {
+		t.Fatalf("expected 'owner', got %q", got)
+	}
+}

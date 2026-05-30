@@ -970,3 +970,15 @@ func TestRBAC_Middlewares(t *testing.T) {
 	})
 }
 
+
+func TestRoleRank_UnknownRoleReturnsZero(t *testing.T) {
+	if got := roleRank("unknown_role_xyz"); got != 0 {
+		t.Fatalf("expected 0 for unknown role, got %d", got)
+	}
+}
+
+func TestRoleRank_KnownRoles(t *testing.T) {
+	if got := roleRank("system_admin"); got == 0 {
+		t.Fatal("expected non-zero rank for system_admin")
+	}
+}
