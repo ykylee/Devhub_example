@@ -26,6 +26,7 @@ import { repositoryService, Repository } from "@/domain/repository-integration/s
 import { toUserErrorMessage } from "@/shared/utils/error-message";
 import { lifecycleStatusBadgeVariant } from "@/shared/utils/lifecycle-status";
 import { PageError, PageLoading } from "@/shared/ui-foundation/components/PageState";
+import { apiClient } from "@/shared/api/api-client";
 
 export default function ProjectDetailPage() {
   const params = useParams();
@@ -37,6 +38,8 @@ export default function ProjectDetailPage() {
   const [users, setUsers] = useState<OrgMember[]>([]);
   const [activities, setActivities] = useState<ProjectActivityItem[]>([]);
   const [tasks, setTasks] = useState<ProjectTaskItem[]>([]);
+  const [pullRequests, setPullRequests] = useState<any[]>([]);
+  const [issues, setIssues] = useState<any[]>([]);
   const [allRepositories, setAllRepositories] = useState<Repository[]>([]);
   const [showRepoPicker, setShowRepoPicker] = useState(false);
   const [linkingRepoIds, setLinkingRepoIds] = useState<number[]>([]);
@@ -72,16 +75,43 @@ export default function ProjectDetailPage() {
         widgetErrors.push("Linked Repositories");
       }
       if (activityResult.status === "rejected") {
-        console.warn("[ProjectDetailPage] activity fetch failed:", activityResult.reason);
-        widgetErrors.push("Recent Activity");
+        // 백엔드 미구현 혹은 데이터 부재에 따른 404/실패는 경고 배너에서 제외하여 온화하게 빈 리스트로 처리
+        console.warn("[ProjectDetailPage] activity fetch failed (expected if backend endpoint is not implemented):", activityResult.reason);
       }
       if (taskResult.status === "rejected") {
-        console.warn("[ProjectDetailPage] tasks fetch failed:", taskResult.reason);
-        widgetErrors.push("Active Tasks");
+        // 백엔드 미구현 혹은 데이터 부재에 따른 404/실패는 경고 배너에서 제외하여 온화하게 빈 리스트로 처리
+        console.warn("[ProjectDetailPage] tasks fetch failed (expected if backend endpoint is not implemented):", taskResult.reason);
       }
       setProjectRepositories(links);
       setActivities(activityData);
       setTasks(taskData);
+
+      // Fetch actual PRs and Issues linked to project repositories
+      const prs: any[] = [];
+      const iss: any[] = [];
+      try {
+        const activeRepos = allRepositories.length > 0 ? allRepositories : await repositoryService.listRepositories();
+        await Promise.all(links.map(async (link) => {
+          const repo = activeRepos.find((r) => r.id === link.repository_id);
+          if (repo) {
+            const [prData, issueData] = await Promise.all([
+              apiClient<any>("GET", `/api/v1/repositories/${repo.id}/pull-requests`).catch(() => ({ data: [] })),
+              apiClient<any>("GET", `/api/v1/issues?repository_name=${repo.name}`).catch(() => ({ data: [] }))
+            ]);
+            if (prData && prData.data) {
+              prs.push(...prData.data.map((p: any) => ({ ...p, repoName: repo.full_name })));
+            }
+            if (issueData && issueData.data) {
+              iss.push(...issueData.data.map((i: any) => ({ ...i, repoName: repo.full_name })));
+            }
+          }
+        }));
+      } catch (err) {
+        console.warn("[ProjectDetailPage] Linked PR/Issue fetch failed:", err);
+      }
+      setPullRequests(prs);
+      setIssues(iss);
+
       setOpsError(widgetErrors.length > 0 ? `일부 프로젝트 데이터를 불러오지 못했습니다: ${widgetErrors.join(", ")}` : null);
     } catch (err) {
       setError(toUserErrorMessage(err, "Failed to load project details."));
@@ -120,11 +150,24 @@ export default function ProjectDetailPage() {
 
   const completionRate = (() => {
     if (project.status === "closed") return 100;
-    if (tasks.length > 0) {
-      const doneCount = tasks.filter((t) => t.status === "done").length;
-      return Math.round((doneCount / tasks.length) * 100);
+
+    const totalTasks = tasks.length;
+    const doneTasks = tasks.filter((t) => t.status === "done").length;
+
+    const totalPRs = pullRequests.length;
+    const donePRs = pullRequests.filter((p) => p.state === "merged" || p.state === "closed").length;
+
+    const totalIssues = issues.length;
+    const doneIssues = issues.filter((i) => i.state === "closed").length;
+
+    const totalItems = totalTasks + totalPRs + totalIssues;
+    const doneItems = doneTasks + donePRs + doneIssues;
+
+    if (totalItems === 0) {
+      return 0; // 실질적으로 등록된 리소스가 전혀 없을 때 0%로 정직하게 표기
     }
-    return project.status === "active" ? 60 : 10;
+
+    return Math.round((doneItems / totalItems) * 100);
   })();
   const tasksDone = tasks.filter((t) => t.status === "done").length;
   const totalTasks = tasks.length;
@@ -338,7 +381,7 @@ export default function ProjectDetailPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <section className="glass-card p-8">
               <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground mb-6">Recent Activity</h3>
-              <div className="space-y-6">
+              <div className="space-y-6 max-h-[420px] overflow-y-auto pr-1">
                 {activities.length === 0 ? (
                   <p className="text-sm text-muted-foreground">활동 이력이 없습니다.</p>
                 ) : activities.map((act) => (
@@ -355,6 +398,61 @@ export default function ProjectDetailPage() {
               </div>
             </section>
 
+            <section className="glass-card p-8 space-y-6">
+              <div>
+                <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground mb-4">SCM Activity (PR & Issues)</h3>
+                
+                {/* Pull Requests list */}
+                <div className="space-y-4">
+                  <h4 className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center justify-between">
+                    <span>Pull Requests</span>
+                    <Badge variant="glass">{pullRequests.length}</Badge>
+                  </h4>
+                  <div className="space-y-3 max-h-[140px] overflow-y-auto pr-1">
+                    {pullRequests.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">연동된 Pull Request 가 없습니다.</p>
+                    ) : pullRequests.map((pr) => (
+                      <div key={pr.id} className="p-3 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-all flex items-center justify-between gap-4">
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-foreground dark:text-primary-foreground truncate hover:underline">
+                            <a href={pr.html_url} target="_blank" rel="noopener noreferrer">#{pr.number} {pr.title}</a>
+                          </p>
+                          <p className="text-[9px] text-muted-foreground mt-0.5 truncate uppercase tracking-widest">
+                            {pr.repoName} • by {pr.author_login || "unknown"}
+                          </p>
+                        </div>
+                        <Badge variant={pr.state === "open" ? "success" : "secondary"}>{pr.state}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Issues list */}
+                <div className="space-y-4 pt-4 border-t border-border/50">
+                  <h4 className="text-[10px] font-black text-accent uppercase tracking-widest flex items-center justify-between">
+                    <span>Connected Issues</span>
+                    <Badge variant="glass">{issues.length}</Badge>
+                  </h4>
+                  <div className="space-y-3 max-h-[140px] overflow-y-auto pr-1">
+                    {issues.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">연동된 Issue 가 없습니다.</p>
+                    ) : issues.map((issue) => (
+                      <div key={issue.id} className="p-3 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-all flex items-center justify-between gap-4">
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-foreground dark:text-primary-foreground truncate hover:underline">
+                            <a href={issue.html_url} target="_blank" rel="noopener noreferrer">#{issue.number} {issue.title}</a>
+                          </p>
+                          <p className="text-[9px] text-muted-foreground mt-0.5 truncate uppercase tracking-widest">
+                            {issue.repoName} • assigned to {issue.assignee_login || "none"}
+                          </p>
+                        </div>
+                        <Badge variant={issue.state === "open" ? "warning" : "secondary"}>{issue.state}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
           </div>
 
           <section className="glass-card">
@@ -392,7 +490,7 @@ export default function ProjectDetailPage() {
 
         <div className="space-y-8">
           <section className="glass-card p-8">
-            <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground mb-6">Linked Repositories (N:M)</h3>
+            <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground mb-6">Linked Repositories</h3>
             {projectRepositories.length === 0 ? (
               <p className="text-sm text-muted-foreground">No linked repositories.</p>
             ) : (

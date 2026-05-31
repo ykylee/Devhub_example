@@ -248,11 +248,11 @@ export default function ApplicationDetailPage() {
           <section className="glass-card p-8 relative overflow-hidden">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-                <GitBranch className={cn("w-5 h-5", buildStatus === "broken" ? "text-rose-500 animate-pulse" : "text-emerald-500")} /> 
+                <GitBranch className={cn("w-5 h-5", buildStatus === "broken" ? "text-rose-500 animate-pulse" : buildStatus === "healthy" ? "text-emerald-500" : "text-muted-foreground")} /> 
                 Target Branch Build Status
               </h3>
-              <Badge variant={buildStatus === "broken" ? "danger" : "success"}>
-                {buildStatus === "broken" ? "Broken" : "Healthy"}
+              <Badge variant={buildStatus === "broken" ? "danger" : buildStatus === "healthy" ? "success" : "secondary"}>
+                {buildStatus === "broken" ? "Broken" : buildStatus === "healthy" ? "Healthy" : "없음"}
               </Badge>
             </div>
 

@@ -23,6 +23,16 @@ type Client struct {
 	HTTPClient *http.Client
 }
 
+// APIError represents an error returned by the Gitea API containing a status code.
+type APIError struct {
+	StatusCode int
+	Message    string
+}
+
+func (e *APIError) Error() string {
+	return e.Message
+}
+
 // NewClient creates a new Gitea API client.
 func NewClient(baseURL, token string) *Client {
 	return &Client{
@@ -140,6 +150,9 @@ func (c *Client) ListIssues(ctx context.Context, owner, repo string, state strin
 
 		var issues []GiteaIssue
 		if err := c.do(req, &issues); err != nil {
+			if apiErr, ok := err.(*APIError); ok && apiErr.StatusCode == http.StatusNotFound {
+				return nil, nil
+			}
 			return nil, err
 		}
 		if len(issues) == 0 {
@@ -174,6 +187,9 @@ func (c *Client) ListPullRequests(ctx context.Context, owner, repo string, state
 
 		var pulls []GiteaPullRequest
 		if err := c.do(req, &pulls); err != nil {
+			if apiErr, ok := err.(*APIError); ok && apiErr.StatusCode == http.StatusNotFound {
+				return nil, nil
+			}
 			return nil, err
 		}
 		if len(pulls) == 0 {
@@ -251,7 +267,10 @@ func (c *Client) do(req *http.Request, v any) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("gitea api returned status %d", resp.StatusCode)
+		return &APIError{
+			StatusCode: resp.StatusCode,
+			Message:    fmt.Sprintf("gitea api returned status %d", resp.StatusCode),
+		}
 	}
 
 	return json.NewDecoder(resp.Body).Decode(v)

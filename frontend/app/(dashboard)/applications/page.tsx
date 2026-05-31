@@ -164,7 +164,7 @@ export default function ApplicationsStatusPage() {
               <div>
                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Last Build</p>
                 <p className="text-lg font-black text-foreground dark:text-primary-foreground">
-                  {app.rollup ? applicationBuildStatusView(app.rollup.target_branch_build_status).label : "N/A"}
+                  {app.rollup ? applicationBuildStatusView(app.rollup.target_branch_build_status).label : "없음"}
                 </p>
               </div>
               <div>
