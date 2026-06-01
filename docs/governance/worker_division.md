@@ -92,7 +92,7 @@
 
 | 요소 | 설명 | 예시 |
 | --- | --- | --- |
-| `<worker>` | 워커 prefix | `claude`, `codex`, `gemini` |
+| `<worker>` | 워커 prefix | `claude`, `codex`, `gemini`, `deepseek` (Reasonix) |
 | `<YYMMDD>` | 작업 시작 날짜 (KST) | `260520` |
 | `<sprint-seq>` | 알파벳 sequence (당일 본 워커의 N번째 sprint) | `a`, `b`, ..., `z`, `aa`, `ab`, ... |
 | `<issue-num>` | GitHub issue 번호 (해당 sprint 의 핵심 작업) | `209`, `238` |
@@ -105,11 +105,13 @@
 | `claude/work_260520-i-209-accounts-deprecation` | Claude 2026-05-20 의 i번째 sprint, issue #209 (sub-carve B backend) |
 | `codex/work_260520-a-238-docker-single-port` | Codex 2026-05-20 의 a번째 sprint, issue #238 |
 | `gemini/work_260521-a-210-ui-polish` | Gemini 2026-05-21 의 a번째 sprint, issue #210 |
+| `deepseek/work_260601-a-construct-workflow` | DeepSeek (Reasonix) 2026-06-01 의 a번째 sprint, Reasonix 워크플로우 구성 |
 
 ### 예외 — issue 없는 작업
 
 - housekeeping / memory sync / docs hotfix 같이 GitHub issue 없는 작업: issue 번호 생략 + key 만 명시. 예: `claude/work_260520-c-housekeeping`, `claude/work_260520-g-codex-hotfix`
 - codex/gemini 외부 contribution: 자유 branch 명 허용 (예: 본 사례의 `gemini/keycloak-test-e2e-push-audit`). 본인 인수 시 그대로 작업 후 PR 머지.
+- Reasonix 환경에서 브랜치 생성 시 반드시 `deepseek/` prefix 를 사용한다. (Reasonix 는 `AGENTS.md` "Reasonix 전용 메모" 및 "항상 먼저 읽을 문서" 섹션의 deepseek 패턴을 따른다.)
 
 ### 적용 시점
 
@@ -224,3 +226,4 @@ P0 > P1 > P2 > P3 강제. P0 carve 진행 중 P2 carve 진입 금지 (예외: �
 | 2026-05-20 | 1차 작성 — Claude (backend+design) / Codex (infra+CI+security) / Gemini (frontend+UX) 분담 + 인계 SOP 4 패턴 + 충돌 처리 SOP + 사용자 역할 명시 | `claude/work_260520-f-roadmap` |
 | 2026-05-20 | codex review hotfix (P2) — §4.2 ADR reversal 의 dead link (`[feedback_adr_supersession_pattern.md](#)`) 정정. per-user auto-memory 파일이라 repo 에 없음 → 5 step 표준 절차 본문 명시 + canonical 사례 ADR-0019/ADR-0001 supersession (PR #169) 인용으로 대체 | `claude/work_260520-g-codex-hotfix` |
 | 2026-05-20 | §2.5 신규 — Branch 명명 규칙 (`<worker>/work_<YYMMDD>-<sprint-seq>-<issue-num>-<short-key>`). 사용자 지시 (2026-05-20) 따라 작업 식별성 강화. 예외 (issue 없는 housekeeping/hotfix / 외부 contribution) 명시. 2026-05-20 sprint -i 이후 적용, 이전 branch 는 historical 보존 | `claude/work_260520-i-209-accounts-deprecation` (본 sprint 가 적용 첫 사례) |
+| 2026-06-01 | §2.5 `<worker>` 목록에 `deepseek` (Reasonix) 추가 + 예시 row + 예외에 Reasonix 환경 deepseek/ prefix 규칙 명시 | `deepseek/construct_workflow_for_deepseek` |

@@ -13,7 +13,8 @@
     "브랜치 최초 커밋"
   ],
   "next_actions": [
-    "Reasonix 전용 global_workflow_standard.md 적용성 검토",
-    "워크플로우 문서 갱신 절차 문서화"
+    "Reasonix 브랜치 생성 규칙 — worker_division.md §2.5 deepseek 추가 + AGENTS.md 명시",
+    "Reasonix 전용 global_workflow_standard.md 적용성 검토 (다음 세션)",
+    "워크플로우 문서 갱신 절차 문서화 (다음 세션)"
   ]
 }

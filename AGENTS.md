@@ -86,6 +86,8 @@
 ## Reasonix (deepseek-v4) 전용 메모
 
 - Reasonix 는 Codex 와 동일한 workflow 레이어(`ai-workflow/`)를 따르며, 브랜치별 memory 디렉터리 패턴을 동일하게 사용한다.
+- **브랜치 생성 시 반드시 `deepseek/` prefix 를 사용한다.** 브랜치명 예: `deepseek/construct_workflow_for_deepseek`
+- 표준 sprint branch 명명 규칙은 `docs/governance/worker_division.md` §2.5 를 따른다: `deepseek/work_<YYMMDD>-<sprint-seq>-<issue-num>-<short-key>`
 - 브랜치 prefix `deepseek/` → `ai-workflow/memory/deepseek/<branch-suffix>/`
 - Reasonix 의 기본 모델은 `deepseek-v4-flash`이며, 복잡한 cross-file 리팩토링 시 자동으로 `deepseek-v4-pro` 로 escalation 된다.
 - Reasonix 의 기본 도구 세트에는 GitHub MCP, Filesystem MCP, Memory KG, Puppeteer 가 포함되어 있다.
