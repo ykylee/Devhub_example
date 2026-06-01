@@ -227,6 +227,43 @@ ON CONFLICT (provider_key) DO UPDATE SET
     base_url = EXCLUDED.base_url,
     api_token = EXCLUDED.api_token,
     updated_at = NOW();
+
+-- Ensure application fixture for e2e details exists
+INSERT INTO applications (id, key, name, description, status, visibility, owner_user_id, start_date, due_date)
+VALUES
+    ('e8a9bc11-a89c-4cb1-8071-8890ab2345ef', 'DEVHUBAPP1', 'DevHub Simulation App', 'DevHub Simulation App for E2E testing', 'active', 'public', 'charlie', '2026-01-01', '2026-12-31')
+ON CONFLICT (id) DO UPDATE SET
+    name = EXCLUDED.name,
+    key = EXCLUDED.key,
+    description = EXCLUDED.description,
+    status = EXCLUDED.status,
+    visibility = EXCLUDED.visibility,
+    owner_user_id = EXCLUDED.owner_user_id;
+
+-- Ensure project fixture for e2e details exists
+INSERT INTO projects (id, application_id, repository_id, key, name, description, status, visibility, owner_user_id, start_date, due_date)
+VALUES
+    ('31b9e2cb-b1b0-466a-bb10-ea00ee1234a1', 'e8a9bc11-a89c-4cb1-8071-8890ab2345ef', (SELECT id FROM repositories WHERE full_name = 'devhub/e2e-repo-a'), 'DEVHUBPROJ', 'DevHub Simulation Project', 'DevHub Simulation Project for E2E testing', 'active', 'public', 'charlie', '2026-01-01', '2026-12-31')
+ON CONFLICT (id) DO UPDATE SET
+    application_id = EXCLUDED.application_id,
+    repository_id = EXCLUDED.repository_id,
+    name = EXCLUDED.name,
+    description = EXCLUDED.description,
+    status = EXCLUDED.status,
+    visibility = EXCLUDED.visibility,
+    owner_user_id = EXCLUDED.owner_user_id;
+
+-- Ensure project repository association exists
+INSERT INTO project_repositories (project_id, repository_id, role)
+VALUES
+    ('31b9e2cb-b1b0-466a-bb10-ea00ee1234a1', (SELECT id FROM repositories WHERE full_name = 'devhub/e2e-repo-a'), 'primary')
+ON CONFLICT (project_id, repository_id) DO NOTHING;
+
+-- Ensure application repository association exists
+INSERT INTO application_repositories (application_id, repo_provider, repo_full_name, role, sync_status)
+VALUES
+    ('e8a9bc11-a89c-4cb1-8071-8890ab2345ef', 'gitea', 'devhub/e2e-repo-a', 'primary', 'active')
+ON CONFLICT (application_id, repo_provider, repo_full_name) DO NOTHING;
 `;
 
   // Unique file name — parallel e2e shard 간 collision 회피 (process.pid + timestamp).
