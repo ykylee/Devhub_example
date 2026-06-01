@@ -735,7 +735,7 @@ describe("ProjectCreationModal", () => {
       expect(getApplications).toHaveBeenCalled();
     });
     // The repo should appear in the dropdown as a selectable option (text from repo_full_name)
-    expect(screen.getByText(/org\/from-app \(github\)/)).toBeInTheDocument();
+    expect(screen.getByText(/org\/from-repo \(github\)/)).toBeInTheDocument();
   });
 
   it("renders ComboBox for leader when user options are present (replaces plain input)", async () => {
@@ -941,4 +941,3 @@ describe("ProjectCreationModal", () => {
     ]);
   });
 });
-
