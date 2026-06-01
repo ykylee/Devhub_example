@@ -70,8 +70,8 @@ test.describe("/admin/catalog?tab=projects — Project CRUD UI (생성은 catalo
     await expect(addMemberBtn).toBeVisible();
     await addMemberBtn.click();
 
-    // 멤버 입력란이 추가되었는지 확인
-    const memberInputs = dialog.getByPlaceholder("user id");
+    // 멤버 입력란이 추가되었는지 확인 (ComboBox 또는 일반 input 모두 지원하도록 selector 완화)
+    const memberInputs = dialog.locator('input[placeholder="Search member by name/email/user_id"], input[placeholder="user id"]');
     await expect(memberInputs.first()).toBeVisible({ timeout: 5000 });
     expect(await memberInputs.count()).toBeGreaterThanOrEqual(1);
   });
