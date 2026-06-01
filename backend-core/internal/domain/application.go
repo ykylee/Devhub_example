@@ -165,6 +165,7 @@ type Project struct {
 	ArchivedAt    *time.Time
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
+	ProjectMembers []ProjectMember
 }
 
 // ProjectRepository links one Project to one Repository (N:M).

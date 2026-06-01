@@ -509,6 +509,10 @@ func TestIntegration_Projects_ExtraCRUD(t *testing.T) {
 		Status:      domain.ApplicationStatusActive,
 		Visibility:  domain.ApplicationVisibilityInternal,
 		OwnerUserID: "u1",
+		ProjectMembers: []domain.ProjectMember{
+			{UserID: "member1", ProjectRole: "contributor"},
+			{UserID: "member2", ProjectRole: "observer"},
+		},
 	}
 	created, err := pgStore.CreateProject(ctx, p)
 	if err != nil {
@@ -516,6 +520,15 @@ func TestIntegration_Projects_ExtraCRUD(t *testing.T) {
 	}
 	if created.Key != pKey {
 		t.Errorf("expected project key %s, got %s", pKey, created.Key)
+	}
+
+	// Fetch to verify project members creation
+	fetched, err := pgStore.GetProject(ctx, created.ID)
+	if err != nil {
+		t.Fatalf("GetProject failed to verify members: %v", err)
+	}
+	if len(fetched.ProjectMembers) != 2 {
+		t.Errorf("expected 2 project members, got %d", len(fetched.ProjectMembers))
 	}
 
 	// Duplicate key conflict check
@@ -526,12 +539,34 @@ func TestIntegration_Projects_ExtraCRUD(t *testing.T) {
 
 	// 3. UpdateProject
 	created.Name = "Test Project Updated"
+	created.ProjectMembers = []domain.ProjectMember{
+		{UserID: "member1", ProjectRole: "lead"},
+		{UserID: "member3", ProjectRole: "contributor"},
+	}
 	updated, err := pgStore.UpdateProject(ctx, created)
 	if err != nil {
 		t.Fatalf("UpdateProject failed: %v", err)
 	}
 	if updated.Name != "Test Project Updated" {
 		t.Errorf("expected name updated, got %s", updated.Name)
+	}
+
+	// Fetch to verify synced project members
+	fetchedUpdated, err := pgStore.GetProject(ctx, updated.ID)
+	if err != nil {
+		t.Fatalf("GetProject failed to verify updated members: %v", err)
+	}
+	if len(fetchedUpdated.ProjectMembers) != 2 {
+		t.Errorf("expected 2 project members after update, got %d", len(fetchedUpdated.ProjectMembers))
+	}
+	var hasMember3 bool
+	for _, m := range fetchedUpdated.ProjectMembers {
+		if m.UserID == "member3" {
+			hasMember3 = true
+		}
+	}
+	if !hasMember3 {
+		t.Errorf("expected member3 to be in updated project members")
 	}
 
 	// Update ghost project

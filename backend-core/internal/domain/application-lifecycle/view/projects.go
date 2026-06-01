@@ -47,6 +47,15 @@ func projectResponse(p domain.Project) gin.H {
 	if p.RepositoryID > 0 {
 		repositoryID = p.RepositoryID
 	}
+
+	var members []gin.H
+	for _, m := range p.ProjectMembers {
+		members = append(members, gin.H{
+			"user_id":      m.UserID,
+			"project_role": string(m.ProjectRole),
+		})
+	}
+
 	return gin.H{
 		"id":             p.ID,
 		"application_id": p.ApplicationID,
@@ -57,6 +66,7 @@ func projectResponse(p domain.Project) gin.H {
 		"status":         string(p.Status),
 		"visibility":     string(p.Visibility),
 		"owner_user_id":  p.OwnerUserID,
+		"project_members": members,
 		"start_date":     formatDatePtr(p.StartDate),
 		"due_date":       formatDatePtr(p.DueDate),
 		"archived_at":    formatTimePtr(p.ArchivedAt),
@@ -121,6 +131,11 @@ func (h *ApplicationHandler) ListProjects(c *gin.Context) {
 	})
 }
 
+type projectMemberRequest struct {
+	UserID      string `json:"user_id"`
+	ProjectRole string `json:"project_role"`
+}
+
 type createProjectRequest struct {
 	ApplicationID string  `json:"application_id"`
 	RepositoryID  int64   `json:"repository_id"`
@@ -134,6 +149,7 @@ type createProjectRequest struct {
 	DueDate       string  `json:"due_date"`
 	Visibility    string  `json:"visibility"`
 	Status        string  `json:"status"`
+	ProjectMembers []projectMemberRequest `json:"project_members"`
 }
 
 type createRepositoryPayload struct {
@@ -205,17 +221,26 @@ func (h *ApplicationHandler) createProjectWithRepoID(c *gin.Context, storeI Appl
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "due_date must be YYYY-MM-DD"})
 		return
 	}
+	var members []domain.ProjectMember
+	for _, m := range req.ProjectMembers {
+		members = append(members, domain.ProjectMember{
+			UserID:      m.UserID,
+			ProjectRole: domain.ProjectMemberRole(m.ProjectRole),
+		})
+	}
+
 	project := domain.Project{
-		ApplicationID: req.ApplicationID,
-		RepositoryID:  repoID,
-		Key:           req.Key,
-		Name:          req.Name,
-		Description:   req.Description,
-		Status:        domain.ApplicationStatus(req.Status),
-		Visibility:    domain.ApplicationVisibility(req.Visibility),
-		OwnerUserID:   req.OwnerUserID,
-		StartDate:     startDate,
-		DueDate:       dueDate,
+		ApplicationID:  req.ApplicationID,
+		RepositoryID:   repoID,
+		Key:            req.Key,
+		Name:           req.Name,
+		Description:    req.Description,
+		Status:         domain.ApplicationStatus(req.Status),
+		Visibility:     domain.ApplicationVisibility(req.Visibility),
+		OwnerUserID:    req.OwnerUserID,
+		StartDate:      startDate,
+		DueDate:        dueDate,
+		ProjectMembers: members,
 	}
 	created, err := storeI.CreateProject(c.Request.Context(), project)
 	if errors.Is(err, store.ErrConflict) {
@@ -311,18 +336,27 @@ func (h *ApplicationHandler) CreateProjectStandalone(c *gin.Context) {
 		repoIDs = append(repoIDs, id)
 	}
 
+	var members []domain.ProjectMember
+	for _, m := range req.ProjectMembers {
+		members = append(members, domain.ProjectMember{
+			UserID:      m.UserID,
+			ProjectRole: domain.ProjectMemberRole(m.ProjectRole),
+		})
+	}
+
 	// repo 동반 생성(repoPayload)은 project 생성과 단일 tx — project 실패 시 repo rollback (codex #349 P2).
 	created, err := storeI.CreateProjectWithRepositoryPayload(c.Request.Context(), domain.Project{
-		ApplicationID: strings.TrimSpace(req.ApplicationID),
-		RepositoryID:  primaryRepoID,
-		Key:           req.Key,
-		Name:          req.Name,
-		Description:   req.Description,
-		Status:        domain.ApplicationStatus(req.Status),
-		Visibility:    domain.ApplicationVisibility(req.Visibility),
-		OwnerUserID:   req.OwnerUserID,
-		StartDate:     startDate,
-		DueDate:       dueDate,
+		ApplicationID:  strings.TrimSpace(req.ApplicationID),
+		RepositoryID:   primaryRepoID,
+		Key:            req.Key,
+		Name:           req.Name,
+		Description:    req.Description,
+		Status:         domain.ApplicationStatus(req.Status),
+		Visibility:     domain.ApplicationVisibility(req.Visibility),
+		OwnerUserID:    req.OwnerUserID,
+		StartDate:      startDate,
+		DueDate:        dueDate,
+		ProjectMembers: members,
 	}, repoIDs, repoPayload)
 	if errors.Is(err, store.ErrConflict) {
 		c.JSON(http.StatusConflict, gin.H{"status": "conflict", "error": "project key already exists or referenced application/repository not found", "code": "project_key_conflict"})
@@ -484,18 +518,27 @@ func (h *ApplicationHandler) CreateApplicationProject(c *gin.Context) {
 		repoIDs = append(repoIDs, id)
 	}
 
+	var members []domain.ProjectMember
+	for _, m := range req.ProjectMembers {
+		members = append(members, domain.ProjectMember{
+			UserID:      m.UserID,
+			ProjectRole: domain.ProjectMemberRole(m.ProjectRole),
+		})
+	}
+
 	// repo 동반 생성(repoPayload)은 project 생성과 단일 tx — project 실패 시 repo rollback (codex #349 P2).
 	created, err := storeI.CreateProjectWithRepositoryPayload(c.Request.Context(), domain.Project{
-		ApplicationID: appID,
-		RepositoryID:  primaryRepoID,
-		Key:           req.Key,
-		Name:          req.Name,
-		Description:   req.Description,
-		Status:        domain.ApplicationStatus(req.Status),
-		Visibility:    domain.ApplicationVisibility(req.Visibility),
-		OwnerUserID:   req.OwnerUserID,
-		StartDate:     startDate,
-		DueDate:       dueDate,
+		ApplicationID:  appID,
+		RepositoryID:   primaryRepoID,
+		Key:            req.Key,
+		Name:           req.Name,
+		Description:    req.Description,
+		Status:         domain.ApplicationStatus(req.Status),
+		Visibility:     domain.ApplicationVisibility(req.Visibility),
+		OwnerUserID:    req.OwnerUserID,
+		StartDate:      startDate,
+		DueDate:        dueDate,
+		ProjectMembers: members,
 	}, repoIDs, repoPayload)
 	if errors.Is(err, store.ErrConflict) {
 		c.JSON(http.StatusConflict, gin.H{"status": "conflict", "error": "project key already exists or referenced application/repository not found", "code": "project_key_conflict"})
@@ -648,6 +691,7 @@ type updateProjectRequest struct {
 	HoldReason     string  `json:"hold_reason"`
 	ResumeReason   string  `json:"resume_reason"`
 	ArchivedReason string  `json:"archived_reason"`
+	ProjectMembers *[]projectMemberRequest `json:"project_members"`
 }
 
 // PATCH /api/v1/projects/:project_id
@@ -779,6 +823,17 @@ func (h *ApplicationHandler) UpdateProject(c *gin.Context) {
 			// 메타로만 유지. 운영자가 임의로 어느 전이든 가능.
 		}
 		updated.Status = domain.ApplicationStatus(newStatus)
+	}
+
+	if req.ProjectMembers != nil {
+		var members []domain.ProjectMember
+		for _, m := range *req.ProjectMembers {
+			members = append(members, domain.ProjectMember{
+				UserID:      m.UserID,
+				ProjectRole: domain.ProjectMemberRole(m.ProjectRole),
+			})
+		}
+		updated.ProjectMembers = members
 	}
 
 	result, err := storeI.UpdateProject(c.Request.Context(), updated)

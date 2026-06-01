@@ -127,6 +127,31 @@ func (r *ApplicationRepository) GetProject(ctx context.Context, projectID string
 	if err != nil {
 		return domain.Project{}, fmt.Errorf("get project: %w", err)
 	}
+
+	// Fetch project members
+	const membersQuery = `
+SELECT project_id::text, user_id, project_role, joined_at
+FROM project_members
+WHERE project_id = $1::uuid
+ORDER BY joined_at ASC`
+	rows, err := r.store.Pool().Query(ctx, membersQuery, projectID)
+	if err != nil {
+		return domain.Project{}, fmt.Errorf("get project members: %w", err)
+	}
+	defer rows.Close()
+
+	var members []domain.ProjectMember
+	for rows.Next() {
+		var m domain.ProjectMember
+		var roleStr string
+		if err := rows.Scan(&m.ProjectID, &m.UserID, &roleStr, &m.JoinedAt); err != nil {
+			return domain.Project{}, fmt.Errorf("scan project member: %w", err)
+		}
+		m.ProjectRole = domain.ProjectMemberRole(roleStr)
+		members = append(members, m)
+	}
+	p.ProjectMembers = members
+
 	return p, nil
 }
 
@@ -398,6 +423,28 @@ VALUES ($1::uuid, $2, $3)`
 		}
 	}
 
+	// Insert project members
+	for _, member := range project.ProjectMembers {
+		if strings.TrimSpace(member.UserID) == "" {
+			continue
+		}
+		const insertMember = `
+INSERT INTO project_members (project_id, user_id, project_role, joined_at)
+VALUES ($1::uuid, $2, $3, COALESCE(NULLIF($4, '0001-01-01T00:00:00Z'::timestamptz), NOW()))
+ON CONFLICT (project_id, user_id) DO UPDATE SET
+	project_role = EXCLUDED.project_role`
+		var joinedAt interface{} = member.JoinedAt
+		if member.JoinedAt.IsZero() {
+			joinedAt = nil
+		}
+		if _, err := tx.Exec(ctx, insertMember, created.ID, member.UserID, string(member.ProjectRole), joinedAt); err != nil {
+			if store.IsUniqueViolation(err) || store.IsForeignKeyViolation(err) || store.IsCheckViolation(err, "") {
+				return domain.Project{}, store.ErrConflict
+			}
+			return domain.Project{}, fmt.Errorf("create project member (tx): %w", err)
+		}
+	}
+
 	if err := tx.Commit(ctx); err != nil {
 		return domain.Project{}, fmt.Errorf("commit create project tx: %w", err)
 	}
@@ -434,8 +481,13 @@ RETURNING id`
 	return id, err
 }
 
-// UpdateProject — application_id 포함 갱신.
 func (r *ApplicationRepository) UpdateProject(ctx context.Context, project domain.Project) (domain.Project, error) {
+	tx, err := r.store.Pool().Begin(ctx)
+	if err != nil {
+		return domain.Project{}, fmt.Errorf("begin update project tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
 	const updateQuery = `
 UPDATE projects SET
 	application_id = NULLIF($9, '')::uuid,
@@ -451,7 +503,7 @@ UPDATE projects SET
 WHERE id = $1::uuid
 RETURNING` + projectsSelectColumns
 
-	row := r.store.Pool().QueryRow(ctx, updateQuery,
+	row := tx.QueryRow(ctx, updateQuery,
 		project.ID, project.Name, project.Description, project.Status, project.Visibility,
 		project.OwnerUserID, project.StartDate, project.DueDate, project.ApplicationID,
 	)
@@ -460,9 +512,42 @@ RETURNING` + projectsSelectColumns
 		return domain.Project{}, store.ErrNotFound
 	}
 	if err != nil {
-		return domain.Project{}, fmt.Errorf("update project: %w", err)
+		return domain.Project{}, fmt.Errorf("update project (tx): %w", err)
 	}
-	return updated, nil
+
+	// Sync project members
+	// 1. Delete existing members
+	const deleteMembers = `DELETE FROM project_members WHERE project_id = $1::uuid`
+	if _, err := tx.Exec(ctx, deleteMembers, project.ID); err != nil {
+		return domain.Project{}, fmt.Errorf("delete project members (tx): %w", err)
+	}
+
+	// 2. Insert new/updated members
+	for _, member := range project.ProjectMembers {
+		if strings.TrimSpace(member.UserID) == "" {
+			continue
+		}
+		const insertMember = `
+INSERT INTO project_members (project_id, user_id, project_role, joined_at)
+VALUES ($1::uuid, $2, $3, COALESCE(NULLIF($4, '0001-01-01T00:00:00Z'::timestamptz), NOW()))`
+		var joinedAt interface{} = member.JoinedAt
+		if member.JoinedAt.IsZero() {
+			joinedAt = nil
+		}
+		if _, err := tx.Exec(ctx, insertMember, project.ID, member.UserID, string(member.ProjectRole), joinedAt); err != nil {
+			if store.IsUniqueViolation(err) || store.IsForeignKeyViolation(err) || store.IsCheckViolation(err, "") {
+				return domain.Project{}, store.ErrConflict
+			}
+			return domain.Project{}, fmt.Errorf("update project member (tx): %w", err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return domain.Project{}, fmt.Errorf("commit update project tx: %w", err)
+	}
+
+	// Return updated project with freshly synced members loaded
+	return r.GetProject(ctx, updated.ID)
 }
 
 func (r *ApplicationRepository) ArchiveProject(ctx context.Context, projectID, archivedReason string) (domain.Project, error) {

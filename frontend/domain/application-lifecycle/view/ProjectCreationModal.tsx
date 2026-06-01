@@ -80,9 +80,17 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
         ? [initialRepositoryId]
         : [],
   );
-  const [projectMembers, setProjectMembers] = useState<ProjectMemberDraft[]>([
-    { user_id: initialData?.owner_user_id || actorDefaultOwnerId || "", project_role: "leader" },
-  ]);
+  const [projectMembers, setProjectMembers] = useState<ProjectMemberDraft[]>(() => {
+    if (initialData?.project_members && initialData.project_members.length > 0) {
+      return initialData.project_members.map((m) => ({
+        user_id: m.user_id,
+        project_role: m.project_role === "lead" ? "leader" : "developer",
+      }));
+    }
+    return [
+      { user_id: initialData?.owner_user_id || actorDefaultOwnerId || "", project_role: "leader" },
+    ];
+  });
   const [createRepository, setCreateRepository] = useState(false);
   const [repositoryCreate, setRepositoryCreate] = useState({
     key: "",
@@ -143,7 +151,9 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
     try {
       let result: Project;
       if (isEdit && initialData?.id) {
-        const patchPayload: Partial<typeof formData> = { ...formData };
+        const patchPayload: Partial<typeof formData> & {
+          project_members?: Array<{ user_id: string; project_role: ProjectMemberRole }>;
+        } = { ...formData };
         delete patchPayload.key;
         // P1-#5 정정 — repository_id=0 fallback 은 backend createProjectRequest.RepositoryID
         // (int64 FK to repositories.id) 가 0 을 받으면 FK violation 또는 silent ignore.
@@ -156,6 +166,10 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
           delete patchPayload.repository_ids;
           delete patchPayload.repository_id;
         }
+        patchPayload.project_members = normalizedMembers.map((m) => ({
+          user_id: m.user_id.trim(),
+          project_role: m.project_role === "leader" ? "lead" : "contributor",
+        }));
         result = await projectService.updateProject(initialData.id, patchPayload);
 
         // N:M project-repositories sync during edit mode

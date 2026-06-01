@@ -898,4 +898,55 @@ describe("ProjectCreationModal", () => {
     unmount();
     vi.doUnmock("@/lib/store");
   });
+
+  it("initializes projectMembers from initialData and sends them on update submission", async () => {
+    updateProject.mockResolvedValueOnce({ id: "proj-1" });
+    getProjectRepositories.mockResolvedValueOnce([]);
+
+    const initialProject: Partial<Project> = {
+      id: "proj-1",
+      key: "PROJ-1",
+      name: "P1",
+      owner_user_id: "u-actor",
+      project_members: [
+        { user_id: "u-actor", project_role: "lead" },
+        { user_id: "member-a", project_role: "contributor" },
+      ],
+    };
+
+    const { container } = render(
+      <ProjectCreationModal
+        repositories={[]}
+        onClose={vi.fn()}
+        onCreated={vi.fn()}
+        initialData={initialProject}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(getApplications).toHaveBeenCalled();
+    });
+
+    // Check initialized members
+    const memberInputs = screen.getAllByPlaceholderText("user id") as HTMLInputElement[];
+    expect(memberInputs.length).toBe(2);
+    expect(memberInputs[0].value).toBe("u-actor");
+    expect(memberInputs[1].value).toBe("member-a");
+
+    // Submit form to trigger update
+    const form = container.querySelector("form");
+    if (!form) throw new Error("form not found");
+    fireEvent.submit(form);
+
+    await waitFor(() => {
+      expect(updateProject).toHaveBeenCalled();
+    });
+
+    const patchPayload = updateProject.mock.calls[0][1];
+    expect(patchPayload.project_members).toEqual([
+      { user_id: "u-actor", project_role: "lead" },
+      { user_id: "member-a", project_role: "contributor" },
+    ]);
+  });
 });
+

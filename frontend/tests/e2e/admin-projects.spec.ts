@@ -59,4 +59,19 @@ test.describe("/admin/catalog?tab=projects — Project CRUD UI (생성은 catalo
     // catalog projects 탭 테이블 행(이름 셀)에 노출되는지 검증 (구 /projects heading 검증 대체).
     await expect(page.getByRole("cell", { name: projName })).toBeVisible({ timeout: 15_000 });
   });
+
+  test("TC-PROJ-UI-04 — 멤버 추가 버튼 클릭 시 멤버 입력 필드 추가", async ({ page }) => {
+    await page.getByRole("button", { name: /new project/i }).click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+
+    // 'Project Members' 영역의 'Add' 버튼 클릭
+    const addMemberBtn = dialog.locator("button").filter({ hasText: /^Add$/ }).last();
+    await expect(addMemberBtn).toBeVisible();
+    await addMemberBtn.click();
+
+    // 멤버 입력란이 추가되었는지 확인
+    const memberInputs = dialog.getByPlaceholder("user id");
+    expect(await memberInputs.count()).toBeGreaterThanOrEqual(1);
+  });
 });
