@@ -1,0 +1,24 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-06-01T02:52:18Z",
+  "source_of_truth": {
+    "project_profile_path": "ai-workflow/memory/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/gemini/application-dashboard-review/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/gemini/application-dashboard-review/work_backlog.md"
+  },
+  "project": {
+    "project_name": "Devhub_example"
+  },
+  "session": {
+    "current_focus": "Application Dashboard Review and Examination",
+    "in_progress_items": [
+      "Examine application dashboard UI design, features, and alignment"
+    ],
+    "blocked_items": [],
+    "recent_done_items": []
+  },
+  "next_documents": [
+    "docs/planning/release_v1_roadmap.md",
+    "docs/governance/worker_division.md"
+  ]
+}
