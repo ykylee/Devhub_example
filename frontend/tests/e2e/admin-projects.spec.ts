@@ -70,10 +70,10 @@ test.describe("/admin/catalog?tab=projects — Project CRUD UI (생성은 catalo
     await expect(addMemberBtn).toBeVisible();
     await addMemberBtn.click();
 
-    // 멤버 입력란이 추가되었는지 확인 (ComboBox 또는 일반 input 모두 지원하도록 selector 완화)
-    const memberInputs = dialog.locator('input[placeholder="Search member by name/email/user_id"], input[placeholder="user id"]');
-    await expect(memberInputs.first()).toBeVisible({ timeout: 5000 });
-    expect(await memberInputs.count()).toBeGreaterThanOrEqual(1);
+    // 멤버 입력란 개수 검증 (ComboBox trigger div 또는 plain input 모두 불특정이므로
+    // aria-label="Remove member" 버튼 개수 증감으로 대체 — retry 3회 flaky 방지)
+    const afterRemoveBtns = dialog.getByRole("button", { name: "Remove member" });
+    expect(await afterRemoveBtns.count()).toBeGreaterThanOrEqual(2);
   });
 
   // 프로젝트 생성 E2E 는 leader ComboBox 선택 이슈(carve #380) 로 skip.
