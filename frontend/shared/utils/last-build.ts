@@ -26,7 +26,7 @@ export function applicationBuildStatusView(status: string | null | undefined): L
     case "broken":
       return { label: "Broken", variant: "danger", tone: "negative" };
     default:
-      return { label: "Unknown", variant: "secondary", tone: "neutral" };
+      return { label: "없음", variant: "secondary", tone: "neutral" };
   }
 }
 
@@ -48,6 +48,6 @@ export function repositoryLastBuildView(status: string | null | undefined): Last
     case "queued":
       return { label: "Queued", variant: "secondary", tone: "neutral" };
     default:
-      return { label: "Unknown", variant: "secondary", tone: "neutral" };
+      return { label: "없음", variant: "secondary", tone: "neutral" };
   }
 }

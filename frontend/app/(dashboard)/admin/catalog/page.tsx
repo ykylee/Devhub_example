@@ -11,6 +11,7 @@ import { applicationService, Application as AdminApplication } from "@/domain/ap
 import { repositoryService, Repository } from "@/domain/repository-integration/service/repository.service";
 import { projectService } from "@/domain/application-lifecycle/service/project.service";
 import { ApplicationStatus, ApplicationVisibility, Project } from "@/domain/application-lifecycle/schema/project.types";
+import { identityService, OrgMember } from "@/domain/organization-management/service/identity.service";
 import { ApplicationCreationModal } from "@/domain/application-lifecycle/view/ApplicationCreationModal";
 import { ProjectCreationModal } from "@/domain/application-lifecycle/view/ProjectCreationModal";
 import { RepositoryCreationModal } from "@/components/project/RepositoryCreationModal";
@@ -37,6 +38,7 @@ export default function AdminCatalogPage() {
   const [applications, setApplications] = useState<AdminApplication[]>([]);
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [users, setUsers] = useState<OrgMember[]>([]);
   const [showApplicationModal, setShowApplicationModal] = useState(false);
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showRepositoryModal, setShowRepositoryModal] = useState(false);
@@ -52,6 +54,7 @@ export default function AdminCatalogPage() {
     try {
       const apps = await applicationService.listApplications({ include_archived: true });
       const repos = await repositoryService.listRepositories();
+      const fetchedUsers = await identityService.getUsers().catch(() => []);
 
       const appScopedProjects = await Promise.all(
         apps.map((app) => projectService.getApplicationProjectsV2(app.id, { include_archived: true }).catch(() => [])),
@@ -65,6 +68,7 @@ export default function AdminCatalogPage() {
       setApplications(apps);
       setRepositories(repos);
       setProjects(dedupProjects);
+      setUsers(fetchedUsers);
     } catch (err) {
       setError(toUserErrorMessage(err, "Admin Catalog 데이터를 불러오지 못했습니다."));
     } finally {
@@ -141,6 +145,11 @@ export default function AdminCatalogPage() {
   const applicationNameByID = useMemo(
     () => new Map(applications.map((app) => [app.id, app.name])),
     [applications],
+  );
+
+  const userNameByID = useMemo(
+    () => new Map(users.map((u) => [u.id, u.name])),
+    [users],
   );
 
   const openProjectTabByApplication = (applicationID: string) => {
@@ -355,7 +364,7 @@ export default function AdminCatalogPage() {
                     <td className="px-4 py-3 font-mono">{a.key}</td>
                     <td className="px-4 py-3">{a.name}</td>
                     <td className="px-4 py-3">{a.status}</td>
-                    <td className="px-4 py-3">{a.owner_user_id || "-"}</td>
+                    <td className="px-4 py-3">{(a.owner_user_id && userNameByID.get(a.owner_user_id)) || a.owner_user_id || "-"}</td>
                     <td className="px-4 py-3">{appProjectCount.get(a.id) ?? 0}</td>
                     <td className="px-4 py-3">{new Date(a.updated_at).toLocaleString()}</td>
                     <td className="px-4 py-3">
@@ -503,7 +512,7 @@ export default function AdminCatalogPage() {
                     <td className="px-4 py-3">{p.name}</td>
                     <td className="px-4 py-3">{(p.application_id && applicationNameByID.get(p.application_id)) || "-"}</td>
                     <td className="px-4 py-3">{p.status}</td>
-                    <td className="px-4 py-3">{p.owner_user_id || "-"}</td>
+                    <td className="px-4 py-3">{(p.owner_user_id && userNameByID.get(p.owner_user_id)) || p.owner_user_id || "-"}</td>
                     <td className="px-4 py-3">{new Date(p.updated_at).toLocaleString()}</td>
                     <td className="px-4 py-3">
                       <Link

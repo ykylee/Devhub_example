@@ -254,7 +254,7 @@ export default function RepositoriesStatusPage() {
                       ? "text-destructive"
                       : "text-muted-foreground"
                 }`}>
-                  {repo.buildHealth === "success" ? "Success" : repo.buildHealth === "failed" ? "Failed" : "N/A"}
+                  {repo.buildHealth === "success" ? "Success" : repo.buildHealth === "failed" ? "Failed" : "없음"}
                 </p>
                 {repo.buildHealth === "failed" && (repo.unresolvedFailedBranches?.length ?? 0) > 0 && (
                   <p className="text-[10px] text-destructive/80">
@@ -288,7 +288,7 @@ export default function RepositoriesStatusPage() {
         )}
       </div>
       <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
-        Latest Build Summary: Success {latestBuildSuccessCount} / Failed {latestBuildFailureCount} / Unknown {latestBuildUnknownCount}
+        Latest Build Summary: Success {latestBuildSuccessCount} / Failed {latestBuildFailureCount} / 없음 {latestBuildUnknownCount}
       </p>
     </div>
   );
