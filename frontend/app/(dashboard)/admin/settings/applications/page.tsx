@@ -229,8 +229,14 @@ export default function AdminSettingsApplicationsPage() {
               onViewDetails={(project) => {
                 router.push(`/projects/${project.id}`);
               }}
-              onEditProject={(project) => {
-                setEditingProject(project);
+              onEditProject={async (project) => {
+                try {
+                  const fullProject = await projectService.getProject(project.id);
+                  setEditingProject(fullProject);
+                } catch (err) {
+                  console.error("Failed to load project details for editing:", err);
+                  setEditingProject(project);
+                }
                 setShowProjectModal(true);
               }}
             />

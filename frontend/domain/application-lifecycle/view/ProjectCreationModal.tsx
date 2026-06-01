@@ -18,6 +18,7 @@ import { identityService } from "@/domain/organization-management/service/identi
 import { ComboBox } from "@/shared/ui-foundation/components/ComboBox";
 import { cn } from "@/shared/utils";
 import { useStore } from "@/lib/store";
+import { toUserErrorMessage } from "@/shared/utils/error-message";
 
 interface ProjectCreationModalProps {
   applicationId?: string;
@@ -97,6 +98,46 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
     slug: "",
     scm_provider: "",
   });
+
+  useEffect(() => {
+    if (initialData) {
+      setFormData((prev) => ({
+        ...prev,
+        key: initialData.key || prev.key,
+        name: initialData.name || prev.name,
+        description: initialData.description || prev.description,
+        owner_user_id: initialData.owner_user_id || prev.owner_user_id,
+        visibility: (initialData.visibility || prev.visibility) as ApplicationVisibility,
+        status: (initialData.status || prev.status) as ProjectStatus,
+        start_date: initialData.start_date || prev.start_date,
+        due_date: initialData.due_date || prev.due_date,
+        repository_id: initialData.repository_id || initialRepositoryId,
+        repository_ids: initialData.repository_ids || (initialRepositoryId ? [initialRepositoryId] : []),
+        application_id: initialData.application_id || prev.application_id,
+      }));
+
+      if (initialData.project_members && initialData.project_members.length > 0) {
+        setProjectMembers(
+          initialData.project_members.map((m) => ({
+            user_id: m.user_id,
+            project_role: m.project_role === "lead" ? "leader" : m.project_role === "observer" ? "observer" : "developer",
+          }))
+        );
+      } else {
+        setProjectMembers([
+          { user_id: initialData.owner_user_id || actorDefaultOwnerId || "", project_role: "leader" },
+        ]);
+      }
+
+      if (initialData.repository_ids?.length) {
+        setRepositoryLinks(initialData.repository_ids.filter((id): id is number => typeof id === "number" && id > 0));
+      } else if (initialData.repository_id) {
+        setRepositoryLinks([initialData.repository_id]);
+      } else {
+        setRepositoryLinks(initialRepositoryId ? [initialRepositoryId] : []);
+      }
+    }
+  }, [initialData, actorDefaultOwnerId, initialRepositoryId]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -221,7 +262,7 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
       onCreated(result);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save project");
+      setError(toUserErrorMessage(err, "Failed to save project"));
     } finally {
       setSubmitting(false);
     }
