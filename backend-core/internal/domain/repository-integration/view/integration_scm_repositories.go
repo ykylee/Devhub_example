@@ -134,7 +134,7 @@ func (h *RepositoryIntegrationHandler) ListSCMRepositories(c *gin.Context) {
 	if !ok {
 		return
 	}
-	remote, err := client.ListUserRepos(c.Request.Context())
+	remote, err := client.ListAllRepos(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"status": "rejected", "error": "failed to list SCM repositories: " + err.Error(), "code": "integration_scm_unreachable"})
 		return
@@ -199,7 +199,7 @@ func (h *RepositoryIntegrationHandler) ImportSCMRepositories(c *gin.Context) {
 	if !ok {
 		return
 	}
-	remote, err := client.ListUserRepos(c.Request.Context())
+	remote, err := client.ListAllRepos(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"status": "rejected", "error": "failed to list SCM repositories: " + err.Error(), "code": "integration_scm_unreachable"})
 		return

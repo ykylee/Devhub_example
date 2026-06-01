@@ -1,11 +1,11 @@
 # AGENTS.md
 
-- 문서 목적: Codex 가 이 저장소에서 먼저 읽어야 할 workflow 진입 규칙과 기본 작업 원칙을 제공한다.
+- 문서 목적: 모든 AI 에이전트(Codex, Reasonix 등)가 이 저장소에서 먼저 읽어야 할 workflow 진입 규칙과 기본 작업 원칙을 제공한다.
 - 범위: 세션 복원, workflow state docs 참조 순서, 사용자 보고 언어, 기본 실행/검증 명령, **v1.0 릴리즈 로드맵 + 워커 분업**
-- 대상 독자: Codex, 저장소 관리자, workflow 설계자
+- 대상 독자: Codex, Reasonix (deepseek-v4), 저장소 관리자, workflow 설계자
 - 상태: active
-- 최종 수정일: 2026-05-20 (v1.0 로드맵 + 워커 분업 참조 추가)
-- 관련 문서: `ai-workflow/MEMORY_GOVERNANCE.md`, `ai-workflow/memory/<agent>/<branch>/state.json`, `ai-workflow/memory/PROJECT_PROFILE.md`, `docs/governance/README.md` (거버넌스 진입점), `docs/governance/document-standards.md`, `docs/governance/worker_division.md` (**워커 분업 — Codex 영역**), `docs/planning/release_v1_roadmap.md` (**v1.0 릴리즈 로드맵**), `docs/traceability/README.md`
+- 최종 수정일: 2026-06-01 (Reasonix 전용 메모 섹션 추가)
+- 관련 문서: `ai-workflow/MEMORY_GOVERNANCE.md`, `ai-workflow/memory/<agent>/<branch>/state.json`, `ai-workflow/memory/PROJECT_PROFILE.md`, `docs/governance/README.md` (거버넌스 진입점), `docs/governance/document-standards.md`, `docs/governance/worker_division.md` (**워커 분업 — Codex/Reasonix 영역**), `docs/planning/release_v1_roadmap.md` (**v1.0 릴리즈 로드맵**), `docs/traceability/README.md`
 
 ## v1.0 릴리즈 로드맵 + 워커 분업
 
@@ -24,6 +24,8 @@
 2. 브랜치별 memory 디렉터리를 우선 읽는다.
    - 브랜치명이 `codex/service-action-command`이면 `ai-workflow/memory/codex/service-action-command/`
    - 브랜치명이 `claude/phase13`이면 `ai-workflow/memory/claude/phase13/`
+   - 브랜치명이 `gemini/...`이면 `ai-workflow/memory/gemini/<branch-suffix>/`
+   - 브랜치명이 `deepseek/...`이면 `ai-workflow/memory/deepseek/<branch-suffix>/` (Reasonix 포함)
    - agent prefix가 없는 브랜치는 `ai-workflow/memory/branches/<branch-name>/`를 사용한다.
 3. 브랜치별 디렉터리에서 아래 문서를 먼저 읽는다.
    - `state.json`
@@ -80,3 +82,15 @@
 - worker 에게는 책임 파일과 종료 조건을 명확히 넘기고, 메인 에이전트에는 핵심 사실과 결과만 다시 모은다.
 - `main`/`small` 모델을 함께 운영한다면, 메인 에이전트는 난도 높은 판단과 통합에, worker 는 bounded scope 탐색/초안/검증에 우선 배치하는 편이 효율적이다.
 - 신규 프로젝트 기준 초안이다. 프로젝트 고유의 실행 명령과 문서 구조가 정확한지 확인해야 한다.
+
+## Reasonix (deepseek-v4) 전용 메모
+
+- Reasonix 는 Codex 와 동일한 workflow 레이어(`ai-workflow/`)를 따르며, 브랜치별 memory 디렉터리 패턴을 동일하게 사용한다.
+- **브랜치 생성 시 반드시 `deepseek/` prefix 를 사용한다.** 브랜치명 예: `deepseek/construct_workflow_for_deepseek`
+- 표준 sprint branch 명명 규칙은 `docs/governance/worker_division.md` §2.5 를 따른다: `deepseek/work_<YYMMDD>-<sprint-seq>-<issue-num>-<short-key>`
+- 브랜치 prefix `deepseek/` → `ai-workflow/memory/deepseek/<branch-suffix>/`
+- Reasonix 의 기본 모델은 `deepseek-v4-flash`이며, 복잡한 cross-file 리팩토링 시 자동으로 `deepseek-v4-pro` 로 escalation 된다.
+- Reasonix 의 기본 도구 세트에는 GitHub MCP, Filesystem MCP, Memory KG, Puppeteer 가 포함되어 있다.
+- `run_command` 사용 시 `cd` 가 체인에서 거부되므로, cwd 가 필요한 명령은 `cwd` 인자를 직접 전달하거나 `--prefix`/`-C` 플래그를 사용한다.
+- 현재 브랜치가 `main`이 아닐 때는 `ai-workflow/` 메타 레이어를 기본 탐색 범위에 포함하지 말고, workflow 문서 갱신이나 세션 복원 시에만 참조한다.
+- 프로젝트 실행 기본값(TODO 항목들)은 아직 설정되지 않았다 (`TODO: ...` 상태). Reasonix 세션 시작 시 `PROJECT_PROFILE.md` §3 기본 명령을 직접 참조하여 실행한다.

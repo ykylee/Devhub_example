@@ -7,13 +7,13 @@ import (
 	"testing"
 )
 
-// fakeGiteaServer 는 /api/v1/user/repos 에 고정 repo 1건을 응답하는 SCM 스텁.
+// fakeGiteaServer 는 /api/v1/repos/search 에 고정 repo 1건을 응답하는 SCM 스텁.
 func fakeGiteaServer(t *testing.T) *httptest.Server {
 	t.Helper()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		if r.URL.Path == "/api/v1/user/repos" {
-			_, _ = w.Write([]byte(`[{"id":1,"name":"test-repo","full_name":"owner/test-repo","clone_url":"http://gitea/owner/test-repo.git","html_url":"http://gitea/owner/test-repo","default_branch":"main","private":false}]`))
+		if r.URL.Path == "/api/v1/repos/search" {
+			_, _ = w.Write([]byte(`{"ok":true,"data":[{"id":1,"name":"test-repo","full_name":"owner/test-repo","clone_url":"http://gitea/owner/test-repo.git","html_url":"http://gitea/owner/test-repo","default_branch":"main","private":false}],"total_count":1}`))
 			return
 		}
 		w.WriteHeader(http.StatusNotFound)

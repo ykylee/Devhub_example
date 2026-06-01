@@ -97,6 +97,44 @@ type GiteaBranch struct {
 	SHA string `json:"sha"`
 }
 
+// SearchReposResponse wraps the Gitea /repos/search API response.
+type SearchReposResponse struct {
+	OK          bool              `json:"ok"`
+	Data        []GiteaRepository `json:"data"`
+	TotalCount  int64             `json:"total_count"`
+}
+
+// ListAllRepos retrieves all repositories visible to the authenticated token
+// via GET /api/v1/repos/search. An **admin token** returns every repository
+// on the Gitea instance; a regular token returns only the user's own repos.
+func (c *Client) ListAllRepos(ctx context.Context) ([]GiteaRepository, error) {
+	var allRepos []GiteaRepository
+	page := 1
+	limit := 50
+	for {
+		req, err := c.newRequest(ctx, http.MethodGet, "/api/v1/repos/search", nil)
+		if err != nil {
+			return nil, err
+		}
+
+		q := req.URL.Query()
+		q.Set("page", fmt.Sprintf("%d", page))
+		q.Set("limit", fmt.Sprintf("%d", limit))
+		req.URL.RawQuery = q.Encode()
+
+		var result SearchReposResponse
+		if err := c.do(req, &result); err != nil {
+			return nil, err
+		}
+		allRepos = append(allRepos, result.Data...)
+		if len(result.Data) < limit || len(allRepos) >= int(result.TotalCount) {
+			break
+		}
+		page++
+	}
+	return allRepos, nil
+}
+
 // ListUserRepos retrieves the authenticated user's repositories using pagination.
 func (c *Client) ListUserRepos(ctx context.Context) ([]GiteaRepository, error) {
 	var allRepos []GiteaRepository
