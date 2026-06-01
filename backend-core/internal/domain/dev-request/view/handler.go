@@ -20,7 +20,6 @@ type AuditStore interface {
 
 type ApplicationStore interface {
 	ListSCMProviders(ctx context.Context) ([]domain.SCMProvider, error)
-	ListRepositoriesByProvider(ctx context.Context, provider string) ([]domain.Repository, error)
 	CreateProjectWithRepositoryPayload(ctx context.Context, p domain.Project, repoIDs []int64, payload *store.RepositoryCreatePayload) (domain.Project, error)
 	CreateApplication(ctx context.Context, app domain.Application) (domain.Application, error)
 }

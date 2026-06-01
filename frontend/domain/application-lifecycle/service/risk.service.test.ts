@@ -72,7 +72,7 @@ describe("RiskService", () => {
       ]);
     });
 
-    it("returns mock fallback array when response.ok is false", async () => {
+    it("returns empty array when response.ok is false (no mock fallback)", async () => {
       fetchMock.mockResolvedValue({
         ok: false,
         json: async () => ({ status: "rejected", error: "boom" }),
@@ -81,20 +81,16 @@ describe("RiskService", () => {
       const { riskService } = await import("./risk.service");
       const result = await riskService.getCriticalRisks();
 
-      expect(result).toHaveLength(2);
-      expect(result[0].title).toBe("Gitea Migration Blocked");
-      expect(result[1].title).toBe("Frontend CI Pipeline Delay");
+      expect(result).toEqual([]);
     });
 
-    it("returns mock fallback when fetch itself rejects (network error)", async () => {
+    it("returns empty array when fetch itself rejects (network error)", async () => {
       fetchMock.mockRejectedValue(new Error("ENETDOWN"));
 
       const { riskService } = await import("./risk.service");
       const result = await riskService.getCriticalRisks();
 
-      expect(result).toHaveLength(2);
-      expect(result[0].owner).toBe("Alex K.");
-      expect(result[1].owner).toBe("YK Lee");
+      expect(result).toEqual([]);
     });
 
     it("logs the error before falling back", async () => {
@@ -130,7 +126,7 @@ describe("RiskService", () => {
       });
 
       const { riskService } = await import("./risk.service");
-      const result = await riskService.applyMitigation("r-1", "retry");
+      const result = await riskService.applyMitigation("r-1", "retry", "yklee");
 
       expect(fetchMock).toHaveBeenCalledTimes(1);
       const [url, init] = fetchMock.mock.calls[0];
@@ -168,6 +164,39 @@ describe("RiskService", () => {
       await expect(riskService.applyMitigation("r-2", "investigate")).rejects.toThrow(
         "ENETDOWN",
       );
+    });
+
+    it("uses 'unknown' as default actorLogin when not provided", async () => {
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          status: "ok",
+          data: { command_id: "c", command_status: "queued", requires_approval: false, audit_log_id: "l", idempotent_replay: false, created_at: "" },
+        }),
+      });
+
+      const { riskService } = await import("./risk.service");
+      await riskService.applyMitigation("r-1", "retry");
+
+      const init = fetchMock.mock.calls[0][1];
+      expect(init.headers["X-Devhub-Actor"]).toBe("unknown");
+    });
+
+    it("accepts different actorLogin values per call", async () => {
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          status: "ok",
+          data: { command_id: "c", command_status: "queued", requires_approval: false, audit_log_id: "l", idempotent_replay: false, created_at: "" },
+        }),
+      });
+
+      const { riskService } = await import("./risk.service");
+      await riskService.applyMitigation("r-1", "retry", "alice");
+      await riskService.applyMitigation("r-2", "investigate", "bob");
+
+      expect(fetchMock.mock.calls[0][1].headers["X-Devhub-Actor"]).toBe("alice");
+      expect(fetchMock.mock.calls[1][1].headers["X-Devhub-Actor"]).toBe("bob");
     });
 
     it("generates a unique idempotency key per call (Date.now() suffix)", async () => {

@@ -430,75 +430,7 @@ async createUser(payload: CreateUserPayload): Promise<OrgMember> {
     return leadDepts[0].id;
   }
 
-  private mockUsers(): OrgMember[] {
-    return [
-      {
-        id: "u1",
-        name: "YK Lee",
-        email: "yklee@example.com",
-        role: "System Admin",
-        status: "active",
-        primary_dept_id: "dept-eng",
-        current_dept_id: "dept-eng",
-        is_seconded: false,
-        appointments: [
-          { dept_id: "org-root", role: "leader" },
-          { dept_id: "dept-eng", role: "leader" }
-        ],
-        joined_at: "2026-01-15"
-      },
-      {
-        id: "u2",
-        name: "Alex Kim",
-        email: "alex@example.com",
-        role: "Manager",
-        status: "active",
-        primary_dept_id: "dept-prod",
-        current_dept_id: "team-ux",
-        is_seconded: true,
-        appointments: [
-          { dept_id: "dept-prod", role: "leader" }
-        ],
-        joined_at: "2026-02-01"
-      },
-      {
-        id: "u3",
-        name: "Sam Jones",
-        email: "sam@example.com",
-        role: "Developer",
-        status: "active",
-        primary_dept_id: "team-infra",
-        current_dept_id: "team-infra",
-        is_seconded: false,
-        appointments: [
-          { dept_id: "team-infra", role: "member" }
-        ],
-        joined_at: "2026-05-01"
-      }
-    ];
-  }
 
-  public mockHierarchy() {
-    return {
-      nodes: [
-        { id: 'org-root', type: 'input' as const, data: { label: 'DevHub Global', type: 'division', leader_id: 'u1', direct_count: 5, total_count: 150 }, position: { x: 400, y: 0 } },
-        { id: 'dept-eng', data: { label: 'Engineering', type: 'division', leader_id: 'u1', direct_count: 10, total_count: 85 }, position: { x: 200, y: 150 } },
-        { id: 'dept-prod', data: { label: 'Product', type: 'division', leader_id: 'u2', direct_count: 8, total_count: 65 }, position: { x: 600, y: 150 } },
-        { id: 'team-infra', data: { label: 'Infrastructure', type: 'team', leader_id: 'u1', direct_count: 12, total_count: 24 }, position: { x: 50, y: 300 } },
-        { id: 'team-frontend', data: { label: 'Frontend', type: 'team', leader_id: 'u3', direct_count: 15, total_count: 15 }, position: { x: 350, y: 300 } },
-        { id: 'team-ux', data: { label: 'UX Strategy', type: 'team', leader_id: 'u2', direct_count: 6, total_count: 6 }, position: { x: 600, y: 300 } },
-        { id: 'part-security', data: { label: 'Security Part', type: 'part', direct_count: 4, total_count: 4 }, position: { x: 50, y: 450 } },
-      ],
-      edges: [
-        { id: 'e-root-eng', source: 'org-root', target: 'dept-eng', animated: true },
-        { id: 'e-root-prod', source: 'org-root', target: 'dept-prod', animated: true },
-        { id: 'e-eng-infra', source: 'dept-eng', target: 'team-infra' },
-        { id: 'e-eng-front', source: 'dept-eng', target: 'team-frontend' },
-        { id: 'e-prod-ux', source: 'dept-prod', target: 'team-ux' },
-        { id: 'e-infra-sec', source: 'team-infra', target: 'part-security' },
-      ]
-    };
-  }
 }
 
 export const identityService = IdentityService.getInstance();

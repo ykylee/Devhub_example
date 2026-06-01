@@ -24,8 +24,8 @@ import { Badge } from "@/shared/ui-foundation/components/Badge";
 import { cn } from "@/shared/utils";
 import { useStore } from "@/lib/store";
 import { applicationService, ApplicationDashboard, Application } from "@/domain/application-lifecycle/service/application.service";
+import { ApplicationRepository, ApplicationStatus, ApplicationVisibility } from "@/domain/application-lifecycle/schema/project.types";
 import { projectService } from "@/domain/application-lifecycle/service/project.service";
-import type { ApplicationRepository } from "@/domain/application-lifecycle/schema/project.types";
 import { ApplicationCreationModal } from "@/domain/application-lifecycle/view/ApplicationCreationModal";
 import { useToast } from "@/shared/ui-foundation/components/Toast";
 import { toUserErrorMessage } from "@/shared/utils/error-message";
@@ -108,7 +108,6 @@ export default function ApplicationDetailPage() {
     if (!selectedDreq) return;
 
     // 검증 1: 본 application 에 연결된 repository 가 있어야 promote 가능.
-    // Backend 가 (repo_provider, repo_full_name) → repository_id resolve 지원 (P1 fix).
     const primaryRepo = repositories.find((r) => r.role === "primary") ?? repositories[0];
     if (!primaryRepo) {
       alert("Cannot promote: this application has no linked repository. Please link a repository first.");
@@ -125,13 +124,20 @@ export default function ApplicationDetailPage() {
 
     try {
       setPromoting(true);
-      // Promote DREQ API — backend resolves repository_id from (repo_provider, repo_full_name)
+      // Promote DREQ API — resolve numeric repository_id from (repo_provider, repo_full_name)
+      const allRepos = await apiClient<{ data: Array<{ id: number; provider_key: string; full_name: string }> }>("GET", "/api/v1/repositories");
+      const matchedRepo = allRepos.data.find(
+        (r) => r.provider_key === primaryRepo.repo_provider && r.full_name === primaryRepo.repo_full_name,
+      );
+      if (!matchedRepo) {
+        alert("Cannot promote: repository not found in SCM integration. Please ensure the repository is imported.");
+        return;
+      }
       await apiClient("POST", `/api/v1/dev-requests/${selectedDreq.dreq_id}/register`, {
         target_type: "project",
         project_payload: {
           application_id: id,
-          repo_provider: primaryRepo.repo_provider,
-          repo_full_name: primaryRepo.repo_full_name,
+          repository_id: matchedRepo.id,
           key: projectKey,
           name: projectName,
           owner_user_id: ownerUserID,
@@ -561,6 +567,8 @@ export default function ApplicationDetailPage() {
           <ApplicationCreationModal
             initialData={{
               ...application,
+              status: application.status as ApplicationStatus,
+              visibility: application.visibility as ApplicationVisibility,
               start_date: application.start_date ?? undefined,
               due_date: application.due_date ?? undefined,
               archived_at: application.archived_at ?? undefined,

@@ -1,14 +1,13 @@
 import { apiClient } from "@/shared/api/api-client";
 import { API_BASE_URL } from "@/shared/config/endpoints";
-import type { ApplicationStatus, ApplicationVisibility } from "@/domain/application-lifecycle/schema/project.types";
 
 export interface Application {
   id: string;
   key: string;
   name: string;
   description: string;
-  status: ApplicationStatus;
-  visibility: ApplicationVisibility;
+  status: string;
+  visibility: string;
   owner_user_id: string;
   leader_user_id: string;
   development_unit_id: string;
