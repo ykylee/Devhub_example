@@ -229,6 +229,122 @@ VALUES
 
 ---
 
+## 6. Phase 5: Dev Request (DREQ) 상세 결과
+
+### 개요
+
+외부 시스템(Jira 등)에서 DevHub로 개발 의뢰를 수신하고, 담당자에게 표시하며, Application/Project로 승격(promote)시키는 전체 lifecycle 테스트.
+
+**검증 흐름**: Intake Token 발급 → 외부 API 수신 → 사용자 조회 → Application 승격 → Project 승격
+
+### SC-TEST-5.0: 사전 준비 ✅ 완료
+
+| 항목 | 결과 |
+|------|------|
+| System admin (charlie) token 발급 | ✅ 정상 |
+| Developer (dev-user-a) token 발급 | ✅ 정상 |
+
+### SC-TEST-5.1: Intake Token 생성 및 외부 Dev Request 수신 ✅ 통과
+
+#### 5.1a: Intake Token 생성 (System Admin)
+
+POST `/api/v1/dev-request-tokens`:
+
+```json
+{
+  "client_label": "test-system-a",
+  "hashed_token": "<sha256>",
+  "source_system": "jira",
+  "allowed_ips": ["0.0.0.0/0", "::/0"]
+}
+```
+
+| 단계 | 결과 | 비고 |
+|------|------|------|
+| Token 생성 API 호출 | ✅ 201 | `token_id`, `plain_token` 반환 (plain text는 최초 생성 시만) |
+| `source_system` = "jira" 매핑 | ✅ | intake 요청 시 source_system 강제 매핑 (spoofing 방지, ADR-0012 §4.1.2) |
+| `allowed_ips` = 0.0.0.0/0 | ✅ | 테스트 환경에서 모든 IP 허용 |
+
+#### 5.1b: 외부 Dev Request 수신 (Intake API)
+
+POST `/api/v1/dev-requests` (Authorization: Bearer `<plain_token>`):
+
+```json
+{
+  "title": "Alpha Service 회원가입 플로우 개선",
+  "details": "회원가입 시 이메일 인증 단계가 누락...",
+  "requester": "kimcw@company.com",
+  "assignee_user_id": "dev-user-a",
+  "external_ref": "JIRA-101"
+}
+```
+
+| 단계 | 결과 |
+|------|------|
+| Dev Request 생성 | ✅ 201 Created |
+| `status` | ✅ `pending` |
+| `source_system` | ✅ `jira` (token 매핑, body 무시) |
+| `external_ref` | ✅ `JIRA-101` |
+
+#### 5.1c: Idempotency 및 Validation
+
+| 테스트 | 결과 | 비고 |
+|--------|------|------|
+| 동일 external_ref 재전송 | ✅ 200 OK (기존 row 반환) | `(source_system, external_ref)` UNIQUE idempotency |
+| 다른 external_ref 신규 요청 | ✅ 201 Created | `JIRA-102` → 정상 생성 |
+| 필수 필드 누락 (title 없음) | ✅ 201 Created (status=rejected) | `rejected_reason: "title is required"`, audit 보존 |
+
+### SC-TEST-5.2: 사용자 Dev Request 조회/표시 ✅ 통과
+
+| 단계 | 결과 | 비고 |
+|------|------|------|
+| developer 목록 조회 | ✅ 3건 (모든 request 조회) | Row-level filter: 본인 assignee만 |
+| system_admin 목록 조회 | ✅ 3건 (전체 조회) | admin은 모든 request 조회 가능 |
+| 상세 조회 (`GET /dev-requests/:id`) | ✅ | title, details, requester, external_ref 모두 정상 |
+| Status filter (`?status=pending`) | ✅ 2건 | pending 필터 정상 |
+| Status filter (`?status=rejected`) | ✅ 1건 | rejected 필터 정상 |
+
+### SC-TEST-5.3: Dev Request → Application 승격 (Promote) ✅ 통과
+
+POST `/api/v1/dev-requests/80226589-.../register`:
+
+| 단계 | 결과 | 비고 |
+|------|------|------|
+| Target type = application | ✅ | `application_payload`로 신규 Application 생성 |
+| Application key `ALPHASVC` | ✅ | key format `^[A-Za-z0-9]{1,10}$` 준수 |
+| Dev Request 상태 전이 | ✅ `pending` → `registered` | `registered_target_type: "application"` |
+| 생성된 Application 조회 가능 | ✅ | `GET /api/v1/applications?key=ALPHASVC` |
+| 중복 Promote 시도 | ✅ **409 Conflict** | `"dev_request is already registered/rejected/closed"` |
+
+### SC-TEST-5.4: Dev Request → Project 승격 (Promote) ✅ 통과
+
+POST `/api/v1/dev-requests/09045149-.../register`:
+
+| 단계 | 결과 | 비고 |
+|------|------|------|
+| Target type = project | ✅ | `project_payload`로 신규 Project 생성 |
+| Project key `ALPHA-SPRINT-2` | ✅ | `repository_id: 1` (testapp-alpha-repo) 연결 |
+| Repository FK 검증 | ✅ | 존재하는 repository ID로 정상 생성 |
+| Dev Request 상태 전이 | ✅ `pending` → `registered` | `registered_target_type: "project"` |
+| 생성된 Project 조회 가능 | ✅ | `GET /api/v1/projects/4f1f6dd5-...` |
+| Atomic transaction | ✅ | Project 생성 + DREQ 상태 변경이 단일 트랜잭션 |
+
+---
+
+### Phase 5 결과 요약
+
+| 시나리오 | TC 수 | 통과 | 실패 | 차단 | 비고 |
+|----------|-------|------|------|------|------|
+| 5.1 Intake + Reception | 3 | 3 | 0 | 0 | Token 생성, 수신, idempotency, validation |
+| 5.2 User View | 3 | 3 | 0 | 0 | RBAC row-level filter, 상세 조회, status filter |
+| 5.3 Promote → Application | 2 | 2 | 0 | 0 | 신규 Application 생성 + 중복 방지 |
+| 5.4 Promote → Project | 2 | 2 | 0 | 0 | 신규 Project 생성 + repository 연결 |
+| **전체** | **10** | **10** | **0** | **0** | **BUG 0건, ISSUE 0건** |
+
+**특이사항**: DREQ 도메인은 0 BUG, 0 ISSUE로 안정적인 구현 상태. 외부 수신 인증(Intake Token), Idempotency, 검증/거절, Promote transactional 처리, RBAC row-level filter 모두 정상 동작.
+
+---
+
 ## 7. 발견된 버그 및 이슈
 
 ### BUG-01: Keycloak Password Grant 실패 ("Account is not fully set up")
@@ -441,4 +557,5 @@ v1.1 강화 (M-v1.1 = 2026-07-31)
 | Phase 2: 시스템 설정 | 5 | 5 | 0 | 0 | Gitea 로컬 대체 |
 | Phase 3: SCM 연동 | 5 | 3 | 0 | 2 | 증분 sync/webhook 미확인 |
 | Phase 4: CI/CD | 5 | 1 | 0 | 4 | CI Run 조회만 확인 |
-| **전체** | **19** | **13** | **0** | **6** | BUG 6건, ISSUE 5건 |
+| Phase 5: Dev Request (DREQ) | 10 | 10 | 0 | 0 | BUG/ISSUE 0건 — 안정적인 구현 |
+| **전체** | **29** | **23** | **0** | **6** | BUG 7건, ISSUE 5건, Phase 5 BUG 0건 |
