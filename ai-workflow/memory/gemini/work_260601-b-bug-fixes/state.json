@@ -22,7 +22,8 @@
       "Add E2E test case for project member list addition UI interaction (admin-projects.spec.ts)",
       "Fix CI E2E Playwright tests failure by adding hardcoded simulation app/project seeds to global-setup.ts",
       "Address Codex Review (FE observer role preservation & BE transactional legacy CreateProject members saving)",
-      "Fix negative E2E spec regression failure by updating TC-PROJ-DETAIL-WARN-01 to match mild activity fallback"
+      "Fix negative E2E spec regression failure by updating TC-PROJ-DETAIL-WARN-01 to match mild activity fallback",
+      "Relax E2E 'Add' button selector in admin-projects.spec.ts to bypass nested SVG/space matching issue"
     ]
   },
   "next_documents": [

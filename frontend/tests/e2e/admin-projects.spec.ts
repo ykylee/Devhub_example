@@ -66,7 +66,7 @@ test.describe("/admin/catalog?tab=projects — Project CRUD UI (생성은 catalo
     await expect(dialog).toBeVisible();
 
     // 'Project Members' 영역의 'Add' 버튼 클릭
-    const addMemberBtn = dialog.locator("button").filter({ hasText: /^Add$/ }).last();
+    const addMemberBtn = dialog.locator("button").filter({ hasText: "Add" }).last();
     await expect(addMemberBtn).toBeVisible();
     await addMemberBtn.click();
 
