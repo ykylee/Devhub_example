@@ -389,7 +389,7 @@ func TestRepositoryIntegration_API(t *testing.T) {
 	t.Run("ListSCMRepositories - SCM API unreachable or DB local list error", func(t *testing.T) {
 		// Mock local httptest Server
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path == "/api/v1/user/repos" {
+			if r.URL.Path == "/api/v1/repos/search" {
 				w.WriteHeader(http.StatusBadGateway) // unreachable or server error
 				return
 			}
@@ -422,9 +422,9 @@ func TestRepositoryIntegration_API(t *testing.T) {
 
 		// Mock standard success HTTP API server for local DB error test
 		server2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path == "/api/v1/user/repos" {
+			if r.URL.Path == "/api/v1/repos/search" {
 				w.Header().Set("Content-Type", "application/json")
-				w.Write([]byte(`[{"id":1, "name":"r1", "full_name":"org/r1", "clone_url":"http", "html_url":"http", "default_branch":"main", "private":false}]`))
+				w.Write([]byte(`{"ok":true,"data":[{"id":1, "name":"r1", "full_name":"org/r1", "clone_url":"http", "html_url":"http", "default_branch":"main", "private":false}],"total_count":1}`))
 				return
 			}
 		}))
@@ -460,12 +460,9 @@ func TestRepositoryIntegration_API(t *testing.T) {
 
 	t.Run("ListSCMRepositories - Success", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path == "/api/v1/user/repos" {
+			if r.URL.Path == "/api/v1/repos/search" {
 				w.Header().Set("Content-Type", "application/json")
-				w.Write([]byte(`[
-					{"id":1, "name":"r1", "full_name":"org/r1", "clone_url":"http1", "html_url":"html1", "default_branch":"main", "private":false},
-					{"id":2, "name":"r2", "full_name":"org/r2", "clone_url":"http2", "html_url":"html2", "default_branch":"main", "private":true}
-				]`))
+				w.Write([]byte(`{"ok":true,"data":[{"id":1, "name":"r1", "full_name":"org/r1", "clone_url":"http1", "html_url":"html1", "default_branch":"main", "private":false},{"id":2, "name":"r2", "full_name":"org/r2", "clone_url":"http2", "html_url":"html2", "default_branch":"main", "private":true}],"total_count":2}`))
 				return
 			}
 		}))
@@ -568,9 +565,9 @@ func TestRepositoryIntegration_API(t *testing.T) {
 
 	t.Run("ImportSCMRepositories - upsert db error", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path == "/api/v1/user/repos" {
+			if r.URL.Path == "/api/v1/repos/search" {
 				w.Header().Set("Content-Type", "application/json")
-				w.Write([]byte(`[{"id":1, "name":"r1", "full_name":"org/r1", "clone_url":"http1", "html_url":"html1", "default_branch":"main", "private":false}]`))
+				w.Write([]byte(`{"ok":true,"data":[{"id":1, "name":"r1", "full_name":"org/r1", "clone_url":"http1", "html_url":"html1", "default_branch":"main", "private":false}],"total_count":1}`))
 				return
 			}
 		}))
@@ -605,12 +602,9 @@ func TestRepositoryIntegration_API(t *testing.T) {
 
 	t.Run("ImportSCMRepositories - Success", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path == "/api/v1/user/repos" {
+			if r.URL.Path == "/api/v1/repos/search" {
 				w.Header().Set("Content-Type", "application/json")
-				w.Write([]byte(`[
-					{"id":1, "name":"r1", "full_name":"org/r1", "clone_url":"http1", "html_url":"html1", "default_branch":"main", "private":false},
-					{"id":2, "name":"r2", "full_name":"org/r2", "clone_url":"http2", "html_url":"html2", "default_branch":"main", "private":true}
-				]`))
+				w.Write([]byte(`{"ok":true,"data":[{"id":1, "name":"r1", "full_name":"org/r1", "clone_url":"http1", "html_url":"html1", "default_branch":"main", "private":false},{"id":2, "name":"r2", "full_name":"org/r2", "clone_url":"http2", "html_url":"html2", "default_branch":"main", "private":true}],"total_count":2}`))
 				return
 			}
 		}))
