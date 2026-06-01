@@ -22,20 +22,34 @@
 
 역할별 요구사항의 체크박스는 기능 후보를 추적하기 위한 목록이며, `핵심 기획 아젠다`의 결정 사항은 제품 방향과 정책 기준으로 우선 적용합니다. 단, 구현 범위는 각 항목의 `확정`, `후보`, `MVP 이후` 상태에 따라 별도로 관리합니다.
 
-## 2. 사용자 역할별 요구사항 (진입 우선순위 기반)
+## 2. 사용자 역할별 요구사항 (Two-Dimensional RBAC)
+
+> **2026-06-01 갱신**: 기존 3 system role(developer/manager/system_admin) 모델을 **2차원 RBAC** 로 확장. system role 3종(developer/team_manager/system_admin) + resource role 4종(project_member/project_leader/application_leader/org_head). 상세 컨셉은 [`docs/planning/role-access-concept.md`](./planning/role-access-concept.md), 도메인 REQ 는 [`docs/domain/application-lifecycle/requirements.md`](./domain/application-lifecycle/requirements.md) §6 REQ-FR-ROLE 참조.
 
 ### 2.1 개발자 (Developer)
-- **핵심 니즈:** 정보 탐색 최소화, 개발 몰입도 향상.
+- **핵심 니즈:** 정보 탐색 최소화, 개발 몰입도 향상. 자신이 속한 project/application 에 대한 읽기 접근.
 - **기본 진입 우선순위:** 개발 대시보드 (Developer Dashboard)
+- **System Role:** `developer`
+- **Resource Role baseline:** `project_member` (project_members 포함 시 해당 project + 연결 application 조회)
+- **View Scope:** 자신이 member 인 project + 연결 application 으로 row-scoped. management 정보(롤업/메트릭/리스크)는 `project_leader` 이상만 접근.
+- **주요 기능 (확정):**
+    - [x] 멤버십 기반 Project/Application 목록 조회 (row-scoped).
+    - [x] Project/Application 상세 조회 (member 인 경우).
 - **주요 기능 (후보):**
     - [ ] 기술 스택별 가이드 및 Wiki 통합 검색.
     - [ ] 프로젝트별 환경 설정(Environment Setup) 원클릭 확인.
     - [ ] 팀 내 공통 라이브러리/컴포넌트 카탈로그.
     - [ ] (기타 제안) CI/CD 빌드 결과 및 실시간 에러 로그 요약.
 
-### 2.2 관리자 (Manager)
-- **핵심 니즈:** 프로젝트 가시성 확보, 리스크 선제 대응.
+### 2.2 팀 관리자 (Team Manager)
+- **핵심 니즈:** (기존 `manager` + `pmo_manager` 통합) 팀 범위 프로젝트 가시성 확보, 리스크 선제 대응.
 - **기본 진입 우선순위:** 관리 대시보드 (Management Dashboard)
+- **System Role:** `team_manager` (신규. 기존 `manager`/`pmo_manager` → 통합)
+- **View Scope:** 자신이 속한 org unit(primary_unit_id 기준 subtree) 범위 내 전체 Project/Application 접근. team scope 밖은 member 인 project 만 접근.
+- **주요 기능 (확정):**
+    - [x] Team scope 내 Project/Application 목록·상세 조회.
+    - [x] Team scope 내 Project 관리 (metadata 수정, member role 변경).
+    - [x] Team scope 내 Application 관리 (metadata 수정).
 - **주요 기능 (후보):**
     - [ ] 마일스톤별 진행률 시각화 대시보드.
     - [ ] 팀원별 작업량(Load) 및 할당 현황.
@@ -51,6 +65,8 @@
 ### 2.4 시스템 관리자 (System Administrator)
 - **핵심 니즈:** Gitea 연동 인프라와 DevHub 운영 설정을 안전하게 관리.
 - **기본 진입 우선순위:** 시스템 대시보드 + 시스템 설정 메뉴
+- **System Role:** `system_admin`
+- **View Scope:** Global unrestricted (모든 row 접근, row filter 미적용).
 - **노출 정책 (확정):** 시스템 대시보드/시스템 설정은 `system_admin` 권한 보유자에게만 노출한다.
 - **주요 기능 (확정):**
     - [x] Gitea 서버 및 Runner 상태 모니터링.
@@ -70,7 +86,7 @@
 
 ## 4. 공통 운영 원칙 (Common Operating Principles)
 
-두 역할군(개발자, 관리자) 간의 뷰 공존과 데이터 신뢰를 위해 다음 원칙을 준수합니다.
+세 system role(developer / team_manager / system_admin) 간의 뷰 공존과 데이터 신뢰를 위해 다음 원칙을 준수합니다.
 
 1. **데이터 주권과 정합성의 조화:**
     - 공식 업무 로그(PR, 이슈, 빌드 등)는 데이터 무결성을 유지하며 관리자 KPI의 기반이 됨.
@@ -110,7 +126,7 @@
 | rbac-permissions | [`./domain/rbac-permissions/requirements.md`](./domain/rbac-permissions/requirements.md) | Role + Resource + Action matrix, row-scoping |
 | organization-management | [`./domain/organization-management/requirements.md`](./domain/organization-management/requirements.md) | Users + org_units + appointments, HRDB lookup |
 | onboarding | [`./domain/onboarding/requirements.md`](./domain/onboarding/requirements.md) | REQ-FR-ONBOARD-001..012, REQ-NFR-ONBOARD-001..008 |
-| application-lifecycle | [`./domain/application-lifecycle/requirements.md`](./domain/application-lifecycle/requirements.md) | REQ-FR-APP-001..012, REQ-FR-PROJ-000..010, REQ-FR-APPDASH-001..006, REQ-NFR-PROJ/APPDASH |
+| application-lifecycle | [`./domain/application-lifecycle/requirements.md`](./domain/application-lifecycle/requirements.md) | REQ-FR-APP-001..012, REQ-FR-PROJ-000..010, REQ-FR-APPDASH-001..006, REQ-FR-ROLE-001..016, REQ-NFR-PROJ/APPDASH |
 | repository-integration | [`./domain/repository-integration/requirements.md`](./domain/repository-integration/requirements.md) | REQ-FR-REPO-001..005, REQ-NFR-REPO-001..003 |
 | dev-request | [`./domain/dev-request/requirements.md`](./domain/dev-request/requirements.md) | REQ-FR-DREQ-001..013, REQ-NFR-DREQ-001..006 |
 | integration-registry | [`./domain/integration-registry/requirements.md`](./domain/integration-registry/requirements.md) + [`task_requirements.md`](./domain/integration-registry/task_requirements.md) | REQ-FR-INT-001..015, REQ-NFR-INT-001..009, REQ-FR-TASK-001..010, REQ-NFR-TASK-001..004 |
@@ -145,6 +161,7 @@
 
 | 일자 | 변경 |
 | --- | --- |
+| 2026-06-01 | **Two-Dimensional RBAC 도입** — §2 사용자 역할 구조를 system role 3종(developer/team_manager/system_admin) + resource role 4종(project_member/project_leader/application_leader/org_head) 으로 확장. `manager`/`pmo_manager` → `team_manager` 통합. §2.1 developer matrix 확장(applications/projects view ON, row-scoped). §2.2 manager → team_manager 갱신. §2.4 system_admin view scope 명시화. §5 app-lifecycle link 표에 REQ-FR-ROLE-001..016 추가. 컨셉 문서: `docs/planning/role-access-concept.md`. |
 | 2026-05-29 | **Phase 3 split** — 도메인별 본문(§5.4~§5.10)을 10 도메인 sub-document 의 `requirements.md` 로 이관. 본 master 는 §1-4 (cross-cutting) + §5 link 표 + §6-7 (cross-cutting) 로 축소. ID 보존(REQ-FR-APP-001..012, REQ-FR-PROJ-000..010, REQ-FR-DREQ-001..013, REQ-FR-INT-001..015, REQ-FR-ONBOARD-001..012, REQ-FR-REPO-001..005, REQ-FR-APPDASH-001..006, REQ-FR-TASK-001..010, REQ-NFR-* 전체), 신규 발급/삭제 없음. §2.5 사용자 계정 관리 본문은 auth-session 도메인으로 이관. |
 | 2026-05-28 | (split 이전) §5.10 (Task Item Ingestion) 신규 — integration-registry/task_requirements.md 로 이관됨. |
 | 2026-05-27 | (split 이전) §5.8 (SCM↔시스템 Repository) 신규 — repository-integration/requirements.md 로 이관됨. §5.6 INT 보강 — integration-registry/requirements.md 로 이관. |

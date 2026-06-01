@@ -114,6 +114,7 @@
 | **P0-1** | ADR-0020 sub-carve B — `/api/v1/accounts/*` 4 endpoint 제거 + lazy auto-create + frontend `account.service.ts` 폐기 + admin/settings/users 페이지 정리 | sprint -d ADR-0020 §4.1 B | **Claude (backend)** + **Gemini (frontend done ✅)** | v1.0 Keycloak 단일 IdP 정합의 마지막 큰 변경. e2e TC-ACC-* 갱신 동반 |
 | **P0-2** | UI 디자인 polish 1차 (semantic theme 정합 + responsive + a11y baseline) | 사용자 지시 (2026-05-20) — \"UI 띄워놓고 디자인 손보기\" | **Gemini (frontend+UX)** | ✅ done (sprint gemini/work_260520-b). PR #203 의 hardcoded color → semantic theme 패턴 확장 완료. 모든 modal + 페이지 + responsive sidebar 적용. |
 | **P0-3** | Playwright screenshot mode 도입 + CI artifact 업로드 | 사용자 지시 (2026-05-20) — UI 검증 방식 | **Codex (infra+CI) + Gemini (frontend test config)** | screenshot 자산이 Gemini 의 디자인 작업 source. shard 별 캡처 |
+| **P0-4** | **CI Run 생성 API 구현** (`POST /api/v1/ci-runs`) — Gitea Actions Webhook 수신 또는 직접 생성 | 2026-06-01 통합 테스트 ISSUE-05 | **Claude (backend)** | **신규 P0 (v1.0 차단)** — CI/CD 기능의 실질적 사용을 위해 필수. status validation: queued/running/success/failed/cancelled/skipped/unknown |
 
 ### 3.2 P1 — v1.0 안정성 (sprint -g/-h)
 
@@ -124,6 +125,8 @@
 | **P1-3** | ADR-0019 §5.3 — Keycloak group staging-prod 적용 | session_handoff 잔여 carve | **사용자 + Codex** | Keycloak admin 1회 작업 (group 4 + composite role assign) |
 | ~~**P1-4**~~ | ~~ADR-0019 §5.3 — off-boarding Phase 1 cron 실 deploy~~ | ~~session_handoff 잔여 carve~~ | — | **permanently cancelled (2026-05-20, issue #215 close)** — 외부 Keycloak 시나리오 채택. HR ↔ Keycloak sync 는 외부 IdP 팀 책임. DevHub off-boarding sync 는 sub-carve C event listener (PR #241) 가 정공법. `scripts/hrdb_etl_sync.sh` deprecation. |
 | **P1-5** | ADR-0019 §5.3 — e2e Kratos → Keycloak 실 코드 전환 | session_handoff 잔여 carve | **Gemini (frontend test) + Codex (CI infra)** | sprint -m design 따름. 사내 staging Keycloak e2e 환경 동반. PR #203 의 `ci-e2e-sync-check.sh` 가 CI 단 일부 해소 |
+| **P1-6** | **Sign-out endpoint 구현** (`POST /api/v1/auth/logout`) — access token 폐기 + session 종료 | 2026-06-01 통합 테스트 BUG-03 | **Claude (backend)** | **신규 P1** — 세션 관리 기본. refresh token rotate 포함 여부 결정 |
+| **P1-7** | **Repository build-runs endpoint 구현** (`GET /api/v1/repos/{id}/build-runs`) — `ci_runs` 테이블 기반 repo-scoped 조회 | 2026-06-01 통합 테스트 ISSUE-04 | **Claude (backend) + Gemini (frontend)** | **신규 P1** — repo별 CI 이력 조회 필요. dashboard widget 연계 |
 
 ### 3.3 P2 — v1.0 운영 안정성 + v1.1 carve
 
@@ -174,6 +177,10 @@
 | **N-4** | 프론트 service/component 단위테스트 보강 (vitest 10→확대) | FE | Gemini |
 | **N-5** | 마이그레이션 prefix uniqueness CI guard 강화 (000042 충돌 재발 방지, branch protection required check) | CI | Codex |
 | **N-6** | v1.0 staging 1주 운영 검증 (외부 사용자 ≥5 로그인 + Onboarding SOP DoD 8) | 사내 | 사용자 |
+| **N-7** | **CI Run 생성 API (P0-4) 구현** — 2026-06-01 통합 테스트 ISSUE-05 | BE | Claude |
+| **N-8** | **Sign-out endpoint (P1-6) 구현** — 2026-06-01 통합 테스트 BUG-03 | BE | Claude |
+| **N-9** | **Repository build-runs (P1-7) 구현** — 2026-06-01 통합 테스트 ISSUE-04 | BE+FE | Claude+Gemini |
+| **N-10** | **Manager role RBAC 검증** — mgr-user-b 재생성 + 권한 scope 확인 | 테스트 | Sisyphus |
 
 #### NEXT — v1.1 운영화 + 외부 연동 깊이 정착
 
@@ -201,9 +208,9 @@ E-1 Realtime event publish(RM-M4-01) · E-2 WS replay/필터(RM-M4-02) · E-3 AI
 **구성 sprint** (예상):
 - sprint -f: P0-1 sub-carve B (`/api/v1/accounts/*` 폐기 + lazy auto-create + frontend cleanup) — Claude+Gemini 분담
 - sprint -g: P0-3 Playwright screenshot mode + P0-2 UI polish 진입 — Codex+Gemini
-- sprint -h: P1-1 sub-carve C event listener 확장 — Claude
-- sprint -i: P1-2 sub-carve D JWKS expiry + P2-1 sub-carve E governance SOP — Claude+Codex
-- sprint -j: UI polish 마무리 (P0-2 의 후속) — Gemini
+- sprint -h: **P0-4 CI Run 생성 API (ISSUE-05)** + P1-1 sub-carve C event listener — Claude (P0-4 우선)
+- sprint -i: P1-2 sub-carve D JWKS expiry + P1-6 Sign-out endpoint (BUG-03) + P1-7 Build-runs (ISSUE-04) — Claude
+- sprint -j: P2-1 sub-carve E governance SOP + UI polish 마무리 — Codex+Gemini
 - sprint -k: v1.0 e2e 종합 검증 + 운영 환경 1주 monitoring — 전 워커
 
 ### 4.2 M-v1.1 — 안정성 + 운영 강화 (target: 2026-07-31)
@@ -224,6 +231,8 @@ E-1 Realtime event publish(RM-M4-01) · E-2 WS replay/필터(RM-M4-02) · E-3 AI
 | ~~P2-10 RM-ONBOARD-03 IMPL-admin~~ | **✅ resolved** (PR #288) | Claude (override) |
 | ~~P2-11 RM-ONBOARD-04 IMPL-tests~~ | **✅ resolved** (PR #289 + #291) | Claude+Gemini |
 | ~~P2-12 lazy_auto_create.go deletion~~ ([#284](https://github.com/ykylee/Devhub_example/issues/284)) | **✅ resolved** (PR #290, issue closed) | Claude |
+| P1-6 Sign-out endpoint (BUG-03) | **신규 P1** | Claude |
+| P1-7 Repository build-runs endpoint (ISSUE-04) | **신규 P1** | Claude+Gemini |
 | P3-1 sub-carve F `/login` 정리 | P3 | Gemini |
 | ~~P3-12 Sign Up 셀프 가입~~ | **cancelled (2026-05-20)** | — |
 
@@ -304,10 +313,10 @@ E-1 Realtime event publish(RM-M4-01) · E-2 WS replay/필터(RM-M4-02) · E-3 AI
 본 PR (sprint -f-roadmap) 머지 후 권장 진입 순서:
 
 1. **sprint -g**: P0-3 Playwright screenshot mode 도입 (Codex CI + Gemini frontend fixture) — UI 검증 자산 확보 우선. 작은 변경, 위험 낮음
-2. **sprint -h** (or 동시): P0-1 sub-carve B (`/api/v1/accounts/*` 폐기) — Claude backend + Gemini frontend 분담. v1.0 의 마지막 큰 backend 변경
-3. **sprint -i**: P0-2 UI polish 1차 (Gemini 주도) + P1-1 sub-carve C (Claude) 동시 — 영역 분리로 충돌 없음
-4. **sprint -j**: P1-2 sub-carve D + P2-1 sub-carve E (Claude + Codex)
-5. **sprint -k**: v1.0 종합 검증 + staging 1주 monitoring (전 워커)
+2. **sprint -h** (or 동시): P0-1 sub-carve B (`/api/v1/accounts/*` 폐기) + **P0-4 CI Run 생성 API** — Claude backend 우선 처리. P0-4는 CI 기능의 v1.0 출시 차단 요건
+3. **sprint -i**: P0-2 UI polish 1차 (Gemini 주도) + P1-1 sub-carve C (Claude) + **P1-6 Sign-out (BUG-03)** — 영역 분리로 충돌 없음
+4. **sprint -j**: P1-2 sub-carve D + P2-1 sub-carve E + **P1-7 Build-runs (ISSUE-04)** (Claude + Codex + Gemini)
+5. **sprint -k**: v1.0 종합 검증 + staging 1주 monitoring — 전 워커
 
 ## 8. UI 검증 방식 — Playwright screenshot mode
 
@@ -363,3 +372,4 @@ test.describe("UI screenshot capture", () => {
 | 2026-05-27 | **코드베이스 스냅샷 정합** — Onboarding IMPL carve A/B/C/D 전부 ✅ resolved (§2.3 + §3.3 P2-8..12 + §4.2, PR #278/#288/#289/#290/#291, lazy_auto_create 폐기 issue #284 closed) + v1.1 영역 작업 v1.0 전 선행 명시(Gitea SCM sync·SCM↔시스템 양방향·auth_mode full·repository draft/publish·admin catalog) + §3.5 신규 도출 백로그(N-1..6 / X-1..8 / E-1..8, 코드베이스 스냅샷 §06 연계) 추가. 헤더 날짜 2026-05-21→2026-05-27. | `claude/work_260527-codebase-review-roadmap-refresh` |
 | 2026-05-20 | 1차 작성 — v1.0 scope 정의 (3 domain) + 잔여 carve 통합 인벤토리 (P0/P1/P2/P3, 30+ item) + 마일스톤 재정의 (M-v1.0 / M-v1.1 / M-v2) + 워커 분업 매트릭스 (Claude=backend / Codex=infra+CI / Gemini=frontend+UX) + GitHub project + milestone plan + UI Playwright screenshot mode | `claude/work_260520-f-roadmap` |
 | 2026-05-20 | **P3-12 Sign Up 영구 취소** — 사용자 결정. DevHub 가 Keycloak admin 권한이 없는 외부 IdP 운영 시나리오 (ADR-0020 결정 A 정합). user 생성은 IdP 팀 admin console 또는 HRDB ETL push 책임. §1.2 제외 기능 표 분류 'v1.1 carve' → 'permanently cancelled' + §3.4 P3-12 strikethrough + §5.2 워커 분담 표 strikethrough + §4.2 v1.1 milestone 본문 정정 + issue #235 closed | `claude/work_260520-i-cancel-signup` |
+| 2026-06-01 | **통합 테스트 결과 반영** — §3.1 P0-4 (CI Run API) 신규 P0 carve 추가 + §3.2 P1-6 (Sign-out) P1-7 (Build-runs) 신규 P1 carve 추가 + §3.5 N-7~N-10 신규 도출 백로그 반영 + §4.1 sprint 구성 P0-4 포함 재조정 + §4.2 v1.1 milestone 신규 P1 항목 추가 + §7 sprint 진입 순서 갱신. 출처: `deepseek/test-scenarios-20260601` 브랜치 통합 테스트 | `deepseek/test-scenarios-20260601` |
