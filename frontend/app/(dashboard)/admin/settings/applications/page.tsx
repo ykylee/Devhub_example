@@ -206,18 +206,10 @@ export default function AdminSettingsApplicationsPage() {
               repositories={appRepos}
               onDisconnect={handleDisconnectRepo}
               onViewRepository={(repo) => {
-                if (typeof repo.repository_id !== "number" || repo.repository_id <= 0) {
-                  toast("Repository detail is unavailable for this link.", "warning");
-                  return;
-                }
-                router.push(`/repositories/${repo.repository_id}`);
+                toast("Repository detail is unavailable for this link.", "warning");
               }}
               onViewRepositoryMetrics={(repo) => {
-                if (typeof repo.repository_id !== "number" || repo.repository_id <= 0) {
-                  toast("Repository metrics are unavailable for this link.", "warning");
-                  return;
-                }
-                router.push(`/repositories/${repo.repository_id}`);
+                toast("Repository metrics are unavailable for this link.", "warning");
               }}
             />
           </div>

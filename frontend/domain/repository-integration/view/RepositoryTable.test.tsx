@@ -33,17 +33,16 @@ import type { ApplicationRepository } from "@/domain/application-lifecycle/schem
 const repos: ApplicationRepository[] = [
   {
     application_id: "app-1",
-    repository_id: 1,
     repo_provider: "github",
     repo_full_name: "devhub/backend-core",
     role: "primary",
     sync_status: "active",
     last_sync_at: "2026-05-28T10:00:00Z",
     linked_at: "2026-05-01T00:00:00Z",
+    link_source: "direct",
   },
   {
     application_id: "app-1",
-    repository_id: undefined,
     repo_provider: "gitea",
     repo_full_name: "ops/infra",
     role: "sub",
@@ -51,15 +50,16 @@ const repos: ApplicationRepository[] = [
     sync_error_code: "rate_limited",
     last_sync_at: null as unknown as string,
     linked_at: "2026-05-01T00:00:00Z",
+    link_source: "direct",
   },
   {
     application_id: "app-1",
-    repository_id: 3,
     repo_provider: "gitlab",
     repo_full_name: "shared/lib",
     role: "shared",
     sync_status: "requested",
     linked_at: "2026-05-02T00:00:00Z",
+    link_source: "direct",
   },
 ];
 
@@ -78,16 +78,16 @@ describe("RepositoryTable", () => {
     expect(screen.getByText("shared")).toBeInTheDocument();
   });
 
-  it("links to /repositories/:id only when repository_id is positive", () => {
+  it("links to /repositories/:provider/:full_name for every repo", () => {
     render(<RepositoryTable repositories={repos} />);
 
     // 1st row: linked
     const linked = screen.getByText("devhub/backend-core").closest("a");
-    expect(linked).toHaveAttribute("href", "/repositories/1");
+    expect(linked).toHaveAttribute("href", "/repositories/github/devhub/backend-core");
 
-    // 2nd row: no repository_id — no anchor wrapping
-    const notLinked = screen.getByText("ops/infra");
-    expect(notLinked.closest("a")).toBeNull();
+    // 2nd row: also linked (all repos now always link via composite key)
+    const linked2 = screen.getByText("ops/infra").closest("a");
+    expect(linked2).toHaveAttribute("href", "/repositories/gitea/ops/infra");
   });
 
   it("renders error code below Degraded badge", () => {
@@ -175,12 +175,12 @@ describe("RepositoryTable", () => {
   it("renders fallback badge for disconnected status", () => {
     const repo: ApplicationRepository = {
       application_id: "app-1",
-      repository_id: 4,
       repo_provider: "github",
       repo_full_name: "x/y",
       role: "sub",
       sync_status: "disconnected",
       linked_at: "2026-05-01T00:00:00Z",
+      link_source: "direct",
     };
     render(<RepositoryTable repositories={[repo]} />);
     expect(screen.getByText("Disconnected")).toBeInTheDocument();

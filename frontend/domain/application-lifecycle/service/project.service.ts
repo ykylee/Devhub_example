@@ -111,13 +111,8 @@ class ProjectService {
     return resp.data;
   }
 
-  async getApplicationProjects(applicationId: string): Promise<Project[]> {
-    const repos = await this.getApplicationRepositories(applicationId);
-    const repoIDs = repos
-      .map((repo) => repo.repository_id)
-      .filter((id): id is number => typeof id === "number" && Number.isFinite(id));
-    const nested = await Promise.all(repoIDs.map((id) => this.getRepositoryProjects(id).catch(() => [])));
-    return nested.flat();
+  async getApplicationProjects(applicationId: string, params?: ProjectQuery): Promise<Project[]> {
+    return this.getApplicationProjectsV2(applicationId, params);
   }
 
   async createProject(repositoryId: number, data: Partial<Project>): Promise<Project> {

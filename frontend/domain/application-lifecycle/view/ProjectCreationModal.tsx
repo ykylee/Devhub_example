@@ -44,9 +44,9 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
   const numericRepositories = repositories
     .map((r) => {
       const isAppRepo = "repo_provider" in r;
-      const repository_id = isAppRepo ? r.repository_id : r.id;
-      const repo_full_name = isAppRepo ? r.repo_full_name : (r.full_name ?? r.name ?? "");
-      const repo_provider = isAppRepo ? r.repo_provider : "github";
+      const repository_id = isAppRepo ? 0 : (r as Repository).id;
+      const repo_full_name = isAppRepo ? (r as ApplicationRepository).repo_full_name : ((r as Repository).full_name ?? (r as Repository).name ?? "");
+      const repo_provider = isAppRepo ? (r as ApplicationRepository).repo_provider : "github";
       return {
         ...r,
         repository_id,

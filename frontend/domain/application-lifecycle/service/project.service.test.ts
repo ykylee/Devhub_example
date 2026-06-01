@@ -200,60 +200,35 @@ describe("projectService", () => {
       expect(apiClientMock).toHaveBeenCalledWith("GET", "/api/v1/repositories/42/projects");
     });
 
-    it("fetches application projects by repository ids and flattens result", async () => {
+    it("delegates getApplicationProjects to getApplicationProjectsV2", async () => {
       const { projectService } = await import("./project.service");
-      apiClientMock
-        .mockResolvedValueOnce({
-          data: [
-            { repository_id: 101, repo_provider: "gitea", repo_full_name: "a/b" },
-            { repository_id: 202, repo_provider: "gitea", repo_full_name: "a/c" },
-            { repo_provider: "gitea", repo_full_name: "a/no-id" },
-          ],
-        })
-        .mockResolvedValueOnce({ data: [{ id: "p1", name: "A" }] })
-        .mockResolvedValueOnce({ data: [{ id: "p2", name: "B" }] });
+      apiClientMock.mockResolvedValueOnce({ data: [{ id: "p1", name: "A" }] });
 
       const projects = await projectService.getApplicationProjects("app-1");
 
-      expect(projects).toHaveLength(2);
-      expect(apiClientMock).toHaveBeenNthCalledWith(1, "GET", "/api/v1/applications/app-1/repositories");
-      expect(apiClientMock).toHaveBeenNthCalledWith(2, "GET", "/api/v1/repositories/101/projects");
-      expect(apiClientMock).toHaveBeenNthCalledWith(3, "GET", "/api/v1/repositories/202/projects");
+      expect(projects).toEqual([{ id: "p1", name: "A" }]);
+      expect(apiClientMock).toHaveBeenCalledWith("GET", "/api/v1/applications/app-1/projects");
     });
 
-    it("swallows per-repository project lookup errors", async () => {
+    it("passes query params through to getApplicationProjectsV2", async () => {
       const { projectService } = await import("./project.service");
-      apiClientMock
-        .mockResolvedValueOnce({
-          data: [
-            { repository_id: 10, repo_provider: "gitea", repo_full_name: "x/a" },
-            { repository_id: 20, repo_provider: "gitea", repo_full_name: "x/b" },
-          ],
-        })
-        .mockRejectedValueOnce(new Error("repo 10 fail"))
-        .mockResolvedValueOnce({ data: [{ id: "p20", name: "from-20" }] });
+      apiClientMock.mockResolvedValueOnce({ data: [] });
 
-      const projects = await projectService.getApplicationProjects("app-x");
+      await projectService.getApplicationProjects("app-1", { status: "active" });
 
-      expect(projects).toEqual([{ id: "p20", name: "from-20" }]);
+      expect(apiClientMock).toHaveBeenCalledWith(
+        "GET",
+        "/api/v1/applications/app-1/projects?status=active",
+      );
     });
 
-    it("filters out NaN / non-finite repository_ids", async () => {
+    it("returns empty array when V2 endpoint returns no data", async () => {
       const { projectService } = await import("./project.service");
-      apiClientMock.mockResolvedValueOnce({
-        data: [
-          { repository_id: 7, repo_provider: "gitea", repo_full_name: "x/y" },
-          { repository_id: NaN, repo_provider: "gitea", repo_full_name: "bad/nan" },
-          { repository_id: "10", repo_provider: "gitea", repo_full_name: "string/id" },
-        ],
-      });
-      apiClientMock.mockResolvedValueOnce({ data: [{ id: "p7" }] });
+      apiClientMock.mockResolvedValueOnce({ data: [] });
 
-      const projects = await projectService.getApplicationProjects("app-1");
+      const projects = await projectService.getApplicationProjects("app-empty");
 
-      expect(projects).toEqual([{ id: "p7" }]);
-      // 2 calls only: 1 repos + 1 valid repo (7) — NaN filtered, string excluded.
-      expect(apiClientMock).toHaveBeenCalledTimes(2);
+      expect(projects).toEqual([]);
     });
   });
 
