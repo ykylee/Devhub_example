@@ -84,7 +84,7 @@ test.describe("Verify build status fix and SCM activity (Ultra-stable mock-auth 
     console.log("[E2E] Target Branch Badge Value: 없음 (Verified!)");
 
     // Take screenshot and save to artifacts directory
-    const screenshotPath = "/Users/yklee/.gemini/antigravity/brain/ada55761-e433-428d-8fbb-a6e6e0135c48/application_detail_verified.png";
+    const screenshotPath = "test-results/screenshots/application_detail_verified.png";
     await page.screenshot({ path: screenshotPath, fullPage: true });
     console.log("[E2E] Application Detail Screenshot saved to:", screenshotPath);
   });
@@ -104,7 +104,7 @@ test.describe("Verify build status fix and SCM activity (Ultra-stable mock-auth 
     await expect(scmActivityTitle).toBeVisible();
 
     // Take screenshot and save to artifacts directory
-    const screenshotPath = "/Users/yklee/.gemini/antigravity/brain/ada55761-e433-428d-8fbb-a6e6e0135c48/project_detail_verified.png";
+    const screenshotPath = "test-results/screenshots/project_detail_verified.png";
     await page.screenshot({ path: screenshotPath, fullPage: true });
     console.log("[E2E] Project Detail Screenshot saved to:", screenshotPath);
   });
