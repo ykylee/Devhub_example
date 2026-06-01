@@ -24,7 +24,7 @@ import { Badge } from "@/shared/ui-foundation/components/Badge";
 import { cn } from "@/shared/utils";
 import { useStore } from "@/lib/store";
 import { applicationService, ApplicationDashboard, Application } from "@/domain/application-lifecycle/service/application.service";
-import { ApplicationRepository, ApplicationStatus } from "@/domain/application-lifecycle/schema/project.types";
+import { ApplicationRepository, ApplicationStatus, ApplicationVisibility } from "@/domain/application-lifecycle/schema/project.types";
 import { projectService } from "@/domain/application-lifecycle/service/project.service";
 import { ApplicationCreationModal } from "@/domain/application-lifecycle/view/ApplicationCreationModal";
 import { useToast } from "@/shared/ui-foundation/components/Toast";
@@ -568,6 +568,7 @@ export default function ApplicationDetailPage() {
             initialData={{
               ...application,
               status: application.status as ApplicationStatus,
+              visibility: application.visibility as ApplicationVisibility,
               start_date: application.start_date ?? undefined,
               due_date: application.due_date ?? undefined,
               archived_at: application.archived_at ?? undefined,
