@@ -108,10 +108,7 @@ export default function ApplicationDetailPage() {
     if (!selectedDreq) return;
 
     // 검증 1: 본 application 에 연결된 repository 가 있어야 promote 가능.
-    // ApplicationRepository 는 복합키 (provider, full_name)만 가지므로,
-    // numeric repository_id 가 필요한 promote 는 backend /repositories lookup 필요.
-    // TODO: backend 에 (repo_provider, repo_full_name) → repository_id resolve endpoint
-    // 추가 후 이 로직을 대체 (carve P2-#6).
+    // Backend 가 (repo_provider, repo_full_name) → repository_id resolve 지원 (P1 fix).
     const primaryRepo = repositories.find((r) => r.role === "primary") ?? repositories[0];
     if (!primaryRepo) {
       alert("Cannot promote: this application has no linked repository. Please link a repository first.");
@@ -128,9 +125,7 @@ export default function ApplicationDetailPage() {
 
     try {
       setPromoting(true);
-      // Promote DREQ API integration
-      // TODO: promote 시 backend 가 (repo_provider, repo_full_name) → repository_id resolve
-      // 하도록 API 계약 변경 후 repository_id 전달 재개 (carve P2-#6).
+      // Promote DREQ API — backend resolves repository_id from (repo_provider, repo_full_name)
       await apiClient("POST", `/api/v1/dev-requests/${selectedDreq.dreq_id}/register`, {
         target_type: "project",
         project_payload: {
@@ -139,7 +134,7 @@ export default function ApplicationDetailPage() {
           repo_full_name: primaryRepo.repo_full_name,
           key: projectKey,
           name: projectName,
-          owner_user_id: ownerUserID, // 하드코딩 "u1" → 현재 사용자(codex 3a 정정).
+          owner_user_id: ownerUserID,
           visibility: "internal",
           status: "active",
           start_date: new Date().toISOString().split("T")[0],

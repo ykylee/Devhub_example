@@ -78,16 +78,12 @@ describe("RepositoryTable", () => {
     expect(screen.getByText("shared")).toBeInTheDocument();
   });
 
-  it("links to /repositories/:provider/:full_name for every repo", () => {
+  it("renders repo name without link (no numeric repository_id available)", () => {
     render(<RepositoryTable repositories={repos} />);
 
-    // 1st row: linked
-    const linked = screen.getByText("devhub/backend-core").closest("a");
-    expect(linked).toHaveAttribute("href", "/repositories/github/devhub/backend-core");
-
-    // 2nd row: also linked (all repos now always link via composite key)
-    const linked2 = screen.getByText("ops/infra").closest("a");
-    expect(linked2).toHaveAttribute("href", "/repositories/gitea/ops/infra");
+    // ApplicationRepository has no numeric repository_id — all names display as plain text
+    const name1 = screen.getByText("devhub/backend-core");
+    expect(name1.closest("a")).toBeNull();
   });
 
   it("renders error code below Degraded badge", () => {

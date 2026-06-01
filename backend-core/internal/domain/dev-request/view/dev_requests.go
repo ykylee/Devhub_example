@@ -361,8 +361,10 @@ type registerPrimaryRepoPayload struct {
 }
 
 type registerProjectPayload struct {
-	ApplicationID string `json:"application_id"` // optional
-	RepositoryID  int64  `json:"repository_id"`  // required FK
+	ApplicationID string `json:"application_id"`   // optional
+	RepositoryID  int64  `json:"repository_id"`    // FK, required unless repo_provider+repo_full_name provided
+	RepoProvider  string `json:"repo_provider"`    // alternative to repository_id (resolved server-side)
+	RepoFullName  string `json:"repo_full_name"`   // alternative to repository_id (resolved server-side)
 	Key           string `json:"key"`
 	Name          string `json:"name"`
 	Description   string `json:"description"`
@@ -658,9 +660,35 @@ func (h *DevRequestHandler) registerDevRequestWithNewApplication(c *gin.Context,
 // (1) inserts a new Project and (2) flips the dev_request row to status='registered'
 // — all atomically.
 func (h *DevRequestHandler) registerDevRequestWithNewProject(c *gin.Context, storeI DevRequestStore, drID string, p *registerProjectPayload) {
+	// repository_id can be provided directly or resolved from (repo_provider, repo_full_name).
 	if p.RepositoryID == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "project_payload.repository_id is required"})
-		return
+		if p.RepoProvider != "" && p.RepoFullName != "" {
+			if h.cfg.ApplicationStore != nil {
+				repos, listErr := h.cfg.ApplicationStore.ListRepositoriesByProvider(c.Request.Context(), p.RepoProvider)
+				if listErr != nil {
+					httphelp.WriteServerError(c, listErr, "dev_request.register.resolve_repository")
+					return
+				}
+				found := false
+				for _, r := range repos {
+					if r.FullName == p.RepoFullName {
+						p.RepositoryID = r.ID
+						found = true
+						break
+					}
+				}
+				if !found {
+					c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "project_payload.repository_id could not be resolved from repo_provider/repo_full_name — no matching repository found"})
+					return
+				}
+			} else {
+				c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "ApplicationStore is not configured — cannot resolve repository_id from repo_provider/repo_full_name; provide repository_id directly"})
+				return
+			}
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "project_payload.repository_id is required (or provide repo_provider + repo_full_name for server-side resolution)"})
+			return
+		}
 	}
 	if strings.TrimSpace(p.Key) == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "project_payload.key is required"})
