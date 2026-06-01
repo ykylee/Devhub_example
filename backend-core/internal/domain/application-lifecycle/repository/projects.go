@@ -170,22 +170,66 @@ INSERT INTO projects (
 RETURNING` + projectsSelectColumns
 
 func (r *ApplicationRepository) CreateProject(ctx context.Context, project domain.Project) (domain.Project, error) {
-	row := r.store.Pool().QueryRow(ctx, ProjectsInsertQuery,
+	tx, err := r.store.Pool().Begin(ctx)
+	if err != nil {
+		return domain.Project{}, fmt.Errorf("begin create project tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	row := tx.QueryRow(ctx, ProjectsInsertQuery,
 		project.ApplicationID, project.RepositoryID, project.Key, project.Name,
 		project.Description, project.Status, project.Visibility,
 		project.OwnerUserID, project.StartDate, project.DueDate,
 	)
 	created, err := ScanProject(row)
-	if store.IsUniqueViolation(err) {
-		return domain.Project{}, store.ErrConflict
-	}
-	if store.IsForeignKeyViolation(err) {
+	if store.IsUniqueViolation(err) || store.IsForeignKeyViolation(err) {
 		return domain.Project{}, store.ErrConflict
 	}
 	if err != nil {
-		return domain.Project{}, fmt.Errorf("create project: %w", err)
+		return domain.Project{}, fmt.Errorf("create project (tx): %w", err)
 	}
-	return created, nil
+
+	// 1. Primary repository link insert
+	if created.RepositoryID > 0 {
+		const insertLink = `
+INSERT INTO project_repositories (project_id, repository_id, role)
+VALUES ($1::uuid, $2, 'primary')
+ON CONFLICT (project_id, repository_id) DO NOTHING`
+		if _, err := tx.Exec(ctx, insertLink, created.ID, created.RepositoryID); err != nil {
+			if store.IsUniqueViolation(err) || store.IsForeignKeyViolation(err) || store.IsCheckViolation(err, "") {
+				return domain.Project{}, store.ErrConflict
+			}
+			return domain.Project{}, fmt.Errorf("create project primary link (tx): %w", err)
+		}
+	}
+
+	// 2. Insert project members
+	for _, member := range project.ProjectMembers {
+		if strings.TrimSpace(member.UserID) == "" {
+			continue
+		}
+		const insertMember = `
+INSERT INTO project_members (project_id, user_id, project_role, joined_at)
+VALUES ($1::uuid, $2, $3, COALESCE(NULLIF($4, '0001-01-01T00:00:00Z'::timestamptz), NOW()))
+ON CONFLICT (project_id, user_id) DO UPDATE SET
+	project_role = EXCLUDED.project_role`
+		var joinedAt interface{} = member.JoinedAt
+		if member.JoinedAt.IsZero() {
+			joinedAt = nil
+		}
+		if _, err := tx.Exec(ctx, insertMember, created.ID, member.UserID, string(member.ProjectRole), joinedAt); err != nil {
+			if store.IsUniqueViolation(err) || store.IsForeignKeyViolation(err) || store.IsCheckViolation(err, "") {
+				return domain.Project{}, store.ErrConflict
+			}
+			return domain.Project{}, fmt.Errorf("create project member (tx): %w", err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return domain.Project{}, fmt.Errorf("commit create project tx: %w", err)
+	}
+
+	return r.GetProject(ctx, created.ID)
 }
 
 // RepositoryCreatePayload — project 생성 시 동반 생성할 repository 입력. project tx

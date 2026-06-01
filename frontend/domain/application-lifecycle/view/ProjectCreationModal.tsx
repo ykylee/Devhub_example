@@ -37,7 +37,7 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
 
   const [applications, setApplications] = useState<Application[]>([]);
   const [scmProviders, setScmProviders] = useState<SCMProvider[]>([]);
-  type MemberRole = "leader" | "developer" | "reviewer" | "tester";
+  type MemberRole = "leader" | "developer" | "reviewer" | "tester" | "observer";
   type ProjectMemberDraft = { user_id: string; project_role: MemberRole };
 
   const numericRepositories = repositories
@@ -84,7 +84,7 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
     if (initialData?.project_members && initialData.project_members.length > 0) {
       return initialData.project_members.map((m) => ({
         user_id: m.user_id,
-        project_role: m.project_role === "lead" ? "leader" : "developer",
+        project_role: m.project_role === "lead" ? "leader" : m.project_role === "observer" ? "observer" : "developer",
       }));
     }
     return [
@@ -168,7 +168,7 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
         }
         patchPayload.project_members = normalizedMembers.map((m) => ({
           user_id: m.user_id.trim(),
-          project_role: m.project_role === "leader" ? "lead" : "contributor",
+          project_role: m.project_role === "leader" ? "lead" : m.project_role === "observer" ? "observer" : "contributor",
         }));
         result = await projectService.updateProject(initialData.id, patchPayload);
 
@@ -193,7 +193,7 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
         const selectedApplicationId = formData.application_id || applicationId || "";
         const project_members: Array<{ user_id: string; project_role: ProjectMemberRole }> = normalizedMembers.map((m) => ({
           user_id: m.user_id.trim(),
-          project_role: m.project_role === "leader" ? "lead" : "contributor",
+          project_role: m.project_role === "leader" ? "lead" : m.project_role === "observer" ? "observer" : "contributor",
         }));
 
         if (selectedApplicationId) {
@@ -553,6 +553,7 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
                     <option value="developer">Developer</option>
                     <option value="reviewer">Reviewer</option>
                     <option value="tester">Tester</option>
+                    <option value="observer">Observer</option>
                   </select>
                   <button
                     type="button"
