@@ -180,6 +180,12 @@ export default function ProjectDetailPage() {
 
   // Resolve project members from project.project_members (API §13.4).
   // Each member's user_id is looked up in the users list for display name.
+  interface TeamMemberUI {
+    name: string;
+    role: string;
+    status: "Online" | "Busy" | "Offline";
+  }
+
   const roleDisplay: Record<string, string> = {
     lead: "Lead",
     contributor: "Contributor",
