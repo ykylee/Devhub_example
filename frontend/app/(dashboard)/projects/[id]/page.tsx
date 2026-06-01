@@ -178,50 +178,38 @@ export default function ProjectDetailPage() {
     ? parseISO(project.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })
     : "TBD";
 
-  // Find project owner
-  const owner = users.find(u => u.id === project.owner_user_id);
-  
-  // Get other members as contributors
-  const contributors = users.filter(u => u.id !== project.owner_user_id);
-  
-  interface TeamMemberUI {
-    name: string;
-    role: string;
-    status: "Online" | "Busy" | "Offline";
-  }
-  
-  const teamMembers: TeamMemberUI[] = [];
-  if (owner) {
-    teamMembers.push({
-      name: owner.name,
-      role: "Owner",
-      status: owner.status === "active" ? "Online" : "Offline",
-    });
-  } else if (project.owner_user_id) {
-    teamMembers.push({
-      name: `User (${project.owner_user_id})`,
-      role: "Owner",
-      status: "Online",
-    });
-  }
-  
-  // Add up to 3 contributors from backend users
-  contributors.slice(0, 3).forEach((c, idx) => {
-    const statusVal = c.status === "active" ? (idx % 2 === 0 ? "Online" : "Busy") : "Offline";
-    teamMembers.push({
-      name: c.name,
-      role: "Contributor",
-      status: statusVal,
-    });
-  });
+  // Resolve project members from project.project_members (API §13.4).
+  // Each member's user_id is looked up in the users list for display name.
+  const roleDisplay: Record<string, string> = {
+    lead: "Lead",
+    contributor: "Contributor",
+    observer: "Observer",
+  };
+  const memberRoleOrder: Record<string, number> = {
+    lead: 0,
+    contributor: 1,
+    observer: 2,
+  };
 
-  // Fallback contributors if we have no other users
-  if (teamMembers.length <= 1) {
-    teamMembers.push(
-      { name: "Alex K.", role: "Contributor", status: "Busy" },
-      { name: "Sam J.", role: "Contributor", status: "Offline" },
-      { name: "Jordan M.", role: "Contributor", status: "Online" }
-    );
+  const teamMembers: TeamMemberUI[] = (project.project_members ?? [])
+    .sort((a, b) => (memberRoleOrder[a.project_role] ?? 99) - (memberRoleOrder[b.project_role] ?? 99))
+    .map((m) => {
+      const user = users.find((u) => u.id === m.user_id);
+      return {
+        name: user?.name ?? `User (${m.user_id})`,
+        role: roleDisplay[m.project_role] ?? m.project_role,
+        status: user?.status === "active" ? "Online" : "Offline",
+      };
+    });
+
+  // Always show at least the owner as a fallback when no project_members
+  if (teamMembers.length === 0) {
+    const owner = users.find((u) => u.id === project.owner_user_id);
+    teamMembers.push({
+      name: owner?.name ?? `User (${project.owner_user_id})`,
+      role: "Owner",
+      status: owner?.status === "active" ? "Online" : "Offline",
+    });
   }
 
   // Build milestones dynamically based on project dates

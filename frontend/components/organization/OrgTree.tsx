@@ -350,34 +350,8 @@ function OrgTreeContent() {
         // Default to expanded tree so the chart matches the list view density.
         setExpandedNodes(new Set(calculatedNodes.map((n) => n.id)));
       } catch (error) {
-        console.error("Failed to load org hierarchy, using enhanced mock:", error);
-        // Fallback with enhanced mock nodes
-        const mock = identityService.mockHierarchy();
-
-        const enhancedNodes: Node[] = mock.nodes.map((node: { id: string; type?: string; data: Record<string, unknown>; position: { x: number; y: number } }) => ({
-          ...node,
-          type: 'org',
-          data: {
-            ...node.data,
-            onAddChild,
-            onDelete: onDeleteNode,
-            onUpdate: onUpdateNode
-          }
-        }));
-
-        const enhancedEdges = mock.edges.map((edge: { id: string; source: string; target: string; animated?: boolean }) => ({
-          ...edge,
-          style: edgeStyle,
-        }));
-        
-        const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-          enhancedNodes,
-          enhancedEdges
-        );
-        const calculatedNodes = recalculateMemberCounts(layoutedNodes, layoutedEdges);
-        setAllNodes(calculatedNodes);
-        setAllEdges(layoutedEdges);
-        setExpandedNodes(new Set(calculatedNodes.map((n) => n.id)));
+        console.error("Failed to load org hierarchy:", error);
+        // No fallback — show empty canvas on API failure.
       } finally {
         if (isMounted) setIsLoading(false);
       }

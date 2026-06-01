@@ -63,7 +63,7 @@ export default function AccountPage() {
             <div className="pt-4 border-t border-border/60 space-y-3">
               <div className="flex items-center gap-3 text-xs text-muted-foreground justify-center">
                 <Mail className="w-3.5 h-3.5" />
-                <span className="font-medium">{actor?.login}@example.com</span>
+                <span className="font-medium">{actor?.email || `${actor?.login}@example.com`}</span>
               </div>
               <div className="flex items-center gap-3 text-[10px] text-foreground/55 dark:text-primary-foreground/40 justify-center uppercase tracking-widest font-black">
                 <Shield className="w-3 h-3" />

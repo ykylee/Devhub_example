@@ -130,7 +130,7 @@ describe("RiskService", () => {
       });
 
       const { riskService } = await import("./risk.service");
-      const result = await riskService.applyMitigation("r-1", "retry");
+      const result = await riskService.applyMitigation("r-1", "retry", "yklee");
 
       expect(fetchMock).toHaveBeenCalledTimes(1);
       const [url, init] = fetchMock.mock.calls[0];

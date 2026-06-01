@@ -840,13 +840,4 @@ describe("IdentityService", () => {
     });
   });
 
-  describe("mockHierarchy", () => {
-    it("returns mock org tree with expected root node", async () => {
-      const { identityService } = await import("./identity.service");
-      const mock = identityService.mockHierarchy();
-      expect(mock.nodes[0].id).toBe("org-root");
-      expect(mock.nodes[0].type).toBe("input");
-      expect(mock.edges.length).toBeGreaterThan(0);
-    });
-  });
 });

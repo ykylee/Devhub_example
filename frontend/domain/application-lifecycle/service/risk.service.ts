@@ -33,34 +33,18 @@ export class RiskService {
       }));
     } catch (error) {
       console.error('[RiskService] getCriticalRisks error:', error);
-      return [
-        { 
-          title: "Gitea Migration Blocked", 
-          reason: "Access token expiration and scope mismatch detected in logs.",
-          impact: "High", 
-          status: "Action Required",
-          owner: "Alex K."
-        },
-        { 
-          title: "Frontend CI Pipeline Delay", 
-          reason: "Average build time increased by 45% in last 24h.",
-          impact: "Medium", 
-          status: "Investigation",
-          owner: "YK Lee"
-        }
-      ];
+      return [];
     }
   }
 
-  async applyMitigation(riskId: string, action: string): Promise<{ command_id: string; status: string }> {
+  async applyMitigation(riskId: string, action: string, actorLogin?: string): Promise<{ command_id: string; status: string }> {
     try {
       const idempotencyKey = `mitigation-${riskId}-${action}-${Date.now()}`;
       const response = await fetch(`${API_BASE}/api/v1/risks/${riskId}/mitigations`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // TODO: Replace hardcoded actor ID with actual authenticated user in Phase 4
-          'X-Devhub-Actor': 'yklee' // Hardcoded for now as per API contract draft
+          'X-Devhub-Actor': actorLogin ?? 'unknown',
         },
         body: JSON.stringify({
           action_type: action,

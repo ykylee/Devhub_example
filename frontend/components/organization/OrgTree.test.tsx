@@ -134,7 +134,6 @@ vi.mock("@/domain/organization-management/service/identity.service", async () =>
       deleteUnit: (...args: unknown[]) => deleteUnit(...args),
       updateUnit: (...args: unknown[]) => updateUnit(...args),
       updateOrgHierarchy: (...args: unknown[]) => updateOrgHierarchy(...args),
-      mockHierarchy: () => actual.identityService.mockHierarchy(),
     },
   };
 });
@@ -210,16 +209,13 @@ describe("OrgTree", () => {
     expect(screen.getByText("Show All")).toBeInTheDocument();
   });
 
-  it("falls back to mockHierarchy when getOrgHierarchy rejects", async () => {
+  it("renders empty canvas when getOrgHierarchy rejects (no mock fallback)", async () => {
     const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     getOrgHierarchy.mockRejectedValueOnce(new Error("api"));
     render(<OrgTree />);
     await waitFor(() => {
-      expect(screen.getByText("DevHub Global")).toBeInTheDocument();
+      expect(screen.getByTestId("react-flow")).toBeInTheDocument();
     });
-    // Spot-check several of the mock nodes are rendered as <option> labels.
-    expect(screen.getByText("Engineering")).toBeInTheDocument();
-    expect(screen.getByText("Frontend")).toBeInTheDocument();
     errSpy.mockRestore();
   });
 

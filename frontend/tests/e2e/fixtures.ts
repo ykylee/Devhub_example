@@ -55,10 +55,6 @@ const OIDC_CLIENT_ID = (
   ?? process.env.DEVHUB_OIDC_CLIENT_ID
   ?? "devhub-frontend"
 ).trim();
-const E2E_ALLOW_CROSS_ORIGIN_REDIRECT =
-  process.env.DEVHUB_E2E_ALLOW_CROSS_ORIGIN_REDIRECT === "1";
-const E2E_FORCE_DIRECT_OIDC =
-  process.env.DEVHUB_E2E_FORCE_DIRECT_OIDC === "1";
 
 export function appPath(path: string): string {
   const normalized = path.startsWith("/") ? path : `/${path}`;
@@ -80,28 +76,15 @@ async function forceStartOIDCFlow(page: Page): Promise<void> {
   const keycloakRealm = KC_REALM;
   const oidcClientID = OIDC_CLIENT_ID;
   const runtimeConfigPath = appPath("/api/runtime-config");
-  const localRedirectPath = appPath("/auth/callback");
-  await page.evaluate(async ({ keycloakAdminURL, keycloakRealm, runtimeConfigPath, oidcClientID, localRedirectPath, allowCrossOriginRedirect }) => {
+  await page.evaluate(async ({ keycloakAdminURL, keycloakRealm, runtimeConfigPath, oidcClientID }) => {
     const authURL = `${keycloakAdminURL}/realms/${encodeURIComponent(keycloakRealm)}/protocol/openid-connect/auth`;
-    let redirectURI = `${window.location.origin}${localRedirectPath}`;
+    let redirectURI = `${window.location.origin}/auth/callback`;
     try {
       const runtimeResp = await fetch(runtimeConfigPath, { cache: "no-store" });
       if (runtimeResp.ok) {
         const runtimeBody = (await runtimeResp.json()) as { oidc_redirect_uri?: string };
-        const runtimeRedirectURI = runtimeBody.oidc_redirect_uri?.trim();
-        if (runtimeRedirectURI) {
-          const parsed = new URL(runtimeRedirectURI, window.location.origin);
-          // 로컬/CI 브라우저 origin 과 runtime-config 의 redirect origin 이 다르면
-          // 로그인 콜백이 다른 호스트로 튀면서 waitForURL 타임아웃이 발생한다.
-          // 기본은 same-origin 만 허용하고, cross-origin 검증이 필요한 환경에서만
-          // DEVHUB_E2E_ALLOW_CROSS_ORIGIN_REDIRECT=1 로 opt-in 한다.
-          if (allowCrossOriginRedirect || parsed.origin === window.location.origin) {
-            redirectURI = parsed.toString();
-          } else {
-            console.warn(
-              `[e2e oidc] ignoring cross-origin runtime redirect_uri=${parsed.toString()} origin=${window.location.origin}`,
-            );
-          }
+        if (runtimeBody.oidc_redirect_uri?.trim()) {
+          redirectURI = runtimeBody.oidc_redirect_uri.trim();
         }
       }
     } catch {
@@ -132,18 +115,12 @@ async function forceStartOIDCFlow(page: Page): Promise<void> {
     url.searchParams.set("code_challenge", challenge);
     url.searchParams.set("code_challenge_method", "S256");
     window.location.assign(url.toString());
-  }, {
-    keycloakAdminURL,
-    keycloakRealm,
-    runtimeConfigPath,
-    oidcClientID,
-    localRedirectPath,
-    allowCrossOriginRedirect: E2E_ALLOW_CROSS_ORIGIN_REDIRECT,
-  });
+  }, { keycloakAdminURL, keycloakRealm, runtimeConfigPath, oidcClientID });
 }
 
 export async function waitForSignInForm(page: Page): Promise<void> {
   const deadline = Date.now() + 30_000;
+  let forcedOIDC = false;
   while (Date.now() < deadline) {
     const userVisible = await page.locator('input#username, input[name="username"], input#identifier, input[name="identifier"]').first().isVisible().catch(() => false);
     const passVisible = await page.locator('input#password, input[name="password"]').first().isVisible().catch(() => false);
@@ -152,6 +129,10 @@ export async function waitForSignInForm(page: Page): Promise<void> {
     const continueButton = page.getByRole("button", { name: /continue to sign in/i }).first();
     if ((await continueButton.count()) > 0 && (await continueButton.isVisible().catch(() => false))) {
       await continueButton.click();
+      if (!forcedOIDC) {
+        forcedOIDC = true;
+        await forceStartOIDCFlow(page).catch(() => {});
+      }
     }
     await page.waitForTimeout(500);
   }
@@ -211,12 +192,6 @@ export async function loginAs(page: Page, user: SeededUser) {
     const msg = err instanceof Error ? err.message : String(err);
     if (!msg.includes("ERR_ABORTED")) throw err;
   });
-  // 기본은 앱의 원래 /login 흐름 사용 (CI 안정성).
-  // 단, 로컬에서 runtime-config redirect_uri 호스트가 테스트 호스트와 다를 때는
-  // DEVHUB_E2E_FORCE_DIRECT_OIDC=1 로 강제 OIDC 시작을 opt-in.
-  if (E2E_FORCE_DIRECT_OIDC) {
-    await forceStartOIDCFlow(page);
-  }
   await waitForSignInForm(page);
   await submitSignInForm(page, user.email, user.password);
   await completeKeycloakRequiredActionsIfPresent(page);
