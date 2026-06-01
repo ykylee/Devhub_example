@@ -49,7 +49,6 @@ export interface Application {
 
 export interface ApplicationRepository {
   application_id: string;
-  repository_id?: number;
   repo_provider: string;
   repo_full_name: string;
   external_repo_id?: string;
@@ -60,6 +59,7 @@ export interface ApplicationRepository {
   sync_error_at?: string;
   last_sync_at?: string;
   linked_at: string;
+  link_source: string;
 }
 
 export interface Project {

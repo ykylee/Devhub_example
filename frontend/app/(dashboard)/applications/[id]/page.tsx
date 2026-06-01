@@ -24,6 +24,7 @@ import { Badge } from "@/shared/ui-foundation/components/Badge";
 import { cn } from "@/shared/utils";
 import { useStore } from "@/lib/store";
 import { applicationService, ApplicationDashboard, Application } from "@/domain/application-lifecycle/service/application.service";
+import { ApplicationRepository } from "@/domain/application-lifecycle/schema/project.types";
 import { projectService } from "@/domain/application-lifecycle/service/project.service";
 import { ApplicationCreationModal } from "@/domain/application-lifecycle/view/ApplicationCreationModal";
 import { useToast } from "@/shared/ui-foundation/components/Toast";
@@ -107,10 +108,9 @@ export default function ApplicationDetailPage() {
     if (!selectedDreq) return;
 
     // 검증 1: 본 application 에 연결된 repository 가 있어야 promote 가능.
-    // backend `registerDevRequestWithNewProject` 가 `project_payload.repository_id` 필수 검증.
+    // Backend 가 (repo_provider, repo_full_name) → repository_id resolve 지원 (P1 fix).
     const primaryRepo = repositories.find((r) => r.role === "primary") ?? repositories[0];
-    const repositoryID = primaryRepo?.repository_id;
-    if (!repositoryID) {
+    if (!primaryRepo) {
       alert("Cannot promote: this application has no linked repository. Please link a repository first.");
       return;
     }
@@ -125,15 +125,16 @@ export default function ApplicationDetailPage() {
 
     try {
       setPromoting(true);
-      // Promote DREQ API integration
+      // Promote DREQ API — backend resolves repository_id from (repo_provider, repo_full_name)
       await apiClient("POST", `/api/v1/dev-requests/${selectedDreq.dreq_id}/register`, {
         target_type: "project",
         project_payload: {
           application_id: id,
-          repository_id: repositoryID, // backend 필수 (codex P2 정정).
+          repo_provider: primaryRepo.repo_provider,
+          repo_full_name: primaryRepo.repo_full_name,
           key: projectKey,
           name: projectName,
-          owner_user_id: ownerUserID, // 하드코딩 "u1" → 현재 사용자(codex 3a 정정).
+          owner_user_id: ownerUserID,
           visibility: "internal",
           status: "active",
           start_date: new Date().toISOString().split("T")[0],

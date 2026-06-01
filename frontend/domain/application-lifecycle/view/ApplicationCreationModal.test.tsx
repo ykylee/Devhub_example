@@ -518,8 +518,8 @@ describe("ApplicationCreationModal", () => {
       { id: 11, full_name: "org/add", provider_key: "github", owner_login: "org", name: "add", clone_url: "", html_url: "", default_branch: "main", private: false, status: "active", updated_at: "", linked_applications_count: 0, linked_projects_count: 0 },
     ]);
     getApplicationRepositories.mockResolvedValueOnce([
-      { application_id: "app-1", repository_id: 10, repo_provider: "github", repo_full_name: "org/keep", role: "primary", sync_status: "active", linked_at: "" },
-      { application_id: "app-1", repository_id: 12, repo_provider: "github", repo_full_name: "org/remove", role: "sub", sync_status: "active", linked_at: "" },
+      { application_id: "app-1", repo_provider: "github", repo_full_name: "org/keep", role: "primary", sync_status: "active", linked_at: "", link_source: "direct" },
+      { application_id: "app-1", repo_provider: "github", repo_full_name: "org/remove", role: "sub", sync_status: "active", linked_at: "", link_source: "direct" },
     ]);
     getApplicationProjectsV2.mockResolvedValueOnce([
       // connected; we'll remove this one
@@ -532,8 +532,8 @@ describe("ApplicationCreationModal", () => {
 
     // submit-time re-fetches (current state)
     getApplicationRepositories.mockResolvedValueOnce([
-      { application_id: "app-1", repository_id: 10, repo_provider: "github", repo_full_name: "org/keep", role: "primary", sync_status: "active", linked_at: "" },
-      { application_id: "app-1", repository_id: 12, repo_provider: "github", repo_full_name: "org/remove", role: "sub", sync_status: "active", linked_at: "" },
+      { application_id: "app-1", repo_provider: "github", repo_full_name: "org/keep", role: "primary", sync_status: "active", linked_at: "", link_source: "direct" },
+      { application_id: "app-1", repo_provider: "github", repo_full_name: "org/remove", role: "sub", sync_status: "active", linked_at: "", link_source: "direct" },
     ]);
     getApplicationProjectsV2.mockResolvedValueOnce([
       { id: "p-remove", key: "RM", name: "Removed", description: "", status: "active", visibility: "internal", owner_user_id: "alice", application_id: "app-1", created_at: "", updated_at: "" },

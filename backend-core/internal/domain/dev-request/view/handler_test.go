@@ -32,6 +32,7 @@ func (f *fakeDevReqAuditStore) CreateAuditLog(_ context.Context, log domain.Audi
 
 type fakeDevReqAppStore struct {
 	listSCMProvidersFunc func(ctx context.Context) ([]domain.SCMProvider, error)
+	listRepositoriesByProviderFunc func(ctx context.Context, provider string) ([]domain.Repository, error)
 	createProjectWithRepositoryPayloadFunc func(ctx context.Context, p domain.Project, repoIDs []int64, payload *store.RepositoryCreatePayload) (domain.Project, error)
 	createApplicationFunc func(ctx context.Context, app domain.Application) (domain.Application, error)
 }
@@ -39,6 +40,12 @@ type fakeDevReqAppStore struct {
 func (f *fakeDevReqAppStore) ListSCMProviders(ctx context.Context) ([]domain.SCMProvider, error) {
 	if f.listSCMProvidersFunc != nil {
 		return f.listSCMProvidersFunc(ctx)
+	}
+	return nil, nil
+}
+func (f *fakeDevReqAppStore) ListRepositoriesByProvider(ctx context.Context, provider string) ([]domain.Repository, error) {
+	if f.listRepositoriesByProviderFunc != nil {
+		return f.listRepositoriesByProviderFunc(ctx, provider)
 	}
 	return nil, nil
 }

@@ -135,7 +135,7 @@ else
     backend_bin="$REPO_ROOT/dev-bin/backend-core"
     mkdir -p "$(dirname "$backend_bin")"
     echo "Compiling backend..."
-    ( cd "$REPO_ROOT/backend-core" && go build -o "$backend_bin" . )
+    ( cd "$REPO_ROOT/backend-core" && CGO_ENABLED=0 go build -o "$backend_bin" . )
     run_service "backend" "$backend_bin" "backend.log" "backend-core"
     wait_for_port "backend" 8080
 fi

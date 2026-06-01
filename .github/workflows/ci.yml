@@ -472,7 +472,7 @@ jobs:
         run: |
           # backend-core's main package lives at backend-core/main.go (no
           # cmd/httpapi sub-package). Build the root package.
-          (cd backend-core && go build -o ../devhub-backend ./)
+          (cd backend-core && CGO_ENABLED=0 go build -o ../devhub-backend ./)
           (cd frontend && npm run build)
       
       - name: Start Backend

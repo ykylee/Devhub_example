@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { GitBranch, Activity, Unlink } from "lucide-react";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
@@ -57,17 +56,9 @@ export function RepositoryTable({
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          {typeof repo.repository_id === "number" && repo.repository_id > 0 ? (
-                            <Link href={`/repositories/${repo.repository_id}`}>
-                              <span className="text-xs font-black text-foreground dark:text-primary-foreground tracking-tight hover:text-pink-400 transition-colors cursor-pointer">
-                                {repo.repo_full_name}
-                              </span>
-                            </Link>
-                          ) : (
-                            <span className="text-xs font-black text-foreground dark:text-primary-foreground tracking-tight">
-                              {repo.repo_full_name}
-                            </span>
-                          )}
+                          <span className="text-xs font-black text-foreground dark:text-primary-foreground tracking-tight">
+                            {repo.repo_full_name}
+                          </span>
                         </div>
                         <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-widest opacity-60">
                           {repo.repo_provider}

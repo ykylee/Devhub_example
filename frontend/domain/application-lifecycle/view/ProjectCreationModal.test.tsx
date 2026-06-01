@@ -720,21 +720,13 @@ describe("ProjectCreationModal", () => {
     expect(unlinkProjectRepository).not.toHaveBeenCalled();
   });
 
-  it("normalizes ApplicationRepository input shape into numeric repository_id", async () => {
-    const appRepoFixtures = [
-      {
-        application_id: "app-1",
-        repository_id: 42,
-        repo_provider: "github",
-        repo_full_name: "org/from-app",
-        role: "primary" as const,
-        sync_status: "active" as const,
-        linked_at: "",
-      },
+  it("normalizes Repository input shape into numeric repository_id", async () => {
+    const repoFixtures = [
+      { id: 42, full_name: "org/from-repo", provider_key: "github", owner_login: "org", name: "from-repo", clone_url: "", html_url: "", default_branch: "main", private: false, status: "active" as const, updated_at: "", linked_applications_count: 0, linked_projects_count: 0 },
     ];
     render(
       <ProjectCreationModal
-        repositories={appRepoFixtures}
+        repositories={repoFixtures}
         onClose={vi.fn()}
         onCreated={vi.fn()}
       />,
