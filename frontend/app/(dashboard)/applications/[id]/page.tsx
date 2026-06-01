@@ -23,9 +23,10 @@ import { useRouter, useParams } from "next/navigation";
 import { Badge } from "@/shared/ui-foundation/components/Badge";
 import { cn } from "@/shared/utils";
 import { useStore } from "@/lib/store";
-import { applicationService, ApplicationDashboard } from "@/domain/application-lifecycle/service/application.service";
+import { applicationService, ApplicationDashboard, Application } from "@/domain/application-lifecycle/service/application.service";
 import { projectService } from "@/domain/application-lifecycle/service/project.service";
-import { ApplicationRepository } from "@/domain/application-lifecycle/schema/project.types";
+import { ApplicationCreationModal } from "@/domain/application-lifecycle/view/ApplicationCreationModal";
+import { useToast } from "@/shared/ui-foundation/components/Toast";
 import { toUserErrorMessage } from "@/shared/utils/error-message";
 import { lifecycleStatusBadgeVariant } from "@/shared/utils/lifecycle-status";
 import { applicationBuildStatusView } from "@/shared/utils/last-build";
@@ -45,11 +46,16 @@ export default function ApplicationDetailPage() {
   const id = params.id as string;
   const router = useRouter();
   const actor = useStore((s) => s.actor);
+  const { toast } = useToast();
 
   const [dashboard, setDashboard] = useState<ApplicationDashboard | null>(null);
   const [repositories, setRepositories] = useState<ApplicationRepository[]>([]);
+  const [application, setApplication] = useState<Application | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Edit Modal state
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // Promote Modal states
   const [isPromoteOpen, setIsPromoteOpen] = useState(false);
@@ -63,12 +69,14 @@ export default function ApplicationDetailPage() {
     try {
       setError(null);
       setLoading(true);
-      const [dashData, reposData] = await Promise.all([
+      const [dashData, reposData, appData] = await Promise.all([
         applicationService.getApplicationDashboard(id),
         projectService.getApplicationRepositories(id),
+        applicationService.getApplication(id),
       ]);
       setDashboard(dashData);
       setRepositories(reposData);
+      setApplication(appData);
     } catch (err) {
       setError(toUserErrorMessage(err, "Failed to load application details."));
       console.error(err);
@@ -200,7 +208,11 @@ export default function ApplicationDetailPage() {
           <button onClick={() => void loadData()} className="p-3 rounded-2xl glass border border-white/10 hover:bg-white/5 text-muted-foreground hover:text-foreground transition-all">
             <RefreshCcw className="w-5 h-5" />
           </button>
-          <button className="p-3 rounded-2xl glass border border-white/10 hover:bg-white/5 text-muted-foreground hover:text-foreground transition-all">
+          <button 
+            onClick={() => setIsEditModalOpen(true)}
+            className="p-3 rounded-2xl glass border border-white/10 hover:bg-white/5 text-muted-foreground hover:text-foreground transition-all"
+            title="Edit Application Settings"
+          >
             <Settings className="w-5 h-5" />
           </button>
         </div>
@@ -543,6 +555,17 @@ export default function ApplicationDetailPage() {
               </form>
             </motion.div>
           </div>
+        )}
+        {isEditModalOpen && application && (
+          <ApplicationCreationModal
+            initialData={application}
+            onClose={() => setIsEditModalOpen(false)}
+            onCreated={(newApp) => {
+              toast(`Application ${newApp.name} updated successfully`, "success");
+              setIsEditModalOpen(false);
+              void loadData();
+            }}
+          />
         )}
       </AnimatePresence>
     </div>

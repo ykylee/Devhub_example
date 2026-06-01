@@ -523,8 +523,14 @@ export default function AdminCatalogPage() {
                         Detail
                       </Link>
                       <button
-                        onClick={() => {
-                          setEditingProject(p);
+                        onClick={async () => {
+                          try {
+                            const fullProject = await projectService.getProject(p.id);
+                            setEditingProject(fullProject);
+                          } catch (err) {
+                            console.error("Failed to load project details for editing:", err);
+                            setEditingProject(p);
+                          }
                           setProjectSeed(null);
                           setShowProjectModal(true);
                         }}
