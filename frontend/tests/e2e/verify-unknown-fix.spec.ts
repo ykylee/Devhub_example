@@ -1,9 +1,16 @@
 import { test, expect } from "@playwright/test";
 import { appPath } from "./fixtures";
+import fs from "fs";
 
 test.describe("Verify build status fix and SCM activity (Ultra-stable mock-auth E2E)", () => {
   
   test.beforeEach(async ({ page }) => {
+    // Ensure screenshot directory exists to avoid ENOENT errors
+    const screenshotDir = "test-results/screenshots";
+    if (!fs.existsSync(screenshotDir)) {
+      fs.mkdirSync(screenshotDir, { recursive: true });
+    }
+
     // Intercept identity service whoAmI API to bypass OIDC login entirely
     await page.route("**/api/v1/me", async (route) => {
       console.log("[Mock OIDC] Intercepted /api/v1/me request, returning pre-seeded Charlie (System Admin)");

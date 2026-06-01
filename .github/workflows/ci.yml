@@ -487,6 +487,7 @@ jobs:
           DEVHUB_KEYCLOAK_ADMIN_REALM: devhub
           DEVHUB_KEYCLOAK_ADMIN_CLIENT_ID: devhub-backend
           DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET: ${{ env.DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET }}
+          DEVHUB_AUTH_DEV_FALLBACK: "1"
         run: |
           ./devhub-backend > backend.log 2>&1 &
       
