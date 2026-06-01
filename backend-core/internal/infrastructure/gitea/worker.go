@@ -128,10 +128,11 @@ func (w *SyncWorker) resolveSyncConfig(ctx context.Context, providerID string) (
 func (w *SyncWorker) syncAllWith(ctx context.Context, client *Client, providerID string) error {
 	syncer := NewSyncer(w.Store)
 
-	// Fetch all Gitea user repositories first to build local cache mapping.
-	repos, err := client.ListUserRepos(ctx)
+	// Fetch all Gitea repositories visible to the token first to build local cache mapping.
+	// An admin token returns every repository on the instance; a regular token only the user's own.
+	repos, err := client.ListAllRepos(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to list user repos: %w", err)
+		return fmt.Errorf("failed to list repos: %w", err)
 	}
 
 	var syncErrors []string
