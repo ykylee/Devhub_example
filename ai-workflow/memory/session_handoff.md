@@ -1,11 +1,38 @@
-# Session Handoff — main (2026-05-29 EOD, post-envelope-encryption-sprint)
+# Session Handoff — main (2026-06-01, CI recovery follow-up)
 
-- 문서 목적: X-3 평문 secret envelope 암호화(비밀 데이터 대칭 키 봉투 암호화 및 키 관리 정책 도입) sprint 완수 후 main 상태와 인계 사항.
-- 범위: KEK(마스터 키) 기반 AES-GCM-256 봉투 암호화 코어 패키지(`internal/crypt`) 구현 + 영속성 레이어(`integration_registry.go`) 최소 침습 입출력 투명 암복호화 필터 이식 + `envelope_test.go` 6개 단독 유닛 테스트 검증 + 마스터 키 유무에 따른 백엔드 전체 회귀 테스트 100% 무결 통과.
-- 상태: 모든 E2E, 유닛 테스트, 봉투 암복호화 및 레거시 평문 자동 fallback 기어 100% 무결 통과, main HEAD 정상 정합.
-- 최종 수정일: 2026-05-29 EOD
+- 문서 목적: 2026-06-01 main CI 실패 재현/복구 작업 결과와 다음 세션 인계.
+- 범위: frontend 타입 에러 해소 + Playwright E2E shard 실패(root cause: 환경 의존 selector) 정리 및 테스트 안정화.
+- 상태: GitHub Actions `CI` run `26738464130` 성공(UTC 2026-06-01T06:19:36Z), main HEAD 기준 파이프라인 green 회복.
+- 최종 수정일: 2026-06-01
 
-## 1. 최근 완결된 핵심 스프린트 (NOW-6: X-3 봉투 암호화 이식)
+## 1. 2026-06-01 CI 복구 요약
+
+### 1) 실패 원인 분해
+* 초기 실패는 E2E 실행 전 `Build App` 타입체크 에러:
+  * `frontend/app/(dashboard)/applications/[id]/page.tsx`
+  * `Duplicate identifier 'ApplicationRepository'`
+* 이후 타입 에러 해소 후 shard 1/2에서 단일 E2E 실패:
+  * `tests/e2e/admin-projects.spec.ts` `TC-PROJ-UI-04`
+  * CI 시드 환경에서는 member 입력이 `ComboBox(button)`로 렌더되는데 테스트가 `input placeholder`만 탐지하여 실패.
+
+### 2) 적용한 수정
+* `frontend/app/(dashboard)/applications/[id]/page.tsx`
+  * `ApplicationRepository` 중복 import 제거.
+* `frontend/tests/e2e/admin-projects.spec.ts`
+  * 멤버 추가 검증을 환경 독립적으로 변경:
+  * `Remove member` 버튼 count 증가 + `ComboBox 버튼 또는 plain input` 존재 검증.
+* 보조 정리:
+  * `ProjectCreationModal` 텍스트 기대값 보정(unit test)으로 프론트 유닛 회귀 해소.
+
+### 3) 검증 결과
+* 로컬:
+  * `frontend npm run test` PASS (73 files, 968 tests)
+  * `frontend npm run build` PASS
+* CI:
+  * 최종 성공 런: `26738464130` (`headSha: 835efee1f2c5c4b557b1139441f3b72eebbbbfb5`)
+  * 실패하던 E2E shard 1/2 재발 없음.
+
+## 2. 이전 핵심 스프린트 (기존 기록)
 
 ### 1) X-3: 평문 secret envelope 암호화 및 KEK 키관리 완결
 * **마스터 암호화 패키지(`internal/crypt`) 신설**:

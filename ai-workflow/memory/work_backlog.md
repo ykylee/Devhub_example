@@ -3,8 +3,8 @@
 - 문서 목적: main 브랜치 기준 상위 백로그 인덱스. 세부 sprint backlog 는 브랜치별 메모리 디렉터리 참조.
 - 범위: 마일스톤 상태, 최근 머지, 잔여/후속 작업
 - 대상 독자: 프로젝트 리드, 후속 에이전트, 트랙 담당자
-- 상태: **2026-05-29 EOD update — main HEAD `273d9d4` + X-3 envelope encryption.** NOW-3 (E2E), NOW-4 (Vitest), NOW-5 (Migration CI guard) 완료 및 신규 P1 과제인 **X-3 평문 secret envelope 암호화 (ADR-0025 수립 및 AES-GCM-256 최소 침습 필터 이식)** 완결. 6개 유닛 테스트 및 KEK 주입 2형(Hex/Base64) 통합 회귀 테스트 100% PASS. **다음 directive**: (P1) v1.0 staging 1주 운영 검증 (N-6) / (P2) System Admin 운영 대시보드 (X-1) / (P3) inbound webhook 정규화 깊이 (X-2).
-- 최종 수정일: 2026-05-29 EOD (X-3 Envelope Encryption 이식 완결)
+- 상태: **2026-06-01 update — main HEAD `835efee` + CI 회귀 복구.** `Build App` 타입 에러(`ApplicationRepository` 중복 import)와 E2E shard 1/2 단일 실패(`admin-projects TC-PROJ-UI-04` selector 환경 의존) 해소. GitHub Actions CI run `26738464130` green. **다음 directive**: (P1) v1.0 staging 1주 운영 검증 (N-6) / (P2) System Admin 운영 대시보드 (X-1) / (P3) inbound webhook 정규화 깊이 (X-2).
+- 최종 수정일: 2026-06-01
 - 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [세션 인계](./session_handoff.md), [상태 스냅샷](./state.json), [M1 PR 리뷰 actions](./M1-PR-review-actions.md), [ADR-0025](../../docs/adr/0025-envelope-encryption-key-management.md)
 
 ## 1. 마일스톤 진행 상황
@@ -82,6 +82,7 @@
 
 | 일자 | 변경 |
 | --- | --- |
+| 2026-06-01 | CI 회귀 복구: (1) `frontend/app/(dashboard)/applications/[id]/page.tsx` 중복 import 제거로 `Build App` 타입 에러 해소, (2) `frontend/tests/e2e/admin-projects.spec.ts` TC-PROJ-UI-04를 환경 독립 검증(ComboBox/input 공용)으로 보강. 로컬 `npm run test`/`npm run build` 통과, CI run `26738464130` 성공. |
 | 2026-05-27 | PR #352 (`b3dc87e`, sprint `claude/work_260527-external-integration-enhance`) — **외부 연동 등록 UX 고도화 (#1~#5)**. 등록 UI(ProviderModal) 검토 후 5 포인트 해소. **#1+#3+#4** (frontend): `integration-provider-presets.ts` 신규 (vendor 템플릿 7종 gitea/github/gitlab/bitbucket/jira/jenkins/bamboo + custom → type/auth/signature/capabilities 자동 + `composeCredentialsRef`/`parseCredentialsRef` 백엔드 3 전략 정합, colocated vitest 14) + credentials_ref raw → strategy select+secret 분리(show/hide, edit blank=keep) + capabilities 체크박스. **#2** (full-stack): **migration 000038** `integration_providers.base_url` + domain/store(scan·SELECT×3·INSERT·UPDATE)/API-70·71 + `validBaseURL` (url.Parse + scheme + host) + memory store parity. **#5** (full-stack): **API-87** `POST /api/v1/integration/test-connection` (base_url reachability GET 5s, system_admin, SSRF 사내 internal 수용) + ProviderModal Test 버튼. **codex P2 보강** (`4406b99`): validBaseURL scheme-only(host 누락) 거부. 검증: go build+vet+httpapi/store test (handler 8 신규) + tsc+eslint+vitest 9파일/55 + npm run build ✓, CI 8 job green (E2E 양 shard). squash merge. backend_api_contract §15 + report.md §2.2/§6 추적성. |
 | 2026-05-27 | PR #351 (`dacca2c`, codex `codex/work_260527-c-next-task`) — `fix(auth): retry refresh on 401 even without initial access token` (frontend `api-client.ts` 단일 파일). codex inline 없음 (clean). 본 conversation 외 codex 영역 머지 — housekeeping 흡수. |
 | 2026-05-27 | PR #349 (`72dc9f5`, codex `codex/work_260527-b-project-repo-flow`) — **project standalone 생성 flow** (application/repository optional + `repository_create_payload` 동반 생성 + N:M 연결 UX + migration 000037 `projects.repository_id` nullable). claude review request-changes 의 P1(빌드 실패: getProjectTasks 등) 수정 후 머지. **단, codex P2×2 LIVE 미반영 (hotfix 후보)**: (a) atomicity — `CreateRepositoryForProject` 가 `CreateProjectWithRepositories` tx 밖 별도 호출 → project 실패 시 repo 고아; (b) NULL-uniqueness — migration 000037 `DROP NOT NULL` 만 + partial unique index 없음 → standalone(repository_id NULL) project key 중복 가능 (`UNIQUE(repository_id,key)` 가 NULL distinct 로 무력). 차기 hotfix: migration 000039 `CREATE UNIQUE INDEX ... WHERE repository_id IS NULL` + repo+project 단일 tx. |
@@ -218,4 +219,3 @@
 | 2026-05-20 | sprint `claude/work_260520-m-housekeeping6` (PR #242 HEAD) — **housekeeping #6 — 3 PR (#240, #241, #242) 흡수**. |
 | 2026-05-21 | sprint `gemini/housekeeping-260520-status-update` (본 PR) — **housekeeping #7 — 8 PR 진척 사항 (#245~#253) 흡수**. |
 | 2026-05-28 | sprint `gemini/work_260528-architecture-restructure` (governance) — **3대 레이어 아키텍처(Domain-Shared-Infrastructure) 및 도메인 내부 4대 계층(View-Service-Repository-Schema) 고도화 개편**. 사용자의 지침을 수용하여 `docs/governance/code-taxonomy.md`를 3대 레이어 기준으로 전면 리팩토링하고, `docs/architecture.md` §2 시스템 컴포넌트 Mermaid 다이어그램을 신규 3계층 종속성 구조로 전면 수정 및 **아키텍처 호출 규칙(Calling Constraints)** 신설 명문화. PR #406의 Codex 인라인 리뷰 피드백을 반영하여 `ProviderModal` 컴포넌트 오너십의 오분류 정정 (`auth-session` -> `integration-registry` 이관). 추적성 영향 — 신규 ID 없음 (governance 설계 개편). |
-
