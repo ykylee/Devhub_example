@@ -26,6 +26,7 @@ import { useStore } from "@/lib/store";
 import { applicationService, ApplicationDashboard, Application } from "@/domain/application-lifecycle/service/application.service";
 import { ApplicationRepository } from "@/domain/application-lifecycle/schema/project.types";
 import { projectService } from "@/domain/application-lifecycle/service/project.service";
+import type { ApplicationRepository } from "@/domain/application-lifecycle/schema/project.types";
 import { ApplicationCreationModal } from "@/domain/application-lifecycle/view/ApplicationCreationModal";
 import { useToast } from "@/shared/ui-foundation/components/Toast";
 import { toUserErrorMessage } from "@/shared/utils/error-message";
@@ -559,7 +560,12 @@ export default function ApplicationDetailPage() {
         )}
         {isEditModalOpen && application && (
           <ApplicationCreationModal
-            initialData={application}
+            initialData={{
+              ...application,
+              start_date: application.start_date ?? undefined,
+              due_date: application.due_date ?? undefined,
+              archived_at: application.archived_at ?? undefined,
+            }}
             onClose={() => setIsEditModalOpen(false)}
             onCreated={(newApp) => {
               toast(`Application ${newApp.name} updated successfully`, "success");

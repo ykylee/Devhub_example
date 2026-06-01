@@ -88,8 +88,8 @@ func (m *mockSyncJobStore) UpdateIntegrationSyncJobStatus(ctx context.Context, j
 func TestSyncWorker_ProcessOnce(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		if r.URL.Path == "/api/v1/user/repos" {
-			w.Write([]byte(`[{"id": 1, "name": "test-repo", "full_name": "owner/test-repo", "html_url": "http://gitea/test-repo", "clone_url": "http://gitea/test-repo.git", "default_branch": "main", "private": false}]`))
+		if r.URL.Path == "/api/v1/repos/search" {
+			w.Write([]byte(`{"ok":true,"data":[{"id": 1, "name": "test-repo", "full_name": "owner/test-repo", "html_url": "http://gitea/test-repo", "clone_url": "http://gitea/test-repo.git", "default_branch": "main", "private": false}],"total_count":1}`))
 		} else if r.URL.Path == "/api/v1/repos/owner/test-repo/issues" {
 			w.Write([]byte(`[{"id": 10, "number": 1, "title": "issue1", "state": "open", "html_url": "http://gitea/1", "created_at": "2026-05-26T22:00:00Z", "user": {"id": 100, "login": "user1"}}]`))
 		} else if r.URL.Path == "/api/v1/repos/owner/test-repo/pulls" {
@@ -118,8 +118,8 @@ func TestSyncWorker_ProcessOnce_PerProviderConfig(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
-		case "/api/v1/user/repos":
-			w.Write([]byte(`[{"id": 1, "name": "test-repo", "full_name": "owner/test-repo", "html_url": "http://gitea/test-repo", "clone_url": "http://gitea/test-repo.git", "default_branch": "main", "private": false}]`))
+		case "/api/v1/repos/search":
+			w.Write([]byte(`{"ok":true,"data":[{"id": 1, "name": "test-repo", "full_name": "owner/test-repo", "html_url": "http://gitea/test-repo", "clone_url": "http://gitea/test-repo.git", "default_branch": "main", "private": false}],"total_count":1}`))
 		case "/api/v1/repos/owner/test-repo/issues", "/api/v1/repos/owner/test-repo/pulls":
 			w.Write([]byte(`[]`))
 		default:
@@ -184,13 +184,13 @@ func TestSyncWorker_ProcessOnce_NoEnvTokenLeakForExplicitProvider(t *testing.T) 
 func TestSyncWorker_ProcessOnce_BasicAuthOutbound(t *testing.T) {
 	var gotAuth string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/v1/user/repos" {
+		if r.URL.Path == "/api/v1/repos/search" {
 			gotAuth = r.Header.Get("Authorization")
 		}
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
-		case "/api/v1/user/repos":
-			w.Write([]byte(`[{"id": 1, "name": "test-repo", "full_name": "owner/test-repo", "html_url": "http://gitea/test-repo", "clone_url": "http://gitea/test-repo.git", "default_branch": "main", "private": false}]`))
+		case "/api/v1/repos/search":
+			w.Write([]byte(`{"ok":true,"data":[{"id": 1, "name": "test-repo", "full_name": "owner/test-repo", "html_url": "http://gitea/test-repo", "clone_url": "http://gitea/test-repo.git", "default_branch": "main", "private": false}],"total_count":1}`))
 		case "/api/v1/repos/owner/test-repo/issues", "/api/v1/repos/owner/test-repo/pulls":
 			w.Write([]byte(`[]`))
 		default:

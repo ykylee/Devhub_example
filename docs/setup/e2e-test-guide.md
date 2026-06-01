@@ -54,6 +54,8 @@ Playwright `globalSetup` (`frontend/tests/e2e/global-setup.ts`) 이 매 `npm run
 | `DEVHUB_KEYCLOAK_ADMIN_CLIENT_ID` | e2e seed 전용 service account client id | `devhub-e2e-seeder` |
 | `DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET` | service account client secret | (필수) |
 | `DEVHUB_E2E_OIDC_CLIENT_ID` | E2E 강제 OIDC 시작 시 사용할 `client_id` override | `devhub-frontend` |
+| `DEVHUB_E2E_FORCE_DIRECT_OIDC` | `1`이면 fixture가 `/login` 기본 흐름 대신 강제 OIDC 시작(PKCE)으로 로그인 진입을 선점 | (미설정, 기본 `0`) |
+| `DEVHUB_E2E_ALLOW_CROSS_ORIGIN_REDIRECT` | `1`이면 runtime-config 의 cross-origin `oidc_redirect_uri` 를 허용 (기본은 same-origin만 허용) | (미설정, 기본 `0`) |
 | `DSN` | DevHub users 행을 INSERT 할 PostgreSQL DSN. `idp-apply-schemas` 헬퍼가 사용 | (필수) |
 | `DEVHUB_E2E_SKIP_SEED` | `1` 이면 시드 단계를 건너뜀 (CI matrix 가 별도 stage 에서 시드할 때) | (미설정) |
 
