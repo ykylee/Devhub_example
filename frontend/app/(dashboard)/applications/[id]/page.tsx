@@ -565,7 +565,12 @@ export default function ApplicationDetailPage() {
         )}
         {isEditModalOpen && application && (
           <ApplicationCreationModal
-            initialData={application}
+            initialData={{
+              ...application,
+              start_date: application.start_date ?? undefined,
+              due_date: application.due_date ?? undefined,
+              archived_at: application.archived_at ?? undefined,
+            }}
             onClose={() => setIsEditModalOpen(false)}
             onCreated={(newApp) => {
               toast(`Application ${newApp.name} updated successfully`, "success");
