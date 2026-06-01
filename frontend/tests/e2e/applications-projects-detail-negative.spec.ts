@@ -37,7 +37,7 @@ test.describe("application/project detail negative states", () => {
     expect(dashboardRequestCount).toBeGreaterThanOrEqual(2);
   });
 
-  test("TC-PROJ-DETAIL-WARN-01 — activity 일부 실패 시 경고 배너 노출", async ({ page }) => {
+  test("TC-PROJ-DETAIL-WARN-01 — repositories 실패 시 경고 배너 노출 및 activity 실패 시 온화한 fallback", async ({ page }) => {
     await loginAs(page, SEEDED.systemAdmin);
 
     await page.route(/\/api\/v1\/projects\/1$/, async (route) => {
@@ -91,9 +91,9 @@ test.describe("application/project detail negative states", () => {
     });
     await page.route(/\/api\/v1\/projects\/1\/repositories$/, async (route) => {
       await route.fulfill({
-        status: 200,
+        status: 500,
         contentType: "application/json",
-        body: JSON.stringify({ status: "ok", data: [] }),
+        body: JSON.stringify({ error: "forced repositories failure" }),
       });
     });
     await page.route(/\/api\/v1\/projects\/1\/tasks(\?.*)?$/, async (route) => {
@@ -112,7 +112,10 @@ test.describe("application/project detail negative states", () => {
     });
 
     await page.goto(appPath("/projects/1"));
-    await expect(page.getByText("일부 프로젝트 데이터를 불러오지 못했습니다: Recent Activity", { exact: true })).toBeVisible({ timeout: 15_000 });
+    // 1. repositories 실패 시 "Linked Repositories" 경고 배너 노출 검증
+    await expect(page.getByText("일부 프로젝트 데이터를 불러오지 못했습니다: Linked Repositories", { exact: true })).toBeVisible({ timeout: 15_000 });
+    // 2. activity 실패 시 온화하게 대체된 텍스트 확인 (Recent Activity 에러 배너는 없고 "활동 이력이 없습니다"가 노출)
+    await expect(page.getByText("활동 이력이 없습니다.", { exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: /stub project/i })).toBeVisible();
   });
 });

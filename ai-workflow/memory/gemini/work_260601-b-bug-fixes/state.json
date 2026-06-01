@@ -21,7 +21,8 @@
       "Add frontend unit test for project member initialization and sync on update (ProjectCreationModal.test.tsx)",
       "Add E2E test case for project member list addition UI interaction (admin-projects.spec.ts)",
       "Fix CI E2E Playwright tests failure by adding hardcoded simulation app/project seeds to global-setup.ts",
-      "Address Codex Review (FE observer role preservation & BE transactional legacy CreateProject members saving)"
+      "Address Codex Review (FE observer role preservation & BE transactional legacy CreateProject members saving)",
+      "Fix negative E2E spec regression failure by updating TC-PROJ-DETAIL-WARN-01 to match mild activity fallback"
     ]
   },
   "next_documents": [
