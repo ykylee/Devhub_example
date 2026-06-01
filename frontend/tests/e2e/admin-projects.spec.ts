@@ -72,6 +72,7 @@ test.describe("/admin/catalog?tab=projects — Project CRUD UI (생성은 catalo
 
     // 멤버 입력란이 추가되었는지 확인
     const memberInputs = dialog.getByPlaceholder("user id");
+    await expect(memberInputs.first()).toBeVisible({ timeout: 5000 });
     expect(await memberInputs.count()).toBeGreaterThanOrEqual(1);
   });
 });

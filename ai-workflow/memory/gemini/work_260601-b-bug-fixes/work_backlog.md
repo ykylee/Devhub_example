@@ -1,5 +1,12 @@
 # Work Backlog — gemini/work_260601-b-bug-fixes
 
+- 문서 목적: 2026-06-01 두 번째 스프린트(버그 픽스) 작업 백로그 명시
+- 범위: 프로젝트 수정 모달 멤버 추가/저장 버그 해결 및 단위/통합/E2E 테스트 안정성 확보
+- 대상 독자: 개발자, AI 에이전트, 운영자
+- 상태: active
+- 최종 수정일: 2026-06-01
+- 관련 문서: [PROJECT_PROFILE.md](../../PROJECT_PROFILE.md), [session_handoff.md](./session_handoff.md)
+
 이 문서는 `gemini/work_260601-b-bug-fixes` 브랜치 세션 동안 검토하거나 진행할 작업 백로그를 명시합니다.
 
 ## 1. 현재 스프린트 작업
