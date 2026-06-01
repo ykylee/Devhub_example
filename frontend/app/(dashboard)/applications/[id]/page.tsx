@@ -24,7 +24,6 @@ import { Badge } from "@/shared/ui-foundation/components/Badge";
 import { cn } from "@/shared/utils";
 import { useStore } from "@/lib/store";
 import { applicationService, ApplicationDashboard, Application } from "@/domain/application-lifecycle/service/application.service";
-import { ApplicationRepository } from "@/domain/application-lifecycle/schema/project.types";
 import { projectService } from "@/domain/application-lifecycle/service/project.service";
 import type { ApplicationRepository } from "@/domain/application-lifecycle/schema/project.types";
 import { ApplicationCreationModal } from "@/domain/application-lifecycle/view/ApplicationCreationModal";
