@@ -90,3 +90,7 @@ docs/LOCAL_MACHINE_ENV.md
 .antigravitycli/
 
 .reasonix/
+
+# Gemini temp files
+scratch/
+ui-screenshots-shard-2/
