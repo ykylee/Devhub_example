@@ -157,7 +157,7 @@
 
 ### 3.3 Codex → Claude
 
-**예시 시나리오**: Codex 가 PR review 에서 P1 발견 (예: PR #205 의 `pmo_manager` 누락 회귀) → Claude 가 hotfix PR.
+**예시 시나리오**: Codex 가 PR review 에서 P1 발견 (예: PR #205 의 `team_manager` 누락 회귀) → Claude 가 hotfix PR.
 
 **인계 자산**:
 - codex review comment URL

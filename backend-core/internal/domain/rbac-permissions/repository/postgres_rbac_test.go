@@ -40,7 +40,7 @@ func TestRBAC_ListRoles_SeedsThreeSystemRoles(t *testing.T) {
 		t.Fatalf("expected at least 3 system roles, got %d", len(roles))
 	}
 
-	wantOrder := []string{"developer", "manager", "system_admin"}
+	wantOrder := []string{"developer", "team_manager", "system_admin"}
 	for i, want := range wantOrder {
 		if roles[i].ID != want {
 			t.Errorf("roles[%d].ID = %q, want %q (system roles must come first in fixed order)", i, roles[i].ID, want)
@@ -140,7 +140,7 @@ func TestRBAC_SystemRoleImmutable(t *testing.T) {
 	s, ctx := newTestRBACStore(t)
 	repo := repository.NewRBACRepository(s)
 
-	if err := repo.DeleteRBACRole(ctx, "manager"); !errors.Is(err, store.ErrSystemRoleImmutable) {
+	if err := repo.DeleteRBACRole(ctx, "team_manager"); !errors.Is(err, store.ErrSystemRoleImmutable) {
 		t.Errorf("delete system role err = %v, want ErrSystemRoleImmutable", err)
 	}
 

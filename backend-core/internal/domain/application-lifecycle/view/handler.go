@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/devhub/backend-core/internal/domain"
-	"github.com/devhub/backend-core/internal/store"
 	"github.com/devhub/backend-core/internal/shared/httphelp"
+	"github.com/devhub/backend-core/internal/store"
 	"github.com/gin-gonic/gin"
 )
 
@@ -145,4 +145,93 @@ func (h *ApplicationHandler) enforceRowOwnership(c *gin.Context, ownerUserID str
 		"code":   "auth_row_denied",
 	})
 	return false
+}
+
+func (h *ApplicationHandler) actorIdentity(c *gin.Context) (string, string) {
+	loginVal, _ := c.Get("devhub_actor_login")
+	roleVal, _ := c.Get("devhub_actor_role")
+	login, _ := loginVal.(string)
+	role, _ := roleVal.(string)
+	return login, role
+}
+
+func (h *ApplicationHandler) actorCanReadProject(c *gin.Context, storeI ApplicationStore, project domain.Project) (bool, string, error) {
+	if httphelp.DevFallbackEnabled(c) {
+		return true, "", nil
+	}
+
+	login, role := h.actorIdentity(c)
+	if role == string(domain.AppRoleSystemAdmin) || role == string(domain.AppRoleTeamManager) {
+		return true, "", nil
+	}
+	if login == "" {
+		return false, "not_project_member", nil
+	}
+	if project.OwnerUserID == login {
+		return true, "", nil
+	}
+
+	if len(project.ProjectMembers) == 0 && project.ID != "" {
+		loaded, err := storeI.GetProject(c.Request.Context(), project.ID)
+		if err != nil {
+			return false, "", err
+		}
+		project = loaded
+	}
+	for _, member := range project.ProjectMembers {
+		if member.UserID == login {
+			return true, "", nil
+		}
+	}
+	return false, "not_project_member", nil
+}
+
+func (h *ApplicationHandler) actorCanReadApplication(c *gin.Context, storeI ApplicationStore, app domain.Application) (bool, string, error) {
+	if httphelp.DevFallbackEnabled(c) {
+		return true, "", nil
+	}
+
+	login, role := h.actorIdentity(c)
+	if role == string(domain.AppRoleSystemAdmin) || role == string(domain.AppRoleTeamManager) {
+		return true, "", nil
+	}
+	if login == "" {
+		return false, "not_application_member", nil
+	}
+	if app.OwnerUserID == login || app.LeaderUserID == login {
+		return true, "", nil
+	}
+
+	projects, _, err := storeI.ListProjects(c.Request.Context(), store.ProjectListOptions{
+		ApplicationID:   app.ID,
+		IncludeArchived: true,
+		Limit:           5000,
+	})
+	if err != nil {
+		return false, "", err
+	}
+	for _, project := range projects {
+		allowed, _, err := h.actorCanReadProject(c, storeI, project)
+		if err != nil {
+			return false, "", err
+		}
+		if allowed {
+			return true, "", nil
+		}
+	}
+	return false, "not_application_member", nil
+}
+
+func (h *ApplicationHandler) denyRowRead(c *gin.Context, deniedReason string) {
+	_, actorRole := h.actorIdentity(c)
+	h.recordAuditBestEffort(c, "auth.row_denied", "route", c.FullPath(), map[string]any{
+		"actor_role":    actorRole,
+		"denied_reason": deniedReason,
+	})
+	c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+		"status":        "forbidden",
+		"error":         "row read scope denied",
+		"code":          "auth_row_denied",
+		"denied_reason": deniedReason,
+	})
 }

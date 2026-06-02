@@ -28,7 +28,7 @@ CREATE TABLE users (
     joined_at DATE NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT users_role_check CHECK (role IN ('developer', 'manager', 'system_admin')),
+    CONSTRAINT users_role_check CHECK (role IN ('developer', 'team_manager', 'system_admin')),
     CONSTRAINT users_status_check CHECK (status IN ('active', 'pending', 'deactivated'))
 );
 
@@ -61,7 +61,7 @@ INSERT INTO org_units (unit_id, parent_unit_id, unit_type, label, leader_user_id
 
 INSERT INTO users (user_id, email, display_name, role, status, primary_unit_id, current_unit_id, is_seconded, joined_at) VALUES
     ('u1', 'yklee@example.com', 'YK Lee',   'system_admin', 'active', 'dept-eng',   'dept-eng',  FALSE, '2026-01-15'),
-    ('u2', 'alex@example.com',  'Alex Kim', 'manager',      'active', 'dept-prod',  'team-ux',   TRUE,  '2026-02-01'),
+    ('u2', 'alex@example.com',  'Alex Kim', 'team_manager',      'active', 'dept-prod',  'team-ux',   TRUE,  '2026-02-01'),
     ('u3', 'sam@example.com',   'Sam Jones','developer',    'active', 'team-infra', 'team-infra',FALSE, '2026-05-01');
 
 INSERT INTO unit_appointments (user_id, unit_id, appointment_role) VALUES

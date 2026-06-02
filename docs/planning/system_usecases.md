@@ -4,7 +4,7 @@
 - 범위: backend-core 주요 모듈(auth/account/org/rbac/gitea ingest/command/audit/realtime/store) + Application/Project 도메인 + Repository SCM 연동/Lifecycle + External Integration.
 - 대상 독자: 프로젝트 리드, 시스템 관리자, Backend/Frontend 설계 담당, 추적성 리뷰어.
 - 상태: draft
-- 최종 수정일: 2026-05-28 (§2.16 Task Item Ingestion UC-TASK-01..06 신규)
+- 최종 수정일: 2026-06-02 (RBAC 고도화 — UC-RBAC-02 재정의 + UC-RBAC-04..07 신규)
 - 관련 문서: [요구사항](../requirements.md), [아키텍처](../architecture.md), [API 계약](../backend_api_contract.md), [ERD 카탈로그](./system_erd.md), [통합 로드맵](../development_roadmap.md)
 
 ## 1. 모듈 기준
@@ -56,8 +56,63 @@
 | UC ID | Usecase | 성공 조건 | 관련 REQ |
 | --- | --- | --- | --- |
 | `UC-RBAC-01` | 정책 조회/편집 | 정책 CRUD + 시스템 role 제약 유지 | FR-27, FR-86 |
-| `UC-RBAC-02` | 사용자 role 할당 | user-role FK 정합성 보장 | FR-27 |
+| `UC-RBAC-02` | IdP role 동기화 | Keycloak role/group 과 DevHub `users.role` 동기화가 onboarding + event listener 경로에서 일관 적용되고 drift 시 `auth.role_sync_required` 처리 | REQ-RBAC-010, REQ-RBAC-010A, REQ-RBAC-011 |
 | `UC-RBAC-03` | 라우트 권한 강제 | deny-by-default + permission cache 반영 | NFR-26 |
+| `UC-RBAC-04` | 조회 권한의 row-scope 강제 | `applications/projects` 조회에서 route-level 통과 후 scope 외 리소스는 List는 필터, Get은 403(`auth_row_denied`) 규칙으로 일관 처리 | REQ-RBAC-013, REQ-RBAC-015 |
+| `UC-RBAC-05` | 권한 거부 코드 표준화 | 정책 미매핑/row 거부/role drift 케이스가 표준 코드(`auth.policy_unmapped`, `auth.row_denied`, `auth.role_sync_required`)로 응답/감사 추적됨 | REQ-RBAC-014 |
+| `UC-RBAC-06` | 로그아웃 API 연계 | FE `/devhub/auth/signout` 경유 시 `POST /api/v1/auth/logout`를 통해 세션 쿠키 정리 + revoke + audit가 수행됨 | REQ-RBAC-012, REQ-RBAC-012A |
+| `UC-RBAC-07` | RBAC 우선순위/추적성 동기화 | RBAC 우선순위 충돌 시 rbac-permissions + master requirements를 기준으로 결정하고 traceability를 같은 PR에서 동기화 | REQ-RBAC-016 |
+
+#### 2.4.1 RBAC 상세 시나리오
+
+`UC-RBAC-01` 정책 조회/편집
+- Actor: `system_admin`
+- 사전조건: 인증 성공, RBAC 정책 API 접근 가능
+- 기본흐름: (1) 정책 조회 (2) role/resource/action 수정안 제출 (3) 시스템 role 불변/`audit` resource invariant 검증 (4) 저장 후 cache 무효화/재적재
+- 예외흐름: 잘못된 role id, invariant 위반 시 4xx
+- 사후조건: 정책과 cache가 동일 버전으로 정렬됨
+
+`UC-RBAC-02` IdP role 동기화
+- Actor: `system_admin`, 인증 사용자(자동 동기화 대상)
+- 사전조건: Keycloak role/group source 유효
+- 기본흐름: (1) onboarding 또는 event listener가 role 정보를 수신 (2) DevHub `users.role` 동기화 (3) audit 기록
+- 예외흐름: role drift 감지 시 fail-closed로 `auth.role_sync_required` 반환
+- 사후조건: role source-of-truth(IdP)와 앱 내부 role이 일치
+
+`UC-RBAC-03` 라우트 권한 강제
+- Actor: 모든 인증 사용자
+- 사전조건: `routePermissionTable` 로드 완료
+- 기본흐름: (1) 요청 라우트의 permission key 조회 (2) role matrix 검증 (3) 허용 시 handler 진입
+- 예외흐름: 매핑 누락 또는 권한 부족 시 `auth.policy_unmapped`/403
+- 사후조건: 미매핑 라우트는 항상 차단
+
+`UC-RBAC-04` 조회 row-scope 강제
+- Actor: `developer`, `team_manager`, `system_admin`
+- 사전조건: actor scope 계산 가능(member/org/team/system)
+- 기본흐름: (1) route-level `view` 통과 (2) row scope 병합 (3) List는 scope 내 row만 반환 (4) Get은 scope 외 403
+- 예외흐름: scope 정보 누락/불일치 시 `auth_row_denied`
+- 사후조건: 조회 권한은 route + row 2단계로 강제
+
+`UC-RBAC-05` 거부 코드 표준화
+- Actor: API consumer, 운영자(audit 조회)
+- 사전조건: 권한 거부 코드 카탈로그 정의
+- 기본흐름: 거부 유형별 코드 반환(`auth.policy_unmapped`, `auth.row_denied`, `auth.role_sync_required`) + audit 적재
+- 예외흐름: 표준 코드 외 응답이 발생하면 회귀로 간주
+- 사후조건: 클라이언트/운영자가 거부 사유를 일관 해석
+
+`UC-RBAC-06` 로그아웃 API 연계
+- Actor: 로그인 사용자
+- 사전조건: 유효 세션 존재, FE signout route 접근 가능
+- 기본흐름: (1) FE `/devhub/auth/signout` 진입 (2) `POST /api/v1/auth/logout` 호출 (3) 쿠키 정리/토큰 revoke (가능한 환경)/audit 기록
+- 예외흐름: revoke 실패 시에도 로컬 세션 정리 우선 + 실패 audit 기록
+- 사후조건: 재진입 시 재인증 요구
+
+`UC-RBAC-07` 우선순위/추적성 동기화
+- Actor: 문서 관리 담당자, 리뷰어
+- 사전조건: RBAC 관련 요구사항 변경 PR 존재
+- 기본흐름: (1) `rbac-permissions` + master requirements 우선순위 결정 (2) traceability matrix 동시 갱신 (3) PR에 추적성 영향 명시
+- 예외흐름: 문서 간 우선순위 충돌 시 merge 보류
+- 사후조건: REQ↔UC↔ARCH/API↔IMPL/TC 체인이 단절 없이 유지
 
 ### 2.5 Gitea Ingest/Snapshot
 
@@ -97,7 +152,7 @@
 | `UC-APP-02` | Application-Repository 연결 | 1 Application : N Repository 매핑 저장 | REQ-FR-APP-002 |
 | `UC-APP-03` | Application 상태 전이/보관 | status/archived 정책 적용 | REQ-FR-APP-001 |
 | `UC-APP-04` | Application 상세 조회 | 메타 + 연결 Repository 목록 + Application 마일스톤 + 하위 Repository 마일스톤 롤업 조회 (Application 은 최상위 계층이므로 "상위" 는 없음) | REQ-FR-APP-001,002,004 |
-| `UC-APP-05` | Application 관리 권한 검증 | `system_admin`만 쓰기 허용, `pmo_manager` 비활성 시 403 반환 | REQ-FR-PROJ-000 |
+| `UC-APP-05` | Application 관리 권한 검증 | `system_admin`만 쓰기 허용, `team_manager` 비활성 시 403 반환 | REQ-FR-PROJ-000 |
 | `UC-APP-06` | Repository 운영 스냅샷 조회 | 작업현황/PR/빌드/품질 지표를 repo 단위로 조회 | REQ-FR-APP-005,006,007,008 |
 | `UC-APP-07` | 외부 도구 동기화/재동기화 | webhook+pull 기반 동기화, 중복/누락 보정 처리 | REQ-FR-APP-004, REQ-NFR-PROJ-004 |
 | `UC-APP-08` | SCM provider 어댑터 라우팅 | repo_provider 기준으로 적절한 어댑터를 선택해 동일 도메인 계약으로 수집/조회 처리 | REQ-FR-APP-009, REQ-NFR-PROJ-005 |
@@ -227,4 +282,5 @@
 
 | 일자 | 변경 |
 | --- | --- |
+| 2026-06-02 | §2.4 RBAC 고도화: UC-RBAC-02를 Keycloak role sync 중심으로 재정의, UC-RBAC-04..07 추가 (row-scope 강제, 거부 코드 표준화, logout 연계, 우선순위/추적성 동기화). |
 | 2026-05-28 | §2.16 Task Item Ingestion 신규 (UC-TASK-01..06). Sprint `deepseek/work_260528-a-task-item-ingestion`. |

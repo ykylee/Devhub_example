@@ -141,7 +141,7 @@ export function PermissionEditor({
                 >
                   <div className={cn("absolute top-0 left-0 w-1.5 h-full",
                     role.id === 'system_admin' ? "bg-accent" :
-                    role.id === 'manager' ? "bg-success" :
+                    role.id === 'team_manager' ? "bg-success" :
                     isSelected ? "bg-primary" : "bg-info"
                   )} />
 

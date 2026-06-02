@@ -12,7 +12,7 @@
 
 ### 1.1 현재 (옵션 A — realm role 직접 할당)
 
-- [keycloak_operations.md §4](../setup/keycloak_operations.md) 가 정의: realm role 4종 (`developer` / `manager` / `pmo_manager` / `system_admin`) 직접 할당.
+- [keycloak_operations.md §4](../setup/keycloak_operations.md) 가 정의: realm role 4종 (`developer` / `manager` / `team_manager` / `system_admin`) 직접 할당.
 - §8.1 신규 user 생성 SOP: Keycloak admin 이 user 마다 Role Mapping 탭에서 realm role 1개 선택.
 - backend `keycloak_verifier.go:260-285` 가 3단계 fallback 으로 role 추출:
   1. `claims["roles"]` (custom, 사용 안 함)
@@ -38,7 +38,7 @@ Keycloak group 기능 (Group / Composite Role / Group Membership Mapper) 을 활
 | **A. realm role 직접 할당 (현행 유지)** | 없음 | 변경 없음 | §8.1 step 3 그대로 (user 별 role assign) | △ 부담 ↑ — 다중 user / HR sync 시점 약함 |
 | **B. Keycloak group 의 composite realm role** | Realm Groups 4개 + 각 group 에 realm role assign | **변경 없음** — token 의 `realm_access.roles` 에 group 의 composite role 자동 포함 | §8.1 step 3 → user 를 group 에 추가만, role 자동 상속 | ⭐ **권장** — backend impact 0 + 운영 단순 + HR sync 자연 |
 | **C. `groups` claim mapper + backend mapping** | Keycloak group 생성 + Group Membership token mapper 활성 + backend `keycloak_verifier.go` 에 groups → role mapping table 추가 | 변경 필요 (`extractRole` 4번째 step 추가) | §8.1 group 추가 + backend mapping table 동기화 burden | △ nested group hierarchy 활용 시 가치 — Phase 2 carve |
-| **D. Composite Role (group 없이 realm role 위계만)** | 기존 realm role 4종에 composite assign (예: system_admin = pmo_manager + manager + developer composite) | 변경 없음 — `realm_access.roles` 에 composite role 자동 포함 | role 위계 표현 가능, group 미사용 | △ role 위계 표현 목적이지 group → role 매핑 목적과 다름. 보조 옵션. |
+| **D. Composite Role (group 없이 realm role 위계만)** | 기존 realm role 4종에 composite assign (예: system_admin = team_manager + manager + developer composite) | 변경 없음 — `realm_access.roles` 에 composite role 자동 포함 | role 위계 표현 가능, group 미사용 | △ role 위계 표현 목적이지 group → role 매핑 목적과 다름. 보조 옵션. |
 
 ## 3. 옵션 B (권장) — Keycloak group composite realm role 상세
 
@@ -48,7 +48,7 @@ Keycloak group 기능 (Group / Composite Role / Group Membership Mapper) 을 활
 | --- | --- | --- |
 | `devhub-developers` | `developer` | `developer` |
 | `devhub-managers` | `manager` | `manager` |
-| `devhub-pmo-managers` | `pmo_manager` | `pmo_manager` |
+| `devhub-pmo-managers` | `team_manager` | `team_manager` |
 | `devhub-system-admins` | `system_admin` | `system_admin` |
 
 - group ↔ role 1:1 매핑 — 단순화 + 운영 명확성
@@ -61,9 +61,9 @@ Keycloak group 기능 (Group / Composite Role / Group Membership Mapper) 을 활
 2. 각 Group → Role Mappings 탭 → realm role 1개 assign (group ↔ role 매핑)
    - `devhub-developers` group → `developer` role
    - `devhub-managers` → `manager`
-   - `devhub-pmo-managers` → `pmo_manager`
+   - `devhub-pmo-managers` → `team_manager`
    - `devhub-system-admins` → `system_admin`
-3. **Default Groups 미설정 권장** (codex review #9 정정) — `devhub-developers` 를 Default Groups 로 추가 시, 신규 manager / pmo_manager / system_admin user 도 자동 `devhub-developers` 가입 → token `realm_access.roles` 에 multiple role 포함. **sprint -q (PR #185, 2026-05-19)** 에서 backend `extractKeycloakRole` 가 `selectHighestPriorityRole` helper + `devhubRolePriority` map (system_admin 4 > pmo_manager 3 > manager 2 > developer 1) 으로 multi-role priority filter 구현 — order-dependency 해소. **그러나 Default Groups 미설정 권장은 여전히 유효** (정책 안전성 + 명시 group 가입 SOP 일관). priority filter 는 fallback 정합 — operator 가 잘못 multi-role 부여해도 token 의 highest priority role 이 사용됨.
+3. **Default Groups 미설정 권장** (codex review #9 정정) — `devhub-developers` 를 Default Groups 로 추가 시, 신규 manager / team_manager / system_admin user 도 자동 `devhub-developers` 가입 → token `realm_access.roles` 에 multiple role 포함. **sprint -q (PR #185, 2026-05-19)** 에서 backend `extractKeycloakRole` 가 `selectHighestPriorityRole` helper + `devhubRolePriority` map (system_admin 4 > team_manager 3 > manager 2 > developer 1) 으로 multi-role priority filter 구현 — order-dependency 해소. **그러나 Default Groups 미설정 권장은 여전히 유효** (정책 안전성 + 명시 group 가입 SOP 일관). priority filter 는 fallback 정합 — operator 가 잘못 multi-role 부여해도 token 의 highest priority role 이 사용됨.
 
 ### 3.3 backend 동작 (sprint -q multi-role priority 구현)
 

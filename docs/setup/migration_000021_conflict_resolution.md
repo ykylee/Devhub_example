@@ -1,6 +1,6 @@
 # Migration 000021 prefix 중복 충돌 — 정정 SOP
 
-- 문서 목적: PR #167 KC-PR-E (2026-05-18, [ADR-0019](../adr/0019-keycloak-only-idp.md)) 가 추가한 `000021_rename_kratos_identity_to_idp_subject.{up,down}.sql` 과 기존 `000021_rbac_pmo_manager.{up,down}.sql` (PR #119, 2026-05-15) 의 prefix 중복 충돌 정정. sprint `claude/work_260519-l` 의 file rename + 사내 운영 DB 의 `schema_migrations` table 정정 SOP.
+- 문서 목적: PR #167 KC-PR-E (2026-05-18, [ADR-0019](../adr/0019-keycloak-only-idp.md)) 가 추가한 `000021_rename_kratos_identity_to_idp_subject.{up,down}.sql` 과 기존 `000021_rbac_team_manager.{up,down}.sql` (PR #119, 2026-05-15) 의 prefix 중복 충돌 정정. sprint `claude/work_260519-l` 의 file rename + 사내 운영 DB 의 `schema_migrations` table 정정 SOP.
 - 범위: backend-core/migrations/ 파일 rename + golang-migrate runner 동작 + 사내 운영 DB 정정. backend code 변경 없음 — schema 자체는 동일.
 - 대상 독자: 운영자 (SRE / DBA), Backend 담당자, 사내 deploy 책임자.
 - 상태: accepted
@@ -15,7 +15,7 @@
 ```text
 backend-core/migrations/
 ├── 000020_application_leader_department.{up,down}.sql  ← PR #100 (M3 sprint -n)
-├── 000021_rbac_pmo_manager.{up,down}.sql               ← PR #119 sprint -d (2026-05-15)
+├── 000021_rbac_team_manager.{up,down}.sql               ← PR #119 sprint -d (2026-05-15)
 └── 000021_rename_kratos_identity_to_idp_subject.{up,down}.sql  ← PR #167 KC-PR-E (2026-05-18)
                                                           ↑ 동일 prefix 000021 — 충돌
 ```
@@ -52,7 +52,7 @@ backend-core/migrations/
 ```
 
 **결정 근거**:
-- 000021 prefix 는 `000021_rbac_pmo_manager` 가 먼저 (PR #119, 2026-05-15) → 그대로 유지
+- 000021 prefix 는 `000021_rbac_team_manager` 가 먼저 (PR #119, 2026-05-15) → 그대로 유지
 - 새 migration 은 sequence 의 last position (000028 / 000029 다음) 으로 — 000030 채택
 - file 내용은 변경 없음 — schema 자체는 동일
 
@@ -66,7 +66,7 @@ make migrate-up
 
 # 결과:
 #   000001~000020 적용
-#   000021 (rbac_pmo_manager) 적용 — pmo_manager realm role seed
+#   000021 (rbac_team_manager) 적용 — team_manager realm role seed
 #   000022~000029 적용 — DREQ + integration_registry + infra_service_snapshots
 #   000030 (rename_kratos_identity_to_idp_subject) 적용 — users.kratos_identity_id → idp_subject
 ```
@@ -88,8 +88,8 @@ SELECT column_name FROM information_schema.columns
 WHERE table_schema = 'public' AND table_name = 'users'
   AND column_name IN ('kratos_identity_id', 'idp_subject');
 
--- 3. rbac_policies 의 pmo_manager role 존재 여부 — 000021_rbac_pmo_manager 적용 여부
-SELECT role_id, role_name FROM rbac_roles WHERE role_name = 'pmo_manager';
+-- 3. rbac_policies 의 team_manager role 존재 여부 — 000021_rbac_team_manager 적용 여부
+SELECT role_id, role_name FROM rbac_roles WHERE role_name = 'team_manager';
 ```
 
 ### 4.2 case A — 두 migration 모두 적용된 경우 (예상 가장 흔함)
@@ -97,12 +97,12 @@ SELECT role_id, role_name FROM rbac_roles WHERE role_name = 'pmo_manager';
 조건:
 - `schema_migrations.version` = `000021` (또는 마지막 entry)
 - `users.idp_subject` 컬럼 존재 + `users.kratos_identity_id` 미존재
-- `rbac_roles` 에 `pmo_manager` row 존재
+- `rbac_roles` 에 `team_manager` row 존재
 
 처리:
 ```sql
 -- schema_migrations 의 version 000021 → 000030 정정 (rename_kratos_identity 측이 실제 적용된 것을 명시)
--- 단, 000021_rbac_pmo_manager 측은 이미 적용됐으므로 별도 entry 필요 없음 (golang-migrate 는 single version-row 운영)
+-- 단, 000021_rbac_team_manager 측은 이미 적용됐으므로 별도 entry 필요 없음 (golang-migrate 는 single version-row 운영)
 -- 본 case 의 schema_migrations 정정 = 000030 으로 마킹 + 000021 은 그대로 유지
 
 -- 옵션 1: 단순 — 000030 entry 추가 (000021 도 그대로 둠)

@@ -310,9 +310,23 @@ describe("AuthService", () => {
   });
 
   describe("logout", () => {
-    it("clears tokens + actor, sets isLoggingOut, redirects to end_session_endpoint with id_token_hint", async () => {
+    it("calls backend logout API, then clears tokens + actor and redirects with id_token_hint", async () => {
+      tokenStoreMock.getAccessToken.mockReturnValue("access-token-1");
+      tokenStoreMock.getRefreshToken.mockReturnValue("refresh-token-1");
       tokenStoreMock.getIdToken.mockReturnValue("id-token-1");
-      fetchMock.mockImplementation(async (url: string) => {
+      fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+        if (String(url).includes("/api/v1/auth/logout")) {
+          expect(init?.method).toBe("POST");
+          expect(init?.headers).toMatchObject({
+            "Content-Type": "application/json",
+            Authorization: "Bearer access-token-1",
+          });
+          expect(JSON.parse(String(init?.body))).toEqual({
+            refresh_token: "refresh-token-1",
+            id_token: "id-token-1",
+          });
+          return new Response(JSON.stringify({ status: "ok" }), { status: 200 });
+        }
         if (String(url).includes("/api/runtime-config")) return runtimeConfigResponse();
         if (String(url).includes("/.well-known")) return discoveryResponse();
         throw new Error("unexpected");
@@ -335,6 +349,9 @@ describe("AuthService", () => {
     it("omits id_token_hint when no id token", async () => {
       tokenStoreMock.getIdToken.mockReturnValue(null);
       fetchMock.mockImplementation(async (url: string) => {
+        if (String(url).includes("/api/v1/auth/logout")) {
+          return new Response(JSON.stringify({ status: "ok" }), { status: 200 });
+        }
         if (String(url).includes("/api/runtime-config")) return runtimeConfigResponse();
         if (String(url).includes("/.well-known")) return discoveryResponse();
         throw new Error("unexpected");
@@ -349,6 +366,9 @@ describe("AuthService", () => {
     it("falls back to issuer + /protocol/openid-connect/logout when discovery omits end_session_endpoint", async () => {
       tokenStoreMock.getIdToken.mockReturnValue(null);
       fetchMock.mockImplementation(async (url: string) => {
+        if (String(url).includes("/api/v1/auth/logout")) {
+          return new Response(JSON.stringify({ status: "ok" }), { status: 200 });
+        }
         if (String(url).includes("/api/runtime-config")) return runtimeConfigResponse();
         if (String(url).includes("/.well-known")) {
           return new Response(JSON.stringify({
@@ -371,6 +391,9 @@ describe("AuthService", () => {
       assignMock.mockImplementationOnce(() => { throw new Error("assign blocked"); });
 
       fetchMock.mockImplementation(async (url: string) => {
+        if (String(url).includes("/api/v1/auth/logout")) {
+          return new Response(JSON.stringify({ status: "ok" }), { status: 200 });
+        }
         if (String(url).includes("/api/runtime-config")) return runtimeConfigResponse();
         if (String(url).includes("/.well-known")) return discoveryResponse();
         throw new Error("unexpected");
@@ -403,6 +426,9 @@ describe("AuthService", () => {
 
       // Provide discovery / runtime-config so logout can fire without throwing.
       fetchMock.mockImplementation(async (url: string) => {
+        if (String(url).includes("/api/v1/auth/logout")) {
+          return new Response(JSON.stringify({ status: "ok" }), { status: 200 });
+        }
         if (String(url).includes("/api/runtime-config")) return runtimeConfigResponse();
         if (String(url).includes("/.well-known")) return discoveryResponse();
         throw new Error("unexpected");

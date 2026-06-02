@@ -42,9 +42,9 @@
     - [ ] (기타 제안) CI/CD 빌드 결과 및 실시간 에러 로그 요약.
 
 ### 2.2 팀 관리자 (Team Manager)
-- **핵심 니즈:** (기존 `manager` + `pmo_manager` 통합) 팀 범위 프로젝트 가시성 확보, 리스크 선제 대응.
+- **핵심 니즈:** (기존 `manager` + `team_manager` 통합) 팀 범위 프로젝트 가시성 확보, 리스크 선제 대응.
 - **기본 진입 우선순위:** 관리 대시보드 (Management Dashboard)
-- **System Role:** `team_manager` (신규. 기존 `manager`/`pmo_manager` → 통합)
+- **System Role:** `team_manager` (신규. 기존 `manager`/`team_manager` → 통합)
 - **View Scope:** 자신이 속한 org unit(primary_unit_id 기준 subtree) 범위 내 전체 Project/Application 접근. team scope 밖은 member 인 project 만 접근.
 - **주요 기능 (확정):**
     - [x] Team scope 내 Project/Application 목록·상세 조회.
@@ -161,7 +161,7 @@
 
 | 일자 | 변경 |
 | --- | --- |
-| 2026-06-01 | **Two-Dimensional RBAC 도입** — §2 사용자 역할 구조를 system role 3종(developer/team_manager/system_admin) + resource role 4종(project_member/project_leader/application_leader/org_head) 으로 확장. `manager`/`pmo_manager` → `team_manager` 통합. §2.1 developer matrix 확장(applications/projects view ON, row-scoped). §2.2 manager → team_manager 갱신. §2.4 system_admin view scope 명시화. §5 app-lifecycle link 표에 REQ-FR-ROLE-001..016 추가. 컨셉 문서: `docs/planning/role-access-concept.md`. |
+| 2026-06-01 | **Two-Dimensional RBAC 도입** — §2 사용자 역할 구조를 system role 3종(developer/team_manager/system_admin) + resource role 4종(project_member/project_leader/application_leader/org_head) 으로 확장. `manager`/`team_manager` → `team_manager` 통합. §2.1 developer matrix 확장(applications/projects view ON, row-scoped). §2.2 manager → team_manager 갱신. §2.4 system_admin view scope 명시화. §5 app-lifecycle link 표에 REQ-FR-ROLE-001..016 추가. 컨셉 문서: `docs/planning/role-access-concept.md`. |
 | 2026-05-29 | **Phase 3 split** — 도메인별 본문(§5.4~§5.10)을 10 도메인 sub-document 의 `requirements.md` 로 이관. 본 master 는 §1-4 (cross-cutting) + §5 link 표 + §6-7 (cross-cutting) 로 축소. ID 보존(REQ-FR-APP-001..012, REQ-FR-PROJ-000..010, REQ-FR-DREQ-001..013, REQ-FR-INT-001..015, REQ-FR-ONBOARD-001..012, REQ-FR-REPO-001..005, REQ-FR-APPDASH-001..006, REQ-FR-TASK-001..010, REQ-NFR-* 전체), 신규 발급/삭제 없음. §2.5 사용자 계정 관리 본문은 auth-session 도메인으로 이관. |
 | 2026-05-28 | (split 이전) §5.10 (Task Item Ingestion) 신규 — integration-registry/task_requirements.md 로 이관됨. |
 | 2026-05-27 | (split 이전) §5.8 (SCM↔시스템 Repository) 신규 — repository-integration/requirements.md 로 이관됨. §5.6 INT 보강 — integration-registry/requirements.md 로 이관. |

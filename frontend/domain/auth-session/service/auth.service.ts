@@ -129,9 +129,27 @@ class AuthService {
   }
 
   public async logout(): Promise<void> {
+    const accessToken = tokenStore.getAccessToken();
+    const refreshToken = tokenStore.getRefreshToken();
     const idToken = tokenStore.getIdToken();
     const runtimeConfig = await this.getRuntimeOIDCConfig();
     const discovery = await this.getDiscovery();
+
+    try {
+      await fetch(`${BASE_PATH}/api/v1/auth/logout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({
+          refresh_token: refreshToken ?? undefined,
+          id_token: idToken ?? undefined,
+        }),
+      });
+    } catch (error) {
+      console.warn("[AuthService] logout API call failed", error);
+    }
 
     tokenStore.clear();
     useStore.getState().setIsLoggingOut(true);

@@ -15,7 +15,7 @@
   - `system_admin` -> 시스템 대시보드 + 시스템 설정
 - 관리 권한 정책:
   - `system_admin`: Application/Repository/Project 관리 쓰기 전 권한 허용
-  - `pmo_manager`(tentative): 후보 role. 정책 확정 전 `disabled` 유지
+  - `team_manager`(tentative): 후보 role. 정책 확정 전 `disabled` 유지
 - 노출 정책:
   - 시스템 대시보드/시스템 설정은 `system_admin`만 접근 가능
 - 운영 계층:
@@ -37,7 +37,7 @@
 | Audit | 제한 조회 | 제한 조회 | 전체 조회 | 보안/운영 감사 |
 | Settings | 개인 설정 | 개인 설정 | 시스템 설정 | system_admin 전용 항목 포함 |
 
-`pmo_manager` 활성화 전:
+`team_manager` 활성화 전:
 - Manager 화면에서 관리 쓰기 액션 버튼은 노출하지 않는다.
 - API 응답은 `403 role_not_enabled`를 반환한다.
 
@@ -64,8 +64,8 @@
 | 리스크 대응 | 리스크 상세, 대응 명령 상태 | 완화 명령 요청, 진행 추적 | `POST /api/v1/risks/{risk_id}/mitigations`, `GET /api/v1/commands/{command_id}`, `GET /api/v1/realtime/ws` |
 
 PMO 후보 role 정책:
-- `pmo_manager` 비활성 단계: Manager와 동일하게 조회 중심.
-- `pmo_manager` 활성 단계(후속): `Project 운영 관리`와 `마일스톤 매핑 관리`의 제한적 쓰기 권한 허용 검토.
+- `team_manager` 비활성 단계: Manager와 동일하게 조회 중심.
+- `team_manager` 활성 단계(후속): `Project 운영 관리`와 `마일스톤 매핑 관리`의 제한적 쓰기 권한 허용 검토.
 
 ### 3.3 System Admin 뷰
 

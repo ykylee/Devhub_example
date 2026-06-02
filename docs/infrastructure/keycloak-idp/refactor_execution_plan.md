@@ -84,7 +84,7 @@
 - clients:
   - `devhub-frontend` (public, PKCE required)
   - `devhub-backend` (confidential, service account enabled)
-- roles: `developer`, `manager`, `pmo_manager`, `system_admin`
+- roles: `developer`, `manager`, `team_manager`, `system_admin`
 - mapper: `preferred_username`, `email`, `realm_access.roles`
 - redirect/logout URI: local frontend URL 등록
 

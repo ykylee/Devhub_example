@@ -17,7 +17,7 @@ export type SeededUser = {
 // SEEDED is intentionally not `as const` — password-change.spec rotates the
 // password through `{ ...SEEDED.developer, password: rotated }`, which needs
 // password to be a widened `string` rather than the seeded literal.
-export const SEEDED: Record<"developer" | "manager" | "systemAdmin", SeededUser> = {
+export const SEEDED: Record<"developer" | "team_manager" | "systemAdmin", SeededUser> = {
   developer: {
     user_id: "alice",
     email: "alice@example.com",
@@ -25,11 +25,11 @@ export const SEEDED: Record<"developer" | "manager" | "systemAdmin", SeededUser>
     role: "developer",
     landing: "/developer",
   },
-  manager: {
+  team_manager: {
     user_id: "bob",
     email: "bob@example.com",
     password: "ChangeMe-12345!",
-    role: "manager",
+    role: "team_manager",
     landing: "/manager",
   },
   systemAdmin: {

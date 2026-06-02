@@ -1,9 +1,9 @@
 package view
 
 import (
-	"github.com/devhub/backend-core/internal/shared/httphelp"
 	"context"
 	"errors"
+	"github.com/devhub/backend-core/internal/shared/httphelp"
 	"log"
 	"net/http"
 	"strings"
@@ -25,6 +25,15 @@ type AuthenticatedActor struct {
 	// 가 USER:UPDATE event 로 sync.
 	Email       string
 	DisplayName string
+}
+
+func normalizeSystemRoleAlias(role string) string {
+	switch strings.TrimSpace(role) {
+	case "manager", "team_manager":
+		return "team_manager"
+	default:
+		return strings.TrimSpace(role)
+	}
 }
 
 type BearerTokenVerifier interface {
@@ -185,6 +194,19 @@ func (h *AuthHandler) AuthenticateActor(c *gin.Context) {
 		user, err := h.cfg.OrganizationStore.GetUser(c.Request.Context(), login)
 		switch {
 		case err == nil:
+			tokenRole := normalizeSystemRoleAlias(actor.Role)
+			dbRole := normalizeSystemRoleAlias(string(user.Role))
+			if tokenRole != "" && dbRole != "" && tokenRole != dbRole {
+				c.Set("devhub_role_sync_required", true)
+				c.Set("devhub_role_sync_token_role", tokenRole)
+				c.Set("devhub_role_sync_db_role", dbRole)
+				h.recordAuditBestEffort(c, "auth.role_sync_required", "user", login, map[string]any{
+					"token_role": tokenRole,
+					"db_role":    dbRole,
+					"reason":     "role_drift_detected",
+				})
+				httphelp.LogRequest(c, "[authenticateActor] role drift detected for %q: token=%q db=%q", login, tokenRole, dbRole)
+			}
 			finalRole = string(user.Role)
 			// sprint -t (PR #188): 자동 idp_subject sync — sprint -j codex review #9 #2 backend
 			// 확장 carve 4건 중 4번째. user row 가 있고 idp_subject 가 비어있으면 actor.Subject
@@ -232,7 +254,7 @@ func (h *AuthHandler) AuthenticateActor(c *gin.Context) {
 	}
 
 	if finalRole != "" {
-		c.Set("devhub_actor_role", finalRole)
+		c.Set("devhub_actor_role", normalizeSystemRoleAlias(finalRole))
 	}
 	c.Next()
 }

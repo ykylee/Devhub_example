@@ -1468,7 +1468,7 @@ func TestIntakeTokenAdmin_RoutePoliciesSystemAdminOnly(t *testing.T) {
 		if policy.Resource != domain.ResourceDevRequestIntakeTokens || policy.Action != tc.action {
 			t.Errorf("%s %s policy mismatch: %+v", tc.method, tc.path, policy)
 		}
-		for _, role := range []string{"developer", "manager", "pmo_manager"} {
+		for _, role := range []string{"developer", "team_manager", "team_manager"} {
 			matrix, _ := domain.DefaultPermissionMatrix(role)
 			if domain.Allows(matrix, policy.Resource, policy.Action) {
 				t.Errorf("role=%s must NOT allow %s on %s", role, tc.action, policy.Resource)

@@ -5,13 +5,17 @@ import (
 	"net/http"
 	"net/url"
 	"testing"
+
+	"github.com/devhub/backend-core/internal/domain"
 )
 
 // Application 롤업 handler tests (API-57, sprint claude/work_260514-c).
 
 // 1) GET /applications/:id/rollup — happy (equal policy default).
 func TestApplicationRollup_DefaultEqual(t *testing.T) {
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	store := newMemoryApplicationStore()
+	store.apps["some-id"] = domain.Application{ID: "some-id", Key: "APP1", Status: domain.ApplicationStatusActive}
+	router := newApplicationsRouter(store)
 	rec := doJSON(t, router, http.MethodGet, "/api/v1/applications/some-id/rollup", "")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
@@ -24,7 +28,9 @@ func TestApplicationRollup_DefaultEqual(t *testing.T) {
 
 // 2) GET /applications/:id/rollup — invalid weight_policy → 400.
 func TestApplicationRollup_InvalidPolicy(t *testing.T) {
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	store := newMemoryApplicationStore()
+	store.apps["some-id"] = domain.Application{ID: "some-id", Key: "APP1", Status: domain.ApplicationStatusActive}
+	router := newApplicationsRouter(store)
 	rec := doJSON(t, router, http.MethodGet, "/api/v1/applications/some-id/rollup?weight_policy=bogus", "")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
@@ -33,7 +39,9 @@ func TestApplicationRollup_InvalidPolicy(t *testing.T) {
 
 // 3) GET /applications/:id/rollup — custom weights summing to ≠ 1.0 → 422.
 func TestApplicationRollup_CustomSumMismatch(t *testing.T) {
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	store := newMemoryApplicationStore()
+	store.apps["some-id"] = domain.Application{ID: "some-id", Key: "APP1", Status: domain.ApplicationStatusActive}
+	router := newApplicationsRouter(store)
 	weights := url.QueryEscape(`{"team/a":0.4,"team/b":0.3}`) // sum=0.7
 	rec := doJSON(t, router, http.MethodGet,
 		"/api/v1/applications/some-id/rollup?weight_policy=custom&custom_weights="+weights, "")
@@ -47,7 +55,9 @@ func TestApplicationRollup_CustomSumMismatch(t *testing.T) {
 
 // 4) GET /applications/:id/rollup — malformed custom_weights JSON → 400.
 func TestApplicationRollup_MalformedCustomWeights(t *testing.T) {
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	store := newMemoryApplicationStore()
+	store.apps["some-id"] = domain.Application{ID: "some-id", Key: "APP1", Status: domain.ApplicationStatusActive}
+	router := newApplicationsRouter(store)
 	rec := doJSON(t, router, http.MethodGet,
 		"/api/v1/applications/some-id/rollup?weight_policy=custom&custom_weights=not-json", "")
 	if rec.Code != http.StatusBadRequest {
@@ -66,7 +76,9 @@ func TestApplicationRollup_MalformedCustomWeights(t *testing.T) {
 // 본 test 는 handler 의 custom_weights query 파싱이 store stub 으로 정상 전달되는지만
 // 확인 — fallback 가 0건인 trivial case.
 func TestApplicationRollup_CustomWeightsExact(t *testing.T) {
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	store := newMemoryApplicationStore()
+	store.apps["some-id"] = domain.Application{ID: "some-id", Key: "APP1", Status: domain.ApplicationStatusActive}
+	router := newApplicationsRouter(store)
 	weights := `{"team/a":1.0}` // exact 1.0
 	rec := doJSON(t, router, http.MethodGet,
 		"/api/v1/applications/some-id/rollup?weight_policy=custom&custom_weights="+weights, "")

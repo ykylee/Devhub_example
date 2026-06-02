@@ -193,7 +193,7 @@ export class RealtimeService {
 
     const roleMap: Record<string, string> = {
       "System Admin": "system_admin",
-      "Manager": "manager",
+      "Manager": "team_manager",
       "Developer": "developer"
     };
     const roleParam = role ? (roleMap[role] || role.toLowerCase()) : 'guest';

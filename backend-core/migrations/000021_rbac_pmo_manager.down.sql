@@ -1,21 +1,20 @@
--- 000021 down: pmo_manager role + CHECK constraint 복구.
+-- 000021 down: team_manager row 삭제가 아니라 000005 seed 수준으로 metadata/policy 복구.
 --
--- users.role 이 rbac_policies(role_id) FK (migration 000006) 를 참조하므로,
--- 운영 중 pmo_manager 로 지정된 사용자가 있는 환경에서는 DELETE 가 FK 위반으로
--- 실패한다 (rollback 자체가 불가능). 따라서 DELETE 직전에 pmo_manager 사용자를
--- 안전한 default 인 'developer' 로 재할당한다 (회복 가능한 변환). 운영 진입 후
--- 다른 default 가 정해지면 그에 맞춰 본 down 을 갱신.
--- codex PR #119 review P1 (sprint claude/work_260515-h).
+-- Fresh install 기준 team_manager 자체는 000005 에서 이미 생성되므로 rollback 이
+-- role row 를 제거하면 FK/seed 불일치가 발생한다. 따라서 본 down 은 본 migration
+-- 이전의 baseline permissions 로 되돌린다.
 
-UPDATE users SET role = 'developer' WHERE role = 'pmo_manager';
-
-DELETE FROM rbac_policies WHERE role_id = 'pmo_manager';
-
-ALTER TABLE rbac_policies
-    DROP CONSTRAINT IF EXISTS rbac_policies_role_id_format;
-
-ALTER TABLE rbac_policies
-    ADD CONSTRAINT rbac_policies_role_id_format CHECK (
-        role_id IN ('developer', 'manager', 'system_admin')
-        OR role_id ~ '^custom-[a-z0-9][a-z0-9_-]{0,62}$'
-    );
+UPDATE rbac_policies
+SET
+    name = 'Manager',
+    description = '팀 운영, risk triage, 승인 전 command 생성 권한',
+    is_system = TRUE,
+    permissions = '{
+        "infrastructure": {"view": true, "create": false, "edit": false, "delete": false},
+        "pipelines":      {"view": true, "create": false, "edit": false, "delete": false},
+        "organization":   {"view": true, "create": false, "edit": false, "delete": false},
+        "security":       {"view": true, "create": true,  "edit": false, "delete": false},
+        "audit":          {"view": true, "create": false, "edit": false, "delete": false}
+    }'::jsonb,
+    updated_at = NOW()
+WHERE role_id = 'team_manager';

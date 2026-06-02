@@ -1,12 +1,14 @@
 package view
 
 import (
-	"github.com/devhub/backend-core/internal/shared/httphelp"
 	"encoding/json"
+	"errors"
+	"github.com/devhub/backend-core/internal/shared/httphelp"
 	"net/http"
 	"time"
 
 	"github.com/devhub/backend-core/internal/domain"
+	"github.com/devhub/backend-core/internal/store"
 	"github.com/gin-gonic/gin"
 )
 
@@ -55,6 +57,25 @@ func (h *ApplicationHandler) ApplicationRollup(c *gin.Context) {
 			return
 		}
 		opts.WindowTo = t
+	}
+
+	app, err := storeI.GetApplication(c.Request.Context(), id)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "application not found"})
+			return
+		}
+		httphelp.WriteServerError(c, err, "application.rollup.scope_lookup")
+		return
+	}
+	allowed, deniedReason, err := h.actorCanReadApplication(c, storeI, app)
+	if err != nil {
+		httphelp.WriteServerError(c, err, "application.rollup.scope")
+		return
+	}
+	if !allowed {
+		h.denyRowRead(c, deniedReason)
+		return
 	}
 
 	rollup, err := storeI.ComputeApplicationRollup(c.Request.Context(), id, opts)

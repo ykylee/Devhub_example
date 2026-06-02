@@ -1,7 +1,7 @@
 # ADR-0013: Dev Request 도메인의 RBAC row-scoping 정책
 
 - 문서 목적: `dev_requests` resource 의 RBAC row-level scoping 정책을 명문화한다. ADR-0011 §4.2 `enforceRowOwnership` 패턴의 dev_requests resource 적용 사례이며, 사후 명문화 (handler wire-up 은 이미 sprint `claude/work_260515-i` 의 PR #124 에 도입됨) 다.
-- 범위: `dev_requests` resource 의 read / write 권한이 (a) 전역 `system_admin`, (b) `pmo_manager`, (c) 행 단위 `assignee owner-self` 로 어떻게 분기되는지 결정한다. `dev_request_intake_tokens` resource (외부 수신 인증 관리) 는 별도 ADR-0014 (DREQ-Admin-UI sprint) 에서 다룬다.
+- 범위: `dev_requests` resource 의 read / write 권한이 (a) 전역 `system_admin`, (b) `team_manager`, (c) 행 단위 `assignee owner-self` 로 어떻게 분기되는지 결정한다. `dev_request_intake_tokens` resource (외부 수신 인증 관리) 는 별도 ADR-0014 (DREQ-Admin-UI sprint) 에서 다룬다.
 - 대상 독자: Backend 개발자, RBAC 정책 stakeholder, AI agent, 추적성 리뷰어.
 - 상태: accepted
 - 작성일: 2026-05-15
@@ -23,7 +23,7 @@ ADR-0011 §4.2 가 이미 일반 helper `enforceRowOwnership(c, ownerUserID, all
 ## 2. 결정 동인
 
 - **resource 별 owner 컬럼이 다르다**: applications/projects 는 `owner_user_id`, dev_requests 는 `assignee_user_id`. ADR-0011 helper 의 `ownerUserID` parameter 는 의미적으로 "row 의 책임자 = 본인 의뢰만 보일 수 있는 사람" 으로 일반화되었으므로 dev_requests 에서는 `AssigneeUserID` 를 넣는다.
-- **pmo_manager 위양**: ADR-0011 §4.2 가 pmo_manager 의 row-level 위양을 일반 패턴으로 정의했다. dev_requests resource 도 동일 패턴 (행 단위 위양) 으로 일관시킨다 — 다른 resource 와 운영 모델을 통일.
+- **team_manager 위양**: ADR-0011 §4.2 가 team_manager 의 row-level 위양을 일반 패턴으로 정의했다. dev_requests resource 도 동일 패턴 (행 단위 위양) 으로 일관시킨다 — 다른 resource 와 운영 모델을 통일.
 - **assignee 본인 의뢰 view**: 개발자 / 매니저 dashboard 위젯 (`MyPendingDevRequestsWidget`) 이 assignee 본인 의뢰만 보이는 동작은 frontend UX 가 아닌 backend RBAC 가 강제해야 한다 (frontend bypass 방지).
 - **외부 intake 와 RBAC 무관**: `POST /api/v1/dev-requests` (API-59) 는 RBAC 매트릭스 외 (intake token 인증). 이 carve 는 ADR-0012 가 이미 결정.
 - **close/reassign 의 system_admin only**: 두 동작은 운영 결정 (의뢰 종료 / 담당자 변경) 으로 row 단위 위양 없이 단일 주체가 책임. handler 자체 검증 + REQ-FR-DREQ-008 정합.
@@ -35,11 +35,11 @@ ADR-0011 §4.2 가 이미 일반 helper `enforceRowOwnership(c, ownerUserID, all
 | 결정 항목 | 옵션 | 채택 |
 | --- | --- | --- |
 | owner 컬럼 | `assignee_user_id` vs `requester` | `assignee_user_id` (의뢰 처리 책임자) |
-| 위양 role | `pmo_manager` only vs `pmo_manager + developer/manager` | `pmo_manager` only (의뢰 관리 운영 권한, 개별 개발자는 owner-self path) |
+| 위양 role | `team_manager` only vs `team_manager + developer/manager` | `team_manager` only (의뢰 관리 운영 권한, 개별 개발자는 owner-self path) |
 | reassign 권한 | row-level (현 assignee 의 자기 이양) vs system_admin only | system_admin only (운영 결정으로 단일화) |
 | close 권한 | row-level vs system_admin only | system_admin only (REQ-FR-DREQ-008) |
-| register/reject 권한 | row-level (owner-self + pmo_manager) | row-level (위 helper 패턴) |
-| view 권한 | row-level (owner-self + pmo_manager) | row-level (위 helper 패턴) |
+| register/reject 권한 | row-level (owner-self + team_manager) | row-level (위 helper 패턴) |
+| view 권한 | row-level (owner-self + team_manager) | row-level (위 helper 패턴) |
 
 ## 4. 결정
 
@@ -52,7 +52,7 @@ ADR-0011 §4.2 가 이미 일반 helper `enforceRowOwnership(c, ownerUserID, all
 | role | view | create | edit | delete |
 | --- | --- | --- | --- | --- |
 | `system_admin` | ✅ | ✅ | ✅ | ✅ |
-| `pmo_manager` | ✅ | ❌ | ✅ | ❌ |
+| `team_manager` | ✅ | ❌ | ✅ | ❌ |
 | `manager` | ✅ (route gate) | ❌ | ✅ (route gate) | ❌ |
 | `developer` | ✅ (route gate) | ❌ | ✅ (route gate) | ❌ |
 
@@ -74,10 +74,10 @@ if !h.enforceRowOwnership(c, dr.AssigneeUserID, string(domain.AppRolePMOManager)
 ```
 
 - 첫 번째 인자 `ownerUserID = dr.AssigneeUserID` — dev_request 의 행 단위 책임자.
-- 두 번째 가변 인자 `allowedRoles = [pmo_manager]` — system_admin 은 helper 가 자동 통과시키므로 명시 불요. developer/manager 는 owner-self path (=actor.login == AssigneeUserID) 로 통과.
+- 두 번째 가변 인자 `allowedRoles = [team_manager]` — system_admin 은 helper 가 자동 통과시키므로 명시 불요. developer/manager 는 owner-self path (=actor.login == AssigneeUserID) 로 통과.
 - helper 의 allow 규칙:
   1. `actor.role == system_admin` → allow (audit 없음)
-  2. `actor.role ∈ allowedRoles` (=pmo_manager) → allow (audit 없음)
+  2. `actor.role ∈ allowedRoles` (=team_manager) → allow (audit 없음)
   3. `actor.login == ownerUserID` (=AssigneeUserID, owner-self) → allow (audit 없음)
   4. 그 외 → deny → 403 `code=auth_row_denied` + audit `auth.row_denied` event with payload `{actor_role, owner_user_id, resource="dev_requests", action, denied_reason="owner_mismatch"}`
 
@@ -86,7 +86,7 @@ if !h.enforceRowOwnership(c, dr.AssigneeUserID, string(domain.AppRolePMOManager)
 `listDevRequests` (API-60) 는 `enforceRowOwnership` 을 호출하지 않고 (단일 row 가 없으므로) 대신 **store query 의 `assignee_user_id` filter** 를 강제한다:
 
 ```go
-if !devFallbackEnabled(c) && role != system_admin && role != pmo_manager {
+if !devFallbackEnabled(c) && role != system_admin && role != team_manager {
     opts.AssigneeUserID = actor.login  // 본인 의뢰만 보임
 }
 ```
@@ -130,7 +130,7 @@ allow 시 audit event 는 별도 (e.g., `dev_request.registered`, `dev_request.r
 ## 6. 후속 작업
 
 - **(carve out, ADR-0014)** `dev_request_intake_tokens` resource 의 admin endpoint (발급 / revoke) 도입 시 별도 ADR 로 정책 결정 — sprint `DREQ-Admin-UI` 진입 시 작성.
-- **(carve out, TC-DREQ-RBAC)** 본 ADR 정책의 e2e 테스트 (assignee owner-self / pmo_manager / system_admin / forbidden 4 케이스) — sprint `DREQ-E2E` 진입 시 발급.
+- **(carve out, TC-DREQ-RBAC)** 본 ADR 정책의 e2e 테스트 (assignee owner-self / team_manager / system_admin / forbidden 4 케이스) — sprint `DREQ-E2E` 진입 시 발급.
 - **(monitoring)** ADR-0011 §4.3 의 row_predicate 마이그레이션 진입 조건 (정책 row ≥10 또는 운영 변경 빈도 임계) 에 본 ADR 의 dev_requests 정책도 포함.
 
 ## 7. 변경 이력

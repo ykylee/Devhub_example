@@ -125,7 +125,7 @@ describe("IdentityService", () => {
       apiClientMock.mockResolvedValue({
         status: "ok",
         data: [
-          { user_id: "u1", display_name: "Alice", email: "alice@test.com", role: "manager", status: "active" },
+          { user_id: "u1", display_name: "Alice", email: "alice@test.com", role: "team_manager", status: "active" },
           { user_id: "u2", display_name: "Bob", email: "bob@test.com", role: "developer", status: "active", appointments: [{ unit_id: "dept-1", appointment_role: "member" }] },
         ],
       });
@@ -405,7 +405,7 @@ describe("IdentityService", () => {
     it("forwards provided dept ids / joined_at / is_seconded", async () => {
       apiClientMock.mockResolvedValue({
         status: "ok",
-        data: { user_id: "u1", display_name: "X", email: "x@x.com", role: "manager", status: "active" },
+        data: { user_id: "u1", display_name: "X", email: "x@x.com", role: "team_manager", status: "active" },
       });
       const { identityService } = await import("./identity.service");
       await identityService.createUser({
@@ -427,7 +427,7 @@ describe("IdentityService", () => {
         current_unit_id: "dept-b",
         is_seconded: true,
         joined_at: "2026-05-28",
-        role: "manager",
+        role: "team_manager",
       });
     });
 
@@ -455,7 +455,7 @@ describe("IdentityService", () => {
       const [method, path, body] = apiClientMock.mock.calls[0];
       expect(method).toBe("PATCH");
       expect(path).toBe("/api/v1/users/u1");
-      expect(body).toEqual({ display_name: "Updated", role: "manager", status: "deactivated" });
+      expect(body).toEqual({ display_name: "Updated", role: "team_manager", status: "deactivated" });
     });
 
     it("forwards all optional fields when provided", async () => {

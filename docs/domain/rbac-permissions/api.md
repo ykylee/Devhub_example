@@ -1,10 +1,10 @@
 # rbac-permissions 도메인 API
 
-- 문서 목적: RBAC 정책 조회·갱신·subject 매핑 API 계약을 정의한다.
+- 문서 목적: RBAC 정책 조회·갱신·권한 강제 계약(API-26..29, 38..40)과 연계 정책을 정의한다.
 - 범위: API-26..29 (정책 CRUD), API-30/API-31 (subject role, **폐기**), API-38 (route 매핑 표), API-39 (deny-by-default), API-40 (cache).
 - 대상 독자: backend / 프론트엔드 / DevOps, AI agent, QA.
 - 상태: accepted
-- 최종 수정일: 2026-05-29 (Phase 3 split, master `docs/backend_api_contract.md` §12 본문 이관)
+- 최종 수정일: 2026-06-02 (Two-Dimensional RBAC 정합화 + role drift fail-closed/read-scope 규칙 반영)
 - 관련 문서: [도메인 README](./README.md), [requirements.md](./requirements.md), [architecture.md](./architecture.md), [master API](../../backend_api_contract.md), [ADR-0002](../../adr/0002-rbac-policy-edit-api.md), [ADR-0007](../../adr/0007-rbac-enforcement.md), [ADR-0011](../../adr/0011-rbac-row-scoping.md), [ADR-0020](../../adr/0020-account-user-management-boundary.md)
 
 ## 개요
@@ -15,7 +15,7 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 
 ### 1.1 Role
 
-- 시스템 정의 role 3종 (immutable id, name 변경 불가): `developer`, `manager`, `system_admin`.
+- 시스템 정의 role 3종 (immutable id, name 변경 불가): `developer`, `team_manager`, `system_admin`.
 - 사용자 정의 role: `system_admin` 만 생성 가능. id 는 `custom-{slug}` 패턴 권장. 시스템 role 의 권한을 *상회* 하는 매트릭스 설정 가능 (단 본 단계에서는 enforcement 가 *최상위 1개 role 단일 평가* 라 multi-role 합산 정책은 미해결).
 - 응답 wire 형식: `id` (snake_case 또는 `custom-*`), `name` (display, 자유 문자열), `description`, `permissions`.
 
@@ -59,11 +59,11 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 | role \ resource | infrastructure | pipelines | organization | security | audit |
 | --- | --- | --- | --- | --- | --- |
 | `developer` | view | view | view | view | — |
-| `manager` | view | view | view | view, create | view |
+| `team_manager` | view | view | view, edit | view, create | view |
 | `system_admin` | view, create, edit, delete | view, create, edit, delete | view, create, edit, delete | view, create, edit, delete | view |
-| `pmo_manager` | view | view | view | view | view |
 
 > `audit` 의 create/edit/delete 는 §1.4 invariant 로 모든 role 에서 false. system_admin 도 view 만 true.
+> 레거시 `manager`/`team_manager` 는 신규 부여 금지이며 migration alias 로만 허용.
 
 ## 3. `GET /api/v1/rbac/policies` (API-26)
 
@@ -93,14 +93,14 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
       }
     },
     {
-      "id": "manager",
-      "name": "Manager",
-      "description": "팀 운영, risk triage, 승인 전 command 생성 권한",
+      "id": "team_manager",
+      "name": "Team Manager",
+      "description": "팀 범위 운영 및 권한 관리",
       "system": true,
       "permissions": {
         "infrastructure": { "view": true, "create": false, "edit": false, "delete": false },
         "pipelines":      { "view": true, "create": false, "edit": false, "delete": false },
-        "organization":   { "view": true, "create": false, "edit": false, "delete": false },
+        "organization":   { "view": true, "create": false, "edit": true, "delete": false },
         "security":       { "view": true, "create": true,  "edit": false, "delete": false },
         "audit":          { "view": true, "create": false, "edit": false, "delete": false }
       }
@@ -123,7 +123,7 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
     "policy_version": "2026-05-08.adr-0002.v1",
     "source": "rbac_policies_store",
     "editable": true,
-    "system_roles": ["developer", "manager", "system_admin"]
+    "system_roles": ["developer", "team_manager", "system_admin"]
   }
 }
 ```
@@ -142,7 +142,7 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 {
   "roles": [
     {
-      "id": "manager",
+      "id": "team_manager",
       "permissions": {
         "pipelines": { "view": true, "create": true, "edit": false, "delete": false }
       }
@@ -169,7 +169,7 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 
 ## 6. `DELETE /api/v1/rbac/policies/:role_id` (사용자 정의 role 삭제) (API-29)
 
-사용자 정의 role 만 삭제 가능. 시스템 role (`developer`, `manager`, `system_admin`) 은 422 + `system_role_not_deletable`. 삭제 직전 해당 role 이 할당된 subject 가 있으면 store 가 cascade 또는 422 거부 — *cascade 거부* 채택 (subject 가 있으면 422 + `role_in_use`). 호출자가 Keycloak admin console 의 group membership 변경 (ADR-0020 결정 D — sprint -d 의 `PUT /rbac/subjects/.../roles` 폐기 이후 단일 경로) 으로 재할당한 뒤 event listener sync 가 DevHub `users.role` 컬럼 갱신을 기다린 후 삭제.
+사용자 정의 role 만 삭제 가능. 시스템 role (`developer`, `team_manager`, `system_admin`) 은 422 + `system_role_not_deletable`. 삭제 직전 해당 role 이 할당된 subject 가 있으면 store 가 cascade 또는 422 거부 — *cascade 거부* 채택 (subject 가 있으면 422 + `role_in_use`). 호출자가 Keycloak admin console 의 group membership 변경 (ADR-0020 결정 D — sprint -d 의 `PUT /rbac/subjects/.../roles` 폐기 이후 단일 경로) 으로 재할당한 뒤 event listener sync 가 DevHub `users.role` 컬럼 갱신을 기다린 후 삭제.
 
 ### 6.1 권한
 
@@ -259,14 +259,33 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 
 본 정책은 라우트 추가 시점의 매핑 표 갱신 누락을 *런타임 거부* 로 강제하기 위한 안전장치다.
 
+## 9.1 표준 거부 코드
+
+- `auth.policy_unmapped`: 라우트 매핑 누락 거부
+- `auth.row_denied`: row scope/ownership 거부
+- `auth.role_sync_required`: role drift 감지로 fail-closed 거부
+
+## 9.2 Read scope 계약 (연계 정책)
+
+- `applications:view`, `projects:view` 는 route-level 허용만으로 충분하지 않으며 read scope가 결합되어야 한다.
+- `List*` 계열: scope 밖 데이터는 필터링(빈 목록 허용)
+- `Get*` 계열: scope 밖 데이터는 `403` + `code=auth_row_denied`
+- 상세 scope 병합 규칙은 `docs/planning/role-access-concept.md` 및 `requirements.md`(REQ-RBAC-013/015) 기준.
+
 ## 10. Cache 와 무효화 (API-40)
 
 - store 적중 비용 회피를 위해 `requirePermission` 은 in-memory matrix cache (per process) 를 유지한다.
 - `PUT/POST/DELETE /api/v1/rbac/policies` 머지 시 동일 프로세스 내 cache reload. (`PUT /api/v1/rbac/subjects/.../roles` 는 ADR-0020 결정 D 로 sprint -d 폐기 — cache reload trigger 도 자연 제거.)
 - 다중 인스턴스 환경의 cache 일관성은 미해결 — 운영 phase 진입 시 pub/sub 또는 polling 으로 보강.
 
+## 10.1 Sign-out 연계 (cross-domain)
+
+- FE `/devhub/auth/signout` 는 `POST /api/v1/auth/logout` orchestration route 로 동작해야 한다.
+- logout의 세션 정리/revoke/audit 계약은 auth-session 도메인 API 문서를 source-of-truth로 하며, RBAC 도메인은 `auth.logout` 감사 추적과 권한 경계 정합을 보장한다.
+
 ## 11. 변경 이력
 
 | 일자 | 변경 |
 | --- | --- |
+| 2026-06-02 | Two-Dimensional RBAC 정합화: 시스템 role을 `developer/team_manager/system_admin`으로 갱신. 표준 거부 코드(`auth.policy_unmapped`, `auth.row_denied`, `auth.role_sync_required`), read scope 결합 계약(List filter/Get 403), FE signout → API logout 연계 정책을 추가. |
 | 2026-05-29 | Phase 3 split — master `docs/backend_api_contract.md` §12 (RBAC) 본문 그대로 이관. ID(API-26..31, API-38..40) 보존, 신규 발급/삭제 없음. |

@@ -116,7 +116,7 @@ func SyncUserProfile(ctx context.Context, admin UserSyncAdminClient, orgs UserSy
 //
 // Group names with the `devhub-` prefix are treated as DevHub role anchors;
 // the rest are ignored. Priority order matches `extractKeycloakRole` of the
-// JWT verifier (system_admin > pmo_manager > manager > developer).
+// JWT verifier (system_admin > team_manager > manager > developer).
 func SyncUserMembership(ctx context.Context, admin UserSyncAdminClient, orgs UserSyncOrgStore, identityID string) error {
 	groups, err := admin.GetUserGroups(ctx, identityID)
 	if err != nil {
@@ -204,15 +204,14 @@ func composeDisplayName(d httpapi.KeycloakUserDetails) string {
 }
 
 // pickHighestPriorityRole reads DevHub-prefixed group names and returns the
-// highest-priority role. order: system_admin > pmo_manager > manager >
+// highest-priority role. order: system_admin > team_manager > developer.
 // developer. Mirrors `extractKeycloakRole` priority filter (sprint -j PR
 // #185). Group names follow `devhub-{role}s` plural convention per
 // keycloak_groups_rbac_mapping.md (e.g. `devhub-system-admins`).
 func pickHighestPriorityRole(groups []httpapi.KeycloakGroup) string {
 	priority := map[string]int{
 		string(domain.AppRoleSystemAdmin): 4,
-		"pmo_manager":                     3,
-		string(domain.AppRoleManager):     2,
+		string(domain.AppRoleTeamManager): 3,
 		string(domain.AppRoleDeveloper):   1,
 	}
 	best := ""
@@ -237,9 +236,9 @@ func groupNameToRole(name string) string {
 	case "devhub-system-admins", "devhub-system-admin":
 		return string(domain.AppRoleSystemAdmin)
 	case "devhub-pmo-managers", "devhub-pmo-manager":
-		return "pmo_manager"
+		return "team_manager"
 	case "devhub-managers", "devhub-manager":
-		return string(domain.AppRoleManager)
+		return string(domain.AppRoleTeamManager)
 	case "devhub-developers", "devhub-developer":
 		return string(domain.AppRoleDeveloper)
 	}

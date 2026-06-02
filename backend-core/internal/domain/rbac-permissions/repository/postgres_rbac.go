@@ -29,7 +29,7 @@ ORDER BY
     is_system DESC,
     CASE role_id
         WHEN 'developer'    THEN 0
-        WHEN 'manager'      THEN 1
+        WHEN 'team_manager'      THEN 1
         WHEN 'system_admin' THEN 2
         ELSE 3
     END,

@@ -54,7 +54,7 @@ func (f *fakeRBACStore) ListRBACRoles(ctx context.Context) ([]domain.RBACRole, e
 			switch id {
 			case "developer":
 				return 0
-			case "manager":
+			case "team_manager":
 				return 1
 			case "system_admin":
 				return 2
@@ -175,11 +175,11 @@ func TestListRBACPolicies_SystemRolesFirstWithDefaults(t *testing.T) {
 		} `json:"meta"`
 	}
 	decodeJSON(t, rec.Body.Bytes(), &resp)
-	// developer, manager, system_admin, pmo_manager (4 system roles, sprint claude/work_260515-d).
-	if len(resp.Data) != 4 {
-		t.Fatalf("got %d roles, want 4", len(resp.Data))
+	// developer, team_manager, system_admin (3 system roles).
+	if len(resp.Data) != 3 {
+		t.Fatalf("got %d roles, want 3", len(resp.Data))
 	}
-	wantOrder := []string{"developer", "manager", "system_admin", "pmo_manager"}
+	wantOrder := []string{"developer", "team_manager", "system_admin"}
 	for i, want := range wantOrder {
 		if resp.Data[i].ID != want {
 			t.Errorf("data[%d].id = %q, want %q", i, resp.Data[i].ID, want)
@@ -203,18 +203,7 @@ func TestListRBACPolicies_SystemRolesFirstWithDefaults(t *testing.T) {
 	if sysadmin.Permissions[domain.ResourceAudit].Create || sysadmin.Permissions[domain.ResourceAudit].Edit || sysadmin.Permissions[domain.ResourceAudit].Delete {
 		t.Errorf("system_admin audit invariant violated: %+v", sysadmin.Permissions[domain.ResourceAudit])
 	}
-	// pmo_manager: applications view+edit (수정만), projects 전체, repo link 비허용.
-	pmo := resp.Data[3]
-	if !pmo.Permissions[domain.ResourceApplications].Edit || pmo.Permissions[domain.ResourceApplications].Create || pmo.Permissions[domain.ResourceApplications].Delete {
-		t.Errorf("pmo_manager applications should be view+edit only: %+v", pmo.Permissions[domain.ResourceApplications])
-	}
-	if !pmo.Permissions[domain.ResourceProjects].Edit || !pmo.Permissions[domain.ResourceProjects].Delete {
-		t.Errorf("pmo_manager projects should be full CRUD: %+v", pmo.Permissions[domain.ResourceProjects])
-	}
-	if pmo.Permissions[domain.ResourceApplicationRepositories].Create {
-		t.Errorf("pmo_manager should not have application_repositories create: %+v", pmo.Permissions[domain.ResourceApplicationRepositories])
-	}
-	if !resp.Meta.Editable || resp.Meta.PolicyVersion == "" || len(resp.Meta.SystemRoles) != 4 {
+	if !resp.Meta.Editable || resp.Meta.PolicyVersion == "" || len(resp.Meta.SystemRoles) != 3 {
 		t.Errorf("meta = %+v", resp.Meta)
 	}
 }
@@ -272,7 +261,7 @@ func TestUpdateRBACPolicies_PermissionUpdate(t *testing.T) {
 	router := testRouter(RouterConfig{RBACStore: store})
 	body := bytes.NewBufferString(`{
         "roles": [{
-            "id": "manager",
+            "id": "team_manager",
             "permissions": {
                 "infrastructure": {"view": true, "create": true},
                 "pipelines":      {"view": true},
@@ -287,7 +276,7 @@ func TestUpdateRBACPolicies_PermissionUpdate(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("code = %d body=%s", rec.Code, rec.Body.String())
 	}
-	mgr := store.roles["manager"]
+	mgr := store.roles["team_manager"]
 	if !mgr.Permissions[domain.ResourceInfrastructure].Create {
 		t.Errorf("manager infra create not applied: %+v", mgr.Permissions[domain.ResourceInfrastructure])
 	}
@@ -308,7 +297,7 @@ func TestUpdateRBACPolicies_RejectsSystemRoleMetadataChange(t *testing.T) {
 func TestDeleteRBACPolicy_SystemRoleNotDeletable(t *testing.T) {
 	router := testRouter(RouterConfig{RBACStore: newFakeRBACStore()})
 	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, httptest.NewRequest(http.MethodDelete, "/api/v1/rbac/policies/manager", nil))
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodDelete, "/api/v1/rbac/policies/team_manager", nil))
 	if rec.Code != http.StatusUnprocessableEntity {
 		t.Errorf("code = %d, want 422", rec.Code)
 	}

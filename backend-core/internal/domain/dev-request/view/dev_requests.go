@@ -265,12 +265,12 @@ func (h *DevRequestHandler) ListDevRequests(c *gin.Context) {
 		}
 	}
 
-	// row-level filter: system_admin / pmo_manager 외에는 본인 의뢰만 (ARCH-DREQ-04).
+	// row-level filter: system_admin / team_manager 외에는 본인 의뢰만 (ARCH-DREQ-04).
 	actorLogin, _ := c.Get("devhub_actor_login")
 	actorRole, _ := c.Get("devhub_actor_role")
 	login, _ := actorLogin.(string)
 	role, _ := actorRole.(string)
-	if !httphelp.DevFallbackEnabled(c) && role != string(domain.AppRoleSystemAdmin) && role != string(domain.AppRolePMOManager) {
+	if !httphelp.DevFallbackEnabled(c) && role != string(domain.AppRoleSystemAdmin) && role != string(domain.AppRoleTeamManager) {
 		opts.AssigneeUserID = login
 	}
 
@@ -311,7 +311,7 @@ func (h *DevRequestHandler) GetDevRequest(c *gin.Context) {
 		httphelp.WriteServerError(c, err, "dev_request.get")
 		return
 	}
-	if !h.enforceRowOwnership(c, dr.AssigneeUserID, string(domain.AppRolePMOManager)) {
+	if !h.enforceRowOwnership(c, dr.AssigneeUserID, string(domain.AppRoleTeamManager)) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "ok", "data": devRequestResponse(dr)})
@@ -442,7 +442,7 @@ func (h *DevRequestHandler) RegisterDevRequest(c *gin.Context) {
 		httphelp.WriteServerError(c, err, "dev_request.register.lookup")
 		return
 	}
-	if !h.enforceRowOwnership(c, current.AssigneeUserID, string(domain.AppRolePMOManager)) {
+	if !h.enforceRowOwnership(c, current.AssigneeUserID, string(domain.AppRoleTeamManager)) {
 		return
 	}
 	if current.Status != domain.DevRequestStatusPending && current.Status != domain.DevRequestStatusInReview {
@@ -782,7 +782,7 @@ func (h *DevRequestHandler) RejectDevRequest(c *gin.Context) {
 		httphelp.WriteServerError(c, err, "dev_request.reject.lookup")
 		return
 	}
-	if !h.enforceRowOwnership(c, current.AssigneeUserID, string(domain.AppRolePMOManager)) {
+	if !h.enforceRowOwnership(c, current.AssigneeUserID, string(domain.AppRoleTeamManager)) {
 		return
 	}
 	if !domain.IsValidDevRequestTransition(current.Status, domain.DevRequestStatusRejected) {
@@ -817,7 +817,7 @@ func (h *DevRequestHandler) PatchDevRequest(c *gin.Context) {
 	if !ok {
 		return
 	}
-	// system_admin only — handler 가 추가 검증 (route gate 의 edit 는 pmo_manager 도 통과하므로).
+	// system_admin only — handler 가 추가 검증 (route gate 의 edit 는 team_manager 도 통과하므로).
 	actorRoleVal, _ := c.Get("devhub_actor_role")
 	actorRole, _ := actorRoleVal.(string)
 	if !httphelp.DevFallbackEnabled(c) && actorRole != string(domain.AppRoleSystemAdmin) {

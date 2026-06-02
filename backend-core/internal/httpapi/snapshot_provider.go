@@ -58,7 +58,7 @@ func staticSnapshotMetrics() map[string][]metricResponse {
 			{ID: "build_success", Label: "Build Success", Value: "98%", Trend: "+2%", TrendDirection: "up", NumericValue: 98, Unit: "percent"},
 			{ID: "code_review", Label: "Code Review", Value: "2", Trend: "Pending", TrendDirection: "flat", NumericValue: 2, Unit: "count"},
 		},
-		"manager": {
+		"team_manager": {
 			{ID: "completion", Label: "Completion", Value: "72%", Trend: "+5%", TrendDirection: "up", NumericValue: 72, Unit: "percent"},
 			{ID: "team_velocity", Label: "Team Velocity", Value: "48", Trend: "+12%", TrendDirection: "up", NumericValue: 48, Unit: "points"},
 			{ID: "open_risks", Label: "Open Risks", Value: "2", Trend: "High", TrendDirection: "up", NumericValue: 2, Unit: "count"},

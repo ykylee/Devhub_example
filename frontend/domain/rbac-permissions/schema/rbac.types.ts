@@ -2,7 +2,7 @@ import { PermissionState } from "@/domain/rbac-permissions/view/PermissionMatrix
 
 // Role mirrors the backend GET /api/v1/rbac/policies wire shape from
 // docs/backend_api_contract.md section 12.2. The id strings are aligned with
-// backend domain.AppRole values ("developer" | "manager" | "system_admin"),
+// backend domain.AppRole values ("developer" | "team_manager" | "system_admin"),
 // not the legacy frontend-only "sysadmin" alias.
 export interface Role {
   id: string;
@@ -21,7 +21,7 @@ export interface RbacPolicyMeta {
 
 // SYSTEM_ROLE_IDS lists the immutable role ids the backend seeds. UI uses this
 // to gate destructive operations on system roles even before the matrix loads.
-export const SYSTEM_ROLE_IDS: readonly string[] = ["developer", "manager", "system_admin", "pmo_manager"];
+export const SYSTEM_ROLE_IDS: readonly string[] = ["developer", "team_manager", "system_admin"];
 
 export function isSystemRole(roleId: string): boolean {
   return SYSTEM_ROLE_IDS.includes(roleId);
@@ -33,7 +33,7 @@ export function isSystemRole(roleId: string): boolean {
 // internally consistent even without a network round-trip.
 // 4 신규 resource (applications / application_repositories / projects / scm_providers)
 // 는 sprint claude/work_260514-a (ADR-0011 §4.1) 에서 추가. system_admin 일임 정책 —
-// developer/manager 는 모든 axis false, system_admin 만 모든 axis true. backend
+// developer/team_manager 는 모든 axis false, system_admin 만 모든 axis true. backend
 // migration 000018 seed 와 정합.
 export const defaultRoles: Role[] = [
   {
@@ -56,21 +56,21 @@ export const defaultRoles: Role[] = [
     },
   },
   {
-    id: "manager",
+    id: "team_manager",
     name: "Manager",
-    description: "팀 운영, risk triage, 승인 전 command 생성 권한",
+    description: "팀 범위 운영 및 프로젝트/애플리케이션 관리 권한",
     system: true,
     permissions: {
       infrastructure:           { view: true, create: false, edit: false, delete: false },
       pipelines:                { view: true, create: false, edit: false, delete: false },
-      organization:             { view: true, create: false, edit: false, delete: false },
+      organization:             { view: true, create: false, edit: true, delete: false },
       security:                 { view: true, create: true,  edit: false, delete: false },
       audit:                    { view: true, create: false, edit: false, delete: false },
-      applications:             { view: false, create: false, edit: false, delete: false },
-      application_repositories: { view: false, create: false, edit: false, delete: false },
-      projects:                 { view: false, create: false, edit: false, delete: false },
-      scm_providers:            { view: false, create: false, edit: false, delete: false },
-      dev_requests:             { view: true, create: false, edit: false, delete: false },
+      applications:             { view: true, create: false, edit: true, delete: false },
+      application_repositories: { view: true, create: false, edit: false, delete: false },
+      projects:                 { view: true, create: true, edit: true, delete: true },
+      scm_providers:            { view: true, create: false, edit: false, delete: false },
+      dev_requests:             { view: true, create: false, edit: true, delete: false },
       dev_request_intake_tokens: { view: false, create: false, edit: false, delete: false },
     },
   },
@@ -85,30 +85,11 @@ export const defaultRoles: Role[] = [
       organization:             { view: true, create: false, edit: false, delete: false },
       security:                 { view: true, create: false, edit: false, delete: false },
       audit:                    { view: false, create: false, edit: false, delete: false },
-      applications:             { view: false, create: false, edit: false, delete: false },
-      application_repositories: { view: false, create: false, edit: false, delete: false },
-      projects:                 { view: false, create: false, edit: false, delete: false },
+      applications:             { view: true, create: false, edit: false, delete: false },
+      application_repositories: { view: true, create: false, edit: false, delete: false },
+      projects:                 { view: true, create: false, edit: false, delete: false },
       scm_providers:            { view: false, create: false, edit: false, delete: false },
       dev_requests:             { view: true, create: false, edit: false, delete: false },
-      dev_request_intake_tokens: { view: false, create: false, edit: false, delete: false },
-    },
-  },
-  {
-    id: "pmo_manager",
-    name: "PMO Manager",
-    description: "Application 수정 + Project 운영/멤버 관리 위양. 시스템/계정/RBAC 변경 금지.",
-    system: true,
-    permissions: {
-      infrastructure:           { view: true, create: false, edit: false, delete: false },
-      pipelines:                { view: true, create: false, edit: false, delete: false },
-      organization:             { view: true, create: false, edit: false, delete: false },
-      security:                 { view: true, create: false, edit: false, delete: false },
-      audit:                    { view: true, create: false, edit: false, delete: false },
-      applications:             { view: true, create: false, edit: true,  delete: false },
-      application_repositories: { view: true, create: false, edit: false, delete: false },
-      projects:                 { view: true, create: true,  edit: true,  delete: true },
-      scm_providers:            { view: true, create: false, edit: false, delete: false },
-      dev_requests:             { view: true, create: false, edit: true,  delete: false },
       dev_request_intake_tokens: { view: false, create: false, edit: false, delete: false },
     },
   },

@@ -4,7 +4,7 @@
 - 범위: intake auth (API-59 외부 수신) + widget/list/detail flow + promote 단일 트랜잭션 (API-62) + admin token 발급/revoke/PATCH (API-66/67/68/79) + reject/reassign/close (API-63/64/65).
 - 대상 독자: Backend/Frontend 개발자, QA, AI 에이전트, 운영자.
 - 상태: draft
-- 최종 수정일: 2026-05-18
+- 최종 수정일: 2026-06-02
 - 관련 문서: [`requirements.md`](../requirements.md) §5.5, [`domain/dev-request/concept.md`](../domain/dev-request/concept.md), [`planning/system_usecases.md`](../planning/system_usecases.md), [`architecture.md`](../architecture.md) §7, [`backend_api_contract.md`](../backend_api_contract.md) §14, [`e2e_testing_strategy.md`](./e2e_testing_strategy.md), [`docs/adr/0012-dreq-external-intake-auth.md`](../adr/0012-dreq-external-intake-auth.md), [`docs/adr/0013-dreq-rbac-row-scoping.md`](../adr/0013-dreq-rbac-row-scoping.md), [`docs/adr/0014-dreq-intake-token-admin.md`](../adr/0014-dreq-intake-token-admin.md), [`docs/adr/0017-dreq-intake-token-operational-hardening.md`](../adr/0017-dreq-intake-token-operational-hardening.md).
 
 ## 1. 기능 맵 (REQ/UC 기준)
@@ -57,7 +57,7 @@
 | --- | --- | --- | --- | --- | --- |
 | `TC-DREQ-RBAC-NEG-01` | P1 | UT/IT | non-system_admin 이 `POST /api/v1/dev-request-tokens` 호출 | 403 `auth_role_denied` | unit test (RBAC route gate) |
 | `TC-DREQ-RBAC-NEG-02` | P1 | UT/IT | non-system_admin 이 reassign / close 호출 | 403 | unit test |
-| `TC-DREQ-RBAC-ROW-01` | P1 | UT/IT | pmo_manager 가 본인 assignee 의뢰만 promote 가능, 타인 의뢰 시도 → 403 | row-level scoping (enforceRowOwnership) | unit test |
+| `TC-DREQ-RBAC-ROW-01` | P1 | UT/IT | team_manager 가 본인 assignee 의뢰만 promote 가능, 타인 의뢰 시도 → 403 | row-level scoping (enforceRowOwnership) | unit test |
 
 ## 4. 카버리지 매핑
 
@@ -68,6 +68,7 @@
 | `TC-DREQ-WIDGET-FLOW-01` | `Intake to Promote to Revoke lifecycle` (step 3) | ✅ active (PR #136) |
 | `TC-DREQ-PROMOTE-TX-01` | `Intake to Promote to Revoke lifecycle` (step 4) | ✅ active (PR #136) |
 | `TC-DREQ-ADMIN-TOKEN-REVOKE-01` | `Intake to Promote to Revoke lifecycle` (step 5) | ✅ active (PR #136) |
+| `TC-DREQ-PROMOTE-PROJ-01` | `TC-DREQ-PROMOTE-PROJ-01 — Intake to Promote to Project lifecycle` | ✅ active (PR #323, cleanup warning 제거 2026-06-02) |
 | `TC-DREQ-INTAKE-AUTH-NEG-03` (revoked) | `Intake to Promote to Revoke lifecycle` (revoke 후 재호출 fail) | ✅ active (PR #136) |
 | `TC-DREQ-INTAKE-AUTH-NEG-01` (invalid bearer) | `Invalid bearer is rejected` | 🟢 신규 (본 sprint `claude/work_260518-d`) |
 | `TC-DREQ-ADMIN-TOKEN-PATCH-01` | `PATCH allowed_ips updates token` | 🟢 신규 (본 sprint) |
@@ -89,3 +90,4 @@
 | 일자 | 변경 | 메모 |
 | --- | --- | --- |
 | 2026-05-18 | 1차 draft — TC-DREQ-* 13건 정식 발급. mega test (PR #136) + 신규 2 test (본 sprint) + UT 영역 6 매핑. | sprint `claude/work_260518-d` |
+| 2026-06-02 | `TC-DREQ-PROMOTE-PROJ-01` 카탈로그 매핑 보강 + cleanup fetch 경로 정규화. | `dev-requests.spec.ts`의 best-effort cleanup warning 제거, traceability matrix sync |

@@ -469,7 +469,7 @@ func TestCreateUserRejectsInvalidRole(t *testing.T) {
 }
 
 // TestCreateUserAcceptsPMOManager covers PR #205 codex P1 (sprint -d): after
-// removing /rbac/subjects/:id/roles, pmo_manager must remain assignable via
+// removing /rbac/subjects/:id/roles, team_manager must remain assignable via
 // POST /api/v1/users.
 func TestCreateUserAcceptsPMOManager(t *testing.T) {
 	router := newOrgTestRouter(newMemoryOrganizationStore())
@@ -477,7 +477,7 @@ func TestCreateUserAcceptsPMOManager(t *testing.T) {
 		"user_id": "u-pmo-create",
 		"email": "u-pmo-create@example.com",
 		"display_name": "PMO Create",
-		"role": "pmo_manager",
+		"role": "team_manager",
 		"status": "active",
 		"primary_unit_id": "team-frontend",
 		"joined_at": "2026-05-20"
@@ -485,7 +485,7 @@ func TestCreateUserAcceptsPMOManager(t *testing.T) {
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/api/v1/users", bytes.NewReader(body)))
 	if rec.Code != http.StatusCreated {
-		t.Fatalf("create user with pmo_manager: expected 201, got %d body=%s", rec.Code, rec.Body.String())
+		t.Fatalf("create user with team_manager: expected 201, got %d body=%s", rec.Code, rec.Body.String())
 	}
 	var resp struct {
 		Data struct {
@@ -493,8 +493,8 @@ func TestCreateUserAcceptsPMOManager(t *testing.T) {
 		} `json:"data"`
 	}
 	decodeJSON(t, rec.Body.Bytes(), &resp)
-	if resp.Data.Role != "pmo_manager" {
-		t.Errorf("expected role=pmo_manager, got %q", resp.Data.Role)
+	if resp.Data.Role != "team_manager" {
+		t.Errorf("expected role=team_manager, got %q", resp.Data.Role)
 	}
 }
 
@@ -559,7 +559,7 @@ func TestUpdateUserAppliesPartialFields(t *testing.T) {
 }
 
 // TestUpdateUserAcceptsPMOManagerRole covers PR #205 codex P1 (sprint -d):
-// PATCH /api/v1/users/:id must accept pmo_manager after /rbac/subjects/:id/roles
+// PATCH /api/v1/users/:id must accept team_manager after /rbac/subjects/:id/roles
 // removal. Regression guard for the role allowlist expansion.
 func TestUpdateUserAcceptsPMOManagerRole(t *testing.T) {
 	storeMem := newMemoryOrganizationStore()
@@ -572,11 +572,11 @@ func TestUpdateUserAcceptsPMOManagerRole(t *testing.T) {
 	}
 	router := newOrgTestRouter(storeMem)
 
-	body := []byte(`{"role":"pmo_manager"}`)
+	body := []byte(`{"role":"team_manager"}`)
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, httptest.NewRequest(http.MethodPatch, "/api/v1/users/u-pmo-update", bytes.NewReader(body)))
 	if rec.Code != http.StatusOK {
-		t.Fatalf("update user role to pmo_manager: expected 200, got %d body=%s", rec.Code, rec.Body.String())
+		t.Fatalf("update user role to team_manager: expected 200, got %d body=%s", rec.Code, rec.Body.String())
 	}
 	var resp struct {
 		Data struct {
@@ -584,8 +584,8 @@ func TestUpdateUserAcceptsPMOManagerRole(t *testing.T) {
 		} `json:"data"`
 	}
 	decodeJSON(t, rec.Body.Bytes(), &resp)
-	if resp.Data.Role != "pmo_manager" {
-		t.Errorf("expected role=pmo_manager, got %q", resp.Data.Role)
+	if resp.Data.Role != "team_manager" {
+		t.Errorf("expected role=team_manager, got %q", resp.Data.Role)
 	}
 }
 

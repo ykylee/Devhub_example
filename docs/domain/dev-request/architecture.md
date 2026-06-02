@@ -55,14 +55,14 @@
   - 검증 성공 시 `source_system` 컨텍스트 주입 + `last_used_at` 갱신 + audit `dev_request.intake_auth_succeeded` emit.
 - 본 endpoint 는 `routePermissionTable` 의 `Bypass: true` 또는 별도 `IntakeAuth: true` 플래그로 일반 OIDC enforce 를 건너뛴다.
 - 인증 성공 시 `source_system` 은 토큰의 매핑 값에서 자동 채움 (request body 의 self-claim 은 신뢰하지 않음 — spoofing 방지).
-- 그 외 endpoint (GET 목록 / 상세 / Promote / Reject / Reassign / Close) 는 일반 OIDC + RBAC + 본 sprint 의 `enforceRowOwnership` 패턴([ADR-0011 §4.2](../../adr/0011-rbac-row-scoping.md))으로 보호. 담당자 본인 의뢰 또는 system_admin / pmo_manager 만 가능.
+- 그 외 endpoint (GET 목록 / 상세 / Promote / Reject / Reassign / Close) 는 일반 OIDC + RBAC + 본 sprint 의 `enforceRowOwnership` 패턴([ADR-0011 §4.2](../../adr/0011-rbac-row-scoping.md))으로 보호. 담당자 본인 의뢰 또는 system_admin / team_manager 만 가능.
 
 ## 4. RBAC 자원 (ARCH-DREQ-04)
 
 - 신규 resource `dev_requests` 를 RBAC matrix 에 추가.
 - 1차 정책 (MVP):
   - `system_admin`: view + create(외부 수신 server-side, frontend 에서는 미노출) + edit + delete
-  - `pmo_manager`: view + edit (담당자 재할당은 제외 — system_admin 만)
+  - `team_manager`: view + edit (담당자 재할당은 제외 — system_admin 만)
   - `manager` / `developer`: view (본인 의뢰만, row-level `actor.login == assignee_user_id`)
 - 정책 매핑 표는 backend 구현 sprint 의 migration (`000022_dev_requests` 또는 `000023_rbac_dev_request_resource`) 에서 확정.
 

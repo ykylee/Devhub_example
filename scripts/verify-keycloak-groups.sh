@@ -46,7 +46,7 @@ fi
 EXPECTED_GROUPS=(
   "devhub-developers:developer"
   "devhub-managers:manager"
-  "devhub-pmo-managers:pmo_manager"
+  "devhub-pmo-managers:team_manager"
   "devhub-system-admins:system_admin"
 )
 

@@ -166,10 +166,10 @@ describe("RealtimeService", () => {
       expect(mockWsInstances[0].url).toContain("role=system_admin");
     });
 
-    it("maps role 'Manager' → 'manager'", async () => {
+    it("maps role 'Manager' → 'team_manager'", async () => {
       currentSnapshot = { actor: { login: "bob" }, role: "Manager" };
       await loadService();
-      expect(mockWsInstances[0].url).toContain("role=manager");
+      expect(mockWsInstances[0].url).toContain("role=team_manager");
     });
 
     it("non-recognized role lowercased fallback", async () => {

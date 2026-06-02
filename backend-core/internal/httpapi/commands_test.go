@@ -339,7 +339,7 @@ func TestCreateServiceActionDryRunAllowsManagerPermission(t *testing.T) {
 
 	body := []byte(`{"service_id":"runner-asia-01","action_type":"restart","reason":"Runner queue is blocked","dry_run":true}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/service-actions", bytes.NewReader(body))
-	req.Header.Set("X-Devhub-Role", "manager")
+	req.Header.Set("X-Devhub-Role", "team_manager")
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 
@@ -354,8 +354,8 @@ func TestCreateServiceActionLiveRequiresAdminPermission(t *testing.T) {
 	router := NewRouter(RouterConfig{
 		CommandStore: commandStore,
 		BearerTokenVerifier: &fakeBearerTokenVerifier{actor: AuthenticatedActor{
-			Login: "manager",
-			Role:  "manager",
+			Login: "team_manager",
+			Role:  "team_manager",
 		}},
 	})
 
@@ -456,7 +456,7 @@ func TestCreateServiceActionRejectsMissingServiceID(t *testing.T) {
 func TestCreateRiskMitigationReturnsCommandLifecycle(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	commandStore := &memoryCommandStore{}
-	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{Login: "yklee", Subject: "user-yklee", Role: "manager"}}
+	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{Login: "yklee", Subject: "user-yklee", Role: "team_manager"}}
 	router := NewRouter(RouterConfig{CommandStore: commandStore, BearerTokenVerifier: verifier})
 
 	body := []byte(`{"action_type":"rerun_ci","reason":"CI failure blocks release","dry_run":true,"idempotency_key":"risk-502-rerun","metadata":{"ci_run_id":"502"}}`)
@@ -745,8 +745,8 @@ func TestApproveCommandRequiresCommandAdmin(t *testing.T) {
 	router := NewRouter(RouterConfig{
 		CommandStore: &memoryCommandStore{},
 		BearerTokenVerifier: &fakeBearerTokenVerifier{actor: AuthenticatedActor{
-			Login: "manager",
-			Role:  "manager",
+			Login: "team_manager",
+			Role:  "team_manager",
 		}},
 	})
 

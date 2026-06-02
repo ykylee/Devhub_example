@@ -60,7 +60,7 @@ DevHub 가 사용하는 Keycloak instance 는 **사내 IdP 팀이 별도 운영*
 | 운영 동작 | 책임 주체 | 도구 | Audit |
 | --- | --- | --- | --- |
 | Keycloak realm 정의 (`devhub`) + client 정의 (`devhub-frontend`, `devhub-backend`) | **IdP 팀** | Keycloak admin console | Keycloak audit event log (CLIENT_INFO_*) |
-| Keycloak realm role 정의 (`developer`/`manager`/`pmo_manager`/`system_admin`) + composite group 매핑 | **IdP 팀** | Keycloak admin console (Roles + Groups 탭) | Keycloak audit event log |
+| Keycloak realm role 정의 (`developer`/`manager`/`team_manager`/`system_admin`) + composite group 매핑 | **IdP 팀** | Keycloak admin console (Roles + Groups 탭) | Keycloak audit event log |
 | JWKS rotation (signing key 변경) | **IdP 팀** | Keycloak admin console (Realm settings → Keys) | Keycloak audit event log + DevHub backend cache flush 동반 ([JWKS rotation cache flush SOP](../setup/jwks_rotation_cache_flush.md)) |
 | `devhub-backend` service account 의 client_secret rotation | **IdP 팀 + DevHub 운영자** | Keycloak admin console (client secret 발급) + DevHub vault 갱신 | Keycloak audit event log + DevHub vault audit |
 | Valid Redirect URIs / Post Logout Redirect URIs allowlist | **IdP 팀** (요청은 DevHub 운영자) | Keycloak admin console (client Settings 탭) | Keycloak audit event log |

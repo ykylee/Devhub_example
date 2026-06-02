@@ -132,7 +132,7 @@ func TestDBRealtimeTicketStore_IssueConsumeSingleUse(t *testing.T) {
 	s := NewDBRealtimeTicketStore(fake)
 	ctx := context.Background()
 
-	ticket, err := s.Issue(ctx, "carol", "manager", domain.AuditSourceOIDC)
+	ticket, err := s.Issue(ctx, "carol", "team_manager", domain.AuditSourceOIDC)
 	if err != nil {
 		t.Fatalf("issue: %v", err)
 	}
@@ -151,7 +151,7 @@ func TestDBRealtimeTicketStore_IssueConsumeSingleUse(t *testing.T) {
 	if !ok {
 		t.Fatal("first consume should succeed")
 	}
-	if entry.ActorLogin != "carol" || entry.ActorRole != "manager" || entry.SourceType != string(domain.AuditSourceOIDC) {
+	if entry.ActorLogin != "carol" || entry.ActorRole != "team_manager" || entry.SourceType != string(domain.AuditSourceOIDC) {
 		t.Fatalf("unexpected entry: %+v", entry)
 	}
 

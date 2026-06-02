@@ -338,7 +338,7 @@ project_integrations
 | `* -> archived` | `system_admin` | soft-delete + 감사로그 기록 | `invalid_status_transition` (불허 전이 시) |
 
 운영 메모:
-- `pmo_manager` 활성화 이전에는 모든 전이 요청이 `403 role_not_enabled`다.
+- `team_manager` 활성화 이전에는 모든 전이 요청이 `403 role_not_enabled`다.
 - 가드 임계치(예: critical 기준)는 운영 정책 테이블로 외부화 가능해야 한다.
 
 ### 13.3 Application-Repository 연결 라이프사이클

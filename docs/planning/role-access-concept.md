@@ -17,7 +17,7 @@
 |---|---|---|---|
 | `developer` | ❌ | ❌ | apps/projects 접근 자체 없음 |
 | `manager` | ❌ | ❌ | apps/projects 접근 자체 없음 |
-| `pmo_manager` | ✅ view+edit | ✅ full CRUD | 모든 row 노출 (row filter 없음) |
+| `team_manager` | ✅ view+edit | ✅ full CRUD | 모든 row 노출 (row filter 없음) |
 | `system_admin` | ✅ full | ✅ full | 모든 row 노출 |
 
 ### 1.2 현재 RBAC enforcement 계층
@@ -35,7 +35,7 @@ Request → authenticateActor (actor context) → enforceRoutePermission (matrix
 ### 1.3 핵심 문제
 
 1. **developer/manager 가 applications/projects 를 전혀 볼 수 없음** — 모든 구성원이 최소한 자신이 속한 project 는 볼 수 있어야 함
-2. **pmo_manager/sysadmin 은 모든 row 가 노출됨** — row-level read scoping 부재
+2. **team_manager/sysadmin 은 모든 row 가 노출됨** — row-level read scoping 부재
 3. **project_leader / org_head / team_manager 개념 부재** — resource-level 역할이 system role 과 분리되어 있지 않음
 4. **org unit 계층과 권한이 연동되지 않음** — `org_units.LeaderUserID` / `Application.DevelopmentUnitID` / `project_members` 가 read scope 에 미활용
 
@@ -53,10 +53,10 @@ Request → authenticateActor (actor context) → enforceRoutePermission (matrix
 | System Role | 기존 대응 | 설명 |
 |---|---|---|---|
 | `developer` | developer 대체 | apps/projects:view **ON** (row-scoped). 멤버십 기반 접근. |
-| `team_manager` | **신규** (manager + pmo_manager 통합) | team-scoped view + management. 기존 manager/pmo_manager 역할을 통합. |
+| `team_manager` | **신규** (manager + team_manager 통합) | team-scoped view + management. 기존 manager/team_manager 역할을 통합. |
 | `system_admin` | system_admin 유지 | global unrestricted. 기존과 동일. |
 
-**`manager` / `pmo_manager`** → `team_manager` 로 통합하여 제거. 3개 system role 로 단순화.
+**`manager` / `team_manager`** → `team_manager` 로 통합하여 제거. 3개 system role 로 단순화.
 
 ### 2.2 Resource Role (Dimension 2)
 
@@ -325,7 +325,7 @@ func (h *ApplicationHandler) GetProjectRollup(c *gin.Context) {
 |---|---|---|
 | `developer` | `developer` (matrix 확장) | matrix 변경 + row filter 추가 |
 | `manager` | → **제거** (`team_manager` 로 통합) | 기존 manager 사용자 team_manager 로 migration |
-| `pmo_manager` | → **제거** (`team_manager` 로 통합) | 기존 pmo_manager 사용자 team_manager 로 migration |
+| `team_manager` | → **제거** (`team_manager` 로 통합) | 기존 team_manager 사용자 team_manager 로 migration |
 | `system_admin` | `system_admin` (변화 없음) | 없음 |
 | **신규** | `team_manager` | migration + matrix 추가 |
 
@@ -363,7 +363,7 @@ func (h *ApplicationHandler) GetProjectRollup(c *gin.Context) {
 
 ### Phase 4: 정책 안정화
 
-1. 기존 `manager` / `pmo_manager` → `team_manager` 마이그레이션 경로 (또는 병렬 유지)
+1. 기존 `manager` / `team_manager` → `team_manager` 마이그레이션 경로 (또는 병렬 유지)
 2. Frontend role-based UI 구현
 3. E2E 테스트 추가
 
@@ -373,7 +373,7 @@ func (h *ApplicationHandler) GetProjectRollup(c *gin.Context) {
 
 | 이슈 | 결정 | 근거 |
 |---|---|---|
-| 기존 `manager` / `pmo_manager` | ✅ **제거** → `team_manager` 로 통합 | 2026-06-01 결정 |
+| 기존 `manager` / `team_manager` | ✅ **제거** → `team_manager` 로 통합 | 2026-06-01 결정 |
 | team scope 의 정확한 범위 | `primary_unit_id` 기준 하위 subtree 포함 | (TC-095 참조) |
 | Org head scope 의 깊이 | `OrgUnit.LeaderUserID` 기준 전체 subtree | (TC-096 참조) |
 | Application 접근과 Project 접근 관계 | baseline: project membership 통한 간접 접근 + application_leader 직접 접근 | (TC-090, TC-093 참조) |

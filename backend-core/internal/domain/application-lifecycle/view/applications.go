@@ -1,8 +1,8 @@
 package view
 
 import (
-	"github.com/devhub/backend-core/internal/shared/httphelp"
 	"errors"
+	"github.com/devhub/backend-core/internal/shared/httphelp"
 	"net/http"
 	"os"
 	"regexp"
@@ -281,15 +281,27 @@ func (h *ApplicationHandler) ListApplications(c *gin.Context) {
 		httphelp.WriteServerError(c, err, "applications.list")
 		return
 	}
-	resp := make([]gin.H, 0, len(apps))
+	visible := make([]domain.Application, 0, len(apps))
 	for _, app := range apps {
+		allowed, _, err := h.actorCanReadApplication(c, storeI, app)
+		if err != nil {
+			httphelp.WriteServerError(c, err, "applications.list.scope")
+			return
+		}
+		if allowed {
+			visible = append(visible, app)
+		}
+	}
+	resp := make([]gin.H, 0, len(visible))
+	for _, app := range visible {
 		resp = append(resp, applicationResponse(app))
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"status": "ok",
 		"data":   resp,
 		"meta": gin.H{
-			"total": total,
+			"total":     len(visible),
+			"raw_total": total,
 		},
 	})
 }
@@ -409,6 +421,15 @@ func (h *ApplicationHandler) GetApplication(c *gin.Context) {
 		httphelp.WriteServerError(c, err, "applications.get")
 		return
 	}
+	allowed, deniedReason, err := h.actorCanReadApplication(c, storeI, app)
+	if err != nil {
+		httphelp.WriteServerError(c, err, "applications.get.scope")
+		return
+	}
+	if !allowed {
+		h.denyRowRead(c, deniedReason)
+		return
+	}
 	links, err := storeI.ListApplicationRepositories(c.Request.Context(), id)
 	if err != nil {
 		httphelp.WriteServerError(c, err, "applications.get.list_repositories")
@@ -439,6 +460,15 @@ func (h *ApplicationHandler) ApplicationDashboard(c *gin.Context) {
 	}
 	if err != nil {
 		httphelp.WriteServerError(c, err, "applications.dashboard.get")
+		return
+	}
+	allowed, deniedReason, err := h.actorCanReadApplication(c, storeI, app)
+	if err != nil {
+		httphelp.WriteServerError(c, err, "applications.dashboard.scope")
+		return
+	}
+	if !allowed {
+		h.denyRowRead(c, deniedReason)
 		return
 	}
 
@@ -732,11 +762,11 @@ func (h *ApplicationHandler) UpdateApplication(c *gin.Context) {
 		return
 	}
 
-	// ADR-0011 §4.2 row-level 위양: system_admin / pmo_manager / owner-self 만 허용.
+	// ADR-0011 §4.2 row-level 위양: system_admin / team_manager / owner-self 만 허용.
 	// route-level RBAC gate 가 applications:edit 를 권한 있는 role 만 통과시키고,
 	// 본 helper 가 row 단위 owner/위양 검사. caller 가 owner 와 일치하거나 위양
 	// role 인 경우 통과, 그 외는 audit auth.row_denied + 403.
-	if !h.enforceRowOwnership(c, current.OwnerUserID, string(domain.AppRolePMOManager)) {
+	if !h.enforceRowOwnership(c, current.OwnerUserID, string(domain.AppRoleTeamManager)) {
 		return
 	}
 
@@ -867,7 +897,7 @@ func (h *ApplicationHandler) ArchiveApplication(c *gin.Context) {
 	// DELETE body 가 비어도 허용 (archived_reason 은 권장).
 	_ = c.ShouldBindJSON(&req)
 
-	// ADR-0011 §4.2 row-level 위양: archive 도 owner-self 또는 pmo_manager 가
+	// ADR-0011 §4.2 row-level 위양: archive 도 owner-self 또는 team_manager 가
 	// 가능해야 하므로 archive 직전에 lookup + 검증한다. Application 이 없으면
 	// ArchiveApplication 의 ErrNotFound 분기와 동일하게 404.
 	current, err := storeI.GetApplication(c.Request.Context(), id)
@@ -879,7 +909,7 @@ func (h *ApplicationHandler) ArchiveApplication(c *gin.Context) {
 		httphelp.WriteServerError(c, err, "applications.archive.lookup")
 		return
 	}
-	if !h.enforceRowOwnership(c, current.OwnerUserID, string(domain.AppRolePMOManager)) {
+	if !h.enforceRowOwnership(c, current.OwnerUserID, string(domain.AppRoleTeamManager)) {
 		return
 	}
 
@@ -932,6 +962,24 @@ func (h *ApplicationHandler) ListApplicationRepositories(c *gin.Context) {
 		return
 	}
 	id := c.Param("application_id")
+	app, err := storeI.GetApplication(c.Request.Context(), id)
+	if errors.Is(err, store.ErrNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "application not found"})
+		return
+	}
+	if err != nil {
+		httphelp.WriteServerError(c, err, "application_repositories.scope_lookup")
+		return
+	}
+	allowed, deniedReason, err := h.actorCanReadApplication(c, storeI, app)
+	if err != nil {
+		httphelp.WriteServerError(c, err, "application_repositories.scope")
+		return
+	}
+	if !allowed {
+		h.denyRowRead(c, deniedReason)
+		return
+	}
 	links, err := storeI.ListApplicationRepositories(c.Request.Context(), id)
 	if err != nil {
 		httphelp.WriteServerError(c, err, "application_repositories.list")

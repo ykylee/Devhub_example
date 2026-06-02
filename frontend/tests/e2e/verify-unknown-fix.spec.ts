@@ -1,8 +1,8 @@
 import { test, expect } from "@playwright/test";
-import { appPath } from "./fixtures";
+import { appPath, loginAs, SEEDED } from "./fixtures";
 import fs from "fs";
 
-test.describe("Verify build status fix and SCM activity (Ultra-stable mock-auth E2E)", () => {
+test.describe("Verify build status fix and SCM activity", () => {
   
   test.beforeEach(async ({ page }) => {
     // Ensure screenshot directory exists to avoid ENOENT errors
@@ -10,60 +10,7 @@ test.describe("Verify build status fix and SCM activity (Ultra-stable mock-auth 
     if (!fs.existsSync(screenshotDir)) {
       fs.mkdirSync(screenshotDir, { recursive: true });
     }
-
-    // Intercept identity service whoAmI API to bypass OIDC login entirely
-    await page.route("**/api/v1/me", async (route) => {
-      console.log("[Mock OIDC] Intercepted /api/v1/me request, returning pre-seeded Charlie (System Admin)");
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          status: "ok",
-          data: {
-            login: "charlie",
-            user_id: "charlie",
-            subject: "55e9ed4c-9530-4a62-95b0-aa178afac019",
-            role: "System Admin",
-            display_name: "Charlie",
-            email: "charlie@example.com",
-            primary_unit_id: "root",
-            onboarding_required: false,
-            onboarding_completed_at: "2026-05-19T00:00:00Z",
-            review_status: "reviewed"
-          }
-        })
-      });
-    });
-
-    // Seed Zustand local storage to match the mock actor so frontend store state is consistent
-    await page.addInitScript(() => {
-      window.localStorage.setItem(
-        "devhub-storage",
-        JSON.stringify({
-          state: {
-            role: "System Admin",
-            actor: {
-              login: "charlie",
-              user_id: "charlie",
-              subject: "55e9ed4c-9530-4a62-95b0-aa178afac019",
-              role: "System Admin",
-              display_name: "Charlie",
-              email: "charlie@example.com",
-              primary_unit_id: "root",
-              onboarding_required: false,
-              onboarding_completed_at: "2026-05-19T00:00:00Z",
-              review_status: "reviewed"
-            },
-            isDeepFocus: false,
-            notifications: 3,
-            isSidebarCollapsed: false
-          },
-          version: 0
-        })
-      );
-      // Keep session storage empty (clear token) to force api-client to use dev_fallback (no Authorization header)
-      window.sessionStorage.clear();
-    });
+    await loginAs(page, SEEDED.systemAdmin);
   });
 
   test("verify application detail build status is '없음' and capture screenshot", async ({ page }) => {
