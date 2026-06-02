@@ -29,6 +29,8 @@ type ApplicationListOptions struct {
 	Query           string
 	Limit           int
 	Offset          int
+	ActorLogin      string
+	ActorRole       string
 }
 
 // ApplicationRepositoryLinkKey identifies a single link row (composite PK).
@@ -47,6 +49,8 @@ type ProjectListOptions struct {
 	IncludeArchived bool
 	Limit           int
 	Offset          int
+	ActorLogin      string
+	ActorRole       string
 }
 
 type RepositoryCreatePayload struct {

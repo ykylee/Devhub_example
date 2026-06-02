@@ -78,6 +78,32 @@ func (s *memoryApplicationStore) ListApplications(_ context.Context, opts store.
 		if !opts.IncludeArchived && a.Status == domain.ApplicationStatusArchived {
 			continue
 		}
+		if opts.ActorLogin != "" && opts.ActorRole != "system_admin" && opts.ActorRole != "team_manager" {
+			if a.OwnerUserID != opts.ActorLogin && a.LeaderUserID != opts.ActorLogin {
+				isMember := false
+				for _, p := range s.projects {
+					if p.ApplicationID != a.ID {
+						continue
+					}
+					if p.OwnerUserID == opts.ActorLogin {
+						isMember = true
+						break
+					}
+					for _, m := range p.ProjectMembers {
+						if m.UserID == opts.ActorLogin {
+							isMember = true
+							break
+						}
+					}
+					if isMember {
+						break
+					}
+				}
+				if !isMember {
+					continue
+				}
+			}
+		}
 		out = append(out, a)
 	}
 	return out, len(out), nil
@@ -347,6 +373,20 @@ func (s *memoryApplicationStore) ListProjects(_ context.Context, opts store.Proj
 		}
 		if !opts.IncludeArchived && p.Status == domain.ApplicationStatusArchived {
 			continue
+		}
+		if opts.ActorLogin != "" && opts.ActorRole != "system_admin" && opts.ActorRole != "team_manager" {
+			if p.OwnerUserID != opts.ActorLogin {
+				isMember := false
+				for _, m := range p.ProjectMembers {
+					if m.UserID == opts.ActorLogin {
+						isMember = true
+						break
+					}
+				}
+				if !isMember {
+					continue
+				}
+			}
 		}
 		out = append(out, p)
 	}
