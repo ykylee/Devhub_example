@@ -170,6 +170,7 @@ var routePermissionTable = map[routeKey]routePolicy{
 	{http.MethodGet, "/api/v1/issues"}:                               {Resource: domain.ResourcePipelines, Action: domain.ActionView},
 	{http.MethodGet, "/api/v1/pull-requests"}:                        {Resource: domain.ResourcePipelines, Action: domain.ActionView},
 	{http.MethodGet, "/api/v1/ci-runs"}:                              {Resource: domain.ResourcePipelines, Action: domain.ActionView},
+	{http.MethodPost, "/api/v1/ci-runs"}:                             {Resource: domain.ResourcePipelines, Action: domain.ActionCreate},
 	{http.MethodGet, "/api/v1/ci-runs/:ci_run_id/logs"}:              {Resource: domain.ResourcePipelines, Action: domain.ActionView},
 
 	// security

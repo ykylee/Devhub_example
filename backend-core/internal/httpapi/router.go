@@ -331,6 +331,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.GET("/issues", handler.issues)
 	v1.GET("/pull-requests", handler.pullRequests)
 	v1.GET("/ci-runs", handler.ciRuns)
+	v1.POST("/ci-runs", handler.createCIRun)
 	v1.GET("/ci-runs/:ci_run_id/logs", handler.ciRunLogs)
 	v1.GET("/risks", handler.risks)
 	v1.GET("/risks/critical", handler.criticalRisks)

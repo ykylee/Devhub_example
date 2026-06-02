@@ -1,10 +1,13 @@
 package httpapi
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"time"
 
 	"github.com/devhub/backend-core/internal/domain"
+	"github.com/devhub/backend-core/internal/store"
 	"github.com/gin-gonic/gin"
 )
 
@@ -227,6 +230,58 @@ func (h Handler) ciRuns(c *gin.Context) {
 			"source": provider.Source(),
 		},
 	})
+}
+
+func (h Handler) createCIRun(c *gin.Context) {
+	type createCIRequest struct {
+		ExternalID      string     `json:"external_id" binding:"required"`
+		RepositoryName  string     `json:"repository_name" binding:"required"`
+		Branch          string     `json:"branch"`
+		CommitSHA       string     `json:"commit_sha"`
+		Status          string     `json:"status" binding:"required"`
+		Conclusion      string     `json:"conclusion"`
+		StartedAt       *time.Time `json:"started_at"`
+		FinishedAt      *time.Time `json:"finished_at"`
+		DurationSeconds *int       `json:"duration_seconds"`
+		HTMLURL         string     `json:"html_url"`
+	}
+
+	var req createCIRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "failed", "error": err.Error(), "code": "create_ci_run.bind"})
+		return
+	}
+
+	run := domain.CIRun{
+		ExternalID:      req.ExternalID,
+		RepositoryName:  req.RepositoryName,
+		Branch:          req.Branch,
+		CommitSHA:       req.CommitSHA,
+		Status:          req.Status,
+		Conclusion:      req.Conclusion,
+		StartedAt:       req.StartedAt,
+		FinishedAt:      req.FinishedAt,
+		DurationSeconds: req.DurationSeconds,
+		HTMLURL:         req.HTMLURL,
+	}
+
+	if h.cfg.DomainStore == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "failed", "error": "store unavailable", "code": "create_ci_run.no_store"})
+		return
+	}
+
+	if err := h.cfg.DomainStore.(interface {
+		CreateCIRun(context.Context, domain.CIRun) error
+	}).CreateCIRun(c.Request.Context(), run); err != nil {
+		if errors.Is(err, store.ErrConflict) {
+			c.JSON(http.StatusConflict, gin.H{"status": "failed", "error": "duplicate external_id", "code": "create_ci_run.duplicate"})
+			return
+		}
+		writeServerError(c, err, "create_ci_run.store")
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"status": "created", "external_id": req.ExternalID})
 }
 
 func (h Handler) ciRunLogs(c *gin.Context) {
