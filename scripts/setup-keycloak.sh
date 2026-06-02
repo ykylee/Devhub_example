@@ -215,11 +215,12 @@ role_payload=$(
   {
     printf '['
     first=1
-    # ADR-0020 sub-carve E (PR #244 merge 6810384) 정합 — service account
-    # 는 view-users + view-events + view-realm 만 요구. manage-users 는 정
-    # 공법 제거 (backend KeycloakAdminClient.CreateIdentity 등 write API 호
-    # 출처 5건 모두 제거됨). docs/planning/keycloak_service_account_min_role.md.
-    for role_name in view-users query-users view-events view-realm; do
+    # E2E global setup (frontend/tests/e2e/global-setup.ts) 는 기본 admin
+    # client 로 `devhub-backend` 를 사용하며 Keycloak user create /
+    # reset-password / realm role mapping 을 수행한다. 따라서 로컬 setup 도
+    # CI(.github/workflows/ci.yml) 와 동일하게 manage-users 권한을 포함해
+    # fresh 환경에서 E2E seed 가 403 없이 동작해야 한다.
+    for role_name in view-users query-users manage-users view-realm; do
       role_json=$(
         curl -fsS -H "Authorization: Bearer ${admin_token}" \
           "$BASE_URL/admin/realms/$REALM/clients/${realm_mgmt_client_id}/roles/${role_name}"

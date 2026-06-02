@@ -41,6 +41,18 @@ func normalizeSystemRoleAlias(role string) string {
 	}
 }
 
+func isGenericKeycloakRole(role string) bool {
+	role = strings.TrimSpace(role)
+	if role == "" {
+		return true
+	}
+	switch role {
+	case "user", "default-roles-devhub", "offline_access", "uma_authorization":
+		return true
+	}
+	return strings.HasPrefix(role, "default-roles-")
+}
+
 type BearerTokenVerifier interface {
 	VerifyBearerToken(context.Context, string) (AuthenticatedActor, error)
 }
@@ -201,7 +213,7 @@ func (h *AuthHandler) AuthenticateActor(c *gin.Context) {
 		case err == nil:
 			tokenRole := normalizeSystemRoleAlias(actor.Role)
 			dbRole := normalizeSystemRoleAlias(string(user.Role))
-			if tokenRole != "" && dbRole != "" && tokenRole != dbRole {
+			if !isGenericKeycloakRole(actor.Role) && tokenRole != "" && dbRole != "" && tokenRole != dbRole {
 				c.Set("devhub_role_sync_required", true)
 				c.Set("devhub_role_sync_token_role", tokenRole)
 				c.Set("devhub_role_sync_db_role", dbRole)
