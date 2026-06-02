@@ -1,0 +1,23 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "codex/midterm-report-e2e-refresh",
+  "status": "in_progress",
+  "updated_at": "2026-06-02T15:30:00Z",
+  "head_commit": "working_tree",
+  "head_summary": "midterm report baseline/plan + colima fresh-stack e2e stabilization",
+  "current_focus": [
+    "중간 개발 보고용 계획/분석 문서 최신화",
+    "colima fresh stack 기준 Playwright E2E 회귀 해소"
+  ],
+  "next_actions": [
+    "브랜치 memory와 문서 변경 커밋 정리",
+    "원격 브랜치에 최신 E2E green 상태 반영",
+    "필요 시 PR 생성 및 보고자료 HTML 초안 착수"
+  ],
+  "risks": [
+    "colima용 임시 런타임 자산(/tmp env, pg proxy, local compose project)은 저장소 추적 대상이 아님",
+    "E2E green은 /devhub basePath + local-idp/local-db fresh stack 전제이며 다른 런타임 조합은 별도 재확인 필요"
+  ],
+  "handoff_note": "2026-06-02 기준 colima fresh stack(http://localhost:13000/devhub)에서 Playwright 77 passed 확인. DREQ API base-path 정합, admin catalog/project skip 제거 반영."
+}

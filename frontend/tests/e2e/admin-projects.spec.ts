@@ -1,4 +1,5 @@
 import { expect, loginAs, SEEDED, test, appPath } from "./fixtures";
+const SEEDED_PROJECT_ID = "31b9e2cb-b1b0-466a-bb10-ea00ee1234a1";
 
 // 프로젝트 생성(New Project + ProjectCreationModal)은 커밋 fea5d32
 // ("feat(admin): move project creation to admin catalog") 로 /projects → admin/catalog 로 이전됐다.
@@ -35,11 +36,7 @@ test.describe("/admin/catalog?tab=projects — Project CRUD UI (생성은 catalo
     await expect(dialog).toBeVisible();
   });
 
-  // TC-PROJ-CRUD-01 happy-path 는 admin/catalog 이전 후 (a) Project Leader ComboBox 선택으로
-  // 버튼 활성화, (b) standalone 생성 흐름, (c) catalog 테이블(heading 아님)에서 생성 결과 검증으로
-  // 재작성이 필요하다. 시드 leader 의존 + 로컬 E2E full-stack 미검증 제약으로 happy-path E2E carve
-  // (#380) 로 분리한다.
-  test.skip("TC-PROJ-CRUD-01 — 프로젝트 생성 및 조회 (admin/catalog leader ComboBox 재작성 carve #380)", async ({ page }) => {
+  test("TC-PROJ-CRUD-01 — 프로젝트 생성 및 조회", async ({ page }) => {
     const unique = Date.now().toString().slice(-6);
     const projKey = `P${unique}`;
     const projName = `E2E Project ${unique}`;
@@ -51,7 +48,6 @@ test.describe("/admin/catalog?tab=projects — Project CRUD UI (생성은 catalo
     await dialog.getByPlaceholder("E.G. API-V1").fill(projKey);
     await dialog.getByPlaceholder("e.g. Backend Refactoring").fill(projName);
     await dialog.getByPlaceholder("Scope and deliverables...").fill("E2E Test project deliverables.");
-    // NOTE(#380): Project Leader 는 leaderOptions 존재 시 ComboBox 이므로 선택 인터랙션 재작성 필요.
 
     await dialog.getByRole("button", { name: /create project/i }).click();
     await expect(dialog).toBeHidden({ timeout: 10_000 });
@@ -76,9 +72,11 @@ test.describe("/admin/catalog?tab=projects — Project CRUD UI (생성은 catalo
     expect(await afterRemoveBtns.count()).toBeGreaterThanOrEqual(2);
   });
 
-  // 프로젝트 생성 E2E 는 leader ComboBox 선택 이슈(carve #380) 로 skip.
-  // project_members 실제 맴버 표시 검증은 프로젝트 생성이 CI에서 안정화된 후 활성화 예정.
-  test.skip("TC-PROJ-UI-05 — 프로젝트 상세 페이지에서 project_members 실제 맴버 표시 (carve #380)", async ({ page }) => {
-    // TODO(#380): leader ComboBox 선택 안정화 후 활성화
+  test("TC-PROJ-UI-05 — 프로젝트 상세 페이지에서 project_members 실제 맴버 표시", async ({ page }) => {
+    await page.goto(appPath(`/projects/${SEEDED_PROJECT_ID}`));
+    await expect(page.getByRole("heading", { name: /devhub simulation project/i })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/team members/i)).toBeVisible();
+    await expect(page.getByText("Charlie", { exact: true })).toBeVisible();
+    await expect(page.getByText(/online|offline|busy/i).first()).toBeVisible();
   });
 });

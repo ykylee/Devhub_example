@@ -230,8 +230,8 @@ DevHub 는 초기 기획/설계 단계를 넘어, 인증·온보딩·관리 설�
 - 2026-06-02 기준 로컬 `frontend npm run test:coverage` PASS
 - 2026-06-02 기준 로컬 `backend-core go test ./...` PASS
 - 2026-06-02 기준 로컬 `backend-core` coverage 재측정: **total 56.8%**
-- 2026-06-02 기준 `colima` fresh stack 재구성 후 `frontend npm run e2e` 최신 실행: **70 passed / 4 failed / 3 skipped**
-- 최신 E2E 실패 4건은 모두 `frontend/tests/e2e/dev-requests.spec.ts` 에 집중되며, `/devhub` base path 환경에서 DREQ endpoint 호출 경로가 `404` 로 떨어지는 정황이 확인됐다
+- 2026-06-02 기준 `colima` fresh stack 재구성 후 `frontend npm run e2e` 최신 실행: **77 passed**
+- 초기 재실행에서는 `frontend/tests/e2e/dev-requests.spec.ts` 4건과 정적 skip 3건이 남아 있었으나, `/devhub` base path 정합과 프로젝트/카탈로그 시나리오 안정화 후 전체 통과로 수렴했다
 - CI 회귀 복구 완료 후 GitHub Actions green 상태 기록 존재
 - 통합 테스트 문서에서는 인증/온보딩, 시스템 설정, SCM 연동, DREQ, CI 조회까지 실제 시나리오 검증 흔적이 확인된다
 - 2026-05-29 전후로 frontend/backend 커버리지 remediation sprint 가 연속 수행되었다
@@ -240,7 +240,7 @@ DevHub 는 초기 기획/설계 단계를 넘어, 인증·온보딩·관리 설�
 
 - 테스트는 "있다" 수준이 아니라 단위테스트, E2E, 통합 시나리오, 커버리지 remediation sprint 로 다층 구조를 갖추고 있다.
 - 특히 DREQ 통합 테스트는 문서상 10/10 통과, BUG/ISSUE 0건으로 보고 가능하다.
-- 발표에서는 `Vitest 최근 실행 73 files / 969 tests PASS`, `Playwright 최근 실행 70 passed / 4 failed / 3 skipped`, `Playwright spec 27`, `frontend Lines 84.71%`, `backend total 56.8%`처럼 분리해 제시하는 편이 가장 명확하다.
+- 발표에서는 `Vitest 최근 실행 73 files / 969 tests PASS`, `Playwright 최근 실행 77 passed`, `Playwright spec 27`, `frontend Lines 84.71%`, `backend total 56.8%`처럼 분리해 제시하는 편이 가장 명확하다.
 
 ## 8. AI agent 활용 현황
 
@@ -322,8 +322,8 @@ DevHub 는 초기 기획/설계 단계를 넘어, 인증·온보딩·관리 설�
 - `cd frontend && npm run test:coverage`: PASS, **Lines 84.71% / Statements 83.41% / Branches 77.80% / Functions 81.33%**
 - `cd backend-core && go test ./...`: PASS
 - `cd backend-core && go test ./... -count=1 -coverpkg=./... -coverprofile=...`: PASS, **total 56.8%**
-- `cd frontend && npm run e2e` (`colima` fresh stack): **70 passed / 4 failed / 3 skipped**
-- E2E 실패 범위는 `frontend/tests/e2e/dev-requests.spec.ts` 4건으로 수렴했고, DREQ endpoint 의 base-path 정합 이슈가 의심된다
+- `cd frontend && npm run e2e` (`colima` fresh stack): **77 passed**
+- base-path 환경(`/devhub`) 기준 DREQ API 호출과 프로젝트/카탈로그 시나리오까지 포함해 전체 E2E green 을 확인했다
 
 ## 10. 보고자료 작성 시 주의점
 
