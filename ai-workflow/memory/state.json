@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-06-01 main. CI 회귀 복구 완료: frontend 타입 에러(ApplicationRepository 중복 import) + E2E flaky selector(admin-projects TC-PROJ-UI-04) 수정으로 GitHub Actions CI green(run 26738464130).",
-  "updated_at": "2026-06-01T06:21:11Z",
-  "head_commit": "835efee",
-  "head_summary": "test(e2e): make project member add assertion robust across combobox/input",
+  "status": "2026-06-02 main. CI Run API + RBAC row filter/org subtree scope가 main HEAD에 반영된 상태이며, 중간 개발 보고용 슬라이드 자료 작성을 위해 계획 문서와 분석 베이스라인 문서 작성이 진행 중이다.",
+  "updated_at": "2026-06-02T03:00:00Z",
+  "head_commit": "9f68fb1",
+  "head_summary": "feat: CI Run API + RBAC row filter + org subtree scope + 정리 (P0-4, P1-7, 6-P2~P4) (#462)",
   "milestones": {
     "M0": {
       "status": "done",
