@@ -34,6 +34,7 @@ type memoryApplicationStore struct {
 	repositoryIDs        map[string]int64
 	repositories         map[string]domain.Repository // full_name → repo (UpsertRepository/ListByProvider)
 	nextRepositoryID     int64
+	ciRuns              []domain.BuildRun
 }
 
 type memoryInfraSnapshot struct {
@@ -512,8 +513,39 @@ func (s *memoryApplicationStore) ListRepositoryPullRequests(_ context.Context, _
 	return []domain.PRActivity{}, 0, nil
 }
 
-func (s *memoryApplicationStore) ListRepositoryBuildRuns(_ context.Context, _ int64, _ store.BuildRunListOptions) ([]domain.BuildRun, int, error) {
-	return []domain.BuildRun{}, 0, nil
+func (s *memoryApplicationStore) ListRepositoryBuildRuns(_ context.Context, repoID int64, opts store.BuildRunListOptions) ([]domain.BuildRun, int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	filtered := make([]domain.BuildRun, 0)
+	for _, r := range s.ciRuns {
+		if r.RepositoryID != repoID {
+			continue
+		}
+		if opts.Status != "" && r.Status != opts.Status {
+			continue
+		}
+		if opts.Branch != "" && r.Branch != opts.Branch {
+			continue
+		}
+		filtered = append(filtered, r)
+	}
+	total := len(filtered)
+	limit := opts.Limit
+	if limit <= 0 || limit > 200 {
+		limit = 50
+	}
+	offset := opts.Offset
+	if offset < 0 {
+		offset = 0
+	}
+	if offset >= total {
+		return []domain.BuildRun{}, total, nil
+	}
+	end := offset + limit
+	if end > total {
+		end = total
+	}
+	return filtered[offset:end], total, nil
 }
 
 func (s *memoryApplicationStore) ListRepositoryQualitySnapshots(_ context.Context, _ int64, _ store.QualitySnapshotListOptions) ([]domain.QualitySnapshot, int, error) {

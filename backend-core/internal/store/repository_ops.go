@@ -158,7 +158,9 @@ LIMIT $1 OFFSET $2`
 	return out, total, nil
 }
 
-// ListRepositoryBuildRuns returns paginated build_runs rows.
+// ListRepositoryBuildRuns returns paginated build_runs rows sourced from ci_runs.
+// ISSUE-04/P1-7: ci_runs is the write path (UpsertCIRun/CreateCIRun); build_runs
+// table has no ingest pipeline, so we read from ci_runs directly.
 func (s *PostgresStore) ListRepositoryBuildRuns(ctx context.Context, repositoryID int64, opts BuildRunListOptions) ([]domain.BuildRun, int, error) {
 	limit := opts.Limit
 	if limit <= 0 || limit > 200 {
@@ -169,26 +171,26 @@ func (s *PostgresStore) ListRepositoryBuildRuns(ctx context.Context, repositoryI
 		offset = 0
 	}
 	const countQuery = `
-SELECT COUNT(*) FROM build_runs
+SELECT COUNT(*) FROM ci_runs
 WHERE repository_id = $1
   AND ($2 = '' OR status = $2)
   AND ($3 = '' OR branch = $3)`
 	var total int
 	if err := s.pool.QueryRow(ctx, countQuery, repositoryID, opts.Status, opts.Branch).Scan(&total); err != nil {
-		return nil, 0, fmt.Errorf("count build runs: %w", err)
+		return nil, 0, fmt.Errorf("count ci_runs: %w", err)
 	}
 	const query = `
-SELECT id, repository_id, run_external_id, branch, commit_sha, status,
-       duration_seconds, started_at, finished_at, created_at
-FROM build_runs
+SELECT id, repository_id, external_id, branch, commit_sha, status,
+       duration_seconds, COALESCE(started_at, created_at), finished_at, created_at
+FROM ci_runs
 WHERE repository_id = $3
   AND ($4 = '' OR status = $4)
   AND ($5 = '' OR branch = $5)
-ORDER BY started_at DESC
+ORDER BY COALESCE(started_at, created_at) DESC
 LIMIT $1 OFFSET $2`
 	rows, err := s.pool.Query(ctx, query, limit, offset, repositoryID, opts.Status, opts.Branch)
 	if err != nil {
-		return nil, 0, fmt.Errorf("list build runs: %w", err)
+		return nil, 0, fmt.Errorf("list ci_runs as build runs: %w", err)
 	}
 	defer rows.Close()
 	out := make([]domain.BuildRun, 0, limit)
@@ -198,14 +200,14 @@ LIMIT $1 OFFSET $2`
 		var finished *time.Time
 		if err := rows.Scan(&b.ID, &b.RepositoryID, &b.RunExternalID, &b.Branch, &b.CommitSHA,
 			&b.Status, &duration, &b.StartedAt, &finished, &b.CreatedAt); err != nil {
-			return nil, 0, fmt.Errorf("scan build run: %w", err)
+			return nil, 0, fmt.Errorf("scan ci_run as build run: %w", err)
 		}
 		b.DurationSeconds = duration
 		b.FinishedAt = finished
 		out = append(out, b)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, 0, fmt.Errorf("iterate build runs: %w", err)
+		return nil, 0, fmt.Errorf("iterate ci_runs: %w", err)
 	}
 	return out, total, nil
 }
