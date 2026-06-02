@@ -26,7 +26,7 @@ test.describe("RBAC route matrix", () => {
   });
 
   test("TC-RBAC-MGR-01 — manager is bounced off /admin", async ({ page }) => {
-    await loginAs(page, SEEDED.manager);
+    await loginAs(page, SEEDED.team_manager);
 
     await page.goto(appPath("/admin"));
     // pathRequiresSystemAdmin('/admin') === true,

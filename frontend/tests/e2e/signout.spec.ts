@@ -93,13 +93,13 @@ test.describe("user switch across Sign Out", () => {
       if (!msg.includes("ERR_ABORTED")) throw err;
     });
     await waitForSignInForm(page);
-    await submitSignInForm(page, SEEDED.manager.email, SEEDED.manager.password);
+    await submitSignInForm(page, SEEDED.team_manager.email, SEEDED.team_manager.password);
     await page.waitForURL(/\/(manager|admin|developer)/, { timeout: 30_000 });
 
     // 4) /account 의 사용자 정보가 bob, alice 의 잔재 없음
     await page.goto(appPath("/account"));
-    await expect(page.getByText(SEEDED.manager.user_id, { exact: true }).first()).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByText(`${SEEDED.manager.user_id}@example.com`)).toBeVisible();
+    await expect(page.getByText(SEEDED.team_manager.user_id, { exact: true }).first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(`${SEEDED.team_manager.user_id}@example.com`)).toBeVisible();
     // alice 의 user_id 가 어떤 곳에도 노출되지 않아야 한다 — actor 가
     // bob 인데 alice 가 보이면 store/UI 가 깨끗히 리셋되지 않은 증거.
     await expect(page.getByText(SEEDED.developer.user_id, { exact: true })).toHaveCount(0);

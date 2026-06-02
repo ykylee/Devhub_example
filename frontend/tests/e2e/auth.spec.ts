@@ -14,8 +14,8 @@ test.describe("role-based landing", () => {
     await expect(page).toHaveURL(/\/developer(\/|$)/);
   });
 
-  test("manager lands on /manager", async ({ page }) => {
-    await loginAs(page, SEEDED.manager);
+  test("team_manager lands on /manager", async ({ page }) => {
+    await loginAs(page, SEEDED.team_manager);
     await expect(page).toHaveURL(/\/manager(\/|$)/);
   });
 

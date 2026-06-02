@@ -17,7 +17,7 @@ test.describe("/account — profile + Keycloak console", () => {
     await expect(page.getByText(`${SEEDED.developer.user_id}@example.com`)).toBeVisible();
     await expect(page.getByText("Developer", { exact: true }).first()).toBeVisible();
 
-    await expect(page.getByText(SEEDED.manager.user_id, { exact: true })).toHaveCount(0);
+    await expect(page.getByText(SEEDED.team_manager.user_id, { exact: true })).toHaveCount(0);
     await expect(page.getByText(SEEDED.systemAdmin.user_id, { exact: true })).toHaveCount(0);
   });
 

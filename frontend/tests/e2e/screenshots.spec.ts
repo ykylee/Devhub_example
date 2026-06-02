@@ -93,7 +93,7 @@ test.describe("UI screenshot capture (P0-3, design review source)", () => {
 
   test("manager dashboard (manager) — 1 capture", async ({ page }) => {
     // loginAs + 1 페이지 캡처 ~ 15-20s, default 30s 안전 마진. 명시는 안 함.
-    await loginAs(page, SEEDED.manager);
+    await loginAs(page, SEEDED.team_manager);
     await page.goto(appPath("/manager"));
     await page.waitForLoadState("networkidle", { timeout: NETWORK_IDLE_TIMEOUT_MS }).catch(() => undefined);
     await page.waitForTimeout(SETTLE_MS);

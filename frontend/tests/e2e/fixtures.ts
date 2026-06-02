@@ -25,7 +25,7 @@ export const SEEDED: Record<"developer" | "team_manager" | "systemAdmin", Seeded
     role: "developer",
     landing: "/developer",
   },
-  manager: {
+  team_manager: {
     user_id: "bob",
     email: "bob@example.com",
     password: "ChangeMe-12345!",
