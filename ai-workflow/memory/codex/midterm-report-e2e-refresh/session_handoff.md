@@ -16,6 +16,9 @@
   - `frontend/tests/e2e/admin-projects.spec.ts`: 정적 skip 2건 제거, seeded project detail 검증으로 실제 표시 시나리오 활성화
   - `frontend/tests/e2e/fixtures.ts`: `apiPath()` helper 추가
 - 최종적으로 fresh stack 기준 Playwright 전체 `77 passed`를 확인했다.
+- 이어서 [`docs/presentations/2026-06-02-midterm-report.html`](../../../../docs/presentations/2026-06-02-midterm-report.html) 단일 HTML 슬라이드 초안을 작성했다.
+  - 구성: 표지, 개요, 컨셉, 개발 흐름, 구현 범위, 사용 가능 기능, SDLC, 추적성, 테스트, AI agent, 통계, 종합
+  - 원칙: 최신 실행 결과 우선, SDLC/추적성/테스트를 현재 개발 실적과 함께 보여주는 흐름
 
 ## 검증 메모
 
@@ -33,7 +36,6 @@
 
 ## 다음 세션 첫 작업
 
-1. 현재 변경(`frontend/tests/e2e/*`, `docs/analysis/2026-06-02-midterm-report-baseline.md`, branch memory)을 커밋하고 원격 브랜치 갱신
-2. 필요 시 PR 생성 후, 본 브랜치의 E2E green 결과를 본문에 포함
-3. 사용자 요청이 이어지면 `docs/presentations/` 아래 HTML/CSS/JS 슬라이드 초안 구현 착수
-
+1. `docs/presentations/2026-06-02-midterm-report.html` 렌더/가독성 최종 점검
+2. 슬라이드 초안과 branch memory 변경을 커밋하고 원격 브랜치 갱신
+3. 필요 시 발표용 캡처/차트 또는 문안 압축 버전 추가

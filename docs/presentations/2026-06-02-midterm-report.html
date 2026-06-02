@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DevHub Example - 중간 개발 보고 (2026-06-02)</title>
+<style>
+  :root {
+    --bg: #08111f;
+    --bg-2: #0d1830;
+    --panel: rgba(15, 27, 52, 0.82);
+    --panel-2: rgba(10, 20, 38, 0.92);
+    --line: rgba(122, 148, 197, 0.18);
+    --text: #eef4ff;
+    --muted: #9fb1cd;
+    --teal: #44d7c1;
+    --amber: #ffbf69;
+    --coral: #ff7e6b;
+    --navy: #7aa6ff;
+    --green: #70e0a1;
+    --shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at top left, rgba(68, 215, 193, 0.10), transparent 28%),
+      radial-gradient(circle at top right, rgba(122, 166, 255, 0.14), transparent 30%),
+      linear-gradient(180deg, #08111f 0%, #060c16 100%);
+    color: var(--text);
+    font-family: "Pretendard", "Segoe UI", sans-serif;
+  }
+
+  body {
+    position: relative;
+  }
+
+  .slides {
+    width: 100%;
+    height: 100%;
+    position: relative;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    padding: 56px 64px 82px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(18px);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+    overflow-y: auto;
+  }
+
+  .slide.active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--teal);
+    font-weight: 700;
+  }
+
+  .eyebrow::before {
+    content: "";
+    width: 34px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--teal), transparent);
+  }
+
+  h1 {
+    font-size: 74px;
+    line-height: 0.98;
+    letter-spacing: -0.04em;
+    font-weight: 900;
+    max-width: 1100px;
+  }
+
+  h2 {
+    font-size: 42px;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    font-weight: 850;
+  }
+
+  h3 {
+    font-size: 18px;
+    line-height: 1.2;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  p, li {
+    color: var(--muted);
+    font-size: 17px;
+    line-height: 1.65;
+  }
+
+  ul {
+    padding-left: 20px;
+  }
+
+  .lead {
+    max-width: 980px;
+    font-size: 22px;
+    line-height: 1.6;
+    color: #d6e3fb;
+  }
+
+  .cover {
+    justify-content: center;
+    gap: 30px;
+  }
+
+  .cover h1 {
+    max-width: 1000px;
+    background: linear-gradient(135deg, #ffffff 0%, #bfeaff 50%, #7aa6ff 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .cover-grid,
+  .metric-grid,
+  .tri-grid,
+  .quad-grid,
+  .agent-grid {
+    display: grid;
+    gap: 18px;
+  }
+
+  .cover-grid { grid-template-columns: repeat(4, 1fr); }
+  .metric-grid { grid-template-columns: repeat(4, 1fr); }
+  .tri-grid { grid-template-columns: repeat(3, 1fr); }
+  .quad-grid { grid-template-columns: repeat(4, 1fr); }
+  .agent-grid { grid-template-columns: 1.05fr 1fr; }
+
+  .panel,
+  .metric,
+  .timeline-card,
+  .agent-card,
+  .stack-card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    box-shadow: var(--shadow);
+  }
+
+  .panel,
+  .timeline-card,
+  .agent-card,
+  .stack-card {
+    padding: 22px 24px;
+  }
+
+  .metric {
+    padding: 22px 20px;
+    min-height: 140px;
+  }
+
+  .metric .value {
+    display: block;
+    margin-top: 14px;
+    font-size: 40px;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    color: var(--text);
+  }
+
+  .metric .sub {
+    margin-top: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--muted);
+  }
+
+  .chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(122, 166, 255, 0.2);
+    background: rgba(122, 166, 255, 0.08);
+    color: #dce7ff;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .section-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 22px;
+  }
+
+  .status-list {
+    display: grid;
+    gap: 12px;
+  }
+
+  .status-item {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    gap: 14px;
+    align-items: start;
+    padding: 16px 18px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+  }
+
+  .status-item strong {
+    font-size: 15px;
+    color: var(--text);
+  }
+
+  .status-item span {
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .timeline {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+  }
+
+  .timeline-card .date {
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 10px;
+    font-weight: 700;
+  }
+
+  .timeline-card p {
+    margin-top: 10px;
+    font-size: 14px;
+  }
+
+  .flow {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 12px;
+    align-items: center;
+  }
+
+  .flow-step {
+    min-height: 120px;
+    padding: 18px 14px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .flow-step .code {
+    display: inline-block;
+    margin-bottom: 10px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    color: var(--teal);
+  }
+
+  .flow-step p {
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .arrow {
+    text-align: center;
+    font-size: 26px;
+    color: var(--navy);
+  }
+
+  .trace-table {
+    width: 100%;
+    border-collapse: collapse;
+    border-radius: 18px;
+    overflow: hidden;
+  }
+
+  .trace-table th,
+  .trace-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .trace-table th {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #b7cff5;
+    background: rgba(122, 166, 255, 0.08);
+  }
+
+  .trace-table td {
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  .bar-list {
+    display: grid;
+    gap: 14px;
+  }
+
+  .bar-row {
+    display: grid;
+    grid-template-columns: 170px 1fr 70px;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .bar-row span {
+    font-size: 14px;
+    color: #dbe6fa;
+    font-weight: 700;
+  }
+
+  .bar-track {
+    height: 14px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--teal), var(--navy));
+  }
+
+  .bar-fill.amber { background: linear-gradient(90deg, var(--amber), #ffdca2); }
+  .bar-fill.coral { background: linear-gradient(90deg, var(--coral), #ffb29e); }
+  .bar-fill.green { background: linear-gradient(90deg, var(--green), #abf0c6); }
+
+  .agent-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .agent-table th,
+  .agent-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    text-align: left;
+    font-size: 14px;
+  }
+
+  .agent-table th {
+    color: #b7cff5;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .agent-table td {
+    color: var(--muted);
+  }
+
+  .big-note {
+    padding: 22px 24px;
+    border-radius: 22px;
+    background:
+      linear-gradient(135deg, rgba(68, 215, 193, 0.12), rgba(122, 166, 255, 0.08)),
+      rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(68, 215, 193, 0.18);
+  }
+
+  .big-note p {
+    color: #d8e8ff;
+    font-size: 18px;
+  }
+
+  .footer {
+    position: fixed;
+    left: 28px;
+    right: 28px;
+    bottom: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 40;
+    pointer-events: none;
+  }
+
+  .footer-box {
+    pointer-events: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 14px;
+    border-radius: 999px;
+    background: rgba(4, 9, 18, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--muted);
+    font-size: 13px;
+    backdrop-filter: blur(12px);
+  }
+
+  .progress {
+    width: 180px;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  .progress > div {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--teal), var(--navy));
+  }
+
+  .nav {
+    display: inline-flex;
+    gap: 8px;
+  }
+
+  .nav button {
+    width: 42px;
+    height: 42px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text);
+    font-size: 18px;
+    cursor: pointer;
+  }
+
+  .nav button:hover {
+    background: rgba(122, 166, 255, 0.14);
+  }
+
+  @media (max-width: 1200px) {
+    .cover-grid, .metric-grid, .tri-grid, .quad-grid, .timeline, .flow, .agent-grid, .section-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (max-width: 860px) {
+    html, body {
+      overflow: auto;
+    }
+    .slide {
+      position: static;
+      opacity: 1;
+      pointer-events: auto;
+      transform: none;
+      min-height: 100vh;
+      padding: 32px 20px 100px;
+    }
+    h1 { font-size: 48px; }
+    h2 { font-size: 30px; }
+    .cover-grid, .metric-grid, .tri-grid, .quad-grid, .timeline, .flow, .agent-grid, .section-grid {
+      grid-template-columns: 1fr;
+    }
+    .footer {
+      display: none;
+    }
+  }
+</style>
+</head>
+<body>
+  <div class="slides">
+    <section class="slide cover active" data-title="표지">
+      <div class="eyebrow">Midterm Development Report</div>
+      <h1>DevHub Example<br>중간 개발 보고</h1>
+      <p class="lead">현재까지 실제로 구현된 기능, SDLC 체계, 추적성, 테스트 자산, AI agent 협업 구조를 기준일 2026-06-02 시점으로 정리한다.</p>
+      <div class="cover-grid">
+        <div class="metric">
+          <h3>현재 기준일</h3>
+          <span class="value">06.02</span>
+          <div class="sub">2026-06-02 baseline</div>
+        </div>
+        <div class="metric">
+          <h3>최신 E2E</h3>
+          <span class="value">77</span>
+          <div class="sub">Playwright passed</div>
+        </div>
+        <div class="metric">
+          <h3>Vitest 최근 실행</h3>
+          <span class="value">969</span>
+          <div class="sub">73 files / tests PASS</div>
+        </div>
+        <div class="metric">
+          <h3>추적성 항목</h3>
+          <span class="value">412+</span>
+          <div class="sub">traceability matrix rows</div>
+        </div>
+      </div>
+      <div class="chip-row">
+        <span class="chip">인증 · 온보딩 · RBAC</span>
+        <span class="chip">Application · Project · Repository</span>
+        <span class="chip">DREQ · External Integration · Audit</span>
+        <span class="chip">SDLC · Traceability · AI Workflow</span>
+        <span class="chip">기준: 실행 결과 우선</span>
+      </div>
+    </section>
+
+    <section class="slide" data-title="과제 개요">
+      <div class="eyebrow">Overview</div>
+      <h2>과제 개요와 현재 목표</h2>
+      <div class="tri-grid">
+        <div class="panel">
+          <h3>프로젝트 목적</h3>
+          <p>역할별 기본 진입 우선순위 대시보드와 조직/과제/외부 연동 운영 기능을 통합하는 관리 플랫폼을 구축한다.</p>
+        </div>
+        <div class="panel">
+          <h3>핵심 사용자군</h3>
+          <p>Developer, Team Manager, PMO Manager, System Admin 각각의 업무 흐름을 하나의 서비스 안에서 연결한다.</p>
+        </div>
+        <div class="panel">
+          <h3>중간 보고 관점</h3>
+          <p>미래 계획보다 현재 실제 동작 범위, 문서화 수준, 테스트 충실도, 협업 구조를 중심으로 보고한다.</p>
+        </div>
+      </div>
+      <div class="section-grid">
+        <div class="panel">
+          <h3>핵심 도메인</h3>
+          <div class="chip-row" style="margin-top:14px">
+            <span class="chip">Auth / OIDC</span>
+            <span class="chip">Organization / RBAC</span>
+            <span class="chip">Application / Project</span>
+            <span class="chip">Repository / SCM</span>
+            <span class="chip">DREQ</span>
+            <span class="chip">External Integration</span>
+            <span class="chip">Audit / CI Visibility</span>
+          </div>
+        </div>
+        <div class="big-note">
+          <p>DevHub는 단순 화면 프로토타입이 아니라 인증, 조직, 프로젝트, 외부 연동, 개발 의뢰 흐름까지 연결된 운영형 플랫폼으로 진화했다.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="개발 컨셉">
+      <div class="eyebrow">Concept</div>
+      <h2>개발 컨셉과 출발점</h2>
+      <div class="section-grid">
+        <div class="panel">
+          <h3>초기 컨셉</h3>
+          <ul>
+            <li>역할 기반 기본 landing 과 작업 대시보드를 중심으로 사용자 경험을 설계</li>
+            <li>실제 업무 객체를 Application → Project → Repository 및 DREQ 흐름으로 모델링</li>
+            <li>인증, 권한, 외부 시스템 연동을 분리된 기능이 아니라 운영 체계로 통합</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h3>진행 방식</h3>
+          <ul>
+            <li>기능 개발과 문서 정합 작업을 병행</li>
+            <li>도메인 문서, ADR, API 문서, traceability report 를 같이 유지</li>
+            <li>AI agent 를 역할별 워커로 배치해 backend, infra, frontend, test 축을 병렬 진행</li>
+          </ul>
+        </div>
+      </div>
+      <div class="flow">
+        <div class="flow-step"><span class="code">CONCEPT</span><h3>Vision</h3><p>운영형 통합 플랫폼 지향</p></div>
+        <div class="arrow">→</div>
+        <div class="flow-step"><span class="code">REQ</span><h3>Requirements</h3><p>역할/도메인별 기능 구체화</p></div>
+        <div class="arrow">→</div>
+        <div class="flow-step"><span class="code">ARCH</span><h3>Architecture</h3><p>도메인 분해와 레이어 규칙 정립</p></div>
+        <div class="arrow">→</div>
+        <div class="flow-step"><span class="code">API</span><h3>Contracts</h3><p>문서 기반 인터페이스 관리</p></div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="개발 흐름">
+      <div class="eyebrow">Timeline</div>
+      <h2>기간별 개발 흐름</h2>
+      <div class="timeline">
+        <div class="timeline-card">
+          <div class="date">2026-05 Early</div>
+          <h3>M0 ~ M2</h3>
+          <p>로그인, 사용자 관리, 기본 권한 게이트, 화면 구조 등 핵심 기반 기능을 빠르게 정착.</p>
+        </div>
+        <div class="timeline-card">
+          <div class="date">2026-05 Mid</div>
+          <h3>CI / Governance</h3>
+          <p>GitHub Actions CI, traceability 체계, governance 문서, no-docker CI 정책을 도입.</p>
+        </div>
+        <div class="timeline-card">
+          <div class="date">2026-05 Late</div>
+          <h3>Keycloak Only</h3>
+          <p>OIDC 단일 IdP 구조로 정리하고 Kratos/Hydra 잔재를 제거. 배포/운영 경로를 재정렬.</p>
+        </div>
+        <div class="timeline-card">
+          <div class="date">2026-05 Late</div>
+          <h3>v1.0 Hardening</h3>
+          <p>커버리지 sprint, E2E 안정화, Project/Application 모델 고도화, row-level RBAC 및 CI Run API 진전.</p>
+        </div>
+        <div class="timeline-card">
+          <div class="date">2026-06 Now</div>
+          <h3>Midterm Report</h3>
+          <p>현재까지 실제 구현 범위와 SDLC 체계를 발표용으로 정리. fresh stack 기준 E2E 77 passed 확인.</p>
+        </div>
+      </div>
+      <div class="big-note">
+        <p>최근 단계의 특징은 기능 확장 자체보다, 이미 쌓인 기능을 운영 가능한 수준으로 정리하고 문서/테스트/배포 체계를 함께 강화했다는 점이다.</p>
+      </div>
+    </section>
+
+    <section class="slide" data-title="구현 범위">
+      <div class="eyebrow">Implementation</div>
+      <h2>현재 구현 범위 요약</h2>
+      <div class="status-list">
+        <div class="status-item"><strong>인증 / 권한</strong><span>Keycloak OIDC code flow with PKCE, JWT/JWKS 검증, route gating, system_admin 보호 라우트, onboarding gate 적용.</span></div>
+        <div class="status-item"><strong>조직 / 사용자</strong><span>조직도, 부서 CRUD, 사용자 목록/검색, 권한 정책 편집, 계정 관리 및 감사 로그 조회까지 연결.</span></div>
+        <div class="status-item"><strong>Application / Project</strong><span>Application 관리, Project 생성/조회, project_members 구조, repository association, hybrid project model 경로 운영.</span></div>
+        <div class="status-item"><strong>Repository / SCM</strong><span>Repository 목록/상세, draft/publish 흐름, linked activity 시각화, 관리자 catalog drilldown 제공.</span></div>
+        <div class="status-item"><strong>DREQ / 운영</strong><span>Intake token 발급/수정/취소, external intake, promote 흐름, dashboard/notification 연계, 감사 기록 기반 운영 검증.</span></div>
+        <div class="status-item"><strong>External Integration</strong><span>integration provider/binding 관리, topology v2, provider lifecycle, audit 및 sync 흐름 기반 관리 UI 제공.</span></div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="사용 가능 기능">
+      <div class="eyebrow">Usable Features</div>
+      <h2>현재 시점 사용 가능한 기능</h2>
+      <div class="tri-grid">
+        <div class="panel">
+          <h3>Developer</h3>
+          <ul>
+            <li>로그인 후 `/developer` landing</li>
+            <li>내 Dev Request 목록 및 상세 확인</li>
+            <li>Application / Project / Repository 조회</li>
+            <li>계정 프로필 및 Keycloak console 진입</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h3>Manager / PMO</h3>
+          <ul>
+            <li>역할 기반 `/manager` landing</li>
+            <li>프로젝트/저장소 상태 조회</li>
+            <li>조직/리소스 관점 모니터링</li>
+            <li>Application / Project 가시성 확인</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h3>System Admin</h3>
+          <ul>
+            <li>관리 카탈로그, 설정, 권한 편집</li>
+            <li>사용자 / 조직 / audit / integration 관리</li>
+            <li>DREQ token 발급 및 intake 운영</li>
+            <li>topology v2 및 repository draft/publish 흐름</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="SDLC 체계">
+      <div class="eyebrow">SDLC</div>
+      <h2>SDLC 체계와 산출물 구조</h2>
+      <div class="flow">
+        <div class="flow-step"><span class="code">CONCEPT</span><h3>6 docs</h3><p>도메인 컨셉과 문제 정의</p></div>
+        <div class="arrow">→</div>
+        <div class="flow-step"><span class="code">REQ</span><h3>Requirements</h3><p>요구사항 분해 및 정책 명세</p></div>
+        <div class="arrow">→</div>
+        <div class="flow-step"><span class="code">ARCH</span><h3>10 docs</h3><p>레이어, 경계, 호출 규칙</p></div>
+        <div class="arrow">→</div>
+        <div class="flow-step"><span class="code">API</span><h3>10 docs</h3><p>계약 중심 구현 연결</p></div>
+      </div>
+      <div class="flow" style="margin-top:14px">
+        <div class="flow-step"><span class="code">IMPL</span><h3>Code</h3><p>frontend / backend / migration / infra</p></div>
+        <div class="arrow">→</div>
+        <div class="flow-step"><span class="code">UT</span><h3>74 + 104</h3><p>Vitest / Go test files</p></div>
+        <div class="arrow">→</div>
+        <div class="flow-step"><span class="code">TC</span><h3>27 specs</h3><p>Playwright scenario set</p></div>
+        <div class="arrow">→</div>
+        <div class="flow-step"><span class="code">REPORT</span><h3>Traceability</h3><p>matrix와 sprint 문서로 회수</p></div>
+      </div>
+      <div class="big-note">
+        <p>이 프로젝트의 특징은 기능과 문서를 따로 관리하지 않고, 컨셉 → 요구사항 → 설계 → 구현 → 테스트의 체인을 지속적으로 갱신해 왔다는 점이다.</p>
+      </div>
+    </section>
+
+    <section class="slide" data-title="추적성">
+      <div class="eyebrow">Traceability</div>
+      <h2>SDLC 추적성과 연결 관계</h2>
+      <div class="panel">
+        <table class="trace-table">
+          <thead>
+            <tr>
+              <th>레이어</th>
+              <th>대표 ID / 자산</th>
+              <th>현재 보고 포인트</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Requirement</td>
+              <td>REQ-FR / REQ-NFR</td>
+              <td>도메인 요구사항이 traceability matrix 와 연결되어 이후 설계/구현으로 추적 가능</td>
+            </tr>
+            <tr>
+              <td>Architecture</td>
+              <td>ARCH / ADR</td>
+              <td>Keycloak-only, single-port, code taxonomy 등 구조 결정이 ADR 및 governance 문서에 남아 있음</td>
+            </tr>
+            <tr>
+              <td>API</td>
+              <td>API-*</td>
+              <td>계약 문서와 실제 route/handler/test 가 매핑됨</td>
+            </tr>
+            <tr>
+              <td>Implementation</td>
+              <td>IMPL-*</td>
+              <td>PR 단위로 영향 지점과 구현 책임이 명시됨</td>
+            </tr>
+            <tr>
+              <td>Testing</td>
+              <td>UT / TC</td>
+              <td>단위테스트와 E2E 시나리오가 matrix 및 test_cases 문서와 연결됨</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="big-note">
+        <p>중간 보고에서 중요한 것은 문서가 “존재한다”가 아니라, 문서들이 서로 링크되고 실제 코드와 테스트로 이어지는 관리 체계가 이미 작동 중이라는 점이다.</p>
+      </div>
+    </section>
+
+    <section class="slide" data-title="테스트">
+      <div class="eyebrow">Quality</div>
+      <h2>테스트 체계와 품질 지표</h2>
+      <div class="metric-grid">
+        <div class="metric">
+          <h3>Vitest</h3>
+          <span class="value">969</span>
+          <div class="sub">73 files / latest PASS</div>
+        </div>
+        <div class="metric">
+          <h3>Playwright</h3>
+          <span class="value">77</span>
+          <div class="sub">fresh stack latest PASS</div>
+        </div>
+        <div class="metric">
+          <h3>Frontend Lines</h3>
+          <span class="value">84.71%</span>
+          <div class="sub">Statements 83.41 / Branches 77.80</div>
+        </div>
+        <div class="metric">
+          <h3>Backend Total</h3>
+          <span class="value">56.8%</span>
+          <div class="sub">`-coverpkg=./...` latest run</div>
+        </div>
+      </div>
+      <div class="section-grid">
+        <div class="panel">
+          <h3>테스트 분류</h3>
+          <ul>
+            <li>단위테스트: frontend Vitest 74 files, backend Go test 104 files</li>
+            <li>E2E: Playwright spec 27, OIDC 실환경 흐름 기준</li>
+            <li>통합 시나리오: integrated test report 와 sprint 문서 축적</li>
+            <li>커버리지 remediation sprint 로 지속 개선</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h3>최신 검증 포인트</h3>
+          <ul>
+            <li>`colima` fresh stack 에서 frontend/backend 새 빌드 후 검증</li>
+            <li>초기 E2E `70 passed / 4 failed / 3 skipped` 상태 재현</li>
+            <li>DREQ base-path 정합 및 project/catalog skip 제거 후 `77 passed` 수렴</li>
+            <li>최종 보고 수치는 문서 집계보다 최신 실행 결과를 우선 기준으로 사용</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="AI Agent">
+      <div class="eyebrow">AI Collaboration</div>
+      <h2>AI agent 활용 현황과 역할 분담</h2>
+      <div class="agent-grid">
+        <div class="agent-card">
+          <h3>역할 분담</h3>
+          <table class="agent-table" style="margin-top:12px">
+            <thead>
+              <tr><th>Agent</th><th>주요 역할</th><th>발표용 해석</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Claude</td><td>backend, design, traceability, workflow</td><td>주도 축</td></tr>
+              <tr><td>Codex</td><td>infra, CI, security, packaging</td><td>운영 안정화 축</td></tr>
+              <tr><td>Gemini</td><td>frontend, UX, E2E, visual polish</td><td>사용자 경험 축</td></tr>
+              <tr><td>DeepSeek</td><td>최근 테스트/검증/workflow 보조</td><td>보조 확장 축</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="agent-card">
+          <h3>기여 비중 추정</h3>
+          <div class="bar-list" style="margin-top:16px">
+            <div class="bar-row"><span>Claude</span><div class="bar-track"><div class="bar-fill" style="width:66%"></div></div><strong>60~70%</strong></div>
+            <div class="bar-row"><span>Codex</span><div class="bar-track"><div class="bar-fill amber" style="width:22%"></div></div><strong>15~25%</strong></div>
+            <div class="bar-row"><span>Gemini</span><div class="bar-track"><div class="bar-fill coral" style="width:13%"></div></div><strong>10~15%</strong></div>
+            <div class="bar-row"><span>DeepSeek</span><div class="bar-track"><div class="bar-fill green" style="width:4%"></div></div><strong>2~5%</strong></div>
+          </div>
+          <p style="margin-top:16px">Claude, Codex, Gemini 는 2026-05 초부터, DeepSeek 는 2026-05 말부터 가시화됐다. 기여 비중은 memory 문서, merge branch 식별, commit subject 언급 3축을 함께 보고 추정했다.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="통계">
+      <div class="eyebrow">Project Statistics</div>
+      <h2>산출물과 개발 활동 통계</h2>
+      <div class="quad-grid">
+        <div class="metric"><h3>전체 Commit</h3><span class="value">683</span><div class="sub">저장소 누적 commit</div></div>
+        <div class="metric"><h3>PR 연계 Subject</h3><span class="value">384</span><div class="sub">고유 PR 수 아님</div></div>
+        <div class="metric"><h3>ADR</h3><span class="value">26</span><div class="sub">의사결정 문서</div></div>
+        <div class="metric"><h3>Domain Docs</h3><span class="value">66</span><div class="sub">도메인 문서 자산</div></div>
+      </div>
+      <div class="quad-grid">
+        <div class="metric"><h3>Planning Docs</h3><span class="value">22</span><div class="sub">planning 문서 수</div></div>
+        <div class="metric"><h3>Analysis Docs</h3><span class="value">25</span><div class="sub">analysis 문서 수</div></div>
+        <div class="metric"><h3>Workflow States</h3><span class="value">175</span><div class="sub">state.json files</div></div>
+        <div class="metric"><h3>Migrations</h3><span class="value">47</span><div class="sub">backend migration up</div></div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="종합">
+      <div class="eyebrow">Assessment</div>
+      <h2>현재 상태 평가와 다음 단계</h2>
+      <div class="section-grid">
+        <div class="panel">
+          <h3>현재 평가</h3>
+          <ul>
+            <li>주요 사용자 흐름은 실사용 가능한 수준으로 확장됨</li>
+            <li>SDLC 문서와 추적성 체계가 구현/테스트와 연결됨</li>
+            <li>fresh stack 기준 E2E 전체 green 으로 품질 설명력이 크게 강화됨</li>
+            <li>AI agent 협업이 단순 보조가 아니라 실질적 생산 구조로 정착</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h3>다음 단계</h3>
+          <ul>
+            <li>본 HTML 초안을 발표용 문안/시각 디테일 기준으로 다듬기</li>
+            <li>필요 시 실제 캡처 이미지나 차트 보강</li>
+            <li>v1.0 staging 운영 검증 및 후속 기능 hardening 지속</li>
+          </ul>
+        </div>
+      </div>
+      <div class="big-note">
+        <p>이번 중간 보고의 핵심 메시지는 “개발이 진행 중이다”가 아니라, “실제 동작하는 시스템과 이를 설명하는 관리 체계가 함께 축적되고 있다”이다.</p>
+      </div>
+    </section>
+  </div>
+
+  <div class="footer">
+    <div class="footer-box">
+      <span id="slideLabel">1 / 12</span>
+      <div class="progress"><div id="progressBar"></div></div>
+    </div>
+    <div class="footer-box nav">
+      <button id="prevBtn" aria-label="Previous slide">←</button>
+      <button id="nextBtn" aria-label="Next slide">→</button>
+    </div>
+  </div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll(".slide"));
+  const slideLabel = document.getElementById("slideLabel");
+  const progressBar = document.getElementById("progressBar");
+  const prevBtn = document.getElementById("prevBtn");
+  const nextBtn = document.getElementById("nextBtn");
+  let current = 0;
+
+  function renderSlide(index) {
+    current = (index + slides.length) % slides.length;
+    slides.forEach((slide, i) => slide.classList.toggle("active", i === current));
+    slideLabel.textContent = `${current + 1} / ${slides.length}`;
+    progressBar.style.width = `${((current + 1) / slides.length) * 100}%`;
+  }
+
+  prevBtn.addEventListener("click", () => renderSlide(current - 1));
+  nextBtn.addEventListener("click", () => renderSlide(current + 1));
+
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowRight" || event.key === "PageDown" || event.key === " ") {
+      event.preventDefault();
+      renderSlide(current + 1);
+    }
+    if (event.key === "ArrowLeft" || event.key === "PageUp") {
+      event.preventDefault();
+      renderSlide(current - 1);
+    }
+    if (event.key === "Home") {
+      event.preventDefault();
+      renderSlide(0);
+    }
+    if (event.key === "End") {
+      event.preventDefault();
+      renderSlide(slides.length - 1);
+    }
+  });
+
+  renderSlide(0);
+</script>
+</body>
+</html>

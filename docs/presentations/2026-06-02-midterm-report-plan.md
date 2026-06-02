@@ -133,3 +133,4 @@
 
 - 본 계획에 맞춰 슬라이드용 분석 수치를 확정한다.
 - 분석 베이스라인 문서에서 문안을 가져와 슬라이드 초안 HTML로 옮긴다.
+- 현재 [`docs/presentations/2026-06-02-midterm-report.html`](./2026-06-02-midterm-report.html) 단일 HTML 초안이 작성되었고, 1440x900 기준 기본 렌더/overflow 점검을 통과했다.

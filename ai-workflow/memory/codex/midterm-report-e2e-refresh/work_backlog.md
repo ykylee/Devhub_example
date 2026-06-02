@@ -15,5 +15,5 @@
 | MR-E2E-03 | Playwright 실패 4건 분석 | done | DREQ spec의 base-path 미정합 확인 |
 | MR-E2E-04 | 정적 skip 3건 분석 | done | admin-catalog 1건 + admin-projects 2건 구조 재확인 |
 | MR-E2E-05 | E2E 안정화 및 전체 green | done | `frontend npm run e2e` 77 passed |
-| MR-E2E-06 | memory/문서/브랜치 반영 마무리 | in_progress | 브랜치 메모리 추가, 커밋/푸시 대기 |
-
+| MR-E2E-06 | memory/문서/브랜치 반영 마무리 | done | fresh stack E2E green 기준 커밋/푸시 반영 완료 |
+| MR-E2E-07 | 중간 보고 슬라이드 HTML 초안 작성 | in_progress | 단일 HTML 초안 작성, 발표용 문안/렌더 검수 진행 중 |
