@@ -116,10 +116,12 @@ func (r *ApplicationRepository) ListApplications(ctx context.Context, opts Appli
 	}
 
 	rowFilter := `
-  AND ($6 = '' OR $6 = 'system_admin' OR $6 = 'team_manager'
+  AND ($6 = '' OR $6 = 'system_admin'
        OR owner_user_id = $7 OR leader_user_id = $7
        OR EXISTS (SELECT 1 FROM projects WHERE application_id = applications.id
-                  AND (owner_user_id = $7 OR EXISTS (SELECT 1 FROM project_members WHERE project_id = projects.id AND user_id = $7))))`
+                  AND (owner_user_id = $7 OR EXISTS (SELECT 1 FROM project_members WHERE project_id = projects.id AND user_id = $7)))
+       OR (array_length($8::text[], 1) > 0 AND development_unit_id = ANY($8))
+       OR (array_length($9::text[], 1) > 0 AND development_unit_id = ANY($9)))`
 
 	var countQuery = `
 SELECT COUNT(*) FROM applications
@@ -128,7 +130,7 @@ WHERE ($1 = '' OR status = $1)
   AND (` + applicationsSearchPredicate + `)` + rowFilter
 
 	var total int
-	if err := r.store.Pool().QueryRow(ctx, countQuery, opts.Status, opts.IncludeArchived, opts.Query, opts.ActorRole, opts.ActorLogin).Scan(&total); err != nil {
+	if err := r.store.Pool().QueryRow(ctx, countQuery, opts.Status, opts.IncludeArchived, opts.Query, opts.ActorRole, opts.ActorLogin, opts.OrgUnitIDs, opts.PrimaryUnitIDs).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count applications: %w", err)
 	}
 
@@ -141,7 +143,7 @@ WHERE ($1 = '' OR status = $1)
 ORDER BY key ASC
 LIMIT $4 OFFSET $5`
 
-	rows, err := r.store.Pool().Query(ctx, listQuery, opts.Status, opts.IncludeArchived, opts.Query, limit, offset, opts.ActorRole, opts.ActorLogin)
+	rows, err := r.store.Pool().Query(ctx, listQuery, opts.Status, opts.IncludeArchived, opts.Query, limit, offset, opts.ActorRole, opts.ActorLogin, opts.OrgUnitIDs, opts.PrimaryUnitIDs)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list applications: %w", err)
 	}

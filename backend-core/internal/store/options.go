@@ -31,6 +31,8 @@ type ApplicationListOptions struct {
 	Offset          int
 	ActorLogin      string
 	ActorRole       string
+	OrgUnitIDs      []string
+	PrimaryUnitIDs  []string
 }
 
 // ApplicationRepositoryLinkKey identifies a single link row (composite PK).
@@ -51,6 +53,8 @@ type ProjectListOptions struct {
 	Offset          int
 	ActorLogin      string
 	ActorRole       string
+	OrgUnitIDs      []string
+	PrimaryUnitIDs  []string
 }
 
 type RepositoryCreatePayload struct {

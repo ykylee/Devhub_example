@@ -105,6 +105,16 @@ func (h *ApplicationHandler) ListProjects(c *gin.Context) {
 			opts.ActorRole = role
 		}
 	}
+	if idsVal, ok := c.Get("devhub_actor_org_unit_ids"); ok {
+		if ids, ok := idsVal.([]string); ok {
+			opts.OrgUnitIDs = ids
+		}
+	}
+	if idsVal, ok := c.Get("devhub_actor_primary_unit_ids"); ok {
+		if ids, ok := idsVal.([]string); ok {
+			opts.PrimaryUnitIDs = ids
+		}
+	}
 	if opts.Status != "" && !validApplicationStatuses[opts.Status] {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "status must be one of planning/active/on_hold/closed/archived"})
 		return
@@ -429,6 +439,16 @@ func (h *ApplicationHandler) ListApplicationProjects(c *gin.Context) {
 			opts.ActorRole = role
 		}
 	}
+	if idsVal, ok := c.Get("devhub_actor_org_unit_ids"); ok {
+		if ids, ok := idsVal.([]string); ok {
+			opts.OrgUnitIDs = ids
+		}
+	}
+	if idsVal, ok := c.Get("devhub_actor_primary_unit_ids"); ok {
+		if ids, ok := idsVal.([]string); ok {
+			opts.PrimaryUnitIDs = ids
+		}
+	}
 	if opts.Status != "" && !validApplicationStatuses[opts.Status] {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "status must be one of planning/active/on_hold/closed/archived"})
 		return
@@ -478,6 +498,16 @@ func (h *ApplicationHandler) ListStandaloneProjects(c *gin.Context) {
 	if roleVal, ok := c.Get("devhub_actor_role"); ok {
 		if role, ok := roleVal.(string); ok {
 			opts.ActorRole = role
+		}
+	}
+	if idsVal, ok := c.Get("devhub_actor_org_unit_ids"); ok {
+		if ids, ok := idsVal.([]string); ok {
+			opts.OrgUnitIDs = ids
+		}
+	}
+	if idsVal, ok := c.Get("devhub_actor_primary_unit_ids"); ok {
+		if ids, ok := idsVal.([]string); ok {
+			opts.PrimaryUnitIDs = ids
 		}
 	}
 	if opts.Status != "" && !validApplicationStatuses[opts.Status] {

@@ -1261,3 +1261,49 @@ func (s *PostgresStore) UpdateHierarchy(ctx context.Context, hie domain.Hierarch
 
 	return tx.Commit(ctx)
 }
+
+// ListOrgUnitIDsByLeader returns the unit_id of every org unit where the given
+// user is the leader. Used by 6-P3 org_head scope enforcement.
+func (s *PostgresStore) ListOrgUnitIDsByLeader(ctx context.Context, leaderUserID string) ([]string, error) {
+	const query = `SELECT unit_id FROM org_units WHERE leader_user_id = $1`
+	rows, err := s.pool.Query(ctx, query, leaderUserID)
+	if err != nil {
+		return nil, fmt.Errorf("list org units by leader: %w", err)
+	}
+	defer rows.Close()
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("scan org unit id: %w", err)
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
+// GetOrgUnitSubtreeIDs returns the unit_id of the given org unit and all its
+// descendants (recursive CTE via parent_unit_id). Used by 6-P3 scope expansion.
+func (s *PostgresStore) GetOrgUnitSubtreeIDs(ctx context.Context, unitID string) ([]string, error) {
+	const query = `
+WITH RECURSIVE subtree AS (
+    SELECT unit_id FROM org_units WHERE unit_id = $1
+    UNION ALL
+    SELECT ou.unit_id FROM org_units ou JOIN subtree s ON ou.parent_unit_id = s.unit_id
+)
+SELECT unit_id FROM subtree`
+	rows, err := s.pool.Query(ctx, query, unitID)
+	if err != nil {
+		return nil, fmt.Errorf("get org unit subtree: %w", err)
+	}
+	defer rows.Close()
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("scan subtree unit id: %w", err)
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}

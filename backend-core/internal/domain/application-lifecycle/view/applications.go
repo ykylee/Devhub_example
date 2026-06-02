@@ -266,6 +266,16 @@ func (h *ApplicationHandler) ListApplications(c *gin.Context) {
 			opts.ActorRole = role
 		}
 	}
+	if idsVal, ok := c.Get("devhub_actor_org_unit_ids"); ok {
+		if ids, ok := idsVal.([]string); ok {
+			opts.OrgUnitIDs = ids
+		}
+	}
+	if idsVal, ok := c.Get("devhub_actor_primary_unit_ids"); ok {
+		if ids, ok := idsVal.([]string); ok {
+			opts.PrimaryUnitIDs = ids
+		}
+	}
 	if s := c.Query("limit"); s != "" {
 		v, err := strconv.Atoi(s)
 		if err != nil || v < 1 || v > 100 {
@@ -520,6 +530,16 @@ func (h *ApplicationHandler) ApplicationDashboard(c *gin.Context) {
 	if roleVal, ok := c.Get("devhub_actor_role"); ok {
 		if role, ok := roleVal.(string); ok {
 			projOpts.ActorRole = role
+		}
+	}
+	if idsVal, ok := c.Get("devhub_actor_org_unit_ids"); ok {
+		if ids, ok := idsVal.([]string); ok {
+			projOpts.OrgUnitIDs = ids
+		}
+	}
+	if idsVal, ok := c.Get("devhub_actor_primary_unit_ids"); ok {
+		if ids, ok := idsVal.([]string); ok {
+			projOpts.PrimaryUnitIDs = ids
 		}
 	}
 	projects, _, err := storeI.ListProjects(c.Request.Context(), projOpts)

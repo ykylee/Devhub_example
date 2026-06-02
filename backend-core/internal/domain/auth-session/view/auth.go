@@ -228,6 +228,35 @@ func (h *AuthHandler) AuthenticateActor(c *gin.Context) {
 			if user.OnboardingCompletedAt == nil {
 				c.Set("devhub_onboarding_required", true)
 			}
+
+			// 6-P3: org unit scope 주입 — org_head / team_manager 용.
+			// PostgresStore 에서만 지원; memory fake 등은 type assertion miss → skip.
+			if orgStore, ok := h.cfg.OrganizationStore.(interface {
+				ListOrgUnitIDsByLeader(ctx context.Context, leaderUserID string) ([]string, error)
+				GetOrgUnitSubtreeIDs(ctx context.Context, unitID string) ([]string, error)
+			}); ok {
+				// org_head: leader_user_id 로 관리 org unit 조회 → subtree 확장
+				leaderIDs, ldErr := orgStore.ListOrgUnitIDsByLeader(c.Request.Context(), login)
+				if ldErr == nil && len(leaderIDs) > 0 {
+					var allIDs []string
+					for _, uid := range leaderIDs {
+						subIDs, subErr := orgStore.GetOrgUnitSubtreeIDs(c.Request.Context(), uid)
+						if subErr == nil {
+							allIDs = append(allIDs, subIDs...)
+						}
+					}
+					if len(allIDs) > 0 {
+						c.Set("devhub_actor_org_unit_ids", allIDs)
+					}
+				}
+				// team_manager: primary_unit_id 기준 subtree 조회
+				if user.PrimaryUnitID != "" {
+					subIDs, subErr := orgStore.GetOrgUnitSubtreeIDs(c.Request.Context(), user.PrimaryUnitID)
+					if subErr == nil && len(subIDs) > 0 {
+						c.Set("devhub_actor_primary_unit_ids", subIDs)
+					}
+				}
+			}
 		case errors.Is(err, store.ErrNotFound):
 			// RM-ONBOARD-01 (ADR-0021 §3.3) — 2026-05-21 lazy 폐기 sprint
 			// (issue #284) 이후 unconditional token-only actor 처리.

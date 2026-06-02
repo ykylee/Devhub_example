@@ -217,6 +217,16 @@ func (h *ApplicationHandler) actorCanReadApplication(c *gin.Context, storeI Appl
 			projOpts.ActorRole = role
 		}
 	}
+	if idsVal, ok := c.Get("devhub_actor_org_unit_ids"); ok {
+		if ids, ok := idsVal.([]string); ok {
+			projOpts.OrgUnitIDs = ids
+		}
+	}
+	if idsVal, ok := c.Get("devhub_actor_primary_unit_ids"); ok {
+		if ids, ok := idsVal.([]string); ok {
+			projOpts.PrimaryUnitIDs = ids
+		}
+	}
 	projects, _, err := storeI.ListProjects(c.Request.Context(), projOpts)
 	if err != nil {
 		return false, "", err
