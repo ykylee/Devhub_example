@@ -31,6 +31,11 @@ func normalizeSystemRoleAlias(role string) string {
 	switch strings.TrimSpace(role) {
 	case "manager", "team_manager":
 		return "team_manager"
+	case "user":
+		// ADR-0026: Keycloak has only a single 'user' realm role; the actual
+		// DevHub role comes from DB users.role. Fall back to developer when
+		// no DB row exists (token-only actor).
+		return "developer"
 	default:
 		return strings.TrimSpace(role)
 	}

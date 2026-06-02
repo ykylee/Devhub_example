@@ -131,7 +131,7 @@ curl -fsS -X PUT "$BASE_URL/admin/realms/master" \
   -d "$master_payload" >/dev/null
 
 echo "Creating roles..."
-for role in developer manager team_manager system_admin; do
+for role in user; do
   code=$(curl -s -o /dev/null -w "%{http_code}" \
     -H "Authorization: Bearer ${admin_token}" \
     "$BASE_URL/admin/realms/$REALM/roles/$role")
@@ -332,10 +332,10 @@ if [ "$user_exists" = "false" ]; then
   # infra/idp/sql/003_seed_test_admin.sql 정합 — DevHub users.role 이 system_admin
   # 으로 시드되므로 Keycloak 측도 일치시켜야 첫 로그인 시 lazy_auto_create
   # (sprint -i PR #239) 의 role merge 정합.
-  echo "  Assigning 'system_admin' role to 'test'..."
+  echo "  Assigning 'user' role to 'test'..."
   admin_role_json=$(
     curl -fsS -H "Authorization: Bearer ${admin_token}" \
-      "$BASE_URL/admin/realms/$REALM/roles/system_admin"
+      "$BASE_URL/admin/realms/$REALM/roles/user"
   )
   curl -fsS -X POST "$BASE_URL/admin/realms/$REALM/users/$test_user_id/role-mappings/realm" \
     -H "Authorization: Bearer ${admin_token}" \

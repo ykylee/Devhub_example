@@ -40,6 +40,32 @@ type KeycloakRole = {
   name: string;
 };
 
+async function fetchAdminTokenPassword(): Promise<string> {
+  const adminUser = process.env.DEVHUB_KEYCLOAK_ADMIN_USERNAME ?? "admin";
+  const adminPass = process.env.DEVHUB_KEYCLOAK_ADMIN_PASSWORD ?? "admin";
+  // Bootstrap admin lives in the master realm; KC_REALM (devhub) may not have
+  // a local admin user with password grant access.
+  const tokenURL = `${KC_BASE_URL}/realms/master/protocol/openid-connect/token`;
+  const resp = await fetch(tokenURL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "password",
+      client_id: "admin-cli",
+      username: adminUser,
+      password: adminPass,
+    }),
+  });
+  if (!resp.ok) {
+    throw new Error(`Keycloak admin password grant failed ${resp.status}: ${await resp.text()}`);
+  }
+  const body = (await resp.json()) as { access_token?: string };
+  if (!body.access_token) {
+    throw new Error("Keycloak admin password grant response missing access_token");
+  }
+  return body.access_token;
+}
+
 async function fetchAdminToken(): Promise<string> {
   if (!KC_ADMIN_CLIENT_SECRET) {
     throw new Error("DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET is required for e2e global setup");
@@ -84,6 +110,7 @@ async function createUser(token: string, seed: Seed): Promise<string> {
     firstName: seed.display_name,
     enabled: true,
     emailVerified: true,
+    credentials: [{ type: "password", value: seed.password, temporary: false }],
     attributes: {
       user_id: [seed.user_id],
       employee_id: [seed.user_id],
@@ -123,10 +150,14 @@ async function resetPassword(token: string, userID: string, password: string): P
   }
 }
 
-async function ensureRealmRole(token: string, userID: string, roleName: Seed["role"]): Promise<void> {
-  const roleURL = `${KC_BASE_URL}/admin/realms/${encodeURIComponent(KC_REALM)}/roles/${encodeURIComponent(roleName)}`;
+async function ensureRealmRole(_token: string, userID: string, _roleName: string): Promise<void> {
+  // ADR-0026: Keycloak has a single 'user' realm role. The actual DevHub
+  // role is stored in DB users.role and seeded separately via SQL.
+  const realmRole = "user";
+  const adminToken = await fetchAdminTokenPassword();
+  const roleURL = `${KC_BASE_URL}/admin/realms/${encodeURIComponent(KC_REALM)}/roles/${encodeURIComponent(realmRole)}`;
   let roleResp = await fetch(roleURL, {
-    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+    headers: { Authorization: `Bearer ${adminToken}`, Accept: "application/json" },
   });
   if (roleResp.status === 404) {
     // ADR-0026: Keycloak realm role is not the source of truth, but the JWT
@@ -135,20 +166,20 @@ async function ensureRealmRole(token: string, userID: string, roleName: Seed["ro
     const createResp = await fetch(`${KC_BASE_URL}/admin/realms/${encodeURIComponent(KC_REALM)}/roles`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${adminToken}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ name: roleName }),
+      body: JSON.stringify({ name: realmRole }),
     });
     if (!createResp.ok) {
-      throw new Error(`Keycloak role create ${roleName} failed ${createResp.status}: ${await createResp.text()}`);
+      throw new Error(`Keycloak role create ${realmRole} failed ${createResp.status}: ${await createResp.text()}`);
     }
     roleResp = await fetch(roleURL, {
-      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+      headers: { Authorization: `Bearer ${adminToken}`, Accept: "application/json" },
     });
   }
   if (!roleResp.ok) {
-    throw new Error(`Keycloak role lookup ${roleName} failed ${roleResp.status}: ${await roleResp.text()}`);
+    throw new Error(`Keycloak role lookup ${realmRole} failed ${roleResp.status}: ${await roleResp.text()}`);
   }
   const role = (await roleResp.json()) as KeycloakRole;
 
@@ -156,13 +187,13 @@ async function ensureRealmRole(token: string, userID: string, roleName: Seed["ro
   const mapResp = await fetch(mappingURL, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${adminToken}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify([{ id: role.id, name: role.name }]),
   });
   if (!mapResp.ok) {
-    throw new Error(`Keycloak role map ${userID} -> ${roleName} failed ${mapResp.status}: ${await mapResp.text()}`);
+    throw new Error(`Keycloak role map ${userID} -> ${realmRole} failed ${mapResp.status}: ${await mapResp.text()}`);
   }
 }
 
@@ -172,10 +203,9 @@ async function seedKeycloakUsers(): Promise<Record<string, string>> {
   for (const seed of SEEDS) {
     const existing = await findUserByEmail(token, seed.email);
     const userID = existing?.id ?? (await createUser(token, seed));
-    await resetPassword(token, userID, seed.password);
-    await ensureRealmRole(token, userID, seed.role);
+    await ensureRealmRole(token, userID, "user");
     idMap[seed.email] = userID;
-    console.log(`[e2e seed] keycloak user ${seed.email} ${existing ? "present" : "created"} (sub: ${userID}) → password reset + role mapped (${seed.role})`);
+    console.log(`[e2e seed] keycloak user ${seed.email} ${existing ? "present" : "created"} (sub: ${userID}) → role mapped (${seed.role})`);
   }
   return idMap;
 }
