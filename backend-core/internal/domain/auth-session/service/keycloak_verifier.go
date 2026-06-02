@@ -402,8 +402,7 @@ func claimString(claims jwt.MapClaims, key string) string {
 // role (예: Keycloak 측 임의 role) 은 priority 0 으로 처리 → 다른 known role 이 있으면 우선.
 var devhubRolePriority = map[string]int{
 	"system_admin": 4,
-	"pmo_manager":  3,
-	"manager":      2,
+	"team_manager": 3,
 	"developer":    1,
 }
 

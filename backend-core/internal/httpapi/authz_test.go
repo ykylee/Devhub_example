@@ -21,7 +21,7 @@ func roleRank(role string) int {
 	switch role {
 	case string(domain.AppRoleSystemAdmin):
 		return 30
-	case string(domain.AppRoleManager):
+	case string(domain.AppRoleTeamManager):
 		return 20
 	case string(domain.AppRoleDeveloper):
 		return 10
@@ -37,19 +37,19 @@ func TestRoleMeetsMin(t *testing.T) {
 		want  bool
 	}{
 		{"system_admin", domain.AppRoleSystemAdmin, true},
-		{"system_admin", domain.AppRoleManager, true},
+		{"system_admin", domain.AppRoleTeamManager, true},
 		{"system_admin", domain.AppRoleDeveloper, true},
-		{"manager", domain.AppRoleSystemAdmin, false},
-		{"manager", domain.AppRoleManager, true},
-		{"manager", domain.AppRoleDeveloper, true},
+		{"team_manager", domain.AppRoleSystemAdmin, false},
+		{"team_manager", domain.AppRoleTeamManager, true},
+		{"team_manager", domain.AppRoleDeveloper, true},
 		{"developer", domain.AppRoleSystemAdmin, false},
-		{"developer", domain.AppRoleManager, false},
+		{"developer", domain.AppRoleTeamManager, false},
 		{"developer", domain.AppRoleDeveloper, true},
 		{"", domain.AppRoleSystemAdmin, false},
-		{"", domain.AppRoleManager, false},
+		{"", domain.AppRoleTeamManager, false},
 		{"", domain.AppRoleDeveloper, false},
 		{"unknown", domain.AppRoleSystemAdmin, false},
-		{"unknown", domain.AppRoleManager, false},
+		{"unknown", domain.AppRoleTeamManager, false},
 		{"unknown", domain.AppRoleDeveloper, false},
 	}
 	for _, tc := range cases {
@@ -124,7 +124,7 @@ func TestRequireMinRoleAllowsSufficientRole(t *testing.T) {
 	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
 		Login:   "manager-user",
 		Subject: "user-manager",
-		Role:    "manager",
+		Role:    "team_manager",
 	}}
 	audits := &memoryAuditStore{}
 	router := NewRouter(RouterConfig{
@@ -154,18 +154,18 @@ func TestRouteRoleMatrix(t *testing.T) {
 	body := []byte(`{}`)
 	routes := []routeCase{
 		{http.MethodPost, "/api/v1/admin/service-actions", body, domain.AppRoleSystemAdmin, nil},
-		{http.MethodPost, "/api/v1/risks/r-1/mitigations", body, domain.AppRoleManager, nil},
+		{http.MethodPost, "/api/v1/risks/r-1/mitigations", body, domain.AppRoleTeamManager, nil},
 		{http.MethodPost, "/api/v1/users", body, domain.AppRoleSystemAdmin, nil},
-		{http.MethodPatch, "/api/v1/users/u-1", body, domain.AppRoleSystemAdmin, nil},
+		{http.MethodPatch, "/api/v1/users/u-1", body, domain.AppRoleTeamManager, nil},
 		{http.MethodDelete, "/api/v1/users/u-1", nil, domain.AppRoleSystemAdmin, nil},
 		{http.MethodPost, "/api/v1/organization/units", body, domain.AppRoleSystemAdmin, nil},
-		{http.MethodPatch, "/api/v1/organization/units/unit-1", body, domain.AppRoleSystemAdmin, nil},
+		{http.MethodPatch, "/api/v1/organization/units/unit-1", body, domain.AppRoleTeamManager, nil},
 		{http.MethodDelete, "/api/v1/organization/units/unit-1", nil, domain.AppRoleSystemAdmin, nil},
-		{http.MethodPut, "/api/v1/organization/units/unit-1/members", body, domain.AppRoleSystemAdmin, nil},
-		{http.MethodGet, "/api/v1/audit-logs", nil, domain.AppRoleManager, nil},
+		{http.MethodPut, "/api/v1/organization/units/unit-1/members", body, domain.AppRoleTeamManager, nil},
+		{http.MethodGet, "/api/v1/audit-logs", nil, domain.AppRoleTeamManager, nil},
 	}
 
-	roles := []string{"developer", "manager", "system_admin"}
+	roles := []string{"developer", "team_manager", "system_admin"}
 	for _, rc := range routes {
 		for _, role := range roles {
 			verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{

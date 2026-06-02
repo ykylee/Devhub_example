@@ -10,18 +10,18 @@ import (
 	"time"
 
 	"github.com/devhub/backend-core/internal/domain"
-	"github.com/devhub/backend-core/internal/store"
-	rbacview "github.com/devhub/backend-core/internal/domain/rbac-permissions/view"
-	realtimeview "github.com/devhub/backend-core/internal/domain/realtime/view"
+	appview "github.com/devhub/backend-core/internal/domain/application-lifecycle/view"
 	auditview "github.com/devhub/backend-core/internal/domain/audit-ops/view"
 	authview "github.com/devhub/backend-core/internal/domain/auth-session/view"
-	onboardview "github.com/devhub/backend-core/internal/domain/onboarding/view"
-	orgview "github.com/devhub/backend-core/internal/domain/organization-management/view"
-	appview "github.com/devhub/backend-core/internal/domain/application-lifecycle/view"
 	devreqview "github.com/devhub/backend-core/internal/domain/dev-request/view"
 	integview "github.com/devhub/backend-core/internal/domain/integration-registry/view"
+	onboardview "github.com/devhub/backend-core/internal/domain/onboarding/view"
+	orgview "github.com/devhub/backend-core/internal/domain/organization-management/view"
+	rbacview "github.com/devhub/backend-core/internal/domain/rbac-permissions/view"
+	realtimeview "github.com/devhub/backend-core/internal/domain/realtime/view"
 	repoview "github.com/devhub/backend-core/internal/domain/repository-integration/view"
 	gitea "github.com/devhub/backend-core/internal/infrastructure/gitea"
+	"github.com/devhub/backend-core/internal/store"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -310,6 +310,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	// allowlist 외 endpoint 호출 시 403. DEVHUB_ONBOARDING_GATE_ENABLED=0 으로 rollback(no-op).
 	v1.Use(handler.onboardingGate)
 	v1.Use(handler.enforceRoutePermission)
+	v1.POST("/auth/logout", handler.logout)
 	v1.GET("/me", handler.getMe)
 	// RM-ONBOARD-01 — API-83/84/85/86 onboarding endpoints.
 	v1.PATCH("/me", handler.patchMe)
@@ -483,17 +484,17 @@ func trustedProxiesFromEnv() []string {
 }
 
 type Handler struct {
-	cfg         RouterConfig
-	auth        *authview.AuthHandler
-	audit       *auditview.AuditHandler
-	rbac        *rbacview.RBACHandler
-	org         *orgview.OrganizationHandler
-	app         *appview.ApplicationHandler
-	devreq      *devreqview.DevRequestHandler
-	integ       *integview.IntegrationHandler
-	realtime    *realtimeview.RealtimeHandler
-	repo        *repoview.RepositoryIntegrationHandler
-	onboard     *onboardview.OnboardingHandler
+	cfg      RouterConfig
+	auth     *authview.AuthHandler
+	audit    *auditview.AuditHandler
+	rbac     *rbacview.RBACHandler
+	org      *orgview.OrganizationHandler
+	app      *appview.ApplicationHandler
+	devreq   *devreqview.DevRequestHandler
+	integ    *integview.IntegrationHandler
+	realtime *realtimeview.RealtimeHandler
+	repo     *repoview.RepositoryIntegrationHandler
+	onboard  *onboardview.OnboardingHandler
 }
 
 // resolveIdPSubject — test compatibility shim. Handler 직접 cfg 로 AuthHandler
@@ -741,6 +742,10 @@ func (h Handler) getMe(c *gin.Context) {
 func (h Handler) patchMe(c *gin.Context) {
 	h = h.ensure()
 	h.auth.PatchMe(c)
+}
+func (h Handler) logout(c *gin.Context) {
+	h = h.ensure()
+	h.auth.Logout(c)
 }
 
 // Onboarding

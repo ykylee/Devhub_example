@@ -131,7 +131,7 @@ curl -fsS -X PUT "$BASE_URL/admin/realms/master" \
   -d "$master_payload" >/dev/null
 
 echo "Creating roles..."
-for role in developer manager pmo_manager system_admin; do
+for role in developer manager team_manager system_admin; do
   code=$(curl -s -o /dev/null -w "%{http_code}" \
     -H "Authorization: Bearer ${admin_token}" \
     "$BASE_URL/admin/realms/$REALM/roles/$role")

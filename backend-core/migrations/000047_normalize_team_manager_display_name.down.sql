@@ -1,18 +1,3 @@
--- 000021: ADR-0011 §4.2 / REQ-FR-PROJ-010 — team_manager system role 정책 확장
--- (sprint claude/work_260515-d, codex PR #118 P1 review 후속).
---
--- Fresh install 기준 team_manager system role 은 000005 seed 에서 이미 생성된다.
--- 따라서 본 migration 의 책임은 "생성"이 아니라 metadata + permissions 업그레이드다.
--- 기존 INSERT 구현은 신규 DB bootstrap 에서 PK 충돌을 일으켰다.
---
--- 매트릭스 (REQ-FR-PROJ-010 정책 매핑):
---   - applications:            view+edit (수정만, create/delete 는 system_admin)
---   - application_repositories: view only (link/unlink 초기 비허용)
---   - projects:                view+create+edit+delete (project.manage + members)
---   - scm_providers:           view only
---   - infrastructure/pipelines/organization/security/audit: view only
---   - audit invariant: create/edit/delete 모두 false (rbac_policies_audit_invariant CHECK)
-
 UPDATE rbac_policies
 SET
     name = 'Manager',
@@ -27,7 +12,9 @@ SET
         "applications":             {"view": true,  "create": false, "edit": true,  "delete": false},
         "application_repositories": {"view": true,  "create": false, "edit": false, "delete": false},
         "projects":                 {"view": true,  "create": true,  "edit": true,  "delete": true},
-        "scm_providers":            {"view": true,  "create": false, "edit": false, "delete": false}
+        "scm_providers":            {"view": true,  "create": false, "edit": false, "delete": false},
+        "dev_requests":             {"view": true,  "create": false, "edit": true,  "delete": false},
+        "dev_request_intake_tokens":{"view": false, "create": false, "edit": false, "delete": false}
     }'::jsonb,
     updated_at = NOW()
 WHERE role_id = 'team_manager';

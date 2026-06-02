@@ -34,7 +34,7 @@ export interface ApiErrorResponse {
 }
 
 // Role wire format — docs/backend_api_contract.md §2.
-export type ApiUserRole = "developer" | "manager" | "system_admin";
+export type ApiUserRole = "developer" | "team_manager" | "system_admin";
 
 // Dashboard metric wire shape — GET /api/v1/dashboard/metrics?role=...
 export interface ApiMetric {

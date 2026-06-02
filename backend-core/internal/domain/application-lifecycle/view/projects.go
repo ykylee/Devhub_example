@@ -1,8 +1,8 @@
 package view
 
 import (
-	"github.com/devhub/backend-core/internal/shared/httphelp"
 	"errors"
+	"github.com/devhub/backend-core/internal/shared/httphelp"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -57,21 +57,21 @@ func projectResponse(p domain.Project) gin.H {
 	}
 
 	return gin.H{
-		"id":             p.ID,
-		"application_id": p.ApplicationID,
-		"repository_id":  repositoryID,
-		"key":            p.Key,
-		"name":           p.Name,
-		"description":    p.Description,
-		"status":         string(p.Status),
-		"visibility":     string(p.Visibility),
-		"owner_user_id":  p.OwnerUserID,
+		"id":              p.ID,
+		"application_id":  p.ApplicationID,
+		"repository_id":   repositoryID,
+		"key":             p.Key,
+		"name":            p.Name,
+		"description":     p.Description,
+		"status":          string(p.Status),
+		"visibility":      string(p.Visibility),
+		"owner_user_id":   p.OwnerUserID,
 		"project_members": members,
-		"start_date":     formatDatePtr(p.StartDate),
-		"due_date":       formatDatePtr(p.DueDate),
-		"archived_at":    formatTimePtr(p.ArchivedAt),
-		"created_at":     p.CreatedAt.UTC().Format(time.RFC3339),
-		"updated_at":     p.UpdatedAt.UTC().Format(time.RFC3339),
+		"start_date":      formatDatePtr(p.StartDate),
+		"due_date":        formatDatePtr(p.DueDate),
+		"archived_at":     formatTimePtr(p.ArchivedAt),
+		"created_at":      p.CreatedAt.UTC().Format(time.RFC3339),
+		"updated_at":      p.UpdatedAt.UTC().Format(time.RFC3339),
 	}
 }
 
@@ -120,14 +120,25 @@ func (h *ApplicationHandler) ListProjects(c *gin.Context) {
 		httphelp.WriteServerError(c, err, "projects.list")
 		return
 	}
-	resp := make([]gin.H, 0, len(projects))
+	visible := make([]domain.Project, 0, len(projects))
 	for _, p := range projects {
+		allowed, _, err := h.actorCanReadProject(c, storeI, p)
+		if err != nil {
+			httphelp.WriteServerError(c, err, "projects.list.scope")
+			return
+		}
+		if allowed {
+			visible = append(visible, p)
+		}
+	}
+	resp := make([]gin.H, 0, len(visible))
+	for _, p := range visible {
 		resp = append(resp, projectResponse(p))
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"status": "ok",
 		"data":   resp,
-		"meta":   gin.H{"total": total},
+		"meta":   gin.H{"total": len(visible), "raw_total": total},
 	})
 }
 
@@ -137,19 +148,19 @@ type projectMemberRequest struct {
 }
 
 type createProjectRequest struct {
-	ApplicationID string  `json:"application_id"`
-	RepositoryID  int64   `json:"repository_id"`
-	RepositoryIDs []int64 `json:"repository_ids"`
+	ApplicationID           string                   `json:"application_id"`
+	RepositoryID            int64                    `json:"repository_id"`
+	RepositoryIDs           []int64                  `json:"repository_ids"`
 	RepositoryCreatePayload *createRepositoryPayload `json:"repository_create_payload"`
-	Key           string  `json:"key"`
-	Name          string  `json:"name"`
-	Description   string  `json:"description"`
-	OwnerUserID   string  `json:"owner_user_id"`
-	StartDate     string  `json:"start_date"`
-	DueDate       string  `json:"due_date"`
-	Visibility    string  `json:"visibility"`
-	Status        string  `json:"status"`
-	ProjectMembers []projectMemberRequest `json:"project_members"`
+	Key                     string                   `json:"key"`
+	Name                    string                   `json:"name"`
+	Description             string                   `json:"description"`
+	OwnerUserID             string                   `json:"owner_user_id"`
+	StartDate               string                   `json:"start_date"`
+	DueDate                 string                   `json:"due_date"`
+	Visibility              string                   `json:"visibility"`
+	Status                  string                   `json:"status"`
+	ProjectMembers          []projectMemberRequest   `json:"project_members"`
 }
 
 type createRepositoryPayload struct {
@@ -408,11 +419,22 @@ func (h *ApplicationHandler) ListApplicationProjects(c *gin.Context) {
 		httphelp.WriteServerError(c, err, "projects.list_by_application")
 		return
 	}
-	resp := make([]gin.H, 0, len(projects))
+	visible := make([]domain.Project, 0, len(projects))
 	for _, p := range projects {
+		allowed, _, err := h.actorCanReadProject(c, storeI, p)
+		if err != nil {
+			httphelp.WriteServerError(c, err, "projects.list_by_application.scope")
+			return
+		}
+		if allowed {
+			visible = append(visible, p)
+		}
+	}
+	resp := make([]gin.H, 0, len(visible))
+	for _, p := range visible {
 		resp = append(resp, projectResponse(p))
 	}
-	c.JSON(http.StatusOK, gin.H{"status": "ok", "data": resp, "meta": gin.H{"total": total}})
+	c.JSON(http.StatusOK, gin.H{"status": "ok", "data": resp, "meta": gin.H{"total": len(visible), "raw_total": total}})
 }
 
 // GET /api/v1/projects/standalone — application_id IS NULL projects.
@@ -437,11 +459,22 @@ func (h *ApplicationHandler) ListStandaloneProjects(c *gin.Context) {
 		httphelp.WriteServerError(c, err, "projects.list_standalone")
 		return
 	}
-	resp := make([]gin.H, 0, len(projects))
+	visible := make([]domain.Project, 0, len(projects))
 	for _, p := range projects {
+		allowed, _, err := h.actorCanReadProject(c, storeI, p)
+		if err != nil {
+			httphelp.WriteServerError(c, err, "projects.list_standalone.scope")
+			return
+		}
+		if allowed {
+			visible = append(visible, p)
+		}
+	}
+	resp := make([]gin.H, 0, len(visible))
+	for _, p := range visible {
 		resp = append(resp, projectResponse(p))
 	}
-	c.JSON(http.StatusOK, gin.H{"status": "ok", "data": resp, "meta": gin.H{"total": total}})
+	c.JSON(http.StatusOK, gin.H{"status": "ok", "data": resp, "meta": gin.H{"total": len(visible), "raw_total": total}})
 }
 
 // POST /api/v1/applications/:application_id/projects
@@ -575,6 +608,24 @@ func (h *ApplicationHandler) ListProjectRepositories(c *gin.Context) {
 		return
 	}
 	projectID := c.Param("project_id")
+	project, err := storeI.GetProject(c.Request.Context(), projectID)
+	if errors.Is(err, store.ErrNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "project not found"})
+		return
+	}
+	if err != nil {
+		httphelp.WriteServerError(c, err, "projects.list_repositories.scope_lookup")
+		return
+	}
+	allowed, deniedReason, err := h.actorCanReadProject(c, storeI, project)
+	if err != nil {
+		httphelp.WriteServerError(c, err, "projects.list_repositories.scope")
+		return
+	}
+	if !allowed {
+		h.denyRowRead(c, deniedReason)
+		return
+	}
 	links, err := storeI.ListProjectRepositories(c.Request.Context(), projectID)
 	if err != nil {
 		httphelp.WriteServerError(c, err, "projects.list_repositories")
@@ -669,6 +720,15 @@ func (h *ApplicationHandler) GetProject(c *gin.Context) {
 		httphelp.WriteServerError(c, err, "projects.get")
 		return
 	}
+	allowed, deniedReason, err := h.actorCanReadProject(c, storeI, p)
+	if err != nil {
+		httphelp.WriteServerError(c, err, "projects.get.scope")
+		return
+	}
+	if !allowed {
+		h.denyRowRead(c, deniedReason)
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"status": "ok",
 		"data":   projectResponse(p),
@@ -676,21 +736,21 @@ func (h *ApplicationHandler) GetProject(c *gin.Context) {
 }
 
 type updateProjectRequest struct {
-	Key            *string `json:"key"` // 거부용
-	Name           *string `json:"name"`
-	Description    *string `json:"description"`
-	OwnerUserID    *string `json:"owner_user_id"`
+	Key         *string `json:"key"` // 거부용
+	Name        *string `json:"name"`
+	Description *string `json:"description"`
+	OwnerUserID *string `json:"owner_user_id"`
 	// ApplicationID — application 이전 / 해제. nil = 변경 안 함, "" = 해제 (NULL),
 	// non-empty = 해당 application 으로 이전 (존재 검증 후). #395/#396 후속 carve.
 	// migration 000015 의 projects.application_id 는 nullable (ON DELETE SET NULL).
-	ApplicationID  *string `json:"application_id"`
-	StartDate      *string `json:"start_date"`
-	DueDate        *string `json:"due_date"`
-	Visibility     *string `json:"visibility"`
-	Status         *string `json:"status"`
-	HoldReason     string  `json:"hold_reason"`
-	ResumeReason   string  `json:"resume_reason"`
-	ArchivedReason string  `json:"archived_reason"`
+	ApplicationID  *string                 `json:"application_id"`
+	StartDate      *string                 `json:"start_date"`
+	DueDate        *string                 `json:"due_date"`
+	Visibility     *string                 `json:"visibility"`
+	Status         *string                 `json:"status"`
+	HoldReason     string                  `json:"hold_reason"`
+	ResumeReason   string                  `json:"resume_reason"`
+	ArchivedReason string                  `json:"archived_reason"`
 	ProjectMembers *[]projectMemberRequest `json:"project_members"`
 }
 
@@ -721,7 +781,7 @@ func (h *ApplicationHandler) UpdateProject(c *gin.Context) {
 	// 시 422, (b) 정확한 key 로 PATCH 시 403 이 와서 row-level 가드를 우회 + key
 	// 추측 oracle 을 제공했음. 인증/인가 검증을 항상 선행해 미인가 쓰기 시도엔
 	// row-write denial 만 일관 노출하도록 정정.
-	if !h.enforceRowOwnership(c, current.OwnerUserID, string(domain.AppRolePMOManager)) {
+	if !h.enforceRowOwnership(c, current.OwnerUserID, string(domain.AppRoleTeamManager)) {
 		return
 	}
 	if req.Key != nil && *req.Key != current.Key {
@@ -884,7 +944,7 @@ func (h *ApplicationHandler) ArchiveProject(c *gin.Context) {
 	var req archiveProjectRequest
 	_ = c.ShouldBindJSON(&req)
 
-	// ADR-0011 §4.2 row-level 위양: archive 도 owner-self / pmo_manager 가 가능.
+	// ADR-0011 §4.2 row-level 위양: archive 도 owner-self / team_manager 가 가능.
 	current, err := storeI.GetProject(c.Request.Context(), id)
 	if errors.Is(err, store.ErrNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "project not found"})
@@ -894,7 +954,7 @@ func (h *ApplicationHandler) ArchiveProject(c *gin.Context) {
 		httphelp.WriteServerError(c, err, "projects.archive.lookup")
 		return
 	}
-	if !h.enforceRowOwnership(c, current.OwnerUserID, string(domain.AppRolePMOManager)) {
+	if !h.enforceRowOwnership(c, current.OwnerUserID, string(domain.AppRoleTeamManager)) {
 		return
 	}
 

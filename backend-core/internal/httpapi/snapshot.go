@@ -88,7 +88,7 @@ func (h Handler) dashboardMetrics(c *gin.Context) {
 	if !ok {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status": "rejected",
-			"error":  "role must be one of developer, manager, system_admin",
+			"error":  "role must be one of developer, team_manager, system_admin",
 		})
 		return
 	}

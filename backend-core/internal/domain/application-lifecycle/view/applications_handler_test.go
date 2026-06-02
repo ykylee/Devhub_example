@@ -36,17 +36,20 @@ func newAppHandlerForTest(t *testing.T) (*ApplicationHandler, *fakeViewApplicati
 // admin actor 로 컨텍스트를 세팅해 enforceRowOwnership 통과시킬 수 있도록 middleware 주입.
 func invokeJSON(method, path, fullPath string, handler gin.HandlerFunc, body any, actorLogin, actorRole string) *httptest.ResponseRecorder {
 	r := gin.New()
-	if actorLogin != "" || actorRole != "" {
-		r.Use(func(c *gin.Context) {
-			if actorLogin != "" {
-				c.Set("devhub_actor_login", actorLogin)
-			}
-			if actorRole != "" {
-				c.Set("devhub_actor_role", actorRole)
-			}
+	r.Use(func(c *gin.Context) {
+		if actorLogin == "" && actorRole == "" {
+			c.Set("devhub_auth_dev_fallback", true)
 			c.Next()
-		})
-	}
+			return
+		}
+		if actorLogin != "" {
+			c.Set("devhub_actor_login", actorLogin)
+		}
+		if actorRole != "" {
+			c.Set("devhub_actor_role", actorRole)
+		}
+		c.Next()
+	})
 	r.Handle(method, fullPath, handler)
 	var buf bytes.Buffer
 	if body != nil {
@@ -232,6 +235,58 @@ func TestListApplications_StoreError500(t *testing.T) {
 	rec := invokeJSON("GET", "/applications", "/applications", h.ListApplications, nil, "", "")
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestListApplications_FiltersToReadableMembership(t *testing.T) {
+	h, st, _ := newAppHandlerForTest(t)
+	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Name: "App 1", OwnerUserID: "owner-1", Status: domain.ApplicationStatusActive})
+	st.seedApp(domain.Application{ID: "app-2", Key: "APP2", Name: "App 2", OwnerUserID: "owner-2", Status: domain.ApplicationStatusActive})
+	st.seedProject(domain.Project{
+		ID:            "proj-1",
+		ApplicationID: "app-1",
+		Key:           "PRJ1",
+		OwnerUserID:   "owner-1",
+		Status:        domain.ApplicationStatusActive,
+		ProjectMembers: []domain.ProjectMember{
+			{ProjectID: "proj-1", UserID: "alice", ProjectRole: domain.ProjectMemberRoleContributor},
+		},
+	})
+
+	rec := invokeJSON("GET", "/applications", "/applications", h.ListApplications, nil, "alice", "developer")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+	}
+
+	var resp map[string]any
+	_ = json.Unmarshal(rec.Body.Bytes(), &resp)
+	data, _ := resp["data"].([]any)
+	if len(data) != 1 {
+		t.Fatalf("expected 1 visible application, got %d body=%s", len(data), rec.Body.String())
+	}
+	first, _ := data[0].(map[string]any)
+	if first["id"] != "app-1" {
+		t.Fatalf("expected app-1, got %+v", first)
+	}
+	meta, _ := resp["meta"].(map[string]any)
+	if meta["raw_total"] != float64(2) || meta["total"] != float64(1) {
+		t.Fatalf("unexpected meta: %+v", meta)
+	}
+}
+
+func TestGetApplication_DeniesNonMemberRead(t *testing.T) {
+	h, st, audit := newAppHandlerForTest(t)
+	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Name: "App 1", OwnerUserID: "owner-1", Status: domain.ApplicationStatusActive})
+
+	rec := invokeJSON("GET", "/applications/app-1", "/applications/:application_id", h.GetApplication, nil, "alice", "developer")
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "auth_row_denied") || !strings.Contains(rec.Body.String(), "not_application_member") {
+		t.Fatalf("body=%s", rec.Body.String())
+	}
+	if len(audit.created) != 1 || audit.created[0].Action != "auth.row_denied" {
+		t.Fatalf("audit=%+v", audit.created)
 	}
 }
 
@@ -788,6 +843,7 @@ func TestListApplicationRepositories_OK(t *testing.T) {
 
 func TestListApplicationRepositories_StoreError500(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
+	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive})
 	st.errListApplicationRepositories = errors.New("db")
 	rec := invokeJSON("GET", "/applications/app-1/repositories", "/applications/:application_id/repositories", h.ListApplicationRepositories, nil, "", "")
 	if rec.Code != http.StatusInternalServerError {
@@ -1032,6 +1088,7 @@ func TestApplicationRollup_InvalidPolicyFromStore422(t *testing.T) {
 
 func TestApplicationRollup_StoreError500(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
+	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive})
 	st.errComputeApplicationRollup = errors.New("rollup_down")
 	rec := invokeJSON("GET", "/applications/app-1/rollup", "/applications/:application_id/rollup", h.ApplicationRollup, nil, "", "")
 	if rec.Code != http.StatusInternalServerError {

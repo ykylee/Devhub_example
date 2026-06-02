@@ -173,7 +173,7 @@ GET /api/v1/commands/{command_id}
 권장 enum:
 
 ```text
-UserRole = developer | manager | system_admin
+UserRole = developer | team_manager | system_admin
 ImpactLevel = low | medium | high | critical
 ServiceStatus = stable | warning | degraded | down
 CommandStatus = pending | running | succeeded | failed | rejected | cancelled

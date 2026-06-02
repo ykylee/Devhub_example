@@ -7,4 +7,4 @@ SET permissions = permissions
         - 'projects'
         - 'scm_providers',
     updated_at = NOW()
-WHERE role_id IN ('developer', 'manager', 'system_admin');
+WHERE role_id IN ('developer', 'team_manager', 'system_admin');

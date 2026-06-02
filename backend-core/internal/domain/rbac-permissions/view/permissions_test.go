@@ -43,13 +43,13 @@ func TestPermissionCache_NilStore_DeveloperLimited(t *testing.T) {
 		t.Error("developer should NOT be allowed to delete applications")
 	}
 
-	// developer cannot view applications at all
+	// developer can view applications, but still cannot mutate them.
 	allowed, err = cache.Allows(ctx, "developer", domain.ResourceApplications, domain.ActionView)
 	if err != nil {
 		t.Fatalf("developer Allows(view app): %v", err)
 	}
-	if allowed {
-		t.Error("developer should NOT be allowed to view applications")
+	if !allowed {
+		t.Error("developer should be allowed to view applications")
 	}
 }
 
@@ -58,7 +58,7 @@ func TestPermissionCache_NilStore_ManagerCanEdit(t *testing.T) {
 	ctx := context.Background()
 
 	// manager can view organization
-	allowed, err := cache.Allows(ctx, "manager", domain.ResourceOrganization, domain.ActionView)
+	allowed, err := cache.Allows(ctx, "team_manager", domain.ResourceOrganization, domain.ActionView)
 	if err != nil {
 		t.Fatalf("manager Allows(view org): %v", err)
 	}
@@ -66,17 +66,17 @@ func TestPermissionCache_NilStore_ManagerCanEdit(t *testing.T) {
 		t.Error("manager should be allowed to view organization")
 	}
 
-	// manager cannot edit organization
-	allowed, err = cache.Allows(ctx, "manager", domain.ResourceOrganization, domain.ActionEdit)
+	// manager can edit organization under merged team_manager scope
+	allowed, err = cache.Allows(ctx, "team_manager", domain.ResourceOrganization, domain.ActionEdit)
 	if err != nil {
 		t.Fatalf("manager Allows(edit org): %v", err)
 	}
-	if allowed {
-		t.Error("manager should NOT be allowed to edit organization")
+	if !allowed {
+		t.Error("manager should be allowed to edit organization")
 	}
 
 	// manager can create security resources (risks)
-	allowed, err = cache.Allows(ctx, "manager", domain.ResourceSecurity, domain.ActionCreate)
+	allowed, err = cache.Allows(ctx, "team_manager", domain.ResourceSecurity, domain.ActionCreate)
 	if err != nil {
 		t.Fatalf("manager Allows(create security): %v", err)
 	}

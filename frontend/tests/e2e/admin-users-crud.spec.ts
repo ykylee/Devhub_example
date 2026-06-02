@@ -42,11 +42,9 @@ test.describe("/admin/settings/users — CRUD UI smoke", () => {
     await expect(roleSelect).toBeVisible();
     
     // Check if the options exist within the select (use toBeAttached for native select options).
-    // 정확 매칭 (regex anchor) — sprint claude/work_260515-d 가 "PMO Manager" 추가하면서
-    // substring "Manager" 가 두 옵션과 충돌하던 strict mode violation 회피.
+    // team_manager system role 의 UI label 은 "Manager" 로 고정한다.
     await expect(roleSelect.locator("option", { hasText: /^System Admin$/ })).toBeAttached();
     await expect(roleSelect.locator("option", { hasText: /^Developer$/ })).toBeAttached();
     await expect(roleSelect.locator("option", { hasText: /^Manager$/ })).toBeAttached();
-    await expect(roleSelect.locator("option", { hasText: /^PMO Manager$/ })).toBeAttached();
   });
 });

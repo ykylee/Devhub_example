@@ -14,10 +14,10 @@ func TestDefaultPermissionMatrix_PreservesM0Enforcement(t *testing.T) {
 		{"developer view risks", AppRoleDeveloper, ResourceSecurity, ActionView, true, "GET /risks accessible to all"},
 		{"developer cannot create mitigation", AppRoleDeveloper, ResourceSecurity, ActionCreate, false, "POST /risks/:id/mitigations gated to manager+"},
 		{"developer cannot view audit", AppRoleDeveloper, ResourceAudit, ActionView, false, "GET /audit-logs gated to manager+"},
-		{"manager creates mitigation", AppRoleManager, ResourceSecurity, ActionCreate, true, "POST /risks/:id/mitigations"},
-		{"manager views audit", AppRoleManager, ResourceAudit, ActionView, true, "GET /audit-logs"},
-		{"manager cannot edit users", AppRoleManager, ResourceOrganization, ActionEdit, false, "PATCH /users/:id is system_admin only"},
-		{"manager cannot create service-action", AppRoleManager, ResourceInfrastructure, ActionCreate, false, "POST /admin/service-actions is system_admin only"},
+		{"manager creates mitigation", AppRoleTeamManager, ResourceSecurity, ActionCreate, true, "POST /risks/:id/mitigations"},
+		{"manager views audit", AppRoleTeamManager, ResourceAudit, ActionView, true, "GET /audit-logs"},
+		{"manager can edit organization", AppRoleTeamManager, ResourceOrganization, ActionEdit, true, "team_manager inherits merged manager org edit scope"},
+		{"manager cannot create service-action", AppRoleTeamManager, ResourceInfrastructure, ActionCreate, false, "POST /admin/service-actions is system_admin only"},
 		{"system_admin all org mutations", AppRoleSystemAdmin, ResourceOrganization, ActionDelete, true, "DELETE /users/:id"},
 		{"system_admin service action", AppRoleSystemAdmin, ResourceInfrastructure, ActionCreate, true, "POST /admin/service-actions"},
 		{"system_admin cannot create audit", AppRoleSystemAdmin, ResourceAudit, ActionCreate, false, "audit is append-only by system code"},
@@ -77,11 +77,11 @@ func TestEnforceAuditInvariant_FillsMissingResources(t *testing.T) {
 	}
 }
 
-func TestSystemRoles_ReturnsFourWithMatchingDefaults(t *testing.T) {
+func TestSystemRoles_ReturnsThreeWithMatchingDefaults(t *testing.T) {
 	roles := SystemRoles()
-	// developer, manager, system_admin, pmo_manager (sprint claude/work_260515-d, ADR-0011 §4.2).
-	if len(roles) != 4 {
-		t.Fatalf("SystemRoles() len = %d, want 4", len(roles))
+	// developer, team_manager, system_admin.
+	if len(roles) != 3 {
+		t.Fatalf("SystemRoles() len = %d, want 3", len(roles))
 	}
 	for _, role := range roles {
 		if !role.System {
@@ -105,7 +105,7 @@ func TestValidateRoleID(t *testing.T) {
 		want bool
 	}{
 		{"developer", true},
-		{"manager", true},
+		{"team_manager", true},
 		{"system_admin", true},
 		{"custom-foo", true},
 		{"custom-foo-bar_2", true},

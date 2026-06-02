@@ -104,8 +104,8 @@ func TestRealtimeWebSocketRequiresTypesWhenRBACEnabled(t *testing.T) {
 	server := httptest.NewServer(NewRouter(RouterConfig{
 		RealtimeHub: hub,
 		BearerTokenVerifier: &fakeBearerTokenVerifier{actor: AuthenticatedActor{
-			Login: "manager",
-			Role:  "manager",
+			Login: "team_manager",
+			Role:  "team_manager",
 		}},
 	}))
 	defer server.Close()
@@ -146,7 +146,7 @@ func TestRealtimeWebSocketChecksRBACPermission(t *testing.T) {
 		t.Fatalf("expected 403 response, got resp=%v err=%v", resp, err)
 	}
 
-	verifier.actor = AuthenticatedActor{Login: "manager", Role: "manager"}
+	verifier.actor = AuthenticatedActor{Login: "team_manager", Role: "team_manager"}
 	header.Set("Authorization", "Bearer manager-token")
 	conn, resp, err := websocket.DefaultDialer.Dial(url, header)
 	if err != nil {
@@ -164,7 +164,7 @@ func TestRealtimeWebSocketRejectsRoleFallbackWithOrganizationStore(t *testing.T)
 	}))
 	defer server.Close()
 
-	url := "ws" + strings.TrimPrefix(server.URL, "http") + "/api/v1/realtime/ws?types=command.status.updated&role=manager"
+	url := "ws" + strings.TrimPrefix(server.URL, "http") + "/api/v1/realtime/ws?types=command.status.updated&role=team_manager"
 	_, resp, err := websocket.DefaultDialer.Dial(url, nil)
 	if err == nil {
 		t.Fatalf("expected websocket dial to fail when dev fallback is disabled")

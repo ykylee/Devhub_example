@@ -1,9 +1,9 @@
 package view
 
 import (
-	"github.com/devhub/backend-core/internal/shared/httphelp"
 	"context"
 	"fmt"
+	"github.com/devhub/backend-core/internal/shared/httphelp"
 	"log"
 	"net/http"
 	"sync"
@@ -125,7 +125,8 @@ type routeKey struct {
 // instead of silent.
 var routePermissionTable = map[routeKey]routePolicy{
 	// Bypass — section 12.8.1 (auth-only, no matrix lookup)
-	{http.MethodGet, "/api/v1/me"}: {Bypass: true},
+	{http.MethodGet, "/api/v1/me"}:           {Bypass: true},
+	{http.MethodPost, "/api/v1/auth/logout"}: {Bypass: true},
 	// RM-ONBOARD-01 (ADR-0021 §3.5, §16.3..16.5). onboardingGate middleware
 	// 가 미완료 사용자의 본 endpoint 외 endpoint 호출 시 403 처리.
 	{http.MethodPatch, "/api/v1/me"}:                 {Bypass: true},
@@ -298,8 +299,8 @@ var routePermissionTable = map[routeKey]routePolicy{
 	// Webhook 수신 — Bypass (webhook_secret 인증, authenticateActor + RBAC 불필요).
 	{http.MethodPost, "/api/v1/integration/providers/:provider_id/tasks/webhook"}: {Bypass: true},
 	// Task item 조회 — infrastructure:view (provider 관리자 권한).
-	{http.MethodGet, "/api/v1/external-tasks"}:                    {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
-	{http.MethodGet, "/api/v1/external-tasks/:task_id"}:           {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/external-tasks"}:          {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/external-tasks/:task_id"}: {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
 }
 
 // lookupRoutePolicy is exported for tests to assert the table contents without
@@ -323,12 +324,12 @@ func LookupRoutePolicy(method, path string) (RoutePolicy, bool) {
 // ownerUserID 의 row 에 대해 쓰기 권한을 가지는지를 다음 규칙으로 결정한다:
 //
 //  1. actor.role == "system_admin"  (전역 일임 — 항상 통과)
-//  2. actor.role ∈ allowedRoles      (예: "pmo_manager" — 화이트리스트)
+//  2. actor.role ∈ allowedRoles      (예: "team_manager" — 화이트리스트)
 //  3. actor.login == ownerUserID    (owner-self)
 //
 // 한 가지라도 만족하면 true 반환. 만족 못 하면 audit `auth.row_denied` 를
 // emit 하고 403 으로 abort 한 뒤 false 반환. caller 는 단순히
-// `if !h.enforceRowOwnership(c, app.OwnerUserID, "pmo_manager") { return }`
+// `if !h.enforceRowOwnership(c, app.OwnerUserID, "team_manager") { return }`
 // 패턴으로 사용한다.
 //
 // audit payload (ADR-0011 §6):
@@ -418,6 +419,15 @@ func (h *RBACHandler) EnforceRoutePermission(c *gin.Context) {
 	}
 	if policy.Bypass {
 		c.Next()
+		return
+	}
+
+	if driftValue, _ := c.Get("devhub_role_sync_required"); driftValue == true {
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+			"status": "forbidden",
+			"error":  "role synchronization required",
+			"code":   "auth.role_sync_required",
+		})
 		return
 	}
 

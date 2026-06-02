@@ -232,7 +232,7 @@ func TestAuthenticateActor_LogsNonNotFoundGetUserError(t *testing.T) {
 	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
 		Login:   "bob",
 		Subject: "user-bob",
-		Role:    "manager", // token claim says manager
+		Role:    "team_manager", // token claim says manager
 	}}
 	router := NewRouter(RouterConfig{
 		OrganizationStore:   orgs,
@@ -249,8 +249,8 @@ func TestAuthenticateActor_LogsNonNotFoundGetUserError(t *testing.T) {
 	}
 	// Token-claim role must survive the GetUser failure (no silent
 	// collapse to actor.Role default of "").
-	if !strings.Contains(rec.Body.String(), `"role":"manager"`) {
-		t.Errorf("expected role to fall back to token claim 'manager', body = %s", rec.Body.String())
+	if !strings.Contains(rec.Body.String(), `"role":"team_manager"`) {
+		t.Errorf("expected role to fall back to token claim 'team_manager', body = %s", rec.Body.String())
 	}
 	if !strings.Contains(buf.String(), `[authenticateActor] GetUser "bob" failed`) {
 		t.Errorf("expected GetUser error to be logged; got: %q", buf.String())
@@ -356,7 +356,7 @@ func TestAuthenticateActor_DoesNotResetIdPSubjectIfAlreadySet(t *testing.T) {
 		UserID:      "bob",
 		Email:       "bob@example.com",
 		DisplayName: "Bob",
-		Role:        domain.AppRoleManager,
+		Role:        domain.AppRoleTeamManager,
 		Status:      domain.UserStatusActive,
 		Type:        domain.UserTypeHuman,
 	}); err != nil {
@@ -370,7 +370,7 @@ func TestAuthenticateActor_DoesNotResetIdPSubjectIfAlreadySet(t *testing.T) {
 	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
 		Login:   "bob",
 		Subject: "kc-uuid-bob-different", // 다른 sub — overwrite 시도 검증
-		Role:    "manager",
+		Role:    "team_manager",
 	}}
 	router := NewRouter(RouterConfig{
 		OrganizationStore:   orgs,
@@ -505,5 +505,78 @@ func TestAuthenticateActor_TokenOnlyActor_WorksWithoutStore(t *testing.T) {
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d body = %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestAuthenticateActor_RoleDriftFailsClosedOnProtectedRoute(t *testing.T) {
+	orgs := newMemoryOrganizationStore()
+	if _, err := orgs.CreateUser(context.Background(), domain.CreateUserInput{
+		UserID:      "bob",
+		Email:       "bob@example.com",
+		DisplayName: "Bob",
+		Role:        domain.AppRoleDeveloper,
+		Status:      domain.UserStatusActive,
+		Type:        domain.UserTypeHuman,
+	}); err != nil {
+		t.Fatalf("seed user: %v", err)
+	}
+	audits := &memoryAuditStore{}
+	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+		Login:   "bob",
+		Subject: "user-bob",
+		Role:    "team_manager",
+	}}
+	router := NewRouter(RouterConfig{
+		OrganizationStore:   orgs,
+		AuditStore:          audits,
+		BearerTokenVerifier: verifier,
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/users", nil)
+	req.Header.Set("Authorization", "Bearer t")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "auth.role_sync_required") {
+		t.Fatalf("expected auth.role_sync_required, body=%s", rec.Body.String())
+	}
+	if len(audits.logs) != 1 || audits.logs[0].Action != "auth.role_sync_required" {
+		t.Fatalf("expected auth.role_sync_required audit, got %+v", audits.logs)
+	}
+}
+
+func TestLogoutEndpoint_ClearsCookiesAndWritesAudit(t *testing.T) {
+	audits := &memoryAuditStore{}
+	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+		Login:   "alice",
+		Subject: "user-alice",
+		Role:    "developer",
+	}}
+	router := NewRouter(RouterConfig{
+		OrganizationStore:   newMemoryOrganizationStore(),
+		AuditStore:          audits,
+		BearerTokenVerifier: verifier,
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", strings.NewReader(`{"refresh_token":"rt-1","id_token":"id-1"}`))
+	req.Header.Set("Authorization", "Bearer t")
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	cookieHeader := strings.Join(rec.Header().Values("Set-Cookie"), "\n")
+	for _, name := range []string{"devhub_session", "devhub_access_token", "devhub_refresh_token", "devhub_id_token"} {
+		if !strings.Contains(cookieHeader, name+"=") {
+			t.Fatalf("expected cookie %q to be cleared, headers=%q", name, cookieHeader)
+		}
+	}
+	if len(audits.logs) != 1 || audits.logs[0].Action != "auth.logout" {
+		t.Fatalf("expected auth.logout audit, got %+v", audits.logs)
 	}
 }

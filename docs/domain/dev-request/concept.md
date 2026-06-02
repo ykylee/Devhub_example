@@ -88,7 +88,7 @@
 ## 5. 다른 도메인과의 연결
 
 - **Application / Project** — DREQ.registered_target_type/id 로 1:1 (또는 1:N) 매핑. application/project 의 row 에 역방향 `origin_dreq_id` (nullable) 컬럼을 둘지는 carve out — 의뢰 없이 system_admin 이 직접 생성한 application 도 존재해야 하므로 nullable.
-- **RBAC** — DREQ resource 신규. system_admin (전체 관리) / 담당자 (본인 의뢰만 view/edit) 가 1차. pmo_manager 의 위양 범위는 carve out (ADR-0011 §4.2 패턴 적용).
+- **RBAC** — DREQ resource 신규. system_admin (전체 관리) / 담당자 (본인 의뢰만 view/edit) 가 1차. team_manager 의 위양 범위는 carve out (ADR-0011 §4.2 패턴 적용).
 - **Audit** — 모든 상태 전이가 `dev_request.*` action 으로 기록. 외부 수신은 `dev_request.received` + source_system payload.
 - **외부 시스템 인증** — §7 참조.
 

@@ -25,9 +25,9 @@ func TestPermissionCache_DefaultsToSystemRolesWhenStoreNil(t *testing.T) {
 		{"developer", domain.ResourceSecurity, domain.ActionView, true},
 		{"developer", domain.ResourceSecurity, domain.ActionCreate, false},
 		{"developer", domain.ResourceAudit, domain.ActionView, false},
-		{"manager", domain.ResourceSecurity, domain.ActionCreate, true},
-		{"manager", domain.ResourceAudit, domain.ActionView, true},
-		{"manager", domain.ResourceOrganization, domain.ActionEdit, false},
+		{"team_manager", domain.ResourceSecurity, domain.ActionCreate, true},
+		{"team_manager", domain.ResourceAudit, domain.ActionView, true},
+		{"team_manager", domain.ResourceOrganization, domain.ActionEdit, true},
 		{"system_admin", domain.ResourceOrganization, domain.ActionDelete, true},
 		{"system_admin", domain.ResourceAudit, domain.ActionCreate, false}, // invariant
 		{"unknown-role", domain.ResourceInfrastructure, domain.ActionView, false},
@@ -149,15 +149,15 @@ func TestEnforceRoutePermission_DenyByDefaultUnmappedRoute(t *testing.T) {
 
 func TestEnforceRoutePermission_RoleAllowedAndDenied(t *testing.T) {
 	cases := []struct {
-		name      string
-		role      string
-		method    string
-		path      string
+		name       string
+		role       string
+		method     string
+		path       string
 		wantDenied bool
 	}{
 		{"developer cannot delete users", "developer", http.MethodDelete, "/api/v1/users/u-1", true},
-		{"manager creates mitigation gate passes", "manager", http.MethodPost, "/api/v1/risks/r-1/mitigations", false},
-		{"manager cannot create service-action", "manager", http.MethodPost, "/api/v1/admin/service-actions", true},
+		{"manager creates mitigation gate passes", "team_manager", http.MethodPost, "/api/v1/risks/r-1/mitigations", false},
+		{"manager cannot create service-action", "team_manager", http.MethodPost, "/api/v1/admin/service-actions", true},
 		{"developer cannot view audit-logs", "developer", http.MethodGet, "/api/v1/audit-logs", true},
 		{"developer can view risks", "developer", http.MethodGet, "/api/v1/risks", false},
 		{"system_admin delete users gate passes", "system_admin", http.MethodDelete, "/api/v1/users/u-1", false},
@@ -232,7 +232,7 @@ func newOwnershipTestContext(t *testing.T, login, role string) (*gin.Context, *m
 func TestEnforceRowOwnership_SystemAdminAllowed(t *testing.T) {
 	c, audits, rec, h := newOwnershipTestContext(t, "charlie", "system_admin")
 
-	if got := h.enforceRowOwnership(c, "alice", "pmo_manager"); !got {
+	if got := h.enforceRowOwnership(c, "alice", "team_manager"); !got {
 		t.Fatal("system_admin should always be allowed")
 	}
 	if rec.Code != 0 && rec.Code != http.StatusOK {
@@ -247,10 +247,10 @@ func TestEnforceRowOwnership_SystemAdminAllowed(t *testing.T) {
 }
 
 func TestEnforceRowOwnership_AllowedRoleWhitelist(t *testing.T) {
-	c, audits, _, h := newOwnershipTestContext(t, "bob", "pmo_manager")
+	c, audits, _, h := newOwnershipTestContext(t, "bob", "team_manager")
 
-	if got := h.enforceRowOwnership(c, "alice", "pmo_manager"); !got {
-		t.Fatal("pmo_manager in allowedRoles should be allowed")
+	if got := h.enforceRowOwnership(c, "alice", "team_manager"); !got {
+		t.Fatal("team_manager in allowedRoles should be allowed")
 	}
 	if c.IsAborted() {
 		t.Error("expected context not aborted on allow")
@@ -274,7 +274,7 @@ func TestEnforceRowOwnership_OwnerSelfAllowed(t *testing.T) {
 func TestEnforceRowOwnership_DeniedEmitsAuditAndForbidden(t *testing.T) {
 	c, audits, rec, h := newOwnershipTestContext(t, "bob", "developer")
 
-	if got := h.enforceRowOwnership(c, "alice", "pmo_manager"); got {
+	if got := h.enforceRowOwnership(c, "alice", "team_manager"); got {
 		t.Fatal("non-owner non-allowed role should be denied")
 	}
 	if rec.Code != http.StatusForbidden {
@@ -338,7 +338,7 @@ func TestEnforceRowOwnership_DevFallbackBypasses(t *testing.T) {
 	c.Set("devhub_auth_dev_fallback", true)
 	h := Handler{cfg: RouterConfig{AuditStore: audits}}
 
-	if got := h.enforceRowOwnership(c, "alice", "pmo_manager"); !got {
+	if got := h.enforceRowOwnership(c, "alice", "team_manager"); !got {
 		t.Fatal("dev fallback should bypass and return true")
 	}
 	if c.IsAborted() {
@@ -358,7 +358,7 @@ func TestEnforceRowOwnership_NoActorContextDenied(t *testing.T) {
 	c.Request = httptest.NewRequest(http.MethodPatch, "/api/v1/applications/app-1", nil)
 	h := Handler{cfg: RouterConfig{AuditStore: audits}}
 
-	if got := h.enforceRowOwnership(c, "alice", "pmo_manager"); got {
+	if got := h.enforceRowOwnership(c, "alice", "team_manager"); got {
 		t.Fatal("missing actor context should deny")
 	}
 	if rec.Code != http.StatusForbidden {

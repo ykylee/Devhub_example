@@ -42,7 +42,7 @@ func roleRank(role string) int {
 	switch role {
 	case string(domain.AppRoleSystemAdmin):
 		return 30
-	case string(domain.AppRoleManager):
+	case string(domain.AppRoleTeamManager):
 		return 20
 	case string(domain.AppRoleDeveloper):
 		return 10

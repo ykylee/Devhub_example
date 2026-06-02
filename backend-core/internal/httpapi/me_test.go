@@ -17,7 +17,7 @@ func TestGetMeReturnsAuthenticatedActor(t *testing.T) {
 	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
 		Login:   "alice",
 		Subject: "user-alice",
-		Role:    "manager",
+		Role:    "team_manager",
 	}}
 	router := NewRouter(RouterConfig{BearerTokenVerifier: verifier})
 
@@ -37,7 +37,7 @@ func TestGetMeReturnsAuthenticatedActor(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
-	if body.Data.Login != "alice" || body.Data.Subject != "user-alice" || body.Data.Role != "manager" {
+	if body.Data.Login != "alice" || body.Data.Subject != "user-alice" || body.Data.Role != "team_manager" {
 		t.Errorf("unexpected actor in response: %+v", body.Data)
 	}
 	if body.Data.Source != "authenticated_context" {

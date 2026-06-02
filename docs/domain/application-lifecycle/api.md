@@ -52,7 +52,7 @@
 ## 2. 공통 규칙
 
 - 쓰기 권한: 기본 `system_admin` 전용.
-- `pmo_manager`는 정책 확정 전 `disabled`, 쓰기 요청은 `403` + `error=role_not_enabled`.
+- `team_manager`는 정책 확정 전 `disabled`, 쓰기 요청은 `403` + `error=role_not_enabled`.
 - archive는 soft-delete로 처리한다 (`archived_at` 기록 + 기본 조회 목록 제외, `include_archived=true` 토글로 노출).
 - `Application.key`는 시스템 전역 unique 식별자다.
 - `Application.key`는 **immutable** — 발급 후 변경 불가. PATCH 본문에 `key` 가 포함되면 `422 application_key_immutable` 로 거절한다.

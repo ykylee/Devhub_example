@@ -264,7 +264,7 @@ func TestSyncUserMembership_PicksHighestPriorityRole(t *testing.T) {
 		t.Fatalf("SyncUserMembership: %v", err)
 	}
 	in := orgs.updateInputs[0].input
-	if in.Role == nil || *in.Role != domain.AppRoleManager {
+	if in.Role == nil || *in.Role != domain.AppRoleTeamManager {
 		t.Errorf("Role = %v; want manager (priority filter)", in.Role)
 	}
 }

@@ -7,7 +7,7 @@ CREATE TABLE rbac_policies (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT rbac_policies_role_id_format CHECK (
-        role_id IN ('developer', 'manager', 'system_admin')
+        role_id IN ('developer', 'team_manager', 'system_admin')
         OR role_id ~ '^custom-[a-z0-9][a-z0-9_-]{0,62}$'
     ),
     CONSTRAINT rbac_policies_audit_invariant CHECK (
@@ -37,7 +37,7 @@ INSERT INTO rbac_policies (role_id, name, description, is_system, permissions) V
         }'::jsonb
     ),
     (
-        'manager',
+        'team_manager',
         'Manager',
         '팀 운영, risk triage, 승인 전 command 생성 권한',
         TRUE,

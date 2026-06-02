@@ -150,7 +150,7 @@
 
 PR #205 의 codex review (P1, 2026-05-20) 가 본 ADR 결정 D (`rbac_subject_roles` 폐기) 의 backward compatibility 회귀 발견:
 
-> Removing the subject-role routes here eliminates the only backend path that could assign arbitrary existing RBAC roles to users. The remaining user update path still validates role against a fixed allowlist (`developer|manager|system_admin` in `organization.go`), so `custom-*` roles and even `pmo_manager` can no longer be assigned via API.
+> Removing the subject-role routes here eliminates the only backend path that could assign arbitrary existing RBAC roles to users. The remaining user update path still validates role against a fixed allowlist (`developer|manager|system_admin` in `organization.go`), so `custom-*` roles and even `team_manager` can no longer be assigned via API.
 
 ### 응답 — 결정 D 의 호환성 보강
 
@@ -158,11 +158,11 @@ PR #205 의 codex review (P1, 2026-05-20) 가 본 ADR 결정 D (`rbac_subject_ro
 
 #### sprint -d Stage 3 hotfix
 
-`backend-core/internal/httpapi/organization.go` 의 `validAppRoles` map 에 `pmo_manager` 추가 (이전: `developer/manager/system_admin` 3개만, sprint -d 까지는 `/rbac/subjects/:id/roles` 가 backup 경로였음). error message 도 4 role 명시.
+`backend-core/internal/httpapi/organization.go` 의 `validAppRoles` map 에 `team_manager` 추가 (이전: `developer/manager/system_admin` 3개만, sprint -d 까지는 `/rbac/subjects/:id/roles` 가 backup 경로였음). error message 도 4 role 명시.
 
 | 영역 | sprint -d 이전 | sprint -d Stage 3 후 | sub-carve C (sprint -f) 완성 후 |
 | --- | --- | --- | --- |
-| `PATCH /api/v1/users/:id` role allowlist | `developer/manager/system_admin` | `developer/manager/pmo_manager/system_admin` | (sub-carve B 진입 시 본 endpoint 자체 폐기 검토) |
+| `PATCH /api/v1/users/:id` role allowlist | `developer/manager/system_admin` | `developer/manager/team_manager/system_admin` | (sub-carve B 진입 시 본 endpoint 자체 폐기 검토) |
 | `PUT /api/v1/rbac/subjects/:id/roles` (custom role 포함 임의 role 허용) | ✅ | ❌ 폐기 (sprint -d) | (변경 없음) |
 | Keycloak admin console group membership → event listener sync → `users.role` write | (없음) | (없음 — 사내 운영자가 token refresh 기다림) | ✅ 자동 sync |
 
@@ -173,12 +173,12 @@ sprint -d 이후 custom role (예: `pmo_director`, `qa_lead` 등 `rbac_policies`
 2. **임시 우회 (sprint -f 미완성 동안)** — DB direct UPDATE `users.role` (`users.role` FK to `rbac_policies.role_id` 가 그대로 보호). 운영자 SOP 동반 carve
 3. **신규 API endpoint 발급** — `validAppRoles` 를 `rbac_policies` dynamic lookup 으로 변경 (handler + store 변경 필요). 본 ADR 의 결정 C 와 충돌 (event listener 가 곧 덮어쓰기) → **거부**
 
-본 sprint -d 의 Stage 3 hotfix 는 옵션 (1) 의 임시 호환만 보장 (`pmo_manager` 명시 추가) + 옵션 (2) 의 DB direct UPDATE SOP 는 sub-carve E (governance SOP, sprint -h) 가 명문화 예정.
+본 sprint -d 의 Stage 3 hotfix 는 옵션 (1) 의 임시 호환만 보장 (`team_manager` 명시 추가) + 옵션 (2) 의 DB direct UPDATE SOP 는 sub-carve E (governance SOP, sprint -h) 가 명문화 예정.
 
 #### 회귀 test (sprint -d Stage 3)
 
-- `TestCreateUserAcceptsPMOManager` — `POST /api/v1/users` 의 `role: pmo_manager` 가 201 반환
-- `TestUpdateUserAcceptsPMOManagerRole` — `PATCH /api/v1/users/:id` 의 role 필드를 `pmo_manager` 로 변경 시 200 + role 갱신 확인
+- `TestCreateUserAcceptsPMOManager` — `POST /api/v1/users` 의 `role: team_manager` 가 201 반환
+- `TestUpdateUserAcceptsPMOManagerRole` — `PATCH /api/v1/users/:id` 의 role 필드를 `team_manager` 로 변경 시 200 + role 갱신 확인
 
 ## 6. 미해결 / 후속 작업
 
@@ -207,7 +207,7 @@ sprint -d 이후 custom role (예: `pmo_director`, `qa_lead` 등 `rbac_policies`
 | 일자 | 변경 | sprint |
 | --- | --- | --- |
 | 2026-05-20 | draft + Accepted — Phase 2 명시 결정 6건 종합 (옵션 A 전면 폐기) + Phase 3 sub-carve 6건 분리 plan | `claude/work_260520-d` |
-| 2026-05-20 | Stage 3 보강 — PR #205 codex review P1 응답. `validAppRoles` 에 `pmo_manager` 추가 (sprint -d 시점 backward compat) + §5.5 신규 hotfix 섹션 + 회귀 test 2건 (TestCreateUserAcceptsPMOManager + TestUpdateUserAcceptsPMOManagerRole). custom role 처리는 옵션 (1) Keycloak admin console + event listener (sprint -f 권장) / 옵션 (2) DB direct UPDATE (sub-carve E 의 SOP 동반) 으로 명시. | `claude/work_260520-d` |
+| 2026-05-20 | Stage 3 보강 — PR #205 codex review P1 응답. `validAppRoles` 에 `team_manager` 추가 (sprint -d 시점 backward compat) + §5.5 신규 hotfix 섹션 + 회귀 test 2건 (TestCreateUserAcceptsPMOManager + TestUpdateUserAcceptsPMOManagerRole). custom role 처리는 옵션 (1) Keycloak admin console + event listener (sprint -f 권장) / 옵션 (2) DB direct UPDATE (sub-carve E 의 SOP 동반) 으로 명시. | `claude/work_260520-d` |
 | 2026-05-20 | **sub-carve B (backend) resolved** — `/api/v1/accounts/*` 4 endpoint 제거 + `authenticateActor` lazy auto-create 실 구현 (`lazy_auto_create.go::lazyAutoCreateUser`) + `AuthenticatedActor` Email/DisplayName 필드 추가 + `keycloak_verifier::extractDisplayName` + 신규 audit action 2종 (`account.lazy_provisioned` / `user.role_default_assigned`) + 회귀 test 5건 + 기존 test 3건 admin pre-seed fix. §4.1 sub-carve 표 갱신 (B backend done, B frontend 별도 sprint, C/D/E/F sprint label shift). | `claude/work_260520-i-209-accounts-deprecation` |
 | 2026-05-20 | **sub-carve D resolved** — JWKS stale-while-error expiry case 확장. 5 commit: (1) cache struct 확장 (`cachedAt time.Time` + `MaxStaleDuration` 필드 + `defaultJWKSMaxStale = 24h`) + `readStaleCachedKeys` helper. (2) `fetchJWKS` 흐름 변경 — `fetchAndCacheJWKS` 별도 함수로 분리 + network fetch 실패 시 stale fallback 분기 + log WARN. (3) `internal/auth/metrics.go` 신규 — `devhub_jwks_stale_while_error_total{result}` CounterVec + `devhub_jwks_stale_age_seconds` Histogram (ExponentialBuckets 1m~4096m). (4) Config `OIDCJWKSMaxStaleDuration` (env `DEVHUB_OIDC_JWKS_MAX_STALE_DURATION`) + main.go wire (parse → verifier.MaxStaleDuration set + log + invalid fallback). (5) 회귀 test 4건 — StaleWhileError_KeycloakUnreachable (Keycloak 500 시 stale 통과) / StaleExpired_Fails401 (MaxStaleDuration 초과 시 401) / FreshCache_NoStaleFallback (cache 안 fresh 시 network 0 회) / StaleFallback_DefaultMaxStale (env 미설정 시 24h default 적용). §4.1 sub-carve 표 D done 마킹. | `claude/work_260520-l-213-jwks-stale-expiry` |
 | 2026-05-20 | **sub-carve C resolved** — Keycloak admin event 처리 시 DevHub `users` 컬럼 자동 sync. 5 commit. (1) `KeycloakAdminClient.GetUserDetails` + `GetUserGroups` 신규. (2) `audit/user_sync.go` 신규 — `SyncUserProfile`/`SyncUserMembership`/`MarkUserDeactivated` + helper (`composeDisplayName`/`pickHighestPriorityRole`/`groupNameToRole`/`ParseIdentityIDFromResourcePath`) + `UserSyncOrgStore`/`UserSyncAdminClient` narrow interface + `SyncUserAction` enum. (3) `keycloak_event_puller.go` 확장 — `KeycloakEventPullerOptions.UserSync UserSyncCallback` 신규 + `classifyAdminEventForSync` helper + `mapAdminEventToAudit` 에 `GROUP_MEMBERSHIP:CREATE/DELETE` 2 row 추가 (10 row 총) + admin event loop 분기 추가 (audit emit + sync callback). (4) `audit/metrics.go` 확장 — 신규 metric 3종 (`devhub_keycloak_user_sync_total{action}` + `_errors_total` + `_lag_seconds` Histogram) + 4 observe helpers + 회귀 test 4건 (GROUP_MEMBERSHIP 매핑 + classifyAdminEventForSync 5 case + InvokesUserSyncCallback + NilUserSync backward compat). (5) `main.go` wire — `UserSync` callback dispatcher (action 별 SyncUserProfile / Membership / MarkUserDeactivated 호출 + metric observe + error log). backward compatible (UserSync nil = sprint -u~-y 동작 동등). §4.1 sub-carve 표 갱신 (C done). | `claude/work_260520-k-212-event-listener-users-sync` |

@@ -65,7 +65,7 @@
 ## 2. 목록 — `GET /api/v1/dev-requests`  *(API-60)*
 
 - **인증**: OIDC + RBAC `dev_requests:view`.
-- **권한**: `system_admin` / `pmo_manager` 는 전체. 그 외 role 은 `assignee_user_id == actor.login` 의 row 만 (route-level RBAC + handler 단의 server-side filter).
+- **권한**: `system_admin` / `team_manager` 는 전체. 그 외 role 은 `assignee_user_id == actor.login` 의 row 만 (route-level RBAC + handler 단의 server-side filter).
 - **쿼리**: `status` (콤마 다중) / `source_system` / `assignee_user_id` (system_admin 만 의미) / `limit` (기본 50, 최대 100) / `offset`.
 - **응답 — 200**:
 
@@ -81,12 +81,12 @@
 
 ## 3. 상세 — `GET /api/v1/dev-requests/:id`  *(API-61)*
 
-- **인증**: OIDC + RBAC `dev_requests:view` + row-level (system_admin / pmo_manager / assignee 본인).
+- **인증**: OIDC + RBAC `dev_requests:view` + row-level (system_admin / team_manager / assignee 본인).
 - **응답 — 200** `{ "status":"ok", "data": <dev_request> }`. **404** not found. **403** `auth_row_denied` (audit `auth.row_denied`).
 
 ## 4. Promote (등록) — `POST /api/v1/dev-requests/:id/register`  *(API-62)*
 
-- **인증**: OIDC + RBAC `dev_requests:edit` + row-level (system_admin / pmo_manager / assignee 본인).
+- **인증**: OIDC + RBAC `dev_requests:edit` + row-level (system_admin / team_manager / assignee 본인).
 - **요청 schema (mutual exclusion)**: 다음 셋 중 정확히 하나만 채워야 한다. 둘 이상 채우거나 모두 비우면 `400 dev_request_register_payload_invalid`. (sprint `claude/work_260515-m` 도입)
   1. `target_id` (legacy 매핑) — 이미 존재하는 application/project id 로 dev_request 를 묶기만 한다. dev_requests row 만 UPDATE 한다 (단일 row, 트랜잭션 불요).
   2. `application_payload` (target_type=application 필수) — 새 Application 을 생성하고 dev_request 를 registered 로 갱신한다. **단일 Postgres 트랜잭션** (REQ-FR-DREQ-005, ADR-0013 §5). `primary_repo` 필드는 optional 이며 함께 application_repositories 행 1개를 추가한다.
@@ -162,7 +162,7 @@
 
 ## 5. 거절 — `POST /api/v1/dev-requests/:id/reject`  *(API-63)*
 
-- **인증**: OIDC + RBAC + row-level (system_admin / pmo_manager / assignee 본인).
+- **인증**: OIDC + RBAC + row-level (system_admin / team_manager / assignee 본인).
 - **요청**: `{ "rejected_reason": "중복 의뢰 (OPS-2026-00481 과 동일)" }` — `rejected_reason` 필수.
 - **응답 — 200** `{ "status":"ok", "data": <dev_request with status=rejected> }`. **400** reason 누락. **409** 이미 registered/closed/rejected.
 
@@ -174,7 +174,7 @@
 
 ## 7. 닫기 — `DELETE /api/v1/dev-requests/:id`  *(API-65)*
 
-- **인증**: OIDC + RBAC `dev_requests:delete` — **system_admin 만**. (REQ-FR-DREQ-008 + ARCH-DREQ-04 의 pmo_manager 매트릭스가 delete 권한을 부여하지 않음과 정합. codex PR #121 review P1, sprint `claude/work_260515-h` 반영.)
+- **인증**: OIDC + RBAC `dev_requests:delete` — **system_admin 만**. (REQ-FR-DREQ-008 + ARCH-DREQ-04 의 team_manager 매트릭스가 delete 권한을 부여하지 않음과 정합. codex PR #121 review P1, sprint `claude/work_260515-h` 반영.)
 - **전이**: `registered` 또는 `rejected` → `closed`. `pending` / `in_review` 는 거부 (먼저 reject 후 close).
 - **응답 — 200** `{ "status":"ok", "data": <dev_request with status=closed> }`. **422** `invalid_status_transition_close` (pending/in_review 에서 시도). audit `dev_request.closed`.
 

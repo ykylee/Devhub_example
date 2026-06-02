@@ -1494,7 +1494,7 @@ func TestDevRequestsCRUD(t *testing.T) {
 		rec := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(rec)
 		c.Request = httptest.NewRequest("PATCH", "/dev-requests/dr-1", strings.NewReader(`{"assignee_user_id": "new-guy"}`))
-		c.Set("devhub_actor_role", "pmo_manager") // not system_admin, dev fallback disabled
+		c.Set("devhub_actor_role", "team_manager") // not system_admin, dev fallback disabled
 		h.PatchDevRequest(c)
 		if rec.Code != 403 {
 			t.Fatalf("expected 403, got %d", rec.Code)
@@ -1634,7 +1634,7 @@ func TestDevRequestsCRUD(t *testing.T) {
 		rec1 := httptest.NewRecorder()
 		c1, _ := gin.CreateTestContext(rec1)
 		c1.Request = httptest.NewRequest("DELETE", "/dev-requests/dr-1", nil)
-		c1.Set("devhub_actor_role", "pmo_manager")
+		c1.Set("devhub_actor_role", "team_manager")
 		h.CloseDevRequest(c1)
 		if rec1.Code != 403 {
 			t.Fatalf("expected 403, got %d", rec1.Code)

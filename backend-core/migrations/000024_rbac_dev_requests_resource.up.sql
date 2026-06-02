@@ -4,7 +4,7 @@
 --   - developer: view (route gate 만, handler 가 row-level filter)
 --   - manager: view
 --   - system_admin: view + create + edit + delete
---   - pmo_manager: view + edit (create/delete false; close/reassign 은 handler 가 추가 검증)
+--   - team_manager: view + edit (create/delete false; close/reassign 은 handler 가 추가 검증)
 --
 -- domain.DefaultPermissionMatrix() 와 byte-for-byte 정합.
 
@@ -15,7 +15,7 @@ SET permissions = permissions
             jsonb_build_object('view', TRUE, 'create', FALSE, 'edit', FALSE, 'delete', FALSE)
         ),
     updated_at = NOW()
-WHERE role_id IN ('developer', 'manager');
+WHERE role_id IN ('developer', 'team_manager');
 
 UPDATE rbac_policies
 SET permissions = permissions
@@ -33,4 +33,4 @@ SET permissions = permissions
             jsonb_build_object('view', TRUE, 'create', FALSE, 'edit', TRUE, 'delete', FALSE)
         ),
     updated_at = NOW()
-WHERE role_id = 'pmo_manager';
+WHERE role_id = 'team_manager';

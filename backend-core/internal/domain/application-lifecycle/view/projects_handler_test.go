@@ -114,6 +114,69 @@ func TestListProjects_StoreError500(t *testing.T) {
 	}
 }
 
+func TestListProjects_FiltersToReadableMembership(t *testing.T) {
+	h, st, _ := newProjectHandlerForTest(t)
+	st.seedProject(domain.Project{
+		ID:           "p-1",
+		Key:          "PRJ1",
+		RepositoryID: 42,
+		OwnerUserID:  "owner-1",
+		Status:       domain.ApplicationStatusActive,
+		ProjectMembers: []domain.ProjectMember{
+			{ProjectID: "p-1", UserID: "alice", ProjectRole: domain.ProjectMemberRoleContributor},
+		},
+	})
+	st.seedProject(domain.Project{
+		ID:           "p-2",
+		Key:          "PRJ2",
+		RepositoryID: 42,
+		OwnerUserID:  "owner-2",
+		Status:       domain.ApplicationStatusActive,
+	})
+
+	rec := invokeJSON("GET", "/repositories/42/projects", "/repositories/:repository_id/projects", h.ListProjects, nil, "alice", "developer")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+	}
+
+	var resp map[string]any
+	_ = json.Unmarshal(rec.Body.Bytes(), &resp)
+	data, _ := resp["data"].([]any)
+	if len(data) != 1 {
+		t.Fatalf("expected 1 visible project, got %d body=%s", len(data), rec.Body.String())
+	}
+	first, _ := data[0].(map[string]any)
+	if first["id"] != "p-1" {
+		t.Fatalf("expected p-1, got %+v", first)
+	}
+	meta, _ := resp["meta"].(map[string]any)
+	if meta["raw_total"] != float64(2) || meta["total"] != float64(1) {
+		t.Fatalf("unexpected meta: %+v", meta)
+	}
+}
+
+func TestGetProject_DeniesNonMemberRead(t *testing.T) {
+	h, st, audit := newProjectHandlerForTest(t)
+	st.seedProject(domain.Project{
+		ID:           "p-1",
+		Key:          "PRJ1",
+		RepositoryID: 42,
+		OwnerUserID:  "owner-1",
+		Status:       domain.ApplicationStatusActive,
+	})
+
+	rec := invokeJSON("GET", "/projects/p-1", "/projects/:project_id", h.GetProject, nil, "alice", "developer")
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "auth_row_denied") || !strings.Contains(rec.Body.String(), "not_project_member") {
+		t.Fatalf("body=%s", rec.Body.String())
+	}
+	if len(audit.created) != 1 || audit.created[0].Action != "auth.row_denied" {
+		t.Fatalf("audit=%+v", audit.created)
+	}
+}
+
 // --- CreateProject (legacy) ---
 
 func validCreateProjectBody() map[string]any {
@@ -682,6 +745,7 @@ func TestListProjectRepositories_StoreUnavailable503(t *testing.T) {
 
 func TestListProjectRepositories_StoreError500(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.ApplicationStatusActive})
 	st.errListProjectRepositories = errors.New("db")
 	rec := invokeJSON("GET", "/projects/p-1/repositories", "/projects/:project_id/repositories", h.ListProjectRepositories, nil, "", "")
 	if rec.Code != http.StatusInternalServerError {

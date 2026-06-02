@@ -30,7 +30,7 @@ test.describe("RBAC route matrix", () => {
 
     await page.goto(appPath("/admin"));
     // pathRequiresSystemAdmin('/admin') === true,
-    // isSystemAdmin('manager') === false → /manager.
+    // isSystemAdmin('team_manager') === false → /manager.
     await expect(page).toHaveURL(/\/manager(\/|$)/, { timeout: 10_000 });
   });
 });

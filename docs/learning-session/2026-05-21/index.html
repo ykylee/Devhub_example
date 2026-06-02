@@ -97,7 +97,7 @@
     <tbody>
       <tr><td>Developer</td><td>repo / PR / CI / risk 조회, DREQ assignee 대응, profile 등록</td><td><code>/developer</code></td></tr>
       <tr><td>Manager</td><td>팀 부하, 일정 지연, DREQ oversight</td><td><code>/manager</code></td></tr>
-      <tr><td>PMO Manager</td><td>Application / Project 라이프사이클 관리 (pmo_manager role)</td><td><code>/manager</code> (확장)</td></tr>
+      <tr><td>PMO Manager</td><td>Application / Project 라이프사이클 관리 (team_manager role)</td><td><code>/manager</code> (확장)</td></tr>
       <tr><td>System Admin</td><td>Gitea runner / RBAC policy / DREQ token admin / event listener</td><td><code>/system-admin</code></td></tr>
       <tr><td>외부 시스템 (Bitbucket / Jira / HomeLab)</td><td>API token + IP allowlist 로 DevHub intake 호출</td><td>(백그라운드)</td></tr>
       <tr><td>사용자 일반 <span class="badge new">신규</span></td><td>onboarding 화면 → 소속 등록 → reviewed</td><td><code>/devhub/onboarding</code></td></tr>
@@ -227,7 +227,7 @@
     <tbody>
       <tr><td>인증 / 계정 / 사용자</td><td>0019, 0020</td><td>Keycloak OIDC + DevHub <code>users</code> + RBAC</td><td><span class="ok">✅ M2 done</span></td></tr>
       <tr><td>RBAC (권한 매트릭스)</td><td>0002, 0011, 0007</td><td>11 resource × 4 action + row-level scoping</td><td><span class="ok">✅ 1차 구현</span></td></tr>
-      <tr><td>Application / Project (PMO)</td><td>0011</td><td>promote-to-app/project + pmo_manager 위양</td><td><span class="ok">✅ M3 1차</span></td></tr>
+      <tr><td>Application / Project (PMO)</td><td>0011</td><td>promote-to-app/project + team_manager 위양</td><td><span class="ok">✅ M3 1차</span></td></tr>
       <tr><td>Dev Request (DREQ)</td><td>0012, 0013, 0014, 0017</td><td>외부 → DevHub intake → assignee → Promote</td><td><span class="ok">✅ M5 + E2E</span></td></tr>
       <tr><td>External Integration</td><td>0015, 0016</td><td>ALM/SCM/CI-CD/문서/HomeLab + topology v2</td><td><span class="ok">✅ M6 + frontend</span></td></tr>
       <tr><td>Onboarding <span class="badge new">신규</span></td><td>0021</td><td>self-service 초기 등록 + 3 tier 접근</td><td><span class="partial">⚡ Carve A backend</span></td></tr>

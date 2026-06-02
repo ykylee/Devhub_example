@@ -245,7 +245,7 @@ func TestIntegration_SyncUserMembership_AssignsHighestPriorityRole(t *testing.T)
 	}
 
 	got, _ := s.GetUser(ctx, userID)
-	if got.Role != domain.AppRoleManager {
+	if got.Role != domain.AppRoleTeamManager {
 		t.Errorf("role = %q, want manager (highest priority of [developer, manager])", got.Role)
 	}
 }

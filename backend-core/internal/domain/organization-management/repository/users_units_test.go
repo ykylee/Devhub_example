@@ -40,7 +40,7 @@ func TestPostgresStoreListUsersAndHierarchy(t *testing.T) {
 		primaryUnitID string
 	}{
 		"u1": {role: domain.AppRoleSystemAdmin, primaryUnitID: "dept-eng"},
-		"u2": {role: domain.AppRoleManager, primaryUnitID: "dept-prod"},
+		"u2": {role: domain.AppRoleTeamManager, primaryUnitID: "dept-prod"},
 		"u3": {role: domain.AppRoleDeveloper, primaryUnitID: "team-infra"},
 	}
 
@@ -613,7 +613,7 @@ func TestPostgresStore_UpdateUser_Fields(t *testing.T) {
 
 	// Update display_name and role
 	newName := "Updated Name"
-	newRole := domain.AppRoleManager
+	newRole := domain.AppRoleTeamManager
 	updated, err := repo.UpdateUser(ctx, userID, domain.UpdateUserInput{
 		DisplayName: &newName,
 		Role:        &newRole,

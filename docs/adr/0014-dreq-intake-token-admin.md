@@ -48,7 +48,7 @@ token 의 운영 상 핵심 제약:
 | --- | --- | --- | --- | --- |
 | `developer` | ❌ | ❌ | ❌ | ❌ |
 | `manager` | ❌ | ❌ | ❌ | ❌ |
-| `pmo_manager` | ❌ | ❌ | ❌ | ❌ |
+| `team_manager` | ❌ | ❌ | ❌ | ❌ |
 | `system_admin` | ✅ | ✅ | ✅ | ✅ |
 
 migration `000026_rbac_dev_request_intake_tokens` (sprint `claude/work_260515-o`) 가 4 role 의 `rbac_policies.permissions` JSONB 에 위 셀을 seed. `edit` 은 본 ADR 의 4 endpoint 범위에 없지만 matrix 자축 통일성을 위해 등재 (`dev_requests` resource 와 동일 패턴).

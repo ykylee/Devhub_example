@@ -387,14 +387,18 @@ test.describe("DREQ E2E", () => {
         const stillActive = page.getByRole("row").filter({ hasText: clientLabel });
         const tokenId = (await stillActive.getAttribute("data-token-id").catch(() => null)) ?? "";
         if (tokenId) {
-          await page.evaluate(async ({ id, basePath }) => {
+          await page.evaluate(async ({ id }) => {
             const accessToken = sessionStorage.getItem("devhub_access_token");
-            await fetch(`${basePath}/api/v1/dev-request-tokens/${id}`, {
+            const apiURL = new URL(`/api/v1/dev-request-tokens/${id}`, window.location.origin).toString();
+            const resp = await fetch(apiURL, {
               method: "DELETE",
               headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
               credentials: "include",
             });
-          }, { id: tokenId, basePath: appPath("") });
+            if (!resp.ok) {
+              throw new Error(`cleanup delete failed: status=${resp.status}`);
+            }
+          }, { id: tokenId });
         }
       } catch (err) {
         // best-effort cleanup — non-fatal. test 의 핵심 검증 (intake → promote

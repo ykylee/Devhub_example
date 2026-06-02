@@ -85,13 +85,12 @@ func AllActions() []Action {
 }
 
 // SystemRoleIDs returns the immutable set of role ids that the seed migrations install.
-// pmo_manager 는 migration 000021 (sprint claude/work_260515-d) 에서 도입.
+// team_manager 는 migration 000021 (sprint claude/work_260515-d) 에서 도입.
 func SystemRoleIDs() []string {
 	return []string{
 		string(AppRoleDeveloper),
-		string(AppRoleManager),
+		string(AppRoleTeamManager),
 		string(AppRoleSystemAdmin),
-		string(AppRolePMOManager),
 	}
 }
 
@@ -164,9 +163,9 @@ func DefaultPermissionMatrix(roleID string) (PermissionMatrix, bool) {
 			ResourceOrganization:            {View: true},
 			ResourceSecurity:                {View: true},
 			ResourceAudit:                   {},
-			ResourceApplications:            {},
-			ResourceApplicationRepositories: {},
-			ResourceProjects:                {},
+			ResourceApplications:            {View: true},
+			ResourceApplicationRepositories: {View: true},
+			ResourceProjects:                {View: true},
 			ResourceSCMProviders:            {},
 			// dev_requests: route gate 는 view 만 통과. handler 가 row-level filter
 			// (`assignee_user_id == actor.login`) 로 추가 제한. ARCH-DREQ-04.
@@ -174,20 +173,21 @@ func DefaultPermissionMatrix(roleID string) (PermissionMatrix, bool) {
 			// dev_request_intake_tokens: system_admin 일임 (ADR-0014). developer 는 차단.
 			ResourceDevRequestIntakeTokens: {},
 		}, true
-	case string(AppRoleManager):
+	case string(AppRoleTeamManager):
 		return PermissionMatrix{
 			ResourceInfrastructure:          {View: true},
 			ResourcePipelines:               {View: true},
-			ResourceOrganization:            {View: true},
+			ResourceOrganization:            {View: true, Edit: true},
 			ResourceSecurity:                {View: true, Create: true},
 			ResourceAudit:                   {View: true},
-			ResourceApplications:            {},
-			ResourceApplicationRepositories: {},
-			ResourceProjects:                {},
-			ResourceSCMProviders:            {},
-			// dev_requests: developer 와 동일 — view 만, row-level filter 는 handler.
-			ResourceDevRequests: {View: true},
-			// dev_request_intake_tokens: system_admin 일임 (ADR-0014). manager 차단.
+			ResourceApplications:            {View: true, Edit: true},
+			ResourceApplicationRepositories: {View: true},
+			ResourceProjects:                {View: true, Create: true, Edit: true, Delete: true},
+			ResourceSCMProviders:            {View: true},
+			// team_manager 는 DREQ 운영 권한을 가진다. close/reassign 의 추가 제약은
+			// handler 레벨에서 별도 강제한다.
+			ResourceDevRequests: {View: true, Edit: true},
+			// dev_request_intake_tokens: system_admin 일임 (ADR-0014). team_manager 차단.
 			ResourceDevRequestIntakeTokens: {},
 		}, true
 	case string(AppRoleSystemAdmin):
@@ -203,31 +203,6 @@ func DefaultPermissionMatrix(roleID string) (PermissionMatrix, bool) {
 			ResourceSCMProviders:            {View: true, Create: true, Edit: true, Delete: true},
 			ResourceDevRequests:             {View: true, Create: true, Edit: true, Delete: true},
 			ResourceDevRequestIntakeTokens:  {View: true, Create: true, Edit: true, Delete: true},
-		}, true
-	case string(AppRolePMOManager):
-		// REQ-FR-PROJ-010 정책 매핑 (sprint claude/work_260515-d):
-		//   - applications: 수정만 (View+Edit). create/delete 는 system_admin 만.
-		//   - application_repositories: view only (link/unlink 초기 비허용).
-		//   - projects: 전체 CRUD (project.manage + project.member.manage 위양).
-		//   - scm_providers: view only.
-		//   - infrastructure / pipelines / organization / security / audit: view only.
-		// row-level owner-self 위양은 enforceRowOwnership helper 가 별도 검증한다 (ADR-0011 §4.2).
-		return PermissionMatrix{
-			ResourceInfrastructure:          {View: true},
-			ResourcePipelines:               {View: true},
-			ResourceOrganization:            {View: true},
-			ResourceSecurity:                {View: true},
-			ResourceAudit:                   {View: true},
-			ResourceApplications:            {View: true, Edit: true},
-			ResourceApplicationRepositories: {View: true},
-			ResourceProjects:                {View: true, Create: true, Edit: true, Delete: true},
-			ResourceSCMProviders:            {View: true},
-			// dev_requests: view + edit (promote/reject), 단 close/reassign 은 handler
-			// 가 추가로 system_admin 검증 (REQ-FR-DREQ-007/008 + ARCH-DREQ-04).
-			// create 는 외부 intake auth 경로라 RBAC 외 — false.
-			ResourceDevRequests: {View: true, Edit: true},
-			// dev_request_intake_tokens: system_admin 일임 (ADR-0014). pmo_manager 도 차단.
-			ResourceDevRequestIntakeTokens: {},
 		}, true
 	default:
 		return nil, false
@@ -256,12 +231,10 @@ func systemRoleName(id string) string {
 	switch id {
 	case string(AppRoleDeveloper):
 		return "Developer"
-	case string(AppRoleManager):
+	case string(AppRoleTeamManager):
 		return "Manager"
 	case string(AppRoleSystemAdmin):
 		return "System Admin"
-	case string(AppRolePMOManager):
-		return "PMO Manager"
 	default:
 		return id
 	}
@@ -271,12 +244,10 @@ func systemRoleDescription(id string) string {
 	switch id {
 	case string(AppRoleDeveloper):
 		return "개발자 대시보드, 본인 관련 repository/CI/risk 조회 권한"
-	case string(AppRoleManager):
+	case string(AppRoleTeamManager):
 		return "팀 운영, risk triage, 승인 전 command 생성 권한"
 	case string(AppRoleSystemAdmin):
 		return "시스템 설정, 조직/사용자 관리, 운영 command 관리 권한"
-	case string(AppRolePMOManager):
-		return "Application 수정 + Project 운영/멤버 관리 위양. 시스템/계정/RBAC 변경 금지."
 	default:
 		return ""
 	}

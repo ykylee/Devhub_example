@@ -1,7 +1,7 @@
 # ADR-0011: Application/Project Owner 위양과 RBAC row-level scoping
 
 - 문서 목적: Application/Repository/Project 도메인의 Owner / Member 가 자신이 소속된 리소스에 대해서만 쓰기 권한을 행사하도록 하는 **row-level RBAC scoping** 정책 결정. 단계적(phased) 도입 방식으로 1차는 handler/service 코드 검증, 2차/3차는 매트릭스 확장 옵션을 보존한다.
-- 범위: `applications`, `application_repositories`, `projects`, `project_members` 의 read/write 권한이 (a) 전역 `system_admin`, (b) 후속 활성화될 `pmo_manager`, (c) 리소스의 owner / member 로 어떻게 분기되는지 결정한다. application/project 외 모듈 (auth/account/org/RBAC policy 자체) 은 본 ADR 의 범위 밖이다.
+- 범위: `applications`, `application_repositories`, `projects`, `project_members` 의 read/write 권한이 (a) 전역 `system_admin`, (b) 후속 활성화될 `team_manager`, (c) 리소스의 owner / member 로 어떻게 분기되는지 결정한다. application/project 외 모듈 (auth/account/org/RBAC policy 자체) 은 본 ADR 의 범위 밖이다.
 - 대상 독자: Backend 개발자, RBAC 정책 stakeholder, AI agent, 추적성 리뷰어.
 - 상태: accepted
 - 작성일: 2026-05-14
@@ -19,7 +19,7 @@
 
 3차 단계의 enforcement 가 본 ADR 의 결정 대상이다. 현재 RBAC 모델 (ADR-0002, ADR-0007) 은 `(role, resource, action)` 의 4축 boolean 매트릭스이며, **row-level 조건 (= 이 row 의 `owner_user_id` 가 caller 인가?) 은 없다**. 즉 현재 매트릭스 그대로는 *owner-self 만 PATCH 가능* 같은 표현이 불가능하다.
 
-REQ-FR-PROJ-009 와 REQ-FR-PROJ-010 (pmo_manager 활성 후 권한 범위) 가 본 ADR 의 결과를 의존하고 있어, 결정 전까지는 `system_admin` 일임 정책 (REQ-FR-PROJ-000) 이 강제된다.
+REQ-FR-PROJ-009 와 REQ-FR-PROJ-010 (team_manager 활성 후 권한 범위) 가 본 ADR 의 결과를 의존하고 있어, 결정 전까지는 `system_admin` 일임 정책 (REQ-FR-PROJ-000) 이 강제된다.
 
 ## 2. 결정 동인
 
@@ -54,10 +54,10 @@ REQ-FR-PROJ-009 와 REQ-FR-PROJ-010 (pmo_manager 활성 후 권한 범위) 가 �
 ### 4.1 1차 (MVP 진입 시) — 본 sprint
 - RBAC 매트릭스는 ADR-0002 의 4축 boolean 그대로 유지. `applications` / `application_repositories` / `projects` / `scm_providers` 4개 신규 resource 를 매트릭스에 추가, **모든 4축은 `system_admin` 만 true**, 나머지 role 은 false.
 - handler/service 코드는 row 조건 검증을 하지 않음 — system_admin 일임 정책 (REQ-FR-PROJ-000) 이 enforce.
-- `pmo_manager` 활성화 전 요청은 `403 role_not_enabled` (REQ-FR-PROJ-000 의 기존 정책).
+- `team_manager` 활성화 전 요청은 `403 role_not_enabled` (REQ-FR-PROJ-000 의 기존 정책).
 
 ### 4.2 2차 (Owner 위양) — 후속 sprint
-- `pmo_manager` 활성화 + Application owner 의 메타/멤버 위양 시:
+- `team_manager` 활성화 + Application owner 의 메타/멤버 위양 시:
   - handler 가 `actor.HasRole(systemAdmin) || actor.HasRole(pmoManager) || actor.UserID == application.OwnerUserID` 형태로 직접 검증.
   - deny 시 audit log 에 `auth.row_denied` action + `target_type=application` + `target_id` + `denied_reason=owner_mismatch` 기록.
   - REQ-FR-PROJ-009 (`Owner 위양`) 가 이 단계에서 활성화.
@@ -79,14 +79,14 @@ REQ-FR-PROJ-009 와 REQ-FR-PROJ-010 (pmo_manager 활성 후 권한 범위) 가 �
 
 - **sprint `claude/work_260514-a`** 가 1차 채택 (4.1) 의 RBAC 매트릭스 확장 (`applications` / `application_repositories` / `projects` / `scm_providers` 4 resource × 4 axis = 16 cell × N role) 을 수행.
 - handler/service 코드는 row 조건 검증을 도입하지 않음 (1차 단계에서는 dead path).
-- **sprint `claude/work_260515-c`** 가 §4.2 의 `enforceRowOwnership` helper + `auth.row_denied` audit pattern 을 `backend-core/internal/httpapi/permissions.go` 에 도입. **REQ-FR-PROJ-009 활성화 조건 충족.** handler 단위 호출은 별도 sprint (pmo_manager seed 결정 시점).
+- **sprint `claude/work_260515-c`** 가 §4.2 의 `enforceRowOwnership` helper + `auth.row_denied` audit pattern 을 `backend-core/internal/httpapi/permissions.go` 에 도입. **REQ-FR-PROJ-009 활성화 조건 충족.** handler 단위 호출은 별도 sprint (team_manager seed 결정 시점).
 - 매트릭스 §2.2 RBAC 인덱스에 신규 4 resource 추가 + §3 Application/Project row 의 IMPL 컬럼에 본 ADR §4.1 reference 추가.
 
 ## 6. 후속 작업
 
 - **(1차, 본 sprint)** `applications` / `application_repositories` / `projects` / `scm_providers` resource 의 RBAC matrix seed 마이그레이션 작성. Frontend `PermissionMatrix` 의 `resources` 배열과 `rbac.types.ts` 의 `defaultRoles` 도 9 resource 로 확장 (self-review B1 보강).
 - **(2차, 후속 sprint)** `enforceRowOwnership` helper + audit `auth.row_denied` action 도입 + REQ-FR-PROJ-009 활성화.
-  - **시그니처 후보**: `func (h Handler) enforceRowOwnership(c *gin.Context, ownerUserID string, allowedRoles ...string) (allowed bool)` — `*gin.Context` 에서 actor 추출 + audit emit 책임을 helper 가 가짐 (`auth.row_denied` 자동 기록). `allowedRoles` 가 비어 있으면 `[system_admin]` fallback. caller 는 단순히 `if !h.enforceRowOwnership(c, app.OwnerUserID, "pmo_manager"); return`.
+  - **시그니처 후보**: `func (h Handler) enforceRowOwnership(c *gin.Context, ownerUserID string, allowedRoles ...string) (allowed bool)` — `*gin.Context` 에서 actor 추출 + audit emit 책임을 helper 가 가짐 (`auth.row_denied` 자동 기록). `allowedRoles` 가 비어 있으면 `[system_admin]` fallback. caller 는 단순히 `if !h.enforceRowOwnership(c, app.OwnerUserID, "team_manager"); return`.
   - **audit payload**: `{actor_role, owner_user_id, resource, action, denied_reason: "owner_mismatch"}`.
 - **(3차, 후속)** row_predicate 마이그레이션 진입 조건 모니터링 — 정책 row 수 + 운영 변경 빈도 임계 도달 시 옵션 B 채택 결정.
 - **(carve out, API-41~50 stub audit emit)** — 본 sprint 의 handler stub 은 501 응답에 audit 미기록. 후속 sprint 에서 handler body 도입 시 `application.{list,get,create,update,archive}.requested` 같은 audit action 도 함께 발급 (자세한 사항은 sprint state.json `carve_out`).

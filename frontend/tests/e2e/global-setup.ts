@@ -20,12 +20,12 @@ type Seed = {
   email: string;
   display_name: string;
   password: string;
-  role: "developer" | "manager" | "system_admin";
+  role: "developer" | "team_manager" | "system_admin";
 };
 
 const SEEDS: readonly Seed[] = [
   { user_id: "alice", email: "alice@example.com", display_name: "Alice", password: "ChangeMe-12345!", role: "developer" },
-  { user_id: "bob", email: "bob@example.com", display_name: "Bob", password: "ChangeMe-12345!", role: "manager" },
+  { user_id: "bob", email: "bob@example.com", display_name: "Bob", password: "ChangeMe-12345!", role: "team_manager" },
   { user_id: "charlie", email: "charlie@example.com", display_name: "Charlie", password: "ChangeMe-12345!", role: "system_admin" },
 ];
 

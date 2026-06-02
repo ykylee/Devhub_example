@@ -20,7 +20,7 @@ describe("RbacService", () => {
     policy_version: "2026.05.28-1",
     source: "db",
     editable: true,
-    system_roles: ["developer", "manager", "system_admin", "pmo_manager"],
+    system_roles: ["developer", "team_manager", "system_admin", "team_manager"],
   };
 
   const adminPermissions: PermissionState = {

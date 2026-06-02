@@ -101,7 +101,7 @@ PR #167 (merge commit `dff487d`, 2026-05-18) 가 다음 6단계 (KC-PR-A..F) 를
 | KC-PR-B | Keycloak JWT/JWKS verifier 전환 | `internal/auth/keycloak_verifier.go` + `keycloak_verifier_test.go` (JWKS cache + resource_access fallback) |
 | KC-PR-C | account/admin API Keycloak Admin 연동 | `internal/httpapi/keycloak_admin_client.go` + `keycloak_admin_client_test.go` (Kratos Admin 대체) |
 | KC-PR-D | frontend auth/logout flow 전환 | OIDC discovery 기반 authorize/callback/logout + Hydra/Kratos 전용 URL 제거 + legacy self-signup 비활성화 |
-| KC-PR-E | identity 컬럼 일반화 마이그레이션 | migration `000021_rename_kratos_identity_to_idp_subject` + backfill + 조회 로직 전환. **2026-05-19 sprint -l 정정** — `000021` prefix 충돌 (기존 `000021_rbac_pmo_manager` 와 중복) 발견 → `000030_rename_kratos_identity_to_idp_subject.{up,down}.sql` 로 rename + 운영 DB 정정 SOP ([docs/setup/migration_000021_conflict_resolution.md](../setup/migration_000021_conflict_resolution.md)). |
+| KC-PR-E | identity 컬럼 일반화 마이그레이션 | migration `000021_rename_kratos_identity_to_idp_subject` + backfill + 조회 로직 전환. **2026-05-19 sprint -l 정정** — `000021` prefix 충돌 (기존 `000021_rbac_team_manager` 와 중복) 발견 → `000030_rename_kratos_identity_to_idp_subject.{up,down}.sql` 로 rename + 운영 DB 정정 SOP ([docs/setup/migration_000021_conflict_resolution.md](../setup/migration_000021_conflict_resolution.md)). |
 | KC-PR-F | 테스트/문서/traceability 동기화 | requirements / architecture / backend_api_contract / setup 가이드 / E2E 테스트 가이드 Keycloak 기준 정합화 |
 
 ### 4.2 환경설정 계약

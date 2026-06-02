@@ -14,7 +14,7 @@ SET permissions = permissions
             'scm_providers',          jsonb_build_object('view', FALSE, 'create', FALSE, 'edit', FALSE, 'delete', FALSE)
         ),
     updated_at = NOW()
-WHERE role_id IN ('developer', 'manager');
+WHERE role_id IN ('developer', 'team_manager');
 
 UPDATE rbac_policies
 SET permissions = permissions

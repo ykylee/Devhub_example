@@ -77,10 +77,10 @@ client_secret 은 사내 vault 보관. 정기 rotation SOP 는 §6 JWKS rotation
 | --- | --- | --- |
 | `developer` | 일반 개발자 (default) | `devhub-developer` 또는 `developer` (DevHub backend role wire 와 일치) |
 | `manager` | 부서 manager | `devhub-manager` 또는 `manager` |
-| `pmo_manager` | PMO manager (Application/Project Owner 위양) | `devhub-pmo-manager` 또는 `pmo_manager` |
+| `team_manager` | PMO manager (Application/Project Owner 위양) | `devhub-pmo-manager` 또는 `team_manager` |
 | `system_admin` | 시스템 관리자 (모든 권한) | `devhub-system-admin` 또는 `system_admin` |
 
-**naming 결정**: DevHub backend 의 [`internal/auth/keycloak_verifier.go`](../../backend-core/internal/auth/keycloak_verifier.go) 가 token claim 의 role 을 그대로 wire format 으로 사용하므로, Keycloak role name 도 **`developer` / `manager` / `pmo_manager` / `system_admin`** 으로 prefix 없이 둔다. 사내 정책으로 prefix 필요 시 mapper 에서 strip 처리.
+**naming 결정**: DevHub backend 의 [`internal/auth/keycloak_verifier.go`](../../backend-core/internal/auth/keycloak_verifier.go) 가 token claim 의 role 을 그대로 wire format 으로 사용하므로, Keycloak role name 도 **`developer` / `manager` / `team_manager` / `system_admin`** 으로 prefix 없이 둔다. 사내 정책으로 prefix 필요 시 mapper 에서 strip 처리.
 
 ### 4.2 role mapping 위치
 
@@ -98,7 +98,7 @@ client_secret 은 사내 vault 보관. 정기 rotation SOP 는 §6 JWKS rotation
 | --- | --- | --- |
 | `devhub-developers` | `developer` | `developer` |
 | `devhub-managers` | `manager` | `manager` |
-| `devhub-pmo-managers` | `pmo_manager` | `pmo_manager` |
+| `devhub-pmo-managers` | `team_manager` | `team_manager` |
 | `devhub-system-admins` | `system_admin` | `system_admin` |
 
 **Keycloak admin 설정 SOP** (1회):

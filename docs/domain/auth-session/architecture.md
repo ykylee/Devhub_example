@@ -18,7 +18,7 @@ users (이미 존재)
   user_id        text  PK
   email          text  unique
   display_name   text
-  role           text  CHECK in (developer, manager, system_admin)
+  role           text  CHECK in (developer, team_manager, system_admin)
   status         text  CHECK in (active, pending, deactivated)
   idp_subject    text  unique      -- OIDC subject 매핑
   primary_unit_id, current_unit_id, is_seconded, joined_at, ...

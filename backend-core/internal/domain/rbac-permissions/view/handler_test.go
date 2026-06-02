@@ -814,7 +814,7 @@ func TestRBAC_Middlewares(t *testing.T) {
 		c3, _ := gin.CreateTestContext(rec3)
 		c3.Request = httptest.NewRequest("GET", "/x", nil)
 		c3.Set("devhub_actor_role", string(domain.AppRoleDeveloper))
-		middleware3 := h.requireMinRole(domain.AppRoleManager)
+		middleware3 := h.requireMinRole(domain.AppRoleTeamManager)
 		middleware3(c3)
 		if rec3.Code != 403 {
 			t.Fatalf("expected 403, got %d", rec3.Code)
@@ -932,8 +932,8 @@ func TestRBAC_Middlewares(t *testing.T) {
 		rec3 := httptest.NewRecorder()
 		c3, _ := gin.CreateTestContext(rec3)
 		c3.Request = httptest.NewRequest("POST", "/x", nil)
-		c3.Set("devhub_actor_role", "pmo_manager")
-		if !h.EnforceRowOwnership(c3, "owner1", "pmo_manager") {
+		c3.Set("devhub_actor_role", "team_manager")
+		if !h.EnforceRowOwnership(c3, "owner1", "team_manager") {
 			t.Fatal("allowed role must pass ownership")
 		}
 

@@ -13,11 +13,11 @@
         "description": "DevHub Developer Role"
       },
       {
-        "name": "manager",
+        "name": "team_manager",
         "description": "DevHub Manager Role"
       },
       {
-        "name": "pmo_manager",
+        "name": "team_manager",
         "description": "DevHub PMO Manager Role"
       },
       {
@@ -35,12 +35,12 @@
     {
       "name": "devhub-managers",
       "path": "/devhub-managers",
-      "realmRoles": [ "manager" ]
+      "realmRoles": [ "team_manager" ]
     },
     {
       "name": "devhub-pmo-managers",
       "path": "/devhub-pmo-managers",
-      "realmRoles": [ "pmo_manager" ]
+      "realmRoles": [ "team_manager" ]
     },
     {
       "name": "devhub-system-admins",

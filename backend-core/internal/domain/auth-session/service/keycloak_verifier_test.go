@@ -86,7 +86,7 @@ func TestKeycloakJWKSVerifier_VerifyBearerTokenWithJWKSURL(t *testing.T) {
 		"sub":                "user-1",
 		"preferred_username": "alice",
 		"realm_access": map[string]any{
-			"roles": []string{"manager"},
+			"roles": []string{"team_manager"},
 		},
 		"exp": time.Now().Add(5 * time.Minute).Unix(),
 	})
@@ -106,8 +106,8 @@ func TestKeycloakJWKSVerifier_VerifyBearerTokenWithJWKSURL(t *testing.T) {
 	if actor.Login != "alice" {
 		t.Fatalf("login = %q; want %q", actor.Login, "alice")
 	}
-	if actor.Role != "manager" {
-		t.Fatalf("role = %q; want %q", actor.Role, "manager")
+	if actor.Role != "team_manager" {
+		t.Fatalf("role = %q; want %q", actor.Role, "team_manager")
 	}
 }
 
@@ -364,7 +364,7 @@ func TestExtractKeycloakRole_UsesResourceAccessFallback(t *testing.T) {
 // TestExtractKeycloakRole_MultiRolePriority — sprint claude/work_260519-q
 // (ADR-0019 §5.3 codex review #9 backend 확장 carve). Multi-role token (group
 // composite role 가입 시 자연 발생) 의 priority filter 검증. selectHighestPriorityRole
-// 가 4 known role (system_admin > pmo_manager > manager > developer) 의 highest
+// 가 4 known role (system_admin > team_manager > manager > developer) 의 highest
 // priority 만 반환해야 함. Order-dependency 회피.
 func TestExtractKeycloakRole_MultiRolePriority(t *testing.T) {
 	cases := []struct {
@@ -372,13 +372,13 @@ func TestExtractKeycloakRole_MultiRolePriority(t *testing.T) {
 		roles []any
 		want  string
 	}{
-		{"system_admin first wins over manager+developer", []any{"system_admin", "manager", "developer"}, "system_admin"},
-		{"system_admin last wins over manager+developer (order-independent)", []any{"developer", "manager", "system_admin"}, "system_admin"},
-		{"pmo_manager wins over manager", []any{"manager", "pmo_manager"}, "pmo_manager"},
+		{"system_admin first wins over manager+developer", []any{"system_admin", "team_manager", "developer"}, "system_admin"},
+		{"system_admin last wins over manager+developer (order-independent)", []any{"developer", "team_manager", "system_admin"}, "system_admin"},
+		{"team_manager wins over manager", []any{"team_manager", "team_manager"}, "team_manager"},
 		{"developer only", []any{"developer"}, "developer"},
 		{"unknown role fallback to first", []any{"unknown_role"}, "unknown_role"},
 		{"known wins over unknown regardless of order", []any{"unknown_role", "developer"}, "developer"},
-		{"all 4 known roles → system_admin", []any{"developer", "manager", "pmo_manager", "system_admin"}, "system_admin"},
+		{"all 4 known roles → system_admin", []any{"developer", "team_manager", "team_manager", "system_admin"}, "system_admin"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

@@ -224,7 +224,7 @@ func TestIntegration_DBRealtimeTicketStore_ExpiredTicketNotConsumed(t *testing.T
 
 	_, err := pool.Exec(ctx, `
 		INSERT INTO realtime_tickets (ticket, actor_login, actor_role, source_type, expires_at)
-		VALUES ($1, 'bob', 'manager', 'oidc', NOW() - INTERVAL '1 second')
+		VALUES ($1, 'bob', 'team_manager', 'oidc', NOW() - INTERVAL '1 second')
 	`, ticket)
 	if err != nil {
 		t.Fatalf("seed expired ticket: %v", err)

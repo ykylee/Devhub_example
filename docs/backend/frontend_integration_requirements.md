@@ -108,7 +108,7 @@ POST /api/v1/notifications/clear
 
 ```text
 GET /api/v1/dashboard/metrics?role=developer
-GET /api/v1/dashboard/metrics?role=manager
+GET /api/v1/dashboard/metrics?role=team_manager
 GET /api/v1/dashboard/metrics?role=system_admin
 ```
 

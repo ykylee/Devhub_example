@@ -360,7 +360,7 @@ POST `/api/v1/dev-requests/09045149-.../register`:
 - **영향**: 🔴 **HIGH** — Role 기반 RBAC이 Keycloak에서 설정한 권한과 무관하게 동작
 - **대상**: 온보딩 flow + JWT 발급 파이프라인
 - **증상**: 
-  1. Keycloak 사용자 `attributes.devhub_role: ["manager"]` 설정해도 DevHub JWT에 role 미포함
+  1. Keycloak 사용자 `attributes.devhub_role: ["team_manager"]` 설정해도 DevHub JWT에 role 미포함
   2. `users.role` = `developer` (기본값, Keycloak attribute 반영 안 됨)
 - **재현**: 
   1. Keycloak Admin API로 사용자 생성 시 `attributes.devhub_role: ["system_admin"]` 설정
