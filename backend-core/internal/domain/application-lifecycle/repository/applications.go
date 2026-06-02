@@ -130,7 +130,7 @@ WHERE ($1 = '' OR status = $1)
   AND (` + applicationsSearchPredicate + `)` + rowFilter
 
 	var total int
-	if err := r.store.Pool().QueryRow(ctx, countQuery, opts.Status, opts.IncludeArchived, opts.Query, opts.ActorRole, opts.ActorLogin, opts.OrgUnitIDs, opts.PrimaryUnitIDs).Scan(&total); err != nil {
+	if err := r.store.Pool().QueryRow(ctx, countQuery, opts.Status, opts.IncludeArchived, opts.Query, 0, 0, opts.ActorRole, opts.ActorLogin, opts.OrgUnitIDs, opts.PrimaryUnitIDs).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count applications: %w", err)
 	}
 

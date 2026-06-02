@@ -270,9 +270,14 @@ func (h Handler) createCIRun(c *gin.Context) {
 		return
 	}
 
-	if err := h.cfg.DomainStore.(interface {
+	ciStore, ok := h.cfg.DomainStore.(interface {
 		CreateCIRun(context.Context, domain.CIRun) error
-	}).CreateCIRun(c.Request.Context(), run); err != nil {
+	})
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "failed", "error": "store does not support create", "code": "create_ci_run.no_method"})
+		return
+	}
+	if err := ciStore.CreateCIRun(c.Request.Context(), run); err != nil {
 		if errors.Is(err, store.ErrConflict) {
 			c.JSON(http.StatusConflict, gin.H{"status": "failed", "error": "duplicate external_id", "code": "create_ci_run.duplicate"})
 			return

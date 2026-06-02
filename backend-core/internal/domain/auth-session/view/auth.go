@@ -29,7 +29,7 @@ type AuthenticatedActor struct {
 
 func normalizeSystemRoleAlias(role string) string {
 	switch strings.TrimSpace(role) {
-	case "team_manager":
+	case "manager", "team_manager":
 		return "team_manager"
 	default:
 		return strings.TrimSpace(role)
@@ -237,10 +237,16 @@ func (h *AuthHandler) AuthenticateActor(c *gin.Context) {
 			}); ok {
 				// org_head: leader_user_id 로 관리 org unit 조회 → subtree 확장
 				leaderIDs, ldErr := orgStore.ListOrgUnitIDsByLeader(c.Request.Context(), login)
+				if ldErr != nil {
+					log.Printf("[authenticateActor] ListOrgUnitIDsByLeader(%q) failed: %v", login, ldErr)
+				}
 				if ldErr == nil && len(leaderIDs) > 0 {
 					var allIDs []string
 					for _, uid := range leaderIDs {
 						subIDs, subErr := orgStore.GetOrgUnitSubtreeIDs(c.Request.Context(), uid)
+						if subErr != nil {
+							log.Printf("[authenticateActor] GetOrgUnitSubtreeIDs(%q) for leader unit %q failed: %v", login, uid, subErr)
+						}
 						if subErr == nil {
 							allIDs = append(allIDs, subIDs...)
 						}
@@ -250,8 +256,11 @@ func (h *AuthHandler) AuthenticateActor(c *gin.Context) {
 					}
 				}
 				// team_manager: primary_unit_id 기준 subtree 조회
-				if user.PrimaryUnitID != "" {
+				if user.Role == domain.AppRoleTeamManager && user.PrimaryUnitID != "" {
 					subIDs, subErr := orgStore.GetOrgUnitSubtreeIDs(c.Request.Context(), user.PrimaryUnitID)
+					if subErr != nil {
+						log.Printf("[authenticateActor] GetOrgUnitSubtreeIDs(%q) for primary unit %q failed: %v", login, user.PrimaryUnitID, subErr)
+					}
 					if subErr == nil && len(subIDs) > 0 {
 						c.Set("devhub_actor_primary_unit_ids", subIDs)
 					}
