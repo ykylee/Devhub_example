@@ -357,7 +357,7 @@ jobs:
               -d '{"realm":"devhub","enabled":true}'
           fi
 
-          for role in developer manager system_admin; do
+          for role in developer team_manager system_admin; do
             code=$(curl -s -o /dev/null -w "%{http_code}" \
               -H "Authorization: Bearer ${admin_token}" \
               "$base/admin/realms/devhub/roles/$role")
