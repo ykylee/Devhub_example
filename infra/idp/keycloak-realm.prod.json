@@ -27,8 +27,7 @@
   "roles": {
     "realm": [
       { "name": "developer",     "description": "DevHub Developer Role" },
-      { "name": "team_manager",       "description": "DevHub Manager Role" },
-      { "name": "team_manager",   "description": "DevHub PMO Manager Role" },
+      { "name": "team_manager",  "description": "DevHub Manager Role" },
       { "name": "system_admin",  "description": "DevHub System Administrator Role" }
     ]
   },

@@ -65,7 +65,7 @@ func ScanProject(row pgx.Row) (domain.Project, error) {
 
 func (r *ApplicationRepository) ListProjects(ctx context.Context, opts ProjectListOptions) ([]domain.Project, int, error) {
 	limit := opts.Limit
-	if limit <= 0 || limit > 100 {
+	if limit <= 0 || limit > 5000 {
 		limit = 50
 	}
 	offset := opts.Offset

@@ -205,7 +205,7 @@ func (h *ApplicationHandler) actorCanReadApplication(c *gin.Context, storeI Appl
 	projects, _, err := storeI.ListProjects(c.Request.Context(), store.ProjectListOptions{
 		ApplicationID:   app.ID,
 		IncludeArchived: true,
-		Limit:           100,
+		Limit:           5000,
 	})
 	if err != nil {
 		return false, "", err
