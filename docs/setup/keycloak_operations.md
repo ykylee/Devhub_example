@@ -69,7 +69,13 @@ client_secret 은 사내 vault 보관. 정기 rotation SOP 는 §6 JWKS rotation
 
 ## 4. role / group 정의
 
-### 4.1 realm role 4종
+> **2026-06-02: ADR-0026 결정 — Keycloak realm role / group membership은 DevHub RBAC에 영향을 주지 않음.**
+> Keycloak에서 아무리 role을 설정해도 DevHub `users.role`에는 반영되지 않는다.
+> Role 변경은 **DevHub Admin UI (`/admin/settings/users`)** 또는 **DevHub API (`PATCH /api/v1/users/:id`)** 를 통해서만 가능하다.
+> 본 §4의 realm role / group 정의는 **Keycloak JWT token의 fallback role extraction**을 위한 참조 정보로만 존재한다.
+> 상세: [ADR-0026 Keycloak Role 무시 — DevHub 내부 Role 단독 사용](../adr/0026-keycloak-role-excluded-decision.md)
+
+### 4.1 realm role 4종 (참조용 — DevHub RBAC에 직접 영향 없음)
 
 [ADR-0011 RBAC row-scoping](../adr/0011-rbac-row-scoping.md) + DevHub `rbac_policies` seed (migration `000004_seed_rbac.up.sql`) 와 1:1 매핑:
 
@@ -321,7 +327,7 @@ DEVHUB_REALM=devhub \
 | --- | --- | --- |
 | 1. Keycloak admin | Users → Add user | username (= DevHub `users.user_id` 와 일치 권장), email, first/last name |
 | 2. user attribute | Attributes 탭 | `employee_id` = HRDB primary key |
-| 3. role (group 가입) | **Groups 탭** | **group 1개 가입** ([§4.3](#43-group-composite-realm-role-11-매핑) 4종 중 1개) — composite realm role 자동 상속. **Default Group 미설정 권장** (codex review #9 — multi-role order-dependency 위험). |
+| 3. role (group 가입) | **Groups 탭** | **선택 사항** — Keycloak group 가입은 DevHub RBAC에 영향을 주지 않음 ([ADR-0026](../adr/0026-keycloak-role-excluded-decision.md)). DevHub role은 DevHub Admin UI (`/admin/settings/users`) 또는 API (`PATCH /api/v1/users/:id`)로 별도 설정 필요. group 가입은 IdP 운영 정책(예: email dist list)이 있을 때만 진행. |
 | 4. 초기 비밀번호 | Credentials 탭 | password 설정 + "Temporary" ON (첫 로그인 시 강제 변경) |
 | 5. DevHub `users` sync | **(carve — 자동 sync 미구현)** | 현재 backend [`authenticateActor`](../../backend-core/internal/auth/keycloak_verifier.go) 는 token 검증 + actor context stash 만. `SetIdPSubject` 호출은 `accounts_admin.go:123` (관리자 발급/PATCH path) 에서만. **신규 user 의 `users.idp_subject` + HRDB lookup 자동 sync 는 별도 SOP 또는 backend 확장 필요** — codex review #9 carve. 임시 SOP: admin 이 신규 user 발급 시 별도 `/api/v1/accounts` 호출 또는 직접 DB UPSERT. |
 
