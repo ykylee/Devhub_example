@@ -31,9 +31,26 @@ func normalizeSystemRoleAlias(role string) string {
 	switch strings.TrimSpace(role) {
 	case "manager", "team_manager":
 		return "team_manager"
+	case "user":
+		// ADR-0026: Keycloak has only a single 'user' realm role; the actual
+		// DevHub role comes from DB users.role. Fall back to developer when
+		// no DB row exists (token-only actor).
+		return "developer"
 	default:
 		return strings.TrimSpace(role)
 	}
+}
+
+func isGenericKeycloakRole(role string) bool {
+	role = strings.TrimSpace(role)
+	if role == "" {
+		return true
+	}
+	switch role {
+	case "user", "default-roles-devhub", "offline_access", "uma_authorization":
+		return true
+	}
+	return strings.HasPrefix(role, "default-roles-")
 }
 
 type BearerTokenVerifier interface {
@@ -196,7 +213,7 @@ func (h *AuthHandler) AuthenticateActor(c *gin.Context) {
 		case err == nil:
 			tokenRole := normalizeSystemRoleAlias(actor.Role)
 			dbRole := normalizeSystemRoleAlias(string(user.Role))
-			if tokenRole != "" && dbRole != "" && tokenRole != dbRole {
+			if !isGenericKeycloakRole(actor.Role) && tokenRole != "" && dbRole != "" && tokenRole != dbRole {
 				c.Set("devhub_role_sync_required", true)
 				c.Set("devhub_role_sync_token_role", tokenRole)
 				c.Set("devhub_role_sync_db_role", dbRole)
@@ -227,6 +244,44 @@ func (h *AuthHandler) AuthenticateActor(c *gin.Context) {
 			// 동작에만 영향 (rollback path).
 			if user.OnboardingCompletedAt == nil {
 				c.Set("devhub_onboarding_required", true)
+			}
+
+			// 6-P3: org unit scope 주입 — org_head / team_manager 용.
+			// PostgresStore 에서만 지원; memory fake 등은 type assertion miss → skip.
+			if orgStore, ok := h.cfg.OrganizationStore.(interface {
+				ListOrgUnitIDsByLeader(ctx context.Context, leaderUserID string) ([]string, error)
+				GetOrgUnitSubtreeIDs(ctx context.Context, unitID string) ([]string, error)
+			}); ok {
+				// org_head: leader_user_id 로 관리 org unit 조회 → subtree 확장
+				leaderIDs, ldErr := orgStore.ListOrgUnitIDsByLeader(c.Request.Context(), login)
+				if ldErr != nil {
+					log.Printf("[authenticateActor] ListOrgUnitIDsByLeader(%q) failed: %v", login, ldErr)
+				}
+				if ldErr == nil && len(leaderIDs) > 0 {
+					var allIDs []string
+					for _, uid := range leaderIDs {
+						subIDs, subErr := orgStore.GetOrgUnitSubtreeIDs(c.Request.Context(), uid)
+						if subErr != nil {
+							log.Printf("[authenticateActor] GetOrgUnitSubtreeIDs(%q) for leader unit %q failed: %v", login, uid, subErr)
+						}
+						if subErr == nil {
+							allIDs = append(allIDs, subIDs...)
+						}
+					}
+					if len(allIDs) > 0 {
+						c.Set("devhub_actor_org_unit_ids", allIDs)
+					}
+				}
+				// team_manager: primary_unit_id 기준 subtree 조회
+				if user.Role == domain.AppRoleTeamManager && user.PrimaryUnitID != "" {
+					subIDs, subErr := orgStore.GetOrgUnitSubtreeIDs(c.Request.Context(), user.PrimaryUnitID)
+					if subErr != nil {
+						log.Printf("[authenticateActor] GetOrgUnitSubtreeIDs(%q) for primary unit %q failed: %v", login, user.PrimaryUnitID, subErr)
+					}
+					if subErr == nil && len(subIDs) > 0 {
+						c.Set("devhub_actor_primary_unit_ids", subIDs)
+					}
+				}
 			}
 		case errors.Is(err, store.ErrNotFound):
 			// RM-ONBOARD-01 (ADR-0021 §3.3) — 2026-05-21 lazy 폐기 sprint

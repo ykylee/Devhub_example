@@ -79,10 +79,16 @@ WHERE ($1::bigint = 0 OR repository_id = $1)
   AND ($2::uuid IS NULL OR application_id = $2::uuid)
   AND ($3 = '' OR status = $3)
   AND ($4 OR status <> 'archived')
-  AND ($5 = false OR application_id IS NULL)`
+  AND ($5 = false OR application_id IS NULL)
+  AND ($6 = '' OR $6 = 'system_admin' OR owner_user_id = $7
+       OR EXISTS (SELECT 1 FROM project_members WHERE project_id = projects.id AND user_id = $7)
+       OR (array_length($8::text[], 1) > 0
+           AND EXISTS (SELECT 1 FROM applications WHERE id = projects.application_id AND development_unit_id = ANY($8)))
+       OR (array_length($9::text[], 1) > 0
+           AND EXISTS (SELECT 1 FROM applications WHERE id = projects.application_id AND development_unit_id = ANY($9))))`
 
 	var total int
-	if err := r.store.Pool().QueryRow(ctx, countQuery, opts.RepositoryID, nullableUUIDArg(opts.ApplicationID), opts.Status, opts.IncludeArchived, opts.StandaloneOnly).Scan(&total); err != nil {
+	if err := r.store.Pool().QueryRow(ctx, countQuery, opts.RepositoryID, nullableUUIDArg(opts.ApplicationID), opts.Status, opts.IncludeArchived, opts.StandaloneOnly, opts.ActorRole, opts.ActorLogin, opts.OrgUnitIDs, opts.PrimaryUnitIDs).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count projects: %w", err)
 	}
 
@@ -94,10 +100,16 @@ WHERE ($3::bigint = 0 OR repository_id = $3)
   AND ($5 = '' OR status = $5)
   AND ($6 OR status <> 'archived')
   AND ($7 = false OR application_id IS NULL)
+  AND ($8 = '' OR $8 = 'system_admin' OR owner_user_id = $9
+       OR EXISTS (SELECT 1 FROM project_members WHERE project_id = projects.id AND user_id = $9)
+       OR (array_length($10::text[], 1) > 0
+           AND EXISTS (SELECT 1 FROM applications WHERE id = projects.application_id AND development_unit_id = ANY($10)))
+       OR (array_length($11::text[], 1) > 0
+           AND EXISTS (SELECT 1 FROM applications WHERE id = projects.application_id AND development_unit_id = ANY($11))))
 ORDER BY key ASC
 LIMIT $1 OFFSET $2`
 
-	rows, err := r.store.Pool().Query(ctx, query, limit, offset, opts.RepositoryID, nullableUUIDArg(opts.ApplicationID), opts.Status, opts.IncludeArchived, opts.StandaloneOnly)
+	rows, err := r.store.Pool().Query(ctx, query, limit, offset, opts.RepositoryID, nullableUUIDArg(opts.ApplicationID), opts.Status, opts.IncludeArchived, opts.StandaloneOnly, opts.ActorRole, opts.ActorLogin, opts.OrgUnitIDs, opts.PrimaryUnitIDs)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list projects: %w", err)
 	}

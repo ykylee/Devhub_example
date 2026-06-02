@@ -68,6 +68,8 @@ test.describe("/admin/settings/applications — CRUD UI smoke", () => {
     await dialog.getByRole("button", { name: /create application/i }).click();
 
     await expect(dialog).toBeHidden({ timeout: 10_000 });
+    // 목록 refresh 후 생성된 application 확인
+    await page.reload();
     await expect(page.getByRole("row").filter({ hasText: appName })).toBeVisible({ timeout: 15_000 });
 
     const searchInput = page.getByPlaceholder("Search by name, key, or description...");

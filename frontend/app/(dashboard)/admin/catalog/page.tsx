@@ -591,6 +591,7 @@ export default function AdminCatalogPage() {
             onClose={() => setShowRepositoryModal(false)}
             onCreated={(repository) => {
               toast(`Repository draft ${repository.full_name} created`, "success");
+              setRepositories((prev) => [repository, ...prev.filter((item) => item.id !== repository.id)]);
               setShowRepositoryModal(false);
               void loadAll();
             }}

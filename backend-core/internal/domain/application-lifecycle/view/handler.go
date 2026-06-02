@@ -202,11 +202,32 @@ func (h *ApplicationHandler) actorCanReadApplication(c *gin.Context, storeI Appl
 		return true, "", nil
 	}
 
-	projects, _, err := storeI.ListProjects(c.Request.Context(), store.ProjectListOptions{
+	projOpts := store.ProjectListOptions{
 		ApplicationID:   app.ID,
 		IncludeArchived: true,
 		Limit:           5000,
-	})
+	}
+	if loginVal, ok := c.Get("devhub_actor_login"); ok {
+		if login, ok := loginVal.(string); ok {
+			projOpts.ActorLogin = login
+		}
+	}
+	if roleVal, ok := c.Get("devhub_actor_role"); ok {
+		if role, ok := roleVal.(string); ok {
+			projOpts.ActorRole = role
+		}
+	}
+	if idsVal, ok := c.Get("devhub_actor_org_unit_ids"); ok {
+		if ids, ok := idsVal.([]string); ok {
+			projOpts.OrgUnitIDs = ids
+		}
+	}
+	if idsVal, ok := c.Get("devhub_actor_primary_unit_ids"); ok {
+		if ids, ok := idsVal.([]string); ok {
+			projOpts.PrimaryUnitIDs = ids
+		}
+	}
+	projects, _, err := storeI.ListProjects(c.Request.Context(), projOpts)
 	if err != nil {
 		return false, "", err
 	}

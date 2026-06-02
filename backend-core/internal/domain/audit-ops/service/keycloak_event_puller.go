@@ -77,21 +77,9 @@ type KeycloakEventPullerOptions struct {
 	SkipUserEventTypes map[string]bool
 	// AuditEmitter — nil 이면 audit 생략 (테스트 / dry-run).
 	AuditEmitter AuditEmitter
-	// UserSync — ADR-0020 sub-carve C (sprint -k, issue #212). nil 이면 sync
-	// 생략 (audit 만 emit). USER:UPDATE / USER:DELETE / GROUP_MEMBERSHIP
-	// CREATE/DELETE 처리 시 호출. main.go 가 user_sync.go 의 SyncUserProfile /
-	// SyncUserMembership / MarkUserDeactivated 로 wire.
-	UserSync UserSyncCallback
 	// Now — 시간 주입 (테스트).
 	Now func() time.Time
 }
-
-// UserSyncCallback — admin event 처리 시 DevHub `users` 컬럼 sync 위한
-// callback. action 은 SyncUserAction (`profile` / `membership` / `status`),
-// identityID 는 Keycloak user UUID (ResourcePath 에서 파싱), userIDHint 는
-// 가능한 경우 username (USER:DELETE 시 caller 가 cache 한 값, 없으면 빈
-// 문자열). 본 callback 안에서 error 처리 (metric / log) 는 caller 책임.
-type UserSyncCallback func(ctx context.Context, action SyncUserAction, identityID, userIDHint string)
 
 // userEventsCursor / adminEventsCursor — event_cursors table 의 cursor_key.
 const (
@@ -278,14 +266,6 @@ func pullAdminEvents(
 			opts.AuditEmitter(ctx, action, targetType, targetID, evHash, adminEventPayload(ev))
 		}
 		ObserveEventProcessed("admin", action)
-		// ADR-0020 sub-carve C (sprint -k, issue #212) — DevHub `users` 컬럼
-		// sync. UserSync callback nil 이면 audit 만 emit (이전 sprint -u~-y 동작
-		// 동등 — backward compatible). callback 안에서 error / metric 처리.
-		if opts.UserSync != nil {
-			if syncAction, identityID, userIDHint := classifyAdminEventForSync(ev); syncAction != "" && identityID != "" {
-				opts.UserSync(ctx, syncAction, identityID, userIDHint)
-			}
-		}
 		if evTime.After(latestTime) {
 			latestTime = evTime
 			latestHash = evHash
@@ -409,33 +389,6 @@ func mapUserEventToAudit(ev KeycloakUserEvent) (action, targetType, targetID str
 	default:
 		return "keycloak.event.unknown:" + ev.Type, "auth", targetID
 	}
-}
-
-// classifyAdminEventForSync — ADR-0020 sub-carve C (sprint -k, issue #212).
-// admin event 를 검사해 (1) DevHub `users` 컬럼 sync 가 필요한지, (2) 어떤
-// SyncUserAction 인지, (3) identity_id 와 (가능하면) username hint 를 반환한다.
-//
-// 분류:
-//   USER:UPDATE → SyncActionProfile (email/display_name/status sync)
-//   USER:DELETE → SyncActionStatus (soft delete, users.status=deactivated)
-//   GROUP_MEMBERSHIP:CREATE/DELETE → SyncActionMembership (users.role 재계산)
-//   그 외 → ("", "", "")  noop
-//
-// identity_id 는 ResourcePath 에서 파싱. username hint 는 현재 admin event
-// payload 에 없으므로 빈 문자열 (USER:DELETE 시 admin client 가 user lookup
-// 불가능 — caller 가 별도 cache 또는 best-effort).
-func classifyAdminEventForSync(ev KeycloakAdminEvent) (SyncUserAction, string, string) {
-	key := ev.ResourceType + ":" + ev.OperationType
-	identityID := ParseIdentityIDFromResourcePath(ev.ResourcePath)
-	switch key {
-	case "USER:UPDATE":
-		return SyncActionProfile, identityID, ""
-	case "USER:DELETE":
-		return SyncActionStatus, identityID, ""
-	case "GROUP_MEMBERSHIP:CREATE", "GROUP_MEMBERSHIP:DELETE":
-		return SyncActionMembership, identityID, ""
-	}
-	return "", "", ""
 }
 
 // mapAdminEventToAudit — design §4.2 매핑 표. admin event 의 ResourceType +

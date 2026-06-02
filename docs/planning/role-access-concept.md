@@ -3,8 +3,10 @@
 - 문서 목적: Application/Project 도메인에 대한 **새로운 역할 모델**과 **view scope 규칙**을 정의한다. 기존 4축 RBAC 매트릭스 (route-level) + row-level read scoping 의 2계층 구조로 전환하기 위한 컨셉 기준.
 - 범위: `developer` / `team_manager` / `system_admin` 3개 system role + `project_member` / `project_leader` / `application_leader` / `org_head` 4개 resource role 의 정의, view scope 규칙, enforcement architecture.
 - 대상 독자: Backend/Frontend 개발자, 정책 stakeholder, AI agent.
-- 상태: draft
+- 상태: reviewed (Phase 1~3 구현 완료, 2026-06-02)
 - 작성일: 2026-06-01
+- 최종 수정일: 2026-06-02
+- 관련 PR: [#461](https://github.com/ykylee/Devhub_example/pull/461), `deepseek/work_260602` (6-P2, 6-P3)
 - 관련 문서: [ADR-0011 (Row scoping)](../adr/0011-rbac-row-scoping.md), [project_concept.md](../domain/application-lifecycle/project_concept.md), [backend_api_contract.md](../backend_api_contract.md), [rbac.go](../../backend-core/internal/domain/rbac.go), [permissions.go](../../backend-core/internal/domain/rbac-permissions/view/permissions.go)
 
 ---
@@ -15,10 +17,9 @@
 
 | System Role | applications:view | projects:view | 비고 |
 |---|---|---|---|
-| `developer` | ❌ | ❌ | apps/projects 접근 자체 없음 |
-| `manager` | ❌ | ❌ | apps/projects 접근 자체 없음 |
-| `team_manager` | ✅ view+edit | ✅ full CRUD | 모든 row 노출 (row filter 없음) |
-| `system_admin` | ✅ full | ✅ full | 모든 row 노출 |
+| `developer` | ✅ view | ✅ view | project_members 기반 row filter 적용 (6-P2) |
+| `team_manager` | ✅ view+edit | ✅ full CRUD | org unit subtree scope 적용 (6-P3) |
+| `system_admin` | ✅ full | ✅ full | 모든 row 노출 (bypass) |
 
 ### 1.2 현재 RBAC enforcement 계층
 
@@ -34,8 +35,8 @@ Request → authenticateActor (actor context) → enforceRoutePermission (matrix
 
 ### 1.3 핵심 문제
 
-1. **developer/manager 가 applications/projects 를 전혀 볼 수 없음** — 모든 구성원이 최소한 자신이 속한 project 는 볼 수 있어야 함
-2. **team_manager/sysadmin 은 모든 row 가 노출됨** — row-level read scoping 부재
+1. ~~developer/manager 가 applications/projects 를 전혀 볼 수 없음~~ → **✅ 6-P2 해결**: developer 에게 `applications:view` / `projects:view` 부여 + project_members 기반 row filter
+2. ~~team_manager/sysadmin 은 모든 row 가 노출됨~~ → **✅ 6-P3 해결**: team_manager 에게 org unit subtree scope 적용
 3. **project_leader / org_head / team_manager 개념 부재** — resource-level 역할이 system role 과 분리되어 있지 않음
 4. **org unit 계층과 권한이 연동되지 않음** — `org_units.LeaderUserID` / `Application.DevelopmentUnitID` / `project_members` 가 read scope 에 미활용
 
@@ -341,27 +342,27 @@ func (h *ApplicationHandler) GetProjectRollup(c *gin.Context) {
 
 ## 7. 구현 접근법 (점진적)
 
-### Phase 1: Matrix 확장 + Row Filter (MVP)
+### ~~Phase 1: Matrix 확장 + Row Filter (MVP)~~ ✅ 완료 (PR #461 + 6-P2)
 
 1. `developer` role 의 matrix 에 `ResourceApplications.View = true`, `ResourceProjects.View = true` 적용
 2. `ListProjects` / `ListApplications` 에 project_members 기반 row filter 추가
 3. 기존 테스트 통과 확인
 
-### Phase 2: Resource Role Enforcement
+### ~~Phase 2: Resource Role Enforcement~~ ✅ 완료 (6-P2)
 
 1. `enforceRowReadScope` helper 구현 (actor → view scope 객체 변환)
 2. `GetProject` / `GetApplication` 에 read scope gate 추가
 3. Project leader management info gate 구현
 4. Application leader management info gate 구현
 
-### Phase 3: Team Manager + Org Head
+### ~~Phase 3: Team Manager + Org Head~~ ✅ 완료 (6-P3)
 
 1. `team_manager` system role 추가 (migration + matrix seed)
 2. Org head scope 구현 (org_units subtree 기반)
 3. Team manager scope 구현 (primary_unit_id 기반)
 4. 통합 scope merge 로직 구현
 
-### Phase 4: 정책 안정화
+### Phase 4: 정책 안정화 (본 문서 — 6-P4)
 
 1. 기존 `manager` / `team_manager` → `team_manager` 마이그레이션 경로 (또는 병렬 유지)
 2. Frontend role-based UI 구현

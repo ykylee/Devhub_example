@@ -413,6 +413,56 @@ ON CONFLICT (external_id) DO UPDATE SET
 	return err
 }
 
+func (s *PostgresStore) CreateCIRun(ctx context.Context, run domain.CIRun) error {
+	const query = `
+INSERT INTO ci_runs (
+	external_id,
+	repository_id,
+	repository_name,
+	branch,
+	commit_sha,
+	status,
+	conclusion,
+	started_at,
+	finished_at,
+	duration_seconds,
+	html_url,
+	updated_at
+) VALUES (
+	$1,
+	(SELECT id FROM repositories WHERE full_name = $2 LIMIT 1),
+	$2,
+	NULLIF($3, ''),
+	NULLIF($4, ''),
+	$5,
+	NULLIF($6, ''),
+	$7,
+	$8,
+	$9,
+	NULLIF($10, ''),
+	NOW()
+)`
+
+	_, err := s.pool.Exec(
+		ctx,
+		query,
+		run.ExternalID,
+		run.RepositoryName,
+		run.Branch,
+		run.CommitSHA,
+		run.Status,
+		run.Conclusion,
+		run.StartedAt,
+		run.FinishedAt,
+		run.DurationSeconds,
+		run.HTMLURL,
+	)
+	if IsUniqueViolation(err) {
+		return ErrConflict
+	}
+	return err
+}
+
 func (s *PostgresStore) UpsertRisk(ctx context.Context, risk domain.Risk) error {
 	suggestedActions, err := json.Marshal(risk.SuggestedActions)
 	if err != nil {

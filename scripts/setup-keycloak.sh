@@ -131,7 +131,7 @@ curl -fsS -X PUT "$BASE_URL/admin/realms/master" \
   -d "$master_payload" >/dev/null
 
 echo "Creating roles..."
-for role in developer manager team_manager system_admin; do
+for role in user; do
   code=$(curl -s -o /dev/null -w "%{http_code}" \
     -H "Authorization: Bearer ${admin_token}" \
     "$BASE_URL/admin/realms/$REALM/roles/$role")
@@ -215,11 +215,12 @@ role_payload=$(
   {
     printf '['
     first=1
-    # ADR-0020 sub-carve E (PR #244 merge 6810384) 정합 — service account
-    # 는 view-users + view-events + view-realm 만 요구. manage-users 는 정
-    # 공법 제거 (backend KeycloakAdminClient.CreateIdentity 등 write API 호
-    # 출처 5건 모두 제거됨). docs/planning/keycloak_service_account_min_role.md.
-    for role_name in view-users query-users view-events view-realm; do
+    # E2E global setup (frontend/tests/e2e/global-setup.ts) 는 기본 admin
+    # client 로 `devhub-backend` 를 사용하며 Keycloak user create /
+    # reset-password / realm role mapping 을 수행한다. 따라서 로컬 setup 도
+    # CI(.github/workflows/ci.yml) 와 동일하게 manage-users 권한을 포함해
+    # fresh 환경에서 E2E seed 가 403 없이 동작해야 한다.
+    for role_name in view-users query-users manage-users view-realm; do
       role_json=$(
         curl -fsS -H "Authorization: Bearer ${admin_token}" \
           "$BASE_URL/admin/realms/$REALM/clients/${realm_mgmt_client_id}/roles/${role_name}"
@@ -332,10 +333,10 @@ if [ "$user_exists" = "false" ]; then
   # infra/idp/sql/003_seed_test_admin.sql 정합 — DevHub users.role 이 system_admin
   # 으로 시드되므로 Keycloak 측도 일치시켜야 첫 로그인 시 lazy_auto_create
   # (sprint -i PR #239) 의 role merge 정합.
-  echo "  Assigning 'system_admin' role to 'test'..."
+  echo "  Assigning 'user' role to 'test'..."
   admin_role_json=$(
     curl -fsS -H "Authorization: Bearer ${admin_token}" \
-      "$BASE_URL/admin/realms/$REALM/roles/system_admin"
+      "$BASE_URL/admin/realms/$REALM/roles/user"
   )
   curl -fsS -X POST "$BASE_URL/admin/realms/$REALM/users/$test_user_id/role-mappings/realm" \
     -H "Authorization: Bearer ${admin_token}" \

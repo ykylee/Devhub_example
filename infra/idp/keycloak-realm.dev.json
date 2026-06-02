@@ -9,43 +9,16 @@
   "roles": {
     "realm": [
       {
-        "name": "developer",
-        "description": "DevHub Developer Role"
-      },
-      {
-        "name": "team_manager",
-        "description": "DevHub Manager Role"
-      },
-      {
-        "name": "team_manager",
-        "description": "DevHub PMO Manager Role"
-      },
-      {
-        "name": "system_admin",
-        "description": "DevHub System Administrator Role"
+        "name": "user",
+        "description": "DevHub User Role"
       }
     ]
   },
   "groups": [
     {
-      "name": "devhub-developers",
-      "path": "/devhub-developers",
-      "realmRoles": [ "developer" ]
-    },
-    {
-      "name": "devhub-managers",
-      "path": "/devhub-managers",
-      "realmRoles": [ "team_manager" ]
-    },
-    {
-      "name": "devhub-pmo-managers",
-      "path": "/devhub-pmo-managers",
-      "realmRoles": [ "team_manager" ]
-    },
-    {
-      "name": "devhub-system-admins",
-      "path": "/devhub-system-admins",
-      "realmRoles": [ "system_admin" ]
+      "name": "devhub-users",
+      "path": "/devhub-users",
+      "realmRoles": [ "user" ]
     }
   ],
   "clients": [

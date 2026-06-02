@@ -33,4 +33,37 @@ test.describe("RBAC route matrix", () => {
     // isSystemAdmin('team_manager') === false → /manager.
     await expect(page).toHaveURL(/\/manager(\/|$)/, { timeout: 10_000 });
   });
+
+  // 6-P1: developer has applications:view + projects:view
+  test("TC-RBAC-DEV-VIEW-01 — developer can access /applications list", async ({ page }) => {
+    await loginAs(page, SEEDED.developer);
+    await page.goto(appPath("/applications"));
+    // DefaultPermissionMatrix grants developer applications:view.
+    // /applications is not under /admin so pathRequiresSystemAdmin is false.
+    await expect(page).toHaveURL(/\/applications(\/|$)/, { timeout: 10_000 });
+  });
+
+  test("TC-RBAC-DEV-VIEW-02 — developer can access /projects list", async ({ page }) => {
+    await loginAs(page, SEEDED.developer);
+    await page.goto(appPath("/projects"));
+    // DefaultPermissionMatrix grants developer projects:view.
+    await expect(page).toHaveURL(/\/projects(\/|$)/, { timeout: 10_000 });
+  });
+
+  // 6-P3: team_manager is also bounced from /admin (pathRequiresSystemAdmin)
+  test("TC-RBAC-MGR-DENY-ORG-01 — team_manager is bounced from /admin/settings/organization", async ({ page }) => {
+    await loginAs(page, SEEDED.team_manager);
+    await page.goto(appPath("/admin/settings/organization"));
+    // pathRequiresSystemAdmin('/admin/settings/organization') === true → /manager.
+    await expect(page).toHaveURL(/\/manager(\/|$)/, { timeout: 10_000 });
+  });
+
+  // developer is bounced from team_manager-only endpoints
+  test("TC-RBAC-DEV-DENY-01 — developer is bounced from organization settings", async ({ page }) => {
+    await loginAs(page, SEEDED.developer);
+    await page.goto(appPath("/admin/settings/organization"));
+    // pathRequiresSystemAdmin('/admin/settings/organization') === true →
+    // developer redirected to /developer.
+    await expect(page).toHaveURL(/\/developer(\/|$)/, { timeout: 10_000 });
+  });
 });

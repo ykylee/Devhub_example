@@ -115,27 +115,43 @@ func (r *ApplicationRepository) ListApplications(ctx context.Context, opts Appli
 		offset = 0
 	}
 
-	const countQuery = `
+	rowFilterCount := `
+  AND ($4 = '' OR $4 = 'system_admin'
+       OR owner_user_id = $5 OR leader_user_id = $5
+       OR EXISTS (SELECT 1 FROM projects WHERE application_id = applications.id
+                  AND (owner_user_id = $5 OR EXISTS (SELECT 1 FROM project_members WHERE project_id = projects.id AND user_id = $5)))
+       OR (array_length($6::text[], 1) > 0 AND development_unit_id = ANY($6))
+       OR (array_length($7::text[], 1) > 0 AND development_unit_id = ANY($7)))`
+
+	rowFilterList := `
+  AND ($6 = '' OR $6 = 'system_admin'
+       OR owner_user_id = $7 OR leader_user_id = $7
+       OR EXISTS (SELECT 1 FROM projects WHERE application_id = applications.id
+                  AND (owner_user_id = $7 OR EXISTS (SELECT 1 FROM project_members WHERE project_id = projects.id AND user_id = $7)))
+       OR (array_length($8::text[], 1) > 0 AND development_unit_id = ANY($8))
+       OR (array_length($9::text[], 1) > 0 AND development_unit_id = ANY($9)))`
+
+	var countQuery = `
 SELECT COUNT(*) FROM applications
 WHERE ($1 = '' OR status = $1)
   AND ($2 OR status <> 'archived')
-  AND (` + applicationsSearchPredicate + `)`
+  AND (` + applicationsSearchPredicate + `)` + rowFilterCount
 
 	var total int
-	if err := r.store.Pool().QueryRow(ctx, countQuery, opts.Status, opts.IncludeArchived, opts.Query).Scan(&total); err != nil {
+	if err := r.store.Pool().QueryRow(ctx, countQuery, opts.Status, opts.IncludeArchived, opts.Query, opts.ActorRole, opts.ActorLogin, opts.OrgUnitIDs, opts.PrimaryUnitIDs).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count applications: %w", err)
 	}
 
-	const listQuery = `
+	var listQuery = `
 SELECT` + applicationsSelectColumns + `
 FROM applications
 WHERE ($1 = '' OR status = $1)
   AND ($2 OR status <> 'archived')
-  AND (` + applicationsSearchPredicate + `)
+  AND (` + applicationsSearchPredicate + `)` + rowFilterList + `
 ORDER BY key ASC
 LIMIT $4 OFFSET $5`
 
-	rows, err := r.store.Pool().Query(ctx, listQuery, opts.Status, opts.IncludeArchived, opts.Query, limit, offset)
+	rows, err := r.store.Pool().Query(ctx, listQuery, opts.Status, opts.IncludeArchived, opts.Query, limit, offset, opts.ActorRole, opts.ActorLogin, opts.OrgUnitIDs, opts.PrimaryUnitIDs)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list applications: %w", err)
 	}

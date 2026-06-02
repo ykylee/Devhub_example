@@ -548,6 +548,49 @@ func TestAuthenticateActor_RoleDriftFailsClosedOnProtectedRoute(t *testing.T) {
 	}
 }
 
+func TestAuthenticateActor_GenericKeycloakRoleDoesNotTriggerDriftFailClosed(t *testing.T) {
+	for _, tokenRole := range []string{"user", "default-roles-devhub"} {
+		t.Run(tokenRole, func(t *testing.T) {
+			orgs := newMemoryOrganizationStore()
+			if _, err := orgs.CreateUser(context.Background(), domain.CreateUserInput{
+				UserID:      "charlie",
+				Email:       "charlie@example.com",
+				DisplayName: "Charlie",
+				Role:        domain.AppRoleSystemAdmin,
+				Status:      domain.UserStatusActive,
+				Type:        domain.UserTypeHuman,
+			}); err != nil {
+				t.Fatalf("seed user: %v", err)
+			}
+			audits := &memoryAuditStore{}
+			verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+				Login:   "charlie",
+				Subject: "user-charlie",
+				Role:    tokenRole,
+			}}
+			router := NewRouter(RouterConfig{
+				OrganizationStore:   orgs,
+				AuditStore:          audits,
+				BearerTokenVerifier: verifier,
+			})
+
+			req := httptest.NewRequest(http.MethodGet, "/api/v1/users", nil)
+			req.Header.Set("Authorization", "Bearer t")
+			rec := httptest.NewRecorder()
+			router.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusOK {
+				t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+			}
+			for _, log := range audits.logs {
+				if log.Action == "auth.role_sync_required" {
+					t.Fatalf("did not expect auth.role_sync_required audit for generic token role %q: %+v", tokenRole, audits.logs)
+				}
+			}
+		})
+	}
+}
+
 func TestLogoutEndpoint_ClearsCookiesAndWritesAudit(t *testing.T) {
 	audits := &memoryAuditStore{}
 	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{

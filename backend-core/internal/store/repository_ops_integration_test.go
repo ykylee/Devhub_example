@@ -29,14 +29,23 @@ VALUES
 	if _, err := pool.Exec(ctx, seedPR, testRepoID1, testRepoID2, now.Add(-24*time.Hour), now); err != nil {
 		t.Fatalf("seed pr_activities: %v", err)
 	}
-	const seedBuild = `
+	const seedBuildLegacy = `
 INSERT INTO build_runs (repository_id, run_external_id, branch, commit_sha, status, duration_seconds, started_at, finished_at)
 VALUES
   ($1, 'run-001', 'main', 'abc111', 'success', 120, $3, $4),
   ($1, 'run-002', 'main', 'abc222', 'failed',   60, $3, $4),
   ($2, 'run-010', 'main', 'def111', 'success', 240, $3, $4)`
-	if _, err := pool.Exec(ctx, seedBuild, testRepoID1, testRepoID2, now.Add(-1*time.Hour), now); err != nil {
+	if _, err := pool.Exec(ctx, seedBuildLegacy, testRepoID1, testRepoID2, now.Add(-1*time.Hour), now); err != nil {
 		t.Fatalf("seed build_runs: %v", err)
+	}
+	const seedBuild = `
+INSERT INTO ci_runs (external_id, repository_id, repository_name, branch, commit_sha, status, duration_seconds, started_at, finished_at)
+VALUES
+  ('run-001', $1, '', 'main', 'abc111', 'success', 120, $3, $4),
+  ('run-002', $1, '', 'main', 'abc222', 'failed',   60, $3, $4),
+  ('run-010', $2, '', 'main', 'def111', 'success', 240, $3, $4)`
+	if _, err := pool.Exec(ctx, seedBuild, testRepoID1, testRepoID2, now.Add(-1*time.Hour), now); err != nil {
+		t.Fatalf("seed ci_runs: %v", err)
 	}
 	const seedQuality = `
 INSERT INTO quality_snapshots (repository_id, tool, ref_name, commit_sha, score, gate_passed, metric_payload, measured_at)

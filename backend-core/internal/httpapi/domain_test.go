@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/devhub/backend-core/internal/domain"
+	"github.com/devhub/backend-core/internal/store"
 	"github.com/gin-gonic/gin"
 )
 
@@ -60,6 +61,16 @@ func (s *memoryDomainStore) ListPullRequests(_ context.Context, opts domain.List
 
 func (s *memoryDomainStore) ListCIRuns(_ context.Context, _ domain.ListOptions) ([]domain.CIRun, error) {
 	return s.ciRuns, nil
+}
+
+func (s *memoryDomainStore) CreateCIRun(_ context.Context, run domain.CIRun) error {
+	for _, existing := range s.ciRuns {
+		if existing.ExternalID == run.ExternalID {
+			return store.ErrConflict
+		}
+	}
+	s.ciRuns = append(s.ciRuns, run)
+	return nil
 }
 
 func (s *memoryDomainStore) ListRisks(_ context.Context, opts domain.ListOptions) ([]domain.Risk, error) {
