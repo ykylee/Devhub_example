@@ -125,9 +125,28 @@ async function resetPassword(token: string, userID: string, password: string): P
 
 async function ensureRealmRole(token: string, userID: string, roleName: Seed["role"]): Promise<void> {
   const roleURL = `${KC_BASE_URL}/admin/realms/${encodeURIComponent(KC_REALM)}/roles/${encodeURIComponent(roleName)}`;
-  const roleResp = await fetch(roleURL, {
+  let roleResp = await fetch(roleURL, {
     headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
   });
+  if (roleResp.status === 404) {
+    // ADR-0026: Keycloak realm role is not the source of truth, but the JWT
+    // token still needs the role claim for authenticateActor fallback. Create
+    // the role on demand so E2E setup works without manual realm configuration.
+    const createResp = await fetch(`${KC_BASE_URL}/admin/realms/${encodeURIComponent(KC_REALM)}/roles`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ name: roleName }),
+    });
+    if (!createResp.ok) {
+      throw new Error(`Keycloak role create ${roleName} failed ${createResp.status}: ${await createResp.text()}`);
+    }
+    roleResp = await fetch(roleURL, {
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+    });
+  }
   if (!roleResp.ok) {
     throw new Error(`Keycloak role lookup ${roleName} failed ${roleResp.status}: ${await roleResp.text()}`);
   }
