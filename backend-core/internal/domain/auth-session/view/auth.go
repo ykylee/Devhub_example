@@ -29,7 +29,7 @@ type AuthenticatedActor struct {
 
 func normalizeSystemRoleAlias(role string) string {
 	switch strings.TrimSpace(role) {
-	case "manager", "team_manager":
+	case "team_manager":
 		return "team_manager"
 	default:
 		return strings.TrimSpace(role)
