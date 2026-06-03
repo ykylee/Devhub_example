@@ -61,6 +61,10 @@ export function appPath(path: string): string {
   return E2E_BASE_PATH ? `${E2E_BASE_PATH}${normalized}` : normalized;
 }
 
+export function apiPath(path: string): string {
+  return appPath(path);
+}
+
 async function firstVisibleLocator(page: Page, selectors: string[]): Promise<import("@playwright/test").Locator> {
   for (const selector of selectors) {
     const locator = page.locator(selector).first();

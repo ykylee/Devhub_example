@@ -1,0 +1,1523 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DevHub Example - 중간 개발 보고 (2026-06-02)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&family=Outfit:wght@300;400;600;900&family=Noto+Sans+KR:wght@300;400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #060913;
+    --bg-dark: #03050a;
+    --panel-rgb: 10, 18, 36;
+    --border-rgb: 255, 255, 255;
+    --text: #f0f5ff;
+    --muted: #8fa0dd;
+    --teal: #00f2fe;
+    --teal-glow: rgba(0, 242, 254, 0.4);
+    --amber: #ff9f43;
+    --amber-glow: rgba(255, 159, 67, 0.4);
+    --coral: #ff5252;
+    --coral-glow: rgba(255, 82, 82, 0.4);
+    --navy: #4facfe;
+    --navy-glow: rgba(79, 172, 254, 0.4);
+    --green: #00ff7f;
+    --green-glow: rgba(0, 255, 127, 0.4);
+    --purple: #7000ff;
+    --purple-glow: rgba(112, 0, 255, 0.4);
+    --shadow: 0 30px 70px rgba(0, 0, 0, 0.5);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: var(--bg-dark);
+    color: var(--text);
+    font-family: "Plus Jakarta Sans", "Noto Sans KR", sans-serif;
+  }
+
+  /* 네온 오로라 배경 (Blur Blobs) */
+  .bg-blobs {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    z-index: 1;
+    pointer-events: none;
+  }
+  .blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(140px);
+    opacity: 0.15;
+    animation: pulse 12s infinite alternate ease-in-out;
+  }
+  .blob-1 {
+    width: 500px;
+    height: 500px;
+    background: var(--teal);
+    top: -100px;
+    left: -100px;
+    animation-delay: 0s;
+  }
+  .blob-2 {
+    width: 600px;
+    height: 600px;
+    background: var(--purple);
+    bottom: -150px;
+    right: -100px;
+    animation-delay: 2s;
+  }
+  .blob-3 {
+    width: 400px;
+    height: 400px;
+    background: var(--navy);
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0.08;
+    animation-duration: 16s;
+  }
+  @keyframes pulse {
+    0% { transform: scale(1) translate(0, 0); }
+    100% { transform: scale(1.2) translate(40px, 30px); }
+  }
+
+  .slides {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    z-index: 2;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    padding: 60px 80px 100px;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate3d(60px, 0, 0) scale(0.97);
+    filter: blur(8px);
+    transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), 
+                transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                filter 0.6s ease;
+    overflow-y: auto;
+  }
+
+  .slide.active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0);
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--teal);
+    font-weight: 800;
+    font-family: "Outfit", sans-serif;
+  }
+
+  .eyebrow::before {
+    content: "";
+    width: 40px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--teal), transparent);
+  }
+
+  h1 {
+    font-size: 80px;
+    line-height: 0.95;
+    letter-spacing: -0.04em;
+    font-weight: 900;
+    font-family: "Outfit", sans-serif;
+    background: linear-gradient(135deg, #ffffff 0%, #b2d6ff 60%, var(--navy) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  h2 {
+    font-size: 46px;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    font-weight: 800;
+    background: linear-gradient(135deg, #ffffff 30%, #a5c2ff 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  h3 {
+    font-size: 20px;
+    line-height: 1.3;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  p, li {
+    color: var(--muted);
+    font-size: 18px;
+    line-height: 1.7;
+  }
+
+  ul {
+    padding-left: 20px;
+    list-style-type: none;
+  }
+  ul li {
+    position: relative;
+    margin-bottom: 10px;
+    padding-left: 22px;
+  }
+  ul li::before {
+    content: "✦";
+    position: absolute;
+    left: 0;
+    color: var(--teal);
+    font-size: 14px;
+  }
+
+  .lead {
+    max-width: 1000px;
+    font-size: 22px;
+    line-height: 1.6;
+    color: #cbd5e1;
+  }
+
+  .lead-nowrap {
+    max-width: none;
+    font-size: 20px;
+  }
+
+  /* 글래스모피즘 패널 스타일 */
+  .panel,
+  .metric,
+  .timeline-card,
+  .agent-card,
+  .stack-card {
+    background: rgba(var(--panel-rgb), 0.5);
+    border: 1px solid rgba(var(--border-rgb), 0.08);
+    border-radius: 24px;
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    transition: border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .panel:hover,
+  .metric:hover,
+  .timeline-card:hover,
+  .agent-card:hover {
+    border-color: rgba(var(--border-rgb), 0.18);
+    transform: translateY(-4px);
+    box-shadow: 0 40px 80px rgba(0, 0, 0, 0.6), 0 0 20px rgba(79, 172, 254, 0.1);
+  }
+
+  .panel,
+  .timeline-card,
+  .agent-card,
+  .stack-card {
+    padding: 28px;
+  }
+
+  .cover {
+    justify-content: center;
+    gap: 35px;
+    position: relative;
+  }
+
+  .cover-content {
+    max-width: 1200px;
+    position: relative;
+    z-index: 10;
+  }
+
+  .cover-svg-container {
+    position: absolute;
+    right: 5%;
+    top: 50%;
+    transform: translateY(-55%);
+    width: 450px;
+    height: 450px;
+    pointer-events: none;
+    opacity: 0.85;
+  }
+
+  .cover-grid,
+  .metric-grid,
+  .tri-grid,
+  .quad-grid,
+  .agent-grid {
+    display: grid;
+    gap: 20px;
+  }
+
+  .cover-grid { grid-template-columns: repeat(4, 1fr); margin-top: 10px; }
+  .metric-grid { grid-template-columns: repeat(4, 1fr); }
+  .tri-grid { grid-template-columns: repeat(3, 1fr); }
+  .quad-grid { grid-template-columns: repeat(4, 1fr); }
+  .agent-grid { grid-template-columns: 1.1fr 1fr; }
+
+  .metric {
+    padding: 24px;
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+  }
+  .metric::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; width: 4px; height: 100%;
+    background: var(--navy);
+  }
+  .metric.teal::before { background: var(--teal); }
+  .metric.amber::before { background: var(--amber); }
+  .metric.purple::before { background: var(--purple); }
+
+  .metric .value {
+    display: block;
+    font-size: 46px;
+    font-weight: 800;
+    line-height: 1.1;
+    font-family: "Outfit", sans-serif;
+    color: var(--text);
+  }
+
+  .metric .sub {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 18px;
+    border-radius: 999px;
+    border: 1px solid rgba(79, 172, 254, 0.25);
+    background: rgba(79, 172, 254, 0.08);
+    color: #e2ecff;
+    font-size: 14px;
+    font-weight: 700;
+    transition: all 0.3s ease;
+  }
+  .chip:hover {
+    background: rgba(79, 172, 254, 0.18);
+    border-color: rgba(79, 172, 254, 0.4);
+    transform: scale(1.05);
+  }
+
+  .section-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+
+  .status-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .status-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 22px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
+  }
+  .status-item:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .status-item strong {
+    font-size: 18px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .status-item strong::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--teal);
+    box-shadow: 0 0 8px var(--teal);
+  }
+
+  .status-item span {
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* 타임라인 가로 스크롤 카드 형태 */
+  .timeline {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 20px;
+    position: relative;
+    padding-top: 15px;
+  }
+  .timeline::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 5%;
+    right: 5%;
+    height: 2px;
+    background: linear-gradient(90deg, var(--teal), var(--navy), var(--purple));
+    opacity: 0.3;
+    z-index: 1;
+  }
+
+  .timeline-card {
+    position: relative;
+    z-index: 2;
+  }
+  .timeline-card::before {
+    content: "";
+    position: absolute;
+    top: -21px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--bg-dark);
+    border: 3px solid var(--teal);
+    box-shadow: 0 0 10px var(--teal);
+    transition: all 0.3s ease;
+  }
+  .timeline-card:hover::before {
+    background: var(--teal);
+    transform: translateX(-50%) scale(1.3);
+  }
+
+  .timeline-card .date {
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 12px;
+    font-weight: 800;
+    font-family: "Outfit", sans-serif;
+  }
+
+  .timeline-card p {
+    margin-top: 12px;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* 시각화 컨테이너 */
+  .visual-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(var(--panel-rgb), 0.3);
+    border: 1px solid rgba(var(--border-rgb), 0.05);
+    border-radius: 24px;
+    padding: 20px;
+    height: 100%;
+    min-height: 250px;
+  }
+
+  .flow {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    align-items: stretch;
+  }
+
+  .flow-step {
+    padding: 24px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    position: relative;
+  }
+
+  .flow-step .code {
+    display: inline-block;
+    margin-bottom: 12px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    color: var(--teal);
+    font-family: "Outfit", sans-serif;
+  }
+
+  .flow-step p {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .trace-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .trace-table th,
+  .trace-table td {
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    text-align: left;
+    vertical-align: middle;
+  }
+
+  .trace-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .trace-table th {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #e2ecff;
+    background: rgba(79, 172, 254, 0.12);
+    font-weight: 700;
+  }
+
+  .trace-table td {
+    font-size: 15px;
+    color: var(--muted);
+  }
+
+  .trace-table tr:hover td {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .bar-list {
+    display: grid;
+    gap: 16px;
+  }
+
+  .bar-row {
+    display: grid;
+    grid-template-columns: 100px 1fr 60px;
+    gap: 16px;
+    align-items: center;
+  }
+
+  .bar-row span {
+    font-size: 15px;
+    color: #dbe6fa;
+    font-weight: 700;
+  }
+
+  .bar-track {
+    height: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 999px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #00c6ff, #0072ff);
+    box-shadow: 0 0 10px rgba(0, 198, 255, 0.5);
+    width: 0%; /* JS로 애니메이션 유도 */
+    transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .bar-fill.amber { background: linear-gradient(90deg, var(--amber), #ffb300); box-shadow: 0 0 10px var(--amber-glow); }
+  .bar-fill.coral { background: linear-gradient(90deg, var(--coral), #ff0055); box-shadow: 0 0 10px var(--coral-glow); }
+  .bar-fill.green { background: linear-gradient(90deg, var(--green), #00b0ff); box-shadow: 0 0 10px var(--green-glow); }
+
+  .agent-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .agent-table th,
+  .agent-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    text-align: left;
+    font-size: 15px;
+  }
+
+  .agent-table th {
+    color: #b7cff5;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+
+  .agent-table td {
+    color: var(--muted);
+  }
+
+  .agent-table tr:hover td {
+    color: var(--text);
+  }
+
+  .big-note {
+    padding: 26px;
+    border-radius: 24px;
+    background:
+      linear-gradient(135deg, rgba(0, 242, 254, 0.12), rgba(79, 172, 254, 0.08)),
+      rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(0, 242, 254, 0.2);
+    box-shadow: 0 15px 40px rgba(0, 242, 254, 0.05);
+  }
+
+  .big-note p {
+    color: #e2f1ff;
+    font-size: 19px;
+    line-height: 1.65;
+  }
+
+  .footer {
+    position: fixed;
+    left: 40px;
+    right: 40px;
+    bottom: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 40;
+    pointer-events: none;
+  }
+
+  .footer-box {
+    pointer-events: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 24px;
+    border-radius: 999px;
+    background: rgba(4, 9, 18, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--muted);
+    font-size: 14px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  }
+
+  .progress {
+    width: 200px;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  .progress > div {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--teal), var(--navy));
+    transition: width 0.4s ease;
+  }
+
+  .nav {
+    display: inline-flex;
+    gap: 10px;
+    padding: 6px;
+  }
+
+  .nav button {
+    width: 44px;
+    height: 44px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text);
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+  }
+
+  .nav button:hover {
+    background: rgba(79, 172, 254, 0.2);
+    border-color: var(--navy);
+    transform: scale(1.1);
+  }
+
+  /* 도넛 & 게이지 시각화 스타일 */
+  .chart-container {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .chart-wrapper {
+    text-align: center;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .chart-circle {
+    position: relative;
+    width: 100px;
+    height: 100px;
+  }
+
+  .chart-circle svg {
+    transform: rotate(-90deg);
+  }
+
+  .chart-label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .chart-label .number {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--text);
+    font-family: "Outfit", sans-serif;
+  }
+
+  .chart-label .percent {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .chart-title {
+    margin-top: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  /* 반응형 처리 */
+  @media (max-width: 1300px) {
+    .cover-svg-container {
+      display: none;
+    }
+    .cover-grid, .metric-grid, .tri-grid, .quad-grid, .timeline, .flow, .agent-grid, .section-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (max-width: 900px) {
+    html, body {
+      overflow: auto;
+    }
+    .slide {
+      position: static;
+      opacity: 1;
+      pointer-events: auto;
+      transform: none;
+      filter: none;
+      min-height: 100vh;
+      padding: 40px 24px 120px;
+      display: none;
+    }
+    .slide.active {
+      display: flex;
+    }
+    h1 { font-size: 50px; }
+    h2 { font-size: 32px; }
+    .cover-grid, .metric-grid, .tri-grid, .quad-grid, .timeline, .flow, .agent-grid, .section-grid, .status-list {
+      grid-template-columns: 1fr;
+    }
+    .footer {
+      position: fixed;
+      left: 10px; right: 10px; bottom: 10px;
+    }
+  }
+</style>
+</head>
+<body>
+  <!-- 백그라운드 오로라 효과 -->
+  <div class="bg-blobs">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
+
+  <div class="slides">
+    <!-- 1. 표지 -->
+    <section class="slide cover active" data-title="표지">
+      <div class="cover-content">
+        <div class="eyebrow">Midterm Development Report</div>
+        <h1 style="margin-bottom: 20px;">DevHub Example<br>중간 개발 보고</h1>
+        <p class="lead" style="margin-bottom: 35px; color: #a5c2ff;">현재까지 구현된 기능, SDLC 체계, 추적성, 테스트, AI 협업 구조를 기준일 2026-06-02 시점에 한눈에 정리한 중간 보고.</p>
+        
+        <div class="cover-grid">
+          <div class="metric teal">
+            <h3>기준 일자</h3>
+            <span class="value">06.02</span>
+            <div class="sub">2026-06-02 baseline</div>
+          </div>
+          <div class="metric">
+            <h3>최신 E2E</h3>
+            <span class="value">77 <span style="font-size: 20px; color: var(--teal);">Pass</span></span>
+            <div class="sub">Playwright verification</div>
+          </div>
+          <div class="metric amber">
+            <h3>Vitest 단위 테스트</h3>
+            <span class="value">969</span>
+            <div class="sub">73 files / tests PASS</div>
+          </div>
+          <div class="metric purple">
+            <h3>추적성 행 (Rows)</h3>
+            <span class="value">412+</span>
+            <div class="sub">traceability matrix rows</div>
+          </div>
+        </div>
+
+        <div class="chip-row" style="margin-top: 30px;">
+          <span class="chip">인증 · 온보딩 · RBAC</span>
+          <span class="chip">Application · Project · Repository</span>
+          <span class="chip">DREQ · External Integration · Audit</span>
+          <span class="chip">SDLC · Traceability · AI Workflow</span>
+          <span class="chip" style="background: rgba(0, 242, 254, 0.15); border-color: var(--teal);">실행 결과 우선 검증</span>
+        </div>
+      </div>
+
+      <!-- HUD/Tech 스타일 SVG 그래픽 데코레이션 -->
+      <div class="cover-svg-container">
+        <svg viewBox="0 0 200 200" width="100%" height="100%">
+          <defs>
+            <linearGradient id="grad-teal" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#00f2fe" stop-opacity="0.8"/>
+              <stop offset="100%" stop-color="#4facfe" stop-opacity="0.1"/>
+            </linearGradient>
+            <linearGradient id="grad-purple" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#7000ff" stop-opacity="0.8"/>
+              <stop offset="100%" stop-color="#ff5252" stop-opacity="0.1"/>
+            </linearGradient>
+          </defs>
+          <!-- 바깥 회전 서클 1 -->
+          <circle cx="100" cy="100" r="85" fill="none" stroke="url(#grad-teal)" stroke-width="1.5" stroke-dasharray="10 15 50 10" opacity="0.6">
+            <animateTransform attributeName="transform" type="rotate" from="0 100 100" to="360 100 100" dur="25s" repeatCount="indefinite"/>
+          </circle>
+          <!-- 바깥 회전 서클 2 -->
+          <circle cx="100" cy="100" r="72" fill="none" stroke="url(#grad-purple)" stroke-width="1" stroke-dasharray="80 20" opacity="0.5">
+            <animateTransform attributeName="transform" type="rotate" from="360 100 100" to="0 100 100" dur="18s" repeatCount="indefinite"/>
+          </circle>
+          <!-- 내측 육각형 프레임 -->
+          <polygon points="100,45 147,72 147,128 100,155 53,128 53,72" fill="none" stroke="var(--navy)" stroke-width="1.5" stroke-dasharray="8 4" opacity="0.7">
+            <animateTransform attributeName="transform" type="rotate" from="0 100 100" to="360 100 100" dur="30s" repeatCount="indefinite"/>
+          </polygon>
+          <!-- 중심 포인트 및 코어 구체 -->
+          <circle cx="100" cy="100" r="25" fill="rgba(6, 9, 19, 0.8)" stroke="var(--teal)" stroke-width="2" />
+          <circle cx="100" cy="100" r="10" fill="var(--teal)" opacity="0.8">
+            <animate attributeName="r" values="8;12;8" dur="4s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="0.5;0.9;0.5" dur="4s" repeatCount="indefinite"/>
+          </circle>
+          <!-- 데이터 파이프 흐름 -->
+          <path d="M 100 45 L 100 15" fill="none" stroke="var(--teal)" stroke-width="1.5" stroke-dasharray="5 5"/>
+          <path d="M 147 128 L 175 145" fill="none" stroke="var(--purple)" stroke-width="1.5"/>
+          <path d="M 53 128 L 25 145" fill="none" stroke="var(--purple)" stroke-width="1.5"/>
+        </svg>
+      </div>
+    </section>
+
+    <!-- 2. 과제 개요 -->
+    <section class="slide" data-title="과제 개요">
+      <div class="eyebrow">Overview</div>
+      <h2>과제 개요와 현재 목표</h2>
+      
+      <div class="tri-grid">
+        <div class="panel">
+          <h3 style="color: var(--teal); margin-bottom: 12px;">프로젝트 목적</h3>
+          <p>역할별 운영 대시보드와 조직·과제·외부 연동 기능을 하나의 플랫폼으로 묶어 개발 및 딜리버리 통합 가시성을 제공합니다.</p>
+        </div>
+        <div class="panel">
+          <h3 style="color: var(--navy); margin-bottom: 12px;">핵심 사용자군</h3>
+          <p>최신 정책 기준 내부 system role 은 <code>developer</code>, <code>team_manager</code>, <code>system_admin</code> 3축이며, UI 표시명 <code>Manager</code> 는 <code>team_manager</code> 를 의미합니다. 권한의 최종 기준은 DevHub 내부 <code>users.role</code> 입니다.</p>
+        </div>
+        <div class="panel">
+          <h3 style="color: var(--amber); margin-bottom: 12px;">중간 보고 관점</h3>
+          <p>가상 계획 수립보다, 실제 컴파일·빌드·테스트가 완료되어 현재 정상 동작하는 기능과 SDLC 추적성 자산을 투명하게 증명합니다.</p>
+        </div>
+      </div>
+
+      <div class="section-grid">
+        <div class="panel" style="display: flex; flex-direction: column; gap: 15px;">
+          <h3>핵심 비즈니스 도메인 범위</h3>
+          <div class="chip-row">
+            <span class="chip">Auth / OIDC (Keycloak)</span>
+            <span class="chip">Organization / RBAC</span>
+            <span class="chip">Application / Project</span>
+            <span class="chip">Repository / SCM (Git)</span>
+            <span class="chip">DREQ (Intake Flow)</span>
+            <span class="chip">External Integration</span>
+            <span class="chip">Audit Log / CI Visibility</span>
+          </div>
+          <p style="font-size: 15px; margin-top: 10px;">인증부터 개발 의뢰(DREQ), CI 상태 추적, 외부 프로바이더 연동까지 유기적으로 연결된 플랫폼입니다.</p>
+        </div>
+
+        <!-- 역할 매핑 SVG 시각화 다이어그램 -->
+        <div class="visual-box" style="padding: 10px;">
+          <svg viewBox="0 0 420 220" width="100%" height="100%" style="max-height: 230px;">
+            <defs>
+              <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--navy)"/>
+              </marker>
+            </defs>
+            <!-- 사용자 노드 -->
+            <rect x="15" y="20" width="110" height="40" rx="8" fill="rgba(0, 242, 254, 0.1)" stroke="var(--teal)" stroke-width="1.5" />
+            <text x="70" y="45" font-size="12" fill="#fff" font-weight="bold" text-anchor="middle">Developer</text>
+
+            <rect x="15" y="90" width="110" height="40" rx="8" fill="rgba(79, 172, 254, 0.1)" stroke="var(--navy)" stroke-width="1.5" />
+            <text x="70" y="115" font-size="12" fill="#fff" font-weight="bold" text-anchor="middle">Team Manager</text>
+
+            <rect x="15" y="160" width="110" height="40" rx="8" fill="rgba(112, 0, 255, 0.15)" stroke="var(--purple)" stroke-width="1.5" />
+            <text x="70" y="185" font-size="12" fill="#fff" font-weight="bold" text-anchor="middle">System Admin</text>
+
+            <!-- 중앙 중계 및 도메인 노드 -->
+            <rect x="250" y="30" width="150" height="50" rx="10" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.15)" stroke-width="1" />
+            <text x="325" y="52" font-size="11" fill="var(--teal)" font-weight="bold" text-anchor="middle">Developer Landing</text>
+            <text x="325" y="68" font-size="10" fill="var(--muted)" text-anchor="middle">DREQ / Catalog / Profile</text>
+
+            <rect x="250" y="130" width="150" height="60" rx="10" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.15)" stroke-width="1" />
+            <text x="325" y="152" font-size="11" fill="var(--amber)" font-weight="bold" text-anchor="middle">Admin Dashboard</text>
+            <text x="325" y="168" font-size="10" fill="var(--muted)" text-anchor="middle">Intake Token / Topology</text>
+            <text x="325" y="181" font-size="10" fill="var(--muted)" text-anchor="middle">Audit Logs & Users</text>
+
+            <!-- 연결 라인 -->
+            <path d="M 125 40 L 242 50" fill="none" stroke="var(--navy)" stroke-width="1.5" marker-end="url(#arrow)"/>
+            <path d="M 125 110 L 242 65" fill="none" stroke="var(--navy)" stroke-width="1.2" stroke-dasharray="3 3" marker-end="url(#arrow)"/>
+            <path d="M 125 110 L 242 145" fill="none" stroke="var(--navy)" stroke-width="1.5" marker-end="url(#arrow)"/>
+            <path d="M 125 180 L 242 165" fill="none" stroke="var(--navy)" stroke-width="1.5" marker-end="url(#arrow)"/>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. 개발 컨셉 -->
+    <section class="slide" data-title="개발 컨셉">
+      <div class="eyebrow">Concept</div>
+      <h2>개발 컨셉과 단계별 확장</h2>
+      
+      <div class="section-grid">
+        <div class="panel">
+          <h3 style="color: var(--teal); margin-bottom: 12px;">지속 가능한 컴포넌트 연결</h3>
+          <p style="font-size: 16px; margin-bottom: 15px;">역할별 전용 랜딩 페이지를 기반으로 최적화된 UX를 설계하고, 이들을 업무 도메인과 엮었습니다.</p>
+          <ul style="font-size: 15px;">
+            <li>업무 체인 연결: Application ➜ Project ➜ Repository ➜ DREQ</li>
+            <li>인프라 정합: OIDC 인증, 단일 포트 프록시 라우팅, DB 마이그레이션 자동화</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h3 style="color: var(--navy); margin-bottom: 12px;">추적 지향적(Traceability) 개발</h3>
+          <p style="font-size: 16px; margin-bottom: 15px;">단순 구현을 넘어, 아키텍처 및 요구사항과 코드 구현의 연결고리를 견고하게 유지합니다.</p>
+          <ul style="font-size: 15px;">
+            <li>모든 신규 피처 마다 REQ, ADR, API, TEST 문서를 병행 정비</li>
+            <li>AI Agent가 각자의 책임 영역(Infra/Test/Front/Back)에 특화하여 병합 충돌 최소화</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 플로우형 SVG 시각화 -->
+      <div class="visual-box" style="min-height: 180px;">
+        <svg viewBox="0 0 800 120" width="100%" height="100%">
+          <defs>
+            <linearGradient id="grad-flow" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="var(--teal)"/>
+              <stop offset="50%" stop-color="var(--navy)"/>
+              <stop offset="100%" stop-color="var(--purple)"/>
+            </linearGradient>
+          </defs>
+          <!-- 플로우 중심선 -->
+          <line x1="50" y1="60" x2="750" y2="60" stroke="url(#grad-flow)" stroke-width="4" stroke-linecap="round" opacity="0.3"/>
+          <line x1="50" y1="60" x2="450" y2="60" stroke="url(#grad-flow)" stroke-width="4" stroke-linecap="round"/>
+          
+          <!-- 스텝 1 -->
+          <circle cx="100" cy="60" r="16" fill="var(--bg-dark)" stroke="var(--teal)" stroke-width="4" />
+          <circle cx="100" cy="60" r="6" fill="var(--teal)" />
+          <text x="100" y="30" fill="var(--text)" font-size="14" font-weight="bold" text-anchor="middle">CONCEPT</text>
+          <text x="100" y="95" fill="var(--muted)" font-size="12" text-anchor="middle">통합 플랫폼 기획</text>
+
+          <!-- 스텝 2 -->
+          <circle cx="300" cy="60" r="16" fill="var(--bg-dark)" stroke="var(--teal)" stroke-width="4" />
+          <circle cx="300" cy="60" r="6" fill="var(--teal)" />
+          <text x="300" y="30" fill="var(--text)" font-size="14" font-weight="bold" text-anchor="middle">REQ / ARCH</text>
+          <text x="300" y="95" fill="var(--muted)" font-size="12" text-anchor="middle">요구사항 & 경계 정의</text>
+
+          <!-- 스텝 3 -->
+          <circle cx="500" cy="60" r="16" fill="var(--bg-dark)" stroke="var(--navy)" stroke-width="4" />
+          <circle cx="500" cy="60" r="6" fill="var(--navy)" />
+          <text x="500" y="30" fill="var(--text)" font-size="14" font-weight="bold" text-anchor="middle">API Contracts</text>
+          <text x="500" y="95" fill="var(--muted)" font-size="12" text-anchor="middle">인터페이스 계약화</text>
+
+          <!-- 스텝 4 -->
+          <circle cx="700" cy="60" r="16" fill="var(--bg-dark)" stroke="rgba(255,255,255,0.2)" stroke-width="3" />
+          <text x="700" y="30" fill="#888" font-size="14" font-weight="bold" text-anchor="middle">VERIFICATION</text>
+          <text x="700" y="95" fill="var(--muted)" font-size="12" text-anchor="middle">E2E 테스트 검증</text>
+        </svg>
+      </div>
+    </section>
+
+    <!-- 4. 개발 흐름 -->
+    <section class="slide" data-title="개발 흐름">
+      <div class="eyebrow">Timeline</div>
+      <h2>기간별 개발 흐름 (Milestones)</h2>
+      
+      <div class="timeline">
+        <div class="timeline-card">
+          <div class="date">2026-05 Early</div>
+          <h3 style="color: var(--teal);">M0 ~ M2 기초 다지기</h3>
+          <p>로그인 및 세션 인증, 사용자 온보딩 진입 절차, 기본 권한 게이트 및 공통 네비게이션 구조 설계.</p>
+        </div>
+        <div class="timeline-card">
+          <div class="date">2026-05 Mid</div>
+          <h3 style="color: var(--navy);">CI & Governance</h3>
+          <p>GitHub Actions CI 최적화, 추적성 매트릭스 동기화 룰 수립, 로컬 컴파일/실행 스크립트 고도화.</p>
+        </div>
+        <div class="timeline-card">
+          <div class="date">2026-05 Late</div>
+          <h3 style="color: var(--purple);">OIDC 단일 IdP 통합</h3>
+          <p>Keycloak OIDC 구조로 인증 레이어 집중화. 기존 Kratos/Hydra 등 분산 인증 요소를 깔끔히 정리.</p>
+        </div>
+        <div class="timeline-card">
+          <div class="date">2026-05 End</div>
+          <h3 style="color: var(--amber);">v1.0 Hardening</h3>
+          <p>테스트 커버리지 보강, 실환경 테스트 시나리오 보정, Row-level RBAC 가드 및 CI Run API 보완.</p>
+        </div>
+        <div class="timeline-card" style="background: rgba(0, 242, 254, 0.1); border-color: var(--teal);">
+          <div class="date">2026-06 Now</div>
+          <h3 style="color: #fff;">E2E Green & Report</h3>
+          <p>Fresh Compose 스택 기반 Playwright 전체 77개 테스트의 Pass를 달성하고 중간 지표 종합 보고 준비 완료.</p>
+        </div>
+      </div>
+      
+      <div class="big-note" style="margin-top: 10px;">
+        <p>단순한 기능 확장이 아니라, 확보된 도메인 기능을 "실제 배포 및 운영 가능한 수준"으로 패키징하고 검증하는 내실 다지기 단계였습니다.</p>
+      </div>
+    </section>
+
+    <!-- 5. 구현 범위 -->
+    <section class="slide" data-title="구현 범위">
+      <div class="eyebrow">Implementation</div>
+      <h2>현재 구현 범위 상세 요약</h2>
+      
+      <div class="status-list">
+        <div class="status-item">
+          <strong>인증 및 권한 (OIDC)</strong>
+          <span>Keycloak 기반 SSO 토큰 검증, JWT/JWKS 파싱 라이브러리 탑재, 비인가 사용자의 Onboarding 리디렉션 흐름 완비.</span>
+        </div>
+        <div class="status-item">
+          <strong>조직 및 계정 관리</strong>
+          <span>부서 생성·수정·삭제 API 및 계정 매칭, 관리자 권한 정책 편집 대시보드, 시스템 감사 로그 적재 및 연동.</span>
+        </div>
+        <div class="status-item">
+          <strong>Application / Project</strong>
+          <span>다중 프로젝트 스페이스, 멤버 초대 및 관리자 위임, Git 리포지토리와의 Soft-link 관계 바인딩 API 완비.</span>
+        </div>
+        <div class="status-item">
+          <strong>Repository / SCM</strong>
+          <span>리포지토리 Draft/Publish 라이프사이클 관리, 브랜치별 활성도 시각화 카드, 대화형 Catalog Drilldown 제공.</span>
+        </div>
+        <div class="status-item">
+          <strong>DREQ (의뢰 관리)</strong>
+          <span>Intake 토큰 보안 발급 및 만료 처리, 타 플랫폼 외부 연동 Promote 트리거, 접수 알림 및 대시보드 표시.</span>
+        </div>
+        <div class="status-item">
+          <strong>External Integration</strong>
+          <span>Provider별 Credential 암호화 및 바인딩, Topology V2 네트워크 구조 시각화, 연동 상태 헬스체크 및 동기화 스케줄러.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. 사용 가능 기능 -->
+    <section class="slide" data-title="사용 가능 기능">
+      <div class="eyebrow">Usable Features</div>
+      <h2>사용자 역할군별 사용 가능 기능</h2>
+      
+      <div class="tri-grid">
+        <div class="panel" style="border-top: 4px solid var(--teal);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;">
+            <h3>Developer Portal</h3>
+            <span style="color: var(--teal); font-weight:800; font-size:12px; letter-spacing:0.1em; text-transform:uppercase;">Role: Developer</span>
+          </div>
+          <ul>
+            <li>소속 프로젝트의 <strong>프로젝트, 애플리케이션, 리포지토리</strong> 대시보드 통합 조회</li>
+            <li>내 Dev Request(개발 의뢰) 목록 및 상세 진행 단계 실시간 확인</li>
+            <li>개인 프로필 관리 및 Keycloak 계정 정보 포털 링크 제공</li>
+          </ul>
+        </div>
+        
+        <div class="panel" style="border-top: 4px solid var(--navy);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;">
+            <h3>Manager Center</h3>
+            <span style="color: var(--navy); font-weight:800; font-size:12px; letter-spacing:0.1em; text-transform:uppercase;">Role: Team Manager</span>
+          </div>
+          <ul>
+            <li>담당 <strong>프로젝트, 리포지토리, 애플리케이션</strong> 현황 보드 관제 및 리소스 조회</li>
+            <li>부서 구성원 목록 및 세부 역할(Developer, Manager) 위임 상태 파악</li>
+          </ul>
+        </div>
+
+        <div class="panel" style="border-top: 4px solid var(--purple);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;">
+            <h3>Admin Console</h3>
+            <span style="color: var(--purple); font-weight:800; font-size:12px; letter-spacing:0.1em; text-transform:uppercase;">Role: System Admin</span>
+          </div>
+          <ul>
+            <li>전체 <strong>애플리케이션 및 프로젝트</strong> 메타 관리, <strong>리포지토리</strong> 생명주기 제어(Draft/Publish)</li>
+            <li>Intake 전용 보안 토큰 발행 및 외부 통합 프로바이더 연동 제어</li>
+            <li>신규 사용자 승인 프로세스, 감사 로그(Audit) 전수 조회 및 Topology V2 시각 관제</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. SDLC 체계 -->
+    <section class="slide" data-title="SDLC 체계">
+      <div class="eyebrow">SDLC</div>
+      <h2>SDLC 체계와 산출물의 수명주기</h2>
+      
+      <div class="flow">
+        <div class="flow-step">
+          <span class="code">01. CONCEPT</span>
+          <h3>기획 명세화</h3>
+          <p>도메인별 6종의 컨셉 가이드 문서로 비즈니스 방향 정의</p>
+        </div>
+        <div class="flow-step">
+          <span class="code" style="color: var(--navy);">02. REQUIREMENT</span>
+          <h3>요구사항 정의</h3>
+          <p>기능/비기능 요구사항을 ID 기반 매트릭스로 상세 식별</p>
+        </div>
+        <div class="flow-step">
+          <span class="code" style="color: var(--purple);">03. ARCH & ADR</span>
+          <h3>구조적 의사결정</h3>
+          <p>10종의 아키텍처 명세 및 26개의 ADR로 히스토리 기록</p>
+        </div>
+        <div class="flow-step">
+          <span class="code" style="color: var(--amber);">04. API CONTRACT</span>
+          <h3>인터페이스 계약</h3>
+          <p>10종의 명세 문서로 프론트-백 간의 데이터 형식 합의</p>
+        </div>
+      </div>
+      
+      <div class="flow" style="margin-top: 15px;">
+        <div class="flow-step">
+          <span class="code" style="color: var(--green);">05. IMPLEMENT</span>
+          <h3>안정된 코드 빌드</h3>
+          <p>프론트엔드/백엔드 코드로 구현, 마이그레이션 파일 완비</p>
+        </div>
+        <div class="flow-step">
+          <span class="code" style="color: var(--teal);">06. UNIT TEST</span>
+          <h3>단위 수준 검증</h3>
+          <p>Vitest(74개 파일), Go test(104개 파일) 기반 자동화 검증</p>
+        </div>
+        <div class="flow-step">
+          <span class="code" style="color: var(--navy);">07. SCENARIO E2E</span>
+          <h3>통합 품질 확보</h3>
+          <p>Playwright 27개 시나리오 기반 실환경 End-to-End 검증</p>
+        </div>
+        <div class="flow-step" style="background: rgba(0, 242, 254, 0.05); border-color: var(--teal);">
+          <span class="code" style="color: #fff;">08. TRACEABILITY</span>
+          <h3>영향도 추적 매트릭스</h3>
+          <p>모든 개발 실적이 동적 Matrix 보고서에 연동되어 자동 추적</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8. 추적성 -->
+    <section class="slide" data-title="추적성">
+      <div class="eyebrow">Traceability</div>
+      <h2>상호 추적성(Traceability) 연결 관계</h2>
+      
+      <div class="panel">
+        <table class="trace-table">
+          <thead>
+            <tr>
+              <th>SDLC 단계</th>
+              <th>대표 관리 식별자 / 자산</th>
+              <th>추적 및 정합성 보증 원칙</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Requirement</strong></td>
+              <td><code>REQ-FR-*</code> / <code>REQ-NFR-*</code></td>
+              <td>비즈니스 요구사항과 실제 개발 코드가 1:1로 매핑되는지 동적 매트릭스로 검증</td>
+            </tr>
+            <tr>
+              <td><strong>Architecture</strong></td>
+              <td><code>ARCH-*</code> / <code>ADR-00*</code></td>
+              <td>Keycloak 인증 통합, Single-port 리버스 프록시 등의 핵심 설계 결정사항 문서화</td>
+            </tr>
+            <tr>
+              <td><strong>API Contracts</strong></td>
+              <td><code>API-*</code></td>
+              <td>도메인별 계약 문서와 백엔드 Route handler, 프론트엔드 API 호출 유닛 매핑</td>
+            </tr>
+            <tr>
+              <td><strong>Implementation</strong></td>
+              <td><code>IMPL-*</code> (Source Code)</td>
+              <td>풀 리퀘스트(PR) 발행 시 템플릿 내 영향 지점 및 식별자를 기술하여 추적성 확보</td>
+            </tr>
+            <tr>
+              <td><strong>Verification</strong></td>
+              <td><code>UT-*</code> / <code>TC-*</code> (Test Cases)</td>
+              <td>명세에 기반한 단위 테스트 케이스 및 Playwright E2E 시나리오 매칭 및 빌드 시 자동 검증</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <div class="big-note" style="margin-top: 10px;">
+        <p>산출물이 개별 폴더에 박제되어 있는 것이 아니라, <strong>PR ➜ 테스트 실행 ➜ 추적성 매트릭스 갱신</strong>이 유기적으로 맞물려 동작합니다.</p>
+      </div>
+    </section>
+
+    <!-- 9. 테스트/품질 -->
+    <section class="slide" data-title="테스트">
+      <div class="eyebrow">Quality & Testing</div>
+      <h2>품질 검증 지표 및 테스트 현황</h2>
+      
+      <div class="metric-grid">
+        <div class="metric teal">
+          <h3>Vitest Pass</h3>
+          <span class="value">969</span>
+          <div class="sub">73 files / Unit Tests</div>
+        </div>
+        <div class="metric">
+          <h3>Playwright E2E</h3>
+          <span class="value">77 <span style="font-size: 20px; color: var(--green);">PASS</span></span>
+          <div class="sub">Fresh 스택 기준 전원 통과</div>
+        </div>
+        <div class="metric amber">
+          <h3>프론트엔드 커버리지</h3>
+          <span class="value">84.71%</span>
+          <div class="sub">Statements 83.4% / Branches 77.8%</div>
+        </div>
+        <div class="metric purple">
+          <h3>백엔드 커버리지</h3>
+          <span class="value">56.8%</span>
+          <div class="sub">Total Coverpkg 범위 최신 측정</div>
+        </div>
+      </div>
+
+      <div class="section-grid">
+        <div class="panel">
+          <h3 style="color: var(--teal); margin-bottom: 14px;">E2E 정밀 검증 주요 개선 내용</h3>
+          <ul style="font-size: 15px;">
+            <li><strong>Intake Base Path 정합</strong>: 하위 경로(<code>/devhub</code>) 배포 환경에서 API 주소가 누락되어 404가 나던 유연한 호출 구조로 수정.</li>
+            <li><strong>카탈로그 상세 진입 시나리오 복원</strong>: 고정 스킵(Skip) 처리되어 있던 Catalog Drilldown 테스트 2건을 완전히 복원하고, 시드 데이터를 매칭시켜 안정적인 패스 확인.</li>
+          </ul>
+        </div>
+
+        <!-- 동적 SVG 게이지/도넛 차트 시각화 -->
+        <div class="panel" style="padding: 20px; display: flex; align-items: center; justify-content: center;">
+          <div class="chart-container">
+            <!-- 차트 1: E2E 합격률 -->
+            <div class="chart-wrapper">
+              <div class="chart-circle">
+                <svg width="100" height="100">
+                  <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"/>
+                  <circle cx="50" cy="50" r="40" fill="none" stroke="var(--teal)" stroke-width="8" 
+                          stroke-dasharray="251.2" stroke-dashoffset="0" /> <!-- 100% -->
+                </svg>
+                <div class="chart-label">
+                  <span class="number">100</span>
+                  <span class="percent">%</span>
+                </div>
+              </div>
+              <div class="chart-title">E2E 합격률</div>
+            </div>
+            
+            <!-- 차트 2: 프론트 커버리지 -->
+            <div class="chart-wrapper">
+              <div class="chart-circle">
+                <svg width="100" height="100">
+                  <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"/>
+                  <circle cx="50" cy="50" r="40" fill="none" stroke="var(--navy)" stroke-width="8" 
+                          stroke-dasharray="251.2" stroke-dashoffset="38" /> <!-- ~85% -->
+                </svg>
+                <div class="chart-label">
+                  <span class="number">84.7</span>
+                  <span class="percent">%</span>
+                </div>
+              </div>
+              <div class="chart-title">FE 커버리지</div>
+            </div>
+ 
+            <!-- 차트 3: 백엔드 커버리지 -->
+            <div class="chart-wrapper">
+              <div class="chart-circle">
+                <svg width="100" height="100">
+                  <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"/>
+                  <circle cx="50" cy="50" r="40" fill="none" stroke="var(--purple)" stroke-width="8" 
+                          stroke-dasharray="251.2" stroke-dashoffset="108" /> <!-- ~57% -->
+                </svg>
+                <div class="chart-label">
+                  <span class="number">56.8</span>
+                  <span class="percent">%</span>
+                </div>
+              </div>
+              <div class="chart-title">BE 커버리지</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10. AI Agent -->
+    <section class="slide" data-title="AI Agent">
+      <div class="eyebrow">AI Collaboration</div>
+      <h2>다중 AI 에이전트 협업 체계 및 기여도</h2>
+      
+      <div class="agent-grid">
+        <div class="agent-card">
+          <h3 style="color: var(--teal); margin-bottom: 15px;">역할 및 전문 분야 분담</h3>
+          <table class="agent-table">
+            <thead>
+              <tr>
+                <th>Agent</th>
+                <th>주요 담당 업무 영역</th>
+                <th>기여 분석</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Claude</strong></td>
+                <td>백엔드 아키텍처 설계, 추적성 매트릭스 갱신, 도메인 명세 작성</td>
+                <td style="color: var(--navy);">메인 기획/백엔드 축</td>
+              </tr>
+              <tr>
+                <td><strong>Codex</strong></td>
+                <td>도커 빌드 및 패키징 구성, CI 파이프라인 최적화, 보안 진단</td>
+                <td style="color: var(--amber);">인프라/패키징 축</td>
+              </tr>
+              <tr>
+                <td><strong>Gemini</strong></td>
+                <td>프론트엔드 컴포넌트 구현, UX 모듈 및 테마 고도화, E2E 검증</td>
+                <td style="color: var(--coral);">UI/UX 품질 축</td>
+              </tr>
+              <tr>
+                <td><strong>DeepSeek</strong></td>
+                <td>자동화 테스트 시나리오 보조 및 메타 레이어 상태 정리</td>
+                <td style="color: var(--green);">보조/테스트 축</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="agent-card">
+          <h3 style="margin-bottom: 20px;">에이전트별 기여 비중 추정치</h3>
+          <div class="bar-list">
+            <div class="bar-row">
+              <span>Claude</span>
+              <div class="bar-track"><div class="bar-fill" style="width: 65%;"></div></div>
+              <strong style="color: var(--navy);">65%</strong>
+            </div>
+            <div class="bar-row">
+              <span>Codex</span>
+              <div class="bar-track"><div class="bar-fill amber" style="width: 20%;"></div></div>
+              <strong style="color: var(--amber);">20%</strong>
+            </div>
+            <div class="bar-row">
+              <span>Gemini</span>
+              <div class="bar-track"><div class="bar-fill coral" style="width: 12%;"></div></div>
+              <strong style="color: var(--coral);">12%</strong>
+            </div>
+            <div class="bar-row">
+              <span>DeepSeek</span>
+              <div class="bar-track"><div class="bar-fill green" style="width: 3%;"></div></div>
+              <strong style="color: var(--green);">3%</strong>
+            </div>
+          </div>
+          <p style="margin-top: 20px; font-size: 14px; line-height: 1.6;">※ Git Commit 메타데이터 분석, 병합 브랜치 태그 분석 및 Handoff 문서 갱신 빈도를 활용한 추산 자료입니다.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 11. 통계 -->
+    <section class="slide" data-title="통계">
+      <div class="eyebrow">Project Statistics</div>
+      <h2>프로젝트 코드 생산성 및 산출물 통계 <span style="font-size: 18px; color: var(--muted); font-weight: normal; margin-left: 15px;">(작업 기간: 2026.05.01 ~ 2026.06.02)</span></h2>
+      
+      <h3 style="color: var(--teal); margin-top: 10px;">코드 생산 및 품질 개선 조치 (Code Production & Quality Activity)</h3>
+      <div class="quad-grid" style="margin-bottom: 16px;">
+        <div class="metric teal">
+          <h3>누적 커밋 (Commits)</h3>
+          <span class="value">683</span>
+          <div class="sub">main @ 9f68fb1 기준</div>
+        </div>
+        <div class="metric">
+          <h3>PR 연계 이력</h3>
+          <span class="value">384</span>
+          <div class="sub">main 로그의 PR subject / merge 흔적 집계</div>
+        </div>
+        <div class="metric amber">
+          <h3>누적 코드 변경량</h3>
+          <span class="value">454,314<span style="font-size: 16px; color: var(--amber);"> Lines</span></span>
+          <div class="sub">추가 349,862 / 삭제 104,452 라인</div>
+        </div>
+        <div class="metric purple">
+          <h3>최근 반영 PR</h3>
+          <span class="value">462</span>
+          <div class="sub">main 기준 최신 반영 PR 번호</div>
+        </div>
+      </div>
+
+      <h3 style="color: var(--navy); margin-top: 10px;">아키텍처 설계 및 보증 문서 (Engineering Artifacts)</h3>
+      <div class="quad-grid">
+        <div class="metric purple">
+          <h3>의사결정 레코드 (ADR)</h3>
+          <span class="value">26</span>
+          <div class="sub">Architecture Decision Records</div>
+        </div>
+        <div class="metric amber">
+          <h3>도메인 엔지니어링 문서</h3>
+          <span class="value">66</span>
+          <div class="sub">docs/domain 전체 파일 수</div>
+        </div>
+        <div class="metric">
+          <h3>기획 및 스프린트 계획</h3>
+          <span class="value">22</span>
+          <div class="sub">Planning & Roadmap Documents</div>
+        </div>
+        <div class="metric teal">
+          <h3>자동화 테스트 및 상태</h3>
+          <span class="value">176</span>
+          <div class="sub">workflow state.json 수</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 12. 종합 -->
+    <section class="slide" data-title="종합">
+      <div class="eyebrow">Assessment</div>
+      <h2>현재 상태 종합 평가와 향후 과제</h2>
+      
+      <div class="section-grid">
+        <div class="panel">
+          <h3 style="color: var(--teal); margin-bottom: 14px;">현재 상태의 객관적 성과</h3>
+          <ul style="font-size: 16px;">
+            <li><strong>주요 흐름 실사용 수준 완성</strong>: Keycloak 인증 하에 프로젝트·리포지토리·의뢰(DREQ) 생성 및 조회가 매끄럽게 동작.</li>
+            <li><strong>실질적인 E2E 품질 보증</strong>: 일련의 프론트/백 빌드 후 fresh 컨테이너 스택 상에서 전체 77개 Playwright 테스트 패스.</li>
+            <li><strong>다중 AI 협업 체계 확립</strong>: 브랜치 격리 구조와 Handoff 정책 덕분에 4개 AI 에이전트가 충돌 없이 효율적으로 협업.</li>
+          </ul>
+        </div>
+        
+        <div class="panel">
+          <h3 style="color: var(--navy); margin-bottom: 14px;">다음 타겟 스프린트 과제</h3>
+          <ul style="font-size: 16px;">
+            <li><strong>v1.0 마감 리팩토링</strong>: `/api/v1/accounts` 잔재 API 폐기 및 프론트엔드 연동 클린업</li>
+            <li><strong>핵심 API 추가 개발</strong>: CI Run 생성 API 및 로그아웃(Sign-out) 엔드포인트 백엔드 구현</li>
+            <li><strong>리포지토리 빌드 연동</strong>: Gitea Actions 연동을 통한 리포지토리별 빌드 이력(Build-runs) 조회 화면 개발</li>
+            <li><strong>Staging 실환경 Hardening</strong>: Staging 서버 릴리즈 배포 및 실 사용자 1주 운영 검증 진입</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="big-note" style="margin-top: 15px;">
+        <p>핵심 메시지는 “우리가 개발을 완료해 나가는 과정 중”에 머무르는 것이 아니라, <strong>“작동이 증명된 고품질 제품과 이를 지속 지원하는 견고한 SDLC 문서 체계가 동시에 축적되고 있음”</strong>을 입증하는 것입니다.</p>
+      </div>
+    </section>
+  </div>
+
+  <!-- 슬라이드 제어 및 진행 프로그레스 하단 바 -->
+  <div class="footer">
+    <div class="footer-box">
+      <span id="slideLabel">1 / 12</span>
+      <div class="progress"><div id="progressBar"></div></div>
+    </div>
+    <div class="footer-box nav">
+      <button id="prevBtn" aria-label="Previous slide">←</button>
+      <button id="nextBtn" aria-label="Next slide">→</button>
+    </div>
+  </div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll(".slide"));
+  const slideLabel = document.getElementById("slideLabel");
+  const progressBar = document.getElementById("progressBar");
+  const prevBtn = document.getElementById("prevBtn");
+  const nextBtn = document.getElementById("nextBtn");
+  let current = 0;
+
+  function renderSlide(index) {
+    // 인덱스 범위 보호
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    
+    slides.forEach((slide, i) => {
+      slide.classList.toggle("active", i === current);
+    });
+
+    slideLabel.textContent = `${current + 1} / ${slides.length}`;
+    progressBar.style.width = `${((current + 1) / slides.length) * 100}%`;
+    
+    // 첫/끝 장표 버튼 비활성화 상태 제어
+    prevBtn.style.opacity = current === 0 ? "0.3" : "1";
+    prevBtn.style.pointerEvents = current === 0 ? "none" : "auto";
+    nextBtn.style.opacity = current === slides.length - 1 ? "0.3" : "1";
+    nextBtn.style.pointerEvents = current === slides.length - 1 ? "none" : "auto";
+  }
+
+  prevBtn.addEventListener("click", () => renderSlide(current - 1));
+  nextBtn.addEventListener("click", () => renderSlide(current + 1));
+
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowRight" || event.key === "PageDown" || event.key === " ") {
+      event.preventDefault();
+      renderSlide(current + 1);
+    }
+    if (event.key === "ArrowLeft" || event.key === "PageUp") {
+      event.preventDefault();
+      renderSlide(current - 1);
+    }
+    if (event.key === "Home") {
+      event.preventDefault();
+      renderSlide(0);
+    }
+    if (event.key === "End") {
+      event.preventDefault();
+      renderSlide(slides.length - 1);
+    }
+  });
+
+  renderSlide(0);
+</script>
+</body>
+</html>

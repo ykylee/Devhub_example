@@ -1,4 +1,4 @@
-import { test, expect, SEEDED, loginAs, appPath } from "./fixtures";
+import { test, expect, SEEDED, loginAs, appPath, apiPath } from "./fixtures";
 
 // DREQ E2E — TC 카탈로그는 docs/tests/test_cases_m5_dreq.md 참조.
 // 본 spec 은 카탈로그의 E2E 영역 (TC-DREQ-ADMIN-TOKEN-01 / INTAKE-AUTH-01 /
@@ -9,6 +9,7 @@ import { test, expect, SEEDED, loginAs, appPath } from "./fixtures";
 test.describe("DREQ E2E", () => {
   test("Intake to Promote to Revoke lifecycle", async ({ page, request, browser }) => {
     let plainToken: string | undefined;
+    const apiBasePath = appPath("/").replace(/\/$/, "");
     const clientLabel = `e2e_client_${Date.now()}`;
     const testSuffix = Date.now();
     const requestTitle = `E2E Provisioning Request ${testSuffix}`;
@@ -47,7 +48,7 @@ test.describe("DREQ E2E", () => {
     });
 
     await test.step("TC-DREQ-INTAKE-AUTH-01 — external POST with Bearer succeeds", async () => {
-      const intakeResponse = await request.post("/api/v1/dev-requests", {
+      const intakeResponse = await request.post(apiPath("/api/v1/dev-requests"), {
         headers: {
           Authorization: `Bearer ${plainToken}`,
         },
@@ -128,7 +129,7 @@ test.describe("DREQ E2E", () => {
     });
 
     await test.step("TC-DREQ-INTAKE-AUTH-NEG-03 — revoked token rejected with 401", async () => {
-      const failResponse = await request.post("/api/v1/dev-requests", {
+      const failResponse = await request.post(apiPath("/api/v1/dev-requests"), {
         headers: {
           Authorization: `Bearer ${plainToken}`,
         },
@@ -148,7 +149,7 @@ test.describe("DREQ E2E", () => {
   test("TC-DREQ-INTAKE-AUTH-NEG-01 — invalid bearer rejected with 401", async ({ request }) => {
     // 발급된 token 의 hash 와 충돌하지 않는 임의 base64url 문자열 (43 chars 길이 정합).
     const fakeBearer = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
-    const response = await request.post("/api/v1/dev-requests", {
+    const response = await request.post(apiPath("/api/v1/dev-requests"), {
       headers: { Authorization: `Bearer ${fakeBearer}` },
       data: {
         title: "neg-01",
@@ -166,6 +167,7 @@ test.describe("DREQ E2E", () => {
     // 별도 token 발급 → PATCH 로 allowed_ips 갱신 → 검증.
     // admin endpoint 는 OIDC system_admin session 이 필요하므로 page.request 사용
     // (fixture-level `request` 는 storage state 를 공유하지 않음).
+    const apiBasePath = appPath("/").replace(/\/$/, "");
     await loginAs(page, SEEDED.systemAdmin);
     await page.goto(appPath("/admin/settings/dev-request-tokens"));
 
@@ -195,9 +197,9 @@ test.describe("DREQ E2E", () => {
     // 의 Bearer token (apiClient 와 동일 구조) 을 사용해 modal form submit 와
     // 같은 인증 보장 (sprint claude/work_260518-m hotfix #4+5).
     const futureDate = new Date(Date.now() + 86400000).toISOString(); // 1 day in the future
-    const patchResult = await page.evaluate(async ({ id, expiresAt }) => {
+    const patchResult = await page.evaluate(async ({ id, expiresAt, apiBasePath }) => {
       const accessToken = sessionStorage.getItem("devhub_access_token");
-      const resp = await fetch(`/api/v1/dev-request-tokens/${id}`, {
+      const resp = await fetch(`${apiBasePath}/api/v1/dev-request-tokens/${id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -211,7 +213,7 @@ test.describe("DREQ E2E", () => {
       });
       const body = await resp.json();
       return { ok: resp.ok, status: resp.status, body };
-    }, { id: tokenId, expiresAt: futureDate });
+    }, { id: tokenId, expiresAt: futureDate, apiBasePath });
     expect(patchResult.ok).toBeTruthy();
     expect(patchResult.body.status).toBe("ok");
     // backend 가 dedup / canonicalize 할 수 있어 정확한 순서·길이 의존하지 않고
@@ -225,20 +227,21 @@ test.describe("DREQ E2E", () => {
     expect(Math.abs(gotTime - wantTime)).toBeLessThan(1000);
 
     // 정리 — 본 test 가 생성한 token revoke (cleanup, 동일 패턴).
-    await page.evaluate(async (id: string) => {
+    await page.evaluate(async ({ id, apiBasePath }) => {
       const accessToken = sessionStorage.getItem("devhub_access_token");
-      await fetch(`/api/v1/dev-request-tokens/${id}`, {
+      await fetch(`${apiBasePath}/api/v1/dev-request-tokens/${id}`, {
         method: "DELETE",
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
         credentials: "include",
       });
-    }, tokenId);
+    }, { id: tokenId, apiBasePath });
   });
 
   test("TC-DREQ-ADMIN-TOKEN-REVOKE-CANCEL-01 — DestructiveConfirmModal Cancel keeps token active", async ({ page }) => {
     // Revoke 흐름의 cancel path 회귀 가드. 기존 REVOKE-01 mega test step 은
     // confirm 흐름만 검증 — 사용자가 Cancel 을 누른 경우 토큰이 active 로
     // 보존되는지는 별도 가드. ADR-0014 의 plain-1회 modal 흐름과 동일 fixture.
+    const apiBasePath = appPath("/").replace(/\/$/, "");
     await loginAs(page, SEEDED.systemAdmin);
     await page.goto(appPath("/admin/settings/dev-request-tokens"));
 
@@ -274,18 +277,19 @@ test.describe("DREQ E2E", () => {
     // 패턴 (PATCH-01 과 동일) 으로 OIDC session propagation flakiness 회피.
     const tokenId = (await stillActive.getAttribute("data-token-id")) ?? "";
     if (tokenId) {
-      await page.evaluate(async (id: string) => {
+      await page.evaluate(async ({ id, apiBasePath }) => {
         const accessToken = sessionStorage.getItem("devhub_access_token");
-        await fetch(`/api/v1/dev-request-tokens/${id}`, {
+        await fetch(`${apiBasePath}/api/v1/dev-request-tokens/${id}`, {
           method: "DELETE",
           headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
           credentials: "include",
         });
-      }, tokenId);
+      }, { id: tokenId, apiBasePath });
     }
   });
   test("TC-DREQ-PROMOTE-PROJ-01 — Intake to Promote to Project lifecycle", async ({ page, request }) => {
     let plainToken: string | undefined;
+    const apiBasePath = appPath("/").replace(/\/$/, "");
     const clientLabel = `proj_e2e_client_${Date.now()}`;
     const testSuffix = Date.now().toString().slice(-6);
     const requestTitle = `E2E Project Request ${testSuffix}`;
@@ -312,7 +316,7 @@ test.describe("DREQ E2E", () => {
     });
 
     await test.step("2. External POST DREQ with Bearer", async () => {
-      const intakeResponse = await request.post("/api/v1/dev-requests", {
+      const intakeResponse = await request.post(apiPath("/api/v1/dev-requests"), {
         headers: { Authorization: `Bearer ${plainToken}` },
         data: {
           title: requestTitle,
@@ -387,9 +391,9 @@ test.describe("DREQ E2E", () => {
         const stillActive = page.getByRole("row").filter({ hasText: clientLabel });
         const tokenId = (await stillActive.getAttribute("data-token-id").catch(() => null)) ?? "";
         if (tokenId) {
-          await page.evaluate(async ({ id }) => {
+          await page.evaluate(async ({ id, apiBasePath }) => {
             const accessToken = sessionStorage.getItem("devhub_access_token");
-            const apiURL = new URL(`/api/v1/dev-request-tokens/${id}`, window.location.origin).toString();
+            const apiURL = `${apiBasePath}/api/v1/dev-request-tokens/${id}`;
             const resp = await fetch(apiURL, {
               method: "DELETE",
               headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
@@ -398,7 +402,7 @@ test.describe("DREQ E2E", () => {
             if (!resp.ok) {
               throw new Error(`cleanup delete failed: status=${resp.status}`);
             }
-          }, { id: tokenId });
+          }, { id: tokenId, apiBasePath });
         }
       } catch (err) {
         // best-effort cleanup — non-fatal. test 의 핵심 검증 (intake → promote
