@@ -27,11 +27,15 @@ test.describe("/admin/catalog — Admin Catalog", () => {
     await page.goto(appPath("/admin/catalog?tab=applications"));
 
     await expect(page.getByRole("button", { name: /applications/i })).toBeVisible();
-    await expect(page.getByTestId(`catalog-app-projects-${SEEDED_APPLICATION_ID}`)).toBeVisible();
+    const appProjectsButton = page.getByTestId(`catalog-app-projects-${SEEDED_APPLICATION_ID}`);
+    await expect(appProjectsButton).toBeVisible();
     await page.getByTestId(`catalog-app-detail-${SEEDED_APPLICATION_ID}`).click();
     await expect(page).toHaveURL(/\/applications\//, { timeout: 15_000 });
 
-    await page.goto(appPath(`/admin/catalog?tab=projects&q=${SEEDED_APPLICATION_ID}`));
+    await page.goBack();
+    await expect(page).toHaveURL(/\/admin\/catalog\?tab=applications/, { timeout: 15_000 });
+    await expect(appProjectsButton).toBeVisible();
+    await appProjectsButton.click();
     await expect(page).toHaveURL(/tab=projects/, { timeout: 15_000 });
     await expect(page).toHaveURL(new RegExp(`q=${SEEDED_APPLICATION_ID}`), { timeout: 15_000 });
     await expect(page.getByRole("cell", { name: SEEDED_PROJECT_NAME })).toBeVisible({ timeout: 15_000 });
