@@ -4,10 +4,10 @@
 - 범위: 기능 진척, 문서 체계, 추적성, 테스트, agent 활용 추정, 저장소 통계
 - 대상 독자: 발표 자료 작성자, 프로젝트 리드, 후속 AI 에이전트
 - 상태: in_progress
-- 최종 수정일: 2026-06-02
+- 최종 수정일: 2026-06-03
 - 기준 브랜치: `main`
 - 기준 HEAD: `9f68fb1`
-- 관련 문서: [`ai-workflow/memory/state.json`](../../ai-workflow/memory/state.json), [`docs/traceability/report.md`](../traceability/report.md), [`docs/planning/integrated_test_report_20260601.md`](../planning/integrated_test_report_20260601.md), [`docs/governance/worker_division.md`](../governance/worker_division.md), [`docs/analysis/2026-05-27-codebase-snapshot/README.md`](./2026-05-27-codebase-snapshot/README.md)
+- 관련 문서: [`ai-workflow/memory/state.json`](../../ai-workflow/memory/state.json), [`docs/traceability/report.md`](../traceability/report.md), [`docs/planning/integrated_test_report_20260601.md`](../planning/integrated_test_report_20260601.md), [`docs/governance/worker_division.md`](../governance/worker_division.md), [`docs/planning/role-access-concept.md`](../planning/role-access-concept.md), [`docs/adr/0026-keycloak-role-excluded-decision.md`](../adr/0026-keycloak-role-excluded-decision.md), [`docs/analysis/2026-05-27-codebase-snapshot/README.md`](./2026-05-27-codebase-snapshot/README.md)
 
 ## 1. 분석 기준
 
@@ -38,7 +38,13 @@ DevHub 는 초기 기획/설계 단계를 넘어, 인증·온보딩·관리 설�
 ### 3.1 현재 보고 가능한 프로젝트 성격
 
 - 통합 관리 플랫폼
-- 주요 사용자군: developer, manager, system_admin, PMO 계열 운영 사용자
+- 주요 사용자군: `developer`, `team_manager`, `system_admin`
+- 역할 해석:
+  - `developer`: 개인 작업, Dev Request, Application/Project/Repository 조회 중심 사용자
+  - `team_manager`: 내부 system role 기준 PMO/관리 운영 사용자이며 UI 표시명은 `Manager`, 기본 landing 은 `/manager`
+  - `system_admin`: `/admin` 및 `/admin/settings/*` 기반의 관리 운영 사용자
+- 최신 정책 기준 legacy `manager` alias 는 `team_manager` 로 정규화되며, Keycloak realm role 은 권한 source-of-truth 가 아니라 DevHub 내부 `users.role` 이 최종 권한 기준이다.
+- 신규 사용자는 onboarding 제출과 관리자 review 이후 위 역할 체계에 편입된다.
 - 핵심 도메인:
   - auth-session
   - onboarding
@@ -121,10 +127,10 @@ DevHub 는 초기 기획/설계 단계를 넘어, 인증·온보딩·관리 설�
 
 현재 시연 가능성이 높은 기능은 다음과 같다.
 
-1. 로그인 후 역할별 대시보드 진입
+1. 로그인 후 역할별 landing 진입 (`/developer`, `/manager`, `/admin`)
 2. 신규 사용자 온보딩 및 관리자 승인
-3. 관리자 설정 화면에서 사용자/조직/권한 관리
-4. Application 생성 및 조회
+3. `system_admin` 기준 관리자 설정 화면에서 사용자/조직/권한 관리
+4. `developer`/`team_manager` 기준 Application 조회 및 상태 확인
 5. Project 생성, Repository 연결, 멤버 편집
 6. Integration provider 등록 및 SCM repository 생성/가져오기
 7. Dev Request 수신 후 Application/Project 로 promote
@@ -284,6 +290,8 @@ DevHub 는 초기 기획/설계 단계를 넘어, 인증·온보딩·관리 설�
 
 ## 9. 산출물 및 개발 활동 통계
 
+아래 수치는 모두 `main @ 9f68fb1` 기준으로 git log 및 현재 저장소 파일시스템을 직접 집계한 값이다.
+
 ### 9.1 저장소 활동량
 
 - 전체 commit 수: 683
@@ -295,16 +303,16 @@ DevHub 는 초기 기획/설계 단계를 넘어, 인증·온보딩·관리 설�
 - ADR 문서 수: 26
 - domain 문서 파일 수: 66
 - planning 문서 파일 수: 22
-- analysis 문서 파일 수: 25
+- analysis 문서 파일 수: 26
 - reports 문서 파일 수: 5
 - 2026-05-27 코드베이스 스냅샷 산출물 수: 24
 
 ### 9.3 workflow memory 자산
 
-- `state.json`: 175
-- `session_handoff.md`: 111
-- `work_backlog.md`: 114
-- 일별 backlog 문서: 88
+- `state.json`: 176
+- `session_handoff.md`: 112
+- `work_backlog.md`: 115
+- 일별 backlog 문서: 92
 
 ### 9.4 코드/테스트 자산
 

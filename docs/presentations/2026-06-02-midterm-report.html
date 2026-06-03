@@ -687,9 +687,18 @@
   .chart-wrapper {
     text-align: center;
     position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 
-  .chart-wrapper svg {
+  .chart-circle {
+    position: relative;
+    width: 100px;
+    height: 100px;
+  }
+
+  .chart-circle svg {
     transform: rotate(-90deg);
   }
 
@@ -860,7 +869,7 @@
         </div>
         <div class="panel">
           <h3 style="color: var(--navy); margin-bottom: 12px;">핵심 사용자군</h3>
-          <p>역할 체계는 <code>developer</code>, <code>team_manager</code>, <code>system_admin</code> 3축이며, 온보딩 및 승인 프로세스를 거쳐 권한이 정비됩니다.</p>
+          <p>최신 정책 기준 내부 system role 은 <code>developer</code>, <code>team_manager</code>, <code>system_admin</code> 3축이며, UI 표시명 <code>Manager</code> 는 <code>team_manager</code> 를 의미합니다. 권한의 최종 기준은 DevHub 내부 <code>users.role</code> 입니다.</p>
         </div>
         <div class="panel">
           <h3 style="color: var(--amber); margin-bottom: 12px;">중간 보고 관점</h3>
@@ -1242,42 +1251,48 @@
           <div class="chart-container">
             <!-- 차트 1: E2E 합격률 -->
             <div class="chart-wrapper">
-              <svg width="100" height="100">
-                <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"/>
-                <circle cx="50" cy="50" r="40" fill="none" stroke="var(--teal)" stroke-width="8" 
-                        stroke-dasharray="251.2" stroke-dashoffset="0" /> <!-- 100% -->
-              </svg>
-              <div class="chart-label">
-                <span class="number">100</span>
-                <span class="percent">%</span>
+              <div class="chart-circle">
+                <svg width="100" height="100">
+                  <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"/>
+                  <circle cx="50" cy="50" r="40" fill="none" stroke="var(--teal)" stroke-width="8" 
+                          stroke-dasharray="251.2" stroke-dashoffset="0" /> <!-- 100% -->
+                </svg>
+                <div class="chart-label">
+                  <span class="number">100</span>
+                  <span class="percent">%</span>
+                </div>
               </div>
               <div class="chart-title">E2E 합격률</div>
             </div>
             
             <!-- 차트 2: 프론트 커버리지 -->
             <div class="chart-wrapper">
-              <svg width="100" height="100">
-                <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"/>
-                <circle cx="50" cy="50" r="40" fill="none" stroke="var(--navy)" stroke-width="8" 
-                        stroke-dasharray="251.2" stroke-dashoffset="38" /> <!-- ~85% -->
-              </svg>
-              <div class="chart-label">
-                <span class="number">84.7</span>
-                <span class="percent">%</span>
+              <div class="chart-circle">
+                <svg width="100" height="100">
+                  <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"/>
+                  <circle cx="50" cy="50" r="40" fill="none" stroke="var(--navy)" stroke-width="8" 
+                          stroke-dasharray="251.2" stroke-dashoffset="38" /> <!-- ~85% -->
+                </svg>
+                <div class="chart-label">
+                  <span class="number">84.7</span>
+                  <span class="percent">%</span>
+                </div>
               </div>
               <div class="chart-title">FE 커버리지</div>
             </div>
-
+ 
             <!-- 차트 3: 백엔드 커버리지 -->
             <div class="chart-wrapper">
-              <svg width="100" height="100">
-                <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"/>
-                <circle cx="50" cy="50" r="40" fill="none" stroke="var(--purple)" stroke-width="8" 
-                        stroke-dasharray="251.2" stroke-dashoffset="108" /> <!-- ~57% -->
-              </svg>
-              <div class="chart-label">
-                <span class="number">56.8</span>
-                <span class="percent">%</span>
+              <div class="chart-circle">
+                <svg width="100" height="100">
+                  <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"/>
+                  <circle cx="50" cy="50" r="40" fill="none" stroke="var(--purple)" stroke-width="8" 
+                          stroke-dasharray="251.2" stroke-dashoffset="108" /> <!-- ~57% -->
+                </svg>
+                <div class="chart-label">
+                  <span class="number">56.8</span>
+                  <span class="percent">%</span>
+                </div>
               </div>
               <div class="chart-title">BE 커버리지</div>
             </div>
@@ -1359,29 +1374,29 @@
     <!-- 11. 통계 -->
     <section class="slide" data-title="통계">
       <div class="eyebrow">Project Statistics</div>
-      <h2>프로젝트 코드 생산성 및 산출물 통계</h2>
+      <h2>프로젝트 코드 생산성 및 산출물 통계 <span style="font-size: 18px; color: var(--muted); font-weight: normal; margin-left: 15px;">(작업 기간: 2026.05.01 ~ 2026.06.02)</span></h2>
       
       <h3 style="color: var(--teal); margin-top: 10px;">코드 생산 및 품질 개선 조치 (Code Production & Quality Activity)</h3>
       <div class="quad-grid" style="margin-bottom: 16px;">
         <div class="metric teal">
           <h3>누적 커밋 (Commits)</h3>
-          <span class="value">799</span>
-          <div class="sub">순수 개발 602개 / 통합 799개</div>
+          <span class="value">683</span>
+          <div class="sub">main @ 9f68fb1 기준</div>
         </div>
         <div class="metric">
-          <h3>머지된 PR (Pull Requests)</h3>
-          <span class="value">323</span>
-          <div class="sub">GitHub 완결 Pull Requests 수</div>
+          <h3>PR 연계 이력</h3>
+          <span class="value">384</span>
+          <div class="sub">main 로그의 PR subject / merge 흔적 집계</div>
         </div>
         <div class="metric amber">
           <h3>누적 코드 변경량</h3>
-          <span class="value">453,257<span style="font-size: 16px; color: var(--amber);"> Lines</span></span>
-          <div class="sub">추가 34.9만 / 삭제 10.3만 라인</div>
+          <span class="value">454,314<span style="font-size: 16px; color: var(--amber);"> Lines</span></span>
+          <div class="sub">추가 349,862 / 삭제 104,452 라인</div>
         </div>
         <div class="metric purple">
-          <h3>수정 및 기능 보완 조치</h3>
-          <span class="value">208<span style="font-size: 20px; color: var(--green);">회</span></span>
-          <div class="sub">버그 픽스 및 리팩토링 조치</div>
+          <h3>최근 반영 PR</h3>
+          <span class="value">462</span>
+          <div class="sub">main 기준 최신 반영 PR 번호</div>
         </div>
       </div>
 
@@ -1394,8 +1409,8 @@
         </div>
         <div class="metric amber">
           <h3>도메인 엔지니어링 문서</h3>
-          <span class="value">100</span>
-          <div class="sub">기능 요구사항 및 API 스펙</div>
+          <span class="value">66</span>
+          <div class="sub">docs/domain 전체 파일 수</div>
         </div>
         <div class="metric">
           <h3>기획 및 스프린트 계획</h3>
@@ -1404,8 +1419,8 @@
         </div>
         <div class="metric teal">
           <h3>자동화 테스트 및 상태</h3>
-          <span class="value">177</span>
-          <div class="sub">에이전트 세션 상태 JSON 수</div>
+          <span class="value">176</span>
+          <div class="sub">workflow state.json 수</div>
         </div>
       </div>
     </section>
