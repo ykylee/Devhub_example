@@ -2,23 +2,20 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "codex/midterm-report-e2e-refresh",
-  "status": "in_progress",
-  "updated_at": "2026-06-02T16:20:00Z",
+  "status": "ready_for_review",
+  "updated_at": "2026-06-03T00:10:00Z",
   "head_commit": "working_tree",
-  "head_summary": "midterm report html draft + fresh-stack e2e green baseline",
+  "head_summary": "midterm report html visual polish and SVG charts addition",
   "current_focus": [
-    "중간 개발 보고용 HTML 슬라이드 초안 구체화",
-    "최신 테스트 실행 결과를 기준으로 발표 메시지 정리"
+    "중간 보고 HTML 슬라이드 디자인 보강 완료",
+    "슬라이드 내비게이션 및 반응형 동작 검수 완료"
   ],
   "next_actions": [
-    "보고자료 HTML 렌더/구성 점검",
-    "브랜치 memory와 슬라이드 변경 커밋 정리",
-    "원격 브랜치에 보고자료 초안 반영"
+    "브랜치 memory와 슬라이드 변경사항 커밋 및 push",
+    "사용자 검토 후 피드백 반영"
   ],
   "risks": [
-    "colima용 임시 런타임 자산(/tmp env, pg proxy, local compose project)은 저장소 추적 대상이 아님",
-    "E2E green은 /devhub basePath + local-idp/local-db fresh stack 전제이며 다른 런타임 조합은 별도 재확인 필요",
-    "보고자료 HTML은 아직 발표자 시선 기준 최종 검수 전 단계임"
+    "E2E green은 /devhub basePath + local-idp/local-db fresh stack 전제이며 다른 런타임 조합은 별도 재확인 필요"
   ],
-  "handoff_note": "2026-06-02 기준 colima fresh stack(http://localhost:13000/devhub)에서 Playwright 77 passed 확인. 중간 개발 보고용 단일 HTML 슬라이드 초안 작성 착수."
+  "handoff_note": "HTML 슬라이드 디자인 고도화, 글래스모피즘 효과, SVG 차트(테스트 커버리지, AI 기여도, 아키텍처 다이어그램) 및 반응형 슬라이드 내비게이션 작업 완료."
 }
