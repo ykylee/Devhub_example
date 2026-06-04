@@ -96,6 +96,59 @@ describe("RepositoryService", () => {
     });
   });
 
+  describe("updateRepository", () => {
+    it("sends PATCH with partial fields and provider_key", async () => {
+      apiClientMock.mockResolvedValue({
+        status: "ok",
+        data: { id: 3, full_name: "org/new-repo-renamed", name: "NEW-X", status: "draft", private: false, linked_applications_count: 0, linked_projects_count: 0 },
+      });
+
+      const { repositoryService } = await import("./repository.service");
+      const repo = await repositoryService.updateRepository(3, {
+        key: "NEW-X",
+        slug: "org/new-repo-renamed",
+        provider_key: "gitea",
+      });
+
+      expect(repo.name).toBe("NEW-X");
+      expect(apiClientMock).toHaveBeenCalledWith(
+        "PATCH",
+        expect.stringContaining("/api/v1/repositories/3"),
+        { key: "NEW-X", slug: "org/new-repo-renamed", provider_key: "gitea" },
+      );
+    });
+
+    it("sends provider_key null for explicit unlink", async () => {
+      apiClientMock.mockResolvedValue({
+        status: "ok",
+        data: { id: 3, full_name: "org/new-repo", name: "NEW", status: "draft", private: false, linked_applications_count: 0, linked_projects_count: 0, provider_id: "", provider_key: "" },
+      });
+
+      const { repositoryService } = await import("./repository.service");
+      await repositoryService.updateRepository(3, { provider_key: null });
+
+      expect(apiClientMock).toHaveBeenCalledWith(
+        "PATCH",
+        expect.stringContaining("/api/v1/repositories/3"),
+        { provider_key: null },
+      );
+    });
+  });
+
+  describe("deleteRepository", () => {
+    it("sends DELETE to repository endpoint", async () => {
+      apiClientMock.mockResolvedValue({ status: "ok" });
+
+      const { repositoryService } = await import("./repository.service");
+      await repositoryService.deleteRepository(3);
+
+      expect(apiClientMock).toHaveBeenCalledWith(
+        "DELETE",
+        expect.stringContaining("/api/v1/repositories/3"),
+      );
+    });
+  });
+
   describe("requestRepositoryPublish", () => {
     it("sends POST to publish endpoint", async () => {
       apiClientMock.mockResolvedValue({

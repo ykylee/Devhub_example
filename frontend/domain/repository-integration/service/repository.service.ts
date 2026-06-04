@@ -88,6 +88,20 @@ class RepositoryService {
     return body.data;
   }
 
+  async updateRepository(
+    repositoryId: number,
+    input: { key?: string; slug?: string; provider_key?: string | null },
+  ): Promise<Repository> {
+    const url = `${this.baseUrl}/api/v1/repositories/${repositoryId}`;
+    const body = await apiClient<{ status: string; data: Repository }>("PATCH", url, input);
+    return body.data;
+  }
+
+  async deleteRepository(repositoryId: number): Promise<void> {
+    const url = `${this.baseUrl}/api/v1/repositories/${repositoryId}`;
+    await apiClient<{ status: string }>("DELETE", url);
+  }
+
   async requestRepositoryPublish(repositoryId: number): Promise<Repository> {
     const url = `${this.baseUrl}/api/v1/repositories/${repositoryId}/publish`;
     const body = await apiClient<{ status: string; data: Repository }>("POST", url, {});

@@ -704,3 +704,238 @@ func TestIntegration_RepositoryDrafts_ExtraCRUD(t *testing.T) {
 	}
 }
 
+// TestIntegration_UpdateRepositoryDraft — draft 만 부분 갱신 가능.
+func TestIntegration_UpdateRepositoryDraft(t *testing.T) {
+	pgStore, pool, ctx, teardown := setupApplicationsTest(t)
+	defer teardown()
+
+	slug := fmt.Sprintf("drafts/update-%d", time.Now().UnixNano())
+	key := fmt.Sprintf("upd-%d", time.Now().UnixNano())
+	defer func() { _, _ = pool.Exec(ctx, `DELETE FROM repositories WHERE full_name = $1`, slug) }()
+
+	// ensure integration provider 'gitea' exists (E2E seed 가 이미 있지만 idempotent 보장)
+	if _, err := pool.Exec(ctx, `
+INSERT INTO integration_providers (provider_id, provider_key, provider_type, display_name, enabled, auth_mode, credentials_ref, capabilities, sync_status, base_url, api_token)
+VALUES ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'gitea', 'scm', 'Local Gitea', true, 'token', 'cr', '["push"]'::jsonb, 'active', 'http://localhost:3000', 'tok')
+ON CONFLICT (provider_key) DO NOTHING
+`); err != nil {
+		t.Fatalf("seed gitea provider: %v", err)
+	}
+
+	draft, err := pgStore.CreateRepositoryDraft(ctx, key, slug, "")
+	if err != nil {
+		t.Fatalf("CreateRepositoryDraft failed: %v", err)
+	}
+	if draft.ProviderID != "" {
+		t.Errorf("expected empty ProviderID for provider-less draft, got %q", draft.ProviderID)
+	}
+
+	// 1. nil params → no-op (unchanged)
+	if _, err := pgStore.UpdateRepositoryDraft(ctx, draft.ID, store.RepositoryUpdateDraftParams{}); err != nil {
+		t.Errorf("no-op update failed: %v", err)
+	}
+
+	// 2. update key + slug
+	newKey := key + "-X"
+	newSlug := slug + "-renamed"
+	updated, err := pgStore.UpdateRepositoryDraft(ctx, draft.ID, store.RepositoryUpdateDraftParams{
+		Key:  &newKey,
+		Slug: &newSlug,
+	})
+	if err != nil {
+		t.Fatalf("UpdateRepositoryDraft key+slug failed: %v", err)
+	}
+	if updated.Name != newKey || updated.FullName != newSlug {
+		t.Errorf("key/slug not updated: name=%q full_name=%q", updated.Name, updated.FullName)
+	}
+	// codex P2 fix — slug 변경 시 owner_login 재계산
+	if updated.OwnerLogin != "drafts" {
+		t.Errorf("owner_login not recomputed from new slug: got %q, want %q", updated.OwnerLogin, "drafts")
+	}
+	if updated.ProviderKey != "" {
+		t.Errorf("ProviderKey should still be empty (unchanged): got %q", updated.ProviderKey)
+	}
+
+	// 2.5 codex P1 fix — slug 변경 시 application_repositories link cascade update
+	linkAppID := "00000000-0000-0000-0000-000000000910"
+	defer func() { _, _ = pool.Exec(ctx, `DELETE FROM applications WHERE id = $1`, linkAppID) }()
+	if _, err := pool.Exec(ctx, `
+INSERT INTO applications (id, key, name, status, visibility, owner_user_id, created_at, updated_at)
+VALUES ($1, 'cascade-app', 'Cascade App', 'active', 'internal', 'u-cascade', NOW(), NOW())
+ON CONFLICT (id) DO NOTHING
+`, linkAppID); err != nil {
+		t.Fatalf("seed cascade app: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `
+INSERT INTO application_repositories (application_id, repo_provider, repo_full_name, role, sync_status, link_source, linked_at)
+VALUES ($1, 'gitea', $2, 'primary', 'active', 'manual', NOW())
+`, linkAppID, newSlug); err != nil {
+		t.Fatalf("seed application_repositories link: %v", err)
+	}
+	defer func() { _, _ = pool.Exec(ctx, `DELETE FROM application_repositories WHERE application_id = $1`, linkAppID) }()
+	cascadedSlug := newSlug + "-v2"
+	updated, err = pgStore.UpdateRepositoryDraft(ctx, draft.ID, store.RepositoryUpdateDraftParams{Slug: &cascadedSlug})
+	if err != nil {
+		t.Fatalf("UpdateRepositoryDraft cascade failed: %v", err)
+	}
+	if updated.FullName != cascadedSlug {
+		t.Errorf("slug not updated: %q", updated.FullName)
+	}
+	var linkCount int
+	if err := pool.QueryRow(ctx, `SELECT COUNT(*) FROM application_repositories WHERE application_id = $1 AND repo_full_name = $2`, linkAppID, cascadedSlug).Scan(&linkCount); err != nil {
+		t.Fatalf("verify cascade: %v", err)
+	}
+	if linkCount != 1 {
+		t.Errorf("application_repositories link not cascaded: count=%d", linkCount)
+	}
+	var staleCount int
+	if err := pool.QueryRow(ctx, `SELECT COUNT(*) FROM application_repositories WHERE application_id = $1 AND repo_full_name = $2`, linkAppID, newSlug).Scan(&staleCount); err != nil {
+		t.Fatalf("verify stale: %v", err)
+	}
+	if staleCount != 0 {
+		t.Errorf("stale link left behind: count=%d", staleCount)
+	}
+
+	// 2.6 codex P1 fix — slug conflict 시 ErrConflict + tx rollback
+	conflictAppID := "00000000-0000-0000-0000-000000000911"
+	defer func() { _, _ = pool.Exec(ctx, `DELETE FROM applications WHERE id = $1`, conflictAppID) }()
+	if _, err := pool.Exec(ctx, `
+INSERT INTO applications (id, key, name, status, visibility, owner_user_id, created_at, updated_at)
+VALUES ($1, 'conflict-app', 'Conflict App', 'active', 'internal', 'u-conflict', NOW(), NOW())
+ON CONFLICT (id) DO NOTHING
+`, conflictAppID); err != nil {
+		t.Fatalf("seed conflict app: %v", err)
+	}
+	conflictSlug2 := cascadedSlug + "-conflict"
+	if _, err := pool.Exec(ctx, `
+INSERT INTO application_repositories (application_id, repo_provider, repo_full_name, role, sync_status, link_source, linked_at)
+VALUES ($1, 'gitea', $2, 'sub', 'active', 'manual', NOW())
+`, conflictAppID, conflictSlug2); err != nil {
+		t.Fatalf("seed conflict link: %v", err)
+	}
+	defer func() { _, _ = pool.Exec(ctx, `DELETE FROM application_repositories WHERE application_id = $1`, conflictAppID) }()
+	if _, err := pgStore.UpdateRepositoryDraft(ctx, draft.ID, store.RepositoryUpdateDraftParams{Slug: &conflictSlug2}); !errors.Is(err, store.ErrConflict) {
+		t.Errorf("expected ErrConflict for slug conflict with existing link, got %v", err)
+	}
+	// conflict 시 tx rollback — draft.FullName 이 cascadedSlug 그대로 유지
+	current, err := pgStore.GetRepositoryByID(ctx, draft.ID)
+	if err != nil {
+		t.Fatalf("verify rollback: %v", err)
+	}
+	if current.FullName != cascadedSlug {
+		t.Errorf("rollback failed: full_name=%q want %q", current.FullName, cascadedSlug)
+	}
+
+	// 3. set provider via ProviderID
+	giteaID := "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+	updated, err = pgStore.UpdateRepositoryDraft(ctx, draft.ID, store.RepositoryUpdateDraftParams{
+		ProviderID: &giteaID,
+	})
+	if err != nil {
+		t.Fatalf("UpdateRepositoryDraft set provider failed: %v", err)
+	}
+	if updated.ProviderID != giteaID || updated.ProviderKey != "gitea" {
+		t.Errorf("provider not set: provider_id=%q provider_key=%q", updated.ProviderID, updated.ProviderKey)
+	}
+
+	// 4. unlink provider (empty string = SET NULL)
+	empty := ""
+	updated, err = pgStore.UpdateRepositoryDraft(ctx, draft.ID, store.RepositoryUpdateDraftParams{
+		ProviderID: &empty,
+	})
+	if err != nil {
+		t.Fatalf("UpdateRepositoryDraft unlink provider failed: %v", err)
+	}
+	if updated.ProviderID != "" || updated.ProviderKey != "" {
+		t.Errorf("provider not unlinked: provider_id=%q provider_key=%q", updated.ProviderID, updated.ProviderKey)
+	}
+
+	// 5. unique violation — create second draft, try to set its slug to first's
+	slug2 := fmt.Sprintf("drafts/other-%d", time.Now().UnixNano())
+	draft2, err := pgStore.CreateRepositoryDraft(ctx, "other-"+fmt.Sprint(time.Now().UnixNano()), slug2, "")
+	if err != nil {
+		t.Fatalf("CreateRepositoryDraft #2 failed: %v", err)
+	}
+	defer func() { _, _ = pool.Exec(ctx, `DELETE FROM repositories WHERE id = $1`, draft2.ID) }()
+	conflictSlug := newSlug // already used by draft
+	if _, err := pgStore.UpdateRepositoryDraft(ctx, draft2.ID, store.RepositoryUpdateDraftParams{Slug: &conflictSlug}); !errors.Is(err, store.ErrConflict) {
+		t.Errorf("expected ErrConflict for duplicate slug, got %v", err)
+	}
+
+	// 6. status guard — published/active 는 업데이트 불가
+	if _, err := pgStore.MarkRepositoryDraftPublishRequested(ctx, draft.ID); err != nil {
+		t.Fatalf("MarkRepositoryDraftPublishRequested failed: %v", err)
+	}
+	otherKey := "AFTER-PUBLISH"
+	if _, err := pgStore.UpdateRepositoryDraft(ctx, draft.ID, store.RepositoryUpdateDraftParams{Key: &otherKey}); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("expected ErrNotFound for update on published repo, got %v", err)
+	}
+}
+
+// TestIntegration_DeleteRepository — draft 만 삭제 가능, FK reference 가드.
+func TestIntegration_DeleteRepository(t *testing.T) {
+	pgStore, pool, ctx, teardown := setupApplicationsTest(t)
+	defer teardown()
+
+	slug := fmt.Sprintf("drafts/del-%d", time.Now().UnixNano())
+	key := fmt.Sprintf("del-%d", time.Now().UnixNano())
+	draft, err := pgStore.CreateRepositoryDraft(ctx, key, slug, "")
+	if err != nil {
+		t.Fatalf("CreateRepositoryDraft failed: %v", err)
+	}
+
+	// 1. happy path: delete draft
+	if err := pgStore.DeleteRepository(ctx, draft.ID); err != nil {
+		t.Fatalf("DeleteRepository failed: %v", err)
+	}
+	if _, err := pgStore.GetRepositoryByID(ctx, draft.ID); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("expected ErrNotFound after delete, got %v", err)
+	}
+
+	// 2. ghost delete
+	if err := pgStore.DeleteRepository(ctx, 999999); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("expected ErrNotFound for ghost delete, got %v", err)
+	}
+
+	// 3. status guard — published/active 는 삭제 불가
+	slug2 := fmt.Sprintf("drafts/del-pub-%d", time.Now().UnixNano())
+	draft2, err := pgStore.CreateRepositoryDraft(ctx, "del-pub-"+fmt.Sprint(time.Now().UnixNano()), slug2, "")
+	if err != nil {
+		t.Fatalf("CreateRepositoryDraft #2 failed: %v", err)
+	}
+	defer func() { _, _ = pool.Exec(ctx, `DELETE FROM repositories WHERE id = $1`, draft2.ID) }()
+	if _, err := pgStore.MarkRepositoryDraftPublishRequested(ctx, draft2.ID); err != nil {
+		t.Fatalf("MarkRepositoryDraftPublishRequested failed: %v", err)
+	}
+	if err := pgStore.DeleteRepository(ctx, draft2.ID); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("expected ErrNotFound for delete on published repo, got %v", err)
+	}
+
+	// 4. FK guard — application_repositories link → ErrConflict
+	slug3 := fmt.Sprintf("drafts/del-fk-%d", time.Now().UnixNano())
+	draft3, err := pgStore.CreateRepositoryDraft(ctx, "del-fk-"+fmt.Sprint(time.Now().UnixNano()), slug3, "")
+	if err != nil {
+		t.Fatalf("CreateRepositoryDraft #3 failed: %v", err)
+	}
+	defer func() { _, _ = pool.Exec(ctx, `DELETE FROM application_repositories WHERE repo_full_name = $1`, slug3) }()
+	defer func() { _, _ = pool.Exec(ctx, `DELETE FROM repositories WHERE id = $1`, draft3.ID) }()
+	appID := "00000000-0000-0000-0000-000000000999"
+	defer func() { _, _ = pool.Exec(ctx, `DELETE FROM applications WHERE id = $1`, appID) }()
+	if _, err := pool.Exec(ctx, `
+INSERT INTO applications (id, key, name, status, visibility, owner_user_id, created_at, updated_at)
+VALUES ($1, $2, $3, 'active', 'internal', 'u-del', NOW(), NOW())
+ON CONFLICT (id) DO NOTHING
+`, appID, "del-fk-app", "Del FK App"); err != nil {
+		t.Fatalf("seed app: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `
+INSERT INTO application_repositories (application_id, repo_provider, repo_full_name, role, sync_status, link_source, linked_at)
+VALUES ($1, 'gitea', $2, 'primary', 'active', 'manual', NOW())
+`, appID, slug3); err != nil {
+		t.Fatalf("seed application_repositories: %v", err)
+	}
+	if err := pgStore.DeleteRepository(ctx, draft3.ID); !errors.Is(err, store.ErrConflict) {
+		t.Errorf("expected ErrConflict for delete with FK link, got %v", err)
+	}
+}
+

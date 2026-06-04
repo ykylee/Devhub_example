@@ -15,6 +15,7 @@ import { identityService, OrgMember } from "@/domain/organization-management/ser
 import { ApplicationCreationModal } from "@/domain/application-lifecycle/view/ApplicationCreationModal";
 import { ProjectCreationModal } from "@/domain/application-lifecycle/view/ProjectCreationModal";
 import { RepositoryCreationModal } from "@/components/project/RepositoryCreationModal";
+import { RepositoryEditModal } from "@/components/project/RepositoryEditModal";
 import { useToast } from "@/shared/ui-foundation/components/Toast";
 import { cn } from "@/shared/utils";
 
@@ -44,8 +45,11 @@ export default function AdminCatalogPage() {
   const [showRepositoryModal, setShowRepositoryModal] = useState(false);
   const [editingApplication, setEditingApplication] = useState<AdminApplication | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [editingRepository, setEditingRepository] = useState<Repository | null>(null);
   const [projectSeed, setProjectSeed] = useState<Partial<Project> | null>(null);
   const [publishingRepositoryID, setPublishingRepositoryID] = useState<number | null>(null);
+  const [deletingRepositoryID, setDeletingRepositoryID] = useState<number | null>(null);
+  const [repositoryFilter, setRepositoryFilter] = useState<"all" | "drafts">("all");
   const { toast } = useToast();
 
   const loadAll = useCallback(async () => {
@@ -100,11 +104,12 @@ export default function AdminCatalogPage() {
 
   const filteredRepositories = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return repositories;
-    return repositories.filter((r) =>
+    const filtered = repositoryFilter === "drafts" ? repositories.filter((r) => r.status === "draft") : repositories;
+    if (!q) return filtered;
+    return filtered.filter((r) =>
       [r.full_name, r.owner_login, r.name, r.status, r.provider_key ?? ""].some((v) => (v ?? "").toLowerCase().includes(q)),
     );
-  }, [repositories, query]);
+  }, [repositories, query, repositoryFilter]);
 
   const filteredProjects = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -223,6 +228,29 @@ export default function AdminCatalogPage() {
       toast(toUserErrorMessage(err, "Repository publish 요청에 실패했습니다."), "error");
     } finally {
       setPublishingRepositoryID(null);
+    }
+  };
+
+  const handleDeleteRepository = async (repo: Repository) => {
+    if (repo.status !== "draft") {
+      toast("Draft 상태의 repository 만 삭제할 수 있습니다.", "warning");
+      return;
+    }
+    if (!confirm(`정말 ${repo.full_name} draft 를 삭제할까요? (연결된 SCM 에는 영향 없음)`)) return;
+    setDeletingRepositoryID(repo.id);
+    try {
+      await repositoryService.deleteRepository(repo.id);
+      toast(`Repository ${repo.full_name} 삭제 완료`, "success");
+      await loadAll();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      if (message.includes("repository_has_links") || message.includes("409")) {
+        toast("이 저장소는 application/project 에 연결되어 있어 먼저 unlink 가 필요합니다.", "error");
+      } else {
+        toast(toUserErrorMessage(err, "Repository 삭제에 실패했습니다."), "error");
+      }
+    } finally {
+      setDeletingRepositoryID(null);
     }
   };
 
@@ -407,9 +435,37 @@ export default function AdminCatalogPage() {
       )}
 
       {!error && activeTab === "repositories" && (
-        filteredRepositories.length === 0 ? (
-          <PageEmpty message="조회된 Repository 가 없습니다." />
-        ) : (
+        <>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Filter</span>
+            <button
+              onClick={() => setRepositoryFilter("all")}
+              data-testid="catalog-repo-filter-all"
+              className={cn(
+                "rounded-xl border px-3 py-1.5 text-xs font-black uppercase tracking-widest",
+                repositoryFilter === "all"
+                  ? "border-primary/40 bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground hover:bg-muted/30",
+              )}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setRepositoryFilter("drafts")}
+              data-testid="catalog-repo-filter-drafts"
+              className={cn(
+                "rounded-xl border px-3 py-1.5 text-xs font-black uppercase tracking-widest",
+                repositoryFilter === "drafts"
+                  ? "border-primary/40 bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground hover:bg-muted/30",
+              )}
+            >
+              Drafts only
+            </button>
+          </div>
+          {filteredRepositories.length === 0 ? (
+            <PageEmpty message={repositoryFilter === "drafts" ? "Draft 상태의 Repository 가 없습니다." : "조회된 Repository 가 없습니다."} />
+          ) : (
           <div className="glass-card overflow-hidden border border-border/60">
             <table className="w-full text-sm">
               <thead className="bg-muted/30 text-xs uppercase tracking-widest text-muted-foreground">
@@ -463,6 +519,15 @@ export default function AdminCatalogPage() {
                         >
                           Add Project
                         </button>
+                        {r.status === "draft" && (
+                          <button
+                            onClick={() => setEditingRepository(r)}
+                            data-testid={`catalog-repo-edit-${r.id}`}
+                            className="rounded-lg border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-widest hover:bg-muted/30"
+                          >
+                            Edit
+                          </button>
+                        )}
                         <button
                           onClick={() => void handleRequestPublish(r)}
                           disabled={r.status !== "draft" || publishingRepositoryID === r.id}
@@ -471,10 +536,12 @@ export default function AdminCatalogPage() {
                           Publish
                         </button>
                         <button
-                          onClick={() => toast("Repository 삭제는 연결된 SCM에서 관리됩니다.", "warning")}
-                          className="rounded-lg border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-widest hover:bg-muted/30"
+                          onClick={() => void handleDeleteRepository(r)}
+                          disabled={r.status !== "draft" || deletingRepositoryID === r.id}
+                          data-testid={`catalog-repo-delete-${r.id}`}
+                          className="rounded-lg border border-destructive/40 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-destructive hover:bg-destructive/10 disabled:opacity-50"
                         >
-                          Delete
+                          {deletingRepositoryID === r.id ? "Deleting..." : "Delete"}
                         </button>
                       </div>
                     </td>
@@ -483,8 +550,9 @@ export default function AdminCatalogPage() {
               </tbody>
             </table>
           </div>
-        )
-      )}
+        )}
+      </>
+    )}
 
       {!error && activeTab === "projects" && (
         filteredProjects.length === 0 ? (
@@ -591,6 +659,17 @@ export default function AdminCatalogPage() {
               toast(`Repository draft ${repository.full_name} created`, "success");
               setRepositories((prev) => [repository, ...prev.filter((item) => item.id !== repository.id)]);
               setShowRepositoryModal(false);
+              void loadAll();
+            }}
+          />
+        )}
+        {editingRepository && (
+          <RepositoryEditModal
+            repository={editingRepository}
+            onClose={() => setEditingRepository(null)}
+            onUpdated={(repository) => {
+              toast(`Repository ${repository.full_name} updated`, "success");
+              setEditingRepository(null);
               void loadAll();
             }}
           />

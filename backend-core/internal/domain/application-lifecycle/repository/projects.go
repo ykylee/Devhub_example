@@ -416,6 +416,154 @@ WHERE r.id = $1`
 	return repo, nil
 }
 
+// UpdateRepositoryDraft — PATCH semantic 부분 갱신. status='draft' 한정 —
+// published/active 는 SCM 이 source of truth. unique violation → ErrConflict.
+// slug 변경 시 동일 tx 에서 application_repositories.repo_full_name cascade
+// update (link 보존) + owner_login 재계산 (create path 의 split_part 와 동일).
+func (r *ApplicationRepository) UpdateRepositoryDraft(ctx context.Context, repositoryID int64, params store.RepositoryUpdateDraftParams) (domain.Repository, error) {
+	// ProviderID nil/empty/uuid 3-way 구분을 두 query param 으로 분리.
+	setProvider := params.ProviderID != nil
+	providerVal := ""
+	if setProvider {
+		providerVal = strings.TrimSpace(*params.ProviderID)
+	}
+
+	tx, err := r.store.Pool().Begin(ctx)
+	if err != nil {
+		return domain.Repository{}, fmt.Errorf("begin update draft tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	// 현재 full_name 조회 — slug 변경 여부 + owner_login 유지를 위해.
+	var currentFullName string
+	if err := tx.QueryRow(ctx, `SELECT full_name FROM repositories WHERE id = $1 FOR UPDATE`, repositoryID).Scan(&currentFullName); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.Repository{}, store.ErrNotFound
+		}
+		return domain.Repository{}, fmt.Errorf("load current slug: %w", err)
+	}
+
+	const updateQuery = `
+UPDATE repositories
+SET
+	name = COALESCE($2, name),
+	full_name = COALESCE($3, full_name),
+	owner_login = CASE
+		WHEN $3 IS NOT NULL THEN NULLIF(split_part(COALESCE($3, full_name), '/', 1), '')
+		ELSE owner_login
+	END,
+	provider_id = CASE
+		WHEN $4::boolean THEN NULLIF($5, '')::uuid
+		ELSE provider_id
+	END,
+	updated_at = NOW()
+WHERE id = $1 AND repository_status = 'draft'
+RETURNING
+	id,
+	COALESCE(gitea_repository_id, 0),
+	full_name,
+	COALESCE(owner_login, ''),
+	name,
+	COALESCE(clone_url, ''),
+	COALESCE(html_url, ''),
+	COALESCE(default_branch, ''),
+	private,
+	COALESCE(repository_status, 'draft'),
+	COALESCE(provider_id::text, ''),
+	publish_requested_at,
+	published_at,
+	updated_at,
+	COALESCE(source, 'scm'),
+	COALESCE(description, '')`
+
+	var repo domain.Repository
+	if err := tx.QueryRow(ctx, updateQuery,
+		repositoryID,
+		params.Key,
+		params.Slug,
+		setProvider,
+		providerVal,
+	).Scan(
+		&repo.ID,
+		&repo.GiteaID,
+		&repo.FullName,
+		&repo.OwnerLogin,
+		&repo.Name,
+		&repo.CloneURL,
+		&repo.HTMLURL,
+		&repo.DefaultBranch,
+		&repo.Private,
+		&repo.Status,
+		&repo.ProviderID,
+		&repo.PublishRequestedAt,
+		&repo.PublishedAt,
+		&repo.UpdatedAt,
+		&repo.Source,
+		&repo.Description,
+	); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.Repository{}, store.ErrNotFound
+		}
+		if store.IsUniqueViolation(err) {
+			return domain.Repository{}, store.ErrConflict
+		}
+		return domain.Repository{}, fmt.Errorf("update repository draft: %w", err)
+	}
+
+	// slug 변경 시 application_repositories link cascade update.
+	// 새 slug 가 기존 다른 application 의 link 와 충돌하면 unique violation → ErrConflict.
+	if params.Slug != nil && *params.Slug != currentFullName {
+		if _, err := tx.Exec(ctx,
+			`UPDATE application_repositories SET repo_full_name = $1 WHERE repo_full_name = $2`,
+			*params.Slug, currentFullName,
+		); err != nil {
+			if store.IsUniqueViolation(err) {
+				return domain.Repository{}, store.ErrConflict
+			}
+			return domain.Repository{}, fmt.Errorf("cascade update application_repositories: %w", err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return domain.Repository{}, fmt.Errorf("commit update draft tx: %w", err)
+	}
+	// provider_key 는 integration_providers JOIN derive — 별도 조회 필요.
+	return r.GetRepositoryByID(ctx, repo.ID)
+}
+
+// DeleteRepository — status='draft' 한정. published/active 는 SCM 이 source of
+// truth. application_repositories / project_repositories 참조 시 ErrConflict.
+func (r *ApplicationRepository) DeleteRepository(ctx context.Context, repositoryID int64) error {
+	const fkCheck = `
+SELECT EXISTS(
+    SELECT 1 FROM application_repositories ar
+    WHERE ar.repo_full_name = (SELECT full_name FROM repositories WHERE id = $1)
+) OR EXISTS(
+    SELECT 1 FROM project_repositories pr
+    WHERE pr.repository_id = $1
+)`
+
+	var hasLinks bool
+	if err := r.store.Pool().QueryRow(ctx, fkCheck, repositoryID).Scan(&hasLinks); err != nil {
+		return fmt.Errorf("check repository links: %w", err)
+	}
+	if hasLinks {
+		return store.ErrConflict
+	}
+
+	tag, err := r.store.Pool().Exec(ctx,
+		`DELETE FROM repositories WHERE id = $1 AND repository_status = 'draft'`,
+		repositoryID,
+	)
+	if err != nil {
+		return fmt.Errorf("delete repository: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return store.ErrNotFound
+	}
+	return nil
+}
+
 // CreateProjectWithRepositoryPayload creates the project — optionally creating and
 // linking a companion repository — in ONE transaction.
 func (r *ApplicationRepository) CreateProjectWithRepositoryPayload(ctx context.Context, project domain.Project, repositoryIDs []int64, repoPayload *RepositoryCreatePayload) (domain.Project, error) {
