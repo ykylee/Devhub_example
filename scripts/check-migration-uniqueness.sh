@@ -31,24 +31,57 @@ if [ ${#invalid_files[@]} -ne 0 ]; then
   exit 1
 fi
 
-# 2. 중복 버전 prefix 검증 (up.sql 기준)
-duplicates=$(
-  find "$MIGRATIONS_DIR" -maxdepth 1 -type f -name '*.up.sql' -print \
+# 2. 중복 버전 prefix 검증 (up.sql + down.sql 모두)
+check_duplicates() {
+  local suffix="$1"
+  local label="$2"
+  local duplicates
+  duplicates=$(
+    find "$MIGRATIONS_DIR" -maxdepth 1 -type f -name "*.$suffix" -print \
+      | awk -F'/' '{print $NF}' \
+      | awk -F'_' '{print $1}' \
+      | sort \
+      | uniq -d
+  )
+  if [ -n "$duplicates" ]; then
+    echo "::error::❌ Error: Duplicate migration versions in .$suffix files detected!"
+    echo "$duplicates" | while read -r prefix; do
+      echo "  - Version prefix '$prefix' is used by multiple $label files:"
+      find "$MIGRATIONS_DIR" -maxdepth 1 -type f -name "${prefix}_*.$suffix" -print | sed 's/^/    /'
+    done
+    echo "::error::See docs/setup/migration_000021_conflict_resolution.md for resolution SOP."
+    exit 1
+  fi
+}
+
+check_duplicates "up.sql" ".up.sql"
+check_duplicates "down.sql" ".down.sql"
+
+# 3. 순차 번호 갭 탐지 (warning, error 아님 — 스쿼시/백필 시 의도적 갭 가능)
+all_versions=$(
+  find "$MIGRATIONS_DIR" -maxdepth 1 -type f \( -name '*.up.sql' -o -name '*.down.sql' \) -print \
     | awk -F'/' '{print $NF}' \
     | awk -F'_' '{print $1}' \
-    | sort \
-    | uniq -d
+    | sort -u \
+    | sort -n
 )
 
-if [ -n "$duplicates" ]; then
-  echo "::error::❌ Error: Duplicate migration versions detected!"
-  echo "$duplicates" | while read -r prefix; do
-    echo "  - Version prefix '$prefix' is used by multiple migration files:"
-    find "$MIGRATIONS_DIR" -maxdepth 1 -type f -name "${prefix}_*.up.sql" -print | sed 's/^/    /'
-  done
-  echo "::error::See docs/setup/migration_000021_conflict_resolution.md for resolution SOP."
-  exit 1
-fi
+prev=""
+gap_found=false
+while read -r v; do
+  if [ -n "$prev" ]; then
+    expected=$((10#$prev + 1))
+    actual=$((10#$v))
+    if [ "$actual" -ne "$expected" ] 2>/dev/null; then
+      if [ "$gap_found" = false ]; then
+        echo "::warning::⚠️  Sequential version gap detected (may be intentional after squash/backfill)"
+        gap_found=true
+      fi
+      echo "  - Gap: $prev → $v (expected $expected)"
+    fi
+  fi
+  prev="$v"
+done <<< "$all_versions"
 
 echo "✅ All migration prefixes are valid and unique!"
 exit 0

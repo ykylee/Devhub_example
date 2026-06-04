@@ -1,0 +1,34 @@
+{
+  "schema_version": "1",
+  "branch": "opencode/work_260604-k-v1-harden",
+  "agent": "opencode",
+  "agent_label": "Sisyphus",
+  "model": "MiniMax-M3",
+  "status": "in_progress",
+  "summary": "v1.0 마무리 5종 병렬 작업. P0-1(accounts 폐기) 확인 완료 ✅. N-10 follow-up(E2E TC) 확인 완료 ✅. 진행중: governance docs sync + N-5 CI guard 강화 + traceability 정합",
+  "started_at": "2026-06-04T08:20:00Z",
+  "updated_at": "2026-06-04T08:20:00Z",
+  "scope": {
+    "in": [
+      "Governance 문서 sync (main flat state.json/work_backlog/handoff 갱신)",
+      "N-5 CI guard 강화 (migration prefix uniqueness + sequential gap)",
+      "Traceability report 정합 (report.md changelog + §5 gap)",
+      "P0-1 ADR-0020 sub-carve B 완료 확인",
+      "N-10 P1 follow-up 완료 확인"
+    ],
+    "out": [
+      "Backend 기능 변경 (P0-1은 이미 완료)",
+      "E2E 테스트 (N-10은 이미 완료)",
+      "다른 sprint 의존 작업"
+    ]
+  },
+  "artifacts": {
+    "pr_url": null,
+    "branch_pushed": false
+  },
+  "source_of_truth": {
+    "project_profile_path": "ai-workflow/memory/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/opencode/work_260604-k-v1-harden/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/opencode/work_260604-k-v1-harden/work_backlog.md"
+  }
+}
