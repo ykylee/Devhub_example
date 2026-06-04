@@ -87,8 +87,14 @@ test.describe("RBAC data scope + logout (N-10 P1 follow-up)", () => {
     const response = await responsePromise;
     expect(response.status()).toBe(403);
 
-    const body = (await response.json()) as { code?: string; status?: string; error?: { code?: string } };
+    const rawText = await response.text();
+    let body: { code?: string; status?: string; error?: { code?: string } } = {};
+    try {
+      body = rawText ? JSON.parse(rawText) : {};
+    } catch {
+      body = {};
+    }
     const code = body?.code ?? body?.error?.code;
-    expect(code, `expected standardized auth.* code, got body=${JSON.stringify(body)}`).toMatch(/^auth_/);
+    expect(code, `expected standardized auth.* code, got body=${rawText}`).toMatch(/^auth_/);
   });
 });
