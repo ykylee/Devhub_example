@@ -181,9 +181,14 @@ export default function ApplicationDetailPage() {
   const criticalWarnings = dashboard.metrics_overview.critical_warning_count;
   const gateFailures = dashboard.quality_metrics.unresolved_issues.blocker;
   const buildStatus = dashboard.metrics_overview.target_branch_build_status;
-  // REQ-FR-APPDASH-001 — 단순 % 보다 broken/red 상태 즉시 표기. buildStatus 는
-  // backend dashboard 응답의 target_branch_build_status ("healthy"|"broken"|"unknown").
-  const lastBuildView = platformBuildStatusView(buildStatus);
+
+  const activeProjectsCount = dashboard.projects_progress.filter((p) => p.status === "active").length;
+  const totalProjectsCount = dashboard.projects_progress.length;
+
+  const pendingRequestsCount = dashboard.linked_dev_requests.filter(
+    (dr) => dr.status === "pending" || dr.status === "in_review"
+  ).length;
+  const totalRequestsCount = dashboard.linked_dev_requests.length;
 
   return (
     <div className="space-y-8 pb-20 px-4 md:px-8">
@@ -228,10 +233,38 @@ export default function ApplicationDetailPage() {
       {/* Overview stats layout */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: "Last Build", value: lastBuildView.label, icon: Activity, color: lastBuildView.tone === "negative" ? "text-rose-500" : lastBuildView.tone === "positive" ? "text-emerald-500" : "text-muted-foreground", trend: "Latest run", bg: lastBuildView.tone === "negative" ? "bg-rose-500/10" : "bg-emerald-500/10" },
-          { label: "Quality Score", value: `${qualityScore} / 5.0`, icon: ShieldCheck, color: "text-blue-500", trend: "Standard A+", bg: "bg-blue-500/10" },
-          { label: "Critical Warnings", value: String(criticalWarnings), icon: Zap, color: criticalWarnings > 0 ? "text-amber-500" : "text-emerald-500", trend: "Governance", bg: "bg-amber-500/10" },
-          { label: "Gate Failures", value: String(gateFailures), icon: Globe, color: gateFailures > 0 ? "text-rose-500" : "text-emerald-500", trend: "Quality Gate", bg: "bg-rose-500/10" },
+          { 
+            label: "Active Projects", 
+            value: `${activeProjectsCount} / ${totalProjectsCount}`, 
+            icon: Briefcase, 
+            color: activeProjectsCount > 0 ? "text-primary" : "text-muted-foreground", 
+            trend: "Sub-projects", 
+            bg: "bg-primary/10" 
+          },
+          { 
+            label: "Platform Quality", 
+            value: `${qualityScore} / 5.0`, 
+            icon: ShieldCheck, 
+            color: Number(qualityScore) >= 4.0 ? "text-emerald-500" : Number(qualityScore) >= 3.0 ? "text-blue-500" : "text-rose-500", 
+            trend: "Governance Score", 
+            bg: Number(qualityScore) >= 4.0 ? "bg-emerald-500/10" : Number(qualityScore) >= 3.0 ? "bg-blue-500/10" : "bg-rose-500/10" 
+          },
+          { 
+            label: "Pending Requests", 
+            value: `${pendingRequestsCount} / ${totalRequestsCount}`, 
+            icon: Layers, 
+            color: pendingRequestsCount > 0 ? "text-amber-500" : "text-emerald-500", 
+            trend: "DREQ Backlog", 
+            bg: pendingRequestsCount > 0 ? "bg-amber-500/10" : "bg-emerald-500/10" 
+          },
+          { 
+            label: "Linked Components", 
+            value: String(repositories.length), 
+            icon: GitBranch, 
+            color: "text-info", 
+            trend: "Repositories", 
+            bg: "bg-muted/30" 
+          },
         ].map((stat, i) => (
           <motion.div 
             key={stat.label}
@@ -260,121 +293,46 @@ export default function ApplicationDetailPage() {
       {/* Main dashboard body */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Left Column: Build Stability & Quality Analysis */}
+        {/* Left Column: Projects & Roadmap & Dev Requests */}
         <div className="lg:col-span-2 space-y-8">
           
-          {/* Target Branch Build Status */}
-          <section className="glass-card p-8 relative overflow-hidden">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-                <GitBranch className={cn("w-5 h-5", buildStatus === "broken" ? "text-rose-500 animate-pulse" : buildStatus === "healthy" ? "text-emerald-500" : "text-muted-foreground")} /> 
-                Target Branch Build Status
-              </h3>
-              <Badge variant={buildStatus === "broken" ? "danger" : buildStatus === "healthy" ? "success" : "secondary"}>
-                {buildStatus === "broken" ? "Broken" : buildStatus === "healthy" ? "Healthy" : "없음"}
-              </Badge>
-            </div>
-
-            {buildStatus === "broken" ? (
-              <div className="space-y-4">
-                <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="text-sm font-bold">Target branches are broken!</h4>
-                    <p className="text-xs text-muted-foreground mt-1">Please inspect failed build runs below and fix the issues immediately to resume deployment pipeline.</p>
-                  </div>
-                </div>
-                <div className="divide-y divide-white/5 border border-white/10 dark:border-white/5 rounded-2xl overflow-hidden bg-white/5">
-                  {dashboard.build_failures.map((fail, index) => (
-                    <div key={index} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-white/5 transition-colors">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs font-bold text-foreground">{fail.repo_slug}</span>
-                          <Badge variant="secondary" className="text-[10px] scale-90">{fail.branch}</Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground font-mono truncate max-w-md">{fail.error_snippet}</p>
-                      </div>
-                      <div className="flex items-center gap-3 self-end sm:self-auto">
-                        <span className="text-[10px] text-muted-foreground font-mono">#{fail.build_number}</span>
-                        <a 
-                          href={fail.log_url}
-                          className="px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500 text-rose-500 hover:text-white font-bold text-xs flex items-center gap-1.5 transition-all"
-                        >
-                          <Play className="w-3.5 h-3.5 fill-current" /> Log URL
-                        </a>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="py-10 text-center flex flex-col items-center justify-center gap-3">
-                <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500">
-                  <Sparkles className="w-8 h-8" />
-                </div>
-                <h4 className="text-md font-bold text-foreground">All Branches Healthy 🟢</h4>
-                <p className="text-xs text-muted-foreground max-w-sm">There are no currently failing build runs on primary SCM integration lines.</p>
-              </div>
-            )}
-          </section>
-
-          {/* SCM History & Build Trend (Recharts Area Chart) */}
-          <section className="glass-card p-8">
-            <h3 className="text-md font-bold text-foreground mb-6 flex items-center gap-2">
-              <Activity className="w-4 h-4 text-primary" /> Build & Quality 7-Day Trend
-            </h3>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={dashboard.history_trend}>
-                  <defs>
-                    <linearGradient id="colorAvg" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 10, fontWeight: 700 }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 10, fontWeight: 700 }} />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: 'var(--card)', borderRadius: '16px', border: '1px solid var(--border)' }}
-                  />
-                  <Area type="monotone" dataKey="avg_duration_seconds" stroke="var(--primary)" fillOpacity={1} fill="url(#colorAvg)" strokeWidth={3} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </section>
-
           {/* Linked Projects (Milestones) Progress */}
           <section className="glass-card p-8">
-            <h3 className="text-lg font-bold text-foreground mb-6 flex items-center gap-2">
-              <Layers className="w-5 h-5 text-muted-foreground" /> Linked Projects Roadmap
-            </h3>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                <Layers className="w-5 h-5 text-primary" /> Sub-Project Delivery & Roadmap
+              </h3>
+              <Badge variant="secondary">{totalProjectsCount} Projects</Badge>
+            </div>
             <div className="space-y-6">
               {dashboard.projects_progress.map((project) => (
-                <div key={project.project_id} className="p-5 rounded-2xl border border-white/10 dark:border-white/5 bg-white/5 backdrop-blur-md space-y-4">
-                  <div className="flex items-center justify-between">
+                <div key={project.project_id} className="p-6 rounded-2xl border border-white/10 dark:border-white/5 bg-white/5 backdrop-blur-md space-y-4 hover:border-primary/20 hover:bg-muted/10 transition-all duration-300 group">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                      <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
-                        {project.name}
-                        <Badge variant="secondary" className="scale-90 font-mono">{project.key}</Badge>
-                      </h4>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">Due: {project.due_date ? new Date(project.due_date).toLocaleDateString() : "N/A"}</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="text-base font-bold text-foreground group-hover:text-primary transition-colors">{project.name}</h4>
+                        <Badge variant="secondary" className="font-mono text-xs">{project.key}</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5" /> Due: {project.due_date ? new Date(project.due_date).toLocaleDateString() : "N/A"}
+                      </p>
                     </div>
                     <Badge
-                      className="text-xs"
+                      className="text-xs self-start sm:self-auto py-1 px-3"
                       variant={project.risk_level === "At Risk" ? "danger" : project.risk_level === "Warning" ? "warning" : "success"}
                     >
                       {project.risk_level} (D-{project.d_day})
                     </Badge>
                   </div>
                   {/* Custom Story Point Progress Bar */}
-                  <div>
-                    <div className="flex justify-between text-[10px] font-black text-muted-foreground uppercase mb-1.5 tracking-wider">
-                      <span>Milestone Progress</span>
-                      <span>{project.progress_percent}%</span>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-[10px] font-black text-muted-foreground uppercase tracking-wider">
+                      <span>Milestone Delivery Progress</span>
+                      <span className="font-mono text-xs text-primary">{project.progress_percent}%</span>
                     </div>
                     <div className="w-full h-3 bg-white/10 dark:bg-black/20 rounded-full overflow-hidden">
                       <div 
-                        className="h-full bg-primary rounded-full transition-all duration-500" 
+                        className="h-full bg-primary rounded-full transition-all duration-500 ease-out" 
                         style={{ width: `${project.progress_percent}%` }}
                       />
                     </div>
@@ -383,15 +341,97 @@ export default function ApplicationDetailPage() {
               ))}
               {dashboard.projects_progress.length === 0 && (
                 <div className="py-12 text-center text-muted-foreground text-sm">
-                  No active projects currently linked.
+                  No active projects currently linked to this platform.
                 </div>
               )}
             </div>
           </section>
 
+          {/* Linked DREQs & Promotion Actions */}
+          <section className="glass-card p-8">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                <Briefcase className="w-5 h-5 text-primary" /> Development Requests (DREQ) Backlog
+              </h3>
+              <Badge variant="secondary">{dashboard.linked_dev_requests.length} Requests</Badge>
+            </div>
+            <div className="space-y-4">
+              {dashboard.linked_dev_requests.map((dreq) => (
+                <div key={dreq.dreq_id} className="p-5 rounded-2xl border border-white/10 dark:border-white/5 bg-white/5 backdrop-blur-md flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-white/10 transition-all duration-200">
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-bold text-foreground">{dreq.title}</h4>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground font-mono">
+                      <span>ID: {dreq.dreq_id}</span>
+                      <span>•</span>
+                      <span>Created: {new Date(dreq.created_at).toLocaleDateString()}</span>
+                      {dreq.assignee_display_name && (
+                        <>
+                          <span>•</span>
+                          <span>Assignee: {dreq.assignee_display_name}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 self-end sm:self-auto">
+                    <Badge variant={dreq.status === "pending" ? "warning" : "primary"}>{dreq.status}</Badge>
+                    {(dreq.status === "pending" || dreq.status === "in_review") && (
+                      <button 
+                        onClick={() => handlePromoteClick(dreq.dreq_id, dreq.title)}
+                        className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-bold text-xs flex items-center gap-1.5 hover:opacity-90 transition-all shadow-md group"
+                      >
+                        <Rocket className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                        Promote Project
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {dashboard.linked_dev_requests.length === 0 && (
+                <div className="py-12 text-center text-muted-foreground text-sm">
+                  No development requests mapped to this platform.
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* SCM History & Trend (Recharts Area Chart) */}
+          <section className="glass-card p-8">
+            <h3 className="text-md font-bold text-foreground mb-6 flex items-center gap-2">
+              <Activity className="w-4 h-4 text-primary" /> Platform Quality & Activity Trend
+            </h3>
+            {dashboard.history_trend && dashboard.history_trend.length > 0 ? (
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={dashboard.history_trend}>
+                    <defs>
+                      <linearGradient id="colorAvg" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 10, fontWeight: 700 }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 10, fontWeight: 700 }} />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: 'var(--card)', borderRadius: '16px', border: '1px solid var(--border)' }}
+                    />
+                    <Area type="monotone" dataKey="quality_score" stroke="var(--primary)" fillOpacity={1} fill="url(#colorAvg)" strokeWidth={3} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="py-10 text-center flex flex-col items-center justify-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-muted/20 border border-border flex items-center justify-center text-muted-foreground">
+                  <Activity className="w-6 h-6" />
+                </div>
+                <h4 className="text-sm font-bold text-foreground">Trend History Unavailable</h4>
+                <p className="text-xs text-muted-foreground max-w-xs">Quality and build duration trends will be populated once daily metrics aggregation is active.</p>
+              </div>
+            )}
+          </section>
+
         </div>
 
-        {/* Right Column: Quality Metrics & Dev Requests */}
+        {/* Right Column: Quality Metrics & Repositories */}
         <div className="space-y-8">
           
           {/* Quality Analysis Details */}
@@ -418,39 +458,6 @@ export default function ApplicationDetailPage() {
                 ))}
               </div>
               <p className="text-[10px] text-muted-foreground text-center italic">{dashboard.quality_metrics.comment}</p>
-            </div>
-          </section>
-
-          {/* Linked DREQs & Promotion Actions */}
-          <section className="glass-card p-8">
-            <h3 className="text-md font-bold text-foreground mb-6 flex items-center gap-2">
-              <Briefcase className="w-4 h-4 text-primary" /> Dev Requests (DREQ)
-            </h3>
-            <div className="space-y-4">
-              {dashboard.linked_dev_requests.map((dreq) => (
-                <div key={dreq.dreq_id} className="p-4 rounded-xl border border-white/5 bg-white/5 backdrop-blur-md flex items-center justify-between gap-4">
-                  <div className="min-w-0">
-                    <h4 className="text-xs font-bold text-foreground truncate">{dreq.title}</h4>
-                    <p className="text-[10px] text-muted-foreground mt-0.5 font-mono">{dreq.dreq_id}</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Badge variant={dreq.status === "pending" ? "warning" : "primary"}>{dreq.status}</Badge>
-                    {(dreq.status === "pending" || dreq.status === "in_review") && (
-                      <button 
-                        onClick={() => handlePromoteClick(dreq.dreq_id, dreq.title)}
-                        className="p-1.5 rounded-lg bg-primary/20 hover:bg-primary text-primary hover:text-white transition-all group"
-                      >
-                        <Rocket className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-              {dashboard.linked_dev_requests.length === 0 && (
-                <div className="py-8 text-center text-muted-foreground text-xs">
-                  No development requests mapped to this platform.
-                </div>
-              )}
             </div>
           </section>
 
