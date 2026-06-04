@@ -4,7 +4,7 @@
 - 범위: 1차 릴리즈에 포함될 기능 scope, 제외 기능, 잔여 carve 우선순위, 신규 마일스톤(M-v1.0, M-v1.1, M-v2), GitHub project + milestone 등록 plan, UI 검증 방식.
 - 대상 독자: 프로젝트 리드, 모든 워커 (Claude, Codex, Gemini, OpenCode), 후속 작업자.
 - 상태: draft
-- 최종 수정일: 2026-06-04 (**OpenCode 워커 부트스트랩** — §5.1 분담 표에 OpenCode 행 추가 (영역 TBD, bootstrap), §6.3 label 에 `worker/opencode` 추가, §9 변경 이력 row 추가. 출처: `opencode/work_260604-a-opencode-workflow-bootstrap`)
+- 최종 수정일: 2026-06-04 (**OpenCode 워커 부트스트랩 + §1.4 본문 정의** — §5.1 분담 표에 OpenCode 행 추가 (Lane 1: workflow curation, Lane 2: cross-cutting validation, Lane 3: AI/ML prep), §6.3 label 에 `worker/opencode` 추가, §9 변경 이력 row 추가. 출처: `opencode/work_260604-a-opencode-workflow-bootstrap` + `opencode/work_260604-b-opencode-areas`)
 - 직전 결정 근거: 2026-05-27 (**코드베이스 스냅샷 정합** — Onboarding IMPL carve A/B/C/D 전부 완료 (P2-8..12 ✅, PR #278/#288/#289/#290/#291) + lazy_auto_create 폐기 + v1.1 영역 작업 일부 v1.0 전 선행 + §3.5 N/X/E 백로그 추가. 분석 근거 [docs/analysis/2026-05-27-codebase-snapshot](../analysis/2026-05-27-codebase-snapshot/README.md))
 - 결정 근거 sprint: `claude/work_260520-f-roadmap` (본 문서)
 - 관련 문서: [통합 개발 로드맵](../development_roadmap.md) (M0~M6 historical), [requirements](../requirements.md), [architecture](../architecture.md), [ADR-0019 Keycloak](../adr/0019-keycloak-only-idp.md), [ADR-0020 계정/사용자 책임 경계](../adr/0020-account-user-management-boundary.md), [traceability matrix](../traceability/report.md), [account_user_management_redesign Phase 1/2/3](./account_user_management_redesign.md), [keycloak_operations](../setup/keycloak_operations.md).
@@ -261,7 +261,7 @@ E-1 Realtime event publish(RM-M4-01) · E-2 WS replay/필터(RM-M4-02) · E-3 AI
 | **Claude** | **Backend (Go)** + **Design (ADR + docs)** | 큰 단위 design + 분담된 backend 구현 + 4단계 self-review + codex review 응답 | 30+ sprint, 60+ PR |
 | **Codex** | **Infra (Docker/Nginx/CI) + Security + Build** | docker-compose 패키징 + GitHub Actions + Keycloak SPI infra + e2e CI 정합. 외부 리뷰 (P1/P2 inline) 가장 활발 | 7+ PR (packaging + reverse proxy + Keycloak refactor + CI sync guard) |
 | **Gemini** | **Frontend + UX + Test fixtures + Design polish** | Next.js page + 컴포넌트 + e2e Playwright + theme + dashboard redesign | 5+ PR (frontend redesign, dashboard, FilterBar standardization, semantic theme) |
-| **OpenCode** (Sisyphus / MiniMax-M3) | **TBD (governance bootstrap 진행 중)** | 메인 에이전트 조정/통합 + bounded scope 서브에이전트 위임 + Oracle escalate. 영역/인계 SOP 는 §1.4 본문 채우기 sprint 에서 확정 | 0 PR (bootstrap sprint) |
+| **OpenCode** (Sisyphus / MiniMax-M3) | **Workflow curation + Cross-cutting validation + AI/ML prep** | 메인 에이전트 조정/통합 + 서브에이전트 위임 + Oracle escalate. Lane 1 = workflow/governance 정합, Lane 2 = multi-layer 회귀 검증 + test infra, Lane 3 = `backend-ai/` Python + gRPC (v1.1/v2 prep) | 0 PR (bootstrap sprint open) |
 
 ### 5.2 v1.0 sprint 별 워커 분담 권장
 
@@ -376,3 +376,4 @@ test.describe("UI screenshot capture", () => {
 | 2026-05-20 | **P3-12 Sign Up 영구 취소** — 사용자 결정. DevHub 가 Keycloak admin 권한이 없는 외부 IdP 운영 시나리오 (ADR-0020 결정 A 정합). user 생성은 IdP 팀 admin console 또는 HRDB ETL push 책임. §1.2 제외 기능 표 분류 'v1.1 carve' → 'permanently cancelled' + §3.4 P3-12 strikethrough + §5.2 워커 분담 표 strikethrough + §4.2 v1.1 milestone 본문 정정 + issue #235 closed | `claude/work_260520-i-cancel-signup` |
 | 2026-06-01 | **통합 테스트 결과 반영** — §3.1 P0-4 (CI Run API) 신규 P0 carve 추가 + §3.2 P1-6 (Sign-out) P1-7 (Build-runs) 신규 P1 carve 추가 + §3.5 N-7~N-10 신규 도출 백로그 반영 + §4.1 sprint 구성 P0-4 포함 재조정 + §4.2 v1.1 milestone 신규 P1 항목 추가 + §7 sprint 진입 순서 갱신. 출처: `deepseek/test-scenarios-20260601` 브랜치 통합 테스트 | `deepseek/test-scenarios-20260601` |
 | 2026-06-04 | **OpenCode 워커 부트스트랩** — §5.1 분담 표에 OpenCode 행 추가 (영역 TBD, bootstrap) + §6.3 label 에 `worker/opencode` 추가 + 헤더 메타의 워커 목록/대상 독자 갱신 | `opencode/work_260604-a-opencode-workflow-bootstrap` |
+| 2026-06-04 | **OpenCode Lane 정의** — §5.1 OpenCode 행의 TBD 를 3-lane (Workflow curation / Cross-cutting validation / AI/ML prep) 으로 확정 + §9 본 row 직전 | `opencode/work_260604-b-opencode-areas` |

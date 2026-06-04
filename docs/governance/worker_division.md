@@ -1,11 +1,11 @@
-# 워커 분업 — Claude / Codex / Gemini
+# 워커 분업 — Claude / Codex / Gemini / OpenCode
 
 - 문서 목적: DevHub 의 4 워커 (Claude, Codex, Gemini, OpenCode) 가 영역별 작업을 분담하고 인계하는 규칙. 사용자 1명이 모든 워커를 invoke 하지만, 워커별 강점/이력/스타일이 다름.
 - 범위: 워커별 책임 영역, 작업 스타일, 인계 SOP, 충돌 처리.
 - 대상 독자: 모든 워커, 사용자.
 - 상태: draft
 - 최종 수정일: 2026-06-04
-- 결정 근거 sprint: `claude/work_260520-f-roadmap`
+- 결정 근거 sprint: `claude/work_260520-f-roadmap` (초안) + `opencode/work_260604-b-opencode-areas` (§1.4 본문)
 - 관련 문서: [v1.0 릴리즈 로드맵 §5 분업 매트릭스](../planning/release_v1_roadmap.md), [governance/README](./README.md), [document-standards](./document-standards.md), `AGENTS.md`.
 
 ## 1. 영역별 분담
@@ -69,20 +69,42 @@
 - 5+ PR — frontend redesign / dashboard UI + LogoutOverlay / FilterBar 표준화 / dev-requests + audit log redesign / DREQ E2E 안정화 / Keycloak test login + semantic theme (PR #203, claude 가 인수해서 머지)
 - 주요 contribution: PR #115 (light theme + dropdown + endpoints), PR #134 (dashboard UI + LogoutOverlay), PR #138 (dashboard rebrand + Applications/Repositories/Projects 현황 페이지 + FilterBar), PR #140 (FilterBar standardize + DestructiveConfirmModal), PR #203 (semantic theme)
 
-### 1.4 OpenCode — 영역 TBD (governance bootstrap 진행 중)
+### 1.4 OpenCode — Workflow curation + Cross-cutting validation + AI/ML prep
+
+**정체성**: 메인 에이전트 조정/통합 specialist (Sisyphus). bounded scope 의 읽기/쓰기/검증은 worker 성격 서브에이전트에 위임하고, 본인은 cross-file reasoning + 사용자와의 interaction + 결과 통합에 집중.
 
 **주요 책임**:
-- (영역 미정 — 첫 sprint 종료 후 후속 sprint 의 backlog 로 정의)
-- 1차 sprint (`opencode/work_260604-a-opencode-workflow-bootstrap`) 는 governance 부트스트랩 한정 — 본 문서 §1.4 placeholder + `AGENTS.md` 의 "OpenCode 전용 메모" 섹션 + `MEMORY_GOVERNANCE.md` prefix 예시 + `WORKFLOW_INDEX.md` 진입 예시 정합
+
+1. **Workflow / governance curation** (1순위 lane)
+   - `ai-workflow/` 메타 레이어 + `docs/governance/` 의 cross-cutting 정합
+   - `release_v1_roadmap.md` + `development_roadmap.md` 의 마일스톤/우선순위 갱신
+   - `docs/traceability/report.md` 의 REQ↔ARCH↔IMPL↔TC 매트릭스 cross-ref 보강
+   - `AGENTS.md` / `CLAUDE.md` / `GEMINI.md` 의 워커별 메모 동기화
+   - **인계 SOP**: 큰 design 변경은 Claude 의 ADR 발급 후 본인이 정합 적용. 워커 prefix 신규 진입 시 governance 5~7 위치 동시 갱신
+
+2. **Cross-cutting validation & test infrastructure** (2순위 lane)
+   - multi-file / multi-layer 회귀 검증 (예: N-10 Manager RBAC 검증, N-2 repository draft/publish UT, N-4 frontend unit test 보강)
+   - e2e/UT fixture 정합 + selector 안정화 (Gemini 와 분담: frontend component-level = Gemini, framework-level = OpenCode)
+   - migration/seed 검증 (`scripts/check-migration-uniqueness.sh` 운영, v1.0 staging 운영 보강)
+   - **인계 SOP**: bounded scope 검증 결과는 issue + PR 본문 "테스트" 섹션 + `state.json` 의 `recent_done_items` 동시 갱신. backend/frontend 컴포넌트 본 변경은 Claude/Gemini 에 인계
+
+3. **AI/ML service prep** (3순위 lane, v1.1/v2 진입 시)
+   - `backend-ai/` Python 서비스 (현재 14-line FastAPI stub — TODO: gRPC server, AI Gardener, Suggestion Feed)
+   - gRPC contract (`proto/` ↔ `backend-ai/`) 의 python/typer 정합
+   - v2 P3 / E-3 (AI Gardener gRPC) / E-4 (Weekly report worker) 의 선행 검증
+   - **인계 SOP**: gRPC server skeleton + proto 정의는 본인. 실제 Python AI logic + Go Core client 는 Claude 와 공동 (본인 = proto + Python, Claude = Go client + domain service)
 
 **작업 스타일**:
-- 메인 에이전트 조정/통합 중심 (Sisyphus 정체성)
-- bounded scope 의 읽기/쓰기/검증은 `explore` / `librarian` / `Sisyphus-Junior` 같은 worker 성격 서브에이전트로 위임
-- 복잡한 cross-file 리팩토링·아키텍처 결정은 Oracle 호출로 escalate
+- **Orchestration-first**: bounded scope 의 단일 파일 작업은 직접 하지 않고 `explore` / `librarian` / `Sisyphus-Junior` / `quick` category subagent 에 위임
+- **Context-rich handoff**: 서브에이전트 prompt 에 (a) 6섹션 표준 (TASK/EXPECTED OUTCOME/REQUIRED TOOLS/MUST DO/MUST NOT DO/CONTEXT) + (b) 기존 패턴 reference file + (c) 검증 기준 명시
+- **Cross-file reasoning**: multi-domain / multi-layer 변경은 직접 분석 후 작업 단위 분해
+- **Specialist escalate**: 복잡한 architecture / debugging 결정은 `oracle` agent 에 read-only consult
+- **외부 contribution 정책**: 본 워커의 외부 contribution 은 다른 워커의 그것보다 자유롭게 허용 (orchestration specialist 이므로). 단, 영역 1~2 lane 외 신규 영역 진입 시 본 문서 §1.4 갱신 PR 동반
+- **한국어 우선**: 사용자 보고/문서/메모리는 한국어 (Reasonix 와 동일)
 
 **누적 이력 (2026-06-04 기준)**:
-- 0 PR (bootstrap sprint)
-- 결정: 첫 sprint 는 governance 한정. 영역 분담 + 인계 SOP 은 §1.4 본문 채우기 sprint 에서 확정
+- 0 PR (bootstrap sprint 완료, open)
+- 결정: 영역 1~2 lane (workflow curation + cross-cutting validation) 은 본 sprint (opencode/work_260604-b-opencode-areas) 종료 후 즉시 carve 진입 가능. 영역 3 (AI/ML) 은 v1.0 출시 후 진입.
 
 ## 2. v1.0 sprint 별 분담
 
@@ -245,3 +267,4 @@ P0 > P1 > P2 > P3 강제. P0 carve 진행 중 P2 carve 진입 금지 (예외: �
 | 2026-05-20 | §2.5 신규 — Branch 명명 규칙 (`<worker>/work_<YYMMDD>-<sprint-seq>-<issue-num>-<short-key>`). 사용자 지시 (2026-05-20) 따라 작업 식별성 강화. 예외 (issue 없는 housekeeping/hotfix / 외부 contribution) 명시. 2026-05-20 sprint -i 이후 적용, 이전 branch 는 historical 보존 | `claude/work_260520-i-209-accounts-deprecation` (본 sprint 가 적용 첫 사례) |
 | 2026-06-01 | §2.5 `<worker>` 목록에 `deepseek` (Reasonix) 추가 + 예시 row + 예외에 Reasonix 환경 deepseek/ prefix 규칙 명시 | `deepseek/construct_workflow_for_deepseek` |
 | 2026-06-04 | **§1.4 OpenCode 신설** — 영역 TBD placeholder + bootstrap 노트 / §2.5 `<worker>` 목록에 `opencode` (Sisyphus) 추가 + 예시 row + 예외에 OpenCode 환경 opencode/ prefix 규칙 명시 / 문서 헤더 워커 수 3 → 4 갱신 | `opencode/work_260604-a-opencode-workflow-bootstrap` |
+| 2026-06-04 | **§1.4 OpenCode 본문 정의** — 영역 TBD → "Workflow curation (Lane 1) + Cross-cutting validation (Lane 2) + AI/ML prep (Lane 3, v1.1/v2)" 으로 확정. 각 lane 별 인계 SOP + 작업 스타일 + 외부 contribution 정책 명시. §5.1 release_v1_roadmap.md 분담 표 정합 (TBD → 3 lane). 헤더 결정 근거 sprint 에 본 sprint 추가. 누적 이력 placeholder 0 PR | `opencode/work_260604-b-opencode-areas` |
