@@ -27,8 +27,8 @@ CREATE TABLE hrdb.persons (
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-CREATE TABLE public.application_repositories (
-    application_id uuid NOT NULL,
+CREATE TABLE public.platform_repositories (
+    platform_id uuid NOT NULL,
     repo_provider text NOT NULL,
     repo_full_name text NOT NULL,
     external_repo_id text,
@@ -39,13 +39,13 @@ CREATE TABLE public.application_repositories (
     sync_error_at timestamp with time zone,
     last_sync_at timestamp with time zone,
     linked_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT application_repositories_role_check CHECK ((role = ANY (ARRAY['primary'::text, 'sub'::text, 'shared'::text]))),
-    CONSTRAINT application_repositories_sync_error_code_check CHECK (((sync_error_code IS NULL) OR (sync_error_code = ANY (ARRAY['provider_unreachable'::text, 'auth_invalid'::text, 'permission_denied'::text, 'rate_limited'::text, 'webhook_signature_invalid'::text, 'payload_schema_mismatch'::text, 'resource_not_found'::text, 'internal_adapter_error'::text])))),
-    CONSTRAINT application_repositories_sync_error_consistency CHECK ((((sync_error_code IS NULL) AND (sync_error_retryable IS NULL) AND (sync_error_at IS NULL)) OR ((sync_error_code IS NOT NULL) AND (sync_error_retryable IS NOT NULL) AND (sync_error_at IS NOT NULL)))),
-    CONSTRAINT application_repositories_sync_status_check CHECK ((sync_status = ANY (ARRAY['requested'::text, 'verifying'::text, 'active'::text, 'degraded'::text, 'disconnected'::text])))
+    CONSTRAINT platform_repositories_role_check CHECK ((role = ANY (ARRAY['primary'::text, 'sub'::text, 'shared'::text]))),
+    CONSTRAINT platform_repositories_sync_error_code_check CHECK (((sync_error_code IS NULL) OR (sync_error_code = ANY (ARRAY['provider_unreachable'::text, 'auth_invalid'::text, 'permission_denied'::text, 'rate_limited'::text, 'webhook_signature_invalid'::text, 'payload_schema_mismatch'::text, 'resource_not_found'::text, 'internal_adapter_error'::text])))),
+    CONSTRAINT platform_repositories_sync_error_consistency CHECK ((((sync_error_code IS NULL) AND (sync_error_retryable IS NULL) AND (sync_error_at IS NULL)) OR ((sync_error_code IS NOT NULL) AND (sync_error_retryable IS NOT NULL) AND (sync_error_at IS NOT NULL)))),
+    CONSTRAINT platform_repositories_sync_status_check CHECK ((sync_status = ANY (ARRAY['requested'::text, 'verifying'::text, 'active'::text, 'degraded'::text, 'disconnected'::text])))
 );
 
-CREATE TABLE public.applications (
+CREATE TABLE public.platforms (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     key text NOT NULL,
     name text NOT NULL,
@@ -60,11 +60,11 @@ CREATE TABLE public.applications (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     leader_user_id text,
     development_unit_id text,
-    CONSTRAINT applications_archived_consistency CHECK ((((status = 'archived'::text) AND (archived_at IS NOT NULL)) OR ((status <> 'archived'::text) AND (archived_at IS NULL)))),
-    CONSTRAINT applications_due_date_after_start CHECK (((start_date IS NULL) OR (due_date IS NULL) OR (due_date >= start_date))),
-    CONSTRAINT applications_key_format CHECK ((key ~ '^[A-Za-z0-9]{1,10}$'::text)),
-    CONSTRAINT applications_status_check CHECK ((status = ANY (ARRAY['planning'::text, 'active'::text, 'on_hold'::text, 'closed'::text, 'archived'::text]))),
-    CONSTRAINT applications_visibility_check CHECK ((visibility = ANY (ARRAY['public'::text, 'internal'::text, 'restricted'::text])))
+    CONSTRAINT platforms_archived_consistency CHECK ((((status = 'archived'::text) AND (archived_at IS NOT NULL)) OR ((status <> 'archived'::text) AND (archived_at IS NULL)))),
+    CONSTRAINT platforms_due_date_after_start CHECK (((start_date IS NULL) OR (due_date IS NULL) OR (due_date >= start_date))),
+    CONSTRAINT platforms_key_format CHECK ((key ~ '^[A-Za-z0-9]{1,10}$'::text)),
+    CONSTRAINT platforms_status_check CHECK ((status = ANY (ARRAY['planning'::text, 'active'::text, 'on_hold'::text, 'closed'::text, 'archived'::text]))),
+    CONSTRAINT platforms_visibility_check CHECK ((visibility = ANY (ARRAY['public'::text, 'internal'::text, 'restricted'::text])))
 );
 
 CREATE TABLE public.audit_logs (
@@ -209,7 +209,7 @@ CREATE TABLE public.dev_requests (
     CONSTRAINT dev_requests_registered_consistency CHECK (((status = 'registered'::text) = ((registered_target_type IS NOT NULL) AND (registered_target_id IS NOT NULL)))),
     CONSTRAINT dev_requests_rejected_reason_required CHECK (((status = 'rejected'::text) = ((rejected_reason IS NOT NULL) AND (rejected_reason <> ''::text)))),
     CONSTRAINT dev_requests_status_check CHECK ((status = ANY (ARRAY['received'::text, 'pending'::text, 'in_review'::text, 'registered'::text, 'rejected'::text, 'closed'::text]))),
-    CONSTRAINT dev_requests_target_type_check CHECK (((registered_target_type IS NULL) OR (registered_target_type = ANY (ARRAY['application'::text, 'project'::text]))))
+    CONSTRAINT dev_requests_target_type_check CHECK (((registered_target_type IS NULL) OR (registered_target_type = ANY (ARRAY['platform'::text, 'project'::text]))))
 );
 
 CREATE TABLE public.event_cursors (
@@ -282,7 +282,7 @@ CREATE TABLE public.integration_bindings (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT integration_bindings_policy_check CHECK ((policy = ANY (ARRAY['summary_only'::text, 'execution_system'::text]))),
-    CONSTRAINT integration_bindings_scope_type_check CHECK ((scope_type = ANY (ARRAY['application'::text, 'project'::text])))
+    CONSTRAINT integration_bindings_scope_type_check CHECK ((scope_type = ANY (ARRAY['platform'::text, 'project'::text])))
 );
 
 CREATE TABLE public.integration_providers (
@@ -424,7 +424,7 @@ CREATE TABLE public.project_integrations (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     scope text NOT NULL,
     project_id uuid,
-    application_id uuid,
+    platform_id uuid,
     integration_type text NOT NULL,
     external_key text NOT NULL,
     url text NOT NULL,
@@ -432,8 +432,8 @@ CREATE TABLE public.project_integrations (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT project_integrations_policy_check CHECK ((policy = ANY (ARRAY['summary_only'::text, 'execution_system'::text]))),
-    CONSTRAINT project_integrations_scope_check CHECK ((scope = ANY (ARRAY['application'::text, 'project'::text]))),
-    CONSTRAINT project_integrations_scope_target_consistency CHECK ((((scope = 'application'::text) AND (application_id IS NOT NULL) AND (project_id IS NULL)) OR ((scope = 'project'::text) AND (project_id IS NOT NULL) AND (application_id IS NULL)))),
+    CONSTRAINT project_integrations_scope_check CHECK ((scope = ANY (ARRAY['platform'::text, 'project'::text]))),
+    CONSTRAINT project_integrations_scope_target_consistency CHECK ((((scope = 'platform'::text) AND (platform_id IS NOT NULL) AND (project_id IS NULL)) OR ((scope = 'project'::text) AND (project_id IS NOT NULL) AND (platform_id IS NULL)))),
     CONSTRAINT project_integrations_type_check CHECK ((integration_type = ANY (ARRAY['jira'::text, 'confluence'::text])))
 );
 
@@ -455,7 +455,7 @@ CREATE TABLE public.project_repositories (
 
 CREATE TABLE public.projects (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    application_id uuid,
+    platform_id uuid,
     repository_id bigint,
     key text NOT NULL,
     name text NOT NULL,
@@ -727,14 +727,14 @@ ALTER TABLE ONLY hrdb.persons
 ALTER TABLE ONLY hrdb.persons
     ADD CONSTRAINT persons_pkey PRIMARY KEY (system_id);
 
-ALTER TABLE ONLY public.application_repositories
-    ADD CONSTRAINT application_repositories_pkey PRIMARY KEY (application_id, repo_provider, repo_full_name);
+ALTER TABLE ONLY public.platform_repositories
+    ADD CONSTRAINT platform_repositories_pkey PRIMARY KEY (platform_id, repo_provider, repo_full_name);
 
-ALTER TABLE ONLY public.applications
-    ADD CONSTRAINT applications_key_key UNIQUE (key);
+ALTER TABLE ONLY public.platforms
+    ADD CONSTRAINT platforms_key_key UNIQUE (key);
 
-ALTER TABLE ONLY public.applications
-    ADD CONSTRAINT applications_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.platforms
+    ADD CONSTRAINT platforms_pkey PRIMARY KEY (id);
 
 ALTER TABLE ONLY public.audit_logs
     ADD CONSTRAINT audit_logs_audit_id_key UNIQUE (audit_id);
@@ -899,23 +899,23 @@ CREATE INDEX persons_employee_id_idx ON hrdb.persons USING btree (employee_id);
 
 CREATE INDEX persons_name_lower_idx ON hrdb.persons USING btree (lower(name));
 
-CREATE INDEX application_repositories_external_repo_id_idx ON public.application_repositories USING btree (repo_provider, external_repo_id) WHERE (external_repo_id IS NOT NULL);
+CREATE INDEX platform_repositories_external_repo_id_idx ON public.platform_repositories USING btree (repo_provider, external_repo_id) WHERE (external_repo_id IS NOT NULL);
 
-CREATE INDEX application_repositories_provider_repo_idx ON public.application_repositories USING btree (repo_provider, repo_full_name);
+CREATE INDEX platform_repositories_provider_repo_idx ON public.platform_repositories USING btree (repo_provider, repo_full_name);
 
-CREATE INDEX application_repositories_sync_status_idx ON public.application_repositories USING btree (sync_status);
+CREATE INDEX platform_repositories_sync_status_idx ON public.platform_repositories USING btree (sync_status);
 
-CREATE INDEX applications_archived_at_idx ON public.applications USING btree (archived_at) WHERE (archived_at IS NOT NULL);
+CREATE INDEX platforms_archived_at_idx ON public.platforms USING btree (archived_at) WHERE (archived_at IS NOT NULL);
 
-CREATE INDEX applications_dev_unit_idx ON public.applications USING btree (development_unit_id);
+CREATE INDEX platforms_dev_unit_idx ON public.platforms USING btree (development_unit_id);
 
-CREATE INDEX applications_leader_idx ON public.applications USING btree (leader_user_id);
+CREATE INDEX platforms_leader_idx ON public.platforms USING btree (leader_user_id);
 
-CREATE INDEX applications_owner_idx ON public.applications USING btree (owner_user_id);
+CREATE INDEX platforms_owner_idx ON public.platforms USING btree (owner_user_id);
 
-CREATE INDEX applications_status_idx ON public.applications USING btree (status);
+CREATE INDEX platforms_status_idx ON public.platforms USING btree (status);
 
-CREATE INDEX applications_visibility_idx ON public.applications USING btree (visibility);
+CREATE INDEX platforms_visibility_idx ON public.platforms USING btree (visibility);
 
 CREATE INDEX audit_logs_command_id_idx ON public.audit_logs USING btree (command_id);
 
@@ -977,7 +977,7 @@ CREATE INDEX pr_activities_external_pr_idx ON public.pr_activities USING btree (
 
 CREATE INDEX pr_activities_repository_occurred_at_idx ON public.pr_activities USING btree (repository_id, occurred_at DESC);
 
-CREATE UNIQUE INDEX project_integrations_application_unique ON public.project_integrations USING btree (application_id, integration_type, external_key) WHERE (application_id IS NOT NULL);
+CREATE UNIQUE INDEX project_integrations_platform_unique ON public.project_integrations USING btree (platform_id, integration_type, external_key) WHERE (platform_id IS NOT NULL);
 
 CREATE UNIQUE INDEX project_integrations_project_unique ON public.project_integrations USING btree (project_id, integration_type, external_key) WHERE (project_id IS NOT NULL);
 
@@ -985,7 +985,7 @@ CREATE INDEX project_members_user_idx ON public.project_members USING btree (use
 
 CREATE INDEX project_repositories_repository_idx ON public.project_repositories USING btree (repository_id);
 
-CREATE INDEX projects_application_idx ON public.projects USING btree (application_id);
+CREATE INDEX projects_platform_idx ON public.projects USING btree (platform_id);
 
 CREATE INDEX projects_owner_idx ON public.projects USING btree (owner_user_id);
 
@@ -1041,20 +1041,20 @@ CREATE INDEX webhook_events_repository_name_received_at_idx ON public.webhook_ev
 
 CREATE INDEX webhook_events_status_received_at_idx ON public.webhook_events USING btree (status, received_at DESC);
 
-ALTER TABLE ONLY public.application_repositories
-    ADD CONSTRAINT application_repositories_application_id_fkey FOREIGN KEY (application_id) REFERENCES public.applications(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.platform_repositories
+    ADD CONSTRAINT platform_repositories_platform_id_fkey FOREIGN KEY (platform_id) REFERENCES public.platforms(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY public.application_repositories
-    ADD CONSTRAINT application_repositories_repo_provider_fkey FOREIGN KEY (repo_provider) REFERENCES public.scm_providers(provider_key) ON DELETE RESTRICT;
+ALTER TABLE ONLY public.platform_repositories
+    ADD CONSTRAINT platform_repositories_repo_provider_fkey FOREIGN KEY (repo_provider) REFERENCES public.scm_providers(provider_key) ON DELETE RESTRICT;
 
-ALTER TABLE ONLY public.applications
-    ADD CONSTRAINT applications_development_unit_id_fkey FOREIGN KEY (development_unit_id) REFERENCES public.org_units(unit_id) ON DELETE SET NULL;
+ALTER TABLE ONLY public.platforms
+    ADD CONSTRAINT platforms_development_unit_id_fkey FOREIGN KEY (development_unit_id) REFERENCES public.org_units(unit_id) ON DELETE SET NULL;
 
-ALTER TABLE ONLY public.applications
-    ADD CONSTRAINT applications_leader_user_id_fkey FOREIGN KEY (leader_user_id) REFERENCES public.users(user_id) ON DELETE SET NULL;
+ALTER TABLE ONLY public.platforms
+    ADD CONSTRAINT platforms_leader_user_id_fkey FOREIGN KEY (leader_user_id) REFERENCES public.users(user_id) ON DELETE SET NULL;
 
-ALTER TABLE ONLY public.applications
-    ADD CONSTRAINT applications_owner_user_id_fkey FOREIGN KEY (owner_user_id) REFERENCES public.users(user_id) ON DELETE SET NULL;
+ALTER TABLE ONLY public.platforms
+    ADD CONSTRAINT platforms_owner_user_id_fkey FOREIGN KEY (owner_user_id) REFERENCES public.users(user_id) ON DELETE SET NULL;
 
 ALTER TABLE ONLY public.audit_logs
     ADD CONSTRAINT audit_logs_command_id_fkey FOREIGN KEY (command_id) REFERENCES public.commands(command_id) ON DELETE SET NULL;
@@ -1090,7 +1090,7 @@ ALTER TABLE ONLY public.pr_activities
     ADD CONSTRAINT pr_activities_repository_id_fkey FOREIGN KEY (repository_id) REFERENCES public.repositories(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.project_integrations
-    ADD CONSTRAINT project_integrations_application_id_fkey FOREIGN KEY (application_id) REFERENCES public.applications(id) ON DELETE CASCADE;
+    ADD CONSTRAINT project_integrations_platform_id_fkey FOREIGN KEY (platform_id) REFERENCES public.platforms(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.project_integrations
     ADD CONSTRAINT project_integrations_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE;
@@ -1108,7 +1108,7 @@ ALTER TABLE ONLY public.project_repositories
     ADD CONSTRAINT project_repositories_repository_id_fkey FOREIGN KEY (repository_id) REFERENCES public.repositories(id) ON DELETE RESTRICT;
 
 ALTER TABLE ONLY public.projects
-    ADD CONSTRAINT projects_application_id_fkey FOREIGN KEY (application_id) REFERENCES public.applications(id) ON DELETE SET NULL;
+    ADD CONSTRAINT projects_platform_id_fkey FOREIGN KEY (platform_id) REFERENCES public.platforms(id) ON DELETE SET NULL;
 
 ALTER TABLE ONLY public.projects
     ADD CONSTRAINT projects_owner_user_id_fkey FOREIGN KEY (owner_user_id) REFERENCES public.users(user_id) ON DELETE SET NULL;
