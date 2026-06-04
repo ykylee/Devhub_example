@@ -1,0 +1,27 @@
+{
+  "schema_version": "1",
+  "branch": "opencode/work_260604-e-rbac-e2e-followup",
+  "agent": "opencode",
+  "agent_label": "Sisyphus",
+  "model": "MiniMax-M3",
+  "status": "in_progress",
+  "summary": "N-10 P1 follow-up (release_v1_roadmap §3.5). docs/domain/rbac-permissions/test_cases.md 의 7 TC 중 E2E 권장 4건 (TC-RBAC-LOGOUT-02, TC-RBAC-ROW-READ-01, TC-RBAC-ROW-READ-02, TC-RBAC-CODE-01) Playwright 구현. LOGOUT-01/ROLE-DRIFT-01 은 backend IT scope (별도 sprint), TRACE-01 은 process/review.",
+  "started_at": "2026-06-04T01:55:00Z",
+  "updated_at": "2026-06-04T01:55:00Z",
+  "scope": {
+    "in": [
+      "frontend/tests/e2e/rbac-data-scope.spec.ts 신규 (4 TC)",
+      "memory 4종 set up"
+    ],
+    "out": [
+      "TC-RBAC-LOGOUT-01 (backend IT, 별도 sprint)",
+      "TC-RBAC-ROLE-DRIFT-01 (backend IT, Keycloak drift 환경 의존)",
+      "TC-RBAC-TRACE-01 (process/review, 본 PR 의 rbac-data-scope.spec.ts 의 TC ID 가 spec 과 일치함을 본 PR 의 spec 주석으로 입증)"
+    ]
+  },
+  "source_of_truth": {
+    "project_profile_path": "ai-workflow/memory/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/opencode/work_260604-e-rbac-e2e-followup/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/opencode/work_260604-e-rbac-e2e-followup/work_backlog.md"
+  }
+}
