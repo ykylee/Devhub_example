@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-06-04T14:35:00Z",
+  "generated_at": "2026-06-04T14:55:00Z",
   "source_of_truth": {
     "project_profile_path": "ai-workflow/memory/PROJECT_PROFILE.md",
     "session_handoff_path": "ai-workflow/memory/gemini/work_260604-a-platform-dashboard/session_handoff.md",
@@ -24,7 +24,10 @@
       "Defined 3-Persona (Developer, PL, Manager) Project Dashboard concept in project_dashboard_concept.md",
       "Updated requirements.md with REQ-FR-PROJDASH-001..006 specifications",
       "Pushed project dashboard documentation updates to remote branch under PR #479",
-      "Documented Project Dashboard (PROJDASH) use cases and detailed scenarios in system_usecases.md"
+      "Documented Project Dashboard (PROJDASH) use cases and detailed scenarios in system_usecases.md",
+      "Added ARCH-PROJDASH-01..03 architecture specifications to architecture.md",
+      "Defined API-94 (GET /api/v1/projects/{project_id}/dashboard) endpoint spec and JSON schemas in api.md",
+      "Fixed and verified relative markdown links and metadata headers in branch workflow memory documents"
     ]
   },
   "next_documents": [

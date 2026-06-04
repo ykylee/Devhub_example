@@ -102,8 +102,40 @@ sequenceDiagram
 | `dev_request.registered` | `dev_request` | `{ dreq_id, created_project_id, registered_target_type, created }` | DREQ의 프로젝트 승격(promote=register) 완료 시 — 기존 DREQ 도메인 ARCH-DREQ-06 / API-62 의 단일 action 재사용 (신규 `dev_request.promoted` 미도입 — `registered` 필터 consumer/테스트가 APPDASH 발 승격을 누락하지 않도록 source-of-truth 정합) |
 | `application.weight_policy_updated` | `application` | `{ platform_id, old_policy, new_policy, updated_by }` | 리포지토리 가중치 변경 시 |
 
+## 8. Project 상세 대시보드 아키텍처 (ARCH-PROJDASH)
+
+본 절은 프로젝트 상세 대시보드(PROJDASH)의 기술 설계 및 데이터 연산 구조를 정의한다.
+
+### 8.1 페르소나별 뷰 스위처 아키텍처 (ARCH-PROJDASH-01)
+
+대시보드 상단 뷰 제어를 위해 프론트엔드와 백엔드 간에 역할(Role) 기반의 2단계 접근 검증 아키텍처를 채택합니다.
+* **프론트엔드 다이내믹 마운팅**: Keycloak OIDC 토큰의 `resource_access` 영역에서 현재 접속자의 멤버십 역할을 동적으로 파싱합니다.
+  - `contributor` -> **Developer View** 기본 활성화
+  - `project_leader` -> **PL View** 기본 활성화
+  - `team_manager` / `pmo_manager` -> **Manager View** 기본 활성화
+* **2단계 접근 제어 가드**: 프론트엔드 모드 스위처 인터페이스가 뷰를 리렌더링하기 전, 그리고 백엔드 API가 호출될 때 해당 프로젝트 멤버십 테이블 및 RBAC 정책을 2차적으로 교차 검증하여 비인가자의 관리자 지표 조회를 차단합니다.
+
+### 8.2 SCM 메트릭 실시간 추출 및 분석 (ARCH-PROJDASH-02)
+
+실무 핵심 피드를 노출하기 위해 연결된 Gitea SCM API를 비동기식으로 병렬 쿼리하여 메모리 상에서 최종 가공합니다.
+* **Stale PR 탐지 산식**: Pull Request의 최종 코멘트 또는 커밋 업데이트 이후 경과 시간($T_{\text{idle}}$)이 48시간을 초과하고, `state = open` 상태인 대상을 비동기적으로 스캔하여 'Stale Review' 목록에 매핑합니다.
+* **Merge Blocker 감지**: 각 PR의 webhook payload 및 API 응답 내 `mergeable` 필드와 SCM CI 빌드 성공 여부(`LastBuildStatus`)를 수신하여, 빌드 실패 또는 충돌 상태 시 Neon 경고 신호를 활성화합니다.
+
+### 8.3 리소스 부하 및 SLA 지연 위험 예측 알고리즘 (ARCH-PROJDASH-03)
+
+관리자 및 PL 관제용 거시 리스크 지표를 실시간 데이터 파이프라인에서 연산합니다.
+* **개발자별 업무 부하 지수 ($L_u$) 산출 공식**:
+  $$L_u = \text{Active Issues (Assigned)} + (0.5 \times \text{Assigned PR Reviews})$$
+  - $L_u \ge 5$ 인 대상에 대해 대시보드에서 `overloaded` 배지를 부착하고, PL/관리자에게 업무 경고 시그널을 보냅니다.
+* **SLA 지연 리스크 지수 ($R_{\text{SLA}}$) 예측 공식**:
+  $$R_{\text{SLA}} = \frac{\text{남은 이슈 수} / \text{주간 이슈 해결 속도 (Velocity)}}{\text{마감일까지 남은 일수} / 7}$$
+  - **🟢 Healthy**: $R_{\text{SLA}} < 1.0$ (일정 내 완수 예상)
+  - **🟡 Warning**: $1.0 \le R_{\text{SLA}} < 1.5$ 또는 마감 14일 전이며 완료율 $< 50\%$
+  - **🔴 At Risk**: $R_{\text{SLA}} \ge 1.5$ 또는 마감 7일 전이며 완료율 $< 70\%$ (업무 재배분 촉구)
+
 ## 7. 변경 이력
 
 | 일자 | 변경 |
 | --- | --- |
+| 2026-06-04 | **§8 ARCH-PROJDASH-01..03 신규** — 프로젝트 대시보드 3대 페르소나 스위처 아키텍처 및 리소스 밸런싱/SLA 지연 예측 알고리즘 설계 기술. [project_dashboard_concept.md](./project_dashboard_concept.md) 아키텍처 명세화. |
 | 2026-05-29 | Phase 3 split — master `docs/architecture.md` §11 (APPDASH 본문) 을 도메인 sub-document 로 이관. ID(ARCH-APPDASH-01..06) 보존, 신규 발급/삭제 없음. |

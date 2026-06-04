@@ -23,12 +23,14 @@
 * **PR 발행 완료**:
   * `opencode/work_260604-k-v1-harden`를 target base 브랜치로 하는 Pull Request [#479](https://github.com/ykylee/Devhub_example/pull/479)를 발행하였습니다.
 
-* **프로젝트 상세 대시보드(PROJDASH) 컨셉, 요구사항 및 유스케이스 정립**:
+* **프로젝트 상세 대시보드(PROJDASH) 컨셉, 요구사항, 유스케이스, 아키텍처 및 API 명세 정립**:
   * **3대 페르소나별 뷰 모델 설계**: 개발자(My Work/빌드 확인), 프로젝트 리더(PR 통합/Stale/Blocker 중재), 조직 관리자(인력 부하/Forecast/거버넌스)의 페르소나별 최적화 뷰 스펙 도출.
-  * **컨셉 상세 설계서 작성**: [project_dashboard_concept.md](../../../docs/domain/platform-lifecycle/project_dashboard_concept.md) 파일을 신규 생성하여, 3단 스위처(3-Way Persona Switcher) 및 HSL Red Neon Indicator 등의 UI/UX 인터랙션 스펙 상세화 기술.
-  * **요구사항 갱신**: [requirements.md](../../../docs/domain/platform-lifecycle/requirements.md) 파일에 `REQ-FR-PROJDASH-001..006` 및 `REQ-NFR-PROJDASH-001..002` 신규 요구사항 8건을 최종 등록하고 이력 로그 업데이트.
-  * **시스템 유스케이스 추가**: [system_usecases.md](../../../docs/planning/system_usecases.md) 파일에 `UC-PROJDASH-01`부터 `06`까지의 유스케이스를 추가하고 상세 흐름 시나리오(Actor, 사전조건, 기본/예외 흐름, 사후조건)를 구체화하여 명세화.
-  * **원격 푸시 완료**: Pull Request [#479](https://github.com/ykylee/Devhub_example/pull/479) 브랜치에 문서 수정 커밋을 연계 업로드 완료.
+  * **컨셉 상세 설계서 작성**: [project_dashboard_concept.md](../../../../docs/domain/platform-lifecycle/project_dashboard_concept.md) 파일을 신규 생성하여, 3단 스위처(3-Way Persona Switcher) 및 HSL Red Neon Indicator 등의 UI/UX 인터랙션 스펙 상세화 기술.
+  * **요구사항 갱신**: [requirements.md](../../../../docs/domain/platform-lifecycle/requirements.md) 파일에 `REQ-FR-PROJDASH-001..006` 및 `REQ-NFR-PROJDASH-001..002` 신규 요구사항 8건을 최종 등록하고 이력 로그 업데이트.
+  * **시스템 유스케이스 추가**: [system_usecases.md](../../../../docs/planning/system_usecases.md) 파일에 `UC-PROJDASH-01`부터 `06`까지의 유스케이스를 추가하고 상세 흐름 시나리오(Actor, 사전조건, 기본/예외 흐름, 사후조건)를 구체화하여 명세화.
+  * **도메인 아키텍처 정의 추가**: [architecture.md](../../../../docs/domain/platform-lifecycle/architecture.md) 파일에 `ARCH-PROJDASH-01..03`을 추가하여 3단 스위처의 OIDC/RBAC 2차 가드 제어, Gitea 병열 스캔 PR 분석, 마감 지연 리스크($R_{\text{SLA}}$) 및 멤버 부하($L_u$) 산정 수식 모델 규정.
+  * **API 계약 추가**: [api.md](../../../../docs/domain/platform-lifecycle/api.md) 파일에 `API-94 (GET /api/v1/projects/{project_id}/dashboard)` 명세를 추가하고 OIDC/RBAC 인증, 쿼리 매개변수(`persona`) 분기 및 페르소나별 다형적 응답 예시 JSON 구조화.
+  * **원격 푸시 준비**: 모든 문서 정합성 및 링크 무결성 검증을 완료하고 Pull Request [#479](https://github.com/ykylee/Devhub_example/pull/479)에 연계 푸시 준비 완료.
 
 ## 2. 다음 세션 참고 정보
 * UI 레이아웃 리팩토링 및 폴백 뷰 처리는 로컬 검증 및 유닛 테스트 상으로 모두 완결되었습니다.
