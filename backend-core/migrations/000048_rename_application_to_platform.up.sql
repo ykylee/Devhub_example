@@ -120,6 +120,13 @@ ALTER TABLE project_integrations ADD CONSTRAINT project_integrations_scope_targe
         OR (scope = 'project'   AND project_id    IS NOT NULL AND platform_id IS NULL)
     );
 
+-- dev_requests.registered_target_type: 'application' → 'platform'
+UPDATE dev_requests SET registered_target_type = 'platform' WHERE registered_target_type = 'application';
+ALTER TABLE dev_requests DROP CONSTRAINT IF EXISTS dev_requests_target_type_check;
+ALTER TABLE dev_requests ADD CONSTRAINT dev_requests_target_type_check
+    CHECK (registered_target_type IS NULL
+           OR registered_target_type IN ('platform', 'project'));
+
 -- integration_bindings.scope_type: 'application' → 'platform'
 UPDATE integration_bindings SET scope_type = 'platform' WHERE scope_type = 'application';
 ALTER TABLE integration_bindings DROP CONSTRAINT IF EXISTS integration_bindings_scope_type_check;
