@@ -4,10 +4,11 @@
   "agent": "opencode",
   "agent_label": "Sisyphus",
   "model": "MiniMax-M3",
-  "status": "in_progress",
-  "summary": "project milestones 페이지 (frontend/app/(dashboard)/projects/page.tsx) 의 progress bar 가 status 기반 hardcoded width 사용 (active=66.7%, closed=100%, else=25%). 실제 task 완료율 반영하도록 fix — getProjectTasks 를 Promise.all 로 병렬 fetch, done/total*100 계산.",
+  "status": "completed",
+  "summary": "project milestones 페이지 progress bar 가 실제 task 완료율 반영. PR #472 MERGED → main 4665e95 (2026-06-04T06:45:09Z). computeProjectProgress 순수 함수 + Promise.all 병렬 fetch + 동적 렌더.",
   "started_at": "2026-06-04T05:55:00Z",
-  "updated_at": "2026-06-04T05:55:00Z",
+  "completed_at": "2026-06-04T06:45:09Z",
+  "updated_at": "2026-06-04T06:45:09Z",
   "scope": {
     "in": [
       "frontend/app/(dashboard)/projects/page.tsx — taskProgress state 추가, Promise.all 로 getProjectTasks fetch, 실제 % 계산, progress bar 동적 렌더",
