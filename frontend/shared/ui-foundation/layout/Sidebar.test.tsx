@@ -65,9 +65,9 @@ describe("Sidebar (F-1)", () => {
     resetStore();
   });
 
-  it("기본 메뉴 (Applications/Repositories/Projects) 가 렌더된다", () => {
+  it("기본 메뉴 (Platforms/Repositories/Projects) 가 렌더된다", () => {
     render(<Sidebar />);
-    expect(screen.getByLabelText("Applications")).toBeInTheDocument();
+    expect(screen.getByLabelText("Platforms")).toBeInTheDocument();
     expect(screen.getByLabelText("Repositories")).toBeInTheDocument();
     expect(screen.getByLabelText("Projects")).toBeInTheDocument();
   });
@@ -89,17 +89,17 @@ describe("Sidebar (F-1)", () => {
   });
 
   it("pathname 이 메뉴 href 와 일치하면 해당 항목이 active style 을 가진다", () => {
-    pathnameRef.current = "/applications";
+    pathnameRef.current = "/platforms";
     render(<Sidebar />);
-    const link = screen.getByLabelText("Applications");
+    const link = screen.getByLabelText("Platforms");
     const inner = link.querySelector("div");
     expect(inner?.className).toMatch(/text-primary/);
   });
 
   it("pathname 이 메뉴 href 의 sub-path 인 경우도 active 로 처리된다", () => {
-    pathnameRef.current = "/applications/abc-123";
+    pathnameRef.current = "/platforms/abc-123";
     render(<Sidebar />);
-    const link = screen.getByLabelText("Applications");
+    const link = screen.getByLabelText("Platforms");
     const inner = link.querySelector("div");
     expect(inner?.className).toMatch(/text-primary/);
   });
@@ -150,7 +150,7 @@ describe("Sidebar (F-1)", () => {
     resetStore({ isSidebarOpen: true });
     const user = userEvent.setup();
     render(<Sidebar />);
-    const link = screen.getByLabelText("Applications");
+    const link = screen.getByLabelText("Platforms");
     await user.click(link);
     expect(useStore.getState().isSidebarOpen).toBe(false);
   });

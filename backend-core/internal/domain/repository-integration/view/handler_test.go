@@ -30,25 +30,25 @@ func (f *fakeRepoIntegrationAuditStore) CreateAuditLog(_ context.Context, log do
 	return log, nil
 }
 
-type fakeRepoIntegrationAppStore struct {
+type fakeRepoIntegrationPlatformStore struct {
 	getIntegrationProviderByIDFunc func(ctx context.Context, id string) (domain.IntegrationProvider, error)
 	listRepositoriesByProviderFunc func(ctx context.Context, providerID string) ([]domain.Repository, error)
 	upsertRepositoryFunc func(ctx context.Context, r domain.Repository) error
 }
 
-func (f *fakeRepoIntegrationAppStore) GetIntegrationProviderByID(ctx context.Context, id string) (domain.IntegrationProvider, error) {
+func (f *fakeRepoIntegrationPlatformStore) GetIntegrationProviderByID(ctx context.Context, id string) (domain.IntegrationProvider, error) {
 	if f.getIntegrationProviderByIDFunc != nil {
 		return f.getIntegrationProviderByIDFunc(ctx, id)
 	}
 	return domain.IntegrationProvider{}, nil
 }
-func (f *fakeRepoIntegrationAppStore) ListRepositoriesByProvider(ctx context.Context, providerID string) ([]domain.Repository, error) {
+func (f *fakeRepoIntegrationPlatformStore) ListRepositoriesByProvider(ctx context.Context, providerID string) ([]domain.Repository, error) {
 	if f.listRepositoriesByProviderFunc != nil {
 		return f.listRepositoriesByProviderFunc(ctx, providerID)
 	}
 	return nil, nil
 }
-func (f *fakeRepoIntegrationAppStore) UpsertRepository(ctx context.Context, r domain.Repository) error {
+func (f *fakeRepoIntegrationPlatformStore) UpsertRepository(ctx context.Context, r domain.Repository) error {
 	if f.upsertRepositoryFunc != nil {
 		return f.upsertRepositoryFunc(ctx, r)
 	}
@@ -64,12 +64,12 @@ func TestNewRepositoryIntegrationHandler_NonNil(t *testing.T) {
 
 func TestNewRepositoryIntegrationHandler_ConfigPropagation(t *testing.T) {
 	cfg := RepositoryIntegrationConfig{
-		ApplicationStore: &fakeRepoIntegrationAppStore{},
+		PlatformStore: &fakeRepoIntegrationPlatformStore{},
 		AuditStore:       &fakeRepoIntegrationAuditStore{},
 	}
 	h := NewRepositoryIntegrationHandler(cfg)
-	if h.cfg.ApplicationStore == nil {
-		t.Fatal("ApplicationStore not propagated")
+	if h.cfg.PlatformStore == nil {
+		t.Fatal("PlatformStore not propagated")
 	}
 	if h.cfg.AuditStore == nil {
 		t.Fatal("AuditStore not propagated")
@@ -150,14 +150,14 @@ func TestRecordAuditBestEffort_PersistFailureLogged(t *testing.T) {
 	}
 }
 
-func TestApplicationStoreOrUnavailable_NilReturns503(t *testing.T) {
+func TestPlatformStoreOrUnavailable_NilReturns503(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	h := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{})
 	rec := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(rec)
 	c.Request = httptest.NewRequest("GET", "/x", nil)
 
-	got, ok := h.ApplicationStoreOrUnavailable(c)
+	got, ok := h.PlatformStoreOrUnavailable(c)
 	if ok {
 		t.Fatal("expected ok=false when store nil")
 	}
@@ -167,20 +167,20 @@ func TestApplicationStoreOrUnavailable_NilReturns503(t *testing.T) {
 	if rec.Code != 503 {
 		t.Fatalf("status = %d", rec.Code)
 	}
-	if !strings.Contains(rec.Body.String(), "application store is not configured") {
+	if !strings.Contains(rec.Body.String(), "platform store is not configured") {
 		t.Fatalf("body = %q", rec.Body.String())
 	}
 }
 
-func TestApplicationStoreOrUnavailable_PresentReturnsRef(t *testing.T) {
+func TestPlatformStoreOrUnavailable_PresentReturnsRef(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	store := &fakeRepoIntegrationAppStore{}
-	h := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{ApplicationStore: store})
+	store := &fakeRepoIntegrationPlatformStore{}
+	h := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{PlatformStore: store})
 	rec := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(rec)
 	c.Request = httptest.NewRequest("GET", "/x", nil)
 
-	got, ok := h.ApplicationStoreOrUnavailable(c)
+	got, ok := h.PlatformStoreOrUnavailable(c)
 	if !ok {
 		t.Fatal("expected ok=true")
 	}
@@ -219,7 +219,7 @@ func TestNormalizeProviderSDKKey(t *testing.T) {
 func TestRepositoryIntegration_API(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	t.Run("ApplicationStoreOrUnavailable - nil store returns 503", func(t *testing.T) {
+	t.Run("PlatformStoreOrUnavailable - nil store returns 503", func(t *testing.T) {
 		h := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{})
 		rec := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(rec)
@@ -231,12 +231,12 @@ func TestRepositoryIntegration_API(t *testing.T) {
 
 	t.Run("ListSCMRepositories - SCM Provider lookup exception cases", func(t *testing.T) {
 		// 1. Not Found (404)
-		storeI := &fakeRepoIntegrationAppStore{
+		storeI := &fakeRepoIntegrationPlatformStore{
 			getIntegrationProviderByIDFunc: func(ctx context.Context, id string) (domain.IntegrationProvider, error) {
 				return domain.IntegrationProvider{}, store.ErrNotFound
 			},
 		}
-		h := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{ApplicationStore: storeI})
+		h := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{PlatformStore: storeI})
 		rec1 := httptest.NewRecorder()
 		c1, _ := gin.CreateTestContext(rec1)
 		c1.Params = gin.Params{{Key: "provider_id", Value: "p-notfound"}}
@@ -247,12 +247,12 @@ func TestRepositoryIntegration_API(t *testing.T) {
 		}
 
 		// 2. lookup DB Error (500)
-		storeI2 := &fakeRepoIntegrationAppStore{
+		storeI2 := &fakeRepoIntegrationPlatformStore{
 			getIntegrationProviderByIDFunc: func(ctx context.Context, id string) (domain.IntegrationProvider, error) {
 				return domain.IntegrationProvider{}, errors.New("db error")
 			},
 		}
-		h2 := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{ApplicationStore: storeI2})
+		h2 := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{PlatformStore: storeI2})
 		rec2 := httptest.NewRecorder()
 		c2, _ := gin.CreateTestContext(rec2)
 		c2.Params = gin.Params{{Key: "provider_id", Value: "p-dbfail"}}
@@ -263,12 +263,12 @@ func TestRepositoryIntegration_API(t *testing.T) {
 		}
 
 		// 3. disabled provider (409)
-		storeI3 := &fakeRepoIntegrationAppStore{
+		storeI3 := &fakeRepoIntegrationPlatformStore{
 			getIntegrationProviderByIDFunc: func(ctx context.Context, id string) (domain.IntegrationProvider, error) {
 				return domain.IntegrationProvider{ID: id, Enabled: false}, nil
 			},
 		}
-		h3 := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{ApplicationStore: storeI3})
+		h3 := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{PlatformStore: storeI3})
 		rec3 := httptest.NewRecorder()
 		c3, _ := gin.CreateTestContext(rec3)
 		c3.Params = gin.Params{{Key: "provider_id", Value: "p-disabled"}}
@@ -279,12 +279,12 @@ func TestRepositoryIntegration_API(t *testing.T) {
 		}
 
 		// 4. provider type != scm (422)
-		storeI4 := &fakeRepoIntegrationAppStore{
+		storeI4 := &fakeRepoIntegrationPlatformStore{
 			getIntegrationProviderByIDFunc: func(ctx context.Context, id string) (domain.IntegrationProvider, error) {
 				return domain.IntegrationProvider{ID: id, Enabled: true, ProviderType: domain.IntegrationProviderTypeCICD}, nil
 			},
 		}
-		h4 := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{ApplicationStore: storeI4})
+		h4 := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{PlatformStore: storeI4})
 		rec4 := httptest.NewRecorder()
 		c4, _ := gin.CreateTestContext(rec4)
 		c4.Params = gin.Params{{Key: "provider_id", Value: "p-cict"}}
@@ -295,7 +295,7 @@ func TestRepositoryIntegration_API(t *testing.T) {
 		}
 
 		// 5. provider capability 'pull' not enabled (422)
-		storeI5 := &fakeRepoIntegrationAppStore{
+		storeI5 := &fakeRepoIntegrationPlatformStore{
 			getIntegrationProviderByIDFunc: func(ctx context.Context, id string) (domain.IntegrationProvider, error) {
 				return domain.IntegrationProvider{
 					ID:           id,
@@ -305,7 +305,7 @@ func TestRepositoryIntegration_API(t *testing.T) {
 				}, nil
 			},
 		}
-		h5 := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{ApplicationStore: storeI5})
+		h5 := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{PlatformStore: storeI5})
 		rec5 := httptest.NewRecorder()
 		c5, _ := gin.CreateTestContext(rec5)
 		c5.Params = gin.Params{{Key: "provider_id", Value: "p-pushonly"}}
@@ -316,7 +316,7 @@ func TestRepositoryIntegration_API(t *testing.T) {
 		}
 
 		// 6. provider not gitea compatible (422)
-		storeI6 := &fakeRepoIntegrationAppStore{
+		storeI6 := &fakeRepoIntegrationPlatformStore{
 			getIntegrationProviderByIDFunc: func(ctx context.Context, id string) (domain.IntegrationProvider, error) {
 				return domain.IntegrationProvider{
 					ID:             id,
@@ -327,7 +327,7 @@ func TestRepositoryIntegration_API(t *testing.T) {
 				}, nil
 			},
 		}
-		h6 := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{ApplicationStore: storeI6})
+		h6 := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{PlatformStore: storeI6})
 		rec6 := httptest.NewRecorder()
 		c6, _ := gin.CreateTestContext(rec6)
 		c6.Params = gin.Params{{Key: "provider_id", Value: "p-github"}}
@@ -340,7 +340,7 @@ func TestRepositoryIntegration_API(t *testing.T) {
 
 	t.Run("ListSCMRepositories - SCM Provider client config & auth exception cases", func(t *testing.T) {
 		// 1. base_url missing (422)
-		storeI := &fakeRepoIntegrationAppStore{
+		storeI := &fakeRepoIntegrationPlatformStore{
 			getIntegrationProviderByIDFunc: func(ctx context.Context, id string) (domain.IntegrationProvider, error) {
 				return domain.IntegrationProvider{
 					ID:           id,
@@ -351,7 +351,7 @@ func TestRepositoryIntegration_API(t *testing.T) {
 				}, nil
 			},
 		}
-		h := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{ApplicationStore: storeI})
+		h := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{PlatformStore: storeI})
 		rec1 := httptest.NewRecorder()
 		c1, _ := gin.CreateTestContext(rec1)
 		c1.Params = gin.Params{{Key: "provider_id", Value: "p-1"}}
@@ -362,7 +362,7 @@ func TestRepositoryIntegration_API(t *testing.T) {
 		}
 
 		// 2. SCM auth failed (502)
-		storeI2 := &fakeRepoIntegrationAppStore{
+		storeI2 := &fakeRepoIntegrationPlatformStore{
 			getIntegrationProviderByIDFunc: func(ctx context.Context, id string) (domain.IntegrationProvider, error) {
 				return domain.IntegrationProvider{
 					ID:             id,
@@ -375,7 +375,7 @@ func TestRepositoryIntegration_API(t *testing.T) {
 				}, nil
 			},
 		}
-		h2 := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{ApplicationStore: storeI2})
+		h2 := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{PlatformStore: storeI2})
 		rec2 := httptest.NewRecorder()
 		c2, _ := gin.CreateTestContext(rec2)
 		c2.Params = gin.Params{{Key: "provider_id", Value: "p-1"}}
@@ -397,7 +397,7 @@ func TestRepositoryIntegration_API(t *testing.T) {
 		defer server.Close()
 
 		// 1. remote API bad gateway (502)
-		storeI := &fakeRepoIntegrationAppStore{
+		storeI := &fakeRepoIntegrationPlatformStore{
 			getIntegrationProviderByIDFunc: func(ctx context.Context, id string) (domain.IntegrationProvider, error) {
 				return domain.IntegrationProvider{
 					ID:             id,
@@ -410,7 +410,7 @@ func TestRepositoryIntegration_API(t *testing.T) {
 				}, nil
 			},
 		}
-		h := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{ApplicationStore: storeI})
+		h := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{PlatformStore: storeI})
 		rec1 := httptest.NewRecorder()
 		c1, _ := gin.CreateTestContext(rec1)
 		c1.Params = gin.Params{{Key: "provider_id", Value: "p-1"}}
@@ -431,7 +431,7 @@ func TestRepositoryIntegration_API(t *testing.T) {
 		defer server2.Close()
 
 		// 2. db local list error (500)
-		storeI2 := &fakeRepoIntegrationAppStore{
+		storeI2 := &fakeRepoIntegrationPlatformStore{
 			getIntegrationProviderByIDFunc: func(ctx context.Context, id string) (domain.IntegrationProvider, error) {
 				return domain.IntegrationProvider{
 					ID:             id,
@@ -447,7 +447,7 @@ func TestRepositoryIntegration_API(t *testing.T) {
 				return nil, errors.New("db list error")
 			},
 		}
-		h2 := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{ApplicationStore: storeI2})
+		h2 := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{PlatformStore: storeI2})
 		rec2 := httptest.NewRecorder()
 		c2, _ := gin.CreateTestContext(rec2)
 		c2.Params = gin.Params{{Key: "provider_id", Value: "p-1"}}
@@ -468,7 +468,7 @@ func TestRepositoryIntegration_API(t *testing.T) {
 		}))
 		defer server.Close()
 
-		storeI := &fakeRepoIntegrationAppStore{
+		storeI := &fakeRepoIntegrationPlatformStore{
 			getIntegrationProviderByIDFunc: func(ctx context.Context, id string) (domain.IntegrationProvider, error) {
 				return domain.IntegrationProvider{
 					ID:             id,
@@ -485,7 +485,7 @@ func TestRepositoryIntegration_API(t *testing.T) {
 				return []domain.Repository{{FullName: "org/r1"}}, nil
 			},
 		}
-		h := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{ApplicationStore: storeI})
+		h := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{PlatformStore: storeI})
 		rec := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(rec)
 		c.Params = gin.Params{{Key: "provider_id", Value: "p-1"}}
@@ -510,8 +510,8 @@ func TestRepositoryIntegration_API(t *testing.T) {
 			t.Fatalf("expected 503, got %d", rec1.Code)
 		}
 
-		storeI := &fakeRepoIntegrationAppStore{}
-		h = NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{ApplicationStore: storeI})
+		storeI := &fakeRepoIntegrationPlatformStore{}
+		h = NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{PlatformStore: storeI})
 
 		// 2. bind error -> 400
 		rec2 := httptest.NewRecorder()
@@ -537,7 +537,7 @@ func TestRepositoryIntegration_API(t *testing.T) {
 		}))
 		defer server.Close()
 
-		storeI2 := &fakeRepoIntegrationAppStore{
+		storeI2 := &fakeRepoIntegrationPlatformStore{
 			getIntegrationProviderByIDFunc: func(ctx context.Context, id string) (domain.IntegrationProvider, error) {
 				return domain.IntegrationProvider{
 					ID:             id,
@@ -550,7 +550,7 @@ func TestRepositoryIntegration_API(t *testing.T) {
 				}, nil
 			},
 		}
-		h2 := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{ApplicationStore: storeI2})
+		h2 := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{PlatformStore: storeI2})
 		
 		// 4. remote list repos unreachable -> 502
 		rec4 := httptest.NewRecorder()
@@ -573,7 +573,7 @@ func TestRepositoryIntegration_API(t *testing.T) {
 		}))
 		defer server.Close()
 
-		storeI := &fakeRepoIntegrationAppStore{
+		storeI := &fakeRepoIntegrationPlatformStore{
 			getIntegrationProviderByIDFunc: func(ctx context.Context, id string) (domain.IntegrationProvider, error) {
 				return domain.IntegrationProvider{
 					ID:             id,
@@ -589,7 +589,7 @@ func TestRepositoryIntegration_API(t *testing.T) {
 				return errors.New("db upsert error")
 			},
 		}
-		h := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{ApplicationStore: storeI})
+		h := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{PlatformStore: storeI})
 		rec := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(rec)
 		c.Params = gin.Params{{Key: "provider_id", Value: "p-1"}}
@@ -611,7 +611,7 @@ func TestRepositoryIntegration_API(t *testing.T) {
 		defer server.Close()
 
 		var upserted []domain.Repository
-		storeI := &fakeRepoIntegrationAppStore{
+		storeI := &fakeRepoIntegrationPlatformStore{
 			getIntegrationProviderByIDFunc: func(ctx context.Context, id string) (domain.IntegrationProvider, error) {
 				return domain.IntegrationProvider{
 					ID:             id,
@@ -628,7 +628,7 @@ func TestRepositoryIntegration_API(t *testing.T) {
 				return nil
 			},
 		}
-		h := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{ApplicationStore: storeI})
+		h := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{PlatformStore: storeI})
 		rec := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(rec)
 		c.Params = gin.Params{{Key: "provider_id", Value: "p-1"}}
@@ -657,8 +657,8 @@ func TestRepositoryIntegration_API(t *testing.T) {
 			t.Fatalf("expected 503, got %d", rec1.Code)
 		}
 
-		storeI := &fakeRepoIntegrationAppStore{}
-		h = NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{ApplicationStore: storeI})
+		storeI := &fakeRepoIntegrationPlatformStore{}
+		h = NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{PlatformStore: storeI})
 
 		// 2. bind error -> 400
 		rec2 := httptest.NewRecorder()
@@ -679,7 +679,7 @@ func TestRepositoryIntegration_API(t *testing.T) {
 		}
 
 		// 4. provider capability 'push' missing -> 422
-		storeI4 := &fakeRepoIntegrationAppStore{
+		storeI4 := &fakeRepoIntegrationPlatformStore{
 			getIntegrationProviderByIDFunc: func(ctx context.Context, id string) (domain.IntegrationProvider, error) {
 				return domain.IntegrationProvider{
 					ID:           id,
@@ -689,7 +689,7 @@ func TestRepositoryIntegration_API(t *testing.T) {
 				}, nil
 			},
 		}
-		h4 := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{ApplicationStore: storeI4})
+		h4 := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{PlatformStore: storeI4})
 		rec4 := httptest.NewRecorder()
 		c4, _ := gin.CreateTestContext(rec4)
 		c4.Params = gin.Params{{Key: "provider_id", Value: "p-1"}}
@@ -705,7 +705,7 @@ func TestRepositoryIntegration_API(t *testing.T) {
 		}))
 		defer server.Close()
 
-		storeI5 := &fakeRepoIntegrationAppStore{
+		storeI5 := &fakeRepoIntegrationPlatformStore{
 			getIntegrationProviderByIDFunc: func(ctx context.Context, id string) (domain.IntegrationProvider, error) {
 				return domain.IntegrationProvider{
 					ID:             id,
@@ -718,7 +718,7 @@ func TestRepositoryIntegration_API(t *testing.T) {
 				}, nil
 			},
 		}
-		h5 := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{ApplicationStore: storeI5})
+		h5 := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{PlatformStore: storeI5})
 		
 		// 5. client create failed -> 502
 		rec5 := httptest.NewRecorder()
@@ -740,7 +740,7 @@ func TestRepositoryIntegration_API(t *testing.T) {
 
 		callCount := 0
 		var upserted domain.Repository
-		storeI := &fakeRepoIntegrationAppStore{
+		storeI := &fakeRepoIntegrationPlatformStore{
 			getIntegrationProviderByIDFunc: func(ctx context.Context, id string) (domain.IntegrationProvider, error) {
 				return domain.IntegrationProvider{
 					ID:             id,
@@ -761,7 +761,7 @@ func TestRepositoryIntegration_API(t *testing.T) {
 				return nil
 			},
 		}
-		h := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{ApplicationStore: storeI})
+		h := NewRepositoryIntegrationHandler(RepositoryIntegrationConfig{PlatformStore: storeI})
 
 		// 1. db upsert fail -> 500
 		rec1 := httptest.NewRecorder()

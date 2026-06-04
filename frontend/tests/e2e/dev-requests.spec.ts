@@ -99,7 +99,7 @@ test.describe("DREQ E2E", () => {
       }
     });
 
-    await test.step("TC-DREQ-PROMOTE-TX-01 — system_admin registers as application", async () => {
+    await test.step("TC-DREQ-PROMOTE-TX-01 — system_admin registers as platform", async () => {
       await page.goto(appPath("/admin/settings/dev-requests"));
       const adminRow = page.locator("tr").filter({ hasText: requestTitle }).first();
       await expect(adminRow).toBeVisible();
@@ -107,10 +107,10 @@ test.describe("DREQ E2E", () => {
       const adminDetailModal = page.getByRole("dialog");
       await expect(adminDetailModal).toBeVisible();
 
-      const registerAppBtn = adminDetailModal.getByRole("button", { name: /register as application/i });
+      const registerAppBtn = adminDetailModal.getByRole("button", { name: /register as platform/i });
       await expect(registerAppBtn).toBeVisible();
       await registerAppBtn.click();
-      await page.getByPlaceholder(/application id \(uuid\)/i).fill(`app-e2e-${Date.now()}`);
+      await page.getByPlaceholder(/platform id \(uuid\)/i).fill(`app-e2e-${Date.now()}`);
       await page.getByRole("button", { name: /confirm/i }).click();
     });
 

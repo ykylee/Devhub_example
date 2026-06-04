@@ -40,5 +40,5 @@
 ## 📁 Key Files
 
 - `frontend/app/(dashboard)/projects/page.tsx` (변경 대상)
-- `frontend/domain/application-lifecycle/service/project.service.ts:176` (`getProjectTasks` API)
-- `frontend/domain/application-lifecycle/schema/project.types.ts:110` (`ProjectTaskItem` 타입)
+- `frontend/domain/platform-lifecycle/service/project.service.ts:176` (`getProjectTasks` API)
+- `frontend/domain/platform-lifecycle/schema/project.types.ts:110` (`ProjectTaskItem` 타입)

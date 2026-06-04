@@ -13,7 +13,7 @@ import (
 )
 
 // Repository ops + rollup compute integration test (sprint claude/work_260514-e).
-// 핵심: P1 회귀 guard — ComputeApplicationRollup 의 custom_weights 정규화 (sum=1.0
+// 핵심: P1 회귀 guard — ComputePlatformRollup 의 custom_weights 정규화 (sum=1.0
 // invariant). PR #108 hotfix 가 정정한 부분이 다시 깨지지 않는지 검증.
 
 func seedRepoOpsData(t *testing.T, ctx context.Context, pool *pgxpool.Pool) {
@@ -129,37 +129,37 @@ func TestIntegration_ListRepositoryQualitySnapshots(t *testing.T) {
 // --- rollup compute ---
 
 // seedAppWith2ActiveLinks 는 testRepoID1/2 를 active 상태로 application 에 연결.
-func seedAppWith2ActiveLinks(t *testing.T, ctx context.Context, pgStore *apprep.ApplicationRepository, key string) domain.Application {
+func seedAppWith2ActiveLinks(t *testing.T, ctx context.Context, pgStore *apprep.PlatformRepository, key string) domain.Platform {
 	t.Helper()
-	app, err := pgStore.CreateApplication(ctx, domain.Application{
-		Key: key, Name: "X", Status: domain.ApplicationStatusActive,
-		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+	app, err := pgStore.CreatePlatform(ctx, domain.Platform{
+		Key: key, Name: "X", Status: domain.PlatformStatusActive,
+		Visibility: domain.PlatformVisibilityInternal, OwnerUserID: "u1",
 	})
 	if err != nil {
 		t.Fatalf("seed app: %v", err)
 	}
-	if _, err := pgStore.CreateApplicationRepository(ctx, domain.ApplicationRepository{
-		ApplicationID: app.ID, RepoProvider: "gitea", RepoFullName: "team/devhub-core",
-		Role: domain.ApplicationRepositoryRolePrimary, SyncStatus: domain.SyncStatusActive,
+	if _, err := pgStore.CreatePlatformRepository(ctx, domain.PlatformRepository{
+		PlatformID: app.ID, RepoProvider: "gitea", RepoFullName: "team/devhub-core",
+		Role: domain.PlatformRepositoryRolePrimary, SyncStatus: domain.SyncStatusActive,
 	}); err != nil {
 		t.Fatalf("seed link 1: %v", err)
 	}
-	if _, err := pgStore.CreateApplicationRepository(ctx, domain.ApplicationRepository{
-		ApplicationID: app.ID, RepoProvider: "gitea", RepoFullName: "team/devhub-web",
-		Role: domain.ApplicationRepositoryRoleSub, SyncStatus: domain.SyncStatusActive,
+	if _, err := pgStore.CreatePlatformRepository(ctx, domain.PlatformRepository{
+		PlatformID: app.ID, RepoProvider: "gitea", RepoFullName: "team/devhub-web",
+		Role: domain.PlatformRepositoryRoleSub, SyncStatus: domain.SyncStatusActive,
 	}); err != nil {
 		t.Fatalf("seed link 2: %v", err)
 	}
 	return app
 }
 
-func TestIntegration_ComputeApplicationRollup_Equal(t *testing.T) {
+func TestIntegration_ComputePlatformRollup_Equal(t *testing.T) {
 	pgStore, pool, ctx, teardown := setupApplicationsTest(t)
 	defer teardown()
 	seedRepoOpsData(t, ctx, pool)
 	app := seedAppWith2ActiveLinks(t, ctx, pgStore, testAppKey1)
 
-	rollup, err := pgStore.ComputeApplicationRollup(ctx, app.ID, domain.ApplicationRollupOptions{
+	rollup, err := pgStore.ComputePlatformRollup(ctx, app.ID, domain.PlatformRollupOptions{
 		Policy:     domain.WeightPolicyEqual,
 		WindowFrom: time.Now().UTC().Add(-48 * time.Hour),
 		WindowTo:   time.Now().UTC().Add(1 * time.Hour),
@@ -190,13 +190,13 @@ func TestIntegration_ComputeApplicationRollup_Equal(t *testing.T) {
 // 시나리오: contributing 에 team/devhub-core 와 team/devhub-web 2개. custom_weights
 // 가 team/devhub-core 에만 weight=1.0 부여. 정규화 전 합 = 1.0 + 0.5 = 1.5.
 // hotfix #108 의 정정으로 합이 1.0 으로 정규화되어야 함.
-func TestIntegration_ComputeApplicationRollup_CustomNormalization_P1(t *testing.T) {
+func TestIntegration_ComputePlatformRollup_CustomNormalization_P1(t *testing.T) {
 	pgStore, pool, ctx, teardown := setupApplicationsTest(t)
 	defer teardown()
 	seedRepoOpsData(t, ctx, pool)
 	app := seedAppWith2ActiveLinks(t, ctx, pgStore, testAppKey1)
 
-	rollup, err := pgStore.ComputeApplicationRollup(ctx, app.ID, domain.ApplicationRollupOptions{
+	rollup, err := pgStore.ComputePlatformRollup(ctx, app.ID, domain.PlatformRollupOptions{
 		Policy: domain.WeightPolicyCustom,
 		CustomWeights: map[string]float64{
 			"team/devhub-core": 1.0, // sum check: exact 1.0
@@ -229,7 +229,7 @@ func TestIntegration_ComputeApplicationRollup_CustomNormalization_P1(t *testing.
 	}
 }
 
-func TestIntegration_ComputeApplicationRollup_RepoRoleNormalize(t *testing.T) {
+func TestIntegration_ComputePlatformRollup_RepoRoleNormalize(t *testing.T) {
 	pgStore, pool, ctx, teardown := setupApplicationsTest(t)
 	defer teardown()
 	seedRepoOpsData(t, ctx, pool)
@@ -237,7 +237,7 @@ func TestIntegration_ComputeApplicationRollup_RepoRoleNormalize(t *testing.T) {
 	// primary + sub 의 카테고리 정규화: primary 0.6, sub 0.3, shared 없으면 shared 0.1
 	// 을 다른 카테고리에 비례 재분배 → primary=0.6/(0.9), sub=0.3/(0.9) → 약 0.667 / 0.333.
 
-	rollup, err := pgStore.ComputeApplicationRollup(ctx, app.ID, domain.ApplicationRollupOptions{
+	rollup, err := pgStore.ComputePlatformRollup(ctx, app.ID, domain.PlatformRollupOptions{
 		Policy:     domain.WeightPolicyRepoRole,
 		WindowFrom: time.Now().UTC().Add(-48 * time.Hour),
 		WindowTo:   time.Now().UTC().Add(1 * time.Hour),
@@ -259,13 +259,13 @@ func TestIntegration_ComputeApplicationRollup_RepoRoleNormalize(t *testing.T) {
 	}
 }
 
-func TestIntegration_CountApplicationCriticalWarnings(t *testing.T) {
+func TestIntegration_CountPlatformCriticalWarnings(t *testing.T) {
 	pgStore, pool, ctx, teardown := setupApplicationsTest(t)
 	defer teardown()
 	seedRepoOpsData(t, ctx, pool)
 	app := seedAppWith2ActiveLinks(t, ctx, pgStore, testAppKey1)
 
-	count, err := pgStore.CountApplicationCriticalWarnings(ctx, app.ID)
+	count, err := pgStore.CountPlatformCriticalWarnings(ctx, app.ID)
 	if err != nil {
 		t.Fatalf("count: %v", err)
 	}

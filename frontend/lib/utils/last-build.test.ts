@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
-  applicationBuildStatusView,
+  platformBuildStatusView,
   repositoryLastBuildView,
 } from "./last-build";
 
-describe("applicationBuildStatusView", () => {
+describe("platformBuildStatusView", () => {
   it("healthy → success badge", () => {
-    expect(applicationBuildStatusView("healthy")).toEqual({
+    expect(platformBuildStatusView("healthy")).toEqual({
       label: "Healthy",
       variant: "success",
       tone: "positive",
@@ -14,7 +14,7 @@ describe("applicationBuildStatusView", () => {
   });
 
   it("broken → danger badge", () => {
-    expect(applicationBuildStatusView("broken")).toEqual({
+    expect(platformBuildStatusView("broken")).toEqual({
       label: "Broken",
       variant: "danger",
       tone: "negative",
@@ -22,10 +22,10 @@ describe("applicationBuildStatusView", () => {
   });
 
   it("unknown/null/undefined → secondary fallback", () => {
-    expect(applicationBuildStatusView("unknown").variant).toBe("secondary");
-    expect(applicationBuildStatusView(null).variant).toBe("secondary");
-    expect(applicationBuildStatusView(undefined).variant).toBe("secondary");
-    expect(applicationBuildStatusView("unexpected").variant).toBe("secondary");
+    expect(platformBuildStatusView("unknown").variant).toBe("secondary");
+    expect(platformBuildStatusView(null).variant).toBe("secondary");
+    expect(platformBuildStatusView(undefined).variant).toBe("secondary");
+    expect(platformBuildStatusView("unexpected").variant).toBe("secondary");
   });
 });
 

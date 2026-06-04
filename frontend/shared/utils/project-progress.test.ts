@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ProjectTaskItem } from "@/domain/application-lifecycle/schema/project.types";
+import type { ProjectTaskItem } from "@/domain/platform-lifecycle/schema/project.types";
 import { computeProjectProgress } from "./project-progress";
 
 const task = (status: ProjectTaskItem["status"]): ProjectTaskItem => ({

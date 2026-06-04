@@ -1457,7 +1457,7 @@ LIMIT $1 OFFSET $2`
 			&repository.ProviderID,
 			&repository.ProviderKey,
 			&repository.Description,
-			&repository.LinkedApplicationsCount,
+			&repository.LinkedPlatformsCount,
 			&repository.LinkedProjectsCount,
 		); err != nil {
 			return nil, err

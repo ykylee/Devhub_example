@@ -80,7 +80,7 @@
 | **인증 / 계정 / 사용자** | [ADR-0019](../../adr/0019-keycloak-only-idp.md), [ADR-0020](../../adr/0020-account-user-management-boundary.md) | Keycloak OIDC + DevHub `users` (organizational metadata) + RBAC | ✅ M2 done, M-v1.1 정합 진행 |
 | **RBAC (권한 매트릭스)** | [ADR-0002](../../adr/0002-rbac-policy-edit-api.md), [ADR-0011](../../adr/0011-rbac-row-scoping.md), [ADR-0007](../../adr/0007-rbac-cache-multi-instance.md) | 11 resource × 4 action matrix + row-level scoping | ✅ accepted + 1차 구현 |
 | **Application / Project (PMO)** | [ADR-0011](../../adr/0011-rbac-row-scoping.md) | 외부 의뢰의 promote-to-application/project + team_manager role 위양 | ✅ M3 1차 backend 완성 |
-| **Dev Request (DREQ)** | [ADR-0012](../../adr/0012-dreq-external-intake-auth.md), [ADR-0013](../../adr/0013-dreq-rbac-row-scoping.md), [ADR-0014](../../adr/0014-dreq-intake-token-admin.md), [ADR-0017](../../adr/0017-dreq-intake-token-operational-hardening.md) | 외부 시스템 → DevHub intake → assignee → Application/Project promote | ✅ M5 1차 + admin UI + E2E |
+| **Dev Request (DREQ)** | [ADR-0012](../../adr/0012-dreq-external-intake-auth.md), [ADR-0013](../../adr/0013-dreq-rbac-row-scoping.md), [ADR-0014](../../adr/0014-dreq-intake-token-admin.md), [ADR-0017](../../adr/0017-dreq-intake-token-operational-hardening.md) | 외부 시스템 → DevHub intake → assignee → Platform/Project promote | ✅ M5 1차 + admin UI + E2E |
 | **External Integration** | [ADR-0015](../../adr/0015-homelab-adapter-pull-strategy.md), [ADR-0016](../../adr/0016-prometheus-alerts-policy.md) | ALM/SCM/CI-CD/문서/HomeLab provider 통합 + bindings/topology UI | ✅ M6 1차 + frontend |
 | **Onboarding (신규)** | [ADR-0021](../../adr/0021-onboarding-self-service-unit-selection.md) | Keycloak 인증 통과 + 프로필 미완료 사용자의 self-service 초기 등록 | ⚡ **2026-05-21 Carve A backend done** (M-v1.1) |
 
@@ -92,7 +92,7 @@
 | --- | --- | --- |
 | **Developer** | repo/PR/CI/risk 조회, DREQ assignee 대응, profile 등록 | `/developer` |
 | **Manager** | 팀 부하 / 일정 지연 / DREQ oversight | `/manager` |
-| **PMO Manager** | Application/Project 라이프사이클 관리 (team_manager role) | `/manager` (확장) |
+| **PMO Manager** | Platform/Project 라이프사이클 관리 (team_manager role) | `/manager` (확장) |
 | **System Admin** | Gitea runner / RBAC policy / DREQ token admin / event listener | `/system-admin` |
 | **외부 시스템** (Bitbucket/Bamboo/Jira/HomeLab) | API token + IP allowlist 로 DevHub intake 호출 | (백그라운드) |
 | **사용자 일반** | onboarding 화면 → 소속 등록 → reviewed | `/devhub/onboarding` |

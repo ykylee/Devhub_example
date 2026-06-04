@@ -29,7 +29,7 @@ ADR-0002 채택 (2026-05-08) 으로 *DB-backed RBAC matrix + write API + per-res
 | `security` | risks, risk mitigation command, RBAC policy 자체 (조회·편집) |
 | `audit` | audit-logs 조회 (audit 생성은 시스템 전용) |
 | `applications` | application 관리 |
-| `application_repositories` | application-repository 매핑 관리 |
+| `platform_repositories` | application-repository 매핑 관리 |
 | `projects` | project 관리 |
 | `scm_providers` | SCM provider 활성화/설정 관리 |
 | `dev_requests` | 개발 의뢰(DREQ) 조회/관리 |

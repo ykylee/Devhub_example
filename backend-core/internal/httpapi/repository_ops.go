@@ -15,7 +15,7 @@ import (
 // pipeline 책임 (별도 sprint).
 
 func (h *Handler) repositoryActivity(c *gin.Context) {
-	storeI, ok := h.applicationStoreOrUnavailable(c)
+	storeI, ok := h.platformStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
@@ -73,7 +73,7 @@ func (h *Handler) repositoryActivity(c *gin.Context) {
 }
 
 func (h *Handler) repositoryPullRequests(c *gin.Context) {
-	storeI, ok := h.applicationStoreOrUnavailable(c)
+	storeI, ok := h.platformStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
@@ -124,7 +124,7 @@ func (h *Handler) repositoryPullRequests(c *gin.Context) {
 }
 
 func (h *Handler) repositoryBuildRuns(c *gin.Context) {
-	storeI, ok := h.applicationStoreOrUnavailable(c)
+	storeI, ok := h.platformStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
@@ -180,7 +180,7 @@ func (h *Handler) repositoryBuildRuns(c *gin.Context) {
 }
 
 func (h *Handler) repositoryQualitySnapshots(c *gin.Context) {
-	storeI, ok := h.applicationStoreOrUnavailable(c)
+	storeI, ok := h.platformStoreOrUnavailable(c)
 	if !ok {
 		return
 	}

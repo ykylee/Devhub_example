@@ -43,12 +43,12 @@
 ## 📁 Key Files (변경 대상)
 
 **Backend**:
-- `backend-core/internal/domain/application-lifecycle/repository/projects.go` (line 253 이후 — 새 메서드 추가)
+- `backend-core/internal/domain/platform-lifecycle/repository/projects.go` (line 253 이후 — 새 메서드 추가)
 - `backend-core/internal/httpapi/domain.go:40-44` (`repositoryDraftStore` interface 확장)
 - `backend-core/internal/httpapi/domain.go:148+` (handler 추가)
 - `backend-core/internal/httpapi/router.go:329-330` (route 추가)
 - `backend-core/internal/httpapi/applications_test.go` (memory mock 확장)
-- `backend-core/internal/domain/application-lifecycle/repository/projects_creation_integration_test.go` 또는 신규 (integration test)
+- `backend-core/internal/domain/platform-lifecycle/repository/projects_creation_integration_test.go` 또는 신규 (integration test)
 
 **Frontend**:
 - `frontend/domain/repository-integration/service/repository.service.ts` (메서드 추가)

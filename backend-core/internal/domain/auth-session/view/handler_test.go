@@ -282,9 +282,9 @@ func TestAuthenticateActor_XDevhubActorRejected(t *testing.T) {
 	
 	r := gin.New()
 	r.Use(h.AuthenticateActor)
-	r.GET("/api/v1/apps", func(c *gin.Context) { c.Status(200) })
+	r.GET("/api/v1/platforms", func(c *gin.Context) { c.Status(200) })
 
-	req := httptest.NewRequest("GET", "/api/v1/apps", nil)
+	req := httptest.NewRequest("GET", "/api/v1/platforms", nil)
 	req.Header.Set("X-Devhub-Actor", "legacy-actor")
 	r.ServeHTTP(rec, req)
 
@@ -420,9 +420,9 @@ func TestAuthenticateActor_NoHeaderBearer(t *testing.T) {
 		
 		r := gin.New()
 		r.Use(h.AuthenticateActor)
-		r.GET("/api/v1/apps", func(c *gin.Context) { c.Status(200) })
+		r.GET("/api/v1/platforms", func(c *gin.Context) { c.Status(200) })
 
-		req := httptest.NewRequest("GET", "/api/v1/apps", nil)
+		req := httptest.NewRequest("GET", "/api/v1/platforms", nil)
 		r.ServeHTTP(rec, req)
 
 		if rec.Code == 401 {
@@ -439,9 +439,9 @@ func TestAuthenticateActor_NoHeaderBearer(t *testing.T) {
 		
 		r := gin.New()
 		r.Use(h.AuthenticateActor)
-		r.GET("/api/v1/apps", func(c *gin.Context) { c.Status(200) })
+		r.GET("/api/v1/platforms", func(c *gin.Context) { c.Status(200) })
 
-		req := httptest.NewRequest("GET", "/api/v1/apps", nil)
+		req := httptest.NewRequest("GET", "/api/v1/platforms", nil)
 		r.ServeHTTP(rec, req)
 
 		if rec.Code != 401 {
@@ -455,9 +455,9 @@ func TestAuthenticateActor_NoHeaderBearer(t *testing.T) {
 		
 		r := gin.New()
 		r.Use(h.AuthenticateActor)
-		r.GET("/api/v1/apps", func(c *gin.Context) { c.Status(200) })
+		r.GET("/api/v1/platforms", func(c *gin.Context) { c.Status(200) })
 
-		req := httptest.NewRequest("GET", "/api/v1/apps", nil)
+		req := httptest.NewRequest("GET", "/api/v1/platforms", nil)
 		req.Header.Set("Authorization", "Basic credentials")
 		r.ServeHTTP(rec, req)
 
@@ -476,9 +476,9 @@ func TestAuthenticateActor_BearerVerifier(t *testing.T) {
 		
 		r := gin.New()
 		r.Use(h.AuthenticateActor)
-		r.GET("/api/v1/apps", func(c *gin.Context) { c.Status(200) })
+		r.GET("/api/v1/platforms", func(c *gin.Context) { c.Status(200) })
 
-		req := httptest.NewRequest("GET", "/api/v1/apps", nil)
+		req := httptest.NewRequest("GET", "/api/v1/platforms", nil)
 		req.Header.Set("Authorization", "Bearer valid-token")
 		r.ServeHTTP(rec, req)
 
@@ -496,9 +496,9 @@ func TestAuthenticateActor_BearerVerifier(t *testing.T) {
 		
 		r := gin.New()
 		r.Use(h.AuthenticateActor)
-		r.GET("/api/v1/apps", func(c *gin.Context) { c.Status(200) })
+		r.GET("/api/v1/platforms", func(c *gin.Context) { c.Status(200) })
 
-		req := httptest.NewRequest("GET", "/api/v1/apps", nil)
+		req := httptest.NewRequest("GET", "/api/v1/platforms", nil)
 		req.Header.Set("Authorization", "Bearer valid-token")
 		r.ServeHTTP(rec, req)
 
@@ -514,9 +514,9 @@ func TestAuthenticateActor_BearerVerifier(t *testing.T) {
 		
 		r := gin.New()
 		r.Use(h.AuthenticateActor)
-		r.GET("/api/v1/apps", func(c *gin.Context) { c.Status(200) })
+		r.GET("/api/v1/platforms", func(c *gin.Context) { c.Status(200) })
 
-		req := httptest.NewRequest("GET", "/api/v1/apps", nil)
+		req := httptest.NewRequest("GET", "/api/v1/platforms", nil)
 		req.Header.Set("Authorization", "Bearer invalid-token")
 		r.ServeHTTP(rec, req)
 
@@ -536,9 +536,9 @@ func TestAuthenticateActor_SuccessPathStoreScenarios(t *testing.T) {
 		
 		r := gin.New()
 		r.Use(h.AuthenticateActor)
-		r.GET("/api/v1/apps", func(c *gin.Context) { c.Status(200) })
+		r.GET("/api/v1/platforms", func(c *gin.Context) { c.Status(200) })
 
-		req := httptest.NewRequest("GET", "/api/v1/apps", nil)
+		req := httptest.NewRequest("GET", "/api/v1/platforms", nil)
 		req.Header.Set("Authorization", "Bearer empty")
 		r.ServeHTTP(rec, req)
 
@@ -572,13 +572,13 @@ func TestAuthenticateActor_SuccessPathStoreScenarios(t *testing.T) {
 		r := gin.New()
 		var capturedLogin, capturedRole any
 		r.Use(h.AuthenticateActor)
-		r.GET("/api/v1/apps", func(c *gin.Context) {
+		r.GET("/api/v1/platforms", func(c *gin.Context) {
 			capturedLogin, _ = c.Get("devhub_actor_login")
 			capturedRole, _ = c.Get("devhub_actor_role")
 			c.Status(200)
 		})
 
-		req := httptest.NewRequest("GET", "/api/v1/apps", nil)
+		req := httptest.NewRequest("GET", "/api/v1/platforms", nil)
 		req.Header.Set("Authorization", "Bearer token-123")
 		r.ServeHTTP(rec, req)
 
@@ -613,7 +613,7 @@ func TestAuthenticateActor_SuccessPathStoreScenarios(t *testing.T) {
 		r := gin.New()
 		var login, role, email, dName, onb any
 		r.Use(h.AuthenticateActor)
-		r.GET("/api/v1/apps", func(c *gin.Context) {
+		r.GET("/api/v1/platforms", func(c *gin.Context) {
 			login, _ = c.Get("devhub_actor_login")
 			role, _ = c.Get("devhub_actor_role")
 			email, _ = c.Get("devhub_actor_email")
@@ -622,7 +622,7 @@ func TestAuthenticateActor_SuccessPathStoreScenarios(t *testing.T) {
 			c.Status(200)
 		})
 
-		req := httptest.NewRequest("GET", "/api/v1/apps", nil)
+		req := httptest.NewRequest("GET", "/api/v1/platforms", nil)
 		req.Header.Set("Authorization", "Bearer new-token")
 		r.ServeHTTP(rec, req)
 

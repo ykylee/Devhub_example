@@ -13,7 +13,7 @@ DevHub 의 다차원 접근 제어는 다음 모델을 사용한다.
 
 - **System Role**: 3종(`developer`, `team_manager`, `system_admin`).
 - **Resource Role**: 4종(`project_member`, `project_leader`, `application_leader`, `org_head`) — row-level scope 계산에 사용.
-- **Resource**: 11종(`infrastructure`, `pipelines`, `organization`, `security`, `audit`, `applications`, `application_repositories`, `projects`, `scm_providers`, `dev_requests`, `dev_request_intake_tokens`).
+- **Resource**: 11종(`infrastructure`, `pipelines`, `organization`, `security`, `audit`, `applications`, `platform_repositories`, `projects`, `scm_providers`, `dev_requests`, `dev_request_intake_tokens`).
 - **Action**: 4종(`view`, `create`, `edit`, `delete`).
 - **Row-scoping**: ADR-0011 `enforceRowOwnership` + read scope filter 로 row-level 권한 검사.
 
@@ -55,11 +55,11 @@ DevHub 의 다차원 접근 제어는 다음 모델을 사용한다.
 - **REQ-RBAC-015 (P1, 신규):** Read scope enforcement 규칙:
   - `List*` 계열: scope 밖 리소스는 에러가 아니라 필터링하여 제외한다(빈 목록 허용).
   - `Get*` 계열: scope 밖 리소스 요청은 `403` + `code=auth_row_denied`.
-  - 위 규칙은 `projects`, `applications`, `application_repositories`, `dev_requests` read API에 동일 적용한다.
+  - 위 규칙은 `projects`, `applications`, `platform_repositories`, `dev_requests` read API에 동일 적용한다.
 
 ### 2.7 우선순위 정합성 규칙
 
-- **REQ-RBAC-016 (P1, 신규):** RBAC 우선순위 충돌 시 source-of-truth 는 본 문서(`docs/domain/rbac-permissions/requirements.md`)와 master 요구사항(`docs/requirements.md`)의 최신 수정일 기준 합의본으로 한다. 도메인 요구사항(`application-lifecycle` 등)에 남아 있는 P2 표기는 릴리즈 계획에서 P1로 상향될 수 있으며, 상향 시 traceability 매트릭스를 같은 PR에서 동기화해야 한다.
+- **REQ-RBAC-016 (P1, 신규):** RBAC 우선순위 충돌 시 source-of-truth 는 본 문서(`docs/domain/rbac-permissions/requirements.md`)와 master 요구사항(`docs/requirements.md`)의 최신 수정일 기준 합의본으로 한다. 도메인 요구사항(`platform-lifecycle` 등)에 남아 있는 P2 표기는 릴리즈 계획에서 P1로 상향될 수 있으며, 상향 시 traceability 매트릭스를 같은 PR에서 동기화해야 한다.
 
 ## 3. UI 및 캐시 운영
 

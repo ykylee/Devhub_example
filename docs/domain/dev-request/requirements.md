@@ -1,7 +1,7 @@
 # dev-request 도메인 요구사항 (DREQ)
 
 - 문서 목적: 외부 시스템 개발 의뢰(DREQ) 수신 → 담당자 검토 → application/project 등록(promote) 흐름의 기능·비기능 요구사항을 정의한다.
-- 범위: REQ-FR-DREQ-001..013 / REQ-NFR-DREQ-001..006. 외부 시스템 일반 연동(Integration) 은 `docs/domain/integration-registry/requirements.md`, application/project 모델은 `docs/domain/application-lifecycle/requirements.md` 참조.
+- 범위: REQ-FR-DREQ-001..013 / REQ-NFR-DREQ-001..006. 외부 시스템 일반 연동(Integration) 은 `docs/domain/integration-registry/requirements.md`, application/project 모델은 `docs/domain/platform-lifecycle/requirements.md` 참조.
 - 대상 독자: backend / 프론트엔드 / DevOps, AI agent, QA.
 - 상태: accepted
 - 최종 수정일: 2026-05-29 (Phase 3 split, master `docs/requirements.md` §5.5 에서 이관 — 본문 보존)
@@ -25,7 +25,7 @@
 - **REQ-FR-DREQ-006 (MVP):** 담당자 또는 system_admin 은 의뢰를 reject 할 수 있어야 하며, `rejected_reason` (텍스트) 은 필수다.
 - **REQ-FR-DREQ-007 (MVP):** system_admin 은 의뢰의 `assignee_user_id` 를 변경(reassign)할 수 있어야 한다. 변경 이력은 `dev_request.reassigned` audit 으로 기록한다.
 - **REQ-FR-DREQ-008 (MVP):** `registered` 또는 `rejected` 상태의 의뢰는 system_admin 이 `closed` 로 전이할 수 있어야 한다. `pending`/`in_review` 상태의 의뢰는 직접 `closed` 로 갈 수 없다 (먼저 reject 후 close).
-- **REQ-FR-DREQ-009 (후속):** Application/Project 의 `origin_dreq_id` 역참조 컬럼 도입 여부는 별도 ADR 에서 결정. 도입 시 nullable FK 로 추가하여 의뢰 없이 직접 생성된 entity 와 공존한다.
+- **REQ-FR-DREQ-009 (후속):** Platform/Project 의 `origin_dreq_id` 역참조 컬럼 도입 여부는 별도 ADR 에서 결정. 도입 시 nullable FK 로 추가하여 의뢰 없이 직접 생성된 entity 와 공존한다.
 - **REQ-FR-DREQ-010 (후속):** 외부 시스템에 의뢰 상태 변경을 callback (webhook) 으로 알리는 기능은 MVP 안정화 후 결정한다.
 - **REQ-FR-DREQ-011 (후속):** 의뢰 첨부파일, 댓글, 멘션, 알림, SLA/escalation, AI 자동 분류는 본 도메인의 1차 범위 밖이다.
 - **REQ-FR-DREQ-012 (MVP, 확정):** 담당자는 네비게이션 헤더의 실시간 알림 배지와 카운트를 통해 인입된 대기 상태(pending/in_review)의 의뢰 정보를 파악할 수 있어야 한다.

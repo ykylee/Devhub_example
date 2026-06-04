@@ -23,7 +23,7 @@
 - `repository_create_payload: { key, slug, scm_provider }` 추가
 - 적용 엔드포인트:
   - `POST /api/v1/projects`
-  - `POST /api/v1/applications/:application_id/projects`
+  - `POST /api/v1/platforms/:application_id/projects`
 - backend store에 `CreateRepositoryForProject` 추가 후 project 생성 흐름과 연결
 - frontend 생성 모달에 "Create and link repository on project creation" 입력 UX 추가
 

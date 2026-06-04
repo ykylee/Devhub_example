@@ -34,13 +34,13 @@ test.describe("RBAC route matrix", () => {
     await expect(page).toHaveURL(/\/manager(\/|$)/, { timeout: 10_000 });
   });
 
-  // 6-P1: developer has applications:view + projects:view
-  test("TC-RBAC-DEV-VIEW-01 — developer can access /applications list", async ({ page }) => {
+  // 6-P1: developer has platforms:view + projects:view
+  test("TC-RBAC-DEV-VIEW-01 — developer can access /platforms list", async ({ page }) => {
     await loginAs(page, SEEDED.developer);
-    await page.goto(appPath("/applications"));
-    // DefaultPermissionMatrix grants developer applications:view.
-    // /applications is not under /admin so pathRequiresSystemAdmin is false.
-    await expect(page).toHaveURL(/\/applications(\/|$)/, { timeout: 10_000 });
+    await page.goto(appPath("/platforms"));
+    // DefaultPermissionMatrix grants developer platforms:view.
+    // /platforms is not under /admin so pathRequiresSystemAdmin is false.
+    await expect(page).toHaveURL(/\/platforms(\/|$)/, { timeout: 10_000 });
   });
 
   test("TC-RBAC-DEV-VIEW-02 — developer can access /projects list", async ({ page }) => {

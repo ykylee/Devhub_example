@@ -2,53 +2,53 @@ package domain
 
 import "time"
 
-// ApplicationStatus is the lifecycle status of an Application (concept §13.2).
-type ApplicationStatus string
+// PlatformStatus is the lifecycle status of a Platform (concept §13.2).
+type PlatformStatus string
 
 const (
-	ApplicationStatusPlanning ApplicationStatus = "planning"
-	ApplicationStatusActive   ApplicationStatus = "active"
-	ApplicationStatusOnHold   ApplicationStatus = "on_hold"
-	ApplicationStatusClosed   ApplicationStatus = "closed"
-	ApplicationStatusArchived ApplicationStatus = "archived"
+	PlatformStatusPlanning PlatformStatus = "planning"
+	PlatformStatusActive   PlatformStatus = "active"
+	PlatformStatusOnHold   PlatformStatus = "on_hold"
+	PlatformStatusClosed   PlatformStatus = "closed"
+	PlatformStatusArchived PlatformStatus = "archived"
 )
 
 // ProjectStatus is the lifecycle status of a Project. Currently identical
-// vocabulary to ApplicationStatus (5종 — planning/active/on_hold/closed/archived).
+// vocabulary to PlatformStatus (5종 — planning/active/on_hold/closed/archived).
 // 별도 alias 로 정의해 두는 이유:
-//   - Project lifecycle 이 향후 Application 과 분기할 가능성 (예: Project 전용
+//   - Project lifecycle 이 향후 Platform 과 분기할 가능성 (예: Project 전용
 //     `cancelled` 상태 도입) 을 코드 구조 측면에서 미리 열어 두기 위함.
 //   - 분기 시점에 `type ProjectStatus string` 로 본 alias 를 끊고 별도 상수 그룹을
 //     정의하면 됨. 본 sprint 까지는 vocabulary 동일하므로 alias 유지.
-type ProjectStatus = ApplicationStatus
+type ProjectStatus = PlatformStatus
 
-// ApplicationVisibility is the visibility classification (concept §5.1, api §13.1).
-type ApplicationVisibility string
+// PlatformVisibility is the visibility classification (concept §5.1, api §13.1).
+type PlatformVisibility string
 
 const (
-	ApplicationVisibilityPublic     ApplicationVisibility = "public"
-	ApplicationVisibilityInternal   ApplicationVisibility = "internal"
-	ApplicationVisibilityRestricted ApplicationVisibility = "restricted"
+	PlatformVisibilityPublic     PlatformVisibility = "public"
+	PlatformVisibilityInternal   PlatformVisibility = "internal"
+	PlatformVisibilityRestricted PlatformVisibility = "restricted"
 )
 
-// ApplicationRepositoryRole categorizes a linked Repository (concept §13.4 — rollup weight repo_role).
-type ApplicationRepositoryRole string
+// PlatformRepositoryRole categorizes a linked Repository (concept §13.4 — rollup weight repo_role).
+type PlatformRepositoryRole string
 
 const (
-	ApplicationRepositoryRolePrimary ApplicationRepositoryRole = "primary"
-	ApplicationRepositoryRoleSub     ApplicationRepositoryRole = "sub"
-	ApplicationRepositoryRoleShared  ApplicationRepositoryRole = "shared"
+	PlatformRepositoryRolePrimary PlatformRepositoryRole = "primary"
+	PlatformRepositoryRoleSub     PlatformRepositoryRole = "sub"
+	PlatformRepositoryRoleShared  PlatformRepositoryRole = "shared"
 )
 
-// ApplicationRepositorySyncStatus represents the link-level sync lifecycle (concept §13.3).
-type ApplicationRepositorySyncStatus string
+// PlatformRepositorySyncStatus represents the link-level sync lifecycle (concept §13.3).
+type PlatformRepositorySyncStatus string
 
 const (
-	SyncStatusRequested    ApplicationRepositorySyncStatus = "requested"
-	SyncStatusVerifying    ApplicationRepositorySyncStatus = "verifying"
-	SyncStatusActive       ApplicationRepositorySyncStatus = "active"
-	SyncStatusDegraded     ApplicationRepositorySyncStatus = "degraded"
-	SyncStatusDisconnected ApplicationRepositorySyncStatus = "disconnected"
+	SyncStatusRequested    PlatformRepositorySyncStatus = "requested"
+	SyncStatusVerifying    PlatformRepositorySyncStatus = "verifying"
+	SyncStatusActive       PlatformRepositorySyncStatus = "active"
+	SyncStatusDegraded     PlatformRepositorySyncStatus = "degraded"
+	SyncStatusDisconnected PlatformRepositorySyncStatus = "disconnected"
 )
 
 // SyncErrorCode is the standardized link-level error code dictionary (api §13.3).
@@ -87,11 +87,11 @@ const (
 	ProjectMemberRoleObserver    ProjectMemberRole = "observer"
 )
 
-// IntegrationScope distinguishes Application-level vs Project-level integrations.
+// IntegrationScope distinguishes Platform-level vs Project-level integrations.
 type IntegrationScope string
 
 const (
-	IntegrationScopeApplication IntegrationScope = "application"
+	IntegrationScopePlatform IntegrationScope = "platform"
 	IntegrationScopeProject     IntegrationScope = "project"
 )
 
@@ -111,16 +111,16 @@ const (
 	IntegrationPolicyExecutionSystem IntegrationPolicy = "execution_system"
 )
 
-// Application is the top-level governance entity for a product/service lifecycle.
-type Application struct {
+// Platform is the top-level governance entity for a product/service lifecycle.
+type Platform struct {
 	ID                string // UUID
 	Key               string // 10-char immutable identifier (REQ-FR-APP-003)
 	Name              string
 	Description       string
-	Status            ApplicationStatus
-	Visibility        ApplicationVisibility
+	Status            PlatformStatus
+	Visibility        PlatformVisibility
 	OwnerUserID       string // legacy ownership field (kept for compatibility)
-	LeaderUserID      string // application leader, FK users.user_id
+	LeaderUserID      string // platform leader, FK users.user_id
 	DevelopmentUnitID string // development department unit_id, FK org_units.unit_id
 	StartDate         *time.Time
 	DueDate           *time.Time
@@ -129,21 +129,21 @@ type Application struct {
 	UpdatedAt         time.Time
 }
 
-// ApplicationRepository is one link between an Application and an external Repository
-// (composite PK = (ApplicationID, RepoProvider, RepoFullName) per concept §13.3).
-type ApplicationRepository struct {
-	ApplicationID      string // UUID
+// PlatformRepository is one link between a Platform and an external Repository
+// (composite PK = (PlatformID, RepoProvider, RepoFullName) per concept §13.3).
+type PlatformRepository struct {
+	PlatformID         string // UUID
 	RepoProvider       string
 	RepoFullName       string
 	ExternalRepoID     string // optional
-	Role               ApplicationRepositoryRole
-	SyncStatus         ApplicationRepositorySyncStatus
+	Role               PlatformRepositoryRole
+	SyncStatus         PlatformRepositorySyncStatus
 	SyncErrorCode      SyncErrorCode // empty if no error
 	SyncErrorRetryable *bool
 	SyncErrorAt        *time.Time
 	LastSyncAt         *time.Time
 	LinkedAt           time.Time
-	// LinkSource — "direct" (application_repositories 직접 link) | "via_project"
+	// LinkSource — "direct" (platform_repositories 직접 link) | "via_project"
 	// (프로젝트 경유 간접 link). #395/#396 후속 carve P2-#3 — UI/디버깅/감사용.
 	// 두 source 가 같은 (repo_provider, repo_full_name) 으로 충돌 시 direct 우선.
 	LinkSource string
@@ -152,13 +152,13 @@ type ApplicationRepository struct {
 // Project is a time-bounded operational unit hosted under a Repository.
 type Project struct {
 	ID            string // UUID
-	ApplicationID string // UUID, may be empty for repo-only projects
+	PlatformID string // UUID, may be empty for repo-only projects
 	RepositoryID  int64  // legacy primary repository FK (hybrid mode)
 	Key           string // unique within Repository (UNIQUE (repository_id, key))
 	Name          string
 	Description   string
 	Status        ProjectStatus // ApplicationStatus alias — Project lifecycle 분기 시 alias 끊기
-	Visibility    ApplicationVisibility
+	Visibility    PlatformVisibility
 	OwnerUserID   string
 	StartDate     *time.Time
 	DueDate       *time.Time
@@ -185,12 +185,12 @@ type ProjectMember struct {
 }
 
 // ProjectIntegration represents one external integration (Jira/Confluence) bound to
-// either an Application or a Project (single-table polymorphism via Scope + nullable FKs).
+// either a Platform or a Project (single-table polymorphism via Scope + nullable FKs).
 type ProjectIntegration struct {
 	ID              string // UUID
 	Scope           IntegrationScope
-	ProjectID       string // empty if Scope=application
-	ApplicationID   string // empty if Scope=project
+	ProjectID       string // empty if Scope=platform
+	PlatformID      string // empty if Scope=project
 	IntegrationType IntegrationType
 	ExternalKey     string
 	URL             string
@@ -226,7 +226,7 @@ const (
 type IntegrationScopeType string
 
 const (
-	IntegrationScopeTypeApplication IntegrationScopeType = "application"
+	IntegrationScopeTypePlatform IntegrationScopeType = "platform"
 	IntegrationScopeTypeProject     IntegrationScopeType = "project"
 )
 
@@ -396,7 +396,7 @@ type RepositoryActivity struct {
 	LastBuildAt     *time.Time // 마지막 빌드 started_at — UI 의 timestamp 표기
 }
 
-// --- Application 롤업 (REQ-FR-APP-012 / REQ-NFR-PROJ-006, concept §13.4) ---
+// --- Platform 롤업 (REQ-FR-APP-012 / REQ-NFR-PROJ-006, concept §13.4) ---
 
 // WeightPolicy is the rollup weight policy choice (concept §13.4 + api §13.6).
 type WeightPolicy string
@@ -407,20 +407,18 @@ const (
 	WeightPolicyCustom   WeightPolicy = "custom"
 )
 
-// ApplicationRollupOptions parameterizes ComputeApplicationRollup.
-type ApplicationRollupOptions struct {
+// PlatformRollupOptions parameterizes ComputePlatformRollup.
+type PlatformRollupOptions struct {
 	Policy        WeightPolicy
 	CustomWeights map[string]float64 // repo_full_name → weight (sum = 1.0 ± tolerance)
 	WindowFrom    time.Time
 	WindowTo      time.Time
 }
 
-// CustomWeightTolerance is the ±0.001 허용오차 for WeightPolicyCustom 합계 1.0 검증
-// (concept §13.4 + api §13.6).
 const CustomWeightTolerance = 0.001
 
-// ApplicationRollupMeta는 롤업 응답의 meta 필드 (api §13.6).
-type ApplicationRollupMeta struct {
+// PlatformRollupMeta는 롤업 응답의 meta 필드 (api §13.6).
+type PlatformRollupMeta struct {
 	Period         RollupPeriod       `json:"period"`
 	Filters        map[string]any     `json:"filters"`
 	WeightPolicy   WeightPolicy       `json:"weight_policy"`
@@ -451,20 +449,20 @@ type RollupDataGap struct {
 	Reason       string `json:"reason"` // e.g., "provider_unreachable" | "no_data_in_window"
 }
 
-// ApplicationRollup is the aggregated rollup payload (api §13.6 응답 data).
-type ApplicationRollup struct {
+// PlatformRollup is the aggregated rollup payload (api §13.6 응답 data).
+type PlatformRollup struct {
 	PullRequestDistribution map[string]int `json:"pull_request_distribution"`  // opened/merged/closed/...
 	BuildSuccessRate        float64        `json:"build_success_rate"`         // weighted average 0.0~1.0 (시계열/추세용)
 	BuildAvgDurationSeconds int            `json:"build_avg_duration_seconds"` // weighted average
 	QualityScore            float64        `json:"quality_score"`              // weighted average
 	QualityGateFailedCount  int            `json:"quality_gate_failed_count"`
 	CriticalWarningCount    int            `json:"critical_warning_count"` // active→closed 가드 의존
-	// TargetBranchBuildStatus 는 application 단의 "마지막 빌드 상태" derive 값 — REQ-FR-APPDASH-001
+	// TargetBranchBuildStatus 는 platform 단의 "마지막 빌드 상태" derive 값 — REQ-FR-APPDASH-001
 	// 결정 ("단순 빌드 성공률(%)보다 broken/red 상태 즉시 표기"). 연결된 repository 들의 LastBuildStatus
 	// 를 종합:
 	//   - 어떤 repo 의 last build 가 "failed"|"cancelled" → "broken"
 	//   - 모두 "success"|"skipped" 인 경우 → "healthy"
 	//   - 그 외 (running/queued/unknown/데이터 없음) → "unknown"
 	TargetBranchBuildStatus string                `json:"target_branch_build_status"`
-	Meta                    ApplicationRollupMeta `json:"-"` // 별도 meta 필드로 serialize
+	Meta                    PlatformRollupMeta `json:"-"` // 별도 meta 필드로 serialize
 }

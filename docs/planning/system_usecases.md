@@ -1,7 +1,7 @@
 # DevHub 시스템 Usecase 카탈로그
 
 - 문서 목적: 코드베이스 전체 모듈 기준으로 Usecase를 정의하고, 요구사항(REQ)과 설계(ARCH/API) 사이의 중간 추적 단위를 제공한다.
-- 범위: backend-core 주요 모듈(auth/account/org/rbac/gitea ingest/command/audit/realtime/store) + Application/Project 도메인 + Repository SCM 연동/Lifecycle + External Integration.
+- 범위: backend-core 주요 모듈(auth/account/org/rbac/gitea ingest/command/audit/realtime/store) + Platform/Project 도메인 + Repository SCM 연동/Lifecycle + External Integration.
 - 대상 독자: 프로젝트 리드, 시스템 관리자, Backend/Frontend 설계 담당, 추적성 리뷰어.
 - 상태: draft
 - 최종 수정일: 2026-06-02 (RBAC 고도화 — UC-RBAC-02 재정의 + UC-RBAC-04..07 신규)
@@ -19,10 +19,10 @@
 | Command | `backend-core/internal/httpapi/commands.go`, `internal/commandworker`, `internal/serviceaction` |
 | Audit | `backend-core/internal/httpapi/audit.go`, `internal/store/audit_logs.go` |
 | Realtime | `backend-core/internal/httpapi/realtime.go`, `snapshot.go` |
-| Application/Project | `backend-core/internal/httpapi/applications.go`, `projects.go`, `repository_ops.go`, `application_rollup.go` |
+| Platform/Project | `backend-core/internal/httpapi/platforms.go`, `projects.go`, `repository_ops.go`, `application_rollup.go` |
 | Repository SCM 연동/Lifecycle | `backend-core/internal/httpapi/integration_scm_repositories.go`, `domain.go`(draft/publish), `backend-core/internal/gitea`(CreateRepo) |
 | External Integration | `backend-core/internal/httpapi/integration_registry.go`, `integrations.go`, `infra_integrations.go`, `backend-core/internal/gitea`(pull sync) |
-| Application 개발 대시보드 | `docs/requirements.md` §5.9 기준 (설계/구현 예정) |
+| Platform 개발 대시보드 | `docs/requirements.md` §5.9 기준 (설계/구현 예정) |
 
 ## 2. Usecase (모듈별)
 
@@ -148,11 +148,11 @@
 
 | UC ID | Usecase | 성공 조건 | 관련 REQ |
 | --- | --- | --- | --- |
-| `UC-APP-01` | Application 등록 | Application 생성 + owner/KPI/기간 저장 | REQ-FR-APP-001 |
+| `UC-APP-01` | Platform 등록 | Application 생성 + owner/KPI/기간 저장 | REQ-FR-APP-001 |
 | `UC-APP-02` | Application-Repository 연결 | 1 Application : N Repository 매핑 저장 | REQ-FR-APP-002 |
 | `UC-APP-03` | Application 상태 전이/보관 | status/archived 정책 적용 | REQ-FR-APP-001 |
-| `UC-APP-04` | Application 상세 조회 | 메타 + 연결 Repository 목록 + Application 마일스톤 + 하위 Repository 마일스톤 롤업 조회 (Application 은 최상위 계층이므로 "상위" 는 없음) | REQ-FR-APP-001,002,004 |
-| `UC-APP-05` | Application 관리 권한 검증 | `system_admin`만 쓰기 허용, `team_manager` 비활성 시 403 반환 | REQ-FR-PROJ-000 |
+| `UC-APP-04` | Platform 상세 조회 | 메타 + 연결 Repository 목록 + Application 마일스톤 + 하위 Repository 마일스톤 롤업 조회 (Application 은 최상위 계층이므로 "상위" 는 없음) | REQ-FR-APP-001,002,004 |
+| `UC-APP-05` | Platform 관리 권한 검증 | `system_admin`만 쓰기 허용, `team_manager` 비활성 시 403 반환 | REQ-FR-PROJ-000 |
 | `UC-APP-06` | Repository 운영 스냅샷 조회 | 작업현황/PR/빌드/품질 지표를 repo 단위로 조회 | REQ-FR-APP-005,006,007,008 |
 | `UC-APP-07` | 외부 도구 동기화/재동기화 | webhook+pull 기반 동기화, 중복/누락 보정 처리 | REQ-FR-APP-004, REQ-NFR-PROJ-004 |
 | `UC-APP-08` | SCM provider 어댑터 라우팅 | repo_provider 기준으로 적절한 어댑터를 선택해 동일 도메인 계약으로 수집/조회 처리 | REQ-FR-APP-009, REQ-NFR-PROJ-005 |
@@ -181,7 +181,7 @@
 | `UC-DREQ-01` | 외부 시스템의 의뢰 수신 | 인증 통과 + 필수 필드 검증 + idempotency 통과 시 `pending` 으로 저장 / 검증 실패 시 `rejected` (invalid_intake) | REQ-FR-DREQ-001,002 / REQ-NFR-DREQ-001,002 |
 | `UC-DREQ-02` | 담당자 dashboard 의 내 대기 의뢰 조회 | 본인의 `assignee_user_id` 와 일치하는 pending/in_review 의뢰 목록을 반환 | REQ-FR-DREQ-004 |
 | `UC-DREQ-03` | 의뢰 상세 조회 | 권한 통과 시 의뢰 본문 + status 이력 + 매핑된 application/project id 반환 | REQ-FR-DREQ-004 |
-| `UC-DREQ-04` | 의뢰 → Application 등록(promote) | 단일 트랜잭션으로 Application 신규 생성 + DREQ.status=registered + audit | REQ-FR-DREQ-005 |
+| `UC-DREQ-04` | 의뢰 → Platform 등록(promote) | 단일 트랜잭션으로 Application 신규 생성 + DREQ.status=registered + audit | REQ-FR-DREQ-005 |
 | `UC-DREQ-05` | 의뢰 → Project 등록(promote) | 단일 트랜잭션으로 Project 신규 생성 + DREQ.status=registered + audit | REQ-FR-DREQ-005 |
 | `UC-DREQ-06` | 의뢰 거절(reject) | `rejected_reason` 필수, status → rejected, audit | REQ-FR-DREQ-006 |
 | `UC-DREQ-07` | 의뢰 담당자 재할당(reassign) | system_admin 만 가능, 변경 이력 audit | REQ-FR-DREQ-007 |
@@ -201,7 +201,7 @@
 | `UC-INT-04` | Scheduled pull 동기화 | 주기 실행으로 누락 데이터를 보정하고 최신 스냅샷을 갱신한다 | REQ-FR-INT-003 |
 | `UC-INT-05` | SCM 정규화 처리 | bitbucket/gitea/forgejo 이벤트를 공통 Repository/PR/Activity 모델로 변환한다 | REQ-FR-INT-004 |
 | `UC-INT-06` | CI/CD 정규화 처리 | bamboo/jenkins 결과를 공통 BuildRun 모델로 변환한다 | REQ-FR-INT-005 |
-| `UC-INT-07` | ALM/문서 링크형 연동 | Jira key 및 Confluence 문서 메타를 Application/Project scope에 연결한다 | REQ-FR-INT-006,007 |
+| `UC-INT-07` | ALM/문서 링크형 연동 | Jira key 및 Confluence 문서 메타를 Platform/Project scope에 연결한다 | REQ-FR-INT-006,007 |
 | `UC-INT-08` | 홈랩 Node/Service 인벤토리 관리 | 노드/서비스 등록 및 버전/포트/헬스 상태를 조회할 수 있다 | REQ-FR-INT-008 |
 | `UC-INT-09` | 홈랩 토폴로지 조회 | nodes/edges/services 기반 인프라 상태 지도를 제공한다 | REQ-FR-INT-009 |
 | `UC-INT-10` | 연동 상태 수명주기 관리 | requested/verifying/active/degraded/disconnected 상태를 일관되게 전이/표시한다 | REQ-FR-INT-010 |
@@ -244,7 +244,7 @@
 | `UC-REPO-06` | 저장소 소유권 구분 (scm vs system) | `source`/`provider_id` 로 SCM-mirror 와 system-owned 를 구분하고, sync upsert 가 system-owned(description 등) 값을 덮어쓰지 않도록 보존한다 (in-memory fake 도 동일 parity) | REQ-FR-APP-004, REQ-FR-APP-009 |
 | `UC-REPO-07` | capability 기반 기능 gate | import=pull, sync=pull\|sync, create=push + gitea-compat 로 provider capability 에 따라 기능을 제한하고, 미충족/disabled provider 는 409 로 거부한다 | REQ-FR-APP-009, REQ-FR-INT-002 |
 
-### 2.15 Application 개발 대시보드 (APPDASH)
+### 2.15 Platform 개발 대시보드 (APPDASH)
 
 | UC ID | Usecase | 성공 조건 | 관련 REQ |
 | --- | --- | --- | --- |
@@ -267,7 +267,7 @@
 | `UC-TASK-03` | Pull 기반 주기 Task 동기화 | `TaskItemPuller` 인터페이스를 구현한 adapter 가 Provider 설정의 `pull_interval_seconds`(기본 1800s) 간격으로 외부 시스템 API 를 호출해 task 목록을 수집한다. 증분 조회(`last_pulled_at` 기준)를 기본으로 하며 페이지네이션을 지원한다. 초기 실행 시 전수 수집을 수행한다. | REQ-FR-TASK-007, REQ-FR-TASK-008 |
 | `UC-TASK-04` | Webhook 유실 탐지 및 복구 | Pull loop 가 수집된 `webhook_seq` 의 gap 을 탐지하여 유실된 webhook 이벤트를 발견한다. gap 발견 시 보강(recovery) pull 을 트리거하고 audit log 에 기록한다. | REQ-FR-TASK-009 |
 | `UC-TASK-05` | Task Item 목록/상세 조회 | `GET /api/v1/external-tasks` 로 provider_id, raw_status, normalized_status, assignee, labels 필터를 적용해 task item 목록을 조회할 수 있다. 단건 조회도 가능하다. | REQ-FR-TASK-010 |
-| `UC-TASK-06` | Binding 기반 Scope 접근 제어 | `integration_bindings` 를 통해 Application/Project 에 연결된 task item 만 조회된다. Provider 직접 조회는 system_admin 전용이다. | REQ-FR-TASK-010, NFR-TASK-001 |
+| `UC-TASK-06` | Binding 기반 Scope 접근 제어 | `integration_bindings` 를 통해 Platform/Project 에 연결된 task item 만 조회된다. Provider 직접 조회는 system_admin 전용이다. | REQ-FR-TASK-010, NFR-TASK-001 |
 
 ## 3. 설계/구현 반영 규칙
 

@@ -119,7 +119,7 @@
 
 - ✅ **A (ADR)**: 외부 수신 endpoint 인증 정책 — **[ADR-0012](./adr/0012-dreq-external-intake-auth.md) (sprint `claude/work_260515-g`, accepted 2026-05-15)** 가 옵션 A (API 토큰 + IP allowlist) 채택. B (HMAC) / C (OAuth) 는 후속 마이그레이션 경로.
 - ✅ **B**: backend 1차 — `domain.DevRequest` / store / handler / migration 000022 dev_requests + 000023 dev_request_intake_tokens + `requireIntakeToken` middleware + API-59..65 활성화 (sprint `claude/work_260515-i`).
-- ✅ **F**: 담당자 dashboard 의 "내 대기 의뢰" 위젯 + `/admin/settings/dev-requests` 페이지 + Promote-to-Application/Project 연계 1차 (sprint `claude/work_260515-j`).
+- ✅ **F**: 담당자 dashboard 의 "내 대기 의뢰" 위젯 + `/admin/settings/dev-requests` 페이지 + Promote-to-Platform/Project 연계 1차 (sprint `claude/work_260515-j`).
 - ✅ **A (ADR)**: PMO Manager / 담당자 위양 정책 — **[ADR-0013](./adr/0013-dreq-rbac-row-scoping.md) (sprint `claude/work_260515-m`, accepted 2026-05-15)** 가 ADR-0011 §4.2 helper 의 dev_requests resource 적용 사례 사후 명문화. handler wire-up 은 PR #124 에 도입 완료.
 - ✅ **B (Promote-Tx)**: API-62 promote 의 단일 트랜잭션 (신규 application/project 생성 + dev_request 상태 갱신 + audit) — sprint `claude/work_260515-m` (REQ-FR-DREQ-005 정합 완성, ADR-0013 §5).
 - ✅ **B (Admin-UI backend)**: intake token 발급/revoke/list admin endpoint (API-66..68) + ADR-0014 + migration 000026 RBAC seed — sprint `claude/work_260515-o` (carve 2/4 part 1).
@@ -202,7 +202,7 @@ TC 인벤토리: **TC-ONBOARD-* active** (`onboarding-first-login.spec.ts`).
 | 3 | `rbac-permissions` | [`./domain/rbac-permissions/`](./domain/rbac-permissions/README.md) | per-resource 4-boolean matrix + `requirePermission` + PermissionCache LISTEN/NOTIFY (ADR-0002, ADR-0007, ADR-0011 row-scoping) | M1 | done |
 | 4 | `organization-management` | [`./domain/organization-management/`](./domain/organization-management/README.md) | users/org_units CRUD + single-leader invariant + appointments + HRDB lookup (ADR-0008/0009/0010) | M2 + M3 | done |
 | 5 | `onboarding` | [`./domain/onboarding/`](./domain/onboarding/README.md) | gate middleware + submit/search/admin review (API-83..86) + 상태머신 (ADR-0021) + lazy_auto_create 폐기 | M7 | done |
-| 6 | `application-lifecycle` | [`./domain/application-lifecycle/`](./domain/application-lifecycle/README.md) | Application/Project CRUD + 상태머신 + rollup + RBAC row-scoping (ADR-0011, ADR-0014) | M3 + M-v1.0 | done. 잔여 carve: ApplicationRepository decouple / ApplicationStore slim |
+| 6 | `platform-lifecycle` | [`./domain/platform-lifecycle/`](./domain/platform-lifecycle/README.md) | Platform/Project CRUD + 상태머신 + rollup + RBAC row-scoping (ADR-0011, ADR-0014) | M3 + M-v1.0 | done. 잔여 carve: PlatformRepository decouple / ApplicationStore slim |
 | 7 | `repository-integration` | [`./domain/repository-integration/`](./domain/repository-integration/README.md) | Repository CRUD + draft→publish lifecycle (#368) + SCM 양방향 import/create (API-89/90, #363/#366/#373) + provider_id 단일화 | M6 | done. 잔여: #368 무테스트 보강 (N-2) |
 | 8 | `dev-request` | [`./domain/dev-request/`](./domain/dev-request/README.md) | intake auth (ADR-0012) + promote-tx + token admin (ADR-0014) + 만료 cron (ADR-0017) + RBAC row-scoping (ADR-0013) | M5 | done. 잔여: 외부 callback (webhook 송신, v1.1) |
 | 9 | `integration-registry` | [`./domain/integration-registry/`](./domain/integration-registry/README.md) | provider/binding registry + auth_mode full (token/basic/app_password/oauth2/agent) + base_url + write-only api_token + 연결테스트 (API-87) + Gitea sync worker + HomeLab pull (ADR-0015) + Task ingestion (REQ-FR-TASK) | M6 | done. 잔여: webhook header alias 강화 / Task ingestion 구현 |
@@ -262,7 +262,7 @@ TC 인벤토리: **TC-ONBOARD-* active** (`onboarding-first-login.spec.ts`).
 | --- | --- | --- |
 | CI e2e + backend-integration job 복원 (`&& false` 제거) | P1 | refactor 정리 stabilize 후 |
 | view 컴포넌트 큰 modal coverage 70% (app-lifecycle) | P1 | ApplicationCreationModal (57%) + ProjectCreationModal (39%) edit-mode + member CRUD |
-| ApplicationRepository cross-domain decouple | P2 | `*IntegrationRepository` embed 제거 (review agent P1) |
+| PlatformRepository cross-domain decouple | P2 | `*IntegrationRepository` embed 제거 (review agent P1) |
 | ApplicationStore interface slim | P2 | 13+ integration 메서드 → integration-registry 도메인 이관 |
 | §2 인덱스 도메인 분류 정합 | P2 | `traceability/report.md` §2 의 cross-cutting row → 새 도메인 row 정합 (Phase 4 scope 외) |
 
@@ -282,7 +282,7 @@ TC 인벤토리: **TC-ONBOARD-* active** (`onboarding-first-login.spec.ts`).
 | 기술 태깅 Kudos 가시성 | RBAC matrix와의 매핑 | requirements §5.1-3 |
 | 외부 부서 의존성 수동 등록 | UI / 모델 | requirements §5.2-6 |
 | `architecture/README.md`, `planning/README.md` TBD 스텁 | 본 통합 로드맵 채택 후 산출물로 채움 | 양자 |
-| **Application/Project 도메인 (총괄 + 기간성 운영)** — 시스템 관리자 등록·관리 vs 일반 사용자 조회 분리 | REQ-FR 발급 완료 + 모듈별 Usecase/ERD 분리 카탈로그 완료. 다음: ARCH/API/마이그레이션 설계 진입 | [`domain/application-lifecycle/project_concept.md`](./domain/application-lifecycle/project_concept.md), [`planning/system_usecases.md`](./planning/system_usecases.md), [`planning/system_erd.md`](./planning/system_erd.md) (2026-05-13) |
+| **Platform/Project 도메인 (총괄 + 기간성 운영)** — 시스템 관리자 등록·관리 vs 일반 사용자 조회 분리 | REQ-FR 발급 완료 + 모듈별 Usecase/ERD 분리 카탈로그 완료. 다음: ARCH/API/마이그레이션 설계 진입 | [`domain/platform-lifecycle/project_concept.md`](./domain/platform-lifecycle/project_concept.md), [`planning/system_usecases.md`](./planning/system_usecases.md), [`planning/system_erd.md`](./planning/system_erd.md) (2026-05-13) |
 
 ---
 
@@ -312,8 +312,8 @@ TC 인벤토리: **TC-ONBOARD-* active** (`onboarding-first-login.spec.ts`).
 | 2026-05-08 | 초판 작성. M0~M4 정의, 트랙 매핑, 충돌 해소 표 정리. | PR #12, #13 머지 직후. claude/merge_roadmap 브랜치. |
 | 2026-05-08 | §6 충돌 해소 표에 RBAC 모델/enforcement 결정 2행 추가. | M1 PR-G1, ADR-0002 채택 반영. claude/m1-pr-g1-rbac-contract 브랜치. |
 | 2026-05-12 | §3 M2 갱신 — 핵심 흐름(로그인/로그아웃/계정/RBAC) done 표기 + 1차 완성 sprint 잔여 5 PR 명시 + out-of-scope 분리. | claude/login_usermanagement_finish 진입. |
-| 2026-05-13 | §5 백로그에 "Application/Project 도메인 (총괄 + 기간성 운영)" 1행 추가. 컨셉 문서 staged 상태로 안내. | sprint `claude/work_260513-p`. |
-| 2026-05-13 | Application/Project 요구사항 고도화 반영 — REQ-FR-APP/REQ-FR-PROJ + 모듈별 UC/ERD 카탈로그(`planning/system_usecases.md`, `planning/system_erd.md`) 연결. 다음 단계(ARCH/API) 전환 기준 명시. | sprint `claude/work_260513-p` 외 |
+| 2026-05-13 | §5 백로그에 "Platform/Project 도메인 (총괄 + 기간성 운영)" 1행 추가. 컨셉 문서 staged 상태로 안내. | sprint `claude/work_260513-p`. |
+| 2026-05-13 | Platform/Project 요구사항 고도화 반영 — REQ-FR-APP/REQ-FR-PROJ + 모듈별 UC/ERD 카탈로그(`planning/system_usecases.md`, `planning/system_erd.md`) 연결. 다음 단계(ARCH/API) 전환 기준 명시. | sprint `claude/work_260513-p` 외 |
 | 2026-05-14 | Application 도메인 backend 1차 완성 — PR #104~#110. API-41..58 activated + 마이그레이션 000012~000018 + ADR-0011 (RBAC row-scoping) + CI backend-integration job 신설. 23 integration test. | sprint `claude/work_260514-*` |
 | 2026-05-15 | M5 DREQ 도메인 1차 — concept (REQ-FR-DREQ + UC-DREQ + ARCH-DREQ + API-59..68) + ADR-0012 (intake auth) + backend (PR #124) + frontend (PR #125) + Promote-Tx + ADR-0013 + Admin-UI (ADR-0014). 외부 8 PR (#133~#140) 으로 docker packaging + 대시보드 + token expires_at + IP mutation. | sprint `claude/work_260515-*` (15 PR) |
 | 2026-05-18 | **M5 DREQ closing** — TC-DREQ-* 13건 정식 발급 + ADR-0017 §6 atomicity + cron revoke + 만료/staleness metric. **M6 External Integration 1차 종합 closing** — provider lifecycle + bindings UI + topology v2 + API-80 DELETE + ADR-0015/0016/0017 신규 + 운영 자산 (Alertmanager + Grafana). codex hotfix #5/#6/#7/#8 cycle. | sprint `claude/work_260518-*` (24 PR 누적, EOD #1 12건 + post-EOD #1 6건 + post-EOD #2 6건) |

@@ -5,7 +5,7 @@ import { cn } from "@/shared/utils";
 
 export type ActionType = "view" | "create" | "edit" | "delete";
 // Resource list mirrors backend domain.AllResources() (9개). 신규 4종은 sprint
-// claude/work_260514-a (ADR-0011 §4.1) 에서 추가 — Application/Repository/Project
+// claude/work_260514-a (ADR-0011 §4.1) 에서 추가 — Platform/Repository/Project
 // 도메인의 RBAC 1차 enforcement.
 export type ResourceType =
   | "infrastructure"
@@ -13,8 +13,8 @@ export type ResourceType =
   | "organization"
   | "security"
   | "audit"
-  | "applications"
-  | "application_repositories"
+  | "platforms"
+  | "platform_repositories"
   | "projects"
   | "scm_providers"
   | "dev_requests"
@@ -42,8 +42,8 @@ const resources: { id: ResourceType; label: string }[] = [
   { id: "organization", label: "Organization & Members" },
   { id: "security", label: "Risk & Security" },
   { id: "audit", label: "Audit Logs & History" },
-  { id: "applications", label: "Applications" },
-  { id: "application_repositories", label: "Application Repositories" },
+  { id: "platforms", label: "Platforms" },
+  { id: "platform_repositories", label: "Platform Repositories" },
   { id: "projects", label: "Projects" },
   { id: "scm_providers", label: "SCM Providers" },
   { id: "dev_requests", label: "Development Requests (DREQ)" },

@@ -49,7 +49,7 @@ func TestIntegration_AuditLogs_CRUD(t *testing.T) {
 	logInput := domain.AuditLog{
 		ActorLogin:    "alice",
 		Action:        "create",
-		TargetType:    "application",
+		TargetType:    "platform",
 		TargetID:      "test-app-id",
 		SourceIP:      "127.0.0.1",
 		RequestID:     "req-" + suffix,
@@ -80,7 +80,7 @@ func TestIntegration_AuditLogs_CRUD(t *testing.T) {
 	opts := store.ListAuditLogsOptions{
 		ActorLogin: "alice",
 		Action:     "create",
-		TargetType: "application",
+		TargetType: "platform",
 		TargetID:   "test-app-id",
 	}
 	logs, err := repo.ListAuditLogs(ctx, opts)

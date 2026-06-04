@@ -98,7 +98,7 @@ class IntegrationService {
     );
   }
 
-  /** API-74 — provider ↔ application/project binding 목록. RBAC view.
+  /** API-74 — provider ↔ platform/project binding 목록. RBAC view.
    *  sprint claude/work_260518-m. */
   async listBindings(opts: ListIntegrationBindingsOptions = {}): Promise<{ data: IntegrationBinding[]; total: number }> {
     const params = new URLSearchParams();

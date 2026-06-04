@@ -6,7 +6,7 @@
 > 상세: [ADR-0026 Keycloak Role 무시 — DevHub 내부 Role 단독 사용](../adr/0026-keycloak-role-excluded-decision.md)
 
 - 문서 목적: [ADR-0019 §5.3](../adr/0019-keycloak-only-idp.md#53-잔여-carve-out) 잔여 carve out 의 Keycloak `groups` claim → DevHub RBAC role 자동 매핑 design. **ADR-0026으로 이 접근법이 채택되지 않음. 본 문서는 설계 기록으로만 보존.**
-- 범위: Keycloak group 운영을 통한 DevHub RBAC role 자동 할당 옵션 비교 + 권장 + 운영 SOP. Application/Project Owner 위양 등 [ADR-0011 RBAC row-scoping](../adr/0011-rbac-row-scoping.md) 영역은 본 design 범위 밖.
+- 범위: Keycloak group 운영을 통한 DevHub RBAC role 자동 할당 옵션 비교 + 권장 + 운영 SOP. Platform/Project Owner 위양 등 [ADR-0011 RBAC row-scoping](../adr/0011-rbac-row-scoping.md) 영역은 본 design 범위 밖.
 - 대상 독자: 아키텍트, 운영자 (SRE / IdP), Backend / IdP 담당자, RBAC 정책 결정자.
 - 상태: deprecated (2026-06-02, ADR-0026로 대체)
 - 최종 수정일: 2026-06-02
@@ -133,7 +133,7 @@ Phase 2 진입 시 옵션 C 로 확장 시:
 
 ### 5.2 ADR-0011 row-scoping 와의 관계
 
-- ADR-0011 의 row-scoping (Application/Project Owner 위양) 은 본 design 범위 밖 — row-level 권한은 그대로
+- ADR-0011 의 row-scoping (Platform/Project Owner 위양) 은 본 design 범위 밖 — row-level 권한은 그대로
 - 본 design = **realm role 부여 메커니즘** 만 결정 (직접 할당 → group 가입)
 - enforceRowOwnership helper (ADR-0011 §4.2) 는 그대로 동작 — role 자체는 동일하게 추출됨
 

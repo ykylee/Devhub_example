@@ -5,13 +5,13 @@
 - 대상 독자: 본 sprint 진입자, 후속 sprint 리뷰어.
 - 상태: in_progress
 - 최종 수정일: 2026-05-13
-- 관련 문서: [session_handoff.md](./session_handoff.md), [state.json](./state.json), [컨셉 문서](../../../../docs/domain/application-lifecycle/project_concept.md).
+- 관련 문서: [session_handoff.md](./session_handoff.md), [state.json](./state.json), [컨셉 문서](../../../../docs/domain/platform-lifecycle/project_concept.md).
 - 스프린트 목표: 프로젝트 관리 도메인 **컨셉 1차** 정리. 요구사항/설계 본문 수정은 후속 sprint 로 보류.
 
 ## 진행 상태
 
 - [x] sprint state.json + session_handoff.md + work_backlog.md 초기화
-- [x] docs/domain/application-lifecycle/project_concept.md 신규 작성
+- [x] docs/domain/platform-lifecycle/project_concept.md 신규 작성
 - [x] docs/planning/README.md §5.1 도메인 컨셉 인덱스 신설 (Project 1행)
 - [x] docs/development_roadmap.md §5 백로그 표에 Project 도메인 1행 추가 + 최종 수정일/§7 변경 이력 갱신
 - [x] 컨셉 doc cold read 후 4건 정합성 보강 (§3.1 archived / §3.2 영구 삭제 / §3.3 단계 / §5.1 code forward link) + §10 이력 1행 추가

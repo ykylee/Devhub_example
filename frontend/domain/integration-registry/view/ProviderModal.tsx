@@ -458,7 +458,7 @@ export function ProviderModal({ initial, onClose, onSaved }: ProviderModalProps)
                   onChange={setAuthSecret}
                   show={showAuthSecret}
                   onToggle={() => setShowAuthSecret((v) => !v)}
-                  placeholder={isEdit && initial?.auth_secret_set ? "•••••• (set, leave blank to keep)" : authMode === "app_password" ? "application password" : "account password"}
+                  placeholder={isEdit && initial?.auth_secret_set ? "•••••• (set, leave blank to keep)" : authMode === "app_password" ? "platform password" : "account password"}
                 />
               </>
             )}

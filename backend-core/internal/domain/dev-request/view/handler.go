@@ -18,16 +18,16 @@ type AuditStore interface {
 }
 
 
-type ApplicationStore interface {
+type PlatformStore interface {
 	ListSCMProviders(ctx context.Context) ([]domain.SCMProvider, error)
 	CreateProjectWithRepositoryPayload(ctx context.Context, p domain.Project, repoIDs []int64, payload *store.RepositoryCreatePayload) (domain.Project, error)
-	CreateApplication(ctx context.Context, app domain.Application) (domain.Application, error)
+	CreatePlatform(ctx context.Context, app domain.Platform) (domain.Platform, error)
 }
 
 type DevRequestConfig struct {
 	DevRequestStore            DevRequestStore
 	DevRequestIntakeTokenStore IntakeTokenStore
-	ApplicationStore           ApplicationStore
+	PlatformStore           PlatformStore
 	AuditStore                 AuditStore
 }
 
@@ -99,23 +99,23 @@ func (h *DevRequestHandler) enforceRowOwnership(c *gin.Context, ownerUserID stri
 	return false
 }
 
-func (h *DevRequestHandler) ApplicationStoreOrUnavailable(c *gin.Context) (ApplicationStore, bool) {
-	if h.cfg.ApplicationStore == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "application store is not configured"})
+func (h *DevRequestHandler) PlatformStoreOrUnavailable(c *gin.Context) (PlatformStore, bool) {
+	if h.cfg.PlatformStore == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "platform store is not configured"})
 		return nil, false
 	}
-	return h.cfg.ApplicationStore, true
+	return h.cfg.PlatformStore, true
 }
 
 // dev-request 에서 공유 필요 상수로 로컬 임베드
-var applicationKeyPattern = regexp.MustCompile(`^[A-Za-z0-9]{1,10}$`)
-var validApplicationVisibilities = map[string]bool{
+var platformKeyPattern = regexp.MustCompile(`^[A-Za-z0-9]{1,10}$`)
+var validPlatformVisibilities = map[string]bool{
 	"public": true, "internal": true, "restricted": true,
 }
-var validApplicationStatuses = map[string]bool{
+var validPlatformStatuses = map[string]bool{
 	"planning": true, "active": true, "on_hold": true, "closed": true, "archived": true,
 }
-var validApplicationRepoRoles = map[string]bool{
+var validPlatformRepoRoles = map[string]bool{
 	"primary": true, "sub": true, "shared": true,
 }
 func parseDate(s string) (*time.Time, error) {
@@ -130,7 +130,7 @@ func parseDate(s string) (*time.Time, error) {
 	return &t, nil
 }
 
-func applicationResponse(app domain.Application) gin.H {
+func platformResponse(app domain.Platform) gin.H {
 	return gin.H{
 		"id":                  app.ID,
 		"key":                 app.Key,
@@ -155,7 +155,7 @@ func projectResponse(p domain.Project) gin.H {
 	}
 	return gin.H{
 		"id":             p.ID,
-		"application_id": p.ApplicationID,
+		"platform_id": p.PlatformID,
 		"repository_id":  repositoryID,
 		"key":            p.Key,
 		"name":           p.Name,

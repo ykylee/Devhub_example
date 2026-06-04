@@ -7,7 +7,7 @@
 - 작성일: 2026-05-15
 - 결정일: 2026-05-15 (sprint `claude/work_260515-m`)
 - 결정 근거 sprint: `claude/work_260515-m` — DREQ-RBAC-ADR + DREQ-Promote-Tx 1번째 carve out.
-- 관련 문서: [ADR-0011 Application/Project Owner 위양](./0011-rbac-row-scoping.md) §4.2, [ADR-0012 DREQ 외부 수신 인증](./0012-dreq-external-intake-auth.md), [`docs/domain/dev-request/concept.md`](../domain/dev-request/concept.md) §6, [`docs/requirements.md`](../requirements.md) §5.5 (REQ-FR-DREQ-002, REQ-FR-DREQ-007, REQ-FR-DREQ-008), [추적성 매트릭스 §3 Dev Request 행](../traceability/report.md).
+- 관련 문서: [ADR-0011 Platform/Project Owner 위양](./0011-rbac-row-scoping.md) §4.2, [ADR-0012 DREQ 외부 수신 인증](./0012-dreq-external-intake-auth.md), [`docs/domain/dev-request/concept.md`](../domain/dev-request/concept.md) §6, [`docs/requirements.md`](../requirements.md) §5.5 (REQ-FR-DREQ-002, REQ-FR-DREQ-007, REQ-FR-DREQ-008), [추적성 매트릭스 §3 Dev Request 행](../traceability/report.md).
 
 ## 1. 컨텍스트
 
@@ -138,4 +138,4 @@ allow 시 audit event 는 별도 (e.g., `dev_request.registered`, `dev_request.r
 | 일자 | 변경 | 메모 |
 | --- | --- | --- |
 | 2026-05-15 | accepted — dev_requests resource 의 RBAC row-scoping 정책 명문화. ADR-0011 §4.2 helper 의 dev_requests resource 적용 사례 사후 명문화. handler wire-up 은 PR #124 (sprint `claude/work_260515-i`) 에서 이미 도입. reassign/close 의 system_admin only carve 도 본 ADR 가 명시. | sprint `claude/work_260515-m` (PR #128) |
-| 2026-05-15 | codex hotfix #4 — promote primary_repo path 의 application-level validation gate 보강. (a) `primary_repo.role` 의 `validApplicationRepoRoles` 검증 → 422 `invalid_repo_link_role` (CHECK 위반 → 500 차단). (b) `primary_repo.repo_provider` 의 `ListSCMProviders` enablement gate → 422 `unsupported_repo_provider` (legacy `createApplicationRepository` 와 정합). store transaction 에 `isCheckViolation` defense-in-depth 매핑 추가. `MarkDevRequestRegistered` + `dreqMarkRegisteredUpdateQuery` 의 `rejected_reason = NULL` clear 추가 (reopen → promote 잔재 차단). | sprint `claude/work_260515-n` |
+| 2026-05-15 | codex hotfix #4 — promote primary_repo path 의 application-level validation gate 보강. (a) `primary_repo.role` 의 `validApplicationRepoRoles` 검증 → 422 `invalid_repo_link_role` (CHECK 위반 → 500 차단). (b) `primary_repo.repo_provider` 의 `ListSCMProviders` enablement gate → 422 `unsupported_repo_provider` (legacy `createPlatformRepository` 와 정합). store transaction 에 `isCheckViolation` defense-in-depth 매핑 추가. `MarkDevRequestRegistered` + `dreqMarkRegisteredUpdateQuery` 의 `rejected_reason = NULL` clear 추가 (reopen → promote 잔재 차단). | sprint `claude/work_260515-n` |

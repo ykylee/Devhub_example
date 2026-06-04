@@ -11,16 +11,16 @@ import (
 	"github.com/devhub/backend-core/internal/store"
 )
 
-// fakeViewApplicationStore — view 패키지 endpoint handler test 용 in-memory store.
-// view.ApplicationStore (27 메서드) 만족. httpapi 패키지의 memoryApplicationStore
+// fakeViewPlatformStore — view 패키지 endpoint handler test 용 in-memory store.
+// view.PlatformStore (27 메서드) 만족. httpapi 패키지의 memoryPlatformStore
 // 와 별도로 view 패키지 안에 둠 — httpapi 의 fake 는 IntegrationStore 메서드까지
 // 포함해 cross-package import 가 불가하고, view 의 interface 는 27 메서드만 필요.
 // SQL CHECK / FK 제약은 흉내내지 않고, handler 레벨 validation/매핑/audit 만 cover.
-type fakeViewApplicationStore struct {
+type fakeViewPlatformStore struct {
 	mu sync.Mutex
 
-	apps                 map[string]domain.Application
-	links                map[string][]domain.ApplicationRepository
+	platforms                 map[string]domain.Platform
+	links                map[string][]domain.PlatformRepository
 	providers            map[string]domain.SCMProvider
 	projects             map[string]domain.Project
 	projectRepositories  map[string][]domain.ProjectRepository
@@ -28,15 +28,15 @@ type fakeViewApplicationStore struct {
 	criticalWarnings     map[string]int
 
 	// 에러 주입 — 특정 메서드가 실패해야 하는 테스트용. nil 이면 정상 동작.
-	errListApplications              error
-	errGetApplication                error
-	errCreateApplication             error
-	errUpdateApplication             error
-	errArchiveApplication            error
-	errDeleteApplication             error
-	errListApplicationRepositories   error
-	errCreateApplicationRepository   error
-	errDeleteApplicationRepository   error
+	errListPlatforms              error
+	errGetPlatform                error
+	errCreatePlatform             error
+	errUpdatePlatform             error
+	errArchivePlatform            error
+	errDeletePlatform             error
+	errListPlatformRepositories   error
+	errCreatePlatformRepository   error
+	errDeletePlatformRepository   error
 	errListSCMProviders              error
 	errUpdateSCMProvider             error
 	errListProjects                  error
@@ -50,14 +50,14 @@ type fakeViewApplicationStore struct {
 	errDeleteProjectRepository       error
 	errCreateProjectWithRepoPayload  error
 	errListRepositoriesByProvider    error
-	errComputeApplicationRollup      error
+	errComputePlatformRollup      error
 	errListRepositoryBuildRuns       error
 }
 
-func newFakeViewApplicationStore() *fakeViewApplicationStore {
-	return &fakeViewApplicationStore{
-		apps:                make(map[string]domain.Application),
-		links:               make(map[string][]domain.ApplicationRepository),
+func newFakeViewPlatformStore() *fakeViewPlatformStore {
+	return &fakeViewPlatformStore{
+		platforms:                make(map[string]domain.Platform),
+		links:               make(map[string][]domain.PlatformRepository),
 		providers:           map[string]domain.SCMProvider{},
 		projects:            make(map[string]domain.Project),
 		projectRepositories: make(map[string][]domain.ProjectRepository),
@@ -67,7 +67,7 @@ func newFakeViewApplicationStore() *fakeViewApplicationStore {
 }
 
 // seedApp 은 test setup helper — direct map insert 보다 가독성 좋게.
-func (s *fakeViewApplicationStore) seedApp(app domain.Application) {
+func (s *fakeViewPlatformStore) seedApp(app domain.Platform) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if app.ID == "" {
@@ -79,16 +79,16 @@ func (s *fakeViewApplicationStore) seedApp(app domain.Application) {
 	if app.UpdatedAt.IsZero() {
 		app.UpdatedAt = app.CreatedAt
 	}
-	s.apps[app.ID] = app
+	s.platforms[app.ID] = app
 }
 
-func (s *fakeViewApplicationStore) seedProvider(p domain.SCMProvider) {
+func (s *fakeViewPlatformStore) seedProvider(p domain.SCMProvider) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.providers[p.ProviderKey] = p
 }
 
-func (s *fakeViewApplicationStore) seedProject(p domain.Project) {
+func (s *fakeViewPlatformStore) seedProject(p domain.Project) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if p.ID == "" {
@@ -103,16 +103,16 @@ func (s *fakeViewApplicationStore) seedProject(p domain.Project) {
 	s.projects[p.ID] = p
 }
 
-func (s *fakeViewApplicationStore) seedLink(link domain.ApplicationRepository) {
+func (s *fakeViewPlatformStore) seedLink(link domain.PlatformRepository) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if link.LinkedAt.IsZero() {
 		link.LinkedAt = time.Now().UTC()
 	}
-	s.links[link.ApplicationID] = append(s.links[link.ApplicationID], link)
+	s.links[link.PlatformID] = append(s.links[link.PlatformID], link)
 }
 
-func (s *fakeViewApplicationStore) seedProjectRepo(link domain.ProjectRepository) {
+func (s *fakeViewPlatformStore) seedProjectRepo(link domain.ProjectRepository) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if link.LinkedAt.IsZero() {
@@ -121,26 +121,26 @@ func (s *fakeViewApplicationStore) seedProjectRepo(link domain.ProjectRepository
 	s.projectRepositories[link.ProjectID] = append(s.projectRepositories[link.ProjectID], link)
 }
 
-func (s *fakeViewApplicationStore) seedRepository(providerKey string, repo domain.Repository) {
+func (s *fakeViewPlatformStore) seedRepository(providerKey string, repo domain.Repository) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.repositories[providerKey] = append(s.repositories[providerKey], repo)
 }
 
-// --- ApplicationStore interface 구현 ---
+// --- PlatformStore interface 구현 ---
 
-func (s *fakeViewApplicationStore) ListApplications(_ context.Context, opts store.ApplicationListOptions) ([]domain.Application, int, error) {
-	if s.errListApplications != nil {
-		return nil, 0, s.errListApplications
+func (s *fakeViewPlatformStore) ListPlatforms(_ context.Context, opts store.PlatformListOptions) ([]domain.Platform, int, error) {
+	if s.errListPlatforms != nil {
+		return nil, 0, s.errListPlatforms
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	out := make([]domain.Application, 0, len(s.apps))
-	for _, a := range s.apps {
+	out := make([]domain.Platform, 0, len(s.platforms))
+	for _, a := range s.platforms {
 		if opts.Status != "" && string(a.Status) != opts.Status {
 			continue
 		}
-		if !opts.IncludeArchived && a.Status == domain.ApplicationStatusArchived {
+		if !opts.IncludeArchived && a.Status == domain.PlatformStatusArchived {
 			continue
 		}
 		out = append(out, a)
@@ -148,38 +148,38 @@ func (s *fakeViewApplicationStore) ListApplications(_ context.Context, opts stor
 	return out, len(out), nil
 }
 
-func (s *fakeViewApplicationStore) GetApplication(_ context.Context, id string) (domain.Application, error) {
-	if s.errGetApplication != nil {
-		return domain.Application{}, s.errGetApplication
+func (s *fakeViewPlatformStore) GetPlatform(_ context.Context, id string) (domain.Platform, error) {
+	if s.errGetPlatform != nil {
+		return domain.Platform{}, s.errGetPlatform
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if a, ok := s.apps[id]; ok {
+	if a, ok := s.platforms[id]; ok {
 		return a, nil
 	}
-	return domain.Application{}, store.ErrNotFound
+	return domain.Platform{}, store.ErrNotFound
 }
 
-func (s *fakeViewApplicationStore) GetApplicationByKey(_ context.Context, key string) (domain.Application, error) {
+func (s *fakeViewPlatformStore) GetPlatformByKey(_ context.Context, key string) (domain.Platform, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	for _, a := range s.apps {
+	for _, a := range s.platforms {
 		if a.Key == key {
 			return a, nil
 		}
 	}
-	return domain.Application{}, store.ErrNotFound
+	return domain.Platform{}, store.ErrNotFound
 }
 
-func (s *fakeViewApplicationStore) CreateApplication(_ context.Context, app domain.Application) (domain.Application, error) {
-	if s.errCreateApplication != nil {
-		return domain.Application{}, s.errCreateApplication
+func (s *fakeViewPlatformStore) CreatePlatform(_ context.Context, app domain.Platform) (domain.Platform, error) {
+	if s.errCreatePlatform != nil {
+		return domain.Platform{}, s.errCreatePlatform
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	for _, a := range s.apps {
+	for _, a := range s.platforms {
 		if a.Key == app.Key {
-			return domain.Application{}, store.ErrConflict
+			return domain.Platform{}, store.ErrConflict
 		}
 	}
 	if app.ID == "" {
@@ -187,69 +187,69 @@ func (s *fakeViewApplicationStore) CreateApplication(_ context.Context, app doma
 	}
 	app.CreatedAt = time.Now().UTC()
 	app.UpdatedAt = app.CreatedAt
-	s.apps[app.ID] = app
+	s.platforms[app.ID] = app
 	return app, nil
 }
 
-func (s *fakeViewApplicationStore) UpdateApplication(_ context.Context, app domain.Application) (domain.Application, error) {
-	if s.errUpdateApplication != nil {
-		return domain.Application{}, s.errUpdateApplication
+func (s *fakeViewPlatformStore) UpdatePlatform(_ context.Context, app domain.Platform) (domain.Platform, error) {
+	if s.errUpdatePlatform != nil {
+		return domain.Platform{}, s.errUpdatePlatform
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	current, ok := s.apps[app.ID]
+	current, ok := s.platforms[app.ID]
 	if !ok {
-		return domain.Application{}, store.ErrNotFound
+		return domain.Platform{}, store.ErrNotFound
 	}
 	app.CreatedAt = current.CreatedAt
 	app.UpdatedAt = time.Now().UTC()
-	if app.Status == domain.ApplicationStatusArchived && app.ArchivedAt == nil {
+	if app.Status == domain.PlatformStatusArchived && app.ArchivedAt == nil {
 		now := time.Now().UTC()
 		app.ArchivedAt = &now
-	} else if app.Status != domain.ApplicationStatusArchived {
+	} else if app.Status != domain.PlatformStatusArchived {
 		app.ArchivedAt = nil
 	}
-	s.apps[app.ID] = app
+	s.platforms[app.ID] = app
 	return app, nil
 }
 
-func (s *fakeViewApplicationStore) ArchiveApplication(_ context.Context, id, _ string) (domain.Application, error) {
-	if s.errArchiveApplication != nil {
-		return domain.Application{}, s.errArchiveApplication
+func (s *fakeViewPlatformStore) ArchivePlatform(_ context.Context, id, _ string) (domain.Platform, error) {
+	if s.errArchivePlatform != nil {
+		return domain.Platform{}, s.errArchivePlatform
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	app, ok := s.apps[id]
+	app, ok := s.platforms[id]
 	if !ok {
-		return domain.Application{}, store.ErrNotFound
+		return domain.Platform{}, store.ErrNotFound
 	}
-	app.Status = domain.ApplicationStatusArchived
+	app.Status = domain.PlatformStatusArchived
 	now := time.Now().UTC()
 	app.ArchivedAt = &now
 	app.UpdatedAt = now
-	s.apps[id] = app
+	s.platforms[id] = app
 	return app, nil
 }
 
-func (s *fakeViewApplicationStore) DeleteApplication(_ context.Context, id string) error {
-	if s.errDeleteApplication != nil {
-		return s.errDeleteApplication
+func (s *fakeViewPlatformStore) DeletePlatform(_ context.Context, id string) error {
+	if s.errDeletePlatform != nil {
+		return s.errDeletePlatform
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if _, ok := s.apps[id]; !ok {
+	if _, ok := s.platforms[id]; !ok {
 		return store.ErrNotFound
 	}
-	delete(s.apps, id)
+	delete(s.platforms, id)
 	delete(s.links, id)
 	return nil
 }
 
-func (s *fakeViewApplicationStore) CountActiveApplicationRepositories(_ context.Context, applicationID string) (int, error) {
+func (s *fakeViewPlatformStore) CountActivePlatformRepositories(_ context.Context, platformID string) (int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	count := 0
-	for _, l := range s.links[applicationID] {
+	for _, l := range s.links[platformID] {
 		if l.SyncStatus == domain.SyncStatusActive {
 			count++
 		}
@@ -257,55 +257,55 @@ func (s *fakeViewApplicationStore) CountActiveApplicationRepositories(_ context.
 	return count, nil
 }
 
-func (s *fakeViewApplicationStore) ListApplicationRepositories(_ context.Context, applicationID string) ([]domain.ApplicationRepository, error) {
-	if s.errListApplicationRepositories != nil {
-		return nil, s.errListApplicationRepositories
+func (s *fakeViewPlatformStore) ListPlatformRepositories(_ context.Context, platformID string) ([]domain.PlatformRepository, error) {
+	if s.errListPlatformRepositories != nil {
+		return nil, s.errListPlatformRepositories
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	out := append([]domain.ApplicationRepository(nil), s.links[applicationID]...)
+	out := append([]domain.PlatformRepository(nil), s.links[platformID]...)
 	return out, nil
 }
 
-func (s *fakeViewApplicationStore) CreateApplicationRepository(_ context.Context, link domain.ApplicationRepository) (domain.ApplicationRepository, error) {
-	if s.errCreateApplicationRepository != nil {
-		return domain.ApplicationRepository{}, s.errCreateApplicationRepository
+func (s *fakeViewPlatformStore) CreatePlatformRepository(_ context.Context, link domain.PlatformRepository) (domain.PlatformRepository, error) {
+	if s.errCreatePlatformRepository != nil {
+		return domain.PlatformRepository{}, s.errCreatePlatformRepository
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if _, ok := s.apps[link.ApplicationID]; !ok {
-		return domain.ApplicationRepository{}, store.ErrConflict
+	if _, ok := s.platforms[link.PlatformID]; !ok {
+		return domain.PlatformRepository{}, store.ErrConflict
 	}
-	for _, e := range s.links[link.ApplicationID] {
+	for _, e := range s.links[link.PlatformID] {
 		if e.RepoProvider == link.RepoProvider && e.RepoFullName == link.RepoFullName {
-			return domain.ApplicationRepository{}, store.ErrConflict
+			return domain.PlatformRepository{}, store.ErrConflict
 		}
 	}
 	link.LinkedAt = time.Now().UTC()
-	s.links[link.ApplicationID] = append(s.links[link.ApplicationID], link)
+	s.links[link.PlatformID] = append(s.links[link.PlatformID], link)
 	return link, nil
 }
 
-func (s *fakeViewApplicationStore) DeleteApplicationRepository(_ context.Context, key store.ApplicationRepositoryLinkKey) error {
-	if s.errDeleteApplicationRepository != nil {
-		return s.errDeleteApplicationRepository
+func (s *fakeViewPlatformStore) DeletePlatformRepository(_ context.Context, key store.PlatformRepositoryLinkKey) error {
+	if s.errDeletePlatformRepository != nil {
+		return s.errDeletePlatformRepository
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	links := s.links[key.ApplicationID]
+	links := s.links[key.PlatformID]
 	for i, l := range links {
 		if l.RepoProvider == key.RepoProvider && l.RepoFullName == key.RepoFullName {
-			s.links[key.ApplicationID] = append(links[:i], links[i+1:]...)
+			s.links[key.PlatformID] = append(links[:i], links[i+1:]...)
 			return nil
 		}
 	}
 	return store.ErrNotFound
 }
 
-func (s *fakeViewApplicationStore) UpdateApplicationRepositorySync(_ context.Context, key store.ApplicationRepositoryLinkKey, status domain.ApplicationRepositorySyncStatus, code domain.SyncErrorCode) error {
+func (s *fakeViewPlatformStore) UpdatePlatformRepositorySync(_ context.Context, key store.PlatformRepositoryLinkKey, status domain.PlatformRepositorySyncStatus, code domain.SyncErrorCode) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	links := s.links[key.ApplicationID]
+	links := s.links[key.PlatformID]
 	for i, l := range links {
 		if l.RepoProvider == key.RepoProvider && l.RepoFullName == key.RepoFullName {
 			links[i].SyncStatus = status
@@ -316,7 +316,7 @@ func (s *fakeViewApplicationStore) UpdateApplicationRepositorySync(_ context.Con
 	return store.ErrNotFound
 }
 
-func (s *fakeViewApplicationStore) ListSCMProviders(_ context.Context) ([]domain.SCMProvider, error) {
+func (s *fakeViewPlatformStore) ListSCMProviders(_ context.Context) ([]domain.SCMProvider, error) {
 	if s.errListSCMProviders != nil {
 		return nil, s.errListSCMProviders
 	}
@@ -329,7 +329,7 @@ func (s *fakeViewApplicationStore) ListSCMProviders(_ context.Context) ([]domain
 	return out, nil
 }
 
-func (s *fakeViewApplicationStore) UpdateSCMProvider(_ context.Context, p domain.SCMProvider) (domain.SCMProvider, error) {
+func (s *fakeViewPlatformStore) UpdateSCMProvider(_ context.Context, p domain.SCMProvider) (domain.SCMProvider, error) {
 	if s.errUpdateSCMProvider != nil {
 		return domain.SCMProvider{}, s.errUpdateSCMProvider
 	}
@@ -346,7 +346,7 @@ func (s *fakeViewApplicationStore) UpdateSCMProvider(_ context.Context, p domain
 	return cur, nil
 }
 
-func (s *fakeViewApplicationStore) ListProjects(_ context.Context, opts store.ProjectListOptions) ([]domain.Project, int, error) {
+func (s *fakeViewPlatformStore) ListProjects(_ context.Context, opts store.ProjectListOptions) ([]domain.Project, int, error) {
 	if s.errListProjects != nil {
 		return nil, 0, s.errListProjects
 	}
@@ -357,16 +357,16 @@ func (s *fakeViewApplicationStore) ListProjects(_ context.Context, opts store.Pr
 		if opts.RepositoryID != 0 && p.RepositoryID != opts.RepositoryID {
 			continue
 		}
-		if opts.ApplicationID != "" && p.ApplicationID != opts.ApplicationID {
+		if opts.PlatformID != "" && p.PlatformID != opts.PlatformID {
 			continue
 		}
-		if opts.StandaloneOnly && p.ApplicationID != "" {
+		if opts.StandaloneOnly && p.PlatformID != "" {
 			continue
 		}
 		if opts.Status != "" && string(p.Status) != opts.Status {
 			continue
 		}
-		if !opts.IncludeArchived && p.Status == domain.ApplicationStatusArchived {
+		if !opts.IncludeArchived && p.Status == domain.PlatformStatusArchived {
 			continue
 		}
 		out = append(out, p)
@@ -374,7 +374,7 @@ func (s *fakeViewApplicationStore) ListProjects(_ context.Context, opts store.Pr
 	return out, len(out), nil
 }
 
-func (s *fakeViewApplicationStore) GetProject(_ context.Context, id string) (domain.Project, error) {
+func (s *fakeViewPlatformStore) GetProject(_ context.Context, id string) (domain.Project, error) {
 	if s.errGetProject != nil {
 		return domain.Project{}, s.errGetProject
 	}
@@ -386,7 +386,7 @@ func (s *fakeViewApplicationStore) GetProject(_ context.Context, id string) (dom
 	return domain.Project{}, store.ErrNotFound
 }
 
-func (s *fakeViewApplicationStore) CreateProject(_ context.Context, p domain.Project) (domain.Project, error) {
+func (s *fakeViewPlatformStore) CreateProject(_ context.Context, p domain.Project) (domain.Project, error) {
 	if s.errCreateProject != nil {
 		return domain.Project{}, s.errCreateProject
 	}
@@ -406,7 +406,7 @@ func (s *fakeViewApplicationStore) CreateProject(_ context.Context, p domain.Pro
 	return p, nil
 }
 
-func (s *fakeViewApplicationStore) UpdateProject(_ context.Context, p domain.Project) (domain.Project, error) {
+func (s *fakeViewPlatformStore) UpdateProject(_ context.Context, p domain.Project) (domain.Project, error) {
 	if s.errUpdateProject != nil {
 		return domain.Project{}, s.errUpdateProject
 	}
@@ -420,7 +420,7 @@ func (s *fakeViewApplicationStore) UpdateProject(_ context.Context, p domain.Pro
 	return p, nil
 }
 
-func (s *fakeViewApplicationStore) ArchiveProject(_ context.Context, id, _ string) (domain.Project, error) {
+func (s *fakeViewPlatformStore) ArchiveProject(_ context.Context, id, _ string) (domain.Project, error) {
 	if s.errArchiveProject != nil {
 		return domain.Project{}, s.errArchiveProject
 	}
@@ -430,7 +430,7 @@ func (s *fakeViewApplicationStore) ArchiveProject(_ context.Context, id, _ strin
 	if !ok {
 		return domain.Project{}, store.ErrNotFound
 	}
-	p.Status = domain.ApplicationStatusArchived
+	p.Status = domain.PlatformStatusArchived
 	now := time.Now().UTC()
 	p.ArchivedAt = &now
 	p.UpdatedAt = now
@@ -438,7 +438,7 @@ func (s *fakeViewApplicationStore) ArchiveProject(_ context.Context, id, _ strin
 	return p, nil
 }
 
-func (s *fakeViewApplicationStore) DeleteProject(_ context.Context, id string) error {
+func (s *fakeViewPlatformStore) DeleteProject(_ context.Context, id string) error {
 	if s.errDeleteProject != nil {
 		return s.errDeleteProject
 	}
@@ -451,7 +451,7 @@ func (s *fakeViewApplicationStore) DeleteProject(_ context.Context, id string) e
 	return nil
 }
 
-func (s *fakeViewApplicationStore) ListProjectRepositories(_ context.Context, projectID string) ([]domain.ProjectRepository, error) {
+func (s *fakeViewPlatformStore) ListProjectRepositories(_ context.Context, projectID string) ([]domain.ProjectRepository, error) {
 	if s.errListProjectRepositories != nil {
 		return nil, s.errListProjectRepositories
 	}
@@ -460,7 +460,7 @@ func (s *fakeViewApplicationStore) ListProjectRepositories(_ context.Context, pr
 	return append([]domain.ProjectRepository(nil), s.projectRepositories[projectID]...), nil
 }
 
-func (s *fakeViewApplicationStore) CreateProjectRepository(_ context.Context, link domain.ProjectRepository) (domain.ProjectRepository, error) {
+func (s *fakeViewPlatformStore) CreateProjectRepository(_ context.Context, link domain.ProjectRepository) (domain.ProjectRepository, error) {
 	if s.errCreateProjectRepository != nil {
 		return domain.ProjectRepository{}, s.errCreateProjectRepository
 	}
@@ -482,7 +482,7 @@ func (s *fakeViewApplicationStore) CreateProjectRepository(_ context.Context, li
 	return link, nil
 }
 
-func (s *fakeViewApplicationStore) DeleteProjectRepository(_ context.Context, projectID string, repositoryID int64) error {
+func (s *fakeViewPlatformStore) DeleteProjectRepository(_ context.Context, projectID string, repositoryID int64) error {
 	if s.errDeleteProjectRepository != nil {
 		return s.errDeleteProjectRepository
 	}
@@ -498,7 +498,7 @@ func (s *fakeViewApplicationStore) DeleteProjectRepository(_ context.Context, pr
 	return store.ErrNotFound
 }
 
-func (s *fakeViewApplicationStore) CreateProjectWithRepositoryPayload(_ context.Context, p domain.Project, repositoryIDs []int64, repoPayload *store.RepositoryCreatePayload) (domain.Project, error) {
+func (s *fakeViewPlatformStore) CreateProjectWithRepositoryPayload(_ context.Context, p domain.Project, repositoryIDs []int64, repoPayload *store.RepositoryCreatePayload) (domain.Project, error) {
 	if s.errCreateProjectWithRepoPayload != nil {
 		return domain.Project{}, s.errCreateProjectWithRepoPayload
 	}
@@ -529,14 +529,14 @@ func (s *fakeViewApplicationStore) CreateProjectWithRepositoryPayload(_ context.
 	return created, nil
 }
 
-func (s *fakeViewApplicationStore) UpsertRepository(_ context.Context, repo domain.Repository) error {
+func (s *fakeViewPlatformStore) UpsertRepository(_ context.Context, repo domain.Repository) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.repositories[repo.ProviderKey] = append(s.repositories[repo.ProviderKey], repo)
 	return nil
 }
 
-func (s *fakeViewApplicationStore) ListRepositoriesByProvider(_ context.Context, providerKey string) ([]domain.Repository, error) {
+func (s *fakeViewPlatformStore) ListRepositoriesByProvider(_ context.Context, providerKey string) ([]domain.Repository, error) {
 	if s.errListRepositoriesByProvider != nil {
 		return nil, s.errListRepositoriesByProvider
 	}
@@ -545,28 +545,28 @@ func (s *fakeViewApplicationStore) ListRepositoriesByProvider(_ context.Context,
 	return append([]domain.Repository(nil), s.repositories[providerKey]...), nil
 }
 
-func (s *fakeViewApplicationStore) ListRepositoryActivity(_ context.Context, repoID int64, _ store.RepositoryActivityOptions) (domain.RepositoryActivity, error) {
+func (s *fakeViewPlatformStore) ListRepositoryActivity(_ context.Context, repoID int64, _ store.RepositoryActivityOptions) (domain.RepositoryActivity, error) {
 	return domain.RepositoryActivity{RepositoryID: repoID}, nil
 }
 
-func (s *fakeViewApplicationStore) ListRepositoryPullRequests(_ context.Context, _ int64, _ store.PRActivityListOptions) ([]domain.PRActivity, int, error) {
+func (s *fakeViewPlatformStore) ListRepositoryPullRequests(_ context.Context, _ int64, _ store.PRActivityListOptions) ([]domain.PRActivity, int, error) {
 	return []domain.PRActivity{}, 0, nil
 }
 
-func (s *fakeViewApplicationStore) ListRepositoryBuildRuns(_ context.Context, _ int64, _ store.BuildRunListOptions) ([]domain.BuildRun, int, error) {
+func (s *fakeViewPlatformStore) ListRepositoryBuildRuns(_ context.Context, _ int64, _ store.BuildRunListOptions) ([]domain.BuildRun, int, error) {
 	if s.errListRepositoryBuildRuns != nil {
 		return nil, 0, s.errListRepositoryBuildRuns
 	}
 	return []domain.BuildRun{}, 0, nil
 }
 
-func (s *fakeViewApplicationStore) ListRepositoryQualitySnapshots(_ context.Context, _ int64, _ store.QualitySnapshotListOptions) ([]domain.QualitySnapshot, int, error) {
+func (s *fakeViewPlatformStore) ListRepositoryQualitySnapshots(_ context.Context, _ int64, _ store.QualitySnapshotListOptions) ([]domain.QualitySnapshot, int, error) {
 	return []domain.QualitySnapshot{}, 0, nil
 }
 
-func (s *fakeViewApplicationStore) ComputeApplicationRollup(_ context.Context, _ string, opts domain.ApplicationRollupOptions) (domain.ApplicationRollup, error) {
-	if s.errComputeApplicationRollup != nil {
-		return domain.ApplicationRollup{}, s.errComputeApplicationRollup
+func (s *fakeViewPlatformStore) ComputePlatformRollup(_ context.Context, _ string, opts domain.PlatformRollupOptions) (domain.PlatformRollup, error) {
+	if s.errComputePlatformRollup != nil {
+		return domain.PlatformRollup{}, s.errComputePlatformRollup
 	}
 	if opts.Policy == "" {
 		opts.Policy = domain.WeightPolicyEqual
@@ -575,17 +575,17 @@ func (s *fakeViewApplicationStore) ComputeApplicationRollup(_ context.Context, _
 		sum := 0.0
 		for _, w := range opts.CustomWeights {
 			if w < 0 {
-				return domain.ApplicationRollup{}, errors.New("invalid weight policy: negative weight")
+				return domain.PlatformRollup{}, errors.New("invalid weight policy: negative weight")
 			}
 			sum += w
 		}
 		if sum < 1.0-domain.CustomWeightTolerance || sum > 1.0+domain.CustomWeightTolerance {
-			return domain.ApplicationRollup{}, errors.New("invalid weight policy: custom weights must sum to 1.0")
+			return domain.PlatformRollup{}, errors.New("invalid weight policy: custom weights must sum to 1.0")
 		}
 	}
-	return domain.ApplicationRollup{
+	return domain.PlatformRollup{
 		PullRequestDistribution: map[string]int{},
-		Meta: domain.ApplicationRollupMeta{
+		Meta: domain.PlatformRollupMeta{
 			Period:         domain.RollupPeriod{From: time.Now().UTC(), To: time.Now().UTC()},
 			Filters:        map[string]any{},
 			WeightPolicy:   opts.Policy,
@@ -596,10 +596,10 @@ func (s *fakeViewApplicationStore) ComputeApplicationRollup(_ context.Context, _
 	}, nil
 }
 
-func (s *fakeViewApplicationStore) CountApplicationCriticalWarnings(_ context.Context, applicationID string) (int, error) {
+func (s *fakeViewPlatformStore) CountPlatformCriticalWarnings(_ context.Context, platformID string) (int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if v, ok := s.criticalWarnings[applicationID]; ok {
+	if v, ok := s.criticalWarnings[platformID]; ok {
 		return v, nil
 	}
 	return 0, nil

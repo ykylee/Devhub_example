@@ -27,8 +27,8 @@ test.describe("/admin/settings/permissions — PermissionEditor smoke", () => {
       /Organization & Members/i,
       /Risk & Security/i,
       /Audit Logs & History/i,
-      /Applications/i,
-      /Application Repositories/i,
+      /Platforms/i,
+      /Platform Repositories/i,
       /Projects/i,
       /SCM Providers/i,
     ];
@@ -49,10 +49,10 @@ test.describe("/admin/settings/permissions — PermissionEditor smoke", () => {
     await page.getByRole("button", { name: /create role/i }).click();
     await expect(page.getByRole("heading", { name: /new custom role matrix/i })).toBeVisible();
 
-    // 2. Edit Permissions (e.g. grant view to Applications)
-    // Find the row for Applications and click the View button (the first one)
+    // 2. Edit Permissions (e.g. grant view to Platforms)
+    // Find the row for Platforms and click the View button (the first one)
     const matrixTable = page.locator("table").filter({ has: page.getByRole("columnheader", { name: "View" }) }).first();
-    const appRow = matrixTable.locator("tr").filter({ has: page.getByRole("cell", { name: /^Applications$/i }) });
+    const appRow = matrixTable.locator("tr").filter({ has: page.getByRole("cell", { name: /^Platforms$/i }) });
     const viewBtn = appRow.locator("button").first();
     
     // Check if it's currently not granted (has X icon or specific class)

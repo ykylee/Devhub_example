@@ -67,9 +67,9 @@ type memoryDevRequestStore struct {
 	knownUsers       map[string]bool
 	knownRepoIDs     map[int64]bool
 	knownDevUnits    map[string]bool
-	createdApps      []domain.Application
+	createdApps      []domain.Platform
 	createdProjects  []domain.Project
-	createdRepoLinks []domain.ApplicationRepository
+	createdRepoLinks []domain.PlatformRepository
 }
 
 func newMemoryDevRequestStore() *memoryDevRequestStore {
@@ -223,27 +223,27 @@ func (s *memoryDevRequestStore) MarkDevRequestRegistered(_ context.Context, id s
 	return dr, nil
 }
 
-func (s *memoryDevRequestStore) RegisterDevRequestWithNewApplication(_ context.Context, drID string, app domain.Application, primaryRepo *domain.ApplicationRepository) (domain.DevRequest, domain.Application, error) {
+func (s *memoryDevRequestStore) RegisterDevRequestWithNewPlatform(_ context.Context, drID string, app domain.Platform, primaryRepo *domain.PlatformRepository) (domain.DevRequest, domain.Platform, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	dr, ok := s.rows[drID]
 	if !ok {
-		return domain.DevRequest{}, domain.Application{}, store.ErrNotFound
+		return domain.DevRequest{}, domain.Platform{}, store.ErrNotFound
 	}
 	// FK-style validation (mirrors Postgres FK checks so tests catch handler/store contract drift).
 	if app.OwnerUserID != "" && !s.knownUsers[app.OwnerUserID] {
-		return domain.DevRequest{}, domain.Application{}, store.ErrConflict
+		return domain.DevRequest{}, domain.Platform{}, store.ErrConflict
 	}
 	if app.LeaderUserID != "" && !s.knownUsers[app.LeaderUserID] {
-		return domain.DevRequest{}, domain.Application{}, store.ErrConflict
+		return domain.DevRequest{}, domain.Platform{}, store.ErrConflict
 	}
 	if app.DevelopmentUnitID != "" && !s.knownDevUnits[app.DevelopmentUnitID] {
-		return domain.DevRequest{}, domain.Application{}, store.ErrConflict
+		return domain.DevRequest{}, domain.Platform{}, store.ErrConflict
 	}
 	// UNIQUE (key) emulation.
 	for _, existing := range s.createdApps {
 		if existing.Key == app.Key {
-			return domain.DevRequest{}, domain.Application{}, store.ErrConflict
+			return domain.DevRequest{}, domain.Platform{}, store.ErrConflict
 		}
 	}
 	s.nextAppID++
@@ -253,12 +253,12 @@ func (s *memoryDevRequestStore) RegisterDevRequestWithNewApplication(_ context.C
 	app.UpdatedAt = now
 	s.createdApps = append(s.createdApps, app)
 	if primaryRepo != nil {
-		primaryRepo.ApplicationID = app.ID
+		primaryRepo.PlatformID = app.ID
 		primaryRepo.LinkedAt = now
 		s.createdRepoLinks = append(s.createdRepoLinks, *primaryRepo)
 	}
 	dr.Status = domain.DevRequestStatusRegistered
-	dr.RegisteredTargetType = domain.DevRequestTargetApplication
+	dr.RegisteredTargetType = domain.DevRequestTargetPlatform
 	dr.RegisteredTargetID = app.ID
 	dr.UpdatedAt = now
 	s.rows[drID] = dr
@@ -399,7 +399,7 @@ func TestRegisterDevRequest_HappyAndStateGuard(t *testing.T) {
 	router := newDevRequestsRouter(s)
 
 	rec := doJSON(t, router, http.MethodPost, "/api/v1/dev-requests/"+pending.ID+"/register",
-		`{"target_type":"application","target_id":"app-1"}`)
+		`{"target_type":"platform","target_id":"app-1"}`)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("happy code=%d body=%s", rec.Code, rec.Body.String())
 	}
@@ -408,7 +408,7 @@ func TestRegisterDevRequest_HappyAndStateGuard(t *testing.T) {
 	}
 
 	rec = doJSON(t, router, http.MethodPost, "/api/v1/dev-requests/"+pending.ID+"/register",
-		`{"target_type":"application","target_id":"app-2"}`)
+		`{"target_type":"platform","target_id":"app-2"}`)
 	if rec.Code != http.StatusConflict {
 		t.Fatalf("re-register code=%d body=%s, want 409", rec.Code, rec.Body.String())
 	}
@@ -456,7 +456,7 @@ func TestCloseDevRequest_FromRegistered(t *testing.T) {
 		Title: "x", Requester: "ext", AssigneeUserID: "alice",
 		SourceSystem:         "ops",
 		Status:               domain.DevRequestStatusRegistered,
-		RegisteredTargetType: domain.DevRequestTargetApplication,
+		RegisteredTargetType: domain.DevRequestTargetPlatform,
 		RegisteredTargetID:   "app-1",
 	})
 	router := newDevRequestsRouter(s)
@@ -827,7 +827,7 @@ func TestRegisterDevRequest_NewApplicationHappy(t *testing.T) {
 	})
 
 	body := `{
-		"target_type": "application",
+		"target_type": "platform",
 		"application_payload": {
 			"key": "ALPHA12345",
 			"name": "Alpha",
@@ -852,18 +852,18 @@ func TestRegisterDevRequest_NewApplicationHappy(t *testing.T) {
 	if s.rows[pending.ID].Status != domain.DevRequestStatusRegistered {
 		t.Errorf("expected dev_request status=registered, got %s", s.rows[pending.ID].Status)
 	}
-	// audit emits: application.created + dev_request.registered
+	// audit emits: platform.created + dev_request.registered
 	gotAppAudit, gotDRAudit := false, false
 	for _, l := range audits.logs {
 		switch l.Action {
-		case "application.created":
+		case "platform.created":
 			gotAppAudit = true
 		case "dev_request.registered":
 			gotDRAudit = true
 		}
 	}
 	if !gotAppAudit || !gotDRAudit {
-		t.Errorf("expected application.created + dev_request.registered audits, got %+v", audits.logs)
+		t.Errorf("expected platform.created + dev_request.registered audits, got %+v", audits.logs)
 	}
 }
 
@@ -875,7 +875,7 @@ func TestRegisterDevRequest_NewApplicationWithPrimaryRepo(t *testing.T) {
 	})
 	router := newDevRequestsRouter(s)
 	body := `{
-		"target_type": "application",
+		"target_type": "platform",
 		"application_payload": {
 			"key": "BETA123456",
 			"name": "Beta",
@@ -940,7 +940,7 @@ func TestRegisterDevRequest_PayloadMutualExclusion(t *testing.T) {
 
 	// Case A: both target_id and application_payload set → 400.
 	body := `{
-		"target_type": "application",
+		"target_type": "platform",
 		"target_id": "app-existing",
 		"application_payload": {"key":"ZZZZZZZZZZ","name":"Z","owner_user_id":"alice","leader_user_id":"bob","development_unit_id":"unit-dev","visibility":"internal","status":"planning"}
 	}`
@@ -950,14 +950,14 @@ func TestRegisterDevRequest_PayloadMutualExclusion(t *testing.T) {
 	}
 
 	// Case B: neither set → 400.
-	body = `{"target_type":"application"}`
+	body = `{"target_type":"platform"}`
 	rec = doJSON(t, router, http.MethodPost, "/api/v1/dev-requests/"+pending.ID+"/register", body)
 	if rec.Code != http.StatusBadRequest || !bytes.Contains(rec.Body.Bytes(), []byte(`"code":"dev_request_register_payload_invalid"`)) {
 		t.Errorf("case B: expected 400 dev_request_register_payload_invalid, got code=%d body=%s", rec.Code, rec.Body.String())
 	}
 
-	// Case C: project_payload with target_type=application → 400.
-	body = `{"target_type":"application","project_payload":{"repository_id":1,"key":"PROJX","name":"X","owner_user_id":"alice","visibility":"internal","status":"planning"}}`
+	// Case C: project_payload with target_type=platform → 400.
+	body = `{"target_type":"platform","project_payload":{"repository_id":1,"key":"PROJX","name":"X","owner_user_id":"alice","visibility":"internal","status":"planning"}}`
 	rec = doJSON(t, router, http.MethodPost, "/api/v1/dev-requests/"+pending.ID+"/register", body)
 	if rec.Code != http.StatusBadRequest || !bytes.Contains(rec.Body.Bytes(), []byte(`"code":"dev_request_register_payload_invalid"`)) {
 		t.Errorf("case C: expected 400 dev_request_register_payload_invalid, got code=%d body=%s", rec.Code, rec.Body.String())
@@ -973,19 +973,19 @@ func TestRegisterDevRequest_NewApplicationFKConflict(t *testing.T) {
 	router := newDevRequestsRouter(s)
 	// owner_user_id="ghost" 는 knownUsers 에 없음 → store ErrConflict → 409.
 	body := `{
-		"target_type":"application",
+		"target_type":"platform",
 		"application_payload":{"key":"GAMMA12345","name":"G","owner_user_id":"ghost","leader_user_id":"bob","development_unit_id":"unit-dev","visibility":"internal","status":"planning"}
 	}`
 	rec := doJSON(t, router, http.MethodPost, "/api/v1/dev-requests/"+pending.ID+"/register", body)
 	if rec.Code != http.StatusConflict {
 		t.Fatalf("expected 409, code=%d body=%s", rec.Code, rec.Body.String())
 	}
-	if !bytes.Contains(rec.Body.Bytes(), []byte(`"code":"application_key_conflict"`)) {
-		t.Errorf("expected application_key_conflict: %s", rec.Body.String())
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"code":"platform_key_conflict"`)) {
+		t.Errorf("expected platform_key_conflict: %s", rec.Body.String())
 	}
 	// Rollback semantics: no app should have been "persisted" + dev_request still pending.
 	if len(s.createdApps) != 0 {
-		t.Errorf("expected 0 created apps after FK conflict, got %+v", s.createdApps)
+		t.Errorf("expected 0 created platforms after FK conflict, got %+v", s.createdApps)
 	}
 	if s.rows[pending.ID].Status != domain.DevRequestStatusPending {
 		t.Errorf("expected dev_request still pending after rollback, got %s", s.rows[pending.ID].Status)
@@ -1004,7 +1004,7 @@ func TestRegisterDevRequest_LegacyTargetIDStillSupported(t *testing.T) {
 		AuditStore:      audits,
 		AuthDevFallback: true,
 	})
-	body := `{"target_type":"application","target_id":"app-legacy-1"}`
+	body := `{"target_type":"platform","target_id":"app-legacy-1"}`
 	rec := doJSON(t, router, http.MethodPost, "/api/v1/dev-requests/"+pending.ID+"/register", body)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("code=%d body=%s", rec.Code, rec.Body.String())
@@ -1034,14 +1034,14 @@ func TestRegisterDevRequest_PromoteApp_InvalidRepoRole(t *testing.T) {
 	})
 	router := NewRouter(RouterConfig{
 		DevRequestStore:  s,
-		ApplicationStore: newMemoryApplicationStore(),
+		PlatformStore: newMemoryPlatformStore(),
 		AuditStore:       &memoryAuditStore{},
 		AuthDevFallback:  true,
 	})
-	// role="owner" 는 application_repositories_role_check 위반 — 본래 PG CHECK 가 잡지만,
+	// role="owner" 는 platform_repositories_role_check 위반 — 본래 PG CHECK 가 잡지만,
 	// codex P1 hotfix 가 handler 의 application-level gate 로 422 invalid_repo_link_role 로 surface.
 	body := `{
-		"target_type":"application",
+		"target_type":"platform",
 		"application_payload":{"key":"DELTA12345","name":"D","owner_user_id":"u1","leader_user_id":"u2","development_unit_id":"unit-dev","visibility":"internal","status":"planning",
 			"primary_repo":{"repo_provider":"gitea","repo_full_name":"org/d","role":"owner"}}
 	}`
@@ -1054,7 +1054,7 @@ func TestRegisterDevRequest_PromoteApp_InvalidRepoRole(t *testing.T) {
 	}
 	// 0 created — handler 가 store 호출 전에 차단.
 	if len(s.createdApps) != 0 {
-		t.Errorf("expected 0 created apps after gate, got %d", len(s.createdApps))
+		t.Errorf("expected 0 created platforms after gate, got %d", len(s.createdApps))
 	}
 }
 
@@ -1064,15 +1064,15 @@ func TestRegisterDevRequest_PromoteApp_DisabledSCMProvider(t *testing.T) {
 		Title: "x", Requester: "ext", AssigneeUserID: "alice",
 		SourceSystem: "ops", Status: domain.DevRequestStatusPending,
 	})
-	// newMemoryApplicationStore() 에서 forgejo 는 Enabled=false.
+	// newMemoryPlatformStore() 에서 forgejo 는 Enabled=false.
 	router := NewRouter(RouterConfig{
 		DevRequestStore:  s,
-		ApplicationStore: newMemoryApplicationStore(),
+		PlatformStore: newMemoryPlatformStore(),
 		AuditStore:       &memoryAuditStore{},
 		AuthDevFallback:  true,
 	})
 	body := `{
-		"target_type":"application",
+		"target_type":"platform",
 		"application_payload":{"key":"EPSILON123","name":"E","owner_user_id":"u1","leader_user_id":"u2","development_unit_id":"unit-dev","visibility":"internal","status":"planning",
 			"primary_repo":{"repo_provider":"forgejo","repo_full_name":"org/e","role":"primary"}}
 	}`
@@ -1084,7 +1084,7 @@ func TestRegisterDevRequest_PromoteApp_DisabledSCMProvider(t *testing.T) {
 		t.Errorf("expected unsupported_repo_provider: %s", rec.Body.String())
 	}
 	if len(s.createdApps) != 0 {
-		t.Errorf("expected 0 created apps after gate, got %d", len(s.createdApps))
+		t.Errorf("expected 0 created platforms after gate, got %d", len(s.createdApps))
 	}
 }
 
@@ -1096,12 +1096,12 @@ func TestRegisterDevRequest_PromoteApp_UnknownProviderRejectedSamePathAsLegacy(t
 	})
 	router := NewRouter(RouterConfig{
 		DevRequestStore:  s,
-		ApplicationStore: newMemoryApplicationStore(),
+		PlatformStore: newMemoryPlatformStore(),
 		AuditStore:       &memoryAuditStore{},
 		AuthDevFallback:  true,
 	})
 	body := `{
-		"target_type":"application",
+		"target_type":"platform",
 		"application_payload":{"key":"ZETA123456","name":"Z","owner_user_id":"u1","leader_user_id":"u2","development_unit_id":"unit-dev","visibility":"internal","status":"planning",
 			"primary_repo":{"repo_provider":"unknown","repo_full_name":"org/z","role":"primary"}}
 	}`
@@ -1114,9 +1114,9 @@ func TestRegisterDevRequest_PromoteApp_UnknownProviderRejectedSamePathAsLegacy(t
 	}
 }
 
-func TestRegisterDevRequest_PromoteApp_NoApplicationStoreFallback(t *testing.T) {
-	// ApplicationStore unwired — provider gate 는 dev environment 에서 통과.
-	// 회귀 가드: ApplicationStore 가 nil 일 때 happy path 가 깨지지 않음.
+func TestRegisterDevRequest_PromoteApp_NoPlatformStoreFallback(t *testing.T) {
+	// PlatformStore unwired — provider gate 는 dev environment 에서 통과.
+	// 회귀 가드: PlatformStore 가 nil 일 때 happy path 가 깨지지 않음.
 	s := newMemoryDevRequestStore()
 	pending := s.seed(domain.DevRequest{
 		Title: "x", Requester: "ext", AssigneeUserID: "alice",
@@ -1124,13 +1124,13 @@ func TestRegisterDevRequest_PromoteApp_NoApplicationStoreFallback(t *testing.T) 
 	})
 	router := newDevRequestsRouter(s)
 	body := `{
-		"target_type":"application",
+		"target_type":"platform",
 		"application_payload":{"key":"OMEGA12345","name":"O","owner_user_id":"alice","leader_user_id":"bob","development_unit_id":"unit-dev","visibility":"internal","status":"planning",
 			"primary_repo":{"repo_provider":"any","repo_full_name":"org/o","role":"primary"}}
 	}`
 	rec := doJSON(t, router, http.MethodPost, "/api/v1/dev-requests/"+pending.ID+"/register", body)
 	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200 (gate skipped without ApplicationStore), code=%d body=%s", rec.Code, rec.Body.String())
+		t.Fatalf("expected 200 (gate skipped without PlatformStore), code=%d body=%s", rec.Code, rec.Body.String())
 	}
 }
 
@@ -1149,7 +1149,7 @@ func TestRegisterDevRequest_PromoteApp_RejectedReasonClearedOnReopen(t *testing.
 	// status 가 rejected 이므로 직접 register 는 conflict — 먼저 pending 으로 복원.
 	dr.Status = domain.DevRequestStatusPending
 	s.rows[dr.ID] = dr
-	body := `{"target_type":"application","target_id":"app-1"}`
+	body := `{"target_type":"platform","target_id":"app-1"}`
 	rec := doJSON(t, router, http.MethodPost, "/api/v1/dev-requests/"+dr.ID+"/register", body)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("code=%d body=%s", rec.Code, rec.Body.String())

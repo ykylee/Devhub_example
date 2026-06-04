@@ -30,8 +30,8 @@
 
 ### Backend (Explore agent)
 - PASS with P1 2건:
-  - `application-lifecycle/repository/repository.go:11` — `ApplicationRepository` 가 `*IntegrationRepository` embed → cross-domain coupling
-  - `application-lifecycle/view/handler.go:21-86` — `ApplicationStore` interface 가 13+ integration 메서드 포함 (잘못된 domain ownership)
+  - `platform-lifecycle/repository/repository.go:11` — `ApplicationRepository` 가 `*IntegrationRepository` embed → cross-domain coupling
+  - `platform-lifecycle/view/handler.go:21-86` — `ApplicationStore` interface 가 13+ integration 메서드 포함 (잘못된 domain ownership)
 - 본 PR 에서 fix 안 함 — 별도 carve out (review agent P1 권고)
 
 ### Frontend (Explore agent)

@@ -28,7 +28,7 @@ export function DevRequestDetailModal({
   const [mode, setMode] = useState<Mode>("view");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [targetType, setTargetType] = useState<DevRequestTargetType>("application");
+  const [targetType, setTargetType] = useState<DevRequestTargetType>("platform");
   const [targetID, setTargetID] = useState("");
   const [rejectedReason, setRejectedReason] = useState("");
   const [newAssignee, setNewAssignee] = useState(request.assignee_user_id);
@@ -193,10 +193,10 @@ export function DevRequestDetailModal({
                   />
                   <ActionButton
                     icon={<Box className="w-4 h-4" />}
-                    label="Register as Application"
+                    label="Register as Platform"
                     onClick={() => {
                       setMode("register");
-                      setTargetType("application");
+                      setTargetType("platform");
                     }}
                     color="purple"
                   />
@@ -241,7 +241,7 @@ export function DevRequestDetailModal({
               <input
                 value={targetID}
                 onChange={(e) => setTargetID(e.target.value)}
-                placeholder={targetType === "application" ? "application id (uuid)" : "project id (uuid)"}
+                placeholder={targetType === "platform" ? "platform id (uuid)" : "project id (uuid)"}
                 className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm font-mono text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-accent/50"
               />
               <div className="flex gap-3">

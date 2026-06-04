@@ -1,13 +1,13 @@
 # 역할 기반 접근 권한 (Role-Based Access) 컨셉
 
-- 문서 목적: Application/Project 도메인에 대한 **새로운 역할 모델**과 **view scope 규칙**을 정의한다. 기존 4축 RBAC 매트릭스 (route-level) + row-level read scoping 의 2계층 구조로 전환하기 위한 컨셉 기준.
+- 문서 목적: Platform/Project 도메인에 대한 **새로운 역할 모델**과 **view scope 규칙**을 정의한다. 기존 4축 RBAC 매트릭스 (route-level) + row-level read scoping 의 2계층 구조로 전환하기 위한 컨셉 기준.
 - 범위: `developer` / `team_manager` / `system_admin` 3개 system role + `project_member` / `project_leader` / `application_leader` / `org_head` 4개 resource role 의 정의, view scope 규칙, enforcement architecture.
 - 대상 독자: Backend/Frontend 개발자, 정책 stakeholder, AI agent.
 - 상태: reviewed (Phase 1~3 구현 완료, 2026-06-02)
 - 작성일: 2026-06-01
 - 최종 수정일: 2026-06-02
 - 관련 PR: [#461](https://github.com/ykylee/Devhub_example/pull/461), `deepseek/work_260602` (6-P2, 6-P3)
-- 관련 문서: [ADR-0011 (Row scoping)](../adr/0011-rbac-row-scoping.md), [project_concept.md](../domain/application-lifecycle/project_concept.md), [backend_api_contract.md](../backend_api_contract.md), [rbac.go](../../backend-core/internal/domain/rbac.go), [permissions.go](../../backend-core/internal/domain/rbac-permissions/view/permissions.go)
+- 관련 문서: [ADR-0011 (Row scoping)](../adr/0011-rbac-row-scoping.md), [project_concept.md](../domain/platform-lifecycle/project_concept.md), [backend_api_contract.md](../backend_api_contract.md), [rbac.go](../../backend-core/internal/domain/rbac.go), [permissions.go](../../backend-core/internal/domain/rbac-permissions/view/permissions.go)
 
 ---
 
@@ -30,7 +30,7 @@ Request → authenticateActor (actor context) → enforceRoutePermission (matrix
 
 - **Route-level**: `routePermissionTable` 로 endpoint 접근 제어 — matrix 기반, row 구분 없음
 - **Handler-level (write)**: `enforceRowOwnership` 로 update/delete/archive 시 owner 검증
-- **Handler-level (read)**: **없음** — ListApplications / ListProjects / GetProject 모두 store 직접 호출
+- **Handler-level (read)**: **없음** — ListPlatforms / ListProjects / GetProject 모두 store 직접 호출
 - **Store-level**: SQL WHERE 절에 member/org-unit filter 없음
 
 ### 1.3 핵심 문제
@@ -97,9 +97,9 @@ Resource role 은 system role 과 독립적이다 — developer 든 team_manager
 | 리소스 | Scope 규칙 |
 |---|---|
 | Project 목록 | WHERE user_id IN (SELECT user_id FROM project_members WHERE user_id = $actor) |
-| Application 목록 | WHERE id IN (SELECT application_id FROM projects WHERE id IN (project_members scope)) |
+| Platform 목록 | WHERE id IN (SELECT platform_id FROM projects WHERE id IN (project_members scope)) |
 | Project 상세 | IF member OR owner THEN return ELSE 403 |
-| Application 상세 | IF 연결된 project 중 member 인 것이 있으면 return ELSE 403 |
+| Platform 상세 | IF 연결된 project 중 member 인 것이 있으면 return ELSE 403 |
 | ProjectMembers 정보 | 자신이 속한 project 의 member list (가시성) |
 
 **제한**: management 정보 (롤업, 리스크, 메트릭) 는 볼 수 없음.
@@ -115,7 +115,7 @@ Resource role 은 system role 과 독립적이다 — developer 든 team_manager
 | Project 상세 | 동일 |
 | **Project 관리 정보** | ✅ **리더인 project 에 한해** rollup/metrics/risks 접근 |
 | ProjectMember 관리 | ❌ (member role 변경은 team_manager 이상) |
-| Application 관리 | ❌ |
+| Platform 관리 | ❌ |
 
 **개념**: 일반 개발자와 system role 은 같지만, lead 로 지정된 project 에서 **관리자 뷰**를 제공받음.
 
@@ -125,8 +125,8 @@ Resource role 은 system role 과 독립적이다 — developer 든 team_manager
 
 | 리소스 | Scope 규칙 |
 |---|---|
-| Application 상세 | 동일 |
-| **Application 관리 정보** | ✅ 해당 application rollup/dashboard/metrics |
+| Platform 상세 | 동일 |
+| **Platform 관리 정보** | ✅ 해당 application rollup/dashboard/metrics |
 | Application metadata 수정 | ✅ (owner 위양 범위 내, ADR-0011 §4.2) |
 | ApplicationMember 관리 | ✅ (leader 권한 범위 내) |
 | 하위 project 목록 | ✅ leader application 의 모든 project |
@@ -139,9 +139,9 @@ Resource role 은 system role 과 독립적이다 — developer 든 team_manager
 | 리소스 | Scope 규칙 |
 |---|---|
 | Project 목록 | WHERE DevelopmentUnitID IN (org_unit + descendants) |
-| Application 목록 | WHERE DevelopmentUnitID IN (org_unit + descendants) |
+| Platform 목록 | WHERE DevelopmentUnitID IN (org_unit + descendants) |
 | Project 상세 | org scope 내 project 는 접근 허용 |
-| Application 상세 | org scope 내 application 은 접근 허용 |
+| Platform 상세 | org scope 내 application 은 접근 허용 |
 | 조직 정보 | GetHierarchy / ListUnitMembers (본인 조직 + 하위) |
 | **제한** | org scope 밖은 member 인 project 만 접근 |
 
@@ -165,12 +165,12 @@ SELECT * FROM applications WHERE development_unit_id IN (SELECT unit_id FROM sub
 | 리소스 | Scope 규칙 |
 |---|---|
 | Project 목록 | team scope 내 전체 (membership 불필요) |
-| Application 목록 | team scope 내 전체 |
+| Platform 목록 | team scope 내 전체 |
 | Project 상세 | team scope 내 project 전체 접근 |
-| Application 상세 | team scope 내 application 전체 접근 |
+| Platform 상세 | team scope 내 application 전체 접근 |
 | Project 관리 | ✅ team scope 내 project metadata 수정 |
 | ProjectMember 관리 | ✅ team scope 내 member role 변경 |
-| Application 관리 | ✅ team scope 내 application metadata 수정 |
+| Platform 관리 | ✅ team scope 내 application metadata 수정 |
 | **제한** | team scope 밖은 member 인 project 만 접근 |
 
 **team_manager DefaultPermissionMatrix** (신규 추가):
@@ -257,7 +257,7 @@ case string(AppRoleDeveloper):
 
 ### 5.3 Store-Level Row Filter (신규)
 
-`ListProjects` / `ListApplications` / `GetProject` / `GetApplication` 에 **actor context 기반 WHERE 조건** 추가:
+`ListProjects` / `ListPlatforms` / `GetProject` / `GetApplication` 에 **actor context 기반 WHERE 조건** 추가:
 
 ```go
 // projects.ListProjects
@@ -336,7 +336,7 @@ func (h *ApplicationHandler) GetProjectRollup(c *gin.Context) {
 - `defaultRoles` 에 `team_manager` matrix 추가
 - `role-routing.ts` 의 `defaultLandingFor` 에 `team_manager` 경로 추가
 - Project 상세 화면: project_leader 일 때 management tab 노출
-- Application 상세 화면: leader 일 때 management tab 노출
+- Platform 상세 화면: leader 일 때 management tab 노출
 
 ---
 
@@ -345,7 +345,7 @@ func (h *ApplicationHandler) GetProjectRollup(c *gin.Context) {
 ### ~~Phase 1: Matrix 확장 + Row Filter (MVP)~~ ✅ 완료 (PR #461 + 6-P2)
 
 1. `developer` role 의 matrix 에 `ResourceApplications.View = true`, `ResourceProjects.View = true` 적용
-2. `ListProjects` / `ListApplications` 에 project_members 기반 row filter 추가
+2. `ListProjects` / `ListPlatforms` 에 project_members 기반 row filter 추가
 3. 기존 테스트 통과 확인
 
 ### ~~Phase 2: Resource Role Enforcement~~ ✅ 완료 (6-P2)

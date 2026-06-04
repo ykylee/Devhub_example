@@ -30,27 +30,27 @@ func (f *fakeDevReqAuditStore) CreateAuditLog(_ context.Context, log domain.Audi
 	return log, nil
 }
 
-type fakeDevReqAppStore struct {
+type fakeDevReqPlatformStore struct {
 	listSCMProvidersFunc func(ctx context.Context) ([]domain.SCMProvider, error)
 	createProjectWithRepositoryPayloadFunc func(ctx context.Context, p domain.Project, repoIDs []int64, payload *store.RepositoryCreatePayload) (domain.Project, error)
-	createApplicationFunc func(ctx context.Context, app domain.Application) (domain.Application, error)
+	createPlatformFunc func(ctx context.Context, app domain.Platform) (domain.Platform, error)
 }
 
-func (f *fakeDevReqAppStore) ListSCMProviders(ctx context.Context) ([]domain.SCMProvider, error) {
+func (f *fakeDevReqPlatformStore) ListSCMProviders(ctx context.Context) ([]domain.SCMProvider, error) {
 	if f.listSCMProvidersFunc != nil {
 		return f.listSCMProvidersFunc(ctx)
 	}
 	return nil, nil
 }
-func (f *fakeDevReqAppStore) CreateProjectWithRepositoryPayload(ctx context.Context, p domain.Project, repoIDs []int64, payload *store.RepositoryCreatePayload) (domain.Project, error) {
+func (f *fakeDevReqPlatformStore) CreateProjectWithRepositoryPayload(ctx context.Context, p domain.Project, repoIDs []int64, payload *store.RepositoryCreatePayload) (domain.Project, error) {
 	if f.createProjectWithRepositoryPayloadFunc != nil {
 		return f.createProjectWithRepositoryPayloadFunc(ctx, p, repoIDs, payload)
 	}
 	return p, nil
 }
-func (f *fakeDevReqAppStore) CreateApplication(ctx context.Context, app domain.Application) (domain.Application, error) {
-	if f.createApplicationFunc != nil {
-		return f.createApplicationFunc(ctx, app)
+func (f *fakeDevReqPlatformStore) CreatePlatform(ctx context.Context, app domain.Platform) (domain.Platform, error) {
+	if f.createPlatformFunc != nil {
+		return f.createPlatformFunc(ctx, app)
 	}
 	return app, nil
 }
@@ -63,7 +63,7 @@ type fakeDevRequestStore struct {
 	transitionDevRequestStatusFunc func(ctx context.Context, id string, to domain.DevRequestStatus, rejectedReason string) (domain.DevRequest, error)
 	reassignDevRequestFunc func(ctx context.Context, id, newAssigneeUserID string) (domain.DevRequest, error)
 	markDevRequestRegisteredFunc func(ctx context.Context, id string, targetType domain.DevRequestTargetType, targetID string) (domain.DevRequest, error)
-	registerDevRequestWithNewApplicationFunc func(ctx context.Context, drID string, app domain.Application, primaryRepo *domain.ApplicationRepository) (domain.DevRequest, domain.Application, error)
+	registerDevRequestWithNewPlatformFunc func(ctx context.Context, drID string, app domain.Platform, primaryRepo *domain.PlatformRepository) (domain.DevRequest, domain.Platform, error)
 	registerDevRequestWithNewProjectFunc func(ctx context.Context, drID string, project domain.Project) (domain.DevRequest, domain.Project, error)
 }
 
@@ -109,9 +109,9 @@ func (f *fakeDevRequestStore) MarkDevRequestRegistered(ctx context.Context, id s
 	}
 	return domain.DevRequest{}, nil
 }
-func (f *fakeDevRequestStore) RegisterDevRequestWithNewApplication(ctx context.Context, drID string, app domain.Application, primaryRepo *domain.ApplicationRepository) (domain.DevRequest, domain.Application, error) {
-	if f.registerDevRequestWithNewApplicationFunc != nil {
-		return f.registerDevRequestWithNewApplicationFunc(ctx, drID, app, primaryRepo)
+func (f *fakeDevRequestStore) RegisterDevRequestWithNewPlatform(ctx context.Context, drID string, app domain.Platform, primaryRepo *domain.PlatformRepository) (domain.DevRequest, domain.Platform, error) {
+	if f.registerDevRequestWithNewPlatformFunc != nil {
+		return f.registerDevRequestWithNewPlatformFunc(ctx, drID, app, primaryRepo)
 	}
 	return domain.DevRequest{}, app, nil
 }
@@ -205,12 +205,12 @@ func TestNewDevRequestHandler_NonNil(t *testing.T) {
 
 func TestNewDevRequestHandler_ConfigPropagation(t *testing.T) {
 	cfg := DevRequestConfig{
-		ApplicationStore: &fakeDevReqAppStore{},
+		PlatformStore: &fakeDevReqPlatformStore{},
 		AuditStore:       &fakeDevReqAuditStore{},
 	}
 	h := NewDevRequestHandler(cfg)
-	if h.cfg.ApplicationStore == nil {
-		t.Fatal("ApplicationStore not propagated")
+	if h.cfg.PlatformStore == nil {
+		t.Fatal("PlatformStore not propagated")
 	}
 	if h.cfg.AuditStore == nil {
 		t.Fatal("AuditStore not propagated")
@@ -291,14 +291,14 @@ func TestRecordAuditBestEffort_PersistFailureLogged(t *testing.T) {
 	}
 }
 
-func TestApplicationStoreOrUnavailable_NilReturns503(t *testing.T) {
+func TestPlatformStoreOrUnavailable_NilReturns503(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	h := NewDevRequestHandler(DevRequestConfig{})
 	rec := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(rec)
 	c.Request = httptest.NewRequest("GET", "/x", nil)
 
-	got, ok := h.ApplicationStoreOrUnavailable(c)
+	got, ok := h.PlatformStoreOrUnavailable(c)
 	if ok {
 		t.Fatal("expected ok=false")
 	}
@@ -308,20 +308,20 @@ func TestApplicationStoreOrUnavailable_NilReturns503(t *testing.T) {
 	if rec.Code != 503 {
 		t.Fatalf("status = %d", rec.Code)
 	}
-	if !strings.Contains(rec.Body.String(), "application store is not configured") {
+	if !strings.Contains(rec.Body.String(), "platform store is not configured") {
 		t.Fatalf("body = %q", rec.Body.String())
 	}
 }
 
-func TestApplicationStoreOrUnavailable_PresentReturnsRef(t *testing.T) {
+func TestPlatformStoreOrUnavailable_PresentReturnsRef(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	store := &fakeDevReqAppStore{}
-	h := NewDevRequestHandler(DevRequestConfig{ApplicationStore: store})
+	store := &fakeDevReqPlatformStore{}
+	h := NewDevRequestHandler(DevRequestConfig{PlatformStore: store})
 	rec := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(rec)
 	c.Request = httptest.NewRequest("GET", "/x", nil)
 
-	got, ok := h.ApplicationStoreOrUnavailable(c)
+	got, ok := h.PlatformStoreOrUnavailable(c)
 	if !ok {
 		t.Fatal("expected ok=true")
 	}
@@ -473,7 +473,7 @@ func TestApplicationKeyPattern(t *testing.T) {
 		"contains space": false,
 	}
 	for input, want := range cases {
-		got := applicationKeyPattern.MatchString(input)
+		got := platformKeyPattern.MatchString(input)
 		if got != want {
 			t.Errorf("pattern.Match(%q) = %v, want %v", input, got, want)
 		}
@@ -482,33 +482,33 @@ func TestApplicationKeyPattern(t *testing.T) {
 
 func TestValidApplicationVisibilities(t *testing.T) {
 	for _, v := range []string{"public", "internal", "restricted"} {
-		if !validApplicationVisibilities[v] {
+		if !validPlatformVisibilities[v] {
 			t.Errorf("expected %q valid", v)
 		}
 	}
-	if validApplicationVisibilities["unknown"] {
+	if validPlatformVisibilities["unknown"] {
 		t.Error("unknown must be invalid")
 	}
 }
 
 func TestValidApplicationStatuses(t *testing.T) {
 	for _, s := range []string{"planning", "active", "on_hold", "closed", "archived"} {
-		if !validApplicationStatuses[s] {
+		if !validPlatformStatuses[s] {
 			t.Errorf("expected %q valid", s)
 		}
 	}
-	if validApplicationStatuses["unknown"] {
+	if validPlatformStatuses["unknown"] {
 		t.Error("unknown must be invalid")
 	}
 }
 
 func TestValidApplicationRepoRoles(t *testing.T) {
 	for _, r := range []string{"primary", "sub", "shared"} {
-		if !validApplicationRepoRoles[r] {
+		if !validPlatformRepoRoles[r] {
 			t.Errorf("expected %q valid", r)
 		}
 	}
-	if validApplicationRepoRoles["unknown"] {
+	if validPlatformRepoRoles["unknown"] {
 		t.Error("unknown must be invalid")
 	}
 }
@@ -516,13 +516,13 @@ func TestValidApplicationRepoRoles(t *testing.T) {
 func TestApplicationResponse_FieldMapping(t *testing.T) {
 	start := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	due := time.Date(2026, 12, 31, 0, 0, 0, 0, time.UTC)
-	app := domain.Application{
+	app := domain.Platform{
 		ID:                "app-1",
 		Key:               "APP",
 		Name:              "App One",
 		Description:       "desc",
-		Status:            domain.ApplicationStatusActive,
-		Visibility:        domain.ApplicationVisibilityInternal,
+		Status:            domain.PlatformStatusActive,
+		Visibility:        domain.PlatformVisibilityInternal,
 		OwnerUserID:       "owner",
 		LeaderUserID:      "leader",
 		DevelopmentUnitID: "team",
@@ -531,7 +531,7 @@ func TestApplicationResponse_FieldMapping(t *testing.T) {
 		CreatedAt:         time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 		UpdatedAt:         time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC),
 	}
-	resp := applicationResponse(app)
+	resp := platformResponse(app)
 	if resp["id"] != "app-1" || resp["key"] != "APP" {
 		t.Fatalf("basic mapping: %+v", resp)
 	}
@@ -546,18 +546,18 @@ func TestApplicationResponse_FieldMapping(t *testing.T) {
 func TestProjectResponse_FieldMapping(t *testing.T) {
 	p := domain.Project{
 		ID:            "proj-1",
-		ApplicationID: "app-1",
+		PlatformID: "app-1",
 		RepositoryID:  42,
 		Key:           "PRJ",
 		Name:          "Proj One",
-		Status:        domain.ApplicationStatusActive,
-		Visibility:    domain.ApplicationVisibilityInternal,
+		Status:        domain.PlatformStatusActive,
+		Visibility:    domain.PlatformVisibilityInternal,
 		OwnerUserID:   "owner",
 		CreatedAt:     time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 		UpdatedAt:     time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC),
 	}
 	resp := projectResponse(p)
-	if resp["id"] != "proj-1" || resp["key"] != "PRJ" || resp["application_id"] != "app-1" {
+	if resp["id"] != "proj-1" || resp["key"] != "PRJ" || resp["platform_id"] != "app-1" {
 		t.Fatalf("basic: %+v", resp)
 	}
 	if resp["repository_id"] != int64(42) {
@@ -584,7 +584,7 @@ func TestDevRequestResponse_FieldMapping(t *testing.T) {
 		SourceSystem:         "jira",
 		ExternalRef:          "JIRA-1",
 		Status:               domain.DevRequestStatusPending,
-		RegisteredTargetType: domain.DevRequestTargetType("application"),
+		RegisteredTargetType: domain.DevRequestTargetType("platform"),
 		RegisteredTargetID:   "app-1",
 		RejectedReason:       "",
 		ReceivedAt:           received,
@@ -601,7 +601,7 @@ func TestDevRequestResponse_FieldMapping(t *testing.T) {
 	if resp["source_system"] != "jira" || resp["external_ref"] != "JIRA-1" {
 		t.Fatalf("source: %+v", resp)
 	}
-	if resp["registered_target_type"] != "application" || resp["registered_target_id"] != "app-1" {
+	if resp["registered_target_type"] != "platform" || resp["registered_target_id"] != "app-1" {
 		t.Fatalf("target: %+v", resp)
 	}
 }
@@ -1753,7 +1753,7 @@ func TestRegisterDevRequest(t *testing.T) {
 		// 4. mutual exclusion fail (payloadCount != 1)
 		rec4 := httptest.NewRecorder()
 		c4, _ := gin.CreateTestContext(rec4)
-		c4.Request = httptest.NewRequest("POST", "/register", strings.NewReader(`{"target_type": "application", "target_id": "app-1", "application_payload": {}}`))
+		c4.Request = httptest.NewRequest("POST", "/register", strings.NewReader(`{"target_type": "platform", "target_id": "app-1", "application_payload": {}}`))
 		h.RegisterDevRequest(c4)
 		if rec4.Code != 400 {
 			t.Fatalf("expected 400, got %d", rec4.Code)
@@ -1784,7 +1784,7 @@ func TestRegisterDevRequest(t *testing.T) {
 		rec1 := httptest.NewRecorder()
 		c1, _ := gin.CreateTestContext(rec1)
 		c1.Params = gin.Params{{Key: "dev_request_id", Value: "dr-notfound"}}
-		c1.Request = httptest.NewRequest("POST", "/register", strings.NewReader(`{"target_type": "application", "target_id": "app-1"}`))
+		c1.Request = httptest.NewRequest("POST", "/register", strings.NewReader(`{"target_type": "platform", "target_id": "app-1"}`))
 		h.RegisterDevRequest(c1)
 		if rec1.Code != 404 {
 			t.Fatalf("expected 404, got %d", rec1.Code)
@@ -1794,7 +1794,7 @@ func TestRegisterDevRequest(t *testing.T) {
 		rec2 := httptest.NewRecorder()
 		c2, _ := gin.CreateTestContext(rec2)
 		c2.Params = gin.Params{{Key: "dev_request_id", Value: "dr-dbfail"}}
-		c2.Request = httptest.NewRequest("POST", "/register", strings.NewReader(`{"target_type": "application", "target_id": "app-1"}`))
+		c2.Request = httptest.NewRequest("POST", "/register", strings.NewReader(`{"target_type": "platform", "target_id": "app-1"}`))
 		h.RegisterDevRequest(c2)
 		if rec2.Code != 500 {
 			t.Fatalf("expected 500, got %d", rec2.Code)
@@ -1817,7 +1817,7 @@ func TestRegisterDevRequest(t *testing.T) {
 		rec1 := httptest.NewRecorder()
 		c1, _ := gin.CreateTestContext(rec1)
 		c1.Params = gin.Params{{Key: "dev_request_id", Value: "dr-ownership-fail"}}
-		c1.Request = httptest.NewRequest("POST", "/register", strings.NewReader(`{"target_type": "application", "target_id": "app-1"}`))
+		c1.Request = httptest.NewRequest("POST", "/register", strings.NewReader(`{"target_type": "platform", "target_id": "app-1"}`))
 		c1.Set("devhub_actor_login", "alice")
 		c1.Set("devhub_actor_role", "developer")
 		h.RegisterDevRequest(c1)
@@ -1829,7 +1829,7 @@ func TestRegisterDevRequest(t *testing.T) {
 		rec2 := httptest.NewRecorder()
 		c2, _ := gin.CreateTestContext(rec2)
 		c2.Params = gin.Params{{Key: "dev_request_id", Value: "dr-closed"}}
-		c2.Request = httptest.NewRequest("POST", "/register", strings.NewReader(`{"target_type": "application", "target_id": "app-1"}`))
+		c2.Request = httptest.NewRequest("POST", "/register", strings.NewReader(`{"target_type": "platform", "target_id": "app-1"}`))
 		c2.Set("devhub_actor_login", "bob")
 		c2.Set("devhub_actor_role", "developer")
 		h.RegisterDevRequest(c2)
@@ -1858,7 +1858,7 @@ func TestRegisterDevRequest(t *testing.T) {
 		rec1 := httptest.NewRecorder()
 		c1, _ := gin.CreateTestContext(rec1)
 		c1.Params = gin.Params{{Key: "dev_request_id", Value: "dr-1"}}
-		c1.Request = httptest.NewRequest("POST", "/register", strings.NewReader(`{"target_type": "application", "target_id": "app-1"}`))
+		c1.Request = httptest.NewRequest("POST", "/register", strings.NewReader(`{"target_type": "platform", "target_id": "app-1"}`))
 		c1.Set("devhub_actor_login", "bob")
 		c1.Set("devhub_actor_role", "developer")
 		h.RegisterDevRequest(c1)
@@ -1870,7 +1870,7 @@ func TestRegisterDevRequest(t *testing.T) {
 		rec2 := httptest.NewRecorder()
 		c2, _ := gin.CreateTestContext(rec2)
 		c2.Params = gin.Params{{Key: "dev_request_id", Value: "dr-1"}}
-		c2.Request = httptest.NewRequest("POST", "/register", strings.NewReader(`{"target_type": "application", "target_id": "app-1"}`))
+		c2.Request = httptest.NewRequest("POST", "/register", strings.NewReader(`{"target_type": "platform", "target_id": "app-1"}`))
 		c2.Set("devhub_actor_login", "bob")
 		c2.Set("devhub_actor_role", "developer")
 		h.RegisterDevRequest(c2)
@@ -1892,15 +1892,15 @@ func TestRegisterDevRequest(t *testing.T) {
 			payload string
 			code    int
 		}{
-			{"invalid app key pattern", `{"target_type": "application", "application_payload": {"key": "INVALID-KEY-12345"}}`, 422},
-			{"missing app name", `{"target_type": "application", "application_payload": {"key": "APP", "name": ""}}`, 400},
-			{"missing owner", `{"target_type": "application", "application_payload": {"key": "APP", "name": "A", "owner_user_id": ""}}`, 400},
-			{"missing leader", `{"target_type": "application", "application_payload": {"key": "APP", "name": "A", "owner_user_id": "O", "leader_user_id": ""}}`, 400},
-			{"missing development unit", `{"target_type": "application", "application_payload": {"key": "APP", "name": "A", "owner_user_id": "O", "leader_user_id": "L", "development_unit_id": ""}}`, 400},
-			{"invalid visibility", `{"target_type": "application", "application_payload": {"key": "APP", "name": "A", "owner_user_id": "O", "leader_user_id": "L", "development_unit_id": "U", "visibility": "invalid"}}`, 400},
-			{"invalid status", `{"target_type": "application", "application_payload": {"key": "APP", "name": "A", "owner_user_id": "O", "leader_user_id": "L", "development_unit_id": "U", "visibility": "public", "status": "invalid"}}`, 400},
-			{"invalid start date format", `{"target_type": "application", "application_payload": {"key": "APP", "name": "A", "owner_user_id": "O", "leader_user_id": "L", "development_unit_id": "U", "visibility": "public", "status": "active", "start_date": "not-a-date"}}`, 400},
-			{"invalid due date format", `{"target_type": "application", "application_payload": {"key": "APP", "name": "A", "owner_user_id": "O", "leader_user_id": "L", "development_unit_id": "U", "visibility": "public", "status": "active", "start_date": "2026-05-30", "due_date": "not-a-date"}}`, 400},
+			{"invalid app key pattern", `{"target_type": "platform", "application_payload": {"key": "INVALID-KEY-12345"}}`, 422},
+			{"missing app name", `{"target_type": "platform", "application_payload": {"key": "APP", "name": ""}}`, 400},
+			{"missing owner", `{"target_type": "platform", "application_payload": {"key": "APP", "name": "A", "owner_user_id": ""}}`, 400},
+			{"missing leader", `{"target_type": "platform", "application_payload": {"key": "APP", "name": "A", "owner_user_id": "O", "leader_user_id": ""}}`, 400},
+			{"missing development unit", `{"target_type": "platform", "application_payload": {"key": "APP", "name": "A", "owner_user_id": "O", "leader_user_id": "L", "development_unit_id": ""}}`, 400},
+			{"invalid visibility", `{"target_type": "platform", "application_payload": {"key": "APP", "name": "A", "owner_user_id": "O", "leader_user_id": "L", "development_unit_id": "U", "visibility": "invalid"}}`, 400},
+			{"invalid status", `{"target_type": "platform", "application_payload": {"key": "APP", "name": "A", "owner_user_id": "O", "leader_user_id": "L", "development_unit_id": "U", "visibility": "public", "status": "invalid"}}`, 400},
+			{"invalid start date format", `{"target_type": "platform", "application_payload": {"key": "APP", "name": "A", "owner_user_id": "O", "leader_user_id": "L", "development_unit_id": "U", "visibility": "public", "status": "active", "start_date": "not-a-date"}}`, 400},
+			{"invalid due date format", `{"target_type": "platform", "application_payload": {"key": "APP", "name": "A", "owner_user_id": "O", "leader_user_id": "L", "development_unit_id": "U", "visibility": "public", "status": "active", "start_date": "2026-05-30", "due_date": "not-a-date"}}`, 400},
 		}
 
 		for _, tc := range cases {
@@ -1925,7 +1925,7 @@ func TestRegisterDevRequest(t *testing.T) {
 				return domain.DevRequest{ID: id, AssigneeUserID: "bob", Status: domain.DevRequestStatusPending}, nil
 			},
 		}
-		appStore := &fakeDevReqAppStore{
+		platformStore := &fakeDevReqPlatformStore{
 			listSCMProvidersFunc: func(ctx context.Context) ([]domain.SCMProvider, error) {
 				return []domain.SCMProvider{
 					{ProviderKey: "github", Enabled: true},
@@ -1935,10 +1935,10 @@ func TestRegisterDevRequest(t *testing.T) {
 		}
 		h := NewDevRequestHandler(DevRequestConfig{
 			DevRequestStore:  storeI,
-			ApplicationStore: appStore,
+			PlatformStore: platformStore,
 		})
 
-		basePayload := `{"target_type": "application", "application_payload": {
+		basePayload := `{"target_type": "platform", "application_payload": {
 			"key": "APP", "name": "App", "owner_user_id": "O", "leader_user_id": "L", "development_unit_id": "U",
 			"visibility": "public", "status": "active",
 			"primary_repo": %s
@@ -1977,27 +1977,27 @@ func TestRegisterDevRequest(t *testing.T) {
 			getDevRequestFunc: func(ctx context.Context, id string) (domain.DevRequest, error) {
 				return domain.DevRequest{ID: id, AssigneeUserID: "bob", Status: domain.DevRequestStatusPending}, nil
 			},
-			registerDevRequestWithNewApplicationFunc: func(ctx context.Context, drID string, app domain.Application, primaryRepo *domain.ApplicationRepository) (domain.DevRequest, domain.Application, error) {
+			registerDevRequestWithNewPlatformFunc: func(ctx context.Context, drID string, app domain.Platform, primaryRepo *domain.PlatformRepository) (domain.DevRequest, domain.Platform, error) {
 				callCount++
 				if callCount == 1 {
-					return domain.DevRequest{}, domain.Application{}, store.ErrConflict
+					return domain.DevRequest{}, domain.Platform{}, store.ErrConflict
 				}
 				if callCount == 2 {
-					return domain.DevRequest{}, domain.Application{}, store.ErrNotFound
+					return domain.DevRequest{}, domain.Platform{}, store.ErrNotFound
 				}
 				if callCount == 3 {
-					return domain.DevRequest{}, domain.Application{}, errors.New("db error")
+					return domain.DevRequest{}, domain.Platform{}, errors.New("db error")
 				}
 				return domain.DevRequest{ID: drID, Status: domain.DevRequestStatusRegistered}, app, nil
 			},
 		}
-		appStore := &fakeDevReqAppStore{}
+		platformStore := &fakeDevReqPlatformStore{}
 		h := NewDevRequestHandler(DevRequestConfig{
 			DevRequestStore:  storeI,
-			ApplicationStore: appStore,
+			PlatformStore: platformStore,
 		})
 
-		payload := `{"target_type": "application", "application_payload": {
+		payload := `{"target_type": "platform", "application_payload": {
 			"key": "APP", "name": "App", "owner_user_id": "O", "leader_user_id": "L", "development_unit_id": "U",
 			"visibility": "public", "status": "active"
 		}}`

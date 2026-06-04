@@ -12,7 +12,7 @@ export type DevRequestStatus =
   | "rejected"
   | "closed";
 
-export type DevRequestTargetType = "application" | "project";
+export type DevRequestTargetType = "platform" | "project";
 
 export interface DevRequest {
   id: string;

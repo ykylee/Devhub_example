@@ -682,7 +682,7 @@ func (h *IntegrationHandler) ListIntegrationBindings(c *gin.Context) {
 		ScopeID:      c.Query("scope_id"),
 		ProviderType: domain.IntegrationProviderType(c.Query("provider_type")),
 	}
-	if string(opts.ScopeType) != "" && opts.ScopeType != domain.IntegrationScopeTypeApplication && opts.ScopeType != domain.IntegrationScopeTypeProject {
+	if string(opts.ScopeType) != "" && opts.ScopeType != domain.IntegrationScopeTypePlatform && opts.ScopeType != domain.IntegrationScopeTypeProject {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "scope_type must be application or project"})
 		return
 	}
@@ -743,8 +743,8 @@ func (h *IntegrationHandler) CreateIntegrationBinding(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": err.Error()})
 		return
 	}
-	if req.ScopeType != "application" && req.ScopeType != "project" {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "scope_type must be application or project"})
+	if req.ScopeType != "platform" && req.ScopeType != "project" {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "scope_type must be platform or project"})
 		return
 	}
 	if strings.TrimSpace(req.ScopeID) == "" || strings.TrimSpace(req.ProviderID) == "" || strings.TrimSpace(req.ExternalKey) == "" {

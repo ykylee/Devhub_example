@@ -31,7 +31,7 @@
 
 1. **Domain** (비즈니스 핵심) — 10 core 도메인:
    `auth-session`, `audit-ops`, `rbac-permissions`, `organization-management`, `onboarding`,
-   `application-lifecycle`, `repository-integration`, `dev-request`, `integration-registry`, `realtime`
+   `platform-lifecycle`, `repository-integration`, `dev-request`, `integration-registry`, `realtime`
 2. **Shared** (공통 기반) — `config`, `logger`, `utils`, `ui-foundation`, `integrationcaps`
 3. **Infrastructure** (외부 기술 구현) — `keycloak-idp`, `gitea-scm`, `hrdb`, `commandworker`, `infra-topology`, `database-migration`, `deployment-automation`
 

@@ -15,7 +15,7 @@
 
 1. DevHub 과제는 초기 컨셉 수준을 넘어 실제 동작 가능한 다중 도메인 플랫폼으로 진전되었다.
 2. 개발은 단순 기능 추가가 아니라 SDLC 문서 체계와 추적성 매트릭스를 함께 구축하는 방식으로 진행되었다.
-3. 현재 시점에서 사용 가능한 기능 범위는 인증/온보딩, 관리 설정, Application/Project/Repository, 외부 연동, DREQ, CI/운영 가시화 일부까지 확장되었다.
+3. 현재 시점에서 사용 가능한 기능 범위는 인증/온보딩, 관리 설정, Platform/Project/Repository, 외부 연동, DREQ, CI/운영 가시화 일부까지 확장되었다.
 4. 테스트는 E2E, 단위, 통합, 커버리지 개선 sprint 를 통해 품질 기반을 지속적으로 강화해 왔다.
 5. 다수의 AI agent 가 역할을 분담해 기여했으며, backend/design, infra/CI/security, frontend/UX, test remediation 축으로 협업 구조가 형성되었다.
 6. 산출물과 개발 활동은 코드, 문서, 테스트, workflow memory 에 모두 누적되어 있으며 이를 수치로 제시할 수 있다.

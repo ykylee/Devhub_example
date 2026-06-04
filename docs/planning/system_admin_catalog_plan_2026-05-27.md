@@ -1,6 +1,6 @@
 # System Admin 통합 관리 UI 계획 (Applications / Repositories / Projects)
 
-- 문서 목적: 시스템 관리자가 등록된 Application/Repository/Project 전체를 조회·관리할 수 있는 관리자 전용 UI 방향과 구현 단계를 정의한다.
+- 문서 목적: 시스템 관리자가 등록된 Platform/Repository/Project 전체를 조회·관리할 수 있는 관리자 전용 UI 방향과 구현 단계를 정의한다.
 - 범위: 메뉴 IA 결정, 권한/라우팅 가드, 목록/상세 UX, 단계별 구현/검증, 리스크 및 롤아웃
 - 대상 독자: PMO, 시스템 관리자, 프론트엔드/백엔드 개발자, QA
 - 상태: draft
@@ -15,7 +15,7 @@
 
 ## 1) 배경 및 문제 정의
 
-현재 사용자 관점의 Application/Repository/Project 화면은 존재하지만, 시스템 관리자가 전체 자산을 단일 운영 동선에서 관리하기에는 다음 제약이 있다.
+현재 사용자 관점의 Platform/Repository/Project 화면은 존재하지만, 시스템 관리자가 전체 자산을 단일 운영 동선에서 관리하기에는 다음 제약이 있다.
 
 1. 메뉴가 사용자 기능 중심으로 분산되어 운영자 동선이 길다.
 2. 전체 검색/필터/관계 탐색(App↔Repo↔Project) 관점이 약하다.
@@ -101,10 +101,10 @@
 
 MVP는 기존 API 재사용을 우선한다.
 
-1. Applications: `GET /api/v1/applications`
+1. Applications: `GET /api/v1/platforms`
 2. Repositories: `GET /api/v1/repositories`
 3. Projects:
-- Application 맥락 목록: `GET /api/v1/applications/:application_id/projects`
+- Application 맥락 목록: `GET /api/v1/platforms/:platform_id/projects`
 - 필요 시 후속으로 Admin 전용 집계 API 검토
 
 주의:

@@ -15,7 +15,7 @@ const (
 	// acknowledge 한 상태. 본 sprint 는 pending→in_review 자동 전이는 도입하지 않고
 	// 명시적 acknowledge 만 (carve out).
 	DevRequestStatusInReview DevRequestStatus = "in_review"
-	// DevRequestStatusRegistered는 application/project 로 promote 완료된 상태.
+	// DevRequestStatusRegistered는 platform/project 로 promote 완료된 상태.
 	DevRequestStatusRegistered DevRequestStatus = "registered"
 	// DevRequestStatusRejected는 명시적으로 거절된 상태 (rejected_reason 필수).
 	DevRequestStatusRejected DevRequestStatus = "rejected"
@@ -27,7 +27,7 @@ const (
 type DevRequestTargetType string
 
 const (
-	DevRequestTargetApplication DevRequestTargetType = "application"
+	DevRequestTargetPlatform DevRequestTargetType = "platform"
 	DevRequestTargetProject     DevRequestTargetType = "project"
 )
 
@@ -42,7 +42,7 @@ type DevRequest struct {
 	ExternalRef          string // 외부 ticket id 등; (SourceSystem, ExternalRef) UNIQUE for idempotency
 	Status               DevRequestStatus
 	RegisteredTargetType DevRequestTargetType // status=registered 일 때만 채워짐
-	RegisteredTargetID   string               // application_id 또는 project_id
+	RegisteredTargetID   string               // platform_id 또는 project_id
 	RejectedReason       string               // status=rejected 일 때 필수
 	ReceivedAt           time.Time            // 외부 시스템에서 수신된 시각
 	CreatedAt            time.Time

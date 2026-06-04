@@ -31,7 +31,7 @@ system_admin → PATCH /api/v1/integration/providers (기존 API-71)
   → pull_interval_seconds 기본값 1800s
 ```
 
-Binding(`integration_bindings`) 을 통해 Application/Project 에 Provider 를 연결하면, 연결된 scope 의 task item 만 조회된다 (§6).
+Binding(`integration_bindings`) 을 통해 Platform/Project 에 Provider 를 연결하면, 연결된 scope 의 task item 만 조회된다 (§6).
 
 ## 2. Webhook 수신 처리 흐름 (ARCH-TASK-02)
 

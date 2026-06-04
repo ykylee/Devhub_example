@@ -31,7 +31,7 @@
 
 ## 2. 한 줄 상태 평가
 
-DevHub 는 초기 기획/설계 단계를 넘어, 인증·온보딩·관리 설정·Application/Project/Repository·SCM 연동·DREQ·운영 가시화 일부까지 실제 사용 가능한 수준으로 확장되었고, 이를 뒷받침하는 SDLC 문서 체계와 추적성 매트릭스, 테스트 자산이 함께 누적된 상태다.
+DevHub 는 초기 기획/설계 단계를 넘어, 인증·온보딩·관리 설정·Platform/Project/Repository·SCM 연동·DREQ·운영 가시화 일부까지 실제 사용 가능한 수준으로 확장되었고, 이를 뒷받침하는 SDLC 문서 체계와 추적성 매트릭스, 테스트 자산이 함께 누적된 상태다.
 
 ## 3. 프로젝트 개요와 개발 흐름
 
@@ -40,7 +40,7 @@ DevHub 는 초기 기획/설계 단계를 넘어, 인증·온보딩·관리 설�
 - 통합 관리 플랫폼
 - 주요 사용자군: `developer`, `team_manager`, `system_admin`
 - 역할 해석:
-  - `developer`: 개인 작업, Dev Request, Application/Project/Repository 조회 중심 사용자
+  - `developer`: 개인 작업, Dev Request, Platform/Project/Repository 조회 중심 사용자
   - `team_manager`: 내부 system role 기준 PMO/관리 운영 사용자이며 UI 표시명은 `Manager`, 기본 landing 은 `/manager`
   - `system_admin`: `/admin` 및 `/admin/settings/*` 기반의 관리 운영 사용자
 - 최신 정책 기준 legacy `manager` alias 는 `team_manager` 로 정규화되며, Keycloak realm role 은 권한 source-of-truth 가 아니라 DevHub 내부 `users.role` 이 최종 권한 기준이다.
@@ -50,7 +50,7 @@ DevHub 는 초기 기획/설계 단계를 넘어, 인증·온보딩·관리 설�
   - onboarding
   - organization-management
   - rbac-permissions
-  - application-lifecycle
+  - platform-lifecycle
   - repository-integration
   - dev-request
   - integration-registry
@@ -60,7 +60,7 @@ DevHub 는 초기 기획/설계 단계를 넘어, 인증·온보딩·관리 설�
 ### 3.2 개발 흐름 요약
 
 1. 초반에는 인증, RBAC, 조직 관리, 기본 대시보드 골격을 우선 구축했다.
-2. 이후 Application/Project/Repository 도메인과 DREQ, External Integration 으로 범위를 확장했다.
+2. 이후 Platform/Project/Repository 도메인과 DREQ, External Integration 으로 범위를 확장했다.
 3. v1.0 릴리즈 로드맵이 정리된 뒤에는 온보딩, Keycloak 전환, UI 정비, 테스트 보강, SCM 연동 고도화, CI hardening 이 병행되었다.
 4. 최근에는 통합 테스트, 커버리지 remediation, CI Run API, row-level RBAC 심화까지 이어졌다.
 
@@ -94,7 +94,7 @@ DevHub 는 초기 기획/설계 단계를 넘어, 인증·온보딩·관리 설�
 
 ### 4.3 Application / Project / Repository
 
-- Application CRUD 및 상태 관리
+- Platform CRUD 및 상태 관리
 - Project CRUD, 멤버 관리, lifecycle 관리
 - Repository 연결, draft/publish flow, SCM create/import 흐름
 - Application rollup 및 대시보드성 지표 일부 구현
@@ -112,7 +112,7 @@ DevHub 는 초기 기획/설계 단계를 넘어, 인증·온보딩·관리 설�
 - Intake token 발급
 - 외부 개발 요청 수신
 - 사용자별 조회/필터
-- Application/Project promote 트랜잭션
+- Platform/Project promote 트랜잭션
 - idempotency, validation, row-level filter 검증 완료
 
 ### 4.6 CI / 운영 가시화
@@ -133,7 +133,7 @@ DevHub 는 초기 기획/설계 단계를 넘어, 인증·온보딩·관리 설�
 4. `developer`/`team_manager` 기준 Application 조회 및 상태 확인
 5. Project 생성, Repository 연결, 멤버 편집
 6. Integration provider 등록 및 SCM repository 생성/가져오기
-7. Dev Request 수신 후 Application/Project 로 promote
+7. Dev Request 수신 후 Platform/Project 로 promote
 8. CI run 목록 조회 및 일부 개발 상태 확인
 
 ## 6. SDLC 체계 현황
@@ -224,7 +224,7 @@ DevHub 는 초기 기획/설계 단계를 넘어, 인증·온보딩·관리 설�
 
 도메인/패키지 예시:
 
-- `internal/domain/application-lifecycle/view`: **90.2%**
+- `internal/domain/platform-lifecycle/view`: **90.2%**
 - `internal/store`: **20.2%**
 - `internal/domain/dev-request/repository`: **24.1%**
 - `internal/domain/audit-ops/view`: **47.6%**

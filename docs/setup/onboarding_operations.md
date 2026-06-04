@@ -80,7 +80,7 @@
    → 200 OK + audit 'account.review_confirmed'
    → review_status='reviewed'
 
-4. 사용자가 정상 도메인 접근 (Application/Project/DREQ 등)
+4. 사용자가 정상 도메인 접근 (Platform/Project/DREQ 등)
    → 403 onboarding_required 응답 0건
 ```
 
@@ -328,7 +328,7 @@ groups:
 2. **backend 재기동**: docker 환경이면 `docker compose restart backend-core`. native 환경이면 systemd / supervisor 단위 restart. 재기동 후 `curl http://localhost:8080/health` 로 health check.
 3. **rollback 확인**:
    - `POST /api/v1/me/onboarding` → 404 `onboarding_feature_disabled` (signal: rollback 활성)
-   - `GET /api/v1/applications` (보호 endpoint) 를 미완료 사용자 token 으로 호출 → 200 (gate 풀림 신호. 진단용. 정상 사용자 흐름엔 영향 없음)
+   - `GET /api/v1/platforms` (보호 endpoint) 를 미완료 사용자 token 으로 호출 → 200 (gate 풀림 신호. 진단용. 정상 사용자 흐름엔 영향 없음)
 4. **영향 사용자 인벤토리**:
 
    ```sql

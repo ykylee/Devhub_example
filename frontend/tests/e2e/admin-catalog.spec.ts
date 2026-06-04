@@ -22,18 +22,18 @@ test.describe("/admin/catalog — Admin Catalog", () => {
     await expect(page).toHaveURL(/q=charlie/);
   });
 
-  test("TC-ADMIN-CATALOG-02 — Applications 탭 상세/프로젝트 드릴다운", async ({ page }) => {
+  test("TC-ADMIN-CATALOG-02 — Platforms 탭 상세/프로젝트 드릴다운", async ({ page }) => {
     await loginAs(page, SEEDED.systemAdmin);
-    await page.goto(appPath("/admin/catalog?tab=applications"));
+    await page.goto(appPath("/admin/catalog?tab=platforms"));
 
-    await expect(page.getByRole("button", { name: /applications/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /platforms/i })).toBeVisible();
     const appProjectsButton = page.getByTestId(`catalog-app-projects-${SEEDED_APPLICATION_ID}`);
     await expect(appProjectsButton).toBeVisible();
     await page.getByTestId(`catalog-app-detail-${SEEDED_APPLICATION_ID}`).click();
-    await expect(page).toHaveURL(/\/applications\//, { timeout: 15_000 });
+    await expect(page).toHaveURL(/\/platforms\//, { timeout: 15_000 });
 
     await page.goBack();
-    await expect(page).toHaveURL(/\/admin\/catalog\?tab=applications/, { timeout: 15_000 });
+    await expect(page).toHaveURL(/\/admin\/catalog\?tab=platforms/, { timeout: 15_000 });
     await expect(appProjectsButton).toBeVisible();
     await appProjectsButton.click();
     await expect(page).toHaveURL(/tab=projects/, { timeout: 15_000 });

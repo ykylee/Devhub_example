@@ -45,7 +45,7 @@
   - UC-RBAC-04
   - TC-RBAC-ROW-READ-01, TC-RBAC-ROW-READ-02
 - 예상 변경 파일:
-  - `backend-core/internal/httpapi/applications.go`
+  - `backend-core/internal/httpapi/platforms.go`
   - `backend-core/internal/httpapi/projects.go`
   - `backend-core/internal/store/*` (list/get query scope 주입)
 

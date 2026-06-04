@@ -14,7 +14,7 @@
   - `manager` -> 관리 대시보드
   - `system_admin` -> 시스템 대시보드 + 시스템 설정
 - 관리 권한 정책:
-  - `system_admin`: Application/Repository/Project 관리 쓰기 전 권한 허용
+  - `system_admin`: Platform/Repository/Project 관리 쓰기 전 권한 허용
   - `team_manager`(tentative): 후보 role. 정책 확정 전 `disabled` 유지
 - 노출 정책:
   - 시스템 대시보드/시스템 설정은 `system_admin`만 접근 가능
@@ -58,9 +58,9 @@
 | 화면 | 핵심 위젯 | 주요 액션 | API |
 | --- | --- | --- | --- |
 | 관리 대시보드 | KPI 카드, 크리티컬 리스크, 진행률/지연, 의사결정 로그 | 리스크 대응 트리거, 롤업 점검 | `GET /api/v1/dashboard/metrics`, `GET /api/v1/risks/critical`, `GET /api/v1/risks`, `GET /api/v1/audit-logs` |
-| Application 상세 | KPI/리스크 롤업, 연결 repo, 하위 Project 현황 | 필터/기간 변경, 보고 스냅샷 확인 | `GET /api/v1/applications/{application_id}` (planned), `GET /api/v1/repositories`, `GET /api/v1/risks` |
-| Application 롤업 지표 | Repository별 PR/빌드/품질 집계 | 리스크/품질 저하 repo 탐지 | `GET /api/v1/applications/{application_id}/rollup` (planned) |
-| 마일스톤 매핑 보드 | 상위-하위 매핑, 누락/충돌 경고 | 매핑 누락 점검 | `GET /api/v1/applications/{application_id}/milestones` (planned), `GET /api/v1/projects/{project_id}/milestones` (planned) |
+| Platform 상세 | KPI/리스크 롤업, 연결 repo, 하위 Project 현황 | 필터/기간 변경, 보고 스냅샷 확인 | `GET /api/v1/platforms/{platform_id}` (planned), `GET /api/v1/repositories`, `GET /api/v1/risks` |
+| Application 롤업 지표 | Repository별 PR/빌드/품질 집계 | 리스크/품질 저하 repo 탐지 | `GET /api/v1/platforms/{platform_id}/rollup` (planned) |
+| 마일스톤 매핑 보드 | 상위-하위 매핑, 누락/충돌 경고 | 매핑 누락 점검 | `GET /api/v1/platforms/{platform_id}/milestones` (planned), `GET /api/v1/projects/{project_id}/milestones` (planned) |
 | 리스크 대응 | 리스크 상세, 대응 명령 상태 | 완화 명령 요청, 진행 추적 | `POST /api/v1/risks/{risk_id}/mitigations`, `GET /api/v1/commands/{command_id}`, `GET /api/v1/realtime/ws` |
 
 PMO 후보 role 정책:
@@ -72,8 +72,8 @@ PMO 후보 role 정책:
 | 화면 | 핵심 위젯 | 주요 액션 | API |
 | --- | --- | --- | --- |
 | 시스템 대시보드 | 인프라 토폴로지, 노드 상태, 서비스 액션 | 서비스 제어 명령 실행 | `GET /api/v1/infra/topology`, `GET /api/v1/infra/nodes`, `GET /api/v1/infra/edges`, `POST /api/v1/admin/service-actions`, `GET /api/v1/commands/{command_id}` |
-| Application 관리 | Application 목록/상세, 상태/가시성/기간 | 생성/수정/보관 | `GET /api/v1/applications` (planned), `POST /api/v1/applications` (planned), `PATCH /api/v1/applications/{application_id}` (planned), `DELETE /api/v1/applications/{application_id}` (planned, archive) |
-| Repository 연결 관리 | Application-Repository 매핑, 역할(primary/sub/shared) | 연결/해제/역할 변경 | `GET /api/v1/applications/{application_id}/repositories` (planned), `POST /api/v1/applications/{application_id}/repositories` (planned), `DELETE /api/v1/applications/{application_id}/repositories/{repo_key}` (planned) |
+| Platform 관리 | Platform 목록/상세, 상태/가시성/기간 | 생성/수정/보관 | `GET /api/v1/platforms` (planned), `POST /api/v1/platforms` (planned), `PATCH /api/v1/platforms/{platform_id}` (planned), `DELETE /api/v1/platforms/{platform_id}` (planned, archive) |
+| Repository 연결 관리 | Application-Repository 매핑, 역할(primary/sub/shared) | 연결/해제/역할 변경 | `GET /api/v1/platforms/{platform_id}/repositories` (planned), `POST /api/v1/platforms/{platform_id}/repositories` (planned), `DELETE /api/v1/platforms/{platform_id}/repositories/{repo_key}` (planned) |
 | Project 운영 관리 | repo 하위 Project 목록/상세, owner/멤버/기간 | 생성/수정/보관, 멤버 변경 | `GET /api/v1/repositories/{repo_id}/projects` (planned), `POST /api/v1/repositories/{repo_id}/projects` (planned), `PATCH /api/v1/projects/{project_id}` (planned), `DELETE /api/v1/projects/{project_id}` (planned, archive) |
 | 통합 설정 | Jira/Confluence 연결 상태/정책 | 연결 등록/검증/해제 | `GET /api/v1/integrations` (planned), `POST /api/v1/integrations` (planned), `PATCH /api/v1/integrations/{integration_id}` (planned), `DELETE /api/v1/integrations/{integration_id}` (planned) |
 | 계정/조직/RBAC | 사용자/조직 CRUD, 권한 매트릭스, 역할 할당 | 계정 발급/회수, 조직 편집, RBAC 편집 | `GET/POST/PATCH/DELETE /api/v1/users`, `GET /api/v1/organization/hierarchy`, `POST/PATCH/DELETE /api/v1/organization/units`, `PUT /api/v1/organization/units/{unit_id}/members`, `GET/PUT/POST/DELETE /api/v1/rbac/policies`, `GET/PUT /api/v1/rbac/subjects/{subject_id}/roles`, `POST/PUT/PATCH/DELETE /api/v1/accounts*` |

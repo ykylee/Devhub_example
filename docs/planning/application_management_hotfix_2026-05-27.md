@@ -1,14 +1,14 @@
-# Application 관리 Hotfix 계획 (2026-05-27)
+# Platform 관리 Hotfix 계획 (2026-05-27)
 
-- 문서 목적: Application 등록/수정 UI에서 확인된 오류와 개선 요구를 구현 전 합의 가능한 작업 단위로 정리한다.
-- 범위: Application 등록 다이얼로그 + 관련 API 검증 + 검색 UX + 스타일 이슈
+- 문서 목적: Platform 등록/수정 UI에서 확인된 오류와 개선 요구를 구현 전 합의 가능한 작업 단위로 정리한다.
+- 범위: Platform 등록 다이얼로그 + 관련 API 검증 + 검색 UX + 스타일 이슈
 - 대상 독자: 구현 담당자, 리뷰어, QA
 - 상태: draft
 - 최종 수정일: 2026-05-27
 
 ## 1) 관찰된 이슈
 
-1. Application 등록 실패
+1. Platform 등록 실패
 - 증상: `key must match ...` 오류로 등록 실패
 - 재현 입력: `key=DEVHUB`
 - 확인 결과: 백엔드 검증 정규식이 `^[A-Za-z0-9]{10}$` (정확히 10자)로 고정되어 있어 6자 key가 거부됨
@@ -35,7 +35,7 @@
 1. key 규칙 정합
 - 백엔드 `Application create` 검증을 `1~10자 영문/숫자`로 완화
 - 오류 메시지/테스트를 새 규칙에 맞게 갱신
-- Application 등록 폼 안내 문구를 백엔드 규칙과 동일하게 수정
+- Platform 등록 폼 안내 문구를 백엔드 규칙과 동일하게 수정
 
 2. 중복 체크 UX 보강
 - 서버 409 중복 체크를 단일 source-of-truth 로 사용
@@ -57,8 +57,8 @@
 
 ## 3) 변경 예상 파일
 
-- `backend-core/internal/httpapi/applications.go`
-- `backend-core/internal/httpapi/applications_test.go`
+- `backend-core/internal/httpapi/platforms.go`
+- `backend-core/internal/httpapi/platforms_test.go`
 - `backend-core/migrations/000036_relax_applications_key_format.{up,down}.sql`
 - `frontend/components/project/ApplicationCreationModal.tsx`
 - `frontend/app/(dashboard)/admin/settings/organization/page.tsx`

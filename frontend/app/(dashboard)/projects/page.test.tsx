@@ -24,7 +24,7 @@ const mocks = vi.hoisted(() => ({
   getProjectTasks: vi.fn(),
   archiveProject: vi.fn(),
 }));
-vi.mock("@/domain/application-lifecycle/service/project.service", () => ({
+vi.mock("@/domain/platform-lifecycle/service/project.service", () => ({
   projectService: {
     listAllProjects: (...a: unknown[]) => mocks.listAllProjects(...a),
     getProjectTasks: (...a: unknown[]) => mocks.getProjectTasks(...a),
@@ -33,7 +33,7 @@ vi.mock("@/domain/application-lifecycle/service/project.service", () => ({
 }));
 
 import ProjectsStatusPage from "./page";
-import type { Project } from "@/domain/application-lifecycle/schema/project.types";
+import type { Project } from "@/domain/platform-lifecycle/schema/project.types";
 
 const sampleProjects: Project[] = [
   {

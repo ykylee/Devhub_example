@@ -12,7 +12,7 @@ import { SEEDED, loginAs, appPath } from "./fixtures";
 // role 별 분담:
 // - system_admin (charlie) — /admin/* 11 페이지 + dashboard admin
 // - manager (bob) — /manager dashboard + (system_admin 미접근) carve out
-// - developer (alice) — /developer dashboard + /applications/repositories/projects/dev-requests/account 7 페이지
+// - developer (alice) — /developer dashboard + /platforms/repositories/projects/dev-requests/account 7 페이지
 //
 // screenshot 파일 경로: `test-results/screenshots/<name>.png` (fullPage).
 //
@@ -31,12 +31,12 @@ const ADMIN_PAGES = [
   { path: "/admin/settings/dev-request-tokens", name: "08-admin-dev-request-tokens" },
   { path: "/admin/settings/integrations", name: "09-admin-integrations" },
   { path: "/admin/settings/integration-bindings", name: "10-admin-integration-bindings" },
-  { path: "/admin/settings/applications", name: "11-admin-applications" },
+  { path: "/admin/settings/platforms", name: "11-admin-platforms" },
   { path: "/admin/topology-v2", name: "12-admin-topology-v2" },
 ];
 
 const USER_PAGES = [
-  { path: "/applications", name: "13-user-applications" },
+  { path: "/platforms", name: "13-user-platforms" },
   { path: "/repositories", name: "14-user-repositories" },
   { path: "/projects", name: "15-user-projects" },
   { path: "/dev-requests", name: "16-user-dev-requests" },

@@ -26,7 +26,7 @@ graph TD
         rbac[rbac-permissions]
         org[organization-management]
         onboard[onboarding]
-        app[application-lifecycle]
+        app[platform-lifecycle]
         repo[repository-integration]
         dreq[dev-request]
         registry[integration-registry]
@@ -163,7 +163,7 @@ DevHub는 사람 단위 식별(User)과 인증 자격(Account)을 분리해 관�
 | --- | --- | --- |
 | Phase 1 | Webhook secret 검증, system admin role 분리, 관리자 작업 Audit Log | TASK-007 및 초기 시스템 관리자 기능 구현 기준 |
 | Phase 2 | Keycloak 기반 OIDC 도입, DevHub OIDC client 전환, token 검증/actor 매핑/audit 경계 정착 | Keycloak/OIDC 운영 진입 및 backend Phase 13 완료 시점 ([ADR-0019](./adr/0019-keycloak-only-idp.md), [ADR-0001](./adr/0001-idp-selection.md) superseded) |
-| Phase 3 | Gitea 사용자/조직/저장소 권한 동기화, Repository 하위 Project role 매핑 | Application-Repository-Project 매핑과 관리자 대시보드 확장 시점 |
+| Phase 3 | Gitea 사용자/조직/저장소 권한 동기화, Repository 하위 Project role 매핑 | Platform-Repository-Project 매핑과 관리자 대시보드 확장 시점 |
 | Phase 4 | Gitea SSO 연동 기반 통합 인증, 자체 계정과의 병행/대체 정책 결정 | 운영 환경 전환 전 별도 보안 검토 후 도입 |
 
 ### 6.4 Audit Log 최소 필드 (cross-cutting)
@@ -190,7 +190,7 @@ Audit Log는 최소한 `actor_id`, `actor_role`, `action`, `target_type`, `targe
 | rbac-permissions | [`./domain/rbac-permissions/architecture.md`](./domain/rbac-permissions/architecture.md) | ARCH-RBAC-01..06 |
 | organization-management | [`./domain/organization-management/architecture.md`](./domain/organization-management/architecture.md) | ARCH-ORG-01..05 |
 | onboarding | [`./domain/onboarding/architecture.md`](./domain/onboarding/architecture.md) | ARCH-ONBOARD-01..06 |
-| application-lifecycle | [`./domain/application-lifecycle/architecture.md`](./domain/application-lifecycle/architecture.md) | ARCH-APPDASH-01..06 |
+| platform-lifecycle | [`./domain/platform-lifecycle/architecture.md`](./domain/platform-lifecycle/architecture.md) | ARCH-APPDASH-01..06 |
 | repository-integration | [`./domain/repository-integration/architecture.md`](./domain/repository-integration/architecture.md) | ARCH-REPO-01..07 |
 | dev-request | [`./domain/dev-request/architecture.md`](./domain/dev-request/architecture.md) | ARCH-DREQ-01..06 |
 | integration-registry | [`./domain/integration-registry/architecture.md`](./domain/integration-registry/architecture.md) + [`task_architecture.md`](./domain/integration-registry/task_architecture.md) | ARCH-INT-01..07, ARCH-TASK-01..07 |

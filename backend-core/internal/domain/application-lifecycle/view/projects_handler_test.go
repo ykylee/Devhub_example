@@ -14,13 +14,13 @@ import (
 
 // 공통 fixture — hybrid ProjectModel (legacy + v2 둘 다 허용).
 
-func newProjectHandlerForTest(t *testing.T) (*ApplicationHandler, *fakeViewApplicationStore, *fakeAppLifecycleAuditStore) {
+func newProjectHandlerForTest(t *testing.T) (*PlatformHandler, *fakeViewPlatformStore, *fakePlatformLifecycleAuditStore) {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
-	st := newFakeViewApplicationStore()
-	audit := &fakeAppLifecycleAuditStore{}
-	h := NewApplicationHandler(ApplicationConfig{
-		ApplicationStore: st,
+	st := newFakeViewPlatformStore()
+	audit := &fakePlatformLifecycleAuditStore{}
+	h := NewPlatformHandler(PlatformConfig{
+		PlatformStore: st,
 		AuditStore:       audit,
 		ProjectModel:     "hybrid",
 	})
@@ -31,7 +31,7 @@ func newProjectHandlerForTest(t *testing.T) (*ApplicationHandler, *fakeViewAppli
 
 func TestListProjects_OK(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", RepositoryID: 42, Status: domain.ApplicationStatusActive})
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", RepositoryID: 42, Status: domain.PlatformStatusActive})
 	rec := invokeJSON("GET", "/repositories/42/projects", "/repositories/:repository_id/projects", h.ListProjects, nil, "", "")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
@@ -46,8 +46,8 @@ func TestListProjects_OK(t *testing.T) {
 
 func TestListProjects_LegacyDisabled410(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewApplicationHandler(ApplicationConfig{
-		ApplicationStore: newFakeViewApplicationStore(),
+	h := NewPlatformHandler(PlatformConfig{
+		PlatformStore: newFakeViewPlatformStore(),
 		ProjectModel:     "v2",
 	})
 	rec := invokeJSON("GET", "/repositories/42/projects", "/repositories/:repository_id/projects", h.ListProjects, nil, "", "")
@@ -58,7 +58,7 @@ func TestListProjects_LegacyDisabled410(t *testing.T) {
 
 func TestListProjects_StoreUnavailable503(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewApplicationHandler(ApplicationConfig{ProjectModel: "hybrid"})
+	h := NewPlatformHandler(PlatformConfig{ProjectModel: "hybrid"})
 	rec := invokeJSON("GET", "/repositories/42/projects", "/repositories/:repository_id/projects", h.ListProjects, nil, "", "")
 	if rec.Code != http.StatusServiceUnavailable {
 		t.Fatalf("status = %d", rec.Code)
@@ -121,7 +121,7 @@ func TestListProjects_FiltersToReadableMembership(t *testing.T) {
 		Key:          "PRJ1",
 		RepositoryID: 42,
 		OwnerUserID:  "owner-1",
-		Status:       domain.ApplicationStatusActive,
+		Status:       domain.PlatformStatusActive,
 		ProjectMembers: []domain.ProjectMember{
 			{ProjectID: "p-1", UserID: "alice", ProjectRole: domain.ProjectMemberRoleContributor},
 		},
@@ -131,7 +131,7 @@ func TestListProjects_FiltersToReadableMembership(t *testing.T) {
 		Key:          "PRJ2",
 		RepositoryID: 42,
 		OwnerUserID:  "owner-2",
-		Status:       domain.ApplicationStatusActive,
+		Status:       domain.PlatformStatusActive,
 	})
 
 	rec := invokeJSON("GET", "/repositories/42/projects", "/repositories/:repository_id/projects", h.ListProjects, nil, "alice", "developer")
@@ -162,7 +162,7 @@ func TestGetProject_DeniesNonMemberRead(t *testing.T) {
 		Key:          "PRJ1",
 		RepositoryID: 42,
 		OwnerUserID:  "owner-1",
-		Status:       domain.ApplicationStatusActive,
+		Status:       domain.PlatformStatusActive,
 	})
 
 	rec := invokeJSON("GET", "/projects/p-1", "/projects/:project_id", h.GetProject, nil, "alice", "developer")
@@ -205,8 +205,8 @@ func TestCreateProject_OK(t *testing.T) {
 
 func TestCreateProject_LegacyDisabled410(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewApplicationHandler(ApplicationConfig{
-		ApplicationStore: newFakeViewApplicationStore(),
+	h := NewPlatformHandler(PlatformConfig{
+		PlatformStore: newFakeViewPlatformStore(),
 		ProjectModel:     "v2",
 	})
 	rec := invokeJSON("POST", "/repositories/42/projects", "/repositories/:repository_id/projects", h.CreateProject, validCreateProjectBody(), "", "")
@@ -217,7 +217,7 @@ func TestCreateProject_LegacyDisabled410(t *testing.T) {
 
 func TestCreateProject_StoreUnavailable503(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewApplicationHandler(ApplicationConfig{ProjectModel: "hybrid"})
+	h := NewPlatformHandler(PlatformConfig{ProjectModel: "hybrid"})
 	rec := invokeJSON("POST", "/repositories/42/projects", "/repositories/:repository_id/projects", h.CreateProject, validCreateProjectBody(), "", "")
 	if rec.Code != http.StatusServiceUnavailable {
 		t.Fatalf("status = %d", rec.Code)
@@ -317,7 +317,7 @@ func TestCreateProject_BadDueDate400(t *testing.T) {
 
 func TestCreateProject_Conflict409(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", RepositoryID: 42, Status: domain.ApplicationStatusActive})
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", RepositoryID: 42, Status: domain.PlatformStatusActive})
 	rec := invokeJSON("POST", "/repositories/42/projects", "/repositories/:repository_id/projects", h.CreateProject, validCreateProjectBody(), "", "")
 	if rec.Code != http.StatusConflict {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
@@ -348,8 +348,8 @@ func TestCreateProjectStandalone_OK(t *testing.T) {
 
 func TestCreateProjectStandalone_V2Disabled410(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewApplicationHandler(ApplicationConfig{
-		ApplicationStore: newFakeViewApplicationStore(),
+	h := NewPlatformHandler(PlatformConfig{
+		PlatformStore: newFakeViewPlatformStore(),
 		ProjectModel:     "legacy",
 	})
 	rec := invokeJSON("POST", "/projects", "/projects", h.CreateProjectStandalone, validCreateProjectBody(), "", "")
@@ -360,7 +360,7 @@ func TestCreateProjectStandalone_V2Disabled410(t *testing.T) {
 
 func TestCreateProjectStandalone_StoreUnavailable503(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewApplicationHandler(ApplicationConfig{ProjectModel: "hybrid"})
+	h := NewPlatformHandler(PlatformConfig{ProjectModel: "hybrid"})
 	rec := invokeJSON("POST", "/projects", "/projects", h.CreateProjectStandalone, validCreateProjectBody(), "", "")
 	if rec.Code != http.StatusServiceUnavailable {
 		t.Fatalf("status = %d", rec.Code)
@@ -476,8 +476,8 @@ func TestCreateProjectStandalone_StoreError500(t *testing.T) {
 
 func TestListApplicationProjects_OK(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", ApplicationID: "app-1", Status: domain.ApplicationStatusActive})
-	rec := invokeJSON("GET", "/applications/app-1/projects", "/applications/:application_id/projects", h.ListApplicationProjects, nil, "", "")
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", PlatformID: "app-1", Status: domain.PlatformStatusActive})
+	rec := invokeJSON("GET", "/platforms/app-1/projects", "/platforms/:platform_id/projects", h.ListPlatformProjects, nil, "", "")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
@@ -485,8 +485,8 @@ func TestListApplicationProjects_OK(t *testing.T) {
 
 func TestListApplicationProjects_V2Disabled410(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewApplicationHandler(ApplicationConfig{ApplicationStore: newFakeViewApplicationStore(), ProjectModel: "legacy"})
-	rec := invokeJSON("GET", "/applications/app-1/projects", "/applications/:application_id/projects", h.ListApplicationProjects, nil, "", "")
+	h := NewPlatformHandler(PlatformConfig{PlatformStore: newFakeViewPlatformStore(), ProjectModel: "legacy"})
+	rec := invokeJSON("GET", "/platforms/app-1/projects", "/platforms/:platform_id/projects", h.ListPlatformProjects, nil, "", "")
 	if rec.Code != http.StatusGone {
 		t.Fatalf("status = %d", rec.Code)
 	}
@@ -494,8 +494,8 @@ func TestListApplicationProjects_V2Disabled410(t *testing.T) {
 
 func TestListApplicationProjects_StoreUnavailable503(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewApplicationHandler(ApplicationConfig{ProjectModel: "hybrid"})
-	rec := invokeJSON("GET", "/applications/app-1/projects", "/applications/:application_id/projects", h.ListApplicationProjects, nil, "", "")
+	h := NewPlatformHandler(PlatformConfig{ProjectModel: "hybrid"})
+	rec := invokeJSON("GET", "/platforms/app-1/projects", "/platforms/:platform_id/projects", h.ListPlatformProjects, nil, "", "")
 	if rec.Code != http.StatusServiceUnavailable {
 		t.Fatalf("status = %d", rec.Code)
 	}
@@ -504,8 +504,8 @@ func TestListApplicationProjects_StoreUnavailable503(t *testing.T) {
 func TestListApplicationProjects_MissingAppID400(t *testing.T) {
 	h, _, _ := newProjectHandlerForTest(t)
 	r := gin.New()
-	r.GET("/applications/:application_id/projects", h.ListApplicationProjects)
-	req := httptest.NewRequest("GET", "/applications/%20/projects", nil)
+	r.GET("/platforms/:platform_id/projects", h.ListPlatformProjects)
+	req := httptest.NewRequest("GET", "/platforms/%20/projects", nil)
 	rec := httptest.NewRecorder()
 	r.ServeHTTP(rec, req)
 	if rec.Code != http.StatusBadRequest {
@@ -515,7 +515,7 @@ func TestListApplicationProjects_MissingAppID400(t *testing.T) {
 
 func TestListApplicationProjects_InvalidStatus400(t *testing.T) {
 	h, _, _ := newProjectHandlerForTest(t)
-	rec := invokeJSON("GET", "/applications/app-1/projects?status=weird", "/applications/:application_id/projects", h.ListApplicationProjects, nil, "", "")
+	rec := invokeJSON("GET", "/platforms/app-1/projects?status=weird", "/platforms/:platform_id/projects", h.ListPlatformProjects, nil, "", "")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", rec.Code)
 	}
@@ -524,7 +524,7 @@ func TestListApplicationProjects_InvalidStatus400(t *testing.T) {
 func TestListApplicationProjects_StoreError500(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
 	st.errListProjects = errors.New("db")
-	rec := invokeJSON("GET", "/applications/app-1/projects", "/applications/:application_id/projects", h.ListApplicationProjects, nil, "", "")
+	rec := invokeJSON("GET", "/platforms/app-1/projects", "/platforms/:platform_id/projects", h.ListPlatformProjects, nil, "", "")
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d", rec.Code)
 	}
@@ -534,7 +534,7 @@ func TestListApplicationProjects_StoreError500(t *testing.T) {
 
 func TestListStandaloneProjects_OK(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.ApplicationStatusActive}) // standalone (ApplicationID="")
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.PlatformStatusActive}) // standalone (PlatformID="")
 	rec := invokeJSON("GET", "/projects/standalone", "/projects/standalone", h.ListStandaloneProjects, nil, "", "")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
@@ -543,7 +543,7 @@ func TestListStandaloneProjects_OK(t *testing.T) {
 
 func TestListStandaloneProjects_StoreUnavailable503(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewApplicationHandler(ApplicationConfig{})
+	h := NewPlatformHandler(PlatformConfig{})
 	rec := invokeJSON("GET", "/projects/standalone", "/projects/standalone", h.ListStandaloneProjects, nil, "", "")
 	if rec.Code != http.StatusServiceUnavailable {
 		t.Fatalf("status = %d", rec.Code)
@@ -571,7 +571,7 @@ func TestListStandaloneProjects_StoreError500(t *testing.T) {
 
 func TestCreateApplicationProject_OK(t *testing.T) {
 	h, _, audit := newProjectHandlerForTest(t)
-	rec := invokeJSON("POST", "/applications/app-1/projects", "/applications/:application_id/projects", h.CreateApplicationProject, validCreateProjectBody(), "", "")
+	rec := invokeJSON("POST", "/platforms/app-1/projects", "/platforms/:platform_id/projects", h.CreatePlatformProject, validCreateProjectBody(), "", "")
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
@@ -582,8 +582,8 @@ func TestCreateApplicationProject_OK(t *testing.T) {
 
 func TestCreateApplicationProject_V2Disabled410(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewApplicationHandler(ApplicationConfig{ApplicationStore: newFakeViewApplicationStore(), ProjectModel: "legacy"})
-	rec := invokeJSON("POST", "/applications/app-1/projects", "/applications/:application_id/projects", h.CreateApplicationProject, validCreateProjectBody(), "", "")
+	h := NewPlatformHandler(PlatformConfig{PlatformStore: newFakeViewPlatformStore(), ProjectModel: "legacy"})
+	rec := invokeJSON("POST", "/platforms/app-1/projects", "/platforms/:platform_id/projects", h.CreatePlatformProject, validCreateProjectBody(), "", "")
 	if rec.Code != http.StatusGone {
 		t.Fatalf("status = %d", rec.Code)
 	}
@@ -591,8 +591,8 @@ func TestCreateApplicationProject_V2Disabled410(t *testing.T) {
 
 func TestCreateApplicationProject_StoreUnavailable503(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewApplicationHandler(ApplicationConfig{ProjectModel: "hybrid"})
-	rec := invokeJSON("POST", "/applications/app-1/projects", "/applications/:application_id/projects", h.CreateApplicationProject, validCreateProjectBody(), "", "")
+	h := NewPlatformHandler(PlatformConfig{ProjectModel: "hybrid"})
+	rec := invokeJSON("POST", "/platforms/app-1/projects", "/platforms/:platform_id/projects", h.CreatePlatformProject, validCreateProjectBody(), "", "")
 	if rec.Code != http.StatusServiceUnavailable {
 		t.Fatalf("status = %d", rec.Code)
 	}
@@ -601,8 +601,8 @@ func TestCreateApplicationProject_StoreUnavailable503(t *testing.T) {
 func TestCreateApplicationProject_MissingAppID400(t *testing.T) {
 	h, _, _ := newProjectHandlerForTest(t)
 	r := gin.New()
-	r.POST("/applications/:application_id/projects", h.CreateApplicationProject)
-	req := httptest.NewRequest("POST", "/applications/%20/projects", strings.NewReader("{}"))
+	r.POST("/platforms/:platform_id/projects", h.CreatePlatformProject)
+	req := httptest.NewRequest("POST", "/platforms/%20/projects", strings.NewReader("{}"))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 	r.ServeHTTP(rec, req)
@@ -614,8 +614,8 @@ func TestCreateApplicationProject_MissingAppID400(t *testing.T) {
 func TestCreateApplicationProject_BadJSON400(t *testing.T) {
 	h, _, _ := newProjectHandlerForTest(t)
 	r := gin.New()
-	r.POST("/applications/:application_id/projects", h.CreateApplicationProject)
-	req := httptest.NewRequest("POST", "/applications/app-1/projects", strings.NewReader("not-json"))
+	r.POST("/platforms/:platform_id/projects", h.CreatePlatformProject)
+	req := httptest.NewRequest("POST", "/platforms/app-1/projects", strings.NewReader("not-json"))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 	r.ServeHTTP(rec, req)
@@ -628,7 +628,7 @@ func TestCreateApplicationProject_MissingFields400(t *testing.T) {
 	h, _, _ := newProjectHandlerForTest(t)
 	body := validCreateProjectBody()
 	body["key"] = ""
-	rec := invokeJSON("POST", "/applications/app-1/projects", "/applications/:application_id/projects", h.CreateApplicationProject, body, "", "")
+	rec := invokeJSON("POST", "/platforms/app-1/projects", "/platforms/:platform_id/projects", h.CreatePlatformProject, body, "", "")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", rec.Code)
 	}
@@ -638,7 +638,7 @@ func TestCreateApplicationProject_InvalidVisibility400(t *testing.T) {
 	h, _, _ := newProjectHandlerForTest(t)
 	body := validCreateProjectBody()
 	body["visibility"] = "weird"
-	rec := invokeJSON("POST", "/applications/app-1/projects", "/applications/:application_id/projects", h.CreateApplicationProject, body, "", "")
+	rec := invokeJSON("POST", "/platforms/app-1/projects", "/platforms/:platform_id/projects", h.CreatePlatformProject, body, "", "")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", rec.Code)
 	}
@@ -648,7 +648,7 @@ func TestCreateApplicationProject_BadStartDate400(t *testing.T) {
 	h, _, _ := newProjectHandlerForTest(t)
 	body := validCreateProjectBody()
 	body["start_date"] = "not-a-date"
-	rec := invokeJSON("POST", "/applications/app-1/projects", "/applications/:application_id/projects", h.CreateApplicationProject, body, "", "")
+	rec := invokeJSON("POST", "/platforms/app-1/projects", "/platforms/:platform_id/projects", h.CreatePlatformProject, body, "", "")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", rec.Code)
 	}
@@ -658,7 +658,7 @@ func TestCreateApplicationProject_BadDueDate400(t *testing.T) {
 	h, _, _ := newProjectHandlerForTest(t)
 	body := validCreateProjectBody()
 	body["due_date"] = "not-a-date"
-	rec := invokeJSON("POST", "/applications/app-1/projects", "/applications/:application_id/projects", h.CreateApplicationProject, body, "", "")
+	rec := invokeJSON("POST", "/platforms/app-1/projects", "/platforms/:platform_id/projects", h.CreatePlatformProject, body, "", "")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", rec.Code)
 	}
@@ -668,7 +668,7 @@ func TestCreateApplicationProject_RepoPayloadMissingFields400(t *testing.T) {
 	h, _, _ := newProjectHandlerForTest(t)
 	body := validCreateProjectBody()
 	body["repository_create_payload"] = map[string]any{"key": "", "slug": "team/x", "scm_provider": "gitea"}
-	rec := invokeJSON("POST", "/applications/app-1/projects", "/applications/:application_id/projects", h.CreateApplicationProject, body, "", "")
+	rec := invokeJSON("POST", "/platforms/app-1/projects", "/platforms/:platform_id/projects", h.CreatePlatformProject, body, "", "")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", rec.Code)
 	}
@@ -678,7 +678,7 @@ func TestCreateApplicationProject_WithRepoPayloadOK(t *testing.T) {
 	h, _, _ := newProjectHandlerForTest(t)
 	body := validCreateProjectBody()
 	body["repository_create_payload"] = map[string]any{"key": "REPO", "slug": "team/devhub-core", "scm_provider": "gitea"}
-	rec := invokeJSON("POST", "/applications/app-1/projects", "/applications/:application_id/projects", h.CreateApplicationProject, body, "", "")
+	rec := invokeJSON("POST", "/platforms/app-1/projects", "/platforms/:platform_id/projects", h.CreatePlatformProject, body, "", "")
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
@@ -688,7 +688,7 @@ func TestCreateApplicationProject_RepositoryIDs(t *testing.T) {
 	h, _, _ := newProjectHandlerForTest(t)
 	body := validCreateProjectBody()
 	body["repository_ids"] = []int64{100, 200}
-	rec := invokeJSON("POST", "/applications/app-1/projects", "/applications/:application_id/projects", h.CreateApplicationProject, body, "", "")
+	rec := invokeJSON("POST", "/platforms/app-1/projects", "/platforms/:platform_id/projects", h.CreatePlatformProject, body, "", "")
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
@@ -697,8 +697,8 @@ func TestCreateApplicationProject_RepositoryIDs(t *testing.T) {
 func TestCreateApplicationProject_Conflict409(t *testing.T) {
 	h, _, _ := newProjectHandlerForTest(t)
 	body := validCreateProjectBody()
-	_ = invokeJSON("POST", "/applications/app-1/projects", "/applications/:application_id/projects", h.CreateApplicationProject, body, "", "")
-	rec := invokeJSON("POST", "/applications/app-1/projects", "/applications/:application_id/projects", h.CreateApplicationProject, body, "", "")
+	_ = invokeJSON("POST", "/platforms/app-1/projects", "/platforms/:platform_id/projects", h.CreatePlatformProject, body, "", "")
+	rec := invokeJSON("POST", "/platforms/app-1/projects", "/platforms/:platform_id/projects", h.CreatePlatformProject, body, "", "")
 	if rec.Code != http.StatusConflict {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
@@ -707,7 +707,7 @@ func TestCreateApplicationProject_Conflict409(t *testing.T) {
 func TestCreateApplicationProject_StoreError500(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
 	st.errCreateProjectWithRepoPayload = errors.New("db")
-	rec := invokeJSON("POST", "/applications/app-1/projects", "/applications/:application_id/projects", h.CreateApplicationProject, validCreateProjectBody(), "", "")
+	rec := invokeJSON("POST", "/platforms/app-1/projects", "/platforms/:platform_id/projects", h.CreatePlatformProject, validCreateProjectBody(), "", "")
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d", rec.Code)
 	}
@@ -717,7 +717,7 @@ func TestCreateApplicationProject_StoreError500(t *testing.T) {
 
 func TestListProjectRepositories_OK(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.ApplicationStatusActive})
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.PlatformStatusActive})
 	st.seedProjectRepo(domain.ProjectRepository{ProjectID: "p-1", RepositoryID: 42, Role: "primary"})
 	rec := invokeJSON("GET", "/projects/p-1/repositories", "/projects/:project_id/repositories", h.ListProjectRepositories, nil, "", "")
 	if rec.Code != http.StatusOK {
@@ -727,7 +727,7 @@ func TestListProjectRepositories_OK(t *testing.T) {
 
 func TestListProjectRepositories_V2Disabled410(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewApplicationHandler(ApplicationConfig{ApplicationStore: newFakeViewApplicationStore(), ProjectModel: "legacy"})
+	h := NewPlatformHandler(PlatformConfig{PlatformStore: newFakeViewPlatformStore(), ProjectModel: "legacy"})
 	rec := invokeJSON("GET", "/projects/p-1/repositories", "/projects/:project_id/repositories", h.ListProjectRepositories, nil, "", "")
 	if rec.Code != http.StatusGone {
 		t.Fatalf("status = %d", rec.Code)
@@ -736,7 +736,7 @@ func TestListProjectRepositories_V2Disabled410(t *testing.T) {
 
 func TestListProjectRepositories_StoreUnavailable503(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewApplicationHandler(ApplicationConfig{ProjectModel: "hybrid"})
+	h := NewPlatformHandler(PlatformConfig{ProjectModel: "hybrid"})
 	rec := invokeJSON("GET", "/projects/p-1/repositories", "/projects/:project_id/repositories", h.ListProjectRepositories, nil, "", "")
 	if rec.Code != http.StatusServiceUnavailable {
 		t.Fatalf("status = %d", rec.Code)
@@ -745,7 +745,7 @@ func TestListProjectRepositories_StoreUnavailable503(t *testing.T) {
 
 func TestListProjectRepositories_StoreError500(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.ApplicationStatusActive})
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.PlatformStatusActive})
 	st.errListProjectRepositories = errors.New("db")
 	rec := invokeJSON("GET", "/projects/p-1/repositories", "/projects/:project_id/repositories", h.ListProjectRepositories, nil, "", "")
 	if rec.Code != http.StatusInternalServerError {
@@ -757,7 +757,7 @@ func TestListProjectRepositories_StoreError500(t *testing.T) {
 
 func TestCreateProjectRepository_OK(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.ApplicationStatusActive})
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.PlatformStatusActive})
 	body := map[string]any{"repository_id": 42, "role": "linked"}
 	rec := invokeJSON("POST", "/projects/p-1/repositories", "/projects/:project_id/repositories", h.CreateProjectRepository, body, "", "")
 	if rec.Code != http.StatusCreated {
@@ -767,7 +767,7 @@ func TestCreateProjectRepository_OK(t *testing.T) {
 
 func TestCreateProjectRepository_V2Disabled410(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewApplicationHandler(ApplicationConfig{ApplicationStore: newFakeViewApplicationStore(), ProjectModel: "legacy"})
+	h := NewPlatformHandler(PlatformConfig{PlatformStore: newFakeViewPlatformStore(), ProjectModel: "legacy"})
 	body := map[string]any{"repository_id": 42, "role": "linked"}
 	rec := invokeJSON("POST", "/projects/p-1/repositories", "/projects/:project_id/repositories", h.CreateProjectRepository, body, "", "")
 	if rec.Code != http.StatusGone {
@@ -777,7 +777,7 @@ func TestCreateProjectRepository_V2Disabled410(t *testing.T) {
 
 func TestCreateProjectRepository_StoreUnavailable503(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewApplicationHandler(ApplicationConfig{ProjectModel: "hybrid"})
+	h := NewPlatformHandler(PlatformConfig{ProjectModel: "hybrid"})
 	body := map[string]any{"repository_id": 42, "role": "linked"}
 	rec := invokeJSON("POST", "/projects/p-1/repositories", "/projects/:project_id/repositories", h.CreateProjectRepository, body, "", "")
 	if rec.Code != http.StatusServiceUnavailable {
@@ -809,7 +809,7 @@ func TestCreateProjectRepository_MissingRepoID400(t *testing.T) {
 
 func TestCreateProjectRepository_DefaultRole(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.ApplicationStatusActive})
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.PlatformStatusActive})
 	body := map[string]any{"repository_id": 42} // role 없음 → "linked"
 	rec := invokeJSON("POST", "/projects/p-1/repositories", "/projects/:project_id/repositories", h.CreateProjectRepository, body, "", "")
 	if rec.Code != http.StatusCreated {
@@ -819,7 +819,7 @@ func TestCreateProjectRepository_DefaultRole(t *testing.T) {
 
 func TestCreateProjectRepository_Conflict409(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.ApplicationStatusActive})
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.PlatformStatusActive})
 	st.seedProjectRepo(domain.ProjectRepository{ProjectID: "p-1", RepositoryID: 42, Role: "primary"})
 	body := map[string]any{"repository_id": 42, "role": "linked"}
 	rec := invokeJSON("POST", "/projects/p-1/repositories", "/projects/:project_id/repositories", h.CreateProjectRepository, body, "", "")
@@ -842,7 +842,7 @@ func TestCreateProjectRepository_StoreError500(t *testing.T) {
 
 func TestDeleteProjectRepository_OK(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.ApplicationStatusActive})
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.PlatformStatusActive})
 	st.seedProjectRepo(domain.ProjectRepository{ProjectID: "p-1", RepositoryID: 42, Role: "primary"})
 	rec := invokeJSON("DELETE", "/projects/p-1/repositories/42", "/projects/:project_id/repositories/:repository_id", h.DeleteProjectRepository, nil, "", "")
 	if rec.Code != http.StatusOK {
@@ -852,7 +852,7 @@ func TestDeleteProjectRepository_OK(t *testing.T) {
 
 func TestDeleteProjectRepository_V2Disabled410(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewApplicationHandler(ApplicationConfig{ApplicationStore: newFakeViewApplicationStore(), ProjectModel: "legacy"})
+	h := NewPlatformHandler(PlatformConfig{PlatformStore: newFakeViewPlatformStore(), ProjectModel: "legacy"})
 	rec := invokeJSON("DELETE", "/projects/p-1/repositories/42", "/projects/:project_id/repositories/:repository_id", h.DeleteProjectRepository, nil, "", "")
 	if rec.Code != http.StatusGone {
 		t.Fatalf("status = %d", rec.Code)
@@ -861,7 +861,7 @@ func TestDeleteProjectRepository_V2Disabled410(t *testing.T) {
 
 func TestDeleteProjectRepository_StoreUnavailable503(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewApplicationHandler(ApplicationConfig{ProjectModel: "hybrid"})
+	h := NewPlatformHandler(PlatformConfig{ProjectModel: "hybrid"})
 	rec := invokeJSON("DELETE", "/projects/p-1/repositories/42", "/projects/:project_id/repositories/:repository_id", h.DeleteProjectRepository, nil, "", "")
 	if rec.Code != http.StatusServiceUnavailable {
 		t.Fatalf("status = %d", rec.Code)
@@ -897,7 +897,7 @@ func TestDeleteProjectRepository_StoreError500(t *testing.T) {
 
 func TestGetProject_OK(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.ApplicationStatusActive})
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.PlatformStatusActive})
 	rec := invokeJSON("GET", "/projects/p-1", "/projects/:project_id", h.GetProject, nil, "", "")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
@@ -923,7 +923,7 @@ func TestGetProject_StoreError500(t *testing.T) {
 
 func TestGetProject_StoreUnavailable503(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewApplicationHandler(ApplicationConfig{})
+	h := NewPlatformHandler(PlatformConfig{})
 	rec := invokeJSON("GET", "/projects/p-1", "/projects/:project_id", h.GetProject, nil, "", "")
 	if rec.Code != http.StatusServiceUnavailable {
 		t.Fatalf("status = %d", rec.Code)
@@ -934,7 +934,7 @@ func TestGetProject_StoreUnavailable503(t *testing.T) {
 
 func TestUpdateProject_OK(t *testing.T) {
 	h, st, audit := newProjectHandlerForTest(t)
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
 	body := map[string]any{"name": "Renamed"}
 	rec := invokeJSON("PATCH", "/projects/p-1", "/projects/:project_id", h.UpdateProject, body, "alice", "developer")
 	if rec.Code != http.StatusOK {
@@ -947,7 +947,7 @@ func TestUpdateProject_OK(t *testing.T) {
 
 func TestUpdateProject_BadJSON400(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
 	r := gin.New()
 	r.PATCH("/projects/:project_id", h.UpdateProject)
 	req := httptest.NewRequest("PATCH", "/projects/p-1", strings.NewReader("not-json"))
@@ -970,7 +970,7 @@ func TestUpdateProject_NotFound404(t *testing.T) {
 
 func TestUpdateProject_OwnerMismatch403(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
 	body := map[string]any{"name": "X"}
 	rec := invokeJSON("PATCH", "/projects/p-1", "/projects/:project_id", h.UpdateProject, body, "bob", "developer")
 	if rec.Code != http.StatusForbidden {
@@ -980,7 +980,7 @@ func TestUpdateProject_OwnerMismatch403(t *testing.T) {
 
 func TestUpdateProject_KeyImmutable422(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
 	body := map[string]any{"key": "DIFFKEY"}
 	rec := invokeJSON("PATCH", "/projects/p-1", "/projects/:project_id", h.UpdateProject, body, "alice", "developer")
 	if rec.Code != http.StatusUnprocessableEntity {
@@ -993,7 +993,7 @@ func TestUpdateProject_KeyImmutable422(t *testing.T) {
 
 func TestUpdateProject_KeySameOK(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
 	body := map[string]any{"key": "PRJ1"} // same → ok
 	rec := invokeJSON("PATCH", "/projects/p-1", "/projects/:project_id", h.UpdateProject, body, "alice", "developer")
 	if rec.Code != http.StatusOK {
@@ -1003,7 +1003,7 @@ func TestUpdateProject_KeySameOK(t *testing.T) {
 
 func TestUpdateProject_EmptyName400(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
 	body := map[string]any{"name": "  "}
 	rec := invokeJSON("PATCH", "/projects/p-1", "/projects/:project_id", h.UpdateProject, body, "alice", "developer")
 	if rec.Code != http.StatusBadRequest {
@@ -1011,56 +1011,56 @@ func TestUpdateProject_EmptyName400(t *testing.T) {
 	}
 }
 
-func TestUpdateProject_ApplicationIDInvalidUUID422(t *testing.T) {
+func TestUpdateProject_PlatformIDInvalidUUID422(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
-	body := map[string]any{"application_id": "not-a-uuid"}
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
+	body := map[string]any{"platform_id": "not-a-uuid"}
 	rec := invokeJSON("PATCH", "/projects/p-1", "/projects/:project_id", h.UpdateProject, body, "alice", "developer")
 	if rec.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
-	if !strings.Contains(rec.Body.String(), "application_id_invalid") {
+	if !strings.Contains(rec.Body.String(), "platform_id_invalid") {
 		t.Fatalf("expected code, body=%s", rec.Body.String())
 	}
 }
 
-func TestUpdateProject_ApplicationIDNotFound422(t *testing.T) {
+func TestUpdateProject_PlatformIDNotFound422(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
-	body := map[string]any{"application_id": "11111111-2222-3333-4444-555555555555"}
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
+	body := map[string]any{"platform_id": "11111111-2222-3333-4444-555555555555"}
 	rec := invokeJSON("PATCH", "/projects/p-1", "/projects/:project_id", h.UpdateProject, body, "alice", "developer")
 	if rec.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
 }
 
-func TestUpdateProject_ApplicationIDValidExisting(t *testing.T) {
+func TestUpdateProject_PlatformIDValidExisting(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
 	appUUID := "11111111-2222-3333-4444-555555555555"
-	st.seedApp(domain.Application{ID: appUUID, Key: "APP1", Status: domain.ApplicationStatusActive})
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
-	body := map[string]any{"application_id": appUUID}
+	st.seedApp(domain.Platform{ID: appUUID, Key: "APP1", Status: domain.PlatformStatusActive})
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
+	body := map[string]any{"platform_id": appUUID}
 	rec := invokeJSON("PATCH", "/projects/p-1", "/projects/:project_id", h.UpdateProject, body, "alice", "developer")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
 }
 
-func TestUpdateProject_ApplicationIDDetachEmpty(t *testing.T) {
+func TestUpdateProject_PlatformIDDetachEmpty(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice", ApplicationID: "old"})
-	body := map[string]any{"application_id": ""}
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.PlatformStatusActive, OwnerUserID: "alice", PlatformID: "old"})
+	body := map[string]any{"platform_id": ""}
 	rec := invokeJSON("PATCH", "/projects/p-1", "/projects/:project_id", h.UpdateProject, body, "alice", "developer")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
 }
 
-func TestUpdateProject_ApplicationIDLookupError500(t *testing.T) {
+func TestUpdateProject_PlatformIDLookupError500(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
-	st.errGetApplication = errors.New("db")
-	body := map[string]any{"application_id": "11111111-2222-3333-4444-555555555555"}
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
+	st.errGetPlatform = errors.New("db")
+	body := map[string]any{"platform_id": "11111111-2222-3333-4444-555555555555"}
 	rec := invokeJSON("PATCH", "/projects/p-1", "/projects/:project_id", h.UpdateProject, body, "alice", "developer")
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
@@ -1069,7 +1069,7 @@ func TestUpdateProject_ApplicationIDLookupError500(t *testing.T) {
 
 func TestUpdateProject_InvalidVisibility400(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
 	body := map[string]any{"visibility": "weird"}
 	rec := invokeJSON("PATCH", "/projects/p-1", "/projects/:project_id", h.UpdateProject, body, "alice", "developer")
 	if rec.Code != http.StatusBadRequest {
@@ -1079,7 +1079,7 @@ func TestUpdateProject_InvalidVisibility400(t *testing.T) {
 
 func TestUpdateProject_BadStartDate400(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
 	body := map[string]any{"start_date": "not-a-date"}
 	rec := invokeJSON("PATCH", "/projects/p-1", "/projects/:project_id", h.UpdateProject, body, "alice", "developer")
 	if rec.Code != http.StatusBadRequest {
@@ -1089,7 +1089,7 @@ func TestUpdateProject_BadStartDate400(t *testing.T) {
 
 func TestUpdateProject_BadDueDate400(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
 	body := map[string]any{"due_date": "not-a-date"}
 	rec := invokeJSON("PATCH", "/projects/p-1", "/projects/:project_id", h.UpdateProject, body, "alice", "developer")
 	if rec.Code != http.StatusBadRequest {
@@ -1099,7 +1099,7 @@ func TestUpdateProject_BadDueDate400(t *testing.T) {
 
 func TestUpdateProject_InvalidStatus400(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
 	body := map[string]any{"status": "weird"}
 	rec := invokeJSON("PATCH", "/projects/p-1", "/projects/:project_id", h.UpdateProject, body, "alice", "developer")
 	if rec.Code != http.StatusBadRequest {
@@ -1109,7 +1109,7 @@ func TestUpdateProject_InvalidStatus400(t *testing.T) {
 
 func TestUpdateProject_StatusTransition(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.ApplicationStatusPlanning, OwnerUserID: "alice"})
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.PlatformStatusPlanning, OwnerUserID: "alice"})
 	body := map[string]any{"status": "active", "resume_reason": "back"}
 	rec := invokeJSON("PATCH", "/projects/p-1", "/projects/:project_id", h.UpdateProject, body, "alice", "developer")
 	if rec.Code != http.StatusOK {
@@ -1119,7 +1119,7 @@ func TestUpdateProject_StatusTransition(t *testing.T) {
 
 func TestUpdateProject_AllPatchFields(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
 	body := map[string]any{
 		"name":            "Renamed",
 		"description":     "newdesc",
@@ -1148,7 +1148,7 @@ func TestUpdateProject_LookupError500(t *testing.T) {
 
 func TestUpdateProject_StoreError500(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
 	st.errUpdateProject = errors.New("db")
 	body := map[string]any{"name": "X"}
 	rec := invokeJSON("PATCH", "/projects/p-1", "/projects/:project_id", h.UpdateProject, body, "alice", "developer")
@@ -1161,7 +1161,7 @@ func TestUpdateProject_StoreError500(t *testing.T) {
 
 func TestArchiveProject_OK(t *testing.T) {
 	h, st, audit := newProjectHandlerForTest(t)
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
 	body := map[string]any{"archived_reason": "done"}
 	rec := invokeJSON("DELETE", "/projects/p-1", "/projects/:project_id", h.ArchiveProject, body, "alice", "developer")
 	if rec.Code != http.StatusOK {
@@ -1182,7 +1182,7 @@ func TestArchiveProject_NotFound404(t *testing.T) {
 
 func TestArchiveProject_OwnerMismatch403(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
 	rec := invokeJSON("DELETE", "/projects/p-1", "/projects/:project_id", h.ArchiveProject, nil, "bob", "developer")
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("status = %d", rec.Code)
@@ -1191,7 +1191,7 @@ func TestArchiveProject_OwnerMismatch403(t *testing.T) {
 
 func TestArchiveProject_HardDeleteOK(t *testing.T) {
 	h, st, audit := newProjectHandlerForTest(t)
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.ApplicationStatusArchived, OwnerUserID: "alice"})
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.PlatformStatusArchived, OwnerUserID: "alice"})
 	rec := invokeJSON("DELETE", "/projects/p-1?hard=true", "/projects/:project_id", h.ArchiveProject, nil, "alice", "developer")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
@@ -1206,7 +1206,7 @@ func TestArchiveProject_HardDeleteOK(t *testing.T) {
 
 func TestArchiveProject_HardDeleteNotArchived400(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
 	rec := invokeJSON("DELETE", "/projects/p-1?hard=true", "/projects/:project_id", h.ArchiveProject, nil, "alice", "developer")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", rec.Code)
@@ -1215,7 +1215,7 @@ func TestArchiveProject_HardDeleteNotArchived400(t *testing.T) {
 
 func TestArchiveProject_HardDeleteStoreError500(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.ApplicationStatusArchived, OwnerUserID: "alice"})
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.PlatformStatusArchived, OwnerUserID: "alice"})
 	st.errDeleteProject = errors.New("db")
 	rec := invokeJSON("DELETE", "/projects/p-1?hard=true", "/projects/:project_id", h.ArchiveProject, nil, "alice", "developer")
 	if rec.Code != http.StatusInternalServerError {
@@ -1225,7 +1225,7 @@ func TestArchiveProject_HardDeleteStoreError500(t *testing.T) {
 
 func TestArchiveProject_StoreError500(t *testing.T) {
 	h, st, _ := newProjectHandlerForTest(t)
-	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
+	st.seedProject(domain.Project{ID: "p-1", Key: "PRJ1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
 	st.errArchiveProject = errors.New("db")
 	rec := invokeJSON("DELETE", "/projects/p-1", "/projects/:project_id", h.ArchiveProject, nil, "alice", "developer")
 	if rec.Code != http.StatusInternalServerError {
@@ -1244,7 +1244,7 @@ func TestArchiveProject_LookupError500(t *testing.T) {
 
 func TestArchiveProject_StoreUnavailable503(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewApplicationHandler(ApplicationConfig{})
+	h := NewPlatformHandler(PlatformConfig{})
 	rec := invokeJSON("DELETE", "/projects/p-1", "/projects/:project_id", h.ArchiveProject, nil, "alice", "developer")
 	if rec.Code != http.StatusServiceUnavailable {
 		t.Fatalf("status = %d", rec.Code)

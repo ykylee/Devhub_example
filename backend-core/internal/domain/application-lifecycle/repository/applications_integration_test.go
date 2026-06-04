@@ -14,7 +14,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// Application 도메인 PostgreSQL integration test (sprint claude/work_260514-e).
+// Platform 도메인 PostgreSQL integration test (sprint claude/work_260514-e).
 //
 // CI backend-unit job 은 DEVHUB_TEST_DB_URL 미설정으로 t.Skip — 기존 postgres_*_test.go
 // 패턴과 일관. 로컬 / 후속 CI 분리 잡에서 마이그레이션 000012..000018 가 적용된 DB
@@ -28,7 +28,7 @@ const (
 )
 
 // applicationsFixture 는 본 sprint 의 테스트가 의존하는 DB 상태를 보장한다:
-//   - applications / application_repositories / projects / project_members / project_integrations
+//   - applications / platform_repositories / projects / project_members / project_integrations
 //     의 모든 row 를 cleanup (TRUNCATE CASCADE)
 //   - test repository 2개 추가 (testRepoID1, testRepoID2)
 //   - SCM provider 카탈로그는 migration 000012 의 seed 그대로 유지
@@ -41,7 +41,7 @@ func applicationsFixture(t *testing.T, ctx context.Context, pool *pgxpool.Pool) 
 	t.Helper()
 	const cleanupStatic = `
 TRUNCATE TABLE project_members, project_integrations, projects,
-               application_repositories, applications,
+               platform_repositories, applications,
                pr_activities, build_runs, ci_runs, quality_snapshots RESTART IDENTITY CASCADE;`
 	if _, err := pool.Exec(ctx, cleanupStatic); err != nil {
 		t.Fatalf("cleanup static tables: %v", err)
@@ -82,7 +82,7 @@ func TestIntegration_FixtureCleanupSanity(t *testing.T) {
 // applicationsFixtureLockID — `go test ./...` cross-pkg race guard.
 //
 // 본 패키지 (application-lifecycle/repository_test) 와 internal/store_test 양쪽이
-// 동일 테이블 (applications, projects, project_integrations, application_repositories,
+// 동일 테이블 (applications, projects, project_integrations, platform_repositories,
 // project_members, repositories) 을 TRUNCATE CASCADE 하는 fixture 를 동시 실행한다.
 // `go test ./...` 는 패키지 단위로 별도 binary 를 병렬 실행하므로, A 패키지의 test
 // 진행 중에 B 패키지 fixture 가 끼어들면 row 가 사라져 silent fail 회귀 (예: PR
@@ -95,7 +95,7 @@ func TestIntegration_FixtureCleanupSanity(t *testing.T) {
 //   - internal/store/integration_test_helpers_test.go
 const applicationsFixtureLockID = int64(0x4150705F4C6966) // "App_Lif" ASCII
 
-func setupApplicationsTest(t *testing.T) (*apprep.ApplicationRepository, *pgxpool.Pool, context.Context, func()) {
+func setupApplicationsTest(t *testing.T) (*apprep.PlatformRepository, *pgxpool.Pool, context.Context, func()) {
 	t.Helper()
 	dbURL := os.Getenv("DEVHUB_TEST_DB_URL")
 	if dbURL == "" {
@@ -124,7 +124,7 @@ func setupApplicationsTest(t *testing.T) (*apprep.ApplicationRepository, *pgxpoo
 		t.Fatalf("pg_advisory_lock: %v", err)
 	}
 	applicationsFixture(t, ctx, pool)
-	repo := apprep.NewApplicationRepository(pgStore)
+	repo := apprep.NewPlatformRepository(pgStore)
 	return repo, pool, ctx, func() {
 		_, _ = lockConn.Exec(ctx, `SELECT pg_advisory_unlock($1)`, applicationsFixtureLockID)
 		lockConn.Release()
@@ -139,11 +139,11 @@ func TestIntegration_CreateApplication_Happy(t *testing.T) {
 	pgStore, _, ctx, teardown := setupApplicationsTest(t)
 	defer teardown()
 
-	app := domain.Application{
-		Key: testAppKey1, Name: "Test App", Status: domain.ApplicationStatusPlanning,
-		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+	app := domain.Platform{
+		Key: testAppKey1, Name: "Test App", Status: domain.PlatformStatusPlanning,
+		Visibility: domain.PlatformVisibilityInternal, OwnerUserID: "u1",
 	}
-	created, err := pgStore.CreateApplication(ctx, app)
+	created, err := pgStore.CreatePlatform(ctx, app)
 	if err != nil {
 		t.Fatalf("create application: %v", err)
 	}
@@ -159,14 +159,14 @@ func TestIntegration_CreateApplication_DuplicateKey(t *testing.T) {
 	pgStore, _, ctx, teardown := setupApplicationsTest(t)
 	defer teardown()
 
-	app := domain.Application{
-		Key: testAppKey1, Name: "App", Status: domain.ApplicationStatusPlanning,
-		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+	app := domain.Platform{
+		Key: testAppKey1, Name: "App", Status: domain.PlatformStatusPlanning,
+		Visibility: domain.PlatformVisibilityInternal, OwnerUserID: "u1",
 	}
-	if _, err := pgStore.CreateApplication(ctx, app); err != nil {
+	if _, err := pgStore.CreatePlatform(ctx, app); err != nil {
 		t.Fatalf("seed: %v", err)
 	}
-	_, err := pgStore.CreateApplication(ctx, app)
+	_, err := pgStore.CreatePlatform(ctx, app)
 	if !errors.Is(err, store.ErrConflict) {
 		t.Errorf("expected ErrConflict on duplicate key, got %v", err)
 	}
@@ -176,7 +176,7 @@ func TestIntegration_GetApplication_NotFound(t *testing.T) {
 	pgStore, _, ctx, teardown := setupApplicationsTest(t)
 	defer teardown()
 
-	_, err := pgStore.GetApplication(ctx, "00000000-0000-0000-0000-000000000000")
+	_, err := pgStore.GetPlatform(ctx, "00000000-0000-0000-0000-000000000000")
 	if !errors.Is(err, store.ErrNotFound) {
 		t.Errorf("expected ErrNotFound, got %v", err)
 	}
@@ -186,17 +186,17 @@ func TestIntegration_UpdateApplication_ArchivedConsistency(t *testing.T) {
 	pgStore, _, ctx, teardown := setupApplicationsTest(t)
 	defer teardown()
 
-	app := domain.Application{
-		Key: testAppKey1, Name: "App", Status: domain.ApplicationStatusActive,
-		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+	app := domain.Platform{
+		Key: testAppKey1, Name: "App", Status: domain.PlatformStatusActive,
+		Visibility: domain.PlatformVisibilityInternal, OwnerUserID: "u1",
 	}
-	created, err := pgStore.CreateApplication(ctx, app)
+	created, err := pgStore.CreatePlatform(ctx, app)
 	if err != nil {
 		t.Fatalf("create: %v", err)
 	}
 	// status='archived' 로 update 시 archived_at 자동 채워짐
-	created.Status = domain.ApplicationStatusArchived
-	updated, err := pgStore.UpdateApplication(ctx, created)
+	created.Status = domain.PlatformStatusArchived
+	updated, err := pgStore.UpdatePlatform(ctx, created)
 	if err != nil {
 		t.Fatalf("update archived: %v", err)
 	}
@@ -204,8 +204,8 @@ func TestIntegration_UpdateApplication_ArchivedConsistency(t *testing.T) {
 		t.Errorf("archived_at should be set when status=archived")
 	}
 	// status='active' 로 revert 시 archived_at NULL 로 reset
-	updated.Status = domain.ApplicationStatusActive
-	reverted, err := pgStore.UpdateApplication(ctx, updated)
+	updated.Status = domain.PlatformStatusActive
+	reverted, err := pgStore.UpdatePlatform(ctx, updated)
 	if err != nil {
 		t.Fatalf("update revert: %v", err)
 	}
@@ -218,16 +218,16 @@ func TestIntegration_ArchiveApplication_SetsTimestamp(t *testing.T) {
 	pgStore, _, ctx, teardown := setupApplicationsTest(t)
 	defer teardown()
 
-	app := domain.Application{
-		Key: testAppKey1, Name: "App", Status: domain.ApplicationStatusActive,
-		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+	app := domain.Platform{
+		Key: testAppKey1, Name: "App", Status: domain.PlatformStatusActive,
+		Visibility: domain.PlatformVisibilityInternal, OwnerUserID: "u1",
 	}
-	created, _ := pgStore.CreateApplication(ctx, app)
-	archived, err := pgStore.ArchiveApplication(ctx, created.ID, "test reason")
+	created, _ := pgStore.CreatePlatform(ctx, app)
+	archived, err := pgStore.ArchivePlatform(ctx, created.ID, "test reason")
 	if err != nil {
 		t.Fatalf("archive: %v", err)
 	}
-	if archived.Status != domain.ApplicationStatusArchived {
+	if archived.Status != domain.PlatformStatusArchived {
 		t.Errorf("status = %q, want archived", archived.Status)
 	}
 	if archived.ArchivedAt == nil {
@@ -239,27 +239,27 @@ func TestIntegration_ListApplications_Filter(t *testing.T) {
 	pgStore, _, ctx, teardown := setupApplicationsTest(t)
 	defer teardown()
 
-	statuses := []domain.ApplicationStatus{
-		domain.ApplicationStatusPlanning,
-		domain.ApplicationStatusActive,
-		domain.ApplicationStatusArchived,
+	statuses := []domain.PlatformStatus{
+		domain.PlatformStatusPlanning,
+		domain.PlatformStatusActive,
+		domain.PlatformStatusArchived,
 	}
 	for i, status := range statuses {
 		key := fmt.Sprintf("TEST00000%d", i+1)
-		_, err := pgStore.CreateApplication(ctx, domain.Application{
+		_, err := pgStore.CreatePlatform(ctx, domain.Platform{
 			Key: key, Name: "X", Status: status,
-			Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+			Visibility: domain.PlatformVisibilityInternal, OwnerUserID: "u1",
 		})
 		if err != nil {
 			t.Fatalf("seed %d: %v", i, err)
 		}
-		if status == domain.ApplicationStatusArchived {
-			// CreateApplication 은 status='archived' 도 허용하므로 archived_at 직접 set
-			apps, _, _ := pgStore.ListApplications(ctx, store.ApplicationListOptions{IncludeArchived: true})
-			for _, a := range apps {
+		if status == domain.PlatformStatusArchived {
+			// CreatePlatform 은 status='archived' 도 허용하므로 archived_at 직접 set
+			platforms, _, _ := pgStore.ListPlatforms(ctx, store.PlatformListOptions{IncludeArchived: true})
+			for _, a := range platforms {
 				if a.Key == key {
-					a.Status = domain.ApplicationStatusArchived
-					if _, err := pgStore.UpdateApplication(ctx, a); err != nil {
+					a.Status = domain.PlatformStatusArchived
+					if _, err := pgStore.UpdatePlatform(ctx, a); err != nil {
 						t.Fatalf("set archived: %v", err)
 					}
 				}
@@ -268,7 +268,7 @@ func TestIntegration_ListApplications_Filter(t *testing.T) {
 	}
 
 	// default: archived 제외 → 2건
-	_, total, err := pgStore.ListApplications(ctx, store.ApplicationListOptions{})
+	_, total, err := pgStore.ListPlatforms(ctx, store.PlatformListOptions{})
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
@@ -276,12 +276,12 @@ func TestIntegration_ListApplications_Filter(t *testing.T) {
 		t.Errorf("default list total = %d, want 2 (archived 제외)", total)
 	}
 	// include_archived=true → 3건
-	_, total, _ = pgStore.ListApplications(ctx, store.ApplicationListOptions{IncludeArchived: true})
+	_, total, _ = pgStore.ListPlatforms(ctx, store.PlatformListOptions{IncludeArchived: true})
 	if total != 3 {
 		t.Errorf("include_archived total = %d, want 3", total)
 	}
 	// status=active → 1건
-	_, total, _ = pgStore.ListApplications(ctx, store.ApplicationListOptions{Status: "active"})
+	_, total, _ = pgStore.ListPlatforms(ctx, store.PlatformListOptions{Status: "active"})
 	if total != 1 {
 		t.Errorf("status=active total = %d, want 1", total)
 	}
@@ -293,39 +293,39 @@ func TestIntegration_CreateApplicationRepository_CompositeKey(t *testing.T) {
 	pgStore, _, ctx, teardown := setupApplicationsTest(t)
 	defer teardown()
 
-	app, _ := pgStore.CreateApplication(ctx, domain.Application{
-		Key: testAppKey1, Name: "X", Status: domain.ApplicationStatusPlanning,
-		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+	app, _ := pgStore.CreatePlatform(ctx, domain.Platform{
+		Key: testAppKey1, Name: "X", Status: domain.PlatformStatusPlanning,
+		Visibility: domain.PlatformVisibilityInternal, OwnerUserID: "u1",
 	})
-	link := domain.ApplicationRepository{
-		ApplicationID: app.ID, RepoProvider: "gitea", RepoFullName: "team/devhub-core",
-		Role: domain.ApplicationRepositoryRolePrimary, SyncStatus: domain.SyncStatusRequested,
+	link := domain.PlatformRepository{
+		PlatformID: app.ID, RepoProvider: "gitea", RepoFullName: "team/devhub-core",
+		Role: domain.PlatformRepositoryRolePrimary, SyncStatus: domain.SyncStatusRequested,
 	}
-	if _, err := pgStore.CreateApplicationRepository(ctx, link); err != nil {
+	if _, err := pgStore.CreatePlatformRepository(ctx, link); err != nil {
 		t.Fatalf("create link: %v", err)
 	}
 	// 동일 composite key 중복 → ErrConflict
-	_, err := pgStore.CreateApplicationRepository(ctx, link)
+	_, err := pgStore.CreatePlatformRepository(ctx, link)
 	if !errors.Is(err, store.ErrConflict) {
 		t.Errorf("expected ErrConflict on duplicate composite key, got %v", err)
 	}
 	// 다른 provider 같은 repo_full_name → OK (composite PK 포함)
 	link.RepoProvider = "bitbucket"
-	if _, err := pgStore.CreateApplicationRepository(ctx, link); err != nil {
+	if _, err := pgStore.CreatePlatformRepository(ctx, link); err != nil {
 		t.Errorf("different provider should not conflict: %v", err)
 	}
 }
 
-func TestIntegration_CountActiveApplicationRepositories(t *testing.T) {
+func TestIntegration_CountActivePlatformRepositories(t *testing.T) {
 	pgStore, _, ctx, teardown := setupApplicationsTest(t)
 	defer teardown()
 
-	app, _ := pgStore.CreateApplication(ctx, domain.Application{
-		Key: testAppKey1, Name: "X", Status: domain.ApplicationStatusPlanning,
-		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+	app, _ := pgStore.CreatePlatform(ctx, domain.Platform{
+		Key: testAppKey1, Name: "X", Status: domain.PlatformStatusPlanning,
+		Visibility: domain.PlatformVisibilityInternal, OwnerUserID: "u1",
 	})
 	// 0개 — count=0
-	count, err := pgStore.CountActiveApplicationRepositories(ctx, app.ID)
+	count, err := pgStore.CountActivePlatformRepositories(ctx, app.ID)
 	if err != nil {
 		t.Fatalf("count: %v", err)
 	}
@@ -333,20 +333,20 @@ func TestIntegration_CountActiveApplicationRepositories(t *testing.T) {
 		t.Errorf("initial count = %d, want 0", count)
 	}
 	// 1 active 추가
-	_, _ = pgStore.CreateApplicationRepository(ctx, domain.ApplicationRepository{
-		ApplicationID: app.ID, RepoProvider: "gitea", RepoFullName: "team/devhub-core",
-		Role: domain.ApplicationRepositoryRolePrimary, SyncStatus: domain.SyncStatusActive,
+	_, _ = pgStore.CreatePlatformRepository(ctx, domain.PlatformRepository{
+		PlatformID: app.ID, RepoProvider: "gitea", RepoFullName: "team/devhub-core",
+		Role: domain.PlatformRepositoryRolePrimary, SyncStatus: domain.SyncStatusActive,
 	})
-	count, _ = pgStore.CountActiveApplicationRepositories(ctx, app.ID)
+	count, _ = pgStore.CountActivePlatformRepositories(ctx, app.ID)
 	if count != 1 {
 		t.Errorf("after 1 active, count = %d, want 1", count)
 	}
 	// 1 requested (활성 아님) 추가
-	_, _ = pgStore.CreateApplicationRepository(ctx, domain.ApplicationRepository{
-		ApplicationID: app.ID, RepoProvider: "bitbucket", RepoFullName: "team/devhub-web",
-		Role: domain.ApplicationRepositoryRoleSub, SyncStatus: domain.SyncStatusRequested,
+	_, _ = pgStore.CreatePlatformRepository(ctx, domain.PlatformRepository{
+		PlatformID: app.ID, RepoProvider: "bitbucket", RepoFullName: "team/devhub-web",
+		Role: domain.PlatformRepositoryRoleSub, SyncStatus: domain.SyncStatusRequested,
 	})
-	count, _ = pgStore.CountActiveApplicationRepositories(ctx, app.ID)
+	count, _ = pgStore.CountActivePlatformRepositories(ctx, app.ID)
 	if count != 1 {
 		t.Errorf("requested not counted, count = %d, want 1", count)
 	}
@@ -356,22 +356,22 @@ func TestIntegration_UpdateApplicationRepositorySync_ErrorReset(t *testing.T) {
 	pgStore, _, ctx, teardown := setupApplicationsTest(t)
 	defer teardown()
 
-	app, _ := pgStore.CreateApplication(ctx, domain.Application{
-		Key: testAppKey1, Name: "X", Status: domain.ApplicationStatusPlanning,
-		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+	app, _ := pgStore.CreatePlatform(ctx, domain.Platform{
+		Key: testAppKey1, Name: "X", Status: domain.PlatformStatusPlanning,
+		Visibility: domain.PlatformVisibilityInternal, OwnerUserID: "u1",
 	})
-	_, _ = pgStore.CreateApplicationRepository(ctx, domain.ApplicationRepository{
-		ApplicationID: app.ID, RepoProvider: "gitea", RepoFullName: "team/devhub-core",
-		Role: domain.ApplicationRepositoryRolePrimary, SyncStatus: domain.SyncStatusRequested,
+	_, _ = pgStore.CreatePlatformRepository(ctx, domain.PlatformRepository{
+		PlatformID: app.ID, RepoProvider: "gitea", RepoFullName: "team/devhub-core",
+		Role: domain.PlatformRepositoryRolePrimary, SyncStatus: domain.SyncStatusRequested,
 	})
-	key := store.ApplicationRepositoryLinkKey{
-		ApplicationID: app.ID, RepoProvider: "gitea", RepoFullName: "team/devhub-core",
+	key := store.PlatformRepositoryLinkKey{
+		PlatformID: app.ID, RepoProvider: "gitea", RepoFullName: "team/devhub-core",
 	}
 	// 에러 발생
-	if err := pgStore.UpdateApplicationRepositorySync(ctx, key, domain.SyncStatusDegraded, domain.SyncErrorRateLimited); err != nil {
+	if err := pgStore.UpdatePlatformRepositorySync(ctx, key, domain.SyncStatusDegraded, domain.SyncErrorRateLimited); err != nil {
 		t.Fatalf("set error: %v", err)
 	}
-	links, _ := pgStore.ListApplicationRepositories(ctx, app.ID)
+	links, _ := pgStore.ListPlatformRepositories(ctx, app.ID)
 	if len(links) != 1 || links[0].SyncErrorCode != domain.SyncErrorRateLimited {
 		t.Fatalf("link state after error: %+v", links)
 	}
@@ -379,10 +379,10 @@ func TestIntegration_UpdateApplicationRepositorySync_ErrorReset(t *testing.T) {
 		t.Errorf("rate_limited should be retryable=true")
 	}
 	// 에러 reset (errorCode 빈 문자열) → retryable / at NULL
-	if err := pgStore.UpdateApplicationRepositorySync(ctx, key, domain.SyncStatusActive, ""); err != nil {
+	if err := pgStore.UpdatePlatformRepositorySync(ctx, key, domain.SyncStatusActive, ""); err != nil {
 		t.Fatalf("reset error: %v", err)
 	}
-	links, _ = pgStore.ListApplicationRepositories(ctx, app.ID)
+	links, _ = pgStore.ListPlatformRepositories(ctx, app.ID)
 	if links[0].SyncErrorCode != "" || links[0].SyncErrorRetryable != nil || links[0].SyncErrorAt != nil {
 		t.Errorf("error fields should be NULL after reset, got %+v", links[0])
 	}
@@ -430,36 +430,36 @@ func TestIntegration_Applications_ExtraCRUD(t *testing.T) {
 
 	ghostUUID := "00000000-0000-0000-0000-000000000000"
 
-	// 1. GetApplication not found
-	if _, err := pgStore.GetApplication(ctx, ghostUUID); !errors.Is(err, store.ErrNotFound) {
+	// 1. GetPlatform not found
+	if _, err := pgStore.GetPlatform(ctx, ghostUUID); !errors.Is(err, store.ErrNotFound) {
 		t.Errorf("expected ErrNotFound for ghost UUID, got %v", err)
 	}
 
-	// 2. GetApplicationByKey not found
-	if _, err := pgStore.GetApplicationByKey(ctx, "GHOSTKEY"); !errors.Is(err, store.ErrNotFound) {
+	// 2. GetPlatformByKey not found
+	if _, err := pgStore.GetPlatformByKey(ctx, "GHOSTKEY"); !errors.Is(err, store.ErrNotFound) {
 		t.Errorf("expected ErrNotFound for GHOSTKEY, got %v", err)
 	}
 
-	// 3. UpdateApplication not found
-	appGhost := domain.Application{ID: ghostUUID, Key: "GHOST", Name: "Ghost"}
-	if _, err := pgStore.UpdateApplication(ctx, appGhost); !errors.Is(err, store.ErrNotFound) {
-		t.Errorf("expected ErrNotFound for UpdateApplication ghost, got %v", err)
+	// 3. UpdatePlatform not found
+	appGhost := domain.Platform{ID: ghostUUID, Key: "GHOST", Name: "Ghost"}
+	if _, err := pgStore.UpdatePlatform(ctx, appGhost); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("expected ErrNotFound for UpdatePlatform ghost, got %v", err)
 	}
 
-	// 4. ArchiveApplication not found
-	if _, err := pgStore.ArchiveApplication(ctx, ghostUUID, "reason"); !errors.Is(err, store.ErrNotFound) {
-		t.Errorf("expected ErrNotFound for ArchiveApplication ghost, got %v", err)
+	// 4. ArchivePlatform not found
+	if _, err := pgStore.ArchivePlatform(ctx, ghostUUID, "reason"); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("expected ErrNotFound for ArchivePlatform ghost, got %v", err)
 	}
 
-	// 5. DeleteApplication not found
-	if err := pgStore.DeleteApplication(ctx, ghostUUID); !errors.Is(err, store.ErrNotFound) {
-		t.Errorf("expected ErrNotFound for DeleteApplication ghost, got %v", err)
+	// 5. DeletePlatform not found
+	if err := pgStore.DeletePlatform(ctx, ghostUUID); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("expected ErrNotFound for DeletePlatform ghost, got %v", err)
 	}
 
-	// 6. DeleteApplicationRepository not found
-	keyGhost := store.ApplicationRepositoryLinkKey{ApplicationID: ghostUUID, RepoProvider: "gitea", RepoFullName: "ghost/repo"}
-	if err := pgStore.DeleteApplicationRepository(ctx, keyGhost); !errors.Is(err, store.ErrNotFound) {
-		t.Errorf("expected ErrNotFound for DeleteApplicationRepository, got %v", err)
+	// 6. DeletePlatformRepository not found
+	keyGhost := store.PlatformRepositoryLinkKey{PlatformID: ghostUUID, RepoProvider: "gitea", RepoFullName: "ghost/repo"}
+	if err := pgStore.DeletePlatformRepository(ctx, keyGhost); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("expected ErrNotFound for DeletePlatformRepository, got %v", err)
 	}
 
 	// 7. UpdateSCMProvider not found
@@ -469,22 +469,22 @@ func TestIntegration_Applications_ExtraCRUD(t *testing.T) {
 	}
 
 	// 8. UpdateApplicationRepositorySync not found
-	if err := pgStore.UpdateApplicationRepositorySync(ctx, keyGhost, domain.SyncStatusActive, ""); !errors.Is(err, store.ErrNotFound) {
+	if err := pgStore.UpdatePlatformRepositorySync(ctx, keyGhost, domain.SyncStatusActive, ""); !errors.Is(err, store.ErrNotFound) {
 		t.Errorf("expected ErrNotFound for UpdateApplicationRepositorySync, got %v", err)
 	}
 
-	// 9. ListApplications options coverage
-	opts := store.ApplicationListOptions{
+	// 9. ListPlatforms options coverage
+	opts := store.PlatformListOptions{
 		Status:          "planning",
 		IncludeArchived: true,
 		Query:           "non-existent-query-string",
 	}
-	apps, total, err := pgStore.ListApplications(ctx, opts)
+	platforms, total, err := pgStore.ListPlatforms(ctx, opts)
 	if err != nil {
-		t.Fatalf("ListApplications: %v", err)
+		t.Fatalf("ListPlatforms: %v", err)
 	}
-	if len(apps) != 0 || total != 0 {
-		t.Errorf("expected 0 results, got len=%d total=%d", len(apps), total)
+	if len(platforms) != 0 || total != 0 {
+		t.Errorf("expected 0 results, got len=%d total=%d", len(platforms), total)
 	}
 }
 
@@ -506,8 +506,8 @@ func TestIntegration_Projects_ExtraCRUD(t *testing.T) {
 	p := domain.Project{
 		Key:         pKey,
 		Name:        "Test Project",
-		Status:      domain.ApplicationStatusActive,
-		Visibility:  domain.ApplicationVisibilityInternal,
+		Status:      domain.PlatformStatusActive,
+		Visibility:  domain.PlatformVisibilityInternal,
 		OwnerUserID: "u1",
 		ProjectMembers: []domain.ProjectMember{
 			{UserID: "member1", ProjectRole: "contributor"},
@@ -628,7 +628,7 @@ func TestIntegration_Projects_ExtraCRUD(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ArchiveProject failed: %v", err)
 	}
-	if archived.Status != domain.ApplicationStatusArchived {
+	if archived.Status != domain.PlatformStatusArchived {
 		t.Errorf("expected status archived, got %s", archived.Status)
 	}
 
@@ -756,7 +756,7 @@ ON CONFLICT (provider_key) DO NOTHING
 		t.Errorf("ProviderKey should still be empty (unchanged): got %q", updated.ProviderKey)
 	}
 
-	// 2.5 codex P1 fix — slug 변경 시 application_repositories link cascade update
+	// 2.5 codex P1 fix — slug 변경 시 platform_repositories link cascade update
 	linkAppID := "00000000-0000-0000-0000-000000000910"
 	defer func() { _, _ = pool.Exec(ctx, `DELETE FROM applications WHERE id = $1`, linkAppID) }()
 	if _, err := pool.Exec(ctx, `
@@ -767,12 +767,12 @@ ON CONFLICT (id) DO NOTHING
 		t.Fatalf("seed cascade app: %v", err)
 	}
 	if _, err := pool.Exec(ctx, `
-INSERT INTO application_repositories (application_id, repo_provider, repo_full_name, role, sync_status, link_source, linked_at)
+INSERT INTO platform_repositories (platform_id, repo_provider, repo_full_name, role, sync_status, link_source, linked_at)
 VALUES ($1, 'gitea', $2, 'primary', 'active', 'manual', NOW())
 `, linkAppID, newSlug); err != nil {
-		t.Fatalf("seed application_repositories link: %v", err)
+		t.Fatalf("seed platform_repositories link: %v", err)
 	}
-	defer func() { _, _ = pool.Exec(ctx, `DELETE FROM application_repositories WHERE application_id = $1`, linkAppID) }()
+	defer func() { _, _ = pool.Exec(ctx, `DELETE FROM platform_repositories WHERE platform_id = $1`, linkAppID) }()
 	cascadedSlug := newSlug + "-v2"
 	updated, err = pgStore.UpdateRepositoryDraft(ctx, draft.ID, store.RepositoryUpdateDraftParams{Slug: &cascadedSlug})
 	if err != nil {
@@ -782,14 +782,14 @@ VALUES ($1, 'gitea', $2, 'primary', 'active', 'manual', NOW())
 		t.Errorf("slug not updated: %q", updated.FullName)
 	}
 	var linkCount int
-	if err := pool.QueryRow(ctx, `SELECT COUNT(*) FROM application_repositories WHERE application_id = $1 AND repo_full_name = $2`, linkAppID, cascadedSlug).Scan(&linkCount); err != nil {
+	if err := pool.QueryRow(ctx, `SELECT COUNT(*) FROM platform_repositories WHERE platform_id = $1 AND repo_full_name = $2`, linkAppID, cascadedSlug).Scan(&linkCount); err != nil {
 		t.Fatalf("verify cascade: %v", err)
 	}
 	if linkCount != 1 {
-		t.Errorf("application_repositories link not cascaded: count=%d", linkCount)
+		t.Errorf("platform_repositories link not cascaded: count=%d", linkCount)
 	}
 	var staleCount int
-	if err := pool.QueryRow(ctx, `SELECT COUNT(*) FROM application_repositories WHERE application_id = $1 AND repo_full_name = $2`, linkAppID, newSlug).Scan(&staleCount); err != nil {
+	if err := pool.QueryRow(ctx, `SELECT COUNT(*) FROM platform_repositories WHERE platform_id = $1 AND repo_full_name = $2`, linkAppID, newSlug).Scan(&staleCount); err != nil {
 		t.Fatalf("verify stale: %v", err)
 	}
 	if staleCount != 0 {
@@ -808,12 +808,12 @@ ON CONFLICT (id) DO NOTHING
 	}
 	conflictSlug2 := cascadedSlug + "-conflict"
 	if _, err := pool.Exec(ctx, `
-INSERT INTO application_repositories (application_id, repo_provider, repo_full_name, role, sync_status, link_source, linked_at)
+INSERT INTO platform_repositories (platform_id, repo_provider, repo_full_name, role, sync_status, link_source, linked_at)
 VALUES ($1, 'gitea', $2, 'sub', 'active', 'manual', NOW())
 `, conflictAppID, conflictSlug2); err != nil {
 		t.Fatalf("seed conflict link: %v", err)
 	}
-	defer func() { _, _ = pool.Exec(ctx, `DELETE FROM application_repositories WHERE application_id = $1`, conflictAppID) }()
+	defer func() { _, _ = pool.Exec(ctx, `DELETE FROM platform_repositories WHERE platform_id = $1`, conflictAppID) }()
 	if _, err := pgStore.UpdateRepositoryDraft(ctx, draft.ID, store.RepositoryUpdateDraftParams{Slug: &conflictSlug2}); !errors.Is(err, store.ErrConflict) {
 		t.Errorf("expected ErrConflict for slug conflict with existing link, got %v", err)
 	}
@@ -911,13 +911,13 @@ func TestIntegration_DeleteRepository(t *testing.T) {
 		t.Errorf("expected ErrNotFound for delete on published repo, got %v", err)
 	}
 
-	// 4. FK guard — application_repositories link → ErrConflict
+	// 4. FK guard — platform_repositories link → ErrConflict
 	slug3 := fmt.Sprintf("drafts/del-fk-%d", time.Now().UnixNano())
 	draft3, err := pgStore.CreateRepositoryDraft(ctx, "del-fk-"+fmt.Sprint(time.Now().UnixNano()), slug3, "")
 	if err != nil {
 		t.Fatalf("CreateRepositoryDraft #3 failed: %v", err)
 	}
-	defer func() { _, _ = pool.Exec(ctx, `DELETE FROM application_repositories WHERE repo_full_name = $1`, slug3) }()
+	defer func() { _, _ = pool.Exec(ctx, `DELETE FROM platform_repositories WHERE repo_full_name = $1`, slug3) }()
 	defer func() { _, _ = pool.Exec(ctx, `DELETE FROM repositories WHERE id = $1`, draft3.ID) }()
 	appID := "00000000-0000-0000-0000-000000000999"
 	defer func() { _, _ = pool.Exec(ctx, `DELETE FROM applications WHERE id = $1`, appID) }()
@@ -929,10 +929,10 @@ ON CONFLICT (id) DO NOTHING
 		t.Fatalf("seed app: %v", err)
 	}
 	if _, err := pool.Exec(ctx, `
-INSERT INTO application_repositories (application_id, repo_provider, repo_full_name, role, sync_status, link_source, linked_at)
+INSERT INTO platform_repositories (platform_id, repo_provider, repo_full_name, role, sync_status, link_source, linked_at)
 VALUES ($1, 'gitea', $2, 'primary', 'active', 'manual', NOW())
 `, appID, slug3); err != nil {
-		t.Fatalf("seed application_repositories: %v", err)
+		t.Fatalf("seed platform_repositories: %v", err)
 	}
 	if err := pgStore.DeleteRepository(ctx, draft3.ID); !errors.Is(err, store.ErrConflict) {
 		t.Errorf("expected ErrConflict for delete with FK link, got %v", err)

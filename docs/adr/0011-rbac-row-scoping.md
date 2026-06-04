@@ -1,17 +1,17 @@
-# ADR-0011: Application/Project Owner 위양과 RBAC row-level scoping
+# ADR-0011: Platform/Project Owner 위양과 RBAC row-level scoping
 
-- 문서 목적: Application/Repository/Project 도메인의 Owner / Member 가 자신이 소속된 리소스에 대해서만 쓰기 권한을 행사하도록 하는 **row-level RBAC scoping** 정책 결정. 단계적(phased) 도입 방식으로 1차는 handler/service 코드 검증, 2차/3차는 매트릭스 확장 옵션을 보존한다.
-- 범위: `applications`, `application_repositories`, `projects`, `project_members` 의 read/write 권한이 (a) 전역 `system_admin`, (b) 후속 활성화될 `team_manager`, (c) 리소스의 owner / member 로 어떻게 분기되는지 결정한다. application/project 외 모듈 (auth/account/org/RBAC policy 자체) 은 본 ADR 의 범위 밖이다.
+- 문서 목적: Platform/Repository/Project 도메인의 Owner / Member 가 자신이 소속된 리소스에 대해서만 쓰기 권한을 행사하도록 하는 **row-level RBAC scoping** 정책 결정. 단계적(phased) 도입 방식으로 1차는 handler/service 코드 검증, 2차/3차는 매트릭스 확장 옵션을 보존한다.
+- 범위: `applications`, `platform_repositories`, `projects`, `project_members` 의 read/write 권한이 (a) 전역 `system_admin`, (b) 후속 활성화될 `team_manager`, (c) 리소스의 owner / member 로 어떻게 분기되는지 결정한다. application/project 외 모듈 (auth/account/org/RBAC policy 자체) 은 본 ADR 의 범위 밖이다.
 - 대상 독자: Backend 개발자, RBAC 정책 stakeholder, AI agent, 추적성 리뷰어.
 - 상태: accepted
 - 작성일: 2026-05-14
 - 결정일: 2026-05-14 (sprint `claude/work_260514-a`)
 - 결정 근거 sprint: `claude/work_260514-a` — Application Design 1차 + ADR-0011 평가/결정 (mixed sprint).
-- 관련 문서: [`docs/domain/application-lifecycle/project_concept.md`](../domain/application-lifecycle/project_concept.md) §5.3, §10, [`docs/requirements.md`](../requirements.md) §5.4.1 (REQ-FR-PROJ-000, REQ-FR-PROJ-009, REQ-FR-PROJ-010), [ADR-0002](./0002-rbac-policy-edit-api.md), [ADR-0007](./0007-rbac-cache-multi-instance.md), [추적성 매트릭스 §2.2 RBAC API + §3 Application/Project 행](../traceability/report.md).
+- 관련 문서: [`docs/domain/platform-lifecycle/project_concept.md`](../domain/platform-lifecycle/project_concept.md) §5.3, §10, [`docs/requirements.md`](../requirements.md) §5.4.1 (REQ-FR-PROJ-000, REQ-FR-PROJ-009, REQ-FR-PROJ-010), [ADR-0002](./0002-rbac-policy-edit-api.md), [ADR-0007](./0007-rbac-cache-multi-instance.md), [추적성 매트릭스 §2.2 RBAC API + §3 Platform/Project 행](../traceability/report.md).
 
 ## 1. 컨텍스트
 
-`docs/domain/application-lifecycle/project_concept.md` §5.3 는 Owner 권한 위양을 3단계로 정의한다:
+`docs/domain/platform-lifecycle/project_concept.md` §5.3 는 Owner 권한 위양을 3단계로 정의한다:
 
 - **1차 (MVP)**: 모든 쓰기 작업은 `system_admin` 단일 주체.
 - **2차**: `owner` 에게 제한된 메타/멤버 수정 위양.
@@ -52,7 +52,7 @@ REQ-FR-PROJ-009 와 REQ-FR-PROJ-010 (team_manager 활성 후 권한 범위) 가 
 **옵션 C (handler/service 코드 검증) 를 1차 채택**한다. 후속 단계에서 **옵션 B (row_predicate) 로의 확장 옵션을 보존**한다.
 
 ### 4.1 1차 (MVP 진입 시) — 본 sprint
-- RBAC 매트릭스는 ADR-0002 의 4축 boolean 그대로 유지. `applications` / `application_repositories` / `projects` / `scm_providers` 4개 신규 resource 를 매트릭스에 추가, **모든 4축은 `system_admin` 만 true**, 나머지 role 은 false.
+- RBAC 매트릭스는 ADR-0002 의 4축 boolean 그대로 유지. `applications` / `platform_repositories` / `projects` / `scm_providers` 4개 신규 resource 를 매트릭스에 추가, **모든 4축은 `system_admin` 만 true**, 나머지 role 은 false.
 - handler/service 코드는 row 조건 검증을 하지 않음 — system_admin 일임 정책 (REQ-FR-PROJ-000) 이 enforce.
 - `team_manager` 활성화 전 요청은 `403 role_not_enabled` (REQ-FR-PROJ-000 의 기존 정책).
 
@@ -73,18 +73,18 @@ REQ-FR-PROJ-009 와 REQ-FR-PROJ-010 (team_manager 활성 후 권한 범위) 가 
 ### 4.4 옵션 A (Casbin) 와 D (PG RLS) 거부 사유
 
 - **A (Casbin)**: ADR-0002 + ADR-0007 의 단일 SoT (RBAC matrix + PermissionCache LISTEN/NOTIFY) 를 깨지 않고는 도입 불가. 거부 비용보다 효익 작음. 향후 외부 정책 hot-reload 요구가 강하게 등장하면 재평가.
-- **D (PG RLS)**: deny 가 빈 응답으로 표현되어 audit/디버깅 정합 깨짐. defense-in-depth 가 필요한 *민감 데이터* (예: HRDB persons) 에 한정해 별도 ADR 로 평가 가능하나, Application/Project 도메인은 운영 가시성이 우선.
+- **D (PG RLS)**: deny 가 빈 응답으로 표현되어 audit/디버깅 정합 깨짐. defense-in-depth 가 필요한 *민감 데이터* (예: HRDB persons) 에 한정해 별도 ADR 로 평가 가능하나, Platform/Project 도메인은 운영 가시성이 우선.
 
 ## 5. 결과
 
-- **sprint `claude/work_260514-a`** 가 1차 채택 (4.1) 의 RBAC 매트릭스 확장 (`applications` / `application_repositories` / `projects` / `scm_providers` 4 resource × 4 axis = 16 cell × N role) 을 수행.
+- **sprint `claude/work_260514-a`** 가 1차 채택 (4.1) 의 RBAC 매트릭스 확장 (`applications` / `platform_repositories` / `projects` / `scm_providers` 4 resource × 4 axis = 16 cell × N role) 을 수행.
 - handler/service 코드는 row 조건 검증을 도입하지 않음 (1차 단계에서는 dead path).
 - **sprint `claude/work_260515-c`** 가 §4.2 의 `enforceRowOwnership` helper + `auth.row_denied` audit pattern 을 `backend-core/internal/httpapi/permissions.go` 에 도입. **REQ-FR-PROJ-009 활성화 조건 충족.** handler 단위 호출은 별도 sprint (team_manager seed 결정 시점).
-- 매트릭스 §2.2 RBAC 인덱스에 신규 4 resource 추가 + §3 Application/Project row 의 IMPL 컬럼에 본 ADR §4.1 reference 추가.
+- 매트릭스 §2.2 RBAC 인덱스에 신규 4 resource 추가 + §3 Platform/Project row 의 IMPL 컬럼에 본 ADR §4.1 reference 추가.
 
 ## 6. 후속 작업
 
-- **(1차, 본 sprint)** `applications` / `application_repositories` / `projects` / `scm_providers` resource 의 RBAC matrix seed 마이그레이션 작성. Frontend `PermissionMatrix` 의 `resources` 배열과 `rbac.types.ts` 의 `defaultRoles` 도 9 resource 로 확장 (self-review B1 보강).
+- **(1차, 본 sprint)** `applications` / `platform_repositories` / `projects` / `scm_providers` resource 의 RBAC matrix seed 마이그레이션 작성. Frontend `PermissionMatrix` 의 `resources` 배열과 `rbac.types.ts` 의 `defaultRoles` 도 9 resource 로 확장 (self-review B1 보강).
 - **(2차, 후속 sprint)** `enforceRowOwnership` helper + audit `auth.row_denied` action 도입 + REQ-FR-PROJ-009 활성화.
   - **시그니처 후보**: `func (h Handler) enforceRowOwnership(c *gin.Context, ownerUserID string, allowedRoles ...string) (allowed bool)` — `*gin.Context` 에서 actor 추출 + audit emit 책임을 helper 가 가짐 (`auth.row_denied` 자동 기록). `allowedRoles` 가 비어 있으면 `[system_admin]` fallback. caller 는 단순히 `if !h.enforceRowOwnership(c, app.OwnerUserID, "team_manager"); return`.
   - **audit payload**: `{actor_role, owner_user_id, resource, action, denied_reason: "owner_mismatch"}`.

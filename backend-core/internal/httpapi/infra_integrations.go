@@ -179,7 +179,7 @@ func (h *Handler) infraTopologyV2(c *gin.Context) {
 }
 
 func (h *Handler) persistInfraSnapshotBestEffort(ctx context.Context, ingestID string, req infraSnapshotRequest, degradedProviders []string) {
-	saver, ok := h.cfg.ApplicationStore.(infraSnapshotPersistence)
+	saver, ok := h.cfg.PlatformStore.(infraSnapshotPersistence)
 	if !ok {
 		return
 	}
@@ -229,7 +229,7 @@ func (h *Handler) hydrateRuntimeInfraSnapshot(ctx context.Context) {
 			return
 		}
 	}
-	loader, ok := h.cfg.ApplicationStore.(infraSnapshotPersistence)
+	loader, ok := h.cfg.PlatformStore.(infraSnapshotPersistence)
 	if !ok {
 		return
 	}
@@ -258,7 +258,7 @@ func (h *Handler) hydrateRuntimeInfraSnapshot(ctx context.Context) {
 }
 
 func (h *Handler) homeLabAdapter() (adapters.HomeLabAdapter, bool) {
-	store, ok := h.cfg.ApplicationStore.(infraSnapshotPersistence)
+	store, ok := h.cfg.PlatformStore.(infraSnapshotPersistence)
 	if !ok {
 		return adapters.HomeLabAdapter{}, false
 	}

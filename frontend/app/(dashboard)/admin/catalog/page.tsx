@@ -7,23 +7,23 @@ import { Box, FolderGit2, FolderKanban } from "lucide-react";
 import Link from "next/link";
 import { PageEmpty, PageError, PageLoading } from "@/shared/ui-foundation/components/PageState";
 import { toUserErrorMessage } from "@/shared/utils/error-message";
-import { applicationService, Application as AdminApplication } from "@/domain/application-lifecycle/service/application.service";
+import { platformService, Platform as AdminApplication } from "@/domain/platform-lifecycle/service/platform.service";
 import { repositoryService, Repository } from "@/domain/repository-integration/service/repository.service";
-import { projectService } from "@/domain/application-lifecycle/service/project.service";
-import { ApplicationStatus, ApplicationVisibility, Project } from "@/domain/application-lifecycle/schema/project.types";
+import { projectService } from "@/domain/platform-lifecycle/service/project.service";
+import { PlatformStatus, PlatformVisibility, Project } from "@/domain/platform-lifecycle/schema/project.types";
 import { identityService, OrgMember } from "@/domain/organization-management/service/identity.service";
-import { ApplicationCreationModal } from "@/domain/application-lifecycle/view/ApplicationCreationModal";
-import { ProjectCreationModal } from "@/domain/application-lifecycle/view/ProjectCreationModal";
+import { PlatformCreationModal } from "@/domain/platform-lifecycle/view/PlatformCreationModal";
+import { ProjectCreationModal } from "@/domain/platform-lifecycle/view/ProjectCreationModal";
 import { RepositoryCreationModal } from "@/components/project/RepositoryCreationModal";
 import { RepositoryEditModal } from "@/components/project/RepositoryEditModal";
 import { useToast } from "@/shared/ui-foundation/components/Toast";
 import { cn } from "@/shared/utils";
 
-type CatalogTab = "applications" | "repositories" | "projects";
+type CatalogTab = "platforms" | "repositories" | "projects";
 
 function parseTab(raw: string | null): CatalogTab {
-  if (raw === "applications" || raw === "repositories" || raw === "projects") return raw;
-  return "applications";
+  if (raw === "platforms" || raw === "repositories" || raw === "projects") return raw;
+  return "platforms";
 }
 
 export default function AdminCatalogPage() {
@@ -36,7 +36,7 @@ export default function AdminCatalogPage() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState(initialQuery);
 
-  const [applications, setApplications] = useState<AdminApplication[]>([]);
+  const [platforms, setPlatforms] = useState<AdminApplication[]>([]);
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [users, setUsers] = useState<OrgMember[]>([]);
@@ -56,12 +56,12 @@ export default function AdminCatalogPage() {
     setLoading(true);
     setError(null);
     try {
-      const apps = await applicationService.listApplications({ include_archived: true });
+      const apps = await platformService.listPlatforms({ include_archived: true });
       const repos = await repositoryService.listRepositories();
       const fetchedUsers = await identityService.getUsers().catch(() => []);
 
       const appScopedProjects = await Promise.all(
-        apps.map((app) => projectService.getApplicationProjectsV2(app.id, { include_archived: true }).catch(() => [])),
+        apps.map((app) => projectService.getPlatformProjectsV2(app.id, { include_archived: true }).catch(() => [])),
       );
       const repoScopedProjects = await Promise.all(
         repos.map((repo) => projectService.getRepositoryProjects(repo.id, { include_archived: true }).catch(() => [])),
@@ -69,7 +69,7 @@ export default function AdminCatalogPage() {
       const allProjects = [...appScopedProjects.flat(), ...repoScopedProjects.flat()];
       const dedupProjects = Array.from(new Map(allProjects.map((p) => [p.id, p])).values());
 
-      setApplications(apps);
+      setPlatforms(apps);
       setRepositories(repos);
       setProjects(dedupProjects);
       setUsers(fetchedUsers);
@@ -94,13 +94,13 @@ export default function AdminCatalogPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  const filteredApplications = useMemo(() => {
+  const filteredPlatforms = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return applications;
-    return applications.filter((a) =>
+    if (!q) return platforms;
+    return platforms.filter((a) =>
       [a.key, a.name, a.owner_user_id, a.status].some((v) => (v ?? "").toLowerCase().includes(q)),
     );
-  }, [applications, query]);
+  }, [platforms, query]);
 
   const filteredRepositories = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -117,13 +117,13 @@ export default function AdminCatalogPage() {
     const numericQuery = Number(q);
     const hasNumericQuery = Number.isFinite(numericQuery) && q !== "";
     return projects.filter((p) =>
-      [p.key, p.name, p.owner_user_id, p.status, p.application_id ?? ""].some((v) => String(v).toLowerCase().includes(q)) ||
+      [p.key, p.name, p.owner_user_id, p.status, p.platform_id ?? ""].some((v) => String(v).toLowerCase().includes(q)) ||
       (hasNumericQuery && p.repository_id === numericQuery),
     );
   }, [projects, query]);
 
   const tabs: Array<{ key: CatalogTab; label: string; icon: React.ComponentType<{ className?: string }>; count: number }> = [
-    { key: "applications", label: "Applications", icon: Box, count: filteredApplications.length },
+    { key: "platforms", label: "Platforms", icon: Box, count: filteredPlatforms.length },
     { key: "repositories", label: "Repositories", icon: FolderGit2, count: filteredRepositories.length },
     { key: "projects", label: "Projects", icon: FolderKanban, count: filteredProjects.length },
   ];
@@ -140,8 +140,8 @@ export default function AdminCatalogPage() {
   const appProjectCount = useMemo(() => {
     const counts = new Map<string, number>();
     for (const p of projects) {
-      if (!p.application_id) continue;
-      counts.set(p.application_id, (counts.get(p.application_id) ?? 0) + 1);
+      if (!p.platform_id) continue;
+      counts.set(p.platform_id, (counts.get(p.platform_id) ?? 0) + 1);
     }
     return counts;
   }, [projects]);
@@ -156,8 +156,8 @@ export default function AdminCatalogPage() {
   }, [projects]);
 
   const applicationNameByID = useMemo(
-    () => new Map(applications.map((app) => [app.id, app.name])),
-    [applications],
+    () => new Map(platforms.map((app) => [app.id, app.name])),
+    [platforms],
   );
 
   const userNameByID = useMemo(
@@ -177,18 +177,18 @@ export default function AdminCatalogPage() {
   const handleArchiveApplication = async (app: AdminApplication) => {
     const isHard = app.status === "archived";
     const msg = isHard
-      ? `Permanently delete archived application "${app.name}"? This cannot be undone.`
-      : `Archive application "${app.name}"?`;
+      ? `Permanently delete archived platform "${app.name}"? This cannot be undone.`
+      : `Archive platform "${app.name}"?`;
     if (!confirm(msg)) return;
     try {
-      await projectService.archiveApplication(app.id, isHard);
-      toast(`Application ${app.name} ${isHard ? "permanently deleted" : "archived"}`, "success");
+      await projectService.archivePlatform(app.id, isHard);
+      toast(`Platform ${app.name} ${isHard ? "permanently deleted" : "archived"}`, "success");
       await loadAll();
     } catch (err) {
       toast(
         toUserErrorMessage(
           err,
-          isHard ? "Application 영구 삭제에 실패했습니다." : "Application 삭제에 실패했습니다.",
+          isHard ? "Platform 영구 삭제에 실패했습니다." : "Platform 삭제에 실패했습니다.",
         ),
         "error",
       );
@@ -245,7 +245,7 @@ export default function AdminCatalogPage() {
     } catch (err) {
       const message = err instanceof Error ? err.message : "";
       if (message.includes("repository_has_links") || message.includes("409")) {
-        toast("이 저장소는 application/project 에 연결되어 있어 먼저 unlink 가 필요합니다.", "error");
+        toast("이 저장소는 platform/project 에 연결되어 있어 먼저 unlink 가 필요합니다.", "error");
       } else {
         toast(toUserErrorMessage(err, "Repository 삭제에 실패했습니다."), "error");
       }
@@ -263,8 +263,8 @@ export default function AdminCatalogPage() {
         owner_user_id: editingApplication.owner_user_id,
         leader_user_id: editingApplication.leader_user_id,
         development_unit_id: editingApplication.development_unit_id,
-        status: editingApplication.status as ApplicationStatus,
-        visibility: editingApplication.visibility as ApplicationVisibility,
+        status: editingApplication.status as PlatformStatus,
+        visibility: editingApplication.visibility as PlatformVisibility,
         start_date: editingApplication.start_date ?? undefined,
         due_date: editingApplication.due_date ?? undefined,
         archived_at: editingApplication.archived_at ?? undefined,
@@ -293,7 +293,7 @@ export default function AdminCatalogPage() {
           >
             Refresh
           </button>
-          {activeTab === "applications" && (
+          {activeTab === "platforms" && (
             <button
               onClick={() => {
                 setEditingApplication(null);
@@ -301,7 +301,7 @@ export default function AdminCatalogPage() {
               }}
               className="rounded-xl bg-primary px-3 py-2 text-xs font-bold uppercase tracking-widest text-primary-foreground hover:opacity-90"
             >
-              New Application
+              New Platform
             </button>
           )}
           {activeTab === "projects" && (
@@ -367,9 +367,9 @@ export default function AdminCatalogPage() {
 
       {error && <PageError message={error} onRetry={() => void loadAll()} />}
 
-      {!error && activeTab === "applications" && (
-        filteredApplications.length === 0 ? (
-          <PageEmpty message="조회된 Application 이 없습니다." />
+      {!error && activeTab === "platforms" && (
+        filteredPlatforms.length === 0 ? (
+          <PageEmpty message="조회된 Platform 이 없습니다." />
         ) : (
           <div className="glass-card overflow-hidden border border-border/60">
             <table className="w-full text-sm">
@@ -385,7 +385,7 @@ export default function AdminCatalogPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredApplications.map((a) => (
+                {filteredPlatforms.map((a) => (
                   <tr key={a.id} className="border-t border-border/40">
                     <td className="px-4 py-3 font-mono">{a.key}</td>
                     <td className="px-4 py-3">{a.name}</td>
@@ -396,7 +396,7 @@ export default function AdminCatalogPage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <Link
-                          href={`/applications/${a.id}`}
+                          href={`/platforms/${a.id}`}
                           data-testid={`catalog-app-detail-${a.id}`}
                           className="rounded-lg border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-widest hover:bg-muted/30"
                         >
@@ -564,7 +564,7 @@ export default function AdminCatalogPage() {
                 <tr>
                   <th className="px-4 py-3 text-left">Key</th>
                   <th className="px-4 py-3 text-left">Name</th>
-                  <th className="px-4 py-3 text-left">Application</th>
+                  <th className="px-4 py-3 text-left">Platform</th>
                   <th className="px-4 py-3 text-left">Status</th>
                   <th className="px-4 py-3 text-left">Leader</th>
                   <th className="px-4 py-3 text-left">Updated</th>
@@ -576,7 +576,7 @@ export default function AdminCatalogPage() {
                   <tr key={p.id} className="border-t border-border/40">
                     <td className="px-4 py-3 font-mono">{p.key}</td>
                     <td className="px-4 py-3">{p.name}</td>
-                    <td className="px-4 py-3">{(p.application_id && applicationNameByID.get(p.application_id)) || "-"}</td>
+                    <td className="px-4 py-3">{(p.platform_id && applicationNameByID.get(p.platform_id)) || "-"}</td>
                     <td className="px-4 py-3">{p.status}</td>
                     <td className="px-4 py-3">{(p.owner_user_id && userNameByID.get(p.owner_user_id)) || p.owner_user_id || "-"}</td>
                     <td className="px-4 py-3">{new Date(p.updated_at).toLocaleString()}</td>
@@ -620,14 +620,14 @@ export default function AdminCatalogPage() {
       )}
       <AnimatePresence>
         {showApplicationModal && (
-          <ApplicationCreationModal
+          <PlatformCreationModal
             initialData={editingApplicationInitialData}
             onClose={() => {
               setShowApplicationModal(false);
               setEditingApplication(null);
             }}
             onCreated={(app) => {
-              toast(`Application ${app.name} ${editingApplication ? "updated" : "created"}`, "success");
+              toast(`Platform ${app.name} ${editingApplication ? "updated" : "created"}`, "success");
               setShowApplicationModal(false);
               setEditingApplication(null);
               void loadAll();

@@ -23,7 +23,7 @@ type ListAuditLogsOptions struct {
 	CommandID  string
 }
 
-type ApplicationListOptions struct {
+type PlatformListOptions struct {
 	Status          string
 	IncludeArchived bool
 	Query           string
@@ -35,17 +35,17 @@ type ApplicationListOptions struct {
 	PrimaryUnitIDs  []string
 }
 
-// ApplicationRepositoryLinkKey identifies a single link row (composite PK).
-type ApplicationRepositoryLinkKey struct {
-	ApplicationID string
-	RepoProvider  string
-	RepoFullName  string
+// PlatformRepositoryLinkKey identifies a single link row (composite PK).
+type PlatformRepositoryLinkKey struct {
+	PlatformID  string
+	RepoProvider string
+	RepoFullName string
 }
 
 // ProjectListOptions parameterizes ListProjects.
 type ProjectListOptions struct {
 	RepositoryID    int64
-	ApplicationID   string
+	PlatformID   string
 	StandaloneOnly  bool
 	Status          string
 	IncludeArchived bool

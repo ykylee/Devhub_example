@@ -13,13 +13,13 @@ test.describe("Verify build status fix and SCM activity", () => {
     await loginAs(page, SEEDED.systemAdmin);
   });
 
-  test("verify application detail build status is '없음' and capture screenshot", async ({ page }) => {
+  test("verify platform detail build status is '없음' and capture screenshot", async ({ page }) => {
     test.setTimeout(180000);
 
     // Directly navigate to DevHub Simulation App detail page
     const appId = "e8a9bc11-a89c-4cb1-8071-8890ab2345ef";
-    console.log(`[E2E] Navigating directly to Application detail: ${appId}`);
-    await page.goto(appPath(`/applications/${appId}`));
+    console.log(`[E2E] Navigating directly to Platform detail: ${appId}`);
+    await page.goto(appPath(`/platforms/${appId}`));
     await page.waitForLoadState("networkidle", { timeout: 20000 }).catch(() => undefined);
     await page.waitForTimeout(2000); // Settle delay for Recharts dynamic animations
 
@@ -40,7 +40,7 @@ test.describe("Verify build status fix and SCM activity", () => {
     // Take screenshot and save to artifacts directory
     const screenshotPath = "test-results/screenshots/application_detail_verified.png";
     await page.screenshot({ path: screenshotPath, fullPage: true });
-    console.log("[E2E] Application Detail Screenshot saved to:", screenshotPath);
+    console.log("[E2E] Platform Detail Screenshot saved to:", screenshotPath);
   });
 
   test("verify project detail SCM Activity and capture screenshot", async ({ page }) => {

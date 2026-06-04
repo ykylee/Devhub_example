@@ -16,8 +16,8 @@ func init() {
 }
 
 func TestCreateRepositoryDraft_Success(t *testing.T) {
-	appStore := newMemoryApplicationStore()
-	router := newApplicationsRouter(appStore)
+	platformStore := newMemoryPlatformStore()
+	router := newPlatformsRouter(platformStore)
 
 	rec := doJSON(t, router, http.MethodPost, "/api/v1/repositories",
 		`{"key":"my-repo","slug":"team/my-repo"}`)
@@ -37,8 +37,8 @@ func TestCreateRepositoryDraft_Success(t *testing.T) {
 }
 
 func TestCreateRepositoryDraft_ValidationError(t *testing.T) {
-	appStore := newMemoryApplicationStore()
-	router := newApplicationsRouter(appStore)
+	platformStore := newMemoryPlatformStore()
+	router := newPlatformsRouter(platformStore)
 
 	rec := doJSON(t, router, http.MethodPost, "/api/v1/repositories",
 		`{"key":"","slug":""}`)
@@ -48,9 +48,9 @@ func TestCreateRepositoryDraft_ValidationError(t *testing.T) {
 }
 
 func TestUpdateRepositoryDraft_Success(t *testing.T) {
-	appStore := newMemoryApplicationStore()
-	draft, _ := appStore.CreateRepositoryDraft(context.Background(), "repo-a", "team/repo-a", "")
-	router := newApplicationsRouter(appStore)
+	platformStore := newMemoryPlatformStore()
+	draft, _ := platformStore.CreateRepositoryDraft(context.Background(), "repo-a", "team/repo-a", "")
+	router := newPlatformsRouter(platformStore)
 
 	rec := doJSON(t, router, http.MethodPatch, "/api/v1/repositories/"+strconv.FormatInt(draft.ID, 10),
 		`{"key":"repo-a-v2","slug":"team/repo-a-v2"}`)
@@ -67,8 +67,8 @@ func TestUpdateRepositoryDraft_Success(t *testing.T) {
 }
 
 func TestUpdateRepositoryDraft_NotFound(t *testing.T) {
-	appStore := newMemoryApplicationStore()
-	router := newApplicationsRouter(appStore)
+	platformStore := newMemoryPlatformStore()
+	router := newPlatformsRouter(platformStore)
 
 	rec := doJSON(t, router, http.MethodPatch, "/api/v1/repositories/99999",
 		`{"key":"x"}`)
@@ -78,15 +78,15 @@ func TestUpdateRepositoryDraft_NotFound(t *testing.T) {
 }
 
 func TestUpdateRepositoryDraft_NotDraft(t *testing.T) {
-	appStore := newMemoryApplicationStore()
-	draft, _ := appStore.CreateRepositoryDraft(context.Background(), "repo-n", "team/repo-n", "")
-	appStore.mu.Lock()
-	repo := appStore.draftRepos[draft.ID]
+	platformStore := newMemoryPlatformStore()
+	draft, _ := platformStore.CreateRepositoryDraft(context.Background(), "repo-n", "team/repo-n", "")
+	platformStore.mu.Lock()
+	repo := platformStore.draftRepos[draft.ID]
 	repo.Status = "active"
-	appStore.draftRepos[draft.ID] = repo
-	appStore.mu.Unlock()
+	platformStore.draftRepos[draft.ID] = repo
+	platformStore.mu.Unlock()
 
-	router := newApplicationsRouter(appStore)
+	router := newPlatformsRouter(platformStore)
 	rec := doJSON(t, router, http.MethodPatch, "/api/v1/repositories/"+strconv.FormatInt(draft.ID, 10),
 		`{"key":"should-fail"}`)
 	if rec.Code != http.StatusNotFound {
@@ -95,23 +95,23 @@ func TestUpdateRepositoryDraft_NotDraft(t *testing.T) {
 }
 
 func TestDeleteRepository_Success(t *testing.T) {
-	appStore := newMemoryApplicationStore()
-	draft, _ := appStore.CreateRepositoryDraft(context.Background(), "repo-d", "team/repo-d", "")
-	router := newApplicationsRouter(appStore)
+	platformStore := newMemoryPlatformStore()
+	draft, _ := platformStore.CreateRepositoryDraft(context.Background(), "repo-d", "team/repo-d", "")
+	router := newPlatformsRouter(platformStore)
 
 	rec := doJSON(t, router, http.MethodDelete, "/api/v1/repositories/"+strconv.FormatInt(draft.ID, 10), "")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
 	}
-	_, err := appStore.GetRepositoryByID(context.Background(), draft.ID)
+	_, err := platformStore.GetRepositoryByID(context.Background(), draft.ID)
 	if err == nil {
 		t.Errorf("expected ErrNotFound after delete")
 	}
 }
 
 func TestDeleteRepository_NotFound(t *testing.T) {
-	appStore := newMemoryApplicationStore()
-	router := newApplicationsRouter(appStore)
+	platformStore := newMemoryPlatformStore()
+	router := newPlatformsRouter(platformStore)
 
 	rec := doJSON(t, router, http.MethodDelete, "/api/v1/repositories/99999", "")
 	if rec.Code != http.StatusNotFound {
@@ -120,17 +120,17 @@ func TestDeleteRepository_NotFound(t *testing.T) {
 }
 
 func TestDeleteRepository_FKConflict(t *testing.T) {
-	appStore := newMemoryApplicationStore()
-	draft, _ := appStore.CreateRepositoryDraft(context.Background(), "repo-fk", "team/repo-fk", "")
-	app, _ := appStore.CreateApplication(context.Background(), domain.Application{
-		Key: "LINKAPP99", Name: "LinkApp", Status: domain.ApplicationStatusPlanning,
-		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+	platformStore := newMemoryPlatformStore()
+	draft, _ := platformStore.CreateRepositoryDraft(context.Background(), "repo-fk", "team/repo-fk", "")
+	app, _ := platformStore.CreatePlatform(context.Background(), domain.Platform{
+		Key: "LINKAPP99", Name: "LinkApp", Status: domain.PlatformStatusPlanning,
+		Visibility: domain.PlatformVisibilityInternal, OwnerUserID: "u1",
 	})
-	_, _ = appStore.CreateApplicationRepository(context.Background(), domain.ApplicationRepository{
-		ApplicationID: app.ID, RepoProvider: "gitea", RepoFullName: "team/repo-fk",
-		Role: domain.ApplicationRepositoryRolePrimary, SyncStatus: domain.SyncStatusActive,
+	_, _ = platformStore.CreatePlatformRepository(context.Background(), domain.PlatformRepository{
+		PlatformID: app.ID, RepoProvider: "gitea", RepoFullName: "team/repo-fk",
+		Role: domain.PlatformRepositoryRolePrimary, SyncStatus: domain.SyncStatusActive,
 	})
-	router := newApplicationsRouter(appStore)
+	router := newPlatformsRouter(platformStore)
 
 	rec := doJSON(t, router, http.MethodDelete, "/api/v1/repositories/"+strconv.FormatInt(draft.ID, 10), "")
 	if rec.Code != http.StatusConflict {
@@ -143,8 +143,8 @@ func TestDeleteRepository_FKConflict(t *testing.T) {
 }
 
 func TestRequestRepositoryPublish_Success(t *testing.T) {
-	appStore := newMemoryApplicationStore()
-	router := newApplicationsRouter(appStore)
+	platformStore := newMemoryPlatformStore()
+	router := newPlatformsRouter(platformStore)
 
 	createRec := doJSON(t, router, http.MethodPost, "/api/v1/repositories",
 		`{"key":"repo-pub","slug":"team/repo-pub","provider_key":"gitea"}`)
@@ -164,8 +164,8 @@ func TestRequestRepositoryPublish_Success(t *testing.T) {
 }
 
 func TestRequestRepositoryPublish_NotFound(t *testing.T) {
-	appStore := newMemoryApplicationStore()
-	router := newApplicationsRouter(appStore)
+	platformStore := newMemoryPlatformStore()
+	router := newPlatformsRouter(platformStore)
 
 	rec := doJSON(t, router, http.MethodPost, "/api/v1/repositories/99999/publish", "")
 	if rec.Code != http.StatusNotFound {
@@ -174,15 +174,15 @@ func TestRequestRepositoryPublish_NotFound(t *testing.T) {
 }
 
 func TestRequestRepositoryPublish_AlreadyPublished(t *testing.T) {
-	appStore := newMemoryApplicationStore()
-	draft, _ := appStore.CreateRepositoryDraft(context.Background(), "repo-done", "team/repo-done", "")
-	appStore.mu.Lock()
-	repo := appStore.draftRepos[draft.ID]
+	platformStore := newMemoryPlatformStore()
+	draft, _ := platformStore.CreateRepositoryDraft(context.Background(), "repo-done", "team/repo-done", "")
+	platformStore.mu.Lock()
+	repo := platformStore.draftRepos[draft.ID]
 	repo.Status = "active"
-	appStore.draftRepos[draft.ID] = repo
-	appStore.mu.Unlock()
+	platformStore.draftRepos[draft.ID] = repo
+	platformStore.mu.Unlock()
 
-	router := newApplicationsRouter(appStore)
+	router := newPlatformsRouter(platformStore)
 	rec := doJSON(t, router, http.MethodPost, "/api/v1/repositories/"+strconv.FormatInt(draft.ID, 10)+"/publish", "")
 	if rec.Code != http.StatusConflict {
 		t.Fatalf("status=%d body=%s (expected 409 for already-published)", rec.Code, rec.Body.String())

@@ -77,17 +77,17 @@ type AuditStore interface {
 	ListAuditLogs(context.Context, store.ListAuditLogsOptions) ([]domain.AuditLog, error)
 }
 
-// ApplicationStore — application-lifecycle 도메인 persistence 컨트랙트
+// PlatformStore — application-lifecycle 도메인 persistence 컨트랙트
 // (API-41..57). Implemented by *store.PostgresStore. Sprint claude/work_260514-b
 // (Application Design 2차) 가 stub → body 로 교체. issue #421/#422 (sprint
 // claude/work_260529-n) 에서 integration CRUD 13 메서드를 `IntegrationStore`
-// 로 분리해 cross-domain bloat 정정. ApplicationStore = app-lifecycle alias,
+// 로 분리해 cross-domain bloat 정정. PlatformStore = app-lifecycle alias,
 // IntegrationStore = integration-registry alias.
-type ApplicationStore = appview.ApplicationStore
+type PlatformStore = appview.PlatformStore
 
 // IntegrationStore — integration-registry 도메인 persistence 컨트랙트
 // (API-58, API-69..75). issue #421/#422 (sprint claude/work_260529-n) 에서
-// 기존 ApplicationStore 의 integration CRUD 13 메서드를 본 interface 로 이관.
+// 기존 PlatformStore 의 integration CRUD 13 메서드를 본 interface 로 이관.
 type IntegrationStore = integview.IntegrationStore
 
 // IdentityAdmin — ADR-0020 sub-carve E (sprint -n) — Keycloak admin = 별도
@@ -107,7 +107,7 @@ type DevRequestStore interface {
 	TransitionDevRequestStatus(ctx context.Context, id string, status domain.DevRequestStatus, reason string) (domain.DevRequest, error)
 	ReassignDevRequest(ctx context.Context, id string, assignee string) (domain.DevRequest, error)
 	MarkDevRequestRegistered(ctx context.Context, id string, targetType domain.DevRequestTargetType, targetID string) (domain.DevRequest, error)
-	RegisterDevRequestWithNewApplication(ctx context.Context, id string, app domain.Application, repo *domain.ApplicationRepository) (domain.DevRequest, domain.Application, error)
+	RegisterDevRequestWithNewPlatform(ctx context.Context, id string, app domain.Platform, repo *domain.PlatformRepository) (domain.DevRequest, domain.Platform, error)
 	RegisterDevRequestWithNewProject(ctx context.Context, id string, proj domain.Project) (domain.DevRequest, domain.Project, error)
 }
 
@@ -144,10 +144,10 @@ type RouterConfig struct {
 	AuditStore            AuditStore
 	BearerTokenVerifier   BearerTokenVerifier
 	OrganizationStore     OrganizationStore
-	ApplicationStore      ApplicationStore
+	PlatformStore      PlatformStore
 	// IntegrationStore — integration-registry 도메인 (API-58, API-69..75). issue
-	// #421/#422 (sprint claude/work_260529-n) 에서 ApplicationStore 와 분리. nil
-	// 이면 기존 fallback (ApplicationStore 가 IntegrationStore 도 구현하는 경우)
+	// #421/#422 (sprint claude/work_260529-n) 에서 PlatformStore 와 분리. nil
+	// 이면 기존 fallback (PlatformStore 가 IntegrationStore 도 구현하는 경우)
 	// 으로 동작 — main.go 가 동일 *PostgresStore 를 양쪽에 주입하던 legacy 호환.
 	IntegrationStore IntegrationStore
 	// DevRequestStore + DevRequestIntakeTokenStore — DREQ 도메인 (ADR-0012, sprint claude/work_260515-i).
@@ -172,30 +172,30 @@ type RouterConfig struct {
 }
 
 // resolveIntegrationStore — issue #421/#422 (sprint claude/work_260529-n) 의
-// fallback. RouterConfig.IntegrationStore 가 명시되지 않으면 ApplicationStore
+// fallback. RouterConfig.IntegrationStore 가 명시되지 않으면 PlatformStore
 // 가 IntegrationStore 도 구현하는지 type-assertion 으로 확인 후 사용. 양쪽 모두
 // 미설정/미충족 이면 nil 반환 → IntegrationHandler 가 503 unavailable 응답.
 func resolveIntegrationStore(cfg RouterConfig) IntegrationStore {
 	if cfg.IntegrationStore != nil {
 		return cfg.IntegrationStore
 	}
-	if cfg.ApplicationStore == nil {
+	if cfg.PlatformStore == nil {
 		return nil
 	}
-	if is, ok := any(cfg.ApplicationStore).(IntegrationStore); ok {
+	if is, ok := any(cfg.PlatformStore).(IntegrationStore); ok {
 		return is
 	}
 	return nil
 }
 
 // repoIntegrationStoreAdapter — repository-integration/view 의 store interface
-// (ApplicationStore 명) 는 GetIntegrationProviderByID + ListRepositoriesByProvider
+// (PlatformStore 명) 는 GetIntegrationProviderByID + ListRepositoriesByProvider
 // + UpsertRepository 3 메서드만 요구한다. issue #421/#422 (sprint
-// claude/work_260529-n) 분리 후 application-lifecycle 의 ApplicationStore 가
+// claude/work_260529-n) 분리 후 application-lifecycle 의 PlatformStore 가
 // integration 메서드를 잃었으므로, 두 store 를 합쳐 repository-integration
-// ApplicationStore 컨트랙트를 만족하는 어댑터를 제공한다.
+// PlatformStore 컨트랙트를 만족하는 어댑터를 제공한다.
 type repoIntegrationStoreAdapter struct {
-	appStore   ApplicationStore
+	platformStore   PlatformStore
 	integStore IntegrationStore
 }
 
@@ -204,22 +204,22 @@ func (a repoIntegrationStoreAdapter) GetIntegrationProviderByID(ctx context.Cont
 }
 
 func (a repoIntegrationStoreAdapter) ListRepositoriesByProvider(ctx context.Context, providerID string) ([]domain.Repository, error) {
-	return a.appStore.ListRepositoriesByProvider(ctx, providerID)
+	return a.platformStore.ListRepositoriesByProvider(ctx, providerID)
 }
 
 func (a repoIntegrationStoreAdapter) UpsertRepository(ctx context.Context, r domain.Repository) error {
-	return a.appStore.UpsertRepository(ctx, r)
+	return a.platformStore.UpsertRepository(ctx, r)
 }
 
 // resolveRepoIntegrationStore — repository-integration/view 에 주입할 어댑터를
-// 구성. ApplicationStore 또는 IntegrationStore 가 nil 이면 nil 반환 →
+// 구성. PlatformStore 또는 IntegrationStore 가 nil 이면 nil 반환 →
 // RepositoryIntegrationHandler 가 503 응답.
-func resolveRepoIntegrationStore(cfg RouterConfig) repoview.ApplicationStore {
+func resolveRepoIntegrationStore(cfg RouterConfig) repoview.PlatformStore {
 	integStore := resolveIntegrationStore(cfg)
-	if cfg.ApplicationStore == nil || integStore == nil {
+	if cfg.PlatformStore == nil || integStore == nil {
 		return nil
 	}
-	return repoIntegrationStoreAdapter{appStore: cfg.ApplicationStore, integStore: integStore}
+	return repoIntegrationStoreAdapter{platformStore: cfg.PlatformStore, integStore: integStore}
 }
 
 func NewRouter(cfg RouterConfig) *gin.Engine {
@@ -261,8 +261,8 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 			AuditStore:            cfg.AuditStore,
 			OnboardingGateEnabled: cfg.OnboardingGateEnabled,
 		}),
-		app: appview.NewApplicationHandler(appview.ApplicationConfig{
-			ApplicationStore: cfg.ApplicationStore,
+		app: appview.NewPlatformHandler(appview.PlatformConfig{
+			PlatformStore: cfg.PlatformStore,
 			DevRequestStore:  cfg.DevRequestStore,
 			ProjectModel:     cfg.ProjectModel,
 			AuditStore:       cfg.AuditStore,
@@ -270,7 +270,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 		devreq: devreqview.NewDevRequestHandler(devreqview.DevRequestConfig{
 			DevRequestStore:            cfg.DevRequestStore,
 			DevRequestIntakeTokenStore: cfg.DevRequestIntakeTokenStore,
-			ApplicationStore:           cfg.ApplicationStore,
+			PlatformStore:           cfg.PlatformStore,
 			AuditStore:                 cfg.AuditStore,
 		}),
 		integ: integview.NewIntegrationHandler(integview.IntegrationConfig{
@@ -288,7 +288,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 			AuthDevFallback: cfg.AuthDevFallback,
 		}),
 		repo: repoview.NewRepositoryIntegrationHandler(repoview.RepositoryIntegrationConfig{
-			ApplicationStore: resolveRepoIntegrationStore(cfg),
+			PlatformStore: resolveRepoIntegrationStore(cfg),
 			AuditStore:       cfg.AuditStore,
 		}),
 		onboard: onboardview.NewOnboardingHandler(onboardview.OnboardingConfig{
@@ -371,16 +371,16 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	// Handler/store body 구현 완료 (activated) — draft/publish (API-91/92) + SCM 양방향 (API-88..90) 포함.
 	v1.GET("/scm/providers", handler.listSCMProviders)
 	v1.PATCH("/scm/providers/:provider_key", handler.updateSCMProvider)
-	v1.GET("/applications", handler.listApplications)
-	v1.POST("/applications", handler.createApplication)
-	v1.GET("/applications/:application_id", handler.getApplication)
-	v1.PATCH("/applications/:application_id", handler.updateApplication)
-	v1.DELETE("/applications/:application_id", handler.archiveApplication)
-	v1.GET("/applications/:application_id/repositories", handler.listApplicationRepositories)
-	v1.POST("/applications/:application_id/repositories", handler.createApplicationRepository)
+	v1.GET("/platforms", handler.listPlatforms)
+	v1.POST("/platforms", handler.createPlatform)
+	v1.GET("/platforms/:platform_id", handler.getPlatform)
+	v1.PATCH("/platforms/:platform_id", handler.updatePlatform)
+	v1.DELETE("/platforms/:platform_id", handler.archivePlatform)
+	v1.GET("/platforms/:platform_id/repositories", handler.listPlatformRepositories)
+	v1.POST("/platforms/:platform_id/repositories", handler.createPlatformRepository)
 	// :repo_key 가 'provider:org/repo' 컨벤션이라 path 에 `/` 포함. gin 의 catch-all
 	// `*repo_key` 사용 — 핸들러는 leading `/` 를 strip 한 뒤 콜론으로 분리.
-	v1.DELETE("/applications/:application_id/repositories/*repo_key", handler.deleteApplicationRepository)
+	v1.DELETE("/platforms/:platform_id/repositories/*repo_key", handler.deletePlatformRepository)
 	// API-51..54 Repository 운영 지표 (sprint claude/work_260514-c)
 	v1.GET("/repositories/:repository_id/activity", handler.repositoryActivity)
 	v1.GET("/repositories/:repository_id/pull-requests", handler.repositoryPullRequests)
@@ -392,8 +392,8 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.POST("/projects", handler.createProjectStandalone)
 	// /projects/standalone 은 /projects/:project_id 보다 먼저 정의해야 gin 이 ID 로 안 잡음.
 	v1.GET("/projects/standalone", handler.listStandaloneProjects)
-	v1.GET("/applications/:application_id/projects", handler.listApplicationProjects)
-	v1.POST("/applications/:application_id/projects", handler.createApplicationProject)
+	v1.GET("/platforms/:platform_id/projects", handler.listPlatformProjects)
+	v1.POST("/platforms/:platform_id/projects", handler.createPlatformProject)
 	v1.GET("/projects/:project_id", handler.getProject)
 	v1.PATCH("/projects/:project_id", handler.updateProject)
 	v1.DELETE("/projects/:project_id", handler.archiveProject)
@@ -401,8 +401,8 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.POST("/projects/:project_id/repositories", handler.createProjectRepository)
 	v1.DELETE("/projects/:project_id/repositories/:repository_id", handler.deleteProjectRepository)
 	// API-57 Application 롤업 (sprint claude/work_260514-c)
-	v1.GET("/applications/:application_id/rollup", handler.applicationRollup)
-	v1.GET("/applications/:application_id/dashboard", handler.applicationDashboard)
+	v1.GET("/platforms/:platform_id/rollup", handler.platformRollup)
+	v1.GET("/platforms/:platform_id/dashboard", handler.platformDashboard)
 	// API-58 Integration CRUD (sprint claude/work_260514-c)
 	v1.GET("/integrations", handler.listIntegrations)
 	v1.POST("/integrations", handler.createIntegration)
@@ -493,7 +493,7 @@ type Handler struct {
 	audit    *auditview.AuditHandler
 	rbac     *rbacview.RBACHandler
 	org      *orgview.OrganizationHandler
-	app      *appview.ApplicationHandler
+	app      *appview.PlatformHandler
 	devreq   *devreqview.DevRequestHandler
 	integ    *integview.IntegrationHandler
 	realtime *realtimeview.RealtimeHandler
@@ -601,12 +601,12 @@ func normalizeProviderSDKKey(v string) string {
 	return strings.ToLower(strings.TrimSpace(v))
 }
 
-func (h Handler) applicationStoreOrUnavailable(c *gin.Context) (ApplicationStore, bool) {
-	if h.cfg.ApplicationStore == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "application store is not configured"})
+func (h Handler) platformStoreOrUnavailable(c *gin.Context) (PlatformStore, bool) {
+	if h.cfg.PlatformStore == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "platform store is not configured"})
 		return nil, false
 	}
-	return h.cfg.ApplicationStore, true
+	return h.cfg.PlatformStore, true
 }
 
 func formatDatePtr(t *time.Time) any {
@@ -685,8 +685,8 @@ func (h Handler) ensure() Handler {
 		})
 	}
 	if h.app == nil {
-		h.app = appview.NewApplicationHandler(appview.ApplicationConfig{
-			ApplicationStore: h.cfg.ApplicationStore,
+		h.app = appview.NewPlatformHandler(appview.PlatformConfig{
+			PlatformStore: h.cfg.PlatformStore,
 			DevRequestStore:  h.cfg.DevRequestStore,
 			ProjectModel:     h.cfg.ProjectModel,
 			AuditStore:       h.cfg.AuditStore,
@@ -696,7 +696,7 @@ func (h Handler) ensure() Handler {
 		h.devreq = devreqview.NewDevRequestHandler(devreqview.DevRequestConfig{
 			DevRequestStore:            h.cfg.DevRequestStore,
 			DevRequestIntakeTokenStore: h.cfg.DevRequestIntakeTokenStore,
-			ApplicationStore:           h.cfg.ApplicationStore,
+			PlatformStore:           h.cfg.PlatformStore,
 			AuditStore:                 h.cfg.AuditStore,
 		})
 	}
@@ -720,7 +720,7 @@ func (h Handler) ensure() Handler {
 	}
 	if h.repo == nil {
 		h.repo = repoview.NewRepositoryIntegrationHandler(repoview.RepositoryIntegrationConfig{
-			ApplicationStore: resolveRepoIntegrationStore(h.cfg),
+			PlatformStore: resolveRepoIntegrationStore(h.cfg),
 			AuditStore:       h.cfg.AuditStore,
 		})
 	}
@@ -870,37 +870,37 @@ func (h Handler) updateSCMProvider(c *gin.Context) {
 	h = h.ensure()
 	h.app.UpdateSCMProvider(c)
 }
-func (h Handler) listApplications(c *gin.Context) {
+func (h Handler) listPlatforms(c *gin.Context) {
 	h = h.ensure()
-	h.app.ListApplications(c)
+	h.app.ListPlatforms(c)
 }
-func (h Handler) createApplication(c *gin.Context) {
+func (h Handler) createPlatform(c *gin.Context) {
 	h = h.ensure()
-	h.app.CreateApplication(c)
+	h.app.CreatePlatform(c)
 }
-func (h Handler) getApplication(c *gin.Context) {
+func (h Handler) getPlatform(c *gin.Context) {
 	h = h.ensure()
-	h.app.GetApplication(c)
+	h.app.GetPlatform(c)
 }
-func (h Handler) updateApplication(c *gin.Context) {
+func (h Handler) updatePlatform(c *gin.Context) {
 	h = h.ensure()
-	h.app.UpdateApplication(c)
+	h.app.UpdatePlatform(c)
 }
-func (h Handler) archiveApplication(c *gin.Context) {
+func (h Handler) archivePlatform(c *gin.Context) {
 	h = h.ensure()
-	h.app.ArchiveApplication(c)
+	h.app.ArchivePlatform(c)
 }
-func (h Handler) listApplicationRepositories(c *gin.Context) {
+func (h Handler) listPlatformRepositories(c *gin.Context) {
 	h = h.ensure()
-	h.app.ListApplicationRepositories(c)
+	h.app.ListPlatformRepositories(c)
 }
-func (h Handler) createApplicationRepository(c *gin.Context) {
+func (h Handler) createPlatformRepository(c *gin.Context) {
 	h = h.ensure()
-	h.app.CreateApplicationRepository(c)
+	h.app.CreatePlatformRepository(c)
 }
-func (h Handler) deleteApplicationRepository(c *gin.Context) {
+func (h Handler) deletePlatformRepository(c *gin.Context) {
 	h = h.ensure()
-	h.app.DeleteApplicationRepository(c)
+	h.app.DeletePlatformRepository(c)
 }
 
 func (h Handler) listProjects(c *gin.Context) {
@@ -919,13 +919,13 @@ func (h Handler) listStandaloneProjects(c *gin.Context) {
 	h = h.ensure()
 	h.app.ListStandaloneProjects(c)
 }
-func (h Handler) listApplicationProjects(c *gin.Context) {
+func (h Handler) listPlatformProjects(c *gin.Context) {
 	h = h.ensure()
-	h.app.ListApplicationProjects(c)
+	h.app.ListPlatformProjects(c)
 }
-func (h Handler) createApplicationProject(c *gin.Context) {
+func (h Handler) createPlatformProject(c *gin.Context) {
 	h = h.ensure()
-	h.app.CreateApplicationProject(c)
+	h.app.CreatePlatformProject(c)
 }
 func (h Handler) getProject(c *gin.Context) {
 	h = h.ensure()
@@ -951,13 +951,13 @@ func (h Handler) deleteProjectRepository(c *gin.Context) {
 	h = h.ensure()
 	h.app.DeleteProjectRepository(c)
 }
-func (h Handler) applicationRollup(c *gin.Context) {
+func (h Handler) platformRollup(c *gin.Context) {
 	h = h.ensure()
-	h.app.ApplicationRollup(c)
+	h.app.PlatformRollup(c)
 }
-func (h Handler) applicationDashboard(c *gin.Context) {
+func (h Handler) platformDashboard(c *gin.Context) {
 	h = h.ensure()
-	h.app.ApplicationDashboard(c)
+	h.app.PlatformDashboard(c)
 }
 func (h Handler) listIntegrations(c *gin.Context) {
 	h = h.ensure()

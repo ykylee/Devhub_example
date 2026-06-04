@@ -1,11 +1,11 @@
 # 통합 테스트 시나리오 카탈로그
 
-- 문서 목적: DevHub 전체 기능에 대한 End-to-End 통합 테스트 시나리오를 정의한다. Keycloak 인증/온보딩, Application/Project/Repository 생명주기, Gitea SCM 연동, CI/CD 빌드 상태 연동을 단일 시나리오 체인으로 연결한다.
-- 범위: 시나리오 1 (Keycloak 사용자 등록/로그인/온보딩/권한 조회 범위) / 시나리오 2 (시스템 관리자 Application/Project/Repository 등록 + Gitea 연결) / 시나리오 3 (Gitea PR/Issue 연동 및 알림) / 시나리오 4 (빌드 실패 및 대시보드 표시). 각 시나리오는 세부 서브 시나리오로 구성.
+- 문서 목적: DevHub 전체 기능에 대한 End-to-End 통합 테스트 시나리오를 정의한다. Keycloak 인증/온보딩, Platform/Project/Repository 생명주기, Gitea SCM 연동, CI/CD 빌드 상태 연동을 단일 시나리오 체인으로 연결한다.
+- 범위: 시나리오 1 (Keycloak 사용자 등록/로그인/온보딩/권한 조회 범위) / 시나리오 2 (시스템 관리자 Platform/Project/Repository 등록 + Gitea 연결) / 시나리오 3 (Gitea PR/Issue 연동 및 알림) / 시나리오 4 (빌드 실패 및 대시보드 표시). 각 시나리오는 세부 서브 시나리오로 구성.
 - 대상 독자: QA, Backend/Frontend 개발자, AI 에이전트, 시스템 운영자.
 - 상태: draft
 - 최종 수정일: 2026-06-01
-- 관련 문서: [`system_usecases.md`](./system_usecases.md), [`e2e_testing_strategy.md`](../tests/e2e_testing_strategy.md), [`release_v1_roadmap.md`](./release_v1_roadmap.md), [`docs/domain/auth-session/`](../domain/auth-session/), [`docs/domain/onboarding/`](../domain/onboarding/), [`docs/domain/application-lifecycle/`](../domain/application-lifecycle/), [`docs/domain/repository-integration/`](../domain/repository-integration/), [`docs/domain/integration-registry/`](../domain/integration-registry/), [`docs/domain/realtime/`](../domain/realtime/), [`docs/traceability/report.md`](../traceability/report.md).
+- 관련 문서: [`system_usecases.md`](./system_usecases.md), [`e2e_testing_strategy.md`](../tests/e2e_testing_strategy.md), [`release_v1_roadmap.md`](./release_v1_roadmap.md), [`docs/domain/auth-session/`](../domain/auth-session/), [`docs/domain/onboarding/`](../domain/onboarding/), [`docs/domain/platform-lifecycle/`](../domain/platform-lifecycle/), [`docs/domain/repository-integration/`](../domain/repository-integration/), [`docs/domain/integration-registry/`](../domain/integration-registry/), [`docs/domain/realtime/`](../domain/realtime/), [`docs/traceability/report.md`](../traceability/report.md).
 
 ## 1. 테스트 환경
 
@@ -133,12 +133,12 @@ Keycloak IdP를 통한 신규 사용자 등록 → 첫 로그인 → 온보딩 �
 | **계층** | API / UI |
 | **전제조건** | 3개 계정 준비: Developer A(`developer`), Manager B(`manager`), System Admin(`system_admin`) |
 | **시나리오** | **Developer 조회 범위** |
-| | 1. `developer` 계정으로 `GET /api/v1/applications` → 자신이 속한 org/project의 application만 조회 |
+| | 1. `developer` 계정으로 `GET /api/v1/platforms` → 자신이 속한 org/project의 application만 조회 |
 | | 2. `GET /api/v1/projects` → 동일 scope 제한 확인 |
 | | 3. `GET /api/v1/admin/...` → 403 확인 (system_admin 전용) |
 | | — |
 | | **Manager 조회 범위** |
-| | 4. `manager` 계정으로 `GET /api/v1/applications` → 자신의 부서/프로젝트 전체 조회 가능 |
+| | 4. `manager` 계정으로 `GET /api/v1/platforms` → 자신의 부서/프로젝트 전체 조회 가능 |
 | | 5. `GET /api/v1/projects/:id/members` → 멤버 조회 가능 |
 | | 6. `POST /api/v1/dev-requests` → dev-request 생성 가능 |
 | | — |
@@ -156,7 +156,7 @@ Keycloak IdP를 통한 신규 사용자 등록 → 첫 로그인 → 온보딩 �
 
 ---
 
-## 3. 시나리오 2: 시스템 관리자 Application/Project/Repository 등록
+## 3. 시나리오 2: 시스템 관리자 Platform/Project/Repository 등록
 
 ### 3.1 개요
 
@@ -217,8 +217,8 @@ Keycloak IdP를 통한 신규 사용자 등록 → 첫 로그인 → 온보딩 �
 | |    - Leader: 조직 사용자 선택 |
 | |    - Dev Unit: 조직 단위 선택 |
 | |    - Visibility: `public` (기본) |
-| | 3. 제출 → `POST /api/v1/applications` → 201 + application_id 반환 |
-| | 4. `GET /api/v1/applications` 목록에서 "Test Application Alpha" 노출 확인 |
+| | 3. 제출 → `POST /api/v1/platforms` → 201 + platform_id 반환 |
+| | 4. `GET /api/v1/platforms` 목록에서 "Test Application Alpha" 노출 확인 |
 | | 5. 상세 진입 시 입력한 정보 일치 확인 |
 | **기대 결과** | - Application 생성 API 정상 동작 (API-41~43) |
 | | - Key 중복 시 409 에러 |
@@ -233,13 +233,13 @@ Keycloak IdP를 통한 신규 사용자 등록 → 첫 로그인 → 온보딩 �
 | **우선순위** | P0 |
 | **계층** | E2E |
 | **전제조건** | SC-TEST-2.2 완료 (Test Application Alpha 존재) |
-| **시나리오** | 1. Application 상세 페이지 → "Add Project" |
+| **시나리오** | 1. Platform 상세 페이지 → "Add Project" |
 | | 2. Project 정보 입력: |
 | |    - Name: "Alpha Integration Sprint" |
 | |    - Status: `active` |
 | |    - 기간: 2026-06-01 ~ 2026-07-31 |
 | | 3. 제출 → `POST /api/v1/projects` → 201 + project_id 반환 |
-| | 4. `GET /api/v1/applications/:id/projects` 목록에서 project 노출 확인 |
+| | 4. `GET /api/v1/platforms/:id/projects` 목록에서 project 노출 확인 |
 | | 5. Project 상세 진입: 기간, 상태, 담당자 정보 일치 확인 |
 | **기대 결과** | - Project 생성 API 정상 동작 (API-55~56) |
 | | - Application-Project 관계 정합성 유지 |
@@ -269,7 +269,7 @@ Keycloak IdP를 통한 신규 사용자 등록 → 첫 로그인 → 온보딩 �
 | | **DevHub Binding 연결** |
 | | 7. Project → "Link Repository" → 생성된 repository 선택 |
 | | 8. `POST /api/v1/integration/bindings` 로 Project-Repository 바인딩 |
-| | 9. `GET /api/v1/applications/:id/dashboard` (API-93) 에 repository 연동 상태 노출 확인 |
+| | 9. `GET /api/v1/platforms/:id/dashboard` (API-93) 에 repository 연동 상태 노출 확인 |
 | **기대 결과** | - DevHub에서 Gitea 저장소 Outbound 생성 정상 동작 |
 | | - Gitea에 실제 저장소가 생성됨 |
 | | - Project-Repository 바인딩 정상 연결 |
@@ -450,7 +450,7 @@ Gitea에 샘플 작업물을 등록하고, PR/Issue가 DevHub에 연동되어 �
 
 ### 5.1 개요
 
-CI/CD 빌드 실패 상황을 시뮬레이션하고, DevHub 내 Application/Project/Repository 대시보드에 빌드 상태가 정확히 표시되는지 확인한다. 다양한 실패 유형과 상태 전이를 검증한다.
+CI/CD 빌드 실패 상황을 시뮬레이션하고, DevHub 내 Platform/Project/Repository 대시보드에 빌드 상태가 정확히 표시되는지 확인한다. 다양한 실패 유형과 상태 전이를 검증한다.
 
 ### 5.2 기능 맵
 
@@ -510,7 +510,7 @@ CI/CD 빌드 실패 상황을 시뮬레이션하고, DevHub 내 Application/Proj
 | | 4. "Last Build" 상태 표시줄: `success` 또는 `failure` 텍스트와 색상 |
 | | — |
 | | **Application 대시보드** |
-| | 5. `/devhub/applications/:id/dashboard` → Application 대시보드 확인 |
+| | 5. `/devhub/platforms/:id/dashboard` → Application 대시보드 확인 |
 | | 6. 연관 Repository들의 빌드 상태 요약 표시 |
 | | 7. 전체 성공률(%) 또는 최근 빌드 상태 집계 확인 |
 | | — |
@@ -631,8 +631,8 @@ CI/CD 빌드 실패 상황을 시뮬레이션하고, DevHub 내 Application/Proj
 | TC-TEST-ONBOARD-02 | REQ-FR-ONBOARD-005 | UC-ONBOARD-05 | ARCH-ONBOARD-02, 06 | API-86 | onboarding/view/handler.go |
 | TC-TEST-RBAC-01 | REQ-FR-27, 86, NFR-26 | UC-RBAC-01, 03 | ARCH-13 | API-26~29 | rbac-permissions/view/ |
 | TC-TEST-GITEA-PROVIDER-01 | REQ-FR-INT-001..015 | UC-INT-01..18 | ARCH-INT-01..07 | API-69~72, 87 | integration-registry/view/ |
-| TC-TEST-APP-01 | REQ-FR-APP-001..005 | UC-APP-01..03 | ARCH-10 | API-41~43 | application-lifecycle/view/ |
-| TC-TEST-PROJ-01 | REQ-FR-PROJ-001..005 | UC-PROJ-01..04 | ARCH-10 | API-55~56 | application-lifecycle/view/ |
+| TC-TEST-APP-01 | REQ-FR-APP-001..005 | UC-APP-01..03 | ARCH-10 | API-41~43 | platform-lifecycle/view/ |
+| TC-TEST-PROJ-01 | REQ-FR-PROJ-001..005 | UC-PROJ-01..04 | ARCH-10 | API-55~56 | platform-lifecycle/view/ |
 | TC-TEST-REPO-CREATE-01 | REQ-FR-REPO-001..003 | UC-REPO-04, 05 | ARCH-REPO-04, 05 | API-88~92 | repository-integration/view/ |
 | TC-TEST-REPO-LIFECYCLE-01 | REQ-FR-REPO-001..005 | UC-REPO-06, 07 | ARCH-REPO-06, 07 | API-91, 92 | repository-integration/ |
 | TC-TEST-ISSUE-01 | REQ-FR-49..55 | UC-GITEA-01, UC-REPO-01 | ARCH-06, 07 | API-02, API-51 | gitea/client.go |
@@ -641,10 +641,10 @@ CI/CD 빌드 실패 상황을 시뮬레이션하고, DevHub 내 Application/Proj
 | TC-TEST-NOTIF-01 | REQ-FR-104, 105 | UC-RT-01, 02 | ARCH-05 | API-37 | realtime/view/realtime.go |
 | TC-TEST-WEBHOOK-01 | REQ-FR-56 | UC-GITEA-03 | ARCH-06 | API-04 | integration-registry/view/ |
 | TC-TEST-CI-01 | REQ-FR-104 | UC-RT-01 | ARCH-05 | (ci-runs) | httpapi/router.go, domain.go |
-| TC-TEST-CI-DASHBOARD-01 | REQ-FR-APPDASH-001..003 | UC-APPDASH-01..04 | ARCH-APPDASH-01, 02 | API-93 | application-lifecycle/view/ |
+| TC-TEST-CI-DASHBOARD-01 | REQ-FR-APPDASH-001..003 | UC-APPDASH-01..04 | ARCH-APPDASH-01, 02 | API-93 | platform-lifecycle/view/ |
 | TC-TEST-CI-REALTIME-01 | REQ-FR-104, 105 | UC-RT-02 | ARCH-05 | API-37 | realtime/view/realtime.go |
 | TC-TEST-CI-FAILURE-01 | REQ-FR-APPDASH-004..006 | UC-APPDASH-05..07 | ARCH-APPDASH-03 | (ci-runs) | domain.go (CIRun) |
-| TC-TEST-CI-TREND-01 | REQ-FR-APPDASH-001..006 | UC-APPDASH-01..07 | ARCH-APPDASH-04, 05 | API-93 | application-lifecycle/ |
+| TC-TEST-CI-TREND-01 | REQ-FR-APPDASH-001..006 | UC-APPDASH-01..07 | ARCH-APPDASH-04, 05 | API-93 | platform-lifecycle/ |
 
 ## 9. 테스트 실행 순서 (권장)
 

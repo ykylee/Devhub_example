@@ -29,12 +29,12 @@ func seedSCMProvider(t *testing.T, router http.Handler, key, capsJSON, baseURL s
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("seed provider failed: %s", rec.Body.String())
 	}
-	return "prov-" + key // memoryApplicationStore.CreateIntegrationProvider ID 규칙
+	return "prov-" + key // memoryPlatformStore.CreateIntegrationProvider ID 규칙
 }
 
 func TestListSCMRepositories_Happy(t *testing.T) {
 	srv := fakeGiteaServer(t)
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	id := seedSCMProvider(t, router, "gitea-list", `["pull"]`, srv.URL)
 
 	rec := doJSON(t, router, http.MethodGet, "/api/v1/integration/providers/"+id+"/scm-repositories", "")
@@ -51,7 +51,7 @@ func TestListSCMRepositories_Happy(t *testing.T) {
 
 func TestListSCMRepositories_RequiresPullCapability(t *testing.T) {
 	srv := fakeGiteaServer(t)
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	// webhook capability 만 — pull 없음.
 	id := seedSCMProvider(t, router, "gitea-nopull", `["webhook"]`, srv.URL)
 
@@ -66,7 +66,7 @@ func TestListSCMRepositories_RequiresPullCapability(t *testing.T) {
 
 func TestImportSCMRepositories_Happy(t *testing.T) {
 	srv := fakeGiteaServer(t)
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	id := seedSCMProvider(t, router, "gitea-import", `["pull"]`, srv.URL)
 
 	rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers/"+id+"/import-repositories",
@@ -87,7 +87,7 @@ func TestImportSCMRepositories_Happy(t *testing.T) {
 
 func TestImportSCMRepositories_NoSelection(t *testing.T) {
 	srv := fakeGiteaServer(t)
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	id := seedSCMProvider(t, router, "gitea-empty", `["pull"]`, srv.URL)
 
 	rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers/"+id+"/import-repositories", `{"full_names":[]}`)
@@ -101,7 +101,7 @@ func TestImportSCMRepositories_NoSelection(t *testing.T) {
 
 func TestImportSCMRepositories_UnknownRepoReportedNotFound(t *testing.T) {
 	srv := fakeGiteaServer(t)
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	id := seedSCMProvider(t, router, "gitea-nf", `["pull"]`, srv.URL)
 
 	rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers/"+id+"/import-repositories",
@@ -118,7 +118,7 @@ func TestImportSCMRepositories_UnknownRepoReportedNotFound(t *testing.T) {
 // codex #363 P2 — credentials_ref 의 provider_sdk vendor 가 비-gitea(github)면 거부.
 func TestListSCMRepositories_RejectsNonGiteaVendor(t *testing.T) {
 	srv := fakeGiteaServer(t)
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	// provider_sdk:github → Gitea-incompatible.
 	body := `{"provider_key":"github-main","provider_type":"scm","display_name":"GitHub","auth_mode":"token","credentials_ref":"provider_sdk:github:wh","capabilities":["pull"],"base_url":"` + srv.URL + `"}`
 	if rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers", body); rec.Code != http.StatusCreated {
@@ -151,7 +151,7 @@ func fakeGiteaServerWithCreate(t *testing.T) *httptest.Server {
 
 func TestCreateSCMRepository_Happy(t *testing.T) {
 	srv := fakeGiteaServerWithCreate(t)
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	id := seedSCMProvider(t, router, "gitea-push", `["pull","push"]`, srv.URL)
 
 	rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers/"+id+"/create-repository",
@@ -167,7 +167,7 @@ func TestCreateSCMRepository_Happy(t *testing.T) {
 
 func TestCreateSCMRepository_RequiresPushCapability(t *testing.T) {
 	srv := fakeGiteaServerWithCreate(t)
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	// pull 만 — push 없음.
 	id := seedSCMProvider(t, router, "gitea-nopush", `["pull"]`, srv.URL)
 
@@ -184,7 +184,7 @@ func TestCreateSCMRepository_RequiresPushCapability(t *testing.T) {
 // codex #366 P2 — 비활성 provider 는 scm-repositories 작업(list/import/create) 거부.
 func TestSCMRepositories_RejectsDisabledProvider(t *testing.T) {
 	srv := fakeGiteaServerWithCreate(t)
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	id := seedSCMProvider(t, router, "gitea-disabled", `["pull","push"]`, srv.URL)
 	patch := doJSON(t, router, http.MethodPatch, "/api/v1/integration/providers/"+id, `{"enabled":false}`)
 	if patch.Code != http.StatusOK {
@@ -205,7 +205,7 @@ func TestSCMRepositories_RejectsDisabledProvider(t *testing.T) {
 
 func TestCreateSCMRepository_NameRequired(t *testing.T) {
 	srv := fakeGiteaServerWithCreate(t)
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	id := seedSCMProvider(t, router, "gitea-noname", `["pull","push"]`, srv.URL)
 
 	rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers/"+id+"/create-repository", `{"name":"  "}`)

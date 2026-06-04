@@ -22,7 +22,7 @@
    - `PATCH /api/v1/projects/:project_id` (update)
    - `DELETE /api/v1/projects/:project_id` (archive)
 3. **API-57 Application 롤업**:
-   - `GET /api/v1/applications/:application_id/rollup`
+   - `GET /api/v1/platforms/:application_id/rollup`
    - concept §13.4 weight_policy normalize 룰 (equal / repo_role / custom ± 0.001) 실 구현
    - meta (period / filters / weight_policy / applied_weights / fallbacks / data_gaps)
    - **active→closed critical 가드 흡수** (직전 sprint carve_out)

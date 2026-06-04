@@ -124,7 +124,7 @@ infra_services
 - 연동 생성/수정/비활성화는 `system_admin` 권한만 허용한다.
 - 조회는 scope 기반으로 제한한다:
   - `system_admin`: 전체 조회
-  - 일반 역할: 자신의 접근 가능한 Application/Project scope 한정
+  - 일반 역할: 자신의 접근 가능한 Platform/Project scope 한정
 - 감사로그 action namespace: `integration.*`, `infra.node.*`, `infra.service.*`
 
 ## 5. 홈랩 수집 경계 (ARCH-INT-05)

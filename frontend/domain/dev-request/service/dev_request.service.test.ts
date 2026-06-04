@@ -110,7 +110,7 @@ describe("DevRequestService", () => {
   describe("register", () => {
     it("POSTs payload to /:id/register and returns dev_request from envelope", async () => {
       const payload: DevRequestRegisterPayload = {
-        target_type: "application",
+        target_type: "platform",
         target_id: "app-1",
       };
       apiClientMock.mockResolvedValue({ data: { dev_request: sample } });

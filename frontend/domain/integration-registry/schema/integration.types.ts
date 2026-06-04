@@ -99,10 +99,10 @@ export interface TestConnectionResult {
 }
 
 // Bindings — sprint claude/work_260518-m.
-// 1 provider 가 N 개의 application/project scope 에 매핑되어 외부 시스템과의
+// 1 provider 가 N 개의 platform/project scope 에 매핑되어 외부 시스템과의
 // 구체 연결 (Jira PROJ key, Gitea repo path 등) 을 표현. backend §15.2 API-74/75.
 
-export type IntegrationScopeType = "application" | "project";
+export type IntegrationScopeType = "platform" | "project";
 
 export type IntegrationPolicy = "summary_only" | "execution_system";
 

@@ -68,7 +68,7 @@ Keycloak 에서 발생한 사용자/관리자 이벤트(로그인, group/role �
 - `account.*` / `auth.*` — [auth-session/api.md §6](../auth-session/api.md), [auth-session/architecture.md](../auth-session/architecture.md)
 - `account.onboarding_completed` / `account.review_confirmed` / `account.unit_changed` — [onboarding/architecture.md §6](../onboarding/architecture.md)
 - `dev_request.*` / `dev_request_intake_token.*` — [dev-request/architecture.md §6](../dev-request/architecture.md)
-- `application.*` / `project.*` / `application_repository.*` / `application.weight_policy_updated` — [application-lifecycle/architecture.md §6](../application-lifecycle/architecture.md)
+- `application.*` / `project.*` / `application_repository.*` / `application.weight_policy_updated` — [platform-lifecycle/architecture.md §6](../platform-lifecycle/architecture.md)
 - `external_task.*` — [integration-registry/task_architecture.md §7](../integration-registry/task_architecture.md)
 - `integration.*` / `infra.node.*` / `infra.service.*` — [integration-registry/architecture.md](../integration-registry/architecture.md)
 - `user.*` / `org_unit.*` / `organization.hierarchy_updated` — [organization-management/api.md](../organization-management/api.md)

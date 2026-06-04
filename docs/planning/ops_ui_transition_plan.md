@@ -8,7 +8,7 @@
 
 ### 즉시 운영 전환 가능
 - KPI fallback mock (`infraService.getMetrics` 실패 시)
-- Application/Project/Repository 상세 차트 mock 데이터
+- Platform/Project/Repository 상세 차트 mock 데이터
 - OrgTree hierarchy fallback mock
 
 ### 단순 mock (즉시 비노출 대상)

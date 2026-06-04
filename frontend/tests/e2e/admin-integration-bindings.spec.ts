@@ -95,11 +95,11 @@ test.describe("External Integration bindings admin UI", () => {
       await expect(modal).toBeVisible();
       await expect(modal.getByRole("heading", { name: /create binding/i })).toBeVisible();
 
-      // PR #251 P2-4 — application scope 에서는 ComboBox lookup (apps API 동반).
-      // e2e seed 에 application 동반 안 되므로 ComboBox listbox empty. binding
+      // PR #251 P2-4 — platform scope 에서는 ComboBox lookup (apps API 동반).
+      // e2e seed 에 platform 동반 안 되므로 ComboBox listbox empty. binding
       // lifecycle 검증의 의도는 scope type 무관이므로 project scope 로 전환:
-      // `<input id="scope_id">` 가 직접 보여 fill 가능. application ComboBox
-      // 검증은 별도 carve (e2e application seed 동반).
+      // `<input id="scope_id">` 가 직접 보여 fill 가능. platform ComboBox
+      // 검증은 별도 carve (e2e platform seed 동반).
       await modal.getByLabel(/scope type/i).selectOption("project");
       await modal.getByLabel(/scope id/i).fill(scopeID);
       // provider dropdown — display_name (provider_key · type) 패턴이 option label.

@@ -16,7 +16,7 @@ import (
 // IntegrationListOptions parameterizes ListIntegrations.
 type IntegrationListOptions struct {
 	Scope           domain.IntegrationScope // 빈 문자열이면 모든 scope
-	ApplicationID   string                  // scope=application 일 때
+	PlatformID   string                     // scope=platform 일 때
 	ProjectID       string                  // scope=project 일 때
 	IntegrationType domain.IntegrationType  // 빈 문자열이면 모든 type
 	Limit           int
@@ -38,7 +38,7 @@ const integrationsSelectColumns = `
 func scanIntegration(row pgx.Row) (domain.ProjectIntegration, error) {
 	var i domain.ProjectIntegration
 	if err := row.Scan(
-		&i.ID, &i.Scope, &i.ProjectID, &i.ApplicationID,
+		&i.ID, &i.Scope, &i.ProjectID, &i.PlatformID,
 		&i.IntegrationType, &i.ExternalKey, &i.URL, &i.Policy,
 		&i.CreatedAt, &i.UpdatedAt,
 	); err != nil {
@@ -64,7 +64,7 @@ WHERE ($1 = '' OR scope = $1)
   AND ($4 = '' OR integration_type = $4)`
 	var total int
 	if err := s.pool.QueryRow(ctx, countQuery,
-		string(opts.Scope), opts.ApplicationID, opts.ProjectID, string(opts.IntegrationType)).
+		string(opts.Scope), opts.PlatformID, opts.ProjectID, string(opts.IntegrationType)).
 		Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count integrations: %w", err)
 	}
@@ -78,7 +78,7 @@ WHERE ($3 = '' OR scope = $3)
 ORDER BY created_at DESC
 LIMIT $1 OFFSET $2`
 	rows, err := s.pool.Query(ctx, query, limit, offset,
-		string(opts.Scope), opts.ApplicationID, opts.ProjectID, string(opts.IntegrationType))
+		string(opts.Scope), opts.PlatformID, opts.ProjectID, string(opts.IntegrationType))
 	if err != nil {
 		return nil, 0, fmt.Errorf("list integrations: %w", err)
 	}
@@ -119,7 +119,7 @@ INSERT INTO project_integrations (
 )
 RETURNING` + integrationsSelectColumns
 	row := s.pool.QueryRow(ctx, insertQuery,
-		string(integration.Scope), integration.ProjectID, integration.ApplicationID,
+		string(integration.Scope), integration.ProjectID, integration.PlatformID,
 		string(integration.IntegrationType), integration.ExternalKey, integration.URL,
 		string(integration.Policy),
 	)

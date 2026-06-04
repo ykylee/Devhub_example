@@ -266,10 +266,10 @@ LIMIT $1 OFFSET $2`
 
 // --- Application 롤업 (API-57, concept §13.4) ---
 
-// ComputeApplicationRollup aggregates connected repos' metrics into Application-level
+// ComputePlatformRollup aggregates connected repos' metrics into Application-level
 // rollup with weight_policy normalize (concept §13.4). 1차 구현 — 정확성 우선, 성능
 // 최적화 (cache / pre-aggregation) 는 carve out.
-func (s *PostgresStore) ComputeApplicationRollup(ctx context.Context, applicationID string, opts domain.ApplicationRollupOptions) (domain.ApplicationRollup, error) {
+func (s *PostgresStore) ComputePlatformRollup(ctx context.Context, platformID string, opts domain.PlatformRollupOptions) (domain.PlatformRollup, error) {
 	if opts.WindowFrom.IsZero() {
 		opts.WindowFrom = time.Now().UTC().AddDate(0, 0, -30)
 	}
@@ -287,9 +287,9 @@ SELECT ar.repo_provider, ar.repo_full_name, ar.role, ar.sync_status, COALESCE(ar
 FROM application_repositories ar
 LEFT JOIN repositories r ON r.full_name = ar.repo_full_name
 WHERE ar.application_id = $1::uuid`
-	rows, err := s.pool.Query(ctx, linksQuery, applicationID)
+	rows, err := s.pool.Query(ctx, linksQuery, platformID)
 	if err != nil {
-		return domain.ApplicationRollup{}, fmt.Errorf("list rollup links: %w", err)
+		return domain.PlatformRollup{}, fmt.Errorf("list rollup links: %w", err)
 	}
 	type linkRow struct {
 		Provider, FullName, Role, SyncStatus, SyncErrCode string
@@ -300,13 +300,13 @@ WHERE ar.application_id = $1::uuid`
 		var l linkRow
 		if err := rows.Scan(&l.Provider, &l.FullName, &l.Role, &l.SyncStatus, &l.SyncErrCode, &l.RepoID); err != nil {
 			rows.Close()
-			return domain.ApplicationRollup{}, fmt.Errorf("scan rollup link: %w", err)
+			return domain.PlatformRollup{}, fmt.Errorf("scan rollup link: %w", err)
 		}
 		links = append(links, l)
 	}
 	rows.Close()
 	if err := rows.Err(); err != nil {
-		return domain.ApplicationRollup{}, fmt.Errorf("iterate rollup links: %w", err)
+		return domain.PlatformRollup{}, fmt.Errorf("iterate rollup links: %w", err)
 	}
 
 	// 2) data_gaps + weight normalize 계산
@@ -408,10 +408,10 @@ WHERE ar.application_id = $1::uuid`
 			sum += w
 		}
 		if negative {
-			return domain.ApplicationRollup{}, fmt.Errorf("invalid weight policy: negative weight")
+			return domain.PlatformRollup{}, fmt.Errorf("invalid weight policy: negative weight")
 		}
 		if sum < 1.0-domain.CustomWeightTolerance || sum > 1.0+domain.CustomWeightTolerance {
-			return domain.ApplicationRollup{}, fmt.Errorf("invalid weight policy: custom weights must sum to 1.0 (got %.4f)", sum)
+			return domain.PlatformRollup{}, fmt.Errorf("invalid weight policy: custom weights must sum to 1.0 (got %.4f)", sum)
 		}
 		missingCount := 0
 		for _, l := range contributing {
@@ -454,7 +454,7 @@ WHERE ar.application_id = $1::uuid`
 			}
 		}
 	default:
-		return domain.ApplicationRollup{}, fmt.Errorf("invalid weight policy: unknown policy %q", opts.Policy)
+		return domain.PlatformRollup{}, fmt.Errorf("invalid weight policy: unknown policy %q", opts.Policy)
 	}
 
 	// 3) 각 contributing repo 의 메트릭 fetch + weighted sum
@@ -490,14 +490,14 @@ WHERE repository_id = $1 AND occurred_at >= $2 AND occurred_at < $3
 GROUP BY event_type`
 		prRows, err := s.pool.Query(ctx, prDistQuery, repoID, opts.WindowFrom, opts.WindowTo)
 		if err != nil {
-			return domain.ApplicationRollup{}, fmt.Errorf("rollup pr distribution: %w", err)
+			return domain.PlatformRollup{}, fmt.Errorf("rollup pr distribution: %w", err)
 		}
 		for prRows.Next() {
 			var etype string
 			var cnt int
 			if err := prRows.Scan(&etype, &cnt); err != nil {
 				prRows.Close()
-				return domain.ApplicationRollup{}, fmt.Errorf("scan pr distribution: %w", err)
+				return domain.PlatformRollup{}, fmt.Errorf("scan pr distribution: %w", err)
 			}
 			prDistribution[etype] += cnt // PR 분포는 weight 무관 합산 (raw count)
 		}
@@ -514,7 +514,7 @@ WHERE repository_id = $1 AND started_at >= $2 AND started_at < $3`
 		var rate, avgDur *float64
 		if err := s.pool.QueryRow(ctx, buildAggQuery, repoID, opts.WindowFrom, opts.WindowTo).
 			Scan(&buildCount, &rate, &avgDur); err != nil && !errors.Is(err, pgx.ErrNoRows) {
-			return domain.ApplicationRollup{}, fmt.Errorf("rollup build aggregate: %w", err)
+			return domain.PlatformRollup{}, fmt.Errorf("rollup build aggregate: %w", err)
 		}
 		if rate != nil {
 			weightedBuildSuccessRate += *rate * weight
@@ -537,7 +537,7 @@ FROM latest`
 		var failedGates int
 		if err := s.pool.QueryRow(ctx, qualityQuery, repoID, opts.WindowFrom, opts.WindowTo).
 			Scan(&avgScore, &failedGates); err != nil && !errors.Is(err, pgx.ErrNoRows) {
-			return domain.ApplicationRollup{}, fmt.Errorf("rollup quality aggregate: %w", err)
+			return domain.PlatformRollup{}, fmt.Errorf("rollup quality aggregate: %w", err)
 		}
 		if avgScore != nil {
 			weightedQualityScore += *avgScore * weight
@@ -564,7 +564,7 @@ LIMIT 1`
 		case errors.Is(err, pgx.ErrNoRows):
 			sawIndeterminate = true
 		default:
-			return domain.ApplicationRollup{}, fmt.Errorf("rollup last build: %w", err)
+			return domain.PlatformRollup{}, fmt.Errorf("rollup last build: %w", err)
 		}
 	}
 
@@ -583,7 +583,7 @@ LIMIT 1`
 		targetBranchBuildStatus = "healthy"
 	}
 
-	rollup := domain.ApplicationRollup{
+	rollup := domain.PlatformRollup{
 		PullRequestDistribution: prDistribution,
 		BuildSuccessRate:        weightedBuildSuccessRate,
 		BuildAvgDurationSeconds: int(weightedBuildDuration),
@@ -591,7 +591,7 @@ LIMIT 1`
 		QualityGateFailedCount:  gateFailedCount,
 		CriticalWarningCount:    criticalCount,
 		TargetBranchBuildStatus: targetBranchBuildStatus,
-		Meta: domain.ApplicationRollupMeta{
+		Meta: domain.PlatformRollupMeta{
 			Period:         domain.RollupPeriod{From: opts.WindowFrom, To: opts.WindowTo},
 			Filters:        map[string]any{},
 			WeightPolicy:   opts.Policy,
@@ -603,16 +603,16 @@ LIMIT 1`
 	return rollup, nil
 }
 
-// CountApplicationCriticalWarnings — active→closed 가드 (concept §13.2.1) 흡수.
+// CountPlatformCriticalWarnings — active→closed 가드 (concept §13.2.1) 흡수.
 // 1차 정의: 어떤 연결 repo 라도 quality_gate_passed=false 가 있거나 build success rate <
 // 50% 이면 critical. 가드 임계치 외부화는 후속 (concept §13.2.1 운영 메모).
-func (s *PostgresStore) CountApplicationCriticalWarnings(ctx context.Context, applicationID string) (int, error) {
-	opts := domain.ApplicationRollupOptions{
+func (s *PostgresStore) CountPlatformCriticalWarnings(ctx context.Context, platformID string) (int, error) {
+	opts := domain.PlatformRollupOptions{
 		Policy:     domain.WeightPolicyEqual,
 		WindowFrom: time.Now().UTC().AddDate(0, 0, -30),
 		WindowTo:   time.Now().UTC(),
 	}
-	rollup, err := s.ComputeApplicationRollup(ctx, applicationID, opts)
+	rollup, err := s.ComputePlatformRollup(ctx, platformID, opts)
 	if err != nil {
 		return 0, err
 	}

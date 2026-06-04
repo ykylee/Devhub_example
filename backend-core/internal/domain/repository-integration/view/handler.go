@@ -15,14 +15,14 @@ type AuditStore interface {
 }
 
 
-type ApplicationStore interface {
+type PlatformStore interface {
 	GetIntegrationProviderByID(ctx context.Context, id string) (domain.IntegrationProvider, error)
 	ListRepositoriesByProvider(ctx context.Context, providerID string) ([]domain.Repository, error)
 	UpsertRepository(ctx context.Context, r domain.Repository) error
 }
 
 type RepositoryIntegrationConfig struct {
-	ApplicationStore ApplicationStore
+	PlatformStore PlatformStore
 	AuditStore       AuditStore
 }
 
@@ -59,12 +59,12 @@ func (h *RepositoryIntegrationHandler) recordAuditBestEffort(c *gin.Context, act
 	return logRow
 }
 
-func (h *RepositoryIntegrationHandler) ApplicationStoreOrUnavailable(c *gin.Context) (ApplicationStore, bool) {
-	if h.cfg.ApplicationStore == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "application store is not configured"})
+func (h *RepositoryIntegrationHandler) PlatformStoreOrUnavailable(c *gin.Context) (PlatformStore, bool) {
+	if h.cfg.PlatformStore == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "platform store is not configured"})
 		return nil, false
 	}
-	return h.cfg.ApplicationStore, true
+	return h.cfg.PlatformStore, true
 }
 
 func normalizeProviderSDKKey(v string) string {

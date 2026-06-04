@@ -17,7 +17,7 @@
 
 ### 2.1 1차 (즉시) — 상세 페이지 mock 제거
 
-- Application 상세 페이지
+- Platform 상세 페이지
   - mock history 차트 제거
   - 실제 rollup / 연결 repository 데이터만 사용
 - Repository 상세 페이지
@@ -27,7 +27,7 @@
 
 ### 2.2 2차 — 관리 액션 완결
 
-- Application/Project/Repository 테이블의 no-op 액션 실제 연결
+- Platform/Project/Repository 테이블의 no-op 액션 실제 연결
 - 수정/조회/연결 해제 등 사용자 플로우 정합
  - 진행 상태: **완료 (2026-05-26)**
 

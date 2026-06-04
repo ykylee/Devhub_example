@@ -83,7 +83,7 @@ describe("DevRequestDetailModal", () => {
         onChanged={vi.fn()}
       />,
     );
-    expect(screen.queryByText("Register as Application")).not.toBeInTheDocument();
+    expect(screen.queryByText("Register as Platform")).not.toBeInTheDocument();
     expect(screen.queryByText("Register as Project")).not.toBeInTheDocument();
     expect(screen.queryByText("Reject")).not.toBeInTheDocument();
     expect(screen.queryByText("Reassign")).not.toBeInTheDocument();
@@ -98,7 +98,7 @@ describe("DevRequestDetailModal", () => {
         onChanged={vi.fn()}
       />,
     );
-    expect(screen.getByText("Register as Application")).toBeInTheDocument();
+    expect(screen.getByText("Register as Platform")).toBeInTheDocument();
     expect(screen.getByText("Register as Project")).toBeInTheDocument();
     expect(screen.getByText("Reject")).toBeInTheDocument();
     expect(screen.getByText("Reassign")).toBeInTheDocument();
@@ -110,7 +110,7 @@ describe("DevRequestDetailModal", () => {
       <DevRequestDetailModal
         request={makeRequest({
           status: "registered",
-          registered_target_type: "application",
+          registered_target_type: "platform",
           registered_target_id: "app-9",
         })}
         isSystemAdmin
@@ -167,14 +167,14 @@ describe("DevRequestDetailModal", () => {
       />,
     );
 
-    await user.click(screen.getByText("Register as Application"));
-    const input = screen.getByPlaceholderText("application id (uuid)");
+    await user.click(screen.getByText("Register as Platform"));
+    const input = screen.getByPlaceholderText("platform id (uuid)");
     fireEvent.change(input, { target: { value: "app-99" } });
     await user.click(screen.getByText(/Confirm/));
 
     await waitFor(() => {
       expect(register).toHaveBeenCalledWith("dr-1", {
-        target_type: "application",
+        target_type: "platform",
         target_id: "app-99",
       });
     });
@@ -192,7 +192,7 @@ describe("DevRequestDetailModal", () => {
         onChanged={vi.fn()}
       />,
     );
-    await user.click(screen.getByText("Register as Application"));
+    await user.click(screen.getByText("Register as Platform"));
     await user.click(screen.getByText(/Confirm/));
     expect(screen.getByText("target_id is required")).toBeInTheDocument();
   });
@@ -208,8 +208,8 @@ describe("DevRequestDetailModal", () => {
         onChanged={vi.fn()}
       />,
     );
-    await user.click(screen.getByText("Register as Application"));
-    const input = screen.getByPlaceholderText("application id (uuid)");
+    await user.click(screen.getByText("Register as Platform"));
+    const input = screen.getByPlaceholderText("platform id (uuid)");
     fireEvent.change(input, { target: { value: "app-1" } });
     await user.click(screen.getByText(/Confirm/));
     await waitFor(() => {

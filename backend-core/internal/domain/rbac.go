@@ -15,8 +15,8 @@ const (
 	ResourceOrganization            Resource = "organization"
 	ResourceSecurity                Resource = "security"
 	ResourceAudit                   Resource = "audit"
-	ResourceApplications            Resource = "applications"
-	ResourceApplicationRepositories Resource = "application_repositories"
+	ResourcePlatforms            Resource = "platforms"
+	ResourcePlatformRepositories Resource = "platform_repositories"
 	ResourceProjects                Resource = "projects"
 	ResourceSCMProviders            Resource = "scm_providers"
 	// ResourceDevRequests — sprint claude/work_260515-i (ADR-0012 / ARCH-DREQ-04).
@@ -70,8 +70,8 @@ func AllResources() []Resource {
 		ResourceOrganization,
 		ResourceSecurity,
 		ResourceAudit,
-		ResourceApplications,
-		ResourceApplicationRepositories,
+		ResourcePlatforms,
+		ResourcePlatformRepositories,
 		ResourceProjects,
 		ResourceSCMProviders,
 		ResourceDevRequests,
@@ -163,8 +163,8 @@ func DefaultPermissionMatrix(roleID string) (PermissionMatrix, bool) {
 			ResourceOrganization:            {View: true},
 			ResourceSecurity:                {View: true},
 			ResourceAudit:                   {},
-			ResourceApplications:            {View: true},
-			ResourceApplicationRepositories: {View: true},
+			ResourcePlatforms:            {View: true},
+			ResourcePlatformRepositories: {View: true},
 			ResourceProjects:                {View: true},
 			ResourceSCMProviders:            {},
 			// dev_requests: route gate 는 view 만 통과. handler 가 row-level filter
@@ -180,8 +180,8 @@ func DefaultPermissionMatrix(roleID string) (PermissionMatrix, bool) {
 			ResourceOrganization:            {View: true, Edit: true},
 			ResourceSecurity:                {View: true, Create: true},
 			ResourceAudit:                   {View: true},
-			ResourceApplications:            {View: true, Edit: true},
-			ResourceApplicationRepositories: {View: true},
+			ResourcePlatforms:            {View: true, Edit: true},
+			ResourcePlatformRepositories: {View: true},
 			ResourceProjects:                {View: true, Create: true, Edit: true, Delete: true},
 			ResourceSCMProviders:            {View: true},
 			// team_manager 는 DREQ 운영 권한을 가진다. close/reassign 의 추가 제약은
@@ -197,8 +197,8 @@ func DefaultPermissionMatrix(roleID string) (PermissionMatrix, bool) {
 			ResourceOrganization:            {View: true, Create: true, Edit: true, Delete: true},
 			ResourceSecurity:                {View: true, Create: true, Edit: true, Delete: true},
 			ResourceAudit:                   {View: true},
-			ResourceApplications:            {View: true, Create: true, Edit: true, Delete: true},
-			ResourceApplicationRepositories: {View: true, Create: true, Edit: true, Delete: true},
+			ResourcePlatforms:            {View: true, Create: true, Edit: true, Delete: true},
+			ResourcePlatformRepositories: {View: true, Create: true, Edit: true, Delete: true},
 			ResourceProjects:                {View: true, Create: true, Edit: true, Delete: true},
 			ResourceSCMProviders:            {View: true, Create: true, Edit: true, Delete: true},
 			ResourceDevRequests:             {View: true, Create: true, Edit: true, Delete: true},

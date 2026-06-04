@@ -27,7 +27,7 @@ type DevRequestStore interface {
 	TransitionDevRequestStatus(ctx context.Context, id string, to domain.DevRequestStatus, rejectedReason string) (domain.DevRequest, error)
 	ReassignDevRequest(ctx context.Context, id, newAssigneeUserID string) (domain.DevRequest, error)
 	MarkDevRequestRegistered(ctx context.Context, id string, targetType domain.DevRequestTargetType, targetID string) (domain.DevRequest, error)
-	RegisterDevRequestWithNewApplication(ctx context.Context, drID string, app domain.Application, primaryRepo *domain.ApplicationRepository) (domain.DevRequest, domain.Application, error)
+	RegisterDevRequestWithNewPlatform(ctx context.Context, drID string, app domain.Platform, primaryRepo *domain.PlatformRepository) (domain.DevRequest, domain.Platform, error)
 	RegisterDevRequestWithNewProject(ctx context.Context, drID string, project domain.Project) (domain.DevRequest, domain.Project, error)
 }
 
@@ -333,13 +333,13 @@ func (h *DevRequestHandler) GetDevRequest(c *gin.Context) {
 // 둘 다 채우거나 둘 다 비우면 400. application_payload + target_type='project'
 // (또는 그 반대) 와 같은 mismatch 도 400.
 type registerDevRequestRequest struct {
-	TargetType         string                          `json:"target_type"` // "application" | "project"
+	TargetType         string                          `json:"target_type"` // "platform" | "project"
 	TargetID           string                          `json:"target_id,omitempty"`
-	ApplicationPayload *registerApplicationPayload     `json:"application_payload,omitempty"`
+	ApplicationPayload *registerPlatformPayload     `json:"application_payload,omitempty"`
 	ProjectPayload     *registerProjectPayload         `json:"project_payload,omitempty"`
 }
 
-type registerApplicationPayload struct {
+type registerPlatformPayload struct {
 	Key               string                          `json:"key"`
 	Name              string                          `json:"name"`
 	Description       string                          `json:"description"`
@@ -361,7 +361,7 @@ type registerPrimaryRepoPayload struct {
 }
 
 type registerProjectPayload struct {
-	ApplicationID string `json:"application_id"` // optional
+	PlatformID string `json:"platform_id"` // optional
 	RepositoryID  int64  `json:"repository_id"`  // required FK
 	Key           string `json:"key"`
 	Name          string `json:"name"`
@@ -385,7 +385,7 @@ func (h *DevRequestHandler) RegisterDevRequest(c *gin.Context) {
 		return
 	}
 	targetType := domain.DevRequestTargetType(req.TargetType)
-	if targetType != domain.DevRequestTargetApplication && targetType != domain.DevRequestTargetProject {
+	if targetType != domain.DevRequestTargetPlatform && targetType != domain.DevRequestTargetProject {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status": "rejected",
 			"error":  "target_type must be 'application' or 'project'",
@@ -416,7 +416,7 @@ func (h *DevRequestHandler) RegisterDevRequest(c *gin.Context) {
 		})
 		return
 	}
-	if hasAppPayload && targetType != domain.DevRequestTargetApplication {
+	if hasAppPayload && targetType != domain.DevRequestTargetPlatform {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status": "rejected",
 			"error":  "application_payload requires target_type='application'",
@@ -458,7 +458,7 @@ func (h *DevRequestHandler) RegisterDevRequest(c *gin.Context) {
 	case hasLegacyID:
 		h.registerDevRequestLegacy(c, storeI, id, targetType, req.TargetID)
 	case hasAppPayload:
-		h.registerDevRequestWithNewApplication(c, storeI, id, req.ApplicationPayload)
+		h.registerDevRequestWithNewPlatform(c, storeI, id, req.ApplicationPayload)
 	case hasProjectPayload:
 		h.registerDevRequestWithNewProject(c, storeI, id, req.ProjectPayload)
 	}
@@ -490,65 +490,65 @@ func (h *DevRequestHandler) registerDevRequestLegacy(c *gin.Context, storeI DevR
 	})
 }
 
-// registerDevRequestWithNewApplication invokes the transactional store method that
+// registerDevRequestWithNewPlatform invokes the transactional store method that
 // (1) inserts a new Application, (2) optionally links one primary repository, and
 // (3) flips the dev_request row to status='registered' — all atomically.
-func (h *DevRequestHandler) registerDevRequestWithNewApplication(c *gin.Context, storeI DevRequestStore, drID string, p *registerApplicationPayload) {
-	if !applicationKeyPattern.MatchString(p.Key) {
+func (h *DevRequestHandler) registerDevRequestWithNewPlatform(c *gin.Context, storeI DevRequestStore, drID string, p *registerPlatformPayload) {
+	if !platformKeyPattern.MatchString(p.Key) {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{
 			"status": "rejected",
-			"error":  "application_payload.key must match ^[A-Za-z0-9]{1,10}$",
-			"code":   "invalid_application_key",
+			"error":  "platform_payload.key must match ^[A-Za-z0-9]{1,10}$",
+			"code":   "invalid_platform_key",
 		})
 		return
 	}
 	if strings.TrimSpace(p.Name) == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "application_payload.name is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "platform_payload.name is required"})
 		return
 	}
 	if strings.TrimSpace(p.OwnerUserID) == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "application_payload.owner_user_id is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "platform_payload.owner_user_id is required"})
 		return
 	}
 	if strings.TrimSpace(p.LeaderUserID) == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "application_payload.leader_user_id is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "platform_payload.leader_user_id is required"})
 		return
 	}
 	if strings.TrimSpace(p.DevelopmentUnitID) == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "application_payload.development_unit_id is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "platform_payload.development_unit_id is required"})
 		return
 	}
-	if !validApplicationVisibilities[p.Visibility] {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "application_payload.visibility must be one of public/internal/restricted"})
+	if !validPlatformVisibilities[p.Visibility] {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "platform_payload.visibility must be one of public/internal/restricted"})
 		return
 	}
-	if !validApplicationStatuses[p.Status] {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "application_payload.status must be one of planning/active/on_hold/closed/archived"})
+	if !validPlatformStatuses[p.Status] {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "platform_payload.status must be one of planning/active/on_hold/closed/archived"})
 		return
 	}
 	startDate, err := parseDate(p.StartDate)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "application_payload.start_date must be YYYY-MM-DD"})
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "platform_payload.start_date must be YYYY-MM-DD"})
 		return
 	}
 	dueDate, err := parseDate(p.DueDate)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "application_payload.due_date must be YYYY-MM-DD"})
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "platform_payload.due_date must be YYYY-MM-DD"})
 		return
 	}
-	app := domain.Application{
+	app := domain.Platform{
 		Key:               p.Key,
 		Name:              p.Name,
 		Description:       p.Description,
-		Status:            domain.ApplicationStatus(p.Status),
-		Visibility:        domain.ApplicationVisibility(p.Visibility),
+		Status:            domain.PlatformStatus(p.Status),
+		Visibility:        domain.PlatformVisibility(p.Visibility),
 		OwnerUserID:       p.OwnerUserID,
 		LeaderUserID:      p.LeaderUserID,
 		DevelopmentUnitID: p.DevelopmentUnitID,
 		StartDate:         startDate,
 		DueDate:           dueDate,
 	}
-	var primaryRepo *domain.ApplicationRepository
+	var primaryRepo *domain.PlatformRepository
 	if p.PrimaryRepo != nil {
 		if strings.TrimSpace(p.PrimaryRepo.RepoProvider) == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "primary_repo.repo_provider is required"})
@@ -560,14 +560,14 @@ func (h *DevRequestHandler) registerDevRequestWithNewApplication(c *gin.Context,
 		}
 		role := p.PrimaryRepo.Role
 		if strings.TrimSpace(role) == "" {
-			role = string(domain.ApplicationRepositoryRolePrimary)
+			role = string(domain.PlatformRepositoryRolePrimary)
 		}
 		// codex hotfix #4 P1 (sprint claude/work_260515-n) — primary_repo.role
 		// 가 application_repositories_role_check 의 허용 값 (primary/sub/shared)
 		// 외이면 store insert 가 PG CHECK 위반으로 500 을 일으킨다. legacy
 		// createApplicationRepository handler 와 동일한 application-level gate 를
 		// 적용해 422 invalid_repo_link_role 로 surface.
-		if !validApplicationRepoRoles[role] {
+		if !validPlatformRepoRoles[role] {
 			c.JSON(http.StatusUnprocessableEntity, gin.H{
 				"status": "rejected",
 				"error":  "primary_repo.role must be one of primary/sub/shared",
@@ -579,11 +579,11 @@ func (h *DevRequestHandler) registerDevRequestWithNewApplication(c *gin.Context,
 		// createApplicationRepository 는 ListSCMProviders 로 enabled 여부를
 		// 검증해 unsupported_repo_provider 422 를 반환한다. promote path 가 이
 		// gate 를 우회하면 disabled provider 도 application_repositories 행을
-		// 만들어 정책이 깨진다. ApplicationStore 가 wire 안 됐을 땐 dev 환경의
+		// 만들어 정책이 깨진다. PlatformStore 가 wire 안 됐을 땐 dev 환경의
 		// in-memory store 케이스이므로 통과시킨다 (devRequests test 케이스는
-		// ApplicationStore 없이 동작 — 통합 검증은 production wire 에서).
-		if h.cfg.ApplicationStore != nil {
-			providers, err := h.cfg.ApplicationStore.ListSCMProviders(c.Request.Context())
+		// PlatformStore 없이 동작 — 통합 검증은 production wire 에서).
+		if h.cfg.PlatformStore != nil {
+			providers, err := h.cfg.PlatformStore.ListSCMProviders(c.Request.Context())
 			if err != nil {
 				httphelp.WriteServerError(c, err, "dev_request.register.promote_application.lookup_provider")
 				return
@@ -604,21 +604,21 @@ func (h *DevRequestHandler) registerDevRequestWithNewApplication(c *gin.Context,
 				return
 			}
 		}
-		primaryRepo = &domain.ApplicationRepository{
+		primaryRepo = &domain.PlatformRepository{
 			RepoProvider:   p.PrimaryRepo.RepoProvider,
 			RepoFullName:   p.PrimaryRepo.RepoFullName,
 			ExternalRepoID: p.PrimaryRepo.ExternalRepoID,
-			Role:           domain.ApplicationRepositoryRole(role),
+			Role:           domain.PlatformRepositoryRole(role),
 			SyncStatus:     domain.SyncStatusRequested,
 		}
 	}
 
-	updatedDR, createdApp, err := storeI.RegisterDevRequestWithNewApplication(c.Request.Context(), drID, app, primaryRepo)
+	updatedDR, createdApp, err := storeI.RegisterDevRequestWithNewPlatform(c.Request.Context(), drID, app, primaryRepo)
 	if errors.Is(err, store.ErrConflict) {
 		c.JSON(http.StatusConflict, gin.H{
 			"status": "conflict",
-			"error":  "application key conflict or referenced owner/leader/development_unit not found",
-			"code":   "application_key_conflict",
+			"error":  "platform key conflict or referenced owner/leader/development_unit not found",
+			"code":   "platform_key_conflict",
 		})
 		return
 	}
@@ -630,13 +630,13 @@ func (h *DevRequestHandler) registerDevRequestWithNewApplication(c *gin.Context,
 		httphelp.WriteServerError(c, err, "dev_request.register.promote_application")
 		return
 	}
-	h.recordAuditBestEffort(c, "application.created", "application", createdApp.ID, map[string]any{
+	h.recordAuditBestEffort(c, "platform.created", "platform", createdApp.ID, map[string]any{
 		"key":              createdApp.Key,
 		"status":           string(createdApp.Status),
 		"via_dev_request":  drID,
 	})
 	h.recordAuditBestEffort(c, "dev_request.registered", "dev_request", drID, map[string]any{
-		"target_type": string(domain.DevRequestTargetApplication),
+		"target_type": string(domain.DevRequestTargetPlatform),
 		"target_id":   createdApp.ID,
 		"created":     true,
 	})
@@ -645,10 +645,10 @@ func (h *DevRequestHandler) registerDevRequestWithNewApplication(c *gin.Context,
 		"data": gin.H{
 			"dev_request": devRequestResponse(updatedDR),
 			"registered_target": gin.H{
-				"target_type": string(domain.DevRequestTargetApplication),
+				"target_type": string(domain.DevRequestTargetPlatform),
 				"target_id":   createdApp.ID,
 				"created":     true,
-				"application": applicationResponse(createdApp),
+				"platform": platformResponse(createdApp),
 			},
 		},
 	})
@@ -676,11 +676,11 @@ func (h *DevRequestHandler) registerDevRequestWithNewProject(c *gin.Context, sto
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "project_payload.owner_user_id is required"})
 		return
 	}
-	if !validApplicationVisibilities[p.Visibility] {
+	if !validPlatformVisibilities[p.Visibility] {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "project_payload.visibility must be one of public/internal/restricted"})
 		return
 	}
-	if !validApplicationStatuses[p.Status] {
+	if !validPlatformStatuses[p.Status] {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "project_payload.status must be one of planning/active/on_hold/closed/archived"})
 		return
 	}
@@ -695,13 +695,13 @@ func (h *DevRequestHandler) registerDevRequestWithNewProject(c *gin.Context, sto
 		return
 	}
 	project := domain.Project{
-		ApplicationID: p.ApplicationID,
+		PlatformID: p.PlatformID,
 		RepositoryID:  p.RepositoryID,
 		Key:           p.Key,
 		Name:          p.Name,
 		Description:   p.Description,
-		Status:        domain.ApplicationStatus(p.Status),
-		Visibility:    domain.ApplicationVisibility(p.Visibility),
+		Status:        domain.PlatformStatus(p.Status),
+		Visibility:    domain.PlatformVisibility(p.Visibility),
 		OwnerUserID:   p.OwnerUserID,
 		StartDate:     startDate,
 		DueDate:       dueDate,

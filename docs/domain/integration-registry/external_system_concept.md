@@ -9,7 +9,7 @@
 
 ## 1. 컨셉 정리 배경
 
-- 현재 DevHub 는 Application/Repository/Project 계층과 DREQ 도메인을 통해 내부 운영 모델의 1차 골격을 확보했다.
+- 현재 DevHub 는 Platform/Repository/Project 계층과 DREQ 도메인을 통해 내부 운영 모델의 1차 골격을 확보했다.
 - 다음 단계는 "실행 데이터가 발생하는 외부 시스템"을 연동해, 계획-개발-배포-운영의 흐름을 하나의 운영 시야로 묶는 것이다.
 - 특히 팀의 실운영 환경은 다음 두 축이 동시에 존재한다:
   - 업무 시스템 축: Jira/Confluence/Bitbucket/Bamboo/Jenkins/Gitea/Forgejo
@@ -54,7 +54,7 @@
 | 저장소/PR/빌드 이벤트 | SCM/CI 원천 시스템 | 정규화/집계/뷰 제공 |
 | 운영 문서 본문 | Confluence | 링크/메타/상태 참조 |
 | 인프라 상태(노드/서비스 헬스) | 홈랩 수집기(Agent) | 토폴로지/상태 대시보드/이력 |
-| DevHub 내부 엔터티(Application/Project/DREQ) | DevHub | 워크플로우 오케스트레이션 |
+| DevHub 내부 엔터티(Platform/Project/DREQ) | DevHub | 워크플로우 오케스트레이션 |
 
 ## 4. 연동 모델 (공통)
 
@@ -85,7 +85,7 @@
 
 ### 5.1 Jira / Confluence
 
-- Jira: 실행 작업의 SoT. Application/Project 와 매핑된 key 정책만 DevHub 에서 관리.
+- Jira: 실행 작업의 SoT. Platform/Project 와 매핑된 key 정책만 DevHub 에서 관리.
 - Confluence: 운영 문서의 SoT. DevHub 는 문서 링크/스페이스/최종 갱신 시각 중심으로 참조.
 
 ### 5.2 Bitbucket / Gitea / Forgejo

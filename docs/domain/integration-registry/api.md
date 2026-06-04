@@ -55,7 +55,7 @@
   - `auth_secret` 은 **write-only** (api_token 과 동일). 비밀 외 필드(`auth_username`/`auth_client_id`/`auth_token_url`)는 응답 노출.
 - **응답 — 201**: 생성된 provider (`base_url`/`auth_username`/`auth_client_id`/`auth_token_url` 포함; `api_token`·`auth_secret` 은 raw 미노출, `api_token_set`/`auth_secret_set`(bool) 만 — 보안).
 - **에러**: 409 `integration_provider_conflict`, 400 `invalid_provider_type`, 400 `invalid_base_url`, 400 `invalid_auth_token_url`.
-- **참고**: `credentials_ref`(inbound webhook)와 outbound auth 자격증명(`api_token`/`auth_*`)은 별개 시크릿. Phase 3 (sync worker per-provider) 이후 등록 provider 의 `base_url` + auth_mode 별 자격증명이 Gitea sync / SCM repo 연동(API-88/89/90, application-lifecycle §13.9 publish)에 사용된다.
+- **참고**: `credentials_ref`(inbound webhook)와 outbound auth 자격증명(`api_token`/`auth_*`)은 별개 시크릿. Phase 3 (sync worker per-provider) 이후 등록 provider 의 `base_url` + auth_mode 별 자격증명이 Gitea sync / SCM repo 연동(API-88/89/90, platform-lifecycle §13.9 publish)에 사용된다.
   - **env fallback 금지 (codex #358 P1 / #359)**: 명시 provider 를 대상으로 한 outbound 호출(`scmProviderClient` → `provider.ResolveOutboundAuth()`)은 worker-global env 토큰(`GITEA_TOKEN` 등)으로 **fallback 하지 않는다** — 잘못된 계정/토큰 유출 방지. 등록된 자격증명이 미설정이면 `422 integration_outbound_credentials_missing` 로 거부한다. env fallback 은 provider 미명시(legacy) sync worker 경로에서만 유효하다.
 
 요청 예시:

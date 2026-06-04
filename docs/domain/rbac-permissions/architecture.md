@@ -41,7 +41,7 @@
 
 - **System Role**: 시스템 정의 3종 (immutable) `developer` / `team_manager` / `system_admin`. 레거시 `manager`/`team_manager` 는 신규 부여 금지, alias migration 으로만 허용.
 - **Resource Role**: `project_member` / `project_leader` / `application_leader` / `org_head` (read scope 계산용).
-- **Resource**: 11종 (`infrastructure`, `pipelines`, `organization`, `security`, `audit`, `applications`, `application_repositories`, `projects`, `scm_providers`, `dev_requests`, `dev_request_intake_tokens`).
+- **Resource**: 11종 (`infrastructure`, `pipelines`, `organization`, `security`, `audit`, `applications`, `platform_repositories`, `projects`, `scm_providers`, `dev_requests`, `dev_request_intake_tokens`).
 - **Action**: `view | create | edit | delete` 4축.
 - **Audit append-only invariant**: `audit.{create,edit,delete}` 는 모든 role 에서 false 강제 (store 검증).
 
@@ -64,14 +64,14 @@
   2. actor.role ∈ allowedRoles → allow.
   3. actor.login == ownerUserID → allow.
   4. otherwise → 403 + `code=auth_row_denied` + audit `auth.row_denied`.
-- 본 helper 는 dev-request 도메인의 row-level 권한 enforcement 1순위 진입점이며, application-lifecycle/onboarding 등에서도 재사용된다.
+- 본 helper 는 dev-request 도메인의 row-level 권한 enforcement 1순위 진입점이며, platform-lifecycle/onboarding 등에서도 재사용된다.
 
 ## 4.1 Read scope 결합 규칙
 
 - route-level `view` 허용 이후 read scope 를 추가 평가한다.
 - `List*`: scope 밖 리소스는 제외(빈 목록 허용).
 - `Get*`: scope 밖 리소스는 `403` + `code=auth_row_denied`.
-- 적용 대상: `projects`, `applications`, `application_repositories`, `dev_requests` read API.
+- 적용 대상: `projects`, `applications`, `platform_repositories`, `dev_requests` read API.
 
 ## 5. PermissionCache (ARCH-RBAC-05)
 

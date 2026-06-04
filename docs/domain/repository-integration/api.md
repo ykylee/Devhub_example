@@ -1,11 +1,11 @@
 # repository-integration 도메인 API
 
 - 문서 목적: Repository 운영 지표 조회 + Repository draft→publish lifecycle API 계약을 정의한다.
-- 범위: API-51..54 (repository 운영 지표) + API-91/92 (draft→publish). 외부 SCM provider 의 원격 repository import/create endpoint(API-88/89/90)는 `docs/domain/integration-registry/api.md` 참조. application/project ↔ repository 연결 endpoint(API-55/56A/56B)는 `docs/domain/application-lifecycle/api.md` 참조.
+- 범위: API-51..54 (repository 운영 지표) + API-91/92 (draft→publish). 외부 SCM provider 의 원격 repository import/create endpoint(API-88/89/90)는 `docs/domain/integration-registry/api.md` 참조. application/project ↔ repository 연결 endpoint(API-55/56A/56B)는 `docs/domain/platform-lifecycle/api.md` 참조.
 - 대상 독자: backend / 프론트엔드 / DevOps, AI agent, QA.
 - 상태: accepted
 - 최종 수정일: 2026-05-29 (Phase 3 split, master §13.4 + §13.9 본문 이관)
-- 관련 문서: [도메인 README](./README.md), [requirements.md](./requirements.md), [architecture.md](./architecture.md), [master API](../../backend_api_contract.md), [integration-registry api](../integration-registry/api.md), [application-lifecycle api](../application-lifecycle/api.md)
+- 관련 문서: [도메인 README](./README.md), [requirements.md](./requirements.md), [architecture.md](./architecture.md), [master API](../../backend_api_contract.md), [integration-registry api](../integration-registry/api.md), [platform-lifecycle api](../platform-lifecycle/api.md)
 
 ## 개요
 
@@ -27,7 +27,7 @@
 | API-91 | `POST /api/v1/repositories` | repository draft 생성 (시스템 주도) |
 | API-92 | `POST /api/v1/repositories/{repository_id}/publish` | draft → 실제 SCM 생성 + published 전환 |
 
-> Cross-domain endpoints: API-55 (`/repositories/{id}/projects`), API-56A (`/applications/{id}/projects`), API-56B (`/projects/{id}/repositories`) 의 본문은 [application-lifecycle api.md](../application-lifecycle/api.md) 참조. API-88/89/90 의 본문은 [integration-registry api.md](../integration-registry/api.md) 참조.
+> Cross-domain endpoints: API-55 (`/repositories/{id}/projects`), API-56A (`/platforms/{id}/projects`), API-56B (`/projects/{id}/repositories`) 의 본문은 [platform-lifecycle api.md](../platform-lifecycle/api.md) 참조. API-88/89/90 의 본문은 [integration-registry api.md](../integration-registry/api.md) 참조.
 
 ## 2. Repository 운영 지표 조회
 
@@ -55,7 +55,7 @@
 
 시스템 내에서 repository 를 먼저 **draft** 로 등록한 뒤, 등록된 SCM provider 에 실제 저장소를 생성하며 **published** 로 전환하는 2단계 lifecycle. #368(draft→publish lifecycle, repository_status/publish_* 컬럼 migration 000043) 도입 + #373(provider 참조를 `provider_id` FK 로 단일화, migration 000045). API-90(`create-repository`)이 "provider 컨텍스트에서 즉시 생성+미러" 인 데 반해, 본 흐름은 "draft 로 먼저 잡아두고 별도 단계에서 publish" 하는 시스템 주도 등록 경로다.
 
-- 쓰기 권한: `POST /repositories` = `application_repositories:create`, `POST /repositories/{repository_id}/publish` = `application_repositories:edit` (기본 `system_admin`).
+- 쓰기 권한: `POST /repositories` = `platform_repositories:create`, `POST /repositories/{repository_id}/publish` = `platform_repositories:edit` (기본 `system_admin`).
 - `repository_status`(응답 `status`): `draft` → `published`. draft 상태에서만 publish 가능.
 - `provider_key` ↔ `provider_id`: 입력은 사람이 읽는 `provider_key`(예 `gitea-main`)를 받고, 핸들러가 `integration_providers` 의 FK(`provider_id` UUID)로 해석해 저장한다(migration 000045 — 구 `scm_provider` TEXT 통합). 조회/목록 응답은 `LEFT JOIN integration_providers` 로 `provider_key` 를 표시용 derive 한다.
 

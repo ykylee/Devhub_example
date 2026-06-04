@@ -16,13 +16,13 @@ import (
 // concept §13.4 weight_policy normalize 룰 + meta(period/filters/weight_policy/
 // applied_weights/fallbacks/data_gaps). REQ-FR-APP-012, REQ-NFR-PROJ-006.
 
-func (h *ApplicationHandler) ApplicationRollup(c *gin.Context) {
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+func (h *PlatformHandler) PlatformRollup(c *gin.Context) {
+	storeI, ok := h.PlatformStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
-	id := c.Param("application_id")
-	opts := domain.ApplicationRollupOptions{
+	id := c.Param("platform_id")
+	opts := domain.PlatformRollupOptions{
 		Policy: domain.WeightPolicy(c.Query("weight_policy")),
 	}
 	if opts.Policy == "" {
@@ -59,18 +59,18 @@ func (h *ApplicationHandler) ApplicationRollup(c *gin.Context) {
 		opts.WindowTo = t
 	}
 
-	app, err := storeI.GetApplication(c.Request.Context(), id)
+	app, err := storeI.GetPlatform(c.Request.Context(), id)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "application not found"})
+			c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "platform not found"})
 			return
 		}
-		httphelp.WriteServerError(c, err, "application.rollup.scope_lookup")
+		httphelp.WriteServerError(c, err, "platform.rollup.scope_lookup")
 		return
 	}
-	allowed, deniedReason, err := h.actorCanReadApplication(c, storeI, app)
+	allowed, deniedReason, err := h.actorCanReadPlatform(c, storeI, app)
 	if err != nil {
-		httphelp.WriteServerError(c, err, "application.rollup.scope")
+		httphelp.WriteServerError(c, err, "platform.rollup.scope")
 		return
 	}
 	if !allowed {
@@ -78,7 +78,7 @@ func (h *ApplicationHandler) ApplicationRollup(c *gin.Context) {
 		return
 	}
 
-	rollup, err := storeI.ComputeApplicationRollup(c.Request.Context(), id, opts)
+	rollup, err := storeI.ComputePlatformRollup(c.Request.Context(), id, opts)
 	if err != nil {
 		// weight_policy validation 실패는 store 가 fmt.Errorf 로 전달 — 422 분기
 		errMsg := err.Error()
@@ -90,7 +90,7 @@ func (h *ApplicationHandler) ApplicationRollup(c *gin.Context) {
 			})
 			return
 		}
-		httphelp.WriteServerError(c, err, "application.rollup")
+		httphelp.WriteServerError(c, err, "platform.rollup")
 		return
 	}
 

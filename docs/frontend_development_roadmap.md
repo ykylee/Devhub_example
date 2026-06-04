@@ -28,7 +28,7 @@ frontend 코드는 [`docs/governance/code-taxonomy.md`](./governance/code-taxono
 | `rbac-permissions` | `frontend/app/admin/settings/permissions`, `frontend/components/organization/PermissionEditor.tsx` | `frontend/lib/services/rbac.service.ts` | role/resource matrix |
 | `organization-management` | `frontend/app/admin/settings/{organization,users}`, `frontend/components/organization/OrgTree.tsx` | `frontend/lib/services/identity.service.ts` | users/org_units DTO |
 | `onboarding` | `frontend/app/onboarding/`, `OnboardingForm/Banner/OrganizationPicker` | `frontend/lib/services/onboarding.service.ts` | onboarding payload |
-| `application-lifecycle` | `frontend/app/{applications,projects}/`, `frontend/domain/application-lifecycle/view/{ApplicationCreationModal,ApplicationTable,ProjectCreationModal,ProjectTable}.tsx` | `frontend/domain/application-lifecycle/service/{application,project}.service.ts` | (frontend 내장) |
+| `platform-lifecycle` | `frontend/app/{applications,projects}/`, `frontend/domain/platform-lifecycle/view/{ApplicationCreationModal,ApplicationTable,ProjectCreationModal,ProjectTable}.tsx` | `frontend/domain/platform-lifecycle/service/{application,project}.service.ts` | (frontend 내장) |
 | `repository-integration` | `frontend/app/repositories/`, `RepositoryLinkModal`, `CreateScmRepositoryModal` | `frontend/lib/services/repository.service.ts` | repository DTO |
 | `dev-request` | `frontend/app/dev-requests/`, `DevRequestDetailModal` | `frontend/lib/services/dev_request.service.ts` | DREQ DTO |
 | `integration-registry` | `frontend/app/admin/settings/{integrations,integration-bindings}`, **`ProviderModal.tsx`** (소유권 = integration-registry), `BindingsTable`, `IntegrationProviderPresets` | `frontend/lib/services/integration.service.ts` | provider/binding DTO + preset 7종 |
@@ -54,7 +54,7 @@ SDLC 재정비 sprint 의 일환으로 view 컴포넌트 24개 단위테스트 +
 | `dev-request` | 90%+ | done |
 | `integration-registry` | 90%+ | done |
 | `organization-management` | 90%+ | done |
-| `application-lifecycle` | 미달 (carve) | `ApplicationCreationModal` 57% / `ProjectCreationModal` 39% — 후속 sprint (§7.0 P1) |
+| `platform-lifecycle` | 미달 (carve) | `ApplicationCreationModal` 57% / `ProjectCreationModal` 39% — 후속 sprint (§7.0 P1) |
 
 ## 2. Phase 로드맵
 
@@ -70,7 +70,7 @@ SDLC 재정비 sprint 의 일환으로 view 컴포넌트 24개 단위테스트 +
 | **Phase 6** | **done** | 권한 관리(RBAC) UI 고도화 | PermissionEditor `/admin/settings/permissions` 완료. |
 | **Phase 6.1** | **done** | RBAC API 통합 | `/api/v1/rbac/policies` 조회/편집 연동, `requirePermission` 라우트 가드 (M1 RBAC track). |
 | **Phase 7** | **done** | 조직 관리 1차 완성 | 부서 CRUD, 계층 편집, 전역 감사 로그 연동 완료(`/admin/settings/{organization,users,permissions,audit}`). |
-| **Phase 8 (신규)** | **done** | 도메인 페이지 + 운영 UI 전환 | Application/Project/Repository(draft·SCM import/create) + DREQ + External Integration(auth_mode 동적 입력) + Onboarding + topology v2 + admin catalog + 운영 UI 전환(mock 제거 + `PageState` + 에러 표준화). 03 snapshot §1 참조. |
+| **Phase 8 (신규)** | **done** | 도메인 페이지 + 운영 UI 전환 | Platform/Project/Repository(draft·SCM import/create) + DREQ + External Integration(auth_mode 동적 입력) + Onboarding + topology v2 + admin catalog + 운영 UI 전환(mock 제거 + `PageState` + 에러 표준화). 03 snapshot §1 참조. |
 
 
 ## 3. Phase 2 상세 계획 (Core API Integration)
@@ -180,7 +180,7 @@ DevHub ~~자체 사용자 계정(Account) 1:1 컨셉~~(historical)에 따른 초
 - [x] `/auth/callback` + tokenStore 영속화 + `api-client` 401 자동 refresh
 - [x] `/account` ProfileSelfEdit + **비밀번호는 Keycloak Account Console redirect**(자체 비밀번호 변경 폼 폐기)
 - [x] Header Sign Out → Keycloak OIDC 세션 종료
-- [x] 온보딩(OnboardingForm/Banner/OrganizationPicker) + 도메인 페이지(Application/Project/Repository/DREQ/Integration) + topology v2 + admin catalog + 운영 UI 전환(mock 제거 + PageState)
+- [x] 온보딩(OnboardingForm/Banner/OrganizationPicker) + 도메인 페이지(Platform/Project/Repository/DREQ/Integration) + topology v2 + admin catalog + 운영 UI 전환(mock 제거 + PageState)
 
 ### 7.3 후속 (별도 sprint)
 

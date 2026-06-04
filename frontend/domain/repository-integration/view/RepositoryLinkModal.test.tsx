@@ -23,7 +23,7 @@ vi.mock("framer-motion", () => {
 const getSCMProviders = vi.fn();
 const connectRepository = vi.fn();
 
-vi.mock("@/domain/application-lifecycle/service/project.service", () => ({
+vi.mock("@/domain/platform-lifecycle/service/project.service", () => ({
   projectService: {
     getSCMProviders: (...args: unknown[]) => getSCMProviders(...args),
     connectRepository: (...args: unknown[]) => connectRepository(...args),
@@ -33,7 +33,7 @@ vi.mock("@/domain/application-lifecycle/service/project.service", () => ({
 import { RepositoryLinkModal } from "./RepositoryLinkModal";
 
 const baseProps = {
-  applicationId: "app-1",
+  platformId: "app-1",
   onClose: vi.fn(),
   onLinked: vi.fn(),
 };
@@ -86,7 +86,7 @@ describe("RepositoryLinkModal", () => {
       { provider_key: "github", display_name: "GitHub", enabled: true, adapter_version: "v1", created_at: "", updated_at: "" },
     ]);
     const linkedRepo = {
-      application_id: "app-1",
+      platform_id: "app-1",
       repo_provider: "github",
       repo_full_name: "x/y",
       role: "primary",

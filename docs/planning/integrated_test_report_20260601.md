@@ -53,7 +53,7 @@
 
 | 단계 | 결과 | 비고 |
 |------|------|------|
-| developer → `/api/v1/applications` | ✅ 403 | `role "developer" lacks applications:view permission` |
+| developer → `/api/v1/platforms` | ✅ 403 | `role "developer" lacks applications:view permission` |
 | developer → `/api/v1/me` | ✅ 200 | role=developer 정상 반환 |
 | system_admin → `/admin/settings/users` | ✅ | 전체 사용자 목록 정상 표시 |
 | system_admin → sidebar "System (Admin only)" | ✅ | 정상 노출 |
@@ -88,8 +88,8 @@
 | 단계 | 결과 | 비고 |
 |------|------|------|
 | API Key validation | ✅ | `^[A-Za-z0-9]{1,10}$` regex 적용 확인 |
-| API POST `/api/v1/applications` (system_admin) | ✅ 422→ 설계된 validation | key `test-app-alpha` → hyphens reject |
-| API POST `/api/v1/applications` (developer) | ✅ 403 | RBAC 정상 동작 확인 |
+| API POST `/api/v1/platforms` (system_admin) | ✅ 422→ 설계된 validation | key `test-app-alpha` → hyphens reject |
+| API POST `/api/v1/platforms` (developer) | ✅ 403 | RBAC 정상 동작 확인 |
 | DB direct INSERT (`TESTAPP01`) | ✅ | UUID 자동 생성, key unique constraint 확인 |
 | Web UI "New Application" dialog | ✅ | Leader 선택, Department 선택, Visibility / Status 설정 가능 |
 
@@ -122,8 +122,8 @@
 | 단계 | 결과 | 비고 |
 |------|------|------|
 | Application 조회 (TESTAPP01 UUID 확인) | ✅ | `f0a18b05-92e6-45d6-ba00-4d2228550208` |
-| `POST /api/v1/applications/{app_id}/projects` | ✅ | Key: `ALPHA-SPRINT-1`, Name: "Alpha Integration Sprint 1" |
-| Project 응답 확인 | ✅ | `application_id` 정상 연결, `repository_id: null` (초기) |
+| `POST /api/v1/platforms/{app_id}/projects` | ✅ | Key: `ALPHA-SPRINT-1`, Name: "Alpha Integration Sprint 1" |
+| Project 응답 확인 | ✅ | `platform_id` 정상 연결, `repository_id: null` (초기) |
 | Project 상태 | ✅ | `planning`, visibility: `internal` |
 
 **생성된 Project:** `bd4e187e-7267-407e-9a9d-a7963ac7464c` (ALPHA-SPRINT-1)
@@ -233,7 +233,7 @@ VALUES
 
 ### 개요
 
-외부 시스템(Jira 등)에서 DevHub로 개발 의뢰를 수신하고, 담당자에게 표시하며, Application/Project로 승격(promote)시키는 전체 lifecycle 테스트.
+외부 시스템(Jira 등)에서 DevHub로 개발 의뢰를 수신하고, 담당자에게 표시하며, Platform/Project로 승격(promote)시키는 전체 lifecycle 테스트.
 
 **검증 흐름**: Intake Token 발급 → 외부 API 수신 → 사용자 조회 → Application 승격 → Project 승격
 
@@ -313,7 +313,7 @@ POST `/api/v1/dev-requests/80226589-.../register`:
 | Target type = application | ✅ | `application_payload`로 신규 Application 생성 |
 | Application key `ALPHASVC` | ✅ | key format `^[A-Za-z0-9]{1,10}$` 준수 |
 | Dev Request 상태 전이 | ✅ `pending` → `registered` | `registered_target_type: "application"` |
-| 생성된 Application 조회 가능 | ✅ | `GET /api/v1/applications?key=ALPHASVC` |
+| 생성된 Application 조회 가능 | ✅ | `GET /api/v1/platforms?key=ALPHASVC` |
 | 중복 Promote 시도 | ✅ **409 Conflict** | `"dev_request is already registered/rejected/closed"` |
 
 ### SC-TEST-5.4: Dev Request → Project 승격 (Promote) ✅ 통과
@@ -474,7 +474,7 @@ POST `/api/v1/dev-requests/09045149-.../register`:
 | **NEW-P1A** | Sign-out endpoint 미구현 (BUG-03) | **P1** | 미포함 | v1.0 로드맵에 신규 P1 carve 추가 |
 | **NEW-P1B** | Repository build-runs endpoint (ISSUE-04) | **P1** | 미포함 | v1.0 로드맵에 신규 P1 carve 추가 (N-3/X-4 연계) |
 | **NEW-P1C** | Manager role RBAC 검증 누락 (BUG-07) | **P1** | 미포함 | P1-1 role sync와 함께 해결 |
-| **NEW-P1D** | RBAC: developer role `applications:view` 부재 | **P1** | 미포함 | developer가 Application 목록 조회 불가. 의도된 설계인지 확인 필요 |
+| **NEW-P1D** | RBAC: developer role `applications:view` 부재 | **P1** | 미포함 | developer가 Platform 목록 조회 불가. 의도된 설계인지 확인 필요 |
 
 ---
 
@@ -485,7 +485,7 @@ POST `/api/v1/dev-requests/09045149-.../register`:
 | 도메인 | 시나리오 | 상태 | 근거 |
 |--------|---------|------|------|
 | **온보딩 Flow** | 1.1~1.4 | ✅ **Stable** | OIDC PKCE → 온보딩 게이트 → Admin review → RBAC. 19개 TC 중 13개 통과 |
-| **App/Project/Repo** | 2.1~2.5 | ✅ **Operational** | Application CRUD, Project CRUD, Gitea outbound repo create, Project↔Repo link |
+| **App/Project/Repo** | 2.1~2.5 | ✅ **Operational** | Platform CRUD, Project CRUD, Gitea outbound repo create, Project↔Repo link |
 | **Gitea 연동** | 3.1~3.5 | ⚠️ **Initial Import OK** | Issue/PR/Assignee import 정상. 증분 sync는 Webhook 필요 (v1.1) |
 | **CI/CD** | 4.1~4.5 | ⚠️ **DB Only** | 조회 API 정상. 생성 API 부재가 유일한 P0 blocker |
 

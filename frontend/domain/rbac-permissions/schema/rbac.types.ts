@@ -31,7 +31,7 @@ export function isSystemRole(roleId: string): boolean {
 // reached yet (initial page paint, dev without rbac_policies seeded). Matrices
 // match docs/backend_api_contract.md section 12.1 default policy so the UI is
 // internally consistent even without a network round-trip.
-// 4 신규 resource (applications / application_repositories / projects / scm_providers)
+// 4 신규 resource (platforms / platform_repositories / projects / scm_providers)
 // 는 sprint claude/work_260514-a (ADR-0011 §4.1) 에서 추가. system_admin 일임 정책 —
 // developer/team_manager 는 모든 axis false, system_admin 만 모든 axis true. backend
 // migration 000018 seed 와 정합.
@@ -47,8 +47,8 @@ export const defaultRoles: Role[] = [
       organization:             { view: true, create: true, edit: true, delete: true },
       security:                 { view: true, create: true, edit: true, delete: true },
       audit:                    { view: true, create: false, edit: false, delete: false },
-      applications:             { view: true, create: true, edit: true, delete: true },
-      application_repositories: { view: true, create: true, edit: true, delete: true },
+      platforms:             { view: true, create: true, edit: true, delete: true },
+      platform_repositories: { view: true, create: true, edit: true, delete: true },
       projects:                 { view: true, create: true, edit: true, delete: true },
       scm_providers:            { view: true, create: true, edit: true, delete: true },
       dev_requests:             { view: true, create: true, edit: true, delete: true },
@@ -66,8 +66,8 @@ export const defaultRoles: Role[] = [
       organization:             { view: true, create: false, edit: true, delete: false },
       security:                 { view: true, create: true,  edit: false, delete: false },
       audit:                    { view: true, create: false, edit: false, delete: false },
-      applications:             { view: true, create: false, edit: true, delete: false },
-      application_repositories: { view: true, create: false, edit: false, delete: false },
+      platforms:             { view: true, create: false, edit: true, delete: false },
+      platform_repositories: { view: true, create: false, edit: false, delete: false },
       projects:                 { view: true, create: true, edit: true, delete: true },
       scm_providers:            { view: true, create: false, edit: false, delete: false },
       dev_requests:             { view: true, create: false, edit: true, delete: false },
@@ -85,8 +85,8 @@ export const defaultRoles: Role[] = [
       organization:             { view: true, create: false, edit: false, delete: false },
       security:                 { view: true, create: false, edit: false, delete: false },
       audit:                    { view: false, create: false, edit: false, delete: false },
-      applications:             { view: true, create: false, edit: false, delete: false },
-      application_repositories: { view: true, create: false, edit: false, delete: false },
+      platforms:             { view: true, create: false, edit: false, delete: false },
+      platform_repositories: { view: true, create: false, edit: false, delete: false },
       projects:                 { view: true, create: false, edit: false, delete: false },
       scm_providers:            { view: false, create: false, edit: false, delete: false },
       dev_requests:             { view: true, create: false, edit: false, delete: false },

@@ -18,7 +18,7 @@ import (
 
 var (
 	validIntegrationScopes = map[string]bool{
-		"application": true, "project": true,
+		"platform": true, "project": true,
 	}
 	validIntegrationTypes = map[string]bool{
 		"jira": true, "confluence": true,
@@ -33,7 +33,7 @@ func integrationResponse(i domain.ProjectIntegration) gin.H {
 		"id":               i.ID,
 		"scope":            string(i.Scope),
 		"project_id":       i.ProjectID,
-		"application_id":   i.ApplicationID,
+		"platform_id":   i.PlatformID,
 		"integration_type": string(i.IntegrationType),
 		"external_key":     i.ExternalKey,
 		"url":              i.URL,
@@ -51,7 +51,7 @@ func (h *IntegrationHandler) ListIntegrations(c *gin.Context) {
 	}
 	opts := store.IntegrationListOptions{
 		Scope:           domain.IntegrationScope(c.Query("scope")),
-		ApplicationID:   c.Query("application_id"),
+		PlatformID:      c.Query("platform_id"),
 		ProjectID:       c.Query("project_id"),
 		IntegrationType: domain.IntegrationType(c.Query("integration_type")),
 	}
@@ -97,7 +97,7 @@ func (h *IntegrationHandler) ListIntegrations(c *gin.Context) {
 
 type createIntegrationRequest struct {
 	Scope           string `json:"scope"`
-	ApplicationID   string `json:"application_id"`
+	PlatformID      string `json:"platform_id"`
 	ProjectID       string `json:"project_id"`
 	IntegrationType string `json:"integration_type"`
 	ExternalKey     string `json:"external_key"`
@@ -137,8 +137,8 @@ func (h *IntegrationHandler) CreateIntegration(c *gin.Context) {
 		return
 	}
 	// scope-target 정합 (DB CHECK 와 일치)
-	if req.Scope == "application" {
-		if strings.TrimSpace(req.ApplicationID) == "" {
+	if req.Scope == "platform" {
+		if strings.TrimSpace(req.PlatformID) == "" {
 			c.JSON(http.StatusUnprocessableEntity, gin.H{"status": "rejected", "error": "scope=application requires application_id", "code": "scope_target_mismatch"})
 			return
 		}
@@ -148,11 +148,11 @@ func (h *IntegrationHandler) CreateIntegration(c *gin.Context) {
 			c.JSON(http.StatusUnprocessableEntity, gin.H{"status": "rejected", "error": "scope=project requires project_id", "code": "scope_target_mismatch"})
 			return
 		}
-		req.ApplicationID = ""
+		req.PlatformID = ""
 	}
 	integration := domain.ProjectIntegration{
 		Scope:           domain.IntegrationScope(req.Scope),
-		ApplicationID:   req.ApplicationID,
+		PlatformID:   req.PlatformID,
 		ProjectID:       req.ProjectID,
 		IntegrationType: domain.IntegrationType(req.IntegrationType),
 		ExternalKey:     req.ExternalKey,
@@ -172,7 +172,7 @@ func (h *IntegrationHandler) CreateIntegration(c *gin.Context) {
 		httphelp.WriteServerError(c, err, "integrations.create")
 		return
 	}
-	target := created.ApplicationID
+	target := created.PlatformID
 	if created.Scope == domain.IntegrationScopeProject {
 		target = created.ProjectID
 	}
