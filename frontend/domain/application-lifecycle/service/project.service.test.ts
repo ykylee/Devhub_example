@@ -739,50 +739,103 @@ describe("projectService", () => {
     });
   });
 
-  describe("listAllProjects — concatenates + swallows per-repo errors", () => {
-    it("aggregates projects across repository ids", async () => {
+  describe("listAllProjects — aggregates standalone + per-application", () => {
+    it("returns standalone + per-application projects, deduped by id", async () => {
       const { projectService } = await import("./project.service");
       apiClientMock
-        .mockResolvedValueOnce({ data: [{ id: "p-a" }] })
-        .mockResolvedValueOnce({ data: [{ id: "p-b" }, { id: "p-c" }] });
+        .mockResolvedValueOnce({ data: [{ id: "p-standalone" }] })
+        .mockResolvedValueOnce({
+          data: [
+            { id: "app-1", key: "a1", name: "App 1", status: "active" },
+            { id: "app-2", key: "a2", name: "App 2", status: "active" },
+          ],
+        })
+        .mockResolvedValueOnce({ data: [{ id: "p-app-1-a" }, { id: "p-app-1-b" }] })
+        .mockResolvedValueOnce({ data: [{ id: "p-standalone" }, { id: "p-app-2" }] });
 
-      const out = await projectService.listAllProjects([1, 2]);
+      const out = await projectService.listAllProjects();
 
-      expect(out).toHaveLength(3);
-      expect(out.map((p) => p.id)).toEqual(["p-a", "p-b", "p-c"]);
+      expect(out).toHaveLength(4);
+      expect(out.map((p) => p.id).sort()).toEqual([
+        "p-app-1-a",
+        "p-app-1-b",
+        "p-app-2",
+        "p-standalone",
+      ]);
     });
 
-    it("logs and swallows error for a single repo and continues to next", async () => {
-      const errSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    it("swallows standalone fetch failure and continues with per-application", async () => {
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
       const { projectService } = await import("./project.service");
       apiClientMock
-        .mockRejectedValueOnce(new Error("repo-1 fail"))
-        .mockResolvedValueOnce({ data: [{ id: "p-2" }] });
+        .mockRejectedValueOnce(new Error("standalone fail"))
+        .mockResolvedValueOnce({
+          data: [{ id: "app-1", key: "a1", name: "App 1", status: "active" }],
+        })
+        .mockResolvedValueOnce({ data: [{ id: "p-1" }] });
 
-      const out = await projectService.listAllProjects([1, 2]);
+      const out = await projectService.listAllProjects();
 
-      expect(out).toEqual([{ id: "p-2" }]);
-      expect(errSpy).toHaveBeenCalled();
-    });
-
-    it("forwards params to underlying getRepositoryProjects", async () => {
-      const { projectService } = await import("./project.service");
-      apiClientMock.mockResolvedValueOnce({ data: [] });
-
-      await projectService.listAllProjects([7], { status: "closed" });
-
-      expect(apiClientMock).toHaveBeenCalledWith(
-        "GET",
-        "/api/v1/repositories/7/projects?status=closed",
+      expect(out).toEqual([{ id: "p-1" }]);
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining("standalone fetch failed"),
+        expect.any(Error),
       );
     });
 
-    it("returns [] when no repository ids", async () => {
+    it("swallows per-application fetch failure and continues with other apps", async () => {
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
       const { projectService } = await import("./project.service");
-      const out = await projectService.listAllProjects([]);
+      apiClientMock
+        .mockResolvedValueOnce({ data: [] })
+        .mockResolvedValueOnce({
+          data: [
+            { id: "app-1", key: "a1", name: "App 1", status: "active" },
+            { id: "app-2", key: "a2", name: "App 2", status: "active" },
+          ],
+        })
+        .mockRejectedValueOnce(new Error("app-1 fail"))
+        .mockResolvedValueOnce({ data: [{ id: "p-2" }] });
+
+      const out = await projectService.listAllProjects();
+
+      expect(out).toEqual([{ id: "p-2" }]);
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining("per-application fetch failed"),
+        expect.any(Error),
+      );
+    });
+
+    it("forwards params (status, include_archived) to standalone + per-application", async () => {
+      const { projectService } = await import("./project.service");
+      apiClientMock
+        .mockResolvedValueOnce({ data: [] })
+        .mockResolvedValueOnce({ data: [] });
+
+      await projectService.listAllProjects({
+        status: "active",
+        include_archived: true,
+      });
+
+      expect(apiClientMock).toHaveBeenCalledWith(
+        "GET",
+        "/api/v1/projects/standalone?status=active&include_archived=true",
+      );
+      expect(apiClientMock).toHaveBeenCalledWith(
+        "GET",
+        "/api/v1/applications?include_archived=true",
+      );
+    });
+
+    it("returns [] when both standalone and applications list return empty", async () => {
+      const { projectService } = await import("./project.service");
+      apiClientMock
+        .mockResolvedValueOnce({ data: [] })
+        .mockResolvedValueOnce({ data: [] });
+
+      const out = await projectService.listAllProjects();
 
       expect(out).toEqual([]);
-      expect(apiClientMock).not.toHaveBeenCalled();
     });
   });
 });
