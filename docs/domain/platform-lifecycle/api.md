@@ -429,7 +429,84 @@
 요청 예시:
 `GET /api/v1/platforms/1a2b3c4d-1111-2222-3333-444455556666/dashboard`
 
-응답 예시 (대시보드 페이로드 — 본문은 master `docs/backend_api_contract.md` §13.10 참조; 본 문서는 endpoint·인증·에러 계약을 SoT 로 보존하고 페이로드 sample 은 master 원본을 인용 형태로 유지한다).
+응답 예시 (200 OK):
+```json
+{
+  "status": "ok",
+  "data": {
+    "platform_id": "1a2b3c4d-1111-2222-3333-444455556666",
+    "key": "PLAT-REV-01",
+    "name": "DevHub Core Platform",
+    "status": "active",
+    "visibility": "internal",
+    "leader": "Leader Alpha",
+    "development_unit": "Platform Development Group",
+    "updated_at": "2026-06-04T14:50:00Z",
+    "metrics_overview": {
+      "target_branch_build_status": "broken",
+      "avg_build_duration_seconds": 254.5,
+      "quality_score": 4.15,
+      "critical_warning_count": 2
+    },
+    "build_failures": [
+      {
+        "repo_provider": "gitea",
+        "repo_slug": "ykylee/Devhub_example",
+        "branch": "main",
+        "build_number": 8921,
+        "failed_at": "2026-06-04T14:45:00Z",
+        "error_snippet": "Exit code 1 on task: test",
+        "log_url": "http://gitea.local/ykylee/Devhub_example/actions/runs/8921"
+      }
+    ],
+    "quality_metrics": {
+      "normalized_score": 4.15,
+      "unresolved_issues": {
+        "blocker": 0,
+        "critical": 2,
+        "major": 5
+      },
+      "comment": "Quality Gate passed with 7 unresolved code smells/vulnerabilities."
+    },
+    "projects_progress": [
+      {
+        "project_id": "proj-101",
+        "key": "PROJ-REVAMP",
+        "name": "DevHub Revamp Project",
+        "progress_percent": 75.0,
+        "status": "active",
+        "due_date": "2026-06-15T18:00:00Z",
+        "d_day": 11,
+        "risk_level": "warning",
+        "risk_badge_color": "yellow"
+      }
+    ],
+    "linked_dev_requests": [
+      {
+        "dreq_id": "dreq-302",
+        "title": "Add platform level SLA forecast view",
+        "status": "pending",
+        "assignee_display_name": "Developer Beta",
+        "created_at": "2026-06-02T10:00:00Z"
+      }
+    ],
+    "history_trend": [
+      {
+        "date": "2026-05-29",
+        "avg_duration_seconds": 260.0,
+        "build_success_rate": 0.94,
+        "quality_score": 4.1
+      },
+      {
+        "date": "2026-06-04",
+        "avg_duration_seconds": 254.5,
+        "build_success_rate": 0.96,
+        "quality_score": 4.15
+      }
+    ]
+  }
+}
+```
 
 ### 9.2 `GET /api/v1/projects/{project_id}/dashboard` (API-94)
 
