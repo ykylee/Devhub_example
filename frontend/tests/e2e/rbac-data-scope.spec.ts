@@ -85,6 +85,6 @@ test.describe("RBAC data scope + logout (N-10 P1 follow-up)", () => {
 
     const body = await response.json();
     const code = body?.code ?? body?.error?.code;
-    expect(["auth.row_denied", "auth.row_read_denied", "auth.policy_unmapped"]).toContain(code);
+    expect(["auth_row_denied", "auth_row_read_denied", "auth_policy_unmapped"]).toContain(code);
   });
 });
