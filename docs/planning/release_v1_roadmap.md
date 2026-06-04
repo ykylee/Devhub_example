@@ -25,7 +25,7 @@
 | Domain | scope | 현황 (2026-05-20) |
 | --- | --- | --- |
 | **인증/조직/대시보드** | Keycloak OIDC 로그인 + `/admin/settings/*` (users/organization/permissions + audit + dev-requests + dev-request-tokens + integrations + integration-bindings) + dashboard (developer/manager/admin) + 역할 routing | Backend done (M1/M2/M3). Frontend done. **계정/사용자 리팩토링 Phase 3 sub-carve A done** (ADR-0020, sprint -d). sub-carve B (`/api/v1/accounts/*` 폐기 + lazy auto-create) 가 v1.0 의 마지막 큰 backend 변경. |
-| **Application/Repository/Project 도메인** | Application 등록/조회 + Repository 연결 + Project CRUD + rollup + 현황 페이지 + SCM provider catalog | Backend done (API-01..58 + ADR-0011, 2026-05-14). Frontend 활성 (현황 페이지 + FilterBar). |
+| **Platform/Repository/Project 도메인** | Platform 등록/조회 + Repository 연결 + Project CRUD + rollup + 현황 페이지 + SCM provider catalog | Backend done (API-01..58 + ADR-0011, 2026-05-14). Frontend 활성 (현황 페이지 + FilterBar). |
 | **External Integration** | HomeLab pull (file + HTTP) + Provider/Binding CRUD + topology v2 시각화 + Prometheus 통합 | Backend done (API-69..80 + ADR-0015/0016/0017). Frontend 활성 (provider + binding + topology v2). |
 
 ### 1.2 제외 기능 (v2 또는 carve)
@@ -67,14 +67,14 @@
 | Dashboard (developer/manager/admin) | `internal/httpapi/dashboard_metrics.go` | `app/(dashboard)/{developer,manager,admin}/page.tsx` | ✅ done |
 | Role routing + AuthGuard | — | `lib/auth/role-routing.ts` + AuthGuard layout | ✅ done |
 
-### 2.2 Application/Repository/Project 도메인
+### 2.2 Platform/Repository/Project 도메인
 
 | 모듈 | 위치 (backend) | 위치 (frontend) | v1.0 상태 |
 | --- | --- | --- | --- |
-| Application CRUD + 상태 전이 + critical_warning guard | `internal/httpapi/applications*.go` + `internal/store/applications*.go` (API-41..47) | `app/(dashboard)/admin/settings/applications/page.tsx` + `app/(dashboard)/applications/{page,[id]/page}.tsx` | ✅ done (ADR-0011) |
-| ApplicationRepository link CRUD | API-48..50 + `application_repositories` 테이블 | `components/project/ApplicationCreationModal.tsx` 등 | ✅ done |
+| Platform CRUD + 상태 전이 + critical_warning guard | `internal/httpapi/applications*.go` + `internal/store/applications*.go` (API-41..47) | `app/(dashboard)/admin/settings/platforms/page.tsx` + `app/(dashboard)/platforms/{page,[id]/page}.tsx` | ✅ done (ADR-0011) |
+| PlatformRepository link CRUD | API-48..50 + `platform_repositories` 테이블 | `components/project/ApplicationCreationModal.tsx` 등 | ✅ done |
 | SCM Provider catalog | API-41/42 + 4 seed (bitbucket/gitea/forgejo/github) | provider 선택 UI | ✅ done |
-| Project CRUD | API-55/56 + `projects` 테이블 | `app/(dashboard)/admin/settings/applications/...` + `app/(dashboard)/projects/{page,[id]/page}.tsx` | ✅ done |
+| Project CRUD | API-55/56 + `projects` 테이블 | `app/(dashboard)/admin/settings/platforms/...` + `app/(dashboard)/projects/{page,[id]/page}.tsx` | ✅ done |
 | Repository ops (activity / PR / build / quality) | API-51..54 | `repositories/{page,[id]/page}.tsx` | ✅ done |
 | Application rollup + custom weight | API-57 + `weight_policy` | rollup 표시 | ✅ done |
 | Project Integration CRUD (legacy, separate from External Integration) | API-58 | — | ✅ done |
@@ -181,7 +181,7 @@
 | **N-7** | **CI Run 생성 API (P0-4) 구현** — 2026-06-01 통합 테스트 ISSUE-05 | BE | Claude |
 | **N-8** | **Sign-out endpoint (P1-6) 구현** — 2026-06-01 통합 테스트 BUG-03 | BE | Claude |
 | **N-9** | **Repository build-runs (P1-7) 구현** — 2026-06-01 통합 테스트 ISSUE-04 | BE+FE | Claude+Gemini |
-| **N-10** | **Manager role RBAC 검증** — E2E seed `bob` (team_manager) 의 권한 scope 확인 + ListProjects/ListApplications row filter + org unit subtree scope 검증. 검증 보고서 [docs/validation/N-10-manager-rbac.md](../validation/N-10-manager-rbac.md) (2026-06-04) — V-01..V-10 결과 + P1 follow-up 1건 (E2E spec-vs-구현 갭 6 TC) | 테스트 | Sisyphus |
+| **N-10** | **Manager role RBAC 검증** — E2E seed `bob` (team_manager) 의 권한 scope 확인 + ListProjects/ListPlatforms row filter + org unit subtree scope 검증. 검증 보고서 [docs/validation/N-10-manager-rbac.md](../validation/N-10-manager-rbac.md) (2026-06-04) — V-01..V-10 결과 + P1 follow-up 1건 (E2E spec-vs-구현 갭 6 TC) | 테스트 | Sisyphus |
 
 #### NEXT — v1.1 운영화 + 외부 연동 깊이 정착
 
@@ -340,9 +340,9 @@ test.describe("UI screenshot capture", () => {
     { path: "/admin/settings/dev-request-tokens", name: "admin-dev-request-tokens" },
     { path: "/admin/settings/integrations", name: "admin-integrations" },
     { path: "/admin/settings/integration-bindings", name: "admin-integration-bindings" },
-    { path: "/admin/settings/applications", name: "admin-applications" },
+    { path: "/admin/settings/platforms", name: "admin-applications" },
     { path: "/admin/topology-v2", name: "admin-topology-v2" },
-    { path: "/applications", name: "user-applications" },
+    { path: "/platforms", name: "user-applications" },
     { path: "/repositories", name: "user-repositories" },
     { path: "/projects", name: "user-projects" },
     { path: "/dev-requests", name: "user-dev-requests" },

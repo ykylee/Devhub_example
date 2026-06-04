@@ -1,4 +1,4 @@
-import type { ProjectTaskItem } from "@/domain/application-lifecycle/schema/project.types";
+import type { ProjectTaskItem } from "@/domain/platform-lifecycle/schema/project.types";
 
 // Task 완료율 기반 project progress 계산. 단순 count 기반 (모든 task 동일 가중).
 // 향후 story-point 기반 가중치 추가 시 이 함수를 확장.

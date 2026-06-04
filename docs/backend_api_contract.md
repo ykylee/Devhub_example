@@ -270,7 +270,7 @@ runtime provider는 `DB_URL`, `GITEA_URL`, `BACKEND_AI_URL` 설정을 기준으�
 - `publish_requested_at`, `published_at` — draft → publish lifecycle (#368, repository-integration 도메인 참조)
 - `updated_at`
 - **linked classification (Task B, 2026-05-28)**:
-  - `linked_applications_count` — `application_repositories` 의 직접 link 수
+  - `linked_applications_count` — `platform_repositories` 의 직접 link 수
   - `linked_projects_count` — `project_repositories` 의 매핑 수
   - 합산 = 0 이면 "unlinked" (외부 SCM mirror 만 존재, orphan), > 0 이면 "linked" (시스템 application/project 와 연결됨)
   - `GET /api/v1/repositories/{id}` (repository-integration api API-53 의 detail) 응답에도 동일 필드 포함
@@ -402,7 +402,7 @@ command의 현재 상태, actor, target, 요청 사유, dry-run 여부, approval
 | rbac-permissions | [`./domain/rbac-permissions/api.md`](./domain/rbac-permissions/api.md) | API-26..29, ~~API-30/31 폐기~~, API-38..40 |
 | organization-management | [`./domain/organization-management/api.md`](./domain/organization-management/api.md) | API-33, API-34 (+ subpaths) |
 | onboarding | [`./domain/onboarding/api.md`](./domain/onboarding/api.md) | API-32 확장, API-33 확장, API-83..86 |
-| application-lifecycle | [`./domain/application-lifecycle/api.md`](./domain/application-lifecycle/api.md) | API-41..50, 55, 56, 56A, 56B, 57, 58, 93 |
+| platform-lifecycle | [`./domain/platform-lifecycle/api.md`](./domain/platform-lifecycle/api.md) | API-41..50, 55, 56, 56A, 56B, 57, 58, 93 |
 | repository-integration | [`./domain/repository-integration/api.md`](./domain/repository-integration/api.md) | API-51..54, API-91, API-92 |
 | dev-request | [`./domain/dev-request/api.md`](./domain/dev-request/api.md) | API-59..68, API-79 |
 | integration-registry | [`./domain/integration-registry/api.md`](./domain/integration-registry/api.md) + [`task_api.md`](./domain/integration-registry/task_api.md) | API-69..78, API-80, API-87..90, API-94..96 |

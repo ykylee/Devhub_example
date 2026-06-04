@@ -1,4 +1,4 @@
-# Application/Project 운영 모델 예시 (2026)
+# Platform/Project 운영 모델 예시 (2026)
 
 - 문서 목적: Application > Repository > Project 기반 하이브리드 운영 모델의 샘플을 제공한다.
 - 범위: Application 1건 + Repo 3건 + Repository 하위 Project 기준의 역할/연결/로드맵/cadence/KPI 예시.

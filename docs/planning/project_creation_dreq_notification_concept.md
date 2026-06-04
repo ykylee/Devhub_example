@@ -19,7 +19,7 @@ graph TD
     C -->|알림 클릭| D[NotificationDropdown 노출]
     D -->|의뢰 클릭| E[DevRequestDetailModal 팝업]
     E -->|Promote 클릭| F[ProjectCreationModal 오픈 + 데이터 프리필]
-    F -->|제출| G[POST /api/v1/applications/:id/projects 호출 및 DREQ 상태 전이]
+    F -->|제출| G[POST /api/v1/platforms/:id/projects 호출 및 DREQ 상태 전이]
     
     H[관리자 직접 생성] -->|New Project 클릭| F
 ```

@@ -1,0 +1,5 @@
+{
+  "status": "in_progress",
+  "summary": "PR #462 E2E CI failure triage. Local fresh E2E repro established; two failing specs reproduced. Local setup-keycloak CI parity patch applied.",
+  "updated_at": "2026-06-02T08:20:00Z"
+}

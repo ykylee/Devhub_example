@@ -1,7 +1,7 @@
 DROP MATERIALIZED VIEW IF EXISTS public.org_units_total_count CASCADE;
 
-DROP TABLE IF EXISTS public.application_repositories CASCADE;
-DROP TABLE IF EXISTS public.applications CASCADE;
+DROP TABLE IF EXISTS public.platform_repositories CASCADE;
+DROP TABLE IF EXISTS public.platforms CASCADE;
 DROP TABLE IF EXISTS public.audit_logs CASCADE;
 DROP TABLE IF EXISTS public.build_runs CASCADE;
 DROP TABLE IF EXISTS public.ci_runs CASCADE;

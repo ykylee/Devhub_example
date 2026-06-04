@@ -1,7 +1,7 @@
 # 2026-05-29 Test Coverage Sprint 결과 보고서
 
 - 문서 목적: 2026-05-29 단일 세션에 진행된 backend + frontend test coverage 보강 sprint 의 결과 + silent production bug 해소 + test infrastructure 강화 내역을 정리한다.
-- 범위: backend-core 의 `internal/store` / `internal/domain/application-lifecycle/*` / `internal/domain/rbac-permissions/*` + frontend 의 `components/dashboard,organization` / `lib/config` / `vitest.config.ts` + `docs/tests/test_coverage_carve_out_plan.md`
+- 범위: backend-core 의 `internal/store` / `internal/domain/platform-lifecycle/*` / `internal/domain/rbac-permissions/*` + frontend 의 `components/dashboard,organization` / `lib/config` / `vitest.config.ts` + `docs/tests/test_coverage_carve_out_plan.md`
 - 대상 독자: 저장소 관리자, codex 외부 리뷰어, 후속 carve out 진행자
 - 상태: published
 - 최종 수정일: 2026-05-29 (PR #444 + #445 + 운영 UI 전환 마무리 반영)
@@ -11,7 +11,7 @@
 
 - 단일 세션 **11 PR main 머지** (#435 → #445). main HEAD `eda9132` (2026-05-29 KST).
 - backend 실 DB 기준 `-coverpkg=./...` total **43.0% → 54.4%** (+11.4%p).
-- `internal/domain/application-lifecycle/view` self-coverage **7.0% → 90.2%** (+83.2%p).
+- `internal/domain/platform-lifecycle/view` self-coverage **7.0% → 90.2%** (+83.2%p).
 - `internal/domain/audit-ops/service` integration test **0건 → 10건** (TestIntegration_*, wire 정합성 catch-net).
 - frontend overall **Lines 74.39% → 81.89%** (+7.50%p).
 - `AuthGuard.tsx` self-cover **87.8% → 92.68%** (Lines 100%, security 회귀 가드).
@@ -25,11 +25,11 @@
 | # | PR | 영역 | 효과 | main commit |
 |---|---|---|---|---|
 | 1 | [#435](https://github.com/ykylee/Devhub_example/pull/435) | backend / docs | B-5 carve out — store integration test 실 DB cover 측정 (43.0% → 54.4%) | `db2b065` |
-| 2 | [#436](https://github.com/ykylee/Devhub_example/pull/436) | backend / view test | B-3 9 도메인 handler shim test 142건 (audit-ops 47.6%, application-lifecycle 7.0% 미달) | `f2a2ee2` |
+| 2 | [#436](https://github.com/ykylee/Devhub_example/pull/436) | backend / view test | B-3 9 도메인 handler shim test 142건 (audit-ops 47.6%, platform-lifecycle 7.0% 미달) | `f2a2ee2` |
 | 3 | [#437](https://github.com/ykylee/Devhub_example/pull/437) | backend / store test | uuid empty FAIL 회귀 — silent err 무시 패턴 정정 | `084a6a4` |
 | 4 | [#438](https://github.com/ykylee/Devhub_example/pull/438) | backend / RBAC | **silent production bug** — sentinel duplicate 통합 (handler 422 매핑 회귀 hotfix) | `00afc2c` |
 | 5 | [#439](https://github.com/ykylee/Devhub_example/pull/439) | backend / test infra | cross-pkg fixture race 차단 — pg_advisory_lock (`0x4150705F4C6966` "App_Lif") | `11e7b78` |
-| 6 | [#440](https://github.com/ykylee/Devhub_example/pull/440) | backend / view test | application-lifecycle view 보강 — self-coverage **7.0% → 90.2%** (178 신규 test) | `3f1b2b9` |
+| 6 | [#440](https://github.com/ykylee/Devhub_example/pull/440) | backend / view test | platform-lifecycle view 보강 — self-coverage **7.0% → 90.2%** (178 신규 test) | `3f1b2b9` |
 | 7 | [#441](https://github.com/ykylee/Devhub_example/pull/441) | frontend / config | F-1 잔여 — dead code 제거 + vitest coverage exclude (Lines 74.4% → 75.1%) | `50f7481` |
 | 8 | [#442](https://github.com/ykylee/Devhub_example/pull/442) | frontend / 도메인 component | D 옵션 — 0% 도메인 component 보강 (Lines 75.1% → 81.8%) | `d150dfc` |
 | 9 | [#443](https://github.com/ykylee/Devhub_example/pull/443) | docs | 본 결과 보고서 신규 (`docs/reports/2026-05-29-test-coverage-sprint.md`) | `fcdc02c` |
@@ -44,8 +44,8 @@
 |---|---|---|---|
 | `-coverpkg=./...` total | 43.0% | **54.4%** | +11.4%p |
 | `internal/store` | 0% (env skip) | **20.2%** | +20.2%p |
-| `internal/domain/application-lifecycle/repository` | 0% | **43.6%** | +43.6%p |
-| `internal/domain/application-lifecycle/view` | 0% | **90.2%** | +90.2%p |
+| `internal/domain/platform-lifecycle/repository` | 0% | **43.6%** | +43.6%p |
+| `internal/domain/platform-lifecycle/view` | 0% | **90.2%** | +90.2%p |
 | `internal/domain/dev-request/repository` | 0% | **24.1%** | +24.1%p |
 | `internal/domain/audit-ops/view` | 0% | **47.6%** | +47.6%p |
 | `internal/domain/onboarding/view` | 27.5% | **42.3%** | +14.8%p |
@@ -111,7 +111,7 @@ frontend per-component 보강:
 
 ### 5.1 Cross-pkg fixture race 차단 (#439)
 
-`go test ./...` 가 패키지 단위로 별도 binary 를 병렬 실행 → `internal/store_test` 와 `internal/domain/application-lifecycle/repository_test` 의 `setupApplicationsTest` 가 동일 테이블 (`applications`, `projects`, `project_integrations`, `application_repositories`, `project_members`, `repositories`) 을 TRUNCATE CASCADE 동시 실행 → A 패키지 test 진행 중 B 패키지 fixture 가 끼어들면 row 가 사라져 silent fail 회귀.
+`go test ./...` 가 패키지 단위로 별도 binary 를 병렬 실행 → `internal/store_test` 와 `internal/domain/platform-lifecycle/repository_test` 의 `setupApplicationsTest` 가 동일 테이블 (`applications`, `projects`, `project_integrations`, `platform_repositories`, `project_members`, `repositories`) 을 TRUNCATE CASCADE 동시 실행 → A 패키지 test 진행 중 B 패키지 fixture 가 끼어들면 row 가 사라져 silent fail 회귀.
 
 직전 sprint **#437** 의 SQLSTATE 22P02 ("uuid 잘못된 입력") 회귀가 본 race 가 silent err 무시 패턴을 통과한 결과.
 
@@ -138,7 +138,7 @@ frontend per-component 보강:
 | 영역 | 신규 test 수 | 신규 LoC |
 |---|---|---|
 | backend B-3 9 도메인 view shim (`internal/domain/*/view/handler_test.go`) | 142 | ~3170 |
-| backend application-lifecycle view endpoint (`applications_handler_test.go` + `projects_handler_test.go` + `fake_store_test.go`) | 178 | +2862 |
+| backend platform-lifecycle view endpoint (`applications_handler_test.go` + `projects_handler_test.go` + `fake_store_test.go`) | 178 | +2862 |
 | backend audit-ops/service user_sync integration (`user_sync_integration_test.go`) | 10 | +346 |
 | frontend domain component (`GardenerFeed`, `OrgTree`, `OrgUnitTable`) | 42 | +825 |
 | frontend AuthGuard system-admin gate (`AuthGuard.test.tsx`) | 4 | +78 |
@@ -159,7 +159,7 @@ frontend per-component 보강:
 
 | 후보 | 영역 | 상태 |
 |---|---|---|
-| **ApplicationDashboard 50% 잔여** | backend application-lifecycle view | 미진입 (build_runs/quality_snapshots fixture seeding 보강 필요) |
+| **ApplicationDashboard 50% 잔여** | backend platform-lifecycle view | 미진입 (build_runs/quality_snapshots fixture seeding 보강 필요) |
 | **OrgTree 75.27% 잔여** | frontend organization component | 미진입 (Focus Selection / onConnect / handleNodesChange position 동기화 분기) |
 | **internal/store 20.2% 잔여** | backend store integration test | 미진입 (27 메서드 `ApplicationStore` 의 미커버 method, B-5 part 2) |
 | ~~audit-ops/service integration test 신규~~ | backend domain | ✅ **#444 — 10 신규 test 추가** (wire 정합성 catch-net, silent bug 발견 0건) |

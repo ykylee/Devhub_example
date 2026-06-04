@@ -222,7 +222,7 @@ func newOwnershipTestContext(t *testing.T, login, role string) (*gin.Context, *m
 	audits := &memoryAuditStore{}
 	rec := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(rec)
-	c.Request = httptest.NewRequest(http.MethodPatch, "/api/v1/applications/app-1", nil)
+	c.Request = httptest.NewRequest(http.MethodPatch, "/api/v1/platforms/app-1", nil)
 	c.Set("devhub_actor_login", login)
 	c.Set("devhub_actor_role", role)
 	handler := Handler{cfg: RouterConfig{AuditStore: audits}}
@@ -334,7 +334,7 @@ func TestEnforceRowOwnership_DevFallbackBypasses(t *testing.T) {
 	audits := &memoryAuditStore{}
 	rec := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(rec)
-	c.Request = httptest.NewRequest(http.MethodPatch, "/api/v1/applications/app-1", nil)
+	c.Request = httptest.NewRequest(http.MethodPatch, "/api/v1/platforms/app-1", nil)
 	c.Set("devhub_auth_dev_fallback", true)
 	h := Handler{cfg: RouterConfig{AuditStore: audits}}
 
@@ -355,7 +355,7 @@ func TestEnforceRowOwnership_NoActorContextDenied(t *testing.T) {
 	audits := &memoryAuditStore{}
 	rec := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(rec)
-	c.Request = httptest.NewRequest(http.MethodPatch, "/api/v1/applications/app-1", nil)
+	c.Request = httptest.NewRequest(http.MethodPatch, "/api/v1/platforms/app-1", nil)
 	h := Handler{cfg: RouterConfig{AuditStore: audits}}
 
 	if got := h.enforceRowOwnership(c, "alice", "team_manager"); got {

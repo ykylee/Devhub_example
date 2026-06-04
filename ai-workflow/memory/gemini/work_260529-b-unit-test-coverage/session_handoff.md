@@ -11,7 +11,7 @@
 * **기존 통합 테스트의 도메인 Repository Wrapper 우회 Porting**:
   * `users_units_test.go` (org-management): pgStore 직접 호출부를 `OrganizationRepository` 인스턴스 랩퍼 호출로 전환하여 해당 패키지 커버리지 **0.0% -> 41.0%**로 수직 상승.
   * `realtime_tickets_integration_test.go` (realtime): `RealtimeRepository` 랩퍼 인스턴스 호출로 전환하여 패키지 커버리지 **0.0% -> 75.0%**로 상승.
-  * `applications_integration_test.go` (application-lifecycle): `ApplicationRepository` 랩퍼 호출 및 Extra CRUD 테스트 케이스 추가를 통해 패키지 커버리지 **43.6% -> 78.7%**로 보강.
+  * `applications_integration_test.go` (platform-lifecycle): `ApplicationRepository` 랩퍼 호출 및 Extra CRUD 테스트 케이스 추가를 통해 패키지 커버리지 **43.6% -> 78.7%**로 보강.
 * **누락되었던 Repository 패키지에 대한 신규 DB 통합 테스트 신설**:
   * `audit_logs_integration_test.go` 신설: `AuditRepository`를 자극해 `CreateAuditLog`, `ListAuditLogs`, `GetEventCursor`, `UpsertEventCursor` 100% 자극 성공 (**83.3%** 커버리지).
   * `integration_registry_integration_test.go` 신설: `IntegrationRepository` 및 `PostgresExternalTaskStore`를 자극해 external task items CRUD, next webhook sequence, last pulled at update, task trackers list 100% 자극 성공 (**45.2%** 커버리지).

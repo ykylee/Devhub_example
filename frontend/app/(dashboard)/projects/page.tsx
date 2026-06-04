@@ -18,8 +18,8 @@ import { DashboardHeader } from "@/shared/ui-foundation/components/DashboardHead
 import { Badge } from "@/shared/ui-foundation/components/Badge";
 import { FilterBar } from "@/shared/ui-foundation/components/FilterBar";
 import { PageEmpty, PageError, PageLoading } from "@/shared/ui-foundation/components/PageState";
-import { projectService } from "@/domain/application-lifecycle/service/project.service";
-import type { Project } from "@/domain/application-lifecycle/schema/project.types";
+import { projectService } from "@/domain/platform-lifecycle/service/project.service";
+import type { Project } from "@/domain/platform-lifecycle/schema/project.types";
 import { computeProjectProgress } from "@/shared/utils/project-progress";
 
 export default function ProjectsStatusPage() {

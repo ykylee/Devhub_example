@@ -105,7 +105,7 @@ sprint -k: v1.0 E2E 회귀 테스트
 | P1-1 Role sync | Keycloak `devhub_role` 변경 → DevHub `users.role` 자동 반영 |
 | P1-6 Sign-out | `POST /api/v1/auth/logout` → token expired + 200 |
 | P1-7 Build-runs | `GET /api/v1/repos/{id}/build-runs` → `ci_runs` 기반 결과 반환 |
-| N-10 Manager RBAC | mgr-user-b로 `/api/v1/applications` 조회 → developer와 다른 scope 확인 |
+| N-10 Manager RBAC | mgr-user-b로 `/api/v1/platforms` 조회 → developer와 다른 scope 확인 |
 
 ---
 

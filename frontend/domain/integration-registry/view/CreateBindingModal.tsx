@@ -4,7 +4,7 @@ import { useState, FormEvent, useEffect, useMemo } from "react";
 import { Link2, X } from "lucide-react";
 import { motion } from "framer-motion";
 import { integrationService } from "@/domain/integration-registry/service/integration.service";
-import { projectService } from "@/domain/application-lifecycle/service/project.service";
+import { projectService } from "@/domain/platform-lifecycle/service/project.service";
 import { ApiError } from "@/shared/api/api-client";
 import { ComboBox } from "@/shared/ui-foundation/components/ComboBox";
 import type {
@@ -20,11 +20,11 @@ interface CreateBindingModalProps {
   onCreated: (binding: IntegrationBinding) => void;
 }
 
-const scopeTypeOptions: IntegrationScopeType[] = ["application", "project"];
+const scopeTypeOptions: IntegrationScopeType[] = ["platform", "project"];
 const policyOptions: IntegrationPolicy[] = ["summary_only", "execution_system"];
 
 export function CreateBindingModal({ providers, onClose, onCreated }: CreateBindingModalProps) {
-  const [scopeType, setScopeType] = useState<IntegrationScopeType>("application");
+  const [scopeType, setScopeType] = useState<IntegrationScopeType>("platform");
   const [scopeID, setScopeID] = useState("");
   const [providerID, setProviderID] = useState(providers[0]?.provider_id ?? "");
   const [externalKey, setExternalKey] = useState("");
@@ -39,11 +39,11 @@ export function CreateBindingModal({ providers, onClose, onCreated }: CreateBind
     (async () => {
       try {
         const [appsResp] = await Promise.all([
-          projectService.getApplications({ include_archived: false }),
+          projectService.getPlatforms({ include_archived: false }),
         ]);
         setApps(appsResp.map(a => ({ id: a.id, key: a.key, name: a.name })));
-        // scope_type=project 분기는 별도 search API 가 없어 현재 application
-        // 만 사전 로드. (DREQ promote 흐름의 기본 scope 가 application)
+        // scope_type=project 분기는 별도 search API 가 없어 현재 platform
+        // 만 사전 로드. (DREQ promote 흐름의 기본 scope 가 platform)
       } catch (err) {
         console.error("Failed to load resources for ComboBox:", err);
       }
@@ -51,7 +51,7 @@ export function CreateBindingModal({ providers, onClose, onCreated }: CreateBind
   }, []);
 
   const scopeOptions = useMemo(() => {
-    if (scopeType === "application") {
+    if (scopeType === "platform") {
       return apps.map(a => ({ label: `${a.key} - ${a.name}`, value: a.key, description: a.name }));
     }
     return [];
@@ -127,7 +127,7 @@ export function CreateBindingModal({ providers, onClose, onCreated }: CreateBind
                 Create Binding
               </h3>
               <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">
-                provider 와 application/project scope 를 매핑합니다
+                provider 와 platform/project scope 를 매핑합니다
               </p>
             </div>
           </div>
@@ -165,13 +165,13 @@ export function CreateBindingModal({ providers, onClose, onCreated }: CreateBind
               <label htmlFor="scope_id" className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2">
                 Scope ID *
               </label>
-              {scopeType === "application" ? (
+              {scopeType === "platform" ? (
                 <ComboBox
                   options={scopeOptions}
                   value={scopeID}
                   onChange={setScopeID}
-                  placeholder="Search application..."
-                  emptyText="No applications found"
+                  placeholder="Search platform..."
+                  emptyText="No platforms found"
                 />
               ) : (
                 <input

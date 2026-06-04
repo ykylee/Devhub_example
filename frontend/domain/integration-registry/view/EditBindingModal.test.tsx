@@ -78,7 +78,7 @@ const providers: IntegrationProvider[] = [
 
 const binding: IntegrationBinding = {
   binding_id: "b1",
-  scope_type: "application",
+  scope_type: "platform",
   scope_id: "app-1",
   provider_id: "prov-1",
   external_key: "org/repo",

@@ -17,7 +17,7 @@ import (
 // shared by SCM repository read operations: provider exists, provider_type=scm,
 // and the required capability is enabled. Writes the error response and returns
 // ok=false on failure.
-func (h *RepositoryIntegrationHandler) scmProviderForCapability(c *gin.Context, storeI ApplicationStore, capability string) (domain.IntegrationProvider, bool) {
+func (h *RepositoryIntegrationHandler) scmProviderForCapability(c *gin.Context, storeI PlatformStore, capability string) (domain.IntegrationProvider, bool) {
 	providerID := c.Param("provider_id")
 	provider, err := storeI.GetIntegrationProviderByID(c.Request.Context(), providerID)
 	if errors.Is(err, store.ErrNotFound) {
@@ -65,7 +65,7 @@ func (h *RepositoryIntegrationHandler) scmProviderForCapability(c *gin.Context, 
 }
 
 // scmProviderForPull — inbound 조회/import gate (pull capability).
-func (h *RepositoryIntegrationHandler) scmProviderForPull(c *gin.Context, storeI ApplicationStore) (domain.IntegrationProvider, bool) {
+func (h *RepositoryIntegrationHandler) scmProviderForPull(c *gin.Context, storeI PlatformStore) (domain.IntegrationProvider, bool) {
 	return h.scmProviderForCapability(c, storeI, "pull")
 }
 
@@ -122,7 +122,7 @@ func scmRepoOwnerLogin(fullName string) string {
 // SCM(provider)으로부터 원격 repository 목록을 조회한다. 각 항목에 시스템 import 여부
 // (imported)를 표시한다. provider_type=scm + pull capability 필요.
 func (h *RepositoryIntegrationHandler) ListSCMRepositories(c *gin.Context) {
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+	storeI, ok := h.PlatformStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
@@ -172,7 +172,7 @@ type importSCMRepositoriesRequest struct {
 // provider_id 세팅, SCM mirror 필드 채움). 신뢰 가능한 SCM 데이터를 쓰기 위해 요청
 // payload 가 아니라 SCM 에서 다시 조회한 값으로 upsert 한다. pull capability 필요.
 func (h *RepositoryIntegrationHandler) ImportSCMRepositories(c *gin.Context) {
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+	storeI, ok := h.PlatformStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
@@ -259,7 +259,7 @@ type createSCMRepositoryRequest struct {
 // (source=system, provider_id 세팅 — 시스템이 생성을 주도했으므로 system-owned).
 // push capability + Gitea-compatible provider 필요.
 func (h *RepositoryIntegrationHandler) CreateSCMRepository(c *gin.Context) {
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+	storeI, ok := h.PlatformStoreOrUnavailable(c)
 	if !ok {
 		return
 	}

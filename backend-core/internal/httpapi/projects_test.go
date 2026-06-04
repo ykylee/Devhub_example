@@ -14,8 +14,8 @@ import (
 
 // 1) POST /repositories/:repository_id/projects — happy.
 func TestCreateProject_Happy(t *testing.T) {
-	appStore := newMemoryApplicationStore()
-	router := newApplicationsRouter(appStore)
+	platformStore := newMemoryPlatformStore()
+	router := newPlatformsRouter(platformStore)
 
 	rec := doJSON(t, router, http.MethodPost, "/api/v1/repositories/42/projects",
 		`{"key":"sprint-q3","name":"Q3 Sprint","owner_user_id":"u1","visibility":"internal","status":"planning"}`)
@@ -28,22 +28,22 @@ func TestCreateProject_Happy(t *testing.T) {
 }
 
 func TestCreateApplicationProject_Happy(t *testing.T) {
-	appStore := newMemoryApplicationStore()
-	router := newApplicationsRouter(appStore)
+	platformStore := newMemoryPlatformStore()
+	router := newPlatformsRouter(platformStore)
 
-	rec := doJSON(t, router, http.MethodPost, "/api/v1/applications/app-1/projects",
+	rec := doJSON(t, router, http.MethodPost, "/api/v1/platforms/app-1/projects",
 		`{"repository_ids":[42],"key":"sprint-q4","name":"Q4 Sprint","owner_user_id":"u1","visibility":"internal","status":"planning"}`)
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
 	}
-	if !bytes.Contains(rec.Body.Bytes(), []byte(`"application_id":"app-1"`)) {
-		t.Errorf("response should include application_id: %s", rec.Body.String())
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"platform_id":"app-1"`)) {
+		t.Errorf("response should include platform_id: %s", rec.Body.String())
 	}
 }
 
 func TestCreateProjectStandalone_WithRepositoryCreatePayload(t *testing.T) {
-	appStore := newMemoryApplicationStore()
-	router := newApplicationsRouter(appStore)
+	platformStore := newMemoryPlatformStore()
+	router := newPlatformsRouter(platformStore)
 
 	rec := doJSON(t, router, http.MethodPost, "/api/v1/projects",
 		`{"key":"standalone-a","name":"Standalone A","owner_user_id":"u1","visibility":"internal","status":"planning","repository_create_payload":{"key":"DEVHUB","slug":"team/devhub","scm_provider":"gitea"}}`)
@@ -57,7 +57,7 @@ func TestCreateProjectStandalone_WithRepositoryCreatePayload(t *testing.T) {
 
 // 2) POST /repositories/:repository_id/projects — invalid status → 400.
 func TestCreateProject_InvalidStatus(t *testing.T) {
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	rec := doJSON(t, router, http.MethodPost, "/api/v1/repositories/42/projects",
 		`{"key":"x","name":"X","owner_user_id":"u1","visibility":"internal","status":"unknown"}`)
 	if rec.Code != http.StatusBadRequest {
@@ -67,8 +67,8 @@ func TestCreateProject_InvalidStatus(t *testing.T) {
 
 // 3) POST /repositories/:repository_id/projects — duplicate key → 409.
 func TestCreateProject_DuplicateKey(t *testing.T) {
-	appStore := newMemoryApplicationStore()
-	router := newApplicationsRouter(appStore)
+	platformStore := newMemoryPlatformStore()
+	router := newPlatformsRouter(platformStore)
 	body := `{"key":"sprint-q3","name":"Q3 Sprint","owner_user_id":"u1","visibility":"internal","status":"planning"}`
 	first := doJSON(t, router, http.MethodPost, "/api/v1/repositories/42/projects", body)
 	if first.Code != http.StatusCreated {
@@ -85,12 +85,12 @@ func TestCreateProject_DuplicateKey(t *testing.T) {
 
 // 4) PATCH /projects/:id — immutable key 거부.
 func TestUpdateProject_ImmutableKey(t *testing.T) {
-	appStore := newMemoryApplicationStore()
-	p, _ := appStore.CreateProject(context.Background(), domain.Project{
-		Key: "sprint-q3", Name: "X", RepositoryID: 42, Status: domain.ApplicationStatusPlanning,
-		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+	platformStore := newMemoryPlatformStore()
+	p, _ := platformStore.CreateProject(context.Background(), domain.Project{
+		Key: "sprint-q3", Name: "X", RepositoryID: 42, Status: domain.PlatformStatusPlanning,
+		Visibility: domain.PlatformVisibilityInternal, OwnerUserID: "u1",
 	})
-	router := newApplicationsRouter(appStore)
+	router := newPlatformsRouter(platformStore)
 	rec := doJSON(t, router, http.MethodPatch, "/api/v1/projects/"+p.ID,
 		`{"key":"new-key"}`)
 	if rec.Code != http.StatusUnprocessableEntity {
@@ -105,12 +105,12 @@ func TestUpdateProject_ImmutableKey(t *testing.T) {
 // backward 전이도 운영자 임의로 가능. 이전 테스트는 거부 검증이었으므로 자유화 후
 // expected behavior 로 갱신.
 func TestUpdateProject_AnyStatusTransitionAllowed(t *testing.T) {
-	appStore := newMemoryApplicationStore()
-	p, _ := appStore.CreateProject(context.Background(), domain.Project{
-		Key: "k1", Name: "X", RepositoryID: 42, Status: domain.ApplicationStatusClosed,
-		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+	platformStore := newMemoryPlatformStore()
+	p, _ := platformStore.CreateProject(context.Background(), domain.Project{
+		Key: "k1", Name: "X", RepositoryID: 42, Status: domain.PlatformStatusClosed,
+		Visibility: domain.PlatformVisibilityInternal, OwnerUserID: "u1",
 	})
-	router := newApplicationsRouter(appStore)
+	router := newPlatformsRouter(platformStore)
 	rec := doJSON(t, router, http.MethodPatch, "/api/v1/projects/"+p.ID,
 		`{"status":"planning"}`)
 	if rec.Code != http.StatusOK {
@@ -120,12 +120,12 @@ func TestUpdateProject_AnyStatusTransitionAllowed(t *testing.T) {
 
 // 6) DELETE /projects/:id — archive happy.
 func TestArchiveProject_Happy(t *testing.T) {
-	appStore := newMemoryApplicationStore()
-	p, _ := appStore.CreateProject(context.Background(), domain.Project{
-		Key: "k1", Name: "X", RepositoryID: 42, Status: domain.ApplicationStatusActive,
-		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+	platformStore := newMemoryPlatformStore()
+	p, _ := platformStore.CreateProject(context.Background(), domain.Project{
+		Key: "k1", Name: "X", RepositoryID: 42, Status: domain.PlatformStatusActive,
+		Visibility: domain.PlatformVisibilityInternal, OwnerUserID: "u1",
 	})
-	router := newApplicationsRouter(appStore)
+	router := newPlatformsRouter(platformStore)
 	rec := doJSON(t, router, http.MethodDelete, "/api/v1/projects/"+p.ID,
 		`{"archived_reason":"sprint ended"}`)
 	if rec.Code != http.StatusOK {
@@ -137,12 +137,12 @@ func TestArchiveProject_Happy(t *testing.T) {
 }
 
 func TestProjectDeleteLifecycle(t *testing.T) {
-	appStore := newMemoryApplicationStore()
-	p, _ := appStore.CreateProject(context.Background(), domain.Project{
-		Key: "k1", Name: "X", RepositoryID: 42, Status: domain.ApplicationStatusActive,
-		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+	platformStore := newMemoryPlatformStore()
+	p, _ := platformStore.CreateProject(context.Background(), domain.Project{
+		Key: "k1", Name: "X", RepositoryID: 42, Status: domain.PlatformStatusActive,
+		Visibility: domain.PlatformVisibilityInternal, OwnerUserID: "u1",
 	})
-	router := newApplicationsRouter(appStore)
+	router := newPlatformsRouter(platformStore)
 
 	// 1) Active 상태에서 ?hard=true 로 삭제 시도 -> 400 Bad Request
 	rec1 := doJSON(t, router, http.MethodDelete, "/api/v1/projects/"+p.ID+"?hard=true", "")
@@ -174,7 +174,7 @@ func TestProjectDeleteLifecycle(t *testing.T) {
 
 // 7) GET /projects/:id — not_found → 404.
 func TestGetProject_NotFound(t *testing.T) {
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	rec := doJSON(t, router, http.MethodGet, "/api/v1/projects/nonexistent", "")
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
@@ -183,18 +183,18 @@ func TestGetProject_NotFound(t *testing.T) {
 
 // 8) GET /repositories/:repository_id/projects — list with filter.
 func TestListProjects_Filter(t *testing.T) {
-	appStore := newMemoryApplicationStore()
-	for _, status := range []domain.ApplicationStatus{
-		domain.ApplicationStatusPlanning,
-		domain.ApplicationStatusActive,
-		domain.ApplicationStatusArchived,
+	platformStore := newMemoryPlatformStore()
+	for _, status := range []domain.PlatformStatus{
+		domain.PlatformStatusPlanning,
+		domain.PlatformStatusActive,
+		domain.PlatformStatusArchived,
 	} {
-		_, _ = appStore.CreateProject(context.Background(), domain.Project{
+		_, _ = platformStore.CreateProject(context.Background(), domain.Project{
 			Key: "k-" + string(status[:4]), Name: "N", RepositoryID: 42, Status: status,
-			Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+			Visibility: domain.PlatformVisibilityInternal, OwnerUserID: "u1",
 		})
 	}
-	router := newApplicationsRouter(appStore)
+	router := newPlatformsRouter(platformStore)
 	rec := doJSON(t, router, http.MethodGet, "/api/v1/repositories/42/projects", "")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())

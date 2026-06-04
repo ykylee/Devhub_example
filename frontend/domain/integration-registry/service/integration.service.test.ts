@@ -277,7 +277,7 @@ describe("IntegrationService", () => {
       const { integrationService } = await import("./integration.service");
 
       await integrationService.listBindings({
-        scope_type: "application",
+        scope_type: "platform",
         scope_id: "app-1",
         provider_type: "alm",
         enabled: true,
@@ -288,7 +288,7 @@ describe("IntegrationService", () => {
       const [, path] = apiClientMock.mock.calls[0];
       const url = new URL(path as string, "http://example");
       expect(url.pathname).toBe("/api/v1/integration/bindings");
-      expect(url.searchParams.get("scope_type")).toBe("application");
+      expect(url.searchParams.get("scope_type")).toBe("platform");
       expect(url.searchParams.get("scope_id")).toBe("app-1");
       expect(url.searchParams.get("provider_type")).toBe("alm");
       expect(url.searchParams.get("enabled")).toBe("true");
@@ -308,12 +308,12 @@ describe("IntegrationService", () => {
 
   describe("createBinding", () => {
     it("issues POST and unwraps data envelope", async () => {
-      const binding = { binding_id: "b-new", scope_type: "application" };
+      const binding = { binding_id: "b-new", scope_type: "platform" };
       apiClientMock.mockResolvedValue({ data: binding });
       const { integrationService } = await import("./integration.service");
 
       const result = await integrationService.createBinding({
-        scope_type: "application",
+        scope_type: "platform",
         scope_id: "app-1",
         provider_id: "p-1",
         external_key: "PROJ",
@@ -323,7 +323,7 @@ describe("IntegrationService", () => {
       expect(apiClientMock).toHaveBeenCalledWith(
         "POST",
         "/api/v1/integration/bindings",
-        expect.objectContaining({ scope_type: "application", policy: "summary_only" }),
+        expect.objectContaining({ scope_type: "platform", policy: "summary_only" }),
       );
       expect(result).toEqual(binding);
     });

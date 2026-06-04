@@ -155,7 +155,7 @@ function navigateToUnknownRoute(url, state, ...) {
 ## 4. `<Link>`가 정상 동작하는 이유
 
 ```
-<Link href="/applications/42">
+<Link href="/platforms/42">
   ├── prefetch: 뷰포트 진입 시점에 RSC prefetch 요청
   │     → prefetch cache에 route tree 저장
   │

@@ -96,7 +96,7 @@
 | **Webhook (gitea)** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ⚪ (UT 로 충분) |
 | **대시보드 / me** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **CI / 거버넌스** | ✅ (NFR-1) | ✅ | ✅ (ADR-0003) | ⚪ | ✅ | ✅ | ⚪ | ⚪ (CI run 자체가 검증) |
-| **Application/Project (PMO)** | ✅ | ✅ | ✅ | ✅ | 🟡 (M3) | ✅ | ✅ | 🟡 (FilterBar TC 부분) |
+| **Platform/Project (PMO)** | ✅ | ✅ | ✅ | ✅ | 🟡 (M3) | ✅ | ✅ | 🟡 (FilterBar TC 부분) |
 | **Dev Request (DREQ)** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ (13 TC 정식) |
 | **External Integration** | ✅ | ✅ | ✅ | ✅ | 🟡 (deferred) | ✅ | ✅ | ✅ (12 TC frontend + UT only neg) |
 | **Onboarding ⚡** | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 (Carve A) | 🟡 (Carve A UT 13) | ⚪ (Carve D 후속) |

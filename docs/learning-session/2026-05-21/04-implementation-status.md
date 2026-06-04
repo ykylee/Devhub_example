@@ -42,7 +42,7 @@
 
 | 모듈 | Backend | Frontend | E2E |
 | --- | --- | --- | --- |
-| Application CRUD + rollup | `applications.go` (API-43..50, 57) + store | `admin/settings/applications/page.tsx` + FilterBar | admin-applications.spec.ts |
+| Platform CRUD + rollup | `applications.go` (API-43..50, 57) + store | `admin/settings/platforms/page.tsx` + FilterBar | admin-applications.spec.ts |
 | Repository CRUD + activity/PR/build-runs/quality | `repository_ops.go` (API-51..54) | application detail page (activity widgets) | — |
 | Project CRUD | `applications.go` project endpoint (API-55..56) | application/project nested page | — |
 | Integration (project scope, API-58) | `applications.go` integration endpoint | — | — |
@@ -55,7 +55,7 @@
 | --- | --- | --- | --- |
 | 외부 수신 (POST /dev-requests, API-59) | `internal/httpapi/dev_request_intake_auth.go` (token + IP CIDR) | — | TC-DREQ-INTAKE-AUTH-01 + NEG |
 | DREQ CRUD (API-60..65) | `dev_requests.go` + store | `app/(dashboard)/dev-requests/page.tsx` + widget | dev-requests.spec.ts (mega lifecycle) |
-| Promote (Application/Project, API-62) | `dev_requests_promote.go` 단일 트랜잭션 | promote modal | TC-DREQ-PROMOTE-TX-01 |
+| Promote (Platform/Project, API-62) | `dev_requests_promote.go` 단일 트랜잭션 | promote modal | TC-DREQ-PROMOTE-TX-01 |
 | Intake Token admin (API-66..68 + 79) | intake token admin handler | `admin/settings/dev-request-tokens/page.tsx` + IssueIntakeTokenModal (plain-1회) | TC-DREQ-ADMIN-TOKEN-* (PATCH-01, REVOKE-01) |
 | ADR-0017 hardening | atomicity (`UpdateDevRequestIntakeTokenIPs` FOR UPDATE) + cron revoke + Prometheus metric 3종 | — | — |
 

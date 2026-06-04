@@ -11,10 +11,10 @@
   "updated_at": "2026-06-04T05:12:07Z",
   "scope": {
     "in": [
-      "frontend/domain/application-lifecycle/view/ProjectCreationModal.tsx:49 의 repo_provider 하드코딩 제거 (Repository.provider_key 사용)",
+      "frontend/domain/platform-lifecycle/view/ProjectCreationModal.tsx:49 의 repo_provider 하드코딩 제거 (Repository.provider_key 사용)",
       "frontend/components/project/RepositoryCreationModal.tsx SCM Provider Key free-text input → select dropdown (integrationService.listProviders 사용)",
-      "frontend/domain/application-lifecycle/view/ProjectCreationModal.tsx sub-form 의 동일 dropdown source 교체",
-      "frontend/domain/application-lifecycle/view/ProjectCreationModal.test.tsx mock 갱신 (getSCMProviders → listProviders, 34/34 PASS)",
+      "frontend/domain/platform-lifecycle/view/ProjectCreationModal.tsx sub-form 의 동일 dropdown source 교체",
+      "frontend/domain/platform-lifecycle/view/ProjectCreationModal.test.tsx mock 갱신 (getSCMProviders → listProviders, 34/34 PASS)",
       "frontend/tests/e2e/repositories-publish.spec.ts:33 fill() → selectOption() (E2E shard 2/2 PASS)",
       "memory 4종 set up"
     ],
@@ -35,8 +35,8 @@
     "files_changed_total": 8,
     "files_changed": [
       "frontend/components/project/RepositoryCreationModal.tsx",
-      "frontend/domain/application-lifecycle/view/ProjectCreationModal.tsx",
-      "frontend/domain/application-lifecycle/view/ProjectCreationModal.test.tsx",
+      "frontend/domain/platform-lifecycle/view/ProjectCreationModal.tsx",
+      "frontend/domain/platform-lifecycle/view/ProjectCreationModal.test.tsx",
       "frontend/tests/e2e/repositories-publish.spec.ts",
       "ai-workflow/memory/opencode/work_260604-f-catalog-fixes/state.json",
       "ai-workflow/memory/opencode/work_260604-f-catalog-fixes/session_handoff.md",

@@ -26,10 +26,10 @@ vi.mock("@/domain/integration-registry/service/integration.service", () => ({
   },
 }));
 
-const getApplications = vi.fn();
-vi.mock("@/domain/application-lifecycle/service/project.service", () => ({
+const getPlatforms = vi.fn();
+vi.mock("@/domain/platform-lifecycle/service/project.service", () => ({
   projectService: {
-    getApplications: (...args: unknown[]) => getApplications(...args),
+    getPlatforms: (...args: unknown[]) => getPlatforms(...args),
   },
 }));
 
@@ -69,22 +69,22 @@ function getForm(container: HTMLElement): HTMLFormElement {
 
 beforeEach(() => {
   createBinding.mockReset();
-  getApplications.mockReset();
-  getApplications.mockResolvedValue([
+  getPlatforms.mockReset();
+  getPlatforms.mockResolvedValue([
     { id: "app-1", key: "APP-1", name: "App One" },
     { id: "app-2", key: "APP-2", name: "App Two" },
   ]);
 });
 
 describe("CreateBindingModal", () => {
-  it("renders scope_type select with application as default", async () => {
+  it("renders scope_type select with platform as default", async () => {
     render(
       <CreateBindingModal providers={providers} onClose={vi.fn()} onCreated={vi.fn()} />,
     );
     const select = screen.getByLabelText(/Scope Type/) as HTMLSelectElement;
-    expect(select.value).toBe("application");
+    expect(select.value).toBe("platform");
     await waitFor(() => {
-      expect(getApplications).toHaveBeenCalled();
+      expect(getPlatforms).toHaveBeenCalled();
     });
   });
 
@@ -93,7 +93,7 @@ describe("CreateBindingModal", () => {
       <CreateBindingModal providers={providers} onClose={vi.fn()} onCreated={vi.fn()} />,
     );
     await waitFor(() => {
-      expect(getApplications).toHaveBeenCalled();
+      expect(getPlatforms).toHaveBeenCalled();
     });
     const select = screen.getByLabelText(/Scope Type/) as HTMLSelectElement;
     fireEvent.change(select, { target: { value: "project" } });
@@ -257,9 +257,9 @@ describe("CreateBindingModal", () => {
     expect(screen.getByText(/등록된 provider 가 없습니다/)).toBeInTheDocument();
   });
 
-  it("logs error and continues when getApplications fails", async () => {
+  it("logs error and continues when getPlatforms fails", async () => {
     const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    getApplications.mockRejectedValueOnce(new Error("load fail"));
+    getPlatforms.mockRejectedValueOnce(new Error("load fail"));
     render(
       <CreateBindingModal providers={providers} onClose={vi.fn()} onCreated={vi.fn()} />,
     );

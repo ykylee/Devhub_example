@@ -34,7 +34,7 @@
 
 | 영역 | Lines % |
 |---|---|
-| `domain/application-lifecycle/view` (ApplicationCreationModal 96% / ProjectCreationModal 92% / ApplicationTable 89% / ProjectTable 92%) | **94%** (PR #424) |
+| `domain/platform-lifecycle/view` (ApplicationCreationModal 96% / ProjectCreationModal 92% / ApplicationTable 89% / ProjectTable 92%) | **94%** (PR #424) |
 | `domain/integration-registry/view` (Provider/Binding modal/table) | 82~96% |
 | `domain/rbac-permissions/view` (PermissionMatrix/Editor) | 85~92% |
 | `domain/repository-integration/view` (RepositoryTable/Link) | 95% |
@@ -117,7 +117,7 @@ sprint `claude/work_260529-t` 진행: `errors_test.go` (4 test) + `request_conte
 | 패키지 | -short cover | 실 DB cover |
 |---|---|---|
 | `internal/store` | 0% (env skip) | **20.2%** |
-| `internal/domain/application-lifecycle/repository` | 0% | **43.6%** |
+| `internal/domain/platform-lifecycle/repository` | 0% | **43.6%** |
 | `internal/domain/dev-request/repository` | 0% | **24.1%** |
 | Backend total (`-coverpkg=./...`) | 43.0% | **54.4%** (+11.4%p) |
 
@@ -225,7 +225,7 @@ npx vitest run --coverage --coverage.reporter=text-summary
 
 - [#419](https://github.com/ykylee/Devhub_example/issues/419) — CI e2e + backend-integration 복원 (P1, 사내)
 - [#420](https://github.com/ykylee/Devhub_example/issues/420) — view 큰 modal 70%+ (closed PR #424)
-- [#421](https://github.com/ykylee/Devhub_example/issues/421) — ApplicationRepository decouple (P2, 진행 중)
+- [#421](https://github.com/ykylee/Devhub_example/issues/421) — PlatformRepository decouple (P2, 진행 중)
 - [#422](https://github.com/ykylee/Devhub_example/issues/422) — ApplicationStore slim (P2, 진행 중)
 - [#423](https://github.com/ykylee/Devhub_example/issues/423) — traceability §2 인덱스 정합 (P3, 진행 중)
 

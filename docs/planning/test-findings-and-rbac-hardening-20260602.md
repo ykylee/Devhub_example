@@ -7,7 +7,7 @@
 - 입력 문서:
   - `docs/planning/integrated_test_report_20260601.md`
   - `docs/planning/role-access-concept.md`
-  - `docs/domain/application-lifecycle/requirements.md` §5 (REQ-FR-ROLE-001..016)
+  - `docs/domain/platform-lifecycle/requirements.md` §5 (REQ-FR-ROLE-001..016)
   - `docs/domain/rbac-permissions/requirements.md`
 
 ## 1. 테스트 발견사항 정리 (우선순위)
@@ -52,7 +52,7 @@
 
 ## 2. 권한 관리 요구사항 갭 분석
 
-1. `docs/domain/application-lifecycle/requirements.md`는 이미 Two-Dimensional RBAC(REQ-FR-ROLE-001..016)로 정합.
+1. `docs/domain/platform-lifecycle/requirements.md`는 이미 Two-Dimensional RBAC(REQ-FR-ROLE-001..016)로 정합.
 2. `docs/domain/rbac-permissions/requirements.md`는 아직 구 모델(`manager`, `team_manager`) 중심 표현이 남아 있어 정책 문서 간 충돌 위험.
 3. 테스트 결과 기준 필수 보완 요구:
 - IdP role sync 보장(requirement level)

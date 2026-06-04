@@ -18,8 +18,8 @@ func standaloneProject(key, name string) domain.Project {
 	return domain.Project{
 		Key:         key,
 		Name:        name,
-		Status:      domain.ApplicationStatusActive,
-		Visibility:  domain.ApplicationVisibilityInternal,
+		Status:      domain.PlatformStatusActive,
+		Visibility:  domain.PlatformVisibilityInternal,
 		OwnerUserID: "u1",
 		// RepositoryID 0 → NULL (standalone)
 	}
@@ -43,7 +43,7 @@ func TestIntegration_StandaloneProjectKey_PartialUnique(t *testing.T) {
 }
 
 // atomicity — repoPayload 동반 생성 중 project insert 가 실패하면 (여기선 존재하지 않는
-// application_id FK 위반) repository 도 rollback 되어 고아 row 가 남지 않아야 한다.
+// platform_id FK 위반) repository 도 rollback 되어 고아 row 가 남지 않아야 한다.
 func TestIntegration_CreateProjectWithRepositoryPayload_RollbackOnProjectFailure(t *testing.T) {
 	pgStore, pool, ctx, teardown := setupApplicationsTest(t)
 	defer teardown()
@@ -55,14 +55,14 @@ func TestIntegration_CreateProjectWithRepositoryPayload_RollbackOnProjectFailure
 		_, _ = pool.Exec(ctx, `DELETE FROM repositories WHERE full_name = $1`, slug)
 	}()
 
-	// 존재하지 않는 application_id → project insert FK 위반 → 전체 tx rollback.
+	// 존재하지 않는 platform_id → project insert FK 위반 → 전체 tx rollback.
 	badAppID := "00000000-0000-0000-0000-000000000000"
 	_, err := pgStore.CreateProjectWithRepositoryPayload(ctx, domain.Project{
-		ApplicationID: badAppID,
+		PlatformID: badAppID,
 		Key:           key,
 		Name:          "Atomic",
-		Status:        domain.ApplicationStatusActive,
-		Visibility:    domain.ApplicationVisibilityInternal,
+		Status:        domain.PlatformStatusActive,
+		Visibility:    domain.PlatformVisibilityInternal,
 		OwnerUserID:   "u1",
 	}, nil, &store.RepositoryCreatePayload{Key: "ATOMIC", Slug: slug, SCMProvider: "gitea"})
 	if !errors.Is(err, store.ErrConflict) {

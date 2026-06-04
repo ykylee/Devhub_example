@@ -14,7 +14,7 @@ import (
 func TestRepositoryBuildRuns_ReturnsCIRunsData(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	startedAt := time.Date(2026, 6, 2, 10, 0, 0, 0, time.UTC)
-	storeI := &memoryApplicationStore{
+	storeI := &memoryPlatformStore{
 		repositories: map[string]domain.Repository{
 			"acme/api": {ID: 101, FullName: "acme/api"},
 		},
@@ -32,7 +32,7 @@ func TestRepositoryBuildRuns_ReturnsCIRunsData(t *testing.T) {
 			},
 		},
 	}
-	router := testRouter(RouterConfig{ApplicationStore: storeI})
+	router := testRouter(RouterConfig{PlatformStore: storeI})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/repositories/101/build-runs", nil)
 	rec := httptest.NewRecorder()
@@ -50,13 +50,13 @@ func TestRepositoryBuildRuns_ReturnsCIRunsData(t *testing.T) {
 
 func TestRepositoryBuildRuns_NoCIRuns(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	storeI := &memoryApplicationStore{
+	storeI := &memoryPlatformStore{
 		repositories: map[string]domain.Repository{
 			"acme/api": {ID: 101, FullName: "acme/api"},
 		},
 		nextRepositoryID: 200,
 	}
-	router := testRouter(RouterConfig{ApplicationStore: storeI})
+	router := testRouter(RouterConfig{PlatformStore: storeI})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/repositories/101/build-runs", nil)
 	rec := httptest.NewRecorder()
@@ -73,7 +73,7 @@ func TestRepositoryBuildRuns_NoCIRuns(t *testing.T) {
 func TestRepositoryBuildRuns_StatusFilter(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	startedAt := time.Date(2026, 6, 2, 10, 0, 0, 0, time.UTC)
-	storeI := &memoryApplicationStore{
+	storeI := &memoryPlatformStore{
 		repositories: map[string]domain.Repository{
 			"acme/api": {ID: 101, FullName: "acme/api"},
 		},
@@ -91,7 +91,7 @@ func TestRepositoryBuildRuns_StatusFilter(t *testing.T) {
 			},
 		},
 	}
-	router := testRouter(RouterConfig{ApplicationStore: storeI})
+	router := testRouter(RouterConfig{PlatformStore: storeI})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/repositories/101/build-runs?status=failed", nil)
 	rec := httptest.NewRecorder()

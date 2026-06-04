@@ -1,4 +1,4 @@
-# Application/Project 운영 모델 템플릿
+# Platform/Project 운영 모델 템플릿
 
 - 문서 목적: Application > Repository > Project 기반 운영안을 표준 템플릿으로 기록한다.
 - 범위: 계층 구조, 역할, Jira/Confluence 연결, 로드맵/마일스톤, cadence, KPI, 리스크/의존성.

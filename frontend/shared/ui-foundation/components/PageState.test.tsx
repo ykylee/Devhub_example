@@ -11,8 +11,8 @@ describe("PageLoading (F-1)", () => {
   });
 
   it("label override 가 반영된다", () => {
-    render(<PageLoading label="Fetching applications..." />);
-    expect(screen.getByText("Fetching applications...")).toBeInTheDocument();
+    render(<PageLoading label="Fetching platforms..." />);
+    expect(screen.getByText("Fetching platforms...")).toBeInTheDocument();
   });
 });
 

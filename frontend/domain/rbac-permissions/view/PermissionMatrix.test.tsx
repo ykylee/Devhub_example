@@ -15,8 +15,8 @@ describe("PermissionMatrix", () => {
     expect(screen.getByText("Organization & Members")).toBeInTheDocument();
     expect(screen.getByText("Risk & Security")).toBeInTheDocument();
     expect(screen.getByText("Audit Logs & History")).toBeInTheDocument();
-    expect(screen.getByText("Applications")).toBeInTheDocument();
-    expect(screen.getByText("Application Repositories")).toBeInTheDocument();
+    expect(screen.getByText("Platforms")).toBeInTheDocument();
+    expect(screen.getByText("Platform Repositories")).toBeInTheDocument();
     expect(screen.getByText("Projects")).toBeInTheDocument();
     expect(screen.getByText("SCM Providers")).toBeInTheDocument();
     expect(screen.getByText("Development Requests (DREQ)")).toBeInTheDocument();

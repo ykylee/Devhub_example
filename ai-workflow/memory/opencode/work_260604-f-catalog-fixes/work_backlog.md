@@ -26,7 +26,7 @@ Scope out:
 
 ## 2. Bug A — ProjectCreationModal hardcoded "github"
 
-**위치**: `frontend/domain/application-lifecycle/view/ProjectCreationModal.tsx:49`
+**위치**: `frontend/domain/platform-lifecycle/view/ProjectCreationModal.tsx:49`
 
 ```ts
 // AS-IS (BUG)

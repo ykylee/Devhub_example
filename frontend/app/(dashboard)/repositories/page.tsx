@@ -64,7 +64,7 @@ export default function RepositoriesStatusPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [visibilityFilter, setVisibilityFilter] = useState("all");
   // link classification filter (Task B, 2026-05-28). all/linked/unlinked.
-  // linked = application/project 매핑 1개 이상, unlinked = 외부 SCM mirror 만.
+  // linked = platform/project 매핑 1개 이상, unlinked = 외부 SCM mirror 만.
   const [linkFilter, setLinkFilter] = useState<"all" | "linked" | "unlinked">("all");
 
   const loadData = async () => {
@@ -103,7 +103,7 @@ export default function RepositoriesStatusPage() {
     return () => clearTimeout(timer);
   }, []);
 
-  // linked count derive — application_repositories + project_repositories 매핑 합산.
+  // linked count derive — platform_repositories + project_repositories 매핑 합산.
   // 외부 SCM 에서 import 한 repo 가 시스템에 연결되었는지 분류 (Task B).
   const isLinked = (repo: RepositoryWithActivity) =>
     (repo.linked_applications_count ?? 0) + (repo.linked_projects_count ?? 0) > 0;
@@ -181,7 +181,7 @@ export default function RepositoriesStatusPage() {
         placeholder="Search repositories by name or owner..."
       />
 
-      {/* link classification filter (Task B) — application/project 매핑 분류. */}
+      {/* link classification filter (Task B) — platform/project 매핑 분류. */}
       <div className="flex items-center gap-2">
         {([
           { value: "all", label: `All (${totalRepos})` },

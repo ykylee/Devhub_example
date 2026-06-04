@@ -41,6 +41,6 @@ PR #470 MERGED → main 3713ac3 (2026-06-04T05:12:07Z).
 ## 📁 Key Files (PR #470 변경)
 
 - `frontend/components/project/RepositoryCreationModal.tsx` (Bug B: standalone New Repository 모달)
-- `frontend/domain/application-lifecycle/view/ProjectCreationModal.tsx` (Bug A:49 + Bug B sub-form: 437-455)
-- `frontend/domain/application-lifecycle/view/ProjectCreationModal.test.tsx` (mock 갱신: getSCMProviders → listProviders)
+- `frontend/domain/platform-lifecycle/view/ProjectCreationModal.tsx` (Bug A:49 + Bug B sub-form: 437-455)
+- `frontend/domain/platform-lifecycle/view/ProjectCreationModal.test.tsx` (mock 갱신: getSCMProviders → listProviders)
 - `frontend/tests/e2e/repositories-publish.spec.ts:33` (fill() → selectOption())

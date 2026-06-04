@@ -29,7 +29,7 @@
                                            ┌──────────────────────────────────────┐
                                            │  Frontend: 담당자 dashboard          │
                                            │  + /admin/settings/dev-requests       │
-                                           │  └── Promote-to-Application/Project  │
+                                           │  └── Promote-to-Platform/Project  │
                                            │     (단일 트랜잭션 — REQ-FR-DREQ-005) │
                                            └──────────────────────────────────────┘
                                                         │

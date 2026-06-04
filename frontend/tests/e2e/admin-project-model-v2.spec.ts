@@ -1,9 +1,9 @@
 import { appPath, expect, loginAs, SEEDED, test } from "./fixtures";
 
 test.describe("project model v2/hybrid API flow", () => {
-  test("TC-PROJ-V2-01 — application -> project -> project_repositories(N:M)", async ({ page }) => {
+  test("TC-PROJ-V2-01 — platform -> project -> project_repositories(N:M)", async ({ page }) => {
     await loginAs(page, SEEDED.systemAdmin);
-    await page.goto(appPath("/admin/settings/applications"));
+    await page.goto(appPath("/admin/settings/platforms"));
 
     const unique = Date.now().toString().slice(-8);
     const appKey = `A${unique}Z`; // 10 chars
@@ -55,7 +55,7 @@ test.describe("project model v2/hybrid API flow", () => {
         : null;
       if (!firstRepo?.id || !firstRepo?.full_name) throw new Error("no repository(id/full_name) available for test");
 
-      const appResp = await fetch(`${apiBasePath}/api/v1/applications`, {
+      const appResp = await fetch(`${apiBasePath}/api/v1/platforms`, {
         method: "POST",
         headers,
         body: JSON.stringify({
@@ -70,10 +70,10 @@ test.describe("project model v2/hybrid API flow", () => {
         }),
       });
       const appBody = await readBody(appResp);
-      if (!appResp.ok) throw new Error(`create application failed: ${appResp.status} ${JSON.stringify(appBody)}`);
+      if (!appResp.ok) throw new Error(`create platform failed: ${appResp.status} ${JSON.stringify(appBody)}`);
       const appID = appBody?.data?.id;
 
-      const linkResp = await fetch(`${apiBasePath}/api/v1/applications/${appID}/repositories`, {
+      const linkResp = await fetch(`${apiBasePath}/api/v1/platforms/${appID}/repositories`, {
         method: "POST",
         headers,
         body: JSON.stringify({
@@ -85,7 +85,7 @@ test.describe("project model v2/hybrid API flow", () => {
       const linkBody = await readBody(linkResp);
       if (!linkResp.ok) throw new Error(`link app repository failed: ${linkResp.status} ${JSON.stringify(linkBody)}`);
 
-      const projectResp = await fetch(`${apiBasePath}/api/v1/applications/${appID}/projects`, {
+      const projectResp = await fetch(`${apiBasePath}/api/v1/platforms/${appID}/projects`, {
         method: "POST",
         headers,
         body: JSON.stringify({
@@ -107,7 +107,7 @@ test.describe("project model v2/hybrid API flow", () => {
       const linksBody = await readBody(linksResp);
       if (!linksResp.ok) throw new Error(`list project repos failed: ${linksResp.status} ${JSON.stringify(linksBody)}`);
 
-      await fetch(`${apiBasePath}/api/v1/applications/${appID}`, { method: "DELETE", headers }).catch(() => undefined);
+      await fetch(`${apiBasePath}/api/v1/platforms/${appID}`, { method: "DELETE", headers }).catch(() => undefined);
 
       return {
         appID,

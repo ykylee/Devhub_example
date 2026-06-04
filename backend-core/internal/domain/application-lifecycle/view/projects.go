@@ -19,7 +19,7 @@ import (
 // 가 500 으로 노출. handler 에서 422 `application_id_invalid` 로 매핑하기 위해 미리 검증.
 var uuidPattern = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
 
-func (h *ApplicationHandler) projectModel() string {
+func (h *PlatformHandler) projectModel() string {
 	mode := strings.ToLower(strings.TrimSpace(h.cfg.ProjectModel))
 	switch mode {
 	case "legacy", "v2", "hybrid":
@@ -29,12 +29,12 @@ func (h *ApplicationHandler) projectModel() string {
 	}
 }
 
-func (h *ApplicationHandler) allowLegacyProjectRoutes() bool {
+func (h *PlatformHandler) allowLegacyProjectRoutes() bool {
 	mode := h.projectModel()
 	return mode == "legacy" || mode == "hybrid"
 }
 
-func (h *ApplicationHandler) allowV2ProjectRoutes() bool {
+func (h *PlatformHandler) allowV2ProjectRoutes() bool {
 	mode := h.projectModel()
 	return mode == "v2" || mode == "hybrid"
 }
@@ -58,7 +58,7 @@ func projectResponse(p domain.Project) gin.H {
 
 	return gin.H{
 		"id":              p.ID,
-		"application_id":  p.ApplicationID,
+		"platform_id":  p.PlatformID,
 		"repository_id":   repositoryID,
 		"key":             p.Key,
 		"name":            p.Name,
@@ -76,12 +76,12 @@ func projectResponse(p domain.Project) gin.H {
 }
 
 // GET /api/v1/repositories/:repository_id/projects
-func (h *ApplicationHandler) ListProjects(c *gin.Context) {
+func (h *PlatformHandler) ListProjects(c *gin.Context) {
 	if !h.allowLegacyProjectRoutes() {
 		c.JSON(http.StatusGone, gin.H{"status": "gone", "error": "legacy repository-centric project routes are disabled", "code": "project_model_legacy_disabled"})
 		return
 	}
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+	storeI, ok := h.PlatformStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
@@ -115,7 +115,7 @@ func (h *ApplicationHandler) ListProjects(c *gin.Context) {
 			opts.PrimaryUnitIDs = ids
 		}
 	}
-	if opts.Status != "" && !validApplicationStatuses[opts.Status] {
+	if opts.Status != "" && !validPlatformStatuses[opts.Status] {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "status must be one of planning/active/on_hold/closed/archived"})
 		return
 	}
@@ -168,7 +168,7 @@ type projectMemberRequest struct {
 }
 
 type createProjectRequest struct {
-	ApplicationID           string                   `json:"application_id"`
+	PlatformID string `json:"platform_id"`
 	RepositoryID            int64                    `json:"repository_id"`
 	RepositoryIDs           []int64                  `json:"repository_ids"`
 	RepositoryCreatePayload *createRepositoryPayload `json:"repository_create_payload"`
@@ -199,12 +199,12 @@ func projectRepositoryResponse(link domain.ProjectRepository) gin.H {
 }
 
 // POST /api/v1/repositories/:repository_id/projects
-func (h *ApplicationHandler) CreateProject(c *gin.Context) {
+func (h *PlatformHandler) CreateProject(c *gin.Context) {
 	if !h.allowLegacyProjectRoutes() {
 		c.JSON(http.StatusGone, gin.H{"status": "gone", "error": "legacy repository-centric project routes are disabled", "code": "project_model_legacy_disabled"})
 		return
 	}
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+	storeI, ok := h.PlatformStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
@@ -221,7 +221,7 @@ func (h *ApplicationHandler) CreateProject(c *gin.Context) {
 	h.createProjectWithRepoID(c, storeI, repoID, req)
 }
 
-func (h *ApplicationHandler) createProjectWithRepoID(c *gin.Context, storeI ApplicationStore, repoID int64, req createProjectRequest) {
+func (h *PlatformHandler) createProjectWithRepoID(c *gin.Context, storeI PlatformStore, repoID int64, req createProjectRequest) {
 	if strings.TrimSpace(req.Key) == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "key is required"})
 		return
@@ -234,11 +234,11 @@ func (h *ApplicationHandler) createProjectWithRepoID(c *gin.Context, storeI Appl
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "owner_user_id is required"})
 		return
 	}
-	if !validApplicationVisibilities[req.Visibility] {
+	if !validPlatformVisibilities[req.Visibility] {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "visibility must be one of public/internal/restricted"})
 		return
 	}
-	if !validApplicationStatuses[req.Status] {
+	if !validPlatformStatuses[req.Status] {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "status must be one of planning/active/on_hold/closed/archived"})
 		return
 	}
@@ -261,13 +261,13 @@ func (h *ApplicationHandler) createProjectWithRepoID(c *gin.Context, storeI Appl
 	}
 
 	project := domain.Project{
-		ApplicationID:  req.ApplicationID,
+		PlatformID:  req.PlatformID,
 		RepositoryID:   repoID,
 		Key:            req.Key,
 		Name:           req.Name,
 		Description:    req.Description,
-		Status:         domain.ApplicationStatus(req.Status),
-		Visibility:     domain.ApplicationVisibility(req.Visibility),
+		Status:         domain.PlatformStatus(req.Status),
+		Visibility:     domain.PlatformVisibility(req.Visibility),
 		OwnerUserID:    req.OwnerUserID,
 		StartDate:      startDate,
 		DueDate:        dueDate,
@@ -299,12 +299,12 @@ func (h *ApplicationHandler) createProjectWithRepoID(c *gin.Context, storeI Appl
 
 // POST /api/v1/projects
 // Independent project create (application/repository optional).
-func (h *ApplicationHandler) CreateProjectStandalone(c *gin.Context) {
+func (h *PlatformHandler) CreateProjectStandalone(c *gin.Context) {
 	if !h.allowV2ProjectRoutes() {
 		c.JSON(http.StatusGone, gin.H{"status": "gone", "error": "v2 project routes are disabled", "code": "project_model_v2_disabled"})
 		return
 	}
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+	storeI, ok := h.PlatformStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
@@ -319,7 +319,7 @@ func (h *ApplicationHandler) CreateProjectStandalone(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "key, name, owner_user_id are required"})
 		return
 	}
-	if !validApplicationVisibilities[req.Visibility] || !validApplicationStatuses[req.Status] {
+	if !validPlatformVisibilities[req.Visibility] || !validPlatformStatuses[req.Status] {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "visibility/status is invalid"})
 		return
 	}
@@ -377,13 +377,13 @@ func (h *ApplicationHandler) CreateProjectStandalone(c *gin.Context) {
 
 	// repo 동반 생성(repoPayload)은 project 생성과 단일 tx — project 실패 시 repo rollback (codex #349 P2).
 	created, err := storeI.CreateProjectWithRepositoryPayload(c.Request.Context(), domain.Project{
-		ApplicationID:  strings.TrimSpace(req.ApplicationID),
+		PlatformID:  strings.TrimSpace(req.PlatformID),
 		RepositoryID:   primaryRepoID,
 		Key:            req.Key,
 		Name:           req.Name,
 		Description:    req.Description,
-		Status:         domain.ApplicationStatus(req.Status),
-		Visibility:     domain.ApplicationVisibility(req.Visibility),
+		Status:         domain.PlatformStatus(req.Status),
+		Visibility:     domain.PlatformVisibility(req.Visibility),
 		OwnerUserID:    req.OwnerUserID,
 		StartDate:      startDate,
 		DueDate:        dueDate,
@@ -401,7 +401,7 @@ func (h *ApplicationHandler) CreateProjectStandalone(c *gin.Context) {
 	h.recordAuditBestEffort(c, "project.created", "project", created.ID, map[string]any{
 		"key":            created.Key,
 		"repository_id":  created.RepositoryID,
-		"application_id": created.ApplicationID,
+		"platform_id": created.PlatformID,
 		"status":         string(created.Status),
 	})
 
@@ -409,23 +409,23 @@ func (h *ApplicationHandler) CreateProjectStandalone(c *gin.Context) {
 }
 
 // GET /api/v1/applications/:application_id/projects
-func (h *ApplicationHandler) ListApplicationProjects(c *gin.Context) {
+func (h *PlatformHandler) ListPlatformProjects(c *gin.Context) {
 	if !h.allowV2ProjectRoutes() {
 		c.JSON(http.StatusGone, gin.H{"status": "gone", "error": "v2 application-centric project routes are disabled", "code": "project_model_v2_disabled"})
 		return
 	}
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+	storeI, ok := h.PlatformStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
-	appID := strings.TrimSpace(c.Param("application_id"))
+	appID := strings.TrimSpace(c.Param("platform_id"))
 	if appID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "application_id is required"})
 		return
 	}
 
 	opts := store.ProjectListOptions{
-		ApplicationID:   appID,
+		PlatformID:   appID,
 		Status:          c.Query("status"),
 		IncludeArchived: c.Query("include_archived") == "true",
 	}
@@ -449,14 +449,14 @@ func (h *ApplicationHandler) ListApplicationProjects(c *gin.Context) {
 			opts.PrimaryUnitIDs = ids
 		}
 	}
-	if opts.Status != "" && !validApplicationStatuses[opts.Status] {
+	if opts.Status != "" && !validPlatformStatuses[opts.Status] {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "status must be one of planning/active/on_hold/closed/archived"})
 		return
 	}
 
 	projects, total, err := storeI.ListProjects(c.Request.Context(), opts)
 	if err != nil {
-		httphelp.WriteServerError(c, err, "projects.list_by_application")
+		httphelp.WriteServerError(c, err, "projects.list_by_platform")
 		return
 	}
 	visible := make([]domain.Project, 0, len(projects))
@@ -480,8 +480,8 @@ func (h *ApplicationHandler) ListApplicationProjects(c *gin.Context) {
 // GET /api/v1/projects/standalone — application_id IS NULL projects.
 // codex P2 (#397 hotfix) — ApplicationCreationModal 의 "Connected Projects" picker 가
 // connected + standalone projects 합쳐 표시할 수 있도록 별도 endpoint.
-func (h *ApplicationHandler) ListStandaloneProjects(c *gin.Context) {
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+func (h *PlatformHandler) ListStandaloneProjects(c *gin.Context) {
+	storeI, ok := h.PlatformStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
@@ -510,7 +510,7 @@ func (h *ApplicationHandler) ListStandaloneProjects(c *gin.Context) {
 			opts.PrimaryUnitIDs = ids
 		}
 	}
-	if opts.Status != "" && !validApplicationStatuses[opts.Status] {
+	if opts.Status != "" && !validPlatformStatuses[opts.Status] {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "status must be one of planning/active/on_hold/closed/archived"})
 		return
 	}
@@ -538,16 +538,16 @@ func (h *ApplicationHandler) ListStandaloneProjects(c *gin.Context) {
 }
 
 // POST /api/v1/applications/:application_id/projects
-func (h *ApplicationHandler) CreateApplicationProject(c *gin.Context) {
+func (h *PlatformHandler) CreatePlatformProject(c *gin.Context) {
 	if !h.allowV2ProjectRoutes() {
 		c.JSON(http.StatusGone, gin.H{"status": "gone", "error": "v2 application-centric project routes are disabled", "code": "project_model_v2_disabled"})
 		return
 	}
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+	storeI, ok := h.PlatformStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
-	appID := strings.TrimSpace(c.Param("application_id"))
+	appID := strings.TrimSpace(c.Param("platform_id"))
 	if appID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "application_id is required"})
 		return
@@ -581,7 +581,7 @@ func (h *ApplicationHandler) CreateApplicationProject(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "key, name, owner_user_id are required"})
 		return
 	}
-	if !validApplicationVisibilities[req.Visibility] || !validApplicationStatuses[req.Status] {
+	if !validPlatformVisibilities[req.Visibility] || !validPlatformStatuses[req.Status] {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "visibility/status is invalid"})
 		return
 	}
@@ -621,13 +621,13 @@ func (h *ApplicationHandler) CreateApplicationProject(c *gin.Context) {
 
 	// repo 동반 생성(repoPayload)은 project 생성과 단일 tx — project 실패 시 repo rollback (codex #349 P2).
 	created, err := storeI.CreateProjectWithRepositoryPayload(c.Request.Context(), domain.Project{
-		ApplicationID:  appID,
+		PlatformID:  appID,
 		RepositoryID:   primaryRepoID,
 		Key:            req.Key,
 		Name:           req.Name,
 		Description:    req.Description,
-		Status:         domain.ApplicationStatus(req.Status),
-		Visibility:     domain.ApplicationVisibility(req.Visibility),
+		Status:         domain.PlatformStatus(req.Status),
+		Visibility:     domain.PlatformVisibility(req.Visibility),
 		OwnerUserID:    req.OwnerUserID,
 		StartDate:      startDate,
 		DueDate:        dueDate,
@@ -638,14 +638,14 @@ func (h *ApplicationHandler) CreateApplicationProject(c *gin.Context) {
 		return
 	}
 	if err != nil {
-		httphelp.WriteServerError(c, err, "projects.create_by_application")
+		httphelp.WriteServerError(c, err, "projects.create_by_platform")
 		return
 	}
 
 	h.recordAuditBestEffort(c, "project.created", "project", created.ID, map[string]any{
 		"key":            created.Key,
 		"repository_id":  created.RepositoryID,
-		"application_id": appID,
+		"platform_id": appID,
 		"status":         string(created.Status),
 	})
 
@@ -658,12 +658,12 @@ type createProjectRepositoryRequest struct {
 }
 
 // GET /api/v1/projects/:project_id/repositories
-func (h *ApplicationHandler) ListProjectRepositories(c *gin.Context) {
+func (h *PlatformHandler) ListProjectRepositories(c *gin.Context) {
 	if !h.allowV2ProjectRoutes() {
 		c.JSON(http.StatusGone, gin.H{"status": "gone", "error": "v2 project repository routes are disabled", "code": "project_model_v2_disabled"})
 		return
 	}
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+	storeI, ok := h.PlatformStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
@@ -699,12 +699,12 @@ func (h *ApplicationHandler) ListProjectRepositories(c *gin.Context) {
 }
 
 // POST /api/v1/projects/:project_id/repositories
-func (h *ApplicationHandler) CreateProjectRepository(c *gin.Context) {
+func (h *PlatformHandler) CreateProjectRepository(c *gin.Context) {
 	if !h.allowV2ProjectRoutes() {
 		c.JSON(http.StatusGone, gin.H{"status": "gone", "error": "v2 project repository routes are disabled", "code": "project_model_v2_disabled"})
 		return
 	}
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+	storeI, ok := h.PlatformStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
@@ -738,12 +738,12 @@ func (h *ApplicationHandler) CreateProjectRepository(c *gin.Context) {
 }
 
 // DELETE /api/v1/projects/:project_id/repositories/:repository_id
-func (h *ApplicationHandler) DeleteProjectRepository(c *gin.Context) {
+func (h *PlatformHandler) DeleteProjectRepository(c *gin.Context) {
 	if !h.allowV2ProjectRoutes() {
 		c.JSON(http.StatusGone, gin.H{"status": "gone", "error": "v2 project repository routes are disabled", "code": "project_model_v2_disabled"})
 		return
 	}
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+	storeI, ok := h.PlatformStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
@@ -765,8 +765,8 @@ func (h *ApplicationHandler) DeleteProjectRepository(c *gin.Context) {
 }
 
 // GET /api/v1/projects/:project_id
-func (h *ApplicationHandler) GetProject(c *gin.Context) {
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+func (h *PlatformHandler) GetProject(c *gin.Context) {
+	storeI, ok := h.PlatformStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
@@ -803,7 +803,7 @@ type updateProjectRequest struct {
 	// ApplicationID — application 이전 / 해제. nil = 변경 안 함, "" = 해제 (NULL),
 	// non-empty = 해당 application 으로 이전 (존재 검증 후). #395/#396 후속 carve.
 	// migration 000015 의 projects.application_id 는 nullable (ON DELETE SET NULL).
-	ApplicationID  *string                 `json:"application_id"`
+	PlatformID  *string                 `json:"platform_id"`
 	StartDate      *string                 `json:"start_date"`
 	DueDate        *string                 `json:"due_date"`
 	Visibility     *string                 `json:"visibility"`
@@ -815,8 +815,8 @@ type updateProjectRequest struct {
 }
 
 // PATCH /api/v1/projects/:project_id
-func (h *ApplicationHandler) UpdateProject(c *gin.Context) {
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+func (h *PlatformHandler) UpdateProject(c *gin.Context) {
+	storeI, ok := h.PlatformStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
@@ -867,41 +867,41 @@ func (h *ApplicationHandler) UpdateProject(c *gin.Context) {
 	if req.OwnerUserID != nil {
 		updated.OwnerUserID = *req.OwnerUserID
 	}
-	if req.ApplicationID != nil {
+	if req.PlatformID != nil {
 		// application 이전/해제 — #395/#396 후속 carve. ApplicationID nil = 변경 안 함,
 		// "" = 해제 (NULL), non-empty = 해당 application 으로 이전 (존재 검증 + audit).
-		newAppID := strings.TrimSpace(*req.ApplicationID)
-		if newAppID != "" && newAppID != current.ApplicationID {
+		newAppID := strings.TrimSpace(*req.PlatformID)
+		if newAppID != "" && newAppID != current.PlatformID {
 			// codex P2 (#397 hotfix) — malformed UUID 가 GetApplication 의 `$1::uuid` cast
 			// 까지 도달하면 Postgres error → 500. handler 에서 422 로 미리 차단.
 			if !uuidPattern.MatchString(newAppID) {
 				c.JSON(http.StatusUnprocessableEntity, gin.H{
 					"status": "rejected",
 					"error":  "application_id must be a valid UUID",
-					"code":   "application_id_invalid",
+					"code":   "platform_id_invalid",
 				})
 				return
 			}
-			if _, err := storeI.GetApplication(c.Request.Context(), newAppID); errors.Is(err, store.ErrNotFound) {
+			if _, err := storeI.GetPlatform(c.Request.Context(), newAppID); errors.Is(err, store.ErrNotFound) {
 				c.JSON(http.StatusUnprocessableEntity, gin.H{
 					"status": "rejected",
-					"error":  "application_id does not exist",
-					"code":   "application_id_invalid",
+					"error":  "platform_id does not exist",
+					"code":   "platform_id_invalid",
 				})
 				return
 			} else if err != nil {
-				httphelp.WriteServerError(c, err, "projects.update.application_lookup")
+				httphelp.WriteServerError(c, err, "projects.update.platform_lookup")
 				return
 			}
 		}
-		updated.ApplicationID = newAppID
+		updated.PlatformID = newAppID
 	}
 	if req.Visibility != nil {
-		if !validApplicationVisibilities[*req.Visibility] {
+		if !validPlatformVisibilities[*req.Visibility] {
 			c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "visibility must be one of public/internal/restricted"})
 			return
 		}
-		updated.Visibility = domain.ApplicationVisibility(*req.Visibility)
+		updated.Visibility = domain.PlatformVisibility(*req.Visibility)
 	}
 	if req.StartDate != nil {
 		d, err := parseDate(*req.StartDate)
@@ -921,7 +921,7 @@ func (h *ApplicationHandler) UpdateProject(c *gin.Context) {
 	}
 	if req.Status != nil {
 		newStatus := *req.Status
-		if !validApplicationStatuses[newStatus] {
+		if !validPlatformStatuses[newStatus] {
 			c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "status must be one of planning/active/on_hold/closed/archived"})
 			return
 		}
@@ -942,7 +942,7 @@ func (h *ApplicationHandler) UpdateProject(c *gin.Context) {
 			// hold_reason / resume_reason / archived_reason 는 audit 기록용 optional
 			// 메타로만 유지. 운영자가 임의로 어느 전이든 가능.
 		}
-		updated.Status = domain.ApplicationStatus(newStatus)
+		updated.Status = domain.PlatformStatus(newStatus)
 	}
 
 	if req.ProjectMembers != nil {
@@ -978,10 +978,10 @@ func (h *ApplicationHandler) UpdateProject(c *gin.Context) {
 	if req.ArchivedReason != "" {
 		payload["archived_reason"] = req.ArchivedReason
 	}
-	if current.ApplicationID != result.ApplicationID {
+	if current.PlatformID != result.PlatformID {
 		// application 이전/해제 audit. from/to 빈 string 은 NULL 의미 (해제/연결 안 함).
-		payload["application_id_from"] = current.ApplicationID
-		payload["application_id_to"] = result.ApplicationID
+		payload["platform_id_from"] = current.PlatformID
+		payload["platform_id_to"] = result.PlatformID
 	}
 	h.recordAuditBestEffort(c, "project.updated", "project", id, payload)
 	c.JSON(http.StatusOK, gin.H{
@@ -995,8 +995,8 @@ type archiveProjectRequest struct {
 }
 
 // DELETE /api/v1/projects/:project_id (archive)
-func (h *ApplicationHandler) ArchiveProject(c *gin.Context) {
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+func (h *PlatformHandler) ArchiveProject(c *gin.Context) {
+	storeI, ok := h.PlatformStoreOrUnavailable(c)
 	if !ok {
 		return
 	}

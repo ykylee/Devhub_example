@@ -16,7 +16,7 @@
 |---|---|---|
 | view | `backend-core/internal/domain/repository-integration/view/` (`integration_scm_repositories.go`, `handler.go`) | `frontend/app/repositories/`, `frontend/domain/repository-integration/view/{RepositoryLinkModal,RepositoryTable}.tsx` |
 | service | SCM↔DevHub 프로젝트 맵핑 검증, 강제 동기화 규칙 | `frontend/domain/repository-integration/service/repository.service.ts` |
-| repository | `application-lifecycle/repository/applications.go` 내 ListRepositories 등 (cross-domain, 후속 carve out 권장) | — |
+| repository | `platform-lifecycle/repository/applications.go` 내 ListRepositories 등 (cross-domain, 후속 carve out 권장) | — |
 | schema | SCM Repository 도메인 모델, DB: `repositories` (000002/000042) | (frontend 내장) |
 
 의존 도메인: [integration-registry](../integration-registry/)
@@ -37,7 +37,7 @@
 ## 5. cross-cutting 참조
 
 - `docs/architecture.md` §10 (Repository)
-- `docs/backend_api_contract.md` §13 (Application/Repository/Project)
+- `docs/backend_api_contract.md` §13 (Platform/Repository/Project)
 
 ## 6. E2E spec
 

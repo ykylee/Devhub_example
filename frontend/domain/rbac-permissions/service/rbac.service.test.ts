@@ -29,7 +29,7 @@ describe("RbacService", () => {
   };
 
   const devPermissions: PermissionState = {
-    applications: { view: true, edit: true, delete: true },
+    platforms: { view: true, edit: true, delete: true },
   };
 
   beforeEach(() => {
@@ -99,7 +99,7 @@ describe("RbacService", () => {
   describe("createPolicy", () => {
     it("sends POST and returns created role", async () => {
       const reviewerPerms: PermissionState = {
-        applications: { view: true, edit: true },
+        platforms: { view: true, edit: true },
       };
       const newRole: Pick<Role, "id" | "name" | "description" | "permissions"> = {
         id: "custom-reviewer",
@@ -115,7 +115,7 @@ describe("RbacService", () => {
 
       expect(result.id).toBe("custom-reviewer");
       expect(result.system).toBe(false);
-      expect(result.permissions.applications?.edit).toBe(true);
+      expect(result.permissions.platforms?.edit).toBe(true);
       expect(apiClientMock).toHaveBeenCalledWith(
         "POST",
         expect.stringContaining("/api/v1/rbac/policies"),
@@ -171,7 +171,7 @@ describe("RbacService", () => {
       ]);
 
       expect(result.roles).toHaveLength(1);
-      expect(result.roles[0].permissions.applications?.delete).toBe(true);
+      expect(result.roles[0].permissions.platforms?.delete).toBe(true);
       expect(result.meta.policy_version).toBe("2026.05.28-1");
       expect(apiClientMock).toHaveBeenCalledWith(
         "PUT",

@@ -12,7 +12,7 @@ func TestPermissionCache_NilStore_FallbackToSystemRoles(t *testing.T) {
 	ctx := context.Background()
 
 	// admin should have access to everything
-	allowed, err := cache.Allows(ctx, "system_admin", domain.ResourceApplications, domain.ActionDelete)
+	allowed, err := cache.Allows(ctx, "system_admin", domain.ResourcePlatforms, domain.ActionDelete)
 	if err != nil {
 		t.Fatalf("admin Allows: %v", err)
 	}
@@ -35,7 +35,7 @@ func TestPermissionCache_NilStore_DeveloperLimited(t *testing.T) {
 	}
 
 	// developer cannot delete applications
-	allowed, err = cache.Allows(ctx, "developer", domain.ResourceApplications, domain.ActionDelete)
+	allowed, err = cache.Allows(ctx, "developer", domain.ResourcePlatforms, domain.ActionDelete)
 	if err != nil {
 		t.Fatalf("developer Allows(delete app): %v", err)
 	}
@@ -44,7 +44,7 @@ func TestPermissionCache_NilStore_DeveloperLimited(t *testing.T) {
 	}
 
 	// developer can view applications, but still cannot mutate them.
-	allowed, err = cache.Allows(ctx, "developer", domain.ResourceApplications, domain.ActionView)
+	allowed, err = cache.Allows(ctx, "developer", domain.ResourcePlatforms, domain.ActionView)
 	if err != nil {
 		t.Fatalf("developer Allows(view app): %v", err)
 	}
@@ -89,7 +89,7 @@ func TestPermissionCache_UnknownRole_ReturnsFalse(t *testing.T) {
 	cache := NewPermissionCache(nil)
 	ctx := context.Background()
 
-	allowed, err := cache.Allows(ctx, "nonexistent_role", domain.ResourceApplications, domain.ActionView)
+	allowed, err := cache.Allows(ctx, "nonexistent_role", domain.ResourcePlatforms, domain.ActionView)
 	if err != nil {
 		t.Fatalf("unknown role Allows: %v", err)
 	}
@@ -103,7 +103,7 @@ func TestPermissionCache_Invalidate_ReloadsRoles(t *testing.T) {
 	ctx := context.Background()
 
 	// First call loads roles
-	allowed, err := cache.Allows(ctx, "system_admin", domain.ResourceApplications, domain.ActionView)
+	allowed, err := cache.Allows(ctx, "system_admin", domain.ResourcePlatforms, domain.ActionView)
 	if err != nil {
 		t.Fatalf("first Allows: %v", err)
 	}
@@ -113,7 +113,7 @@ func TestPermissionCache_Invalidate_ReloadsRoles(t *testing.T) {
 
 	cache.Invalidate()
 
-	allowed, err = cache.Allows(ctx, "system_admin", domain.ResourceApplications, domain.ActionView)
+	allowed, err = cache.Allows(ctx, "system_admin", domain.ResourcePlatforms, domain.ActionView)
 	if err != nil {
 		t.Fatalf("reload Allows: %v", err)
 	}
@@ -161,7 +161,7 @@ func TestPermissionCache_NilStore_ConcurrentSafe(t *testing.T) {
 	done := make(chan struct{}, goroutines)
 	for range goroutines {
 		go func() {
-			_, _ = cache.Allows(ctx, "system_admin", domain.ResourceApplications, domain.ActionView)
+			_, _ = cache.Allows(ctx, "system_admin", domain.ResourcePlatforms, domain.ActionView)
 			done <- struct{}{}
 		}()
 	}

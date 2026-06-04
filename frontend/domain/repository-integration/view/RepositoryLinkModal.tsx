@@ -3,21 +3,21 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { X, GitBranch, Loader2, Link } from "lucide-react";
-import { ApplicationRepository, ApplicationRepositoryRole, SCMProvider } from "@/domain/application-lifecycle/schema/project.types";
-import { projectService } from "@/domain/application-lifecycle/service/project.service";
+import { PlatformRepository, PlatformRepositoryRole, SCMProvider } from "@/domain/platform-lifecycle/schema/project.types";
+import { projectService } from "@/domain/platform-lifecycle/service/project.service";
 import { cn } from "@/shared/utils";
 
 interface RepositoryLinkModalProps {
-  applicationId: string;
+  platformId: string;
   onClose: () => void;
-  onLinked: (repo: ApplicationRepository) => void;
+  onLinked: (repo: PlatformRepository) => void;
 }
 
-export function RepositoryLinkModal({ applicationId, onClose, onLinked }: RepositoryLinkModalProps) {
+export function RepositoryLinkModal({ platformId, onClose, onLinked }: RepositoryLinkModalProps) {
   const [formData, setFormData] = useState({
     repo_provider: "",
     repo_full_name: "",
-    role: "sub" as ApplicationRepositoryRole,
+    role: "sub" as PlatformRepositoryRole,
   });
   const [providers, setProviders] = useState<SCMProvider[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -47,7 +47,7 @@ export function RepositoryLinkModal({ applicationId, onClose, onLinked }: Reposi
     setSubmitting(true);
 
     try {
-      const result = await projectService.connectRepository(applicationId, formData);
+      const result = await projectService.connectRepository(platformId, formData);
       onLinked(result);
       onClose();
     } catch (err) {
@@ -130,9 +130,9 @@ export function RepositoryLinkModal({ applicationId, onClose, onLinked }: Reposi
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Role in Application</label>
+              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Role in Platform</label>
               <div className="grid grid-cols-3 gap-2">
-                {(['primary', 'sub', 'shared'] as ApplicationRepositoryRole[]).map((r) => (
+                {(['primary', 'sub', 'shared'] as PlatformRepositoryRole[]).map((r) => (
                   <button
                     key={r}
                     type="button"

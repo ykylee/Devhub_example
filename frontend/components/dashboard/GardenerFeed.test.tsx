@@ -29,7 +29,7 @@ vi.mock("framer-motion", () => {
 const getSuggestions = vi.fn();
 const applySuggestion = vi.fn();
 
-vi.mock("@/domain/application-lifecycle/service/gardener.service", () => ({
+vi.mock("@/domain/platform-lifecycle/service/gardener.service", () => ({
   gardenerService: {
     getSuggestions: (...args: unknown[]) => getSuggestions(...args),
     applySuggestion: (...args: unknown[]) => applySuggestion(...args),
@@ -42,7 +42,7 @@ vi.mock("@/lib/store", () => ({
 }));
 
 import { GardenerFeed } from "./GardenerFeed";
-import type { Suggestion } from "@/domain/application-lifecycle/service/gardener.service";
+import type { Suggestion } from "@/domain/platform-lifecycle/service/gardener.service";
 
 function makeSuggestion(overrides: Partial<Suggestion> = {}): Suggestion {
   return {

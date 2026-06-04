@@ -16,16 +16,16 @@ import (
 
 // newAppHandlerForTest — 공통 fixture: handler + store + audit fake 생성.
 // gin TestMode + 기본 SCM provider (gitea/github) 시드.
-func newAppHandlerForTest(t *testing.T) (*ApplicationHandler, *fakeViewApplicationStore, *fakeAppLifecycleAuditStore) {
+func newAppHandlerForTest(t *testing.T) (*PlatformHandler, *fakeViewPlatformStore, *fakePlatformLifecycleAuditStore) {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
-	st := newFakeViewApplicationStore()
+	st := newFakeViewPlatformStore()
 	st.seedProvider(domain.SCMProvider{ProviderKey: "gitea", DisplayName: "Gitea", Enabled: true, AdapterVersion: "v1"})
 	st.seedProvider(domain.SCMProvider{ProviderKey: "github", DisplayName: "GitHub", Enabled: true, AdapterVersion: "v1"})
 	st.seedProvider(domain.SCMProvider{ProviderKey: "forgejo", DisplayName: "Forgejo", Enabled: false, AdapterVersion: "v1"})
-	audit := &fakeAppLifecycleAuditStore{}
-	h := NewApplicationHandler(ApplicationConfig{
-		ApplicationStore: st,
+	audit := &fakePlatformLifecycleAuditStore{}
+	h := NewPlatformHandler(PlatformConfig{
+		PlatformStore: st,
 		AuditStore:       audit,
 		ProjectModel:     "hybrid",
 	})
@@ -81,7 +81,7 @@ func TestListSCMProviders_OK(t *testing.T) {
 
 func TestListSCMProviders_StoreUnavailable503(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewApplicationHandler(ApplicationConfig{})
+	h := NewPlatformHandler(PlatformConfig{})
 	rec := invokeJSON("GET", "/scm-providers", "/scm-providers", h.ListSCMProviders, nil, "", "")
 	if rec.Code != http.StatusServiceUnavailable {
 		t.Fatalf("status = %d", rec.Code)
@@ -147,7 +147,7 @@ func TestUpdateSCMProvider_NotFound404(t *testing.T) {
 
 func TestUpdateSCMProvider_StoreUnavailable503(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewApplicationHandler(ApplicationConfig{})
+	h := NewPlatformHandler(PlatformConfig{})
 	body := map[string]any{"enabled": true}
 	rec := invokeJSON("PATCH", "/scm-providers/gitea", "/scm-providers/:provider_key", h.UpdateSCMProvider, body, "", "")
 	if rec.Code != http.StatusServiceUnavailable {
@@ -155,13 +155,13 @@ func TestUpdateSCMProvider_StoreUnavailable503(t *testing.T) {
 	}
 }
 
-// --- ListApplications ---
+// --- ListPlatforms ---
 
-func TestListApplications_OK(t *testing.T) {
+func TestListPlatforms_OK(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{Key: "APP1", Name: "App 1", Status: domain.ApplicationStatusActive})
-	st.seedApp(domain.Application{Key: "APP2", Name: "App 2", Status: domain.ApplicationStatusPlanning})
-	rec := invokeJSON("GET", "/applications", "/applications", h.ListApplications, nil, "", "")
+	st.seedApp(domain.Platform{Key: "APP1", Name: "App 1", Status: domain.PlatformStatusActive})
+	st.seedApp(domain.Platform{Key: "APP2", Name: "App 2", Status: domain.PlatformStatusPlanning})
+	rec := invokeJSON("GET", "/platforms", "/platforms", h.ListPlatforms, nil, "", "")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
@@ -173,11 +173,11 @@ func TestListApplications_OK(t *testing.T) {
 	}
 }
 
-func TestListApplications_StatusFilter(t *testing.T) {
+func TestListPlatforms_StatusFilter(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{Key: "APP1", Name: "App 1", Status: domain.ApplicationStatusActive})
-	st.seedApp(domain.Application{Key: "APP2", Name: "App 2", Status: domain.ApplicationStatusPlanning})
-	rec := invokeJSON("GET", "/applications?status=active", "/applications", h.ListApplications, nil, "", "")
+	st.seedApp(domain.Platform{Key: "APP1", Name: "App 1", Status: domain.PlatformStatusActive})
+	st.seedApp(domain.Platform{Key: "APP2", Name: "App 2", Status: domain.PlatformStatusPlanning})
+	rec := invokeJSON("GET", "/platforms?status=active", "/platforms", h.ListPlatforms, nil, "", "")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d", rec.Code)
 	}
@@ -189,72 +189,72 @@ func TestListApplications_StatusFilter(t *testing.T) {
 	}
 }
 
-func TestListApplications_InvalidStatus400(t *testing.T) {
+func TestListPlatforms_InvalidStatus400(t *testing.T) {
 	h, _, _ := newAppHandlerForTest(t)
-	rec := invokeJSON("GET", "/applications?status=invalid", "/applications", h.ListApplications, nil, "", "")
+	rec := invokeJSON("GET", "/platforms?status=invalid", "/platforms", h.ListPlatforms, nil, "", "")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestListApplications_InvalidLimit400(t *testing.T) {
+func TestListPlatforms_InvalidLimit400(t *testing.T) {
 	h, _, _ := newAppHandlerForTest(t)
-	rec := invokeJSON("GET", "/applications?limit=abc", "/applications", h.ListApplications, nil, "", "")
+	rec := invokeJSON("GET", "/platforms?limit=abc", "/platforms", h.ListPlatforms, nil, "", "")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestListApplications_LimitOutOfRange400(t *testing.T) {
+func TestListPlatforms_LimitOutOfRange400(t *testing.T) {
 	h, _, _ := newAppHandlerForTest(t)
-	rec := invokeJSON("GET", "/applications?limit=999", "/applications", h.ListApplications, nil, "", "")
+	rec := invokeJSON("GET", "/platforms?limit=999", "/platforms", h.ListPlatforms, nil, "", "")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestListApplications_InvalidOffset400(t *testing.T) {
+func TestListPlatforms_InvalidOffset400(t *testing.T) {
 	h, _, _ := newAppHandlerForTest(t)
-	rec := invokeJSON("GET", "/applications?offset=-1", "/applications", h.ListApplications, nil, "", "")
+	rec := invokeJSON("GET", "/platforms?offset=-1", "/platforms", h.ListPlatforms, nil, "", "")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestListApplications_LimitOffsetOK(t *testing.T) {
+func TestListPlatforms_LimitOffsetOK(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{Key: "APP1", Name: "App 1", Status: domain.ApplicationStatusActive})
-	rec := invokeJSON("GET", "/applications?limit=10&offset=0", "/applications", h.ListApplications, nil, "", "")
+	st.seedApp(domain.Platform{Key: "APP1", Name: "App 1", Status: domain.PlatformStatusActive})
+	rec := invokeJSON("GET", "/platforms?limit=10&offset=0", "/platforms", h.ListPlatforms, nil, "", "")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
 }
 
-func TestListApplications_StoreError500(t *testing.T) {
+func TestListPlatforms_StoreError500(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.errListApplications = errors.New("db")
-	rec := invokeJSON("GET", "/applications", "/applications", h.ListApplications, nil, "", "")
+	st.errListPlatforms = errors.New("db")
+	rec := invokeJSON("GET", "/platforms", "/platforms", h.ListPlatforms, nil, "", "")
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestListApplications_FiltersToReadableMembership(t *testing.T) {
+func TestListPlatforms_FiltersToReadableMembership(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Name: "App 1", OwnerUserID: "owner-1", Status: domain.ApplicationStatusActive})
-	st.seedApp(domain.Application{ID: "app-2", Key: "APP2", Name: "App 2", OwnerUserID: "owner-2", Status: domain.ApplicationStatusActive})
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Name: "App 1", OwnerUserID: "owner-1", Status: domain.PlatformStatusActive})
+	st.seedApp(domain.Platform{ID: "app-2", Key: "APP2", Name: "App 2", OwnerUserID: "owner-2", Status: domain.PlatformStatusActive})
 	st.seedProject(domain.Project{
 		ID:            "proj-1",
-		ApplicationID: "app-1",
+		PlatformID: "app-1",
 		Key:           "PRJ1",
 		OwnerUserID:   "owner-1",
-		Status:        domain.ApplicationStatusActive,
+		Status:        domain.PlatformStatusActive,
 		ProjectMembers: []domain.ProjectMember{
 			{ProjectID: "proj-1", UserID: "alice", ProjectRole: domain.ProjectMemberRoleContributor},
 		},
 	})
 
-	rec := invokeJSON("GET", "/applications", "/applications", h.ListApplications, nil, "alice", "developer")
+	rec := invokeJSON("GET", "/platforms", "/platforms", h.ListPlatforms, nil, "alice", "developer")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
@@ -275,15 +275,15 @@ func TestListApplications_FiltersToReadableMembership(t *testing.T) {
 	}
 }
 
-func TestGetApplication_DeniesNonMemberRead(t *testing.T) {
+func TestGetPlatform_DeniesNonMemberRead(t *testing.T) {
 	h, st, audit := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Name: "App 1", OwnerUserID: "owner-1", Status: domain.ApplicationStatusActive})
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Name: "App 1", OwnerUserID: "owner-1", Status: domain.PlatformStatusActive})
 
-	rec := invokeJSON("GET", "/applications/app-1", "/applications/:application_id", h.GetApplication, nil, "alice", "developer")
+	rec := invokeJSON("GET", "/platforms/app-1", "/platforms/:platform_id", h.GetPlatform, nil, "alice", "developer")
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
-	if !strings.Contains(rec.Body.String(), "auth_row_denied") || !strings.Contains(rec.Body.String(), "not_application_member") {
+	if !strings.Contains(rec.Body.String(), "auth_row_denied") || !strings.Contains(rec.Body.String(), "not_platform_member") {
 		t.Fatalf("body=%s", rec.Body.String())
 	}
 	if len(audit.created) != 1 || audit.created[0].Action != "auth.row_denied" {
@@ -291,7 +291,7 @@ func TestGetApplication_DeniesNonMemberRead(t *testing.T) {
 	}
 }
 
-// --- CreateApplication ---
+// --- CreatePlatform ---
 
 func validCreateAppBody() map[string]any {
 	return map[string]any{
@@ -308,22 +308,22 @@ func validCreateAppBody() map[string]any {
 	}
 }
 
-func TestCreateApplication_OK(t *testing.T) {
+func TestCreatePlatform_OK(t *testing.T) {
 	h, _, audit := newAppHandlerForTest(t)
-	rec := invokeJSON("POST", "/applications", "/applications", h.CreateApplication, validCreateAppBody(), "", "")
+	rec := invokeJSON("POST", "/platforms", "/platforms", h.CreatePlatform, validCreateAppBody(), "", "")
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
-	if len(audit.created) != 1 || audit.created[0].Action != "application.created" {
+	if len(audit.created) != 1 || audit.created[0].Action != "platform.created" {
 		t.Fatalf("audit not recorded: %+v", audit.created)
 	}
 }
 
-func TestCreateApplication_BadJSON400(t *testing.T) {
+func TestCreatePlatform_BadJSON400(t *testing.T) {
 	h, _, _ := newAppHandlerForTest(t)
 	r := gin.New()
-	r.POST("/applications", h.CreateApplication)
-	req := httptest.NewRequest("POST", "/applications", strings.NewReader("not-json"))
+	r.POST("/platforms", h.CreatePlatform)
+	req := httptest.NewRequest("POST", "/platforms", strings.NewReader("not-json"))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 	r.ServeHTTP(rec, req)
@@ -332,151 +332,151 @@ func TestCreateApplication_BadJSON400(t *testing.T) {
 	}
 }
 
-func TestCreateApplication_InvalidKey422(t *testing.T) {
+func TestCreatePlatform_InvalidKey422(t *testing.T) {
 	h, _, _ := newAppHandlerForTest(t)
 	body := validCreateAppBody()
 	body["key"] = "with-dash"
-	rec := invokeJSON("POST", "/applications", "/applications", h.CreateApplication, body, "", "")
+	rec := invokeJSON("POST", "/platforms", "/platforms", h.CreatePlatform, body, "", "")
 	if rec.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
-	if !strings.Contains(rec.Body.String(), "invalid_application_key") {
+	if !strings.Contains(rec.Body.String(), "invalid_platform_key") {
 		t.Fatalf("expected code, body=%s", rec.Body.String())
 	}
 }
 
-func TestCreateApplication_MissingName400(t *testing.T) {
+func TestCreatePlatform_MissingName400(t *testing.T) {
 	h, _, _ := newAppHandlerForTest(t)
 	body := validCreateAppBody()
 	body["name"] = ""
-	rec := invokeJSON("POST", "/applications", "/applications", h.CreateApplication, body, "", "")
+	rec := invokeJSON("POST", "/platforms", "/platforms", h.CreatePlatform, body, "", "")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestCreateApplication_MissingOwner400(t *testing.T) {
+func TestCreatePlatform_MissingOwner400(t *testing.T) {
 	h, _, _ := newAppHandlerForTest(t)
 	body := validCreateAppBody()
 	body["owner_user_id"] = ""
-	rec := invokeJSON("POST", "/applications", "/applications", h.CreateApplication, body, "", "")
+	rec := invokeJSON("POST", "/platforms", "/platforms", h.CreatePlatform, body, "", "")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestCreateApplication_MissingLeader400(t *testing.T) {
+func TestCreatePlatform_MissingLeader400(t *testing.T) {
 	h, _, _ := newAppHandlerForTest(t)
 	body := validCreateAppBody()
 	body["leader_user_id"] = ""
-	rec := invokeJSON("POST", "/applications", "/applications", h.CreateApplication, body, "", "")
+	rec := invokeJSON("POST", "/platforms", "/platforms", h.CreatePlatform, body, "", "")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestCreateApplication_MissingDevUnit400(t *testing.T) {
+func TestCreatePlatform_MissingDevUnit400(t *testing.T) {
 	h, _, _ := newAppHandlerForTest(t)
 	body := validCreateAppBody()
 	body["development_unit_id"] = ""
-	rec := invokeJSON("POST", "/applications", "/applications", h.CreateApplication, body, "", "")
+	rec := invokeJSON("POST", "/platforms", "/platforms", h.CreatePlatform, body, "", "")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestCreateApplication_InvalidVisibility400(t *testing.T) {
+func TestCreatePlatform_InvalidVisibility400(t *testing.T) {
 	h, _, _ := newAppHandlerForTest(t)
 	body := validCreateAppBody()
 	body["visibility"] = "weird"
-	rec := invokeJSON("POST", "/applications", "/applications", h.CreateApplication, body, "", "")
+	rec := invokeJSON("POST", "/platforms", "/platforms", h.CreatePlatform, body, "", "")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestCreateApplication_InvalidStatus400(t *testing.T) {
+func TestCreatePlatform_InvalidStatus400(t *testing.T) {
 	h, _, _ := newAppHandlerForTest(t)
 	body := validCreateAppBody()
 	body["status"] = "weird"
-	rec := invokeJSON("POST", "/applications", "/applications", h.CreateApplication, body, "", "")
+	rec := invokeJSON("POST", "/platforms", "/platforms", h.CreatePlatform, body, "", "")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestCreateApplication_BadStartDate400(t *testing.T) {
+func TestCreatePlatform_BadStartDate400(t *testing.T) {
 	h, _, _ := newAppHandlerForTest(t)
 	body := validCreateAppBody()
 	body["start_date"] = "2026/01/01"
-	rec := invokeJSON("POST", "/applications", "/applications", h.CreateApplication, body, "", "")
+	rec := invokeJSON("POST", "/platforms", "/platforms", h.CreatePlatform, body, "", "")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestCreateApplication_BadDueDate400(t *testing.T) {
+func TestCreatePlatform_BadDueDate400(t *testing.T) {
 	h, _, _ := newAppHandlerForTest(t)
 	body := validCreateAppBody()
 	body["due_date"] = "not-a-date"
-	rec := invokeJSON("POST", "/applications", "/applications", h.CreateApplication, body, "", "")
+	rec := invokeJSON("POST", "/platforms", "/platforms", h.CreatePlatform, body, "", "")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestCreateApplication_Conflict409(t *testing.T) {
+func TestCreatePlatform_Conflict409(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{Key: "APP1", Name: "Existing", Status: domain.ApplicationStatusActive})
+	st.seedApp(domain.Platform{Key: "APP1", Name: "Existing", Status: domain.PlatformStatusActive})
 	body := validCreateAppBody()
-	rec := invokeJSON("POST", "/applications", "/applications", h.CreateApplication, body, "", "")
+	rec := invokeJSON("POST", "/platforms", "/platforms", h.CreatePlatform, body, "", "")
 	if rec.Code != http.StatusConflict {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
 }
 
-func TestCreateApplication_StoreError500(t *testing.T) {
+func TestCreatePlatform_StoreError500(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.errCreateApplication = errors.New("db")
-	rec := invokeJSON("POST", "/applications", "/applications", h.CreateApplication, validCreateAppBody(), "", "")
+	st.errCreatePlatform = errors.New("db")
+	rec := invokeJSON("POST", "/platforms", "/platforms", h.CreatePlatform, validCreateAppBody(), "", "")
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-// --- GetApplication ---
+// --- GetPlatform ---
 
-func TestGetApplication_OK(t *testing.T) {
+func TestGetPlatform_OK(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Name: "App 1", Status: domain.ApplicationStatusActive})
-	rec := invokeJSON("GET", "/applications/app-1", "/applications/:application_id", h.GetApplication, nil, "", "")
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Name: "App 1", Status: domain.PlatformStatusActive})
+	rec := invokeJSON("GET", "/platforms/app-1", "/platforms/:platform_id", h.GetPlatform, nil, "", "")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
 }
 
-func TestGetApplication_NotFound404(t *testing.T) {
+func TestGetPlatform_NotFound404(t *testing.T) {
 	h, _, _ := newAppHandlerForTest(t)
-	rec := invokeJSON("GET", "/applications/missing", "/applications/:application_id", h.GetApplication, nil, "", "")
+	rec := invokeJSON("GET", "/platforms/missing", "/platforms/:platform_id", h.GetPlatform, nil, "", "")
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestGetApplication_LookupError500(t *testing.T) {
+func TestGetPlatform_LookupError500(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.errGetApplication = errors.New("db")
-	rec := invokeJSON("GET", "/applications/whatever", "/applications/:application_id", h.GetApplication, nil, "", "")
+	st.errGetPlatform = errors.New("db")
+	rec := invokeJSON("GET", "/platforms/whatever", "/platforms/:platform_id", h.GetPlatform, nil, "", "")
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestGetApplication_LinkListError500(t *testing.T) {
+func TestGetPlatform_LinkListError500(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive})
-	st.errListApplicationRepositories = errors.New("db")
-	rec := invokeJSON("GET", "/applications/app-1", "/applications/:application_id", h.GetApplication, nil, "", "")
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive})
+	st.errListPlatformRepositories = errors.New("db")
+	rec := invokeJSON("GET", "/platforms/app-1", "/platforms/:platform_id", h.GetPlatform, nil, "", "")
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d", rec.Code)
 	}
@@ -486,22 +486,22 @@ func TestGetApplication_LinkListError500(t *testing.T) {
 
 func TestApplicationDashboard_OK(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Name: "App", Status: domain.ApplicationStatusActive, LeaderUserID: "leader"})
-	rec := invokeJSON("GET", "/applications/app-1/dashboard", "/applications/:application_id/dashboard", h.ApplicationDashboard, nil, "", "")
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Name: "App", Status: domain.PlatformStatusActive, LeaderUserID: "leader"})
+	rec := invokeJSON("GET", "/platforms/app-1/dashboard", "/platforms/:platform_id/dashboard", h.PlatformDashboard, nil, "", "")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
 	var resp map[string]any
 	_ = json.Unmarshal(rec.Body.Bytes(), &resp)
 	data, _ := resp["data"].(map[string]any)
-	if data["application_id"] != "app-1" {
-		t.Fatalf("application_id = %v", data["application_id"])
+	if data["platform_id"] != "app-1" {
+		t.Fatalf("platform_id = %v", data["platform_id"])
 	}
 }
 
 func TestApplicationDashboard_NotFound404(t *testing.T) {
 	h, _, _ := newAppHandlerForTest(t)
-	rec := invokeJSON("GET", "/applications/missing/dashboard", "/applications/:application_id/dashboard", h.ApplicationDashboard, nil, "", "")
+	rec := invokeJSON("GET", "/platforms/missing/dashboard", "/platforms/:platform_id/dashboard", h.PlatformDashboard, nil, "", "")
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status = %d", rec.Code)
 	}
@@ -509,16 +509,16 @@ func TestApplicationDashboard_NotFound404(t *testing.T) {
 
 func TestApplicationDashboard_WithDevRequestStore(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	st := newFakeViewApplicationStore()
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive})
+	st := newFakeViewPlatformStore()
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive})
 	dreqStore := &fakeViewDevRequestStore{
 		dreqs: []domain.DevRequest{
-			{ID: "dr-1", Title: "T1", Status: domain.DevRequestStatusPending, RegisteredTargetType: domain.DevRequestTargetApplication, RegisteredTargetID: "app-1"},
-			{ID: "dr-2", Title: "T2", Status: domain.DevRequestStatusInReview, RegisteredTargetType: domain.DevRequestTargetApplication, RegisteredTargetID: "other"},
+			{ID: "dr-1", Title: "T1", Status: domain.DevRequestStatusPending, RegisteredTargetType: domain.DevRequestTargetPlatform, RegisteredTargetID: "app-1"},
+			{ID: "dr-2", Title: "T2", Status: domain.DevRequestStatusInReview, RegisteredTargetType: domain.DevRequestTargetPlatform, RegisteredTargetID: "other"},
 		},
 	}
-	h := NewApplicationHandler(ApplicationConfig{ApplicationStore: st, DevRequestStore: dreqStore})
-	rec := invokeJSON("GET", "/applications/app-1/dashboard", "/applications/:application_id/dashboard", h.ApplicationDashboard, nil, "", "")
+	h := NewPlatformHandler(PlatformConfig{PlatformStore: st, DevRequestStore: dreqStore})
+	rec := invokeJSON("GET", "/platforms/app-1/dashboard", "/platforms/:platform_id/dashboard", h.PlatformDashboard, nil, "", "")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
@@ -529,11 +529,11 @@ func TestApplicationDashboard_WithDevRequestStore(t *testing.T) {
 
 func TestApplicationDashboard_DevRequestStoreError_DataGap(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	st := newFakeViewApplicationStore()
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive})
+	st := newFakeViewPlatformStore()
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive})
 	dreqStore := &fakeViewDevRequestStore{errList: errors.New("dreq_down")}
-	h := NewApplicationHandler(ApplicationConfig{ApplicationStore: st, DevRequestStore: dreqStore})
-	rec := invokeJSON("GET", "/applications/app-1/dashboard", "/applications/:application_id/dashboard", h.ApplicationDashboard, nil, "", "")
+	h := NewPlatformHandler(PlatformConfig{PlatformStore: st, DevRequestStore: dreqStore})
+	rec := invokeJSON("GET", "/platforms/app-1/dashboard", "/platforms/:platform_id/dashboard", h.PlatformDashboard, nil, "", "")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
@@ -544,9 +544,9 @@ func TestApplicationDashboard_DevRequestStoreError_DataGap(t *testing.T) {
 
 func TestApplicationDashboard_RollupError500(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive})
-	st.errComputeApplicationRollup = errors.New("rollup_down")
-	rec := invokeJSON("GET", "/applications/app-1/dashboard", "/applications/:application_id/dashboard", h.ApplicationDashboard, nil, "", "")
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive})
+	st.errComputePlatformRollup = errors.New("rollup_down")
+	rec := invokeJSON("GET", "/platforms/app-1/dashboard", "/platforms/:platform_id/dashboard", h.PlatformDashboard, nil, "", "")
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
@@ -554,35 +554,35 @@ func TestApplicationDashboard_RollupError500(t *testing.T) {
 
 func TestApplicationDashboard_ListProjectsError500(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive})
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive})
 	st.errListProjects = errors.New("db")
-	rec := invokeJSON("GET", "/applications/app-1/dashboard", "/applications/:application_id/dashboard", h.ApplicationDashboard, nil, "", "")
+	rec := invokeJSON("GET", "/platforms/app-1/dashboard", "/platforms/:platform_id/dashboard", h.PlatformDashboard, nil, "", "")
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-// --- UpdateApplication ---
+// --- UpdatePlatform ---
 
-func TestUpdateApplication_OK(t *testing.T) {
+func TestUpdatePlatform_OK(t *testing.T) {
 	h, st, audit := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
 	body := map[string]any{"name": "Renamed"}
-	rec := invokeJSON("PATCH", "/applications/app-1", "/applications/:application_id", h.UpdateApplication, body, "alice", "developer")
+	rec := invokeJSON("PATCH", "/platforms/app-1", "/platforms/:platform_id", h.UpdatePlatform, body, "alice", "developer")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
-	if len(audit.created) != 1 || audit.created[0].Action != "application.updated" {
+	if len(audit.created) != 1 || audit.created[0].Action != "platform.updated" {
 		t.Fatalf("audit: %+v", audit.created)
 	}
 }
 
-func TestUpdateApplication_BadJSON400(t *testing.T) {
+func TestUpdatePlatform_BadJSON400(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
 	r := gin.New()
-	r.PATCH("/applications/:application_id", h.UpdateApplication)
-	req := httptest.NewRequest("PATCH", "/applications/app-1", strings.NewReader("not-json"))
+	r.PATCH("/platforms/:platform_id", h.UpdatePlatform)
+	req := httptest.NewRequest("PATCH", "/platforms/app-1", strings.NewReader("not-json"))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 	r.ServeHTTP(rec, req)
@@ -591,116 +591,116 @@ func TestUpdateApplication_BadJSON400(t *testing.T) {
 	}
 }
 
-func TestUpdateApplication_KeyImmutable422(t *testing.T) {
+func TestUpdatePlatform_KeyImmutable422(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
 	body := map[string]any{"key": "NEWKEY"}
-	rec := invokeJSON("PATCH", "/applications/app-1", "/applications/:application_id", h.UpdateApplication, body, "alice", "developer")
+	rec := invokeJSON("PATCH", "/platforms/app-1", "/platforms/:platform_id", h.UpdatePlatform, body, "alice", "developer")
 	if rec.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
-	if !strings.Contains(rec.Body.String(), "application_key_immutable") {
+	if !strings.Contains(rec.Body.String(), "platform_key_immutable") {
 		t.Fatalf("expected code, body=%s", rec.Body.String())
 	}
 }
 
-func TestUpdateApplication_NotFound404(t *testing.T) {
+func TestUpdatePlatform_NotFound404(t *testing.T) {
 	h, _, _ := newAppHandlerForTest(t)
 	body := map[string]any{"name": "X"}
-	rec := invokeJSON("PATCH", "/applications/missing", "/applications/:application_id", h.UpdateApplication, body, "alice", "developer")
+	rec := invokeJSON("PATCH", "/platforms/missing", "/platforms/:platform_id", h.UpdatePlatform, body, "alice", "developer")
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestUpdateApplication_OwnerMismatch403(t *testing.T) {
+func TestUpdatePlatform_OwnerMismatch403(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
 	body := map[string]any{"name": "X"}
-	rec := invokeJSON("PATCH", "/applications/app-1", "/applications/:application_id", h.UpdateApplication, body, "bob", "developer")
+	rec := invokeJSON("PATCH", "/platforms/app-1", "/platforms/:platform_id", h.UpdatePlatform, body, "bob", "developer")
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
 }
 
-func TestUpdateApplication_EmptyName400(t *testing.T) {
+func TestUpdatePlatform_EmptyName400(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
 	body := map[string]any{"name": "   "}
-	rec := invokeJSON("PATCH", "/applications/app-1", "/applications/:application_id", h.UpdateApplication, body, "alice", "developer")
+	rec := invokeJSON("PATCH", "/platforms/app-1", "/platforms/:platform_id", h.UpdatePlatform, body, "alice", "developer")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestUpdateApplication_EmptyLeader400(t *testing.T) {
+func TestUpdatePlatform_EmptyLeader400(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
 	body := map[string]any{"leader_user_id": "   "}
-	rec := invokeJSON("PATCH", "/applications/app-1", "/applications/:application_id", h.UpdateApplication, body, "alice", "developer")
+	rec := invokeJSON("PATCH", "/platforms/app-1", "/platforms/:platform_id", h.UpdatePlatform, body, "alice", "developer")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestUpdateApplication_EmptyDevUnit400(t *testing.T) {
+func TestUpdatePlatform_EmptyDevUnit400(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
 	body := map[string]any{"development_unit_id": "   "}
-	rec := invokeJSON("PATCH", "/applications/app-1", "/applications/:application_id", h.UpdateApplication, body, "alice", "developer")
+	rec := invokeJSON("PATCH", "/platforms/app-1", "/platforms/:platform_id", h.UpdatePlatform, body, "alice", "developer")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestUpdateApplication_InvalidVisibility400(t *testing.T) {
+func TestUpdatePlatform_InvalidVisibility400(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
 	body := map[string]any{"visibility": "weird"}
-	rec := invokeJSON("PATCH", "/applications/app-1", "/applications/:application_id", h.UpdateApplication, body, "alice", "developer")
+	rec := invokeJSON("PATCH", "/platforms/app-1", "/platforms/:platform_id", h.UpdatePlatform, body, "alice", "developer")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestUpdateApplication_InvalidStartDate400(t *testing.T) {
+func TestUpdatePlatform_InvalidStartDate400(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
 	body := map[string]any{"start_date": "not-a-date"}
-	rec := invokeJSON("PATCH", "/applications/app-1", "/applications/:application_id", h.UpdateApplication, body, "alice", "developer")
+	rec := invokeJSON("PATCH", "/platforms/app-1", "/platforms/:platform_id", h.UpdatePlatform, body, "alice", "developer")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestUpdateApplication_InvalidDueDate400(t *testing.T) {
+func TestUpdatePlatform_InvalidDueDate400(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
 	body := map[string]any{"due_date": "not-a-date"}
-	rec := invokeJSON("PATCH", "/applications/app-1", "/applications/:application_id", h.UpdateApplication, body, "alice", "developer")
+	rec := invokeJSON("PATCH", "/platforms/app-1", "/platforms/:platform_id", h.UpdatePlatform, body, "alice", "developer")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestUpdateApplication_InvalidStatus400(t *testing.T) {
+func TestUpdatePlatform_InvalidStatus400(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
 	body := map[string]any{"status": "weird"}
-	rec := invokeJSON("PATCH", "/applications/app-1", "/applications/:application_id", h.UpdateApplication, body, "alice", "developer")
+	rec := invokeJSON("PATCH", "/platforms/app-1", "/platforms/:platform_id", h.UpdatePlatform, body, "alice", "developer")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestUpdateApplication_StatusTransitionOK(t *testing.T) {
+func TestUpdatePlatform_StatusTransitionOK(t *testing.T) {
 	h, st, audit := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusPlanning, OwnerUserID: "alice"})
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusPlanning, OwnerUserID: "alice"})
 	body := map[string]any{
 		"status":      "active",
 		"hold_reason": "ignored",
 	}
-	rec := invokeJSON("PATCH", "/applications/app-1", "/applications/:application_id", h.UpdateApplication, body, "alice", "developer")
+	rec := invokeJSON("PATCH", "/platforms/app-1", "/platforms/:platform_id", h.UpdatePlatform, body, "alice", "developer")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
@@ -709,9 +709,9 @@ func TestUpdateApplication_StatusTransitionOK(t *testing.T) {
 	}
 }
 
-func TestUpdateApplication_AllPatchFields(t *testing.T) {
+func TestUpdatePlatform_AllPatchFields(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
 	body := map[string]any{
 		"name":                "Renamed",
 		"description":         "newdesc",
@@ -724,113 +724,113 @@ func TestUpdateApplication_AllPatchFields(t *testing.T) {
 		"resume_reason":       "back from hold",
 		"archived_reason":     "ignored",
 	}
-	rec := invokeJSON("PATCH", "/applications/app-1", "/applications/:application_id", h.UpdateApplication, body, "alice", "developer")
+	rec := invokeJSON("PATCH", "/platforms/app-1", "/platforms/:platform_id", h.UpdatePlatform, body, "alice", "developer")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
 }
 
-func TestUpdateApplication_StoreError500(t *testing.T) {
+func TestUpdatePlatform_StoreError500(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
-	st.errUpdateApplication = errors.New("db")
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
+	st.errUpdatePlatform = errors.New("db")
 	body := map[string]any{"name": "X"}
-	rec := invokeJSON("PATCH", "/applications/app-1", "/applications/:application_id", h.UpdateApplication, body, "alice", "developer")
+	rec := invokeJSON("PATCH", "/platforms/app-1", "/platforms/:platform_id", h.UpdatePlatform, body, "alice", "developer")
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-// --- ArchiveApplication ---
+// --- ArchivePlatform ---
 
-func TestArchiveApplication_OK(t *testing.T) {
+func TestArchivePlatform_OK(t *testing.T) {
 	h, st, audit := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
 	body := map[string]any{"archived_reason": "decommissioned"}
-	rec := invokeJSON("DELETE", "/applications/app-1", "/applications/:application_id", h.ArchiveApplication, body, "alice", "developer")
+	rec := invokeJSON("DELETE", "/platforms/app-1", "/platforms/:platform_id", h.ArchivePlatform, body, "alice", "developer")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
-	if len(audit.created) != 1 || audit.created[0].Action != "application.archived" {
+	if len(audit.created) != 1 || audit.created[0].Action != "platform.archived" {
 		t.Fatalf("audit: %+v", audit.created)
 	}
 }
 
-func TestArchiveApplication_NotFound404(t *testing.T) {
+func TestArchivePlatform_NotFound404(t *testing.T) {
 	h, _, _ := newAppHandlerForTest(t)
-	rec := invokeJSON("DELETE", "/applications/missing", "/applications/:application_id", h.ArchiveApplication, nil, "alice", "developer")
+	rec := invokeJSON("DELETE", "/platforms/missing", "/platforms/:platform_id", h.ArchivePlatform, nil, "alice", "developer")
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestArchiveApplication_OwnerMismatch403(t *testing.T) {
+func TestArchivePlatform_OwnerMismatch403(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
-	rec := invokeJSON("DELETE", "/applications/app-1", "/applications/:application_id", h.ArchiveApplication, nil, "bob", "developer")
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
+	rec := invokeJSON("DELETE", "/platforms/app-1", "/platforms/:platform_id", h.ArchivePlatform, nil, "bob", "developer")
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestArchiveApplication_HardDeleteOK(t *testing.T) {
+func TestArchivePlatform_HardDeleteOK(t *testing.T) {
 	h, st, audit := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusArchived, OwnerUserID: "alice"})
-	rec := invokeJSON("DELETE", "/applications/app-1?hard=true", "/applications/:application_id", h.ArchiveApplication, nil, "alice", "developer")
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusArchived, OwnerUserID: "alice"})
+	rec := invokeJSON("DELETE", "/platforms/app-1?hard=true", "/platforms/:platform_id", h.ArchivePlatform, nil, "alice", "developer")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
 	if !strings.Contains(rec.Body.String(), "deleted") {
 		t.Fatalf("body = %s", rec.Body.String())
 	}
-	if len(audit.created) != 1 || audit.created[0].Action != "application.deleted" {
+	if len(audit.created) != 1 || audit.created[0].Action != "platform.deleted" {
 		t.Fatalf("audit: %+v", audit.created)
 	}
 }
 
-func TestArchiveApplication_HardDeleteNotArchived400(t *testing.T) {
+func TestArchivePlatform_HardDeleteNotArchived400(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
-	rec := invokeJSON("DELETE", "/applications/app-1?hard=true", "/applications/:application_id", h.ArchiveApplication, nil, "alice", "developer")
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
+	rec := invokeJSON("DELETE", "/platforms/app-1?hard=true", "/platforms/:platform_id", h.ArchivePlatform, nil, "alice", "developer")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
 }
 
-func TestArchiveApplication_HardDeleteStoreError500(t *testing.T) {
+func TestArchivePlatform_HardDeleteStoreError500(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusArchived, OwnerUserID: "alice"})
-	st.errDeleteApplication = errors.New("db")
-	rec := invokeJSON("DELETE", "/applications/app-1?hard=true", "/applications/:application_id", h.ArchiveApplication, nil, "alice", "developer")
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusArchived, OwnerUserID: "alice"})
+	st.errDeletePlatform = errors.New("db")
+	rec := invokeJSON("DELETE", "/platforms/app-1?hard=true", "/platforms/:platform_id", h.ArchivePlatform, nil, "alice", "developer")
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestArchiveApplication_StoreError500(t *testing.T) {
+func TestArchivePlatform_StoreError500(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive, OwnerUserID: "alice"})
-	st.errArchiveApplication = errors.New("db")
-	rec := invokeJSON("DELETE", "/applications/app-1", "/applications/:application_id", h.ArchiveApplication, nil, "alice", "developer")
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
+	st.errArchivePlatform = errors.New("db")
+	rec := invokeJSON("DELETE", "/platforms/app-1", "/platforms/:platform_id", h.ArchivePlatform, nil, "alice", "developer")
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-// --- ListApplicationRepositories ---
+// --- ListPlatformRepositories ---
 
 func TestListApplicationRepositories_OK(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive})
-	st.seedLink(domain.ApplicationRepository{
-		ApplicationID: "app-1",
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive})
+	st.seedLink(domain.PlatformRepository{
+		PlatformID: "app-1",
 		RepoProvider:  "gitea",
 		RepoFullName:  "org/repo",
-		Role:          domain.ApplicationRepositoryRole("primary"),
+		Role:          domain.PlatformRepositoryRole("primary"),
 		SyncStatus:    domain.SyncStatusActive,
 		LinkSource:    "direct",
 	})
-	rec := invokeJSON("GET", "/applications/app-1/repositories", "/applications/:application_id/repositories", h.ListApplicationRepositories, nil, "", "")
+	rec := invokeJSON("GET", "/platforms/app-1/repositories", "/platforms/:platform_id/repositories", h.ListPlatformRepositories, nil, "", "")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
@@ -844,15 +844,15 @@ func TestListApplicationRepositories_OK(t *testing.T) {
 
 func TestListApplicationRepositories_StoreError500(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive})
-	st.errListApplicationRepositories = errors.New("db")
-	rec := invokeJSON("GET", "/applications/app-1/repositories", "/applications/:application_id/repositories", h.ListApplicationRepositories, nil, "", "")
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive})
+	st.errListPlatformRepositories = errors.New("db")
+	rec := invokeJSON("GET", "/platforms/app-1/repositories", "/platforms/:platform_id/repositories", h.ListPlatformRepositories, nil, "", "")
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-// --- CreateApplicationRepository ---
+// --- CreatePlatformRepository ---
 
 func validCreateAppRepoBody() map[string]any {
 	return map[string]any{
@@ -863,24 +863,24 @@ func validCreateAppRepoBody() map[string]any {
 	}
 }
 
-func TestCreateApplicationRepository_OK(t *testing.T) {
+func TestCreatePlatformRepository_OK(t *testing.T) {
 	h, st, audit := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive})
-	rec := invokeJSON("POST", "/applications/app-1/repositories", "/applications/:application_id/repositories", h.CreateApplicationRepository, validCreateAppRepoBody(), "", "")
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive})
+	rec := invokeJSON("POST", "/platforms/app-1/repositories", "/platforms/:platform_id/repositories", h.CreatePlatformRepository, validCreateAppRepoBody(), "", "")
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
-	if len(audit.created) != 1 || audit.created[0].Action != "application_repository.linked" {
+	if len(audit.created) != 1 || audit.created[0].Action != "platform_repository.linked" {
 		t.Fatalf("audit: %+v", audit.created)
 	}
 }
 
-func TestCreateApplicationRepository_BadJSON400(t *testing.T) {
+func TestCreatePlatformRepository_BadJSON400(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive})
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive})
 	r := gin.New()
-	r.POST("/applications/:application_id/repositories", h.CreateApplicationRepository)
-	req := httptest.NewRequest("POST", "/applications/app-1/repositories", strings.NewReader("not-json"))
+	r.POST("/platforms/:platform_id/repositories", h.CreatePlatformRepository)
+	req := httptest.NewRequest("POST", "/platforms/app-1/repositories", strings.NewReader("not-json"))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 	r.ServeHTTP(rec, req)
@@ -889,45 +889,45 @@ func TestCreateApplicationRepository_BadJSON400(t *testing.T) {
 	}
 }
 
-func TestCreateApplicationRepository_MissingProvider400(t *testing.T) {
+func TestCreatePlatformRepository_MissingProvider400(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive})
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive})
 	body := validCreateAppRepoBody()
 	body["repo_provider"] = "   "
-	rec := invokeJSON("POST", "/applications/app-1/repositories", "/applications/:application_id/repositories", h.CreateApplicationRepository, body, "", "")
+	rec := invokeJSON("POST", "/platforms/app-1/repositories", "/platforms/:platform_id/repositories", h.CreatePlatformRepository, body, "", "")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestCreateApplicationRepository_MissingFullName400(t *testing.T) {
+func TestCreatePlatformRepository_MissingFullName400(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive})
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive})
 	body := validCreateAppRepoBody()
 	body["repo_full_name"] = ""
-	rec := invokeJSON("POST", "/applications/app-1/repositories", "/applications/:application_id/repositories", h.CreateApplicationRepository, body, "", "")
+	rec := invokeJSON("POST", "/platforms/app-1/repositories", "/platforms/:platform_id/repositories", h.CreatePlatformRepository, body, "", "")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestCreateApplicationRepository_InvalidRole400(t *testing.T) {
+func TestCreatePlatformRepository_InvalidRole400(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive})
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive})
 	body := validCreateAppRepoBody()
 	body["role"] = "weird"
-	rec := invokeJSON("POST", "/applications/app-1/repositories", "/applications/:application_id/repositories", h.CreateApplicationRepository, body, "", "")
+	rec := invokeJSON("POST", "/platforms/app-1/repositories", "/platforms/:platform_id/repositories", h.CreatePlatformRepository, body, "", "")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestCreateApplicationRepository_UnsupportedProvider422(t *testing.T) {
+func TestCreatePlatformRepository_UnsupportedProvider422(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive})
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive})
 	body := validCreateAppRepoBody()
 	body["repo_provider"] = "forgejo" // seeded as disabled
-	rec := invokeJSON("POST", "/applications/app-1/repositories", "/applications/:application_id/repositories", h.CreateApplicationRepository, body, "", "")
+	rec := invokeJSON("POST", "/platforms/app-1/repositories", "/platforms/:platform_id/repositories", h.CreatePlatformRepository, body, "", "")
 	if rec.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
@@ -936,61 +936,61 @@ func TestCreateApplicationRepository_UnsupportedProvider422(t *testing.T) {
 	}
 }
 
-func TestCreateApplicationRepository_Conflict409(t *testing.T) {
+func TestCreatePlatformRepository_Conflict409(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive})
-	st.seedLink(domain.ApplicationRepository{ApplicationID: "app-1", RepoProvider: "gitea", RepoFullName: "org/repo"})
-	rec := invokeJSON("POST", "/applications/app-1/repositories", "/applications/:application_id/repositories", h.CreateApplicationRepository, validCreateAppRepoBody(), "", "")
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive})
+	st.seedLink(domain.PlatformRepository{PlatformID: "app-1", RepoProvider: "gitea", RepoFullName: "org/repo"})
+	rec := invokeJSON("POST", "/platforms/app-1/repositories", "/platforms/:platform_id/repositories", h.CreatePlatformRepository, validCreateAppRepoBody(), "", "")
 	if rec.Code != http.StatusConflict {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
 }
 
-func TestCreateApplicationRepository_ProviderLookupError500(t *testing.T) {
+func TestCreatePlatformRepository_ProviderLookupError500(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive})
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive})
 	st.errListSCMProviders = errors.New("db")
-	rec := invokeJSON("POST", "/applications/app-1/repositories", "/applications/:application_id/repositories", h.CreateApplicationRepository, validCreateAppRepoBody(), "", "")
+	rec := invokeJSON("POST", "/platforms/app-1/repositories", "/platforms/:platform_id/repositories", h.CreatePlatformRepository, validCreateAppRepoBody(), "", "")
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestCreateApplicationRepository_StoreError500(t *testing.T) {
+func TestCreatePlatformRepository_StoreError500(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive})
-	st.errCreateApplicationRepository = errors.New("db")
-	rec := invokeJSON("POST", "/applications/app-1/repositories", "/applications/:application_id/repositories", h.CreateApplicationRepository, validCreateAppRepoBody(), "", "")
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive})
+	st.errCreatePlatformRepository = errors.New("db")
+	rec := invokeJSON("POST", "/platforms/app-1/repositories", "/platforms/:platform_id/repositories", h.CreatePlatformRepository, validCreateAppRepoBody(), "", "")
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-// --- DeleteApplicationRepository ---
+// --- DeletePlatformRepository ---
 
-func TestDeleteApplicationRepository_OK(t *testing.T) {
+func TestDeletePlatformRepository_OK(t *testing.T) {
 	h, st, audit := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive})
-	st.seedLink(domain.ApplicationRepository{ApplicationID: "app-1", RepoProvider: "gitea", RepoFullName: "org/repo"})
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive})
+	st.seedLink(domain.PlatformRepository{PlatformID: "app-1", RepoProvider: "gitea", RepoFullName: "org/repo"})
 	r := gin.New()
-	r.DELETE("/applications/:application_id/repositories/*repo_key", h.DeleteApplicationRepository)
-	req := httptest.NewRequest("DELETE", "/applications/app-1/repositories/gitea:org/repo", nil)
+	r.DELETE("/platforms/:platform_id/repositories/*repo_key", h.DeletePlatformRepository)
+	req := httptest.NewRequest("DELETE", "/platforms/app-1/repositories/gitea:org/repo", nil)
 	rec := httptest.NewRecorder()
 	r.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
-	if len(audit.created) != 1 || audit.created[0].Action != "application_repository.unlinked" {
+	if len(audit.created) != 1 || audit.created[0].Action != "platform_repository.unlinked" {
 		t.Fatalf("audit: %+v", audit.created)
 	}
 }
 
-func TestDeleteApplicationRepository_MalformedKey400(t *testing.T) {
+func TestDeletePlatformRepository_MalformedKey400(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive})
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive})
 	r := gin.New()
-	r.DELETE("/applications/:application_id/repositories/*repo_key", h.DeleteApplicationRepository)
-	req := httptest.NewRequest("DELETE", "/applications/app-1/repositories/noseparator", nil)
+	r.DELETE("/platforms/:platform_id/repositories/*repo_key", h.DeletePlatformRepository)
+	req := httptest.NewRequest("DELETE", "/platforms/app-1/repositories/noseparator", nil)
 	rec := httptest.NewRecorder()
 	r.ServeHTTP(rec, req)
 	if rec.Code != http.StatusBadRequest {
@@ -998,12 +998,12 @@ func TestDeleteApplicationRepository_MalformedKey400(t *testing.T) {
 	}
 }
 
-func TestDeleteApplicationRepository_NotFound404(t *testing.T) {
+func TestDeletePlatformRepository_NotFound404(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive})
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive})
 	r := gin.New()
-	r.DELETE("/applications/:application_id/repositories/*repo_key", h.DeleteApplicationRepository)
-	req := httptest.NewRequest("DELETE", "/applications/app-1/repositories/gitea:org/missing", nil)
+	r.DELETE("/platforms/:platform_id/repositories/*repo_key", h.DeletePlatformRepository)
+	req := httptest.NewRequest("DELETE", "/platforms/app-1/repositories/gitea:org/missing", nil)
 	rec := httptest.NewRecorder()
 	r.ServeHTTP(rec, req)
 	if rec.Code != http.StatusNotFound {
@@ -1011,13 +1011,13 @@ func TestDeleteApplicationRepository_NotFound404(t *testing.T) {
 	}
 }
 
-func TestDeleteApplicationRepository_StoreError500(t *testing.T) {
+func TestDeletePlatformRepository_StoreError500(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive})
-	st.errDeleteApplicationRepository = errors.New("db")
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive})
+	st.errDeletePlatformRepository = errors.New("db")
 	r := gin.New()
-	r.DELETE("/applications/:application_id/repositories/*repo_key", h.DeleteApplicationRepository)
-	req := httptest.NewRequest("DELETE", "/applications/app-1/repositories/gitea:org/repo", nil)
+	r.DELETE("/platforms/:platform_id/repositories/*repo_key", h.DeletePlatformRepository)
+	req := httptest.NewRequest("DELETE", "/platforms/app-1/repositories/gitea:org/repo", nil)
 	rec := httptest.NewRecorder()
 	r.ServeHTTP(rec, req)
 	if rec.Code != http.StatusInternalServerError {
@@ -1025,82 +1025,82 @@ func TestDeleteApplicationRepository_StoreError500(t *testing.T) {
 	}
 }
 
-// --- ApplicationRollup ---
+// --- PlatformRollup ---
 
-func TestApplicationRollup_OK(t *testing.T) {
+func TestPlatformRollup_OK(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive})
-	rec := invokeJSON("GET", "/applications/app-1/rollup", "/applications/:application_id/rollup", h.ApplicationRollup, nil, "", "")
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive})
+	rec := invokeJSON("GET", "/platforms/app-1/rollup", "/platforms/:platform_id/rollup", h.PlatformRollup, nil, "", "")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
 }
 
-func TestApplicationRollup_InvalidWeightPolicy400(t *testing.T) {
+func TestPlatformRollup_InvalidWeightPolicy400(t *testing.T) {
 	h, _, _ := newAppHandlerForTest(t)
-	rec := invokeJSON("GET", "/applications/app-1/rollup?weight_policy=weird", "/applications/:application_id/rollup", h.ApplicationRollup, nil, "", "")
+	rec := invokeJSON("GET", "/platforms/app-1/rollup?weight_policy=weird", "/platforms/:platform_id/rollup", h.PlatformRollup, nil, "", "")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestApplicationRollup_BadCustomWeights400(t *testing.T) {
+func TestPlatformRollup_BadCustomWeights400(t *testing.T) {
 	h, _, _ := newAppHandlerForTest(t)
-	rec := invokeJSON("GET", "/applications/app-1/rollup?weight_policy=custom&custom_weights=not-json", "/applications/:application_id/rollup", h.ApplicationRollup, nil, "", "")
+	rec := invokeJSON("GET", "/platforms/app-1/rollup?weight_policy=custom&custom_weights=not-json", "/platforms/:platform_id/rollup", h.PlatformRollup, nil, "", "")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestApplicationRollup_BadFromParam400(t *testing.T) {
+func TestPlatformRollup_BadFromParam400(t *testing.T) {
 	h, _, _ := newAppHandlerForTest(t)
-	rec := invokeJSON("GET", "/applications/app-1/rollup?from=not-rfc3339", "/applications/:application_id/rollup", h.ApplicationRollup, nil, "", "")
+	rec := invokeJSON("GET", "/platforms/app-1/rollup?from=not-rfc3339", "/platforms/:platform_id/rollup", h.PlatformRollup, nil, "", "")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestApplicationRollup_BadToParam400(t *testing.T) {
+func TestPlatformRollup_BadToParam400(t *testing.T) {
 	h, _, _ := newAppHandlerForTest(t)
-	rec := invokeJSON("GET", "/applications/app-1/rollup?to=not-rfc3339", "/applications/:application_id/rollup", h.ApplicationRollup, nil, "", "")
+	rec := invokeJSON("GET", "/platforms/app-1/rollup?to=not-rfc3339", "/platforms/:platform_id/rollup", h.PlatformRollup, nil, "", "")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestApplicationRollup_FromToOK(t *testing.T) {
+func TestPlatformRollup_FromToOK(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive})
-	rec := invokeJSON("GET", "/applications/app-1/rollup?from=2026-01-01T00:00:00Z&to=2026-12-31T00:00:00Z", "/applications/:application_id/rollup", h.ApplicationRollup, nil, "", "")
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive})
+	rec := invokeJSON("GET", "/platforms/app-1/rollup?from=2026-01-01T00:00:00Z&to=2026-12-31T00:00:00Z", "/platforms/:platform_id/rollup", h.PlatformRollup, nil, "", "")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
 }
 
-func TestApplicationRollup_InvalidPolicyFromStore422(t *testing.T) {
+func TestPlatformRollup_InvalidPolicyFromStore422(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive})
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive})
 	// custom policy + negative weight → store returns "invalid weight policy" error → handler maps to 422.
-	rec := invokeJSON("GET", "/applications/app-1/rollup?weight_policy=custom&custom_weights=%7B%22repo%22%3A-1.0%7D", "/applications/:application_id/rollup", h.ApplicationRollup, nil, "", "")
+	rec := invokeJSON("GET", "/platforms/app-1/rollup?weight_policy=custom&custom_weights=%7B%22repo%22%3A-1.0%7D", "/platforms/:platform_id/rollup", h.PlatformRollup, nil, "", "")
 	if rec.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
 }
 
-func TestApplicationRollup_StoreError500(t *testing.T) {
+func TestPlatformRollup_StoreError500(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
-	st.seedApp(domain.Application{ID: "app-1", Key: "APP1", Status: domain.ApplicationStatusActive})
-	st.errComputeApplicationRollup = errors.New("rollup_down")
-	rec := invokeJSON("GET", "/applications/app-1/rollup", "/applications/:application_id/rollup", h.ApplicationRollup, nil, "", "")
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive})
+	st.errComputePlatformRollup = errors.New("rollup_down")
+	rec := invokeJSON("GET", "/platforms/app-1/rollup", "/platforms/:platform_id/rollup", h.PlatformRollup, nil, "", "")
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d", rec.Code)
 	}
 }
 
-func TestApplicationRollup_StoreUnavailable503(t *testing.T) {
+func TestPlatformRollup_StoreUnavailable503(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewApplicationHandler(ApplicationConfig{})
-	rec := invokeJSON("GET", "/applications/app-1/rollup", "/applications/:application_id/rollup", h.ApplicationRollup, nil, "", "")
+	h := NewPlatformHandler(PlatformConfig{})
+	rec := invokeJSON("GET", "/platforms/app-1/rollup", "/platforms/:platform_id/rollup", h.PlatformRollup, nil, "", "")
 	if rec.Code != http.StatusServiceUnavailable {
 		t.Fatalf("status = %d", rec.Code)
 	}

@@ -165,10 +165,10 @@ var routePermissionTable = map[routeKey]routePolicy{
 
 	// pipelines
 	{http.MethodGet, "/api/v1/repositories"}:                         {Resource: domain.ResourcePipelines, Action: domain.ActionView},
-	{http.MethodPost, "/api/v1/repositories"}:                        {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionCreate},
-	{http.MethodPatch, "/api/v1/repositories/:repository_id"}:         {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionEdit},
-	{http.MethodDelete, "/api/v1/repositories/:repository_id"}:        {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionDelete},
-	{http.MethodPost, "/api/v1/repositories/:repository_id/publish"}: {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionEdit},
+	{http.MethodPost, "/api/v1/repositories"}:                        {Resource: domain.ResourcePlatformRepositories, Action: domain.ActionCreate},
+	{http.MethodPatch, "/api/v1/repositories/:repository_id"}:         {Resource: domain.ResourcePlatformRepositories, Action: domain.ActionEdit},
+	{http.MethodDelete, "/api/v1/repositories/:repository_id"}:        {Resource: domain.ResourcePlatformRepositories, Action: domain.ActionDelete},
+	{http.MethodPost, "/api/v1/repositories/:repository_id/publish"}: {Resource: domain.ResourcePlatformRepositories, Action: domain.ActionEdit},
 	{http.MethodGet, "/api/v1/issues"}:                               {Resource: domain.ResourcePipelines, Action: domain.ActionView},
 	{http.MethodGet, "/api/v1/pull-requests"}:                        {Resource: domain.ResourcePipelines, Action: domain.ActionView},
 	{http.MethodGet, "/api/v1/ci-runs"}:                              {Resource: domain.ResourcePipelines, Action: domain.ActionView},
@@ -222,30 +222,30 @@ var routePermissionTable = map[routeKey]routePolicy{
 	{http.MethodPatch, "/api/v1/scm/providers/:provider_key"}: {Resource: domain.ResourceSCMProviders, Action: domain.ActionEdit},
 
 	// Applications (API-43..47, sprint claude/work_260514-a).
-	{http.MethodGet, "/api/v1/applications"}:                    {Resource: domain.ResourceApplications, Action: domain.ActionView},
-	{http.MethodPost, "/api/v1/applications"}:                   {Resource: domain.ResourceApplications, Action: domain.ActionCreate},
-	{http.MethodGet, "/api/v1/applications/:application_id"}:    {Resource: domain.ResourceApplications, Action: domain.ActionView},
-	{http.MethodPatch, "/api/v1/applications/:application_id"}:  {Resource: domain.ResourceApplications, Action: domain.ActionEdit},
-	{http.MethodDelete, "/api/v1/applications/:application_id"}: {Resource: domain.ResourceApplications, Action: domain.ActionDelete},
+	{http.MethodGet, "/api/v1/platforms"}:                    {Resource: domain.ResourcePlatforms, Action: domain.ActionView},
+	{http.MethodPost, "/api/v1/platforms"}:                   {Resource: domain.ResourcePlatforms, Action: domain.ActionCreate},
+	{http.MethodGet, "/api/v1/platforms/:platform_id"}:    {Resource: domain.ResourcePlatforms, Action: domain.ActionView},
+	{http.MethodPatch, "/api/v1/platforms/:platform_id"}:  {Resource: domain.ResourcePlatforms, Action: domain.ActionEdit},
+	{http.MethodDelete, "/api/v1/platforms/:platform_id"}: {Resource: domain.ResourcePlatforms, Action: domain.ActionDelete},
 
 	// Application-Repository link (API-48..50, sprint claude/work_260514-a).
-	{http.MethodGet, "/api/v1/applications/:application_id/repositories"}:              {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionView},
-	{http.MethodPost, "/api/v1/applications/:application_id/repositories"}:             {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionCreate},
-	{http.MethodDelete, "/api/v1/applications/:application_id/repositories/*repo_key"}: {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionDelete},
+	{http.MethodGet, "/api/v1/platforms/:platform_id/repositories"}:              {Resource: domain.ResourcePlatformRepositories, Action: domain.ActionView},
+	{http.MethodPost, "/api/v1/platforms/:platform_id/repositories"}:             {Resource: domain.ResourcePlatformRepositories, Action: domain.ActionCreate},
+	{http.MethodDelete, "/api/v1/platforms/:platform_id/repositories/*repo_key"}: {Resource: domain.ResourcePlatformRepositories, Action: domain.ActionDelete},
 
 	// Repository 운영 지표 (API-51..54, sprint claude/work_260514-c). 본 endpoint 들은
 	// Application 의 연결 Repository 메트릭이므로 application_repositories:view 로 매핑.
-	{http.MethodGet, "/api/v1/repositories/:repository_id/activity"}:          {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionView},
-	{http.MethodGet, "/api/v1/repositories/:repository_id/pull-requests"}:     {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionView},
-	{http.MethodGet, "/api/v1/repositories/:repository_id/build-runs"}:        {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionView},
-	{http.MethodGet, "/api/v1/repositories/:repository_id/quality-snapshots"}: {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/repositories/:repository_id/activity"}:          {Resource: domain.ResourcePlatformRepositories, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/repositories/:repository_id/pull-requests"}:     {Resource: domain.ResourcePlatformRepositories, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/repositories/:repository_id/build-runs"}:        {Resource: domain.ResourcePlatformRepositories, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/repositories/:repository_id/quality-snapshots"}: {Resource: domain.ResourcePlatformRepositories, Action: domain.ActionView},
 
 	// Project CRUD (API-55..56, sprint claude/work_260514-c).
 	{http.MethodGet, "/api/v1/repositories/:repository_id/projects"}:                {Resource: domain.ResourceProjects, Action: domain.ActionView},
 	{http.MethodPost, "/api/v1/repositories/:repository_id/projects"}:               {Resource: domain.ResourceProjects, Action: domain.ActionCreate},
 	{http.MethodPost, "/api/v1/projects"}:                                           {Resource: domain.ResourceProjects, Action: domain.ActionCreate},
-	{http.MethodGet, "/api/v1/applications/:application_id/projects"}:               {Resource: domain.ResourceProjects, Action: domain.ActionView},
-	{http.MethodPost, "/api/v1/applications/:application_id/projects"}:              {Resource: domain.ResourceProjects, Action: domain.ActionCreate},
+	{http.MethodGet, "/api/v1/platforms/:platform_id/projects"}:               {Resource: domain.ResourceProjects, Action: domain.ActionView},
+	{http.MethodPost, "/api/v1/platforms/:platform_id/projects"}:              {Resource: domain.ResourceProjects, Action: domain.ActionCreate},
 	{http.MethodGet, "/api/v1/projects/standalone"}:                                 {Resource: domain.ResourceProjects, Action: domain.ActionView},
 	{http.MethodGet, "/api/v1/projects/:project_id"}:                                {Resource: domain.ResourceProjects, Action: domain.ActionView},
 	{http.MethodPatch, "/api/v1/projects/:project_id"}:                              {Resource: domain.ResourceProjects, Action: domain.ActionEdit},
@@ -255,15 +255,15 @@ var routePermissionTable = map[routeKey]routePolicy{
 	{http.MethodDelete, "/api/v1/projects/:project_id/repositories/:repository_id"}: {Resource: domain.ResourceProjects, Action: domain.ActionDelete},
 
 	// Application 롤업 (API-57, sprint claude/work_260514-c) — applications:view 매핑.
-	{http.MethodGet, "/api/v1/applications/:application_id/rollup"}:    {Resource: domain.ResourceApplications, Action: domain.ActionView},
-	{http.MethodGet, "/api/v1/applications/:application_id/dashboard"}: {Resource: domain.ResourceApplications, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/platforms/:platform_id/rollup"}:    {Resource: domain.ResourcePlatforms, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/platforms/:platform_id/dashboard"}: {Resource: domain.ResourcePlatforms, Action: domain.ActionView},
 
 	// Integration CRUD (API-58, sprint claude/work_260514-c) — applications:edit cross-cut
 	// (관리 행위라 admin 일임).
-	{http.MethodGet, "/api/v1/integrations"}:                                            {Resource: domain.ResourceApplications, Action: domain.ActionView},
-	{http.MethodPost, "/api/v1/integrations"}:                                           {Resource: domain.ResourceApplications, Action: domain.ActionEdit},
-	{http.MethodPatch, "/api/v1/integrations/:integration_id"}:                          {Resource: domain.ResourceApplications, Action: domain.ActionEdit},
-	{http.MethodDelete, "/api/v1/integrations/:integration_id"}:                         {Resource: domain.ResourceApplications, Action: domain.ActionEdit},
+	{http.MethodGet, "/api/v1/integrations"}:                                            {Resource: domain.ResourcePlatforms, Action: domain.ActionView},
+	{http.MethodPost, "/api/v1/integrations"}:                                           {Resource: domain.ResourcePlatforms, Action: domain.ActionEdit},
+	{http.MethodPatch, "/api/v1/integrations/:integration_id"}:                          {Resource: domain.ResourcePlatforms, Action: domain.ActionEdit},
+	{http.MethodDelete, "/api/v1/integrations/:integration_id"}:                         {Resource: domain.ResourcePlatforms, Action: domain.ActionEdit},
 	{http.MethodGet, "/api/v1/integration/providers"}:                                   {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
 	{http.MethodPost, "/api/v1/integration/providers"}:                                  {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
 	{http.MethodPatch, "/api/v1/integration/providers/:provider_id"}:                    {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},

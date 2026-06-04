@@ -111,7 +111,7 @@ export default function AdminSettingsIntegrationBindingsPage() {
               Integration <span className="text-accent">Bindings</span>
             </h2>
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
-              provider 와 application/project scope 매핑
+              provider 와 platform/project scope 매핑
             </p>
           </div>
         </motion.div>
@@ -127,7 +127,7 @@ export default function AdminSettingsIntegrationBindingsPage() {
             className="px-4 py-3 rounded-xl bg-muted/30 border border-border text-foreground dark:text-primary-foreground text-xs font-bold uppercase tracking-widest focus:outline-none focus:border-accent"
           >
             <option value="">All scopes</option>
-            <option value="application">application</option>
+            <option value="platform">platform</option>
             <option value="project">project</option>
           </select>
           <button

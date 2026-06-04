@@ -40,7 +40,7 @@ func main() {
 	var commandStore httpapi.CommandStore
 	var auditStore httpapi.AuditStore
 	var organizationStore httpapi.OrganizationStore
-	var applicationStore httpapi.ApplicationStore
+	var platformStore httpapi.PlatformStore
 	// integrationStore — issue #421/#422 (sprint claude/work_260529-n).
 	// IntegrationRepository 를 ApplicationRepository embed 에서 분리 후
 	// 별도 inject 해 cross-domain decouple.
@@ -69,7 +69,7 @@ func main() {
 		commandStore = pgStore
 		auditStore = auditrep.NewAuditRepository(pgStore)
 		organizationStore = orgrep.NewOrganizationRepository(pgStore)
-		applicationStore = apprep.NewApplicationRepository(pgStore)
+		platformStore = apprep.NewPlatformRepository(pgStore)
 		integrationStore = intgregrep.NewIntegrationRepository(pgStore)
 		devRequestRepository := devreqrep.NewDevRequestRepository(pgStore)
 		devRequestStore = devRequestRepository
@@ -156,7 +156,7 @@ func main() {
 		CommandStore:               commandStore,
 		AuditStore:                 auditStore,
 		OrganizationStore:          organizationStore,
-		ApplicationStore:           applicationStore,
+		PlatformStore:           platformStore,
 		IntegrationStore:           integrationStore,
 		DevRequestStore:            devRequestStore,
 		DevRequestIntakeTokenStore: devRequestIntakeTokenStore,

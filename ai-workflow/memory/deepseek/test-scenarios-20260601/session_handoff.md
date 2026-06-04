@@ -30,7 +30,7 @@
   - Enforcement architecture 설계 (enforceRowReadScope 추가)
   - 4-Phase 점진적 구현 계획
   - 4개 background agent 활용 사전 조사 (RBAC, project_members, org hierarchy, enforcement)
-- **Test cases**: `docs/domain/application-lifecycle/test_cases.md` — TC-088 ~ TC-103 (16개)
+- **Test cases**: `docs/domain/platform-lifecycle/test_cases.md` — TC-088 ~ TC-103 (16개)
   - Baseline membership scope (TC-088~090)
   - Project leader management info (TC-091~092)
   - Application leader dashboard (TC-093~094)
@@ -43,7 +43,7 @@
 ## 핵심 작업 파일
 
 - `docs/planning/role-access-concept.md` — 역할 모델 컨셉
-- `docs/domain/application-lifecycle/test_cases.md` — view scope TC 16개
+- `docs/domain/platform-lifecycle/test_cases.md` — view scope TC 16개
 - `docs/domain/dev-request/test_cases.md` — DREQ E2E TC 10개
 - `docs/planning/integrated_test_report_20260601.md` — 통합 테스트 리포트
 - `docs/planning/release_v1_roadmap.md` — 로드맵 갱신

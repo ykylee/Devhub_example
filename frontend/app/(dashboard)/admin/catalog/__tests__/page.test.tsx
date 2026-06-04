@@ -38,10 +38,10 @@ vi.mock("@/shared/ui-foundation/components/Toast", () => ({
 }));
 
 // 4 modal components — they have their own dedicated tests.
-vi.mock("@/domain/application-lifecycle/view/ApplicationCreationModal", () => ({
-  ApplicationCreationModal: () => null,
+vi.mock("@/domain/platform-lifecycle/view/PlatformCreationModal", () => ({
+  PlatformCreationModal: () => null,
 }));
-vi.mock("@/domain/application-lifecycle/view/ProjectCreationModal", () => ({
+vi.mock("@/domain/platform-lifecycle/view/ProjectCreationModal", () => ({
   ProjectCreationModal: () => null,
 }));
 vi.mock("@/components/project/RepositoryCreationModal", () => ({
@@ -68,16 +68,16 @@ vi.mock("@/shared/ui-foundation/components/PageState", () => ({
 
 // 4 service mocks via vi.hoisted.
 const mocks = vi.hoisted(() => ({
-  listApplications: vi.fn<(...args: unknown[]) => Promise<unknown[]>>(),
+  listPlatforms: vi.fn<(...args: unknown[]) => Promise<unknown[]>>(),
   listRepositories: vi.fn<(...args: unknown[]) => Promise<unknown[]>>(),
-  getApplicationProjectsV2: vi.fn<(...args: unknown[]) => Promise<unknown[]>>(),
+  getPlatformProjectsV2: vi.fn<(...args: unknown[]) => Promise<unknown[]>>(),
   getRepositoryProjects: vi.fn<(...args: unknown[]) => Promise<unknown[]>>(),
   getUsers: vi.fn<(...args: unknown[]) => Promise<unknown[]>>(),
 }));
 
-vi.mock("@/domain/application-lifecycle/service/application.service", () => ({
-  applicationService: {
-    listApplications: (...a: unknown[]) => mocks.listApplications(...a),
+vi.mock("@/domain/platform-lifecycle/service/platform.service", () => ({
+  platformService: {
+    listPlatforms: (...a: unknown[]) => mocks.listPlatforms(...a),
   },
 }));
 
@@ -87,11 +87,11 @@ vi.mock("@/domain/repository-integration/service/repository.service", () => ({
   },
 }));
 
-vi.mock("@/domain/application-lifecycle/service/project.service", () => ({
+vi.mock("@/domain/platform-lifecycle/service/project.service", () => ({
   projectService: {
-    getApplicationProjectsV2: (...a: unknown[]) => mocks.getApplicationProjectsV2(...a),
+    getPlatformProjectsV2: (...a: unknown[]) => mocks.getPlatformProjectsV2(...a),
     getRepositoryProjects: (...a: unknown[]) => mocks.getRepositoryProjects(...a),
-    archiveApplication: vi.fn(),
+    archivePlatform: vi.fn(),
     archiveProject: vi.fn(),
     getProject: vi.fn(),
   },
@@ -114,7 +114,7 @@ import AdminCatalogPage from "../page";
 const sampleApp = {
   id: "app-1",
   key: "MYAPP",
-  name: "My Application",
+  name: "My Platform",
   description: "Test app",
   status: "active",
   visibility: "internal",
@@ -178,16 +178,16 @@ describe("AdminCatalogPage", () => {
     routerReplace.mockReset();
 
     // Default successful responses
-    mocks.listApplications.mockResolvedValue([sampleApp]);
+    mocks.listPlatforms.mockResolvedValue([sampleApp]);
     mocks.listRepositories.mockResolvedValue([sampleRepo]);
-    mocks.getApplicationProjectsV2.mockResolvedValue([sampleProject]);
+    mocks.getPlatformProjectsV2.mockResolvedValue([sampleProject]);
     mocks.getRepositoryProjects.mockResolvedValue([]);
     mocks.getUsers.mockResolvedValue([sampleUser]);
   });
 
   it("renders loading state initially", () => {
     // Keep promises pending so loading state persists
-    mocks.listApplications.mockReturnValue(new Promise(() => {}));
+    mocks.listPlatforms.mockReturnValue(new Promise(() => {}));
     render(<AdminCatalogPage />);
     expect(screen.getByTestId("page-loading")).toBeInTheDocument();
     expect(screen.getByText("Admin Catalog 로딩 중...")).toBeInTheDocument();
@@ -196,38 +196,38 @@ describe("AdminCatalogPage", () => {
   it("renders 3 tab buttons with correct testid attributes", async () => {
     render(<AdminCatalogPage />);
     await waitFor(() => {
-      expect(screen.getByTestId("catalog-tab-applications")).toBeInTheDocument();
+      expect(screen.getByTestId("catalog-tab-platforms")).toBeInTheDocument();
     });
     expect(screen.getByTestId("catalog-tab-repositories")).toBeInTheDocument();
     expect(screen.getByTestId("catalog-tab-projects")).toBeInTheDocument();
   });
 
-  it("renders Applications tab as default with data", async () => {
+  it("renders Platforms tab as default with data", async () => {
     render(<AdminCatalogPage />);
     // Wait for data to load
     await waitFor(() => {
-      expect(mocks.listApplications).toHaveBeenCalled();
+      expect(mocks.listPlatforms).toHaveBeenCalled();
     });
-    // Application table should show the sample data
+    // Platform table should show the sample data
     await waitFor(() => {
-      expect(screen.getByText("My Application")).toBeInTheDocument();
+      expect(screen.getByText("My Platform")).toBeInTheDocument();
     });
     expect(screen.getByText("MYAPP")).toBeInTheDocument();
     expect(screen.getByText("active")).toBeInTheDocument();
   });
 
-  it("shows PageEmpty when no applications", async () => {
-    mocks.listApplications.mockResolvedValue([]);
-    mocks.getApplicationProjectsV2.mockResolvedValue([]);
+  it("shows PageEmpty when no platforms", async () => {
+    mocks.listPlatforms.mockResolvedValue([]);
+    mocks.getPlatformProjectsV2.mockResolvedValue([]);
     render(<AdminCatalogPage />);
     await waitFor(() => {
       expect(screen.getByTestId("page-empty")).toBeInTheDocument();
     });
-    expect(screen.getByText(/조회된 Application 이 없습니다/)).toBeInTheDocument();
+    expect(screen.getByText(/조회된 Platform 이 없습니다/)).toBeInTheDocument();
   });
 
-  it("shows PageError with retry button when listApplications fails", async () => {
-    mocks.listApplications.mockRejectedValue(new Error("network failure"));
+  it("shows PageError with retry button when listPlatforms fails", async () => {
+    mocks.listPlatforms.mockRejectedValue(new Error("network failure"));
     render(<AdminCatalogPage />);
     await waitFor(() => {
       expect(screen.getByTestId("page-error")).toBeInTheDocument();
@@ -261,10 +261,10 @@ describe("AdminCatalogPage", () => {
   it("renders count badges on tab buttons", async () => {
     render(<AdminCatalogPage />);
     await waitFor(() => {
-      expect(screen.getByText("Applications")).toBeInTheDocument();
+      expect(screen.getByText("Platforms")).toBeInTheDocument();
     });
     // Each tab button has a count badge
-    const appTab = screen.getByTestId("catalog-tab-applications");
-    expect(appTab.textContent).toContain("1"); // 1 application
+    const appTab = screen.getByTestId("catalog-tab-platforms");
+    expect(appTab.textContent).toContain("1"); // 1 platform
   });
 });

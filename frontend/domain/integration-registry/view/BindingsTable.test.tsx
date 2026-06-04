@@ -51,7 +51,7 @@ const mockProviders: Record<string, IntegrationProvider> = {
 const mockBindings: IntegrationBinding[] = [
   {
     binding_id: "b1",
-    scope_type: "application",
+    scope_type: "platform",
     scope_id: "app-123",
     provider_id: "prov-1",
     external_key: "my-repo",
@@ -99,7 +99,7 @@ describe("BindingsTable", () => {
       render(<BindingsTable {...props} />);
 
       // Scope type badges
-      expect(screen.getByText("application")).toBeInTheDocument();
+      expect(screen.getByText("platform")).toBeInTheDocument();
       expect(screen.getByText("project")).toBeInTheDocument();
 
       // Scope IDs
@@ -155,7 +155,7 @@ describe("BindingsTable", () => {
       const unknownProviderBindings: IntegrationBinding[] = [
         {
           binding_id: "b3",
-          scope_type: "application",
+          scope_type: "platform",
           scope_id: "app-999",
           provider_id: "unknown-prov",
           external_key: "ext-key",
@@ -183,7 +183,7 @@ describe("BindingsTable", () => {
       const malformed: IntegrationBinding[] = [
         {
           binding_id: "b4",
-          scope_type: "application",
+          scope_type: "platform",
           scope_id: "app-xyz",
           provider_id: "prov-1",
           external_key: "k",

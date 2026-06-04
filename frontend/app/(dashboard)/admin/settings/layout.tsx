@@ -36,7 +36,7 @@ const categories = [
     id: "app-requests",
     label: "App & Requests",
     items: [
-      { href: "/admin/settings/applications", label: "Applications", icon: Box },
+      { href: "/admin/settings/platforms", label: "Platforms", icon: Box },
       { href: "/admin/settings/dev-requests", label: "Dev Requests", icon: Inbox },
       { href: "/admin/settings/dev-request-tokens", label: "Intake Tokens", icon: Key },
     ],

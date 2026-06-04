@@ -1,14 +1,14 @@
 # dev-request 도메인
 
 - 문서 목적: `dev-request` (DREQ) 도메인의 SDLC 진입점.
-- 범위: 외부/사내 채널을 통해 인입된 신규 시스템 개발 의뢰의 인입, 검토, promote (Application/Project 자동 생성) 프로세스.
+- 범위: 외부/사내 채널을 통해 인입된 신규 시스템 개발 의뢰의 인입, 검토, promote (Platform/Project 자동 생성) 프로세스.
 - 상태: draft (Phase 1 골격)
 - 최종 수정일: 2026-05-29
 - 관련 문서: [code-taxonomy.md §2.1.8](../../governance/code-taxonomy.md)
 
 ## 1. 도메인 정의
 
-> 외부 연동 채널 또는 사내 채널을 통해 들어온 신규 시스템 개발 의뢰(DREQ)의 인입, 검토, promote(Application/Project 자동 생성) 프로세스를 관리한다. ([code-taxonomy.md §2.1.8](../../governance/code-taxonomy.md))
+> 외부 연동 채널 또는 사내 채널을 통해 들어온 신규 시스템 개발 의뢰(DREQ)의 인입, 검토, promote(Platform/Project 자동 생성) 프로세스를 관리한다. ([code-taxonomy.md §2.1.8](../../governance/code-taxonomy.md))
 
 DREQ 6단계 상태 머신 + intake token 만료 처리 + promote 트랜잭션으로 개발 의뢰 전체 lifecycle 을 관리한다.
 
@@ -35,7 +35,7 @@ DREQ 6단계 상태 머신 + intake token 만료 처리 + promote 트랜잭션�
 
 - ADR-0012 (DREQ intake auth)
 - ADR-0013 (DREQ RBAC row-scoping)
-- ADR-0014 (Application/Project lifecycle)
+- ADR-0014 (Platform/Project lifecycle)
 - ADR-0017 (DREQ intake token operational hardening)
 
 ## 5. cross-cutting 참조

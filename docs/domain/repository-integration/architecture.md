@@ -5,7 +5,7 @@
 - 대상 독자: backend / 프론트엔드 / DevOps, AI agent, 아키텍처 검토자.
 - 상태: accepted
 - 최종 수정일: 2026-05-29 (Phase 3 split, master `docs/architecture.md` §10 본문 이관)
-- 관련 문서: [도메인 README](./README.md), [requirements.md](./requirements.md), [api.md](./api.md), [master architecture](../../architecture.md), [integration-registry architecture](../integration-registry/architecture.md), [application-lifecycle architecture](../application-lifecycle/architecture.md)
+- 관련 문서: [도메인 README](./README.md), [requirements.md](./requirements.md), [api.md](./api.md), [master architecture](../../architecture.md), [integration-registry architecture](../integration-registry/architecture.md), [platform-lifecycle architecture](../platform-lifecycle/architecture.md)
 
 ## 개요
 
@@ -74,8 +74,8 @@ system-owned repository 는 외부 SCM 에 즉시 만들지 않고 DevHub 내 dr
   (SCM webhook/pull sync 로 인입되는 row 는 draft 를 거치지 않고 repository_status='active' 직행)
 ```
 
-- `createRepositoryDraft`(API: `POST /repositories`, RBAC `application_repositories:create`): `source='system'`, `repository_status='draft'` row INSERT. provider_key 를 provider_id FK 로 해석.
-- `requestRepositoryPublish`(API: `POST /repositories/:id/publish`, RBAC `application_repositories:edit`): `repository_status='draft'` 인 row 만 대상. provider 의 SCM type + push capability + gitea-compat 검사 후 `gitea.CreateRepo` → `UpsertRepository`. SCM 생성 실패 시 `MarkRepositoryDraftPublishRequested`(publish_requested_at set) 후 502(BadGateway) 반환하는 부분 실패 경로가 있다.
+- `createRepositoryDraft`(API: `POST /repositories`, RBAC `platform_repositories:create`): `source='system'`, `repository_status='draft'` row INSERT. provider_key 를 provider_id FK 로 해석.
+- `requestRepositoryPublish`(API: `POST /repositories/:id/publish`, RBAC `platform_repositories:edit`): `repository_status='draft'` 인 row 만 대상. provider 의 SCM type + push capability + gitea-compat 검사 후 `gitea.CreateRepo` → `UpsertRepository`. SCM 생성 실패 시 `MarkRepositoryDraftPublishRequested`(publish_requested_at set) 후 502(BadGateway) 반환하는 부분 실패 경로가 있다.
 - **검증 공백(부채)**: draft→publish 핸들러·store 메서드(`CreateRepositoryDraft`/`MarkRepositoryDraftPublishRequested`)는 #368(codex)이 **무테스트로 머지**했고 #373 이 그 위를 수정 — 단위/통합 테스트 보강이 후속 directive 다.
 
 ## 6. capability gate (ARCH-REPO-06)

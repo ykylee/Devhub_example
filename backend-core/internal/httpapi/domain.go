@@ -33,7 +33,7 @@ type repositoryResponse struct {
 	UpdatedAt          time.Time  `json:"updated_at"`
 	// linked classification (Task B, 2026-05-28) — UI 가 linked vs unlinked 표기.
 	// 합산 = 0 이면 외부 mirror 만 존재 (orphan), > 0 이면 시스템 application/project 연결.
-	LinkedApplicationsCount int `json:"linked_applications_count"`
+	LinkedApplicationsCount int `json:"linked_platforms_count"`
 	LinkedProjectsCount     int `json:"linked_projects_count"`
 }
 
@@ -124,7 +124,7 @@ func repositoryFromDomain(repository domain.Repository) repositoryResponse {
 		PublishRequestedAt:      repository.PublishRequestedAt,
 		PublishedAt:             repository.PublishedAt,
 		UpdatedAt:               repository.UpdatedAt,
-		LinkedApplicationsCount: repository.LinkedApplicationsCount,
+		LinkedApplicationsCount: repository.LinkedPlatformsCount,
 		LinkedProjectsCount:     repository.LinkedProjectsCount,
 	}
 }
@@ -156,11 +156,11 @@ func (h Handler) repositories(c *gin.Context) {
 }
 
 func (h Handler) createRepositoryDraft(c *gin.Context) {
-	if h.cfg.ApplicationStore == nil {
+	if h.cfg.PlatformStore == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "repository draft store is not configured"})
 		return
 	}
-	storeI, ok := h.cfg.ApplicationStore.(repositoryDraftStore)
+	storeI, ok := h.cfg.PlatformStore.(repositoryDraftStore)
 	if !ok {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "repository draft store is not configured"})
 		return
@@ -179,7 +179,7 @@ func (h Handler) createRepositoryDraft(c *gin.Context) {
 	providerID := ""
 	if pk := strings.TrimSpace(req.ProviderKey); pk != "" {
 		// issue #421/#422 (sprint claude/work_260529-n) — integration CRUD 는
-		// IntegrationStore 로 이관. 명시 미설정 시 ApplicationStore type-assertion
+		// IntegrationStore 로 이관. 명시 미설정 시 PlatformStore type-assertion
 		// fallback 으로 legacy 호환 유지.
 		integStore := resolveIntegrationStore(h.cfg)
 		if integStore == nil {
@@ -216,11 +216,11 @@ func (h Handler) createRepositoryDraft(c *gin.Context) {
 }
 
 func (h Handler) updateRepositoryDraft(c *gin.Context) {
-	if h.cfg.ApplicationStore == nil {
+	if h.cfg.PlatformStore == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "repository draft store is not configured"})
 		return
 	}
-	storeI, ok := h.cfg.ApplicationStore.(repositoryDraftStore)
+	storeI, ok := h.cfg.PlatformStore.(repositoryDraftStore)
 	if !ok {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "repository draft store is not configured"})
 		return
@@ -289,11 +289,11 @@ func (h Handler) updateRepositoryDraft(c *gin.Context) {
 }
 
 func (h Handler) deleteRepository(c *gin.Context) {
-	if h.cfg.ApplicationStore == nil {
+	if h.cfg.PlatformStore == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "repository draft store is not configured"})
 		return
 	}
-	storeI, ok := h.cfg.ApplicationStore.(repositoryDraftStore)
+	storeI, ok := h.cfg.PlatformStore.(repositoryDraftStore)
 	if !ok {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "repository draft store is not configured"})
 		return
@@ -319,11 +319,11 @@ func (h Handler) deleteRepository(c *gin.Context) {
 }
 
 func (h Handler) requestRepositoryPublish(c *gin.Context) {
-	if h.cfg.ApplicationStore == nil {
+	if h.cfg.PlatformStore == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "repository draft store is not configured"})
 		return
 	}
-	storeI, ok := h.cfg.ApplicationStore.(repositoryDraftStore)
+	storeI, ok := h.cfg.PlatformStore.(repositoryDraftStore)
 	if !ok {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "repository draft store is not configured"})
 		return
@@ -435,7 +435,7 @@ func (h Handler) requestRepositoryPublish(c *gin.Context) {
 		c.JSON(http.StatusBadGateway, gin.H{"status": "rejected", "error": "failed to create SCM repository: " + err.Error(), "code": "integration_scm_create_failed"})
 		return
 	}
-	if err := h.cfg.ApplicationStore.UpsertRepository(c.Request.Context(), domain.Repository{
+	if err := h.cfg.PlatformStore.UpsertRepository(c.Request.Context(), domain.Repository{
 		GiteaID:       created.ID,
 		FullName:      created.FullName,
 		OwnerLogin:    scmRepoOwnerLogin(created.FullName),

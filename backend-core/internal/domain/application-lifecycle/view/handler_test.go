@@ -15,12 +15,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type fakeAppLifecycleAuditStore struct {
+type fakePlatformLifecycleAuditStore struct {
 	created []domain.AuditLog
 	err     error
 }
 
-func (f *fakeAppLifecycleAuditStore) CreateAuditLog(_ context.Context, log domain.AuditLog) (domain.AuditLog, error) {
+func (f *fakePlatformLifecycleAuditStore) CreateAuditLog(_ context.Context, log domain.AuditLog) (domain.AuditLog, error) {
 	if f.err != nil {
 		return domain.AuditLog{}, f.err
 	}
@@ -29,19 +29,19 @@ func (f *fakeAppLifecycleAuditStore) CreateAuditLog(_ context.Context, log domai
 	return log, nil
 }
 
-func TestNewApplicationHandler_NonNil(t *testing.T) {
-	h := NewApplicationHandler(ApplicationConfig{})
+func TestNewPlatformHandler_NonNil(t *testing.T) {
+	h := NewPlatformHandler(PlatformConfig{})
 	if h == nil {
 		t.Fatal("expected non-nil handler")
 	}
 }
 
-func TestNewApplicationHandler_ConfigPropagation(t *testing.T) {
-	cfg := ApplicationConfig{
+func TestNewPlatformHandler_ConfigPropagation(t *testing.T) {
+	cfg := PlatformConfig{
 		ProjectModel: "single",
-		AuditStore:   &fakeAppLifecycleAuditStore{},
+		AuditStore:   &fakePlatformLifecycleAuditStore{},
 	}
-	h := NewApplicationHandler(cfg)
+	h := NewPlatformHandler(cfg)
 	if h.cfg.ProjectModel != "single" {
 		t.Fatalf("ProjectModel = %q", h.cfg.ProjectModel)
 	}
@@ -52,7 +52,7 @@ func TestNewApplicationHandler_ConfigPropagation(t *testing.T) {
 
 func TestRecordAuditBestEffort_NilStoreReturnsZero(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewApplicationHandler(ApplicationConfig{})
+	h := NewPlatformHandler(PlatformConfig{})
 	c, _ := gin.CreateTestContext(httptest.NewRecorder())
 	c.Request = httptest.NewRequest("POST", "/x", nil)
 	got := h.recordAuditBestEffort(c, "a", "t", "id", nil)
@@ -63,13 +63,13 @@ func TestRecordAuditBestEffort_NilStoreReturnsZero(t *testing.T) {
 
 func TestRecordAuditBestEffort_PersistAndFillsActorSource(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	store := &fakeAppLifecycleAuditStore{}
-	h := NewApplicationHandler(ApplicationConfig{AuditStore: store})
+	store := &fakePlatformLifecycleAuditStore{}
+	h := NewPlatformHandler(PlatformConfig{AuditStore: store})
 	c, _ := gin.CreateTestContext(httptest.NewRecorder())
 	c.Request = httptest.NewRequest("POST", "/x", nil)
 	c.Set("devhub_actor_login", "alice")
 
-	got := h.recordAuditBestEffort(c, "app.test", "application", "app-1", nil)
+	got := h.recordAuditBestEffort(c, "app.test", "platform", "app-1", nil)
 	if got.AuditID != "audit_app_id" {
 		t.Fatalf("audit stamp: %+v", got)
 	}
@@ -87,8 +87,8 @@ func TestRecordAuditBestEffort_PersistAndFillsActorSource(t *testing.T) {
 
 func TestRecordAuditBestEffort_PayloadPreservedAndAugmented(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	store := &fakeAppLifecycleAuditStore{}
-	h := NewApplicationHandler(ApplicationConfig{AuditStore: store})
+	store := &fakePlatformLifecycleAuditStore{}
+	h := NewPlatformHandler(PlatformConfig{AuditStore: store})
 	c, _ := gin.CreateTestContext(httptest.NewRecorder())
 	c.Request = httptest.NewRequest("POST", "/x", nil)
 
@@ -109,8 +109,8 @@ func TestRecordAuditBestEffort_PersistFailureLogged(t *testing.T) {
 	log.SetOutput(&logBuf)
 	t.Cleanup(func() { log.SetOutput(orig) })
 
-	store := &fakeAppLifecycleAuditStore{err: errors.New("db_down")}
-	h := NewApplicationHandler(ApplicationConfig{AuditStore: store})
+	store := &fakePlatformLifecycleAuditStore{err: errors.New("db_down")}
+	h := NewPlatformHandler(PlatformConfig{AuditStore: store})
 	c, _ := gin.CreateTestContext(httptest.NewRecorder())
 	c.Request = httptest.NewRequest("POST", "/x", nil)
 	c.Set(httphelp.CtxKeyRequestID, "req_x")
@@ -126,7 +126,7 @@ func TestRecordAuditBestEffort_PersistFailureLogged(t *testing.T) {
 
 func TestEnforceRowOwnership_DevFallbackAlwaysAllows(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewApplicationHandler(ApplicationConfig{})
+	h := NewPlatformHandler(PlatformConfig{})
 	rec := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(rec)
 	c.Request = httptest.NewRequest("POST", "/x", nil)
@@ -139,7 +139,7 @@ func TestEnforceRowOwnership_DevFallbackAlwaysAllows(t *testing.T) {
 
 func TestEnforceRowOwnership_SystemAdminAllowed(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewApplicationHandler(ApplicationConfig{})
+	h := NewPlatformHandler(PlatformConfig{})
 	rec := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(rec)
 	c.Request = httptest.NewRequest("POST", "/x", nil)
@@ -153,7 +153,7 @@ func TestEnforceRowOwnership_SystemAdminAllowed(t *testing.T) {
 
 func TestEnforceRowOwnership_AllowedRoleAllowed(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewApplicationHandler(ApplicationConfig{})
+	h := NewPlatformHandler(PlatformConfig{})
 	rec := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(rec)
 	c.Request = httptest.NewRequest("POST", "/x", nil)
@@ -167,7 +167,7 @@ func TestEnforceRowOwnership_AllowedRoleAllowed(t *testing.T) {
 
 func TestEnforceRowOwnership_OwnerLoginMatchAllowed(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewApplicationHandler(ApplicationConfig{})
+	h := NewPlatformHandler(PlatformConfig{})
 	rec := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(rec)
 	c.Request = httptest.NewRequest("POST", "/x", nil)
@@ -181,8 +181,8 @@ func TestEnforceRowOwnership_OwnerLoginMatchAllowed(t *testing.T) {
 
 func TestEnforceRowOwnership_DeniedNon403Body(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	store := &fakeAppLifecycleAuditStore{}
-	h := NewApplicationHandler(ApplicationConfig{AuditStore: store})
+	store := &fakePlatformLifecycleAuditStore{}
+	h := NewPlatformHandler(PlatformConfig{AuditStore: store})
 	rec := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(rec)
 	c.Request = httptest.NewRequest("POST", "/x", nil)
@@ -207,13 +207,13 @@ func TestApplicationResponse_FieldMapping(t *testing.T) {
 	start := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	due := time.Date(2026, 12, 31, 0, 0, 0, 0, time.UTC)
 	archived := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
-	app := domain.Application{
+	app := domain.Platform{
 		ID:                "app-1",
 		Key:               "APP",
 		Name:              "App One",
 		Description:       "desc",
-		Status:            domain.ApplicationStatusActive,
-		Visibility:        domain.ApplicationVisibilityInternal,
+		Status:            domain.PlatformStatusActive,
+		Visibility:        domain.PlatformVisibilityInternal,
 		OwnerUserID:       "owner",
 		LeaderUserID:      "leader",
 		DevelopmentUnitID: "team",
@@ -223,7 +223,7 @@ func TestApplicationResponse_FieldMapping(t *testing.T) {
 		CreatedAt:         time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 		UpdatedAt:         time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC),
 	}
-	resp := applicationResponse(app)
+	resp := platformResponse(app)
 	if resp["id"] != "app-1" || resp["key"] != "APP" || resp["name"] != "App One" {
 		t.Fatalf("basic: %+v", resp)
 	}
@@ -240,19 +240,19 @@ func TestApplicationResponse_FieldMapping(t *testing.T) {
 
 func TestApplicationRepositoryResponse_FieldMapping(t *testing.T) {
 	linked := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
-	link := domain.ApplicationRepository{
-		ApplicationID:      "app-1",
+	link := domain.PlatformRepository{
+		PlatformID:      "app-1",
 		RepoProvider:       "gitea",
 		RepoFullName:       "org/repo",
 		ExternalRepoID:     "12345",
-		Role:               domain.ApplicationRepositoryRole("primary"),
-		SyncStatus:         domain.ApplicationRepositorySyncStatus("ok"),
+		Role:               domain.PlatformRepositoryRole("primary"),
+		SyncStatus:         domain.PlatformRepositorySyncStatus("ok"),
 		SyncErrorCode:      domain.SyncErrorCode(""),
 		LinkedAt:           linked,
 		LinkSource:         "direct",
 	}
-	resp := applicationRepositoryResponse(link)
-	if resp["application_id"] != "app-1" || resp["repo_provider"] != "gitea" {
+	resp := platformRepositoryResponse(link)
+	if resp["platform_id"] != "app-1" || resp["repo_provider"] != "gitea" {
 		t.Fatalf("basic: %+v", resp)
 	}
 	if resp["role"] != "primary" || resp["sync_status"] != "ok" {
@@ -369,33 +369,33 @@ func TestParseDate_Helpers(t *testing.T) {
 
 func TestValidApplicationStatuses(t *testing.T) {
 	for _, s := range []string{"planning", "active", "on_hold", "closed", "archived"} {
-		if !validApplicationStatuses[s] {
+		if !validPlatformStatuses[s] {
 			t.Errorf("expected %q valid", s)
 		}
 	}
-	if validApplicationStatuses["unknown"] {
+	if validPlatformStatuses["unknown"] {
 		t.Error("unknown must be invalid")
 	}
 }
 
 func TestValidApplicationVisibilities(t *testing.T) {
 	for _, v := range []string{"public", "internal", "restricted"} {
-		if !validApplicationVisibilities[v] {
+		if !validPlatformVisibilities[v] {
 			t.Errorf("expected %q valid", v)
 		}
 	}
-	if validApplicationVisibilities["x"] {
+	if validPlatformVisibilities["x"] {
 		t.Error("x must be invalid")
 	}
 }
 
 func TestValidApplicationRepoRoles(t *testing.T) {
 	for _, r := range []string{"primary", "sub", "shared"} {
-		if !validApplicationRepoRoles[r] {
+		if !validPlatformRepoRoles[r] {
 			t.Errorf("expected %q valid", r)
 		}
 	}
-	if validApplicationRepoRoles["x"] {
+	if validPlatformRepoRoles["x"] {
 		t.Error("x must be invalid")
 	}
 }
@@ -403,18 +403,18 @@ func TestValidApplicationRepoRoles(t *testing.T) {
 func TestProjectResponse_FieldMapping(t *testing.T) {
 	p := domain.Project{
 		ID:            "proj-1",
-		ApplicationID: "app-1",
+		PlatformID: "app-1",
 		RepositoryID:  42,
 		Key:           "PRJ",
 		Name:          "Proj One",
-		Status:        domain.ApplicationStatusActive,
-		Visibility:    domain.ApplicationVisibilityInternal,
+		Status:        domain.PlatformStatusActive,
+		Visibility:    domain.PlatformVisibilityInternal,
 		OwnerUserID:   "owner",
 		CreatedAt:     time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 		UpdatedAt:     time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC),
 	}
 	resp := projectResponse(p)
-	if resp["id"] != "proj-1" || resp["key"] != "PRJ" || resp["application_id"] != "app-1" {
+	if resp["id"] != "proj-1" || resp["key"] != "PRJ" || resp["platform_id"] != "app-1" {
 		t.Fatalf("basic: %+v", resp)
 	}
 	if resp["repository_id"] != int64(42) {
@@ -448,7 +448,7 @@ func TestProjectRepositoryResponse(t *testing.T) {
 }
 
 func TestProjectModel_DefaultHybrid(t *testing.T) {
-	h := NewApplicationHandler(ApplicationConfig{})
+	h := NewPlatformHandler(PlatformConfig{})
 	if got := h.projectModel(); got != "hybrid" {
 		t.Fatalf("default = %q", got)
 	}
@@ -457,7 +457,7 @@ func TestProjectModel_DefaultHybrid(t *testing.T) {
 func TestProjectModel_KnownValues(t *testing.T) {
 	cases := []string{"legacy", "v2", "hybrid"}
 	for _, mode := range cases {
-		h := NewApplicationHandler(ApplicationConfig{ProjectModel: mode})
+		h := NewPlatformHandler(PlatformConfig{ProjectModel: mode})
 		if got := h.projectModel(); got != mode {
 			t.Errorf("ProjectModel=%q got %q", mode, got)
 		}
@@ -465,14 +465,14 @@ func TestProjectModel_KnownValues(t *testing.T) {
 }
 
 func TestProjectModel_UpperCaseNormalized(t *testing.T) {
-	h := NewApplicationHandler(ApplicationConfig{ProjectModel: "LEGACY"})
+	h := NewPlatformHandler(PlatformConfig{ProjectModel: "LEGACY"})
 	if got := h.projectModel(); got != "legacy" {
 		t.Fatalf("got %q", got)
 	}
 }
 
 func TestProjectModel_UnknownFallsBackToHybrid(t *testing.T) {
-	h := NewApplicationHandler(ApplicationConfig{ProjectModel: "weird"})
+	h := NewPlatformHandler(PlatformConfig{ProjectModel: "weird"})
 	if got := h.projectModel(); got != "hybrid" {
 		t.Fatalf("got %q", got)
 	}
@@ -483,7 +483,7 @@ func TestAllowLegacyProjectRoutes(t *testing.T) {
 		"legacy": true, "hybrid": true, "v2": false, "weird": true,
 	}
 	for mode, want := range cases {
-		h := NewApplicationHandler(ApplicationConfig{ProjectModel: mode})
+		h := NewPlatformHandler(PlatformConfig{ProjectModel: mode})
 		if got := h.allowLegacyProjectRoutes(); got != want {
 			t.Errorf("mode=%q got %v want %v", mode, got, want)
 		}
@@ -495,20 +495,20 @@ func TestAllowV2ProjectRoutes(t *testing.T) {
 		"legacy": false, "hybrid": true, "v2": true, "weird": true,
 	}
 	for mode, want := range cases {
-		h := NewApplicationHandler(ApplicationConfig{ProjectModel: mode})
+		h := NewPlatformHandler(PlatformConfig{ProjectModel: mode})
 		if got := h.allowV2ProjectRoutes(); got != want {
 			t.Errorf("mode=%q got %v want %v", mode, got, want)
 		}
 	}
 }
 
-func TestApplicationStoreOrUnavailable_NilReturns503(t *testing.T) {
+func TestPlatformStoreOrUnavailable_NilReturns503(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := NewApplicationHandler(ApplicationConfig{})
+	h := NewPlatformHandler(PlatformConfig{})
 	rec := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(rec)
 	c.Request = httptest.NewRequest("GET", "/x", nil)
-	got, ok := h.ApplicationStoreOrUnavailable(c)
+	got, ok := h.PlatformStoreOrUnavailable(c)
 	if ok {
 		t.Fatal("expected ok=false")
 	}
@@ -532,9 +532,9 @@ func TestApplicationKeyPattern(t *testing.T) {
 		"contains space":   false,
 	}
 	for input, want := range cases {
-		got := applicationKeyPattern.MatchString(input)
+		got := platformKeyPattern.MatchString(input)
 		if got != want {
-			t.Errorf("applicationKeyPattern(%q) = %v, want %v", input, got, want)
+			t.Errorf("platformKeyPattern(%q) = %v, want %v", input, got, want)
 		}
 	}
 }

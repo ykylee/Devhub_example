@@ -19,7 +19,7 @@ type ProjectListOptions = store.ProjectListOptions
 
 const projectsSelectColumns = `
 	id::text,
-	COALESCE(application_id::text, ''),
+	COALESCE(platform_id::text, ''),
 	COALESCE(repository_id, 0),
 	key,
 	name,
@@ -41,7 +41,7 @@ func ScanProject(row pgx.Row) (domain.Project, error) {
 	)
 	if err := row.Scan(
 		&p.ID,
-		&p.ApplicationID,
+		&p.PlatformID,
 		&p.RepositoryID,
 		&p.Key,
 		&p.Name,
@@ -63,7 +63,7 @@ func ScanProject(row pgx.Row) (domain.Project, error) {
 	return p, nil
 }
 
-func (r *ApplicationRepository) ListProjects(ctx context.Context, opts ProjectListOptions) ([]domain.Project, int, error) {
+func (r *PlatformRepository) ListProjects(ctx context.Context, opts ProjectListOptions) ([]domain.Project, int, error) {
 	limit := opts.Limit
 	if limit <= 0 || limit > 5000 {
 		limit = 50
@@ -76,19 +76,19 @@ func (r *ApplicationRepository) ListProjects(ctx context.Context, opts ProjectLi
 	const countQuery = `
 SELECT COUNT(*) FROM projects
 WHERE ($1::bigint = 0 OR repository_id = $1)
-  AND ($2::uuid IS NULL OR application_id = $2::uuid)
+  AND ($2::uuid IS NULL OR platform_id = $2::uuid)
   AND ($3 = '' OR status = $3)
   AND ($4 OR status <> 'archived')
-  AND ($5 = false OR application_id IS NULL)
+  AND ($5 = false OR platform_id IS NULL)
   AND ($6 = '' OR $6 = 'system_admin' OR owner_user_id = $7
        OR EXISTS (SELECT 1 FROM project_members WHERE project_id = projects.id AND user_id = $7)
        OR (array_length($8::text[], 1) > 0
-           AND EXISTS (SELECT 1 FROM applications WHERE id = projects.application_id AND development_unit_id = ANY($8)))
+           AND EXISTS (SELECT 1 FROM platforms WHERE id = projects.platform_id AND development_unit_id = ANY($8)))
        OR (array_length($9::text[], 1) > 0
-           AND EXISTS (SELECT 1 FROM applications WHERE id = projects.application_id AND development_unit_id = ANY($9))))`
+           AND EXISTS (SELECT 1 FROM platforms WHERE id = projects.platform_id AND development_unit_id = ANY($9))))`
 
 	var total int
-	if err := r.store.Pool().QueryRow(ctx, countQuery, opts.RepositoryID, nullableUUIDArg(opts.ApplicationID), opts.Status, opts.IncludeArchived, opts.StandaloneOnly, opts.ActorRole, opts.ActorLogin, opts.OrgUnitIDs, opts.PrimaryUnitIDs).Scan(&total); err != nil {
+	if err := r.store.Pool().QueryRow(ctx, countQuery, opts.RepositoryID, nullableUUIDArg(opts.PlatformID), opts.Status, opts.IncludeArchived, opts.StandaloneOnly, opts.ActorRole, opts.ActorLogin, opts.OrgUnitIDs, opts.PrimaryUnitIDs).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count projects: %w", err)
 	}
 
@@ -96,20 +96,20 @@ WHERE ($1::bigint = 0 OR repository_id = $1)
 SELECT` + projectsSelectColumns + `
 FROM projects
 WHERE ($3::bigint = 0 OR repository_id = $3)
-  AND ($4::uuid IS NULL OR application_id = $4::uuid)
+  AND ($4::uuid IS NULL OR platform_id = $4::uuid)
   AND ($5 = '' OR status = $5)
   AND ($6 OR status <> 'archived')
-  AND ($7 = false OR application_id IS NULL)
+  AND ($7 = false OR platform_id IS NULL)
   AND ($8 = '' OR $8 = 'system_admin' OR owner_user_id = $9
        OR EXISTS (SELECT 1 FROM project_members WHERE project_id = projects.id AND user_id = $9)
        OR (array_length($10::text[], 1) > 0
-           AND EXISTS (SELECT 1 FROM applications WHERE id = projects.application_id AND development_unit_id = ANY($10)))
+           AND EXISTS (SELECT 1 FROM platforms WHERE id = projects.platform_id AND development_unit_id = ANY($10)))
        OR (array_length($11::text[], 1) > 0
-           AND EXISTS (SELECT 1 FROM applications WHERE id = projects.application_id AND development_unit_id = ANY($11))))
+           AND EXISTS (SELECT 1 FROM platforms WHERE id = projects.platform_id AND development_unit_id = ANY($11))))
 ORDER BY key ASC
 LIMIT $1 OFFSET $2`
 
-	rows, err := r.store.Pool().Query(ctx, query, limit, offset, opts.RepositoryID, nullableUUIDArg(opts.ApplicationID), opts.Status, opts.IncludeArchived, opts.StandaloneOnly, opts.ActorRole, opts.ActorLogin, opts.OrgUnitIDs, opts.PrimaryUnitIDs)
+	rows, err := r.store.Pool().Query(ctx, query, limit, offset, opts.RepositoryID, nullableUUIDArg(opts.PlatformID), opts.Status, opts.IncludeArchived, opts.StandaloneOnly, opts.ActorRole, opts.ActorLogin, opts.OrgUnitIDs, opts.PrimaryUnitIDs)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list projects: %w", err)
 	}
@@ -129,7 +129,7 @@ LIMIT $1 OFFSET $2`
 	return projects, total, nil
 }
 
-func (r *ApplicationRepository) GetProject(ctx context.Context, projectID string) (domain.Project, error) {
+func (r *PlatformRepository) GetProject(ctx context.Context, projectID string) (domain.Project, error) {
 	query := `SELECT` + projectsSelectColumns + ` FROM projects WHERE id = $1::uuid`
 	row := r.store.Pool().QueryRow(ctx, query, projectID)
 	p, err := ScanProject(row)
@@ -172,7 +172,7 @@ ORDER BY joined_at ASC`
 // key) UNIQUE constraint and NULLIF semantics identical across entry points.
 const ProjectsInsertQuery = `
 INSERT INTO projects (
-	application_id, repository_id, key, name, description, status, visibility,
+	platform_id, repository_id, key, name, description, status, visibility,
 	owner_user_id, start_date, due_date, archived_at
 ) VALUES (
 	NULLIF($1, '')::uuid, NULLIF($2::bigint, 0), $3, $4, NULLIF($5, ''), $6, $7,
@@ -181,7 +181,7 @@ INSERT INTO projects (
 )
 RETURNING` + projectsSelectColumns
 
-func (r *ApplicationRepository) CreateProject(ctx context.Context, project domain.Project) (domain.Project, error) {
+func (r *PlatformRepository) CreateProject(ctx context.Context, project domain.Project) (domain.Project, error) {
 	tx, err := r.store.Pool().Begin(ctx)
 	if err != nil {
 		return domain.Project{}, fmt.Errorf("begin create project tx: %w", err)
@@ -189,7 +189,7 @@ func (r *ApplicationRepository) CreateProject(ctx context.Context, project domai
 	defer tx.Rollback(ctx)
 
 	row := tx.QueryRow(ctx, ProjectsInsertQuery,
-		project.ApplicationID, project.RepositoryID, project.Key, project.Name,
+		project.PlatformID, project.RepositoryID, project.Key, project.Name,
 		project.Description, project.Status, project.Visibility,
 		project.OwnerUserID, project.StartDate, project.DueDate,
 	)
@@ -250,7 +250,7 @@ type RepositoryCreatePayload = store.RepositoryCreatePayload
 
 // CreateRepositoryDraft 는 draft repository 를 생성한다. providerID 는 연동 대상
 // integration_providers FK. system 이 생성하므로 source='system'.
-func (r *ApplicationRepository) CreateRepositoryDraft(ctx context.Context, key, slug, providerID string) (domain.Repository, error) {
+func (r *PlatformRepository) CreateRepositoryDraft(ctx context.Context, key, slug, providerID string) (domain.Repository, error) {
 	fullName := strings.TrimSpace(slug)
 	name := strings.TrimSpace(key)
 	if fullName == "" || name == "" {
@@ -306,7 +306,7 @@ RETURNING
 	return repo, nil
 }
 
-func (r *ApplicationRepository) MarkRepositoryDraftPublishRequested(ctx context.Context, repositoryID int64) (domain.Repository, error) {
+func (r *PlatformRepository) MarkRepositoryDraftPublishRequested(ctx context.Context, repositoryID int64) (domain.Repository, error) {
 	const query = `
 UPDATE repositories
 SET
@@ -356,7 +356,7 @@ RETURNING
 
 // GetRepositoryByID — detail page 용. ListRepositories 와 동일하게 linked count
 // subquery 포함.
-func (r *ApplicationRepository) GetRepositoryByID(ctx context.Context, repositoryID int64) (domain.Repository, error) {
+func (r *PlatformRepository) GetRepositoryByID(ctx context.Context, repositoryID int64) (domain.Repository, error) {
 	const query = `
 SELECT
 	r.id,
@@ -377,8 +377,8 @@ SELECT
 	COALESCE(p.provider_key, ''),
 	COALESCE(r.description, ''),
 	COALESCE((SELECT COUNT(*)
-	          FROM application_repositories ar
-	          WHERE ar.repo_full_name = r.full_name), 0)::int AS linked_applications_count,
+	          FROM platform_repositories ar
+	          WHERE ar.repo_full_name = r.full_name), 0)::int AS linked_platforms_count,
 	COALESCE((SELECT COUNT(*)
 	          FROM project_repositories pr
 	          WHERE pr.repository_id = r.id), 0)::int AS linked_projects_count
@@ -405,7 +405,7 @@ WHERE r.id = $1`
 		&repo.ProviderID,
 		&repo.ProviderKey,
 		&repo.Description,
-		&repo.LinkedApplicationsCount,
+		&repo.LinkedPlatformsCount,
 		&repo.LinkedProjectsCount,
 	); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -418,9 +418,9 @@ WHERE r.id = $1`
 
 // UpdateRepositoryDraft — PATCH semantic 부분 갱신. status='draft' 한정 —
 // published/active 는 SCM 이 source of truth. unique violation → ErrConflict.
-// slug 변경 시 동일 tx 에서 application_repositories.repo_full_name cascade
+// slug 변경 시 동일 tx 에서 platform_repositories.repo_full_name cascade
 // update (link 보존) + owner_login 재계산 (create path 의 split_part 와 동일).
-func (r *ApplicationRepository) UpdateRepositoryDraft(ctx context.Context, repositoryID int64, params store.RepositoryUpdateDraftParams) (domain.Repository, error) {
+func (r *PlatformRepository) UpdateRepositoryDraft(ctx context.Context, repositoryID int64, params store.RepositoryUpdateDraftParams) (domain.Repository, error) {
 	// ProviderID nil/empty/uuid 3-way 구분을 두 query param 으로 분리.
 	setProvider := params.ProviderID != nil
 	providerVal := ""
@@ -510,17 +510,17 @@ RETURNING
 		return domain.Repository{}, fmt.Errorf("update repository draft: %w", err)
 	}
 
-	// slug 변경 시 application_repositories link cascade update.
+	// slug 변경 시 platform_repositories link cascade update.
 	// 새 slug 가 기존 다른 application 의 link 와 충돌하면 unique violation → ErrConflict.
 	if params.Slug != nil && *params.Slug != currentFullName {
 		if _, err := tx.Exec(ctx,
-			`UPDATE application_repositories SET repo_full_name = $1 WHERE repo_full_name = $2`,
+			`UPDATE platform_repositories SET repo_full_name = $1 WHERE repo_full_name = $2`,
 			*params.Slug, currentFullName,
 		); err != nil {
 			if store.IsUniqueViolation(err) {
 				return domain.Repository{}, store.ErrConflict
 			}
-			return domain.Repository{}, fmt.Errorf("cascade update application_repositories: %w", err)
+			return domain.Repository{}, fmt.Errorf("cascade update platform_repositories: %w", err)
 		}
 	}
 
@@ -532,11 +532,11 @@ RETURNING
 }
 
 // DeleteRepository — status='draft' 한정. published/active 는 SCM 이 source of
-// truth. application_repositories / project_repositories 참조 시 ErrConflict.
-func (r *ApplicationRepository) DeleteRepository(ctx context.Context, repositoryID int64) error {
+// truth. platform_repositories / project_repositories 참조 시 ErrConflict.
+func (r *PlatformRepository) DeleteRepository(ctx context.Context, repositoryID int64) error {
 	const fkCheck = `
 SELECT EXISTS(
-    SELECT 1 FROM application_repositories ar
+    SELECT 1 FROM platform_repositories ar
     WHERE ar.repo_full_name = (SELECT full_name FROM repositories WHERE id = $1)
 ) OR EXISTS(
     SELECT 1 FROM project_repositories pr
@@ -566,7 +566,7 @@ SELECT EXISTS(
 
 // CreateProjectWithRepositoryPayload creates the project — optionally creating and
 // linking a companion repository — in ONE transaction.
-func (r *ApplicationRepository) CreateProjectWithRepositoryPayload(ctx context.Context, project domain.Project, repositoryIDs []int64, repoPayload *RepositoryCreatePayload) (domain.Project, error) {
+func (r *PlatformRepository) CreateProjectWithRepositoryPayload(ctx context.Context, project domain.Project, repositoryIDs []int64, repoPayload *RepositoryCreatePayload) (domain.Project, error) {
 	tx, err := r.store.Pool().Begin(ctx)
 	if err != nil {
 		return domain.Project{}, fmt.Errorf("begin create project tx: %w", err)
@@ -588,7 +588,7 @@ func (r *ApplicationRepository) CreateProjectWithRepositoryPayload(ctx context.C
 	}
 
 	row := tx.QueryRow(ctx, ProjectsInsertQuery,
-		project.ApplicationID, project.RepositoryID, project.Key, project.Name,
+		project.PlatformID, project.RepositoryID, project.Key, project.Name,
 		project.Description, project.Status, project.Visibility,
 		project.OwnerUserID, project.StartDate, project.DueDate,
 	)
@@ -685,7 +685,7 @@ RETURNING id`
 	return id, err
 }
 
-func (r *ApplicationRepository) UpdateProject(ctx context.Context, project domain.Project) (domain.Project, error) {
+func (r *PlatformRepository) UpdateProject(ctx context.Context, project domain.Project) (domain.Project, error) {
 	tx, err := r.store.Pool().Begin(ctx)
 	if err != nil {
 		return domain.Project{}, fmt.Errorf("begin update project tx: %w", err)
@@ -694,7 +694,7 @@ func (r *ApplicationRepository) UpdateProject(ctx context.Context, project domai
 
 	const updateQuery = `
 UPDATE projects SET
-	application_id = NULLIF($9, '')::uuid,
+	platform_id = NULLIF($9, '')::uuid,
 	name = $2,
 	description = NULLIF($3, ''),
 	status = $4,
@@ -709,7 +709,7 @@ RETURNING` + projectsSelectColumns
 
 	row := tx.QueryRow(ctx, updateQuery,
 		project.ID, project.Name, project.Description, project.Status, project.Visibility,
-		project.OwnerUserID, project.StartDate, project.DueDate, project.ApplicationID,
+		project.OwnerUserID, project.StartDate, project.DueDate, project.PlatformID,
 	)
 	updated, err := ScanProject(row)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -754,7 +754,7 @@ VALUES ($1::uuid, $2, $3, COALESCE(NULLIF($4, '0001-01-01T00:00:00Z'::timestampt
 	return r.GetProject(ctx, updated.ID)
 }
 
-func (r *ApplicationRepository) ArchiveProject(ctx context.Context, projectID, archivedReason string) (domain.Project, error) {
+func (r *PlatformRepository) ArchiveProject(ctx context.Context, projectID, archivedReason string) (domain.Project, error) {
 	const archiveQuery = `
 UPDATE projects SET
 	status = 'archived',
@@ -775,7 +775,7 @@ RETURNING` + projectsSelectColumns
 	return archived, nil
 }
 
-func (r *ApplicationRepository) ListProjectRepositories(ctx context.Context, projectID string) ([]domain.ProjectRepository, error) {
+func (r *PlatformRepository) ListProjectRepositories(ctx context.Context, projectID string) ([]domain.ProjectRepository, error) {
 	const query = `
 SELECT project_id::text, repository_id, role, linked_at
 FROM project_repositories
@@ -802,7 +802,7 @@ ORDER BY repository_id ASC`
 	return links, nil
 }
 
-func (r *ApplicationRepository) CreateProjectRepository(ctx context.Context, link domain.ProjectRepository) (domain.ProjectRepository, error) {
+func (r *PlatformRepository) CreateProjectRepository(ctx context.Context, link domain.ProjectRepository) (domain.ProjectRepository, error) {
 	const query = `
 INSERT INTO project_repositories (project_id, repository_id, role)
 VALUES ($1::uuid, $2, $3)
@@ -819,7 +819,7 @@ RETURNING project_id::text, repository_id, role, linked_at`
 	return created, nil
 }
 
-func (r *ApplicationRepository) DeleteProjectRepository(ctx context.Context, projectID string, repositoryID int64) error {
+func (r *PlatformRepository) DeleteProjectRepository(ctx context.Context, projectID string, repositoryID int64) error {
 	const query = `DELETE FROM project_repositories WHERE project_id = $1::uuid AND repository_id = $2`
 	cmd, err := r.store.Pool().Exec(ctx, query, projectID, repositoryID)
 	if err != nil {
@@ -831,7 +831,7 @@ func (r *ApplicationRepository) DeleteProjectRepository(ctx context.Context, pro
 	return nil
 }
 
-func (r *ApplicationRepository) DeleteProject(ctx context.Context, projectID string) error {
+func (r *PlatformRepository) DeleteProject(ctx context.Context, projectID string) error {
 	const query = `DELETE FROM projects WHERE id = $1::uuid`
 	cmd, err := r.store.Pool().Exec(ctx, query, projectID)
 	if err != nil {

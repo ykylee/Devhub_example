@@ -12,9 +12,9 @@ import { realtimeService, type ConnectionStatusEvent } from "@/domain/realtime/s
 import { devRequestService } from "@/domain/dev-request/service/dev_request.service";
 import { DevRequest } from "@/domain/dev-request/schema/dev_request.types";
 import { repositoryService, type Repository } from "@/domain/repository-integration/service/repository.service";
-import type { Project } from "@/domain/application-lifecycle/schema/project.types";
+import type { Project } from "@/domain/platform-lifecycle/schema/project.types";
 import { DevRequestDetailModal } from "@/domain/dev-request/view/DevRequestDetailModal";
-import { ProjectCreationModal } from "@/domain/application-lifecycle/view/ProjectCreationModal";
+import { ProjectCreationModal } from "@/domain/platform-lifecycle/view/ProjectCreationModal";
 
 export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   const { role, actor, notifications, setSidebarOpen } = useStore();

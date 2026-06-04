@@ -26,7 +26,7 @@ function safeFormat(iso: string | null | undefined): string {
 type BadgeVariant = "primary" | "secondary" | "accent" | "success" | "warning" | "danger" | "glass";
 
 function scopeTypeVariant(t: IntegrationBinding["scope_type"]): BadgeVariant {
-  return t === "application" ? "primary" : "accent";
+  return t === "platform" ? "primary" : "accent";
 }
 
 function policyVariant(p: IntegrationBinding["policy"]): BadgeVariant {

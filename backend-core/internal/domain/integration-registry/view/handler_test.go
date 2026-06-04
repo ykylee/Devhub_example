@@ -256,7 +256,7 @@ func TestIntegrationBindingResponse_FieldMapping(t *testing.T) {
 	created := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
 	b := domain.IntegrationBinding{
 		ID:          "bind-1",
-		ScopeType:   domain.IntegrationScopeType("application"),
+		ScopeType:   domain.IntegrationScopeType("platform"),
 		ScopeID:     "app-1",
 		ProviderID:  "prov-1",
 		ExternalKey: "PROJ-1",
@@ -266,7 +266,7 @@ func TestIntegrationBindingResponse_FieldMapping(t *testing.T) {
 		UpdatedAt:   created,
 	}
 	resp := integrationBindingResponse(b)
-	if resp["binding_id"] != "bind-1" || resp["scope_type"] != "application" || resp["scope_id"] != "app-1" {
+	if resp["binding_id"] != "bind-1" || resp["scope_type"] != "platform" || resp["scope_id"] != "app-1" {
 		t.Fatalf("basic: %+v", resp)
 	}
 	if resp["provider_id"] != "prov-1" || resp["external_key"] != "PROJ-1" {
@@ -848,8 +848,8 @@ func TestListIntegrations_SuccessAndError(t *testing.T) {
 			integrations: map[string]domain.ProjectIntegration{
 				"int-1": {
 					ID:              "int-1",
-					Scope:           "application",
-					ApplicationID:   "app-1",
+					Scope:           "platform",
+					PlatformID:   "app-1",
 					IntegrationType: "jira",
 					ExternalKey:     "JIRA-1",
 					URL:             "https://example.com",
@@ -907,7 +907,7 @@ func TestCreateIntegration_SuccessAndError(t *testing.T) {
 		rec := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(rec)
 		c.Request = httptest.NewRequest("POST", "/integrations", strings.NewReader(`{
-			"scope":"application",
+			"scope":"platform",
 			"integration_type":"jira",
 			"policy":"summary_only",
 			"external_key":"J-1",
@@ -927,8 +927,8 @@ func TestCreateIntegration_SuccessAndError(t *testing.T) {
 		rec := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(rec)
 		c.Request = httptest.NewRequest("POST", "/integrations", strings.NewReader(`{
-			"scope":"application",
-			"application_id":"app-1",
+			"scope":"platform",
+			"platform_id":"app-1",
 			"integration_type":"jira",
 			"policy":"summary_only",
 			"external_key":"J-1",
@@ -1122,8 +1122,8 @@ func TestUpdateIntegration_SuccessAndError(t *testing.T) {
 			integrations: map[string]domain.ProjectIntegration{
 				"int-1": {
 					ID:              "int-1",
-					Scope:           "application",
-					ApplicationID:   "app-1",
+					Scope:           "platform",
+					PlatformID:   "app-1",
 					IntegrationType: "jira",
 					ExternalKey:     "J-1",
 					URL:             "https://old.com",
@@ -2130,7 +2130,7 @@ func TestIntegrationBindings_Handlers(t *testing.T) {
 		storeVal := &fakeIntegrationStore{
 			listBindingsFunc: func(ctx context.Context, opts store.IntegrationBindingListOptions) ([]domain.IntegrationBinding, int, error) {
 				return []domain.IntegrationBinding{
-					{ID: "bind-1", ScopeType: "application", ScopeID: "app-1", ProviderID: "prov-1", ExternalKey: "KEY-1", Policy: "summary_only", Enabled: true},
+					{ID: "bind-1", ScopeType: "platform", ScopeID: "app-1", ProviderID: "prov-1", ExternalKey: "KEY-1", Policy: "summary_only", Enabled: true},
 				}, 1, nil
 			},
 		}
@@ -2190,7 +2190,7 @@ func TestIntegrationBindings_Handlers(t *testing.T) {
 		// 6. Success
 		rec = httptest.NewRecorder()
 		c, _ = gin.CreateTestContext(rec)
-		c.Request = httptest.NewRequest("GET", "/bindings?scope_type=application", nil)
+		c.Request = httptest.NewRequest("GET", "/bindings?scope_type=platform", nil)
 		h.ListIntegrationBindings(c)
 		if rec.Code != 200 {
 			t.Fatalf("expected 200, got %d. Body: %s", rec.Code, rec.Body.String())
@@ -2228,7 +2228,7 @@ func TestIntegrationBindings_Handlers(t *testing.T) {
 		// 3. missing scope_id/provider_id/external_key
 		rec = httptest.NewRecorder()
 		c, _ = gin.CreateTestContext(rec)
-		c.Request = httptest.NewRequest("POST", "/bindings", strings.NewReader(`{"scope_type":"application","provider_id":"prov-1","external_key":"KEY-1","policy":"summary_only"}`))
+		c.Request = httptest.NewRequest("POST", "/bindings", strings.NewReader(`{"scope_type":"platform","provider_id":"prov-1","external_key":"KEY-1","policy":"summary_only"}`))
 		h.CreateIntegrationBinding(c)
 		if rec.Code != 400 {
 			t.Fatalf("expected 400 missing scope_id, got %d", rec.Code)
@@ -2237,7 +2237,7 @@ func TestIntegrationBindings_Handlers(t *testing.T) {
 		// 4. unsupported policy
 		rec = httptest.NewRecorder()
 		c, _ = gin.CreateTestContext(rec)
-		c.Request = httptest.NewRequest("POST", "/bindings", strings.NewReader(`{"scope_type":"application","scope_id":"app-1","provider_id":"prov-1","external_key":"KEY-1","policy":"invalid_policy"}`))
+		c.Request = httptest.NewRequest("POST", "/bindings", strings.NewReader(`{"scope_type":"platform","scope_id":"app-1","provider_id":"prov-1","external_key":"KEY-1","policy":"invalid_policy"}`))
 		h.CreateIntegrationBinding(c)
 		if rec.Code != 422 {
 			t.Fatalf("expected 422 unsupported policy, got %d. Body: %s", rec.Code, rec.Body.String())
@@ -2252,7 +2252,7 @@ func TestIntegrationBindings_Handlers(t *testing.T) {
 		hConflict := NewIntegrationHandler(IntegrationConfig{IntegrationStore: storeConflict})
 		rec = httptest.NewRecorder()
 		c, _ = gin.CreateTestContext(rec)
-		c.Request = httptest.NewRequest("POST", "/bindings", strings.NewReader(`{"scope_type":"application","scope_id":"app-1","provider_id":"prov-1","external_key":"KEY-1","policy":"summary_only"}`))
+		c.Request = httptest.NewRequest("POST", "/bindings", strings.NewReader(`{"scope_type":"platform","scope_id":"app-1","provider_id":"prov-1","external_key":"KEY-1","policy":"summary_only"}`))
 		hConflict.CreateIntegrationBinding(c)
 		if rec.Code != 409 {
 			t.Fatalf("expected 409 conflict, got %d", rec.Code)
@@ -2267,7 +2267,7 @@ func TestIntegrationBindings_Handlers(t *testing.T) {
 		hErr := NewIntegrationHandler(IntegrationConfig{IntegrationStore: storeErr})
 		rec = httptest.NewRecorder()
 		c, _ = gin.CreateTestContext(rec)
-		c.Request = httptest.NewRequest("POST", "/bindings", strings.NewReader(`{"scope_type":"application","scope_id":"app-1","provider_id":"prov-1","external_key":"KEY-1","policy":"summary_only"}`))
+		c.Request = httptest.NewRequest("POST", "/bindings", strings.NewReader(`{"scope_type":"platform","scope_id":"app-1","provider_id":"prov-1","external_key":"KEY-1","policy":"summary_only"}`))
 		hErr.CreateIntegrationBinding(c)
 		if rec.Code != 500 {
 			t.Fatalf("expected 500, got %d", rec.Code)
@@ -2276,7 +2276,7 @@ func TestIntegrationBindings_Handlers(t *testing.T) {
 		// 7. Success
 		rec = httptest.NewRecorder()
 		c, _ = gin.CreateTestContext(rec)
-		c.Request = httptest.NewRequest("POST", "/bindings", strings.NewReader(`{"scope_type":"application","scope_id":"app-1","provider_id":"prov-1","external_key":"KEY-1","policy":"summary_only"}`))
+		c.Request = httptest.NewRequest("POST", "/bindings", strings.NewReader(`{"scope_type":"platform","scope_id":"app-1","provider_id":"prov-1","external_key":"KEY-1","policy":"summary_only"}`))
 		h.CreateIntegrationBinding(c)
 		if rec.Code != 201 {
 			t.Fatalf("expected 201, got %d. Body: %s", rec.Code, rec.Body.String())
@@ -2290,7 +2290,7 @@ func TestIntegrationBindings_Handlers(t *testing.T) {
 		audit := &fakeIntegrationAuditStore{}
 		storeVal := &fakeIntegrationStore{
 			getBindingByIDFunc: func(ctx context.Context, id string) (domain.IntegrationBinding, error) {
-				return domain.IntegrationBinding{ID: id, ScopeType: "application", ScopeID: "app-1", ProviderID: "prov-1", ExternalKey: "KEY-1", Policy: "summary_only"}, nil
+				return domain.IntegrationBinding{ID: id, ScopeType: "platform", ScopeID: "app-1", ProviderID: "prov-1", ExternalKey: "KEY-1", Policy: "summary_only"}, nil
 			},
 			updateBindingFunc: func(ctx context.Context, p domain.IntegrationBinding) (domain.IntegrationBinding, error) {
 				return p, nil

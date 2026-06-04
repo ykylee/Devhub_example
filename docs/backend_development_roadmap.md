@@ -11,7 +11,7 @@
 - 대상 독자: 백엔드 개발자, 프론트엔드 연동 담당자, AI agent
 - 기준일: 2026-05-07
 - 상태: in_progress
-- 최종 수정일: 2026-05-29 (SDLC 재정비 sprint #408~#416 — backend domain 4 계층 매핑 + Shared `integrationcaps` 도입 (PR #409) + Infrastructure 진입점 명시 + 후속 carve out (ApplicationRepository decouple / ApplicationStore slim))
+- 최종 수정일: 2026-05-29 (SDLC 재정비 sprint #408~#416 — backend domain 4 계층 매핑 + Shared `integrationcaps` 도입 (PR #409) + Infrastructure 진입점 명시 + 후속 carve out (PlatformRepository decouple / ApplicationStore slim))
 - 관련 문서: [`docs/development_roadmap.md`](./development_roadmap.md) (통합), [`docs/planning/release_v1_roadmap.md`](./planning/release_v1_roadmap.md) (v1.0/v1.1 source-of-truth), [`docs/governance/code-taxonomy.md`](./governance/code-taxonomy.md) (SoT — 10 도메인 + 4 계층), [`docs/domain/`](./domain/README.md) (도메인 SDLC 진입점), [`docs/shared/`](./shared/README.md) (Shared 진입점 — integrationcaps 포함), [`docs/infrastructure/`](./infrastructure/README.md) (Infrastructure 진입점), [`docs/analysis/2026-05-27-codebase-snapshot/04_backend_summary.md`](./analysis/2026-05-27-codebase-snapshot/04_backend_summary.md) (현행 backend 전수 분석), `docs/requirements.md`, `docs/architecture.md`, `docs/tech_stack.md`, `docs/backend_api_contract.md`, [`docs/adr/0019-keycloak-only-idp.md`](./adr/0019-keycloak-only-idp.md) (current IdP), [`docs/adr/0001-idp-selection.md`](./adr/0001-idp-selection.md) (Hydra+Kratos, **superseded** by ADR-0019), [`docs/adr/0024-websocket-auth-query-token.md`](./adr/0024-websocket-auth-query-token.md) (WS ticket 인증)
 - 현재 브랜치: `main`
 - 현재 기준선: main `273d9d4` (PR #415 머지 후, sprint `claude/work_260529-k` 진입 기준). **Keycloak 단일 IdP 전환 완료(ADR-0019 — Hydra/Kratos 전면 제거).** Application·Repository·Project / DREQ / External Integration / Onboarding / Gitea SCM sync worker / Repository draft→publish + SCM 양방향 도메인 모두 1차 완성.
@@ -40,7 +40,7 @@ backend 코드는 [`docs/governance/code-taxonomy.md`](./governance/code-taxonom
 | `rbac-permissions` | `internal/httpapi/{permissions,rbac,authz}.go` | `internal/httpapi/permissions.go` (PermissionCache) | `internal/store/postgres_rbac.go` | `domain/rbac.go` (000005, 000018, 000021, 000024, 000026) |
 | `organization-management` | `internal/httpapi/{organization,organizations_search,hr_lookup}.go` | (조직 유효성 + 임명 규칙) | `internal/store/users_units.go` | `domain/{user,primary_unit}.go` (000004, 000019, 000011) |
 | `onboarding` | `internal/httpapi/me_onboarding.go` + `onboardingGate` middleware | (게이트 통과 규칙) | (organization-management 공유) | onboarding payload (000033) |
-| `application-lifecycle` | `internal/httpapi/{applications,projects,application_rollup}.go` | (상태머신 + rollup) | `internal/store/{applications,repository_ops}.go` | `domain/application.go` (000013, 000015, 000017) |
+| `platform-lifecycle` | `internal/httpapi/{applications,projects,application_rollup}.go` | (상태머신 + rollup) | `internal/store/{applications,repository_ops}.go` | `domain/application.go` (000013, 000015, 000017) |
 | `repository-integration` | `internal/httpapi/{integration_scm_repositories,domain}.go` | (SCM ↔ DevHub 맵핑 검증) | `internal/store/applications.go` (Get/Upsert/ListRepositories) | repositories (000002, 000042, 000043, 000045) |
 | `dev-request` | `internal/httpapi/{dev_requests,dev_request_intake_auth,dev_request_intake_tokens_admin}.go` | (상태머신 + promote-tx + 만료 cron) | `internal/store/{dev_requests,dev_request_intake_tokens}.go` | dev_requests (000022), dev_request_intake_tokens (000023, 000027) |
 | `integration-registry` | `internal/httpapi/{integration_registry,integrations,external_task_handler}.go` | (preset 매핑 + sync 큐 + Task ingestion) | `internal/store/{integration_registry,external_task_store}.go` | integration_providers (000028, 000038, 000040, 000041) / integration_bindings (000040) / external_task_items (000046) |
@@ -200,7 +200,7 @@ M2 인증 기반은 **Keycloak 단일 IdP(ADR-0019)로 종결**됐다. 이전 Hy
 - [x] Bearer token middleware + audit `source_ip`/`request_id` enrichment
 - [x] ~~Accounts admin endpoints 4종~~ → **폐기**(historical) — Keycloak + Onboarding admin review(API-86)로 대체
 - [x] ~~PR-M2-AUDIT (Kratos self-service webhook → `audit_logs`)~~ → **폐기**(historical) — Keycloak event polling(`internal/audit/*`)으로 audit 완성
-- [x] Application/Repository/Project CRUD + 상태전이 + rollup + row-scoping
+- [x] Platform/Repository/Project CRUD + 상태전이 + rollup + row-scoping
 - [x] DREQ intake auth + promote-tx + token admin + 만료 cron
 - [x] External Integration provider/binding + auth_mode full + base_url + api_token + 연결 테스트 + 범용 webhook ingest + HomeLab pull
 - [x] Onboarding gate + submit/search/admin review(API-83..86)
@@ -216,7 +216,7 @@ M2 인증 기반은 **Keycloak 단일 IdP(ADR-0019)로 종결**됐다. 이전 Hy
 - [ ] **RM-M4-06**: Gitea Hourly Pull 정밀화 (reconciliation 스케줄, issue #231)
 - [ ] **RM-M4-07**: System Admin 운영 대시보드용 sync job 큐/provider health 노출
 - [ ] **v2**: Python AI gRPC AnalysisService (backend-ai 스켈레톤 → 실구현)
-- [ ] **carve (P2, 2026-05-29 SDLC 재정비)**: `ApplicationRepository` cross-domain decouple — `*IntegrationRepository` embed 제거 (review agent P1)
+- [ ] **carve (P2, 2026-05-29 SDLC 재정비)**: `PlatformRepository` cross-domain decouple — `*IntegrationRepository` embed 제거 (review agent P1)
 - [ ] **carve (P2, 2026-05-29 SDLC 재정비)**: `ApplicationStore` interface slim — 13+ integration 메서드 → integration-registry 도메인 이관
 - [ ] **carve (P1, 2026-05-29 SDLC 재정비)**: CI `backend-integration` job 복원 (refactor stabilize 후 `&& false` gate 제거)
 - [ ] **P0 carve (code-taxonomy §3 P0-2/P0-3/P0-4)**: `store/applications` (LoC 1172) + `httpapi/applications` (LoC 1066) + `httpapi/organization` (LoC 1019) + `store/users_units` (LoC 1263) 도메인 4 계층 하위로 file split
@@ -225,7 +225,7 @@ M2 인증 기반은 **Keycloak 단일 IdP(ADR-0019)로 종결**됐다. 이전 Hy
 
 | 일자 | 변경 | 메모 |
 | --- | --- | --- |
-| 2026-05-29 | SDLC 재정비 sprint #408~#416 정합 — §1.1 도메인 4 계층 매핑 + §1.2 Shared (`integrationcaps` 신규 PR #409) + §1.3 Infrastructure 진입점 명시 + §6 carve out 4건 추가 (ApplicationRepository decouple / ApplicationStore slim / CI 복원 / P0 file split). main HEAD `273d9d4`. | sprint `claude/work_260529-k` |
+| 2026-05-29 | SDLC 재정비 sprint #408~#416 정합 — §1.1 도메인 4 계층 매핑 + §1.2 Shared (`integrationcaps` 신규 PR #409) + §1.3 Infrastructure 진입점 명시 + §6 carve out 4건 추가 (PlatformRepository decouple / ApplicationStore slim / CI 복원 / P0 file split). main HEAD `273d9d4`. | sprint `claude/work_260529-k` |
 
 ## 7. Blocked 항목
 

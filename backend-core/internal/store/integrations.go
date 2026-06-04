@@ -16,7 +16,7 @@ import (
 // IntegrationListOptions parameterizes ListIntegrations.
 type IntegrationListOptions struct {
 	Scope           domain.IntegrationScope // 빈 문자열이면 모든 scope
-	ApplicationID   string                  // scope=application 일 때
+	PlatformID   string                     // scope=platform 일 때
 	ProjectID       string                  // scope=project 일 때
 	IntegrationType domain.IntegrationType  // 빈 문자열이면 모든 type
 	Limit           int
@@ -27,7 +27,7 @@ const integrationsSelectColumns = `
 	id::text,
 	scope,
 	COALESCE(project_id::text, ''),
-	COALESCE(application_id::text, ''),
+	COALESCE(platform_id::text, ''),
 	integration_type,
 	external_key,
 	url,
@@ -38,7 +38,7 @@ const integrationsSelectColumns = `
 func scanIntegration(row pgx.Row) (domain.ProjectIntegration, error) {
 	var i domain.ProjectIntegration
 	if err := row.Scan(
-		&i.ID, &i.Scope, &i.ProjectID, &i.ApplicationID,
+		&i.ID, &i.Scope, &i.ProjectID, &i.PlatformID,
 		&i.IntegrationType, &i.ExternalKey, &i.URL, &i.Policy,
 		&i.CreatedAt, &i.UpdatedAt,
 	); err != nil {
@@ -59,12 +59,12 @@ func (s *PostgresStore) ListIntegrations(ctx context.Context, opts IntegrationLi
 	const countQuery = `
 SELECT COUNT(*) FROM project_integrations
 WHERE ($1 = '' OR scope = $1)
-  AND ($2 = '' OR application_id = NULLIF($2, '')::uuid)
+  AND ($2 = '' OR platform_id = NULLIF($2, '')::uuid)
   AND ($3 = '' OR project_id = NULLIF($3, '')::uuid)
   AND ($4 = '' OR integration_type = $4)`
 	var total int
 	if err := s.pool.QueryRow(ctx, countQuery,
-		string(opts.Scope), opts.ApplicationID, opts.ProjectID, string(opts.IntegrationType)).
+		string(opts.Scope), opts.PlatformID, opts.ProjectID, string(opts.IntegrationType)).
 		Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count integrations: %w", err)
 	}
@@ -72,13 +72,13 @@ WHERE ($1 = '' OR scope = $1)
 SELECT` + integrationsSelectColumns + `
 FROM project_integrations
 WHERE ($3 = '' OR scope = $3)
-  AND ($4 = '' OR application_id = NULLIF($4, '')::uuid)
+  AND ($4 = '' OR platform_id = NULLIF($4, '')::uuid)
   AND ($5 = '' OR project_id = NULLIF($5, '')::uuid)
   AND ($6 = '' OR integration_type = $6)
 ORDER BY created_at DESC
 LIMIT $1 OFFSET $2`
 	rows, err := s.pool.Query(ctx, query, limit, offset,
-		string(opts.Scope), opts.ApplicationID, opts.ProjectID, string(opts.IntegrationType))
+		string(opts.Scope), opts.PlatformID, opts.ProjectID, string(opts.IntegrationType))
 	if err != nil {
 		return nil, 0, fmt.Errorf("list integrations: %w", err)
 	}
@@ -113,13 +113,13 @@ func (s *PostgresStore) GetIntegration(ctx context.Context, id string) (domain.P
 func (s *PostgresStore) CreateIntegration(ctx context.Context, integration domain.ProjectIntegration) (domain.ProjectIntegration, error) {
 	const insertQuery = `
 INSERT INTO project_integrations (
-	scope, project_id, application_id, integration_type, external_key, url, policy
+	scope, project_id, platform_id, integration_type, external_key, url, policy
 ) VALUES (
 	$1, NULLIF($2, '')::uuid, NULLIF($3, '')::uuid, $4, $5, $6, $7
 )
 RETURNING` + integrationsSelectColumns
 	row := s.pool.QueryRow(ctx, insertQuery,
-		string(integration.Scope), integration.ProjectID, integration.ApplicationID,
+		string(integration.Scope), integration.ProjectID, integration.PlatformID,
 		string(integration.IntegrationType), integration.ExternalKey, integration.URL,
 		string(integration.Policy),
 	)

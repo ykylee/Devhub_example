@@ -15,7 +15,7 @@
 | 3 | rbac-permissions | [`rbac-permissions/`](./rbac-permissions/README.md) | RBAC 매트릭스 + PermissionCache + Row-scoping |
 | 4 | organization-management | [`organization-management/`](./organization-management/README.md) | 조직 트리 + Appointments + 사용자 마스터 |
 | 5 | onboarding | [`onboarding/`](./onboarding/README.md) | 신규 사용자 승인 + 온보딩 게이트 |
-| 6 | application-lifecycle | [`application-lifecycle/`](./application-lifecycle/README.md) | Application/Project CRUD + 상태 머신 + 롤업 |
+| 6 | platform-lifecycle | [`platform-lifecycle/`](./platform-lifecycle/README.md) | Platform/Project CRUD + 상태 머신 + 롤업 |
 | 7 | repository-integration | [`repository-integration/`](./repository-integration/README.md) | SCM 저장소-프로젝트 연결 + Import |
 | 8 | dev-request | [`dev-request/`](./dev-request/README.md) | DREQ 인입/검토/promote 트랜잭션 |
 | 9 | integration-registry | [`integration-registry/`](./integration-registry/README.md) | SCM/비-SCM 공급자 + 바인딩 + ProviderModal |

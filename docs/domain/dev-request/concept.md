@@ -6,7 +6,7 @@
 - 상태: draft
 - 최종 수정일: 2026-05-15
 - 결정 근거 sprint: `claude/work_260515-f`
-- 관련 문서: [`docs/requirements.md §5.X DREQ`](../requirements.md), [`docs/planning/system_usecases.md` UC-DREQ-*](./system_usecases.md), [`docs/architecture.md` ARCH-DREQ §](../architecture.md), [`docs/backend_api_contract.md` API-DREQ §](../backend_api_contract.md), [`docs/domain/application-lifecycle/project_concept.md`](./project_management_concept.md), [`docs/traceability/report.md` §3 DREQ 도메인 row](../traceability/report.md).
+- 관련 문서: [`docs/requirements.md §5.X DREQ`](../requirements.md), [`docs/planning/system_usecases.md` UC-DREQ-*](./system_usecases.md), [`docs/architecture.md` ARCH-DREQ §](../architecture.md), [`docs/backend_api_contract.md` API-DREQ §](../backend_api_contract.md), [`docs/domain/platform-lifecycle/project_concept.md`](./project_management_concept.md), [`docs/traceability/report.md` §3 DREQ 도메인 row](../traceability/report.md).
 
 ## 1. 컨셉 정리 배경
 
@@ -38,7 +38,7 @@
 | `external_ref` | string(≤120) | no | 외부 시스템의 ticket id 등 역참조용. (source_system, external_ref) UNIQUE — 중복 수신 방지. |
 | `status` | enum | yes | `received / pending / in_review / registered / rejected / closed` (§4 참조). |
 | `registered_target_type` | enum | no | `application / project` — 등록(promote) 시 채워짐. repository 는 application/project 와 연동되므로 별도 type 으로 두지 않고 application 의 repository link 에 흡수. |
-| `registered_target_id` | string | no | application_id 또는 project_id. |
+| `registered_target_id` | string | no | platform_id 또는 project_id. |
 | `rejected_reason` | text | no | rejected 상태로 전이 시 필수. |
 | `received_at` | timestamptz | yes | 외부 시스템에서 들어온 시각. |
 | `created_at` / `updated_at` | timestamptz | yes | 행 자체 생명주기. |
@@ -83,7 +83,7 @@
 - **담당자 dashboard**: 기존 dashboard 에 "내 대기 의뢰" 위젯 신설. 카운트 + 최신 5건. 클릭 시 `/admin/settings/dev-requests?assignee=me&status=pending` 로 이동.
 - **관리 페이지** (`/admin/settings/dev-requests`): system_admin / 담당자 (본인 의뢰만) 가 접근. 목록 + 필터 (status / source_system / assignee). 행 클릭 시 상세 modal.
 - **상세 modal**: title / details / requester / assignee / external_ref + 액션 버튼 ("Register as Application" / "Register as Project" / "Reject" / "Reassign").
-  - "Register as Application/Project" 클릭 시 기존 `ApplicationCreationModal` / `ProjectCreationModal` 로 이동하되, 의뢰 정보가 초기값으로 prefill + 등록 성공 시 DREQ 가 `registered` 로 자동 전이.
+  - "Register as Platform/Project" 클릭 시 기존 `ApplicationCreationModal` / `ProjectCreationModal` 로 이동하되, 의뢰 정보가 초기값으로 prefill + 등록 성공 시 DREQ 가 `registered` 로 자동 전이.
 
 ## 5. 다른 도메인과의 연결
 
@@ -144,7 +144,7 @@
 | --- | --- | --- |
 | **DREQ-AuthADR** | 외부 수신 인증 ADR (A/B/C 중 선택) | 컨셉 머지 직후 |
 | **DREQ-Backend** | `internal/domain/dev_request.go`, `internal/store/dev_requests.go`, `internal/httpapi/dev_requests.go`, migration `000022_dev_requests.up.sql` | DREQ-AuthADR 머지 후 |
-| **DREQ-Frontend** | 담당자 dashboard 위젯 + `/admin/settings/dev-requests` 페이지 + 상세 modal + Promote-to-Application/Project 연계 | DREQ-Backend 머지 후 |
+| **DREQ-Frontend** | 담당자 dashboard 위젯 + `/admin/settings/dev-requests` 페이지 + 상세 modal + Promote-to-Platform/Project 연계 | DREQ-Backend 머지 후 |
 | **DREQ-RBAC-ADR** | PMO Manager / 담당자 위양 정책 (ADR-0011 §4.2 패턴) | DREQ-Backend 와 병행 |
 | **DREQ-E2E** | UT-dreq + TC-DREQ-* 발급 + Playwright spec | DREQ-Frontend 머지 후 |
 | **DREQ-Callback** (carve) | 외부 시스템 webhook 송신 + 상태 알림 | MVP 안정화 후 |

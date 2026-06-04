@@ -5,7 +5,7 @@
 - 대상 독자: 구현 담당자, 리뷰어, QA, 제품 의사결정자
 - 상태: draft
 - 최종 수정일: 2026-05-27
-- 관련 문서: `docs/requirements.md` (Application/Project 요구사항), `docs/architecture.md`, `docs/traceability/sync-checklist.md`, `frontend/tests/e2e/*`, `backend-core/internal/httpapi/projects.go`
+- 관련 문서: `docs/requirements.md` (Platform/Project 요구사항), `docs/architecture.md`, `docs/traceability/sync-checklist.md`, `frontend/tests/e2e/*`, `backend-core/internal/httpapi/projects.go`
 
 ## 1. 배경 및 문제 정의
 
@@ -29,7 +29,7 @@
 
 ### 3.1 Project 독립 생성
 
-- `application_id`는 nullable/optional 허용.
+- `platform_id`는 nullable/optional 허용.
 - 프로젝트 기본 필드(`key`, `name`, `owner_user_id`, `status`, `visibility`)만으로 생성 가능.
 - Application 선택 시 기존과 동일하게 association 유지.
 
@@ -55,7 +55,7 @@
 
 ### 4.1 기존 API 확장 우선
 
-- `POST /api/v1/projects` 또는 현재 사용 중인 프로젝트 생성 endpoint에서 `application_id` optional 처리.
+- `POST /api/v1/projects` 또는 현재 사용 중인 프로젝트 생성 endpoint에서 `platform_id` optional 처리.
 - `POST /api/v1/projects/:id/repositories`는 다중 호출/다중 선택 UX를 지원하도록 유지.
 
 ### 4.2 동반 생성 방식
@@ -104,7 +104,7 @@
 
 ### Phase 2 — Backend 구현
 
-- projects handler/store 도메인에서 `application_id optional` 반영
+- projects handler/store 도메인에서 `platform_id optional` 반영
 - `repository_create_payload` 처리 + transaction 도입
 - project-repository link 중복/권한 에러 정리
 - 단위/통합 테스트 추가
@@ -129,7 +129,7 @@
 ### 8.1 Backend
 
 - handler 테스트:
-  - `application_id` 없는 생성 성공
+  - `platform_id` 없는 생성 성공
   - 동반 생성 payload 성공/실패 분기
   - 중복 link conflict
 - integration 테스트:

@@ -18,28 +18,28 @@ type DevRequestStore interface {
 	ListDevRequests(ctx context.Context, opts store.DevRequestListOptions) ([]domain.DevRequest, int, error)
 }
 
-// ApplicationStore — application-lifecycle 도메인 persistence 컨트랙트.
+// PlatformStore — application-lifecycle 도메인 persistence 컨트랙트.
 // issue #422 (sprint claude/work_260529-n) — 기존 interface 가 integration
 // CRUD 13 메서드를 포함해 cross-domain bloat 상태였음. 본 sprint 에서 integration
 // 메서드를 integration-registry/view 의 `IntegrationStore` 로 이관 후 본 interface
 // 는 Application / Application-Repository / SCM Provider / Project / Repository
 // 운영 지표 / Application 롤업 + SCM repository import 에만 한정.
-type ApplicationStore interface {
+type PlatformStore interface {
 	// Applications
-	ListApplications(context.Context, store.ApplicationListOptions) ([]domain.Application, int, error)
-	GetApplication(context.Context, string) (domain.Application, error)
-	GetApplicationByKey(context.Context, string) (domain.Application, error)
-	CreateApplication(context.Context, domain.Application) (domain.Application, error)
-	UpdateApplication(context.Context, domain.Application) (domain.Application, error)
-	ArchiveApplication(context.Context, string, string) (domain.Application, error)
-	DeleteApplication(context.Context, string) error
-	CountActiveApplicationRepositories(context.Context, string) (int, error)
+	ListPlatforms(context.Context, store.PlatformListOptions) ([]domain.Platform, int, error)
+	GetPlatform(context.Context, string) (domain.Platform, error)
+	GetPlatformByKey(context.Context, string) (domain.Platform, error)
+	CreatePlatform(context.Context, domain.Platform) (domain.Platform, error)
+	UpdatePlatform(context.Context, domain.Platform) (domain.Platform, error)
+	ArchivePlatform(context.Context, string, string) (domain.Platform, error)
+	DeletePlatform(context.Context, string) error
+	CountActivePlatformRepositories(context.Context, string) (int, error)
 
 	// Application-Repository link
-	ListApplicationRepositories(context.Context, string) ([]domain.ApplicationRepository, error)
-	CreateApplicationRepository(context.Context, domain.ApplicationRepository) (domain.ApplicationRepository, error)
-	DeleteApplicationRepository(context.Context, store.ApplicationRepositoryLinkKey) error
-	UpdateApplicationRepositorySync(context.Context, store.ApplicationRepositoryLinkKey, domain.ApplicationRepositorySyncStatus, domain.SyncErrorCode) error
+	ListPlatformRepositories(context.Context, string) ([]domain.PlatformRepository, error)
+	CreatePlatformRepository(context.Context, domain.PlatformRepository) (domain.PlatformRepository, error)
+	DeletePlatformRepository(context.Context, store.PlatformRepositoryLinkKey) error
+	UpdatePlatformRepositorySync(context.Context, store.PlatformRepositoryLinkKey, domain.PlatformRepositorySyncStatus, domain.SyncErrorCode) error
 
 	// SCM Provider catalog
 	ListSCMProviders(context.Context) ([]domain.SCMProvider, error)
@@ -68,26 +68,26 @@ type ApplicationStore interface {
 	ListRepositoryQualitySnapshots(context.Context, int64, store.QualitySnapshotListOptions) ([]domain.QualitySnapshot, int, error)
 
 	// Application 롤업
-	ComputeApplicationRollup(context.Context, string, domain.ApplicationRollupOptions) (domain.ApplicationRollup, error)
-	CountApplicationCriticalWarnings(context.Context, string) (int, error)
+	ComputePlatformRollup(context.Context, string, domain.PlatformRollupOptions) (domain.PlatformRollup, error)
+	CountPlatformCriticalWarnings(context.Context, string) (int, error)
 }
 
-type ApplicationConfig struct {
-	ApplicationStore ApplicationStore
+type PlatformConfig struct {
+	PlatformStore PlatformStore
 	DevRequestStore  DevRequestStore
 	ProjectModel     string
 	AuditStore       AuditStore
 }
 
-type ApplicationHandler struct {
-	cfg ApplicationConfig
+type PlatformHandler struct {
+	cfg PlatformConfig
 }
 
-func NewApplicationHandler(cfg ApplicationConfig) *ApplicationHandler {
-	return &ApplicationHandler{cfg: cfg}
+func NewPlatformHandler(cfg PlatformConfig) *PlatformHandler {
+	return &PlatformHandler{cfg: cfg}
 }
 
-func (h *ApplicationHandler) recordAuditBestEffort(c *gin.Context, action, targetType, targetID string, payload map[string]any) domain.AuditLog {
+func (h *PlatformHandler) recordAuditBestEffort(c *gin.Context, action, targetType, targetID string, payload map[string]any) domain.AuditLog {
 	if h.cfg.AuditStore == nil {
 		return domain.AuditLog{}
 	}
@@ -112,7 +112,7 @@ func (h *ApplicationHandler) recordAuditBestEffort(c *gin.Context, action, targe
 	return logRow
 }
 
-func (h *ApplicationHandler) enforceRowOwnership(c *gin.Context, ownerUserID string, allowedRoles ...string) bool {
+func (h *PlatformHandler) enforceRowOwnership(c *gin.Context, ownerUserID string, allowedRoles ...string) bool {
 	if httphelp.DevFallbackEnabled(c) {
 		return true
 	}
@@ -147,7 +147,7 @@ func (h *ApplicationHandler) enforceRowOwnership(c *gin.Context, ownerUserID str
 	return false
 }
 
-func (h *ApplicationHandler) actorIdentity(c *gin.Context) (string, string) {
+func (h *PlatformHandler) actorIdentity(c *gin.Context) (string, string) {
 	loginVal, _ := c.Get("devhub_actor_login")
 	roleVal, _ := c.Get("devhub_actor_role")
 	login, _ := loginVal.(string)
@@ -155,7 +155,7 @@ func (h *ApplicationHandler) actorIdentity(c *gin.Context) (string, string) {
 	return login, role
 }
 
-func (h *ApplicationHandler) actorCanReadProject(c *gin.Context, storeI ApplicationStore, project domain.Project) (bool, string, error) {
+func (h *PlatformHandler) actorCanReadProject(c *gin.Context, storeI PlatformStore, project domain.Project) (bool, string, error) {
 	login, role := h.actorIdentity(c)
 	if role == string(domain.AppRoleSystemAdmin) || role == string(domain.AppRoleTeamManager) {
 		return true, "", nil
@@ -182,20 +182,20 @@ func (h *ApplicationHandler) actorCanReadProject(c *gin.Context, storeI Applicat
 	return false, "not_project_member", nil
 }
 
-func (h *ApplicationHandler) actorCanReadApplication(c *gin.Context, storeI ApplicationStore, app domain.Application) (bool, string, error) {
+func (h *PlatformHandler) actorCanReadPlatform(c *gin.Context, storeI PlatformStore, app domain.Platform) (bool, string, error) {
 	login, role := h.actorIdentity(c)
 	if role == string(domain.AppRoleSystemAdmin) || role == string(domain.AppRoleTeamManager) {
 		return true, "", nil
 	}
 	if login == "" {
-		return false, "not_application_member", nil
+		return false, "not_platform_member", nil
 	}
 	if app.OwnerUserID == login || app.LeaderUserID == login {
 		return true, "", nil
 	}
 
 	projOpts := store.ProjectListOptions{
-		ApplicationID:   app.ID,
+		PlatformID:   app.ID,
 		IncludeArchived: true,
 		Limit:           5000,
 	}
@@ -232,10 +232,10 @@ func (h *ApplicationHandler) actorCanReadApplication(c *gin.Context, storeI Appl
 			return true, "", nil
 		}
 	}
-	return false, "not_application_member", nil
+	return false, "not_platform_member", nil
 }
 
-func (h *ApplicationHandler) denyRowRead(c *gin.Context, deniedReason string) {
+func (h *PlatformHandler) denyRowRead(c *gin.Context, deniedReason string) {
 	_, actorRole := h.actorIdentity(c)
 	h.recordAuditBestEffort(c, "auth.row_denied", "route", c.FullPath(), map[string]any{
 		"actor_role":    actorRole,

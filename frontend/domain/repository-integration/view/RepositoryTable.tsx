@@ -3,15 +3,15 @@
 import { GitBranch, Activity, Unlink } from "lucide-react";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
-import { ApplicationRepository, ApplicationRepositorySyncStatus, SyncErrorCode } from "@/domain/application-lifecycle/schema/project.types";
+import { PlatformRepository, PlatformRepositorySyncStatus, SyncErrorCode } from "@/domain/platform-lifecycle/schema/project.types";
 import { Badge } from "@/shared/ui-foundation/components/Badge";
 import { ActionMenu } from "@/shared/ui-foundation/components/ActionMenu";
 
 interface RepositoryTableProps {
-  repositories: ApplicationRepository[];
-  onDisconnect?: (repo: ApplicationRepository) => void;
-  onViewRepository?: (repo: ApplicationRepository) => void;
-  onViewRepositoryMetrics?: (repo: ApplicationRepository) => void;
+  repositories: PlatformRepository[];
+  onDisconnect?: (repo: PlatformRepository) => void;
+  onViewRepository?: (repo: PlatformRepository) => void;
+  onViewRepositoryMetrics?: (repo: PlatformRepository) => void;
   showApplicationColumn?: boolean;
 }
 
@@ -30,7 +30,7 @@ export function RepositoryTable({
             <tr className="border-b border-border/60 bg-muted/20">
               <th className="px-6 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Provider & Repository</th>
               {showApplicationColumn && (
-                <th className="px-6 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Application</th>
+                <th className="px-6 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Platform</th>
               )}
               <th className="px-6 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-center">Sync Status</th>
               <th className="px-6 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-center">Role</th>
@@ -68,7 +68,7 @@ export function RepositoryTable({
                   </td>
                   {showApplicationColumn && (
                     <td className="px-6 py-5">
-                       <span className="text-[11px] font-bold text-muted-foreground">{repo.application_id}</span>
+                       <span className="text-[11px] font-bold text-muted-foreground">{repo.platform_id}</span>
                     </td>
                   )}
                   <td className="px-6 py-5 text-center">
@@ -121,7 +121,7 @@ export function RepositoryTable({
   );
 }
 
-function SyncStatusBadge({ status, errorCode }: { status: ApplicationRepositorySyncStatus, errorCode?: SyncErrorCode }) {
+function SyncStatusBadge({ status, errorCode }: { status: PlatformRepositorySyncStatus, errorCode?: SyncErrorCode }) {
   switch (status) {
     case "active":
       return <Badge variant="success" dot>Active</Badge>;

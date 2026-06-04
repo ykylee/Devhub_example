@@ -89,7 +89,7 @@
 - **인증**: OIDC + RBAC `dev_requests:edit` + row-level (system_admin / team_manager / assignee 본인).
 - **요청 schema (mutual exclusion)**: 다음 셋 중 정확히 하나만 채워야 한다. 둘 이상 채우거나 모두 비우면 `400 dev_request_register_payload_invalid`. (sprint `claude/work_260515-m` 도입)
   1. `target_id` (legacy 매핑) — 이미 존재하는 application/project id 로 dev_request 를 묶기만 한다. dev_requests row 만 UPDATE 한다 (단일 row, 트랜잭션 불요).
-  2. `application_payload` (target_type=application 필수) — 새 Application 을 생성하고 dev_request 를 registered 로 갱신한다. **단일 Postgres 트랜잭션** (REQ-FR-DREQ-005, ADR-0013 §5). `primary_repo` 필드는 optional 이며 함께 application_repositories 행 1개를 추가한다.
+  2. `application_payload` (target_type=application 필수) — 새 Application 을 생성하고 dev_request 를 registered 로 갱신한다. **단일 Postgres 트랜잭션** (REQ-FR-DREQ-005, ADR-0013 §5). `primary_repo` 필드는 optional 이며 함께 platform_repositories 행 1개를 추가한다.
   3. `project_payload` (target_type=project 필수) — 새 Project 를 생성하고 dev_request 를 registered 로 갱신한다. 단일 Postgres 트랜잭션.
 
 - **요청 (JSON, legacy 매핑)**:
@@ -128,7 +128,7 @@
 {
   "target_type": "project",
   "project_payload": {
-    "application_id": "",
+    "platform_id": "",
     "repository_id": 42,
     "key": "PROJ1",
     "name": "Proj1",

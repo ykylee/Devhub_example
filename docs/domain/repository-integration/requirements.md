@@ -1,17 +1,17 @@
 # repository-integration 도메인 요구사항
 
 - 문서 목적: SCM↔시스템 Repository 연동 + Repository Lifecycle (draft→publish) 도메인의 기능·비기능 요구사항을 정의한다.
-- 범위: REQ-FR-REPO-001..005 / REQ-NFR-REPO-001..003. application/project/repository 계층은 `docs/domain/application-lifecycle/requirements.md` 참조, 외부 Provider 등록/카탈로그는 `docs/domain/integration-registry/requirements.md` 참조.
+- 범위: REQ-FR-REPO-001..005 / REQ-NFR-REPO-001..003. application/project/repository 계층은 `docs/domain/platform-lifecycle/requirements.md` 참조, 외부 Provider 등록/카탈로그는 `docs/domain/integration-registry/requirements.md` 참조.
 - 대상 독자: backend / 프론트엔드 / DevOps, AI agent, QA.
 - 상태: accepted
 - 최종 수정일: 2026-05-29 (Phase 3 split, master `docs/requirements.md` §5.8 본문 이관)
-- 관련 문서: [도메인 README](./README.md), [architecture.md](./architecture.md), [api.md](./api.md), [master requirements](../../requirements.md), [integration-registry requirements](../integration-registry/requirements.md), [application-lifecycle requirements](../application-lifecycle/requirements.md)
+- 관련 문서: [도메인 README](./README.md), [architecture.md](./architecture.md), [api.md](./api.md), [master requirements](../../requirements.md), [integration-registry requirements](../integration-registry/requirements.md), [platform-lifecycle requirements](../platform-lifecycle/requirements.md)
 
 ## 1. 개요
 
-본 절(신규 2026-05-27)은 SCM(Gitea 등 외부 형상관리)과 DevHub 시스템 `repositories` 사이의 **소유권 분리 + 양방향 연동(import/create) + draft→publish 생애주기** 요구사항을 정의한다. application-lifecycle 의 `Application > Repository > Project` 계층 및 integration-registry 의 외부 연동(Integration Provider)을 전제로 하며, 코드는 PR #363(소유권 분리 + import) / #366(outbound create) / #368(draft→publish) / #373(provider_id 단일화) 으로 1차 완성됐다. 근거: [코드베이스 스냅샷](../../analysis/2026-05-27-codebase-snapshot/README.md), [API 계약](./api.md) (API-88/89/90), migration 000042/000043/000045.
+본 절(신규 2026-05-27)은 SCM(Gitea 등 외부 형상관리)과 DevHub 시스템 `repositories` 사이의 **소유권 분리 + 양방향 연동(import/create) + draft→publish 생애주기** 요구사항을 정의한다. platform-lifecycle 의 `Application > Repository > Project` 계층 및 integration-registry 의 외부 연동(Integration Provider)을 전제로 하며, 코드는 PR #363(소유권 분리 + import) / #366(outbound create) / #368(draft→publish) / #373(provider_id 단일화) 으로 1차 완성됐다. 근거: [코드베이스 스냅샷](../../analysis/2026-05-27-codebase-snapshot/README.md), [API 계약](./api.md) (API-88/89/90), migration 000042/000043/000045.
 
-> **참고**: `repositories` 의 SCM mirror(commit/PR/build/quality 등 운영지표) 수집 자체는 application-lifecycle (REQ-FR-APP-004..009) 및 integration-registry (REQ-FR-INT-004) 에서 이미 다뤘다. 본 절은 그 위에 **"누가 repository row 를 소유하는가(SCM-owned vs system-owned) + 시스템↔SCM 양방향 생성/연동 + 게시 생애주기"** 만 추가 정의한다 (기존 ID 와 중복 발급하지 않음).
+> **참고**: `repositories` 의 SCM mirror(commit/PR/build/quality 등 운영지표) 수집 자체는 platform-lifecycle (REQ-FR-APP-004..009) 및 integration-registry (REQ-FR-INT-004) 에서 이미 다뤘다. 본 절은 그 위에 **"누가 repository row 를 소유하는가(SCM-owned vs system-owned) + 시스템↔SCM 양방향 생성/연동 + 게시 생애주기"** 만 추가 정의한다 (기존 ID 와 중복 발급하지 않음).
 
 ## 2. 기능 요구사항 (REQ-FR-REPO)
 
@@ -41,7 +41,7 @@
 
 - DevHub → SCM 의 양방향 상태 동기화(이슈/PR write-back) — integration-registry REQ-FR-INT-012 와 동일하게 별도 승인 정책 후.
 - Gitea 외 vendor(github/gitlab/bitbucket)에 대한 outbound create/publish 어댑터.
-- 신규 Application 등록 시 Gitea 저장소 자동 생성/브랜치 보호/멤버 초대 자동 오케스트레이션(application-lifecycle 후속).
+- 신규 Platform 등록 시 Gitea 저장소 자동 생성/브랜치 보호/멤버 초대 자동 오케스트레이션(platform-lifecycle 후속).
 - 평문 secret(`credentials_ref`/`api_token`/`auth_secret`) 의 envelope 암호화 — integration-registry REQ-NFR-INT-009 의 #6 carve 로 추적.
 
 ## 5. 변경 이력

@@ -19,8 +19,8 @@ import {
 import { useRouter, useParams } from "next/navigation";
 import { parseISO } from "date-fns";
 import { Badge } from "@/shared/ui-foundation/components/Badge";
-import { projectService } from "@/domain/application-lifecycle/service/project.service";
-import type { Project, ProjectActivityItem, ProjectRepositoryLink, ProjectTaskItem } from "@/domain/application-lifecycle/schema/project.types";
+import { projectService } from "@/domain/platform-lifecycle/service/project.service";
+import type { Project, ProjectActivityItem, ProjectRepositoryLink, ProjectTaskItem } from "@/domain/platform-lifecycle/schema/project.types";
 import { identityService, OrgMember } from "@/domain/organization-management/service/identity.service";
 import { repositoryService, Repository } from "@/domain/repository-integration/service/repository.service";
 import { toUserErrorMessage } from "@/shared/utils/error-message";

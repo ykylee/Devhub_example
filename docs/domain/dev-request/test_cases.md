@@ -32,7 +32,7 @@
 | `TC-DREQ-ADMIN-TOKEN-01` | P0 | E2E | system_admin 이 `/admin/settings/dev-request-tokens` 페이지에서 token 발급 → 2-phase modal (form → reveal) → plain token 1회 노출 → `저장 완료` 클릭 | 201 + plain token 응답 + 목록에 `Active` row 노출 | `dev-requests.spec.ts` step 1 |
 | `TC-DREQ-INTAKE-AUTH-01` | P0 | E2E | 발급된 plain token 으로 외부 시스템이 `POST /api/v1/dev-requests` 호출 (Bearer + IP allowlist 통과) | 201 + `data.id` 반환 + dev_requests row 생성 | `dev-requests.spec.ts` step 2 |
 | `TC-DREQ-WIDGET-FLOW-01` | P0 | E2E | assignee (developer) 가 `/developer` dashboard 진입 → "내 대기 의뢰" widget 에 의뢰 노출 → click → `/dev-requests` list → row click → DevRequestDetailModal 표시 | widget → list → detail modal 전체 flow 진행 | `dev-requests.spec.ts` step 3 |
-| `TC-DREQ-PROMOTE-TX-01` | P0 | E2E | system_admin 이 `/admin/settings/dev-requests` 에서 의뢰 detail modal 진입 → "Register as Application" → application_id 입력 → confirm | dev_requests row status `registered` + dev_request_target_id 매핑 + audit `dev_request.promoted` | `dev-requests.spec.ts` step 4 |
+| `TC-DREQ-PROMOTE-TX-01` | P0 | E2E | system_admin 이 `/admin/settings/dev-requests` 에서 의뢰 detail modal 진입 → "Register as Application" → platform_id 입력 → confirm | dev_requests row status `registered` + dev_request_target_id 매핑 + audit `dev_request.promoted` | `dev-requests.spec.ts` step 4 |
 | `TC-DREQ-ADMIN-TOKEN-REVOKE-01` | P0 | E2E | system_admin 이 token row 의 `revoke` → DestructiveConfirmModal → 확인 | row badge `Revoked` + 동일 token 으로 재호출 시 401 | `dev-requests.spec.ts` step 5 (mega test 의 마지막 단계) |
 
 ### 3.2 Token operational hardening (ADR-0017)

@@ -51,23 +51,23 @@
 
 ### V-04: `ListProjects` row filter (team_manager subtree scope) → **PASS**
 
-- **근거**: `backend-core/internal/domain/application-lifecycle/repository/projects.go:76-88` (count) + `:95-110` (list) SQL:
+- **근거**: `backend-core/internal/domain/platform-lifecycle/repository/projects.go:76-88` (count) + `:95-110` (list) SQL:
   ```sql
   AND ($6 = '' OR $6 = 'system_admin' OR owner_user_id = $7
        OR EXISTS (SELECT 1 FROM project_members WHERE project_id = projects.id AND user_id = $7)
        OR (array_length($8::text[], 1) > 0
-           AND EXISTS (SELECT 1 FROM applications WHERE id = projects.application_id AND development_unit_id = ANY($8)))
+           AND EXISTS (SELECT 1 FROM applications WHERE id = projects.platform_id AND development_unit_id = ANY($8)))
        OR (array_length($9::text[], 1) > 0
-           AND EXISTS (SELECT 1 FROM applications WHERE id = projects.application_id AND development_unit_id = ANY($9))))
+           AND EXISTS (SELECT 1 FROM applications WHERE id = projects.platform_id AND development_unit_id = ANY($9))))
   ```
   - `$8` = `OrgUnitIDs` (org_head subtree)
   - `$9` = `PrimaryUnitIDs` (team_manager subtree)
 - **판정**: `role-access-concept.md §3.4 + §3.5` 의 org_head/team_manager scope 와 정합.
 - **위험**: `listQuery` 와 `countQuery` 가 동일한 row filter 를 공유 — 양쪽 동시 검증 완료.
 
-### V-05: `ListApplications` row filter (team_manager subtree scope) → **PASS**
+### V-05: `ListPlatforms` row filter (team_manager subtree scope) → **PASS**
 
-- **근거**: `backend-core/internal/domain/application-lifecycle/repository/applications.go:118-132` 에 `rowFilterCount` + `rowFilterList` 두 변수로 정의. pattern 동일 (system_admin bypass + owner + leader + member-via-project + OrgUnitIDs + PrimaryUnitIDs).
+- **근거**: `backend-core/internal/domain/platform-lifecycle/repository/applications.go:118-132` 에 `rowFilterCount` + `rowFilterList` 두 변수로 정의. pattern 동일 (system_admin bypass + owner + leader + member-via-project + OrgUnitIDs + PrimaryUnitIDs).
 - **판정**: PASS. 단, V-04 와 비교 시 `$8` / `$9` parameter index 가 count vs list 에서 다름 (count: 4~7, list: 6~9) — `countQuery` 와 `listQuery` 의 param ordering 이 다름. SQL 작성 시 정확히 검증되었으나 follow-up 시 주의.
 
 ### V-06: E2E `TC-RBAC-ROW-READ-01/02` PASS → **FAIL (E2E 미구현)**

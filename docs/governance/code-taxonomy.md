@@ -12,7 +12,7 @@
 
 모든 신규 작업(PR, Commit, Backlog, Traceability)은 영향받는 **[레이어 / 도메인 / 계층]**을 명시한다.
 *   **PR Title & Commit Prefix**: `<type>(<레이어>/<도메인>-<계층>): <설명>`
-    *   예: `feat(domain/application-lifecycle-service): App 상태 전이 규칙 검증 추가`
+    *   예: `feat(domain/platform-lifecycle-service): App 상태 전이 규칙 검증 추가`
     *   예: `fix(infra/gitea-scm-service): 백그라운드 동기화 큐 SKIP LOCKED 데드락 해결`
     *   예: `style(shared/ui-foundation-view): 모달 공통 애니메이션 개선`
 *   **Traceability & Backlog**: 변경 사항이 속한 세부 컴포넌트(예: `domain/rbac-permissions/repository`)를 기재하여 추적의 해상도를 확보한다.
@@ -130,12 +130,12 @@ Keycloak OIDC 연동을 통한 브라우저 토큰 라이프사이클 및 로그
 *   *관련 ADR*: ADR-0021
 *   *E2E Spec*: `onboarding-first-login.spec.ts`
 
-#### 2.1.6 `application-lifecycle` — 애플리케이션·프로젝트 관리 도메인
-핵심 비즈니스 엔티티인 Application과 Project의 CRUD, 상태 전이 머신, 그리고 롤업 요약 데이터 생성을 담당한다.
+#### 2.1.6 `platform-lifecycle` — 애플리케이션·프로젝트 관리 도메인
+핵심 비즈니스 엔티티인 Platform과 Project의 CRUD, 상태 전이 머신, 그리고 롤업 요약 데이터 생성을 담당한다.
 *   **view**: 
     *   Backend: `httpapi/applications.go`, `httpapi/projects.go`, `httpapi/application_rollup.go`
     *   Frontend: `/applications`, `/projects` 페이지, `components/project/ProjectCreationModal.tsx`
-*   **service**: Application/Project의 생명주기 상태 머신(활성, 유휴, 폐기), 롤업 계산 규칙
+*   **service**: Platform/Project의 생명주기 상태 머신(활성, 유휴, 폐기), 롤업 계산 규칙
 *   **repository**: 
     *   Backend: `store/applications.go` (애플리케이션 및 프로젝트 DB 쿼리), `store/repository_ops.go` (상태 스냅샷)
 *   **schema**: 
@@ -157,7 +157,7 @@ SCM 저장소를 프로젝트와 연결하고, 가져오기(Import) 및 코드 �
 *   *E2E Spec*: `repositories-ui.spec.ts`, `repositories-detail-negative.spec.ts`
 
 #### 2.1.8 `dev-request` — 개발 의뢰 (DREQ) 도메인
-외부 연동 채널 또는 사내 채널을 통해 들어온 신규 시스템 개발 의뢰(DREQ)의 인입, 검토, promote(Application/Project 자동 생성) 프로세스를 관리한다.
+외부 연동 채널 또는 사내 채널을 통해 들어온 신규 시스템 개발 의뢰(DREQ)의 인입, 검토, promote(Platform/Project 자동 생성) 프로세스를 관리한다.
 *   **view**: 
     *   Backend: `httpapi/dev_requests.go` (목록/조정), `httpapi/dev_request_intake_auth.go` (인입 전용), `httpapi/dev_request_intake_tokens_admin.go`
     *   Frontend: `/dev-requests` 페이지, `components/dev-request/DevRequestDetailModal.tsx`
@@ -255,9 +255,9 @@ WebSocket을 통한 백그라운드 이벤트 전송 및 단일-사용(single-us
 1.  **P0-1. ProviderModal 소유권 이관 완료**:
     *   *내용*: `components/integration/ProviderModal`를 `auth-session`에서 `integration-registry` 도메인 소속으로 SoT를 전면 수정하고 관련 이력을 연계한다. (PR #406 Codex 피드백 수렴 완료)
 2.  **P0-2. `store/applications` 파일 분할 (LoC 1172)**:
-    *   *내용*: 애플리케이션 및 프로젝트 CRUD 쿼리가 혼재되어 있음. `domain/application-lifecycle/repository` 계층 하위로 완전히 분할한다.
+    *   *내용*: 애플리케이션 및 프로젝트 CRUD 쿼리가 혼재되어 있음. `domain/platform-lifecycle/repository` 계층 하위로 완전히 분할한다.
 3.  **P0-3. `httpapi/applications` 파일 분할 (LoC 1066)**:
-    *   *내용*: 애플리케이션 핸들러가 단일 파일에 밀집되어 있음. `domain/application-lifecycle/view` 계층 하위로 쪼갠다.
+    *   *내용*: 애플리케이션 핸들러가 단일 파일에 밀집되어 있음. `domain/platform-lifecycle/view` 계층 하위로 쪼갠다.
 4.  **P0-4. `httpapi/organization` 및 `store/users_units` 분할 (LoC 1019 + 1263)**:
     *   *내용*: 조직 관리 부서 트리 제어가 복잡함. `domain/organization-management` 하위 `view` 및 `repository` 계층으로 역할을 명확히 쪼갠다.
 

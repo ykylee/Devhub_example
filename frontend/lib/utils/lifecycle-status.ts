@@ -1,7 +1,7 @@
 /**
- * Application / Project lifecycle status → Badge variant 매핑.
+ * Platform / Project lifecycle status → Badge variant 매핑.
  *
- * 백엔드 enum (`domain.ApplicationStatus` = `domain.ProjectStatus`) 의 5종 상태를
+ * 백엔드 enum (`domain.PlatformStatus` = `domain.ProjectStatus`) 의 5종 상태를
  * UI Badge 색으로 일관되게 변환한다. 기존 `status === "active" ? "success" : "warning"`
  * binary 매핑 (active 외 4종이 모두 노랑) 의 시각 구분 부족 해결.
  *
@@ -13,7 +13,7 @@
  *  - archived = 아카이브 (보존)  → glass (흐림)
  *  - 그 외 (방어적 fallback)    → secondary
  *
- * 동일 enum 을 쓰는 Application detail / list, Project detail 모두 이 helper 를 통해
+ * 동일 enum 을 쓰는 Platform detail / list, Project detail 모두 이 helper 를 통해
  * 매핑한다. 추가 enum 값이 백엔드에 도입되면 본 함수 + 본 함수의 unit test 만 수정.
  */
 export type LifecycleBadgeVariant =

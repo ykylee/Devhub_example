@@ -14,17 +14,17 @@ import (
 func TestIntegration_Project_UniqueRepositoryKey(t *testing.T) {
 	pgStore, _, ctx, teardown := setupApplicationsTest(t)
 	defer teardown()
-	app, err := pgStore.CreateApplication(ctx, domain.Application{
-		Key: testAppKey1, Name: "X", Status: domain.ApplicationStatusActive,
-		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+	app, err := pgStore.CreatePlatform(ctx, domain.Platform{
+		Key: testAppKey1, Name: "X", Status: domain.PlatformStatusActive,
+		Visibility: domain.PlatformVisibilityInternal, OwnerUserID: "u1",
 	})
 	if err != nil {
 		t.Fatalf("seed application: %v", err)
 	}
 	first, err := pgStore.CreateProject(ctx, domain.Project{
-		ApplicationID: app.ID, RepositoryID: testRepoID1,
-		Key: "sprint-q3", Name: "Q3", Status: domain.ApplicationStatusPlanning,
-		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+		PlatformID: app.ID, RepositoryID: testRepoID1,
+		Key: "sprint-q3", Name: "Q3", Status: domain.PlatformStatusPlanning,
+		Visibility: domain.PlatformVisibilityInternal, OwnerUserID: "u1",
 	})
 	if err != nil {
 		t.Fatalf("seed: %v", err)
@@ -34,18 +34,18 @@ func TestIntegration_Project_UniqueRepositoryKey(t *testing.T) {
 	}
 	// 동일 repository_id + key → conflict
 	_, err = pgStore.CreateProject(ctx, domain.Project{
-		ApplicationID: app.ID, RepositoryID: testRepoID1,
-		Key: "sprint-q3", Name: "duplicate", Status: domain.ApplicationStatusPlanning,
-		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+		PlatformID: app.ID, RepositoryID: testRepoID1,
+		Key: "sprint-q3", Name: "duplicate", Status: domain.PlatformStatusPlanning,
+		Visibility: domain.PlatformVisibilityInternal, OwnerUserID: "u1",
 	})
 	if !errors.Is(err, store.ErrConflict) {
 		t.Errorf("expected ErrConflict on duplicate (repo, key), got %v", err)
 	}
 	// 다른 repository_id 같은 key → OK
 	_, err = pgStore.CreateProject(ctx, domain.Project{
-		ApplicationID: app.ID, RepositoryID: testRepoID2,
-		Key: "sprint-q3", Name: "other repo", Status: domain.ApplicationStatusPlanning,
-		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+		PlatformID: app.ID, RepositoryID: testRepoID2,
+		Key: "sprint-q3", Name: "other repo", Status: domain.PlatformStatusPlanning,
+		Visibility: domain.PlatformVisibilityInternal, OwnerUserID: "u1",
 	})
 	if err != nil {
 		t.Errorf("different repository should not conflict: %v", err)
@@ -57,7 +57,7 @@ func TestIntegration_ArchiveProject(t *testing.T) {
 	defer teardown()
 	p, err := pgStore.CreateProject(ctx, domain.Project{
 		RepositoryID: testRepoID1, Key: "k1", Name: "X",
-		Status: domain.ApplicationStatusActive, Visibility: domain.ApplicationVisibilityInternal,
+		Status: domain.PlatformStatusActive, Visibility: domain.PlatformVisibilityInternal,
 		OwnerUserID: "u1",
 	})
 	if err != nil {
@@ -67,7 +67,7 @@ func TestIntegration_ArchiveProject(t *testing.T) {
 	if err != nil {
 		t.Fatalf("archive: %v", err)
 	}
-	if archived.Status != domain.ApplicationStatusArchived {
+	if archived.Status != domain.PlatformStatusArchived {
 		t.Errorf("status = %q, want archived", archived.Status)
 	}
 	if archived.ArchivedAt == nil {
@@ -78,15 +78,15 @@ func TestIntegration_ArchiveProject(t *testing.T) {
 func TestIntegration_CreateIntegration_ApplicationScope(t *testing.T) {
 	pgStore, _, ctx, teardown := setupApplicationsTest(t)
 	defer teardown()
-	app, err := pgStore.CreateApplication(ctx, domain.Application{
-		Key: testAppKey1, Name: "X", Status: domain.ApplicationStatusActive,
-		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+	app, err := pgStore.CreatePlatform(ctx, domain.Platform{
+		Key: testAppKey1, Name: "X", Status: domain.PlatformStatusActive,
+		Visibility: domain.PlatformVisibilityInternal, OwnerUserID: "u1",
 	})
 	if err != nil {
 		t.Fatalf("seed application: %v", err)
 	}
 	created, err := pgStore.CreateIntegration(ctx, domain.ProjectIntegration{
-		Scope: domain.IntegrationScopeApplication, ApplicationID: app.ID,
+		Scope: domain.IntegrationScopePlatform, PlatformID: app.ID,
 		IntegrationType: domain.IntegrationTypeJira,
 		ExternalKey:     "PROJ-A", URL: "https://x", Policy: domain.IntegrationPolicySummaryOnly,
 	})
@@ -96,8 +96,8 @@ func TestIntegration_CreateIntegration_ApplicationScope(t *testing.T) {
 	if created.ID == "" {
 		t.Errorf("ID should be generated")
 	}
-	if created.ApplicationID != app.ID {
-		t.Errorf("application_id mismatch: %q vs %q", created.ApplicationID, app.ID)
+	if created.PlatformID != app.ID {
+		t.Errorf("platform_id mismatch: %q vs %q", created.PlatformID, app.ID)
 	}
 }
 
@@ -108,16 +108,16 @@ func TestIntegration_CreateIntegration_ApplicationScope(t *testing.T) {
 func TestIntegration_UpdateIntegration_UniqueConflict_P2(t *testing.T) {
 	pgStore, _, ctx, teardown := setupApplicationsTest(t)
 	defer teardown()
-	app, err := pgStore.CreateApplication(ctx, domain.Application{
-		Key: testAppKey1, Name: "X", Status: domain.ApplicationStatusActive,
-		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+	app, err := pgStore.CreatePlatform(ctx, domain.Platform{
+		Key: testAppKey1, Name: "X", Status: domain.PlatformStatusActive,
+		Visibility: domain.PlatformVisibilityInternal, OwnerUserID: "u1",
 	})
 	if err != nil {
 		t.Fatalf("seed application: %v", err)
 	}
 	// 2 integration: same (scope, application, type), 다른 external_key
 	first, err := pgStore.CreateIntegration(ctx, domain.ProjectIntegration{
-		Scope: domain.IntegrationScopeApplication, ApplicationID: app.ID,
+		Scope: domain.IntegrationScopePlatform, PlatformID: app.ID,
 		IntegrationType: domain.IntegrationTypeJira,
 		ExternalKey:     "PROJ-A", URL: "https://a", Policy: domain.IntegrationPolicySummaryOnly,
 	})
@@ -125,7 +125,7 @@ func TestIntegration_UpdateIntegration_UniqueConflict_P2(t *testing.T) {
 		t.Fatalf("seed first integration: %v", err)
 	}
 	second, err := pgStore.CreateIntegration(ctx, domain.ProjectIntegration{
-		Scope: domain.IntegrationScopeApplication, ApplicationID: app.ID,
+		Scope: domain.IntegrationScopePlatform, PlatformID: app.ID,
 		IntegrationType: domain.IntegrationTypeJira,
 		ExternalKey:     "PROJ-B", URL: "https://b", Policy: domain.IntegrationPolicySummaryOnly,
 	})
@@ -147,15 +147,15 @@ func TestIntegration_UpdateIntegration_UniqueConflict_P2(t *testing.T) {
 func TestIntegration_DeleteIntegration(t *testing.T) {
 	pgStore, _, ctx, teardown := setupApplicationsTest(t)
 	defer teardown()
-	app, err := pgStore.CreateApplication(ctx, domain.Application{
-		Key: testAppKey1, Name: "X", Status: domain.ApplicationStatusActive,
-		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+	app, err := pgStore.CreatePlatform(ctx, domain.Platform{
+		Key: testAppKey1, Name: "X", Status: domain.PlatformStatusActive,
+		Visibility: domain.PlatformVisibilityInternal, OwnerUserID: "u1",
 	})
 	if err != nil {
 		t.Fatalf("seed application: %v", err)
 	}
 	created, err := pgStore.CreateIntegration(ctx, domain.ProjectIntegration{
-		Scope: domain.IntegrationScopeApplication, ApplicationID: app.ID,
+		Scope: domain.IntegrationScopePlatform, PlatformID: app.ID,
 		IntegrationType: domain.IntegrationTypeConfluence,
 		ExternalKey:     "WIKI-A", URL: "https://x", Policy: domain.IntegrationPolicySummaryOnly,
 	})
@@ -174,16 +174,16 @@ func TestIntegration_DeleteIntegration(t *testing.T) {
 func TestIntegration_ListIntegrations_ScopeFilter(t *testing.T) {
 	pgStore, _, ctx, teardown := setupApplicationsTest(t)
 	defer teardown()
-	app, err := pgStore.CreateApplication(ctx, domain.Application{
-		Key: testAppKey1, Name: "X", Status: domain.ApplicationStatusActive,
-		Visibility: domain.ApplicationVisibilityInternal, OwnerUserID: "u1",
+	app, err := pgStore.CreatePlatform(ctx, domain.Platform{
+		Key: testAppKey1, Name: "X", Status: domain.PlatformStatusActive,
+		Visibility: domain.PlatformVisibilityInternal, OwnerUserID: "u1",
 	})
 	if err != nil {
 		t.Fatalf("seed application: %v", err)
 	}
 	project, err := pgStore.CreateProject(ctx, domain.Project{
-		ApplicationID: app.ID, RepositoryID: testRepoID1, Key: "p1", Name: "P",
-		Status: domain.ApplicationStatusActive, Visibility: domain.ApplicationVisibilityInternal,
+		PlatformID: app.ID, RepositoryID: testRepoID1, Key: "p1", Name: "P",
+		Status: domain.PlatformStatusActive, Visibility: domain.PlatformVisibilityInternal,
 		OwnerUserID: "u1",
 	})
 	if err != nil {
@@ -191,7 +191,7 @@ func TestIntegration_ListIntegrations_ScopeFilter(t *testing.T) {
 	}
 	// application scope 1
 	if _, err := pgStore.CreateIntegration(ctx, domain.ProjectIntegration{
-		Scope: domain.IntegrationScopeApplication, ApplicationID: app.ID,
+		Scope: domain.IntegrationScopePlatform, PlatformID: app.ID,
 		IntegrationType: domain.IntegrationTypeJira,
 		ExternalKey:     "APP-PROJ", URL: "https://a", Policy: domain.IntegrationPolicySummaryOnly,
 	}); err != nil {
@@ -205,9 +205,9 @@ func TestIntegration_ListIntegrations_ScopeFilter(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("seed project integration: %v", err)
 	}
-	// scope=application 필터 → 1건
+	// scope=platform 필터 → 1건
 	_, total, _ := pgStore.ListIntegrations(ctx, store.IntegrationListOptions{
-		Scope: domain.IntegrationScopeApplication,
+		Scope: domain.IntegrationScopePlatform,
 	})
 	if total != 1 {
 		t.Errorf("application scope total = %d, want 1", total)

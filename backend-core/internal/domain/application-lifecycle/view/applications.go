@@ -25,21 +25,21 @@ import (
 // 권한은 enforceRoutePermission middleware 가 사전 거부. handler 까지 도달하면 ADR-0011
 // §4.1 의 system_admin 자격 통과 상태.
 
-var applicationKeyPattern = regexp.MustCompile(`^[A-Za-z0-9]{1,10}$`)
+var platformKeyPattern = regexp.MustCompile(`^[A-Za-z0-9]{1,10}$`)
 
-func (h *ApplicationHandler) ApplicationStoreOrUnavailable(c *gin.Context) (ApplicationStore, bool) {
-	if h.cfg.ApplicationStore == nil {
+func (h *PlatformHandler) PlatformStoreOrUnavailable(c *gin.Context) (PlatformStore, bool) {
+	if h.cfg.PlatformStore == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
 			"status": "unavailable",
-			"error":  "application store is not configured",
+			"error":  "platform store is not configured",
 		})
 		return nil, false
 	}
-	return h.cfg.ApplicationStore, true
+	return h.cfg.PlatformStore, true
 }
 
-// applicationResponse converts a domain.Application to the wire shape used by §13.2.
-func applicationResponse(app domain.Application) gin.H {
+// platformResponse converts a domain.Platform to the wire shape used by §13.2.
+func platformResponse(app domain.Platform) gin.H {
 	return gin.H{
 		"id":                  app.ID,
 		"key":                 app.Key,
@@ -58,9 +58,9 @@ func applicationResponse(app domain.Application) gin.H {
 	}
 }
 
-func applicationRepositoryResponse(link domain.ApplicationRepository) gin.H {
+func platformRepositoryResponse(link domain.PlatformRepository) gin.H {
 	return gin.H{
-		"application_id":       link.ApplicationID,
+		"platform_id":       link.PlatformID,
 		"repo_provider":        link.RepoProvider,
 		"repo_full_name":       link.RepoFullName,
 		"external_repo_id":     link.ExternalRepoID,
@@ -131,13 +131,13 @@ func parseDate(s string) (*time.Time, error) {
 
 // validApplicationStatus / validApplicationVisibility helpers — concept §13.2 + api §13.1.
 var (
-	validApplicationStatuses = map[string]bool{
+	validPlatformStatuses = map[string]bool{
 		"planning": true, "active": true, "on_hold": true, "closed": true, "archived": true,
 	}
-	validApplicationVisibilities = map[string]bool{
+	validPlatformVisibilities = map[string]bool{
 		"public": true, "internal": true, "restricted": true,
 	}
-	validApplicationRepoRoles = map[string]bool{
+	validPlatformRepoRoles = map[string]bool{
 		"primary": true, "sub": true, "shared": true,
 	}
 	// status 전이 정책 자유화 (2026-05-28) — 운영자가 임의로 어느 상태든 이동
@@ -155,8 +155,8 @@ var (
 
 // SCM Providers (API-41, API-42) ---
 
-func (h *ApplicationHandler) ListSCMProviders(c *gin.Context) {
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+func (h *PlatformHandler) ListSCMProviders(c *gin.Context) {
+	storeI, ok := h.PlatformStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
@@ -181,8 +181,8 @@ type updateSCMProviderRequest struct {
 	AdapterVersion *string `json:"adapter_version"` // 거부용 — 클라이언트가 보내면 422
 }
 
-func (h *ApplicationHandler) UpdateSCMProvider(c *gin.Context) {
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+func (h *PlatformHandler) UpdateSCMProvider(c *gin.Context) {
+	storeI, ok := h.PlatformStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
@@ -246,12 +246,12 @@ func (h *ApplicationHandler) UpdateSCMProvider(c *gin.Context) {
 
 // Applications (API-43..47) ---
 
-func (h *ApplicationHandler) ListApplications(c *gin.Context) {
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+func (h *PlatformHandler) ListPlatforms(c *gin.Context) {
+	storeI, ok := h.PlatformStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
-	opts := store.ApplicationListOptions{
+	opts := store.PlatformListOptions{
 		Status:          c.Query("status"),
 		IncludeArchived: c.Query("include_archived") == "true",
 		Query:           c.Query("q"),
@@ -292,20 +292,20 @@ func (h *ApplicationHandler) ListApplications(c *gin.Context) {
 		}
 		opts.Offset = v
 	}
-	if opts.Status != "" && !validApplicationStatuses[opts.Status] {
+	if opts.Status != "" && !validPlatformStatuses[opts.Status] {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "status must be one of planning/active/on_hold/closed/archived"})
 		return
 	}
-	apps, total, err := storeI.ListApplications(c.Request.Context(), opts)
+	apps, total, err := storeI.ListPlatforms(c.Request.Context(), opts)
 	if err != nil {
-		httphelp.WriteServerError(c, err, "applications.list")
+		httphelp.WriteServerError(c, err, "platforms.list")
 		return
 	}
-	visible := make([]domain.Application, 0, len(apps))
+	visible := make([]domain.Platform, 0, len(apps))
 	for _, app := range apps {
-		allowed, _, err := h.actorCanReadApplication(c, storeI, app)
+		allowed, _, err := h.actorCanReadPlatform(c, storeI, app)
 		if err != nil {
-			httphelp.WriteServerError(c, err, "applications.list.scope")
+			httphelp.WriteServerError(c, err, "platforms.list.scope")
 			return
 		}
 		if allowed {
@@ -314,7 +314,7 @@ func (h *ApplicationHandler) ListApplications(c *gin.Context) {
 	}
 	resp := make([]gin.H, 0, len(visible))
 	for _, app := range visible {
-		resp = append(resp, applicationResponse(app))
+		resp = append(resp, platformResponse(app))
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"status": "ok",
@@ -326,7 +326,7 @@ func (h *ApplicationHandler) ListApplications(c *gin.Context) {
 	})
 }
 
-type createApplicationRequest struct {
+type createPlatformRequest struct {
 	Key               string `json:"key"`
 	Name              string `json:"name"`
 	Description       string `json:"description"`
@@ -339,21 +339,21 @@ type createApplicationRequest struct {
 	Status            string `json:"status"`
 }
 
-func (h *ApplicationHandler) CreateApplication(c *gin.Context) {
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+func (h *PlatformHandler) CreatePlatform(c *gin.Context) {
+	storeI, ok := h.PlatformStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
-	var req createApplicationRequest
+	var req createPlatformRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": err.Error()})
 		return
 	}
-	if !applicationKeyPattern.MatchString(req.Key) {
+	if !platformKeyPattern.MatchString(req.Key) {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{
 			"status": "rejected",
 			"error":  "key must match ^[A-Za-z0-9]{1,10}$",
-			"code":   "invalid_application_key",
+			"code":   "invalid_platform_key",
 		})
 		return
 	}
@@ -373,11 +373,11 @@ func (h *ApplicationHandler) CreateApplication(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "development_unit_id is required"})
 		return
 	}
-	if !validApplicationVisibilities[req.Visibility] {
+	if !validPlatformVisibilities[req.Visibility] {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "visibility must be one of public/internal/restricted"})
 		return
 	}
-	if !validApplicationStatuses[req.Status] {
+	if !validPlatformStatuses[req.Status] {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "status must be one of planning/active/on_hold/closed/archived"})
 		return
 	}
@@ -391,75 +391,75 @@ func (h *ApplicationHandler) CreateApplication(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "due_date must be YYYY-MM-DD"})
 		return
 	}
-	app := domain.Application{
+	app := domain.Platform{
 		Key:               req.Key,
 		Name:              req.Name,
 		Description:       req.Description,
-		Status:            domain.ApplicationStatus(req.Status),
-		Visibility:        domain.ApplicationVisibility(req.Visibility),
+		Status:            domain.PlatformStatus(req.Status),
+		Visibility:        domain.PlatformVisibility(req.Visibility),
 		OwnerUserID:       req.OwnerUserID,
 		LeaderUserID:      req.LeaderUserID,
 		DevelopmentUnitID: req.DevelopmentUnitID,
 		StartDate:         startDate,
 		DueDate:           dueDate,
 	}
-	created, err := storeI.CreateApplication(c.Request.Context(), app)
+	created, err := storeI.CreatePlatform(c.Request.Context(), app)
 	if errors.Is(err, store.ErrConflict) {
 		c.JSON(http.StatusConflict, gin.H{
 			"status": "conflict",
-			"error":  "application key already exists",
-			"code":   "application_key_conflict",
+			"error":  "platform key already exists",
+			"code":   "platform_key_conflict",
 		})
 		return
 	}
 	if err != nil {
-		httphelp.WriteServerError(c, err, "applications.create")
+		httphelp.WriteServerError(c, err, "platforms.create")
 		return
 	}
-	h.recordAuditBestEffort(c, "application.created", "application", created.ID, map[string]any{
+	h.recordAuditBestEffort(c, "platform.created", "platform", created.ID, map[string]any{
 		"key":    created.Key,
 		"status": string(created.Status),
 	})
 	c.JSON(http.StatusCreated, gin.H{
 		"status": "ok",
-		"data":   applicationResponse(created),
+		"data":   platformResponse(created),
 	})
 }
 
-func (h *ApplicationHandler) GetApplication(c *gin.Context) {
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+func (h *PlatformHandler) GetPlatform(c *gin.Context) {
+	storeI, ok := h.PlatformStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
-	id := c.Param("application_id")
-	app, err := storeI.GetApplication(c.Request.Context(), id)
+	id := c.Param("platform_id")
+	app, err := storeI.GetPlatform(c.Request.Context(), id)
 	if errors.Is(err, store.ErrNotFound) {
-		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "application not found"})
+		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "platform not found"})
 		return
 	}
 	if err != nil {
-		httphelp.WriteServerError(c, err, "applications.get")
+		httphelp.WriteServerError(c, err, "platforms.get")
 		return
 	}
-	allowed, deniedReason, err := h.actorCanReadApplication(c, storeI, app)
+	allowed, deniedReason, err := h.actorCanReadPlatform(c, storeI, app)
 	if err != nil {
-		httphelp.WriteServerError(c, err, "applications.get.scope")
+		httphelp.WriteServerError(c, err, "platforms.get.scope")
 		return
 	}
 	if !allowed {
 		h.denyRowRead(c, deniedReason)
 		return
 	}
-	links, err := storeI.ListApplicationRepositories(c.Request.Context(), id)
+	links, err := storeI.ListPlatformRepositories(c.Request.Context(), id)
 	if err != nil {
-		httphelp.WriteServerError(c, err, "applications.get.list_repositories")
+		httphelp.WriteServerError(c, err, "platforms.get.list_repositories")
 		return
 	}
 	repoResp := make([]gin.H, 0, len(links))
 	for _, l := range links {
-		repoResp = append(repoResp, applicationRepositoryResponse(l))
+		repoResp = append(repoResp, platformRepositoryResponse(l))
 	}
-	resp := applicationResponse(app)
+	resp := platformResponse(app)
 	resp["repositories"] = repoResp
 	c.JSON(http.StatusOK, gin.H{
 		"status": "ok",
@@ -467,24 +467,24 @@ func (h *ApplicationHandler) GetApplication(c *gin.Context) {
 	})
 }
 
-func (h *ApplicationHandler) ApplicationDashboard(c *gin.Context) {
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+func (h *PlatformHandler) PlatformDashboard(c *gin.Context) {
+	storeI, ok := h.PlatformStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
-	id := c.Param("application_id")
-	app, err := storeI.GetApplication(c.Request.Context(), id)
+	id := c.Param("platform_id")
+	app, err := storeI.GetPlatform(c.Request.Context(), id)
 	if errors.Is(err, store.ErrNotFound) {
-		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "application not found"})
+		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "platform not found"})
 		return
 	}
 	if err != nil {
-		httphelp.WriteServerError(c, err, "applications.dashboard.get")
+		httphelp.WriteServerError(c, err, "platforms.dashboard.get")
 		return
 	}
-	allowed, deniedReason, err := h.actorCanReadApplication(c, storeI, app)
+	allowed, deniedReason, err := h.actorCanReadPlatform(c, storeI, app)
 	if err != nil {
-		httphelp.WriteServerError(c, err, "applications.dashboard.scope")
+		httphelp.WriteServerError(c, err, "platforms.dashboard.scope")
 		return
 	}
 	if !allowed {
@@ -497,29 +497,29 @@ func (h *ApplicationHandler) ApplicationDashboard(c *gin.Context) {
 	// 명시 token 으로 누적해 UI 가 분기 표시할 수 있게 한다.
 	dataGaps := make([]string, 0)
 
-	// 1. Rollup metrics — 외부 데이터 미존재 시 0 값으로 fallback (ComputeApplicationRollup 자체가
+	// 1. Rollup metrics — 외부 데이터 미존재 시 0 값으로 fallback (ComputePlatformRollup 자체가
 	//    빈 윈도우면 zero-value 반환).
-	rollupOpts := domain.ApplicationRollupOptions{
+	rollupOpts := domain.PlatformRollupOptions{
 		Policy:     domain.WeightPolicyEqual,
 		WindowFrom: time.Now().UTC().AddDate(0, 0, -30),
 		WindowTo:   time.Now().UTC(),
 	}
-	rollup, err := storeI.ComputeApplicationRollup(c.Request.Context(), id, rollupOpts)
+	rollup, err := storeI.ComputePlatformRollup(c.Request.Context(), id, rollupOpts)
 	if err != nil {
-		httphelp.WriteServerError(c, err, "applications.dashboard.rollup")
+		httphelp.WriteServerError(c, err, "platforms.dashboard.rollup")
 		return
 	}
 
 	// 2. Linked Application↔Repository links.
-	links, err := storeI.ListApplicationRepositories(c.Request.Context(), id)
+	links, err := storeI.ListPlatformRepositories(c.Request.Context(), id)
 	if err != nil {
-		httphelp.WriteServerError(c, err, "applications.dashboard.list_repositories")
+		httphelp.WriteServerError(c, err, "platforms.dashboard.list_repositories")
 		return
 	}
 
 	// 3. Application 의 Projects (milestones).
 	projOpts := store.ProjectListOptions{
-		ApplicationID:   id,
+		PlatformID:   id,
 		IncludeArchived: false,
 	}
 	if loginVal, ok := c.Get("devhub_actor_login"); ok {
@@ -544,7 +544,7 @@ func (h *ApplicationHandler) ApplicationDashboard(c *gin.Context) {
 	}
 	projects, _, err := storeI.ListProjects(c.Request.Context(), projOpts)
 	if err != nil {
-		httphelp.WriteServerError(c, err, "applications.dashboard.list_projects")
+		httphelp.WriteServerError(c, err, "platforms.dashboard.list_projects")
 		return
 	}
 	// project id set — DREQ 의 project 로 등록된 항목도 본 application 매핑으로 포함.
@@ -569,7 +569,7 @@ func (h *ApplicationHandler) ApplicationDashboard(c *gin.Context) {
 			dataGaps = append(dataGaps, "linked_dev_requests:store_error")
 		} else {
 			for _, dr := range allDreqs {
-				if dr.RegisteredTargetType == domain.DevRequestTargetApplication && dr.RegisteredTargetID == app.ID {
+				if dr.RegisteredTargetType == domain.DevRequestTargetPlatform && dr.RegisteredTargetID == app.ID {
 					dreqs = append(dreqs, dr)
 					continue
 				}
@@ -585,7 +585,7 @@ func (h *ApplicationHandler) ApplicationDashboard(c *gin.Context) {
 	}
 
 	// 5. 실패 빌드 런 — `ApplicationRepository` 도메인엔 직접 RepositoryID FK 가 없으므로
-	//    (composite PK = ApplicationID + RepoProvider + RepoFullName) 외부 repo id 는
+	//    (composite PK = PlatformID + RepoProvider + RepoFullName) 외부 repo id 는
 	//    `ListRepositoriesByProvider` 로 해석해야 한다. 이전 구현은 **link 마다** 공급자 전체
 	//    repo 를 다시 가져와 클라이언트 매칭(N×M)했지만, 본 PR 은 **provider 별 1회 fetch +
 	//    {full_name → id} 맵 캐싱** 으로 M (unique providers) + L (links) 으로 축소 (codex 3d
@@ -733,7 +733,7 @@ func (h *ApplicationHandler) ApplicationDashboard(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status": "ok",
 		"data": gin.H{
-			"application_id":      app.ID,
+			"platform_id":      app.ID,
 			"key":                 app.Key,
 			"name":                app.Name,
 			"status":              string(app.Status),
@@ -757,7 +757,7 @@ func (h *ApplicationHandler) ApplicationDashboard(c *gin.Context) {
 	})
 }
 
-type updateApplicationRequest struct {
+type updatePlatformRequest struct {
 	Key               *string `json:"key"` // 거부용
 	Name              *string `json:"name"`
 	Description       *string `json:"description"`
@@ -773,13 +773,13 @@ type updateApplicationRequest struct {
 	ArchivedReason    string  `json:"archived_reason"`
 }
 
-func (h *ApplicationHandler) UpdateApplication(c *gin.Context) {
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+func (h *PlatformHandler) UpdatePlatform(c *gin.Context) {
+	storeI, ok := h.PlatformStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
-	id := c.Param("application_id")
-	var req updateApplicationRequest
+	id := c.Param("platform_id")
+	var req updatePlatformRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": err.Error()})
 		return
@@ -787,18 +787,18 @@ func (h *ApplicationHandler) UpdateApplication(c *gin.Context) {
 	if req.Key != nil {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{
 			"status": "rejected",
-			"error":  "application key is immutable",
-			"code":   "application_key_immutable",
+			"error":  "platform key is immutable",
+			"code":   "platform_key_immutable",
 		})
 		return
 	}
-	current, err := storeI.GetApplication(c.Request.Context(), id)
+	current, err := storeI.GetPlatform(c.Request.Context(), id)
 	if errors.Is(err, store.ErrNotFound) {
-		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "application not found"})
+		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "platform not found"})
 		return
 	}
 	if err != nil {
-		httphelp.WriteServerError(c, err, "applications.update.lookup")
+		httphelp.WriteServerError(c, err, "platforms.update.lookup")
 		return
 	}
 
@@ -839,11 +839,11 @@ func (h *ApplicationHandler) UpdateApplication(c *gin.Context) {
 		updated.DevelopmentUnitID = *req.DevelopmentUnitID
 	}
 	if req.Visibility != nil {
-		if !validApplicationVisibilities[*req.Visibility] {
+		if !validPlatformVisibilities[*req.Visibility] {
 			c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "visibility must be one of public/internal/restricted"})
 			return
 		}
-		updated.Visibility = domain.ApplicationVisibility(*req.Visibility)
+		updated.Visibility = domain.PlatformVisibility(*req.Visibility)
 	}
 	if req.StartDate != nil {
 		d, err := parseDate(*req.StartDate)
@@ -863,7 +863,7 @@ func (h *ApplicationHandler) UpdateApplication(c *gin.Context) {
 	}
 	if req.Status != nil {
 		newStatus := *req.Status
-		if !validApplicationStatuses[newStatus] {
+		if !validPlatformStatuses[newStatus] {
 			c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "status must be one of planning/active/on_hold/closed/archived"})
 			return
 		}
@@ -885,12 +885,12 @@ func (h *ApplicationHandler) UpdateApplication(c *gin.Context) {
 			// hold_reason 등) 제거. 운영자가 임의로 어느 전이든 가능. reason 필드는
 			// audit 기록용 optional 메타로만 유지.
 		}
-		updated.Status = domain.ApplicationStatus(newStatus)
+		updated.Status = domain.PlatformStatus(newStatus)
 	}
 
-	result, err := storeI.UpdateApplication(c.Request.Context(), updated)
+	result, err := storeI.UpdatePlatform(c.Request.Context(), updated)
 	if errors.Is(err, store.ErrNotFound) {
-		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "application not found"})
+		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "platform not found"})
 		return
 	}
 	if errors.Is(err, store.ErrConflict) {
@@ -898,7 +898,7 @@ func (h *ApplicationHandler) UpdateApplication(c *gin.Context) {
 		return
 	}
 	if err != nil {
-		httphelp.WriteServerError(c, err, "applications.update")
+		httphelp.WriteServerError(c, err, "platforms.update")
 		return
 	}
 	auditPayload := map[string]any{
@@ -914,39 +914,39 @@ func (h *ApplicationHandler) UpdateApplication(c *gin.Context) {
 	if req.ArchivedReason != "" {
 		auditPayload["archived_reason"] = req.ArchivedReason
 	}
-	h.recordAuditBestEffort(c, "application.updated", "application", id, auditPayload)
+	h.recordAuditBestEffort(c, "platform.updated", "platform", id, auditPayload)
 	c.JSON(http.StatusOK, gin.H{
 		"status": "ok",
-		"data":   applicationResponse(result),
+		"data":   platformResponse(result),
 	})
 }
 
-type archiveApplicationRequest struct {
+type archivePlatformRequest struct {
 	ArchivedReason string `json:"archived_reason"`
 }
 
-// ArchiveApplication — DELETE /api/v1/applications/:id. `?hard=true` 면 archived 상태에서만
+// ArchivePlatform — DELETE /api/v1/applications/:id. `?hard=true` 면 archived 상태에서만
 // hard-delete (project handler 와 동일 패턴), 그 외엔 archive (soft-delete).
-func (h *ApplicationHandler) ArchiveApplication(c *gin.Context) {
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+func (h *PlatformHandler) ArchivePlatform(c *gin.Context) {
+	storeI, ok := h.PlatformStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
-	id := c.Param("application_id")
-	var req archiveApplicationRequest
+	id := c.Param("platform_id")
+	var req archivePlatformRequest
 	// DELETE body 가 비어도 허용 (archived_reason 은 권장).
 	_ = c.ShouldBindJSON(&req)
 
 	// ADR-0011 §4.2 row-level 위양: archive 도 owner-self 또는 team_manager 가
 	// 가능해야 하므로 archive 직전에 lookup + 검증한다. Application 이 없으면
-	// ArchiveApplication 의 ErrNotFound 분기와 동일하게 404.
-	current, err := storeI.GetApplication(c.Request.Context(), id)
+	// ArchivePlatform 의 ErrNotFound 분기와 동일하게 404.
+	current, err := storeI.GetPlatform(c.Request.Context(), id)
 	if errors.Is(err, store.ErrNotFound) {
-		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "application not found"})
+		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "platform not found"})
 		return
 	}
 	if err != nil {
-		httphelp.WriteServerError(c, err, "applications.archive.lookup")
+		httphelp.WriteServerError(c, err, "platforms.archive.lookup")
 		return
 	}
 	if !h.enforceRowOwnership(c, current.OwnerUserID, string(domain.AppRoleTeamManager)) {
@@ -958,76 +958,76 @@ func (h *ApplicationHandler) ArchiveApplication(c *gin.Context) {
 		if string(current.Status) != "archived" {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"status": "bad_request",
-				"error":  "application must be archived before hard deletion",
-				"code":   "application_not_archived",
+				"error":  "platform must be archived before hard deletion",
+				"code":   "platform_not_archived",
 			})
 			return
 		}
-		if err := storeI.DeleteApplication(c.Request.Context(), id); err != nil {
+		if err := storeI.DeletePlatform(c.Request.Context(), id); err != nil {
 			if errors.Is(err, store.ErrNotFound) {
-				c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "application not found"})
+				c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "platform not found"})
 				return
 			}
-			httphelp.WriteServerError(c, err, "applications.delete")
+			httphelp.WriteServerError(c, err, "platforms.delete")
 			return
 		}
-		h.recordAuditBestEffort(c, "application.deleted", "application", id, nil)
+		h.recordAuditBestEffort(c, "platform.deleted", "platform", id, nil)
 		c.JSON(http.StatusOK, gin.H{"status": "deleted"})
 		return
 	}
 
-	archived, err := storeI.ArchiveApplication(c.Request.Context(), id, req.ArchivedReason)
+	archived, err := storeI.ArchivePlatform(c.Request.Context(), id, req.ArchivedReason)
 	if errors.Is(err, store.ErrNotFound) {
-		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "application not found"})
+		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "platform not found"})
 		return
 	}
 	if err != nil {
-		httphelp.WriteServerError(c, err, "applications.archive")
+		httphelp.WriteServerError(c, err, "platforms.archive")
 		return
 	}
-	h.recordAuditBestEffort(c, "application.archived", "application", id, map[string]any{
+	h.recordAuditBestEffort(c, "platform.archived", "platform", id, map[string]any{
 		"archived_reason": req.ArchivedReason,
 	})
 	c.JSON(http.StatusOK, gin.H{
 		"status": "ok",
-		"data":   applicationResponse(archived),
+		"data":   platformResponse(archived),
 	})
 }
 
 // Application-Repository link (API-48..50) ---
 
-func (h *ApplicationHandler) ListApplicationRepositories(c *gin.Context) {
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+func (h *PlatformHandler) ListPlatformRepositories(c *gin.Context) {
+	storeI, ok := h.PlatformStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
-	id := c.Param("application_id")
-	app, err := storeI.GetApplication(c.Request.Context(), id)
+	id := c.Param("platform_id")
+	app, err := storeI.GetPlatform(c.Request.Context(), id)
 	if errors.Is(err, store.ErrNotFound) {
-		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "application not found"})
+		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "platform not found"})
 		return
 	}
 	if err != nil {
-		httphelp.WriteServerError(c, err, "application_repositories.scope_lookup")
+		httphelp.WriteServerError(c, err, "platform_repositories.scope_lookup")
 		return
 	}
-	allowed, deniedReason, err := h.actorCanReadApplication(c, storeI, app)
+	allowed, deniedReason, err := h.actorCanReadPlatform(c, storeI, app)
 	if err != nil {
-		httphelp.WriteServerError(c, err, "application_repositories.scope")
+		httphelp.WriteServerError(c, err, "platform_repositories.scope")
 		return
 	}
 	if !allowed {
 		h.denyRowRead(c, deniedReason)
 		return
 	}
-	links, err := storeI.ListApplicationRepositories(c.Request.Context(), id)
+	links, err := storeI.ListPlatformRepositories(c.Request.Context(), id)
 	if err != nil {
-		httphelp.WriteServerError(c, err, "application_repositories.list")
+		httphelp.WriteServerError(c, err, "platform_repositories.list")
 		return
 	}
 	resp := make([]gin.H, 0, len(links))
 	for _, l := range links {
-		resp = append(resp, applicationRepositoryResponse(l))
+		resp = append(resp, platformRepositoryResponse(l))
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"status": "ok",
@@ -1035,20 +1035,20 @@ func (h *ApplicationHandler) ListApplicationRepositories(c *gin.Context) {
 	})
 }
 
-type createApplicationRepositoryRequest struct {
+type createPlatformRepositoryRequest struct {
 	RepoProvider   string `json:"repo_provider"`
 	RepoFullName   string `json:"repo_full_name"`
 	Role           string `json:"role"`
 	ExternalRepoID string `json:"external_repo_id"`
 }
 
-func (h *ApplicationHandler) CreateApplicationRepository(c *gin.Context) {
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+func (h *PlatformHandler) CreatePlatformRepository(c *gin.Context) {
+	storeI, ok := h.PlatformStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
-	id := c.Param("application_id")
-	var req createApplicationRepositoryRequest
+	id := c.Param("platform_id")
+	var req createPlatformRepositoryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": err.Error()})
 		return
@@ -1061,13 +1061,13 @@ func (h *ApplicationHandler) CreateApplicationRepository(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "repo_full_name is required"})
 		return
 	}
-	if !validApplicationRepoRoles[req.Role] {
+	if !validPlatformRepoRoles[req.Role] {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "role must be one of primary/sub/shared"})
 		return
 	}
 	providers, err := storeI.ListSCMProviders(c.Request.Context())
 	if err != nil {
-		httphelp.WriteServerError(c, err, "application_repositories.lookup_provider")
+		httphelp.WriteServerError(c, err, "platform_repositories.lookup_provider")
 		return
 	}
 	enabled := false
@@ -1085,44 +1085,44 @@ func (h *ApplicationHandler) CreateApplicationRepository(c *gin.Context) {
 		})
 		return
 	}
-	link := domain.ApplicationRepository{
-		ApplicationID:  id,
+	link := domain.PlatformRepository{
+		PlatformID:  id,
 		RepoProvider:   req.RepoProvider,
 		RepoFullName:   req.RepoFullName,
 		ExternalRepoID: req.ExternalRepoID,
-		Role:           domain.ApplicationRepositoryRole(req.Role),
+		Role:           domain.PlatformRepositoryRole(req.Role),
 		SyncStatus:     domain.SyncStatusRequested,
 	}
-	created, err := storeI.CreateApplicationRepository(c.Request.Context(), link)
+	created, err := storeI.CreatePlatformRepository(c.Request.Context(), link)
 	if errors.Is(err, store.ErrConflict) {
 		c.JSON(http.StatusConflict, gin.H{
 			"status": "conflict",
-			"error":  "repository link already exists or application not found",
+			"error":  "repository link already exists or platform not found",
 			"code":   "repository_link_conflict",
 		})
 		return
 	}
 	if err != nil {
-		httphelp.WriteServerError(c, err, "application_repositories.create")
+		httphelp.WriteServerError(c, err, "platform_repositories.create")
 		return
 	}
-	h.recordAuditBestEffort(c, "application_repository.linked", "application", id, map[string]any{
+	h.recordAuditBestEffort(c, "platform_repository.linked", "platform", id, map[string]any{
 		"repo_provider":  created.RepoProvider,
 		"repo_full_name": created.RepoFullName,
 		"role":           string(created.Role),
 	})
 	c.JSON(http.StatusCreated, gin.H{
 		"status": "ok",
-		"data":   applicationRepositoryResponse(created),
+		"data":   platformRepositoryResponse(created),
 	})
 }
 
-func (h *ApplicationHandler) DeleteApplicationRepository(c *gin.Context) {
-	storeI, ok := h.ApplicationStoreOrUnavailable(c)
+func (h *PlatformHandler) DeletePlatformRepository(c *gin.Context) {
+	storeI, ok := h.PlatformStoreOrUnavailable(c)
 	if !ok {
 		return
 	}
-	id := c.Param("application_id")
+	id := c.Param("platform_id")
 	// repo_key = "{provider}:{full_name}". gin 의 catch-all (`*repo_key`) 이라 leading `/`
 	// 가 붙어 들어옴. 클라이언트가 `//provider:repo` 같은 잘못된 입력을 보내도 leading `/`
 	// 를 모두 제거하기 위해 TrimLeft 사용. provider:org/repo 컨벤션 — 콜론으로 분리.
@@ -1135,19 +1135,19 @@ func (h *ApplicationHandler) DeleteApplicationRepository(c *gin.Context) {
 		})
 		return
 	}
-	linkKey := store.ApplicationRepositoryLinkKey{
-		ApplicationID: id,
+	linkKey := store.PlatformRepositoryLinkKey{
+		PlatformID: id,
 		RepoProvider:  parts[0],
 		RepoFullName:  parts[1],
 	}
-	if err := storeI.DeleteApplicationRepository(c.Request.Context(), linkKey); errors.Is(err, store.ErrNotFound) {
+	if err := storeI.DeletePlatformRepository(c.Request.Context(), linkKey); errors.Is(err, store.ErrNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "repository link not found"})
 		return
 	} else if err != nil {
-		httphelp.WriteServerError(c, err, "application_repositories.delete")
+		httphelp.WriteServerError(c, err, "platform_repositories.delete")
 		return
 	}
-	h.recordAuditBestEffort(c, "application_repository.unlinked", "application", id, map[string]any{
+	h.recordAuditBestEffort(c, "platform_repository.unlinked", "platform", id, map[string]any{
 		"repo_provider":  parts[0],
 		"repo_full_name": parts[1],
 	})

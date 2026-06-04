@@ -18,6 +18,10 @@ type MockIdentityAdmin struct {
 	// users row already carries an idp_subject.
 	FindCalls int
 	FindError error
+	// LogoutError is the error returned by LogoutUserSession (nil = success).
+	LogoutError error
+	// LogoutCalls records the identityID arguments passed to LogoutUserSession.
+	LogoutCalls []string
 }
 
 // compile-time interface check.
@@ -32,4 +36,9 @@ func (m *MockIdentityAdmin) FindIdentityByUserID(_ context.Context, userID strin
 		return id, nil
 	}
 	return fmt.Sprintf("mock-k-id-%s", userID), nil
+}
+
+func (m *MockIdentityAdmin) LogoutUserSession(_ context.Context, identityID string) error {
+	m.LogoutCalls = append(m.LogoutCalls, identityID)
+	return m.LogoutError
 }

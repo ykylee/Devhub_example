@@ -10,12 +10,12 @@ VALUES
             "projects": {"edit": true, "view": true, "create": true, "delete": true},
             "security": {"edit": true, "view": true, "create": true, "delete": true},
             "pipelines": {"edit": true, "view": true, "create": true, "delete": true},
-            "applications": {"edit": true, "view": true, "create": true, "delete": true},
+            "platforms": {"edit": true, "view": true, "create": true, "delete": true},
             "dev_requests": {"edit": true, "view": true, "create": true, "delete": true},
             "organization": {"edit": true, "view": true, "create": true, "delete": true},
             "scm_providers": {"edit": true, "view": true, "create": true, "delete": true},
             "infrastructure": {"edit": true, "view": true, "create": true, "delete": true},
-            "application_repositories": {"edit": true, "view": true, "create": true, "delete": true},
+            "platform_repositories": {"edit": true, "view": true, "create": true, "delete": true},
             "dev_request_intake_tokens": {"edit": true, "view": true, "create": true, "delete": true}
         }'::jsonb
     ),
@@ -29,12 +29,12 @@ VALUES
             "projects": {"edit": false, "view": false, "create": false, "delete": false},
             "security": {"edit": false, "view": true, "create": false, "delete": false},
             "pipelines": {"edit": false, "view": true, "create": false, "delete": false},
-            "applications": {"edit": false, "view": false, "create": false, "delete": false},
+            "platforms": {"edit": false, "view": false, "create": false, "delete": false},
             "dev_requests": {"edit": false, "view": true, "create": false, "delete": false},
             "organization": {"edit": false, "view": true, "create": false, "delete": false},
             "scm_providers": {"edit": false, "view": false, "create": false, "delete": false},
             "infrastructure": {"edit": false, "view": true, "create": false, "delete": false},
-            "application_repositories": {"edit": false, "view": false, "create": false, "delete": false},
+            "platform_repositories": {"edit": false, "view": false, "create": false, "delete": false},
             "dev_request_intake_tokens": {"edit": false, "view": false, "create": false, "delete": false}
         }'::jsonb
     ),
@@ -48,12 +48,12 @@ VALUES
             "projects": {"edit": true, "view": true, "create": true, "delete": true},
             "security": {"edit": false, "view": true, "create": true, "delete": false},
             "pipelines": {"edit": false, "view": true, "create": false, "delete": false},
-            "applications": {"edit": true, "view": true, "create": false, "delete": false},
+            "platforms": {"edit": true, "view": true, "create": false, "delete": false},
             "dev_requests": {"edit": true, "view": true, "create": false, "delete": false},
             "organization": {"edit": true, "view": true, "create": false, "delete": false},
             "scm_providers": {"edit": false, "view": true, "create": false, "delete": false},
             "infrastructure": {"edit": false, "view": true, "create": false, "delete": false},
-            "application_repositories": {"edit": false, "view": true, "create": false, "delete": false},
+            "platform_repositories": {"edit": false, "view": true, "create": false, "delete": false},
             "dev_request_intake_tokens": {"edit": false, "view": false, "create": false, "delete": false}
         }'::jsonb
     );

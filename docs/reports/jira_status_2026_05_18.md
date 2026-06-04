@@ -54,7 +54,7 @@ gantt
 
 | 항목 | 수 |
 | --- | --- |
-| REQ-FR (Functional Requirements) | 105 + (Application/Project 확장) + (DREQ 11) + (INT 12) ≈ **140+** |
+| REQ-FR (Functional Requirements) | 105 + (Platform/Project 확장) + (DREQ 11) + (INT 12) ≈ **140+** |
 | REQ-NFR (Non-Functional) | 26 + (DREQ 6) + (INT 8) ≈ **40** |
 | ARCH (Architecture) | ARCH-01..17 + ARCH-DREQ-01..06 + ARCH-INT-01..06 = **29** |
 | API (Backend endpoints) | 80 (API-01..80) |
@@ -225,15 +225,15 @@ production `/admin/settings/users` 진입 후:
 
 ### 4.1 상태: ✅ **DREQ (Dev Request) 도메인 종합 closing**
 
-외부 요청 → 사내 application/project 등록 → 진척 추적 → close. Application + Project + Repository + DREQ 4 도메인 통합.
+외부 요청 → 사내 application/project 등록 → 진척 추적 → close. Platform + Project + Repository + DREQ 4 도메인 통합.
 
 ### 4.2 완료 사항
 
 #### 4.2.1 Application Domain (backend 1차)
 
 - API-01~58 전체 activated (18 endpoint group + 7 migration).
-- 도메인 타입: Application / ApplicationRepository / SCMProvider / Project / ProjectMember / ProjectIntegration / PRActivity / BuildRun / QualitySnapshot 등.
-- RBAC 4 신규 resource (`applications` / `application_repositories` / `projects` / `scm_providers`).
+- 도메인 타입: Application / PlatformRepository / SCMProvider / Project / ProjectMember / ProjectIntegration / PRActivity / BuildRun / QualitySnapshot 등.
+- RBAC 4 신규 resource (`applications` / `platform_repositories` / `projects` / `scm_providers`).
 - 상태 전이 머신: planning → active → on_hold → resume → closed → archived (critical_warning_count=0 가드).
 - Backend integration test 23건 (CI backend-integration job).
 
@@ -304,7 +304,7 @@ production `/admin/settings/users` 진입 후:
   - REQ-FR-AUTH-* / REQ-FR-RBAC-* (M0/M1)
   - REQ-FR-ACCOUNT-* / REQ-FR-ORG-* (M2)
   - REQ-FR-CMD-* / REQ-FR-INFRA-* (M3)
-  - REQ-FR-APP-001..012 / REQ-FR-PROJ-000..010 / REQ-NFR-PROJ-001..006 (Application/Project, 2026-05-14)
+  - REQ-FR-APP-001..012 / REQ-FR-PROJ-000..010 / REQ-NFR-PROJ-001..006 (Platform/Project, 2026-05-14)
   - REQ-FR-DREQ-001..011 / REQ-NFR-DREQ-001..006 (DREQ, 2026-05-15)
   - **REQ-FR-INT-001..012 / REQ-NFR-INT-001..008** (External Integration, 2026-05-15)
 
@@ -382,7 +382,7 @@ production `/admin/settings/users` 진입 후:
 | ADR-0008 | HRDB production adapter | HRDB |
 | ADR-0009 | secondary memberships + total_count MV | 조직 |
 | ADR-0010 | primary_dept resolution | 조직 |
-| ADR-0011 | Application/Project RBAC row-scoping | Application |
+| ADR-0011 | Platform/Project RBAC row-scoping | Application |
 | ADR-0012 | DREQ intake auth (옵션 A) | DREQ |
 | ADR-0013 | DREQ RBAC row-scoping | DREQ |
 | ADR-0014 | DREQ intake token admin endpoint | DREQ |

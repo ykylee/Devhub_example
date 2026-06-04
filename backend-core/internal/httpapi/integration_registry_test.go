@@ -16,7 +16,7 @@ import (
 
 // UT-httpapi-25 — Integration registry/binding handler tests (API-69..75 baseline).
 func TestCreateIntegrationProvider_Happy(t *testing.T) {
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
 		`{"provider_key":"jira-main","provider_type":"alm","display_name":"Jira","auth_mode":"oauth2","credentials_ref":"secret://jira","capabilities":["issue.read"]}`)
 	if rec.Code != http.StatusCreated {
@@ -28,7 +28,7 @@ func TestCreateIntegrationProvider_Happy(t *testing.T) {
 }
 
 func TestCreateIntegrationProvider_Duplicate(t *testing.T) {
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	body := `{"provider_key":"jira-main","provider_type":"alm","display_name":"Jira","auth_mode":"oauth2","credentials_ref":"secret://jira"}`
 	first := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers", body)
 	if first.Code != http.StatusCreated {
@@ -41,7 +41,7 @@ func TestCreateIntegrationProvider_Duplicate(t *testing.T) {
 }
 
 func TestListIntegrationProviders_FilterEnabled(t *testing.T) {
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	_ = doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
 		`{"provider_key":"jira-main","provider_type":"alm","display_name":"Jira","auth_mode":"oauth2","credentials_ref":"secret://jira"}`)
 	_ = doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
@@ -61,7 +61,7 @@ func TestListIntegrationProviders_FilterEnabled(t *testing.T) {
 
 // 등록 UX 고도화 #2 — base_url (endpoint) round-trip.
 func TestCreateIntegrationProvider_WithBaseURL(t *testing.T) {
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
 		`{"provider_key":"gitea-url","provider_type":"scm","display_name":"Gitea","auth_mode":"token","credentials_ref":"provider_sdk:gitea:s","base_url":"https://gitea.example.com"}`)
 	if rec.Code != http.StatusCreated {
@@ -74,7 +74,7 @@ func TestCreateIntegrationProvider_WithBaseURL(t *testing.T) {
 
 // Gitea 연동 #3 — api_token 은 write-only: 저장되지만 응답엔 raw 미노출 (api_token_set 만).
 func TestCreateIntegrationProvider_APITokenWriteOnly(t *testing.T) {
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	const secretToken = "gitea-pat-supersecret-xyz"
 	rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
 		`{"provider_key":"gitea-tok","provider_type":"scm","display_name":"Gitea","auth_mode":"token","credentials_ref":"provider_sdk:gitea:wh","api_token":"`+secretToken+`"}`)
@@ -92,7 +92,7 @@ func TestCreateIntegrationProvider_APITokenWriteOnly(t *testing.T) {
 // auth_mode 별 구조화 자격증명: 비밀 외 필드(auth_username/client_id/token_url)는
 // 응답에 노출, auth_secret 은 write-only (auth_secret_set bool 만).
 func TestCreateIntegrationProvider_BasicAuthCredentials(t *testing.T) {
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	const secret = "basic-password-supersecret"
 	rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
 		`{"provider_key":"gitea-basic","provider_type":"scm","display_name":"Gitea","auth_mode":"basic","credentials_ref":"hmac_sha256:wh","auth_username":"alice","auth_secret":"`+secret+`"}`)
@@ -112,7 +112,7 @@ func TestCreateIntegrationProvider_BasicAuthCredentials(t *testing.T) {
 
 // oauth2 token_url 은 http(s) URL 만 허용.
 func TestCreateIntegrationProvider_InvalidAuthTokenURL(t *testing.T) {
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
 		`{"provider_key":"oauth-bad","provider_type":"scm","display_name":"X","auth_mode":"oauth2","credentials_ref":"hmac_sha256:s","auth_client_id":"cid","auth_token_url":"not-a-url","auth_secret":"cs"}`)
 	if rec.Code != http.StatusBadRequest {
@@ -125,7 +125,7 @@ func TestCreateIntegrationProvider_InvalidAuthTokenURL(t *testing.T) {
 
 // base_url 은 http(s) scheme 만 허용.
 func TestCreateIntegrationProvider_InvalidBaseURL(t *testing.T) {
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	// codex PR #352 P2 — 비-http(s) + scheme-only(host 누락) 모두 거부.
 	for _, bad := range []string{"ftp://nope", "https://"} {
 		rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
@@ -145,7 +145,7 @@ func TestTestIntegrationConnection_Reachable(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer srv.Close()
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/test-connection",
 		`{"base_url":"`+srv.URL+`"}`)
 	if rec.Code != http.StatusOK {
@@ -160,7 +160,7 @@ func TestTestIntegrationConnection_Reachable(t *testing.T) {
 }
 
 func TestTestIntegrationConnection_InvalidURL(t *testing.T) {
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	// codex PR #352 P2 — scheme-only (host 누락) 도 거부.
 	for _, body := range []string{`{"base_url":""}`, `{"base_url":"ftp://nope"}`, `{"base_url":"https://"}`} {
 		rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/test-connection", body)
@@ -171,7 +171,7 @@ func TestTestIntegrationConnection_InvalidURL(t *testing.T) {
 }
 
 func TestSyncIntegrationProvider_Happy(t *testing.T) {
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	// SCM provider — sync 가능한 유일한 provider_type (Gitea 워커 대상).
 	// capability gate: sync 는 pull/sync capability 필요 (기능 gate 전환).
 	seed := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
@@ -191,7 +191,7 @@ func TestSyncIntegrationProvider_Happy(t *testing.T) {
 // codex review PR #345 P2 — 비-SCM provider 의 sync 는 queue 전에 fast-fail.
 // (소비할 worker 가 없어 영구 queued 로 남는 zombie job 방지.)
 func TestSyncIntegrationProvider_RejectsNonSCM(t *testing.T) {
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	seed := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
 		`{"provider_key":"jira-main","provider_type":"alm","display_name":"Jira","auth_mode":"oauth2","credentials_ref":"secret://jira"}`)
 	if seed.Code != http.StatusCreated {
@@ -207,14 +207,14 @@ func TestSyncIntegrationProvider_RejectsNonSCM(t *testing.T) {
 }
 
 func TestCreateIntegrationBinding_Happy(t *testing.T) {
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	seed := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
 		`{"provider_key":"jira-main","provider_type":"alm","display_name":"Jira","auth_mode":"oauth2","credentials_ref":"secret://jira"}`)
 	if seed.Code != http.StatusCreated {
 		t.Fatalf("seed failed: %s", seed.Body.String())
 	}
 	rec := doJSON(t, router, http.MethodPost, "/api/v1/integration/bindings",
-		`{"scope_type":"application","scope_id":"APP-001","provider_id":"prov-jira-main","external_key":"PROJ","policy":"execution_system"}`)
+		`{"scope_type":"platform","scope_id":"APP-001","provider_id":"prov-jira-main","external_key":"PROJ","policy":"execution_system"}`)
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
 	}
@@ -224,7 +224,7 @@ func TestCreateIntegrationBinding_Happy(t *testing.T) {
 }
 
 func TestCreateIntegrationBinding_ForbiddenForDeveloperRole(t *testing.T) {
-	store := newMemoryApplicationStore()
+	store := newMemoryPlatformStore()
 	if _, err := store.CreateIntegrationProvider(context.Background(), domain.IntegrationProvider{
 		ID:             "prov-jira-main",
 		ProviderKey:    "jira-main",
@@ -239,7 +239,7 @@ func TestCreateIntegrationBinding_ForbiddenForDeveloperRole(t *testing.T) {
 	}
 
 	router := NewRouter(RouterConfig{
-		ApplicationStore: store,
+		PlatformStore: store,
 		BearerTokenVerifier: &fakeBearerTokenVerifier{actor: AuthenticatedActor{
 			Login:   "dev-user",
 			Subject: "user-dev-user",
@@ -248,7 +248,7 @@ func TestCreateIntegrationBinding_ForbiddenForDeveloperRole(t *testing.T) {
 	})
 
 	req, _ := http.NewRequest(http.MethodPost, "/api/v1/integration/bindings",
-		bytes.NewBufferString(`{"scope_type":"application","scope_id":"APP-001","provider_id":"prov-jira-main","external_key":"PROJ","policy":"execution_system"}`))
+		bytes.NewBufferString(`{"scope_type":"platform","scope_id":"APP-001","provider_id":"prov-jira-main","external_key":"PROJ","policy":"execution_system"}`))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer t")
 	rec := httptestDo(t, router, req)
@@ -262,7 +262,7 @@ func TestCreateIntegrationBinding_ForbiddenForDeveloperRole(t *testing.T) {
 // cascade 방지. integration_sync_jobs 는 schema 의 ON DELETE CASCADE 로 자동 정리.
 
 func TestDeleteIntegrationProvider_Happy(t *testing.T) {
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	seed := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
 		`{"provider_key":"jira-main","provider_type":"alm","display_name":"Jira","auth_mode":"oauth2","credentials_ref":"secret://jira"}`)
 	if seed.Code != http.StatusCreated {
@@ -280,7 +280,7 @@ func TestDeleteIntegrationProvider_Happy(t *testing.T) {
 }
 
 func TestDeleteIntegrationProvider_NotFound(t *testing.T) {
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	rec := doJSON(t, router, http.MethodDelete, "/api/v1/integration/providers/prov-ghost", "")
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
@@ -291,14 +291,14 @@ func TestDeleteIntegrationProvider_NotFound(t *testing.T) {
 }
 
 func TestDeleteIntegrationProvider_HasBindings(t *testing.T) {
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	seed := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
 		`{"provider_key":"jira-main","provider_type":"alm","display_name":"Jira","auth_mode":"oauth2","credentials_ref":"secret://jira"}`)
 	if seed.Code != http.StatusCreated {
 		t.Fatalf("seed failed: %s", seed.Body.String())
 	}
 	binding := doJSON(t, router, http.MethodPost, "/api/v1/integration/bindings",
-		`{"scope_type":"application","scope_id":"APP-001","provider_id":"prov-jira-main","external_key":"PROJ","policy":"execution_system"}`)
+		`{"scope_type":"platform","scope_id":"APP-001","provider_id":"prov-jira-main","external_key":"PROJ","policy":"execution_system"}`)
 	if binding.Code != http.StatusCreated {
 		t.Fatalf("seed binding failed: %s", binding.Body.String())
 	}
@@ -312,7 +312,7 @@ func TestDeleteIntegrationProvider_HasBindings(t *testing.T) {
 }
 
 func TestDeleteIntegrationProvider_ForbiddenForDeveloperRole(t *testing.T) {
-	store := newMemoryApplicationStore()
+	store := newMemoryPlatformStore()
 	if _, err := store.CreateIntegrationProvider(context.Background(), domain.IntegrationProvider{
 		ID:             "prov-jira-main",
 		ProviderKey:    "jira-main",
@@ -327,7 +327,7 @@ func TestDeleteIntegrationProvider_ForbiddenForDeveloperRole(t *testing.T) {
 	}
 
 	router := NewRouter(RouterConfig{
-		ApplicationStore: store,
+		PlatformStore: store,
 		BearerTokenVerifier: &fakeBearerTokenVerifier{actor: AuthenticatedActor{
 			Login:   "dev-user",
 			Subject: "user-dev-user",
@@ -352,14 +352,14 @@ func TestDeleteIntegrationProvider_ForbiddenForDeveloperRole(t *testing.T) {
 // DELETE happy/neg test 가 동일 진입점을 쓰도록 helper 화.
 func seedBindingFixture(t *testing.T) (http.Handler, string) {
 	t.Helper()
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	seed := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
 		`{"provider_key":"jira-main","provider_type":"alm","display_name":"Jira","auth_mode":"oauth2","credentials_ref":"secret://jira"}`)
 	if seed.Code != http.StatusCreated {
 		t.Fatalf("seed provider: %s", seed.Body.String())
 	}
 	created := doJSON(t, router, http.MethodPost, "/api/v1/integration/bindings",
-		`{"scope_type":"application","scope_id":"APP-001","provider_id":"prov-jira-main","external_key":"PROJ","policy":"execution_system"}`)
+		`{"scope_type":"platform","scope_id":"APP-001","provider_id":"prov-jira-main","external_key":"PROJ","policy":"execution_system"}`)
 	if created.Code != http.StatusCreated {
 		t.Fatalf("seed binding: %s", created.Body.String())
 	}
@@ -391,7 +391,7 @@ func TestUpdateIntegrationBinding_Happy(t *testing.T) {
 }
 
 func TestUpdateIntegrationBinding_NotFound(t *testing.T) {
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	rec := doJSON(t, router, http.MethodPatch, "/api/v1/integration/bindings/bind-ghost",
 		`{"policy":"summary_only"}`)
 	if rec.Code != http.StatusNotFound {
@@ -415,7 +415,7 @@ func TestUpdateIntegrationBinding_ConflictDuplicate(t *testing.T) {
 	router, firstID := seedBindingFixture(t)
 	// 같은 router 에 같은 provider 로 두 번째 binding (scope_id 가 다름) 생성.
 	second := doJSON(t, router, http.MethodPost, "/api/v1/integration/bindings",
-		`{"scope_type":"application","scope_id":"APP-002","provider_id":"prov-jira-main","external_key":"OTHER","policy":"execution_system"}`)
+		`{"scope_type":"platform","scope_id":"APP-002","provider_id":"prov-jira-main","external_key":"OTHER","policy":"execution_system"}`)
 	if second.Code != http.StatusCreated {
 		t.Fatalf("seed second binding: %s", second.Body.String())
 	}
@@ -426,7 +426,7 @@ func TestUpdateIntegrationBinding_ConflictDuplicate(t *testing.T) {
 	// 같이 검증하기 위해 fake 의 conflict 분기를 직접 트리거. firstID 와 동일
 	// scope_id 인 별도 binding 을 만들어 conflict 시뮬레이션:
 	dup := doJSON(t, router, http.MethodPost, "/api/v1/integration/bindings",
-		`{"scope_type":"application","scope_id":"APP-001","provider_id":"prov-jira-main","external_key":"DUPLICATE-CANDIDATE","policy":"execution_system"}`)
+		`{"scope_type":"platform","scope_id":"APP-001","provider_id":"prov-jira-main","external_key":"DUPLICATE-CANDIDATE","policy":"execution_system"}`)
 	if dup.Code != http.StatusCreated {
 		t.Fatalf("seed dup-candidate: %s", dup.Body.String())
 	}
@@ -440,7 +440,7 @@ func TestUpdateIntegrationBinding_ConflictDuplicate(t *testing.T) {
 }
 
 func TestUpdateIntegrationBinding_ForbiddenForDeveloperRole(t *testing.T) {
-	store := newMemoryApplicationStore()
+	store := newMemoryPlatformStore()
 	// seed provider + binding 직접 (RBAC bypass 안 되는 router 라 doJSON 사용 불가).
 	if _, err := store.CreateIntegrationProvider(context.Background(), domain.IntegrationProvider{
 		ID: "prov-jira-main", ProviderKey: "jira-main",
@@ -451,7 +451,7 @@ func TestUpdateIntegrationBinding_ForbiddenForDeveloperRole(t *testing.T) {
 		t.Fatalf("seed provider: %v", err)
 	}
 	if _, err := store.CreateIntegrationBinding(context.Background(), domain.IntegrationBinding{
-		ID: "bind-APP-001-PROJ", ScopeType: "application", ScopeID: "APP-001",
+		ID: "bind-APP-001-PROJ", ScopeType: "platform", ScopeID: "APP-001",
 		ProviderID: "prov-jira-main", ExternalKey: "PROJ",
 		Policy: domain.IntegrationPolicyExecutionSystem, Enabled: true,
 	}); err != nil {
@@ -459,7 +459,7 @@ func TestUpdateIntegrationBinding_ForbiddenForDeveloperRole(t *testing.T) {
 	}
 
 	router := NewRouter(RouterConfig{
-		ApplicationStore: store,
+		PlatformStore: store,
 		BearerTokenVerifier: &fakeBearerTokenVerifier{actor: AuthenticatedActor{
 			Login: "dev-user", Subject: "user-dev-user", Role: "developer",
 		}},
@@ -496,7 +496,7 @@ func TestDeleteIntegrationBinding_Happy(t *testing.T) {
 }
 
 func TestDeleteIntegrationBinding_NotFound(t *testing.T) {
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	rec := doJSON(t, router, http.MethodDelete, "/api/v1/integration/bindings/bind-ghost", "")
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
@@ -507,7 +507,7 @@ func TestDeleteIntegrationBinding_NotFound(t *testing.T) {
 }
 
 func TestDeleteIntegrationBinding_ForbiddenForDeveloperRole(t *testing.T) {
-	store := newMemoryApplicationStore()
+	store := newMemoryPlatformStore()
 	if _, err := store.CreateIntegrationProvider(context.Background(), domain.IntegrationProvider{
 		ID: "prov-jira-main", ProviderKey: "jira-main",
 		ProviderType: domain.IntegrationProviderType("alm"), DisplayName: "Jira",
@@ -517,7 +517,7 @@ func TestDeleteIntegrationBinding_ForbiddenForDeveloperRole(t *testing.T) {
 		t.Fatalf("seed provider: %v", err)
 	}
 	if _, err := store.CreateIntegrationBinding(context.Background(), domain.IntegrationBinding{
-		ID: "bind-APP-001-PROJ", ScopeType: "application", ScopeID: "APP-001",
+		ID: "bind-APP-001-PROJ", ScopeType: "platform", ScopeID: "APP-001",
 		ProviderID: "prov-jira-main", ExternalKey: "PROJ",
 		Policy: domain.IntegrationPolicyExecutionSystem, Enabled: true,
 	}); err != nil {
@@ -525,7 +525,7 @@ func TestDeleteIntegrationBinding_ForbiddenForDeveloperRole(t *testing.T) {
 	}
 
 	router := NewRouter(RouterConfig{
-		ApplicationStore: store,
+		PlatformStore: store,
 		BearerTokenVerifier: &fakeBearerTokenVerifier{actor: AuthenticatedActor{
 			Login: "dev-user", Subject: "user-dev-user", Role: "developer",
 		}},
@@ -540,7 +540,7 @@ func TestDeleteIntegrationBinding_ForbiddenForDeveloperRole(t *testing.T) {
 }
 
 func TestIntegrationProviderWebhook_Happy(t *testing.T) {
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	seed := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
 		`{"provider_key":"jira-main","provider_type":"alm","display_name":"Jira","auth_mode":"oauth2","credentials_ref":"hmac_sha256:test-secret"}`)
 	if seed.Code != http.StatusCreated {
@@ -566,7 +566,7 @@ func TestIntegrationProviderWebhook_Happy(t *testing.T) {
 func TestIntegrationProviderWebhook_GiteaNativeHeaders(t *testing.T) {
 	eventStore := &dedupeEventStore{seen: map[string]bool{}}
 	router := NewRouter(RouterConfig{
-		ApplicationStore: newMemoryApplicationStore(),
+		PlatformStore: newMemoryPlatformStore(),
 		AuthDevFallback:  true,
 		EventStore:       eventStore,
 	})
@@ -604,7 +604,7 @@ func TestIntegrationProviderWebhook_GiteaNativeHeaders(t *testing.T) {
 }
 
 func TestIntegrationProviderWebhook_InvalidSignature(t *testing.T) {
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	seed := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
 		`{"provider_key":"jira-main","provider_type":"alm","display_name":"Jira","auth_mode":"oauth2","credentials_ref":"hmac_sha256:test-secret"}`)
 	if seed.Code != http.StatusCreated {
@@ -623,7 +623,7 @@ func TestIntegrationProviderWebhook_InvalidSignature(t *testing.T) {
 }
 
 func TestIntegrationProviderWebhook_ProviderSDKHappy(t *testing.T) {
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	seed := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
 		`{"provider_key":"jira-main","provider_type":"alm","display_name":"Jira","auth_mode":"oauth2","credentials_ref":"provider_sdk:jira:test-secret"}`)
 	if seed.Code != http.StatusCreated {
@@ -644,7 +644,7 @@ func TestIntegrationProviderWebhook_ProviderSDKHappy(t *testing.T) {
 }
 
 func TestIntegrationProviderWebhook_ProviderSDKUnsupportedProvider(t *testing.T) {
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	seed := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
 		`{"provider_key":"custom-main","provider_type":"alm","display_name":"Custom","auth_mode":"oauth2","credentials_ref":"provider_sdk:custom:test-secret"}`)
 	if seed.Code != http.StatusCreated {
@@ -666,7 +666,7 @@ func TestIntegrationProviderWebhook_ProviderSDKUnsupportedProvider(t *testing.T)
 func TestIntegrationProviderWebhook_DuplicateDeliveryConflict(t *testing.T) {
 	eventStore := &dedupeEventStore{seen: map[string]bool{}}
 	router := NewRouter(RouterConfig{
-		ApplicationStore: newMemoryApplicationStore(),
+		PlatformStore: newMemoryPlatformStore(),
 		AuthDevFallback:  true,
 		EventStore:       eventStore,
 	})
@@ -703,7 +703,7 @@ func TestIntegrationProviderWebhook_DuplicateDeliveryConflict(t *testing.T) {
 }
 
 func TestIntegrationProviderWebhook_InvalidSignatureMarksOnlyTargetProviderDegraded(t *testing.T) {
-	router := newApplicationsRouter(newMemoryApplicationStore())
+	router := newPlatformsRouter(newMemoryPlatformStore())
 	seedA := doJSON(t, router, http.MethodPost, "/api/v1/integration/providers",
 		`{"provider_key":"jira-main","provider_type":"alm","display_name":"Jira","auth_mode":"oauth2","credentials_ref":"hmac_sha256:test-secret"}`)
 	if seedA.Code != http.StatusCreated {

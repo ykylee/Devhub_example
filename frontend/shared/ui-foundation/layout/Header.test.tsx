@@ -87,7 +87,7 @@ const createHandlersRef: {
     onCreated?: (proj: { id: string }) => void;
   };
 } = { current: {} };
-vi.mock("@/domain/application-lifecycle/view/ProjectCreationModal", () => ({
+vi.mock("@/domain/platform-lifecycle/view/ProjectCreationModal", () => ({
   ProjectCreationModal: (props: {
     onClose: () => void;
     onCreated: (proj: { id: string }) => void;

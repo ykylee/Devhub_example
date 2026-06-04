@@ -28,11 +28,11 @@ vi.mock("next/link", () => ({
 }));
 
 import { RepositoryTable } from "./RepositoryTable";
-import type { ApplicationRepository } from "@/domain/application-lifecycle/schema/project.types";
+import type { PlatformRepository } from "@/domain/platform-lifecycle/schema/project.types";
 
-const repos: ApplicationRepository[] = [
+const repos: PlatformRepository[] = [
   {
-    application_id: "app-1",
+    platform_id: "app-1",
     repo_provider: "github",
     repo_full_name: "devhub/backend-core",
     role: "primary",
@@ -42,7 +42,7 @@ const repos: ApplicationRepository[] = [
     link_source: "direct",
   },
   {
-    application_id: "app-1",
+    platform_id: "app-1",
     repo_provider: "gitea",
     repo_full_name: "ops/infra",
     role: "sub",
@@ -53,7 +53,7 @@ const repos: ApplicationRepository[] = [
     link_source: "direct",
   },
   {
-    application_id: "app-1",
+    platform_id: "app-1",
     repo_provider: "gitlab",
     repo_full_name: "shared/lib",
     role: "shared",
@@ -81,7 +81,7 @@ describe("RepositoryTable", () => {
   it("renders repo name without link (no numeric repository_id available)", () => {
     render(<RepositoryTable repositories={repos} />);
 
-    // ApplicationRepository has no numeric repository_id — all names display as plain text
+    // PlatformRepository has no numeric repository_id — all names display as plain text
     const name1 = screen.getByText("devhub/backend-core");
     expect(name1.closest("a")).toBeNull();
   });
@@ -97,13 +97,13 @@ describe("RepositoryTable", () => {
     expect(screen.getAllByText("Never").length).toBeGreaterThan(0);
   });
 
-  it("shows Application column only when showApplicationColumn is true", () => {
+  it("shows Platform column only when showApplicationColumn is true", () => {
     const { rerender } = render(<RepositoryTable repositories={repos} />);
-    expect(screen.queryByText("Application")).not.toBeInTheDocument();
+    expect(screen.queryByText("Platform")).not.toBeInTheDocument();
 
     rerender(<RepositoryTable repositories={repos} showApplicationColumn />);
-    expect(screen.getByText("Application")).toBeInTheDocument();
-    // application_id rendered in cell
+    expect(screen.getByText("Platform")).toBeInTheDocument();
+    // platform_id rendered in cell
     const appIds = screen.getAllByText("app-1");
     expect(appIds.length).toBe(3);
   });
@@ -169,8 +169,8 @@ describe("RepositoryTable", () => {
   });
 
   it("renders fallback badge for disconnected status", () => {
-    const repo: ApplicationRepository = {
-      application_id: "app-1",
+    const repo: PlatformRepository = {
+      platform_id: "app-1",
       repo_provider: "github",
       repo_full_name: "x/y",
       role: "sub",

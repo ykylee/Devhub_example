@@ -26,67 +26,67 @@ UPDATE dev_requests SET
 WHERE id = $1::uuid AND status IN ('pending', 'in_review')
 RETURNING` + devRequestsSelectColumns
 
-// RegisterDevRequestWithNewApplication promotes a pending/in_review dev_request
+// RegisterDevRequestWithNewPlatform promotes a pending/in_review dev_request
 // into a freshly-created Application (optionally with one primary repository
 // link) inside a single Postgres transaction.
-func (r *DevRequestRepository) RegisterDevRequestWithNewApplication(
+func (r *DevRequestRepository) RegisterDevRequestWithNewPlatform(
 	ctx context.Context,
 	drID string,
-	app domain.Application,
-	primaryRepo *domain.ApplicationRepository,
-) (domain.DevRequest, domain.Application, error) {
+	app domain.Platform,
+	primaryRepo *domain.PlatformRepository,
+) (domain.DevRequest, domain.Platform, error) {
 	tx, err := r.store.Pool().Begin(ctx)
 	if err != nil {
-		return domain.DevRequest{}, domain.Application{}, fmt.Errorf("begin promote tx: %w", err)
+		return domain.DevRequest{}, domain.Platform{}, fmt.Errorf("begin promote tx: %w", err)
 	}
 	defer tx.Rollback(ctx)
 
-	row := tx.QueryRow(ctx, appRepo.ApplicationsInsertQuery,
+	row := tx.QueryRow(ctx, appRepo.PlatformsInsertQuery,
 		app.Key, app.Name, app.Description, app.Status, app.Visibility,
 		app.OwnerUserID, app.LeaderUserID, app.DevelopmentUnitID, app.StartDate, app.DueDate,
 	)
-	createdApp, err := appRepo.ScanApplication(row)
+	createdApp, err := appRepo.ScanPlatform(row)
 	if store.IsUniqueViolation(err) {
-		return domain.DevRequest{}, domain.Application{}, store.ErrConflict
+		return domain.DevRequest{}, domain.Platform{}, store.ErrConflict
 	}
 	if store.IsForeignKeyViolation(err) {
-		return domain.DevRequest{}, domain.Application{}, store.ErrConflict
+		return domain.DevRequest{}, domain.Platform{}, store.ErrConflict
 	}
 	if err != nil {
-		return domain.DevRequest{}, domain.Application{}, fmt.Errorf("promote: create application: %w", err)
+		return domain.DevRequest{}, domain.Platform{}, fmt.Errorf("promote: create application: %w", err)
 	}
 
 	if primaryRepo != nil {
 		syncStatus := string(primaryRepo.SyncStatus)
-		linkRow := tx.QueryRow(ctx, appRepo.ApplicationRepositoriesInsertQuery,
+		linkRow := tx.QueryRow(ctx, appRepo.PlatformRepositoriesInsertQuery,
 			createdApp.ID, primaryRepo.RepoProvider, primaryRepo.RepoFullName,
 			primaryRepo.ExternalRepoID, primaryRepo.Role, syncStatus,
 		)
-		if _, err := appRepo.ScanApplicationRepository(linkRow); err != nil {
+		if _, err := appRepo.ScanPlatformRepository(linkRow); err != nil {
 			if store.IsUniqueViolation(err) {
-				return domain.DevRequest{}, domain.Application{}, store.ErrConflict
+				return domain.DevRequest{}, domain.Platform{}, store.ErrConflict
 			}
 			if store.IsForeignKeyViolation(err) {
-				return domain.DevRequest{}, domain.Application{}, store.ErrConflict
+				return domain.DevRequest{}, domain.Platform{}, store.ErrConflict
 			}
 			if store.IsCheckViolation(err, "") {
-				return domain.DevRequest{}, domain.Application{}, store.ErrConflict
+				return domain.DevRequest{}, domain.Platform{}, store.ErrConflict
 			}
-			return domain.DevRequest{}, domain.Application{}, fmt.Errorf("promote: link primary repo: %w", err)
+			return domain.DevRequest{}, domain.Platform{}, fmt.Errorf("promote: link primary repo: %w", err)
 		}
 	}
 
-	drRow := tx.QueryRow(ctx, dreqMarkRegisteredUpdateQuery, drID, string(domain.DevRequestTargetApplication), createdApp.ID)
+	drRow := tx.QueryRow(ctx, dreqMarkRegisteredUpdateQuery, drID, string(domain.DevRequestTargetPlatform), createdApp.ID)
 	updatedDR, err := scanDevRequest(drRow)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return domain.DevRequest{}, domain.Application{}, store.ErrNotFound
+		return domain.DevRequest{}, domain.Platform{}, store.ErrNotFound
 	}
 	if err != nil {
-		return domain.DevRequest{}, domain.Application{}, fmt.Errorf("promote: mark dev_request registered: %w", err)
+		return domain.DevRequest{}, domain.Platform{}, fmt.Errorf("promote: mark dev_request registered: %w", err)
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		return domain.DevRequest{}, domain.Application{}, fmt.Errorf("promote: commit tx: %w", err)
+		return domain.DevRequest{}, domain.Platform{}, fmt.Errorf("promote: commit tx: %w", err)
 	}
 	return updatedDR, createdApp, nil
 }
@@ -105,7 +105,7 @@ func (r *DevRequestRepository) RegisterDevRequestWithNewProject(
 	defer tx.Rollback(ctx)
 
 	row := tx.QueryRow(ctx, appRepo.ProjectsInsertQuery,
-		project.ApplicationID, project.RepositoryID, project.Key, project.Name,
+		project.PlatformID, project.RepositoryID, project.Key, project.Name,
 		project.Description, project.Status, project.Visibility,
 		project.OwnerUserID, project.StartDate, project.DueDate,
 	)

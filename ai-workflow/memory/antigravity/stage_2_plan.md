@@ -93,8 +93,8 @@ v1.GET("/audit-logs", handler.listAuditLogs)
   }
   ```
 
-#### 5) Application & Project Group (`/api/v1/applications`, `/api/v1/projects`, `/api/v1/repositories`)
-- **담당**: `application-lifecycle` 및 `repository-integration`
+#### 5) Application & Project Group (`/api/v1/platforms`, `/api/v1/projects`, `/api/v1/repositories`)
+- **담당**: `platform-lifecycle` 및 `repository-integration`
 - **구조**:
   ```go
   apps := v1.Group("/applications")
@@ -144,7 +144,7 @@ v1.GET("/audit-logs", handler.listAuditLogs)
 - [ ] `audit-ops/view/` 하위에 `AuditHandler` 구조체 정의 및 리시버 메서드 리팩토링
 - [ ] `rbac-permissions/view/` 하위에 `RBACHandler` 구조체 정의 및 리시버 메서드 리팩토링
 - [ ] `organization-management/view/` 하위에 `OrganizationHandler` 구조체 정의 및 리시버 메서드 리팩토링
-- [ ] `application-lifecycle/view/` 하위에 `ApplicationHandler` 구조체 정의 및 리시버 메서드 리팩토링
+- [ ] `platform-lifecycle/view/` 하위에 `ApplicationHandler` 구조체 정의 및 리시버 메서드 리팩토링
 - [ ] `dev-request/view/` 하위에 `DevRequestHandler` 구조체 정의 및 리시버 메서드 리팩토링
 - [ ] `integration-registry/view/` 하위에 `IntegrationHandler` 구조체 정의 및 리시버 메서드 리팩토링
 - [ ] `realtime/view/` 하위에 `RealtimeHandler` 구조체 정의 및 리시버 메서드 리팩토링

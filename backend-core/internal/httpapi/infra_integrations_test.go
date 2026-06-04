@@ -94,9 +94,9 @@ func TestInfraTopologyV2ContainsMeta(t *testing.T) {
 
 func TestInfraServicesHydratesFromPersistedSnapshot(t *testing.T) {
 	runtimeInfraSnapshots = infraSnapshotState{}
-	appStore := newMemoryApplicationStore()
+	platformStore := newMemoryPlatformStore()
 	router := NewRouter(RouterConfig{
-		ApplicationStore: appStore,
+		PlatformStore: platformStore,
 		AuthDevFallback:  true,
 		InfraAgentToken:  "agent-secret",
 	})

@@ -24,7 +24,7 @@
 
 ## 2. 사용자 역할별 요구사항 (Two-Dimensional RBAC)
 
-> **2026-06-01 갱신**: 기존 3 system role(developer/manager/system_admin) 모델을 **2차원 RBAC** 로 확장. system role 3종(developer/team_manager/system_admin) + resource role 4종(project_member/project_leader/application_leader/org_head). 상세 컨셉은 [`docs/planning/role-access-concept.md`](./planning/role-access-concept.md), 도메인 REQ 는 [`docs/domain/application-lifecycle/requirements.md`](./domain/application-lifecycle/requirements.md) §6 REQ-FR-ROLE 참조.
+> **2026-06-01 갱신**: 기존 3 system role(developer/manager/system_admin) 모델을 **2차원 RBAC** 로 확장. system role 3종(developer/team_manager/system_admin) + resource role 4종(project_member/project_leader/application_leader/org_head). 상세 컨셉은 [`docs/planning/role-access-concept.md`](./planning/role-access-concept.md), 도메인 REQ 는 [`docs/domain/platform-lifecycle/requirements.md`](./domain/platform-lifecycle/requirements.md) §6 REQ-FR-ROLE 참조.
 
 ### 2.1 개발자 (Developer)
 - **핵심 니즈:** 정보 탐색 최소화, 개발 몰입도 향상. 자신이 속한 project/application 에 대한 읽기 접근.
@@ -33,8 +33,8 @@
 - **Resource Role baseline:** `project_member` (project_members 포함 시 해당 project + 연결 application 조회)
 - **View Scope:** 자신이 member 인 project + 연결 application 으로 row-scoped. management 정보(롤업/메트릭/리스크)는 `project_leader` 이상만 접근.
 - **주요 기능 (확정):**
-    - [x] 멤버십 기반 Project/Application 목록 조회 (row-scoped).
-    - [x] Project/Application 상세 조회 (member 인 경우).
+    - [x] 멤버십 기반 Project/Platform 목록 조회 (row-scoped).
+    - [x] Project/Platform 상세 조회 (member 인 경우).
 - **주요 기능 (후보):**
     - [ ] 기술 스택별 가이드 및 Wiki 통합 검색.
     - [ ] 프로젝트별 환경 설정(Environment Setup) 원클릭 확인.
@@ -45,11 +45,11 @@
 - **핵심 니즈:** (기존 `manager` + `team_manager` 통합) 팀 범위 프로젝트 가시성 확보, 리스크 선제 대응.
 - **기본 진입 우선순위:** 관리 대시보드 (Management Dashboard)
 - **System Role:** `team_manager` (신규. 기존 `manager`/`team_manager` → 통합)
-- **View Scope:** 자신이 속한 org unit(primary_unit_id 기준 subtree) 범위 내 전체 Project/Application 접근. team scope 밖은 member 인 project 만 접근.
+- **View Scope:** 자신이 속한 org unit(primary_unit_id 기준 subtree) 범위 내 전체 Project/Platform 접근. team scope 밖은 member 인 project 만 접근.
 - **주요 기능 (확정):**
-    - [x] Team scope 내 Project/Application 목록·상세 조회.
+    - [x] Team scope 내 Project/Platform 목록·상세 조회.
     - [x] Team scope 내 Project 관리 (metadata 수정, member role 변경).
-    - [x] Team scope 내 Application 관리 (metadata 수정).
+    - [x] Team scope 내 Platform 관리 (metadata 수정).
 - **주요 기능 (후보):**
     - [ ] 마일스톤별 진행률 시각화 대시보드.
     - [ ] 팀원별 작업량(Load) 및 할당 현황.
@@ -126,7 +126,7 @@
 | rbac-permissions | [`./domain/rbac-permissions/requirements.md`](./domain/rbac-permissions/requirements.md) | Role + Resource + Action matrix, row-scoping |
 | organization-management | [`./domain/organization-management/requirements.md`](./domain/organization-management/requirements.md) | Users + org_units + appointments, HRDB lookup |
 | onboarding | [`./domain/onboarding/requirements.md`](./domain/onboarding/requirements.md) | REQ-FR-ONBOARD-001..012, REQ-NFR-ONBOARD-001..008 |
-| application-lifecycle | [`./domain/application-lifecycle/requirements.md`](./domain/application-lifecycle/requirements.md) | REQ-FR-APP-001..012, REQ-FR-PROJ-000..010, REQ-FR-APPDASH-001..006, REQ-FR-ROLE-001..016, REQ-NFR-PROJ/APPDASH |
+| platform-lifecycle | [`./domain/platform-lifecycle/requirements.md`](./domain/platform-lifecycle/requirements.md) | REQ-FR-APP-001..012, REQ-FR-PROJ-000..010, REQ-FR-APPDASH-001..006, REQ-FR-ROLE-001..016, REQ-NFR-PROJ/APPDASH |
 | repository-integration | [`./domain/repository-integration/requirements.md`](./domain/repository-integration/requirements.md) | REQ-FR-REPO-001..005, REQ-NFR-REPO-001..003 |
 | dev-request | [`./domain/dev-request/requirements.md`](./domain/dev-request/requirements.md) | REQ-FR-DREQ-001..013, REQ-NFR-DREQ-001..006 |
 | integration-registry | [`./domain/integration-registry/requirements.md`](./domain/integration-registry/requirements.md) + [`task_requirements.md`](./domain/integration-registry/task_requirements.md) | REQ-FR-INT-001..015, REQ-NFR-INT-001..009, REQ-FR-TASK-001..010, REQ-NFR-TASK-001..004 |

@@ -13,7 +13,7 @@
 | --- | --- | --- | --- |
 | F-INT-PROVIDER | Provider 등록/수정/비활성화/조회 | REQ-FR-INT-001,002,010 | UC-INT-01,02,10 |
 | F-INT-INGEST | Webhook/Pull 수집과 중복 처리 | REQ-FR-INT-003,004,005 | UC-INT-03,04,05,06 |
-| F-INT-BINDING | Scope(Application/Project) binding 정책 | REQ-FR-INT-007,011 | UC-INT-11 |
+| F-INT-BINDING | Scope(Platform/Project) binding 정책 | REQ-FR-INT-007,011 | UC-INT-11 |
 | F-INT-HOMELAB | Node/Service snapshot 수집 및 토폴로지 조회 | REQ-FR-INT-008,009 | UC-INT-08,09 |
 | F-INT-RESILIENCE | 장애 격리/복구 및 감사 추적 | REQ-NFR-INT-002,004,005 | UC-INT-12,13,14 |
 

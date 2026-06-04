@@ -142,30 +142,30 @@ func TestIntegration_DevRequests_CRUD(t *testing.T) {
 	// 6. Transition back to pending for promotion
 	_, _ = dreq.TransitionDevRequestStatus(ctx, created.ID, domain.DevRequestStatusPending, "")
 
-	// 7. RegisterDevRequestWithNewApplication
+	// 7. RegisterDevRequestWithNewPlatform
 	appKey := fmt.Sprintf("AP%08d", time.Now().UnixNano()%100000000)
 	defer func() {
-		_, _ = pool.Exec(ctx, `DELETE FROM applications WHERE key = $1`, appKey)
+		_, _ = pool.Exec(ctx, `DELETE FROM platforms WHERE key = $1`, appKey)
 	}()
 
-	app := domain.Application{
+	app := domain.Platform{
 		Key:         appKey,
 		Name:        "App from DREQ",
-		Status:      domain.ApplicationStatusActive,
-		Visibility:  domain.ApplicationVisibilityInternal,
+		Status:      domain.PlatformStatusActive,
+		Visibility:  domain.PlatformVisibilityInternal,
 		OwnerUserID: "u1",
 	}
 
-	primaryRepo := domain.ApplicationRepository{
+	primaryRepo := domain.PlatformRepository{
 		RepoProvider: "gitea",
 		RepoFullName: "team/devhub-core",
-		Role:         domain.ApplicationRepositoryRolePrimary,
+		Role:         domain.PlatformRepositoryRolePrimary,
 		SyncStatus:   domain.SyncStatusRequested,
 	}
 
-	promotedDreq, promotedApp, err := dreq.RegisterDevRequestWithNewApplication(ctx, created.ID, app, &primaryRepo)
+	promotedDreq, promotedApp, err := dreq.RegisterDevRequestWithNewPlatform(ctx, created.ID, app, &primaryRepo)
 	if err != nil {
-		t.Fatalf("RegisterDevRequestWithNewApplication failed: %v", err)
+		t.Fatalf("RegisterDevRequestWithNewPlatform failed: %v", err)
 	}
 	if promotedDreq.Status != domain.DevRequestStatusRegistered || promotedDreq.RegisteredTargetID != promotedApp.ID {
 		t.Errorf("unexpected promoted devrequest details: %+v", promotedDreq)
@@ -202,8 +202,8 @@ func TestIntegration_DevRequests_CRUD(t *testing.T) {
 	proj := domain.Project{
 		Key:         projKey,
 		Name:        "Project from DREQ",
-		Status:      domain.ApplicationStatusActive,
-		Visibility:  domain.ApplicationVisibilityInternal,
+		Status:      domain.PlatformStatusActive,
+		Visibility:  domain.PlatformVisibilityInternal,
 		OwnerUserID: "u1",
 	}
 

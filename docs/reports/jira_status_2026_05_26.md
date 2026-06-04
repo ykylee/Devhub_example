@@ -200,7 +200,7 @@ gantt
 
 ### 4.2 완료 사항 (1주 추가분)
 
-- **Project model v2 hybrid (PR #312, codex)** — `migration 000034_project_repositories` (N:M 조인 테이블) + `DEVHUB_PROJECT_MODEL=hybrid|legacy|v2` env + v2 routes (`/applications/:id/projects` + `/projects/:id/repositories`) + Legacy 경로 410 gone gate.
+- **Project model v2 hybrid (PR #312, codex)** — `migration 000034_project_repositories` (N:M 조인 테이블) + `DEVHUB_PROJECT_MODEL=hybrid|legacy|v2` env + v2 routes (`/platforms/:id/projects` + `/projects/:id/repositories`) + Legacy 경로 410 gone gate.
 - **DREQ promotion to Project (PR #323, codex)** — `Promote to Project` 액션 (DevRequestDetailModal) + ProjectCreationModal 프리필 바인딩 + Header 실시간 `dev_request.created` WebSocket 배지 + `TC-DREQ-PROMOTE-PROJ-01` E2E.
 - **JWKS Linux 호환 (PR #312)** — `host.docker.internal` → `http://nginx/` (Linux host.docker.internal 해석 실패 회피).
 - **e2e seed (PR #312)** — `seedDevhubUsers` → `seedDevhubData` 함수 rename + repositories fixture INSERT (gitea_repository_id 100001/100002).
@@ -327,7 +327,7 @@ gantt
 ### 9.2 완료 사항 (1주 추가분)
 
 - **TC-ONBOARD-* 11건** (sprint Onboarding Carve D, PR #289) — `test_cases_m6_onboarding.md` 신규 + frontend `onboarding-first-login.spec.ts` + admin review flow.
-- **admin-projects.spec.ts** (PR #312) — Application/Project hybrid flow E2E.
+- **admin-projects.spec.ts** (PR #312) — Platform/Project hybrid flow E2E.
 - **admin-project-model-v2.spec.ts** (PR #312) — v2 routes 검증.
 - **project-model-modes.spec.ts** (PR #312) — legacy/hybrid/v2 mode 별 410/200 분기 검증.
 - **TC-DREQ-PROMOTE-PROJ-01** (PR #323) — DREQ intake → Promote to Project lifecycle (claude rebase + 4 amend 후 CI PASS).
