@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { X, FolderGit2, Link2, KeyRound, Loader2 } from "lucide-react";
 import { repositoryService, Repository } from "@/domain/repository-integration/service/repository.service";
+import { integrationService } from "@/domain/integration-registry/service/integration.service";
+import { IntegrationProvider } from "@/domain/integration-registry/schema/integration.types";
 
 interface RepositoryCreationModalProps {
   onClose: () => void;
@@ -16,6 +18,8 @@ export function RepositoryCreationModal({ onClose, onCreated }: RepositoryCreati
     slug: "",
     provider_key: "",
   });
+  const [scmProviders, setScmProviders] = useState<IntegrationProvider[]>([]);
+  const [loadingProviders, setLoadingProviders] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,6 +30,32 @@ export function RepositoryCreationModal({ onClose, onCreated }: RepositoryCreati
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
+
+  useEffect(() => {
+    let cancelled = false;
+    // backend `createRepositoryDraft` 가 `GetIntegrationProviderByKey` 로
+    // `integration_providers` 에서 resolve 하므로 dropdown source 도 일치시켜야 한다
+    // (codex P2 #470 — legacy `scm_providers` dropdown 은 custom key 가 사라지고
+    // legacy key 만 보여 backend resolve 가 `integration_provider_not_found` 로 실패).
+    integrationService
+      .listProviders({ provider_type: "scm", enabled: true })
+      .then(({ data }) => {
+        if (cancelled) return;
+        setScmProviders(data);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error("Failed to load SCM providers", err);
+        setScmProviders([]);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setLoadingProviders(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,16 +137,32 @@ export function RepositoryCreationModal({ onClose, onCreated }: RepositoryCreati
               <label htmlFor="repoProviderKey" className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">
                 SCM Provider Key (Optional)
               </label>
-              <div className="relative group">
-                <Link2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/35 dark:text-primary-foreground/20 group-focus-within:text-cyan-400 transition-colors" />
-                <input
-                  id="repoProviderKey"
-                  value={formData.provider_key}
-                  onChange={(e) => setFormData({ ...formData, provider_key: e.target.value })}
-                  placeholder="e.g. gitea-main"
-                  className="w-full bg-muted/30 border border-border rounded-2xl pl-12 pr-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-cyan-400/50"
-                />
-              </div>
+              {loadingProviders ? (
+                <div className="h-12 bg-muted/20 animate-pulse rounded-2xl" />
+              ) : (
+                <div className="relative group">
+                  <Link2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/35 dark:text-primary-foreground/20 group-focus-within:text-cyan-400 transition-colors" />
+                  <select
+                    id="repoProviderKey"
+                    value={formData.provider_key}
+                    onChange={(e) => setFormData({ ...formData, provider_key: e.target.value })}
+                    disabled={submitting}
+                    className="w-full bg-muted/30 border border-border rounded-2xl pl-12 pr-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-cyan-400/50 appearance-none disabled:opacity-60"
+                  >
+                    <option value="">No SCM link (skip)</option>
+                    {scmProviders.map((p) => (
+                      <option key={p.provider_key} value={p.provider_key} className="bg-slate-900">
+                        {p.display_name} ({p.provider_key})
+                      </option>
+                    ))}
+                    {scmProviders.length === 0 && (
+                      <option value="" disabled>
+                        No enabled SCM providers registered
+                      </option>
+                    )}
+                  </select>
+                </div>
+              )}
             </div>
           </div>
 
