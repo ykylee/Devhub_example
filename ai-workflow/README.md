@@ -21,6 +21,7 @@
 - 현재 Codex 브랜치 backlog: [codex/service-action-command/work_backlog.md](./memory/codex/service-action-command/work_backlog.md)
 - Claude 브랜치 memory: [claude/](./memory/claude/)
 - OpenCode 브랜치 memory: [opencode/](./memory/opencode/) (2026-06-04 신설)
+- **Mavis 브랜치 memory**: [mvs/](./memory/mvs/) (2026-06-04 신설 — [`minimax_code_workflow.md`](./minimax_code_workflow.md) §3 + [MEMORY_GOVERNANCE.md §0.5](./MEMORY_GOVERNANCE.md))
 - flat `memory/state.json`, `memory/session_handoff.md`, `memory/work_backlog.md`, `memory/backlog/`는 legacy fallback 및 공용 색인 전용
 
 ## 3. 코어 문서
@@ -55,8 +56,14 @@
 - flat memory 위치: legacy fallback 및 공용 색인 전용
 - 환경 기록 위치: `ai-workflow/memory/environments/`
 
+## 8. Mavis / MiniMax Code 운영 패턴
+
+- 본 저장소에서 Mavis (MiniMax Code, `MiniMax-M3`) 가 움직이는 방식은 [`./minimax_code_workflow.md`](./minimax_code_workflow.md) 단일 진입점으로 정의한다.
+- 5-워커 워크플로우 ([`docs/governance/worker_division.md`](../docs/governance/worker_division.md)) 와 공존한다 — Mavis 는 mvs/ prefix 로 cross-cut 정합만 수행.
+
 ## 다음에 읽을 문서
 
+- Mavis 운영 패턴 (MiniMax Code): [./minimax_code_workflow.md](./minimax_code_workflow.md)
 - 브랜치별 memory 규칙: [./MEMORY_GOVERNANCE.md](./MEMORY_GOVERNANCE.md)
 - 프로젝트 프로파일: [./memory/PROJECT_PROFILE.md](./memory/PROJECT_PROFILE.md)
 - 현재 Codex 브랜치 상태: [./memory/codex/service-action-command/state.json](./memory/codex/service-action-command/state.json)
