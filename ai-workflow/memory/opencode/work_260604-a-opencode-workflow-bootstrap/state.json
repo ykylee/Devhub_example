@@ -1,0 +1,31 @@
+{
+  "schema_version": "1",
+  "branch": "opencode/work_260604-a-opencode-workflow-bootstrap",
+  "agent": "opencode",
+  "agent_label": "Sisyphus",
+  "model": "MiniMax-M3",
+  "status": "in_progress",
+  "summary": "OpenCode 워커 prefix 를 governance 문서 + memory 4종 + 위치 패턴 표에 1차 부트스트랩. 다음 sprint 부터 본 워커의 영역/스타일을 backlog 기반으로 정의.",
+  "started_at": "2026-06-04T00:00:00Z",
+  "updated_at": "2026-06-04T00:10:00Z",
+  "scope": {
+    "in": [
+      "AGENTS.md opencode 전용 메모 섹션 신설",
+      "docs/governance/worker_division.md §1.4 + §2.5 갱신",
+      "docs/planning/release_v1_roadmap.md §5.1 분담 표 + §6.3 label 추가",
+      "ai-workflow/MEMORY_GOVERNANCE.md §0 예시 추가",
+      "ai-workflow/WORKFLOW_INDEX.md §1 예시 추가",
+      "ai-workflow/README.md §2 + §7 추가",
+      "docs/planning/README.md §3 위치 패턴 표 행 추가"
+    ],
+    "out": [
+      "opencode 영역별 책임 정의 (첫 sprint 종료 후 후속 sprint 에서 정의)",
+      "구현 작업 (별도 sprint 브랜치에서 처리)"
+    ]
+  },
+  "source_of_truth": {
+    "project_profile_path": "ai-workflow/memory/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/opencode/work_260604-a-opencode-workflow-bootstrap/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/opencode/work_260604-a-opencode-workflow-bootstrap/work_backlog.md"
+  }
+}

@@ -4,7 +4,7 @@
 - 범위: 공통 코어 문서 위치, 프로젝트 상태 문서 세트, 도입 모드별 후속 작업
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-05-07
+- 최종 수정일: 2026-06-04
 - 관련 문서: `ai-workflow/MEMORY_GOVERNANCE.md`, `ai-workflow/memory/<agent>/<branch>/state.json`, `ai-workflow/memory/PROJECT_PROFILE.md`
 
 ## 1. 현재 배포 형태
@@ -20,6 +20,7 @@
 - 현재 Codex 브랜치 handoff: [codex/service-action-command/session_handoff.md](./memory/codex/service-action-command/session_handoff.md)
 - 현재 Codex 브랜치 backlog: [codex/service-action-command/work_backlog.md](./memory/codex/service-action-command/work_backlog.md)
 - Claude 브랜치 memory: [claude/](./memory/claude/)
+- OpenCode 브랜치 memory: [opencode/](./memory/opencode/) (2026-06-04 신설)
 - flat `memory/state.json`, `memory/session_handoff.md`, `memory/work_backlog.md`, `memory/backlog/`는 legacy fallback 및 공용 색인 전용
 
 ## 3. 코어 문서
@@ -61,3 +62,6 @@
 - 현재 Codex 브랜치 상태: [./memory/codex/service-action-command/state.json](./memory/codex/service-action-command/state.json)
 - 현재 Codex 브랜치 인계: [./memory/codex/service-action-command/session_handoff.md](./memory/codex/service-action-command/session_handoff.md)
 - 현재 Codex 브랜치 백로그: [./memory/codex/service-action-command/work_backlog.md](./memory/codex/service-action-command/work_backlog.md)
+- OpenCode 부트스트랩 브랜치 상태: [./memory/opencode/work_260604-a-opencode-workflow-bootstrap/state.json](./memory/opencode/work_260604-a-opencode-workflow-bootstrap/state.json)
+- OpenCode 부트스트랩 브랜치 인계: [./memory/opencode/work_260604-a-opencode-workflow-bootstrap/session_handoff.md](./memory/opencode/work_260604-a-opencode-workflow-bootstrap/session_handoff.md)
+- OpenCode 부트스트랩 브랜치 백로그: [./memory/opencode/work_260604-a-opencode-workflow-bootstrap/work_backlog.md](./memory/opencode/work_260604-a-opencode-workflow-bootstrap/work_backlog.md)
