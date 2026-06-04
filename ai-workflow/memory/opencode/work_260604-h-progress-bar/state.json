@@ -1,0 +1,34 @@
+{
+  "schema_version": "1",
+  "branch": "opencode/work_260604-h-progress-bar",
+  "agent": "opencode",
+  "agent_label": "Sisyphus",
+  "model": "MiniMax-M3",
+  "status": "in_progress",
+  "summary": "project milestones 페이지 (frontend/app/(dashboard)/projects/page.tsx) 의 progress bar 가 status 기반 hardcoded width 사용 (active=66.7%, closed=100%, else=25%). 실제 task 완료율 반영하도록 fix — getProjectTasks 를 Promise.all 로 병렬 fetch, done/total*100 계산.",
+  "started_at": "2026-06-04T05:55:00Z",
+  "updated_at": "2026-06-04T05:55:00Z",
+  "scope": {
+    "in": [
+      "frontend/app/(dashboard)/projects/page.tsx — taskProgress state 추가, Promise.all 로 getProjectTasks fetch, 실제 % 계산, progress bar 동적 렌더",
+      "loading state 분리 (task fetch 는 project list render 블로킹 X)",
+      "edge case: total=0 일 때 neutral state (빈 바 + 'No tasks' text)",
+      "vitest 추가 (progress 계산 로직 unit test)"
+    ],
+    "out": [
+      "Application progress_percent (backend data_gap) — 별도 backend sprint",
+      "story-point 기반 가중치 (모든 task 동일 가중) — 본 sprint 는 단순 count 기반",
+      "project detail page 의 progress bar — 별도 페이지 (사용자 보고는 list 만)",
+      "E2E test 추가 — 기존 E2E 구조 단순화, vitest 로 충분"
+    ]
+  },
+  "artifacts": {
+    "pr_url": "TBD",
+    "branch_pushed": false
+  },
+  "source_of_truth": {
+    "project_profile_path": "ai-workflow/memory/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/opencode/work_260604-h-progress-bar/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/opencode/work_260604-h-progress-bar/work_backlog.md"
+  }
+}

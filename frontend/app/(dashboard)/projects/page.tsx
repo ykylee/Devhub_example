@@ -20,9 +20,11 @@ import { FilterBar } from "@/shared/ui-foundation/components/FilterBar";
 import { PageEmpty, PageError, PageLoading } from "@/shared/ui-foundation/components/PageState";
 import { projectService } from "@/domain/application-lifecycle/service/project.service";
 import type { Project } from "@/domain/application-lifecycle/schema/project.types";
+import { computeProjectProgress } from "@/shared/utils/project-progress";
 
 export default function ProjectsStatusPage() {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [taskProgress, setTaskProgress] = useState<Record<string, number | null>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -48,6 +50,30 @@ export default function ProjectsStatusPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void refresh();
   }, [refresh]);
+
+  // Task 완료율 기반 project progress. Promise.all 병렬 fetch — N+1 은 batch endpoint 별도 migrate.
+  useEffect(() => {
+    if (projects.length === 0) return;
+    const ids = projects.map((p) => p.id);
+    const allStatuses = ["todo", "in_progress", "review", "done"] as const;
+    let cancelled = false;
+    void Promise.all(
+      ids.map((id) =>
+        projectService
+          .getProjectTasks(id, [...allStatuses])
+          .then((tasks) => ({ id, progress: computeProjectProgress(tasks) }))
+          .catch(() => ({ id, progress: null as number | null })),
+      ),
+    ).then((results) => {
+      if (cancelled) return;
+      const next: Record<string, number | null> = {};
+      for (const r of results) next[r.id] = r.progress;
+      setTaskProgress(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [projects]);
 
   const handleDelete = useCallback(async (projectId: string, currentStatus: string) => {
     const isArchived = currentStatus?.trim().toLowerCase() === "archived";
@@ -166,17 +192,36 @@ export default function ProjectsStatusPage() {
               </div>
 
               <div className="flex flex-col justify-between items-end gap-4 min-w-[200px]">
-                <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                  {/* Progress bar logic - if status is closed, 100%, else estimation? 
-                      For now, using status as a proxy */}
-                  <div 
-                    className={`h-full transition-all duration-1000 ${
-                      project.status === "active" ? "bg-primary w-2/3" : 
-                      project.status === "closed" ? "bg-success w-full" : 
-                      "bg-muted-foreground/30 w-1/4"
-                    }`}
-                  />
-                </div>
+                {(() => {
+                  const progress = taskProgress[project.id];
+                  if (progress === undefined) {
+                    return (
+                      <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full bg-muted-foreground/20 w-full animate-pulse" />
+                      </div>
+                    );
+                  }
+                  if (progress === null) {
+                    return (
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                        No tasks
+                      </p>
+                    );
+                  }
+                  return (
+                    <div className="w-full space-y-1">
+                      <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-primary transition-all duration-1000"
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-right">
+                        {progress}% tasks done
+                      </p>
+                    </div>
+                  );
+                })()}
                 <div className="flex items-center gap-2">
                   <button 
                     onClick={() => void handleDelete(project.id, project.status)}
