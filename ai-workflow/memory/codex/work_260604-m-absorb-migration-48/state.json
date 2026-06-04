@@ -1,0 +1,21 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "codex/work_260604-m-absorb-migration-48",
+  "status": "in_progress",
+  "updated_at": "2026-06-04T14:00:00Z",
+  "head_commit": "working_tree",
+  "head_summary": "remove no-op migration 000048 from active baseline chain",
+  "current_focus": [
+    "latest main 반영 후 active migration 체인 재점검",
+    "no-op 000048 migration 제거 및 baseline 3-step 복원"
+  ],
+  "next_actions": [
+    "memory 갱신 후 커밋",
+    "원격 push 및 후속 PR/merge 준비"
+  ],
+  "risks": [
+    "플랫폼 rename 대형 변경과 baseline reset 사이에 후속 문서 drift 가 남아 있을 수 있음"
+  ],
+  "handoff_note": "000048 up/down 는 SELECT 1 no-op 이라 active chain 에서 제거. migration lint + empty DB replay 통과."
+}
