@@ -1,0 +1,37 @@
+DROP MATERIALIZED VIEW IF EXISTS public.org_units_total_count CASCADE;
+
+DROP TABLE IF EXISTS public.application_repositories CASCADE;
+DROP TABLE IF EXISTS public.applications CASCADE;
+DROP TABLE IF EXISTS public.audit_logs CASCADE;
+DROP TABLE IF EXISTS public.build_runs CASCADE;
+DROP TABLE IF EXISTS public.ci_runs CASCADE;
+DROP TABLE IF EXISTS public.commands CASCADE;
+DROP TABLE IF EXISTS public.dev_request_intake_tokens CASCADE;
+DROP TABLE IF EXISTS public.dev_requests CASCADE;
+DROP TABLE IF EXISTS public.event_cursors CASCADE;
+DROP TABLE IF EXISTS public.external_task_items CASCADE;
+DROP TABLE IF EXISTS public.gitea_users CASCADE;
+DROP TABLE IF EXISTS public.infra_service_snapshots CASCADE;
+DROP TABLE IF EXISTS public.integration_bindings CASCADE;
+DROP TABLE IF EXISTS public.integration_providers CASCADE;
+DROP TABLE IF EXISTS public.integration_sync_jobs CASCADE;
+DROP TABLE IF EXISTS public.issues CASCADE;
+DROP TABLE IF EXISTS public.org_units CASCADE;
+DROP TABLE IF EXISTS public.pr_activities CASCADE;
+DROP TABLE IF EXISTS public.project_integrations CASCADE;
+DROP TABLE IF EXISTS public.project_members CASCADE;
+DROP TABLE IF EXISTS public.project_repositories CASCADE;
+DROP TABLE IF EXISTS public.projects CASCADE;
+DROP TABLE IF EXISTS public.pull_requests CASCADE;
+DROP TABLE IF EXISTS public.quality_snapshots CASCADE;
+DROP TABLE IF EXISTS public.rbac_policies CASCADE;
+DROP TABLE IF EXISTS public.realtime_tickets CASCADE;
+DROP TABLE IF EXISTS public.repositories CASCADE;
+DROP TABLE IF EXISTS public.risks CASCADE;
+DROP TABLE IF EXISTS public.scm_providers CASCADE;
+DROP TABLE IF EXISTS public.unit_appointments CASCADE;
+DROP TABLE IF EXISTS public.users CASCADE;
+DROP TABLE IF EXISTS public.webhook_events CASCADE;
+
+DROP SCHEMA IF EXISTS hrdb CASCADE;
+DROP EXTENSION IF EXISTS pgcrypto;

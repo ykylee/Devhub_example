@@ -236,7 +236,8 @@ WebSocket을 통한 백그라운드 이벤트 전송 및 단일-사용(single-us
 *   `serviceaction/executor`: 명령어 실행용 sandbox 및 프로덕션 샌드박스 연동 구현
 
 #### 2.3.5 `database-migration` — 데이터베이스 스키마 마이그레이션
-*   `backend-core/migrations/`: `000001_webhook_events`부터 `000046_add_external_task_items`까지 전체 golang-migrate SQL 파일
+*   `backend-core/migrations/`: active golang-migrate 체인 (`000001_initial_schema`, `000002_seed_system_rbac`, `000003_seed_bootstrap_catalog`)
+*   `backend-core/migrations-legacy-20260604/`: baseline reset 이전 historical migration archive (`000001_create_webhook_events` ~ `000047_normalize_team_manager_display_name`)
 
 #### 2.3.6 `deployment-automation` — 배포 스크립트 및 인프라 템플릿
 *   `scripts/`: 배포 전처리 스크립트군 (`deploy-up.sh`, `verify-keycloak-groups.sh`, `setup-test-db.sh` 등)
