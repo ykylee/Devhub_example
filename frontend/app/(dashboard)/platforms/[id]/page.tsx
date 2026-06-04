@@ -209,6 +209,19 @@ export default function ApplicationDetailPage() {
               <h1 className="text-3xl font-black text-foreground tracking-tight">{dashboard.name}</h1>
               <Badge variant={lifecycleStatusBadgeVariant(dashboard.status)} dot>{dashboard.status}</Badge>
               <Badge variant="secondary" className="bg-white/5 backdrop-blur-md border border-white/10">{dashboard.visibility}</Badge>
+              {buildStatus === "broken" ? (
+                <Badge variant="danger" className="animate-pulse">
+                  Build Broken 🔴
+                </Badge>
+              ) : buildStatus === "healthy" ? (
+                <Badge variant="success">
+                  Healthy 🟢
+                </Badge>
+              ) : (
+                <Badge variant="secondary">
+                  Build Unknown ⚪
+                </Badge>
+              )}
             </div>
             <p className="text-muted-foreground text-sm flex flex-wrap items-center gap-x-2 gap-y-1">
               <Clock className="w-4 h-4" /> Updated {new Date(dashboard.updated_at).toLocaleDateString()} • {dashboard.key}
@@ -290,6 +303,62 @@ export default function ApplicationDetailPage() {
           </motion.div>
         ))}
       </div>
+
+      {/* Target Branch Build Failure Alert Banner */}
+      {buildStatus === "broken" && dashboard.build_failures && dashboard.build_failures.length > 0 && (
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass-card p-6 border-rose-500/30 bg-rose-500/5 relative overflow-hidden shadow-[0_0_20px_rgba(239,68,68,0.15)] dark:shadow-[0_0_30px_rgba(239,68,68,0.1)]"
+        >
+          {/* Red neon pulse background element */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-rose-500/10 rounded-full blur-3xl -z-10 animate-pulse" />
+          
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 pb-4 border-b border-rose-500/10">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-2xl bg-rose-500/10 text-rose-500 border border-rose-500/20 animate-pulse">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-md font-bold text-rose-500 tracking-tight">Target Branch Builds Broken</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">Please inspect the failed build runs below and resolve the issues immediately to restore deployment pipeline.</p>
+              </div>
+            </div>
+            <Badge variant="danger" className="animate-pulse self-start md:self-auto">
+              {dashboard.build_failures.length} Failed Runs
+            </Badge>
+          </div>
+
+          <div className="divide-y divide-white/5 border border-white/10 dark:border-white/5 rounded-2xl overflow-hidden bg-white/5">
+            {dashboard.build_failures.map((fail, index) => (
+              <div key={index} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-white/5 transition-colors">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs font-bold text-foreground">{fail.repo_slug}</span>
+                    <Badge variant="secondary" className="text-[10px] scale-90">{fail.branch}</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground font-mono truncate max-w-md" title={fail.error_snippet}>
+                    {fail.error_snippet || "No error details available"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-4 self-end sm:self-auto shrink-0">
+                  <span className="text-[10px] text-muted-foreground font-mono">#{fail.build_number}</span>
+                  {fail.log_url && (
+                    <a 
+                      href={fail.log_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500 text-rose-500 hover:text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm"
+                    >
+                      <Play className="w-3 h-3 fill-current" /> Log URL
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
 
       {/* Main dashboard body */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
