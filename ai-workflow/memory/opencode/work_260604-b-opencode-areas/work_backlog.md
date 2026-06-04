@@ -14,11 +14,11 @@ OpenCode 워커의 영역/책임/작업 스타일/인계 SOP 을 `worker_divisio
 | ID | 작업 | 영향 파일 | 의존 | 상태 |
 | --- | --- | --- | --- | --- |
 | WB-01 | 브랜치 + memory 디렉터리 set up | `ai-workflow/memory/opencode/work_260604-b-opencode-areas/{state.json,session_handoff.md,work_backlog.md,backlog/2026-06-04.md}` | — | done |
-| WB-02 | 다른 워커 분담 + 최근 PR 패턴 분석 | (read-only) | WB-01 | in_progress |
-| WB-03 | opencode 차별 영역 후보 도출 + 우선순위 사용자 confirm | (분석) | WB-02 | planned |
-| WB-04 | §1.4 본문 초안 + AGENTS.md 보강 | `docs/governance/worker_division.md`, `AGENTS.md` | WB-03 | planned |
-| WB-05 | release_v1_roadmap §5.1 OpenCode 행 갱신 | `docs/planning/release_v1_roadmap.md` | WB-04 | planned |
-| WB-06 | 커밋 + push + PR + state/handoff final | (git + memory dir) | WB-05 | planned |
+| WB-02 | 다른 워커 분담 + 최근 PR 패턴 분석 | (read-only) | WB-01 | done |
+| WB-03 | opencode 차별 영역 후보 도출 + 우선순위 사용자 confirm | (분석) | WB-02 | done |
+| WB-04 | §1.4 본문 초안 + AGENTS.md 보강 | `docs/governance/worker_division.md`, `AGENTS.md` | WB-03 | done |
+| WB-05 | release_v1_roadmap §5.1 OpenCode 행 갱신 | `docs/planning/release_v1_roadmap.md` | WB-04 | done |
+| WB-06 | 커밋 + push + PR + state/handoff final | (git + memory dir) | WB-05 | done |
 
 ## 2. 분석 기준 (WB-02)
 
@@ -40,8 +40,8 @@ OpenCode 워커의 영역/책임/작업 스타일/인계 SOP 을 `worker_divisio
 
 ## 4. 검증 기준 (DoD)
 
-- [ ] §1.4 본문: 주요 책임 / 작업 스타일 / 인계 SOP / 누적 이력 placeholder
-- [ ] AGENTS.md OpenCode 전용 메모에 도구/스킬/외부 contribution 정책 보강
-- [ ] release_v1_roadmap §5.1 OpenCode 행이 본 sprint 결과로 갱신
-- [ ] `git status` 의도치 않은 파일 변경 없음
-- [ ] PR 생성 + 사용자 리뷰
+- [x] §1.4 본문: 주요 책임 (3-lane) / 작업 스타일 / 인계 SOP / 누적 이력 placeholder
+- [x] AGENTS.md OpenCode 전용 메모에 Lane 정의 1줄 추가
+- [x] release_v1_roadmap §5.1 OpenCode 행이 본 sprint 결과로 갱신
+- [x] `git status` 의도치 않은 파일 변경 없음
+- [x] PR #465 생성 + 사용자 리뷰 (그대로 확정)
