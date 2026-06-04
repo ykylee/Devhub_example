@@ -622,4 +622,60 @@ func TestLogoutEndpoint_ClearsCookiesAndWritesAudit(t *testing.T) {
 	if len(audits.logs) != 1 || audits.logs[0].Action != "auth.logout" {
 		t.Fatalf("expected auth.logout audit, got %+v", audits.logs)
 	}
+	// Without IdentityAdmin, revoke_attempted remains false
+	revAttempted, _ := audits.logs[0].Payload["revoke_attempted"].(bool)
+	if revAttempted {
+		t.Fatalf("expected revoke_attempted=false when IdentityAdmin is nil, got true")
+	}
+	if !strings.Contains(rec.Body.String(), `"revoked":false`) {
+		t.Fatalf("expected revoked:false in response, body=%s", rec.Body.String())
+	}
+}
+
+func TestLogoutEndpoint_RevokesKeycloakSessions(t *testing.T) {
+	audits := &memoryAuditStore{}
+	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+		Login:   "alice",
+		Subject: "user-alice",
+		Role:    "developer",
+	}}
+	idAdmin := &MockIdentityAdmin{
+		FindIDOverride: map[string]string{"alice": "kc-uuid-alice"},
+	}
+	router := NewRouter(RouterConfig{
+		OrganizationStore:   newMemoryOrganizationStore(),
+		AuditStore:          audits,
+		BearerTokenVerifier: verifier,
+		IdentityAdmin:       idAdmin,
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", strings.NewReader(`{"refresh_token":"rt-1","id_token":"id-1"}`))
+	req.Header.Set("Authorization", "Bearer t")
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+	}
+
+	if len(audits.logs) != 1 || audits.logs[0].Action != "auth.logout" {
+		t.Fatalf("expected auth.logout audit, got %+v", audits.logs)
+	}
+
+	revAttempted, ok := audits.logs[0].Payload["revoke_attempted"].(bool)
+	if !ok || !revAttempted {
+		t.Fatalf("expected revoke_attempted=true, got %v (ok=%v)", revAttempted, ok)
+	}
+
+	if !strings.Contains(rec.Body.String(), `"revoked":true`) {
+		t.Fatalf("expected revoked:true in response, body=%s", rec.Body.String())
+	}
+
+	if idAdmin.FindCalls != 1 {
+		t.Fatalf("expected 1 FindIdentityByUserID call, got %d", idAdmin.FindCalls)
+	}
+	if len(idAdmin.LogoutCalls) != 1 || idAdmin.LogoutCalls[0] != "kc-uuid-alice" {
+		t.Fatalf("expected LogoutUserSession(kc-uuid-alice), got %v", idAdmin.LogoutCalls)
+	}
 }

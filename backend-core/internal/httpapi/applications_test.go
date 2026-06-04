@@ -35,6 +35,8 @@ type memoryApplicationStore struct {
 	repositories         map[string]domain.Repository // full_name → repo (UpsertRepository/ListByProvider)
 	nextRepositoryID     int64
 	ciRuns              []domain.BuildRun
+	draftRepos          map[int64]domain.Repository
+	nextDraftID         int64
 }
 
 type memoryInfraSnapshot struct {
@@ -64,6 +66,8 @@ func newMemoryApplicationStore() *memoryApplicationStore {
 		repositoryIDs:        make(map[string]int64),
 		repositories:         make(map[string]domain.Repository),
 		nextRepositoryID:     1000,
+		draftRepos:           make(map[int64]domain.Repository),
+		nextDraftID:          1,
 	}
 }
 
@@ -829,6 +833,22 @@ func (s *memoryApplicationStore) UpsertRepository(_ context.Context, repo domain
 		}
 		existing.UpdatedAt = time.Now().UTC()
 		s.repositories[repo.FullName] = existing
+		// Sync back to draft repo when SCM mirror is upserted (publish flow).
+		for id, draft := range s.draftRepos {
+			if draft.FullName == repo.FullName {
+				draft.GiteaID = existing.GiteaID
+				draft.CloneURL = existing.CloneURL
+				draft.HTMLURL = existing.HTMLURL
+				draft.DefaultBranch = existing.DefaultBranch
+				draft.Private = existing.Private
+				if draft.Source == "" {
+					draft.Source = existing.Source
+				}
+				draft.UpdatedAt = existing.UpdatedAt
+				s.draftRepos[id] = draft
+				break
+			}
+		}
 		return nil
 	}
 	if repo.ID == 0 {
@@ -841,6 +861,22 @@ func (s *memoryApplicationStore) UpsertRepository(_ context.Context, repo domain
 	repo.UpdatedAt = time.Now().UTC()
 	s.repositories[repo.FullName] = repo
 	s.repositoryIDs[repo.FullName] = repo.ID
+	// Sync back to draft repo when SCM mirror is upserted (publish flow).
+	for id, draft := range s.draftRepos {
+		if draft.FullName == repo.FullName {
+			draft.GiteaID = repo.GiteaID
+			draft.CloneURL = repo.CloneURL
+			draft.HTMLURL = repo.HTMLURL
+			draft.DefaultBranch = repo.DefaultBranch
+			draft.Private = repo.Private
+			if draft.Source == "" {
+				draft.Source = repo.Source
+			}
+			draft.UpdatedAt = repo.UpdatedAt
+			s.draftRepos[id] = draft
+			break
+		}
+	}
 	return nil
 }
 
@@ -1012,6 +1048,141 @@ func (s *memoryApplicationStore) LoadLatestInfraSnapshot(_ context.Context) (tim
 		append([]byte(nil), s.infraSnapshot.servicesJSON...),
 		append([]string(nil), s.infraSnapshot.degradedProviders...),
 		nil
+}
+
+// --- Repository Draft Store (repositoryDraftStore interface) ---
+
+func (s *memoryApplicationStore) CreateRepositoryDraft(_ context.Context, key, slug, providerID string) (domain.Repository, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	key = strings.TrimSpace(key)
+	slug = strings.TrimSpace(slug)
+	if key == "" || slug == "" {
+		return domain.Repository{}, store.ErrConflict
+	}
+	for _, r := range s.draftRepos {
+		if r.Name == key || r.FullName == slug {
+			return domain.Repository{}, store.ErrConflict
+		}
+	}
+	s.nextDraftID++
+	id := s.nextDraftID
+	ownerLogin := ""
+	if idx := strings.Index(slug, "/"); idx >= 0 {
+		ownerLogin = slug[:idx]
+	}
+	now := time.Now().UTC()
+	repo := domain.Repository{
+		ID:          id,
+		FullName:    slug,
+		OwnerLogin:  ownerLogin,
+		Name:        key,
+		Status:      "draft",
+		Source:      domain.RepositorySourceSystem,
+		ProviderID:  strings.TrimSpace(providerID),
+		Private:     false,
+		DefaultBranch: "main",
+		UpdatedAt:   now,
+	}
+	s.draftRepos[id] = repo
+	return repo, nil
+}
+
+func (s *memoryApplicationStore) UpdateRepositoryDraft(_ context.Context, repositoryID int64, params store.RepositoryUpdateDraftParams) (domain.Repository, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	repo, ok := s.draftRepos[repositoryID]
+	if !ok || repo.Status != "draft" {
+		return domain.Repository{}, store.ErrNotFound
+	}
+	if params.Key != nil {
+		key := strings.TrimSpace(*params.Key)
+		// key uniqueness check (empty-string key = no-op, same as existing = no-op)
+		if key != "" && key != repo.Name {
+			for _, r := range s.draftRepos {
+				if r.ID != repositoryID && r.Name == key {
+					return domain.Repository{}, store.ErrConflict
+				}
+			}
+		}
+		repo.Name = key
+	}
+	if params.Slug != nil {
+		slug := strings.TrimSpace(*params.Slug)
+		if slug != "" && slug != repo.FullName {
+			for _, r := range s.draftRepos {
+				if r.ID != repositoryID && r.FullName == slug {
+					return domain.Repository{}, store.ErrConflict
+				}
+			}
+		}
+		repo.FullName = slug
+		if idx := strings.Index(slug, "/"); idx >= 0 {
+			repo.OwnerLogin = slug[:idx]
+		} else {
+			repo.OwnerLogin = ""
+		}
+	}
+	if params.ProviderID != nil {
+		repo.ProviderID = strings.TrimSpace(*params.ProviderID)
+	}
+	repo.UpdatedAt = time.Now().UTC()
+	s.draftRepos[repositoryID] = repo
+	return repo, nil
+}
+
+func (s *memoryApplicationStore) DeleteRepository(_ context.Context, repositoryID int64) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	repo, ok := s.draftRepos[repositoryID]
+	if !ok || repo.Status != "draft" {
+		return store.ErrNotFound
+	}
+	// FK guard: application_repositories / project_repositories link 존재 시 ErrConflict.
+	for _, appLinks := range s.links {
+		for _, l := range appLinks {
+			if l.RepoFullName == repo.FullName {
+				return store.ErrConflict
+			}
+		}
+	}
+	for _, projLinks := range s.projectRepositories {
+		for _, l := range projLinks {
+			if l.RepositoryID == repositoryID {
+				return store.ErrConflict
+			}
+		}
+	}
+	delete(s.draftRepos, repositoryID)
+	return nil
+}
+
+func (s *memoryApplicationStore) GetRepositoryByID(_ context.Context, repositoryID int64) (domain.Repository, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if repo, ok := s.draftRepos[repositoryID]; ok {
+		return repo, nil
+	}
+	return domain.Repository{}, store.ErrNotFound
+}
+
+func (s *memoryApplicationStore) MarkRepositoryDraftPublishRequested(_ context.Context, repositoryID int64) (domain.Repository, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	repo, ok := s.draftRepos[repositoryID]
+	if !ok || repo.Status != "draft" {
+		return domain.Repository{}, store.ErrNotFound
+	}
+	now := time.Now().UTC()
+	repo.PublishRequestedAt = &now
+	repo.UpdatedAt = now
+	s.draftRepos[repositoryID] = repo
+	return repo, nil
 }
 
 // --- handler tests ---

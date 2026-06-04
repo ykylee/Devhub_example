@@ -96,6 +96,7 @@ type IntegrationStore = integview.IntegrationStore
 // view-events 만 요구.
 type IdentityAdmin interface {
 	FindIdentityByUserID(ctx context.Context, userID string) (string, error)
+	LogoutUserSession(ctx context.Context, identityID string) error
 }
 
 type DevRequestStore interface {

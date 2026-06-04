@@ -53,6 +53,19 @@ func (c *KeycloakAdminClient) FindIdentityByUserID(ctx context.Context, userID s
 	return "", ErrIdentityNotFound
 }
 
+// LogoutUserSession terminates all active sessions for the given Keycloak
+// identity via Keycloak Admin REST: POST /admin/realms/{realm}/users/{id}/logout.
+// This is a best-effort revocation — the frontend also triggers the OIDC
+// end_session redirect independently. If the identity doesn't exist (HTTP 404),
+// the method returns nil (already logged out).
+func (c *KeycloakAdminClient) LogoutUserSession(ctx context.Context, identityID string) error {
+	_, _, err := c.adminJSON(ctx, http.MethodPost, "users/"+url.PathEscape(identityID)+"/logout", nil)
+	if errors.Is(err, ErrIdentityNotFound) {
+		return nil
+	}
+	return err
+}
+
 // ADR-0020 sub-carve E (sprint -n) — Keycloak admin = 별도 운영팀 (PoLP).
 // write methods (CreateIdentity / UpdateIdentityPassword / SetIdentityState /
 // DeleteIdentity) 는 정공법 제거. service account 는 view-users + view-events

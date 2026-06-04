@@ -23,6 +23,7 @@ type OrganizationStore interface {
 
 type IdentityAdmin interface {
 	FindIdentityByUserID(ctx context.Context, userID string) (string, error)
+	LogoutUserSession(ctx context.Context, identityID string) error
 }
 
 type RealtimeTicketStore interface {
@@ -147,13 +148,29 @@ type logoutRequest struct {
 	IdToken      string `json:"id_token"`
 }
 
-// Logout clears any server-managed cookies and records an audit row.
-// Token revocation is currently best-effort metadata only; the active session
-// is still terminated by the IdP end-session redirect that the frontend drives.
+// Logout clears any server-managed cookies, revokes the Keycloak session via
+// the Identity Admin API (best-effort, defense-in-depth), and records an audit row.
 func (h *AuthHandler) Logout(c *gin.Context) {
 	var req logoutRequest
 	if c.Request.Body != nil {
 		_ = json.NewDecoder(c.Request.Body).Decode(&req)
+	}
+
+	revokeAttempted := false
+	if h.cfg.IdentityAdmin != nil {
+		actor := httphelp.RequestActor(c)
+		if actor.Login != "" {
+			identityID, findErr := h.cfg.IdentityAdmin.FindIdentityByUserID(c.Request.Context(), actor.Login)
+			if findErr == nil && identityID != "" {
+				if revokeErr := h.cfg.IdentityAdmin.LogoutUserSession(c.Request.Context(), identityID); revokeErr != nil {
+					httphelp.LogRequest(c, "logout revocation failed for %q (identity=%q): %v", actor.Login, identityID, revokeErr)
+				} else {
+					revokeAttempted = true
+				}
+			} else if findErr != nil {
+				httphelp.LogRequest(c, "logout identity lookup failed for %q: %v", actor.Login, findErr)
+			}
+		}
 	}
 
 	for _, name := range []string{
@@ -175,13 +192,13 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	auditLog := h.recordAuditBestEffort(c, "auth.logout", "auth", "current_session", map[string]any{
 		"refresh_token_present": req.RefreshToken != "",
 		"id_token_present":      req.IdToken != "",
-		"revoke_attempted":      false,
+		"revoke_attempted":      revokeAttempted,
 	})
 
 	resp := gin.H{
 		"status": "ok",
 		"data": gin.H{
-			"revoked": false,
+			"revoked": revokeAttempted,
 		},
 	}
 	addAuditMeta(resp, auditLog)

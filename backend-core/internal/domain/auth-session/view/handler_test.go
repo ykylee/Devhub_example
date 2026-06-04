@@ -945,6 +945,10 @@ func (f *fakeIdentityAdmin) FindIdentityByUserID(_ context.Context, _ string) (s
 	return f.identityID, f.err
 }
 
+func (f *fakeIdentityAdmin) LogoutUserSession(_ context.Context, _ string) error {
+	return nil
+}
+
 func TestResolveIdPSubject_EmptyUserID(t *testing.T) {
 	h := NewAuthHandler(AuthConfig{})
 	_, err := h.ResolveIdPSubject(context.Background(), "")
