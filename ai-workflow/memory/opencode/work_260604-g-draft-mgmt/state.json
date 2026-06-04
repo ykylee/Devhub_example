@@ -1,0 +1,42 @@
+{
+  "schema_version": "1",
+  "branch": "opencode/work_260604-g-draft-mgmt",
+  "agent": "opencode",
+  "agent_label": "Sisyphus",
+  "model": "MiniMax-M3",
+  "status": "in_progress",
+  "summary": "admin/catalog 의 draft 상태 repository 별도 관리 + delete/edit 기능. backend 신규 2 endpoint (PATCH/DELETE repositories) + frontend RepositoryEditModal + admin/catalog 페이지 filter + 진짜 delete handler. 사용자 원래 5건 중 마지막 frontend 잔여.",
+  "started_at": "2026-06-04T05:15:00Z",
+  "updated_at": "2026-06-04T05:15:00Z",
+  "scope": {
+    "in": [
+      "backend: *ApplicationRepository.UpdateRepositoryDraft(ctx, id, params) 추가 — key/slug/provider_key 부분 갱신 (draft 한정)",
+      "backend: *ApplicationRepository.DeleteRepository(ctx, id) 추가 — draft 한정, FK reference 가드 (application_repositories/project_repositories)",
+      "backend: PATCH /api/v1/repositories/:repository_id handler",
+      "backend: DELETE /api/v1/repositories/:repository_id handler",
+      "backend: router.go route 등록",
+      "backend: integration test (happy + draft-only + FK 가드)",
+      "backend: memoryApplicationStore mock 에 2 메서드 추가",
+      "frontend: repositoryService.updateRepository / deleteRepository 메서드",
+      "frontend: RepositoryEditModal 신규 (RepositoryCreationModal 패턴 mirror)",
+      "frontend: admin/catalog repositories 탭 'All / Drafts only' 토글",
+      "frontend: admin/catalog Delete 버튼 no-op → real handler 교체 + Edit 버튼 (draft 한정)",
+      "frontend: vitest 추가 + service test",
+      "frontend: E2E test (TC-REPO-DRAFT-LIFECYCLE) — create → edit → delete 흐름"
+    ],
+    "out": [
+      "Application / Project draft 관리 — 사용자가 'repository 만' 으로 명시 (PR #470 의 자연스러운 후속)",
+      "SCM mirror (gitea/github 의 원격 repo) 동기화/삭제 — 본 sprint 는 local repositories 테이블만",
+      "archive flow 의 repurpose — 별도 governance 결정 필요"
+    ]
+  },
+  "artifacts": {
+    "pr_url": "TBD",
+    "branch_pushed": false
+  },
+  "source_of_truth": {
+    "project_profile_path": "ai-workflow/memory/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/opencode/work_260604-g-draft-mgmt/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/opencode/work_260604-g-draft-mgmt/work_backlog.md"
+  }
+}

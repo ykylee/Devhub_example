@@ -63,6 +63,14 @@ type RepositoryCreatePayload struct {
 	SCMProvider string
 }
 
+// RepositoryUpdateDraftParams — draft repository 부분 갱신 입력 (sprint g #470 후속).
+// nil=unchanged, ProviderID=""=unlink (SET NULL), ProviderID=uuid=set.
+type RepositoryUpdateDraftParams struct {
+	Key        *string
+	Slug       *string
+	ProviderID *string
+}
+
 type IntegrationProviderListOptions struct {
 	ProviderType domain.IntegrationProviderType
 	Enabled      *bool

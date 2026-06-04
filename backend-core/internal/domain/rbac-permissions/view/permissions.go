@@ -166,6 +166,8 @@ var routePermissionTable = map[routeKey]routePolicy{
 	// pipelines
 	{http.MethodGet, "/api/v1/repositories"}:                         {Resource: domain.ResourcePipelines, Action: domain.ActionView},
 	{http.MethodPost, "/api/v1/repositories"}:                        {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionCreate},
+	{http.MethodPatch, "/api/v1/repositories/:repository_id"}:         {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionEdit},
+	{http.MethodDelete, "/api/v1/repositories/:repository_id"}:        {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionDelete},
 	{http.MethodPost, "/api/v1/repositories/:repository_id/publish"}: {Resource: domain.ResourceApplicationRepositories, Action: domain.ActionEdit},
 	{http.MethodGet, "/api/v1/issues"}:                               {Resource: domain.ResourcePipelines, Action: domain.ActionView},
 	{http.MethodGet, "/api/v1/pull-requests"}:                        {Resource: domain.ResourcePipelines, Action: domain.ActionView},

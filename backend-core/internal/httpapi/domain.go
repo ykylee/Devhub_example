@@ -41,6 +41,8 @@ type repositoryDraftStore interface {
 	CreateRepositoryDraft(ctx context.Context, key, slug, providerID string) (domain.Repository, error)
 	MarkRepositoryDraftPublishRequested(ctx context.Context, repositoryID int64) (domain.Repository, error)
 	GetRepositoryByID(ctx context.Context, repositoryID int64) (domain.Repository, error)
+	UpdateRepositoryDraft(ctx context.Context, repositoryID int64, params store.RepositoryUpdateDraftParams) (domain.Repository, error)
+	DeleteRepository(ctx context.Context, repositoryID int64) error
 }
 
 type createRepositoryDraftRequest struct {
@@ -49,6 +51,14 @@ type createRepositoryDraftRequest struct {
 	// provider_key 입력 — 핸들러가 integration_providers FK(provider_id)로 해석해 저장
 	// (migration 000045 — 구 scm_provider 통합). 빈 값이면 provider 미지정 draft.
 	ProviderKey string `json:"provider_key"`
+}
+
+// updateRepositoryDraftRequest — PATCH semantic. 모든 필드 optional; nil pointer
+// = unchanged, "" string = explicit clear (provider_key 만).
+type updateRepositoryDraftRequest struct {
+	Key         *string `json:"key,omitempty"`
+	Slug        *string `json:"slug,omitempty"`
+	ProviderKey *string `json:"provider_key,omitempty"`
 }
 
 type issueResponse struct {
@@ -203,6 +213,109 @@ func (h Handler) createRepositoryDraft(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"status": "ok", "data": repositoryFromDomain(created)})
+}
+
+func (h Handler) updateRepositoryDraft(c *gin.Context) {
+	if h.cfg.ApplicationStore == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "repository draft store is not configured"})
+		return
+	}
+	storeI, ok := h.cfg.ApplicationStore.(repositoryDraftStore)
+	if !ok {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "repository draft store is not configured"})
+		return
+	}
+	repositoryID, err := strconv.ParseInt(c.Param("repository_id"), 10, 64)
+	if err != nil || repositoryID <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "repository_id must be a positive integer"})
+		return
+	}
+	var req updateRepositoryDraftRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": err.Error()})
+		return
+	}
+	// provider_key resolve: nil=unchanged, ""=unlink, "key"=resolve via integ store.
+	// createRepositoryDraft 와 동일 패턴 (legacy "gitea" hardcoded fallback 포함).
+	var providerIDPtr *string
+	if req.ProviderKey != nil {
+		pk := strings.TrimSpace(*req.ProviderKey)
+		if pk == "" {
+			empty := ""
+			providerIDPtr = &empty
+		} else {
+			integStore := resolveIntegrationStore(h.cfg)
+			if integStore == nil {
+				c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "integration store is not configured"})
+				return
+			}
+			provider, lookupErr := integStore.GetIntegrationProviderByKey(c.Request.Context(), pk)
+			if errors.Is(lookupErr, store.ErrNotFound) && pk == "gitea" {
+				fallbackID := "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+				providerIDPtr = &fallbackID
+			} else if errors.Is(lookupErr, store.ErrNotFound) {
+				c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "integration provider not found", "code": "integration_provider_not_found"})
+				return
+			} else if lookupErr != nil {
+				writeServerError(c, lookupErr, "repositories.update_draft.provider_lookup")
+				return
+			} else {
+				if provider.ProviderType != domain.IntegrationProviderTypeSCM {
+					c.JSON(http.StatusUnprocessableEntity, gin.H{"status": "rejected", "error": "provider is not SCM type", "code": "integration_sync_unsupported_provider_type"})
+					return
+				}
+				providerIDPtr = &provider.ID
+			}
+		}
+	}
+	updated, err := storeI.UpdateRepositoryDraft(c.Request.Context(), repositoryID, store.RepositoryUpdateDraftParams{
+		Key:        req.Key,
+		Slug:       req.Slug,
+		ProviderID: providerIDPtr,
+	})
+	if err != nil {
+		if err == store.ErrNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "draft repository not found or not in draft status"})
+			return
+		}
+		if err == store.ErrConflict {
+			c.JSON(http.StatusConflict, gin.H{"status": "conflict", "error": "repository key or slug already exists"})
+			return
+		}
+		writeServerError(c, err, "repositories.update_draft")
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "ok", "data": repositoryFromDomain(updated)})
+}
+
+func (h Handler) deleteRepository(c *gin.Context) {
+	if h.cfg.ApplicationStore == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "repository draft store is not configured"})
+		return
+	}
+	storeI, ok := h.cfg.ApplicationStore.(repositoryDraftStore)
+	if !ok {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "repository draft store is not configured"})
+		return
+	}
+	repositoryID, err := strconv.ParseInt(c.Param("repository_id"), 10, 64)
+	if err != nil || repositoryID <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "repository_id must be a positive integer"})
+		return
+	}
+	if err := storeI.DeleteRepository(c.Request.Context(), repositoryID); err != nil {
+		if err == store.ErrNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "draft repository not found or not in draft status"})
+			return
+		}
+		if err == store.ErrConflict {
+			c.JSON(http.StatusConflict, gin.H{"status": "conflict", "error": "repository is referenced by application_repositories or project_repositories", "code": "repository_has_links"})
+			return
+		}
+		writeServerError(c, err, "repositories.delete")
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
 
 func (h Handler) requestRepositoryPublish(c *gin.Context) {
