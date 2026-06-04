@@ -1,0 +1,32 @@
+{
+  "schema_version": "1",
+  "branch": "opencode/work_260604-c-N10-manager-rbac-validation",
+  "agent": "opencode",
+  "agent_label": "Sisyphus",
+  "model": "MiniMax-M3",
+  "status": "in_progress",
+  "summary": "N-10 (release_v1_roadmap §3.5 NOW) Manager role RBAC 검증 sprint. Lane 2 (Cross-cutting validation & test infrastructure) 첫 carve. 검증 보고서 docs/validation/N-10-manager-rbac.md 작성 완료 — V-01..V-10 PASS/N/A/PARTIAL/FAIL + 1 P1 follow-up (E2E spec 6건 미구현) 식별. PR 생성 대기.",
+  "started_at": "2026-06-04T00:35:00Z",
+  "updated_at": "2026-06-04T00:50:00Z",
+  "scope": {
+    "in": [
+      "Keycloak realm role team_manager 상태 확인",
+      "seed E2E user mgr-user-b 매핑/재생성 검증",
+      "backend store-level row filter (ListProjects/ListApplications) 동작",
+      "org unit subtree scope (team_manager/org_head) 동작",
+      "E2E TC-MGR-* / TC-RBAC-ROW-READ-* PASS",
+      "role-access-concept.md 와 실제 동작 일치",
+      "검증 결과 문서화 (docs/validation/N-10-manager-rbac.md 또는 동등)"
+    ],
+    "out": [
+      "manager RBAC 본 기능 변경 (Claude 영역) — 결함 발견 시 issue + fix proposal",
+      "keycloak realm 운영 작업 (사용자 동반)",
+      "v1.0 staging 운영 (N-6)"
+    ]
+  },
+  "source_of_truth": {
+    "project_profile_path": "ai-workflow/memory/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/opencode/work_260604-c-N10-manager-rbac-validation/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/opencode/work_260604-c-N10-manager-rbac-validation/work_backlog.md"
+  }
+}
