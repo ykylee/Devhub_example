@@ -1,0 +1,24 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "codex/work_260604-l-migration-baseline-reset",
+  "status": "in_progress",
+  "updated_at": "2026-06-04T13:05:00Z",
+  "head_commit": "working_tree",
+  "head_summary": "db migration baseline reset: active chain 3-step 재구성 + legacy archive + 핵심 문서 동기화",
+  "current_focus": [
+    "active migration 체인을 baseline 3-step 구조로 재편",
+    "legacy migration archive 보존 및 README/governance/traceability 정합화",
+    "memory 갱신 후 커밋/PR 생성"
+  ],
+  "next_actions": [
+    "branch memory 문서 갱신 완료",
+    "커밋 생성 및 push",
+    "PR 본문에 migration baseline reset 의도/검증/재생성 전제를 명시"
+  ],
+  "risks": [
+    "source-of-truth 문서 외 historical 분석/ADR 문서에는 기존 migration 번호 참조가 일부 남아 있을 수 있음",
+    "기존 DB upgrade 경로는 의도적으로 포기했으므로 dev/CI/staging DB 재생성이 전제됨"
+  ],
+  "handoff_note": "빈 DB 기준 migrate up/down round-trip, migration lint, backend integration/unit test 통과. frontend smoke 는 미실행."
+}
