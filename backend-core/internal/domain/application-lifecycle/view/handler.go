@@ -18,6 +18,14 @@ type DevRequestStore interface {
 	ListDevRequests(ctx context.Context, opts store.DevRequestListOptions) ([]domain.DevRequest, int, error)
 }
 
+type ExternalTaskStore interface {
+	ListExternalTaskItems(ctx context.Context, opts store.ExternalTaskListOptions) ([]domain.ExternalTaskItem, int, error)
+}
+
+type IntegrationStore interface {
+	ListIntegrationBindings(ctx context.Context, opts store.IntegrationBindingListOptions) ([]domain.IntegrationBinding, int, error)
+}
+
 // PlatformStore — application-lifecycle 도메인 persistence 컨트랙트.
 // issue #422 (sprint claude/work_260529-n) — 기존 interface 가 integration
 // CRUD 13 메서드를 포함해 cross-domain bloat 상태였음. 본 sprint 에서 integration
@@ -73,10 +81,12 @@ type PlatformStore interface {
 }
 
 type PlatformConfig struct {
-	PlatformStore PlatformStore
-	DevRequestStore  DevRequestStore
-	ProjectModel     string
-	AuditStore       AuditStore
+	PlatformStore     PlatformStore
+	DevRequestStore   DevRequestStore
+	ExternalTaskStore ExternalTaskStore
+	IntegrationStore  IntegrationStore
+	ProjectModel      string
+	AuditStore        AuditStore
 }
 
 type PlatformHandler struct {

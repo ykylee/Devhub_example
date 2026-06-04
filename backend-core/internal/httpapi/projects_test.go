@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -203,3 +204,106 @@ func TestListProjects_Filter(t *testing.T) {
 		t.Errorf("default list should exclude archived (total=2): %s", rec.Body.String())
 	}
 }
+
+func TestProjectDashboard_Developer_Happy(t *testing.T) {
+	platformStore := newMemoryPlatformStore()
+	p, _ := platformStore.CreateProject(context.Background(), domain.Project{
+		Key: "k1", Name: "Proj X", RepositoryID: 42, Status: domain.PlatformStatusActive,
+		Visibility: domain.PlatformVisibilityInternal, OwnerUserID: "u1",
+		ProjectMembers: []domain.ProjectMember{
+			{UserID: "u1", ProjectRole: "developer"},
+		},
+	})
+
+	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+		Login:   "u1",
+		Subject: "user-u1",
+		Role:    "developer",
+	}}
+	router := NewRouter(RouterConfig{
+		PlatformStore:       platformStore,
+		BearerTokenVerifier: verifier,
+		AuthDevFallback:     false,
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/projects/"+p.ID+"/dashboard?persona=developer", nil)
+	req.Header.Set("Authorization", "Bearer t")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), `"current_persona":"developer"`) {
+		t.Errorf("expected developer_view: %s", rec.Body.String())
+	}
+}
+
+func TestProjectDashboard_ProjectLeader_Forbidden(t *testing.T) {
+	platformStore := newMemoryPlatformStore()
+	p, _ := platformStore.CreateProject(context.Background(), domain.Project{
+		Key: "k1", Name: "Proj X", RepositoryID: 42, Status: domain.PlatformStatusActive,
+		Visibility: domain.PlatformVisibilityInternal, OwnerUserID: "u1",
+		ProjectMembers: []domain.ProjectMember{
+			{UserID: "u2", ProjectRole: "developer"},
+		},
+	})
+
+	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+		Login:   "u2",
+		Subject: "user-u2",
+		Role:    "developer",
+	}}
+	router := NewRouter(RouterConfig{
+		PlatformStore:       platformStore,
+		BearerTokenVerifier: verifier,
+		AuthDevFallback:     false,
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/projects/"+p.ID+"/dashboard?persona=project_leader", nil)
+	req.Header.Set("Authorization", "Bearer t")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), `"code":"auth_row_denied"`) {
+		t.Errorf("expected auth_row_denied: %s", rec.Body.String())
+	}
+}
+
+func TestProjectDashboard_InvalidPersona(t *testing.T) {
+	platformStore := newMemoryPlatformStore()
+	p, _ := platformStore.CreateProject(context.Background(), domain.Project{
+		Key: "k1", Name: "Proj X", RepositoryID: 42, Status: domain.PlatformStatusActive,
+		Visibility: domain.PlatformVisibilityInternal, OwnerUserID: "u1",
+		ProjectMembers: []domain.ProjectMember{
+			{UserID: "u1", ProjectRole: "developer"},
+		},
+	})
+
+	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+		Login:   "u1",
+		Subject: "user-u1",
+		Role:    "developer",
+	}}
+	router := NewRouter(RouterConfig{
+		PlatformStore:       platformStore,
+		BearerTokenVerifier: verifier,
+		AuthDevFallback:     false,
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/projects/"+p.ID+"/dashboard?persona=invalid", nil)
+	req.Header.Set("Authorization", "Bearer t")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected 422, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), `"code":"invalid_persona"`) {
+		t.Errorf("expected invalid_persona code: %s", rec.Body.String())
+	}
+}
+

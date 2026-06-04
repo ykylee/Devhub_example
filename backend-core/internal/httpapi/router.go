@@ -400,6 +400,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.GET("/projects/:project_id/repositories", handler.listProjectRepositories)
 	v1.POST("/projects/:project_id/repositories", handler.createProjectRepository)
 	v1.DELETE("/projects/:project_id/repositories/:repository_id", handler.deleteProjectRepository)
+	v1.GET("/projects/:project_id/dashboard", handler.projectDashboard)
 	// API-57 Application 롤업 (sprint claude/work_260514-c)
 	v1.GET("/platforms/:platform_id/rollup", handler.platformRollup)
 	v1.GET("/platforms/:platform_id/dashboard", handler.platformDashboard)
@@ -686,10 +687,12 @@ func (h Handler) ensure() Handler {
 	}
 	if h.app == nil {
 		h.app = appview.NewPlatformHandler(appview.PlatformConfig{
-			PlatformStore: h.cfg.PlatformStore,
-			DevRequestStore:  h.cfg.DevRequestStore,
-			ProjectModel:     h.cfg.ProjectModel,
-			AuditStore:       h.cfg.AuditStore,
+			PlatformStore:     h.cfg.PlatformStore,
+			DevRequestStore:   h.cfg.DevRequestStore,
+			ExternalTaskStore: h.cfg.ExternalTaskStore,
+			IntegrationStore:  h.cfg.IntegrationStore,
+			ProjectModel:      h.cfg.ProjectModel,
+			AuditStore:        h.cfg.AuditStore,
 		})
 	}
 	if h.devreq == nil {
@@ -950,6 +953,10 @@ func (h Handler) createProjectRepository(c *gin.Context) {
 func (h Handler) deleteProjectRepository(c *gin.Context) {
 	h = h.ensure()
 	h.app.DeleteProjectRepository(c)
+}
+func (h Handler) projectDashboard(c *gin.Context) {
+	h = h.ensure()
+	h.app.ProjectDashboard(c)
 }
 func (h Handler) platformRollup(c *gin.Context) {
 	h = h.ensure()

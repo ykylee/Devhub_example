@@ -204,6 +204,11 @@ class ProjectService {
     return resp.data;
   }
 
+  async getProjectDashboard(id: string, persona: string): Promise<any> {
+    const resp = await apiClient<{ data: any }>("GET", `/api/v1/projects/${id}/dashboard?persona=${persona}`);
+    return resp.data;
+  }
+
   async updateProject(id: string, data: Partial<Project>): Promise<Project> {
     const resp = await apiClient<{ data: Project }>("PATCH", `/api/v1/projects/${id}`, data);
     return resp.data;

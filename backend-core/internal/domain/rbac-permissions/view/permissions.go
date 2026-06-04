@@ -248,6 +248,7 @@ var routePermissionTable = map[routeKey]routePolicy{
 	{http.MethodPost, "/api/v1/platforms/:platform_id/projects"}:              {Resource: domain.ResourceProjects, Action: domain.ActionCreate},
 	{http.MethodGet, "/api/v1/projects/standalone"}:                                 {Resource: domain.ResourceProjects, Action: domain.ActionView},
 	{http.MethodGet, "/api/v1/projects/:project_id"}:                                {Resource: domain.ResourceProjects, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/projects/:project_id/dashboard"}:                      {Resource: domain.ResourceProjects, Action: domain.ActionView},
 	{http.MethodPatch, "/api/v1/projects/:project_id"}:                              {Resource: domain.ResourceProjects, Action: domain.ActionEdit},
 	{http.MethodDelete, "/api/v1/projects/:project_id"}:                             {Resource: domain.ResourceProjects, Action: domain.ActionDelete},
 	{http.MethodGet, "/api/v1/projects/:project_id/repositories"}:                   {Resource: domain.ResourceProjects, Action: domain.ActionView},
