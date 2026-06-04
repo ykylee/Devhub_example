@@ -38,7 +38,8 @@ func invokeJSON(method, path, fullPath string, handler gin.HandlerFunc, body any
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
 		if actorLogin == "" && actorRole == "" {
-			c.Set("devhub_auth_dev_fallback", true)
+			c.Set("devhub_actor_login", "system")
+			c.Set("devhub_actor_role", "system_admin")
 			c.Next()
 			return
 		}
