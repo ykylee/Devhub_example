@@ -23,7 +23,8 @@
       "Created Pull Request #479 to merge gemini/work_260604-a-platform-dashboard into opencode/work_260604-k-v1-harden",
       "Defined 3-Persona (Developer, PL, Manager) Project Dashboard concept in project_dashboard_concept.md",
       "Updated requirements.md with REQ-FR-PROJDASH-001..006 specifications",
-      "Pushed project dashboard documentation updates to remote branch under PR #479"
+      "Pushed project dashboard documentation updates to remote branch under PR #479",
+      "Documented Project Dashboard (PROJDASH) use cases and detailed scenarios in system_usecases.md"
     ]
   },
   "next_documents": [

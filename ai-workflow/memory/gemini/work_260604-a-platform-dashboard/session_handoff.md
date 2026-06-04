@@ -23,10 +23,11 @@
 * **PR 발행 완료**:
   * `opencode/work_260604-k-v1-harden`를 target base 브랜치로 하는 Pull Request [#479](https://github.com/ykylee/Devhub_example/pull/479)를 발행하였습니다.
 
-* **프로젝트 상세 대시보드(PROJDASH) 컨셉 및 요구사항 스펙 정립**:
+* **프로젝트 상세 대시보드(PROJDASH) 컨셉, 요구사항 및 유스케이스 정립**:
   * **3대 페르소나별 뷰 모델 설계**: 개발자(My Work/빌드 확인), 프로젝트 리더(PR 통합/Stale/Blocker 중재), 조직 관리자(인력 부하/Forecast/거버넌스)의 페르소나별 최적화 뷰 스펙 도출.
   * **컨셉 상세 설계서 작성**: [project_dashboard_concept.md](../../../docs/domain/platform-lifecycle/project_dashboard_concept.md) 파일을 신규 생성하여, 3단 스위처(3-Way Persona Switcher) 및 HSL Red Neon Indicator 등의 UI/UX 인터랙션 스펙 상세화 기술.
   * **요구사항 갱신**: [requirements.md](../../../docs/domain/platform-lifecycle/requirements.md) 파일에 `REQ-FR-PROJDASH-001..006` 및 `REQ-NFR-PROJDASH-001..002` 신규 요구사항 8건을 최종 등록하고 이력 로그 업데이트.
+  * **시스템 유스케이스 추가**: [system_usecases.md](../../../docs/planning/system_usecases.md) 파일에 `UC-PROJDASH-01`부터 `06`까지의 유스케이스를 추가하고 상세 흐름 시나리오(Actor, 사전조건, 기본/예외 흐름, 사후조건)를 구체화하여 명세화.
   * **원격 푸시 완료**: Pull Request [#479](https://github.com/ykylee/Devhub_example/pull/479) 브랜치에 문서 수정 커밋을 연계 업로드 완료.
 
 ## 2. 다음 세션 참고 정보
