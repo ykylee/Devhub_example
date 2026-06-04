@@ -65,6 +65,7 @@ export default function ApplicationDetailPage() {
   const [projectName, setProjectName] = useState("");
   const [projectLeader, setProjectLeader] = useState("");
   const [promoting, setPromoting] = useState(false);
+  const [trendMetric, setTrendMetric] = useState<"quality" | "success_rate" | "duration">("quality");
 
   const loadData = useCallback(async () => {
     try {
@@ -396,25 +397,109 @@ export default function ApplicationDetailPage() {
 
           {/* SCM History & Trend (Recharts Area Chart) */}
           <section className="glass-card p-8">
-            <h3 className="text-md font-bold text-foreground mb-6 flex items-center gap-2">
-              <Activity className="w-4 h-4 text-primary" /> Platform Quality & Activity Trend
-            </h3>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <h3 className="text-md font-bold text-foreground flex items-center gap-2">
+                <Activity className="w-4 h-4 text-primary" /> Platform Quality & Activity Trend
+              </h3>
+              <div className="flex bg-white/5 border border-white/10 dark:border-white/5 p-1 rounded-xl gap-1">
+                {[
+                  { key: "quality", label: "Quality Score" },
+                  { key: "success_rate", label: "Build Success Rate" },
+                  { key: "duration", label: "Build Duration" }
+                ].map((metric) => (
+                  <button
+                    key={metric.key}
+                    onClick={() => setTrendMetric(metric.key as any)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200",
+                      trendMetric === metric.key
+                        ? "bg-primary text-primary-foreground shadow-md"
+                        : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                    )}
+                  >
+                    {metric.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             {dashboard.history_trend && dashboard.history_trend.length > 0 ? (
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={dashboard.history_trend}>
                     <defs>
-                      <linearGradient id="colorAvg" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/>
+                      <linearGradient id="colorTrend" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={
+                          trendMetric === "quality" 
+                            ? "var(--primary)" 
+                            : trendMetric === "success_rate" 
+                            ? "#10b981" 
+                            : "#f59e0b"
+                        } stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor={
+                          trendMetric === "quality" 
+                            ? "var(--primary)" 
+                            : trendMetric === "success_rate" 
+                            ? "#10b981" 
+                            : "#f59e0b"
+                        } stopOpacity={0}/>
                       </linearGradient>
                     </defs>
                     <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 10, fontWeight: 700 }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 10, fontWeight: 700 }} />
+                    <YAxis 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fill: "var(--muted-foreground)", fontSize: 10, fontWeight: 700 }}
+                      tickFormatter={(value) => {
+                        if (trendMetric === "success_rate") {
+                          return `${(value * 100).toFixed(0)}%`;
+                        }
+                        if (trendMetric === "duration") {
+                          return `${value}s`;
+                        }
+                        return value;
+                      }}
+                    />
                     <Tooltip 
                       contentStyle={{ backgroundColor: 'var(--card)', borderRadius: '16px', border: '1px solid var(--border)' }}
+                      formatter={(value: any, name: any) => {
+                        let formattedValue = value;
+                        if (name === "build_success_rate") {
+                          formattedValue = `${(Number(value) * 100).toFixed(1)}%`;
+                        } else if (name === "avg_duration_seconds") {
+                          formattedValue = `${Number(value).toFixed(1)}s`;
+                        } else if (name === "quality_score") {
+                          formattedValue = Number(value).toFixed(2);
+                        }
+                        return [
+                          formattedValue,
+                          name === "quality_score" 
+                            ? "Quality Score" 
+                            : name === "build_success_rate" 
+                            ? "Build Success Rate" 
+                            : "Avg Duration"
+                        ];
+                      }}
                     />
-                    <Area type="monotone" dataKey="quality_score" stroke="var(--primary)" fillOpacity={1} fill="url(#colorAvg)" strokeWidth={3} />
+                    <Area 
+                      type="monotone" 
+                      dataKey={
+                        trendMetric === "quality" 
+                          ? "quality_score" 
+                          : trendMetric === "success_rate" 
+                          ? "build_success_rate" 
+                          : "avg_duration_seconds"
+                      } 
+                      stroke={
+                        trendMetric === "quality" 
+                          ? "var(--primary)" 
+                          : trendMetric === "success_rate" 
+                          ? "#10b981" 
+                          : "#f59e0b"
+                      } 
+                      fillOpacity={1} 
+                      fill="url(#colorTrend)" 
+                      strokeWidth={3} 
+                    />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
