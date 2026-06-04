@@ -1,10 +1,10 @@
-# Session Handoff — gemini/work_260604-a-platform-dashboard (2026-06-04)
+# Session Handoff — gemini/work_260604-a-platform-dashboard (2026-06-05)
 
-- 문서 목적: 2026-06-04 플랫폼 대시보드 개편(프로젝트 중심 뷰) 스프린트의 작업 완료에 따른 세션 인계.
-- 범위: 플랫폼 대시보드 컴포넌트의 레이아웃 재배치, 지표 개편, CI 중심에서 관리/품질 중심으로의 전환 및 예외 처리 UI 구축.
+- 문서 목적: 2026-06-04 플랫폼 대시보드 개편(프로젝트 중심 뷰) 스프린트의 작업 완료 및 2026-06-05 Codex 자동화 PR 리뷰 반영 보완 작업에 따른 세션 인계.
+- 범위: 플랫폼 대시보드 컴포넌트의 레이아웃 재배치, 지표 개편, CI 중심에서 관리/품질 중심으로의 전환, 예외 처리 UI 구축 및 깨진 빌드 알림 목록 뷰 복원.
 - 대상 독자: 개발자, AI 에이전트, 운영자
 - 상태: done
-- 최종 수정일: 2026-06-04
+- 최종 수정일: 2026-06-05
 - 관련 문서: [PROJECT_PROFILE.md](../../PROJECT_PROFILE.md), [work_backlog.md](./work_backlog.md)
 
 ## 1. 최근 완결된 작업
@@ -14,6 +14,10 @@
   * **DREQ Backlog 영역 확장**: 플랫폼 단위에서 관리하는 요구사항 및 과제 의뢰(DREQ) 백로그 영역의 가로폭과 콘텐츠 영역을 확장하고, 'Promote Project' 버튼을 고도화하였습니다.
   * **CI 빌드 로그 뷰 제거**: 플랫폼 레벨의 혼잡도를 최소화하기 위해 타겟 브랜치 빌드 실패 결과에 종속적인 상세 빌드 로그는 대시보드 뷰에서 제거하였습니다.
   * **Empty State 폴백 처리**: backend api에 의해 `history_trend` 데이터가 제공되지 않을 경우(`[]`인 경우) 그래프 영역에 밋밋하게 비는 UI 대신 세련된 Glassmorphism 가이드 폴백 화면을 렌더링하도록 예외 처리하였습니다.
+  * **Codex PR 리뷰 보완 (깨진 빌드 상태 알림 복원 - REQ-FR-APPDASH-001)**:
+    * 플랫폼 Header 영역에 타겟 브랜치 빌드 헬스 지표 배지(`Healthy 🟢` / `Build Broken 🔴` / `Build Unknown ⚪`)를 추가하였습니다.
+    * 연결된 리포지토리의 최신 타겟 브랜치 빌드가 깨진(`broken`) 경우, Overview stats 바로 아래에 시인성이 강한 Red Neon 펄스 애니메이션이 가미된 Alert banner를 복원하였습니다.
+    * 해당 Alert banner 내부에 실패한 빌드 목록(`repo_slug`, `branch`, `build_number`, `error_snippet`)과 빌드 로그로 직접 이동할 수 있는 `Log URL` [로그 진입 딥링크] 버튼을 재배치 렌더링하여 MVP 요구사항의 퇴행을 방지하였습니다.
 
 * **테스트 및 빌드 안정성 검증**:
   * **백엔드 테스트**: `go test ./...` 실행 결과 100% 정상 통과함을 확인하였습니다.
@@ -21,7 +25,7 @@
   * **프론트엔드 프로덕션 컴파일**: `npm run build`를 통해 빌드가 정상적으로 완료됨을 검증하였습니다.
 
 * **PR 발행 완료**:
-  * `opencode/work_260604-k-v1-harden`를 target base 브랜치로 하는 Pull Request [#479](https://github.com/ykylee/Devhub_example/pull/479)를 발행하였습니다.
+  * `opencode/work_260604-k-v1-harden`를 target base 브랜치로 하는 Pull Request [#479](https://github.com/ykylee/Devhub_example/pull/479)를 발행 및 보완 반영 완료하였습니다.
 
 * **프로젝트 상세 대시보드(PROJDASH) 컨셉, 요구사항, 유스케이스, 아키텍처 및 API 명세 정립**:
   * **3대 페르소나별 뷰 모델 설계**: 개발자(My Work/빌드 확인), 프로젝트 리더(PR 통합/Stale/Blocker 중재), 조직 관리자(인력 부하/Forecast/거버넌스)의 페르소나별 최적화 뷰 스펙 도출.
@@ -30,8 +34,8 @@
   * **시스템 유스케이스 추가**: [system_usecases.md](../../../../docs/planning/system_usecases.md) 파일에 `UC-PROJDASH-01`부터 `06`까지의 유스케이스를 추가하고 상세 흐름 시나리오(Actor, 사전조건, 기본/예외 흐름, 사후조건)를 구체화하여 명세화.
   * **도메인 아키텍처 정의 추가**: [architecture.md](../../../../docs/domain/platform-lifecycle/architecture.md) 파일에 `ARCH-PROJDASH-01..03`을 추가하여 3단 스위처의 OIDC/RBAC 2차 가드 제어, Gitea 병열 스캔 PR 분석, 마감 지연 리스크($R_{\text{SLA}}$) 및 멤버 부하($L_u$) 산정 수식 모델 규정.
   * **API 계약 추가**: [api.md](../../../../docs/domain/platform-lifecycle/api.md) 파일에 `API-94 (GET /api/v1/projects/{project_id}/dashboard)` 명세를 추가하고 OIDC/RBAC 인증, 쿼리 매개변수(`persona`) 분기 및 페르소나별 다형적 응답 예시 JSON 구조화.
-  * **원격 푸시 준비**: 모든 문서 정합성 및 링크 무결성 검증을 완료하고 Pull Request [#479](https://github.com/ykylee/Devhub_example/pull/479)에 연계 푸시 준비 완료.
+  * **원격 푸시 준비**: 모든 문서 정합성 및 링크 무결성 검증을 완료하고 Pull Request [#479](https://github.com/ykylee/Devhub_example/pull/479)에 연계 푸시 완료.
 
 ## 2. 다음 세션 참고 정보
-* UI 레이아웃 리팩토링 및 폴백 뷰 처리는 로컬 검증 및 유닛 테스트 상으로 모두 완결되었습니다.
+* UI 레이아웃 리팩토링, 폴백 뷰 처리 및 깨진 빌드 경고 알림 복원은 로컬 검증 및 유닛 테스트 상으로 모두 완결되었습니다.
 * 백엔드의 `history_trend` 일별 집계 및 `progress_percent` 스토리포인트 기반 실 계산 로직은 v1.1 혹은 v2 스프린트의 후속 백엔드 고도화 태스크로 이어집니다.
