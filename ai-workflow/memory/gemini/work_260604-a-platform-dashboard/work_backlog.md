@@ -16,6 +16,7 @@
 - [x] 원격 PR [#479](https://github.com/ykylee/Devhub_example/pull/479) 생성 완료 (2026-06-04)
 - [x] 프로젝트 대시보드 3대 페르소나별 컨셉 설계, 요구사항 명세 및 유스케이스 정의 완료 (2026-06-04)
 - [x] Codex 자동화 PR 리뷰 보완 (깨진 빌드 상태 알림 복원 및 실패 런 정보 + 로그 URL 딥링크 뷰 복원 - REQ-FR-APPDASH-001 충족) 완료 (2026-06-05)
+- [x] User 2차 리뷰 피드백 보완 (API-98 개칭을 통한 ID 중복 충돌 해결, 변경된 대시보드 UI 레이아웃에 맞춤 요구사항 및 유스케이스 갱신, PROJDASH 문서의 역할 2차원 RBAC 표준 동기화) 완료 (2026-06-05)
 
 ## 2. 잔여 로드맵 연계 백로그 (향후 후속 Task)
 * **P1-2/BE**: `history_trend` 데이터가 제공되도록 일별 메트릭 집계(build_runs / quality_snapshots) 백엔드 크론 로직 구축 (Claude/OpenCode 협업)
