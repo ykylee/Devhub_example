@@ -29,8 +29,8 @@ test.describe("SCM Repository Draft & Publish Happy Path", () => {
 
     await modal.locator("#repoKey").fill(repoKey);
     await modal.locator("#repoSlug").fill(repoSlug);
-    // SCM Provider Key는 시드로 제공되는 'gitea' 설정
-    await modal.locator("#repoProviderKey").fill("gitea");
+    // SCM Provider는 시드로 제공되는 'gitea' 선택
+    await modal.locator("#repoProviderKey").selectOption("gitea");
 
     // 5. 생성 제출 및 모달 닫힘 검증
     await modal.getByRole("button", { name: /create repository/i }).click();

@@ -27,7 +27,6 @@ vi.mock("@/lib/store", () => ({
 }));
 
 const getApplications = vi.fn();
-const getSCMProviders = vi.fn();
 const createApplicationProject = vi.fn();
 const createProjectStandalone = vi.fn();
 const updateProject = vi.fn();
@@ -37,13 +36,39 @@ const unlinkProjectRepository = vi.fn();
 vi.mock("@/domain/application-lifecycle/service/project.service", () => ({
   projectService: {
     getApplications: (...a: unknown[]) => getApplications(...a),
-    getSCMProviders: (...a: unknown[]) => getSCMProviders(...a),
     createApplicationProject: (...a: unknown[]) => createApplicationProject(...a),
     createProjectStandalone: (...a: unknown[]) => createProjectStandalone(...a),
     updateProject: (...a: unknown[]) => updateProject(...a),
     getProjectRepositories: (...a: unknown[]) => getProjectRepositories(...a),
     linkProjectRepository: (...a: unknown[]) => linkProjectRepository(...a),
     unlinkProjectRepository: (...a: unknown[]) => unlinkProjectRepository(...a),
+  },
+}));
+
+// codex P2 (#470) — SCM dropdown source 가 `integrationService.listProviders` 로 변경 (legacy `scm_providers` → integration registry).
+const listProviders = vi.fn();
+const makeProvider = (p: { provider_key: string; display_name: string; enabled: boolean }) => ({
+  provider_id: `pid-${p.provider_key}`,
+  provider_type: "scm" as const,
+  auth_mode: "token" as const,
+  credentials_ref: "",
+  capabilities: [],
+  sync_status: "active",
+  last_sync_at: null,
+  last_error_code: null,
+  base_url: null,
+  api_token_set: false,
+  auth_username: null,
+  auth_client_id: null,
+  auth_token_url: null,
+  auth_secret_set: false,
+  created_at: "",
+  updated_at: "",
+  ...p,
+});
+vi.mock("@/domain/integration-registry/service/integration.service", () => ({
+  integrationService: {
+    listProviders: (...a: unknown[]) => listProviders(...a),
   },
 }));
 
@@ -59,7 +84,7 @@ import type { Project } from "@/domain/application-lifecycle/schema/project.type
 
 beforeEach(() => {
   getApplications.mockReset();
-  getSCMProviders.mockReset();
+  listProviders.mockReset();
   createApplicationProject.mockReset();
   createProjectStandalone.mockReset();
   updateProject.mockReset();
@@ -68,7 +93,7 @@ beforeEach(() => {
   unlinkProjectRepository.mockReset();
   getUsers.mockReset();
   getApplications.mockResolvedValue([]);
-  getSCMProviders.mockResolvedValue([]);
+  listProviders.mockResolvedValue({ data: [], total: 0 });
   getUsers.mockResolvedValue([]);
 });
 
@@ -321,10 +346,10 @@ describe("ProjectCreationModal", () => {
 
   it("falls back to empty applications/scm/users arrays when service calls reject", async () => {
     getApplications.mockReset();
-    getSCMProviders.mockReset();
+    listProviders.mockReset();
     getUsers.mockReset();
     getApplications.mockRejectedValueOnce(new Error("a"));
-    getSCMProviders.mockRejectedValueOnce(new Error("b"));
+    listProviders.mockRejectedValueOnce(new Error("b"));
     getUsers.mockRejectedValueOnce(new Error("c"));
     render(
       <ProjectCreationModal repositories={[]} onClose={vi.fn()} onCreated={vi.fn()} />,
@@ -335,25 +360,25 @@ describe("ProjectCreationModal", () => {
     });
   });
 
-  it("renders SCM provider select with only enabled providers and preselects first enabled", async () => {
-    getSCMProviders.mockReset();
-    getSCMProviders.mockResolvedValueOnce([
-      { provider_key: "gitlab", display_name: "GitLab", enabled: false, adapter_version: "v1", created_at: "", updated_at: "" },
-      { provider_key: "github", display_name: "GitHub", enabled: true, adapter_version: "v1", created_at: "", updated_at: "" },
-      { provider_key: "gitea", display_name: "Gitea", enabled: true, adapter_version: "v1", created_at: "", updated_at: "" },
-    ]);
+  it("renders SCM provider select with preselected first enabled provider (backend filters enabled)", async () => {
+    listProviders.mockReset();
+    listProviders.mockResolvedValueOnce({
+      data: [
+        makeProvider({ provider_key: "github", display_name: "GitHub", enabled: true }),
+        makeProvider({ provider_key: "gitea", display_name: "Gitea", enabled: true }),
+      ],
+      total: 2,
+    });
     render(
       <ProjectCreationModal repositories={[]} onClose={vi.fn()} onCreated={vi.fn()} />,
     );
     await waitFor(() => {
-      expect(getSCMProviders).toHaveBeenCalled();
+      expect(listProviders).toHaveBeenCalledWith({ provider_type: "scm", enabled: true });
     });
     // Enable createRepository to reveal provider select
     fireEvent.click(screen.getByLabelText(/Create and link repository/));
     const enabledOptions = await screen.findAllByText(/GitHub|Gitea/);
     expect(enabledOptions.length).toBeGreaterThan(0);
-    // Disabled provider should not appear inside the create panel's select
-    expect(screen.queryByText(/GitLab/)).toBeNull();
   });
 
   it("includes repository_create_payload when checkbox toggled with valid fields", async () => {
@@ -369,16 +394,17 @@ describe("ProjectCreationModal", () => {
       updated_at: "",
     };
     createProjectStandalone.mockResolvedValueOnce(created);
-    getSCMProviders.mockReset();
-    getSCMProviders.mockResolvedValueOnce([
-      { provider_key: "github", display_name: "GitHub", enabled: true, adapter_version: "v1", created_at: "", updated_at: "" },
-    ]);
+    listProviders.mockReset();
+    listProviders.mockResolvedValueOnce({
+      data: [makeProvider({ provider_key: "github", display_name: "GitHub", enabled: true })],
+      total: 1,
+    });
 
     const { container } = render(
       <ProjectCreationModal repositories={[]} onClose={vi.fn()} onCreated={vi.fn()} />,
     );
     await waitFor(() => {
-      expect(getSCMProviders).toHaveBeenCalled();
+      expect(listProviders).toHaveBeenCalled();
     });
     fireEvent.change(screen.getByPlaceholderText("E.G. API-V1"), {
       target: { value: "PWITHREPO" },

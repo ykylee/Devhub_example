@@ -9,11 +9,12 @@ import {
   ApplicationVisibility,
   ProjectStatus,
   Application,
-  SCMProvider,
   ProjectMemberRole,
 } from "@/domain/application-lifecycle/schema/project.types";
 import { Repository } from "@/domain/repository-integration/service/repository.service";
 import { projectService } from "@/domain/application-lifecycle/service/project.service";
+import { integrationService } from "@/domain/integration-registry/service/integration.service";
+import { IntegrationProvider } from "@/domain/integration-registry/schema/integration.types";
 import { identityService } from "@/domain/organization-management/service/identity.service";
 import { ComboBox } from "@/shared/ui-foundation/components/ComboBox";
 import { cn } from "@/shared/utils";
@@ -37,7 +38,7 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
   const actorDefaultOwnerId = actor?.user_id || actor?.login || "";
 
   const [applications, setApplications] = useState<Application[]>([]);
-  const [scmProviders, setScmProviders] = useState<SCMProvider[]>([]);
+  const [scmProviders, setScmProviders] = useState<IntegrationProvider[]>([]);
   type MemberRole = "leader" | "developer" | "reviewer" | "tester" | "observer";
   type ProjectMemberDraft = { user_id: string; project_role: MemberRole };
 
@@ -46,7 +47,12 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
       const isAppRepo = "repo_provider" in r;
       const repository_id = isAppRepo ? 0 : (r as Repository).id;
       const repo_full_name = isAppRepo ? (r as ApplicationRepository).repo_full_name : ((r as Repository).full_name ?? (r as Repository).name ?? "");
-      const repo_provider = isAppRepo ? (r as ApplicationRepository).repo_provider : "github";
+      // Repository.provider_key 는 backend `integration_providers.provider_key` JOIN derive
+      // (migration 000045 통합 후 single source of truth). ApplicationRepository.repo_provider
+      // 는 legacy `scm_providers(provider_key)` TEXT FK — 두 SCM catalog 가 공존한다.
+      const repo_provider = isAppRepo
+        ? (r as ApplicationRepository).repo_provider
+        : ((r as Repository).provider_key ?? "");
       return {
         ...r,
         repository_id,
@@ -149,11 +155,14 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
 
   useEffect(() => {
     projectService.getApplications().then(setApplications).catch(() => setApplications([]));
-    projectService
-      .getSCMProviders()
-      .then((providers) => {
-        setScmProviders(providers);
-        const enabled = providers.find((p) => p.enabled);
+    // backend `repository_create_payload.scm_provider` resolve 가
+    // `CreateRepositoryDraft` → `GetIntegrationProviderByKey` 로 `integration_providers`
+    // 에서 일어나므로 dropdown source 도 일치시켜야 한다 (codex P2 #470 — 동일 결함).
+    integrationService
+      .listProviders({ provider_type: "scm", enabled: true })
+      .then(({ data }) => {
+        setScmProviders(data);
+        const enabled = data.find((p) => p.enabled);
         if (enabled) {
           setRepositoryCreate((prev) => ({ ...prev, scm_provider: enabled.provider_key }));
         }
@@ -440,13 +449,11 @@ export function ProjectCreationModal({ applicationId, repositories, onClose, onC
                     onChange={(e) => setRepositoryCreate({ ...repositoryCreate, scm_provider: e.target.value })}
                     className="w-full bg-muted/30 border border-border rounded-xl px-3 py-2 text-xs text-foreground dark:text-primary-foreground"
                   >
-                    {scmProviders
-                      .filter((p) => p.enabled)
-                      .map((p) => (
-                        <option key={p.provider_key} value={p.provider_key}>
-                          {p.display_name} ({p.provider_key})
-                        </option>
-                      ))}
+                    {scmProviders.map((p) => (
+                      <option key={p.provider_key} value={p.provider_key}>
+                        {p.display_name} ({p.provider_key})
+                      </option>
+                    ))}
                   </select>
                 </div>
               )}

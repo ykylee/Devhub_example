@@ -1,0 +1,47 @@
+{
+  "schema_version": "1",
+  "branch": "opencode/work_260604-f-catalog-fixes",
+  "agent": "opencode",
+  "agent_label": "Sisyphus",
+  "model": "MiniMax-M3",
+  "status": "in_progress",
+  "summary": "admin/catalog 3건 결함 수정 (Lane 2 cross-cutting validation 후속). (2)(3) ProjectCreationModal.tsx:49 의 hardcoded 'github' fallback 제거 — single root cause for project edit 의 repositories mismatch + gitea→github mis-label. (4) RepositoryCreationModal 의 free-text SCM Provider Key input 을 getSCMProviders() 기반 dropdown 으로 교체. (#1 gitea issue sync backend, #5 draft 관리 기능은 본 sprint scope out). PR #470 생성, CI 진행 중.",
+  "started_at": "2026-06-04T04:30:00Z",
+  "updated_at": "2026-06-04T04:55:00Z",
+  "scope": {
+    "in": [
+      "frontend/domain/application-lifecycle/view/ProjectCreationModal.tsx:49 의 repo_provider 하드코딩 제거 (Repository.provider_key 사용)",
+      "frontend/components/project/RepositoryCreationModal.tsx SCM Provider Key free-text input → select dropdown (projectService.getSCMProviders 사용)",
+      "memory 4종 set up",
+      "lsp_diagnostics + frontend type check + next build 검증"
+    ],
+    "out": [
+      "Gitea issue sync (backend) — 별도 sprint, backend codex/Claude 영역",
+      "Draft 관리 기능 (admin/catalog 의 'Drafts' 탭 + repository delete/edit) — 별도 sprint, 기능 변경 작업량 큼",
+      "admin/catalog repositories 테이블 line 433 SCM 표시 (provider_key raw → display_name) — 본 PR 의 Bug A fix 로 backend join derive 가 정확해지면 표시도 자동 정상화. 별도 변경 없음."
+    ]
+  },
+  "artifacts": {
+    "pr_url": "https://github.com/ykylee/Devhub_example/pull/470",
+    "commit_sha": "ed991c4",
+    "branch_pushed": true,
+    "files_changed": [
+      "frontend/components/project/RepositoryCreationModal.tsx",
+      "frontend/domain/application-lifecycle/view/ProjectCreationModal.tsx",
+      "ai-workflow/memory/opencode/work_260604-f-catalog-fixes/state.json",
+      "ai-workflow/memory/opencode/work_260604-f-catalog-fixes/session_handoff.md",
+      "ai-workflow/memory/opencode/work_260604-f-catalog-fixes/work_backlog.md",
+      "ai-workflow/memory/opencode/work_260604-f-catalog-fixes/backlog/2026-06-04.md"
+    ],
+    "verification": {
+      "tsc_changed_files": "0 errors (변경 2개 파일)",
+      "eslint_changed_files": "0 new errors (ProjectCreationModal.tsx:109 사전 존재 오류는 본 PR scope 외, CI frontend eslint 잡 없음)",
+      "pre_existing_tsc_errors": "test 파일 11종 + generated .next/dev/types — 내 변경과 무관"
+    }
+  },
+  "source_of_truth": {
+    "project_profile_path": "ai-workflow/memory/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/opencode/work_260604-f-catalog-fixes/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/opencode/work_260604-f-catalog-fixes/work_backlog.md"
+  }
+}
