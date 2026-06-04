@@ -157,7 +157,9 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	}
 
 	revokeAttempted := false
+	revokeSuccess := false
 	if h.cfg.IdentityAdmin != nil {
+		revokeAttempted = true // set before Keycloak calls so failure is distinguishable from "no attempt"
 		actor := httphelp.RequestActor(c)
 		if actor.Login != "" {
 			identityID, findErr := h.cfg.IdentityAdmin.FindIdentityByUserID(c.Request.Context(), actor.Login)
@@ -165,7 +167,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 				if revokeErr := h.cfg.IdentityAdmin.LogoutUserSession(c.Request.Context(), identityID); revokeErr != nil {
 					httphelp.LogRequest(c, "logout revocation failed for %q (identity=%q): %v", actor.Login, identityID, revokeErr)
 				} else {
-					revokeAttempted = true
+					revokeSuccess = true
 				}
 			} else if findErr != nil {
 				httphelp.LogRequest(c, "logout identity lookup failed for %q: %v", actor.Login, findErr)
@@ -198,7 +200,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	resp := gin.H{
 		"status": "ok",
 		"data": gin.H{
-			"revoked": revokeAttempted,
+			"revoked": revokeSuccess,
 		},
 	}
 	addAuditMeta(resp, auditLog)

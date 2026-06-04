@@ -4,7 +4,7 @@
 - 범위: M0–M7 + v1.0 (M5 DREQ / M6 External Integration / M7 Onboarding 모두 closing). ADR 은 별도 §4 인덱스 (0001..0024).
 - 대상 독자: 모든 contributor, 후속 리뷰어, 외부 감사.
 - 상태: accepted
-- 최종 수정일: 2026-06-04 (OpenCode N-3 — SCM import/create/publish E2E test spec 작성, TC-REPO-SCM-IMPORT-01 / TC-REPO-SCM-CREATE-01 / TC-REPO-PUBLISH-02 신규 발급)
+- 최종 수정일: 2026-06-04 (Application→Platform 전면 rename — DB/API/Go/Frontend/Docs. 모든 기존 REQ/UC/ARCH/API/RM/IMPL/UT/TC ID 보존.)
 - 결정 근거 sprint: `claude/work_260513-c` (초판), `claude/work_260527-codebase-review-roadmap-refresh` (2026-05-27 스냅샷 정합), `claude/work_260529-h` (Phase 4 §3 매트릭스 재구성), `claude/work_260529-o` (Phase 4 후속 §2 단계별 인덱스 정합).
 - 관련 문서: [`README.md`](./README.md), [`conventions.md`](./conventions.md), [`sync-checklist.md`](./sync-checklist.md), [`../governance/document-standards.md`](../governance/document-standards.md), [코드베이스 분석 스냅샷](../analysis/2026-05-27-codebase-snapshot/README.md).
 
@@ -484,6 +484,7 @@
 
 | 일자 | 변경 |
 | --- | --- |
+| 2026-06-04 | **Application→Platform 전면 rename** (PR #476, `opencode/work_260604-k-v1-harden`). DB: `applications`→`platforms`, `application_repositories`→`platform_repositories`, `application_id`→`platform_id`, scope/type 값 `'application'`→`'platform'`, RBAC resource keys. Go: 모든 domain type/interface/handler/route/RBAC rename. Frontend: `application-lifecycle`→`platform-lifecycle`, `/applications`→`/platforms`. Docs: 전면 경로/도메인명 갱신. §3 매트릭스 platform-lifecycle row의 도메인명 및 API 경로만 갱신 — 기존 모든 REQ/UC/ARCH/API/RM/IMPL/UT/TC ID 보존. 최종 수정일 갱신. | 본 PR |
 | 2026-06-04 | OpenCode (Sisyphus) N-3 — **repository-integration SCM import/create/publish E2E test spec 작성**. 신규 TC 3건 발급: **TC-REPO-SCM-IMPORT-01** (SCM provider 등록 + import 흐름), **TC-REPO-SCM-CREATE-01** (Gitea provider → SCM 저장소 생성 + catalog 확인), **TC-REPO-PUBLISH-02** (draft 생성 → publish → 상태 active 전환 검증). 신규 spec: `frontend/tests/e2e/repositories-scm-flow.spec.ts`. §3 매트릭스 repository-integration row TC cell 갱신 + §2.6 TC 인덱스 갱신. §3 매트릭스 변동 없음 (TC only). 최종 수정일 갱신. |
 | 2026-06-04 | OpenCode (Sisyphus) sprint a~j 머지 완료 (#464~#474). **Docs-only/governance**: #464 (opencode 부트스트랩), #466 (워커 §1.4 정의), #467 (N-10 RBAC 검증 보고서). **Frontend fix**: #468 (/projects listAggregation + catalog drill-down), #470 (SCM 표시 결함), #472 (progress bar). **Frontend feat**: #471 (draft repo 관리). **Frontend test**: #473 (N-4 unit test 보강), #474 (admin/catalog page unit test). 모든 PR 이 기존 REQ/UC/ARCH/API/RM/IMPL/UT/TC 에 영향 없음 (frontend fix/test + docs only). §5 gap 분석 변동 없음. §3 매트릭스 변동 없음. 최종 수정일 갱신. | 본 housekeeping sprint (`opencode/work_260604-k-v1-harden`) |
 | 2026-05-31 | sprint `gemini/gitea-simulation-integration` — **외부 Gitea SCM 연동 시뮬레이션 및 2차 UI/Metric 완결**. (1) SCM 중복 정리 및 코드베이스 push 바인딩 완료. (2) SCM pulls/issues 404 API 핫픽스 및 webhook 실시간 동기화 시뮬레이션 성공. (3) 2차 UI 개선으로 `Linked Repositories (N:M)` ➡️ `Linked Repositories` 텍스트 정비 및 백엔드 API 부재에 따른 `opsError` 경고창(일부 프로젝트 데이터를 불러오지 못했습니다) 완벽 제거. (4) Tasks(done) + PR(merged|closed) + Issues(closed)의 실제 종결 비율을 과학적으로 산출하는 **가중 평균 메트릭 진척도 알고리즘**을 프로젝트 상세 진척도(Overall Progress)에 적용. (5) Playwright E2E E2E 검증 2개 시나리오 단 7.3초 만에 100% 그린 PASS 성공 및 스크린샷 갱신 완료. | sprint `gemini/gitea-simulation-integration` |
