@@ -82,6 +82,14 @@ export default function AdminCatalogPage() {
     void loadAll();
   }, [loadAll]);
 
+  useEffect(() => {
+    const urlQuery = searchParams.get("q") ?? "";
+    if (urlQuery !== query) {
+      setQuery(urlQuery);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   const filteredApplications = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return applications;
@@ -152,21 +160,11 @@ export default function AdminCatalogPage() {
     [users],
   );
 
-  const openProjectTabByApplication = (applicationID: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("tab", "projects");
-    params.set("q", applicationID);
-    setQuery(applicationID);
-    router.push(`/admin/catalog?${params.toString()}`);
-  };
-
-  const openProjectTabByRepository = (repositoryID: number) => {
-    const q = String(repositoryID);
+  const projectTabHref = (q: string): string => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("tab", "projects");
     params.set("q", q);
-    setQuery(q);
-    router.push(`/admin/catalog?${params.toString()}`);
+    return `/admin/catalog?${params.toString()}`;
   };
 
   // archived 상태 → hard-delete (permanent), 그 외 → archive (soft-delete).
@@ -376,13 +374,13 @@ export default function AdminCatalogPage() {
                         >
                           Detail
                         </Link>
-                        <button
+                        <Link
+                          href={projectTabHref(a.id)}
                           data-testid={`catalog-app-projects-${a.id}`}
-                          onClick={() => openProjectTabByApplication(a.id)}
                           className="rounded-lg border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-widest hover:bg-muted/30"
                         >
                           Projects
-                        </button>
+                        </Link>
                         <button
                           onClick={() => {
                             setEditingApplication(a);
@@ -445,13 +443,13 @@ export default function AdminCatalogPage() {
                         >
                           Detail
                         </Link>
-                        <button
+                        <Link
+                          href={projectTabHref(String(r.id))}
                           data-testid={`catalog-repo-projects-${r.id}`}
-                          onClick={() => openProjectTabByRepository(r.id)}
                           className="rounded-lg border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-widest hover:bg-muted/30"
                         >
                           Projects
-                        </button>
+                        </Link>
                         <button
                           onClick={() => {
                             setEditingProject(null);
