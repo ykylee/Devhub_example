@@ -99,6 +99,13 @@
 
 - OpenCode 워커는 Codex / Claude / Gemini / Reasonix 와 동일한 workflow 레이어(`ai-workflow/`)를 따르며, 브랜치별 memory 디렉터리 패턴을 동일하게 사용한다.
 - **브랜치 생성 시 반드시 `opencode/` prefix 를 사용한다.** 브랜치명 예: `opencode/work_260604-a-opencode-workflow-bootstrap`
+
+## Mavis (MiniMax Code / MiniMax-M3) 전용 메모
+
+- 본 저장소에서 Mavis 는 외부 AI 워커와 다른 오케스트레이션 레이어로 동작한다. 단일 진입점: [`ai-workflow/minimax_code_workflow.md`](ai-workflow/minimax_code_workflow.md).
+- **브랜치 생성 시 `mvs/` prefix 를 사용한다.** 예: `mvs/work_260604-a-minimax-code-workflow-setup`.
+- Mavis 의 day-1 baseline, 작업 라우팅 (self / mavis-team / single-spawn verifier), 메모리 3-layer (project/agent/user), 사용 가능 skills/agents/MCP, hard limits, 인계 SOP 은 위 문서에서 단일 source-of-truth 로 관리한다.
+- Mavis 는 5-워커 워크플로우를 대체하지 않는다 — cross-cut 정합 (governance / traceability / release_v1_roadmap / worker_division) 이 필요할 때 후속 PR 로만 개입.
 - 표준 sprint branch 명명 규칙은 `docs/governance/worker_division.md` §2.5 를 따른다: `opencode/work_<YYMMDD>-<sprint-seq>-<issue-num>-<short-key>`
 - 브랜치 prefix `opencode/` → `ai-workflow/memory/opencode/<branch-suffix>/`
 - OpenCode 의 기본 에이전트 식별자는 **Sisyphus** 이며, 기본 모델은 `MiniMax-M3` 다. 복잡한 cross-file 리팩토링·아키텍처 결정은 Oracle 같은 specialist 호출로 escalate 한다.
