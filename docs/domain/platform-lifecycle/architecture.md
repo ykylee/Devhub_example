@@ -109,11 +109,11 @@ sequenceDiagram
 ### 8.1 페르소나별 뷰 스위처 아키텍처 (ARCH-PROJDASH-01)
 
 대시보드 상단 뷰 제어를 위해 프론트엔드와 백엔드 간에 역할(Role) 기반의 2단계 접근 검증 아키텍처를 채택합니다.
-* **프론트엔드 다이내믹 마운팅**: Keycloak OIDC 토큰의 `resource_access` 영역에서 현재 접속자의 멤버십 역할을 동적으로 파싱합니다.
-  - `contributor` -> **Developer View** 기본 활성화
-  - `project_leader` -> **PL View** 기본 활성화
-  - `team_manager` / `pmo_manager` -> **Manager View** 기본 활성화
-* **2단계 접근 제어 가드**: 프론트엔드 모드 스위처 인터페이스가 뷰를 리렌더링하기 전, 그리고 백엔드 API가 호출될 때 해당 프로젝트 멤버십 테이블 및 RBAC 정책을 2차적으로 교차 검증하여 비인가자의 관리자 지표 조회를 차단합니다.
+* **프론트엔드 다이내믹 마운팅**: 유저의 2차원 RBAC (system role × resource role) 권한 정보와 프로젝트 멤버십 정보를 동적으로 파싱합니다.
+  - System Role `developer` 및 Resource Role `project_member` -> **Developer View** 기본 활성화
+  - Resource Role `project_leader` (실제 식별 기준: `project_members.project_role = 'lead'`) -> **PL View** 기본 활성화
+  - System Role `team_manager` 또는 `system_admin` -> **Manager View** 기본 활성화
+* **2단계 접근 제어 가드**: 프론트엔드 모드 스위처 인터페이스가 뷰를 리렌더링하기 전, 그리고 백엔드 API가 호출될 때 해당 프로젝트 멤버십 테이블(`project_members.project_role`) 및 2차원 RBAC 정책을 2차적으로 교차 검증하여 비인가자의 관리자 지표 조회를 차단합니다.
 
 ### 8.2 SCM 메트릭 실시간 추출 및 분석 (ARCH-PROJDASH-02)
 

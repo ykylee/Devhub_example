@@ -32,7 +32,7 @@
 | `API-57` | `GET /api/v1/platforms/{platform_id}/rollup` | §7 | activated (concept §13.4 normalize 실 구현 + critical 가드 흡수) |
 | API-58 | `GET /api/v1/integrations` + CRUD | §8 | activated (scope polymorphism application/project) |
 | API-93 | `GET /api/v1/platforms/{platform_id}/dashboard` | §9.1 | planned (sprint gemini/application-dashboard-concept) |
-| API-94 | `GET /api/v1/projects/{project_id}/dashboard` | §9.2 | accepted (sprint gemini/work_260604-a-platform-dashboard) |
+| API-98 | `GET /api/v1/projects/{project_id}/dashboard` | §9.2 | accepted (sprint gemini/work_260604-a-platform-dashboard) |
 
 **activated 단계 정의 (sprint claude/work_260514-b)**: gin v1 group route + RBAC matrix + handler body + store body + 요청 validation + 상태 전이 가드 + audit emit. RBAC 매트릭스에서 system_admin 만 4 신규 resource (`applications` / `platform_repositories` / `projects` / `scm_providers`) 의 모든 axis true (migration 000018, ADR-0011 §4.1).
 
@@ -508,7 +508,7 @@
 }
 ```
 
-### 9.2 `GET /api/v1/projects/{project_id}/dashboard` (API-94)
+### 9.2 `GET /api/v1/projects/{project_id}/dashboard` (API-98)
 
 - **설명**: 프로젝트 상세 대시보드(PROJDASH) 데이터를 제공합니다. 3대 페르소나(`developer`, `project_leader`, `manager`)의 관점에 맞춘 맞춤형 위젯 데이터를 `persona` 쿼리 파라미터에 따라 동적으로 가공하여 일괄 반환합니다. (REQ-FR-PROJDASH-001)
 - **인증**: OIDC + RBAC `projects:view`.
@@ -784,5 +784,5 @@ integration_scm_auth_failed
 
 | 일자 | 변경 |
 | --- | --- |
-| 2026-06-04 | **§1 API ID 인덱스 & §9.2 API-94 신규** — 3대 페르소나별 프로젝트 상세 대시보드(PROJDASH) 통합 API 정의. OIDC/RBAC 및 `persona` 쿼리 파라미터별 다형성 응답 구조 설계. |
+| 2026-06-04 | **§1 API ID 인덱스 & §9.2 API-98 신규** — 3대 페르소나별 프로젝트 상세 대시보드(PROJDASH) 통합 API 정의. OIDC/RBAC 및 `persona` 쿼리 파라미터별 다형성 응답 구조 설계. |
 | 2026-05-29 | Phase 3 split — master `docs/backend_api_contract.md` §13 (Platform/Repository/Project 본문) 을 도메인 sub-document 로 이관. ID(API-41..50, 55..58, 56A/56B, 57, 58, 93) 보존, 신규 발급/삭제 없음. API-51..54 (repository 운영 지표) + API-91/92 (draft→publish) 는 repository-integration api 로 분리. API-88/89/90 (외부 SCM 원격 import/create) 는 integration-registry api 에 위치. §13.10 의 대시보드 응답 페이로드 sample 은 length 우려로 master 인용 유지. |

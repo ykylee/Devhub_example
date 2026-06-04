@@ -133,10 +133,10 @@
 
 ### 3.1 기능 요구사항 (REQ-FR-APPDASH)
 
-- **REQ-FR-APPDASH-001 (MVP, 확정):** 실시간 타겟 브랜치 빌드 상태(Target Branch Build Status)를 최상단 메트릭 카드를 통해 노출해야 한다.
-    - **실시간 실패 빌드 런 표시**: 단순 빌드 성공률(%)보다 실시간 broken/red 상태 빌드 현황을 즉시 표기한다.
-    - **리포지토리 슬러그 연계**: 연결된 어떤 리포지토리의 어떤 브랜치에서 실패했는지 `org/repo-slug` 형식으로 표시해야 한다.
-    - **빌드 실패 진단 정보 및 로그 연동**: 실패 건에 대해 빌드 번호, 실패 경과 시간, 에러 요약 스니펫을 노출하고 해당 빌드 로그로 즉시 이동하는 **[로그 진입 딥링크]** 액션을 제공해야 한다. (모두 정상일 시 `Healthy 🟢` 표시)
+- **REQ-FR-APPDASH-001 (MVP, 확정):** 실시간 타겟 브랜치 빌드 상태(Target Branch Build Status)를 대시보드 상단 배지 및 깨진 빌드 전용 경고 배너 영역을 통해 노출해야 한다.
+    - **실시간 실패 빌드 런 표시**: 단순 빌드 성공률(%)보다 실시간 broken/red 상태 빌드 현황을 즉시 표기한다. 모두 정상일 시 플랫폼 헤더 우측에 `Healthy 🟢` 배지를 표시한다.
+    - **리포지토리 슬러그 연계**: 빌드 실패 발생 시, 연결된 어떤 리포지토리의 어떤 브랜치에서 실패했는지 `org/repo-slug` 형식으로 표시해야 한다.
+    - **빌드 실패 진단 정보 및 로그 연동**: 실패 건에 대해 빌드 번호, 에러 요약 스니펫을 노출하고 해당 빌드 로그로 즉시 이동하는 **[로그 진입 딥링크]** 액션을 제공해야 한다.
 - **REQ-FR-APPDASH-002 (MVP, 확정):** 다차원 코드 품질 지표 및 정적 분석 이슈(Quality & Issues) 카드를 노출해야 한다.
     - **5점 만점 normalized 품질 스코어**: 리포지토리별 SonarQube 품질 데이터를 5.0 만점 스케일로 정규화 및 가중 평균하여 노출한다.
     - **심각도별 미해결 정적분석 이슈 노출**: Blocker, Critical, Major 등 심각도 등급에 따라 미해결된 정적분석 이슈 건수를 집계하여 표시해야 한다.
@@ -170,7 +170,7 @@
 ### 4.1 기능 요구사항 (REQ-FR-PROJDASH)
 
 - **REQ-FR-PROJDASH-001 (MVP, 확정):** 대시보드는 3대 페르소나(개발자, PL, 조직 관리자) 관점의 스위처(3-Way Persona Switcher)를 제공하고 역할 기반으로 렌더링해야 한다.
-    - **역할 기반 매핑**: 유저의 Keycloak Resource Access Role에 따라 기본 뷰를 노출한다 (`contributor` -> 개발자 뷰, `project_leader` -> PL 뷰, `pmo_manager/team_manager` -> 관리자 뷰).
+    - **역할 기반 매핑**: 유저의 2차원 RBAC 역할 조합 및 프로젝트 멤버십 테이블 정보에 따라 기본 뷰를 기본값으로 분기 렌더링한다. (개발자 뷰 -> System Role `developer` 및 Resource Role `project_member` 권한자, PL 뷰 -> Resource Role `project_leader` 권한자(실 식별 기준은 `project_members.project_role = 'lead'`), 관리자 뷰 -> System Role `team_manager` 및 `system_admin`).
     - **다이내믹 뷰 토글**: 상단 세그먼트 스위치를 통해 모드를 전환할 수 있어야 하며, 권한 외 뷰 접근 시 접근 제한 경고를 표시해야 한다.
 - **REQ-FR-PROJDASH-002 (MVP, 확정):** 개인화된 실무 피드(Developer My Work)를 최상단에 노출해야 한다.
     - **할당된 이슈 리스트**: 로그인한 개발자 본인에게 할당된 활성 일감(Active Tasks) 목록을 우선순위별로 노출한다.

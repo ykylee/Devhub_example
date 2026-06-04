@@ -59,10 +59,10 @@ PL이 스프린트 및 마일스톤 달성을 위해 코드 병목과 기술적 
 ### 3.1 페르소나 모드 스위처 (3-Way Mode Switcher)
 사용자의 역할(Role)에 맞춰 가장 최적화된 초기 뷰를 렌더링하고, 필요 시 전환 가능한 UI 컴포넌트를 상단 헤더에 구현합니다.
 * **자동 렌더링 규칙:**
-  * Keycloak 토큰의 Resource Access Role 분석:
-    * `contributor` -> **Developer View** 기본 활성화
-    * `project_leader` / `lead` -> **PL View** 기본 활성화
-    * `pmo_manager` / `team_manager` -> **Manager View** 기본 활성화
+  * 유저의 2차원 RBAC (system role × resource role) 조합 및 프로젝트 멤버십 정보 분석:
+    * System Role `developer` 및 Resource Role `project_member` -> **Developer View** 기본 활성화
+    * Resource Role `project_leader` (실제 식별 기준: `project_members.project_role = 'lead'`) -> **PL View** 기본 활성화
+    * System Role `team_manager` 또는 `system_admin` -> **Manager View** 기본 활성화
 * **수동 세그먼트 컨트롤:**
   * 상단 우측에 `[ Developer ] | [ Project Leader ] | [ Org Manager ]` 형태의 슬라이딩 토글을 노출하여, 권한을 가진 사용자(예: PL 및 Manager)가 유연하게 화면을 전환할 수 있도록 합니다. 권한이 없는 뷰 선택 시 제한 안내 팝업을 노출합니다.
 
