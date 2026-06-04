@@ -41,7 +41,7 @@ func applicationsFixture(t *testing.T, ctx context.Context, pool *pgxpool.Pool) 
 	t.Helper()
 	const cleanupStatic = `
 TRUNCATE TABLE project_members, project_integrations, projects,
-               platform_repositories, applications,
+               platform_repositories, platforms,
                pr_activities, build_runs, ci_runs, quality_snapshots RESTART IDENTITY CASCADE;`
 	if _, err := pool.Exec(ctx, cleanupStatic); err != nil {
 		t.Fatalf("cleanup static tables: %v", err)
@@ -758,9 +758,9 @@ ON CONFLICT (provider_key) DO NOTHING
 
 	// 2.5 codex P1 fix — slug 변경 시 platform_repositories link cascade update
 	linkAppID := "00000000-0000-0000-0000-000000000910"
-	defer func() { _, _ = pool.Exec(ctx, `DELETE FROM applications WHERE id = $1`, linkAppID) }()
+	defer func() { _, _ = pool.Exec(ctx, `DELETE FROM platforms WHERE id = $1`, linkAppID) }()
 	if _, err := pool.Exec(ctx, `
-INSERT INTO applications (id, key, name, status, visibility, owner_user_id, created_at, updated_at)
+INSERT INTO platforms (id, key, name, status, visibility, owner_user_id, created_at, updated_at)
 VALUES ($1, 'cascade-app', 'Cascade App', 'active', 'internal', 'u-cascade', NOW(), NOW())
 ON CONFLICT (id) DO NOTHING
 `, linkAppID); err != nil {
@@ -798,9 +798,9 @@ VALUES ($1, 'gitea', $2, 'primary', 'active', 'manual', NOW())
 
 	// 2.6 codex P1 fix — slug conflict 시 ErrConflict + tx rollback
 	conflictAppID := "00000000-0000-0000-0000-000000000911"
-	defer func() { _, _ = pool.Exec(ctx, `DELETE FROM applications WHERE id = $1`, conflictAppID) }()
+	defer func() { _, _ = pool.Exec(ctx, `DELETE FROM platforms WHERE id = $1`, conflictAppID) }()
 	if _, err := pool.Exec(ctx, `
-INSERT INTO applications (id, key, name, status, visibility, owner_user_id, created_at, updated_at)
+INSERT INTO platforms (id, key, name, status, visibility, owner_user_id, created_at, updated_at)
 VALUES ($1, 'conflict-app', 'Conflict App', 'active', 'internal', 'u-conflict', NOW(), NOW())
 ON CONFLICT (id) DO NOTHING
 `, conflictAppID); err != nil {
@@ -920,9 +920,9 @@ func TestIntegration_DeleteRepository(t *testing.T) {
 	defer func() { _, _ = pool.Exec(ctx, `DELETE FROM platform_repositories WHERE repo_full_name = $1`, slug3) }()
 	defer func() { _, _ = pool.Exec(ctx, `DELETE FROM repositories WHERE id = $1`, draft3.ID) }()
 	appID := "00000000-0000-0000-0000-000000000999"
-	defer func() { _, _ = pool.Exec(ctx, `DELETE FROM applications WHERE id = $1`, appID) }()
+	defer func() { _, _ = pool.Exec(ctx, `DELETE FROM platforms WHERE id = $1`, appID) }()
 	if _, err := pool.Exec(ctx, `
-INSERT INTO applications (id, key, name, status, visibility, owner_user_id, created_at, updated_at)
+INSERT INTO platforms (id, key, name, status, visibility, owner_user_id, created_at, updated_at)
 VALUES ($1, $2, $3, 'active', 'internal', 'u-del', NOW(), NOW())
 ON CONFLICT (id) DO NOTHING
 `, appID, "del-fk-app", "Del FK App"); err != nil {

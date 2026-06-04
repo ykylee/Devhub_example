@@ -284,9 +284,9 @@ func (s *PostgresStore) ComputePlatformRollup(ctx context.Context, platformID st
 	const linksQuery = `
 SELECT ar.repo_provider, ar.repo_full_name, ar.role, ar.sync_status, COALESCE(ar.sync_error_code, ''),
        r.id
-FROM application_repositories ar
+FROM platform_repositories ar
 LEFT JOIN repositories r ON r.full_name = ar.repo_full_name
-WHERE ar.application_id = $1::uuid`
+WHERE ar.platform_id = $1::uuid`
 	rows, err := s.pool.Query(ctx, linksQuery, platformID)
 	if err != nil {
 		return domain.PlatformRollup{}, fmt.Errorf("list rollup links: %w", err)

@@ -27,7 +27,7 @@ const integrationsSelectColumns = `
 	id::text,
 	scope,
 	COALESCE(project_id::text, ''),
-	COALESCE(application_id::text, ''),
+	COALESCE(platform_id::text, ''),
 	integration_type,
 	external_key,
 	url,
@@ -59,7 +59,7 @@ func (s *PostgresStore) ListIntegrations(ctx context.Context, opts IntegrationLi
 	const countQuery = `
 SELECT COUNT(*) FROM project_integrations
 WHERE ($1 = '' OR scope = $1)
-  AND ($2 = '' OR application_id = NULLIF($2, '')::uuid)
+  AND ($2 = '' OR platform_id = NULLIF($2, '')::uuid)
   AND ($3 = '' OR project_id = NULLIF($3, '')::uuid)
   AND ($4 = '' OR integration_type = $4)`
 	var total int
@@ -72,7 +72,7 @@ WHERE ($1 = '' OR scope = $1)
 SELECT` + integrationsSelectColumns + `
 FROM project_integrations
 WHERE ($3 = '' OR scope = $3)
-  AND ($4 = '' OR application_id = NULLIF($4, '')::uuid)
+  AND ($4 = '' OR platform_id = NULLIF($4, '')::uuid)
   AND ($5 = '' OR project_id = NULLIF($5, '')::uuid)
   AND ($6 = '' OR integration_type = $6)
 ORDER BY created_at DESC
@@ -113,7 +113,7 @@ func (s *PostgresStore) GetIntegration(ctx context.Context, id string) (domain.P
 func (s *PostgresStore) CreateIntegration(ctx context.Context, integration domain.ProjectIntegration) (domain.ProjectIntegration, error) {
 	const insertQuery = `
 INSERT INTO project_integrations (
-	scope, project_id, application_id, integration_type, external_key, url, policy
+	scope, project_id, platform_id, integration_type, external_key, url, policy
 ) VALUES (
 	$1, NULLIF($2, '')::uuid, NULLIF($3, '')::uuid, $4, $5, $6, $7
 )

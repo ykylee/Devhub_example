@@ -42,7 +42,8 @@ test.describe("SCM repository flow", () => {
     await expect(importRow).toBeVisible({ timeout: 10_000 });
 
     // 3. Import 버튼 클릭 → ImportRepositoriesModal 오픈
-    const importBtn = importRow.getByRole("button", { name: /import/i });
+    //    /^import/i: displayName "E2E SCM Import …" 가 모든 버튼명에 들어가서 /import/i 는 5개 매칭 (strict mode 회피).
+    const importBtn = importRow.getByRole("button", { name: /^import/i });
     await expect(importBtn).toBeVisible();
     await importBtn.click();
 
@@ -90,7 +91,7 @@ test.describe("SCM repository flow", () => {
           resp.request().method() === "POST",
         { timeout: 20_000 },
       );
-      await importModal.getByRole("button", { name: /import/i }).click();
+      await importModal.getByRole("button", { name: /^import/i }).click();
       try {
         const importResp = await importResponsePromise;
         expect(importResp.ok()).toBeTruthy();

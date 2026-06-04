@@ -1420,7 +1420,7 @@ SELECT
 	-- 가 1건이라도 있으면 linked. application_repositories 의 명시 매핑이 SoT 라
 	-- false positive 가능성보다 false negative 회피 우선.
 	COALESCE((SELECT COUNT(*)
-	          FROM application_repositories ar
+	          FROM platform_repositories ar
 	          WHERE ar.repo_full_name = r.full_name), 0)::int AS linked_applications_count,
 	COALESCE((SELECT COUNT(*)
 	          FROM project_repositories pr

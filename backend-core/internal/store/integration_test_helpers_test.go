@@ -28,7 +28,7 @@ func applicationsFixture(t *testing.T, ctx context.Context, pool *pgxpool.Pool) 
 	t.Helper()
 	const cleanupStatic = `
 TRUNCATE TABLE project_members, project_integrations, projects,
-               platform_repositories, applications,
+               platform_repositories, platforms,
                pr_activities, build_runs, ci_runs, quality_snapshots RESTART IDENTITY CASCADE;`
 	if _, err := pool.Exec(ctx, cleanupStatic); err != nil {
 		t.Fatalf("cleanup static tables: %v", err)

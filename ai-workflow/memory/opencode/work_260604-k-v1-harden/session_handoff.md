@@ -15,10 +15,11 @@
 | **Application→Platform rename** | DB migration 000048 + Go domain/store/view/handler + Frontend 88 files + Docs 80+ files | ✅ |
 | **Codex P2** | revokeAttempted를 Keycloak 호출 전에 true로 설정, revokeSuccess 분리 | ✅ |
 | **Conflict 해결** | report.md merge with main resolved | ✅ |
+| **PR #476 CI 수정 (WK-12)** | rename 잔여 SQL 4건 (integrations.go / repository_ops.go / postgres.go) + integration test cleanup 3 파일 + E2E strict mode locator 1 건 | ✅ |
 
 ## PR
 
-- https://github.com/ykylee/Devhub_example/pull/476 — 머지 대기
+- https://github.com/ykylee/Devhub_example/pull/476 — CI push 후 재실행 대기
 
 ## 잔여 v1.0 항목 (다음 세션)
 

@@ -145,7 +145,7 @@ func TestIntegration_DevRequests_CRUD(t *testing.T) {
 	// 7. RegisterDevRequestWithNewPlatform
 	appKey := fmt.Sprintf("AP%08d", time.Now().UnixNano()%100000000)
 	defer func() {
-		_, _ = pool.Exec(ctx, `DELETE FROM applications WHERE key = $1`, appKey)
+		_, _ = pool.Exec(ctx, `DELETE FROM platforms WHERE key = $1`, appKey)
 	}()
 
 	app := domain.Platform{
