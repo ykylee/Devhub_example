@@ -4,7 +4,7 @@
 - 범위: 상태 문서 분류, 작성 표준, 메타데이터 요구사항
 - 대상 독자: AI 에이전트, 저장소 관리자
 - 상태: stable
-- 최종 수정일: 2026-05-07
+- 최종 수정일: 2026-06-04
 - 관련 문서: [../ai-workflow/WORKFLOW_INDEX.md](../ai-workflow/WORKFLOW_INDEX.md), [../README.md](../README.md)
 
 이 문서는 `ai-workflow/memory/` 하위 문서를 작성할 때 AI 에이전트가 준수해야 할 규칙과 템플릿을 정의합니다.
@@ -16,6 +16,7 @@
 - 표준 위치: `ai-workflow/memory/<agent>/<branch>/`
 - 예시: `ai-workflow/memory/codex/service-action-command/`
 - 예시: `ai-workflow/memory/gemini/phase6/`
+- 예시: `ai-workflow/memory/opencode/work_260604-a-opencode-workflow-bootstrap/`
 - agent prefix가 없는 브랜치: `ai-workflow/memory/branches/<branch-name>/`
 
 브랜치별 디렉터리는 아래 4종을 기본 세트로 가진다.

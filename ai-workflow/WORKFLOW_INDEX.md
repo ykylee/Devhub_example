@@ -4,7 +4,7 @@
 - 범위: 세션 시작, 상태 복원, 온보딩, 코어 정책 문서
 - 대상 독자: Codex, 저장소 관리자, 신규 온보딩 참여자
 - 상태: draft
-- 최종 수정일: 2026-05-07
+- 최종 수정일: 2026-06-04
 - 관련 문서: [README](./README.md), [Memory Governance](./MEMORY_GOVERNANCE.md)
 
 ## 1. 세션 시작 순서
@@ -14,6 +14,7 @@
    - `codex/service-action-command` → [memory/codex/service-action-command/](./memory/codex/service-action-command/)
    - `claude/init` → [memory/claude/init/](./memory/claude/init/)
    - `claude/phase13` → [memory/claude/phase13/](./memory/claude/phase13/)
+   - `opencode/work_260604-a-opencode-workflow-bootstrap` → [memory/opencode/work_260604-a-opencode-workflow-bootstrap/](./memory/opencode/work_260604-a-opencode-workflow-bootstrap/)
 3. 브랜치별 `state.json`, `session_handoff.md`, `work_backlog.md`, 최신 `backlog/YYYY-MM-DD.md`를 읽는다.
 4. 공용 기준 문서를 읽는다.
    - [memory/PROJECT_PROFILE.md](./memory/PROJECT_PROFILE.md)

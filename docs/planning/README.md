@@ -4,7 +4,7 @@
 - 범위: 통합 로드맵, 트랙별 세부 로드맵, 마일스톤별 backlog 위치, PR 별 트래커, 보안 리뷰 트래커, 향후 sprint plan
 - 대상 독자: 프로젝트 리드, 백엔드/프론트엔드/Auth/AI/운영 트랙 담당자, 후속 작업자
 - 상태: accepted
-- 최종 수정일: 2026-05-20
+- 최종 수정일: 2026-06-04
 - 관련 문서: [../README.md](../README.md), [../development_roadmap.md](../development_roadmap.md), [../DOCUMENT_INDEX.md](../DOCUMENT_INDEX.md)
 
 ## 0. 진입점 — 무엇부터 읽는가
@@ -59,6 +59,8 @@ backlog 는 *브랜치별 메모리* 에서 관리한다 (CLAUDE.md 정책). 작
 | Codex CLI 사용 | `ai-workflow/memory/codex/<branch>/backlog/<date>.md` |
 | Gemini CLI 사용 | `ai-workflow/memory/gemini/<branch>/backlog/<date>.md` |
 | Antigravity 사용 | `ai-workflow/memory/antigravity/<branch>/backlog/<date>.md` |
+| Reasonix (deepseek-v4) 사용 | `ai-workflow/memory/deepseek/<branch>/backlog/<date>.md` |
+| OpenCode (Sisyphus / MiniMax-M3) 사용 | `ai-workflow/memory/opencode/<branch>/backlog/<date>.md` (2026-06-04 신설) |
 | Agent prefix 없는 브랜치 | `ai-workflow/memory/branches/<branch>/backlog/<date>.md` |
 | flat (legacy fallback) | `ai-workflow/memory/backlog/<date>.md` (현재는 `_archive/legacy-flat-backlog/` 로 이전) |
 

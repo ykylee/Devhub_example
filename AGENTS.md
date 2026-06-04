@@ -4,7 +4,7 @@
 - 범위: 세션 복원, workflow state docs 참조 순서, 사용자 보고 언어, 기본 실행/검증 명령, **v1.0 릴리즈 로드맵 + 워커 분업**
 - 대상 독자: Codex, Reasonix (deepseek-v4), 저장소 관리자, workflow 설계자
 - 상태: active
-- 최종 수정일: 2026-06-01 (Reasonix 전용 메모 섹션 추가)
+- 최종 수정일: 2026-06-04 (OpenCode 전용 메모 섹션 추가)
 - 관련 문서: `ai-workflow/MEMORY_GOVERNANCE.md`, `ai-workflow/memory/<agent>/<branch>/state.json`, `ai-workflow/memory/PROJECT_PROFILE.md`, `docs/governance/README.md` (거버넌스 진입점), `docs/governance/document-standards.md`, `docs/governance/worker_division.md` (**워커 분업 — Codex/Reasonix 영역**), `docs/planning/release_v1_roadmap.md` (**v1.0 릴리즈 로드맵**), `docs/traceability/README.md`
 
 ## v1.0 릴리즈 로드맵 + 워커 분업
@@ -94,3 +94,15 @@
 - `run_command` 사용 시 `cd` 가 체인에서 거부되므로, cwd 가 필요한 명령은 `cwd` 인자를 직접 전달하거나 `--prefix`/`-C` 플래그를 사용한다.
 - 현재 브랜치가 `main`이 아닐 때는 `ai-workflow/` 메타 레이어를 기본 탐색 범위에 포함하지 말고, workflow 문서 갱신이나 세션 복원 시에만 참조한다.
 - 프로젝트 실행 기본값(TODO 항목들)은 아직 설정되지 않았다 (`TODO: ...` 상태). Reasonix 세션 시작 시 `PROJECT_PROFILE.md` §3 기본 명령을 직접 참조하여 실행한다.
+
+## OpenCode (Sisyphus / MiniMax-M3) 전용 메모
+
+- OpenCode 워커는 Codex / Claude / Gemini / Reasonix 와 동일한 workflow 레이어(`ai-workflow/`)를 따르며, 브랜치별 memory 디렉터리 패턴을 동일하게 사용한다.
+- **브랜치 생성 시 반드시 `opencode/` prefix 를 사용한다.** 브랜치명 예: `opencode/work_260604-a-opencode-workflow-bootstrap`
+- 표준 sprint branch 명명 규칙은 `docs/governance/worker_division.md` §2.5 를 따른다: `opencode/work_<YYMMDD>-<sprint-seq>-<issue-num>-<short-key>`
+- 브랜치 prefix `opencode/` → `ai-workflow/memory/opencode/<branch-suffix>/`
+- OpenCode 의 기본 에이전트 식별자는 **Sisyphus** 이며, 기본 모델은 `MiniMax-M3` 다. 복잡한 cross-file 리팩토링·아키텍처 결정은 Oracle 같은 specialist 호출로 escalate 한다.
+- OpenCode 는 메인 에이전트 조정/통합에 집중하고, bounded scope 의 읽기/쓰기/검증 작업은 `explore` / `librarian` / `Sisyphus-Junior` 같은 worker 성격 서브에이전트에 위임하는 패턴을 권장한다.
+- 사용자에게 보이는 작업 보고, handoff, backlog, 사용자 안내 문구는 기본 한국어로 작성한다 (Reasonix 와 동일). 코드/명령어/경로/외부 시스템 명칭은 원문 유지.
+- 현재 브랜치가 `main`이 아닐 때는 `ai-workflow/` 메타 레이어를 기본 탐색 범위에 포함하지 말고, workflow 문서 갱신이나 세션 복원 시에만 참조한다.
+- 영역별 책임(`worker_division.md` §1.4) 은 첫 sprint 종료 후 후속 sprint 의 backlog 로 정의한다. 첫 sprint (`opencode/work_260604-a-opencode-workflow-bootstrap`) 는 governance 부트스트랩에 한정한다.

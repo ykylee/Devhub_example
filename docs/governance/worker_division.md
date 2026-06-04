@@ -1,10 +1,10 @@
 # 워커 분업 — Claude / Codex / Gemini
 
-- 문서 목적: DevHub 의 3 워커 (Claude, Codex, Gemini) 가 영역별 작업을 분담하고 인계하는 규칙. 사용자 1명이 모든 워커를 invoke 하지만, 워커별 강점/이력/스타일이 다름.
+- 문서 목적: DevHub 의 4 워커 (Claude, Codex, Gemini, OpenCode) 가 영역별 작업을 분담하고 인계하는 규칙. 사용자 1명이 모든 워커를 invoke 하지만, 워커별 강점/이력/스타일이 다름.
 - 범위: 워커별 책임 영역, 작업 스타일, 인계 SOP, 충돌 처리.
 - 대상 독자: 모든 워커, 사용자.
 - 상태: draft
-- 최종 수정일: 2026-05-20
+- 최종 수정일: 2026-06-04
 - 결정 근거 sprint: `claude/work_260520-f-roadmap`
 - 관련 문서: [v1.0 릴리즈 로드맵 §5 분업 매트릭스](../planning/release_v1_roadmap.md), [governance/README](./README.md), [document-standards](./document-standards.md), `AGENTS.md`.
 
@@ -66,8 +66,23 @@
 - e2e selector 정합 + flaky fix
 
 **누적 이력 (2026-05-20 기준)**:
-- 5+ PR — frontend redesign / dashboard UI + LogoutOverlay / FilterBar 표준화 + dev-requests + audit log redesign / DREQ E2E 안정화 / Keycloak test login + semantic theme (PR #203, claude 가 인수해서 머지)
+- 5+ PR — frontend redesign / dashboard UI + LogoutOverlay / FilterBar 표준화 / dev-requests + audit log redesign / DREQ E2E 안정화 / Keycloak test login + semantic theme (PR #203, claude 가 인수해서 머지)
 - 주요 contribution: PR #115 (light theme + dropdown + endpoints), PR #134 (dashboard UI + LogoutOverlay), PR #138 (dashboard rebrand + Applications/Repositories/Projects 현황 페이지 + FilterBar), PR #140 (FilterBar standardize + DestructiveConfirmModal), PR #203 (semantic theme)
+
+### 1.4 OpenCode — 영역 TBD (governance bootstrap 진행 중)
+
+**주요 책임**:
+- (영역 미정 — 첫 sprint 종료 후 후속 sprint 의 backlog 로 정의)
+- 1차 sprint (`opencode/work_260604-a-opencode-workflow-bootstrap`) 는 governance 부트스트랩 한정 — 본 문서 §1.4 placeholder + `AGENTS.md` 의 "OpenCode 전용 메모" 섹션 + `MEMORY_GOVERNANCE.md` prefix 예시 + `WORKFLOW_INDEX.md` 진입 예시 정합
+
+**작업 스타일**:
+- 메인 에이전트 조정/통합 중심 (Sisyphus 정체성)
+- bounded scope 의 읽기/쓰기/검증은 `explore` / `librarian` / `Sisyphus-Junior` 같은 worker 성격 서브에이전트로 위임
+- 복잡한 cross-file 리팩토링·아키텍처 결정은 Oracle 호출로 escalate
+
+**누적 이력 (2026-06-04 기준)**:
+- 0 PR (bootstrap sprint)
+- 결정: 첫 sprint 는 governance 한정. 영역 분담 + 인계 SOP 은 §1.4 본문 채우기 sprint 에서 확정
 
 ## 2. v1.0 sprint 별 분담
 
@@ -92,7 +107,7 @@
 
 | 요소 | 설명 | 예시 |
 | --- | --- | --- |
-| `<worker>` | 워커 prefix | `claude`, `codex`, `gemini`, `deepseek` (Reasonix) |
+| `<worker>` | 워커 prefix | `claude`, `codex`, `gemini`, `deepseek` (Reasonix), `opencode` (Sisyphus) |
 | `<YYMMDD>` | 작업 시작 날짜 (KST) | `260520` |
 | `<sprint-seq>` | 알파벳 sequence (당일 본 워커의 N번째 sprint) | `a`, `b`, ..., `z`, `aa`, `ab`, ... |
 | `<issue-num>` | GitHub issue 번호 (해당 sprint 의 핵심 작업) | `209`, `238` |
@@ -106,12 +121,14 @@
 | `codex/work_260520-a-238-docker-single-port` | Codex 2026-05-20 의 a번째 sprint, issue #238 |
 | `gemini/work_260521-a-210-ui-polish` | Gemini 2026-05-21 의 a번째 sprint, issue #210 |
 | `deepseek/work_260601-a-construct-workflow` | DeepSeek (Reasonix) 2026-06-01 의 a번째 sprint, Reasonix 워크플로우 구성 |
+| `opencode/work_260604-a-opencode-workflow-bootstrap` | OpenCode (Sisyphus) 2026-06-04 의 a번째 sprint, governance 부트스트랩 (이슈 없는 housekeeping 예외) |
 
 ### 예외 — issue 없는 작업
 
 - housekeeping / memory sync / docs hotfix 같이 GitHub issue 없는 작업: issue 번호 생략 + key 만 명시. 예: `claude/work_260520-c-housekeeping`, `claude/work_260520-g-codex-hotfix`
 - codex/gemini 외부 contribution: 자유 branch 명 허용 (예: 본 사례의 `gemini/keycloak-test-e2e-push-audit`). 본인 인수 시 그대로 작업 후 PR 머지.
 - Reasonix 환경에서 브랜치 생성 시 반드시 `deepseek/` prefix 를 사용한다. (Reasonix 는 `AGENTS.md` "Reasonix 전용 메모" 및 "항상 먼저 읽을 문서" 섹션의 deepseek 패턴을 따른다.)
+- OpenCode 환경에서 브랜치 생성 시 반드시 `opencode/` prefix 를 사용한다. (OpenCode 는 `AGENTS.md` "OpenCode 전용 메모" 및 "항상 먼저 읽을 문서" 섹션의 opencode 패턴을 따른다.)
 
 ### 적용 시점
 
@@ -227,3 +244,4 @@ P0 > P1 > P2 > P3 강제. P0 carve 진행 중 P2 carve 진입 금지 (예외: �
 | 2026-05-20 | codex review hotfix (P2) — §4.2 ADR reversal 의 dead link (`[feedback_adr_supersession_pattern.md](#)`) 정정. per-user auto-memory 파일이라 repo 에 없음 → 5 step 표준 절차 본문 명시 + canonical 사례 ADR-0019/ADR-0001 supersession (PR #169) 인용으로 대체 | `claude/work_260520-g-codex-hotfix` |
 | 2026-05-20 | §2.5 신규 — Branch 명명 규칙 (`<worker>/work_<YYMMDD>-<sprint-seq>-<issue-num>-<short-key>`). 사용자 지시 (2026-05-20) 따라 작업 식별성 강화. 예외 (issue 없는 housekeeping/hotfix / 외부 contribution) 명시. 2026-05-20 sprint -i 이후 적용, 이전 branch 는 historical 보존 | `claude/work_260520-i-209-accounts-deprecation` (본 sprint 가 적용 첫 사례) |
 | 2026-06-01 | §2.5 `<worker>` 목록에 `deepseek` (Reasonix) 추가 + 예시 row + 예외에 Reasonix 환경 deepseek/ prefix 규칙 명시 | `deepseek/construct_workflow_for_deepseek` |
+| 2026-06-04 | **§1.4 OpenCode 신설** — 영역 TBD placeholder + bootstrap 노트 / §2.5 `<worker>` 목록에 `opencode` (Sisyphus) 추가 + 예시 row + 예외에 OpenCode 환경 opencode/ prefix 규칙 명시 / 문서 헤더 워커 수 3 → 4 갱신 | `opencode/work_260604-a-opencode-workflow-bootstrap` |
