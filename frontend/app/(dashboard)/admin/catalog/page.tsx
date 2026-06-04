@@ -157,7 +157,7 @@ export default function AdminCatalogPage() {
     params.set("tab", "projects");
     params.set("q", applicationID);
     setQuery(applicationID);
-    router.replace(`/admin/catalog?${params.toString()}`);
+    router.push(`/admin/catalog?${params.toString()}`);
   };
 
   const openProjectTabByRepository = (repositoryID: number) => {
@@ -166,7 +166,7 @@ export default function AdminCatalogPage() {
     params.set("tab", "projects");
     params.set("q", q);
     setQuery(q);
-    router.replace(`/admin/catalog?${params.toString()}`);
+    router.push(`/admin/catalog?${params.toString()}`);
   };
 
   // archived 상태 → hard-delete (permanent), 그 외 → archive (soft-delete).
