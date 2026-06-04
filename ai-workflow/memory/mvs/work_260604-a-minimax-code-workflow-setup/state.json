@@ -1,0 +1,56 @@
+{
+  "schema_version": "1",
+  "branch": "mvs/work_260604-a-minimax-code-workflow-setup",
+  "agent": "mvs",
+  "agent_label": "Mavis",
+  "model": "MiniMax-M3",
+  "status": "in_progress",
+  "summary": "Mavis (MiniMax Code) 의 본 저장소 운영 패턴 단일 진입점 셋업. (1) ai-workflow/minimax_code_workflow.md 신규, (2) ai-workflow/MEMORY_GOVERNANCE.md §0.5/§3.1 추가, (3) ai-workflow/README.md §2 mvs/ branch memory 링크, (4) AGENTS.md Mavis 전용 메모 섹션, (5) docs/governance/worker_division.md §6 변경 이력 row, (6) 본 branch memory 4종 + root session scratchpad init. 본 sprint 종료 후 cross-worker 검증 + 사용자 commit/PH 결정.",
+  "started_at": "2026-06-04T13:08:00Z",
+  "updated_at": "2026-06-04T13:33:00Z",
+  "base_branch": "main",
+  "runtime": {
+    "product": "MiniMax Code",
+    "agent_id": "mavis",
+    "root_session_id": "mvs_8952f7f57f9749a68171434a78f89960",
+    "current_session_id": "mvs_d882729c69274dd69274dd287d0933213d08e3b",
+    "session_role": "root",
+    "model": "MiniMax-M3"
+  },
+  "scope": {
+    "in": [
+      "Mavis 운영 패턴 단일 진입점 문서 (ai-workflow/minimax_code_workflow.md)",
+      "Mavis 3-layer 메모리 매핑 (MEMORY_GOVERNANCE.md §0.5)",
+      "Mavis 에이전트 행동 지침 (MEMORY_GOVERNANCE.md §3.1)",
+      "현재 mvs branch memory 4종 파일 신규",
+      "Root session scratchpad init",
+      "Cross-ref 갱신 (README.md, AGENTS.md, worker_division.md)"
+    ],
+    "out": [
+      "5-워커 워크플로우 (worker_division.md §1.1-1.4) 본문 변경",
+      "외부 worker branch memory 직접 write",
+      "신규 MCP / skill 도입",
+      "backend-core / backend-ai / frontend 코드 변경"
+    ]
+  },
+  "deliverables": [
+    "ai-workflow/minimax_code_workflow.md",
+    "ai-workflow/MEMORY_GOVERNANCE.md (edited)",
+    "ai-workflow/README.md (edited)",
+    "AGENTS.md (edited)",
+    "docs/governance/worker_division.md (edited)",
+    "ai-workflow/memory/mvs/work_260604-a-minimax-code-workflow-setup/state.json (this file)",
+    "ai-workflow/memory/mvs/work_260604-a-minimax-code-workflow-setup/session_handoff.md",
+    "ai-workflow/memory/mvs/work_260604-a-minimax-code-workflow-setup/work_backlog.md",
+    "ai-workflow/memory/mvs/work_260604-a-minimax-code-workflow-setup/backlog/2026-06-04.md",
+    "Root session scratchpad at $MAVIS_SCRATCHPAD"
+  ],
+  "source_of_truth": {
+    "entry_doc": "ai-workflow/minimax_code_workflow.md",
+    "memory_policy": "ai-workflow/MEMORY_GOVERNANCE.md",
+    "project_profile": "ai-workflow/memory/PROJECT_PROFILE.md",
+    "session_handoff": "ai-workflow/memory/mvs/work_260604-a-minimax-code-workflow-setup/session_handoff.md",
+    "work_backlog_index": "ai-workflow/memory/mvs/work_260604-a-minimax-code-workflow-setup/work_backlog.md",
+    "root_scratchpad": "$MAVIS_SCRATCHPAD"
+  }
+}
