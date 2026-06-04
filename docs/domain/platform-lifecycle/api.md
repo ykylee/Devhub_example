@@ -30,9 +30,9 @@
 | `API-56A` | `GET /api/v1/platforms/{platform_id}/projects` + `POST` | §6 | activated (v2/hybrid) |
 | `API-56B` | `GET/POST/DELETE /api/v1/projects/{project_id}/repositories` | §6 | activated (v2/hybrid) |
 | `API-57` | `GET /api/v1/platforms/{platform_id}/rollup` | §7 | activated (concept §13.4 normalize 실 구현 + critical 가드 흡수) |
-| API-58 | `GET /api/v1/integrations` + CRUD | §8 | activated (scope polymorphism application/project) |
-| API-93 | `GET /api/v1/platforms/{platform_id}/dashboard` | §9.1 | planned (sprint gemini/application-dashboard-concept) |
-| API-98 | `GET /api/v1/projects/{project_id}/dashboard` | §9.2 | accepted (sprint gemini/work_260604-a-platform-dashboard) |
+| `API-58` | `GET /api/v1/integrations` + CRUD | §8 | activated (scope polymorphism application/project) |
+| `API-93` | `GET /api/v1/platforms/{platform_id}/dashboard` | §9.1 | planned (sprint gemini/application-dashboard-concept) |
+| `API-98` | `GET /api/v1/projects/{project_id}/dashboard` | §9.2 | accepted (sprint gemini/work_260604-a-platform-dashboard) |
 
 **activated 단계 정의 (sprint claude/work_260514-b)**: gin v1 group route + RBAC matrix + handler body + store body + 요청 validation + 상태 전이 가드 + audit emit. RBAC 매트릭스에서 system_admin 만 4 신규 resource (`applications` / `platform_repositories` / `projects` / `scm_providers`) 의 모든 axis true (migration 000018, ADR-0011 §4.1).
 
