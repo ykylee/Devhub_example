@@ -1,0 +1,35 @@
+{
+  "schema_version": "1",
+  "branch": "opencode/work_260604-i-n4-frontend-tests",
+  "agent": "opencode",
+  "agent_label": "Sisyphus",
+  "model": "MiniMax-M3",
+  "status": "in_progress",
+  "summary": "release_v1_roadmap §3.5 N-4 (프론트 단위테스트 보강). baseline 82% statements / 980 tests / 74 files. recent 변경 컴포넌트 (RepositoryEditModal, admin/catalog, projects) + data_gap/edge case 테스트 추가. 목표 +30 tests.",
+  "started_at": "2026-06-04T07:05:00Z",
+  "updated_at": "2026-06-04T07:05:00Z",
+  "scope": {
+    "in": [
+      "RepositoryEditModal 단위테스트 (PR #471 신규 컴포넌트, untested)",
+      "admin/catalog/page.tsx 단위테스트 (PR #470/#471 수정, untested)",
+      "projects/page.tsx 단위테스트 (PR #472 수정, untested)",
+      "RepositoryCreationModal 단위테스트 (PR #470 수정, untested)",
+      "data_gap/edge case 테스트 (codex P2 잔여 인용)"
+    ],
+    "out": [
+      "Backend 테스트 (Claude 영역)",
+      "E2E Playwright spec 추가 (별도 sprint)",
+      "shared/ui-foundation 컴포넌트 보강 (별도)",
+      "lint 룰/설정 변경"
+    ]
+  },
+  "artifacts": {
+    "pr_url": "TBD",
+    "branch_pushed": false
+  },
+  "source_of_truth": {
+    "project_profile_path": "ai-workflow/memory/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/opencode/work_260604-i-n4-frontend-tests/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/opencode/work_260604-i-n4-frontend-tests/work_backlog.md"
+  }
+}

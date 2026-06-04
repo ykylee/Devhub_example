@@ -14,7 +14,7 @@ export default defineConfig({
     environment: "happy-dom",
     globals: true,
     setupFiles: ["./lib/test-setup.ts"],
-    include: ["lib/**/*.test.ts", "lib/**/*.test.tsx", "components/**/*.test.tsx", "domain/**/*.test.ts", "domain/**/*.test.tsx", "shared/**/*.test.ts", "shared/**/*.test.tsx"],
+    include: ["app/**/*.test.tsx", "lib/**/*.test.ts", "lib/**/*.test.tsx", "components/**/*.test.tsx", "domain/**/*.test.ts", "domain/**/*.test.tsx", "shared/**/*.test.ts", "shared/**/*.test.tsx"],
     exclude: ["node_modules", ".next", "playwright-report", "tests/e2e"],
     coverage: {
       provider: "v8",
