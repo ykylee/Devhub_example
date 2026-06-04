@@ -5,13 +5,19 @@
   "agent_label": "Sisyphus",
   "model": "MiniMax-M3",
   "status": "in_progress",
-  "summary": "opencode 워커의 영역/책임/작업 스타일/인계 SOP 을 docs/governance/worker_division.md §1.4 본문으로 정의. 다른 워커(Claude backend / Codex infra+CI / Gemini frontend / Reasonix) 와의 차별 영역 명시 + 외부 contribution 정책 + Oracle/specialist 활용 정책.",
+  "summary": "opencode 워커의 영역/책임/작업 스타일/인계 SOP 을 docs/governance/worker_division.md §1.4 본문으로 정의. 다른 워커(Claude backend / Codex infra+CI / Gemini frontend / Reasonix) 와의 차별 영역 명시 + 외부 contribution 정책 + Oracle/specialist 활용 정책. PR #465 (stacked on PR #464) 생성 완료.",
   "started_at": "2026-06-04T00:15:00Z",
-  "updated_at": "2026-06-04T00:20:00Z",
+  "updated_at": "2026-06-04T00:30:00Z",
   "base_branch": "opencode/work_260604-a-opencode-workflow-bootstrap",
   "stacked_pr": {
     "stack_under_pr": "#464 (opencode/work_260604-a-opencode-workflow-bootstrap)",
     "stack_under_status": "open (2026-06-04T00:08:00Z push 기준)"
+  },
+  "this_pr": {
+    "number": "#465",
+    "title": "docs(governance): opencode 워커 §1.4 본문 정의 (3-lane + 인계 SOP)",
+    "head_branch": "opencode/work_260604-b-opencode-areas",
+    "base_branch": "opencode/work_260604-a-opencode-workflow-bootstrap"
   },
   "scope": {
     "in": [

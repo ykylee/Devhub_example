@@ -10,12 +10,18 @@ OpenCode 워커의 영역/책임/작업 스타일/인계 SOP 을 `docs/governanc
 
 ## 📊 Work Status
 
-- [WB-01] 브랜치 + memory 디렉터리 set up: done (2026-06-04)
-- [WB-02] 다른 워커 분담 + 최근 PR 패턴 분석: in_progress
-- [WB-03] opencode 차별 영역 후보 도출 + 우선순위: planned
-- [WB-04] §1.4 본문 초안 + AGENTS.md 보강: planned
-- [WB-05] release_v1_roadmap §5.1 OpenCode 행 갱신: planned
-- [WB-06] 커밋 + push + PR: planned
+- [WB-01] 브랜치 + memory 디렉터리 set up: done
+- [WB-02] 다른 워커 분담 + 최근 PR 패턴 분석: done (PR #462 cross-cutting 패턴, backend-ai stub 상태, scripts/* 운영 자산 식별)
+- [WB-03] opencode 차별 영역 후보 도출: done (3-lane: workflow curation / cross-cutting validation / AI/ML prep)
+- [WB-04] §1.4 본문 + AGENTS.md 보강: done (사용자 리뷰 후 그대로 확정)
+- [WB-05] release_v1_roadmap §5.1 갱신: done
+- [WB-06] 커밋 + push + PR: done — **PR #465** (https://github.com/ykylee/Devhub_example/pull/465)
+
+### 적용된 변경 (3 files, +39 / -14)
+
+- `docs/governance/worker_division.md` — §1.4 본문 (60 lines) + 헤더 결정 근거 sprint + §6 변경 이력 row
+- `docs/planning/release_v1_roadmap.md` — §5.1 OpenCode 행 3-lane 정합 + 헤더 메타 + §9 변경 이력
+- `AGENTS.md` — OpenCode Lane 정의 1줄 + 첫 sprint 노트 갱신 + 최종 수정일
 
 ## ⏭️ Next Actions
 
