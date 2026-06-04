@@ -214,16 +214,49 @@ class ProjectService {
     await apiClient("DELETE", path);
   }
 
-  async listAllProjects(repositoryIds: number[], params?: ProjectQuery): Promise<Project[]> {
+  async listAllProjects(params?: ProjectQuery): Promise<Project[]> {
+    const seen = new Set<string>();
     const allProjects: Project[] = [];
-    for (const repoId of repositoryIds) {
-      try {
-        const projects = await this.getRepositoryProjects(repoId, params);
-        allProjects.push(...projects);
-      } catch (err) {
-        console.error(`Failed to fetch projects for repo ${repoId}:`, err);
+    const pushUnique = (projects: Project[]) => {
+      for (const p of projects) {
+        if (p && p.id && !seen.has(p.id)) {
+          seen.add(p.id);
+          allProjects.push(p);
+        }
       }
+    };
+
+    try {
+      const standalone = await this.listStandaloneProjects(params);
+      pushUnique(standalone);
+    } catch (err) {
+      console.warn("[projectService.listAllProjects] standalone fetch failed:", err);
     }
+
+    try {
+      const apps = await this.getApplications({
+        include_archived: params?.include_archived,
+      });
+      const perAppResults = await Promise.allSettled(
+        apps.map((app) => this.getApplicationProjectsV2(app.id, params)),
+      );
+      for (const result of perAppResults) {
+        if (result.status === "fulfilled") {
+          pushUnique(result.value);
+        } else {
+          console.warn(
+            "[projectService.listAllProjects] per-application fetch failed:",
+            result.reason,
+          );
+        }
+      }
+    } catch (err) {
+      console.warn(
+        "[projectService.listAllProjects] applications list failed:",
+        err,
+      );
+    }
+
     return allProjects;
   }
 }

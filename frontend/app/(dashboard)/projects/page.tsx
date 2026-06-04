@@ -20,7 +20,6 @@ import { FilterBar } from "@/shared/ui-foundation/components/FilterBar";
 import { PageEmpty, PageError, PageLoading } from "@/shared/ui-foundation/components/PageState";
 import { projectService } from "@/domain/application-lifecycle/service/project.service";
 import type { Project } from "@/domain/application-lifecycle/schema/project.types";
-import { repositoryService } from "@/domain/repository-integration/service/repository.service";
 
 export default function ProjectsStatusPage() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -33,8 +32,9 @@ export default function ProjectsStatusPage() {
     try {
       setError(null);
       setLoading(true);
-      const repos = await repositoryService.listRepositories();
-      const allProjects = await projectService.listAllProjects(repos.map(r => r.id), { include_archived: statusFilter === "archived" });
+      const allProjects = await projectService.listAllProjects({
+        include_archived: statusFilter === "archived",
+      });
       setProjects(allProjects);
     } catch (err) {
       setError("Failed to load projects data.");
