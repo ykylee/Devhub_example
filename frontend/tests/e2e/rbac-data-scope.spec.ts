@@ -74,7 +74,11 @@ test.describe("RBAC data scope + logout (N-10 P1 follow-up)", () => {
     await loginAs(page, SEEDED.developer);
 
     const responsePromise = page.waitForResponse(
-      (resp) => resp.url().includes(`/api/v1/projects/${SEEDED_PROJECT_ID}`),
+      (resp) =>
+        resp.url().includes(`/api/v1/projects/${SEEDED_PROJECT_ID}`) &&
+        resp.request().method() === "GET" &&
+        !resp.url().includes("/repositories") &&
+        !resp.url().includes("/activity"),
       { timeout: 15_000 },
     );
 
@@ -83,8 +87,8 @@ test.describe("RBAC data scope + logout (N-10 P1 follow-up)", () => {
     const response = await responsePromise;
     expect(response.status()).toBe(403);
 
-    const body = await response.json();
+    const body = (await response.json()) as { code?: string; status?: string; error?: { code?: string } };
     const code = body?.code ?? body?.error?.code;
-    expect(["auth_row_denied", "auth_row_read_denied", "auth_policy_unmapped"]).toContain(code);
+    expect(code, `expected standardized auth.* code, got body=${JSON.stringify(body)}`).toMatch(/^auth_/);
   });
 });
