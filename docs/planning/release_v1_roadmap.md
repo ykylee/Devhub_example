@@ -181,7 +181,7 @@
 | **N-7** | **CI Run 생성 API (P0-4) 구현** — 2026-06-01 통합 테스트 ISSUE-05 | BE | Claude |
 | **N-8** | **Sign-out endpoint (P1-6) 구현** — 2026-06-01 통합 테스트 BUG-03 | BE | Claude |
 | **N-9** | **Repository build-runs (P1-7) 구현** — 2026-06-01 통합 테스트 ISSUE-04 | BE+FE | Claude+Gemini |
-| **N-10** | **Manager role RBAC 검증** — mgr-user-b 재생성 + 권한 scope 확인 | 테스트 | Sisyphus |
+| **N-10** | **Manager role RBAC 검증** — E2E seed `bob` (team_manager) 의 권한 scope 확인 + ListProjects/ListApplications row filter + org unit subtree scope 검증. 검증 보고서 [docs/validation/N-10-manager-rbac.md](../validation/N-10-manager-rbac.md) (2026-06-04) — V-01..V-10 결과 + P1 follow-up 1건 (E2E spec-vs-구현 갭 6 TC) | 테스트 | Sisyphus |
 
 #### NEXT — v1.1 운영화 + 외부 연동 깊이 정착
 
@@ -377,3 +377,4 @@ test.describe("UI screenshot capture", () => {
 | 2026-06-01 | **통합 테스트 결과 반영** — §3.1 P0-4 (CI Run API) 신규 P0 carve 추가 + §3.2 P1-6 (Sign-out) P1-7 (Build-runs) 신규 P1 carve 추가 + §3.5 N-7~N-10 신규 도출 백로그 반영 + §4.1 sprint 구성 P0-4 포함 재조정 + §4.2 v1.1 milestone 신규 P1 항목 추가 + §7 sprint 진입 순서 갱신. 출처: `deepseek/test-scenarios-20260601` 브랜치 통합 테스트 | `deepseek/test-scenarios-20260601` |
 | 2026-06-04 | **OpenCode 워커 부트스트랩** — §5.1 분담 표에 OpenCode 행 추가 (영역 TBD, bootstrap) + §6.3 label 에 `worker/opencode` 추가 + 헤더 메타의 워커 목록/대상 독자 갱신 | `opencode/work_260604-a-opencode-workflow-bootstrap` |
 | 2026-06-04 | **OpenCode Lane 정의** — §5.1 OpenCode 행의 TBD 를 3-lane (Workflow curation / Cross-cutting validation / AI/ML prep) 으로 확정 + §9 본 row 직전 | `opencode/work_260604-b-opencode-areas` |
+| 2026-06-04 | **N-10 Manager RBAC 검증** — §3.5 N-10 row 의 mgr-user-b 비공식 명칭 → E2E seed `bob` (team_manager) 으로 정정 + 검증 보고서 링크 + 1 P1 follow-up 식별. 검증 결과: backend UT 25 packages PASS, row filter SQL 정상, E2E spec-vs-구현 갭 6 TC (TC-RBAC-ROW-READ-01/02, TC-RBAC-LOGOUT-01/02, TC-RBAC-ROLE-DRIFT-01) 발견. 출처: `opencode/work_260604-c-N10-manager-rbac-validation` | `opencode/work_260604-c-N10-manager-rbac-validation` |
