@@ -133,10 +133,10 @@
 
 ### 3.1 기능 요구사항 (REQ-FR-APPDASH)
 
-- **REQ-FR-APPDASH-001 (MVP, 확정):** 실시간 타겟 브랜치 빌드 상태(Target Branch Build Status)를 최상단 메트릭 카드를 통해 노출해야 한다.
-    - **실시간 실패 빌드 런 표시**: 단순 빌드 성공률(%)보다 실시간 broken/red 상태 빌드 현황을 즉시 표기한다.
-    - **리포지토리 슬러그 연계**: 연결된 어떤 리포지토리의 어떤 브랜치에서 실패했는지 `org/repo-slug` 형식으로 표시해야 한다.
-    - **빌드 실패 진단 정보 및 로그 연동**: 실패 건에 대해 빌드 번호, 실패 경과 시간, 에러 요약 스니펫을 노출하고 해당 빌드 로그로 즉시 이동하는 **[로그 진입 딥링크]** 액션을 제공해야 한다. (모두 정상일 시 `Healthy 🟢` 표시)
+- **REQ-FR-APPDASH-001 (MVP, 확정):** 실시간 타겟 브랜치 빌드 상태(Target Branch Build Status)를 대시보드 상단 배지 및 깨진 빌드 전용 경고 배너 영역을 통해 노출해야 한다.
+    - **실시간 실패 빌드 런 표시**: 단순 빌드 성공률(%)보다 실시간 broken/red 상태 빌드 현황을 즉시 표기한다. 모두 정상일 시 플랫폼 헤더 우측에 `Healthy 🟢` 배지를 표시한다.
+    - **리포지토리 슬러그 연계**: 빌드 실패 발생 시, 연결된 어떤 리포지토리의 어떤 브랜치에서 실패했는지 `org/repo-slug` 형식으로 표시해야 한다.
+    - **빌드 실패 진단 정보 및 로그 연동**: 실패 건에 대해 빌드 번호, 에러 요약 스니펫을 노출하고 해당 빌드 로그로 즉시 이동하는 **[로그 진입 딥링크]** 액션을 제공해야 한다.
 - **REQ-FR-APPDASH-002 (MVP, 확정):** 다차원 코드 품질 지표 및 정적 분석 이슈(Quality & Issues) 카드를 노출해야 한다.
     - **5점 만점 normalized 품질 스코어**: 리포지토리별 SonarQube 품질 데이터를 5.0 만점 스케일로 정규화 및 가중 평균하여 노출한다.
     - **심각도별 미해결 정적분석 이슈 노출**: Blocker, Critical, Major 등 심각도 등급에 따라 미해결된 정적분석 이슈 건수를 집계하여 표시해야 한다.
@@ -162,6 +162,36 @@
 - 실시간 리포지토리 빌드 실패 시 외부 메신저 알림(Slack 등) 자동 전송 기능 (v2 범위).
 - AI 기반 빌드 실패 원인 자동 분석 및 코드 패치 제안 (v2 범위).
 - 다차원 코드 품질 스코어 산식의 동적 튜닝 UI (어플리케이션 설정 모달에서 weight matrix 직접 입력 기능은 1차 제외).
+
+## 4. Project 상세 대시보드 (REQ-FR-PROJDASH / REQ-NFR-PROJDASH)
+
+본 절은 컨셉 문서([`./project_dashboard_concept.md`](./project_dashboard_concept.md))에 정의된 프로젝트 상세 대시보드의 기능 요구사항을 정의한다.
+
+### 4.1 기능 요구사항 (REQ-FR-PROJDASH)
+
+- **REQ-FR-PROJDASH-001 (MVP, 확정):** 대시보드는 3대 페르소나(개발자, PL, 조직 관리자) 관점의 스위처(3-Way Persona Switcher)를 제공하고 역할 기반으로 렌더링해야 한다.
+    - **역할 기반 매핑**: 유저의 2차원 RBAC 역할 조합 및 프로젝트 멤버십 테이블 정보에 따라 기본 뷰를 기본값으로 분기 렌더링한다. (개발자 뷰 -> System Role `developer` 및 Resource Role `project_member` 권한자, PL 뷰 -> Resource Role `project_leader` 권한자(실 식별 기준은 `project_members.project_role = 'lead'`), 관리자 뷰 -> System Role `team_manager` 및 `system_admin`).
+    - **다이내믹 뷰 토글**: 상단 세그먼트 스위치를 통해 모드를 전환할 수 있어야 하며, 권한 외 뷰 접근 시 접근 제한 경고를 표시해야 한다.
+- **REQ-FR-PROJDASH-002 (MVP, 확정):** 개인화된 실무 피드(Developer My Work)를 최상단에 노출해야 한다.
+    - **할당된 이슈 리스트**: 로그인한 개발자 본인에게 할당된 활성 일감(Active Tasks) 목록을 우선순위별로 노출한다.
+    - **리뷰 대기 피드**: 본인이 리뷰어로 지정된 PR 목록을 연계 표시한다.
+- **REQ-FR-PROJDASH-003 (MVP, 확정):** 프로젝트 리더 관점의 PR 통합 병목 해소 허브(PL Integration Hub)를 제공해야 한다.
+    - **통합 블로커 감지**: 빌드가 실패했거나, 충돌이 났거나, 48시간 이상 방치된(Stale) PR 목록을 하이라이트한다.
+    - **협업 촉구 퀵액션**: 각 병목 PR 우측에 담당자 호출 및 리마인드 퀵액션을 제공해야 한다.
+- **REQ-FR-PROJDASH-004 (MVP, 확정):** 팀 업무 부하 미터(Team Workload Meter)를 관리자 뷰에 노출해야 한다.
+    - **리소스 할당 시각화**: 팀원별 할당된 활성 이슈 수와 PR 건수를 게이지 바로 시각화한다.
+    - **과부하 알림 배지**: 활성 작업량이 5개 초과인 멤버에게 "Overloaded" 경고 배지를 적용한다.
+- **REQ-FR-PROJDASH-005 (MVP, 확정):** 코드 헬스 및 저장소 CI 빌드 상태 롤업 가시성을 제공해야 한다.
+    - **저장소별 빌드 헬스**: 연결된 리포지토리별 최신 빌드 성공/실패 여부를 노출한다.
+    - **정적 분석 스코어 및 이슈**: SonarQube 품질 스코어 및 미해결 정적분석 이슈(Blocker/Critical) 현황을 보여준다.
+- **REQ-FR-PROJDASH-006 (MVP, 확정):** 속도(Velocity) 기반 마일스톤 번다운 및 리스크 예측 지표를 노출해야 한다.
+    - **달성률(%) 및 D-Day**: 마일스톤별 남은 기간(D-Day) 및 완료 수준 추적.
+    - **지연 리스크 예측**: 팀의 최근 개발 속도 대비 남은 이슈 양을 계산하여 지연 리스크 레벨(`Healthy`, `Warning`, `At Risk`)을 자동 노출한다.
+
+### 4.2 비기능 / 운영 요구사항 (REQ-NFR-PROJDASH)
+
+- **REQ-NFR-PROJDASH-001 (MVP):** 특정 SCM이나 빌드 API 연동 장애 시 화면이 완전히 깨지지 않고, 해당 저장소 영역에 우아한 에러 폴백 UI(data gap 가이드)를 노출해야 한다.
+- **REQ-NFR-PROJDASH-002 (MVP):** UI 레이아웃은 글래스모피즘(Glassmorphism) 테마를 따르고, 빌드 실패/Blocker 항목 등 긴급 경고가 필요한 요소에 HSL 기반 Red Neon 펄스 애니메이션을 적용해야 한다.
 
 ## 5. 역할 기반 접근 권한 (REQ-FR-ROLE)
 
@@ -239,5 +269,6 @@
 
 | 일자 | 변경 |
 | --- | --- |
+| 2026-06-04 | **§4 REQ-FR-PROJDASH-001..006 신규** — 3대 페르소나별 프로젝트 대시보드 및 스위처 기능/비기능 요구사항 정의. [project_dashboard_concept.md](./project_dashboard_concept.md) 신규 발급 연계. |
 | 2026-06-01 | **§5 REQ-FR-ROLE-001..016 신규** — Two-Dimensional RBAC 요구사항 16개 정의. §5.1 멤버십 baseline (ROLE-001/002/003/015/016), §5.2 project leader (ROLE-004/005), §5.3 platform leader (ROLE-006/007), §5.4 org head (ROLE-008/009), §5.5 team manager (ROLE-010/011/012), §5.6 system admin (ROLE-013), §5.7 scope 통합 (ROLE-014). |
 | 2026-05-29 | Phase 3 split — master `docs/requirements.md` §5.4 + §5.9 본문 그대로 이관. ID(REQ-FR-PROJ-000..010, REQ-FR-APP-001..012, REQ-NFR-PROJ-001..006, REQ-FR-APPDASH-001..006, REQ-NFR-APPDASH-001..003) 보존, 신규 발급/삭제 없음. |

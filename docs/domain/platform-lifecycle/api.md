@@ -30,8 +30,9 @@
 | `API-56A` | `GET /api/v1/platforms/{platform_id}/projects` + `POST` | §6 | activated (v2/hybrid) |
 | `API-56B` | `GET/POST/DELETE /api/v1/projects/{project_id}/repositories` | §6 | activated (v2/hybrid) |
 | `API-57` | `GET /api/v1/platforms/{platform_id}/rollup` | §7 | activated (concept §13.4 normalize 실 구현 + critical 가드 흡수) |
-| `API-58` | `GET /api/v1/integrations` + CRUD | §8 | activated (scope polymorphism application/project) |
-| `API-93` | `GET /api/v1/platforms/{platform_id}/dashboard` | §9 | planned (sprint gemini/application-dashboard-concept) |
+| API-58 | `GET /api/v1/integrations` + CRUD | §8 | activated (scope polymorphism application/project) |
+| API-93 | `GET /api/v1/platforms/{platform_id}/dashboard` | §9.1 | planned (sprint gemini/application-dashboard-concept) |
+| API-98 | `GET /api/v1/projects/{project_id}/dashboard` | §9.2 | accepted (sprint gemini/work_260604-a-platform-dashboard) |
 
 **activated 단계 정의 (sprint claude/work_260514-b)**: gin v1 group route + RBAC matrix + handler body + store body + 요청 validation + 상태 전이 가드 + audit emit. RBAC 매트릭스에서 system_admin 만 4 신규 resource (`applications` / `platform_repositories` / `projects` / `scm_providers`) 의 모든 axis true (migration 000018, ADR-0011 §4.1).
 
@@ -415,7 +416,7 @@
 
 > **Jira 정책 cross-cut 메모 (`REQ-FR-PROJ-005` 후속)**: REQ-FR-PROJ-005 는 "Repository Jira 가 실행 SoT" 라는 하이브리드 정책을 명시한다. 그러나 `repo_provider` 가 `bitbucket|gitea|forgejo` 인 경우의 Jira 매핑 (= 비-Jira SCM 의 실행 이슈를 어떻게 Jira project 와 묶는가) 은 본 sprint 에서 결정되지 않음. concept §10 미해결 항목으로 이관, Integration sprint 에서 결정.
 
-## 9. Platform 개발 대시보드 API
+## 9. Platform 및 Project 대시보드 API
 
 ### 9.1 `GET /api/v1/platforms/{platform_id}/dashboard` (API-93)
 
@@ -428,7 +429,326 @@
 요청 예시:
 `GET /api/v1/platforms/1a2b3c4d-1111-2222-3333-444455556666/dashboard`
 
-응답 예시 (대시보드 페이로드 — 본문은 master `docs/backend_api_contract.md` §13.10 참조; 본 문서는 endpoint·인증·에러 계약을 SoT 로 보존하고 페이로드 sample 은 master 원본을 인용 형태로 유지한다).
+응답 예시 (200 OK):
+```json
+{
+  "status": "ok",
+  "data": {
+    "platform_id": "1a2b3c4d-1111-2222-3333-444455556666",
+    "key": "PLAT-REV-01",
+    "name": "DevHub Core Platform",
+    "status": "active",
+    "visibility": "internal",
+    "leader": "Leader Alpha",
+    "development_unit": "Platform Development Group",
+    "updated_at": "2026-06-04T14:50:00Z",
+    "metrics_overview": {
+      "target_branch_build_status": "broken",
+      "avg_build_duration_seconds": 254.5,
+      "quality_score": 4.15,
+      "critical_warning_count": 2
+    },
+    "build_failures": [
+      {
+        "repo_provider": "gitea",
+        "repo_slug": "ykylee/Devhub_example",
+        "branch": "main",
+        "build_number": 8921,
+        "failed_at": "2026-06-04T14:45:00Z",
+        "error_snippet": "Exit code 1 on task: test",
+        "log_url": "http://gitea.local/ykylee/Devhub_example/actions/runs/8921"
+      }
+    ],
+    "quality_metrics": {
+      "normalized_score": 4.15,
+      "unresolved_issues": {
+        "blocker": 0,
+        "critical": 2,
+        "major": 5
+      },
+      "comment": "Quality Gate passed with 7 unresolved code smells/vulnerabilities."
+    },
+    "projects_progress": [
+      {
+        "project_id": "proj-101",
+        "key": "PROJ-REVAMP",
+        "name": "DevHub Revamp Project",
+        "progress_percent": 75.0,
+        "status": "active",
+        "due_date": "2026-06-15T18:00:00Z",
+        "d_day": 11,
+        "risk_level": "warning",
+        "risk_badge_color": "yellow"
+      }
+    ],
+    "linked_dev_requests": [
+      {
+        "dreq_id": "dreq-302",
+        "title": "Add platform level SLA forecast view",
+        "status": "pending",
+        "assignee_display_name": "Developer Beta",
+        "created_at": "2026-06-02T10:00:00Z"
+      }
+    ],
+    "history_trend": [
+      {
+        "date": "2026-05-29",
+        "avg_duration_seconds": 260.0,
+        "build_success_rate": 0.94,
+        "quality_score": 4.1
+      },
+      {
+        "date": "2026-06-04",
+        "avg_duration_seconds": 254.5,
+        "build_success_rate": 0.96,
+        "quality_score": 4.15
+      }
+    ]
+  }
+}
+```
+
+### 9.2 `GET /api/v1/projects/{project_id}/dashboard` (API-98)
+
+- **설명**: 프로젝트 상세 대시보드(PROJDASH) 데이터를 제공합니다. 3대 페르소나(`developer`, `project_leader`, `manager`)의 관점에 맞춘 맞춤형 위젯 데이터를 `persona` 쿼리 파라미터에 따라 동적으로 가공하여 일괄 반환합니다. (REQ-FR-PROJDASH-001)
+- **인증**: OIDC + RBAC `projects:view`.
+- **Query Parameters**:
+  - `persona` (required): `developer | project_leader | manager` 중 하나. OIDC 토큰의 역할과 불합치하거나 권한 외 접근 시 `403 Forbidden` 또는 `422 invalid_persona` 처리.
+- **에러**:
+  - `404 project_not_found`: 존재하지 않는 프로젝트 ID
+  - `403 Forbidden`: 프로젝트 멤버십 역할 불일치 또는 권한 부족 (ROLE-002, ROLE-005, ROLE-007, ROLE-012, ROLE-016)
+  - `422 invalid_persona`: 유효하지 않은 `persona` 파라미터 값 지정 시
+
+요청 예시 (개발자 뷰):
+`GET /api/v1/projects/f81d4fae-7dec-11d0-a765-00a0c91e6bf6/dashboard?persona=developer`
+
+응답 예시 (200 OK):
+```json
+{
+  "status": "ok",
+  "data": {
+    "project_id": "f81d4fae-7dec-11d0-a765-00a0c91e6bf6",
+    "project_name": "DevHub Revamp Project",
+    "status": "active",
+    "current_persona": "developer",
+    "developer_view": {
+      "my_work": {
+        "active_tasks": [
+          {
+            "id": "task-101",
+            "title": "Implement 3-Way Persona Switcher UI",
+            "status": "in_progress",
+            "priority": "high",
+            "due_date": "2026-06-10T18:00:00Z",
+            "repository_name": "ykylee/Devhub_example"
+          },
+          {
+            "id": "task-102",
+            "title": "Fix OIDC Session Expiry Redirection",
+            "status": "todo",
+            "priority": "medium",
+            "due_date": "2026-06-15T18:00:00Z",
+            "repository_name": "ykylee/Devhub_example"
+          }
+        ],
+        "review_requests": [
+          {
+            "id": "pr-234",
+            "title": "refactor: optimize platform cache sync",
+            "repository_name": "ykylee/Devhub_example",
+            "author": "dev-alpha",
+            "pull_request_url": "http://gitea.local/ykylee/Devhub_example/pulls/234"
+          }
+        ]
+      },
+      "review_guard": {
+        "conflict_prs": [
+          {
+            "id": "pr-229",
+            "title": "feat: add user profile picture support",
+            "repository_name": "ykylee/Devhub_example",
+            "url": "http://gitea.local/ykylee/Devhub_example/pulls/229"
+          }
+        ],
+        "failed_build_prs": [
+          {
+            "id": "pr-231",
+            "title": "fix: resolve memory leak in logs collector",
+            "repository_name": "ykylee/Devhub_example",
+            "last_build_id": "build-8921",
+            "url": "http://gitea.local/ykylee/Devhub_example/pulls/231"
+          }
+        ]
+      },
+      "code_health": {
+        "branches": [
+          {
+            "branch_name": "feature/user-profile",
+            "repository_name": "ykylee/Devhub_example",
+            "last_build_status": "healthy",
+            "test_coverage": 0.824,
+            "duplicate_ratio": 0.045
+          },
+          {
+            "branch_name": "bugfix/logs-leak",
+            "repository_name": "ykylee/Devhub_example",
+            "last_build_status": "broken",
+            "test_coverage": 0.781,
+            "duplicate_ratio": 0.092
+          }
+        ]
+      }
+    },
+    "project_leader_view": null,
+    "manager_view": null
+  }
+}
+```
+
+요청 예시 (PL 뷰):
+`GET /api/v1/projects/f81d4fae-7dec-11d0-a765-00a0c91e6bf6/dashboard?persona=project_leader`
+
+응답 예시 (200 OK):
+```json
+{
+  "status": "ok",
+  "data": {
+    "project_id": "f81d4fae-7dec-11d0-a765-00a0c91e6bf6",
+    "project_name": "DevHub Revamp Project",
+    "status": "active",
+    "current_persona": "project_leader",
+    "developer_view": null,
+    "project_leader_view": {
+      "pr_integration_hub": {
+        "failed_build_prs": [
+          {
+            "id": "pr-231",
+            "title": "fix: resolve memory leak in logs collector",
+            "repository_name": "ykylee/Devhub_example",
+            "author": "dev-beta",
+            "last_build_id": "build-8921",
+            "url": "http://gitea.local/ykylee/Devhub_example/pulls/231"
+          }
+        ],
+        "conflicting_prs": [
+          {
+            "id": "pr-229",
+            "title": "feat: add user profile picture support",
+            "repository_name": "ykylee/Devhub_example",
+            "author": "dev-gamma",
+            "url": "http://gitea.local/ykylee/Devhub_example/pulls/229"
+          }
+        ],
+        "stale_prs": [
+          {
+            "id": "pr-220",
+            "title": "chore: dependency upgrades and cleanups",
+            "repository_name": "ykylee/Devhub_example",
+            "author": "dev-delta",
+            "idle_duration_hours": 52,
+            "url": "http://gitea.local/ykylee/Devhub_example/pulls/220"
+          }
+        ]
+      },
+      "feature_progress_radar": {
+        "milestones": [
+          {
+            "id": "ms-1",
+            "title": "v1.0 Release Candidate",
+            "progress_percent": 87.5,
+            "due_date": "2026-06-15T18:00:00Z",
+            "status": "active"
+          }
+        ],
+        "epics": [
+          {
+            "id": "epic-10",
+            "name": "User Management Security Hardening",
+            "total_points": 45,
+            "completed_points": 38,
+            "progress_percent": 84.4
+          }
+        ]
+      },
+      "escalation_feed": {
+        "blocked_tasks": [
+          {
+            "id": "task-108",
+            "title": "Verify SAML 2.0 Identity Provider Sync",
+            "assignee": "dev-alpha",
+            "block_reason": "Blocked by external corporate network policy change",
+            "blocked_since": "2026-06-02T09:00:00Z"
+          }
+        ],
+        "critical_help_needed": [
+          {
+            "id": "task-115",
+            "title": "Debug Keycloak JWKS endpoint cert rotation",
+            "type": "issue",
+            "assignee": "dev-epsilon",
+            "keyphrase_detected": "help needed (cert mismatch in console)"
+          }
+        ]
+      }
+    },
+    "manager_view": null
+  }
+}
+```
+
+요청 예시 (조직 관리자 뷰):
+`GET /api/v1/projects/f81d4fae-7dec-11d0-a765-00a0c91e6bf6/dashboard?persona=manager`
+
+응답 예시 (200 OK):
+```json
+{
+  "status": "ok",
+  "data": {
+    "project_id": "f81d4fae-7dec-11d0-a765-00a0c91e6bf6",
+    "project_name": "DevHub Revamp Project",
+    "status": "active",
+    "current_persona": "manager",
+    "developer_view": null,
+    "project_leader_view": null,
+    "manager_view": {
+      "workload_meter": {
+        "members": [
+          {
+            "user_id": "u-101",
+            "display_name": "Developer Alpha",
+            "active_tasks_count": 6,
+            "active_reviews_count": 2,
+            "workload_score": 7.0,
+            "status": "overloaded"
+          },
+          {
+            "user_id": "u-102",
+            "display_name": "Developer Beta",
+            "active_tasks_count": 2,
+            "active_reviews_count": 1,
+            "workload_score": 2.5,
+            "status": "normal"
+          }
+        ]
+      },
+      "delivery_health": {
+        "sla_risk": "warning",
+        "sla_risk_index": 1.25,
+        "total_tasks_count": 24,
+        "open_tasks_count": 10,
+        "weekly_velocity": 4.5,
+        "remaining_days": 11
+      },
+      "governance_shield": {
+        "rollup_score": 4.2,
+        "blocker_bugs": 0,
+        "vulnerabilities": 2,
+        "average_coverage": 0.815
+      }
+    }
+  }
+}
+```
 
 ## 10. 공통 에러 코드 (초안)
 
@@ -464,4 +784,5 @@ integration_scm_auth_failed
 
 | 일자 | 변경 |
 | --- | --- |
+| 2026-06-04 | **§1 API ID 인덱스 & §9.2 API-98 신규** — 3대 페르소나별 프로젝트 상세 대시보드(PROJDASH) 통합 API 정의. OIDC/RBAC 및 `persona` 쿼리 파라미터별 다형성 응답 구조 설계. |
 | 2026-05-29 | Phase 3 split — master `docs/backend_api_contract.md` §13 (Platform/Repository/Project 본문) 을 도메인 sub-document 로 이관. ID(API-41..50, 55..58, 56A/56B, 57, 58, 93) 보존, 신규 발급/삭제 없음. API-51..54 (repository 운영 지표) + API-91/92 (draft→publish) 는 repository-integration api 로 분리. API-88/89/90 (외부 SCM 원격 import/create) 는 integration-registry api 에 위치. §13.10 의 대시보드 응답 페이로드 sample 은 length 우려로 master 인용 유지. |

@@ -23,6 +23,7 @@
 | Repository SCM 연동/Lifecycle | `backend-core/internal/httpapi/integration_scm_repositories.go`, `domain.go`(draft/publish), `backend-core/internal/gitea`(CreateRepo) |
 | External Integration | `backend-core/internal/httpapi/integration_registry.go`, `integrations.go`, `infra_integrations.go`, `backend-core/internal/gitea`(pull sync) |
 | Platform 개발 대시보드 | `docs/requirements.md` §5.9 기준 (설계/구현 예정) |
+| Project 상세 대시보드 | `docs/domain/platform-lifecycle/project_dashboard_concept.md` 기준 (설계/구현 예정) |
 
 ## 2. Usecase (모듈별)
 
@@ -248,7 +249,7 @@
 
 | UC ID | Usecase | 성공 조건 | 관련 REQ |
 | --- | --- | --- | --- |
-| `UC-APPDASH-01` | 실시간 타겟 브랜치 빌드 실패 상태 조회 및 딥링크 이동 | 대시보드 최상단 카드에 실패 상태인 모든 빌드가 리포지토리 슬러그, 빌드 번호, 실패 시간, 에러 요약 스니펫과 함께 노출되고, 딥링크 클릭 시 해당 빌드 로그 페이지로 성공적 이동 | REQ-FR-APPDASH-001 |
+| `UC-APPDASH-01` | 실시간 타겟 브랜치 빌드 실패 상태 조회 및 딥링크 이동 | 대시보드 상단 헬스 배지 및 전용 알림 배너 영역에 실패 상태인 모든 빌드가 리포지토리 슬러그, 빌드 번호, 에러 요약 스니펫과 함께 노출되고, 딥링크 클릭 시 해당 빌드 로그 페이지로 성공적 이동 | REQ-FR-APPDASH-001 |
 | `UC-APPDASH-02` | 다차원 코드 품질 점수 및 정적분석 미해결 이슈 조회 | 5점 만점으로 정규화된 가중 품질 스코어와 심각도별(Blocker/Critical/Major) 미해결 정적분석 이슈 건수가 표시되고, 코딩 룰 상세 내역은 저장소 상세 대시보드로 격리 조회됨 | REQ-FR-APPDASH-002 |
 | `UC-APPDASH-03` | 하위 프로젝트 진척도 시각화 및 지능형 리스크 감지 | 스토리포인트(SP) 가중치 또는 개수제 방식으로 계산된 하위 프로젝트 진척율(%)이 최상단 주요 영역에 표시되고, 일정 대비 작업 비율 분석을 통해 지연 리스크 경고 배지(`Healthy 🟢`, `Warning 🟡`, `At Risk 🔴`)가 자동 제공됨 | REQ-FR-APPDASH-003 |
 | `UC-APPDASH-04` | 연결된 개발 의뢰(DREQ) 목록 조회 및 프로젝트 승격 | 어플리케이션에 매핑된 모든 DREQ 리스트와 상태 조회가 가능하며, Promote 클릭 시 DREQ 메타데이터(Key, Name, Description)를 자동 상속/프리필하는 프로젝트 생성 모달이 팝업되고 단일 트랜잭션으로 연계 생성됨 | REQ-FR-APPDASH-004 |
@@ -269,6 +270,89 @@
 | `UC-TASK-05` | Task Item 목록/상세 조회 | `GET /api/v1/external-tasks` 로 provider_id, raw_status, normalized_status, assignee, labels 필터를 적용해 task item 목록을 조회할 수 있다. 단건 조회도 가능하다. | REQ-FR-TASK-010 |
 | `UC-TASK-06` | Binding 기반 Scope 접근 제어 | `integration_bindings` 를 통해 Platform/Project 에 연결된 task item 만 조회된다. Provider 직접 조회는 system_admin 전용이다. | REQ-FR-TASK-010, NFR-TASK-001 |
 
+### 2.17 Project 상세 대시보드 (PROJDASH)
+
+| UC ID | Usecase | 성공 조건 | 관련 REQ |
+| --- | --- | --- | --- |
+| `UC-PROJDASH-01` | 페르소나 3단 뷰 전환 (Persona Switching) | Keycloak 역할 분석 후 해당 페르소나의 기본 대시보드가 로드되며 상단 토글러를 통해 권한 내에서 개발자/PL/관리자 모드 스위칭과 다이내믹 리렌더링 완료 | REQ-FR-PROJDASH-001 |
+| `UC-PROJDASH-02` | 개발자 일일 실무 모니터링 (Developer Feed) | 개발자 모드 진입 시 본인 할당 일감 및 리뷰어 PR 목록이 노출되고, 코드 충돌/CI 실패 PR에 대한 경고 피드가 정확히 표기됨 | REQ-FR-PROJDASH-002, 005 |
+| `UC-PROJDASH-03` | 프로젝트 리더(PL) 통합 병목 제어 (PL Integration Hub) | PL 모드 진입 시 빌드 깨짐, 충돌, Stale PR 목록이 블로커로 리스트업되고, 리마인더 알림 전송 퀵액션이 정상 동작함 | REQ-FR-PROJDASH-003 |
+| `UC-PROJDASH-04` | 조직 관리자 리소스 & 부하 모니터링 (Manager Workload) | 관리자 모드 진입 시 각 팀 멤버들의 활성 일감 수 및 PR 수가 게이지 바로 표기되고, 업무 과부하(5개 초과) 발생 시 Overloaded 배지가 표시됨 | REQ-FR-PROJDASH-004 |
+| `UC-PROJDASH-05` | 코드 품질 및 저장소 상태 종합 관제 (Code Quality Rollup) | 프로젝트에 연결된 모든 레포지토리의 SonarQube 등급과 정적 분석 미해결 이슈(Blocker/Critical) 건수가 실시간 롤업되어 노출됨 | REQ-FR-PROJDASH-005 |
+| `UC-PROJDASH-06` | 마일스톤 진행 예측 및 리스크 진단 (Milestone Forecast) | 마일스톤 D-Day 카운트다운과 함께 잔여 작업량 대비 개발 속도(Velocity) 기반의 일정 지연 리스크 지표(`Healthy`, `Warning`, `At Risk`)가 자동 표시됨 | REQ-FR-PROJDASH-006 |
+
+#### 2.17.1 PROJDASH 상세 시나리오
+
+`UC-PROJDASH-01` 페르소나 3단 뷰 전환
+- Actor: 로그인 사용자 (개발자, PL, 조직 관리자)
+- 사전조건: 사용자 역할 로딩 및 페이지 컴포넌트 마운트 완료
+- 기본흐름:
+  1. 사용자가 프로젝트 상세 페이지에 진입합니다.
+  2. 시스템이 사용자의 Keycloak Resource Access Role을 분석합니다.
+  3. 역할 정보에 부합하는 기본 모드 대시보드를 활성화합니다 (`contributor` -> 개발자 뷰, `project_leader` -> PL 뷰, `team_manager` -> 관리자 뷰).
+  4. 사용자가 상단 우측의 모드 스위처(세그먼트 컨트롤)에서 타 모드(예: PL 뷰)를 클릭합니다.
+  5. 시스템이 뷰 접근 권한을 즉시 검사한 후, 화면 렌더링에 적합한 위젯 구성으로 다이내믹 리렌더링을 처리합니다.
+- 예외흐름: 권한이 없는 뷰 모드를 클릭할 경우 모드 스위칭을 제한하고 403 권한 차단 안내 모달을 노출합니다.
+- 사후조건: 뷰 세그먼트 상태에 맞춰 대시보드 구조 및 데이터 스트림이 갱신됩니다.
+
+`UC-PROJDASH-03` 프로젝트 리더(PL) 통합 병목 제어
+- Actor: 프로젝트 리더 (`project_leader`)
+- 사전조건: 프로젝트에 SCM 레포지토리가 1개 이상 연결되어 있으며, PL 모드 대시보드가 로드됨
+- 기본흐름:
+  1. PL이 프로젝트 대시보드의 'Project Leader' 탭을 활성화합니다.
+  2. 시스템이 연결된 저장소의 최근 Pull Request 데이터를 비동기 fetch 합니다.
+  3. PR 중 빌드 실패(CI Broken), 머지 충돌(Merge Conflict), 48시간 이상 무반응(Stale Review)인 건을 선별하여 상단의 'PR Integration Hub'에 경고 배지와 함께 리스트업합니다.
+  4. PL이 리스트 우측의 'Remind' 퀵 액션 버튼을 클릭합니다.
+  5. 해당 PR의 담당자 및 리뷰어에게 리마인더가 전송되며, 액션 로그가 Audit DB에 기록됩니다.
+- 예외흐름: SCM 연동 일시 장애 시, PR 목록 영역에 'SCM Connection Degraded' 폴백 경고 배너를 출력하고 화면 깨짐을 방지합니다.
+- 사후조건: 지연되고 있는 개발 통합 프로세스 및 Blocker 상태의 PR이 시각화되고 후속 알림이 발송됩니다.
+
+`UC-PROJDASH-04` 조직 관리자 리소스 & 부하 모니터링
+- Actor: 조직 관리자 (`team_manager`, `pmo_manager`)
+- 사전조건: 부서 내 프로젝트 멤버 및 태스크 데이터가 로딩됨
+- 기본흐름:
+  1. 관리자가 대시보드 상단에서 'Org Manager' 탭을 활성화합니다.
+  2. 시스템이 각 프로젝트 멤버별로 할당된 오픈 태스크 수와 담당 PR 수를 연산하여 리스트 옆 게이지 미터(Workload Meter)로 시각화합니다.
+  3. 활성 작업량이 5개를 초과하는 멤버가 감지될 경우 이름 옆에 붉은색 'Overloaded' 경고 배지를 동적으로 부착합니다.
+  4. 관리자가 해당 과부하 팀원의 업무를 확인한 후, 타 멤버에게 분배하기 위해 일감 수정 링크를 활용합니다.
+- 사후조건: 부서 인력의 부하 수준이 시인성 있게 노출되어 인적 자원 밸런싱이 가능해집니다.
+
+#### 2.15.2 APPDASH 상세 시나리오
+
+`UC-APPDASH-01` 실시간 타겟 브랜치 빌드 실패 상태 조회 및 딥링크 이동
+- Actor: 플랫폼 관리자 및 개발 실무자
+- 사전조건: 플랫폼 대시보드가 마운트되고 연동 리포지토리가 존재하는 상태
+- 기본흐름:
+  1. 사용자가 플랫폼 대시보드 화면에 진입합니다.
+  2. 시스템이 플랫폼에 연결된 모든 리포지토리의 타겟 브랜치 최신 빌드 결과를 병렬 스캔합니다.
+  3. 빌드 실패(`broken` / `failed`) 상태인 런을 감지하면, 헤더에 `Build Broken 🔴` 배지를 노출하고 Overview stats 바로 아래의 Target Branch Builds Broken Alert banner에 해당 리포지토리 슬러그, 브랜치명, 빌드 번호, 에러 요약 스니펫을 즉시 노출합니다. 모두 정상일 시에는 헤더에 `Healthy 🟢` 배지를 노출합니다.
+  4. 사용자가 실패 건 우측의 [로그] 버튼을 클릭합니다.
+  5. SCM Provider의 실제 빌드 실행 상세 로그 페이지로 새 브라우저 탭을 통해 즉시 이동합니다.
+- 예외흐름: CI 연동 API 장애 시, 실패 빌드 영역에 'CI Provider Connection Degraded' 폴백 경고 메시지를 노출하여 화면 깨짐을 방지합니다.
+- 사후조건: broken 상태의 브랜치가 실시간 모니터링되고 딥링크 이동이 보장됩니다.
+
+`UC-APPDASH-03` 하위 프로젝트 진척도 시각화 및 지능형 리스크 감지
+- Actor: 플랫폼 리더 및 조직 관리자
+- 사전조건: 플랫폼에 연결된 하위 프로젝트 데이터 로드 완료
+- 기본흐름:
+  1. 사용자가 플랫폼 대시보드 홈에 진입합니다.
+  2. 시스템이 플랫폼 산하 모든 하위 프로젝트 목록을 조회합니다.
+  3. 프로젝트별 완료된 태스크의 스토리 포인트(SP) 완료 비율을 분석하여 진척율(%)을 계산합니다.
+  4. 남은 일정 비율과 남은 작업량 비율을 대조 연산하여 지연 리스크 레벨을 자동 판단합니다.
+  5. 연산 결과에 맞춰 프로젝트별 진척 바 우측에 `Healthy 🟢`, `Warning 🟡`, `At Risk 🔴` 리스크 배지를 부착하여 표시합니다.
+- 사후조건: 하위 프로젝트들의 딜리버리 위험도가 실시간 가시화됩니다.
+
+`UC-APPDASH-04` 연결된 개발 의뢰(DREQ) 목록 조회 및 프로젝트 승격
+- Actor: 플랫폼 리더 및 관리자
+- 사전조건: 플랫폼에 매핑된 미처리 DREQ가 존재함
+- 기본흐름:
+  1. 사용자가 플랫폼 대시보드 하단의 'DREQ Overview' 탭을 봅니다.
+  2. 플랫폼 ID에 연결된 DREQ 목록 및 상태(`Pending` / `In_Review`)를 확인합니다.
+  3. DREQ 우측의 [프로젝트 승격 🚀] 버튼을 클릭합니다.
+  4. 시스템이 DREQ의 Key, Name, Description 정보를 복제하여 프로젝트 생성 양식 팝업에 프리필(Prefill)합니다.
+  5. 사용자가 리더 및 SCM 리포지토리를 매핑하고 확인을 누르면, 백엔드 단일 트랜잭션으로 프로젝트를 생성하고 DREQ 상태를 `promoted`로 업데이트합니다.
+- 사후조건: 신규 프로젝트가 활성화되며, DREQ와 신규 프로젝트 간의 추적 관계가 정립됩니다.
+
 ## 3. 설계/구현 반영 규칙
 
 1. 신규/변경 API는 최소 1개 UC를 참조해야 한다.
@@ -282,5 +366,6 @@
 
 | 일자 | 변경 |
 | --- | --- |
+| 2026-06-04 | §2.17 Project 상세 대시보드 (PROJDASH) 신규 (UC-PROJDASH-01..06) 및 상세 시나리오 추가. [project_dashboard_concept.md](./project_dashboard_concept.md) 스펙 연동. |
 | 2026-06-02 | §2.4 RBAC 고도화: UC-RBAC-02를 Keycloak role sync 중심으로 재정의, UC-RBAC-04..07 추가 (row-scope 강제, 거부 코드 표준화, logout 연계, 우선순위/추적성 동기화). |
 | 2026-05-28 | §2.16 Task Item Ingestion 신규 (UC-TASK-01..06). Sprint `deepseek/work_260528-a-task-item-ingestion`. |
