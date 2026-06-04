@@ -1,9 +1,9 @@
-# Session Handoff — main (2026-06-01, CI recovery follow-up)
+# Session Handoff — main (2026-06-04, OpenCode sprint a~j 완료)
 
-- 문서 목적: 2026-06-01 main CI 실패 재현/복구 작업 결과와 다음 세션 인계.
-- 범위: frontend 타입 에러 해소 + Playwright E2E shard 실패(root cause: 환경 의존 selector) 정리 및 테스트 안정화.
-- 상태: GitHub Actions `CI` run `26738464130` 성공(UTC 2026-06-01T06:19:36Z), main HEAD 기준 파이프라인 green 회복.
-- 최종 수정일: 2026-06-01
+- 문서 목적: OpenCode (Sisyphus) sprint a~j 완료 현황 및 다음 세션 인계.
+- 범위: OpenCode 10개 sprint (work_260604-a~j) 모두 main 머지 완료. v1.0 마무리 housekeeping 진행 중.
+- 상태: main HEAD `efb2c5d`, CI green. v1.0 잔여 N-6 (사내 staging) 만 사용자 의존.
+- 최종 수정일: 2026-06-04
 
 ## 1. 2026-06-01 CI 복구 요약
 

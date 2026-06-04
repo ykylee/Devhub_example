@@ -3,8 +3,8 @@
 - 문서 목적: main 브랜치 기준 상위 백로그 인덱스. 세부 sprint backlog 는 브랜치별 메모리 디렉터리 참조.
 - 범위: 마일스톤 상태, 최근 머지, 잔여/후속 작업
 - 대상 독자: 프로젝트 리드, 후속 에이전트, 트랙 담당자
-- 상태: **2026-06-02 update — main HEAD `9f68fb1` + 중간 개발 보고 자료 분석 착수.** 최신 main 은 CI Run API + RBAC row filter/org subtree scope까지 반영되었고, 현재는 HTML/CSS/JS 슬라이드형 중간 개발 보고 자료를 위한 계획/분석 문서화가 진행 중이다. **병행 directive**: (A) 중간 개발 보고 자료 초안 작성 / (P1) v1.0 staging 1주 운영 검증 (N-6) / (P2) System Admin 운영 대시보드 (X-1) / (P3) inbound webhook 정규화 깊이 (X-2).
-- 최종 수정일: 2026-06-02
+- 상태: **2026-06-04 update — main HEAD `efb2c5d` + OpenCode sprint a~j 전부 완료.** OpenCode (Sisyphus) 가 Lane 1+2 에서 10개 sprint 완료: governance 부트스트랩 + RBAC 검증 + frontend fix 3건 + draft repo 관리 + N-4 unit test + admin/catalog page test. v1.0 마무리 housekeeping (governance sync, traceability, CI guard) 진행 중. **v1.0 잔여**: N-6 (사내 staging 1주 운영) 만 사용자 의존.
+- 최종 수정일: 2026-06-04
 - 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [세션 인계](./session_handoff.md), [상태 스냅샷](./state.json), [M1 PR 리뷰 actions](./M1-PR-review-actions.md), [ADR-0025](../../docs/adr/0025-envelope-encryption-key-management.md)
 
 ## 1. 마일스톤 진행 상황
