@@ -156,10 +156,6 @@ func (h *ApplicationHandler) actorIdentity(c *gin.Context) (string, string) {
 }
 
 func (h *ApplicationHandler) actorCanReadProject(c *gin.Context, storeI ApplicationStore, project domain.Project) (bool, string, error) {
-	if httphelp.DevFallbackEnabled(c) {
-		return true, "", nil
-	}
-
 	login, role := h.actorIdentity(c)
 	if role == string(domain.AppRoleSystemAdmin) || role == string(domain.AppRoleTeamManager) {
 		return true, "", nil
@@ -187,10 +183,6 @@ func (h *ApplicationHandler) actorCanReadProject(c *gin.Context, storeI Applicat
 }
 
 func (h *ApplicationHandler) actorCanReadApplication(c *gin.Context, storeI ApplicationStore, app domain.Application) (bool, string, error) {
-	if httphelp.DevFallbackEnabled(c) {
-		return true, "", nil
-	}
-
 	login, role := h.actorIdentity(c)
 	if role == string(domain.AppRoleSystemAdmin) || role == string(domain.AppRoleTeamManager) {
 		return true, "", nil

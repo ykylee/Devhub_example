@@ -141,6 +141,7 @@ func (h *AuthHandler) AuthenticateActor(c *gin.Context) {
 		if h.cfg.AuthDevFallback {
 			c.Header("X-Devhub-Auth", "dev_fallback_no_header")
 			c.Set(httphelp.CtxKeySourceType, domain.AuditSourceSystem)
+			c.Set("devhub_actor_role", "system_admin")
 			c.Next()
 			return
 		}
@@ -164,6 +165,7 @@ func (h *AuthHandler) AuthenticateActor(c *gin.Context) {
 		if h.cfg.AuthDevFallback {
 			c.Header("X-Devhub-Auth", "bearer_unverified")
 			c.Set(httphelp.CtxKeySourceType, domain.AuditSourceSystem)
+			c.Set("devhub_actor_role", "system_admin")
 			c.Next()
 			return
 		}
