@@ -3,28 +3,29 @@
   "branch": "opencode/work_260604-k-v1-harden",
   "agent": "opencode",
   "agent_label": "Sisyphus",
-  "model": "MiniMax-M3",
-  "status": "in_progress",
-  "summary": "v1.0 마무리 5종 병렬 작업. P0-1(accounts 폐기) 확인 완료 ✅. N-10 follow-up(E2E TC) 확인 완료 ✅. 진행중: governance docs sync + N-5 CI guard 강화 + traceability 정합",
+  "model": "deepseek-v4-flash",
+  "status": "completed",
+  "summary": "v1.0 마무리 sprint. N-2/N-3/P1-6 + Application→Platform 전면 리네임 완료. PR #476 머지 대기.",
   "started_at": "2026-06-04T08:20:00Z",
-  "updated_at": "2026-06-04T08:20:00Z",
+  "updated_at": "2026-06-04T12:15:00Z",
   "scope": {
     "in": [
-      "Governance 문서 sync (main flat state.json/work_backlog/handoff 갱신)",
-      "N-5 CI guard 강화 (migration prefix uniqueness + sequential gap)",
-      "Traceability report 정합 (report.md changelog + §5 gap)",
-      "P0-1 ADR-0020 sub-carve B 완료 확인",
-      "N-10 P1 follow-up 완료 확인"
+      "N-2: Repository draft→publish HTTP handler UT 10건 + memoryApplicationStore 확장",
+      "N-3: SCM import/create/publish E2E test spec 3 TC (TC-REPO-SCM-IMPORT-01, CREATE-01, PUBLISH-02)",
+      "P1-6 (BUG-03): POST /api/v1/auth/logout — Keycloak session revocation (LogoutUserSession)",
+      "Application→Platform 전면 리네임 (DB/API/Go/Frontend/Docs 229 files)",
+      "Codex review P2 fix: revokeAttempted 분리",
+      "Conflict 해결: report.md merge with main"
     ],
     "out": [
       "Backend 기능 변경 (P0-1은 이미 완료)",
-      "E2E 테스트 (N-10은 이미 완료)",
-      "다른 sprint 의존 작업"
+      "E2E 테스트 병렬 실행 (CI 의존)",
+      "v1.1/v2 AI/ML prep (Lane 3)"
     ]
   },
   "artifacts": {
-    "pr_url": null,
-    "branch_pushed": false
+    "pr_url": "https://github.com/ykylee/Devhub_example/pull/476",
+    "branch_pushed": true
   },
   "source_of_truth": {
     "project_profile_path": "ai-workflow/memory/PROJECT_PROFILE.md",
