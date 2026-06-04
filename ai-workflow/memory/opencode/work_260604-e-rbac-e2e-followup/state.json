@@ -4,8 +4,8 @@
   "agent": "opencode",
   "agent_label": "Sisyphus",
   "model": "MiniMax-M3",
-  "status": "in_progress",
-  "summary": "N-10 P1 follow-up (release_v1_roadmap §3.5). docs/domain/rbac-permissions/test_cases.md 의 7 TC 중 E2E 권장 4건 (TC-RBAC-LOGOUT-02, TC-RBAC-ROW-READ-01, TC-RBAC-ROW-READ-02, TC-RBAC-CODE-01) Playwright 구현. LOGOUT-01/ROLE-DRIFT-01 은 backend IT scope (별도 sprint), TRACE-01 은 process/review.",
+  "status": "completed",
+  "summary": "N-10 P1 follow-up (release_v1_roadmap §3.5). docs/domain/rbac-permissions/test_cases.md 의 7 TC 중 E2E 권장 4건 (TC-RBAC-LOGOUT-02, TC-RBAC-ROW-READ-01, TC-RBAC-ROW-READ-02, TC-RBAC-CODE-01) Playwright 구현. E2E 가 CI 에서 우회되던 dev fallback config 결함 발견 + 수정 (ci.yml + backend actorCanReadProject/Application). PR #469 (E2E + fix) merged.",
   "started_at": "2026-06-04T01:55:00Z",
   "updated_at": "2026-06-04T01:55:00Z",
   "scope": {
