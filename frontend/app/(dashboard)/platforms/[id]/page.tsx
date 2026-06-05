@@ -228,7 +228,6 @@ export default function ApplicationDetailPage() {
     (dr) => dr.status === "pending" || dr.status === "in_review"
   ).length;
   const totalRequestsCount = dashboard.linked_dev_requests.length;
-
   const pieData = Object.entries(customWeights).map(([name, value]) => ({
     name: name.split("/").pop() || name,
     fullName: name,
@@ -578,7 +577,7 @@ export default function ApplicationDetailPage() {
                     />
                     <Tooltip 
                       contentStyle={{ backgroundColor: 'var(--card)', borderRadius: '16px', border: '1px solid var(--border)' }}
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      /* eslint-disable @typescript-eslint/no-explicit-any */
                       formatter={(value: any, name: any) => {
                         let formattedValue: any = value;
                         if (name === "build_success_rate") {
@@ -597,6 +596,7 @@ export default function ApplicationDetailPage() {
                             : "Avg Duration"
                         ];
                       }}
+                      /* eslint-enable @typescript-eslint/no-explicit-any */
                     />
                     <Area 
                       type="monotone" 
@@ -821,7 +821,6 @@ export default function ApplicationDetailPage() {
               </button>
             </div>
           </section>
-
           {/* Linked SCM Repositories list */}
           <section className="glass-card p-8">
             <div className="flex items-center justify-between mb-6">
