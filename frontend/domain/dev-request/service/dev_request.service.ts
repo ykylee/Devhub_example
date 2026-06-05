@@ -1,5 +1,6 @@
 import { apiClient } from "@/shared/api/api-client";
 import { DevRequest, DevRequestRegisterPayload, DevRequestStatus } from "@/domain/dev-request/schema/dev_request.types";
+import { API_BASE_URL } from "@/shared/config/endpoints";
 
 type DevRequestQuery = {
   status?: DevRequestStatus | DevRequestStatus[];
@@ -78,6 +79,36 @@ class DevRequestService {
   // 담당자 dashboard 위젯이 사용. 본인 assignee + pending/in_review 만.
   async getMyPending(): Promise<{ data: DevRequest[]; total: number }> {
     return this.list({ status: ["pending", "in_review"] });
+  }
+
+  async createDebugDreq(assigneeUserId?: string): Promise<DevRequest> {
+    const resolvedUrl = `/api/v1/dev-requests`;
+    const fullUrl = resolvedUrl.startsWith("/api/") ? `${API_BASE_URL}${resolvedUrl}` : resolvedUrl;
+    
+    const payload = {
+      title: `[Test] Debug DREQ (${new Date().toLocaleTimeString()})`,
+      details: "This is an auto-generated dev request for testing intake features in dev/debug mode.",
+      requester: "Dev Debug Panel",
+      assignee_user_id: assigneeUserId || "alice",
+      external_ref: `DREQ-DEBUG-${Math.floor(Math.random() * 1000000)}`,
+    };
+
+    const response = await fetch(fullUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer debug-token-bypass-dev",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Debug DREQ intake failed: ${response.status} - ${errText}`);
+    }
+
+    const resJson = await response.json() as { data: DevRequest };
+    return resJson.data;
   }
 }
 
