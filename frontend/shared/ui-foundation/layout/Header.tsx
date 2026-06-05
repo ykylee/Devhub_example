@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Bell, User, ChevronDown, Command, Sun, Moon, Settings, X, Menu } from "lucide-react";
+import { Search, Bell, User, ChevronDown, Command, Sun, Moon, Settings, X, Menu, FlaskConical } from "lucide-react";
 import { cn } from "@/shared/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -29,6 +29,21 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
   const [projectPrefill, setProjectPrefill] = useState<Partial<Project> | null>(null);
 
   const [isConnected, setIsConnected] = useState(realtimeService.isConnected);
+  const [isCreatingDebug, setIsCreatingDebug] = useState(false);
+
+  const handleCreateDebugDreq = async () => {
+    setIsCreatingDebug(true);
+    try {
+      await devRequestService.createDebugDreq(actor?.login);
+      useStore.getState().addToast("디버그용 DREQ가 성공적으로 수신되었습니다.", "success");
+      fetchDreqs();
+    } catch (err) {
+      console.error("Failed to create debug DREQ:", err);
+      useStore.getState().addToast("디버그 DREQ 생성에 실패했습니다.", "error");
+    } finally {
+      setIsCreatingDebug(false);
+    }
+  };
   // 초기 theme 은 paint 전에 layout 의 inline script 가 html 에 적용하므로
   // 여기서는 그 결과(`theme-dark` class 유무)를 읽어 state 와 일치시킨다.
   const [theme, setTheme] = useState<"light" | "dark">(() => {
@@ -146,6 +161,22 @@ export function Header({ className, ...props }: React.HTMLAttributes<HTMLDivElem
         </div>
         
         <div className="flex items-center gap-3 lg:gap-6">
+          {process.env.NODE_ENV === "development" && (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleCreateDebugDreq}
+              disabled={isCreatingDebug}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-warning/30 bg-warning/10 text-warning hover:bg-warning/20 transition-all text-xs font-bold",
+                isCreatingDebug && "opacity-50 cursor-not-allowed"
+              )}
+              title="Debug: Trigger DREQ Intake"
+            >
+              <FlaskConical className={cn("w-4 h-4", isCreatingDebug && "animate-spin")} />
+              <span className="hidden sm:inline">Debug DREQ</span>
+            </motion.button>
+          )}
           <div className="relative">
             <motion.button 
               whileHover={{ scale: 1.05 }}

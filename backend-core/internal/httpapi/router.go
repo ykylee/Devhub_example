@@ -702,6 +702,7 @@ func (h Handler) ensure() Handler {
 			DevRequestIntakeTokenStore: h.cfg.DevRequestIntakeTokenStore,
 			PlatformStore:           h.cfg.PlatformStore,
 			AuditStore:                 h.cfg.AuditStore,
+			AuthDevFallback:            h.cfg.AuthDevFallback,
 		})
 	}
 	if h.integ == nil {

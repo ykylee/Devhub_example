@@ -29,6 +29,7 @@ type DevRequestConfig struct {
 	DevRequestIntakeTokenStore IntakeTokenStore
 	PlatformStore           PlatformStore
 	AuditStore                 AuditStore
+	AuthDevFallback            bool
 }
 
 type DevRequestHandler struct {
