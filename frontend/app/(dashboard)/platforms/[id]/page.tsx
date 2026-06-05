@@ -5,9 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Activity,
   ArrowLeft,
-  Globe,
   ShieldCheck,
-  Zap,
   Clock,
   RefreshCcw,
   Settings,
@@ -16,7 +14,6 @@ import {
   Play,
   Briefcase,
   Layers,
-  Sparkles,
   Rocket
 } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
@@ -30,7 +27,6 @@ import { PlatformCreationModal } from "@/domain/platform-lifecycle/view/Platform
 import { useToast } from "@/shared/ui-foundation/components/Toast";
 import { toUserErrorMessage } from "@/shared/utils/error-message";
 import { lifecycleStatusBadgeVariant } from "@/shared/utils/lifecycle-status";
-import { platformBuildStatusView } from "@/shared/utils/last-build";
 import { PageError, PageLoading } from "@/shared/ui-foundation/components/PageState";
 import { apiClient } from "@/shared/api/api-client";
 import {
@@ -39,7 +35,10 @@ import {
   Area,
   XAxis,
   YAxis,
-  Tooltip
+  Tooltip,
+  PieChart,
+  Pie,
+  Cell
 } from "recharts";
 
 export default function ApplicationDetailPage() {
@@ -67,18 +66,38 @@ export default function ApplicationDetailPage() {
   const [promoting, setPromoting] = useState(false);
   const [trendMetric, setTrendMetric] = useState<"quality" | "success_rate" | "duration">("quality");
 
-  const loadData = useCallback(async () => {
+  // Weight Policy state
+  const [weightPolicy, setWeightPolicy] = useState<string>("equal");
+  const [customWeights, setCustomWeights] = useState<Record<string, number>>({});
+  const [editingWeights, setEditingWeights] = useState<Record<string, string>>({});
+  const [isApplyingWeights, setIsApplyingWeights] = useState(false);
+
+  const loadData = useCallback(async (policy?: string, custom?: Record<string, number>) => {
     try {
       setError(null);
       setLoading(true);
       const [dashData, reposData, appData] = await Promise.all([
-        platformService.getPlatformDashboard(id),
+        platformService.getPlatformDashboard(id, {
+          weight_policy: policy,
+          custom_weights: custom
+        }),
         projectService.getPlatformRepositories(id),
         platformService.getPlatform(id),
       ]);
       setDashboard(dashData);
       setRepositories(reposData);
       setApplication(appData);
+
+      if (dashData.meta) {
+        setWeightPolicy(dashData.meta.weight_policy);
+        setCustomWeights(dashData.meta.applied_weights);
+        
+        const initialEditing: Record<string, string> = {};
+        Object.entries(dashData.meta.applied_weights).forEach(([repo, weight]) => {
+          initialEditing[repo] = String(weight);
+        });
+        setEditingWeights(initialEditing);
+      }
     } catch (err) {
       setError(toUserErrorMessage(err, "Failed to load platform details."));
       console.error(err);
@@ -86,6 +105,25 @@ export default function ApplicationDetailPage() {
       setLoading(false);
     }
   }, [id]);
+
+  const handleApplyWeights = async () => {
+    setIsApplyingWeights(true);
+    try {
+      const parsedCustom: Record<string, number> = {};
+      if (weightPolicy === "custom") {
+        Object.entries(editingWeights).forEach(([repo, val]) => {
+          parsedCustom[repo] = parseFloat(val) || 0;
+        });
+      }
+      await loadData(weightPolicy, weightPolicy === "custom" ? parsedCustom : undefined);
+      toast("Weight policy applied successfully", "success");
+    } catch (err) {
+      console.error(err);
+      toast("Failed to apply weights", "error");
+    } finally {
+      setIsApplyingWeights(false);
+    }
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -190,6 +228,16 @@ export default function ApplicationDetailPage() {
     (dr) => dr.status === "pending" || dr.status === "in_review"
   ).length;
   const totalRequestsCount = dashboard.linked_dev_requests.length;
+
+  const pieData = Object.entries(customWeights).map(([name, value]) => ({
+    name: name.split("/").pop() || name,
+    fullName: name,
+    value: value
+  }));
+
+  const totalWeight = Object.values(editingWeights).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
+  const isValidTotal = Math.abs(totalWeight - 1.0) < 0.001;
+  const PIE_COLORS = ["#6366f1", "#10b981", "#f59e0b", "#3b82f6", "#ec4899", "#8b5cf6", "#14b8a6"];
 
   return (
     <div className="space-y-8 pb-20 px-4 md:px-8">
@@ -478,7 +526,7 @@ export default function ApplicationDetailPage() {
                 ].map((metric) => (
                   <button
                     key={metric.key}
-                    onClick={() => setTrendMetric(metric.key as any)}
+                    onClick={() => setTrendMetric(metric.key as "quality" | "success_rate" | "duration")}
                     className={cn(
                       "px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200",
                       trendMetric === metric.key
@@ -530,8 +578,9 @@ export default function ApplicationDetailPage() {
                     />
                     <Tooltip 
                       contentStyle={{ backgroundColor: 'var(--card)', borderRadius: '16px', border: '1px solid var(--border)' }}
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       formatter={(value: any, name: any) => {
-                        let formattedValue = value;
+                        let formattedValue: any = value;
                         if (name === "build_success_rate") {
                           formattedValue = `${(Number(value) * 100).toFixed(1)}%`;
                         } else if (name === "avg_duration_seconds") {
@@ -612,6 +661,164 @@ export default function ApplicationDetailPage() {
                 ))}
               </div>
               <p className="text-[10px] text-muted-foreground text-center italic">{dashboard.quality_metrics.comment}</p>
+            </div>
+          </section>
+
+          {/* Weight Policy Visualizer (REQ-FR-APPDASH-006) */}
+          <section className="glass-card p-8 space-y-6">
+            <div>
+              <h3 className="text-md font-bold text-foreground flex items-center gap-2">
+                <Layers className="w-4 h-4 text-primary" /> Rollup Weight Policy
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                Configure weight policies to aggregate platform-level metrics.
+              </p>
+            </div>
+
+            {/* Doughnut Chart representation */}
+            {pieData.length > 0 ? (
+              <div className="h-48 flex items-center justify-center relative">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={70}
+                      paddingAngle={4}
+                      dataKey="value"
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      formatter={(value: any) => [`${(Number(value) * 100).toFixed(1)}%`, "Weight"]}
+                      contentStyle={{
+                        backgroundColor: 'var(--card)',
+                        borderRadius: '12px',
+                        border: '1px solid var(--border)',
+                        fontSize: '11px'
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                
+                {/* Center text inside doughnut */}
+                <div className="absolute flex flex-col items-center justify-center">
+                  <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">Policy</span>
+                  <span className="text-sm font-black text-foreground capitalize">{weightPolicy}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="py-6 text-center text-xs text-muted-foreground">
+                No repositories available to calculate weights.
+              </div>
+            )}
+
+            {/* Legend layout */}
+            {pieData.length > 0 && (
+              <div className="grid grid-cols-2 gap-2 max-h-24 overflow-y-auto pr-1">
+                {pieData.map((entry, index) => (
+                  <div key={entry.fullName} className="flex items-center gap-1.5 text-[10px] min-w-0">
+                    <span 
+                      className="w-2.5 h-2.5 rounded-full shrink-0" 
+                      style={{ backgroundColor: PIE_COLORS[index % PIE_COLORS.length] }} 
+                    />
+                    <span className="text-muted-foreground truncate" title={entry.fullName}>
+                      {entry.name}: <span className="font-bold text-foreground">{(entry.value * 100).toFixed(0)}%</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Weight policy control buttons */}
+            <div className="space-y-4 pt-2 border-t border-white/5">
+              <div className="flex bg-white/5 border border-white/10 dark:border-white/5 p-1 rounded-xl gap-1">
+                {[
+                  { key: "equal", label: "Equal" },
+                  { key: "repo_role", label: "Repo Role" },
+                  { key: "custom", label: "Custom" }
+                ].map((p) => (
+                  <button
+                    key={p.key}
+                    type="button"
+                    onClick={() => setWeightPolicy(p.key)}
+                    className={cn(
+                      "flex-1 py-1.5 rounded-lg text-xs font-bold transition-all duration-200",
+                      weightPolicy === p.key
+                        ? "bg-primary text-primary-foreground shadow-md"
+                        : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                    )}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Custom weights editing inputs */}
+              {weightPolicy === "custom" && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  className="space-y-3 p-4 rounded-2xl bg-white/5 border border-white/5 max-h-48 overflow-y-auto"
+                >
+                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 block">
+                    Define Repository Weights
+                  </p>
+                  <div className="space-y-2">
+                    {Object.keys(editingWeights).map((repo) => (
+                      <div key={repo} className="flex items-center justify-between gap-3">
+                        <span className="text-[11px] text-muted-foreground truncate max-w-[160px]" title={repo}>
+                          {repo.split("/").pop() || repo}
+                        </span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          max="1"
+                          value={editingWeights[repo] || ""}
+                          onChange={(e) => {
+                            setEditingWeights({
+                              ...editingWeights,
+                              [repo]: e.target.value
+                            });
+                          }}
+                          className="w-20 px-2 py-1 text-xs rounded-lg border border-white/10 bg-black/20 text-foreground text-right focus:outline-none focus:border-primary transition-all"
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-white/5 text-[10px] font-bold">
+                    <span className="text-muted-foreground">Total Weight (Must be 1.0):</span>
+                    <span className={cn(
+                      "font-mono text-xs",
+                      isValidTotal ? "text-emerald-500" : "text-rose-500"
+                    )}>
+                      {totalWeight.toFixed(3)}
+                    </span>
+                  </div>
+                  {!isValidTotal && (
+                    <p className="text-[9px] text-rose-500 font-medium leading-normal">
+                      ⚠️ Sum of weights must equal 1.0 (currently {totalWeight.toFixed(3)}).
+                    </p>
+                  )}
+                </motion.div>
+              )}
+
+              {/* Apply button */}
+              <button
+                type="button"
+                onClick={handleApplyWeights}
+                disabled={isApplyingWeights || (weightPolicy === "custom" && !isValidTotal)}
+                className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground font-black text-xs hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md"
+              >
+                {isApplyingWeights ? "Applying..." : "Apply Weight Policy ⚖️"}
+              </button>
             </div>
           </section>
 

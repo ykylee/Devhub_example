@@ -1,6 +1,7 @@
 package view
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/devhub/backend-core/internal/shared/httphelp"
 	"net/http"
@@ -500,10 +501,28 @@ func (h *PlatformHandler) PlatformDashboard(c *gin.Context) {
 	// 1. Rollup metrics — 외부 데이터 미존재 시 0 값으로 fallback (ComputePlatformRollup 자체가
 	//    빈 윈도우면 zero-value 반환).
 	rollupOpts := domain.PlatformRollupOptions{
-		Policy:     domain.WeightPolicyEqual,
+		Policy:     domain.WeightPolicy(c.Query("weight_policy")),
 		WindowFrom: time.Now().UTC().AddDate(0, 0, -30),
 		WindowTo:   time.Now().UTC(),
 	}
+	if rollupOpts.Policy == "" {
+		rollupOpts.Policy = domain.WeightPolicyEqual
+	}
+	switch rollupOpts.Policy {
+	case domain.WeightPolicyEqual, domain.WeightPolicyRepoRole, domain.WeightPolicyCustom:
+	default:
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "weight_policy must be one of equal/repo_role/custom"})
+		return
+	}
+	if raw := c.Query("custom_weights"); raw != "" {
+		var weights map[string]float64
+		if err := json.Unmarshal([]byte(raw), &weights); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "custom_weights must be JSON object {\"repo_full_name\": weight}"})
+			return
+		}
+		rollupOpts.CustomWeights = weights
+	}
+
 	rollup, err := storeI.ComputePlatformRollup(c.Request.Context(), id, rollupOpts)
 	if err != nil {
 		httphelp.WriteServerError(c, err, "platforms.dashboard.rollup")
@@ -749,9 +768,9 @@ func (h *PlatformHandler) PlatformDashboard(c *gin.Context) {
 			"history_trend":       historyTrend,
 		},
 		"meta": gin.H{
-			"weight_policy":   "equal",
-			"applied_weights": appliedWeights,
-			"fallbacks":       []string{},
+			"weight_policy":   string(rollup.Meta.WeightPolicy),
+			"applied_weights": rollup.Meta.AppliedWeights,
+			"fallbacks":       rollup.Meta.Fallbacks,
 			"data_gaps":       dataGaps,
 		},
 	})

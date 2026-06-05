@@ -81,7 +81,7 @@ export default function ProjectDetailPage() {
       // Determine default persona based on 2D RBAC
       if (projectData && actorData) {
         const userMember = projectData.project_members?.find(m => m.user_id === actorData.login);
-        const isLead = userMember?.project_role === "lead" || userMember?.project_role === "project_leader";
+        const isLead = userMember?.project_role === "lead";
         
         let defaultPersona: "developer" | "project_leader" | "manager" = "developer";
         if (actorData.role === "System Admin" || actorData.role === "Manager") {
@@ -338,7 +338,7 @@ export default function ProjectDetailPage() {
                                 {task.repository_name} • Due: {task.due_date ? new Date(task.due_date).toLocaleDateString() : "TBD"}
                               </p>
                             </div>
-                            <Badge variant={task.priority === "high" ? "destructive" : "glass"}>{task.priority}</Badge>
+                            <Badge variant={task.priority === "high" ? "danger" : "glass"}>{task.priority}</Badge>
                           </div>
                         ))}
                       </div>
@@ -383,7 +383,7 @@ export default function ProjectDetailPage() {
                               <span className="text-[10px] text-muted-foreground">Duplication: <strong className="text-foreground">{(b.duplicate_ratio * 100).toFixed(1)}%</strong></span>
                             </div>
                           </div>
-                          <Badge variant={b.last_build_status === "healthy" ? "success" : "destructive"}>
+                          <Badge variant={b.last_build_status === "healthy" ? "success" : "danger"}>
                             {b.last_build_status}
                           </Badge>
                         </div>
@@ -406,7 +406,7 @@ export default function ProjectDetailPage() {
                       {dashboardData.project_leader_view.pr_integration_hub.failed_build_prs.map((pr: any) => (
                         <div key={pr.id} className="p-4 rounded-xl border border-destructive/20 bg-destructive/5 flex items-center justify-between gap-4 hover:bg-destructive/10 transition-colors">
                           <div>
-                            <Badge variant="destructive" className="mb-2">Build Failed</Badge>
+                            <Badge variant="danger" className="mb-2">Build Failed</Badge>
                             <p className="text-xs font-bold text-foreground">{pr.title}</p>
                             <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-widest">{pr.repository_name} • Author: {pr.author}</p>
                           </div>
@@ -587,7 +587,7 @@ export default function ProjectDetailPage() {
                               <div className="flex items-center gap-3">
                                 <span className="text-muted-foreground">Tasks: <strong>{member.active_tasks_count}</strong> | Reviews: <strong>{member.active_reviews_count}</strong></span>
                                 {isOverloaded && (
-                                  <Badge variant="destructive" className="animate-pulse">Overloaded ⚠️</Badge>
+                                  <Badge variant="danger" className="animate-pulse">Overloaded ⚠️</Badge>
                                 )}
                               </div>
                             </div>

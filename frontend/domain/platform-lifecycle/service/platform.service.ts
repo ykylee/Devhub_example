@@ -112,6 +112,12 @@ export interface PlatformDashboard {
     build_success_rate: number;
     quality_score: number;
   }>;
+  meta?: {
+    weight_policy: string;
+    applied_weights: Record<string, number>;
+    fallbacks: string[];
+    data_gaps: string[];
+  };
 }
 
 export interface DashboardResult {
@@ -148,10 +154,29 @@ class PlatformService {
     return body.data;
   }
 
-  async getPlatformDashboard(platformId: string): Promise<PlatformDashboard> {
-    const url = `${this.baseUrl}/api/v1/platforms/${platformId}/dashboard`;
+  async getPlatformDashboard(
+    platformId: string,
+    options?: { weight_policy?: string; custom_weights?: Record<string, number> }
+  ): Promise<PlatformDashboard> {
+    const params = new URLSearchParams();
+    if (options?.weight_policy) {
+      params.append("weight_policy", options.weight_policy);
+    }
+    if (options?.custom_weights) {
+      params.append("custom_weights", JSON.stringify(options.custom_weights));
+    }
+    const query = params.toString();
+    const url = `${this.baseUrl}/api/v1/platforms/${platformId}/dashboard${query ? `?${query}` : ""}`;
     const body = await apiClient<DashboardResult>("GET", url);
-    return body.data;
+    return {
+      ...body.data,
+      meta: body.meta ? {
+        weight_policy: (body.meta.weight_policy as string) || "equal",
+        applied_weights: (body.meta.applied_weights as Record<string, number>) || {},
+        fallbacks: (body.meta.fallbacks as string[]) || [],
+        data_gaps: (body.meta.data_gaps as string[]) || [],
+      } : undefined
+    };
   }
 }
 
