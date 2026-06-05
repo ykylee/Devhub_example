@@ -155,8 +155,11 @@ describe("RepositoryDashboardView", () => {
     vi.spyOn(repositoryService, "getRepository").mockRejectedValue(new Error("Network Error"));
 
     render(<RepositoryDashboardView repoId={1} />);
+    // toUserErrorMessage returns err.message for plain Error instances, so the
+    // displayed text is the actual error message (not the fallback). This is
+    // intentional: production users see the real failure cause, not a generic string.
     await waitFor(() => {
-      expect(screen.getByText(/Failed to fetch repository dashboard metrics/i)).toBeInTheDocument();
+      expect(screen.getByText(/Network Error/i)).toBeInTheDocument();
     });
 
     const retryBtn = screen.getByRole("button", { name: /Retry/i });
@@ -169,6 +172,18 @@ describe("RepositoryDashboardView", () => {
 
     await waitFor(() => {
       expect(screen.getByText("test-repo")).toBeInTheDocument();
+    });
+  });
+
+  it("renders fallback error message when non-Error value is thrown", async () => {
+    // Regression guard: toUserErrorMessage fallback path. If something throws
+    // a non-Error value (e.g. null/undefined/string), the user should see the
+    // fallback string instead of a blank/garbled message.
+    vi.spyOn(repositoryService, "getRepository").mockRejectedValue("some string error");
+
+    render(<RepositoryDashboardView repoId={1} />);
+    await waitFor(() => {
+      expect(screen.getByText(/Failed to load repository/i)).toBeInTheDocument();
     });
   });
 
