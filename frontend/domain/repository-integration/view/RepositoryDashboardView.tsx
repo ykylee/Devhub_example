@@ -55,27 +55,38 @@ export function RepositoryDashboardView({ repoId }: RepositoryDashboardViewProps
   }, [role]);
 
   const loadData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    // Critical: repository metadata. On failure, show the error state.
+    let repoData: Repository | undefined;
     try {
-      setLoading(true);
-      setError(null);
-      
-      const [repoData, activityData, extraData] = await Promise.all([
-        repositoryService.getRepository(repoId),
-        repositoryService.getRepositoryActivity(repoId),
-        repositoryService.getRepositoryDashboardData(repoId)
-      ]);
-      
+      repoData = await repositoryService.getRepository(repoId);
       if (!repoData) throw new Error("Repository not found.");
-      
       setRepo(repoData);
-      setActivity(activityData);
-      setDashboardData(extraData);
     } catch (err) {
       console.error(err);
-      setError(toUserErrorMessage(err, "Failed to fetch repository dashboard metrics."));
-    } finally {
+      setError(toUserErrorMessage(err, "Failed to load repository."));
       setLoading(false);
+      return;
     }
+
+    // Optional: activity data. CI Keycloak user-lookup race can intermittently 403
+    // (PR #482 E2E shard 2/2 root cause). Activity is consumed by both views via
+    // optional chaining, so a failed fetch should not block the entire dashboard.
+    repositoryService
+      .getRepositoryActivity(repoId)
+      .then((activityData) => setActivity(activityData))
+      .catch((err) => {
+        console.warn("[RepositoryDashboardView] activity fetch failed (non-fatal):", err);
+      });
+
+    // Dashboard data is currently a synchronous hardcoded fixture; await is kept
+    // for forward-compat when it becomes a real API call. Always required for render.
+    const extraData = await repositoryService.getRepositoryDashboardData(repoId);
+    setDashboardData(extraData);
+
+    setLoading(false);
   }, [repoId]);
 
   useEffect(() => {
