@@ -28,7 +28,7 @@ test.describe("Repository Detailed Dashboard E2E", () => {
     // 모달 다이얼로그 노출 확인
     await expect(page.getByRole("dialog")).toBeVisible();
     await expect(page.getByText("Build Run Console Output")).toBeVisible();
-    await expect(page.getByText("Build failed. Please investigate test regressions.")).toBeVisible();
+    await expect(page.getByText("deadlock regression test failed", { exact: false })).toBeVisible();
 
     // 모달 닫기
     const closeBtn = page.getByRole("button", { name: /Close/i }).first();

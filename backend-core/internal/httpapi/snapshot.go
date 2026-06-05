@@ -174,8 +174,11 @@ func (h Handler) ciRuns(c *gin.Context) {
 		owner := c.Query("owner")
 		repo := c.Query("repo")
 		if owner == "" || repo == "" {
-			owner = "ykylee"
-			repo = "e2e-repo-a"
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status": "rejected",
+				"error":  "missing owner or repo query parameter",
+			})
+			return
 		}
 		runs, err := h.ciAdapter.GetRuns(c.Request.Context(), owner, repo)
 		if err != nil {
@@ -337,8 +340,11 @@ func (h Handler) ciRunLogs(c *gin.Context) {
 		owner := c.Query("owner")
 		repo := c.Query("repo")
 		if owner == "" || repo == "" {
-			owner = "ykylee"
-			repo = "e2e-repo-a"
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status": "rejected",
+				"error":  "missing owner or repo query parameter",
+			})
+			return
 		}
 		lines, err := h.ciAdapter.GetRunLogs(c.Request.Context(), owner, repo, ciRunID)
 		if err != nil {

@@ -258,7 +258,8 @@ export function DeveloperView({ repo, activity, dashboardData }: DeveloperViewPr
                   <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">Duplication</p>
                   <p className="text-xl font-mono font-black text-foreground dark:text-primary-foreground">{dashboardData.quality.duplication}%</p>
                   <div className="mt-2 w-full bg-muted/30 rounded-full h-1.5 overflow-hidden">
-                    <div className="bg-warning h-1.5 rounded-full" style={{ width: `${dashboardData.quality.duplication * 10}%` }} />
+                    {/* SonarQube duplication ratio (e.g. 2.4%) is mapped to a 0-100% progress bar by multiplying by 10, capped at 100% */}
+                    <div className="bg-warning h-1.5 rounded-full" style={{ width: `${Math.min(100, dashboardData.quality.duplication * 10)}%` }} />
                   </div>
                 </div>
               </div>

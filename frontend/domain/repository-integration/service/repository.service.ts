@@ -177,17 +177,31 @@ class RepositoryService {
     };
   }
 
-  async getBuildRunLog(repositoryId: number, runId: number): Promise<string> {
-    return `[INFO] 2026-06-05T10:14:11Z Starting build run #${runId} for Repository #${repositoryId}...
-[INFO] 2026-06-05T10:14:12Z Pulling latest changes from main branch...
-[INFO] 2026-06-05T10:14:14Z Installing dependencies (npm install)...
-[WARN] 2026-06-05T10:14:20Z Found 12 high-severity vulnerabilities.
-[INFO] 2026-06-05T10:14:21Z Running tests (npm run test)...
-[ERROR] 2026-06-05T10:14:25Z Test suite failed:
-  ✕ check_auth_verification.spec.ts (failed on child_process spawn)
-  ✕ check_rbac_enforcement.spec.ts (unauthorized role mapping)
-[ERROR] 2026-06-05T10:14:26Z exit status 1
-[ERROR] 2026-06-05T10:14:26Z Build failed. Please investigate test regressions.`;
+  async getBuildRunLog(repositoryId: number, runExternalId: string): Promise<string> {
+    const repo = await this.getRepository(repositoryId);
+    if (!repo) {
+      throw new Error(`Repository with ID ${repositoryId} not found`);
+    }
+    const [owner, repoName] = repo.full_name.split("/");
+    const url = `${this.baseUrl}/api/v1/ci-runs/${runExternalId}/logs?owner=${owner}&repo=${repoName}`;
+    
+    interface LogLineResponse {
+      timestamp: string;
+      level: string;
+      message: string;
+      step_name: string;
+    }
+    
+    interface GetLogsResult {
+      status: string;
+      data: LogLineResponse[];
+    }
+    
+    const body = await apiClient<GetLogsResult>("GET", url);
+    return body.data.map(line => {
+      const levelStr = line.level ? `[${line.level.toUpperCase()}] ` : "";
+      return `${levelStr}${line.message}`;
+    }).join("\n");
   }
 }
 

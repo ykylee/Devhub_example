@@ -114,8 +114,7 @@ func (a *GiteaActionsAdapter) GetRunLogs(ctx context.Context, owner, repo, runID
 
 func (a *GiteaActionsAdapter) TriggerRun(ctx context.Context, owner, repo, branch string) error {
 	// Gitea Actions trigger manually (e.g. dispatch or webhook mock)
-	// Currently returns nil as stub integration.
-	return nil
+	return fmt.Errorf("TriggerRun not implemented for GiteaActionsAdapter")
 }
 
 func normalizeGiteaStatus(status, conclusion string) string {

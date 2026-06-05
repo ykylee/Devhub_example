@@ -23,7 +23,7 @@ export function BuildLogModal({ repositoryId, runId, runExternalId, onClose }: B
       try {
         setLoading(true);
         setError(null);
-        const logData = await repositoryService.getBuildRunLog(repositoryId, runId);
+        const logData = await repositoryService.getBuildRunLog(repositoryId, runExternalId);
         setLog(logData);
       } catch (err) {
         console.error(err);
@@ -33,7 +33,7 @@ export function BuildLogModal({ repositoryId, runId, runExternalId, onClose }: B
       }
     };
     void fetchLog();
-  }, [repositoryId, runId]);
+  }, [repositoryId, runExternalId]);
 
   const handleCopy = async () => {
     try {
