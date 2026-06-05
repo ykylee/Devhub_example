@@ -165,12 +165,24 @@ export default function ApplicationDetailPage() {
     );
   }
 
-  const qualityScore = dashboard.metrics_overview.quality_score.toFixed(1);
+  const normalizeQualityScore = (score: number): number => {
+    if (score > 5.0) {
+      return score / 20;
+    }
+    return score;
+  };
+
+  const qualityScore = normalizeQualityScore(dashboard.metrics_overview.quality_score).toFixed(1);
   const criticalWarnings = dashboard.metrics_overview.critical_warning_count;
   const gateFailures = dashboard.quality_metrics.unresolved_issues.blocker;
   const pendingRequestsCount = dashboard.linked_dev_requests.filter(
     (dreq) => dreq.status === "pending" || dreq.status === "in_review"
   ).length;
+
+  const chartData = dashboard.history_trend.map((item) => ({
+    ...item,
+    quality_score: normalizeQualityScore(item.quality_score),
+  }));
 
   return (
     <div className="space-y-8 pb-20 px-4 md:px-8">
@@ -257,7 +269,7 @@ export default function ApplicationDetailPage() {
             </h3>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={dashboard.history_trend}>
+                <AreaChart data={chartData}>
                   <defs>
                     <linearGradient id="colorQuality" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3}/>
