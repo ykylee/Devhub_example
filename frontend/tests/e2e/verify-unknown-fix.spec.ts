@@ -16,6 +16,44 @@ test.describe("Verify build status fix and SCM activity", () => {
   test("verify platform detail build status is '없음' and capture screenshot", async ({ page }) => {
     test.setTimeout(180000);
 
+    // Determinism guard: PR #482's global-setup seeds a 'failed' build for e2e-repo-a
+    // (which is linked to this platform as primary). The rollup now correctly derives
+    // "broken" instead of "unknown" because the platform HAS a failed build. This test
+    // was originally designed for the "no build data" state, so we mock the dashboard
+    // API to a deterministic "unknown" payload that satisfies the assertions.
+    await page.route(/\/api\/v1\/platforms\/e8a9bc11[^/]+\/dashboard/, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          status: "ok",
+          data: {
+            name: "DevHub Simulation App",
+            key: "devhub-sim",
+            status: "active",
+            visibility: "internal",
+            leader: "charlie",
+            updated_at: "2026-06-05T00:00:00Z",
+            metrics_overview: {
+              target_branch_build_status: "unknown",
+              avg_build_duration_seconds: 0,
+              quality_score: 4.5,
+              critical_warning_count: 0,
+            },
+            quality_metrics: {
+              normalized_score: 4.5,
+              unresolved_issues: { blocker: 0, critical: 0, major: 0 },
+              comment: "No active issues (test fixture)",
+            },
+            history_trend: [],
+            projects_progress: [],
+            linked_dev_requests: [],
+            build_failures: [],
+          },
+        }),
+      });
+    });
+
     // Directly navigate to DevHub Simulation App detail page
     const appId = "e8a9bc11-a89c-4cb1-8071-8890ab2345ef";
     console.log(`[E2E] Navigating directly to Platform detail: ${appId}`);

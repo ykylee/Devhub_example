@@ -341,6 +341,28 @@ INSERT INTO platform_repositories (platform_id, repo_provider, repo_full_name, r
 VALUES
     ('e8a9bc11-a89c-4cb1-8071-8890ab2345ef', 'gitea', 'devhub/e2e-repo-a', 'primary', 'active')
 ON CONFLICT (platform_id, repo_provider, repo_full_name) DO NOTHING;
+
+-- Ensure build runs exist for e2e-repo-a (failed build is required for E2E modal log check)
+INSERT INTO build_runs (repository_id, run_external_id, branch, commit_sha, status, duration_seconds, started_at, finished_at)
+VALUES
+    ((SELECT id FROM repositories WHERE full_name = 'devhub/e2e-repo-a'), '101', 'main', 'abcdef1234567890', 'success', 120, NOW() - INTERVAL '1 hour', NOW() - INTERVAL '1 hour' + INTERVAL '2 minutes'),
+    ((SELECT id FROM repositories WHERE full_name = 'devhub/e2e-repo-a'), '103', 'main', '7890abcdef123456', 'failed', 45, NOW() - INTERVAL '30 minutes', NOW() - INTERVAL '30 minutes' + INTERVAL '45 seconds')
+ON CONFLICT (run_external_id) DO UPDATE SET
+    status = EXCLUDED.status,
+    duration_seconds = EXCLUDED.duration_seconds,
+    started_at = EXCLUDED.started_at,
+    finished_at = EXCLUDED.finished_at;
+
+-- Ensure ci runs exist for e2e-repo-a (since backend store reads build runs from ci_runs table)
+INSERT INTO ci_runs (external_id, repository_id, repository_name, branch, commit_sha, status, started_at, finished_at, duration_seconds)
+VALUES
+    ('101', (SELECT id FROM repositories WHERE full_name = 'devhub/e2e-repo-a'), 'e2e-repo-a', 'main', 'abcdef1234567890', 'success', NOW() - INTERVAL '1 hour', NOW() - INTERVAL '1 hour' + INTERVAL '2 minutes', 120),
+    ('103', (SELECT id FROM repositories WHERE full_name = 'devhub/e2e-repo-a'), 'e2e-repo-a', 'main', '7890abcdef123456', 'failed', NOW() - INTERVAL '30 minutes', NOW() - INTERVAL '30 minutes' + INTERVAL '45 seconds', 45)
+ON CONFLICT (external_id) DO UPDATE SET
+    status = EXCLUDED.status,
+    duration_seconds = EXCLUDED.duration_seconds,
+    started_at = EXCLUDED.started_at,
+    finished_at = EXCLUDED.finished_at;
 `;
 
   // Unique file name — parallel e2e shard 간 collision 회피 (process.pid + timestamp).

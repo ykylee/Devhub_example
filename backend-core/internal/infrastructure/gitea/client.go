@@ -313,3 +313,69 @@ func (c *Client) do(req *http.Request, v any) error {
 
 	return json.NewDecoder(resp.Body).Decode(v)
 }
+
+// GiteaActionRun represents a Gitea action run payload.
+type GiteaActionRun struct {
+	ID         int64     `json:"id"`
+	RunNumber  int64     `json:"run_number"`
+	Event      string    `json:"event"`
+	Status     string    `json:"status"`
+	Conclusion string    `json:"conclusion"`
+	HeadBranch string    `json:"head_branch"`
+	HeadSHA    string    `json:"head_sha"`
+	HTMLURL    string    `json:"html_url"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
+}
+
+// GiteaActionRunsResponse wraps the Gitea action runs list response.
+type GiteaActionRunsResponse struct {
+	TotalCount   int64            `json:"total_count"`
+	WorkflowRuns []GiteaActionRun `json:"workflow_runs"`
+}
+
+// ListActionRuns retrieves workflow/action runs for a repository.
+func (c *Client) ListActionRuns(ctx context.Context, owner, repo string) ([]GiteaActionRun, error) {
+	path := fmt.Sprintf("/api/v1/repos/%s/%s/actions/runs", url.PathEscape(owner), url.PathEscape(repo))
+	req, err := c.newRequest(ctx, http.MethodGet, path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp GiteaActionRunsResponse
+	if err := c.do(req, &resp); err != nil {
+		if apiErr, ok := err.(*APIError); ok && apiErr.StatusCode == http.StatusNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return resp.WorkflowRuns, nil
+}
+
+// GetActionRunLogs retrieves raw logs for an action run.
+func (c *Client) GetActionRunLogs(ctx context.Context, owner, repo string, runID int64) (string, error) {
+	path := fmt.Sprintf("/api/v1/repos/%s/%s/actions/runs/%d/logs", url.PathEscape(owner), url.PathEscape(repo), runID)
+	req, err := c.newRequest(ctx, http.MethodGet, path, nil)
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return "", &APIError{
+			StatusCode: resp.StatusCode,
+			Message:    fmt.Sprintf("gitea api returned status %d", resp.StatusCode),
+		}
+	}
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	return string(bodyBytes), nil
+}

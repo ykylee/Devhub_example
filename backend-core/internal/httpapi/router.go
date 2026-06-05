@@ -20,6 +20,7 @@ import (
 	rbacview "github.com/devhub/backend-core/internal/domain/rbac-permissions/view"
 	realtimeview "github.com/devhub/backend-core/internal/domain/realtime/view"
 	repoview "github.com/devhub/backend-core/internal/domain/repository-integration/view"
+	ci "github.com/devhub/backend-core/internal/infrastructure/ci"
 	gitea "github.com/devhub/backend-core/internal/infrastructure/gitea"
 	"github.com/devhub/backend-core/internal/store"
 	"github.com/gin-gonic/gin"
@@ -169,6 +170,7 @@ type RouterConfig struct {
 	OnboardingGateEnabled bool
 	// ProjectModel toggles project-management route mode: legacy|hybrid|v2.
 	ProjectModel string
+	CIAdapter    ci.Adapter
 }
 
 // resolveIntegrationStore — issue #421/#422 (sprint claude/work_260529-n) 의
@@ -296,6 +298,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 			OnboardingGateEnabled: cfg.OnboardingGateEnabled,
 			AuditStore:            cfg.AuditStore,
 		}),
+		ciAdapter: cfg.CIAdapter,
 	}
 	router.GET("/health", handler.health)
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
@@ -499,6 +502,7 @@ type Handler struct {
 	realtime *realtimeview.RealtimeHandler
 	repo     *repoview.RepositoryIntegrationHandler
 	onboard  *onboardview.OnboardingHandler
+	ciAdapter ci.Adapter
 }
 
 // resolveIdPSubject — test compatibility shim. Handler 직접 cfg 로 AuthHandler
