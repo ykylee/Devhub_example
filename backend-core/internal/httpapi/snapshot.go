@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -169,6 +170,47 @@ func (h Handler) infraTopology(c *gin.Context) {
 
 func (h Handler) ciRuns(c *gin.Context) {
 	scope := c.DefaultQuery("scope", "all")
+	if h.ciAdapter != nil {
+		owner := c.Query("owner")
+		repo := c.Query("repo")
+		if owner == "" || repo == "" {
+			owner = "ykylee"
+			repo = "e2e-repo-a"
+		}
+		runs, err := h.ciAdapter.GetRuns(c.Request.Context(), owner, repo)
+		if err != nil {
+			writeServerError(c, err, "snapshot.ci_runs.adapter")
+			return
+		}
+		data := make([]ciRunResponse, 0, len(runs))
+		for _, run := range runs {
+			startedAt := time.Time{}
+			if run.StartedAt != nil {
+				startedAt = *run.StartedAt
+			}
+			data = append(data, ciRunResponse{
+				ID:              run.ID,
+				RepositoryName:  run.RepositoryName,
+				Branch:          run.Branch,
+				CommitSHA:       run.CommitSHA,
+				Status:          run.Status,
+				DurationSeconds: run.DurationSeconds,
+				StartedAt:       startedAt,
+				FinishedAt:      run.FinishedAt,
+			})
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"status": "ok",
+			"data":   data,
+			"meta": gin.H{
+				"count":  len(data),
+				"scope":  scope,
+				"source": "adapter",
+			},
+		})
+		return
+	}
+
 	if h.cfg.DomainStore != nil {
 		opts, ok := parseListOptions(c, false)
 		if !ok {
@@ -291,6 +333,45 @@ func (h Handler) createCIRun(c *gin.Context) {
 
 func (h Handler) ciRunLogs(c *gin.Context) {
 	ciRunID := c.Param("ci_run_id")
+	if h.ciAdapter != nil {
+		owner := c.Query("owner")
+		repo := c.Query("repo")
+		if owner == "" || repo == "" {
+			owner = "ykylee"
+			repo = "e2e-repo-a"
+		}
+		lines, err := h.ciAdapter.GetRunLogs(c.Request.Context(), owner, repo, ciRunID)
+		if err != nil {
+			writeServerError(c, err, "snapshot.ci_run_logs.adapter")
+			return
+		}
+		data := make([]ciLogLineResponse, 0, len(lines))
+		for i, line := range lines {
+			ts := time.Time{}
+			if line.Timestamp != nil {
+				ts = *line.Timestamp
+			}
+			data = append(data, ciLogLineResponse{
+				ID:        fmt.Sprintf("%s-%d", ciRunID, i),
+				CIRunID:   ciRunID,
+				Timestamp: ts,
+				Level:     line.Level,
+				Message:   line.Message,
+				StepName:  line.StepName,
+			})
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"status": "ok",
+			"data":   data,
+			"meta": gin.H{
+				"ci_run_id": ciRunID,
+				"count":     len(data),
+				"source":    "adapter",
+			},
+		})
+		return
+	}
+
 	provider := h.snapshotProvider()
 	logs, ok, err := provider.CILogs(c.Request.Context(), ciRunID)
 	if err != nil {
