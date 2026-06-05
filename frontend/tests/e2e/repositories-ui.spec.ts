@@ -28,13 +28,25 @@ test.describe("/repositories — repository list/detail UI", () => {
     await page.getByRole("link", { name: /e2e-repo-a/i }).first().click();
     await expect(page).toHaveURL(new RegExp(`${appPath("/repositories")}/\\d+$`), { timeout: 20_000 });
 
+    // ---- Repository header (preserved from legacy page) ----
     await expect(page.getByRole("heading", { name: /e2e-repo-a/i })).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText("devhub/e2e-repo-a", { exact: false })).toBeVisible();
-    await expect(page.getByText("PR Events", { exact: false }).first()).toBeVisible();
-    await expect(page.getByText("Build Runs", { exact: false }).first()).toBeVisible();
-    // PR #396 (REQ-FR-APPDASH-001) — "Build Success: %" → "Last Build: status".
-    await expect(page.getByText("Last Build", { exact: false }).first()).toBeVisible();
-    await expect(page.getByText("Contributors", { exact: false }).first()).toBeVisible();
     await expect(page.getByRole("link", { name: /view on scm/i })).toBeVisible();
+
+    // ---- New dashboard subheader (PR #482 revamp) ----
+    await expect(page.getByText("Dashboard Perspective", { exact: false })).toBeVisible();
+    await expect(page.getByText(/Viewing as/i)).toBeVisible();
+
+    // Role-toggle tabs
+    await expect(page.getByRole("button", { name: /^Developer$/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Manager & Governance/i })).toBeVisible();
+
+    // Default view for systemAdmin is Manager (RepositoryDashboardView.tsx L51 useEffect).
+    // Verify Manager view focus cards are rendered.
+    await expect(page.getByText("Team Manager Focus")).toBeVisible();
+    await expect(page.getByText("Organization Admin Focus")).toBeVisible();
+    await expect(page.getByText("System Admin Focus")).toBeVisible();
+    await expect(page.getByText("Repository Activity Trend")).toBeVisible();
+    await expect(page.getByText("Contributor Distribution")).toBeVisible();
   });
 });
