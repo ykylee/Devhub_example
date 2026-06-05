@@ -68,6 +68,7 @@ backend-ai/.build/
 docker-compose.yml
 docker-compose.*.yml
 !docker-compose.deploy.yml
+!docker-compose.colima.yml
 **/.dockerignore
 # docker-only IdP configs (hostnames hardcoded to docker-compose service names)
 infra/idp/*.docker.yaml

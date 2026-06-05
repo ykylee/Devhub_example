@@ -18,7 +18,7 @@
 
 - [environment_setup.md](./environment_setup.md)
   - dogfood 전용 포트 체계
-  - `docker-compose.colima.yml` + `.env.dogfood` 기반 기동 절차
+  - 저장소의 `docker-compose.colima.yml` + 로컬 `.env.dogfood` 기반 기동 절차
   - `backend-core` / `backend-ai` / `frontend` native 실행 연결 방법
 - [test_scenarios.md](./test_scenarios.md)
   - smoke / 운영 확인 / 통합 시나리오

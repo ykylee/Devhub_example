@@ -1,4 +1,4 @@
-import { appPath, expect, loginAs, SEEDED, test } from "./fixtures";
+import { apiPath, appPath, expect, loginAs, SEEDED, test } from "./fixtures";
 
 test.describe("dogfood organization admin flow", () => {
   test("system_admin manages an organization unit end-to-end", async ({ page }) => {
@@ -14,25 +14,25 @@ test.describe("dogfood organization admin flow", () => {
 
     const searchInput = page.getByPlaceholder(/search units by name or type/i);
     const getUnitByLabel = async (label: string) =>
-      await page.evaluate(async ({ label }) => {
+      await page.evaluate(async ({ label, hierarchyPath }) => {
         const token = sessionStorage.getItem("devhub_access_token");
         if (!token) throw new Error("missing access token");
-        const resp = await fetch("/api/v1/organization/hierarchy", {
+        const resp = await fetch(hierarchyPath, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const body = await resp.json();
         return (body?.data?.units ?? []).find((unit: { unit_id: string; label: string; leader_user_id?: string }) => unit.label === label) ?? null;
-      }, { label });
+      }, { label, hierarchyPath: apiPath("/api/v1/organization/hierarchy") });
     const getUnitMembers = async (resolvedUnitID: string) =>
-      await page.evaluate(async ({ resolvedUnitID }) => {
+      await page.evaluate(async ({ membersPath }) => {
         const token = sessionStorage.getItem("devhub_access_token");
         if (!token) throw new Error("missing access token");
-        const resp = await fetch(`/api/v1/organization/units/${encodeURIComponent(resolvedUnitID)}/members`, {
+        const resp = await fetch(membersPath, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const body = await resp.json();
         return Array.isArray(body?.data) ? body.data : [];
-      }, { resolvedUnitID });
+      }, { membersPath: apiPath(`/api/v1/organization/units/${encodeURIComponent(resolvedUnitID)}/members`) });
 
     await test.step("create a new organization unit", async () => {
       await page.getByRole("button", { name: /create unit/i }).click();

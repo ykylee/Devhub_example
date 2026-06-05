@@ -19,14 +19,14 @@
 
 ## 2. 파일과 자산
 
-### 2.1 로컬 전용 자산
+### 2.1 Dogfood 자산
 
 다음 파일은 dogfood 용으로 사용한다.
 
 | 파일 | 용도 | 비고 |
 | --- | --- | --- |
-| `docker-compose.colima.yml` | dogfood DB/Keycloak 컨테이너 구성 | compose project 명 `devhub-dogfood` |
-| `.env.dogfood` | dogfood 포트, DSN, OIDC, Gitea 토큰 | `.gitignore` 대상 |
+| `docker-compose.colima.yml` | dogfood DB/Keycloak 컨테이너 구성 | 저장소 추적 파일, compose project 명 `devhub-dogfood` |
+| `.env.dogfood` | dogfood 포트, DSN, OIDC, Gitea 토큰 | 로컬 전용, `.gitignore` 대상 |
 
 ### 2.2 비밀값 정책
 
