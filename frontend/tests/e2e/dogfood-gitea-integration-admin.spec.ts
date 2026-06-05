@@ -8,6 +8,13 @@ import {
 
 test.describe("dogfood gitea integration admin flow", () => {
   test("system_admin registers a Gitea provider, syncs it, and verifies remote repositories", async ({ page }) => {
+    const hasDogfoodGiteaEnv = Boolean(
+      process.env.GITEA_URL?.trim()
+      && process.env.GITEA_TOKEN?.trim()
+      && process.env.GITEA_WEBHOOK_SECRET?.trim(),
+    );
+    test.skip(!hasDogfoodGiteaEnv, "requires GITEA_URL, GITEA_TOKEN, and GITEA_WEBHOOK_SECRET in the environment");
+
     await loginAs(page, SEEDED.systemAdmin);
     await page.goto(appPath("/admin/settings/integrations"));
     await expect(page.getByRole("heading", { name: /integration providers/i })).toBeVisible({ timeout: 15_000 });
