@@ -210,5 +210,44 @@ describe("PlatformService", () => {
       expect(dashboard.projects_progress[0].risk_level).toBe("low");
       expect(apiClientMock).toHaveBeenCalledWith("GET", expect.stringContaining("/api/v1/platforms/app-1/dashboard"));
     });
+
+    it("normalizes nullable dashboard collections to empty arrays", async () => {
+      apiClientMock.mockResolvedValue({
+        status: "ok",
+        data: {
+          platform_id: "app-2",
+          key: "APP2",
+          name: "App Two",
+          status: "active",
+          visibility: "internal",
+          leader: "Bob",
+          development_unit: "Engineering",
+          updated_at: "2026-06-05T12:00:00Z",
+          metrics_overview: {
+            target_branch_build_status: "broken",
+            avg_build_duration_seconds: 0,
+            quality_score: 0,
+            critical_warning_count: 0,
+          },
+          build_failures: null,
+          quality_metrics: {
+            normalized_score: 0,
+            unresolved_issues: { blocker: 0, critical: 0, major: 0 },
+            comment: "",
+          },
+          projects_progress: null,
+          linked_dev_requests: null,
+          history_trend: null,
+        },
+      });
+
+      const { platformService } = await import("./platform.service");
+      const dashboard = await platformService.getPlatformDashboard("app-2");
+
+      expect(dashboard.build_failures).toEqual([]);
+      expect(dashboard.projects_progress).toEqual([]);
+      expect(dashboard.linked_dev_requests).toEqual([]);
+      expect(dashboard.history_trend).toEqual([]);
+    });
   });
 });

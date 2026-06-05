@@ -55,6 +55,24 @@ KEYCLOAK_SSL_REQUIRED="${DEVHUB_KEYCLOAK_SSL_REQUIRED:-none}"
 FRONTEND_BASEPATH="${DEVHUB_FRONTEND_BASEPATH-/devhub}"
 QUIET_MODE="${SETUP_KEYCLOAK_QUIET:-0}"
 
+wait_for_keycloak() {
+  local deadline now
+  deadline=$(( $(date +%s) + 120 ))
+  while true; do
+    if curl -fsS "$BASE_URL/realms/master/.well-known/openid-configuration" >/dev/null; then
+      return 0
+    fi
+    now=$(date +%s)
+    if [ "$now" -ge "$deadline" ]; then
+      echo
+      echo "ERROR: Keycloak readiness timed out after 120s: $BASE_URL" >&2
+      return 1
+    fi
+    echo -n '.'
+    sleep 2
+  done
+}
+
 if [ -z "$FRONTEND_ORIGIN" ]; then
   echo "ERROR: DEVHUB_FRONTEND_ORIGIN 미설정. 단일 포트 컨셉 (ADR-0018) 정합을 위해 redirect_uri origin 을 명시해야 한다." >&2
   echo "예: DEVHUB_FRONTEND_ORIGIN=http://localhost:3000 (native dev)" >&2
@@ -81,7 +99,7 @@ fi
 WEB_ORIGINS="[\"${FRONTEND_ORIGIN}\"]"
 
 echo "Waiting for Keycloak at $BASE_URL..."
-timeout 120s bash -c "until curl -fsS \"$BASE_URL/realms/master/.well-known/openid-configuration\" >/dev/null; do echo -n '.'; sleep 2; done"
+wait_for_keycloak
 echo " Keycloak is up."
 
 echo "Obtaining admin token..."

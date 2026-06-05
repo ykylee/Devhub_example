@@ -120,6 +120,16 @@ export interface DashboardResult {
   meta?: Record<string, unknown>;
 }
 
+function normalizePlatformDashboard(dashboard: PlatformDashboard): PlatformDashboard {
+  return {
+    ...dashboard,
+    build_failures: Array.isArray(dashboard.build_failures) ? dashboard.build_failures : [],
+    projects_progress: Array.isArray(dashboard.projects_progress) ? dashboard.projects_progress : [],
+    linked_dev_requests: Array.isArray(dashboard.linked_dev_requests) ? dashboard.linked_dev_requests : [],
+    history_trend: Array.isArray(dashboard.history_trend) ? dashboard.history_trend : [],
+  };
+}
+
 class PlatformService {
   private baseUrl = API_BASE_URL;
 
@@ -151,7 +161,7 @@ class PlatformService {
   async getPlatformDashboard(platformId: string): Promise<PlatformDashboard> {
     const url = `${this.baseUrl}/api/v1/platforms/${platformId}/dashboard`;
     const body = await apiClient<DashboardResult>("GET", url);
-    return body.data;
+    return normalizePlatformDashboard(body.data);
   }
 }
 
