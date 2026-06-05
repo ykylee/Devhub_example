@@ -65,6 +65,15 @@ export function apiPath(path: string): string {
   return appPath(path);
 }
 
+function isAppLoginURL(rawURL: string): boolean {
+  try {
+    const url = new URL(rawURL);
+    return url.pathname === appPath("/login");
+  } catch {
+    return false;
+  }
+}
+
 async function firstVisibleLocator(page: Page, selectors: string[]): Promise<import("@playwright/test").Locator> {
   for (const selector of selectors) {
     const locator = page.locator(selector).first();
@@ -129,6 +138,11 @@ export async function waitForSignInForm(page: Page): Promise<void> {
     const userVisible = await page.locator('input#username, input[name="username"], input#identifier, input[name="identifier"]').first().isVisible().catch(() => false);
     const passVisible = await page.locator('input#password, input[name="password"]').first().isVisible().catch(() => false);
     if (userVisible && passVisible) return;
+
+    if (!forcedOIDC && isAppLoginURL(page.url())) {
+      forcedOIDC = true;
+      await forceStartOIDCFlow(page).catch(() => {});
+    }
 
     const continueButton = page.getByRole("button", { name: /continue to sign in/i }).first();
     if ((await continueButton.count()) > 0 && (await continueButton.isVisible().catch(() => false))) {
