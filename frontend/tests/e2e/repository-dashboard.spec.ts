@@ -2,6 +2,67 @@ import { appPath, expect, loginAs, SEEDED, test } from "./fixtures";
 
 test.describe("Repository Detailed Dashboard E2E", () => {
   test("TC-REPO-DASH-DEV — Developer 역할로 진입 후 UI 검증 & 모달 팝업 작동", async ({ page }) => {
+    // Determinism guards: CI's Keycloak user-lookup race intermittently 403s
+    // /api/v1/repositories/{id}/build-runs (auth.role_denied → fallback 'offline_access'
+    // → RBAC 403). Without mocking, the "View Logs" button is missing intermittently
+    // and the test fails on transient infrastructure issues. Mock the build-runs
+    // and logs endpoints to deterministic synthetic data.
+
+    // Mock build-runs: 1 success + 1 failed (so the "View Logs" button renders)
+    await page.route(/\/api\/v1\/repositories\/\d+\/build-runs.*/, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          status: "ok",
+          data: [
+            {
+              id: 101,
+              repository_id: 1,
+              run_external_id: "ext-101",
+              branch: "main",
+              commit_sha: "abcdef1234567890",
+              status: "success",
+              duration_seconds: 120,
+              started_at: "2026-06-05T10:00:00Z",
+              finished_at: "2026-06-05T10:02:00Z",
+            },
+            {
+              id: 103,
+              repository_id: 1,
+              run_external_id: "ext-103",
+              branch: "main",
+              commit_sha: "7890abcdef123456",
+              status: "failed",
+              duration_seconds: 45,
+              started_at: "2026-06-05T10:10:00Z",
+              finished_at: "2026-06-05T10:10:45Z",
+            },
+          ],
+          meta: { total: 2 },
+        }),
+      });
+    });
+
+    // Mock logs: return lines including the "deadlock regression" text the test asserts
+    await page.route(/\/api\/v1\/ci-runs\/.*\/logs.*/, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          status: "ok",
+          data: [
+            { timestamp: "2026-06-05T10:14:11Z", level: "info", message: "Starting build run...", step_name: "checkout" },
+            { timestamp: "2026-06-05T10:14:14Z", level: "info", message: "Installing dependencies...", step_name: "install" },
+            { timestamp: "2026-06-05T10:14:20Z", level: "warning", message: "Found 12 high-severity vulnerabilities.", step_name: "audit" },
+            { timestamp: "2026-06-05T10:14:25Z", level: "error", message: "Test suite failed: deadlock regression test failed on rbac enforcement", step_name: "test" },
+            { timestamp: "2026-06-05T10:14:26Z", level: "error", message: "Build failed. Please investigate test regressions.", step_name: "test" },
+          ],
+          meta: { count: 5 },
+        }),
+      });
+    });
+
     // 1. Developer (Alice) 로그인
     await loginAs(page, SEEDED.developer);
 
@@ -20,7 +81,7 @@ test.describe("Repository Detailed Dashboard E2E", () => {
     await expect(page.getByText("Static Analysis (SonarQube)")).toBeVisible();
 
     // 5. Build Log Modal 작동 확인
-    // Mock API에 의하면 failed 빌드가 있을 때 "View Logs" 버튼이 렌더링됨
+    // Mock build-runs 응답에 failed 빌드가 있어서 "View Logs" 버튼이 렌더링됨
     const viewLogsBtn = page.getByRole("button", { name: /View Logs/i }).first();
     await expect(viewLogsBtn).toBeVisible();
     await viewLogsBtn.click();
