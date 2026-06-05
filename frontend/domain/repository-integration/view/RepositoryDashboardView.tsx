@@ -24,6 +24,7 @@ import {
 } from "@/domain/repository-integration/service/repository.service";
 import { PageError } from "@/shared/ui-foundation/components/PageState";
 import { Badge } from "@/shared/ui-foundation/components/Badge";
+import { toUserErrorMessage } from "@/shared/utils/error-message";
 import { DeveloperView } from "./DeveloperView";
 import { ManagerView } from "./ManagerView";
 
@@ -71,7 +72,7 @@ export function RepositoryDashboardView({ repoId }: RepositoryDashboardViewProps
       setDashboardData(extraData);
     } catch (err) {
       console.error(err);
-      setError("Failed to fetch repository dashboard metrics. Please check network logs.");
+      setError(toUserErrorMessage(err, "Failed to fetch repository dashboard metrics."));
     } finally {
       setLoading(false);
     }
