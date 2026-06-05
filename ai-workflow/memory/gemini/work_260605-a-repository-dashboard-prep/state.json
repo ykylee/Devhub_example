@@ -1,0 +1,30 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-06-05T12:38:00Z",
+  "source_of_truth": {
+    "project_profile_path": "ai-workflow/memory/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/gemini/work_260605-a-repository-dashboard-prep/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/gemini/work_260605-a-repository-dashboard-prep/work_backlog.md"
+  },
+  "project": {
+    "project_name": "Devhub_example"
+  },
+  "session": {
+    "current_focus": "Repository Dashboard Redesign and Testing Complete",
+    "in_progress_items": [],
+    "blocked_items": [],
+    "recent_done_items": [
+      "Switch to branch gemini/work_260605-a-repository-dashboard-prep",
+      "Fix Lucide icon imports and Next.js production build",
+      "Add Vitest unit tests in RepositoryDashboardView.test.tsx",
+      "Add Playwright E2E tests in repository-dashboard.spec.ts",
+      "Refactor BuildLogModal to support semantic dialog role",
+      "Seed mock build runs and ci runs in global-setup.ts",
+      "Verify all unit tests and E2E tests pass successfully"
+    ]
+  },
+  "next_documents": [
+    "docs/planning/release_v1_roadmap.md",
+    "docs/governance/worker_division.md"
+  ]
+}

@@ -15,12 +15,12 @@
   - UI/UX: Semantic theme (Dark/Light), Responsive sidebar, Dashboard widgets
   - RBAC: Fine-grained Resource-Action matrix (11 resources)
   - DREQ: Development Request Intake with Auth Tokens & IP Filtering
-  - PMO: Application/Project management delegation (pmo_manager role)
+  - PMO: Application/Project management delegation (Manager role)
   - External Integration: HomeLab pull adapter + Prometheus + bindings/topology UI
 - 주요 이해관계자:
   - Developers (DREQ assignee, Repository/CI/Risk view)
   - Managers (Risk triage, Team load balancing, DREQ oversight)
-  - PMO Managers (Application/Project lifecycle management)
+  - Managers (Application/Project lifecycle management)
   - System Admins (System control, RBAC policy, DREQ Token admin)
 
 ## 2. 문서 구조 (Path)

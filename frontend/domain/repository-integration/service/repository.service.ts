@@ -125,6 +125,102 @@ class RepositoryService {
     const body = await apiClient<ListBuildRunsResult>("GET", url);
     return body.data;
   }
+
+  async getRepositoryDashboardData(repositoryId: number): Promise<RepositoryDashboardData> {
+    return {
+      repository_id: repositoryId,
+      quality: {
+        coverage: 78.5,
+        duplication: 2.4,
+        quality_gate: repositoryId % 2 === 0 ? "passed" : "failed",
+        issues: {
+          blocker: repositoryId % 2 === 0 ? 0 : 1,
+          critical: repositoryId % 2 === 0 ? 2 : 5,
+          major: repositoryId % 2 === 0 ? 8 : 14,
+        },
+      },
+      security: {
+        security_gate: repositoryId % 2 === 0 ? "passed" : "failed",
+        secrets_detected: repositoryId % 2 === 0 ? 0 : 2,
+        vulnerabilities: {
+          high: repositoryId % 2 === 0 ? 0 : 1,
+          medium: repositoryId % 2 === 0 ? 3 : 7,
+          low: repositoryId % 2 === 0 ? 10 : 24,
+        },
+      },
+      productivity: {
+        avg_pr_lead_time_hours: repositoryId % 2 === 0 ? 4.2 : 18.5,
+        weekly_commits: [
+          { week: "05/01", count: 12 },
+          { week: "05/08", count: 19 },
+          { week: "05/15", count: 15 },
+          { week: "05/22", count: 24 },
+          { week: "05/29", count: 18 },
+        ],
+        weekly_prs: [
+          { week: "05/01", count: 3 },
+          { week: "05/08", count: 5 },
+          { week: "05/15", count: 4 },
+          { week: "05/22", count: 8 },
+          { week: "05/29", count: 6 },
+        ],
+      },
+      linkage: {
+        linked_platforms: [
+          { id: "p1", name: "Core API Platform", status: "active" },
+        ],
+        linked_projects: [
+          { id: "prj1", name: "Q2 Refactoring", status: "active" },
+          { id: "prj2", name: "OIDC Client Integration", status: "closed" },
+        ],
+      },
+    };
+  }
+
+  async getBuildRunLog(repositoryId: number, runId: number): Promise<string> {
+    return `[INFO] 2026-06-05T10:14:11Z Starting build run #${runId} for Repository #${repositoryId}...
+[INFO] 2026-06-05T10:14:12Z Pulling latest changes from main branch...
+[INFO] 2026-06-05T10:14:14Z Installing dependencies (npm install)...
+[WARN] 2026-06-05T10:14:20Z Found 12 high-severity vulnerabilities.
+[INFO] 2026-06-05T10:14:21Z Running tests (npm run test)...
+[ERROR] 2026-06-05T10:14:25Z Test suite failed:
+  ✕ check_auth_verification.spec.ts (failed on child_process spawn)
+  ✕ check_rbac_enforcement.spec.ts (unauthorized role mapping)
+[ERROR] 2026-06-05T10:14:26Z exit status 1
+[ERROR] 2026-06-05T10:14:26Z Build failed. Please investigate test regressions.`;
+  }
+}
+
+export interface RepositoryDashboardData {
+  repository_id: number;
+  quality: {
+    coverage: number;
+    duplication: number;
+    quality_gate: "passed" | "failed";
+    issues: {
+      blocker: number;
+      critical: number;
+      major: number;
+    };
+  };
+  security: {
+    security_gate: "passed" | "failed";
+    secrets_detected: number;
+    vulnerabilities: {
+      high: number;
+      medium: number;
+      low: number;
+    };
+  };
+  productivity: {
+    avg_pr_lead_time_hours: number;
+    weekly_commits: { week: string; count: number }[];
+    weekly_prs: { week: string; count: number }[];
+  };
+  linkage: {
+    linked_platforms: { id: string; name: string; status: string }[];
+    linked_projects: { id: string; name: string; status: string }[];
+  };
 }
 
 export const repositoryService = new RepositoryService();
