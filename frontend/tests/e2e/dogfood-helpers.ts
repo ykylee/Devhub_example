@@ -44,7 +44,7 @@ function requiredEnv(name: string): string {
 }
 
 async function runDogfoodApi<T>(page: Page, method: string, path: string, body?: unknown): Promise<DogfoodApiResult<T>> {
-  return await page.evaluate(
+  const result = await page.evaluate(
     async ({ method, path, body }) => {
       const token = sessionStorage.getItem("devhub_access_token");
       if (!token) {
@@ -76,6 +76,8 @@ async function runDogfoodApi<T>(page: Page, method: string, path: string, body?:
     },
     { method, path, body },
   );
+
+  return result as DogfoodApiResult<T>;
 }
 
 export async function createDogfoodScmProvider(page: Page): Promise<DogfoodProviderFixture> {
