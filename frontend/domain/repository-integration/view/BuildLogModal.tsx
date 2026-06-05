@@ -100,6 +100,7 @@ export function BuildLogModal({ repositoryId, runId, runExternalId, onClose }: B
             )}
             <button
               onClick={onClose}
+              aria-label="Close"
               className="p-2 hover:bg-muted/30 rounded-xl text-muted-foreground transition-colors"
             >
               <X className="w-5 h-5" />
