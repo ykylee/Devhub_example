@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Activity,
   ArrowLeft,
   Globe,
   ShieldCheck,
@@ -12,11 +11,8 @@ import {
   RefreshCcw,
   Settings,
   GitBranch,
-  AlertTriangle,
-  Play,
   Briefcase,
   Layers,
-  Sparkles,
   Rocket
 } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
@@ -30,17 +26,9 @@ import { PlatformCreationModal } from "@/domain/platform-lifecycle/view/Platform
 import { useToast } from "@/shared/ui-foundation/components/Toast";
 import { toUserErrorMessage } from "@/shared/utils/error-message";
 import { lifecycleStatusBadgeVariant } from "@/shared/utils/lifecycle-status";
-import { platformBuildStatusView } from "@/shared/utils/last-build";
 import { PageError, PageLoading } from "@/shared/ui-foundation/components/PageState";
 import { apiClient } from "@/shared/api/api-client";
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip
-} from "recharts";
+import { ResponsiveContainer, AreaChart, XAxis, YAxis, Tooltip, Area } from "recharts";
 
 export default function ApplicationDetailPage() {
   const params = useParams();
@@ -180,10 +168,9 @@ export default function ApplicationDetailPage() {
   const qualityScore = dashboard.metrics_overview.quality_score.toFixed(1);
   const criticalWarnings = dashboard.metrics_overview.critical_warning_count;
   const gateFailures = dashboard.quality_metrics.unresolved_issues.blocker;
-  const buildStatus = dashboard.metrics_overview.target_branch_build_status;
-  // REQ-FR-APPDASH-001 — 단순 % 보다 broken/red 상태 즉시 표기. buildStatus 는
-  // backend dashboard 응답의 target_branch_build_status ("healthy"|"broken"|"unknown").
-  const lastBuildView = platformBuildStatusView(buildStatus);
+  const pendingRequestsCount = dashboard.linked_dev_requests.filter(
+    (dreq) => dreq.status === "pending" || dreq.status === "in_review"
+  ).length;
 
   return (
     <div className="space-y-8 pb-20 px-4 md:px-8">
@@ -228,8 +215,8 @@ export default function ApplicationDetailPage() {
       {/* Overview stats layout */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: "Last Build", value: lastBuildView.label, icon: Activity, color: lastBuildView.tone === "negative" ? "text-rose-500" : lastBuildView.tone === "positive" ? "text-emerald-500" : "text-muted-foreground", trend: "Latest run", bg: lastBuildView.tone === "negative" ? "bg-rose-500/10" : "bg-emerald-500/10" },
           { label: "Quality Score", value: `${qualityScore} / 5.0`, icon: ShieldCheck, color: "text-blue-500", trend: "Standard A+", bg: "bg-blue-500/10" },
+          { label: "Pending Requests", value: String(pendingRequestsCount), icon: Clock, color: pendingRequestsCount > 0 ? "text-amber-500" : "text-emerald-500", trend: "DREQ Backlog", bg: "bg-amber-500/10" },
           { label: "Critical Warnings", value: String(criticalWarnings), icon: Zap, color: criticalWarnings > 0 ? "text-amber-500" : "text-emerald-500", trend: "Governance", bg: "bg-amber-500/10" },
           { label: "Gate Failures", value: String(gateFailures), icon: Globe, color: gateFailures > 0 ? "text-rose-500" : "text-emerald-500", trend: "Quality Gate", bg: "bg-rose-500/10" },
         ].map((stat, i) => (
@@ -260,89 +247,34 @@ export default function ApplicationDetailPage() {
       {/* Main dashboard body */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Left Column: Build Stability & Quality Analysis */}
+        {/* Left Column: Milestones Progress & Quality Analysis */}
         <div className="lg:col-span-2 space-y-8">
-          
-          {/* Target Branch Build Status */}
-          <section className="glass-card p-8 relative overflow-hidden">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-                <GitBranch className={cn("w-5 h-5", buildStatus === "broken" ? "text-rose-500 animate-pulse" : buildStatus === "healthy" ? "text-emerald-500" : "text-muted-foreground")} /> 
-                Target Branch Build Status
-              </h3>
-              <Badge variant={buildStatus === "broken" ? "danger" : buildStatus === "healthy" ? "success" : "secondary"}>
-                {buildStatus === "broken" ? "Broken" : buildStatus === "healthy" ? "Healthy" : "없음"}
-              </Badge>
-            </div>
 
-            {buildStatus === "broken" ? (
-              <div className="space-y-4">
-                <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="text-sm font-bold">Target branches are broken!</h4>
-                    <p className="text-xs text-muted-foreground mt-1">Please inspect failed build runs below and fix the issues immediately to resume deployment pipeline.</p>
-                  </div>
-                </div>
-                <div className="divide-y divide-white/5 border border-white/10 dark:border-white/5 rounded-2xl overflow-hidden bg-white/5">
-                  {dashboard.build_failures.map((fail, index) => (
-                    <div key={index} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-white/5 transition-colors">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs font-bold text-foreground">{fail.repo_slug}</span>
-                          <Badge variant="secondary" className="text-[10px] scale-90">{fail.branch}</Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground font-mono truncate max-w-md">{fail.error_snippet}</p>
-                      </div>
-                      <div className="flex items-center gap-3 self-end sm:self-auto">
-                        <span className="text-[10px] text-muted-foreground font-mono">#{fail.build_number}</span>
-                        <a 
-                          href={fail.log_url}
-                          className="px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500 text-rose-500 hover:text-white font-bold text-xs flex items-center gap-1.5 transition-all"
-                        >
-                          <Play className="w-3.5 h-3.5 fill-current" /> Log URL
-                        </a>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="py-10 text-center flex flex-col items-center justify-center gap-3">
-                <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500">
-                  <Sparkles className="w-8 h-8" />
-                </div>
-                <h4 className="text-md font-bold text-foreground">All Branches Healthy 🟢</h4>
-                <p className="text-xs text-muted-foreground max-w-sm">There are no currently failing build runs on primary SCM integration lines.</p>
-              </div>
-            )}
-          </section>
-
-          {/* SCM History & Build Trend (Recharts Area Chart) */}
+          {/* Quality Score Trend (7-Day Area Chart) */}
           <section className="glass-card p-8">
             <h3 className="text-md font-bold text-foreground mb-6 flex items-center gap-2">
-              <Activity className="w-4 h-4 text-primary" /> Build & Quality 7-Day Trend
+              <ShieldCheck className="w-4 h-4 text-primary" /> Quality Score Trend (7-Day)
             </h3>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={dashboard.history_trend}>
                   <defs>
-                    <linearGradient id="colorAvg" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id="colorQuality" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3}/>
                       <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
                   <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 10, fontWeight: 700 }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 10, fontWeight: 700 }} />
+                  <YAxis domain={[0, 5.0]} axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 10, fontWeight: 700 }} />
                   <Tooltip 
                     contentStyle={{ backgroundColor: 'var(--card)', borderRadius: '16px', border: '1px solid var(--border)' }}
                   />
-                  <Area type="monotone" dataKey="avg_duration_seconds" stroke="var(--primary)" fillOpacity={1} fill="url(#colorAvg)" strokeWidth={3} />
+                  <Area type="monotone" dataKey="quality_score" stroke="var(--primary)" fillOpacity={1} fill="url(#colorQuality)" strokeWidth={3} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
           </section>
-
+          
           {/* Linked Projects (Milestones) Progress */}
           <section className="glass-card p-8">
             <h3 className="text-lg font-bold text-foreground mb-6 flex items-center gap-2">
@@ -389,11 +321,6 @@ export default function ApplicationDetailPage() {
             </div>
           </section>
 
-        </div>
-
-        {/* Right Column: Quality Metrics & Dev Requests */}
-        <div className="space-y-8">
-          
           {/* Quality Analysis Details */}
           <section className="glass-card p-8">
             <h3 className="text-md font-bold text-foreground mb-6 flex items-center gap-2">
@@ -421,6 +348,11 @@ export default function ApplicationDetailPage() {
             </div>
           </section>
 
+        </div>
+
+        {/* Right Column: Dev Requests & Repositories */}
+        <div className="space-y-8">
+          
           {/* Linked DREQs & Promotion Actions */}
           <section className="glass-card p-8">
             <h3 className="text-md font-bold text-foreground mb-6 flex items-center gap-2">
