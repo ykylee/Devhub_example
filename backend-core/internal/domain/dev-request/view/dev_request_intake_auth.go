@@ -63,7 +63,7 @@ const (
 // 본 middleware 는 v1 group 의 enforceRoutePermission 이전 단계에서 작동하며,
 // routePermissionTable 은 본 endpoint 를 Bypass: true 로 매핑한다.
 func (h *DevRequestHandler) RequireIntakeToken(c *gin.Context) {
-	if httphelp.DevFallbackEnabled(c) {
+	if h.cfg.AuthDevFallback {
 		c.Set(ctxKeyDREQSourceSystem, "debug_system")
 		c.Set(ctxKeyDREQClientLabel, "debug_client")
 		c.Set(ctxKeyDREQTokenID, "00000000-0000-0000-0000-000000000000")

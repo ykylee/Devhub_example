@@ -8,8 +8,9 @@
 - 관련 문서: [PROJECT_PROFILE.md](../../PROJECT_PROFILE.md), [work_backlog.md](./work_backlog.md)
 
 ## 1. 최근 완결된 작업
-* **백엔드 RequireIntakeToken 미들웨어 수정**:
-  - `dev_request_intake_auth.go`의 `RequireIntakeToken` 함수 도입부에 `DevFallbackEnabled`가 켜져 있으면 토큰 검증과 IP 필터링을 우회하여 더미 컨텍스트를 주입하도록 구현했습니다.
+* **백엔드 RequireIntakeToken 미들웨어 수정 및 Codex 피드백 반영**:
+  - DREQ 수신 엔드포인트에 `AuthenticateActor` OIDC 인증 미들웨어가 걸려 있지 않아 `DevFallbackEnabled(c)` 컨텍스트 조회가 불가능한 구조적 문제를 해결하기 위해, `DevRequestConfig` 구조체에 `AuthDevFallback bool` 설정을 전파하고 `RequireIntakeToken`에서 `h.cfg.AuthDevFallback` 값을 직접 검증하여 우회 처리하도록 고쳤습니다.
+  - 개발 모드(`AuthDevFallback`)가 켜져 있으면 토큰 검증과 IP 필터링을 우회하여 더미 컨텍스트를 주입하도록 구현했습니다.
 * **프론트엔드 devRequestService API 추가**:
   - `dev_request.service.ts`에 `createDebugDreq`를 추가하여 native `fetch`로 dummy token(`debug-token-bypass-dev`) 헤더를 포함해 `POST /api/v1/dev-requests`를 직접 쏠 수 있도록 했습니다.
 * **상단 네비게이션 헤더에 디버그 버튼 추가**:
