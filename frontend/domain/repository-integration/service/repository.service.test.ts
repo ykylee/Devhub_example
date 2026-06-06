@@ -42,6 +42,23 @@ describe("RepositoryService", () => {
 
       expect(repos).toEqual([]);
     });
+
+    it("normalizes omitted repository string fields", async () => {
+      apiClientMock.mockResolvedValue({
+        status: "ok",
+        data: [
+          { id: 7, full_name: "org/repo-c", name: "repo-c", status: "draft", private: false },
+        ],
+      });
+
+      const { repositoryService } = await import("./repository.service");
+      const [repo] = await repositoryService.listRepositories();
+
+      expect(repo.owner_login).toBe("");
+      expect(repo.clone_url).toBe("");
+      expect(repo.linked_applications_count).toBe(0);
+      expect(repo.linked_projects_count).toBe(0);
+    });
   });
 
   describe("getRepository", () => {

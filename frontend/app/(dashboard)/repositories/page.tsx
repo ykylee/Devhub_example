@@ -66,6 +66,7 @@ export default function RepositoriesStatusPage() {
   // link classification filter (Task B, 2026-05-28). all/linked/unlinked.
   // linked = platform/project 매핑 1개 이상, unlinked = 외부 SCM mirror 만.
   const [linkFilter, setLinkFilter] = useState<"all" | "linked" | "unlinked">("all");
+  const normalizedQuery = searchQuery.toLowerCase();
 
   const loadData = async () => {
     try {
@@ -109,8 +110,8 @@ export default function RepositoriesStatusPage() {
     (repo.linked_applications_count ?? 0) + (repo.linked_projects_count ?? 0) > 0;
 
   const filteredRepos = repos.filter((repo) => {
-    const matchesSearch = repo.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         repo.owner_login.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = repo.name.toLowerCase().includes(normalizedQuery) ||
+                         repo.owner_login.toLowerCase().includes(normalizedQuery);
     const matchesVisibility = visibilityFilter === "all" ||
                              (visibilityFilter === "private" ? repo.private : !repo.private);
     const matchesLink = linkFilter === "all"

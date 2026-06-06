@@ -68,13 +68,34 @@ export interface ListBuildRunsResult {
   };
 }
 
+function normalizeRepository(repo: Partial<Repository>): Repository {
+  return {
+    id: repo.id ?? 0,
+    full_name: repo.full_name ?? "",
+    owner_login: repo.owner_login ?? "",
+    name: repo.name ?? "",
+    clone_url: repo.clone_url ?? "",
+    html_url: repo.html_url ?? "",
+    default_branch: repo.default_branch ?? "",
+    private: repo.private ?? false,
+    status: repo.status ?? "draft",
+    provider_id: repo.provider_id,
+    provider_key: repo.provider_key,
+    publish_requested_at: repo.publish_requested_at ?? null,
+    published_at: repo.published_at ?? null,
+    updated_at: repo.updated_at ?? "",
+    linked_applications_count: repo.linked_applications_count ?? 0,
+    linked_projects_count: repo.linked_projects_count ?? 0,
+  };
+}
+
 class RepositoryService {
   private baseUrl = API_BASE_URL;
 
   async listRepositories(): Promise<Repository[]> {
     const url = `${this.baseUrl}/api/v1/repositories`;
     const body = await apiClient<ListRepositoriesResult>("GET", url);
-    return body.data;
+    return body.data.map(normalizeRepository);
   }
 
   async getRepository(repositoryId: number): Promise<Repository | undefined> {
@@ -85,7 +106,7 @@ class RepositoryService {
   async createRepositoryDraft(input: { key: string; slug: string; provider_key?: string }): Promise<Repository> {
     const url = `${this.baseUrl}/api/v1/repositories`;
     const body = await apiClient<{ status: string; data: Repository }>("POST", url, input);
-    return body.data;
+    return normalizeRepository(body.data);
   }
 
   async updateRepository(
@@ -94,7 +115,7 @@ class RepositoryService {
   ): Promise<Repository> {
     const url = `${this.baseUrl}/api/v1/repositories/${repositoryId}`;
     const body = await apiClient<{ status: string; data: Repository }>("PATCH", url, input);
-    return body.data;
+    return normalizeRepository(body.data);
   }
 
   async deleteRepository(repositoryId: number): Promise<void> {
@@ -105,7 +126,7 @@ class RepositoryService {
   async requestRepositoryPublish(repositoryId: number): Promise<Repository> {
     const url = `${this.baseUrl}/api/v1/repositories/${repositoryId}/publish`;
     const body = await apiClient<{ status: string; data: Repository }>("POST", url, {});
-    return body.data;
+    return normalizeRepository(body.data);
   }
 
   async getRepositoryActivity(repositoryId: number): Promise<RepositoryActivity> {
