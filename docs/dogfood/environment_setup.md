@@ -182,6 +182,7 @@ docker compose --env-file .env.dogfood -f docker-compose.colima.yml -p devhub-do
 - `keycloak` 은 `18180`
 - Keycloak 은 `infra/idp/Dockerfile.keycloak` 로 커스텀 SPI 포함 이미지를 빌드한다
 - 현재는 build context 를 `infra/idp/` 로 제한해 저장소 루트 전체 전송을 피한다
+- 이 커스텀 build 는 dogfood 전용이다. 현재 CI 와 `docker-compose.deploy.yml` 의 local-idp/deploy 경로는 stock `quay.io/keycloak/keycloak:26.0` 이미지를 유지한다
 
 ### 5.3 상태 확인
 

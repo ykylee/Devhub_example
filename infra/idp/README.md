@@ -33,6 +33,12 @@
 - 관계 path: `KC_HTTP_RELATIVE_PATH=/devhub/auth/keycloak` (compose default) — 단일 포트 reverse proxy 와 정합.
 - realm 의 redirect_uris 가 localhost wildcard 를 허용하므로 **운영 환경에서는 절대 사용 금지**.
 
+### 2.1.a dogfood 전용 예외
+- `docker-compose.colima.yml` 기반 dogfood 스택은 `infra/idp/Dockerfile.keycloak` 을 사용해 커스텀 Keycloak 이미지를 빌드한다.
+- 이 경로의 build context 는 `./infra/idp` 로 고정되어 있으며, `keycloak-event-listener-spi/` 자산은 이 디렉터리 기준 상대경로를 전제로 한다.
+- 반면 현재 `docker-compose.deploy.yml` 과 GitHub Actions CI 는 stock `quay.io/keycloak/keycloak:26.0` 이미지를 유지한다.
+- 즉, 커스텀 SPI 포함 이미지는 현재 dogfood 검증용 경로에만 적용된다.
+
 ### 2.2 외부 Keycloak 모드 (compose `local-idp` profile 미활성)
 - 용도: 사내 운영팀이 별도로 관리하는 Keycloak 인스턴스 사용.
 - compose 의 `keycloak` 서비스는 시작되지 않는다.
