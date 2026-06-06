@@ -183,7 +183,7 @@
 | **N-8** | **Sign-out endpoint (P1-6) 구현** — 2026-06-01 통합 테스트 BUG-03 | BE | Claude |
 | **N-9** | **Repository build-runs (P1-7) 구현** — 2026-06-01 통합 테스트 ISSUE-04 | BE+FE | Claude+Gemini |
 | **N-10** | **Manager role RBAC 검증** — E2E seed `bob` (team_manager) 의 권한 scope 확인 + ListProjects/ListPlatforms row filter + org unit subtree scope 검증. 검증 보고서 [docs/validation/N-10-manager-rbac.md](../validation/N-10-manager-rbac.md) (2026-06-04) — V-01..V-10 결과 + P1 follow-up 1건 (E2E spec-vs-구현 갭 6 TC) | 테스트 | Sisyphus |
-| **N-11** | **CI e2e + backend-integration job 복원** — PR #407 의 `.github/workflows/ci.yml` e2e/backend-integration `&& false` 해제 + 첫 PR 두 job 실행 확인. refactor stabilize (PR #418 머지 후 main 안정) 시점 | CI infra | 사용자 + Codex | GitHub issue [#419](https://github.com/ykylee/Devhub_example/issues/419) OPEN. |
+| **N-11** | **CI e2e + backend-integration job 복원** — PR #407 의 `.github/workflows/ci.yml` e2e/backend-integration `&& false` 해제 + 첫 PR 두 job 실행 확인. refactor stabilize (PR #418 머지 후 main 안정) 시점. GitHub [#419](https://github.com/ykylee/Devhub_example/issues/419) OPEN. | CI infra | 사용자 + Codex |
 
 #### NEXT — v1.1 운영화 + 외부 연동 깊이 정착
 
