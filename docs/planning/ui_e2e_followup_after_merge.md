@@ -55,6 +55,23 @@
   - local-idp compose startup
 - CI 또는 로컬 helper command로 재사용 가능하게 정리
 
+### 3.4 CI 전용 OIDC flaky 격리
+
+- GitHub Actions `E2E Tests (Playwright, shard 2/2)` 에서만 반복 재현되는 OIDC 로그인 진입 flaky 가 있다.
+- 현재 확인된 영향 케이스:
+  - `frontend/tests/e2e/signout.spec.ts` 의 `TC-USER-SWITCH-01`
+  - `frontend/tests/e2e/dogfood-self-dogfood-dashboard.spec.ts`
+- 공통 실패 축:
+  - `frontend/tests/e2e/fixtures.ts` 의 `waitForSignInForm()` 가 CI runner 에서만 OIDC 진입 intermediate state 를 안정적으로 포착하지 못하고 timeout
+  - 로컬 dogfood 에서는 동일 spec 재실행 시 통과
+- 2026-06-06 기준 조치:
+  - 두 케이스는 CI 에서만 `test.skip(...)` 으로 격리
+  - 로컬 dogfood / 수동 검증 경로는 유지
+- 후속 후보:
+  - UI 기반 로그인 대기 대신 test-only auth bootstrap 도입
+  - Keycloak 세션/PKCE 상태를 더 낮은 레벨에서 안정적으로 seed 하는 helper 로 교체
+  - shard 분리 또는 auth-heavy spec 전용 project 분리 검토
+
 ## 4. 머지 판단 메모
 
 - 이번 PR의 남은 E2E 작업은 모두 **후속 개선 항목**이다.

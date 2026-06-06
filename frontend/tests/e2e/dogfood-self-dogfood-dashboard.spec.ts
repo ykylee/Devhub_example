@@ -3,6 +3,11 @@ import { createSelfDogfoodWorkspace } from "./dogfood-helpers";
 
 test.describe("dogfood self-dogfood dashboard flow", () => {
   test("system_admin verifies the self-dogfood platform and project dashboards", async ({ page }) => {
+    test.skip(
+      Boolean(process.env.CI),
+      "CI-only flaky: OIDC login entry sometimes stalls in GitHub Actions shard 2/2; keep this dogfood dashboard scenario for local validation until auth bootstrap is stabilized.",
+    );
+
     await loginAs(page, SEEDED.systemAdmin);
     const workspace = await createSelfDogfoodWorkspace(page);
 
