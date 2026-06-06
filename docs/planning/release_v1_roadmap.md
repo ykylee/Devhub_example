@@ -115,7 +115,7 @@
 | **P0-1** | ADR-0020 sub-carve B — `/api/v1/accounts/*` 4 endpoint 제거 + lazy auto-create + frontend `account.service.ts` 폐기 + admin/settings/users 페이지 정리 | sprint -d ADR-0020 §4.1 B | **Claude (backend)** + **Gemini (frontend done ✅)** | v1.0 Keycloak 단일 IdP 정합의 마지막 큰 변경. e2e TC-ACC-* 갱신 동반 |
 | **P0-2** | UI 디자인 polish 1차 (semantic theme 정합 + responsive + a11y baseline) | 사용자 지시 (2026-05-20) — \"UI 띄워놓고 디자인 손보기\" | **Gemini (frontend+UX)** | ✅ done (sprint gemini/work_260520-b). PR #203 의 hardcoded color → semantic theme 패턴 확장 완료. 모든 modal + 페이지 + responsive sidebar 적용. |
 | **P0-3** | Playwright screenshot mode 도입 + CI artifact 업로드 | 사용자 지시 (2026-05-20) — UI 검증 방식 | **Codex (infra+CI) + Gemini (frontend test config)** | screenshot 자산이 Gemini 의 디자인 작업 source. shard 별 캡처 |
-| **P0-4** | **CI Run 생성 API 구현** (`POST /api/v1/ci-runs`) — Gitea Actions Webhook 수신 또는 직접 생성 | 2026-06-01 통합 테스트 ISSUE-05 | **Claude (backend)** | **신규 P0 (v1.0 차단)** — CI/CD 기능의 실질적 사용을 위해 필수. status validation: queued/running/success/failed/cancelled/skipped/unknown |
+| **P0-4** | **CI Run 생성 API 구현** (`POST /api/v1/ci-runs`) — Gitea Actions Webhook 수신 또는 직접 생성 | 2026-06-01 통합 테스트 ISSUE-05 | **Claude (backend)** | **신규 P0 (v1.0 차단)** — CI/CD 기능의 실질적 사용을 위해 필수. status validation: queued/running/success/failed/cancelled/skipped/unknown. **ID 슬롯 정합 (2026-06-06)**: 정식 GitHub issue = §3.5 N-7 ([#486](https://github.com/ykylee/Devhub_example/issues/486)). 2026-05-20 의 [#238](https://github.com/ykylee/Devhub_example/issues/238) (Docker 단일 포트, CLOSED) 도 동일 슬롯 라벨 사용 — historical 정합은 #238 유지 (P0-4 의 본래 의도), 본 carve 의 정식 추적 ID = §3.5 N-7. |
 
 ### 3.2 P1 — v1.0 안정성 (sprint -g/-h)
 
@@ -123,11 +123,11 @@
 | --- | --- | --- | --- | --- |
 | **P1-1** | ADR-0020 sub-carve C — Keycloak event listener 확장 (USER:UPDATE / GROUP_MEMBERSHIP / USER:DELETE 매핑) + DevHub `users` write + metric 3종 | ADR-0020 §4.1 C, design doc §5.3 | **Claude (backend)** | sprint -u~-y 자연 확장. P0-1 의 lazy auto-create 와 role 추출 로직 공유 |
 | **P1-2** | ADR-0020 sub-carve D — JWKS stale-while-error expiry case 확장 | ADR-0020 §4.1 D | **Claude (backend)** | sprint -r kid mismatch fallback 자연 확장. Keycloak unreachable 시 uptime 보장 |
-| **P1-3** | ADR-0019 §5.3 — Keycloak group staging-prod 적용 | session_handoff 잔여 carve | **사용자 + Codex** | Keycloak admin 1회 작업 (group 4 + composite role assign) |
+| **P1-3** | ADR-0019 §5.3 — Keycloak group staging-prod 적용 | session_handoff 잔여 carve | **사용자 + Codex** | Keycloak admin 1회 작업 (group 4 + composite role assign). GitHub issue [#214](https://github.com/ykylee/Devhub_example/issues/214) OPEN. |
 | ~~**P1-4**~~ | ~~ADR-0019 §5.3 — off-boarding Phase 1 cron 실 deploy~~ | ~~session_handoff 잔여 carve~~ | — | **permanently cancelled (2026-05-20, issue #215 close)** — 외부 Keycloak 시나리오 채택. HR ↔ Keycloak sync 는 외부 IdP 팀 책임. DevHub off-boarding sync 는 sub-carve C event listener (PR #241) 가 정공법. `scripts/hrdb_etl_sync.sh` deprecation. |
 | **P1-5** | ADR-0019 §5.3 — e2e Kratos → Keycloak 실 코드 전환 | session_handoff 잔여 carve | **Gemini (frontend test) + Codex (CI infra)** | sprint -m design 따름. 사내 staging Keycloak e2e 환경 동반. PR #203 의 `ci-e2e-sync-check.sh` 가 CI 단 일부 해소 |
-| **P1-6** | **Sign-out endpoint 구현** (`POST /api/v1/auth/logout`) — access token 폐기 + session 종료 | 2026-06-01 통합 테스트 BUG-03 | **Claude (backend)** | **신규 P1** — 세션 관리 기본. refresh token rotate 포함 여부 결정 |
-| **P1-7** | **Repository build-runs endpoint 구현** (`GET /api/v1/repos/{id}/build-runs`) — `ci_runs` 테이블 기반 repo-scoped 조회 | 2026-06-01 통합 테스트 ISSUE-04 | **Claude (backend) + Gemini (frontend)** | **신규 P1** — repo별 CI 이력 조회 필요. dashboard widget 연계 |
+| **P1-6** | **Sign-out endpoint 구현** (`POST /api/v1/auth/logout`) — access token 폐기 + session 종료 | 2026-06-01 통합 테스트 BUG-03 | **Claude (backend)** | **신규 P1** — 세션 관리 기본. refresh token rotate 포함 여부 결정. 정식 GitHub issue = §3.5 N-8 ([#488](https://github.com/ykylee/Devhub_example/issues/488)). |
+| **P1-7** | **Repository build-runs endpoint 구현** (`GET /api/v1/repos/{id}/build-runs`) — `ci_runs` 테이블 기반 repo-scoped 조회 | 2026-06-01 통합 테스트 ISSUE-04 | **Claude (backend) + Gemini (frontend)** | **신규 P1** — repo별 CI 이력 조회 필요. dashboard widget 연계. 정식 GitHub issue = §3.5 N-9 ([#487](https://github.com/ykylee/Devhub_example/issues/487)). |
 
 ### 3.3 P2 — v1.0 운영 안정성 + v1.1 carve
 
@@ -163,6 +163,7 @@
 | **P3-11** | RM-M4-09 외부 SSO (Gitea / AD federation) | development_roadmap M4 | **Codex (infra)** | Keycloak identity broker |
 | ~~**P3-12**~~ | ~~Sign Up (셀프 가입) — 인사 DB 연동~~ | **cancelled (2026-05-20)** — DevHub Keycloak admin 권한 없음, IdP 팀 책임. issue #235 closed | — | — |
 | **P3-13** | MFA / 2FA | M4 + ADR-0019 §5.3 (5) | (제외) | 사내 정책 — Keycloak Account Console 위임 |
+| **P3-14** | RM-APPDASH-01 — Application 개발 대시보드 (API-93 backend + frontend) | v2 P3 | **Claude (BE) + Gemini (FE)** | GitHub issue [#384](https://github.com/ykylee/Devhub_example/issues/384) OPEN. PR #482 의 repository dashboard 개편 패턴 차용 (domain/application-lifecycle). |
 
 ### 3.5 신규 도출 백로그 (2026-05-27 코드베이스 스냅샷 §06)
 
@@ -182,6 +183,7 @@
 | **N-8** | **Sign-out endpoint (P1-6) 구현** — 2026-06-01 통합 테스트 BUG-03 | BE | Claude |
 | **N-9** | **Repository build-runs (P1-7) 구현** — 2026-06-01 통합 테스트 ISSUE-04 | BE+FE | Claude+Gemini |
 | **N-10** | **Manager role RBAC 검증** — E2E seed `bob` (team_manager) 의 권한 scope 확인 + ListProjects/ListPlatforms row filter + org unit subtree scope 검증. 검증 보고서 [docs/validation/N-10-manager-rbac.md](../validation/N-10-manager-rbac.md) (2026-06-04) — V-01..V-10 결과 + P1 follow-up 1건 (E2E spec-vs-구현 갭 6 TC) | 테스트 | Sisyphus |
+| **N-11** | **CI e2e + backend-integration job 복원** — PR #407 의 `.github/workflows/ci.yml` e2e/backend-integration `&& false` 해제 + 첫 PR 두 job 실행 확인. refactor stabilize (PR #418 머지 후 main 안정) 시점. GitHub [#419](https://github.com/ykylee/Devhub_example/issues/419) OPEN. | CI infra | 사용자 + Codex |
 
 #### NEXT — v1.1 운영화 + 외부 연동 깊이 정착
 
@@ -378,3 +380,4 @@ test.describe("UI screenshot capture", () => {
 | 2026-06-04 | **OpenCode 워커 부트스트랩** — §5.1 분담 표에 OpenCode 행 추가 (영역 TBD, bootstrap) + §6.3 label 에 `worker/opencode` 추가 + 헤더 메타의 워커 목록/대상 독자 갱신 | `opencode/work_260604-a-opencode-workflow-bootstrap` |
 | 2026-06-04 | **OpenCode Lane 정의** — §5.1 OpenCode 행의 TBD 를 3-lane (Workflow curation / Cross-cutting validation / AI/ML prep) 으로 확정 + §9 본 row 직전 | `opencode/work_260604-b-opencode-areas` |
 | 2026-06-04 | **N-10 Manager RBAC 검증** — §3.5 N-10 row 의 mgr-user-b 비공식 명칭 → E2E seed `bob` (team_manager) 으로 정정 + 검증 보고서 링크 + 1 P1 follow-up 식별. 검증 결과: backend UT 25 packages PASS, row filter SQL 정상, E2E spec-vs-구현 갭 6 TC (TC-RBAC-ROW-READ-01/02, TC-RBAC-LOGOUT-01/02, TC-RBAC-ROLE-DRIFT-01) 발견. 출처: `opencode/work_260604-c-N10-manager-rbac-validation` | `opencode/work_260604-c-N10-manager-rbac-validation` |
+| 2026-06-06 | **P0/P1 미발급 carve 일괄 발급 + ID 슬롯 정합** — §3.5 N-7/8/9 GitHub issues [#486](https://github.com/ykylee/Devhub_example/issues/486) / [#487](https://github.com/ykylee/Devhub_example/issues/487) / [#488](https://github.com/ykylee/Devhub_example/issues/488) 발급 (P0-4 / P1-7 / P1-6 carve 의 정식 ID). §3.1 P0-4 row 에 ID 슬롯 정합 노트 추가 (historical [#238](https://github.com/ykylee/Devhub_example/issues/238) 유지, 정식 ID = §3.5 N-7). §3.5 N-11 (CI e2e + backend-integration job 복원, [#419](https://github.com/ykylee/Devhub_example/issues/419)) + §3.4 P3-14 (RM-APPDASH-01, [#384](https://github.com/ykylee/Devhub_example/issues/384)) 신규 row 추가. §3.2 P1-3 에 GitHub [#214](https://github.com/ykylee/Devhub_example/issues/214) cross-ref 추가. 출처: Mavis housekeeping `mvs/work_260606-a-roadmap-issue-bulk` | `mvs/work_260606-a-roadmap-issue-bulk` |
