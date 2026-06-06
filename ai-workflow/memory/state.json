@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-06-04 main. OpenCode (Sisyphus) sprint a~j 모두 완료. Governance 부트스트랩(#464) + 워커 정의(#466) + RBAC 검증(#467) + frontend fix 3건(#468/#470/#472) + draft repo 관리(#471) + N-4 unit test(#473) + admin/catalog page test(#474) — 전부 main 머지. v1.0 마무리 housekeeping 진행 중.",
-  "updated_at": "2026-06-04T08:20:00Z",
-  "head_commit": "efb2c5d",
-  "head_summary": "test(frontend): admin/catalog page unit test 8 structural PASS (#474)",
+  "status": "2026-06-06 main. sprint -h 신규 carve 의 ID 발급 및 추적성 매트릭스 cross-ref 정합화 완료 (PR #490 머지).",
+  "updated_at": "2026-06-06T13:28:00Z",
+  "head_commit": "bddcfae",
+  "head_summary": "Merge pull request #490 from ykylee/mvs/work_260606-b-traceability-ci-auth-repo",
   "milestones": {
     "M0": {
       "status": "done",

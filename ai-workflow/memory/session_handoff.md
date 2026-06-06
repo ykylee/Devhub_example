@@ -1,11 +1,20 @@
-# Session Handoff — main (2026-06-04, OpenCode sprint a~j 완료)
+# Session Handoff — main (2026-06-06, PR #490 머지 완료)
 
-- 문서 목적: OpenCode (Sisyphus) sprint a~j 완료 현황 및 다음 세션 인계.
-- 범위: OpenCode 10개 sprint (work_260604-a~j) 모두 main 머지 완료. v1.0 마무리 housekeeping 진행 중.
-- 상태: main HEAD `efb2c5d`, CI green. v1.0 잔여 N-6 (사내 staging) 만 사용자 의존.
-- 최종 수정일: 2026-06-04
+- 문서 목적: sprint -h 신규 carve 의 ID 발급 및 추적성 매트릭스 cross-ref 정합화 완료 현황 인계.
+- 범위: sprint -h 신규 carve 3건 (P0-4/N-7, P1-6/N-8, P1-7/N-9) 추적성 ID 발급 및 PR #490 머지 완료.
+- 상태: main HEAD `bddcfae`, CI green.
+- 최종 수정일: 2026-06-06
 
-## 1. 2026-06-01 CI 복구 요약
+## 1. 2026-06-06 sprint -h 추적성 ID 발급 (PR #490)
+
+* **sprint -h 신규 carve 3건에 대한 추적성 ID 발급 완료**:
+  * **N-7 / P0-4** (CI Run 생성 API): `REQ-FR-106`, `ARCH-18`, `API-98`, `IMPL-ci-runs-01`, `UT-ci-runs-01`, `TC-CI-RUN-01`
+  * **N-8 / P1-6** (Sign-out endpoint): `REQ-FR-107`, `ARCH-19`, `API-99`, `IMPL-auth-logout-01`, `UT-auth-logout-01`, `TC-AUTH-LOGOUT-01`
+  * **N-9 / P1-7** (Repository build-runs): `REQ-FR-108`, `ARCH-20`, `API-100`, `IMPL-repository-build-runs-01`, `UT-repository-build-runs-01`, `TC-BUILD-RUNS-01`
+* **추적성 매트릭스 (`docs/traceability/report.md`) 정합 보완**:
+  * Codex 리뷰 피드백을 수용하여 `integration-registry` 도메인의 `IMPL`, `UT`, `TC` 열에 누락되어 있던 `IMPL-ci-runs-01`, `UT-ci-runs-01`, `TC-CI-RUN-01`을 추가로 보완하여 E2E 추적성을 완전히 정렬했습니다.
+
+## 2. 2026-06-01 CI 복구 요약
 
 ### 1) 실패 원인 분해
 * 초기 실패는 E2E 실행 전 `Build App` 타입체크 에러:

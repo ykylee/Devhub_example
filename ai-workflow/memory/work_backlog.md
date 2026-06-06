@@ -3,8 +3,8 @@
 - 문서 목적: main 브랜치 기준 상위 백로그 인덱스. 세부 sprint backlog 는 브랜치별 메모리 디렉터리 참조.
 - 범위: 마일스톤 상태, 최근 머지, 잔여/후속 작업
 - 대상 독자: 프로젝트 리드, 후속 에이전트, 트랙 담당자
-- 상태: **2026-06-04 update — main HEAD `efb2c5d` + OpenCode sprint a~j 전부 완료.** OpenCode (Sisyphus) 가 Lane 1+2 에서 10개 sprint 완료: governance 부트스트랩 + RBAC 검증 + frontend fix 3건 + draft repo 관리 + N-4 unit test + admin/catalog page test. v1.0 마무리 housekeeping (governance sync, traceability, CI guard) 진행 중. **v1.0 잔여**: N-6 (사내 staging 1주 운영) 만 사용자 의존.
-- 최종 수정일: 2026-06-04
+- 상태: **2026-06-06 update — main HEAD `bddcfae` + sprint -h 신규 carve ID 발급 및 추적성 매트릭스 cross-ref 정합화 완료 (PR #490 머지).** v1.0 마무리 housekeeping의 2차 작업(sprint -h용 ID 선발급)이 완료되었습니다.
+- 최종 수정일: 2026-06-06
 - 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [세션 인계](./session_handoff.md), [상태 스냅샷](./state.json), [M1 PR 리뷰 actions](./M1-PR-review-actions.md), [ADR-0025](../../docs/adr/0025-envelope-encryption-key-management.md)
 
 ## 1. 마일스톤 진행 상황
@@ -82,6 +82,7 @@
 
 | 일자 | 변경 |
 | --- | --- |
+| 2026-06-06 | **sprint -h 신규 carve 의 ID 발급 + 매트릭스 cross-ref** — §3.1 의 auth-session / integration-registry / repository-integration row 3 row cross-ref 갱신. **신규 ID**: REQ-FR-106/107/108 + ARCH-18/19/20 + API-98/99/100 + IMPL/UT/TC 관련 ID 발급. Codex 리뷰에 따라 `docs/traceability/report.md`의 `integration-registry` 도메인에 `IMPL-ci-runs-01`, `UT-ci-runs-01`, `TC-CI-RUN-01` 추가 보완 완료. PR #490 머지 완료. |
 | 2026-06-02 | 중간 개발 보고 자료 준비 착수. `docs/presentations/2026-06-02-midterm-report-plan.md` 에 슬라이드 구조/데이터 수집 축/디자인 방향을 정리했고, `docs/analysis/2026-06-02-midterm-report-baseline.md` 에 현재 기능 범위, SDLC/추적성, 테스트, AI agent 활용 현황, 활동 통계를 베이스라인으로 기록. 다음 단계는 HTML/CSS/JS 슬라이드 초안 구현. |
 | 2026-06-01 | CI 회귀 복구: (1) `frontend/app/(dashboard)/applications/[id]/page.tsx` 중복 import 제거로 `Build App` 타입 에러 해소, (2) `frontend/tests/e2e/admin-projects.spec.ts` TC-PROJ-UI-04를 환경 독립 검증(ComboBox/input 공용)으로 보강. 로컬 `npm run test`/`npm run build` 통과, CI run `26738464130` 성공. |
 | 2026-05-27 | PR #352 (`b3dc87e`, sprint `claude/work_260527-external-integration-enhance`) — **외부 연동 등록 UX 고도화 (#1~#5)**. 등록 UI(ProviderModal) 검토 후 5 포인트 해소. **#1+#3+#4** (frontend): `integration-provider-presets.ts` 신규 (vendor 템플릿 7종 gitea/github/gitlab/bitbucket/jira/jenkins/bamboo + custom → type/auth/signature/capabilities 자동 + `composeCredentialsRef`/`parseCredentialsRef` 백엔드 3 전략 정합, colocated vitest 14) + credentials_ref raw → strategy select+secret 분리(show/hide, edit blank=keep) + capabilities 체크박스. **#2** (full-stack): **migration 000038** `integration_providers.base_url` + domain/store(scan·SELECT×3·INSERT·UPDATE)/API-70·71 + `validBaseURL` (url.Parse + scheme + host) + memory store parity. **#5** (full-stack): **API-87** `POST /api/v1/integration/test-connection` (base_url reachability GET 5s, system_admin, SSRF 사내 internal 수용) + ProviderModal Test 버튼. **codex P2 보강** (`4406b99`): validBaseURL scheme-only(host 누락) 거부. 검증: go build+vet+httpapi/store test (handler 8 신규) + tsc+eslint+vitest 9파일/55 + npm run build ✓, CI 8 job green (E2E 양 shard). squash merge. backend_api_contract §15 + report.md §2.2/§6 추적성. |
