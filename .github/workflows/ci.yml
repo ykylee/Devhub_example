@@ -201,10 +201,62 @@ jobs:
       - name: Test
         run: make test-frontend
 
+  e2e-build:
+    name: E2E Build Artifacts
+    runs-on: ubuntu-latest
+    needs: [changed-paths]
+    if: needs.changed-paths.outputs.e2e == 'true' || needs.changed-paths.outputs.workflow == 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - name: Cache Go build + module cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('backend-core/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Install Node dependencies
+        run: cd frontend && npm ci
+      - name: Build backend + frontend
+        run: |
+          set -euo pipefail
+          (cd backend-core && CGO_ENABLED=0 go build -o ../devhub-backend ./)
+          (cd frontend && npm run build)
+      - name: Package E2E artifacts
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/e2e-artifacts
+          tar -C "$GITHUB_WORKSPACE" -czf /tmp/e2e-artifacts/devhub-backend.tgz devhub-backend
+          tar -C "$GITHUB_WORKSPACE/frontend" -czf /tmp/e2e-artifacts/frontend-next.tgz .next
+      - name: Upload backend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-backend-${{ github.sha }}
+          path: /tmp/e2e-artifacts/devhub-backend.tgz
+          retention-days: 1
+      - name: Upload frontend build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-frontend-next-${{ github.sha }}
+          path: /tmp/e2e-artifacts/frontend-next.tgz
+          retention-days: 1
+
   e2e:
     name: E2E Tests (Playwright, shard ${{ matrix.shard }}/2)
     runs-on: ubuntu-latest
-    needs: [changed-paths]
+    needs: [changed-paths, e2e-build]
     # sprint gemini/work_260528-code-cleanup — 대규모 import path/디렉터리 이관으로
     # E2E 회귀 위험 큼. 리팩토링 정리가 끝날 때까지 e2e job 일시 비활성화.
     # 복원 시 본 `&& false` 만 제거하면 됨.
@@ -308,6 +360,26 @@ jobs:
       - name: Install Playwright browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: cd frontend && npx playwright install chromium
+
+      - name: Download backend artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-backend-${{ github.sha }}
+          path: /tmp/e2e-artifacts
+
+      - name: Download frontend build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-frontend-next-${{ github.sha }}
+          path: /tmp/e2e-artifacts
+
+      - name: Restore E2E build artifacts
+        run: |
+          set -euo pipefail
+          tar -C "$GITHUB_WORKSPACE" -xzf /tmp/e2e-artifacts/devhub-backend.tgz
+          chmod +x "$GITHUB_WORKSPACE/devhub-backend"
+          rm -rf "$GITHUB_WORKSPACE/frontend/.next"
+          tar -C "$GITHUB_WORKSPACE/frontend" -xzf /tmp/e2e-artifacts/frontend-next.tgz
       
       - name: Start Keycloak (container)
         run: |
@@ -467,13 +539,6 @@ jobs:
 
       - name: Validate E2E-CI Sync Contract
         run: bash ./scripts/ci-e2e-sync-check.sh .github/workflows/ci.yml
-      
-      - name: Build App
-        run: |
-          # backend-core's main package lives at backend-core/main.go (no
-          # cmd/httpapi sub-package). Build the root package.
-          (cd backend-core && CGO_ENABLED=0 go build -o ../devhub-backend ./)
-          (cd frontend && npm run build)
       
       - name: Start Backend
         env:
