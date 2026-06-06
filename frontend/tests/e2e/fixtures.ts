@@ -75,68 +75,59 @@ async function firstVisibleLocator(page: Page, selectors: string[]): Promise<imp
   throw new Error(`none of selectors are visible: ${selectors.join(", ")}`);
 }
 
-async function forceStartOIDCFlow(page: Page): Promise<void> {
-  const keycloakAdminURL = KC_BASE_URL;
-  const keycloakRealm = KC_REALM;
-  const oidcClientID = OIDC_CLIENT_ID;
-  const runtimeConfigPath = appPath("/api/runtime-config");
-  await page.evaluate(async ({ keycloakAdminURL, keycloakRealm, runtimeConfigPath, oidcClientID }) => {
-    const authURL = `${keycloakAdminURL}/realms/${encodeURIComponent(keycloakRealm)}/protocol/openid-connect/auth`;
-    let redirectURI = `${window.location.origin}/auth/callback`;
-    try {
-      const runtimeResp = await fetch(runtimeConfigPath, { cache: "no-store" });
-      if (runtimeResp.ok) {
-        const runtimeBody = (await runtimeResp.json()) as { oidc_redirect_uri?: string };
-        if (runtimeBody.oidc_redirect_uri?.trim()) {
-          redirectURI = runtimeBody.oidc_redirect_uri.trim();
-        }
-      }
-    } catch {
-      // Keep default fallback when runtime-config is unavailable.
-    }
-
-    const randomBytes = (n: number) => {
-      const b = new Uint8Array(n);
-      crypto.getRandomValues(b);
-      return b;
-    };
-    const b64u = (arr: Uint8Array) =>
-      btoa(String.fromCharCode(...arr)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
-    const verifier = b64u(randomBytes(32));
-    const state = crypto.randomUUID ? crypto.randomUUID() : b64u(randomBytes(16));
-    const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier));
-    const challenge = b64u(new Uint8Array(hash));
-
-    sessionStorage.setItem("oidc_state", state);
-    sessionStorage.setItem("oidc_verifier", verifier);
-
-    const url = new URL(authURL);
-    url.searchParams.set("client_id", oidcClientID);
-    url.searchParams.set("response_type", "code");
-    url.searchParams.set("redirect_uri", redirectURI);
-    url.searchParams.set("scope", "openid offline_access email profile");
-    url.searchParams.set("state", state);
-    url.searchParams.set("code_challenge", challenge);
-    url.searchParams.set("code_challenge_method", "S256");
-    window.location.assign(url.toString());
-  }, { keycloakAdminURL, keycloakRealm, runtimeConfigPath, oidcClientID });
+function isAppLoginURL(rawURL: string): boolean {
+  try {
+    const url = new URL(rawURL);
+    const loginPath = appPath("/login");
+    return url.pathname === loginPath || url.pathname === `${loginPath}/`;
+  } catch {
+    return false;
+  }
 }
 
-export async function waitForSignInForm(page: Page): Promise<void> {
+type WaitForSignInFormOptions = {
+  restartOIDCOnAppLogin?: boolean;
+};
+
+export async function waitForSignInForm(page: Page, options: WaitForSignInFormOptions = {}): Promise<void> {
   const deadline = Date.now() + 30_000;
-  let forcedOIDC = false;
+  let restartedOIDC = false;
   while (Date.now() < deadline) {
     const userVisible = await page.locator('input#username, input[name="username"], input#identifier, input[name="identifier"]').first().isVisible().catch(() => false);
     const passVisible = await page.locator('input#password, input[name="password"]').first().isVisible().catch(() => false);
     if (userVisible && passVisible) return;
 
-    const continueButton = page.getByRole("button", { name: /continue to sign in/i }).first();
+    const backToSignInButton = page.getByRole("button", { name: /back to sign in/i }).first();
+    if ((await backToSignInButton.count()) > 0 && (await backToSignInButton.isVisible().catch(() => false))) {
+      await backToSignInButton.click();
+      await page.waitForTimeout(250);
+      continue;
+    }
+
+    const continueButton = page.getByRole("button", { name: /continue to sign in|redirecting/i }).first();
     if ((await continueButton.count()) > 0 && (await continueButton.isVisible().catch(() => false))) {
-      await continueButton.click();
-      if (!forcedOIDC) {
-        forcedOIDC = true;
-        await forceStartOIDCFlow(page).catch(() => {});
+      const isDisabled = await continueButton.isDisabled().catch(() => false);
+      if (!isDisabled) {
+        await continueButton.click().catch((err) => {
+          const msg = err instanceof Error ? err.message : String(err);
+          if (
+            msg.includes("Target page, context or browser has been closed")
+            || msg.includes("Execution context was destroyed")
+          ) {
+            return;
+          }
+          throw err;
+        });
+        await page.waitForTimeout(250);
+        continue;
       }
+    } else if (options.restartOIDCOnAppLogin && !restartedOIDC && isAppLoginURL(page.url())) {
+      // Sign-out flows can occasionally land back on the app's /login page
+      // without resuming the redirect chain. Restart through the page's own
+      // login CTA so the app generates a fresh PKCE state instead of mutating
+      // sessionStorage behind its back.
+      restartedOIDC = true;
+      await page.reload({ waitUntil: "domcontentloaded" }).catch(() => {});
     }
     await page.waitForTimeout(500);
   }
@@ -163,7 +154,7 @@ export async function submitSignInForm(page: Page, userID: string, password: str
   await page.getByRole("button", { name: /sign in|log in|login/i }).first().click();
 }
 
-async function completeKeycloakRequiredActionsIfPresent(page: Page): Promise<void> {
+export async function completeKeycloakRequiredActionsIfPresent(page: Page): Promise<void> {
   const updateHeading = page.getByRole("heading", { name: /update account information/i }).first();
   if ((await updateHeading.count()) === 0 || !(await updateHeading.isVisible().catch(() => false))) {
     return;
