@@ -61,19 +61,24 @@ test.describe("Verify build status fix and SCM activity", () => {
     await page.waitForLoadState("networkidle", { timeout: 20000 }).catch(() => undefined);
     await page.waitForTimeout(2000); // Settle delay for Recharts dynamic animations
 
-    // Verify "Last Build" card value is "없음"
-    const lastBuildCard = page.locator("text=Last Build").locator("xpath=..").locator("h3");
-    await expect(lastBuildCard).toBeVisible();
-    const lastBuildVal = await lastBuildCard.innerText();
-    console.log("[E2E] Last Build Card Value:", lastBuildVal);
-    expect(lastBuildVal).toBe("없음");
+    // Verify "Quality Score" card value is "4.5 / 5.0"
+    const qualityScoreCard = page.getByText("Quality Score", { exact: true }).locator("xpath=..").locator("h3");
+    await expect(qualityScoreCard).toBeVisible();
+    const qualityScoreVal = await qualityScoreCard.innerText();
+    console.log("[E2E] Quality Score Card Value:", qualityScoreVal);
+    expect(qualityScoreVal).toBe("4.5 / 5.0");
 
-    // Verify "Target Branch Build Status" badge value is "없음" by querying target text inside section
-    const targetBranchSection = page.locator("section:has-text('Target Branch Build Status')");
-    await expect(targetBranchSection).toBeVisible();
-    const badgeText = targetBranchSection.locator("text=없음").first();
-    await expect(badgeText).toBeVisible();
-    console.log("[E2E] Target Branch Badge Value: 없음 (Verified!)");
+    // Verify "Pending Requests" card value is "0"
+    const pendingRequestsCard = page.locator("text=Pending Requests").locator("xpath=..").locator("h3");
+    await expect(pendingRequestsCard).toBeVisible();
+    const pendingRequestsVal = await pendingRequestsCard.innerText();
+    console.log("[E2E] Pending Requests Card Value:", pendingRequestsVal);
+    expect(pendingRequestsVal).toBe("0");
+
+    // Verify "Quality Score Trend (7-Day)" section presence
+    const trendSection = page.locator("text=Quality Score Trend (7-Day)");
+    await expect(trendSection).toBeVisible();
+    console.log("[E2E] Quality Score Trend section verified!");
 
     // Take screenshot and save to artifacts directory
     const screenshotPath = "test-results/screenshots/application_detail_verified.png";

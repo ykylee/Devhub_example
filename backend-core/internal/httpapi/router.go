@@ -274,6 +274,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 			DevRequestIntakeTokenStore: cfg.DevRequestIntakeTokenStore,
 			PlatformStore:           cfg.PlatformStore,
 			AuditStore:                 cfg.AuditStore,
+			AuthDevFallback:            cfg.AuthDevFallback,
 		}),
 		integ: integview.NewIntegrationHandler(integview.IntegrationConfig{
 			IntegrationStore:  resolveIntegrationStore(cfg),

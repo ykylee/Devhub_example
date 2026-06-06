@@ -166,6 +166,9 @@ export default function ApplicationDetailPage() {
   }
 
   const normalizeQualityScore = (score: number): number => {
+    // Some rollup paths return 0-100 scale (e.g. SonarQube gate_score convention);
+    // coerce to 0-5 scale. Threshold is set at 5.0 to detect 0-100 scale values.
+    // We divide by 20 to map 0-100 scale down to 0-5.0 scale.
     if (score > 5.0) {
       return score / 20;
     }
@@ -179,10 +182,13 @@ export default function ApplicationDetailPage() {
     (dreq) => dreq.status === "pending" || dreq.status === "in_review"
   ).length;
 
-  const chartData = dashboard.history_trend.map((item) => ({
-    ...item,
-    quality_score: normalizeQualityScore(item.quality_score),
-  }));
+  const chartData = dashboard.history_trend.map((item) => {
+    const { quality_score, ...rest } = item;
+    return {
+      ...rest,
+      quality_score: normalizeQualityScore(quality_score),
+    };
+  });
 
   return (
     <div className="space-y-8 pb-20 px-4 md:px-8">
@@ -228,7 +234,7 @@ export default function ApplicationDetailPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
           { label: "Quality Score", value: `${qualityScore} / 5.0`, icon: ShieldCheck, color: "text-blue-500", trend: "Standard A+", bg: "bg-blue-500/10" },
-          { label: "Pending Requests", value: String(pendingRequestsCount), icon: Clock, color: pendingRequestsCount > 0 ? "text-amber-500" : "text-emerald-500", trend: "DREQ Backlog", bg: "bg-amber-500/10" },
+          { label: "Pending Requests", value: String(pendingRequestsCount), icon: Clock, color: pendingRequestsCount > 0 ? "text-amber-500" : "text-emerald-500", trend: "DREQ Backlog (this platform)", bg: "bg-amber-500/10" },
           { label: "Critical Warnings", value: String(criticalWarnings), icon: Zap, color: criticalWarnings > 0 ? "text-amber-500" : "text-emerald-500", trend: "Governance", bg: "bg-amber-500/10" },
           { label: "Gate Failures", value: String(gateFailures), icon: Globe, color: gateFailures > 0 ? "text-rose-500" : "text-emerald-500", trend: "Quality Gate", bg: "bg-rose-500/10" },
         ].map((stat, i) => (

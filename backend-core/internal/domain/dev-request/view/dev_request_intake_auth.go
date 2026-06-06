@@ -6,8 +6,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"log"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -64,11 +66,22 @@ const (
 // routePermissionTable 은 본 endpoint 를 Bypass: true 로 매핑한다.
 func (h *DevRequestHandler) RequireIntakeToken(c *gin.Context) {
 	if h.cfg.AuthDevFallback {
-		c.Set(ctxKeyDREQSourceSystem, "debug_system")
-		c.Set(ctxKeyDREQClientLabel, "debug_client")
-		c.Set(ctxKeyDREQTokenID, "00000000-0000-0000-0000-000000000000")
-		c.Next()
-		return
+		rawHeader := c.GetHeader("Authorization")
+		token := extractBearerToken(rawHeader)
+		
+		debugToken := os.Getenv("DEVHUB_DEBUG_TOKEN")
+		if debugToken == "" {
+			debugToken = "debug-token-bypass-dev"
+		}
+		
+		if token == debugToken {
+			log.Println("[WARNING] RequireIntakeToken: dev fallback auth active, bypass token matched. Bypassing token verification.")
+			c.Set(ctxKeyDREQSourceSystem, "debug_system")
+			c.Set(ctxKeyDREQClientLabel, "debug_client")
+			c.Set(ctxKeyDREQTokenID, "00000000-0000-0000-0000-000000000000")
+			c.Next()
+			return
+		}
 	}
 
 	tokenStore := h.cfg.DevRequestIntakeTokenStore

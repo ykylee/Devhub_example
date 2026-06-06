@@ -143,6 +143,10 @@ func main() {
 	hrdbMock := hrdb.NewMockClient()
 	log.Println("HR DB Mock client initialized")
 
+	if cfg.AuthDevFallback {
+		log.Println("[WARNING] DEVHUB_AUTH_DEV_FALLBACK is enabled. Development-only authentication fallbacks are ACTIVE.")
+	}
+
 	router := httpapi.NewRouter(httpapi.RouterConfig{
 		WebhookSecret:              cfg.GiteaWebhookSecret,
 		KeycloakWebhookSecret:      cfg.KeycloakWebhookSecret,
