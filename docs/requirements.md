@@ -121,16 +121,26 @@
 
 | 도메인 | 요구사항 | 비고 |
 | --- | --- | --- |
-| auth-session | [`./domain/auth-session/requirements.md`](./domain/auth-session/requirements.md) | User ↔ Account 분리, Keycloak 단일 IdP, historical 비밀번호 정책 |
+| auth-session | [`./domain/auth-session/requirements.md`](./domain/auth-session/requirements.md) | User ↔ Account 분리, Keycloak 단일 IdP, historical 비밀번호 정책. **sprint -h (2026-06-06) 추가: REQ-FR-107** (Sign-out endpoint — access token 폐기, BUG-03) |
 | audit-ops | [`./domain/audit-ops/requirements.md`](./domain/audit-ops/requirements.md) | Audit log emit, Keycloak event sync, Prometheus metric |
 | rbac-permissions | [`./domain/rbac-permissions/requirements.md`](./domain/rbac-permissions/requirements.md) | Role + Resource + Action matrix, row-scoping |
 | organization-management | [`./domain/organization-management/requirements.md`](./domain/organization-management/requirements.md) | Users + org_units + appointments, HRDB lookup |
 | onboarding | [`./domain/onboarding/requirements.md`](./domain/onboarding/requirements.md) | REQ-FR-ONBOARD-001..012, REQ-NFR-ONBOARD-001..008 |
 | platform-lifecycle | [`./domain/platform-lifecycle/requirements.md`](./domain/platform-lifecycle/requirements.md) | REQ-FR-APP-001..012, REQ-FR-PROJ-000..010, REQ-FR-APPDASH-001..006, REQ-FR-ROLE-001..016, REQ-NFR-PROJ/APPDASH |
-| repository-integration | [`./domain/repository-integration/requirements.md`](./domain/repository-integration/requirements.md) | REQ-FR-REPO-001..005, REQ-NFR-REPO-001..003 |
+| repository-integration | [`./domain/repository-integration/requirements.md`](./domain/repository-integration/requirements.md) | REQ-FR-REPO-001..005, REQ-NFR-REPO-001..003. **sprint -h (2026-06-06) 추가: REQ-FR-108** (Repository build-runs endpoint — repo-scoped CI 이력 조회, ISSUE-04) |
 | dev-request | [`./domain/dev-request/requirements.md`](./domain/dev-request/requirements.md) | REQ-FR-DREQ-001..013, REQ-NFR-DREQ-001..006 |
-| integration-registry | [`./domain/integration-registry/requirements.md`](./domain/integration-registry/requirements.md) + [`task_requirements.md`](./domain/integration-registry/task_requirements.md) | REQ-FR-INT-001..015, REQ-NFR-INT-001..009, REQ-FR-TASK-001..010, REQ-NFR-TASK-001..004 |
+| integration-registry | [`./domain/integration-registry/requirements.md`](./domain/integration-registry/requirements.md) + [`task_requirements.md`](./domain/integration-registry/task_requirements.md) | REQ-FR-INT-001..015, REQ-NFR-INT-001..009, REQ-FR-TASK-001..010, REQ-NFR-TASK-001..004. **sprint -h (2026-06-06) 추가: REQ-FR-106** (CI Run 생성 API — Gitea Actions webhook 수신 또는 직접 생성, ISSUE-05) |
 | realtime | [`./domain/realtime/requirements.md`](./domain/realtime/requirements.md) | WebSocket ticket 인증, event RBAC 재검사 |
+
+### 5.11 sprint -h (2026-06-06) 신규 carve 의 REQ ID
+
+본 절은 2026-06-01 통합 테스트 결과 + 2026-06-06 housekeeping 의 sprint -h 신규 carve 3건의 REQ ID 본문이다. 본 PR (Mavis housekeeping) 의 ID 발급 후 sprint -h 의 Claude 가 각 sub-document 의 detailed body 작성 + IMPL/UT/TC 동시 발급.
+
+- **REQ-FR-106** (integration-registry, CI Run 생성 API) — `POST /api/v1/ci-runs` 의 본문 요구사항 (request body 필드, status enum 가드, idempotency unique key, audit emit, metric emit). `docs/domain/integration-registry/requirements.md` §5.11 stub.
+- **REQ-FR-107** (auth-session, Sign-out endpoint) — `POST /api/v1/auth/logout` 의 본문 요구사항 (Authorization Bearer 추출, Keycloak `/protocol/openid-connect/logout` 호출, idempotency, 401/502 응답 코드, audit emit). `docs/domain/auth-session/requirements.md` §5.11 stub.
+- **REQ-FR-108** (repository-integration, Repository build-runs) — `GET /api/v1/repos/:id/build-runs` 의 본문 요구사항 (cursor pagination, status filter, RBAC + same-org-unit subtree scope). `docs/domain/repository-integration/requirements.md` §5.12 stub.
+
+각 sub-document 의 detailed body + acceptance criteria 는 sprint -h 진입 시 sprint -h 의 Claude 가 동시 작성 (sprint `mvs/work_260606-b-traceability-ci-auth-repo` 의 housekeeping PR 머지 후).
 
 > 추가 source — 기존 file 들은 유지 (역사 보존 + detailed body):
 > - `docs/backend/requirements.md` — backend-specific 상세 REQ

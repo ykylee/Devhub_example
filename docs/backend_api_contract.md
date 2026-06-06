@@ -397,15 +397,15 @@ command의 현재 상태, actor, target, 요청 사유, dry-run 여부, approval
 
 | 도메인 | API | 본문 ID 범위 |
 | --- | --- | --- |
-| auth-session | [`./domain/auth-session/api.md`](./domain/auth-session/api.md) | API-19, API-32 (기본), API-35, API-37(audit 매핑) |
+| auth-session | [`./domain/auth-session/api.md`](./domain/auth-session/api.md) | API-19, API-32 (기본), API-35, API-37(audit 매핑). **sprint -h (2026-06-06) 추가: API-99** (POST /api/v1/auth/logout) |
 | audit-ops | [`./domain/audit-ops/api.md`](./domain/audit-ops/api.md) | API-18 + internal Keycloak event push endpoint |
 | rbac-permissions | [`./domain/rbac-permissions/api.md`](./domain/rbac-permissions/api.md) | API-26..29, ~~API-30/31 폐기~~, API-38..40 |
 | organization-management | [`./domain/organization-management/api.md`](./domain/organization-management/api.md) | API-33, API-34 (+ subpaths) |
 | onboarding | [`./domain/onboarding/api.md`](./domain/onboarding/api.md) | API-32 확장, API-33 확장, API-83..86 |
 | platform-lifecycle | [`./domain/platform-lifecycle/api.md`](./domain/platform-lifecycle/api.md) | API-41..50, 55, 56, 56A, 56B, 57, 58, 93 |
-| repository-integration | [`./domain/repository-integration/api.md`](./domain/repository-integration/api.md) | API-51..54, API-91, API-92 |
+| repository-integration | [`./domain/repository-integration/api.md`](./domain/repository-integration/api.md) | API-51..54, API-91, API-92. **sprint -h (2026-06-06) 추가: API-100** (GET /api/v1/repos/:id/build-runs) |
 | dev-request | [`./domain/dev-request/api.md`](./domain/dev-request/api.md) | API-59..68, API-79 |
-| integration-registry | [`./domain/integration-registry/api.md`](./domain/integration-registry/api.md) + [`task_api.md`](./domain/integration-registry/task_api.md) | API-69..78, API-80, API-87..90, API-94..96 |
+| integration-registry | [`./domain/integration-registry/api.md`](./domain/integration-registry/api.md) + [`task_api.md`](./domain/integration-registry/task_api.md) | API-69..78, API-80, API-87..90, API-94..96. **sprint -h (2026-06-06) 추가: API-98** (POST /api/v1/ci-runs) |
 | realtime | [`./domain/realtime/api.md`](./domain/realtime/api.md) | API-14, API-97 |
 
 ## 12. 변경 이력 (요약)
@@ -414,3 +414,4 @@ command의 현재 상태, actor, target, 요청 사유, dry-run 여부, approval
 | --- | --- |
 | 2026-05-29 | **Phase 3 split** — 도메인별 본문(§11~§17 — auth/RBAC/application/DREQ/integration/onboarding/task) 을 10 도메인 sub-document 의 `api.md` (+ Task 전용 `task_api.md`) 로 이관. §1+§2 의 cross-cutting envelope/enum 은 신규 `docs/api/conventions.md` 와 동기. §3 Health / §4-5 Gitea Webhook / §6 프론트 Snapshot API / §7 도메인 조회 API / §10 ID 노출 표 / §11 도메인 link 표 만 master 에 유지. ID 보존 (API-01..96), 신규 발급/삭제 없음. |
 | 2026-05-28 | (split 이전) §17 Task Item Ingestion 신규 — task_api.md 로 이관. |
+| 2026-06-06 | **sprint -h 신규 carve 의 API ID 발급** — §11 sub-document 표 3 row 갱신. **API-98** (integration-registry, POST /ci-runs), **API-99** (auth-session, POST /auth/logout), **API-100** (repository-integration, GET /repos/:id/build-runs). 본 ID 는 sprint `mvs/work_260606-b-traceability-ci-auth-repo` (Mavis housekeeping) 의 매트릭스 + 본 housekeeping PR 의 §11 표 갱신에서 동시 발급. sprint -h 의 Claude 가 API 본문(상세) 작성. (ID 재할당: 1차 housekeeping 의 API-94/95/96 → 2차 housekeeping 의 API-98/99/100 — sprint `deepseek/work_260528-a-task-item-ingestion` 의 Task Item Ingestion (API-94..96) + sprint `realtime-domain` 의 API-97 와 충돌 회피.) 출처: PR (`mvs/work_260606-b-traceability-ci-auth-repo`). |
