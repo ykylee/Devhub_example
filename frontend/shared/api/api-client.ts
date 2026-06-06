@@ -22,7 +22,12 @@ function isJsonObject(value: unknown): value is JsonObject {
 // mutex 공유 — #388 codex P1 정합). 결과 enum 으로 transient / auth_failed 를 구분해
 // 세션 사망 결정도 명확히 한다 (#388 codex P2).
 
-export async function apiClient<T>(method: string, path: string, body?: unknown): Promise<T> {
+export async function apiClient<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+  options?: { headers?: Record<string, string> }
+): Promise<T> {
   const headers: Record<string, string> = {};
   if (body !== undefined) {
     headers["Content-Type"] = "application/json";
@@ -32,6 +37,11 @@ export async function apiClient<T>(method: string, path: string, body?: unknown)
   const token = tokenStore.getAccessToken();
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  // Inject custom headers if provided
+  if (options?.headers) {
+    Object.assign(headers, options.headers);
   }
 
   // Prepend same-origin API_BASE_URL (basePath prefix) if path is relative /api/v1/*

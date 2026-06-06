@@ -1,6 +1,7 @@
 import { apiClient } from "@/shared/api/api-client";
 import { DevRequest, DevRequestRegisterPayload, DevRequestStatus } from "@/domain/dev-request/schema/dev_request.types";
 import { API_BASE_URL } from "@/shared/config/endpoints";
+import { useStore } from "@/lib/store";
 
 type DevRequestQuery = {
   status?: DevRequestStatus | DevRequestStatus[];
@@ -82,33 +83,29 @@ class DevRequestService {
   }
 
   async createDebugDreq(assigneeUserId?: string): Promise<DevRequest> {
-    const resolvedUrl = `/api/v1/dev-requests`;
-    const fullUrl = resolvedUrl.startsWith("/api/") ? `${API_BASE_URL}${resolvedUrl}` : resolvedUrl;
-    
+    const debugToken = process.env.NEXT_PUBLIC_DEVHUB_DEBUG_TOKEN || "debug-token-bypass-dev";
+    const actor = useStore.getState().actor;
+    const defaultAssignee = actor?.login || actor?.user_id || "alice";
+
     const payload = {
       title: `[Test] Debug DREQ (${new Date().toLocaleTimeString()})`,
       details: "This is an auto-generated dev request for testing intake features in dev/debug mode.",
       requester: "Dev Debug Panel",
-      assignee_user_id: assigneeUserId || "alice",
+      assignee_user_id: assigneeUserId || defaultAssignee,
       external_ref: `DREQ-DEBUG-${Math.floor(Math.random() * 1000000)}`,
     };
 
-    const response = await fetch(fullUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer debug-token-bypass-dev",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Debug DREQ intake failed: ${response.status} - ${errText}`);
-    }
-
-    const resJson = await response.json() as { data: DevRequest };
-    return resJson.data;
+    const resp = await apiClient<{ data: DevRequest }>(
+      "POST",
+      "/api/v1/dev-requests",
+      payload,
+      {
+        headers: {
+          "Authorization": `Bearer ${debugToken}`,
+        },
+      }
+    );
+    return resp.data;
   }
 }
 

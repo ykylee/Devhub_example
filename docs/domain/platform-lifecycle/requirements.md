@@ -48,7 +48,7 @@
     - 최소 지표: commit 활동량, active contributor 수, 작업 추이.
 - **REQ-FR-APP-006 (MVP, 확정):** PR/PR Activity 정보를 수집/조회할 수 있어야 한다.
     - 최소 정보: PR 상태(open/draft/merged/closed), 생성/리뷰/코멘트/머지 이벤트 타임라인.
-- **REQ-FR-APP-007 (MVP, 확정):** 빌드 정보를 수집/조회할 수 있어야 한다.
+- **REQ-FR-APP-007 (MVP, 확정):** 빌드 정보를 수집/조회할 수 있어야 한다. (단, 플랫폼 대시보드 화면에서는 노출하지 않으며 백엔드 수집 및 개별 리포지토리 대시보드에서 활용한다)
     - 최소 정보: run status, duration, branch/commit, 시작/종료 시각.
 - **REQ-FR-APP-008 (MVP, 확정):** 소스코드 품질 지표(정적분석/스코어링)를 수집/조회할 수 있어야 한다.
     - 최소 정보: tool, quality score, gate pass/fail, metric 상세(coverage, bug/vuln, duplication 등).
@@ -133,10 +133,7 @@
 
 ### 3.1 기능 요구사항 (REQ-FR-APPDASH)
 
-- **REQ-FR-APPDASH-001 (MVP, 확정):** 실시간 타겟 브랜치 빌드 상태(Target Branch Build Status)를 최상단 메트릭 카드를 통해 노출해야 한다.
-    - **실시간 실패 빌드 런 표시**: 단순 빌드 성공률(%)보다 실시간 broken/red 상태 빌드 현황을 즉시 표기한다.
-    - **리포지토리 슬러그 연계**: 연결된 어떤 리포지토리의 어떤 브랜치에서 실패했는지 `org/repo-slug` 형식으로 표시해야 한다.
-    - **빌드 실패 진단 정보 및 로그 연동**: 실패 건에 대해 빌드 번호, 실패 경과 시간, 에러 요약 스니펫을 노출하고 해당 빌드 로그로 즉시 이동하는 **[로그 진입 딥링크]** 액션을 제공해야 한다. (모두 정상일 시 `Healthy 🟢` 표시)
+- **REQ-FR-APPDASH-001 (MVP, 확정):** 플랫폼 상세 대시보드 내 미결 개발 의뢰 요약 카드(Pending Requests)를 노출해야 한다. 대기 중(pending) 또는 검토 중(in_review)인 DREQ의 총 건수를 집계하여 요약 카드 목록에 표시한다.
 - **REQ-FR-APPDASH-002 (MVP, 확정):** 다차원 코드 품질 지표 및 정적 분석 이슈(Quality & Issues) 카드를 노출해야 한다.
     - **5점 만점 normalized 품질 스코어**: 리포지토리별 SonarQube 품질 데이터를 5.0 만점 스케일로 정규화 및 가중 평균하여 노출한다.
     - **심각도별 미해결 정적분석 이슈 노출**: Blocker, Critical, Major 등 심각도 등급에 따라 미해결된 정적분석 이슈 건수를 집계하여 표시해야 한다.
@@ -147,8 +144,7 @@
 - **REQ-FR-APPDASH-004 (MVP, 확정):** 연결된 모든 개발 의뢰 관리(All Linked Dev Requests - DREQ Overview) 및 프로젝트 승격 워크플로우를 제공해야 한다.
     - **DREQ 조회 및 필터**: 어플리케이션에 매핑된 모든 개발 의뢰 리스트와 상태(대기 중, 검토 중, 승격 완료 등)를 전용 탭에서 필터링 조회 가능해야 한다.
     - **원클릭 프로젝트 승격 연계**: 대기 중인 DREQ 우측의 **[프로젝트 승격 🚀]** 버튼 클릭 시, DREQ의 메타데이터(Key, Name, Description)를 자동 상속/프리필하는 프로젝트 생성 모달을 팝업하고 단일 트랜잭션으로 연계 생성해야 한다.
-- **REQ-FR-APPDASH-005 (MVP, 확정):** SCM 및 CI/CD 빌드 안정성 시계열 트렌드 차트(Area Chart)를 제공해야 한다.
-    - 7일 및 30일 간의 평균 빌드 소요 시간 변화 추이와 빌드 성공률 추이를 제공해야 한다.
+- **REQ-FR-APPDASH-005 (MVP, 확정):** 플랫폼 상세 대시보드 내 종합 코드 품질 시계열 트렌드 차트(Area Chart)를 제공해야 한다. `history_trend` 데이터의 `quality_score` 수치를 기반으로 일별 품질 추이를 7일 시계열 차트로 시각화하여 플랫폼 전반의 거버넌스 품질 추세를 관리할 수 있도록 제공한다.
 - **REQ-FR-APPDASH-006 (MVP, 확정):** 가중치 배분 비주얼라이저(Weight Policy Visualizer)를 통해 리포지토리 역할(`primary`/`sub`/`shared`)에 따라 계산 롤업에 적용된 가중치를 도넛 차트로 노출하고 가중치 수정 설정을 제공해야 한다.
 
 ### 3.2 비기능 / 운영 요구사항 (REQ-NFR-APPDASH)
