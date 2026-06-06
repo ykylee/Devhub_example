@@ -185,15 +185,15 @@ Audit Log는 최소한 `actor_id`, `actor_role`, `action`, `target_type`, `targe
 
 | 도메인 | 아키텍처 | 본문 ID 범위 |
 | --- | --- | --- |
-| auth-session | [`./domain/auth-session/architecture.md`](./domain/auth-session/architecture.md) | User↔Account 분리, OIDC 흐름, Keycloak 버전 pin, SPI/poll event sync |
+| auth-session | [`./domain/auth-session/architecture.md`](./domain/auth-session/architecture.md) | User↔Account 분리, OIDC 흐름, Keycloak 버전 pin, SPI/poll event sync. **sprint -h (2026-06-06) 추가: ARCH-19** (Sign-out endpoint — Keycloak `/protocol/openid-connect/logout` 호출 + 멱등 + audit) |
 | audit-ops | [`./domain/audit-ops/architecture.md`](./domain/audit-ops/architecture.md) | ARCH-AUDIT-01..04 |
 | rbac-permissions | [`./domain/rbac-permissions/architecture.md`](./domain/rbac-permissions/architecture.md) | ARCH-RBAC-01..06 |
 | organization-management | [`./domain/organization-management/architecture.md`](./domain/organization-management/architecture.md) | ARCH-ORG-01..05 |
 | onboarding | [`./domain/onboarding/architecture.md`](./domain/onboarding/architecture.md) | ARCH-ONBOARD-01..06 |
 | platform-lifecycle | [`./domain/platform-lifecycle/architecture.md`](./domain/platform-lifecycle/architecture.md) | ARCH-APPDASH-01..06 |
-| repository-integration | [`./domain/repository-integration/architecture.md`](./domain/repository-integration/architecture.md) | ARCH-REPO-01..07 |
+| repository-integration | [`./domain/repository-integration/architecture.md`](./domain/repository-integration/architecture.md) | ARCH-REPO-01..07. **sprint -h (2026-06-06) 추가: ARCH-20** (Repository build-runs — ci_runs repo-scoped GET + cursor pagination) |
 | dev-request | [`./domain/dev-request/architecture.md`](./domain/dev-request/architecture.md) | ARCH-DREQ-01..06 |
-| integration-registry | [`./domain/integration-registry/architecture.md`](./domain/integration-registry/architecture.md) + [`task_architecture.md`](./domain/integration-registry/task_architecture.md) | ARCH-INT-01..07, ARCH-TASK-01..07 |
+| integration-registry | [`./domain/integration-registry/architecture.md`](./domain/integration-registry/architecture.md) + [`task_architecture.md`](./domain/integration-registry/task_architecture.md) | ARCH-INT-01..07, ARCH-TASK-01..07. **sprint -h (2026-06-06) 추가: ARCH-18** (CI Run 생성 — POST /ci-runs + status enum 가드 + idempotency unique key + audit emit + metric) |
 | realtime | [`./domain/realtime/architecture.md`](./domain/realtime/architecture.md) | ARCH-RT-01..05 |
 
 ## 8. 변경 이력 (요약)
@@ -202,3 +202,4 @@ Audit Log는 최소한 `actor_id`, `actor_role`, `action`, `target_type`, `targe
 | --- | --- |
 | 2026-05-29 | **Phase 3 split** — 도메인별 본문(§7 DREQ, §8 Integration, §9 Onboarding, §10 Repository, §11 APPDASH, §12 Task) 을 10 도메인 sub-document 의 `architecture.md` (+ Task 전용 `task_architecture.md`) 로 이관. §6.2 (User/Account 분리) → auth-session, §6.4 (audit 최소 필드)는 master 유지 + audit-ops 인용, §6.5.1/§6.5.2 → auth-session + audit-ops, §6.5.3 → realtime. ID 보존, 신규 발급 없음(rbac-permissions, organization-management, audit-ops 의 ARCH-*-XX 는 도메인 임시 발급 — Phase 4 traceability matrix 재구성 시 정합). |
 | 2026-05-28 | (split 이전) §12 Task Item Ingestion 도메인 신규 — task_architecture.md 로 이관됨. |
+| 2026-06-06 | **sprint -h 신규 carve 의 ARCH ID 발급** — §7 sub-document 표 3 row 갱신. **ARCH-18** (integration-registry, CI Run 생성), **ARCH-19** (auth-session, Sign-out), **ARCH-20** (repository-integration, Repository build-runs). 본 ID 는 sprint `mvs/work_260606-b-traceability-ci-auth-repo` (Mavis housekeeping) 의 매트릭스 + 본 housekeeping PR 의 §7 표 갱신에서 동시 발급. sprint -h 의 Claude 가 ARCH 본문(상세) 작성. 출처: PR (`mvs/work_260606-b-traceability-ci-auth-repo`). |
