@@ -25,6 +25,18 @@ func (s *memoryDomainStore) ListRepositories(_ context.Context, _ domain.ListOpt
 	return s.repositories, nil
 }
 
+// GetRepositoryByID — sprint mvs/work_260607-h-486-ci-runs-api (N-7). 단건
+// 조회 (codex P1 review feedback, PR #494). ListRepositories 의 페이지네이션
+// 우회.
+func (s *memoryDomainStore) GetRepositoryByID(_ context.Context, id int64) (domain.Repository, error) {
+	for _, r := range s.repositories {
+		if r.ID == id {
+			return r, nil
+		}
+	}
+	return domain.Repository{}, store.ErrNotFound
+}
+
 func (s *memoryDomainStore) ListIssues(_ context.Context, opts domain.ListOptions) ([]domain.Issue, error) {
 	if opts.State == "" && opts.RepositoryName == "" {
 		return s.issues, nil

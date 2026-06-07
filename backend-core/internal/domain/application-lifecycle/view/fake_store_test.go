@@ -562,6 +562,21 @@ func (s *fakeViewPlatformStore) ListRepositoriesByProvider(_ context.Context, pr
 	return append([]domain.Repository(nil), s.repositories[providerKey]...), nil
 }
 
+// GetRepositoryByID — sprint mvs/work_260607-h-486-ci-runs-api (N-7) 시 추가.
+// codex P1 review feedback 반영. view package 의 in-memory store.
+func (s *fakeViewPlatformStore) GetRepositoryByID(_ context.Context, id int64) (domain.Repository, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, repos := range s.repositories {
+		for _, r := range repos {
+			if r.ID == id {
+				return r, nil
+			}
+		}
+	}
+	return domain.Repository{}, store.ErrNotFound
+}
+
 func (s *fakeViewPlatformStore) ListRepositoryActivity(_ context.Context, repoID int64, _ store.RepositoryActivityOptions) (domain.RepositoryActivity, error) {
 	return domain.RepositoryActivity{RepositoryID: repoID}, nil
 }

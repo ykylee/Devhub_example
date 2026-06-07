@@ -224,35 +224,27 @@ func (h Handler) createCIRun(c *gin.Context) {
 	h.recordCIRunAudit(c, req, run, "ci_run.created")
 }
 
-// lookupRepositoryForCIRun — repository 존재 검증. domain.DomainStore 가
-// ListRepositories 만 있고 단건 조회가 없어서, List 결과에서 ID 매칭.
-// 0 row → store.ErrNotFound. 대규모 환경에서는 추후 GetRepositoryByID 추가가
-// 자연스러운 다음 sprint. 본 sprint 는 외부 영향 0.
+// lookupRepositoryForCIRun — repository 존재 검증. codex P1 review feedback
+// (PR #494): ListRepositories 의 기본 50 row 페이지네이션 우회. 단건 PK
+// 조회 (GetRepositoryByID) 로 repo_id 직접 매칭. 50 row 초과 환경에서도
+// false 404 회피.
 func (h Handler) lookupRepositoryForCIRun(ctx context.Context, repoID int64) (domain.Repository, error) {
 	if h.cfg.DomainStore == nil {
 		return domain.Repository{}, store.ErrNotFound
 	}
-	repos, err := h.cfg.DomainStore.ListRepositories(ctx, domain.ListOptions{})
-	if err != nil {
-		return domain.Repository{}, err
-	}
-	for _, r := range repos {
-		if r.ID == repoID {
-			return r, nil
-		}
-	}
-	return domain.Repository{}, store.ErrNotFound
+	return h.cfg.DomainStore.GetRepositoryByID(ctx, repoID)
 }
 
 // rbacAllowsCIRunCreate — PermissionCache 가 있으면 best-effort 조회.
 // cache 가 없거나 nil store 면 true (route-level middleware 가 이미 enforce).
+// codex P2 review feedback (PR #494): PermissionCache.Allows 가 role key
+// 기반이므로 actorLogin 이 아닌 actorRole 로 lookup. system_admin 외 custom
+// role (e.g. team_manager) 도 role 기반 권한 적용.
 func (h Handler) rbacAllowsCIRunCreate(c *gin.Context) bool {
 	if h.cfg.PermissionCache == nil {
 		return true
 	}
-	loginVal, _ := c.Get("devhub_actor_login")
 	roleVal, _ := c.Get("devhub_actor_role")
-	actorLogin, _ := loginVal.(string)
 	actorRole, _ := roleVal.(string)
 
 	// system_admin 은 통과
@@ -266,10 +258,10 @@ func (h Handler) rbacAllowsCIRunCreate(c *gin.Context) bool {
 		}
 	}
 
-	allowed, err := h.cfg.PermissionCache.Allows(c.Request.Context(), actorLogin, domain.ResourcePipelines, domain.ActionCreate)
+	// role key 로 lookup. actorLogin 사용 시 custom role 보유 non-admin
+	// actor 가 false deny 됨 (codex P2).
+	allowed, err := h.cfg.PermissionCache.Allows(c.Request.Context(), actorRole, domain.ResourcePipelines, domain.ActionCreate)
 	if err != nil {
-		// cache lookup 실패 시 deny (안전). 단 audit emit.
-		_ = actorLogin
 		return false
 	}
 	return allowed

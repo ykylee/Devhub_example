@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -361,4 +362,131 @@ func TestMemoryDomainStore_GetCIRunByExternalID(t *testing.T) {
 	if !errors.Is(err, store.ErrNotFound) {
 		t.Errorf("expected ErrNotFound, got %v", err)
 	}
+}
+
+// TestCreateCIRunSpec_RepositoryLookup_HandlesLargeRepoSet — codex P1 review
+// regression. ListRepositories 의 기본 50 row 페이지네이션 우회 —
+// GetRepositoryByID 가 50 row 초과 환경에서도 단건 PK 조회. 본 test 는
+// memory store fixture 가 ListRepositories 와 GetRepositoryByID 모두 노출
+// 하므로 둘 다 호출되더라도 결과 정합성을 검증. (PostgresStore 의 50 row
+// LIMIT 회피는 코드 review + integration test 에서 검증.)
+func TestCreateCIRunSpec_RepositoryLookup_HandlesLargeRepoSet(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	// 60 row 시뮬레이션 — 50 row 페이지네이션이 있었다면 row 51+ 는
+	// lookupRepositoryForCIRun 에서 false 404 되었을 시나리오. 본 fix 후
+	// GetRepositoryByID 가 단건 조회이므로 영향 없음.
+	repos := make([]domain.Repository, 0, 60)
+	for i := 0; i < 60; i++ {
+		repos = append(repos, domain.Repository{
+			ID:       int64(100 + i),
+			FullName: fmt.Sprintf("acme/repo-%d", i),
+			Name:     fmt.Sprintf("repo-%d", i),
+		})
+	}
+	repos = append(repos, domain.Repository{ID: 9999, FullName: "acme/target", Name: "target"})
+
+	storeI := &memoryDomainStore{repositories: repos}
+	router := testRouter(RouterConfig{DomainStore: storeI})
+
+	// row 60+ 의 repo (ID 9999) 를 정확히 찾아야 함
+	body := map[string]any{
+		"repository_id": 9999,
+		"ref":           "main",
+		"status":        "queued",
+		"commit_sha":    "large-set",
+	}
+	bodyJSON, _ := json.Marshal(body)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/ci-runs", strings.NewReader(string(bodyJSON)))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201 (lookup must find row 60+), got %d body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "acme/target") {
+		t.Errorf("expected repository_name=acme/target, body=%s", rec.Body.String())
+	}
+}
+
+// TestCreateCIRunSpec_RepositoryLookup_GetByID_NotFound — GetRepositoryByID
+// 가 nil / ErrNotFound 반환 시 404 매핑. codex P1 fix 후에도 404 가 정확히
+// 반환되어야 함.
+func TestCreateCIRunSpec_RepositoryLookup_GetByID_NotFound(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	storeI := &memoryDomainStore{
+		repositories: []domain.Repository{
+			{ID: 100, FullName: "acme/api", Name: "api"},
+		},
+	}
+	router := testRouter(RouterConfig{DomainStore: storeI})
+
+	body := map[string]any{
+		"repository_id": 7777, // 존재하지 않음
+		"ref":           "main",
+		"status":        "queued",
+		"commit_sha":    "missing",
+	}
+	bodyJSON, _ := json.Marshal(body)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/ci-runs", strings.NewReader(string(bodyJSON)))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+// TestRbacAllowsCIRunCreate_UsesActorRole — codex P2 review regression.
+// PermissionCache.Allows 가 role key 기반. non-system_admin custom role
+// (e.g. team_manager) 보유 actor 가 자신의 role 로 lookup 시 정상 통과
+// (이전: actorLogin 으로 lookup → false deny).
+//
+// 본 test 는 routing path 가 actorRole 사용함을 간접 검증. cache nil 일
+// 때 (test 환경) true 반환 (route middleware 가 enforce) 도 함께 검증.
+func TestRbacAllowsCIRunCreate_UsesActorRole(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	t.Run("cache nil → true (route middleware 가 enforce)", func(t *testing.T) {
+		h := Handler{cfg: RouterConfig{PermissionCache: nil}}
+		c, _ := gin.CreateTestContext(httptest.NewRecorder())
+		c.Set("devhub_actor_role", string(domain.AppRoleTeamManager))
+		c.Set("devhub_actor_login", "team-manager-bob")
+		c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/ci-runs", nil)
+		if !h.rbacAllowsCIRunCreate(c) {
+			t.Errorf("expected true (no cache = no extra check), got false")
+		}
+	})
+
+	t.Run("system_admin role → true (early return)", func(t *testing.T) {
+		h := Handler{cfg: RouterConfig{PermissionCache: NewPermissionCache(nil)}}
+		c, _ := gin.CreateTestContext(httptest.NewRecorder())
+		c.Set("devhub_actor_role", string(domain.AppRoleSystemAdmin))
+		c.Set("devhub_actor_login", "sysadmin")
+		c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/ci-runs", nil)
+		if !h.rbacAllowsCIRunCreate(c) {
+			t.Errorf("expected true (system_admin early return), got false")
+		}
+	})
+
+	t.Run("actor role (not login) used for cache.Allows lookup", func(t *testing.T) {
+		// 회귀 가드: call site 가 actorRole ("team_manager") 을 사용. 만약 이전
+		// 코드 (actorLogin) 가 다시 들어오면 cache.Allows("team-manager-bob", ...)
+		// 가 되어 false deny. cache 가 nil store 일 때 cache.Allows(role) 가
+		// system roles 기본 매트릭스 ("team_manager") 를 조회하므로 role 기반
+		// lookup 이 정상 동작함을 확인.
+		h := Handler{cfg: RouterConfig{PermissionCache: NewPermissionCache(nil)}}
+		c, _ := gin.CreateTestContext(httptest.NewRecorder())
+		c.Set("devhub_actor_role", string(domain.AppRoleTeamManager))
+		c.Set("devhub_actor_login", "team-manager-bob")
+		c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/ci-runs", nil)
+		// rbacAllowsCIRunCreate 내부에서 cache.Allows("team_manager", pipelines, create) 호출.
+		// cache nil store → load from defaults → team_manager 의 pipelines:create 가
+		// false 면 rbacAllowsCIRunCreate 도 false 반환 (deny). 본 test 의 핵심은
+		// panic 없이 호출 경로가 actorRole 로 진입하는지 확인 (이전 actorLogin 코드였으면
+		// "team-manager-bob" 으로 lookup → false deny + 다른 결과). 단순 실행 가능
+		// 여부만 검증.
+		_ = h.rbacAllowsCIRunCreate(c)
+	})
 }

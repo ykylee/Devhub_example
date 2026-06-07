@@ -59,6 +59,7 @@ type HealthStore interface {
 
 type DomainStore interface {
 	ListRepositories(context.Context, domain.ListOptions) ([]domain.Repository, error)
+	GetRepositoryByID(context.Context, int64) (domain.Repository, error)
 	ListIssues(context.Context, domain.ListOptions) ([]domain.Issue, error)
 	ListPullRequests(context.Context, domain.ListOptions) ([]domain.PullRequest, error)
 	ListCIRuns(context.Context, domain.ListOptions) ([]domain.CIRun, error)

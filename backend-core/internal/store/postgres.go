@@ -1474,6 +1474,72 @@ LIMIT $1 OFFSET $2`
 	return repositories, nil
 }
 
+// GetRepositoryByID — sprint mvs/work_260607-h-486-ci-runs-api (N-7). 단건
+// 조회. codex P1 review feedback (PR #494): ListRepositories 의 기본 50 row
+// 페이지네이션 우회 — repository_id 직접 PK 조회. 50 row 초과 환경에서도
+// 정확한 존재 검증.
+func (s *PostgresStore) GetRepositoryByID(ctx context.Context, id int64) (domain.Repository, error) {
+	const query = `
+SELECT
+	r.id,
+	COALESCE(r.gitea_repository_id, 0),
+	r.full_name,
+	COALESCE(r.owner_login, ''),
+	r.name,
+	COALESCE(r.clone_url, ''),
+	COALESCE(r.html_url, ''),
+	COALESCE(r.default_branch, ''),
+	r.private,
+	COALESCE(r.repository_status, 'active'),
+	publish_requested_at,
+	published_at,
+	r.updated_at,
+	COALESCE(r.source, 'scm'),
+	COALESCE(r.provider_id::text, ''),
+	COALESCE(p.provider_key, ''),
+	COALESCE(r.description, ''),
+	COALESCE((SELECT COUNT(*)
+	          FROM platform_repositories ar
+	          WHERE ar.repo_full_name = r.full_name), 0)::int AS linked_applications_count,
+	COALESCE((SELECT COUNT(*)
+	          FROM project_repositories pr
+	          WHERE pr.repository_id = r.id), 0)::int AS linked_projects_count
+FROM repositories r
+LEFT JOIN integration_providers p ON p.provider_id = r.provider_id
+WHERE r.id = $1
+LIMIT 1`
+
+	var repository domain.Repository
+	err := s.pool.QueryRow(ctx, query, id).Scan(
+		&repository.ID,
+		&repository.GiteaID,
+		&repository.FullName,
+		&repository.OwnerLogin,
+		&repository.Name,
+		&repository.CloneURL,
+		&repository.HTMLURL,
+		&repository.DefaultBranch,
+		&repository.Private,
+		&repository.Status,
+		&repository.PublishRequestedAt,
+		&repository.PublishedAt,
+		&repository.UpdatedAt,
+		&repository.Source,
+		&repository.ProviderID,
+		&repository.ProviderKey,
+		&repository.Description,
+		&repository.LinkedPlatformsCount,
+		&repository.LinkedProjectsCount,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.Repository{}, ErrNotFound
+		}
+		return domain.Repository{}, err
+	}
+	return repository, nil
+}
+
 // ListRepositoriesByProvider returns repositories linked to a given integration
 // provider (provider_id). Used to mark already-imported SCM repositories.
 func (s *PostgresStore) ListRepositoriesByProvider(ctx context.Context, providerID string) ([]domain.Repository, error) {

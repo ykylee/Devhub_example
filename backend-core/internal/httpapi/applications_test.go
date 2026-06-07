@@ -1173,12 +1173,21 @@ func (s *memoryPlatformStore) DeleteRepository(_ context.Context, repositoryID i
 	return nil
 }
 
+// GetRepositoryByID — sprint mvs/work_260607-h-486-ci-runs-api (N-7) 시
+// 보강: draftRepos (int64 PK) + repositories (full_name key) 양쪽 walk. 기존
+// draftRepos-only 구현은 PR #494 codex P1 review feedback 반영 시 확장.
 func (s *memoryPlatformStore) GetRepositoryByID(_ context.Context, repositoryID int64) (domain.Repository, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	if repo, ok := s.draftRepos[repositoryID]; ok {
 		return repo, nil
+	}
+	// repositories (full_name key) walk — 테스트 fixture 소량이라 O(n) OK
+	for _, r := range s.repositories {
+		if r.ID == repositoryID {
+			return r, nil
+		}
 	}
 	return domain.Repository{}, store.ErrNotFound
 }
