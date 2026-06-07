@@ -191,6 +191,34 @@ export default function KPIDashboardPage() {
         jsCode = jsCode.replace(regex, String(val));
       });
 
+      // 3.5 Python 삼항 연산자 (A if COND else B) -> JS 삼항 연산자 (COND ? A : B) 변환
+      const lines = jsCode.split("\n");
+      const processedLines = lines.map(line => {
+        let text = line;
+        let prefix = "";
+        let target = text;
+        if (text.includes("=")) {
+          const idx = text.indexOf("=");
+          prefix = text.substring(0, idx + 1);
+          target = text.substring(idx + 1);
+        }
+
+        const ternaryRegex = /(.+?)\s+if\s+(.+?)\s+else\s+(.+)/;
+        const match = target.match(ternaryRegex);
+        if (match) {
+          const [, expr1, cond, expr2] = match;
+          let returnPrefix = "";
+          let cleanExpr1 = expr1;
+          if (expr1.trim().startsWith("return ")) {
+            returnPrefix = "return ";
+            cleanExpr1 = expr1.replace("return ", "");
+          }
+          return `${prefix}${returnPrefix}(${cond.trim()}) ? (${cleanExpr1.trim()}) : (${expr2.trim()})`;
+        }
+        return line;
+      });
+      jsCode = processedLines.join("\n");
+
       // 4. 간단한 dynamic evaluate
       if (jsCode.includes("return")) {
         const fnBody = jsCode.replace(/def .*\n/g, ""); // def 선언이 있는 경우 제거

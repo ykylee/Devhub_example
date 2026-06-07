@@ -151,8 +151,8 @@ export default function PlatformsStatusPage() {
                 <div className="flex items-center gap-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                   <span className="flex items-center gap-1">
                     <ShieldCheck className="w-3 h-3" /> Quality Gate:{" "}
-                    <span className={app.rollup && app.rollup.quality_gate_failed_count > 0 ? "text-destructive" : "text-success"}>
-                      {app.rollup && app.rollup.quality_gate_failed_count > 0 ? "FAILED" : "PASSED"}
+                    <span className={!app.rollup ? "text-muted-foreground" : app.rollup.quality_gate_failed_count > 0 ? "text-destructive" : "text-success"}>
+                      {!app.rollup ? "UNKNOWN" : app.rollup.quality_gate_failed_count > 0 ? "FAILED" : "PASSED"}
                     </span>
                   </span>
                   <span>•</span>
