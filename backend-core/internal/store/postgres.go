@@ -427,19 +427,21 @@ INSERT INTO ci_runs (
 	finished_at,
 	duration_seconds,
 	html_url,
+	runner,
 	updated_at
 ) VALUES (
 	$1,
-	(SELECT id FROM repositories WHERE full_name = $2 LIMIT 1),
 	$2,
-	NULLIF($3, ''),
+	$3,
 	NULLIF($4, ''),
-	$5,
-	NULLIF($6, ''),
-	$7,
+	NULLIF($5, ''),
+	$6,
+	NULLIF($7, ''),
 	$8,
 	$9,
-	NULLIF($10, ''),
+	$10,
+	NULLIF($11, ''),
+	NULLIF($12, ''),
 	NOW()
 )`
 
@@ -447,6 +449,7 @@ INSERT INTO ci_runs (
 		ctx,
 		query,
 		run.ExternalID,
+		run.RepositoryID,
 		run.RepositoryName,
 		run.Branch,
 		run.CommitSHA,
@@ -456,6 +459,7 @@ INSERT INTO ci_runs (
 		run.FinishedAt,
 		run.DurationSeconds,
 		run.HTMLURL,
+		run.Runner,
 	)
 	if IsUniqueViolation(err) {
 		return ErrConflict
@@ -1699,6 +1703,55 @@ LIMIT $1 OFFSET $2`
 		return nil, err
 	}
 	return runs, nil
+}
+
+// GetCIRunByExternalID — sprint mvs/work_260607-h-486-ci-runs-api (N-7). 409
+// 응답에서 기존 row 본문 반환용. external_id index 기반 단건 조회.
+func (s *PostgresStore) GetCIRunByExternalID(ctx context.Context, externalID string) (domain.CIRun, error) {
+	const query = `
+SELECT
+	id,
+	external_id,
+	COALESCE(repository_id, 0),
+	repository_name,
+	COALESCE(branch, ''),
+	COALESCE(commit_sha, ''),
+	status,
+	COALESCE(conclusion, ''),
+	started_at,
+	finished_at,
+	duration_seconds,
+	COALESCE(html_url, ''),
+	COALESCE(runner, ''),
+	updated_at
+FROM ci_runs
+WHERE external_id = $1
+LIMIT 1`
+
+	var run domain.CIRun
+	err := s.pool.QueryRow(ctx, query, externalID).Scan(
+		&run.ID,
+		&run.ExternalID,
+		&run.RepositoryID,
+		&run.RepositoryName,
+		&run.Branch,
+		&run.CommitSHA,
+		&run.Status,
+		&run.Conclusion,
+		&run.StartedAt,
+		&run.FinishedAt,
+		&run.DurationSeconds,
+		&run.HTMLURL,
+		&run.Runner,
+		&run.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.CIRun{}, ErrNotFound
+		}
+		return domain.CIRun{}, err
+	}
+	return run, nil
 }
 
 func (s *PostgresStore) ListRisks(ctx context.Context, opts domain.ListOptions) ([]domain.Risk, error) {

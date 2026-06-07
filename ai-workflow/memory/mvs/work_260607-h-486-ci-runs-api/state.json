@@ -1,0 +1,52 @@
+{
+  "schema_version": "1",
+  "sprint": "mvs/work_260607-h-486-ci-runs-api",
+  "branch": "mvs/work_260607-h-486-ci-runs-api",
+  "status": "in_progress",
+  "started_at": "2026-06-07T12:00:00Z",
+  "ended_at": null,
+  "merged_pr": null,
+  "merge_commit": null,
+  "issue": 486,
+  "carve": "P0-4 (release_v1_roadmap.md §3.1) + N-7 (§3.5) — v1.0 차단",
+  "scope": "POST /api/v1/ci-runs handler 신규 구현. Gitea Actions webhook / 직접 생성 경로. status validation (7 enum) + RBAC (platform:read + org unit subtree) + idempotency (repository_id+commit_sha+status+started_at unique) + audit emit (ci_run.created) + metric emit (devhub_ci_runs_total{status} Counter + devhub_ci_run_ingest_duration_seconds Histogram). 정식 ID = API-98 (1차 정정 API-94 → API-97 → 2차 정정 API-98, ID 슬롯 충돌 해결, PR #486 housekeeping comment 참조).",
+  "directive_source": "사용자 지시 (2026-06-07) — 'N-7 (#486) Claude sprint-h 로 kickoff' + '클로드는 지금 일을 못하니까 여기서 바로 시작해버려' + '브랜치를 minimax 용으로 만들어 (mvs/ prefix)'",
+  "decisions": [
+    "브랜치 prefix mvs/ (Mavis/MiniMax-Code 관행) — 사용자 redirect 2026-06-07",
+    "정식 API ID = API-98 (이전 API-94/API-97 슬롯은 이미 점유)",
+    "scaffold 3 파일 = state.json + work_backlog.md + session_handoff.md (최근 Claude sprint 패턴 추적)"
+  ],
+  "todo_done": [
+    "브랜치 mvs/work_260607-h-486-ci-runs-api 생성 (origin/main @ 46568a8 base)"
+  ],
+  "todo": [
+    "sprint scaffold 3 파일 작성 (work_backlog.md, session_handoff.md, state.json)",
+    "기존 handler 패턴 탐색 (P1-7 build-runs GET handler, 비슷한 idempotent POST 패턴)",
+    "traceability 정합 — report.md §3.1 P0-4 row 갱신 + API contract §11 표 갱신 + architecture §7 표 갱신 + requirements §5 표 갱신",
+    "internal/httpapi/ci_runs.go 구현 — POST handler + status validation + RBAC + idempotency + audit + metric",
+    "internal/httpapi/ci_runs_test.go 작성 — TC-CI-RUN-01..05 (status 7종 PASS + 1종 422, idempotency 201+409, repo 404, RBAC 403)",
+    "route 등록 (router.go / http.go)",
+    "backend go test ./... + go build PASS 확인",
+    "commit + push + PR 생성 (PR body 에 추적성 영향 + Issue #486 close 표기)"
+  ],
+  "verification": null,
+  "dependencies": {
+    "satisfied": [
+      "ci_runs 테이블 (P1-7 / N-9 의 repository-scoped GET 기반) — main 머지 완료",
+      "PR #418 (refactor stabilize) — main 머지 완료",
+      "PR #492 (E2E locator fix) — main 머지 완료"
+    ],
+    "external": [
+      "P1-7 / N-9 의 GET /api/v1/repos/{id}/build-runs — 후속 sprint, N-7 과 무관 (schema 만 의존)"
+    ]
+  },
+  "traceability": {
+    "REQ": "REQ-FR-106",
+    "ARCH": "ARCH-18",
+    "API": "API-98 (정식, ID 슬롯 정합 후)",
+    "IMPL": "IMPL-ci-runs-01",
+    "UT": "UT-ci-runs-01",
+    "TC": "TC-CI-RUN-01..05",
+    "domain": "domain/infra + type/feature"
+  }
+}
