@@ -68,12 +68,12 @@ test.describe("Verify build status fix and SCM activity", () => {
     console.log("[E2E] Quality Score Card Value:", qualityScoreVal);
     expect(qualityScoreVal).toBe("4.5 / 5.0");
 
-    // Verify "Pending Requests" card value is "0"
-    const pendingRequestsCard = page.locator("text=Pending Requests").locator("xpath=..").locator("h3");
-    await expect(pendingRequestsCard).toBeVisible();
-    const pendingRequestsVal = await pendingRequestsCard.innerText();
-    console.log("[E2E] Pending Requests Card Value:", pendingRequestsVal);
-    expect(pendingRequestsVal).toBe("0");
+    // Verify "VOC 현황" card value is "0 건"
+    const vocCard = page.locator("text=VOC 현황").locator("xpath=..").locator("h3");
+    await expect(vocCard).toBeVisible();
+    const vocVal = await vocCard.innerText();
+    console.log("[E2E] VOC Card Value:", vocVal);
+    expect(vocVal).toBe("0 건");
 
     // Verify "Quality Score Trend (7-Day)" section presence
     const trendSection = page.locator("text=Quality Score Trend (7-Day)");

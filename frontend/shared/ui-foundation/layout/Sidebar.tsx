@@ -20,6 +20,8 @@ const baseMenu: MenuItem[] = [
   { href: "/platforms", icon: Zap, label: "Platforms", color: "text-violet-700 dark:text-violet-300" },
   { href: "/repositories", icon: Server, label: "Repositories", color: "text-cyan-700 dark:text-cyan-300" },
   { href: "/projects", icon: Settings, label: "Projects", color: "text-rose-700 dark:text-rose-300" },
+  { href: "/kpis", icon: LayoutDashboard, label: "KPIs", color: "text-emerald-700 dark:text-emerald-300" },
+  { href: "/tests", icon: ShieldCheck, label: "Tests", color: "text-amber-700 dark:text-amber-300" },
 ];
  
 const systemMenu: MenuItem[] = [

@@ -1,0 +1,1515 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "gemini/work_260607-a-dashboard-improvements",
+  "status": "2026-06-07 gemini/work_260607-a-dashboard-improvements. 플랫폼 대시보드 UI 개선 피드백 반영 및 신규 KPI(파이썬 스크립트 실행엔진 탑재)/테스트 대시보드 개발 완료.",
+  "updated_at": "2026-06-07T03:12:00Z",
+  "head_commit": "bddcfae",
+  "head_summary": "Merge pull request #490 from ykylee/mvs/work_260606-b-traceability-ci-auth-repo",
+  "milestones": {
+    "M0": {
+      "status": "done",
+      "ended_at": "2026-05-08",
+      "notes": "Authentication and authorization gate normalized. SEC-1..SEC-4 resolved."
+    },
+    "M1": {
+      "status": "done",
+      "started_at": "2026-05-08",
+      "ended_at": "2026-05-11",
+      "notes": "T-M1-01..08 모두 완결. RBAC track via PR #20-23, #29-31, #27, #28 (2026-05-08). PR-B + PR-C via #56 (envelope + types + WS + CommandStatus enum + dry-run/live boundary, 2026-05-11). PR-D via #57 (audit actor enrichment + request_id middleware + 000008 마이그레이션 + Codex P1 fix-up SetTrustedProxies(nil), 2026-05-11)."
+    },
+    "M2": {
+      "status": "done",
+      "started_at": "2026-05-08",
+      "ended_at": "2026-05-11",
+      "notes": "login_action sprint (2026-05-08): PR-LOGIN-1/2 (backend login + frontend form). work_26_05_11 sprint (2026-05-11): logout(#45/#51) + account password(#50) + deploy guide(#49). Track S (#52-#55) ships system_admin gating + /admin/settings + accounts admin endpoints + org chart drag/leader.",
+      "first_completion_sprint": "claude/login_usermanagement_finish (PR #85, 2026-05-12 머지) — M2 1차 완성 sprint: 로드맵 정합 + UX hygiene 묶음 (PR-UX1+2+3) + Kratos settings/password/after webhook → audit_logs (PR-M2-AUDIT) + 30 TC e2e 게이트 추가."
+    },
+    "CI": {
+      "status": "done",
+      "started_at": "2026-05-12",
+      "ended_at": "2026-05-13",
+      "notes": "GitHub Actions CI 도입. PR #86 (gemini/prepare-github-action) — backend-unit (go test ./...) + frontend-unit (Vitest) + e2e (Playwright 40 TC) 3잡. PR #87 (claude/work_260513-a) — playwright install scope (chromium 단일), actions/cache@v4 (go mod + ms-playwright), frontend readiness 120s, playwright install split. ADR-0003 + PR #88 (claude/work_260513-b) — no-docker 정책 CI 확장으로 services: postgres 제거 + pgdg native PG15 (pg-14 dropcluster + --port=5432 강제). FU-CI-1..4 모두 처리 완료."
+    },
+    "Governance": {
+      "status": "done (1차)",
+      "started_at": "2026-05-13",
+      "ended_at": "2026-05-13",
+      "notes": "PR #89 (claude/work_260513-c) — docs/governance/ (README + document-standards.md) + docs/traceability/ (README + conventions.md + sync-checklist.md + report.md) + .github/pull_request_template.md + AGENTS/GEMINI 진입점 안내. 1차 종합 매트릭스: REQ-FR 105 + REQ-NFR 26 + ARCH 17 + API 40 + RM 28 + IMPL 79 + UT 47 + TC 37 = 412 항목, 도메인 그룹 13행. PR #90 (claude/work_260513-d) — §5 gap 표 형식 통일 + §5.2/§5.3 일부 closed + 메타 헤더 표준화 9 문서."
+    },
+    "M-v1.0": {
+      "status": "in_progress",
+      "started_at": "2026-05-20",
+      "notes": "v1.0 Release 로드맵 진입. P0/P1 우선순위 과제 수행 중. 2026-05-21: P0-1, P0-2, P0-3, P1-1, P1-2, P1-5, P2-1, P2-4, P2-5, P1-bug 모두 완료 및 main 머지 완료. v1.0 release gate Gemini 분담 항목이 전부 완료되었습니다. 2026-05-28: PR #406 피드백을 수용하여 코드베이스 3대 레이어(Domain, Shared, Infrastructure) 및 도메인 내부 4대 계층(view, service, repository, schema) 세분화 설계 고도화 반영. ProviderModal 오너십 정정 및 추적성 리포트 갱신 완료."
+    }
+  },
+  "components": {
+    "frontend": {
+      "phase": "v1.0 마감 및 굳히기(Hardening) 수행 중. NOW-3 (N-3) SCM Draft/Publish E2E 통합 테스트 완결 (69개 시나리오 100% PASS) 및 NOW-4 (N-4) 프론트엔드 핵심 4대 모듈(store.ts, ProviderModal, MemberTable, PermissionEditor) 단위 테스트 90% 이상 상향 완료로 프론트엔드 총 962개 Vitest 유닛 테스트 100% PASS 성공.",
+      "auth": "Keycloak OIDC code flow with PKCE end-to-end (ADR-0019, 2026-05-19). tokenStore persists access/refresh/id; apiClient auto Authorization. AuthGuard 401 -> /login + system route gate. Header Sign Out drives Keycloak end_session_endpoint via id_token_hint. **e2e Kratos legacy 제거 및 dynamic idp_subject sync 도입 (PR #249 머지).**",
+      "build_check": "PASS — Next.js 16.2.4, 18 static pages.",
+      "rbac": "PermissionEditor at /admin/settings/permissions wired to /api/v1/rbac/policies. defaultLandingFor + isSystemAdmin + pathRequiresSystemAdmin in lib/auth/role-routing.ts."
+    },
+    "backend": {
+      "phase": "M1 + M2 done. Keycloak 단일 IdP (ADR-0019, 2026-05-19). 자체 /api/v1/auth/* proxy 폐기 (PR #167 KC-PR-D). 계정 admin (/api/v1/accounts {POST/PUT password/PATCH/DELETE}) 은 Keycloak Admin Client 로 위임. Audit enrichment (source_ip/request_id/source_type) + requireRequestID middleware + CommandStatus enum + envelope alignment. **Kratos 잔재 residual cleanup 완료 (sprint -ad)** — backend 11 파일 삭제 + identity_resolver.go 신규 + Kratos 흐름 완전 제거. account_password.go + kratos_login_client/settings_client/session_cache/admin_client + password_auth_types 모두 삭제. /api/v1/account/password endpoint 폐기 — Keycloak Account Console redirect 위임 (keycloak_operations.md §8.5b).",
+      "auth": "Keycloak JWKS-based BearerTokenVerifier (`internal/auth/keycloak_verifier.go`, PR #167 KC-PR-B) + enforceRoutePermission. JWKS cache (TTL 5분, [keycloak_verifier.go:37](../../backend-core/internal/auth/keycloak_verifier.go) `defaultJWKSTTL`) + resource_access.{client_id}.roles fallback. **stale-while-error fallback (PR #242 sprint -l, ADR-0020 sub-carve D)** — Keycloak unreachable 시 cachedUntil + MaxStaleDuration (default 24h, env `DEVHUB_OIDC_JWKS_MAX_STALE_DURATION`) 안 stale cache 사용. metric `devhub_jwks_stale_while_error_total{result}` + `devhub_jwks_stale_age_seconds` Histogram. Keycloak Admin Client (`internal/httpapi/keycloak_admin_client.go`, KC-PR-C) 가 account/admin operations 책임. SetTrustedProxies(nil) so audit_logs.source_ip cannot be forged via X-Forwarded-For. (historical Hydra introspection + Kratos 전체 흐름은 PR #167 + sprint -ad 정리로 모두 제거.)",
+      "test_check": "PASS — go test ./... (keycloak_verifier_test, keycloak_admin_client_test, RBAC, audit 등). **Kratos test 파일 정리 완료 (sprint -ad)** — kratos_admin_client_test / kratos_identity_resolver_test (→ identity_resolver_test rename) / kratos_login_fake_test / kratos_session_cache_test / kratos_settings_client_test / account_password_test 모두 삭제. identity_admin_mock_test.go 신규 (MockIdentityAdmin test-only 분리).",
+      "rbac": "rbac_policies seeded with developer/manager/system_admin. /api/v1/accounts gated as security:create / security:edit / organization:edit / organization:delete.",
+      "auth_envs": "DEVHUB_IDP_PROVIDER=keycloak, DEVHUB_OIDC_ISSUER_URL, DEVHUB_OIDC_CLIENT_ID, DEVHUB_OIDC_CLIENT_SECRET, DEVHUB_OIDC_AUDIENCE, DEVHUB_OIDC_JWKS_URL, DEVHUB_OIDC_JWKS_MAX_STALE_DURATION (default 24h, PR #242), DEVHUB_KEYCLOAK_ADMIN_URL, DEVHUB_KEYCLOAK_ADMIN_REALM, DEVHUB_KEYCLOAK_ADMIN_CLIENT_ID, DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET, DEVHUB_KEYCLOAK_EVENT_LISTENER_* (PR #189~#193 + #241 user sync 확장). historical DEVHUB_HYDRA_*/DEVHUB_KRATOS_* env 는 PR #167 머지로 제거.",
+      "request_context": "X-Request-ID 응답 헤더 + audit_logs.request_id 동일값. caller-supplied X-Request-ID 우선, 없으면 req_<hex24> 자동 생성 (DEC-3=B)."
+    },
+    "infra_idp": {
+      "scaffold": "Keycloak 단일 IdP (ADR-0019, 2026-05-19). infra/idp/ 의 historical hydra.yaml / kratos.yaml + setup README/ENVIRONMENT_NOTES 는 deprecation banner 추가 (PR #169) 후 보존. local dev embedded 모드는 keycloak_only_refactor_execution_plan §6.1, external 모드는 §6.2 참조.",
+      "deploy_guide": "docs/setup/test-server-deployment.md — Keycloak 기준 native 운영 (PR #167 KC-PR-F 정합화). docs/setup/environment-setup.md + e2e-test-guide.md 도 Keycloak 정합. infra/idp/README.md 는 deprecated (PR #169)."
+    }
+  },
+  "session_pointers": {
+    "session_handoff_path": "ai-workflow/memory/session_handoff.md",
+    "work_backlog_path": "ai-workflow/memory/work_backlog.md",
+    "integrated_roadmap": "docs/development_roadmap.md",
+    "frontend_roadmap": "docs/frontend_development_roadmap.md",
+    "backend_roadmap": "docs/backend_development_roadmap.md",
+    "deploy_guide": "docs/setup/test-server-deployment.md",
+    "adr_idp": "docs/adr/0001-idp-selection.md",
+    "adr_rbac": "docs/adr/0002-rbac-policy-edit-api.md",
+    "sprints": {
+      "m0_merge_roadmap": "ai-workflow/memory/claude/merge_roadmap/",
+      "m1_sprint_plan": "ai-workflow/memory/claude/m1-sprint-plan/backlog/2026-05-08.md",
+      "m2_login_action": "ai-workflow/memory/claude/login_action/backlog/2026-05-08.md",
+      "work_26_05_11": "ai-workflow/memory/claude/work_26_05_11/backlog/2026-05-11.md (CLOSED)",
+      "work_26_05_11_b": "ai-workflow/memory/claude/work_26_05_11-b/backlog/2026-05-11.md (CLOSED, PR #56)",
+      "work_26_05_11_c": "ai-workflow/memory/claude/work_26_05_11-c/backlog/2026-05-11.md (CLOSED, PR #57)",
+      "work_26_05_11_d": "ai-workflow/memory/claude/work_26_05_11-d/backlog/2026-05-11.md (CLOSED, PR #58)",
+      "work_260512_f": "ai-workflow/memory/claude/work_260512-f/ (CLOSED, PR #76 hardening + #77 close)",
+      "work_260512_g": "ai-workflow/memory/claude/work_260512-g/ (CLOSED, PR #78 follow-up + #79 close)",
+      "work_260512_i": "ai-workflow/memory/claude/work_260512-i/ (CLOSED, PR #80 PR-D follow-up + #81 close)",
+      "work_260512_j": "ai-workflow/memory/claude/work_260512-j/ (CLOSED, PR #82 second-pass fix + #83 close)",
+      "login_usermanagement_finish": "ai-workflow/memory/claude/login_usermanagement_finish/ (CLOSED, PR #85 M2 1차 완성 sprint — UX hygiene + Kratos audit + 30 TC)",
+      "gemini_prepare_github_action": "ai-workflow/memory/gemini/prepare-github-action/ (CLOSED, PR #86 GHA CI 그린 + 리뷰어 모드 2-pass)",
+      "work_260513_a": "ai-workflow/memory/claude/work_260513-a/ (CLOSED, PR #87 GHA 최적화 FU-CI-2/3/4 + main flat sync)",
+      "work_260513_b": "ai-workflow/memory/claude/work_260513-b/ (CLOSED, PR #88 ADR-0003 + native PG 15)",
+      "work_260513_c": "ai-workflow/memory/claude/work_260513-c/ (CLOSED, PR #89 governance + traceability + 1차 매트릭스)",
+      "work_260513_d": "ai-workflow/memory/claude/work_260513-d/ (CLOSED, PR #90 갭 분석 정리 + 메타 헤더 표준화 + main flat sync)",
+      "work_260513_e": "ai-workflow/memory/claude/work_260513-e/ (CLOSED, PR #91 A 묶음 — M1 PR-D 정합 마무리 + Pass 1 review 보강 흡수)",
+      "work_260513_f": "ai-workflow/memory/claude/work_260513-f/ (CLOSED, PR #92 B 묶음 — RBAC 도메인 1차 + Pass 1 review 보강으로 §3 행 정리)",
+      "work_260513_g": "ai-workflow/memory/claude/work_260513-g/ (CLOSED, PR #93 B1 auth 도메인 2차 — §11 본문 ID 노출 + IMPL-auth-01..07 책임 정의)",
+      "work_260513_h": "ai-workflow/memory/claude/work_260513-h/ (CLOSED, PR #94 B4 X-Devhub-Actor 폐기 ADR-0004 + Pass 1 review 보강으로 spec 잔재 6 위치 흡수)",
+      "work_260513_i": "ai-workflow/memory/claude/work_260513-i/ (CLOSED, PR #95 대형 묶음 B1~D5 — Pass 1 review clean)",
+      "work_260513_j": "ai-workflow/memory/claude/work_260513-j/ (CLOSED, PR #96 M3 진입 전 잔여 후속 일괄 — Pass 1 review e2e relax 보강)",
+      "work_260513_k": "ai-workflow/memory/claude/work_260513-k/ (CLOSED, PR #97 M3/M4 drift 정합 — Pass 1 review clean)",
+      "work_260513_l": "ai-workflow/memory/claude/work_260513-l/ (CLOSED, PR #98 M3 진입 1차 — RM-M3-01..03)",
+      "work_260513_m": "ai-workflow/memory/claude/work_260513-m/ (CLOSED, PR #99 M3 후속 1-4 일괄)",
+      "work_260513_n": "ai-workflow/memory/claude/work_260513-n/ (CLOSED, PR #100 M4 전 잔여 일괄)",
+      "work_260513_o": "ai-workflow/memory/claude/work_260513-o/ (CLOSED, PR #101 housekeeping sync)",
+      "work_260513_p": "ai-workflow/memory/claude/work_260513-p/ (CLOSED, PR #102 Project 도메인 컨셉 1차)",
+      "work_260513_q": "ai-workflow/memory/claude/work_260513-q/ (IN PROGRESS, 2026-05-13 세션 종료 housekeeping sync 2차 — PR #102 흡수)"
+    },
+    "governance_entry": "docs/governance/README.md",
+    "traceability_entry": "docs/traceability/README.md",
+    "traceability_matrix": "docs/traceability/report.md",
+    "adr_no_docker_ci": "docs/adr/0003-no-docker-policy-ci-scope.md"
+  },
+  "merged_prs_2026_05_11": [
+    {
+      "pr": 45,
+      "sprint": "work_26_05_11",
+      "title": "feat(auth): /api/v1/auth/logout proxy (PR-L1)",
+      "merge_commit": "61541da"
+    },
+    {
+      "pr": 51,
+      "sprint": "work_26_05_11",
+      "title": "feat(auth): /auth/logout + Kratos browser logout (PR-L2)",
+      "merge_commit": "858129f"
+    },
+    {
+      "pr": 50,
+      "sprint": "work_26_05_11",
+      "title": "feat(account): /account password via Kratos settings (PR-L3)",
+      "merge_commit": "205980e"
+    },
+    {
+      "pr": 49,
+      "sprint": "work_26_05_11",
+      "title": "docs(setup): test server deployment guide",
+      "merge_commit": "92b3459"
+    },
+    {
+      "pr": 52,
+      "sprint": "work_26_05_11",
+      "title": "feat(ui): role-based landing + system_admin sidebar gating (PR-S1)",
+      "merge_commit": "a2f707e"
+    },
+    {
+      "pr": 53,
+      "sprint": "work_26_05_11",
+      "title": "feat(ui): /admin/settings shell + relocate organization 4 tabs (PR-S2)",
+      "merge_commit": "2d0075e"
+    },
+    {
+      "pr": 54,
+      "sprint": "work_26_05_11",
+      "title": "feat(account): admin endpoints for issue/reset/disable/delete (PR-S3)",
+      "merge_commit": "b935876"
+    },
+    {
+      "pr": 55,
+      "sprint": "work_26_05_11",
+      "title": "feat(org): persist drag positions + leader change (PR-S4)",
+      "merge_commit": "818d54a"
+    },
+    {
+      "pr": 56,
+      "sprint": "work_26_05_11-b",
+      "title": "feat(M1 cleanup): envelope alignment + wire/UI split + CommandStatus enum (PR-B + PR-C)",
+      "merge_commit": "9b6b3ea"
+    },
+    {
+      "pr": 57,
+      "sprint": "work_26_05_11-c",
+      "title": "feat(audit): actor enrichment + request_id middleware (PR-D, M1 final)",
+      "merge_commit": "4e831a3"
+    },
+    {
+      "pr": 58,
+      "sprint": "work_26_05_11-d",
+      "title": "test: TDD foundation — Vitest + Playwright + first scenarios",
+      "merge_commit": "adce7ec"
+    }
+  ],
+  "merged_prs_2026_05_12": [
+    {
+      "pr": 76,
+      "sprint": "work_260512-f",
+      "title": "test(e2e): force-reset seeded passwords (PR-T3.5 hardening)",
+      "merge_commit": "e2393a3"
+    },
+    {
+      "pr": 77,
+      "sprint": "work_260512-f-close",
+      "title": "docs(memory): close work_260512-f slot",
+      "merge_commit": "354609b"
+    },
+    {
+      "pr": 78,
+      "sprint": "work_260512-g",
+      "title": "test(e2e): best-effort cleanup in password-change.spec (PR-T3.5 follow-up)",
+      "merge_commit": "6d2274c"
+    },
+    {
+      "pr": 79,
+      "sprint": "work_260512-g-close",
+      "title": "docs(memory): close work_260512-g slot",
+      "merge_commit": "9549395"
+    },
+    {
+      "pr": 80,
+      "sprint": "work_260512-i",
+      "title": "feat(audit): PR-D follow-up — commands enrichment + log request_id + TRUSTED_PROXIES",
+      "merge_commit": "ffcaec6"
+    },
+    {
+      "pr": 81,
+      "sprint": "work_260512-i-close",
+      "title": "docs(memory): close work_260512-i slot",
+      "merge_commit": "d40b73a"
+    },
+    {
+      "pr": 82,
+      "sprint": "work_260512-j",
+      "title": "fix(audit): fall back to nil trust when DEVHUB_TRUSTED_PROXIES invalid",
+      "merge_commit": "6121828"
+    },
+    {
+      "pr": 83,
+      "sprint": "work_260512-j-close",
+      "title": "docs(memory): close work_260512-j slot",
+      "merge_commit": "29a90bd"
+    },
+    {
+      "pr": 84,
+      "sprint": "main flat sync",
+      "title": "docs(memory): main flat state/handoff EOD update for 2026-05-12",
+      "merge_commit": "531ff8e"
+    },
+    {
+      "pr": 85,
+      "sprint": "login_usermanagement_finish",
+      "title": "feat(M2): 1차 완성 sprint — 로드맵 정합 + UX hygiene + Kratos audit",
+      "merge_commit": "84b2dde"
+    }
+  ],
+  "merged_prs_2026_05_13": [
+    {
+      "pr": 86,
+      "sprint": "gemini/prepare-github-action",
+      "title": "ci: E2E 테스트 안정화 및 GitHub Actions CI 파이프라인 구축",
+      "merge_commit": "450cc24"
+    },
+    {
+      "pr": 87,
+      "sprint": "work_260513-a",
+      "title": "ci: FU-CI-2/3/4 (playwright scope, GHA cache, frontend readiness) + main flat memory sync",
+      "merge_commit": "e86f38f"
+    },
+    {
+      "pr": 88,
+      "sprint": "work_260513-b",
+      "title": "docs(adr): ADR-0003 no-docker policy CI scope — drop services: postgres + native PG 15",
+      "merge_commit": "9268227"
+    },
+    {
+      "pr": 89,
+      "sprint": "work_260513-c",
+      "title": "docs: governance + traceability 체계 도입 + 1차 종합 매트릭스",
+      "merge_commit": "7fac5bf"
+    },
+    {
+      "pr": 90,
+      "sprint": "work_260513-d",
+      "title": "docs(governance,traceability): 갭 분석 정리 + 메타 헤더 표준화 + main flat sync",
+      "merge_commit": "ea8df91"
+    },
+    {
+      "pr": 91,
+      "sprint": "work_260513-e",
+      "title": "feat(backend): A 묶음 — M1 PR-D 정합 마무리 (writeRBACServerError + writeAuthLoginServerError 통합 + X-Request-ID validation + ctx 표준 request_id 전파)",
+      "merge_commit": "ae8b459"
+    },
+    {
+      "pr": 92,
+      "sprint": "work_260513-f",
+      "title": "docs(traceability,api): B 묶음 — RBAC API §12 IMPL 정밀 매핑 + 본문 ID 노출",
+      "merge_commit": "a73dba1"
+    },
+    {
+      "pr": 93,
+      "sprint": "work_260513-g",
+      "title": "docs(traceability,api): B1 auth 도메인 2차 — §11 본문 ID 노출 + IMPL-auth-01..07 책임 정의",
+      "merge_commit": "594be74"
+    },
+    {
+      "pr": 94,
+      "sprint": "work_260513-h",
+      "title": "docs(adr): ADR-0004 X-Devhub-Actor 폐기 완료 선언 (B4)",
+      "merge_commit": "ceb0f6f"
+    },
+    {
+      "pr": 95,
+      "sprint": "work_260513-i",
+      "title": "docs(traceability,adr,ci),test(frontend): 대형 묶음 B1~D5",
+      "merge_commit": "cb9e6d5"
+    },
+    {
+      "pr": 96,
+      "sprint": "work_260513-j",
+      "title": "feat(auth),docs(adr,api,traceability),test: M3 진입 전 잔여 후속 일괄",
+      "merge_commit": "f551e6a"
+    },
+    {
+      "pr": 97,
+      "sprint": "work_260513-k",
+      "title": "docs(roadmap,traceability): M3/M4 drift 정합",
+      "merge_commit": "3d7d5a2"
+    },
+    {
+      "pr": 98,
+      "sprint": "work_260513-l",
+      "title": "feat(auth),docs(adr,api,traceability),test: M3 진입 1차 — RM-M3-01..03",
+      "merge_commit": "b1268ce"
+    },
+    {
+      "pr": 99,
+      "sprint": "work_260513-m",
+      "title": "feat(hrdb,org,signup),docs(adr,traceability),test: M3 후속 1-4 일괄",
+      "merge_commit": "c7c2f35"
+    },
+    {
+      "pr": 100,
+      "sprint": "work_260513-n",
+      "title": "feat(domain,migrations),docs(adr,traceability),scripts: M4 전 잔여 일괄",
+      "merge_commit": "4134b37"
+    },
+    {
+      "pr": 101,
+      "sprint": "work_260513-o",
+      "title": "docs(memory): 2026-05-13 세션 종료 housekeeping sync",
+      "merge_commit": "118899b"
+    },
+    {
+      "pr": 102,
+      "sprint": "work_260513-p",
+      "title": "docs(planning): Project 도메인 컨셉 1차 — CRUD + 등록 + 조회 MVP scope",
+      "merge_commit": "244f6b1"
+    }
+  ],
+  "discarded_sprints_2026_05_12": [
+    {
+      "slot": "work_260512-h",
+      "reason": "진입 직후 후보 (M2 hygiene users.kratos_identity_id) 가 PR-L4 (809f525, work_26_05_11-e) 에 이미 머지된 것 확인. 신규 작업 없어 폐기."
+    }
+  ],
+  "merged_prs_2026_05_14": [
+    {
+      "pr": 104,
+      "sprint": "codex/project_concept_design",
+      "title": "docs: Application/Repository/Project 설계 고도화 및 SCM 어댑터 모델 정리 + self-review 13건 보강",
+      "merge_commit": "63a7ea2"
+    },
+    {
+      "pr": 105,
+      "sprint": "claude/work_260514-a",
+      "title": "feat(application,adr,docs): Application Design 1차 + ADR-0011 결정 + self-review 10건 보강",
+      "merge_commit": "642d976"
+    },
+    {
+      "pr": 106,
+      "sprint": "claude/work_260514-b",
+      "title": "feat(application,store,httpapi,docs): Application Design 2차 — A1+A2+A3 (API-41~50 activated) + self-review 9건 보강",
+      "merge_commit": "66ab5ff"
+    },
+    {
+      "pr": 107,
+      "sprint": "claude/work_260514-c",
+      "title": "feat(application,store,httpapi,docs): API-51~58 세트 활성화 + active→closed critical 가드 + self-review 11건 보강",
+      "merge_commit": "f11bdbb"
+    },
+    {
+      "pr": 108,
+      "sprint": "claude/work_260514-d",
+      "title": "fix(application,store,httpapi): PR #107 codex review hotfix — P1 custom weight normalize + P2 UpdateIntegration unique mapping",
+      "merge_commit": "7822a91"
+    },
+    {
+      "pr": 109,
+      "sprint": "claude/work_260514-e",
+      "title": "test(store): postgres integration test 도입 + P1/P2 회귀 guard (23 test)",
+      "merge_commit": "1e38c4d"
+    },
+    {
+      "pr": 110,
+      "sprint": "claude/work_260514-f",
+      "title": "fix(test,ci,store): PR #109 codex review hotfix — B1 fixture + I1 setup + I3 backend-integration job + 2 SQL fix + GITHUB_STEP_SUMMARY",
+      "merge_commit": "d29f2ac"
+    },
+    {
+      "pr": 112,
+      "sprint": "codex/frontend_color_review",
+      "title": "feat(frontend/org): Admin UI 개선, iPad 터치 안정화 및 백엔드 트랜잭션 강화 — ActionMenu 공통 컴포넌트 + 테마 토큰 정리 + 조직 단위 생성/수정 트랜잭션",
+      "merge_commit": "3f387cd"
+    }
+  ],
+  "merged_prs_2026_05_15": [
+    {
+      "pr": 115,
+      "sprint": "gemini/frontend_redesign_260514",
+      "title": "feat(frontend): Light theme + dropdown refactor + endpoints 통일 + standalone gate + Switch View 테스트 정리",
+      "merge_commit": "b669bc7"
+    },
+    {
+      "pr": 114,
+      "sprint": "codex/260514-a",
+      "title": "feat(application): leader/dev_unit 모델 확장 + applications 검색 확장 + auth_login 보완 + search predicate refactor + leader backfill",
+      "merge_commit": "25f97ba"
+    },
+    {
+      "pr": 116,
+      "sprint": "claude/work_260515-a",
+      "title": "docs(memory): 2026-05-15 sprint claude/work_260515-a housekeeping",
+      "merge_commit": "cbc36b0"
+    },
+    {
+      "pr": 117,
+      "sprint": "claude/work_260515-b",
+      "title": "refactor(frontend): PR #114 신규 컴포넌트 token 정책 일관 sweep — Application/Project/Repository 모달 3종 + Table 3종",
+      "merge_commit": "68f031e"
+    },
+    {
+      "pr": 118,
+      "sprint": "claude/work_260515-c",
+      "title": "feat(httpapi,adr): enforceRowOwnership helper — ADR-0011 §4.2 + REQ-FR-PROJ-009 활성화",
+      "merge_commit": "519a508"
+    },
+    {
+      "pr": 119,
+      "sprint": "claude/work_260515-d",
+      "title": "fix(frontend,backend,migrations): codex review hotfix — PR #114 + PR #118 (pmo_manager seed migration 000021 + handler wire + e2e regex anchor)",
+      "merge_commit": "bca612e"
+    },
+    {
+      "pr": 120,
+      "sprint": "claude/work_260515-e",
+      "title": "docs(memory): 2026-05-15 sprint claude/work_260515-e housekeeping",
+      "merge_commit": "feac299"
+    },
+    {
+      "pr": 121,
+      "sprint": "claude/work_260515-f",
+      "title": "docs(planning,requirements,architecture,api,roadmap,traceability): Dev Request (DREQ) 도메인 컨셉~설계 staged",
+      "merge_commit": "52f6ad8"
+    },
+    {
+      "pr": 122,
+      "sprint": "claude/work_260515-g",
+      "title": "docs(adr,...): ADR-0012 — DREQ 외부 수신 인증 정책 (옵션 A 채택)",
+      "merge_commit": "4d0277f"
+    },
+    {
+      "pr": 123,
+      "sprint": "claude/work_260515-h",
+      "title": "fix(migrations,docs,memory): codex review hotfix #2 — PR #119/#120/#121",
+      "merge_commit": "1d24acf"
+    },
+    {
+      "pr": 124,
+      "sprint": "claude/work_260515-i",
+      "title": "feat(domain,store,httpapi,migrations): DREQ-Backend 1차 — API-59..65 activated",
+      "merge_commit": "333edc9"
+    },
+    {
+      "pr": 125,
+      "sprint": "claude/work_260515-j",
+      "title": "feat(frontend,dev-request): DREQ-Frontend 1차 — 담당자 dashboard 위젯 + 관리 페이지",
+      "merge_commit": "58033d2"
+    },
+    {
+      "pr": 126,
+      "sprint": "claude/work_260515-k",
+      "title": "fix(backend,frontend,migrations,memory): codex review hotfix #3 — PR #122/#124/#125",
+      "merge_commit": "bb164c4"
+    },
+    {
+      "pr": 127,
+      "sprint": "claude/work_260515-l",
+      "title": "docs(memory): 2026-05-15 final EOD housekeeping (sprint claude/work_260515-l)",
+      "merge_commit": "efec655"
+    },
+    {
+      "pr": 128,
+      "sprint": "claude/work_260515-m",
+      "title": "feat(domain,store,httpapi,docs): DREQ-Promote-Tx 단일 트랜잭션 + ADR-0013 RBAC row-scoping",
+      "merge_commit": "1f9ec50"
+    },
+    {
+      "pr": 129,
+      "sprint": "claude/work_260515-n",
+      "title": "fix(backend,docs,memory): codex review hotfix #4 — PR #128 의 P1 + P2 + self-review P2 #1",
+      "merge_commit": "5546a41"
+    },
+    {
+      "pr": 130,
+      "sprint": "claude/work_260515-o",
+      "title": "feat(domain,store,httpapi,migrations,docs): DREQ-Admin-UI backend — intake token admin (API-66..68) + ADR-0014",
+      "merge_commit": "0bdf299"
+    },
+    {
+      "pr": 131,
+      "sprint": "claude/work_260515-p",
+      "title": "feat(frontend,dev-request): DREQ-Admin-UI frontend — /admin/settings/dev-request-tokens 페이지 + plain-1회-노출 modal",
+      "merge_commit": "2147d6d"
+    },
+    {
+      "pr": 132,
+      "sprint": "claude/work_260515-q",
+      "title": "docs(memory): 2026-05-15 post-EOD housekeeping (sprint claude/work_260515-q)",
+      "merge_commit": "253063e"
+    },
+    {
+      "pr": 133,
+      "sprint": "codex/docker-packaging-guide",
+      "title": "Docker deploy 패키지 안정화 + E2E 43/43 정합화 — docker-compose.deploy.yml + local-db profile + Hydra/Kratos deploy yaml + nginx + /api/runtime-config + docker-image-publish.yml workflow",
+      "merge_commit": "4892a78"
+    },
+    {
+      "pr": 134,
+      "sprint": "gemini/dreq_e2e_260515",
+      "title": "feat(frontend): stabilize dashboard UI and optimize logout performance — DashboardHeader + LogoutOverlay + real charts + widget interactivity",
+      "merge_commit": "09528bf"
+    },
+    {
+      "pr": 135,
+      "sprint": "codex/memory-next-step-20260515",
+      "title": "[Docs] External Integration 컨셉~설계 초안 패키지 — REQ-FR-INT + REQ-NFR-INT + UC-INT + ARCH-INT + API-69..78 + capability matrix + IMPL-int planned + TC-INT",
+      "merge_commit": "62a2088"
+    }
+  ],
+  "merged_prs_2026_05_16": [
+    {
+      "pr": 136,
+      "sprint": "codex/e2e-fix-20260515",
+      "title": "test(e2e): stabilize dev-request and signout flows — strict locator + 타임스탬프 unique title + 위젯→list→detail flow 정합 + signout login form visibility 기반 검증",
+      "merge_commit": "c61274b"
+    },
+    {
+      "pr": 137,
+      "sprint": "gemini/dreq_e2e_260515",
+      "title": "feat(dreq): implement token expiration policy and IP mutation endpoint — migration 000027 expires_at + auth_intake_token_expired + PATCH /api/v1/dev-request-tokens/:token_id allowed_ips mutation",
+      "merge_commit": "72bf265"
+    }
+  ],
+  "merged_prs_2026_05_17": [
+    {
+      "pr": 138,
+      "sprint": "gemini/main_review_260516",
+      "title": "feat: 대시보드 리팩토링 + FilterBar 표준화 + DREQ E2E 안정화 — Applications/Repositories/Projects 전용 현황 페이지 신설 + FilterBar 공통 컴포넌트 + 감사로그 Glassmorphism",
+      "merge_commit": "c0134a1"
+    },
+    {
+      "pr": 139,
+      "sprint": "codex/next-step-20260516",
+      "title": "feat(infra/integration): HomeLab pull adapter, persistence, and Prometheus observability — integration_registry + infra_snapshots + HomeLab file/HTTP puller + retry/backoff + pull loop scheduler + Prometheus /metrics + API-73..78 활성화 + migration 000028/000029",
+      "merge_commit": "e2a76fb"
+    },
+    {
+      "pr": 140,
+      "sprint": "gemini/ui_standardization_260517",
+      "title": "feat: standardize FilterBar and stabilize frontend/backend build & E2E — dev-requests page FilterBar 적용 + DestructiveConfirmModal 도입 + IssueIntakeTokenModal Show/Hide toggle + 감사로그 리디자인",
+      "merge_commit": "caa80c7"
+    }
+  ],
+  "merged_prs_2026_05_18": [
+    {
+      "pr": 141,
+      "sprint": "claude/work_260518-a",
+      "title": "docs(memory): 2026-05-18 메모리 갭 동기화 — 외부 에이전트 8 PR (#133~#140) flat memory 흡수 + DREQ P2 carve out 6/6 모두 해소 확인 + External Integration 도메인 1차 흡수",
+      "merge_commit": "98fa4a7"
+    },
+    {
+      "pr": 142,
+      "sprint": "claude/work_260518-b",
+      "title": "docs(traceability): 외부 8 PR 사후 추적성 동기화 — §2.2 DREQ API §14 sub 표 API-66/67/68 + API-79 + §3 매트릭스 DREQ row + §5.1 E2E 미커버 표 + §6 변경 이력 PR #133~#141",
+      "merge_commit": "d1461bd"
+    },
+    {
+      "pr": 143,
+      "sprint": "claude/work_260518-c",
+      "title": "docs(adr,traceability): ADR-0015 (HomeLab pull strategy) + ADR-0016 (Prometheus alerts policy) + ADR-0017 (DREQ intake token operational hardening) 3 신규 발급 + ADR-0014 §6 갱신",
+      "merge_commit": "d2c0031"
+    },
+    {
+      "pr": 144,
+      "sprint": "claude/work_260518-d",
+      "title": "test(e2e),docs(tests,traceability): DREQ-E2E TC 정식 발급 (13건) + spec ts test.step() 마킹 + 신규 2 test (INTAKE-AUTH-NEG-01 + ADMIN-TOKEN-PATCH-01) — test_cases_m5_dreq.md 신규",
+      "merge_commit": "d24a41e"
+    },
+    {
+      "pr": 145,
+      "sprint": "codex/docker-packaging-guide",
+      "title": "배포 패키징 안정화 + 로컬 이미지 참조/스모크 이슈 수정 — IMAGE_REPO_PREFIX + local-db profile db-init + DEV_FALLBACK=0 + Hydra --dev 제거 + system secret env + runtime-config forwarded-header 신뢰 제거 + codex P1/P2 해소 commit",
+      "merge_commit": "f2e18a2"
+    },
+    {
+      "pr": 146,
+      "sprint": "claude/work_260518-e",
+      "title": "fix(backend,docs,traceability): codex review hotfix #5 — PR #142 (§2.2 API-78→79) + PR #143 (ADR-0015 default vs 권장값 + ADR-0017 PATCH revoked guard + 회귀 가드 3 unit test) 의 P2 3건",
+      "merge_commit": "52981b9"
+    },
+    {
+      "pr": 147,
+      "sprint": "claude/work_260518-f",
+      "title": "docs(adr,traceability),test: PR #146 self-review 후속 — ADR-0017 §6 atomicity carve out (race window 명시 + CTE + FOR UPDATE reference SQL) + test 회귀 시나리오 주석 보강",
+      "merge_commit": "951c0c8"
+    },
+    {
+      "pr": 148,
+      "sprint": "claude/work_260518-g",
+      "title": "feat(frontend,integration),docs(tests,traceability): External Integration frontend 진입점 1차 — /admin/settings/integrations 페이지 + ProviderTable + ProviderModal + integration.{service,types}.ts + layout subTabs",
+      "merge_commit": "7b4ad18"
+    },
+    {
+      "pr": 149,
+      "sprint": "claude/work_260518-h",
+      "title": "test(e2e),docs(tests,traceability): admin-integrations.spec.ts 신규 — TC-INT-FRONTEND-* 5건 active (mega lifecycle 4 step + RBAC negative)",
+      "merge_commit": "bb83520"
+    },
+    {
+      "pr": 150,
+      "sprint": "claude/work_260518-i",
+      "title": "fix(frontend,test,adr,traceability): codex review hotfix #6 — PR #147 + #148 + #149 의 P1 ×2 (useEffect toast dep + syncProvider 응답 형식) + P2 ×2 (ADR-0017 CTE LEFT JOIN empty → not-found 분기 불가 + spec ts SYNC assertion 약함)",
+      "merge_commit": "99c0833"
+    },
+    {
+      "pr": 151,
+      "sprint": "claude/work_260518-j",
+      "title": "feat(backend,frontend,test,docs): API-80 DELETE integration provider endpoint + FK guard (binding count > 0 시 409 has_bindings) + handler 4 unit test + DestructiveConfirmModal + spec ts mega test DELETE step 5",
+      "merge_commit": "51c79af"
+    },
+    {
+      "pr": 152,
+      "sprint": "claude/work_260518-k",
+      "title": "docs(memory): 2026-05-18 EOD 종합 housekeeping — 단일 일자 11 PR (a..k claude 10 + 외부 #145 codex 1) 종합 sync",
+      "merge_commit": "4056ab4"
+    },
+    {
+      "pr": 153,
+      "sprint": "claude/work_260518-l",
+      "title": "fix(memory,traceability): codex review hotfix #7 — PR #149 merge_commit SHA d24a41e → bb83520 정정",
+      "merge_commit": "f11a8c7"
+    },
+    {
+      "pr": 154,
+      "sprint": "claude/work_260518-m",
+      "title": "feat(frontend,integration),docs(tests,traceability): External Integration bindings 관리 UI 1차 — /admin/settings/integration-bindings + BindingsTable + CreateBindingModal + service/types wrapper (API-74 GET / API-75 POST) + layout subTabs Bindings + admin-integration-bindings.spec.ts (3 test) + 5 hotfix iteration (CSS locator + DOM data-provider-id + SYNC enabled gate + page.evaluate fetch + sessionStorage Bearer)",
+      "merge_commit": "b5bc54b"
+    },
+    {
+      "pr": 155,
+      "sprint": "claude/work_260518-n",
+      "title": "feat(frontend,integration),docs(tests,traceability): Infra topology v2 시각화 1차 — /admin/topology-v2 + React Flow + nodes/services/edges 매핑 + degraded providers banner + snapshot_at 메타 + node click modal + infraService.getTopologyV2() + admin-topology-v2.spec.ts (3 test)",
+      "merge_commit": "dc0ed1c"
+    },
+    {
+      "pr": 156,
+      "sprint": "claude/work_260518-o",
+      "title": "fix(backend,store,adr,test): ADR-0017 §6 atomicity 실 구현 — UpdateDevRequestIntakeTokenIPs 단일 CTE + FOR UPDATE row lock + (VALUES (1)) AS root(_) anchor 패턴 + TestIntegration_UpdateDevRequestIntakeTokenIPs_Atomicity (Happy/NotFound/Revoked/ConcurrentUpdateAndRevoke 4 sub-test)",
+      "merge_commit": "eaa91a7"
+    },
+    {
+      "pr": 157,
+      "sprint": "claude/work_260518-p",
+      "title": "fix(backend,adapter,config,adr,docs): ADR-0015 §6 carve outs (1)+(2) — size limit + streaming decode (file os.Stat + HTTP Content-Length + io.LimitReader + json.NewDecoder streaming) + DEVHUB_HOMELAB_PULL_MAX_BYTES env + 5 회귀 unit test + agent token rotation SOP (docs/setup/homelab_agent_token_rotation.md 신규)",
+      "merge_commit": "6648105"
+    },
+    {
+      "pr": 158,
+      "sprint": "claude/work_260518-q",
+      "title": "docs(memory,reports): 2026-05-18 post-EOD #1 종합 housekeeping + Jira 보고용 개발 현황 status 문서 (10 항목 + Mermaid + ASCII mockup + 캡처 가이드)",
+      "merge_commit": "87fb93e"
+    },
+    {
+      "pr": 159,
+      "sprint": "claude/work_260518-r",
+      "title": "docs(reports): Jira 보고 status 문서 self-review hotfix — P1 3건 (ARCH 29 / TC 12 / M1 RBAC PR 범위) + P2 4건 (Mermaid caveat / sprint code 안내 / 부록 A PR #158)",
+      "merge_commit": "79c0ec3"
+    },
+    {
+      "pr": 160,
+      "sprint": "claude/work_260518-s",
+      "title": "docs(adr,setup,traceability): ADR-0016 §6 carve outs (1)+(2) resolved — Alertmanager 운영 가이드 (외부 git 이관 layout + stage/prod raw YAML + 라우팅 + 운영 SOP) + Grafana dashboard JSON 모델 (5 panel + Prometheus datasource + environment template variable)",
+      "merge_commit": "31cdad6"
+    },
+    {
+      "pr": 161,
+      "sprint": "claude/work_260518-t",
+      "title": "feat(backend,devrequest,store,adr,setup,test): ADR-0017 §6 (a)+(c)+(d) resolved — DREQ intake token cron + 만료/staleness Prometheus metric + audit dev_request_intake_token.auto_revoked + counter devhub_intake_token_auto_revoked_total + 5 cron unit test + 3 store integration sub-test",
+      "merge_commit": "8802a5b"
+    },
+    {
+      "pr": 162,
+      "sprint": "claude/work_260518-u",
+      "title": "docs(planning,traceability): 단일 외부 포트 reverse proxy design 검토 — /devhub prefix + backend/Hydra/Kratos sub-path + nginx 권장 + Mermaid 토폴로지 + OIDC URL 정합 + cookie scope + 보안 점검 + cutover 절차 + ADR-0018 후보",
+      "merge_commit": "338c430"
+    },
+    {
+      "pr": 163,
+      "sprint": "claude/work_260518-v",
+      "title": "docs(planning,traceability): 외부 Keycloak SSO federation design 검토 — Kratos upstream OIDC provider + HRDB employee_id strict link + claim mapping + audit auth.sso.* 4 action + cutover Phase 2/3/4 + ADR-0019 후보 (RM-M4-09 구체화)",
+      "merge_commit": "cdd73b0"
+    },
+    {
+      "pr": 164,
+      "sprint": "claude/work_260518-w",
+      "title": "fix(backend,frontend,docs): codex review hotfix #8 — P1 3건 (HTTP puller ErrUnexpectedEOF retry 회귀 + PromQL env scoping + Hydra admin URL) + P2 6건 (scopeFilter prepend / spec react-flow assertion / file puller trailing JSON / ADR-0006+0012 link / NoRecentSuccess aggregation)",
+      "merge_commit": "4dd02ad"
+    },
+    {
+      "pr": 165,
+      "sprint": "claude/work_260518-x",
+      "title": "docs(memory,roadmap,traceability): 2026-05-18 post-EOD #2 종합 housekeeping + 로드맵 갱신 (sprint -r..w 6 PR sync + ADR carve out 누적 8건 + ADR-0018/0019 후보 메모)",
+      "merge_commit": "3e25628"
+    },
+    {
+      "pr": 166,
+      "sprint": "gemini/reverse-proxy",
+      "title": "feat(infra): implement single-port reverse proxy (ADR-0018) — nginx skeleton + Next.js basePath /devhub + endpoints.ts dynamic + test-server-deployment 가이드 + Same-Origin CORS 무력화",
+      "merge_commit": "694e694"
+    },
+    {
+      "pr": 167,
+      "sprint": "codex/keycloak-only-refactor-plan",
+      "title": "refactor(idp): finalize keycloak-only transition and clean legacy hydra/kratos paths — Keycloak verifier + admin client + migration 000021 (kratos_identity_id → idp_subject) + JWKS cache + resource_access role fallback + frontend OIDC discovery + Hydra/Kratos 코드 대거 삭제 (KC-PR-A..F 6단계 단일 묶음)",
+      "merge_commit": "dff487d"
+    },
+    {
+      "pr": 168,
+      "sprint": "codex/keycloak-only-refactor-plan-housekeeping",
+      "title": "chore(workflow): update global memory state after merging PR #167 — main flat state/handoff/work_backlog 후속 sync (외부 codex 작성)",
+      "merge_commit": "09f4ca1"
+    }
+  ],
+  "merged_prs_2026_05_19": [
+    {
+      "pr": 169,
+      "sprint": "claude/work_260519-a",
+      "title": "docs(adr,planning,traceability): ADR-0019 재산정 — Keycloak 단일화 사후 명문화 + ADR-0001 supersession — §3 결정 근거 6 항목 + §4 KC-PR-A..F 머지 사실 + §5.3 carve out 8 항목 + §5.4 RM-M4-09 의미 재정의 + ADR-0001 본문 8개 위치 supersession banner + 14 추가 정합 docs",
+      "merge_commit": "3018927"
+    },
+    {
+      "pr": 170,
+      "sprint": "claude/work_260519-b",
+      "title": "docs(memory): main flat memory housekeeping — sprint -a 흡수 + 외부 누락 PR #165/#166/#167/#168 사후 등록 + auto-memory entry",
+      "merge_commit": "d442e17"
+    },
+    {
+      "pr": 171,
+      "sprint": "claude/work_260519-c",
+      "title": "docs(setup,adr,traceability): ADR-0019 §5.3 carve out (1)+(2)+(3) resolved — Keycloak operations SOP 단일 통합 문서 신규 (realm/client/role + JWKS rotation + Keycloak ↔ HRDB sync employee_id custom claim)",
+      "merge_commit": "23602f5"
+    },
+    {
+      "pr": 172,
+      "sprint": "claude/work_260519-d",
+      "title": "docs(setup,adr,traceability): ADR-0019 §5.3 carve out (4) SSO logout chain (RP-initiated logout) resolved — keycloak_operations.md §8.5 (frontend auth.service.ts RP-initiated 구현 인용 + admin console SOP + chain order + 보안 4 위협)",
+      "merge_commit": "d11917b"
+    },
+    {
+      "pr": 173,
+      "sprint": "claude/work_260519-e",
+      "title": "docs(planning,adr,traceability): ADR-0019 §5.3 carve out (9) audit event listener design resolved — keycloak_event_audit_integration.md 신규 (옵션 3종 + 권장 B admin event polling + audit_logs action 매핑 25 row + 구현 PR-A..E + ADR-0020 후보)",
+      "merge_commit": "6245bda"
+    },
+    {
+      "pr": 174,
+      "sprint": "claude/work_260519-f",
+      "title": "docs(planning,adr,setup,traceability): ADR-0019 §5.3 carve out (8) Keycloak groups → DevHub RBAC role 자동 매핑 design resolved — keycloak_groups_rbac_mapping.md 신규 (옵션 4종 + 권장 B group composite realm role + backend 변경 없음)",
+      "merge_commit": "947bd2f"
+    },
+    {
+      "pr": 175,
+      "sprint": "claude/work_260519-g",
+      "title": "docs(planning,adr,setup,traceability): ADR-0019 §5.3 carve out (7) off-boarding 즉시성 design resolved + ADR-0008 §6 통합 — keycloak_offboarding_immediacy.md 신규 (옵션 6종 + Phase 1 HR ETL push + Phase 2 LDAP federation)",
+      "merge_commit": "aa0c029"
+    },
+    {
+      "pr": 176,
+      "sprint": "claude/work_260519-h",
+      "title": "docs(planning,adr,setup,traceability): ADR-0019 §5.3 carve out (6) Keycloak failover design resolved — keycloak_failover.md 신규 (옵션 6종 + Phase 1 graceful degradation + Phase 2 HA active-active + 옵션 E backup IdP 명시 제외)",
+      "merge_commit": "455556b"
+    },
+    {
+      "pr": 177,
+      "sprint": "claude/work_260519-i",
+      "title": "docs(memory): main flat memory housekeeping + ADR-0019 §5.3 design 완결 milestone 명문화 (sprint -c~-h 흡수, 7/7 = 100%)",
+      "merge_commit": "aac7cf5"
+    },
+    {
+      "pr": 178,
+      "sprint": "claude/work_260519-j",
+      "title": "docs(memory,setup,planning,traceability): codex review hotfix #9 — sprint -b~-h 7 PR P2 inline 9건 일괄 흡수 (Kratos 잔재 / SetIdPSubject / JWKS TTL / logout URI / event API path / Default Group 철회 / admin path / hrdb schema / failover window)",
+      "merge_commit": "22a1c15"
+    },
+    {
+      "pr": 179,
+      "sprint": "claude/work_260519-k",
+      "title": "fix(infra): Keycloak 단일화 정합 — docker-compose.deploy.yml + infra/nginx Hydra+Kratos → Keycloak (nginx upstream + /devhub/auth/keycloak/ location + Keycloak service quay.io/keycloak:26.0 + KC_HTTP_RELATIVE_PATH 정합)",
+      "merge_commit": "b3f8153"
+    },
+    {
+      "pr": 180,
+      "sprint": "claude/work_260519-l",
+      "title": "fix(migrations): critical — 000021 prefix 중복 충돌 정정 + 운영 DB 정정 SOP (git mv 000021_rename_kratos_identity → 000030 + docs/setup/migration_000021_conflict_resolution.md 신규)",
+      "merge_commit": "38e09aa"
+    },
+    {
+      "pr": 181,
+      "sprint": "claude/work_260519-m",
+      "title": "docs(planning,adr,frontend,traceability): frontend e2e Kratos → Keycloak admin API migration design + deprecation 명시 (e2e_keycloak_migration.md 신규 + .env.example + global-setup.ts + fixtures.ts deprecation 주석)",
+      "merge_commit": "12cdf81"
+    },
+    {
+      "pr": 182,
+      "sprint": "claude/work_260519-n",
+      "title": "docs(memory): 2026-05-19 main flat memory housekeeping — sprint -j~-m 4 PR 흡수 + ADR-0019 §5.3 10/10 milestone 명문화",
+      "merge_commit": "871d6f0"
+    },
+    {
+      "pr": 183,
+      "sprint": "claude/work_260519-o",
+      "title": "ci(migrations): migration-prefix-lint job 신규 — sprint -l §6 carve 구현 (golang-migrate 동일 version multiple file 회귀 차단, 회복 SOP link)",
+      "merge_commit": "1de2253"
+    },
+    {
+      "pr": 184,
+      "sprint": "claude/work_260519-p",
+      "title": "feat(scripts): off-boarding Phase 1 운영 cron — scripts/hrdb_etl_sync.sh 신규 (client_credentials grant + system_id 순회 + UPDATE users status + Keycloak user disable + force logout, sprint -g design §3.1 옵션 C 구현)",
+      "merge_commit": "4cc6f2a"
+    },
+    {
+      "pr": 185,
+      "sprint": "claude/work_260519-q",
+      "title": "feat(auth): extractKeycloakRole multi-role priority filter — sprint -j codex review #9 backend 확장 carve #1 (devhubRolePriority map + selectHighestPriorityRole helper + 9건 test, order-dependency 해소)",
+      "merge_commit": "db5addf"
+    },
+    {
+      "pr": 186,
+      "sprint": "claude/work_260519-r",
+      "title": "feat(auth): JWKS kid mismatch stale-while-error fallback — sprint -j codex review #9 backend 확장 carve #2 (errKidMismatch sentinel + parseWithJWKS helper + invalidateCache + 1회 retry + 2건 test, key rotation 사용자 영향 없음)",
+      "merge_commit": "8470302"
+    },
+    {
+      "pr": 187,
+      "sprint": "claude/work_260519-s",
+      "title": "feat(frontend): basePath 포함 logout URI — sprint -j codex review #9 backend 확장 carve #3 (endpoints.ts BASE_PATH export + auth.service.ts OIDC_REDIRECT_URI + post_logout_redirect_uri 가 ${origin}${BASE_PATH}/* 정합)",
+      "merge_commit": "5c36653"
+    },
+    {
+      "pr": 188,
+      "sprint": "claude/work_260519-t",
+      "title": "feat(auth): 자동 idp_subject sync — sprint -j codex review #9 backend 확장 carve #4 마지막 (authenticateActor GetUser 성공 분기에서 user.IdPSubject 가 빈 경우 actor.Subject 로 lazy backfill + 2건 test)",
+      "merge_commit": "cebf255"
+    },
+    {
+      "pr": 189,
+      "sprint": "claude/work_260519-u",
+      "title": "feat(audit): ADR-0019 §5.3 (9) audit event listener Phase 2 PR-B skeleton — migration 000031 event_cursors + EventCursorStore + KeycloakAdminClient List(User|Admin)Events + RunKeycloakEventPuller cron worker + 매핑 표 22 row + default skip 3 type + SHA256 dedup + 14건 test",
+      "merge_commit": "d6e0f99"
+    },
+    {
+      "pr": 190,
+      "sprint": "claude/work_260519-v",
+      "title": "feat(audit,main): ADR-0019 §5.3 (9) audit event listener Phase 2 PR-C wire + metric + integration test — domain.AuditSourceKeycloakEvent + Prometheus 3종 metric (events_processed_total / cursor_lag_seconds / pull_errors_total) + main.go cron wire + config 3 env + integration end-to-end + metric 4건 test",
+      "merge_commit": "2ddece2"
+    },
+    {
+      "pr": 191,
+      "sprint": "claude/work_260519-w",
+      "title": "feat(audit,store): ADR-0019 §5.3 (9) audit event listener Phase 2 PR-D store-level dedup — migration 000032 audit_logs.source_event_id + partial UNIQUE INDEX (source_type, source_event_id) WHERE NOT NULL AND source_type IS NOT NULL + domain.AuditLog.SourceEventID + ON CONFLICT DO NOTHING + getAuditLogBySourceEventID lookup + 3건 store integration test",
+      "merge_commit": "49bfb92"
+    },
+    {
+      "pr": 192,
+      "sprint": "claude/work_260519-x",
+      "title": "docs(setup): ADR-0019 §5.3 (9) audit event listener Phase 2 PR-E 운영 SOP — keycloak_operations.md §8.6 신규 9 sub-section (사전 조건 / Keycloak admin Events 설정 / backend env / Prometheus dashboard + PromQL / 알람 3종 / dedup 확인 SQL / 트러블슈팅 5 케이스 / disable·rollback / sub-carve)",
+      "merge_commit": "a72bde4"
+    },
+    {
+      "pr": 193,
+      "sprint": "claude/work_260519-y",
+      "title": "fix(audit,docs): codex hotfix #10 일괄 흡수 — PR #189~#192 의 P1×3 + P2×2 (skip-only cursor advance + loadCursor 즉시 영구 seed + §8.6.1 seed 명시 + hash 7-tuple 확장 + Expiration wording 정정) + 4건 신규 test + PR #189 P2 same-ms boundary false positive 응답",
+      "merge_commit": "f3f640b"
+    },
+    {
+      "pr": 194,
+      "sprint": "claude/work_260519-z",
+      "title": "docs(memory): 2026-05-19 main flat memory housekeeping #1 — sprint -u~-y 5 PR 흡수 + ADR-0019 §5.3 (9) audit event listener Phase 2 종결 milestone 명문화",
+      "merge_commit": "61dcbb4"
+    },
+    {
+      "pr": 195,
+      "sprint": "claude/work_260519-aa",
+      "title": "fix(audit): codex hotfix #11 — PR #193 same-ms boundary 에서 emit-able event 의 hash 우선 (latestEmittable bool flag 도입, skip event hash 가 latestHash 로 저장되어 다음 tick re-emit + metric inflation 되던 side effect 해소, 2건 test)",
+      "merge_commit": "d9bcd82"
+    },
+    {
+      "pr": 196,
+      "sprint": "claude/work_260519-ab",
+      "title": "docs(memory): codex hotfix #12 — sprint -n~-t 7 branch state finalize 누락 정정 + sprint -z/-aa 본인 finalize (PR #194 codex P2 응답, AGENTS.md 세션 복원 위험 회피)",
+      "merge_commit": "86e5b0d"
+    },
+    {
+      "pr": 197,
+      "sprint": "claude/work_260519-ac",
+      "title": "docs(memory): 2026-05-19 main flat memory housekeeping #2 — sprint -z + -aa + -ab 3 PR 흡수 + codex hotfix #10/#11/#12 cycle 종결",
+      "merge_commit": "569a16e"
+    },
+    {
+      "pr": 198,
+      "sprint": "claude/work_260519-ad",
+      "title": "refactor(httpapi,frontend): Kratos 잔재 residual cleanup — ADR-0019 정공법 (backend 11 파일 삭제 + frontend account password form 제거 + Keycloak Account Console redirect + identity_resolver.go 신규 + `domain.AuditSourceKratos` enum + audit action 이름 historical 보존)",
+      "merge_commit": "bcca86a"
+    }
+  ],
+  "merged_prs_2026_05_20": [
+    {
+      "pr": 199,
+      "sprint": "claude/work_260520-a",
+      "title": "docs(planning): 계정/사용자 관리 리팩토링 Phase 1 — 현황 파악 매트릭스 (docs/planning/account_user_management_redesign.md 신규, 235 lines; §1 책임 분리 매트릭스 13 row + §2 backend 17 endpoint + §3 frontend 4 page + §4 DB schema + §4.5 Phase 2 입력 옵션 A~D; 핵심 발견 5건: role 이중 source-of-truth / status 이중 source / POST `/accounts` vs POST `/users` 중복 / dead frontend code / `PUT /rbac/subjects/:id/roles` UI 미구현)",
+      "merge_commit": "b0bcced"
+    },
+    {
+      "pr": 200,
+      "sprint": "claude/work_260520-b",
+      "title": "docs(planning): 계정/사용자 관리 리팩토링 Phase 2 — 책임 분리 design + 명시 결정 6건 확정 (옵션 A 전면 폐기 / B `/login` entry minimal page 유지 / C event listener 확장 + lazy hot path / D `rbac_subject_roles` 완전 제거 / E read-only mode 도입 안 함 / F JWKS stale-while-error expiry case 확장; §5 Phase 2 design 신규 10 sub-section + §5.10 ADR-0020 후보 outline; backend `rbac_subject_roles` 테이블 자체가 없음을 §5.9 에서 정정)",
+      "merge_commit": "95d6909"
+    },
+    {
+      "pr": 201,
+      "sprint": "codex/keycloak-only-refactor-plan (post-#200)",
+      "title": "chore: PR #200 반영 + Keycloak E2E 안정화 — 외부 codex 작성, main PR #200 conflict 해소 (bae9990) + e2e/auth Keycloak login + runtime OIDC defaults (08fab34) + 09fefb3 (Phase 2 design duplicate from #200). frontend e2e 47 passed. 코드 변경 영역: frontend e2e/audit/auth/signup spec + lib/services/auth.service.ts + global-setup/fixtures + api/runtime-config.",
+      "merge_commit": "cff97d4"
+    },
+    {
+      "pr": 202,
+      "sprint": "ci-fix",
+      "title": "ci: align e2e pipeline to keycloak and add sync guard — 외부 본인 commit 7건: scripts/ci-e2e-sync-check.sh 신규 (a66f67d) + e2e pipeline Keycloak 정합 + runner 호환 (9b288e5) + Keycloak service-account admin role 부여 (348d149) + audience mapper for e2e tokens (0c69f9c/257ae70) + signout user-switch flow timeout relax (af743bc) + signout 후 session clear 대기 (e285326). 변경 영역: .github/workflows/ci.yml + scripts/ci-e2e-sync-check.sh + frontend e2e signout/auth fixtures.",
+      "merge_commit": "abc8cc9"
+    },
+    {
+      "pr": 204,
+      "sprint": "claude/work_260520-c",
+      "title": "docs(memory): 2026-05-20 housekeeping #3 — PR #198~#202 5건 흡수 (sprint -c) + Self-review Stage 3 보강 (PR #201/#202 commit 귀속 정정)",
+      "merge_commit": "12bb557"
+    },
+    {
+      "pr": 206,
+      "sprint": "claude/work_260520-e",
+      "title": "docs(memory): 2026-05-20 housekeeping #4 — sprint -d (PR #205) + PR #203 인수 흡수",
+      "merge_commit": "7e7ac33"
+    },
+    {
+      "pr": 207,
+      "sprint": "claude/work_260520-f-roadmap",
+      "title": "docs(planning,governance): v1.0 릴리즈 로드맵 + 워커 분업 design — release_v1_roadmap.md 신규 (306 lines, v1.0 scope 3 domain + 잔여 carve 30+ P0/P1/P2/P3 + M-v1.0/v1.1/v2 마일스톤 + 워커 분업 + GitHub project plan + UI Playwright screenshot mode) + worker_division.md 신규 (180 lines, 영역별 분담 + 인계 SOP 4 패턴 + 충돌 처리) + AGENTS/GEMINI 진입점 갱신 (간결 link 안내, 사용자 정정 반영)",
+      "merge_commit": "a08ffd3"
+    },
+    {
+      "pr": 208,
+      "sprint": "claude/work_260520-g-codex-hotfix",
+      "title": "docs(governance): codex review hotfix (P2) — worker_division.md §4.2 ADR reversal dead link 정정. per-user auto-memory file (feedback_adr_supersession_pattern.md) → 5 step 표준 절차 본문 명시 + canonical 사례 ADR-0019/ADR-0001 supersession (PR #169) 인용",
+      "merge_commit": "bb4a0f4"
+    },
+    {
+      "pr": 236,
+      "sprint": "claude/work_260520-i-cancel-signup",
+      "title": "docs(planning): P3-12 Sign Up 영구 취소 — DevHub Keycloak admin 권한 없음 (사용자 결정 2026-05-20). release_v1_roadmap.md §1.2 'v1.1 carve' → 'permanently cancelled' + §3.4 strikethrough + §5.2 워커 분담 strikethrough + §4.2 v1.1 milestone 정정 + §9 변경 이력. issue #235 closed (not planned).",
+      "merge_commit": "64d37f5"
+    },
+    {
+      "pr": 237,
+      "sprint": "claude/work_260520-h-screenshot (issue #211 P0-3)",
+      "title": "feat(e2e,ci): Playwright E2E screenshot mode 도입 — screenshots.spec.ts 신규 (19 페이지 fullPage 캡처, 4 test: admin 12 / login / developer 6 / manager 1) + Upload UI Screenshots CI step + Stage 3 보강 2회 (test.setTimeout admin 180s / user 120s + codex P1 응답 networkidle 명시 timeout 5s). artifact `ui-screenshots-shard-{1,2}` 30일 retention. P0-2 UI polish 의 design review source.",
+      "merge_commit": "c202fa0"
+    },
+    {
+      "pr": 239,
+      "sprint": "claude/work_260520-i-209-accounts-deprecation (issue #209 P0-1 backend)",
+      "title": "feat(auth,httpapi,docs): ADR-0020 sub-carve B (backend) — /api/v1/accounts/* 4 endpoint 폐기 + lazy auto-create. 4 commit 분리: (1) worker_division.md §2.5 branch 명명 규칙. (2) accounts_admin.go(338 lines) + accounts_admin_test.go 삭제 + router/permissions 정리 + testhelpers_test.go(doJSON) 신규. (3) lazy_auto_create.go 신규 (lazyAutoCreateUser + audit action 2종 신규 account.lazy_provisioned/user.role_default_assigned) + AuthenticatedActor Email/DisplayName 확장 + keycloak_verifier extractDisplayName + authenticateActor lazy 분기 + 회귀 test 5건 + 기존 test 3건 admin pre-seed fix. (4) docs (backend_api_contract §10.2 폐기 + traceability §2 API-25 + IMPL-account-* + IMPL-account-05 신규 + ADR-0020 §4.1 sub-carve 표 split + memory).",
+      "merge_commit": "d21e801"
+    },
+    {
+      "pr": 205,
+      "sprint": "claude/work_260520-d",
+      "title": "feat(rbac,docs): 계정/사용자 관리 리팩토링 Phase 3 sub-carve A — ADR-0020 발급 + rbac_subject_roles 완전 제거 (결정 D) + design doc §6 실행 계획 + Stage 3 #1 보강 (frontend dead method + backend_api_contract §12 정리) + Stage 3 #2 codex P1 응답 (validAppRoles `pmo_manager` 추가 + 회귀 test 2건)",
+      "merge_commit": "f2a389a"
+    },
+    {
+      "pr": 203,
+      "sprint": "gemini/keycloak-test-e2e-push-audit (본인 인수)",
+      "title": "fix(auth): stabilize Keycloak test login and enforce semantic UI theme — gemini 가 작업 못함으로 본인 인수. (1) seedLocalAdmin temporary:false + audience mapper → Keycloak 로그인 endless loop 해소, (2) 다수 modal hardcoded color → semantic theme variable (bg-warning/primary/destructive), (3) Keycloak SPI webhook (`/api/v1/internal/keycloak-events`) + handler + test 신규. **본인 인수 fix `6ece5be`**: TestRoutePermissionTable_CoversAllProtectedV1Routes 회귀 해소 (permissions.go Bypass entry 추가) + codex P1 응답 (secret fail-closed — 미설정 시 503, KratosWebhookToken 패턴 정합) + 회귀 test TestReceiveKeycloakEventWebhook_SecretNotConfigured. codex P2 (devhub-event-listener SPI provider JAR 누락) 는 carve out 명시.",
+      "merge_commit": "a294baf"
+    },
+    {
+      "pr": 240,
+      "sprint": "claude/work_260520-j-housekeeping5",
+      "title": "docs(memory): 2026-05-20 housekeeping #5 — 5 PR 흡수 (#207/#208/#236/#237/#239) + GitHub 자산 등재 (Project #2 + 19 labels + 3 milestones + 27 issues + branch 명명 규칙 적용)",
+      "merge_commit": "80120c8"
+    },
+    {
+      "pr": 241,
+      "sprint": "claude/work_260520-k-212-event-listener (issue #212 P1-1)",
+      "title": "feat(audit,httpapi,main,docs): ADR-0020 sub-carve C — Keycloak event listener 확장 + DevHub users sync. 5 commit 분리: (1) audit/user_sync.go 신규 (SyncUserProfile/SyncUserMembership/MarkUserDeactivated + narrow interface UserSyncOrgStore/UserSyncAdminClient + SyncUserAction enum) + ParseIdentityIDFromResourcePath. (2) keycloak_event_puller 확장 — 매핑 10 row (USER:UPDATE/REGISTER/DELETE + GROUP_MEMBERSHIP CREATE/DELETE + classifyAdminEventForSync helper + UserSync callback). (3) main.go dispatcher — SyncUserProfile/Membership/MarkUserDeactivated 라우팅 + metric devhub_keycloak_user_sync_total/_errors_total/_lag_seconds 신규 3종. (4) Stage 3 codex P1×2 hotfix — GetUserByIdPSubject interface 추가 (UNIQUE idp_subject O(1) lookup) + MarkUserDeactivated identityID 받음 + GetUser ErrNotFound 만 noop. (5) docs (ADR-0020 §4.1 sub-carve 표 C done + audit_namespace + design doc §6 + memory).",
+      "merge_commit": "9ea7e1c"
+    },
+    {
+      "pr": 242,
+      "sprint": "claude/work_260520-l-213-jwks-stale-expiry (issue #213 P1-2)",
+      "title": "feat(auth,config,main,docs): ADR-0020 sub-carve D — JWKS stale-while-error expiry case 확장. 5 commit 분리: (1) cache struct 확장 — cachedAt + MaxStaleDuration field + defaultJWKSMaxStale=24h + readStaleCachedKeys helper. (2) fetchJWKS 흐름 — network fail 시 readStaleCachedKeys fallback + fetchAndCacheJWKS 분리. (3) internal/auth/metrics.go 신규 — devhub_jwks_stale_while_error_total{result} + devhub_jwks_stale_age_seconds Histogram. (4) Config OIDCJWKSMaxStaleDuration + main.go wire (DEVHUB_OIDC_JWKS_MAX_STALE_DURATION env). (5) Stage 3 codex P1 hotfix — readStaleCachedKeys cutoff = `cachedUntil + maxStale` 정공법 (이전 `cachedAt + maxStale` 은 stale window 를 CacheTTL 만큼 축소). 회귀 test 5건 (StaleWhileError_KeycloakUnreachable + StaleExpired_Fails401 + FreshCache_NoStaleFallback + StaleFallback_DefaultMaxStale + StaleCutoff_BasedOnTTLExpiry).",
+      "merge_commit": "cb6646d"
+    },
+    {
+      "pr": 243,
+      "sprint": "claude/work_260520-m-housekeeping6",
+      "title": "docs(memory): 2026-05-20 housekeeping #6 — sprint -k (PR #241) + sprint -l (PR #242) 흡수 (sprint -m)",
+      "merge_commit": "2a1c627"
+    },
+    {
+      "pr": 244,
+      "sprint": "claude/work_260520-n-214-service-account-min-role (issue #217 P2-1)",
+      "title": "feat(httpapi,main,docs): ADR-0020 sub-carve E — service account 권한 축소. 옵션 A 정공법 (호출처 전면 제거). 5 commit: (1) organization.go POST /users password 분기 제거 + createUserRequest.Password 폐기. (2) main.go seedLocalAdmin 함수 + seedOrgStore interface + main_test.go 전체 삭제. (3) KeycloakAdminClient write methods 4건 (CreateIdentity/UpdateIdentityPassword/SetIdentityState/DeleteIdentity) + keycloakIDFromLocation helper + IdentityAdmin interface 4건 제거 + MockIdentityAdmin slim + test 재작성. (4) docs/planning/keycloak_service_account_min_role.md 신규 (옵션 A/B/C + 운영 SOP) + ADR-0020 §4.1 sub-carve E done + traceability §6. (5) memory. backend service account 가 view-users + view-events 만으로 동작 — 사내 운영자가 manage-users role 제거 가능.",
+      "merge_commit": "6810384"
+    },
+    {
+      "pr": 245,
+      "sprint": "codex/issue-238-single-port-nginx-v2 → claude/work_260520-o-238-augment (issue #238 P0-4)",
+      "title": "feat(infra,frontend,docs): #238 단일 포트 reverse proxy 정합 (ADR-0018) — codex 1차 3 commit (nginx + docker-compose + frontend auth 정합 + e2e 갱신) + Claude 인계 보강 6 commit. Claude 보강: (1) healthcheck (backend-ai/backend-core/frontend/keycloak) + nginx depends_on healthy + KC_HEALTH_ENABLED=true. (2) docs/setup/single_port_deployment.md 신규 (TLS cert SOP 3옵션 Let's Encrypt/mkcert/Self-signed + 운영 부트 + dev local mode + troubleshooting). (3) nginx 404→302 redirect (/login → /devhub/auth/login). (4) docker-packaging §11 frontend Dockerfile build args + §12 Keycloak wildcard 좁히기 SOP. (5) keycloak_operations §11 단일 포트 운영 보안 강화 5 sub-section. (6) memory.",
+      "merge_commit": "6656c2a"
+    },
+    {
+      "pr": 246,
+      "sprint": "gemini/work_260520-a-209-accounts-cleanup (issue #209 P0-1 frontend)",
+      "title": "feat(frontend): ADR-0020 sub-carve B (frontend) — account.service.ts (86 lines) 폐기 + MemberTable.tsx 의 admin actions (Issue Account/Force Reset Password/Revoke Account) + 관련 modal/ActionMenu 로직 제거 (104 lines) + AdminSettingsUsersPage system_admin 안내 banner + Keycloak Admin Console 외부 link + endpoints.ts getKCAdminConsoleUrl() helper + e2e TC-USR-CRUD-03 제거. Claude Stage 3 hotfix (ac13fcf): traceability broken merge marker 정정 + getKCAdminConsoleUrl null 가드 + MemberTable 빈 td 제거.",
+      "merge_commit": "b1e34bd"
+    },
+    {
+      "pr": 249,
+      "sprint": "gemini/work_260520-c-216-kratos-keycloak-e2e (issue #216 P1-5)",
+      "title": "feat(e2e): P1-5 e2e Kratos → Keycloak 실 코드 전환 — legacy cleanup. dev-up.sh/ps1 Keycloak 전환 + idp-apply-schemas hydra/kratos check 제거 + scripts/setup-keycloak.sh 신규 (196 line) + legacy SQL/scripts 5 file 삭제 + global-setup.ts 동적 idp_subject sync. Claude Stage 3 hotfix (8cb7870): 38MB binary 제거 + .gitignore + manage-users → view-events (sub-carve E 정합) + SQL injection 방어 sqlEscape + parallel temp file 충돌 회피 + try-finally cleanup + test user role developer → system_admin.",
+      "merge_commit": "7e8388d"
+    },
+    {
+      "pr": 251,
+      "sprint": "gemini/work_260520-d-220-bindings-ui-enhancement (issue #220 P2-4)",
+      "title": "feat(integration): P2-4 Bindings UI 강화 — Backend (PATCH/DELETE /api/v1/integration/bindings/:binding_id + PostgresStore CRUD) + Frontend (ComboBox 신규 searchable dropdown + EditBindingModal + CreateBindingModal scope_id Application lookup + BindingsTable Edit/Delete actions + pagination). Claude Stage 3 hotfix: (a) memoryApplicationStore 3 신규 interface method (GetIntegrationBindingByID/UpdateIntegrationBinding/DeleteIntegrationBinding) + routePermissionTable PATCH/DELETE 2 entry — TestRoutePermissionTable_CoversAllProtectedV1Routes fail 해소. (b) admin-integration-bindings spec scope type application → project (ComboBox empty fail 회피). (c) codex P2×2 hotfix (pagination offset clamp after delete + ComboBox clear button type=button).",
+      "merge_commit": "de69dd4"
+    },
+    {
+      "pr": 252,
+      "sprint": "gemini/work_260520-e-topology-v2-websocket-grouping (issue #221 P2-5)",
+      "title": "feat(infra): P2-5 Topology v2 강화 — React Flow Environment 별 그룹화 (Flat/Grouped 토글) + WebSocket 실시간 (infra.service.updated 구독 + 사이드바 즉시 갱신) + Live WS indicator. Claude Stage 3 hotfix (codex P1+P2): realtime.service.ts default subscriptions 에서 infra.service.updated 제거 (backend handleRealtimeWebSocket unsupported, WS handshake fail 회피) + topology-v2 page useEffect dep `[isGrouped, buildGraph]` → `[]` + 별도 re-layout effect (rawEdges state 신규).",
+      "merge_commit": "c44c33d"
+    },
+    {
+      "pr": 253,
+      "sprint": "gemini/work_260520-f-247-user-creation-password-cleanup (issue #247 P1-bug)",
+      "title": "fix(frontend): #247 P1-bug UserCreationModal password 필드 제거 — sub-carve E follow-up (backend POST /users password silent drop → frontend UI 정합화). UserCreationModal password input 제거 + Keycloak Admin Managed 안내 + identity.service.ts createUser payload password 제거. Claude Stage 3 hotfix (rebase 회귀 정정): outdated base 에서 작업되어 rebase 시 codex #238 의 auth 라우팅 회귀 — UserCreationModal + identity.service 만 retain, 다른 6 file 은 main 복원.",
+      "merge_commit": "4769fc5"
+    },
+    {
+      "pr": 254,
+      "sprint": "gemini/housekeeping-260520-status-update",
+      "title": "chore(workflow): 2026-05-20 EOD main branch status update (housekeeping #7) — main flat memory state/handoff/backlog + traceability 동기화. Claude Stage 3 hotfix (codex P1): state.json line 573 trailing garbage 13 line 제거 + python json.load PASS.",
+      "merge_commit": "d92a01e"
+    },
+    {
+      "pr": 255,
+      "sprint": "codex/workflow_refactoring_v2",
+      "title": "feat(docs): standardize workflow document format and metadata (v2 — rebased onto main). PR #250 재작업. Markdown source-of-truth + HTML derived 표준화 + lifecycle (draft/accepted/deprecated) + 메타 헤더 표준화 50+ docs file + AGENTS/GEMINI/frontend/CLAUDE.md. Claude Stage 3 hotfix (codex P1×2 + Stage 3 보강): docs/setup/ 4 file (keycloak_operations.md §11 단일 포트 보안 강화 + docker-packaging §11+§12 + test-server-deployment §11 + e2e-test-guide Keycloak admin seed) 모두 main 으로 복원 — codex 의 docs 정비가 PR #245/#249 신규 section 의도치 않게 삭제한 회귀 해소.",
+      "merge_commit": "ec487cf"
+    },
+    {
+      "pr": 256,
+      "sprint": "claude/work_260520-p-housekeeping8",
+      "title": "docs(memory,presentations): 2026-05-20 housekeeping #8 — 9 PR 흡수 (#243~#255 minus open) + 개발현황 슬라이드쇼 11 슬라이드 PPT-style (사용자 명시 요청 산출물 동반)",
+      "merge_commit": "e388868"
+    },
+    {
+      "pr": 257,
+      "sprint": "claude/work_260520-q-215-hrdb-cancel (issue #215 cancelled)",
+      "title": "chore(adr,docs,scripts): #215 cancelled — HRDB ETL cron 폐기 정합. **사용자 결정**: DevHub 외부 Keycloak 시나리오 채택 — HR ↔ Keycloak sync 책임이 외부 IdP 팀으로 이관. 정합 5건: (1) scripts/hrdb_etl_sync.sh header DEPRECATED banner (대체 흐름 = sub-carve C event listener PR #241). (2) docs/planning/keycloak_offboarding_immediacy.md header decision shift banner. (3) ADR-0019 §5.3 (7) row 를 'design resolved' → 'decision shift' 갱신 (immutable history) + 변경 이력 row. (4) release_v1_roadmap §3.2 P1-4 strikethrough + §4.2 v1.1 milestone 정정. (5) traceability + memory. v1.0 release gate 잔여 3건 → 2건 (#210 + #214).",
+      "merge_commit": "3fdcf33"
+    }
+  ],
+  "merged_prs_2026_06_04": [
+    {
+      "pr": 464,
+      "sprint": "opencode/work_260604-a-opencode-workflow-bootstrap",
+      "title": "docs(workflow): OpenCode 워커 prefix 부트스트랩 — governance 6 문서 opencode 섹션/행 추가 + ai-workflow/memory/opencode 초기화",
+      "merge_commit": "54db057"
+    },
+    {
+      "pr": 466,
+      "sprint": "opencode/work_260604-b-opencode-areas",
+      "title": "docs(governance): opencode 워커 §1.4 본문 정의 (3-lane + 인계 SOP)",
+      "merge_commit": "829d529"
+    },
+    {
+      "pr": 467,
+      "sprint": "opencode/work_260604-c-N10-manager-rbac-validation",
+      "title": "docs(validation): N-10 Manager RBAC 검증 보고서 (V-01..V-10 + 1 P1 follow-up)",
+      "merge_commit": "226f856"
+    },
+    {
+      "pr": 468,
+      "sprint": "opencode/work_260604-d-fix-projects-list-aggregation",
+      "title": "fix(frontend): /projects 페이지 listAllProjects + admin-catalog drill-down Link",
+      "merge_commit": "830b4f2"
+    },
+    {
+      "pr": 470,
+      "sprint": "opencode/work_260604-f-catalog-fixes",
+      "title": "fix(frontend): admin/catalog SCM 표시 결함 2건 + SCM 드롭다운 추가",
+      "merge_commit": "3713ac3"
+    },
+    {
+      "pr": 471,
+      "sprint": "opencode/work_260604-g-draft-mgmt",
+      "title": "feat(repository): draft repository 별도 관리 (filter + delete + edit)",
+      "merge_commit": "7816299"
+    },
+    {
+      "pr": 472,
+      "sprint": "opencode/work_260604-h-progress-bar",
+      "title": "fix(frontend): project milestones progress bar 가 실제 task 완료율 반영",
+      "merge_commit": "4665e95"
+    },
+    {
+      "pr": 473,
+      "sprint": "opencode/work_260604-i-n4-frontend-tests",
+      "title": "test(frontend): N-4 프론트 단위테스트 보강 (release_v1_roadmap §3.5)",
+      "merge_commit": "c887c0a"
+    },
+    {
+      "pr": 474,
+      "sprint": "opencode/work_260604-j-admin-catalog-test",
+      "title": "test(frontend): admin/catalog page unit test — 8 structural tests PASS (vitest 1015/1015)",
+      "merge_commit": "efb2c5d"
+    }
+  ],
+  "github_project_setup_2026_05_20": {
+    "project": {
+      "title": "Devhub Example 1차 개발",
+      "id": "PVT_kwHOCKCvOs4BYOna",
+      "number": 2,
+      "created_by": "user"
+    },
+    "labels_19": [
+      "priority/p0",
+      "priority/p1",
+      "priority/p2",
+      "priority/p3",
+      "worker/claude",
+      "worker/codex",
+      "worker/gemini",
+      "worker/user",
+      "domain/auth",
+      "domain/app-repo-project",
+      "domain/dreq",
+      "domain/integration",
+      "domain/ui-polish",
+      "domain/infra",
+      "type/feature",
+      "type/refactor",
+      "type/test",
+      "type/docs",
+      "type/ci"
+    ],
+    "milestones_3": [
+      {
+        "number": 1,
+        "title": "v1.0 Release",
+        "due": "2026-06-15"
+      },
+      {
+        "number": 2,
+        "title": "v1.1 Stability",
+        "due": "2026-07-31"
+      },
+      {
+        "number": 3,
+        "title": "v2 Extension",
+        "due": null
+      }
+    ],
+    "issues_27": {
+      "p0_ready_3": [
+        209,
+        210,
+        211
+      ],
+      "p0_done_2": [
+        211,
+        209
+      ],
+      "p1_backlog_5": [
+        212,
+        213,
+        214,
+        215,
+        216
+      ],
+      "p2_backlog_7": [
+        217,
+        218,
+        219,
+        220,
+        221,
+        222,
+        223
+      ],
+      "p3_backlog_11": [
+        224,
+        225,
+        226,
+        227,
+        228,
+        229,
+        230,
+        231,
+        232,
+        233,
+        234
+      ],
+      "p0_new_added_2026_05_20": [
+        238
+      ],
+      "p3_cancelled_2026_05_20": [
+        235
+      ]
+    },
+    "branch_naming_rule": "claude/codex/gemini/<work_YYMMDD>-<sprint-seq>-<issue-num>-<short-key>. worker_division.md §2.5 정의. sprint -i 가 첫 적용 사례.",
+    "user_action_required_resolved": "gh auth refresh -s read:project,project — 사용자가 별도 터미널 실행 후 본인이 26 issue 일괄 추가 + Status (Ready 3 / Backlog 23) 분류 완료"
+  },
+  "adr_0019_section_53_9_phase2_complete_milestone_2026_05_19": {
+    "milestone": "§5.3 (9) audit event listener — design (sprint -e) + 실 구현 Phase 2 PR-B~PR-E (sprint -u~-x) + codex hotfix #10 (sprint -y) 6 sprint 완전 종결",
+    "completion_date": "2026-05-19",
+    "summary": "Keycloak Admin REST events polling 기반 audit_logs 통합 풀스택. backend cron worker + Prometheus 3종 metric + store-level partial UNIQUE INDEX dedup + 운영 SOP §8.6 9 sub-section + codex review hotfix 5건 (skip-only cursor advance / initial cursor 영구 seed / hash 7-tuple 확장 / Expiration wording).",
+    "phase2_pr_chain": [
+      "PR #189 (sprint -u) PR-B skeleton — migration 000031 event_cursors + EventCursorStore + KeycloakAdminClient List events 확장 + RunKeycloakEventPuller cron + 매핑 표 22 row + SHA256 dedup + 14건 test",
+      "PR #190 (sprint -v) PR-C wire + metric — domain.AuditSourceKeycloakEvent + Prometheus 3종 (events_processed_total / cursor_lag_seconds / pull_errors_total) + main.go cron wire + config 3 env (DEVHUB_KEYCLOAK_EVENT_LISTENER_*) + integration end-to-end + 4건 metric test",
+      "PR #191 (sprint -w) PR-D store dedup — migration 000032 audit_logs.source_event_id + partial UNIQUE INDEX + domain.AuditLog.SourceEventID + ON CONFLICT DO NOTHING + getAuditLogBySourceEventID lookup + 3건 store integration test",
+      "PR #192 (sprint -x) PR-E 운영 SOP — keycloak_operations.md §8.6 신규 9 sub-section (사전 조건 / Keycloak admin Events 설정 / backend env / Prometheus dashboard 4 panel + PromQL / 알람 3종 / dedup 확인 SQL / 트러블슈팅 5 케이스 / disable·rollback / sub-carve)",
+      "PR #193 (sprint -y) codex hotfix #10 — P1×3 (skip-only cursor advance + initial cursor 즉시 영구 seed + §8.6.1 seed 명시) + P2×2 (hash 7-tuple 확장 + Expiration wording 정정) + 4건 test + PR #189 P2 same-ms false positive 응답"
+    ],
+    "remaining_carve": [
+      "MFA 사내 정책 제외 (§5.3 (5))",
+      "group staging-prod 적용 (Keycloak admin 1회 작업)",
+      "off-boarding Phase 1 운영 cron 실 deploy (사내 운영팀 동반, scripts/hrdb_etl_sync.sh PR #184 신규 후)",
+      "HA Phase 2 사내 인프라 (Infinispan + shared PG + LB, ADR-0021 후보)",
+      "audit event listener SPI push 전환 (polling latency < 1s, 별도 carve)"
+    ]
+  },
+  "adr_0019_section_53_design_completion_milestone_2026_05_19": {
+    "milestone": "§5.3 design 완결 (MFA 제외, 10/10 = 100%)",
+    "completion_date": "2026-05-19",
+    "completed_sprints": [
+      "work_260519-c (SOP 3건)",
+      "work_260519-d (SOP 1건)",
+      "work_260519-e (design 1건)",
+      "work_260519-f (design 1건)",
+      "work_260519-g (design 1건)",
+      "work_260519-h (design 1건)",
+      "work_260519-m (design 1건 — e2e migration, sprint -k discovery)"
+    ],
+    "sop_resolved_4_items": [
+      "(1) realm/client/role SOP — keycloak_operations.md §2~§4 + §7 + §8 (sprint -c)",
+      "(2) JWKS rotation SOP — keycloak_operations.md §6 (sprint -c)",
+      "(3) Keycloak ↔ HRDB sync (employee_id custom claim) — keycloak_operations.md §5.2 (sprint -c)",
+      "(4) SSO logout chain (RP-initiated) — keycloak_operations.md §8.5 (sprint -d)"
+    ],
+    "design_resolved_5_items": [
+      "(6) Keycloak failover — docs/planning/keycloak_failover.md (sprint -h, 옵션 6종 비교 + Phase 1 graceful degradation + Phase 2 HA + 옵션 E backup IdP 명시 제외)",
+      "(7) off-boarding 즉시성 — docs/planning/keycloak_offboarding_immediacy.md (sprint -g, 옵션 6종 비교 + Phase 1 HR ETL push + Phase 2 LDAP federation + ADR-0008 §6 통합)",
+      "(8) groups → RBAC role 자동 매핑 — docs/planning/keycloak_groups_rbac_mapping.md (sprint -f, 옵션 4종 비교 + 권장 B group composite + backend 변경 없음)",
+      "(9) audit event listener — docs/planning/keycloak_event_audit_integration.md (sprint -e, 옵션 3종 비교 + 권장 B admin event polling + 25 row 매핑 + ADR-0020 후보)",
+      "(10) e2e Kratos → Keycloak admin migration — docs/planning/e2e_keycloak_migration.md (sprint -m, 옵션 3종 비교 + 권장 B Keycloak admin 전환 + admin API mapping 6 항목 표 + Phase 2 staging 동반 carve)"
+    ],
+    "excluded_1_item": "(5) MFA — 사내 정책 제외",
+    "residual_design_carve_5_items": [
+      "audit event listener 실 구현 — Phase 2 PR-B..E (cron + event_cursors migration + admin client 확장 + Prometheus metric)",
+      "group staging-prod 적용 — Keycloak admin 1회 작업 (group 4 생성 + composite role assign)",
+      "off-boarding Phase 1 운영 cron — scripts/hrdb_etl_sync.sh 신규 (hourly ETL + Keycloak Admin REST 호출)",
+      "HA Phase 2 — 사내 인프라 결정 동반 (Infinispan + shared PG + LB)",
+      "e2e Kratos → Keycloak admin migration 실 코드 전환 — Phase 2 staging Keycloak e2e 환경 동반"
+    ],
+    "critical_fixes_phase3_sprint_j_k_l_m": [
+      "sprint -j (PR #178) codex hotfix #9 — sprint -b~-h 7 PR P2 inline 9건 일괄 정정 (Kratos 잔재 / SetIdPSubject / JWKS TTL / logout URI / event API path / Default Group 철회 / admin path / hrdb schema / failover window). backend 확장 carve 4건 추가.",
+      "sprint -k (PR #179) infra Keycloak 정합 — docker-compose.deploy.yml + nginx/devhub.conf + devhub.deploy.conf. Hydra+Kratos 4 service → Keycloak 1 service (quay.io/keycloak/keycloak:26.0). nginx upstream + /devhub/auth/keycloak/ + KC_HTTP_RELATIVE_PATH 정합.",
+      "sprint -l (PR #180) **CRITICAL** migration 000021 prefix 중복 충돌 정정 — git mv 000021_rename_kratos_identity → 000030. golang-migrate 의 동일 version multiple file 처리 ambiguous error / silent drift 회피. docs/setup/migration_000021_conflict_resolution.md 신규 (clean DB + case A/B/C 운영 DB 정정 SOP).",
+      "sprint -m (PR #181) frontend e2e Kratos → Keycloak admin API migration design — docs/planning/e2e_keycloak_migration.md 신규 + .env.example + global-setup.ts + fixtures.ts deprecation 주석."
+    ],
+    "future_adr_candidates": [
+      "ADR-0020 (Keycloak event listener 통합 결정, sprint -e Phase 2 진입 시)",
+      "ADR-0021 (Keycloak HA 도입 결정, sprint -h Phase 2 진입 시 — 단 sprint -f / -g 의 LDAP federation 도 동일 ADR-0021 후보)",
+      "ADR-0022+ (DR site, SCIM bridge 등 Phase 3 carve)"
+    ]
+  },
+  "dreq_domain_carve_out_progress": {
+    "1_4_rbac_adr_promote_tx": "✅ sprint m PR #128 (ADR-0013 사후 명문화 + Promote-Tx 단일 트랜잭션) + codex hotfix #4 sprint n PR #129",
+    "2_4_admin_ui_backend": "✅ sprint o PR #130 (API-66..68 + ADR-0014 + 신규 RBAC resource `dev_request_intake_tokens` + migration 000026)",
+    "2_4_admin_ui_frontend": "✅ sprint p PR #131 (/admin/settings/dev-request-tokens 페이지 + IssueIntakeTokenModal 2 phase + IntakeTokenTable + service/types)",
+    "3_4_e2e": "✅ 완료 — sprint d (PR #144) 가 TC-DREQ-* 13건 정식 발급 + frontend/tests/e2e/dev-requests.spec.ts test.step() 6 단계 마킹 + 신규 2 test (INTAKE-AUTH-NEG-01 invalid bearer + ADMIN-TOKEN-PATCH-01 API-79). test_cases_m5_dreq.md 신규 카탈로그.",
+    "addendum_2026_05_16_17": "PR #137 (token expires_at + IP mutation) 가 ADR-0014 §6 carve out 항목을 backend 에서 활성화 — 메모리 P2 #5/#6 해소.",
+    "addendum_2026_05_18_adr": "sprint c (PR #143) 가 ADR-0014 §6 carve out 본문 갱신 + ADR-0017 (intake token operational hardening) 발급으로 사후 명문화 완료. sprint i (PR #150 codex hotfix #6 P2) 가 ADR-0017 §6 reference CTE 의 LEFT JOIN empty → not-found 분기 불가 문제 정정 (VALUES anchor 패턴)."
+  },
+  "p2_carve_out_resolved_2026_05_15_to_17": [
+    "✅ promote-tx race 가드 — `WHERE id = $1 AND status IN ('pending', 'in_review')` (dev_requests.go:266 + dev_requests_promote.go:29). 어느 외부 에이전트 PR 이 이를 추가했는지 매핑 미확인 (다음 세션 git blame).",
+    "✅ memoryDevRequestStore.failPromote dead field — 코드 base 에서 grep 결과 0건 (제거 완료)",
+    "✅ window.confirm → DestructiveConfirmModal — 컴포넌트 신규 (frontend/components/ui/DestructiveConfirmModal.tsx) + dev-request-tokens 페이지 wire (PR #140). 전 frontend 의 window.confirm grep 0건",
+    "✅ plain_token Show/Hide toggle — IssueIntakeTokenModal:29 `showToken` state + Eye/EyeOff icon (line 253/257/259/261). aria-label 'Show token' / 'Hide token'",
+    "✅ token rotation expires_at — migration 000027 + auth_intake_token_expired error code + middleware 만료 체크 (PR #137)",
+    "✅ allowed_ips mutation endpoint — PATCH /api/v1/dev-request-tokens/:token_id (PR #137)"
+  ],
+  "external_integration_domain_2026_05_15_to_18": {
+    "status": "1차 종합 closing — concept staged → backend 1차 → ADR 3 신규 → provider frontend (CRUD + sync + DELETE) → bindings 관리 UI → topology v2 시각화. M4 진입 게이트 통과.",
+    "bindings_pr": "PR #154 (sprint m, claude/work_260518-m, merge b5bc54b) — /admin/settings/integration-bindings 페이지 + BindingsTable + CreateBindingModal + service/types (API-74 GET + API-75 POST wrapper) + layout subTabs Bindings (Link2 icon) + admin-integration-bindings.spec.ts (3 test) + 5 hotfix iteration. TC-INT-FRONTEND-BIND-{LIST,CREATE,RBAC}-01 active.",
+    "topology_v2_pr": "PR #155 (sprint n, claude/work_260518-n, merge dc0ed1c) — /admin/topology-v2 페이지 + React Flow + nodes/services/edges + degraded_providers banner + snapshot_at 메타 + node click modal + infraService.getTopologyV2() + admin-topology-v2.spec.ts. TC-INT-HOMELAB-03 active + TC-INT-FRONTEND-TOPOLOGY-V2-{NAV,RBAC}-01 신규.",
+    "carve_out_resolved_summary": "frontend 진입점 (provider CRUD + sync + delete + bindings + topology v2) 모두 active. degraded providers 시각화는 v2 페이지 헤더 banner 로 도입.",
+    "deferred_status": "concept staged → backend 1차 activated → frontend 진입점 활성화 + API-80 DELETE + E2E spec ts active",
+    "concept_pr": "PR #135 (codex/memory-next-step-20260515, merge 62a2088, 2026-05-15) — docs/planning/external_system_integration_concept.md + capability_matrix.md + REQ-FR-INT + REQ-NFR-INT + UC-INT + ARCH-INT + API-69..78 + traceability §3 row",
+    "backend_pr": "PR #139 (codex/next-step-20260516, merge e2a76fb, 2026-05-17) — internal/integrations/adapters/{contract,homelab,homelab_file_puller,homelab_http_puller,homelab_pull_loop,metrics}.go + internal/store/integration_registry.go + infra_snapshots.go + httpapi/integration_registry.go + infra_integrations.go + API-73..78 활성화 + Prometheus /metrics + migration 000028 integration_registry + 000029 infra_service_snapshots",
+    "supporting_docs": "docs/planning/homelab_adapter_pull_strategy.md + prometheus_homelab_alerts.md + docs/tests/test_cases_m4_integration.md + reports/report_20260516_m4_integration.md",
+    "adr_pr": "PR #143 (sprint c, claude/work_260518-c, merge d2c0031) — ADR-0015 (pull strategy 사후 명문화) + ADR-0016 (Prometheus alerts policy)",
+    "frontend_entry_pr": "PR #148 (sprint g, claude/work_260518-g, merge 7b4ad18) — /admin/settings/integrations + ProviderTable + ProviderModal + integration.{service,types}.ts + layout subTabs Integrations 탭",
+    "e2e_spec_pr": "PR #149 (sprint h, claude/work_260518-h, merge bb83520) — admin-integrations.spec.ts — TC-INT-FRONTEND-* 5건 active (mega lifecycle 4 step + RBAC negative)",
+    "delete_endpoint_pr": "PR #151 (sprint j, claude/work_260518-j, merge 51c79af) — API-80 DELETE + FK guard (binding count > 0 → 409 integration_provider_has_bindings) + handler 4 unit test + DestructiveConfirmModal + spec ts mega test DELETE step 5",
+    "carve_out_for_next_session": [
+      "✅ resolved (PR #154, sprint -m) — Bindings 관리 UI (API-74, 75)",
+      "✅ resolved (PR #155, sprint -n) — infra topology v2 시각화 (API-76, 78, React Flow)",
+      "✅ resolved (PR #156, sprint -o) — ADR-0017 §6 atomicity 실 구현 (CTE + FOR UPDATE + race test)",
+      "✅ resolved (PR #157, sprint -p) — ADR-0015 §6 (1) size limit + streaming decode + (2) agent token rotation SOP",
+      "✅ resolved (PR #160, sprint -s) — ADR-0016 §6 (1) Alertmanager 운영 가이드 + (2) Grafana dashboard JSON",
+      "✅ resolved (PR #161, sprint -t) — ADR-0017 §6 (a) cron revoke + (c) 만료 metric + (d) staleness metric",
+      "✅ design 검토 완료 (PR #162, sprint -u) — single port reverse proxy (ADR-0018 후보 → 2026-05-18 PR #166 으로 Accepted + 실 구현)",
+      "✅ design 검토 완료 (PR #163, sprint -v) — Keycloak SSO federation (ADR-0019 후보) → 2026-05-19 sprint -a PR #169 로 **ADR-0019 accepted (옵션 A Keycloak 단일화 채택, 옵션 B Kratos federation rejected)**",
+      "✅ resolved (PR #164, sprint -w) — codex hotfix #8 P1 3건 + P2 6건",
+      "✅ resolved (PR #165, sprint -x) — post-EOD #2 종합 housekeeping + 로드맵 갱신",
+      "✅ resolved (PR #166, gemini/reverse-proxy, 2026-05-18) — ADR-0018 단일 외부 포트 reverse proxy 실 구현 (nginx + basePath /devhub)",
+      "✅ resolved (PR #167, codex/keycloak-only-refactor-plan, 2026-05-18) — Keycloak-only refactor KC-PR-A..F 6단계 머지 (옵션 A 채택)",
+      "✅ resolved (PR #168, codex housekeeping, 2026-05-18) — main flat memory PR #167 후속 sync",
+      "✅ resolved (PR #169, sprint -a, 2026-05-19) — **ADR-0019 재산정** (Keycloak 단일화 사후 명문화 + ADR-0001 supersession + 14 추가 정합 docs)",
+      "✅ resolved (PR #170, sprint -b, 2026-05-19) — main flat memory housekeeping (sprint -a 흡수 + 외부 누락 PR 사후 등록)",
+      "✅ resolved (PR #171, sprint -c, 2026-05-19) — **ADR-0019 §5.3 (1)+(2)+(3) SOP — keycloak_operations.md 단일 통합 문서** (realm/client/role + JWKS rotation + employee_id custom claim)",
+      "✅ resolved (PR #172, sprint -d, 2026-05-19) — **ADR-0019 §5.3 (4) SSO logout chain (RP-initiated) SOP** (keycloak_operations.md §8.5)",
+      "✅ resolved (PR #173, sprint -e, 2026-05-19) — **ADR-0019 §5.3 (9) audit event listener design** (keycloak_event_audit_integration.md, 옵션 3종 + 권장 B polling + 25 row 매핑 + ADR-0020 후보)",
+      "✅ resolved (PR #174, sprint -f, 2026-05-19) — **ADR-0019 §5.3 (8) groups → RBAC design** (keycloak_groups_rbac_mapping.md, 옵션 4종 + 권장 B group composite + backend 변경 없음)",
+      "✅ resolved (PR #175, sprint -g, 2026-05-19) — **ADR-0019 §5.3 (7) off-boarding 즉시성 design** (keycloak_offboarding_immediacy.md + ADR-0008 §6 통합)",
+      "✅ resolved (PR #176, sprint -h, 2026-05-19) — **ADR-0019 §5.3 (6) Keycloak failover design — §5.3 design 1차 milestone** (MFA 제외 7/7)",
+      "✅ resolved (PR #177, sprint -i, 2026-05-19) — main flat memory housekeeping (sprint -c~-h 흡수)",
+      "✅ resolved (PR #178, sprint -j, 2026-05-19) — **codex review hotfix #9** (P2 9건 일괄 흡수)",
+      "✅ resolved (PR #179, sprint -k, 2026-05-19) — **infra Keycloak 정합** (docker-compose + nginx)",
+      "✅ resolved (PR #180, sprint -l, 2026-05-19) — **CRITICAL migration 000021 prefix 충돌 정정** (git mv 000030 + 운영 DB 정정 SOP)",
+      "✅ resolved (PR #181, sprint -m, 2026-05-19) — **e2e Kratos → Keycloak design — §5.3 10/10 milestone**",
+      "✅ resolved (PR #182, sprint -n, 2026-05-19) — main flat memory housekeeping (sprint -j~-m 4 PR 흡수 + Phase 3 critical fixes 명문화)",
+      "✅ resolved (PR #183, sprint -o, 2026-05-19) — CI migration-prefix-lint job 신규 (sprint -l §6 carve 구현, golang-migrate 동일 version multiple file 회귀 차단)",
+      "✅ resolved (PR #184, sprint -p, 2026-05-19) — off-boarding Phase 1 운영 cron — scripts/hrdb_etl_sync.sh 신규 (sprint -g design §3.1 옵션 C 구현)",
+      "✅ resolved (PR #185, sprint -q, 2026-05-19) — extractKeycloakRole multi-role priority filter (sprint -j codex review #9 backend 확장 carve #1)",
+      "✅ resolved (PR #186, sprint -r, 2026-05-19) — JWKS kid mismatch stale-while-error fallback (codex review #9 #3)",
+      "✅ resolved (PR #187, sprint -s, 2026-05-19) — basePath 포함 logout URI (codex review #9 #4)",
+      "✅ resolved (PR #188, sprint -t, 2026-05-19) — 자동 idp_subject sync — backend 확장 carve 4건 모두 resolved (codex review #9 #2)",
+      "❌ excluded — ADR-0019 §5.3 (5) MFA — 사내 정책 제외",
+      "(carve) ADR-0015 §6 (3) dedicated worker binary — M4 진입 시 재평가",
+      "(carve) ADR-0015 §6 (4) push/pull 동시 운영 dedup 정책 — 별도 ADR 후보",
+      "(carve) ADR-0016 §6 (3) pull latency p95 alert — baseline 1주 관찰 후",
+      "(carve) ADR-0016 §6 (4) push 경로 webhook 알림 metric",
+      "(carve) ADR-0016 §6 (5) stage→prod 임계값 확정",
+      "(carve) ADR-0017 §6 (b) PATCH expires_at — admin UI 편집 modal + 정책 변경",
+      "✅ resolved (PR #189~#193, sprint -u~-y, 2026-05-19) — **ADR-0019 §5.3 (9) audit event listener Phase 2 종결** (PR-B skeleton + PR-C wire+metric + PR-D store dedup + PR-E 운영 SOP + codex hotfix #10)",
+      "(design+carve) ADR-0019 §5.3 group staging-prod 적용 — Keycloak admin 1회 작업 (group 4 생성 + composite role assign)",
+      "(design+carve) ADR-0019 §5.3 off-boarding Phase 1 운영 cron — `scripts/hrdb_etl_sync.sh` 신규 (hourly ETL + Keycloak Admin REST 호출)",
+      "(design+carve) ADR-0019 §5.3 HA Phase 2 — 사내 인프라 결정 동반 (Infinispan + shared PG + LB, ADR-0021 후보)",
+      "(carve) ADR-0019 §5.4 RM-M4-09 의미 재정의 — Keycloak identity broker / Gitea/AD 등 외부 SSO 후속 통합",
+      "(carve) External Integration 후속 강화 — React Flow group sub-node + WebSocket 실시간 + v2 node click action",
+      "(carve) M4 RM-M4-XX 본격 진입 — WebSocket replay, AI Gardener gRPC, System Admin 대시보드, Gitea Hourly Pull"
+    ]
+  },
+  "account_user_management_redesign_phase3_progress_2026_05_20": {
+    "status": "Phase 3 진입 (sprint -d, sub-carve A 흡수). ADR-0020 발급 (accepted) + design doc §6 실행 계획 작성 + sub-carve A (rbac_subject_roles 완전 제거, 결정 D) 완료. sub-carve B~F (5건) 후속 sprint -e..-i 로 분리.",
+    "adr_0020_pr": "PR TBD (sprint -d) — docs/adr/0020-account-user-management-boundary.md 신규. Phase 2 명시 결정 6건 종합 (옵션 A 전면 폐기 / B `/login` minimal entry / C event listener 확장 + lazy hot path / D `rbac_subject_roles` 완전 제거 / E read-only mode self-reverse / F JWKS stale-while-error expiry case 확장).",
+    "sub_carve_split": {
+      "A": "✅ resolved (sprint -d, PR #205 `f2a389a`) — ADR-0020 발급 + design doc §6 + rbac_subject_roles 완전 제거 (8 파일 변경) + codex P1 hotfix (validAppRoles pmo_manager)",
+      "B_backend": "✅ resolved (sprint -i, PR #239 `d21e801`) — /api/v1/accounts/* 4 endpoint 폐기 + accounts_admin.go(338 lines) 삭제 + lazy_auto_create.go 신규 + AuthenticatedActor Email/DisplayName + keycloak_verifier extractDisplayName + audit action 2종 (account.lazy_provisioned/user.role_default_assigned) + 회귀 test 5 + 기존 test 3건 admin pre-seed fix",
+      "C_done": "✅ resolved (sprint -k, PR #241 `9ea7e1c`) — Keycloak event listener 확장 + DevHub users sync. audit/user_sync.go 신규 (SyncUserProfile/SyncUserMembership/MarkUserDeactivated + narrow interface) + keycloak_event_puller 매핑 10 row (GROUP_MEMBERSHIP:CREATE/DELETE 추가) + main.go dispatcher + Prometheus 3종 신규 (user_sync_total/_errors_total/_lag_seconds). Stage 3 codex P1×2 hotfix — GetUserByIdPSubject UNIQUE idp_subject O(1) lookup + ErrNotFound 만 noop, 기타 error propagate.",
+      "D_done": "✅ resolved (sprint -l, PR #242 `cb6646d`) — JWKS stale-while-error expiry case 확장. cache struct 확장 (cachedAt + MaxStaleDuration default 24h + readStaleCachedKeys helper) + fetchJWKS network fail fallback + internal/auth/metrics.go 신규 (stale_while_error_total{result} + stale_age_seconds Histogram) + DEVHUB_OIDC_JWKS_MAX_STALE_DURATION env. Stage 3 codex P1 hotfix — readStaleCachedKeys cutoff = `cachedUntil + maxStale` 정공법 (이전 `cachedAt + maxStale` 은 stale window 를 CacheTTL 만큼 축소). 회귀 test 5건.",
+      "B_frontend": "✅ resolved (gemini PR #246) — account.service.ts 폐기 + MemberTable admin actions 제거 + AdminSettingsUsersPage Keycloak Console link",
+      "E": "carve (sprint -n 후속) — service account 권한 축소 + governance 협약 SOP (keycloak_operations.md §8.5c 신규)",
+      "F": "carve (sprint -o 후속, 우선순위 가장 낮음) — /login page 정리"
+    },
+    "external_carve_keycloak_spi_provider_jar": "PR #203 codex P2 (discussion r3267320309) 응답 — infra/idp/keycloak-realm.json 의 devhub-event-listener SPI 가 provider JAR 미동반. 본 sprint scope 외, 사내 환경 동반 carve: (a) Keycloak SPI plugin 빌드 + (b) compose volume mount + (c) 운영 SOP. ADR-0020 §6 미해결 carve 후속 sprint 등재 예정.",
+    "sub_carve_a_changes": {
+      "files_changed": 8,
+      "files": [
+        "docs/adr/0020-account-user-management-boundary.md (신규)",
+        "docs/planning/account_user_management_redesign.md (§6 신규 + §7.2 갱신 + §8 변경 이력)",
+        "docs/traceability/report.md (§2.2 API-30/31 strikethrough + §2.4 IMPL-rbac-01/02 + §4 ADR-0020 row + §6 변경 이력)",
+        "backend-core/internal/httpapi/rbac.go (handler 2개 + interface method 2개 + audit action const + wire struct 제거)",
+        "backend-core/internal/httpapi/router.go (2 route 제거)",
+        "backend-core/internal/httpapi/permissions.go (2 routePermissionTable entry 제거 + ADR-0020 reference 주석)",
+        "backend-core/internal/store/postgres_rbac.go (impl 2개 제거)",
+        "backend-core/internal/store/postgres_rbac_test.go (Get/Set 테스트 3건 제거, Delete-in-use 테스트는 CreateUser 의 Role:domain.AppRole(roleID) 로 재구성)",
+        "backend-core/internal/httpapi/rbac_test.go (fake mock 2개 + handler test 3건 제거)"
+      ],
+      "verification": "go build ./... + go test ./internal/httpapi/... ./internal/store/... PASS. 전체 backend test 전 패키지 PASS."
+    }
+  },
+  "account_user_management_redesign_2026_05_20": {
+    "status": "Phase 1 (매트릭스) + Phase 2 (책임 분리 design + 명시 결정 6건) 완료 — Phase 3 sub-carve A (sprint -d) 흡수. sub-carve B~F 는 후속 sprint -e..-i. PR #199/#200 의 docs/planning/account_user_management_redesign.md + sprint -d 의 ADR-0020 가 단일 source-of-truth.",
+    "phase1_pr": "PR #199 (sprint claude/work_260520-a, merge `b0bcced`) — 현황 파악 매트릭스 235 lines, 4 경로 (`/api/v1/accounts/*` + `/api/v1/users/*` + `/api/v1/organization/*` + `/api/v1/rbac/*`) 책임 분산 + Keycloak Admin REST 매핑 + Phase 2 입력 옵션 A~D",
+    "phase2_pr": "PR #200 (sprint claude/work_260520-b, merge `95d6909`) — 명시 결정 6건 확정 + §5 책임 분리 design 10 sub-section + ADR-0020 후보 outline + Phase 1 매트릭스 `rbac_subject_roles` 오류 정정",
+    "explicit_decisions_6_items": [
+      "A: `/api/v1/accounts/*` 4 endpoint **전면 폐기** (IdP 팀 별도 운영 + manage-users 권한 없음 + /users 계열 정합)",
+      "B: `/login` page **entry minimal page 유지** (DevHub brand 첫인상 + 명시 step + error message)",
+      "C: role/status sync **event listener 확장 + lazy hot path** (sprint -u~-y 자연 확장, USER:UPDATE + MEMBERSHIP 매핑 추가)",
+      "D: `rbac_subject_roles` **완전 제거** (별도 테이블 없음 — `users.role` 직접 write 발견, 결정 C 와 충돌, /users/:id PATCH 와 중복)",
+      "E: read-only 모드 carve **도입 안 함** (self-reverse, signature skip 안티패턴)",
+      "F: JWKS stale-while-error **expiry case 까지 확장** (sprint -r kid mismatch fallback 자연 확장)"
+    ],
+    "phase3_implementation_carve": [
+      "backend code 제거 — accounts_admin handler 4 + KeycloakAdminClient manage-users 메서드 4 호출처 모두",
+      "`authenticateActor` lazy auto-create 실 구현",
+      "Keycloak event listener (sprint -u~-y) USER:UPDATE / MEMBERSHIP / USER:DELETE 매핑 추가 + DevHub `users` write",
+      "JWKS stale-while-error expiry case 확장 (sprint -r kid mismatch fallback 패턴 정합)",
+      "frontend cleanup — `account.service.ts` 폐기 + MemberTable.tsx 정리 + `/admin/settings/users` UI 정리",
+      "service account 권한 축소 — Keycloak admin SOP 갱신 (manage-users 제거)",
+      "governance 협약 SOP — `keycloak_operations.md §8.5c` 신규",
+      "ADR-0020 draft 작성 + 사내 검토"
+    ],
+    "future_adr_candidate": "ADR-0020 (계정/사용자 관리 책임 경계 — DevHub /accounts 폐기 + 옵션 A Keycloak 단일화)"
+  },
+  "external_pr_2026_05_20_ci_e2e_keycloak": {
+    "pr_201_scope": "codex/keycloak-only-refactor-plan post-#200 — frontend e2e login flow 안정화. 외부 codex 작성. main PR #200 conflict 해소 (bae9990) + e2e/auth Keycloak login + runtime OIDC defaults (08fab34) + 09fefb3 (Phase 2 design duplicate). 변경 영역: frontend e2e (audit/auth/signout/signup) spec + lib/services/auth.service.ts + global-setup.ts + fixtures.ts + api/runtime-config/route.ts + identity_admin_mock_test.go (1 line). frontend e2e 전체 47 passed.",
+    "pr_202_scope": "ci-fix — Keycloak E2E CI pipeline 본격 정합 + sync guard. 외부 본인 7 commit: a66f67d (e2e pipeline Keycloak 정합 + `scripts/ci-e2e-sync-check.sh` 신규) + 9b288e5 (runner 호환) + 348d149 (service-account admin role 부여) + 0c69f9c + 257ae70 (audience mapper for e2e tokens) + af743bc (signout user-switch flow timeout relax) + e285326 (signout 후 session clear 대기). 변경 영역: `.github/workflows/ci.yml` (210 lines 갱신) + `scripts/ci-e2e-sync-check.sh` (51 lines 신규) + frontend e2e fixtures/global-setup (audit/auth/signout/signup spec wait 패턴 강화).",
+    "sync_check_script": "scripts/ci-e2e-sync-check.sh (PR #202 신규) — backend/frontend/e2e env contract guard. 다음 sprint 에서 staging Keycloak 전환 carve (sprint -m design `e2e_keycloak_migration.md`) 의 어느 항목을 본 PR #202 가 CI 단으로 해소했는지 cross-check 권장.",
+    "carve_overlap_check_needed": "PR #202 가 잔여 carve 'e2e Kratos → Keycloak 실 코드 전환' 의 CI 단 일부를 해소했을 가능성 — sprint -m design 의 admin token + user seed + group 가입 + DevHub users sync 항목 정합 검증."
+  },
+  "next_actions": {
+    "m1_remaining": [],
+    "tdd_followups": [
+      "PR-T5 (CI 도입, DEC-4) — PARTIAL-DONE: PR #86 (2026-05-13 머지) 으로 backend-unit + frontend-unit + e2e (Playwright 40 TC) 3잡 GHA 도입 완료. 본 sprint claude/work_260513-a 가 FU-CI-2/3/4 처리. 잔여 follow-up: FU-CI-1 (no-docker policy 정합).",
+      "hygiene-test-admin — PoC `test/test` 시드 제거 (운영 진입 직전, test-server-deployment §10 체크리스트)."
+    ],
+    "ci_followups": [],
+    "ci_decisions_2026_05_13": [
+      "ADR-0003 (2026-05-13) — no-docker 정책이 CI 까지 적용됨을 명문화. `.github/workflows/ci.yml` 의 `services: postgres:15` sidecar 제거 + pgdg apt repo 로 native PostgreSQL 15 설치하는 step 으로 교체. 본 결정으로 FU-CI-1 항목 처리 완료."
+    ],
+    "m2_followups": [],
+    "m2_followups_closed_by_adr_0019": [
+      "✅ obsolete (2026-05-19, ADR-0019) — Kratos webhook 수신 → audit_logs 통합 — Keycloak 단일화로 Kratos webhook 패턴 자체 제거. Keycloak event listener / admin event SPI 기반 audit 통합은 carve out (ADR-0019 §5.3 잔여).",
+      "✅ obsolete (2026-05-19, ADR-0019) — Hydra JWKS/introspection verifier 실구현 — PR #167 KC-PR-B 의 keycloak_verifier.go 가 Keycloak JWKS local 검증 (+ JWKS cache + resource_access fallback) 으로 대체."
+    ],
+    "pr_d_followups": [],
+    "pr_d_followups_closed_by_work_260513_e": [
+      "caller-supplied X-Request-ID 콘텐츠 validation — `validateCallerRequestID` (정규식 `^[A-Za-z0-9_-]{1,128}$`) + `requireRequestID` 폴백.",
+      "ctx 표준 request_id 전파 — `requireRequestID` 가 c.Request.Context() 에도 stash, `requestIDFromContext` + `logRequestCtx` ctx-aware helper. kratos_login_client.go 2건 + kratos_identity_resolver.go 1건 치환.",
+      "writeRBACServerError → writeServerError 통합 — rbac.go 의 helper 제거 + 11 호출 일괄 치환."
+    ],
+    "ux_hygiene": [
+      "/admin/settings/users 의 SearchInput 실제 필터링 미구현 (placeholder)",
+      "/account 폼의 current_password 라벨 — Kratos privileged session 안내 보강",
+      "Header Switch View 시뮬레이션이 actor.role 을 우회 못함을 명시 (UX 안내)"
+    ],
+    "m3_entry_candidates": [
+      "RM-M3-01: Sign Up (셀프 가입) — POST /api/v1/auth/signup 의 hrdb lookup arm",
+      "RM-M3-02: 인사 DB 스키마 (name / system_id / employee_id / department_name) + internal/hrdb/ 모듈",
+      "RM-M3-03: 조직 polish — backend_api_contract §10.4 자세한 schema + parent_id 검증 + primary_dept 자동 판정"
+    ],
+    "m4_entry_candidates": [
+      "RM-M4-01: WebSocket 확장 (backend infra.node.updated / ci.run.updated / risk.updated publish)",
+      "RM-M4-02: WebSocket replay (last event) + 리소스 필터링",
+      "RM-M4-03: frontend command status WebSocket UI (Phase 4 마무리)",
+      "RM-M4-04: AI Gardener gRPC (Python AnalysisService + Go Core client)",
+      "RM-M4-05: AI Suggestion Feed 실데이터 바인딩 (frontend)",
+      "RM-M4-06: Gitea Hourly Pull worker (과제 추적 reconciliation, Phase 10)",
+      "RM-M4-07: System Admin 대시보드 (Runner 상태 + 시스템 설정)",
+      "RM-M4-08: ADR-0007 RBAC PermissionCache LISTEN/NOTIFY 실제 구현 + 통합 테스트",
+      "RM-M4-09: 외부 SSO 통합 (Gitea 연동 등)"
+    ],
+    "application_domain_carve_out_2026_05_14": [
+      "frontend `/admin/settings/applications` UI (별도 frontend sprint) — IA 설계부터",
+      "ADR-0011 §4.2 enforceRowOwnership helper 1차 구현 (pmo_manager 활성화 sprint) — Owner 위양 2차 단계",
+      "critical_warning_count 임계치 외부화 (concept §13.2.1) — 운영 정책 테이블 신설",
+      "CountApplicationCriticalWarnings lightweight SQL 분리 (성능 — 현재는 전체 rollup compute 재호출)",
+      "pr_activities.payload sanitization 또는 field allowlist (system_admin 외 노출 방어)",
+      "Project active→closed 가드 정책 결정 (현재 Application 만 critical 가드, Project 는 단순 transition)",
+      "quality_snapshots idempotency 결정 — UNIQUE 추가 vs history retention",
+      "Repository commit activity ingest (pr_activities 외 commit 단위 이벤트)",
+      "fixture 의 transactional cleanup 도입 (PR #109 I2 성능)",
+      "API-41..58 의 e2e TC (Playwright) 작성"
+    ],
+    "application_domain_done_2026_05_14": {
+      "scope": "Application/Repository/Project 도메인 backend 1차 완성. API-01~58 전체 activated.",
+      "components": {
+        "domain_types": "Application / ApplicationRepository / SCMProvider / Project / ProjectMember / ProjectIntegration / PRActivity / BuildRun / QualitySnapshot / RepositoryActivity / WeightPolicy / RollupOptions / RollupMeta / RollupPeriod / RollupFallback / RollupDataGap / ApplicationRollup + CustomWeightTolerance(=0.001)",
+        "migrations": "000012 scm_providers (seed bitbucket/gitea/forgejo/github) / 000013 applications (UUID PK, key UNIQUE, archived_consistency CHECK) / 000014 application_repositories (composite PK + sync_status + sync_error_code 8종 CHECK) / 000015 projects (UUID PK + UNIQUE (repository_id, key)) / 000016 project_members + project_integrations (scope polymorphism partial UNIQUE) / 000017 pr_activities + build_runs + quality_snapshots / 000018 RBAC matrix 4 신규 resource seed",
+        "store_methods": "27 (ApplicationStore interface) — Applications 5 + ApplicationRepository 4 + SCMProvider 2 + Project 5 + Repository ops 4 + Rollup 2 + Integration 5",
+        "handlers": "14 endpoint — API-41 SCM list, API-42 SCM update, API-43..47 Application CRUD, API-48..50 Link CRUD, API-51..54 Repository ops, API-55..56 Project CRUD, API-57 Rollup, API-58 Integration CRUD",
+        "tests": "Application handler 25 + Project handler 8 + Integration handler 6 + Rollup handler 4 + integration tests 25 (CI backend-integration job)",
+        "guards_active": "Application 상태 전이 머신 (allowedStatusTransitions table); planning→active 활성 repo ≥1; hold/resume/archived_reason 필수; active→closed critical_warning_count=0; application_key_immutable; SCM adapter_version_immutable; weight_policy normalize sum=1.0 ±0.001",
+        "audit_namespace": "application.{created,updated,archived} / application_repository.{linked,unlinked} / scm_provider.updated / project.{created,updated,archived} / integration.{created,updated,deleted}",
+        "rbac_resources": "applications / application_repositories / projects / scm_providers (system_admin only — ADR-0011 §4.1 1차)",
+        "ci_jobs": "5 (Workflow Lint / Backend Unit / Frontend Unit / E2E / Backend Integration 신설)"
+      },
+      "adr": "ADR-0011 accepted (옵션 C handler/service 코드 검증 1차 채택, 옵션 B row_predicate 단계적 확장 옵션 보존)"
+    },
+    "ops_verification": "사용자 환경에서 docs/setup/test-server-deployment.md 의 §6-§7 e2e 절차 1회 수행 권장. E2E baseline 자동화는 PR #58 이후 `cd frontend && npm run e2e` 한 줄. PR #76 hardening 으로 stale rotation 도 다음 실행에서 자동 복구. 본 세션에서 backend integration test 가 CI 에서 검증되므로 추가 ops 확인 권장사항: 사용자 환경 (`DEVHUB_TEST_DB_URL`) 에서 `scripts/setup-test-db.sh && cd backend-core && go test -v -run TestIntegration_ ./internal/store/...` 1회 실행."
+  }
+}
