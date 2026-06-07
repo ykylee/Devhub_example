@@ -55,6 +55,7 @@ type PlatformStore interface {
 	ListProjectRepositories(context.Context, string) ([]domain.ProjectRepository, error)
 	CreateProjectRepository(context.Context, domain.ProjectRepository) (domain.ProjectRepository, error)
 	DeleteProjectRepository(context.Context, string, int64) error
+	UpdateProjectRepositoryWeight(context.Context, string, int64, float64) error
 	CreateProjectWithRepositoryPayload(context.Context, domain.Project, []int64, *store.RepositoryCreatePayload) (domain.Project, error)
 
 	// SCM repository import

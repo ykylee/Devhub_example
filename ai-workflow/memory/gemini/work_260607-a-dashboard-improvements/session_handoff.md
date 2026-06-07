@@ -95,6 +95,13 @@
   - 테스트 사이클 및 실행 통계(Recharts PieChart 성공/실패율 도넛 차트) 연동 완료.
 * **검증**: `npm run build` 및 1,025개 Vitest 유닛 테스트 100% PASS 검증 완료.
 
-## 5. 다음 세션 directive
-* **N-6 마감**: staging 1주 운영을 병행하여 v1.0 릴리즈 준비를 완벽히 매듭짓습니다.
-* **V1.1 진입 준비**: X-1 로드맵 백로그 분석 및 `docs/governance/worker_division.md` 에 따른 워커 간의 피처 이식 준비.
+## 5. 다음 세션 directive / 진행 상태
+* **N:M 관계 품질 거버넌스 및 테스트 관리 고도화 완료**:
+  - `project_repositories` 테이블에 기여 가중치(`contribution_weight`, 기본값 100%) 컬럼 추가 마이그레이션 적용 완료.
+  - 가중치 수정용 PATCH API 및 프로젝트 상세 UI(인라인 가중치 수정, Shared 배지 노출, 연결 해제) 연동 완료.
+  - 가중치가 적용된 프로젝트 KPI(completionRate) 연산 및 플랫폼 Unique 저장소 셋 기반 중복 제거 롤업 쿼리 완수.
+  - 테스트 대시보드(`/tests`) 프로젝트 선택기 추가 및 로컬 스토리지 격리 적용, 그리고 Git/CI 자동화 테스트 결과 이원화 탭 추가 완수.
+  - Next.js 빌드 성공 및 1025개 Vitest 테스트 100% PASS 검증 완료.
+* **진행 상태**:
+  - 피처 브랜치(`gemini/work_260607-a-dashboard-improvements`) 상에 구현과 검증이 모두 완료된 상태이며, 사용자 승인 하에 Pull Request(PR) 생성을 준비 중입니다.
+

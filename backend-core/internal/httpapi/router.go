@@ -404,6 +404,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.GET("/projects/:project_id/repositories", handler.listProjectRepositories)
 	v1.POST("/projects/:project_id/repositories", handler.createProjectRepository)
 	v1.DELETE("/projects/:project_id/repositories/:repository_id", handler.deleteProjectRepository)
+	v1.PATCH("/projects/:project_id/repositories/:repository_id", handler.updateProjectRepositoryWeight)
 	// API-57 Application 롤업 (sprint claude/work_260514-c)
 	v1.GET("/platforms/:platform_id/rollup", handler.platformRollup)
 	v1.GET("/platforms/:platform_id/dashboard", handler.platformDashboard)
@@ -956,6 +957,10 @@ func (h Handler) createProjectRepository(c *gin.Context) {
 func (h Handler) deleteProjectRepository(c *gin.Context) {
 	h = h.ensure()
 	h.app.DeleteProjectRepository(c)
+}
+func (h Handler) updateProjectRepositoryWeight(c *gin.Context) {
+	h = h.ensure()
+	h.app.UpdateProjectRepositoryWeight(c)
 }
 func (h Handler) platformRollup(c *gin.Context) {
 	h = h.ensure()

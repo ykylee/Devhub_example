@@ -199,6 +199,12 @@ class ProjectService {
     await apiClient("DELETE", `/api/v1/projects/${projectId}/repositories/${repositoryId}`);
   }
 
+  async updateProjectRepositoryWeight(projectId: string, repositoryId: number, weight: number): Promise<void> {
+    await apiClient("PATCH", `/api/v1/projects/${projectId}/repositories/${repositoryId}`, {
+      contribution_weight: weight,
+    });
+  }
+
   async getProject(id: string): Promise<Project> {
     const resp = await apiClient<{ data: Project }>("GET", `/api/v1/projects/${id}`);
     return resp.data;

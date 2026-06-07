@@ -191,10 +191,11 @@ type createRepositoryPayload struct {
 
 func projectRepositoryResponse(link domain.ProjectRepository) gin.H {
 	return gin.H{
-		"project_id":    link.ProjectID,
-		"repository_id": link.RepositoryID,
-		"role":          link.Role,
-		"linked_at":     link.LinkedAt.UTC().Format(time.RFC3339),
+		"project_id":          link.ProjectID,
+		"repository_id":       link.RepositoryID,
+		"role":                link.Role,
+		"contribution_weight": link.ContributionWeight,
+		"linked_at":           link.LinkedAt.UTC().Format(time.RFC3339),
 	}
 }
 
@@ -763,6 +764,59 @@ func (h *PlatformHandler) DeleteProjectRepository(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
+
+type updateProjectRepositoryWeightRequest struct {
+	ContributionWeight float64 `json:"contribution_weight"`
+}
+
+// PATCH /api/v1/projects/:project_id/repositories/:repository_id
+func (h *PlatformHandler) UpdateProjectRepositoryWeight(c *gin.Context) {
+	if !h.allowV2ProjectRoutes() {
+		c.JSON(http.StatusGone, gin.H{"status": "gone", "error": "v2 project repository routes are disabled", "code": "project_model_v2_disabled"})
+		return
+	}
+	storeI, ok := h.PlatformStoreOrUnavailable(c)
+	if !ok {
+		return
+	}
+	projectID := c.Param("project_id")
+	repositoryID, err := strconv.ParseInt(c.Param("repository_id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "repository_id must be an integer"})
+		return
+	}
+	var req updateProjectRepositoryWeightRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": err.Error()})
+		return
+	}
+	if req.ContributionWeight < 0 || req.ContributionWeight > 100 {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "contribution_weight must be between 0 and 100"})
+		return
+	}
+	project, err := storeI.GetProject(c.Request.Context(), projectID)
+	if errors.Is(err, store.ErrNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "project not found"})
+		return
+	}
+	if err != nil {
+		httphelp.WriteServerError(c, err, "projects.update_weight.lookup")
+		return
+	}
+	if !h.enforceRowOwnership(c, project.OwnerUserID, string(domain.AppRoleTeamManager)) {
+		return
+	}
+	if err := storeI.UpdateProjectRepositoryWeight(c.Request.Context(), projectID, repositoryID, req.ContributionWeight); err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "project repository link not found"})
+			return
+		}
+		httphelp.WriteServerError(c, err, "projects.update_weight")
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+}
+
 
 // GET /api/v1/projects/:project_id
 func (h *PlatformHandler) GetProject(c *gin.Context) {

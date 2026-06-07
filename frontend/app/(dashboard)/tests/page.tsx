@@ -20,6 +20,10 @@ import {
 import { DashboardHeader } from "@/shared/ui-foundation/components/DashboardHeader";
 import { Badge } from "@/shared/ui-foundation/components/Badge";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
+import { projectService } from "@/domain/platform-lifecycle/service/project.service";
+import type { Project } from "@/domain/platform-lifecycle/schema/project.types";
+import { repositoryService } from "@/domain/repository-integration/service/repository.service";
+import { apiClient } from "@/shared/api/api-client";
 
 interface TestSchedule {
   id: string;
@@ -98,12 +102,20 @@ const CHART_COLORS = {
 };
 
 export default function TestManagementPage() {
-  const [activeTab, setActiveTab] = useState<"schedule" | "cases" | "cycle">("cycle");
+  const [activeTab, setActiveTab] = useState<"schedule" | "cases" | "cycle" | "ci">("cycle");
   
+  // Projects states
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("all");
+
   // Storage states
   const [schedules, setSchedules] = useState<TestSchedule[]>([]);
   const [testCases, setTestCases] = useState<TestCase[]>([]);
   const [cycle, setCycle] = useState<TestCycle | null>(null);
+
+  // CI/Automation states
+  const [ciRepos, setCiRepos] = useState<any[]>([]);
+  const [ciLoading, setCiLoading] = useState(false);
 
   // Filter & Search
   const [searchQuery, setSearchQuery] = useState("");
@@ -125,46 +137,108 @@ export default function TestManagementPage() {
   const [newCaseType, setNewCaseType] = useState<TestCase["type"]>("E2E");
   const [newCasePriority, setNewCasePriority] = useState<TestCase["priority"]>("High");
 
+  // 1. Load Projects List
   useEffect(() => {
+    projectService.listAllProjects()
+      .then((data) => {
+        setProjects(data);
+      })
+      .catch((err) => console.error("Failed to load projects for test isolation:", err));
+  }, []);
+
+  // 2. Load Isolated Test Data (when selectedProjectId changes)
+  useEffect(() => {
+    const suffix = selectedProjectId;
+    
     // Load schedules
-    const storedSched = localStorage.getItem("devhub-test-schedules");
-    if (storedSched) setSchedules(JSON.parse(storedSched));
-    else setSchedules(SEED_SCHEDULES);
+    const storedSched = localStorage.getItem(`devhub-test-schedules-${suffix}`);
+    if (storedSched) {
+      setSchedules(JSON.parse(storedSched));
+    } else {
+      setSchedules(suffix === "all" ? SEED_SCHEDULES : []);
+    }
 
     // Load cases
-    const storedCases = localStorage.getItem("devhub-test-cases");
-    let currentCases = SEED_TESTCASES;
+    const storedCases = localStorage.getItem(`devhub-test-cases-${suffix}`);
+    let currentCases = suffix === "all" ? SEED_TESTCASES : [];
     if (storedCases) {
       currentCases = JSON.parse(storedCases);
       setTestCases(currentCases);
     } else {
-      setTestCases(SEED_TESTCASES);
+      setTestCases(currentCases);
     }
 
     // Load cycle
-    const storedCycle = localStorage.getItem("devhub-test-cycle");
+    const storedCycle = localStorage.getItem(`devhub-test-cycle-${suffix}`);
     if (storedCycle) {
       setCycle(JSON.parse(storedCycle));
     } else {
-      // Seed cycle mapping
       const initialResults: Record<string, TestCase["status"]> = {};
       currentCases.forEach((tc) => {
         initialResults[tc.id] = tc.status;
       });
-      setCycle({ ...SEED_CYCLE, results: initialResults });
+      
+      const projectName = suffix === "all" ? "종합" : (projects.find(p => p.id === suffix)?.name ?? "프로젝트");
+      setCycle({
+        id: `cycle-${suffix}`,
+        name: `v1.0 Staging Release Cycle [${projectName}]`,
+        targetVersion: "v1.0.0",
+        results: initialResults
+      });
     }
-  }, []);
+  }, [selectedProjectId, projects]);
+
+  // 3. Load CI Build Runs (when selectedProjectId changes)
+  useEffect(() => {
+    if (selectedProjectId === "all") {
+      setCiLoading(true);
+      repositoryService.listRepositories()
+        .then(async (repos) => {
+          const results = await Promise.allSettled(
+            repos.map(async (r) => {
+              const builds = await apiClient<any>("GET", `/api/v1/repositories/${r.id}/build-runs`).catch(() => ({ data: [] }));
+              return { repo: r, builds: builds.data || [] };
+            })
+          );
+          const activeResults = results
+            .filter((res) => res.status === "fulfilled")
+            .map((res: any) => res.value);
+          setCiRepos(activeResults);
+        })
+        .catch((err) => console.error("Failed to load global CI repos:", err))
+        .finally(() => setCiLoading(false));
+    } else {
+      setCiLoading(true);
+      projectService.getProjectRepositories(selectedProjectId)
+        .then(async (links) => {
+          const allRepos = await repositoryService.listRepositories().catch(() => []);
+          const results = await Promise.allSettled(
+            links.map(async (link) => {
+              const repo = allRepos.find((r) => r.id === link.repository_id);
+              if (!repo) return null;
+              const builds = await apiClient<any>("GET", `/api/v1/repositories/${repo.id}/build-runs`).catch(() => ({ data: [] }));
+              return { repo, builds: builds.data || [], link };
+            })
+          );
+          const activeResults = results
+            .filter((res) => res.status === "fulfilled" && res.value !== null)
+            .map((res: any) => res.value);
+          setCiRepos(activeResults);
+        })
+        .catch((err) => console.error("Failed to load project CI repos:", err))
+        .finally(() => setCiLoading(false));
+    }
+  }, [selectedProjectId]);
 
   const saveSchedules = (updated: TestSchedule[]) => {
     setSchedules(updated);
-    localStorage.setItem("devhub-test-schedules", JSON.stringify(updated));
+    localStorage.setItem(`devhub-test-schedules-${selectedProjectId}`, JSON.stringify(updated));
   };
 
   const saveCases = (updated: TestCase[]) => {
     setTestCases(updated);
-    localStorage.setItem("devhub-test-cases", JSON.stringify(updated));
+    localStorage.setItem(`devhub-test-cases-${selectedProjectId}`, JSON.stringify(updated));
 
-    // Update cycle mapping together
     if (cycle) {
       const updatedResults = { ...cycle.results };
       updated.forEach((tc) => {
@@ -174,7 +248,7 @@ export default function TestManagementPage() {
       });
       const updatedCycle = { ...cycle, results: updatedResults };
       setCycle(updatedCycle);
-      localStorage.setItem("devhub-test-cycle", JSON.stringify(updatedCycle));
+      localStorage.setItem(`devhub-test-cycle-${selectedProjectId}`, JSON.stringify(updatedCycle));
     }
   };
 
@@ -278,19 +352,39 @@ export default function TestManagementPage() {
     return matchesSearch && matchesType && matchesPriority;
   });
 
+  const isCreationDisabled = selectedProjectId === "all";
+
   return (
     <div className="space-y-10 pb-20 px-4 md:px-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <DashboardHeader 
           titlePrefix="Test"
           titleGradient="Management Suite"
           subtitle="테스트 케이스 설계, 실행 주기 수립, 그리고 결과 분석 일정을 조율합니다."
         />
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2 bg-muted/20 border border-border px-3.5 py-2 rounded-2xl">
+            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Target Project:</span>
+            <select
+              value={selectedProjectId}
+              onChange={(e) => setSelectedProjectId(e.target.value)}
+              className="bg-transparent text-xs font-bold text-foreground focus:outline-none cursor-pointer"
+            >
+              <option value="all">🌐 All Projects (Shared Dashboard)</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  📄 {p.name} ({p.key})
+                </option>
+              ))}
+            </select>
+          </div>
+
           {activeTab === "schedule" && (
             <button 
               onClick={() => setIsScheduleModalOpen(true)}
-              className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-primary to-accent hover:opacity-90 text-primary-foreground font-bold text-sm shadow-lg shadow-primary/20 transition-all shrink-0"
+              disabled={isCreationDisabled}
+              className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-primary to-accent hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-primary-foreground font-bold text-sm shadow-lg shadow-primary/20 transition-all shrink-0"
+              title={isCreationDisabled ? "수동 일정을 추가하려면 프로젝트를 선택하세요." : ""}
             >
               <Plus className="w-4 h-4" /> 테스트 일정 추가
             </button>
@@ -298,7 +392,9 @@ export default function TestManagementPage() {
           {activeTab === "cases" && (
             <button 
               onClick={() => setIsCaseModalOpen(true)}
-              className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-primary to-accent hover:opacity-90 text-primary-foreground font-bold text-sm shadow-lg shadow-primary/20 transition-all shrink-0"
+              disabled={isCreationDisabled}
+              className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-primary to-accent hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-primary-foreground font-bold text-sm shadow-lg shadow-primary/20 transition-all shrink-0"
+              title={isCreationDisabled ? "테스트 케이스를 설계하려면 프로젝트를 선택하세요." : ""}
             >
               <Plus className="w-4 h-4" /> 테스트 케이스 추가
             </button>
@@ -312,6 +408,7 @@ export default function TestManagementPage() {
           { key: "cycle", label: "테스트 사이클 & 통계", icon: PlayCircle },
           { key: "cases", label: "테스트 케이스 관리", icon: ListTodo },
           { key: "schedule", label: "테스트 일정 관리", icon: Calendar },
+          { key: "ci", label: "자동화 테스트 (CI) 결과", icon: GitPullRequest },
         ].map((tab) => {
           const Icon = tab.icon;
           return (
@@ -594,6 +691,95 @@ export default function TestManagementPage() {
             {schedules.length === 0 && (
               <div className="col-span-full py-12 text-center text-muted-foreground glass-card border border-dashed border-white/10">
                 등록된 테스트 일정이 없습니다.
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "ci" && (
+          <div className="space-y-6">
+            {ciLoading ? (
+              <div className="text-center py-12 text-xs text-muted-foreground animate-pulse">자동화 테스트 실행 이력을 불러오는 중...</div>
+            ) : ciRepos.length === 0 ? (
+              <div className="py-12 text-center text-muted-foreground glass-card border border-dashed border-white/10 text-xs">
+                연결된 저장소가 없거나 조회할 수 있는 CI 빌드 이력이 없습니다.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-6">
+                {ciRepos.map(({ repo, builds, link }) => {
+                  const buildCount = builds.length;
+                  const passedBuilds = builds.filter((b: any) => b.status === "success" || b.status === "passed" || b.result === "success").length;
+                  const successRate = buildCount > 0 ? Math.round((passedBuilds / buildCount) * 100) : 0;
+                  
+                  return (
+                    <div key={repo.id} className="glass-card p-6 border border-white/10 dark:border-white/5 space-y-6">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-md font-bold text-foreground">{repo.full_name}</h4>
+                            {link && (
+                              <Badge variant={link.role === "primary" ? "primary" : "glass"}>
+                                {link.role} {link.contribution_weight !== undefined ? `(${link.contribution_weight}%)` : ""}
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-widest">
+                            Provider: {repo.provider_key || "gitea"} • ID: {repo.id}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-6">
+                          <div className="text-right">
+                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">총 빌드 횟수</p>
+                            <p className="text-md font-bold text-foreground">{buildCount}회</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">빌드 성공률</p>
+                            <p className={`text-md font-bold ${successRate >= 90 ? "text-emerald-500" : successRate >= 70 ? "text-amber-500" : "text-rose-500"}`}>
+                              {successRate}%
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Build runs list */}
+                      <div className="space-y-3">
+                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">최근 CI 실행 이력 (Recent Builds)</p>
+                        {builds.length === 0 ? (
+                          <p className="text-xs text-muted-foreground py-2">수집된 CI 빌드 내역이 없습니다.</p>
+                        ) : (
+                          <div className="divide-y divide-white/5 border border-white/5 rounded-xl bg-white/5 overflow-hidden">
+                            {builds.slice(0, 5).map((build: any) => {
+                              const isSuccess = build.status === "success" || build.status === "passed" || build.result === "success";
+                              const isRunning = build.status === "running" || build.status === "pending";
+                              
+                              return (
+                                <div key={build.id} className="p-3.5 flex items-center justify-between text-xs hover:bg-white/5 transition-colors gap-4">
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-mono font-bold text-foreground">Build #{build.build_number || build.number || build.id}</span>
+                                      <span className="text-muted-foreground truncate max-w-xs md:max-w-md">{build.commit_message || build.message || "No commit message"}</span>
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                                      Branch: {build.branch || "main"} • Author: {build.author_name || build.author || "unknown"}
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-3 shrink-0">
+                                    <span className="text-[10px] text-muted-foreground">
+                                      {build.completed_at ? new Date(build.completed_at).toLocaleString() : "Running..."}
+                                    </span>
+                                    <Badge variant={isSuccess ? "success" : isRunning ? "warning" : "danger"}>
+                                      {build.status}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
