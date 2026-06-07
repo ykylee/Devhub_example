@@ -66,6 +66,67 @@ func (c *KeycloakAdminClient) LogoutUserSession(ctx context.Context, identityID 
 	return err
 }
 
+// OIDCLogout — sprint mvs/work_260608-i-488-sign-out (N-8 / P1-6). Keycloak
+// OIDC /protocol/openid-connect/logout endpoint 로 refresh_token 폐기.
+// issue #488 spec: client_id + client_secret + refresh_token 을 form-urlencoded
+// body 로 POST. Keycloak 4xx (invalid/expired token) → nil (idempotent).
+// network / 5xx error → error (502 매핑용).
+//
+// ⚠ 본 endpoint 는 admin endpoint 가 아니라 OIDC user-facing endpoint. 단,
+// confidential client 의 client_secret 이 필요한 관계로 KeycloakAdminClient
+// 의 client credentials 를 재사용. (sprint -i 후속: 별도 OIDCClient 분리
+// 가능성.)
+func (c *KeycloakAdminClient) OIDCLogout(ctx context.Context, refreshToken string) error {
+	if strings.TrimSpace(refreshToken) == "" {
+		return errors.New("OIDC logout requires non-empty refresh_token")
+	}
+	if strings.TrimSpace(c.Realm) == "" || strings.TrimSpace(c.ClientID) == "" || strings.TrimSpace(c.ClientSecret) == "" {
+		return errors.New("KeycloakAdminClient requires realm, client_id, client_secret")
+	}
+	logoutURL := c.oidcLogoutEndpoint()
+	form := url.Values{}
+	form.Set("client_id", c.ClientID)
+	form.Set("client_secret", c.ClientSecret)
+	form.Set("refresh_token", refreshToken)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, logoutURL, strings.NewReader(form.Encode()))
+	if err != nil {
+		return fmt.Errorf("build keycloak logout request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := c.client().Do(req)
+	if err != nil {
+		return fmt.Errorf("call keycloak logout endpoint: %w", err)
+	}
+	defer resp.Body.Close()
+	_, _ = io.Copy(io.Discard, resp.Body)
+
+	// 200/204 = success. 400/401 = invalid token — caller 에서 idempotent 204
+	// 반환 (이미 revoke 된 토큰 재시도 등). 5xx = server error, propagate.
+	if resp.StatusCode/100 == 2 {
+		return nil
+	}
+	if resp.StatusCode == http.StatusBadRequest || resp.StatusCode == http.StatusUnauthorized {
+		return nil
+	}
+	return fmt.Errorf("keycloak logout status %d", resp.StatusCode)
+}
+
+// oidcLogoutEndpoint — issuer url 기반 derive. tokenEndpoint 와 같은 패턴.
+func (c *KeycloakAdminClient) oidcLogoutEndpoint() string {
+	if issuer := strings.TrimRight(strings.TrimSpace(c.IssuerURL), "/"); issuer != "" {
+		return issuer + "/protocol/openid-connect/logout"
+	}
+	u, err := url.Parse(strings.TrimRight(c.AdminURL, "/"))
+	if err != nil {
+		return strings.TrimRight(c.AdminURL, "/") + "/realms/" + url.PathEscape(c.Realm) + "/protocol/openid-connect/logout"
+	}
+	u.Path = path.Join(u.Path, "realms", c.Realm, "protocol", "openid-connect", "logout")
+	return u.String()
+}
+
 // ADR-0020 sub-carve E (sprint -n) — Keycloak admin = 별도 운영팀 (PoLP).
 // write methods (CreateIdentity / UpdateIdentityPassword / SetIdentityState /
 // DeleteIdentity) 는 정공법 제거. service account 는 view-users + view-events

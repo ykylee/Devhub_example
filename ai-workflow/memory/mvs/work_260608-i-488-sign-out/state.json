@@ -1,0 +1,56 @@
+{
+  "schema_version": "1",
+  "sprint": "mvs/work_260608-i-488-sign-out",
+  "branch": "mvs/work_260608-i-488-sign-out",
+  "status": "in_progress",
+  "started_at": "2026-06-08T05:50:00Z",
+  "ended_at": null,
+  "merged_pr": null,
+  "merge_commit": null,
+  "issue": 488,
+  "carve": "P1-6 (release_v1_roadmap.md §3.2) + N-8 (§3.5) — v1.0 안정성",
+  "scope": "POST /api/v1/auth/logout handler 신규 구현. access token 폐기 + session 종료. RFC 7009 (token revocation) vs Keycloak admin logout endpoint 선택 가능. Idempotent. UT 4-5건 + audit emit. 정식 ID = API-99 (sprint -h 의 ID 슬롯 정합 1차 housekeeping 후 확정, 충돌 없음).",
+  "directive_source": "사용자 지시 (2026-06-08) — '머지하고 다음 작업을 진행하자. 브랜치 만들고 메모리 갱신도 해줘' — N-7 (PR #494) 머지 후 자연스러운 다음 단계로 sprint-i 의 P1-6 (N-8) 진입. 사용자 옵션 5개 중 1번 (N-8) 을 자연스러운 다음 작업으로 채택.",
+  "decisions": [
+    "sprint-i 의 P1-2/P0-2/P1-6 중 P1-6 (N-8) 가 v1.0 release blocker 에 가장 가까움 (세션 관리 기본)",
+    "정식 API ID = API-99 (sprint -h 의 1차 정합 housekeeping 으로 슬롯 확정)",
+    "scaffold 3 파일 = state.json + work_backlog.md + session_handoff.md"
+  ],
+  "todo_done": [
+    "이전 sprint N-7 (PR #494) 머지 완료 확인 (merge commit 7609000)",
+    "N-7 state.json status: done 갱신",
+    "브랜치 mvs/work_260608-i-488-sign-out 생성 (origin/main @ 7609000 base)",
+    "sprint scaffold 3 파일 작성 (state.json + work_backlog.md + session_handoff.md)"
+  ],
+  "todo": [
+    "Issue #488 본문 + 2차 정정 housekeeping comment 정독",
+    "기존 auth handler 패턴 탐색 (JWKS, token verify, middleware)",
+    "IdentityAdmin.LogoutUserSession 활용 가능 여부 검증",
+    "RFC 7009 vs Keycloak admin logout endpoint 선택 (사용자 결정)",
+    "POST /api/v1/auth/logout handler 구현",
+    "route 등록 + RBAC + audit emit + metric (선택)",
+    "UT 4-5건 (TC-AUTH-LOGOUT-01..05)",
+    "go test ./... + go build PASS",
+    "commit + push + PR 생성"
+  ],
+  "verification": null,
+  "dependencies": {
+    "satisfied": [
+      "PR #494 (N-7 CI Run API) — main 머지 완료",
+      "IdentityAdmin interface (ADR-0020 sub-carve E) — main 머지 완료",
+      "Keycloak OIDC verifier + JWKS cache — main 머지 완료"
+    ],
+    "external": [
+      "Keycloak admin endpoint 가용성 (사내 staging 환경 1주 monitoring 잔여)"
+    ]
+  },
+  "traceability": {
+    "REQ": "REQ-FR-107",
+    "ARCH": "ARCH-19",
+    "API": "API-99",
+    "IMPL": "IMPL-auth-logout-01",
+    "UT": "UT-auth-logout-01",
+    "TC": "TC-AUTH-LOGOUT-01..05",
+    "domain": "domain/auth + type/feature"
+  }
+}
