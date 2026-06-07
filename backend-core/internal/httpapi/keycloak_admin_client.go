@@ -20,15 +20,25 @@ import (
 // (ADR-0019).
 var ErrIdentityNotFound = errors.New("identity not found")
 
-// KeycloakAdminClient maps account-admin operations to Keycloak Admin API.
-// It satisfies IdentityAdmin.
+// KeycloakAdminClient maps account-admin operations to Keycloak Admin API +
+// OIDC user-facing endpoints. It satisfies IdentityAdmin and OIDCLogoutClient.
+//
+// 두 client 구분 — RFC 6749 §4.1.3 / Keycloak 의 token binding 정책:
+//   - ClientID/ClientSecret: **admin client** (e.g. devhub-backend). Admin
+//     REST endpoint (/admin/realms/{realm}/users/{id}/logout) 호출용.
+//   - OIDCClientID/OIDCClientSecret: **OIDC client** (e.g. devhub-frontend).
+//     User-facing OIDC endpoint (/realms/{realm}/protocol/openid-connect/logout)
+//     호출용. Keycloak 은 token 발급 client 와 다른 client 의 logout 을 거부함
+//     (production 401 회피).
 type KeycloakAdminClient struct {
-	AdminURL     string
-	Realm        string
-	ClientID     string
-	ClientSecret string
-	IssuerURL    string
-	HTTPClient   *http.Client
+	AdminURL        string
+	Realm           string
+	ClientID        string
+	ClientSecret    string
+	IssuerURL       string
+	OIDCClientID    string
+	OIDCClientSecret string
+	HTTPClient      *http.Client
 }
 
 func (c *KeycloakAdminClient) FindIdentityByUserID(ctx context.Context, userID string) (string, error) {
@@ -72,21 +82,23 @@ func (c *KeycloakAdminClient) LogoutUserSession(ctx context.Context, identityID 
 // body 로 POST. Keycloak 4xx (invalid/expired token) → nil (idempotent).
 // network / 5xx error → error (502 매핑용).
 //
-// ⚠ 본 endpoint 는 admin endpoint 가 아니라 OIDC user-facing endpoint. 단,
-// confidential client 의 client_secret 이 필요한 관계로 KeycloakAdminClient
-// 의 client credentials 를 재사용. (sprint -i 후속: 별도 OIDCClient 분리
-// 가능성.)
+// ⚠ OIDCClientID / OIDCClientSecret 사용 (admin ClientID 와 분리). RFC 6749
+// §4.1.3 / Keycloak token binding 정책 — token 발급 client 와 logout client
+// 가 동일해야 Keycloak 이 logout 을 수락. production 에서 frontend 가
+// devhub-frontend client 로 token 발급 → logout 도 devhub-frontend client
+// 자격증명 필요. devhub-backend admin client 자격증명 사용 시 Keycloak 이
+// 401 반환 (codex P1 review #2 정합).
 func (c *KeycloakAdminClient) OIDCLogout(ctx context.Context, refreshToken string) error {
 	if strings.TrimSpace(refreshToken) == "" {
 		return errors.New("OIDC logout requires non-empty refresh_token")
 	}
-	if strings.TrimSpace(c.Realm) == "" || strings.TrimSpace(c.ClientID) == "" || strings.TrimSpace(c.ClientSecret) == "" {
-		return errors.New("KeycloakAdminClient requires realm, client_id, client_secret")
+	if strings.TrimSpace(c.Realm) == "" || strings.TrimSpace(c.OIDCClientID) == "" || strings.TrimSpace(c.OIDCClientSecret) == "" {
+		return errors.New("KeycloakAdminClient requires realm, oidc_client_id, oidc_client_secret for OIDC logout (separate from admin client)")
 	}
 	logoutURL := c.oidcLogoutEndpoint()
 	form := url.Values{}
-	form.Set("client_id", c.ClientID)
-	form.Set("client_secret", c.ClientSecret)
+	form.Set("client_id", c.OIDCClientID)
+	form.Set("client_secret", c.OIDCClientSecret)
 	form.Set("refresh_token", refreshToken)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, logoutURL, strings.NewReader(form.Encode()))

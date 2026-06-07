@@ -800,3 +800,57 @@ func (f *fakeOIDCLogoutClient) OIDCLogout(_ context.Context, refreshToken string
 	f.calls = append(f.calls, refreshToken)
 	return f.err
 }
+
+// TC-AUTH-LOGOUT-06 — codex P1 review 정합: OIDC logout 이 OIDC (frontend)
+// client 자격증명을 사용하고 admin (backend) client 자격증명을 사용하지
+// 않음을 보장. Keycloak token binding 정책 위반 시 production 401.
+func TestKeycloakAdminClient_OIDCLogout_UsesOIDCClientCreds(t *testing.T) {
+	// httptest.NewServer 로 mock Keycloak OIDC logout endpoint 제공.
+	// form body 의 client_id 가 OIDCClientID (frontend) 인지 검증.
+	var capturedClientID string
+	mux := http.NewServeMux()
+	mux.HandleFunc("/realms/test/protocol/openid-connect/logout", func(w http.ResponseWriter, r *http.Request) {
+		_ = r.ParseForm()
+		capturedClientID = r.FormValue("client_id")
+		w.WriteHeader(http.StatusOK)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	// admin client (devhub-backend) 와 OIDC client (devhub-frontend) 가 분리.
+	// OIDCClientID/OIDCClientSecret 가 ClientID/ClientSecret 와 다르게 설정.
+	c := &KeycloakAdminClient{
+		AdminURL:         srv.URL,
+		Realm:            "test",
+		ClientID:         "devhub-backend-admin",                  // admin client
+		ClientSecret:     "admin-secret",
+		OIDCClientID:     "devhub-frontend",                       // OIDC client (frontend)
+		OIDCClientSecret: "frontend-secret",
+	}
+
+	if err := c.OIDCLogout(context.Background(), "rt-1"); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if capturedClientID != "devhub-frontend" {
+		t.Errorf("expected client_id=devhub-frontend (OIDC), got %q (admin ClientID leaked)", capturedClientID)
+	}
+}
+
+// TC-AUTH-LOGOUT-07 — OIDC client 자격증명 미설정 시 명확한 에러 반환
+// (production silent skip 방지).
+func TestKeycloakAdminClient_OIDCLogout_MissingOIDCClientCreds(t *testing.T) {
+	c := &KeycloakAdminClient{
+		AdminURL:     "http://localhost:0",
+		Realm:        "test",
+		ClientID:     "admin-client",
+		ClientSecret: "admin-secret",
+		// OIDCClientID/OIDCClientSecret 미설정 — OIDC logout 호출 불가
+	}
+	err := c.OIDCLogout(context.Background(), "rt-1")
+	if err == nil {
+		t.Fatal("expected error when OIDC client creds missing")
+	}
+	if !strings.Contains(err.Error(), "oidc_client_id") || !strings.Contains(err.Error(), "oidc_client_secret") {
+		t.Errorf("expected error mentioning OIDC client fields, got %v", err)
+	}
+}

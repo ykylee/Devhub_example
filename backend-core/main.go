@@ -119,16 +119,28 @@ func main() {
 	}
 
 	var (
-		idpAdmin httpapi.IdentityAdmin
+		idpAdmin       httpapi.IdentityAdmin
+		oidcLogout     httpapi.OIDCLogoutClient
 	)
 	if cfg.KeycloakAdminURL != "" && cfg.KeycloakAdminRealm != "" && cfg.KeycloakAdminClientID != "" && cfg.KeycloakAdminClientSecret != "" {
-		idpAdmin = &httpapi.KeycloakAdminClient{
+		kc := &httpapi.KeycloakAdminClient{
 			AdminURL:     cfg.KeycloakAdminURL,
 			Realm:        cfg.KeycloakAdminRealm,
 			ClientID:     cfg.KeycloakAdminClientID,
 			ClientSecret: cfg.KeycloakAdminClientSecret,
+			IssuerURL:    cfg.OIDCIssuerURL,
+			// OIDC logout 은 token 발급 client (frontend) 자격증명 사용
+			// (RFC 6749 §4.1.3 / Keycloak token binding). admin client 와
+			// 분리 — codex P1 review #2 정합 (sprint -i fix).
+			OIDCClientID:     cfg.OIDCClientID,
+			OIDCClientSecret: cfg.OIDCClientSecret,
 		}
-		log.Printf("identity admin client: keycloak (admin_url=%q realm=%q client_id=%q)", cfg.KeycloakAdminURL, cfg.KeycloakAdminRealm, cfg.KeycloakAdminClientID)
+		idpAdmin = kc
+		// KeycloakAdminClient 가 OIDCLogoutClient 인터페이스도 충족하므로
+		// 동일 인스턴스를 두 슬롯에 주입. (codex P1 review #1 정합)
+		oidcLogout = kc
+		log.Printf("identity admin + OIDC logout: keycloak (admin_client=%q oidc_client=%q realm=%q)",
+			cfg.KeycloakAdminClientID, cfg.OIDCClientID, cfg.KeycloakAdminRealm)
 	} else {
 		log.Println("keycloak provider mode: account admin adapter is not fully configured")
 	}
@@ -167,6 +179,7 @@ func main() {
 		RBACStore:                  rbacStore,
 		BearerTokenVerifier:        verifier,
 		IdentityAdmin:              idpAdmin,
+		OIDCLogoutClient:           oidcLogout,
 		IdPProvider:                cfg.IdPProvider,
 		HRDB:                       hrdbMock,
 		SnapshotProvider: httpapi.RuntimeSnapshotProvider{
