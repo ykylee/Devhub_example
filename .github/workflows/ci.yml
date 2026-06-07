@@ -230,41 +230,31 @@ jobs:
       - name: Install Node dependencies
         run: cd frontend && npm ci
       - name: Build backend + frontend
-        env:
-          NEXT_OUTPUT: standalone
         run: |
           set -euo pipefail
           (cd backend-core && CGO_ENABLED=0 go build -o ../devhub-backend ./)
-          GOBIN="$GITHUB_WORKSPACE/.ci-tools" go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.19.1
           (cd frontend && npm run build)
       - name: Package E2E artifacts
         run: |
           set -euo pipefail
           mkdir -p /tmp/e2e-artifacts
           tar -C "$GITHUB_WORKSPACE" -czf /tmp/e2e-artifacts/devhub-backend.tgz devhub-backend
-          tar -C "$GITHUB_WORKSPACE/frontend" -czf /tmp/e2e-artifacts/frontend-standalone.tgz .next/standalone .next/static
-          tar -C "$GITHUB_WORKSPACE" -czf /tmp/e2e-artifacts/migrate.tgz .ci-tools/migrate
+          tar -C "$GITHUB_WORKSPACE/frontend" -czf /tmp/e2e-artifacts/frontend-next.tgz .next
       - name: Upload backend artifact
         uses: actions/upload-artifact@v4
         with:
           name: e2e-backend-${{ github.sha }}
           path: /tmp/e2e-artifacts/devhub-backend.tgz
           retention-days: 1
-      - name: Upload frontend standalone artifact
+      - name: Upload frontend build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-frontend-standalone-${{ github.sha }}
-          path: /tmp/e2e-artifacts/frontend-standalone.tgz
-          retention-days: 1
-      - name: Upload migrate artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: e2e-migrate-${{ github.sha }}
-          path: /tmp/e2e-artifacts/migrate.tgz
+          name: e2e-frontend-next-${{ github.sha }}
+          path: /tmp/e2e-artifacts/frontend-next.tgz
           retention-days: 1
 
   e2e:
-    name: E2E Tests (Playwright, shard ${{ matrix.shard }}/${{ matrix.shard_total }})
+    name: E2E Tests (Playwright, shard ${{ matrix.shard }}/2)
     runs-on: ubuntu-latest
     needs: [changed-paths, e2e-build]
     # sprint gemini/work_260528-code-cleanup — 대규모 import path/디렉터리 이관으로
@@ -274,13 +264,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - shard: 1
-            shard_total: 3
-          - shard: 2
-            shard_total: 3
-          - shard: 3
-            shard_total: 3
+        shard: [1, 2]
     # ADR-0003: no-docker policy. Native postgresql-15 is installed below in
     # the "Setup PostgreSQL (native)" step so this job stays consistent with
     # the prod deployment shape (test-server-deployment.md §1.2). The earlier
@@ -383,16 +367,10 @@ jobs:
           name: e2e-backend-${{ github.sha }}
           path: /tmp/e2e-artifacts
 
-      - name: Download frontend standalone artifact
+      - name: Download frontend build artifact
         uses: actions/download-artifact@v4
         with:
-          name: e2e-frontend-standalone-${{ github.sha }}
-          path: /tmp/e2e-artifacts
-
-      - name: Download migrate artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: e2e-migrate-${{ github.sha }}
+          name: e2e-frontend-next-${{ github.sha }}
           path: /tmp/e2e-artifacts
 
       - name: Restore E2E build artifacts
@@ -400,10 +378,8 @@ jobs:
           set -euo pipefail
           tar -C "$GITHUB_WORKSPACE" -xzf /tmp/e2e-artifacts/devhub-backend.tgz
           chmod +x "$GITHUB_WORKSPACE/devhub-backend"
-          rm -rf "$GITHUB_WORKSPACE/frontend/.next/standalone" "$GITHUB_WORKSPACE/frontend/.next/static"
-          tar -C "$GITHUB_WORKSPACE/frontend" -xzf /tmp/e2e-artifacts/frontend-standalone.tgz
-          tar -C "$GITHUB_WORKSPACE" -xzf /tmp/e2e-artifacts/migrate.tgz
-          chmod +x "$GITHUB_WORKSPACE/.ci-tools/migrate"
+          rm -rf "$GITHUB_WORKSPACE/frontend/.next"
+          tar -C "$GITHUB_WORKSPACE/frontend" -xzf /tmp/e2e-artifacts/frontend-next.tgz
       
       - name: Start Keycloak (container)
         run: |
@@ -449,7 +425,8 @@ jobs:
       - name: Apply app migrations
         run: |
           set -euo pipefail
-          "$GITHUB_WORKSPACE/.ci-tools/migrate" -path backend-core/migrations -database "postgres://runner@localhost:5432/devhub?sslmode=disable" up
+          sudo GOBIN=/usr/local/bin go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.19.1
+          migrate -path backend-core/migrations -database "postgres://runner@localhost:5432/devhub?sslmode=disable" up
 
       - name: Validate E2E-CI Sync Contract
         run: bash ./scripts/ci-e2e-sync-check.sh .github/workflows/ci.yml
@@ -473,11 +450,9 @@ jobs:
         env:
           NEXT_PUBLIC_OIDC_ISSUER_URL: http://localhost:8180/devhub/auth/keycloak/realms/devhub
           NEXT_PUBLIC_OIDC_CLIENT_ID: devhub-frontend
-          PORT: 3000
-          HOSTNAME: 0.0.0.0
         run: |
           cd frontend
-          node .next/standalone/server.js > ../frontend.log 2>&1 &
+          npm run start > ../frontend.log 2>&1 &
       
       - name: Wait for App Readiness
         # FU-CI-4: split the backend/frontend waits. Backend keeps 60s (fast).
@@ -491,7 +466,7 @@ jobs:
       - name: Run E2E Tests
         run: |
           cd frontend
-          npx playwright test --shard=${{ matrix.shard }}/${{ matrix.shard_total }}
+          npx playwright test --shard=${{ matrix.shard }}/2
         env:
           DSN: postgres://runner@localhost:5432/devhub?sslmode=disable
           DEVHUB_KEYCLOAK_ADMIN_URL: http://localhost:8180/devhub/auth/keycloak
