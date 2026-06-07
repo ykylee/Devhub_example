@@ -13,9 +13,11 @@ import {
   GitBranch,
   Briefcase,
   Layers,
-  Rocket
+  Rocket,
+  MessageSquare
 } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
+import Link from "next/link";
 import { Badge } from "@/shared/ui-foundation/components/Badge";
 import { cn } from "@/shared/utils";
 import { useStore } from "@/lib/store";
@@ -42,6 +44,7 @@ export default function ApplicationDetailPage() {
   const [platform, setApplication] = useState<Platform | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [allSCMRepos, setAllSCMRepos] = useState<Array<{ id: number; provider_key: string; full_name: string }>>([]);
 
   // Edit Modal state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -58,14 +61,16 @@ export default function ApplicationDetailPage() {
     try {
       setError(null);
       setLoading(true);
-      const [dashData, reposData, appData] = await Promise.all([
+      const [dashData, reposData, appData, allReposData] = await Promise.all([
         platformService.getPlatformDashboard(id),
         projectService.getPlatformRepositories(id),
         platformService.getPlatform(id),
+        apiClient<{ data: Array<{ id: number; provider_key: string; full_name: string }> }>("GET", "/api/v1/repositories").catch(() => ({ data: [] })),
       ]);
       setDashboard(dashData);
       setRepositories(reposData);
       setApplication(appData);
+      setAllSCMRepos(allReposData.data);
     } catch (err) {
       setError(toUserErrorMessage(err, "Failed to load platform details."));
       console.error(err);
@@ -234,7 +239,7 @@ export default function ApplicationDetailPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
           { label: "Quality Score", value: `${qualityScore} / 5.0`, icon: ShieldCheck, color: "text-blue-500", trend: "Standard A+", bg: "bg-blue-500/10" },
-          { label: "Pending Requests", value: String(pendingRequestsCount), icon: Clock, color: pendingRequestsCount > 0 ? "text-amber-500" : "text-emerald-500", trend: "DREQ Backlog (this platform)", bg: "bg-amber-500/10" },
+          { label: "VOC 현황", value: `${pendingRequestsCount} 건`, icon: MessageSquare, color: pendingRequestsCount > 0 ? "text-amber-500" : "text-emerald-500", trend: "접수 및 처리 대기 중", bg: "bg-amber-500/10" },
           { label: "Critical Warnings", value: String(criticalWarnings), icon: Zap, color: criticalWarnings > 0 ? "text-amber-500" : "text-emerald-500", trend: "Governance", bg: "bg-amber-500/10" },
           { label: "Gate Failures", value: String(gateFailures), icon: Globe, color: gateFailures > 0 ? "text-rose-500" : "text-emerald-500", trend: "Quality Gate", bg: "bg-rose-500/10" },
         ].map((stat, i) => (
@@ -268,31 +273,6 @@ export default function ApplicationDetailPage() {
         {/* Left Column: Milestones Progress & Quality Analysis */}
         <div className="lg:col-span-2 space-y-8">
 
-          {/* Quality Score Trend (7-Day Area Chart) */}
-          <section className="glass-card p-8">
-            <h3 className="text-md font-bold text-foreground mb-6 flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-primary" /> Quality Score Trend (7-Day)
-            </h3>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData}>
-                  <defs>
-                    <linearGradient id="colorQuality" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 10, fontWeight: 700 }} />
-                  <YAxis domain={[0, 5.0]} axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 10, fontWeight: 700 }} />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: 'var(--card)', borderRadius: '16px', border: '1px solid var(--border)' }}
-                  />
-                  <Area type="monotone" dataKey="quality_score" stroke="var(--primary)" fillOpacity={1} fill="url(#colorQuality)" strokeWidth={3} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </section>
-          
           {/* Linked Projects (Milestones) Progress */}
           <section className="glass-card p-8">
             <h3 className="text-lg font-bold text-foreground mb-6 flex items-center gap-2">
@@ -300,10 +280,14 @@ export default function ApplicationDetailPage() {
             </h3>
             <div className="space-y-6">
               {dashboard.projects_progress.map((project) => (
-                <div key={project.project_id} className="p-5 rounded-2xl border border-white/10 dark:border-white/5 bg-white/5 backdrop-blur-md space-y-4">
+                <Link 
+                  href={`/projects/${project.project_id}`}
+                  key={project.project_id}
+                  className="block p-5 rounded-2xl border border-white/10 dark:border-white/5 bg-white/5 hover:bg-white/10 transition-all backdrop-blur-md space-y-4 group/project"
+                >
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
+                      <h4 className="text-sm font-bold text-foreground flex items-center gap-2 group-hover/project:text-primary transition-colors">
                         {project.name}
                         <Badge variant="secondary" className="scale-90 font-mono">{project.key}</Badge>
                       </h4>
@@ -329,13 +313,38 @@ export default function ApplicationDetailPage() {
                       />
                     </div>
                   </div>
-                </div>
+                </Link>
               ))}
               {dashboard.projects_progress.length === 0 && (
                 <div className="py-12 text-center text-muted-foreground text-sm">
                   No active projects currently linked.
                 </div>
               )}
+            </div>
+          </section>
+
+          {/* Quality Score Trend (7-Day Area Chart) */}
+          <section className="glass-card p-8">
+            <h3 className="text-md font-bold text-foreground mb-6 flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-primary" /> Quality Score Trend (7-Day)
+            </h3>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="colorQuality" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 10, fontWeight: 700 }} />
+                  <YAxis domain={[0, 5.0]} axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 10, fontWeight: 700 }} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: 'var(--card)', borderRadius: '16px', border: '1px solid var(--border)' }}
+                  />
+                  <Area type="monotone" dataKey="quality_score" stroke="var(--primary)" fillOpacity={1} fill="url(#colorQuality)" strokeWidth={3} />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
           </section>
 
@@ -368,9 +377,41 @@ export default function ApplicationDetailPage() {
 
         </div>
 
-        {/* Right Column: Dev Requests & Repositories */}
+        {/* Right Column: Repositories & Dev Requests */}
         <div className="space-y-8">
           
+          {/* Linked SCM Repositories list */}
+          <section className="glass-card p-8">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-md font-bold text-foreground flex items-center gap-2">
+                <GitBranch className="w-4 h-4 text-muted-foreground" /> Repositories
+              </h3>
+              <Badge variant="secondary">{repositories.length} Linked</Badge>
+            </div>
+            <div className="space-y-3">
+              {repositories.map((repo, i) => {
+                const matchedRepo = allSCMRepos.find(
+                  (r) => r.provider_key === repo.repo_provider && r.full_name === repo.repo_full_name
+                );
+                const repoUrl = matchedRepo ? `/repositories/${matchedRepo.id}` : "#";
+
+                return (
+                  <Link 
+                    href={repoUrl}
+                    key={i} 
+                    className="p-4 rounded-xl border border-white/5 hover:border-white/10 bg-white/5 hover:bg-white/10 transition-all flex items-center justify-between group/repo block"
+                  >
+                    <div>
+                      <h4 className="text-xs font-bold text-foreground group-hover/repo:text-primary transition-colors">{repo.repo_full_name}</h4>
+                      <p className="text-[9px] text-muted-foreground uppercase tracking-widest mt-0.5">{repo.repo_provider} • {repo.role}</p>
+                    </div>
+                    <Badge variant={repo.sync_status === "active" ? "success" : "warning"}>{repo.sync_status}</Badge>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+
           {/* Linked DREQs & Promotion Actions */}
           <section className="glass-card p-8">
             <h3 className="text-md font-bold text-foreground mb-6 flex items-center gap-2">
@@ -401,27 +442,6 @@ export default function ApplicationDetailPage() {
                   No development requests mapped to this platform.
                 </div>
               )}
-            </div>
-          </section>
-
-          {/* Linked SCM Repositories list */}
-          <section className="glass-card p-8">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-md font-bold text-foreground flex items-center gap-2">
-                <GitBranch className="w-4 h-4 text-muted-foreground" /> Repositories
-              </h3>
-              <Badge variant="secondary">{repositories.length} Linked</Badge>
-            </div>
-            <div className="space-y-3">
-              {repositories.map((repo, i) => (
-                <div key={i} className="p-4 rounded-xl border border-white/5 hover:border-white/10 bg-white/5 hover:bg-white/10 transition-all flex items-center justify-between">
-                  <div>
-                    <h4 className="text-xs font-bold text-foreground">{repo.repo_full_name}</h4>
-                    <p className="text-[9px] text-muted-foreground uppercase tracking-widest mt-0.5">{repo.repo_provider} • {repo.role}</p>
-                  </div>
-                  <Badge variant={repo.sync_status === "active" ? "success" : "warning"}>{repo.sync_status}</Badge>
-                </div>
-              ))}
             </div>
           </section>
 

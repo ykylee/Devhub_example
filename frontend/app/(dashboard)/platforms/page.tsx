@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { 
   Activity,
   Box,
-  Cpu,
+  GitBranch,
   ShieldCheck,
   Zap,
   ExternalLink
@@ -17,7 +17,7 @@ import { FilterBar } from "@/shared/ui-foundation/components/FilterBar";
 import { PageEmpty, PageError, PageLoading } from "@/shared/ui-foundation/components/PageState";
 import { platformService, Platform, PlatformRollup } from "@/domain/platform-lifecycle/service/platform.service";
 import { lifecycleStatusBadgeVariant } from "@/shared/utils/lifecycle-status";
-import { platformBuildStatusView } from "@/shared/utils/last-build";
+
 
 interface PlatformWithRollup extends Platform {
   rollup?: PlatformRollup;
@@ -70,12 +70,10 @@ export default function PlatformsStatusPage() {
   });
 
   const totalPlatforms = apps.length;
-  // REQ-FR-APPDASH-001 — 단순 % 보다 broken 카운트로 표시.
-  const brokenApps = apps.filter((app) => app.rollup?.target_branch_build_status === "broken").length;
-  const healthyApps = apps.filter((app) => app.rollup?.target_branch_build_status === "healthy").length;
+  // 빌드 관련 데이터 대신 퀄리티 및 PR 개수로 표시.
+  const failedQualityGates = apps.filter((app) => (app.rollup?.quality_gate_failed_count || 0) > 0).length;
+  const openPRsCount = apps.reduce((acc, app) => acc + (app.rollup?.pull_request_distribution?.opened || 0), 0);
   const totalCritical = apps.reduce((acc, app) => acc + (app.rollup?.critical_warning_count || 0), 0);
-  // (`activeApps` 카드는 PR #396 에서 빠짐 — Broken/Healthy 카운트가 lifecycle status 보다
-  // 운영 시점 결정에 더 즉각적 정보라 4-card 구성에서 우선 노출.)
 
   if (loading) {
     return <PageLoading label="Loading platforms..." />;
@@ -94,8 +92,8 @@ export default function PlatformsStatusPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
           { label: "Total Platforms", value: totalPlatforms.toString(), icon: Box, color: "text-info" },
-          { label: "Broken Builds", value: brokenApps.toString(), icon: Activity, color: brokenApps > 0 ? "text-destructive" : "text-success" },
-          { label: "Healthy Builds", value: healthyApps.toString(), icon: ShieldCheck, color: "text-success" },
+          { label: "Failed Quality Gates", value: failedQualityGates.toString(), icon: ShieldCheck, color: failedQualityGates > 0 ? "text-destructive" : "text-success" },
+          { label: "Open Pull Requests", value: openPRsCount.toString(), icon: GitBranch, color: "text-accent" },
           { label: "Critical Warnings", value: totalCritical.toString(), icon: Zap, color: totalCritical > 0 ? "text-destructive" : "text-success" },
         ].map((stat, i) => (
           <motion.div 
@@ -151,9 +149,14 @@ export default function PlatformsStatusPage() {
                   <Badge variant={lifecycleStatusBadgeVariant(app.status)} dot>{app.status}</Badge>
                 </div>
                 <div className="flex items-center gap-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                  <span className="flex items-center gap-1"><Cpu className="w-3 h-3" /> Build: {platformBuildStatusView(app.rollup?.target_branch_build_status).label}</span>
+                  <span className="flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3" /> Quality Gate:{" "}
+                    <span className={app.rollup && app.rollup.quality_gate_failed_count > 0 ? "text-destructive" : "text-success"}>
+                      {app.rollup && app.rollup.quality_gate_failed_count > 0 ? "FAILED" : "PASSED"}
+                    </span>
+                  </span>
                   <span>•</span>
-                  <span className="flex items-center gap-1"><ShieldCheck className="w-3 h-3" /> Quality: {app.rollup?.quality_score?.toFixed(1) || "N/A"}</span>
+                  <span className="flex items-center gap-1"><ShieldCheck className="w-3 h-3" /> Quality Score: {app.rollup?.quality_score?.toFixed(1) || "N/A"}</span>
                   <span>•</span>
                   <span>{app.key}</span>
                 </div>
@@ -162,9 +165,9 @@ export default function PlatformsStatusPage() {
 
             <div className="flex items-center gap-12 text-right">
               <div>
-                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Last Build</p>
+                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Open PRs</p>
                 <p className="text-lg font-black text-foreground dark:text-primary-foreground">
-                  {app.rollup ? platformBuildStatusView(app.rollup.target_branch_build_status).label : "없음"}
+                  {app.rollup?.pull_request_distribution?.opened ?? 0}
                 </p>
               </div>
               <div>
