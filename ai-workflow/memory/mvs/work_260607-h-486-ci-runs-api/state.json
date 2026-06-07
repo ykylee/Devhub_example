@@ -2,11 +2,11 @@
   "schema_version": "1",
   "sprint": "mvs/work_260607-h-486-ci-runs-api",
   "branch": "mvs/work_260607-h-486-ci-runs-api",
-  "status": "in_progress",
+  "status": "done",
   "started_at": "2026-06-07T12:00:00Z",
-  "ended_at": null,
-  "merged_pr": null,
-  "merge_commit": null,
+  "ended_at": "2026-06-08T05:48:00Z",
+  "merged_pr": 494,
+  "merge_commit": "7609000",
   "issue": 486,
   "carve": "P0-4 (release_v1_roadmap.md §3.1) + N-7 (§3.5) — v1.0 차단",
   "scope": "POST /api/v1/ci-runs handler 신규 구현. Gitea Actions webhook / 직접 생성 경로. status validation (7 enum) + RBAC (platform:read + org unit subtree) + idempotency (repository_id+commit_sha+status+started_at unique) + audit emit (ci_run.created) + metric emit (devhub_ci_runs_total{status} Counter + devhub_ci_run_ingest_duration_seconds Histogram). 정식 ID = API-98 (1차 정정 API-94 → API-97 → 2차 정정 API-98, ID 슬롯 충돌 해결, PR #486 housekeeping comment 참조).",
@@ -14,39 +14,52 @@
   "decisions": [
     "브랜치 prefix mvs/ (Mavis/MiniMax-Code 관행) — 사용자 redirect 2026-06-07",
     "정식 API ID = API-98 (이전 API-94/API-97 슬롯은 이미 점유)",
-    "scaffold 3 파일 = state.json + work_backlog.md + session_handoff.md (최근 Claude sprint 패턴 추적)"
+    "scaffold 3 파일 = state.json + work_backlog.md + session_handoff.md (최근 Claude sprint 패턴 추적)",
+    "Path A (refactor 기존 createCIRun) 선택 — 외부 caller 0 확인, 깨끗한 정공법",
+    "codex P1 review: ListRepositories 페이지네이션 → GetRepositoryByID 단건 PK 조회",
+    "codex P2 review: rbacAllowsCIRunCreate actorLogin → actorRole"
   ],
   "todo_done": [
-    "브랜치 mvs/work_260607-h-486-ci-runs-api 생성 (origin/main @ 46568a8 base)"
+    "브랜치 mvs/work_260607-h-486-ci-runs-api 생성 (origin/main @ 46568a8 base)",
+    "sprint scaffold 3 파일 작성 (state.json + work_backlog.md + session_handoff.md)",
+    "기존 handler 패턴 탐색 (P1-7 build-runs GET)",
+    "현재 구현 vs spec 매핑 (Path A 결정)",
+    "migration 000005 (runner column + idempotency unique index)",
+    "Refactor createCIRun in new file ci_runs.go",
+    "Update domain.CIRun + RepositoryID/Runner fields",
+    "Update PostgresStore.CreateCIRun + GetCIRunByExternalID",
+    "Remove old createCIRun from snapshot.go + cleanup",
+    "Add 9 unit tests (TC-CI-RUN-01..05 + bonus)",
+    "Update traceability/report.md §9 row",
+    "PR #494 opened",
+    "Codex P1+P2 review feedback addressed (commit 4e27573)",
+    "go test ./... PASS (35 packages all green)",
+    "PR #494 MERGED (merge commit 7609000) on 2026-06-08"
   ],
-  "todo": [
-    "sprint scaffold 3 파일 작성 (work_backlog.md, session_handoff.md, state.json)",
-    "기존 handler 패턴 탐색 (P1-7 build-runs GET handler, 비슷한 idempotent POST 패턴)",
-    "traceability 정합 — report.md §3.1 P0-4 row 갱신 + API contract §11 표 갱신 + architecture §7 표 갱신 + requirements §5 표 갱신",
-    "internal/httpapi/ci_runs.go 구현 — POST handler + status validation + RBAC + idempotency + audit + metric",
-    "internal/httpapi/ci_runs_test.go 작성 — TC-CI-RUN-01..05 (status 7종 PASS + 1종 422, idempotency 201+409, repo 404, RBAC 403)",
-    "route 등록 (router.go / http.go)",
-    "backend go test ./... + go build PASS 확인",
-    "commit + push + PR 생성 (PR body 에 추적성 영향 + Issue #486 close 표기)"
-  ],
-  "verification": null,
-  "dependencies": {
-    "satisfied": [
-      "ci_runs 테이블 (P1-7 / N-9 의 repository-scoped GET 기반) — main 머지 완료",
-      "PR #418 (refactor stabilize) — main 머지 완료",
-      "PR #492 (E2E locator fix) — main 머지 완료"
-    ],
-    "external": [
-      "P1-7 / N-9 의 GET /api/v1/repos/{id}/build-runs — 후속 sprint, N-7 과 무관 (schema 만 의존)"
-    ]
+  "todo": [],
+  "verification": "go build ./... PASS / go test ./... PASS (35 packages) / PR #494 MERGEABLE+GREEN+codex review resolved / E2E shard 2/3 (PR #492 fail 지점) SUCCESS — 회귀 없음",
+  "dependencies_satisfied": {
+    "ci_runs table (P1-7 / N-9)": "main 머지 완료",
+    "PR #418 (refactor stabilize)": "main 머지 완료",
+    "PR #492 (E2E locator fix)": "main 머지 완료"
   },
+  "external_dependencies_remaining": [],
   "traceability": {
     "REQ": "REQ-FR-106",
     "ARCH": "ARCH-18",
-    "API": "API-98 (정식, ID 슬롯 정합 후)",
+    "API": "API-98",
     "IMPL": "IMPL-ci-runs-01",
     "UT": "UT-ci-runs-01",
     "TC": "TC-CI-RUN-01..05",
     "domain": "domain/infra + type/feature"
-  }
+  },
+  "merge_summary": {
+    "files_changed": 17,
+    "insertions": 1288,
+    "deletions": 138,
+    "PR": "#494",
+    "merge_commit": "7609000",
+    "merged_at": "2026-06-08T05:48:00Z"
+  },
+  "next_sprint": "mvs/work_260608-i-488-sign-out (N-8 / P1-6 / #488) — sprint-i 진입"
 }
