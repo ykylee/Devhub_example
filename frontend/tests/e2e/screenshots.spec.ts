@@ -42,6 +42,8 @@ const USER_PAGES = [
   { path: "/dev-requests", name: "16-user-dev-requests" },
   { path: "/account", name: "17-user-account" },
   { path: "/developer", name: "18-user-developer-dashboard" },
+  { path: "/kpis", name: "20-user-kpi-dashboard" },
+  { path: "/tests", name: "21-user-test-management" },
 ];
 
 const CAPTURE_DIR = "test-results/screenshots";

@@ -170,10 +170,11 @@ type Project struct {
 
 // ProjectRepository links one Project to one Repository (N:M).
 type ProjectRepository struct {
-	ProjectID    string
-	RepositoryID int64
-	Role         string
-	LinkedAt     time.Time
+	ProjectID          string
+	RepositoryID       int64
+	Role               string
+	ContributionWeight float64
+	LinkedAt           time.Time
 }
 
 // ProjectMember is one membership row.

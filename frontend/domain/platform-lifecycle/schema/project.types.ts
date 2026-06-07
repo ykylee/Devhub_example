@@ -94,6 +94,7 @@ export interface ProjectRepositoryLink {
   project_id: string;
   repository_id: number;
   role: "primary" | "linked" | "shared";
+  contribution_weight?: number;
   linked_at: string;
 }
 

@@ -253,6 +253,7 @@ var routePermissionTable = map[routeKey]routePolicy{
 	{http.MethodGet, "/api/v1/projects/:project_id/repositories"}:                   {Resource: domain.ResourceProjects, Action: domain.ActionView},
 	{http.MethodPost, "/api/v1/projects/:project_id/repositories"}:                  {Resource: domain.ResourceProjects, Action: domain.ActionEdit},
 	{http.MethodDelete, "/api/v1/projects/:project_id/repositories/:repository_id"}: {Resource: domain.ResourceProjects, Action: domain.ActionDelete},
+	{http.MethodPatch, "/api/v1/projects/:project_id/repositories/:repository_id"}:  {Resource: domain.ResourceProjects, Action: domain.ActionEdit},
 
 	// Application 롤업 (API-57, sprint claude/work_260514-c) — applications:view 매핑.
 	{http.MethodGet, "/api/v1/platforms/:platform_id/rollup"}:    {Resource: domain.ResourcePlatforms, Action: domain.ActionView},

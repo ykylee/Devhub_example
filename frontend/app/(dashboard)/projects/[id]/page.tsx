@@ -43,6 +43,7 @@ export default function ProjectDetailPage() {
   const [allRepositories, setAllRepositories] = useState<Repository[]>([]);
   const [showRepoPicker, setShowRepoPicker] = useState(false);
   const [linkingRepoIds, setLinkingRepoIds] = useState<number[]>([]);
+  const [editingWeights, setEditingWeights] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [opsError, setOpsError] = useState<string | null>(null);
@@ -151,14 +152,35 @@ export default function ProjectDetailPage() {
   const completionRate = (() => {
     if (project.status === "closed") return 100;
 
+    const getRepoWeight = (repoName: string) => {
+      const repo = allRepositories.find((r) => r.full_name === repoName);
+      if (!repo) return 100;
+      const link = projectRepositories.find((l) => l.repository_id === repo.id);
+      return link?.contribution_weight ?? 100;
+    };
+
     const totalTasks = tasks.length;
     const doneTasks = tasks.filter((t) => t.status === "done").length;
 
-    const totalPRs = pullRequests.length;
-    const donePRs = pullRequests.filter((p) => p.state === "merged" || p.state === "closed").length;
+    let totalPRs = 0;
+    let donePRs = 0;
+    pullRequests.forEach((pr) => {
+      const weight = getRepoWeight(pr.repoName) / 100;
+      totalPRs += weight;
+      if (pr.state === "merged" || pr.state === "closed") {
+        donePRs += weight;
+      }
+    });
 
-    const totalIssues = issues.length;
-    const doneIssues = issues.filter((i) => i.state === "closed").length;
+    let totalIssues = 0;
+    let doneIssues = 0;
+    issues.forEach((issue) => {
+      const weight = getRepoWeight(issue.repoName) / 100;
+      totalIssues += weight;
+      if (issue.state === "closed") {
+        doneIssues += weight;
+      }
+    });
 
     const totalItems = totalTasks + totalPRs + totalIssues;
     const doneItems = doneTasks + donePRs + doneIssues;
@@ -274,6 +296,32 @@ export default function ProjectDetailPage() {
     }
   }
 
+  async function handleWeightChange(repoId: number, weight: number) {
+    if (!project) return;
+    if (isNaN(weight) || weight < 0 || weight > 100) {
+      setOpsError("가중치는 0에서 100 사이의 숫자여야 합니다.");
+      return;
+    }
+    try {
+      setOpsError(null);
+      await projectService.updateProjectRepositoryWeight(project.id, repoId, weight);
+      await loadData();
+    } catch (err) {
+      setOpsError(toUserErrorMessage(err, "가중치 변경에 실패했습니다."));
+    }
+  }
+
+  async function handleUnlinkRepository(repoId: number) {
+    if (!project) return;
+    try {
+      setOpsError(null);
+      await projectService.unlinkProjectRepository(project.id, repoId);
+      await loadData();
+    } catch (err) {
+      setOpsError(toUserErrorMessage(err, "저장소 연결 해제에 실패했습니다."));
+    }
+  }
+
   return (
     <div className="space-y-10 pb-20">
       <div className="flex items-center gap-4">
@@ -319,15 +367,23 @@ export default function ProjectDetailPage() {
               {linkedRepos.length === 0 ? (
                 <p className="text-xs text-muted-foreground">연결된 저장소가 없습니다.</p>
               ) : (
-                linkedRepos.map((repo) => (
-                  <span
-                    key={repo.id}
-                    className="px-3 py-1.5 rounded-full border border-border bg-muted/20 text-xs font-bold text-foreground flex items-center gap-2"
-                  >
-                    <Link2 className="w-3 h-3 text-muted-foreground" />
-                    {repo.full_name}
-                  </span>
-                ))
+                linkedRepos.map((repo) => {
+                  const link = projectRepositories.find((l) => l.repository_id === repo.id);
+                  const weight = link?.contribution_weight ?? 100;
+                  return (
+                    <span
+                      key={repo.id}
+                      className="px-3 py-1.5 rounded-full border border-border bg-muted/20 text-xs font-bold text-foreground flex items-center gap-2"
+                    >
+                      <Link2 className="w-3 h-3 text-muted-foreground" />
+                      {repo.full_name}
+                      <span className="text-[10px] text-muted-foreground">({weight}%)</span>
+                      {link?.role === "shared" && (
+                        <Badge variant="warning">Shared</Badge>
+                      )}
+                    </span>
+                  );
+                })
               )}
             </div>
           </section>
@@ -488,16 +544,74 @@ export default function ProjectDetailPage() {
             {projectRepositories.length === 0 ? (
               <p className="text-sm text-muted-foreground">No linked repositories.</p>
             ) : (
-              <div className="space-y-3">
-                {projectRepositories.map((link) => (
-                  <div key={`${link.project_id}-${link.repository_id}`} className="flex items-center justify-between rounded-xl border border-border/50 bg-muted/10 px-4 py-3">
-                    <div>
-                      <p className="text-xs font-bold text-foreground dark:text-primary-foreground">Repository ID: {link.repository_id}</p>
-                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Role: {link.role}</p>
+              <div className="space-y-4">
+                {projectRepositories.map((link) => {
+                  const repo = allRepositories.find((r) => r.id === link.repository_id);
+                  const repoName = repo ? repo.full_name : `Repository (${link.repository_id})`;
+                  const currentWeight = link.contribution_weight ?? 100;
+                  
+                  return (
+                    <div key={`${link.project_id}-${link.repository_id}`} className="rounded-xl border border-border/50 bg-muted/10 p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-foreground dark:text-primary-foreground truncate" title={repoName}>
+                            {repoName}
+                          </p>
+                          <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-0.5">Role: {link.role}</p>
+                        </div>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          {link.role === "shared" && (
+                            <Badge variant="warning">Shared</Badge>
+                          )}
+                          <Badge variant={link.role === "primary" ? "primary" : "glass"}>{link.role}</Badge>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between gap-4 pt-2 border-t border-border/30">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Weight:</span>
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="5"
+                              value={editingWeights[link.repository_id] !== undefined ? editingWeights[link.repository_id] : currentWeight}
+                              onChange={(e) => {
+                                const val = parseFloat(e.target.value);
+                                setEditingWeights(prev => ({ ...prev, [link.repository_id]: val }));
+                              }}
+                              onBlur={(e) => {
+                                const val = parseFloat(e.target.value);
+                                if (!isNaN(val)) {
+                                  void handleWeightChange(link.repository_id, val);
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  const val = parseFloat((e.target as HTMLInputElement).value);
+                                  if (!isNaN(val)) {
+                                    void handleWeightChange(link.repository_id, val);
+                                    (e.target as HTMLInputElement).blur();
+                                  }
+                                }
+                              }}
+                              className="w-16 px-1.5 py-0.5 rounded border border-border bg-background text-xs text-right text-foreground font-bold focus:outline-none focus:ring-1 focus:ring-primary"
+                            />
+                            <span className="text-xs font-bold text-muted-foreground">%</span>
+                          </div>
+                        </div>
+                        
+                        <button
+                          onClick={() => void handleUnlinkRepository(link.repository_id)}
+                          className="text-[10px] font-bold text-destructive hover:underline"
+                        >
+                          Disconnect
+                        </button>
+                      </div>
                     </div>
-                    <Badge variant={link.role === "primary" ? "primary" : "glass"}>{link.role}</Badge>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </section>

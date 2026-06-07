@@ -777,7 +777,7 @@ RETURNING` + projectsSelectColumns
 
 func (r *PlatformRepository) ListProjectRepositories(ctx context.Context, projectID string) ([]domain.ProjectRepository, error) {
 	const query = `
-SELECT project_id::text, repository_id, role, linked_at
+SELECT project_id::text, repository_id, role, contribution_weight, linked_at
 FROM project_repositories
 WHERE project_id = $1::uuid
 ORDER BY repository_id ASC`
@@ -791,7 +791,7 @@ ORDER BY repository_id ASC`
 	links := make([]domain.ProjectRepository, 0)
 	for rows.Next() {
 		var link domain.ProjectRepository
-		if err := rows.Scan(&link.ProjectID, &link.RepositoryID, &link.Role, &link.LinkedAt); err != nil {
+		if err := rows.Scan(&link.ProjectID, &link.RepositoryID, &link.Role, &link.ContributionWeight, &link.LinkedAt); err != nil {
 			return nil, fmt.Errorf("scan project repository: %w", err)
 		}
 		links = append(links, link)
@@ -803,14 +803,18 @@ ORDER BY repository_id ASC`
 }
 
 func (r *PlatformRepository) CreateProjectRepository(ctx context.Context, link domain.ProjectRepository) (domain.ProjectRepository, error) {
+	weight := link.ContributionWeight
+	if weight <= 0 {
+		weight = 100.00
+	}
 	const query = `
-INSERT INTO project_repositories (project_id, repository_id, role)
-VALUES ($1::uuid, $2, $3)
-RETURNING project_id::text, repository_id, role, linked_at`
+INSERT INTO project_repositories (project_id, repository_id, role, contribution_weight)
+VALUES ($1::uuid, $2, $3, $4)
+RETURNING project_id::text, repository_id, role, contribution_weight, linked_at`
 
-	row := r.store.Pool().QueryRow(ctx, query, link.ProjectID, link.RepositoryID, link.Role)
+	row := r.store.Pool().QueryRow(ctx, query, link.ProjectID, link.RepositoryID, link.Role, weight)
 	var created domain.ProjectRepository
-	if err := row.Scan(&created.ProjectID, &created.RepositoryID, &created.Role, &created.LinkedAt); err != nil {
+	if err := row.Scan(&created.ProjectID, &created.RepositoryID, &created.Role, &created.ContributionWeight, &created.LinkedAt); err != nil {
 		if store.IsUniqueViolation(err) || store.IsForeignKeyViolation(err) || store.IsCheckViolation(err, "") {
 			return domain.ProjectRepository{}, store.ErrConflict
 		}
@@ -818,6 +822,22 @@ RETURNING project_id::text, repository_id, role, linked_at`
 	}
 	return created, nil
 }
+
+func (r *PlatformRepository) UpdateProjectRepositoryWeight(ctx context.Context, projectID string, repositoryID int64, weight float64) error {
+	const query = `
+UPDATE project_repositories
+SET contribution_weight = $3
+WHERE project_id = $1::uuid AND repository_id = $2`
+	cmd, err := r.store.Pool().Exec(ctx, query, projectID, repositoryID, weight)
+	if err != nil {
+		return fmt.Errorf("update project repository weight: %w", err)
+	}
+	if cmd.RowsAffected() == 0 {
+		return store.ErrNotFound
+	}
+	return nil
+}
+
 
 func (r *PlatformRepository) DeleteProjectRepository(ctx context.Context, projectID string, repositoryID int64) error {
 	const query = `DELETE FROM project_repositories WHERE project_id = $1::uuid AND repository_id = $2`

@@ -3,8 +3,8 @@
 - 문서 목적: main 브랜치 기준 상위 백로그 인덱스. 세부 sprint backlog 는 브랜치별 메모리 디렉터리 참조.
 - 범위: 마일스톤 상태, 최근 머지, 잔여/후속 작업
 - 대상 독자: 프로젝트 리드, 후속 에이전트, 트랙 담당자
-- 상태: **2026-06-06 update — main HEAD `bddcfae` + sprint -h 신규 carve ID 발급 및 추적성 매트릭스 cross-ref 정합화 완료 (PR #490 머지).** v1.0 마무리 housekeeping의 2차 작업(sprint -h용 ID 선발급)이 완료되었습니다.
-- 최종 수정일: 2026-06-06
+- 상태: **2026-06-07 update — 프로젝트-저장소 N:M 기여 가중치 persistent 모델링 및 테스트 격리/이원화 대시보드 구현 완료.** 가중치 쿼리 중복 배제 플랫폼 롤업 엔진, 프론트엔드 인라인 가중치 편집/공유 배지 UI, 그리고 수동 테스트 프로젝트 단위 격리 및 CI 자동화 테스트 탭 이원화까지 개발이 완료되었습니다.
+- 최종 수정일: 2026-06-07
 - 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [세션 인계](./session_handoff.md), [상태 스냅샷](./state.json), [M1 PR 리뷰 actions](./M1-PR-review-actions.md), [ADR-0025](../../docs/adr/0025-envelope-encryption-key-management.md)
 
 ## 1. 마일스톤 진행 상황
@@ -82,6 +82,7 @@
 
 | 일자 | 변경 |
 | --- | --- |
+| 2026-06-07 | **프로젝트-저장소 N:M 기여 가중치 및 수동/자동 테스트 관리 이원화** — (1) `project_repositories` 테이블에 기여 가중치(`contribution_weight` numeric, 기본값 100%) 컬럼 마이그레이션 (`000004_add_project_repo_weight`) 반영, (2) 가중치 수정용 PATCH API 및 UI(프로젝트 상세 뷰) 연동 완료, (3) 가중치가 적용된 프로젝트 KPI 진행률 연산 및 플랫폼 롤업 Unique 저장소 셋 기반 중복 제거 쿼리 반영, (4) 테스트 대시보드(`/tests`) 프로젝트별 로컬 스토리지 격리 구현 및 자동화 테스트(CI) 이원화 탭 추가. 프론트 빌드/1025개 Vitest 테스트 100% PASS 검증 완료. |
 | 2026-06-06 | **sprint -h 신규 carve 의 ID 발급 + 매트릭스 cross-ref** — §3.1 의 auth-session / integration-registry / repository-integration row 3 row cross-ref 갱신. **신규 ID**: REQ-FR-106/107/108 + ARCH-18/19/20 + API-98/99/100 + IMPL/UT/TC 관련 ID 발급. Codex 리뷰에 따라 `docs/traceability/report.md`의 `integration-registry` 도메인에 `IMPL-ci-runs-01`, `UT-ci-runs-01`, `TC-CI-RUN-01` 추가 보완 완료. PR #490 머지 완료. |
 | 2026-06-02 | 중간 개발 보고 자료 준비 착수. `docs/presentations/2026-06-02-midterm-report-plan.md` 에 슬라이드 구조/데이터 수집 축/디자인 방향을 정리했고, `docs/analysis/2026-06-02-midterm-report-baseline.md` 에 현재 기능 범위, SDLC/추적성, 테스트, AI agent 활용 현황, 활동 통계를 베이스라인으로 기록. 다음 단계는 HTML/CSS/JS 슬라이드 초안 구현. |
 | 2026-06-01 | CI 회귀 복구: (1) `frontend/app/(dashboard)/applications/[id]/page.tsx` 중복 import 제거로 `Build App` 타입 에러 해소, (2) `frontend/tests/e2e/admin-projects.spec.ts` TC-PROJ-UI-04를 환경 독립 검증(ComboBox/input 공용)으로 보강. 로컬 `npm run test`/`npm run build` 통과, CI run `26738464130` 성공. |

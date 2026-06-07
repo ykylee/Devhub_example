@@ -2,8 +2,8 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "gemini/work_260607-a-dashboard-improvements",
-  "status": "2026-06-07 gemini/work_260607-a-dashboard-improvements. 플랫폼 대시보드 UI 개선 피드백 반영 및 신규 KPI(파이썬 스크립트 실행엔진 탑재)/테스트 대시보드 개발 완료.",
-  "updated_at": "2026-06-07T03:12:00Z",
+  "status": "2026-06-07 gemini/work_260607-a-dashboard-improvements. 프로젝트-저장소 N:M 관계에 대응하기 위한 품질 거버넌스 기여 가중치 persistent 모델링, 플랫폼 Unique 롤업 중복 제거 및 수동/자동 테스트 관리 격리/이원화 완료.",
+  "updated_at": "2026-06-07T16:06:00Z",
   "head_commit": "bddcfae",
   "head_summary": "Merge pull request #490 from ykylee/mvs/work_260606-b-traceability-ci-auth-repo",
   "milestones": {

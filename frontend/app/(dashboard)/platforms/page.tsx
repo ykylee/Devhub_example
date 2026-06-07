@@ -8,7 +8,8 @@ import {
   GitBranch,
   ShieldCheck,
   Zap,
-  ExternalLink
+  ExternalLink,
+  MessageSquare
 } from "lucide-react";
 import Link from "next/link";
 import { DashboardHeader } from "@/shared/ui-foundation/components/DashboardHeader";
@@ -21,6 +22,7 @@ import { lifecycleStatusBadgeVariant } from "@/shared/utils/lifecycle-status";
 
 interface PlatformWithRollup extends Platform {
   rollup?: PlatformRollup;
+  pendingRequestsCount?: number;
 }
 
 export default function PlatformsStatusPage() {
@@ -39,7 +41,16 @@ export default function PlatformsStatusPage() {
         fetchedApps.map(async (app) => {
           try {
             const rollup = await platformService.getPlatformRollup(app.id);
-            return { ...app, rollup };
+            let pendingRequestsCount = 0;
+            try {
+              const dashboard = await platformService.getPlatformDashboard(app.id);
+              pendingRequestsCount = dashboard.linked_dev_requests.filter(
+                (dreq) => dreq.status === "pending" || dreq.status === "in_review"
+              ).length;
+            } catch (dErr) {
+              console.warn(`Failed to fetch dashboard for ${app.id}:`, dErr);
+            }
+            return { ...app, rollup, pendingRequestsCount };
           } catch (err) {
             console.error(`Failed to fetch rollup for ${app.id}:`, err);
             return app;
@@ -72,7 +83,7 @@ export default function PlatformsStatusPage() {
   const totalPlatforms = apps.length;
   // 빌드 관련 데이터 대신 퀄리티 및 PR 개수로 표시.
   const failedQualityGates = apps.filter((app) => (app.rollup?.quality_gate_failed_count || 0) > 0).length;
-  const openPRsCount = apps.reduce((acc, app) => acc + (app.rollup?.pull_request_distribution?.opened || 0), 0);
+  const totalVOC = apps.reduce((acc, app) => acc + (app.pendingRequestsCount || 0), 0);
   const totalCritical = apps.reduce((acc, app) => acc + (app.rollup?.critical_warning_count || 0), 0);
 
   if (loading) {
@@ -93,7 +104,7 @@ export default function PlatformsStatusPage() {
         {[
           { label: "Total Platforms", value: totalPlatforms.toString(), icon: Box, color: "text-info" },
           { label: "Failed Quality Gates", value: failedQualityGates.toString(), icon: ShieldCheck, color: failedQualityGates > 0 ? "text-destructive" : "text-success" },
-          { label: "Open Pull Requests", value: openPRsCount.toString(), icon: GitBranch, color: "text-accent" },
+          { label: "VOC 현황 (대기/검토 중)", value: totalVOC.toString(), icon: MessageSquare, color: "text-accent" },
           { label: "Critical Warnings", value: totalCritical.toString(), icon: Zap, color: totalCritical > 0 ? "text-destructive" : "text-success" },
         ].map((stat, i) => (
           <motion.div 
@@ -165,9 +176,9 @@ export default function PlatformsStatusPage() {
 
             <div className="flex items-center gap-12 text-right">
               <div>
-                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Open PRs</p>
+                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">VOC 현황</p>
                 <p className="text-lg font-black text-foreground dark:text-primary-foreground">
-                  {app.rollup?.pull_request_distribution?.opened ?? 0}
+                  {app.pendingRequestsCount ?? 0} 건
                 </p>
               </div>
               <div>

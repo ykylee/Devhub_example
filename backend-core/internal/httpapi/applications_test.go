@@ -469,6 +469,19 @@ func (s *memoryPlatformStore) DeleteProjectRepository(_ context.Context, project
 	return store.ErrNotFound
 }
 
+func (s *memoryPlatformStore) UpdateProjectRepositoryWeight(_ context.Context, projectID string, repositoryID int64, weight float64) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	links := s.projectRepositories[projectID]
+	for i, existing := range links {
+		if existing.RepositoryID == repositoryID {
+			links[i].ContributionWeight = weight
+			return nil
+		}
+	}
+	return store.ErrNotFound
+}
+
 func (s *memoryPlatformStore) CreateProjectWithRepositoryPayload(_ context.Context, p domain.Project, repositoryIDs []int64, repoPayload *store.RepositoryCreatePayload) (domain.Project, error) {
 	// repoPayload 동반 생성 — production 의 단일 tx atomicity 를 흉내 (codex #349 P2):
 	// repo id 확보 후 project + links 생성. CreateProject 실패 시 (중복 key) 에러 반환.

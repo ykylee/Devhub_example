@@ -280,13 +280,38 @@ func (s *PostgresStore) ComputePlatformRollup(ctx context.Context, platformID st
 		opts.Policy = domain.WeightPolicyEqual
 	}
 
-	// 1) link 조회 (repo_provider + repo_full_name) — local store FK lookup 후 repositories.id 매핑
+	// 1) link 조회 (repo_provider + repo_full_name) — 직접 연결 + 프로젝트 경유 간접 연결 합집합 (중복 배제)
 	const linksQuery = `
-SELECT ar.repo_provider, ar.repo_full_name, ar.role, ar.sync_status, COALESCE(ar.sync_error_code, ''),
-       r.id
-FROM platform_repositories ar
-LEFT JOIN repositories r ON r.full_name = ar.repo_full_name
-WHERE ar.platform_id = $1::uuid`
+WITH combined_repos AS (
+  SELECT 
+    ar.repo_provider AS provider, 
+    ar.repo_full_name AS full_name, 
+    ar.role AS role, 
+    ar.sync_status AS sync_status, 
+    COALESCE(ar.sync_error_code, '') AS sync_error_code,
+    r.id AS repo_id
+  FROM platform_repositories ar
+  LEFT JOIN repositories r ON r.full_name = ar.repo_full_name
+  WHERE ar.platform_id = $1::uuid
+
+  UNION ALL
+
+  SELECT 
+    COALESCE(p_prov.provider_key, 'gitea') AS provider,
+    r.full_name AS full_name,
+    pr.role AS role,
+    'active' AS sync_status,
+    '' AS sync_error_code,
+    r.id AS repo_id
+  FROM projects p
+  JOIN project_repositories pr ON pr.project_id = p.id
+  JOIN repositories r ON r.id = pr.repository_id
+  LEFT JOIN integration_providers p_prov ON p_prov.provider_id = r.provider_id
+  WHERE p.platform_id = $1::uuid
+)
+SELECT DISTINCT ON (full_name) provider, full_name, role, sync_status, sync_error_code, repo_id
+FROM combined_repos
+ORDER BY full_name, CASE WHEN sync_status = 'active' THEN 0 ELSE 1 END ASC`
 	rows, err := s.pool.Query(ctx, linksQuery, platformID)
 	if err != nil {
 		return domain.PlatformRollup{}, fmt.Errorf("list rollup links: %w", err)

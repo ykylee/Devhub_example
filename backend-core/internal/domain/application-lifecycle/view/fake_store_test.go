@@ -48,6 +48,7 @@ type fakeViewPlatformStore struct {
 	errListProjectRepositories       error
 	errCreateProjectRepository       error
 	errDeleteProjectRepository       error
+	errUpdateProjectRepositoryWeight error
 	errCreateProjectWithRepoPayload  error
 	errListRepositoriesByProvider    error
 	errComputePlatformRollup      error
@@ -492,6 +493,22 @@ func (s *fakeViewPlatformStore) DeleteProjectRepository(_ context.Context, proje
 	for i, l := range links {
 		if l.RepositoryID == repositoryID {
 			s.projectRepositories[projectID] = append(links[:i], links[i+1:]...)
+			return nil
+		}
+	}
+	return store.ErrNotFound
+}
+
+func (s *fakeViewPlatformStore) UpdateProjectRepositoryWeight(_ context.Context, projectID string, repositoryID int64, weight float64) error {
+	if s.errUpdateProjectRepositoryWeight != nil {
+		return s.errUpdateProjectRepositoryWeight
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	links := s.projectRepositories[projectID]
+	for i, l := range links {
+		if l.RepositoryID == repositoryID {
+			links[i].ContributionWeight = weight
 			return nil
 		}
 	}
