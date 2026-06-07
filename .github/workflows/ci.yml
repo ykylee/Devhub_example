@@ -201,10 +201,74 @@ jobs:
       - name: Test
         run: make test-frontend
 
-  e2e:
-    name: E2E Tests (Playwright, shard ${{ matrix.shard }}/2)
+  e2e-build:
+    name: E2E Build Artifacts
     runs-on: ubuntu-latest
     needs: [changed-paths]
+    if: needs.changed-paths.outputs.e2e == 'true' || needs.changed-paths.outputs.workflow == 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - name: Cache Go build + module cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('backend-core/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Install Node dependencies
+        run: cd frontend && npm ci
+      - name: Build backend + frontend
+        run: |
+          set -euo pipefail
+          (cd backend-core && CGO_ENABLED=0 go build -o ../devhub-backend ./)
+          (cd frontend && npm run build)
+      - name: Build migrate tool
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/e2e-tools/bin
+          GOBIN=/tmp/e2e-tools/bin go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.19.1
+      - name: Package E2E artifacts
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/e2e-artifacts
+          tar -C "$GITHUB_WORKSPACE" -czf /tmp/e2e-artifacts/devhub-backend.tgz devhub-backend
+          tar -C "$GITHUB_WORKSPACE/frontend" -czf /tmp/e2e-artifacts/frontend-next.tgz .next
+          tar -C /tmp/e2e-tools -czf /tmp/e2e-artifacts/e2e-tools.tgz bin
+      - name: Upload backend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-backend-${{ github.sha }}
+          path: /tmp/e2e-artifacts/devhub-backend.tgz
+          retention-days: 1
+      - name: Upload frontend build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-frontend-next-${{ github.sha }}
+          path: /tmp/e2e-artifacts/frontend-next.tgz
+          retention-days: 1
+      - name: Upload E2E tools artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-tools-${{ github.sha }}
+          path: /tmp/e2e-artifacts/e2e-tools.tgz
+          retention-days: 1
+
+  e2e:
+    name: E2E Tests (Playwright, shard ${{ matrix.shard }}/${{ matrix.shard_total }})
+    runs-on: ubuntu-latest
+    needs: [changed-paths, e2e-build]
     # sprint gemini/work_260528-code-cleanup — 대규모 import path/디렉터리 이관으로
     # E2E 회귀 위험 큼. 리팩토링 정리가 끝날 때까지 e2e job 일시 비활성화.
     # 복원 시 본 `&& false` 만 제거하면 됨.
@@ -212,7 +276,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        include:
+          - shard: 1
+            shard_total: 3
+          - shard: 2
+            shard_total: 3
+          - shard: 3
+            shard_total: 3
     # ADR-0003: no-docker policy. Native postgresql-15 is installed below in
     # the "Setup PostgreSQL (native)" step so this job stays consistent with
     # the prod deployment shape (test-server-deployment.md §1.2). The earlier
@@ -308,18 +378,59 @@ jobs:
       - name: Install Playwright browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: cd frontend && npx playwright install chromium
+
+      - name: Download backend artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-backend-${{ github.sha }}
+          path: /tmp/e2e-artifacts
+
+      - name: Download frontend build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-frontend-next-${{ github.sha }}
+          path: /tmp/e2e-artifacts
+
+      - name: Download E2E tools artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-tools-${{ github.sha }}
+          path: /tmp/e2e-artifacts
+
+      - name: Restore E2E build artifacts
+        run: |
+          set -euo pipefail
+          tar -C "$GITHUB_WORKSPACE" -xzf /tmp/e2e-artifacts/devhub-backend.tgz
+          chmod +x "$GITHUB_WORKSPACE/devhub-backend"
+          rm -rf "$GITHUB_WORKSPACE/frontend/.next"
+          tar -C "$GITHUB_WORKSPACE/frontend" -xzf /tmp/e2e-artifacts/frontend-next.tgz
+          sudo tar -C /usr/local -xzf /tmp/e2e-artifacts/e2e-tools.tgz
       
       - name: Start Keycloak (container)
         run: |
           set -euo pipefail
+          image="quay.io/keycloak/keycloak:26.0"
+          realm_import="$GITHUB_WORKSPACE/infra/idp/keycloak-realm.ci.json"
           # Keycloak 25.0 호환: KC_BOOTSTRAP_ADMIN_* (26+ 표준) + legacy
           # KEYCLOAK_ADMIN/KEYCLOAK_ADMIN_PASSWORD (25.x 표준) 동시 주입.
           # docker-compose.deploy.yml:117-121 의 양쪽 env 패턴과 정합.
           # ADR-0022 의 26.0 → 25.0 retreat 후속 — 25.0 컨테이너가 legacy env
           # 만 admin user bootstrap 인식하므로 KC_BOOTSTRAP_* 만으로는 admin
           # 미생성 → 이후 admin-cli token 401 → realm setup step fail.
+          for attempt in 1 2 3; do
+            if docker pull "$image"; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "failed to pull $image after $attempt attempts"
+              exit 1
+            fi
+            echo "docker pull retry $attempt/3 for $image"
+            sleep $((attempt * 5))
+          done
           docker run -d --name devhub-keycloak \
             -p 8180:8080 \
+            -v "${realm_import}:/opt/keycloak/data/import/devhub-realm.json:ro" \
             --add-host=host.docker.internal:host-gateway \
             -e DEVHUB_BACKEND_SPI_WEBHOOK_URL=http://host.docker.internal:8080/api/v1/internal/keycloak-events \
             -e DEVHUB_KEYCLOAK_SPI_WEBHOOK_SECRET=test-spi-webhook-token-12345 \
@@ -328,152 +439,21 @@ jobs:
             -e KEYCLOAK_ADMIN=admin \
             -e KEYCLOAK_ADMIN_PASSWORD=admin \
             -e KC_HTTP_RELATIVE_PATH=/devhub/auth/keycloak \
-            quay.io/keycloak/keycloak:26.0 start-dev --http-enabled=true --hostname-strict=false > /tmp/keycloak-container-id
+            "$image" start-dev --import-realm --http-enabled=true --hostname-strict=false > /tmp/keycloak-container-id
 
-      - name: Configure Keycloak realm + clients for E2E
+      - name: Wait for imported Keycloak realm
         run: |
           set -euo pipefail
           base="http://localhost:8180/devhub/auth/keycloak"
-
-          timeout 120s bash -c "until curl -fsS \"$base/realms/master/.well-known/openid-configuration\" >/dev/null; do sleep 2; done"
-
-          admin_token=$(
-            curl -fsS "$base/realms/master/protocol/openid-connect/token" \
-              -H "Content-Type: application/x-www-form-urlencoded" \
-              -d "grant_type=password" \
-              -d "client_id=admin-cli" \
-              -d "username=admin" \
-              -d "password=admin" \
-              | python3 -c 'import json,sys; print(json.load(sys.stdin)["access_token"])'
-          )
-
-          http_code=$(curl -s -o /dev/null -w "%{http_code}" \
-            -H "Authorization: Bearer ${admin_token}" \
-            "$base/admin/realms/devhub")
-          if [ "$http_code" = "404" ]; then
-            curl -fsS -X POST "$base/admin/realms" \
-              -H "Authorization: Bearer ${admin_token}" \
-              -H "Content-Type: application/json" \
-              -d '{"realm":"devhub","enabled":true}'
-          fi
-
-          for role in user; do
-            code=$(curl -s -o /dev/null -w "%{http_code}" \
-              -H "Authorization: Bearer ${admin_token}" \
-              "$base/admin/realms/devhub/roles/$role")
-            if [ "$code" = "404" ]; then
-              curl -fsS -X POST "$base/admin/realms/devhub/roles" \
-                -H "Authorization: Bearer ${admin_token}" \
-                -H "Content-Type: application/json" \
-                -d "{\"name\":\"$role\"}"
-            fi
-          done
-
-          frontend_client_id=$(
-            curl -fsS -H "Authorization: Bearer ${admin_token}" \
-              "$base/admin/realms/devhub/clients?clientId=devhub-frontend" \
-              | python3 -c 'import json,sys; a=json.load(sys.stdin); print(a[0]["id"] if a else "")'
-          )
-          if [ -z "$frontend_client_id" ]; then
-            curl -fsS -X POST "$base/admin/realms/devhub/clients" \
-              -H "Authorization: Bearer ${admin_token}" \
-              -H "Content-Type: application/json" \
-              -d '{"clientId":"devhub-frontend","enabled":true,"publicClient":true,"standardFlowEnabled":true,"directAccessGrantsEnabled":false,"redirectUris":["http://localhost:3000/*"],"webOrigins":["http://localhost:3000"]}'
-            frontend_client_id=$(
-              curl -fsS -H "Authorization: Bearer ${admin_token}" \
-                "$base/admin/realms/devhub/clients?clientId=devhub-frontend" \
-                | python3 -c 'import json,sys; a=json.load(sys.stdin); print(a[0]["id"] if a else "")'
-            )
-          fi
-
-          frontend_aud_mapper_id=$(
-            curl -fsS -H "Authorization: Bearer ${admin_token}" \
-              "$base/admin/realms/devhub/clients/${frontend_client_id}/protocol-mappers/models" \
-              | python3 -c 'import json,sys; m=next((x for x in json.load(sys.stdin) if x.get("name")=="devhub-frontend-audience"), None); print(m.get("id","") if m else "")'
-          )
-          if [ -z "$frontend_aud_mapper_id" ]; then
-            curl -fsS -X POST "$base/admin/realms/devhub/clients/${frontend_client_id}/protocol-mappers/models" \
-              -H "Authorization: Bearer ${admin_token}" \
-              -H "Content-Type: application/json" \
-              -d '{"name":"devhub-frontend-audience","protocol":"openid-connect","protocolMapper":"oidc-audience-mapper","config":{"included.client.audience":"devhub-frontend","id.token.claim":"false","access.token.claim":"true"}}'
-          fi
-
-          backend_client_id=$(
-            curl -fsS -H "Authorization: Bearer ${admin_token}" \
-              "$base/admin/realms/devhub/clients?clientId=devhub-backend" \
-              | python3 -c 'import json,sys; a=json.load(sys.stdin); print(a[0]["id"] if a else "")'
-          )
-          if [ -z "$backend_client_id" ]; then
-            curl -fsS -X POST "$base/admin/realms/devhub/clients" \
-              -H "Authorization: Bearer ${admin_token}" \
-              -H "Content-Type: application/json" \
-              -d '{"clientId":"devhub-backend","enabled":true,"publicClient":false,"serviceAccountsEnabled":true,"standardFlowEnabled":false,"directAccessGrantsEnabled":false}'
-            backend_client_id=$(
-              curl -fsS -H "Authorization: Bearer ${admin_token}" \
-                "$base/admin/realms/devhub/clients?clientId=devhub-backend" \
-                | python3 -c 'import json,sys; a=json.load(sys.stdin); print(a[0]["id"] if a else "")'
-            )
-          fi
-
-          # Grant Keycloak Admin API permissions to devhub-backend service account
-          # so Playwright global setup can list/create users and map roles.
-          realm_mgmt_client_id=$(
-            curl -fsS -H "Authorization: Bearer ${admin_token}" \
-              "$base/admin/realms/devhub/clients?clientId=realm-management" \
-              | python3 -c 'import json,sys; a=json.load(sys.stdin); print(a[0]["id"] if a else "")'
-          )
-          service_account_user_id=$(
-            curl -fsS -H "Authorization: Bearer ${admin_token}" \
-              "$base/admin/realms/devhub/clients/${backend_client_id}/service-account-user" \
-              | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])'
-          )
-          role_payload=$(
-            {
-              printf '['
-              first=1
-              for role_name in view-users query-users manage-users view-realm; do
-                role_json=$(
-                  curl -fsS -H "Authorization: Bearer ${admin_token}" \
-                    "$base/admin/realms/devhub/clients/${realm_mgmt_client_id}/roles/${role_name}"
-                )
-                if [ "$first" -eq 1 ]; then
-                  printf '%s' "$role_json"
-                  first=0
-                else
-                  printf ',%s' "$role_json"
-                fi
-              done
-              printf ']'
-            }
-          )
-          curl -fsS -X POST \
-            "$base/admin/realms/devhub/users/${service_account_user_id}/role-mappings/clients/${realm_mgmt_client_id}" \
-            -H "Authorization: Bearer ${admin_token}" \
-            -H "Content-Type: application/json" \
-            -d "$role_payload" >/dev/null
-
-          backend_secret=$(
-            curl -fsS -H "Authorization: Bearer ${admin_token}" \
-              "$base/admin/realms/devhub/clients/${backend_client_id}/client-secret" \
-              | python3 -c 'import json,sys; print(json.load(sys.stdin)["value"])'
-          )
-          echo "DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET=${backend_secret}" >> "$GITHUB_ENV"
-
+          timeout 120s bash -c "until curl -fsS \"$base/realms/devhub/.well-known/openid-configuration\" >/dev/null; do sleep 2; done"
+      
       - name: Apply app migrations
         run: |
           set -euo pipefail
-          sudo GOBIN=/usr/local/bin go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.19.1
           migrate -path backend-core/migrations -database "postgres://runner@localhost:5432/devhub?sslmode=disable" up
 
       - name: Validate E2E-CI Sync Contract
         run: bash ./scripts/ci-e2e-sync-check.sh .github/workflows/ci.yml
-      
-      - name: Build App
-        run: |
-          # backend-core's main package lives at backend-core/main.go (no
-          # cmd/httpapi sub-package). Build the root package.
-          (cd backend-core && CGO_ENABLED=0 go build -o ../devhub-backend ./)
-          (cd frontend && npm run build)
       
       - name: Start Backend
         env:
@@ -486,7 +466,7 @@ jobs:
           DEVHUB_KEYCLOAK_ADMIN_URL: http://localhost:8180/devhub/auth/keycloak
           DEVHUB_KEYCLOAK_ADMIN_REALM: devhub
           DEVHUB_KEYCLOAK_ADMIN_CLIENT_ID: devhub-backend
-          DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET: ${{ env.DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET }}
+          DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET: secret-change-me-backend
         run: |
           ./devhub-backend > backend.log 2>&1 &
       
@@ -510,13 +490,13 @@ jobs:
       - name: Run E2E Tests
         run: |
           cd frontend
-          npx playwright test --shard=${{ matrix.shard }}/2
+          npx playwright test --shard=${{ matrix.shard }}/${{ matrix.shard_total }}
         env:
           DSN: postgres://runner@localhost:5432/devhub?sslmode=disable
           DEVHUB_KEYCLOAK_ADMIN_URL: http://localhost:8180/devhub/auth/keycloak
           DEVHUB_KEYCLOAK_ADMIN_REALM: devhub
           DEVHUB_KEYCLOAK_ADMIN_CLIENT_ID: devhub-backend
-          DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET: ${{ env.DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET }}
+          DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET: secret-change-me-backend
       
       - name: Upload Playwright Report
         if: always()

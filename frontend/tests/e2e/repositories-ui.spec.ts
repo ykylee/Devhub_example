@@ -1,6 +1,11 @@
 import { appPath, expect, loginAs, SEEDED, test } from "./fixtures";
 
 test.describe("/repositories — repository list/detail UI", () => {
+  const repoALink = (page: import("@playwright/test").Page) =>
+    page.getByRole("link", { name: "e2e-repo-a", exact: true });
+  const repoBLink = (page: import("@playwright/test").Page) =>
+    page.getByRole("link", { name: "e2e-repo-b", exact: true });
+
   test.beforeEach(async ({ page }) => {
     await loginAs(page, SEEDED.systemAdmin);
     await page.goto(appPath("/repositories"));
@@ -8,20 +13,22 @@ test.describe("/repositories — repository list/detail UI", () => {
   });
 
   test("TC-REPO-UI-01 — 저장소 목록 진입 + fixture repository 노출", async ({ page }) => {
-    await expect(page.getByText("e2e-repo-a", { exact: false })).toBeVisible({ timeout: 20_000 });
-    await expect(page.getByText("e2e-repo-b", { exact: false })).toBeVisible({ timeout: 20_000 });
+    await expect(repoALink(page)).toBeVisible({ timeout: 20_000 });
+    await expect(repoBLink(page)).toBeVisible({ timeout: 20_000 });
   });
 
   test("TC-REPO-SEARCH-01 — 저장소명 검색으로 목록 필터링", async ({ page }) => {
-    const searchInput = page.getByPlaceholder("Search repositories by name or owner...");
+    const searchInput = () => page.getByPlaceholder("Search repositories by name or owner...");
 
-    await searchInput.fill("e2e-repo-a");
-    await expect(page.getByText("e2e-repo-a", { exact: false })).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText("e2e-repo-b", { exact: false })).toBeHidden({ timeout: 15_000 });
+    await expect(searchInput()).toBeVisible({ timeout: 15_000 });
+    await searchInput().fill("e2e-repo-a");
+    await expect(repoALink(page)).toBeVisible({ timeout: 15_000 });
+    await expect(repoBLink(page)).toBeHidden({ timeout: 15_000 });
 
-    await searchInput.fill("devhub");
-    await expect(page.getByText("e2e-repo-a", { exact: false })).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText("e2e-repo-b", { exact: false })).toBeVisible({ timeout: 15_000 });
+    await expect(searchInput()).toBeVisible({ timeout: 15_000 });
+    await searchInput().fill("devhub");
+    await expect(repoALink(page)).toBeVisible({ timeout: 15_000 });
+    await expect(repoBLink(page)).toBeVisible({ timeout: 15_000 });
   });
 
   test("TC-REPO-DETAIL-01 — 저장소 상세 진입 + 핵심 활동 카드 노출", async ({ page }) => {
