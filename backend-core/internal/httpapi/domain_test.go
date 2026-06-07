@@ -25,6 +25,18 @@ func (s *memoryDomainStore) ListRepositories(_ context.Context, _ domain.ListOpt
 	return s.repositories, nil
 }
 
+// GetRepositoryByID — sprint mvs/work_260607-h-486-ci-runs-api (N-7). 단건
+// 조회 (codex P1 review feedback, PR #494). ListRepositories 의 페이지네이션
+// 우회.
+func (s *memoryDomainStore) GetRepositoryByID(_ context.Context, id int64) (domain.Repository, error) {
+	for _, r := range s.repositories {
+		if r.ID == id {
+			return r, nil
+		}
+	}
+	return domain.Repository{}, store.ErrNotFound
+}
+
 func (s *memoryDomainStore) ListIssues(_ context.Context, opts domain.ListOptions) ([]domain.Issue, error) {
 	if opts.State == "" && opts.RepositoryName == "" {
 		return s.issues, nil
@@ -63,14 +75,41 @@ func (s *memoryDomainStore) ListCIRuns(_ context.Context, _ domain.ListOptions) 
 	return s.ciRuns, nil
 }
 
+// CreateCIRun — sprint mvs/work_260607-h-486-ci-runs-api (N-7). 4-tuple
+// (repository_id, commit_sha, status, started_at) idempotency 매칭 시
+// ErrConflict. 기존 external_id 매칭 fallback 도 유지 (legacy row + Upsert
+// path 호환).
 func (s *memoryDomainStore) CreateCIRun(_ context.Context, run domain.CIRun) error {
+	startedUnix := int64(0)
+	if run.StartedAt != nil {
+		startedUnix = run.StartedAt.Unix()
+	}
 	for _, existing := range s.ciRuns {
+		// external_id 매칭 (legacy 호환)
 		if existing.ExternalID == run.ExternalID {
+			return store.ErrConflict
+		}
+		// 4-tuple 매칭 (신규 idempotency)
+		if existing.RepositoryID == run.RepositoryID &&
+			existing.CommitSHA == run.CommitSHA &&
+			existing.Status == run.Status &&
+			existing.StartedAt != nil && startedUnix == existing.StartedAt.Unix() {
 			return store.ErrConflict
 		}
 	}
 	s.ciRuns = append(s.ciRuns, run)
 	return nil
+}
+
+// GetCIRunByExternalID — sprint mvs/work_260607-h-486-ci-runs-api (N-7).
+// 409 응답에서 기존 row 본문 반환용.
+func (s *memoryDomainStore) GetCIRunByExternalID(_ context.Context, externalID string) (domain.CIRun, error) {
+	for _, run := range s.ciRuns {
+		if run.ExternalID == externalID {
+			return run, nil
+		}
+	}
+	return domain.CIRun{}, store.ErrNotFound
 }
 
 func (s *memoryDomainStore) ListRisks(_ context.Context, opts domain.ListOptions) ([]domain.Risk, error) {

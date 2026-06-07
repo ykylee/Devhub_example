@@ -61,6 +61,7 @@ type PlatformStore interface {
 	// SCM repository import
 	UpsertRepository(context.Context, domain.Repository) error
 	ListRepositoriesByProvider(context.Context, string) ([]domain.Repository, error)
+	GetRepositoryByID(context.Context, int64) (domain.Repository, error)
 
 	// Repository 운영 지표
 	ListRepositoryActivity(context.Context, int64, store.RepositoryActivityOptions) (domain.RepositoryActivity, error)

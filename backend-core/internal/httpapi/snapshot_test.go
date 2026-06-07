@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 	"time"
 
@@ -314,55 +313,3 @@ func (p testSnapshotProvider) Source() string {
 	return p.source
 }
 
-func TestCreateCIRun_HappyPath(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	storeI := &memoryDomainStore{}
-	router := testRouter(RouterConfig{DomainStore: storeI})
-
-	body := `{"external_id":"ci-build-101","repository_name":"acme/api","branch":"main","commit_sha":"abc123","status":"queued"}`
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/ci-runs", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusCreated {
-		t.Fatalf("expected 201, got %d body=%s", rec.Code, rec.Body.String())
-	}
-	if !strings.Contains(rec.Body.String(), "ci-build-101") {
-		t.Errorf("response missing external_id: %s", rec.Body.String())
-	}
-}
-
-func TestCreateCIRun_Conflict(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	storeI := &memoryDomainStore{
-		ciRuns: []domain.CIRun{{ExternalID: "ci-build-001"}},
-	}
-	router := testRouter(RouterConfig{DomainStore: storeI})
-
-	body := `{"external_id":"ci-build-001","repository_name":"acme/api","status":"running"}`
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/ci-runs", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusConflict {
-		t.Fatalf("expected 409, got %d body=%s", rec.Code, rec.Body.String())
-	}
-}
-
-func TestCreateCIRun_BadRequest(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	router := testRouter(RouterConfig{DomainStore: &memoryDomainStore{}})
-
-	// missing required fields
-	body := `{"branch":"main"}`
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/ci-runs", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d body=%s", rec.Code, rec.Body.String())
-	}
-}

@@ -427,19 +427,21 @@ INSERT INTO ci_runs (
 	finished_at,
 	duration_seconds,
 	html_url,
+	runner,
 	updated_at
 ) VALUES (
 	$1,
-	(SELECT id FROM repositories WHERE full_name = $2 LIMIT 1),
 	$2,
-	NULLIF($3, ''),
+	$3,
 	NULLIF($4, ''),
-	$5,
-	NULLIF($6, ''),
-	$7,
+	NULLIF($5, ''),
+	$6,
+	NULLIF($7, ''),
 	$8,
 	$9,
-	NULLIF($10, ''),
+	$10,
+	NULLIF($11, ''),
+	NULLIF($12, ''),
 	NOW()
 )`
 
@@ -447,6 +449,7 @@ INSERT INTO ci_runs (
 		ctx,
 		query,
 		run.ExternalID,
+		run.RepositoryID,
 		run.RepositoryName,
 		run.Branch,
 		run.CommitSHA,
@@ -456,6 +459,7 @@ INSERT INTO ci_runs (
 		run.FinishedAt,
 		run.DurationSeconds,
 		run.HTMLURL,
+		run.Runner,
 	)
 	if IsUniqueViolation(err) {
 		return ErrConflict
@@ -1470,6 +1474,72 @@ LIMIT $1 OFFSET $2`
 	return repositories, nil
 }
 
+// GetRepositoryByID — sprint mvs/work_260607-h-486-ci-runs-api (N-7). 단건
+// 조회. codex P1 review feedback (PR #494): ListRepositories 의 기본 50 row
+// 페이지네이션 우회 — repository_id 직접 PK 조회. 50 row 초과 환경에서도
+// 정확한 존재 검증.
+func (s *PostgresStore) GetRepositoryByID(ctx context.Context, id int64) (domain.Repository, error) {
+	const query = `
+SELECT
+	r.id,
+	COALESCE(r.gitea_repository_id, 0),
+	r.full_name,
+	COALESCE(r.owner_login, ''),
+	r.name,
+	COALESCE(r.clone_url, ''),
+	COALESCE(r.html_url, ''),
+	COALESCE(r.default_branch, ''),
+	r.private,
+	COALESCE(r.repository_status, 'active'),
+	publish_requested_at,
+	published_at,
+	r.updated_at,
+	COALESCE(r.source, 'scm'),
+	COALESCE(r.provider_id::text, ''),
+	COALESCE(p.provider_key, ''),
+	COALESCE(r.description, ''),
+	COALESCE((SELECT COUNT(*)
+	          FROM platform_repositories ar
+	          WHERE ar.repo_full_name = r.full_name), 0)::int AS linked_applications_count,
+	COALESCE((SELECT COUNT(*)
+	          FROM project_repositories pr
+	          WHERE pr.repository_id = r.id), 0)::int AS linked_projects_count
+FROM repositories r
+LEFT JOIN integration_providers p ON p.provider_id = r.provider_id
+WHERE r.id = $1
+LIMIT 1`
+
+	var repository domain.Repository
+	err := s.pool.QueryRow(ctx, query, id).Scan(
+		&repository.ID,
+		&repository.GiteaID,
+		&repository.FullName,
+		&repository.OwnerLogin,
+		&repository.Name,
+		&repository.CloneURL,
+		&repository.HTMLURL,
+		&repository.DefaultBranch,
+		&repository.Private,
+		&repository.Status,
+		&repository.PublishRequestedAt,
+		&repository.PublishedAt,
+		&repository.UpdatedAt,
+		&repository.Source,
+		&repository.ProviderID,
+		&repository.ProviderKey,
+		&repository.Description,
+		&repository.LinkedPlatformsCount,
+		&repository.LinkedProjectsCount,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.Repository{}, ErrNotFound
+		}
+		return domain.Repository{}, err
+	}
+	return repository, nil
+}
+
 // ListRepositoriesByProvider returns repositories linked to a given integration
 // provider (provider_id). Used to mark already-imported SCM repositories.
 func (s *PostgresStore) ListRepositoriesByProvider(ctx context.Context, providerID string) ([]domain.Repository, error) {
@@ -1699,6 +1769,55 @@ LIMIT $1 OFFSET $2`
 		return nil, err
 	}
 	return runs, nil
+}
+
+// GetCIRunByExternalID — sprint mvs/work_260607-h-486-ci-runs-api (N-7). 409
+// 응답에서 기존 row 본문 반환용. external_id index 기반 단건 조회.
+func (s *PostgresStore) GetCIRunByExternalID(ctx context.Context, externalID string) (domain.CIRun, error) {
+	const query = `
+SELECT
+	id,
+	external_id,
+	COALESCE(repository_id, 0),
+	repository_name,
+	COALESCE(branch, ''),
+	COALESCE(commit_sha, ''),
+	status,
+	COALESCE(conclusion, ''),
+	started_at,
+	finished_at,
+	duration_seconds,
+	COALESCE(html_url, ''),
+	COALESCE(runner, ''),
+	updated_at
+FROM ci_runs
+WHERE external_id = $1
+LIMIT 1`
+
+	var run domain.CIRun
+	err := s.pool.QueryRow(ctx, query, externalID).Scan(
+		&run.ID,
+		&run.ExternalID,
+		&run.RepositoryID,
+		&run.RepositoryName,
+		&run.Branch,
+		&run.CommitSHA,
+		&run.Status,
+		&run.Conclusion,
+		&run.StartedAt,
+		&run.FinishedAt,
+		&run.DurationSeconds,
+		&run.HTMLURL,
+		&run.Runner,
+		&run.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.CIRun{}, ErrNotFound
+		}
+		return domain.CIRun{}, err
+	}
+	return run, nil
 }
 
 func (s *PostgresStore) ListRisks(ctx context.Context, opts domain.ListOptions) ([]domain.Risk, error) {

@@ -84,6 +84,7 @@ type PullRequest struct {
 type CIRun struct {
 	ID              int64
 	ExternalID      string
+	RepositoryID    int64
 	RepositoryName  string
 	Branch          string
 	CommitSHA       string
@@ -93,6 +94,7 @@ type CIRun struct {
 	FinishedAt      *time.Time
 	DurationSeconds *int
 	HTMLURL         string
+	Runner          string
 	UpdatedAt       time.Time
 }
 
