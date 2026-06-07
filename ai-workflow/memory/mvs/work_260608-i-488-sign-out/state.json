@@ -2,48 +2,45 @@
   "schema_version": "1",
   "sprint": "mvs/work_260608-i-488-sign-out",
   "branch": "mvs/work_260608-i-488-sign-out",
-  "status": "in_progress",
+  "status": "done",
   "started_at": "2026-06-08T05:50:00Z",
-  "ended_at": null,
-  "merged_pr": null,
-  "merge_commit": null,
+  "ended_at": "2026-06-08T06:18:00Z",
+  "merged_pr": 495,
+  "merge_commit": "454fd16",
   "issue": 488,
   "carve": "P1-6 (release_v1_roadmap.md §3.2) + N-8 (§3.5) — v1.0 안정성",
-  "scope": "POST /api/v1/auth/logout handler 신규 구현. access token 폐기 + session 종료. RFC 7009 (token revocation) vs Keycloak admin logout endpoint 선택 가능. Idempotent. UT 4-5건 + audit emit. 정식 ID = API-99 (sprint -h 의 ID 슬롯 정합 1차 housekeeping 후 확정, 충돌 없음).",
-  "directive_source": "사용자 지시 (2026-06-08) — '머지하고 다음 작업을 진행하자. 브랜치 만들고 메모리 갱신도 해줘' — N-7 (PR #494) 머지 후 자연스러운 다음 단계로 sprint-i 의 P1-6 (N-8) 진입. 사용자 옵션 5개 중 1번 (N-8) 을 자연스러운 다음 작업으로 채택.",
+  "scope": "POST /api/v1/auth/logout handler 신규 구현. Bearer token 인증 + OIDC /protocol/openid-connect/logout endpoint 호출 (client_id+client_secret+refresh_token) + audit emit (actor/revoke_status) + 4 cookie clear. 204 No Content (idempotent) / 401 (middleware enforce) / 502 (Keycloak unreachable, 정합 우선).",
+  "directive_source": "사용자 지시 (2026-06-08) — '머지하고 다음 작업을 진행하자. 브랜치 만들고 메모리 갱신도 해줘' — N-7 (PR #494) 머지 후 자연스러운 다음 단계로 sprint-i 의 P1-6 (N-8) 진입. spec 의 결정 권장값 (refresh_token 별도 carve, 즉시 502) 그대로 적용.",
   "decisions": [
-    "sprint-i 의 P1-2/P0-2/P1-6 중 P1-6 (N-8) 가 v1.0 release blocker 에 가장 가까움 (세션 관리 기본)",
-    "정식 API ID = API-99 (sprint -h 의 1차 정합 housekeeping 으로 슬롯 확정)",
-    "scaffold 3 파일 = state.json + work_backlog.md + session_handoff.md"
+    "sprint-i 의 P1-1/P1-2/P1-6 중 P1-6 (N-8) 가 가장 v1.0 release blocker 에 가까움",
+    "정식 API ID = API-99 (sprint -h 의 1차 정합 housekeeping 슬롯 확정)",
+    "Path A refactor (기존 auth.Logout → OIDC endpoint) — 외부 caller 0 확인",
+    "refresh_token 별도 carve (issue #488 spec 권장)",
+    "즉시 502 (issue #488 spec 권장: 정합 우선, stale-while-error 미적용)",
+    "기존 IdentityAdmin.LogoutUserSession 호출 path 제거 (admin endpoint 미사용)"
   ],
   "todo_done": [
-    "이전 sprint N-7 (PR #494) 머지 완료 확인 (merge commit 7609000)",
-    "N-7 state.json status: done 갱신",
-    "브랜치 mvs/work_260608-i-488-sign-out 생성 (origin/main @ 7609000 base)",
-    "sprint scaffold 3 파일 작성 (state.json + work_backlog.md + session_handoff.md)"
+    "sprint scaffold 3 파일 작성 (state.json + work_backlog.md + session_handoff.md)",
+    "기존 auth.Logout vs spec 매핑 (Path A refactor 결정)",
+    "KeycloakAdminClient.OIDCLogout method 추가 (OIDC endpoint)",
+    "auth.Logout handler refactor (204, OIDC 호출, 502, audit payload)",
+    "OIDCLogoutClient 인터페이스 + RouterConfig 주입",
+    "5 unit test (TC-AUTH-LOGOUT-01..05) — 기존 2 갱신 + 신규 3",
+    "go test ./... PASS (35 packages)",
+    "PR #495 opened + CI green",
+    "PR #495 MERGED (merge commit 454fd16) on 2026-06-08"
   ],
-  "todo": [
-    "Issue #488 본문 + 2차 정정 housekeeping comment 정독",
-    "기존 auth handler 패턴 탐색 (JWKS, token verify, middleware)",
-    "IdentityAdmin.LogoutUserSession 활용 가능 여부 검증",
-    "RFC 7009 vs Keycloak admin logout endpoint 선택 (사용자 결정)",
-    "POST /api/v1/auth/logout handler 구현",
-    "route 등록 + RBAC + audit emit + metric (선택)",
-    "UT 4-5건 (TC-AUTH-LOGOUT-01..05)",
-    "go test ./... + go build PASS",
-    "commit + push + PR 생성"
-  ],
-  "verification": null,
-  "dependencies": {
-    "satisfied": [
-      "PR #494 (N-7 CI Run API) — main 머지 완료",
-      "IdentityAdmin interface (ADR-0020 sub-carve E) — main 머지 완료",
-      "Keycloak OIDC verifier + JWKS cache — main 머지 완료"
-    ],
-    "external": [
-      "Keycloak admin endpoint 가용성 (사내 staging 환경 1주 monitoring 잔여)"
-    ]
+  "todo": [],
+  "verification": "go build ./... PASS / go test ./... PASS (35 packages) / PR #495 MERGEABLE+GREEN / E2E shard 1/2/3 SUCCESS — 회귀 없음",
+  "dependencies_satisfied": {
+    "PR #494 (N-7 CI Run API)": "main 머지 완료",
+    "IdentityAdmin interface (ADR-0020 sub-carve E)": "main 머지 완료 (LogOutUserSession 미사용으로 정합)",
+    "Keycloak OIDC verifier + JWKS cache": "main 머지 완료"
   },
+  "external_dependencies_remaining": [
+    "Keycloak staging env OIDC endpoint 가용성 (사내 staging 1주 monitoring 잔여)",
+    "Frontend auth.service.ts 의 logout 함수 갱신 (sprint -i 후속, Gemini)"
+  ],
   "traceability": {
     "REQ": "REQ-FR-107",
     "ARCH": "ARCH-19",
@@ -52,5 +49,14 @@
     "UT": "UT-auth-logout-01",
     "TC": "TC-AUTH-LOGOUT-01..05",
     "domain": "domain/auth + type/feature"
-  }
+  },
+  "merge_summary": {
+    "files_changed": 5,
+    "insertions": 271,
+    "deletions": 56,
+    "PR": "#495",
+    "merge_commit": "454fd16",
+    "merged_at": "2026-06-08T06:18:00Z"
+  },
+  "next_sprint": "mvs/work_260608-i-214-jwks-subcarve-d (P1-2 sub-carve D — JWKS stale-while-error expiry case 확장, sprint-i 잔여) 또는 사용자 redirect 시 다른 작업"
 }
