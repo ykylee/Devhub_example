@@ -598,10 +598,12 @@ func TestLogoutEndpoint_ClearsCookiesAndWritesAudit(t *testing.T) {
 		Subject: "user-alice",
 		Role:    "developer",
 	}}
+	oidc := &fakeOIDCLogoutClient{}
 	router := NewRouter(RouterConfig{
 		OrganizationStore:   newMemoryOrganizationStore(),
 		AuditStore:          audits,
 		BearerTokenVerifier: verifier,
+		OIDCLogoutClient:    oidc,
 	})
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", strings.NewReader(`{"refresh_token":"rt-1","id_token":"id-1"}`))
@@ -610,8 +612,9 @@ func TestLogoutEndpoint_ClearsCookiesAndWritesAudit(t *testing.T) {
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+	// TC-AUTH-LOGOUT-01 — 204 No Content (spec) + cookies cleared + audit.
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("expected 204, got %d body=%s", rec.Code, rec.Body.String())
 	}
 	cookieHeader := strings.Join(rec.Header().Values("Set-Cookie"), "\n")
 	for _, name := range []string{"devhub_session", "devhub_access_token", "devhub_refresh_token", "devhub_id_token"} {
@@ -622,13 +625,13 @@ func TestLogoutEndpoint_ClearsCookiesAndWritesAudit(t *testing.T) {
 	if len(audits.logs) != 1 || audits.logs[0].Action != "auth.logout" {
 		t.Fatalf("expected auth.logout audit, got %+v", audits.logs)
 	}
-	// Without IdentityAdmin, revoke_attempted remains false
-	revAttempted, _ := audits.logs[0].Payload["revoke_attempted"].(bool)
-	if revAttempted {
-		t.Fatalf("expected revoke_attempted=false when IdentityAdmin is nil, got true")
+	// OIDC logout 호출 검증 (revoke_status=ok)
+	if len(oidc.calls) != 1 || oidc.calls[0] != "rt-1" {
+		t.Fatalf("expected OIDCLogout(rt-1), got %v", oidc.calls)
 	}
-	if !strings.Contains(rec.Body.String(), `"revoked":false`) {
-		t.Fatalf("expected revoked:false in response, body=%s", rec.Body.String())
+	revokeStatus, _ := audits.logs[0].Payload["revoke_status"].(string)
+	if revokeStatus != "ok" {
+		t.Fatalf("expected revoke_status=ok, got %v", revokeStatus)
 	}
 }
 
@@ -639,14 +642,12 @@ func TestLogoutEndpoint_RevokesKeycloakSessions(t *testing.T) {
 		Subject: "user-alice",
 		Role:    "developer",
 	}}
-	idAdmin := &MockIdentityAdmin{
-		FindIDOverride: map[string]string{"alice": "kc-uuid-alice"},
-	}
+	oidc := &fakeOIDCLogoutClient{}
 	router := NewRouter(RouterConfig{
 		OrganizationStore:   newMemoryOrganizationStore(),
 		AuditStore:          audits,
 		BearerTokenVerifier: verifier,
-		IdentityAdmin:       idAdmin,
+		OIDCLogoutClient:    oidc,
 	})
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", strings.NewReader(`{"refresh_token":"rt-1","id_token":"id-1"}`))
@@ -655,27 +656,147 @@ func TestLogoutEndpoint_RevokesKeycloakSessions(t *testing.T) {
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+	// TC-AUTH-LOGOUT-02 — OIDC logout 호출 + 204 + audit revoke_status=ok.
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("expected 204, got %d body=%s", rec.Code, rec.Body.String())
 	}
-
 	if len(audits.logs) != 1 || audits.logs[0].Action != "auth.logout" {
 		t.Fatalf("expected auth.logout audit, got %+v", audits.logs)
 	}
+	if len(oidc.calls) != 1 || oidc.calls[0] != "rt-1" {
+		t.Fatalf("expected OIDCLogout(rt-1), got %v", oidc.calls)
+	}
+	revokeStatus, _ := audits.logs[0].Payload["revoke_status"].(string)
+	if revokeStatus != "ok" {
+		t.Fatalf("expected revoke_status=ok, got %v", revokeStatus)
+	}
+}
 
-	revAttempted, ok := audits.logs[0].Payload["revoke_attempted"].(bool)
-	if !ok || !revAttempted {
-		t.Fatalf("expected revoke_attempted=true, got %v (ok=%v)", revAttempted, ok)
-	}
+// TC-AUTH-LOGOUT-03 — idempotency: 같은 refresh_token 두번 호출 → 두번 다
+// 204. OIDCLogout 가 4xx 를 nil 로 정규화하므로 second call 도 정상.
+func TestLogoutEndpoint_Idempotent(t *testing.T) {
+	audits := &memoryAuditStore{}
+	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+		Login:   "alice",
+		Subject: "user-alice",
+		Role:    "developer",
+	}}
+	oidc := &fakeOIDCLogoutClient{}
+	router := NewRouter(RouterConfig{
+		OrganizationStore:   newMemoryOrganizationStore(),
+		AuditStore:          audits,
+		BearerTokenVerifier: verifier,
+		OIDCLogoutClient:    oidc,
+	})
 
-	if !strings.Contains(rec.Body.String(), `"revoked":true`) {
-		t.Fatalf("expected revoked:true in response, body=%s", rec.Body.String())
+	body := `{"refresh_token":"rt-1"}`
+	for i := 0; i < 2; i++ {
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", strings.NewReader(body))
+		req.Header.Set("Authorization", "Bearer t")
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		if rec.Code != http.StatusNoContent {
+			t.Fatalf("call %d: expected 204, got %d body=%s", i+1, rec.Code, rec.Body.String())
+		}
 	}
+	// OIDCLogout 가 두번 호출되어야 함 (idempotency 는 핸들러 레벨 — Keycloak
+	// 자체가 idempotent).
+	if len(oidc.calls) != 2 {
+		t.Errorf("expected 2 OIDCLogout calls, got %d", len(oidc.calls))
+	}
+	if len(audits.logs) != 2 {
+		t.Errorf("expected 2 audit rows, got %d", len(audits.logs))
+	}
+}
 
-	if idAdmin.FindCalls != 1 {
-		t.Fatalf("expected 1 FindIdentityByUserID call, got %d", idAdmin.FindCalls)
+// TC-AUTH-LOGOUT-04 — Keycloak unreachable → 502 + audit revoke_status=unreachable.
+func TestLogoutEndpoint_KeycloakUnreachable_502(t *testing.T) {
+	audits := &memoryAuditStore{}
+	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+		Login:   "alice",
+		Subject: "user-alice",
+		Role:    "developer",
+	}}
+	oidc := &fakeOIDCLogoutClient{err: errors.New("keycloak timeout")}
+	router := NewRouter(RouterConfig{
+		OrganizationStore:   newMemoryOrganizationStore(),
+		AuditStore:          audits,
+		BearerTokenVerifier: verifier,
+		OIDCLogoutClient:    oidc,
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", strings.NewReader(`{"refresh_token":"rt-1"}`))
+	req.Header.Set("Authorization", "Bearer t")
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadGateway {
+		t.Fatalf("expected 502, got %d body=%s", rec.Code, rec.Body.String())
 	}
-	if len(idAdmin.LogoutCalls) != 1 || idAdmin.LogoutCalls[0] != "kc-uuid-alice" {
-		t.Fatalf("expected LogoutUserSession(kc-uuid-alice), got %v", idAdmin.LogoutCalls)
+	if !strings.Contains(rec.Body.String(), "auth_logout.keycloak_unreachable") {
+		t.Errorf("expected code=auth_logout.keycloak_unreachable, body=%s", rec.Body.String())
 	}
+	// audit 는 unreachable 상태로 emit 되어야 함 (handler 가 502 반환 전 audit).
+	if len(audits.logs) != 1 {
+		t.Fatalf("expected 1 audit row (unreachable), got %d", len(audits.logs))
+	}
+	revokeStatus, _ := audits.logs[0].Payload["revoke_status"].(string)
+	if revokeStatus != "unreachable" {
+		t.Errorf("expected revoke_status=unreachable, got %v", revokeStatus)
+	}
+}
+
+// TC-AUTH-LOGOUT-05 — refresh_token 없이 호출 → 204 + audit
+// revoke_status=skipped_no_refresh_token. OIDC logout skip, cookies
+// clear + audit 만 emit.
+func TestLogoutEndpoint_NoRefreshToken_204(t *testing.T) {
+	audits := &memoryAuditStore{}
+	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+		Login:   "alice",
+		Subject: "user-alice",
+		Role:    "developer",
+	}}
+	oidc := &fakeOIDCLogoutClient{}
+	router := NewRouter(RouterConfig{
+		OrganizationStore:   newMemoryOrganizationStore(),
+		AuditStore:          audits,
+		BearerTokenVerifier: verifier,
+		OIDCLogoutClient:    oidc,
+	})
+
+	// empty body — refresh_token 없이
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", strings.NewReader(`{}`))
+	req.Header.Set("Authorization", "Bearer t")
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("expected 204, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	// OIDCLogout 호출 안 됨
+	if len(oidc.calls) != 0 {
+		t.Errorf("expected 0 OIDCLogout calls (no refresh_token), got %d", len(oidc.calls))
+	}
+	// audit revoke_status=skipped_no_refresh_token
+	if len(audits.logs) != 1 {
+		t.Fatalf("expected 1 audit row, got %d", len(audits.logs))
+	}
+	revokeStatus, _ := audits.logs[0].Payload["revoke_status"].(string)
+	if revokeStatus != "skipped_no_refresh_token" {
+		t.Errorf("expected revoke_status=skipped_no_refresh_token, got %v", revokeStatus)
+	}
+}
+
+// fakeOIDCLogoutClient — OIDCLogoutClient 인터페이스 구현. 테스트 fixture.
+type fakeOIDCLogoutClient struct {
+	err   error
+	calls []string // 호출된 refresh_token 들
+}
+
+func (f *fakeOIDCLogoutClient) OIDCLogout(_ context.Context, refreshToken string) error {
+	f.calls = append(f.calls, refreshToken)
+	return f.err
 }

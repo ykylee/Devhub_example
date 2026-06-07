@@ -102,6 +102,11 @@ type IdentityAdmin interface {
 	LogoutUserSession(ctx context.Context, identityID string) error
 }
 
+// OIDCLogoutClient — sprint mvs/work_260608-i-488-sign-out (N-8). Keycloak
+// OIDC /protocol/openid-connect/logout endpoint wrapper. type-alias of
+// authview.OIDCLogoutClient (동일 signature).
+type OIDCLogoutClient = authview.OIDCLogoutClient
+
 type DevRequestStore interface {
 	CreateDevRequest(ctx context.Context, dr domain.DevRequest) (domain.DevRequest, error)
 	GetDevRequest(ctx context.Context, id string) (domain.DevRequest, error)
@@ -160,6 +165,7 @@ type RouterConfig struct {
 	PermissionCache            *rbacview.PermissionCache
 	ExternalTaskStore          ExternalTaskStore
 	IdentityAdmin              IdentityAdmin
+	OIDCLogoutClient           OIDCLogoutClient
 	IdPProvider                string
 	HRDB                       HRDBClient
 	SnapshotProvider           SnapshotProvider
@@ -246,6 +252,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 			BearerTokenVerifier:   cfg.BearerTokenVerifier,
 			OrganizationStore:     cfg.OrganizationStore,
 			IdentityAdmin:         cfg.IdentityAdmin,
+			OIDCLogoutClient:      cfg.OIDCLogoutClient,
 			AuditStore:            cfg.AuditStore,
 			OnboardingGateEnabled: cfg.OnboardingGateEnabled,
 		}),

@@ -3,12 +3,14 @@ package view
 import (
 	"context"
 	"encoding/json"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/devhub/backend-core/internal/domain"
 	"github.com/devhub/backend-core/internal/shared/httphelp"
 	"github.com/devhub/backend-core/internal/store"
 	"github.com/gin-gonic/gin"
-	"net/http"
-	"time"
 )
 
 type AuditStore interface {
@@ -36,6 +38,7 @@ type AuthConfig struct {
 	BearerTokenVerifier   BearerTokenVerifier
 	OrganizationStore     OrganizationStore
 	IdentityAdmin         IdentityAdmin
+	OIDCLogoutClient      OIDCLogoutClient
 	AuditStore            AuditStore
 	OnboardingGateEnabled bool
 }
@@ -148,33 +151,37 @@ type logoutRequest struct {
 	IdToken      string `json:"id_token"`
 }
 
-// Logout clears any server-managed cookies, revokes the Keycloak session via
-// the Identity Admin API (best-effort, defense-in-depth), and records an audit row.
+// OIDCLogoutClient — sprint mvs/work_260608-i-488-sign-out (N-8). Keycloak
+// OIDC /protocol/openid-connect/logout endpoint wrapper. IdentityAdmin 과
+// 분리: admin endpoint 가 아닌 user-facing OIDC endpoint. 인터페이스는
+// 최소 단일 메서드 (test fixture 주입용).
+type OIDCLogoutClient interface {
+	OIDCLogout(ctx context.Context, refreshToken string) error
+}
+
+// Logout — issue #488 spec 정합. POST /api/v1/auth/logout 의 v1.0 contract:
+//
+//   - Authorization: Bearer header 의 access token 인증 (route middleware 가
+//     사전 검증, 미인증 시 401). 본 handler 는 인증된 요청만 도달.
+//   - request body: { refresh_token?, id_token? } (둘 다 optional — OIDC
+//     logout 은 refresh_token 이 primary identifier).
+//   - 동작: server-managed cookie 4종 clear + Keycloak OIDC logout endpoint
+//     (refresh_token 폐기) + audit emit. keycloak_revoke_status (ok /
+//     unreachable / invalid) 를 audit payload 에 동봉.
+//   - 응답: 204 No Content (성공, idempotent). Keycloak unreachable 시 502.
+//     본 handler 의 401 경로는 route middleware 가 이미 enforce.
+//   - idempotency: 같은 refresh_token 으로 두번 호출해도 두번 다 204
+//     (OIDCLogout 가 4xx 를 nil 로 정규화).
 func (h *AuthHandler) Logout(c *gin.Context) {
 	var req logoutRequest
 	if c.Request.Body != nil {
 		_ = json.NewDecoder(c.Request.Body).Decode(&req)
 	}
 
-	revokeAttempted := false
-	revokeSuccess := false
-	if h.cfg.IdentityAdmin != nil {
-		revokeAttempted = true // set before Keycloak calls so failure is distinguishable from "no attempt"
-		actor := httphelp.RequestActor(c)
-		if actor.Login != "" {
-			identityID, findErr := h.cfg.IdentityAdmin.FindIdentityByUserID(c.Request.Context(), actor.Login)
-			if findErr == nil && identityID != "" {
-				if revokeErr := h.cfg.IdentityAdmin.LogoutUserSession(c.Request.Context(), identityID); revokeErr != nil {
-					httphelp.LogRequest(c, "logout revocation failed for %q (identity=%q): %v", actor.Login, identityID, revokeErr)
-				} else {
-					revokeSuccess = true
-				}
-			} else if findErr != nil {
-				httphelp.LogRequest(c, "logout identity lookup failed for %q: %v", actor.Login, findErr)
-			}
-		}
-	}
+	actor := httphelp.RequestActor(c)
 
+	// server-managed cookies 4종 clear (frontend 가 cookie-based 일 때 보조).
+	// spec 에 명시 없으나 기존 동작 유지 (frontend 영향 0).
 	for _, name := range []string{
 		"devhub_session",
 		"devhub_access_token",
@@ -191,18 +198,36 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 		})
 	}
 
-	auditLog := h.recordAuditBestEffort(c, "auth.logout", "auth", "current_session", map[string]any{
+	// OIDC logout — refresh_token 이 있을 때만 Keycloak endpoint 호출.
+	revokeStatus := "ok"
+	if h.cfg.OIDCLogoutClient != nil && strings.TrimSpace(req.RefreshToken) != "" {
+		if err := h.cfg.OIDCLogoutClient.OIDCLogout(c.Request.Context(), req.RefreshToken); err != nil {
+			revokeStatus = "unreachable"
+			// 502 즉시 반환 (issue #488 spec 권장: 정합 우선).
+			h.recordAuditBestEffort(c, "auth.logout", "auth", "current_session", map[string]any{
+				"actor":                 actor.Login,
+				"refresh_token_present": req.RefreshToken != "",
+				"id_token_present":      req.IdToken != "",
+				"revoke_status":         revokeStatus,
+			})
+			c.AbortWithStatusJSON(http.StatusBadGateway, gin.H{
+				"status": "failed",
+				"error":  "keycloak unreachable",
+				"code":   "auth_logout.keycloak_unreachable",
+			})
+			return
+		}
+	} else if strings.TrimSpace(req.RefreshToken) == "" {
+		revokeStatus = "skipped_no_refresh_token"
+	}
+
+	h.recordAuditBestEffort(c, "auth.logout", "auth", "current_session", map[string]any{
+		"actor":                 actor.Login,
 		"refresh_token_present": req.RefreshToken != "",
 		"id_token_present":      req.IdToken != "",
-		"revoke_attempted":      revokeAttempted,
+		"revoke_status":         revokeStatus,
 	})
 
-	resp := gin.H{
-		"status": "ok",
-		"data": gin.H{
-			"revoked": revokeSuccess,
-		},
-	}
-	addAuditMeta(resp, auditLog)
-	c.JSON(http.StatusOK, resp)
+	// 204 No Content (spec).
+	c.Status(http.StatusNoContent)
 }
