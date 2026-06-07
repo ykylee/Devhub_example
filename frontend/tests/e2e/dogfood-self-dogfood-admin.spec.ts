@@ -20,6 +20,6 @@ test.describe("dogfood self-dogfood admin flow", () => {
     await page.goto(appPath(`/projects/${result.projectID}`));
     await expect(page).toHaveURL(new RegExp(`/projects/${result.projectID}(/|$)`), { timeout: 20_000 });
     await expect(page.getByText(result.projectName)).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText(result.repositorySlug)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(result.repositorySlug, { exact: true })).toBeVisible({ timeout: 15_000 });
   });
 });
