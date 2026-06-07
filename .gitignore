@@ -98,6 +98,9 @@ docs/LOCAL_MACHINE_ENV.md
 
 .reasonix/
 
+# Mavis/MiniMax 세션 scratch
+.local/
+
 # Gemini temp files
 scratch/
 ui-screenshots-shard-2/
