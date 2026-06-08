@@ -119,16 +119,34 @@ func main() {
 	}
 
 	var (
-		idpAdmin httpapi.IdentityAdmin
+		idpAdmin       httpapi.IdentityAdmin
+		oidcLogout     httpapi.OIDCLogoutClient
 	)
 	if cfg.KeycloakAdminURL != "" && cfg.KeycloakAdminRealm != "" && cfg.KeycloakAdminClientID != "" && cfg.KeycloakAdminClientSecret != "" {
-		idpAdmin = &httpapi.KeycloakAdminClient{
+		kc := &httpapi.KeycloakAdminClient{
 			AdminURL:     cfg.KeycloakAdminURL,
 			Realm:        cfg.KeycloakAdminRealm,
 			ClientID:     cfg.KeycloakAdminClientID,
 			ClientSecret: cfg.KeycloakAdminClientSecret,
+			// IssuerURL 은 OIDC logout endpoint URL 결정 전용
+			// (oidcLogoutEndpoint 만 사용). tokenEndpoint() (admin service-
+			// account token) 는 절대 IssuerURL 을 보지 않음 — admin endpoint 와
+			// user-facing OIDC endpoint 가 deployment 별로 다른 host 일 수 있음
+			// (DEVHUB_KEYCLOAK_ADMIN_URL = internal docker vs
+			// DEVHUB_OIDC_ISSUER_URL = public ingress). codex P1 review #3 정합.
+			IssuerURL:        cfg.OIDCIssuerURL,
+			OIDCClientID:     cfg.OIDCClientID,
+			OIDCClientSecret: cfg.OIDCClientSecret,
+			// OIDC logout 은 token 발급 client (frontend) 자격증명 사용
+			// (RFC 6749 §4.1.3 / Keycloak token binding). admin client 와
+			// 분리 — codex P1 review #2 정합 (sprint -i fix).
 		}
-		log.Printf("identity admin client: keycloak (admin_url=%q realm=%q client_id=%q)", cfg.KeycloakAdminURL, cfg.KeycloakAdminRealm, cfg.KeycloakAdminClientID)
+		idpAdmin = kc
+		// KeycloakAdminClient 가 OIDCLogoutClient 인터페이스도 충족하므로
+		// 동일 인스턴스를 두 슬롯에 주입. (codex P1 review #1 정합)
+		oidcLogout = kc
+		log.Printf("identity admin + OIDC logout: keycloak (admin_client=%q oidc_client=%q realm=%q)",
+			cfg.KeycloakAdminClientID, cfg.OIDCClientID, cfg.KeycloakAdminRealm)
 	} else {
 		log.Println("keycloak provider mode: account admin adapter is not fully configured")
 	}
@@ -167,6 +185,7 @@ func main() {
 		RBACStore:                  rbacStore,
 		BearerTokenVerifier:        verifier,
 		IdentityAdmin:              idpAdmin,
+		OIDCLogoutClient:           oidcLogout,
 		IdPProvider:                cfg.IdPProvider,
 		HRDB:                       hrdbMock,
 		SnapshotProvider: httpapi.RuntimeSnapshotProvider{
