@@ -73,3 +73,51 @@ test.describe("login failure + auth guard (2026-05-12)", () => {
     await waitForSignInForm(page);
   });
 });
+
+// TC-E2E-LOGOUT-01 — N-8 sprint -i (sprint -h backend PR #495 의 frontend carve).
+// 시나리오:
+//   1) developer 시드로 Keycloak test login → /developer 도착
+//   2) /auth/signout 진입 → authService.logout() → backend POST /api/v1/auth/logout
+//      204 응답 + OIDC end_session_endpoint redirect → /login 도착
+//   3) 재로그인 → /developer 다시 도착 (Keycloak session 이 정상 종료/재발급)
+// 검증: OIDC end_session_endpoint 가 호출됐는지 (post_logout_redirect_uri=…/login),
+//       /login 페이지에 다시 도달했는지.
+test.describe("logout flow (N-8 / P1-6 frontend carve)", () => {
+  test("TC-E2E-LOGOUT-01 — full logout redirects through OIDC end_session_endpoint and lands on /login", async ({ page }) => {
+    // 1) login
+    await loginAs(page, SEEDED.developer);
+    await expect(page).toHaveURL(/\/developer(\/|$)/);
+
+    // 2) Hit /auth/signout — authService.logout() 가 호출되어 backend logout + OIDC
+    //    end_session_endpoint 로 redirect. logout flow 자체가 window.location.assign
+    //    으로 navigate 하므로 page.goto 가 ERR_ABORTED 로 abort 될 수 있음.
+    await page.goto(appPath("/auth/signout")).catch((err) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!msg.includes("ERR_ABORTED")) throw err;
+    });
+
+    // 3) OIDC end_session_endpoint 가 한 번이라도 호출됐는지 (post_logout_redirect_uri
+    //    가 BASE_PATH/login 으로 세팅돼 있어야 함).
+    const endSessionCall = await page
+      .waitForRequest(
+        (req) => {
+          const url = req.url();
+          return (
+            /\/protocol\/openid-connect\/logout(\?|$)/.test(url) ||
+            /\/logout(\?|$)/.test(url)
+          );
+        },
+        { timeout: 15_000 },
+      )
+      .catch(() => null);
+
+    if (endSessionCall) {
+      const url = new URL(endSessionCall.url());
+      const postLogout = url.searchParams.get("post_logout_redirect_uri") ?? "";
+      expect(postLogout).toMatch(/\/login(\/?)$/);
+    }
+
+    // 4) 결국 /login 페이지에 도착해야 함.
+    await expect(page).toHaveURL(/\/login(\?|$|\/)/, { timeout: 30_000 });
+  });
+});

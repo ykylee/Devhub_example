@@ -128,15 +128,18 @@ class AuthService {
     return tokens;
   }
 
-  public async logout(): Promise<void> {
-    const accessToken = tokenStore.getAccessToken();
-    const refreshToken = tokenStore.getRefreshToken();
-    const idToken = tokenStore.getIdToken();
-    const runtimeConfig = await this.getRuntimeOIDCConfig();
-    const discovery = await this.getDiscovery();
-
+  // 백엔드 POST /api/v1/auth/logout 응답 status 에 따른 분기.
+  //   204 No Content  : 정상 — OIDC end_session_endpoint 로 redirect (RP-initiated logout).
+  //   401 Unauthorized : idempotent — 토큰이 이미 만료/무효. 동일 cleanup + OIDC redirect.
+  //   502 Bad Gateway : backend 가 Keycloak 에 도달 못함 — OIDC 도 unreachable 가능성.
+  //                     toast 로 사용자에게 알리고 Keycloak 거치지 않고 강제 /login redirect.
+  //   그 외 4xx/5xx   : defensive — toast (warning) + OIDC redirect (Keycloak 단독 logout 시도).
+  // network throw     : fetch 자체가 실패 (CORS / network) — toast (warning) + OIDC redirect.
+  // 본 분기는 issue #488 spec §"Frontend (Gemini — 후속, sprint -i)" 의 결정 권장값을
+  // 그대로 구현 (stale-while-error 미적용, 정합 우선, 502 즉시 /login 강제).
+  private async postBackendLogout(accessToken: string | null, refreshToken: string | null, idToken: string | null): Promise<"ok" | "expired" | "unreachable" | "error"> {
     try {
-      await fetch(`${BASE_PATH}/api/v1/auth/logout`, {
+      const response = await fetch(`${BASE_PATH}/api/v1/auth/logout`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -147,14 +150,24 @@ class AuthService {
           id_token: idToken ?? undefined,
         }),
       });
+      if (response.status === 204) return "ok";
+      if (response.status === 401) return "expired";
+      if (response.status === 502) return "unreachable";
+      return "error";
     } catch (error) {
-      console.warn("[AuthService] logout API call failed", error);
+      console.warn("[AuthService] logout API call failed (network)", error);
+      return "error";
     }
+  }
 
-    tokenStore.clear();
-    useStore.getState().setIsLoggingOut(true);
-    useStore.getState().clearActor();
-
+  // cleanup + OIDC end_session_endpoint redirect. backend 가 502 를 반환한 경우
+  // (즉 Keycloak 이 unreachable) 에는 OIDC 단계도 실패할 가능성이 높으므로 호출하지
+  // 않고 `/login` 직접 redirect 로 fall back.
+  private redirectToOIDCEndSession(
+    discovery: OIDCDiscoveryDocument,
+    runtimeConfig: { oidcIssuerURL: string },
+    idToken: string | null,
+  ): void {
     const endSessionEndpoint =
       discovery.end_session_endpoint ||
       `${runtimeConfig.oidcIssuerURL}/protocol/openid-connect/logout`;
@@ -177,6 +190,46 @@ class AuthService {
       console.warn("[AuthService] logout redirect build failed", error);
       window.location.assign(`${BASE_PATH}/login`);
     }
+  }
+
+  public async logout(): Promise<void> {
+    const accessToken = tokenStore.getAccessToken();
+    const refreshToken = tokenStore.getRefreshToken();
+    const idToken = tokenStore.getIdToken();
+
+    // backend 가 access token revoke 를 시도하는 동안 frontend 도 token store 를 비우면
+    // Bearer 헤더가 빈 채로 가서 middleware 가 401 로 단락시킨다. 따라서 cleanup 은
+    // backend 응답을 받은 "이후" 로 미루고, status 분기는 backend 응답 기반으로 결정.
+    const outcome = await this.postBackendLogout(accessToken, refreshToken, idToken);
+
+    tokenStore.clear();
+    useStore.getState().setIsLoggingOut(true);
+    useStore.getState().clearActor();
+
+    if (outcome === "unreachable") {
+      // backend 가 Keycloak 에 도달 못함 → OIDC 도 unreachable 가능성. OIDC 단계 건너뛰고
+      // toast 로 알린 뒤 /login 강제 redirect. 정합 우선 (#488 spec 권장).
+      useStore.getState().addToast(
+        "Sign-out service is temporarily unreachable. Your session has been cleared locally.",
+        "error",
+      );
+      window.location.assign(`${BASE_PATH}/login`);
+      return;
+    }
+
+    if (outcome === "error") {
+      // 5xx/기타 4xx 또는 network throw — Keycloak logout 단독은 시도해보고, 결과에 따라
+      // /login fallback. UX 우선.
+      useStore.getState().addToast(
+        "Sign-out encountered a non-fatal error. Continuing local cleanup.",
+        "warning",
+      );
+    }
+    // outcome === "ok" | "expired" : 204/401 — 일반 흐름. OIDC end_session_endpoint 로
+    // RP-initiated logout 시도. (idempotent 401 도 OIDC logout 은 안전하게 시도 가능.)
+    const runtimeConfig = await this.getRuntimeOIDCConfig();
+    const discovery = await this.getDiscovery();
+    this.redirectToOIDCEndSession(discovery, runtimeConfig, idToken);
   }
 
   /**
