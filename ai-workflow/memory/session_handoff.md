@@ -1,9 +1,27 @@
-# Session Handoff — main (2026-06-06, PR #490 머지 완료)
+# Session Handoff — main (2026-06-08, N-11 정합 진행 중)
 
-- 문서 목적: sprint -h 신규 carve 의 ID 발급 및 추적성 매트릭스 cross-ref 정합화 완료 현황 인계.
-- 범위: sprint -h 신규 carve 3건 (P0-4/N-7, P1-6/N-8, P1-7/N-9) 추적성 ID 발급 및 PR #490 머지 완료.
-- 상태: main HEAD `bddcfae`, CI green.
-- 최종 수정일: 2026-06-06
+- 문서 목적: N-11 (CI e2e + backend-integration job 복원) 의 운영 정합 sprint 260608-a 진행 상태 인계.
+- 범위: N-11 의 1차 PR (PR #498 코멘트 갱신) + 2차 PR (메모리 4종 + traceability 정합) 의 2 PR 구조. 잔여 DoD = main 첫 PR 에서 두 job 실 실행 PASS (issue #419).
+- 상태: main HEAD `3855e46`, 1차 PR #498 OPEN, 2차 PR 작성 중 (`opencode/work_260608-b-N11-memory-sync`).
+- 최종 수정일: 2026-06-08
+
+## 0. N-11 (issue #419) — CI e2e + backend-integration job 복원 운영 정합
+
+### 1) 현황 분석 결과
+
+- `&& false` 2건 (backend-integration, e2e) 은 PR #407 cleanup-recovery (4a1942e) 후속 squash merge 4건 (5f5fdba fan out e2e shards, 9395cd9 restore stable e2e workflow, ce8ce7c fan out stable e2e shards) 으로 **이미 코드 레벨 복원 완료**.
+- 본 sprint -a 의 PR (#498) 은 **코멘트만 갱신** (코드 변경 0줄): "비활성화 + 복원 SOP" 안내 → "복원 완료 + 잔여 DoD 명시" 로.
+- 잔여 DoD = main HEAD `3855e46` 의 첫 PR 에서 backend-integration + e2e shard 1..3 실 실행 PASS 확인 (issue #419 잔여).
+
+### 2) 2 PR 구조
+
+- **1차 PR #498** (opencode/work_260608-a-N11-ci-restore-verify) — ci.yml 코멘트 갱신. workflow-lint 잡이 1차 CI 검증. **OPEN, 머지 보류**.
+- **2차 PR** (opencode/work_260608-b-N11-memory-sync) — 메모리 4종 (state/handoff/work_backlog/release_v1_roadmap) + traceability report.md §6 + §3.5 N-11 + §4.1 + §9 정합. 1차 PR 머지 후 main HEAD XXX 로 state.json head_commit 갱신. **작성 중**.
+
+### 3) 잔여 DoD 모니터링
+
+- 1차 PR 머지 후 main 에 들어오는 첫 PR 의 CI run 에서 `backend-integration` + `e2e (shard 1/3, 2/3, 3/3)` 4개 잡 모두 green 확인.
+- 확인 후 별도 housekeeping sprint (예: mvs 또는 opencode) 에서 release_v1_roadmap §3.5 N-11 의 "잔여 DoD" 행을 "✅ resolved" 로 close.
 
 ## 1. 2026-06-06 sprint -h 추적성 ID 발급 (PR #490)
 
