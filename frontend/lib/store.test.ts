@@ -54,6 +54,57 @@ describe("Zustand Global Store (useStore)", () => {
     expect(useStore.getState().role).toBeNull();
   });
 
+  // UT-store-01 (2026-06-08 PR #497 hotfix #2):
+  // logout 502 (Keycloak unreachable) 분기에서 backend 가 access token revoke
+  // 를 못 하는 환경 (CI E2E container Keycloak flake 등) 에서, AuthGuard 의
+  // pathname 변화 반응 useEffect 가 logout 진행 중에 whoAmI() 를 재호출해
+  // stale session (revoke 안 된 token) 을 actor store 에 다시 박는 race.
+  // spec #488 정합을 위해 setActor 는 isLoggingOut=true 동안 no-op 처리.
+  it("setActor는 isLoggingOut=true 동안 외부 호출이 와도 stale actor를 박지 않아야 합니다 (logout 502 분기 race 차단)", () => {
+    const initialActor: AuthenticatedActor = {
+      login: "alice",
+      user_id: "usr-alice",
+      subject: "sub-alice",
+      role: "Developer",
+    };
+    const staleActor: AuthenticatedActor = {
+      login: "alice",
+      user_id: "usr-alice",
+      subject: "sub-alice",
+      role: "Developer",
+      display_name: "stale-actor (revoke 안 된 backend session)",
+    };
+
+    // 1. 정상 로그인 → actor 박힘
+    useStore.getState().setActor(initialActor);
+    expect(useStore.getState().actor?.display_name).toBeUndefined();
+
+    // 2. logout 시작 — clearActor + isLoggingOut=true (auth.service.ts:206-207 시퀀스)
+    useStore.getState().setIsLoggingOut(true);
+    useStore.getState().clearActor();
+    expect(useStore.getState().actor).toBeNull();
+    expect(useStore.getState().isLoggingOut).toBe(true);
+
+    // 3. logout 진행 중 AuthGuard 가 pathname 변경에 반응해 whoAmI() 재호출,
+    //    backend 가 502 + revoke 실패 → 200 으로 stale 응답. setActor 시도:
+    useStore.getState().setActor(staleActor);
+
+    // 4. spec #488 정합: isLoggingOut=true 동안 setActor 는 no-op 이므로
+    //    stale actor 가 박히지 않아야 함. window.location.assign('/login') 가
+    //    발사한 후에도 AuthGuard 가 stale actor 를 못 보고 /developer 로
+    //    redirect 시키는 deadlock 가 풀린다.
+    expect(useStore.getState().actor).toBeNull();
+
+    // 5. logout 완료 → isLoggingOut=false (실제 login 페이지 도착 시점에
+    //    overlay 가 풀리며 setIsLoggingOut(false) 호출된다고 가정).
+    useStore.getState().setIsLoggingOut(false);
+
+    // 6. 다음 login-success path 에서는 setActor 가 정상 동작.
+    useStore.getState().setActor(staleActor);
+    expect(useStore.getState().actor).toEqual(staleActor);
+    expect(useStore.getState().actor?.display_name).toBe("stale-actor (revoke 안 된 backend session)");
+  });
+
   it("setRole이 정상적으로 롤(Role) 상태를 직접 갱신해야 합니다", () => {
     useStore.getState().setRole("Manager");
     expect(useStore.getState().role).toBe("Manager");

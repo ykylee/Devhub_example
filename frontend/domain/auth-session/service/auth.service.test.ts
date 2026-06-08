@@ -17,10 +17,12 @@ describe("AuthService", () => {
   const useStoreSetActor = vi.fn();
   const useStoreClearActor = vi.fn();
   const useStoreSetIsLoggingOut = vi.fn();
+  const useStoreAddToast = vi.fn();
   const useStoreGetState = vi.fn(() => ({
     setActor: useStoreSetActor,
     clearActor: useStoreClearActor,
     setIsLoggingOut: useStoreSetIsLoggingOut,
+    addToast: useStoreAddToast,
   }));
 
   const identityWhoAmIMock = vi.fn();
@@ -43,6 +45,7 @@ describe("AuthService", () => {
     useStoreSetActor.mockReset();
     useStoreClearActor.mockReset();
     useStoreSetIsLoggingOut.mockReset();
+    useStoreAddToast.mockReset();
     useStoreGetState.mockClear();
     identityWhoAmIMock.mockReset();
     createPkceStateMock.mockReset();
@@ -310,6 +313,8 @@ describe("AuthService", () => {
   });
 
   describe("logout", () => {
+    // TC-AUTH-LOGOUT-FE-01: backend 204 → token cleanup + OIDC end_session_endpoint redirect
+    // (id_token_hint 포함, post_logout_redirect_uri=/login).
     it("calls backend logout API, then clears tokens + actor and redirects with id_token_hint", async () => {
       tokenStoreMock.getAccessToken.mockReturnValue("access-token-1");
       tokenStoreMock.getRefreshToken.mockReturnValue("refresh-token-1");
@@ -325,7 +330,7 @@ describe("AuthService", () => {
             refresh_token: "refresh-token-1",
             id_token: "id-token-1",
           });
-          return new Response(JSON.stringify({ status: "ok" }), { status: 200 });
+          return new Response(null, { status: 204 });
         }
         if (String(url).includes("/api/runtime-config")) return runtimeConfigResponse();
         if (String(url).includes("/.well-known")) return discoveryResponse();
@@ -350,7 +355,7 @@ describe("AuthService", () => {
       tokenStoreMock.getIdToken.mockReturnValue(null);
       fetchMock.mockImplementation(async (url: string) => {
         if (String(url).includes("/api/v1/auth/logout")) {
-          return new Response(JSON.stringify({ status: "ok" }), { status: 200 });
+          return new Response(null, { status: 204 });
         }
         if (String(url).includes("/api/runtime-config")) return runtimeConfigResponse();
         if (String(url).includes("/.well-known")) return discoveryResponse();
@@ -367,7 +372,7 @@ describe("AuthService", () => {
       tokenStoreMock.getIdToken.mockReturnValue(null);
       fetchMock.mockImplementation(async (url: string) => {
         if (String(url).includes("/api/v1/auth/logout")) {
-          return new Response(JSON.stringify({ status: "ok" }), { status: 200 });
+          return new Response(null, { status: 204 });
         }
         if (String(url).includes("/api/runtime-config")) return runtimeConfigResponse();
         if (String(url).includes("/.well-known")) {
@@ -392,7 +397,7 @@ describe("AuthService", () => {
 
       fetchMock.mockImplementation(async (url: string) => {
         if (String(url).includes("/api/v1/auth/logout")) {
-          return new Response(JSON.stringify({ status: "ok" }), { status: 200 });
+          return new Response(null, { status: 204 });
         }
         if (String(url).includes("/api/runtime-config")) return runtimeConfigResponse();
         if (String(url).includes("/.well-known")) return discoveryResponse();
@@ -405,6 +410,129 @@ describe("AuthService", () => {
       expect(assignMock).toHaveBeenCalledTimes(2);
       const fallback = String(assignMock.mock.calls[1][0]);
       expect(fallback).toBe("/login");
+    });
+
+    // TC-AUTH-LOGOUT-FE-02: backend 401 (idempotent, 토큰 이미 만료) → 동일 cleanup +
+    // OIDC redirect (안전). toast 없음. frontend 의 401 == expected flow 로 처리.
+    it("treats backend 401 as idempotent cleanup and still redirects to OIDC end_session_endpoint", async () => {
+      tokenStoreMock.getIdToken.mockReturnValue(null);
+      fetchMock.mockImplementation(async (url: string) => {
+        if (String(url).includes("/api/v1/auth/logout")) {
+          return new Response(null, { status: 401 });
+        }
+        if (String(url).includes("/api/runtime-config")) return runtimeConfigResponse();
+        if (String(url).includes("/.well-known")) return discoveryResponse();
+        throw new Error("unexpected");
+      });
+      const { authService } = await import("./auth.service");
+      await authService.logout();
+
+      expect(tokenStoreMock.clear).toHaveBeenCalled();
+      expect(useStoreClearActor).toHaveBeenCalled();
+      expect(assignMock).toHaveBeenCalledTimes(1);
+      const target = String(assignMock.mock.calls[0][0]);
+      expect(target).toContain("issuer.example/protocol/openid-connect/logout");
+    });
+
+    // TC-AUTH-LOGOUT-FE-03: backend 502 (Keycloak unreachable) → addToast(error) + 강제
+    // /login redirect. OIDC 단계 건너뜀 (Keycloak 도 unreachable 가능성, 정합 우선).
+    it("on backend 502: emits error toast and forces /login redirect, skipping OIDC", async () => {
+      tokenStoreMock.getIdToken.mockReturnValue(null);
+      fetchMock.mockImplementation(async (url: string) => {
+        if (String(url).includes("/api/v1/auth/logout")) {
+          return new Response(null, { status: 502 });
+        }
+        // OIDC / runtime-config / discovery 는 호출되면 안 됨 (502 → 강제 /login).
+        throw new Error("unexpected fetch after 502: " + url);
+      });
+      const { authService } = await import("./auth.service");
+      await authService.logout();
+
+      expect(tokenStoreMock.clear).toHaveBeenCalled();
+      expect(useStoreClearActor).toHaveBeenCalled();
+      const addToast = useStoreGetState.mock.results[0]?.value.addToast
+        ?? useStoreGetState().addToast;
+      expect(addToast).toHaveBeenCalledWith(
+        expect.stringContaining("unreachable"),
+        "error",
+      );
+      expect(assignMock).toHaveBeenCalledTimes(1);
+      const target = String(assignMock.mock.calls[0][0]);
+      expect(target).toBe("/login");
+    });
+
+    // TC-AUTH-LOGOUT-FE-04: backend 5xx (other) → addToast(warning) + OIDC redirect.
+    it("on backend other 5xx: emits warning toast and still tries OIDC redirect", async () => {
+      tokenStoreMock.getIdToken.mockReturnValue("id-token-1");
+      fetchMock.mockImplementation(async (url: string) => {
+        if (String(url).includes("/api/v1/auth/logout")) {
+          return new Response(null, { status: 503 });
+        }
+        if (String(url).includes("/api/runtime-config")) return runtimeConfigResponse();
+        if (String(url).includes("/.well-known")) return discoveryResponse();
+        throw new Error("unexpected");
+      });
+      const { authService } = await import("./auth.service");
+      await authService.logout();
+
+      const addToast = useStoreGetState().addToast;
+      expect(addToast).toHaveBeenCalledWith(
+        expect.stringContaining("non-fatal"),
+        "warning",
+      );
+      expect(assignMock).toHaveBeenCalledTimes(1);
+      const target = String(assignMock.mock.calls[0][0]);
+      expect(target).toContain("issuer.example/protocol/openid-connect/logout");
+    });
+
+    // TC-AUTH-LOGOUT-FE-05: backend fetch throws (network down) → addToast(warning) +
+    // OIDC redirect. cleanup + actor clear 는 동일하게 수행.
+    it("on network throw: emits warning toast, still tries OIDC redirect, and clears tokens", async () => {
+      tokenStoreMock.getIdToken.mockReturnValue(null);
+      fetchMock.mockImplementation(async (url: string) => {
+        if (String(url).includes("/api/v1/auth/logout")) {
+          throw new TypeError("network down");
+        }
+        if (String(url).includes("/api/runtime-config")) return runtimeConfigResponse();
+        if (String(url).includes("/.well-known")) return discoveryResponse();
+        throw new Error("unexpected");
+      });
+      const { authService } = await import("./auth.service");
+      await authService.logout();
+
+      const addToast = useStoreGetState().addToast;
+      expect(addToast).toHaveBeenCalledWith(
+        expect.stringContaining("non-fatal"),
+        "warning",
+      );
+      expect(tokenStoreMock.clear).toHaveBeenCalled();
+      expect(useStoreClearActor).toHaveBeenCalled();
+      expect(assignMock).toHaveBeenCalledTimes(1);
+      const target = String(assignMock.mock.calls[0][0]);
+      expect(target).toContain("issuer.example/protocol/openid-connect/logout");
+    });
+
+    // TC-AUTH-LOGOUT-FE-06: Bearer 헤더 미포함 (access token 없음) — 그래도 backend 호출
+    // 가능 + 200/204 응답 시 정상 흐름. e.g. session 만료 후 tokenStore 가 비어있는 상태
+    // 에서 사용자가 /auth/logout 페이지 진입.
+    it("works without access_token in store (no Authorization header sent)", async () => {
+      tokenStoreMock.getAccessToken.mockReturnValue(null);
+      tokenStoreMock.getRefreshToken.mockReturnValue(null);
+      tokenStoreMock.getIdToken.mockReturnValue(null);
+      let observedAuth: string | undefined;
+      fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+        if (String(url).includes("/api/v1/auth/logout")) {
+          observedAuth = (init?.headers as Record<string, string> | undefined)?.Authorization;
+          return new Response(null, { status: 204 });
+        }
+        if (String(url).includes("/api/runtime-config")) return runtimeConfigResponse();
+        if (String(url).includes("/.well-known")) return discoveryResponse();
+        throw new Error("unexpected");
+      });
+      const { authService } = await import("./auth.service");
+      await authService.logout();
+      expect(observedAuth).toBeUndefined();
+      expect(tokenStoreMock.clear).toHaveBeenCalled();
     });
   });
 

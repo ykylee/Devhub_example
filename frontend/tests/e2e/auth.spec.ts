@@ -73,3 +73,69 @@ test.describe("login failure + auth guard (2026-05-12)", () => {
     await waitForSignInForm(page);
   });
 });
+
+// TC-E2E-LOGOUT-01 — N-8 sprint -i (sprint -h backend PR #495 의 frontend carve).
+// 시나리오:
+//   1) developer 시드로 Keycloak test login → /developer 도착
+//   2) /auth/signout 진입 → authService.logout() → backend POST /api/v1/auth/logout
+//      backend status 분기에 따라 두 갈래:
+//        a) 204/401    — OIDC end_session_endpoint (post_logout_redirect_uri=/login)
+//        b) 502/기타/network — OIDC skip, toast, 강제 /login redirect (#488 spec "정합 우선")
+//      두 경로 모두 최종적으로 /login 페이지에 도착해야 한다.
+// 검증:
+//   (필수) logout 후 /login URL 도달 — spec 의 모든 backend status 분기에서 정합.
+//   (조건부) 204/401 분기에서는 추가로 OIDC end_session_endpoint 가 post_logout_redirect_uri
+//            를 /login 으로 설정해 호출됐는지 확인 — 502/network 분기는 OIDC 자체가
+//            unreachable 할 수 있어 호출이 일어나지 않을 수 있으므로 검증 skip.
+//
+// PR #497 hotfix (2026-06-08 22:00, yklee + Mavis):
+//   CI 에서 backend 가 Keycloak 502 를 정상 응답해 (E2E 환경 Keycloak flake) test 가
+//   30s 안에 /login 도달하지 못해 flake. test 의 "최종 도착" 만 검증하도록 단순화.
+//   ERR_ABORTED 가 아닌 다른 navigation interrupt (예: 502 분기에서 곧장 /login
+//   으로 가는 case) 도 swallow 하도록 catch-all. 단, goto 자체가 resolve 한 경우엔
+//   (즉 /login 도착 후) swallow 불필요.
+test.describe("logout flow (N-8 / P1-6 frontend carve)", () => {
+  test("TC-E2E-LOGOUT-01 — full logout eventually lands on /login (OIDC redirect or 502 fallback)", async ({ page }) => {
+    // 1) login
+    await loginAs(page, SEEDED.developer);
+    await expect(page).toHaveURL(/\/developer(\/|$)/);
+
+    // 2) Hit /auth/signout — logout flow 는 backend 응답 후 window.location.assign 으로
+    //    navigate. ERR_ABORTED (Next 16 turbopack + OIDC authorize client-side redirect)
+    //    또는 OIDC skip + /login 강제 redirect 로 goto 가 interrupt 됨. 모든 navigation
+    //    interrupt 를 swallow — test 의 관심사는 "최종 URL" 이지 중간 abort 가 아님.
+    //
+    //    page.goto 가 throw 하지 않고 resolve 하는 경우도 있음 (예: backend 502 분기에서
+    //    곧장 /login 으로 가는 경우, page.url() == /login 이라 goto 자체는 success). 그
+    //    경우엔 catch 가 호출되지 않음 — OK.
+    await page.goto(appPath("/auth/signout")).catch(() => {
+      // navigation interrupted by client-side window.location.assign — expected.
+    });
+
+    // 3) (선택) OIDC end_session_endpoint 가 호출됐는지 — 204/401 분기에서만 발생.
+    //    502/network 분기에서는 OIDC skip 되므로 null 가능. test 통과에는 영향 없음.
+    const endSessionCall = await page
+      .waitForRequest(
+        (req) => {
+          const url = req.url();
+          return (
+            /\/protocol\/openid-connect\/logout(\?|$)/.test(url) ||
+            /\/logout(\?|$)/.test(url)
+          );
+        },
+        { timeout: 15_000 },
+      )
+      .catch(() => null);
+
+    if (endSessionCall) {
+      const url = new URL(endSessionCall.url());
+      const postLogout = url.searchParams.get("post_logout_redirect_uri") ?? "";
+      expect(postLogout).toMatch(/\/login(\/?)$/);
+    }
+
+    // 4) (필수) logout 후 /login 페이지에 도착. backend status 4종 (204/401/502/network)
+    //    모두에서 동일하게 /login 으로 도착해야 spec 정합 (#488 §"Frontend").
+    //    CI 환경 Keycloak flake 시 502 가 정상 응답될 수 있어 timeout 여유 30s 유지.
+    await expect(page).toHaveURL(/\/login(\?|$|\/)/, { timeout: 30_000 });
+  });
+});
