@@ -375,9 +375,11 @@ func (c *KeycloakAdminClient) accessToken(ctx context.Context) (string, error) {
 }
 
 func (c *KeycloakAdminClient) tokenEndpoint() string {
-	if issuer := strings.TrimRight(strings.TrimSpace(c.IssuerURL), "/"); issuer != "" {
-		return issuer + "/protocol/openid-connect/token"
-	}
+	// admin operations: always use AdminURL. NOT IssuerURL — codex P1
+	// review (PR #496) 정합. admin endpoint 와 user-facing OIDC endpoint
+	// 는 deployment 별로 다른 host 일 수 있음 (public ingress vs internal
+	// docker). IssuerURL 은 oidcLogoutEndpoint() 전용. 본 함수는 admin
+	// token endpoint 만.
 	u, err := url.Parse(strings.TrimRight(c.AdminURL, "/"))
 	if err != nil {
 		return strings.TrimRight(c.AdminURL, "/") + "/realms/" + url.PathEscape(c.Realm) + "/protocol/openid-connect/token"

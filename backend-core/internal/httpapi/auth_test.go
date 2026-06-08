@@ -854,3 +854,54 @@ func TestKeycloakAdminClient_OIDCLogout_MissingOIDCClientCreds(t *testing.T) {
 		t.Errorf("expected error mentioning OIDC client fields, got %v", err)
 	}
 }
+
+// TC-AUTH-LOGOUT-08 — codex P1 review #3 (PR #496) 정합 회귀 가드: admin
+// service-account token (accessToken) 은 AdminURL 로만 가야 한다. IssuerURL
+// 이 public ingress 라도 admin endpoint 와 host 가 다르면 (docker internal
+// vs public ingress) IssuerURL 사용 시 service-account token 이 public
+// network 로 새서 admin-network deployment 가 깨진다. accessToken() →
+// tokenEndpoint() 가 AdminURL 만 사용하는지 직접 검증.
+func TestKeycloakAdminClient_AccessToken_UsesAdminURLOnly(t *testing.T) {
+	// admin endpoint: 별도 host. issuer endpoint: 또 다른 host.
+	// token endpoint 가 admin 으로 가야 함.
+	var tokenPath string
+	mux := http.NewServeMux()
+	mux.HandleFunc("/realms/test/protocol/openid-connect/token", func(w http.ResponseWriter, r *http.Request) {
+		tokenPath = r.URL.Path
+		_ = r.ParseForm()
+		// 응답: 어떤 admin client 로 호출됐는지 검증
+		if r.FormValue("client_id") != "devhub-backend-admin" {
+			t.Errorf("expected admin client_id=devhub-backend-admin, got %q", r.FormValue("client_id"))
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintln(w, `{"access_token":"admin-tok","token_type":"Bearer","expires_in":60}`)
+	})
+	adminSrv := httptest.NewServer(mux)
+	defer adminSrv.Close()
+
+	// IssuerURL 은 adminSrv 와 다른 host 라고 가정 (실제 production 시나리오
+	// 모사: admin = internal docker, issuer = public ingress). 본 테스트에선
+	// adminSrv 만 띄우므로, 만약 tokenEndpoint() 가 IssuerURL 로 가면 404
+	// 받게 됨. 따라서 tokenPath == "/realms/.../token" 이면 AdminURL 사용 ✅.
+	// tokenPath 가 비어있거나 (네트워크 에러) / 다른 path 면 ❌.
+	c := &KeycloakAdminClient{
+		AdminURL:         adminSrv.URL,     // admin (internal)
+		Realm:            "test",
+		ClientID:         "devhub-backend-admin",
+		ClientSecret:     "admin-secret",
+		IssuerURL:        "https://public-ingress.example.com", // admin 과 다른 host — 절대 token endpoint 로 사용되면 안 됨
+		OIDCClientID:     "devhub-frontend",
+		OIDCClientSecret: "frontend-secret",
+	}
+
+	tok, err := c.accessToken(context.Background())
+	if err != nil {
+		t.Fatalf("accessToken failed (tokenEndpoint 가 잘못된 URL 로 갔을 수 있음): %v", err)
+	}
+	if tok != "admin-tok" {
+		t.Errorf("expected access_token=admin-tok, got %q", tok)
+	}
+	if tokenPath != "/realms/test/protocol/openid-connect/token" {
+		t.Errorf("expected token endpoint hit at adminSrv, got path=%q (IssuerURL 로 새었을 수 있음)", tokenPath)
+	}
+}

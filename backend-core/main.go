@@ -128,12 +128,18 @@ func main() {
 			Realm:        cfg.KeycloakAdminRealm,
 			ClientID:     cfg.KeycloakAdminClientID,
 			ClientSecret: cfg.KeycloakAdminClientSecret,
-			IssuerURL:    cfg.OIDCIssuerURL,
+			// IssuerURL 은 OIDC logout endpoint URL 결정 전용
+			// (oidcLogoutEndpoint 만 사용). tokenEndpoint() (admin service-
+			// account token) 는 절대 IssuerURL 을 보지 않음 — admin endpoint 와
+			// user-facing OIDC endpoint 가 deployment 별로 다른 host 일 수 있음
+			// (DEVHUB_KEYCLOAK_ADMIN_URL = internal docker vs
+			// DEVHUB_OIDC_ISSUER_URL = public ingress). codex P1 review #3 정합.
+			IssuerURL:        cfg.OIDCIssuerURL,
+			OIDCClientID:     cfg.OIDCClientID,
+			OIDCClientSecret: cfg.OIDCClientSecret,
 			// OIDC logout 은 token 발급 client (frontend) 자격증명 사용
 			// (RFC 6749 §4.1.3 / Keycloak token binding). admin client 와
 			// 분리 — codex P1 review #2 정합 (sprint -i fix).
-			OIDCClientID:     cfg.OIDCClientID,
-			OIDCClientSecret: cfg.OIDCClientSecret,
 		}
 		idpAdmin = kc
 		// KeycloakAdminClient 가 OIDCLogoutClient 인터페이스도 충족하므로
