@@ -49,10 +49,34 @@ interface AppState {
 export const useStore = create<AppState>()(
   subscribeWithSelector(
     persist(
-      (set) => ({
+      (set, get) => ({
         role: null,
         actor: null,
-        setActor: (actor) => set({ actor, role: actor.role }),
+        // setActor 가 logout 진행 중에 외부에서 호출되어도 stale session 을
+        // 다시 박지 않도록 단일 gate 로 차단. (issue #488 spec 정합 502 분기.)
+        //
+        // 동기:
+        //   backend POST /api/v1/auth/logout 이 502 (Keycloak unreachable) 를
+        //   정상 응답하는 환경 — CI E2E 컨테이너 flake 가 대표 사례 — 에서
+        //   backend 는 access token revoke 를 못 하고 logout 다음 200/401
+        //   가 race 한다. frontend 의 AuthGuard 가 pathname 변경에 반응해
+        //   whoAmI() 를 재호출하면, backend 가 200 (revoke 못 했으므로) 으로
+        //   답해 actor store 에 stale session 이 다시 박힌다. 그 사이
+        //   `window.location.assign("/login")` 이 발사돼도 router 가 next
+        //   render 에서 AuthGuard 가 막은 `/developer` 또는 `/login` 진입
+        //   직전에 stale actor 가 살아있어 protected 경로로 다시 redirect
+        //   되는 deadlock.
+        //
+        //   isLoggingOut 이 true 인 동안 setActor 호출은 모두 no-op 처리.
+        //   단, login-success path (auth.service.ts:241) 와 onboarding/profile
+        //   update path 에서 의도적으로 호출하는 경우는 isLoggingOut=false
+        //   상태이므로 영향 없음. (logout 자체도 line 206 에서 setIsLoggingOut
+        //   true → setActor skip → setIsLoggingOut(false) 는 navigation 완료
+        //   시점이다.)
+        setActor: (actor) => {
+          if (get().isLoggingOut) return;
+          set({ actor, role: actor.role });
+        },
         clearActor: () => set({ actor: null, role: null }),
         setRole: (role) => set({ role }),
         isDeepFocus: false,
