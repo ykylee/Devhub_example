@@ -9,13 +9,21 @@ import { test, expect, loginAs, openHeaderUserMenu, SEEDED, submitSignInForm, wa
 
 async function waitForSessionCleared(page: import("@playwright/test").Page): Promise<void> {
   const mePath = appPath("/api/v1/me");
+  // Use Playwright's APIRequestContext (page.request) instead of in-page
+  // page.evaluate(fetch). page.evaluate's fetch races with the post-logout
+  // window.location.assign / OIDC skip → /login redirect — Next 16 turbopack
+  // aborts the in-flight fetch with "TypeError: Failed to fetch" before
+  // /me can respond, even though the session IS cleared on the server.
+  // page.request.fetch goes through the browser context's network layer
+  // independently of the page's navigation lifecycle, so it isn't aborted
+  // by client-side redirects. It also surfaces 5xx as Response objects
+  // (not throws) so the poll never sees TypeError.
   await expect
     .poll(
-      async () =>
-        page.evaluate(async ({ mePath }) => {
-          const resp = await fetch(mePath, { credentials: "include", cache: "no-store" });
-          return resp.status;
-        }, { mePath }),
+      async () => {
+        const resp = await page.request.fetch(mePath, { headers: { cache: "no-store" } });
+        return resp.status();
+      },
       { timeout: 20_000, intervals: [250, 500, 1000] }
     )
     .toBe(401);
