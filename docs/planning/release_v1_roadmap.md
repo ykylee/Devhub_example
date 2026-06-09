@@ -13,8 +13,10 @@
 
 본 문서는 **2026-05-20 이후 모든 sprint 의 진입점**. 기존 [`docs/development_roadmap.md`](../development_roadmap.md) (M0~M6 historical) 는 done milestone 의 사후 명문화 자산으로 보존 — 본 문서가 v1.0 / v1.1 / v2 의 새 source-of-truth.
 
+**2026-06-09 결정 — 본 문서 §5 의 워커 분담 표 + 인계 SOP + 충돌 처리 SOP 의 강제력은 무효.** Claude/Codex 자유 이용 불가로 사용자 결정. 모든 신규 sprint / PR / 작업은 **어느 에이전트로든 자유롭게** 진행 가능. 작업 우선순위 (P0~P3) 자체는 유효.
+
 1. **신규 sprint 진입 전** §3 우선순위 매트릭스 확인 → P0 carve 부터 흡수
-2. **워커 작업 분담** §5 매트릭스 참조 — 본 워커의 영역 + 인계 대상 확인
+2. (취소) **워커 작업 분담** §5 — 2026-06-09 전면 취소. 영역/인계 강제력 없음
 3. **마일스톤 진행** §4 의 M-v1.0/M-v1.1/M-v2 표에서 본 sprint 의 마일스톤 + 동반 issue 확인
 4. **결정 변경** 발생 시 §9 변경 이력에 row 추가
 
@@ -256,25 +258,19 @@ E-1 Realtime event publish(RM-M4-01) · E-2 WS replay/필터(RM-M4-02) · E-3 AI
 
 ## 5. 워커 분업 매트릭스 (요약, 상세는 [docs/governance/worker_division.md](../governance/worker_division.md))
 
-### 5.1 영역별 분담
+> **2026-06-09 결정 — 본 §5 의 워커 분담 표는 전면 취소되었다.** 사용자 (Owner) 의 Claude/Codex 자유 이용 불가 결정으로 §5.1 영역별 분담 + §5.2 v1.0 sprint 별 분담 + §5.3 인계 SOP 모두 무효. 모든 신규 작업은 **어느 에이전트로든 자유롭게** 진행 가능. 자세한 사항 + 유지되는 정책은 [worker_division.md §0](../governance/worker_division.md) 참조.
 
-| 워커 | 영역 | 작업 스타일 | 분량 (이전 sprint 누적) |
-| --- | --- | --- | --- |
-| **Claude** | **Backend (Go)** + **Design (ADR + docs)** | 큰 단위 design + 분담된 backend 구현 + 4단계 self-review + codex review 응답 | 30+ sprint, 60+ PR |
-| **Codex** | **Infra (Docker/Nginx/CI) + Security + Build** | docker-compose 패키징 + GitHub Actions + Keycloak SPI infra + e2e CI 정합. 외부 리뷰 (P1/P2 inline) 가장 활발 | 7+ PR (packaging + reverse proxy + Keycloak refactor + CI sync guard) |
-| **Gemini** | **Frontend + UX + Test fixtures + Design polish** | Next.js page + 컴포넌트 + e2e Playwright + theme + dashboard redesign | 5+ PR (frontend redesign, dashboard, FilterBar standardization, semantic theme) |
-| **OpenCode** (Sisyphus / MiniMax-M3) | **Workflow curation + Cross-cutting validation + AI/ML prep** | 메인 에이전트 조정/통합 + 서브에이전트 위임 + Oracle escalate. Lane 1 = workflow/governance 정합, Lane 2 = multi-layer 회귀 검증 + test infra, Lane 3 = `backend-ai/` Python + gRPC (v1.1/v2 prep) | 0 PR (bootstrap sprint open) |
+### 5.1 영역별 분담 — **취소 (2026-06-09)**
 
-### 5.2 v1.0 sprint 별 워커 분담 권장
+| 워커 | 영역 | 비고 |
+| --- | --- | --- |
+| (전 워커 자유) | (분담 무효) | 사용자 결정 (2026-06-09) 으로 Claude/Codex/Gemini/OpenCode 의 영역별 분담 전면 취소. 본 표는 historical 보존 |
 
-| Sprint | 작업 | Claude | Codex | Gemini |
-| --- | --- | --- | --- | --- |
-| -f | P0-1 sub-carve B | backend handler 제거 + lazy auto-create | — | account.service.ts 폐기 + admin/settings/users 정리 + e2e TC-ACC-* |
-| -g | P0-3 Playwright screenshot | — | CI artifact + workflow | screenshot fixture + page 선정 |
-| -g/-h | P0-2 UI polish | (review) | — | **주도** — 모든 페이지 semantic theme + responsive |
-| -i | P1-1 sub-carve C event listener | 주도 | — | (no-op) |
-| -j | P1-2 sub-carve D + P2-1 sub-carve E | sub-carve D 주도 | sub-carve E governance SOP 주도 | — |
-| -k | v1.0 종합 검증 | backend test | CI + staging deploy | e2e screenshot review |
+### 5.2 v1.0 sprint 별 워커 분담 권장 — **취소 (2026-06-09)**
+
+| Sprint | 작업 | 분담 |
+| --- | --- | --- |
+| (전 sprint) | (전 작업) | **자유** — 사용자/에이전트가 단독 또는 조합 결정 |
 
 ### 5.3 인계 SOP (워커 간)
 
@@ -381,3 +377,4 @@ test.describe("UI screenshot capture", () => {
 | 2026-06-04 | **OpenCode Lane 정의** — §5.1 OpenCode 행의 TBD 를 3-lane (Workflow curation / Cross-cutting validation / AI/ML prep) 으로 확정 + §9 본 row 직전 | `opencode/work_260604-b-opencode-areas` |
 | 2026-06-04 | **N-10 Manager RBAC 검증** — §3.5 N-10 row 의 mgr-user-b 비공식 명칭 → E2E seed `bob` (team_manager) 으로 정정 + 검증 보고서 링크 + 1 P1 follow-up 식별. 검증 결과: backend UT 25 packages PASS, row filter SQL 정상, E2E spec-vs-구현 갭 6 TC (TC-RBAC-ROW-READ-01/02, TC-RBAC-LOGOUT-01/02, TC-RBAC-ROLE-DRIFT-01) 발견. 출처: `opencode/work_260604-c-N10-manager-rbac-validation` | `opencode/work_260604-c-N10-manager-rbac-validation` |
 | 2026-06-06 | **P0/P1 미발급 carve 일괄 발급 + ID 슬롯 정합** — §3.5 N-7/8/9 GitHub issues [#486](https://github.com/ykylee/Devhub_example/issues/486) / [#487](https://github.com/ykylee/Devhub_example/issues/487) / [#488](https://github.com/ykylee/Devhub_example/issues/488) 발급 (P0-4 / P1-7 / P1-6 carve 의 정식 ID). §3.1 P0-4 row 에 ID 슬롯 정합 노트 추가 (historical [#238](https://github.com/ykylee/Devhub_example/issues/238) 유지, 정식 ID = §3.5 N-7). §3.5 N-11 (CI e2e + backend-integration job 복원, [#419](https://github.com/ykylee/Devhub_example/issues/419)) + §3.4 P3-14 (RM-APPDASH-01, [#384](https://github.com/ykylee/Devhub_example/issues/384)) 신규 row 추가. §3.2 P1-3 에 GitHub [#214](https://github.com/ykylee/Devhub_example/issues/214) cross-ref 추가. 출처: Mavis housekeeping `mvs/work_260606-a-roadmap-issue-bulk` | `mvs/work_260606-a-roadmap-issue-bulk` |
+| 2026-06-09 | **워커 분업 전면 취소 (사용자 결정, Claude/Codex 자유 이용 불가)** — §0 사용 가이드에 취소 노트 추가 + §5 워커 분담 매트릭스 (5.1 영역별 분담 + 5.2 v1.0 sprint 별 분담) 전면 취소 標記. worker_division.md §0 + §1~§4 historical 標記 + §2.5 branch prefix 자유화 + §5 Owner 권한 명시. 유지 정책: §4.2 ADR reversal 의 supersession 정공법, §5 Owner 의 invoke 책임/결정 권한/review 최종 승인, 우선순위 P0~P3 강제. AGENTS.md "워커 일반 메모 (2026-06-09 전면 갱신)" 신설 + 워커별 전용 메모를 historical 標記로 격하 + branch prefix 강제 해제. 신규 ID 발급 없음 (governance 운영 결정). | `maintenance/work_260609-a-cancel-worker-division` |

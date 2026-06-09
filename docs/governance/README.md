@@ -54,3 +54,4 @@ docs/
 | --- | --- |
 | 2026-05-13 | 1차 작성 (sprint `claude/work_260513-c`). |
 | 2026-05-22 | `keycloak_admin_responsibility.md` 신규 — ADR-0020 §3.2 책임 매트릭스 승격 + escalation path + 명시 금지 5건 (sprint `claude/work_260522-internal-coordinated-carve-docs`). |
+| 2026-06-09 | **워커 분업 전면 취소 (사용자 결정)** — `worker_division.md` 가 §0 + §1~§4 의 historical 標記 + §2.5 branch prefix 자유화 + §5 Owner 권한 명시로 전면 改 編. Claude/Codex 의 자유 이용 불가로 분배 무효화. 유지 정책: §4.2 ADR supersession 정공법, §5 Owner 권한, 우선순위 P0~P3 (sprint `maintenance/work_260609-a-cancel-worker-division`). |
