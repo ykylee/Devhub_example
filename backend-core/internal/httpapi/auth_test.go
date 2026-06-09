@@ -710,8 +710,12 @@ func TestLogoutEndpoint_Idempotent(t *testing.T) {
 	}
 }
 
-// TC-AUTH-LOGOUT-04 — Keycloak unreachable → 502 + audit revoke_status=unreachable.
-func TestLogoutEndpoint_KeycloakUnreachable_502(t *testing.T) {
+// TC-AUTH-LOGOUT-04 — Keycloak unreachable → **204 No Content + audit
+// revoke_status=unreachable** (N-8 hotfix 4차, issue #501, 2026-06-09).
+// spec #488 의 "정합 우선" 분기 (502) 가 graceful degradation 으로 변경
+// — frontend logout() 가 정상 204 분기 진입 → OIDC end_session_endpoint
+// 호출 + /login 정상 도착 → e2e race close.
+func TestLogoutEndpoint_KeycloakUnreachable_204(t *testing.T) {
 	audits := &memoryAuditStore{}
 	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
 		Login:   "alice",
@@ -732,19 +736,20 @@ func TestLogoutEndpoint_KeycloakUnreachable_502(t *testing.T) {
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusBadGateway {
-		t.Fatalf("expected 502, got %d body=%s", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("expected 204 (N-8 hotfix 4차 graceful degradation), got %d body=%s", rec.Code, rec.Body.String())
 	}
-	if !strings.Contains(rec.Body.String(), "auth_logout.keycloak_unreachable") {
-		t.Errorf("expected code=auth_logout.keycloak_unreachable, body=%s", rec.Body.String())
-	}
-	// audit 는 unreachable 상태로 emit 되어야 함 (handler 가 502 반환 전 audit).
+	// audit 는 unreachable 상태로 emit 되어야 함 (handler 가 204 반환 전 audit).
 	if len(audits.logs) != 1 {
 		t.Fatalf("expected 1 audit row (unreachable), got %d", len(audits.logs))
 	}
 	revokeStatus, _ := audits.logs[0].Payload["revoke_status"].(string)
 	if revokeStatus != "unreachable" {
 		t.Errorf("expected revoke_status=unreachable, got %v", revokeStatus)
+	}
+	// hotfix 식별자 (audit 추적용)
+	if hotfix, _ := audits.logs[0].Payload["hotfix"].(string); hotfix != "N-8-4:graceful-degrade" {
+		t.Errorf("expected hotfix=N-8-4:graceful-degrade, got %v", hotfix)
 	}
 }
 

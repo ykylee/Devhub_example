@@ -159,7 +159,7 @@ type OIDCLogoutClient interface {
 	OIDCLogout(ctx context.Context, refreshToken string) error
 }
 
-// Logout — issue #488 spec 정합. POST /api/v1/auth/logout 의 v1.0 contract:
+// Logout — issue #488 spec + N-8 hotfix 4차 (issue #501). POST /api/v1/auth/logout 의 v1.0 contract:
 //
 //   - Authorization: Bearer header 의 access token 인증 (route middleware 가
 //     사전 검증, 미인증 시 401). 본 handler 는 인증된 요청만 도달.
@@ -168,10 +168,20 @@ type OIDCLogoutClient interface {
 //   - 동작: server-managed cookie 4종 clear + Keycloak OIDC logout endpoint
 //     (refresh_token 폐기) + audit emit. keycloak_revoke_status (ok /
 //     unreachable / invalid) 를 audit payload 에 동봉.
-//   - 응답: 204 No Content (성공, idempotent). Keycloak unreachable 시 502.
-//     본 handler 의 401 경로는 route middleware 가 이미 enforce.
+//   - 응답: 204 No Content (성공, idempotent). Keycloak unreachable 시에도
+//     **204 No Content + audit revoke_status=unreachable** (hotfix 4차: graceful
+//     degradation — frontend race close + e2e shard 안정화). 본 handler 의
+//     401 경로는 route middleware 가 이미 enforce.
 //   - idempotency: 같은 refresh_token 으로 두번 호출해도 두번 다 204
 //     (OIDCLogout 가 4xx 를 nil 로 정규화).
+//   - N-8 hotfix 4차 (issue #501, 2026-06-09): Keycloak 도달 실패 시 502 → 204
+//     변경. 사유: CI 환경 Keycloak flake 빈번 + frontend logout() 가 502 분기
+//     에서 OIDC end_session_endpoint skip + 강제 /login redirect → AuthGuard
+//     가 pathname 변화 useEffect 에서 stale actor 박음 → /developer 진입
+//     deadlock. 204 로 정합 시 frontend logout() 가 정상 분기 (OIDC
+//     end_session_endpoint 호출 + /login 도착) → race close. spec #488 의
+//     "정합 우선" 분기 는 "401/403 외 status code 무관" 으로 재해석 (revoke
+//     자체는 best-effort + audit trace 보장).
 func (h *AuthHandler) Logout(c *gin.Context) {
 	var req logoutRequest
 	if c.Request.Body != nil {
@@ -202,19 +212,19 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	revokeStatus := "ok"
 	if h.cfg.OIDCLogoutClient != nil && strings.TrimSpace(req.RefreshToken) != "" {
 		if err := h.cfg.OIDCLogoutClient.OIDCLogout(c.Request.Context(), req.RefreshToken); err != nil {
+			// N-8 hotfix 4차: 도달 실패 시 502 즉시 반환 대신 audit 만 emit
+			// + 204 No Content. revoke 자체는 best-effort + audit trace 보장.
+			// frontend 가 204 분기 (정상) 로 진입 → OIDC end_session_endpoint
+			// 호출 + /login 정상 도착.
 			revokeStatus = "unreachable"
-			// 502 즉시 반환 (issue #488 spec 권장: 정합 우선).
 			h.recordAuditBestEffort(c, "auth.logout", "auth", "current_session", map[string]any{
 				"actor":                 actor.Login,
 				"refresh_token_present": req.RefreshToken != "",
 				"id_token_present":      req.IdToken != "",
 				"revoke_status":         revokeStatus,
+				"hotfix":                "N-8-4:graceful-degrade",
 			})
-			c.AbortWithStatusJSON(http.StatusBadGateway, gin.H{
-				"status": "failed",
-				"error":  "keycloak unreachable",
-				"code":   "auth_logout.keycloak_unreachable",
-			})
+			c.Status(http.StatusNoContent)
 			return
 		}
 	} else if strings.TrimSpace(req.RefreshToken) == "" {
