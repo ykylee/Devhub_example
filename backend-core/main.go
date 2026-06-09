@@ -184,6 +184,10 @@ func main() {
 
 	router := httpapi.NewRouter(httpapi.RouterConfig{
 		SwaggerEnabled:             cfg.SwaggerEnabled,
+		// ADR-0029 §6 (e) P2 — 운영 환경 default = true (swagger UI 자체에
+		// system_admin gate). 로컬 dev / e2e test 는 false 로 명시적 override
+		// 가능 (env DEVHUB_SWAGGER_REQUIRE_SYSTEM_ADMIN).
+		SwaggerRequireSystemAdmin: cfg.SwaggerRequireSystemAdmin,
 		OpenAPISpecPath:            swaggerSpecPath,
 		WebhookSecret:              cfg.GiteaWebhookSecret,
 		KeycloakWebhookSecret:      cfg.KeycloakWebhookSecret,
