@@ -710,11 +710,14 @@ func TestLogoutEndpoint_Idempotent(t *testing.T) {
 	}
 }
 
-// TC-AUTH-LOGOUT-04 — Keycloak unreachable → **204 No Content + audit
-// revoke_status=unreachable** (N-8 hotfix 4차, issue #501, 2026-06-09).
-// spec #488 의 "정합 우선" 분기 (502) 가 graceful degradation 으로 변경
-// — frontend logout() 가 정상 204 분기 진입 → OIDC end_session_endpoint
-// 호출 + /login 정상 도착 → e2e race close.
+// TC-AUTH-LOGOUT-04 — Keycloak unreachable → **204 No Content + response
+// header `X-Keycloak-Likely-Down: true`** (N-8 hotfix 4차, issue #501,
+// 2026-06-09). spec #488 의 "정합 우선" 분기 (502) 가 graceful degradation
+// 으로 변경 — frontend logout() 가 정상 204 분기 진입 + response header 의
+// `X-Keycloak-Likely-Down` 마커 확인 → OIDC end_session_endpoint 호출 skip
+// + 강제 /login (IdP outage 시 dead IdP trap 회피). 204 No Content 정합
+// (HTTP spec) — body 없이 header 마커 사용. OIDC 정상 시 (revoke_status=ok
+// 분기) 본 분기 진입 안 함.
 func TestLogoutEndpoint_KeycloakUnreachable_204(t *testing.T) {
 	audits := &memoryAuditStore{}
 	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
@@ -739,6 +742,17 @@ func TestLogoutEndpoint_KeycloakUnreachable_204(t *testing.T) {
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("expected 204 (N-8 hotfix 4차 graceful degradation), got %d body=%s", rec.Code, rec.Body.String())
 	}
+	// 204 No Content 정합 — body 비어 있어야 함.
+	if rec.Body.Len() != 0 {
+		t.Errorf("expected empty body for 204, got %s", rec.Body.String())
+	}
+	// response header 마커 — frontend 가 OIDC skip 결정용.
+	if got := rec.Header().Get("X-Keycloak-Likely-Down"); got != "true" {
+		t.Errorf("expected X-Keycloak-Likely-Down=true, got %q", got)
+	}
+	if got := rec.Header().Get("X-Logout-Hotfix"); got != "N-8-4:graceful-degrade" {
+		t.Errorf("expected X-Logout-Hotfix=N-8-4:graceful-degrade, got %q", got)
+	}
 	// audit 는 unreachable 상태로 emit 되어야 함 (handler 가 204 반환 전 audit).
 	if len(audits.logs) != 1 {
 		t.Fatalf("expected 1 audit row (unreachable), got %d", len(audits.logs))
@@ -747,7 +761,6 @@ func TestLogoutEndpoint_KeycloakUnreachable_204(t *testing.T) {
 	if revokeStatus != "unreachable" {
 		t.Errorf("expected revoke_status=unreachable, got %v", revokeStatus)
 	}
-	// hotfix 식별자 (audit 추적용)
 	if hotfix, _ := audits.logs[0].Payload["hotfix"].(string); hotfix != "N-8-4:graceful-degrade" {
 		t.Errorf("expected hotfix=N-8-4:graceful-degrade, got %v", hotfix)
 	}

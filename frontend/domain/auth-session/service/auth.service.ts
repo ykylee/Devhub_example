@@ -128,19 +128,26 @@ class AuthService {
     return tokens;
   }
 
-  // 백엔드 POST /api/v1/auth/logout 응답 status 에 따른 분기.
-  //   204 No Content  : 정상 — OIDC end_session_endpoint 로 redirect (RP-initiated logout).
+  // 백엔드 POST /api/v1/auth/logout 응답 status + header 에 따른 분기.
+  //   204 No Content (header X-Keycloak-Likely-Down 없음) : 정상 — OIDC
+  //                                                          end_session_endpoint 로
+  //                                                          redirect (RP-initiated logout).
+  //   204 No Content (header X-Keycloak-Likely-Down=true) : N-8 hotfix 4차
+  //                                                          (issue #501, 2026-06-09) —
+  //                                                          backend 가 Keycloak 도달
+  //                                                          실패 + header 마커 동봉.
+  //                                                          OIDC 단계 skip + 강제 /login
+  //                                                          (dead IdP trap 회피).
+  //                                                          "unreachable_out" 반환.
   //   401 Unauthorized : idempotent — 토큰이 이미 만료/무효. 동일 cleanup + OIDC redirect.
-  //   502 Bad Gateway : backend 가 Keycloak 에 도달 못함 (N-8 hotfix 4차 이전 동작).
-  //                     hotfix 4차 (issue #501, 2026-06-09) 으로 backend 가 502 대신
-  //                     204 + audit revoke_status=unreachable 로 정합 변경됨. 본 분기
-  //                     (line 155) 는 dead code (defensive guard) 로 유지. 미래에
-  //                     backend 가 다시 502 를 반환할 경우 fallback 으로 동작.
+  //   502 Bad Gateway : defensive guard (dead code) — backend 가 미래에 다시 502 를 반환할
+  //                     경우 fallback. 현재 N-8 hotfix 4차 로 unreachable 시 204 반환.
   //   그 외 4xx/5xx   : defensive — toast (warning) + OIDC redirect (Keycloak 단독 logout 시도).
   // network throw     : fetch 자체가 실패 (CORS / network) — toast (warning) + OIDC redirect.
-  // 본 분기는 issue #488 spec §"Frontend (Gemini — 후속, sprint -i)" 의 결정 권장값을
-  // 그대로 구현 (stale-while-error 미적용, 정합 우선, 502 즉시 /login 강제).
-  private async postBackendLogout(accessToken: string | null, refreshToken: string | null, idToken: string | null): Promise<"ok" | "expired" | "unreachable" | "error"> {
+  // 본 분기는 issue #488 spec §"Frontend (Gemini — 후속, sprint -i)" + codex P1 review 응답
+  // (N-8 hotfix 4차 codex P1) 정합. 204 No Content (HTTP spec) 정합 — body 없이
+  // response header 마커 (`X-Keycloak-Likely-Down: true`) 사용.
+  private async postBackendLogout(accessToken: string | null, refreshToken: string | null, idToken: string | null): Promise<"ok" | "expired" | "unreachable_out" | "unreachable" | "error"> {
     try {
       const response = await fetch(`${BASE_PATH}/api/v1/auth/logout`, {
         method: "POST",
@@ -153,7 +160,13 @@ class AuthService {
           id_token: idToken ?? undefined,
         }),
       });
-      if (response.status === 204) return "ok";
+      if (response.status === 204) {
+        // N-8 hotfix 4차: 204 response header 의 X-Keycloak-Likely-Down 마커
+        // 확인. true 면 OIDC 단계 skip + 강제 /login (dead IdP trap 회피).
+        // false / 미존재 면 정상 OIDC end_session_endpoint 호출.
+        const likelyDown = response.headers.get("X-Keycloak-Likely-Down") === "true";
+        return likelyDown ? "unreachable_out" : "ok";
+      }
       if (response.status === 401) return "expired";
       if (response.status === 502) return "unreachable";
       return "error";
@@ -209,9 +222,14 @@ class AuthService {
     useStore.getState().setIsLoggingOut(true);
     useStore.getState().clearActor();
 
-    if (outcome === "unreachable") {
-      // backend 가 Keycloak 에 도달 못함 → OIDC 도 unreachable 가능성. OIDC 단계 건너뛰고
-      // toast 로 알린 뒤 /login 강제 redirect. 정합 우선 (#488 spec 권장).
+    if (outcome === "unreachable" || outcome === "unreachable_out") {
+      // backend 가 Keycloak 에 도달 못함 (N-8 hotfix 4차) → OIDC 도 unreachable 가능성.
+      // OIDC 단계 건너뛰고 toast 로 알린 뒤 /login 강제 redirect. 정합 우선
+      // (#488 spec 권장) + dead IdP trap 회피 (codex P1 review 응답).
+      //   "unreachable"      : backend 가 502 반환 (defensive guard, dead code).
+      //   "unreachable_out"  : backend 가 204 + keycloak_likely_down=true 마커
+      //                        반환 (N-8 hotfix 4차). 동일한 dead IdP trap 회피
+      //                        결정.
       useStore.getState().addToast(
         "Sign-out service is temporarily unreachable. Your session has been cleared locally.",
         "error",

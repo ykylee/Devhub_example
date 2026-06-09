@@ -213,9 +213,20 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	if h.cfg.OIDCLogoutClient != nil && strings.TrimSpace(req.RefreshToken) != "" {
 		if err := h.cfg.OIDCLogoutClient.OIDCLogout(c.Request.Context(), req.RefreshToken); err != nil {
 			// N-8 hotfix 4차: 도달 실패 시 502 즉시 반환 대신 audit 만 emit
-			// + 204 No Content. revoke 자체는 best-effort + audit trace 보장.
-			// frontend 가 204 분기 (정상) 로 진입 → OIDC end_session_endpoint
-			// 호출 + /login 정상 도착.
+			// + 204 No Content + `X-Keycloak-Likely-Down: true` 응답 header.
+			// revoke 자체는 best-effort + audit trace 보장. frontend logout()
+			// 가 204 분기 (정상) 로 진입 + response header 의 `X-Keycloak-Likely-Down`
+			// 마커 확인 → OIDC end_session_endpoint 호출 skip + 강제 /login.
+			//
+			// rationale (codex P1 review 응답): 502 의 "정합 우선" 응답이 frontend
+			// race 의 근본 layer 였음 (AuthGuard 가 stale actor 박음 → /developer
+			// 진입 deadlock). 204 로 정합 시 frontend 가 정상 분기 진입 + OIDC
+			// end_session_endpoint 호출 → /login 정상 도착 → race close.
+			// 단, 진짜 IdP outage (Keycloak 자체 불가) 시 frontend OIDC redirect
+			// 가 dead IdP trap 으로 갈 수 있어, response header 에
+			// `X-Keycloak-Likely-Down: true` 마커를 동봉해 frontend 가 OIDC
+			// skip + 강제 /login 결정 가능. 204 No Content 정합 (HTTP spec)
+			// 이라 body 없이 header 마커 사용.
 			revokeStatus = "unreachable"
 			h.recordAuditBestEffort(c, "auth.logout", "auth", "current_session", map[string]any{
 				"actor":                 actor.Login,
@@ -224,6 +235,8 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 				"revoke_status":         revokeStatus,
 				"hotfix":                "N-8-4:graceful-degrade",
 			})
+			c.Header("X-Keycloak-Likely-Down", "true")
+			c.Header("X-Logout-Hotfix", "N-8-4:graceful-degrade")
 			c.Status(http.StatusNoContent)
 			return
 		}
