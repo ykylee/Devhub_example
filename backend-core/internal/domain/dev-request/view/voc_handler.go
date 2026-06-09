@@ -49,9 +49,9 @@ var externalRefPattern = regexp.MustCompile(`^[A-Za-z0-9._-]{1,128}$`)
 
 // RegisterVocRoutes는 /api/v1/dev-requests/{external_ref} + /me/notifications + /vocs 라우트 등록.
 func RegisterVocRoutes(rg *gin.RouterGroup, h *VocHandler) {
-	rg.POST("/dev-requests/:external_ref", h.createOrGetVoc)
-	rg.POST("/dev-requests/:external_ref/route", h.routeVoc)
-	rg.GET("/dev-requests/:external_ref", h.getVoc)
+	rg.POST("/dev-requests/:dev_request_id", h.createOrGetVoc)
+	rg.POST("/dev-requests/:dev_request_id/route", h.routeVoc)
+	rg.GET("/dev-requests/external/:external_ref", h.getVoc)
 
 	rg.GET("/me/notifications", h.listMyNotifications)
 	rg.POST("/me/notifications/:id/read", h.markMyNotificationRead)

@@ -292,6 +292,17 @@ var routePermissionTable = map[routeKey]routePolicy{
 	{http.MethodPost, "/api/v1/dev-requests/:dev_request_id/reject"}:   {Resource: domain.ResourceDevRequests, Action: domain.ActionEdit},
 	{http.MethodPatch, "/api/v1/dev-requests/:dev_request_id"}:         {Resource: domain.ResourceDevRequests, Action: domain.ActionEdit},
 	{http.MethodDelete, "/api/v1/dev-requests/:dev_request_id"}:        {Resource: domain.ResourceDevRequests, Action: domain.ActionDelete},
+	// ADR-0028 §3: voc (voice of customer) 도메인 — external_ref 기반 dev-request staging.
+	// POST /dev-requests/:dev_request_id 는 외부 intake 의 path (사용자 명시) — handler
+	// 는 createOrGetVoc 으로 dispatch. system_admin 일임 (external system source).
+	{http.MethodPost, "/api/v1/dev-requests/:dev_request_id"}:          {Resource: domain.ResourceDevRequests, Action: domain.ActionCreate},
+	{http.MethodPost, "/api/v1/dev-requests/:dev_request_id/route"}:   {Resource: domain.ResourceDevRequests, Action: domain.ActionEdit},
+	{http.MethodGet, "/api/v1/dev-requests/external/:external_ref"}:   {Resource: domain.ResourceDevRequests, Action: domain.ActionView},
+	// ADR-0028 §6 carve (d): voc list — system_admin 도구, N-6 staging 운영 SOP 정합.
+	{http.MethodGet, "/api/v1/vocs"}: {Resource: domain.ResourceDevRequests, Action: domain.ActionView},
+	// ADR-0028 §3: in-app notification — 자기 자신 조회/마킹. Bypass (R-9 §3 자기 정보).
+	{http.MethodGet, "/api/v1/me/notifications"}:           {Bypass: true},
+	{http.MethodPost, "/api/v1/me/notifications/:id/read"}:  {Bypass: true},
 
 	// DREQ intake token admin (sprint claude/work_260515-o, ADR-0014). system_admin 일임.
 	{http.MethodPost, "/api/v1/dev-request-tokens"}:             {Resource: domain.ResourceDevRequestIntakeTokens, Action: domain.ActionCreate},
