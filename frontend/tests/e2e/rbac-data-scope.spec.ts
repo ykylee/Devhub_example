@@ -3,6 +3,7 @@ import { test, expect, loginAs, SEEDED, appPath } from "./fixtures";
 /**
  * rbac-data-scope.spec.ts
  * release_v1_roadmap §3.5 N-10 P1 follow-up — RBAC E2E (frontend) follow-up.
+ * validation 보고서: docs/validation/N-10-manager-rbac.md §3.1.
  *
  * 매핑 TC (docs/domain/rbac-permissions/test_cases.md):
  *   - TC-RBAC-LOGOUT-02 — `/auth/signout`이 logout API orchestration route로 동작 (REQ-RBAC-012A)
@@ -14,6 +15,11 @@ import { test, expect, loginAs, SEEDED, appPath } from "./fixtures";
  *   - TC-RBAC-LOGOUT-01 — backend IT (Claude 별도 sprint)
  *   - TC-RBAC-ROLE-DRIFT-01 — backend IT (Keycloak drift 환경 의존)
  *   - TC-RBAC-TRACE-01 — process/review (이 spec 의 TC ID 가 spec 문서와 1:1 매핑됨을 본 header 주석으로 입증)
+ *
+ * 2026-06-10 housekeeping (`maintenance/work_260610-c-N10-rbac-e2e-tcs`):
+ *   - spec 자체는 기존 작성분 그대로 유지. 본 sprint 의 의의는
+ *     (a) follow-up 4 TC e2e active (이 spec file) + (b) §3.1 follow-up resolved 마킹
+ *     + (c) validation 보고서 §3.2 roadmap "mgr-user-b" → "bob (team_manager seed)" 갱신.
  */
 
 const SEEDED_PROJECT_ID = "31b9e2cb-b1b0-466a-bb10-ea00ee1234a1";
