@@ -35,3 +35,17 @@ func TestValidate(t *testing.T) {
 		}
 	}
 }
+
+func TestSwaggerEnabled(t *testing.T) {
+	t.Run("enabled when DEVHUB_SWAGGER_ENABLED=true", func(t *testing.T) {
+		t.Setenv("DEVHUB_SWAGGER_ENABLED", "true")
+		if !Load().SwaggerEnabled {
+			t.Error("SwaggerEnabled should be true when DEVHUB_SWAGGER_ENABLED=true")
+		}
+	})
+	t.Run("disabled by default when unset", func(t *testing.T) {
+		if Load().SwaggerEnabled {
+			t.Error("SwaggerEnabled should be false by default")
+		}
+	})
+}

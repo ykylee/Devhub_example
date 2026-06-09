@@ -47,6 +47,7 @@
 2. 새 ID 면 `report.md` 의 인덱스 표 + 매트릭스 row 갱신.
 3. 영향받는 `REQ-*` 의 매트릭스 row 에서 cross-ref (ARCH/API 열) 갱신.
 4. 큰 결정은 별도 ADR (`docs/adr/000X-*.md`) 으로 분리, `report.md` 의 "ADR 인덱스" 섹션 링크.
+5. OpenAPI spec (`docs/openapi.yaml`) 변경 시 `docs/backend_api_contract.md` §0 관련 문서 cross-link + §1 envelope cross-link note + §3 Health spec 위치 등 본문 cross-ref 동시 갱신 (envelope / 공통 결정 의 machine-readable mirror 관계 — [ADR-0027 §4](../adr/0027-openapi-hand-maintained.md)).
 
 ### 3.3 로드맵 갱신
 

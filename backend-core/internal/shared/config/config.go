@@ -29,6 +29,11 @@ type Config struct {
 	// (token-only actor still applied — lazy_auto_create.go 는 삭제됨, rollback
 	// 은 onboardingGate middleware 비활성화만 의미). 운영 사고 시 빠른 mitigation.
 	OnboardingGateEnabled bool
+	// SwaggerEnabled controls whether the Swagger UI endpoint is mounted at
+	// /swagger/*any. Default false — do NOT enable in production without
+	// additional auth; exposing API schema is a reconnaissance risk.
+	// Set DEVHUB_SWAGGER_ENABLED=true to enable.
+	SwaggerEnabled bool
 	// ProjectModel controls project-management route mode.
 	// - legacy: repository-centric routes only
 	// - hybrid: legacy + v2 routes both enabled (default)
@@ -130,7 +135,8 @@ func Load() Config {
 		Env:                            strings.ToLower(strings.TrimSpace(os.Getenv("DEVHUB_ENV"))),
 		IdPProvider:                    normalizeIDPProvider(os.Getenv("DEVHUB_IDP_PROVIDER")),
 		AuthDevFallback:                envBool("DEVHUB_AUTH_DEV_FALLBACK"),
-		OnboardingGateEnabled:          envBoolDefault("DEVHUB_ONBOARDING_GATE_ENABLED", true),
+		OnboardingGateEnabled: envBoolDefault("DEVHUB_ONBOARDING_GATE_ENABLED", true),
+		SwaggerEnabled:       envBool("DEVHUB_SWAGGER_ENABLED"),
 		ProjectModel:                   normalizeProjectModel(os.Getenv("DEVHUB_PROJECT_MODEL")),
 		ServiceActionExecutorMode:      strings.TrimSpace(os.Getenv("SERVICE_ACTION_EXECUTOR_MODE")),
 		ServiceActionAllowedServices:   strings.TrimSpace(os.Getenv("SERVICE_ACTION_ALLOWED_SERVICES")),

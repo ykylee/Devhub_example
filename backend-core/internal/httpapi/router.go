@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"context"
+	"embed"
 	"errors"
 	"log"
 	"net/http"
@@ -172,6 +173,13 @@ type RouterConfig struct {
 	RealtimeHub                *realtimeview.RealtimeHub
 	// RealtimeTickets — ADR-0024 §3.2 ticket pattern.
 	RealtimeTickets realtimeview.RealtimeTicketStore
+	// SwaggerEnabled controls whether the Swagger UI endpoint is mounted.
+	// Zero-value false (default) keeps /swagger disabled for production safety.
+	SwaggerEnabled bool
+	// OpenAPISpecPath is the filesystem path to the hand-maintained OpenAPI
+	// spec YAML, served at /swagger/openapi.yaml when SwaggerEnabled=true.
+	// Empty string skips spec serving (UI-only mount).
+	OpenAPISpecPath string
 	// AuthDevFallback toggles dev-only authentication fallbacks: empty Authorization passes through authenticateActor and requireMinRole. Actor identity always resolves to "system" without a verifier. Default false: production-safe.
 	AuthDevFallback bool
 	// OnboardingGateEnabled — RM-ONBOARD-01 (ADR-0021 §3.3, ARCH-ONBOARD-03).
@@ -230,6 +238,32 @@ func resolveRepoIntegrationStore(cfg RouterConfig) repoview.PlatformStore {
 		return nil
 	}
 	return repoIntegrationStoreAdapter{platformStore: cfg.PlatformStore, integStore: integStore}
+}
+
+//go:embed swaggerui/asset/*
+var swaggerAssetFS embed.FS
+
+// swaggerFS wraps an embedded http.FileSystem with an optional disk-backed
+// override for /openapi.yaml, allowing the spec to be dynamically updated
+// without rebuild.  Used as a single StaticFS mount to avoid gin radix-tree
+// conflicts between StaticFile and StaticFS under the same prefix.
+type swaggerFS struct {
+	embed    http.FileSystem
+	specPath string
+}
+
+func (fs swaggerFS) Open(name string) (http.File, error) {
+	if name == "/openapi.yaml" && fs.specPath != "" {
+		return os.Open(fs.specPath)
+	}
+	return fs.embed.Open(name)
+}
+
+// swaggerMount serves the static Swagger UI HTML from embedded assets (CDN-loaded
+// JS) and the hand-maintained OpenAPI spec when specPath is non-empty.  Mounted
+// unconditionally when called — caller must gate on SwaggerEnabled.
+func swaggerMount(router *gin.Engine, assetFS embed.FS, specPath string) {
+	router.StaticFS("/swagger", swaggerFS{embed: http.FS(assetFS), specPath: specPath})
 }
 
 func NewRouter(cfg RouterConfig) *gin.Engine {
@@ -312,6 +346,10 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	}
 	router.GET("/health", handler.health)
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
+
+	if cfg.SwaggerEnabled {
+		swaggerMount(router, swaggerAssetFS, cfg.OpenAPISpecPath)
+	}
 
 	// Keycloak Event Listener SPI Webhook (unauthenticated, X-Webhook-Secret check)
 	router.POST("/api/v1/internal/keycloak-events", handler.receiveKeycloakEventWebhook)
