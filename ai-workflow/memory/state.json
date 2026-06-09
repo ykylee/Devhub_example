@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-06-12 main. PR #514 (voc + notification) 머지 완료 + 본 sprint `maintenance/work_260612-b-v1-finalizing` PR #515 4 commit push (CI 진행 중). 옵션 A (N-12 housekeeping) + B (voc list API, ADR-0028 §6 carve d) + C (N-10 backend IT 3 TC) + codex P2 fix (PR #514 latent 회귀 3 layer: production router mount + routePermissionTable + gin path conflict). v1.0 출시 직전 잔여 = N-6 staging 1주 운영 (사용자 결정).",
-  "updated_at": "2026-06-12T07:00:00Z",
-  "head_commit": "2b00fe0",
-  "head_summary": "fix(backend/dev-request): codex P2 review (id 3378458885) — production router mount + routePermissionTable 누락 (PR #514 latent 회귀)",
+  "status": "2026-06-12 main. PR #514 (voc + notification) + PR #515 (v1.0 출시 직전 finalizing, 4 commit + codex P2 fix) 머지 완료. CI 9/9 green (Backend Unit + Integration + E2E shard 1/2/3 + Build Artifacts + Workflow Lint + Migration Prefix + Detect). main HEAD `f7d2705`. v1.0 출시 직전 잔여 = N-6 staging 1주 운영 (사용자 결정 영역).",
+  "updated_at": "2026-06-12T07:15:00Z",
+  "head_commit": "f7d2705",
+  "head_summary": "docs(roadmap,traceability) + feat(voc-list) + test(N10-rbac-it): v1.0 출시 직전 finalizing (#515)",
   "milestones": {
     "M0": {
       "status": "done",

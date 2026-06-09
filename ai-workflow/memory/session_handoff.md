@@ -136,7 +136,7 @@ codex P1 의 핵심 우려 "reachable Keycloak SSO session is not terminated" �
 | **X-2** | inbound webhook 정규화 깊이 | multi-provider sync 일반화 (v1.1) |
 
 ## 4. 다음 세션 directive
-* **PR #515 CI 완료 대기** → 머지 → main HEAD `22306db` 머지.
+* **PR #515 ✅ MERGED** (squash `f7d2705`) — 6 commit (74ff06f + de94bac + 0a90782 + 2b00fe0 + 22306db + cfaf6db) + 9/9 CI green.
 * **N-6**: staging 1주 운영 (사용자 결정 영역).
 * **N-10 IT 3 TC 완료 정합** (본 sprint): `TC-RBAC-LOGOUT-01` + `TC-RBAC-ROLE-DRIFT-01` + `TC-RBAC-LEGACY-01` ✅ verified.
 * **옵션 D 검토** (`project.inbound_source` 자동 routing, ADR-0028 §6 carve a): post-MVP 후속 sprint 후보.
