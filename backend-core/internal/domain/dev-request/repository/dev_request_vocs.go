@@ -191,6 +191,33 @@ RETURNING ` + devRequestVocSelectColumns
 	return v, dr, nil
 }
 
+// ListVocs는 status / assignee_user_id filter + limit / offset pagination. ADR-0028 §6 carve (d) — system_admin 도구.
+func (r *DevRequestVocRepository) ListVocs(ctx context.Context, status, assigneeUserID string, limit, offset int) ([]domain.DevRequestVoc, error) {
+	const selectList = `SELECT ` + devRequestVocSelectColumns + `
+FROM dev_request_vocs
+WHERE ($1 = '' OR status = $1)
+  AND ($2 = '' OR assignee_user_id = $2)
+ORDER BY created_at DESC
+LIMIT $3 OFFSET $4`
+	rows, err := r.store.Pool().Query(ctx, selectList, status, assigneeUserID, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("list vocs: %w", err)
+	}
+	defer rows.Close()
+	out := make([]domain.DevRequestVoc, 0, limit)
+	for rows.Next() {
+		v, err := scanDevRequestVoc(rows)
+		if err != nil {
+			return nil, fmt.Errorf("scan voc: %w", err)
+		}
+		out = append(out, v)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows err: %w", err)
+	}
+	return out, nil
+}
+
 func nullableString(s string) interface{} {
 	if s == "" {
 		return nil

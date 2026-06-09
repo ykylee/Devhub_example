@@ -20,6 +20,7 @@ type VocStore interface {
 	GetVocByExternalRef(ctx context.Context, sourceSystem, externalRef string) (domain.DevRequestVoc, bool, error)
 	GetVocByID(ctx context.Context, id string) (domain.DevRequestVoc, error)
 	RouteVoc(ctx context.Context, vocID, projectID string, dr domain.DevRequest) (domain.DevRequestVoc, domain.DevRequest, error)
+	ListVocs(ctx context.Context, status, assigneeUserID string, limit, offset int) ([]domain.DevRequestVoc, error)
 }
 
 // NotificationStore는 in-app notification store interface. ADR-0028 §3.
@@ -46,7 +47,7 @@ func NewVocHandler(cfg VocHandlerConfig) *VocHandler {
 
 var externalRefPattern = regexp.MustCompile(`^[A-Za-z0-9._-]{1,128}$`)
 
-// RegisterVocRoutes는 /api/v1/dev-requests/{external_ref} + /me/notifications 라우트 등록.
+// RegisterVocRoutes는 /api/v1/dev-requests/{external_ref} + /me/notifications + /vocs 라우트 등록.
 func RegisterVocRoutes(rg *gin.RouterGroup, h *VocHandler) {
 	rg.POST("/dev-requests/:external_ref", h.createOrGetVoc)
 	rg.POST("/dev-requests/:external_ref/route", h.routeVoc)
@@ -54,6 +55,8 @@ func RegisterVocRoutes(rg *gin.RouterGroup, h *VocHandler) {
 
 	rg.GET("/me/notifications", h.listMyNotifications)
 	rg.POST("/me/notifications/:id/read", h.markMyNotificationRead)
+
+	rg.GET("/vocs", h.listVocs)
 }
 
 // createVocRequest는 POST body 의 9 field. ADR-0028 §3 결정.
@@ -282,6 +285,65 @@ func (h *VocHandler) listMyNotifications(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"data":  notes,
 		"count": len(notes),
+	})
+}
+
+// listVocs는 system_admin 도구 — status / assignee 필터 + pagination. ADR-0028 §6 carve (d).
+func (h *VocHandler) listVocs(c *gin.Context) {
+	actor := httphelp.RequestActor(c)
+	if actor.Login == "" {
+		c.JSON(http.StatusUnauthorized, httphelp.EnvelopeErrorResponse("auth_failed", "user not authenticated"))
+		return
+	}
+	if h.cfg.VocStore == nil {
+		c.JSON(http.StatusServiceUnavailable, httphelp.EnvelopeErrorResponse("voc_store_unavailable", "voc store is not configured"))
+		return
+	}
+	statusFilter := strings.TrimSpace(c.Query("status"))
+	if statusFilter != "" {
+		switch domain.DevRequestVocStatus(statusFilter) {
+		case domain.DevRequestVocStatusReceived, domain.DevRequestVocStatusRouted, domain.DevRequestVocStatusClosed:
+		default:
+			c.JSON(http.StatusBadRequest, httphelp.EnvelopeErrorResponse("validation_failed", "status must be one of received/routed/closed"))
+			return
+		}
+	}
+	assigneeFilter := strings.TrimSpace(c.Query("assignee"))
+
+	limit := 50
+	if l := c.Query("limit"); l != "" {
+		if _, err := parseLimit(l, &limit); err != nil {
+			c.JSON(http.StatusBadRequest, httphelp.EnvelopeErrorResponse("validation_failed", err.Error()))
+			return
+		}
+	}
+	offset := 0
+	if o := c.Query("offset"); o != "" {
+		var n int
+		for _, ch := range o {
+			if ch < '0' || ch > '9' {
+				c.JSON(http.StatusBadRequest, httphelp.EnvelopeErrorResponse("validation_failed", "offset must be a non-negative integer"))
+				return
+			}
+			n = n*10 + int(ch-'0')
+		}
+		offset = n
+	}
+
+	vocs, err := h.cfg.VocStore.ListVocs(c.Request.Context(), statusFilter, assigneeFilter, limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, httphelp.EnvelopeErrorResponse("internal_error", err.Error()))
+		return
+	}
+	items := make([]gin.H, 0, len(vocs))
+	for _, v := range vocs {
+		items = append(items, vocResponse(v))
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"data":   items,
+		"count":  len(items),
+		"limit":  limit,
+		"offset": offset,
 	})
 }
 
