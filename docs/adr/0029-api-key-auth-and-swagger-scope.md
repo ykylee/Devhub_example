@@ -134,6 +134,7 @@ securitySchemes:
 
 - 5 신규 테스트 PASS (`TestAPIKeyAuthentication_*` + `TestLooksLikeJWT`)
 - **2차 commit** (P0 §6 (a)): 2 신규 테스트 PASS (`TestEnforceRoutePermission_APIKeyCallerWriteEndpointsForbidden` 6 sub-test + `TestEnforceRoutePermission_APIKeyCallerReadOnlyAllowed` 5 sub-test)
+- **3차 commit** (P1 §6 (c) P2 batch 1): `python3 -c "import yaml; yaml.safe_load(open('...'))"` PASS, 5 신규 path (user CRUD 4 + risks/critical 1 + risks/{id}/mitigations 1 + commands/{id}/{approve,reject} 2) + 5 신규 schema (UserCreateRequest / UserUpdateRequest / RiskMitigationRequest / RiskMitigation / CommandDecisionRequest) + commands/{id} GET 의 staticTokenAuth 허용. path 50 → 55.
 - 기존 `TestBearerToken*` 회귀 0 (`TestRouter_*` / `TestSwagger*` 포함)
 - backend `go test ./internal/httpapi/ -run 'TestAPIKey|TestBearerToken|TestRouter_|TestSwagger|TestEnforceRoutePermission'` PASS
 - backend `go test ./...` PASS (회귀 0, 30+ packages)
@@ -171,7 +172,7 @@ openapi 3.0 의 security array 가 `[{a:[]}, {b:[]}]` 일 때 swagger-ui 가 양
 | --- | --- | --- | --- |
 | (a) | API key caller 의 admin endpoint RBAC 가드 (`enforceRoutePermission` 에 `auth_source != "api_key"` 추가) | ✅ done (2차 commit) | 본 PR 2차 commit 으로 즉시 흡수. `devhub_auth_source == "api_key"` && `policy.Action != ActionView` (Create/Edit/Delete) 시 `auth.api_key_denied` audit + 403 + `auth_api_key_denied` envelope. 신규 테스트 2건. |
 | (b) | API key rotation 정책 SOP (90일 + rolling pattern) | P1 | 운영 SOP 문서 (`docs/setup/`) |
-| (c) | openapi.yaml P2/P3 endpoint 30+ 확장 | P1 | 별도 sprint (`feat/openapi-domain-extend-p2` 후보) |
+| (c) | openapi.yaml P2/P3 endpoint 30+ 확장 | ✅ done (P2 batch 1) → 2차 PR (P2 batch 2 + P3 잔여) | 본 PR 2차 commit 의 P2 batch 1 = 5 신규 path (user CRUD 4 + risks/critical 1 + risks/{id}/mitigations 1 + commands/{id}/{approve,reject} 2) + 5 신규 schema (UserCreateRequest / UserUpdateRequest / RiskMitigationRequest / RiskMitigation / CommandDecisionRequest) + commands/{id} GET 의 staticTokenAuth 허용 (infrastructure:view 정합). 1차 PR 의 50 path → 본 PR 후 55 path. P2 batch 2 + P3 잔여 (org-units CRUD 7 + rbac/policies 5 + integration/scm tail 14 + realtime/ws + infra/services/snapshot + infra/topology/v2 = 29 path) 는 3차 PR. |
 | (d) | CI lint gate (openapi.yaml schema validity check + cross-link `backend_api_contract.md`) | P2 | v1.1 milestone |
 | (e) | swagger-ui system_admin 가드 미들웨어 (현재 public) | P2 | v1.1 milestone (ADR-0027 §6 carve (c)) |
 | (f) | API key 다중 활성 (rolling) 지원 | P3 | v1.1+ |
@@ -183,3 +184,4 @@ openapi 3.0 의 security array 가 `[{a:[]}, {b:[]}]` 일 때 swagger-ui 가 양
 | --- | --- | --- |
 | 2026-06-09 | 1차 발행. API key 인증 미들웨어 + openapi.yaml P0/P1 30+ endpoint + ~30 schema + 5 신규 테스트. 결정 근거 6 항목 (Keycloak-independent / JWT 분기 / timing attack / 회귀 0 / scope 5.6%→40%+ / PR 크기 적정). carve out 7 항목. 신규 ID: `IMPL-auth-02` + `IMPL-swagger-02`. | `feat/work_260609-a-swagger-apikey-expand` |
 | 2026-06-09 | **2차 commit (PR #518 후속, codex P1 + 사용자 결정 정합)**. §6 (a) P0 admin gate 실 구현 — `EnforceRoutePermission` 본체에 `devhub_auth_source == "api_key"` && `policy.Action != ActionView` 가드. `auth.api_key_denied` audit + 403 + `auth_api_key_denied` envelope. 신규 테스트 2건 (write 6 endpoint 거부 + read-only 5 endpoint 통과 회귀). `routePermissionTable` 변경 0 — Action != View 한 줄 분기. `IMPL-auth-04` row 갱신 (permissions.go 가드 + permissions_test.go 2 신규). `go test ./...` 30+ packages PASS, 회귀 0. ADR-0029 §6 (a) P0 → done. 잔여 carve = 6 항목 (b)~(g). | `feat/work_260609-a-swagger-apikey-expand` |
+| 2026-06-09 | **3차 commit (PR #519, §6 (c) P1 P2 batch 1)**. openapi.yaml scope 1차 P2 batch 흡수 — 5 신규 path (user CRUD 4 + risks/critical 1 + risks/{id}/mitigations 1 + commands/{id}/{approve,reject} 2) + 5 신규 schema (UserCreateRequest / UserUpdateRequest / RiskMitigationRequest / RiskMitigation / CommandDecisionRequest) + commands/{id} GET 의 staticTokenAuth 허용 (infrastructure:view 정합). 1차 PR 의 50 path → 본 PR 후 55 path + schema 59 → 64. backend 변경 0 — openapi.yaml + ADR + trace docs only. yaml safe_load VALID. §6 (c) P1 P2 batch 1 → done, 잔여 = P2 batch 2 (org-units CRUD 7 + rbac/policies 5) + P3 (integration/scm tail 14 + realtime/ws + infra/services/snapshot + infra/topology/v2) = 29 path → 3차 PR. | `feat/work_260609-b-openapi-p2p3-extend` |
