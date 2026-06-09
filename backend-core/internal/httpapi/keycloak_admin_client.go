@@ -12,6 +12,8 @@ import (
 	"path"
 	"strings"
 	"time"
+
+	authview "github.com/devhub/backend-core/internal/domain/auth-session/view"
 )
 
 // ErrIdentityNotFound is returned by IdentityAdmin implementations when no
@@ -88,12 +90,21 @@ func (c *KeycloakAdminClient) LogoutUserSession(ctx context.Context, identityID 
 // devhub-frontend client 로 token 발급 → logout 도 devhub-frontend client
 // 자격증명 필요. devhub-backend admin client 자격증명 사용 시 Keycloak 이
 // 401 반환 (codex P1 review #2 정합).
+//
+// N-8 hotfix 4차 codex P1 follow-up: error 카테고리 구분. sentinel errors:
+//   - authview.ErrOIDCConfigMissing : backend config 결함 (missing realm/oidc_client_id/secret) —
+//                                    OIDC 호출 *전* 발견. handler 가 marker 미부착
+//                                    + 정상 OIDC 분기 결정.
+//   - authview.ErrOIDCNetworkUnreachable : 네트워크 error (c.client().Do) + 5xx —
+//                                         Keycloak 도달 실패. handler 가 marker
+//                                         부착 + frontend OIDC skip 결정.
 func (c *KeycloakAdminClient) OIDCLogout(ctx context.Context, refreshToken string) error {
 	if strings.TrimSpace(refreshToken) == "" {
 		return errors.New("OIDC logout requires non-empty refresh_token")
 	}
 	if strings.TrimSpace(c.Realm) == "" || strings.TrimSpace(c.OIDCClientID) == "" || strings.TrimSpace(c.OIDCClientSecret) == "" {
-		return errors.New("KeycloakAdminClient requires realm, oidc_client_id, oidc_client_secret for OIDC logout (separate from admin client)")
+		// sentinel: ErrOIDCConfigMissing — handler 가 marker 미부착 결정.
+		return fmt.Errorf("%w: KeycloakAdminClient requires realm, oidc_client_id, oidc_client_secret for OIDC logout (separate from admin client)", authview.ErrOIDCConfigMissing)
 	}
 	logoutURL := c.oidcLogoutEndpoint()
 	form := url.Values{}
@@ -110,7 +121,8 @@ func (c *KeycloakAdminClient) OIDCLogout(ctx context.Context, refreshToken strin
 
 	resp, err := c.client().Do(req)
 	if err != nil {
-		return fmt.Errorf("call keycloak logout endpoint: %w", err)
+		// sentinel: ErrOIDCNetworkUnreachable — handler 가 marker 부착 결정.
+		return fmt.Errorf("%w: call keycloak logout endpoint: %v", authview.ErrOIDCNetworkUnreachable, err)
 	}
 	defer resp.Body.Close()
 	_, _ = io.Copy(io.Discard, resp.Body)
@@ -123,7 +135,8 @@ func (c *KeycloakAdminClient) OIDCLogout(ctx context.Context, refreshToken strin
 	if resp.StatusCode == http.StatusBadRequest || resp.StatusCode == http.StatusUnauthorized {
 		return nil
 	}
-	return fmt.Errorf("keycloak logout status %d", resp.StatusCode)
+	// 5xx: sentinel: ErrOIDCNetworkUnreachable — Keycloak 서버 측 outage.
+	return fmt.Errorf("%w: keycloak logout status %d", authview.ErrOIDCNetworkUnreachable, resp.StatusCode)
 }
 
 // oidcLogoutEndpoint — issuer url 기반 derive. tokenEndpoint 와 같은 패턴.

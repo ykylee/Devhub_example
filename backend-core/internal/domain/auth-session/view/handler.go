@@ -3,6 +3,7 @@ package view
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -159,6 +160,31 @@ type OIDCLogoutClient interface {
 	OIDCLogout(ctx context.Context, refreshToken string) error
 }
 
+// OIDC logout error sentinel — N-8 hotfix 4차 codex P1 (PR #503 follow-up).
+// OIDCLogoutClient 의 error 가 다음 두 카테고리 중 어디에 속하는지 handler 가
+// 구분 가능하도록 typed error 정의. sentinel 은 `errors.Is` 로 비교.
+//
+//   ErrOIDCConfigMissing    : backend config 결함 (missing realm/oidc_client_id/
+//                             oidc_client_secret 등) — Keycloak 자체는 reachable
+//                             한데 OIDC 호출 자체를 못 함. 이 경우엔 marker
+//                             미부착 + 정상 OIDC 분기 (frontend 가 RP-initiated
+//                             logout 시도) + audit revoke_status=config_error.
+//   ErrOIDCNetworkUnreachable : 네트워크/5xx outage (DNS 실패, connection refused,
+//                             timeout, Keycloak 5xx 등) — Keycloak 도달 실패.
+//                             이 경우에만 marker (X-Keycloak-Likely-Down: true)
+//                             부착 + frontend 가 OIDC skip + 강제 /login.
+//
+//   그 외 error (nil 아닌 미분류) 는 conservative: marker 부착 + audit
+//   revoke_status=unreachable (네트워크/5xx 와 동일 처리 — Keycloak 도달 실패
+//   가능성 보수적 분류).
+//
+// codex P1 follow-up 의 핵심: "reachable Keycloak SSO session is not terminated"
+// 문제 (config error 를 outage 로 오인) 회피.
+var (
+	ErrOIDCConfigMissing      = errors.New("OIDC logout: backend config missing")
+	ErrOIDCNetworkUnreachable = errors.New("OIDC logout: network or 5xx outage")
+)
+
 // Logout — issue #488 spec + N-8 hotfix 4차 (issue #501). POST /api/v1/auth/logout 의 v1.0 contract:
 //
 //   - Authorization: Bearer header 의 access token 인증 (route middleware 가
@@ -212,21 +238,38 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	revokeStatus := "ok"
 	if h.cfg.OIDCLogoutClient != nil && strings.TrimSpace(req.RefreshToken) != "" {
 		if err := h.cfg.OIDCLogoutClient.OIDCLogout(c.Request.Context(), req.RefreshToken); err != nil {
-			// N-8 hotfix 4차: 도달 실패 시 502 즉시 반환 대신 audit 만 emit
-			// + 204 No Content + `X-Keycloak-Likely-Down: true` 응답 header.
-			// revoke 자체는 best-effort + audit trace 보장. frontend logout()
-			// 가 204 분기 (정상) 로 진입 + response header 의 `X-Keycloak-Likely-Down`
-			// 마커 확인 → OIDC end_session_endpoint 호출 skip + 강제 /login.
+			// N-8 hotfix 4차 (codex P1 follow-up): error 카테고리 구분.
 			//
-			// rationale (codex P1 review 응답): 502 의 "정합 우선" 응답이 frontend
-			// race 의 근본 layer 였음 (AuthGuard 가 stale actor 박음 → /developer
-			// 진입 deadlock). 204 로 정합 시 frontend 가 정상 분기 진입 + OIDC
-			// end_session_endpoint 호출 → /login 정상 도착 → race close.
-			// 단, 진짜 IdP outage (Keycloak 자체 불가) 시 frontend OIDC redirect
-			// 가 dead IdP trap 으로 갈 수 있어, response header 에
-			// `X-Keycloak-Likely-Down: true` 마커를 동봉해 frontend 가 OIDC
-			// skip + 강제 /login 결정 가능. 204 No Content 정합 (HTTP spec)
-			// 이라 body 없이 header 마커 사용.
+			//   ErrOIDCConfigMissing (sentinel):
+			//     backend config 결함 (missing realm/oidc_client_id/secret 등).
+			//     Keycloak 자체는 reachable 한데 OIDC 호출 자체를 못 함. marker
+			//     미부착 + 정상 OIDC 분기 (frontend 가 RP-initiated logout 시도)
+			//     + audit revoke_status=config_error. codex P1 의 "reachable
+			//     Keycloak SSO session is not terminated" 문제 (config error 를
+			//     outage 로 오인) 회피.
+			//
+			//   ErrOIDCNetworkUnreachable (sentinel) 또는 그 외 미분류:
+			//     네트워크/5xx outage (DNS 실패, connection refused, timeout,
+			//     Keycloak 5xx) — Keycloak 도달 실패. marker
+			//     (X-Keycloak-Likely-Down: true) 부착 + frontend 가 OIDC skip
+			//     + 강제 /login. 미분류 error 는 conservative: outage 가능성
+			//     보수적 분류.
+			if errors.Is(err, ErrOIDCConfigMissing) {
+				revokeStatus = "config_error"
+				h.recordAuditBestEffort(c, "auth.logout", "auth", "current_session", map[string]any{
+					"actor":                 actor.Login,
+					"refresh_token_present": req.RefreshToken != "",
+					"id_token_present":      req.IdToken != "",
+					"revoke_status":         revokeStatus,
+					"hotfix":                "N-8-4:graceful-degrade",
+					"config_error_detail":   err.Error(),
+				})
+				// marker 미부착 — 정상 OIDC 분기 (frontend 가 RP-initiated
+				// logout 시도 → Keycloak SSO session 정상 종료).
+				c.Status(http.StatusNoContent)
+				return
+			}
+			// 네트워크/5xx 또는 미분류 — conservative: outage 분류.
 			revokeStatus = "unreachable"
 			h.recordAuditBestEffort(c, "auth.logout", "auth", "current_session", map[string]any{
 				"actor":                 actor.Login,

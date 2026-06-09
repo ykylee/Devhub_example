@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/devhub/backend-core/internal/domain"
+	authview "github.com/devhub/backend-core/internal/domain/auth-session/view"
 	"github.com/devhub/backend-core/internal/store"
 )
 
@@ -763,6 +764,69 @@ func TestLogoutEndpoint_KeycloakUnreachable_204(t *testing.T) {
 	}
 	if hotfix, _ := audits.logs[0].Payload["hotfix"].(string); hotfix != "N-8-4:graceful-degrade" {
 		t.Errorf("expected hotfix=N-8-4:graceful-degrade, got %v", hotfix)
+	}
+}
+
+// TC-AUTH-LOGOUT-08 — backend config error (e.g. missing OIDC client
+// credentials, devhub-frontend public client 시 DEVHUB_OIDC_CLIENT_SECRET
+// 없음) → **204 No Content + marker 미부착** (N-8 hotfix 4차 codex P1
+// follow-up, 2026-06-09). sentinel error `authview.ErrOIDCConfigMissing` 로
+// wrap 되어야 handler 가 config_error 분기 진입. frontend logout() 가
+// marker 없음 → 정상 OIDC 분기 → RP-initiated logout 시도 → Keycloak
+// SSO session 정상 종료. codex P1 의 "reachable Keycloak SSO session is
+// not terminated" 문제 회피.
+func TestLogoutEndpoint_OIDCConfigError_204_NoMarker(t *testing.T) {
+	audits := &memoryAuditStore{}
+	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+		Login:   "alice",
+		Subject: "user-alice",
+		Role:    "developer",
+	}}
+	// sentinel error wrap — handler 가 config_error 분기 진입 결정.
+	wrappedErr := fmt.Errorf("%w: KeycloakAdminClient requires realm, oidc_client_id, oidc_client_secret for OIDC logout", authview.ErrOIDCConfigMissing)
+	oidc := &fakeOIDCLogoutClient{err: wrappedErr}
+	router := NewRouter(RouterConfig{
+		OrganizationStore:   newMemoryOrganizationStore(),
+		AuditStore:          audits,
+		BearerTokenVerifier: verifier,
+		OIDCLogoutClient:    oidc,
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", strings.NewReader(`{"refresh_token":"rt-1"}`))
+	req.Header.Set("Authorization", "Bearer t")
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("expected 204 (config error 도 정상 응답), got %d body=%s", rec.Code, rec.Body.String())
+	}
+	if rec.Body.Len() != 0 {
+		t.Errorf("expected empty body for 204, got %s", rec.Body.String())
+	}
+	// config error 분기 — marker **미부착**. frontend 가 정상 OIDC 분기
+	// (RP-initiated logout) 결정. codex P1 follow-up 핵심.
+	if got := rec.Header().Get("X-Keycloak-Likely-Down"); got != "" {
+		t.Errorf("expected X-Keycloak-Likely-Down unset for config error, got %q", got)
+	}
+	if got := rec.Header().Get("X-Logout-Hotfix"); got != "" {
+		t.Errorf("expected X-Logout-Hotfix unset for config error, got %q", got)
+	}
+	// audit 는 config_error 상태로 emit.
+	if len(audits.logs) != 1 {
+		t.Fatalf("expected 1 audit row (config_error), got %d", len(audits.logs))
+	}
+	revokeStatus, _ := audits.logs[0].Payload["revoke_status"].(string)
+	if revokeStatus != "config_error" {
+		t.Errorf("expected revoke_status=config_error, got %v", revokeStatus)
+	}
+	if hotfix, _ := audits.logs[0].Payload["hotfix"].(string); hotfix != "N-8-4:graceful-degrade" {
+		t.Errorf("expected hotfix=N-8-4:graceful-degrade, got %v", hotfix)
+	}
+	// config_error_detail (codex P1 follow-up: config error 의 detail 정보
+	// audit trace — Keycloak admin 가 디버깅용).
+	if detail, _ := audits.logs[0].Payload["config_error_detail"].(string); detail == "" {
+		t.Errorf("expected config_error_detail to be set, got empty")
 	}
 }
 

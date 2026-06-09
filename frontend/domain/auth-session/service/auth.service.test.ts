@@ -522,6 +522,32 @@ describe("AuthService", () => {
       expect(target).toContain("issuer.example/protocol/openid-connect/logout");
     });
 
+    // TC-AUTH-LOGOUT-FE-08: backend 204 + NO header (config error, e.g. missing
+    // OIDC client credentials) (N-8 hotfix 4차 codex P1 follow-up) → 정상
+    // OIDC end_session_endpoint redirect (marker 없음 = config error 분기).
+    // reachable Keycloak SSO session 정상 종료. codex P1 의 "reachable
+    // Keycloak SSO session is not terminated" 문제 회피.
+    it("on backend 204 with no X-Keycloak-Likely-Down header (config error): tries OIDC end_session_endpoint redirect", async () => {
+      tokenStoreMock.getIdToken.mockReturnValue("id-token-1");
+      fetchMock.mockImplementation(async (url: string) => {
+        if (String(url).includes("/api/v1/auth/logout")) {
+          return new Response(null, { status: 204 });
+        }
+        if (String(url).includes("/api/runtime-config")) return runtimeConfigResponse();
+        if (String(url).includes("/.well-known")) return discoveryResponse();
+        throw new Error("unexpected");
+      });
+      const { authService } = await import("./auth.service");
+      await authService.logout();
+
+      // marker 없음 → 정상 OIDC 분기 (RP-initiated logout).
+      expect(tokenStoreMock.clear).toHaveBeenCalled();
+      expect(useStoreClearActor).toHaveBeenCalled();
+      expect(assignMock).toHaveBeenCalledTimes(1);
+      const target = String(assignMock.mock.calls[0][0]);
+      expect(target).toContain("issuer.example/protocol/openid-connect/logout");
+    });
+
     // TC-AUTH-LOGOUT-FE-05: backend fetch throws (network down) → addToast(warning) +
     // OIDC redirect. cleanup + actor clear 는 동일하게 수행.
     it("on network throw: emits warning toast, still tries OIDC redirect, and clears tokens", async () => {
