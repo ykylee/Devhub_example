@@ -136,8 +136,9 @@ codex P1 의 핵심 우려 "reachable Keycloak SSO session is not terminated" �
 | **X-2** | inbound webhook 정규화 깊이 | multi-provider sync 일반화 (v1.1) |
 
 ## 4. 다음 세션 directive
-* **PR #515 ✅ MERGED** (squash `f7d2705`) + **PR #516 ✅ MERGED** (squash `2b3c766`) — codex P2 2건 fix 동봉 (domain path 정합 + traceability 9 row).
-* **option D 검토 완료** — `maintenance/work_260612-c-inbound-source-plan` 4 commit push + N-13 + ADR-0028 §6 정합. 구현 = v1.1 milestone 진입 시점.
-* **N-6**: staging 1주 운영 (사용자 결정 영역).
+* **PR #515 ✅ MERGED** (squash `f7d2705`) + **PR #516 ✅ MERGED** (squash `2b3c766`) + **PR #517 ✅ MERGED** (squash `97bc6bc`).
+* **swagger UI 정상동작 fix 완료** — PR #508 의 silent 404 의도적 결정을 embed fallback 으로 supersede. 7 swagger TC 모두 PASS. staging env `DEVHUB_SWAGGER_ENABLED=true` 만 설정해도 openapi.yaml 정상 서빙.
+* **N-6**: staging 1주 운영 (사용자 결정 영역). swagger UI 정상동작 정합.
 * **N-10 IT 3 TC 완료 정합** (본 sprint): `TC-RBAC-LOGOUT-01` + `TC-RBAC-ROLE-DRIFT-01` + `TC-RBAC-LEGACY-01` ✅ verified.
+* **option D 검토 완료**: N-13 + ADR-0028 §6 정합. 구현 = v1.1 milestone 진입 시점.
 * **V1.1 진입 준비**: X-1/X-2 로드맵 백로그 분석.
