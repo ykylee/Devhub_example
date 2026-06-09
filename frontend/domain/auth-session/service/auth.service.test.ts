@@ -461,6 +461,43 @@ describe("AuthService", () => {
       expect(target).toBe("/login");
     });
 
+    // TC-AUTH-LOGOUT-FE-07: backend 204 + response header
+    // `X-Keycloak-Likely-Down: true` (N-8 hotfix 4차, codex P1 review 응답) →
+    // addToast(error) + 강제 /login redirect. OIDC 단계 skip (dead IdP trap
+    // 회피 — frontend 가 unreachable_out 분기 진입). 정합 동작은 FE-03
+    // (502) 와 동일하지만 204 No Content + header 마커로 구분 (codex P1
+    // 의 "구분 가능한 응답" 요구 정합 + HTTP spec 의 204 body 금지 정합).
+    it("on backend 204 with X-Keycloak-Likely-Down=true (N-8 hotfix 4차): emits error toast and forces /login redirect, skipping OIDC", async () => {
+      tokenStoreMock.getIdToken.mockReturnValue(null);
+      fetchMock.mockImplementation(async (url: string) => {
+        if (String(url).includes("/api/v1/auth/logout")) {
+          return new Response(null, {
+            status: 204,
+            headers: {
+              "X-Keycloak-Likely-Down": "true",
+              "X-Logout-Hotfix": "N-8-4:graceful-degrade",
+            },
+          });
+        }
+        // OIDC / runtime-config / discovery 는 호출되면 안 됨 (dead IdP trap 회피).
+        throw new Error("unexpected fetch after unreachable_out: " + url);
+      });
+      const { authService } = await import("./auth.service");
+      await authService.logout();
+
+      expect(tokenStoreMock.clear).toHaveBeenCalled();
+      expect(useStoreClearActor).toHaveBeenCalled();
+      const addToast = useStoreGetState.mock.results[0]?.value.addToast
+        ?? useStoreGetState().addToast;
+      expect(addToast).toHaveBeenCalledWith(
+        expect.stringContaining("unreachable"),
+        "error",
+      );
+      expect(assignMock).toHaveBeenCalledTimes(1);
+      const target = String(assignMock.mock.calls[0][0]);
+      expect(target).toBe("/login");
+    });
+
     // TC-AUTH-LOGOUT-FE-04: backend 5xx (other) → addToast(warning) + OIDC redirect.
     it("on backend other 5xx: emits warning toast and still tries OIDC redirect", async () => {
       tokenStoreMock.getIdToken.mockReturnValue("id-token-1");
@@ -480,6 +517,32 @@ describe("AuthService", () => {
         expect.stringContaining("non-fatal"),
         "warning",
       );
+      expect(assignMock).toHaveBeenCalledTimes(1);
+      const target = String(assignMock.mock.calls[0][0]);
+      expect(target).toContain("issuer.example/protocol/openid-connect/logout");
+    });
+
+    // TC-AUTH-LOGOUT-FE-08: backend 204 + NO header (config error, e.g. missing
+    // OIDC client credentials) (N-8 hotfix 4차 codex P1 follow-up) → 정상
+    // OIDC end_session_endpoint redirect (marker 없음 = config error 분기).
+    // reachable Keycloak SSO session 정상 종료. codex P1 의 "reachable
+    // Keycloak SSO session is not terminated" 문제 회피.
+    it("on backend 204 with no X-Keycloak-Likely-Down header (config error): tries OIDC end_session_endpoint redirect", async () => {
+      tokenStoreMock.getIdToken.mockReturnValue("id-token-1");
+      fetchMock.mockImplementation(async (url: string) => {
+        if (String(url).includes("/api/v1/auth/logout")) {
+          return new Response(null, { status: 204 });
+        }
+        if (String(url).includes("/api/runtime-config")) return runtimeConfigResponse();
+        if (String(url).includes("/.well-known")) return discoveryResponse();
+        throw new Error("unexpected");
+      });
+      const { authService } = await import("./auth.service");
+      await authService.logout();
+
+      // marker 없음 → 정상 OIDC 분기 (RP-initiated logout).
+      expect(tokenStoreMock.clear).toHaveBeenCalled();
+      expect(useStoreClearActor).toHaveBeenCalled();
       expect(assignMock).toHaveBeenCalledTimes(1);
       const target = String(assignMock.mock.calls[0][0]);
       expect(target).toContain("issuer.example/protocol/openid-connect/logout");
