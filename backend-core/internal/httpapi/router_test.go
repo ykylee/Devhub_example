@@ -108,6 +108,28 @@ func TestRouter_SwaggerSpecEmptyOmitsMount(t *testing.T) {
 		t.Errorf("GET /swagger/openapi.yaml with empty spec path: got %d, want %d (spec must be omitted)", rec.Code, http.StatusNotFound)
 	}
 }
+
+// TestRouter_SwaggerVendoredAssets verifies that swagger-ui vendor assets
+// (CSS + bundle + standalone-preset) are embedded and served. PR #508 follow-up.
+func TestRouter_SwaggerVendoredAssets(t *testing.T) {
+	router := NewRouter(RouterConfig{SwaggerEnabled: true})
+	for _, p := range []string{
+		"/swagger/swagger-ui.css",
+		"/swagger/swagger-ui-bundle.js",
+		"/swagger/swagger-ui-standalone-preset.js",
+	} {
+		req := httptest.NewRequest(http.MethodGet, p, nil)
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Errorf("GET %s: got %d, want %d (vendor asset must be embedded)", p, rec.Code, http.StatusOK)
+		}
+		body := rec.Body.String()
+		if body == "" {
+			t.Errorf("GET %s: empty body (vendor asset content missing)", p)
+		}
+	}
+}
 // TestTrustedProxiesFromEnv covers the DEVHUB_TRUSTED_PROXIES contract
 // (PR-D follow-up, work_260512-i). Empty / "none" → nil keeps the silent
 // default. "*" expands to dual-stack any. Comma lists are trimmed and
