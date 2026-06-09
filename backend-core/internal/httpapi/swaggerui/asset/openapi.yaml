@@ -1,7 +1,7 @@
 openapi: "3.0.3"
 info:
   title: "DevHub API"
-  version: "0.5.0-p3-batch2"
+  version: "0.6.0-p3-batch3"
   description: |
     DevHub v1.0 출시 직전 swagger scope 확장:
     - 1차 (PR #518, ADR-0029): 4 paths → 50 paths (P0/P1), API key 인증
@@ -18,14 +18,24 @@ info:
       (admin/service-actions POST 1 + admin/users/{id}/review POST 1
       + infra/services/snapshot POST 1 + infra/topology/v2 GET 1
       + realtime/ws GET 1). path 62 → 67.
-    - 5차 (본 PR, ADR-0029 §6 (c) P1 P3 batch 2): + 4 endpoint
-      (POST /api/v1/repositories 1 + PATCH/DELETE /api/v1/repositories/{id} 2
-      + POST /api/v1/repositories/{id}/publish 1 + POST /api/v1/dev-requests/{id}/register 1
-      + POST /api/v1/dev-requests/{id}/reject 1 + POST /api/v1/dev-request-tokens 1
-      + PATCH/DELETE /api/v1/dev-request-tokens/{id} 2 = 8 신규 endpoint, 4 path 상위) + 4 schema
-      (RepositoryDraftRequest + RepositoryPublishRequest
-      + DevRequestIntakeTokenCreateRequest + DevRequestIntakeTokenUpdateRequest).
-      path 67 → 71, schema 70 → 74.
+    - 5차 (PR #522, ADR-0029 §6 (c) P1 P3 batch 2): + 8 endpoint
+      (repositories CRUD 4 + dev-requests/{id}/{register,reject} 2
+      + dev-request-tokens sub-path 2) + 4 schema. path 67 → 71,
+      schema 70 → 74.
+    - 6차 (본 PR, ADR-0029 §6 (c) P1 P3 batch 3): + 11 endpoint
+      (integration/providers/{id}/scm-repositories GET 1
+      + /import-repositories POST 1 + /create-repository POST 1
+      + /webhook POST 1 + /tasks/webhook POST 1
+      + integrations/{id} PATCH/DELETE 2
+      + integration/bindings/{id} PATCH/DELETE 2
+      + repositories/{id}/projects GET/POST 2 = 11 endpoint, 8 path 상위).
+      신규 schema 0 (요청 shape inline, RepositoryDraftRequest 재사용).
+      path 71 → 79, schema 74 → 74 (변경 0).
+    - **§6 (c) → done**: 1차 50 path → 6차 PR 후 79 path, schema 59 → 74.
+      router 81 endpoint 중 79 spec 흡수 (잔여 2 endpoint: PATCH/DELETE
+      /api/v1/projects/{project_id}/repositories/{repository_id} 는 §6
+      범위 외 → ADR-0011 §4.1 의 project-repo 가중치 mutation 으로 별도
+      PR 후보).
 
     ## Envelope 규약
     - 성공: `{schema_version, data, request_id, trace_id}`
@@ -2169,6 +2179,128 @@ paths:
         "503":
           $ref: "#/components/responses/ServerErrorEnvelope"
 
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/repositories/{repository_id}/projects — repository 연결 project (P3 batch 3, staticTokenAuth 허용)
+  # POST /api/v1/repositories/{repository_id}/projects — project 연결 (P3 batch 3, bearerAuth only)
+  # ---------------------------------------------------------------------------
+  /api/v1/repositories/{repository_id}/projects:
+    get:
+      tags:
+        - Project
+      summary: "Repository 연결 project 목록"
+      operationId: listProjects
+      description: |
+        repository_id 에 연결된 project 목록. ADR-0029: staticTokenAuth 허용 (projects:view).
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: repository_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "조회할 repository ID"
+      responses:
+        "200":
+          description: "Project 목록"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  items:
+                    - project_id: "proj_001"
+                      name: "API Modernization"
+                      weight: 0.7
+                    - project_id: "proj_002"
+                      name: "Quality Improvement"
+                      weight: 0.3
+                request_id: "req_repo_proj_list_001"
+                trace_id: "trace_repo_proj_list_001"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+    post:
+      tags:
+        - Project
+      summary: "Repository-project 연결"
+      operationId: createProject
+      description: |
+        repository_id 에 신규 project 생성 + 자동 연결 (repository 1:N project).
+        team_manager+ 전용. 본 endpoint 는 write — ADR-0029 staticTokenAuth 미허용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: repository_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "연결할 repository ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  example: "API Modernization"
+                description:
+                  type: string
+                weight:
+                  type: number
+                  format: float
+                  minimum: 0
+                  maximum: 1
+                  default: 1
+                  description: "project 가중치 (repository 의 priority 분배)"
+            example:
+              name: "API Modernization"
+              weight: 0.7
+      responses:
+        "201":
+          description: "Project 생성 + repository 연결 성공"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  project_id: "proj_001"
+                  name: "API Modernization"
+                  repository_id: "repo_001"
+                request_id: "req_repo_proj_create_001"
+                trace_id: "trace_repo_proj_create_001"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
 # =============================================================================
 # P1 — SCM Provider
 # =============================================================================
@@ -2389,6 +2521,105 @@ paths:
         "401":
           $ref: "#/components/responses/UnauthorizedEnvelope"
         "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # PATCH /api/v1/integrations/{integration_id} — integration 수정 (P3 batch 3, bearerAuth only)
+  # DELETE /api/v1/integrations/{integration_id} — integration 삭제 (P3 batch 3, bearerAuth only)
+  # ---------------------------------------------------------------------------
+  /api/v1/integrations/{integration_id}:
+    patch:
+      tags:
+        - Integration
+      summary: "Integration 수정"
+      operationId: updateIntegration
+      description: |
+        integration_id 의 catalog 항목 수정 (label / config). admin 전용.
+        본 endpoint 는 write — ADR-0029 staticTokenAuth 미허용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: integration_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "수정할 integration ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                label:
+                  type: string
+                config:
+                  type: object
+                  description: "integration-specific config (JSON)"
+            example:
+              label: "Jira (Production)"
+              config:
+                project_key: "DEVHUB"
+      responses:
+        "200":
+          description: "Integration 수정 성공"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  integration_id: "int_001"
+                  label: "Jira (Production)"
+                request_id: "req_int_update_001"
+                trace_id: "trace_int_update_001"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+    delete:
+      tags:
+        - Integration
+      summary: "Integration 삭제 (soft delete)"
+      operationId: deleteIntegration
+      description: |
+        integration_id 의 catalog 항목 soft delete. admin 전용.
+        본 endpoint 는 write — ADR-0029 staticTokenAuth 미허용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: integration_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "삭제할 integration ID"
+      responses:
+        "204":
+          description: "Integration 삭제 성공"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
           $ref: "#/components/responses/ForbiddenEnvelope"
         "503":
           $ref: "#/components/responses/ServerErrorEnvelope"
@@ -2630,6 +2861,304 @@ paths:
           $ref: "#/components/responses/ServerErrorEnvelope"
 
   # ---------------------------------------------------------------------------
+  # GET /api/v1/integration/providers/{provider_id}/scm-repositories — SCM repo list (P3 batch 3, staticTokenAuth 허용)
+  # ---------------------------------------------------------------------------
+  /api/v1/integration/providers/{provider_id}/scm-repositories:
+    get:
+      tags:
+        - Integration
+      summary: "Provider 의 SCM repository 목록"
+      operationId: listSCMRepositories
+      description: |
+        provider_id 의 SCM (Gitea / GitHub / GitLab) repository 목록 조회.
+        ADR-0029: staticTokenAuth 허용 (infrastructure:view).
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: provider_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "provider ID"
+        - name: org
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "SCM org/team 필터"
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: "SCM repository 목록"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  items:
+                    - name: "team_api"
+                      full_name: "Platform Team/API Service"
+                      visibility: "private"
+                      default_branch: "main"
+                request_id: "req_scm_repo_list_001"
+                trace_id: "trace_scm_repo_list_001"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # POST /api/v1/integration/providers/{provider_id}/import-repositories — import from SCM (P3 batch 3, bearerAuth only)
+  # ---------------------------------------------------------------------------
+  /api/v1/integration/providers/{provider_id}/import-repositories:
+    post:
+      tags:
+        - Integration
+      summary: "SCM repository 일괄 import"
+      operationId: importSCMRepositories
+      description: |
+        provider_id 의 SCM repository 일괄 import (bulk). draft status 로
+        생성 — publish API 호출까지 application 에 노출 안 됨.
+        admin 전용. 본 endpoint 는 write — ADR-0029 staticTokenAuth 미허용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: provider_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "provider ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - repositories
+              properties:
+                repositories:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - full_name
+                    properties:
+                      full_name:
+                        type: string
+                        example: "Platform Team/API Service"
+                      visibility:
+                        type: string
+                        enum:
+                          - "public"
+                          - "private"
+                          - "internal"
+            example:
+              repositories:
+                - full_name: "Platform Team/API Service"
+                  visibility: "private"
+                - full_name: "Platform Team/Auth Service"
+                  visibility: "private"
+      responses:
+        "202":
+          description: "Import 접수 (bulk 처리)"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  imported_count: 2
+                  draft_ids:
+                    - "repo_001"
+                    - "repo_002"
+                request_id: "req_scm_import_001"
+                trace_id: "trace_scm_import_001"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # POST /api/v1/integration/providers/{provider_id}/create-repository — create repo on SCM (P3 batch 3, bearerAuth only)
+  # ---------------------------------------------------------------------------
+  /api/v1/integration/providers/{provider_id}/create-repository:
+    post:
+      tags:
+        - Integration
+      summary: "SCM 에 신규 repository 생성"
+      operationId: createSCMRepository
+      description: |
+        provider_id 의 SCM 에 신규 repository 생성 + DevHub draft 자동 등록.
+        admin 전용. 본 endpoint 는 write — ADR-0029 staticTokenAuth 미허용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: provider_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "provider ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RepositoryDraftRequest"
+            example:
+              provider_key: "gitea:internal"
+              name: "team_payment"
+              full_name: "Platform Team/Payment Service"
+              visibility: "private"
+      responses:
+        "201":
+          description: "SCM repository 생성 성공"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  repository_id: "repo_002"
+                  status: "draft"
+                  scm_url: "https://gitea.internal/Platform Team/Payment Service"
+                request_id: "req_scm_create_001"
+                trace_id: "trace_scm_create_001"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "409":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # POST /api/v1/integration/providers/{provider_id}/webhook — provider webhook ingest (P3 batch 3, Bypass)
+  # ---------------------------------------------------------------------------
+  /api/v1/integration/providers/{provider_id}/webhook:
+    post:
+      tags:
+        - Integration
+      summary: "Provider webhook ingest (Bypass)"
+      operationId: ingestIntegrationProviderWebhook
+      description: |
+        통합 provider 의 webhook 수신. X-Provider-Webhook-Secret header 검증
+        (fail-closed in handler). Bypass — RBAC matrix 미사용.
+        system / webhook source. ADR-0029 staticTokenAuth 도 미허용 (internal only).
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: provider_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "webhook 을 보낸 provider ID"
+        - name: X-Provider-Webhook-Secret
+          in: header
+          required: true
+          schema:
+            type: string
+          description: "Provider webhook secret (DEVHUB_PROVIDER_WEBHOOK_SECRET_<ID>)"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: "Provider-specific webhook payload"
+      responses:
+        "202":
+          description: "Webhook 접수 (async 처리)"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # POST /api/v1/integration/providers/{provider_id}/tasks/webhook — task item webhook (P3 batch 3, Bypass)
+  # ---------------------------------------------------------------------------
+  /api/v1/integration/providers/{provider_id}/tasks/webhook:
+    post:
+      tags:
+        - Integration
+      summary: "Task item webhook ingest (Bypass)"
+      operationId: ingestIntegrationProviderTaskWebhook
+      description: |
+        통합 provider 의 task item webhook (Jira / Linear / Asana).
+        X-Provider-Webhook-Secret header 검증. Bypass — RBAC matrix 미사용.
+        system / webhook source. ADR-0029 staticTokenAuth 도 미허용 (internal only).
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: provider_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "webhook 을 보낸 provider ID"
+        - name: X-Provider-Webhook-Secret
+          in: header
+          required: true
+          schema:
+            type: string
+          description: "Provider webhook secret"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: "Provider-specific task webhook payload"
+      responses:
+        "202":
+          description: "Webhook 접수 (async 처리)"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
   # GET /api/v1/integration/bindings — integration binding 목록 (P1)
   # ---------------------------------------------------------------------------
   /api/v1/integration/bindings:
@@ -2672,6 +3201,106 @@ paths:
         "401":
           $ref: "#/components/responses/UnauthorizedEnvelope"
         "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # PATCH /api/v1/integration/bindings/{binding_id} — binding 수정 (P3 batch 3, bearerAuth only)
+  # DELETE /api/v1/integration/bindings/{binding_id} — binding 삭제 (P3 batch 3, bearerAuth only)
+  # ---------------------------------------------------------------------------
+  /api/v1/integration/bindings/{binding_id}:
+    patch:
+      tags:
+        - Integration
+      summary: "Integration binding 수정"
+      operationId: updateIntegrationBinding
+      description: |
+        binding_id 의 binding (integration ↔ org/repo link) 수정.
+        admin 전용. 본 endpoint 는 write — ADR-0029 staticTokenAuth 미허용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: binding_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "수정할 binding ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                config:
+                  type: object
+                  description: "binding-specific config (JSON)"
+                enabled:
+                  type: boolean
+                  description: "binding 활성/비활성"
+            example:
+              config:
+                channel: "#devhub-alerts"
+              enabled: true
+      responses:
+        "200":
+          description: "Binding 수정 성공"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  binding_id: "bind_001"
+                  enabled: true
+                request_id: "req_bind_update_001"
+                trace_id: "trace_bind_update_001"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+    delete:
+      tags:
+        - Integration
+      summary: "Integration binding 삭제"
+      operationId: deleteIntegrationBinding
+      description: |
+        binding_id 의 binding 삭제 (cascade: 관련 audit log 보존). admin 전용.
+        본 endpoint 는 write — ADR-0029 staticTokenAuth 미허용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: binding_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "삭제할 binding ID"
+      responses:
+        "204":
+          description: "Binding 삭제 성공"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
           $ref: "#/components/responses/ForbiddenEnvelope"
         "503":
           $ref: "#/components/responses/ServerErrorEnvelope"
