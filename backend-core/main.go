@@ -175,9 +175,11 @@ func main() {
 	}
 
 	// Swagger UI 1차 bootstrap (ADR-0027) — opt-in via DEVHUB_SWAGGER_ENABLED.
-	// OpenAPISpecPath 는 명시적 절대경로 env 필수 (예: /etc/devhub/openapi.yaml);
-	// 빈 값이면 스펙 미서빙 (UI 만 mount). codex P2 fix (PR #508): cwd-relative
-	// default 가 운영 cwd 가 repo root 가 아닐 때 silent 미존재하는 함정 회피.
+	// OpenAPISpecPath 는 명시적 절대경로 env (예: /etc/devhub/openapi.yaml) 가
+	// 설정되면 disk 파일을 서빙하고, 미설정 시 embed.FS 의 swaggerui/asset/openapi.yaml
+	// (docs/openapi.yaml 의 build-time copy) 로 fallback. codex P2 fix (PR #508):
+	// cwd-relative default 가 운영 cwd 가 repo root 가 아닐 때 silent 미존재하는
+	// 함정 회피 — env 미설정 = 명시적 disk 경로 없음, embed fallback 으로 전환.
 	swaggerSpecPath := strings.TrimSpace(os.Getenv("DEVHUB_OPENAPI_SPEC_PATH"))
 
 	router := httpapi.NewRouter(httpapi.RouterConfig{

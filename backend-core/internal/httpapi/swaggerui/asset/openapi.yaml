@@ -1,0 +1,527 @@
+openapi: "3.0.3"
+info:
+  title: "DevHub API"
+  version: "0.1.0-v1.0-bootstrap"
+  description: |
+    DevHub v1.0 출시 직전 bootstrap. 1차 MVP scope:
+    envelope 규약 + health + /me + /auth/logout + /metrics.
+    도메인 endpoint 100+ (platform, repository, project, integration, DREQ 등)는
+    별도 sprint — 본 spec 에 미포함.
+
+    ## Envelope 규약
+    - 성공: `{schema_version, data, request_id, trace_id}`
+    - 실패: `{schema_version, data: null, request_id, trace_id, error: {code, message, details?}}`
+    - `/health` 는 envelope 미사용 (raw 200).
+
+    ## 인증
+    - Bearer token (Keycloak OIDC access token, ADR-0019).
+    - `/me`, `/api/v1/auth/logout` 만 `security: [{bearerAuth}]` 적용.
+
+    ## 참고 — swagger self-link
+    본 파일은 `docs/openapi.yaml` 로 직접 hand-maintain.
+    Swagger UI 에서 self-link 로 표시할 경우 `/docs/openapi.yaml` 참조.
+
+servers:
+  - url: "http://localhost:8080"
+    description: "local dev"
+
+tags:
+  - name: System
+    description: "서비스 상태 확인 — 인증 불필요."
+  - name: Auth
+    description: "OIDC 기반 로그아웃 — Bearer token 필요."
+  - name: Me
+    description: "현재 인증된 사용자 profile 조회 — Bearer token 필요."
+  - name: Operational
+    description: "Prometheus 메트릭 노출 및 운영 endpoint."
+
+paths:
+  # ---------------------------------------------------------------------------
+  # Health — no envelope, raw JSON
+  # ---------------------------------------------------------------------------
+  /health:
+    get:
+      tags:
+        - System
+      summary: "Go Core 상태 확인"
+      operationId: getHealth
+      description: |
+        backend-core health check. envelope 미사용 — raw JSON 응답.
+        DB 연결이 없으면 db=disabled, 연결 불량이면 503.
+      responses:
+        "200":
+          description: "정상"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+        "503":
+          description: "DB 연결 불량"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  # ---------------------------------------------------------------------------
+  # /me — Bearer auth required
+  # ---------------------------------------------------------------------------
+  /api/v1/me:
+    get:
+      tags:
+        - Me
+      summary: "현재 인증 사용자 profile 조회"
+      operationId: getMe
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      responses:
+        "200":
+          description: "사용자 profile"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  user_id: "alice"
+                  email: "alice@example.com"
+                  display_name: "Alice Kim"
+                  role: "developer"
+                  status: "active"
+                  idp_subject: "a1b2c3d4-..."
+                request_id: "req_abc123"
+                trace_id: "trace_xyz789"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # /auth/logout — Bearer auth required, 204 | 200
+  # ---------------------------------------------------------------------------
+  /api/v1/auth/logout:
+    post:
+      tags:
+        - Auth
+      summary: "OIDC logout + session clear"
+      operationId: postAuthLogout
+      description: |
+        Bearer token 으로 인증된 현재 세션을 로그아웃.
+        server-managed cookie 4종 clear + Keycloak OIDC logout endpoint 호출.
+
+        ### 응답 케이스
+        - **204** — 로그아웃 성공 (idempotent). refresh_token 미제출 시에도 204.
+        - **200** — OIDC logout 호출 성공 시 envelope 응답 (data 에 revoke_status, hotfix_id).
+        - **401** — 미인증 또는 invalid token.
+
+        ### N-8 hotfix 4차 (issue #501, 2026-06-09)
+        Keycloak network/5xx outage 시에도 **204 + marker headers**로 graceful degrade.
+        marker 미부착 시 frontend 는 정상 OIDC end_session_endpoint 호출.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refresh_token:
+                  type: string
+                  description: "OIDC refresh token — optional, 없으면 skip_no_refresh_token"
+                id_token:
+                  type: string
+                  description: "OIDC id_token — optional, audit 용"
+      responses:
+        "204":
+          description: "로그아웃 성공 (idempotent) — Keycloak 정상 또는 graceful degrade"
+          headers:
+            X-Keycloak-Likely-Down:
+              $ref: "#/components/headers/XKeycloakLikelyDown"
+            X-Logout-Hotfix:
+              $ref: "#/components/headers/XLogoutHotfix"
+        "200":
+          description: "OIDC logout 호출 성공 — envelope 응답"
+          headers:
+            X-Keycloak-Likely-Down:
+              $ref: "#/components/headers/XKeycloakLikelyDown"
+            X-Logout-Hotfix:
+              $ref: "#/components/headers/XLogoutHotfix"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  revoke_status: "ok"
+                  hotfix_id: "N-8-4:graceful-degrade"
+                request_id: "req_def456"
+                trace_id: "trace_uvw321"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # /metrics — Prometheus exposition, no envelope
+  # ---------------------------------------------------------------------------
+  /metrics:
+    get:
+      tags:
+        - Operational
+      summary: "Prometheus metrics endpoint"
+      operationId: getMetrics
+      description: |
+        Prometheus exposition format (text/plain).
+        Keycloak SPI webhook secret 미설정 시 503 envelope error.
+      responses:
+        "200":
+          description: "Prometheus metrics"
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: "OpenMetrics / Prometheus exposition format"
+        "503":
+          description: "Keycloak SPI webhook secret 미설정 등 운영 장애"
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+# =============================================================================
+# Components
+# =============================================================================
+components:
+  schemas:
+    # -----------------------------------------------------------------------
+    # Envelope — 성공
+    # -----------------------------------------------------------------------
+    Envelope:
+      type: object
+      required:
+        - schema_version
+        - data
+        - request_id
+        - trace_id
+      properties:
+        schema_version:
+          type: string
+          description: "Envelope schema version — 현재 \"1.0\""
+          example: "1.0"
+        data:
+          description: "응답 payload — endpoint 별 schema"
+          oneOf:
+            - $ref: "#/components/schemas/UserSummary"
+            - $ref: "#/components/schemas/LogoutData"
+        request_id:
+          type: string
+          description: "X-Request-ID header 와 동일한 correlation ID"
+          example: "req_abc123"
+        trace_id:
+          type: string
+          description: "분산 추적 trace ID"
+          example: "trace_xyz789"
+
+    # -----------------------------------------------------------------------
+    # EnvelopeError — 실패
+    # -----------------------------------------------------------------------
+    EnvelopeError:
+      type: object
+      required:
+        - schema_version
+        - data
+        - request_id
+        - trace_id
+        - error
+      properties:
+        schema_version:
+          type: string
+          example: "1.0"
+        data:
+          type: "null"
+          description: "실패 시 항상 null"
+        request_id:
+          type: string
+          example: "req_abc123"
+        trace_id:
+          type: string
+          example: "trace_xyz789"
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              $ref: "#/components/schemas/ErrorCode"
+            message:
+              type: string
+              description: "사람 가독 에러 메시지"
+              example: "invalid bearer token"
+            details:
+              type: string
+              description: "추가 디버그 정보 (선택)"
+
+    # -----------------------------------------------------------------------
+    # UserSummary — /me data payload
+    # -----------------------------------------------------------------------
+    UserSummary:
+      type: object
+      required:
+        - user_id
+        - role
+        - status
+      properties:
+        user_id:
+          type: string
+          description: "OIDC sub 와 매핑되는 내부 식별자"
+          example: "alice"
+        email:
+          type: string
+          format: email
+          description: "사용자 email — token-only actor (DB row 미존재) 시 token claim 에서 추출"
+        display_name:
+          type: string
+          description: "표시 이름"
+          example: "Alice Kim"
+        role:
+          type: string
+          enum:
+            - "developer"
+            - "manager"
+            - "system_admin"
+          description: "DevHub 내부 role wire format"
+          example: "developer"
+        status:
+          $ref: "#/components/schemas/AccountStatus"
+        idp_subject:
+          type: string
+          description: "Keycloak OIDC sub claim — ADR-0019 §4.3 idp_subject lazy backfill"
+          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+
+    # -----------------------------------------------------------------------
+    # LogoutData — /auth/logout 200 data payload
+    # -----------------------------------------------------------------------
+    LogoutData:
+      type: object
+      required:
+        - revoke_status
+      properties:
+        revoke_status:
+          type: string
+          enum:
+            - "ok"
+            - "unreachable"
+            - "config_error"
+            - "skipped_no_refresh_token"
+          description: |
+            Keycloak OIDC logout 결과.
+            - ok: 정상 폐기
+            - unreachable: Keycloak 도달 실패 (marker 부착)
+            - config_error: backend config 결함 (marker 미부착, SSO session 정상)
+            - skipped_no_refresh_token: refresh_token 미제출로 skip
+        hotfix_id:
+          type: string
+          description: "N-8 hotfix 식별자 — marker 부착 시 포함"
+          example: "N-8-4:graceful-degrade"
+
+    # -----------------------------------------------------------------------
+    # HealthResponse — /health raw (no envelope)
+    # -----------------------------------------------------------------------
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - service
+      properties:
+        status:
+          type: string
+          enum:
+            - "ok"
+            - "degraded"
+          description: "ok | degraded (DB error 시)"
+        service:
+          type: string
+          example: "backend-core"
+        db:
+          type: string
+          enum:
+            - "ok"
+            - "disabled"
+            - "error"
+          description: "DB 상태 — disabled (미설정), ok (연결), error (연결 불량)"
+        error:
+          type: string
+          description: "DB error detail — 503 시에만 포함"
+
+    # -----------------------------------------------------------------------
+    # AccountStatus enum
+    # -----------------------------------------------------------------------
+    AccountStatus:
+      type: string
+      enum:
+        - "active"
+        - "disabled"
+        - "locked"
+        - "password_reset_required"
+      description: "계정 상태 (docs/api/conventions.md §2.2)"
+
+    # -----------------------------------------------------------------------
+    # ErrorCode — string enum subset
+    # -----------------------------------------------------------------------
+    ErrorCode:
+      type: string
+      enum:
+        - "auth_failed"
+        - "auth_row_denied"
+        - "internal_error"
+        - "oidc_config_missing"
+        - "oidc_network_unreachable"
+        - "request_id_invalid"
+        - "validation_failed"
+        - "unauthenticated"
+        - "not_found"
+        - "unavailable"
+      description: |
+        에러 코드 enum (subset — 도메인 endpoint 확장 시 추가 예정).
+        - auth_failed: Bearer token 검증 실패
+        - auth_row_denied: RBAC row-level deny
+        - internal_error: 예상치 못한 서버 오류
+        - oidc_config_missing: OIDC backend config 결함
+        - oidc_network_unreachable: Keycloak network/5xx
+        - request_id_invalid: 잘못된 X-Request-ID 형식
+        - validation_failed: 요청 payload 검증 실패
+        - unauthenticated: 인증 정보 없음
+        - not_found: 리소스 미존재
+        - unavailable: 서비스 일시 불가
+
+  # =========================================================================
+  # Security Schemes
+  # =========================================================================
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "Keycloak-issued access token (ADR-0019)"
+
+  # =========================================================================
+  # Parameters
+  # =========================================================================
+  parameters:
+    RequestIdHeader:
+      name: X-Request-ID
+      in: header
+      description: |
+        Correlation ID. caller-supplied 시 passthrough, 미설정 시 서버 자동 생성.
+        response header 로 echo.
+      schema:
+        type: string
+        example: "req_caller_supplied_42"
+      required: false
+
+  # =========================================================================
+  # Headers
+  # =========================================================================
+  headers:
+    XRequestID:
+      description: "Correlation ID — 요청과 동일한 값 또는 서버 생성"
+      schema:
+        type: string
+        example: "req_caller_supplied_42"
+
+    XKeycloakLikelyDown:
+      description: |
+        N-8 hotfix 4차 marker. Keycloak network/5xx outage 시 "true".
+        frontend 가 이 marker 확인 시 OIDC end_session_endpoint 호출 skip + 강제 /login redirect.
+        config_error (ErrOIDCConfigMissing) 시에는 미부착.
+      schema:
+        type: string
+        example: "true"
+
+    XLogoutHotfix:
+      description: "N-8 hotfix version identifier — marker 와 함께 부착"
+      schema:
+        type: string
+        example: "N-8-4:graceful-degrade"
+
+  # =========================================================================
+  # 공통 Error Responses
+  # =========================================================================
+  responses:
+    UnauthorizedEnvelope:
+      description: "인증 실패 — Bearer token 없음 또는 검증 실패"
+      headers:
+        X-Request-ID:
+          $ref: "#/components/headers/XRequestID"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/EnvelopeError"
+          example:
+            schema_version: "1.0"
+            data: null
+            request_id: "req_unauth_001"
+            trace_id: "trace_unauth_001"
+            error:
+              code: "unauthenticated"
+              message: "invalid bearer token"
+
+    ForbiddenEnvelope:
+      description: "권한 부족 — role/permission deny"
+      headers:
+        X-Request-ID:
+          $ref: "#/components/headers/XRequestID"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/EnvelopeError"
+          example:
+            schema_version: "1.0"
+            data: null
+            request_id: "req_forbidden_001"
+            trace_id: "trace_forbidden_001"
+            error:
+              code: "auth_row_denied"
+              message: "insufficient role for this resource"
+
+    BadRequestEnvelope:
+      description: "잘못된 요청"
+      headers:
+        X-Request-ID:
+          $ref: "#/components/headers/XRequestID"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/EnvelopeError"
+          example:
+            schema_version: "1.0"
+            data: null
+            request_id: "req_bad_001"
+            trace_id: "trace_bad_001"
+            error:
+              code: "validation_failed"
+              message: "request payload validation failed"
+              details: "field 'email' is required"
+
+    ServerErrorEnvelope:
+      description: "서버 내부 오류 — 5xx"
+      headers:
+        X-Request-ID:
+          $ref: "#/components/headers/XRequestID"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/EnvelopeError"
+          example:
+            schema_version: "1.0"
+            data: null
+            request_id: "req_server_err_001"
+            trace_id: "trace_server_err_001"
+            error:
+              code: "internal_error"
+              message: "unexpected server error"
