@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-06-08 main. N-11 CI e2e + backend-integration job 복원 운영 정합 (sprint 260608-a, issue #419). 잔여 DoD = main 첫 PR 두 job 실 실행 PASS.",
-  "updated_at": "2026-06-08T13:28:00Z",
-  "head_commit": "3855e46 (pre-1차-PR 머지 상태; 1차 PR 머지 후 XXX 로 갱신)",
-  "head_summary": "Merge pull request #497 from ykylee/mvs/work_260608-i-frontend-sign-out",
+  "status": "2026-06-09 main. N-8 sign-out e2e deterministic race hotfix 4차 완료 (PR #502 + #503, 3 commit, issue #501 closed) + N-11 잔여 DoD 해소 (e2e shard 1..3 PASS) + 워커 분업 전면 취소 (PR #500). 자유 에이전트 정책 + v1.0 출시 직전.",
+  "updated_at": "2026-06-09T01:19:00Z",
+  "head_commit": "897953c",
+  "head_summary": "fix(auth-session): N-8 hotfix 4차 codex P1 — 204 + X-Keycloak-Likely-Down header (#503)",
   "milestones": {
     "M0": {
       "status": "done",
