@@ -1094,3 +1094,90 @@ func TestLooksLikeJWT(t *testing.T) {
 		t.Errorf("non-JWT token should not reach Keycloak verifier; got token=%q", verifier.token)
 	}
 }
+
+// ADR-0029 §6 (g) P2 — API key 인증 성공 시 `auth.api_key_authenticated` audit + payload enrichment 검증.
+func TestAPIKeyAuthentication_SuccessAuditEnriched(t *testing.T) {
+	const key = "test-api-key-audit-success-2026-06-09"
+	audits := &memoryAuditStore{}
+	router := NewRouter(RouterConfig{
+		APIKey:            key,
+		OrganizationStore: newMemoryOrganizationStore(),
+		AuditStore:        audits,
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/dashboard/metrics", nil)
+	req.Header.Set("Authorization", "Bearer "+key)
+	req.Header.Set("X-Forwarded-For", "203.0.113.42")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d (body=%s)", rec.Code, rec.Body.String())
+	}
+
+	// audit row 검증.
+	var found *domain.AuditLog
+	for i, log := range audits.logs {
+		if log.Action == "auth.api_key_authenticated" {
+			found = &audits.logs[i]
+			break
+		}
+	}
+	if found == nil {
+		t.Fatalf("expected auth.api_key_authenticated audit row, got logs=%+v", audits.logs)
+	}
+	if found.TargetType != "auth" || found.TargetID != "api-key" {
+		t.Errorf("audit target mismatch: got targetType=%q targetID=%q, want auth/api-key", found.TargetType, found.TargetID)
+	}
+	if found.Payload["actor_role"] != "system_admin" {
+		t.Errorf("payload.actor_role = %v, want system_admin", found.Payload["actor_role"])
+	}
+	if found.Payload["path"] != "/api/v1/dashboard/metrics" {
+		t.Errorf("payload.path = %v, want /api/v1/dashboard/metrics", found.Payload["path"])
+	}
+	if found.Payload["method"] != http.MethodGet {
+		t.Errorf("payload.method = %v, want GET", found.Payload["method"])
+	}
+	if found.Payload["client_ip"] == "" || found.Payload["client_ip"] == nil {
+		t.Errorf("payload.client_ip = %v, want non-empty (X-Forwarded-For honored)", found.Payload["client_ip"])
+	}
+	if found.Payload["request_id"] == "" || found.Payload["request_id"] == nil {
+		t.Errorf("payload.request_id = %v, want non-empty", found.Payload["request_id"])
+	}
+}
+
+// ADR-0029 §6 (g) P2 — API key 인증 거부 (invalid key) 시 `auth.api_key_denied` audit + reason=envelope 검증.
+func TestAPIKeyAuthentication_InvalidKeyAuditEnriched(t *testing.T) {
+	audits := &memoryAuditStore{}
+	router := NewRouter(RouterConfig{
+		APIKey:            "correct-key",
+		OrganizationStore: newMemoryOrganizationStore(),
+		AuditStore:        audits,
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/dashboard/metrics", nil)
+	req.Header.Set("Authorization", "Bearer wrong-key")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", rec.Code)
+	}
+
+	var found *domain.AuditLog
+	for i, log := range audits.logs {
+		if log.Action == "auth.api_key_denied" {
+			found = &audits.logs[i]
+			break
+		}
+	}
+	if found == nil {
+		t.Fatalf("expected auth.api_key_denied audit row, got logs=%+v", audits.logs)
+	}
+	if found.Payload["reason"] != "invalid_key" {
+		t.Errorf("payload.reason = %v, want invalid_key", found.Payload["reason"])
+	}
+	if found.Payload["path"] != "/api/v1/dashboard/metrics" {
+		t.Errorf("payload.path = %v, want /api/v1/dashboard/metrics", found.Payload["path"])
+	}
+}

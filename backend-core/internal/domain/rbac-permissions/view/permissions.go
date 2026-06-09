@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/devhub/backend-core/internal/shared/httphelp"
+	"github.com/devhub/backend-core/internal/shared/metrics"
 	"log"
 	"net/http"
 	"sync"
@@ -451,7 +452,13 @@ func (h *RBACHandler) EnforceRoutePermission(c *gin.Context) {
 			"auth_source": "api_key",
 			"resource":    string(policy.Resource),
 			"action":      string(policy.Action),
+			"reason":      "admin_gate_mutation",
+			"method":      c.Request.Method,
+			"client_ip":   c.ClientIP(),
+			"request_id":  httphelp.RequestIDFrom(c),
 		})
+		// SOP §6.1 metric 정합 — auth denied counter (admin gate).
+		metrics.DevhubAPIKeyAuthTotal.WithLabelValues("denied").Inc()
 		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
 			"status": "forbidden",
 			"error":  "api key caller is restricted to read-only endpoints; admin endpoints require Keycloak authentication (ADR-0029 §6 (a))",

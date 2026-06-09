@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/devhub/backend-core/internal/domain"
+	"github.com/devhub/backend-core/internal/shared/metrics"
 	"github.com/devhub/backend-core/internal/store"
 	"github.com/gin-gonic/gin"
 )
@@ -173,9 +174,35 @@ func (h *AuthHandler) AuthenticateActor(c *gin.Context) {
 			c.Set(httphelp.CtxKeySourceType, domain.AuditSourceSystem)
 			c.Header("X-Devhub-Auth", "api_key")
 			httphelp.LogRequest(c, "[authenticateActor] API key authenticated for path: %s", c.FullPath())
+			// ADR-0029 §6 (g) — audit + metric enrich. SOP [`docs/setup/api_key_rotation.md` §6.1]
+			// 의 4 audit 정합. `auth.api_key_authenticated` 1 row per request emit
+			// (best-effort — DB outage 도 인증은 통과). payload 에 `actor_role` /
+			// `path` / `client_ip` / `request_id` 명시. request_id 는 httphelp.RequestIDFrom
+			// 로 cross-correlation. metric increment 는 `c.Next()` 후에 middleware 가
+			// 처리 — 본 middleware 는 인증 직후. SOP §6.1 metric 정의 정합.
+			h.recordAuditBestEffort(c, "auth.api_key_authenticated", "auth", "api-key", map[string]any{
+				"actor_role": "system_admin",
+				"path":       c.FullPath(),
+				"method":     c.Request.Method,
+				"client_ip":  c.ClientIP(),
+				"request_id": httphelp.RequestIDFrom(c),
+			})
+			// SOP §6.1 metric 정합 — auth success counter.
+			metrics.DevhubAPIKeyAuthTotal.WithLabelValues("success").Inc()
 			c.Next()
 			return
 		}
+		// ADR-0029 §6 (g) — invalid key 거부 시 audit emit (best-effort). SOP §6.1 의
+		// 4 audit 정합. `auth.api_key_denied` (system_admin emit, invalid key).
+		h.recordAuditBestEffort(c, "auth.api_key_denied", "auth", "api-key", map[string]any{
+			"reason":     "invalid_key",
+			"path":       c.FullPath(),
+			"method":     c.Request.Method,
+			"client_ip":  c.ClientIP(),
+			"request_id": httphelp.RequestIDFrom(c),
+		})
+		// SOP §6.1 metric 정합 — auth denied counter (invalid key).
+		metrics.DevhubAPIKeyAuthTotal.WithLabelValues("denied").Inc()
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 			"status": "unauthenticated",
 			"error":  "invalid api key",

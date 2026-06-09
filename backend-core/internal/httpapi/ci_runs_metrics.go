@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"github.com/devhub/backend-core/internal/shared/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -38,9 +39,9 @@ var (
 
 func init() {
 	// prometheus.Register 는 중복 등록 시 panic. 동일 binary 에서 한 번만 호출.
-	// best-effort: register 실패 시 (이미 등록됨) 무시.
-	registerCollectorSafe(devhubCIRunsTotal)
-	registerCollectorSafe(devhubCIRunIngestDuration)
+	// best_effort: register 실패 시 (이미 등록됨) 무시.
+	metrics.RegisterCollectorSafe(devhubCIRunsTotal)
+	metrics.RegisterCollectorSafe(devhubCIRunIngestDuration)
 }
 
 func registerCollectorSafe(c prometheus.Collector) {
