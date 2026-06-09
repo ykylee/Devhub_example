@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"os"
 	"strings"
 	"time"
 
@@ -165,7 +166,17 @@ func main() {
 		log.Println("[WARNING] DEVHUB_AUTH_DEV_FALLBACK is enabled. Development-only authentication fallbacks are ACTIVE.")
 	}
 
+	// Swagger UI 1차 bootstrap (ADR-0027, sprint work_260610-a) — opt-in via
+	// DEVHUB_SWAGGER_ENABLED. OpenAPISpecPath 는 process cwd 기준 상대경로
+	// (보통 repo root) — 운영에서는 절대경로 env (e.g. /etc/devhub/openapi.yaml) 권장.
+	swaggerSpecPath := strings.TrimSpace(os.Getenv("DEVHUB_OPENAPI_SPEC_PATH"))
+	if swaggerSpecPath == "" {
+		swaggerSpecPath = "docs/openapi.yaml"
+	}
+
 	router := httpapi.NewRouter(httpapi.RouterConfig{
+		SwaggerEnabled:             cfg.SwaggerEnabled,
+		OpenAPISpecPath:            swaggerSpecPath,
 		WebhookSecret:              cfg.GiteaWebhookSecret,
 		KeycloakWebhookSecret:      cfg.KeycloakWebhookSecret,
 		InfraAgentToken:            cfg.InfraAgentToken,

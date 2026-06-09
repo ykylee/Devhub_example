@@ -25,10 +25,10 @@ func TestRouter_SwaggerDisabledByDefault(t *testing.T) {
 }
 
 // TestRouter_SwaggerEnabledServesUI verifies that the Swagger UI mount is
-// active when SwaggerEnabled=true.  The embedded asset directory currently
-// contains only .gitkeep (index.html is a separate task), so the body-content
-// assertion is deferred.  This test validates that the /swagger/* route group
-// is registered.
+// active when SwaggerEnabled=true — both the route registration AND the actual
+// asset lookup (codex P1 review, 2026-06-10: previously only checked the
+// route registration, missing the fs.Sub sub-mount issue that returned 404
+// for GET /swagger/index.html).
 func TestRouter_SwaggerEnabledServesUI(t *testing.T) {
 	router := NewRouter(RouterConfig{SwaggerEnabled: true})
 
@@ -42,6 +42,32 @@ func TestRouter_SwaggerEnabledServesUI(t *testing.T) {
 	if !found {
 		t.Error("SwaggerEnabled=true but no /swagger route registered in router.Routes()")
 	}
+
+	// Regression guard: GET /swagger/ returns 200 with embedded index.html.
+	// Without fs.Sub (codex P1 review), the FS root would still contain the
+	// swaggerui/ prefix and this would 404.  Trailing-slash form is used
+	// because gin StaticFS 301-redirects /swagger/index.html to "./".
+	req := httptest.NewRequest(http.MethodGet, "/swagger/", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Errorf("GET /swagger/index.html with SwaggerEnabled=true: got %d, want %d (likely fs.Sub missing)", rec.Code, http.StatusOK)
+	}
+	if !strings.Contains(rec.Body.String(), "swagger-ui") {
+		body := rec.Body.String()
+		preview := body
+		if len(preview) > 200 {
+			preview = preview[:200]
+		}
+		t.Errorf("GET /swagger/index.html body missing 'swagger-ui' marker; got first 200 chars: %q", preview)
+	}
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 // TestRouter_SwaggerSpecWhenConfigured verifies that /swagger/openapi.yaml is

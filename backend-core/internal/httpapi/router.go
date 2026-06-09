@@ -4,6 +4,7 @@ import (
 	"context"
 	"embed"
 	"errors"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -262,8 +263,17 @@ func (fs swaggerFS) Open(name string) (http.File, error) {
 // swaggerMount serves the static Swagger UI HTML from embedded assets (CDN-loaded
 // JS) and the hand-maintained OpenAPI spec when specPath is non-empty.  Mounted
 // unconditionally when called — caller must gate on SwaggerEnabled.
+//
+// fs.Sub is required: //go:embed swaggerui/asset/* roots the FS at the package
+// directory, so the file is reachable as swaggerui/asset/index.html, not
+// /index.html.
 func swaggerMount(router *gin.Engine, assetFS embed.FS, specPath string) {
-	router.StaticFS("/swagger", swaggerFS{embed: http.FS(assetFS), specPath: specPath})
+	sub, err := fs.Sub(assetFS, "swaggerui/asset")
+	if err != nil {
+		log.Printf("[swagger] failed to sub-mount swaggerui/asset: %v; swagger UI disabled", err)
+		return
+	}
+	router.StaticFS("/swagger", swaggerFS{embed: http.FS(sub), specPath: specPath})
 }
 
 func NewRouter(cfg RouterConfig) *gin.Engine {
