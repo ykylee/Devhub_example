@@ -13,7 +13,12 @@
   <script src="./swagger-ui-standalone-preset.js"></script>
   <script>
     window.onload = function() {
-      const base = window.location.pathname.replace(/\/[^\/]*$/, "/");
+      // Trim trailing slashes (nginx may add one via 301), then drop the
+      // last path segment to derive the directory base. Works for
+      // /swagger/, /devhub/swagger/, .../index.html, and .../index.html/.
+      const path = window.location.pathname.replace(/\/+$/, "");
+      const lastSlash = path.lastIndexOf("/");
+      const base = (lastSlash >= 0 ? path.slice(0, lastSlash + 1) : "/") || "/";
       window.ui = SwaggerUIBundle({
         url: base + "openapi.yaml",
         dom_id: "#swagger-ui",

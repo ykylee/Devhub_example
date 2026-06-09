@@ -124,7 +124,9 @@ func TestRouter_SwaggerIndexHasDynamicSpecURL(t *testing.T) {
 	}
 	body := rec.Body.String()
 	wantSubstrings := []string{
-		`window.location.pathname.replace(/\/[^\/]*$/, "/")`,
+		// PR #513 follow-up: trailing-slash trim pattern.
+		`window.location.pathname.replace(/\/+$/, "")`,
+		`path.lastIndexOf("/")`,
 		`base + "openapi.yaml"`,
 	}
 	for _, s := range wantSubstrings {
