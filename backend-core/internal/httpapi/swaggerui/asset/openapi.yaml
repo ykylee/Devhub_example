@@ -1,18 +1,21 @@
 openapi: "3.0.3"
 info:
   title: "DevHub API"
-  version: "0.2.0-p2-extension"
+  version: "0.3.0-p2-batch2"
   description: |
     DevHub v1.0 출시 직전 swagger scope 확장:
     - 1차 (PR #518, ADR-0029): 4 paths → 50 paths (P0/P1), API key 인증
       미들웨어 + openapi 1차 bootstrap. schema 7 → 59.
-    - 2차 (본 PR, ADR-0029 §6 (c) P1 P2 batch 1): + 7 paths (user CRUD
+    - 2차 (PR #519, ADR-0029 §6 (c) P1 P2 batch 1): + 7 paths (user CRUD
       4 + risks/critical 1 + risks/{id}/mitigations 1 + commands/{id}/
       approve|reject 2) + commands/{id} GET 의 staticTokenAuth 허용
       (infrastructure:view 정합). path 50 → 57, schema 59 → 64.
-    - 3차 후속 (P2 batch 2 + P3, ADR-0029 §6 (c) 잔여): organization
-      units CRUD (7) + rbac/policies (5) + integration/scm tail (14) +
-      realtime/ws + infra/services/snapshot + infra/topology/v2 = 29 path.
+    - 3차 (본 PR, ADR-0029 §6 (c) P1 P2 batch 2): + 5 paths (organization
+      units CRUD 4 + /units/{id}/members GET|PUT 2 + hierarchy PUT 1
+      - GET search 1차 PR 보존) + rbac/policies (4) + rbac/policy legacy
+      410 (1). path 57 → 62, schema 64 → 70.
+    - 4차 후속 (P3, ADR-0029 §6 (c) 잔여): integration/scm tail (14) +
+      realtime/ws + infra/services/snapshot + infra/topology/v2 = 17 path.
 
     ## Envelope 규약
     - 성공: `{schema_version, data, request_id, trace_id}`
@@ -3605,6 +3608,419 @@ paths:
           $ref: "#/components/responses/ServerErrorEnvelope"
 
   # ---------------------------------------------------------------------------
+  # POST /api/v1/organization/units — 조직 unit 생성 (P2 batch 2, bearerAuth only)
+  # ---------------------------------------------------------------------------
+  /api/v1/organization/units:
+    post:
+      tags:
+        - Organization
+      summary: "조직 unit 생성"
+      operationId: createOrgUnit
+      description: |
+        신규 조직 unit 생성. admin / org_head 전용.
+        본 endpoint 는 write — ADR-0029 staticTokenAuth 미허용 (Keycloak 강제).
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrgUnitCreateRequest"
+            example:
+              name: "API Team"
+              parent_organization_id: "org_devhub"
+      responses:
+        "201":
+          description: "조직 unit 생성 성공"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  unit_id: "unit_api"
+                  name: "API Team"
+                  parent_organization_id: "org_devhub"
+                request_id: "req_unit_create_001"
+                trace_id: "trace_unit_create_001"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/organization/units/{unit_id} — 조직 unit 상세 (P1, 1차 PR 보존)
+  # PATCH /api/v1/organization/units/{unit_id} — 조직 unit 수정 (P2 batch 2, bearerAuth only)
+  # DELETE /api/v1/organization/units/{unit_id} — 조직 unit 삭제 (P2 batch 2, bearerAuth only)
+  # ---------------------------------------------------------------------------
+  /api/v1/organization/units/{unit_id}:
+    get:
+      tags:
+        - Organization
+      summary: "조직 unit 상세 조회"
+      operationId: getOrganizationUnitById
+      description: |
+        unit_id 기준 조직 unit 상세 + member 목록.
+        ADR-0029: staticTokenAuth 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: unit_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "조직 unit ID"
+      responses:
+        "200":
+          description: "Unit 상세"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  unit_id: "unit_platform"
+                  name: "Platform Team"
+                  parent_organization_id: "org_devhub"
+                  member_count: 12
+                  teams:
+                    - team_id: "team_api"
+                      name: "API Team"
+                    - team_id: "team_ui"
+                      name: "UI Team"
+                request_id: "req_org_unit"
+                trace_id: "trace_org_unit"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+    patch:
+      tags:
+        - Organization
+      summary: "조직 unit 수정"
+      operationId: updateOrgUnit
+      description: |
+        unit_id 의 조직 unit name / parent 변경. admin / org_head 전용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: unit_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "수정할 unit ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrgUnitUpdateRequest"
+            example:
+              name: "API Team (Renamed)"
+      responses:
+        "200":
+          description: "unit 수정 성공"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  unit_id: "unit_api"
+                  name: "API Team (Renamed)"
+                  parent_organization_id: "org_devhub"
+                request_id: "req_unit_update_001"
+                trace_id: "trace_unit_update_001"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+    delete:
+      tags:
+        - Organization
+      summary: "조직 unit 삭제"
+      operationId: deleteOrgUnit
+      description: |
+        unit_id 의 조직 unit 삭제 (cascade: 하위 team 도 정리). admin 전용.
+        삭제 전 unit 의 member 가 모두 비어있어야 함.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: unit_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "삭제할 unit ID"
+      responses:
+        "204":
+          description: "unit 삭제 성공"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "409":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/organization/units/{unit_id}/members — unit member 목록 (P2 batch 2, staticTokenAuth 허용)
+  # PUT /api/v1/organization/units/{unit_id}/members — unit member 일괄 교체 (P2 batch 2, bearerAuth only)
+  # ---------------------------------------------------------------------------
+  /api/v1/organization/units/{unit_id}/members:
+    get:
+      tags:
+        - Organization
+      summary: "조직 unit member 목록"
+      operationId: listUnitMembers
+      description: |
+        unit_id 의 member (사용자) 목록.
+        ADR-0029: staticTokenAuth 허용 (organization:view).
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: unit_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "조회할 unit ID"
+      responses:
+        "200":
+          description: "Unit member 목록"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  items:
+                    - user_id: "alice"
+                      role: "team_manager"
+                      joined_at: "2026-01-15T00:00:00Z"
+                    - user_id: "bob"
+                      role: "developer"
+                      joined_at: "2026-02-01T00:00:00Z"
+                  unit_id: "unit_api"
+                request_id: "req_unit_members_001"
+                trace_id: "trace_unit_members_001"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+    put:
+      tags:
+        - Organization
+      summary: "조직 unit member 일괄 교체"
+      operationId: replaceUnitMembers
+      description: |
+        unit_id 의 member 전체 교체 (delete + bulk insert in single tx).
+        admin / org_head 전용. 본 endpoint 는 write — ADR-0029 staticTokenAuth 미허용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: unit_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "교체할 unit ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrgUnitMemberReplaceRequest"
+            example:
+              members:
+                - user_id: "alice"
+                  role: "team_manager"
+                - user_id: "bob"
+                  role: "developer"
+      responses:
+        "200":
+          description: "member 교체 성공"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  unit_id: "unit_api"
+                  member_count: 2
+                request_id: "req_unit_members_put_001"
+                trace_id: "trace_unit_members_put_001"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/organization/hierarchy — 조직 계층 (P1, 1차 PR 보존)
+  # PUT /api/v1/organization/hierarchy — 조직 계층 구조 일괄 교체 (P2 batch 2, bearerAuth only)
+  # ---------------------------------------------------------------------------
+  /api/v1/organization/hierarchy:
+    get:
+      tags:
+        - Organization
+      summary: "조직 계층 구조 조회"
+      operationId: getOrganizationHierarchy
+      description: |
+        조직 트리 계층 (org → unit → team).
+        ADR-0029: staticTokenAuth 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      responses:
+        "200":
+          description: "조직 계층"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  organization_id: "org_devhub"
+                  name: "DevHub"
+                  units:
+                    - unit_id: "unit_platform"
+                      name: "Platform Team"
+                      teams:
+                        - team_id: "team_api"
+                          name: "API Team"
+                request_id: "req_org_hier"
+                trace_id: "trace_org_hier"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+    put:
+      tags:
+        - Organization
+      summary: "조직 계층 구조 일괄 교체"
+      operationId: updateHierarchy
+      description: |
+        조직 트리 계층 (org → unit → team) 전체 교체 (단일 tx).
+        admin 전용. 본 endpoint 는 write — ADR-0029 staticTokenAuth 미허용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrganizationHierarchyRequest"
+            example:
+              organization_id: "org_devhub"
+              name: "DevHub"
+              units:
+                - unit_id: "unit_platform"
+                  name: "Platform Team"
+                  teams:
+                    - team_id: "team_api"
+                      name: "API Team"
+      responses:
+        "200":
+          description: "조직 계층 교체 성공"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  organization_id: "org_devhub"
+                  name: "DevHub"
+                  units:
+                    - unit_id: "unit_platform"
+                      name: "Platform Team"
+                request_id: "req_org_hier_put_001"
+                trace_id: "trace_org_hier_put_001"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
   # GET /api/v1/organizations/search — organization 검색 (P1)
   # ---------------------------------------------------------------------------
   /api/v1/organizations/search:
@@ -3657,6 +4073,241 @@ paths:
           $ref: "#/components/responses/BadRequestEnvelope"
         "401":
           $ref: "#/components/responses/UnauthorizedEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/rbac/policy — legacy 410 (P1, ADR-0020 sub-carve A)
+  # ---------------------------------------------------------------------------
+  /api/v1/rbac/policy:
+    get:
+      tags:
+        - Audit
+      summary: "Legacy RBAC policy 단일 조회 (410 Gone)"
+      operationId: getRBACPolicyLegacyGone
+      description: |
+        ADR-0020 sub-carve A 로 폐기된 legacy 단일 policy 조회 endpoint.
+        410 Gone + envelope error 반환. 신규 코드 사용 금지.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      responses:
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "410":
+          description: "Gone — legacy endpoint (ADR-0020 sub-carve A)"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data: null
+                error:
+                  code: "rbac_policy_legacy_gone"
+                  message: "GET /rbac/policy is removed; use /rbac/policies"
+                request_id: "req_rbac_legacy_001"
+                trace_id: "trace_rbac_legacy_001"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/rbac/policies — RBAC policy 목록 (P2 batch 2, bearerAuth only)
+  # POST /api/v1/rbac/policies — RBAC policy 생성 (P2 batch 2, bearerAuth only)
+  # PUT /api/v1/rbac/policies — RBAC policy 일괄 교체 (P2 batch 2, bearerAuth only)
+  # ---------------------------------------------------------------------------
+  /api/v1/rbac/policies:
+    get:
+      tags:
+        - Audit
+      summary: "RBAC policy 목록"
+      operationId: listRBACPolicies
+      description: |
+        RBAC policy role × resource × action 매트릭스 목록.
+        admin 전용 read. 본 endpoint 는 admin 영역 — ADR-0029 staticTokenAuth 미허용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      responses:
+        "200":
+          description: "RBAC policy 목록"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  items:
+                    - role: "developer"
+                      permissions:
+                        - resource: "security"
+                          action: "view"
+                        - resource: "infrastructure"
+                          action: "view"
+                    - role: "system_admin"
+                      permissions:
+                        - resource: "organization"
+                          action: "delete"
+                request_id: "req_rbac_list_001"
+                trace_id: "trace_rbac_list_001"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+    post:
+      tags:
+        - Audit
+      summary: "RBAC policy 생성"
+      operationId: createRBACPolicy
+      description: |
+        신규 role + permission 매트릭스 생성. system_admin 전용.
+        본 endpoint 는 write — ADR-0029 staticTokenAuth 미허용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RBACPolicyCreateRequest"
+            example:
+              role: "team_manager"
+              permissions:
+                - resource: "organization"
+                  action: "edit"
+                - resource: "security"
+                  action: "create"
+      responses:
+        "201":
+          description: "RBAC policy 생성 성공"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  role: "team_manager"
+                  permissions:
+                    - resource: "organization"
+                      action: "edit"
+                request_id: "req_rbac_create_001"
+                trace_id: "trace_rbac_create_001"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "409":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+    put:
+      tags:
+        - Audit
+      summary: "RBAC policy 일괄 교체"
+      operationId: updateRBACPolicies
+      description: |
+        RBAC policy 매트릭스 전체 교체 (모든 role 일괄 갱신). system_admin 전용.
+        본 endpoint 는 write — ADR-0029 staticTokenAuth 미허용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RBACPolicyBulkUpdateRequest"
+            example:
+              policies:
+                - role: "developer"
+                  permissions:
+                    - resource: "security"
+                      action: "view"
+                - role: "system_admin"
+                  permissions:
+                    - resource: "organization"
+                      action: "delete"
+      responses:
+        "200":
+          description: "RBAC policy 일괄 교체 성공"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  updated_count: 4
+                request_id: "req_rbac_put_001"
+                trace_id: "trace_rbac_put_001"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # DELETE /api/v1/rbac/policies/{role_id} — RBAC policy 삭제 (P2 batch 2, bearerAuth only)
+  # ---------------------------------------------------------------------------
+  /api/v1/rbac/policies/{role_id}:
+    delete:
+      tags:
+        - Audit
+      summary: "RBAC policy 삭제"
+      operationId: deleteRBACPolicy
+      description: |
+        role_id 의 RBAC policy 삭제. system_admin 전용.
+        본 endpoint 는 write — ADR-0029 staticTokenAuth 미허용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: role_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "삭제할 role ID (예: developer, team_manager, system_admin)"
+      responses:
+        "204":
+          description: "RBAC policy 삭제 성공"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "409":
+          $ref: "#/components/responses/ForbiddenEnvelope"
         "503":
           $ref: "#/components/responses/ServerErrorEnvelope"
 
@@ -4093,6 +4744,12 @@ components:
             - $ref: "#/components/schemas/RiskMitigationRequest"
             - $ref: "#/components/schemas/RiskMitigation"
             - $ref: "#/components/schemas/CommandDecisionRequest"
+            - $ref: "#/components/schemas/OrgUnitCreateRequest"
+            - $ref: "#/components/schemas/OrgUnitUpdateRequest"
+            - $ref: "#/components/schemas/OrgUnitMemberReplaceRequest"
+            - $ref: "#/components/schemas/OrganizationHierarchyRequest"
+            - $ref: "#/components/schemas/RBACPolicyCreateRequest"
+            - $ref: "#/components/schemas/RBACPolicyBulkUpdateRequest"
         request_id:
           type: string
           description: "X-Request-ID header 와 동일한 correlation ID"
@@ -6458,6 +7115,147 @@ components:
           type: string
           description: "결정 사유 (audit note 로 보존)"
           example: "approved after risk review"
+
+    # -----------------------------------------------------------------------
+    # OrgUnitCreateRequest — POST /api/v1/organization/units (ADR-0029 §6 (c) P2 batch 2)
+    # -----------------------------------------------------------------------
+    OrgUnitCreateRequest:
+      type: object
+      required:
+        - name
+        - parent_organization_id
+      properties:
+        name:
+          type: string
+          example: "API Team"
+        parent_organization_id:
+          type: string
+          example: "org_devhub"
+        description:
+          type: string
+          example: "Backend API development team"
+
+    # -----------------------------------------------------------------------
+    # OrgUnitUpdateRequest — PATCH /api/v1/organization/units/{id}
+    # -----------------------------------------------------------------------
+    OrgUnitUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "API Team (Renamed)"
+        description:
+          type: string
+
+    # -----------------------------------------------------------------------
+    # OrgUnitMemberReplaceRequest — PUT /api/v1/organization/units/{id}/members
+    # -----------------------------------------------------------------------
+    OrgUnitMemberReplaceRequest:
+      type: object
+      required:
+        - members
+      properties:
+        members:
+          type: array
+          items:
+            type: object
+            required:
+              - user_id
+              - role
+            properties:
+              user_id:
+                type: string
+                example: "alice"
+              role:
+                type: string
+                enum:
+                  - "developer"
+                  - "team_manager"
+                  - "org_head"
+
+    # -----------------------------------------------------------------------
+    # OrganizationHierarchyRequest — PUT /api/v1/organization/hierarchy
+    # -----------------------------------------------------------------------
+    OrganizationHierarchyRequest:
+      type: object
+      required:
+        - organization_id
+        - units
+      properties:
+        organization_id:
+          type: string
+          example: "org_devhub"
+        name:
+          type: string
+          example: "DevHub"
+        units:
+          type: array
+          items:
+            type: object
+            properties:
+              unit_id:
+                type: string
+                example: "unit_platform"
+              name:
+                type: string
+                example: "Platform Team"
+              teams:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    team_id:
+                      type: string
+                    name:
+                      type: string
+
+    # -----------------------------------------------------------------------
+    # RBACPolicyCreateRequest — POST /api/v1/rbac/policies
+    # -----------------------------------------------------------------------
+    RBACPolicyCreateRequest:
+      type: object
+      required:
+        - role
+        - permissions
+      properties:
+        role:
+          type: string
+          enum:
+            - "developer"
+            - "team_manager"
+            - "org_head"
+            - "system_admin"
+        permissions:
+          type: array
+          items:
+            type: object
+            required:
+              - resource
+              - action
+            properties:
+              resource:
+                type: string
+                example: "security"
+              action:
+                type: string
+                enum:
+                  - "view"
+                  - "create"
+                  - "edit"
+                  - "delete"
+
+    # -----------------------------------------------------------------------
+    # RBACPolicyBulkUpdateRequest — PUT /api/v1/rbac/policies
+    # -----------------------------------------------------------------------
+    RBACPolicyBulkUpdateRequest:
+      type: object
+      required:
+        - policies
+      properties:
+        policies:
+          type: array
+          items:
+            $ref: "#/components/schemas/RBACPolicyCreateRequest"
 
   # =========================================================================
   # Security Schemes
