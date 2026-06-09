@@ -133,11 +133,13 @@ securitySchemes:
 ### 4.3 검증
 
 - 5 신규 테스트 PASS (`TestAPIKeyAuthentication_*` + `TestLooksLikeJWT`)
+- **2차 commit** (P0 §6 (a)): 2 신규 테스트 PASS (`TestEnforceRoutePermission_APIKeyCallerWriteEndpointsForbidden` 6 sub-test + `TestEnforceRoutePermission_APIKeyCallerReadOnlyAllowed` 5 sub-test)
 - 기존 `TestBearerToken*` 회귀 0 (`TestRouter_*` / `TestSwagger*` 포함)
-- backend `go test ./internal/httpapi/ -run 'TestAPIKey|TestBearerToken|TestRouter_|TestSwagger'` PASS
-- backend `go test ./...` PASS (회귀 0)
+- backend `go test ./internal/httpapi/ -run 'TestAPIKey|TestBearerToken|TestRouter_|TestSwagger|TestEnforceRoutePermission'` PASS
+- backend `go test ./...` PASS (회귀 0, 30+ packages)
 - openapi.yaml syntax 검증: `python3 -c "import yaml; yaml.safe_load(open('...'))"` PASS
 - 운영 가드: `DEVHUB_API_KEY` 미설정 시 분기 미작동 (회귀 0) — `TestAPIKeyAuthentication_EmptyKeyDoesNotActivate` 가드
+- **2차 commit 검증**: API key caller 의 mutation endpoint (POST /api/v1/users / PATCH /api/v1/users/:id / DELETE /api/v1/users/:id / POST /api/v1/platforms / POST /api/v1/dev-requests/:id / POST /api/v1/risks/:id/mitigations) 6 endpoint 모두 403 + `auth_api_key_denied` envelope + `auth.api_key_denied` audit row 6 row 검증. read-only 5 endpoint (GET /api/v1/{repositories,issues,risks,dashboard/metrics,audit-logs}) 정상 통과.
 
 ## 5. trade-off + carve out
 
@@ -167,7 +169,7 @@ openapi 3.0 의 security array 가 `[{a:[]}, {b:[]}]` 일 때 swagger-ui 가 양
 
 | # | 항목 | 우선순위 | 비고 |
 | --- | --- | --- | --- |
-| (a) | API key caller 의 admin endpoint RBAC 가드 (`enforceRoutePermission` 에 `auth_source != "api_key"` 추가) | P0 | 본 PR 직후 sprint (1주) |
+| (a) | API key caller 의 admin endpoint RBAC 가드 (`enforceRoutePermission` 에 `auth_source != "api_key"` 추가) | ✅ done (2차 commit) | 본 PR 2차 commit 으로 즉시 흡수. `devhub_auth_source == "api_key"` && `policy.Action != ActionView` (Create/Edit/Delete) 시 `auth.api_key_denied` audit + 403 + `auth_api_key_denied` envelope. 신규 테스트 2건. |
 | (b) | API key rotation 정책 SOP (90일 + rolling pattern) | P1 | 운영 SOP 문서 (`docs/setup/`) |
 | (c) | openapi.yaml P2/P3 endpoint 30+ 확장 | P1 | 별도 sprint (`feat/openapi-domain-extend-p2` 후보) |
 | (d) | CI lint gate (openapi.yaml schema validity check + cross-link `backend_api_contract.md`) | P2 | v1.1 milestone |
@@ -180,3 +182,4 @@ openapi 3.0 의 security array 가 `[{a:[]}, {b:[]}]` 일 때 swagger-ui 가 양
 | 일자 | 변경 | sprint |
 | --- | --- | --- |
 | 2026-06-09 | 1차 발행. API key 인증 미들웨어 + openapi.yaml P0/P1 30+ endpoint + ~30 schema + 5 신규 테스트. 결정 근거 6 항목 (Keycloak-independent / JWT 분기 / timing attack / 회귀 0 / scope 5.6%→40%+ / PR 크기 적정). carve out 7 항목. 신규 ID: `IMPL-auth-02` + `IMPL-swagger-02`. | `feat/work_260609-a-swagger-apikey-expand` |
+| 2026-06-09 | **2차 commit (PR #518 후속, codex P1 + 사용자 결정 정합)**. §6 (a) P0 admin gate 실 구현 — `EnforceRoutePermission` 본체에 `devhub_auth_source == "api_key"` && `policy.Action != ActionView` 가드. `auth.api_key_denied` audit + 403 + `auth_api_key_denied` envelope. 신규 테스트 2건 (write 6 endpoint 거부 + read-only 5 endpoint 통과 회귀). `routePermissionTable` 변경 0 — Action != View 한 줄 분기. `IMPL-auth-04` row 갱신 (permissions.go 가드 + permissions_test.go 2 신규). `go test ./...` 30+ packages PASS, 회귀 0. ADR-0029 §6 (a) P0 → done. 잔여 carve = 6 항목 (b)~(g). | `feat/work_260609-a-swagger-apikey-expand` |

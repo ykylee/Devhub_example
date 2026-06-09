@@ -437,6 +437,29 @@ func (h *RBACHandler) EnforceRoutePermission(c *gin.Context) {
 		return
 	}
 
+	// ADR-0029 §6 (a) P0 — API key caller 의 admin endpoint RBAC 가드. ADR-0029
+	// API key 는 정적 키 (DEVHUB_API_KEY) — §2.2 옵션 B (공개 read-only 만 API
+	// key 허용, admin API 는 Keycloak 강제) 의 §3.4 trade-off 완화. authenticateActor
+	// 가 `devhub_auth_source = "api_key"` 를 set 한 경우, policy.Action 이
+	// View 가 아닌 (mutation) 경로만 차단 — read-only (infrastructure:view 등)
+	// 는 그대로 통과. cache.Allows 호출 직전에 위치하여 role 매트릭스 가드와
+	// 독립적으로 enforce. 운영 SOP (DEVHUB_API_KEY 는 staging/dev 전용) 와
+	// 백엔드 RBAC 가드의 2중 방어.
+	if source, _ := c.Get("devhub_auth_source"); source == "api_key" && policy.Action != domain.ActionView {
+		h.recordAuditBestEffort(c, "auth.api_key_denied", "route", c.FullPath(), map[string]any{
+			"actor_role":  c.GetString("devhub_actor_role"),
+			"auth_source": "api_key",
+			"resource":    string(policy.Resource),
+			"action":      string(policy.Action),
+		})
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+			"status": "forbidden",
+			"error":  "api key caller is restricted to read-only endpoints; admin endpoints require Keycloak authentication (ADR-0029 §6 (a))",
+			"code":   "auth_api_key_denied",
+		})
+		return
+	}
+
 	if driftValue, _ := c.Get("devhub_role_sync_required"); driftValue == true {
 		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
 			"status": "forbidden",

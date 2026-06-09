@@ -210,6 +210,97 @@ func TestEnforceRoutePermission_BypassesMeAndWebhook(t *testing.T) {
 	}
 }
 
+// ADR-0029 §6 (a) P0 — API key caller 는 read-only (View) endpoints 만 호출 가능.
+// mutation (Create/Edit/Delete) endpoints 호출 시 403 + auth_api_key_denied envelope
+// 반환. authenticateActor 가 `devhub_auth_source = api_key` 를 set 한 경우에만
+// enforce — Keycloak JWT caller 는 본 가드 무관.
+func TestEnforceRoutePermission_APIKeyCallerWriteEndpointsForbidden(t *testing.T) {
+	const key = "test-static-api-key-2026-06-09-p0"
+	audits := &memoryAuditStore{}
+	router := NewRouter(RouterConfig{
+		APIKey:            key,
+		OrganizationStore: newMemoryOrganizationStore(),
+		AuditStore:        audits,
+	})
+
+	cases := []struct {
+		name   string
+		method string
+		path   string
+	}{
+		{"api key cannot create user (organization:create)", http.MethodPost, "/api/v1/users"},
+		{"api key cannot patch user (organization:edit)", http.MethodPatch, "/api/v1/users/u-1"},
+		{"api key cannot delete user (organization:delete)", http.MethodDelete, "/api/v1/users/u-1"},
+		{"api key cannot create platform (platforms:create)", http.MethodPost, "/api/v1/platforms"},
+		{"api key cannot create dev-request (dev_requests:create)", http.MethodPost, "/api/v1/dev-requests/dr-1"},
+		{"api key cannot create risk mitigation (security:create)", http.MethodPost, "/api/v1/risks/r-1/mitigations"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(tc.method, tc.path, nil)
+			req.Header.Set("Authorization", "Bearer "+key)
+			rec := httptest.NewRecorder()
+			router.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusForbidden {
+				t.Fatalf("%s %s with API key: got %d, want 403 (admin gate). body=%s", tc.method, tc.path, rec.Code, rec.Body.String())
+			}
+			var resp struct {
+				Code string `json:"code"`
+			}
+			decodeJSON(t, rec.Body.Bytes(), &resp)
+			if resp.Code != "auth_api_key_denied" {
+				t.Errorf("envelope code = %q, want auth_api_key_denied (body=%s)", resp.Code, rec.Body.String())
+			}
+		})
+	}
+
+	// audit log 확인 — 6 endpoint × 1 row = 6 row 가 auth.api_key_denied 로 기록.
+	deniedCount := 0
+	for _, log := range audits.logs {
+		if log.Action == "auth.api_key_denied" {
+			deniedCount++
+		}
+	}
+	if deniedCount != len(cases) {
+		t.Errorf("expected %d auth.api_key_denied audits, got %d (logs=%+v)", len(cases), deniedCount, audits.logs)
+	}
+}
+
+// ADR-0029 §6 (a) P0 회귀 가드 — API key caller 의 read-only (View) endpoints 는
+// 정상 통과. system_admin role 매트릭스 + Read-only 가드 = 양립.
+func TestEnforceRoutePermission_APIKeyCallerReadOnlyAllowed(t *testing.T) {
+	const key = "test-static-api-key-2026-06-09-p0"
+	router := NewRouter(RouterConfig{
+		APIKey:            key,
+		OrganizationStore: newMemoryOrganizationStore(),
+	})
+
+	cases := []struct {
+		name   string
+		method string
+		path   string
+	}{
+		{"api key can GET /api/v1/repositories", http.MethodGet, "/api/v1/repositories"},
+		{"api key can GET /api/v1/issues", http.MethodGet, "/api/v1/issues"},
+		{"api key can GET /api/v1/risks", http.MethodGet, "/api/v1/risks"},
+		{"api key can GET /api/v1/dashboard/metrics", http.MethodGet, "/api/v1/dashboard/metrics"},
+		{"api key can GET /api/v1/audit-logs", http.MethodGet, "/api/v1/audit-logs"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(tc.method, tc.path, nil)
+			req.Header.Set("Authorization", "Bearer "+key)
+			rec := httptest.NewRecorder()
+			router.ServeHTTP(rec, req)
+
+			if rec.Code == http.StatusForbidden {
+				t.Errorf("%s %s with API key: got 403, want pass. body=%s", tc.method, tc.path, rec.Body.String())
+			}
+		})
+	}
+}
+
 // --- ADR-0011 §4.2 enforceRowOwnership ---
 //
 // helper 의 세 allow 규칙(system_admin / allowedRoles / owner-self) 과 deny
