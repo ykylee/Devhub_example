@@ -185,7 +185,7 @@
 | **N-8** | **Sign-out endpoint (P1-6) 구현** — 2026-06-01 통합 테스트 BUG-03 | BE | Claude |
 | **N-9** | **Repository build-runs (P1-7) 구현** — 2026-06-01 통합 테스트 ISSUE-04 | BE+FE | Claude+Gemini |
 | **N-10** | **Manager role RBAC 검증** — E2E seed `bob` (team_manager) 의 권한 scope 확인 + ListProjects/ListPlatforms row filter + org unit subtree scope 검증. 검증 보고서 [docs/validation/N-10-manager-rbac.md](../validation/N-10-manager-rbac.md) (2026-06-04) — V-01..V-10 결과 + P1 follow-up 1건 (E2E spec-vs-구현 갭 6 TC) | 테스트 | Sisyphus |
-| **N-11** | **CI e2e + backend-integration job 복원** — PR #407 의 `.github/workflows/ci.yml` e2e/backend-integration `&& false` 해제 + 첫 PR 두 job 실행 확인. refactor stabilize (PR #418 머지 후 main 안정) 시점. GitHub [#419](https://github.com/ykylee/Devhub_example/issues/419) OPEN. | CI infra | 사용자 + Codex |
+| **N-11** | **CI e2e + backend-integration job 복원** — PR #407 의 `.github/workflows/ci.yml` e2e/backend-integration `&& false` 해제 + 첫 PR 두 job 실행 확인. refactor stabilize (PR #418 머지 후 main 안정) 시점. GitHub [#419](https://github.com/ykylee/Devhub_example/issues/419) OPEN. **2026-06-08 정합**: PR #407 cleanup-recovery (4a1942e) 후속 squash merge 4건 (5f5fdba / 9395cd9 / ce8ce7c) 으로 `&& false` 2건은 코드 레벨 복원 완료. sprint 260608-a 의 PR (코멘트 갱신만, 코드 변경 0줄) 으로 운영 정합. **잔여 DoD**: main 첫 PR 에서 backend-integration + e2e shard 1..3 실 실행 PASS 확인. | CI infra | 사용자 + Codex (sprint 260608-a OpenCode 코멘트 정합) |
 
 #### NEXT — v1.1 운영화 + 외부 연동 깊이 정착
 
@@ -216,7 +216,7 @@ E-1 Realtime event publish(RM-M4-01) · E-2 WS replay/필터(RM-M4-02) · E-3 AI
 - sprint -h: **P0-4 CI Run 생성 API (ISSUE-05)** + P1-1 sub-carve C event listener — Claude (P0-4 우선)
 - sprint -i: P1-2 sub-carve D JWKS expiry + P1-6 Sign-out endpoint (BUG-03) + P1-7 Build-runs (ISSUE-04) — Claude
 - sprint -j: P2-1 sub-carve E governance SOP + UI polish 마무리 — Codex+Gemini
-- sprint -k: v1.0 e2e 종합 검증 + 운영 환경 1주 monitoring — 전 워커
+- sprint -k: v1.0 e2e 종합 검증 + 운영 환경 1주 monitoring — 전 워커 (N-11 잔여 DoD = main 첫 PR e2e+backend-integration PASS 도 본 sprint 흡수)
 
 ### 4.2 M-v1.1 — 안정성 + 운영 강화 (target: 2026-07-31)
 
@@ -377,4 +377,5 @@ test.describe("UI screenshot capture", () => {
 | 2026-06-04 | **OpenCode Lane 정의** — §5.1 OpenCode 행의 TBD 를 3-lane (Workflow curation / Cross-cutting validation / AI/ML prep) 으로 확정 + §9 본 row 직전 | `opencode/work_260604-b-opencode-areas` |
 | 2026-06-04 | **N-10 Manager RBAC 검증** — §3.5 N-10 row 의 mgr-user-b 비공식 명칭 → E2E seed `bob` (team_manager) 으로 정정 + 검증 보고서 링크 + 1 P1 follow-up 식별. 검증 결과: backend UT 25 packages PASS, row filter SQL 정상, E2E spec-vs-구현 갭 6 TC (TC-RBAC-ROW-READ-01/02, TC-RBAC-LOGOUT-01/02, TC-RBAC-ROLE-DRIFT-01) 발견. 출처: `opencode/work_260604-c-N10-manager-rbac-validation` | `opencode/work_260604-c-N10-manager-rbac-validation` |
 | 2026-06-06 | **P0/P1 미발급 carve 일괄 발급 + ID 슬롯 정합** — §3.5 N-7/8/9 GitHub issues [#486](https://github.com/ykylee/Devhub_example/issues/486) / [#487](https://github.com/ykylee/Devhub_example/issues/487) / [#488](https://github.com/ykylee/Devhub_example/issues/488) 발급 (P0-4 / P1-7 / P1-6 carve 의 정식 ID). §3.1 P0-4 row 에 ID 슬롯 정합 노트 추가 (historical [#238](https://github.com/ykylee/Devhub_example/issues/238) 유지, 정식 ID = §3.5 N-7). §3.5 N-11 (CI e2e + backend-integration job 복원, [#419](https://github.com/ykylee/Devhub_example/issues/419)) + §3.4 P3-14 (RM-APPDASH-01, [#384](https://github.com/ykylee/Devhub_example/issues/384)) 신규 row 추가. §3.2 P1-3 에 GitHub [#214](https://github.com/ykylee/Devhub_example/issues/214) cross-ref 추가. 출처: Mavis housekeeping `mvs/work_260606-a-roadmap-issue-bulk` | `mvs/work_260606-a-roadmap-issue-bulk` |
+| 2026-06-08 | **N-11 CI e2e + backend-integration job 복원 완료 정합** — §3.5 N-11 row 의 `open` → `복원 완료, 잔여 DoD = main 첫 PR 두 job PASS` 정합. §4.1 v1.0 sprint 구성의 sprint -k 에 N-11 잔여 DoD 흡수 명시. §9 본 row 추가. 코드 레벨 복원은 PR #407 cleanup-recovery (4a1942e) 후속 squash merge 4건 (5f5fdba / 9395cd9 / ce8ce7c) 으로 선행 완료, 본 sprint -a 의 PR 은 코멘트 갱신 (코드 변경 0줄). §6 변경 이력 + traceability report.md §6 cross-ref. docs-only 정합 — 신규 ID 발급 없음 (cross-cutting infrastructure 운영 항목). | `opencode/work_260608-a-N11-ci-restore-verify` |
 | 2026-06-09 | **워커 분업 전면 취소 (사용자 결정, Claude/Codex 자유 이용 불가)** — §0 사용 가이드에 취소 노트 추가 + §5 워커 분담 매트릭스 (5.1 영역별 분담 + 5.2 v1.0 sprint 별 분담) 전면 취소 標記. worker_division.md §0 + §1~§4 historical 標記 + §2.5 branch prefix 자유화 + §5 Owner 권한 명시. 유지 정책: §4.2 ADR reversal 의 supersession 정공법, §5 Owner 의 invoke 책임/결정 권한/review 최종 승인, 우선순위 P0~P3 강제. AGENTS.md "워커 일반 메모 (2026-06-09 전면 갱신)" 신설 + 워커별 전용 메모를 historical 標記로 격하 + branch prefix 강제 해제. 신규 ID 발급 없음 (governance 운영 결정). | `maintenance/work_260609-a-cancel-worker-division` |

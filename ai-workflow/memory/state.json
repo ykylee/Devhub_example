@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-06-06 main. sprint -h 신규 carve 의 ID 발급 및 추적성 매트릭스 cross-ref 정합화 완료 (PR #490 머지).",
-  "updated_at": "2026-06-06T13:28:00Z",
-  "head_commit": "bddcfae",
-  "head_summary": "Merge pull request #490 from ykylee/mvs/work_260606-b-traceability-ci-auth-repo",
+  "status": "2026-06-08 main. N-11 CI e2e + backend-integration job 복원 운영 정합 (sprint 260608-a, issue #419). 잔여 DoD = main 첫 PR 두 job 실 실행 PASS.",
+  "updated_at": "2026-06-08T13:28:00Z",
+  "head_commit": "3855e46 (pre-1차-PR 머지 상태; 1차 PR 머지 후 XXX 로 갱신)",
+  "head_summary": "Merge pull request #497 from ykylee/mvs/work_260608-i-frontend-sign-out",
   "milestones": {
     "M0": {
       "status": "done",
