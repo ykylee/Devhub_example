@@ -163,6 +163,10 @@ type RouterConfig struct {
 	// DevRequestStore + DevRequestIntakeTokenStore — DREQ 도메인 (ADR-0012, sprint claude/work_260515-i).
 	DevRequestStore            DevRequestStore
 	DevRequestIntakeTokenStore IntakeTokenStore
+	// VocStore + NotificationStore — ADR-0028 (sprint work_260612-a). voc 도메인
+	// (dev_request_vocs) + in-app user_notifications. nil 시 handler 503 응답.
+	VocStore          devreqview.VocStore
+	NotificationStore devreqview.NotificationStore
 	RBACStore                  RBACStore
 	PermissionCache            *rbacview.PermissionCache
 	ExternalTaskStore          ExternalTaskStore
@@ -188,6 +192,17 @@ type RouterConfig struct {
 	// ProjectModel toggles project-management route mode: legacy|hybrid|v2.
 	ProjectModel string
 	CIAdapter    ci.Adapter
+}
+
+// resolveVocStore returns cfg.VocStore when present (wired in main.go from
+// the dev_request_vocs repository). nil 시 VocHandler 가 503 응답.
+func resolveVocStore(cfg RouterConfig) devreqview.VocStore {
+	return cfg.VocStore
+}
+
+// resolveNotificationStore mirrors resolveVocStore for in-app notifications.
+func resolveNotificationStore(cfg RouterConfig) devreqview.NotificationStore {
+	return cfg.NotificationStore
 }
 
 // resolveIntegrationStore — issue #421/#422 (sprint claude/work_260529-n) 의
@@ -503,6 +518,10 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.POST("/dev-requests/:dev_request_id/reject", handler.rejectDevRequest)
 	v1.PATCH("/dev-requests/:dev_request_id", handler.patchDevRequest)
 	v1.DELETE("/dev-requests/:dev_request_id", handler.closeDevRequest)
+	// ADR-0028: voc + notification (v1.0 출시 직전 sprint work_260612-a)
+	if handler.voc != nil {
+		devreqview.RegisterVocRoutes(v1, handler.voc)
+	}
 
 	// DREQ intake token admin (sprint claude/work_260515-o, ADR-0014).
 	// system_admin 일임 — routePermissionTable 의 dev_request_intake_tokens resource gate.
@@ -557,6 +576,7 @@ type Handler struct {
 	org      *orgview.OrganizationHandler
 	app      *appview.PlatformHandler
 	devreq   *devreqview.DevRequestHandler
+	voc      *devreqview.VocHandler
 	integ    *integview.IntegrationHandler
 	realtime *realtimeview.RealtimeHandler
 	repo     *repoview.RepositoryIntegrationHandler
@@ -762,6 +782,15 @@ func (h Handler) ensure() Handler {
 			PlatformStore:           h.cfg.PlatformStore,
 			AuditStore:                 h.cfg.AuditStore,
 			AuthDevFallback:            h.cfg.AuthDevFallback,
+		})
+	}
+	if h.voc == nil {
+		// ADR-0028: voc + notification handler (lazy-init). voc store + notification
+		// store 가 main.go 에서 wire 되지 않은 경우 nil 반환 → handler 가 503 응답.
+		h.voc = devreqview.NewVocHandler(devreqview.VocHandlerConfig{
+			VocStore:          resolveVocStore(h.cfg),
+			NotificationStore: resolveNotificationStore(h.cfg),
+			AuditStore:        h.cfg.AuditStore,
 		})
 	}
 	if h.integ == nil {

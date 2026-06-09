@@ -12,6 +12,8 @@ import (
 	authsvc "github.com/devhub/backend-core/internal/domain/auth-session/service"
 	devreqsvc "github.com/devhub/backend-core/internal/domain/dev-request/service"
 	devreqrep "github.com/devhub/backend-core/internal/domain/dev-request/repository"
+	devreqview "github.com/devhub/backend-core/internal/domain/dev-request/view"
+	notifrep "github.com/devhub/backend-core/internal/domain/user-notification/repository"
 	orgrep "github.com/devhub/backend-core/internal/domain/organization-management/repository"
 	apprep "github.com/devhub/backend-core/internal/domain/application-lifecycle/repository"
 	rbacrep "github.com/devhub/backend-core/internal/domain/rbac-permissions/repository"
@@ -48,6 +50,9 @@ func main() {
 	var integrationStore httpapi.IntegrationStore
 	var devRequestStore httpapi.DevRequestStore
 	var devRequestIntakeTokenStore httpapi.IntakeTokenStore
+	// ADR-0028: voc + notification
+	var vocStore devreqview.VocStore
+	var notificationStore devreqview.NotificationStore
 	var rbacStore httpapi.RBACStore
 	realtimeHub := realtimeview.NewRealtimeHub()
 	var worker *commandworker.Worker
@@ -75,6 +80,9 @@ func main() {
 		devRequestRepository := devreqrep.NewDevRequestRepository(pgStore)
 		devRequestStore = devRequestRepository
 		devRequestIntakeTokenStore = devRequestRepository
+		// ADR-0028: voc + notification repository (sprint work_260612-a)
+		vocStore = devreqrep.NewDevRequestVocRepository(pgStore)
+		notificationStore = notifrep.NewUserNotificationRepository(pgStore)
 		rbacStore = rbacrep.NewRBACRepository(pgStore)
 		homeLabAdapterStore = pgStore
 		eventCursorStore = auditrep.NewAuditRepository(pgStore)
@@ -191,6 +199,9 @@ func main() {
 		IntegrationStore:           integrationStore,
 		DevRequestStore:            devRequestStore,
 		DevRequestIntakeTokenStore: devRequestIntakeTokenStore,
+		// ADR-0028: voc + notification
+		VocStore:          vocStore,
+		NotificationStore: notificationStore,
 		RBACStore:                  rbacStore,
 		BearerTokenVerifier:        verifier,
 		IdentityAdmin:              idpAdmin,
