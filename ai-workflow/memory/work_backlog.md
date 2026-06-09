@@ -3,8 +3,8 @@
 - 문서 목적: main 브랜치 기준 상위 백로그 인덱스. 세부 sprint backlog 는 브랜치별 메모리 디렉터리 참조.
 - 범위: 마일스톤 상태, 최근 머지, 잔여/후속 작업
 - 대상 독자: 프로젝트 리드, 후속 에이전트, 트랙 담당자
-- 상태: **2026-06-08 update — main HEAD `3855e46` + N-11 CI e2e+backend-integration 복원 운영 정합 sprint 260608-a 진행 중 (1차 PR #498 OPEN + 2차 메모리 sync PR 작성 중, issue #419).** v1.0 마감 housekeeping 의 cross-cutting infrastructure 운영 정합 단계.
-- 최종 수정일: 2026-06-08
+- 상태: **2026-06-09 update — main HEAD `897953c` (PR #503 머지) + N-8 sign-out e2e deterministic race hotfix 4차 완료 (PR #502 + #503, 3 commit) + N-11 잔여 DoD 해소 (e2e shard 1..3 PASS) + 워커 분업 전면 취소 (PR #500, 사용자 결정).** v1.0 출시 직전, 자유 에이전트 정책.
+- 최종 수정일: 2026-06-09
 - 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [세션 인계](./session_handoff.md), [상태 스냅샷](./state.json), [M1 PR 리뷰 actions](./M1-PR-review-actions.md), [ADR-0025](../../docs/adr/0025-envelope-encryption-key-management.md)
 
 ## 1. 마일스톤 진행 상황
@@ -82,6 +82,9 @@
 
 | 일자 | 변경 |
 |---|---|
+| 2026-06-09 | **N-8 sign-out e2e deterministic race hotfix 4차 (issue #501)** — 3 commit / 2 PR (PR #502 + #503, 4 신규 TC). **PR #502** (`fix/work_260609-a-N8-logout-graceful-degrade`): backend logout handler 502 → 204 graceful degradation + audit `revoke_status=unreachable` + hotfix 식별자. **PR #503** (`fix/work_260609-b-N8-codex-p1-distinguishable`, 2 commit): (1) codex P1 응답 — response header `X-Keycloak-Likely-Down: true` + `X-Logout-Hotfix` marker; (2) codex P1 follow-up 응답 — typed error sentinel `authview.ErrOIDCConfigMissing` (config error, marker 미부착) + `authview.ErrOIDCNetworkUnreachable` (네트워크/5xx, marker 부착). **검증**: e2e shard 1..3 PASS (N-11 잔여 DoD 해소), backend 35 packages PASS, frontend 80 files / 1033 tests PASS (FE-08 신규 +1). **신규 ID 없음** (N-8 follow-up hotfix). main HEAD `897953c`. issue #501 close. |
+| 2026-06-09 | **워커 분업 전면 취소 (사용자 결정, PR #500)** — Claude/Codex 자유 이용 불가. `worker_division.md` §0 + §1~§4 historical 標記 + §2.5 branch prefix 자유화 + §5 Owner 권한 명시. `AGENTS.md` 워커 일반 메모 갱신 + 워커별 전용 메모 4종 historical 標記. 유지 정책: §4.2 ADR reversal supersession 정공법 + §5 Owner 권한 + 우선순위 P0~P3 강제. main `f99fef7`. |
+| 2026-06-09 | **N-11 메모리 sync (PR #499)** — 5 파일 (+36/-15) main `da7d57e` 머지. 충돌 해소 (release_v1_roadmap.md N-11 row + 워커 분업 row 둘 다 보존). release_v1_roadmap.md 의 PR #500 row 는 §9 변경 이력에 별도 정합. 신규 ID 없음 (cross-cutting infrastructure 운영 정합). |
 | 2026-06-08 | **N-11 CI e2e + backend-integration 복원 운영 정합 (sprint 260608-a, issue #419)** — `&& false` 2건은 PR #407 cleanup-recovery 후속 4 squash merge (4a1942e / 5f5fdba / 9395cd9 / ce8ce7c) 로 코드 레벨 복원 완료. 본 sprint 의 1차 PR #498 은 ci.yml 코멘트만 갱신 (코드 변경 0줄), 2차 PR (메모리 4종 + traceability report.md §6 + release_v1_roadmap §3.5/§4.1/§9) 정합. **잔여 DoD**: main 첫 PR 에서 두 job 실 실행 PASS (state.json head + §3 잔여 표 N-11 잔여 row 추가). 신규 ID 없음 (cross-cutting infrastructure 운영 정합). |
 | 2026-06-06 | **sprint -h 신규 carve 의 ID 발급 + 매트릭스 cross-ref** — §3.1 의 auth-session / integration-registry / repository-integration row 3 row cross-ref 갱신. **신규 ID**: REQ-FR-106/107/108 + ARCH-18/19/20 + API-98/99/100 + IMPL/UT/TC 관련 ID 발급. Codex 리뷰에 따라 `docs/traceability/report.md`의 `integration-registry` 도메인에 `IMPL-ci-runs-01`, `UT-ci-runs-01`, `TC-CI-RUN-01` 추가 보완 완료. PR #490 머지 완료. |
 | 2026-06-02 | 중간 개발 보고 자료 준비 착수. `docs/presentations/2026-06-02-midterm-report-plan.md` 에 슬라이드 구조/데이터 수집 축/디자인 방향을 정리했고, `docs/analysis/2026-06-02-midterm-report-baseline.md` 에 현재 기능 범위, SDLC/추적성, 테스트, AI agent 활용 현황, 활동 통계를 베이스라인으로 기록. 다음 단계는 HTML/CSS/JS 슬라이드 초안 구현. |
