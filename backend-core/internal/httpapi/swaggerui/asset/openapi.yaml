@@ -1,21 +1,27 @@
 openapi: "3.0.3"
 info:
   title: "DevHub API"
-  version: "0.3.0-p2-batch2"
+  version: "0.4.0-p3-batch1"
   description: |
     DevHub v1.0 출시 직전 swagger scope 확장:
     - 1차 (PR #518, ADR-0029): 4 paths → 50 paths (P0/P1), API key 인증
       미들웨어 + openapi 1차 bootstrap. schema 7 → 59.
     - 2차 (PR #519, ADR-0029 §6 (c) P1 P2 batch 1): + 7 paths (user CRUD
       4 + risks/critical 1 + risks/{id}/mitigations 1 + commands/{id}/
-      approve|reject 2) + commands/{id} GET 의 staticTokenAuth 허용
-      (infrastructure:view 정합). path 50 → 57, schema 59 → 64.
-    - 3차 (본 PR, ADR-0029 §6 (c) P1 P2 batch 2): + 5 paths (organization
-      units CRUD 4 + /units/{id}/members GET|PUT 2 + hierarchy PUT 1
-      - GET search 1차 PR 보존) + rbac/policies (4) + rbac/policy legacy
-      410 (1). path 57 → 62, schema 64 → 70.
-    - 4차 후속 (P3, ADR-0029 §6 (c) 잔여): integration/scm tail (14) +
-      realtime/ws + infra/services/snapshot + infra/topology/v2 = 17 path.
+      approve|reject 2) + commands/{id} GET 의 staticTokenAuth 허용.
+      path 50 → 57, schema 59 → 64.
+    - 3차 (PR #520, ADR-0029 §6 (c) P1 P2 batch 2): + 11 endpoint
+      (organization units CRUD 4 + /units/{id}/members 2 + hierarchy PUT
+      1 + rbac/policies 4) + rbac/policy legacy 410. path 57 → 62,
+      schema 64 → 70.
+    - 4차 (본 PR, ADR-0029 §6 (c) P1 P3 batch 1): + 5 endpoint (admin/
+      service-actions POST 1 + admin/users/{id}/review POST 1 + infra/
+      services/snapshot POST 1 + infra/topology/v2 GET 1 + realtime/ws
+      GET 1). path 62 → 67. 신규 schema 0 (요청 shape inline).
+    - 5차 후속 (P3 잔여, ADR-0029 §6 (c)): integration/scm tail (10)
+      + ci-runs/{id}/logs + repositories/{id}/publish + dev-requests
+      sub-path (register|reject) + dev-request-tokens sub-path (PATCH
+      allowed_ips + DELETE revoke) = ~12 path.
 
     ## Envelope 규약
     - 성공: `{schema_version, data, request_id, trace_id}`
@@ -3552,6 +3558,114 @@ paths:
           $ref: "#/components/responses/ServerErrorEnvelope"
 
   # ---------------------------------------------------------------------------
+  # POST /api/v1/infra/services/snapshot — infra services 일괄 스냅샷 (P3 batch 1, system internal)
+  # ---------------------------------------------------------------------------
+  /api/v1/infra/services/snapshot:
+    post:
+      tags:
+        - Infra
+      summary: "Infra services 일괄 스냅샷"
+      operationId: ingestInfraServicesSnapshot
+      description: |
+        infra services 의 일괄 스냅샷 (cron / probe agent push). Bypass —
+        X-Internal-Auth header (internal secret) 으로 인증, RBAC matrix 미사용.
+        system / webhook source. ADR-0029 staticTokenAuth 도 미허용 (internal only).
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: X-Internal-Auth
+          in: header
+          required: true
+          schema:
+            type: string
+          description: "internal secret (DEVHUB_INFRA_SNAPSHOT_SECRET)"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                services:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      service_id:
+                        type: string
+                      status:
+                        type: string
+                        enum: ["healthy", "degraded", "down"]
+                      observed_at:
+                        type: string
+                        format: date-time
+            example:
+              services:
+                - service_id: "service_payments"
+                  status: "healthy"
+                  observed_at: "2026-06-09T12:00:00Z"
+                - service_id: "service_auth"
+                  status: "degraded"
+                  observed_at: "2026-06-09T12:00:00Z"
+      responses:
+        "202":
+          description: "스냅샷 접수 (async 처리)"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/infra/topology/v2 — infra topology v2 (P3 batch 1, staticTokenAuth 허용)
+  # ---------------------------------------------------------------------------
+  /api/v1/infra/topology/v2:
+    get:
+      tags:
+        - Infra
+      summary: "Infra topology v2 (graph)"
+      operationId: getInfraTopologyV2
+      description: |
+        infra topology 의 v2 (graph + dependency edge 가중치 포함).
+        ADR-0029: staticTokenAuth 허용 (infrastructure:view).
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      responses:
+        "200":
+          description: "Infra topology v2"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  nodes:
+                    - node_id: "service_payments"
+                      kind: "service"
+                    - node_id: "service_auth"
+                      kind: "service"
+                  edges:
+                    - from: "service_payments"
+                      to: "service_auth"
+                      weight: 0.8
+                request_id: "req_topo_v2_001"
+                trace_id: "trace_topo_v2_001"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
   # GET /api/v1/organization/units/{unit_id} — 조직 unit 상세 (P1)
   # ---------------------------------------------------------------------------
   /api/v1/organization/units/{unit_id}:
@@ -4311,6 +4425,37 @@ paths:
         "503":
           $ref: "#/components/responses/ServerErrorEnvelope"
 
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/realtime/ws — WebSocket upgrade (P3 batch 1, ADR-0024 Bypass)
+  # ---------------------------------------------------------------------------
+  /api/v1/realtime/ws:
+    get:
+      tags:
+        - Realtime
+      summary: "WebSocket connection upgrade"
+      operationId: getRealtimeWebsocket
+      description: |
+        WebSocket protocol upgrade. ADR-0024 ticket pattern — 클라이언트는
+        POST /api/v1/realtime/ticket 으로 60s single-use ticket 발급 후 본
+        endpoint 에 ticket query param 으로 연결. 인증된 actor 면 누구나
+        (Bypass, RBAC matrix lookup 없음).
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: ticket
+          in: query
+          required: true
+          schema:
+            type: string
+          description: "POST /api/v1/realtime/ticket 으로 발급된 single-use ticket"
+      responses:
+        "101":
+          description: "WebSocket switching protocols"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
 # =============================================================================
 # P1 — Audit / Command / HR / Realtime
 # =============================================================================
@@ -4438,6 +4583,138 @@ paths:
                   started_at: "2026-06-09T10:00:00Z"
                 request_id: "req_cmd_get"
                 trace_id: "trace_cmd_get"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # POST /api/v1/admin/service-actions — admin service action (P3 batch 1, bearerAuth only)
+  # ---------------------------------------------------------------------------
+  /api/v1/admin/service-actions:
+    post:
+      tags:
+        - Audit
+      summary: "Service action 생성 (admin)"
+      operationId: createServiceAction
+      description: |
+        신규 service action (deployment / restart / scale) 생성.
+        system_admin 전용. 본 endpoint 는 write — ADR-0029 staticTokenAuth 미허용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - action_type
+                - target
+              properties:
+                action_type:
+                  type: string
+                  enum:
+                    - "deploy"
+                    - "restart"
+                    - "scale"
+                    - "rollback"
+                target:
+                  type: string
+                  description: "target service or infrastructure"
+                parameters:
+                  type: object
+            example:
+              action_type: "restart"
+              target: "service_payments"
+              parameters:
+                grace_period_sec: 30
+      responses:
+        "202":
+          description: "Service action 접수 (async 실행)"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  action_id: "act_001"
+                  status: "pending"
+                request_id: "req_svc_action_001"
+                trace_id: "trace_svc_action_001"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # POST /api/v1/admin/users/{user_id}/review — admin 의 onboarding review confirm (P3 batch 1, bearerAuth only, RM-ONBOARD-01)
+  # ---------------------------------------------------------------------------
+  /api/v1/admin/users/{user_id}/review:
+    post:
+      tags:
+        - Me
+      summary: "User onboarding review confirm (admin)"
+      operationId: confirmUserReview
+      description: |
+        admin 의 user onboarding review confirm. RM-ONBOARD-01 (ADR-0021 §3.5) 정합.
+        user 의 onboarding_completed_at = NOW() + review_status = 'confirmed' 로 전이.
+        본 endpoint 는 write — ADR-0029 staticTokenAuth 미허용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "review 할 user ID"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note:
+                  type: string
+                  example: "onboarding approved — primary unit confirmed"
+      responses:
+        "200":
+          description: "review confirm 성공"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  user_id: "charlie"
+                  review_status: "confirmed"
+                  reviewed_by: "alice"
+                  reviewed_at: "2026-06-09T12:00:00Z"
+                request_id: "req_user_review_001"
+                trace_id: "trace_user_review_001"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
         "401":
           $ref: "#/components/responses/UnauthorizedEnvelope"
         "403":
