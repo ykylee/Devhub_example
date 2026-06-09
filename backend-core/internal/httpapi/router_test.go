@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"bytes"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -194,5 +195,117 @@ func TestTrustedProxiesFromEnv(t *testing.T) {
 				t.Errorf("trustedProxiesFromEnv() = %#v, want %#v", got, tc.want)
 			}
 		})
+	}
+}
+
+// ADR-0029 §6 (e) P2 — swagger UI 자체에 system_admin gate. 미인증 → 401.
+func TestRouter_SwaggerAdminGate_UnauthenticatedReturns401(t *testing.T) {
+	verifier := &fakeBearerTokenVerifier{err: errors.New("not used")}
+	router := NewRouter(RouterConfig{
+		SwaggerEnabled:             true,
+		SwaggerRequireSystemAdmin:  true,
+		BearerTokenVerifier:        verifier,
+		OpenAPISpecPath:            "",
+	})
+	req := httptest.NewRequest(http.MethodGet, "/swagger/", nil)
+	req.Header.Set("Authorization", "")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d (body=%s)", rec.Code, rec.Body.String())
+	}
+	var resp struct {
+		Code string `json:"code"`
+	}
+	decodeJSON(t, rec.Body.Bytes(), &resp)
+	if resp.Code != "swagger_unauthenticated" {
+		t.Errorf("code = %q, want swagger_unauthenticated", resp.Code)
+	}
+	if verifier.token != "" {
+		t.Errorf("verifier should not be called when no Authorization header; got token=%q", verifier.token)
+	}
+}
+
+// ADR-0029 §6 (e) P2 — non-system_admin role (developer) → 403.
+func TestRouter_SwaggerAdminGate_DeveloperRoleReturns403(t *testing.T) {
+	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+		Login:   "dev-user",
+		Subject: "user-dev",
+		Role:    "developer",
+	}}
+	router := NewRouter(RouterConfig{
+		SwaggerEnabled:            true,
+		SwaggerRequireSystemAdmin: true,
+		BearerTokenVerifier:       verifier,
+		OpenAPISpecPath:           "",
+	})
+	req := httptest.NewRequest(http.MethodGet, "/swagger/", nil)
+	req.Header.Set("Authorization", "Bearer dev-jwt")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d (body=%s)", rec.Code, rec.Body.String())
+	}
+	var resp struct {
+		Code string `json:"code"`
+	}
+	decodeJSON(t, rec.Body.Bytes(), &resp)
+	if resp.Code != "swagger_admin_required" {
+		t.Errorf("code = %q, want swagger_admin_required", resp.Code)
+	}
+}
+
+// ADR-0029 §6 (e) P2 — system_admin role → swagger UI 통과. gin StaticFS 가
+// /swagger/index.html → /swagger/ 로 301 redirect 응답 (trailing-slash 처리).
+// gate 가 통과했으므로 301 정상 — 401/403 이면 gate 가 막힌 것.
+// gin /swagger/*filepath 가 single segment 매치. /swagger/index.html 사용.
+func TestRouter_SwaggerAdminGate_SystemAdminPasses(t *testing.T) {
+	verifier := &fakeBearerTokenVerifier{actor: AuthenticatedActor{
+		Login:   "admin-user",
+		Subject: "user-admin",
+		Role:    "system_admin",
+	}}
+	router := NewRouter(RouterConfig{
+		SwaggerEnabled:            true,
+		SwaggerRequireSystemAdmin: true,
+		BearerTokenVerifier:       verifier,
+		OpenAPISpecPath:           "",
+	})
+	req := httptest.NewRequest(http.MethodGet, "/swagger/index.html", nil)
+	req.Header.Set("Authorization", "Bearer admin-jwt")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	// gin StaticFS 가 /swagger/index.html → /swagger/ 로 301 redirect 응답 (trailing-slash).
+	// 301 = gate 가 system_admin 으로 통과했다는 신호 (gate 가 막혔으면 401/403).
+	if rec.Code != http.StatusMovedPermanently {
+		t.Fatalf("expected 301 (system_admin passes gate → StaticFS redirect), got %d (body=%s)", rec.Code, rec.Body.String())
+	}
+	if verifier.token != "admin-jwt" {
+		t.Errorf("verifier should be called with admin-jwt; got token=%q", verifier.token)
+	}
+}
+
+// ADR-0029 §6 (e) P2 — invalid bearer token (verifier fail) → 401.
+func TestRouter_SwaggerAdminGate_InvalidTokenReturns401(t *testing.T) {
+	verifier := &fakeBearerTokenVerifier{err: errors.New("invalid jwt")}
+	router := NewRouter(RouterConfig{
+		SwaggerEnabled:            true,
+		SwaggerRequireSystemAdmin: true,
+		BearerTokenVerifier:       verifier,
+		OpenAPISpecPath:           "",
+	})
+	req := httptest.NewRequest(http.MethodGet, "/swagger/", nil)
+	req.Header.Set("Authorization", "Bearer invalid-jwt")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d (body=%s)", rec.Code, rec.Body.String())
+	}
+	var resp struct {
+		Code string `json:"code"`
+	}
+	decodeJSON(t, rec.Body.Bytes(), &resp)
+	if resp.Code != "swagger_token_invalid" {
+		t.Errorf("code = %q, want swagger_token_invalid", resp.Code)
 	}
 }

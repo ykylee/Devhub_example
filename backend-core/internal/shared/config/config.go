@@ -34,6 +34,12 @@ type Config struct {
 	// additional auth; exposing API schema is a reconnaissance risk.
 	// Set DEVHUB_SWAGGER_ENABLED=true to enable.
 	SwaggerEnabled bool
+	// SwaggerRequireSystemAdmin — ADR-0029 §6 (e) P2 — swagger UI 자체에
+	// system_admin gate 적용. true 면 Keycloak bearer token 인증 + role
+	// 검증 필수. false 면 기존 동작 (public, local dev / stage 검증용).
+	// BearerTokenVerifier 가 nil 이면 public (gate skip) — auth 미설정 환경
+	// 안전. 운영 default = true. DEVHUB_SWAGGER_REQUIRE_SYSTEM_ADMIN 으로 override.
+	SwaggerRequireSystemAdmin bool
 	// ProjectModel controls project-management route mode.
 	// - legacy: repository-centric routes only
 	// - hybrid: legacy + v2 routes both enabled (default)
@@ -144,7 +150,8 @@ func Load() Config {
 		IdPProvider:                    normalizeIDPProvider(os.Getenv("DEVHUB_IDP_PROVIDER")),
 		AuthDevFallback:                envBool("DEVHUB_AUTH_DEV_FALLBACK"),
 		OnboardingGateEnabled: envBoolDefault("DEVHUB_ONBOARDING_GATE_ENABLED", true),
-		SwaggerEnabled:       envBool("DEVHUB_SWAGGER_ENABLED"),
+		SwaggerEnabled:             envBool("DEVHUB_SWAGGER_ENABLED"),
+		SwaggerRequireSystemAdmin:  envBool("DEVHUB_SWAGGER_REQUIRE_SYSTEM_ADMIN"),
 		ProjectModel:                   normalizeProjectModel(os.Getenv("DEVHUB_PROJECT_MODEL")),
 		ServiceActionExecutorMode:      strings.TrimSpace(os.Getenv("SERVICE_ACTION_EXECUTOR_MODE")),
 		ServiceActionAllowedServices:   strings.TrimSpace(os.Getenv("SERVICE_ACTION_ALLOWED_SERVICES")),

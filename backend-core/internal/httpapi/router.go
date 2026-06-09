@@ -187,6 +187,12 @@ type RouterConfig struct {
 	// SwaggerEnabled controls whether the Swagger UI endpoint is mounted.
 	// Zero-value false (default) keeps /swagger disabled for production safety.
 	SwaggerEnabled bool
+	// SwaggerRequireSystemAdmin — ADR-0029 §6 (e) P2 — swagger UI 자체에
+	// system_admin gate 적용. true (default) 면 Keycloak bearer token 으로
+	// 인증 + role=system_admin 검증 후 통과. false 면 기존 동작 (public) —
+	// local dev / stage 검증용 운영 SOP. BearerTokenVerifier 가 nil 이면
+	// public (gate skip) — auth 미설정 환경 안전.
+	SwaggerRequireSystemAdmin bool
 	// OpenAPISpecPath is the filesystem path to the hand-maintained OpenAPI
 	// spec YAML, served at /swagger/openapi.yaml when SwaggerEnabled=true.
 	// Empty string skips spec serving (UI-only mount).
@@ -295,13 +301,18 @@ func (fs swaggerFS) Open(name string) (http.File, error) {
 // fs.Sub is required: //go:embed swaggerui/asset/* roots the FS at the package
 // directory, so the file is reachable as swaggerui/asset/index.html, not
 // /index.html.
-func swaggerMount(router *gin.Engine, assetFS embed.FS, specPath string) {
+func swaggerMount(router *gin.Engine, assetFS embed.FS, specPath string, requireSystemAdmin bool, verifier BearerTokenVerifier) {
 	sub, err := fs.Sub(assetFS, "swaggerui/asset")
 	if err != nil {
 		log.Printf("[swagger] failed to sub-mount swaggerui/asset: %v; swagger UI disabled", err)
 		return
 	}
-	router.StaticFS("/swagger", swaggerFS{embed: http.FS(sub), specPath: specPath})
+	sw := swaggerFS{embed: http.FS(sub), specPath: specPath}
+	if requireSystemAdmin && verifier != nil {
+		router.GET("/swagger/*filepath", swaggerAdminGate(verifier), gin.WrapH(http.FileServer(sw)))
+	} else {
+		router.StaticFS("/swagger", sw)
+	}
 }
 
 func NewRouter(cfg RouterConfig) *gin.Engine {
@@ -393,7 +404,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	if cfg.SwaggerEnabled {
-		swaggerMount(router, swaggerAssetFS, cfg.OpenAPISpecPath)
+		swaggerMount(router, swaggerAssetFS, cfg.OpenAPISpecPath, cfg.SwaggerRequireSystemAdmin, cfg.BearerTokenVerifier)
 	}
 
 	// Keycloak Event Listener SPI Webhook (unauthenticated, X-Webhook-Secret check)
@@ -1223,4 +1234,80 @@ func (h Handler) issueRealtimeTicket(c *gin.Context) {
 func (h Handler) handleRealtimeWebSocket(c *gin.Context) {
 	h = h.ensure()
 	h.realtime.HandleRealtimeWebSocket(c)
+}
+
+// swaggerAdminGate 는 /swagger/* 진입 전에 bearer token 검증 + system_admin role
+// 가드를 enforce. ADR-0029 §6 (e) 정합. 미들웨어 — actor 검증 후 c.Set 으로
+// devhub_actor_login / devhub_actor_role set (다음 handler 가 audit 가능).
+// 401 / 403 envelope 응답 (envelope 패턴 정합 — backend_api_contract.md §1).
+func swaggerAdminGate(verifier BearerTokenVerifier) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		header := c.GetHeader("Authorization")
+		if header == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"status": "unauthenticated",
+				"error":  "swagger UI requires Keycloak authentication (ADR-0029 §6 (e))",
+				"code":   "swagger_unauthenticated",
+			})
+			return
+		}
+		token, ok := bearerToken(header)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"status": "unauthenticated",
+				"error":  "authorization header must use Bearer scheme",
+				"code":   "swagger_bearer_invalid",
+			})
+			return
+		}
+		// bearer token 검증 — Keycloak verifier 호출.
+		actor, err := verifier.VerifyBearerToken(c.Request.Context(), token)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"status": "unauthenticated",
+				"error":  "invalid bearer token",
+				"code":   "swagger_token_invalid",
+			})
+			return
+		}
+		// system_admin role 가드. role normalize (manager → team_manager 등)는
+		// permissions.go 의 normalizeSystemRoleAlias 와 정합.
+		role := actor.Role
+		switch role {
+		case "system_admin":
+			// 통과.
+		case "manager", "team_manager":
+			role = "team_manager"
+		case "user":
+			role = "developer"
+		}
+		if role != "system_admin" {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+				"status": "forbidden",
+				"error":  "swagger UI is restricted to system_admin role (ADR-0029 §6 (e))",
+				"code":   "swagger_admin_required",
+			})
+			return
+		}
+		// actor context set — 다음 handler 가 audit 가능.
+		c.Set("devhub_actor_login", actor.Login)
+		c.Set("devhub_actor_role", "system_admin")
+		c.Set("devhub_auth_source", "keycloak_jwt")
+		c.Next()
+	}
+}
+
+// bearerToken 는 auth.go (auth-session/view) 의 bearerToken 과 동일 패턴.
+// 본 미들웨어는 httpapi package 내부 → auth.go 미 import (cycle 회피). 본 helper
+// 는 token 문자열 추출만 책임 (검증은 verifier 에 위임).
+func bearerToken(header string) (string, bool) {
+	scheme, token, ok := strings.Cut(header, " ")
+	if !ok || !strings.EqualFold(scheme, "Bearer") {
+		return "", false
+	}
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return "", false
+	}
+	return token, true
 }
