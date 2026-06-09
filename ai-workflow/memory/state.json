@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-06-10 main. swagger UI 1차 bootstrap 완료 (PR #505, 4 commit, ADR-0027, 정적 HTML + CDN) + v1.0 출시 직전 housekeeping (N-8/N-11 row close, ADR-0025/0026 row 보강, sprint -k 마킹). 자유 에이전트 정책 + v1.0 출시 직전. 다음 sprint: N-10 Manager RBAC E2E 6 TC 보강 (`maintenance/work_260610-c-N10-rbac-e2e-tcs`).",
-  "updated_at": "2026-06-10T02:55:00Z",
-  "head_commit": "ad8d481",
-  "head_summary": "feat(httpapi): swagger UI 1차 bootstrap (정적 HTML + CDN, ADR-0027) (#505)",
+  "status": "2026-06-12 main. PR #514 (voc + notification) 머지 완료 + 본 sprint `maintenance/work_260612-b-v1-finalizing` PR #515 4 commit push (CI 진행 중). 옵션 A (N-12 housekeeping) + B (voc list API, ADR-0028 §6 carve d) + C (N-10 backend IT 3 TC) + codex P2 fix (PR #514 latent 회귀 3 layer: production router mount + routePermissionTable + gin path conflict). v1.0 출시 직전 잔여 = N-6 staging 1주 운영 (사용자 결정).",
+  "updated_at": "2026-06-12T07:00:00Z",
+  "head_commit": "2b00fe0",
+  "head_summary": "fix(backend/dev-request): codex P2 review (id 3378458885) — production router mount + routePermissionTable 누락 (PR #514 latent 회귀)",
   "milestones": {
     "M0": {
       "status": "done",
