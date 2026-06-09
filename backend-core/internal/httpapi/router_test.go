@@ -109,13 +109,15 @@ func TestRouter_SwaggerSpecEmptyOmitsMount(t *testing.T) {
 	}
 }
 
-// TestRouter_SwaggerIndexHasDynamicSpecURL guards the relative-path regression
-// fixed in PR #509 follow-up: index.html must compute the spec URL from
-// window.location.pathname (dynamic base) so the same asset works behind
-// nginx /devhub/swagger/ rewrite as well as at the bare /swagger/ path.
+// TestRouter_SwaggerIndexHasDynamicSpecURL guards the relative-path
+// regression. index.html must compute the spec URL from
+// window.location.pathname so the same asset works behind nginx's
+// /devhub/swagger/ rewrite as well as at the bare /swagger/ path, including
+// nginx's 301-with-trailing-slash form (.../index.html/). PR #513 (codex P2)
+// added file-vs-directory detection so directory-only pathnames are
+// preserved as the base.
 func TestRouter_SwaggerIndexHasDynamicSpecURL(t *testing.T) {
 	router := NewRouter(RouterConfig{SwaggerEnabled: true})
-	// trailing-slash form skips the 301-to-./ dance (see TestRouter_SwaggerEnabledServesUI).
 	req := httptest.NewRequest(http.MethodGet, "/swagger/", nil)
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
@@ -124,9 +126,9 @@ func TestRouter_SwaggerIndexHasDynamicSpecURL(t *testing.T) {
 	}
 	body := rec.Body.String()
 	wantSubstrings := []string{
-		// PR #513 follow-up: trailing-slash trim pattern.
-		`window.location.pathname.replace(/\/+$/, "")`,
-		`path.lastIndexOf("/")`,
+		`pathname.replace(/\/+$/, "") || "/"`,
+		`trimmed.lastIndexOf("/")`,
+		`lastSeg.includes(".")`,
 		`base + "openapi.yaml"`,
 	}
 	for _, s := range wantSubstrings {
