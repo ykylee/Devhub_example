@@ -159,6 +159,12 @@ type RouterConfig struct {
 	// APIKeyAdminOnly — ADR-0029 운영 가드. true 면 API key caller 는 admin-only
 	// endpoints 만 접근 가능. RBAC 가 deny.
 	APIKeyAdminOnly bool
+	// APIKeyStore — ADR-0029 §6 (f) P3 multi-key (read-only). auth middleware
+	// hot path. nil 이면 multi-key 비활성, env APIKey branch 만 활성.
+	APIKeyStore authview.APIKeyStore
+	// APIKeyStoreAdmin — ADR-0029 §6 (f) P3. multi-key admin handler 용
+	// write-capable store. nil 이면 admin endpoints 가 503 으로 응답.
+	APIKeyStoreAdmin authview.APIKeyAdminStore
 	OrganizationStore     OrganizationStore
 	PlatformStore      PlatformStore
 	// IntegrationStore — integration-registry 도메인 (API-58, API-69..75). issue
@@ -340,6 +346,8 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 			OnboardingGateEnabled: cfg.OnboardingGateEnabled,
 			APIKey:                cfg.APIKey,
 			APIKeyAdminOnly:       cfg.APIKeyAdminOnly,
+			APIKeyStore:           cfg.APIKeyStore,
+			APIKeyStoreAdmin:      cfg.APIKeyStoreAdmin,
 		}),
 		audit: auditview.NewAuditHandler(auditview.AuditConfig{
 			AuditStore:            cfg.AuditStore,
@@ -452,6 +460,13 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.PUT("/rbac/policies", handler.updateRBACPolicies)
 	v1.DELETE("/rbac/policies/:role_id", handler.deleteRBACPolicy)
 	v1.POST("/admin/service-actions", handler.createServiceAction)
+	// ADR-0029 §6 (f) P3 — multi-key 관리 endpoints. system_admin 일임
+	// (routePermissionTable 정합). raw key 1회만 응답 (POST), list/PATCH/DELETE
+	// 는 key_prefix 만 노출. 자세한 동작: [`docs/planning/api-key-management-sprint-plan.md` §3.3].
+	v1.POST("/admin/api-keys", handler.auth.CreateAPIKey)
+	v1.GET("/admin/api-keys", handler.auth.ListAPIKeys)
+	v1.PATCH("/admin/api-keys/:api_key_id", handler.auth.UpdateAPIKeyMeta)
+	v1.DELETE("/admin/api-keys/:api_key_id", handler.auth.RevokeAPIKey)
 	v1.POST("/risks/:risk_id/mitigations", handler.createRiskMitigation)
 	v1.GET("/commands/:command_id", handler.getCommand)
 	v1.POST("/commands/:command_id/approve", handler.approveCommand)

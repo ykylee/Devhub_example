@@ -3,10 +3,12 @@ package view
 import (
 	"context"
 	"errors"
+	"github.com/devhub/backend-core/internal/shared/authkey"
 	"github.com/devhub/backend-core/internal/shared/httphelp"
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/devhub/backend-core/internal/domain"
 	"github.com/devhub/backend-core/internal/shared/metrics"
@@ -166,6 +168,72 @@ func (h *AuthHandler) AuthenticateActor(c *gin.Context) {
 	// cfg.APIKey 가 설정되어 있으면, 정적 키 비교로 인증 통과. Keycloak 도달
 	// 불필요. caller actor 는 "api-key" (role=system_admin) 으로 식별 —
 	// enforceRoutePermission / RBAC 가 admin-only endpoints 만 허용.
+	//
+	// ADR-0029 §6 (f) P3 multi-key — cfg.APIKeyStore 가 nil 이 아니면 DB
+	// branch 우선 (sha256(token) → GetAPIKeyByHash → revoked/expired/CIDR 검증).
+	// env cfg.APIKey (단일 키) 는 migration 기간 동안 legacy fallback 으로
+	// 잔존 — DB store 가 nil 일 때만 활성. multi-key 가 primary.
+	if h.cfg.APIKeyStore != nil && !looksLikeJWT(token) {
+		keyHash := authkey.HashAPIKey(token)
+		key, err := h.cfg.APIKeyStore.GetAPIKeyByHash(c.Request.Context(), keyHash)
+		if err == nil {
+			// CIDR allowlist 검증. nil allowlist = all IPs 허용.
+			clientIP := c.ClientIP()
+			if allowed, err := authkey.IsCIDRAllowed(clientIP, key.AllowedCIDRs); err == nil && allowed {
+				c.Set("devhub_actor_login", "api-key:"+key.KeyPrefix)
+				c.Set("devhub_actor_role", "system_admin")
+				c.Set("devhub_auth_source", "api_key_db")
+				c.Set(httphelp.CtxKeySourceType, domain.AuditSourceSystem)
+				c.Set("devhub_api_key_id", key.ID)
+				c.Header("X-Devhub-Auth", "api_key_db")
+				httphelp.LogRequest(c, "[authenticateActor] API key (DB) authenticated for path: %s prefix=%s", c.FullPath(), key.KeyPrefix)
+				// ADR-0029 §6 (g) — audit + metric enrich. SOP [`docs/setup/api_key_rotation.md` §6.1]
+				// 의 4 audit 정합. DB branch: api_key_id + key_prefix + allowed_cidrs 분기
+				// payload 에 명시 — multi-key 운영 시 key 단위 가시성.
+				h.recordAuditBestEffort(c, "auth.api_key_authenticated", "auth", "api-key:"+key.KeyPrefix, map[string]any{
+					"actor_role":    "system_admin",
+					"path":          c.FullPath(),
+					"method":        c.Request.Method,
+					"client_ip":     clientIP,
+					"request_id":    httphelp.RequestIDFrom(c),
+					"api_key_id":    key.ID,
+					"key_prefix":    key.KeyPrefix,
+					"auth_branch":   "db_multi_key",
+				})
+				// SOP §6.1 metric 정합 — auth success counter. label value `db` 로
+				// env static branch 와 분리.
+				metrics.DevhubAPIKeyAuthTotal.WithLabelValues("success_db").Inc()
+				// best-effort last_used_at UPDATE — 실패 시 인증 자체는 유지
+				// (DB outage 도 인증 통과 — SOP §3.4 정합).
+				go func(keyID string) {
+					ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+					defer cancel()
+					_ = h.cfg.APIKeyStore.UpdateLastUsedAt(ctx, keyID, time.Now())
+				}(key.ID)
+				c.Next()
+				return
+			}
+			// CIDR allowlist fail — audit emit + 403 (not 401 — auth 는
+			// 통과했으나 policy deny. SOP §6.1 의 4 audit 분기 정합).
+			h.recordAuditBestEffort(c, "auth.api_key_denied", "auth", "api-key:"+key.KeyPrefix, map[string]any{
+				"reason":      "cidr_not_allowed",
+				"path":        c.FullPath(),
+				"client_ip":   c.ClientIP(),
+				"api_key_id":  key.ID,
+				"key_prefix":  key.KeyPrefix,
+				"auth_branch": "db_multi_key",
+			})
+			metrics.DevhubAPIKeyAuthTotal.WithLabelValues("denied_cidr").Inc()
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+				"status": "forbidden",
+				"error":  "api key client IP not in allowed_cidrs",
+			})
+			return
+		}
+		// DB lookup miss (revoked / expired / not found) — fallback to env
+		// branch (아래) 가 시도. 동일 key 로 env static compare 도 가능.
+		// 단 audit 로 denied 분기는 skip — env branch 가 401 로 reject.
+	}
 	if h.cfg.APIKey != "" && !looksLikeJWT(token) {
 		if subtleEqual(token, h.cfg.APIKey) {
 			c.Set("devhub_actor_login", "api-key")

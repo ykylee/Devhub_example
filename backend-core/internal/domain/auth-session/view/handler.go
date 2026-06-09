@@ -33,6 +33,27 @@ type RealtimeTicketStore interface {
 	Consume(ctx context.Context, ticket string) (store.RealtimeTicket, bool, error)
 }
 
+// APIKeyStore 는 auth middleware 가 hot path 에서 사용하는 read-only
+// 인터페이스. repository.APIKeyStore 와 같은 인터페이스지만 view
+// package 가 repository package 에 의존하지 않도록 view-local 로
+// 재선언 (cross-domain 의존 회피). main.go wire 시 adapter 로 매핑.
+type APIKeyStore interface {
+	GetAPIKeyByHash(ctx context.Context, keyHash []byte) (APIKeyView, error)
+	UpdateLastUsedAt(ctx context.Context, id string, when time.Time) error
+}
+
+// APIKeyView 는 auth middleware 가 필요한 최소 필드만 노출. raw key /
+// key_hash 는 절대 포함하지 않음. service.APIKey 와 분리하여 view 가
+// service package 에 의존하지 않도록.
+type APIKeyView struct {
+	ID           string
+	Name         string
+	KeyPrefix    string
+	CreatedBy    string
+	ExpiresAt    *string
+	AllowedCIDRs []string
+}
+
 type AuthConfig struct {
 	AuthDevFallback       bool
 	RealtimeTickets       RealtimeTicketStore
@@ -42,6 +63,16 @@ type AuthConfig struct {
 	OIDCLogoutClient      OIDCLogoutClient
 	AuditStore            AuditStore
 	OnboardingGateEnabled bool
+	// APIKeyStore — ADR-0029 §6 (f) P3 multi-key. nil 이면 multi-key 비활성 —
+	// APIKey (env) static compare 분기만 활성. nil 이 아니면 sha256(token) →
+	// DB lookup → revoked/expired/allowed_cidrs 검증. 두 분기 공존 가능
+	// (env key 가 migration 기간 동안 fallback). multi-key 가 primary.
+	APIKeyStore APIKeyStore
+	// APIKeyStoreAdmin — ADR-0029 §6 (f) P3. handler 가 사용하는 write-capable
+	// store. APIKeyStore (read-only, auth middleware hot path) 와 분리 — handler
+	// 가 read + write 둘 다 필요하므로. nil 이면 multi-key admin endpoints 가
+	// 503 으로 응답 (운영자가 DB store 셋업 전이면 endpoint 노출 안 함).
+	APIKeyStoreAdmin APIKeyAdminStore
 	// APIKey — ADR-0029. 비어있지 않으면 Authorization: Bearer <key> 가
 	// Keycloak JWT 가 아닌 단순 문자열일 때 DEVHUB_API_KEY 와 비교하여 인증.
 	// Keycloak-independent. public API 호출용.

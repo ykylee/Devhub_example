@@ -317,6 +317,14 @@ var routePermissionTable = map[routeKey]routePolicy{
 	// Task item 조회 — infrastructure:view (provider 관리자 권한).
 	{http.MethodGet, "/api/v1/external-tasks"}:          {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
 	{http.MethodGet, "/api/v1/external-tasks/:task_id"}: {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
+
+	// ADR-0029 §6 (f) P3 — multi-key 관리 (sprint feat/work_260609-k-api-key-management).
+	// system_admin 일임 (api_keys resource). raw key 1회 응답 (POST) + list/revoke/update
+	// 는 key_prefix 만 노출 (보안). 자세한 동작: [`docs/planning/api-key-management-sprint-plan.md` §3.3].
+	{http.MethodPost, "/api/v1/admin/api-keys"}:             {Resource: domain.ResourceAPIKeys, Action: domain.ActionCreate},
+	{http.MethodGet, "/api/v1/admin/api-keys"}:              {Resource: domain.ResourceAPIKeys, Action: domain.ActionView},
+	{http.MethodPatch, "/api/v1/admin/api-keys/:api_key_id"}:  {Resource: domain.ResourceAPIKeys, Action: domain.ActionEdit},
+	{http.MethodDelete, "/api/v1/admin/api-keys/:api_key_id"}: {Resource: domain.ResourceAPIKeys, Action: domain.ActionDelete},
 }
 
 // lookupRoutePolicy is exported for tests to assert the table contents without
