@@ -1,11 +1,51 @@
-# Session Handoff — main (2026-06-10, swagger UI 1차 bootstrap + v1.0 출시 직전 housekeeping)
+# Session Handoff — main (2026-06-12, v1.0 출시 직전 finalizing — PR #514 + PR #515 4 commit + codex P2 fix)
 
-- 문서 목적: swagger UI 1차 bootstrap (PR #505, 4 commit, ADR-0027) + v1.0 출시 직전 housekeeping (N-8/N-11 row close, ADR-0025/0026 row 보강, sprint -k 마킹) 상태 인계.
-- 범위: 본 세션의 1 PR (PR #505, 4 commit: `1b640d4` + `428c3f4` + `b48794d` + `6cc208a`) + memory sync. 잔여 v1.0 출시 직전 housekeeping + N-10 RBAC E2E 6 TC.
-- 상태: main HEAD `ad8d481` (PR #505 squash), CI green (e2e shard 1..3 PASS + backend 35+ packages + frontend 1033 tests).
-- 최종 수정일: 2026-06-10
+- 문서 목적: PR #514 (voc + notification, ADR-0028) 머지 + 본 sprint `maintenance/work_260612-b-v1-finalizing` PR #515 4 commit push 상태 인계.
+- 범위: 본 세션의 2 PR (PR #514 squash, PR #515 push). 옵션 A (N-12 housekeeping) + B (voc list API) + C (N-10 backend IT 3 TC) + codex P2 fix (3 layer: production router mount + routePermissionTable + gin path conflict).
+- 상태: branch `maintenance/work_260612-b-v1-finalizing` HEAD `22306db` (5 commit push), PR #515 CI 진행 중 (Backend Unit Tests ✅ + 3 IN_PROGRESS).
+- 최종 수정일: 2026-06-12
 
-## 0. 본 세션 핵심 결과 (2026-06-10, swagger UI 1차 bootstrap + housekeeping)
+## 0. 본 세션 핵심 결과 (2026-06-12, v1.0 출시 직전 finalizing)
+
+### PR 머지 / Push 결과
+
+| PR | 상태 | 의의 |
+| --- | --- | --- |
+| **#514** (voc + notification, ADR-0028) | ✅ MERGED (squash) | 외부 시스템 의뢰 staging 도메인 + 9 field + in-app notification + 5 API. `(source_system, external_ref)` UNIQUE for idempotency. ADR-0028 §3 옵션 1 (별도 도메인 + 1:1 dev-request 매핑) 채택. 12 file +1043 line. main `ba7823f`. |
+| **#515** (v1.0 출시 직전 finalizing) | ⏳ PUSH (CI 진행 중) | 옵션 A (N-12 housekeeping) + B (voc list API) + C (N-10 backend IT 3 TC) + codex P2 fix (PR #514 latent 회귀 3 layer 동시 fix). 5 commit (74ff06f + de94bac + 0a90782 + 2b00fe0 + 22306db). branch HEAD `22306db`. |
+
+### Commit 4 — codex P2 fix (3 layer 동시)
+
+**Codex review id 3378458885**: P2 — production router 에 VOC list route 미등록. `NewRouter` 가 `Handler{...}` literal 에서 `voc` field 를 init 하지 않아 `line 527` 의 `if handler.voc != nil` 체크가 production 에서 항상 `false`. PR #514 의 5 voc route 가 production 에서 mount 안 됨.
+
+**3 layer 동시 fix (`2b00fe0`)**:
+1. `router.go` `NewRouter` `Handler{...}` literal: `voc: devreqview.NewVocHandler(...)` init 추가.
+2. `voc_handler.go` `RegisterVocRoutes`: `GET /dev-requests/:external_ref` → `GET /dev-requests/external/:external_ref` (gin strict duplicate path error 회피, 사용자 선택) + `POST` param name `external_ref` → `dev_request_id` 정합.
+3. `permissions.go` `routePermissionTable`: 5 voc route 의 entry 추가 (PR #514 의 latent 회귀):
+   - `POST /dev-requests/:dev_request_id` → `ResourceDevRequests, ActionCreate` (system_admin, 외부 intake)
+   - `POST /dev-requests/:dev_request_id/route` → `ResourceDevRequests, ActionEdit` (team_manager/system_admin)
+   - `GET /dev-requests/external/:external_ref` → `ResourceDevRequests, ActionView`
+   - `GET /vocs` → `ResourceDevRequests, ActionView` (ADR-0028 §6 carve d, system_admin 도구)
+   - `GET /me/notifications` → `Bypass` (자기 정보)
+   - `POST /me/notifications/:id/read` → `Bypass` (자기 마킹)
+
+**검증**: `go test ./...` 0 FAIL, `go build ./...` silent PASS, codex reply id 3378526106.
+
+### 신규 ID 4건
+- `IMPL-voc-01`: voc 등록 / routing / 조회
+- `IMPL-notification-01`: in-app notification (`/api/v1/me/notifications`)
+- `IMPL-dreq-02`: dev-request 9 field + 단일 트랜잭션 자동 생성
+- `IMPL-voc-list-01`: `GET /api/v1/vocs` (ADR-0028 §6 carve d)
+
+### 신규 TC 7건
+- TC-VOC-LIST-01..03 (4 케이스)
+- TC-RBAC-LOGOUT-01 + TC-RBAC-ROLE-DRIFT-01 + TC-RBAC-LEGACY-01
+
+### PR #514 / #515 정합 후 v1.0 출시 직전 잔여
+- **N-6**: staging 1주 운영 + 외부 사용자 ≥5 로그인 검증 (사용자 결정 영역)
+- 옵션 D (`project.inbound_source` 자동 routing, ADR-0028 §6 carve a): post-MVP 후속 sprint 후보
+
+## 0a. 이전 세션 (2026-06-10, swagger UI 1차 bootstrap + housekeeping)
 
 ### PR 머지 결과 (squash, 본 housekeeping PR 추가 예정)
 
@@ -96,6 +136,8 @@ codex P1 의 핵심 우려 "reachable Keycloak SSO session is not terminated" �
 | **X-2** | inbound webhook 정규화 깊이 | multi-provider sync 일반화 (v1.1) |
 
 ## 4. 다음 세션 directive
-* **N-6**: staging 1주 운영 (사용자 영역).
-* **N-10 sprint 진입**: `maintenance/work_260610-c-N10-rbac-e2e-tcs` 6 TC 보강.
+* **PR #515 CI 완료 대기** → 머지 → main HEAD `22306db` 머지.
+* **N-6**: staging 1주 운영 (사용자 결정 영역).
+* **N-10 IT 3 TC 완료 정합** (본 sprint): `TC-RBAC-LOGOUT-01` + `TC-RBAC-ROLE-DRIFT-01` + `TC-RBAC-LEGACY-01` ✅ verified.
+* **옵션 D 검토** (`project.inbound_source` 자동 routing, ADR-0028 §6 carve a): post-MVP 후속 sprint 후보.
 * **V1.1 진입 준비**: X-1/X-2 로드맵 백로그 분석.

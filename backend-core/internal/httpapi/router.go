@@ -367,6 +367,11 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 			OnboardingGateEnabled: cfg.OnboardingGateEnabled,
 			AuditStore:            cfg.AuditStore,
 		}),
+		voc: devreqview.NewVocHandler(devreqview.VocHandlerConfig{
+			VocStore:          resolveVocStore(cfg),
+			NotificationStore: resolveNotificationStore(cfg),
+			AuditStore:        cfg.AuditStore,
+		}),
 		ciAdapter: cfg.CIAdapter,
 	}
 	router.GET("/health", handler.health)
