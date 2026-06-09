@@ -154,10 +154,10 @@ CREATE INDEX user_notifications_user_unread_idx
 
 ## 6. Carve Out (post-MVP)
 
-- **project.inbound_source 자동 routing** (P3): `applications.inbound_source_type` (gitea/jira/other) + `inbound_source_config` (JSONB) 컬럼 + 자동 라우팅 로직. sprint 후속.
+- **project.inbound_source 자동 routing** (P3): `applications.inbound_source_type` (gitea/jira/other) + `inbound_source_config` (JSONB) 컬럼 + 자동 라우팅 로직. sprint 후속. **2026-06-12 정합** ([`docs/planning/2026-06-12-inbound-source-routing-sprint-plan.md`](../planning/2026-06-12-inbound-source-routing-sprint-plan.md) + [release_v1_roadmap.md §3.5 N-13](../planning/release_v1_roadmap.md) 의 정공법 + ID slot + 의존 정합) — 옵션 A (applications.inbound_source 컬럼 + sync 자동 routing) 권장. 본 sprint = post-MVP 검토 (구현은 v1.1 milestone 진입 시점).
 - **email 발송** (P2 정합): in-app 외 외부 의존 (smtp / webhook) 추가.
 - **sms / Slack 통합** (P3): project.inbound_source_config 의 webhook field.
-- **voc list API** (system_admin): `GET /api/v1/vocs?status=received` — N-6 staging 1주 운영 SOP 검증 후 결정.
+- **voc list API** (system_admin): `GET /api/v1/vocs?status=received` — ✅ resolved (PR #515, 2026-06-12). N-6 staging 1주 운영 SOP 의 system_admin 도구.
 
 ## 7. 변경 이력
 
