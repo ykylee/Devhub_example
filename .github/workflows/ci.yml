@@ -63,6 +63,30 @@ jobs:
       - name: Check migration prefixes are unique
         run: bash ./scripts/check-migration-uniqueness.sh
 
+  openapi-yaml-lint:
+    # ADR-0029 §6 (d) P2 — openapi.yaml CI lint gate. 4 항목:
+    # yaml safe_load + semver + paths count + contract.md cross-link.
+    # migration-prefix-lint 와 동일 패턴 (별도 잡 + bash script + workflow
+    # 변경 시만). backend-core 변경 시 + docs/openapi.yaml 변경 시 모두
+    # 트리거 — backend 변경 시 openapi.yaml 같이 갱신된다는 ADR-0029 §3.2
+    # 결정 정합. frontend 변경 시엔 skip (openapi 영향 없음).
+    name: OpenAPI YAML Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PyYAML (system python lacks the module on ubuntu-latest)
+        # FU-CI-3: ubuntu-24.04 runners ship without PyYAML by default. pip
+        # install --user avoids touching system packages (PEP 668 restrict).
+        # Pin to PyYAML 6.0.x (last release supporting py3.8+; safe_load /
+        # safe_dump semantics unchanged from 5.x).
+        run: |
+          set -euo pipefail
+          python3 -m pip install --user --quiet "PyYAML>=6.0,<7"
+          echo "PyYAML version:"
+          python3 -c "import yaml; print(yaml.__version__)"
+      - name: Check openapi.yaml lint
+        run: bash ./scripts/check-openapi-yaml-lint.sh
+
   backend-unit:
     name: Backend Unit Tests
     runs-on: ubuntu-latest
