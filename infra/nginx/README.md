@@ -18,6 +18,18 @@
 | --- | --- | --- |
 | `devhub.deploy.conf.template` | docker-compose.deploy.yml 의 nginx 컨테이너용. nginx 공식 이미지의 envsubst entrypoint 가 처리. `${KEYCLOAK_UPSTREAM}` / `${KEYCLOAK_ADMIN_ALLOW_CIDR}` 치환. | `/etc/nginx/templates/devhub.deploy.conf.template` (→ `/etc/nginx/conf.d/devhub.deploy.conf`) |
 | `devhub.native.conf` | host nginx + 모든 서비스 native loopback (`127.0.0.1:*`). dev / staging 의 단일 포트 정합성 검증 용도. | `/etc/nginx/sites-available/devhub.native.conf` (host 직접 설치) |
+| `devhub.deploy.conf` | local sync 검증 용. .gitignore 로 추적 제외 — deploy 시에는 `.template` 만 마운트되고 nginx 공식 이미지의 envsubst 가 처리한다. | (git 추적 제외, sync script 로 로컬 검증만) |
+
+### 1.1 라우트 prefix 정책 (ADR-0018 + ADR-0027)
+
+| 외부 prefix | backend forward | 비고 |
+| --- | --- | --- |
+| `/devhub/api/` | `/api/` (rewrite) | backend API 100+ |
+| `/devhub/swagger/` | `/swagger/` (rewrite) | swagger UI 1차 bootstrap (sprint work_260610-a, [ADR-0027](../../docs/adr/0027-openapi-hand-maintained.md)). opt-in via `DEVHUB_SWAGGER_ENABLED=true`; default OFF. |
+| `/devhub/auth/keycloak/` | (no rewrite) | Keycloak OIDC, X-Forwarded-Prefix 유지 |
+| `/devhub/auth/keycloak/admin/` | (no rewrite) | Keycloak Admin REST, CIDR allowlist |
+| `/devhub/` | frontend `devhub/` | Next.js basePath |
+| `/metrics` | backend `/metrics` | Prometheus scrape (basePath 우회) |
 
 ## 2. compose 운영 mode (`devhub.deploy.conf.template`)
 
