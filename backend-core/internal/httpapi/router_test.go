@@ -109,6 +109,31 @@ func TestRouter_SwaggerSpecEmptyOmitsMount(t *testing.T) {
 	}
 }
 
+// TestRouter_SwaggerIndexHasDynamicSpecURL guards the relative-path regression
+// fixed in PR #509 follow-up: index.html must compute the spec URL from
+// window.location.pathname (dynamic base) so the same asset works behind
+// nginx /devhub/swagger/ rewrite as well as at the bare /swagger/ path.
+func TestRouter_SwaggerIndexHasDynamicSpecURL(t *testing.T) {
+	router := NewRouter(RouterConfig{SwaggerEnabled: true})
+	// trailing-slash form skips the 301-to-./ dance (see TestRouter_SwaggerEnabledServesUI).
+	req := httptest.NewRequest(http.MethodGet, "/swagger/", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("GET /swagger/: got %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.String()
+	wantSubstrings := []string{
+		`window.location.pathname.replace(/\/[^\/]*$/, "/")`,
+		`base + "openapi.yaml"`,
+	}
+	for _, s := range wantSubstrings {
+		if !strings.Contains(body, s) {
+			t.Errorf("index.html missing required snippet %q (dynamic base spec URL). Body fragment: %q", s, body)
+		}
+	}
+}
+
 // TestRouter_SwaggerVendoredAssets verifies that swagger-ui vendor assets
 // (CSS + bundle + standalone-preset) are embedded and served. PR #508 follow-up.
 func TestRouter_SwaggerVendoredAssets(t *testing.T) {
