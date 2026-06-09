@@ -987,3 +987,110 @@ func TestKeycloakAdminClient_AccessToken_UsesAdminURLOnly(t *testing.T) {
 		t.Errorf("expected token endpoint hit at adminSrv, got path=%q (IssuerURL 로 새었을 수 있음)", tokenPath)
 	}
 }
+
+// ADR-0029 — API key 인증 테스트. public API 호출 시 Keycloak JWT 대신
+// Authorization: Bearer <DEVHUB_API_KEY> 로 인증. Keycloak 도달 불필요.
+func TestAPIKeyAuthentication_ValidKeyPassesThrough(t *testing.T) {
+	const key = "test-static-api-key-2026-06-09"
+	router := NewRouter(RouterConfig{
+		APIKey:            key,
+		OrganizationStore: newMemoryOrganizationStore(),
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/dashboard/metrics", nil)
+	req.Header.Set("Authorization", "Bearer "+key)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("GET /api/v1/dashboard/metrics with valid API key: got %d, want 200. body=%s", rec.Code, rec.Body.String())
+	}
+	if rec.Header().Get("X-Devhub-Auth") != "api_key" {
+		t.Errorf("expected X-Devhub-Auth=api_key, got %q", rec.Header().Get("X-Devhub-Auth"))
+	}
+}
+
+// API key 가 잘못되면 401. 단 timing attack 회피용 constant-time 비교.
+func TestAPIKeyAuthentication_InvalidKeyReturns401(t *testing.T) {
+	router := NewRouter(RouterConfig{
+		APIKey:            "correct-key",
+		OrganizationStore: newMemoryOrganizationStore(),
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/dashboard/metrics", nil)
+	req.Header.Set("Authorization", "Bearer wrong-key")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("invalid API key: got %d, want 401", rec.Code)
+	}
+}
+
+// JWT 형식 토큰 + APIKey 설정 시 Keycloak verifier 가 우선 호출되어야 함
+// (admin endpoints 등). 미설정 verifier 라면 verifier-not-configured 응답.
+func TestAPIKeyAuthentication_JWTFormatGoesToKeycloakVerifier(t *testing.T) {
+	verifier := &fakeBearerTokenVerifier{err: errors.New("not a real jwt")}
+	router := NewRouter(RouterConfig{
+		APIKey:              "static-key",
+		BearerTokenVerifier: verifier,
+		OrganizationStore:   newMemoryOrganizationStore(),
+	})
+
+	jwt := "header.payload.signature"
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/dashboard/metrics", nil)
+	req.Header.Set("Authorization", "Bearer "+jwt)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if verifier.token != jwt {
+		t.Errorf("expected verifier to receive JWT %q, got %q", jwt, verifier.token)
+	}
+	if rec.Header().Get("X-Devhub-Auth") == "api_key" {
+		t.Errorf("JWT token must not be classified as api_key path")
+	}
+}
+
+// APIKey 가 비어있으면 Bearer 의 비-JWT 가 그대로 401 로 떨어져야 함
+// (기존 Keycloak-only 동작 회귀 가드).
+func TestAPIKeyAuthentication_EmptyKeyDoesNotActivate(t *testing.T) {
+	router := NewRouter(RouterConfig{
+		APIKey:            "",
+		OrganizationStore: newMemoryOrganizationStore(),
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/dashboard/metrics", nil)
+	req.Header.Set("Authorization", "Bearer some-static-string")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("non-JWT bearer with empty API key: got %d, want 401 (regression: must not fall through to api_key branch)", rec.Code)
+	}
+}
+
+// looksLikeJWT 단위 테스트.
+func TestLooksLikeJWT(t *testing.T) {
+	// looksLikeJWT 는 view 패키지 내부 함수이므로, 본 테스트는 view 패키지
+	// 자체의 동작 (auth.go 의 API key 분기 결과) 으로 검증한다. 비-JWT 입력
+	// 이 API key 분기에서 401 로 떨어지지 않고 (X-Devhub-Auth 미부착) 그대로
+	// verifier 호출로 이어지는지만 확인.
+	verifier := &fakeBearerTokenVerifier{err: errors.New("not configured")}
+	router := NewRouter(RouterConfig{
+		APIKey:              "static-key",
+		BearerTokenVerifier: verifier,
+		OrganizationStore:   newMemoryOrganizationStore(),
+	})
+
+	// 비-JWT + invalid key → api_key 분기에서 deny (verifier 호출 X).
+	req1 := httptest.NewRequest(http.MethodGet, "/api/v1/dashboard/metrics", nil)
+	req1.Header.Set("Authorization", "Bearer only.two")
+	rec1 := httptest.NewRecorder()
+	router.ServeHTTP(rec1, req1)
+	if rec1.Code != http.StatusUnauthorized {
+		t.Errorf("looksLikeJWT path: 2-segment token should be treated as non-JWT, got %d", rec1.Code)
+	}
+	if verifier.token != "" {
+		t.Errorf("non-JWT token should not reach Keycloak verifier; got token=%q", verifier.token)
+	}
+}

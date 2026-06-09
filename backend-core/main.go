@@ -206,6 +206,8 @@ func main() {
 		NotificationStore: notificationStore,
 		RBACStore:                  rbacStore,
 		BearerTokenVerifier:        verifier,
+		APIKey:                     cfg.APIKey,
+		APIKeyAdminOnly:            cfg.APIKeyAdminOnly,
 		IdentityAdmin:              idpAdmin,
 		OIDCLogoutClient:           oidcLogout,
 		IdPProvider:                cfg.IdPProvider,

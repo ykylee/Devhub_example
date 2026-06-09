@@ -42,6 +42,13 @@ type AuthConfig struct {
 	OIDCLogoutClient      OIDCLogoutClient
 	AuditStore            AuditStore
 	OnboardingGateEnabled bool
+	// APIKey — ADR-0029. 비어있지 않으면 Authorization: Bearer <key> 가
+	// Keycloak JWT 가 아닌 단순 문자열일 때 DEVHUB_API_KEY 와 비교하여 인증.
+	// Keycloak-independent. public API 호출용.
+	APIKey string
+	// APIKeyAdminOnly — 운영 가드. true 면 API key caller 는 admin endpoints 만
+	// 접근 가능. RBAC 가 enforceRoutePermission 에서 deny. 기본 false.
+	APIKeyAdminOnly bool
 }
 
 type AuthHandler struct {

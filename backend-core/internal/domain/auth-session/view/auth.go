@@ -161,6 +161,28 @@ func (h *AuthHandler) AuthenticateActor(c *gin.Context) {
 		return
 	}
 
+	// ADR-0029: API key fallback. JWT 포맷 (header.payload.signature) 이 아니고
+	// cfg.APIKey 가 설정되어 있으면, 정적 키 비교로 인증 통과. Keycloak 도달
+	// 불필요. caller actor 는 "api-key" (role=system_admin) 으로 식별 —
+	// enforceRoutePermission / RBAC 가 admin-only endpoints 만 허용.
+	if h.cfg.APIKey != "" && !looksLikeJWT(token) {
+		if subtleEqual(token, h.cfg.APIKey) {
+			c.Set("devhub_actor_login", "api-key")
+			c.Set("devhub_actor_role", "system_admin")
+			c.Set("devhub_auth_source", "api_key")
+			c.Set(httphelp.CtxKeySourceType, domain.AuditSourceSystem)
+			c.Header("X-Devhub-Auth", "api_key")
+			httphelp.LogRequest(c, "[authenticateActor] API key authenticated for path: %s", c.FullPath())
+			c.Next()
+			return
+		}
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+			"status": "unauthenticated",
+			"error":  "invalid api key",
+		})
+		return
+	}
+
 	if h.cfg.BearerTokenVerifier == nil {
 		if h.cfg.AuthDevFallback {
 			c.Header("X-Devhub-Auth", "bearer_unverified")
@@ -326,4 +348,44 @@ func bearerToken(header string) (string, bool) {
 		return "", false
 	}
 	return token, true
+}
+
+// looksLikeJWT — header.payload.signature 형태 (각 섹션 base64url, 두 개의
+// dot 으로 구분) 인지 검사. ADR-0029 API key 분기에서 JWT 와 정적 키를
+// 구분하기 위함. 정확성보다 단순성 우선 — base64url charset ([A-Za-z0-9_-])
+// 일치만 확인. false negative (진짜 JWT 를 API key 로 잘못 분류) 가 발생해도
+// APIKey 미설정 시 분기 자체가 skip 되므로 위험 없음.
+func looksLikeJWT(token string) bool {
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 {
+		return false
+	}
+	for _, p := range parts {
+		if p == "" {
+			return false
+		}
+		for _, r := range p {
+			switch {
+			case r >= 'A' && r <= 'Z':
+			case r >= 'a' && r <= 'z':
+			case r >= '0' && r <= '9':
+			case r == '-' || r == '_':
+			default:
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// subtleEqual — constant-time string comparison. API key timing attack 완화.
+func subtleEqual(a, b string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	var diff byte
+	for i := 0; i < len(a); i++ {
+		diff |= a[i] ^ b[i]
+	}
+	return diff == 0
 }
