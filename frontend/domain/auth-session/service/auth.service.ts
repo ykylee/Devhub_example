@@ -131,8 +131,11 @@ class AuthService {
   // 백엔드 POST /api/v1/auth/logout 응답 status 에 따른 분기.
   //   204 No Content  : 정상 — OIDC end_session_endpoint 로 redirect (RP-initiated logout).
   //   401 Unauthorized : idempotent — 토큰이 이미 만료/무효. 동일 cleanup + OIDC redirect.
-  //   502 Bad Gateway : backend 가 Keycloak 에 도달 못함 — OIDC 도 unreachable 가능성.
-  //                     toast 로 사용자에게 알리고 Keycloak 거치지 않고 강제 /login redirect.
+  //   502 Bad Gateway : backend 가 Keycloak 에 도달 못함 (N-8 hotfix 4차 이전 동작).
+  //                     hotfix 4차 (issue #501, 2026-06-09) 으로 backend 가 502 대신
+  //                     204 + audit revoke_status=unreachable 로 정합 변경됨. 본 분기
+  //                     (line 155) 는 dead code (defensive guard) 로 유지. 미래에
+  //                     backend 가 다시 502 를 반환할 경우 fallback 으로 동작.
   //   그 외 4xx/5xx   : defensive — toast (warning) + OIDC redirect (Keycloak 단독 logout 시도).
   // network throw     : fetch 자체가 실패 (CORS / network) — toast (warning) + OIDC redirect.
   // 본 분기는 issue #488 spec §"Frontend (Gemini — 후속, sprint -i)" 의 결정 권장값을
