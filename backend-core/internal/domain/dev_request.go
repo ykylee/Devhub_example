@@ -37,7 +37,11 @@ type DevRequest struct {
 	Title                string
 	Details              string // markdown raw; XSS sanitize 는 frontend 책임 (REQ-NFR-DREQ-004)
 	Requester            string // 외부 시스템상의 의뢰자 식별자 (DevHub user 일 필요 없음)
+	ReqDepartment        string // 의뢰부서 (ADR-0028 §3 결정)
 	AssigneeUserID       string // DevHub users.user_id FK
+	DevDepartment        string // 개발담당부서 (ADR-0028 §3 결정)
+	RequestDate          *time.Time // 의뢰접수일자 (ADR-0028 §3 결정)
+	DevSchedule          string // 요청개발기간 (ADR-0028 §3 결정, 자유 텍스트 e.g. "2 weeks")
 	SourceSystem         string // 인증된 intake token 의 매핑값 (ADR-0012 §4.1.2 spoofing 방지)
 	ExternalRef          string // 외부 ticket id 등; (SourceSystem, ExternalRef) UNIQUE for idempotency
 	Status               DevRequestStatus

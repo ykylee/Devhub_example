@@ -19,7 +19,11 @@ const devRequestsSelectColumns = `
 	title,
 	COALESCE(details, ''),
 	requester,
+	COALESCE(req_department, ''),
 	COALESCE(assignee_user_id, ''),
+	COALESCE(dev_department, ''),
+	request_date,
+	COALESCE(dev_schedule, ''),
 	source_system,
 	COALESCE(external_ref, ''),
 	status,
@@ -38,6 +42,9 @@ func scanDevRequest(row pgx.Row) (domain.DevRequest, error) {
 		rejectedReason string
 		externalRef    string
 		details        string
+		reqDept        string
+		devDept        string
+		devSchedule    string
 		status         string
 	)
 	if err := row.Scan(
@@ -45,7 +52,11 @@ func scanDevRequest(row pgx.Row) (domain.DevRequest, error) {
 		&dr.Title,
 		&details,
 		&dr.Requester,
+		&reqDept,
 		&dr.AssigneeUserID,
+		&devDept,
+		&dr.RequestDate,
+		&devSchedule,
 		&dr.SourceSystem,
 		&externalRef,
 		&status,
@@ -59,6 +70,10 @@ func scanDevRequest(row pgx.Row) (domain.DevRequest, error) {
 		return domain.DevRequest{}, err
 	}
 	dr.Details = details
+	dr.ReqDepartment = reqDept
+	dr.AssigneeUserID = dr.AssigneeUserID
+	dr.DevDepartment = devDept
+	dr.DevSchedule = devSchedule
 	dr.ExternalRef = externalRef
 	dr.Status = domain.DevRequestStatus(status)
 	if regType != "" {
@@ -78,17 +93,20 @@ func (r *DevRequestRepository) CreateDevRequest(ctx context.Context, dr domain.D
 	}
 	const insertQuery = `
 INSERT INTO dev_requests (
-    title, details, requester, assignee_user_id, source_system, external_ref,
+    title, details, requester, req_department, assignee_user_id, dev_department,
+    request_date, dev_schedule, source_system, external_ref,
     status, registered_target_type, registered_target_id, rejected_reason, received_at
 )
 VALUES (
-    $1, NULLIF($2, ''), $3, NULLIF($4, ''), $5, NULLIF($6, ''),
-    $7, NULLIF($8, ''), NULLIF($9, ''), NULLIF($10, ''), $11
+    $1, NULLIF($2, ''), $3, $4, NULLIF($5, ''), $6,
+    $7, $8, $9, NULLIF($10, ''),
+    $11, NULLIF($12, ''), NULLIF($13, ''), NULLIF($14, ''), $15
 )
 RETURNING` + devRequestsSelectColumns
 
 	row := r.store.Pool().QueryRow(ctx, insertQuery,
-		dr.Title, dr.Details, dr.Requester, dr.AssigneeUserID, dr.SourceSystem, dr.ExternalRef,
+		dr.Title, dr.Details, dr.Requester, dr.ReqDepartment, dr.AssigneeUserID, dr.DevDepartment,
+		dr.RequestDate, dr.DevSchedule, dr.SourceSystem, dr.ExternalRef,
 		string(dr.Status), string(dr.RegisteredTargetType), dr.RegisteredTargetID, dr.RejectedReason,
 		dr.ReceivedAt,
 	)
