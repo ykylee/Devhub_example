@@ -1,27 +1,31 @@
 openapi: "3.0.3"
 info:
   title: "DevHub API"
-  version: "0.4.0-p3-batch1"
+  version: "0.5.0-p3-batch2"
   description: |
     DevHub v1.0 출시 직전 swagger scope 확장:
     - 1차 (PR #518, ADR-0029): 4 paths → 50 paths (P0/P1), API key 인증
       미들웨어 + openapi 1차 bootstrap. schema 7 → 59.
-    - 2차 (PR #519, ADR-0029 §6 (c) P1 P2 batch 1): + 7 paths (user CRUD
-      4 + risks/critical 1 + risks/{id}/mitigations 1 + commands/{id}/
-      approve|reject 2) + commands/{id} GET 의 staticTokenAuth 허용.
-      path 50 → 57, schema 59 → 64.
+    - 2차 (PR #519, ADR-0029 §6 (c) P1 P2 batch 1): + 7 paths
+      (user CRUD 4 + risks/critical 1 + risks/{id}/mitigations 1
+      + commands/{id}/{approve,reject} 2) + commands/{id} GET 의
+      staticTokenAuth 허용. path 50 → 57, schema 59 → 64.
     - 3차 (PR #520, ADR-0029 §6 (c) P1 P2 batch 2): + 11 endpoint
-      (organization units CRUD 4 + /units/{id}/members 2 + hierarchy PUT
-      1 + rbac/policies 4) + rbac/policy legacy 410. path 57 → 62,
+      (organization units CRUD 4 + /units/{id}/members 2 + hierarchy
+      PUT 1 + rbac/policies 4) + rbac/policy legacy 410. path 57 → 62,
       schema 64 → 70.
-    - 4차 (본 PR, ADR-0029 §6 (c) P1 P3 batch 1): + 5 endpoint (admin/
-      service-actions POST 1 + admin/users/{id}/review POST 1 + infra/
-      services/snapshot POST 1 + infra/topology/v2 GET 1 + realtime/ws
-      GET 1). path 62 → 67. 신규 schema 0 (요청 shape inline).
-    - 5차 후속 (P3 잔여, ADR-0029 §6 (c)): integration/scm tail (10)
-      + ci-runs/{id}/logs + repositories/{id}/publish + dev-requests
-      sub-path (register|reject) + dev-request-tokens sub-path (PATCH
-      allowed_ips + DELETE revoke) = ~12 path.
+    - 4차 (PR #521, ADR-0029 §6 (c) P1 P3 batch 1): + 5 endpoint
+      (admin/service-actions POST 1 + admin/users/{id}/review POST 1
+      + infra/services/snapshot POST 1 + infra/topology/v2 GET 1
+      + realtime/ws GET 1). path 62 → 67.
+    - 5차 (본 PR, ADR-0029 §6 (c) P1 P3 batch 2): + 4 endpoint
+      (POST /api/v1/repositories 1 + PATCH/DELETE /api/v1/repositories/{id} 2
+      + POST /api/v1/repositories/{id}/publish 1 + POST /api/v1/dev-requests/{id}/register 1
+      + POST /api/v1/dev-requests/{id}/reject 1 + POST /api/v1/dev-request-tokens 1
+      + PATCH/DELETE /api/v1/dev-request-tokens/{id} 2 = 8 신규 endpoint, 4 path 상위) + 4 schema
+      (RepositoryDraftRequest + RepositoryPublishRequest
+      + DevRequestIntakeTokenCreateRequest + DevRequestIntakeTokenUpdateRequest).
+      path 67 → 71, schema 70 → 74.
 
     ## Envelope 규약
     - 성공: `{schema_version, data, request_id, trace_id}`
@@ -1649,9 +1653,66 @@ paths:
           $ref: "#/components/responses/ForbiddenEnvelope"
         "503":
           $ref: "#/components/responses/ServerErrorEnvelope"
+    post:
+      tags:
+        - Repository
+      summary: "Repository draft 생성"
+      operationId: createRepositoryDraft
+      description: |
+        신규 repository draft 생성. provider_key → provider_id 자동 해석
+        (migration 000045). repository_status=draft 로 생성 — publish API
+        호출까지 application 에 노출 안 됨. admin 전용.
+        본 endpoint 는 write — ADR-0029 staticTokenAuth 미허용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RepositoryDraftRequest"
+            example:
+              provider_key: "gitea:internal"
+              name: "team_api"
+              full_name: "Platform Team/API Service"
+              visibility: "private"
+      responses:
+        "201":
+          description: "Repository draft 생성 성공"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  repository_id: "repo_001"
+                  status: "draft"
+                  provider_id: "gitea:internal"
+                  full_name: "Platform Team/API Service"
+                request_id: "req_repo_draft_001"
+                trace_id: "trace_repo_draft_001"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "409":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
 
   # ---------------------------------------------------------------------------
   # GET /api/v1/repositories/{repository_id} — repository 상세 (P1)
+  # PATCH /api/v1/repositories/{repository_id} — repository draft 수정 (P3 batch 2, bearerAuth only)
+  # DELETE /api/v1/repositories/{repository_id} — repository 삭제 (P3 batch 2, bearerAuth only)
+  # POST /api/v1/repositories/{repository_id}/publish — publish 요청 (P3 batch 2, bearerAuth only)
   # ---------------------------------------------------------------------------
   /api/v1/repositories/{repository_id}:
     get:
@@ -1701,6 +1762,156 @@ paths:
         "403":
           $ref: "#/components/responses/ForbiddenEnvelope"
         "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+    patch:
+      tags:
+        - Repository
+      summary: "Repository draft 수정"
+      operationId: updateRepositoryDraft
+      description: |
+        repository_id 의 draft 수정 (status=draft 일 때만). admin 전용.
+        본 endpoint 는 write — ADR-0029 staticTokenAuth 미허용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: repository_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "수정할 repository ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RepositoryDraftRequest"
+            example:
+              visibility: "public"
+      responses:
+        "200":
+          description: "Repository draft 수정 성공"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  repository_id: "repo_001"
+                  status: "draft"
+                  visibility: "public"
+                request_id: "req_repo_update_001"
+                trace_id: "trace_repo_update_001"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "409":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+    delete:
+      tags:
+        - Repository
+      summary: "Repository 삭제 (soft delete)"
+      operationId: deleteRepository
+      description: |
+        repository_id 의 DevHub row soft delete. Gitea repo 자체는
+        별도 처리. admin 전용. 본 endpoint 는 write — ADR-0029 staticTokenAuth 미허용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: repository_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "삭제할 repository ID"
+      responses:
+        "204":
+          description: "Repository 삭제 성공"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # POST /api/v1/repositories/{repository_id}/publish — publish 요청 (P3 batch 2, bearerAuth only)
+  # ---------------------------------------------------------------------------
+  /api/v1/repositories/{repository_id}/publish:
+    post:
+      tags:
+        - Repository
+      summary: "Repository publish 요청"
+      operationId: requestRepositoryPublish
+      description: |
+        repository_id 의 draft → active 전이 요청. publish_requested_at set
+        + system admin 검토 후 published_at set. admin 전용.
+        본 endpoint 는 write — ADR-0029 staticTokenAuth 미허용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: repository_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "publish 할 repository ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RepositoryPublishRequest"
+            example:
+              note: "ready to publish — initial commit pushed"
+      responses:
+        "202":
+          description: "Publish 요청 접수 (검토 대기)"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  repository_id: "repo_001"
+                  status: "publish_requested"
+                  publish_requested_at: "2026-06-09T12:00:00Z"
+                request_id: "req_repo_publish_001"
+                trace_id: "trace_repo_publish_001"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "409":
           $ref: "#/components/responses/ForbiddenEnvelope"
         "503":
           $ref: "#/components/responses/ServerErrorEnvelope"
@@ -3151,7 +3362,153 @@ paths:
           $ref: "#/components/responses/ServerErrorEnvelope"
 
   # ---------------------------------------------------------------------------
+  # POST /api/v1/dev-requests/{dev_request_id}/register — Promote (P3 batch 2, bearerAuth only)
+  # ---------------------------------------------------------------------------
+  /api/v1/dev-requests/{dev_request_id}/register:
+    post:
+      tags:
+        - DevRequest
+      summary: "DevRequest Promote (Application/Project 생성)"
+      operationId: registerDevRequest
+      description: |
+        dev_request_id 의 DREQ 를 Application 또는 Project 로 promote
+        (단일 트랜잭션 — sprint `claude/work_260515-m` PR #128).
+        admin 전용. 본 endpoint 는 write — ADR-0029 staticTokenAuth 미허용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: dev_request_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Promote 할 DREQ ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - target_type
+              properties:
+                target_type:
+                  type: string
+                  enum:
+                    - "application"
+                    - "project"
+                target_name:
+                  type: string
+                  description: "신규 application/project 이름 (target_type=application 일 때 필수)"
+                target_unit_id:
+                  type: string
+                  description: "소속 org unit (target_type=project 일 때 선택)"
+            example:
+              target_type: "application"
+              target_name: "API Service"
+              target_unit_id: "unit_platform"
+      responses:
+        "201":
+          description: "Promote 성공 (application/project 생성)"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  target_id: "app_001"
+                  target_type: "application"
+                  dev_request_id: "dreq_001"
+                request_id: "req_dreq_register_001"
+                trace_id: "trace_dreq_register_001"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "409":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # POST /api/v1/dev-requests/{dev_request_id}/reject — 거절 (P3 batch 2, bearerAuth only)
+  # ---------------------------------------------------------------------------
+  /api/v1/dev-requests/{dev_request_id}/reject:
+    post:
+      tags:
+        - DevRequest
+      summary: "DevRequest 거절 (admin)"
+      operationId: rejectDevRequest
+      description: |
+        dev_request_id 의 DREQ 거절. system_admin 전용.
+        본 endpoint 는 write — ADR-0029 staticTokenAuth 미허용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: dev_request_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "거절할 DREQ ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  type: string
+                  description: "거절 사유 (audit note)"
+            example:
+              reason: "duplicate of DREQ-002, closing as redundant"
+      responses:
+        "200":
+          description: "거절 성공"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  dev_request_id: "dreq_001"
+                  status: "rejected"
+                  rejected_at: "2026-06-09T12:00:00Z"
+                request_id: "req_dreq_reject_001"
+                trace_id: "trace_dreq_reject_001"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
   # GET /api/v1/dev-request-tokens — DREQ admin token (admin, bearerAuth)
+  # POST /api/v1/dev-request-tokens — DREQ intake token 발급 (P3 batch 2, bearerAuth only)
+  # PATCH /api/v1/dev-request-tokens/{token_id} — allowed_ips mutation (P3 batch 2, ADR-0017, bearerAuth only)
+  # DELETE /api/v1/dev-request-tokens/{token_id} — revoke (P3 batch 2, bearerAuth only, idempotent)
   # ---------------------------------------------------------------------------
   /api/v1/dev-request-tokens:
     get:
@@ -3189,6 +3546,154 @@ paths:
         "401":
           $ref: "#/components/responses/UnauthorizedEnvelope"
         "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+    post:
+      tags:
+        - DevRequest
+      summary: "DREQ intake token 발급"
+      operationId: createDevRequestIntakeToken
+      description: |
+        신규 DREQ intake token 발급. plain token 1회 노출 + SHA-256 hashed
+        저장. ADR-0014 + ADR-0017 정합. system_admin 전용.
+        본 endpoint 는 write — ADR-0029 staticTokenAuth 미허용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DevRequestIntakeTokenCreateRequest"
+            example:
+              label: "external-intake-2026Q3"
+              allowed_ips:
+                - "10.0.0.0/8"
+              expires_at: "2026-12-31T23:59:59Z"
+      responses:
+        "201":
+          description: "intake token 발급 성공"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  token_id: "tok_001"
+                  token: "plain-token-once-only-..."
+                  label: "external-intake-2026Q3"
+                  expires_at: "2026-12-31T23:59:59Z"
+                request_id: "req_dreq_tok_create_001"
+                trace_id: "trace_dreq_tok_create_001"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # PATCH /api/v1/dev-request-tokens/{token_id} — allowed_ips mutation (P3 batch 2, ADR-0017)
+  # DELETE /api/v1/dev-request-tokens/{token_id} — revoke (P3 batch 2, idempotent)
+  # ---------------------------------------------------------------------------
+  /api/v1/dev-request-tokens/{token_id}:
+    patch:
+      tags:
+        - DevRequest
+      summary: "DREQ intake token IP mutation"
+      operationId: updateDevRequestIntakeTokenIPs
+      description: |
+        token_id 의 allowed_ips 동적 갱신 (ADR-0017). 운영 IP allowlist
+        갱신 시 사용. atomicity 보장 (CTE + FOR UPDATE, ADR-0017 §6 carve 정합).
+        system_admin 전용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: token_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "수정할 token ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DevRequestIntakeTokenUpdateRequest"
+            example:
+              allowed_ips:
+                - "10.0.0.0/8"
+                - "192.168.0.0/16"
+      responses:
+        "200":
+          description: "token IP 갱신 성공"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  token_id: "tok_001"
+                  allowed_ips:
+                    - "10.0.0.0/8"
+                    - "192.168.0.0/16"
+                request_id: "req_dreq_tok_patch_001"
+                trace_id: "trace_dreq_tok_patch_001"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+    delete:
+      tags:
+        - DevRequest
+      summary: "DREQ intake token revoke (idempotent)"
+      operationId: revokeDevRequestIntakeToken
+      description: |
+        token_id 의 intake token revoke. idempotent — revoked_at = COALESCE
+        (revoked_at, NOW()) 패턴. 만료/유출 시 호출. system_admin 전용.
+        본 endpoint 는 write — ADR-0029 staticTokenAuth 미허용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: token_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "revoke 할 token ID"
+      responses:
+        "204":
+          description: "token revoke 성공 (idempotent)"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
           $ref: "#/components/responses/ForbiddenEnvelope"
         "503":
           $ref: "#/components/responses/ServerErrorEnvelope"
@@ -5027,6 +5532,10 @@ components:
             - $ref: "#/components/schemas/OrganizationHierarchyRequest"
             - $ref: "#/components/schemas/RBACPolicyCreateRequest"
             - $ref: "#/components/schemas/RBACPolicyBulkUpdateRequest"
+            - $ref: "#/components/schemas/RepositoryDraftRequest"
+            - $ref: "#/components/schemas/RepositoryPublishRequest"
+            - $ref: "#/components/schemas/DevRequestIntakeTokenCreateRequest"
+            - $ref: "#/components/schemas/DevRequestIntakeTokenUpdateRequest"
         request_id:
           type: string
           description: "X-Request-ID header 와 동일한 correlation ID"
@@ -7533,6 +8042,90 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/RBACPolicyCreateRequest"
+
+    # -----------------------------------------------------------------------
+    # RepositoryDraftRequest — POST/PATCH /api/v1/repositories (ADR-0029 §6 (c) P3 batch 2)
+    # -----------------------------------------------------------------------
+    RepositoryDraftRequest:
+      type: object
+      required:
+        - provider_key
+        - name
+        - full_name
+      properties:
+        provider_key:
+          type: string
+          description: "provider 식별자 (예: gitea:internal, github:devhub)"
+          example: "gitea:internal"
+        name:
+          type: string
+          description: "Repository 짧은 이름 (URL 친화)"
+          example: "team_api"
+        full_name:
+          type: string
+          description: "Repository 전체 이름 (org/team/name)"
+          example: "Platform Team/API Service"
+        visibility:
+          type: string
+          enum:
+            - "public"
+            - "private"
+            - "internal"
+          default: "private"
+        description:
+          type: string
+          example: "Backend API service for platform team"
+
+    # -----------------------------------------------------------------------
+    # RepositoryPublishRequest — POST /api/v1/repositories/{id}/publish
+    # -----------------------------------------------------------------------
+    RepositoryPublishRequest:
+      type: object
+      properties:
+        note:
+          type: string
+          description: "Publish 사유 (audit note)"
+          example: "ready to publish — initial commit pushed"
+
+    # -----------------------------------------------------------------------
+    # DevRequestIntakeTokenCreateRequest — POST /api/v1/dev-request-tokens (ADR-0014 + ADR-0017)
+    # -----------------------------------------------------------------------
+    DevRequestIntakeTokenCreateRequest:
+      type: object
+      required:
+        - label
+      properties:
+        label:
+          type: string
+          description: "intake token label (운영 식별용)"
+          example: "external-intake-2026Q3"
+        allowed_ips:
+          type: array
+          items:
+            type: string
+          description: "허용 IP CIDR (없으면 all)"
+          example:
+            - "10.0.0.0/8"
+        expires_at:
+          type: string
+          format: date-time
+          description: "만료 일시 (없으면 무기한)"
+          example: "2026-12-31T23:59:59Z"
+
+    # -----------------------------------------------------------------------
+    # DevRequestIntakeTokenUpdateRequest — PATCH /api/v1/dev-request-tokens/{id} (ADR-0017 §6)
+    # -----------------------------------------------------------------------
+    DevRequestIntakeTokenUpdateRequest:
+      type: object
+      properties:
+        allowed_ips:
+          type: array
+          items:
+            type: string
+          description: "허용 IP CIDR (빈 배열 = all)"
+          example:
+            - "10.0.0.0/8"
+            - "192.168.0.0/16"
 
   # =========================================================================
   # Security Schemes
