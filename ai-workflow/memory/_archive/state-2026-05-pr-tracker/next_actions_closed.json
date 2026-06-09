@@ -1,0 +1,34 @@
+{
+  "m1_remaining": [],
+  "ci_followups": [],
+  "m2_followups_closed_by_adr_0019": [
+    "✅ obsolete (2026-05-19, ADR-0019) — Kratos webhook 수신 → audit_logs 통합 — Keycloak 단일화로 Kratos webhook 패턴 자체 제거. Keycloak event listener / admin event SPI 기반 audit 통합은 carve out (ADR-0019 §5.3 잔여).",
+    "✅ obsolete (2026-05-19, ADR-0019) — Hydra JWKS/introspection verifier 실구현 — PR #167 KC-PR-B 의 keycloak_verifier.go 가 Keycloak JWKS local 검증 (+ JWKS cache + resource_access fallback) 으로 대체."
+  ],
+  "pr_d_followups_closed_by_work_260513_e": [
+    "caller-supplied X-Request-ID 콘텐츠 validation — `validateCallerRequestID` (정규식 `^[A-Za-z0-9_-]{1,128}$`) + `requireRequestID` 폴백.",
+    "ctx 표준 request_id 전파 — `requireRequestID` 가 c.Request.Context() 에도 stash, `requestIDFromContext` + `logRequestCtx` ctx-aware helper. kratos_login_client.go 2건 + kratos_identity_resolver.go 1건 치환.",
+    "writeRBACServerError → writeServerError 통합 — rbac.go 의 helper 제거 + 11 호출 일괄 치환."
+  ],
+  "application_domain_done_2026_05_14": {
+    "scope": "Application/Repository/Project 도메인 backend 1차 완성. API-01~58 전체 activated.",
+    "components": {
+      "domain_types": "Application / ApplicationRepository / SCMProvider / Project / ProjectMember / ProjectIntegration / PRActivity / BuildRun / QualitySnapshot / RepositoryActivity / WeightPolicy / RollupOptions / RollupMeta / RollupPeriod / RollupFallback / RollupDataGap / ApplicationRollup + CustomWeightTolerance(=0.001)",
+      "migrations": "000012 scm_providers (seed bitbucket/gitea/forgejo/github) / 000013 applications (UUID PK, key UNIQUE, archived_consistency CHECK) / 000014 application_repositories (composite PK + sync_status + sync_error_code 8종 CHECK) / 000015 projects (UUID PK + UNIQUE (repository_id, key)) / 000016 project_members + project_integrations (scope polymorphism partial UNIQUE) / 000017 pr_activities + build_runs + quality_snapshots / 000018 RBAC matrix 4 신규 resource seed",
+      "store_methods": "27 (ApplicationStore interface) — Applications 5 + ApplicationRepository 4 + SCMProvider 2 + Project 5 + Repository ops 4 + Rollup 2 + Integration 5",
+      "handlers": "14 endpoint — API-41 SCM list, API-42 SCM update, API-43..47 Application CRUD, API-48..50 Link CRUD, API-51..54 Repository ops, API-55..56 Project CRUD, API-57 Rollup, API-58 Integration CRUD",
+      "tests": "Application handler 25 + Project handler 8 + Integration handler 6 + Rollup handler 4 + integration tests 25 (CI backend-integration job)",
+      "guards_active": "Application 상태 전이 머신 (allowedStatusTransitions table); planning→active 활성 repo ≥1; hold/resume/archived_reason 필수; active→closed critical_warning_count=0; application_key_immutable; SCM adapter_version_immutable; weight_policy normalize sum=1.0 ±0.001",
+      "audit_namespace": "application.{created,updated,archived} / application_repository.{linked,unlinked} / scm_provider.updated / project.{created,updated,archived} / integration.{created,updated,deleted}",
+      "rbac_resources": "applications / application_repositories / projects / scm_providers (system_admin only — ADR-0011 §4.1 1차)",
+      "ci_jobs": "5 (Workflow Lint / Backend Unit / Frontend Unit / E2E / Backend Integration 신설)"
+    },
+    "adr": "ADR-0011 accepted (옵션 C handler/service 코드 검증 1차 채택, 옵션 B row_predicate 단계적 확장 옵션 보존)"
+  },
+  "m2_followups": [],
+  "pr_d_followups": [],
+  "tdd_followups": [
+    "PR-T5 (CI 도입, DEC-4) — PARTIAL-DONE: PR #86 (2026-05-13 머지) 으로 backend-unit + frontend-unit + e2e (Playwright 40 TC) 3잡 GHA 도입 완료. 본 sprint claude/work_260513-a 가 FU-CI-2/3/4 처리. 잔여 follow-up: FU-CI-1 (no-docker policy 정합).",
+    "hygiene-test-admin — PoC `test/test` 시드 제거 (운영 진입 직전, test-server-deployment §10 체크리스트)."
+  ]
+}
