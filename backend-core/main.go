@@ -166,13 +166,11 @@ func main() {
 		log.Println("[WARNING] DEVHUB_AUTH_DEV_FALLBACK is enabled. Development-only authentication fallbacks are ACTIVE.")
 	}
 
-	// Swagger UI 1차 bootstrap (ADR-0027, sprint work_260610-a) — opt-in via
-	// DEVHUB_SWAGGER_ENABLED. OpenAPISpecPath 는 process cwd 기준 상대경로
-	// (보통 repo root) — 운영에서는 절대경로 env (e.g. /etc/devhub/openapi.yaml) 권장.
+	// Swagger UI 1차 bootstrap (ADR-0027) — opt-in via DEVHUB_SWAGGER_ENABLED.
+	// OpenAPISpecPath 는 명시적 절대경로 env 필수 (예: /etc/devhub/openapi.yaml);
+	// 빈 값이면 스펙 미서빙 (UI 만 mount). codex P2 fix (PR #508): cwd-relative
+	// default 가 운영 cwd 가 repo root 가 아닐 때 silent 미존재하는 함정 회피.
 	swaggerSpecPath := strings.TrimSpace(os.Getenv("DEVHUB_OPENAPI_SPEC_PATH"))
-	if swaggerSpecPath == "" {
-		swaggerSpecPath = "docs/openapi.yaml"
-	}
 
 	router := httpapi.NewRouter(httpapi.RouterConfig{
 		SwaggerEnabled:             cfg.SwaggerEnabled,
