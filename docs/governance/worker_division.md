@@ -1,18 +1,47 @@
-# 워커 분업 — Claude / Codex / Gemini / OpenCode
+# 워커 분업 — **취소 (2026-06-09)**
 
-- 문서 목적: DevHub 의 4 워커 (Claude, Codex, Gemini, OpenCode) 가 영역별 작업을 분담하고 인계하는 규칙. 사용자 1명이 모든 워커를 invoke 하지만, 워커별 강점/이력/스타일이 다름.
-- 범위: 워커별 책임 영역, 작업 스타일, 인계 SOP, 충돌 처리.
-- 대상 독자: 모든 워커, 사용자.
-- 상태: draft
-- 최종 수정일: 2026-06-04
-- 결정 근거 sprint: `claude/work_260520-f-roadmap` (초안) + `opencode/work_260604-b-opencode-areas` (§1.4 본문)
-- 관련 문서: [v1.0 릴리즈 로드맵 §5 분업 매트릭스](../planning/release_v1_roadmap.md), [governance/README](./README.md), [document-standards](./document-standards.md), `AGENTS.md`.
+- 문서 목적: **본 문서는 2026-06-09 사용자 결정으로 워커 분업 정책이 전면 취소되었음을 명시한다.** 이전 분업 (Claude/Codex/Gemini/OpenCode) 표기는 historical record 로만 보존.
+- 범위: 취소 결정 + 자유 에이전트 이용 정책 + 잔여 운영 결정.
+- 대상 독자: 모든 contributor (사람 + AI agent).
+- 상태: **superseded (2026-06-09 사용자 결정)**
+- 최종 수정일: 2026-06-09
+- 결정 근거: 사용자 (Owner) 의 자유 에이전트 이용 결정 — Claude/Codex 의 자유로운 이용 불가로 분배 무효화
+- 관련 문서: [v1.0 릴리즈 로드맵 §5](../../planning/release_v1_roadmap.md) (역시 워커 분담 표 갱신 대상), [AGENTS.md](../../../AGENTS.md) (워크플로우 진입점), `ai-workflow/MEMORY_GOVERNANCE.md`.
 
-## 1. 영역별 분담
+## 0. 2026-06-09 결정 — 워커 분업 전면 취소
 
-### 1.1 Claude — Backend (Go) + Design (ADR + docs)
+**사용자 (Owner) 결정**: Claude 및 Codex 의 자유로운 이용이 불가한 상황이므로, 본 문서 (§1~§5) + [`AGENTS.md`](../../../AGENTS.md) + [`docs/planning/release_v1_roadmap.md` §5](../../planning/release_v1_roadmap.md) 의 **워커별 영역 분담 / sprint 별 분담 / 인계 SOP / 충돌 처리 SOP** 를 **모두 취소**한다.
 
-**주요 책임**:
+**취소 적용 범위**:
+- §1.1 Claude — Backend (Go) + Design: **무효**
+- §1.2 Codex — Infra + Security + Build: **무효**
+- §1.3 Gemini — Frontend + UX + Test: **무효**
+- §1.4 OpenCode (Sisyphus) — Workflow curation + Cross-cutting validation + AI/ML prep: **무효**
+- §2 v1.0 sprint 별 분담 (Claude/Codex/Gemini 주도 워커 칼럼): **무효**
+- §3 인계 SOP 4 패턴 (Claude→Codex / Claude→Gemini / Codex→Claude / Gemini→Claude): **무효**
+- §4 충돌 처리 (§4.1 같은 파일 동시 작업 / §4.2 ADR reversal / §4.3 우선순위 충돌): **무효**
+- §5 사용자 (Owner) 의 invoke 책임 / 결정 권한 / review 최종 승인: **유지** (Owner 결정 권한 + PR 머지 권한)
+
+**유지되는 정책 (영역 무관)**:
+- §4.2 ADR 결정 reversal (immutable history + supersession): **유지** — 이건 워커 분담과 무관한 문서 governance 의 정공법
+- §2.5 Branch 명명 규칙의 `<worker>` prefix 부분: **취소** — `maintenance/` / `chore/` / `docs/` 등 자유 prefix 허용. 단, 식별성을 위해 `<role>/work_<YYMMDD>-<sprint-seq>-<issue-num>-<short-key>` 패턴은 권장 유지
+- 모든 워커가 보존하는 history (이전 sprint 의 `<worker>/` prefix branch): **보존** (rename 금지)
+- AGENTS.md / `ai-workflow/MEMORY_GOVERNANCE.md` 의 브랜치별 memory 디렉터리 패턴 (`ai-workflow/memory/<agent>/<branch>/`): **유지** — historical 보존, 신규 진입 시 자유
+- §6.3 release_v1_roadmap.md 의 `worker/<X>` label: **유지** (historical 분류용), 단 신규 PR 의 라벨 부착 강제 없음
+
+**취소 결정의 운영 효과**:
+- 모든 신규 sprint / PR / 작업은 **어느 에이전트로든 자유롭게** 진행 가능
+- 영역 분담 / 인계 SOP / 충돌 처리 SOP 의 강제력 소멸
+- 사용자 (Owner) 가 단일 워커로 전체 작업 가능 (sprint -a/-b 연속 PR 도 1 워커가 흡수 가능)
+- `main` PR 머지 권한 + ADR 결정 권한 + 우선순위 변경 권한은 **여전히 Owner 만 보유**
+
+## 1. (Historical) 영역별 분담 — 2026-05-20 ~ 2026-06-08
+
+> 본 절은 2026-05-20 ~ 2026-06-08 사이 운영된 워커 분업의 historical record 다. 2026-06-09 결정으로 **무효**가 되었으나, 이전 sprint 의 PR 이력 추적 + 신규 인원의 onboarding reference 용으로 보존한다.
+
+### 1.1 (Historical) Claude — Backend (Go) + Design (ADR + docs)
+
+**주요 책임** (historical):
 - Go Core API (`backend-core/`)
 - ADR 발급 + design doc 작성
 - 추적성 매트릭스 (`docs/traceability/report.md`) 갱신
@@ -20,20 +49,17 @@
 - 외부 워커의 design 리뷰 (PR review mode)
 - workflow memory 관리 (`ai-workflow/memory/`)
 
-**작업 스타일**:
+**작업 스타일** (historical):
 - 큰 단위 design 우선 (현황 파악 → 옵션 비교 → 결정 → 실 구현) Phase 분리
 - 4단계 self-review (diff 재검토 → gh pr comment → 보강 commit → squash merge)
 - codex 외부 review 후 hotfix PR 즉시 진입
 - ADR governance 엄격 준수 (immutable history, supersession 패턴)
 
-**누적 이력 (2026-05-20 기준)**:
-- 30+ sprint, 60+ PR
-- ADR 0002, 0003, 0004, 0005, 0006, 0007, 0008, 0009, 0010, 0011, 0013, 0014, 0017 (일부 codex 도 발급) + 0019, 0020 발급
-- M1 RBAC track + M2 1차 완성 + M3 HRDB/Sign Up + M5 DREQ + M6 External Integration design + ADR-0019 §5.3 전체 design 완결 + ADR-0020 sub-carve A
+**누적 이력 (2026-05-20 ~ 2026-06-08, 30+ sprint, 60+ PR)**: M1 RBAC track + M2 1차 완성 + M3 HRDB/Sign Up + M5 DREQ + M6 External Integration design + ADR-0019 §5.3 전체 design 완결 + ADR-0020 sub-carve A 등.
 
-### 1.2 Codex — Infra (Docker/Nginx/CI) + Security + Build
+### 1.2 (Historical) Codex — Infra (Docker/Nginx/CI) + Security + Build
 
-**주요 책임**:
+**주요 책임** (historical):
 - Docker packaging (`docker-compose.deploy.yml`, `Dockerfile`, infra/nginx/)
 - GitHub Actions workflow (`.github/workflows/ci.yml`)
 - Keycloak infra (realm.json, SPI plugin, admin SOP)
@@ -41,203 +67,72 @@
 - Build / packaging hardening
 - e2e CI 정합 (`scripts/ci-e2e-sync-check.sh`)
 
-**작업 스타일**:
-- 외부 리뷰 우선 (PR 머지 직후 P1/P2 inline 발견)
-- Infrastructure-as-Code (compose / nginx config / realm.json)
-- 운영 SOP 동반 docs
+**누적 이력 (2026-05-20 ~ 2026-06-08, 7+ PR)**: PR #135 (External Integration concept), PR #139 (backend 1차), PR #166 (reverse proxy 실 구현 ADR-0018), PR #167 (Keycloak-only refactor KC-PR-A..F), PR #201 (Keycloak E2E CI 정합), PR #203 SPI webhook 등. review cycle: hotfix #1..#12 누적 (codex 외부 리뷰 inline P1/P2 → claude hotfix PR).
 
-**누적 이력 (2026-05-20 기준)**:
-- 7+ PR — packaging guide / reverse-proxy / Keycloak-only refactor / next-step External Integration backend / E2E fix / memory housekeeping / e2e CI 정합
-- 주요 contribution: PR #135 (External Integration concept), PR #139 (backend 1차), PR #166 (reverse proxy 실 구현 ADR-0018), PR #167 (Keycloak-only refactor KC-PR-A..F), PR #201 (Keycloak E2E CI 정합), PR #203 SPI webhook (gemini 가 머지차단, claude 가 인수)
-- review cycle: hotfix #1..#12 누적 (codex 외부 리뷰 inline P1/P2 → claude hotfix PR)
+### 1.3 (Historical) Gemini — Frontend + UX + Test fixtures + Design polish
 
-### 1.3 Gemini — Frontend + UX + Test fixtures + Design polish
-
-**주요 책임**:
+**주요 책임** (historical):
 - Next.js frontend (`frontend/app/`, `frontend/components/`, `frontend/lib/`)
 - e2e Playwright (`frontend/tests/e2e/`)
 - Semantic theme (`frontend/app/globals.css` + tailwind variables)
 - Dashboard / modal / FilterBar 재설계
 - UI/UX polish + responsive + a11y
 
-**작업 스타일**:
-- 큰 frontend redesign sweep
-- 다수 modal 일괄 theme 정합
-- e2e selector 정합 + flaky fix
+**누적 이력 (2026-05-20 ~ 2026-06-08, 5+ PR)**: PR #115 (light theme + dropdown + endpoints), PR #134 (dashboard UI + LogoutOverlay), PR #138 (dashboard rebrand + Applications/Repositories/Projects 현황 페이지 + FilterBar), PR #140 (FilterBar standardize + DestructiveConfirmModal), PR #203 (semantic theme) 등.
 
-**누적 이력 (2026-05-20 기준)**:
-- 5+ PR — frontend redesign / dashboard UI + LogoutOverlay / FilterBar 표준화 / dev-requests + audit log redesign / DREQ E2E 안정화 / Keycloak test login + semantic theme (PR #203, claude 가 인수해서 머지)
-- 주요 contribution: PR #115 (light theme + dropdown + endpoints), PR #134 (dashboard UI + LogoutOverlay), PR #138 (dashboard rebrand + Applications/Repositories/Projects 현황 페이지 + FilterBar), PR #140 (FilterBar standardize + DestructiveConfirmModal), PR #203 (semantic theme)
+### 1.4 (Historical) OpenCode (Sisyphus / MiniMax-M3) — Workflow curation + Cross-cutting validation + AI/ML prep
 
-### 1.4 OpenCode — Workflow curation + Cross-cutting validation + AI/ML prep
+**정체성** (historical): 메인 에이전트 조정/통합 specialist (Sisyphus).
 
-**정체성**: 메인 에이전트 조정/통합 specialist (Sisyphus). bounded scope 의 읽기/쓰기/검증은 worker 성격 서브에이전트에 위임하고, 본인은 cross-file reasoning + 사용자와의 interaction + 결과 통합에 집중.
+**3-lane 영역** (historical, 2026-06-04 확정):
+1. **Workflow / governance curation** (1순위) — `ai-workflow/` 메타 + `docs/governance/` cross-cut 정합
+2. **Cross-cutting validation & test infrastructure** (2순위) — multi-file 회귀 검증
+3. **AI/ML service prep** (3순위, v1.1/v2) — `backend-ai/` Python + gRPC
 
-**주요 책임**:
+**누적 이력 (2026-06-04 ~ 2026-06-08)**: bootstrap sprint `opencode/work_260604-a-opencode-workflow-bootstrap` + areas 정의 `opencode/work_260604-b-opencode-areas` + N-10 Manager RBAC 검증 보고서 (`opencode/work_260604-c-N10-manager-rbac-validation`) + N-11 CI 복원 운영 정합 (sprint 260608-a, PR #498 + 260608-b PR #499, 2026-06-08).
 
-1. **Workflow / governance curation** (1순위 lane)
-   - `ai-workflow/` 메타 레이어 + `docs/governance/` 의 cross-cutting 정합
-   - `release_v1_roadmap.md` + `development_roadmap.md` 의 마일스톤/우선순위 갱신
-   - `docs/traceability/report.md` 의 REQ↔ARCH↔IMPL↔TC 매트릭스 cross-ref 보강
-   - `AGENTS.md` / `CLAUDE.md` / `GEMINI.md` 의 워커별 메모 동기화
-   - **인계 SOP**: 큰 design 변경은 Claude 의 ADR 발급 후 본인이 정합 적용. 워커 prefix 신규 진입 시 governance 5~7 위치 동시 갱신
+## 2. (Historical) v1.0 sprint 별 분담
 
-2. **Cross-cutting validation & test infrastructure** (2순위 lane)
-   - multi-file / multi-layer 회귀 검증 (예: N-10 Manager RBAC 검증, N-2 repository draft/publish UT, N-4 frontend unit test 보강)
-   - e2e/UT fixture 정합 + selector 안정화 (Gemini 와 분담: frontend component-level = Gemini, framework-level = OpenCode)
-   - migration/seed 검증 (`scripts/check-migration-uniqueness.sh` 운영, v1.0 staging 운영 보강)
-   - **인계 SOP**: bounded scope 검증 결과는 issue + PR 본문 "테스트" 섹션 + `state.json` 의 `recent_done_items` 동시 갱신. backend/frontend 컴포넌트 본 변경은 Claude/Gemini 에 인계
+> 2026-05-20 ~ 2026-06-08 운영. 2026-06-09 결정으로 **무효**. 실제 분담 이력은 [release_v1_roadmap.md §9](../../planning/release_v1_roadmap.md) 변경 이력 참조.
 
-3. **AI/ML service prep** (3순위 lane, v1.1/v2 진입 시)
-   - `backend-ai/` Python 서비스 (현재 14-line FastAPI stub — TODO: gRPC server, AI Gardener, Suggestion Feed)
-   - gRPC contract (`proto/` ↔ `backend-ai/`) 의 python/typer 정합
-   - v2 P3 / E-3 (AI Gardener gRPC) / E-4 (Weekly report worker) 의 선행 검증
-   - **인계 SOP**: gRPC server skeleton + proto 정의는 본인. 실제 Python AI logic + Go Core client 는 Claude 와 공동 (본인 = proto + Python, Claude = Go client + domain service)
+## 2.5 (Historical) Branch 명명 규칙
 
-**작업 스타일**:
-- **Orchestration-first**: bounded scope 의 단일 파일 작업은 직접 하지 않고 `explore` / `librarian` / `Sisyphus-Junior` / `quick` category subagent 에 위임
-- **Context-rich handoff**: 서브에이전트 prompt 에 (a) 6섹션 표준 (TASK/EXPECTED OUTCOME/REQUIRED TOOLS/MUST DO/MUST NOT DO/CONTEXT) + (b) 기존 패턴 reference file + (c) 검증 기준 명시
-- **Cross-file reasoning**: multi-domain / multi-layer 변경은 직접 분석 후 작업 단위 분해
-- **Specialist escalate**: 복잡한 architecture / debugging 결정은 `oracle` agent 에 read-only consult
-- **외부 contribution 정책**: 본 워커의 외부 contribution 은 다른 워커의 그것보다 자유롭게 허용 (orchestration specialist 이므로). 단, 영역 1~2 lane 외 신규 영역 진입 시 본 문서 §1.4 갱신 PR 동반
-- **한국어 우선**: 사용자 보고/문서/메모리는 한국어 (Reasonix 와 동일)
-
-**누적 이력 (2026-06-04 기준)**:
-- 0 PR (bootstrap sprint 완료, open)
-- 결정: 영역 1~2 lane (workflow curation + cross-cutting validation) 은 본 sprint (opencode/work_260604-b-opencode-areas) 종료 후 즉시 carve 진입 가능. 영역 3 (AI/ML) 은 v1.0 출시 후 진입.
-
-## 2. v1.0 sprint 별 분담
-
-[release_v1_roadmap.md §5.2](../planning/release_v1_roadmap.md) 참조. 요약:
-
-| sprint | 작업 | 주도 워커 | 보조 워커 |
-| --- | --- | --- | --- |
-| -f | sub-carve B (`/api/v1/accounts/*` 폐기) | Claude (backend) | Gemini (frontend cleanup) |
-| -g | Playwright screenshot mode | Codex (CI artifact) | Gemini (fixture) |
-| -g/-h | UI polish 1차 | **Gemini** | — |
-| -i | sub-carve C event listener 확장 | Claude (backend) | — |
-| -j | sub-carve D + E | Claude (D) + Codex (E SOP) | — |
-| -k | v1.0 종합 검증 | 전 워커 | — |
-
-## 2.5 Branch 명명 규칙 (2026-05-20 신규)
-
-작업 식별성 + 추적성 강화를 위해 모든 신규 sprint branch 는 다음 패턴 따른다:
+**2026-05-20 ~ 2026-06-08 운영 규칙** (이후 **취소**):
 
 ```
 <worker>/work_<YYMMDD>-<sprint-seq>-<issue-num>-<short-key>
 ```
 
-| 요소 | 설명 | 예시 |
-| --- | --- | --- |
-| `<worker>` | 워커 prefix | `claude`, `codex`, `gemini`, `deepseek` (Reasonix), `opencode` (Sisyphus) |
-| `<YYMMDD>` | 작업 시작 날짜 (KST) | `260520` |
-| `<sprint-seq>` | 알파벳 sequence (당일 본 워커의 N번째 sprint) | `a`, `b`, ..., `z`, `aa`, `ab`, ... |
-| `<issue-num>` | GitHub issue 번호 (해당 sprint 의 핵심 작업) | `209`, `238` |
-| `<short-key>` | 키워드 식별자 (소문자 + 하이픈) | `accounts-deprecation`, `docker-single-port`, `screenshot` |
+- `<worker>` prefix: `claude` / `codex` / `gemini` / `deepseek` (Reasonix) / `opencode` (Sisyphus) / `mvs` (Mavis)
 
-### 예시
+**2026-06-09 결정 — Branch 명명 자유화**:
+- `<worker>` prefix: **무효** (강제력 없음)
+- 권장 패턴 유지: `<role>/work_<YYMMDD>-<sprint-seq>-<issue-num>-<short-key>` — 예: `maintenance/work_260609-a-cancel-worker-division` (본 PR), `chore/...`, `docs/...`, `fix/...`, `feat/...`
+- 식별성 (`<short-key>`) + 날짜 (`<YYMMDD>`) + 이슈 번호 (`<issue-num>`) 는 권장 유지
+- 이전 sprint 의 `<worker>/` prefix branch (예: `claude/work_260519-ad`): **보존** (rename 금지)
+- 신규 진입: **자유** prefix 사용 가능
 
-| Branch | 의미 |
-| --- | --- |
-| `claude/work_260520-i-209-accounts-deprecation` | Claude 2026-05-20 의 i번째 sprint, issue #209 (sub-carve B backend) |
-| `codex/work_260520-a-238-docker-single-port` | Codex 2026-05-20 의 a번째 sprint, issue #238 |
-| `gemini/work_260521-a-210-ui-polish` | Gemini 2026-05-21 의 a번째 sprint, issue #210 |
-| `deepseek/work_260601-a-construct-workflow` | DeepSeek (Reasonix) 2026-06-01 의 a번째 sprint, Reasonix 워크플로우 구성 |
-| `opencode/work_260604-a-opencode-workflow-bootstrap` | OpenCode (Sisyphus) 2026-06-04 의 a번째 sprint, governance 부트스트랩 (이슈 없는 housekeeping 예외) |
+## 3. (Historical) 인계 SOP
 
-### 예외 — issue 없는 작업
+> 2026-05-20 ~ 2026-06-08 운영. 2026-06-09 결정으로 **무효**.
 
-- housekeeping / memory sync / docs hotfix 같이 GitHub issue 없는 작업: issue 번호 생략 + key 만 명시. 예: `claude/work_260520-c-housekeeping`, `claude/work_260520-g-codex-hotfix`
-- codex/gemini 외부 contribution: 자유 branch 명 허용 (예: 본 사례의 `gemini/keycloak-test-e2e-push-audit`). 본인 인수 시 그대로 작업 후 PR 머지.
-- Reasonix 환경에서 브랜치 생성 시 반드시 `deepseek/` prefix 를 사용한다. (Reasonix 는 `AGENTS.md` "Reasonix 전용 메모" 및 "항상 먼저 읽을 문서" 섹션의 deepseek 패턴을 따른다.)
-- OpenCode 환경에서 브랜치 생성 시 반드시 `opencode/` prefix 를 사용한다. (OpenCode 는 `AGENTS.md` "OpenCode 전용 메모" 및 "항상 먼저 읽을 문서" 섹션의 opencode 패턴을 따른다.)
+본래 4 패턴 (Claude→Codex / Claude→Gemini / Codex→Claude / Gemini→Claude) + §4 충돌 처리 SOP 가 정의됐으나, 워커 분업 취소로 인계 SOP 자체가 무효. 다중 워커 협업 시의 일반 원칙:
 
-### 적용 시점
+- 같은 파일 동시 작업 발생 시 **후착자가 rebase + conflict 해결** 책임 (운영 원칙)
+- **ADR 결정 reversal 의 immutable history + supersession 패턴은 유지** (§4.2 의 governance 정공법)
+- 우선순위 충돌 (P0 > P1 > P2 > P3): 유지 (release_v1_roadmap.md §0.1)
 
-- **2026-05-20 sprint -i 이후 모든 신규 sprint** 에 본 규칙 적용
-- 이전 branch (예: `claude/work_260519-ad`, `claude/work_260520-h-screenshot`) 는 historical 보존 — rename 금지
+## 4. (Historical) 충돌 처리
 
-### 효과
+### 4.1 같은 파일 동시 작업 (Historical)
 
-- branch 만 봐도 어떤 issue / 어떤 작업인지 즉시 식별
-- GitHub project 와 1:1 매핑 (issue # → branch → PR)
-- 다중 워커 협업 시 충돌 영역 즉시 인지
+- 후착 워커가 main rebase
+- 충돌 영역 분석 + 양 쪽 의도 보존
+- fix commit + force-push (lease) + PR review comment 로 충돌 해소 명시
 
-## 3. 인계 SOP
+### 4.2 ADR 결정 reversal — **유지 (governance 정공법)**
 
-### 3.1 Claude → Codex
-
-**예시 시나리오**: Claude 가 ADR-0019 §5.3 (9) audit event listener design 작성 → Codex 가 (a) Keycloak admin event polling SOP 운영 자산, (b) infra/ 자산 (Keycloak realm 설정 export) 실 구현.
-
-**인계 자산**:
-- design doc (예: `docs/planning/keycloak_event_audit_integration.md`)
-- 작업 범위 명시 (어떤 파일 / 어떤 SOP / 어떤 운영 작업)
-- 검증 기준 (Prometheus metric / Grafana panel / 운영 SOP 항목)
-
-**인계 형식**:
-1. Claude 가 design doc + ADR 발급 PR 머지
-2. issue 생성 — `worker/codex` label + 작업 범위 본문
-3. Codex 가 issue claim + PR 발급
-
-### 3.2 Claude → Gemini
-
-**예시 시나리오**: Claude 가 `/api/v1/accounts/*` 4 endpoint 제거 PR 머지 (backend) → Gemini 가 frontend `account.service.ts` 폐기 + admin/settings/users page 정리 + e2e TC-ACC-* 갱신.
-
-**인계 자산**:
-- API spec (제거된 endpoint + 대체 흐름)
-- 응답 schema (변경된 경우)
-- 영향 받는 page + service + test 명시
-
-**인계 형식**:
-1. Claude 가 backend PR 머지 + frontend 영향 영역 issue 생성
-2. issue label `worker/gemini` + `domain/<area>` + `type/refactor`
-3. Gemini 가 issue claim + PR 발급
-4. Gemini 가 backend API 누락/부정합 발견 시 PR review comment + 신규 issue
-
-### 3.3 Codex → Claude
-
-**예시 시나리오**: Codex 가 PR review 에서 P1 발견 (예: PR #205 의 `team_manager` 누락 회귀) → Claude 가 hotfix PR.
-
-**인계 자산**:
-- codex review comment URL
-- P1/P2 마킹 + finding 본문
-- 권장 fix 옵션 (codex 가 보통 1~3 옵션 제시)
-
-**인계 형식**:
-1. Codex 가 GitHub PR comment 로 review 게시 (inline + P1/P2 badge)
-2. Claude 가 review 인지 → 옵션 분석 + 사용자 confirm 필요 시 question → fix PR 진입
-3. fix PR 의 commit message 에 codex review URL 인용 + P1/P2 응답 명시
-
-### 3.4 Gemini → Claude
-
-**예시 시나리오**: Gemini 가 admin/settings/users 정리 중 backend GET /api/v1/users 의 response schema 가 frontend type 과 부정합 발견 → Claude 가 backend handler 갱신.
-
-**인계 자산**:
-- frontend 가 기대하는 schema (type 정의)
-- backend 의 실제 response (curl 또는 spec inspect)
-- 차이점 정리
-
-**인계 형식**:
-1. Gemini 가 PR review comment 또는 신규 issue
-2. label `worker/claude` + `type/refactor` + `domain/<area>`
-3. Claude 가 backend 진입 + 검증
-
-## 4. 충돌 처리
-
-### 4.1 같은 파일 동시 작업
-
-**원칙**: 영역별 분담 따르면 같은 파일 동시 작업 거의 없음. 발생 시:
-- `router.go` / `permissions.go` / `state.json` 같은 cross-cut 파일이 가장 잦음
-- 후착 워커가 rebase 책임 + 충돌 해소
-
-**SOP**:
-1. 후착 워커가 main rebase
-2. 충돌 영역 분석 + 양 쪽 의도 보존
-3. 본인 fix commit + force-push (lease) + PR review comment 로 충돌 해소 사실 명시
-
-### 4.2 ADR 결정 reversal
-
-immutable history 패턴 따름 — 본문 partial 수정 **금지**, 새 ADR 분리 발행 + supersede 대상 ADR 메타 헤더 갱신 + inline supersession banner. 표준 절차:
+immutable history 패턴 따름 — 본문 partial 수정 **금지**, 새 ADR 분리 발행 + supersede 대상 ADR 메타 헤더 갱신 + inline supersession banner. 표준 절차 (변경 없음):
 
 1. **새 ADR 발행** — `docs/adr/NNNN-<topic>.md` 신규. 메타 헤더에 `supersedes: [ADR-XXXX](./XXXX-*.md)` 명시
 2. **supersede 대상 ADR 갱신** — 메타 헤더 `상태: superseded by [ADR-NNNN](./NNNN-*.md)` + §0 / 각 § heading 에 inline supersession banner 추가
@@ -245,27 +140,28 @@ immutable history 패턴 따름 — 본문 partial 수정 **금지**, 새 ADR �
 4. **traceability §4 row** — 매트릭스 ADR 인덱스에 supersession 관계 명시
 5. **관련 문서 정합 (≥5개 docs)** — architecture / requirements / api_contract / setup / planning 등에서 supersede 된 ADR 참조 위치를 새 ADR 로 redirect
 
-**canonical 사례**: [ADR-0019 Keycloak 단일화](../adr/0019-keycloak-only-idp.md) 가 [ADR-0001 Hydra+Kratos](../adr/0001-idp-selection.md) supersession (sprint `claude/work_260519-a`, PR #169). 직전 PR #167 (codex) 가 ADR-0001 본문 partial 수정 → sprint -a 가 ADR-0019 발행으로 정공법 정정 + 14 추가 정합 docs.
+canonical 사례: [ADR-0019 Keycloak 단일화](../../adr/0019-keycloak-only-idp.md) 가 [ADR-0001 Hydra+Kratos](../../adr/0001-idp-selection.md) supersession (sprint `claude/work_260519-a`, PR #169).
 
-### 4.3 우선순위 충돌
+### 4.3 우선순위 충돌 (Historical)
 
-P0 > P1 > P2 > P3 강제. P0 carve 진행 중 P2 carve 진입 금지 (예외: 같은 워커가 idle 상태일 때만).
+P0 > P1 > P2 > P3 강제 (governance 정합). P0 carve 진행 중 P2 carve 진입 금지.
 
-## 5. 사용자 (Owner) 의 역할
+## 5. 사용자 (Owner) 의 역할 — **유지**
 
-- **invoke 책임**: 모든 워커는 사용자가 invoke. 자동 트리거 없음
-- **사내 동반 carve**: `worker/user` label 항목은 사내 인프라/운영팀 동반 작업 (Keycloak admin 작업, HRDB ETL deploy, HA Phase 2 등)
-- **결정 권한**: ADR 결정 + 우선순위 변경 + 마일스톤 변경
+- **invoke 책임**: 워커는 사용자가 invoke. 자동 트리거 없음
+- **사내 동반 carve**: `worker/user` label 항목은 사내 인프라/운영팀 동반 작업 (Keycloak admin, HRDB ETL deploy, HA Phase 2 등)
+- **결정 권한**: ADR 결정 + 우선순위 변경 + 마일스톤 변경 + 워커 분업 변경 (본 결정 2026-06-09 의 예)
 - **review 최종 승인**: 모든 PR 의 squash merge 권한
 
 ## 6. 변경 이력
 
 | 일자 | 변경 | sprint |
 | --- | --- | --- |
+| 2026-06-09 | **§0 신규 + §1~§4 전면 改 編 (historical 標記) + §2.5 branch prefix 자유화 + §5 Owner 권한 명시 (워커 분업 전면 취소)** — 사용자 결정 (Claude/Codex 자유 이용 불가) 으로 §1.1~1.4 의 영역별 분담 / §2 sprint 별 분담 / §3 인계 SOP 4 패턴 / §4.1·4.3 충돌 처리 SOP 모두 무효. §4.2 ADR reversal 의 supersession 정공법 + §5 Owner 의 결정 권한은 유지. branch `<worker>` prefix 강제 해제, 권장 패턴만 유지 | `maintenance/work_260609-a-cancel-worker-division` |
 | 2026-05-20 | 1차 작성 — Claude (backend+design) / Codex (infra+CI+security) / Gemini (frontend+UX) 분담 + 인계 SOP 4 패턴 + 충돌 처리 SOP + 사용자 역할 명시 | `claude/work_260520-f-roadmap` |
-| 2026-05-20 | codex review hotfix (P2) — §4.2 ADR reversal 의 dead link (`[feedback_adr_supersession_pattern.md](#)`) 정정. per-user auto-memory 파일이라 repo 에 없음 → 5 step 표준 절차 본문 명시 + canonical 사례 ADR-0019/ADR-0001 supersession (PR #169) 인용으로 대체 | `claude/work_260520-g-codex-hotfix` |
-| 2026-05-20 | §2.5 신규 — Branch 명명 규칙 (`<worker>/work_<YYMMDD>-<sprint-seq>-<issue-num>-<short-key>`). 사용자 지시 (2026-05-20) 따라 작업 식별성 강화. 예외 (issue 없는 housekeeping/hotfix / 외부 contribution) 명시. 2026-05-20 sprint -i 이후 적용, 이전 branch 는 historical 보존 | `claude/work_260520-i-209-accounts-deprecation` (본 sprint 가 적용 첫 사례) |
-| 2026-06-01 | §2.5 `<worker>` 목록에 `deepseek` (Reasonix) 추가 + 예시 row + 예외에 Reasonix 환경 deepseek/ prefix 규칙 명시 | `deepseek/construct_workflow_for_deepseek` |
-| 2026-06-04 | **§1.4 OpenCode 신설** — 영역 TBD placeholder + bootstrap 노트 / §2.5 `<worker>` 목록에 `opencode` (Sisyphus) 추가 + 예시 row + 예외에 OpenCode 환경 opencode/ prefix 규칙 명시 / 문서 헤더 워커 수 3 → 4 갱신 | `opencode/work_260604-a-opencode-workflow-bootstrap` |
-| 2026-06-04 | **§1.4 OpenCode 본문 정의** — 영역 TBD → "Workflow curation (Lane 1) + Cross-cutting validation (Lane 2) + AI/ML prep (Lane 3, v1.1/v2)" 으로 확정. 각 lane 별 인계 SOP + 작업 스타일 + 외부 contribution 정책 명시. §5.1 release_v1_roadmap.md 분담 표 정합 (TBD → 3 lane). 헤더 결정 근거 sprint 에 본 sprint 추가. 누적 이력 placeholder 0 PR | `opencode/work_260604-b-opencode-areas` |
-| 2026-06-04 | **Mavis (MiniMax Code) 오케스트레이션 레이어 신설** — 본 저장소 외부 5-워커 분담과 별개의 Mavis 운영 패턴 단일 진입점을 `ai-workflow/minimax_code_workflow.md` 신규로 추가. Mavis 의 세션 모델, 작업 라우팅, 메모리 3-layer, communication/cron, skills/agents/MCP, 브랜치 `mvs/` prefix, 인계 SOP, 5-워커 워크플로우와의 공존 원칙 명시. AGENTS.md "Mavis 전용 메모" 섹션 신설 + `ai-workflow/README.md` §8 추가 + `ai-workflow/MEMORY_GOVERNANCE.md` 머리 단락 cross-ref. 본 문서 자체는 Mavis 와 직접 무관 (외부 워커 분담이므로), 다만 §5 분업 매트릭스 하단에 Mavis cross-cut PR 패턴 노트 추가 후보 | `mvs/work_260604-a-minimax-code-workflow-setup` |
+| 2026-05-20 | codex review hotfix (P2) — §4.2 ADR reversal 의 dead link 정정 + 5 step 표준 절차 본문 명시 + canonical 사례 ADR-0019/ADR-0001 supersession 인용 | `claude/work_260520-g-codex-hotfix` |
+| 2026-05-20 | §2.5 신규 — Branch 명명 규칙 (`<worker>/work_<YYMMDD>-<sprint-seq>-<issue-num>-<short-key>`) | `claude/work_260520-i-209-accounts-deprecation` |
+| 2026-06-01 | §2.5 `<worker>` 목록에 `deepseek` (Reasonix) 추가 | `deepseek/construct_workflow_for_deepseek` |
+| 2026-06-04 | **§1.4 OpenCode 신설** — 영역 TBD placeholder + bootstrap 노트 / §2.5 `<worker>` 목록에 `opencode` 추가 | `opencode/work_260604-a-opencode-workflow-bootstrap` |
+| 2026-06-04 | **§1.4 OpenCode 본문 정의** — 3-lane 확정 + release_v1_roadmap §5.1 정합 | `opencode/work_260604-b-opencode-areas` |
+| 2026-06-04 | **Mavis (MiniMax Code) 오케스트레이션 레이어 신설** — `ai-workflow/minimax_code_workflow.md` 신규 | `mvs/work_260604-a-minimax-code-workflow-setup` |

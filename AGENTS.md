@@ -1,18 +1,21 @@
 # AGENTS.md
 
-- 문서 목적: 모든 AI 에이전트(Codex, Reasonix 등)가 이 저장소에서 먼저 읽어야 할 workflow 진입 규칙과 기본 작업 원칙을 제공한다.
-- 범위: 세션 복원, workflow state docs 참조 순서, 사용자 보고 언어, 기본 실행/검증 명령, **v1.0 릴리즈 로드맵 + 워커 분업**
-- 대상 독자: Codex, Reasonix (deepseek-v4), 저장소 관리자, workflow 설계자
+- 문서 목적: 모든 AI 에이전트(어떤 워커든)가 이 저장소에서 먼저 읽어야 할 workflow 진입 규칙과 기본 작업 원칙을 제공한다.
+- 범위: 세션 복원, workflow state docs 참조 순서, 사용자 보고 언어, 기본 실행/검증 명령, **v1.0 릴리즈 로드맵 (워커 분업 전면 취소 결정 2026-06-09 반영)**
+- 대상 독자: 모든 AI 워커 (Claude/Codex/Gemini/Reasonix/OpenCode/Mavis/기타), 저장소 관리자, workflow 설계자
 - 상태: active
-- 최종 수정일: 2026-06-04 (OpenCode Lane 정의 보강)
-- 관련 문서: `ai-workflow/MEMORY_GOVERNANCE.md`, `ai-workflow/memory/<agent>/<branch>/state.json`, `ai-workflow/memory/PROJECT_PROFILE.md`, `docs/governance/README.md` (거버넌스 진입점), `docs/governance/document-standards.md`, `docs/governance/worker_division.md` (**워커 분업 — Codex/Reasonix 영역**), `docs/planning/release_v1_roadmap.md` (**v1.0 릴리즈 로드맵**), `docs/traceability/README.md`
+- 최종 수정일: 2026-06-09 (워커 분업 전면 취소 + branch prefix 자유화 반영)
+- 관련 문서: `ai-workflow/MEMORY_GOVERNANCE.md`, `ai-workflow/memory/<agent>/<branch>/state.json`, `ai-workflow/memory/PROJECT_PROFILE.md`, `docs/governance/README.md` (거버넌스 진입점), `docs/governance/document-standards.md`, `docs/governance/worker_division.md` (**2026-06-09 워커 분업 전면 취소 결정**), `docs/planning/release_v1_roadmap.md` (**v1.0 릴리즈 로드맵**), `docs/traceability/README.md`
 
-## v1.0 릴리즈 로드맵 + 워커 분업
+## v1.0 릴리즈 로드맵
 
-모든 신규 sprint 진입 전 다음 2 문서 확인:
+**2026-06-09 결정 — 워커 분업 전면 취소**. 본 AGENTS.md 의 v1.0 릴리즈 로드맵 진입 시 워커 분담 / 인계 SOP / 충돌 처리 SOP 의 강제력을 모두 무효로 한다. 모든 신규 sprint / PR / 작업은 **어느 에이전트로든 자유롭게** 진행 가능.
 
-- [`docs/planning/release_v1_roadmap.md`](docs/planning/release_v1_roadmap.md) — v1.0 scope + 잔여 carve 우선순위 (P0~P3) + 마일스톤 + sprint 별 워커 분담
-- [`docs/governance/worker_division.md`](docs/governance/worker_division.md) — Codex 영역 (infra + CI + security) + 인계 SOP + 충돌 처리
+모든 신규 sprint 진입 전 다음 1 문서 확인:
+
+- [`docs/planning/release_v1_roadmap.md`](docs/planning/release_v1_roadmap.md) — v1.0 scope + 잔여 carve 우선순위 (P0~P3) + 마일스톤 (워커 분담 표 §5 는 2026-06-09 취소, 작업 우선순위/P0~P3 자체는 유효)
+
+> 참고: [`docs/governance/worker_division.md`](docs/governance/worker_division.md) 는 2026-06-09 전면 취소 결정의 historical record + 유지되는 정책 (ADR supersession 정공법, Owner 권한) 만 보존. 강제력 없음.
 
 ## 목적
 
@@ -22,11 +25,13 @@
 
 1. 현재 git 브랜치를 확인한다: `git branch --show-current`
 2. 브랜치별 memory 디렉터리를 우선 읽는다.
-   - 브랜치명이 `codex/service-action-command`이면 `ai-workflow/memory/codex/service-action-command/`
-   - 브랜치명이 `claude/phase13`이면 `ai-workflow/memory/claude/phase13/`
-   - 브랜치명이 `gemini/...`이면 `ai-workflow/memory/gemini/<branch-suffix>/`
-   - 브랜치명이 `deepseek/...`이면 `ai-workflow/memory/deepseek/<branch-suffix>/` (Reasonix 포함)
-   - agent prefix가 없는 브랜치는 `ai-workflow/memory/branches/<branch-name>/`를 사용한다.
+   - 브랜치 prefix `codex/` 이면 `ai-workflow/memory/codex/<branch-suffix>/`
+   - 브랜치 prefix `claude/` 이면 `ai-workflow/memory/claude/<branch-suffix>/`
+   - 브랜치 prefix `gemini/...`이면 `ai-workflow/memory/gemini/<branch-suffix>/`
+   - 브랜치 prefix `deepseek/...`이면 `ai-workflow/memory/deepseek/<branch-suffix>/` (Reasonix 포함)
+   - 브랜치 prefix `opencode/...`이면 `ai-workflow/memory/opencode/<branch-suffix>/`
+   - 브랜치 prefix `mvs/...`이면 `ai-workflow/memory/mvs/<branch-suffix>/`
+   - prefix 없는 브랜치는 `ai-workflow/memory/branches/<branch-name>/` 사용
 3. 브랜치별 디렉터리에서 아래 문서를 먼저 읽는다.
    - `state.json`
    - `session_handoff.md`
@@ -74,7 +79,16 @@
 - flat memory 위치: legacy fallback 및 공용 색인 전용
 - 문서 포맷 원칙: 원본은 Markdown(`.md`) 유지, HTML은 보고/취합용 파생 산출물로만 사용 (`docs/governance/document-standards.md` §0)
 
-## Codex 전용 메모
+## 워커 일반 메모 (2026-06-09 전면 갱신)
+
+**2026-06-09 결정 — 워커 분업 전면 취소** (사용자 결정, Claude/Codex 자유 이용 불가). 본 AGENTS.md 의 **이하 모든 워커별 전용 메모는 historical record** 로서만 보존되며, 강제력 없음. 모든 신규 작업은 어느 에이전트로든 자유롭게 진행 가능. 세부:
+
+- **분기 prefix**: 역사적 보존 (`codex/` / `claude/` / `gemini/` / `deepseek/` / `opencode/` / `mvs/` + 자유 prefix). 신규 진입 시 `maintenance/` / `chore/` / `docs/` / `fix/` / `feat/` 등 자유 prefix 허용. 단 식별성을 위해 `<role>/work_<YYMMDD>-<sprint-seq>-<issue-num>-<short-key>` 패턴은 권장 유지.
+- **메모리 디렉터리 패턴**: `<agent>/<branch>/` historical 보존, 신규 진입 시 자유 (예: `ai-workflow/memory/maintenance/<branch-suffix>/`).
+- **GitHub PR label 의 `worker/<X>`**: historical 분류용으로 유지, 신규 PR 의 강제 부착 없음.
+- **유지 정책** (워커 무관): §4.2 ADR supersession 정공법, §5 Owner 권한, 우선순위 P0~P3 — 자세한 사항은 [worker_division.md §0](../docs/governance/worker_division.md) 참조.
+
+### Codex 전용 메모 (Historical)
 
 - Codex 는 프로젝트 루트의 `AGENTS.md` 를 읽으므로, 상세 정책은 본 문서에서 시작하고 세부 운영 기준은 `ai-workflow/` 문서를 참조한다.
 - OpenAI 관련 질문이 나오면 OpenAI 문서 MCP 를 우선 사용하는 구성을 권장한다.
@@ -83,10 +97,9 @@
 - `main`/`small` 모델을 함께 운영한다면, 메인 에이전트는 난도 높은 판단과 통합에, worker 는 bounded scope 탐색/초안/검증에 우선 배치하는 편이 효율적이다.
 - 신규 프로젝트 기준 초안이다. 프로젝트 고유의 실행 명령과 문서 구조가 정확한지 확인해야 한다.
 
-## Reasonix (deepseek-v4) 전용 메모
+### Reasonix (deepseek-v4) 전용 메모 (Historical)
 
 - Reasonix 는 Codex 와 동일한 workflow 레이어(`ai-workflow/`)를 따르며, 브랜치별 memory 디렉터리 패턴을 동일하게 사용한다.
-- **브랜치 생성 시 반드시 `deepseek/` prefix 를 사용한다.** 브랜치명 예: `deepseek/construct_workflow_for_deepseek`
 - 표준 sprint branch 명명 규칙은 `docs/governance/worker_division.md` §2.5 를 따른다: `deepseek/work_<YYMMDD>-<sprint-seq>-<issue-num>-<short-key>`
 - 브랜치 prefix `deepseek/` → `ai-workflow/memory/deepseek/<branch-suffix>/`
 - Reasonix 의 기본 모델은 `deepseek-v4-flash`이며, 복잡한 cross-file 리팩토링 시 자동으로 `deepseek-v4-pro` 로 escalation 된다.
@@ -95,22 +108,22 @@
 - 현재 브랜치가 `main`이 아닐 때는 `ai-workflow/` 메타 레이어를 기본 탐색 범위에 포함하지 말고, workflow 문서 갱신이나 세션 복원 시에만 참조한다.
 - 프로젝트 실행 기본값(TODO 항목들)은 아직 설정되지 않았다 (`TODO: ...` 상태). Reasonix 세션 시작 시 `PROJECT_PROFILE.md` §3 기본 명령을 직접 참조하여 실행한다.
 
-## OpenCode (Sisyphus / MiniMax-M3) 전용 메모
+### OpenCode (Sisyphus / MiniMax-M3) 전용 메모 (Historical)
 
 - OpenCode 워커는 Codex / Claude / Gemini / Reasonix 와 동일한 workflow 레이어(`ai-workflow/`)를 따르며, 브랜치별 memory 디렉터리 패턴을 동일하게 사용한다.
-- **브랜치 생성 시 반드시 `opencode/` prefix 를 사용한다.** 브랜치명 예: `opencode/work_260604-a-opencode-workflow-bootstrap`
-
-## Mavis (MiniMax Code / MiniMax-M3) 전용 메모
-
-- 본 저장소에서 Mavis 는 외부 AI 워커와 다른 오케스트레이션 레이어로 동작한다. 단일 진입점: [`ai-workflow/minimax_code_workflow.md`](ai-workflow/minimax_code_workflow.md).
-- **브랜치 생성 시 `mvs/` prefix 를 사용한다.** 예: `mvs/work_260604-a-minimax-code-workflow-setup`.
-- Mavis 의 day-1 baseline, 작업 라우팅 (self / mavis-team / single-spawn verifier), 메모리 3-layer (project/agent/user), 사용 가능 skills/agents/MCP, hard limits, 인계 SOP 은 위 문서에서 단일 source-of-truth 로 관리한다.
-- Mavis 는 5-워커 워크플로우를 대체하지 않는다 — cross-cut 정합 (governance / traceability / release_v1_roadmap / worker_division) 이 필요할 때 후속 PR 로만 개입.
 - 표준 sprint branch 명명 규칙은 `docs/governance/worker_division.md` §2.5 를 따른다: `opencode/work_<YYMMDD>-<sprint-seq>-<issue-num>-<short-key>`
 - 브랜치 prefix `opencode/` → `ai-workflow/memory/opencode/<branch-suffix>/`
 - OpenCode 의 기본 에이전트 식별자는 **Sisyphus** 이며, 기본 모델은 `MiniMax-M3` 다. 복잡한 cross-file 리팩토링·아키텍처 결정은 Oracle 같은 specialist 호출로 escalate 한다.
 - OpenCode 는 메인 에이전트 조정/통합에 집중하고, bounded scope 의 읽기/쓰기/검증 작업은 `explore` / `librarian` / `Sisyphus-Junior` 같은 worker 성격 서브에이전트에 위임하는 패턴을 권장한다.
-- **Lane 정의 (`worker_division.md` §1.4, 2026-06-04 확정)**: Lane 1 = workflow/governance curation, Lane 2 = cross-cutting validation + test infrastructure, Lane 3 = AI/ML service prep (v1.1/v2). Lane 1·2 는 즉시 carve 진입 가능, Lane 3 는 v1.0 출시 후.
 - 사용자에게 보이는 작업 보고, handoff, backlog, 사용자 안내 문구는 기본 한국어로 작성한다 (Reasonix 와 동일). 코드/명령어/경로/외부 시스템 명칭은 원문 유지.
 - 현재 브랜치가 `main`이 아닐 때는 `ai-workflow/` 메타 레이어를 기본 탐색 범위에 포함하지 말고, workflow 문서 갱신이나 세션 복원 시에만 참조한다.
-- 첫 sprint (`opencode/work_260604-a-opencode-workflow-bootstrap`) 는 governance 부트스트랩에 한정. 두 번째 sprint (`opencode/work_260604-b-opencode-areas`) 가 §1.4 본문 정의를 다룸.
+
+### Mavis (MiniMax Code / MiniMax-M3) 전용 메모 (Historical)
+
+- 본 저장소에서 Mavis 는 외부 AI 워커와 다른 오케스트레이션 레이어로 동작한다. 단일 진입점: [`ai-workflow/minimax_code_workflow.md`](ai-workflow/minimax_code_workflow.md).
+- Mavis 의 day-1 baseline, 작업 라우팅 (self / mavis-team / single-spawn verifier), 메모리 3-layer (project/agent/user), 사용 가능 skills/agents/MCP, hard limits, 인계 SOP 은 위 문서에서 단일 source-of-truth 로 관리한다.
+- 표준 sprint branch 명명 규칙은 `docs/governance/worker_division.md` §2.5 를 따른다: `mvs/work_<YYMMDD>-<sprint-seq>-<issue-num>-<short-key>`
+- 브랜치 prefix `mvs/` → `ai-workflow/memory/mvs/<branch-suffix>/`
+- Mavis 는 5-워커 워크플로우를 대체하지 않는다 — cross-cut 정합 (governance / traceability / release_v1_roadmap / worker_division) 이 필요할 때 후속 PR 로만 개입.
+- 사용자에게 보이는 작업 보고, handoff, backlog, 사용자 안내 문구는 기본 한국어로 작성한다 (Reasonix/OpenCode 와 동일). 코드/명령어/경로/외부 시스템 명칭은 원문 유지.
+
